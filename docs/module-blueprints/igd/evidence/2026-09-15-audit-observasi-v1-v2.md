@@ -365,3 +365,41 @@ hanya setelah keputusan K dijawab dan kontrak diperbarui.
 Yang **tidak** diusulkan: tabel vital sign kedua, kolom GCS/oksigen/EKG/DC Shock/obat pada
 `EmgObservationDetail`, tombol salin vital sign, layar resusitasi (gap tanpa ID atas instruksi owner),
 dan catatan alasan pembatalan (`IGD-OQ-083`).
+
+---
+
+## M. Penutupan audit — 16 September 2026
+
+Audit ini **ditutup**. Kelima pertanyaan pada bagian K dijawab Product/Domain Owner pada
+16 September 2026 dan menjadi keputusan; usulan task pada bagian L dialokasikan resmi.
+
+| Pertanyaan bagian K | Jawaban owner | Keputusan |
+| --- | --- | --- |
+| `IGD-OQ-084` — cara tanda vital masuk | Keduanya; **catat baru** sebagai alur bawaan, pilih yang sudah ada sebagai pilihan. Hanya pasien dan encounter yang sama | `IGD-DEC-122` |
+| `IGD-OQ-085` — ABCDE | Ditampilkan baca saja; evaluasi ditulis pada `ClinicalConditionSummary`; retriase untuk penilaian ulang | `IGD-DEC-123` |
+| `IGD-OQ-086` — alat bantu jalan napas | **Bukan** otomatis milik Pemakaian Alat; teks sementara, bentuk terstruktur tetap terbuka | `IGD-DEC-124` + `IGD-OQ-089` |
+| `IGD-OQ-087` — jenis oksigen | `Other` + catatan; usul penambahan enum dirutekan ke `ClinicalManagement` | `IGD-DEC-125` |
+| `IGD-OQ-088` — periode tertutup | `409` untuk pembuatan detail normal; **bukan** larangan permanen atas dokumentasi susulan | `IGD-DEC-126` + `IGD-OQ-090` |
+
+**Yang berubah sesudah audit:**
+
+| Artefak | Perubahan |
+| --- | --- |
+| `contracts/api-contract.md` | `0.5.0` → `0.6.0`; bagian 7 baru untuk `Emergency Observation Detail`; bagian 5 tidak lagi memuat grup itu |
+| `contracts/validation-matrix.md` | `0.5.0` → `0.6.0`; bagian 9 baru beserta urutan pemeriksaan 9.1 |
+| `02-backend-architecture.md` | Bagian 12 — kepemilikan data, relasi validasi, kelas yang berubah, tanpa migration, urutan pemanggilan |
+| `03-frontend-architecture.md` | Bagian 12 — peta butir menu, skema wilayah, sumber data per wilayah, sembilan aturan layar |
+| `roadmap/backend-roadmap.md` | Gelombang R3.9 beserta kartu `BE-IGD-046` |
+| `roadmap/frontend-roadmap.md` | Gelombang R3.7 beserta kartu `FE-IGD-028` |
+| `roadmap/requirement-traceability.md` | Bagian R3.5 |
+| `00-interview-decisions.md` | `IGD-DEC-122`…`126`; `IGD-OQ-089`, `IGD-OQ-090` |
+| `MODULE-STATUS.md` | Baris audit ditutup; dua blocker baru yang tidak menahan; urutan pekerjaan berikutnya |
+
+**Yang tidak berubah:** `FE-IGD-024` tetap `IMPLEMENTATION COMPLETE`, `BE-IGD-040` tetap seperti
+adanya, dan `FE-IGD-022` tetap 🟡 sebagai baseline — `FE-IGD-028` adalah follow-up, bukan
+penggantinya (bagian H).
+
+**Yang masih terbuka sesudah penutupan ini:** `IGD-OQ-089` (bentuk terstruktur alat jalan napas),
+`IGD-OQ-090` (entri susulan setelah periode ditutup), dan verifikasi runtime J-5 (tanda vital
+untuk pasien tanpa identitas provisional). Tidak satu pun menahan `BE-IGD-046` maupun
+`FE-IGD-028`.

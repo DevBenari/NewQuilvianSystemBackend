@@ -2,11 +2,11 @@
 
 | Field | Nilai |
 | --- | --- |
-| `contract_version` | `0.5.0` — penyelarasan teks 15 September 2026. **Bukan aditif**: pesan bagian 1 aturan 2 berubah (`IGD-DEC-120`) dan pesan bagian 6 aturan 4 berubah (`IGD-DEC-118`); bagian 8 baru (`IGD-DEC-119`, `IGD-DEC-121`). Kode status dan kondisi penolakan tidak berubah. Bagian 2 aturan 4-5 isinya utuh. Lihat manifest bagian 0c. *Sebelumnya `0.4.0` — revisi 6, bukan aditif: bagian 5 aturan 2 dan 4 berubah teksnya; lihat manifest 0a.2* |
+| `contract_version` | `0.6.0` — pemantauan observasi bertanda vital, 16 September 2026. **Aditif**: bagian 9 baru; nol aturan lama diubah teksnya. Empat penolakan baru pada `POST .../emergency-observation-details` (`IGD-DEC-122`, `IGD-DEC-126`). *Sebelumnya `0.5.0` — penyelarasan teks 15 September 2026: pesan bagian 1 aturan 2 (`IGD-DEC-120`), pesan bagian 6 aturan 4 (`IGD-DEC-118`), dan bagian 8 baru (`IGD-DEC-119`, `IGD-DEC-121`)* |
 | Status | `draft`, **kecuali bagian 2 aturan 4 dan 5 yang `approved`** |
 | Owner | Product/Domain Owner IGD: **Rizki Gunawan** (`IGD-DEC-089`) |
 | `approved_by` / `approved_at` | **Rizki Gunawan / 2026-08-24** — terbatas pada bagian 2 aturan 4 dan 5 lewat `IGD-DEC-093`. Seluruh aturan lain tetap `draft` |
-| Versi sebelumnya | `0.4.0`, sebelumnya `0.3.0` dan `0.2.0` |
+| Versi sebelumnya | `0.5.0`, sebelumnya `0.4.0`, `0.3.0`, dan `0.2.0` |
 
 Aturan penulisan pesan: pesan penolakan **wajib** menyebut apa yang salah dan apa yang harus
 dilakukan petugas. Pesan yang hanya menyebut nama kolom teknis dianggap belum selesai.
@@ -228,3 +228,51 @@ sudah ada; **tidak ada migration** untuk memperpanjangnya. Catatan untuk target 
 
 *Contoh:* perawat menempelkan catatan 1.250 karakter lalu menekan Selesaikan. Sistem menolak
 `400` dan tidak mengubah apa pun; perawat meringkas catatannya lalu mengirim ulang.
+
+---
+
+## 9. Pemantauan observasi (detail) — baru pada `0.6.0`
+
+Berlaku untuk `POST` dan `PUT`
+`api/v1/health-services/emergency-installation-management/emergency-observation-details`.
+Dasar: `IGD-DEC-122`, `IGD-DEC-126`, `IGD-DEC-123`, `IGD-DEC-124`, dan `IGD-DEC-057` butir
+identitas pencatat.
+
+| No | Aturan | Kode | Pesan | Keputusan |
+| ---: | --- | :-: | --- | --- |
+| 1 | Periode observasi harus ada | `400` | "Periode observasi tidak ditemukan." | Sudah ada |
+| 2 | Periode berstatus `Completed` atau `Cancelled` **menolak** pemantauan baru | `409` | "Periode observasi ini sudah ditutup, pemantauan baru tidak dapat ditambahkan. Buka periode observasi baru bila pasien masih perlu dipantau." | **`IGD-DEC-126`** |
+| 3 | Periode berstatus `Active` dan `Escalated` menerima pemantauan | — | Tidak menolak. Perilaku lama, tidak berubah | **`IGD-DEC-126`** |
+| 4 | Tanda vital yang ditautkan harus ada | `400` | "Tanda vital yang dipilih tidak ditemukan. Pilih tanda vital lain atau catat tanda vital baru." | **`IGD-DEC-122`** |
+| 5 | Tanda vital yang ditautkan harus **milik pasien yang sama** dengan kunjungan IGD periode itu | `400` | "Tanda vital yang dipilih bukan milik pasien pada kunjungan ini." | **`IGD-DEC-122`** |
+| 6 | Tanda vital yang ditautkan harus berada pada **encounter yang sama** | `400` | "Tanda vital yang dipilih berasal dari kunjungan lain. Pilih tanda vital dari kunjungan IGD yang sedang dibuka." | **`IGD-DEC-122`** |
+| 7 | Tanda vital yang sudah dibatalkan, dihapus, atau tidak aktif **tidak boleh** ditautkan | `400` | "Tanda vital yang dipilih sudah tidak berlaku. Pilih tanda vital lain atau catat tanda vital baru." | **`IGD-DEC-122`** |
+| 8 | Catatan perkembangan yang ditautkan mengikuti aturan lingkup yang sama dengan aturan 4–7 | `400` | "Catatan perkembangan yang dipilih bukan milik kunjungan pasien ini." | **`IGD-DEC-122`** (konsistensi lingkup) |
+| 9 | Pelaku pencatat **selalu** berasal dari pengguna yang terautentikasi | — | Tidak menolak. Nilai `recordedByUserId` dari pemanggil **diabaikan** | `IGD-DEC-057` butir identitas |
+| 10 | Angka keluaran dan cairan yang dikosongkan berarti **tidak diukur** | — | Tidak menolak; **dilarang** disimpan sebagai nol | `IGD-DEC-056` |
+| 11 | Pemantauan **tanpa** tanda vital tertaut tetap sah | — | Tidak menolak. Tautan bersifat opsional | **`IGD-DEC-122`** |
+| 12 | Baris pemantauan lama yang `patientVitalSignId`-nya kosong tetap terbaca | — | Tidak menolak. Tidak ada pengisian mundur | **`IGD-DEC-122`** |
+
+### 9.1 Urutan pemeriksaan yang mengikat
+
+Urutan ini bagian dari kontrak, bukan pilihan implementasi — penolakan yang lebih menentukan
+harus dijawab lebih dulu, dan **tidak boleh** ada data yang berubah sebelum seluruhnya lulus:
+
+1. periode ada (aturan 1) → `400`;
+2. periode belum ditutup (aturan 2) → `409`;
+3. tautan tanda vital dan catatan perkembangan (aturan 4–8) → `400`;
+4. baru data disimpan, dengan pelaku dari token (aturan 9).
+
+*Contoh:* perawat menautkan tanda vital milik pasien lain pada periode yang **sudah** ditutup.
+Yang dijawab lebih dulu adalah `409` periode tertutup, karena walaupun tanda vitalnya diganti
+benar, permintaan itu tetap ditolak.
+
+### 9.2 Yang **tidak** divalidasi di sini, dan sebabnya
+
+| Hal | Sebab |
+| --- | --- |
+| Isi angka tanda vital (batas wajar, nilai kritis) | Milik `ClinicalManagement`; IGD hanya menautkan (`IGD-DEC-122`) |
+| ABCDE | Tidak menjadi bagian payload pemantauan (`IGD-DEC-123`) |
+| Alat bantu jalan napas | Belum berbentuk terstruktur (`IGD-DEC-124`, `IGD-OQ-089`) |
+| Waktu `recordedAt` yang mundur | Sah selama periodenya masih berjalan; entri susulan **sesudah** periode ditutup menunggu `IGD-OQ-090` |
+| Obat, gambaran EKG, DC Shock | Milik Farmasi, Tindakan, dan Resusitasi |

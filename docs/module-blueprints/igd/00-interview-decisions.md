@@ -4084,3 +4084,122 @@ bagian K. **Tidak ada keputusan yang diambil**; kelima baris di bawah menunggu j
 | `IGD-OQ-086` | Open Question | Di mana alat bantu jalan napas (OPA, NPA, ETT, LMA, stoma) dicatat: teks sementara, area Pemakaian Alat (`IGD-DEC-096`), atau kolom baru pemantauan? V2 tidak punya tempat terstruktur untuknya | Product/Domain Owner IGD + tim PPI | `open` | Tidak memblokir usulan task; menunggu area Pemakaian Alat |
 | `IGD-OQ-087` | Open Question | Apakah enum `OxygenSupportType` milik `ClinicalManagement` perlu nilai Head Box, JR/T-Piece, Ambu Bag, dan Ventilator, atau cukup `Other` + catatan oksigen? | Pemilik `ClinicalManagement` (sementara Product/Domain Owner IGD, `IGD-DEC-107`) | `open` | Tidak memblokir |
 | `IGD-OQ-088` | Open Question | Apakah pemantauan boleh dicatat pada periode observasi yang sudah `Completed` atau `Cancelled`? Hari ini backend mengizinkannya tanpa penanda | Product/Domain Owner IGD + Nursing authority | `open` | Aturan validasi usulan task backend tautan tanda vital |
+
+---
+
+## Keputusan 16 September 2026 — pemantauan observasi bertanda vital
+
+Kelima pertanyaan audit Observasi dijawab Product/Domain Owner pada 16 September 2026. Bukti
+pilihan dan dampaknya ada di
+[evidence/2026-09-15-audit-observasi-v1-v2.md](evidence/2026-09-15-audit-observasi-v1-v2.md)
+bagian K. Keputusan ini **tidak** menyentuh penyelesaian periode observasi: `IGD-DEC-115`,
+`IGD-DEC-119`, dan `IGD-DEC-121` tetap berlaku apa adanya, dan `FE-IGD-024` tetap sah.
+
+### `IGD-DEC-122` — tanda vital selama pemantauan ditautkan, tidak disalin
+
+| ID | Jenis | Isi | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-122` | Decision | **Pemantauan observasi menautkan tanda vital, tidak menyimpan ulang angkanya.** `EmgObservationDetail` hanya menyimpan `PatientVitalSignId`; seluruh angka tetap milik `TrxPatientVitalSign` (`ClinicalManagement`). Petugas punya dua jalan: **(a)** mencatat tanda vital baru memakai kemampuan `PatientVitalSign` yang sudah ada — ini alur bawaan; **(b)** memilih tanda vital yang sudah tercatat. Pilihan (b) **hanya boleh** memperlihatkan tanda vital milik **pasien yang sama**, pada **encounter yang sama**, dan yang masih berlaku menurut model existing (tidak terhapus, tidak dibatalkan, tidak nonaktif). **Dilarang** membuat tabel tanda vital baru di `EmergencyInstallationManagement` dan **dilarang** menyalin angka tanda vital ke tabel IGD | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-09-16** | Jawaban pengguna 16 September 2026 atas `IGD-OQ-084`; `IGD-EV-124`…`126` |
+
+*Contoh:* perawat menekan **Catat Pemantauan** pukul 10.30, mengisi tanda vital baru, lalu
+menyimpan. Sistem menyimpan satu baris tanda vital milik `ClinicalManagement` dan satu baris
+pemantauan IGD yang menunjuknya. Ketika angka tanda vital itu kemudian dikoreksi pemiliknya,
+riwayat pemantauan IGD ikut membaca nilai terbarunya karena yang disimpan adalah tautan.
+
+### `IGD-DEC-123` — ABCDE selama observasi hanya dibaca
+
+| ID | Jenis | Isi | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-123` | Decision | **Observasi menampilkan hasil primary survey ABCDE terakhir sebagai konteks baca-saja dan tidak membuat ABCDE kedua.** Perubahan kondisi selama observasi ditulis pada `ClinicalConditionSummary`. Bila perubahan kondisi menuntut penilaian ulang tingkat kegawatan, petugas memakai alur retriase yang sudah ada. **Dilarang** menambah kolom ABCDE pada `EmgObservationDetail`. Bentuk ABCDE terstruktur yang berulang tetap pekerjaan tersendiri bila kelak dibutuhkan Clinical Governance — `IGD-GAP-027` tetap ditunda | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-09-16** | Jawaban pengguna 16 September 2026 atas `IGD-OQ-085`; `IGD-EV-127` |
+
+### `IGD-DEC-124` — alat bantu jalan napas belum berbentuk terstruktur
+
+| ID | Jenis | Isi | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-124` | Decision | **Alat bantu jalan napas tidak otomatis menjadi urusan Pemakaian Alat.** Dua hal dibedakan: **(a)** keadaan dan tindakan klinis jalan napas; **(b)** pemakaian alat sebagai barang. Untuk tahap sekarang, alat dan tindakan jalan napas dicatat pada `InterventionSummary` atau catatan klinis yang sudah ada. **Tanpa kolom baru, tanpa migration.** Kepemilikan bentuk terstruktur untuk OPA, NPA, ETT, LMA, stoma, dan bantuan napas bertekanan tetap terbuka dan menunggu keputusan Clinical Governance beserta pemilik domainnya — dicatat sebagai `IGD-OQ-089`. Keputusan ini **tidak** memblokir penautan tanda vital | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-09-16** | Jawaban pengguna 16 September 2026 atas `IGD-OQ-086` |
+
+### `IGD-DEC-125` — jenis oksigen memakai nilai yang sudah ada
+
+| ID | Jenis | Isi | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-125` | Decision | **Jenis alat oksigen memakai enum `OxygenSupportType` milik `ClinicalManagement` apa adanya.** Jenis yang belum ada nilainya dicatat sebagai `Other` beserta keterangan pada `OxygenSupportNote`. **Dilarang** menambah nilai enum hanya untuk IGD. Usulan penambahan Head Box, JR/T-Piece, Ambu Bag, dan Ventilator dirutekan kepada pemilik `ClinicalManagement` (sementara Product/Domain Owner IGD lewat `IGD-DEC-107`) sebagai permintaan tersendiri, dan tidak memblokir Observasi | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-09-16** | Jawaban pengguna 16 September 2026 atas `IGD-OQ-087`; `Enums/OxygenSupportType.cs` |
+
+### `IGD-DEC-126` — pemantauan baru ditolak pada periode yang sudah ditutup
+
+| ID | Jenis | Isi | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-126` | Decision | **Pemantauan baru hanya boleh ditambahkan pada periode observasi yang belum ditutup.** Periode berstatus `Completed` atau `Cancelled` menolak pembuatan detail pemantauan dengan `409` beserta pesan bisnis yang jelas; penegakannya di backend. Periode `Active` dan `Escalated` **tidak berubah** perilakunya. Keputusan ini **bukan** larangan permanen atas dokumentasi susulan: jalur entri susulan atau addendum sesudah periode ditutup adalah kebutuhan tersendiri yang **belum dirancang**, dicatat sebagai `IGD-OQ-090`, dan **tidak** boleh diimplementasikan menumpang task penautan tanda vital | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-09-16** | Jawaban pengguna 16 September 2026 atas `IGD-OQ-088`; `IGD-EV-129` |
+
+*Contoh:* perawat menutup periode pukul 12.00, lalu pukul 12.10 teringat satu putaran pukul
+11.30 yang belum tercatat. Hari ini sistem menolak `409`. Cara yang benar sekarang: putaran yang
+tertunda dicatat **sebelum** periode ditutup; `RecordedAt` boleh mundur selama periodenya masih
+berjalan. Jalur susulan sesudah penutupan menunggu `IGD-OQ-090`.
+
+### Status akhir pertanyaan audit Observasi
+
+| ID | Pokok | Status akhir | Ditutup oleh |
+| --- | --- | --- | --- |
+| `IGD-OQ-084` | Cara tanda vital masuk ke pemantauan | `superseded` | `IGD-DEC-122` |
+| `IGD-OQ-085` | ABCDE selama observasi | `superseded` | `IGD-DEC-123` |
+| `IGD-OQ-086` | Alat bantu jalan napas | `superseded` sebagian | `IGD-DEC-124`; sisanya terbuka sebagai `IGD-OQ-089` |
+| `IGD-OQ-087` | Jenis oksigen | `superseded` | `IGD-DEC-125` |
+| `IGD-OQ-088` | Detail pada periode tertutup | `superseded` sebagian | `IGD-DEC-126`; sisanya terbuka sebagai `IGD-OQ-090` |
+
+### Pertanyaan terbuka yang lahir dari keputusan ini
+
+| ID | Jenis | Isi | Owner | Status | Menahan |
+| --- | --- | --- | --- | --- | --- |
+| `IGD-OQ-089` | Open Question | Siapa pemilik bentuk terstruktur alat dan tindakan jalan napas (OPA, NPA, ETT, LMA, stoma, bantuan napas bertekanan), dan di entity mana disimpan? Pilihannya antara data klinis bersama, area Pemakaian Alat, atau catatan resusitasi | Clinical Governance + Product/Domain Owner IGD + pemilik domain terkait | `open` | Tidak menahan `BE-IGD-046` maupun `FE-IGD-028`; menahan pelaporan alat jalan napas yang dapat dihitung |
+| `IGD-OQ-090` | Open Question | Bagaimana dokumentasi susulan atau addendum dicatat setelah periode observasi ditutup — siapa yang berwenang, apa penandanya, dan bagaimana urutan waktunya dibaca? | Product/Domain Owner IGD + Nursing authority + Clinical Governance | `open` | Tidak menahan `BE-IGD-046`; menahan jalur entri susulan observasi |
+
+---
+
+## Kunjungan IGD keluar dari `Arrived` — 16 September 2026 (kedua)
+
+Latar belakangnya ada di
+[evidence/2026-09-16-kunjungan-terjebak-arrived.md](evidence/2026-09-16-kunjungan-terjebak-arrived.md),
+`IGD-EV-131` sampai `IGD-EV-136`.
+
+Ringkas persoalannya: kunjungan IGD lahir berstatus `Arrived`, dan **tidak satu pun** dari tiga
+jalan keluar yang sah menurut kontrak state bagian 1 punya pemanggil di layar. Perawat karena itu
+tidak pernah dapat menyimpan pemeriksaan triage — setiap penyimpanan dijawab `409` *"Status
+kunjungan tidak dapat berubah dari Arrived ke Triaged."*
+
+Kedua keputusan di bawah **tidak** mengubah kontrak mana pun. Transisi yang dipakai keduanya
+sudah sah dan sudah `approved` sejak `IGD-DEC-093`. Yang diputuskan adalah **siapa yang
+menjalankan transisi itu dan kapan**.
+
+### `IGD-DEC-127` — pendaftaran IGD menutup dengan `WaitingForTriage`
+
+| ID | Jenis | Isi | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-127` | Decision | **Pendaftaran IGD yang tuntas menutup kunjungan dengan `VisitStatus = WaitingForTriage`, bukan `Arrived`.** Alasannya, layar pendaftaran yang sama sudah mengisi `RegistrationStatus = Registered` dan `RegistrationCompletedAt` pada detik yang sama; menyimpannya sebagai "baru tiba" membuat satu baris menyatakan dua hal yang bertentangan. Akibat yang diterima: `Arrived` **praktis tidak lagi dihasilkan** lewat layar pendaftaran, dan hanya tersisa pada baris lama serta jalur pembuatan kunjungan di luar layar itu. Nilai enum `Arrived` **tidak** dihapus dan **tidak** digeser. Pengukuran *door-to-triage* tidak terpengaruh karena `ArrivalDateTime` disimpan terpisah dari `EmgTriage.StartedAt`. Keputusan ini **tidak** memberi wewenang mengubah `CanTransition`, tabel kontrak, maupun default pada model backend | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-09-16** | Jawaban pengguna 16 September 2026; `IGD-EV-131`…`IGD-EV-134` |
+
+*Contoh:* petugas mendaftarkan pasien IGD pukul 11.31 dan menekan Simpan. Hari ini kunjungan
+tersimpan "Pasien tiba" dan perawat triage menemui jalan buntu. Sesudah keputusan ini, kunjungan
+tersimpan "Menunggu triage", dan penyelesaian triage berpindah ke `Triaged` lewat `CanTransition`
+tanpa tambahan klik bagi siapa pun.
+
+### `IGD-DEC-128` — penanganan cepat dijalankan lewat aksi status kunjungan
+
+| ID | Jenis | Isi | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-128` | Decision | **Penanganan cepat pasien gawat dijalankan lewat satu aksi status pada daftar triage yang memindahkan kunjungan ke `InTreatment`**, memakai `PATCH /emergency-visits/{id}/visit-status` yang sudah ada. Pengkajian triage-nya **disusulkan** sesudah pasien ditangani, dan penyusulan itu **tidak** memundurkan status — perilaku yang sudah dijamin `IGD-DEC-104` huruf (b) dan sudah diterapkan di `EmergencyTriageController`. Tiga hal yang **ditolak** sebagai cara menutup kebutuhan ini: (1) membuat backend meloncatkan `Arrived` → `Triaged`, karena rumusan itu sudah ditolak dan diganti `IGD-DEC-104`; (2) melonggarkan `CanTransition`, karena matriksnya sudah benar; (3) membangun layar resusitasi, karena jauh melebihi kebutuhannya dan bertentangan dengan instruksi pemilik 15 September 2026 bahwa layar resusitasi tidak diberi ID task. Keputusan ini **tidak** menggantikan jalur resusitasi bila layarnya kelak dibangun; keduanya menuju status yang sama lewat penjaga yang sama | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-09-16** | Jawaban pengguna 16 September 2026; `IGD-EV-133`, `IGD-EV-134`; `frontend-roadmap.md` bagian "Gap yang dicatat tanpa ID task" |
+
+*Contoh:* pasien tidak sadarkan diri tiba diantar ambulans. Perawat menekan **Tangani Segera**
+pada baris pasien itu; kunjungan berpindah ke `InTreatment`, `TreatmentStartedAt` terisi
+otomatis oleh backend, dan tim langsung bekerja. Satu jam kemudian pengkajian triage-nya diisi;
+penilaian tersimpan dan status **tetap** `InTreatment`.
+
+### Pertanyaan terbuka yang lahir dari keputusan ini
+
+| ID | Jenis | Isi | Owner | Status | Menahan |
+| --- | --- | --- | --- | --- | --- |
+| `IGD-OQ-091` | Open Question | Sesudah `IGD-DEC-127`, apakah rumah sakit tetap membutuhkan pencatatan kedatangan **sebelum** pendaftaran — misalnya pra-notifikasi ambulans atau pasien tanpa identitas yang tiba lebih dulu — sehingga `Arrived` punya penghasil sendiri beserta layarnya? | Product/Domain Owner IGD + Nursing authority | `open` | Tidak menahan `FE-IGD-029` maupun `FE-IGD-030`; menahan perancangan layar kedatangan pra-pendaftaran |
+
+### Yang perlu diperiksa pemilik, bukan diputuskan
+
+| Bukti | Isi | Menahan |
+| --- | --- | --- |
+| `IGD-EV-135` | Master `EmgTriageLevel` pada basis data dev berisi 4 baris "Prioritas" yang dimasukkan manual, bukan 6 baris seeder. Nilai `AllowsTreatmentBeforeRegistration` pada baris nyata belum diketahui | Tidak menahan kedua task; menahan pembacaan `ImmediateCareAllowed` sebagai angka yang dipercaya |
+| Grant izin `EmergencyVisit` + `Update` | Aksi `FE-IGD-030` menuntut izin itu. Bila peran perawat triage belum memilikinya, tombolnya akan dijawab `403` | Tidak menahan implementasi; menahan pembuktian runtime `FE-IGD-030` |

@@ -8,7 +8,7 @@ roadmap_revision: 3
 wave: "Dikoreksi 2026-09-15: lima task selesai (FE-IGD-015, 016, 018, 020, 021); lima sebagian (FE-IGD-012, 013, 014, 017, 022); FE-IGD-010 belum dikerjakan. Klaim lama 'MVP-0..MVP-5 selesai' tidak akurat — lihat evidence/2026-09-15-pemeriksaan-status.md bagian 8"
 status: ACTIVE
 status_synced_at: "2026-09-15 — pemetaan ulang acceptance criteria pada frontend 43adae648; IGD-DEC-110, IGD-DEC-113"
-planning_updated_at: "2026-09-15 (kedua) — plan-module-delivery: kartu susulan FE-IGD-019; FE-IGD-023 sampai FE-IGD-027 ditambahkan; IGD-DEC-111, IGD-DEC-116 sampai IGD-DEC-121. Revision roadmap tetap 3"
+planning_updated_at: "2026-09-16 (kedua) — plan-module-delivery: FE-IGD-029 dan FE-IGD-030 ditambahkan (kunjungan keluar dari Arrived); IGD-DEC-127, IGD-DEC-128; evidence 2026-09-16-kunjungan-terjebak-arrived.md. Nol perubahan kontrak. Revision roadmap tetap 3. Sebelumnya 2026-09-16: FE-IGD-028; 2026-09-15 (kedua): kartu susulan FE-IGD-019, FE-IGD-023 sampai FE-IGD-027, IGD-DEC-111, IGD-DEC-116 sampai IGD-DEC-121"
 generated_at: "2026-08-24"
 revision_3_at: "2026-08-26"
 revision_3_1_at: "2026-08-27"
@@ -53,10 +53,14 @@ supersedes: "roadmap/archive/revision-1/frontend-roadmap.md"
 
 ## Grafik Urutan Dependency
 
-Roadmap ini memuat 11 task, tetapi bersama prasyarat backend dan revision `1` jumlah node
-melewati 15. Grafik dipecah: satu **grafik ringkasan** di bawah ini, lalu grafik per bagian di
+Roadmap ini memuat 20 task, tetapi bersama prasyarat backend dan revision `1` jumlah node
+melewati 25. Grafik dipecah: satu **grafik ringkasan** di bawah ini, lalu grafik per bagian di
 bawah judulnya masing-masing — bagian 1 (`MVP-0` dan warisan revision `1`), R3.2 (pendaftaran,
-pengkajian, kepergian, kebersihan), R3.4 (gelombang 27 Agustus), dan R3.5 (`FE-IGD-022`).
+pengkajian, kepergian, kebersihan), R3.4 (gelombang 27 Agustus), R3.5 (`FE-IGD-022`),
+R3.7 (pemantauan observasi), dan R3.8 (kunjungan keluar dari `Arrived`).
+
+*Jumlah task dikoreksi 16 September 2026: angka `11` tertinggal sejak revision `3` ditulis dan
+tidak pernah ikut diperbarui saat `FE-IGD-019` sampai `FE-IGD-028` ditambahkan.*
 
 Seluruh prasyarat frontend berasal dari **backend**, bukan dari task frontend lain. Karena itu
 setiap task frontend berada di gelombang 1, dan kolom "Boleh mulai setelah" menyebut prasyarat
@@ -88,8 +92,11 @@ flowchart LR
     FMASTER["✅ Gelombang 27 Agustus<br/>FE-IGD-020, FE-IGD-021"]:::selesai
     FBERSIH["✅ Kebersihan<br/>FE-IGD-018"]:::selesai
     FPASCA["🟡 R3.6 Gelombang 15 September<br/>FE-IGD-023 s.d. 027"]:::sebagian
+    FPASCA2["✅ R3.7 Gelombang 16 September<br/>FE-IGD-028"]:::selesai
+    FARRIVED["🟡 R3.8 Gelombang 16 September (kedua)<br/>FE-IGD-029, FE-IGD-030"]:::sebagian
 
     BMVP0 --> FMVP0
+    BMVP0 --> FARRIVED
     BMVP12 --> FDAFTAR
     BMVP3 --> FKAJI
     BR37 --> FKAJI
@@ -97,11 +104,12 @@ flowchart LR
     BR37 --> FMASTER
     BR38 --> FPASCA
     BMVP5 --> FPASCA
+    FPASCA --> FPASCA2
 ```
 
 | Gelombang | Boleh mulai setelah | Bagian |
 | ---: | --- | --- |
-| 1 | Prasyarat backend masing-masing | Seluruh bagian — boleh paralel. Bagian 2 menunggu task revision `1` yang seluruhnya sudah selesai; Kebersihan tanpa prasyarat. Pada R3.6, `FE-IGD-023`, `025`, dan `026` tidak menunggu backend; `FE-IGD-024` menunggu `BE-IGD-040` (R3.8); `FE-IGD-027` menunggu `BE-IGD-045` (`MVP-5`) |
+| 1 | Prasyarat backend masing-masing | Seluruh bagian — boleh paralel. Bagian 2 menunggu task revision `1` yang seluruhnya sudah selesai; Kebersihan tanpa prasyarat. Pada R3.6, `FE-IGD-023`, `025`, dan `026` tidak menunggu backend; `FE-IGD-024` menunggu `BE-IGD-040` (R3.8 **backend**); `FE-IGD-027` menunggu `BE-IGD-045` (`MVP-5`). Pada R3.8 **frontend**, `FE-IGD-029` dan `FE-IGD-030` boleh mulai sekarang: prasyarat backend-nya `BE-IGD-018` sudah ✅ dan endpoint-nya sudah berjalan |
 
 ### Register status task
 
@@ -124,6 +132,9 @@ flowchart LR
 | `FE-IGD-025` | Laporan susulan perombakan layar pengkajian dan temuan privasi | tanpa tanda — direncanakan | — |
 | `FE-IGD-026` | Laporan susulan layar pendaftaran IGD | tanpa tanda — direncanakan | — |
 | `FE-IGD-027` | Layar triase memakai riwayat penugasan dokter | tanpa tanda — direncanakan, menunggu `BE-IGD-045` | — |
+| `FE-IGD-028` | Pemantauan observasi dengan tanda vital tertaut | ✅ 16 September 2026 — lint, 857 unit test, dan `npm run build` lulus; **runtime terverifikasi sebagian lewat layar** (jalur pilih-existing dan ABCDE terisi belum dilalui) | [FE-IGD-028](../task/report/frontend/FE-IGD-028.md) |
+| `FE-IGD-029` | Pendaftaran IGD menutup dengan status Menunggu Triage | 🟡 16 September 2026 — kriteria 1 terbukti lewat layar (pasien baru langsung "Menunggu Triage"); kriteria 2 menunggu satu klik **Isi Triage** pada pasien baru itu | [FE-IGD-029](../task/report/frontend/FE-IGD-029.md) |
+| `FE-IGD-030` | Aksi Tangani Segera pada daftar triage | ✅ 16 September 2026 — kedelapan kriteria terbukti lewat layar; lint, 859 unit test, dan `npm run build` lulus; tanpa UAT | [FE-IGD-030](../task/report/frontend/FE-IGD-030.md) |
 
 `FE-IGD-019` sebelumnya belum punya kartu. Kartunya ditambahkan 15 September 2026 pada bagian
 R3.5, tepat sebelum `FE-IGD-022`.
@@ -777,3 +788,159 @@ dan **tidak** memakai `FE-IGD-024` maupun `FE-IGD-025`:
 | --- | --- | --- |
 | Layar resusitasi IGD | `IGD-EV-111` | `EmergencyResuscitationController` nol pemakai; tidak terhalang kewenangan unit |
 | Layar baca/aksi pesanan kepergian (`order-items`) | `IGD-EV-109` | Aksi tulis terhalang `BE-IGD-039`; tampilan baca tidak |
+
+---
+
+## R3.7 Gelombang 16 September 2026 — pemantauan observasi bertanda vital
+
+Lahir dari audit Observasi V1 lawan V2
+([evidence](../evidence/2026-09-15-audit-observasi-v1-v2.md)) dan keputusan `IGD-DEC-122`
+sampai `IGD-DEC-126`. Kontrak yang mengikat: API `0.6.0` bagian 7 dan validation `0.6.0`
+bagian 9; skema layar ada di `03-frontend-architecture.md` bagian 12. **Source sudah ditulis
+16 September 2026** dan build-nya bersih; uji lewat layar belum dijalankan.
+
+DoD baku gelombang ini: acceptance criteria terpetakan ke source; `npm run lint:errors` dan
+`node --import ./tests/helpers/register.mjs --test tests/unit` dijalankan dan hasilnya dicatat
+apa adanya; perintah `npm run build` diberikan kepada Rizki; catatan uji layar ditulis apa
+adanya; laporan tracked `task/report/frontend/<TASK-ID>.md`; roadmap dan traceability
+diperbarui; nol komponen bersama dan CSS global diubah; tanpa UAT PASS.
+
+```mermaid
+flowchart LR
+    classDef selesai fill:#DCFCE7,stroke:#16A34A,color:#14532D
+    classDef sebagian fill:#FEF9C3,stroke:#CA8A04,color:#713F12
+    classDef terblokir fill:#FEE2E2,stroke:#DC2626,color:#7F1D1D
+    classDef belum fill:#F1F5F9,stroke:#64748B,color:#0F172A
+    classDef luar fill:#EDE9FE,stroke:#7C3AED,color:#3B0764
+
+    subgraph backend["Prasyarat backend — backend-roadmap.md"]
+        BEIGD046["✅ BE-IGD-046<br/>Validasi dan proyeksi tanda vital"]:::luar
+    end
+
+    DEC122{{"✅ IGD-DEC-122<br/>Tanda vital ditautkan"}}:::selesai
+    DEC123{{"✅ IGD-DEC-123<br/>ABCDE baca saja"}}:::selesai
+    FEIGD024["✅ FE-IGD-024<br/>Kesimpulan saat Selesaikan"]:::selesai
+    FEIGD028["✅ FE-IGD-028<br/>Pemantauan bertanda vital"]:::selesai
+
+    BEIGD046 --> FEIGD028
+    DEC122 --> FEIGD028
+    DEC123 --> FEIGD028
+    FEIGD024 --> FEIGD028
+```
+
+| Gelombang | Boleh mulai setelah | Task |
+| ---: | --- | --- |
+| 1 | `BE-IGD-046` dinyatakan siap dipakai layar | `FE-IGD-028` ✅ |
+
+Panah dari `FE-IGD-024` berarti urutan sentuhan berkas, bukan ketergantungan data: keduanya
+menyentuh `emergency-assessment-observation-tab.jsx`, dan `FE-IGD-028` dibangun di atas layar
+hasil `FE-IGD-024` tanpa mengubah alur penyelesaian periode.
+
+### ✅ `FE-IGD-028` — Pemantauan observasi dengan tanda vital tertaut
+
+| Field | Isi |
+| --- | --- |
+| **Status** | ✅ **SELESAI (implementasi) 16 September 2026.** Seluruh 13 acceptance criteria dipetakan ke source: tab Observasi (+689/−109; +595/−15 bila indentasi diabaikan), `emergency-assessment-slice.jsx` (+28), `emergency-assessment-constant.jsx` (+44), hook detail (+5/−1), view detail (+2), util `patient-vital-sign-payload.utils.js` baru, dan satu berkas test unit baru. Nol komponen bersama, nol CSS, nol endpoint baru. `npm run lint:errors` **PASS**; `node --import ./tests/helpers/register.mjs --test tests/unit` **857/857 lulus** (852 lama + 5 baru); `npm run test:unit` tetap gagal karena glob skrip — masalah lama yang sama seperti `FE-IGD-023`/`FE-IGD-024`. **Build = Verified** — `npm run build` dijalankan Rizki 16 September 2026, berhasil tanpa error beserta tahap `postbuild`. Uji lewat layar: `NOT FEASIBLE` bagi agent. **Runtime verified: belum.** Bukan UAT. Delta tercatat pada kriteria 8: ringkasan ABCDE ternyata belum pernah dimuat workspace, sehingga satu thunk daftar triase ditambahkan memakai endpoint yang sudah ada — atas keputusan pemilik 16 September 2026. Bukti: [laporan](../task/report/frontend/FE-IGD-028.md). *Keadaan sebelumnya: direncanakan 16 September 2026, belum dikerjakan* |
+| **Outcome** | Perawat mencatat satu putaran pemantauan beserta tanda vitalnya dari satu layar, dan riwayat pemantauan menampilkan angka tanda vital, GCS, kesadaran, oksigen, serta nama pencatatnya |
+| **Slice** | `IGD-S04` · `EPIC IGD-09` (pemantauan observasi) |
+| **Requirement** | **Coverage gap:** tidak ada `FR-IGD-*`; dijejak ke keputusan (lihat `BE-IGD-046`) |
+| **Keputusan** | `IGD-DEC-122`, `IGD-DEC-123`, `IGD-DEC-124`, `IGD-DEC-125`, `IGD-DEC-126`; `IGD-DEC-056` |
+| **Kontrak** | API `0.6.0` bagian 7 (termasuk 7.3 endpoint tanda vital milik `ClinicalManagement`) dan validation `0.6.0` bagian 9. Skema layar: `03-frontend-architecture.md` bagian 12 |
+| **Reuse** | Tab Observasi yang sudah ada; formulir tanda vital bersama yang sudah dipakai tab Assesmen Awal; `EmergencyAssessmentFormCard`, `EmergencyAssessmentSection`, `ConfirmModal`, `InformationAlert`; thunk daftar dan simpan yang sudah ada pada `emergency-assessment-slice.jsx` |
+| **Scope** | `src/components/view/health-services/emergency-installation-management/emergency-assessment-view/components/emergency-assessment-observation-tab.jsx`; `src/lib/state/slice/health-services/emergency-installation-management/emergency-assessment-slice.jsx`; bila perlu `emergency-assessment-constant.jsx`. **Nol komponen bersama diubah, nol CSS global** |
+| **Dependency** | `BE-IGD-046`; `IGD-DEC-122` ✅. Tidak menunggu `BE-IGD-045` |
+| **Acceptance** | 1. Bagian **Tanda Vital** tersedia di dalam *Catat Pemantauan*. 2. Petugas dapat mencatat tanda vital baru memakai kemampuan formulir tanda vital yang sudah ada, tanpa berpindah tab. 3. Petugas dapat memilih tanda vital yang sudah tercatat, dan daftarnya **hanya** memuat tanda vital pasien dan encounter kunjungan itu — penyaring dikirim ke backend, bukan disaring di browser. 4. Yang dikirim ke `emergency-observation-details` hanya `patientVitalSignId`; **nol** angka tanda vital ikut dikirim. 5. Riwayat pemantauan menampilkan angka tanda vital dari proyeksi backend, bukan dari isian formulir. 6. Riwayat menampilkan GCS E/V/M beserta total, kesadaran, dan oksigen **bila** backend mengirimnya; layar tidak menghitung total sendiri. 7. Riwayat menampilkan nama pencatat dari `recordedByName`; kosong ditampilkan sebagai tanda hubung, **bukan** GUID. 8. Ringkasan ABCDE penilaian triase terakhir tampil sebagai konteks **baca saja**, memakai data yang sudah dimuat workspace — tanpa endpoint baru. 9. Periode `Completed` dan `Cancelled` tidak menyediakan jalan masuk pencatatan pemantauan normal; bila backend tetap menolak `409`, pesannya tampil apa adanya. 10. Isian Kesimpulan dan alur Selesaikan milik `FE-IGD-024` **tetap bekerja**. 11. **Nol** isian obat, gambaran EKG, atau DC Shock ditambahkan. 12. Layar Resusitasi **tidak** disentuh. 13. Nilai kosong tampil sebagai tanda hubung; kosong berarti tidak diukur, bukan nol |
+| **Bukti** | DoD baku bagian ini; tangkapan layar tab Observasi sesudah satu putaran pemantauan bertanda vital, bila backend dan kredensial tersedia — bila tidak, dinyatakan `NOT FEASIBLE` beserta alasannya |
+| **Risiko** | **Menengah.** Dua permintaan berurutan (tanda vital lalu pemantauan) tidak atomik: bila permintaan kedua gagal, baris tanda vital tetap tersimpan sebagai pengukuran sah dan layar wajib menjelaskannya, bukan menghapusnya |
+| **Owner** | Frontend |
+
+---
+
+## R3.8 Gelombang 16 September 2026 (kedua) — kunjungan keluar dari `Arrived`
+
+Lahir dari temuan pemakaian layar oleh Product/Domain Owner
+([evidence](../evidence/2026-09-16-kunjungan-terjebak-arrived.md), `IGD-EV-131`…`IGD-EV-136`)
+dan keputusan `IGD-DEC-127` serta `IGD-DEC-128`.
+
+**Gelombang ini memperbaiki modul yang tidak dapat dipakai, bukan menambah kemampuan.**
+Kunjungan IGD lahir `Arrived`, dan ketiga jalan keluar yang sah menurut kontrak state bagian 1
+sama-sama tidak punya pemanggil di layar. Akibatnya perawat **tidak pernah** dapat menyimpan
+pemeriksaan triage: setiap penyimpanan dijawab `409` *"Status kunjungan tidak dapat berubah dari
+Arrived ke Triaged."* Seluruh jalur sesudah triage — pengkajian, observasi, disposisi, kepergian
+— ikut tidak terjangkau untuk pasien baru.
+
+**Kontrak: nol perubahan.** Kedua transisi yang dipakai gelombang ini sudah sah dan sudah
+`approved` sejak `IGD-DEC-093`. Tidak ada endpoint baru, tidak ada kenaikan versi kontrak, dan
+`CanTransition` **tidak** boleh disentuh.
+
+DoD baku gelombang ini: acceptance criteria terpetakan ke source; `npm run lint:errors` dan
+`node --import ./tests/helpers/register.mjs --test tests/unit` dijalankan dan hasilnya dicatat
+apa adanya; perintah `npm run build` diberikan kepada Rizki; catatan uji layar ditulis apa
+adanya; laporan tracked `task/report/frontend/<TASK-ID>.md`; roadmap dan traceability
+diperbarui; nol komponen bersama dan CSS global diubah; tanpa UAT PASS.
+
+```mermaid
+flowchart LR
+    classDef selesai fill:#DCFCE7,stroke:#16A34A,color:#14532D
+    classDef sebagian fill:#FEF9C3,stroke:#CA8A04,color:#713F12
+    classDef terblokir fill:#FEE2E2,stroke:#DC2626,color:#7F1D1D
+    classDef belum fill:#F1F5F9,stroke:#64748B,color:#0F172A
+    classDef luar fill:#EDE9FE,stroke:#7C3AED,color:#3B0764
+
+    subgraph backend["Prasyarat backend — backend-roadmap.md"]
+        BEIGD018["✅ BE-IGD-018<br/>Penjaga transisi status kunjungan"]:::luar
+    end
+
+    DEC127{{"✅ IGD-DEC-127<br/>Pendaftaran menutup Menunggu Triage"}}:::selesai
+    DEC128{{"✅ IGD-DEC-128<br/>Penanganan cepat lewat aksi status"}}:::selesai
+    FEIGD029["🟡 FE-IGD-029<br/>Pendaftaran menutup Menunggu Triage"]:::sebagian
+    FEIGD030["✅ FE-IGD-030<br/>Aksi Tangani Segera"]:::selesai
+
+    DEC127 --> FEIGD029
+    BEIGD018 --> FEIGD030
+    DEC128 --> FEIGD030
+```
+
+| Gelombang | Boleh mulai setelah | Task |
+| ---: | --- | --- |
+| 1 | Prasyaratnya sudah selesai seluruhnya — boleh mulai sekarang, dan keduanya boleh paralel | `FE-IGD-029` 🟡, `FE-IGD-030` ✅ |
+
+Kedua task **tidak** saling bergantung: `FE-IGD-029` membuka jalur normal, `FE-IGD-030` membuka
+jalur cepat. Mengerjakan salah satunya saja sudah memberi nilai, tetapi hanya keduanya bersama
+yang menutup seluruh lubang pada `IGD-EV-133` dan `IGD-EV-134`.
+
+### 🟡 `FE-IGD-029` — Pendaftaran IGD menutup dengan status Menunggu Triage
+
+| Field | Isi |
+| --- | --- |
+| **Status** | 🟡 **SEBAGIAN — 16 September 2026.** Implementasi selesai dan build bersih: default `visitStatus` payload pendaftaran kini `WaitingForTriage`, ditambah dua test unit yang mengunci perilakunya. Kriteria 1, 3, 4, 5, dan 6 **terpenuhi** — kriteria 1 **terbukti lewat layar 16 September 2026**: pasien yang baru didaftarkan langsung berstatus "Menunggu Triage". Kriteria 2 **belum terbukti**: pada uji itu pasien barunya ditekan **Tangani Segera**, bukan **Isi Triage**, sehingga transisi `WaitingForTriage` → `Triaged` belum dilalui lewat layar. Validasi: `npm run lint:errors` **PASS**; `node --import ./tests/helpers/register.mjs --test tests/unit` **859/859 lulus** (857 lama + 2 baru); `npm run build` **berhasil**. Uji lewat layar: `NOT FEASIBLE` bagi agent. Bukti: [laporan](../task/report/frontend/FE-IGD-029.md). *Keadaan sebelumnya: direncanakan 16 September 2026, belum dikerjakan* |
+| **Outcome** | Pasien yang baru didaftarkan di IGD langsung berada pada antrean triage, sehingga perawat dapat menyimpan pemeriksaan triage tanpa ditolak `409` |
+| **Slice** | `IGD-S01` · `EPIC IGD-01` (pendaftaran dan triage) |
+| **Requirement** | `FR-IGD-013`, `FR-IGD-015` — sisi tampilan |
+| **Keputusan** | `IGD-DEC-127`; `IGD-DEC-093` (kontrak state bagian 1 `approved`) |
+| **Kontrak** | State `0.4.0` bagian 1 — **nol perubahan**. Transisi `WaitingForTriage` → `Triaged` sudah sah. Nol endpoint baru; payload `POST /emergency-visits` yang sudah ada hanya berganti nilai |
+| **Reuse** | Konstanta `EMERGENCY_VISIT_STATUS` beserta label dan warna badge-nya yang sudah lengkap di `emergency-registration.constants.js` baris 260-300 |
+| **Scope** | `src/utils/health-services/registration-management/emergency-management/emergency-registration.utils.js` baris 1174-1177. **Nol layar, nol komponen, nol CSS** |
+| **Dependency** | `IGD-DEC-127` ✅. Tidak menunggu backend — tidak ada perubahan backend sama sekali |
+| **Acceptance** | 1. Pendaftaran IGD yang tuntas menyimpan kunjungan dengan `visitStatus = 2` (`WaitingForTriage`); daftar triage menampilkannya sebagai **"Menunggu triage"**, bukan "Pasien tiba". 2. Menyimpan pemeriksaan triage pada pasien yang baru didaftarkan **berhasil**, dan status kunjungan berpindah ke `Triaged`. 3. Nilai `registrationStatus` dan `registrationCompletedAt` **tidak** berubah perilakunya. 4. Bila pemanggil menyertakan `context.visitStatus` secara eksplisit, nilai itu **tetap** dihormati — yang berubah hanya nilai default. 5. Pasien lama yang terlanjur `Arrived` **tidak** ikut berpindah sendiri; perbaikannya lewat `FE-IGD-030` atau tindakan data terpisah, dan itu dinyatakan apa adanya. 6. Nol perubahan pada backend, `CanTransition`, maupun berkas kontrak |
+| **Bukti** | DoD baku bagian ini; tangkapan layar daftar triage sesudah satu pendaftaran baru, memperlihatkan badge "Menunggu triage"; tangkapan layar penyimpanan triage yang berhasil. Bila kredensial atau backend tidak tersedia, dinyatakan `NOT FEASIBLE` beserta alasannya |
+| **Risiko** | **Rendah pada kode, menengah pada arti data.** Satu nilai berubah, tetapi `Arrived` praktis berhenti dihasilkan lewat layar pendaftaran — konsekuensi yang sudah diterima `IGD-DEC-127` dan dicatat sebagai `IGD-OQ-091` |
+| **Owner** | Frontend |
+
+### ✅ `FE-IGD-030` — Aksi Tangani Segera pada daftar triage
+
+| Field | Isi |
+| --- | --- |
+| **Status** | ✅ **SELESAI 16 September 2026 — kedelapan acceptance criteria terpenuhi dan terbukti lewat layar.** Implementasi pada lima berkas: thunk `startEmergencyImmediateCare` beserta cabang state `immediateCare` pada slice triage, aksi pada hook daftar, dialog konfirmasi `ConfirmModal` dengan isian alasan opsional, tombol **Tangani Segera** pada kolom AKSI, dan satu kelas penataan letak `.tableActionCell`. Nol layar baru, nol komponen bersama diubah, nol CSS global. **Uji lewat layar oleh pemilik, ketiganya lulus:** (1) BAGUS SETIAWAN berpindah "Pasien tiba" → "Sedang ditangani", grant izin `EmergencyVisit` + `Update` terbukti ada; (2) pengalihan ke layar Assesmen IGD bekerja pada NABILA PUTRI MAHARANI; (3) triage susulan pada pasien `InTreatment` tersimpan dan status **tidak mundur** — `IGD-DEC-104` huruf (b) terbukti ujung ke ujung. Dua penyempurnaan atas keputusan pemilik pada hari yang sama: spanduk berhasil menyebut nama pasien, dan perawat dialihkan langsung ke Assesmen IGD memakai route token yang sama dengan daftar pengkajian — delta kriteria 3 (perubahan badge tidak lagi diamati perawat) dicatat di laporan. Validasi: `npm run lint:errors` **PASS**; `node --import ./tests/helpers/register.mjs --test tests/unit` **859/859 lulus**; `npm run build` **berhasil**; grep anti-regresi warna, tipografi, dan kelas bootstrap **nihil**. **Bukan UAT** — UAT milik tim terpisah dan belum dijalankan. Satu pilihan tampilan masih terbuka: kedua tombol pada kolom AKSI tampil identik; lihat laporan bagian 8. Bukti: [laporan](../task/report/frontend/FE-IGD-030.md). *Keadaan sebelumnya: 🟡 sebagian, uji layar belum dijalankan* |
+| **Outcome** | Perawat dapat mendahulukan pasien gawat dengan satu tombol: kunjungan berpindah ke `InTreatment`, tim langsung bekerja, dan pengkajian triage-nya disusulkan tanpa memundurkan status |
+| **Slice** | `IGD-S01` · `EPIC IGD-01` (pendaftaran dan triage) |
+| **Requirement** | **Coverage gap:** tidak ada `FR-IGD-*` yang menuliskan jalur penanganan cepat; dijejak ke `IGD-DEC-128` |
+| **Keputusan** | `IGD-DEC-128`; `IGD-DEC-104` huruf (b); `IGD-DEC-093` |
+| **Kontrak** | State `0.4.0` bagian 1 — **nol perubahan**. Endpoint `PATCH /emergency-visits/{id}/visit-status` sudah ada sejak sebelum gelombang ini; bentuknya ada pada [evidence](../evidence/2026-09-16-kunjungan-terjebak-arrived.md) bagian G |
+| **Reuse** | Kolom AKSI dan `styles.primaryMiniButton` yang sudah dipakai tombol "Isi Triage"; `ConfirmModal` dan pola toast/`errorBanner` yang sudah dipakai layar triage; thunk dan service triage yang sudah ada |
+| **Scope** | `emergency-triage-patient-table.jsx` (kolom AKSI), `emergency-triage-patient-list-view.jsx`, service dan slice triage yang sudah ada. **Nol layar baru, nol komponen bersama diubah, nol CSS global** |
+| **Dependency** | `BE-IGD-018` ✅ (penjaga transisi); `IGD-DEC-128` ✅ |
+| **Acceptance** | 1. Baris pasien berstatus `Arrived` atau `WaitingForTriage` menampilkan aksi **Tangani Segera** di samping "Isi Triage"; status lain **tidak** menampilkannya. 2. Aksi itu meminta konfirmasi lebih dulu memakai pola konfirmasi yang sudah ada, bukan langsung mengirim. 3. Berhasil → kunjungan menjadi `InTreatment`, badge daftar berubah menjadi "Sedang ditangani" tanpa muat ulang halaman penuh. 4. Alasan singkat boleh diisi dan dikirim sebagai `notes`; dikosongkan tetap sah. 5. Penolakan backend tampil **apa adanya** dari `response.data.message` — termasuk `400` untuk transisi ilegal dan `403` bila izin `EmergencyVisit` + `Update` belum diberikan; **jangan** membuat penangan galat tandingan, dan **jangan** berasumsi transisi ilegal selalu `409` (`IGD-EV-136`). 6. Sesudah pasien `InTreatment`, tombol "Isi Triage" **tetap** bekerja, penilaian tersimpan, dan status **tetap** `InTreatment` — `IGD-DEC-104` huruf (b). 7. `TreatmentStartedAt` **tidak** dikirim dari layar; backend yang mengisinya. 8. Layar Resusitasi **tidak** dibangun dan **tidak** disentuh |
+| **Bukti** | DoD baku bagian ini; tangkapan layar sebelum dan sesudah aksi pada satu pasien, ditambah tangkapan layar penyimpanan triage susulan yang berhasil dengan status tetap `InTreatment`. Bila kredensial atau izin tidak tersedia, dinyatakan `NOT FEASIBLE` beserta alasannya |
+| **Risiko** | **Menengah.** Aksi ini memindahkan pasien ke penanganan tanpa triage — sah dan disengaja, tetapi tidak dapat dibatalkan lewat layar: kontrak tidak menyediakan jalan kembali dari `InTreatment` ke `WaitingForTriage`. Konfirmasi pada butir 2 ada khusus untuk itu. Risiko kedua: izin `EmergencyVisit` + `Update` belum terverifikasi pada peran perawat triage |
+| **Owner** | Frontend |

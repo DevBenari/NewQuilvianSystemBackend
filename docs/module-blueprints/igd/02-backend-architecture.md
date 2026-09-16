@@ -840,3 +840,138 @@ bersyarat pada `EmgDoctorAssignment`. Konsisten, bukan mekanisme baru.
 > kosong akan lolos begitu saja — bukan karena aturannya benar, melainkan karena
 > perbandingannya tidak pernah terjadi. Syarat `OrderSource` itulah yang membuat index kedua
 > benar-benar menjaga.
+
+---
+
+## 12. Pemantauan observasi bertanda vital — 16 September 2026
+
+Bagian ini menurunkan `IGD-DEC-122` sampai `IGD-DEC-126` menjadi desain backend. **Tidak ada
+tabel baru, tidak ada kolom baru, dan tidak ada migration.** Yang berubah adalah aturan
+penerimaan dan bentuk pembacaan.
+
+### 12.1 Kepemilikan data yang ditegaskan ulang
+
+| Kelompok data | Modul pemilik | Dipakai IGD? | Dibuat ulang di IGD? |
+| --- | --- | :-: | :-: |
+| Angka tanda vital, GCS, kesadaran, oksigen, nyeri, EWS | `ClinicalManagement` — `TrxPatientVitalSign` | Ya, lewat tautan | **Tidak** |
+| Catatan perkembangan | `ClinicalManagement` — `TrxPatientIntegratedProgressNote` | Ya, lewat tautan | **Tidak** |
+| Periode observasi dan isi pemantauan | `EmergencyInstallationManagement` — `EmgObservation`, `EmgObservationDetail` | Ya | — |
+| Primary survey ABCDE | `EmergencyInstallationManagement` — `EmgTriage` (ringkasan teks) | Dibaca saja | **Tidak** |
+| RJP, ROSC, defibrilasi | `EmergencyInstallationManagement` — `EmgResuscitation` | Tidak pada layar ini | **Tidak** |
+| Obat dan tindakan | Farmasi dan `EmgProcedureDetail` | Tidak pada layar ini | **Tidak** |
+
+### 12.2 Relasi yang dipakai validasi
+
+```mermaid
+classDiagram
+    class EmgVisit {
+        +Guid Id
+        +Guid? EncounterId
+        +Guid? PatientId
+    }
+    class EmgObservation {
+        +Guid Id
+        +Guid EmergencyVisitId
+        +EmergencyObservationStatus ObservationStatus
+    }
+    class EmgObservationDetail {
+        +Guid Id
+        +Guid EmergencyObservationId
+        +Guid? PatientVitalSignId «tautan»
+        +Guid? ProgressNoteId «tautan»
+        +Guid RecordedByUserId «dari token»
+    }
+    class TrxPatientVitalSign {
+        +Guid Id
+        +Guid PatientId
+        +Guid? EncounterId
+        +PatientVitalSignStatus VitalSignStatus
+        +bool IsActive
+    }
+
+    EmgVisit "1" --> "0..*" EmgObservation
+    EmgObservation "1" --> "0..*" EmgObservationDetail
+    EmgObservationDetail "0..*" --> "0..1" TrxPatientVitalSign : PatientVitalSignId
+```
+
+Jalur yang dilalui pemeriksaan lingkup:
+`EmgObservationDetail → EmgObservation → EmgVisit → (PatientId, EncounterId)`, lalu dibandingkan
+dengan `TrxPatientVitalSign.PatientId` dan `TrxPatientVitalSign.EncounterId`.
+
+### 12.3 Kelas yang berubah
+
+| Class | Status | Lokasi file | Perubahan |
+| --- | --- | --- | --- |
+| `EmergencyObservationService` | **Diperbarui** | `Areas/HealthServices/EmergencyInstallationManagement/Services/EmergencyObservationService.cs` | Menerima pemeriksaan lingkup pemantauan: periode belum ditutup, tanda vital dan catatan perkembangan satu pasien dan satu encounter, serta tanda vital masih berlaku. Service ini **sudah terdaftar** di `Program.cs`; tidak ada pendaftaran baru |
+| `EmergencyObservationDetailController` | **Diperbarui** | `.../Controllers/EmergencyObservationDetailController.cs` | Memanggil pemeriksaan di atas sebelum menyimpan; pelaku pencatat selalu dari token; proyeksi tanda vital dan nama pelaku pada response |
+| `EmergencyObservationDetailDtos` | **Diperbarui** | `.../DTOs/EmergencyObservationDetailDtos.cs` | `EmergencyObservationDetailResponse` bertambah `RecordedByName` dan objek `VitalSign`; `CreateEmergencyObservationDetailRequest.RecordedByUserId` ditandai usang dan diabaikan |
+| `EmgObservationDetail` | **Sudah ada** | `.../Models/EmgObservationDetail.cs` | **Tidak berubah** |
+| `EmgObservationDetailConfiguration` | **Sudah ada** | `Repositories/Configurations/HealthServices/EmergencyInstallationManagement/EmgObservationDetailConfiguration.cs` | **Tidak berubah**; FK, index `PatientVitalSignId`, dan `DeleteBehavior.Restrict` sudah sesuai |
+
+Pemeriksaan ditaruh di service, bukan di controller, mengikuti `QBE-SVC-001` untuk kode yang
+disentuh. Pemakaian `ApplicationDbContext` langsung di controller adalah utang lama yang
+**tidak** diperluas dan **tidak** dirapikan pada task ini.
+
+### 12.4 Bentuk pembacaan yang menghindari N+1
+
+Proyeksi tanda vital diambil dalam **satu kueri** bersama daftar pemantauan, memakai
+`Include`/`Select` pada relasi `PatientVitalSign` yang sudah dikonfigurasi. Nama pelaku diambil
+dari relasi `RecordedByUser` yang juga sudah ada.
+
+Yang **dilarang**: memanggil endpoint tanda vital satu kali per baris dari frontend, dan
+mengambil seluruh direktori pengguna hanya untuk menerjemahkan satu GUID.
+
+### 12.5 Dampak migration dan data lama
+
+| Hal | Keadaan |
+| --- | --- |
+| Migration | **Tidak ada** |
+| Kolom baru | **Tidak ada** |
+| Data lama | Baris pemantauan lama yang `PatientVitalSignId`-nya kosong tetap terbaca; `vitalSign` dikirim `null`. **Tidak ada** pengisian mundur |
+| Data master awal | **Tidak ada** yang perlu diisi |
+| Rollback | Cukup mengembalikan source; tidak ada perubahan skema yang perlu dibalik |
+
+### 12.6 Yang sengaja tidak dibuat
+
+| Yang ditolak | Alasan |
+| --- | --- |
+| Tabel tanda vital IGD | `IGD-DEC-122` — angka tetap milik `ClinicalManagement` |
+| Kolom GCS, kesadaran, oksigen pada `EmgObservationDetail` | Sama; sudah ada di `TrxPatientVitalSign` |
+| Kolom ABCDE pada `EmgObservationDetail` | `IGD-DEC-123`; `IGD-GAP-027` masih ditunda |
+| Kolom alat bantu jalan napas | `IGD-DEC-124`; menunggu `IGD-OQ-089` |
+| Kolom obat, gambaran EKG, DC Shock | Milik Farmasi, Tindakan, dan Resusitasi |
+| Endpoint baru untuk memilih tanda vital | `GET patient-vital-signs?patientId=&encounterId=` milik `ClinicalManagement` sudah cukup |
+| Jalur entri susulan setelah periode ditutup | `IGD-OQ-090`, belum dirancang; **dilarang** menumpang `BE-IGD-046` |
+| Penambahan nilai enum `OxygenSupportType` | `IGD-DEC-125` — milik `ClinicalManagement` |
+
+### 12.7 Urutan pemanggilan
+
+```mermaid
+sequenceDiagram
+    actor Perawat
+    participant Layar as Layar Pengkajian IGD
+    participant VS as Clinical Management API
+    participant OBS as Emergency Observation Detail API
+    participant DB as Basis data
+
+    Perawat->>Layar: Catat Pemantauan
+    alt Tanda vital baru
+        Layar->>VS: POST patient-vital-signs (pasien + encounter kunjungan ini)
+        VS-->>Layar: id tanda vital
+    else Pilih tanda vital yang sudah ada
+        Layar->>VS: GET patient-vital-signs?patientId=&encounterId=
+        VS-->>Layar: daftar tanda vital kunjungan ini
+    end
+    Layar->>OBS: POST emergency-observation-details (+ patientVitalSignId)
+    OBS->>DB: periode masih terbuka? pasien & encounter cocok? tanda vital berlaku?
+    alt Periode sudah ditutup
+        OBS-->>Layar: 409 periode sudah ditutup
+    else Tautan di luar lingkup
+        OBS-->>Layar: 400 beserta sebabnya
+    else Lolos
+        OBS->>DB: simpan; pelaku dari token
+        DB-->>OBS: baris pemantauan
+        OBS-->>Layar: 200 + proyeksi vitalSign + recordedByName
+        Layar-->>Perawat: riwayat pemantauan bertambah, lengkap dengan angka tanda vital
+    end
+```

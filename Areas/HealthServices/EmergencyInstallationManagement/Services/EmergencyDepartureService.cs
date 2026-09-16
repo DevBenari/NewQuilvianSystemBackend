@@ -549,7 +549,33 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             Guid emergencyVisitId,
             CancellationToken cancellationToken = default)
         {
-            var pesananDitolak = await _dbContext.Set<EmgHandoverOrderItem>()
+            var pesananDitolak = await AmbilPesananPenahanPenutupanAsync(
+                emergencyVisitId, cancellationToken);
+
+            if (pesananDitolak.Count == 0)
+                return null;
+
+            return "Ada pesanan yang ditolak unit penerima dan belum ditetapkan sikap " +
+                   $"penggantinya: {RingkasUraianPesanan(pesananDitolak)}.";
+        }
+
+        /// <summary>
+        /// Uraian pesanan yang menahan penutupan kunjungan — satu-satunya tempat aturan
+        /// kueri itu tinggal.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-IGD-041</c> untuk <c>IGD-DEC-118</c> butir (c) dan (d). Dipisahkan dari
+        /// <see cref="ValidatePesananSebelumPenutupanAsync"/> karena dua aturan kontrak
+        /// memakai kueri yang sama tetapi kalimat penolakan yang berbeda: validation
+        /// bagian 5 aturan 12 berbicara dari sudut pandang dokumen kepergian, sedangkan
+        /// bagian 6 aturan 4 dari sudut pandang penutupan kunjungan. Yang dibagi adalah
+        /// aturannya, bukan kalimatnya.
+        /// </remarks>
+        public async Task<IReadOnlyList<string>> AmbilPesananPenahanPenutupanAsync(
+            Guid emergencyVisitId,
+            CancellationToken cancellationToken = default)
+        {
+            return await _dbContext.Set<EmgHandoverOrderItem>()
                 .AsNoTracking()
                 .Where(x => !x.IsDelete
                     && x.IsEffective
@@ -558,15 +584,27 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                     && x.EmergencyDeparture.EmergencyVisitId == emergencyVisitId)
                 .Select(x => x.OrderDescription)
                 .ToListAsync(cancellationToken);
+        }
 
-            if (pesananDitolak.Count == 0)
-                return null;
+        /// <summary>
+        /// Menyusun daftar uraian pesanan menjadi satu kalimat — paling banyak lima,
+        /// selebihnya diringkas menjadi "dan N lainnya".
+        /// </summary>
+        /// <remarks>
+        /// <c>IGD-DEC-118</c> butir (a) dan (b). Statis supaya pemanggil yang menyusun
+        /// kalimatnya sendiri tidak perlu menyalin ulang aturan peringkasan ini, dan supaya
+        /// tidak ada baris baru yang dibutuhkan di <c>Program.cs</c>.
+        /// </remarks>
+        public static string RingkasUraianPesanan(IReadOnlyList<string> uraianPesanan)
+        {
+            ArgumentNullException.ThrowIfNull(uraianPesanan);
 
-            var daftar = string.Join(", ", pesananDitolak.Take(5));
-            var sisa = pesananDitolak.Count > 5 ? $" dan {pesananDitolak.Count - 5} lainnya" : string.Empty;
+            var daftar = string.Join(", ", uraianPesanan.Take(5));
+            var sisa = uraianPesanan.Count > 5
+                ? $" dan {uraianPesanan.Count - 5} lainnya"
+                : string.Empty;
 
-            return "Ada pesanan yang ditolak unit penerima dan belum ditetapkan sikap " +
-                   $"penggantinya: {daftar}{sisa}.";
+            return $"{daftar}{sisa}";
         }
 
         public async Task<Hasil<EmgDepartureEvent>> AmendEventAsync(

@@ -8,7 +8,7 @@ roadmap_revision: 3
 wave: "Dikoreksi 2026-09-15: MVP-1, MVP-2, R3.7 selesai; MVP-0, MVP-3, MVP-4, MVP-5 sebagian; MVP-6 terblokir BE-IGD-039"
 status: ACTIVE
 status_synced_at: "2026-09-15 — backend e89907c5, frontend 43adae648; IGD-DEC-110 sampai IGD-DEC-115"
-planning_updated_at: "2026-09-15 (kedua) — BE-IGD-040..045, FE-IGD-019 (kartu susulan), FE-IGD-023..027; IGD-DEC-116 sampai IGD-DEC-121. Lihat bagian R3.4"
+planning_updated_at: "2026-09-16 (kedua) — FE-IGD-029 dan FE-IGD-030 (kunjungan keluar dari Arrived); IGD-DEC-127 dan IGD-DEC-128; nol perubahan kontrak. Lihat bagian R3.6. Sebelumnya 2026-09-16: BE-IGD-046 dan FE-IGD-028, IGD-DEC-122 sampai IGD-DEC-126, kontrak API dan validation 0.6.0 (bagian R3.5); 2026-09-15 (kedua): BE-IGD-040..045, FE-IGD-019, FE-IGD-023..027"
 generated_at: "2026-08-24"
 aligned_at: "2026-08-26 (correction pass revisi 6)"
 input_revisions:
@@ -260,7 +260,7 @@ Empat keadaan dibedakan dengan tegas:
 | --- | --- | --- | --- | :-: | :-: | :-: | :-: |
 | `BE-IGD-017` (tindak lanjut) | — (perbaikan build) | Laporan tracked historis `BE-IGD-017.md`; nol source | — | — | Ya | Source: ya (26 Agt). Laporan: **belum** | Historis (26 Agt), tidak dapat diulang |
 | `BE-IGD-040` | `IGD-DEC-115`, `IGD-DEC-119`; **coverage gap: tanpa FR** | `EmergencyObservationController.UpdateObservationStatus`: `Completed` → `CompletionSummary`; batas 1000 karakter `400` | `IGD-DEC-115` ✅, `IGD-DEC-119` ✅ | Ya | Ya | **Ya** ✅ 15 September 2026 — kriteria 1–7 ke source; delta pesan catatan > 2000 karakter tercatat; build **Not Verified** (diserahkan ke Rizki) — [laporan](../task/report/backend/BE-IGD-040.md) | **Belum** — uji API manual contoh 1–6 belum dijalankan |
-| `BE-IGD-041` | `FR-IGD-051`; `IGD-DEC-118` | `EmergencyDispositionService.ValidateVisitClosureAsync` memakai `ValidatePesananSebelumPenutupanAsync`; pesan menyebut pesanan | `IGD-DEC-118` ✅ | Ya | Ya | Belum | Belum |
+| `BE-IGD-041` 🟡 | `FR-IGD-051`; `IGD-DEC-118` | `EmergencyDispositionService.ValidateVisitClosureAsync` memakai `EmergencyDepartureService.AmbilPesananPenahanPenutupanAsync`; pesan menyebut pesanan. Menutup kriteria 2 `BE-IGD-035` | `IGD-DEC-118` ✅ | Ya | Ya | **Sebagian** — 16 September 2026, [laporan](../task/report/backend/BE-IGD-041.md); ketujuh kriteria terpetakan ke source, `dotnet build` dan uji API belum dijalankan | Belum |
 | `BE-IGD-042` | `FR-IGD-001`, `FR-IGD-002`; `IGD-DEC-074`, `IGD-DEC-109`, `IGD-DEC-120` | `EmergencyVisitService.PeriksaJenisEncounter` menolak `Outpatient` | ⛔ **OWNER DATA CONFIRMATION** — jumlah `EmgVisit` aktif dengan `EncounterType.Outpatient`; `IGD-DEC-120` ✅ | Ya | Ya — **⛔ BLOCKED** | Belum | Belum |
 | `BE-IGD-043` | `IGD-DEC-112` | Laporan tracked `BE-IGD-043.md` atas `f76ebaab`; nol source | — | Ya | Ya | Source: ya (28 Agt). Laporan: **belum** | Belum |
 | `BE-IGD-044` | `FR-IGD-017`, `FR-IGD-019`; `IGD-DEC-082` (draft klinis), `IGD-DEC-116` | Tabel `EmgDoctorAssignment` + unique bersyarat + pengisian data lama; migration oleh Rizki | `MVP-1` ✅, `IGD-DEC-116` ✅ | Sebagian — `IGD-DEC-082` menunggu Clinical Governance | Ya | Belum | Belum |
@@ -298,4 +298,83 @@ Enam dari enam requirement `EPIC IGD-04` kini punya task. `FR-IGD-022` **bukan**
 | Uji `AT-IGD-124`…`129` tanpa automated test | Proyek test dihapus; bukti pengganti berupa uji API manual (`IGD-DEC-110`) |
 | Layar resusitasi IGD | Tanpa ID task atas instruksi owner (`IGD-EV-111`) |
 | Layar baca/aksi `order-items` | Tanpa ID task atas instruksi owner (`IGD-EV-109`); aksi tulis terhalang `BE-IGD-039` |
-| Teks berkas kontrak belum diselaraskan | API §3 nama tabel dan query `at`, validation §1 aturan 2, §6 aturan 4, dan batas 1000 karakter masih mengikuti teks lama; `IGD-DEC-116`…`120` yang berlaku |
+| ~~Teks berkas kontrak belum diselaraskan~~ | **Ditutup 15 September 2026** — API dan validation naik ke `0.5.0`, lalu `0.6.0` pada 16 September 2026; lihat manifest bagian 0c dan 0d |
+
+---
+
+## R3.5 Perencanaan 16 September 2026 — pemantauan observasi bertanda vital
+
+Sumber: audit Observasi V1 lawan V2
+([evidence](../evidence/2026-09-15-audit-observasi-v1-v2.md)) dan keputusan `IGD-DEC-122`
+sampai `IGD-DEC-126`.
+
+### R3.5.1 Task
+
+| Task | Requirement / keputusan | Target implementasi | Dependency | Requirement approved | Delivery planned | Implementation complete | Runtime verified |
+| --- | --- | --- | --- | :-: | :-: | :-: | :-: |
+| `BE-IGD-046` ✅ | `IGD-DEC-122`…`126`, `IGD-DEC-056`, `IGD-DEC-057`; **coverage gap: tanpa FR** | `EmergencyObservationService` + `EmergencyObservationDetailController` + DTO: validasi lingkup tanda vital, pelaku dari token, tolak `409` pada periode tertutup, proyeksi `vitalSign` dan `recordedByName` | `IGD-DEC-122` ✅, `IGD-DEC-126` ✅, kontrak `0.6.0` | Ya | Ya | Ya — 16 September 2026, [laporan](../task/report/backend/BE-IGD-046.md); build bersih (nol error) | **Sebagian** — terbukti lewat uji layar `FE-IGD-028` 16 September 2026: proyeksi `vitalSign` dan `recordedByName` terbaca, periode tertutup menolak pemantauan baru |
+| `FE-IGD-028` ✅ | `IGD-DEC-122`, `IGD-DEC-123`, `IGD-DEC-125`, `IGD-DEC-126`; **coverage gap: tanpa FR** | Tab Observasi: bagian Tanda Vital pada *Catat Pemantauan*, riwayat bertanda vital dan nama pencatat, konteks ABCDE baca saja | `BE-IGD-046` | Ya | Ya | Ya — 16 September 2026, [laporan](../task/report/frontend/FE-IGD-028.md); lint, 857 unit test, dan build lulus | **Sebagian** — uji layar pemilik 16 September 2026 lulus tanpa galat; jalur pilih-existing (kriteria 3) dan ABCDE terisi (kriteria 8) belum dilalui |
+
+### R3.5.2 Keputusan yang dipakai gelombang ini
+
+| Keputusan | Isi singkat | Task |
+| --- | --- | --- |
+| `IGD-DEC-122` | Tanda vital ditautkan lewat `PatientVitalSignId`, tidak disalin; pilihan terbatas pada pasien dan encounter yang sama | `BE-IGD-046`, `FE-IGD-028` |
+| `IGD-DEC-123` | ABCDE terakhir dibaca saja; evaluasi ditulis pada `ClinicalConditionSummary` | `FE-IGD-028` |
+| `IGD-DEC-124` | Alat bantu jalan napas belum terstruktur; ditulis pada `InterventionSummary` | — (batas lingkup) |
+| `IGD-DEC-125` | Jenis oksigen memakai enum `ClinicalManagement` apa adanya | `FE-IGD-028` |
+| `IGD-DEC-126` | Periode `Completed`/`Cancelled` menolak pemantauan baru dengan `409` | `BE-IGD-046`, `FE-IGD-028` |
+
+### R3.5.3 Coverage gap yang tetap terbuka
+
+| Gap | Keterangan |
+| --- | --- |
+| `BE-IGD-046` dan `FE-IGD-028` tanpa `FR-IGD-*` | Pemantauan observasi adalah kapabilitas reuse (`IGD-CAP-26`, `IGD-CAP-21`) tanpa requirement tertulis; dijejak ke `IGD-DEC-122`…`126` |
+| Bentuk terstruktur alat jalan napas | `IGD-OQ-089` terbuka; tidak menahan kedua task |
+| Entri susulan setelah periode ditutup | `IGD-OQ-090` terbuka; **dilarang** menumpang `BE-IGD-046` |
+| Tanda vital untuk pasien tanpa identitas provisional | `IGD-EV-130` — `PatientId` wajib pada tanda vital sementara `EmgVisit.PatientId` boleh kosong; perlu uji runtime, bukan keputusan |
+
+---
+
+## R3.6 Perencanaan 16 September 2026 (kedua) — kunjungan keluar dari `Arrived`
+
+Sumber: temuan pemakaian layar oleh Product/Domain Owner
+([evidence](../evidence/2026-09-16-kunjungan-terjebak-arrived.md), `IGD-EV-131`…`IGD-EV-136`)
+dan keputusan `IGD-DEC-127` serta `IGD-DEC-128`.
+
+Gelombang ini **memulihkan kemampuan yang sudah dibangun**, bukan menambah yang baru. Karena
+tidak ada jalan keluar dari `Arrived` di layar, seluruh rantai requirement sesudah triage —
+`FR-IGD-013` sampai `FR-IGD-015` dan setiap requirement yang bergantung padanya — tidak dapat
+dibuktikan lewat layar untuk pasien baru, walaupun source-nya sudah ada dan sudah lulus build.
+
+### R3.6.1 Task
+
+| Task | Requirement / keputusan | Target implementasi | Dependency | Requirement approved | Delivery planned | Implementation complete | Runtime verified |
+| --- | --- | --- | --- | :-: | :-: | :-: | :-: |
+| `FE-IGD-029` 🟡 | `FR-IGD-013`, `FR-IGD-015`; `IGD-DEC-127`, `IGD-DEC-093` | `emergency-registration.utils.js`: default `visitStatus` payload pendaftaran menjadi `WaitingForTriage` | `IGD-DEC-127` ✅ | Ya | Ya | Ya — 16 September 2026, [laporan](../task/report/frontend/FE-IGD-029.md); lint, 859 unit test, dan build lulus | **Belum** — menunggu satu pendaftaran IGD baru dijalankan lewat layar (kriteria 1 dan 2) |
+| `FE-IGD-030` ✅ | `IGD-DEC-128`, `IGD-DEC-104` (b), `IGD-DEC-093`; **coverage gap: tanpa FR** | Daftar triage: aksi Tangani Segera memanggil `PATCH /emergency-visits/{id}/visit-status` dengan `InTreatment`, lalu mengalihkan perawat ke layar Assesmen IGD | `BE-IGD-018` ✅, `IGD-DEC-128` ✅ | Ya | Ya | Ya — 16 September 2026, [laporan](../task/report/frontend/FE-IGD-030.md); lint, 859 unit test, dan build lulus | **Ya** — ketiga skenario lulus lewat layar 16 September 2026: status berpindah, pengalihan bekerja, triage susulan tidak memundurkan status. Tanpa UAT |
+
+### R3.6.2 Keputusan yang dipakai gelombang ini
+
+| Keputusan | Isi singkat | Task |
+| --- | --- | --- |
+| `IGD-DEC-127` | Pendaftaran IGD yang tuntas menutup kunjungan dengan `WaitingForTriage`, bukan `Arrived` | `FE-IGD-029` |
+| `IGD-DEC-128` | Penanganan cepat lewat aksi status kunjungan ke `InTreatment`; triage disusulkan; tiga jalan pintas ditolak | `FE-IGD-030` |
+| `IGD-DEC-104` (b) | Penilaian ulang pada pasien yang sudah melewati triage tersimpan tanpa memundurkan status | `FE-IGD-030` |
+| `IGD-DEC-093` | Kontrak state bagian 1 `approved` — sumber kesahan kedua transisi yang dipakai | `FE-IGD-029`, `FE-IGD-030` |
+
+### R3.6.3 Kontrak
+
+**Nol perubahan, nol kenaikan versi.** Kedua transisi yang dipakai sudah ada pada tabel state
+`0.4.0` bagian 1 dan sudah `approved` sejak 24 Agustus 2026. Endpoint yang dipanggil `FE-IGD-030`
+sudah berjalan sebelum gelombang ini. `CanTransition` **tidak** disentuh.
+
+### R3.6.4 Coverage gap yang tetap terbuka
+
+| Gap | Keterangan |
+| --- | --- |
+| `FE-IGD-030` tanpa `FR-IGD-*` | Jalur penanganan cepat tidak pernah dituliskan sebagai requirement; dijejak ke `IGD-DEC-128` |
+| Kedatangan sebelum pendaftaran | `IGD-OQ-091` terbuka — apakah `Arrived` masih butuh penghasil sendiri sesudah `IGD-DEC-127`. Tidak menahan kedua task |
+| Baris lama yang terlanjur `Arrived` | Dua kunjungan pada basis data dev (`IGD-EV-131`). `FE-IGD-029` **tidak** memindahkannya; jalan keluarnya lewat `FE-IGD-030` atau tindakan data terpisah |
+| Izin `EmergencyVisit` + `Update` pada peran perawat triage | Belum terverifikasi; menahan pembuktian runtime `FE-IGD-030`, bukan implementasinya |
+| Master level triage di basis data dev | `IGD-EV-135` — 4 baris manual lawan 6 baris seeder; `AllowsTreatmentBeforeRegistration` belum terbaca. Perlu pemeriksaan pemilik, bukan keputusan |

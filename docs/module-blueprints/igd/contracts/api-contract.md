@@ -2,11 +2,11 @@
 
 | Field | Nilai |
 | --- | --- |
-| `contract_version` | `0.5.0` — penyelarasan teks 15 September 2026. **Bukan aditif murni**: §3 bertambah query `at` pada `GET /active` (`IGD-DEC-117`, aditif), dan §5 mencatat satu penolakan `400` baru pada `PATCH .../observation-status` (`IGD-DEC-119`). Lihat manifest bagian 0c. *Sebelumnya `0.4.0` — revisi 6, bukan aditif: dua route revisi 5 diganti (`/pending-orders`, `/order-actions`); lihat manifest 0a.2* |
+| `contract_version` | `0.6.0` — pemantauan observasi bertanda vital, 16 September 2026. **Aditif**: bagian 7 baru untuk `Emergency Observation Detail` — bentuk request tidak bertambah, response bertambah proyeksi `vitalSign` dan `recordedByName`, dan dua penolakan baru ditegakkan (`IGD-DEC-122`, `IGD-DEC-126`). Ruas `recordedByUserId` pada request menjadi **usang tetapi tetap diterima**. Lihat manifest bagian 0d. *Sebelumnya `0.5.0` — penyelarasan teks 15 September 2026: query `at` pada §3 dan penolakan catatan observasi lebih dari 1000 karakter* |
 | Status | `draft` |
 | Owner | Product/Domain Owner IGD: **Rizki Gunawan** (`IGD-DEC-089`) |
 | `approved_by` / `approved_at` | — / — |
-| `input_revision` | `00-interview-decisions.md` **121 keputusan**, terakhir `IGD-DEC-121`; `01-existing-capability-map.md` revision `3` + suplemen `3.1` |
+| `input_revision` | `00-interview-decisions.md` **126 keputusan**, terakhir `IGD-DEC-126`; `01-existing-capability-map.md` revision `3` + suplemen `3.1` |
 | `input_hash` | Dihitung ulang pada manifest bagian 2, penyelarasan teks 2026-09-15 |
 | Versi sebelumnya | `0.4.0` (revisi 6, 26 Agustus 2026). Versi `approved` penuh terakhir: `0.2.0`, 14 Agustus 2026 |
 | Commit diaudit | backend `300922c` (suplemen capability `3.1`); revisi 5 disusun pada `f69e9e48` |
@@ -258,8 +258,10 @@ Endpoint ini **tidak pernah** menolak tindakan klinis apa pun; ia hanya membaca.
 ## 5. Grup yang tidak berubah
 
 `Emergency Triage`, `Emergency Triage Detail`, `Emergency Observation`,
-`Emergency Observation Detail`, `Emergency Resuscitation`, `Emergency Procedure Detail`, dan
-`Emergency Disposition` mempertahankan bentuk `0.2.0`, dengan tiga pengecualian:
+`Emergency Resuscitation`, `Emergency Procedure Detail`, dan
+`Emergency Disposition` mempertahankan bentuk `0.2.0`, dengan tiga pengecualian.
+`Emergency Observation Detail` **tidak lagi** termasuk kelompok ini sejak `0.6.0` — lihat
+bagian 7.
 
 | Grup | Perubahan perilaku, bukan bentuk |
 | --- | --- |
@@ -277,3 +279,129 @@ Endpoint ini **tidak pernah** menolak tindakan klinis apa pun; ia hanya membaca.
 | `PATCH .../emergency-transfers/{id}/transfer-status` dengan satu nilai status | Enam endpoint tindakan tersendiri, masing-masing menulis satu kejadian |
 | Encounter IGD bertipe `Outpatient` | Bertipe `Emergency` |
 | Dokter ditetapkan lewat `PATCH /patient-encounters/{id}/doctor` | Lewat grup `Emergency Doctor Assignment` |
+
+---
+
+## 7. `Emergency Observation Detail` — pemantauan bertanda vital, baru pada `0.6.0`
+
+Base URL: `api/v1/health-services/emergency-installation-management/emergency-observation-details`
+
+Bentuk endpoint **tidak bertambah dan tidak berkurang**; yang berubah adalah aturan penerimaan
+dan isi response. Dasar: `IGD-DEC-122` (tanda vital ditautkan, tidak disalin), `IGD-DEC-126`
+(periode tertutup menolak pemantauan baru), dan `IGD-DEC-057` butir identitas pencatat.
+
+| Method | Path | Kegunaan | Hak akses | Kode status |
+| --- | --- | --- | --- | --- |
+| `GET` | `/` | Daftar pemantauan dengan penyaring `emergencyObservationId`, `patientVitalSignId`, `progressNoteId`, rentang tanggal, dan halaman | `EmergencyObservationDetail : Read` | `200`, `403` |
+| `GET` | `/{id}` | Satu pemantauan | `EmergencyObservationDetail : Read` | `200`, `403`, `404` |
+| `POST` | `/` | Mencatat satu putaran pemantauan | `EmergencyObservationDetail : Create` | `200`, `400`, `403`, **`409`** |
+| `PUT` | `/{id}` | Mengubah pemantauan | `EmergencyObservationDetail : Update` | `200`, `400`, `403`, `404`, `409` |
+| `DELETE` | `/{id}` | Menandai pemantauan terhapus | `EmergencyObservationDetail : Delete` | `200`, `403`, `404` |
+
+### 7.1 Bentuk request `POST /` dan `PUT /{id}`
+
+| Field | Tipe | Wajib | Aturan pada `0.6.0` |
+| --- | --- | :---: | --- |
+| `emergencyObservationId` | `uuid` | Ya | Periode harus ada dan **belum ditutup** — lihat validation §9 |
+| `patientVitalSignId` | `uuid?` | Tidak | Bila diisi: tanda vital harus ada, masih berlaku, dan **milik pasien serta encounter yang sama** dengan kunjungan IGD periode itu |
+| `progressNoteId` | `uuid?` | Tidak | Aturan lingkup yang sama dengan `patientVitalSignId` |
+| `recordedAt` | `datetime` | Tidak | Kosong berarti waktu server. Boleh mundur selama periodenya masih berjalan |
+| `recordedByUserId` | `uuid?` | Tidak | **USANG pada `0.6.0`.** Tetap diterima demi kompatibilitas, tetapi **diabaikan**: nilai yang disimpan selalu berasal dari pengguna yang terautentikasi |
+| `clinicalConditionSummary` | `string?` | Tidak | 2000 karakter. Tempat menulis evaluasi ABCDE selama observasi (`IGD-DEC-123`) |
+| `interventionSummary` | `string?` | Tidak | 2000 karakter. Tempat menulis tindakan, termasuk alat/tindakan jalan napas selama bentuk terstrukturnya belum ada (`IGD-DEC-124`) |
+| `patientResponseSummary` | `string?` | Tidak | 2000 karakter |
+| `fluidIntakeMl`, `urineOutputMl`, `otherOutputMl`, `bleedingEstimatedMl`, `vomitEstimatedMl` | `decimal?` | Tidak | Kosong berarti **tidak diukur**, bukan nol (`IGD-DEC-056`) |
+| `notes` | `string?` | Tidak | 1000 karakter |
+| `isActive` | `bool` | Tidak | Bawaan `true` |
+
+**Tidak ditambahkan** ke request: angka tanda vital apa pun, GCS, kesadaran, oksigen, ABCDE,
+obat, gambaran EKG, dan DC Shock. Seluruhnya milik domain lain — lihat bagian 7.4.
+
+### 7.2 Bentuk response — proyeksi aditif
+
+Seluruh field response `0.5.0` **dipertahankan**, termasuk `patientVitalSignId` yang tetap
+dikirim sebagai rujukan eksplisit. Yang bertambah:
+
+| Field | Tipe | Isi |
+| --- | --- | --- |
+| `recordedByName` | `string?` | Nama petugas pencatat. Kosong bila penggunanya tidak ditemukan; layar **tidak** boleh menampilkan GUID sebagai gantinya |
+| `vitalSign` | objek `?` | Ringkasan tanda vital yang ditautkan. `null` bila `patientVitalSignId` kosong |
+
+Isi objek `vitalSign` diambil **apa adanya** dari `TrxPatientVitalSign`; tidak ada nilai
+turunan baru yang dihitung kontrak ini:
+
+| Field | Tipe | Sumber |
+| --- | --- | --- |
+| `id` | `uuid` | `Id` |
+| `observationDateTime` | `datetime` | `ObservationDateTime` |
+| `bloodPressureSystolic`, `bloodPressureDiastolic` | `int?` | kolom bernama sama |
+| `pulseRate` | `int?` | `PulseRate` |
+| `respiratoryRate` | `int?` | `RespiratoryRate` |
+| `temperature` | `decimal?` | `Temperature` |
+| `oxygenSaturation` | `decimal?` | `OxygenSaturation` |
+| `gcsEye`, `gcsVerbal`, `gcsMotor`, `gcsTotal` | `int?` | kolom bernama sama. `gcsTotal` dikirim apa adanya; kontrak ini **tidak** menghitungnya sendiri |
+| `consciousnessStatus` | `enum` | `ConsciousnessStatus` |
+| `isUsingOxygen` | `bool` | `IsUsingOxygen` |
+| `oxygenSupportType` | `enum` | `OxygenSupportType` — nilai di luar daftar memakai `Other` (`IGD-DEC-125`) |
+| `oxygenFlowRate` | `decimal?` | `OxygenFlowRate` |
+| `oxygenSupportNote` | `string?` | `OxygenSupportNote` |
+| `vitalSignStatus` | `enum` | `VitalSignStatus` |
+| `isAbnormal`, `isCritical` | `bool` | kolom bernama sama |
+
+Proyeksi ini ada supaya layar riwayat pemantauan **tidak** perlu memanggil endpoint tanda vital
+satu per satu per baris. Daftar `GET /` mengirim proyeksi yang sama untuk setiap baris.
+
+*Contoh balasan `POST /` (dipangkas):*
+
+```json
+{
+  "data": {
+    "id": "…",
+    "emergencyObservationId": "…",
+    "recordedAt": "2026-09-16T10:30:00Z",
+    "recordedByUserId": "…",
+    "recordedByName": "Ns. Ani Rahmawati",
+    "patientVitalSignId": "…",
+    "vitalSign": {
+      "id": "…",
+      "observationDateTime": "2026-09-16T10:28:00Z",
+      "bloodPressureSystolic": 128, "bloodPressureDiastolic": 82,
+      "pulseRate": 96, "respiratoryRate": 20, "temperature": 37.2,
+      "oxygenSaturation": 97,
+      "gcsEye": 4, "gcsVerbal": 5, "gcsMotor": 6, "gcsTotal": 15,
+      "consciousnessStatus": "ComposMentis",
+      "isUsingOxygen": true, "oxygenSupportType": "NasalCannula",
+      "oxygenFlowRate": 3, "oxygenSupportNote": null,
+      "vitalSignStatus": "Recorded", "isAbnormal": false, "isCritical": false
+    },
+    "clinicalConditionSummary": "Nyeri dada berkurang, akral hangat.",
+    "urineOutputMl": 150
+  }
+}
+```
+
+### 7.3 Endpoint tanda vital yang dipakai layar observasi
+
+Milik `ClinicalManagement`, dipakai apa adanya; **tidak ada endpoint IGD baru**.
+
+#### Health Services / Clinical Management / Patient Vital Sign
+
+| Method | Path | Dipakai untuk | Hak akses |
+| --- | --- | --- | --- |
+| `POST` | `/v1/health-services/clinical-management/patient-vital-signs` | Mencatat tanda vital baru dari layar pemantauan | `PatientVitalSign : Create` |
+| `GET` | `/v1/health-services/clinical-management/patient-vital-signs?patientId=&encounterId=` | Memilih tanda vital yang sudah tercatat pada encounter yang sama | `PatientVitalSign : Read` |
+
+Penyaring `patientId` **dan** `encounterId` wajib dikirim bersama oleh layar; daftar tanpa
+penyaring akan menampilkan tanda vital pasien lain (`IGD-EV-117`).
+
+### 7.4 Yang sengaja tidak masuk kontrak ini
+
+| Hal | Pemilik sebenarnya | Alasan |
+| --- | --- | --- |
+| Angka tanda vital, GCS, kesadaran, oksigen | `TrxPatientVitalSign` (`ClinicalManagement`) | `IGD-DEC-122` — ditautkan, tidak disalin |
+| ABCDE terstruktur | `EmgTriage` (ringkasan teks) | `IGD-DEC-123`; `IGD-GAP-027` tetap ditunda |
+| Alat bantu jalan napas terstruktur | Belum ada pemilik | `IGD-DEC-124`; menunggu `IGD-OQ-089` |
+| Obat dan dosis | `TrxPrescription` (Farmasi), `EmgProcedureDetail` jenis `EmergencyMedication` | PRD bagian 3 — catatan pemberian obat ditunda |
+| Gambaran EKG | Tindakan/penunjang | Tidak ada requirement yang disetujui |
+| DC Shock, RJP, ROSC | `EmgResuscitation` | `IGD-CAP-28`; perburukan ditangani lewat aksi Eskalasi |
+| Entri susulan setelah periode ditutup | — | `IGD-OQ-090`, belum dirancang |

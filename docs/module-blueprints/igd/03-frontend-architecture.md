@@ -249,3 +249,83 @@ mungkin terisi, dan tidak ada yang menyadarinya selama berminggu-minggu.
 | Palet warna baru | Dilarang — salin dari `emergency-triage.module.css` |
 | Pustaka komponen baru | Dilarang — pakai `form-pemeriksaan-ui` dan `base-features` |
 | Pembaruan realtime | `IGD-TRQ-07`, `LATER SLICE` |
+
+---
+
+## 12. Pemantauan observasi bertanda vital — 16 September 2026
+
+Menurunkan `IGD-DEC-122` sampai `IGD-DEC-126`. Layar yang disentuh adalah tab **Observasi** di
+dalam menu **Asuhan Keperawatan** pada layar Pengkajian Pasien IGD — layar anak yang sudah ada,
+**bukan** butir menu baru.
+
+### 12.1 Peta butir menu
+
+| Butir menu | Tingkat | Induk | Route | Layar | Hak akses penjaga |
+| --- | :-: | --- | --- | --- | --- |
+| Pengkajian Pasien | 2 | Instalasi Gawat Darurat | `/health-services/emergency-installation-management/emergency-assessment` | Daftar pasien | `EmergencyVisit : Read` |
+| — (layar anak) | — | Pengkajian Pasien | `.../emergency-assessment/{token}` | Workspace pengkajian, tab **Observasi** | `EmergencyObservation : Read`, `EmergencyObservationDetail : Read` |
+
+**Tidak ada butir menu baru.** Bagian Tanda Vital pada pemantauan adalah wilayah di dalam tab
+Observasi yang sudah ada.
+
+### 12.2 Skema wilayah tab Observasi sesudah perubahan
+
+```text
+┌ Periode Observasi ─────────────────────────────────────────────┐
+│ Buka periode: indikasi, rencana, lokasi, waktu mulai           │  (sudah ada)
+│ Daftar periode + status + aksi Selesaikan/Eskalasi/Batalkan    │  (sudah ada)
+│ Kesimpulan saat Selesaikan                                     │  (FE-IGD-024)
+├ Konteks Klinis (baca saja) ────────────────────────────────────┤
+│ Ringkasan ABCDE penilaian triase terakhir                      │  BARU, baca saja
+├ Catat Pemantauan ──────────────────────────────────────────────┤
+│ Waktu                                                          │  (sudah ada)
+│ TANDA VITAL:  ( ) Catat baru   ( ) Pilih yang sudah ada        │  BARU
+│    - Catat baru  → formulir tanda vital yang sudah dipakai     │
+│                    tab Assesmen Awal                           │
+│    - Pilih       → daftar tanda vital kunjungan ini            │
+│ Keadaan klinis · Tindakan · Respons pasien                     │  (sudah ada)
+│ Cairan masuk · urine · keluaran lain · perdarahan · muntah     │  (sudah ada)
+│ Catatan                                                        │  (sudah ada)
+├ Riwayat Pemantauan ────────────────────────────────────────────┤
+│ Waktu · nama pencatat · angka tanda vital · GCS · kesadaran    │  diperluas
+│ · oksigen · keluaran · keterangan                              │
+└────────────────────────────────────────────────────────────────┘
+```
+
+### 12.3 Sumber data, keadaan kosong, dan keadaan gagal per wilayah
+
+| Wilayah | Sumber data | Hak akses | Keadaan kosong | Keadaan gagal |
+| --- | --- | --- | --- | --- |
+| Ringkasan ABCDE | Penilaian triase terakhir yang sudah dimuat workspace; **tanpa endpoint baru** | `EmergencyTriage : Read` | "Belum ada penilaian triase pada kunjungan ini." | Bagian disembunyikan; tidak menahan pencatatan pemantauan |
+| Tanda vital — catat baru | `POST /v1/health-services/clinical-management/patient-vital-signs` | `PatientVitalSign : Create` | — | Pesan backend apa adanya; pemantauan **tidak** dikirim sebelum tanda vital tersimpan |
+| Tanda vital — pilih yang sudah ada | `GET /v1/health-services/clinical-management/patient-vital-signs?patientId=&encounterId=` | `PatientVitalSign : Read` | "Belum ada tanda vital pada kunjungan ini. Catat tanda vital baru." | Pesan backend; pilihan tetap boleh dikosongkan |
+| Simpan pemantauan | `POST .../emergency-observation-details` | `EmergencyObservationDetail : Create` | — | Pesan backend apa adanya, termasuk `409` periode sudah ditutup |
+| Riwayat pemantauan | `GET .../emergency-observation-details?emergencyObservationId=` beserta proyeksi `vitalSign` dan `recordedByName` | `EmergencyObservationDetail : Read` | "Belum ada pemantauan pada periode ini." | Pesan backend + tombol coba lagi |
+
+### 12.4 Aturan layar yang mengikat
+
+1. **Angka tanda vital tidak pernah dikirim** ke `emergency-observation-details`. Yang dikirim
+   hanya `patientVitalSignId` (`IGD-DEC-122`).
+2. Daftar pilih tanda vital **wajib** memakai penyaring `patientId` **dan** `encounterId`.
+   Menyaring di browser dilarang — pelajaran `IGD-EV-112` dan `IGD-EV-117`.
+3. Angka pada riwayat dibaca dari proyeksi backend, bukan dari isian formulir, sehingga koreksi
+   tanda vital oleh pemiliknya ikut terbaca.
+4. Nilai kosong ditampilkan sebagai tanda hubung. Kosong berarti **tidak diukur**, bukan nol
+   (`IGD-DEC-056`).
+5. GCS ditampilkan sebagai E/V/M beserta total **hanya bila** backend mengirimnya; layar
+   **tidak** menghitung total sendiri dan **tidak** menyediakan GCS teks bebas seperti V1.
+6. Periode `Completed` dan `Cancelled` **tidak** menampilkan jalan masuk pencatatan pemantauan
+   normal; `409` backend tetap menjadi penjaga terakhir (`IGD-DEC-126`).
+7. Nama pencatat ditampilkan dari `recordedByName`. Bila kosong, tampilkan tanda hubung —
+   **bukan** GUID.
+8. Tidak ada isian obat, gambaran EKG, atau DC Shock pada layar pemantauan.
+9. Aksi Selesaikan beserta isian Kesimpulan milik `FE-IGD-024` **tidak berubah**.
+
+### 12.5 Wewenang yang didelegasikan
+
+| Hal | Wewenang |
+| --- | --- |
+| Bentuk pemilihan "catat baru" lawan "pilih yang sudah ada" — radio, tab, atau tombol | `DEV_DISCRETION`, mengikuti komponen yang sudah ada |
+| Susunan kolom riwayat dan urutannya | `DEV_DISCRETION` |
+| Menampilkan tanda vital sebagai ringkasan satu baris atau tabel | `DEV_DISCRETION` |
+| Isi data yang ditampilkan, sumber datanya, dan aturan 12.4 | **Bukan** `DEV_DISCRETION` — dikunci keputusan |

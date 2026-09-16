@@ -5,9 +5,9 @@
 | Blueprint ID | `IGD-BP-001` |
 | Module name | `IGD` / `EmergencyInstallationManagement` |
 | Revision | `6` — `draft`. Irisan kontrak yang dibutuhkan `MVP-0`…`MVP-6` sudah `approved` lewat `IGD-DEC-093` dan `IGD-DEC-108`; blueprint secara keseluruhan belum disetujui |
-| Module status | `PARTIAL` — pekerjaan berarti masih dapat berjalan (lihat *Next recommended task*), sementara `MVP-6` terblokir |
+| Module status | `PARTIAL` — pekerjaan berarti masih dapat berjalan (lihat *Next recommended task*), sementara `MVP-6` terblokir. **Dikoreksi 16 September 2026 (ketiga):** kebuntuan kunjungan `Arrived` sudah dibuka. `FE-IGD-030` ✅ terbukti lewat layar — pasien dapat dipindahkan ke penanganan, dialihkan ke Assesmen IGD, dan triage susulannya tidak memundurkan status. `FE-IGD-029` 🟡 sudah terpasang tetapi **belum dibuktikan dengan pendaftaran baru**, jadi hilangnya penolakan `409` pada jalur normal belum diuji ([evidence](evidence/2026-09-16-kunjungan-terjebak-arrived.md)) |
 | Current phase | Gelombang `MVP-3`, `MVP-4`, dan `MVP-5` sedang dituntaskan. Modul IGD memakai penomoran gelombang `MVP-0`…`MVP-6`, bukan ID `IGD-PH-*` |
-| Last verified at | `15 September 2026` — pemetaan ulang acceptance criteria ke source. **Tanpa** build, test, maupun query basis data. Bukti: [evidence/2026-09-15-pemeriksaan-status.md](evidence/2026-09-15-pemeriksaan-status.md) |
+| Last verified at | `16 September 2026` — **uji lewat layar pertama yang pernah dijalankan pada modul ini**, oleh pemilik, untuk `FE-IGD-030`: aksi penanganan segera, pengalihan ke Assesmen IGD, dan triage susulan. Bukan UAT. Sebelumnya `15 September 2026` — pemetaan ulang acceptance criteria ke source tanpa build, test, maupun query basis data ([evidence](evidence/2026-09-15-pemeriksaan-status.md)) |
 | Backend source SHA | `e89907c5` (branch `rizkiG`) — tempat pemeriksaan. SHA desain revisi 6 tetap `300922c` |
 | Frontend source SHA | `43adae648` (branch `RizkiV2`) — tempat pemeriksaan. SHA desain revisi 6 tetap `96a91201` |
 
@@ -39,7 +39,7 @@ Dokumen ini ringkasan keadaan. Sumber kebenaran status per task tetap
 
 | Backend | Frontend | Integration | Verification |
 | --- | --- | --- | --- |
-| `IN_PROGRESS` — 18 ✅, 4 🟡, 1 ⛔ dari 23 task yang sudah dikerjakan; ditambah 6 task direncanakan 15 Sep 2026 (`BE-IGD-040`…`045`, satu di antaranya ⛔) — **29 task** | `IN_PROGRESS` — 6 ✅ (termasuk kartu susulan `FE-IGD-019`), 5 🟡, 1 belum dikerjakan; ditambah 5 task direncanakan (`FE-IGD-023`…`027`) — **17 task** | `PARTIAL` — radiologi ditahan `IGD-DEC-111`; laboratorium tersambung tetapi tab-nya cacat (`IGD-EV-112`); billing IGD belum direncanakan | `NOT_STARTED` untuk uji lewat layar; alur simpan lewat layar belum pernah dijalankan sejak roadmap revision `1` |
+| `IN_PROGRESS` — 19 ✅, 4 🟡, 1 ⛔ dari 24 task yang sudah dikerjakan; ditambah 5 task direncanakan 15 Sep 2026 (`BE-IGD-041`…`045`, satu di antaranya ⛔) dan **`BE-IGD-046`** yang direncanakan 16 Sep 2026 — **30 task** | `IN_PROGRESS` — 8 ✅ (termasuk `FE-IGD-019`, `FE-IGD-023`, `FE-IGD-024`), 5 🟡, 1 belum dikerjakan; ditambah 3 task direncanakan (`FE-IGD-025`…`027`), **`FE-IGD-028`** yang direncanakan 16 Sep 2026, serta **`FE-IGD-029`** 🟡 dan **`FE-IGD-030`** ✅ yang direncanakan **dan dikerjakan** 16 Sep 2026 (kedua) — **20 task** | `PARTIAL` — radiologi ditahan `IGD-DEC-111`; tab laboratorium diperbaiki `FE-IGD-023`; tanda vital observasi menunggu `BE-IGD-046`/`FE-IGD-028`; billing IGD belum direncanakan | `NOT_STARTED` untuk uji lewat layar; alur simpan lewat layar belum pernah dijalankan sejak roadmap revision `1` |
 
 ## Blockers and owners
 
@@ -54,7 +54,9 @@ Dokumen ini ringkasan keadaan. Sumber kebenaran status per task tetap
 | ~~`EPIC IGD-04`~~ | ~~Riwayat penugasan dokter belum punya task~~ — **ditutup 15 September 2026**: dipecah menjadi `BE-IGD-044`, `BE-IGD-045`, `FE-IGD-027` (`IGD-DEC-116`, `IGD-DEC-117`) | — | `MVP-5` | — |
 | OWNER DATA CONFIRMATION | `BE-IGD-042` menunggu jumlah `EmgVisit` aktif dengan `EncounterType.Outpatient`; agent dilarang menjalankan kueri | Rizki | R3.8 | Ya — `BE-IGD-040`, `041`, `043` tidak tertahan |
 | `IGD-DEC-082` | Riwayat penugasan dokter masih `draft` klinis | Clinical Governance | Butir 10 DoD `EPIC IGD-04` | Ya — pekerjaan `BE-IGD-044`/`045` boleh dimulai |
-| Audit Observasi V1–V2 | Layar Observasi V2 `PARTIAL`: tanda vital/GCS/oksigen sudah ada di `TrxPatientVitalSign` dan FK `PatientVitalSignId` sudah ada, tetapi belum tersambung; validasi tautan belum memeriksa encounter yang sama. Usulan `BE-IGD-046`/`FE-IGD-028` **belum dialokasikan** ([evidence](evidence/2026-09-15-audit-observasi-v1-v2.md)) | Product/Domain Owner IGD — `IGD-OQ-084`, `085`, `088` | Pemantauan observasi | Ya — `FE-IGD-024`, `BE-IGD-040`, dan seluruh task lain tidak tertahan |
+| ~~Audit Observasi V1–V2~~ | **Ditutup 16 September 2026** — `IGD-OQ-084`…`088` dijawab menjadi `IGD-DEC-122`…`126`; kontrak API dan validation naik ke `0.6.0`; `BE-IGD-046` dan `FE-IGD-028` dialokasikan ([evidence](evidence/2026-09-15-audit-observasi-v1-v2.md)) | — | R3.9, R3.7 frontend | — |
+| Bentuk terstruktur alat jalan napas | `IGD-OQ-089` — OPA, NPA, ETT, LMA, stoma, bantuan napas bertekanan belum punya pemilik dan entity | Clinical Governance + Product/Domain Owner IGD | Pelaporan alat jalan napas | Ya — `BE-IGD-046` dan `FE-IGD-028` tidak tertahan |
+| Entri susulan setelah periode observasi ditutup | `IGD-OQ-090` — jalur addendum belum dirancang; dilarang menumpang `BE-IGD-046` | Product/Domain Owner IGD + Nursing authority | Dokumentasi susulan observasi | Ya |
 | ~~Penyelarasan teks kontrak~~ | ~~API §3, validation §1 aturan 2 dan §6 aturan 4, kamus data §4 belum mengikuti `IGD-DEC-116`…`120`~~ — **ditutup 15 September 2026**: API dan validation naik ke `0.5.0`, nama `EmgDoctorAssignment` diselaraskan, hash dihitung ulang (manifest bagian 0c) | — | R3.8, `MVP-5` | — |
 
 ## Stale evidence
@@ -68,20 +70,28 @@ Dokumen ini ringkasan keadaan. Sumber kebenaran status per task tetap
 
 ## Next recommended task
 
-Seluruh task di bawah **sudah punya kartu roadmap** sejak 15 September 2026. Urutan yang tidak
-menunggu pihak lain:
+Seluruh task di bawah **sudah punya kartu roadmap**. Urutan yang tidak menunggu pihak lain:
 
-1. **`FE-IGD-023`** — tab Penunjang Medis memakai `encounterId` + paging, teks radiologi sesuai
-   `IGD-DEC-111`.
-2. **`BE-IGD-040`**, lalu **`FE-IGD-024`** — kesimpulan observasi (`IGD-DEC-115`, `119`, `121`).
-3. **`BE-IGD-041`** — pesan penutupan menyebut pesanan (`IGD-DEC-118`), membuka `BE-IGD-035`
-   kriteria 2.
+1. **`FE-IGD-029`** 🟡 — satu-satunya sisa gelombang R3.8, dan tinggal **satu klik**. Kriteria 1
+   sudah terbukti lewat layar 16 September 2026: pasien yang baru didaftarkan langsung berstatus
+   "Menunggu Triage". Kriteria 2 belum — tekan **Isi Triage** pada pasien baru itu lalu simpan
+   sampai berhasil; itu membuktikan penolakan `409` yang memicu gelombang ini benar-benar hilang.
+   Pasangannya **`FE-IGD-030`** ✅ sudah terbukti penuh.
+2. **`BE-IGD-046`** → **`FE-IGD-028`** — pemantauan observasi bertanda vital (`IGD-DEC-122`…`126`,
+   kontrak `0.6.0`). Keputusan dan kontraknya sudah terkunci 16 September 2026; implementasinya
+   sudah ditulis dan tinggal uji lewat layar.
+3. ~~**`BE-IGD-041`**~~ 🟡 — **dikerjakan 16 September 2026.** Pesan penutupan kini menyebut
+   pesanan yang menahannya, dan kriteria 2 `BE-IGD-035` terpenuhi pada source. Tersisa
+   `dotnet build` dan uji API tiga skenario ([laporan](task/report/backend/BE-IGD-041.md)).
 4. **`BE-IGD-044`** → **`BE-IGD-045`** → **`FE-IGD-027`** — riwayat penugasan dokter
    (`EPIC IGD-04`). Migration `BE-IGD-044` dikerjakan Rizki.
 5. **Laporan susulan:** `BE-IGD-017`, `BE-IGD-043` (`f76ebaab`), `FE-IGD-025` (`bd1d94a8a`,
    termasuk temuan privasi `IGD-EV-117`), `FE-IGD-026` (`c8613d88c`).
 6. **Uji langkah mundur migration** `20260826090500` di basis data terpisah — membuka
    `BE-IGD-026` dan `BE-IGD-031`. Butuh basis data terpisah milik Rizki.
+
+Sudah selesai implementasinya dan tinggal menunggu build serta uji lewat layar: `FE-IGD-023`,
+`BE-IGD-040`, dan `FE-IGD-024`.
 
 Yang **menunggu owner**: `BE-IGD-042` — jumlah `EmgVisit` aktif dengan `EncounterType.Outpatient`
 dari kueri yang dijalankan Rizki sendiri.
