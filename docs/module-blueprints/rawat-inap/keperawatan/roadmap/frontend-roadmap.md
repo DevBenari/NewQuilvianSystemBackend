@@ -1,5 +1,25 @@
 # Roadmap Delivery Frontend — Sub-modul Keperawatan Rawat Inap
 
+> ## ⚠ ROADMAP INI TIDAK LAGI MENERIMA TASK BARU — 16 September 2026
+>
+> Task penyelarasan `PRD-RWI-V2-001` revision `7` ditulis pada berkas **terpisah**:
+> [`frontend-roadmap-v2.md`](./frontend-roadmap-v2.md), rentang **`FE-RWI-081` s.d. `FE-RWI-094`**.
+>
+> Pemisahan ini atas permintaan pemilik pada 16 September 2026: berkas ini sudah terlalu
+> panjang untuk dibaca sebagai register kerja harian.
+>
+> | Hal | Berkas ini | [`frontend-roadmap-v2.md`](./frontend-roadmap-v2.md) |
+> | --- | --- | --- |
+> | Isinya | Task revision `4` s.d. `6`, sebagian besar sudah `✅` | Task revision `7` |
+> | Statusnya | **Tetap berlaku** — jangan dihapus, jangan diarsipkan | Register task berjalan |
+> | Task baru | **Jangan ditambahkan di sini** | Ditambahkan di sana |
+>
+> **Nomor task tidak pernah dipakai ulang.** Deret `FE-RWI-###` berjalan lurus melintasi kedua
+> berkas dan melintasi ketiga sub-modul `rawat-inap`. Sebelum menambah task, baca **kedua**
+> berkas beserta roadmap frontend dua sub-modul lain.
+>
+> **ID bebas berikutnya per 16 September 2026: `FE-RWI-095`.**
+
 > ## ✅ ROADMAP INI **BOLEH DIEKSEKUSI** SEJAK 5 SEPTEMBER 2026 (REVISION 3 — 7 SEPTEMBER 2026)
 >
 > Revision `3` memperbarui revision `2` (5 September 2026) dan revision `1` (`DRAFT_STALE`). Tiga hal fundamental diperbarui:

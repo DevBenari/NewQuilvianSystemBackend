@@ -44,6 +44,12 @@ Bila dokumen ini berbeda dari roadmap sub-modul, **roadmap yang berlaku**. Letak
 | `dokter-rawat-inap` | 22 dari 22 ✅ | 9 dari 9 ✅ | **nol task** |
 | `keperawatan` | 14 dari 14 ✅ | 6 dari 6 ✅ | **nol task** |
 
+> **Catatan 14 September 2026 — "nol task" bukan berarti sesuai PRD terbaru.** `PRD-RWI-V2-001`
+> v`2.0` (`docs/Modul-RS/Rawat-Inap/04-prd-to-mvp-final.md`) sudah didaftarkan sebagai masukan hulu
+> untuk `dokter-rawat-inap` dan `keperawatan`. Pekerjaan penyelarasannya **belum menjadi task** dan
+> karena itu belum muncul di tabel ini. Nomor task baru baru boleh dialokasikan setelah amandemen
+> blueprint disetujui. Fase dan temuannya ada pada `blueprint-manifest.md` bagian 0-B.
+
 **Seluruh sisa pekerjaan Rawat Inap kini terkumpul pada satu sub-modul,
 `episode-rawat-inap`, dan terbagi dua kelompok:**
 
@@ -222,4 +228,11 @@ dinyatakan selesai.
 Nomor task yang sudah dipensiunkan: `BE-RWI-041` sampai `BE-RWI-043`, dan `FE-RWI-042` sampai
 `FE-RWI-045` pada sisi `episode-rawat-inap`.
 
-**ID bebas berikutnya: `BE-RWI-079` dan `FE-RWI-063`.**
+~~**ID bebas berikutnya: `BE-RWI-079` dan `FE-RWI-063`.**~~ — **basi sejak 16 September 2026.**
+Keduanya sudah dipakai fase `RLN-PH-07`, yang menurunkan **48 task backend** `BE-RWI-079` s.d.
+`BE-RWI-126` dan **32 task frontend** `FE-RWI-063` s.d. `FE-RWI-094` ke berkas roadmap **baru**
+`roadmap/backend-roadmap-v2.md` dan `roadmap/frontend-roadmap-v2.md` pada ketiga sub-modul.
+
+**ID bebas berikutnya per 16 September 2026: `BE-RWI-127` dan `FE-RWI-095`.** Sebelum menambah
+task, baca **enam** berkas roadmap — tiga lama dan tiga baru per lapisan — beserta pohon
+`task/report/`. Rinciannya pada [`blueprint-manifest.md`](./blueprint-manifest.md) bagian 0-B.8.

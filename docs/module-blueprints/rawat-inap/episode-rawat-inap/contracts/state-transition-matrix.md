@@ -3,9 +3,9 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | `0.8.0` |
-| `last_changed_in` | `0.8.0` — bagian 6A lahir: siklus penugasan dokter berperiode beserta perannya |
-| Status | **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
+| `contract_version` | **`0.9.0`** — bagian 8, `draft` |
+| `last_changed_in` | **`0.9.0`** — bagian 8: tujuan penugasan, akibat penutupan. Sebelumnya `0.8.0` — bagian 6A |
+| Status | **`draft`** untuk `0.9.0`. `0.8.0` **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
 | Owner | Product/Domain Owner sementara sesuai `RWI-DEC-006` |
 | `input_revision` | `00-interview-decisions.md` revision `6`; `evidence/03-hospital-domain-architecture.md` revision `0.1` |
 | Dampak kompatibilitas | Seluruhnya baru. Tidak ada state machine existing yang berubah |
@@ -288,3 +288,41 @@ lalu membuka, bukan dengan menimpa.
 | Kehadiran pasien dan satu episode aktif | `RWI-RULE-035`, `RWI-DEC-054` |
 | Versi resume pulang | `RWI-DEC-057` |
 | Kewenangan DPJP | `RWI-RULE-030`, `RWI-DEC-042` |
+
+---
+
+## 8. Perubahan pada `contract_version` `0.9.0` — amandemen terbatas ★ 15 September 2026
+
+**Status `draft`.** Dua perubahan: tujuan penugasan pada bagian 6A, dan akibat penutupan episode terhadap mesin milik
+modul lain.
+
+### 8.1 Penugasan dokter — tambahan pada 6A.3
+
+| Dari | Ke | Pemicu | Yang wajib ada | Yang dilarang |
+| --- | --- | --- | --- | --- |
+| Tidak ada | `Consultant` aktif, tujuan `Regular` | Kepala ruangan atau supervisor lewat jalur tulis baru | Alasan, waktu mulai; waktu selesai opsional | Dokter membuat penugasannya sendiri |
+| Tidak ada | `OnCallDoctor` aktif, tujuan `Regular` | Sama | Alasan, waktu mulai; waktu selesai opsional | Sama |
+| Tidak ada | `OnCallDoctor` aktif, tujuan **`LateDocumentation`** | Sama | **Alasan, waktu mulai tidak lampau, waktu selesai** — `VAL-INP-01`, `08` | Peran selain dokter jaga; tanpa waktu selesai; menggusur DPJP |
+| `Consultant`/`OnCallDoctor` aktif | Berakhir | `PATCH …/end` atau waktu selesai lewat | Waktu selesai | Mengubah tujuan atau peran pada baris yang sama |
+| `LateDocumentation` aktif | Berakhir | `EndDateTime` lewat — dibaca saat query, **tanpa** proses latar | — | Memperpanjang dengan menyunting baris; buat penugasan singkat baru |
+
+**6A.4 tetap:** penutupan episode menutup seluruh penugasan terbuka, termasuk `LateDocumentation`.
+
+Contoh jalur gagal `RWI-DEC-130` (c): penugasan singkat dr. Rina berakhir 11.00; ia menyimpan 11.05 → `403` dari
+penjaga penulis klinis, karena pukul 11.05 tidak ada penugasan aktif.
+
+### 8.2 Akibat `DischargePending` → `Closed` pada mesin modul lain
+
+Perpindahan status episode **tidak berubah**. Yang bertambah adalah akibatnya di dalam transaksi yang sama.
+
+| Mesin | Pemilik | Dari | Ke | Yang tidak disentuh |
+| --- | --- | --- | --- | --- |
+| Keutuhan dokumen klinis | `MedicalRecordManagement` | `Draft` | `LockedUnsigned`, pemicu `EncounterClosed` | `Signed`, `Cancelled` |
+| Pesanan tindakan | `ClinicalManagement` | `Planned`, `Ordered` belum dilaksanakan dan belum ditagih | `Cancelled` "episode ditutup sebelum dilaksanakan" | `InProgress`, `Completed`, pesanan tertagih |
+| Dosis obat | `PharmacyManagement` | `Due` berjadwal setelah waktu tutup | `Cancelled` "perawatan ditutup" | `Due` sebelum waktu tutup, dosis yang sudah dicatat |
+
+| Dari | Ke | Kenapa dilarang |
+| --- | --- | --- |
+| `Closed` | Membuka kembali lewat sesi koreksi mengembalikan konsep terkunci menjadi `Draft` | `RWI-AC-201`, `RM-DEC-003` |
+| `Closed` | Membuka kembali mengembalikan pesanan atau dosis yang dibatalkan | Pembatalan tercatat sebagai akibat penutupan; pesanan baru dibuat bila perlu |
+| `DischargePending` | `Closed` dengan sebagian langkah akibat tersimpan | `INV-INP-11` |

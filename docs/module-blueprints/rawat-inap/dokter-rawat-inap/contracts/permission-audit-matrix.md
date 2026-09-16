@@ -4,9 +4,9 @@
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
 | Sub-modul | `dokter-rawat-inap` — bentuk `COMPOSITE`, `RWI-DEC-082` |
-| Contract version | `0.5.0` |
-| `last_changed_in` | `0.5.0` — bagian 3A lahir: penulis klinis diambil dari pengguna terautentikasi |
-| Status | **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
+| Contract version | **`0.6.0`** |
+| `last_changed_in` | **`0.6.0`** — bagian 6 s.d. 9 lahir: sembilan butir hak akses baru, peta peran perawat dan dokter diperbarui, sebelas kewenangan per pasien. Sebelumnya `0.5.0` bagian 3A |
+| Status | **`draft`** untuk `0.6.0`. `0.5.0` **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
 | Owner | Product/Domain: **Muhammad Hamzah** (`RWI-DEC-061`) |
 | `approved_by` / `approved_at` | **Muhammad Hamzah** / **2026-09-09** untuk `0.4.0`; `0.3.0` disetujui 2026-09-03 |
 | `input_revision` | `api-contract.md` `0.4.0`; arsitektur domain `0.2` bagian V dan W |
@@ -226,3 +226,104 @@ Kolom bertanda **Sensitif** pada [`../data/data-dictionary.md`](../data/data-dic
 
 **Masa simpan belum ditetapkan** — `RWI-OQ-035` menunggu pemilik hukum. Tidak ada penghapusan
 otomatis yang dirancang, dan itu lebih aman daripada menebak masa simpan rekam medis.
+
+---
+
+## 6. Perubahan pada `contract_version` `0.6.0` — penyelarasan `PRD-RWI-V2-001` ★ 15 September 2026
+
+**Status `draft`.** Dokumen ini tetap tidak mendaftar ulang endpoint; pemetaan endpoint ke hak akses ada pada kolom
+`Hak akses` `api-contract.md` bagian 12. String atribut dan status logger diturunkan seperti bagian 0.
+
+**Pengecualian logger bernama yang lahir `0.6.0`:** tidak ada. Endpoint `GET` baru — `verification-worklist`,
+`instruction-verification-worklist`, `my-authored`, `summary-prefill` — tidak dicatat logger, sesuai konvensi.
+
+### 6.1 Resource dan Action baru
+
+| Resource | Action | Baru atau tambahan | Modul pemilik atribut | Kegunaan |
+| --- | --- | --- | --- | --- |
+| `Prescription` | **`Stop`** | Action baru pada Resource yang ada | `PharmacyManagement` | Menghentikan butir resep |
+| `PatientProcedure` | **`Verify`** | Action baru | `ClinicalManagement` | Verifikasi instruksi pesanan perawat |
+| `LabOrder` | **`Verify`** | Action baru — **menunggu persetujuan pemilik** | `LaboratoryManagement` | Sama |
+| `RadOrder` | **`Verify`** | Action baru — **menunggu persetujuan pemilik** | `RadiologyManagement` | Sama |
+| `MedicationReconciliation` | `Read`, `Create`, `Update`, **`Decide`** | Resource baru | `PharmacyManagement` | Obat bawaan dan keputusan dokter |
+| `SlidingScaleTemplate` | `Read`, `Update`, **`Approve`** | Resource baru | `PharmacyManagement` | Protokol standar berversi |
+| `SlidingScaleOrder` | `Read`, `Create`, `Update` | Resource baru | `PharmacyManagement` | Protokol per pasien |
+
+> **Pelajaran `BE-RWI-034` berlaku untuk kesembilan butir.** Nama pada `[AccessAction]` dan `[AccessPermission]`
+> wajib sama persis dan diuji dengan peran non-SuperAdmin. `Decide` dan `Approve` sengaja dipisah dari `Create` dan
+> `Update` supaya pemisahan tugas dapat diatur di layar Akses Role tanpa kode.
+
+## 7. Peta peran ke butir hak akses — tambahan `0.6.0`
+
+Bagian 2 tetap berlaku. Baris di bawah **menambah**; baris bagian 2 yang digantikan disebut eksplisit.
+
+| Peran rumah sakit | Resource | Action | Catatan |
+| --- | --- | --- | --- |
+| **Dokter** — DPJP, konsulen, dan dokter jaga | `PatientIntegratedProgressNote` | `Read`, `Create`, `Update`, **`Verify`** | **Menggantikan** baris bagian 2 "Dokter jaga ruangan: sama dengan DPJP kecuali `Verify`". Satu dokter bisa DPJP bagi Budi dan dokter jaga bagi Joko pada hari yang sama, sedangkan hak akses melekat pada peran pengguna, bukan pada pasien. `Verify` karena itu diberikan kepada seluruh dokter, dan pembatasan "hanya DPJP" dijaga per pasien oleh `VAL-DOK-44` — lihat 8.1 |
+| Dokter | `Prescription` | `Read`, `Create`, `Update`, **`Stop`** | Penghentian dijaga penugasan aktif — `VAL-DOK-51` |
+| Dokter | `PrescriptionTemplate` | `Read`, `Create`, `Update`, `Delete` | Pemilik dijaga service — `VAL-DOK-56` |
+| Dokter | `MedicationReconciliation` | `Read`, **`Decide`** | — |
+| Dokter | `SlidingScaleOrder` | `Read`, `Create`, `Update` | — |
+| Dokter | `SlidingScaleTemplate` | `Read` | Memilih versi sah saat memesan |
+| Dokter | `PatientProcedure`, `LabOrder`, `RadOrder` | **`Verify`** | Hanya bermakna bagi dokter pemberi instruksi — `VAL-DOK-50` |
+| Dokter | `ClinicalDocumentIntegrity` | `Read` | "Catatan Saya" |
+| **Perawat** | `PatientProcedure` | `Read`, **`Create`**, **`Update`** | **Menggantikan** baris bagian 2 "Perawat: `Read` pada tindakan". `Create` untuk pesanan atas instruksi; `Update` untuk mengubah pesanannya sendiri dan menandai pelaksanaan — `RWI-DEC-114`, `RWI-DEC-139` |
+| Perawat | `LabOrder`, `RadOrder` | `Read`, **`Create`** | **Menggantikan** baris "Perawat: `Read` pada lab dan radiologi". Gerbang persetujuan pemilik kedua modul |
+| Perawat | `MedicationReconciliation` | `Read`, `Create`, `Update` | **Tanpa** `Decide` — `RWI-AC-192` |
+| Perawat | `Prescription` | `Read` | **Tanpa** `Stop` — Resep Harian hanya-baca di Obat & Alkes |
+| Perawat | `PrescriptionTemplate` | **Tidak ada** | `RWI-DEC-122` butir (3); jalur pakai juga menolak bukan-dokter pada konteks rawat inap |
+| Perawat | `SlidingScaleOrder`, `SlidingScaleTemplate` | `Read` | Membaca protokol saat pelaksanaan |
+| Apoteker | `SlidingScaleOrder`, `MedicationReconciliation` | `Read` | Melihat protokol dan keputusan rekonsiliasi saat menyiapkan obat — `RWI-DEC-147` contoh |
+| **Pengubah konfigurasi farmasi-klinis** | `SlidingScaleTemplate` | `Read`, `Update` | Nama jabatan **tidak** ditanam di kode; diberikan lewat Akses Role |
+| **Pengesah konfigurasi farmasi-klinis** | `SlidingScaleTemplate` | `Read`, **`Approve`** | Pengesah ≠ pengubah terakhir dijaga service — `VAL-DOK-54c` |
+| Pengguna yang boleh mendaftarkan obat | `Drug` | `Create` | **Nol butir baru**; pendaftaran non-formularium memakai butir yang sudah ada — `RWI-DEC-134` butir (3) |
+| Kepala ruangan, supervisor | — | — | Penugasan singkat dan penugasan konsulen/dokter jaga dipegang `episode-rawat-inap` `InpatientEpisode : Update` |
+
+## 8. Kewenangan yang tidak dapat dijaga mesin hak akses — tambahan `0.6.0`
+
+Mesin hak akses hanya tahu pasangan Resource dan Action pada peran. Seluruh baris berikut **lolos** pemeriksaan hak
+akses dan **ditolak** aturan bisnis. Test yang hanya memeriksa hak akses **tidak dapat** membuktikannya.
+
+| Yang dijaga | Penjaga | Yang **tidak** dijaganya | Risiko dan penanganannya |
+| --- | --- | --- | --- |
+| 8.1 Verifikasi CPPT hanya DPJP aktif atau DPJP terakhir | `VAL-DOK-44`, `44a`, `44b`, di dalam `CpptVerificationService` | Kualitas isi yang diverifikasi | Hari ini penjaga memakai `IsDoctorAssignedAsync` yang menerima peran apa pun (`RLN3-CAP-25`). Penggantinya `IsActiveDpjpAtAsync`; pesan lama "hanya DPJP" akhirnya menjadi benar |
+| 8.2 Konsep hanya disunting dan diselesaikan penulisnya | `VAL-DOK-41`, di dalam jalur `PUT`/`PATCH` | Penulis yang menyelesaikan konsep berisi keliru | Diterima; koreksi lewat addendum. **Hanya menyala untuk kunjungan rawat inap**; poliklinik tetap perilaku lama |
+| 8.3 Dokumen baru butuh penugasan pada waktu klinis dan saat simpan | `VAL-DOK-42` | Dokter jaga yang menulis catatan berwaktu klinis saat ini selama penugasan singkat aktif | Diterima secara sadar — `RWI-DEC-130` konsekuensi (3) |
+| 8.4 Pesanan hanya diubah penginput; dibatalkan penginput atau DPJP aktif | `VAL-DOK-48`, `VAL-DOK-49` | Baris lama tanpa `OrderedByUserId` | Baris lama jatuh ke aturan lama: dokter pemesan = `DoctorId`. Tidak ada pengisian tebakan |
+| 8.5 Pemberi instruksi harus bertugas atas pasien | `VAL-DOK-47` di tiga modul | Kebenaran bahwa instruksi benar-benar diberikan lewat telepon | Dijaga verifikasi dokter setelahnya dan jejak penginput. Batas waktu verifikasi menunggu pemilik klinis |
+| 8.6 Hanya pemberi instruksi yang memverifikasi | `VAL-DOK-50` | Pemberi instruksi yang penugasannya sudah berakhir | Tetap boleh memverifikasi; verifikasi bukan dokumen baru. Jalan masuknya daftar tunggu verifikasi, bukan daftar pasien |
+| 8.7 Penghentian butir resep oleh dokter yang bertugas | `VAL-DOK-51` | — | — |
+| 8.8 Template milik sendiri | `VAL-DOK-56` s.d. `56c` | Dokter yang membagikan template ke pemakai poliklinik | Fitur Bersama poliklinik memang tetap hidup — `RWI-DEC-135` butir (4) |
+| 8.9 Keputusan rekonsiliasi hanya dokter berwenang | `VAL-DOK-52` | — | Perawat memegang `Create` pada Resource yang sama; `Decide` terpisah memastikan layar Akses Role tidak dapat keliru memberinya |
+| 8.10 Pengesah protokol ≠ pengubah terakhir | `VAL-DOK-54c` | Dua orang yang bersekongkol | Diterima; jejak pengubah dan pengesah tersimpan per versi |
+| 8.11 "Catatan Saya" hanya milik penulis | Saringan `AuthorUserId` di server `MedicalRecordManagement` | — | Detail dibuka lewat endpoint dokumen pemiliknya yang tetap memeriksa hak baca biasa |
+
+## 9. Audit, kolom sensitif, dan jejak tahan lama — tambahan `0.6.0`
+
+### 9.1 Kejadian yang wajib meninggalkan jejak yang tidak dapat dihapus
+
+| Kejadian | Di mana jejaknya | Kenapa |
+| --- | --- | --- |
+| Penghentian butir resep | `PhmPrescriptionItem.StoppedAt`, `StoppedByUserId`, `StopReason` | `RWI-DEC-121` butir (3): riwayat butir tidak dihapus |
+| Setiap keputusan rekonsiliasi, termasuk yang digantikan | `PhmMedicationReconciliationDecision`, baris tidak pernah diubah | Keputusan terapi obat bawaan harus dapat ditelusuri |
+| Pembuatan, perubahan, dan pengesahan versi protokol | `PhmSlidingScaleTemplateVersion` pengubah terakhir, pengesah, waktu, hash | `RWI-DEC-146` butir (1) |
+| Pemesanan dan penyesuaian order sliding scale | `PhmSlidingScaleOrderVersion` beserta alasan | `RWI-DEC-146` butir (2), (6) |
+| Verifikasi CPPT | Kolom verifikasi yang sudah ada; verifikator bukan penulis | `INV-DOK-11` |
+| Verifikasi instruksi | Kolom `InstructionVerified*` pada ketiga tabel | `RWI-DEC-114` butir (5) |
+| Pembatalan pesanan, termasuk otomatis saat penutupan | `CancelledAt`, `CancelledByUserId`, `CancelReason`, `CancelledByEpisodeClosure` | `RWI-DEC-143` butir (3): tercatat sebagai akibat penutupan beserta petugas yang menutup |
+| Registrasi, tanda tangan, dan penguncian konsep | `MrcClinicalDocumentIntegrity` yang sudah ada | `RWI-DEC-138`, `RWI-DEC-144` |
+
+### 9.2 Kolom sensitif baru
+
+Kolom berikut **MUST NOT** masuk payload custom logger dan **MUST NOT** dipakai sebagai contoh berisi data asli.
+
+| Kolom | Tabel | Kenapa sensitif |
+| --- | --- | --- |
+| `StopReason` | `PhmPrescriptionItem` | Alasan klinis penghentian terapi |
+| `Note` | `PhmMedicationReconciliationItem` | Keterangan obat bawaan, sering memuat riwayat penyakit |
+| `DecisionNote` | `PhmMedicationReconciliationDecision` | Alasan klinis keputusan |
+| `AdjustmentReason` | `PhmSlidingScaleOrderVersion` | Keadaan klinis pasien, misalnya "sensitif insulin" |
+| `StopReason` | `PhmSlidingScaleOrder` | Alasan klinis |
+
+`ClinicalReason` dan `Instruction` pada permintaan pesanan tindakan memakai kolom `ClinicalNote` dan `InstructionNote`
+yang sudah ada dan sudah diperlakukan sensitif pada praktik logging project.

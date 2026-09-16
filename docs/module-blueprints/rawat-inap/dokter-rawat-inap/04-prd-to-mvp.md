@@ -8,9 +8,9 @@
 | Modul | Rawat Inap — `InPatientManagement` |
 | Sub-modul | `dokter-rawat-inap`, bentuk `COMPOSITE` sejak `RWI-DEC-082` |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | `0.3.0` |
-| Revision artefak | `0.3` |
-| Status | `approved` — disetujui Muhammad Hamzah, 2026-09-03 |
+| `contract_version` | **`0.6.0`** untuk bagian 22; `0.3.0` untuk bagian 1 s.d. 20; `0.5.0` untuk bagian 21 |
+| Revision artefak | **`0.4`** — bagian 22 penyelarasan `PRD-RWI-V2-001` |
+| Status | **`draft`** untuk `0.4`. `0.3` `approved` — disetujui Muhammad Hamzah, 2026-09-03 |
 | `approved_by` / `approved_at` | **Muhammad Hamzah** / **2026-09-03** |
 | Repository target | `NewQuilvianSystemBackend` dan `QuilvianSystemFrontendDev` |
 | Commit SHA baseline | Backend `93b3227c431401d8f586dec4e1fb25fbf41766e3`; frontend `863f24b0d1617069310c04e5770b47fd1b518b5b` |
@@ -684,3 +684,355 @@ maupun Action baru. Test hak akses hijau **bukan** bukti bahwa penjaga baru beke
 | Kewenangan konsulen memutuskan pulang | `OPEN-MVP-004` belum dijawab; perilaku fail-closed berlaku |
 
 ---
+
+## 22. Penyelarasan `PRD-RWI-V2-001` — revision `0.4` ★ 15 September 2026
+
+Bagian ini **menambah** rilis pertama dengan isi ruang kerja dokter V2, mengikuti dua puluh bagian wajib dokumen PRD ke
+MVP. Bagian 1 s.d. 21 tetap berlaku kecuali yang disebut digantikan pada 22.1. Seluruh entity, status, hak akses, dan
+endpoint di bawah **diturunkan** dari `02-backend-architecture.md` `0.5` bagian 11 dan kontrak `0.6.0`; tidak ada yang
+diciptakan di sini.
+
+### 22.1 Identitas dokumen
+
+| Field | Nilai |
+| --- | --- |
+| Revision artefak | **`0.4`** |
+| `contract_version` | **`0.6.0`** |
+| Status | **`draft`** — approval manusia belum ada |
+| Commit SHA baseline | Backend `df3679c0d5b2f08106702153eb242d3a6cb2929b`; frontend `1ce219b40f8e411f3c4e66975626ab33ae81616a` |
+| Masukan hulu | `PRD-RWI-V2-001` v`2.0`, SHA-256 `2b3b2f29…0a679f`, dibaca berlapis `RWI-DEC-110` |
+| Decision log | Revision `21`, SHA-256 `1c55c80a…2d45102a` |
+| Gate | `1.6`, SHA-256 `f31d207a…e49b5300` — `INP-S17` s.d. `INP-S21` `READY_FOR_DOMAIN_DESIGN` |
+| Arsitektur domain | `0.2` `DOMAIN_ARCHITECTURE_READY` untuk tujuh capability lama; `DOMAIN_ARCHITECTURE_NOT_RUN` untuk isi baru dengan alasan gate `1.6` bagian 15.15 |
+| Ringkasan cakupan | Ruang kerja dokter satu halaman sama dengan Rawat Jalan, delapan tab, kewenangan penulis, Catatan Saya, verifikasi DPJP, Resep Harian, template, rekonsiliasi, sliding scale, pesanan dengan instruksi, Resume Medis, penunjang enam layanan |
+
+| Bagian lama | Digantikan menjadi |
+| --- | --- |
+| 5 "Di luar batas: resume pulang" | Resume ditulis dan ditandatangani dari tab Resume Medis; datanya tetap milik `episode-rawat-inap` |
+| 6 Pelaku sasaran | 22.6 |
+| 7 Tujuh kemampuan | Tetap wajib; ditambah 22.7 |
+| 9 `FLOW-DOK-MVP-001` langkah 2 "dari census" | Dari Dokter → Rawat Inap berdasarkan penugasan dokter login — 22.9 |
+| 20.1 `DOK-MVP-FE` "pemindahan butir menu" | Butir menu **dipertahankan** — `RWI-DEC-107` |
+| 21.3 `FR-DOK-065` "dinilai pada waktu klinis" | Ditambah syarat penugasan aktif saat disimpan — `FR-DOK-076` |
+
+### 22.2 Ringkasan eksekutif
+
+Dokter rawat inap hari ini membuka dua halaman yang tidak mirip ruang kerja Rawat Jalan, dapat menyelesaikan konsep
+catatan dokter lain atas nama penulisnya, dapat memverifikasi CPPT walaupun bukan DPJP, tidak punya Resep Harian,
+rekonsiliasi obat, maupun sliding scale, dan tidak punya jalan menambah koreksi setelah penugasannya berakhir.
+
+Penyelarasan ini mengejar tiga hasil: **dokter bekerja di layar yang sama dengan poliklinik** sehingga tidak perlu
+belajar ulang; **setiap tanda tangan klinis benar-benar milik penulisnya** dan tidak ada catatan yang terbuka setelah
+perawatan ditutup; **siklus obat rawat inap utuh** dari obat bawaan, resep, protokol insulin, sampai penghentian obat
+yang langsung membatalkan dosis berikutnya.
+
+### 22.3 Masalah produk
+
+| Kondisi hari ini | Bukti | Akibat |
+| --- | --- | --- |
+| Ruang kerja dua halaman, pustaka komponen berbeda dari Rawat Jalan | `RLN3-CAP-04` | Melanggar `UI-AC-DOK-001` s.d. `012` |
+| Konsep SOAP, kajian medis, dan CPPT dapat diselesaikan orang lain | `RLN3-CAP-33` s.d. `36`, `RWI-FACT-029` | Catatan tertanda tangan atas nama orang yang tidak menandatanganinya |
+| Verifikasi CPPT menerima peran apa pun | `RLN3-CAP-25` | Konsulen memverifikasi atas nama tanggung jawab DPJP |
+| Tindakan baru diterima pada episode tertutup | `RLN3-CAP-35` | Rekam medis bertambah setelah perawatan ditutup |
+| Konsep SOAP dan kajian tidak ikut terkunci saat penutupan | `RWI-FACT-039`, `RLN3-CAP-38` | Konsep dapat disunting selamanya |
+| Template resep dapat dibuat atas nama dokter lain; pemakaiannya gagal total bila satu obat bermasalah; tanpa pemeriksaan alergi | `RWI-FACT-035`, `RLN3-CAP-39` s.d. `44` | Risiko obat dan kepemilikan |
+| Rekonsiliasi obat, sliding scale, Resep Harian belum ada | `RWI-FACT-032`, `V2-CAP-10` | Kemunduran fungsi dibanding V1 |
+
+**Yang sudah ada dan dipakai ulang:** mesin keutuhan dan addendum, registrasi idempoten, daftar konsep milik penulis,
+diagnosis terstruktur, visite, pesanan laboratorium dan radiologi, resep berbutir wajib, master obat non-formularium.
+
+### 22.4 Visi produk
+
+1. Kepala ruangan menetapkan siapa dokter yang bertugas atas pasien.
+2. Dokter membuka satu halaman dan hanya melihat pasien yang boleh ia dokumentasikan.
+3. Setiap catatan lahir sebagai konsep yang terdaftar, hanya diselesaikan penulisnya, dan terkunci saat perawatan ditutup.
+4. Obat yang dibawa pasien dicatat perawat, diputuskan dokter, dan menjadi resep bila dilanjutkan.
+5. Insulin berdosis skala dipesan dari protokol yang disahkan, dan dilaksanakan perawat dari angka GDS bangsal.
+6. Pesanan yang dibuat perawat atas instruksi telepon langsung berjalan dan diverifikasi dokternya belakangan.
+7. DPJP memverifikasi, menandatangani resume, dan dokter mana pun dapat melengkapi catatannya sendiri lewat addendum.
+
+### 22.5 Batas MVP penyelarasan ini
+
+**Titik mulai**
+
+1. Episode `Admitted` dan penugasan dokter tersedia, termasuk jalur tulis penugasan konsulen dan dokter jaga milik `episode-rawat-inap` `0.9.0`.
+2. Komponen tata letak Rawat Jalan sudah diekstraksi atas persetujuan pemilik `rawat-jalan` — `INT-DOK-21`.
+3. Sekurang-kurangnya satu protokol sliding scale berversi `Approved` untuk lingkungan uji.
+
+**Titik akhir**
+
+1. Dokter menjalankan satu pasien dari daftar miliknya sampai resume bertanda tangan pada satu halaman.
+2. Tidak ada konsep catatan dokter rawat inap yang dapat diselesaikan selain penulisnya, dan tidak ada konsep yang terbuka setelah penutupan.
+3. Verifikasi CPPT hanya oleh DPJP aktif atau DPJP terakhir.
+4. Rekonsiliasi obat, Resep Harian, template, dan sliding scale tersedia pada rilis yang sama dengan MAR `keperawatan`.
+5. Pesanan perawat atas instruksi terverifikasi dokter pemberi instruksi.
+6. Perilaku poliklinik dan IGD terbukti tidak berubah, kecuali perubahan template yang sudah diberitahukan.
+
+**Di luar batas:** handover shift, transfusi, integrasi Gizi/Hemodialisa/Bank Darah/Rehab Medik, Resume ODC, notifikasi
+aktif, template bersama tingkat SMF.
+
+### 22.6 Pelaku sasaran
+
+| Pelaku | Tanggung jawab dalam penyelarasan |
+| --- | --- |
+| DPJP | Seluruh dokumentasi; verifikasi CPPT; tanda tangan resume; membatalkan pesanan orang lain |
+| Konsulen, dokter jaga | Dokumentasi, resep, rekonsiliasi, sliding scale, pesanan; tanpa verifikasi CPPT dan tanpa tanda tangan resume |
+| Dokter dengan penugasan singkat | Menulis catatan terlambat; tanpa kewenangan DPJP |
+| Kepala ruangan, supervisor | Membuat penugasan, termasuk penugasan singkat |
+| Perawat | Mencatat obat bawaan; memesan atas instruksi dari ruang kerja keperawatan; membaca Resep Harian |
+| Pengubah dan pengesah konfigurasi farmasi-klinis | Menyiapkan dan mengesahkan protokol sliding scale, dua orang berbeda |
+| Apoteker | Membaca protokol dan keputusan rekonsiliasi |
+| Pengguna berhak mendaftarkan obat | Mendaftarkan obat bawaan non-formularium |
+
+### 22.7 Pemilihan kemampuan MVP
+
+| Kemampuan | ID kemampuan asal | Keputusan MVP |
+| --- | --- | --- |
+| Ruang kerja satu halaman dan daftar pasien dari penugasan | `CAP-020` s.d. `CAP-025` permukaan | Wajib; tanpa ini dokter tidak punya jalan masuk yang benar dan layar melanggar PRD |
+| Kewenangan penulis, registrasi sejak konsep, penguncian, Catatan Saya | `CAP-020`, `CAP-021`, `CAP-022` | Wajib; tanpanya tanda tangan klinis tidak dapat dipercaya — celah keselamatan `RWI-FACT-029` |
+| Verifikasi CPPT hanya DPJP dan jenis catatan | `CAP-021` | Wajib; `AC-RWI-011` |
+| Resep Harian, penghentian butir, template, keputusan rekonsiliasi | `CAP-023-RSP` | Wajib; `RWI-DEC-133` menjadikan rekonsiliasi `P0` bersama MAR, dan penghentian butir satu-satunya cara menghentikan dosis |
+| Protokol dan order sliding scale | `CAP-023-RSP` | Wajib; `RWI-DEC-145` memasukkannya ke batas rilis MAR |
+| Pesanan tindakan dan penunjang dengan instruksi | `CAP-024`, `CAP-015-LAB`, `CAP-015-RAD` | Wajib; `RWI-DEC-114`, tanpanya instruksi telepon malam tidak dapat dicatat |
+| Tab Resume Medis | `CAP-026` permukaan | Wajib; PRD bagian 21 dan `RWI-DEC-112` |
+| Penunjang enam layanan sebagai permukaan | `CAP-015-GIZ`, `CAP-015-HD`, `CAP-015-BDR`, `CAP-015-RHB` | Wajib sebagai **permukaan jujur** "Integrasi belum tersedia"; tanpa backend |
+
+### 22.8 Kemampuan yang ditunda
+
+| Kemampuan | ID kemampuan asal | Alasan ditunda | Pengganti selama MVP |
+| --- | --- | --- | --- |
+| Integrasi Gizi dan Bank Darah | `CAP-015-GIZ`, `CAP-015-BDR` | Keputusan pemilik 15 September 2026 mempertahankan `RWI-DEC-108`/`113` walaupun modulnya sudah ada di source; butuh kontrak integrasi yang belum dirancang | Pemesanan lewat modul Gizi dan Bank Darah langsung, di luar ruang kerja dokter |
+| Hemodialisa, Rehab Medik | `CAP-015-HD`, `CAP-015-RHB` | Modul pemiliknya belum ada | Alur manual yang berlaku di rumah sakit |
+| Resume ODC | `CAP-026` permukaan | Jenis kunjungan ODC di V2 belum dibuktikan — `RWI-DEC-123` | Alur Kasir V1 yang berlaku |
+| Notifikasi aktif lapor dokter dan dugaan reaksi obat | `CAP-023-RSP` | Penerima belum diputuskan — gate `G-15`, `G-24` | Instruksi tampil di layar perawat; perawat menelepon dokter |
+| Batas waktu verifikasi instruksi dan CPPT | `CAP-021`, `CAP-024` | Keputusan klinis `RWI-RULE-021` | Daftar Perlu Review tanpa label terlambat untuk instruksi |
+| Template bersama tingkat SMF/rumah sakit | `CAP-023-RSP` | Di luar scope `RWI-DEC-122` | Template pribadi |
+| Handover shift dan transfusi | Gate `INP-S19` | `DEFERRED` oleh `RWI-DEC-145` | Prosedur kertas yang berlaku |
+
+### 22.9 Alur bisnis target
+
+`FLOW-DOK-MVP-002`, diturunkan dari `flowcharts/00-alur-utama.md` bagian 4:
+
+1. Kepala ruangan menetapkan DPJP, konsulen, atau dokter jaga.
+2. Dokter membuka Dokter → Rawat Inap dan memilih pasien dari daftarnya.
+3. Dokter menulis dan menyelesaikan kajian medis; registrasi keutuhan lahir sejak konsep.
+4. Dokter mencatat visit dan menulis SOAP harian.
+5. Dokter memutuskan obat bawaan yang dicatat perawat.
+6. Dokter membuat resep; untuk insulin berdosis skala, memesan protokol dari versi sah.
+7. Dokter memesan tindakan dan penunjang; perawat dapat memesan atas instruksi dokter yang bertugas.
+8. Dokter menghentikan obat dari Resep Harian bila terapi berubah.
+9. DPJP memverifikasi CPPT dan dokter pemberi instruksi memverifikasi pesanan perawat pada Perlu Review.
+10. DPJP menulis dan menandatangani resume dari tab Resume Medis.
+11. Episode ditutup oleh `episode-rawat-inap`; konsep terkunci dan pesanan tertunda batal.
+12. Dokter melengkapi catatannya lewat Catatan Saya bila perlu.
+
+### 22.10 Epic dan functional requirement
+
+| ID | Epic | Prioritas | Disposisi backend |
+| --- | --- | --- | --- |
+| `EPIC DOK-10` | Ruang kerja satu halaman dan daftar pasien dari penugasan | `P0` | `EXTEND` — census diperluas; komponen Rawat Jalan diekstraksi |
+| `EPIC DOK-11` | Kewenangan penulis, registrasi sejak konsep, penguncian, Catatan Saya | `P0` | `EXTEND` — mesin keutuhan dipakai ulang; `MISSING / NEW` untuk `my-authored` |
+| `EPIC DOK-12` | Verifikasi CPPT hanya DPJP dan jenis catatan | `P0` | `EXTEND` |
+| `EPIC DOK-13` | Resep Harian, penghentian butir, template, keputusan rekonsiliasi | `P0` | `EXTEND` dan `MISSING / NEW` |
+| `EPIC DOK-14` | Protokol dan order sliding scale | `P0` | `MISSING / NEW` |
+| `EPIC DOK-15` | Pesanan tindakan dan penunjang dengan instruksi | `P0` | `EXTEND` |
+| `EPIC DOK-16` | Tab Resume Medis | `P1` | `EXTEND` — dirancang `episode-rawat-inap` |
+| `EPIC DOK-17` | Penunjang enam layanan sebagai permukaan | `P1` | `EXISTING / REUSE` untuk Lab/Rad; nol backend untuk empat layanan |
+
+| FR | Bunyi requirement yang dapat diuji | Epic | Disposisi |
+| --- | --- | --- | --- |
+| `FR-DOK-069` | Daftar Pasien Rawat Inap hanya memuat pasien dengan penugasan aktif dokter login. **Contoh:** dr. Ahmad DPJP Budi dan konsulen Sari di antara 122 pasien → dua kartu, Total Pasien 2 | `DOK-10` | `EXTEND` |
+| `FR-DOK-070` | `doctorId` pada query diabaikan bila `assignedToMe=true`. **Contoh:** akun dr. Ahmad mengirim id dr. Rina → tetap dua pasien dr. Ahmad | `DOK-10` | `EXTEND` |
+| `FR-DOK-071` | Metrik kepala dihitung dari daftar yang sama dan disembunyikan bila gagal dimuat, bukan ditampilkan nol | `DOK-10` | `EXTEND` |
+| `FR-DOK-072` | Tata letak sama dengan Dokter Rawat Jalan menurut `UI-AC-DOK-001` s.d. `012`; tangkapan layar bertopeng pada tiga lebar layar identik kotaknya | `DOK-10` | Frontend |
+| `FR-DOK-073` | Tidak ada aksi atau status antrean pada ruang kerja rawat inap | `DOK-10` | Frontend |
+| `FR-DOK-074` | Konsep SOAP dan kajian medis rawat inap membentuk tepat satu registrasi `Draft` sejak disimpan pertama kali. **Contoh:** simpan otomatis dua kali pukul 06.31 → satu registrasi | `DOK-11` | `EXTEND` |
+| `FR-DOK-075` | Hanya penulis yang menyunting dan menyelesaikan konsep rawat inap; DPJP aktif pun `403` | `DOK-11` | `REPAIR` |
+| `FR-DOK-076` | Dokumen baru mensyaratkan penugasan pada waktu klinis dan aktif saat disimpan. **Contoh:** catatan 05.00 dikirim 08.10 tanpa penugasan → `403`; 08.40 dengan penugasan singkat → `201` | `DOK-11` | `REPAIR` |
+| `FR-DOK-077` | Penulis menyelesaikan konsepnya setelah penugasan berakhir bila konsep dibuat saat penugasan aktif; waktu klinis 06.30 dan tanda tangan 08.00 tersimpan terpisah | `DOK-11` | `REPAIR` |
+| `FR-DOK-078` | Saat episode ditutup, konsep rawat inap menjadi `LockedUnsigned` dalam transaksi penutupan | `DOK-11` | `MISSING / NEW` — dipicu `episode-rawat-inap` |
+| `FR-DOK-079` | Catatan Saya menampilkan konsep dan catatan terkunci milik penulis di bawah episode rawat inap, dengan identitas minimum saja | `DOK-11` | `EXTEND` + `MISSING / NEW` (`my-authored`, menunggu Yoga Aji Pratama) |
+| `FR-DOK-080` | Penulis menambah addendum pada catatan final atau terkunci miliknya tanpa penugasan aktif | `DOK-11` | `EXISTING / REUSE` |
+| `FR-DOK-081` | Tindakan baru dari catatan dokter pada episode `Closed` ditolak `422` | `DOK-11` | `REPAIR` |
+| `FR-DOK-082` | Verifikasi CPPT hanya oleh penugasan berperan DPJP aktif pada detik verifikasi; konsulen dan dokter jaga `403` | `DOK-12` | `REPAIR` |
+| `FR-DOK-083` | Pada episode `Closed`, DPJP terakhir memverifikasi entri yang ditulis sebelum penutupan; keterlambatan tetap tercatat. **Contoh:** entri Sabtu 21.00 diverifikasi Senin 16.00 → tercatat terlambat 19 jam | `DOK-12` | `EXTEND` |
+| `FR-DOK-084` | Daftar tunggu verifikasi memuat episode `Closed` milik DPJP terakhir sampai seluruh entrinya terverifikasi | `DOK-12` | `MISSING / NEW` |
+| `FR-DOK-085` | CPPT menyimpan jenis catatan yang diperiksa terhadap profesi penulis; entri lama `Unspecified` tanpa pengisian tebakan | `DOK-12` | `EXTEND` |
+| `FR-DOK-086` | Resep Harian menyaring periode hari ini, minggu ini, bulan ini, dan rentang, termasuk racikan dan obat pulang | `DOK-13` | `EXTEND` |
+| `FR-DOK-087` | Penghentian butir beralasan oleh dokter bertugas membatalkan dosis MAR `Due` sesudahnya dalam satu transaksi. **Contoh:** Ceftriaxone dihentikan 09.10 → dosis 20.00 `Cancelled`, dosis 08.00 `Administered` utuh | `DOK-13` | `MISSING / NEW` |
+| `FR-DOK-088` | Template dibuat, diubah, dan dihapus hanya atas nama dokter login — berlaku umum termasuk poliklinik | `DOK-13` | `REPAIR` |
+| `FR-DOK-089` | Ruang kerja rawat inap hanya menampilkan dan memakai template milik dokter login; perawat tidak memakai template | `DOK-13` | `REPAIR` |
+| `FR-DOK-090` | Pemakaian template menandai butir bentrok alergi atau obat tidak tersedia tanpa menggagalkan butir lain; draft bertanda ditolak saat disimpan | `DOK-13` | `MISSING / NEW` |
+| `FR-DOK-091` | Template kosong ditolak | `DOK-13` | `REPAIR` |
+| `FR-DOK-092` | Dokter memutuskan obat bawaan Lanjut Sama, Lanjut Ubah, atau Hentikan; "Lanjut" membentuk butir draft resep; perawat `403` | `DOK-13` | `MISSING / NEW` |
+| `FR-DOK-093` | Keputusan dapat diganti selama butir hasilnya masih draft, dengan riwayat keputusan tersimpan; setelah resep aktif `409` | `DOK-13` | `MISSING / NEW` |
+| `FR-DOK-094` | Versi protokol menyimpan rentang yang menutup seluruh nilai tanpa tumpuk. **Contoh:** 200–260 dan 250–299 ditolak; versi mulai 150 tanpa rentang di bawahnya ditolak | `DOK-14` | `MISSING / NEW` |
+| `FR-DOK-095` | Pengesah protokol bukan pengubah terakhir; versi sah sebelumnya pensiun pada transaksi yang sama | `DOK-14` | `MISSING / NEW` |
+| `FR-DOK-096` | Order hanya dari versi `Approved`; rentang tersalin; penyesuaian wajib beralasan. **Contoh:** dosis separuh "pasien sensitif insulin" → GDS 280 menghasilkan 3 unit, bukan 6 | `DOK-14` | `MISSING / NEW` |
+| `FR-DOK-097` | Versi template baru tidak mengubah order yang sudah berjalan | `DOK-14` | `MISSING / NEW` |
+| `FR-DOK-098` | Penyesuaian membuat versi order baru dan menolak nomor versi basi | `DOK-14` | `MISSING / NEW` |
+| `FR-DOK-099` | Penghentian order atau butir insulinnya menghentikan pelaksanaan berikutnya | `DOK-14` | `MISSING / NEW` |
+| `FR-DOK-100` | Perawat membuat pesanan tindakan dengan dokter pemberi instruksi yang bertugas; tanpa `ConsultationId`; penginput dari akun login | `DOK-15` | `EXTEND` |
+| `FR-DOK-101` | Pesanan tindakan poliklinik tanpa `ConsultationId` tetap ditolak dengan pesan lama | `DOK-15` | `EXISTING / REUSE` |
+| `FR-DOK-102` | Pesanan hanya diubah penginput; dibatalkan penginput atau DPJP aktif dengan alasan | `DOK-15` | `REPAIR` |
+| `FR-DOK-103` | Pelaksana menjadi penulis catatan pelaksanaan; addendum hanya oleh pelaksana | `DOK-15` | `EXISTING / REUSE` |
+| `FR-DOK-104` | Hanya dokter pemberi instruksi yang memverifikasi; verifikasi tidak mengubah penginput dan isi | `DOK-15` | `MISSING / NEW` |
+| `FR-DOK-105` | Penutupan episode membatalkan pesanan tertunda yang belum tertagih dengan alasan tetap; pesanan tertagih dibiarkan dan tampil di daftar pantau | `DOK-15` | `MISSING / NEW` — dipicu `episode-rawat-inap` |
+| `FR-DOK-106` | Pesanan laboratorium dan radiologi perawat membawa pemberi instruksi dan status verifikasi | `DOK-15` | `EXTEND` — **tertahan persetujuan pemilik Lab/Rad** |
+| `FR-DOK-107` | Tab Resume Medis membaca, menyimpan, dan menandatangani resume yang sama dengan Detail Episode, beserta tiga isian baru | `DOK-16` | `EXTEND` |
+| `FR-DOK-108` | Isian usulan resume menampilkan label sumber dan tidak tersimpan tanpa tindakan dokter | `DOK-16` | `MISSING / NEW` |
+| `FR-DOK-109` | Resume ODC tampil "Integrasi belum tersedia" tanpa form | `DOK-16` | Frontend |
+| `FR-DOK-110` | Kartu Laboratorium dan Radiologi menampilkan jumlah pesanan, hasil final baru, dan detail hasil | `DOK-17` | `EXISTING / REUSE` |
+| `FR-DOK-111` | Empat kartu lain menampilkan konteks pasien dan "Integrasi belum tersedia" tanpa permintaan jaringan ke modul itu | `DOK-17` | Frontend |
+
+### 22.11 Model status yang diusulkan
+
+| Objek | Status | Invariant utama |
+| --- | --- | --- |
+| Registrasi keutuhan SOAP dan kajian rawat inap | `Draft`, `Signed`, `LockedUnsigned`, `Cancelled` | `INV-DOK-18`; `LockedUnsigned` tidak pernah kembali |
+| Verifikasi CPPT | `NotRequired`, `Pending`, `Verified`, `Overdue` | `INV-DOK-16` |
+| Pesanan tindakan | `Planned`, `Ordered`, `InProgress`, `Completed`, `Cancelled`; verifikasi instruksi `NotRequired`, `Pending`, `Verified` | `INV-DOK-17` |
+| Butir resep | aktif, dihentikan | Tidak dapat dihidupkan kembali |
+| Keputusan rekonsiliasi | `Pending`, `ContinueSame`, `ContinueModified`, `Stopped` | Riwayat keputusan tidak diubah |
+| Versi protokol | `Draft`, `Approved`, `Retired` | Satu `Approved` per template |
+| Order sliding scale | `Active`, `Stopped` | Satu order per butir insulin |
+
+### 22.12 Sasaran arsitektur
+
+| Dipakai ulang | Diperluas | Baru |
+| --- | --- | --- |
+| Mesin keutuhan, addendum, `my-unsigned`, `MstPrescriptionTemplate`, `MstDrug`, visite, diagnosis | Census (`assignedToMe`), `TrxPatientProcedure`, `TrxPatientIntegratedProgressNote`, `PhmPrescriptionItem`, `LabOrder`, `RadOrder`, `CpptVerificationService`, `InpatientClinicalContextService`, `PrescriptionTemplateService` | Tujuh tabel `PharmacyManagement`: rekonsiliasi dua tabel, sliding scale lima tabel; `InpatientClinicalDocumentRegistrationService`, `PatientProcedureOrderService`, `InpatientPrescriptionService`; tiga controller Farmasi; `my-authored` di `MedicalRecordManagement` |
+
+Nol tabel baru di `ClinicalManagement`, `InPatientManagement`, dan `MedicalRecordManagement` dari sub-modul ini.
+
+### 22.13 Sasaran kemampuan API
+
+Subset dari `contracts/api-contract.md` bagian 12; label status mengikuti kontrak.
+
+| Grup `[Tags]` | Method | Path | Hak akses | Epic | Status |
+| --- | --- | --- | --- | --- | --- |
+| Health Services / Inpatient Management / Inpatient Census | `GET` | `/?assignedToMe=true` | `InpatientCensus : Read` | `DOK-10` | **Tersedia**, penyaring **Rencana** |
+| Health Services / Clinical Management / Doctor Consultation | `PUT`, `PATCH` | `/{id}`, `/{id}/soap`, `/{id}/complete`, `/{id}/cancel` | `DoctorConsultation : Update` | `DOK-11` | **Tersedia**, perilaku **Rencana** |
+| Health Services / Medical Record Management / Clinical Document Integrity | `GET` | `/my-authored` | `ClinicalDocumentIntegrity : Read` | `DOK-11` | **Rencana (belum tersedia)** |
+| Health Services / Clinical Management / Patient Integrated Progress Note | `PATCH`, `GET` | `/{id}/verify`, `/verification-worklist` | `PatientIntegratedProgressNote : Verify`, `: Read` | `DOK-12` | Perilaku **Rencana**; worklist **Rencana (belum tersedia)** |
+| Health Services / Pharmacy Management / Prescription | `PATCH` | `/items/{itemId}/stop` | `Prescription : Stop` | `DOK-13` | **Rencana (belum tersedia)** |
+| Health Services / Pharmacy Management / Prescription Template | `POST` | `/{id}/apply` | `PrescriptionTemplate : Create` | `DOK-13` | **Tersedia**, perilaku **Rencana** |
+| Health Services / Pharmacy Management / Medication Reconciliation | `POST` | `/{id}/decisions` | `MedicationReconciliation : Decide` | `DOK-13` | **Rencana (belum tersedia)** |
+| Health Services / Pharmacy Management / Sliding Scale Template | `POST` | `/versions/{versionId}/approve` | `SlidingScaleTemplate : Approve` | `DOK-14` | **Rencana (belum tersedia)** |
+| Health Services / Pharmacy Management / Sliding Scale Order | `POST` | `/`, `/{id}/versions` | `SlidingScaleOrder : Create`, `: Update` | `DOK-14` | **Rencana (belum tersedia)** |
+| Health Services / Clinical Management / Patient Procedure | `POST`, `PATCH` | `/inpatient-orders`, `/{id}/verify-instruction` | `PatientProcedure : Create`, `: Verify` | `DOK-15` | **Rencana (belum tersedia)** |
+| Health Services / Inpatient Management / Inpatient Discharge | `GET` | `/{episodeId}/summary-prefill` | `InpatientDischarge : Read` | `DOK-16` | **Rencana (belum tersedia)** |
+
+### 22.14 Matriks kewenangan
+
+| Aksi | String hak akses | DPJP | Konsulen / dokter jaga | Perawat |
+| --- | --- | :---: | :---: | :---: |
+| Menyelesaikan konsep sendiri | `[AccessPermission("DoctorConsultation", "Update")]` | ✔ | ✔ | — |
+| Verifikasi CPPT | `[AccessPermission("PatientIntegratedProgressNote", "Verify")]` | ✔ aktif/terakhir | Hak ada, ditolak aturan bisnis | — |
+| Menghentikan butir resep | `[AccessPermission("Prescription", "Stop")]` | ✔ | ✔ | — |
+| Keputusan rekonsiliasi | `[AccessPermission("MedicationReconciliation", "Decide")]` | ✔ | ✔ | — |
+| Mencatat obat bawaan | `[AccessPermission("MedicationReconciliation", "Create")]` | — | — | ✔ |
+| Memesan sliding scale | `[AccessPermission("SlidingScaleOrder", "Create")]` | ✔ | ✔ | — |
+| Mengesahkan protokol | `[AccessPermission("SlidingScaleTemplate", "Approve")]` | Bila diberi peran pengesah | Sama | — |
+| Memesan tindakan atas instruksi | `[AccessPermission("PatientProcedure", "Create")]` | ✔ | ✔ | ✔ |
+| Verifikasi instruksi | `[AccessPermission("PatientProcedure", "Verify")]` | Bila pemberi instruksi | Bila pemberi instruksi | — |
+| Menandatangani resume | `[AccessPermission("InpatientDischarge", "Sign")]` | ✔ aktif | — | — |
+
+### 22.15 Batas integrasi dan billing
+
+| Sub-modul ini **MUST NOT** | Karena |
+| --- | --- |
+| Membuat tabel resep, template, rekonsiliasi, sliding scale di `ClinicalManagement` atau `InPatientManagement` | `RUL-DOK-04` |
+| Membuat daftar catatan-milik-saya tandingan | `RWI-DEC-142` |
+| Menghitung dosis dari hasil laboratorium | `RUL-DOK-03` |
+| Mengintegrasikan Gizi, Hemodialisa, Bank Darah, Rehab Medik | `RWI-DEC-108`, `113` |
+| Membatalkan pesanan yang sudah tertagih lewat penutupan | `RWI-DEC-143` (c); ditangani bersama Billing |
+| Menandai obat diserahkan | `RUL-DOK-01` |
+
+Pesanan dan pelaksanaan tetap bukan tagihan — `BR-RWI-013`.
+
+### 22.16 Guardrail regulasi
+
+| Kewajiban | Bentuknya pada MVP |
+| --- | --- |
+| Rekam medis tidak dihapus dan tidak ditimpa | Konsep terkunci "Tidak Ditandatangani" tetap bagian rekam medis; koreksi lewat addendum |
+| Tanda tangan milik penulis | `INV-DOK-14` |
+| Verifikasi CPPT oleh DPJP | `INV-DOK-16`; batas waktu menunggu pemilik klinis |
+| Isi protokol klinis disahkan pemilik klinis | Gerbang produksi `RWI-DEC-146` — pemilik belum ditunjuk |
+| Daftar obat high-alert termasuk insulin disahkan | Gerbang produksi `RWI-DEC-116` |
+| Privasi Catatan Saya | Identitas minimum `RWI-DEC-127` butir (2); pemilik keamanan/privasi belum ditunjuk tetap gerbang produksi |
+
+### 22.17 Kebutuhan non-fungsional
+
+| ID | Kebutuhan | Contoh bukti |
+| --- | --- | --- |
+| `NFR-012` | Registrasi, penguncian, pembatalan pesanan, dan penghentian butir berjalan dalam satu transaksi dengan perintah pemicunya | Kegagalan buatan di tengah → nol perubahan parsial |
+| `NFR-013` | Kiriman ulang dengan kunci sama tidak menggandakan pesanan, obat bawaan, order sliding scale, maupun registrasi | Dua permintaan identik → satu baris |
+| `NFR-014` | Benturan penyesuaian protokol ditolak dengan nomor versi | Dua dokter bersamaan → satu `201`, satu `409` |
+| `NFR-015` | Seluruh penjaga per pasien diuji dengan peran nyata non-SuperAdmin | Laporan task mencatat peran uji |
+| `NFR-016` | Waktu klinis dan waktu tanda tangan tersimpan terpisah dalam UTC dan ditampilkan zona `Asia/Jakarta` | SOAP 06.30 ditandatangani 08.00 tampil keduanya |
+| `NFR-017` | Kolom sensitif baru tidak masuk custom logger | Pemeriksaan payload log |
+
+### 22.18 Skenario UAT
+
+| ID | Epic | Jalur | Kondisi awal | Langkah | Hasil yang diharapkan |
+| --- | --- | --- | --- | --- | --- |
+| `UAT-DOK-35` | `DOK-10` | Berhasil | dr. Ahmad DPJP Budi, konsulen Sari | Membuka Dokter → Rawat Inap | Dua kartu; kepala dan tab identik tata letaknya dengan Rawat Jalan |
+| `UAT-DOK-36` | `DOK-10` | Gagal | Akun perawat membuka route ruang kerja dokter | Membuka halaman | "Akun Anda belum terhubung ke data dokter"; nol daftar |
+| `UAT-DOK-37` | `DOK-11` | Berhasil | Konsep SOAP dr. Yoga 06.30, penugasan berakhir 07.00 | 08.00 menyelesaikan dari Catatan Saya | Diterima; waktu klinis dan tanda tangan berbeda tampil |
+| `UAT-DOK-38` | `DOK-11` | Gagal | Konsep dr. Yoga | dr. Rina menekan Selesai | Ditolak; konsep tetap milik dr. Yoga |
+| `UAT-DOK-39` | `DOK-11` | Gagal | Episode Joko ditutup dengan konsep terbuka | dr. Yoga mencoba menyunting | Ditolak dengan arahan addendum; addendum dari Catatan Saya diterima |
+| `UAT-DOK-40` | `DOK-12` | Berhasil | Episode Budi ditutup; dua entri tertinggal | DPJP terakhir memverifikasi dari Perlu Review | Keduanya terverifikasi; tetap tercatat terlambat |
+| `UAT-DOK-41` | `DOK-12` | Gagal | Konsulen dengan penugasan aktif | Memverifikasi CPPT | Ditolak "hanya DPJP yang sedang bertugas" |
+| `UAT-DOK-42` | `DOK-13` | Berhasil | Budi membawa Amlodipin, alergi Paracetamol | Dokter Lanjut Sama; memakai template berisi Paracetamol; menghentikan Ceftriaxone | Draft terisi; Paracetamol bertanda; dosis Ceftriaxone berikutnya batal |
+| `UAT-DOK-43` | `DOK-13` | Gagal | Template "ISPA anak" Bersama milik dr. Ahmad | dr. Rina memakai dari rawat inap lewat alamat langsung | Ditolak; tidak ada butir masuk draft |
+| `UAT-DOK-44` | `DOK-14` | Berhasil | Versi v2 disahkan pengguna kedua | dr. Rina memesan dengan dosis separuh beralasan | Order `Active`; perawat melihat 3 unit untuk GDS 280 |
+| `UAT-DOK-45` | `DOK-14` | Gagal | Pengubah terakhir v3 | Mengesahkan v3 sendiri | Ditolak; v2 tetap berlaku |
+| `UAT-DOK-46` | `DOK-15` | Berhasil | 23.00 instruksi telepon dr. Yoga | Ns. Siti memesan cek GDS; pagi dr. Yoga memverifikasi | Pesanan berjalan malam itu; terverifikasi pagi; penginput tetap Siti |
+| `UAT-DOK-47` | `DOK-15` | Gagal | Pesanan kateter dr. Rina | Ns. Siti mengubah jumlah sebelum memasang | Ditolak; hanya penginput |
+| `UAT-DOK-48` | `DOK-15` | Gagal | Episode ditutup dengan pesanan tertunda tertagih | Menutup episode | Penutupan berhasil; pesanan tertagih tidak dibatalkan dan tampil di daftar pantau |
+| `UAT-DOK-49` | `DOK-16` | Berhasil | DPJP Budi | Mengisi Kondisi Saat Pulang dari tab Resume Medis lalu menandatangani | Detail Episode menampilkan resume yang sama; episode belum tertutup |
+| `UAT-DOK-50` | `DOK-16` | Gagal | Konsulen Budi | Menandatangani resume | Ditolak |
+| `UAT-DOK-51` | `DOK-17` | Berhasil | Hasil Darah Lengkap `FINAL` | Membuka kartu Laboratorium | Nilai Hb dan leukosit bertanda di atas/di bawah rujukan |
+| `UAT-DOK-52` | `DOK-17` | Gagal | — | Membuka kartu Hemodialisa | "Integrasi belum tersedia"; tidak ada data contoh dan tidak ada tombol yang tampak menyimpan |
+
+### 22.19 Definition of Done penyelarasan
+
+| Butir | Bukti |
+| --- | --- |
+| Satu pasien berjalan dari daftar dokter sampai resume bertanda tangan pada satu halaman | `UAT-DOK-35`, `UAT-DOK-49` |
+| Tata letak lolos `UI-AC-DOK-001` s.d. `012` | Tangkapan layar bertopeng tiga lebar layar pada laporan task frontend |
+| Tidak ada konsep rawat inap yang diselesaikan selain penulis | `RWI-AC-186` lulus pada SOAP, kajian medis, dan CPPT |
+| Tidak ada konsep terbuka setelah penutupan | `RWI-AC-199`, `RWI-AC-201` |
+| Verifikasi CPPT hanya DPJP aktif atau terakhir | `RWI-AC-190`, `UAT-DOK-40`, `UAT-DOK-41` |
+| Rekonsiliasi, Resep Harian, template, sliding scale berjalan pada rilis yang sama dengan MAR | `RWI-AC-192` s.d. `195`, `RWI-AC-222` s.d. `226`, `RWI-AC-193` |
+| Pesanan perawat terverifikasi pemberi instruksi | `UAT-DOK-46`; untuk Lab/Rad: persetujuan pemilik tercatat |
+| Pesanan tertunda batal saat penutupan tanpa menahannya | `RWI-AC-213`, `RWI-AC-214`, `UAT-DOK-48` |
+| Perilaku poliklinik tidak berubah kecuali template | Test regresi `RWI-AC-143`, `RWI-AC-218`; pemberitahuan kepada pemilik `rawat-jalan` tercatat |
+| Nol tabel tandingan | `RWI-AC-211`, `RWI-AC-225`, pencarian `RWI-AC-192` |
+| Seluruh master dan konfigurasi awal terisi pada lingkungan uji | `02-backend-architecture.md` bagian 11.9 |
+
+### 22.20 Urutan pengiriman dan pertanyaan terbuka
+
+Nama gelombang memakai awalan `DOK-V2-` supaya tidak bertabrakan dengan `DOK-MVP-*` dan `Gelombang 1A` — temuan `RLN-13`.
+
+| Gelombang | Isinya | Syarat mulai |
+| --- | --- | --- |
+| `DOK-V2-0` | Perbaikan penjaga tanpa bentuk data: `FR-DOK-075`, `076`, `081`, `082` beserta regresi | Blueprint revision `7` disetujui |
+| `DOK-V2-1` | `EPIC DOK-11` registrasi dan penguncian; `EPIC DOK-12` jenis catatan dan daftar verifikasi; kolom `TrxPatientProcedure` | `DOK-V2-0`; `episode-rawat-inap` `0.9.0` penutupan dikerjakan bersama |
+| `DOK-V2-2` | `EPIC DOK-13` dan `EPIC DOK-14` | `DOK-V2-1`; **dirilis bersama MAR `KEP-V2-2`** |
+| `DOK-V2-3` | `EPIC DOK-15`; bagian Lab/Rad setelah persetujuan pemiliknya | `DOK-V2-1` |
+| `DOK-V2-4` | `EPIC DOK-10`, `EPIC DOK-16`, `EPIC DOK-17` — ruang kerja frontend | Persetujuan ekstraksi komponen `rawat-jalan`; `DOK-V2-1` |
+| `POST-MVP` | Seluruh baris 22.8 | Keputusan pemilik masing-masing |
+
+**Nol epic `OPEN DECISION` di dalam gelombang.** `FR-DOK-068` tetap di luar gelombang sebagaimana bagian 21.
+
+| No | Pertanyaan | Siapa yang menjawab | Dampak bila belum dijawab | Memblokir |
+| ---: | --- | --- | --- | :---: |
+| 7 | Jadwal pemeriksaan GDS pada order sliding scale dan status dosis bila hasil jatuh pada rentang 0 unit (usulan gate `G-22`: dosis terjadwal, `Held` beralasan) | Muhammad Hamzah | Kolom `CheckFrequencyCode` dan pembentukan dosis `Due` dirancang sebagai usulan; bila ditolak, hanya pembentukan dosis yang berubah | Tidak — dikonfirmasi saat approval |
+| 8 | Satuan GDS rumah sakit (usulan gate `G-25`: disimpan eksplisit, pencocokan menolak satuan berbeda) | Muhammad Hamzah / pemilik klinis | Satuan wajib dipilih per versi | Tidak |
+| 9 | ~~Persetujuan pemilik `LaboratoryManagement` dan `RadiologyManagement` atas kolom instruksi~~ — **`closed` 2026-09-16** oleh `RWI-DEC-153`, pemberi persetujuan **Yoga Aji** | Yoga Aji | ~~`FR-DOK-106` tertahan~~ — bebas; regresi Lab/Rad tetap wajib | Tidak |
+| 10 | ~~Persetujuan Yoga Aji Pratama atas `my-authored` dan `serviceContext`~~ — **`closed` 2026-09-16** oleh `RWI-DEC-151` | Yoga Aji Pratama | ~~Tab Terkunci Catatan Saya tertahan~~ — `BE-RWI-092` dan `FE-RWI-077` bebas | Tidak |
+| 11 | ~~Persetujuan pemilik `rawat-jalan` atas ekstraksi komponen tata letak~~ — **`closed` 2026-09-16** oleh `RWI-DEC-152`, pemberi persetujuan **Sukma GP** | Sukma GP | ~~`DOK-V2-4` tertahan~~ — bebas; regresi poliklinik tetap wajib | Tidak |
+| 12 | Apakah integrasi Gizi dan Bank Darah dibuka sekarang karena modulnya sudah ada di source | Muhammad Hamzah lewat `grill-me` | Tetap "Integrasi belum tersedia" | Tidak |
+| 13 | Penunjukan pemilik klinis pengesah isi protokol sliding scale — **sebagian dijawab 2026-09-16** oleh `RWI-DEC-155`: manajemen menyetujui **pemakaian**, tetapi **nama pengesah belum ada**; dilanjutkan sebagai `RWI-OQ-097` | Manajemen rumah sakit | Mesin boleh dibangun dan diuji; **nol versi protokol dapat dinaikkan `Approved`** selama namanya kosong | Gerbang produksi |
