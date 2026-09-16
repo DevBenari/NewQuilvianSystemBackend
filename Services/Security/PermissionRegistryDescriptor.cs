@@ -37,37 +37,27 @@ namespace QuilvianSystemBackend.Services.Security
     public static class PermissionRegistryDescriptor
     {
         /// <summary>
-        /// Baseline warisan endpoint naked yang sudah diketahui dan <b>dibekukan</b>.
+        /// Baseline endpoint naked yang diakui — <b>saat ini kosong, dan itu memang keadaan yang
+        /// benar</b>.
         ///
-        /// <para>Isinya adalah <c>WfpWorkScheduleAssignmentController</c> - delapan endpoint yang
-        /// seluruhnya hanya dilindungi <c>[Authorize]</c>, ditemukan saat invarian ini dibuat pada
-        /// <c>BE-SEC-012</c>. Controller itu berada di modul <c>HUMAN_RESOURCE_SCHEDULING</c>, di
-        /// luar scope blocker yang diberi wewenang, dan memasangkan <c>[AccessPermission]</c> di
-        /// sana akan mengubah siapa yang boleh memanggilnya - keputusan pemilik modul, bukan
-        /// keputusan task ini.</para>
+        /// <para>Daftar ini pernah berisi delapan endpoint <c>WfpWorkScheduleAssignmentController</c>
+        /// yang seluruhnya hanya dilindungi <c>[Authorize]</c>. Kedelapannya ditutup pada
+        /// <c>BE-SEC-013</c>, sehingga barisnya dihapus dari sini — itulah satu-satunya cara yang
+        /// benar untuk mengosongkan sebuah entri: tutup utangnya lebih dulu, baru hapus barisnya.</para>
         ///
-        /// <para><b>Daftar ini hanya memaafkan yang sudah ada, tidak pernah yang baru.</b> Endpoint
-        /// naked yang tidak tercantum di sini membuat verifier gagal. Entri yang endpoint-nya sudah
-        /// hilang juga membuat verifier gagal, supaya daftar ini tidak membusuk menjadi izin
-        /// terbuka bagi endpoint yang belum pernah diperiksa siapa pun.</para>
+        /// <para><b>Daftar kosong berarti invarian naked endpoint sepenuhnya fail closed.</b> Setiap
+        /// endpoint bisnis yang dapat dijangkau pengguna terautentikasi tanpa <c>[AccessPermission]</c>,
+        /// tanpa <c>[AllowAnonymous]</c>, dan tanpa policy bernama yang disetujui akan langsung
+        /// menggagalkan authorization verifier. Tidak ada lagi yang dimaafkan.</para>
         ///
-        /// <para>Menghapus sebuah baris dari sini adalah cara yang benar untuk menutup utangnya:
-        /// pasang <c>[AccessAction]</c> + <c>[AccessPermission]</c> pada endpoint-nya, lalu hapus
-        /// barisnya. Menambah baris baru ke sini menuntut keputusan pemilik dan alasan tertulis.</para>
+        /// <para>Menambahkan baris baru ke sini berarti <b>sengaja membiarkan sebuah endpoint tanpa
+        /// penegakan otorisasi</b>. Itu menuntut keputusan pemilik modul beserta alasan tertulis pada
+        /// laporan task, bukan sekadar cara cepat membuat verifier kembali hijau. Bila endpoint-nya
+        /// memang dipanggil perangkat dan bukan pegawai, jalur yang benar adalah mendaftarkan policy
+        /// bernama pada <see cref="Constants.AuthorizationPolicies"/> — bukan menaruhnya di sini.</para>
         /// </summary>
         public static readonly IReadOnlyCollection<string> KnownUnenforcedBusinessEndpoints =
-            new HashSet<string>(StringComparer.Ordinal)
-            {
-                "WorkScheduleAssignment.GetFilterMetadata",
-                "WorkScheduleAssignment.GetSummary",
-                "WorkScheduleAssignment.GetWorkScheduleAssignments",
-                "WorkScheduleAssignment.GetWorkScheduleAssignmentById",
-                "WorkScheduleAssignment.CreateWorkScheduleAssignment",
-                "WorkScheduleAssignment.UpdateWorkScheduleAssignment",
-                "WorkScheduleAssignment.UpdateWorkScheduleAssignmentStatus",
-                "WorkScheduleAssignment.DeleteWorkScheduleAssignment"
-            };
-
+            new HashSet<string>(StringComparer.Ordinal);
 
 
         public sealed record ModuleDescriptor(

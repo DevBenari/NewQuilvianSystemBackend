@@ -221,7 +221,7 @@ sebagai pilihan yang sadar, bukan sebagai kesimpulan audit.
 | Keputusan pemberian `WorkSchedule.Update`/`Delete` | Pemilik modul HR | **TERBUKA** — lihat [`13-workschedule-dormant-grant-deployment-blocker.md`](13-workschedule-dormant-grant-deployment-blocker.md) |
 | Keputusan `KioskScanSession.Update` bagi Perawat Rawat Inap | Pemilik modul Registration | **TERBUKA** |
 | Pensiunkan policy `Queue.Read` / `Queue.Update` tanpa penggantian | Migrasi policy terpisah | **TERBUKA**, tidak mendesak |
-| Delapan endpoint `WorkScheduleAssignment` tanpa penegakan | Task lanjutan, pemilik modul HR Scheduling | **TERBUKA** — tercatat pada baseline `BE-SEC-012` |
+| Delapan endpoint `WorkScheduleAssignment` tanpa penegakan | `BE-SEC-013` | ✅ **DITUTUP** 16 September 2026 — lihat [laporan](../task/report/backend/BE-SEC-013.md). Baseline naked kini kosong |
 
 ---
 
