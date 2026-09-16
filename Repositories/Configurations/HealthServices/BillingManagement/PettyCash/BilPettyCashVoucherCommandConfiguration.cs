@@ -10,9 +10,13 @@ public sealed class BilPettyCashVoucherCommandConfiguration : IEntityTypeConfigu
     {
         entity.ToTable("BilPettyCashVoucherCommand", "public", table =>
         {
-            table.HasCheckConstraint("CK_BilPettyCashVoucherCommand_CommandType", "\"CommandType\" IN ('SUBMIT','APPROVE','REJECT','CANCEL','DISBURSE','ATTACH_PROOF','PROOF_CORRECTED')");
-            // Reason wajib terisi untuk REJECT dan CANCEL (data-dictionary.md).
-            table.HasCheckConstraint("CK_BilPettyCashVoucherCommand_Reason", "\"CommandType\" NOT IN ('REJECT','CANCEL') OR \"Reason\" IS NOT NULL");
+            // RETURN dan REVERSAL ditambahkan BE-BKC-057 (PC-DES-019, PC-DES-020) — delta
+            // kontrak terhadap data-dictionary.md, yang masih mencatat tabel ini "Nol
+            // perubahan bentuk" untuk gelombang 15 September 2026. Wajib diperbarui supaya
+            // jejak perintah ReturnAsync/ReverseAsync tidak ditolak constraint ini.
+            table.HasCheckConstraint("CK_BilPettyCashVoucherCommand_CommandType", "\"CommandType\" IN ('SUBMIT','APPROVE','REJECT','CANCEL','DISBURSE','ATTACH_PROOF','PROOF_CORRECTED','RETURN','REVERSAL')");
+            // Reason wajib terisi untuk REJECT, CANCEL, RETURN, dan REVERSAL (data-dictionary.md).
+            table.HasCheckConstraint("CK_BilPettyCashVoucherCommand_Reason", "\"CommandType\" NOT IN ('REJECT','CANCEL','RETURN','REVERSAL') OR \"Reason\" IS NOT NULL");
         });
 
         entity.HasKey(x => x.Id);

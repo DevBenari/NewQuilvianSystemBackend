@@ -49,7 +49,7 @@ flowchart LR
 
     SMANDIRI["🟡 Gelombang mandiri<br/>P2-0a, P2-3, P2-4, P2-5, P2-CTRL, P2-RECON<br/>13 dari 14 task"]:::sebagian
     SHARD["✅ Hardening<br/>BE-ACC-P2-031, 032, 033"]:::selesai
-    SP20B["🟡 P2-0b Wave A<br/>Master aturan posting"]:::sebagian
+    SP20B["✅ P2-0b Wave A<br/>Master aturan posting"]:::selesai
     GP21{{"⛔ P2-1, P2-2, rekonsiliasi subledger<br/>menunggu OD-ACC-01, 04, 05, 06, 07, 08"}}:::terblokir
 
     SMANDIRI --> SHARD
@@ -133,7 +133,7 @@ flowchart LR
     BEACCP2033["✅ BE-ACC-P2-033<br/>Log bebas nominal"]:::selesai
     BEACCP2015["✅ BE-ACC-P2-015<br/>Entity master aturan posting"]:::selesai
     BEACCP2016["✅ BE-ACC-P2-016<br/>Migration P2-0b oleh Rizki"]:::selesai
-    BEACCP2017["🟡 BE-ACC-P2-017<br/>API jenis kejadian"]:::sebagian
+    BEACCP2017["✅ BE-ACC-P2-017<br/>API jenis kejadian"]:::selesai
     BEACCP2018["✅ BE-ACC-P2-018<br/>API aturan posting"]:::selesai
 
     MBEACCP2010 --> BEACCP2032
@@ -226,7 +226,7 @@ Pola yang wajib diikuti, diwarisi dari `BE-ACC-007`:
 | `BE-ACC-P2-014` | **Perbandingan subledger dan laporan selisih** | `P2-RECON` | `013` ✅, gelombang `P2-1` | `READY` — blokir dibuka `ACC-DEC-071` 10 Sep 2026 |
 | `BE-ACC-P2-015` ✅ | Entity dan enum master aturan posting | `P2-0b` | — | ✅ **SELESAI** 14 Sep 2026 — build owner 0 error, nol migration. [Laporan](../task/report/backend/BE-ACC-P2-015.md) |
 | `BE-ACC-P2-016` ✅ | Migration master aturan posting (**GATED**, dibuat Rizki) | `P2-0b` | `015` ✅ | ✅ **SELESAI** 14 Sep 2026 — `20260914044507_AddAccountingPostingRuleMaster` dibuat dan diterapkan Rizki, snapshot nol deletion. [Laporan](../task/report/backend/BE-ACC-P2-016.md) |
-| `BE-ACC-P2-017` 🟡 | API Jenis Kejadian | `P2-0b` | `015` ✅ | 🟡 **SEBAGIAN** 14 Sep 2026 — 6 dari 6 acceptance di source; build ulang terpenuhi (0 error, 192 warning) dan `016` ✅ diterapkan; sisa hanya uji panggil `GET /event-types` dan `GET /posting-rules` — port 5107 tertutup saat diperiksa. [Laporan](../task/report/backend/BE-ACC-P2-017.md) |
+| `BE-ACC-P2-017` ✅ | API Jenis Kejadian | `P2-0b` | `015` ✅ | ✅ **SELESAI** 15 Sep 2026 — 6 dari 6 acceptance di source; build owner 0 error; `GET /event-types` dan `GET /posting-rules` berlogin menjawab `200`, bentuk cocok DTO. Riwayat: 🟡 14 Sep 2026, menunggu uji panggil. [Laporan](../task/report/backend/BE-ACC-P2-017.md) |
 | `BE-ACC-P2-018` ✅ | API Aturan Posting | `P2-0b` | `015` ✅ | ✅ **SELESAI** 14 Sep 2026 — build owner 0 error; dapat dipanggil sesudah `016`. [Laporan](../task/report/backend/BE-ACC-P2-018.md) |
 | `BE-ACC-P2-031` ✅ | Penjaga database pembalikan ganda | `HARDENING` | — | ✅ **SELESAI** 14 Sep 2026 — 5 dari 5 acceptance; index unique parsial diterapkan lewat migration `20260914044507` (Rizki), dibuat tanpa penolakan data ganda; build owner 0 error. Riwayat: 🟡 pagi hari, 3 dari 5. [Laporan](../task/report/backend/BE-ACC-P2-031.md) |
 | `BE-ACC-P2-032` ✅ | Penjaga penyusunan jurnal penutup tahun bersamaan | `HARDENING` | `010` ✅ | ✅ **SELESAI** 14 Sep 2026 — build owner 0 error. [Laporan](../task/report/backend/BE-ACC-P2-032.md) |
@@ -622,7 +622,7 @@ QBE preflight dan kesesuaian engineering tetap diselesaikan **pada waktu eksekus
 | DoD | Migration dibuat **dan** diterapkan Rizki; snapshot nol deletion |
 | **Status** | ✅ **SELESAI 14 September 2026.** Migration `20260914044507_AddAccountingPostingRuleMaster` **dibuat dan diterapkan Rizki** (commit `12b8af63`); agent nol perintah `dotnet ef`. 3 dari 3 acceptance terbukti: snapshot **+294/−1** — deletion satu-satunya index lama `AccJournal` milik `031`, nol blok modul lain hilang; `Down` menghapus ketiga tabel; `CONTAMINATION GUARD` `CLEAN` — 3 `CreateTable` `Acc*`, 1 pasang `DropIndex`/`CreateIndex` `IX_AccJournal_ReversalOfJournalId`, nol operasi pada tabel non-`Acc*`. `dotnet ef migrations list` tanpa `(Pending)` sesudah merge integration `ba124bbb`; snapshot 619 tabel. `database update` sempat gagal `42P01` di migration Blood Bank `AddBbkBloodOrder` — cacat lintas modul, diperbaiki integration `b3361d07`. **Risiko terbuka:** migration belum ada di integration. Bukti: [laporan](../task/report/backend/BE-ACC-P2-016.md) |
 
-## 🟡 `BE-ACC-P2-017` — API Jenis Kejadian
+## ✅ `BE-ACC-P2-017` — API Jenis Kejadian
 
 | Field | Isi |
 |---|---|
@@ -636,7 +636,7 @@ QBE preflight dan kesesuaian engineering tetap diselesaikan **pada waktu eksekus
 | Verifikasi | Pemeriksaan source dan kontrak; `dotnet build … -p:RunAnalyzers=false` oleh Rizki. Pemanggilan endpoint sesudah `016` diterapkan |
 | Risiko/pemilik | Endpoint menjawab `500` sampai migration `016` diterapkan. Owner Backend |
 | DoD | Source berubah, laporan task tertulis |
-| **Status** | 🟡 **SEBAGIAN — 14 September 2026.** 6 dari 6 acceptance terpetakan ke source: 6 endpoint kontrak + `PATCH /{id}/activate` (delta), hak `EventType : Read/Create/Update` cocok dengan `ControllerName`, kode kembar dan penonaktifan jenis yang masih dipakai ditolak `409`, penjaga badan hukum dipanggil. `dotnet build … -p:RunAnalyzers=false` oleh Rizki: **0 error, 189 warning** — **sebelum** perbaikan sesi ini: muatan log `new { id }` menimpa `UserId` pelaku di `LoggerService`, diganti `EntityId` (3 baris). **Belum:** build ulang sesudah perbaikan itu, dan pemanggilan endpoint yang diminta kolom Verifikasi — menunggu `BE-ACC-P2-016` (Rizki). Delta standar master data (`/filters/metadata`, `/summary`, `PATCH /status`, `DELETE` tidak dibuat) tercatat di laporan. **Pembaruan 14 September 2026 sore — tetap 🟡.** Build ulang sesudah perbaikan log **terpenuhi**: `dotnet build … -p:RunAnalyzers=false` oleh Rizki **0 error, 192 warning**, satu-satunya warning Accounting yang terlihat (`AccJournalService.cs(381)`) berasal dari `0d4ad3adf`. `BE-ACC-P2-016` ✅ sudah diterapkan. **Sisa satu-satunya:** uji panggil read-only `GET /event-types` dan `GET /posting-rules` saat backend berjalan — **belum dijalankan** karena port 5107 tertutup saat diperiksa 14 September 2026 13.17 WIB. Bukti: [laporan](../task/report/backend/BE-ACC-P2-017.md) |
+| **Status** | ✅ **SELESAI 15 September 2026.** Butir Verifikasi terakhir terpenuhi: owner memanggil `GET /event-types` dan `GET /posting-rules` lewat Swagger dengan sesi login — keduanya **`200`**. Bentuk respons cocok penuh dengan DTO: 7 bidang `EventTypeListResponse` dan 13 bidang `PostingRuleListResponse`, `treatment` dikirim sebagai angka `2`, envelope `ApiResponse` + `PagedResult`. Tabel terbukti ada pada database yang dipakai backend. 6 dari 6 acceptance terpetakan ke source; build owner **0 error, 192 warning**. Automated test tidak dijalankan atas `ACC-DEC-081`; UAT belum dijalankan. Pemberian hak bagi pengguna non-SuperAdmin tidak dibuktikan uji ini. **Riwayat:** 🟡 **SEBAGIAN — 14 September 2026.** 6 dari 6 acceptance terpetakan ke source: 6 endpoint kontrak + `PATCH /{id}/activate` (delta), hak `EventType : Read/Create/Update` cocok dengan `ControllerName`, kode kembar dan penonaktifan jenis yang masih dipakai ditolak `409`, penjaga badan hukum dipanggil. `dotnet build … -p:RunAnalyzers=false` oleh Rizki: **0 error, 189 warning** — **sebelum** perbaikan sesi ini: muatan log `new { id }` menimpa `UserId` pelaku di `LoggerService`, diganti `EntityId` (3 baris). **Belum:** build ulang sesudah perbaikan itu, dan pemanggilan endpoint yang diminta kolom Verifikasi — menunggu `BE-ACC-P2-016` (Rizki). Delta standar master data (`/filters/metadata`, `/summary`, `PATCH /status`, `DELETE` tidak dibuat) tercatat di laporan. **Pembaruan 14 September 2026 sore — tetap 🟡.** Build ulang sesudah perbaikan log **terpenuhi**: `dotnet build … -p:RunAnalyzers=false` oleh Rizki **0 error, 192 warning**, satu-satunya warning Accounting yang terlihat (`AccJournalService.cs(381)`) berasal dari `0d4ad3adf`. `BE-ACC-P2-016` ✅ sudah diterapkan. **Sisa satu-satunya:** uji panggil read-only `GET /event-types` dan `GET /posting-rules` saat backend berjalan — **belum dijalankan** karena port 5107 tertutup saat diperiksa 14 September 2026 13.17 WIB. **15.20 WIB:** backend berjalan; `GET` tanpa login ke `event-types`, `posting-rules`, dan `event-types/options` menjawab `401` sedangkan rute kontrol `404` — rute terdaftar, tetapi tabel dan bentuk respons belum terbukti. Owner menyatakan pemberian hak sudah berjalan di database utama, sedangkan di `QuilvianNewDevRizki` departemennya kosong sehingga hak belum dapat dicentang. **Tetap 🟡** sampai ada respons `200` dengan login. Bukti: [laporan](../task/report/backend/BE-ACC-P2-017.md) |
 
 ## ✅ `BE-ACC-P2-018` — API Aturan Posting
 

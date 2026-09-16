@@ -573,15 +573,26 @@ public sealed class BillingInvoiceService
                 .Where(x => providerIds.Contains(x.Id))
                 .ToDictionaryAsync(x => x.Id, x => (string?)x.ClaimMethod, cancellationToken);
 
-        // 5. Batch query Kalkulasi Terakhir (TotalBillAmount)
+        // 5. Batch query Kalkulasi Terakhir (TotalBillAmount / TotalInvoiceAmount)
         var calcRows = invoiceIds.Count == 0
             ? []
             : await _dbContext.BilCalculationVersions.AsNoTracking()
                 .Where(x => invoiceIds.Contains(x.InvoiceId))
-                .Select(x => new { x.InvoiceId, x.VersionNo, x.PatientAmount })
+                .Select(x => new
+                {
+                    x.InvoiceId,
+                    x.VersionNo,
+                    x.PatientAmount,
+                    x.GrossAmount,
+                    x.AdministrationFeeAmount,
+                    x.RoomChargeAmount,
+                    x.ItemDiscount,
+                    x.TaxAmount,
+                    x.RoundingAmount
+                })
                 .ToListAsync(cancellationToken);
-        var patientAmountByInvoice = calcRows.GroupBy(x => x.InvoiceId)
-            .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.VersionNo).First().PatientAmount);
+        var latestCalcByInvoice = calcRows.GroupBy(x => x.InvoiceId)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.VersionNo).First());
 
         // 6. Batch query Settlement & Tender SUCCEEDED
         var settlementRows = invoiceIds.Count == 0
@@ -603,6 +614,69 @@ public sealed class BillingInvoiceService
         var tendersByInvoice = tenderRows
             .GroupBy(t => settlementToInvoice[t.SettlementId])
             .ToDictionary(g => g.Key, g => g.ToList());
+
+        // 6b. Batch query komponen "sisa tagihan pasien" kanonik - formula yang sama dengan
+        // BillingFinancialExceptionService/BillingSettlementService/BillingFinalizationService
+        // .CalculateOutstandingAsync, supaya OutstandingAmount di Cashier Overview konsisten
+        // dengan Menu Pembayaran (bukan sekadar PatientAmount - raw tender succeeded).
+        var allocationRows = invoiceIds.Count == 0
+            ? []
+            : await _dbContext.BilPaymentAllocations.AsNoTracking()
+                .Where(a => a.TargetType == BillingAllocationTargetTypes.Invoice
+                    && invoiceIds.Contains(a.TargetId) && !a.IsDelete)
+                .Select(a => new { a.TargetId, a.Amount, a.ReversesAllocationId })
+                .ToListAsync(cancellationToken);
+        var paidAmountByInvoice = allocationRows
+            .GroupBy(a => a.TargetId)
+            .ToDictionary(g => g.Key, g => g.Sum(a => a.ReversesAllocationId.HasValue ? -a.Amount : a.Amount));
+
+        var allocationExcessRows = invoiceIds.Count == 0
+            ? []
+            : await _dbContext.BilRefundableCredits.AsNoTracking()
+                .Where(c => invoiceIds.Contains(c.InvoiceId)
+                    && c.SourceType == BillingRefundableCreditSourceTypes.AllocationExcess && !c.IsDelete)
+                .Select(c => new { c.InvoiceId, c.AvailableAmount })
+                .ToListAsync(cancellationToken);
+        var allocationExcessByInvoice = allocationExcessRows
+            .GroupBy(c => c.InvoiceId)
+            .ToDictionary(g => g.Key, g => g.Sum(c => c.AvailableAmount));
+
+        // writeOffTotal HANYA menyaring kategori PATIENT_AR (selaras dengan BE-BKC-029/BKC-DES-024):
+        // write-off residual non-billable tidak pernah jadi tanggungan pasien, jadi tidak boleh
+        // ikut mengurangi outstanding di sini.
+        var writeOffRows = invoiceIds.Count == 0
+            ? []
+            : await _dbContext.BilWriteOffCases.AsNoTracking()
+                .Where(w => invoiceIds.Contains(w.InvoiceId)
+                    && w.Status == BillingWriteOffCaseStatuses.Posted
+                    && w.Category == BillingWriteOffCategories.PatientAr && !w.IsDelete)
+                .Select(w => new { w.InvoiceId, w.Amount })
+                .ToListAsync(cancellationToken);
+        var writeOffTotalByInvoice = writeOffRows
+            .GroupBy(w => w.InvoiceId)
+            .ToDictionary(g => g.Key, g => g.Sum(w => w.Amount));
+
+        var residualCaseIdRows = invoiceIds.Count == 0
+            ? []
+            : await _dbContext.BilWriteOffCases.AsNoTracking()
+                .Where(w => invoiceIds.Contains(w.InvoiceId) && w.Category == BillingWriteOffCategories.NonBillableResidual)
+                .Select(w => w.Id)
+                .ToListAsync(cancellationToken);
+        var residualCaseIdSet = residualCaseIdRows.ToHashSet();
+
+        var adjustmentRows = invoiceIds.Count == 0
+            ? []
+            : await _dbContext.BilAdjustments.AsNoTracking()
+                .Where(j => invoiceIds.Contains(j.InvoiceId)
+                    && j.Status == BillingAdjustmentStatuses.Posted && !j.IsDelete)
+                .Select(j => new { j.InvoiceId, j.Amount, j.Direction, j.ReversesWriteOffCaseId })
+                .ToListAsync(cancellationToken);
+        var adjustmentNetByInvoice = adjustmentRows
+            .Where(j => j.ReversesWriteOffCaseId == null || !residualCaseIdSet.Contains(j.ReversesWriteOffCaseId.Value))
+            .GroupBy(j => j.InvoiceId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.Sum(j => j.Direction == BillingAdjustmentDirections.Credit ? j.Amount : -j.Amount));
 
         // 7. Batch query Deposit untuk RANAP
         var ranapEncounterIds = page
@@ -660,15 +734,31 @@ public sealed class BillingInvoiceService
             var tenders = tendersByInvoice.TryGetValue(x.Id, out var invTenders)
                 ? invTenders
                 : [];
-            var totalPaid = tenders.Sum(t => t.Amount);
             DateTimeOffset? lastPaymentAt = tenders.Count > 0 ? tenders.Max(t => (DateTimeOffset?)t.AttemptedAt) : null;
-            var patientAmount = patientAmountByInvoice.TryGetValue(x.Id, out var pa) ? pa : 0m;
-            var outstanding = Math.Max(0m, patientAmount - totalPaid);
+
+            latestCalcByInvoice.TryGetValue(x.Id, out var calc);
+            var patientAmount = calc?.PatientAmount ?? 0m;
+            // Gross sebelum coverage penjamin (subtotal + admin/room + tax - diskon item, sebelum
+            // waterfall insurance/company-guarantor) - direkonstruksi dari kolom yang sudah dipersist
+            // BillingCalculationService.CalculateAsync, TANPA menghitung ulang pajak/diskon di sini.
+            var totalInvoiceAmount = calc is null
+                ? 0m
+                : calc.GrossAmount + calc.AdministrationFeeAmount + calc.RoomChargeAmount
+                    - calc.ItemDiscount + calc.TaxAmount + calc.RoundingAmount;
+
+            // paidAmount berbasis payment allocation (bukan raw tender sukses), supaya konsisten
+            // dengan basis formula outstanding di bawah.
+            var paidAmount = paidAmountByInvoice.TryGetValue(x.Id, out var paid) ? paid : 0m;
+            var allocationExcess = allocationExcessByInvoice.TryGetValue(x.Id, out var excess) ? excess : 0m;
+            var writeOffTotal = writeOffTotalByInvoice.TryGetValue(x.Id, out var wo) ? wo : 0m;
+            var adjustmentNet = adjustmentNetByInvoice.TryGetValue(x.Id, out var adj) ? adj : 0m;
+            var outstanding = Math.Max(
+                0m, patientAmount - paidAmount + allocationExcess - writeOffTotal - adjustmentNet);
 
             string paymentStatus;
-            if (outstanding <= 0 && (patientAmount > 0 || totalPaid > 0))
+            if (outstanding <= 0 && (patientAmount > 0 || paidAmount > 0))
                 paymentStatus = CashierPaymentStatuses.Paid;
-            else if (totalPaid > 0 && outstanding > 0)
+            else if (paidAmount > 0 && outstanding > 0)
                 paymentStatus = CashierPaymentStatuses.Partial;
             else
                 paymentStatus = CashierPaymentStatuses.Unpaid;
@@ -756,9 +846,11 @@ public sealed class BillingInvoiceService
                 ClaimMethod = claimMethod,
                 HasInsurancePayer = hasInsurance,
                 VisitDate = x.VisitDate,
+                CreateDateTime = x.CreateDateTime,
+                TotalInvoiceAmount = totalInvoiceAmount,
                 TotalBillAmount = patientAmount,
                 LastSuccessfulPaymentAt = lastPaymentAt,
-                TotalPaidAmount = totalPaid,
+                TotalPaidAmount = paidAmount,
                 OutstandingAmount = outstanding,
                 PaymentStatus = paymentStatus,
                 HasDepositAccount = hasDepositAccount,

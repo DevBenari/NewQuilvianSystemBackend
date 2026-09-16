@@ -10,13 +10,19 @@ public sealed class BilPettyCashBudgetMovementConfiguration : IEntityTypeConfigu
     {
         entity.ToTable("BilPettyCashBudgetMovement", "public", table =>
         {
-            table.HasCheckConstraint("CK_BilPettyCashBudgetMovement_MovementType", "\"MovementType\" IN ('TOP_UP','DISBURSEMENT','ADJUSTMENT')");
+            // Empat nilai baru ditambahkan (PC-DES-019): RETURN, REVERSAL,
+            // CARRY_FORWARD_OUT, CARRY_FORWARD_IN. Ketiganya belum ditulis service manapun
+            // pada task fondasi ini — baru dipakai BE-BKC-054/057.
+            table.HasCheckConstraint("CK_BilPettyCashBudgetMovement_MovementType", "\"MovementType\" IN ('TOP_UP','DISBURSEMENT','ADJUSTMENT','RETURN','REVERSAL','CARRY_FORWARD_OUT','CARRY_FORWARD_IN')");
             table.HasCheckConstraint("CK_BilPettyCashBudgetMovement_Amount", "\"Amount\" > 0");
             table.HasCheckConstraint("CK_BilPettyCashBudgetMovement_BalanceAfter", "\"BalanceAfter\" >= 0");
-            // VoucherId terisi hanya untuk DISBURSEMENT.
-            table.HasCheckConstraint("CK_BilPettyCashBudgetMovement_VoucherId", "(\"MovementType\" = 'DISBURSEMENT' AND \"VoucherId\" IS NOT NULL) OR (\"MovementType\" <> 'DISBURSEMENT' AND \"VoucherId\" IS NULL)");
-            // Reason wajib untuk TOP_UP dan ADJUSTMENT.
-            table.HasCheckConstraint("CK_BilPettyCashBudgetMovement_Reason", "\"MovementType\" NOT IN ('TOP_UP','ADJUSTMENT') OR \"Reason\" IS NOT NULL");
+            // VoucherId wajib untuk DISBURSEMENT, RETURN, dan REVERSAL — ketiganya menunjuk
+            // ke voucher yang uangnya bergerak. Kosong untuk sisanya (PC-DES-019). Perilaku
+            // untuk DISBURSEMENT/TOP_UP/ADJUSTMENT identik dengan sebelum revisi ini.
+            table.HasCheckConstraint("CK_BilPettyCashBudgetMovement_VoucherId", "(\"MovementType\" IN ('DISBURSEMENT','RETURN','REVERSAL') AND \"VoucherId\" IS NOT NULL) OR (\"MovementType\" NOT IN ('DISBURSEMENT','RETURN','REVERSAL') AND \"VoucherId\" IS NULL)");
+            // Reason wajib untuk seluruh jenis KECUALI DISBURSEMENT (PC-DES-019). Perilaku
+            // untuk TOP_UP/ADJUSTMENT/DISBURSEMENT identik dengan sebelum revisi ini.
+            table.HasCheckConstraint("CK_BilPettyCashBudgetMovement_Reason", "\"MovementType\" = 'DISBURSEMENT' OR \"Reason\" IS NOT NULL");
         });
 
         entity.HasKey(x => x.Id);
@@ -41,6 +47,15 @@ public sealed class BilPettyCashBudgetMovementConfiguration : IEntityTypeConfigu
             .IsUnique()
             .HasFilter("\"MovementType\" = 'DISBURSEMENT' AND \"IsDelete\" = false")
             .HasDatabaseName("IX_BilPettyCashBudgetMovement_Voucher_Disbursement");
+
+        // Pasangannya untuk pembalikan: satu voucher paling banyak SATU baris REVERSAL
+        // (PC-DES-019, FR-BKC-101). RETURN sengaja TIDAK diberi index serupa — pengembalian
+        // sisa boleh berkali-kali per voucher; batasnya ditegakkan aturan bisnis
+        // (BIL-VAL-098), bukan index.
+        entity.HasIndex(x => x.VoucherId)
+            .IsUnique()
+            .HasFilter("\"MovementType\" = 'REVERSAL' AND \"IsDelete\" = false")
+            .HasDatabaseName("IX_BilPettyCashBudgetMovement_Voucher_Reversal");
 
         entity.HasIndex(x => new { x.BudgetId, x.OccurredAt })
             .HasDatabaseName("IX_BilPettyCashBudgetMovement_Budget_OccurredAt");

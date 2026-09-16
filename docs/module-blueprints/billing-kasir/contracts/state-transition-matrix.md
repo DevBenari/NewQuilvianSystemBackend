@@ -330,3 +330,93 @@ Disposisi **MUST NOT** mengubah jumlah pada baris obat, dan **MUST NOT** menyent
 Gerbang ini identik dengan gerbang yang sudah berlaku bagi perubahan finansial lain di modul ini, dan sengaja tidak dilonggarkan.
 
 Trace **`MPY-DEC-001`–`010`**, `MPY-DES-001`–`017`. Tests `BIL-AT-081`–`100`.
+
+---
+
+## Amendment 15 September 2026 — Revisi Petty Cash: pencairan langsung dan anggaran per periode
+
+`last_changed_in: BIL-STATE-1.0` · status **approved** · owner Kepala Kasir/Finance Operations · `approved_by`: Product/Domain Owner (`PC-DEC-026`) · `approved_at`: 2026-09-15 · input: **`PC-DEC-016`–`PC-DEC-025`** (`approved` 15 September 2026); keputusan arsitektur `PC-DES-015`–`PC-DES-025`.
+
+Amendment ini **menggantikan** bagian "Kosakata status", "Transisi yang sah", "Transisi yang tidak sah", "Di mana saldo anggaran bergerak", dan "Status kolam anggaran" pada amendment 7 September 2026. Bagian lama tetap terbaca sebagai jejak alasan; yang berlaku adalah bagian ini.
+
+### Kosakata status voucher — empat nilai hidup, satu warisan
+
+| Kode persisted | Label | Kapan muncul | Terminal? |
+| --- | --- | --- | :---: |
+| `REQUESTED` | **`Menunggu Pencairan`** | Sejak permintaan dibuat sampai uang diserahkan | Tidak |
+| `CASH_RECEIVED` | **`Menunggu Bukti`** | Kasir menyerahkan uang; nota belum masuk | Tidak |
+| `COMPLETED` | **`Selesai`** | Nomor nota sudah dimasukkan | **Ya** |
+| `REVERSED` | **`Dibatalkan (Uang Dikembalikan)`** | Pencairan dibalik karena seharusnya tidak terjadi | **Ya** |
+| `REJECTED` | **`Ditolak (arsip)`** | **Hanya pada baris sebelum 15 September 2026.** Tidak ada voucher baru yang dapat memasukinya | **Ya, dan immutable** |
+
+Tiga perubahan terhadap kosakata lama, masing-masing dengan perlakuan berbeda (`PC-DES-015`):
+
+1. `WAITING_APPROVAL` **diganti nama** menjadi `REQUESTED` — artinya berubah total, jadi namanya wajib ikut berubah.
+2. `CASH_RECEIVED` **dipertahankan kodenya**, hanya labelnya menjadi `Menunggu Bukti` — artinya sama persis, jadi tidak ada pemutakhiran data.
+3. `APPROVED` **dipensiunkan**; baris lama yang memegangnya dipetakan ke `REQUESTED` oleh migration.
+
+**Pembatalan tetap bukan status.** `PC-DES-007` tetap berlaku: permintaan yang dibatalkan tetap ber-`Status = REQUESTED` dengan penandaan `IsCancel = true`, dan layar menampilkannya sebagai `Dibatalkan`. Ini **berbeda** dari `REVERSED`: `IsCancel` berarti uangnya tidak pernah keluar, `REVERSED` berarti uangnya keluar lalu kembali.
+
+### Transisi yang sah
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| Tidak ada | Buat permintaan | `Menunggu Pencairan` | Kasir/petugas administrasi (`PettyCashVoucher : Create`) | Nama penerima, kategori aktif, nominal lebih besar dari nol, dan tujuan terisi | `400`/`422`; permintaan tidak terbentuk dan nomor tidak terpakai |
+| `Menunggu Pencairan` | **Uang Diberikan** | `Menunggu Bukti` | Kasir (`PettyCashVoucher : Disburse`) | Ada periode anggaran `ACTIVE`; saldo periode itu **saat itu juga** masih mencukupi (`PC-DES-006`); belum pernah ada baris pencairan untuk voucher ini | `422` `BIL-VAL-048`; voucher **tetap** `Menunggu Pencairan` dan dapat dicairkan lagi setelah saldo ditambah |
+| `Menunggu Pencairan` | Batalkan | `Menunggu Pencairan` + `IsCancel = true` | Kasir/petugas mana pun yang punya akses (`PettyCashVoucher : Cancel`) | Belum pernah dicairkan | `422` `BIL-VAL-050` bila sudah dicairkan |
+| `Menunggu Bukti` | Input Nota | `Selesai` | Kasir/petugas administrasi (`PettyCashVoucher : AttachProof`) | Nomor nota/kwitansi terisi | `422` `BIL-VAL-051`; voucher tetap `Menunggu Bukti` |
+| `Selesai` | Koreksi nomor nota | `Selesai` (tidak berpindah) | Kasir/petugas administrasi (`PettyCashVoucher : AttachProof`) | Nomor nota baru terisi | `422`; nomor lama dipertahankan |
+| `Menunggu Bukti` **atau** `Selesai` | **Kembalikan sisa** | **Tidak berpindah** | Kasir (`PettyCashVoucher : Return`) | Nominal lebih besar dari nol; total seluruh pengembalian **MUST NOT** melampaui nominal voucher; ada periode `ACTIVE` | `422` `BIL-VAL-098` |
+| `Menunggu Bukti` **atau** `Selesai` | **Balikkan pencairan** | `Dibatalkan (Uang Dikembalikan)` | Kasir (`PettyCashVoucher : Reverse`) | Alasan terisi; belum pernah dibalik; ada periode `ACTIVE` | `422` `BIL-VAL-099` |
+
+### Transisi yang **tidak sah** dan tetap tidak sah
+
+| Dari status | Tindakan | Siapa pun | Kenapa tidak sah | Yang terjadi |
+| --- | --- | --- | --- | --- |
+| `Ditolak (arsip)` | Apa pun | Siapa pun | Baris warisan adalah catatan audit permanen (`PC-DEC-003`) | Tidak ada endpoint yang menerimanya |
+| `Dibatalkan (Uang Dikembalikan)` | Input nota, kembalikan sisa, balikkan lagi, atau apa pun | Siapa pun | Pencairannya sudah dinyatakan batal dan uangnya sudah kembali penuh | `422` `BIL-VAL-100`. Bila pengeluarannya ternyata memang perlu, buat permintaan baru |
+| `Menunggu Pencairan` | Input nota | Siapa pun | Nota hanya ada setelah uang benar-benar keluar | `422` `BIL-VAL-051` |
+| `Menunggu Pencairan` | Kembalikan sisa atau balikkan pencairan | Siapa pun | Tidak ada uang yang keluar untuk dikembalikan maupun dibalik | `422` `BIL-VAL-101` |
+| `Menunggu Bukti` atau `Selesai` | Batalkan | Siapa pun | Uangnya sudah keluar. Pembatalan berarti mengaku uang itu tidak pernah keluar | `422` `BIL-VAL-050`. Yang tersedia adalah pembalikan, yang mencatat kedua arah pergerakan uangnya |
+| `Selesai` | Kembalikan ke `Menunggu Bukti` | Siapa pun | Bukti yang sudah masuk tidak dapat "belum masuk" | `422`. Salah nomor nota dikoreksi lewat aksi koreksi yang tetap `Selesai` |
+| Status apa pun | Menyetujui atau menolak | Siapa pun | Gerbang persetujuan dicabut (`PC-DEC-016`) | **Endpointnya tidak ada lagi** — `404` |
+| Status apa pun | Menyunting nama penerima, kategori, nominal, atau tujuan | Siapa pun | Tidak ada endpoint penyuntingan sama sekali | Permintaan yang salah dibatalkan lalu dibuat ulang |
+| Status apa pun | Menghapus voucher | Siapa pun | Voucher mencatat uang yang benar-benar keluar | Tidak ada endpoint `DELETE` |
+
+### Di mana saldo anggaran bergerak
+
+Tabel ini **menggantikan** tabel yang sama pada amendment 7 September. Kolom `ReservedAmount` dihapus seluruhnya (`PC-DES-016`).
+
+| Peristiwa | `CurrentBalance` periode aktif | Baris ledger yang lahir |
+| --- | --- | --- |
+| Buat permintaan | **Tidak bergerak** | Tidak ada |
+| Batalkan permintaan | Tidak bergerak | Tidak ada |
+| **Uang Diberikan** | **Berkurang** sebesar nominal voucher | **Satu** baris `DISBURSEMENT` |
+| Input nota / koreksi nota | **Tidak bergerak** | Tidak ada |
+| **Kembalikan sisa** | **Bertambah** sebesar nominal yang dikembalikan | **Satu** baris `RETURN`, boleh berkali-kali |
+| **Balikkan pencairan** | **Bertambah** sebesar `nominal − yang sudah dikembalikan` | **Satu** baris `REVERSAL`, paling banyak sekali per voucher |
+| Finance menambah saldo | **Bertambah** | **Satu** baris `TOP_UP` |
+| Finance mengoreksi saldo | Bertambah atau berkurang | **Satu** baris `ADJUSTMENT` |
+| **Tutup periode** | Periode lama menjadi **nol**; periode penerus **bertambah** sebesar sisa itu | **Dua** baris: `CARRY_FORWARD_OUT` dan `CARRY_FORWARD_IN` |
+
+> **Kenapa komitmen tidak ada lagi.** Amendment 7 September memperkenalkan `ReservedAmount` untuk menjembatani jeda antara persetujuan dan pencairan. Setelah `PC-DEC-016` mencabut persetujuan, kedua titik itu menjadi satu peristiwa dan jedanya nol — tidak ada lagi yang perlu dijembatani. Mempertahankannya justru berbahaya: permintaan kini dapat dibuat siapa saja tanpa persetujuan siapa pun, sehingga saldo akan terkunci oleh permintaan yang belum tentu dicairkan.
+
+**Penjaga saldo tunggal** berada di titik pencairan, di dalam kunci penasihat `pg_advisory_xact_lock` yang sudah ada (`PC-DES-011`), memeriksa `CurrentBalance >= Amount` pada saat itu juga (`PC-DES-006`, tetap berlaku).
+
+### Status periode anggaran
+
+| Dari | Tindakan | Ke | Pelaku | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| Tidak ada | Buat periode | `DRAFT` | Finance (`PettyCashBudget : Create`) | Tanggal mulai tidak tumpang tindih dengan periode lain pada kolam yang sama; plafon lebih besar dari nol | `422` `BIL-VAL-102` |
+| `DRAFT` | Aktifkan | `ACTIVE` | Finance (`PettyCashBudget : Activate`) | **Tidak ada** periode `ACTIVE` lain pada kolam yang sama | `422` `BIL-VAL-103`; unique index parsial juga menolaknya di lapis database |
+| `ACTIVE` | Tambah saldo | `ACTIVE` | Kasir (`PettyCashBudget : TopUp`) | Nominal lebih besar dari nol, alasan terisi | `422` |
+| `ACTIVE` | Koreksi saldo | `ACTIVE` | Finance (`PettyCashBudget : Adjust`) | Hasilnya **tidak** negatif | `422` `BIL-VAL-054` |
+| `ACTIVE` | **Tutup periode** | `CLOSED` | Finance (`PettyCashBudget : Close`) | **Tidak ada** voucher `Menunggu Pencairan` yang belum dicairkan pada periode itu; bila sisa saldo lebih besar dari nol, periode penerus **MUST** disebutkan dan berstatus `DRAFT` atau `ACTIVE` | `422` `BIL-VAL-104` |
+| `CLOSED` | Apa pun yang menyentuh saldo | — | Siapa pun | Periode tertutup adalah catatan yang sudah selesai | `422` `BIL-VAL-105` |
+| `DRAFT` | Tutup | — | Siapa pun | Periode yang belum pernah aktif tidak punya apa pun untuk ditutup | `422`. Periode `DRAFT` yang salah dihapus lewat penandaan `IsDelete` |
+
+> **Kenapa penutupan menolak voucher `Menunggu Pencairan` yang menggantung.** Permintaan yang belum dicairkan menunjuk ke periode yang sedang berjalan. Menutup periode itu tanpa menyelesaikannya akan meninggalkan permintaan yang tidak dapat dicairkan dari periode mana pun — bukan karena saldonya kurang, melainkan karena periodenya sudah tidak menerima pergerakan. Finance **MUST** memilih: mencairkannya, atau membatalkannya.
+
+### Kesetaraan dengan flowchart
+
+Nama status pada `flowcharts/voucher-petty-cash.md` dan `flowcharts/anggaran-petty-cash.md` **MUST** sama persis dengan kolom **Label** pada tabel kosakata di atas. Keduanya diperbarui pada revisi yang sama.

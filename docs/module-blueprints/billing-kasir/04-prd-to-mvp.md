@@ -2189,3 +2189,165 @@ Modul ini **MUST NOT** membuat sendiri: kartu penjamin pasien, master perusahaan
 **`MPY-OQ-004` DITUTUP** 11 September 2026 oleh `MPY-DEC-011` (Muhammad Hamzah, pemilik `RegistrationManagement`). **Tidak ada lagi pertanyaan bertanda memblokir**, sehingga **keempat** gelombang `MVP-16` sampai `MVP-19` dapat diteruskan ke perencanaan pengiriman — termasuk `MVP-17` yang sebelumnya tertahan.
 
 Dua pertanyaan yang tersisa (`MPY-OQ-005`, `MPY-OQ-006`) beserta `MPY-CQ-03` **tidak memblokir perencanaan**: yang pertama dijawab lewat pembacaan source sebelum `MVP-18` dimulai, yang kedua memblokir aktivasi fitur dan bukan pembangunannya, dan yang ketiga murni koordinasi urutan commit.
+
+---
+
+# Bagian F — Revisi Petty Cash: pencairan langsung dan anggaran per periode
+
+## Identitas dokumen
+
+| Field | Nilai |
+| --- | --- |
+| Modul | Billing dan Kasir (`billing-kasir`), rumpun **Petty Cash** — **revisi atas Bagian D** |
+| Revisi blueprint | `1.2`, status **approved** (`PC-DEC-026`) |
+| Masukan keputusan bisnis | `PC-DEC-016`–`PC-DEC-025`, seluruhnya `approved` Product/Domain Owner 15 September 2026 |
+| Masukan arsitektur | `PC-DES-015`–`PC-DES-025` (**approved** 15 September 2026), `02-backend-architecture.md` amendment 15 September 2026 |
+| Masukan audit kemampuan | `01-existing-capability-map.md` § 20 |
+| Dokumen sumber | Paket BRD/PRD/MVP "Petty Cash Revisi" 15 September 2026 |
+| Backend SHA | `0ca85ba4610f2745b761d5e092b495bfc35396b0` |
+| Frontend SHA | `1f2f2c93c9e4369db6c60246776de4c3bd52b3af` |
+
+## Ringkasan eksekutif
+
+Petty Cash sudah berjalan sejak awal September dengan alur berpersetujuan: permintaan dibuat, Kepala Kasir menyetujui, baru uang boleh keluar. Pemilik memutuskan alur itu terlalu lambat untuk kebutuhan operasional kas kecil dan mencabutnya. Revisi ini membuat kasir dapat menyerahkan uang seketika, mengganti kolam anggaran tunggal dengan anggaran per periode yang dikelola Finance, menggabungkan dua halaman terpisah menjadi satu halaman kerja, dan menambahkan dua cara mengembalikan uang ke kolam.
+
+Yang **tidak** berubah, dan itu disengaja: bukti tetap berupa nomor nota (bukan unggahan berkas), kategori tetap wajib, penerima tetap teks bebas tanpa akun sistem, dan Petty Cash tetap tidak tersambung ke kas fisik shift kasir, ke tagihan pasien, maupun ke Accounting.
+
+## Masalah produk
+
+| Masalah | Bukti | Dampak |
+| --- | --- | --- |
+| Uang kas kecil tertahan menunggu persetujuan | Keputusan pemilik `PC-DEC-016` | Kebutuhan operasional kecil yang mendesak tertunda oleh langkah administratif |
+| Anggaran tidak punya batas waktu | `PC-DEC-010` menetapkan kolam tunggal tanpa periode | Finance tidak dapat menyatakan "anggaran bulan ini sekian" maupun menutup buku per bulan |
+| Monitoring dan anggaran terpisah di dua halaman | Route `.../petty-cash/vouchers` dan `.../petty-cash/budget` | Kasir berpindah halaman untuk memeriksa saldo sebelum mencairkan; keduanya dapat menampilkan angka yang tidak sinkron |
+| Tidak ada cara mengembalikan uang | Hanya ada `ADJUSTMENT` tanpa kaitan ke voucher | Sisa uang yang dikembalikan penerima tidak terlacak ke pengeluaran asalnya |
+
+## Batas rilis
+
+| Batas | Nilai |
+| --- | --- |
+| **Titik mulai** | Finance membuat dan mengaktifkan satu periode anggaran |
+| **Titik akhir** | Finance menutup periode itu, sisa saldonya berpindah ke periode berikutnya, dan seluruh permintaan periode itu berstatus `Selesai`, `Dibatalkan`, atau `Dibatalkan (Uang Dikembalikan)` |
+| **Pelaku sasaran** | Kasir/petugas administrasi (operator), Finance (pemilik anggaran) |
+| **Di luar batas** | Posting ke Accounting, unggahan berkas bukti, persetujuan berjenjang, anggaran per unit/departemen |
+
+## Kemampuan MUST HAVE
+
+| Kemampuan | ID kemampuan asal | Disposisi |
+| --- | --- | --- |
+| Permintaan dicairkan langsung tanpa persetujuan | `CAP-29` (§ 18), diperbarui § 20.2 | **EXTEND** — state machine yang sudah ada ditulis ulang |
+| Anggaran per periode dengan daur hidup Draf/Aktif/Ditutup | § 20.2 baris "Anggaran per periode" | **MISSING / NEW** — kolom dan aturannya belum ada |
+| Sisa saldo berpindah saat periode ditutup | § 20.2 baris "Carry-forward" | **MISSING / NEW** |
+| Pengembalian sisa uang dan pembalikan pencairan | § 20.2 baris "Reversal" | **MISSING / NEW** |
+| Satu halaman kerja gabungan | § 20.2 baris "Satu halaman gabungan" | **EXTEND** — komponen dan hook yang ada dipakai ulang sebagai panel |
+| Bukti menyusul tanpa memblokir pencairan | `CAP-29`, kolom bukti sudah ada | **EXISTING / REUSE** — hanya perilakunya yang berubah |
+| Kategori wajib pada setiap permintaan | `CAP-31` | **EXISTING / REUSE** — tidak disentuh |
+
+## Kemampuan yang ditunda
+
+| Yang ditunda | Alasan bersebab | Penggantinya selama MVP |
+| --- | --- | --- |
+| Posting otomatis ke Accounting | `AccJournalService` hanya melayani jurnal manual berjenjang persetujuan; memakainya akan memunculkan kembali gerbang persetujuan yang baru saja dicabut, di modul yang pemiliknya berbeda (`PC-DEC-023`) | Ledger pergerakan anggaran diperlakukan sebagai subledger kas kecil; Finance merekonsiliasi manual per periode dari laporan pergerakan |
+| Unggahan berkas nota/kwitansi | Keputusan pemilik `PC-DEC-021` | Nomor referensi nota yang diketik petugas, sama seperti yang sudah berjalan |
+| Anggaran per unit atau departemen | `PC-DEC-010`, tetap ditunda | Satu kolam untuk seluruh rumah sakit; kolom pengelompokannya sudah disiapkan |
+| Persetujuan berjenjang berdasarkan nominal | Di luar scope revisi | Tidak ada; kontrolnya audit setelah fakta |
+| Batas waktu penyerahan bukti beserta pengingatnya | `PC-DEC-006` tetap berlaku | Finance memantau jumlah "Menunggu Bukti" pada kartu ringkasan halaman gabungan |
+
+## Epic dan functional requirement
+
+### `EPIC BKC-18` — Pencairan langsung tanpa persetujuan
+
+| ID | Functional requirement | Disposisi |
+| --- | --- | --- |
+| `FR-BKC-087` | Permintaan yang baru dibuat berstatus `Menunggu Pencairan` dan dapat langsung dicairkan kasir tanpa langkah persetujuan apa pun | **EXTEND** |
+| `FR-BKC-088` | Endpoint dan hak akses Setujui serta Tolak dihapus; pemanggilannya menghasilkan `404` | **EXTEND** |
+| `FR-BKC-089` | Permintaan warisan berstatus `Menunggu Persetujuan` maupun `Disetujui` seluruhnya menjadi `Menunggu Pencairan` dan dapat langsung dicairkan | **MISSING / NEW** — pemutakhiran data di dalam migration |
+| `FR-BKC-090` | Permintaan warisan berstatus `Ditolak` tetap terbaca lengkap beserta alasannya dan tidak dapat diubah | **EXISTING / REUSE** |
+| `FR-BKC-091` | Pemesanan saldo untuk permintaan yang belum dicairkan dihapus; sepuluh permintaan boleh berdiri di atas saldo yang hanya cukup untuk dua | **EXTEND** |
+
+### `EPIC BKC-19` — Anggaran per periode
+
+| ID | Functional requirement | Disposisi |
+| --- | --- | --- |
+| `FR-BKC-092` | Finance dapat membuat periode anggaran bertanggal mulai, tanggal selesai opsional, dan plafon | **MISSING / NEW** |
+| `FR-BKC-093` | Paling banyak satu periode berstatus Aktif pada satu waktu, ditegakkan aturan bisnis **dan** index database | **MISSING / NEW** |
+| `FR-BKC-094` | Pencairan, penambahan saldo, pengembalian, dan pembalikan hanya berjalan pada periode Aktif | **MISSING / NEW** |
+| `FR-BKC-095` | Penutupan periode ditolak selama masih ada permintaan yang belum dicairkan | **MISSING / NEW** |
+| `FR-BKC-096` | Sisa saldo periode yang ditutup berpindah ke periode penerus sebagai dua pergerakan terpisah dalam satu transaksi | **MISSING / NEW** |
+| `FR-BKC-097` | Kolam anggaran warisan menjadi periode pertama tanpa kehilangan saldo maupun riwayat pergerakannya | **MISSING / NEW** |
+
+### `EPIC BKC-20` — Pengembalian dan pembalikan uang
+
+| ID | Functional requirement | Disposisi |
+| --- | --- | --- |
+| `FR-BKC-098` | Kasir dapat mencatat sisa uang yang dikembalikan penerima, berkali-kali, selama totalnya tidak melampaui nominal permintaan | **MISSING / NEW** |
+| `FR-BKC-099` | Pengembalian sisa menambah saldo dan **tidak** mengubah status permintaan | **MISSING / NEW** |
+| `FR-BKC-100` | Kasir dapat membalik pencairan yang seharusnya tidak terjadi; saldo kembali sebesar yang benar-benar masih di tangan penerima | **MISSING / NEW** |
+| `FR-BKC-101` | Satu permintaan paling banyak satu kali dibalik, ditegakkan aturan bisnis **dan** index database | **MISSING / NEW** |
+| `FR-BKC-102` | Permintaan yang sudah dibalik berstatus terminal dan menolak seluruh aksi lain | **MISSING / NEW** |
+
+### `EPIC BKC-21` — Satu halaman kerja Petty Cash
+
+| ID | Functional requirement | Disposisi |
+| --- | --- | --- |
+| `FR-BKC-103` | Satu halaman menampilkan ringkasan, panel anggaran, monitoring permintaan, dan riwayat pergerakan | **EXTEND** |
+| `FR-BKC-104` | Kelima angka kartu ringkasan datang dari satu panggilan server; layar tidak menjumlahkannya sendiri | **MISSING / NEW** |
+| `FR-BKC-105` | Kedua route lama tetap hidup sebagai pengalihan ke halaman kanonik | **MISSING / NEW** |
+| `FR-BKC-106` | Sidebar memuat satu butir Petty Cash; butir Anggaran Kas Kecil dihapus | **EXTEND** |
+| `FR-BKC-107` | Aksi per baris digerakkan daftar aksi dari server, bukan disimpulkan layar dari status | **EXISTING / REUSE** |
+| `FR-BKC-108` | Setiap aksi yang berhasil memuat ulang ringkasan dan daftar terdampak dari server | **EXTEND** |
+
+## Model status
+
+Diturunkan utuh dari `contracts/state-transition-matrix.md` amendment 15 September 2026. Empat status hidup (`Menunggu Pencairan`, `Menunggu Bukti`, `Selesai`, `Dibatalkan (Uang Dikembalikan)`), satu status warisan (`Ditolak (arsip)`), dan satu penanda terpisah (`Dibatalkan`). Tiga status periode anggaran: `Draf`, `Aktif`, `Ditutup`.
+
+## Skenario UAT
+
+| ID | Epic | Jalur | Skenario | Hasil yang diharapkan |
+| --- | --- | --- | --- | --- |
+| `UAT-55` | `BKC-18` | **Berhasil** | Kasir membuat permintaan Rp 300.000 lalu langsung menyerahkan uangnya | Status berpindah ke `Menunggu Bukti`; saldo berkurang Rp 300.000; tidak ada langkah persetujuan yang diminta di layar mana pun |
+| `UAT-56` | `BKC-18` | **Gagal** | Kasir mencoba mencairkan Rp 800.000 saat saldo tinggal Rp 500.000 | Ditolak dengan pesan saldo tidak mencukupi; permintaan tetap `Menunggu Pencairan` dan dapat dicairkan lagi setelah Finance menambah saldo |
+| `UAT-57` | `BKC-18` | **Berhasil** | Petugas membuka permintaan warisan yang kemarin berstatus `Disetujui` | Kini tampil `Menunggu Pencairan` dan tombol Cairkan tersedia; jejak siapa yang dulu menyetujui tetap terbaca pada detailnya |
+| `UAT-58` | `BKC-19` | **Berhasil** | Finance membuat periode Oktober berplafon Rp 12.000.000 lalu mengaktifkannya setelah menutup September | Oktober menjadi Aktif; September Ditutup; sisa saldo September muncul di Oktober |
+| `UAT-59` | `BKC-19` | **Gagal** | Finance mencoba mengaktifkan Oktober sementara September masih Aktif | Ditolak dengan pesan yang meminta periode berjalan ditutup lebih dulu; kedua periode tidak berubah statusnya |
+| `UAT-60` | `BKC-19` | **Gagal** | Finance menutup periode yang masih punya dua permintaan belum dicairkan | Ditolak; pesan menyebut permintaan yang menggantung; tidak ada saldo yang berpindah |
+| `UAT-61` | `BKC-20` | **Berhasil** | Penerima mengembalikan sisa Rp 110.000 dari uang Rp 500.000, lalu notanya menyusul | Saldo bertambah Rp 110.000; status permintaan tidak berubah; setelah nota masuk status menjadi `Selesai` |
+| `UAT-62` | `BKC-20` | **Gagal** | Kasir mencoba membalik pencairan yang sudah pernah dibalik kemarin | Ditolak; saldo tidak bertambah dua kali; status tetap `Dibatalkan (Uang Dikembalikan)` |
+| `UAT-63` | `BKC-21` | **Berhasil** | Kasir membuka menu Petty Cash | Satu halaman menampilkan saldo, anggaran periode, daftar permintaan, dan riwayat pergerakan tanpa berpindah halaman |
+| `UAT-64` | `BKC-21` | **Gagal** | Petugas membuka penanda halaman lama ke route Anggaran Kas Kecil | Diarahkan ke halaman Petty Cash gabungan, bukan halaman kosong maupun `404` |
+
+## Definition of Done
+
+| Butir | Bukti |
+| --- | --- |
+| Permintaan dapat dicairkan tanpa persetujuan | `BIL-AT-101` lulus |
+| Endpoint Setujui dan Tolak benar-benar hilang | `BIL-AT-102`, `BIL-AT-103` lulus |
+| Data warisan terbaca benar setelah pemutakhiran | `BIL-AT-104`, `BIL-AT-105`, `BIL-AT-106` lulus |
+| Pemesanan saldo benar-benar dicabut | `BIL-AT-107`, `BIL-AT-108` lulus |
+| Saldo tidak dapat menjadi negatif walau dua kasir mencairkan bersamaan | `BIL-AT-109` lulus |
+| Daur hidup periode bekerja beserta penolakannya | `BIL-AT-110`, `BIL-AT-112`, `BIL-AT-113`, `BIL-AT-114`, `BIL-AT-115` lulus |
+| Sisa saldo berpindah utuh saat periode ditutup | `BIL-AT-111` lulus |
+| Pengembalian dan pembalikan bekerja beserta batasnya | `BIL-AT-116`–`BIL-AT-119` lulus |
+| Tidak ada jurnal yang terbentuk | `BIL-AT-120` lulus |
+| Satu halaman kerja terjangkau dari sidebar dan route lama tidak mati | `UAT-63`, `UAT-64` lulus |
+| Permission Approve/Reject dibersihkan tanpa meninggalkan peran yatim | Laporan pemeriksaan peran sebelum migration, `contracts/permission-audit-matrix.md` |
+| Migration dijalankan atas otorisasi terpisah | Konfirmasi eksplisit pemilik, bukan turunan approval desain |
+
+## Urutan pengiriman
+
+| Gelombang | Isi | Alasan urutan |
+| --- | --- | --- |
+| `MVP-20` | `EPIC BKC-19` — anggaran per periode beserta migration dan pemutakhiran data | Seluruh gelombang lain berdiri di atas keberadaan periode Aktif. Dikerjakan lebih dulu supaya tidak ada tahap di mana pencairan berjalan tanpa wadah anggaran |
+| `MVP-21` | `EPIC BKC-18` — pencairan langsung beserta penghapusan persetujuan | Inti permintaan pemilik. Bergantung pada `MVP-20` karena penjaga saldonya kini memeriksa periode Aktif |
+| `MVP-22` | `EPIC BKC-20` — pengembalian dan pembalikan | Bergantung pada `MVP-21`: keduanya hanya bermakna atas pencairan yang sudah terjadi |
+| `MVP-23` | `EPIC BKC-21` — satu halaman kerja gabungan | Dikerjakan terakhir supaya layar dibangun di atas kontrak backend yang sudah tetap, bukan di atas sasaran yang masih bergerak |
+| `POST-MVP` | Posting ke Accounting, unggahan berkas bukti, anggaran per unit, batas waktu bukti | Seluruhnya sudah ditunda lewat keputusan bernomor, bukan dilupakan |
+
+## Pertanyaan terbuka sebelum development lock
+
+| ID | Pertanyaan | Memblokir? | Penjawab |
+| --- | --- | :---: | --- |
+| `PC-OQ-007` | Apakah ada Departemen × Posisi yang **hanya** memegang hak akses Setujui/Tolak Petty Cash dan akan kehilangan seluruh aksesnya saat butir itu dihapus? | **Tidak memblokir desain; memblokir langkah penghapusan permission** | Pemilik arsitektur backend, lewat pemeriksaan data peran sebelum migration |
+| `PC-OQ-008` | Siapa yang membuat periode anggaran pertama setelah rilis, dan berapa plafonnya? | **Tidak memblokir pembangunan; memblokir aktivasi fitur** | Finance |
+
+Keduanya **bukan** `OPEN DECISION` pada tingkat epic: tidak ada epic yang menunggu jawabannya untuk dapat dirancang maupun dikerjakan. Keempat gelombang `MVP-20`–`MVP-23` siap diteruskan ke `plan-module-delivery`.

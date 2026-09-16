@@ -51,4 +51,21 @@ public static class PettyCashBudgetMovementTypes
     public const string TopUp = "TOP_UP";
     public const string Disbursement = "DISBURSEMENT";
     public const string Adjustment = "ADJUSTMENT";
+
+    /// <summary>Sisa uang yang dikembalikan penerima. VoucherId wajib; boleh berkali-kali
+    /// per voucher selama totalnya tidak melampaui Amount (PC-DES-019, PC-DES-020).</summary>
+    public const string Return = "RETURN";
+
+    /// <summary>Pencairan yang seharusnya tidak terjadi dibalik. VoucherId wajib; paling
+    /// banyak sekali per voucher (PC-DES-019, PC-DES-020).</summary>
+    public const string Reversal = "REVERSAL";
+
+    /// <summary>Sisa saldo periode yang ditutup, dicatat pada periode itu sendiri sampai
+    /// nol. Selalu berpasangan dengan satu baris CarryForwardIn pada periode penerus dalam
+    /// transaction yang sama (PC-DES-018).</summary>
+    public const string CarryForwardOut = "CARRY_FORWARD_OUT";
+
+    /// <summary>Sisa saldo yang diterima dari periode yang ditutup. Selalu berpasangan
+    /// dengan satu baris CarryForwardOut pada periode asal (PC-DES-018).</summary>
+    public const string CarryForwardIn = "CARRY_FORWARD_IN";
 }

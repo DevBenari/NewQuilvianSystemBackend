@@ -717,3 +717,115 @@ Bentuk dan perilakunya mengikuti `InsuranceCoverageRuleController` yang sudah ad
 | Endpoint menambah payer kedua pada satu kunjungan | `MPY-DEC-001` — satu kunjungan tetap satu payer aktif |
 
 Trace **`MPY-DEC-001`–`010`**, `MPY-DES-001`–`017`. Test mapping `BIL-AT-081`–`BIL-AT-100`.
+
+---
+
+## Amendment 15 September 2026 — Revisi Petty Cash: pencairan langsung dan anggaran per periode
+
+`last_changed_in: BIL-API-1.1` · status **approved** · owner API/Billing/Finance Operations/Security · `approved_by`: Product/Domain Owner (`PC-DEC-026`) · `approved_at`: 2026-09-15 · input: **`PC-DEC-016`–`PC-DEC-025`** (`approved` Product/Domain Owner 15 September 2026); keputusan arsitektur `PC-DES-015`–`PC-DES-025` (**draft**); audit kemampuan `01-existing-capability-map.md` § 20.
+
+**Dampak kompatibilitas: BUKAN aditif.** Berbeda dari seluruh amendment Petty Cash sebelumnya, revisi ini **menghapus dua endpoint**, **mengubah gerbang status satu endpoint**, dan **mengubah arti satu field response**. Rinciannya di bawah, karena justru inilah yang paling mudah terlewat konsumen.
+
+> **Catatan keadaan.** Amendment 7 September 2026 menandai seluruh endpoint Petty Cash sebagai `Rencana (belum tersedia)`. Label itu sudah **tidak berlaku** — seluruh sebelas endpoint tersebut kini benar-benar ada di source dan berjalan (terverifikasi `01-existing-capability-map.md` § 20.2). Tabel di bawah memakai label `Tersedia` untuk endpoint yang sudah berdiri dan `Rencana (belum tersedia)` hanya untuk yang benar-benar baru pada revisi ini.
+
+### Perubahan yang merusak konsumen
+
+| Perubahan | Endpoint/field | Yang MUST dilakukan konsumen |
+| --- | --- | --- |
+| **Dihapus** | `POST /vouchers/{id}/approve` | Hapus tombol Setujui beserta pemanggilannya. Pemanggilan setelah rilis ini menghasilkan `404` |
+| **Dihapus** | `POST /vouchers/{id}/reject` | Hapus tombol Tolak beserta pemanggilannya |
+| **Gerbang berubah** | `POST /vouchers/{id}/disburse` | Kini menerima voucher berstatus `REQUESTED`, bukan `APPROVED`. Layar yang menyembunyikan tombol Cairkan sampai status `APPROVED` **MUST** diubah, atau tombolnya tidak akan pernah muncul |
+| **Nilai enum berubah** | `status` pada seluruh response voucher | `WAITING_APPROVAL` berganti nama menjadi `REQUESTED`; `APPROVED` hilang; `REVERSED` bertambah. Konsumen yang membandingkan string status **MUST** diperbarui |
+| **Label berubah** | `statusLabel` | `Uang Diterima` menjadi **`Menunggu Bukti`** untuk kode `CASH_RECEIVED` yang sama. Konsumen yang membandingkan label (seharusnya tidak, tetapi bila ada) rusak |
+| **Field dihapus** | `reservedAmount` dan `availableAmount` pada `PettyCashBudgetResponse` | Mekanisme komitmen dicabut (`PC-DES-016`). Layar yang menampilkan "tersedia" **MUST** memakai `currentBalance` |
+
+### `[Tags("Health Services / Billing Management / Petty Cash / Vouchers")]`
+
+Base URL: `api/v1/health-services/billing-management/petty-cash/vouchers`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/filters/metadata` | Konfigurasi filter dan pilihan status — isinya berubah mengikuti kosakata baru | `PettyCashVoucher : Read` | — | `ApiResponse<PettyCashVoucherFilterMetadataResponse>` | **Tersedia — isi berubah** |
+| `GET` | `/summary` | Jumlah voucher per status; hitungan `menunggu persetujuan` diganti `menunggu pencairan` dan `menunggu bukti` | `PettyCashVoucher : Read` | — | `ApiResponse<PettyCashVoucherSummaryResponse>` | **Tersedia — isi berubah** |
+| `GET` | `/` | Daftar voucher | `PettyCashVoucher : Read` | Query tidak berubah | `ApiResponse<PagedResult<PettyCashVoucherResponse>>` | **Tersedia** |
+| `GET` | `/{id:guid}` | Detail voucher | `PettyCashVoucher : Read` | Path `id` | `ApiResponse<PettyCashVoucherDetailResponse>` | **Tersedia** |
+| `POST` | `/` | Membuat voucher. Status awal kini `REQUESTED` | `PettyCashVoucher : Create` | `CreatePettyCashVoucherRequest` (tidak berubah) | `ApiResponse<PettyCashVoucherResponse>` | **Tersedia — perilaku berubah** |
+| ~~`POST`~~ | ~~`/{id:guid}/approve`~~ | **DIHAPUS** (`PC-DEC-016`, `PC-DEC-024`) | — | — | — | **Dihapus** |
+| ~~`POST`~~ | ~~`/{id:guid}/reject`~~ | **DIHAPUS** (`PC-DEC-016`, `PC-DEC-024`) | — | — | — | **Dihapus** |
+| `POST` | `/{id:guid}/cancel` | Membatalkan permintaan selagi belum dicairkan | `PettyCashVoucher : Cancel` | `CancelPettyCashVoucherRequest` | `ApiResponse<PettyCashVoucherResponse>` | **Tersedia — syarat berubah** |
+| `POST` | `/{id:guid}/disburse` | Menyerahkan uang. Saldo berkurang di sini | `PettyCashVoucher : Disburse` | `DisbursePettyCashVoucherRequest` | `ApiResponse<PettyCashVoucherResponse>` | **Tersedia — gerbang berubah** |
+| `POST` | `/{id:guid}/proofs` | Input nomor nota; voucher menjadi `Selesai` | `PettyCashVoucher : AttachProof` | `AttachPettyCashProofRequest` | `ApiResponse<PettyCashVoucherResponse>` | **Tersedia** |
+| `POST` | `/{id:guid}/returns` | Mencatat sisa uang yang dikembalikan penerima. Saldo bertambah; status voucher **tidak** berubah (`PC-DES-020`) | `PettyCashVoucher : Return` | `PettyCashVoucherReturnRequest` | `ApiResponse<PettyCashVoucherResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id:guid}/reversals` | Membatalkan pencairan yang seharusnya tidak terjadi. Saldo bertambah penuh; voucher menjadi `REVERSED` (terminal) | `PettyCashVoucher : Reverse` | `PettyCashVoucherReversalRequest` | `ApiResponse<PettyCashVoucherResponse>` | **Rencana (belum tersedia)** |
+
+**Bentuk `PettyCashVoucherReturnRequest`:**
+
+| Field | Tipe | Wajib | Batas | Keterangan |
+| --- | --- | :---: | --- | --- |
+| `amount` | angka | **Ya** | Lebih besar dari `0`; total seluruh pengembalian **MUST NOT** melampaui `amount` voucher | Nominal sisa yang dikembalikan |
+| `reason` | teks | **Ya** | 1–500 karakter | Keterangan; **Sensitif** |
+| `expectedRowVersion` | `Guid` | **Ya** | — | Penjaga perubahan bersamaan |
+
+**Bentuk `PettyCashVoucherReversalRequest`** berisi `reason` (wajib, 1–500 karakter, **Sensitif**) dan `expectedRowVersion`. Tidak ada `amount` — pembalikan selalu sebesar nominal yang benar-benar keluar, yaitu `amount − returnedAmount`.
+
+**Perubahan pada `PettyCashVoucherResponse`:**
+
+| Field | Keadaan | Keterangan |
+| --- | --- | --- |
+| `status` | **Nilai berubah** | `REQUESTED`, `CASH_RECEIVED`, `COMPLETED`, `REVERSED`, dan `REJECTED` (hanya pada baris warisan) |
+| `statusLabel` | **Nilai berubah** | `Menunggu Pencairan`, `Menunggu Bukti`, `Selesai`, `Dibatalkan (Uang Dikembalikan)`, `Ditolak (arsip)` |
+| `returnedAmount` | **Baru** | Akumulasi sisa yang sudah dikembalikan. `0` bila belum ada |
+| `outstandingAmount` | **Baru** | `amount − returnedAmount`. Nilai yang benar-benar masih di tangan penerima |
+| `reversedAt`, `reversedByName`, `reversalReason` | **Baru** | Terisi hanya pada status `REVERSED` |
+| `decidedAt`, `decidedByName`, `rejectionReason` | **Dipertahankan** | Selalu kosong pada voucher baru; terisi hanya pada baris warisan sebelum 15 September 2026 |
+| `availableActions` | **Nilai berubah** | Tidak lagi memuat `APPROVE`/`REJECT`; dapat memuat `DISBURSE`, `CANCEL`, `ATTACH_PROOF`, `RETURN`, `REVERSE` |
+
+### `[Tags("Health Services / Billing Management / Petty Cash / Budget")]`
+
+Base URL: `api/v1/health-services/billing-management/petty-cash/budget`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/current` | Anggaran **periode aktif** beserta saldo berjalannya | `PettyCashBudget : Read` | — | `ApiResponse<PettyCashBudgetResponse>` | **Tersedia — isi berubah** |
+| `GET` | `/overview` | **Satu panggilan** untuk seluruh kartu ringkasan halaman gabungan: anggaran periode, saldo, total pemakaian, sisa anggaran, dan jumlah voucher menunggu bukti (`PC-DES-025`) | `PettyCashBudget : Read` | — | `ApiResponse<PettyCashOverviewResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/periods` | Daftar seluruh periode anggaran beserta statusnya | `PettyCashBudget : Read` | Query `status`, `pageNumber`, `pageSize` | `ApiResponse<PagedResult<PettyCashBudgetResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/movements` | Riwayat pergerakan anggaran | `PettyCashBudget : Read` | Query `movementType`, `budgetId`, `startDate`, `endDate`, `pageNumber`, `pageSize` | `ApiResponse<PagedResult<PettyCashBudgetMovementResponse>>` | **Tersedia — filter `budgetId` baru** |
+| `POST` | `/top-ups` | Menambah saldo pada periode aktif | `PettyCashBudget : TopUp` | `PettyCashBudgetTopUpRequest` | `ApiResponse<PettyCashBudgetResponse>` | **Tersedia** |
+| `POST` | `/adjustments` | Mengoreksi saldo beserta alasannya | `PettyCashBudget : Adjust` | `PettyCashBudgetAdjustmentRequest` | `ApiResponse<PettyCashBudgetResponse>` | **Tersedia** |
+| `POST` | `/periods` | Finance membuat periode anggaran baru berstatus `DRAFT` | `PettyCashBudget : Create` | `CreatePettyCashBudgetPeriodRequest` | `ApiResponse<PettyCashBudgetResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/periods/{id:guid}/activate` | Mengaktifkan periode `DRAFT`. Hanya boleh bila tidak ada periode `ACTIVE` lain pada kolam yang sama | `PettyCashBudget : Activate` | `ActivatePettyCashBudgetPeriodRequest` | `ApiResponse<PettyCashBudgetResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/periods/{id:guid}/close` | Menutup periode `ACTIVE` dan **memindahkan sisa saldonya** ke periode penerus (`PC-DEC-018`, `PC-DES-018`) | `PettyCashBudget : Close` | `ClosePettyCashBudgetPeriodRequest` | `ApiResponse<PettyCashBudgetResponse>` | **Rencana (belum tersedia)** |
+
+**Bentuk `CreatePettyCashBudgetPeriodRequest`:**
+
+| Field | Tipe | Wajib | Batas | Keterangan |
+| --- | --- | :---: | --- | --- |
+| `poolCode` | teks | Tidak | Bawaan `HOSPITAL_MAIN` | Dipertahankan untuk multi-kolam yang masih ditunda (`PC-DEC-010`) |
+| `periodStart` | tanggal | **Ya** | **MUST NOT** tumpang tindih dengan periode lain pada kolam yang sama | Tanggal mulai berlakunya anggaran |
+| `periodEnd` | tanggal | Tidak | **MUST** setelah `periodStart` bila diisi | Dikosongkan berarti periode berjalan sampai ditutup Finance |
+| `budgetAmount` | angka | **Ya** | Lebih besar dari `0` | Plafon anggaran periode ini |
+| `poolName` | teks | Tidak | 1–100 karakter | Nama yang terbaca manusia |
+
+**Bentuk `ClosePettyCashBudgetPeriodRequest`:**
+
+| Field | Tipe | Wajib | Keterangan |
+| --- | --- | :---: | --- |
+| `successorBudgetId` | `Guid` | **Ya bila saldo sisa lebih besar dari `0`** | Periode penerus yang menerima sisa saldo. **MUST** berstatus `DRAFT` atau `ACTIVE` pada kolam yang sama |
+| `reason` | teks | **Ya** | Alasan penutupan; masuk ke kedua baris ledger carry-forward |
+| `expectedRowVersion` | `Guid` | **Ya** | Penjaga perubahan bersamaan |
+
+> **Contoh berangka carry-forward.** Periode September ditutup dengan sisa Rp 1.250.000, penerusnya periode Oktober berplafon Rp 10.000.000 bersaldo Rp 0. Setelah penutupan: September bersaldo Rp 0 dengan satu baris `CARRY_FORWARD_OUT` Rp 1.250.000 (`BalanceBefore` Rp 1.250.000, `BalanceAfter` Rp 0), dan Oktober bersaldo Rp 1.250.000 dengan satu baris `CARRY_FORWARD_IN` (`BalanceBefore` Rp 0, `BalanceAfter` Rp 1.250.000). Keduanya lahir dalam satu transaction; tidak ada keadaan di mana uang itu terlihat di dua periode sekaligus atau hilang dari keduanya.
+
+**Perubahan pada `PettyCashBudgetResponse`:**
+
+| Field | Keadaan | Keterangan |
+| --- | --- | --- |
+| `periodStart`, `periodEnd`, `budgetAmount` | **Baru** | Identitas dan plafon periode |
+| `remainingBudgetAmount` | **Baru** | `budgetAmount − totalDisbursedAmount` periode ini. Inilah "Sisa Anggaran" pada kartu ringkasan |
+| `status` | **Nilai berubah** | `DRAFT`, `ACTIVE`, `CLOSED` — menggantikan `ACTIVE`/`INACTIVE` |
+| `supersededByBudgetId` | **Baru** | Periode penerus penerima carry-forward; kosong bila belum ditutup |
+| `reservedAmount`, `availableAmount` | **DIHAPUS** | Mekanisme komitmen dicabut (`PC-DES-016`) |
+
+**Bentuk `PettyCashOverviewResponse`** memuat `activeBudget` (satu `PettyCashBudgetResponse`), `pendingEvidenceCount` (jumlah voucher `CASH_RECEIVED`), `pendingDisbursementCount` (jumlah voucher `REQUESTED`), dan `totalDisbursedThisPeriod`. Layar **MUST NOT** menjumlahkan kelima angka ini sendiri dari daftar voucher.
+
+**Kode status:** sama dengan amendment 7 September, ditambah `422` untuk `BIL-VAL-098`–`BIL-VAL-105`.

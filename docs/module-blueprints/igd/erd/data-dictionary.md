@@ -5,6 +5,7 @@
 | Blueprint | `IGD-BP-001` revision `5` |
 | Status | `draft` |
 | Commit diaudit | backend `f69e9e48` |
+| Diselaraskan | 15 September 2026 — nama tabel bagian 4 dan rujukan bagian 5.3 menjadi `EmgDoctorAssignment` (`IGD-DEC-116`); isi kolom tidak berubah |
 
 ## Kolom warisan yang tidak diulang
 
@@ -140,11 +141,11 @@ aslinya kemudian diubah atau dibatalkan modul pemiliknya.
 
 ---
 
-## 4. `TrxEmergencyDoctorAssignment` — Baru
+## 4. `EmgDoctorAssignment` — Baru
 
 | Field | Nilai |
 | --- | --- |
-| Nama tabel | `TrxEmergencyDoctorAssignment`, schema `public` |
+| Nama tabel | `EmgDoctorAssignment`, schema `public`. Ditetapkan `IGD-DEC-116`, menggantikan nama rancangan lama `TrxEmergencyDoctorAssignment` |
 | Status | **Baru** |
 | Perilaku hapus | Penandaan; baris lama **tidak pernah ditimpa** |
 | Pemilik | Emergency Installation |
@@ -210,7 +211,7 @@ Berkas model: `Areas/HealthServices/RegistrationManagement/Models/TrxPatientEnco
 | --- | --- | --- | :---: |
 | `EncounterType` | Sudah ada, **arti berubah untuk IGD** | Bernilai `Emergency` untuk kunjungan IGD | Tidak |
 | `PatientClassId` | Sudah ada | Diisi dari master bertanda `IsForEmergency` | Tidak |
-| `DoctorId` | Sudah ada | **Nilai efektif** dokter aktif; riwayatnya di `TrxEmergencyDoctorAssignment` | Tidak |
+| `DoctorId` | Sudah ada | **Nilai efektif** dokter aktif; riwayatnya di `EmgDoctorAssignment` | Tidak |
 | `OriginEncounterId` | **Baru**, `uuid?` | Menunjuk kunjungan sebelumnya dalam satu rangkaian kedatangan | Tidak |
 
 `OriginEncounterId`: boleh kosong, tanpa nilai bawaan, `DeleteBehavior.Restrict`, index
