@@ -41,12 +41,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
         private const string HoldForReviewAction = "HoldForReview";
         private const string AllocateAction = "Allocate";
         private const string CancelAllocationAction = "CancelAllocation";
+        private const string IssueAction = "Issue";
 
         /// <summary>Nama aksi pada <c>AvailableActions</c>.</summary>
         public const string AssignStorageLocationActionName = "AssignStorageLocation";
         public const string MoveStorageLocationActionName = "MoveStorageLocation";
         public const string AllocateActionName = "Allocate";
         public const string CancelAllocationActionName = "CancelAllocation";
+        public const string RecordCompatibilityEvidenceActionName = "RecordCompatibilityEvidence";
+        public const string IssueActionName = "Issue";
 
         private const string NotFoundMessage = "Kantong darah tidak ditemukan atau sudah dihapus.";
 
@@ -103,6 +106,47 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
 
         private const string Val016Message =
             "Alasan wajib dipilih dari daftar, tidak boleh diketik bebas.";
+
+        // Pesan validasi pemberian normal â€” BE-BD-007.
+        private const string Val017Message =
+            "Kantong harus dialokasikan ke order pasien sebelum diberikan.";
+
+        private const string Val018Message =
+            "Bukti pemeriksaan kecocokan belum tercatat. Darah tidak dapat diberikan.";
+
+        private const string Val019Message =
+            "Bukti kecocokan yang ada bukan untuk pasien ini. " +
+            "Catat bukti kecocokan terhadap pasien tujuan.";
+
+        private const string Val020Message =
+            "Bukti kecocokan sudah lewat masa berlaku. Diperlukan bukti kecocokan yang baru.";
+
+        private const string Val020bMessage =
+            "Masa berlaku bukti kecocokan untuk komponen ini belum ditetapkan. " +
+            "Pemberian ditahan sampai dikonfigurasi.";
+
+        private const string Val065Message =
+            "Kantong ini berada di lokasi penyimpanan yang sudah tidak aktif dan belum dapat diberikan. " +
+            "Pindahkan dulu ke lokasi yang aktif.";
+
+        private const string Val079Message =
+            "Hasil pemeriksaan kecocokan menyatakan kantong ini tidak cocok untuk pasien tersebut. " +
+            "Kantong tidak dapat diberikan.";
+
+        private const string CheckedAtRequiredMessage =
+            "Waktu pemeriksaan kecocokan wajib diisi.";
+
+        private const string CheckedAtUtcMessage =
+            "Waktu pemeriksaan kecocokan wajib dikirim dalam UTC.";
+
+        private const string CheckedAtFutureMessage =
+            "Waktu pemeriksaan kecocokan tidak boleh berada di masa depan.";
+
+        private const string InvalidCompatibilityResultMessage =
+            "Hasil pemeriksaan kecocokan tidak dikenali.";
+
+        private const string NoActiveAllocationForEvidenceMessage =
+            "Kantong harus memiliki alokasi aktif sebelum bukti kecocokan dapat dicatat.";
 
         private const string OrderLineRequiredMessage =
             "Baris kebutuhan order wajib dipilih.";
@@ -322,6 +366,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
             // Riwayat alokasi dibaca sekali lalu dipakai dua kali: seluruh barisnya, dan baris yang
             // sedang berlaku. Membacanya dua kali hanya menambah satu perjalanan ke database.
             var allocations = await ReadAllocationsAsync(entity.Id, cancellationToken);
+            var compatibilityEvidences = await ReadCompatibilityEvidencesAsync(
+                entity.Id,
+                cancellationToken);
 
             return new BloodUnitDetailDto
             {
@@ -363,6 +410,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
                 Allocations = allocations,
                 CurrentAllocation = allocations
                     .FirstOrDefault(x => x.AllocationStatus == BbkAllocationStatus.Active),
+                CompatibilityEvidences = compatibilityEvidences,
+                CompatibilityEvidenceIdUsed = entity.CompatibilityEvidenceIdUsed,
                 AvailableActions = AvailableActionsFor(
                     entity.UnitStatus,
                     entity.CurrentPlacementId,
@@ -1044,6 +1093,371 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
         }
 
         // =================================================================
+        // Bukti kecocokan dan pemberian â€” BE-BD-007
+        // =================================================================
+
+        /// <summary>
+        /// Mencatat hasil pemeriksaan kecocokan untuk pasien yang menjadi tujuan
+        /// alokasi aktif kantong.
+        /// </summary>
+        public async Task<BloodUnitResult> RecordCompatibilityEvidenceAsync(
+            Guid id,
+            RecordEvidenceRequest request,
+            Guid actorUserId,
+            CancellationToken cancellationToken = default)
+        {
+            if (actorUserId == Guid.Empty)
+                return Failed(BloodUnitOutcome.Invalid, ActorUnknownMessage);
+
+            if (!request.EvidenceResult.HasValue ||
+                !Enum.IsDefined(request.EvidenceResult.Value))
+            {
+                return Failed(
+                    BloodUnitOutcome.Invalid,
+                    InvalidCompatibilityResultMessage);
+            }
+
+            if (request.CheckedAt == default)
+            {
+                return Failed(
+                    BloodUnitOutcome.Invalid,
+                    CheckedAtRequiredMessage);
+            }
+
+            if (request.CheckedAt.Kind != DateTimeKind.Utc)
+            {
+                return Failed(
+                    BloodUnitOutcome.Invalid,
+                    CheckedAtUtcMessage);
+            }
+
+            var now = DateTime.UtcNow;
+
+            if (request.CheckedAt > now)
+            {
+                return Failed(
+                    BloodUnitOutcome.Invalid,
+                    CheckedAtFutureMessage);
+            }
+
+            var unit = await TrackedAsync(id, cancellationToken);
+
+            if (unit == null)
+                return Failed(BloodUnitOutcome.NotFound, NotFoundMessage);
+
+            if (request.Version.HasValue && request.Version.Value != unit.Version)
+            {
+                return Failed(
+                    BloodUnitOutcome.VersionConflict,
+                    ConcurrencyMessage);
+            }
+
+            if (unit.UnitStatus != BbkBloodUnitStatus.Allocated)
+            {
+                return Failed(
+                    BloodUnitOutcome.NotAllowedByState,
+                    NoActiveAllocationForEvidenceMessage);
+            }
+
+            var allocationTarget = await _dbContext
+                .Set<BbkBloodUnitAllocation>()
+                .AsNoTracking()
+                .Where(x =>
+                    x.BloodUnitId == id &&
+                    x.AllocationStatus == BbkAllocationStatus.Active)
+                .Select(x => new
+                {
+                    PatientId =
+                        x.BloodOrderLine != null &&
+                        x.BloodOrderLine.BloodOrder != null
+                            ? (Guid?)x.BloodOrderLine.BloodOrder.PatientId
+                            : null
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (allocationTarget == null || !allocationTarget.PatientId.HasValue)
+            {
+                return Failed(
+                    BloodUnitOutcome.NotAllowedByState,
+                    NoActiveAllocationForEvidenceMessage);
+            }
+
+            var evidence = new BbkCompatibilityEvidence
+            {
+                Id = Guid.NewGuid(),
+                BloodUnitId = unit.Id,
+                PatientId = allocationTarget.PatientId.Value,
+                EvidenceResult = request.EvidenceResult.Value,
+                ValidatedByUserId = actorUserId,
+                CheckedAt = request.CheckedAt,
+                IsSuperseded = false,
+                CreateDateTime = now,
+                CreateBy = actorUserId
+            };
+
+            _dbContext.Set<BbkCompatibilityEvidence>().Add(evidence);
+
+            unit.Version++;
+            unit.UpdateDateTime = now;
+            unit.UpdateBy = actorUserId;
+
+            if (!await TrySaveAsync(cancellationToken))
+            {
+                return Failed(
+                    BloodUnitOutcome.VersionConflict,
+                    ConcurrencyMessage);
+            }
+
+            return Succeeded(
+                unit,
+                request.EvidenceResult.Value == BbkCompatibilityResult.Compatible
+                    ? "Bukti kecocokan berhasil dicatat dengan hasil cocok."
+                    : "Bukti kecocokan berhasil dicatat dengan hasil tidak cocok.");
+        }
+
+        /// <summary>
+        /// Menilai seluruh gerbang pemberian normal berdasarkan keadaan terkini.
+        /// </summary>
+        public async Task<BloodUnitIssuanceGateResult?> EvaluateIssuanceGateAsync(
+            Guid unitId,
+            CancellationToken cancellationToken = default)
+        {
+            var unit = await BaseQuery()
+                .Where(x => x.Id == unitId)
+                .Select(x => new
+                {
+                    x.UnitStatus,
+                    x.CurrentPlacementId,
+                    IsLocationActive =
+                        x.CurrentPlacement != null &&
+                        x.CurrentPlacement.StorageLocation != null &&
+                        x.CurrentPlacement.StorageLocation.IsActive &&
+                        !x.CurrentPlacement.StorageLocation.IsDelete &&
+                        !x.CurrentPlacement.StorageLocation.IsCancel,
+                    ValidityHours =
+                        x.BloodComponent != null
+                            ? x.BloodComponent.CompatibilityEvidenceValidityHours
+                            : null
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (unit == null)
+                return null;
+
+            if (unit.UnitStatus != BbkBloodUnitStatus.Allocated)
+            {
+                return new BloodUnitIssuanceGateResult(
+                    false,
+                    "VAL-BD-017",
+                    Val017Message);
+            }
+
+            if (!unit.CurrentPlacementId.HasValue || !unit.IsLocationActive)
+            {
+                return new BloodUnitIssuanceGateResult(
+                    false,
+                    "VAL-BD-065",
+                    Val065Message);
+            }
+
+            var activeAllocation = await _dbContext
+                .Set<BbkBloodUnitAllocation>()
+                .AsNoTracking()
+                .Where(x =>
+                    x.BloodUnitId == unitId &&
+                    x.AllocationStatus == BbkAllocationStatus.Active)
+                .Select(x => new
+                {
+                    PatientId =
+                        x.BloodOrderLine != null &&
+                        x.BloodOrderLine.BloodOrder != null
+                            ? (Guid?)x.BloodOrderLine.BloodOrder.PatientId
+                            : null
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (activeAllocation == null || !activeAllocation.PatientId.HasValue)
+            {
+                return new BloodUnitIssuanceGateResult(
+                    false,
+                    "VAL-BD-017",
+                    Val017Message);
+            }
+
+            var patientId = activeAllocation.PatientId.Value;
+
+            var evidences = await _dbContext
+                .Set<BbkCompatibilityEvidence>()
+                .AsNoTracking()
+                .Where(x =>
+                    x.BloodUnitId == unitId &&
+                    !x.IsDelete &&
+                    !x.IsSuperseded)
+                .OrderByDescending(x => x.CheckedAt)
+                .ThenByDescending(x => x.CreateDateTime)
+                .Select(x => new
+                {
+                    x.Id,
+                    x.PatientId,
+                    x.EvidenceResult,
+                    x.CheckedAt
+                })
+                .ToListAsync(cancellationToken);
+
+            if (evidences.Count == 0)
+            {
+                return new BloodUnitIssuanceGateResult(
+                    false,
+                    "VAL-BD-018",
+                    Val018Message,
+                    patientId);
+            }
+
+            var latestPatientEvidence = evidences
+                .FirstOrDefault(x => x.PatientId == patientId);
+
+            if (latestPatientEvidence == null)
+            {
+                return new BloodUnitIssuanceGateResult(
+                    false,
+                    "VAL-BD-019",
+                    Val019Message,
+                    patientId);
+            }
+
+            if (!unit.ValidityHours.HasValue || unit.ValidityHours.Value <= 0)
+            {
+                return new BloodUnitIssuanceGateResult(
+                    false,
+                    "VAL-BD-020b",
+                    Val020bMessage,
+                    patientId);
+            }
+
+            if (latestPatientEvidence.EvidenceResult == BbkCompatibilityResult.Incompatible)
+            {
+                return new BloodUnitIssuanceGateResult(
+                    false,
+                    "VAL-BD-079",
+                    Val079Message,
+                    patientId,
+                    latestPatientEvidence.Id);
+            }
+
+            DateTime validUntil;
+
+            try
+            {
+                validUntil = latestPatientEvidence.CheckedAt.AddHours(unit.ValidityHours.Value);
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                return new BloodUnitIssuanceGateResult(
+                    false,
+                    "VAL-BD-020",
+                    Val020Message,
+                    patientId,
+                    latestPatientEvidence.Id);
+            }
+
+            if (validUntil <= DateTime.UtcNow)
+            {
+                return new BloodUnitIssuanceGateResult(
+                    false,
+                    "VAL-BD-020",
+                    Val020Message,
+                    patientId,
+                    latestPatientEvidence.Id);
+            }
+
+            return new BloodUnitIssuanceGateResult(
+                true,
+                null,
+                "Gerbang pemberian terbuka.",
+                patientId,
+                latestPatientEvidence.Id);
+        }
+
+        /// <summary>
+        /// Memberikan kantong kepada pasien melalui jalur normal.
+        /// Pemberian bersifat terminal.
+        /// </summary>
+        public async Task<BloodUnitResult> IssueAsync(
+            Guid id,
+            IssueUnitRequest request,
+            Guid actorUserId,
+            CancellationToken cancellationToken = default)
+        {
+            if (actorUserId == Guid.Empty)
+                return Failed(BloodUnitOutcome.Invalid, ActorUnknownMessage);
+
+            var unit = await TrackedAsync(id, cancellationToken);
+
+            if (unit == null)
+                return Failed(BloodUnitOutcome.NotFound, NotFoundMessage);
+
+            if (request.Version.HasValue && request.Version.Value != unit.Version)
+            {
+                return Failed(
+                    BloodUnitOutcome.VersionConflict,
+                    ConcurrencyMessage);
+            }
+
+            var gate = await EvaluateIssuanceGateAsync(id, cancellationToken);
+
+            if (gate == null)
+                return Failed(BloodUnitOutcome.NotFound, NotFoundMessage);
+
+            if (!gate.IsOpen ||
+                !gate.PatientId.HasValue ||
+                !gate.CompatibilityEvidenceId.HasValue)
+            {
+                // Kode gerbang dibawa apa adanya ke controller. Gerbang sudah menentukan
+                // VAL-BD-017/018/019/020/020b/065/079; menghitungnya ulang di controller akan
+                // melahirkan sumber kebenaran kedua yang bisa menyimpang dari gerbang.
+                return Failed(
+                    BloodUnitOutcome.NotAllowedByState,
+                    gate.Message,
+                    gate.ValidationCode);
+            }
+
+            var now = DateTime.UtcNow;
+            var fromStatus = unit.UnitStatus;
+
+            unit.UnitStatus = BbkBloodUnitStatus.Issued;
+            unit.IssuedToPatientId = gate.PatientId.Value;
+            unit.IssuedAt = now;
+            unit.IssuedByUserId = actorUserId;
+            unit.CompatibilityEvidenceIdUsed = gate.CompatibilityEvidenceId.Value;
+            unit.IssuedViaEmergency = false;
+            unit.Version++;
+            unit.UpdateDateTime = now;
+            unit.UpdateBy = actorUserId;
+
+            AppendTransition(
+                unit.Id,
+                IssueAction,
+                fromStatus,
+                BbkBloodUnitStatus.Issued,
+                reasonNote: null,
+                actorUserId,
+                occurredAt: now,
+                recordedAt: now,
+                correlationId: gate.CompatibilityEvidenceId.Value);
+
+            if (!await TrySaveAsync(cancellationToken))
+            {
+                return Failed(
+                    BloodUnitOutcome.VersionConflict,
+                    ConcurrencyMessage);
+            }
+
+            return Succeeded(
+                unit,
+                "Kantong berhasil diberikan kepada pasien.");
+        }
+
+        // =================================================================
         // Penolong
         // =================================================================
 
@@ -1147,7 +1561,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
                 actions.Add(AllocateActionName);
 
             if (status == BbkBloodUnitStatus.Allocated)
+            {
                 actions.Add(CancelAllocationActionName);
+                actions.Add(RecordCompatibilityEvidenceActionName);
+                actions.Add(IssueActionName);
+            }
 
             return actions;
         }
@@ -1313,6 +1731,37 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
                 })
                 .ToListAsync(cancellationToken);
 
+        /// <summary>
+        /// Riwayat seluruh bukti kecocokan satu kantong, terbaru lebih dulu.
+        /// Bukti incompatible maupun superseded tetap disimpan dan dibaca.
+        /// </summary>
+        private async Task<List<CompatibilityEvidenceDto>> ReadCompatibilityEvidencesAsync(
+            Guid unitId,
+            CancellationToken cancellationToken)
+            => await _dbContext.Set<BbkCompatibilityEvidence>()
+                .AsNoTracking()
+                .Where(x =>
+                    x.BloodUnitId == unitId &&
+                    !x.IsDelete)
+                .OrderByDescending(x => x.CheckedAt)
+                .ThenByDescending(x => x.CreateDateTime)
+                .Select(x => new CompatibilityEvidenceDto
+                {
+                    Id = x.Id,
+                    BloodUnitId = x.BloodUnitId,
+                    PatientId = x.PatientId,
+                    EvidenceResult = x.EvidenceResult,
+                    EvidenceResultLabel =
+                        x.EvidenceResult == BbkCompatibilityResult.Compatible
+                            ? "Cocok"
+                            : "Tidak cocok",
+                    ValidatedByUserId = x.ValidatedByUserId,
+                    CheckedAt = x.CheckedAt,
+                    IsSuperseded = x.IsSuperseded,
+                    CreateDateTime = x.CreateDateTime
+                })
+                .ToListAsync(cancellationToken);
+
         /// <remarks>
         /// <paramref name="reasonCode"/> ditambahkan pada <c>BE-BD-006</c>: pembatalan alokasi wajib
         /// menyimpan kode alasan terkendali <b>beserta</b> salinan teksnya, sedangkan perpindahan
@@ -1464,15 +1913,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
         private static BloodUnitResult Succeeded(BbkBloodUnit entity, string message)
             => new(BloodUnitOutcome.Success, entity, message);
 
-        private static BloodUnitResult Failed(BloodUnitOutcome outcome, string message)
-            => new(outcome, null, message);
+        /// <remarks>
+        /// <paramref name="validationCode"/> bersifat opsional supaya seluruh penolakan yang
+        /// memang tidak punya kode pada <c>validation-matrix</c> tetap memanggil helper ini
+        /// dengan dua argumen seperti sebelumnya.
+        /// </remarks>
+        private static BloodUnitResult Failed(
+            BloodUnitOutcome outcome,
+            string message,
+            string? validationCode = null)
+            => new(outcome, null, message, validationCode);
     }
 
     /// <summary>Hasil satu tindakan atas kantong darah. Dipetakan ke HTTP status oleh controller.</summary>
+    /// <param name="ValidationCode">
+    /// Kode <c>VAL-BD-*</c> pada <c>contracts/validation-matrix.md</c> ketika penolakannya memang
+    /// punya kode. <c>null</c> berarti penolakan itu tidak bernomor, dan controller tidak menulis
+    /// apa pun ke slot <c>errors</c> — persis perilaku sebelum kode ini dibawa keluar.
+    /// </param>
     public sealed record BloodUnitResult(
         BloodUnitOutcome Outcome,
         BbkBloodUnit? Entity,
-        string Message);
+        string Message,
+        string? ValidationCode = null);
 
     /// <summary>Jenis hasil satu tindakan atas kantong darah.</summary>
     public enum BloodUnitOutcome

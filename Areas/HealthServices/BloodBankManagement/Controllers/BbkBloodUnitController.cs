@@ -358,6 +358,115 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Control
                 result.Message));
         }
 
+        /// <summary>Mencatat hasil pemeriksaan kecocokan terhadap pasien tujuan alokasi aktif.</summary>
+        /// <remarks>
+        /// Hanya petugas dengan <c>BloodUnit : Compatibility</c> yang dapat menjalankan tindakan ini.
+        /// Hasil <c>Incompatible</c> tetap disimpan sebagai rekam klinis, tetapi tidak membuka gerbang
+        /// pemberian normal.
+        /// </remarks>
+        [HttpPost("{id:guid}/compatibility-evidence")]
+        [ProducesResponseType(typeof(ApiResponse<BloodUnitDetailDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [AccessAction("Compatibility", "Validate Blood Unit Compatibility", Description = "Mencatat hasil pemeriksaan kecocokan kantong darah terhadap pasien tujuan", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission(
+            "BloodUnit",
+            "Compatibility",
+            DeniedCode = "VAL-BD-078",
+            DeniedMessage =
+                "Hanya petugas Bank Darah dengan kewenangan validasi yang boleh " +
+                "menyatakan hasil pemeriksaan kecocokan.")]
+        public async Task<IActionResult> CompatibilityEvidence(
+            Guid id,
+            [FromBody] RecordEvidenceRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _bloodUnitService.RecordCompatibilityEvidenceAsync(
+                id,
+                request,
+                GetCurrentUserId(),
+                cancellationToken);
+
+            if (result.Outcome != BloodUnitOutcome.Success)
+                return MapFailure(result);
+
+            await LogBloodUnitActionAsync(
+                "BloodUnit.CompatibilityEvidence",
+                "Mencatat hasil pemeriksaan kecocokan kantong darah.",
+                result,
+                "Compatibility");
+
+            var detail = await _bloodUnitService.GetDetailAsync(id, cancellationToken);
+
+            return Ok(ApiResponse<BloodUnitDetailDto>.Ok(
+                detail,
+                result.Message));
+        }
+
+        /// <summary>Memberikan kantong kepada pasien melalui jalur normal.</summary>
+        /// <remarks>
+        /// Gerbang pemberian dinilai ulang saat tindakan dilakukan. Kantong harus masih memiliki
+        /// alokasi aktif, berada di lokasi aktif, dan memiliki bukti kecocokan yang valid untuk
+        /// pasien tujuan. Pemberian bersifat terminal.
+        /// </remarks>
+        [HttpPost("{id:guid}/issue")]
+        [ProducesResponseType(typeof(ApiResponse<BloodUnitDetailDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [AccessAction("Issue", "Issue Blood Unit", Description = "Memberikan kantong darah kepada pasien melalui jalur normal", AccessType = AccessTypes.Update, SortOrder = 5)]
+        [AccessPermission("BloodUnit", "Issue")]
+        public async Task<IActionResult> Issue(
+            Guid id,
+            [FromBody] IssueUnitRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _bloodUnitService.IssueAsync(
+                id,
+                request,
+                GetCurrentUserId(),
+                cancellationToken);
+
+            if (result.Outcome != BloodUnitOutcome.Success)
+                return MapFailure(result);
+
+            await LogBloodUnitActionAsync(
+                "BloodUnit.Issue",
+                "Memberikan kantong darah melalui jalur normal.",
+                result,
+                "Issue");
+
+            var detail = await _bloodUnitService.GetDetailAsync(id, cancellationToken);
+
+            return Ok(ApiResponse<BloodUnitDetailDto>.Ok(
+                detail,
+                result.Message));
+        }
+
+        /// <remarks>
+        /// Log tindakan klinis sengaja hanya menyimpan identifier internal kantong dan status.
+        /// Nomor kantong PMI, nama pasien, nomor rekam medis, dan PatientId tidak ditulis ke log.
+        /// </remarks>
+        private Task LogBloodUnitActionAsync(
+            string eventName,
+            string message,
+            BloodUnitResult result,
+            string action)
+            => _loggerService.InfoAsync(
+                LogCategory,
+                eventName,
+                message,
+                new
+                {
+                    EntityId = result.Entity!.Id,
+                    UnitStatus = result.Entity.UnitStatus.ToString(),
+                    Controller = "BloodUnit",
+                    Action = action
+                });
         /// <remarks>
         /// Nomor kantong PMI dan nama pasien sensitif, dan sengaja tidak ditulis ke log. Kode
         /// alasan ditulis karena ia kode terkendali, bukan teks bebas berisi keterangan pasien.
@@ -413,20 +522,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Control
         /// </para>
         /// </remarks>
         private IActionResult MapFailure(BloodUnitResult result)
-            => result.Outcome switch
+        {
+            // Slot errors hanya terisi ketika penolakannya memang bernomor pada
+            // validation-matrix. Bila tidak, nilainya tetap null persis seperti sebelumnya,
+            // sehingga seluruh endpoint kantong selain pemberian tidak berubah bentuk.
+            object? errors =
+                result.ValidationCode is null
+                    ? null
+                    : new { Code = result.ValidationCode };
+
+            return result.Outcome switch
             {
                 BloodUnitOutcome.NotFound => NotFound(
-                    ApiResponse<object>.Fail(StatusCodes.Status404NotFound, result.Message)),
+                    ApiResponse<object>.Fail(StatusCodes.Status404NotFound, result.Message, errors)),
 
                 BloodUnitOutcome.VersionConflict or BloodUnitOutcome.AllocationConflict => Conflict(
-                    ApiResponse<object>.Fail(StatusCodes.Status409Conflict, result.Message)),
+                    ApiResponse<object>.Fail(StatusCodes.Status409Conflict, result.Message, errors)),
 
                 BloodUnitOutcome.NotAllowedByState => UnprocessableEntity(
-                    ApiResponse<object>.Fail(StatusCodes.Status422UnprocessableEntity, result.Message)),
+                    ApiResponse<object>.Fail(StatusCodes.Status422UnprocessableEntity, result.Message, errors)),
 
                 _ => BadRequest(
-                    ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, result.Message))
+                    ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, result.Message, errors))
             };
+        }
 
         private Guid GetCurrentUserId()
         {

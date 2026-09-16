@@ -118,6 +118,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.DTOs
         public BloodUnitAllocationDto? CurrentAllocation { get; set; }
 
         /// <summary>
+        /// Seluruh bukti pemeriksaan kecocokan kantong ini, terbaru lebih dulu.
+        /// Bukti Incompatible, expired, maupun superseded tetap tampil sebagai
+        /// bagian rekam klinis dan tidak dihapus.
+        /// </summary>
+        public List<CompatibilityEvidenceDto> CompatibilityEvidences { get; set; } = new();
+
+        /// <summary>
+        /// Bukti yang benar-benar digunakan saat pemberian jalur normal.
+        /// Kosong sebelum pemberian dan kosong untuk pemberian jalur darurat.
+        /// </summary>
+        public Guid? CompatibilityEvidenceIdUsed { get; set; }
+
+        /// <summary>
         /// Aksi yang layak dicoba. <c>AssignStorageLocation</c> selama kantong <c>Received</c>;
         /// <c>MoveStorageLocation</c> sesudah kantong punya lokasi dan belum keluar dari stok —
         /// termasuk ketika lokasinya dinonaktifkan; <c>Allocate</c> pada kantong <c>Available</c>
