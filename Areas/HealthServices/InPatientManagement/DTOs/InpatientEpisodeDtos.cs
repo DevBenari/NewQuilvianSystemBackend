@@ -227,6 +227,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
         /// admisi lain yang masih disiapkan.
         /// </summary>
         public List<string> Warnings { get; set; } = new();
+
+        /// <summary>
+        /// Akibat penutupan episode yang benar-benar tersimpan. <b>Hanya terisi pada balasan
+        /// <c>POST .../close</c> dan <c>POST .../close-with-override</c></b>; kosong pada
+        /// setiap pembacaan biasa. Ditambahkan <c>BE-RWI-084</c>.
+        /// </summary>
+        public ClosureSideEffectsResponse? SideEffects { get; set; }
     }
 
     /// <summary>

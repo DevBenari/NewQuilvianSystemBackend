@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
@@ -31,6 +33,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         private readonly ApplicationDbContext _dbContext;
         private readonly InpSettingService _settingService;
 
+        /// <summary>
+        /// Kalimat yang dibaca pengguna ketika akunnya tidak terhubung dengan data dokter.
+        /// Dikunci kontrak <c>0.9.0</c> bagian 10.1.
+        /// </summary>
+        public const string AkunTanpaDataDokter =
+            "Akun Anda tidak terhubung dengan data dokter.";
+
         public InpCensusQueryService(
             ApplicationDbContext dbContext,
             InpSettingService settingService)
@@ -55,6 +64,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// </remarks>
         public async Task<CensusPagedResult> GetCensusAsync(
             CensusQuery query,
+            Guid? currentDoctorId = null,
             CancellationToken cancellationToken = default)
         {
             query ??= new CensusQuery();
@@ -63,7 +73,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 query.PageNumber,
                 query.PageSize);
 
-            var filtered = BuildCensusQuery(query);
+            // FR-RI-192 - akun yang tidak terhubung dengan data dokter menerima daftar kosong
+            // BESERTA ALASANNYA, bukan 403. Hak baca census-nya sah; yang tidak ada adalah
+            // kaitan akunnya dengan seorang dokter, dan itu masalah data induk.
+            if (query.AssignedToMe && (!currentDoctorId.HasValue || currentDoctorId.Value == Guid.Empty))
+            {
+                return new CensusPagedResult
+                {
+                    PageNumber = pageNumber,
+                    PageSize = pageSize,
+                    TotalData = 0,
+                    TotalPage = 0,
+                    Items = new List<CensusItemResponse>(),
+                    EmptyReason = AkunTanpaDataDokter
+                };
+            }
+
+            var evaluatedAt = DateTime.UtcNow;
+            var filtered = BuildCensusQuery(query, currentDoctorId, evaluatedAt);
 
             var descending = string.Equals(
                 query.SortDirection,
@@ -140,6 +167,35 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                         .Select(n => n.Employee != null ? n.Employee.FullName : null)
                         .FirstOrDefault(),
                     RequiresIsolation = x.Episode.RequiresIsolation,
+                    // BE-RWI-081 - peran dan tujuan penugasan PEMANGGIL atas pasien ini,
+                    // bukan peran DPJP episode. Keduanya sengaja hanya terisi pada jalur
+                    // assignedToMe: pada census unit, "penugasan saya" tidak punya arti.
+                    //
+                    // Urut menaik menurut peran, sehingga dokter yang sekaligus DPJP dan
+                    // konsulen pada episode yang sama terbaca sebagai DPJP - peran dengan
+                    // kewenangan terbesarlah yang menentukan apa yang boleh ia lakukan.
+                    MyAssignmentRole = !query.AssignedToMe
+                        ? null
+                        : x.Episode.DoctorAssignments
+                            .Where(d =>
+                                d.DoctorId == currentDoctorId!.Value &&
+                                !d.IsDelete &&
+                                d.StartDateTime <= evaluatedAt &&
+                                (d.EndDateTime == null || d.EndDateTime > evaluatedAt))
+                            .OrderBy(d => d.AssignmentRole)
+                            .Select(d => (int?)d.AssignmentRole)
+                            .FirstOrDefault(),
+                    MyAssignmentPurpose = !query.AssignedToMe
+                        ? null
+                        : x.Episode.DoctorAssignments
+                            .Where(d =>
+                                d.DoctorId == currentDoctorId!.Value &&
+                                !d.IsDelete &&
+                                d.StartDateTime <= evaluatedAt &&
+                                (d.EndDateTime == null || d.EndDateTime > evaluatedAt))
+                            .OrderBy(d => d.AssignmentRole)
+                            .Select(d => (int?)d.AssignmentPurpose)
+                            .FirstOrDefault(),
                     // BE-RWI-031 — ibu dan bayi tampil sebagai dua baris; rujukan ke episode
                     // ibu ikut supaya layar dapat menjawab "bayi siapa", bukan sekadar
                     // "bayi mana".
@@ -180,11 +236,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// <summary>Menghitung jumlah pasien dirawat per unit layanan dan per kelas perawatan.</summary>
         public async Task<CensusSummaryResponse> GetCensusSummaryAsync(
             CensusQuery query,
+            Guid? currentDoctorId = null,
             CancellationToken cancellationToken = default)
         {
             query ??= new CensusQuery();
 
-            var filtered = BuildCensusQuery(query);
+            // Ringkasan akun tanpa data dokter mengikuti daftarnya: kosong, bukan 403.
+            if (query.AssignedToMe && (!currentDoctorId.HasValue || currentDoctorId.Value == Guid.Empty))
+            {
+                return new CensusSummaryResponse { NeedsReviewCount = 0 };
+            }
+
+            var evaluatedAt = DateTime.UtcNow;
+            var filtered = BuildCensusQuery(query, currentDoctorId, evaluatedAt);
 
             var byServiceUnit = await filtered
                 .GroupBy(x => new
@@ -219,12 +283,34 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             var totalIsolation = await filtered
                 .CountAsync(x => x.Episode!.RequiresIsolation, cancellationToken);
 
+            // Acceptance criteria 3 - angka ringkasan dihitung dari DAFTAR YANG SAMA, bukan
+            // dari query terpisah yang penyaringnya disalin ulang. Salinan penyaring akan
+            // berselisih dengan daftarnya pada perubahan berikutnya, dan layar menampilkan dua
+            // jawaban yang sama-sama meyakinkan.
+            int? needsReviewCount = null;
+
+            if (query.AssignedToMe)
+            {
+                var episodeIds = filtered.Select(x => x.EpisodeId);
+
+                needsReviewCount = await _dbContext.Set<TrxPatientIntegratedProgressNote>()
+                    .AsNoTracking()
+                    .CountAsync(
+                        x => x.InpEpisodeId != null &&
+                             episodeIds.Contains(x.InpEpisodeId.Value) &&
+                             !x.IsDelete &&
+                             (x.VerificationStatus == CpptVerificationStatus.Pending ||
+                              x.VerificationStatus == CpptVerificationStatus.Overdue),
+                        cancellationToken);
+            }
+
             return new CensusSummaryResponse
             {
                 TotalPatient = totalPatient,
                 TotalRequiringIsolation = totalIsolation,
                 ByServiceUnit = byServiceUnit.OrderBy(x => x.Name).ToList(),
-                ByPatientClass = byPatientClass.OrderBy(x => x.Name).ToList()
+                ByPatientClass = byPatientClass.OrderBy(x => x.Name).ToList(),
+                NeedsReviewCount = needsReviewCount
             };
         }
 
@@ -842,7 +928,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// <c>PhysicallyLeftAt</c> ikut diperiksa sebagai penjaga kedua, supaya census tetap
         /// benar walaupun ada baris penempatan yang tertinggal terbuka karena kejadian lama.
         /// </remarks>
-        private IQueryable<InpBedPlacement> BuildCensusQuery(CensusQuery query)
+        private IQueryable<InpBedPlacement> BuildCensusQuery(
+            CensusQuery query,
+            Guid? currentDoctorId = null,
+            DateTime? evaluatedAtUtc = null)
         {
             IQueryable<InpBedPlacement> filtered = _dbContext.Set<InpBedPlacement>()
                 .AsNoTracking()
@@ -883,11 +972,37 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 filtered = filtered.Where(x => x.PatientClassId == query.PatientClassId.Value);
             }
 
-            if (query.DoctorId.HasValue && query.DoctorId.Value != Guid.Empty)
+            // BE-RWI-081 / INV-INP-13 - "pasien saya" berarti pasien yang boleh saya tulis
+            // SAAT INI. Keaktifan penugasan dinilai pada waktu query dijalankan, tanpa proses
+            // latar apa pun: dokter jaga 22.00-07.00 melihat pasiennya pada 06.59 dan tidak
+            // lagi melihatnya pada 07.01, tanpa ada yang perlu menjalankan apa pun di antaranya.
+            //
+            // SELURUH PERAN IKUT, bukan DPJP saja. Konsulen dan dokter jaga boleh menulis
+            // catatan klinis; daftar yang hanya memuat pasien DPJP akan menyembunyikan pasien
+            // yang justru sedang mereka tangani - permission-audit-matrix.md bagian 4-A.1.
+            if (query.AssignedToMe && currentDoctorId.HasValue && currentDoctorId.Value != Guid.Empty)
+            {
+                var evaluatedAt = evaluatedAtUtc ?? DateTime.UtcNow;
+
+                filtered = filtered.Where(x =>
+                    x.Episode!.DoctorAssignments.Any(d =>
+                        d.DoctorId == currentDoctorId.Value &&
+                        !d.IsDelete &&
+                        d.StartDateTime <= evaluatedAt &&
+                        (d.EndDateTime == null || d.EndDateTime > evaluatedAt)));
+            }
+            else if (query.DoctorId.HasValue && query.DoctorId.Value != Guid.Empty)
             {
                 // Saringan ini disamakan dengan kolom DoctorId di atas: keduanya berarti DPJP.
                 // Membiarkannya membaca peran apa pun akan memunculkan baris yang kolom
-                // dokternya menyebut nama orang lain — BE-RWI-074.
+                // dokternya menyebut nama orang lain - BE-RWI-074.
+                //
+                // FR-DOK-070 / RWI-DEC-111 - cabang ini TIDAK PERNAH dijalankan bersamaan
+                // dengan assignedToMe. Itulah bentuk teknis dari "doctorId diabaikan": bukan
+                // ditolak, bukan diperiksa, melainkan tidak pernah sampai ke query. Menuliskan
+                // keduanya sebagai dua cabang sejajar akan membuat doctorId milik dokter lain
+                // ikut menyempitkan daftar, dan pada permintaan berikutnya yang tidak
+                // menyertakannya daftarnya berubah tanpa ada data apa pun yang berubah.
                 filtered = filtered.Where(x =>
                     x.Episode!.DoctorAssignments.Any(d =>
                         d.AssignmentRole == InpDoctorAssignmentRole.Dpjp &&

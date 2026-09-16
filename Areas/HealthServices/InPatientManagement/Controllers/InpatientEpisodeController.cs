@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Helpers;
@@ -416,6 +416,126 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
             return Ok(ApiResponse<List<InpatientDoctorAssignmentResponse>>.Ok(
                 result,
                 "Riwayat DPJP berhasil diambil."));
+        }
+
+        // =====================================================================
+        // BE-RWI-080 — Penugasan dokter pendukung
+        // =====================================================================
+
+        /// <summary>
+        /// Melibatkan dokter pendukung: konsulen, dokter jaga, atau penugasan singkat penulisan
+        /// catatan terlambat.
+        /// </summary>
+        /// <remarks>
+        /// <b>Jalur terpisah dari pengalihan DPJP, dan itu disengaja.</b>
+        /// <c>POST /{id}/doctor-assignments</c> mengganti siapa yang bertanggung jawab penuh;
+        /// endpoint ini menambah dokter lain <b>tanpa</b> menyentuh DPJP. Menyatukan keduanya di
+        /// bawah satu route yang dibedakan hanya oleh satu nilai enum berarti satu salah kirim
+        /// dapat menggusur DPJP sebuah episode yang sedang berjalan.
+        ///
+        /// <para>
+        /// Hanya kepala ruangan atau supervisor yang dapat memanggilnya — <c>RWI-DEC-130</c>
+        /// (4). Penjaganya ada di service, bukan di mesin hak akses, karena mesin hak akses
+        /// hanya mengenal "peran ini boleh memanggil endpoint ini".
+        /// </para>
+        /// </remarks>
+        [HttpPost("{id:guid}/doctor-assignments/supporting")]
+        [ProducesResponseType(typeof(ApiResponse<InpatientDoctorAssignmentResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [AccessAction("Update", "Update Inpatient Episode", Description = "Mengubah dan membatalkan admisi, serta menugaskan DPJP dan perawat penanggung jawab", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("InpatientEpisode", "Update")]
+        public async Task<IActionResult> AssignSupportingDoctor(
+            Guid id,
+            [FromBody] AssignSupportingDoctorRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _episodeService.AssignSupportingDoctorAsync(
+                id,
+                request,
+                User.GetUserId(),
+                User.IsSupervisorOrWardHead(),
+                cancellationToken);
+
+            if (result.Status != InpEpisodeOperationStatus.Success)
+            {
+                return FromFailure(result);
+            }
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "InpatientEpisode.AssignSupportingDoctor",
+                "Melibatkan dokter pendukung pada episode rawat inap.",
+                new
+                {
+                    EntityId = id,
+                    Controller = "InpatientEpisode",
+                    Action = "AssignSupportingDoctor",
+                    StatusCode = StatusCodes.Status200OK
+                });
+
+            var assignments = await _episodeService.GetDoctorAssignmentsAsync(id, cancellationToken);
+            var created = assignments
+                .OrderByDescending(x => x.SequenceNumber)
+                .FirstOrDefault();
+
+            return Ok(ApiResponse<InpatientDoctorAssignmentResponse>.Ok(created, result.Message));
+        }
+
+        /// <summary>Mengakhiri penugasan konsulen atau dokter jaga.</summary>
+        /// <remarks>
+        /// Penugasan DPJP ditolak <c>409</c> di sini — <c>VAL-INP-09</c>. Mengakhirinya lewat
+        /// jalur ini akan meninggalkan episode berjalan tanpa DPJP sama sekali, dan sejak saat
+        /// itu keempat penjaga kewenangan menolak setiap keputusan klinis termasuk keputusan
+        /// pulang.
+        /// </remarks>
+        [HttpPatch("{id:guid}/doctor-assignments/{assignmentId:guid}/end")]
+        [ProducesResponseType(typeof(ApiResponse<InpatientDoctorAssignmentResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [AccessAction("Update", "Update Inpatient Episode", Description = "Mengubah dan membatalkan admisi, serta menugaskan DPJP dan perawat penanggung jawab", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("InpatientEpisode", "Update")]
+        public async Task<IActionResult> EndSupportingAssignment(
+            Guid id,
+            Guid assignmentId,
+            [FromBody] EndSupportingAssignmentRequest? request,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _episodeService.EndSupportingAssignmentAsync(
+                id,
+                assignmentId,
+                request,
+                User.GetUserId(),
+                User.IsSupervisorOrWardHead(),
+                cancellationToken);
+
+            if (result.Status != InpEpisodeOperationStatus.Success)
+            {
+                return FromFailure(result);
+            }
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "InpatientEpisode.EndSupportingAssignment",
+                "Mengakhiri penugasan dokter pendukung episode rawat inap.",
+                new
+                {
+                    EntityId = id,
+                    Controller = "InpatientEpisode",
+                    Action = "EndSupportingAssignment",
+                    StatusCode = StatusCodes.Status200OK
+                });
+
+            var assignments = await _episodeService.GetDoctorAssignmentsAsync(id, cancellationToken);
+            var ended = assignments.FirstOrDefault(x => x.Id == assignmentId);
+
+            return Ok(ApiResponse<InpatientDoctorAssignmentResponse>.Ok(ended, result.Message));
         }
 
         // =====================================================================

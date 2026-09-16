@@ -457,6 +457,10 @@ try
     builder.Services.AddScoped<InpDischargeService>();
     builder.Services.AddScoped<InpCensusQueryService>();
 
+    // BE-RWI-086 — penyusun usulan isian resume pulang. Hanya membaca, tidak pernah
+    // menyimpan, dan tidak dipakai service Rawat Inap lain; ia dipanggil langsung controller.
+    builder.Services.AddScoped<InpDischargeSummaryPrefillService>();
+
     // Master data Rawat Inap. Dipakai dua controller pada layar admin, bukan oleh service
     // Rawat Inap. Keduanya memegang seluruh pembacaan dan perubahan tabel masternya supaya
     // controller tidak menyentuh ApplicationDbContext langsung.

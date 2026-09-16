@@ -2,7 +2,11 @@ using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services
 {
@@ -418,6 +422,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
             var conditions = await BuildClosureConditionsAsync(episode, cancellationToken);
 
+            // BE-RWI-084 / FR-RI-201 — peringatan disusun TERPISAH dari syarat, dan hasilnya
+            // tidak pernah ikut menentukan IsReady maupun IsReadyWithOverride. Kedua nilai itu
+            // tetap dihitung dari `conditions` saja.
+            var warnings = await BuildClosureWarningsAsync(episode, cancellationToken);
+
             return new ClosureReadinessResponse
             {
                 EpisodeId = episode.Id,
@@ -426,7 +435,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 EpisodeStatusName = episode.EpisodeStatus.ToString(),
                 IsReady = conditions.All(x => x.IsSatisfied),
                 IsReadyWithOverride = conditions.All(x => x.IsSatisfied || x.CanBeOverridden),
-                Conditions = conditions
+                Conditions = conditions,
+                Warnings = warnings
             };
         }
 
@@ -605,6 +615,247 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         }
 
         // =====================================================================
+        // BE-RWI-082, BE-RWI-083, BE-RWI-084 — Peringatan, akibat, dan daftar pantau
+        // =====================================================================
+
+        /// <summary>
+        /// Kalimat tetap yang tersimpan pada pesanan tindakan yang dibatalkan penutupan episode.
+        /// </summary>
+        public const string AlasanPembatalanPesananSaatPenutupan =
+            "Episode ditutup sebelum tindakan dilaksanakan.";
+
+        /// <summary>
+        /// Keterangan langkah 5 penutupan yang belum terpasang, dipakai ringkasan akibat supaya
+        /// angka nol tidak terbaca sebagai "tidak ada yang perlu dibatalkan".
+        /// </summary>
+        public const string LangkahLimaBelumTerpasang =
+            "Langkah 5 — pembatalan pesanan tindakan tertunda — belum terpasang. " +
+            "PatientProcedureOrderService milik ClinicalManagement dibuat BE-RWI-097 " +
+            "(sub-modul dokter-rawat-inap) dan belum mendarat.";
+
+        /// <summary>
+        /// Keterangan langkah 6 penutupan yang belum terpasang, dengan alasan yang sama.
+        /// </summary>
+        public const string LangkahEnamBelumTerpasang =
+            "Langkah 6 — pembatalan dosis obat berjadwal — belum terpasang. Tabel MAR " +
+            "PharmacyManagement dibuat BE-RWI-114 (sub-modul keperawatan) dan belum mendarat.";
+
+        /// <summary>
+        /// Menyusun peringatan penutupan: apa yang akan terkunci, apa yang akan dibatalkan, dan
+        /// apa yang sengaja dibiarkan.
+        /// </summary>
+        /// <remarks>
+        /// <b>Tidak satu pun peringatan di sini menahan penutupan.</b> Ia tidak dipanggil dari
+        /// <c>CloseEpisodeInternalAsync</c>, dan hasilnya tidak pernah masuk ke daftar syarat.
+        /// Pemisahan itu disengaja: selama peringatan dan syarat disusun oleh method yang
+        /// berbeda, tidak ada perubahan kecil yang dapat diam-diam mengubah salah satunya
+        /// menjadi yang lain — <c>FR-RI-201</c>, <c>RWI-DEC-129</c> (4).
+        ///
+        /// <para>
+        /// <b>Angka yang belum dapat dibaca ditandai, bukan dinolkan diam-diam.</b> Dua dari
+        /// empat sumber peringatan milik modul lain yang slice-nya belum mendarat. Untuk
+        /// keduanya, <c>Count</c> bernilai <c>0</c> dan <c>IsMeasured</c> bernilai salah —
+        /// petugas melihat bahwa angkanya belum terbaca, bukan bahwa tidak ada apa-apa.
+        /// </para>
+        /// </remarks>
+        private async Task<List<ClosureWarningResponse>> BuildClosureWarningsAsync(
+            InpEpisode episode,
+            CancellationToken cancellationToken)
+        {
+            var warnings = new List<ClosureWarningResponse>();
+
+            // VAL-INP-13 — konsep catatan dokter yang akan terkunci. Dibaca dari registrasi
+            // keutuhan MedicalRecordManagement, bukan dari tabel dokumen klinisnya: status
+            // keutuhan dan status alur kerja adalah dua hal berbeda — RM-DEC-013.
+            var draftCount = await _dbContext.Set<MrcClinicalDocumentIntegrity>()
+                .AsNoTracking()
+                .CountAsync(
+                    x => x.EncounterId == episode.EncounterId &&
+                         x.IntegrityStatus == ClinicalDocumentIntegrityStatus.Draft &&
+                         !x.IsDelete,
+                    cancellationToken);
+
+            warnings.Add(new ClosureWarningResponse
+            {
+                Code = ClosureWarningCode.UnsignedDoctorDrafts.ToString(),
+                Count = draftCount,
+                Message = draftCount == 0
+                    ? "Tidak ada konsep catatan dokter yang akan terkunci."
+                    : $"{draftCount} konsep catatan dokter akan terkunci sebagai " +
+                      "\"Tidak Ditandatangani\" dan tidak dapat disunting lagi."
+            });
+
+            // VAL-INP-14 dan VAL-INP-15 — pesanan tindakan tertunda, dipisah menurut apakah
+            // tagihannya sudah terbentuk. Yang belum ditagih akan dibatalkan; yang sudah ditagih
+            // sengaja dibiarkan dan muncul pada daftar pantau — RWI-DEC-143.
+            var pendingOrders = _dbContext.Set<TrxPatientProcedure>()
+                .AsNoTracking()
+                .Where(x =>
+                    x.InpEpisodeId == episode.Id &&
+                    !x.IsDelete &&
+                    (x.ProcedureStatus == PatientProcedureStatus.Planned ||
+                     x.ProcedureStatus == PatientProcedureStatus.Ordered));
+
+            var unbilledPendingCount = await pendingOrders
+                .CountAsync(x => !x.IsBillingGenerated, cancellationToken);
+
+            var billedPendingCount = await pendingOrders
+                .CountAsync(x => x.IsBillingGenerated, cancellationToken);
+
+            warnings.Add(new ClosureWarningResponse
+            {
+                Code = ClosureWarningCode.PendingProcedureOrders.ToString(),
+                Count = unbilledPendingCount,
+                Message = unbilledPendingCount == 0
+                    ? "Tidak ada pesanan tindakan tertunda yang akan dibatalkan."
+                    : $"{unbilledPendingCount} pesanan tindakan yang belum dilaksanakan akan " +
+                      "dibatalkan.",
+                // Angkanya terbaca; yang belum terpasang adalah tindakan pembatalannya.
+                IsMeasured = true,
+                Details = { LangkahLimaBelumTerpasang }
+            });
+
+            warnings.Add(new ClosureWarningResponse
+            {
+                Code = ClosureWarningCode.BilledPendingProcedureOrders.ToString(),
+                Count = billedPendingCount,
+                Message = billedPendingCount == 0
+                    ? "Tidak ada pesanan tindakan tertunda yang sudah ditagih."
+                    : $"{billedPendingCount} pesanan tindakan yang sudah ditagih " +
+                      "TIDAK dibatalkan dan perlu ditindaklanjuti bersama Billing."
+            });
+
+            // VAL-INP-16 — dosis obat yang jadwalnya sudah lewat tetapi belum dicatat. Tabel MAR
+            // belum ada pada repository ini; angkanya karena itu ditandai belum terukur, bukan
+            // dilaporkan nol. Lihat BE-RWI-114 pada roadmap keperawatan.
+            warnings.Add(new ClosureWarningResponse
+            {
+                Code = ClosureWarningCode.UnrecordedPastDoses.ToString(),
+                Count = 0,
+                Message = "Jumlah dosis obat yang belum dicatat belum dapat dibaca.",
+                IsMeasured = false,
+                Details = { LangkahEnamBelumTerpasang }
+            });
+
+            return warnings;
+        }
+
+        /// <summary>
+        /// Daftar pantau pesanan tindakan yang masih tertunda, sudah ditagih, dan episodenya
+        /// sudah ditutup. <c>BE-RWI-083</c>, kontrak <c>0.9.0</c> bagian 10.4.
+        /// </summary>
+        /// <remarks>
+        /// <b>Daftar ini adalah pasangan dari keputusan untuk tidak membatalkannya.</b>
+        /// Membatalkan pesanan yang uangnya sudah masuk tagihan berarti menghapus dasar sebuah
+        /// tagihan tanpa ada yang memutuskannya. Yang dilakukan sistem adalah memunculkannya —
+        /// <c>RWI-DEC-143</c> jalur tidak normal (c). Apa tindak lanjutnya belum diputuskan;
+        /// <c>04-prd-to-mvp.md</c> 22.7 nomor 1 masih milik Muhammad Hamzah bersama pemilik
+        /// Billing.
+        ///
+        /// <para>
+        /// <b>Hanya membaca.</b> Tabel <c>TrxPatientProcedure</c> milik <c>ClinicalManagement</c>
+        /// dan tidak pernah ditulis dari sini — <c>02-backend-architecture.md</c> bagian 11.3.
+        /// </para>
+        /// </remarks>
+        public async Task<BilledPendingProcedureOrderPagedResult> GetBilledPendingProcedureOrdersAsync(
+            BilledPendingProcedureOrderQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            query ??= new BilledPendingProcedureOrderQuery();
+
+            var (pageNumber, pageSize) = InpEpisodeService.NormalizePaging(
+                query.PageNumber,
+                query.PageSize);
+
+            var filtered = _dbContext.Set<TrxPatientProcedure>()
+                .AsNoTracking()
+                .Where(x =>
+                    x.InpEpisodeId != null &&
+                    !x.IsDelete &&
+                    x.IsBillingGenerated &&
+                    (x.ProcedureStatus == PatientProcedureStatus.Planned ||
+                     x.ProcedureStatus == PatientProcedureStatus.Ordered));
+
+            // Episode yang belum ditutup tidak masuk: pesanannya masih dapat dilaksanakan, dan
+            // memunculkannya di sini akan mengubah daftar tindak lanjut menjadi daftar antrean
+            // tindakan biasa.
+            var closedEpisodes = _dbContext.Set<InpEpisode>()
+                .AsNoTracking()
+                .Where(x => x.EpisodeStatus == InpEpisodeStatus.Closed && !x.IsDelete);
+
+            if (query.ServiceUnitId.HasValue && query.ServiceUnitId.Value != Guid.Empty)
+            {
+                closedEpisodes = closedEpisodes.Where(
+                    x => x.ServiceUnitId == query.ServiceUnitId.Value);
+            }
+
+            if (query.ClosedFrom.HasValue)
+            {
+                closedEpisodes = closedEpisodes.Where(x => x.ClosedAt >= query.ClosedFrom.Value);
+            }
+
+            if (query.ClosedTo.HasValue)
+            {
+                closedEpisodes = closedEpisodes.Where(x => x.ClosedAt <= query.ClosedTo.Value);
+            }
+
+            var joined = from procedure in filtered
+                         join episode in closedEpisodes
+                             on procedure.InpEpisodeId equals (Guid?)episode.Id
+                         select new { procedure, episode };
+
+            var totalData = await joined.CountAsync(cancellationToken);
+
+            var items = await joined
+                .OrderByDescending(x => x.episode.ClosedAt)
+                .ThenBy(x => x.procedure.ProcedureDateTime)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(x => new BilledPendingProcedureOrderItem
+                {
+                    ProcedureId = x.procedure.Id,
+                    ProcedureCode = x.procedure.ProcedureCodeSnapshot,
+                    ProcedureName = x.procedure.ProcedureNameSnapshot,
+                    ProcedureStatus = (int)x.procedure.ProcedureStatus,
+                    EpisodeId = x.episode.Id,
+                    EpisodeNumber = x.episode.EpisodeNumber,
+                    PatientId = x.episode.PatientId,
+                    PatientName = x.episode.Patient != null ? x.episode.Patient.FullName : null,
+                    MedicalRecordNumber = x.episode.Patient != null
+                        ? x.episode.Patient.MedicalRecordNumber
+                        : null,
+                    ServiceUnitId = x.episode.ServiceUnitId,
+                    ServiceUnitName = x.episode.ServiceUnit != null
+                        ? x.episode.ServiceUnit.ServiceUnitName
+                        : null,
+                    OrderedByDoctorId = x.procedure.DoctorId,
+                    OrderedByDoctorName = x.procedure.Doctor != null
+                        ? x.procedure.Doctor.FullName
+                        : null,
+                    OrderedAt = x.procedure.ProcedureDateTime,
+                    EpisodeClosedAt = x.episode.ClosedAt,
+                    BillingItemId = x.procedure.BillingItemId,
+                    BillingGeneratedAt = x.procedure.BillingGeneratedAt
+                })
+                .ToListAsync(cancellationToken);
+
+            foreach (var item in items)
+            {
+                item.ProcedureStatusName =
+                    ((PatientProcedureStatus)item.ProcedureStatus).ToString();
+            }
+
+            return new BilledPendingProcedureOrderPagedResult
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+        }
+
+        // =====================================================================
         // Pembantu
         // =====================================================================
 
@@ -764,6 +1015,64 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
                 await CloseActiveAssignmentsAsync(episode.Id, actorUserId, now, cancellationToken);
 
+                // ---------------------------------------------------------------------
+                // Langkah 4 — BE-RWI-082 / INT-INP-08 / RWI-DEC-138.
+                //
+                // Konsep catatan dokter yang tidak sempat ditandatangani DIKUNCI APA ADANYA
+                // sebagai "Tidak Ditandatangani". Dua jalan keluar lain sama-sama salah:
+                // menghapusnya menghilangkan riwayat klinis, dan menandatanganinya otomatis
+                // berarti sistem memalsukan tanda tangan dokter. Jalan ketiga inilah yang
+                // dipilih RWI-DEC-138 mengikuti RM-DEC-003.
+                //
+                // DI DALAM TRANSAKSI, BUKAN SESUDAHNYA — INV-INP-11, NFR-025. Penguncian yang
+                // dijalankan setelah commit akan meninggalkan episode tertutup dengan konsep
+                // yang masih terbuka bila langkah itu gagal, dan tidak ada yang tahu bahwa ia
+                // pernah gagal. Pemanggilannya lewat service pemilik, bukan dengan menulis
+                // MrcClinicalDocumentIntegrity langsung dari sini; keduanya memakai
+                // ApplicationDbContext yang sama sehingga ikut transaksi ini.
+                //
+                // TIDAK MENAHAN. Episode tanpa satu pun konsep mengembalikan 0 dan berjalan
+                // normal; banyaknya konsep tidak pernah menjadi alasan menolak penutupan.
+                var lockedDraftCount = await _clinicalDocumentIntegrityService
+                    .LockOpenDocumentsForEncounterAsync(
+                        episode.EncounterId,
+                        actorUserId,
+                        now,
+                        encounterClosedAtUtc: now,
+                        cancellationToken: cancellationToken);
+
+                // ---------------------------------------------------------------------
+                // Langkah 5 — BE-RWI-083 / INT-INP-09 — BELUM TERPASANG.
+                //
+                // Pembatalan pesanan tindakan tertunda milik ClinicalManagement dan dipanggil
+                // lewat PatientProcedureOrderService, yang dibuat BE-RWI-097 pada sub-modul
+                // dokter-rawat-inap dan belum mendarat. Menulis TrxPatientProcedure langsung
+                // dari sini dilarang 02-backend-architecture.md bagian 11.3 dan 11.5.4: tabel
+                // itu bukan milik modul ini, dan menulisnya sendiri akan melewati seluruh
+                // aturan pemiliknya.
+                //
+                // Yang dapat dilakukan sekarang tanpa menyentuh tabel milik orang lain adalah
+                // MEMBACA: jumlah pesanan tertagih yang sengaja tidak dibatalkan dihitung di
+                // sini dan dimunculkan pada ringkasan akibat serta daftar pantau
+                // GET /monitoring/billed-pending-procedure-orders — RWI-DEC-143 (c).
+                var billedPendingCount = await _dbContext.Set<TrxPatientProcedure>()
+                    .AsNoTracking()
+                    .CountAsync(
+                        x => x.InpEpisodeId == episode.Id &&
+                             !x.IsDelete &&
+                             x.IsBillingGenerated &&
+                             (x.ProcedureStatus == PatientProcedureStatus.Planned ||
+                              x.ProcedureStatus == PatientProcedureStatus.Ordered),
+                        cancellationToken);
+
+                // ---------------------------------------------------------------------
+                // Langkah 6 — BE-RWI-087 / INT-KEP-15 — BELUM TERPASANG.
+                //
+                // Tabel dosis obat PharmacyManagement dibuat BE-RWI-114 pada sub-modul
+                // keperawatan dan belum ada sama sekali. 02-backend-architecture.md bagian 11.8
+                // menuliskannya apa adanya: "Selama tabel dosis belum ada, langkah 6 tidak
+                // dipasang."
+
                 episode.ClosedAt = now;
 
                 if (isOverride)
@@ -789,12 +1098,31 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
                 _ = actorIsSupervisor;
 
-                return InpEpisodeOperationResult.Success(
+                var result = InpEpisodeOperationResult.Success(
                     episode,
                     isOverride
                         ? "Episode ditutup tanpa kelayakan keuangan. Penutupan ini tercatat " +
                           "pada daftar pantau."
                         : "Episode berhasil ditutup dan tempat tidur sudah dilepas.");
+
+                // BE-RWI-084 acceptance criteria 3 — angka yang dikembalikan adalah apa yang
+                // BENAR-BENAR tersimpan, bukan perkiraan yang ditampilkan sebelum menutup.
+                // Antara peringatan dibaca dan tombol ditekan, seorang dokter dapat
+                // menandatangani konsepnya.
+                result.SideEffects = new ClosureSideEffectsResponse
+                {
+                    LockedDraftCount = lockedDraftCount,
+                    CancelledProcedureOrderCount = 0,
+                    BilledPendingProcedureOrderCount = billedPendingCount,
+                    CancelledFutureDoseCount = 0,
+                    NotYetWiredSteps =
+                    {
+                        LangkahLimaBelumTerpasang,
+                        LangkahEnamBelumTerpasang
+                    }
+                };
+
+                return result;
             }
             catch
             {

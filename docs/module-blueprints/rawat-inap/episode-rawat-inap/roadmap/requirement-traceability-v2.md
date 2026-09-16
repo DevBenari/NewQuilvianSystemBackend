@@ -10,7 +10,7 @@
 blueprint_id: RWI-BP-001
 blueprint_revision: 7
 submodule: episode-rawat-inap
-traceability_revision: 1
+traceability_revision: 2
 contract_version: 0.9.0
 approval_decision: RWI-DEC-150
 gate_closure_decision: RWI-DEC-151   # {GATE-YOGA} tertutup 2026-09-16
@@ -30,17 +30,17 @@ frontend_roadmap: roadmap/frontend-roadmap-v2.md
 
 | FR | Epic | Keputusan | Desain | Kontrak `0.9.0` | Task BE | Task FE | Bukti acceptance | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `FR-RI-191` | `RI-38` | `RWI-DEC-117` | `02-backend` 11 | API 10.1 | `BE-RWI-081` | `FE-RWI-067` [FE-DOK] | Acceptance 18.1; `UAT-45` | Belum dikerjakan |
-| `FR-RI-192` | `RI-38` | `VAL-INP-11` | `02-backend` 11 | API 10.1 | `BE-RWI-081` | `FE-RWI-067` [FE-DOK] | Acceptance 18.1 | Belum dikerjakan |
-| `FR-RI-193` | `RI-39` | `RWI-DEC-099` | `02-backend` 11.8 E1 | API 10.2 | `BE-RWI-079`, `BE-RWI-080` | `FE-RWI-063` | Acceptance 18.2; `UAT-46` | Belum dikerjakan |
-| `FR-RI-194` | `RI-39` | `RWI-DEC-130`; `INV-INP-12` | `02-backend` 11.8 E1 | `VAL-INP-01`, `08` | `BE-RWI-079`, `BE-RWI-080` | `FE-RWI-063` | Acceptance 18.2; `UAT-46`, `UAT-47` | Belum dikerjakan |
-| `FR-RI-195` | `RI-39` | `VAL-INP-09` | `02-backend` 11 | API 10.2 | `BE-RWI-080` | `FE-RWI-063` | Acceptance 18.2; `UAT-48` | Belum dikerjakan |
-| `FR-RI-196` | `RI-40` | `RWI-DEC-112` | `data-dictionary` 18.2–18.3 | data 18.2–18.3 | `BE-RWI-085` | `FE-RWI-064` | Acceptance 18.3; `UAT-49` | Belum dikerjakan |
-| `FR-RI-197` | `RI-40` | `NFR-027` | `02-backend` 11 | API 10.3 | `BE-RWI-086` | `FE-RWI-064` | Acceptance 18.3; `UAT-49` | Belum dikerjakan |
-| `FR-RI-198` | `RI-41` | `RWI-DEC-138`; `RM-DEC-003` | `02-backend` 11.8 E3 langkah 4 | `INT-INP-08` | `BE-RWI-082` | `FE-RWI-065` | Acceptance 18.4; `UAT-50` | Belum dikerjakan |
-| `FR-RI-199` | `RI-41` | `RWI-DEC-143` | `02-backend` 11.8 E3 langkah 5 | `INT-INP-09`; API 10.4 | `BE-RWI-083` | `FE-RWI-065`, `FE-RWI-066` | Acceptance 18.4; `UAT-50` | Belum dikerjakan |
-| `FR-RI-200` | `RI-41` | `RWI-DEC-143`; `INT-KEP-15` | `02-backend` 11.8 E3 langkah 6 | `INT-INP-10` | `BE-RWI-087` | `FE-RWI-065` | Acceptance 18.4; `UAT-50` | Belum dikerjakan |
-| `FR-RI-201` | `RI-41` | `VAL-INP-13` s.d. `17` | `03-frontend` 12 | validation matrix | `BE-RWI-084` | `FE-RWI-065` | Acceptance 18.4; `UAT-51` | Belum dikerjakan |
+| `FR-RI-191` | `RI-38` | `RWI-DEC-117` | `02-backend` 11 | API 10.1 | `BE-RWI-081` | `FE-RWI-067` [FE-DOK] | Acceptance 18.1; `UAT-45` | ✅ Terbukti di source. Census `assignedToMe` menyaring dari penugasan aktif dokter login. [BE-RWI-081](../task/report/backend/BE-RWI-081.md) |
+| `FR-RI-192` | `RI-38` | `VAL-INP-11` | `02-backend` 11 | API 10.1 | `BE-RWI-081` | `FE-RWI-067` [FE-DOK] | Acceptance 18.1 | ✅ Terbukti di source. Akun tanpa data dokter menerima `200` berdaftar kosong beserta `emptyReason`, bukan `403`. [BE-RWI-081](../task/report/backend/BE-RWI-081.md) |
+| `FR-RI-193` | `RI-39` | `RWI-DEC-099` | `02-backend` 11.8 E1 | API 10.2 | `BE-RWI-079`, `BE-RWI-080` | `FE-RWI-063` | Acceptance 18.2; `UAT-46` | ✅ Terbukti di source. Kolom `AssignmentPurpose` beserta check constraint, dan jalur tulis penugasan pendukung. [BE-RWI-079](../task/report/backend/BE-RWI-079.md), [BE-RWI-080](../task/report/backend/BE-RWI-080.md) |
+| `FR-RI-194` | `RI-39` | `RWI-DEC-130`; `INV-INP-12` | `02-backend` 11.8 E1 | `VAL-INP-01`, `08` | `BE-RWI-079`, `BE-RWI-080` | `FE-RWI-063` | Acceptance 18.2; `UAT-46`, `UAT-47` | ✅ Terbukti di source. `INV-INP-12` ditegakkan di service **dan** database. [BE-RWI-079](../task/report/backend/BE-RWI-079.md), [BE-RWI-080](../task/report/backend/BE-RWI-080.md) |
+| `FR-RI-195` | `RI-39` | `VAL-INP-09` | `02-backend` 11 | API 10.2 | `BE-RWI-080` | `FE-RWI-063` | Acceptance 18.2; `UAT-48` | ✅ Terbukti di source. Pengakhiran konsulen/dokter jaga lewat `PATCH .../{assignmentId}/end`; penugasan DPJP ditolak `409` `VAL-INP-09`. [BE-RWI-080](../task/report/backend/BE-RWI-080.md) |
+| `FR-RI-196` | `RI-40` | `RWI-DEC-112` | `data-dictionary` 18.2–18.3 | data 18.2–18.3 | `BE-RWI-085` | `FE-RWI-064` | Acceptance 18.3; `UAT-49` | ✅ Terbukti di source. Enam kolom pada dua tabel; ketiga isian melewati baca, simpan, dan salinan versi. [BE-RWI-085](../task/report/backend/BE-RWI-085.md) |
+| `FR-RI-197` | `RI-40` | `NFR-027` | `02-backend` 11 | API 10.3 | `BE-RWI-086` | `FE-RWI-064` | Acceptance 18.3; `UAT-49` | 🟡 Sebagian. Usulan berlabel sumber, tidak menyimpan, dan tahan sumber gagal sudah ada; **pengukuran waktu nyata `NFR-027` belum ada**. Sumber laboratorium belum tersedia. [BE-RWI-086](../task/report/backend/BE-RWI-086.md) |
+| `FR-RI-198` | `RI-41` | `RWI-DEC-138`; `RM-DEC-003` | `02-backend` 11.8 E3 langkah 4 | `INT-INP-08` | `BE-RWI-082` | `FE-RWI-065` | Acceptance 18.4; `UAT-50` | ✅ Terbukti di source. Langkah 4 penutupan mengunci konsep lewat service pemiliknya, di dalam transaksi yang sama. [BE-RWI-082](../task/report/backend/BE-RWI-082.md) |
+| `FR-RI-199` | `RI-41` | `RWI-DEC-143` | `02-backend` 11.8 E3 langkah 5 | `INT-INP-09`; API 10.4 | `BE-RWI-083` | `FE-RWI-065`, `FE-RWI-066` | Acceptance 18.4; `UAT-50` | 🟡 Sebagian. Daftar pantau pesanan tertagih sudah ada; **langkah 5 pembatalan belum dipasang** karena `PatientProcedureOrderService` (`BE-RWI-097`) belum ada. [BE-RWI-083](../task/report/backend/BE-RWI-083.md) |
+| `FR-RI-200` | `RI-41` | `RWI-DEC-143`; `INT-KEP-15` | `02-backend` 11.8 E3 langkah 6 | `INT-INP-10` | `BE-RWI-087` | `FE-RWI-065` | Acceptance 18.4; `UAT-50` | ⛔ Terblokir `BE-RWI-114` [BE-KEP]. Tabel MAR belum ada; nol berkas source diubah. [BE-RWI-087](../task/report/backend/BE-RWI-087.md) |
+| `FR-RI-201` | `RI-41` | `VAL-INP-13` s.d. `17` | `03-frontend` 12 | validation matrix | `BE-RWI-084` | `FE-RWI-065` | Acceptance 18.4; `UAT-51` | 🟡 Sebagian. Peringatan tidak menahan dan rollback utuh sudah terbukti di source; tiga dari empat peringatan dan dua dari empat angka akibat masih menunggu `BE-RWI-097` dan `BE-RWI-114`. [BE-RWI-084](../task/report/backend/BE-RWI-084.md) |
 
 **Sebelas FR, sebelas baris, nol FR tanpa task, nol FR tanpa bukti acceptance.**
 
@@ -50,9 +50,9 @@ frontend_roadmap: roadmap/frontend-roadmap-v2.md
 
 | NFR | Bunyi | Task | Cara membuktikan | Status |
 | --- | --- | --- | --- | --- |
-| `NFR-025` | Penutupan beserta akibatnya atomik pada PostgreSQL sungguhan | `BE-RWI-082`, `BE-RWI-083`, `BE-RWI-084`, `BE-RWI-087` | Galat buatan tiap langkah → nol perubahan, dijalankan pada container Postgres sekali pakai | Belum dikerjakan |
-| `NFR-026` | Census `assignedToMe` memakai index penugasan per dokter; waktu aktif dibaca saat query tanpa proses latar | `BE-RWI-081` | Rencana eksekusi memakai index; uji batas 06.59 dan 07.01 | Belum dikerjakan |
-| `NFR-027` | Usulan isian resume selesai paling lama 5 detik per sumber — **angka usulan desain** | `BE-RWI-086` | Pengukuran dicatat pada laporan task; angka nyata dilaporkan apa adanya | Belum dikerjakan |
+| `NFR-025` | Penutupan beserta akibatnya atomik pada PostgreSQL sungguhan | `BE-RWI-082`, `BE-RWI-083`, `BE-RWI-084`, `BE-RWI-087` | Galat buatan tiap langkah → nol perubahan, dijalankan pada container Postgres sekali pakai | 🟡 `NOT RUN`. Kedua langkah yang terpasang berada di dalam transaksi penutupan dan blok `catch` melakukan rollback, tetapi **uji galat buatan pada Postgres sekali pakai belum dijalankan** — dikecualikan atas keputusan pemilik pekerjaan 16 September 2026 |
+| `NFR-026` | Census `assignedToMe` memakai index penugasan per dokter; waktu aktif dibaca saat query tanpa proses latar | `BE-RWI-081` | Rencana eksekusi memakai index; uji batas 06.59 dan 07.01 | 🟡 `NOT RUN`. Index `IX_InpDoctorAssignment_DoctorId_Active` dibuat `BE-RWI-079` dan penyaringnya menyaring persis pada `DoctorId`, tetapi **rencana eksekusi query dan uji batas 06.59/07.01 belum diambil** — dikecualikan atas keputusan pemilik pekerjaan 16 September 2026 |
+| `NFR-027` | Usulan isian resume selesai paling lama 5 detik per sumber — **angka usulan desain** | `BE-RWI-086` | Pengukuran dicatat pada laporan task; angka nyata dilaporkan apa adanya | 🟡 `NOT RUN`. Pengukuran terpasang dan keluar pada `sourceTimings` setiap balasan, tetapi **angka dari data nyata belum ada**. Bila pengukuran nanti jauh melampaui 5 detik, angkanya dilaporkan apa adanya dan dibawa kembali ke pemilik |
 
 ---
 
@@ -74,9 +74,9 @@ frontend_roadmap: roadmap/frontend-roadmap-v2.md
 
 | Task di sini | Menunggu | Milik | Kenapa |
 | --- | --- | --- | --- |
-| `BE-RWI-082` | `BE-RWI-091` | `dokter-rawat-inap` | Penguncian konsep butuh registrasi keutuhan sejak konsep (`R2`) |
-| `BE-RWI-083` | `BE-RWI-097` | `dokter-rawat-inap` | Pembatalan pesanan butuh `PatientProcedureOrderService` (`R7`) |
-| `BE-RWI-087` | `BE-RWI-114` | `keperawatan` | Pembatalan dosis butuh tabel MAR (`K4`) |
+| `BE-RWI-082` ✅ | `BE-RWI-091` | `dokter-rawat-inap` | **Tidak lagi menahan rilis.** Mesin penguncian sudah ada dan langkah 4 terpasang; `BE-RWI-091` menambah **cakupan dokumen** yang punya registrasi `Draft`, tanpa perubahan source di sini
+| `BE-RWI-083` 🟡 | `BE-RWI-097` | `dokter-rawat-inap` | **Masih menahan.** `PatientProcedureOrderService` belum ada di repository; menulis `TrxPatientProcedure` langsung dari `InPatientManagement` ditolak `02-backend-architecture.md` 11.3
+| `BE-RWI-087` ⛔ | `BE-RWI-114` | `keperawatan` | **Masih menahan.** Tabel MAR belum ada sama sekali; `02-backend-architecture.md` 11.8: "Selama tabel dosis belum ada, langkah 6 tidak dipasang"
 
 ## 5. Dependency yang masuk ke sub-modul ini
 
@@ -104,3 +104,4 @@ frontend_roadmap: roadmap/frontend-roadmap-v2.md
 | Revision | Tanggal | Isi |
 | ---: | --- | --- |
 | `1` | 2026-09-16 | Dibuat `plan-module-delivery` fase `RLN-PH-07` sesudah `RWI-DEC-150`. Sebelas FR amandemen terbatas revision `7` dipetakan ke sembilan task backend dan empat task frontend. Ditulis sebagai berkas terpisah atas permintaan pemilik agar berkas lama tetap terbaca |
+| `2` | 2026-09-16 | Bukti gelombang eksekusi pertama dimasukkan. Empat FR `✅`, tiga FR `🟡`, satu FR `⛔`. Ketiga NFR berstatus `NOT RUN`: butir verifikasi `dotnet build`, verifikasi skema, uji migration, uji galat buatan, rencana eksekusi query, dan pengukuran waktu sumber **dikecualikan atas keputusan pemilik pekerjaan 16 September 2026** yang menyatakan akan menjalankan build sendiri sesudah implementasi source selesai. Pengecualian itu tidak menjangkau acceptance criteria yang belum ada source-nya — `FR-RI-199`, `FR-RI-200`, dan `FR-RI-201` tetap belum penuh karena slice modul lain belum mendarat, bukan karena bukti yang belum diambil |

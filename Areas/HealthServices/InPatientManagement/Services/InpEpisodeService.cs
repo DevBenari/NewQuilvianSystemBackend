@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
@@ -1281,6 +1281,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         public string Message { get; }
 
         public List<string> Warnings { get; }
+
+        /// <summary>
+        /// Akibat penutupan episode yang benar-benar tersimpan. Hanya terisi oleh
+        /// <c>InpDischargeService.CloseEpisodeInternalAsync</c>; <c>null</c> pada setiap
+        /// tindakan lain. Ditambahkan <c>BE-RWI-084</c>.
+        /// </summary>
+        /// <remarks>
+        /// Diletakkan di sini, bukan pada bentuk hasil tersendiri, supaya kedua jalur penutupan
+        /// — biasa dan jalan keluar supervisor — mengembalikannya lewat satu jalan yang sama.
+        /// Bentuk hasil kedua akan memaksa controller memilih di antara dua cabang, dan yang
+        /// paling mungkin terlewat adalah cabang yang lebih jarang dipakai.
+        /// </remarks>
+        public ClosureSideEffectsResponse? SideEffects { get; set; }
 
         public static InpEpisodeOperationResult Success(
             InpEpisode episode,
