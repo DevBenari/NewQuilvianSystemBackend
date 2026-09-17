@@ -138,11 +138,11 @@ flowchart LR
 | `FE-IGD-026` | Laporan susulan layar pendaftaran IGD | tanpa tanda — direncanakan | — |
 | `FE-IGD-027` | Layar triase memakai riwayat penugasan dokter | tanpa tanda — direncanakan, menunggu `BE-IGD-045` | — |
 | `FE-IGD-028` | Pemantauan observasi dengan tanda vital tertaut | ✅ 16 September 2026 — lint, 857 unit test, dan `npm run build` lulus; **runtime terverifikasi sebagian lewat layar** (jalur pilih-existing dan ABCDE terisi belum dilalui) | [FE-IGD-028](../task/report/frontend/FE-IGD-028.md) |
-| `FE-IGD-029` | Pendaftaran IGD menutup dengan status Menunggu Triage | 🟡 16 September 2026 — kriteria 1 terbukti lewat layar (pasien baru langsung "Menunggu Triage"); kriteria 2 menunggu satu klik **Isi Triage** pada pasien baru itu | [FE-IGD-029](../task/report/frontend/FE-IGD-029.md) |
+| `FE-IGD-029` | Pendaftaran IGD menutup dengan status Menunggu Triage | ✅ **17 September 2026** — kedua kriteria terbukti lewat layar. Pasien `RAYYAN DHAFIR PRASETYA MAULANA` didaftarkan 17 September 2026 09.35, lahir berstatus "Menunggu Triage", lalu triage-nya tersimpan sampai berstatus "Sudah ditriage". Penolakan `409` yang memicu gelombang ini **hilang**. Tanpa UAT | [FE-IGD-029](../task/report/frontend/FE-IGD-029.md) |
 | `FE-IGD-030` | Aksi Tangani Segera pada daftar triage | ✅ 16 September 2026 — kedelapan kriteria terbukti lewat layar; lint, 859 unit test, dan `npm run build` lulus; tanpa UAT | [FE-IGD-030](../task/report/frontend/FE-IGD-030.md) |
 | `FE-IGD-031` | Segmen Formulir dan Riwayat pada tab pemeriksaan | ✅ **17 September 2026** — 13 kriteria terpetakan ke source; lint dan 866 unit test lulus; `npm run build` lulus; **uji layar pemilik LULUS**. Tanpa UAT | [FE-IGD-031](../task/report/frontend/FE-IGD-031.md) |
 | `FE-IGD-032` | Tata letak tab Observasi dan lembar pemantauan | ✅ **17 September 2026** — 14 kriteria terpetakan ke source; lint, 866 unit test, dan `npm run build` lulus; **uji layar pemilik LULUS** — pemilih periode, primary survey satu baris, lembar pemantauan berbentuk tabel, dan segmen Lembar/Catat terbukti di layar. **Dua delta (kriteria 3 dan 4) diterima pemilik.** Tanpa UAT | [FE-IGD-032](../task/report/frontend/FE-IGD-032.md) |
-| `FE-IGD-033` | Tombol Simpan Pemeriksaan berhenti aktif sesudah penilaian tersimpan | 🟡 17 September 2026 — implementasi selesai; lint dan 866 unit test lulus; `npm run build` dan uji layar belum. **Pasangan wajib `BE-IGD-047`** | [FE-IGD-033](../task/report/frontend/FE-IGD-033.md) |
+| `FE-IGD-033` | Tombol Simpan Pemeriksaan berhenti aktif sesudah penilaian tersimpan | ✅ **17 September 2026** — lint, 866 unit test, dan `npm run build` lulus; **uji layar pemilik LULUS**: tombol nonaktif bertulisan "Pemeriksaan Tersimpan", **Tetapkan Dokter** bekerja sendiri, riwayat memuat tepat satu penilaian. Dirilis bersama `BE-IGD-047` ✅ | [FE-IGD-033](../task/report/frontend/FE-IGD-033.md) |
 
 `FE-IGD-019` sebelumnya belum punya kartu. Kartunya ditambahkan 15 September 2026 pada bagian
 R3.5, tepat sebelum `FE-IGD-022`.
@@ -1082,8 +1082,8 @@ Lahir dari pertanyaan pemilik saat uji layar, bukan dari perencanaan.
 
 ### 🟡 `FE-IGD-033` — Tombol **Simpan Pemeriksaan** berhenti aktif sesudah penilaian tersimpan
 
-**Status.** 🟡 **SEBAGIAN — 17 September 2026.** Lint `PASS`, unit test **866/866**.
-`npm run build` dan uji lewat layar **belum**.
+**Status.** ✅ **SELESAI — 17 September 2026.** Lint `PASS`, unit test **866/866**,
+`npm run build` lulus, dan **uji lewat layar oleh pemilik LULUS** — kelima kriteria. Tanpa UAT.
 [Laporan](../task/report/frontend/FE-IGD-033.md).
 
 **Masalah.** Sesudah penilaian tersimpan, bagian pilih dokter muncul — tetapi tombol

@@ -4,7 +4,7 @@
 | --- | --- |
 | Task | `BE-IGD-047` |
 | Gelombang | R3.10 — 17 September 2026 |
-| Status | 🟡 **SEBAGIAN.** Akar masalah terbukti dan source sudah diubah; `dotnet build` dan uji API **belum dijalankan** — keduanya milik Rizki |
+| Status | ✅ **SELESAI — 17 September 2026.** Akar masalah terbukti; `dotnet build` lulus dan **uji API tiga skenario lulus** dijalankan pemilik; dibuktikan lagi lewat layar bersama `FE-IGD-033`. Tanpa UAT |
 | Pemicu | Uji layar pemilik 17 September 2026: `409` saat **Simpan Pemeriksaan** pada triage IGD |
 | Backend | branch `rizkiG`, di atas `2220ee81` |
 | Kontrak | **Nol perubahan versi.** Bentuk request tidak berubah; tiga ruas menjadi usang-tetapi-diterima, pola yang sama dengan `recordedByUserId` pada `BE-IGD-046` |
@@ -121,9 +121,9 @@ ada tafsir baru. Tetap perlu dilihat pemilik saat uji layar.
 | Jenis | Hasil |
 | --- | --- |
 | Keseimbangan struktur ketiga berkas | ✅ diperiksa, seimbang |
-| `dotnet build` | **BELUM** — milik Rizki. Perintah: `dotnet build -p:RunAnalyzers=false` |
-| Uji API | **BELUM** — lihat bagian 6 |
-| Uji lewat layar | **BELUM** |
+| `dotnet build` | ✅ **LULUS 17 September 2026** — dijalankan pemilik |
+| Uji API | ✅ **LULUS 17 September 2026** — ketiga skenario bagian 6, dijalankan pemilik |
+| Uji lewat layar | ✅ **LULUS 17 September 2026** — bersama `FE-IGD-033` |
 | Automated test | Tidak ada — proyek test backend dihapus 11 September 2026 (`IGD-DEC-110`) |
 
 ## 6. Tiga skenario uji yang membuktikan perbaikan ini

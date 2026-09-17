@@ -59,6 +59,40 @@ Dokumen ini ringkasan keadaan. Sumber kebenaran status per task tetap
 | Entri susulan setelah periode observasi ditutup | `IGD-OQ-090` — jalur addendum belum dirancang; dilarang menumpang `BE-IGD-046` | Product/Domain Owner IGD + Nursing authority | Dokumentasi susulan observasi | Ya |
 | ~~Penyelarasan teks kontrak~~ | ~~API §3, validation §1 aturan 2 dan §6 aturan 4, kamus data §4 belum mengikuti `IGD-DEC-116`…`120`~~ — **ditutup 15 September 2026**: API dan validation naik ke `0.5.0`, nama `EmgDoctorAssignment` diselaraskan, hash dihitung ulang (manifest bagian 0c) | — | R3.8, `MVP-5` | — |
 
+## Gerbang urutan delivery pemilik — keadaan 17 September 2026
+
+Urutan yang ditetapkan pemilik 16 September 2026 menuntut butir 1 dan 2 lulus sebelum
+`EPIC IGD-04` dimulai.
+
+| Butir | Isi | Keadaan 17 September 2026 |
+| ---: | --- | --- |
+| 1 | `FE-IGD-029` terbukti lewat layar | ✅ **LUNAS** — pasien `RAYYAN DHAFIR PRASETYA MAULANA` didaftarkan 09.35, lahir "Menunggu Triage", triage tersimpan |
+| 2 | `BE-IGD-041` terverifikasi | 🟡 **SEBAGIAN, dan sisanya tidak dapat dilunasi siapa pun** — lihat di bawah |
+
+### Mengapa butir 2 tidak dapat dilunasi
+
+Ketiga skenario uji `BE-IGD-041` memakai **pesanan berstatus `Rejected`**:
+`AmbilPesananPenahanPenutupanAsync` menyaring tepat `AcceptanceStatus == Rejected`.
+
+Satu-satunya jalan menjadikan pesanan `Rejected` adalah
+`EmergencyDepartureService.UbahStatusPenerimaanAsync`, dan jalur itu memanggil
+`EmergencyUnitAuthorityService.PeriksaAsync` — yang hari ini **menolak semua orang** karena
+`BE-IGD-039` beserta pemetaan unit 0 dari 18.
+
+| Skenario | Keadaan | Dapat diuji? |
+| ---: | --- | --- |
+| 1 | Kunjungan `Disposed`, nol pesanan ditolak → `200` | ✅ Ya |
+| 2 | Dua pesanan ditolak → `409` menyebut keduanya | ⛔ **Tidak** — pesanan tidak dapat dijadikan `Rejected` |
+| 3 | Tujuh pesanan ditolak → lima uraian + "dan 2 lainnya" | ⛔ **Tidak** — sebab yang sama |
+
+Menyuntik baris `Rejected` langsung lewat SQL **dilarang** — itu memaksa lulus tanpa jalur
+aplikasi yang sah.
+
+**Kesimpulan yang menentukan langkah berikutnya.** Butir 2 tertahan `BE-IGD-039`, bukan tertahan
+pekerjaan tim. Menunggunya berarti menunggu penunjukan Security/Privacy owner yang belum ada.
+`EPIC IGD-04` karena itu **boleh dimulai sekarang** — dan memang tidak bergantung pada butir 2
+sama sekali.
+
 ## Uji layar pemilik 17 September 2026 — empat task ditutup, satu cacat alur ditemukan
 
 Uji lewat layar **kedua** yang pernah dijalankan pada modul ini, oleh Product/Domain Owner.
@@ -289,8 +323,8 @@ lingkup `EPIC IGD-04`**. Keduanya milik formulir tanda vital bersama, bukan modu
 
 | Lapisan | Rumus | Hasil |
 | --- | --- | --- |
-| Backend | task ✅ / seluruh task roadmap | **20 / 31 = 65%** (`BE-IGD-047` masuk penyebut 17 September 2026) (dihitung ulang 17 September 2026 dari *Register status task* `backend-roadmap.md`). Tidak dikecualikan: `BE-IGD-039` dan `BE-IGD-042` (⛔) tetap dihitung di penyebut. *Sebelumnya tertulis 18 / 29 = 62% — usang sejak `BE-IGD-040` dan `BE-IGD-046` ✅ dan `BE-IGD-046` masuk register* |
-| Frontend | task ✅ / seluruh task roadmap | **12 / 23 = 52%** (dihitung ulang 17 September 2026 sesudah uji layar pemilik). ✅: `FE-IGD-015`, `016`, `018`, `019`, `020`, `021`, `023`, `024`, `028`, `030`, **`031`**, **`032`**; `FE-IGD-033` masuk penyebut. *Sebelumnya tertulis 6 / 17 = 35% — usang sejak `FE-IGD-023`, `024`, `028`, `030` ✅ dan `FE-IGD-029`…`032` masuk register* |
+| Backend | task ✅ / seluruh task roadmap | **21 / 31 = 68%** (`BE-IGD-047` ✅ 17 September 2026) (dihitung ulang 17 September 2026 dari *Register status task* `backend-roadmap.md`). Tidak dikecualikan: `BE-IGD-039` dan `BE-IGD-042` (⛔) tetap dihitung di penyebut. *Sebelumnya tertulis 18 / 29 = 62% — usang sejak `BE-IGD-040` dan `BE-IGD-046` ✅ dan `BE-IGD-046` masuk register* |
+| Frontend | task ✅ / seluruh task roadmap | **14 / 23 = 61%** (dihitung ulang 17 September 2026 sesudah uji layar pemilik). ✅: `FE-IGD-015`, `016`, `018`, `019`, `020`, `021`, `023`, `024`, `028`, **`029`**, `030`, **`031`**, **`032`**, **`033`**. *Sebelumnya tertulis 6 / 17 = 35% — usang sejak `FE-IGD-023`, `024`, `028`, `030` ✅ dan `FE-IGD-029`…`032` masuk register* |
 
 Persentase turun dari 78%/45% bukan karena ada yang mundur, melainkan karena penyebutnya
 bertambah task baru. Tiga area R3.5 (penunjang medis, pemakaian alat, billing IGD) **tidak**

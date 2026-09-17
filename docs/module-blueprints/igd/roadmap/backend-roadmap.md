@@ -164,7 +164,7 @@ flowchart LR
 | `BE-IGD-044` | Histori penugasan dokter IGD | `MVP-5` | tanpa tanda — direncanakan | — |
 | `BE-IGD-045` | Penetapan, pengalihan, dan pencarian dokter aktif | `MVP-5` | tanpa tanda — direncanakan | — |
 | `BE-IGD-046` | Validasi dan proyeksi tanda vital pada detail observasi | R3.9 | ✅ 16 September 2026 — implementasi + build bersih (nol error); runtime belum diverifikasi | [BE-IGD-046](../task/report/backend/BE-IGD-046.md) |
-| `BE-IGD-047` | Nomor urut penilaian triage ditetapkan server | R3.10 | 🟡 17 September 2026 — akar `409` terbukti dan source diubah; `dotnet build` dan uji API belum | [BE-IGD-047](../task/report/backend/BE-IGD-047.md) |
+| `BE-IGD-047` | Nomor urut penilaian triage ditetapkan server | R3.10 | ✅ **17 September 2026** — `dotnet build` lulus dan **uji API tiga skenario lulus** oleh pemilik; dibuktikan lagi lewat layar bersama `FE-IGD-033`. Tanpa UAT | [BE-IGD-047](../task/report/backend/BE-IGD-047.md) |
 
 
 **Tindak lanjut `BE-IGD-017`** (task yang sama, ID tidak diganti): laporan tracked susulan.
@@ -1453,9 +1453,10 @@ daripada satu layar.
 
 ### 🟡 `BE-IGD-047` — Nomor urut, penanda penilaian ulang, dan penunjuk pendahulu ditetapkan server
 
-**Status.** 🟡 **SEBAGIAN — 17 September 2026.** Akar masalah terbukti lewat log, kueri basis
-data pemilik, dan pembacaan source. Ketujuh perubahan sudah ditulis. `dotnet build` dan uji API
-**belum dijalankan** — keduanya milik Rizki.
+**Status.** ✅ **SELESAI — 17 September 2026.** Akar masalah terbukti lewat log, kueri basis
+data pemilik, dan pembacaan source. Ketujuh perubahan ditulis, `dotnet build` lulus, dan **uji
+API tiga skenario lulus** dijalankan pemilik. Dibuktikan sekali lagi lewat layar bersama
+`FE-IGD-033`. Tanpa UAT.
 [Laporan](../task/report/backend/BE-IGD-047.md).
 
 **Akar masalah.** `CreateEmergencyTriageRequest.Sequence` berbawaan `1`, sementara controller

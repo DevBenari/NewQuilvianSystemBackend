@@ -4,7 +4,7 @@
 | --- | --- |
 | Task | `FE-IGD-033` |
 | Gelombang | R3.10 — 17 September 2026 |
-| Status | 🟡 **SEBAGIAN.** Implementasi selesai; lint `PASS`, unit test **866/866**. **Uji lewat layar belum** |
+| Status | ✅ **SELESAI — 17 September 2026.** Lint `PASS`, unit test **866/866**, `npm run build` lulus, dan **uji lewat layar oleh pemilik LULUS** — kelima kriteria. Tanpa UAT |
 | Pemicu | Pertanyaan pemilik pada uji layar 17 September 2026: *"apakah tidak perlu klik pemeriksaan lagi ketika sudah simpan pemeriksaan dan muncul field dokter?"* |
 | Frontend | branch `RizkiV2`, di atas `f05c323e5` |
 | Pasangan wajib | **`BE-IGD-047`** — lihat bagian 2. Keduanya harus dirilis bersama |
@@ -66,8 +66,8 @@ Nol komponen bersama diubah, nol komponen baru dibuat, nol perubahan CSS global.
 | --- | --- |
 | `npm run lint:errors` | ✅ exit 0 |
 | Unit test | ✅ **866 lulus, 0 gagal** |
-| `npm run build` | **Belum** dijalankan sesudah perubahan ini |
-| Uji lewat layar | **Belum** |
+| `npm run build` | ✅ **LULUS 17 September 2026** |
+| Uji lewat layar | ✅ **LULUS 17 September 2026** — tombol nonaktif bertulisan "Pemeriksaan Tersimpan"; **Tetapkan Dokter** menetapkan dr. Rendy Pangalila tanpa menyentuh penilaian; riwayat memuat tepat satu penilaian |
 
 ## 6. Uji layar yang membuktikan perbaikan ini
 

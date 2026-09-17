@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `2d95904ed` (branch `RizkiV2`) + working tree |
 | Commit backend yang dijadikan rujukan | `27351517` (branch `rizkiG`), strict read-only |
 | Tanggal | 16 September 2026 |
-| Status | **Implementasi selesai; build bersih.** Lint, 859 unit test, dan `npm run build` lulus. Kriteria 3, 4, 5, dan 6 terpenuhi. **Kriteria 1 dan 2 belum terbukti** — keduanya menuntut satu **pendaftaran IGD baru** dijalankan lewat layar; uji layar 16 September 2026 menguji `FE-IGD-030` pada pasien lama, bukan pendaftaran baru |
+| Status | ✅ **SELESAI — 17 September 2026.** Lint, unit test, dan `npm run build` lulus. **Keenam kriteria terbukti.** Kriteria 1 dan 2 dibuktikan lewat layar oleh pemilik: pasien `RAYYAN DHAFIR PRASETYA MAULANA` didaftarkan 17 September 2026 09.35, lahir berstatus "Menunggu Triage", lalu triage-nya tersimpan sampai "Sudah ditriage" — penolakan `409` yang memicu gelombang ini hilang. Tanpa UAT |
 
 ---
 
