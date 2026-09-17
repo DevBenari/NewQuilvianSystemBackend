@@ -669,6 +669,190 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Control
                 result.Message));
         }
 
+        /// <summary>Daftar koreksi pencatatan pemberian pada kantong ini beserta keadaannya.</summary>
+        [HttpGet("{id:guid}/corrections")]
+        [ProducesResponseType(typeof(ApiResponse<List<IssuanceCorrectionDto>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Blood Unit", Description = "Melihat koreksi pencatatan pemberian kantong darah", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("BloodUnit", "Read")]
+        public async Task<IActionResult> GetCorrections(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            var corrections = await _bloodUnitService.GetIssuanceCorrectionsAsync(id, cancellationToken);
+
+            if (corrections == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    NotFoundMessage));
+            }
+
+            return Ok(ApiResponse<List<IssuanceCorrectionDto>>.Ok(
+                corrections,
+                "Koreksi pencatatan pemberian berhasil diambil."));
+        }
+
+        /// <summary>Mengajukan koreksi pencatatan pemberian; koreksi belum berlaku.</summary>
+        /// <remarks>
+        /// <para>
+        /// Tahap pertama dari dua (<c>DEC-BD-041</c>). Dijaga <c>BloodUnit : Correct</c>
+        /// (<c>403 VAL-BD-024</c>). Kantong tetap <c>Issued</c> dan angka pemenuhan tidak bergerak
+        /// sampai Dokter BDRS menyetujui (<c>INV-BD-033</c>), sehingga respons memulangkan
+        /// <c>IssuanceCorrectionDto</c>, bukan detail kantong.
+        /// </para>
+        /// <para>
+        /// Ditolak bila dipakai menganulir pemberian (<c>422 VAL-BD-025</c>), memindahkan pemberian
+        /// ke pasien lain (<c>422 VAL-BD-049</c>), tanpa bukti pendukung (<c>422 VAL-BD-076</c>),
+        /// atau alasannya bukan dari daftar terkendali (<c>400 VAL-BD-016</c>).
+        /// </para>
+        /// </remarks>
+        [HttpPost("{id:guid}/corrections")]
+        [ProducesResponseType(typeof(ApiResponse<IssuanceCorrectionDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [AccessAction("Correct", "Request Blood Unit Issuance Correction", Description = "Mengajukan koreksi pencatatan pemberian kantong darah", AccessType = AccessTypes.Update, SortOrder = 10)]
+        [AccessPermission(
+            "BloodUnit",
+            "Correct",
+            DeniedCode = "VAL-BD-024",
+            DeniedMessage = "Pencatatan koreksi hanya untuk peran berwenang.")]
+        public async Task<IActionResult> RequestCorrection(
+            Guid id,
+            [FromBody] RequestIssuanceCorrectionRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            var (result, correctionId) = await _bloodUnitService.RequestIssuanceCorrectionAsync(
+                id,
+                request,
+                GetCurrentUserId(),
+                cancellationToken);
+
+            if (result.Outcome != BloodUnitOutcome.Success || !correctionId.HasValue)
+                return MapFailure(result);
+
+            await LogCorrectionAsync(
+                "BloodUnit.RequestCorrection",
+                "Mengajukan koreksi pencatatan pemberian kantong darah.",
+                id,
+                correctionId.Value,
+                "Requested",
+                "Correct");
+
+            return Ok(ApiResponse<IssuanceCorrectionDto>.Ok(
+                await _bloodUnitService.GetIssuanceCorrectionAsync(id, correctionId.Value, cancellationToken),
+                result.Message));
+        }
+
+        /// <summary>Menyetujui koreksi; sejak saat ini koreksi berlaku dan pemenuhan dihitung ulang.</summary>
+        /// <remarks>
+        /// Dijaga <c>BloodUnit : ApproveCorrection</c> (<c>403 VAL-BD-074</c>). Pengaju tidak dapat
+        /// menyetujui permintaannya sendiri walaupun memegang kedua butir (<c>422 VAL-BD-073</c>);
+        /// koreksi yang sudah diputuskan tidak dapat diputuskan ulang (<c>422 VAL-BD-075</c>). Kantong
+        /// tetap <c>Issued</c> dan pemberian asal tetap utuh (<c>DEC-BD-051</c>).
+        /// </remarks>
+        [HttpPost("{id:guid}/corrections/{correctionId:guid}/approve")]
+        [ProducesResponseType(typeof(ApiResponse<IssuanceCorrectionDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [AccessAction("ApproveCorrection", "Decide Blood Unit Issuance Correction", Description = "Menyetujui atau menolak koreksi pencatatan pemberian kantong darah", AccessType = AccessTypes.Update, SortOrder = 11)]
+        [AccessPermission(
+            "BloodUnit",
+            "ApproveCorrection",
+            DeniedCode = "VAL-BD-074",
+            DeniedMessage = "Hanya Dokter Bank Darah yang boleh menyetujui atau menolak koreksi pencatatan.")]
+        public Task<IActionResult> ApproveCorrection(
+            Guid id,
+            Guid correctionId,
+            [FromBody] DecideCorrectionRequest request,
+            CancellationToken cancellationToken = default)
+            => DecideCorrectionAsync(id, correctionId, request, approve: true, cancellationToken);
+
+        /// <summary>Menolak koreksi; rekam tidak berubah sama sekali.</summary>
+        /// <remarks>
+        /// Dijaga <c>BloodUnit : ApproveCorrection</c> (<c>403 VAL-BD-074</c>). Alasan penolakan wajib
+        /// (<c>422 VAL-BD-077</c>); aturan pengaju dan keputusan sekali sama dengan persetujuan.
+        /// </remarks>
+        [HttpPost("{id:guid}/corrections/{correctionId:guid}/reject")]
+        [ProducesResponseType(typeof(ApiResponse<IssuanceCorrectionDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [AccessAction("ApproveCorrection", "Decide Blood Unit Issuance Correction", Description = "Menyetujui atau menolak koreksi pencatatan pemberian kantong darah", AccessType = AccessTypes.Update, SortOrder = 11)]
+        [AccessPermission(
+            "BloodUnit",
+            "ApproveCorrection",
+            DeniedCode = "VAL-BD-074",
+            DeniedMessage = "Hanya Dokter Bank Darah yang boleh menyetujui atau menolak koreksi pencatatan.")]
+        public Task<IActionResult> RejectCorrection(
+            Guid id,
+            Guid correctionId,
+            [FromBody] DecideCorrectionRequest request,
+            CancellationToken cancellationToken = default)
+            => DecideCorrectionAsync(id, correctionId, request, approve: false, cancellationToken);
+
+        private async Task<IActionResult> DecideCorrectionAsync(
+            Guid id,
+            Guid correctionId,
+            DecideCorrectionRequest request,
+            bool approve,
+            CancellationToken cancellationToken)
+        {
+            var actorUserId = GetCurrentUserId();
+
+            var result = approve
+                ? await _bloodUnitService.ApproveIssuanceCorrectionAsync(id, correctionId, request, actorUserId, cancellationToken)
+                : await _bloodUnitService.RejectIssuanceCorrectionAsync(id, correctionId, request, actorUserId, cancellationToken);
+
+            if (result.Outcome != BloodUnitOutcome.Success)
+                return MapFailure(result);
+
+            await LogCorrectionAsync(
+                approve ? "BloodUnit.ApproveCorrection" : "BloodUnit.RejectCorrection",
+                approve
+                    ? "Menyetujui koreksi pencatatan pemberian kantong darah."
+                    : "Menolak koreksi pencatatan pemberian kantong darah.",
+                id,
+                correctionId,
+                approve ? "Approved" : "Rejected",
+                "ApproveCorrection");
+
+            return Ok(ApiResponse<IssuanceCorrectionDto>.Ok(
+                await _bloodUnitService.GetIssuanceCorrectionAsync(id, correctionId, cancellationToken),
+                result.Message));
+        }
+
+        /// <remarks>
+        /// Isi koreksi (apa yang keliru, apa yang benar, bukti pendukung) dapat memuat keterangan
+        /// pasien, sehingga sengaja tidak ditulis ke log. Yang dicatat hanya identifier internal dan
+        /// keadaan koreksi.
+        /// </remarks>
+        private Task LogCorrectionAsync(
+            string eventName,
+            string message,
+            Guid bloodUnitId,
+            Guid correctionId,
+            string correctionStatus,
+            string action)
+            => _loggerService.InfoAsync(
+                LogCategory,
+                eventName,
+                message,
+                new
+                {
+                    EntityId = bloodUnitId,
+                    CorrectionId = correctionId,
+                    CorrectionStatus = correctionStatus,
+                    Controller = "BloodUnit",
+                    Action = action
+                });
+
         /// <remarks>
         /// Log tindakan klinis sengaja hanya menyimpan identifier internal kantong dan status.
         /// Nomor kantong PMI, nama pasien, nomor rekam medis, dan PatientId tidak ditulis ke log.

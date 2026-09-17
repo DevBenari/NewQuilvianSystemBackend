@@ -107,10 +107,10 @@ Base URL: `api/v1/health-services/blood-bank-management/blood-units`
 | `POST` | `/{id}/compatibility-evidence` | Catat bukti kecocokan terhadap pasien tujuan, **beserta hasil keputusannya** (`DEC-BD-042`) | `BloodUnit : Compatibility` | `RecordEvidenceRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana · `403 VAL-BD-078` · `422 VAL-BD-079` |
 | `POST` | `/{id}/issue` | Berikan kantong kepada pasien | `BloodUnit : Issue` | `IssueUnitRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana · `422 VAL-BD-017/018/019/020/020b/065/079` |
 | `POST` | `/{id}/emergency-issue` | Berikan lewat jalur darurat, melewati gerbang bukti dan/atau lokasi nonaktif (`DEC-BD-017`, `DEC-BD-038`). Penerbit **Dokter BDRS atau DPJP** (`DEC-BD-040`) | `BloodUnit : EmergencyIssue` | `EmergencyIssueRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana · `403 VAL-BD-021/072` · `422 VAL-BD-066/070/071` |
-| `POST` | `/{id}/corrections` | **Ajukan** koreksi pencatatan pemberian; koreksi belum berlaku (`DEC-BD-041`) | `BloodUnit : Correct` | `RequestIssuanceCorrectionRequest` | `ApiResponse<IssuanceCorrectionDto>` | Rencana · `403 VAL-BD-024` · `422 VAL-BD-025/049/076` |
-| `POST` | `/{id}/corrections/{correctionId}/approve` | **Setujui** koreksi; sejak saat ini koreksi berlaku dan pemenuhan dihitung ulang | `BloodUnit : ApproveCorrection` | `DecideCorrectionRequest` | `ApiResponse<IssuanceCorrectionDto>` | Rencana · `403 VAL-BD-074` · `422 VAL-BD-073/075` |
-| `POST` | `/{id}/corrections/{correctionId}/reject` | **Tolak** koreksi; rekam tidak berubah sama sekali | `BloodUnit : ApproveCorrection` | `DecideCorrectionRequest` | `ApiResponse<IssuanceCorrectionDto>` | Rencana · `403 VAL-BD-074` · `422 VAL-BD-073/075/077` |
-| `GET` | `/{id}/corrections` | Daftar koreksi pada kantong ini beserta keadaannya | `BloodUnit : Read` | — | `ApiResponse<List<IssuanceCorrectionDto>>` | Rencana |
+| `POST` | `/{id}/corrections` | **Ajukan** koreksi pencatatan pemberian; koreksi belum berlaku (`DEC-BD-041`) | `BloodUnit : Correct` | `RequestIssuanceCorrectionRequest` | `ApiResponse<IssuanceCorrectionDto>` | **Terimplementasi `BE-BD-010`** · `400 VAL-BD-016` · `403 VAL-BD-024` · `422 VAL-BD-025/049/076` |
+| `POST` | `/{id}/corrections/{correctionId}/approve` | **Setujui** koreksi; sejak saat ini koreksi berlaku dan pemenuhan dihitung ulang | `BloodUnit : ApproveCorrection` | `DecideCorrectionRequest` | `ApiResponse<IssuanceCorrectionDto>` | **Terimplementasi `BE-BD-010`** · `403 VAL-BD-074` · `422 VAL-BD-073/075` |
+| `POST` | `/{id}/corrections/{correctionId}/reject` | **Tolak** koreksi; rekam tidak berubah sama sekali | `BloodUnit : ApproveCorrection` | `DecideCorrectionRequest` | `ApiResponse<IssuanceCorrectionDto>` | **Terimplementasi `BE-BD-010`** · `403 VAL-BD-074` · `422 VAL-BD-073/075/077` |
+| `GET` | `/{id}/corrections` | Daftar koreksi pada kantong ini beserta keadaannya | `BloodUnit : Read` | — | `ApiResponse<List<IssuanceCorrectionDto>>` | **Terimplementasi `BE-BD-010`** |
 | `POST` | `/{id}/reallocate` | Alihkan kantong `PendingReview` ke pasien lain | **`BloodUnit : ResolveReallocate`** | `ReallocateUnitRequest` | `ApiResponse<BloodUnitDetailDto>` | **Terimplementasi `BE-BD-009`** · `400 VAL-BD-016` · `403 VAL-BD-080` · `422 VAL-BD-064` |
 | `POST` | `/{id}/return-to-provider` | Kembalikan kantong ke PMI | **`BloodUnit : ResolveReturn`** | `ResolveWithReasonRequest` | `ApiResponse<BloodUnitDetailDto>` | **Terimplementasi `BE-BD-009`** · `400 VAL-BD-016` · `403 VAL-BD-081` |
 | `POST` | `/{id}/mark-not-usable` | Nyatakan kantong tidak layak | **`BloodUnit : ResolveNotUsable`** | `ResolveWithReasonRequest` | `ApiResponse<BloodUnitDetailDto>` | **Terimplementasi `BE-BD-009`** · `400 VAL-BD-016` · `403 VAL-BD-082` |
@@ -119,6 +119,18 @@ Pemberian (`issue`/`emergency-issue`) tidak dapat dibatalkan — status terminal
 memindahkan kantong keluar dari `Issued` dan tidak dapat dipakai memindahkan pemberian ke pasien lain
 (`422 VAL-BD-049`, `DEC-BD-052`). Sesudah koreksi disetujui kantong **tetap `Issued`**; penanganan fisik
 kantong yang ternyata masih ada berada di luar jalur koreksi (`DEC-BD-051`).
+
+**Isian penjaga request-only pada `RequestIssuanceCorrectionRequest` (`DEC-BD-053`).** Selain isian yang
+disimpan — `WhatWasWrong`, `WhatIsCorrect`, `ReasonCode`, `SupportingEvidenceNote` — body boleh membawa dua
+isian penjaga: `AnnulIssuance` (`bool?`) dan `IssuedToPatientId` (`Guid?`). Keduanya **penjaga transport/request
+saja**: **tidak pernah disimpan** dan **bukan** kolom `BbkIssuanceCorrection`. `AnnulIssuance: true` →
+`422 VAL-BD-025`; `IssuedToPatientId` diisi dan berbeda dari penerima pemberian asal → `422 VAL-BD-049`.
+Pelaku, waktu, status koreksi, dan pemutus tidak pernah diterima dari body.
+
+**Efek koreksi terhadap pemenuhan (`DEC-BD-054`).** Ringkasan pemenuhan `BD-DOM-17`
+(`GET /blood-orders/{id}/fulfillment`) menghitung kantong `Issued` nyata. Kantong dengan koreksi `Approved`
+**dikeluarkan** dari jumlah diberikan; koreksi `Requested` dan `Rejected` **tidak** memengaruhinya. Pemberian
+asal, status `Issued`, dan penerima tidak berubah.
 
 **Tiga endpoint penyelesaian, tiga butir hak akses berbeda (`DEC-BD-043`).** Ketiganya berangkat dari
 `PendingReview` tetapi arah risikonya berlawanan: pengalihan **memasukkan** darah ke tubuh pasien baru,

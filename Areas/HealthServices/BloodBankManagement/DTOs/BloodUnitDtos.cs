@@ -1,4 +1,4 @@
-using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Enums;
+﻿using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Enums;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.DTOs
 {
@@ -137,6 +137,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.DTOs
         /// serta keterangan kondisi kedaruratannya (INV-BD-030, INV-BD-032).
         /// </summary>
         public List<EmergencyAuthorizationDto> EmergencyAuthorizations { get; set; } = new();
+
+        /// <summary>
+        /// Koreksi pencatatan pemberian beserta keadaannya (<c>BE-BD-010</c>). Koreksi
+        /// <c>Requested</c> dan <c>Rejected</c> tetap terbaca; pemberian asal di atas tidak berubah.
+        /// </summary>
+        public List<IssuanceCorrectionDto> IssuanceCorrections { get; set; } = new();
 
         /// <summary>
         /// Aksi yang layak dicoba. <c>AssignStorageLocation</c> selama kantong <c>Received</c>;

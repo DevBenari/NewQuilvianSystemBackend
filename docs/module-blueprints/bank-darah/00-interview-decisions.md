@@ -1496,6 +1496,10 @@ Correction path decision closure pass: `OQ-BD-014` ditutup `DEC-BD-051` — kant
 koreksi disetujui. Definisi `VAL-BD-049` yang sudah dirujuk tetapi belum ada di matriks validasi
 ditetapkan `DEC-BD-052`.
 
+Correction implementation decision pass: `DEC-BD-053` (isian penjaga request-only `AnnulIssuance` /
+`IssuedToPatientId` pada pengajuan koreksi) dan `DEC-BD-054` (koreksi `Approved` dikeluarkan dari hitungan
+`BD-DOM-17`), diputuskan sebelum implementasi `BE-BD-010` — rincian §8.30.
+
 ### 8.20 Rincian keputusan emergency validation-code closure pass
 
 **`DEC-BD-050` — satu pemicu, satu kode pada jalur darurat.**
@@ -1549,6 +1553,22 @@ diuji persis.
 
 Turunannya: **nol invariant baru, nol entity baru, nol state transition baru**, satu baris baru pada
 `validation-matrix.md`. `BE-BD-010` tidak lagi tertahan `OQ-BD-014`.
+
+### 8.30 Rincian keputusan pemilik saat implementasi `BE-BD-010`
+
+Diputuskan pemilik pada 17 September 2026 **sebelum** source `BE-BD-010` ditulis, karena kanonik tidak
+menetapkan kedua hal ini. Dicatat di sini sesudah implementasi supaya register sejalan dengan runtime
+yang sudah terbukti ([laporan](task/report/backend/BE-BD-010.md)).
+
+| Decision ID | Menutup | Type | Keputusan | Owner | Status | Approved by/at |
+| --- | --- | --- | --- | --- | --- | --- |
+| `DEC-BD-053` | Cara `POST /blood-units/{id}/corrections` mengenali percobaan menganulir pemberian (`VAL-BD-025`) atau memindahkannya ke pasien lain (`VAL-BD-049`) | `Decision` | `RequestIssuanceCorrectionRequest` boleh membawa dua **isian penjaga khusus request**: `AnnulIssuance` dan `IssuedToPatientId`. `AnnulIssuance == true` → **`422 VAL-BD-025`**. `IssuedToPatientId` diisi dan berbeda dari `IssuedToPatientId` pemberian asal → **`422 VAL-BD-049`**. Keduanya **tidak pernah disimpan** dan **tidak boleh** menjadi kolom `BbkIssuanceCorrection`; gunanya semata mendeteksi dan menolak maksud terlarang secara eksplisit | Pemilik kontrak Bank Darah | `approved` | `Sukmagp` 2026-09-17 |
+| `DEC-BD-054` | Efek koreksi terhadap ringkasan pemenuhan `BD-DOM-17` | `Decision` | `BD-DOM-17` menghitung kantong **`Issued` nyata**. Kantong dengan koreksi `Requested` atau `Rejected` **tetap dihitung**; kantong dengan koreksi **`Approved` dikeluarkan** dari hitungan diberikan. Koreksi `Approved` **tidak** menghapus maupun membalik pemberian asal, **tidak** mengubah kantong dari `Issued`, dan **tidak** memindahkan kantong ke pasien lain — yang berubah hanya perhitungan turunan pemenuhan | Pemilik proses BDRS | `approved` | `Sukmagp` 2026-09-17 |
+
+Turunannya: **nol invariant baru, nol kode validasi baru, nol state transition baru, nol kolom baru.**
+`DEC-BD-053` menegaskan cara `VAL-BD-025`/`VAL-BD-049` (`DEC-BD-052`) dipicu pada endpoint pengajuan koreksi.
+`DEC-BD-054` mempertajam `DEC-BD-030`, `INV-BD-033`, dan catatan kamus data "angka pemenuhan menyaring
+`CorrectionStatus = Approved`" menjadi aturan hitung yang dapat diuji, tanpa menyentuh `DEC-BD-051`.
 
 ---
 

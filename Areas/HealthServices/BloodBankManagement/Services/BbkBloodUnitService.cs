@@ -66,6 +66,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
         public const string ResolveReturnActionName = "ResolveReturn";
         public const string ResolveNotUsableActionName = "ResolveNotUsable";
 
+        /// <summary>
+        /// Pengajuan koreksi pencatatan pada kantong <c>Issued</c> (<c>BE-BD-010</c>). Keputusan
+        /// menunjuk satu koreksi tertentu, sehingga tidak diwakili nama aksi kantong.
+        /// </summary>
+        public const string RequestIssuanceCorrectionActionName = "RequestIssuanceCorrection";
+
         private const string NotFoundMessage = "Kantong darah tidak ditemukan atau sudah dihapus.";
 
         private const string ActorUnknownMessage =
@@ -217,6 +223,51 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
         private const string ResolutionReasonCategoryMismatchMessage =
             "Alasan yang dipilih bukan alasan penyelesaian kantong menunggu keputusan. Pilih alasan " +
             "dari kategori penyelesaian yang sesuai.";
+
+        // Koreksi pencatatan pemberian — BE-BD-010. Pesan VAL-BD-* persis validation-matrix.md.
+        private const int SupportingEvidenceMaxLength = 1000;
+
+        private const string Val025Message =
+            "Pemberian darah tidak dapat dihapus atau dibatalkan. Satu-satunya jalur perbaikan adalah " +
+            "catatan koreksi.";
+
+        private const string Val049Message =
+            "Koreksi pencatatan tidak dapat digunakan untuk memindahkan pemberian darah ke pasien lain.";
+
+        private const string Val073Message =
+            "Koreksi tidak dapat disetujui oleh orang yang mengajukannya. Mintakan keputusan kepada " +
+            "Dokter Bank Darah lain.";
+
+        private const string Val075Message =
+            "Koreksi ini sudah diputuskan sebelumnya dan tidak dapat diputuskan ulang. Ajukan koreksi " +
+            "baru bila masih ada yang perlu diperbaiki.";
+
+        private const string Val076Message = "Jelaskan bukti pendukung yang mendasari koreksi ini.";
+
+        private const string Val077Message =
+            "Sebutkan alasan koreksi ini ditolak, supaya pengaju mengetahui yang perlu diperbaiki.";
+
+        private const string NotIssuedForCorrectionMessageFormat =
+            "Kantong berstatus {0} belum diberikan, sehingga tidak ada pencatatan pemberian yang dapat " +
+            "dikoreksi.";
+
+        private const string CorrectionContentRequiredMessage =
+            "Sebutkan apa yang keliru dicatat dan apa yang benar.";
+
+        private const string CorrectionContentTooLongMessage =
+            "Keterangan apa yang keliru dan apa yang benar masing-masing paling banyak 500 karakter.";
+
+        private const string SupportingEvidenceTooLongMessage =
+            "Bukti pendukung paling banyak 1000 karakter.";
+
+        private const string DecisionNoteTooLongMessage = "Keterangan keputusan paling banyak 500 karakter.";
+
+        private const string CorrectionNotFoundMessage =
+            "Koreksi tidak ditemukan pada kantong ini atau sudah dihapus.";
+
+        private const string CorrectionReasonCategoryMismatchMessage =
+            "Alasan yang dipilih bukan alasan koreksi pencatatan pemberian. Pilih alasan dari kategori " +
+            "koreksi pencatatan pemberian.";
 
         /// <summary>Sebab bukti kecocokan lama gugur (<c>DEC-BD-028</c>).</summary>
         private const string EvidenceSupersededByReallocationNote =
@@ -443,6 +494,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
             var emergencyAuthorizations = await ReadEmergencyAuthorizationsAsync(
                 entity.Id,
                 cancellationToken);
+            var issuanceCorrections = await ReadIssuanceCorrectionsAsync(
+                entity.Id,
+                correctionId: null,
+                cancellationToken);
 
             return new BloodUnitDetailDto
             {
@@ -487,6 +542,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
                 CompatibilityEvidences = compatibilityEvidences,
                 CompatibilityEvidenceIdUsed = entity.CompatibilityEvidenceIdUsed,
                 EmergencyAuthorizations = emergencyAuthorizations,
+                IssuanceCorrections = issuanceCorrections,
                 AvailableActions = AvailableActionsFor(
                     entity.UnitStatus,
                     entity.CurrentPlacementId,
@@ -2212,7 +2268,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
         private async Task<(BloodUnitResult? Failure, MstBloodBankReason? Reason)> ResolveControlledReasonAsync(
             string? reasonCode,
             string requiredCategory,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            string? categoryMismatchMessage = null)
         {
             var normalized = NormalizeReasonCode(reasonCode);
 
@@ -2230,11 +2287,303 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
                 return (
                     Failed(
                         BloodUnitOutcome.NotAllowedByState,
-                        ResolutionReasonCategoryMismatchMessage),
+                        categoryMismatchMessage ?? ResolutionReasonCategoryMismatchMessage),
                     null);
             }
 
             return (null, reason);
+        }
+
+        // =================================================================
+        // Koreksi pencatatan pemberian dua tahap — BE-BD-010
+        // =================================================================
+
+        /// <summary>
+        /// Daftar koreksi pada satu kantong, terbaru lebih dulu. Memulangkan <c>null</c> bila
+        /// kantongnya tidak ada.
+        /// </summary>
+        /// <remarks>
+        /// Koreksi <c>Requested</c> dan <c>Rejected</c> tetap terbaca — permintaan yang ditolak adalah
+        /// riwayat yang berguna, bukan sampah (<c>02-backend-architecture.md</c> §F.6).
+        /// </remarks>
+        public async Task<List<IssuanceCorrectionDto>?> GetIssuanceCorrectionsAsync(
+            Guid unitId,
+            CancellationToken cancellationToken = default)
+        {
+            var exists = await BaseQuery().AnyAsync(x => x.Id == unitId, cancellationToken);
+
+            if (!exists)
+                return null;
+
+            return await ReadIssuanceCorrectionsAsync(unitId, correctionId: null, cancellationToken);
+        }
+
+        /// <summary>Satu koreksi pada kantong tertentu, atau <c>null</c> bila tidak ada.</summary>
+        public async Task<IssuanceCorrectionDto?> GetIssuanceCorrectionAsync(
+            Guid unitId,
+            Guid correctionId,
+            CancellationToken cancellationToken = default)
+            => (await ReadIssuanceCorrectionsAsync(unitId, correctionId, cancellationToken))
+                .FirstOrDefault();
+
+        /// <summary>
+        /// Tahap 1 — petugas BDRS mengajukan koreksi pencatatan pemberian. Koreksi lahir
+        /// <c>Requested</c> dan <b>belum berlaku</b> (<c>DEC-BD-041</c>, <c>INV-BD-033</c>).
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Kantong tidak disentuh sama sekali.</b> Status tetap <c>Issued</c>, <c>Version</c> tidak
+        /// bergeser, pemberian asal tidak disunting, dan angka pemenuhan tidak bergerak. Satu-satunya
+        /// tulisan adalah satu baris <see cref="BbkIssuanceCorrection"/> yang append-only.
+        /// </para>
+        /// <para>
+        /// <b>Dua jalur yang ditolak lebih dulu, sebelum isian lain dinilai.</b> Koreksi bukan jalur
+        /// menganulir pemberian (<c>VAL-BD-025</c>, <c>INV-BD-021</c>) dan bukan jalur memindahkan
+        /// pemberian ke pasien lain (<c>VAL-BD-049</c>, <c>DEC-BD-030</c>, <c>DEC-BD-052</c>). Keduanya
+        /// dibaca dari isian penjaga yang tidak pernah disimpan.
+        /// </para>
+        /// <para>
+        /// <b>Biaya tidak disentuh</b> (<c>DEC-BD-034</c>, <c>INV-BD-024</c>), dan penanganan fisik
+        /// kantong yang ternyata masih ada berada di luar jalur ini (<c>DEC-BD-051</c>).
+        /// </para>
+        /// </remarks>
+        public async Task<(BloodUnitResult Result, Guid? CorrectionId)> RequestIssuanceCorrectionAsync(
+            Guid id,
+            RequestIssuanceCorrectionRequest request,
+            Guid actorUserId,
+            CancellationToken cancellationToken = default)
+        {
+            if (actorUserId == Guid.Empty)
+                return (Failed(BloodUnitOutcome.Invalid, ActorUnknownMessage), null);
+
+            var unit = await TrackedAsync(id, cancellationToken);
+
+            if (unit == null)
+                return (Failed(BloodUnitOutcome.NotFound, NotFoundMessage), null);
+
+            if (request.Version.HasValue && request.Version.Value != unit.Version)
+                return (Failed(BloodUnitOutcome.VersionConflict, ConcurrencyMessage), null);
+
+            if (unit.UnitStatus != BbkBloodUnitStatus.Issued)
+            {
+                return (
+                    Failed(
+                        BloodUnitOutcome.NotAllowedByState,
+                        string.Format(NotIssuedForCorrectionMessageFormat, BbkDisplayLabels.Of(unit.UnitStatus))),
+                    null);
+            }
+
+            // VAL-BD-025: koreksi bukan jalur menganulir pemberian.
+            if (request.AnnulIssuance == true)
+                return (Failed(BloodUnitOutcome.NotAllowedByState, Val025Message, "VAL-BD-025"), null);
+
+            // VAL-BD-049: koreksi bukan jalur memindahkan pemberian ke pasien lain. Pasien yang sama
+            // dengan penerima tidak memindahkan apa pun, sehingga tidak ditolak.
+            if (request.IssuedToPatientId.HasValue &&
+                request.IssuedToPatientId.Value != unit.IssuedToPatientId)
+            {
+                return (Failed(BloodUnitOutcome.NotAllowedByState, Val049Message, "VAL-BD-049"), null);
+            }
+
+            var whatWasWrong = request.WhatWasWrong?.Trim() ?? string.Empty;
+            var whatIsCorrect = request.WhatIsCorrect?.Trim() ?? string.Empty;
+
+            if (whatWasWrong.Length == 0 || whatIsCorrect.Length == 0)
+                return (Failed(BloodUnitOutcome.Invalid, CorrectionContentRequiredMessage), null);
+
+            if (whatWasWrong.Length > NoteMaxLength || whatIsCorrect.Length > NoteMaxLength)
+                return (Failed(BloodUnitOutcome.Invalid, CorrectionContentTooLongMessage), null);
+
+            // VAL-BD-016 (400): alasan terkendali, sama dengan jalur alasan lain di berkas ini.
+            if (NormalizeReasonCode(request.ReasonCode).Length == 0)
+                return (Failed(BloodUnitOutcome.Invalid, Val016Message, "VAL-BD-016"), null);
+
+            var (reasonFailure, reason) = await ResolveControlledReasonAsync(
+                request.ReasonCode,
+                BloodBankReasonCategories.IssuanceCorrection,
+                cancellationToken,
+                CorrectionReasonCategoryMismatchMessage);
+
+            if (reasonFailure != null)
+                return (reasonFailure, null);
+
+            // VAL-BD-076: bukti pendukung wajib, berupa keterangan tertulis (OQ-BD-016).
+            var evidenceNote = request.SupportingEvidenceNote?.Trim() ?? string.Empty;
+
+            if (evidenceNote.Length == 0)
+                return (Failed(BloodUnitOutcome.NotAllowedByState, Val076Message, "VAL-BD-076"), null);
+
+            if (evidenceNote.Length > SupportingEvidenceMaxLength)
+                return (Failed(BloodUnitOutcome.Invalid, SupportingEvidenceTooLongMessage), null);
+
+            var now = DateTime.UtcNow;
+
+            var correction = new BbkIssuanceCorrection
+            {
+                Id = Guid.NewGuid(),
+                BloodUnitId = unit.Id,
+                WhatWasWrong = whatWasWrong,
+                WhatIsCorrect = whatIsCorrect,
+                ReasonCode = reason!.ReasonCode,
+                SupportingEvidenceNote = evidenceNote,
+                CorrectionStatus = BbkCorrectionStatus.Requested,
+                RequestedByUserId = actorUserId,
+                RequestedAt = now,
+                CreateDateTime = now,
+                CreateBy = actorUserId
+            };
+
+            _dbContext.Set<BbkIssuanceCorrection>().Add(correction);
+
+            if (!await TrySaveAsync(cancellationToken))
+                return (Failed(BloodUnitOutcome.VersionConflict, ConcurrencyMessage), null);
+
+            return (
+                Succeeded(
+                    unit,
+                    "Koreksi pencatatan pemberian berhasil diajukan dan menunggu persetujuan Dokter " +
+                    "Bank Darah. Koreksi belum berlaku."),
+                correction.Id);
+        }
+
+        /// <summary>
+        /// Tahap 2 — Dokter BDRS menyetujui koreksi. Sejak saat ini koreksi berlaku dan angka
+        /// pemenuhan order dihitung ulang (<c>DEC-BD-041</c>, <c>INV-BD-033</c>).
+        /// </summary>
+        /// <remarks>
+        /// Kantong <b>tetap</b> <c>Issued</c> dan pemberian asal tetap utuh (<c>DEC-BD-051</c>). Yang
+        /// bergerak hanya penjumlahan <c>BD-DOM-17</c>, yang menyaring kantong ber-koreksi
+        /// <c>Approved</c> — tidak ada kolom tersimpan yang disunting.
+        /// </remarks>
+        public Task<BloodUnitResult> ApproveIssuanceCorrectionAsync(
+            Guid id,
+            Guid correctionId,
+            DecideCorrectionRequest request,
+            Guid actorUserId,
+            CancellationToken cancellationToken = default)
+            => DecideIssuanceCorrectionAsync(id, correctionId, request, actorUserId, approve: true, cancellationToken);
+
+        /// <summary>
+        /// Tahap 2 — Dokter BDRS menolak koreksi. Rekam tidak berubah sama sekali; permintaannya tetap
+        /// terbaca berstatus <c>Rejected</c>. Alasan penolakan wajib (<c>VAL-BD-077</c>).
+        /// </summary>
+        public Task<BloodUnitResult> RejectIssuanceCorrectionAsync(
+            Guid id,
+            Guid correctionId,
+            DecideCorrectionRequest request,
+            Guid actorUserId,
+            CancellationToken cancellationToken = default)
+            => DecideIssuanceCorrectionAsync(id, correctionId, request, actorUserId, approve: false, cancellationToken);
+
+        /// <summary>
+        /// Jalan bersama persetujuan dan penolakan. Butir hak akses <c>ApproveCorrection</c> dijaga
+        /// controller (<c>VAL-BD-074</c>); aturan bisnis keputusan dijaga di sini.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Urutan penolakan.</b> Koreksi yang sudah diputuskan ditolak <c>VAL-BD-075</c> lebih
+        /// dulu, karena tidak ada keputusan kedua bagi siapa pun. Pemutus yang sama dengan pengaju
+        /// ditolak <c>VAL-BD-073</c> — walaupun ia sah memegang kedua butir hak akses, karena seluruh
+        /// guna tahap kedua adalah mata kedua. Penolakan tanpa alasan ditolak <c>VAL-BD-077</c>.
+        /// </para>
+        /// <para>
+        /// <b>Keputusan serentak.</b> <c>CorrectionStatus</c> adalah token konkurensi: dua pemutus yang
+        /// membaca <c>Requested</c> pada saat yang sama tidak dapat sama-sama menulis — yang kalah
+        /// ditolak <c>VAL-BD-075</c> tanpa satu pun kolom berubah.
+        /// </para>
+        /// </remarks>
+        private async Task<BloodUnitResult> DecideIssuanceCorrectionAsync(
+            Guid id,
+            Guid correctionId,
+            DecideCorrectionRequest request,
+            Guid actorUserId,
+            bool approve,
+            CancellationToken cancellationToken)
+        {
+            if (actorUserId == Guid.Empty)
+                return Failed(BloodUnitOutcome.Invalid, ActorUnknownMessage);
+
+            var unit = await BaseQuery().FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+
+            if (unit == null)
+                return Failed(BloodUnitOutcome.NotFound, NotFoundMessage);
+
+            var correction = await _dbContext.Set<BbkIssuanceCorrection>()
+                .FirstOrDefaultAsync(
+                    x => x.Id == correctionId && x.BloodUnitId == id && !x.IsDelete,
+                    cancellationToken);
+
+            if (correction == null)
+                return Failed(BloodUnitOutcome.NotFound, CorrectionNotFoundMessage);
+
+            if (correction.CorrectionStatus != BbkCorrectionStatus.Requested)
+                return Failed(BloodUnitOutcome.NotAllowedByState, Val075Message, "VAL-BD-075");
+
+            if (correction.RequestedByUserId == actorUserId)
+                return Failed(BloodUnitOutcome.NotAllowedByState, Val073Message, "VAL-BD-073");
+
+            var decisionNote = request.DecisionNote?.Trim() ?? string.Empty;
+
+            if (!approve && decisionNote.Length == 0)
+                return Failed(BloodUnitOutcome.NotAllowedByState, Val077Message, "VAL-BD-077");
+
+            if (decisionNote.Length > NoteMaxLength)
+                return Failed(BloodUnitOutcome.Invalid, DecisionNoteTooLongMessage);
+
+            var now = DateTime.UtcNow;
+
+            correction.CorrectionStatus = approve ? BbkCorrectionStatus.Approved : BbkCorrectionStatus.Rejected;
+            correction.DecidedByUserId = actorUserId;
+            correction.DecidedAt = now;
+            correction.DecisionNote = decisionNote.Length == 0 ? null : decisionNote;
+            correction.UpdateDateTime = now;
+            correction.UpdateBy = actorUserId;
+
+            if (!await TrySaveAsync(cancellationToken))
+                return Failed(BloodUnitOutcome.NotAllowedByState, Val075Message, "VAL-BD-075");
+
+            return Succeeded(
+                unit,
+                approve
+                    ? "Koreksi pencatatan pemberian disetujui dan kini berlaku. Angka pemenuhan order " +
+                      "dihitung ulang; pemberian asal tetap tersimpan."
+                    : "Koreksi pencatatan pemberian ditolak. Rekam pemberian tidak berubah.");
+        }
+
+        private async Task<List<IssuanceCorrectionDto>> ReadIssuanceCorrectionsAsync(
+            Guid unitId,
+            Guid? correctionId,
+            CancellationToken cancellationToken)
+        {
+            var rows = await _dbContext.Set<BbkIssuanceCorrection>()
+                .AsNoTracking()
+                .Where(x =>
+                    x.BloodUnitId == unitId &&
+                    !x.IsDelete &&
+                    (!correctionId.HasValue || x.Id == correctionId.Value))
+                .OrderByDescending(x => x.RequestedAt)
+                .Select(x => new IssuanceCorrectionDto
+                {
+                    Id = x.Id,
+                    BloodUnitId = x.BloodUnitId,
+                    WhatWasWrong = x.WhatWasWrong,
+                    WhatIsCorrect = x.WhatIsCorrect,
+                    ReasonCode = x.ReasonCode,
+                    SupportingEvidenceNote = x.SupportingEvidenceNote,
+                    CorrectionStatus = x.CorrectionStatus,
+                    RequestedByUserId = x.RequestedByUserId,
+                    RequestedAt = x.RequestedAt,
+                    DecidedByUserId = x.DecidedByUserId,
+                    DecidedAt = x.DecidedAt,
+                    DecisionNote = x.DecisionNote,
+                    UnitStatus = x.BloodUnit != null ? x.BloodUnit.UnitStatus : BbkBloodUnitStatus.Issued
+                })
+                .ToListAsync(cancellationToken);
+
+            foreach (var row in rows)
+                row.CorrectionStatusLabel = BbkDisplayLabels.Of(row.CorrectionStatus);
+
+            return rows;
         }
 
         // =================================================================
@@ -2357,6 +2706,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
             // akses berbeda (FE-BD-020, INV-BD-034). Keaktifan lokasi TIDAK diperiksa di sini:
             // gerbangnya dinilai saat pengalihan dicoba, dan dua jalur lainnya memang tidak
             // dijaga gerbang lokasi sama sekali.
+            if (status == BbkBloodUnitStatus.Issued)
+                actions.Add(RequestIssuanceCorrectionActionName);
+
             if (status == BbkBloodUnitStatus.PendingReview)
             {
                 actions.Add(ResolveReallocateActionName);

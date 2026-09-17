@@ -87,13 +87,13 @@ alasannya kini murni pasangan backend yang belum dikerjakan — bukan lagi `G4`.
 | --- | ---: | --- |
 | ✅ SELESAI | 1 | `FE-BD-001` |
 | 🟡 SELESAI SEBAGIAN | 2 | `FE-BD-011` dan `FE-BD-006` — masing-masing 1 dari 2 acceptance criteria |
-| 🟡 PENDING | 8 | `FE-BD-009`, `FE-BD-002`, `FE-BD-003`, `FE-BD-004`, `FE-BD-005`, `FE-BD-007`, `FE-BD-010`, `FE-BD-012` — **refresh dependency 17 September 2026:** enam terakhir naik dari ⛔ karena satu-satunya penahannya, task backend pasangan, kini ✅. **Riwayat:** 2 — `FE-BD-009`, `FE-BD-002` |
-| ⛔ BLOCKED | 1 | `FE-BD-008` — menunggu `BE-BD-010` (READY, belum diimplementasikan). **Riwayat:** 7 — `FE-BD-003`, `004`, `005`, `007`, `008`, `010`, `012` |
+| 🟡 PENDING | 9 | `FE-BD-009`, `FE-BD-002`, `FE-BD-003`, `FE-BD-004`, `FE-BD-005`, `FE-BD-007`, `FE-BD-008`, `FE-BD-010`, `FE-BD-012` — **`FE-BD-008` naik dari ⛔ 17 September 2026 sesudah `BE-BD-010` ✅.** **refresh dependency 17 September 2026:** enam terakhir naik dari ⛔ karena satu-satunya penahannya, task backend pasangan, kini ✅. **Riwayat:** 2 — `FE-BD-009`, `FE-BD-002` |
+| ⛔ BLOCKED | 0 | Tidak ada. **Riwayat:** 1 — `FE-BD-008`, menunggu `BE-BD-010` sampai ✅ 17 September 2026. **Riwayat:** 7 — `FE-BD-003`, `004`, `005`, `007`, `008`, `010`, `012` |
 | **Total** | **12** | |
 
 **Satu task frontend selesai (`FE-BD-001`).** `FE-BD-011` **dikerjakan 10 September 2026** dan
 berakhir 🟡 sebagian, dan `FE-BD-006` menyusul pada hari yang sama dengan hasil serupa. Satu
-task `PENDING` tersisa (`FE-BD-009`). **Refresh dependency 17 September 2026:** `FE-BD-003`, `004`, `005`, `007`, `010`, dan `012` kini 🟡 karena pasangan backend-nya ✅; hanya `FE-BD-008` tetap ⛔ menunggu `BE-BD-010`. Tidak ada task frontend yang ditandai selesai.
+task `PENDING` tersisa (`FE-BD-009`). **Refresh dependency 17 September 2026:** `FE-BD-003`, `004`, `005`, `007`, `010`, dan `012` kini 🟡 karena pasangan backend-nya ✅; hanya `FE-BD-008` tetap ⛔ menunggu `BE-BD-010` — **dan sejak `BE-BD-010` ✅ 17 September 2026, `FE-BD-008` juga 🟡; nol task frontend terblokir.** Tidak ada task frontend yang ditandai selesai.
 
 **`FE-BD-009` terbuka sejak 9 September 2026**, ketika `BE-BD-011` selesai
 ([laporan](../task/report/backend/BE-BD-011.md)). Kedelapan yang masih terblokir kini **seluruhnya**
@@ -128,7 +128,7 @@ pasangannya, dimulai `BE-BD-003` yang sudah siap dijadwalkan.
 ✅ BE-BD-015 ──> 🟡 FE-BD-012 (penyimpanan & perpindahan lokasi kantong)
 ✅ BE-BD-006 ──> 🟡 FE-BD-004 (alokasi kantong + pembatalan alokasi)
 ✅ BE-BD-009 ──> 🟡 FE-BD-007 (penyelesaian PendingReview — tiga tombol tiga penjaga)
-🟡 BE-BD-010 ──> ⛔ FE-BD-008 (koreksi dua langkah + daftar tunggakan bukti darurat)   BE-BD-010 READY, belum diimplementasikan
+✅ BE-BD-010 ──> 🟡 FE-BD-008 (koreksi dua langkah + daftar tunggakan bukti darurat)   BE-BD-010 SELESAI 17 Sep 2026
 
 🟡 FE-BD-005 (golongan darah + bukti + pemberian + jalur darurat)
        dep: BE-BD-005 ✅  +  BE-BD-007 ✅  +  BE-BD-008 ✅   (refresh 17 Sep 2026)
@@ -295,13 +295,13 @@ berakhir 🟡 sebagian. `FE-BD-009` tidak bergantung pada keduanya.
 
 ---
 
-### ⛔ `FE-BD-008` — Koreksi dua langkah dan daftar tunggakan bukti darurat
+### 🟡 `FE-BD-008` — Koreksi dua langkah dan daftar tunggakan bukti darurat
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ⛔ **BLOCKED** — menunggu `BE-BD-010`, yang **READY tetapi belum diimplementasikan** (per 17 September 2026; `OQ-BD-014` ditutup `DEC-BD-051`). **Riwayat:** `BE-BD-010` tertahan lewat `BE-BD-007` |
+| **Status** | 🟡 **PENDING — siap dijadwalkan (refresh dependency 17 September 2026).** `BE-BD-010` ✅ ([laporan](../task/report/backend/BE-BD-010.md)). Belum diimplementasikan. **Riwayat:** ⛔ BLOCKED — menunggu `BE-BD-010`, yang **READY tetapi belum diimplementasikan** (per 17 September 2026; `OQ-BD-014` ditutup `DEC-BD-051`). **Riwayat:** `BE-BD-010` tertahan lewat `BE-BD-007` |
 | **Layar** | `FE-BD-05`, `FE-BD-04` |
-| **Dependency** | `G1` ✅, `BE-BD-010` 🟡 READY — belum diimplementasikan. **Riwayat:** `BE-BD-010` ⛔ |
+| **Dependency** | `G1` ✅, `BE-BD-010` ✅. **Riwayat:** `BE-BD-010` 🟡 READY — belum diimplementasikan; sebelumnya ⛔ |
 | **Acceptance** | Koreksi menuntut **dua langkah**; daftar tunggakan bukti darurat tersedia (worklist #3) |
 | **Risk/owner** | Sedang / BDRS |
 
