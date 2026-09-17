@@ -103,3 +103,73 @@ Perjalanan satu voucher dari pengajuan sampai bukti nota ada di [`voucher-petty-
 Alur ini **tidak** bersinggungan dengan penutupan shift kasir. Uang kas kecil dan uang kas shift adalah dua kantong yang berbeda: mengisi kas kecil tidak menambah kas shift, dan menyerahkan uang kas kecil tidak mengurangi kas shift maupun memunculkan selisih saat shift ditutup.
 
 Sistem juga **tidak** menghitung uang fisik kas kecil seperti pada penutupan shift. Kecocokan antara saldo di layar dan uang di laci dijaga Finance secara manual, dan selisihnya diselesaikan lewat koreksi beralasan.
+
+---
+
+## Amendment 15 September 2026 — Alur baru: anggaran per periode dan pemindahan sisa saldo
+
+Status **approved** (`PC-DEC-026`) · input: **`PC-DEC-017`**, `PC-DEC-018`; keputusan arsitektur `PC-DES-017`, `PC-DES-018`.
+
+Diagram di bawah **menggantikan** diagram pada bagian sebelumnya. Yang berubah pokok: kolam anggaran tunggal yang berjalan tanpa batas waktu berganti menjadi rangkaian periode bergilir, dan muncul satu proses baru yang sebelumnya tidak ada sama sekali — penutupan periode beserta pemindahan sisa saldonya.
+
+### Daur hidup satu periode anggaran
+
+```mermaid
+flowchart TD
+    subgraph Finance
+        A[Finance menyiapkan anggaran kas kecil] --> B[Tentukan tanggal mulai, tanggal selesai, dan plafon]
+        B --> C{Tanggalnya bertabrakan dengan periode lain?}
+        C -- Ya --> C1[Perbaiki tanggal] --> B
+        C -- Tidak --> D[Periode tersimpan sebagai Draf]
+        D --> E{Masih ada periode yang berjalan?}
+        E -- Ya --> E1[Tutup periode berjalan lebih dulu]
+        E1 --> F
+        E -- Tidak --> F[Aktifkan periode]
+        F --> G[Periode Aktif - menerima pergerakan uang]
+    end
+    subgraph Operasional_harian[Operasional harian]
+        G --> H[Kasir menambah saldo]
+        G --> I[Kasir menyerahkan uang kas kecil]
+        G --> J[Sisa uang dikembalikan atau pencairan dibatalkan]
+        G --> K[Finance mengoreksi saldo beserta alasannya]
+        H --> G
+        I --> G
+        J --> G
+        K --> G
+    end
+    subgraph Penutupan
+        G --> L{Periode berakhir}
+        L --> M{Masih ada permintaan yang belum dicairkan?}
+        M -- Ya --> M1[Cairkan atau batalkan permintaan itu dulu] --> M
+        M -- Tidak --> N{Masih ada sisa saldo?}
+        N -- Tidak --> P[Periode Ditutup]
+        N -- Ya --> O[Pilih periode penerus sisa saldo]
+        O --> O1{Periode penerus sah?}
+        O1 -- Tidak --> O
+        O1 -- Ya --> Q[Sisa saldo dipindahkan ke periode penerus]
+        Q --> P
+    end
+```
+
+### Tabel langkah
+
+| Langkah | Pelaku | Masukan | Keluaran | Bila gagal |
+| --- | --- | --- | --- | --- |
+| Membuat periode | Finance | Tanggal mulai, tanggal selesai (boleh dikosongkan), plafon anggaran | Periode berstatus `Draf` | Bila tanggalnya bertabrakan dengan periode yang sudah ada, perbaiki tanggalnya. Periode belum berlaku apa pun selama masih `Draf` |
+| Mengaktifkan periode | Finance | Periode berstatus `Draf` | Periode `Aktif` dan mulai menerima pergerakan uang | Bila masih ada periode lain yang berjalan, tutup periode itu lebih dulu — hanya boleh ada satu periode berjalan pada satu waktu |
+| Menambah saldo | Kasir | Nominal beserta alasannya | Saldo periode berjalan bertambah | Bila belum ada periode berjalan, mintakan Finance membukanya lebih dulu |
+| Mengoreksi saldo | Finance | Nominal, arah koreksi, alasan | Saldo berubah beserta catatan alasannya | Koreksi yang membuat saldo menjadi minus ditolak |
+| Menutup periode | Finance | Periode berjalan, periode penerus bila masih bersisa, alasan penutupan | Periode `Ditutup`; sisa saldo berpindah ke periode penerus | Bila masih ada permintaan yang belum dicairkan, selesaikan dulu. Bila sisa saldo ada tetapi penerusnya belum dipilih, penutupan ditolak — sisa uang tidak boleh menggantung tanpa tujuan |
+| Memindahkan sisa saldo | Sistem, saat penutupan | Sisa saldo periode yang ditutup | Periode lama bersaldo nol; periode penerus bertambah sebesar sisa itu; keduanya tercatat sebagai dua pergerakan terpisah | Keduanya terjadi bersamaan atau tidak sama sekali. Tidak ada keadaan di mana uang itu terlihat di dua periode sekaligus atau hilang dari keduanya |
+
+### Kenapa sisa saldo dipindahkan, bukan dihapus
+
+Uang kas kecil adalah uang fisik yang benar-benar ada di laci. Pergantian periode adalah peristiwa administratif, dan uang fisik tidak berubah jumlahnya karena kalender berganti. Karena itu penutupan periode **MUST** memindahkan sisanya, dan pemindahan itu **MUST** terbaca pada kedua periode — satu pergerakan keluar pada periode lama, satu pergerakan masuk pada periode penerus.
+
+Bila sisa itu hanya "muncul" pada periode baru tanpa pergerakan keluar pada periode lama, laporan periode lama akan selamanya memperlihatkan sisa yang sebenarnya sudah tidak ada di sana, dan penjumlahannya tidak akan pernah cocok dengan uang fisiknya.
+
+### Contoh berangka
+
+Periode September berplafon Rp 10.000.000. Sepanjang bulan: ditambah Rp 2.000.000, dicairkan Rp 5.300.000, dikembalikan Rp 550.000. Saldo akhirnya Rp 7.250.000 — semuanya masih uang fisik di laci.
+
+Finance menutup September dan memilih Oktober sebagai penerusnya. Setelah penutupan: September bersaldo Rp 0 dengan catatan pergerakan keluar Rp 7.250.000, dan Oktober bersaldo Rp 7.250.000 dengan catatan pergerakan masuk sebesar itu, di atas plafonnya sendiri. Uang di laci tidak bergerak sedikit pun sepanjang proses ini — yang berpindah hanya catatan periodenya.

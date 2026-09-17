@@ -69,8 +69,12 @@ public sealed class CashierBillingInvoiceListItemResponse
     public string? ClaimMethod { get; set; }
     public bool HasInsurancePayer { get; set; }
     public DateTime? VisitDate { get; set; }
+    public DateTime CreateDateTime { get; set; }
 
     // Biaya & Tanggal Bayar
+    // TotalInvoiceAmount: gross sebelum coverage penjamin (subtotal + admin/room + tax - diskon
+    // item). TotalBillAmount: kewajiban pasien setelah coverage (PatientAmount).
+    public decimal TotalInvoiceAmount { get; set; }
     public decimal TotalBillAmount { get; set; }
     public DateTimeOffset? LastSuccessfulPaymentAt { get; set; }
 

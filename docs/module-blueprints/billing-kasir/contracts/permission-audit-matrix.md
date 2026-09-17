@@ -319,3 +319,63 @@ Satu pengecualian bernama terhadap konvensi "selain `GET` dicatat": **pratinjau 
 **Masa simpan.** Baris jejak perubahan payer adalah catatan keuangan: ia menerangkan mengapa satu tagihan berpindah penanggung, dan menghapusnya menghapus satu-satunya bukti nilai payer sebelumnya. Baris itu **MUST NOT** dihapus maupun ditandai hapus dalam keadaan apa pun.
 
 Trace **`MPY-DEC-001`–`010`**, `MPY-DES-001`–`017`. Tests `BIL-AT-081`–`100`, khususnya `BIL-AT-097` (hak akses) dan `BIL-AT-098` (privasi log dan nama berkas).
+
+---
+
+## Amendment 15 September 2026 — Revisi Petty Cash: pencairan langsung dan anggaran per periode
+
+`last_changed_in: BIL-PERMISSION-0.9` · status **approved** · owner Security dan Finance Operations · `approved_by`: Product/Domain Owner (`PC-DEC-026`) · `approved_at`: 2026-09-15 · input: **`PC-DEC-016`–`PC-DEC-025`**; keputusan arsitektur `PC-DES-015`–`PC-DES-025`.
+
+Amendment ini **menghapus dua butir hak akses** dan **menambah lima**. Penghapusan butir hak akses belum pernah terjadi di modul ini sebelumnya, sehingga langkahnya ditulis lengkap di bawah.
+
+### Butir hak akses yang dihapus
+
+| Resource | Action | String yang dihapus | Dasar |
+| --- | --- | --- | --- |
+| `PettyCashVoucher` | `Approve` | `[AccessPermission("PettyCashVoucher", "Approve")]` | `PC-DEC-024` |
+| `PettyCashVoucher` | `Reject` | `[AccessPermission("PettyCashVoucher", "Reject")]` | `PC-DEC-024` |
+
+**Prasyarat implementasi yang MUST dikerjakan sebelum penghapusan** (`PC-DEC-024` menyebutnya eksplisit): periksa lebih dulu apakah ada Departemen × Posisi yang **hanya** memegang salah satu dari kedua butir ini dan tidak memegang butir Petty Cash lain. Bila ada, peran itu akan kehilangan seluruh kemampuannya atas Petty Cash begitu butirnya hilang — dan tidak ada pesan apa pun yang memberitahunya; layarnya hanya menjadi kosong. Pemeriksaan itu dikerjakan di `SysActionAccess`/`SysControllerAccess` sebelum migration dijalankan, dan hasilnya dilaporkan ke pemilik modul.
+
+`AccessMenuSeeder` mendaftarkan butir hak akses dari atribut lewat pemindaian, sehingga butir yang atributnya dihapus **tidak** otomatis hilang dari baris yang sudah tersimpan. Pembersihan baris lama adalah langkah tersendiri, bukan efek samping penghapusan atribut.
+
+### Butir hak akses baru
+
+| Resource | Action | `AccessType` | String yang persis | Diberikan kepada |
+| --- | --- | --- | --- | --- |
+| `PettyCashVoucher` | `Return` | `Update` | `[AccessPermission("PettyCashVoucher", "Return")]` | Kasir (`PC-DEC-022`) |
+| `PettyCashVoucher` | `Reverse` | `Update` | `[AccessPermission("PettyCashVoucher", "Reverse")]` | Kasir (`PC-DEC-022`) |
+| `PettyCashBudget` | `Create` | `Create` | `[AccessPermission("PettyCashBudget", "Create")]` | Finance |
+| `PettyCashBudget` | `Activate` | `Update` | `[AccessPermission("PettyCashBudget", "Activate")]` | Finance |
+| `PettyCashBudget` | `Close` | `Update` | `[AccessPermission("PettyCashBudget", "Close")]` | Finance |
+
+Ketiga ketentuan penamaan yang dicatat amendment 7 September tetap berlaku penuh dan tidak diulang di sini.
+
+### Peta peran ke butir hak akses setelah revisi
+
+| Peran | `PettyCashVoucher` | `PettyCashBudget` | `PettyCashCategory` |
+| --- | --- | --- | --- |
+| Kasir / petugas administrasi | `Read`, `Create`, `Cancel`, `Disburse`, `AttachProof`, **`Return`**, **`Reverse`** | `Read`, `TopUp` | `Read` |
+| Finance | `Read` | `Read`, `TopUp`, `Adjust`, **`Create`**, **`Activate`**, **`Close`** | `Read`, `Create`, `Update`, `Delete` |
+| Kepala Kasir / Finance Operations | `Read` | `Read` | `Read` |
+| Auditor | `Read` | `Read` | `Read` |
+
+> **Perubahan peran yang MUST disosialisasikan.** Kepala Kasir/Finance Operations kehilangan seluruh kemampuan operasionalnya atas Petty Cash pada revisi ini — bukan karena wewenangnya dicabut, melainkan karena satu-satunya kemampuan yang pernah dimilikinya (`Approve`/`Reject`) sudah tidak ada lagi. Perannya menjadi pemantau. Bila organisasi menghendaki ia tetap memegang kendali operasional, itu keputusan bisnis baru, bukan penyesuaian teknis.
+
+### Kewenangan yang tidak dapat dijaga mesin hak akses
+
+Bagian ini **bertambah satu baris penting** pada revisi ini.
+
+| Kewenangan | Yang menjaganya | Yang **tidak** dijaganya | Risiko |
+| --- | --- | --- | --- |
+| Pencairan tanpa persetujuan siapa pun | Tidak ada penjaga sebelum fakta. Kontrolnya sepenuhnya audit setelah fakta: ledger append-only, pelaku, waktu, dan nomor voucher | Tidak ada satu pun mekanisme yang mencegah kasir berwenang mencairkan uang untuk penerima fiktif | **Naik dibanding revisi sebelumnya**, dan ini konsekuensi yang disengaja dari `PC-DEC-016`. Mitigasinya administratif: rekonsiliasi fisik kas kecil secara berkala dan pemeriksaan ledger oleh Finance |
+| Pembalikan pencairan oleh kasir yang sama | Hak akses `Reverse` beserta alasan wajib dan baris ledger tersendiri | Tidak ada pemeriksaan dua orang. Kasir yang mencairkan boleh membalik pencairannya sendiri (`PC-DEC-022`) | Pencairan dan pembalikannya dapat saling menutupi sehingga saldo akhir terlihat wajar. Yang tetap terbaca: **kedua** barisnya ada permanen di ledger, lengkap dengan pelaku dan waktunya. Deteksinya lewat laporan, bukan lewat pencegahan |
+| Penutupan periode oleh Finance | Hak akses `Close` beserta `BIL-VAL-104` | Tidak ada pemeriksaan bahwa periode penerus yang dipilih memang periode yang benar secara bisnis | Sisa saldo dapat berpindah ke periode yang salah. Kedua baris carry-forward tetap terbaca, sehingga koreksinya mungkin lewat penyesuaian beralasan |
+
+### Audit
+
+Tidak berubah bentuknya. Yang bertambah: perintah `RETURNED` dan `REVERSED` pada `BilPettyCashVoucherCommand`, serta empat jenis pergerakan baru pada ledger. Konvensi pencatatan tetap — `GET` tidak dicatat, selain `GET` dicatat.
+
+### Kolom sensitif
+
+Bertambah satu: `BilPettyCashVoucher.ReversalReason` bertanda **Sensitif** dan **MUST NOT** masuk payload custom logger, mengikuti perlakuan `Reason` pada ledger dan `Purpose` pada voucher.

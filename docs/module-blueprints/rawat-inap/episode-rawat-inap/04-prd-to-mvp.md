@@ -8,10 +8,10 @@
 | Modul | Rawat Inap — `InPatientManagement`, prefix entity `Inp`, lifecycle registry `ACTIVE` sejak `RWI-DEC-068` |
 | Blueprint ID | `RWI-BP-001` |
 | Sub-modul | `episode-rawat-inap` — satu dari tiga sub-modul modul `rawat-inap`, bentuk `COMPOSITE` sejak `RWI-DEC-082`. [Manifest sub-modul](./blueprint-manifest.md), [peta modul](../02-module-map.md) |
-| Revision artefak | `0.7.0` — naik 2026-09-11 karena bagian 21 lahir, menyerap `Gelombang 1A Rawat Inap Safety Corrections`. Sebelumnya `0.6.1` — naik 2026-09-08 sore setelah trace ulang terhadap source hasil merge `QuilvianIntegrationBackend`: kolom `EpisodeId` **dibatalkan** karena penelusuran sudah tercapai lewat join, rute refund dibetulkan ke kontrak Billing yang sudah ada, dan klaim charge kamar yang basi dicabut. Sebelumnya `0.6.0` — naik 2026-09-08 karena **deposit ditetapkan sebagai langkah tersendiri di dalam multi-step admisi**, mengikuti layar operasional yang sudah berjalan. Revisi ini menambah `FR-RI-174` s.d. `FR-RI-178`, mengubah alur admisi, kontrak API deposit, matriks kewenangan, UAT, Definition of Done, dan gelombang delivery. **Garis keturunan:** `0.4.1` (2026-09-02, koreksi keterangan basi `DEC-INP-001`) → `0.5.0` (2026-09-03, deposit masuk MVP lewat `EPIC RI-35`) → `0.6.0`. Kedua revisi sebelumnya dipertahankan isinya, bukan dihapus |
-| `contract_version` | `0.6.1` — **naik**; koreksi mekanisme dan rute setelah trace source. Sebelumnya `0.6.0`: langkah deposit pada admisi, kebijakan minimum deposit, aturan peringatan, penagihan berkala, pengikatan `EpisodeId`, dan pemakaian ulang rute `patient-funds` yang menggantikan usulan controller deposit terpisah |
+| Revision artefak | **`0.8.0`** — bagian 22 amandemen terbatas penyelarasan `PRD-RWI-V2-001`, 15 September 2026. Sebelumnya: `0.7.0` — naik 2026-09-11 karena bagian 21 lahir, menyerap `Gelombang 1A Rawat Inap Safety Corrections`. Sebelumnya `0.6.1` — naik 2026-09-08 sore setelah trace ulang terhadap source hasil merge `QuilvianIntegrationBackend`: kolom `EpisodeId` **dibatalkan** karena penelusuran sudah tercapai lewat join, rute refund dibetulkan ke kontrak Billing yang sudah ada, dan klaim charge kamar yang basi dicabut. Sebelumnya `0.6.0` — naik 2026-09-08 karena **deposit ditetapkan sebagai langkah tersendiri di dalam multi-step admisi**, mengikuti layar operasional yang sudah berjalan. Revisi ini menambah `FR-RI-174` s.d. `FR-RI-178`, mengubah alur admisi, kontrak API deposit, matriks kewenangan, UAT, Definition of Done, dan gelombang delivery. **Garis keturunan:** `0.4.1` (2026-09-02, koreksi keterangan basi `DEC-INP-001`) → `0.5.0` (2026-09-03, deposit masuk MVP lewat `EPIC RI-35`) → `0.6.0`. Kedua revisi sebelumnya dipertahankan isinya, bukan dihapus |
+| `contract_version` | **`0.9.0`** untuk bagian 22. Sebelumnya: `0.6.1` — **naik**; koreksi mekanisme dan rute setelah trace source. Sebelumnya `0.6.0`: langkah deposit pada admisi, kebijakan minimum deposit, aturan peringatan, penagihan berkala, pengikatan `EpisodeId`, dan pemakaian ulang rute `patient-funds` yang menggantikan usulan controller deposit terpisah |
 | Batas dokumen ini | MVP sub-modul `episode-rawat-inap` saja. Kemampuan milik dua sub-modul lain **bukan** bagian dari MVP di sini, dan itu bukan penundaan keputusan |
-| Status | `draft` — **belum disetujui manusia** |
+| Status | **`draft`** untuk `0.8.0` — **belum disetujui manusia** |
 | Repository target | `NewQuilvianSystemBackend` dan `QuilvianSystemFrontendDev` |
 | Backend SHA baseline | `44099e4ddd921d51140d802cabf1cebbc5291d30` — branch `MHamzah`, memuat merge `6993212` dari `QuilvianIntegrationBackend`. Sebelumnya `5afb54bd75281648010e50ef14f43ca1f80d8efd` |
 | Frontend SHA baseline | `30db3734a5d1e1ed0de35197ffabc30ae9c8d4e3` — branch `HamzahV2`. Sebelumnya `dec4fdeff07c3c96ad9f07f41f184c54cf771371` |
@@ -1549,3 +1549,91 @@ keuangan, yang berada di luar gelombang ini.
 | `RWI-OQ-054` | Penomoran ulang sebelas task ID | **Memblokir `plan-module-delivery`**, bukan desain ini. Dijawab `RWI-DEC-103`, eksekusinya belum dikerjakan |
 
 ---
+
+---
+
+## 22. Amandemen terbatas — penyelarasan `PRD-RWI-V2-001` ★ 15 September 2026
+
+**Status `draft`.** Menurunkan dari `02-backend-architecture.md` `0.8` bagian 11, `data/data-dictionary.md` `0.5`
+bagian 18, `03-frontend-architecture.md` bagian 12, dan kontrak `0.9.0`.
+
+### 22.1 Batas
+
+| Batas | Isinya |
+| --- | --- |
+| **Titik mulai** | Kontrak `0.8.0` `approved`; permintaan `INT-DOK-11` s.d. `13`, `INT-DOK-20`, `INT-KEP-15` |
+| **Titik akhir** | (1) Dokter melihat hanya pasien penugasannya; (2) kepala ruangan dapat menugaskan konsulen, dokter jaga, dan penugasan singkat berbatas waktu; (3) resume memuat delapan bagian dengan usulan isian bersumber; (4) penutupan episode mengunci konsep, membatalkan pesanan tertunda yang belum ditagih dan dosis masa depan dalam satu transaksi tanpa menahan penutupan |
+| **Di luar batas** | Seluruh isi bagian 1 s.d. 21 yang tidak disebut; Resume ODC; pembatalan pesanan tertagih; census rumah sakit bagi dokter |
+
+### 22.2 Epic dan functional requirement
+
+| Epic | Nama | Prioritas | Disposisi |
+| --- | --- | --- | --- |
+| `EPIC RI-38` | Census dokter dari penugasan aktif | `P0` | `EXTEND` |
+| `EPIC RI-39` | Penugasan konsulen, dokter jaga, dan penugasan singkat | `P0` | `MISSING / NEW` — `RWI-FACT-030` |
+| `EPIC RI-40` | Resume delapan bagian | `P1` | `EXTEND` |
+| `EPIC RI-41` | Akibat penutupan episode | `P0` | `MISSING / NEW` — `RLN3-CAP-38` |
+
+| FR | Bunyi requirement | Epic | Disposisi | Bukti |
+| --- | --- | --- | --- | --- |
+| `FR-RI-191` | Census dengan `assignedToMe=true` hanya memuat pasien dengan penugasan aktif dokter login, dokter dari akun login, ringkasan dari daftar yang sama | `RI-38` | `EXTEND` | API 10.1 |
+| `FR-RI-192` | Akun tanpa data dokter mendapat daftar kosong berpesan, bukan penolakan | `RI-38` | `MISSING / NEW` | `VAL-INP-11` |
+| `FR-RI-193` | Kepala ruangan atau supervisor membuat penugasan konsulen dan dokter jaga beralasan | `RI-39` | `MISSING / NEW` | API 10.2 |
+| `FR-RI-194` | Penugasan singkat penulisan catatan terlambat selalu dokter jaga, berwaktu mulai sekarang, berwaktu selesai, beralasan; DPJP tidak tergusur | `RI-39` | `MISSING / NEW` | `VAL-INP-01`, `08`; `INV-INP-12` |
+| `FR-RI-195` | Penugasan konsulen dan dokter jaga dapat diakhiri; DPJP tidak | `RI-39` | `MISSING / NEW` | `VAL-INP-09` |
+| `FR-RI-196` | Resume menyimpan Pemeriksaan Penting, Kondisi Saat Pulang, Edukasi beserta versinya | `RI-40` | `EXTEND` | Data 18.2–18.3 |
+| `FR-RI-197` | Usulan isian resume dari sumber klinis beserta label sumber, tanpa menyimpan, tahan terhadap sumber gagal | `RI-40` | `MISSING / NEW` | API 10.3 |
+| `FR-RI-198` | Penutupan mengunci konsep catatan dokter encounter | `RI-41` | `MISSING / NEW` | `INT-INP-08` |
+| `FR-RI-199` | Penutupan membatalkan pesanan tindakan tertunda yang belum ditagih; yang tertagih masuk daftar pantau | `RI-41` | `MISSING / NEW` | `INT-INP-09`, API 10.4 |
+| `FR-RI-200` | Penutupan membatalkan dosis obat berjadwal setelah waktu tutup | `RI-41` | `MISSING / NEW` | `INT-INP-10` |
+| `FR-RI-201` | Kesiapan penutupan menampilkan peringatan yang tidak menahan; hasil penutupan menampilkan akibatnya | `RI-41` | `EXTEND` | `VAL-INP-13` s.d. `17` |
+
+### 22.3 Kebutuhan non-fungsional
+
+| ID | Kebutuhan | Cara membuktikan |
+| --- | --- | --- |
+| `NFR-025` | Penutupan beserta akibatnya atomik pada PostgreSQL sungguhan | Galat buatan tiap langkah → nol perubahan |
+| `NFR-026` | Census `assignedToMe` memakai index penugasan per dokter; waktu aktif dibaca saat query tanpa proses latar | Rencana eksekusi memakai index; uji batas 06.59/07.01 |
+| `NFR-027` | Usulan isian resume selesai paling lama 5 detik per sumber — **angka usulan desain**, dikonfirmasi saat approval | Pengukuran pada laporan task |
+
+### 22.4 Skenario UAT
+
+| ID | Epic | Jalur | Skenario | Hasil |
+| --- | --- | --- | --- | --- |
+| `UAT-45` | `RI-38` | Berhasil | dr. Ahmad membuka daftarnya | Dua pasien, Budi dan Sari |
+| `UAT-46` | `RI-39` | Berhasil | Kepala ruangan membuat penugasan singkat dr. Rina 10.00–11.00; dr. Rina menulis kajian medis Selasa 15.00 pukul 10.15 | Diterima; dr. Ahmad tetap DPJP |
+| `UAT-47` | `RI-39` | Gagal | Kepala ruangan lupa mengisi waktu selesai | Ditolak |
+| `UAT-48` | `RI-39` | Gagal | Perawat pelaksana mencoba menambah dokter pendukung | Tombol tidak ada; permintaan langsung ditolak |
+| `UAT-49` | `RI-40` | Berhasil | dr. Rina menekan "Isi dari data klinis", melengkapi Kondisi Saat Pulang, menandatangani | Resume bertanda tangan; episode belum tertutup |
+| `UAT-50` | `RI-41` | Berhasil | Petugas menutup episode Joko dengan satu konsep, satu pesanan, satu dosis tertunda | Penutupan berhasil; konsep terkunci, pesanan dan dosis batal; ringkasan akibat tampil |
+| `UAT-51` | `RI-41` | Gagal | Gangguan database saat penutupan | "Penutupan gagal disimpan, coba lagi"; episode tetap `DischargePending` |
+
+### 22.5 Definition of Done
+
+| Butir | Bukti |
+| --- | --- |
+| Census dokter sama dengan daftar tulis | Acceptance 18.1 |
+| Penugasan singkat dijaga di service **dan** database | Acceptance 18.2 termasuk check constraint |
+| Resume delapan bagian dan usulan bersumber | Acceptance 18.3 |
+| Penutupan atomik dan tidak tertahan | Acceptance 18.4; `NFR-025` |
+| Regresi census unit, pengalihan DPJP, dan penutupan tanpa konsep/pesanan/dosis | Test regresi hijau |
+| Pemberitahuan kepada Yoga Aji Pratama atas `INT-INP-08` tercatat | Catatan pada laporan task |
+
+### 22.6 Urutan pengiriman
+
+| Gelombang | Isinya | Syarat mulai |
+| --- | --- | --- |
+| `RI-V2-1` | `EPIC RI-38`, `EPIC RI-39` (migration E1), `FR-RI-198`, `199`, `201` | Blueprint revision `7` disetujui; dikerjakan bersama `DOK-V2-1` |
+| `RI-V2-2` | `EPIC RI-40` (migration E2) | `RI-V2-1`; sebelum `DOK-V2-4` |
+| `RI-V2-3` | `FR-RI-200` | Bersama `KEP-V2-2` |
+
+Nol epic `OPEN DECISION`.
+
+### 22.7 Pertanyaan terbuka
+
+| No | Pertanyaan | Siapa yang menjawab | Memblokir |
+| ---: | --- | --- | :---: |
+| 1 | Nasib pesanan tindakan tertunda yang sudah ditagih setelah penutupan | Muhammad Hamzah bersama pemilik Billing | Tidak — daftar pantau tersedia |
+| 2 | Dosis lewat jadwal yang belum dicatat saat penutupan tetap `Due` hanya-baca — sama dengan `keperawatan` 22.20 nomor 9 | Muhammad Hamzah | Tidak |
+| 3 | Isi minimal resume, termasuk apakah tiga isian baru wajib sebelum tanda tangan | Pemilik klinis, belum ditunjuk | Tidak untuk desain; gerbang produksi |
+| 4 | ~~Persetujuan Yoga Aji Pratama atas pemanggil penguncian dari `InPatientManagement`~~ — **`closed` 2026-09-16** oleh `RWI-DEC-151` | Yoga Aji Pratama | Tidak — pemberitahuan sebelum rilis `RI-V2-1` **sudah terpenuhi**; DoD `BE-RWI-082` cukup merujuk keputusan itu |

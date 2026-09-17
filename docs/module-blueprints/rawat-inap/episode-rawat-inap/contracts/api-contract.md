@@ -3,9 +3,9 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | `0.8.0` |
-| `last_changed_in` | `0.8.0` — pencabutan aturan jenis kelamin tingkat kamar |
-| Status | **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
+| `contract_version` | **`0.9.0`** — bagian 10, `draft` |
+| `last_changed_in` | **`0.9.0`** — census dokter, penugasan pendukung, tiga isian resume, akibat penutupan. Sebelumnya `0.8.0` — pencabutan aturan jenis kelamin tingkat kamar |
+| Status | **`draft`** untuk `0.9.0`. `0.8.0` **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
 | Owner | Product/Domain Owner sementara sesuai `RWI-DEC-006`; nama belum diisi |
 | `approved_by` / `approved_at` | **Muhammad Hamzah — Product/Domain owner (`RWI-DEC-061`), 10 September 2026**, lewat instruksi eksplisit untuk mengerjakan `BE-RWI-069`. Mengikuti pola approval per-task yang sudah dipakai `BE-RWI-036` pada 1 September 2026 |
 | `input_revision` | `02-backend-architecture.md` revision `0.4`; `00-interview-decisions.md` revision `15`; `04-prd-to-mvp.md` revision `0.6.0` |
@@ -465,3 +465,101 @@ cacat yang sudah ditemukan pada `PatientEncounterController` dan tercatat sebaga
 | Inpatient Monitoring | `RWI-RULE-023`, `RWI-RULE-027` aturan 6 |
 | Master Data Inpatient Setting dan Clearance Item | `RWI-RULE-018`, `RWI-RULE-034` |
 | Perubahan Bed | `RWI-RULE-027`, `RWI-DEC-039` |
+
+---
+
+## 10. Perubahan pada `contract_version` `0.9.0` — amandemen terbatas penyelarasan `PRD-RWI-V2-001` ★ 15 September 2026
+
+| Field | Nilai |
+| --- | --- |
+| Status | **`draft`** — belum disetujui manusia |
+| `input_revision` | `02-backend-architecture.md` `0.8` bagian 11; `data/data-dictionary.md` `0.5` bagian 18; decision log `21` |
+| Dampak kompatibilitas | **Aditif** untuk query, isian, dan endpoint baru. **Perubahan perilaku** pada `close` dan `close-with-override`: penutupan kini ikut mengunci konsep, membatalkan pesanan tindakan tertunda, dan membatalkan dosis obat masa depan. Bentuk request tidak berubah; response bertambah `SideEffects` |
+| Keputusan | `RWI-DEC-111`, `112`, `130`, `138`, `143` |
+
+### 10.1 Health Services / Inpatient Management / Inpatient Census — query baru
+
+Base URL: `api/v1/health-services/inpatient-management/census`
+Judul grup: `[Tags("Health Services / Inpatient Management / Inpatient Census")]`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/` | Census. Dengan `assignedToMe=true`: hanya pasien yang dokter login punya penugasan aktif sebagai DPJP, konsulen, atau dokter jaga; `DoctorId` query diabaikan | `InpatientCensus : Read` | `CensusQuery` + **`AssignedToMe`** (`bool`, bawaan `false`) | `ApiResponse<PagedResult<CensusItemResponse>>` + **`MyAssignmentRole`**, **`MyAssignmentPurpose`** | ✅ **Tersedia**, query dan isian **Rencana (belum tersedia)** |
+| `GET` | `/summary` | Angka dari daftar yang sama; bertambah `NeedsReviewCount` bila `assignedToMe=true` | `InpatientCensus : Read` | Sama | `ApiResponse<CensusSummaryResponse>` + **`NeedsReviewCount`** | ✅ **Tersedia**, query dan isian **Rencana** |
+
+Contoh: dr. Ahmad DPJP Budi dan konsulen Sari; 120 pasien lain dirawat → `TotalCount = 2`; baris Sari
+`MyAssignmentRole = Consultant`, kolom DPJP tetap "dr. Rina". Pengguna tanpa data dokter → daftar kosong,
+`Message` "Akun Anda tidak terhubung dengan data dokter" — **bukan** `403`, karena hak baca census tetap sah.
+
+### 10.2 Health Services / Inpatient Management / Inpatient Episode — penugasan pendukung
+
+Base URL: `api/v1/health-services/inpatient-management/episodes`
+Judul grup: `[Tags("Health Services / Inpatient Management / Inpatient Episode")]`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `POST` | `/{id}/doctor-assignments/supporting` | Kepala ruangan atau supervisor melibatkan konsulen, memanggil dokter jaga, atau membuat **penugasan singkat penulisan catatan terlambat** | `InpatientEpisode : Update` + penjaga kepala ruangan/supervisor | `AssignSupportingDoctorRequest` (`DoctorId`, `AssignmentRole` `Consultant`/`OnCallDoctor`, `AssignmentPurpose` `Regular`/`LateDocumentation`, `StartDateTime`, `EndDateTime`, `Reason` wajib) + `Idempotency-Key` | `ApiResponse<InpatientDoctorAssignmentResponse>` + `AssignmentPurpose` | **Rencana (belum tersedia)** |
+| `PATCH` | `/{id}/doctor-assignments/{assignmentId}/end` | Mengakhiri konsulen atau dokter jaga | Sama | `EndSupportingAssignmentRequest` (`EndDateTime`, `Reason` opsional) | Sama | **Rencana (belum tersedia)** |
+| `GET` | `/{id}/doctor-assignments` | Riwayat penugasan. **Perubahan:** bertambah `AssignmentPurpose` | `InpatientEpisode : Read` | — | Sama | ✅ **Tersedia**, isian **Rencana** |
+
+Contoh `LateDocumentation`: dr. Rina, `OnCallDoctor`, Kamis 10.00–11.00, alasan "penulisan kajian medis Selasa 15.00" →
+`201`. Tanpa `EndDateTime` → `400` `VAL-INP-01`.
+
+| Kode | Artinya bagi pengguna |
+| --- | --- |
+| `400` | Waktu selesai wajib untuk penugasan singkat; alasan kosong; waktu selesai sebelum waktu mulai |
+| `403` | Hanya kepala ruangan atau supervisor yang dapat menugaskan dokter pendukung |
+| `404` | Episode atau penugasan tidak ditemukan |
+| `409` | Dokter ini sudah punya penugasan aktif dengan peran yang sama pada periode itu; penugasan sudah berakhir; penugasan DPJP diakhiri lewat pengalihan DPJP |
+| `422` | Episode tidak berstatus `Admitted` atau `DischargePending`; penugasan singkat berperan selain dokter jaga; dokter tidak aktif |
+
+### 10.3 Health Services / Inpatient Management / Inpatient Discharge — resume, penutupan
+
+Base URL: `api/v1/health-services/inpatient-management/discharges`
+Judul grup: `[Tags("Health Services / Inpatient Management / Inpatient Discharge")]`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/{episodeId}/summary` | Resume. **Perubahan:** tiga isian | `InpatientDischarge : Read` | Query `includeRevisions` | `DischargeSummaryResponse` + `ImportantFindingsSummary`, `DischargeConditionNote`, `EducationSummary` | ✅ **Tersedia**, isian **Rencana** |
+| `PUT` | `/{episodeId}/summary` | Simpan draf. **Perubahan:** tiga isian | `InpatientDischarge : Update` | `UpsertDischargeSummaryRequest` + tiga isian | Sama | ✅ **Tersedia**, isian **Rencana** |
+| `GET` | `/{episodeId}/summary-prefill` | Usulan isian dari sumber klinis, **tidak menyimpan** | `InpatientDischarge : Read` | — | `ApiResponse<DischargeSummaryPrefillResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/{episodeId}/closure-readiness` | **Perubahan:** bertambah `Warnings[]` yang tidak mempengaruhi `CanClose` | `InpatientDischarge : Read` | — | `ClosureReadinessResponse` + `Warnings[]` (`Code`, `Count`, `Message`, `Details[]`) | ✅ **Tersedia**, isian **Rencana** |
+| `POST` | `/{episodeId}/close` | **Perilaku baru:** langkah 4–6 `02-backend-architecture.md` 11.5.4 dalam transaksi yang sama | `InpatientDischarge : Close` | Tidak berubah | `InpatientEpisodeDetailResponse` + **`SideEffects`** (`LockedDraftCount`, `CancelledProcedureOrderCount`, `BilledPendingProcedureOrderCount`, `CancelledFutureDoseCount`) | ✅ **Tersedia**, perilaku **Rencana** |
+| `POST` | `/{episodeId}/close-with-override` | Sama | `InpatientDischarge : CloseOverride` | Tidak berubah | Sama | ✅ **Tersedia**, perilaku **Rencana** |
+
+**`DischargeSummaryPrefillResponse`** — satu objek per isian:
+
+| Isian | `Value` | `Sources[]` | `SourceStatus` |
+| --- | --- | --- | --- |
+| `PrimaryDiagnosisText`, `SecondaryDiagnosisText` | Diagnosis kerja/akhir encounter | Kode, dokter, waktu | `Available`/`Empty`/`Unavailable` |
+| `ProcedureSummary` | Tindakan `Completed` episode | Nama, pelaksana, waktu | Sama |
+| `DischargeMedicationNote` | Butir resep pulang | Nomor resep, dokter | Sama |
+| `ImportantFindingsSummary` | Hasil laboratorium/radiologi final yang kritis atau abnormal | Nama pemeriksaan, nilai, waktu | Sama |
+| `EducationSummary` | Materi dari Assesment Edukasi selesai | Perawat, waktu | Sama |
+| `ClinicalSummary`, `DischargeConditionNote`, `FollowUpInstruction` | Tidak diusulkan | — | `Empty` |
+
+Contoh `closure-readiness` Joko 12.55: `CanClose = true`; `Warnings`: 1 konsep SOAP dr. Yoga akan terkunci; 1 pesanan cek
+GDS akan batal; 1 dosis 08.00 belum dicatat.
+
+| Kode | Artinya bagi pengguna |
+| --- | --- |
+| `500` pada penutupan | "Penutupan gagal disimpan, coba lagi" — tidak ada satu pun langkah yang tersimpan; aman diulang |
+
+### 10.4 Health Services / Inpatient Management / Inpatient Monitoring — daftar pantau baru
+
+Base URL: `api/v1/health-services/inpatient-management/monitoring`
+Judul grup: `[Tags("Health Services / Inpatient Management / Inpatient Monitoring")]`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/billed-pending-procedure-orders` | Pesanan tindakan tertunda **yang sudah ditagih** pada episode `Closed` — tidak dibatalkan saat penutupan dan perlu ditindaklanjuti bersama Billing | `InpatientMonitoring : Read` | Query `serviceUnitId`, `closedFrom`, `closedTo`, `pageNumber`, `pageSize` | `ApiResponse<PagedResult<BilledPendingProcedureOrderItem>>` (pasien, episode, tindakan, penginput, waktu pesan, waktu tutup, nomor tagihan) | **Rencana (belum tersedia)** |
+
+### 10.5 Yang tidak ada di kontrak `0.9.0`
+
+| Tidak ada | Alasan |
+| --- | --- |
+| Endpoint membuat penugasan oleh dokter sendiri | `RWI-DEC-130` (4) |
+| Endpoint menyimpan usulan isian resume | `RWI-DEC-112` |
+| Endpoint Resume ODC | `RWI-DEC-123` |
+| Endpoint "Catatan Saya" | `RWI-DEC-142` |
+| Membatalkan pesanan tertagih dari Rawat Inap | `RWI-DEC-143` (c) |

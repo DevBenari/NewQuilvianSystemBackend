@@ -1,5 +1,15 @@
 # Requirement Traceability — Modul Rawat Inap
 
+> ## ⚠ TRACEABILITY REVISION `7` ADA DI BERKAS TERPISAH — 16 September 2026
+>
+> Requirement penyelarasan `PRD-RWI-V2-001` revision `7` dilacak pada
+> [`requirement-traceability-v2.md`](./requirement-traceability-v2.md), sejalan dengan
+> [`backend-roadmap-v2.md`](./backend-roadmap-v2.md) dan
+> [`frontend-roadmap-v2.md`](./frontend-roadmap-v2.md).
+>
+> Berkas ini **tetap berlaku** untuk requirement revision `4` s.d. `6`. Baris baru revision `7`
+> **jangan ditambahkan di sini**.
+
 ## Metadata
 
 ```yaml

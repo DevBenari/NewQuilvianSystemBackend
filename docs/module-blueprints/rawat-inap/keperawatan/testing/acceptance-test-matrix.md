@@ -4,10 +4,10 @@
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
 | Sub-modul | `keperawatan` |
-| Contract version | `0.4.0` |
-| `last_changed_in` | `0.4.0` — bagian 5A lahir: jalur hapus tanda vital dan kewenangan perawat berbasis unit |
+| Contract version | **`0.5.0`** — bagian 9, `draft` |
+| `last_changed_in` | **`0.5.0`** — bagian 9: `AC-KEP-051` s.d. `135`. Sebelumnya `0.4.0` — bagian 5A |
 | Compatibility impact | `0.3.0`: skenario amandemen diganti skenario **addendum** sesuai `RWI-DEC-091`, dan satu skenario baru menjaga rencana asuhan **tetap** berversi |
-| Status | **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
+| Status | **`draft`** untuk `0.5.0`. `0.4.0` **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
 | Tanggal | 2 September 2026 |
 
 Matriks memuat **jalur gagal**, bukan hanya jalur berhasil. Dari 24 skenario di bawah, **11**
@@ -162,3 +162,140 @@ Diturunkan dari `RWI-DEC-091` beserta acceptance criteria `RWI-AC-175` s.d. `RWI
 > ditegakkan, sehingga penyuntingan dokumen final **akan berhasil** dan test akan lulus dengan alasan yang
 > salah. Selama `Assessment` dan `Procedure` belum masuk daftar jenis yang ditegakkan, skenario ini wajib
 > ditandai **belum dapat diuji**, bukan ditandai lulus.
+
+---
+
+## 9. Penyelarasan `PRD-RWI-V2-001` — `0.5.0` ★ 15 September 2026
+
+**Status `draft`.** Seluruh skenario negatif dijalankan memakai peran nyata, bukan SuperAdmin (`AC-KEP-050` berlaku).
+Nama pasien dan petugas di bawah adalah contoh, bukan data asli.
+
+### 9.1 Pengkajian Pasien dan konfigurasi klinis — `CAP-012`
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- |
+| `AC-KEP-051`, `RWI-AC-196` | Andi menyimpan draft "Morse Dewasa v2", lalu Andi sendiri menekan Sahkan | Integrasi — **jalur gagal** | `403`; versi tetap `Draft` |
+| `AC-KEP-052`, `RWI-AC-196` | Ns. Wati mengesahkan versi yang dibuat Andi | Integrasi | `Approved`; versi sah lama `Retired` dalam transaksi yang sama; hanya satu `Approved` |
+| `AC-KEP-053` | Menyimpan pita Rendah `[0,25)`, Sedang `[30,45)`, Tinggi `[45,null)` | Unit — **jalur gagal** | `400` celah 25–30 |
+| `AC-KEP-054`, `RWI-AC-197` | Pemindaian source backend dan frontend untuk angka batas atau skor butir risiko jatuh pada perhitungan rawat inap | Architecture test | Nol temuan |
+| `AC-KEP-055`, `RWI-AC-196` | Produksi tanpa versi sah: perawat menyelesaikan Resiko Jatuh | Integrasi — **jalur gagal** | `422`; dokumen tetap konsep dan tersimpan |
+| `AC-KEP-056` | Lingkungan uji dengan `AllowDraftVersionsForTesting = true` | Integrasi | Dokumen dapat diselesaikan; hasil menyimpan versi draft dan `resolve` menandai lingkungan uji |
+| `AC-KEP-057` | Budi 67 tahun, skor Morse 50 pada versi v2 | Integrasi | `TotalScore = 50`, `BandCode = HIGH`, `IsAlertBand = true`, `FallRiskStatus = HighRisk`; versi dan hash tersimpan |
+| `AC-KEP-058` | Setelah dokumen selesai, versi v3 disahkan | Integrasi | Hasil Budi tetap v2 skor 50; tidak dihitung ulang |
+| `AC-KEP-059`, `RWI-AC-207` | Membuka formulir Kajian Umum | E2E / komponen | Tepat delapan bagian urutan `RWI-DEC-141`; tidak ada bagian Psikososial, Alat Bantu, Catatan Relevan tersendiri |
+| `AC-KEP-060`, `RWI-AC-208` | Mencari isian kateter dan kursi roda pada Kajian Umum | Komponen | Kateter hanya di Eliminasi; kursi roda hanya di Ketergantungan |
+| `AC-KEP-061`, `RWI-AC-209` | Pemindaian source untuk daftar isian wajib Kajian Umum yang tetap | Architecture test | Nol temuan; isian wajib hanya dari `requiredItemCodes` |
+| `AC-KEP-062`, `INV-KEP-04` | Kajian Umum memilih tanda vital 08.00 | Integrasi | `VitalSignId` terisi; kolom tanda vital `TrxPatientAssessment` kosong; layar menampilkan angka dari baris tanda vital |
+| `AC-KEP-063` | Kajian Umum memilih tanda vital milik pasien lain | Integrasi — **jalur gagal** | `400` |
+| `AC-KEP-064`, `INV-KEP-04` | Mencatat tanda vital rawat inap berisi skala nyeri | Integrasi — **jalur gagal** | `400`; nol baris |
+| `AC-KEP-065` | Regresi: tanda vital poliklinik dan IGD berisi skala nyeri | Integrasi | Diterima seperti sebelum perubahan |
+| `AC-KEP-066` | Monitoring Nyeri diselesaikan dengan keadaan nyeri belum dipilih | Integrasi — **jalur gagal** | `422` |
+| `AC-KEP-067`, `BR-RWI-007` | Monitoring Nyeri "tidak dapat dinilai" | Integrasi | Tersimpan `UnableToAssess`; **tidak** terbaca "tidak nyeri" di ringkasan |
+| `AC-KEP-068` | Regresi: pengkajian risiko jatuh poliklinik mengirim dua centang lama | Integrasi | Perhitungan poliklinik tidak berubah |
+
+### 9.2 Progres Pengkajian Pasien — `RWI-DEC-119`, `RWI-DEC-120`
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- |
+| `AC-KEP-069` | Budi: Kajian Umum selesai, Resiko Jatuh selesai kategori Tinggi, Monitoring Nyeri draft, Edukasi dan Perencanaan Pulang kosong | Integrasi | `Completed`, `Completed`, `NeedsAttention`, `NotFilled`, `NotFilled`; `CompletedCount = 2`; `ProgressPercent = 40`; Tinggi **tidak** mengubah `State` |
+| `AC-KEP-070` | Bagian yang punya dokumen selesai **dan** draft baru | Integrasi | `Completed` |
+| `AC-KEP-071` | Pengawasan Harian dicatat 06.00, Evaluasi Awal belum ada | Integrasi | Keduanya tidak menambah `CompletedCount`; `DailyMonitoringLastRecordedAt = 06.00`; status Evaluasi Awal "milik MPP" |
+| `AC-KEP-072`, `UI-AC-KEP-008` | Endpoint progres gagal | E2E | Layar "Gagal memuat progres pengkajian" dan Coba Lagi; **nol** ikon ○ |
+| `AC-KEP-073` | Dokumen yang dibatalkan satu-satunya pada bagian itu | Integrasi | `NotFilled` |
+
+### 9.3 Evaluasi Awal MPP
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- |
+| `AC-KEP-074`, `RWI-AC-191` | Ns. Dewi MPP Melati menulis Evaluasi Awal pasien Melati | Integrasi | `200`; konsep tersimpan |
+| `AC-KEP-075`, `RWI-AC-191` | Dewi menulis untuk pasien Anggrek | Integrasi — **jalur gagal** | `403` |
+| `AC-KEP-076` | Perawat pelaksana tanpa hak MPP di unit yang sama menulis | Integrasi — **jalur gagal** | `403` |
+| `AC-KEP-077` | Membuat Evaluasi Awal kedua pada episode yang sama | Integrasi — **jalur gagal** | `409` |
+| `AC-KEP-078` | Pasien dipindah unit saat Dewi menyimpan konsep | Integrasi — **jalur gagal** | `403` pada simpan berikutnya |
+| `AC-KEP-079` | Perawat membuka Evaluasi Awal | E2E | Hanya baca; tidak ada tombol ubah |
+
+### 9.4 Pengawasan Harian — cairan, GDS, observasi, shift
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- |
+| `AC-KEP-080`, `RWI-AC-231` | Hari Budi: infus 1.500, oral 600, obat 200, darah 200; urin 1.800, drain 150 | Integrasi | Intake 2.500, output 1.950, balance +550 ml; per shift sesuai jam shift bawaan |
+| `AC-KEP-081`, `RWI-AC-229` | Entri sumber Obat tanpa dosis MAR | Integrasi — **jalur gagal** | `400` |
+| `AC-KEP-082`, `RWI-AC-229` | Entri kedua untuk dosis Ceftriaxone 08.00 yang sama | Integrasi — **jalur gagal** | `409`; total tidak berubah |
+| `AC-KEP-083`, `RWI-AC-230` | Menautkan dosis `Held` | Integrasi — **jalur gagal** | `409` |
+| `AC-KEP-084` | Dua permintaan simpan paralel untuk dosis yang sama | Integrasi — konkurensi | Tepat satu baris aktif; unique parsial menolak yang kedua |
+| `AC-KEP-085`, `RWI-AC-231` | Koreksi infus 500 → 450 ml | Integrasi | Revisi menyimpan 500; total turun 50; `RevisionNumber = 1` |
+| `AC-KEP-086` | Koreksi dengan `ExpectedRevisionNumber` basi | Integrasi — **jalur gagal** | `409` |
+| `AC-KEP-087`, `RWI-AC-206` | Catatan naratif perawat berisi "intake 300 ml" | Integrasi | Total cairan tidak berubah |
+| `AC-KEP-088` | Dosis tertaut dikoreksi menjadi `Held` | Integrasi | Entri intake tetap aktif dan `DoseCorrectionFlaggedAt` terisi — usulan `G-26` |
+| `AC-KEP-089` | GDS tanpa satuan | Integrasi — **jalur gagal** | `400` |
+| `AC-KEP-090` | GDS 280 dengan satuan mmol/L | Integrasi — **jalur gagal** | `400` |
+| `AC-KEP-091` | Unit tanpa baris shift dan bawaan kosong | Integrasi | Total per shift tidak ada, `ShiftConfigurationMissing = true`; total 24 jam tampil |
+| `AC-KEP-092` | Shift Pagi 07–14, Siang 14–20, Malam 21–07 | Integrasi — **jalur gagal** | `400` celah |
+| `AC-KEP-093`, `RWI-DEC-100` | Konfigurasi shift tidak mempengaruhi siapa yang boleh menulis | Integrasi | Perawat unit yang tidak terdaftar pada jadwal shift mana pun menulis pukul 03.00 → `200`; jam shift hanya dipakai menghitung total |
+
+### 9.5 MAR — `CAP-023-MAR`
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- |
+| `AC-KEP-094`, `AC-MVP-025` | Ceftriaxone `q12h` berjadwal 08.00/20.00; MAR dibuka | Integrasi | Dua dosis `Due` per hari; membuka ulang tidak menambah baris |
+| `AC-KEP-095` | Hosted service dan pembukaan MAR berjalan bersamaan | Integrasi — konkurensi | Tidak ada dosis ganda |
+| `AC-KEP-096` | Frekuensi `q6h` tanpa jadwal | Integrasi | Nol dosis; pesan jadwal belum dikonfigurasi; pemberian tanpa jadwal beralasan diterima |
+| `AC-KEP-097`, `AC-MVP-026` | Mencatat `Administered` 1 g IV 08.05 | Integrasi | `Administered`; pencatat dari akun login, bukan dari request |
+| `AC-KEP-098`, `AC-MVP-026` | Tombol simpan ditekan dua kali dengan `Idempotency-Key` sama | Integrasi | Satu pemberian |
+| `AC-KEP-099`, `AC-MVP-027` | `Held` tanpa alasan | Integrasi — **jalur gagal** | `400` |
+| `AC-KEP-100` | Dosis 2 g padahal resep 1 g tanpa catatan penyimpangan | Integrasi — **jalur gagal** | `400` |
+| `AC-KEP-101`, `AC-MVP-028` | Insulin high-alert dicatat Ns. Siti | Integrasi | `Due` + `Pending` |
+| `AC-KEP-102`, `AC-MVP-028` | Ns. Siti mengonfirmasi cek ganda catatannya sendiri | Integrasi — **jalur gagal** | `403` |
+| `AC-KEP-103`, `AC-MVP-028` | Ns. Rina mengonfirmasi | Integrasi | `Administered` + `Confirmed`; pemeriksa Rina |
+| `AC-KEP-104` | Ns. Rina menolak tanpa catatan | Integrasi — **jalur gagal** | `400` |
+| `AC-KEP-105`, `RWI-DEC-121` | Dokter menghentikan butir 14.00 | Integrasi | Dosis 20.00 `Cancelled` "resep dihentikan"; 08.00 `Administered` tetap |
+| `AC-KEP-106` | Mencatat dosis butir yang sudah dihentikan | Integrasi — **jalur gagal** | `409` |
+| `AC-KEP-107`, `RWI-DEC-116` (c) | Kepala ruangan mengoreksi `Administered` → `Refused` beralasan | Integrasi | Revisi menyimpan `Administered`; baris berlaku `Refused` |
+| `AC-KEP-108` | Perawat pelaksana tanpa `Update` mengoreksi | Integrasi — **jalur gagal** | `403` |
+| `AC-KEP-109`, `FR-MVP-KEP-013` | PRN parasetamol tanpa indikasi | Integrasi — **jalur gagal** | `400` |
+| `AC-KEP-110` | PRN pada butir bukan `IsAsNeeded` | Integrasi — **jalur gagal** | `409` |
+| `AC-KEP-111`, `AC-MVP-029` | Dugaan reaksi obat dari dosis 08.00 | Integrasi | Satu alergi `Suspected` tertaut dosis; baris MAR tidak berubah; tampil pada peringatan alergi aktif |
+| `AC-KEP-112` | Dosis `Due` lewat `MissedAfterMinutes` | Integrasi | Penanda lewat waktu; status tetap `Due` |
+| `AC-KEP-113`, `INT-KEP-15` | Episode ditutup 13.00 dengan dosis `Due` 08.00 belum dicatat dan 20.00 | Integrasi | 20.00 `Cancelled` "perawatan ditutup"; 08.00 tetap `Due` hanya-baca; penutupan tidak tertahan |
+| `AC-KEP-114` | Arsitektur: tabel MAR hanya di `PharmacyManagement` | Architecture test | Nol entity MAR di `ClinicalManagement` atau `InPatientManagement` |
+
+### 9.6 Pelaksanaan sliding scale
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- |
+| `AC-KEP-115`, `RWI-AC-219`, `RWI-AC-227` | Order Budi v2 aktif; perawat mengetik GDS 280 mg/dL 11.00, rentang `[250,300)` 3 unit | Integrasi | Satu `CliBloodGlucoseReading`, satu dosis MAR 3 unit, satu pelaksanaan merujuk GDS itu |
+| `AC-KEP-116`, `RWI-AC-220` | Kiriman ulang dengan kunci sama | Integrasi | Pelaksanaan, GDS, dan dosis tetap satu; riwayat MAR menampilkan insulin 11.00 sekali |
+| `AC-KEP-117`, `RWI-AC-219` | Tanpa order aktif | Integrasi — **jalur gagal** | `409`, `VAL-KEP-27`; nol GDS dan nol dosis |
+| `AC-KEP-118`, `RWI-AC-226` | Order dihentikan 10.00, pelaksanaan 11.00 | Integrasi — **jalur gagal** | `409`, `VAL-KEP-27` |
+| `AC-KEP-119`, `RWI-AC-228` | Memilih id hasil GDS laboratorium 190 | Integrasi — **jalur gagal** | `422`, `VAL-KEP-28` |
+| `AC-KEP-120` | GDS 15,6 mmol/L terhadap protokol mg/dL | Integrasi — **jalur gagal** | `409`; tidak ada konversi |
+| `AC-KEP-121` | Dosis aktual 2 unit, hitungan 3, tanpa alasan | Integrasi — **jalur gagal** | `400` |
+| `AC-KEP-122` | Dokter menyesuaikan order saat perawat di layar | Integrasi — **jalur gagal** | `409` versi basi; perawat melihat dosis baru |
+| `AC-KEP-123` | Galat pada langkah penulisan dosis | Integrasi — kegagalan | Seluruh transaksi batal; GDS pun tidak tersimpan |
+| `AC-KEP-124` | GDS 820 dikoreksi 280 setelah pelaksanaan | Integrasi | Pelaksanaan tetap menyimpan salinan 820 dan `ReadingCorrectedAfterExecution = true` |
+| `AC-KEP-125`, `RWI-AC-224` | Template v3 disahkan setelah pelaksanaan | Integrasi | Pelaksanaan lama tetap merujuk versi order lama |
+| `AC-KEP-126` | Insulin high-alert | Integrasi | Dosis `Pending`; pelaksanaan `Recorded` |
+| `AC-KEP-127` | Mencatat insulin sliding scale lewat `/record` | Integrasi — **jalur gagal** | `409`, `VAL-KEP-29f` |
+| `AC-KEP-128`, `RWI-AC-225` | Arsitektur: tabel sliding scale | Architecture test | Nol entity sliding scale di `ClinicalManagement` atau `InPatientManagement` |
+
+### 9.7 Menu, batas rilis, dan hak lihat
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- |
+| `AC-KEP-129`, `RWI-AC-221` | Pemindaian menu, entity, dan route | Architecture test | Nol menu, tabel, atau endpoint handover shift dan transfusi |
+| `AC-KEP-130`, `RWI-DEC-108` | Menu Gizi, Bank Darah, Hemodialisa, Rehab Medik, Pemesanan Ruangan Bedah, Pemakaian Alat | E2E | "Integrasi belum tersedia" tanpa data tiruan dan tanpa permintaan jaringan ke modul itu |
+| `AC-KEP-131`, `RWI-AC-198` | Ns. Rudi tanpa `PatientBillingSummary : Read` membuka Tagihan Pasien | E2E + integrasi | Layar "Anda tidak punya akses"; permintaan langsung `403` |
+| `AC-KEP-132`, `RWI-AC-198` | Kontrak Billing belum ada | E2E | "Integrasi belum tersedia"; bukan angka nol |
+| `AC-KEP-133`, `RWI-AC-205` | Menu SOAP dan Catatan Keperawatan | E2E | Masing-masing hanya menampilkan jenisnya; Catatan Terintegrasi menampilkan keduanya |
+| `AC-KEP-134`, `RWI-AC-193` | Rilis `KEP-V2-2` | Pemeriksaan rilis | Rekonsiliasi dan MAR hadir bersama; tidak ada menu rekonsiliasi "belum tersedia" |
+| `AC-KEP-135`, `RWI-DEC-100` | Dokter membuka MAR dan Pengawasan Harian | E2E | Hanya baca |
+
+### 9.8 Yang belum dapat diuji pada `0.5.0`
+
+| Skenario | Sebab | Diuji setelah |
+| --- | --- | --- |
+| Addendum Evaluasi Awal; penguncian konsep Evaluasi Awal saat penutupan | `INT-KEP-12` menunggu persetujuan Yoga Aji Pratama | Jenis dokumen `14` tersedia |
+| Isi ringkasan Tagihan Pasien | `INT-KEP-14` menunggu kontrak Billing | Kontrak Billing disetujui |
+| Pengesahan instrumen di produksi dengan isi klinis | Pemilik klinis belum ditunjuk — `RWI-OQ-056`, `RWI-OQ-057` | Pengesahan pemilik klinis |
+| Cek ganda pada daftar high-alert yang sebenarnya | Daftar high-alert gerbang produksi `RWI-DEC-116` | Daftar disahkan |
+| Jam jadwal dan jendela lewat waktu sebenarnya | Gate `G-12` | Farmasi/klinis mengisi |

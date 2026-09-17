@@ -3,9 +3,9 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | `0.8.0` |
-| `last_changed_in` | `0.8.0` — pencabutan aturan jenis kelamin tingkat kamar |
-| Status | **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
+| `contract_version` | **`0.9.0`** — bagian 13, `draft` |
+| `last_changed_in` | **`0.9.0`** — `VAL-INP-01` s.d. `17`. Sebelumnya `0.8.0` |
+| Status | **`draft`** untuk `0.9.0`. `0.8.0` **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
 | Owner | Product/Domain Owner sementara sesuai `RWI-DEC-006` |
 | `input_revision` | `00-interview-decisions.md` revision `16`; `02-backend-architecture.md` revision `0.7`; `04-prd-to-mvp.md` revision `0.6.0` |
 | Dampak kompatibilitas | Seluruhnya baru, kecuali satu baris pada bagian 8 yang mengubah perilaku endpoint existing. **Sejak `0.8.0` satu aturan dicabut**, dan pencabutan itu **melonggarkan** penolakan, bukan menambahnya |
@@ -284,3 +284,52 @@ tercatat **1 hari**, bukan 0 hari.
 | 9 | `RWI-RULE-020`, `RWI-DEC-028`, `RWI-DEC-057` |
 | 10 | `RWI-RULE-027`, `RWI-DEC-039` |
 | 11 | `RWI-RULE-002`, `RWI-RULE-019`, `RWI-RULE-022` |
+
+---
+
+## 13. Perubahan pada `contract_version` `0.9.0` — amandemen terbatas ★ 15 September 2026
+
+**Status `draft`.** Bagian ini memperkenalkan **nomor aturan** `VAL-INP-##` untuk aturan baru, karena sub-modul lain
+merujuknya — `dokter-rawat-inap` `0.6.0` merujuk `VAL-INP-01`. Aturan pada bagian 1 s.d. 12 tetap tanpa nomor.
+
+### 13.1 Penugasan dokter pendukung
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | ---: |
+| **`VAL-INP-01`** | `POST /episodes/{id}/doctor-assignments/supporting` dengan `LateDocumentation` | Peran bukan `OnCallDoctor`; `EndDateTime` kosong atau tidak lebih besar dari `StartDateTime`; alasan kosong — `RWI-DEC-130`, `RWI-AC-189` | "Penugasan singkat penulisan catatan terlambat wajib berperan dokter jaga, punya waktu selesai, dan beralasan." | 400 |
+| `VAL-INP-02` | Sama, tujuan apa pun | Peran `Dpjp` | "DPJP dialihkan lewat Pengalihan DPJP, bukan penugasan pendukung." | 422 |
+| `VAL-INP-03` | Sama | Pengguna bukan kepala ruangan atau supervisor | "Hanya kepala ruangan atau supervisor yang dapat menugaskan dokter pendukung." | 403 |
+| `VAL-INP-04` | Sama | Alasan kosong untuk `Regular` | "Isi alasan pelibatan dokter." | 400 |
+| `VAL-INP-05` | Sama | Episode bukan `Admitted` atau `DischargePending` | "Penugasan dokter hanya untuk pasien yang masih dirawat." | 422 |
+| `VAL-INP-06` | Sama | Dokter tidak aktif pada master dokter | "Dokter yang dipilih tidak aktif." | 422 |
+| `VAL-INP-07` | Sama | Dokter yang sama sudah punya penugasan dengan peran yang sama yang periodenya bertumpuk | "Dokter ini sudah ditugaskan sebagai {peran} pada periode itu." | 409 |
+| `VAL-INP-08` | Sama, tujuan `LateDocumentation` | `StartDateTime` lebih dari 5 menit sebelum saat simpan. Untuk tujuan `Regular`, waktu mulai lampau diterima selama tidak sebelum waktu pasien masuk — konsulen yang dipanggil 09.00 boleh dicatat 09.30 | "Waktu mulai penugasan singkat tidak boleh di masa lalu. Catatan terlambat dinilai terhadap penugasan lama dokter." | 400 |
+| `VAL-INP-09` | `PATCH …/{assignmentId}/end` | Penugasan `Dpjp`; sudah berakhir; `EndDateTime` sebelum `StartDateTime` | "Penugasan ini tidak dapat diakhiri dengan cara ini." | 409 |
+
+> **Kenapa `VAL-INP-08` menolak waktu mulai lampau.** `RWI-DEC-130` butir (7): penugasan singkat tidak menjangkau waktu
+> lampau. Mengizinkan waktu mulai Selasa akan membuat penugasan singkat Kamis diam-diam menjadi penugasan Selasa.
+
+### 13.2 Census dokter
+
+| Aturan | Berlaku pada | Kondisi | Perilaku |
+| --- | --- | --- | --- |
+| `VAL-INP-10` | `GET census?assignedToMe=true` | Query juga mengirim `DoctorId` dokter lain | `DoctorId` **diabaikan**; bukan penolakan |
+| `VAL-INP-11` | Sama | Akun tanpa `DoctorId` | Daftar kosong beserta pesan "Akun Anda tidak terhubung dengan data dokter" |
+
+### 13.3 Resume pulang
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | ---: |
+| `VAL-INP-12` | `PUT /discharges/{episodeId}/summary` | `ImportantFindingsSummary` > 4.000 karakter; `DischargeConditionNote` atau `EducationSummary` > 2.000 karakter | "Isian {nama} terlalu panjang, paling banyak {n} karakter." | 400 |
+
+Tiga isian baru **tidak wajib**. Menambahkannya ke syarat tanda tangan menunggu pemilik klinis — `RWI-RULE-032`.
+
+### 13.4 Penutupan episode — peringatan, bukan penolakan
+
+| Aturan | Kondisi | Perilaku |
+| --- | --- | --- |
+| `VAL-INP-13` | Ada konsep catatan dokter yang belum ditandatangani | Peringatan `UNSIGNED_DOCTOR_DRAFTS`; penutupan **tidak** ditahan — `RWI-DEC-138` (5) |
+| `VAL-INP-14` | Ada pesanan tindakan tertunda | Peringatan `PENDING_PROCEDURE_ORDERS`; dibatalkan saat penutupan — `RWI-DEC-143` (3) |
+| `VAL-INP-15` | Ada pesanan tindakan tertunda yang sudah ditagih | Peringatan `BILLED_PENDING_PROCEDURE_ORDERS`; tidak dibatalkan; masuk daftar pantau |
+| `VAL-INP-16` | Ada dosis obat lewat jadwal belum dicatat | Peringatan `UNRECORDED_PAST_DOSES`; tidak dibatalkan |
+| `VAL-INP-17` | Salah satu langkah 4–6 gagal | Seluruh penutupan batal; `500` "Penutupan gagal disimpan, coba lagi" |
