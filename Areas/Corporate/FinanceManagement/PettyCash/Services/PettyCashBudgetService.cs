@@ -1,21 +1,25 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
-using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Dtos;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.PettyCash.Dtos;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.PettyCash.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 using System.Data;
 
-namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Services;
+namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.PettyCash.Services;
 
-// BE-BKC-036 / PC-DES-004,005,006,011,014: satu-satunya penulis BilPettyCashBudget.CurrentBalance.
-// TopUpAsync dan AdjustAsync membuka transaction sendiri; ApplyDisbursementAsync sengaja TIDAK,
-// karena ia MUST dipanggil dari dalam transaction milik PettyCashVoucherService (BE-BKC-037).
+/// <summary>
+/// Service pengelola anggaran dan saldo berjalan kas kecil pada Bounded Context Corporate/FinanceManagement.
+/// Satu-satunya penulis FinPettyCashBudget.CurrentBalance.
+/// TopUpAsync dan AdjustAsync membuka transaction sendiri; ApplyDisbursementAsync sengaja TIDAK,
+/// karena dipanggil dari dalam transaction milik PettyCashVoucherService di BillingManagement.
+/// </summary>
 public sealed class PettyCashBudgetService
 {
-    private const string LogCategory = "HealthServices.BillingManagement.PettyCash";
-    private const string BudgetLockKey = "BIL_PETTY_CASH_BUDGET_HOSPITAL_MAIN";
+    private const string LogCategory = "Corporate.FinanceManagement.PettyCash";
+    private const string BudgetLockKey = "FIN_PETTY_CASH_BUDGET_HOSPITAL_MAIN";
     private const decimal MaxMoneyAmount = 9999999999999999.99m;
     private readonly ApplicationDbContext _dbContext;
     private readonly LoggerService _loggerService;
@@ -33,11 +37,6 @@ public sealed class PettyCashBudgetService
         return Map(budget, reserved);
     }
 
-    // BE-BKC-058, PC-DES-025: satu panggilan untuk seluruh kartu ringkasan halaman gabungan.
-    // Reuse GetCurrentAsync untuk anggaran/saldo/sisa, ditambah dua hitungan status voucher
-    // yang dijumlah langsung dari ApplicationDbContext (pola sama dengan
-    // PettyCashVoucherService.GetSummaryAsync) — MUST NOT menyuntikkan PettyCashVoucherService
-    // ke sini karena arahnya sudah terbalik (VoucherService yang bergantung ke BudgetService).
     public async Task<PettyCashOverviewResponse> GetOverviewAsync(CancellationToken cancellationToken)
     {
         var activeBudget = await GetCurrentAsync(cancellationToken);
@@ -59,13 +58,11 @@ public sealed class PettyCashBudgetService
     public async Task<PagedResult<PettyCashBudgetMovementResponse>> GetMovementsAsync(
         PettyCashBudgetMovementQuery request, CancellationToken cancellationToken)
     {
-        // BudgetId eksplisit membuka riwayat periode manapun, termasuk yang sudah Ditutup;
-        // kosong tetap jatuh ke periode Aktif seperti perilaku sebelum revisi ini (PC-DES-017).
         Guid budgetId;
         if (request.BudgetId.HasValue)
         {
             budgetId = request.BudgetId.Value;
-            var exists = await _dbContext.BilPettyCashBudgets.AsNoTracking()
+            var exists = await _dbContext.FinPettyCashBudgets.AsNoTracking()
                 .AnyAsync(x => x.Id == budgetId && !x.IsDelete, cancellationToken);
             if (!exists) throw new KeyNotFoundException("Periode anggaran kas kecil tidak ditemukan.");
         }
@@ -75,7 +72,7 @@ public sealed class PettyCashBudgetService
             budgetId = budget.Id;
         }
 
-        var query = _dbContext.BilPettyCashBudgetMovements.AsNoTracking()
+        var query = _dbContext.FinPettyCashBudgetMovements.AsNoTracking()
             .Where(x => x.BudgetId == budgetId && !x.IsDelete);
 
         if (!string.IsNullOrWhiteSpace(request.MovementType))
@@ -93,7 +90,6 @@ public sealed class PettyCashBudgetService
             .Select(x => new
             {
                 x.Id, x.MovementType, x.Amount, x.BalanceBefore, x.BalanceAfter,
-                x.VoucherId, x.Reason, x.ActorUserId, x.OccurredAt
                 x.VoucherId, x.Reason, x.ActorUserId, x.OccurredAt,
                 x.FundingSourceType, x.TransferReference
             })
@@ -157,7 +153,7 @@ public sealed class PettyCashBudgetService
                 await AcquireLockAsync(cancellationToken);
             }
 
-            var priorMovement = await _dbContext.BilPettyCashBudgetMovements.AsNoTracking()
+            var priorMovement = await _dbContext.FinPettyCashBudgetMovements.AsNoTracking()
                 .SingleOrDefaultAsync(x => x.IdempotencyKey == idempotencyKey, cancellationToken);
             if (priorMovement is not null)
             {
@@ -175,7 +171,7 @@ public sealed class PettyCashBudgetService
                 throw new PettyCashBudgetValidationException("Saldo kas kecil melebihi batas nominal yang didukung.");
             var now = DateTimeOffset.UtcNow;
 
-            var movement = new BilPettyCashBudgetMovement
+            var movement = new FinPettyCashBudgetMovement
             {
                 BudgetId = budget.Id,
                 Budget = budget,
@@ -194,7 +190,7 @@ public sealed class PettyCashBudgetService
                 CreateBy = actorUserId
             };
             budget.Movements.Add(movement);
-            _dbContext.BilPettyCashBudgetMovements.Add(movement);
+            _dbContext.FinPettyCashBudgetMovements.Add(movement);
             budget.CurrentBalance = after;
             budget.TotalTopUpAmount = checked(budget.TotalTopUpAmount + request.Amount);
             budget.LastMovementAt = now;
@@ -245,7 +241,7 @@ public sealed class PettyCashBudgetService
                 await AcquireLockAsync(cancellationToken);
             }
 
-            var priorMovement = await _dbContext.BilPettyCashBudgetMovements.AsNoTracking()
+            var priorMovement = await _dbContext.FinPettyCashBudgetMovements.AsNoTracking()
                 .SingleOrDefaultAsync(x => x.IdempotencyKey == idempotencyKey, cancellationToken);
             if (priorMovement is not null)
             {
@@ -262,9 +258,6 @@ public sealed class PettyCashBudgetService
                 ? before - request.Amount
                 : checked(before + request.Amount);
 
-            // PC-DES-016: penjaga "tidak boleh di bawah komitmen berjalan" dicabut bersama
-            // mekanisme ReservedAmount — satu-satunya syarat yang tersisa adalah saldo tidak
-            // boleh negatif (BIL-VAL-054, dipersempit).
             if (direction == PettyCashBudgetAdjustmentDirections.Decrease && after < 0)
                 throw new PettyCashBudgetInsufficientBalanceException(
                     "Koreksi ini akan membuat saldo kas kecil menjadi negatif.");
@@ -272,7 +265,7 @@ public sealed class PettyCashBudgetService
                 throw new PettyCashBudgetValidationException("Saldo kas kecil melebihi batas nominal yang didukung.");
             var now = DateTimeOffset.UtcNow;
 
-            var movement = new BilPettyCashBudgetMovement
+            var movement = new FinPettyCashBudgetMovement
             {
                 BudgetId = budget.Id,
                 Budget = budget,
@@ -289,7 +282,7 @@ public sealed class PettyCashBudgetService
                 CreateBy = actorUserId
             };
             budget.Movements.Add(movement);
-            _dbContext.BilPettyCashBudgetMovements.Add(movement);
+            _dbContext.FinPettyCashBudgetMovements.Add(movement);
             budget.CurrentBalance = after;
             budget.LastMovementAt = now;
             budget.RowVersion = Guid.NewGuid();
@@ -326,7 +319,7 @@ public sealed class PettyCashBudgetService
     public async Task<PagedResult<PettyCashBudgetResponse>> GetPeriodsAsync(
         PettyCashBudgetPeriodQuery request, CancellationToken cancellationToken)
     {
-        var query = _dbContext.BilPettyCashBudgets.AsNoTracking().Where(x => !x.IsDelete);
+        var query = _dbContext.FinPettyCashBudgets.AsNoTracking().Where(x => !x.IsDelete);
         if (!string.IsNullOrWhiteSpace(request.Status))
         {
             var status = request.Status.Trim().ToUpperInvariant();
@@ -339,9 +332,6 @@ public sealed class PettyCashBudgetService
             .Skip((request.PageNumber - 1) * request.PageSize).Take(request.PageSize)
             .ToListAsync(cancellationToken);
 
-        // ReservedAmount (warisan, PC-DES-016) hanya bermakna untuk periode Aktif — lihat
-        // catatan pada PettyCashBudgetResponse.ReservedAmount. Periode lain diberi 0 karena
-        // tidak ada voucher yang dapat menjanjikan diri atas periode yang bukan sedang berjalan.
         var activeReserved = rows.Any(x => x.Status == PettyCashBudgetStatuses.Active)
             ? await CalculateReservedAmountAsync(cancellationToken)
             : 0m;
@@ -357,8 +347,6 @@ public sealed class PettyCashBudgetService
         };
     }
 
-    // PC-DES-017. Membuat periode BARU berstatus Draf — belum menerima pergerakan uang apa
-    // pun sampai diaktifkan (PC-DES-017, FR-BKC-092).
     public async Task<PettyCashBudgetResponse> CreatePeriodAsync(
         CreatePettyCashBudgetPeriodRequest request, Guid actorUserId, CancellationToken cancellationToken)
     {
@@ -377,11 +365,7 @@ public sealed class PettyCashBudgetService
                 await AcquireLockAsync(cancellationToken);
             }
 
-            // BIL-VAL-102: periode baru MUST NOT tumpang tindih periode lain pada kolam yang
-            // sama, kecuali periode yang sudah Ditutup (riwayatnya boleh tumpang tindih tanggal
-            // dengan periode aktif berikutnya bila keduanya sengaja dibuat begitu — yang
-            // dicegah hanya dua periode yang SAMA-SAMA masih berlaku pada tanggal yang sama).
-            var overlaps = await _dbContext.BilPettyCashBudgets.AsNoTracking()
+            var overlaps = await _dbContext.FinPettyCashBudgets.AsNoTracking()
                 .Where(x => x.PoolCode == poolCode && !x.IsDelete && x.Status != PettyCashBudgetStatuses.Closed)
                 .AnyAsync(x =>
                     request.PeriodStart <= (x.PeriodEnd ?? DateOnly.MaxValue) &&
@@ -391,7 +375,7 @@ public sealed class PettyCashBudgetService
                 throw new PettyCashBudgetValidationException(
                     "Periode anggaran ini bertabrakan dengan periode yang sudah ada pada kolam yang sama.");
 
-            var period = new BilPettyCashBudget
+            var period = new FinPettyCashBudget
             {
                 PoolCode = poolCode,
                 PoolName = string.IsNullOrWhiteSpace(request.PoolName) ? "Kas Kecil Rumah Sakit" : request.PoolName.Trim(),
@@ -406,7 +390,7 @@ public sealed class PettyCashBudgetService
                 CreateDateTime = DateTime.UtcNow,
                 CreateBy = actorUserId
             };
-            _dbContext.BilPettyCashBudgets.Add(period);
+            _dbContext.FinPettyCashBudgets.Add(period);
             await _dbContext.SaveChangesAsync(cancellationToken);
             if (transaction is not null) await transaction.CommitAsync(cancellationToken);
             await AuditPeriodAsync("PettyCashBudget.CreatePeriod", period, actorUserId);
@@ -428,10 +412,6 @@ public sealed class PettyCashBudgetService
         }
     }
 
-    // PC-DES-017, BIL-VAL-103. Paling banyak satu periode Aktif per kolam pada satu waktu —
-    // ditegakkan di sini DAN oleh unique index parsial IX_BilPettyCashBudget_ActivePerPool,
-    // supaya invariant tetap tegak walau dua permintaan aktivasi lolos kunci penasihat
-    // bersamaan (jaring pengaman kedua, pola sama dengan PC-DES-006).
     public async Task<PettyCashBudgetResponse> ActivatePeriodAsync(
         Guid id, ActivatePettyCashBudgetPeriodRequest request, Guid actorUserId, CancellationToken cancellationToken)
     {
@@ -444,14 +424,14 @@ public sealed class PettyCashBudgetService
                 await AcquireLockAsync(cancellationToken);
             }
 
-            var period = await _dbContext.BilPettyCashBudgets
+            var period = await _dbContext.FinPettyCashBudgets
                 .SingleOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
                 ?? throw new KeyNotFoundException("Periode anggaran tidak ditemukan.");
             if (period.Status != PettyCashBudgetStatuses.Draft)
                 throw new PettyCashBudgetValidationException("Hanya periode berstatus Draf yang dapat diaktifkan.");
             EnsureCurrentRowVersion(period, request.ExpectedRowVersion);
 
-            var alreadyActive = await _dbContext.BilPettyCashBudgets.AsNoTracking()
+            var alreadyActive = await _dbContext.FinPettyCashBudgets.AsNoTracking()
                 .AnyAsync(x => x.PoolCode == period.PoolCode && x.Status == PettyCashBudgetStatuses.Active && !x.IsDelete, cancellationToken);
             if (alreadyActive)
                 throw new PettyCashBudgetValidationException(
@@ -489,12 +469,6 @@ public sealed class PettyCashBudgetService
         }
     }
 
-    // PC-DES-018. Menutup periode Aktif dan memindahkan sisa saldonya ke periode penerus
-    // sebagai DUA baris ledger dalam satu transaction — CarryForwardOut pada periode ini,
-    // CarryForwardIn pada periode penerus. Ditolak bila masih ada permintaan yang belum
-    // dicairkan (BIL-VAL-104): "belum dicairkan" diperiksa terhadap kosakata status LAMA
-    // (WaitingApproval/Approved) DAN BARU (Requested) sekaligus, karena PettyCashVoucherService
-    // — di luar scope task ini — masih menulis kosakata lama sampai BE-BKC-055.
     public async Task<PettyCashBudgetResponse> ClosePeriodAsync(
         Guid id, ClosePettyCashBudgetPeriodRequest request, Guid actorUserId, CancellationToken cancellationToken)
     {
@@ -510,7 +484,7 @@ public sealed class PettyCashBudgetService
                 await AcquireLockAsync(cancellationToken);
             }
 
-            var period = await _dbContext.BilPettyCashBudgets.Include(x => x.Movements)
+            var period = await _dbContext.FinPettyCashBudgets.Include(x => x.Movements)
                 .SingleOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
                 ?? throw new KeyNotFoundException("Periode anggaran tidak ditemukan.");
             if (period.Status != PettyCashBudgetStatuses.Active)
@@ -537,7 +511,7 @@ public sealed class PettyCashBudgetService
                     throw new PettyCashBudgetValidationException(
                         "Masih ada sisa saldo pada periode ini. Pilih periode penerus untuk menerima sisa saldo tersebut.");
 
-                var successor = await _dbContext.BilPettyCashBudgets
+                var successor = await _dbContext.FinPettyCashBudgets
                     .SingleOrDefaultAsync(x => x.Id == request.SuccessorBudgetId.Value && !x.IsDelete, cancellationToken)
                     ?? throw new PettyCashBudgetValidationException("Periode anggaran penerus tidak ditemukan.");
                 if (successor.Id == period.Id)
@@ -549,7 +523,7 @@ public sealed class PettyCashBudgetService
 
                 var correlationId = Guid.NewGuid();
 
-                var outMovement = new BilPettyCashBudgetMovement
+                var outMovement = new FinPettyCashBudgetMovement
                 {
                     BudgetId = period.Id,
                     Budget = period,
@@ -565,7 +539,7 @@ public sealed class PettyCashBudgetService
                     CreateBy = actorUserId
                 };
                 period.Movements.Add(outMovement);
-                _dbContext.BilPettyCashBudgetMovements.Add(outMovement);
+                _dbContext.FinPettyCashBudgetMovements.Add(outMovement);
                 period.CurrentBalance = 0m;
 
                 var successorBefore = successor.CurrentBalance;
@@ -573,7 +547,7 @@ public sealed class PettyCashBudgetService
                 if (successorAfter > MaxMoneyAmount)
                     throw new PettyCashBudgetValidationException("Saldo periode penerus melebihi batas nominal yang didukung.");
 
-                var inMovement = new BilPettyCashBudgetMovement
+                var inMovement = new FinPettyCashBudgetMovement
                 {
                     BudgetId = successor.Id,
                     Budget = successor,
@@ -588,7 +562,7 @@ public sealed class PettyCashBudgetService
                     CreateDateTime = DateTime.UtcNow,
                     CreateBy = actorUserId
                 };
-                _dbContext.BilPettyCashBudgetMovements.Add(inMovement);
+                _dbContext.FinPettyCashBudgetMovements.Add(inMovement);
                 successor.CurrentBalance = successorAfter;
                 successor.LastMovementAt = now;
                 successor.UpdateDateTime = DateTime.UtcNow;
@@ -629,12 +603,6 @@ public sealed class PettyCashBudgetService
         }
     }
 
-    // PC-DES-005: dijumlah dari voucher APPROVED (uang belum diserahkan tetapi sudah dijanjikan).
-    // MUST dihitung di sini, MUST NOT dihitung ulang di layar.
-    // Warisan pra-revisi 15 September 2026 (PC-DES-016 mencabut mekanisme ini dari operasi
-    // milik service ini sendiri) — method ini TETAP ADA karena PettyCashVoucherService (di
-    // luar scope BE-BKC-054) masih memanggilnya lewat GetCurrentAsync().AvailableAmount pada
-    // ApproveAsync. Dihapus penuh saat BE-BKC-055 menyentuh service tersebut.
     public async Task<decimal> CalculateReservedAmountAsync(CancellationToken cancellationToken)
     {
         var sum = await _dbContext.BilPettyCashVouchers
@@ -643,10 +611,6 @@ public sealed class PettyCashBudgetService
         return sum ?? 0m;
     }
 
-    // PC-DES-004: MUST NOT membuka transaction sendiri — pemanggil (PettyCashVoucherService,
-    // BE-BKC-037) MUST sudah berada di dalam transaction dan MUST memanggil SaveChangesAsync-nya
-    // sendiri setelah method ini kembali. BIL-VAL-048 ditegakkan di sini karena saldo bisa saja
-    // sudah berubah sejak voucher disetujui.
     public async Task ApplyDisbursementAsync(
         BilPettyCashVoucher voucher, Guid actorUserId, Guid correlationId, CancellationToken cancellationToken)
     {
@@ -654,11 +618,10 @@ public sealed class PettyCashBudgetService
 
         if (_dbContext.Database.IsRelational()) await AcquireLockAsync(cancellationToken);
 
-        var alreadyDisbursed = await _dbContext.BilPettyCashBudgetMovements.AnyAsync(
+        var alreadyDisbursed = await _dbContext.FinPettyCashBudgetMovements.AnyAsync(
             x => x.VoucherId == voucher.Id && x.MovementType == PettyCashBudgetMovementTypes.Disbursement && !x.IsDelete,
             cancellationToken);
         if (alreadyDisbursed)
-            // BIL-VAL-057
             throw new PettyCashBudgetConflictException("Uang untuk voucher ini sudah pernah diserahkan.");
 
         var budget = await LoadActiveBudgetAsync(asNoTracking: false, cancellationToken);
@@ -670,7 +633,7 @@ public sealed class PettyCashBudgetService
         var after = before - voucher.Amount;
         var now = DateTimeOffset.UtcNow;
 
-        var movement = new BilPettyCashBudgetMovement
+        var movement = new FinPettyCashBudgetMovement
         {
             BudgetId = budget.Id,
             Budget = budget,
@@ -687,7 +650,7 @@ public sealed class PettyCashBudgetService
             CreateBy = actorUserId
         };
         budget.Movements.Add(movement);
-        _dbContext.BilPettyCashBudgetMovements.Add(movement);
+        _dbContext.FinPettyCashBudgetMovements.Add(movement);
         budget.CurrentBalance = after;
         budget.TotalDisbursedAmount = checked(budget.TotalDisbursedAmount + voucher.Amount);
         budget.LastMovementAt = now;
@@ -696,10 +659,6 @@ public sealed class PettyCashBudgetService
         budget.UpdateBy = actorUserId;
     }
 
-    // BE-BKC-057, PC-DES-019, BIL-VAL-098, BIL-VAL-106: dipanggil dari dalam transaction milik
-    // PettyCashVoucherService.ReturnAsync (pola sama dengan ApplyDisbursementAsync). Pemanggil
-    // MUST sudah memvalidasi status voucher dan invariant "total pengembalian tidak melampaui
-    // Amount voucher" (BIL-VAL-098) sebelum memanggil ini — method ini hanya menulis sisi saldo.
     public async Task ApplyReturnAsync(
         BilPettyCashVoucher voucher, decimal amount, Guid actorUserId, Guid correlationId, string reason, CancellationToken cancellationToken)
     {
@@ -715,7 +674,7 @@ public sealed class PettyCashBudgetService
             throw new PettyCashBudgetValidationException("Saldo kas kecil melebihi batas nominal yang didukung.");
         var now = DateTimeOffset.UtcNow;
 
-        var movement = new BilPettyCashBudgetMovement
+        var movement = new FinPettyCashBudgetMovement
         {
             BudgetId = budget.Id,
             Budget = budget,
@@ -732,7 +691,7 @@ public sealed class PettyCashBudgetService
             CreateBy = actorUserId
         };
         budget.Movements.Add(movement);
-        _dbContext.BilPettyCashBudgetMovements.Add(movement);
+        _dbContext.FinPettyCashBudgetMovements.Add(movement);
         budget.CurrentBalance = after;
         budget.LastMovementAt = now;
         budget.RowVersion = Guid.NewGuid();
@@ -740,32 +699,18 @@ public sealed class PettyCashBudgetService
         budget.UpdateBy = actorUserId;
     }
 
-    // BE-BKC-057, PC-DES-020, BIL-VAL-099, BIL-VAL-106: dipanggil dari dalam transaction milik
-    // PettyCashVoucherService.ReverseAsync. "outstandingAmount" (Amount − ReturnedAmount) MUST
-    // sudah dihitung pemanggil sesaat sebelum panggilan ini, dari voucher yang sedang dikunci
-    // penasihat per-voucher yang sama (PC-DES-011) — bukan nominal dari pengguna.
-    // "alreadyReversed" adalah jaring pengaman kedua; gerbang utama "belum pernah dibalik"
-    // sudah ditegakkan struktural oleh ChangeVoucherAsync (voucher REVERSED ditolak untuk
-    // seluruh aksi, BIL-VAL-100), dipasangkan dengan unique index parsial
-    // IX_BilPettyCashBudgetMovement_Voucher_Reversal — sama seperti pola alreadyDisbursed pada
-    // ApplyDisbursementAsync.
     public async Task ApplyReversalAsync(
         BilPettyCashVoucher voucher, decimal outstandingAmount, Guid actorUserId, Guid correlationId, string reason, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(voucher);
-        // Sisa sudah nol berarti seluruh nominal sudah kembali lebih dulu lewat RETURN — tidak
-        // ada apa pun yang perlu dipindahkan ke saldo, dan CK_BilPettyCashBudgetMovement_Amount
-        // ("Amount" > 0) melarang baris ledger bernilai nol. Voucher tetap berpindah ke REVERSED
-        // oleh pemanggil walau tanpa baris REVERSAL di sini.
         if (outstandingAmount <= 0) return;
 
         if (_dbContext.Database.IsRelational()) await AcquireLockAsync(cancellationToken);
 
-        var alreadyReversed = await _dbContext.BilPettyCashBudgetMovements.AnyAsync(
+        var alreadyReversed = await _dbContext.FinPettyCashBudgetMovements.AnyAsync(
             x => x.VoucherId == voucher.Id && x.MovementType == PettyCashBudgetMovementTypes.Reversal && !x.IsDelete,
             cancellationToken);
         if (alreadyReversed)
-            // BIL-VAL-099
             throw new PettyCashBudgetValidationException("Pencairan ini sudah pernah dibatalkan.");
 
         var budget = await LoadActiveBudgetForMovementAsync(cancellationToken);
@@ -776,7 +721,7 @@ public sealed class PettyCashBudgetService
             throw new PettyCashBudgetValidationException("Saldo kas kecil melebihi batas nominal yang didukung.");
         var now = DateTimeOffset.UtcNow;
 
-        var movement = new BilPettyCashBudgetMovement
+        var movement = new FinPettyCashBudgetMovement
         {
             BudgetId = budget.Id,
             Budget = budget,
@@ -793,7 +738,7 @@ public sealed class PettyCashBudgetService
             CreateBy = actorUserId
         };
         budget.Movements.Add(movement);
-        _dbContext.BilPettyCashBudgetMovements.Add(movement);
+        _dbContext.FinPettyCashBudgetMovements.Add(movement);
         budget.CurrentBalance = after;
         budget.LastMovementAt = now;
         budget.RowVersion = Guid.NewGuid();
@@ -801,38 +746,30 @@ public sealed class PettyCashBudgetService
         budget.UpdateBy = actorUserId;
     }
 
-    // Public: BE-BKC-037 (PettyCashVoucherService.ApproveAsync) MUST mengambil kunci yang sama
-    // sebelum membaca CalculateReservedAmountAsync/GetCurrentAsync, supaya dua persetujuan
-    // bersamaan tidak sama-sama lolos memeriksa komitmen yang belum saling terlihat (PC-DES-005).
     public Task AcquireLockAsync(CancellationToken cancellationToken) =>
         _dbContext.Database.ExecuteSqlRawAsync(
             "SELECT pg_advisory_xact_lock(hashtext({0}));", [BudgetLockKey], cancellationToken);
 
-    private async Task<BilPettyCashBudget> LoadActiveBudgetAsync(bool asNoTracking, CancellationToken cancellationToken)
+    private async Task<FinPettyCashBudget> LoadActiveBudgetAsync(bool asNoTracking, CancellationToken cancellationToken)
     {
         var query = asNoTracking
-            ? _dbContext.BilPettyCashBudgets.AsNoTracking()
-            : _dbContext.BilPettyCashBudgets.Include(x => x.Movements);
+            ? _dbContext.FinPettyCashBudgets.AsNoTracking()
+            : _dbContext.FinPettyCashBudgets.Include(x => x.Movements);
         return await query.SingleOrDefaultAsync(x => x.Status == PettyCashBudgetStatuses.Active && !x.IsDelete, cancellationToken)
             ?? throw new KeyNotFoundException("Kolam anggaran kas kecil aktif tidak ditemukan.");
     }
 
-    // BE-BKC-057, BIL-VAL-106: pembungkus LoadActiveBudgetAsync khusus Return/Reversal supaya
-    // ketiadaan periode aktif menghasilkan 422 sesuai kontrak amendment 15 September 2026,
-    // bukan 404 seperti ApplyDisbursementAsync (gap pra-existing pada BE-BKC-054/055, dicatat
-    // pada laporan task — bukan diperbaiki di sini karena mengubah perilaku endpoint lain).
-    private async Task<BilPettyCashBudget> LoadActiveBudgetForMovementAsync(CancellationToken cancellationToken)
+    private async Task<FinPettyCashBudget> LoadActiveBudgetForMovementAsync(CancellationToken cancellationToken)
     {
         try { return await LoadActiveBudgetAsync(asNoTracking: false, cancellationToken); }
         catch (KeyNotFoundException)
         {
-            // BIL-VAL-106
             throw new PettyCashBudgetValidationException(
                 "Belum ada periode anggaran yang aktif. Finance perlu membuat dan mengaktifkan periode anggaran lebih dulu.");
         }
     }
 
-    private static void EnsureCurrentRowVersion(BilPettyCashBudget budget, Guid expectedRowVersion)
+    private static void EnsureCurrentRowVersion(FinPettyCashBudget budget, Guid expectedRowVersion)
     {
         if (expectedRowVersion == Guid.Empty)
             throw new PettyCashBudgetValidationException("ExpectedRowVersion wajib diisi.");
@@ -876,8 +813,7 @@ public sealed class PettyCashBudgetService
         return normalized;
     }
 
-    // BIL-AT-076/§ Security — Reason SENSITIF (data-dictionary.md), MUST NOT masuk custom logger.
-    private Task AuditMovementAsync(string action, BilPettyCashBudget budget, BilPettyCashBudgetMovement movement, Guid actorUserId) =>
+    private Task AuditMovementAsync(string action, FinPettyCashBudget budget, FinPettyCashBudgetMovement movement, Guid actorUserId) =>
         _loggerService.AuditAsync(LogCategory, action, "Pergerakan anggaran kas kecil dicatat.", new
         {
             BudgetId = budget.Id,
@@ -894,8 +830,7 @@ public sealed class PettyCashBudgetService
             ActorUserId = actorUserId
         });
 
-    // BIL-AT-076/§ Security — Reason SENSITIF (data-dictionary.md), MUST NOT masuk custom logger.
-    private Task AuditPeriodAsync(string action, BilPettyCashBudget period, Guid actorUserId) =>
+    private Task AuditPeriodAsync(string action, FinPettyCashBudget period, Guid actorUserId) =>
         _loggerService.AuditAsync(LogCategory, action, "Periode anggaran kas kecil diperbarui.", new
         {
             BudgetId = period.Id,
@@ -908,7 +843,7 @@ public sealed class PettyCashBudgetService
             ActorUserId = actorUserId
         });
 
-    private static PettyCashBudgetResponse Map(BilPettyCashBudget budget, decimal reserved) => new()
+    private static PettyCashBudgetResponse Map(FinPettyCashBudget budget, decimal reserved) => new()
     {
         Id = budget.Id,
         PoolCode = budget.PoolCode,
@@ -938,3 +873,4 @@ public sealed class PettyCashBudgetConflictException : Exception
     public PettyCashBudgetConflictException(string message) : base(message) { }
     public PettyCashBudgetConflictException(string message, Exception innerException) : base(message, innerException) { }
 }
+

@@ -1,20 +1,21 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Dtos;
-using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Services;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.PettyCash.Dtos;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.PettyCash.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Responses;
 using System.Security.Claims;
 
-namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Controllers;
+namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.PettyCash.Controllers;
 
 [ApiController]
 [Authorize]
+[Route("api/v1/corporate/finance-management/petty-cash/budget")]
 [Route("api/v1/health-services/billing-management/petty-cash/budget")]
-[AccessController("HEALTH_SERVICE_BILLING_MANAGEMENT_PETTY_CASH", "Health Service Billing Management Petty Cash", "Petty Cash Budget",
-    AreaName = "HealthServices", ControllerName = "PettyCashBudget", Description = "Kolam anggaran dan saldo berjalan kas kecil", SortOrder = 1)]
-[Tags("Health Services / Billing Management / Petty Cash / Budget")]
+[AccessController("CORPORATE_FINANCE_MANAGEMENT_PETTY_CASH", "Corporate Finance Management Petty Cash", "Petty Cash Budget",
+    AreaName = "Corporate", ControllerName = "PettyCashBudget", Description = "Kolam anggaran dan saldo berjalan kas kecil", SortOrder = 1)]
+[Tags("Corporate / Finance Management / Petty Cash / Budget")]
 public sealed class PettyCashBudgetController : ControllerBase
 {
     private readonly PettyCashBudgetService _service;
@@ -139,3 +140,4 @@ public sealed class PettyCashBudgetController : ControllerBase
         return Guid.TryParse(value, out var userId) ? userId : Guid.Empty;
     }
 }
+

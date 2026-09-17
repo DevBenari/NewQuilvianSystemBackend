@@ -2,10 +2,11 @@ using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
+namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.MasterData.Models;
 
 /// <summary>
 /// Kategori pengeluaran kas kecil yang dikelola Finance (PC-DES-002, PC-DEC-012).
+/// Dipindahkan ke Corporate/FinanceManagement/MasterData (Clean Architecture & DDD).
 /// Bukan pengganti dan bukan turunan MstExpenseCategory milik Corporate/HumanResource.
 /// </summary>
 [Table("MstPettyCashCategory", Schema = "public")]
@@ -22,3 +23,4 @@ public sealed class MstPettyCashCategory : IdentityModel
 
     public bool IsActive { get; set; } = true;
 }
+
