@@ -132,16 +132,17 @@ flowchart LR
 | `FE-IGD-021` | Kolom Kesimpulan observasi | ✅ | [fe-igd-020-021](../task/report/frontend/fe-igd-020-021-route-master-igd-dan-kolom-kesimpulan.md) |
 | `FE-IGD-022` | Layar asuhan keperawatan IGD | 🟡 uji layar belum; tab lab cacat; teks radiologi usang — *tab lab dan teks radiologi ditangani `FE-IGD-023` ✅ 15 September 2026; uji layar `FE-IGD-022` tetap belum* | [fe-igd-022](../task/report/frontend/fe-igd-022-asuhan-keperawatan-pengkajian-observasi-penunjang.md) |
 | `FE-IGD-019` | Assesmen Awal IGD memakai formulir bersama | ✅ — kartu susulan 15 September 2026 | [fe-igd-012-018](../task/report/frontend/fe-igd-012-018-penyelesaian-antarmuka.md) |
-| `FE-IGD-023` | Tab Penunjang Medis membaca pesanan milik pasien | ✅ 15 September 2026 — implementasi. **Ditambahkan 17 September 2026:** `npm run build` lulus, 0 error 0 warning; uji layar belum | [FE-IGD-023](../task/report/frontend/FE-IGD-023.md) |
-| `FE-IGD-024` | Isian Kesimpulan saat menyelesaikan observasi | ✅ 15 September 2026 — implementasi. **Ditambahkan 17 September 2026:** `npm run build` lulus, 0 error 0 warning; uji layar belum — dan runtime `BE-IGD-040` juga belum | [FE-IGD-024](../task/report/frontend/FE-IGD-024.md) |
+| `FE-IGD-023` | Tab Penunjang Medis membaca pesanan milik pasien | ✅ 15 September 2026 — implementasi; `npm run build` lulus 17 September 2026. **Uji layar pemilik 17 September 2026 LULUS** (pernyataan pemilik) | [FE-IGD-023](../task/report/frontend/FE-IGD-023.md) |
+| `FE-IGD-024` | Isian Kesimpulan saat menyelesaikan observasi | ✅ 15 September 2026 — implementasi; `npm run build` lulus 17 September 2026. **Uji layar pemilik 17 September 2026 LULUS** — satu periode observasi diselesaikan beserta isian Kesimpulan | [FE-IGD-024](../task/report/frontend/FE-IGD-024.md) |
 | `FE-IGD-025` | Laporan susulan perombakan layar pengkajian dan temuan privasi | tanpa tanda — direncanakan | — |
 | `FE-IGD-026` | Laporan susulan layar pendaftaran IGD | tanpa tanda — direncanakan | — |
 | `FE-IGD-027` | Layar triase memakai riwayat penugasan dokter | tanpa tanda — direncanakan, menunggu `BE-IGD-045` | — |
 | `FE-IGD-028` | Pemantauan observasi dengan tanda vital tertaut | ✅ 16 September 2026 — lint, 857 unit test, dan `npm run build` lulus; **runtime terverifikasi sebagian lewat layar** (jalur pilih-existing dan ABCDE terisi belum dilalui) | [FE-IGD-028](../task/report/frontend/FE-IGD-028.md) |
 | `FE-IGD-029` | Pendaftaran IGD menutup dengan status Menunggu Triage | 🟡 16 September 2026 — kriteria 1 terbukti lewat layar (pasien baru langsung "Menunggu Triage"); kriteria 2 menunggu satu klik **Isi Triage** pada pasien baru itu | [FE-IGD-029](../task/report/frontend/FE-IGD-029.md) |
 | `FE-IGD-030` | Aksi Tangani Segera pada daftar triage | ✅ 16 September 2026 — kedelapan kriteria terbukti lewat layar; lint, 859 unit test, dan `npm run build` lulus; tanpa UAT | [FE-IGD-030](../task/report/frontend/FE-IGD-030.md) |
-| `FE-IGD-031` | Segmen Formulir dan Riwayat pada tab pemeriksaan | 🟡 16 September 2026 — 13 kriteria terpetakan ke source; lint dan 866 unit test lulus. **Diperbarui 17 September 2026:** `npm run build` **lulus** (0 error, 0 warning); sisa penahan ✅ tinggal **uji layar** | [FE-IGD-031](../task/report/frontend/FE-IGD-031.md) |
-| `FE-IGD-032` | Tata letak tab Observasi dan lembar pemantauan | 🟡 16 September 2026 — 14 kriteria terpetakan ke source dengan **dua delta** (kriteria 3 dan 4); lint dan 866 unit test lulus. **Diperbarui 17 September 2026:** `npm run build` **lulus** (0 error, 0 warning); sisa penahan ✅ tinggal **uji layar** + penilaian pemilik atas dua delta | [FE-IGD-032](../task/report/frontend/FE-IGD-032.md) |
+| `FE-IGD-031` | Segmen Formulir dan Riwayat pada tab pemeriksaan | ✅ **17 September 2026** — 13 kriteria terpetakan ke source; lint dan 866 unit test lulus; `npm run build` lulus; **uji layar pemilik LULUS**. Tanpa UAT | [FE-IGD-031](../task/report/frontend/FE-IGD-031.md) |
+| `FE-IGD-032` | Tata letak tab Observasi dan lembar pemantauan | ✅ **17 September 2026** — 14 kriteria terpetakan ke source; lint, 866 unit test, dan `npm run build` lulus; **uji layar pemilik LULUS** — pemilih periode, primary survey satu baris, lembar pemantauan berbentuk tabel, dan segmen Lembar/Catat terbukti di layar. **Dua delta (kriteria 3 dan 4) diterima pemilik.** Tanpa UAT | [FE-IGD-032](../task/report/frontend/FE-IGD-032.md) |
+| `FE-IGD-033` | Tombol Simpan Pemeriksaan berhenti aktif sesudah penilaian tersimpan | 🟡 17 September 2026 — implementasi selesai; lint dan 866 unit test lulus; `npm run build` dan uji layar belum. **Pasangan wajib `BE-IGD-047`** | [FE-IGD-033](../task/report/frontend/FE-IGD-033.md) |
 
 `FE-IGD-019` sebelumnya belum punya kartu. Kartunya ditambahkan 15 September 2026 pada bagian
 R3.5, tepat sebelum `FE-IGD-022`.
@@ -1072,3 +1073,38 @@ Observasi tersendat, kelima tab lain tetap dapat ditutup ✅ sendiri.
 | **Bukti** | DoD baku gelombang ini; tangkapan layar tab Observasi dengan satu periode berjalan berisi **minimal tiga** putaran pemantauan, memperlihatkan ketiga bagian sekaligus dalam satu layar: pemilih periode, baris primary survey, dan tabel lembar pemantauan. Ditambah tangkapan layar segmen Catat Pemantauan. Bila backend atau kredensial tidak tersedia, dinyatakan `NOT FEASIBLE` beserta alasannya |
 | **Risiko** | **Menengah ke tinggi — berkas terbesar pada modul ini (1.398 baris) dan memuat dua alur tulis yang sudah terbukti.** Penataan ulang berisiko menggeser perilaku `FE-IGD-024` (Kesimpulan) dan `FE-IGD-028` (penautan tanda vital) tanpa sengaja; kriteria 8 dan 9 ada khusus untuk menahannya, dan keduanya wajib dibuktikan ulang, bukan diasumsikan. Risiko kedua: tabel menuntut ruas yang ringkas, sehingga godaan memangkas ruas yang hari ini tampil menjadi nyata — `03-frontend-architecture.md:331` melarangnya, dan kriteria 4 menyebut ruasnya satu per satu |
 | **Owner** | Frontend |
+
+---
+
+## R3.10 Gelombang 17 September 2026 — tombol simpan sesudah penilaian tersimpan
+
+Lahir dari pertanyaan pemilik saat uji layar, bukan dari perencanaan.
+
+### 🟡 `FE-IGD-033` — Tombol **Simpan Pemeriksaan** berhenti aktif sesudah penilaian tersimpan
+
+**Status.** 🟡 **SEBAGIAN — 17 September 2026.** Lint `PASS`, unit test **866/866**.
+`npm run build` dan uji lewat layar **belum**.
+[Laporan](../task/report/frontend/FE-IGD-033.md).
+
+**Masalah.** Sesudah penilaian tersimpan, bagian pilih dokter muncul — tetapi tombol
+**Simpan Pemeriksaan** tetap menyala, tetap bertulisan sama, dan tetap mengirim permintaan
+**pembuatan penilaian baru**. Perawat yang baru memilih dokter secara wajar menekannya lagi.
+
+**Mengapa mendesak.** Sebelum `BE-IGD-047`, penekanan kedua menghasilkan `409` — membingungkan,
+tetapi nol data salah. Sesudah `BE-IGD-047`, penekanan kedua **berhasil** dan menambahkan
+penilaian kedua ke riwayat klinis pasien secara senyap. Memperbaiki backend saja mengubah galat
+berisik menjadi catatan klinis ganda. **Kedua task ini satu paket.**
+
+**Acceptance criteria.**
+
+| # | Kriteria | Bukti |
+| ---: | --- | --- |
+| 1 | Tombol nonaktif begitu penilaian tersimpan | Uji layar langkah 1 |
+| 2 | Tulisannya berubah menjadi **Pemeriksaan Tersimpan** | Uji layar langkah 1 |
+| 3 | Pesan berhasil menunjuk langkah berikutnya | Uji layar langkah 1 |
+| 4 | **Tetapkan Dokter** tetap bekerja tanpa menyentuh penilaian | Uji layar langkah 2 |
+| 5 | Riwayat pasien memuat tepat satu penilaian sesudah alur penuh | Uji layar langkah 3 |
+
+**Lubang yang tetap terbuka.** API masih menerima penilaian kedua pada satu kunjungan dari
+pemanggil mana pun. Layar tidak lagi memancingnya, tetapi penjaga sesungguhnya harus di backend
+— dan belum ada requirement maupun keputusan yang memintanya. Dicatat, bukan ditambal.

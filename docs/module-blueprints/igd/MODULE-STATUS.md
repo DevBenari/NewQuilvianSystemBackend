@@ -59,6 +59,32 @@ Dokumen ini ringkasan keadaan. Sumber kebenaran status per task tetap
 | Entri susulan setelah periode observasi ditutup | `IGD-OQ-090` — jalur addendum belum dirancang; dilarang menumpang `BE-IGD-046` | Product/Domain Owner IGD + Nursing authority | Dokumentasi susulan observasi | Ya |
 | ~~Penyelarasan teks kontrak~~ | ~~API §3, validation §1 aturan 2 dan §6 aturan 4, kamus data §4 belum mengikuti `IGD-DEC-116`…`120`~~ — **ditutup 15 September 2026**: API dan validation naik ke `0.5.0`, nama `EmgDoctorAssignment` diselaraskan, hash dihitung ulang (manifest bagian 0c) | — | R3.8, `MVP-5` | — |
 
+## Uji layar pemilik 17 September 2026 — empat task ditutup, satu cacat alur ditemukan
+
+Uji lewat layar **kedua** yang pernah dijalankan pada modul ini, oleh Product/Domain Owner.
+Bukan UAT.
+
+### Yang lulus
+
+| Task | Yang dibuktikan |
+| --- | --- |
+| `FE-IGD-031` ✅ | Segmen Formulir/Riwayat pada tab pemeriksaan |
+| `FE-IGD-032` ✅ | Pemilih periode, primary survey diringkas satu baris, lembar pemantauan berbentuk tabel berjajar, segmen Lembar/Catat. **Dua delta bagian 8 diterima pemilik** |
+| `FE-IGD-023` ✅ | Tab Penunjang Medis |
+| `FE-IGD-024` ✅ | Satu periode observasi diselesaikan beserta isian Kesimpulan |
+| `BE-IGD-046` / `FE-IGD-028` | Satu putaran pemantauan bertanda vital tercatat; penanda *Tanda Vital Kritis* menyala |
+
+### Cacat alur yang ditemukan — `FE-IGD-033`
+
+Sesudah penilaian triage tersimpan, bagian pilih dokter muncul, tetapi tombol **Simpan
+Pemeriksaan** tetap menyala dan tetap mengirim permintaan **penilaian baru**. Pemilik
+menekannya lagi sesudah memilih dokter — kesimpulan yang wajar — dan menerima `409`.
+
+**Konsekuensi yang menentukan urutan rilis.** Sesudah `BE-IGD-047`, penekanan kedua itu tidak
+lagi gagal: ia **berhasil**, dan menambahkan penilaian kedua ke riwayat klinis pasien secara
+senyap. Memperbaiki backend saja mengubah galat berisik menjadi catatan klinis ganda.
+**`BE-IGD-047` dan `FE-IGD-033` wajib dirilis bersama.**
+
 ## Cacat nomor urut penilaian triage — ditemukan uji layar 17 September 2026
 
 **Setiap kunjungan IGD hanya pernah bisa menyimpan satu penilaian triage.** Penilaian kedua
@@ -264,7 +290,7 @@ lingkup `EPIC IGD-04`**. Keduanya milik formulir tanda vital bersama, bukan modu
 | Lapisan | Rumus | Hasil |
 | --- | --- | --- |
 | Backend | task ✅ / seluruh task roadmap | **20 / 31 = 65%** (`BE-IGD-047` masuk penyebut 17 September 2026) (dihitung ulang 17 September 2026 dari *Register status task* `backend-roadmap.md`). Tidak dikecualikan: `BE-IGD-039` dan `BE-IGD-042` (⛔) tetap dihitung di penyebut. *Sebelumnya tertulis 18 / 29 = 62% — usang sejak `BE-IGD-040` dan `BE-IGD-046` ✅ dan `BE-IGD-046` masuk register* |
-| Frontend | task ✅ / seluruh task roadmap | **10 / 22 = 45%** (dihitung ulang 17 September 2026). ✅: `FE-IGD-015`, `016`, `018`, `019`, `020`, `021`, `023`, `024`, `028`, `030`. *Sebelumnya tertulis 6 / 17 = 35% — usang sejak `FE-IGD-023`, `024`, `028`, `030` ✅ dan `FE-IGD-029`…`032` masuk register* |
+| Frontend | task ✅ / seluruh task roadmap | **12 / 23 = 52%** (dihitung ulang 17 September 2026 sesudah uji layar pemilik). ✅: `FE-IGD-015`, `016`, `018`, `019`, `020`, `021`, `023`, `024`, `028`, `030`, **`031`**, **`032`**; `FE-IGD-033` masuk penyebut. *Sebelumnya tertulis 6 / 17 = 35% — usang sejak `FE-IGD-023`, `024`, `028`, `030` ✅ dan `FE-IGD-029`…`032` masuk register* |
 
 Persentase turun dari 78%/45% bukan karena ada yang mundur, melainkan karena penyebutnya
 bertambah task baru. Tiga area R3.5 (penunjang medis, pemakaian alat, billing IGD) **tidak**
