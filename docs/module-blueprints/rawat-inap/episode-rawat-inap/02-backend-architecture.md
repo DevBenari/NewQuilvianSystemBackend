@@ -3,8 +3,9 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| Revision | `0.5` |
-| Status | `draft` — belum disetujui manusia |
+| Revision | **`0.8`** — amandemen terbatas penyelarasan `PRD-RWI-V2-001`, blueprint revision `7`; isi baru pada **bagian 11**. `0.7` Gelombang 1A |
+| Status | **`draft`** untuk `0.8`. Status revision sebelumnya mengikuti `blueprint-manifest.md` sub-modul |
+| Apa yang berubah pada `0.7` | **Gelombang 1A — Rawat Inap Safety Corrections.** Dua koreksi `P0` yang dimiliki sub-modul ini: aturan jenis kelamin tingkat kamar dicabut (`RWI-DEC-101`), dan `InpDoctorAssignment` mendapat kolom peran beserta perubahan filter index unik (`RWI-DEC-099`). Rinciannya bagian 0. Kontrak naik ke `0.8.0`, seluruhnya `draft` |
 | Sub-modul | `episode-rawat-inap` — satu dari tiga sub-modul modul `rawat-inap`, bentuk `COMPOSITE` sejak `RWI-DEC-082`. [Manifest sub-modul](./blueprint-manifest.md), [peta modul](../02-module-map.md) |
 | Tanggal | 2 September 2026 (`Asia/Jakarta`) untuk revision `0.5`; 24 Agustus 2026 untuk `0.4`; 21 Agustus 2026 untuk `0.3` |
 | Apa yang berubah pada `0.5` | **Hanya batas dokumen, bukan isi desain.** Tabel kepemilikan data seluruh modul (bagian 2) dan urutan migration antar sub-modul (bagian 7) naik ke [`../02-module-map.md`](../02-module-map.md). Nol tabel, kolom, endpoint, aturan, dan kontrak yang bergerak |
@@ -70,6 +71,106 @@ sekarang supaya tidak dikarang ulang ketika `INP-S09` akhirnya dikerjakan.
 
 ---
 
+
+## 0. Yang diserap revision `0.7` — Gelombang 1A
+
+Revision `0.7` menyerap dua dari tiga koreksi keselamatan `Gelombang 1A` yang disahkan
+`RWI-DEC-102`. Koreksi ketiga, yaitu penutupan jalur hapus catatan klinis, **tidak** dimiliki
+sub-modul ini; ia berada pada `dokter-rawat-inap` dan `keperawatan` karena tabelnya milik
+`ClinicalManagement` sesuai `RWI-DEC-081`.
+
+| Koreksi | Keputusan | Yang berubah di sub-modul ini |
+| --- | --- | --- |
+| Aturan jenis kelamin tingkat kamar dicabut | `RWI-DEC-101` | Kelayakan Penempatan aturan 5 dipersempit, aturan 6 dipensiunkan |
+| Peran pada penugasan dokter | `RWI-DEC-099` | Satu kolom baru, satu enum baru, satu index unik berubah filter, satu index pendukung baru |
+
+### 0.1 Kelayakan Penempatan setelah pencabutan
+
+Bentuk barunya sudah tertulis pada bagian 1. Yang perlu ditegaskan di sini adalah **apa yang
+hilang dari kode**, karena ini yang menentukan cakupan task implementasi:
+
+| Yang dihapus | Letaknya hari ini | Akibat |
+| --- | --- | --- |
+| Blok aturan 6 beserta kode `ROOM_GENDER_MIXED` | `InpBedOccupancyService.EvaluatePlacementEligibilityAsync` | Kode penolakan itu tidak pernah terbit lagi |
+| Klausa `countedOccupants.Count > 0` pada aturan 5 | Blok yang sama | Pasien tanpa jenis kelamin tercatat tidak lagi menuntut kamar kosong |
+| Pemuatan penghuni kamar untuk keperluan jenis kelamin | `LoadRoomOccupantsAsync` | **Menjadi kode mati** bila tidak ada pemanggil lain. Task implementasi wajib memeriksanya, bukan menganggapnya pasti mati |
+
+Aturan 4, 7, dan 8 **tidak disentuh**, dan pengecualian boks bayi tetap berlaku bagi dua aturan
+jenis kelamin yang tersisa.
+
+**Satu pemeriksaan yang tidak boleh dilewatkan.** Pencabutan ini melonggarkan penolakan, sehingga
+tidak ada pasien yang tiba-tiba tertolak. Risikonya justru sebaliknya: aturan isolasi ikut
+tercabut karena letaknya berdampingan di dalam satu method. Regresi wajib membuktikan
+`ISOLATION_REQUIRED` dan `ISOLATION_BED_RESERVED` masih menolak.
+
+### 0.2 Enum baru `InpDoctorAssignmentRole`
+
+| Field | Isi |
+| --- | --- |
+| Nama | `InpDoctorAssignmentRole` |
+| Status | **Baru** |
+| Lokasi file | `Areas/HealthServices/InPatientManagement/Enums/InpDoctorAssignmentRole.cs` |
+| Nilai | `Dpjp = 1`, `Consultant = 2`, `OnCallDoctor = 3` |
+| Nilai bawaan | `Dpjp = 1` |
+
+Nilai `0` sengaja tidak dipakai supaya baris lama yang terisi nilai bawaan database tidak dapat
+disalahartikan sebagai "peran belum ditetapkan". Setiap baris punya peran yang eksplisit.
+
+| Peran | Siapa yang membuat | Boleh menulis dokumen klinis | Boleh memutuskan pulang |
+| --- | --- | :---: | --- |
+| `Dpjp` | Petugas admisi saat admisi, atau supervisor saat pengalihan | Ya | Ya |
+| `Consultant` | Kepala ruangan atau supervisor | Ya | **Hanya bila kebijakan memberi kewenangan**, sesuai matriks hak akses `PRD-to-MVP-Rawat-Inap-V2` bagian 18 |
+| `OnCallDoctor` | Kepala ruangan atau supervisor | Ya | Tidak |
+
+Baris "hanya bila kebijakan memberi kewenangan" **belum** punya sumber kebijakan yang disetujui.
+Sampai ada, perilaku yang berlaku adalah **menolak**, dan itu ditulis apa adanya pada
+`contracts/validation-matrix.md` sebagai keadaan fail-closed, bukan sebagai kebijakan yang sudah
+diputuskan.
+
+### 0.3 Status model dan dampak migration revision `0.7`
+
+| Model | Status | Kolom yang berubah | Dampak migration |
+| --- | --- | --- | --- |
+| `InpDoctorAssignment` | **`Diperbarui`** | **Tambah** `AssignmentRole` `int` `NOT NULL DEFAULT 1` | Satu migration, aditif, dapat berjalan tanpa mematikan layanan |
+| `InpNurseAssignment` | `Sudah ada`, **tidak berubah** | — | Nol migration. `RWI-DEC-100` menjadikannya penunjukan, bukan gerbang, sehingga tidak butuh kolom apa pun |
+| `InpEpisode` | `Sudah ada`, tidak berubah | — | Nol migration |
+| `MstBed`, `MstRoom` | `Sudah ada`, tidak berubah | — | **Nol kolom baru.** `RWI-DEC-066` dahulu sudah menolak menambah penanda "boleh campur" pada `MstRoom`, dan pencabutan aturan kamar justru membuat penanda itu makin tidak dibutuhkan |
+
+### 0.4 Rencana migration revision `0.7`
+
+Satu migration, tiga langkah, **urutannya mengikat**.
+
+| Urut | Langkah | Kenapa urutannya begini |
+| ---: | --- | --- |
+| 1 | Tambah kolom `AssignmentRole` dengan `DEFAULT 1` | Baris lama langsung sah tanpa perlu diisi terpisah |
+| 2 | Isi baris lama menjadi `1` secara eksplisit, lalu lepas `DEFAULT` bila konvensi project menuntutnya | Nilai bawaan database bukan pengganti nilai domain yang eksplisit |
+| 3 | Buang `IX_InpDoctorAssignment_EpisodeId_Active`, buat `IX_InpDoctorAssignment_EpisodeId_ActiveDpjp` dan `IX_InpDoctorAssignment_Episode_Doctor_Role_Period` | Index baru **membaca** kolom baru, sehingga kolomnya wajib sudah terisi |
+
+**Kenapa langkah 3 tidak boleh naik ke atas.** Antara membuang index lama dan memasang index baru
+ada jeda ketika **tidak ada** index yang menjaga `INV-INP-03`. Bila kolom belum terisi, filter
+`"AssignmentRole" = 1` tidak dapat dievaluasi dengan benar dan dua DPJP aktif dapat tersimpan pada
+jeda itu. Karena itu ketiganya berada di dalam satu migration, bukan tiga migration terpisah.
+
+**Langkah mundur bila gagal.** Pasang kembali index lama, lalu buang kolomnya. Aman dijalankan
+selama belum ada satu pun baris berperan `2` atau `3`. Begitu konsulen pertama tersimpan, langkah
+mundur **tidak lagi aman** karena index lama akan menolak baris itu; sejak titik itu pemulihan
+dilakukan maju, bukan mundur. Batas ini wajib disebut pada laporan task.
+
+**Pengisian data lama bukan tebakan.** Sebelum `0.7`, tabel ini hanya pernah menyimpan DPJP.
+Karena itu seluruh baris lama diisi `Dpjp` tanpa satu pun baris ambigu, dan tidak ada laporan
+`unresolved` yang perlu dibuat. Ini berbeda dari migrasi data V1 pada `RWI-DEC-097`, yang memang
+menuntut laporan ambiguitas.
+
+### 0.5 Yang sengaja tidak dibuat pada revision `0.7`
+
+| Yang ditolak | Alasan |
+| --- | --- |
+| Kolom "boleh campur" pada `MstRoom` | `RWI-DEC-066` sudah menolaknya, dan pencabutan aturan kamar membuatnya tidak berguna sama sekali |
+| Tabel jadwal jaga dokter milik Rawat Inap | Jadwal adalah master milik modul lain. `RWI-DEC-099` memilih penugasan eksplisit per episode, bukan pembacaan jadwal |
+| Kolom unit pada `InpNurseAssignment` | `RWI-DEC-100` menjadikan unit episode sebagai sumbernya. Menyalin unit ke baris penugasan melahirkan dua sumber kebenaran yang dapat berbeda saat pasien pindah unit |
+| Enum peran untuk perawat | `RWI-DEC-100` tidak membedakan peran perawat. Menambahkannya sekarang berarti merancang kebijakan yang belum diputuskan |
+
+---
 ## 1. Bounded context, aggregate, dan batas transaksi
 
 ### 1.1 Dua context milik modul ini
@@ -161,7 +262,8 @@ untuk setiap tindakan.
 
 Perintah menempatkan dan memindahkan pasien tidak memeriksa syarat satu per satu di dalam badannya,
 melainkan memanggil satu pemeriksaan bernama **Kelayakan Penempatan** yang isinya berupa daftar
-aturan. Sejak revision `0.4` daftar itu berisi sembilan aturan.
+aturan. Sejak revision `0.4` daftar itu berisi sembilan aturan; sejak revision `0.7` **satu aturan
+dipensiunkan** sehingga yang benar-benar dijalankan tinggal **delapan**.
 
 | No | Aturan | Kode penolakan | Dasar |
 | ---: | --- | ---: | --- |
@@ -169,11 +271,24 @@ aturan. Sejak revision `0.4` daftar itu berisi sembilan aturan.
 | 2 | Tempat tidur tidak sedang dipegang pemesanan atau penempatan milik episode lain | 409 | `INV-INP-02` |
 | 3 | Bila ada pemesanan milik episode ini yang masih berlaku, pemesanan itu dipakai | — | `RWI-RULE-015` |
 | 4 | Penanda tempat tidur menerima jenis kelamin pasien | 422 | `RWI-RULE-012` B.1 |
-| 5 | Bila jenis kelamin pasien belum tercatat, tempat tidur harus menerima keduanya **dan** kamar belum berpenghuni | 422 | `RWI-RULE-012` B.2 |
-| 6 | Kamar belum dihuni pasien berjenis kelamin berbeda | 422 | `RWI-RULE-012` B.3 |
+| 5 | Bila jenis kelamin pasien belum tercatat, tempat tidur harus menerima **laki-laki dan perempuan sekaligus**. Penghuni kamar lain **tidak diperiksa** | 422 | `RWI-RULE-012` B.2, ditulis ulang `RWI-DEC-101` |
+| ~~6~~ | ~~Kamar belum dihuni pasien berjenis kelamin berbeda~~ — **DIPENSIUNKAN 11 September 2026** oleh `RWI-DEC-101`. Kode `ROOM_GENDER_MIXED` dihapus seluruhnya | ~~422~~ — | ~~`RWI-RULE-012` B.3~~ `superseded` |
 | 7 | Pasien yang membutuhkan isolasi hanya boleh ke tempat tidur isolasi | 422 | `RWI-RULE-012` A.5 |
 | 8 | Pasien yang tidak membutuhkan isolasi tidak boleh ke tempat tidur isolasi | 422 | `RWI-RULE-012` A.6 |
 | 9 | Bila episode lahir dari serah terima IGD, catatan kepergian IGD sudah bertanda `Tiba` | 422 | `RWI-RULE-029` aturan 8 |
+
+**Nomor aturan sengaja tidak dirapatkan.** Nomor 6 dibiarkan kosong dan **tidak boleh dipakai
+ulang** untuk aturan baru. Alasannya: `ruleNumber` ikut terkirim pada response `ineligible`, dan
+sudah dipakai test backend maupun frontend. Menggeser nomor 7 dan 8 menjadi 6 dan 7 akan
+menggagalkan test yang benar tanpa ada aturan bisnis yang berubah. Ini mengikuti aturan ID stabil
+pada `blueprint-update-rules.md`.
+
+**Apa yang hilang bagi pengguna.** Sebelum perubahan ini, kamar berisi satu pasien laki-laki
+menolak seluruh pasien perempuan, walaupun tempat tidur yang dituju memang dikonfigurasi menerima
+keduanya. Petugas admisi tidak punya jalan keluar selain memindahkan pasien lama. Sesudah
+perubahan ini, kelayakan hanya ditentukan penanda tempat tidur yang disetel Admin Master Data,
+sehingga keputusan privasi kembali menjadi keputusan konfigurasi, bukan akibat sampingan dari
+siapa yang kebetulan datang lebih dulu.
 
 **Dua pengecualian boks bayi**, dan keduanya berlaku dua arah:
 
@@ -1016,3 +1131,293 @@ isinya khas tiap rumah sakit.
 | Aturan 4 sampai 8 pada Kelayakan Penempatan | `RWI-RULE-012` bagian A dan B, `RWI-DEC-064`, `RWI-DEC-066` |
 | `CMD-INP-16` | `RWI-RULE-012` A.2 s.d. A.4, `RWI-DEC-065` |
 | Batas scope | Arsitektur domain bagian N.2 dan N.3, ditambah `INP-S11` sejak `RWI-DEC-064` |
+
+---
+
+## 11. Amandemen terbatas revision `0.8` — penyelarasan `PRD-RWI-V2-001` ★ 15 September 2026
+
+### 11.0 Masukan, batas, dan cara membaca bagian ini
+
+| Field | Nilai |
+| --- | --- |
+| Fase | `RLN-PH-06`; blueprint revision `7`; kontrak sub-modul `0.8.0` → **`0.9.0`** |
+| Status | **`draft`** — belum disetujui manusia |
+| Bentuk amandemen | **Terbatas** — pilihan pemilik 15 September 2026 "Amandemen terbatas". Hanya hal yang **diminta** `dokter-rawat-inap` `0.6.0` dan `keperawatan` `0.5.0` dari sub-modul ini. Bagian 0 s.d. 10 tidak berubah |
+| Masukan keputusan | `00-interview-decisions.md` revision `21` — `RWI-DEC-111`, `112`, `130`, `138`, `143`; `RWI-DEC-099`, `126`, `129` sebagai konteks |
+| Masukan gate | `evidence/02-requirement-completeness-gate.md` revision `1.6` |
+| Masukan keadaan saat ini | `01-existing-capability-map.md` revision `1.4` bagian 17 — `RLN3-CAP-38`; `RWI-FACT-030` |
+| Backend / frontend SHA | `df3679c0d5b2f08106702153eb242d3a6cb2929b` / `1ce219b40f8e411f3c4e66975626ab33ae81616a` |
+| `domain_architecture_readiness` | Revision `0.1` `DOMAIN_ARCHITECTURE_READY` untuk episode tetap berlaku; isi baru tidak menambah konteks atau aggregate |
+
+### 11.1 Yang berubah dari revision `0.7`
+
+| No | Yang berubah | Diminta oleh | Dasar |
+| ---: | --- | --- | --- |
+| 1 | Census menyaring **pasien yang dokter login punya penugasan aktif** bila `assignedToMe=true`; ringkasan dari daftar yang sama | `dokter-rawat-inap` `INT-DOK-11` | `RWI-DEC-111` |
+| 2 | **Jalur tulis penugasan konsulen dan dokter jaga**, termasuk **penugasan singkat** penulisan catatan terlambat berpenanda tujuan | `dokter-rawat-inap` `INT-DOK-12` | `RWI-DEC-099`, `RWI-DEC-130`; `RWI-FACT-030` butir 3 |
+| 3 | Resume pulang bertambah **tiga isian**: Pemeriksaan Penting, Kondisi Saat Pulang, Edukasi; `ClinicalSummary` berlabel Ringkasan Perawatan; usulan isian dari sumber klinis tanpa menyimpan | `dokter-rawat-inap` `INT-DOK-20` | `RWI-DEC-112` |
+| 4 | Penutupan episode, dalam transaksi yang sudah ada, **mengunci konsep catatan dokter**, **membatalkan pesanan tindakan tertunda yang belum ditagih**, dan **membatalkan dosis obat yang belum waktunya** | `INT-DOK-13`, `INT-KEP-15` | `RWI-DEC-138`, `RWI-DEC-143`; `RLN3-CAP-38` |
+| 5 | Kesiapan penutupan menampilkan **peringatan yang tidak menahan**; daftar pantau baru pesanan tertunda yang sudah ditagih | Sama | `RWI-DEC-129` (4), `RWI-DEC-143` (5) dan jalur tidak normal (c) |
+
+### 11.2 Invariant baru
+
+| ID | Bunyinya | Ditegakkan di mana | Contoh |
+| --- | --- | --- | --- |
+| `INV-INP-11` | Penutupan episode, pengembalian tempat tidur, penutupan penugasan, penguncian konsep catatan dokter, pembatalan pesanan tindakan tertunda yang belum ditagih, dan pembatalan dosis obat masa depan terjadi **dalam satu transaksi** — semuanya berhasil atau episode tetap belum ditutup. Tidak satu pun **menahan** penutupan | `InpDischargeService.CloseEpisodeInternalAsync` | Joko ditutup 13.00: SOAP dr. Yoga terkunci, cek GDS batal, dosis 20.00 batal, episode `Closed`. Langkah penguncian gagal → keempatnya batal, episode tetap `DischargePending` |
+| `INV-INP-12` | Penugasan bertujuan `LateDocumentation` selalu berperan `OnCallDoctor`, punya waktu selesai, dan beralasan; tidak mengubah DPJP aktif maupun "DPJP terakhir" | `InpEpisodeService.AssignSupportingDoctorAsync` + check constraint | dr. Rina penugasan singkat Kamis 10.00–11.00; dr. Ahmad tetap DPJP |
+| `INV-INP-13` | Daftar pasien dokter **sama dengan** daftar yang boleh ia tulis saat ini: penugasan dengan `StartDateTime ≤ sekarang` dan `EndDateTime` kosong atau `> sekarang` | `InpCensusQueryService` | dr. Yoga jaga 22.00–07.00 → Joko muncul 22.00, hilang 07.00 |
+
+### 11.3 Kepemilikan data — delta
+
+| Kelompok data | Modul pemilik | Perubahan |
+| --- | --- | --- |
+| Penugasan dokter | `InPatientManagement` | **Diperbarui** — satu kolom tujuan |
+| Resume pulang dan versinya | `InPatientManagement` | **Diperbarui** — tiga kolom pada dua tabel |
+| Konsep catatan dokter yang dikunci | `MedicalRecordManagement` | Dipanggil, tidak disalin |
+| Pesanan tindakan yang dibatalkan | `ClinicalManagement` | Dipanggil, tidak disalin |
+| Dosis obat yang dibatalkan | `PharmacyManagement` | Dipanggil, tidak disalin |
+| Usulan isian resume | Diagnosis, tindakan, resep pulang, hasil penunjang final, edukasi keperawatan — pemilik masing-masing | **Dibaca saja**; tidak disimpan kecuali dokter menyimpan draf |
+
+**Nol tabel baru.**
+
+### 11.4 Class diagram
+
+```mermaid
+classDiagram
+    class InpDoctorAssignment {
+        +Guid Id
+        +Guid EpisodeId
+        +Guid DoctorId
+        +InpDoctorAssignmentRole AssignmentRole
+        +InpDoctorAssignmentPurpose AssignmentPurpose
+        +DateTime StartDateTime
+        +DateTime? EndDateTime
+        +string? HandoverReason
+    }
+    class InpDischargeSummary {
+        +Guid Id
+        +Guid EpisodeId
+        +string? ClinicalSummary
+        +string? ImportantFindingsSummary
+        +string? DischargeConditionNote
+        +string? EducationSummary
+        +DateTime? SignedAt
+    }
+    class InpDischargeSummaryRevision {
+        +int RevisionNumber
+        +string? ImportantFindingsSummary
+        +string? DischargeConditionNote
+        +string? EducationSummary
+    }
+    class InpEpisodeService {
+        +AssignSupportingDoctorAsync(episodeId, request, actorUserId, isWardHeadOrSupervisor)
+        +EndSupportingAssignmentAsync(episodeId, assignmentId, request, actorUserId, isWardHeadOrSupervisor)
+    }
+    class InpDischargeService {
+        +CloseEpisodeAsync(episodeId, request, actorUserId)
+        +CloseWithOverrideAsync(episodeId, request, actorUserId)
+        +EvaluateClosureReadinessAsync(episodeId)
+        +GetBilledPendingProcedureOrdersAsync(query)
+    }
+    class InpDischargeSummaryPrefillService {
+        +BuildPrefillAsync(episodeId)
+    }
+    class InpCensusQueryService {
+        +GetCensusAsync(query, currentDoctorId)
+        +GetSummaryAsync(query, currentDoctorId)
+    }
+    class ClinicalDocumentIntegrityService {
+        +LockOpenDocumentsForEncounterAsync(encounterId)
+    }
+    class PatientProcedureOrderService {
+        +CancelPendingOrdersForClosureAsync(episodeId, closedByUserId)
+    }
+    class MedicationAdministrationService {
+        +CancelFutureDosesForEpisodeAsync(episodeId, closedAt)
+    }
+    InpDischargeSummary "1" --> "0..*" InpDischargeSummaryRevision : versi bertanda tangan
+    InpEpisodeService --> InpDoctorAssignment : tulis
+    InpDischargeService --> ClinicalDocumentIntegrityService : langkah 4
+    InpDischargeService --> PatientProcedureOrderService : langkah 5
+    InpDischargeService --> MedicationAdministrationService : langkah 6
+    InpDischargeSummaryPrefillService --> InpDischargeSummary : baca draf
+```
+
+Tiga service di bawah diagram milik modul lain dan dirancang di sub-modulnya: `MedicalRecordManagement` (dipakai apa
+adanya), `dokter-rawat-inap` 11, `keperawatan` 11.
+
+### 11.5 Penjelasan setiap class
+
+#### 11.5.1 `InpDoctorAssignment` — `Diperbarui`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Diperbarui` — satu kolom |
+| **Lokasi file** | `Areas/HealthServices/InPatientManagement/Models/InpDoctorAssignment.cs`; configuration `Repositories/Configurations/HealthServices/InPatientManagement/InpDoctorAssignmentConfiguration.cs` |
+| Kolom baru | `AssignmentPurpose` (`InpDoctorAssignmentPurpose`): `Regular = 0` bawaan, `LateDocumentation = 1` |
+| Aturan | `LateDocumentation` ⇒ `AssignmentRole = OnCallDoctor`, `EndDateTime` terisi dan `> StartDateTime`, `HandoverReason` terisi — `INV-INP-12`, check constraint `CK_InpDoctorAssignment_LateDocumentation` |
+| Pemakaian | `INV-DOK-15` membaca peran dan periode; laporan jumlah jaga menyaring `Regular` — `RWI-DEC-130` konsekuensi (1) |
+| Catatan desain | Tujuan dipilih sebagai **enum**, bukan boolean, supaya tujuan lain kelak tidak membutuhkan kolom kedua. Nilai tidak dapat diubah pada baris yang ada — sama dengan peran (6A.3) |
+
+#### 11.5.2 `InpDischargeSummary` dan `InpDischargeSummaryRevision` — `Diperbarui`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Diperbarui` — tiga kolom pada masing-masing tabel |
+| **Lokasi file** | `Areas/HealthServices/InPatientManagement/Models/InpDischargeSummary.cs`, `.../InpDischargeSummaryRevision.cs` |
+| Kolom baru | `ImportantFindingsSummary` (Pemeriksaan Penting), `DischargeConditionNote` (Kondisi Saat Pulang), `EducationSummary` (Edukasi) |
+| Pemetaan delapan bagian PRD bagian 21 | Diagnosis → `PrimaryDiagnosisText`, `SecondaryDiagnosisText`; Ringkasan Perawatan → `ClinicalSummary` (label baru, kolom lama); Pemeriksaan Penting → **baru**; Tindakan → `ProcedureSummary`; Obat/Terapi → `DischargeMedicationNote`; Kondisi Saat Pulang → **baru**; Rencana Kontrol → `FollowUpInstruction`, `ReferralDestination`; Edukasi → **baru** |
+| Aturan yang tidak berubah | Satu resume per episode; tanda tangan DPJP aktif (`GUARD-INP-03`); resume belum bertanda tangan menahan penutupan; versi hanya untuk yang pernah ditandatangani; menandatangani **tidak** menutup episode |
+| Isian wajib | **Tidak** ditambah. Isi minimal resume tetap di bawah gerbang pemilik klinis — `RWI-RULE-032` |
+
+#### 11.5.3 `InpEpisodeService` — `Diperbarui` — `Services/InpEpisodeService.Assignments.cs`
+
+| Metode | Fungsi | Dipanggil oleh | Transaksi |
+| --- | --- | --- | :---: |
+| `AssignSupportingDoctorAsync` **Baru** | Membuat penugasan `Consultant` atau `OnCallDoctor`, bertujuan `Regular` atau `LateDocumentation`. Hanya kepala ruangan atau supervisor (`User.IsSupervisorOrWardHead()` yang sudah dipakai `HandoverDoctorAsync`) | `InpatientEpisodeController` | Ya |
+| `EndSupportingAssignmentAsync` **Baru** | Mengakhiri penugasan `Consultant`/`OnCallDoctor` dengan waktu selesai; tidak berlaku untuk `Dpjp` (pengalihan DPJP tetap `HandoverDoctorAsync`) | Sama | Ya |
+| `HandoverDoctorAsync` | **Tidak berubah** | — | — |
+
+#### 11.5.4 `InpDischargeService` — `Diperbarui` — `Services/InpDischargeService.Closure.cs`
+
+**`CloseEpisodeInternalAsync`** — urutan di dalam transaksi yang sudah ada:
+
+| Langkah | Isi | Status |
+| ---: | --- | --- |
+| 1 | Kembalikan penempatan tempat tidur | Sudah ada |
+| 2 | Tutup penugasan aktif, termasuk `LateDocumentation` | Sudah ada |
+| 3 | `ClosedAt`, status `Closed`, riwayat status | Sudah ada |
+| **4** | `ClinicalDocumentIntegrityService.LockOpenDocumentsForEncounterAsync(episode.EncounterId)` — konsep `Draft` menjadi `LockedUnsigned`, `LockTrigger = EncounterClosed` | **Baru** — `INT-DOK-13` |
+| **5** | `PatientProcedureOrderService.CancelPendingOrdersForClosureAsync(episode.Id, actorUserId)` — pesanan `Planned`/`Ordered` belum dilaksanakan **dan** belum ditagih menjadi `Cancelled` "episode ditutup sebelum dilaksanakan"; yang sudah ditagih dibiarkan | **Baru** — `INT-DOK-13` |
+| **6** | `MedicationAdministrationService.CancelFutureDosesForEpisodeAsync(episode.Id, now)` — dosis `Due` dengan jadwal setelah waktu tutup menjadi `Cancelled` "perawatan ditutup" | **Baru** — `INT-KEP-15` |
+| 7 | `SaveChanges`, commit | Sudah ada |
+
+Langkah 4–6 dipanggil lewat service pemiliknya, **tidak** menulis tabel modul lain secara langsung. Ketiganya menulis ke
+`ApplicationDbContext` yang sama sehingga ikut transaksi. Penutupan **tidak** memeriksa ketiganya sebagai syarat.
+
+**`EvaluateClosureReadinessAsync`** — bertambah `Warnings[]` yang **tidak** mempengaruhi `CanClose`:
+
+| Kode | Isi | Sumber |
+| --- | --- | --- |
+| `UNSIGNED_DOCTOR_DRAFTS` | Jumlah konsep catatan dokter yang akan terkunci, per penulis | `MedicalRecordManagement` registrasi `Draft` encounter |
+| `PENDING_PROCEDURE_ORDERS` | Jumlah pesanan tindakan tertunda yang akan batal | `ClinicalManagement` |
+| `BILLED_PENDING_PROCEDURE_ORDERS` | Jumlah pesanan tertunda yang **sudah ditagih** dan tidak akan dibatalkan | `ClinicalManagement` |
+| `UNRECORDED_PAST_DOSES` | Jumlah dosis obat yang sudah lewat jadwal tetapi belum dicatat | `PharmacyManagement` |
+
+**`GetBilledPendingProcedureOrdersAsync`** **Baru** — daftar pantau pesanan tindakan tertunda yang sudah ditagih pada
+episode `Closed`, untuk ditindaklanjuti bersama Billing (`RWI-DEC-143` jalur tidak normal (c)).
+
+#### 11.5.5 `InpDischargeSummaryPrefillService` — `Baru`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/HealthServices/InPatientManagement/Services/InpDischargeSummaryPrefillService.cs` |
+| Fungsi utama | Menyusun usulan isian resume beserta label sumber, **tanpa menyimpan** |
+| Dipanggil oleh | `InpatientDischargeController.GetSummaryPrefill` |
+| Transaksi | Tidak — hanya baca |
+| Sumber per isian | Diagnosis → diagnosis encounter `ClinicalManagement`; Tindakan → tindakan `Completed` episode; Obat/Terapi → butir resep `Discharge` `PharmacyManagement`; Pemeriksaan Penting → hasil laboratorium/radiologi **final** yang ditandai kritis atau abnormal; Edukasi → dokumen `EducationAssessment` selesai `keperawatan`; Ringkasan Perawatan, Kondisi Saat Pulang, Rencana Kontrol → **tidak** diusulkan |
+| Kegagalan satu sumber | Isian itu kosong dengan `SourceStatus = Unavailable`; isian lain tetap diusulkan |
+| Catatan desain | Resume **tidak** diperbarui otomatis bila sumber berubah — dokter menekan "Isi dari data klinis" lagi — `RWI-DEC-129` (7) |
+
+#### 11.5.6 `InpCensusQueryService` — `Diperbarui`
+
+| Perubahan | Isi |
+| --- | --- |
+| Query `AssignedToMe` | Bila `true`: `DoctorId` query diabaikan; dokter dari `ApplicationUser.DoctorId`; saringan `INV-INP-13`. Pengguna tanpa `DoctorId` → daftar kosong beserta `Message` "Akun Anda tidak terhubung dengan data dokter" |
+| Kolom baru `CensusItemResponse` | `MyAssignmentRole` (`Dpjp`/`Consultant`/`OnCallDoctor`, `null` bila bukan `assignedToMe`), `MyAssignmentPurpose` |
+| `CensusSummaryResponse` | Dihitung dari daftar yang sama; `NeedsReviewCount` = entri CPPT menunggu verifikasi dokter itu + pesanan menunggu verifikasi instruksinya, dibaca lewat `CpptVerificationService` dan `PatientProcedureOrderService` milik `ClinicalManagement`; bagian Lab/Rad ditambah setelah persetujuan pemiliknya |
+| Tanpa `assignedToMe` | **Tidak berubah** — census unit dan admisi tetap seperti hari ini |
+
+#### 11.5.7 Controller
+
+| Controller | Status | Endpoint baru atau berubah | Atribut akses |
+| --- | --- | --- | --- |
+| `InpatientCensusController` | Diperbarui | `GET /`, `GET /summary` — query `assignedToMe` | `InpatientCensus : Read` |
+| `InpatientEpisodeController` | Diperbarui | `POST /{id}/doctor-assignments/supporting`, `PATCH /{id}/doctor-assignments/{assignmentId}/end` | `InpatientEpisode : Update` + penjaga kepala ruangan/supervisor |
+| `InpatientDischargeController` | Diperbarui | `GET /{episodeId}/summary-prefill`; perilaku `close`, `close-with-override`, `closure-readiness`; tiga isian pada `GET/PUT summary` | `InpatientDischarge : Read`/`Update`/`Close`/`CloseOverride` |
+| `InpatientMonitoringController` | Diperbarui | `GET /billed-pending-procedure-orders` | `InpatientMonitoring : Read` |
+
+### 11.6 Enum baru
+
+| Enum | Lokasi | Nilai | Bawaan |
+| --- | --- | --- | --- |
+| `InpDoctorAssignmentPurpose` | `Areas/HealthServices/InPatientManagement/Enums/InpDoctorAssignmentPurpose.cs` | `Regular = 0`, `LateDocumentation = 1` | `Regular` |
+| `ClosureWarningCode` | `.../Enums/ClosureWarningCode.cs` | `UnsignedDoctorDrafts = 1`, `PendingProcedureOrders = 2`, `BilledPendingProcedureOrders = 3`, `UnrecordedPastDoses = 4` | — tidak dipersistensi |
+| `PrefillSourceStatus` | `.../Enums/PrefillSourceStatus.cs` | `Available = 1`, `Empty = 2`, `Unavailable = 3` | — tidak dipersistensi |
+
+### 11.7 Arsitektur folder — delta revision `0.8`
+
+```text
+Areas/HealthServices/InPatientManagement/
+├── Controllers/
+│   ├── InpatientCensusController.cs            Diperbarui — query assignedToMe
+│   ├── InpatientEpisodeController.cs           Diperbarui — dua endpoint penugasan pendukung
+│   ├── InpatientDischargeController.cs         Diperbarui — summary-prefill, perilaku penutupan
+│   └── InpatientMonitoringController.cs        Diperbarui — billed-pending-procedure-orders
+├── DTOs/
+│   ├── InpatientCensusDtos.cs                  Diperbarui — AssignedToMe, MyAssignmentRole, NeedsReviewCount
+│   ├── InpatientEpisodeDtos.cs                 Diperbarui — AssignSupportingDoctorRequest, EndSupportingAssignmentRequest
+│   └── InpatientDischargeDtos.cs               Diperbarui — tiga isian, DischargeSummaryPrefillResponse, ClosureWarningResponse
+├── Enums/                                      InpDoctorAssignmentPurpose, ClosureWarningCode, PrefillSourceStatus — Baru
+├── Models/
+│   ├── InpDoctorAssignment.cs                  Diperbarui — 1 kolom
+│   ├── InpDischargeSummary.cs                  Diperbarui — 3 kolom
+│   └── InpDischargeSummaryRevision.cs          Diperbarui — 3 kolom
+└── Services/
+    ├── InpCensusQueryService.cs                Diperbarui
+    ├── InpDischargeService.Closure.cs          Diperbarui — langkah 4–6, peringatan, daftar pantau
+    ├── InpDischargeSummaryPrefillService.cs    Baru
+    └── InpEpisodeService.Assignments.cs        Diperbarui — dua metode
+
+Repositories/Configurations/HealthServices/InPatientManagement/
+├── InpDoctorAssignmentConfiguration.cs         Diperbarui — kolom, check constraint
+├── InpDischargeSummaryConfiguration.cs         Diperbarui — tiga kolom
+└── InpDischargeSummaryRevisionConfiguration.cs Diperbarui — tiga kolom
+```
+
+### 11.8 Status model dan dampak migration
+
+| Tabel | Status | Kolom berubah | Dampak migration |
+| --- | --- | --- | --- |
+| `InpDoctorAssignment` | `Diperbarui` | `AssignmentPurpose integer NOT NULL DEFAULT 0` + check constraint | Tanpa mematikan layanan; baris lama `Regular` |
+| `InpDischargeSummary` | `Diperbarui` | `ImportantFindingsSummary varchar(4000)`, `DischargeConditionNote varchar(2000)`, `EducationSummary varchar(2000)` — nullable | Tanpa mematikan layanan |
+| `InpDischargeSummaryRevision` | `Diperbarui` | Tiga kolom yang sama | Tanpa mematikan layanan |
+
+| No | Langkah | Tanpa mematikan layanan | Cara mundur |
+| ---: | --- | :---: | --- |
+| E1 | Kolom tujuan penugasan beserta check constraint | Ya | Hapus kolom selama belum ada baris `LateDocumentation`; bila sudah ada, mundur dilarang tanpa ekspor |
+| E2 | Tiga kolom resume pada dua tabel | Ya | Hapus kolom selama kosong |
+| E3 | Langkah penutupan 4–6 | Ya — perubahan kode | Kembalikan kode. Konsep yang sudah terkunci **tidak** dikembalikan menjadi konsep (`RWI-AC-201`); pesanan dan dosis yang sudah dibatalkan tetap batal |
+
+**Urutan terhadap sub-modul lain** (`../02-module-map.md` bagian 3.4 revision `2`): E1 sebelum `DOK-V2-1`; E3 langkah 4–5
+bersama `DOK-V2-1`; E3 langkah 6 bersama `KEP-V2-2`. Selama tabel dosis belum ada, langkah 6 tidak dipasang.
+
+### 11.9 Rencana data master awal
+
+**Nol master baru.** `MstInpatientSetting` tidak berubah. Seeder hak akses tidak bertambah Resource; butir yang dipakai
+sudah ada.
+
+### 11.10 Yang sengaja tidak dibuat
+
+| Yang ditolak | Alasan |
+| --- | --- |
+| Tabel penugasan singkat tersendiri | Penugasan singkat tetap penugasan berperiode `RWI-DEC-099`; tabel kedua membuat penjaga kewenangan membaca dua sumber |
+| Kolom boolean `IsLateDocumentation` | Enum tujuan lebih tahan terhadap tujuan kedua |
+| Dokter membuat penugasannya sendiri | `RWI-DEC-130` (4), `RWI-DEC-099` |
+| Penutupan ditahan konsep, pesanan, atau dosis | `RWI-DEC-129` (4), `RWI-DEC-138` (5), `RWI-DEC-143` (5) |
+| Membatalkan pesanan tertunda yang sudah ditagih saat penutupan | Source menolak; nasibnya bersama Billing — `RWI-DEC-143` jalur (c) |
+| Menyimpan hasil usulan isian resume | `RWI-DEC-112`: dokter meninjau sebelum menyimpan |
+| Resume ODC | `RWI-DEC-123`; `RWI-OQ-059` |
+| Census seluruh rumah sakit bagi dokter | `RWI-DEC-111` |
+| Endpoint "Catatan Saya" di `InPatientManagement` | `RWI-DEC-142`; `RWI-AC-211` |
+| Mengubah jalur pengalihan DPJP | Tidak diminta; bagian 6A tetap |
+
+### 11.11 Traceability bagian 11
+
+| Bagian | Keputusan | Diminta oleh | Acceptance |
+| --- | --- | --- | --- |
+| 11.5.1, 11.5.3 | `RWI-DEC-099`, `130` | `INT-DOK-12` | `RWI-AC-189`, `190` |
+| 11.5.2, 11.5.5 | `RWI-DEC-112` | `INT-DOK-20` | Acceptance bagian 18 |
+| 11.5.4 | `RWI-DEC-138`, `143`; `RWI-DEC-116` | `INT-DOK-13`, `INT-KEP-15` | `RWI-AC-199`, `201`, `213`, `214`; `AC-KEP-113` |
+| 11.5.6 | `RWI-DEC-111` | `INT-DOK-11` | Acceptance bagian 18 |

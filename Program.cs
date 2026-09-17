@@ -6,11 +6,17 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using QuilvianSystemBackend.Areas.Administrator.MasterData.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Services;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.Configuration.Services;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Reconciliation.Services;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.RecurringJournal.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.GeneralLedger.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.JournalType.Services;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.EventType.Services;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.PostingRule.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.CredentialingManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.LeaveManagement.Services;
@@ -308,6 +314,10 @@ try
     builder.Services.AddSingleton(backendVersionManifest);
     builder.Services.AddScoped<LanguageService>();
     builder.Services.AddScoped<LoggerService>();
+    builder.Services.AddScoped<ICompanyGuarantorReimbursementRouteService, CompanyGuarantorReimbursementRouteService>();
+    builder.Services.AddScoped<CompanyGuarantorReimbursementRouteService>();
+    builder.Services.AddScoped<ICompanyGuarantorCoverageRuleService, CompanyGuarantorCoverageRuleService>();
+    builder.Services.AddScoped<CompanyGuarantorCoverageRuleService>();
     builder.Services.AddScoped<WfpCertificationFileStorageService>();
     builder.Services.AddScoped<ApplicationVersionService>();
     builder.Services.AddScoped<AccessPermissionService>();
@@ -336,8 +346,10 @@ try
 
     builder.Services.AddScoped<EncounterIntakeService>();
     builder.Services.AddScoped<PatientEncounterNumberService>();
+    builder.Services.AddScoped<EncounterPaymentSourceService>();
     builder.Services.AddScoped<EncounterInsuranceService>();
     builder.Services.AddScoped<InsuranceCoverageService>();
+    builder.Services.AddScoped<CompanyGuarantorCoverageService>();
     builder.Services.AddScoped<PrescriptionNumberService>();
     builder.Services.AddScoped<PrescriptionSummaryService>();
     builder.Services.AddScoped<PrescriptionWorkflowService>();
@@ -544,9 +556,19 @@ try
     // seeder dan logika startup Accounting sengaja TIDAK ditaruh di sini.
     builder.Services.AddScoped<AccChartOfAccountService>();
     builder.Services.AddScoped<AccJournalTypeService>();
+    builder.Services.AddScoped<AccEventTypeService>();
+    builder.Services.AddScoped<AccPostingRuleService>();
+    builder.Services.AddScoped<AccAccountingConfigurationService>();
     builder.Services.AddScoped<AccAccountingPeriodService>();
+    builder.Services.AddScoped<AccPeriodClosingService>();
+    builder.Services.AddScoped<AccYearEndClosingService>();
+    builder.Services.AddScoped<AccRecurringJournalService>();
+    builder.Services.Configure<AccRecurringJournalSchedulerOptions>(
+        builder.Configuration.GetSection("Accounting:RecurringJournalScheduler"));
+    builder.Services.AddHostedService<AccRecurringJournalSchedulerHostedService>();
     builder.Services.AddScoped<AccJournalService>();
     builder.Services.AddScoped<AccGeneralLedgerService>();
+    builder.Services.AddScoped<AccControlAccountReconciliationService>();
 
     builder.Services.AddScoped<LeaveEntitlementBalanceQueryService>();
     builder.Services.AddScoped<LeaveAdjustmentPostingService>();
@@ -667,6 +689,12 @@ try
     builder.Services.AddScoped<BillingFinalizationService>();
 
     builder.Services.AddScoped<BillingArApHandoffService>();
+
+    builder.Services.AddScoped<BillingPayerEditService>();
+
+    builder.Services.AddScoped<BillingCompanyGuarantorInvoiceDocumentService>();
+
+    builder.Services.AddScoped<BillingReminderService>();
 
     builder.Services.AddScoped<BillingFinancialExceptionService>();
 

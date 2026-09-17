@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `5f587bb1c` pada branch `HamzahV2` — perubahan task ini **masih lokal, belum di-commit** |
 | Commit backend yang dijadikan rujukan | `514b1d8` pada branch `MHamzah` — dibaca saja, tidak diubah |
 | Tanggal | 1 September 2026 |
-| Status | 🟡 **Sebagian.** 5 dari 8 acceptance criteria terpenuhi, 2 terpenuhi sebagian, 1 tidak dapat diselesaikan karena dependency-nya belum dikerjakan |
+| Status | 🟡 **SEBAGIAN — diperbarui 12 September 2026.** **6 dari 8** acceptance criteria terpenuhi, 2 tetap sebagian. ~~5 dari 8~~. **Kriteria 8 kini tertutup:** ia menunggu `FE-RWI-039`, dan task itu terbukti selesai 12 September 2026, sehingga keenam layar bukti runtime `FE-RWI-036` s.d. `041` lengkap. Penutupannya dikunci dua test baru pada `tests/unit/inpatient-foundation.test.mjs` yang memeriksa keenam layar membedakan keadaan kosong dari keadaan gagal dan menyediakan jalan keluar saat gagal. **Kriteria 1 dan 5 tetap sebagian** dan tidak dapat ditutup di sini: kriteria 1 menunggu `RWI-UI-GAP-007`, kriteria 5 menunggu katalog hak akses per butir tersedia di frontend — cacat yang sama yang menahan `FE-RWI-003` kriteria 2. Validasi 12 September 2026: `npm run test:unit` **754 lulus, 0 gagal**; `npm run lint:errors` **0 error**; `npm run build` beserta `postbuild` berhasil |
 
 ---
 
@@ -466,3 +466,58 @@ hook `clearance-item`, `inpatient-clearance-item-utils.jsx`, serta test unit
 `inpatient-clearance-item` dan `inpatient-setting` — adalah pekerjaan `FE-RWI-040` dan
 `FE-RWI-041` yang sudah ada di working tree sebelum task ini dimulai. Keduanya **tidak
 disentuh** task ini dan sengaja dibiarkan apa adanya.
+
+
+---
+
+## Lampiran — pembaruan 12 September 2026
+
+### A. Kriteria 8 ditutup tanpa perubahan source alur
+
+Kriteria 8 berbunyi: "Keenam layar bukti runtime mempunyai state berisi/kosong/gagal dan
+aksi sesuai `FE-RWI-036` s.d. `041`". Ia tertahan satu hal saja, yaitu `FE-RWI-039` yang
+berstatus ⛔. Task itu diperiksa ulang 12 September 2026 dan terbukti keenam acceptance
+criteria-nya sudah terpenuhi pada source — laporannya
+[`FE-RWI-039.md`](./FE-RWI-039.md).
+
+Keenam layar yang dimaksud:
+
+| Task | Layar |
+| --- | --- |
+| `FE-RWI-036` | `inpatient-bed-board-view.jsx` |
+| `FE-RWI-037` | `inpatient-census-view.jsx` |
+| `FE-RWI-038` | `inpatient-monitoring-view.jsx` |
+| `FE-RWI-039` | `inpatient-bed-drift-view.jsx` |
+| `FE-RWI-040` | `master-data-inpatient-clearance-item-view.jsx` |
+| `FE-RWI-041` | `master-data-inpatient-setting-view.jsx` |
+
+### B. Satu cacat nyata ditemukan pemeriksaan ini, dan diperbaiki
+
+Pemeriksaan keenam layar menemukan bahwa layar **Butir Administrasi Rawat Inap** milik
+`FE-RWI-040` **tidak memiliki tombol Coba Lagi sama sekali**. Saat pembacaan daftar gagal,
+layar hanya menampilkan `InformationAlert` merah di atas tabel yang sudah kosong, dan
+petugas tidak punya jalan keluar selain memuat ulang halaman.
+
+Ini bukan kekurangan pada `FE-RWI-035`. Ia menyalahi **kriteria 5 milik `FE-RWI-040`
+sendiri** — "Error list mempunyai **Coba Lagi**" — dan laporan task itu menyatakan tombol
+tersebut "pada Hero saat terjadi error". Pernyataan itu tidak benar pada source per
+12 September 2026.
+
+**Perbaikannya dilakukan, bukan dicatat lalu ditinggalkan**, karena tanpanya kriteria 8
+task ini tidak dapat dinyatakan lulus. Yang ditambahkan satu tombol pada `Hero` layar itu,
+memakai `refreshData` yang **sudah** diekspor hook-nya sejak semula, mengikuti pola yang
+persis sama dengan `inpatient-bed-drift-view.jsx`. Diff: satu berkas, satu prop `Hero`
+ditambahkan, satu nilai destructuring ditambahkan. Nol endpoint, nol route, nol komponen.
+
+Pemilik `FE-RWI-040` perlu tahu bahwa laporan task itu memuat satu pernyataan yang tidak
+sesuai source, dan bahwa perbaikannya kini ada di dalam cakupan tulis laporan ini.
+
+### C. Yang tetap terbuka sesudah pembaruan ini
+
+| Kriteria | Keadaan | Yang menahan |
+| --- | --- | --- |
+| 1 | Sebagian — rangkaian sampai `Closed` terbukti, formulir pendaftaran pasien baru tidak dikendarai | `RWI-UI-GAP-007`, ditambah `FilterDatePicker` dan lima pilihan wilayah berantai |
+| 5 | Sebagian — 8 dari 19 layar punya e2e gerbang peran | Frontend belum menerima katalog hak akses per butir; sebelas layar sisanya tidak punya penjaga di sisi layar untuk dibuktikan |
+
+Keduanya bukan pekerjaan koding pada task ini. Kriteria 1 menunggu data, kriteria 5
+menunggu kontrak hak akses per butir dari backend.

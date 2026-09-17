@@ -1,4 +1,4 @@
-using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Enums;
+﻿using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Enums;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
@@ -59,6 +59,29 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
         /// service, bukan di sini.
         /// </summary>
         public bool IsActive { get; set; } = true;
+
+        /// <summary>
+        /// Akun ini hanya boleh dicatat lewat kejadian akuntansi atau subledger, <b>bukan</b>
+        /// lewat layar Jurnal Manual (<c>ACC-DEC-064</c>). Berlaku untuk Kas Kasir, Kas Kecil,
+        /// Piutang, dan Hutang.
+        ///
+        /// <para>
+        /// <b>Kenapa disimpan, bukan diturunkan.</b> Penandanya tidak dapat disimpulkan dari
+        /// data lain: <c>Kas Kasir</c> dan <c>Piutang</c> sama-sama berjenis <c>Asset</c>,
+        /// tetapi tidak setiap akun <c>Asset</c> adalah control account. Ini berbeda dari
+        /// <c>RequiresCostCenter</c> yang justru ditolak menjadi kolom pada <c>ACC-DEC-019</c>
+        /// karena memang dapat diturunkan dari <see cref="AccountType"/>.
+        /// </para>
+        ///
+        /// <para>
+        /// <b>Bawaannya <c>false</c>, dan itu mengikat.</b> Akun yang sudah ada di database
+        /// tidak boleh berubah perilakunya hanya karena kolom ini ditambahkan.
+        /// </para>
+        ///
+        /// Penolakan jurnal manualnya ditegakkan <c>AccJournalService</c> pada
+        /// <c>BE-ACC-P2-012</c>, bukan di sini.
+        /// </summary>
+        public bool IsControlAccount { get; set; } = false;
 
         public DateTime? EffectiveStartDate { get; set; }
 

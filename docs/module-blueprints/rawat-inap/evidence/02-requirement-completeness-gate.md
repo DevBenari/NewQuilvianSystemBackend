@@ -3,22 +3,24 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| Assessment revision | `1.4` |
-| Assessment date | 21 Agustus 2026 (`Asia/Jakarta`); **focused reassessment Dokter Rawat Inap dan Keperawatan, 2 September 2026** |
+| Assessment revision | **`1.6`** |
+| Assessment date | 21 Agustus 2026 (`Asia/Jakarta`); focused reassessment Dokter Rawat Inap dan Keperawatan, 2 September 2026; focused reassessment penyelarasan `PRD-RWI-V2-001`, 15 September 2026; **penutupan keputusan `RLN-PH-04`, 15 September 2026** |
 | Assessment status | `CURRENT` |
 | Koreksi `1.1` | Tiga keterangan yang menyatakan `DEC-INP-001` masih terbuka diperbaiki; kesiapan belum dinilai ulang pada revision itu |
 | Focused reassessment `1.2` | Menilai ulang `INP-S05` bagian dokter, `INP-S06`, serta `CAP-015` berdasarkan decision log revision `7`, PRD final, dan capability map revision `1.3`. Hasil kanonisnya ada pada bagian 11 |
 | Decision closure `1.3` | Menyerap hasil Amendment Pass `CAP-025` pada decision log revision `8`. `DEC-INP-008` ditutup oleh `RWI-DEC-084` dan `RWI-DEC-085`; hasil kanonis terbaru untuk Dokter Rawat Inap ada pada bagian 12 |
 | Focused reassessment `1.4` | Menilai **lima kemampuan Keperawatan** yang tidak pernah punya slice sendiri: `CAP-012`, `CAP-013`, `CAP-014`, `CAP-016`, dan `CAP-027`. Slice baru `INP-S16`. Hasilnya pada bagian 13 |
+| Focused reassessment `1.5` | Fase `RLN-PH-04`: kemampuan baru dan yatim dari `PRD-RWI-V2-001`. Slice baru `INP-S17` s.d. `INP-S21`. Decision ID baru `DEC-INP-010` s.d. `DEC-INP-012`. Menutup temuan manifest `RLN-04` dan `RLN-07`. Hasilnya pada bagian 14 |
+| Decision closure `1.6` | Menyerap Amendment Pass penutupan gate `RLN-PH-04`: `RWI-DEC-145` s.d. `RWI-DEC-149` dan `RWI-AC-219` s.d. `RWI-AC-231`. `DEC-INP-010` dan `DEC-INP-011` **`CLOSED`**, `DEC-INP-012` **`DEFERRED`**. `INP-S17` naik ke `READY_FOR_DOMAIN_DESIGN`; `INP-S19` `READY_FOR_DOMAIN_DESIGN` terbatas pada sliding scale, handover shift dan transfusi `DEFERRED`. Hasil kanonis terbaru untuk `INP-S17` dan `INP-S19` ada pada bagian 15 |
 | **Overall readiness** | **`PARTIALLY_READY`** |
-| Ready destination | `hospital-domain-architect` atau langsung `design-business-module`. Ketujuh capability Dokter Rawat Inap siap sesuai bagian 12; empat kemampuan Keperawatan aktif siap sesuai bagian 13 |
-| Business evidence | [`00-interview-decisions.md`](../00-interview-decisions.md) revision `11`, SHA-256 `f34b7aef1352d4c5a817ffeaf988c6eed514d668d3d92051b78806bfc09e635c`. Revision `8` SHA-256 `065b5cd5…` dipakai pada penilaian `1.0` s.d. `1.3` |
-| Capability evidence | [`01-existing-capability-map.md`](../01-existing-capability-map.md) revision `1.3`, SHA-256 `0155b345abea61f1b69e6adaf48ee91056b5efaf7fa672ea6300e0546bf4db03` |
-| Primary business source | `docs/Modul-RS/Rawat-Inap/PRD_Final_Rawat_Inap_100_Persen.md`, `PRD-RWI-FINAL-001` v1.0.0, SHA-256 `fb5e75d7a1ffffdaddf084a90ec417b00b893b2be23aac0a98ddef5d7bbddc55` |
+| Ready destination | `hospital-domain-architect` atau langsung `design-business-module`. Ketujuh capability Dokter Rawat Inap siap sesuai bagian 12; empat kemampuan Keperawatan aktif siap sesuai bagian 13; **slice penyelarasan V2 `INP-S17`, `S18`, `S19` (sliding scale), `S20`, dan `S21` siap sesuai bagian 14 dan 15; handover shift dan transfusi `DEFERRED`** |
+| Business evidence | **Bagian 15:** [`00-interview-decisions.md`](../00-interview-decisions.md) revision `21`, SHA-256 `1c55c80a50aee11ef005ccde6315c2935cbe21504e8596798b89bf7f2d45102a`, dihitung **setelah** sinkronisasi register oleh gate ini (catatan blocker, satu baris Gate Sebelum Produksi, satu baris Riwayat Pass). Isi keputusannya sama dengan hash sebelum sinkronisasi `1eaaa7ab…aa168ad`. **Bagian 14:** [`00-interview-decisions.md`](../00-interview-decisions.md) revision `20`, SHA-256 `b278013547dfa3c8f1bfa21fdd442cdaa416a8015939f1628794ab7e03db0fb7`. Sebelumnya revision `11`, SHA-256 `f34b7aef1352d4c5a817ffeaf988c6eed514d668d3d92051b78806bfc09e635c`. Revision `8` SHA-256 `065b5cd5…` dipakai pada penilaian `1.0` s.d. `1.3` |
+| Capability evidence | **Bagian 14 dan 15:** [`01-existing-capability-map.md`](../01-existing-capability-map.md) revision `1.4`, SHA-256 `337a10f09d6e91b06395405098bad09623452de062e10a720a637bd22daa543a`. Sebelumnya revision `1.3`, SHA-256 `0155b345abea61f1b69e6adaf48ee91056b5efaf7fa672ea6300e0546bf4db03` |
+| Primary business source | **Bagian 14 dan 15:** `PRD-RWI-V2-001` v`2.0` SHA-256 `2b3b2f29c9e547f448f186d7ac990e33dc3bdede8043a9b4bebfad6fbe0a679f` dan `PRD-to-MVP-Rawat-Inap-V2` v`1.0.0` SHA-256 `9804b9680580f6b15a5008b9bcbb13a419fef077ef6680d732a6e2135b3ce141`, dibaca berlapis sesuai `RWI-DEC-110`. Baseline: `docs/Modul-RS/Rawat-Inap/PRD_Final_Rawat_Inap_100_Persen.md`, `PRD-RWI-FINAL-001` v1.0.0, SHA-256 `fb5e75d7a1ffffdaddf084a90ec417b00b893b2be23aac0a98ddef5d7bbddc55` |
 | Baseline rujukan | `indonesia-hospital-domain-reference`, berkas `references/inpatient.md`, `Reference coverage: PARTIAL`, seluruh observasi berstatus `REFERENCE_ONLY` |
-| Backend snapshot | `93b3227c431401d8f586dec4e1fb25fbf41766e3` (branch `MHamzah`) |
-| Frontend snapshot | `863f24b0d1617069310c04e5770b47fd1b518b5b` (branch `HamzahV2`) |
-| Write boundary | Dokumen evidence ini dan sinkronisasi metadata/hash blueprint. Tidak ada source aplikasi, migration, entity, endpoint, UI, task, database, atau ClickUp yang diubah |
+| Backend snapshot | **Bagian 14: `df3679c0d5b2f08106702153eb242d3a6cb2929b`** (branch `MHamzah`); bagian 15 tidak membaca source ulang karena seluruh kemampuan yang dinilainya berstatus `Missing` pada capability map; sebelumnya `93b3227c431401d8f586dec4e1fb25fbf41766e3` |
+| Frontend snapshot | **Bagian 14: `147355f505e875148b8416866ada6cf8b2f1ad99`** (branch `HamzahV2`), pembanding V1 `13c3a96b`; sebelumnya `863f24b0d1617069310c04e5770b47fd1b518b5b` |
+| Write boundary | Dokumen evidence ini dan sinkronisasi metadata/hash blueprint. Revision `1.6` juga menyinkronkan register pemicunya: catatan blocker, tabel Gate Sebelum Produksi, dan Riwayat Pass pada `00-interview-decisions.md`, serta tabel fase dan baris artefak pada `blueprint-manifest.md`. Tidak ada source aplikasi, migration, entity, endpoint, UI, task, database, atau ClickUp yang diubah |
 
 > **Apa gunanya dokumen ini.** Dokumen ini tidak merancang apa pun. Tugasnya satu: memeriksa
 > apakah kebutuhan bisnis Rawat Inap sudah cukup lengkap dan cukup berbukti untuk mulai dirancang
@@ -450,7 +452,7 @@ menyebut pengiriman resume medis. Keduanya belum pernah dibahas. Ini bagian dari
 | 1 | ~~Persetujuan pemilik `ClinicalManagement` dan `PharmacyManagement` atas pelonggaran antrean dan konsultasi~~ | ~~`MISSING`~~ → **`CONFIRMED`** | ~~`BLOCKING`~~ → **tidak memblokir** | `INP-S05`, `INP-S06` | `DEC-INP-001` **TERTUTUP** 2026-08-21 lewat `RWI-DEC-062`; dicatat di sini 2026-09-02 |
 | 2 | Persetujuan pemilik `EmergencyInstallationManagement` atas serah terima disposisi `RANAP` | `MISSING` | `BLOCKING` | `INP-S09` | `DEC-INP-002` |
 | 3 | Persetujuan pemilik privasi dan hukum atas persetujuan umum yang tidak menahan admisi | `PROPOSED` | `BLOCKING` | `INP-S10` | `DEC-INP-003` |
-| 4 | Isolasi dan pemisahan jenis kelamin sebagai penyaring, bukan penolak penempatan | `CONFLICT` | `BLOCKING` | `INP-S11` | `DEC-INP-004` |
+| 4 | ~~Isolasi dan pemisahan jenis kelamin sebagai penyaring, bukan penolak penempatan~~ **TERTUTUP 2026-09-11** | ~~`CONFLICT`~~ `RESOLVED` | ~~`BLOCKING`~~ tidak memblokir | `INP-S11` | `DEC-INP-004` **`CLOSED`** oleh `RWI-DEC-064`, `RWI-DEC-065`, dan `RWI-DEC-101`; dicatat `RWI-DEC-104` |
 | 5 | Kepemilikan, isi, dan pemicu pengiriman SATUSEHAT rawat inap | `MISSING` | `BLOCKING` | `INP-S15` | `DEC-INP-005` |
 | 6 | Isi dan konfirmasi serah terima klinis antar shift keperawatan | `MISSING` | `BLOCKING` | Slice serah terima klinis, belum masuk daftar kemampuan | `DEC-INP-006` |
 | 7 | Aturan klinis pasien meninggal dan pasien kabur | `PROPOSED` | `BLOCKING` | `INP-S07` sebagian | `DEC-INP-007` |
@@ -557,8 +559,8 @@ ulang. Konflik baru focused scope dicatat sebagai `DEC-INP-008` pada bagian 11.8
 | Usulan baseline | Baseline `ID-INP-CAP-003` menempatkan kebutuhan isolasi dan kendala jenis kelamin sebagai pembatas penempatan, dan pasal 13 memasukkan isolasi ke dalam daftar kepedulian keselamatan klinis. Observasi ini `REFERENCE_ONLY` dan bukan kebijakan rumah sakit |
 | Dampak | Menyentuh pengendalian infeksi dan privasi pasien. Bila menjadi aturan keras, penempatan mendapat validasi baru yang dapat menolak |
 | Pemilik yang dibutuhkan | Pemilik klinis untuk isolasi; pemilik privasi untuk jenis kelamin. Keduanya belum ditunjuk |
-| Status | `OPEN` |
-| Dampak implementasi atau domain | `INP-S11` berhenti. `INP-S01` dan `INP-S02` tetap boleh berjalan dengan syarat pemeriksaan kelayakan penempatan dirancang sebagai titik yang dapat diisi aturan tambahan |
+| Status | ~~`OPEN`~~ **`CLOSED` 2026-09-11.** Dijawab `RWI-DEC-064` dan `RWI-DEC-065` yang keduanya `approved` 21 Agustus 2026, lalu dipersempit `RWI-DEC-101` 11 September 2026 yang mencabut bagian kamar tanpa mengembalikannya menjadi penyaring. Penutupannya dicatat `RWI-DEC-104` |
+| Dampak implementasi atau domain | ~~`INP-S11` berhenti.~~ **Tidak lagi berlaku.** `INP-S11` naik menjadi `READY_FOR_DOMAIN_DESIGN` sejak 2026-09-11. `INP-S01` dan `INP-S02` tetap berjalan sebagaimana sebelumnya |
 
 ### `DEC-INP-005`
 
@@ -615,7 +617,7 @@ ulang. Konflik baru focused scope dicatat sebagai `DEC-INP-008` pada bagian 11.8
 | `INP-S08` Clearance dan penutupan | `PARTIALLY_READY` | `DEC-INP-007` lewat `INP-S07` | Mesin penutupan siap. Yang menunggu hanya syarat penutupan untuk dua cara pulang yang terblokir |
 | `INP-S09` Serah terima IGD | `BUSINESS_DECISION_REQUIRED` | `DEC-INP-002` | — |
 | `INP-S10` Persetujuan umum | `BUSINESS_DECISION_REQUIRED` | `DEC-INP-003` | — |
-| `INP-S11` Jenis kelamin dan isolasi | `BUSINESS_DECISION_REQUIRED` | `DEC-INP-004` | Satu-satunya butir berstatus `CONFLICT` |
+| `INP-S11` Jenis kelamin dan isolasi | ~~`BUSINESS_DECISION_REQUIRED`~~ **`READY_FOR_DOMAIN_DESIGN`** sejak 2026-09-11 | ~~`DEC-INP-004`~~ — | ~~Satu-satunya butir berstatus `CONFLICT`~~ Pemblokirnya tertutup; lihat `RWI-DEC-104`. Aturan yang berlaku kini `RWI-DEC-101`: jenis kelamin dinilai hanya terhadap penanda tempat tidur |
 | `INP-S12` Bayi baru lahir dan boks bayi | `READY_FOR_DOMAIN_DESIGN` | — | Master sudah punya seluruh penanda yang dibutuhkan |
 | `INP-S13` Riwayat status, audit, daftar pantau | `READY_FOR_DOMAIN_DESIGN` | — | Dua dari tiga daftar pantau siap; daftar pantau kepatuhan pengkajian dan CPPT menunggu `INP-S05` |
 | `INP-S14` Pengaturan admin | `READY_FOR_DOMAIN_DESIGN` | — | — |
@@ -671,7 +673,7 @@ Baris di luar `CAP-025` dipertahankan dari assessment awal dan tidak dinilai ula
 | `INP-S05`, hanya `CAP-025 Physician Visit` | `DEC-INP-008`: keputusan lama menurunkan visite dari SOAP/CPPT, sedangkan PRD final menuntut event mandiri; keduanya menghasilkan persistence, lifecycle, dan hitungan berbeda |
 | `INP-S09` | `DEC-INP-002` menentukan kunjungan mana yang menjadi jangkar episode |
 | `INP-S10` | `DEC-INP-003` adalah keputusan hukum dan privasi |
-| `INP-S11` | `DEC-INP-004` adalah satu-satunya `CONFLICT`, dan menyentuh pengendalian infeksi |
+| `INP-S11` | ~~`DEC-INP-004` adalah satu-satunya `CONFLICT`, dan menyentuh pengendalian infeksi~~ **Tertutup 2026-09-11** lewat `RWI-DEC-104`. Pengendalian infeksi tetap dijaga `ISOLATION_REQUIRED` dan `ISOLATION_BED_RESERVED`, yang **tidak** tersentuh pencabutan aturan kamar |
 | `INP-S15` | `DEC-INP-005` menentukan pemilik data riwayat lokasi |
 | Serah terima klinis antar shift | `DEC-INP-006`, kemampuan ini bahkan belum masuk daftar 18 MUST |
 | Cara pulang meninggal dan kabur | `DEC-INP-007` |
@@ -1118,3 +1120,561 @@ modul lain berada di luar penilaian ini.
 | `next_owner` | `plan-module-delivery` untuk sub-modul `keperawatan` |
 | `required_boundary` | Dokumentasi keperawatan tetap milik `ClinicalManagement` (`RWI-DEC-081`). Sub-modul ini **MUST NOT** membuat tabel tandingan, termasuk tabel pemakaian alat |
 | `expected_output` | Roadmap backend dan frontend `keperawatan` beserta traceability requirement, tanpa satu pun task untuk `EPIC KEP-06` |
+
+---
+
+## 14. Focused reassessment penyelarasan `PRD-RWI-V2-001` — revision `1.5`
+
+> **Catatan revision `1.6`.** Status `INP-S17`, `INP-S19`, gap `G-08`, `G-19`, `G-20`, serta
+> `DEC-INP-010` s.d. `DEC-INP-012` pada bagian ini **digantikan bagian 15**. Isinya dipertahankan agar
+> pembaca dapat menelusuri alasan keputusan. Hasil `INP-S18`, `INP-S20`, dan `INP-S21` tetap berlaku.
+
+### 14.1 Kenapa penilaian ini dijalankan
+
+Fase `RLN-PH-04` pada `blueprint-manifest.md` bagian 0-B.4 mewajibkan gerbang terfokus untuk
+**kemampuan baru dan kemampuan yatim** yang dibawa `PRD-RWI-V2-001`, setelah `RLN-PH-02`
+(wawancara) dan `RLN-PH-03` (impact scan) selesai. Dua keputusan juga mewajibkannya secara tertulis:
+
+- `RWI-DEC-116` konsekuensi (2): MAR **wajib** melewati gerbang ini sebelum dirancang;
+- `RWI-DEC-133` butir (2): rekonsiliasi obat ikut melewati gerbang bersama MAR.
+
+Penilaian ini menutup temuan manifest `RLN-04` (Penunjang Medis melebar) dan `RLN-07` (tujuh isi
+Pengkajian Pasien). Slice `INP-S01` s.d. `INP-S16` **tidak** dinilai ulang; hasilnya tetap
+sebagaimana revision sebelumnya.
+
+### 14.2 Scope penilaian
+
+| Slice baru | Nama | Sub-modul | Kemampuan dan isi yang dinilai | Keputusan yang mengikat |
+|---|---|---|---|---|
+| **`INP-S17`** | Pengkajian Pasien V2 | `keperawatan` | Kajian Umum, Resiko Jatuh, Monitoring Nyeri, Assesment Edukasi, Pengawasan Harian Pasien, Evaluasi Awal (MPP), Perencanaan Pulang, progres | `RWI-DEC-118` s.d. `120`, `124`, `131`, `136`, `141` |
+| **`INP-S18`** | Obat keperawatan | `keperawatan` + `PharmacyManagement` | Pemberian obat per dosis (MAR) dan rekonsiliasi obat saat admisi | `RWI-DEC-116`, `117`, `132` s.d. `134` |
+| **`INP-S19`** | Kemampuan keselamatan `P1` PRD-to-MVP-V2 | `keperawatan` | Handover shift (`FR-MVP-KEP-015`, `016`), sliding scale (`FR-MVP-KEP-018`), transfusi (`FR-MVP-KEP-019`) | `RWI-DEC-097`, `RWI-DEC-110` |
+| **`INP-S20`** | Penunjang Medis enam layanan | `dokter-rawat-inap` + `keperawatan` | Laboratorium, Radiologi, Gizi, Hemodialisa, Bank Darah, Rehab Medik | `RWI-DEC-108`, `RWI-DEC-113` |
+| **`INP-S21`** | Dokumentasi klinis dan ruang kerja dokter V2 | `dokter-rawat-inap` + `keperawatan` | Kesamaan layout, Catatan Saya, jenis catatan CPPT, koreksi dan penguncian konsep, penulis dan pembatalan tindakan, verifikasi CPPT, Resep Harian, Template Resep, tab Resume Medis dan ODC | `RWI-DEC-107`, `112`, `115`, `121` s.d. `123`, `125` s.d. `130`, `135`, `137` s.d. `144` |
+
+**Yang tidak dinilai:** seluruh isi sub-modul `episode-rawat-inap`, termasuk serah terima klinis
+transfer antarunit (`FR-MVP-EP-016`, `017`), karena `RWI-DEC-113` menampilkannya "Integrasi belum
+tersedia" dan kepemilikannya ada di sub-modul itu; `CAP-016` Pemakaian Alat (`RWI-DEC-089`,
+`RWI-DEC-108`); lima cara keluar (`MVP-RWI-D-011`).
+
+### 14.3 Bukti yang dipakai
+
+| Bukti | Revision / hash | Wewenang dan penggunaannya |
+|---|---|---|
+| `PRD-RWI-V2-001` v`2.0`, `docs/Modul-RS/Rawat-Inap/04-prd-to-mvp-final.md` bagian 5, 16–23, 26–47, 56 | SHA-256 `2b3b2f29…0a679f` | Requirement rumah sakit terkini untuk ruang kerja dokter dan keperawatan — menang bila bertentangan, sesuai `RWI-DEC-110` |
+| `PRD-to-MVP-Rawat-Inap-V2` v`1.0.0` bagian 13 dan 16 (`FR-MVP-KEP-001` s.d. `020`, `AC-MVP-025` s.d. `034`, `OPEN-MVP-001` s.d. `010`) | SHA-256 `9804b968…3ce141` | Requirement yang tetap berlaku lewat `RWI-DEC-097` dan `RWI-DEC-110` |
+| `PRD-RWI-FINAL-001` v1.0.0 | SHA-256 `fb5e75d7…bddc55` | Baseline 28 kemampuan |
+| [`00-interview-decisions.md`](../00-interview-decisions.md) | revision `20`, SHA-256 `b2780135…03db0fb7`, keputusan terakhir `RWI-DEC-144` | Keputusan pemilik yang dikonfirmasi |
+| [`01-existing-capability-map.md`](../01-existing-capability-map.md) | revision `1.4`, SHA-256 `337a10f0…d22daa543a`, bagian 17 current pada `BE@df3679c0` dan `FE@147355f5` | Bukti "apa yang ada sekarang" saja |
+| Frontend V1 `QuilvianSystemFrontendDev@13c3a96b` | commit lokal | Bukti legacy isi formulir V1 — wewenang terendah, dipakai sebagai usulan isian |
+| Pembacaan source tambahan pada `BE@df3679c0` | — | `TrxPatientAllergy.cs` (data alergi terstruktur), `TrxPatientProcedure.IsBillingGenerated` (tidak pernah disetel `true` di mana pun) |
+| Blueprint `bank-darah` | `00-interview-decisions.md`, manifest status `IN_PROGRESS` | Bukti titik sentuh transfusi; tidak dinilai isinya |
+
+> **Batas yang dijaga.** Keputusan pemilik yang lahir dari opsi yang disusun agent tetap
+> `CONFIRMED` karena pemilik memilihnya secara tertulis. Usulan agent yang **tidak** dipilih
+> pemilik tetap `PROPOSED` pada penilaian ini.
+
+### 14.4 Hasil penilaian 18 dimensi per slice
+
+Kode: `C` = `CONFIRMED`, `P` = `PROPOSED`, `M` = `MISSING`, `X` = `CONFLICT`. Nomor `G-##` merujuk
+tabel 14.6.
+
+| ID | Dimensi | `INP-S17` Pengkajian | `INP-S18` Obat | `INP-S19` P1 keselamatan | `INP-S20` Penunjang | `INP-S21` Dokumentasi dokter |
+|---:|---|---|---|---|---|---|
+| 01 | Tujuan | `C` PRD 26–34 | `C` PRD 40; `FR-MVP-KEP-009` | `C` `FR-MVP-KEP-015` s.d. `019` | `C` PRD 23, 43 | `C` PRD 7–22 |
+| 02 | Aktor | `C` perawat `RWI-DEC-100`; MPP `RWI-DEC-118`, `131` | `C` perawat unit, dokter pemutus rekonsiliasi `RWI-DEC-132` | `C` pemberi/penerima handover; `X` transfusi G-20 | `C` `RWI-DEC-113` | `C` `RWI-DEC-111`, `125`, `139` |
+| 03 | Pemicu/prasyarat | `C` episode `Admitted` | `C` resep aktif `RWI-DEC-117`; admisi untuk rekonsiliasi | `M` G-19 | `C` order `CAP-015` | `C` penugasan `RWI-DEC-099`, `128` |
+| 04 | Alur utama | `C` PRD 27–34 | `C` `RWI-DEC-116`, `132` | `C` pada PRD-to-MVP-V2; `M` penempatan rilis G-19 | `C` | `C` |
+| 05 | Alternatif/exception | `C` `BR-RWI-004`, `007`; `RWI-DEC-119` | `C` `Held`/`Refused`/`Missed` beralasan; obat di luar master `RWI-DEC-134` | `C` `AC-MVP-032`, `033` | `C` "Integrasi belum tersedia" `RWI-DEC-108` | `C` `RWI-DEC-129`, `138`, `143` |
+| 06 | Data minimum | `C` bagian dan kelompok PRD; `P` isian rinci G-01; `M` intake obat/darah G-08 | `C` `FR-MVP-KEP-009` s.d. `011`; isian V1 rekonsiliasi | `C` `FR-MVP-EP-017`, `FR-MVP-KEP-015` s.d. `019` | `C` | `C` `RWI-DEC-140`, `144` |
+| 07 | Aturan/validation | `C` `RWI-DEC-124`, `136`, `141`; `M` isi klinis G-02 | `C`; `M` jam standar dan jendela `Missed` G-12 | `C`; `M` protokol sliding scale G-19 | `C` | `C` |
+| 08 | Status/lifecycle | `C` `RWI-DEC-119`, `120`; `M` status rencana pulang G-10 | `C` enam status dosis `FR-MVP-KEP-010` | `C` snapshot handover immutable `FR-MVP-KEP-016` | `C` | `C` `RWI-DEC-138`, `143`, `144` |
+| 09 | Peran/authorization | `C` `RWI-DEC-100`, `118`, `131`, `136`; `P` penanda MPP G-11 | `C` `RWI-DEC-117` butir (3); cek ganda pengguna kedua | `X` transfusi G-20 | `C` | `C` `RWI-DEC-125`, `127`, `128`, `135`, `139`, `143` |
+| 10 | Dependency antarmodul | `C` `ClinicalManagement` `RWI-DEC-081`, `118` | `C` `PharmacyManagement` `RWI-DEC-117`, `132`; `MasterData` `RWI-DEC-134` | `X` Bank Darah G-20 | `C` modul penunjang masing-masing | `C` `MedicalRecordManagement` `RWI-DEC-138`, `142`, `144` |
+| 11 | Integrasi | `C` internal saja | `C` Farmasi internal | `M` sumber hasil gula darah untuk sliding scale G-19 | `C` | `C` |
+| 12 | Hasil akhir | `C` `RWI-DEC-120` | `C` riwayat dosis; draft resep dari rekonsiliasi | `C` | `C` | `C` |
+| 13 | Pembatalan/koreksi | `C` addendum `RWI-DEC-091` | `C` koreksi tidak menimpa `RWI-DEC-116` (c) | `C` `FR-MVP-KEP-016`, `017` | `C` | `C` `RWI-DEC-127`, `138`, `143` |
+| 14 | Audit/histori | `C` versi instrumen `RWI-DEC-124` | `C` pelaksana, waktu rencana/aktual | `C` | `C` | `C` `RWI-DEC-144` |
+| 15 | Notifikasi | Tidak material — daftar pantau `RWI-DEC-029` | `M` penerima notifikasi dugaan reaksi obat G-15 | `C` acknowledgment handover | Tidak material | Tidak material — daftar pantau `RWI-DEC-126`, `129` |
+| 16 | Billing/charge | Tidak material — pengkajian tidak menagih | `C` resep dan pemberian bukan tagihan `BR-RWI-013` | `M` transfusi dan sliding scale G-19 | `C` modul penunjang | `C` biaya tindakan lahir dari pelaksanaan, lihat 14.5 butir 9 |
+| 17 | Keselamatan klinis | `C` untuk desain; `M` intake obat/darah G-08 | `C` high-alert, idempotency; `M` isi daftar G-13 | `X` G-20 | `C` | `C` alergi saat pakai template `RWI-DEC-122`, lihat 14.7 |
+| 18 | Pelaporan/traceability | `C` progres dan kepatuhan | `C` riwayat per dosis | `C` | `C` | `C` |
+
+### 14.5 Butir `CONFIRMED` yang menopang kesiapan
+
+| No | Butir | Bukti |
+|---:|---|---|
+| 1 | Kajian Umum delapan bagian; Psikososial, Alat Bantu, dan Catatan Relevan sebagai isian; satu fakta satu tempat. Daftar sepuluh bagian PRD bagian 28 dan kemampuan instrumen `FR-MVP-KEP-003` (termasuk sirkulasi dan neurologi) dibaca lewat lapisan `RWI-DEC-110`: isi form mengikuti `RWI-DEC-141` | `RWI-DEC-141`; `RWI-DEC-110` |
+| 2 | Resiko Jatuh dan isian wajib berupa konfigurasi berversi, dihitung server, disahkan terpisah dari pengubahnya, tanpa angka tertanam di source | `RWI-DEC-124`, `RWI-DEC-136`; `FR-MVP-KEP-004`, `005`; `AC-MVP-034` |
+| 3 | Monitoring Nyeri membedakan Belum dinilai, Tidak nyeri, Ada nyeri, dan Tidak dapat dinilai; riwayat longitudinal tidak menimpa nilai lama | PRD bagian 30; `BR-RWI-007`; `PRD-RWI-FINAL-001` 16.2 aturan 6 |
+| 4 | Assesment Edukasi punya penerima, kebutuhan, hambatan, materi, metode, dan evaluasi pemahaman — **bukan** satu catatan teks | PRD bagian 31 |
+| 5 | Pengawasan Harian mencatat tanda vital, nyeri, intake, output, balance, gula darah, diet, mobilisasi; total dihitung dari data terstruktur per shift dan rolling 24 jam; koreksi mempertahankan nilai lama | PRD bagian 32; `FR-MVP-KEP-017`; `AC-MVP-031`; `RWI-DEC-120` butir (1) |
+| 6 | Evaluasi Awal milik MPP dengan delapan bagian, jangkauan per unit penempatan, dan tidak menahan progres perawat | `RWI-DEC-118`, `RWI-DEC-120`, `RWI-DEC-131` |
+| 7 | Perencanaan Pulang dengan delapan kelompok isi dan tidak menutup episode | PRD bagian 34; `BR-RWI-016` |
+| 8 | MAR `P0`: enam status dosis beralasan, pelaksana dari akun login, idempoten, cek ganda high-alert oleh pengguna kedua, dugaan reaksi obat tertaut dosis; tabel milik `PharmacyManagement`; rekonsiliasi obat `P0` bersama MAR dari master obat | `RWI-DEC-116`, `117`, `132` s.d. `134`; `FR-MVP-KEP-009` s.d. `014`; `AC-MVP-025` s.d. `029` |
+| 9 | Pesanan tindakan yang belum dilaksanakan tidak punya tagihan, sehingga pembatalan otomatis saat episode ditutup (`RWI-DEC-143`) tidak bersinggungan dengan Billing. Source juga tidak pernah menyetel `TrxPatientProcedure.IsBillingGenerated = true` | `BR-RWI-013`; `PRD-RWI-FINAL-001` `CAP-014` aturan 5; `BE@df3679c0` pencarian seluruh `*.cs` |
+| 10 | Keenam layanan penunjang adalah perluasan permukaan `CAP-015`, **bukan kemampuan yatim**; Gizi, Hemodialisa, Bank Darah, dan Rehab Medik tampil "Integrasi belum tersedia" tanpa backend baru | `RWI-DEC-108`, `RWI-DEC-113` |
+| 11 | Dokumentasi dokter V2 terkunci keputusan: layout mengikuti PRD, Catatan Saya dari satu sumber, jenis catatan CPPT, penulis dan penguncian konsep, penulis dan pembatalan tindakan, verifikasi CPPT hanya DPJP, Template Resep pribadi dengan pemilik dari akun login | `RWI-DEC-107`, `121` s.d. `130`, `135`, `137` s.d. `144` |
+
+### 14.6 Butir `PROPOSED`, `MISSING`, dan `CONFLICT`
+
+| ID | Slice | Butir | Status | Dampak | Alasannya |
+|---|---|---|---|---|---|
+| G-01 | `S17` | Isian rinci setiap bagian Kajian Umum, Assesment Edukasi, dan Perencanaan Pulang | `PROPOSED` | `NON_BLOCKING_STANDARD` | PRD memberi bagian dan kelompok; isian rinci diusulkan dari label frontend V1 (`01-existing-capability-map.md` bagian 17 `RLN3-CAP-05`, `08`, `11`). Struktur dokumen tidak berubah oleh jumlah isian |
+| G-02 | `S17` | Isi klinis instrumen risiko jatuh per kelompok usia dan isian wajib setiap jenis pengkajian | `MISSING` | `CONFIGURABLE_DEFAULT` | `RWI-OQ-056`, `RWI-OQ-057`, `OPEN-MVP-003`. `RWI-DEC-124` sudah menetapkan mekanisme konfigurasi; menahan pemakaian untuk pasien sungguhan, bukan desain |
+| G-03 | `S17` | Satu rangkaian data tanda vital dan nyeri per episode yang ditampilkan di Kondisi Umum, Pengawasan Harian, Vital Sign Keperawatan, dan Monitoring Nyeri | `PROPOSED` | `NON_BLOCKING_STANDARD` | Turunan prinsip yang sudah dikonfirmasi pemilik: data terstruktur tidak diduplikasi (`RWI-DEC-140` butir 4) dan satu fakta satu tempat (`RWI-DEC-141` butir 4). Desain wajib menghormatinya; bentuk penyimpanannya milik desain |
+| G-04 | `S17` | Instrumen nyeri untuk pasien yang tidak dapat menilai sendiri (bayi, anak, tidak sadar) dan interval kajian ulang setelah intervensi | `MISSING` | `CONFIGURABLE_DEFAULT` | PRD menyediakan keadaan "Tidak dapat dinilai" dan skala 0–10, tanpa instrumen alternatif maupun interval. Wajar berbeda antar rumah sakit dan dapat mengikuti pola konfigurasi berversi `RWI-DEC-124` |
+| G-05 | `S17` | Tanda tangan penerima edukasi dan tanda tangan pasien/keluarga pada perencanaan pulang, yang ada di V1 | `MISSING` | `NON_BLOCKING_STANDARD` | PRD v`2.0` tidak menyebutnya. Bila kelak diminta, dapat ditambahkan sebagai bukti pelengkap tanpa mengubah dokumen inti |
+| G-06 | `S17` | Batas jam shift untuk total intake/output | `MISSING` | `CONFIGURABLE_DEFAULT` | `FR-MVP-KEP-017` menuntut total per shift, sedangkan sistem tidak punya konsep shift perawat (`RWI-DEC-100`). Jam shift wajar berbeda per unit |
+| G-07 | `S17` | Isi checklist setiap bagian Evaluasi Awal dan pengesahnya | `MISSING` | `CONFIGURABLE_DEFAULT` | PRD hanya memberi delapan judul; V1 memakai master `/ChecklistItem` yang dinamis. Menahan pemakaian untuk pasien sungguhan, bukan struktur dokumen |
+| G-08 | `S17` | **Sumber volume intake obat dan darah** pada Pengawasan Harian: diketik perawat, atau diturunkan dari MAR dan catatan transfusi | `MISSING` | **`BLOCKING` hanya untuk sub-bagian intake obat dan darah** | PRD bagian 32 mencantumkan intake Obat dan Darah. MAR `FR-MVP-KEP-011` menyimpan dosis dan rute, bukan volume cairan pelarut. Pilihannya mengubah integrasi MAR–intake/output dan berisiko menghitung ganda balance cairan — `DEC-INP-010` |
+| G-09 | `S17` | Frekuensi Evaluasi Awal: sekali per episode atau berulang | `MISSING` | `NON_BLOCKING_STANDARD` | Usulan: satu dokumen per episode yang dilengkapi lewat addendum, sesuai namanya "Evaluasi Awal". Tetap terlihat sebagai usulan, bukan kebijakan |
+| G-10 | `S17` | Nilai "Status Rencana" pada Perencanaan Pulang | `MISSING` | `NON_BLOCKING_STANDARD` | Usulan: isian informatif yang **tidak** memicu perubahan status episode (`BR-RWI-016`); status dokumennya mengikuti `RWI-DEC-119` |
+| G-11 | `S17` | Cara sistem mengenali pengguna berperan MPP | `PROPOSED` | `NON_BLOCKING_STANDARD` | Konvensi proyek: hak akses pada layar Akses Role, bukan nama peran di kode (`RWI-FACT-031`, `RWI-DEC-118` konsekuensi a) |
+| G-12 | `S18` | Jam standar pemberian per frekuensi dan jendela waktu sebelum dosis dianggap `Missed` | `MISSING` | `CONFIGURABLE_DEFAULT` | Wajar berbeda antar rumah sakit dan unit; mekanisme status dosis sudah dikonfirmasi `FR-MVP-KEP-010` |
+| G-13 | `S18` | Isi daftar obat high-alert dan aturan cek gandanya | `MISSING` | `CONFIGURABLE_DEFAULT` | `RWI-DEC-116` butir (3) menjadikannya keputusan klinis/Farmasi dan **gerbang sebelum produksi** |
+| G-14 | `S18` | Interval evaluasi obat PRN | `MISSING` | `CONFIGURABLE_DEFAULT` | `FR-MVP-KEP-013` `P1` menyebut "interval yang ditetapkan" tanpa angka |
+| G-15 | `S18` | Penerima notifikasi dugaan reaksi obat | `MISSING` | `CONFIGURABLE_DEFAULT` | `FR-MVP-KEP-014` mewajibkan notifikasi klinis tanpa menyebut penerima. Usulan bawaan: DPJP aktif dan apoteker. Rute notifikasi tidak mengubah catatan pemberian |
+| G-16 | `S18` | Kepemilikan catatan dugaan reaksi obat dan kontraknya dengan `ClinicalManagement` | `PROPOSED` | `NON_BLOCKING_STANDARD` | `RWI-DEC-117` butir (a) sudah menetapkannya sebagai titik sentuh yang dikontrakkan desain |
+| G-17 | `S18` | Rekonsiliasi obat saat **transfer** dan saat **pulang** | `MISSING` | `NON_BLOCKING_STANDARD` untuk rekonsiliasi admisi | `RWI-DEC-132` hanya menyebut admisi. Obat pulang sudah menjadi jenis resep `RWI-DEC-046`. Perluasan ke transfer dan pulang adalah pertanyaan scope, tidak menahan rekonsiliasi admisi |
+| G-18 | `S18` | Batas waktu rekonsiliasi sejak admisi | `MISSING` | `CONFIGURABLE_DEFAULT` | Pola sama dengan `RWI-RULE-021` |
+| G-19 | `S19` | **Penempatan rilis handover shift, sliding scale, dan transfusi** | `MISSING` | **`BLOCKING` untuk `INP-S19`** | Ketiganya `P1` pada PRD-to-MVP-V2, tidak muncul sebagai menu pada PRD v`2.0`, dan blueprint `keperawatan` menundanya (`keperawatan/04-prd-to-mvp.md` bagian 21.6). `RWI-DEC-116` hanya menarik MAR. Belum ada keputusan apakah ketiganya masuk penyelarasan ini. Sliding scale juga membutuhkan pemilik protokol berversi dan sumber hasil gula darah — `DEC-INP-011` |
+| G-20 | `S19` | **Kepemilikan alur transfusi di bangsal** | **`CONFLICT`** | **`BLOCKING` untuk transfusi** | `FR-MVP-KEP-019` menaruh workflow transfusi pada Keperawatan Rawat Inap, sedangkan blueprint `bank-darah` (`IN_PROGRESS`) menyatakan penanganan reaksi dan pemantauan pasca-transfusi sebagai lingkupnya. Tidak dapat diselesaikan dari urutan wewenang karena keduanya modul berbeda — `DEC-INP-012` |
+| G-21 | `S20` | Nomor `CAP` final Gizi, Hemodialisa, Bank Darah, dan Rehab Medik | `PROPOSED` | `NON_BLOCKING_STANDARD` | `RWI-DEC-113` menugaskannya ke `design-business-module` |
+
+### 14.7 Gap teknis, bukan keputusan bisnis
+
+Butir berikut **bukan** bahan gerbang ini dan tidak boleh dipakai untuk menahan kesiapan requirement:
+
+| Butir | Sifatnya | Rujukan |
+|---|---|---|
+| Risiko jatuh tersimpan dengan arti berbeda, enum pengkajian tidak cocok, daftar pengkajian keperawatan salah bentuk, isian belum dikaji terkirim sebagai normal | **Teknis — perbaikan keselamatan.** Arahnya sudah dikunci `RWI-DEC-124`, `136`, `BR-RWI-007` | `RWI-FACT-038`; capability map bagian 17 `RLN3-CON-01` s.d. `04` |
+| Pemeriksaan ulang alergi saat memakai template belum ada | **Teknis.** Requirement sudah tegas (`RWI-DEC-122` butir 4) dan sumber data alergi terstruktur **sudah ada**: `TrxPatientAllergy` punya `DrugId`, kode/nama/kelompok alergen, tingkat keparahan, dan status | `RLN3-CAP-42`; `BE@df3679c0 ClinicalManagement/Models/TrxPatientAllergy.cs` baris 42–73 |
+| Penjaga penulis pada jalur ubah dan final, verifikasi CPPT menerima peran apa pun, tindakan baru pada episode tertutup | **Teknis.** Arah dikunci `RWI-DEC-125`, `128`, `139`, `143`, `144` | `RLN3-CAP-25`, `33` s.d. `36` |
+| MAR, rekonsiliasi obat, intake/output, isian terstruktur lima bagian Kajian Umum belum ada di source | **Ketersediaan implementasi**, bukan keputusan yang belum diambil | `RLN3-CAP-05`, `09`, `15` |
+| Persetujuan pemilik `MedicalRecordManagement` atas daftar catatan terkunci milik penulis | **Dependency persetujuan modul tetangga**, menahan implementasi bagian itu | `RWI-DEC-142` butir (3) |
+| Komponen layout Dokter Rawat Jalan milik pemilik `rawat-jalan` | **Dependency modul tetangga** untuk kesamaan layout | `RLN3-CAP-03` |
+
+### 14.8 Decision Log
+
+Decision ID: `DEC-INP-010`
+
+| Field | Isi |
+|---|---|
+| Pertanyaan | Dari mana volume **intake obat** dan **intake darah** pada Pengawasan Harian Pasien diambil: diketik perawat, diturunkan dari MAR dan catatan transfusi, atau gabungan dengan aturan tertentu? Termasuk apakah volume cairan pelarut obat intravena dihitung |
+| Kemampuan terdampak | `INP-S17` Pengawasan Harian — sub-bagian intake obat dan darah; `INP-S18` MAR sebagai sumber potensial |
+| Bukti saat ini | PRD v`2.0` bagian 32 mencantumkan Intake Infus, Oral, NGT, **Darah**, **Obat**. `FR-MVP-KEP-011` menyimpan dosis dan rute aktual, bukan volume. `FR-MVP-KEP-017` menuntut total per shift dari data terstruktur. `RWI-DEC-140` butir (4) melarang duplikasi data terstruktur ke catatan naratif, tetapi tidak mengatur hubungan MAR dengan intake/output |
+| Usulan baseline | Intake obat intravena dan darah tidak diketik ulang bila sumbernya sudah tercatat terstruktur; perhitungan volume pelarut mengikuti kebijakan klinis yang disahkan. Usulan ini **belum** kebijakan rumah sakit |
+| Dampak | Integrasi MAR–intake/output, integritas data balance cairan, dan keselamatan klinis karena risiko hitung ganda atau terlewat |
+| Pemilik | Muhammad Hamzah bersama pemilik klinis/keperawatan yang belum ditunjuk |
+| Status | `OPEN` |
+| Dampak implementasi/domain | Sub-bagian intake obat dan darah **berhenti**. Bagian lain Pengawasan Harian — tanda vital, nyeri, intake infus/oral/NGT, output, diet, mobilisasi — **boleh berjalan** |
+
+Decision ID: `DEC-INP-011`
+
+| Field | Isi |
+|---|---|
+| Pertanyaan | Apakah handover shift (`FR-MVP-KEP-015`, `016`), sliding scale (`FR-MVP-KEP-018`), dan transfusi (`FR-MVP-KEP-019`) masuk penyelarasan `PRD-RWI-V2-001` ini seperti MAR, atau tetap ditunda ke irisan berikutnya? Bila masuk: siapa pemilik dan pengesah protokol sliding scale berversi, dan dari mana hasil gula darah diambil |
+| Kemampuan terdampak | `INP-S19` seluruhnya |
+| Bukti saat ini | Ketiganya `P1` pada PRD-to-MVP-V2 yang tetap berlaku (`RWI-DEC-110`). PRD v`2.0` tidak menampilkannya sebagai menu. Blueprint `keperawatan` yang disetujui menundanya bersama MAR (`04-prd-to-mvp.md` bagian 21.6), lalu `RWI-DEC-116` hanya menarik MAR. Capability map `V2-CAP-09`, `10`, `12`: `Missing` |
+| Usulan baseline | Tidak diberikan. Ini keputusan scope dan prioritas milik pemilik |
+| Dampak | Batas rilis gelombang keperawatan, model domain protokol berversi, integrasi dengan Bank Darah dan sumber hasil laboratorium/POCT |
+| Pemilik | Muhammad Hamzah, Product/Domain; protokol sliding scale memerlukan pemilik klinis |
+| Status | `OPEN` |
+| Dampak implementasi/domain | `INP-S19` **berhenti**. Tidak menahan `INP-S17`, `S18`, `S20`, maupun `S21` |
+
+Decision ID: `DEC-INP-012`
+
+| Field | Isi |
+|---|---|
+| Pertanyaan | Siapa pemilik alur transfusi di bangsal — pre-check, tanda vital awal, mulai/berhenti, observasi berkala, dan penanganan reaksi: Keperawatan Rawat Inap sesuai `FR-MVP-KEP-019`, atau modul Bank Darah sesuai blueprint `bank-darah`? |
+| Kemampuan terdampak | `INP-S19` bagian transfusi; `INP-S17` intake darah melalui `DEC-INP-010` |
+| Bukti saat ini | `FR-MVP-KEP-019` dan `AC-MVP-033` pada PRD-to-MVP-V2; blueprint `bank-darah` `00-interview-decisions.md` menyebut penanganan reaksi transfusi dan pemantauan pasca-transfusi sebagai lingkupnya, dengan pemilik proses yang belum bernama; `RWI-DEC-108` menampilkan menu Bank Darah sebagai "Integrasi belum tersedia" |
+| Usulan baseline | Satu pemilik data observasi transfusi, dengan modul lain membaca lewat kontrak; bukan dua catatan paralel |
+| Dampak | Kepemilikan data, authorization pemeriksa kedua, keselamatan klinis reaksi transfusi, dan integrasi antarmodul |
+| Pemilik | Muhammad Hamzah bersama pemilik modul Bank Darah |
+| Status | `OPEN` — hanya relevan bila `DEC-INP-011` memasukkan transfusi ke penyelarasan ini |
+| Dampak implementasi/domain | Transfusi **berhenti**. Bila diputuskan milik Bank Darah, Rawat Inap hanya menyediakan permukaan dan konteks episode |
+
+### 14.9 Kesiapan per slice dan kemampuan
+
+| Slice | Kemampuan/isi | Kesiapan | Blocker bisnis | Catatan |
+|---|---|---|---|---|
+| `INP-S17` | Kajian Umum | **`READY_FOR_DOMAIN_DESIGN`** | — | G-01 usulan isian; G-02 isian wajib `CONFIGURABLE_DEFAULT` |
+| `INP-S17` | Resiko Jatuh | **`READY_FOR_DOMAIN_DESIGN`** | — | Mekanisme dikunci; isi klinis gerbang produksi |
+| `INP-S17` | Monitoring Nyeri | **`READY_FOR_DOMAIN_DESIGN`** | — | G-03, G-04 |
+| `INP-S17` | Assesment Edukasi | **`READY_FOR_DOMAIN_DESIGN`** | — | G-01, G-05 |
+| `INP-S17` | Pengawasan Harian Pasien | **`PARTIALLY_READY`** | `DEC-INP-010` | Boleh: tanda vital, nyeri, intake infus/oral/NGT, output, balance dari data terstruktur, diet, mobilisasi. Berhenti: intake obat dan darah |
+| `INP-S17` | Evaluasi Awal (MPP) | **`READY_FOR_DOMAIN_DESIGN`** | — | G-07, G-09, G-11 |
+| `INP-S17` | Perencanaan Pulang | **`READY_FOR_DOMAIN_DESIGN`** | — | G-05, G-10 |
+| `INP-S17` | Progres Pengkajian | **`READY_FOR_DOMAIN_DESIGN`** | — | `RWI-DEC-119`, `120` |
+| `INP-S18` | MAR | **`READY_FOR_DOMAIN_DESIGN`** | — | G-12 s.d. G-16; high-alert gerbang produksi |
+| `INP-S18` | Rekonsiliasi obat saat admisi | **`READY_FOR_DOMAIN_DESIGN`** | — | G-17 scope transfer/pulang non-blocking; G-18 |
+| `INP-S19` | Handover shift, sliding scale | **`BUSINESS_DECISION_REQUIRED`** | `DEC-INP-011` | — |
+| `INP-S19` | Transfusi | **`BUSINESS_DECISION_REQUIRED`** | `DEC-INP-011`, `DEC-INP-012` | — |
+| `INP-S20` | Laboratorium dan Radiologi | **`READY_FOR_DOMAIN_DESIGN`** | — | Sudah siap sejak revision `1.3` sebagai `CAP-015` |
+| `INP-S20` | Gizi, Hemodialisa, Bank Darah, Rehab Medik | **`READY_FOR_DOMAIN_DESIGN`** untuk permukaan "Integrasi belum tersedia" saja | — | Backend **`DEFERRED`** sampai modul pemiliknya tersedia, sesuai `RWI-DEC-108` |
+| `INP-S21` | Dokumentasi klinis dan ruang kerja dokter V2 | **`READY_FOR_DOMAIN_DESIGN`** | — | Dependency persetujuan `MedicalRecordManagement` menahan implementasi daftar catatan terkunci, bukan desain |
+
+**Hasil turunan:**
+
+- `INP-S17` **`PARTIALLY_READY`**; `INP-S18` **`READY_FOR_DOMAIN_DESIGN`**; `INP-S19`
+  **`BUSINESS_DECISION_REQUIRED`**; `INP-S20` **`READY_FOR_DOMAIN_DESIGN`**; `INP-S21`
+  **`READY_FOR_DOMAIN_DESIGN`**.
+- **`RLN-04` tertutup:** tidak ada kemampuan penunjang yang yatim (`RWI-DEC-113`).
+- **`RLN-07` tertutup:** ketujuh isi Pengkajian Pasien dan progresnya dinilai; hanya sub-bagian
+  intake obat dan darah yang berhenti.
+- Overall Rawat Inap tetap **`PARTIALLY_READY`**.
+
+### 14.10 Apa yang boleh berjalan dan apa yang harus berhenti
+
+**Boleh berjalan ke amandemen desain `RLN-PH-06`:**
+
+- `INP-S17` kecuali sub-bagian intake obat dan darah;
+- `INP-S18` MAR dan rekonsiliasi obat saat admisi;
+- `INP-S20` seluruhnya, dengan empat layanan non-laboratorium/radiologi sebatas permukaan;
+- `INP-S21` seluruhnya.
+
+**Harus berhenti:**
+
+- sub-bagian intake obat dan darah Pengawasan Harian, sampai `DEC-INP-010` diputuskan;
+- handover shift, sliding scale, dan transfusi, sampai `DEC-INP-011` diputuskan; transfusi juga
+  menunggu `DEC-INP-012`;
+- **pemakaian untuk pasien sungguhan** atas Resiko Jatuh, isian wajib pengkajian, checklist Evaluasi
+  Awal, dan daftar high-alert, sampai isi klinisnya disahkan. Ini menahan rilis, **bukan** desain.
+
+**Dependency di antara keduanya:** `DEC-INP-010` bergantung pada `DEC-INP-012` untuk intake darah.
+MAR tidak bergantung pada `DEC-INP-010`; yang bergantung justru intake obat pada MAR.
+
+### 14.11 Keputusan pemilik yang dibutuhkan
+
+| Prioritas | Keputusan | Memblokir |
+|---|---|---|
+| 1 | `DEC-INP-011` — penempatan rilis handover shift, sliding scale, transfusi | `INP-S19` |
+| 2 | `DEC-INP-010` — sumber intake obat dan darah | Sub-bagian Pengawasan Harian |
+| 3 | `DEC-INP-012` — pemilik alur transfusi di bangsal | Transfusi, bila masuk |
+| Non-blocking | G-17 rekonsiliasi saat transfer dan pulang; G-05 tanda tangan penerima edukasi dan rencana pulang; G-09 frekuensi Evaluasi Awal | — |
+| Gerbang produksi | `RWI-OQ-056`, `RWI-OQ-057`, isi high-alert, checklist Evaluasi Awal, penunjukan pemilik klinis | Rilis |
+
+### 14.12 Handoff
+
+| Field | Nilai |
+|---|---|
+| `capability_scope` | `INP-S17` (kecuali intake obat dan darah), `INP-S18`, `INP-S20`, `INP-S21` |
+| `requirement_readiness` | `S17` `PARTIALLY_READY`; `S18`, `S20`, `S21` `READY_FOR_DOMAIN_DESIGN`; `S19` `BUSINESS_DECISION_REQUIRED` |
+| `requirement_evidence_status` | Mayoritas `CONFIRMED`; 21 butir gap: 5 `PROPOSED`, 15 `MISSING`, 1 `CONFLICT` |
+| `domain_architecture_readiness` | `DOMAIN_ARCHITECTURE_NOT_RUN` untuk slice yang siap, dan tidak diperlukan: batas konteks dan kepemilikan datanya sudah ditetapkan `RWI-DEC-081`, `113`, `117`, `118`, `132`, `142`, `144`. `RLN-PH-05` baru relevan untuk transfusi setelah `DEC-INP-012` |
+| `decision_ids` | `DEC-INP-010`, `DEC-INP-011`, `DEC-INP-012` — ketiganya `OPEN` |
+| `dependency_ids` | Persetujuan `MedicalRecordManagement` (`RWI-DEC-142`); komponen `rawat-jalan` (`RLN3-CAP-03`); modul Bank Darah (`DEC-INP-012`); gerbang produksi isi klinis |
+| `next_owner` | `design-business-module` untuk amandemen `dokter-rawat-inap` dan `keperawatan`, fase `RLN-PH-06`; `grill-me` untuk `DEC-INP-010` s.d. `012` |
+| `required_boundary` | Dokumentasi keperawatan dan dokter tetap milik `ClinicalManagement`; MAR dan rekonsiliasi milik `PharmacyManagement`; metadata keutuhan milik `MedicalRecordManagement`. Desain **MUST NOT** membuat tabel intake obat/darah maupun tabel transfusi sebelum keputusannya turun |
+| `expected_output` | Amandemen blueprint kedua sub-modul revision `7` untuk slice yang siap, dengan sub-bagian dan slice yang berhenti ditandai eksplisit |
+
+---
+
+## 15. Penutupan keputusan penyelarasan `PRD-RWI-V2-001` — revision `1.6`
+
+Bagian ini adalah **hasil kanonis terbaru** untuk `INP-S17` dan `INP-S19`. Ia menggantikan status pada
+14.4 (kolom `INP-S19` dan baris intake obat/darah kolom `INP-S17`), 14.6 butir `G-08`, `G-19`, `G-20`,
+serta 14.8 s.d. 14.12. Hasil `INP-S18`, `INP-S20`, dan `INP-S21` tetap sebagaimana bagian 14.
+
+### 15.1 Kenapa penutupan ini dijalankan
+
+Revision `1.5` menahan dua hal dengan tiga Decision ID:
+
+- sub-bagian **intake obat dan darah** Pengawasan Harian, oleh `DEC-INP-010`;
+- **handover shift, sliding scale, dan transfusi**, oleh `DEC-INP-011`, dengan transfusi juga menunggu
+  `DEC-INP-012`.
+
+Pemilik menjawab ketiganya pada Amendment Pass penutupan gate `RLN-PH-04`, 15 September 2026, lima
+pertanyaan, seluruhnya pilihan A. Gate ini menyerap jawabannya, menilai ulang kemampuan yang terbuka
+oleh jawaban itu, lalu menetapkan kesiapan baru. Gate **tidak** menambah keputusan atas nama pemilik.
+
+### 15.2 Scope penilaian
+
+| Slice | Kemampuan atau isi | Cara dinilai | Keputusan yang mengikat |
+|---|---|---|---|
+| `INP-S17` | Pengawasan Harian — sub-bagian **intake obat dan intake darah** | Penuh, 18 dimensi | `RWI-DEC-149` |
+| `INP-S17` | Pengawasan Harian — **pencatatan gula darah** | Sebatas peran barunya sebagai satu-satunya sumber dosis sliding scale | `RWI-DEC-148` |
+| `INP-S19` | **Sliding scale** — template protokol, order per pasien, pelaksanaan | Penuh, 18 dimensi | `RWI-DEC-145` s.d. `RWI-DEC-148` |
+| `INP-S19` | Handover shift (`FR-MVP-KEP-015`, `016`) | **`DEFERRED` — tidak dinilai** | `RWI-DEC-145` butir (4) |
+| `INP-S19` | Transfusi (`FR-MVP-KEP-019`) | **`DEFERRED` — tidak dinilai** | `RWI-DEC-145` butir (4) dan (5) |
+| `INP-S18` | MAR | Hanya dampak silang: MAR mendapat dua pengguna baru, yaitu tautan entri intake obat dan dosis sliding scale | `RWI-DEC-145` butir (2), `RWI-DEC-149` butir (3) dan (4) |
+
+**Arti `DEFERRED` di sini.** Handover shift dan transfusi **tidak terblokir** oleh keputusan yang belum
+diambil. Pemilik sudah memutuskan mengeluarkan keduanya dari batas rilis penyelarasan ini, tanpa mencabut
+requirement-nya. Pola ini sama dengan `CAP-016` pada bagian 13.9. Keduanya dinilai ulang saat dijadwalkan.
+
+**Yang tidak dinilai:** slice `INP-S01` s.d. `INP-S16`, serta isi `INP-S17`, `S18`, `S20`, dan `S21` di
+luar baris di atas.
+
+### 15.3 Bukti yang dipakai
+
+| Bukti | Revision / hash | Wewenang dan penggunaannya |
+|---|---|---|
+| [`00-interview-decisions.md`](../00-interview-decisions.md) | revision `21`, SHA-256 `1c55c80a…2d45102a`, keputusan terakhir `RWI-DEC-149`, acceptance criteria terakhir `RWI-AC-231` | Keputusan pemilik yang dikonfirmasi — wewenang tertinggi untuk bagian ini |
+| `PRD-to-MVP-Rawat-Inap-V2` v`1.0.0` bagian 13.2, 13.3, dan 16 (`FR-MVP-KEP-009` s.d. `019`, `AC-MVP-031`, `AC-MVP-032`) | SHA-256 `9804b968…3ce141`, diperiksa ulang tidak berubah | Requirement yang tetap berlaku lewat `RWI-DEC-110` |
+| `PRD-RWI-V2-001` v`2.0` bagian 32 dan `BR-RWI-013` | SHA-256 `2b3b2f29…0a679f`, diperiksa ulang tidak berubah | Daftar isi Pengawasan Harian; aturan "order ≠ pelaksanaan ≠ hasil ≠ tagihan" |
+| [`01-existing-capability-map.md`](../01-existing-capability-map.md) | revision `1.4`, SHA-256 `337a10f0…d22daa543a`, tidak berubah | "Apa yang ada sekarang": `V2-CAP-10` sliding scale `Missing`, `RLN3-CAP-09` Pengawasan Harian `Missing`, `RLN3-CAP-15` MAR `Missing` |
+| Frontend V1 `13c3a96b` `catatan-keperawatan/sliding-scale/` | dibaca pada Amendment Pass, dikutip `RWI-DEC-145` | Bukti legacy: V1 hanya catatan bebas tanggal, GDS, insulin, insulin drip, dan catatan, tanpa protokol |
+
+> **Batas yang dijaga.** Kelima keputusan lahir dari opsi yang disusun agent, lalu dipilih pemilik
+> secara tertulis, sehingga berstatus `CONFIRMED`. Usulan pada tabel 15.9 **tidak** dipilih pemilik dan
+> tetap `PROPOSED` atau `MISSING`.
+
+### 15.4 Keputusan yang turun
+
+| ID | Isi singkat | Status |
+|---|---|---|
+| `RWI-DEC-145` | Sliding scale masuk batas rilis bersama MAR dan rekonsiliasi obat. Handover shift dan transfusi ditunda ke irisan berikutnya, tanpa dicabut | `approved` |
+| `RWI-DEC-146` | Protokol sliding scale dua lapis: template standar berversi yang disahkan terpisah dari pengubahnya, lalu order per pasien yang boleh disesuaikan dengan alasan wajib | `approved` |
+| `RWI-DEC-147` | Template dan order sliding scale milik `PharmacyManagement`, bersama resep dan MAR | `approved` |
+| `RWI-DEC-148` | Dosis insulin hanya dihitung dari GDS bangsal, yang tersimpan satu kali sebagai gula darah Pengawasan Harian. Hasil laboratorium hanya informasi | `approved` |
+| `RWI-DEC-149` | Intake obat dan darah dicatat perawat sebagai volume aktual, termasuk pelarut. Entri obat tertaut ke satu dosis MAR `Administered`; MAR tidak mendapat isian volume | `approved` |
+| `RWI-OQ-091`, `092`, `094`, `095`, `096` | Pertanyaan pass | `TERTUTUP` |
+| `RWI-OQ-093` | Pemilik alur transfusi di bangsal | `DITUNDA` bersama transfusi |
+| `DEC-INP-010` | Sumber intake obat dan darah | **`CLOSED`** oleh `RWI-DEC-149` |
+| `DEC-INP-011` | Penempatan rilis handover shift, sliding scale, transfusi | **`CLOSED`** oleh `RWI-DEC-145`, dirinci `RWI-DEC-146` s.d. `148` |
+| `DEC-INP-012` | Pemilik alur transfusi di bangsal | **`DEFERRED`** bersama transfusi |
+
+### 15.5 Hasil penilaian 18 dimensi
+
+Kode: `C` = `CONFIRMED`, `P` = `PROPOSED`, `M` = `MISSING`, `X` = `CONFLICT`. Nomor `G-##` merujuk tabel
+15.8 dan 15.9.
+
+| ID | Dimensi | `INP-S17` Intake obat dan darah | `INP-S19` Sliding scale |
+|---:|---|---|---|
+| 01 | Tujuan | `C` balance cairan memuat obat dan darah, PRD bagian 32, `FR-MVP-KEP-017` | `C` dosis insulin mengikuti protokol aktif, `FR-MVP-KEP-018`, `RWI-DEC-145` (1) |
+| 02 | Aktor | `C` perawat pencatat dari akun login, `RWI-DEC-149` (1) | `C` dokter pemesan `RWI-DEC-146` (3); perawat pelaksana; pengubah dan pengesah template terpisah `RWI-DEC-146` (1), `147` (4); apoteker membaca `RWI-DEC-147`. Pengesah isi klinis belum ditunjuk — gerbang produksi, bukan desain |
+| 03 | Pemicu/prasyarat | `C` obat: dosis MAR sudah `Administered` `RWI-AC-230`; darah: tanpa prasyarat transfusi `RWI-DEC-149` (5) | `C` order aktif dari versi template yang disahkan `RWI-AC-219`, `222`; GDS bangsal tercatat `RWI-DEC-148`; `M` jadwal pemeriksaan G-22 |
+| 04 | Alur utama | `C` contoh `RWI-DEC-149` | `C` contoh `RWI-DEC-145`, `146`, `148` |
+| 05 | Alternatif/exception | `C` entri kedua, tanpa tautan, dosis `Held`, koreksi volume `RWI-DEC-149` (a)–(d); `M` koreksi dosis MAR yang sudah tertaut G-26 | `C` tanpa order aktif, template draft, penyesuaian tanpa alasan, rentang bertumpuk, order dihentikan, hasil lab dipilih, kontrak baca gagal, dosis berbeda sebagai pengecualian, cek ganda high-alert |
+| 06 | Data minimum | `C` sumber, volume, satuan, waktu, pelaksana, tautan dosis `RWI-DEC-149` (1), (3) | `C` template: versi, rentang, dosis; order: versi template, penyesuaian, alasan, dokter, waktu; pelaksanaan: rujukan GDS, aturan yang cocok, dosis, pengecualian, versi order `RWI-DEC-146` (2), (4); `M` satuan GDS G-25 |
+| 07 | Aturan/validation | `C` volume aktual termasuk pelarut; satu dosis satu entri `RWI-AC-229`; `M` dosis bervolume tanpa entri G-27 | `C` rentang tidak bertumpuk dan tidak berlubang `RWI-DEC-146` (1); dosis hanya dari GDS bangsal `RWI-AC-228`; `P` cakupan rentang terbuka G-23 |
+| 08 | Status/lifecycle | `C` entri aktif dan terkoreksi, nilai lama tetap `FR-MVP-KEP-017`, `RWI-AC-231` | `C` template draft → disahkan; order aktif → dihentikan; penyesuaian menjadi versi order baru `RWI-DEC-146` (6); dosis memakai enam status MAR; `M` letak dosis sliding scale dalam lifecycle MAR G-22 |
+| 09 | Peran/authorization | `C` mengikuti kewenangan Pengawasan Harian `RWI-DEC-100` | `C` pemesan mengikuti penulis resep `RWI-DEC-099`, `128`; pemisahan pengesahan `RWI-DEC-136`, `147` (4); cek ganda pengguna kedua `FR-MVP-KEP-012` |
+| 10 | Dependency antarmodul | `C` entri milik `ClinicalManagement` merujuk dosis MAR milik `PharmacyManagement` `RWI-DEC-149` konsekuensi (2) | `C` `PharmacyManagement` pemilik `RWI-DEC-147`; `ClinicalManagement` pemilik gula darah `RWI-DEC-148`; MAR `INP-S18` |
+| 11 | Integrasi | `C` internal saja; tanpa Bank Darah `RWI-DEC-149` (5) | `C` internal: baca gula darah `ClinicalManagement`, tampil hasil lab sebagai informasi `RWI-DEC-148` (3). Tanpa integrasi glukometer — angka diketik perawat |
+| 12 | Hasil akhir | `C` total per shift dan rolling 24 jam dari lima sumber `RWI-AC-231` | `C` dosis tercatat satu kali di MAR dengan rujukan GDS dan aturan `RWI-AC-220`, `227` |
+| 13 | Pembatalan/koreksi | `C` koreksi mempertahankan nilai lama; `M` G-26 | `C` penghentian order `RWI-AC-226`; versi order baru; koreksi GDS mempertahankan nilai asli `RWI-DEC-148` (b); koreksi pemberian mengikuti `RWI-DEC-116` (c) |
+| 14 | Audit/histori | `C` pelaksana, waktu, nilai lama | `C` versi template, versi order, alasan penyesuaian, rujukan GDS `RWI-DEC-146` (2), `148` (4) |
+| 15 | Notifikasi | Tidak material — pencatatan volume tidak diminta memberi tahu siapa pun | `M` instruksi "lapor dokter" pada rentang G-24 |
+| 16 | Billing/charge | Tidak material — pencatatan volume bukan kejadian tagihan; pelaksanaan bukan tagihan `BR-RWI-013` | `C` pemberian insulin bukan tagihan `BR-RWI-013`; `M` tagihan pemeriksaan GDS bangsal G-28 |
+| 17 | Keselamatan klinis | `C` hitung ganda dicegah satu dosis satu entri; `M` entri terlewat G-27 | `C` satu sumber dosis, validasi rentang, cek ganda high-alert; isi template dan daftar high-alert menjadi gerbang produksi; `M` satuan GDS G-25 |
+| 18 | Pelaporan/traceability | `C` entri obat tertelusur ke dosis MAR | `C` dosis tertelusur ke angka dan waktu GDS `RWI-DEC-148` (4); `M` catatan sliding scale V1 G-29 |
+
+### 15.6 Aturan yang dapat diuji
+
+Seluruh contoh memakai data samaran.
+
+**Sliding scale**
+
+1. Template "Sliding Scale Insulin Dewasa v2" masih draft. dr. Rina memilihnya untuk Budi → **ditolak**.
+   Setelah v2 disahkan oleh pengguna lain yang bukan pengubah terakhirnya, dr. Rina dapat memesannya
+   (`RWI-AC-222`).
+2. v2 berisi GDS 150–199 → 2 unit, 200–249 → 4 unit, 250–299 → 6 unit, ≥ 300 → 8 unit. dr. Rina membuat
+   dosis setiap rentang separuh dengan alasan "pasien sensitif insulin". Order Budi menjadi 1, 2, 3, dan 4
+   unit. Penyesuaian yang sama **tanpa** alasan ditolak (`RWI-AC-223`).
+3. dr. Rina mengubah rentang menjadi 200–260 dan 250–299. Nilai 255 jatuh ke dua rentang → order
+   **ditolak** saat disimpan (`RWI-AC-223`).
+4. Pukul 06.00 hasil GDS laboratorium Budi 190. Pukul 11.00 perawat mengisi GDS glukometer 280 dari layar
+   sliding scale. Angka 280 tersimpan **satu kali** sebagai gula darah Pengawasan Harian pukul 11.00,
+   pelaksanaan merujuknya, dan sistem menampilkan 3 unit. Angka 190 tampil bertanda "informasi" dan
+   **tidak dapat dipilih** sebagai dasar dosis (`RWI-AC-227`, `228`).
+5. Perawat mencatat pemberian 3 unit. Riwayat MAR Budi menampilkan pemberian itu **tepat satu kali**,
+   bersama rujukan GDS 280 dan aturan 250–299 (`RWI-AC-220`).
+6. Rabu template v3 disahkan dengan rentang berbeda. Order Budi tetap memakai v2 beserta penyesuaiannya,
+   dan pelaksanaan Selasa tetap terbaca dengan v2 (`RWI-AC-224`).
+7. Pukul 15.00 dr. Rina menghentikan order. Pukul 17.00 perawat mencoba mencatat pelaksanaan dari order
+   itu → **ditolak** dengan keterangan order sudah dihentikan (`RWI-AC-226`).
+8. Tidak ada satu pun tabel sliding scale di `ClinicalManagement` maupun `InPatientManagement`, dan tidak
+   ada menu, tabel, atau endpoint handover shift dan transfusi pada penyelarasan ini (`RWI-AC-221`, `225`).
+
+**Intake obat dan darah**
+
+9. Pukul 08.00 Budi mendapat Ceftriaxone 1 g dalam NaCl 100 ml, dan dosisnya `Administered` di MAR.
+   Perawat mencatat intake "Obat — 100 ml" tertaut ke dosis itu. Perawat lain mencoba mencatat entri
+   kedua untuk dosis yang sama → **ditolak**. Entri "Obat" tanpa tautan dosis → **ditolak** (`RWI-AC-229`).
+10. Dosis Ceftriaxone 20.00 berstatus `Held`. Dosis itu **tidak dapat** ditautkan ke entri intake
+    (`RWI-AC-230`).
+11. Transfusi PRC 250 ml berhenti di 200 ml karena Budi menggigil. Perawat mencatat intake "Darah —
+    200 ml" tanpa tautan ke catatan transfusi, karena transfusi ditunda.
+12. Shift pagi Budi: Infus 500 ml, Oral 200 ml, Obat 100 ml, Darah 200 ml → total intake **1.000 ml**.
+    Entri Obat ternyata hanya 80 ml dan dikoreksi → total dihitung ulang menjadi **980 ml**, dan nilai
+    100 ml tetap terbaca pada riwayat (`RWI-AC-231`).
+
+### 15.7 Butir `CONFIRMED` baru yang menopang kesiapan
+
+Melanjutkan penomoran tabel 14.5.
+
+| No | Butir | Bukti |
+|---:|---|---|
+| 12 | Sliding scale masuk batas rilis yang sama dengan MAR; label `P1` hanya asal requirement | `RWI-DEC-145` (1) |
+| 13 | Dua lapis data berversi: template standar dan order per pasien. Pelaksanaan selalu memakai order, bukan template langsung | `RWI-DEC-146` (1), (2), (4) |
+| 14 | Template, order, dan pelaksanaan milik `PharmacyManagement`; tabel baru di sana wajib dicatat eksplisit pada amandemen desain | `RWI-DEC-147`; `RWI-DEC-062` |
+| 15 | Satu sumber dosis dan satu tempat simpan: GDS bangsal di Pengawasan Harian, dirujuk oleh pelaksanaan; hasil laboratorium tidak pernah menjadi sumber dosis | `RWI-DEC-148` |
+| 16 | Pengawasan Harian wajib menyediakan pencatatan gula darah pada rilis yang sama dengan sliding scale | `RWI-DEC-148` konsekuensi (2) |
+| 17 | Intake obat dan darah adalah entri intake terstruktur, volume aktual termasuk pelarut; entri obat tertaut satu dosis MAR `Administered`; MAR tidak mendapat isian volume | `RWI-DEC-149` (1)–(4) |
+| 18 | Handover shift dan transfusi tetap `P1` dan tidak dicabut, tetapi tanpa menu, tabel, maupun endpoint pada penyelarasan ini | `RWI-DEC-145` (4); `RWI-AC-221` |
+
+### 15.8 Status gap lama setelah keputusan
+
+| ID | Semula (revision `1.5`) | Kini | Alasannya |
+|---|---|---|---|
+| `G-08` | `MISSING` / `BLOCKING` untuk intake obat dan darah | **`CONFIRMED`** — tertutup | `RWI-DEC-149` menjawab sumber, volume pelarut, dan hubungan dengan MAR |
+| `G-19` | `MISSING` / `BLOCKING` untuk `INP-S19` | **`CONFIRMED`** — tertutup | `RWI-DEC-145` menetapkan penempatan rilis; `RWI-DEC-146` s.d. `148` menjawab pemilik protokol, pengesah, dan sumber gula darah |
+| `G-20` | `CONFLICT` / `BLOCKING` untuk transfusi | **`CONFLICT` tetap, tetapi transfusi `DEFERRED`** | Pertentangan `FR-MVP-KEP-019` dengan blueprint `bank-darah` belum diselesaikan. Karena transfusi keluar dari batas rilis, butir ini **tidak menahan slice aktif mana pun**. Dibuka kembali lewat `RWI-OQ-093` saat transfusi dijadwalkan |
+
+Butir `G-01` s.d. `G-07`, `G-09` s.d. `G-18`, dan `G-21` tidak berubah.
+
+### 15.9 Gap baru
+
+Seluruh gap baru **tidak memblokir**. Setiap usulan tetap usulan sampai pemilik memilihnya.
+
+| ID | Slice | Butir | Status | Dampak | Alasan dan usulan |
+|---|---|---|---|---|---|
+| G-22 | `S19` | **Jadwal pemeriksaan GDS pada order, dan letak dosis sliding scale dalam lifecycle MAR** | `MISSING` | `NON_BLOCKING_STANDARD` | `FR-MVP-KEP-010` hanya mengenal dosis terjadwal dengan enam status, `FR-MVP-KEP-013` mengenal PRN, dan `RWI-DEC-145` s.d. `148` tidak menyebut jadwal. **Usulan:** order memuat jadwal pemeriksaan yang ditulis dokter, seperti frekuensi resep. Setiap jadwal menjadi dosis terjadwal MAR yang dosisnya baru ditentukan saat GDS tercatat. Hasil pada rentang tanpa insulin dicatat `Held` dengan alasan dari aturan skala. **Contoh:** order "cek GDS 06.00, 11.00, 17.00" menghasilkan tiga dosis `Due`; pukul 17.00 GDS 130 jatuh pada "< 150 → 0 unit", sehingga dosis itu `Held` beralasan "GDS di bawah rentang pemberian". Usulan ini tidak menambah status dan tidak mengubah kepemilikan. **Disarankan dikonfirmasi pemilik saat approval `RLN-PH-06`** |
+| G-23 | `S19` | Cakupan rentang template | `PROPOSED` | `NON_BLOCKING_STANDARD` | Turunan `RWI-DEC-146` (1) "setiap hasil jatuh ke tepat satu rentang": template wajib mencakup seluruh kemungkinan nilai GDS, termasuk rentang terbuka di bawah dan di atas. **Contoh:** v2 pada contoh keputusan mulai dari 150, sehingga GDS 120 tidak jatuh ke rentang mana pun; versi itu belum boleh disahkan sampai ada rentang "< 150". Isi tindak lanjut hipoglikemia, misalnya GDS < 70, adalah isi klinis template dan ikut gerbang produksi |
+| G-24 | `S19` | Instruksi tindak lanjut pada rentang, misalnya "≥ 300 → 8 unit dan lapor dokter" | `MISSING` | `CONFIGURABLE_DEFAULT` | Belum ditetapkan apakah instruksi itu hanya tampil ke perawat atau juga mengirim notifikasi ke dokter. Rute notifikasi tidak mengubah catatan pelaksanaan maupun dosis, pola yang sama dengan `G-15`. **Usulan bawaan:** instruksi tersimpan sebagai isi rentang dan tampil di layar pelaksanaan; notifikasi aktif mengikuti keputusan penerima pada `G-15` |
+| G-25 | `S19`, `S17` | Satuan GDS: mg/dL atau mmol/L | `MISSING` | `NON_BLOCKING_STANDARD` | Pilihan satuan tidak mengubah struktur, tetapi salah satuan berbahaya: 280 mg/dL setara sekitar 15,6 mmol/L. **Usulan:** satuan disimpan eksplisit bersama nilai pada catatan gula darah dan pada rentang template; pencocokan skala **menolak** bila satuannya berbeda, bukan mengonversi diam-diam |
+| G-26 | `S17`, `S18` | Koreksi dosis MAR yang sudah tertaut entri intake | `MISSING` | `NON_BLOCKING_STANDARD` | `RWI-DEC-149` mengatur tautan saat dibuat, dan `RWI-DEC-116` (c) mengatur koreksi MAR tanpa menimpa. Belum ada yang mengatur nasib entri intake bila dosisnya dikoreksi kemudian. **Usulan yang tidak mengubah data diam-diam:** entri intake tidak dihapus atau diubah otomatis; entri itu ditandai "dosis tertaut dikoreksi", lalu perawat mengoreksinya lewat koreksi intake beralasan. **Contoh:** dosis Ceftriaxone 08.00 dikoreksi karena hanya separuh yang masuk; entri "Obat — 100 ml" tetap terhitung sampai perawat mengoreksinya menjadi 50 ml. Bila pemilik ingin total langsung mengeluarkan entri itu, yang berubah hanya aturan hitung, bukan struktur. **Disarankan dikonfirmasi pemilik saat approval `RLN-PH-06`** |
+| G-27 | `S17` | Dosis `Administered` bervolume yang belum punya entri intake | `MISSING` | `NON_BLOCKING_STANDARD` | `RWI-DEC-149` mencegah hitung ganda, tetapi tidak mewajibkan entri untuk setiap dosis, sehingga risiko "terlewat" pada `DEC-INP-010` masih ada. **Usulan:** entri tetap tidak diwajibkan, sesuai keputusan. Desain boleh menampilkan penanda informatif yang tidak menahan apa pun. **Contoh:** hari ini Budi mendapat tiga dosis intravena `Administered`, dua sudah punya entri intake; Pengawasan Harian menampilkan "1 dosis intravena belum dicatat volumenya" |
+| G-28 | `S19`, `S17` | Tagihan pemeriksaan GDS bangsal, misalnya strip glukometer | `MISSING` | `NON_BLOCKING_STANDARD` | Pengawasan Harian tidak menagih (14.4 dimensi 16), dan pelaksanaan bukan tagihan `BR-RWI-013`. Bila rumah sakit menagih pemeriksaan GDS, jalurnya tindakan keperawatan `CAP-014` yang sudah siap sejak revision `1.4`, atau pemakaian alat `CAP-016` yang `DEFERRED` — **bukan** sliding scale. Struktur sliding scale tidak berubah. Pilihannya dikonfirmasi pemilik Billing sebelum rilis |
+| G-29 | `S19` | Nasib catatan sliding scale V1 yang berupa catatan bebas tanpa protokol | `MISSING` | `NON_BLOCKING_STANDARD` | `RWI-DEC-145` konsekuensi (3) memasukkannya ke cakupan migrasi `OPEN-MVP-010`, sedangkan `RWI-AC-219` menolak pelaksanaan tanpa protokol. **Usulan:** catatan V1 dibawa sebagai riwayat baca-saja, bukan pelaksanaan sliding scale V2 dan bukan dosis MAR. Keputusan cutover tetap milik Product + Data Owner |
+
+**Rekap status gap revision `1.6`:** 29 butir tercatat (`G-01` s.d. `G-29`). 2 kini `CONFIRMED`
+(`G-08`, `G-19`); 6 `PROPOSED`; 20 `MISSING`; 1 `CONFLICT` (`G-20`, transfusi `DEFERRED`). **Nol butir
+`BLOCKING` untuk slice aktif.**
+
+### 15.10 Gap teknis, bukan keputusan bisnis
+
+| Butir | Sifatnya | Rujukan |
+|---|---|---|
+| Sliding scale, template, order, Pengawasan Harian termasuk gula darah dan intake/output, serta MAR belum punya model di source | **Ketersediaan implementasi** | `V2-CAP-10`, `RLN3-CAP-09`, `RLN3-CAP-15` — ketiganya `Missing` |
+| Kolom pemilik `V2-CAP-10` pada capability map masih `ClinicalManagement` | **Catatan basi pada peta "apa yang ada"**. Untuk "apa yang harus dibangun", `RWI-DEC-147` menang: `PharmacyManagement`. Status `Missing` tetap benar. Diperbarui pada impact scan berikutnya | `01-existing-capability-map.md` bagian 16 |
+| Dua kontrak rujukan lintas modul: `PharmacyManagement` membaca gula darah `ClinicalManagement`, dan entri intake `ClinicalManagement` merujuk dosis MAR `PharmacyManagement` beserta aturan satu dosis satu entri | **Pekerjaan desain kontrak**, milik `design-business-module` | `RWI-DEC-148` konsekuensi (1); `RWI-DEC-149` konsekuensi (2) |
+| Baris kepemilikan baru `PharmacyManagement` pada `02-module-map.md`, dan pencatatan eksplisit tabel baru di modul itu | **Pekerjaan desain** | `RWI-DEC-147` konsekuensi (1), (3) |
+| `keperawatan/04-prd-to-mvp.md` bagian 21.6 masih mencatat sliding scale tertunda | **Dokumen basi**, diperbarui pada amandemen `RLN-PH-06`. Handover shift dan transfusi tetap tertunda di sana | `RWI-DEC-145` konsekuensi (2) |
+| Persetujuan pemilik `MedicalRecordManagement` atas daftar catatan terkunci milik penulis | **Dependency persetujuan modul tetangga**, tidak berubah dari 14.7. Menahan implementasi bagian itu, bukan desain | `RWI-DEC-142` butir (3); Yoga Aji Pratama |
+
+### 15.11 Decision Log — status akhir
+
+Decision ID: `DEC-INP-010`
+
+| Field | Isi |
+|---|---|
+| Pertanyaan | Tetap seperti 14.8 |
+| Jawaban | Volume aktual dicatat perawat sebagai entri intake terstruktur bersumber "Obat" atau "Darah", termasuk pelarut. Entri obat tertaut ke satu dosis MAR `Administered`, satu dosis satu entri. MAR tidak mendapat isian volume. Intake darah tanpa tautan transfusi |
+| Ditutup oleh | `RWI-DEC-149`; `RWI-OQ-092` |
+| Status | **`CLOSED`** |
+| Dampak implementasi/domain | Sub-bagian intake obat dan darah **boleh dirancang**. Kontrak rujukan ke dosis MAR wajib dirancang. Gap tersisa `G-26`, `G-27` tidak memblokir |
+
+Decision ID: `DEC-INP-011`
+
+| Field | Isi |
+|---|---|
+| Pertanyaan | Tetap seperti 14.8 |
+| Jawaban | Sliding scale masuk bersama MAR; handover shift dan transfusi ditunda. Protokol dua lapis berversi, milik `PharmacyManagement`, disahkan pemilik klinis. Sumber dosis hanya GDS bangsal di Pengawasan Harian |
+| Ditutup oleh | `RWI-DEC-145` s.d. `RWI-DEC-148`; `RWI-OQ-091`, `094`, `095`, `096` |
+| Status | **`CLOSED`** |
+| Dampak implementasi/domain | Sliding scale **boleh dirancang** bersama MAR. Handover shift dan transfusi **`DEFERRED`**. Pemakaian untuk pasien sungguhan menunggu pengesahan isi template |
+
+Decision ID: `DEC-INP-012`
+
+| Field | Isi |
+|---|---|
+| Pertanyaan | Tetap seperti 14.8 |
+| Bukti saat ini | Tetap seperti 14.8; `G-20` masih `CONFLICT` |
+| Pemilik | Muhammad Hamzah bersama pemilik modul Bank Darah |
+| Status | **`DEFERRED`** oleh `RWI-DEC-145` butir (5); alias `RWI-OQ-093` `DITUNDA` |
+| Pemicu dibuka kembali | Transfusi dijadwalkan masuk irisan rilis. Saat itu juga dibahas cara intake darah diturunkan dari catatan transfusi, `RWI-DEC-149` butir (5) |
+| Dampak implementasi/domain | Tidak menahan slice aktif. Desain **MUST NOT** membuat tabel, menu, atau endpoint transfusi |
+
+### 15.12 Kesiapan per slice dan kemampuan
+
+Baris yang berubah dari 14.9 dicetak tebal.
+
+| Slice | Kemampuan/isi | Kesiapan | Blocker bisnis | Catatan |
+|---|---|---|---|---|
+| `INP-S17` | Kajian Umum, Resiko Jatuh, Monitoring Nyeri, Assesment Edukasi, Evaluasi Awal (MPP), Perencanaan Pulang, Progres Pengkajian | `READY_FOR_DOMAIN_DESIGN` | — | Tidak berubah dari 14.9 |
+| **`INP-S17`** | **Pengawasan Harian Pasien, termasuk intake obat dan darah** | **`READY_FOR_DOMAIN_DESIGN`** | — | Naik dari `PARTIALLY_READY`. Pencatatan gula darah wajib hadir pada rilis sliding scale. `G-25` s.d. `G-28` |
+| `INP-S18` | MAR | `READY_FOR_DOMAIN_DESIGN` | — | Tidak berubah. Dua pengguna baru: tautan intake obat dan dosis sliding scale. MAR **tidak** mendapat isian volume |
+| `INP-S18` | Rekonsiliasi obat saat admisi | `READY_FOR_DOMAIN_DESIGN` | — | Tidak berubah |
+| **`INP-S19`** | **Sliding scale** | **`READY_FOR_DOMAIN_DESIGN`** | — | Naik dari `BUSINESS_DECISION_REQUIRED`. Dirancang bersama MAR `INP-S18`. `G-22` s.d. `G-25`, `G-28`, `G-29`. Isi template gerbang produksi |
+| **`INP-S19`** | **Handover shift** | **`DEFERRED`** — tidak dinilai | — | Dikeluarkan dari batas rilis oleh `RWI-DEC-145` (4); requirement tetap `P1` |
+| **`INP-S19`** | **Transfusi** | **`DEFERRED`** — tidak dinilai | — | `RWI-DEC-145` (4), (5). `DEC-INP-012` dan `G-20` ikut ditunda |
+| `INP-S20` | Enam layanan penunjang | `READY_FOR_DOMAIN_DESIGN` | — | Tidak berubah; empat layanan non-laboratorium/radiologi sebatas permukaan |
+| `INP-S21` | Dokumentasi klinis dan ruang kerja dokter V2 | `READY_FOR_DOMAIN_DESIGN` | — | Tidak berubah |
+
+**Hasil turunan:**
+
+- `INP-S17` **`READY_FOR_DOMAIN_DESIGN`** — naik dari `PARTIALLY_READY`.
+- `INP-S18` `READY_FOR_DOMAIN_DESIGN` — tetap.
+- `INP-S19` **`READY_FOR_DOMAIN_DESIGN` terbatas pada sliding scale** — naik dari
+  `BUSINESS_DECISION_REQUIRED`; handover shift dan transfusi `DEFERRED`.
+- `INP-S20` dan `INP-S21` `READY_FOR_DOMAIN_DESIGN` — tetap.
+- Seluruh slice penyelarasan `PRD-RWI-V2-001` kini **tanpa blocker keputusan bisnis** di dalam batas rilisnya.
+- Overall Rawat Inap tetap **`PARTIALLY_READY`**, karena `INP-S07`, `S08`, `S09`, `S10`, `S15`, dan `S16`
+  berada di luar penilaian ini dan tidak dinilai ulang.
+
+### 15.13 Apa yang boleh berjalan dan apa yang harus berhenti
+
+**Boleh berjalan ke amandemen desain `RLN-PH-06`:**
+
+- `INP-S17` seluruhnya, termasuk intake obat dan darah serta pencatatan gula darah;
+- `INP-S18` MAR dan rekonsiliasi obat saat admisi;
+- `INP-S19` sliding scale — template, order per pasien, dan pelaksanaan;
+- `INP-S20` seluruhnya, dengan empat layanan non-laboratorium/radiologi sebatas permukaan;
+- `INP-S21` seluruhnya.
+
+**Harus berhenti:**
+
+- **handover shift dan transfusi**, sampai dijadwalkan ke irisan berikutnya. Tidak ada menu, tabel,
+  maupun endpoint untuk keduanya (`RWI-AC-221`);
+- tautan intake darah ke catatan transfusi, sampai transfusi dibangun;
+- **pemakaian untuk pasien sungguhan** atas sliding scale sampai isi template disahkan pemilik klinis
+  yang belum ditunjuk; atas insulin dan obat high-alert lain sampai daftarnya disahkan; serta atas
+  Resiko Jatuh, isian wajib pengkajian, dan checklist Evaluasi Awal. Semua ini menahan **rilis**, bukan
+  desain;
+- **implementasi** daftar catatan terkunci "Catatan Saya", sampai Yoga Aji Pratama menyetujui
+  (`RWI-DEC-142`). Ini tidak menahan desain.
+
+**Dependency di antara slice yang boleh berjalan:**
+
+```text
+INP-S18 MAR ───────────────┬──► INP-S17 intake obat   (entri merujuk dosis Administered)
+                           │
+INP-S17 gula darah ────────┴──► INP-S19 sliding scale (dosis dicatat di MAR, GDS dirujuk dari Pengawasan Harian)
+
+INP-S17 intake darah  ──  berdiri sendiri (tanpa tautan transfusi)
+```
+
+Karena itu MAR, pencatatan gula darah, intake obat, dan sliding scale sebaiknya dirancang dalam satu
+amandemen `keperawatan` dan satu gelombang rilis. Urutan pembangunannya ditetapkan `plan-module-delivery`.
+
+### 15.14 Keputusan pemilik yang dibutuhkan
+
+| Jenis | Butir | Menahan | Pemilik |
+|---|---|---|---|
+| Blocker desain | **Tidak ada** | — | — |
+| Non-blocking, disarankan dikonfirmasi saat approval `RLN-PH-06` | `G-22` jadwal dan lifecycle dosis sliding scale; `G-26` koreksi dosis MAR yang tertaut intake | — | Muhammad Hamzah |
+| Non-blocking lain | `G-24` notifikasi "lapor dokter"; `G-25` satuan GDS; `G-27` penanda dosis tanpa entri intake; `G-28` tagihan GDS; `G-29` catatan V1; serta `G-05`, `G-09`, `G-17` dari bagian 14 | — | Muhammad Hamzah; `G-28` pemilik Billing; `G-29` Product + Data Owner |
+| Gerbang produksi — **bertambah** | Pengesahan isi template protokol sliding scale (`RWI-DEC-146`) | Rilis sliding scale | Pemilik klinis — **belum ditunjuk** |
+| Gerbang produksi — tetap | `RWI-OQ-056`, `RWI-OQ-057`, daftar high-alert termasuk insulin, checklist Evaluasi Awal | Rilis | Pemilik klinis/Farmasi — belum ditunjuk |
+| Tidak dapat dijawab lewat wawancara | `RWI-OQ-064` Pemakaian Alat | `CAP-016` | Menunggu modul persediaan/aset |
+| Ditunda | `RWI-OQ-093` pemilik alur transfusi | Transfusi, saat dijadwalkan | Muhammad Hamzah bersama pemilik modul Bank Darah |
+| Dependency implementasi | Daftar catatan terkunci milik penulis (`RWI-DEC-142`) | Implementasi bagian itu | Yoga Aji Pratama |
+
+### 15.15 Handoff
+
+| Field | Nilai |
+|---|---|
+| `capability_scope` | `INP-S17` seluruhnya, `INP-S18`, `INP-S19` sliding scale, `INP-S20`, `INP-S21` |
+| `requirement_readiness` | `S17`, `S18`, `S19` (sliding scale), `S20`, `S21` `READY_FOR_DOMAIN_DESIGN`; handover shift dan transfusi `DEFERRED` |
+| `requirement_evidence_status` | Mayoritas `CONFIRMED`; 29 butir gap: 2 tertutup `CONFIRMED`, 6 `PROPOSED`, 20 `MISSING`, 1 `CONFLICT` pada transfusi yang `DEFERRED`. Nol `BLOCKING` untuk slice aktif |
+| `domain_architecture_readiness` | `DOMAIN_ARCHITECTURE_NOT_RUN`, dan tidak diperlukan. Sliding scale dan intake obat memang melintasi `ClinicalManagement` dan `PharmacyManagement`, tetapi kepemilikan data dan arah rujukannya sudah ditetapkan pemilik lewat `RWI-DEC-147` s.d. `149`; yang tersisa desain kontrak. `RLN-PH-05` baru relevan saat transfusi dijadwalkan bersama `DEC-INP-012` |
+| `decision_ids` | `DEC-INP-010` `CLOSED`, `DEC-INP-011` `CLOSED`, `DEC-INP-012` `DEFERRED`; `RWI-DEC-145` s.d. `149`; `RWI-AC-219` s.d. `231` |
+| `dependency_ids` | Persetujuan `MedicalRecordManagement` `RWI-DEC-142`; komponen `rawat-jalan` `RLN3-CAP-03`; gerbang produksi isi template sliding scale, daftar high-alert, `RWI-OQ-056`, `RWI-OQ-057`, checklist Evaluasi Awal |
+| `next_owner` | `design-business-module` untuk amandemen `dokter-rawat-inap` dan `keperawatan`, fase `RLN-PH-06` |
+| `required_boundary` | Dokumentasi keperawatan dan dokter, termasuk entri intake dan gula darah, tetap milik `ClinicalManagement`. MAR, rekonsiliasi, template, order, dan pelaksanaan sliding scale milik `PharmacyManagement`. Desain **MUST NOT**: membuat tabel sliding scale di `ClinicalManagement` atau `InPatientManagement` (`RWI-AC-225`); menyimpan salinan GDS pada pelaksanaan sliding scale (`RWI-DEC-148` (2)); menambah isian volume pada MAR (`RWI-DEC-149` (4)); membuat menu, tabel, atau endpoint handover shift dan transfusi (`RWI-AC-221`); memakai hasil laboratorium sebagai sumber dosis (`RWI-AC-228`) |
+| `expected_output` | Amandemen blueprint kedua sub-modul revision `7`: sliding scale dan intake obat/darah dirancang penuh bersama MAR, termasuk dua kontrak rujukan lintas modul dan baris kepemilikan `PharmacyManagement` pada `02-module-map.md`; handover shift dan transfusi ditandai `DEFERRED`; `G-22` dan `G-26` diajukan untuk dikonfirmasi saat approval; `keperawatan/04-prd-to-mvp.md` bagian 21.6 diperbarui |

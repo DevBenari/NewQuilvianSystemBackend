@@ -3,12 +3,12 @@
 | Field | Value |
 |---|---|
 | Dokumen | `02-module-map.md` — hanya lahir pada `blueprint_shape: COMPOSITE` |
-| Revision | `1` |
-| Status | `draft` |
-| Tanggal | 2026-09-02 |
+| Revision | **`2`** — penyelarasan `PRD-RWI-V2-001`, blueprint revision `7`, 15 September 2026. Isi revision `2` ditandai ★ pada bagian 1, 2.5, 3.3, 3.4.1, 3.5, 4.5, 5, 6 |
+| Status | **`approved`** — revision `2` disetujui Muhammad Hamzah 2026-09-16 lewat `RWI-DEC-150`, bersama blueprint revision `7` ketiga sub-modul. Sebelumnya `draft` |
+| Tanggal | 2026-09-02; revision `2` ditulis 2026-09-15, disetujui 2026-09-16 |
 | Modul | `rawat-inap` / `InPatientManagement`, prefix entity `Inp` |
 | Bentuk blueprint | `COMPOSITE`, ditetapkan `RWI-DEC-082`, `shape_decided_by: USER_CONFIRMED` |
-| Masukan keputusan | [`00-interview-decisions.md`](./00-interview-decisions.md) revision `7` — `RWI-DEC-080` s.d. `RWI-DEC-083`, `RWI-OQ-047` |
+| Masukan keputusan | [`00-interview-decisions.md`](./00-interview-decisions.md) revision `7` — `RWI-DEC-080` s.d. `RWI-DEC-083`, `RWI-OQ-047`. **Revision `2`:** revision `21` SHA-256 `1c55c80a50aee11ef005ccde6315c2935cbe21504e8596798b89bf7f2d45102a` — `RWI-DEC-097` s.d. `149`; gate `1.6` SHA-256 `f31d207ae0cac120b0821d4474a3d952e109293c2b517aa630370396e49b5300` |
 | Masukan keadaan saat ini | [`01-existing-capability-map.md`](./01-existing-capability-map.md) revision `1.2` |
 | Baseline requirement | `PRD_Final_Rawat_Inap_100_Persen.md` v1.0.0 (`PRD-RWI-FINAL-001`), `docs/Modul-RS/Rawat-Inap/` — menggantikan batas scope revision `4` lewat `RWI-DEC-080` |
 | Owner | Product/Domain: **Muhammad Hamzah**, ditunjuk `RWI-DEC-061` |
@@ -43,9 +43,13 @@ Tiga sub-modul, hasil uji pemecahan `bentuk-blueprint.md` bagian 4.1 yang dicata
 
 | Slug | Rumpun kemampuan | Uji pemecahan | Jumlah kemampuan | Status | Pemilik | Approval |
 |---|---|:---:|:---:|---|---|---|
-| [`episode-rawat-inap/`](./episode-rawat-inap/) | Episode, tempat tidur, penanggung jawab, pemulangan, penutupan | **5/5** | 16 | `approved` | Muhammad Hamzah | **Muhammad Hamzah, 2026-08-24** lewat `RWI-DEC-074` |
-| [`keperawatan/`](./keperawatan/) | Pengkajian, asuhan, tindakan keperawatan, gizi, pemakaian alat | **3/5** | 5 | `draft` | Muhammad Hamzah | Belum — **dirancang 2026-09-02**, menunggu approval |
-| [`dokter-rawat-inap/`](./dokter-rawat-inap/) | SOAP, CPPT, kajian medis, resep, tindakan, visite, penunjang | **3/5** | 7 | `draft` | Muhammad Hamzah | Belum — dirancang 2026-09-02, **diamendemen ke revision `0.2` hari yang sama**, menunggu approval |
+| [`episode-rawat-inap/`](./episode-rawat-inap/) | Episode, tempat tidur, penanggung jawab, pemulangan, penutupan | **5/5** | 16 | ★ **`draft`** — revision `7`, kontrak `0.9.0` amandemen terbatas | Muhammad Hamzah | Revision `7` belum. Sebelumnya **Muhammad Hamzah, 2026-08-24** lewat `RWI-DEC-074`; kontrak `0.8.0` 2026-09-11 lewat `RWI-DEC-105` |
+| [`keperawatan/`](./keperawatan/) | Pengkajian, asuhan, tindakan keperawatan, gizi, pemakaian alat, ★ MAR dan pelaksanaan sliding scale | **3/5** | 5, ★ ditambah `CAP-023-MAR` | ★ **`draft`** — revision `7`, kontrak `0.5.0` | Muhammad Hamzah | Revision `7` belum. Sebelumnya revision `5` 2026-09-03 lewat `RWI-DEC-092`; kontrak `0.4.0` 2026-09-11 |
+| [`dokter-rawat-inap/`](./dokter-rawat-inap/) | SOAP, CPPT, kajian medis, resep, tindakan, visite, penunjang | **3/5** | 7, ★ `CAP-015` dan `CAP-023` dipecah per bagian | ★ **`draft`** — revision `7`, kontrak `0.6.0` | Muhammad Hamzah | Revision `7` belum. Sebelumnya revision `5` / kontrak `0.5.0` `approved` 2026-09-11 |
+
+> ★ **Revision `2` — 15 September 2026.** Ketiga sub-modul kembali **`draft`** karena amandemen revision `7`. Status modul
+> diturunkan: **tiga `draft` = `draft`**. Isi yang sudah `approved` sebelumnya tetap sah dan task `✅` tetap sah; yang
+> `draft` hanya isi revision `7`.
 
 **Status modul diturunkan, bukan ditulis tangan.** Satu `approved` + dua `draft` = **`partial`**,
 mengikuti `bentuk-blueprint.md` bagian 7. Modul ini **tidak boleh** terlihat `approved` selama dua
@@ -177,6 +181,32 @@ membiarkan barisnya kosong lalu sub-modul diam-diam membuat tabelnya sendiri.
 | Yang ditahannya | **Hanya baris ini.** Tidak menahan desain sub-modul mana pun |
 | Yang **tidak** ditahannya | `InpFinancialClearance` sudah ada di kode dan sudah dipakai `BE-RWI-024`. Bila `RWI-OQ-047` kelak memilih Billing, yang berubah adalah **sumber bacaannya**, bukan seluruh alur penutupan — kelima syarat penutupan `RWI-RULE-028` tetap berlaku apa adanya |
 
+### 2.5 ★ Revision `2` — kelompok data baru dan pembetulan
+
+**Pembetulan `RWI-OQ-047`.** Baris kelayakan keuangan pada 2.4 **sudah tertutup** 2026-09-11: pemilik sumber kebenaran
+adalah **`BillingManagement`** (`RWI-DEC-097` mengikat `MVP-RWI-D-006`; `RWI-DEC-102`). `InpFinancialClearance` tetap ada
+semata untuk kompatibilitas dan wajib diperlakukan `Unverified/Legacy/Manual`.
+
+**Pembetulan nama.** Tabel keperawatan yang dibangun bernama `CliNursingCarePlan`, `CliNursingCarePlanItem`,
+`CliNursingCarePlanItemRevision`, `CliNursingIntervention` — bukan `Trx*`. Tabel visite `CliPhysicianVisit`.
+
+**Kelompok data baru revision `7`** — seluruhnya milik modul lain; **nol tabel baru milik `InPatientManagement`**.
+
+| Kelompok data | Pemilik | Dipakai sub-modul | Dibuat ulang | Perancang |
+|---|---|---|---|---|
+| Instrumen dan formulir klinis berversi, jawaban per dokumen | Clinical Management (`CliClinicalInstrument`, `CliClinicalInstrumentVersion`, `CliAssessmentInstrumentResponse`) | `keperawatan` | **Tidak** — konsep baru di pemiliknya, `RWI-DEC-124` | `keperawatan` |
+| Evaluasi Awal MPP | Clinical Management (`CliCaseManagementEvaluation`) | `keperawatan` | **Tidak** — `RWI-DEC-118` | `keperawatan` |
+| Cairan masuk/keluar, gula darah bangsal, observasi harian beserta revisi; jam shift | Clinical Management (`CliFluidBalanceEntry`, `CliBloodGlucoseReading`, `CliDailyObservation` + `*Revision`, `CliNursingShift`) | `keperawatan`; GDS dibaca pelaksanaan sliding scale | **Tidak** — `RWI-DEC-148`, `149` | `keperawatan` |
+| Tanda vital per episode; dugaan reaksi obat | Clinical Management (`TrxPatientVitalSign`, `TrxPatientAllergy` — kolom baru) | `keperawatan`, dibaca `dokter-rawat-inap` | **Tidak** | `keperawatan` |
+| Jenis catatan CPPT; pesanan tindakan dengan pemberi instruksi | Clinical Management (`TrxPatientIntegratedProgressNote.NoteKind`, `TrxPatientProcedure` kolom baru) | Keduanya | **Tidak** | `dokter-rawat-inap` |
+| MAR per dosis, revisi, jadwal frekuensi, pengaturan MAR; pelaksanaan sliding scale | Pharmacy Management (`PhmMedicationAdministration`, `*Revision`, `PhmMedicationScheduleTime`, `PhmMedicationAdministrationSetting`, `PhmSlidingScaleExecution`) | `keperawatan`, dibaca `dokter-rawat-inap` | **Tidak** — `RWI-DEC-117`, `147` | `keperawatan` |
+| Penghentian butir resep; rekonsiliasi obat bawaan; template dan order sliding scale | Pharmacy Management (`PhmPrescriptionItem` kolom baru, `PhmMedicationReconciliationItem`/`Decision`, `PhmSlidingScaleTemplate`/`TemplateVersion`/`Range`/`Order`/`OrderVersion`) | `dokter-rawat-inap`; obat bawaan dicatat `keperawatan` | **Tidak** — `RWI-DEC-121`, `132`, `146`, `147` | `dokter-rawat-inap` |
+| Instruksi dan verifikasi pesanan penunjang | Laboratory Management, Radiology Management (`LabOrder`, `RadOrder` kolom baru) | Keduanya | **Tidak** — menunggu persetujuan pemilik | `dokter-rawat-inap` |
+| Konsep catatan dokter terkunci | Medical Record Management (`MrcClinicalDocumentIntegrity`, nol perubahan bentuk; jenis dokumen `14` diminta) | Ketiganya | **Tidak** — `RWI-DEC-138` | Mesin milik `MedicalRecordManagement` |
+| Tujuan penugasan dokter; tiga isian resume | **`episode-rawat-inap`** (`InpDoctorAssignment`, `InpDischargeSummary`, `InpDischargeSummaryRevision` — kolom baru) | Ketiganya | Kolom baru pada tabel sendiri | `episode-rawat-inap` |
+| Ringkasan tagihan baca-saja | Billing Management | `keperawatan` | **Tidak** — kontrak diminta, `RWI-DEC-137` | Pemilik Billing |
+| Handover shift, transfusi | — | — | **Tidak dibuat siapa pun** — `DEFERRED`, `RWI-DEC-145` | — |
+
 ---
 
 ## 3. Peta butir menu dan urutan migration
@@ -225,6 +255,9 @@ layar anak beserta layar induknya. Berikut yang kedua.
 | `FE-INP-18` | Cetak Persetujuan | Alur admisi / Detail Episode | `episode-rawat-inap` |
 
 ### 3.3 Butir menu dua sub-modul yang belum dirancang
+
+> ★ **Basi sejak revision `2`.** Baris `dokter-rawat-inap` dan catatan pencabutan butir Dokter → Rawat Inap di bawah
+> **digantikan** `RWI-DEC-107`: butir itu **dipertahankan**. Peta yang berlaku ada di bagian 3.5.
 
 | Sub-modul | Butir menu tingkat dua | Rencana keterjangkauan |
 |---|:---:|---|
@@ -275,6 +308,52 @@ prefix `Cli` berstatus `ACTIVE`. Nama lama tidak pernah sempat masuk source.
 entity `Rad*` beserta migration-nya sudah ada di source. Penambahan kolom pada entity yang sudah
 ada tidak terhalang `QBE-MOD-002`, tetapi selisih ini **dilaporkan** dan sebaiknya ditutup pemilik
 registry.
+
+### 3.4.1 ★ Urutan migration revision `2`
+
+Langkah per sub-modul: `dokter-rawat-inap/02-backend-architecture.md` 11.8 (`R1`–`R9`), `keperawatan/02-backend-architecture.md`
+11.9 (`K0`–`K7`), `episode-rawat-inap/02-backend-architecture.md` 11.8 (`E1`–`E3`). Yang dipegang di sini urutan
+antarnya.
+
+| Gelombang | Langkah | Prasyarat | Dirilis bersama |
+|---:|---|---|---|
+| **V0** | `R1`; `K0` — perbaikan tanpa bentuk data, berjalan paralel | Blueprint revision `7` disetujui | Masing-masing |
+| **V1** | `E1` → `R2`, `R3`, `R7`, `E3` langkah 4–5 (`RI-V2-1`, `DOK-V2-1`); `K1`–`K3` (`KEP-V2-1`) paralel | V0. **`R7` dan `K2` mengubah perilaku poliklinik** — pemberitahuan kepada pemilik `rawat-jalan` sebelum rilis; `E3` langkah 4 diberitahukan kepada Yoga Aji Pratama | `RI-V2-1` dengan `DOK-V2-1` |
+| **V2** | `R4` → `K4` (MAR) → `K5` (cairan, GDS; FK ke MAR) → `K6` (alergi) ; `R5`, `R6` → `K7` (pelaksanaan; FK ke order dan GDS) → `E3` langkah 6 | V0; `R4` sebelum `K4` karena pembentukan dosis membaca penghentian butir | **`DOK-V2-2` + `KEP-V2-2` + `RI-V2-3` satu rilis** — `RWI-DEC-133`, `145` |
+| **V3** | `R8` (Lab/Rad); `R9` (template); `KEP-V2-3` | Persetujuan pemilik Lab/Rad untuk `R8`; pemberitahuan `rawat-jalan` untuk `R9` | Masing-masing |
+| **V4** | `E2` (`RI-V2-2`) → `DOK-V2-4` frontend ruang kerja; `KEP-V2-4` | Persetujuan ekstraksi komponen `rawat-jalan`; kontrak Billing untuk `KEP-V2-4` | Masing-masing |
+
+**Nol migration `InPatientManagement` yang menahan sub-modul lain**, kecuali `E1` sebelum `R2` karena penjaga penulis
+klinis membaca tujuan penugasan.
+
+### 3.5 ★ Peta butir menu revision `2`
+
+Kuota `IA-INP-05` menu tingkat dua Rawat Inap **tetap sembilan dan tidak disentuh**. Butir baru berada di grup lain;
+diverifikasi pada `menu-items.jsx` `FE@1ce219b`: grup Master Data baris 638–843, Farmasi baris 845, Dokter baris 962.
+
+| # | Butir menu | Tingkat | Induk | `pathname` | Layar | Sub-modul | Hak akses penjaga | Status |
+|---:|---|:---:|---|---|---|---|---|---|
+| 10 | Rawat Inap | 2 | Pelayanan Kesehatan → **Dokter** | `/health-services/inpatient-management/doctor-inpatient` | `FE-DOK-09` | `dokter-rawat-inap` | `InpatientCensus : Read` | **Sudah ada**, dipertahankan `RWI-DEC-107`; layarnya dibangun ulang |
+| 11 | Protokol Sliding Scale | 2 | Pelayanan Kesehatan → **Farmasi** | `/health-services/pharmacy-management/sliding-scale-templates` | `FE-DOK-16` | `dokter-rawat-inap` | `SlidingScaleTemplate : Read` | **Baru** |
+| 12 | Jadwal Pemberian Obat | 2 | Pelayanan Kesehatan → **Farmasi** | `/health-services/pharmacy-management/medication-schedule-settings` | `FE-KEP-21` | `keperawatan` | `MedicationScheduleSetting : Read` | **Baru** |
+| 13 | Instrumen & Formulir Klinis | 2 | Pelayanan Kesehatan → **Master Data** | `/health-services/clinical-management/clinical-instruments` | `FE-KEP-19` | `keperawatan` | `ClinicalInstrumentConfiguration : Read` | **Baru** |
+| 14 | Jam Shift Keperawatan | 2 | Pelayanan Kesehatan → **Master Data** | `/health-services/clinical-management/nursing-shifts` | `FE-KEP-20` | `keperawatan` | `NursingShift : Read` | **Baru** |
+
+Tingkat dihitung seperti tabel 3.1 — di bawah Pelayanan Kesehatan. Dokumen frontend sub-modul menulis tingkat `1` relatif terhadap grupnya; butirnya sama.
+
+**Layar anak revision `2`.**
+
+| Layar | Jalan masuk | Sub-modul |
+|---|---|---|
+| `FE-KEP-07` Ruang Kerja Keperawatan V2 beserta `FE-KEP-08`–`18` | Census `FE-INP-01`, Detail Episode `FE-INP-04` → `…/episodes/{id}/nursing`; delapan menu internal | `keperawatan` |
+| `FE-KEP-22` Daftar Tunggu Cek Ganda | `FE-KEP-13`; kartu pada Daftar Pantau `FE-INP-09` | `keperawatan` |
+| Tab `FE-DOK-02`–`05`, `10`–`13`; `FE-DOK-14` Catatan Saya; `FE-DOK-15` Perlu Review | `FE-DOK-09`; `…/episodes/{id}/physician` dialihkan | `dokter-rawat-inap` |
+| `FE-INP-21` Dokter Pendukung, `FE-INP-22` resume, `FE-INP-23` penutupan | `FE-INP-04`, `FE-INP-06`, `FE-INP-07` | `episode-rawat-inap` |
+| `FE-INP-24` pesanan tertunda tertagih | Daftar Pantau `FE-INP-09` | `episode-rawat-inap` |
+
+**Urutan daftar di `FE-INP-09`** mengikuti ketetapan 12 September 2026 (bagian 6): daftar `episode-rawat-inap` —
+termasuk `FE-INP-24` sebagai daftar terakhir episode — lalu `dokter-rawat-inap`, lalu `keperawatan` — termasuk
+`FE-KEP-22`.
 
 ---
 
@@ -345,6 +424,36 @@ PRD final. Keduanya **bukan** deret yang sama dan tidak boleh disamakan begitu s
 memakai deret `CAP-###` karena `RWI-DEC-080` menjadikan PRD final sebagai baseline; rujukan
 `RWI-CAP-###` pada dokumen sub-modul tetap sah untuk membaca dokumen itu sendiri.
 
+### 4.5 ★ Revision `2` — pemecahan kemampuan dan kemampuan PRD v`2.0`
+
+Tiga kemampuan dipecah menjadi bagian bernomor supaya **setiap bagian punya tepat satu sub-modul pemilik**. Nomor dasar
+tetap; jumlah kemampuan baseline tetap 28.
+
+| Bagian | Nama | Sub-modul pemilik | Keadaan revision `7` | Dasar |
+|---|---|---|---|---|
+| `CAP-015-LAB` | Laboratorium | `dokter-rawat-inap`; tampil juga di `keperawatan` | Dirancang; pesanan perawat menunggu pemilik Lab | `RWI-DEC-113`, `114` |
+| `CAP-015-RAD` | Radiologi | Sama | Sama | Sama |
+| `CAP-015-GIZ` | Konsultasi Gizi | Sama | "Integrasi belum tersedia" | `RWI-DEC-113`; gate `G-21` |
+| `CAP-015-HD` | Hemodialisa | Sama | Sama | Sama |
+| `CAP-015-BDR` | Bank Darah | Sama | Sama | Sama |
+| `CAP-015-RHB` | Rehab Medik | Sama | Sama | Sama |
+| `CAP-023-RSP` | Resep, template, Resep Harian, obat pulang, keputusan rekonsiliasi, order sliding scale | `dokter-rawat-inap` | Dirancang | `RWI-DEC-117`, `121`, `132`, `146` |
+| `CAP-023-MAR` | MAR, pencatatan obat bawaan, pelaksanaan sliding scale | **`keperawatan`** | Dirancang | `RWI-DEC-116`, `117`, `145`, `147` |
+| `CAP-014-HND` | Handover shift keperawatan | `keperawatan` | **`DEFERRED`** — nol menu, tabel, endpoint | `RWI-DEC-145` |
+| `CAP-014-TRF` | Transfusi di bangsal | `keperawatan` sebagai pemilik permukaan | **`DEFERRED`**; kepemilikan mesin transfusi tetap `CONFLICT` dengan blueprint `bank-darah` (`G-20`) | `RWI-DEC-145` |
+
+**Perluasan tanpa nomor baru:** `CAP-012` kini memuat Pengawasan Harian, Monitoring Nyeri, Assesment Edukasi, Evaluasi
+Awal MPP, Perencanaan Pulang, dan konfigurasi klinis berversi; `CAP-021` memuat jenis catatan; `CAP-026` memuat delapan
+bagian resume; `CAP-004`/`CAP-008` memuat penugasan pendukung dan census dokter; `CAP-028` memuat akibat penutupan.
+
+**Pemeriksaan kemampuan yatim revision `2`:** 28 kemampuan dasar tetap 28 baris; sepuluh bagian di atas masing-masing
+punya **tepat satu** pemilik; `CAP-023` **tidak lagi** dimiliki satu sub-modul utuh — pemilik per bagiannya berbeda,
+dan itulah alasan pemecahannya. **Nol yatim.**
+
+**Temuan non-blocking.** `NutritionManagement`, `BloodBankManagement`, dan `OperatingRoomManagement` ternyata **ada** di
+source `BE@df3679c0`. Pilihan pemilik 15 September 2026: `CAP-015-GIZ`, `CAP-015-BDR`, dan `CAP-018` **tetap** "Integrasi
+belum tersedia". Dicatat untuk `grill-me` berikutnya.
+
 ---
 
 ## 5. Traceability
@@ -358,6 +467,10 @@ memakai deret `CAP-###` karena `RWI-DEC-080` menjadikan PRD final sebagai baseli
 | Peta butir menu | `episode-rawat-inap/03-frontend-architecture.md` bagian 2B, `episode-rawat-inap/05-skema-tampilan.md` bagian 2 |
 | Urutan migration | `episode-rawat-inap/02-backend-architecture.md` bagian 7.1 |
 | Pemetaan kemampuan | `RWI-DEC-083`, `PRD-RWI-FINAL-001` bagian 10 dan 23.1 |
+| ★ Kepemilikan data revision `2` (2.5) | `RWI-DEC-117`, `118`, `124`, `132`, `137`, `145` s.d. `149`; `02-backend-architecture.md` ketiga sub-modul revision `7` |
+| ★ Urutan migration revision `2` (3.4.1) | `dokter-rawat-inap` 11.8, `keperawatan` 11.9, `episode-rawat-inap` 11.8 |
+| ★ Peta menu revision `2` (3.5) | `RWI-DEC-107`, `108`, `113`; `dokter-rawat-inap/03-frontend-architecture.md` 10.3; `keperawatan/03-frontend-architecture.md` 10.3 |
+| ★ Pemecahan kemampuan (4.5) | `RWI-DEC-113`, `117`, `145`; gate `1.6` `G-21` |
 
 ## 6. Yang menahan berkas ini menjadi `approved`
 
@@ -367,8 +480,11 @@ memakai deret `CAP-###` karena `RWI-DEC-080` menjadikan PRD final sebagai baseli
 | ~~**`RWI-OQ-048`** kepemilikan catatan pemakaian alat~~ | **TERTUTUP 2026-09-02** oleh `RWI-DEC-089` — dijawab dengan menunda kemampuannya, bukan dengan memilih pemilik. Dibuka ulang saat modul persediaan/aset ada | Product/Domain bersama pemilik persediaan |
 | ~~Butir menu `keperawatan`~~ | **Tertutup 2026-09-02** — nol butir menu tingkat dua; keenam layarnya menjadi layar anak | — |
 | ~~Butir menu `dokter-rawat-inap`~~ | **Tertutup 2026-09-02** — nol butir menu tingkat dua; kedelapan layarnya menjadi layar anak | — |
-| **Pencabutan butir menu Dokter → Rawat Inap yang sudah ter-commit** — baru 2026-09-02 | Butir itu mengarah ke layar berbasis antrean rawat jalan; lihat bagian 3.3 | Frontend authority, sebagai bagian gelombang `DOK-MVP-FE` |
-| **Urutan daftar di dalam `FE-INP-09` Daftar Pantau** — baru 2026-09-02 | Satu layar kini dipakai tiga sub-modul: 4 daftar `episode-rawat-inap`, 1 `keperawatan`, 1 `dokter-rawat-inap` | Ditetapkan saat salah satu daftar baru dikerjakan; **tidak boleh** diputuskan sendiri-sendiri |
+| ~~**Pencabutan butir menu Dokter → Rawat Inap yang sudah ter-commit**~~ — ★ **dibatalkan `RWI-DEC-107`**, butir dipertahankan (3.5) | Butir itu mengarah ke layar berbasis antrean rawat jalan; lihat bagian 3.3 | Frontend authority, sebagai bagian gelombang `DOK-MVP-FE` |
+| ~~**Urutan daftar di dalam `FE-INP-09` Daftar Pantau**~~ — dibuka 2026-09-02 | ✅ **DITETAPKAN 12 September 2026 oleh pemilik peta modul.** Urutannya: **empat daftar `episode-rawat-inap` lebih dulu, lalu `dokter-rawat-inap`, lalu `keperawatan`.** Sebelum ketetapan ini source merender keperawatan mendahului dokter; urutannya ditukar pada tanggal yang sama di `inpatient-monitoring-view.jsx`. Ketetapan ini menutup kriteria 5 `FE-RWI-050`. Perubahan urutan berikutnya tetap **tidak boleh** diputuskan satu sub-modul sendirian | Pemilik peta modul — **tertutup** |
+| ★ Approval revision `7` ketiga sub-modul | Seluruh isi bertanda ★ | Muhammad Hamzah |
+| ★ ~~`RWI-OQ-047`~~ | **Tertutup 2026-09-11** — lihat 2.5 | — |
+| ★ Pemberitahuan kepada pemilik `rawat-jalan` (`R7`, `R9`, `K2`) dan kepada Yoga Aji Pratama (`E3` langkah 4, jenis dokumen `14`) | Rilis gelombang V1 dan V3, bukan desain | Pelaksana gelombang |
 
 Tidak satu pun menahan pekerjaan `episode-rawat-inap`, dan `RWI-OQ-048` tidak menahan ketiga
 kemampuan `MUST HAVE` milik `keperawatan`.

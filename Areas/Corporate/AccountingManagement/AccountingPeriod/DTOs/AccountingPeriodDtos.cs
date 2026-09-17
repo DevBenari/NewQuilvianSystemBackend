@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Enums;
-
+// models dto period akuntansi, untuk request dan response API
 namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.DTOs
 {
     public class AccountingPeriodPagedQuery
