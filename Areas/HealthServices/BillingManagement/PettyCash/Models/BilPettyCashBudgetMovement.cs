@@ -33,6 +33,15 @@ public sealed class BilPettyCashBudgetMovement : IdentityModel
     /// <summary>SENSITIF. Wajib untuk TOP_UP dan ADJUSTMENT; kosong untuk DISBURSEMENT.</summary>
     [MaxLength(500)] public string? Reason { get; set; }
 
+    /// <summary>Sumber dana penambahan anggaran (TRANSFER atau CASH). Diisi hanya untuk
+    /// MovementType = TOP_UP. Null untuk seluruh jenis pergerakan lain.
+    /// Historical records pra-task ini sah dengan nilai null (PC-DES-026).</summary>
+    [MaxLength(30)] public string? FundingSourceType { get; set; }
+
+    /// <summary>Nomor referensi transfer. Diisi hanya bila FundingSourceType = TRANSFER.
+    /// Null untuk CASH dan untuk seluruh jenis pergerakan selain TOP_UP.</summary>
+    [MaxLength(100)] public string? TransferReference { get; set; }
+
     public Guid ActorUserId { get; set; }
 
     public Guid? IdempotencyKey { get; set; }
@@ -68,4 +77,19 @@ public static class PettyCashBudgetMovementTypes
     /// <summary>Sisa saldo yang diterima dari periode yang ditutup. Selalu berpasangan
     /// dengan satu baris CarryForwardOut pada periode asal (PC-DES-018).</summary>
     public const string CarryForwardIn = "CARRY_FORWARD_IN";
+}
+
+/// <summary>Sumber dana penambahan anggaran kas kecil (PC-DES-026).
+/// Hanya berlaku untuk movement berjenis TOP_UP.
+/// Nilai ini adalah kode internal; label tampilan dikelola frontend.</summary>
+public static class PettyCashFundingSourceTypes
+{
+    /// <summary>Dana masuk melalui transfer bank. TransferReference wajib diisi.</summary>
+    public const string Transfer = "TRANSFER";
+
+    /// <summary>Dana masuk secara tunai/langsung. TransferReference tidak diwajibkan.</summary>
+    public const string Cash = "CASH";
+
+    public static readonly IReadOnlySet<string> All =
+        new HashSet<string>([Transfer, Cash], StringComparer.OrdinalIgnoreCase);
 }

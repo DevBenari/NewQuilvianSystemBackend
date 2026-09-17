@@ -25,6 +25,7 @@ public sealed class PettyCashBudgetMovementQuery
 }
 
 public class PettyCashBudgetTopUpRequest
+public class PettyCashBudgetAmountRequestBase
 {
     [Range(typeof(decimal), "0.01", "9999999999999999.99",
         ParseLimitsInInvariantCulture = true,
@@ -34,7 +35,19 @@ public class PettyCashBudgetTopUpRequest
     public Guid ExpectedRowVersion { get; set; }
 }
 
+public class PettyCashBudgetTopUpRequest : PettyCashBudgetAmountRequestBase
+{
+    /// <summary>Sumber dana penambahan anggaran: TRANSFER atau CASH (PC-DES-026).
+    /// TRANSFER = dana masuk melalui transfer bank; CASH = dana masuk secara tunai/langsung.</summary>
+    [Required, MaxLength(30)] public string FundingSourceType { get; set; } = string.Empty;
+
+    /// <summary>Nomor referensi transfer (contoh: nomor bukti transfer BCA/BNI/dll).
+    /// Wajib bila FundingSourceType = TRANSFER. Boleh kosong bila FundingSourceType = CASH.</summary>
+    [MaxLength(100)] public string? TransferReference { get; set; }
+}
+
 public sealed class PettyCashBudgetAdjustmentRequest : PettyCashBudgetTopUpRequest
+public sealed class PettyCashBudgetAdjustmentRequest : PettyCashBudgetAmountRequestBase
 {
     [Required, MaxLength(20)] public string Direction { get; set; } = string.Empty;
 }
@@ -140,6 +153,8 @@ public sealed class PettyCashBudgetMovementResponse
     public Guid? VoucherId { get; set; }
     public string? VoucherNumber { get; set; }
     public string? Reason { get; set; }
+    public string? FundingSourceType { get; set; }
+    public string? TransferReference { get; set; }
     public Guid ActorUserId { get; set; }
     public string? ActorName { get; set; }
     public DateTimeOffset OccurredAt { get; set; }

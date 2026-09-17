@@ -23,6 +23,13 @@ public sealed class BilPettyCashBudgetMovementConfiguration : IEntityTypeConfigu
             // Reason wajib untuk seluruh jenis KECUALI DISBURSEMENT (PC-DES-019). Perilaku
             // untuk TOP_UP/ADJUSTMENT/DISBURSEMENT identik dengan sebelum revisi ini.
             table.HasCheckConstraint("CK_BilPettyCashBudgetMovement_Reason", "\"MovementType\" = 'DISBURSEMENT' OR \"Reason\" IS NOT NULL");
+            // FundingSourceType hanya boleh bernilai TRANSFER atau CASH bila diisi (PC-DES-026).
+            // NULL sah untuk historical records dan seluruh jenis movement selain TOP_UP.
+            table.HasCheckConstraint("CK_BilPettyCashBudgetMovement_FundingSourceType",
+                "\"FundingSourceType\" IS NULL OR \"FundingSourceType\" IN ('TRANSFER','CASH')");
+            // TransferReference hanya diisi bila FundingSourceType = TRANSFER (PC-DES-026).
+            table.HasCheckConstraint("CK_BilPettyCashBudgetMovement_TransferReference",
+                "\"TransferReference\" IS NULL OR \"FundingSourceType\" = 'TRANSFER'");
         });
 
         entity.HasKey(x => x.Id);
@@ -32,6 +39,8 @@ public sealed class BilPettyCashBudgetMovementConfiguration : IEntityTypeConfigu
         entity.Property(x => x.BalanceBefore).HasPrecision(18, 2);
         entity.Property(x => x.BalanceAfter).HasPrecision(18, 2);
         entity.Property(x => x.Reason).HasMaxLength(500);
+        entity.Property(x => x.FundingSourceType).HasMaxLength(30);
+        entity.Property(x => x.TransferReference).HasMaxLength(100);
         entity.Property(x => x.OccurredAt).HasColumnType("timestamp with time zone");
 
         entity.Property(x => x.CreateDateTime).HasColumnType("timestamp with time zone").HasDefaultValueSql("CURRENT_TIMESTAMP");

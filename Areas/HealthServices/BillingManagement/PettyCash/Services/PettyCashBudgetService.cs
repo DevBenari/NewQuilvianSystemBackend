@@ -94,6 +94,8 @@ public sealed class PettyCashBudgetService
             {
                 x.Id, x.MovementType, x.Amount, x.BalanceBefore, x.BalanceAfter,
                 x.VoucherId, x.Reason, x.ActorUserId, x.OccurredAt
+                x.VoucherId, x.Reason, x.ActorUserId, x.OccurredAt,
+                x.FundingSourceType, x.TransferReference
             })
             .ToListAsync(cancellationToken);
 
@@ -122,6 +124,8 @@ public sealed class PettyCashBudgetService
             VoucherId = x.VoucherId,
             VoucherNumber = x.VoucherId.HasValue && voucherNumbers.TryGetValue(x.VoucherId.Value, out var number) ? number : null,
             Reason = x.Reason,
+            FundingSourceType = x.FundingSourceType,
+            TransferReference = x.TransferReference,
             ActorUserId = x.ActorUserId,
             ActorName = actorNames.TryGetValue(x.ActorUserId, out var name) ? name : null,
             OccurredAt = x.OccurredAt
@@ -139,6 +143,10 @@ public sealed class PettyCashBudgetService
     {
         if (idempotencyKey == Guid.Empty) throw new PettyCashBudgetValidationException("Idempotency-Key wajib diisi.");
         ValidateAmountAndReason(request.Amount, request.Reason);
+        var fundingSourceType = NormalizeAndValidateFundingSource(request.FundingSourceType, request.TransferReference);
+        var transferReference = fundingSourceType == PettyCashFundingSourceTypes.Transfer
+            ? request.TransferReference?.Trim()
+            : null;
         IDbContextTransaction? transaction = null;
 
         try
@@ -176,6 +184,8 @@ public sealed class PettyCashBudgetService
                 BalanceBefore = before,
                 BalanceAfter = after,
                 Reason = request.Reason.Trim(),
+                FundingSourceType = fundingSourceType,
+                TransferReference = transferReference,
                 ActorUserId = actorUserId,
                 IdempotencyKey = idempotencyKey,
                 CorrelationId = Guid.NewGuid(),
@@ -846,6 +856,26 @@ public sealed class PettyCashBudgetService
         return normalized;
     }
 
+    private static string NormalizeAndValidateFundingSource(string? fundingSourceType, string? transferReference)
+    {
+        if (string.IsNullOrWhiteSpace(fundingSourceType))
+            throw new PettyCashBudgetValidationException("Sumber dana penambahan anggaran wajib diisi (TRANSFER atau CASH).");
+
+        var normalized = fundingSourceType.Trim().ToUpperInvariant();
+        if (!PettyCashFundingSourceTypes.All.Contains(normalized))
+            throw new PettyCashBudgetValidationException("Sumber dana harus bernilai TRANSFER atau CASH.");
+
+        if (normalized == PettyCashFundingSourceTypes.Transfer)
+        {
+            if (string.IsNullOrWhiteSpace(transferReference))
+                throw new PettyCashBudgetValidationException("Nomor referensi transfer wajib diisi untuk sumber dana TRANSFER.");
+            if (transferReference.Trim().Length > 100)
+                throw new PettyCashBudgetValidationException("Nomor referensi transfer tidak boleh melebihi 100 karakter.");
+        }
+
+        return normalized;
+    }
+
     // BIL-AT-076/§ Security — Reason SENSITIF (data-dictionary.md), MUST NOT masuk custom logger.
     private Task AuditMovementAsync(string action, BilPettyCashBudget budget, BilPettyCashBudgetMovement movement, Guid actorUserId) =>
         _loggerService.AuditAsync(LogCategory, action, "Pergerakan anggaran kas kecil dicatat.", new
@@ -857,6 +887,8 @@ public sealed class PettyCashBudgetService
             movement.Amount,
             movement.BalanceBefore,
             movement.BalanceAfter,
+            movement.FundingSourceType,
+            movement.TransferReference,
             movement.IdempotencyKey,
             movement.CorrelationId,
             ActorUserId = actorUserId

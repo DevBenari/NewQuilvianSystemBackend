@@ -8,6 +8,12 @@ public sealed class BillingInvoiceQuery
     public string? Status { get; set; }
     public string? ServiceType { get; set; }
     public string? Search { get; set; }
+    public string? Period { get; set; }
+    public string? PeriodPreset { get; set; }
+    public DateTime? VisitDateFrom { get; set; }
+    public DateTime? VisitDateTo { get; set; }
+    public DateTime? StartDate { get; set; }
+    public DateTime? EndDate { get; set; }
     [Range(1, int.MaxValue)] public int PageNumber { get; set; } = 1;
     [Range(1, 100)] public int PageSize { get; set; } = 25;
 }
@@ -388,6 +394,23 @@ public sealed class CalculationResponse
     public decimal ExcessAmount { get; set; }
     public decimal UnresolvedCoverageAmount { get; set; }
     public decimal RoundingAmount { get; set; }
+
+    /// <summary>
+    /// Total tagihan bruto sebelum coverage asuransi/penjamin (Gross + AdminFee + RoomCharge - ItemDiscount + Tax + Rounding).
+    /// </summary>
+    public decimal TotalInvoiceAmount { get; set; }
+
+    /// <summary>
+    /// Total pembayaran yang telah dialokasikan secara sah (net pembayaran sukses dikurangi pembalikan/reversal).
+    /// </summary>
+    public decimal PaidAmount { get; set; }
+
+    /// <summary>
+    /// Sisa tagihan pasien kanonik yang masih harus dibayar (authoritative outstanding).
+    /// Formula: Math.Max(0m, PatientAmount - PaidAmount + AllocationExcess - WriteOffTotal - AdjustmentNet).
+    /// </summary>
+    public decimal RemainingAmount { get; set; }
+
     public bool IsLocked { get; set; }
     public DateTimeOffset CalculatedAt { get; set; }
     public string Reason { get; set; } = string.Empty;

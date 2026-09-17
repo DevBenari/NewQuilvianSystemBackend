@@ -57,6 +57,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterDat
         public decimal AdminFeePercent { get; set; }
 
         public int SortOrder { get; set; }
+        public string? Description { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreateDateTime { get; set; }
 
@@ -95,7 +96,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterDat
 
     public class PaymentMethodDetailResponse : PaymentMethodResponse
     {
-        public string? Description { get; set; }
     }
 
     public class PaymentMethodOptionResponse
