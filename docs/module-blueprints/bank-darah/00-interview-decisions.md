@@ -574,7 +574,8 @@ hilang dari rekam jejak, apa pun kekeliruan pencatatannya. Pola "hanya bisa dita
 ditimpa" ini juga sudah dipakai repository lewat riwayat perpindahan status (`BD-CAP-009`).
 *Yang belum ditetapkan.* Nasib kantong yang tercatat keliru sebagai diberikan — secara fisik
 kantong itu mungkin masih ada — tidak ditetapkan otomatis oleh sistem dan dicatat sebagai
-`OQ-BD-014`.
+`OQ-BD-014`. **Ditutup `DEC-BD-051` (17 September 2026):** sesudah koreksi disetujui kantong tetap
+`Issued`; penanganan fisik kantong yang ternyata masih ada berada di luar jalur koreksi — lihat §8.29.
 *Contoh.* Petugas mencatat pemberian dengan nomor kantong `PMI-00871`, padahal yang benar-benar
 diberikan adalah `PMI-00817`. Ia membuat catatan koreksi yang menunjuk pemberian asal, menyebut nomor
 kantong yang keliru dan yang benar, memilih alasan "salah nomor kantong", lalu menyimpannya.
@@ -587,7 +588,7 @@ tidak diam-diam kembali menjadi tersedia.
 | --- | --- | --- | --- |
 | `OQ-BD-012` | Berapa jam masa berlaku bukti kecocokan, dan apakah nilainya sama untuk semua komponen darah. Bentuk aturannya sudah dikunci `DEC-BD-027`; yang belum ada hanya angkanya | Pemilik proses klinis | `IMPLEMENTATION` gerbang pemberian. **Tidak** memblokir `DESIGN` |
 | `OQ-BD-013` | Di mana perbedaan hasil golongan darah diselesaikan. `DEC-BD-026` menuntut ada tempat menyelesaikannya, sedangkan `DEC-BD-023` sudah mengunci MVP pada tepat tiga daftar kerja | Pemilik proses BDRS | `DESIGN` satu layar saja. Usulan yang tidak memperluas scope: penyelesaian dilakukan di dalam layar pemeriksaan golongan darah, bukan sebagai daftar kerja keempat |
-| `OQ-BD-014` | Keadaan kantong yang tercatat keliru sebagai diberikan, setelah pencatatannya dikoreksi. Secara fisik kantong itu mungkin masih ada | Pemilik proses BDRS | `IMPLEMENTATION` jalur koreksi. **Tidak** memblokir `DESIGN` catatan koreksinya |
+| `OQ-BD-014` | Keadaan kantong yang tercatat keliru sebagai diberikan, setelah pencatatannya dikoreksi. Secara fisik kantong itu mungkin masih ada | Pemilik proses BDRS | **Ditutup `DEC-BD-051`** — kantong tetap `Issued`; penanganan fisik di luar jalur koreksi. **Riwayat:** `IMPLEMENTATION` jalur koreksi. **Tidak** memblokir `DESIGN` catatan koreksinya |
 
 `OQ-BD-013` dan bagian struktur `OQ-BD-012` sudah **ditutup** pada pass berikutnya — lihat §8.10.
 
@@ -1461,7 +1462,6 @@ Seluruh nama pasien dan nomor kunjungan pada contoh adalah data samaran.
 | `OQ-BD-011` | Isi label golongan darah, kapan boleh dicetak, identifier uniknya, dan perilaku cetak ulang. `DEC-BD-015` baru menutup sumber datanya, bukan mekanik labelnya | Pemilik proses klinis | `DESIGN` label dan pencetakan |
 | `BD-DEP-009` | Tiga berkas bukti kebutuhan yang dirujuk BRD tidak ada di repository | Pemilik kebutuhan | Penelusuran bukti ke kebutuhan |
 | `OQ-BD-012` | Berapa jam masa berlaku bukti kecocokan per komponen. Struktur penyimpanannya ditutup `DEC-BD-032` (per komponen di katalog); yang tersisa hanya angka jamnya dari kebijakan klinis MMC | Pemilik proses klinis | `IMPLEMENTATION` gerbang pemberian. **Tidak** memblokir `DESIGN` |
-| `OQ-BD-014` | Keadaan kantong yang tercatat keliru sebagai diberikan, setelah pencatatannya dikoreksi | Pemilik proses BDRS | `IMPLEMENTATION` jalur koreksi |
 | `OQ-BD-016` | Apakah "bukti pendukung" pada permintaan koreksi berupa keterangan tertulis saja, atau menuntut lampiran berkas. Dirancang sebagai teks; lampiran adalah kemampuan penyimpanan berkas tersendiri | Pemilik proses BDRS | Tidak memblokir. Menempel pada satu kolom yang sudah dikenali |
 
 ### Pertanyaan yang sudah tertutup
@@ -1492,6 +1492,10 @@ dicabut dari baris peran Petugas BDRS umum dan hanya diberikan kepada petugas be
 Emergency validation-code closure pass: `CONF-BD-007` ditutup `DEC-BD-050` — `VAL-BD-072` menjadi kode
 kewenangan jalur darurat dan `VAL-BD-021` menjadi kode alasan darurat.
 
+Correction path decision closure pass: `OQ-BD-014` ditutup `DEC-BD-051` — kantong tetap `Issued` sesudah
+koreksi disetujui. Definisi `VAL-BD-049` yang sudah dirujuk tetapi belum ada di matriks validasi
+ditetapkan `DEC-BD-052`.
+
 ### 8.20 Rincian keputusan emergency validation-code closure pass
 
 **`DEC-BD-050` — satu pemicu, satu kode pada jalur darurat.**
@@ -1520,6 +1524,32 @@ perlu dijalankan ulang** ([laporan](task/report/backend/BE-BD-008.md) bagian 3.2
 Menyempitkannya menuntut perubahan source dan build ulang; `DEC-BD-050` hanya membagi pemicu dan tidak
 menulis ulang pesan.
 
+### 8.29 Rincian keputusan correction path decision closure pass
+
+Pass keputusan pemilik sebelum `BE-BD-010`, 17 September 2026. **Nol source, nol migration, nol database.**
+
+| Decision ID | Menutup | Type | Keputusan | Owner | Status | Approved by/at |
+| --- | --- | --- | --- | --- | --- | --- |
+| `DEC-BD-051` | `OQ-BD-014` | `Decision` | Sesudah koreksi pencatatan pemberian **disetujui**, status kantong **tetap `Issued`**. Koreksi hanya mengoreksi rekam pencatatan dan angka pemenuhan order. Penanganan fisik kantong yang ternyata masih ada berada **di luar** jalur koreksi dan di luar scope `BE-BD-010`; tidak ada state transition baru | Pemilik proses BDRS | `approved` | `Sukmagp` 2026-09-17 |
+| `DEC-BD-052` | Definisi `VAL-BD-049` yang hilang dari `validation-matrix.md` | `Decision` | `VAL-BD-049`, tindakan koreksi pencatatan pemberian, dipicu ketika koreksi dicoba dipakai memindahkan pemberian/kantong ke pasien lain. **HTTP `422`**. Pesan kanonik: "Koreksi pencatatan tidak dapat digunakan untuk memindahkan pemberian darah ke pasien lain." Pelanggaran keadaan/bisnis, **bukan** kegagalan otorisasi | Pemilik kontrak Bank Darah | `approved` | `Sukmagp` 2026-09-17 |
+
+**`DEC-BD-051` — yang dilakukan dan tidak dilakukan koreksi.** Koreksi **tidak**: membatalkan pemberian,
+menghapus pemberian asal, mengembalikan kantong menjadi `Available`, memindahkan kantong ke pasien lain,
+atau mengubah status kantong secara otomatis. Keputusan ini menegaskan `DEC-BD-030`, `INV-BD-021`, dan
+state-transition §3 (persetujuan koreksi: "tetap `Issued`") apa adanya, sekaligus menutup satu-satunya
+hal yang semula dibiarkan terbuka: nasib kantong fisik. Nasib itu **tidak** diurus sistem melalui jalur
+koreksi. `DEC-BD-034` (koreksi tidak membalik biaya) dan `DEC-BD-041` (dua tahap, peminta berbeda dari
+penyetuju, berlaku sejak disetujui) tetap berlaku penuh.
+
+**`DEC-BD-052` — kenapa `422`, bukan `403`.** Pelakunya berwenang mengajukan koreksi; yang menahan adalah
+**isi** permintaannya, yang mencoba memakai koreksi sebagai jalur pengalihan. Pengalihan hanya sah lewat
+`REALLOCATED` pada kantong yang belum diberikan (`DEC-BD-030`). Rujukan yang sudah ada —
+`api-contract.md`, `state-transition-matrix.md` §3, dan `AC-BD-049` — kini punya definisi yang dapat
+diuji persis.
+
+Turunannya: **nol invariant baru, nol entity baru, nol state transition baru**, satu baris baru pada
+`validation-matrix.md`. `BE-BD-010` tidak lagi tertahan `OQ-BD-014`.
+
 ---
 
 ## 11. Langkah Berikutnya
@@ -1540,7 +1570,7 @@ perubahan — rinciannya di bagian 8.24.
 
 Pertanyaan terbuka yang masih hidup seluruhnya berada di luar rilis pertama atau bersifat masukan
 konfigurasi: `DEC-BD-016` (persetujuan pemilik Billing), `OQ-BD-011` (mekanik label), `DEF-BD-003`,
-`OQ-BD-010`, `OQ-BD-012`, `OQ-BD-014`, `OQ-BD-016`, dan `BD-DEP-009`. Tidak satu pun menahan gelombang
+`OQ-BD-010`, `OQ-BD-012`, `OQ-BD-014` (**ditutup `DEC-BD-051`**, 17 September 2026), `OQ-BD-016`, dan `BD-DEP-009`. Tidak satu pun menahan gelombang
 `MVP-0` sampai `MVP-4`.
 
 Dua pekerjaan pencatatan hilir yang lahir dari pass ini, keduanya bukan milik skill wawancara:
@@ -1630,7 +1660,7 @@ pemberian.
 | `OQ-BD-010` | Kesediaan PMI menerima pengembalian | Tidak |
 | `OQ-BD-012` | Nilai jam masa berlaku bukti kecocokan per komponen (struktur ditutup `DEC-BD-032`) | Tidak. `IMPLEMENTATION` saja |
 | `OQ-BD-013` | Tempat penyelesaian perbedaan hasil golongan darah | **Ditutup** `DEC-BD-033` — di layar pemeriksaan golongan darah |
-| `OQ-BD-014` | Keadaan kantong setelah koreksi pemberian | Tidak. `IMPLEMENTATION` saja |
+| `OQ-BD-014` | Keadaan kantong setelah koreksi pemberian | **Ditutup** `DEC-BD-051` — kantong tetap `Issued`; penanganan fisik di luar jalur koreksi |
 | `OQ-BD-015` | Perluasan gerbang lokasi nonaktif ke jalur pemberian | **Ditutup** `DEC-BD-038` — ditahan pada jalur normal, jalur darurat `DEC-BD-017` tetap terbuka |
 | `ARCH-BD-GAP-10` | Nasib kantong di lokasi penyimpanan yang dinonaktifkan | **Ditutup** `DEC-BD-037` |
 | `BD-DEP-008` | Pendaftaran registry kepemilikan modul dan prefix | **Ditutup** 3 September 2026 — prefix `Bbk` terdaftar |

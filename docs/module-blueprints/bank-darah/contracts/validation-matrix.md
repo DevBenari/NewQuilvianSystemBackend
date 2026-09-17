@@ -54,6 +54,7 @@ ditemukan · `409` bentrok konkurensi atau status sudah berubah · `422` melangg
 | `VAL-BD-023` | Batalkan alokasi | Kantong sudah `Issued` | "Kantong sudah diberikan. Pembatalan tidak dapat dilakukan; gunakan catatan koreksi bila pencatatannya keliru." | `422` |
 | `VAL-BD-024` | Catat koreksi | Bukan peran berwenang | "Pencatatan koreksi hanya untuk peran berwenang." | `403` |
 | `VAL-BD-025` | Hapus/anulir pemberian | Percobaan menghapus atau membalik pemberian | "Pemberian darah tidak dapat dihapus atau dibatalkan. Satu-satunya jalur perbaikan adalah catatan koreksi." | `422` |
+| `VAL-BD-049` | Koreksi pencatatan pemberian | Koreksi dicoba dipakai memindahkan pemberian/kantong ke pasien lain | "Koreksi pencatatan tidak dapat digunakan untuk memindahkan pemberian darah ke pasien lain." | `422` |
 | `VAL-BD-033` | Alokasi | Kantong `Excess`/`PendingReview` dialokasikan langsung | "Kantong ini menunggu keputusan dan tidak dapat langsung dialokasikan. Selesaikan statusnya lebih dulu." | `422` |
 | `VAL-BD-016` | Pembatalan / penyelesaian | Alasan tidak dipilih dari daftar terkendali | "Alasan wajib dipilih dari daftar, tidak boleh diketik bebas." | `400` |
 

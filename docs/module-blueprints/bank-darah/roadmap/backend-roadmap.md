@@ -578,7 +578,7 @@ tidak dapat diberikan sebelum dialokasikan.
 | **Dependency** | `G1` ✅, `G2b` ✅, `BE-BD-007` ✅. **Riwayat:** `BE-BD-007` ⛔ sampai 16 September 2026 |
 | **Acceptance** | `AC-BD-047/048/049/050/086/087/088` |
 | **Risk/owner** | Sedang / BDRS |
-| **Catatan** | `OQ-BD-014` menahan detail implementasi jalur koreksi, **bukan** bentuknya |
+| **Catatan** | **`OQ-BD-014` ditutup `DEC-BD-051` (17 September 2026):** sesudah koreksi disetujui kantong tetap `Issued`; koreksi hanya mengoreksi rekam pencatatan dan angka pemenuhan; penanganan fisik kantong di luar scope task ini; **nol state transition baru**. `VAL-BD-049` (`AC-BD-049`) kini terdefinisi `422` lewat `DEC-BD-052`. **Riwayat:** `OQ-BD-014` menahan detail implementasi jalur koreksi, **bukan** bentuknya |
 
 ---
 
@@ -675,7 +675,7 @@ terbuka.
 | --- | --- | --- |
 | `DEC-BD-016` | Persetujuan pemilik Billing atas konteks sumber biaya | `BE-BD-013` future scope |
 | `OQ-BD-012` | Jam masa berlaku bukti kecocokan per komponen | Nilainya dari konfigurasi master saat eksekusi |
-| `OQ-BD-014` | Keadaan kantong setelah dikoreksi | Detail implementasi `BE-BD-010` |
+| ~~`OQ-BD-014`~~ | Keadaan kantong setelah dikoreksi | **Ditutup `DEC-BD-051`** — tidak lagi menahan `BE-BD-010` |
 | `DEF-BD-003` | Apakah semua komponen menuntut bukti kecocokan sama | Aturan per komponen saat implementasi |
 
 ---

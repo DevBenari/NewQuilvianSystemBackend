@@ -421,7 +421,7 @@ ada, tetapi **isinya ada**, karena master kosong menghentikan seluruh alur (`INV
 | ~~**Sisa `DEF-BD-004`:** peran penyata bukti kecocokan selesai, peran penyelesai kantong `PendingReview`, peran pembatal order~~ | Pemilik proses BDRS & klinis | **Ditutup** `DEC-BD-042`, `DEC-BD-043`, `DEC-BD-044`, dan pemetaan peran terakhirnya oleh `DEC-BD-045` | Tidak lagi — baris seeder `BE-BD-016` sudah ada isinya |
 | Nilai jam masa berlaku bukti per komponen (`OQ-BD-012`) | Pemilik proses klinis | Gerbang fail-closed sampai diisi | Tidak (desain jalan; nilai dari konfigurasi) |
 | Persetujuan konteks sumber Bank Darah pada Billing (`DEC-BD-016`) | Pemilik BillingManagement | Penyaluran biaya tak dapat dirancang | Hanya epic Billing (`OPEN DECISION`) |
-| Keadaan kantong setelah koreksi (`OQ-BD-014`) | Pemilik proses BDRS | Detail implementasi jalur koreksi | Tidak |
+| ~~Keadaan kantong setelah koreksi (`OQ-BD-014`)~~ | Pemilik proses BDRS | **Ditutup** `DEC-BD-051` — kantong tetap `Issued`; penanganan fisik di luar jalur koreksi | Tidak lagi |
 | Daftar lokasi penyimpanan darah MMC yang sebenarnya | Pemilik proses BDRS | Master kosong menghentikan seluruh alur — kantong tak dapat disimpan, dialokasikan, maupun diberikan | Tidak memblokir rancangan; **memblokir go-live** |
 
 **Catatan `v2` untuk pertanyaan terbuka.** Rangkaian Storage Location (`DEC-BD-035` sampai
