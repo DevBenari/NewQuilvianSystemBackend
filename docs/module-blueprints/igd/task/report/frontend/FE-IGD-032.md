@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `36f122af9` (branch `RizkiV2`) + working tree |
 | Commit backend yang dijadikan rujukan | `8544af1c` (branch `rizkiG`), strict read-only |
 | Tanggal | 16 September 2026 |
-| Status | 🟡 **SEBAGIAN — 16 September 2026.** Empat belas acceptance criteria **terpetakan ke source**, dengan **satu delta pada kriteria 4** dan **satu delta pada kriteria 3** yang dijelaskan di bagian 8. `npm run lint:errors` **PASS**; unit test **866/866 lulus**. **`npm run build` belum dijalankan.** **Uji lewat layar belum dijalankan** — dan untuk task ini uji layar adalah syarat yang paling menentukan, karena kriteria 8 dan 9 menahan perilaku yang sudah terbukti sebelumnya. Bukan UAT |
+| Status | 🟡 **SEBAGIAN — 16 September 2026.** Empat belas acceptance criteria **terpetakan ke source**, dengan **satu delta pada kriteria 4** dan **satu delta pada kriteria 3** yang dijelaskan di bagian 8. `npm run lint:errors` **PASS**; unit test **866/866 lulus**. **`npm run build` LULUS 17 September 2026** (exit 0, 0 error, 0 warning). **Uji lewat layar belum dijalankan** — dan untuk task ini uji layar adalah syarat yang paling menentukan, karena kriteria 8 dan 9 menahan perilaku yang sudah terbukti sebelumnya. Bukan UAT |
 
 ---
 
@@ -141,7 +141,7 @@ ada pemanggilan baru.
 
 | Butir | Keadaan |
 | --- | --- |
-| `npm run build` | **Belum.** Perintah untuk Rizki: `npm run build` di dalam `QuilvianSystemFrontendDev` |
+| `npm run build` | ✅ **LULUS 17 September 2026** — `npm run build` exit 0, **0 error, 0 warning**, postbuild standalone siap; keempat route IGD terkompilasi |
 | Uji lewat layar | **Belum**, dan untuk task ini paling menentukan — lihat bagian 7 kriteria 8 dan 9 |
 | UAT | **Belum**, bukan milik pekerjaan ini |
 
@@ -171,7 +171,7 @@ ada pemanggilan baru.
 | Acceptance criteria terpetakan ke source | ✅ dengan dua delta tercatat |
 | `npm run lint:errors` | ✅ PASS |
 | Unit test | ✅ 866/866 |
-| `npm run build` | 🟡 **belum** |
+| `npm run build` | ✅ **lulus 17 September 2026** — 0 error, 0 warning |
 | Uji lewat layar | 🟡 **belum** |
 | Laporan tracked | ✅ berkas ini |
 | Roadmap dan traceability diperbarui | ✅ |
@@ -225,6 +225,6 @@ memang terbiasa membandingkan dua periode berdampingan, ini perlu dinilai ulang.
 
 Kriteria 8 dan 9 menahan perilaku milik `FE-IGD-024` dan `FE-IGD-028` yang sudah terbukti
 sebelumnya. Keduanya terpetakan ke source dan isinya dipindahkan tanpa diubah, tetapi
-**pemindahan tetap pemindahan**. Status ✅ pantas diberikan hanya sesudah build bersih dan
-sesudah dua hal ini dicoba lewat layar: menyelesaikan satu periode observasi beserta isian
-Kesimpulan, dan mencatat satu putaran pemantauan bertanda vital.
+**pemindahan tetap pemindahan**. Build bersih sudah didapat 17 September 2026, jadi status ✅
+kini menunggu **satu hal saja**: dua percobaan lewat layar — menyelesaikan satu periode observasi
+beserta isian Kesimpulan, dan mencatat satu putaran pemantauan bertanda vital.

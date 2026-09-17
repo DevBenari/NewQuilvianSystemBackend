@@ -7,9 +7,9 @@
 | Revision | `6` — `draft`. Irisan kontrak yang dibutuhkan `MVP-0`…`MVP-6` sudah `approved` lewat `IGD-DEC-093` dan `IGD-DEC-108`; blueprint secara keseluruhan belum disetujui |
 | Module status | `PARTIAL` — pekerjaan berarti masih dapat berjalan (lihat *Next recommended task*), sementara `MVP-6` terblokir. **Dikoreksi 16 September 2026 (ketiga):** kebuntuan kunjungan `Arrived` sudah dibuka. `FE-IGD-030` ✅ terbukti lewat layar — pasien dapat dipindahkan ke penanganan, dialihkan ke Assesmen IGD, dan triage susulannya tidak memundurkan status. `FE-IGD-029` 🟡 sudah terpasang tetapi **belum dibuktikan dengan pendaftaran baru**, jadi hilangnya penolakan `409` pada jalur normal belum diuji ([evidence](evidence/2026-09-16-kunjungan-terjebak-arrived.md)) |
 | Current phase | Gelombang `MVP-3`, `MVP-4`, dan `MVP-5` sedang dituntaskan. Modul IGD memakai penomoran gelombang `MVP-0`…`MVP-6`, bukan ID `IGD-PH-*` |
-| Last verified at | `16 September 2026` — **uji lewat layar pertama yang pernah dijalankan pada modul ini**, oleh pemilik, untuk `FE-IGD-030`: aksi penanganan segera, pengalihan ke Assesmen IGD, dan triage susulan. Bukan UAT. Sebelumnya `15 September 2026` — pemetaan ulang acceptance criteria ke source tanpa build, test, maupun query basis data ([evidence](evidence/2026-09-15-pemeriksaan-status.md)) |
-| Backend source SHA | `e89907c5` (branch `rizkiG`) — tempat pemeriksaan. SHA desain revisi 6 tetap `300922c` |
-| Frontend source SHA | `43adae648` (branch `RizkiV2`) — tempat pemeriksaan. SHA desain revisi 6 tetap `96a91201` |
+| Last verified at | `17 September 2026` — `npm run build` frontend **lulus bersih** (0 error, 0 warning) pada `eee3f254d`, dan perkakas `npm test` diperbaiki sehingga benar-benar menjalankan **866 test, 0 gagal** ([evidence](evidence/2026-09-17-verifikasi-build-dan-perkakas.md)). Build **bukan** bukti runtime. Sebelumnya `16 September 2026` — **uji lewat layar pertama yang pernah dijalankan pada modul ini**, oleh pemilik, untuk `FE-IGD-030`: aksi penanganan segera, pengalihan ke Assesmen IGD, dan triage susulan. Bukan UAT. Sebelumnya `15 September 2026` — pemetaan ulang acceptance criteria ke source tanpa build, test, maupun query basis data ([evidence](evidence/2026-09-15-pemeriksaan-status.md)) |
+| Backend source SHA | `94bf6ec5` (branch `rizkiG`) — tempat pemeriksaan 17 September 2026; sebelumnya `e89907c5`. SHA desain revisi 6 tetap `300922c` |
+| Frontend source SHA | `eee3f254d` (branch `RizkiV2`) — tempat pemeriksaan 17 September 2026; sudah memuat R3.9 (`FE-IGD-031`, `FE-IGD-032`). Sebelumnya `43adae648`. SHA desain revisi 6 tetap `96a91201` |
 
 Dokumen ini ringkasan keadaan. Sumber kebenaran status per task tetap
 [roadmap/backend-roadmap.md](roadmap/backend-roadmap.md) dan
@@ -27,8 +27,8 @@ Dokumen ini ringkasan keadaan. Sumber kebenaran status per task tetap
 | `MVP-1` | Pendaftaran & encounter `Emergency` (`BE-IGD-023`, `024`) | `DONE` ✅ | — |
 | `MVP-2` | Satu pasien satu episode (`BE-IGD-025`) | `DONE` ✅ | — |
 | `MVP-3` | Pengkajian IGD tanpa antrean (`BE-IGD-026`…`030`) | `IN_PROGRESS` 🟡 | `BE-IGD-026`: uji langkah mundur migration belum |
-| `MVP-4` | Kepergian pasien (`BE-IGD-031`…`034`) | `IN_PROGRESS` 🟡 | `BE-IGD-031`: uji `RENAME` balik belum |
-| `MVP-5` | Riwayat dokter & serah terima (`BE-IGD-035`; `EPIC IGD-04`) | `IN_PROGRESS` 🟡 | `BE-IGD-035` kriteria 2 (direncanakan `BE-IGD-041`); `EPIC IGD-04` direncanakan `BE-IGD-044`, `BE-IGD-045`, `FE-IGD-027` — belum dikerjakan |
+| `MVP-4` | Kepergian pasien (`BE-IGD-031`…`034`) | `IN_PROGRESS` 🟡 | `BE-IGD-031`: uji `RENAME` balik belum. **Ditambahkan 17 September 2026:** runtime `arrive` dan `accept-handover` tertahan `BE-IGD-039` |
+| `MVP-5` | Riwayat dokter & serah terima (`BE-IGD-035`; `EPIC IGD-04`) | `IN_PROGRESS` 🟡 | `BE-IGD-035` kriteria 2 (dikerjakan `BE-IGD-041`); `EPIC IGD-04` direncanakan `BE-IGD-044`, `BE-IGD-045`, `FE-IGD-027` — belum dikerjakan. **Ditambahkan 17 September 2026:** runtime sikap pesanan tertahan `BE-IGD-039` |
 | R3.7 | Migration, master data pindah modul, kolom respons (`BE-IGD-036`…`038`) | `DONE` ✅ | — |
 | `MVP-6` | Kewenangan unit (`BE-IGD-039`) | `BLOCKED` ⛔ | Security/Privacy owner; pemetaan unit 0 dari 18 |
 
@@ -45,9 +45,9 @@ Dokumen ini ringkasan keadaan. Sumber kebenaran status per task tetap
 
 | Blocker ID | Summary | Owner | Affected phase | Independent continuation |
 | --- | --- | --- | --- | --- |
-| `BE-IGD-039` | Kewenangan unit membandingkan `DepartmentId` dengan `OrganizationUnitId` — tidak pernah benar | Security/Privacy owner (belum ditunjuk) | `MVP-6`; route tulis `order-items`, `arrive`, `accept-handover` | Ya — seluruh gelombang lain dan layar resusitasi tidak tertahan |
-| `IGD-DEC-092` (sementara) | Fail-closed + jalan keluar beralasan; jalan keluarnya belum ada di kode | Security/Privacy owner | `MVP-6` | Ya |
-| Pemetaan unit | `MstServiceUnit.OrganizationUnitId` 0 dari 18 unit terisi | Master Data (belum ditunjuk) | `MVP-6` | Ya |
+| `BE-IGD-039` | Kewenangan unit membandingkan `DepartmentId` dengan `OrganizationUnitId` — tidak pernah benar | Security/Privacy owner (belum ditunjuk) | **Lintas gelombang — dinaikkan 17 September 2026.** `MVP-6` **dan** runtime `MVP-4`/`MVP-5`: route tulis `arrive`, `accept-handover`, `order-items` menolak **semua** pengguna hari ini | Implementasi gelombang lain ya; **pembuktian lewat layar `MVP-4`/`MVP-5` tidak** — lihat *Kewenangan unit memblokir lintas gelombang* di bawah |
+| `IGD-DEC-092` (sementara) | Fail-closed + jalan keluar beralasan; **jalan keluarnya tidak ada di kode — diverifikasi ulang 17 September 2026**: flag `MembutuhkanAlasan` diproduksi tetapi tidak pernah dibaca satu pun pemanggil | Security/Privacy owner | `MVP-6`; runtime `MVP-4`/`MVP-5` | Tidak untuk pembuktian layar kepergian dan serah terima |
+| Pemetaan unit | `MstServiceUnit.OrganizationUnitId` 0 dari 18 unit terisi | Master Data (belum ditunjuk) | `MVP-6`; runtime `MVP-4`/`MVP-5` | Tidak — gerbang fail-closed menyala lebih dulu, sebelum cacat perbandingan identitas sempat tercapai |
 | `ActAsRadiologist` | Hasil bacaan radiologi belum dapat dirilis siapa pun (`FE-RAD-11`) | Yoga Aji Pratama — pemilik Radiologi | Penyambungan pemesanan radiologi IGD (`IGD-DEC-111`) | Ya — perbaikan teks layar tidak menunggu |
 | `IGD-DEC-100`…`102` | Sikap pesanan, pesanan lab manual, penerimaan per pesanan masih `draft` | Clinical Governance, Nursing authority, pemilik Laboratorium | Butir 10 DoD `EPIC IGD-07` | Ya |
 | `IGD-OQ-083` | Tempat menyimpan alasan pembatalan observasi | Product/Domain Owner IGD | Bagian `Cancelled` dari `IGD-DEC-115` | Ya — bagian `Completed` tidak tertahan |
@@ -58,6 +58,58 @@ Dokumen ini ringkasan keadaan. Sumber kebenaran status per task tetap
 | Bentuk terstruktur alat jalan napas | `IGD-OQ-089` — OPA, NPA, ETT, LMA, stoma, bantuan napas bertekanan belum punya pemilik dan entity | Clinical Governance + Product/Domain Owner IGD | Pelaporan alat jalan napas | Ya — `BE-IGD-046` dan `FE-IGD-028` tidak tertahan |
 | Entri susulan setelah periode observasi ditutup | `IGD-OQ-090` — jalur addendum belum dirancang; dilarang menumpang `BE-IGD-046` | Product/Domain Owner IGD + Nursing authority | Dokumentasi susulan observasi | Ya |
 | ~~Penyelarasan teks kontrak~~ | ~~API §3, validation §1 aturan 2 dan §6 aturan 4, kamus data §4 belum mengikuti `IGD-DEC-116`…`120`~~ — **ditutup 15 September 2026**: API dan validation naik ke `0.5.0`, nama `EmgDoctorAssignment` diselaraskan, hash dihitung ulang (manifest bagian 0c) | — | R3.8, `MVP-5` | — |
+
+## Kewenangan unit memblokir lintas gelombang — dinaikkan 17 September 2026
+
+Dicatat saat review modul atas permintaan pemilik. **Nol source diubah, nol keputusan baru.**
+Yang berubah hanya klasifikasi dampak `BE-IGD-039`: sebelumnya ditulis hanya menahan `MVP-6`.
+
+### Apa yang dibaca di source
+
+`EmergencyUnitAuthorityService.PeriksaAsync` punya dua lapis. Lapis pertama adalah gerbang
+fail-closed `IGD-DEC-092` untuk unit yang belum dipetakan; lapis kedua barulah perbandingan
+`ApplicationUserOrganization.DepartmentId` dengan `MstServiceUnit.OrganizationUnitId` yang
+memang salah domain identitas.
+
+Karena `MstServiceUnit.OrganizationUnitId` terisi **0 dari 18**, setiap panggilan berhenti di
+lapis pertama dan **lapis kedua tidak pernah tercapai**. Artinya cacat perbandingan identitas
+belum pernah benar-benar dieksekusi — memperbaikinya saja tidak membuka apa pun selama
+pemetaan unit masih kosong. Keduanya harus selesai bersamaan.
+
+### Jalan keluar beralasan `IGD-DEC-092` tidak ada pemakainya
+
+Lapis pertama mengembalikan `Hasil(Berwenang: false, MembutuhkanAlasan: true, …)`. Flag
+`MembutuhkanAlasan` itulah jalan keluar beralasan yang dijanjikan `IGD-DEC-092`.
+
+**Tidak satu pun pemanggil membacanya.** Keempat titik panggil pada
+`EmergencyDepartureService` — `arrive`, `accept-handover`, sikap pesanan, dan pemeriksaan unit
+asal — hanya memeriksa `!authority.Berwenang` lalu mengembalikan `403`. Tidak ada jalur yang
+menawarkan pengisian alasan, dan tidak ada tempat alasan itu disimpan.
+
+### Akibat yang perlu dibaca pemilik
+
+| Yang tertahan | Requirement | Sebelumnya ditulis |
+| --- | --- | --- |
+| `arrive` — kedatangan memindahkan pemilik klinis | `FR-IGD-023`, `024`, `025`, `027` | `MVP-4` 🟡 "uji `RENAME` balik belum" |
+| `accept-handover` — peninjauan dokumen serah terima | `EPIC IGD-05` | sama |
+| Sikap pesanan pada penutupan kunjungan | `FR-IGD-045`, `047`…`051` | `MVP-5` 🟡 |
+| Seluruh `EPIC IGD-08` | `FR-IGD-053`…`059` | `MVP-6` ⛔ — **ini yang sudah benar** |
+
+`MVP-4` dan `MVP-5` **tetap** 🟡, bukan ⛔: implementasinya ada dan boleh dilanjutkan. Yang
+tidak dapat dilakukan adalah **membuktikannya lewat layar** sampai pemetaan unit terisi dan
+jalan keluar beralasan dibangun. Karena itu keduanya tidak akan pernah mencapai ✅ lewat jalur
+uji layar selama blocker ini terbuka.
+
+### Yang diminta dari luar tim IGD
+
+Satu permintaan, dua penerima, dan keduanya harus turun bersamaan:
+
+1. **Penunjukan Security/Privacy owner** — untuk mengesahkan bentuk jalan keluar beralasan
+   (siapa boleh memakainya, apa yang disimpan, bagaimana diaudit).
+2. **Master Data mengisi `MstServiceUnit.OrganizationUnitId`** untuk 18 unit.
+
+Tanpa keduanya, `BE-IGD-039` tidak dapat diselesaikan, dan `MVP-4`, `MVP-5`, serta `MVP-6`
+sama-sama berhenti di pembuktian.
 
 ## Stale evidence
 
@@ -117,8 +169,13 @@ Seluruh task di bawah **sudah punya kartu roadmap**. Urutan yang tidak menunggu 
    `FE-IGD-017` (pelaku kepergian tampil sebagai UUID) dan `FE-IGD-014` kriteria 2 — keduanya
    `IGD-EV-123`. Dikerjakan setelah `EPIC IGD-04`, bukan sebelum.
 
-Sudah selesai implementasinya dan tinggal menunggu build serta uji lewat layar: `FE-IGD-023`,
-`BE-IGD-040`, dan `FE-IGD-024`.
+**Diperbarui 17 September 2026.** `npm run build` frontend sudah dijalankan dan **lulus bersih**
+([evidence](evidence/2026-09-17-verifikasi-build-dan-perkakas.md)), jadi penahan build pada
+`FE-IGD-023`, `FE-IGD-024`, `FE-IGD-031`, dan `FE-IGD-032` **lunas**. Keempatnya kini menyisakan
+**uji lewat layar** saja — ditambah penilaian pemilik atas dua delta `FE-IGD-032` bagian 8.
+
+Yang masih menunggu **build backend milik Rizki**, lalu uji API: `BE-IGD-040` dan `BE-IGD-041`.
+Perintahnya `dotnet build -p:RunAnalyzers=false` di dalam `NewQuilvianSystemBackend`.
 
 Yang **menunggu owner**: `BE-IGD-042` — jumlah `EmgVisit` aktif dengan `EncounterType.Outpatient`
 dari kueri yang dijalankan Rizki sendiri.
@@ -187,8 +244,8 @@ lingkup `EPIC IGD-04`**. Keduanya milik formulir tanda vital bersama, bukan modu
 
 | Lapisan | Rumus | Hasil |
 | --- | --- | --- |
-| Backend | task ✅ / seluruh task roadmap | **18 / 29 = 62%** (per 15 September 2026, sesudah perencanaan). Tidak dikecualikan: `BE-IGD-039` dan `BE-IGD-042` (⛔) tetap dihitung di penyebut |
-| Frontend | task ✅ / seluruh task roadmap | **6 / 17 = 35%**. `FE-IGD-019` kini dihitung |
+| Backend | task ✅ / seluruh task roadmap | **20 / 30 = 67%** (dihitung ulang 17 September 2026 dari *Register status task* `backend-roadmap.md`). Tidak dikecualikan: `BE-IGD-039` dan `BE-IGD-042` (⛔) tetap dihitung di penyebut. *Sebelumnya tertulis 18 / 29 = 62% — usang sejak `BE-IGD-040` dan `BE-IGD-046` ✅ dan `BE-IGD-046` masuk register* |
+| Frontend | task ✅ / seluruh task roadmap | **10 / 22 = 45%** (dihitung ulang 17 September 2026). ✅: `FE-IGD-015`, `016`, `018`, `019`, `020`, `021`, `023`, `024`, `028`, `030`. *Sebelumnya tertulis 6 / 17 = 35% — usang sejak `FE-IGD-023`, `024`, `028`, `030` ✅ dan `FE-IGD-029`…`032` masuk register* |
 
 Persentase turun dari 78%/45% bukan karena ada yang mundur, melainkan karena penyebutnya
 bertambah task baru. Tiga area R3.5 (penunjang medis, pemakaian alat, billing IGD) **tidak**

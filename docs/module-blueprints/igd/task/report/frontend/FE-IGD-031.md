@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `36f122af9` (branch `RizkiV2`) + working tree |
 | Commit backend yang dijadikan rujukan | `8544af1c` (branch `rizkiG`), strict read-only |
 | Tanggal | 16 September 2026 |
-| Status | 🟡 **SEBAGIAN — 16 September 2026.** Ketiga belas acceptance criteria **terpetakan ke source**. `npm run lint:errors` **PASS**; `node --import ./tests/helpers/register.mjs --test tests/unit` **866/866 lulus** (859 lama + 7 baru). **`npm run build` belum dijalankan** — perintahnya diserahkan kepada Rizki, lihat bagian 6.3. **Uji lewat layar belum dijalankan.** Bukan UAT |
+| Status | 🟡 **SEBAGIAN — 16 September 2026.** Ketiga belas acceptance criteria **terpetakan ke source**. `npm run lint:errors` **PASS**; `node --import ./tests/helpers/register.mjs --test tests/unit` **866/866 lulus** (859 lama + 7 baru). **`npm run build` LULUS 17 September 2026** (exit 0, 0 error, 0 warning). **Uji lewat layar belum dijalankan** — itu satu-satunya sisa penahan ✅. Bukan UAT |
 
 ---
 
@@ -163,7 +163,7 @@ penambahan ruas baru ketahuan.
 
 | Butir | Keadaan |
 | --- | --- |
-| `npm run build` | **Belum.** Perintah untuk Rizki: `npm run build` di dalam `QuilvianSystemFrontendDev` |
+| `npm run build` | ✅ **LULUS 17 September 2026** — `npm run build` exit 0, **0 error, 0 warning**, postbuild standalone siap; keempat route IGD terkompilasi |
 | Uji lewat layar | **Belum.** `NOT FEASIBLE` bagi agent — menuntut kredensial petugas dan backend berjalan |
 | UAT | **Belum**, dan bukan milik pekerjaan ini |
 
@@ -192,7 +192,7 @@ penambahan ruas baru ketahuan.
 | Acceptance criteria terpetakan ke source | ✅ |
 | `npm run lint:errors` dijalankan | ✅ PASS |
 | Unit test dijalankan | ✅ 866/866 |
-| `npm run build` | 🟡 **belum** — diserahkan kepada Rizki |
+| `npm run build` | ✅ **lulus 17 September 2026** — 0 error, 0 warning |
 | Uji lewat layar | 🟡 **belum** |
 | Laporan tracked | ✅ berkas ini |
 | Roadmap dan traceability diperbarui | ✅ |

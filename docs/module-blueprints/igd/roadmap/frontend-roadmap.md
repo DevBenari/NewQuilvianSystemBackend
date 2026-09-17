@@ -132,16 +132,16 @@ flowchart LR
 | `FE-IGD-021` | Kolom Kesimpulan observasi | ✅ | [fe-igd-020-021](../task/report/frontend/fe-igd-020-021-route-master-igd-dan-kolom-kesimpulan.md) |
 | `FE-IGD-022` | Layar asuhan keperawatan IGD | 🟡 uji layar belum; tab lab cacat; teks radiologi usang — *tab lab dan teks radiologi ditangani `FE-IGD-023` ✅ 15 September 2026; uji layar `FE-IGD-022` tetap belum* | [fe-igd-022](../task/report/frontend/fe-igd-022-asuhan-keperawatan-pengkajian-observasi-penunjang.md) |
 | `FE-IGD-019` | Assesmen Awal IGD memakai formulir bersama | ✅ — kartu susulan 15 September 2026 | [fe-igd-012-018](../task/report/frontend/fe-igd-012-018-penyelesaian-antarmuka.md) |
-| `FE-IGD-023` | Tab Penunjang Medis membaca pesanan milik pasien | ✅ 15 September 2026 — implementasi; runtime belum diverifikasi | [FE-IGD-023](../task/report/frontend/FE-IGD-023.md) |
-| `FE-IGD-024` | Isian Kesimpulan saat menyelesaikan observasi | ✅ 15 September 2026 — implementasi; build dan runtime belum diverifikasi | [FE-IGD-024](../task/report/frontend/FE-IGD-024.md) |
+| `FE-IGD-023` | Tab Penunjang Medis membaca pesanan milik pasien | ✅ 15 September 2026 — implementasi. **Ditambahkan 17 September 2026:** `npm run build` lulus, 0 error 0 warning; uji layar belum | [FE-IGD-023](../task/report/frontend/FE-IGD-023.md) |
+| `FE-IGD-024` | Isian Kesimpulan saat menyelesaikan observasi | ✅ 15 September 2026 — implementasi. **Ditambahkan 17 September 2026:** `npm run build` lulus, 0 error 0 warning; uji layar belum — dan runtime `BE-IGD-040` juga belum | [FE-IGD-024](../task/report/frontend/FE-IGD-024.md) |
 | `FE-IGD-025` | Laporan susulan perombakan layar pengkajian dan temuan privasi | tanpa tanda — direncanakan | — |
 | `FE-IGD-026` | Laporan susulan layar pendaftaran IGD | tanpa tanda — direncanakan | — |
 | `FE-IGD-027` | Layar triase memakai riwayat penugasan dokter | tanpa tanda — direncanakan, menunggu `BE-IGD-045` | — |
 | `FE-IGD-028` | Pemantauan observasi dengan tanda vital tertaut | ✅ 16 September 2026 — lint, 857 unit test, dan `npm run build` lulus; **runtime terverifikasi sebagian lewat layar** (jalur pilih-existing dan ABCDE terisi belum dilalui) | [FE-IGD-028](../task/report/frontend/FE-IGD-028.md) |
 | `FE-IGD-029` | Pendaftaran IGD menutup dengan status Menunggu Triage | 🟡 16 September 2026 — kriteria 1 terbukti lewat layar (pasien baru langsung "Menunggu Triage"); kriteria 2 menunggu satu klik **Isi Triage** pada pasien baru itu | [FE-IGD-029](../task/report/frontend/FE-IGD-029.md) |
 | `FE-IGD-030` | Aksi Tangani Segera pada daftar triage | ✅ 16 September 2026 — kedelapan kriteria terbukti lewat layar; lint, 859 unit test, dan `npm run build` lulus; tanpa UAT | [FE-IGD-030](../task/report/frontend/FE-IGD-030.md) |
-| `FE-IGD-031` | Segmen Formulir dan Riwayat pada tab pemeriksaan | 🟡 16 September 2026 — 13 kriteria terpetakan ke source; lint dan 866 unit test lulus; `npm run build` dan uji layar belum | [FE-IGD-031](../task/report/frontend/FE-IGD-031.md) |
-| `FE-IGD-032` | Tata letak tab Observasi dan lembar pemantauan | 🟡 16 September 2026 — 14 kriteria terpetakan ke source dengan **dua delta** (kriteria 3 dan 4); lint dan 866 unit test lulus; `npm run build` dan uji layar belum | [FE-IGD-032](../task/report/frontend/FE-IGD-032.md) |
+| `FE-IGD-031` | Segmen Formulir dan Riwayat pada tab pemeriksaan | 🟡 16 September 2026 — 13 kriteria terpetakan ke source; lint dan 866 unit test lulus. **Diperbarui 17 September 2026:** `npm run build` **lulus** (0 error, 0 warning); sisa penahan ✅ tinggal **uji layar** | [FE-IGD-031](../task/report/frontend/FE-IGD-031.md) |
+| `FE-IGD-032` | Tata letak tab Observasi dan lembar pemantauan | 🟡 16 September 2026 — 14 kriteria terpetakan ke source dengan **dua delta** (kriteria 3 dan 4); lint dan 866 unit test lulus. **Diperbarui 17 September 2026:** `npm run build` **lulus** (0 error, 0 warning); sisa penahan ✅ tinggal **uji layar** + penilaian pemilik atas dua delta | [FE-IGD-032](../task/report/frontend/FE-IGD-032.md) |
 
 `FE-IGD-019` sebelumnya belum punya kartu. Kartunya ditambahkan 15 September 2026 pada bagian
 R3.5, tepat sebelum `FE-IGD-022`.
@@ -520,15 +520,25 @@ punya data menunjukkan **nol kolom hilang**.
 tampil sebagai galat, hanya kosong. Membaca kode layar saja tidak cukup, membaca DTO saja juga
 tidak — keduanya terlihat wajar sendiri-sendiri.
 
-### Peringatan perkakas: `npm test` dapat lulus tanpa menjalankan test
+### ~~Peringatan perkakas: `npm test` dapat lulus tanpa menjalankan test~~ — DIPERBAIKI 17 September 2026
 
 `npm test` memakai `node --test "tests/unit/**/*.test.mjs"`. Node **v20** belum mendukung glob
-pada `--test` — dukungan itu masuk pada Node 21 — sehingga perintahnya gagal menemukan berkas,
-**nol test berjalan**, tetapi exit code-nya tetap `0`.
+pada `--test` — dukungan itu masuk pada Node 21 — sehingga perintahnya gagal menemukan berkas
+dan **nol test berjalan**.
 
-Sampai `package.json` atau versi Node-nya diperbaiki, jalankan
-`node --import ./tests/helpers/register.mjs --test tests/unit` supaya angkanya benar-benar
-berarti. Per 27 Agt: **119 lulus, 0 gagal**.
+**Dua koreksi, 17 September 2026.**
+
+1. **Exit code-nya bukan `0`, melainkan `1`.** Klaim lama ditulis dari pembacaan yang salah:
+   keluaran `npm test` dipipa ke `tail`, sehingga yang terbaca exit code `tail`, bukan `npm`.
+   Diukur ulang pada Node `v20.20.2`: `npm run test:unit` gagal dengan exit `1`. Jadi ini
+   **bukan** hijau palsu — CI akan merah, bukan lolos diam-diam. Bahayanya jauh lebih kecil
+   daripada yang tertulis sebelumnya.
+2. **Sudah diperbaiki.** `package.json` skrip `test:unit` kini memakai
+   `node --import ./tests/helpers/register.mjs --test tests/unit` — direktori, bukan glob, jadi
+   benar pada Node 20 maupun 21. Diverifikasi 17 September 2026: `npm test` → **866 lulus,
+   0 gagal, exit 0**.
+
+Per 27 Agt (historis, lewat perintah manual): **119 lulus, 0 gagal**.
 
 ---
 
