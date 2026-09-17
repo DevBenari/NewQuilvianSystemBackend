@@ -17,7 +17,7 @@
 | Model | Claude Opus 5 |
 | Commit backend saat dikerjakan | `23a31501` (branch `MHamzah`) |
 | Tanggal | 16 September 2026 |
-| Status | ✅ Selesai berdasarkan validasi statis source; `dotnet build` **NOT RUN** atas instruksi eksplisit pemilik |
+| Status | ✅ Selesai; validasi statis source. **`dotnet build` PASS 17 September 2026** (bagian 8); uji runtime `NOT RUN` |
 
 ## Backend Governance Preflight
 
@@ -105,7 +105,7 @@ tunggunya. Selain itu **`PatientProcedureOrderService` hasil `BE-RWI-097` tidak 
 | Review source kriteria 1–5 | Seluruhnya terpetakan | `PASS` | Bagian 6 |
 | Pemeriksaan statis ambiguitas tipe dan `using` hilang | Nol temuan pada kode task | `PASS` | Skrip analisis statis sesi ini |
 | Verifikasi anggota tipe yang dipakai (`MstProcedure`, `InsuranceCoverageResult`, `PatientProcedureResponse`, `InpEpisode`) | Seluruh properti ada | `PASS` | Pembacaan model/DTO |
-| `dotnet build` | Tidak dijalankan | `NOT RUN` | Instruksi eksplisit pemilik |
+| `dotnet build` (perintah ringan pemilik: `-m:1`, tanpa shared compilation, tanpa analyzer) | Build ke-5 pada 17 September 2026: **0 error, 212 warning** | `PASS` | Bagian 8 |
 | Verifikasi kontrak API dan proses bisnis runtime | Tidak dijalankan | `NOT RUN` | Menunggu build |
 
 **AUTOMATED TEST: NOT APPLICABLE** — backend tidak memelihara project test otomatis (`rules/backend/TEST_POLICY.md`).
@@ -119,7 +119,7 @@ tunggunya. Selain itu **`PatientProcedureOrderService` hasil `BE-RWI-097` tidak 
 | 3. `NotRequired` → `Pending` → `Verified` | Terpenuhi (statis) | `CreateInpatientOrderAsync` menulis `NotRequired`/`Pending`; verifikasi hanya dari `Pending` |
 | 4. Pelaksana menjadi penulis catatan pelaksanaan; addendum hanya oleh pelaksana | Terpenuhi (statis) | `ExecuteProcedure`: `PerformedByUserId` = akun login dan penanda tangan `RegisterSignedAsync`; `ClinicalNoteAddendumService` mengenali `AuthorUserId`; penjaga `EnsureInpatientExecutorAsync` |
 | 5. Dokter lain menerima `403` | Terpenuhi (statis) | Cabang `Forbidden` VAL-DOK-50 |
-| `dotnet build` | Belum diverifikasi runtime | `NOT RUN` atas instruksi pemilik |
+| `dotnet build` | Terpenuhi | `PASS` 17 September 2026 — bagian 8 |
 
 ## 7. Catatan penutup
 
@@ -131,4 +131,24 @@ tunggunya. Selain itu **`PatientProcedureOrderService` hasil `BE-RWI-097` tidak 
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
 | Status Git | Berkas task ini berstatus `M` (3 berkas) |
-| Langkah berikutnya | `dotnet build`; beri hak `PatientProcedure : Verify` kepada peran dokter di layar Akses Role; uji dengan akun non-SuperAdmin |
+| Langkah berikutnya | Beri hak `PatientProcedure : Verify` kepada peran dokter di layar Akses Role; uji dengan akun non-SuperAdmin |
+
+## 8. Verifikasi susulan — 17 September 2026
+
+Atas permintaan pemilik, build dan migration dijalankan setelah laporan ini ditulis. Perintah build
+yang dipakai persis perintah pemilik:
+`dotnet build .\QuilvianSystemBackend.csproj --configuration Debug -m:1 -p:BuildInParallel=false -p:UseSharedCompilation=false -p:RunAnalyzers=false`.
+
+| Langkah | Hasil | Tindakan |
+| --- | --- | --- |
+| Build ke-1 | Gagal dalam 12 detik — `CS1002` pada `ApplicationDbContextModelSnapshot.cs`: relasi `ConsultationId` milik `TrxPatientProcedure` kehilangan `;` (sisa suntingan `BE-RWI-097`) | `;` ditambahkan |
+| Build ke-2 | Pemeriksaan tipe penuh: **1 error** — `CS1931` pada `CpptVerificationService.cs`: variabel query `episode` bentrok dengan variabel lokal `episode` (kode `BE-RWI-096`) | Variabel query diganti nama `episodeBerjalan`, logika tidak berubah |
+| Build ke-3 | 0 error. `dotnet ef` menolak model: FK `SupersedesDecisionId` (merujuk tabelnya sendiri) dan FK `ReconciliationItemId` pada `PhmMedicationReconciliationDecision` bernama sama setelah dipotong 63 karakter — EF Core tidak memberi akhiran unik pada FK yang merujuk tabelnya sendiri. **Galat ini juga akan membuat aplikasi gagal saat `DbContext` pertama dipakai** | Nama constraint eksplisit `FK_PhmMedicationReconciliationDecision_SupersedesDecisionId` pada configuration, migration R5, dan snapshot |
+| Build ke-4 | 0 error. Snapshot gagal dibaca EF: lima navigasi koleksi (`Decisions`, `Versions`, `Ranges`) ditulis di blok relasi, sebelum relasinya dideklarasikan | Dipindahkan ke bagian navigasi snapshot; diperiksa tanpa build dengan simulasi urutan navigasi (0 galat), perbandingan DDL snapshot vs model runtime di 632 tabel, dan SQL migration vs model runtime (0 temuan) |
+| Build ke-5 | **0 error, 212 warning** (garis dasar 211) | — |
+| `dotnet ef migrations has-pending-model-changes --no-build` | "No changes have been made to the model since the last migration." | — |
+| `dotnet ef database update --no-build` ke `QuilvianNewDevHamzah` | `Done.` Delapan migration diterapkan: `20260916000000` s.d. `20260916007000` (termasuk R3, R7 milik task sebelumnya, lalu R4, R5, R6, R8) | `migrations list` sesudahnya: nol `Pending` |
+
+**Yang masih `NOT RUN`:** uji kontrak API dan proses bisnis runtime, uji jalur mundur migration
+(`Down`), serta regresi yang disyaratkan kartu roadmap. Database yang disentuh hanya
+`QuilvianNewDevHamzah` milik pemilik; database tim, staging, dan production tidak disentuh.

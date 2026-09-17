@@ -86,3 +86,12 @@ Akun yang tidak tertaut ke data dokter menerima `403`, bukan daftar kosong yang 
 
 Task ditandai selesai tanpa build sesuai instruksi pemilik. Verifikasi runtime dan Swagger aktual
 tetap menunggu build mandiri pemilik. Tidak ada operasi database, Git, atau deployment.
+
+## Catatan susulan — 17 September 2026
+
+Build pemilik (perintah ringan `-m:1`) menemukan **`CS1931`** pada
+`Areas/HealthServices/ClinicalManagement/Services/CpptVerificationService.cs`, method
+`GetVerificationWorklistAsync`: variabel query LINQ `episode` bentrok dengan variabel lokal `episode`
+yang dideklarasikan kemudian di method yang sama. Diperbaiki dengan mengganti nama variabel query
+menjadi `episodeBerjalan`; perilaku daftar tunggu tidak berubah. Build sesudahnya **0 error**. Uji
+kontrak/runtime tetap `NOT RUN`. Rincian: laporan `BE-RWI-091` s.d. `BE-RWI-105` bagian 8.

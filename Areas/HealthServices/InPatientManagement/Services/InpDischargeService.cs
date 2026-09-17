@@ -4,6 +4,7 @@ using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services;
 using QuilvianSystemBackend.Repositories;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services
@@ -40,6 +41,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         private readonly InpBedOccupancyService _bedOccupancyService;
         private readonly ClinicalDocumentIntegrityService _clinicalDocumentIntegrityService;
         private readonly PatientProcedureOrderService _patientProcedureOrderService;
+        private readonly MedicationAdministrationService _medicationAdministrationService;
 
         /// <remarks>
         /// <b>Kenapa service ini boleh memakai <see cref="InpBedOccupancyService"/>.</b>
@@ -70,19 +72,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// Pemanggilannya lewat service pemilik; keduanya memakai <c>ApplicationDbContext</c>
         /// yang sama sehingga ikut satu transaksi penutupan.
         /// </para>
+        ///
+        /// <para>
+        /// <b>Kenapa service ini boleh memakai <c>MedicationAdministrationService</c>.</b>
+        /// Langkah 6 penutupan episode membatalkan dosis MAR <c>Due</c> yang jadwalnya sesudah
+        /// waktu tutup — <c>INT-KEP-15</c>, <c>BE-RWI-118</c> sisi keperawatan dari
+        /// <c>BE-RWI-087</c>. Pemanggilannya lewat service pemilik <c>PharmacyManagement</c>;
+        /// metode itu tidak membuka transaksi dan tidak menyimpan, sehingga ikut transaksi ini.
+        /// </para>
         /// </remarks>
         public InpDischargeService(
             ApplicationDbContext dbContext,
             InpEpisodeService episodeService,
             InpBedOccupancyService bedOccupancyService,
             ClinicalDocumentIntegrityService clinicalDocumentIntegrityService,
-            PatientProcedureOrderService patientProcedureOrderService)
+            PatientProcedureOrderService patientProcedureOrderService,
+            MedicationAdministrationService medicationAdministrationService)
         {
             _dbContext = dbContext;
             _episodeService = episodeService;
             _bedOccupancyService = bedOccupancyService;
             _clinicalDocumentIntegrityService = clinicalDocumentIntegrityService;
             _patientProcedureOrderService = patientProcedureOrderService;
+            _medicationAdministrationService = medicationAdministrationService;
         }
 
         // =====================================================================

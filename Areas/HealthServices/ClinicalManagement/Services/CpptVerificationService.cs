@@ -512,8 +512,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             // memori: penugasan konsulen dan dokter jaga tidak memberi kewenangan verifikasi.
             var perawatanBerjalan = await (
                     from assignment in _dbContext.Set<InpDoctorAssignment>().AsNoTracking()
-                    join episode in _dbContext.Set<InpEpisode>().AsNoTracking()
-                        on assignment.EpisodeId equals episode.Id
+                    join episodeBerjalan in _dbContext.Set<InpEpisode>().AsNoTracking()
+                        on assignment.EpisodeId equals episodeBerjalan.Id
                     where assignment.DoctorId == actorDoctorId &&
                           assignment.AssignmentRole == InpDoctorAssignmentRole.Dpjp &&
                           !assignment.IsDelete &&
@@ -521,9 +521,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                           assignment.IsActive &&
                           assignment.StartDateTime <= nowUtc &&
                           (assignment.EndDateTime == null || assignment.EndDateTime > nowUtc) &&
-                          !episode.IsDelete &&
-                          (episode.EpisodeStatus == InpEpisodeStatus.Admitted ||
-                           episode.EpisodeStatus == InpEpisodeStatus.DischargePending)
+                          !episodeBerjalan.IsDelete &&
+                          (episodeBerjalan.EpisodeStatus == InpEpisodeStatus.Admitted ||
+                           episodeBerjalan.EpisodeStatus == InpEpisodeStatus.DischargePending)
                     select assignment.EpisodeId)
                 .Distinct()
                 .ToListAsync(cancellationToken);

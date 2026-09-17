@@ -17,7 +17,7 @@
 | Model | Claude Opus 5 |
 | Commit backend saat dikerjakan | `23a31501` (branch `MHamzah`) |
 | Tanggal | 16 September 2026 |
-| Status | ✅ Selesai berdasarkan validasi statis source dan skema; `dotnet build` dan eksekusi migration **NOT RUN** atas instruksi pemilik |
+| Status | ✅ Selesai; validasi statis source dan skema. **`dotnet build` PASS dan migration R4 diterapkan ke `QuilvianNewDevHamzah` 17 September 2026** (bagian 8); uji runtime `NOT RUN` |
 
 ## Backend Governance Preflight
 
@@ -28,7 +28,7 @@
 | Keberlakuan | `NEW CODE` (enum, service); `TOUCHED LEGACY` (`PrescriptionController` masih memakai `ApplicationDbContext` langsung) |
 | QBE relevan | `QBE-SVC-001`, `QBE-API-001`, `QBE-DTO-001`, `QBE-ENUM-001`, `QBE-CFG-002`, `QBE-PAGE-001` |
 | Persetujuan pemilik tabel | Muhammad Hamzah selaku pemilik `PharmacyManagement` (`RWI-DEC-062`, `RWI-DEC-150`) |
-| Database | Migration `20260916004000_AddPrescriptionItemStopAndDoseKind` dibuat, **tidak dijalankan** |
+| Database | Migration `20260916004000_AddPrescriptionItemStopAndDoseKind` dibuat; **diterapkan ke `QuilvianNewDevHamzah` 17 September 2026** |
 
 ## 1. Masalah yang diperbaiki
 
@@ -82,7 +82,7 @@ tempat mencatat penghentian maupun jenis dosis.
 | Aspek | Dampak |
 | --- | --- |
 | Kontrak API | `GET /prescriptions/episodes/{episodeId}`: query baru `period`, `from`, `to`; response menjadi `PagedResult<InpatientPrescriptionListItem>` yang memuat seluruh field lama plus `Items` dan `Compounds` (tambahan murni) |
-| Database | R4: lima kolom nullable/berbawaan pada `PhmPrescriptionItem`; migration dibuat, **tidak dijalankan** |
+| Database | R4: lima kolom nullable/berbawaan pada `PhmPrescriptionItem`; migration dibuat; **diterapkan ke `QuilvianNewDevHamzah` 17 September 2026** |
 | Keamanan/Auth | Nol hak akses baru; tetap `Prescription : Read` |
 
 ## 4. Dokumentasi endpoint
@@ -100,8 +100,8 @@ tempat mencatat penghentian maupun jenis dosis.
 | Kesesuaian kolom dengan kamus data 13.1 dan DDL 13.13 | Nama, tipe, nullability, bawaan, index sama | `PASS` | Model, configuration, migration, snapshot |
 | Snapshot hanya bertambah | `git diff --diff-algorithm=histogram` nol baris terhapus | `PASS` | Diff snapshot |
 | Pemeriksaan statis ambiguitas tipe dan `using` hilang | Nol temuan pada kode task | `PASS` | Skrip analisis statis sesi ini |
-| `dotnet build` | Tidak dijalankan | `NOT RUN` | Instruksi eksplisit pemilik |
-| Verifikasi skema pada Postgres sekali pakai | Tidak dijalankan | `NOT RUN` | Migration belum dieksekusi |
+| `dotnet build` (perintah ringan pemilik: `-m:1`, tanpa shared compilation, tanpa analyzer) | Build ke-5 pada 17 September 2026: **0 error, 212 warning** | `PASS` | Bagian 8 |
+| Migration diterapkan ke `QuilvianNewDevHamzah` (database dev pribadi pemilik) | Tercatat di `__EFMigrationsHistory`, nol `Pending`; model = snapshot (`has-pending-model-changes` bersih) | `PASS` | Bagian 8 |
 | Verifikasi kontrak API runtime | Tidak dijalankan | `NOT RUN` | Menunggu build |
 
 **AUTOMATED TEST: NOT APPLICABLE** — backend tidak memelihara project test otomatis (`rules/backend/TEST_POLICY.md`).
@@ -115,7 +115,7 @@ tempat mencatat penghentian maupun jenis dosis.
 | 3. Racikan dan obat pulang ikut tampil | Terpenuhi (statis) | `GetDailyPrescriptionsAsync` tanpa saring jenis kecuali diminta; `Compounds` beserta `Ingredients` |
 | 4. `period=Range` tanpa `from`/`to` ditolak `422` | Terpenuhi (statis) | Cabang `Range` pada `ResolvePeriod` |
 | 5. Migration mundur menghapus kolom selama belum berisi data pasien sungguhan | Terpenuhi (statis) | `Down` menghapus kelima kolom; ditolak bila ada jejak penghentian/dosis skala |
-| `dotnet build`, migration | Belum diverifikasi runtime | `NOT RUN` atas instruksi pemilik |
+| `dotnet build`, migration | Terpenuhi | `PASS` 17 September 2026 — build 0 error; migration diterapkan ke `QuilvianNewDevHamzah` — bagian 8 |
 
 ## 7. Catatan penutup
 
@@ -123,8 +123,28 @@ tempat mencatat penghentian maupun jenis dosis.
 | --- | --- |
 | Peringatan | Tiga sumber menyebut jalur berbeda: kartu roadmap `GET /prescriptions/daily?encounterId`, arsitektur `GET /episodes/{episodeId}/daily`, api-contract 12.6 `GET /episodes/{episodeId}` + `period`. Diimplementasikan mengikuti **api-contract 0.6.0** dan menerima kosakata periode kartu roadmap maupun kontrak. Kartu roadmap menyebut bawaan `Today`; bawaan dibiarkan "seluruh resep" demi kompatibilitas pemanggil lama — delta dicatat |
 | Masalah yang diketahui | Aksi penghentian butir (`PATCH /items/{itemId}/stop`) milik `BE-RWI-100`, tertahan `BE-RWI-114` [BE-KEP] |
-| Risiko tersisa | Kolom baru belum ada di basis data sampai migration dijalankan |
+| Risiko tersisa | Kolom baru sudah ada di `QuilvianNewDevHamzah`; database lingkungan lain belum dimigrasi |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
 | Status Git | Berkas baru `??` (enum, service, migration); berkas lain `M` |
-| Langkah berikutnya | `dotnet build`; jalankan migration R4 di Postgres sekali pakai; uji keempat periode |
+| Langkah berikutnya | Uji keempat periode |
+
+## 8. Verifikasi susulan — 17 September 2026
+
+Atas permintaan pemilik, build dan migration dijalankan setelah laporan ini ditulis. Perintah build
+yang dipakai persis perintah pemilik:
+`dotnet build .\QuilvianSystemBackend.csproj --configuration Debug -m:1 -p:BuildInParallel=false -p:UseSharedCompilation=false -p:RunAnalyzers=false`.
+
+| Langkah | Hasil | Tindakan |
+| --- | --- | --- |
+| Build ke-1 | Gagal dalam 12 detik — `CS1002` pada `ApplicationDbContextModelSnapshot.cs`: relasi `ConsultationId` milik `TrxPatientProcedure` kehilangan `;` (sisa suntingan `BE-RWI-097`) | `;` ditambahkan |
+| Build ke-2 | Pemeriksaan tipe penuh: **1 error** — `CS1931` pada `CpptVerificationService.cs`: variabel query `episode` bentrok dengan variabel lokal `episode` (kode `BE-RWI-096`) | Variabel query diganti nama `episodeBerjalan`, logika tidak berubah |
+| Build ke-3 | 0 error. `dotnet ef` menolak model: FK `SupersedesDecisionId` (merujuk tabelnya sendiri) dan FK `ReconciliationItemId` pada `PhmMedicationReconciliationDecision` bernama sama setelah dipotong 63 karakter — EF Core tidak memberi akhiran unik pada FK yang merujuk tabelnya sendiri. **Galat ini juga akan membuat aplikasi gagal saat `DbContext` pertama dipakai** | Nama constraint eksplisit `FK_PhmMedicationReconciliationDecision_SupersedesDecisionId` pada configuration, migration R5, dan snapshot |
+| Build ke-4 | 0 error. Snapshot gagal dibaca EF: lima navigasi koleksi (`Decisions`, `Versions`, `Ranges`) ditulis di blok relasi, sebelum relasinya dideklarasikan | Dipindahkan ke bagian navigasi snapshot; diperiksa tanpa build dengan simulasi urutan navigasi (0 galat), perbandingan DDL snapshot vs model runtime di 632 tabel, dan SQL migration vs model runtime (0 temuan) |
+| Build ke-5 | **0 error, 212 warning** (garis dasar 211) | — |
+| `dotnet ef migrations has-pending-model-changes --no-build` | "No changes have been made to the model since the last migration." | — |
+| `dotnet ef database update --no-build` ke `QuilvianNewDevHamzah` | `Done.` Delapan migration diterapkan: `20260916000000` s.d. `20260916007000` (termasuk R3, R7 milik task sebelumnya, lalu R4, R5, R6, R8) | `migrations list` sesudahnya: nol `Pending` |
+
+**Yang masih `NOT RUN`:** uji kontrak API dan proses bisnis runtime, uji jalur mundur migration
+(`Down`), serta regresi yang disyaratkan kartu roadmap. Database yang disentuh hanya
+`QuilvianNewDevHamzah` milik pemilik; database tim, staging, dan production tidak disentuh.

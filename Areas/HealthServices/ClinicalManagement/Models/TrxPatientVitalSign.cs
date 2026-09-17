@@ -223,6 +223,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models
 
         public bool IsActive { get; set; } = true;
 
+        /// <summary>
+        /// Episode rawat inap tanda vital ini — <c>BE-RWI-110</c>/<c>BE-RWI-121</c>, migration K3,
+        /// kamus data 0.4 bagian 11.2. Diisi server dari episode <c>Admitted</c> kunjungannya, tidak
+        /// dipercaya dari klien. Baris lama tetap <c>null</c> dan terbaca pada jalur lamanya.
+        /// </summary>
+        public Guid? InpEpisodeId { get; set; }
+
         // =========================
         // NAVIGATION
         // =========================

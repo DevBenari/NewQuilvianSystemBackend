@@ -292,6 +292,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             [FromQuery] bool? isActive,
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
+            [FromQuery] CpptNoteKind? noteKind = null,
             [FromQuery] string? sortBy = "noteDateTime",
             [FromQuery] string? sortDirection = "desc",
             [FromQuery] int pageNumber = 1,
@@ -323,6 +324,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 startDate,
                 endDate
             );
+
+            // BE-RWI-124 kriteria 3 / FR-KEP-077. Menu SOAP menyaring NursingSoap, menu Catatan
+            // Keperawatan menyaring NursingNarrative — pada daftar umum sama seperti pada
+            // GET /episodes/{episodeId} milik BE-RWI-094.
+            if (noteKind.HasValue)
+                query = query.Where(x => x.NoteKind == noteKind.Value);
 
             var totalData = await query.CountAsync();
 
@@ -359,7 +366,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
             [FromQuery] bool includeCancelled = false,
-            [FromQuery] int limit = 100)
+            [FromQuery] int limit = 100,
+            [FromQuery] CpptNoteKind? noteKind = null)
         {
             if ((!patientId.HasValue || patientId.Value == Guid.Empty) &&
                 (!encounterId.HasValue || encounterId.Value == Guid.Empty))
@@ -399,6 +407,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 startDate,
                 endDate
             );
+
+            // BE-RWI-124 kriteria 3.
+            if (noteKind.HasValue)
+                query = query.Where(x => x.NoteKind == noteKind.Value);
 
             var data = await query
                 .OrderBy(x => x.NoteDateTime)

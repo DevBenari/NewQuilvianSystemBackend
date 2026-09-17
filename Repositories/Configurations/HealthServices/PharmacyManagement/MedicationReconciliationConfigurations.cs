@@ -103,7 +103,13 @@ public class PhmMedicationReconciliationDecisionConfiguration : IEntityTypeConfi
         builder.HasOne(x => x.DecidedByUser).WithMany().HasForeignKey(x => x.DecidedByUserId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(x => x.ResultPrescription).WithMany().HasForeignKey(x => x.ResultPrescriptionId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(x => x.ResultPrescriptionItem).WithMany().HasForeignKey(x => x.ResultPrescriptionItemId).OnDelete(DeleteBehavior.Restrict);
-        builder.HasOne(x => x.SupersedesDecision).WithMany().HasForeignKey(x => x.SupersedesDecisionId).OnDelete(DeleteBehavior.Restrict);
+        // Nama eksplisit: EF Core tidak memberi akhiran unik pada FK yang merujuk tabelnya sendiri,
+        // sehingga nama bawaan terpotong 63 karakter bentrok dengan FK ReconciliationItemId.
+        builder.HasOne(x => x.SupersedesDecision)
+            .WithMany()
+            .HasForeignKey(x => x.SupersedesDecisionId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .HasConstraintName("FK_PhmMedicationReconciliationDecision_SupersedesDecisionId");
 
         builder.HasIndex(x => new { x.ReconciliationItemId, x.SequenceNumber }).IsUnique();
         builder.HasIndex(x => x.DecidedByDoctorId);

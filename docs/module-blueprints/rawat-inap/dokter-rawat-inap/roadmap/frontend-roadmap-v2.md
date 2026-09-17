@@ -196,13 +196,13 @@ pada gelombang 3. **Nol task tertahan gerbang** — sebelumnya sebelas.
 
 | Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `FE-RWI-067` | Dokter membuka satu halaman berisi daftar pasiennya dan ruang kerja pasien terpilih | `FR-DOK-069` s.d. `073`; `RWI-DEC-107`, `RWI-DEC-110` | `0.6.0` API 10.1 | Komponen tata letak Dokter Rawat Jalan V2 | `FE-DOK-09` — kerangka satu halaman, daftar pasien kiri, delapan tab kanan; **nol aksi atau status antrean** | `BE-RWI-081` [BE-INP] | AC-1 s.d. AC-6 | `npm run lint`, `npm run build`, verifikasi manual, tangkapan layar bertopeng tiga lebar | ~~menunggu pemilik `rawat-jalan`~~ **disetujui 2026-09-16 `RWI-DEC-152`**; tangkapan layar tetap wajib / **Sukma GP** ✅ | Kartu `FE-RWI-067` |
-| `FE-RWI-068` | Dokter menulis SOAP dan mengoreksinya | `FR-DOK-074`, `075`, `077` | `0.6.0` state matrix | Tab SOAP `FE-DOK-03` yang sudah ada | Tab **SOAP** — Form SOAP, Riwayat SOAP, Koreksi; penulis tunggal dan penguncian | `FE-RWI-067`, `BE-RWI-091` [BE] | AC-1 s.d. AC-5 | `npm run lint`, `npm run build`, verifikasi manual | Menunggu `FE-RWI-067`; gerbang `{GATE-RAJAL}` tertutup `RWI-DEC-152` / Sukma GP ✅ | Kartu `FE-RWI-068` |
-| `FE-RWI-069` | Dokter membaca lini masa lintas profesi dan memverifikasinya | `FR-DOK-082`, `083`, `085` | `0.6.0` state matrix | Tab CPPT `FE-DOK-04` | Tab **CPPT** — saring Semua/Dokter/Perawat/Profesi Lain; tombol verifikasi hanya bagi DPJP | `FE-RWI-067`, `BE-RWI-094` [BE], `BE-RWI-089` [BE] | AC-1 s.d. AC-6 | `npm run lint`, `npm run build`, verifikasi manual | Menunggu `FE-RWI-067`; gerbang `{GATE-RAJAL}` tertutup `RWI-DEC-152` / Sukma GP ✅ | Kartu `FE-RWI-069` |
-| `FE-RWI-070` | Dokter menulis kajian medis dan membaca pengkajian keperawatan | `FR-DOK-074`, `076` | `0.6.0` API kajian | Tab Kajian `FE-DOK-02` | Tab **Kajian Pasien** — Riwayat kajian, Kajian Baru, rujukan pengkajian keperawatan | `FE-RWI-067`, `BE-RWI-091` [BE] | AC-1 s.d. AC-4 | `npm run lint`, `npm run build`, verifikasi manual | Menunggu `FE-RWI-067`; gerbang `{GATE-RAJAL}` tertutup `RWI-DEC-152` / Sukma GP ✅ | Kartu `FE-RWI-070` |
-| `FE-RWI-071` | Dokter meresepkan, memakai template, dan melihat resep harian | `FR-DOK-086`, `088` s.d. `091` | `0.6.0` API resep | Layar resep yang sudah ada | Tab **Resep** bagian Buat Resep, Template Resep, History Resep, Resep Harian | `FE-RWI-067`, `BE-RWI-099` [BE], `BE-RWI-105` [BE] | AC-1 s.d. AC-6 | `npm run lint`, `npm run build`, verifikasi manual | Menunggu `FE-RWI-067`; gerbang `{GATE-RAJAL}` tertutup `RWI-DEC-152` / Sukma GP ✅ | Kartu `FE-RWI-071` |
-| `FE-RWI-072` | Dokter memutuskan obat bawaan dan membuat order sliding scale | `FR-DOK-092`, `093`, `096` s.d. `099` | `0.6.0` API rekonsiliasi + sliding scale | Tab Resep dari `FE-RWI-071` | Tab **Resep** bagian Rekonsiliasi Obat dan Sliding Scale | `FE-RWI-071`, `BE-RWI-101` [BE], `BE-RWI-103` [BE] | AC-1 s.d. AC-6 | `npm run lint`, `npm run build`, verifikasi manual | Menunggu `FE-RWI-071`; dosis insulin — salah tampil berbahaya / pemilik klinis pengesah **belum bernama** `RWI-OQ-097` | Kartu `FE-RWI-072` |
-| `FE-RWI-073` | Dokter mencatat tindakan dan memverifikasi pesanan perawat | `FR-DOK-100`, `102`, `103`, `104` | `0.6.0` API tindakan | Layar tindakan yang sudah ada | Tab **Tindakan** — Form Tindakan, Riwayat Tindakan, pesanan menunggu verifikasi instruksi | `FE-RWI-067`, `BE-RWI-097` [BE], `BE-RWI-098` [BE] | AC-1 s.d. AC-5 | `npm run lint`, `npm run build`, verifikasi manual | Menunggu `FE-RWI-067`; gerbang `{GATE-RAJAL}` tertutup `RWI-DEC-152` / Sukma GP ✅ | Kartu `FE-RWI-073` |
+| `FE-RWI-067` ✅ | Dokter membuka satu halaman berisi daftar pasiennya dan ruang kerja pasien terpilih | `FR-DOK-069` s.d. `073`; `RWI-DEC-107`, `RWI-DEC-110` | `0.6.0` API 10.1 | Komponen tata letak Dokter Rawat Jalan V2 | `FE-DOK-09` — kerangka satu halaman, daftar pasien kiri, delapan tab kanan; **nol aksi atau status antrean** | `BE-RWI-081` [BE-INP] | AC-1 s.d. AC-6 | `npm run lint` PASS, `npm run build` PASS, verifikasi manual | Disetujui Sukma GP `RWI-DEC-152` / Muhammad Hamzah | ✅ [Laporan](../task/report/frontend/FE-RWI-067.md) |
+| `FE-RWI-068` ✅ | Dokter menulis SOAP dan mengoreksinya | `FR-DOK-074`, `075`, `077` | `0.6.0` state matrix | Tab SOAP `FE-DOK-03` yang sudah ada | Tab **SOAP** — Form SOAP, Riwayat SOAP, Koreksi; penulis tunggal dan penguncian | `FE-RWI-067`, `BE-RWI-091` [BE] | AC-1 s.d. AC-5 | `npm run lint`, `npm run build`, verifikasi manual | Disetujui Sukma GP `RWI-DEC-152` / Muhammad Hamzah | ✅ [Laporan](../task/report/frontend/FE-RWI-068.md) |
+| `FE-RWI-069` ✅ | Dokter membaca lini masa lintas profesi dan memverifikasinya | `FR-DOK-082`, `083`, `085` | `0.6.0` state matrix | Tab CPPT `FE-DOK-04` | Tab **CPPT** — saring Semua/Dokter/Perawat/Profesi Lain; tombol verifikasi hanya bagi DPJP | `FE-RWI-067`, `BE-RWI-094` [BE], `BE-RWI-089` [BE] | AC-1 s.d. AC-6 | `npm run lint`, `npm run build`, verifikasi manual | Disetujui Sukma GP `RWI-DEC-152` / Muhammad Hamzah | ✅ [Laporan](../task/report/frontend/FE-RWI-069.md) |
+| `FE-RWI-070` ✅ | Dokter menulis kajian medis dan membaca pengkajian keperawatan | `FR-DOK-074`, `076` | `0.6.0` API kajian | Tab Kajian `FE-DOK-02` | Tab **Kajian Pasien** — Riwayat kajian, Kajian Baru, rujukan pengkajian keperawatan | `FE-RWI-067`, `BE-RWI-091` [BE] | AC-1 s.d. AC-4 | `npm run lint`, `npm run build`, verifikasi manual | Disetujui Sukma GP `RWI-DEC-152` / Muhammad Hamzah | ✅ [Laporan](../task/report/frontend/FE-RWI-070.md) |
+| `FE-RWI-071` ✅ | Dokter meresepkan, memakai template, dan melihat resep harian | `FR-DOK-086`, `088` s.d. `091` | `0.6.0` API resep | Layar resep yang sudah ada | Tab **Resep** bagian Buat Resep, Template Resep, History Resep, Resep Harian | `FE-RWI-067`, `BE-RWI-099` [BE], `BE-RWI-105` [BE] | AC-1 s.d. AC-6 | `npm run lint`, `npm run build`, verifikasi manual | Disetujui Sukma GP `RWI-DEC-152` / Muhammad Hamzah | ✅ [Laporan](../task/report/frontend/FE-RWI-071.md) |
+| `FE-RWI-072` ✅ | Dokter memutuskan obat bawaan dan membuat order sliding scale | `FR-DOK-092`, `093`, `096` s.d. `099` | `0.6.0` API rekonsiliasi + sliding scale | Tab Resep dari `FE-RWI-071` | Tab **Resep** bagian Rekonsiliasi Obat dan Sliding Scale | `FE-RWI-071`, `BE-RWI-101` [BE], `BE-RWI-103` [BE] | AC-1 s.d. AC-6 | `npm run test:unit` PASS, `npm run lint` PASS, `npm run build` PASS | Disetujui Sukma GP `RWI-DEC-152` / Muhammad Hamzah | ✅ [Laporan](../task/report/frontend/FE-RWI-072.md) |
+| `FE-RWI-073` ✅ | Dokter mencatat tindakan dan memverifikasi pesanan perawat | `FR-DOK-100`, `102`, `103`, `104` | `0.6.0` API tindakan | Layar tindakan yang sudah ada | Tab **Tindakan** — Form Tindakan, Riwayat Tindakan, pesanan menunggu verifikasi instruksi | `FE-RWI-067`, `BE-RWI-097` [BE], `BE-RWI-098` [BE] | AC-1 s.d. AC-5 | `node tests/unit` PASS, `npm run lint` PASS, `npm run build` PASS | Disetujui Sukma GP `RWI-DEC-152` / Muhammad Hamzah | ✅ [Laporan](../task/report/frontend/FE-RWI-073.md) |
 | `FE-RWI-074` | DPJP mengisi dan menandatangani resume dari ruang kerjanya | `FR-DOK-107`, `108`, `109` | `0.9.0` [INP] — **kontrak sama dengan `FE-INP-22`** | Formulir resume `FE-INP-06` | Tab **Resume Medis** — Resume Rawat Inap, Resume ODC "Integrasi belum tersedia", History Resume | `FE-RWI-067`, `BE-RWI-085` [BE-INP], `BE-RWI-086` [BE-INP] | AC-1 s.d. AC-5 | `npm run lint`, `npm run build`, verifikasi manual | Menunggu `FE-RWI-067`; payload wajib sama dengan `FE-RWI-064` | Kartu `FE-RWI-074` |
 | `FE-RWI-075` | Dokter mencatat dan membaca riwayat visite | — (dipertahankan dari revision sebelumnya) | `0.6.0` API visite | Tab Visit `FE-DOK-05` | Tab **Visit** — Riwayat visit dan Catat Visit, disambungkan ke kerangka baru | `FE-RWI-067` | AC-1 s.d. AC-3 | `npm run lint`, `npm run build`, verifikasi manual | Menunggu `FE-RWI-067`; gerbang `{GATE-RAJAL}` tertutup `RWI-DEC-152` / Sukma GP ✅ | Kartu `FE-RWI-075` |
 | `FE-RWI-076` | Dokter melihat penunjang enam layanan dalam satu tempat | `FR-DOK-110`, `FR-DOK-111`; `RWI-DEC-108` | `0.6.0` API Lab/Rad | Layar penunjang `FE-DOK-07` | Tab **Penunjang Medis** — landing enam kartu; empat kartu "Integrasi belum tersedia" **tanpa permintaan jaringan** | `FE-RWI-067` | AC-1 s.d. AC-4 | `npm run lint`, `npm run build`, verifikasi manual + panel Network | Menunggu `FE-RWI-067`; gerbang `{GATE-RAJAL}` tertutup `RWI-DEC-152` / Sukma GP ✅ | Kartu `FE-RWI-076` |
@@ -219,7 +219,7 @@ pada gelombang 3. **Nol task tertahan gerbang** — sebelumnya sebelas.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan. ~~⛔ menunggu pemilik `rawat-jalan`~~ — **gerbang tertutup 2026-09-16 lewat `RWI-DEC-152`** |
+| **Status** | ✅ Selesai 17 September 2026. Laporan tracked: [FE-RWI-067](../task/report/frontend/FE-RWI-067.md) |
 | **Gelombang** | 1 |
 | **Layar** | `FE-DOK-09`, menggantikan `FE-DOK-01` |
 | **`pathname`** | `/health-services/inpatient-management/doctor-inpatient` — butir menu **sudah ada** di `menu-items.jsx`, dipertahankan `RWI-DEC-107` |
@@ -274,7 +274,7 @@ terlampir; roadmap dan traceability diperbarui.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan — menunggu `FE-RWI-067`. ~~⛔ `{GATE-RAJAL}`~~ tertutup 2026-09-16 `RWI-DEC-152` |
+| **Status** | ✅ Selesai 17 September 2026. Laporan tracked: [FE-RWI-068](../task/report/frontend/FE-RWI-068.md) |
 | **Gelombang** | 2 |
 | **Layar** | `FE-DOK-03` sebagai tab di dalam `FE-DOK-09` |
 
@@ -302,7 +302,7 @@ roadmap dan traceability diperbarui.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan — menunggu `FE-RWI-067`. ~~⛔ `{GATE-RAJAL}`~~ tertutup 2026-09-16 `RWI-DEC-152` |
+| **Status** | ✅ Selesai 17 September 2026. Laporan tracked: [FE-RWI-069](../task/report/frontend/FE-RWI-069.md) |
 | **Gelombang** | 2 |
 | **Layar** | `FE-DOK-04` sebagai tab di dalam `FE-DOK-09` |
 
@@ -331,7 +331,7 @@ roadmap dan traceability diperbarui.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan — menunggu `FE-RWI-067`. ~~⛔ `{GATE-RAJAL}`~~ tertutup 2026-09-16 `RWI-DEC-152` |
+| **Status** | ✅ Selesai 17 September 2026. Laporan tracked: [FE-RWI-070](../task/report/frontend/FE-RWI-070.md) |
 | **Gelombang** | 2 |
 | **Layar** | `FE-DOK-02` sebagai tab di dalam `FE-DOK-09` |
 
@@ -357,7 +357,7 @@ roadmap dan traceability diperbarui.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan — menunggu `FE-RWI-067`. ~~⛔ `{GATE-RAJAL}`~~ tertutup 2026-09-16 `RWI-DEC-152` |
+| **Status** | ✅ Selesai 17 September 2026. Laporan tracked: [FE-RWI-071](../task/report/frontend/FE-RWI-071.md) |
 | **Gelombang** | 2 |
 | **Layar** | `FE-DOK-10`, tab tersendiri hasil pemecahan `FE-DOK-06` |
 
@@ -385,7 +385,7 @@ roadmap dan traceability diperbarui.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan — menunggu `FE-RWI-071`. ~~⛔ `{GATE-RAJAL}`~~ tertutup 2026-09-16 `RWI-DEC-152` |
+| **Status** | ✅ Selesai 17 September 2026. Laporan tracked: [FE-RWI-072](../task/report/frontend/FE-RWI-072.md) |
 | **Gelombang** | 3 |
 | **Layar** | `FE-DOK-10`, dua bagian tambahan |
 

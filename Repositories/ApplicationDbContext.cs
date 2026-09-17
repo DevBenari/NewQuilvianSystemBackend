@@ -641,6 +641,20 @@ namespace QuilvianSystemBackend.Repositories
         // melemahkan penjagaan bagi tindakan dokter yang membutuhkan keduanya untuk penagihan.
         public DbSet<CliNursingIntervention> CliNursingInterventions { get; set; }
 
+        // BE-RWI-107 s.d. BE-RWI-121 / migration K1, K3, K5 — keperawatan rawat inap revision 7.
+        // Seluruh tabel milik ClinicalManagement (RWI-DEC-081); nol tabel di InPatientManagement.
+        public DbSet<CliClinicalInstrument> CliClinicalInstruments { get; set; }
+        public DbSet<CliClinicalInstrumentVersion> CliClinicalInstrumentVersions { get; set; }
+        public DbSet<CliAssessmentInstrumentResponse> CliAssessmentInstrumentResponses { get; set; }
+        public DbSet<CliCaseManagementEvaluation> CliCaseManagementEvaluations { get; set; }
+        public DbSet<CliFluidBalanceEntry> CliFluidBalanceEntries { get; set; }
+        public DbSet<CliFluidBalanceEntryRevision> CliFluidBalanceEntryRevisions { get; set; }
+        public DbSet<CliBloodGlucoseReading> CliBloodGlucoseReadings { get; set; }
+        public DbSet<CliBloodGlucoseReadingRevision> CliBloodGlucoseReadingRevisions { get; set; }
+        public DbSet<CliDailyObservation> CliDailyObservations { get; set; }
+        public DbSet<CliDailyObservationRevision> CliDailyObservationRevisions { get; set; }
+        public DbSet<CliNursingShift> CliNursingShifts { get; set; }
+
         public DbSet<MstProcedure> MstProcedures { get; set; }
 
         // Data induk perujuk (LAB-DEC-035, BE-EXT-02). Global: Laboratorium, Rawat
@@ -735,6 +749,14 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<PhmSlidingScaleRange> PhmSlidingScaleRanges { get; set; }
         public DbSet<PhmSlidingScaleOrder> PhmSlidingScaleOrders { get; set; }
         public DbSet<PhmSlidingScaleOrderVersion> PhmSlidingScaleOrderVersions { get; set; }
+
+        // BE-RWI-114 s.d. BE-RWI-123 / migration K4 dan K7 — MAR dan pelaksanaan sliding scale milik
+        // PharmacyManagement (RWI-DEC-117, RWI-DEC-147).
+        public DbSet<PhmMedicationAdministration> PhmMedicationAdministrations { get; set; }
+        public DbSet<PhmMedicationAdministrationRevision> PhmMedicationAdministrationRevisions { get; set; }
+        public DbSet<PhmMedicationScheduleTime> PhmMedicationScheduleTimes { get; set; }
+        public DbSet<PhmMedicationAdministrationSetting> PhmMedicationAdministrationSettings { get; set; }
+        public DbSet<PhmSlidingScaleExecution> PhmSlidingScaleExecutions { get; set; }
         public DbSet<PhmPrescriptionCompound> PhmPrescriptionCompounds { get; set; }
         public DbSet<PhmPrescriptionCompoundItem> PhmPrescriptionCompoundItems { get; set; }
         public DbSet<MstPrescriptionTemplate> MstPrescriptionTemplates { get; set; }

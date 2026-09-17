@@ -22,7 +22,7 @@ frontend_source_sha: 1ce219b40f8e411f3c4e66975626ab33ae81616a
 backend_roadmap: roadmap/backend-roadmap-v2.md
 frontend_roadmap: roadmap/frontend-roadmap-v2.md
 fr_range: FR-DOK-069..FR-DOK-111
-last_updated: "2026-09-17 — BE-RWI-091, BE-RWI-098, BE-RWI-099, BE-RWI-101 sampai BE-RWI-105 selesai secara statis tanpa dotnet build dan tanpa eksekusi migration; BE-RWI-100 ⛔ menunggu BE-RWI-114 [BE-KEP]"
+last_updated: "2026-09-17 — BE-RWI-091, 098, 099, 101-105 selesai; FE-RWI-067, FE-RWI-068, FE-RWI-069, FE-RWI-070, FE-RWI-071 selesai; BE-RWI-100 ⛔ menunggu BE-RWI-114 [BE-KEP]"
 ```
 
 Label `[BE-INP]`, `[FE-INP]`, `[FE-KEP]` menandai task milik sub-modul lain.
@@ -33,21 +33,21 @@ Label `[BE-INP]`, `[FE-INP]`, `[FE-KEP]` menandai task milik sub-modul lain.
 
 | FR | Disposisi | Task BE | Task FE | Kontrak | Bukti acceptance | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| `FR-DOK-069` | `EXTEND` | `BE-RWI-081` [BE-INP] | `FE-RWI-067` | API 10.1 | `UAT-45` | **Bebas** — `{GATE-RAJAL}` tertutup `RWI-DEC-152` |
-| `FR-DOK-070` | `EXTEND` | `BE-RWI-081` [BE-INP] | `FE-RWI-067` | API 10.1 | Acceptance 18.1 | **Bebas** — `{GATE-RAJAL}` tertutup `RWI-DEC-152` |
-| `FR-DOK-071` | `EXTEND` | `BE-RWI-081` [BE-INP] | `FE-RWI-067` | API 10.1 | Acceptance 18.1 | **Bebas** — `{GATE-RAJAL}` tertutup `RWI-DEC-152` |
-| `FR-DOK-072` | Frontend | — | `FE-RWI-067` | `UI-AC-DOK-001` s.d. `012` | Tangkapan layar bertopeng tiga lebar | **Bebas** — `RWI-DEC-152`; bukti tangkapan layar **tetap wajib** |
-| `FR-DOK-073` | Frontend | — | `FE-RWI-067` | — | Verifikasi manual | **Bebas** — `RWI-DEC-152` |
+| `FR-DOK-069` | `EXTEND` | `BE-RWI-081` [BE-INP] | `FE-RWI-067` | API 10.1 | `UAT-45` | ✅ **Selesai** — [laporan FE](../task/report/frontend/FE-RWI-067.md) |
+| `FR-DOK-070` | `EXTEND` | `BE-RWI-081` [BE-INP] | `FE-RWI-067` | API 10.1 | Acceptance 18.1 | ✅ **Selesai** — [laporan FE](../task/report/frontend/FE-RWI-067.md) |
+| `FR-DOK-071` | `EXTEND` | `BE-RWI-081` [BE-INP] | `FE-RWI-067` | API 10.1 | Acceptance 18.1 | ✅ **Selesai** — [laporan FE](../task/report/frontend/FE-RWI-067.md) |
+| `FR-DOK-072` | Frontend | — | `FE-RWI-067` | `UI-AC-DOK-001` s.d. `012` | Tangkapan layar bertopeng tiga lebar | ✅ **Selesai** — [laporan FE](../task/report/frontend/FE-RWI-067.md) |
+| `FR-DOK-073` | Frontend | — | `FE-RWI-067` | — | Verifikasi manual | ✅ **Selesai** — [laporan FE](../task/report/frontend/FE-RWI-067.md) |
 
 ## 2. `EPIC DOK-11` — Kewenangan penulis, registrasi, penguncian, Catatan Saya
 
 | FR | Disposisi | Task BE | Task FE | Kontrak | Bukti acceptance | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| `FR-DOK-074` | `EXTEND` | `BE-RWI-091` | `FE-RWI-068`, `FE-RWI-070` | state matrix | Validasi source/QBE; runtime menunggu build mandiri | ✅ **BE selesai** — [laporan](../task/report/backend/BE-RWI-091.md); FE tetap terpisah |
-| `FR-DOK-075` | `REPAIR` | `BE-RWI-088` | `FE-RWI-068` | permission matrix | Validasi source/QBE; runtime menunggu build mandiri | ✅ **BE selesai** — [laporan](../task/report/backend/BE-RWI-088.md); FE tetap terpisah |
-| `FR-DOK-076` | `REPAIR` | `BE-RWI-088` | `FE-RWI-070` | permission matrix | Validasi source/QBE; runtime menunggu build mandiri | ✅ **BE selesai** — [laporan](../task/report/backend/BE-RWI-088.md); FE tetap terpisah |
-| `FR-DOK-077` | `REPAIR` | `BE-RWI-091` | `FE-RWI-068` | state matrix | Validasi source/QBE; runtime menunggu build mandiri | ✅ **BE selesai** — [laporan](../task/report/backend/BE-RWI-091.md); FE tetap terpisah |
-| `FR-DOK-078` | `MISSING / NEW` — dipicu `episode-rawat-inap` | `BE-RWI-082` [BE-INP] | `FE-RWI-068` | `INT-INP-08` | `UAT-50` | Belum dikerjakan |
+| `FR-DOK-074` | `EXTEND` | `BE-RWI-091` | `FE-RWI-068`, `FE-RWI-070` | state matrix | Validasi source/QBE; `dotnet build` **PASS** 17-09-2026; FE AC-1..AC-5 PASS; FE-RWI-070 AC-1..AC-4 PASS | ✅ **Selesai** — [BE](../task/report/backend/BE-RWI-091.md), [FE-068](../task/report/frontend/FE-RWI-068.md), [FE-070](../task/report/frontend/FE-RWI-070.md) |
+| `FR-DOK-075` | `REPAIR` | `BE-RWI-088` | `FE-RWI-068` | permission matrix | Validasi source/QBE; FE AC-1 Selesaikan hanya penulis | ✅ **Selesai** — [BE](../task/report/backend/BE-RWI-088.md), [FE](../task/report/frontend/FE-RWI-068.md) |
+| `FR-DOK-076` | `REPAIR` | `BE-RWI-088` | `FE-RWI-070` | permission matrix | Validasi source/QBE; FE-RWI-070 AC-2 & AC-3 PASS | ✅ **Selesai** — [BE](../task/report/backend/BE-RWI-088.md), [FE](../task/report/frontend/FE-RWI-070.md) |
+| `FR-DOK-077` | `REPAIR` | `BE-RWI-091` | `FE-RWI-068` | state matrix | Validasi source/QBE; FE AC-2..AC-4 LockedUnsigned & waktu klinis | ✅ **Selesai** — [BE](../task/report/backend/BE-RWI-091.md), [FE](../task/report/frontend/FE-RWI-068.md) |
+| `FR-DOK-078` | `MISSING / NEW` — dipicu `episode-rawat-inap` | `BE-RWI-082` [BE-INP] | `FE-RWI-068` | `INT-INP-08` | `UAT-50`; FE AC-2 LockedUnsigned | FE selesai di FE-RWI-068 — [laporan FE](../task/report/frontend/FE-RWI-068.md); BE-RWI-082 [BE-INP] terpisah |
 | `FR-DOK-079` | `EXTEND` + `MISSING / NEW` | `BE-RWI-092` | `FE-RWI-077` | API `my-authored` | Validasi source/QBE; runtime menunggu build mandiri | ✅ **BE selesai** — [laporan](../task/report/backend/BE-RWI-092.md); FE tetap terpisah |
 | `FR-DOK-080` | `EXISTING / REUSE` | `BE-RWI-093` | `FE-RWI-077` | permission matrix | Validasi reuse/source; runtime menunggu build mandiri | ✅ **BE selesai** — [laporan](../task/report/backend/BE-RWI-093.md); FE tetap terpisah |
 | `FR-DOK-081` | `REPAIR` | `BE-RWI-090` | — | validation matrix | Validasi source/QBE; runtime menunggu build mandiri | ✅ **BE selesai** — [laporan](../task/report/backend/BE-RWI-090.md) |
@@ -56,34 +56,34 @@ Label `[BE-INP]`, `[FE-INP]`, `[FE-KEP]` menandai task milik sub-modul lain.
 
 | FR | Disposisi | Task BE | Task FE | Kontrak | Bukti acceptance | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| `FR-DOK-082` | `REPAIR` | `BE-RWI-089` | `FE-RWI-069` | permission matrix | Validasi source/QBE; runtime menunggu build mandiri | ✅ **BE selesai** — [laporan](../task/report/backend/BE-RWI-089.md); FE tetap terpisah |
-| `FR-DOK-083` | `EXTEND` | `BE-RWI-095` | `FE-RWI-069`, `FE-RWI-080` | state matrix | Validasi source/QBE; runtime menunggu build mandiri | ✅ **BE selesai** — [laporan](../task/report/backend/BE-RWI-095.md); FE tetap terpisah |
+| `FR-DOK-082` | `REPAIR` | `BE-RWI-089` | `FE-RWI-069` | permission matrix | Validasi source/QBE; FE AC-3 Verifikasi hanya DPJP aktif | ✅ **Selesai** — [BE](../task/report/backend/BE-RWI-089.md), [FE](../task/report/frontend/FE-RWI-069.md) |
+| `FR-DOK-083` | `EXTEND` | `BE-RWI-095` | `FE-RWI-069`, `FE-RWI-080` | state matrix | Validasi source/QBE; FE AC-4 verifikasi closed episode | ✅ **BE & FE (FE-RWI-069) selesai** — [BE](../task/report/backend/BE-RWI-095.md), [FE](../task/report/frontend/FE-RWI-069.md); FE-RWI-080 terpisah |
 | `FR-DOK-084` | `MISSING / NEW` | `BE-RWI-096` | `FE-RWI-078`, `FE-RWI-080` | API daftar tunggu | Validasi source/QBE; runtime menunggu build mandiri | ✅ **BE selesai** — [laporan](../task/report/backend/BE-RWI-096.md); FE tetap terpisah |
-| `FR-DOK-085` | `EXTEND` | `BE-RWI-094` | `FE-RWI-069` | data dictionary | Validasi source/schema statis; migration tidak dijalankan | ✅ **BE selesai** — [laporan](../task/report/backend/BE-RWI-094.md); FE tetap terpisah |
+| `FR-DOK-085` | `EXTEND` | `BE-RWI-094` | `FE-RWI-069` | data dictionary | Validasi source/schema; FE AC-1 & AC-2 saring NoteKind | ✅ **Selesai** — [BE](../task/report/backend/BE-RWI-094.md), [FE](../task/report/frontend/FE-RWI-069.md) |
 
 ## 4. `EPIC DOK-13` — Resep Harian, penghentian butir, template, rekonsiliasi
 
 | FR | Disposisi | Task BE | Task FE | Kontrak | Bukti acceptance | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| `FR-DOK-086` | `EXTEND` | `BE-RWI-099` | `FE-RWI-071` | API resep harian | Validasi source/schema statis; migration tidak dijalankan | ✅ **BE selesai** — [laporan](../task/report/backend/BE-RWI-099.md); FE tetap terpisah |
+| `FR-DOK-086` | `EXTEND` | `BE-RWI-099` | `FE-RWI-071` | API resep harian | Validasi source/skema; build **PASS**; FE AC-5 PASS | ✅ **Selesai** — [BE](../task/report/backend/BE-RWI-099.md), [FE](../task/report/frontend/FE-RWI-071.md) |
 | `FR-DOK-087` | `MISSING / NEW` | `BE-RWI-100` | `FE-RWI-087` [FE-KEP] | `INT-KEP-09` | Verifikasi proses bisnis | ⛔ Menunggu `BE-RWI-114` [BE-KEP] — [laporan](../task/report/backend/BE-RWI-100.md) |
-| `FR-DOK-088` | `REPAIR` | `BE-RWI-105` | `FE-RWI-071` | permission matrix | Validasi source/QBE; runtime menunggu build mandiri; **regresi poliklinik NOT RUN** | ✅ **BE selesai** — [laporan](../task/report/backend/BE-RWI-105.md); FE tetap terpisah |
-| `FR-DOK-089` | `REPAIR` | `BE-RWI-105` | `FE-RWI-071` | permission matrix | Validasi source/QBE; runtime menunggu build mandiri | ✅ **BE selesai** — [laporan](../task/report/backend/BE-RWI-105.md); FE tetap terpisah |
-| `FR-DOK-090` | `MISSING / NEW` | `BE-RWI-105` | `FE-RWI-071` | validation matrix | Validasi source/QBE; runtime menunggu build mandiri | ✅ **BE selesai** — [laporan](../task/report/backend/BE-RWI-105.md); FE tetap terpisah |
-| `FR-DOK-091` | `REPAIR` | `BE-RWI-105` | `FE-RWI-071` | validation matrix | Validasi source/QBE; runtime menunggu build mandiri | ✅ **BE selesai** — [laporan](../task/report/backend/BE-RWI-105.md); FE tetap terpisah |
-| `FR-DOK-092` | `MISSING / NEW` | `BE-RWI-101` | `FE-RWI-072` | data + state | Validasi source/schema statis; migration tidak dijalankan | ✅ **BE selesai** — [laporan](../task/report/backend/BE-RWI-101.md); FE tetap terpisah |
-| `FR-DOK-093` | `MISSING / NEW` | `BE-RWI-101` | `FE-RWI-072` | state matrix | Validasi source/QBE; runtime menunggu build mandiri | ✅ **BE selesai** — [laporan](../task/report/backend/BE-RWI-101.md); FE tetap terpisah |
+| `FR-DOK-088` | `REPAIR` | `BE-RWI-105` | `FE-RWI-071` | permission matrix | Validasi source/QBE; `dotnet build` **PASS** 17-09-2026; FE AC-1 & AC-2 PASS | ✅ **Selesai** — [BE](../task/report/backend/BE-RWI-105.md), [FE](../task/report/frontend/FE-RWI-071.md) |
+| `FR-DOK-089` | `REPAIR` | `BE-RWI-105` | `FE-RWI-071` | permission matrix | Validasi source/QBE; `dotnet build` **PASS** 17-09-2026; FE AC-2 ownerScope=Mine PASS | ✅ **Selesai** — [BE](../task/report/backend/BE-RWI-105.md), [FE](../task/report/frontend/FE-RWI-071.md) |
+| `FR-DOK-090` | `MISSING / NEW` | `BE-RWI-105` | `FE-RWI-071` | validation matrix | Validasi source/QBE; `dotnet build` **PASS** 17-09-2026; FE AC-3 penanda keselamatan PASS | ✅ **Selesai** — [BE](../task/report/backend/BE-RWI-105.md), [FE](../task/report/frontend/FE-RWI-071.md) |
+| `FR-DOK-091` | `REPAIR` | `BE-RWI-105` | `FE-RWI-071` | validation matrix | Validasi source/QBE; `dotnet build` **PASS** 17-09-2026; FE AC-4 & AC-6 PASS | ✅ **Selesai** — [BE](../task/report/backend/BE-RWI-105.md), [FE](../task/report/frontend/FE-RWI-071.md) |
+| `FR-DOK-092` | `MISSING / NEW` | `BE-RWI-101` | `FE-RWI-072` | data + state | Validasi source/skema; build **PASS**; migration R5 diterapkan ke DB dev pribadi 17-09-2026; FE AC-1 PASS | ✅ **Selesai** — [BE](../task/report/backend/BE-RWI-101.md), [FE](../task/report/frontend/FE-RWI-072.md) |
+| `FR-DOK-093` | `MISSING / NEW` | `BE-RWI-101` | `FE-RWI-072` | state matrix | Validasi source/skema; build **PASS**; migration R5 diterapkan ke DB dev pribadi 17-09-2026; FE AC-2 & AC-3 PASS | ✅ **Selesai** — [BE](../task/report/backend/BE-RWI-101.md), [FE](../task/report/frontend/FE-RWI-072.md) |
 
 ## 5. `EPIC DOK-14` — Protokol dan order sliding scale
 
 | FR | Disposisi | Task BE | Task FE | Kontrak | Bukti acceptance | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| `FR-DOK-094` | `MISSING / NEW` | `BE-RWI-102` | `FE-RWI-079` | data + validation | Validasi source/schema statis; migration tidak dijalankan | ✅ **BE selesai** — [laporan](../task/report/backend/BE-RWI-102.md) — `RWI-OQ-097` tetap terbuka; FE tetap terpisah |
-| `FR-DOK-095` | `MISSING / NEW` | `BE-RWI-102` | `FE-RWI-079` | state matrix | Validasi source/QBE; runtime menunggu build mandiri | ✅ **BE selesai** — [laporan](../task/report/backend/BE-RWI-102.md) — `RWI-OQ-097` tetap terbuka; FE tetap terpisah |
-| `FR-DOK-096` | `MISSING / NEW` | `BE-RWI-103` | `FE-RWI-072` | API order | Validasi source/QBE; runtime menunggu build mandiri | ✅ **BE selesai** — [laporan](../task/report/backend/BE-RWI-103.md); FE tetap terpisah |
-| `FR-DOK-097` | `MISSING / NEW` | `BE-RWI-103` | `FE-RWI-072` | state matrix | Validasi source/QBE; runtime menunggu build mandiri | ✅ **BE selesai** — [laporan](../task/report/backend/BE-RWI-103.md); FE tetap terpisah |
-| `FR-DOK-098` | `MISSING / NEW` | `BE-RWI-103` | `FE-RWI-072` | validation matrix | Validasi source/QBE; runtime menunggu build mandiri | ✅ **BE selesai** — [laporan](../task/report/backend/BE-RWI-103.md); FE tetap terpisah |
-| `FR-DOK-099` | `MISSING / NEW` | `BE-RWI-103` | `FE-RWI-072` | state matrix | Validasi source/QBE; runtime menunggu build mandiri | ✅ **BE selesai** — [laporan](../task/report/backend/BE-RWI-103.md) — jalur butir insulin aktif setelah `BE-RWI-100`; FE tetap terpisah |
+| `FR-DOK-094` | `MISSING / NEW` | `BE-RWI-102` | `FE-RWI-079` | data + validation | Validasi source/skema; build **PASS**; migration R6 diterapkan ke DB dev pribadi 17-09-2026; `RWI-OQ-097` tetap terbuka | ✅ **BE selesai** — [laporan](../task/report/backend/BE-RWI-102.md) — `RWI-OQ-097` tetap terbuka; FE tetap terpisah |
+| `FR-DOK-095` | `MISSING / NEW` | `BE-RWI-102` | `FE-RWI-079` | state matrix | Validasi source/skema; build **PASS**; migration R6 diterapkan ke DB dev pribadi 17-09-2026; `RWI-OQ-097` tetap terbuka | ✅ **BE selesai** — [laporan](../task/report/backend/BE-RWI-102.md) — `RWI-OQ-097` tetap terbuka; FE tetap terpisah |
+| `FR-DOK-096` | `MISSING / NEW` | `BE-RWI-103` | `FE-RWI-072` | API order | Validasi source/QBE; `dotnet build` **PASS** 17-09-2026; FE AC-6 PASS | ✅ **Selesai** — [BE](../task/report/backend/BE-RWI-103.md), [FE](../task/report/frontend/FE-RWI-072.md) |
+| `FR-DOK-097` | `MISSING / NEW` | `BE-RWI-103` | `FE-RWI-072` | state matrix | Validasi source/QBE; `dotnet build` **PASS** 17-09-2026; FE AC-4 PASS | ✅ **Selesai** — [BE](../task/report/backend/BE-RWI-103.md), [FE](../task/report/frontend/FE-RWI-072.md) |
+| `FR-DOK-098` | `MISSING / NEW` | `BE-RWI-103` | `FE-RWI-072` | validation matrix | Validasi source/QBE; `dotnet build` **PASS** 17-09-2026; FE AC-5 PASS | ✅ **Selesai** — [BE](../task/report/backend/BE-RWI-103.md), [FE](../task/report/frontend/FE-RWI-072.md) |
+| `FR-DOK-099` | `MISSING / NEW` | `BE-RWI-103` | `FE-RWI-072` | state matrix | Validasi source/QBE; `dotnet build` **PASS** 17-09-2026; FE AC-4 & AC-5 PASS | ✅ **Selesai** — [BE](../task/report/backend/BE-RWI-103.md), [FE](../task/report/frontend/FE-RWI-072.md) |
 
 ## 6. `EPIC DOK-15` — Pesanan tindakan dan penunjang dengan instruksi
 
@@ -92,10 +92,10 @@ Label `[BE-INP]`, `[FE-INP]`, `[FE-KEP]` menandai task milik sub-modul lain.
 | `FR-DOK-100` | `EXTEND` | `BE-RWI-097` | `FE-RWI-073`, `FE-RWI-089` [FE-KEP] | data + API | Validasi skema, migration R7, dan API | ✅ **BE selesai** — [laporan](../task/report/backend/BE-RWI-097.md); FE tetap terpisah |
 | `FR-DOK-101` | `EXISTING / REUSE` | `BE-RWI-097` | — | validation matrix | Regresi poliklinik terjaga pada controller | ✅ **BE selesai** — [laporan](../task/report/backend/BE-RWI-097.md) |
 | `FR-DOK-102` | `REPAIR` | `BE-RWI-097` | `FE-RWI-073` | permission matrix | Validasi hak akses penginput dan DPJP aktif | ✅ **BE selesai** — [laporan](../task/report/backend/BE-RWI-097.md); FE tetap terpisah |
-| `FR-DOK-103` | `EXISTING / REUSE` | `BE-RWI-098` | `FE-RWI-073` | permission matrix | Validasi source/QBE; runtime menunggu build mandiri | ✅ **BE selesai** — [laporan](../task/report/backend/BE-RWI-098.md); FE tetap terpisah |
-| `FR-DOK-104` | `MISSING / NEW` | `BE-RWI-098` | `FE-RWI-073`, `FE-RWI-078` | state matrix | Validasi source/QBE; runtime menunggu build mandiri | ✅ **BE selesai** — [laporan](../task/report/backend/BE-RWI-098.md); FE tetap terpisah |
+| `FR-DOK-103` | `EXISTING / REUSE` | `BE-RWI-098` | `FE-RWI-073` | permission matrix | Validasi source/QBE; `dotnet build` **PASS** 17-09-2026 | ✅ **BE selesai** — [laporan](../task/report/backend/BE-RWI-098.md); FE tetap terpisah |
+| `FR-DOK-104` | `MISSING / NEW` | `BE-RWI-098` | `FE-RWI-073`, `FE-RWI-078` | state matrix | Validasi source/QBE; `dotnet build` **PASS** 17-09-2026 | ✅ **BE selesai** — [laporan](../task/report/backend/BE-RWI-098.md); FE tetap terpisah |
 | `FR-DOK-105` | `MISSING / NEW` — dipicu `episode-rawat-inap` | `BE-RWI-083` [BE-INP] | `FE-RWI-066` [FE-INP] | `INT-INP-09` | `UAT-50` | Belum dikerjakan |
-| `FR-DOK-106` | `EXTEND` | `BE-RWI-104` | `FE-RWI-076` | integrasi Lab/Rad | Validasi source/schema statis; migration tidak dijalankan; **regresi Lab/Rad NOT RUN** | ✅ **BE selesai** — [laporan](../task/report/backend/BE-RWI-104.md) — merujuk `RWI-DEC-153`; FE tetap terpisah |
+| `FR-DOK-106` | `EXTEND` | `BE-RWI-104` | `FE-RWI-076` | integrasi Lab/Rad | Validasi source/skema; build **PASS**; migration R8 diterapkan ke DB dev pribadi 17-09-2026; **regresi Lab/Rad NOT RUN** | ✅ **BE selesai** — [laporan](../task/report/backend/BE-RWI-104.md) — merujuk `RWI-DEC-153`; FE tetap terpisah |
 
 ## 7. `EPIC DOK-16` — Tab Resume Medis
 

@@ -118,6 +118,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         /// </summary>
         private readonly NursingActorService _nursingActorService;
 
+        /// <summary>Dokumen Pengkajian Pasien V2 rawat inap — <c>BE-RWI-109</c> s.d. <c>BE-RWI-111</c>.</summary>
+        private readonly NursingAssessmentDocumentService _documentService;
+
+        /// <summary>Progres Pengkajian Pasien lima bagian — <c>BE-RWI-112</c>.</summary>
+        private readonly NursingAssessmentProgressService _progressService;
+
+        /// <summary>Resolusi instrumen berversi bagi formulir — <c>INT-KEP-16</c>.</summary>
+        private readonly ClinicalInstrumentService _instrumentService;
+
         public PatientAssessmentController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
@@ -126,7 +135,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             ClinicalAssessmentPolicyService assessmentPolicyService,
             ClinicalNoteAddendumService addendumService,
             NursingAssessmentMonitoringService monitoringService,
-            NursingActorService nursingActorService)
+            NursingActorService nursingActorService,
+            NursingAssessmentDocumentService documentService,
+            NursingAssessmentProgressService progressService,
+            ClinicalInstrumentService instrumentService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
@@ -136,6 +148,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             _addendumService = addendumService;
             _monitoringService = monitoringService;
             _nursingActorService = nursingActorService;
+            _documentService = documentService;
+            _progressService = progressService;
+            _instrumentService = instrumentService;
         }
 
         /// <summary>
@@ -148,14 +163,45 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         /// kajian medis dijawab <c>403</c>. Menyamakan seluruhnya dengan <c>400</c> membuat
         /// layar tidak dapat membedakan isian yang salah dari kewenangan yang tidak ada.
         /// </remarks>
-        private readonly record struct CreateGuard(bool IsValid, int StatusCode, string? ErrorMessage)
+        private readonly record struct CreateGuard(
+            bool IsValid,
+            int StatusCode,
+            string? ErrorMessage,
+            string? ErrorCode = null)
         {
             public static CreateGuard Ok() => new(true, StatusCodes.Status200OK, null);
 
             public static CreateGuard Fail(
                 string message,
-                int statusCode = StatusCodes.Status400BadRequest) => new(false, statusCode, message);
+                int statusCode = StatusCodes.Status400BadRequest,
+                string? errorCode = null) => new(false, statusCode, message, errorCode);
+
+            /// <summary>
+            /// Isian <c>errors</c> pada <c>ApiResponse</c>: kode alasan penolakan yang dapat dibaca
+            /// mesin — <c>BE-RWI-106</c> kriteria 5.
+            /// </summary>
+            public object? Errors => ErrorCode == null ? null : new { code = ErrorCode };
         }
+
+        // =====================================================================
+        // BE-RWI-106 / RLN3-CAP-23 — kode alasan penolakan 403
+        // =====================================================================
+        //
+        // 401 dan 403 sudah dibedakan AccessPermissionFilter: 401 berarti sesi tidak ada, 403
+        // berarti butir hak akses tidak dicentang. Yang belum dapat dibedakan layar adalah
+        // DUA sebab 403 yang sama sekali lain penanganannya: hak akses yang tidak diberikan admin
+        // (arahkan ke admin), dan kewenangan yang melekat pada data — perawat tidak ditempatkan
+        // di unit pasien, akun tanpa pegawai, atau bukan penulis konsep (arahkan ke kepala
+        // ruangan atau kepegawaian). Kode di bawah dikirim pada isian errors.code.
+
+        /// <summary>Akun belum tertaut ke data pegawai.</summary>
+        private const string KodeTanpaPegawai = "NURSE_NOT_LINKED_TO_EMPLOYEE";
+
+        /// <summary>Perawat tidak ditempatkan di unit tempat perawatan berada.</summary>
+        private const string KodeUnitLain = "NURSE_UNIT_NOT_ASSIGNED";
+
+        /// <summary>Pengguna bukan penulis konsep.</summary>
+        private const string KodeBukanPenulis = "NOT_DOCUMENT_AUTHOR";
 
         /// <summary>
         /// Apakah jenis ini kajian medis, yaitu dokumen milik dokter dan bukan pengkajian
@@ -164,6 +210,99 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         private static bool IsKajianMedis(PatientAssessmentType assessmentType) =>
             assessmentType == PatientAssessmentType.MedicalInitial ||
             assessmentType == PatientAssessmentType.MedicalReassessment;
+
+        /// <summary>
+        /// Daftar nilai sah seluruh enum pengkajian beserta labelnya.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <c>BE-RWI-106</c> kriteria 1, <c>RLN3-CAP-18</c>, <c>RLN3-CAP-29</c>. Frontend membaca
+        /// pilihan dari sini, bukan menulis angkanya sendiri. Server tetap menolak angka di luar
+        /// daftar ini pada jalur buat dan ubah, sehingga salah pemetaan di layar tidak pernah
+        /// tersimpan diam-diam dengan arti yang lain.
+        /// </para>
+        /// <para>
+        /// <b>Contoh yang ditutup.</b> Layar lama menganggap status <c>1</c> berarti selesai,
+        /// padahal <c>1</c> adalah <c>InProgress</c> dan selesai bernilai <c>2</c>. Layar lama juga
+        /// mengirim status fungsional <c>4</c> untuk "Ketergantungan Berat", sedangkan backend hanya
+        /// mengenal <c>0</c> s.d. <c>3</c>. Dari daftar ini keduanya terbaca jelas.
+        /// </para>
+        /// </remarks>
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<PatientAssessmentMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Patient Assessment", Description = "Melihat daftar nilai sah isian pengkajian", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("PatientAssessment", "Read")]
+        public IActionResult GetMetadata()
+        {
+            var result = new PatientAssessmentMetadataResponse
+            {
+                AssessmentTypes = OpsiEnum<PatientAssessmentType>(LabelJenisPengkajian),
+                AssessmentStatuses = OpsiEnum<PatientAssessmentStatus>(x => x switch
+                {
+                    PatientAssessmentStatus.Draft => "Konsep",
+                    PatientAssessmentStatus.InProgress => "Sedang dikerjakan",
+                    PatientAssessmentStatus.Completed => "Selesai",
+                    PatientAssessmentStatus.Cancelled => "Dibatalkan",
+                    _ => x.ToString()
+                }),
+                ConsciousnessStatuses = OpsiEnum<ConsciousnessStatus>(x => x switch
+                {
+                    ConsciousnessStatus.Unknown => "Belum dikaji",
+                    ConsciousnessStatus.ComposMentis => "Compos Mentis",
+                    _ => x.ToString()
+                }),
+                AppetiteStatuses = OpsiEnum<AppetiteStatus>(x => x switch
+                {
+                    AppetiteStatus.Unknown => "Belum dikaji",
+                    AppetiteStatus.Normal => "Normal",
+                    AppetiteStatus.Decreased => "Menurun",
+                    AppetiteStatus.Increased => "Meningkat",
+                    AppetiteStatus.Poor => "Sangat buruk",
+                    _ => x.ToString()
+                }),
+                FunctionalStatuses = OpsiEnum<FunctionalStatus>(x => x switch
+                {
+                    FunctionalStatus.Unknown => "Belum dikaji",
+                    FunctionalStatus.Independent => "Mandiri",
+                    FunctionalStatus.NeedPartialAssistance => "Butuh bantuan sebagian",
+                    FunctionalStatus.FullyDependent => "Tergantung penuh",
+                    _ => x.ToString()
+                }),
+                NutritionRiskStatuses = OpsiEnum<NutritionRiskStatus>(LabelRisiko),
+                FallRiskStatuses = OpsiEnum<FallRiskStatus>(x => x switch
+                {
+                    FallRiskStatus.Unknown => "Belum dikaji",
+                    FallRiskStatus.NoRisk => "Tidak berisiko",
+                    FallRiskStatus.LowRisk => "Risiko rendah",
+                    FallRiskStatus.MediumRisk => "Risiko sedang",
+                    FallRiskStatus.HighRisk => "Risiko tinggi",
+                    _ => x.ToString()
+                }),
+                OxygenSupportTypes = OpsiEnum<OxygenSupportType>(x => x switch
+                {
+                    OxygenSupportType.None => "Tanpa oksigen",
+                    OxygenSupportType.NasalCannula => "Nasal kanul",
+                    OxygenSupportType.SimpleMask => "Simple mask",
+                    OxygenSupportType.NonRebreathingMask => "Non-rebreathing mask",
+                    OxygenSupportType.VenturiMask => "Venturi mask",
+                    OxygenSupportType.Other => "Lainnya",
+                    _ => x.ToString()
+                }),
+                PainAssessmentStates = OpsiEnum<PainAssessmentState>(x => x switch
+                {
+                    PainAssessmentState.NotAssessed => "Belum dinilai",
+                    PainAssessmentState.NoPain => "Tidak nyeri",
+                    PainAssessmentState.HasPain => "Nyeri",
+                    PainAssessmentState.UnableToAssess => "Tidak dapat dinilai",
+                    _ => x.ToString()
+                }),
+                NotAssessedValue = 0
+            };
+
+            return Ok(ApiResponse<PatientAssessmentMetadataResponse>.Ok(
+                result,
+                "Daftar nilai isian pengkajian berhasil diambil."));
+        }
 
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<ResponsePatientAssessmentPagedResult>), StatusCodes.Status200OK)]
@@ -269,6 +408,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             var result = entity != null ? ToDetailResponse(entity) : null;
 
+            // BE-RWI-109 / BE-RWI-110 — hasil instrumen dan tanda vital yang ditunjuk, dibaca langsung.
+            if (result != null)
+                await _documentService.EnrichDetailAsync(result);
+
             if (result == null)
             {
                 return NotFound(ApiResponse<object>.Fail(
@@ -311,6 +454,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             var result = entity != null ? ToDetailResponse(entity) : null;
 
+            // BE-RWI-109 / BE-RWI-110 — hasil instrumen dan tanda vital yang ditunjuk, dibaca langsung.
+            if (result != null)
+                await _documentService.EnrichDetailAsync(result);
+
             if (result == null)
             {
                 return NotFound(ApiResponse<object>.Fail(
@@ -350,6 +497,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         public async Task<IActionResult> GetByEpisode(
             Guid episodeId,
             [FromQuery] PatientAssessmentType? assessmentType = null,
+            [FromQuery] PatientAssessmentStatus? assessmentStatus = null,
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 25,
             CancellationToken cancellationToken = default)
@@ -384,6 +532,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             if (assessmentType.HasValue)
                 query = query.Where(x => x.AssessmentType == assessmentType.Value);
+
+            // BE-RWI-106 / RLN3-CAP-17, api-contract 0.5.0 bagian 7.1. Daftar tetap berpaginasi —
+            // paling banyak 100 baris sekali baca — dan kini dapat disaring statusnya, sehingga
+            // layar yang mencari konsep berjalan tidak perlu menarik seluruh riwayat perawatan.
+            if (assessmentStatus.HasValue)
+                query = query.Where(x => x.AssessmentStatus == assessmentStatus.Value);
 
             var totalData = await query.CountAsync(cancellationToken);
 
@@ -430,6 +584,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             var result = entity != null ? ToDetailResponse(entity) : null;
 
+            // BE-RWI-109 / BE-RWI-110 — hasil instrumen dan tanda vital yang ditunjuk, dibaca langsung.
+            if (result != null)
+                await _documentService.EnrichDetailAsync(result);
+
             if (result == null)
             {
                 return NotFound(ApiResponse<object>.Fail(
@@ -466,7 +624,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
                 return StatusCode(validation.StatusCode, ApiResponse<object>.Fail(
                     validation.StatusCode,
-                    pesan
+                    pesan,
+                    validation.Errors
                 ));
             }
 
@@ -497,6 +656,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             // BE-RWI-056. Perhitungan dijalankan SESUDAH perawatan diketahui, karena hanya
             // pengkajian rawat inap yang membedakan "risiko jatuh belum diisi" dari "tidak
             // berisiko". Urutan dua baris ini karena itu menentukan, bukan sekadar selera.
+            // BE-RWI-109 s.d. BE-RWI-111. Dokumen keperawatan rawat inap V2: keadaan nyeri menentukan
+            // HasPain, dan dua centang risiko jatuh lama diabaikan (api-contract 0.5.0 bagian 7.0).
+            var dokumenV2 = !IsKajianMedis(request.AssessmentType) &&
+                            NursingAssessmentDocumentService.IsInpatientV2(inpEpisodeId, request.AssessmentType);
+
+            if (dokumenV2)
+            {
+                request.HasPain = request.PainAssessmentState == PainAssessmentState.HasPain;
+                request.HasFallRisk = false;
+                request.HasAtaxia = false;
+                request.HasPosturalInstability = false;
+            }
+
             var calculated = CalculateAssessmentValues(request, inpEpisodeId.HasValue);
 
             // BE-RWI-045. Kajian medis dituliskan atas nama dokter yang benar-benar terhubung
@@ -630,27 +802,45 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             NormalizeAssessmentData(entity);
 
-            // BE-RWI-056 / VAL-KEP-08. Penyelesaian punya DUA pintu: PATCH /{id}/complete dan
-            // pembuatan yang langsung meminta selesai lewat completeImmediately. Menjaga satu
-            // pintu saja berarti aturan isian wajib dapat dilewati hanya dengan menyalakan satu
-            // flag pada permintaan pembuatan, dan pengkajian rawat inap yang kosong tetap
-            // mendarat sebagai Completed.
-            //
-            // Penyaringnya sama persis dengan pintu pertama: keberadaan perawatan, bukan jenis
-            // pengkajian saja. Poliklinik, medical check-up, dan IGD tidak tersentuh.
-            if (!IsKajianMedis(entity.AssessmentType) &&
-                entity.InpEpisodeId.HasValue &&
-                entity.AssessmentStatus == PatientAssessmentStatus.Completed)
-            {
-                var bagianKosongSaatLahir = BagianPengkajianKeperawatanYangKosong(entity);
+            var hasilInstrumen = new List<AssessmentInstrumentResultResponse>();
 
-                if (bagianKosongSaatLahir.Count > 0)
+            if (dokumenV2)
+            {
+                var penerapan = await _documentService.ApplyDraftAsync(
+                    entity,
+                    request.InstrumentResponses,
+                    request.VitalSignId,
+                    request.PainAssessmentState,
+                    actorUserId);
+
+                if (!penerapan.IsSuccess)
                 {
-                    return BadRequest(ApiResponse<object>.Fail(
-                        StatusCodes.Status400BadRequest,
-                        "Pengkajian belum dapat diselesaikan. Bagian berikut masih kosong: " +
-                        $"{string.Join(", ", bagianKosongSaatLahir)}."
-                    ));
+                    return StatusCode(penerapan.StatusCode, ApiResponse<object>.Fail(
+                        penerapan.StatusCode,
+                        penerapan.ErrorMessage ?? "Pengkajian tidak dapat disimpan.",
+                        penerapan.Errors));
+                }
+
+                hasilInstrumen = penerapan.Value ?? hasilInstrumen;
+            }
+
+            // Penyelesaian punya DUA pintu: PATCH /{id}/complete dan completeImmediately pada
+            // pembuatan. Keduanya dijaga aturan yang sama.
+            //
+            // BE-RWI-109 kriteria 3 / FR-KEP-043. Daftar isian wajib tetap BE-RWI-056 (risiko jatuh
+            // dan skrining gizi) dicabut dari jalur rawat inap. Isian wajib kini dibaca dari versi
+            // instrumen yang disahkan (VAL-KEP-21a, VAL-KEP-21b, VAL-KEP-22a). Poliklinik, medical
+            // check-up, dan IGD tidak pernah punya pemeriksaan ini dan tetap tidak tersentuh.
+            if (dokumenV2 && entity.AssessmentStatus == PatientAssessmentStatus.Completed)
+            {
+                var penjagaSelesai = await _documentService.EnsureCanCompleteAsync(entity);
+
+                if (!penjagaSelesai.IsSuccess)
+                {
+                    return StatusCode(penjagaSelesai.StatusCode, ApiResponse<object>.Fail(
+                        penjagaSelesai.StatusCode,
+                        penjagaSelesai.ErrorMessage ?? "Pengkajian belum dapat diselesaikan.",
+                        penjagaSelesai.Errors));
                 }
             }
 
@@ -725,7 +915,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 MapStatus = entity.MapStatus,
                 EarlyWarningScore = entity.EarlyWarningScore,
                 EwsRiskLevel = entity.EwsRiskLevel,
-                EwsMonitoringRecommendation = entity.EwsMonitoringRecommendation
+                EwsMonitoringRecommendation = entity.EwsMonitoringRecommendation,
+                InstrumentResults = hasilInstrumen
             };
 
             await _loggerService.InfoAsync(
@@ -768,7 +959,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             {
                 return StatusCode(kewenanganPerawat.StatusCode, ApiResponse<object>.Fail(
                     kewenanganPerawat.StatusCode,
-                    kewenanganPerawat.ErrorMessage ?? "Assessment ini tidak dapat diubah."
+                    kewenanganPerawat.ErrorMessage ?? "Assessment ini tidak dapat diubah.",
+                    kewenanganPerawat.Errors
                 ));
             }
 
@@ -780,7 +972,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             {
                 return StatusCode(penjagaPenulis.StatusCode, ApiResponse<object>.Fail(
                     penjagaPenulis.StatusCode,
-                    penjagaPenulis.ErrorMessage ?? "Assessment ini tidak dapat diubah."
+                    penjagaPenulis.ErrorMessage ?? "Assessment ini tidak dapat diubah.",
+                    penjagaPenulis.Errors
                 ));
             }
 
@@ -814,8 +1007,55 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 ));
             }
 
+            // BE-RWI-106 kriteria 1 / RLN3-CAP-29.
+            var enumTidakSah = TemukanEnumTidakSah(
+                null,
+                request.OxygenSupportType,
+                request.ConsciousnessStatus,
+                request.AppetiteStatus,
+                request.NutritionRiskStatus,
+                request.FallRiskStatus,
+                request.FunctionalStatus);
+
+            if (enumTidakSah != null)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    enumTidakSah));
+            }
+
+            // BE-RWI-106 kriteria 4 / RLN3-CAP-21. PUT menimpa SELURUH isian. Layar yang mengisi
+            // formulir dari baris daftar — yang memang tidak memuat catatan nyeri, riwayat obat,
+            // dan belasan isian lain — akan mengosongkan isian itu tanpa perawat sadar. Kiriman
+            // karena itu wajib membawa jejak waktu dari pembacaan detail terakhir.
+            //
+            // Contoh: Ns. Siti membuka detail pengkajian Budi pukul 09.00 (UpdateDateTime 08.55).
+            // Ns. Rina menyimpan perubahan pukul 09.02. Kiriman Siti pukul 09.05 masih membawa
+            // 08.55 → 409, bukan menimpa perubahan Rina.
+            var penjagaBacaDetail = PeriksaBacaDetailSebelumSunting(entity, request.ExpectedUpdateDate);
+
+            if (!penjagaBacaDetail.IsValid)
+            {
+                return StatusCode(penjagaBacaDetail.StatusCode, ApiResponse<object>.Fail(
+                    penjagaBacaDetail.StatusCode,
+                    penjagaBacaDetail.ErrorMessage ?? "Assessment ini tidak dapat diubah.",
+                    penjagaBacaDetail.Errors
+                ));
+            }
+
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
+            var dokumenV2 = !IsKajianMedis(entity.AssessmentType) &&
+                            NursingAssessmentDocumentService.IsInpatientV2(entity.InpEpisodeId, entity.AssessmentType);
+
+            if (dokumenV2)
+            {
+                request.HasPain = request.PainAssessmentState == PainAssessmentState.HasPain;
+                request.HasFallRisk = false;
+                request.HasAtaxia = false;
+                request.HasPosturalInstability = false;
+            }
+
             var calculated = CalculateAssessmentValues(request, entity.InpEpisodeId.HasValue);
 
             entity.ChiefComplaint = NormalizeNullableText(request.ChiefComplaint);
@@ -894,6 +1134,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             NormalizeAssessmentData(entity);
 
+            if (dokumenV2)
+            {
+                // BE-RWI-109. Skor dihitung ulang dari versi yang berlaku saat konsep disimpan.
+                var penerapan = await _documentService.ApplyDraftAsync(
+                    entity,
+                    request.InstrumentResponses,
+                    request.VitalSignId,
+                    request.PainAssessmentState,
+                    actorUserId);
+
+                if (!penerapan.IsSuccess)
+                {
+                    return StatusCode(penerapan.StatusCode, ApiResponse<object>.Fail(
+                        penerapan.StatusCode,
+                        penerapan.ErrorMessage ?? "Assessment ini tidak dapat diubah.",
+                        penerapan.Errors));
+                }
+            }
+
             await _dbContext.SaveChangesAsync();
 
             return Ok(ApiResponse<object>.Ok(
@@ -953,7 +1212,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             {
                 return StatusCode(kewenanganPerawat.StatusCode, ApiResponse<object>.Fail(
                     kewenanganPerawat.StatusCode,
-                    kewenanganPerawat.ErrorMessage ?? "Assessment ini tidak dapat diselesaikan."
+                    kewenanganPerawat.ErrorMessage ?? "Assessment ini tidak dapat diselesaikan.",
+                    kewenanganPerawat.Errors
                 ));
             }
 
@@ -967,7 +1227,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             {
                 return StatusCode(penjagaPenulis.StatusCode, ApiResponse<object>.Fail(
                     penjagaPenulis.StatusCode,
-                    penjagaPenulis.ErrorMessage ?? "Assessment ini tidak dapat diselesaikan."
+                    penjagaPenulis.ErrorMessage ?? "Assessment ini tidak dapat diselesaikan.",
+                    penjagaPenulis.Errors
                 ));
             }
 
@@ -1014,23 +1275,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 }
             }
 
-            // BE-RWI-056 / VAL-KEP-08. Pengkajian keperawatan rawat inap yang bagian penilaian
-            // risikonya masih kosong tidak boleh dinyatakan selesai, dan penolakannya menyebut
-            // bagian mana yang kosong satu per satu - bukan sekadar "data tidak lengkap".
-            //
-            // Penyaringnya keberadaan perawatan, bukan jenis pengkajian saja. Pengkajian
-            // poliklinik, medical check-up, dan IGD tidak tersentuh aturan ini sama sekali.
-            if (!isKajianMedis && entity.InpEpisodeId.HasValue)
+            // BE-RWI-109 kriteria 3 / BE-RWI-111 kriteria 2. Dokumen keperawatan rawat inap V2
+            // diselesaikan menurut versi instrumennya: versi sah di produksi, isian wajib versi itu,
+            // isian berskor terjawab, dan keadaan nyeri pada Monitoring Nyeri. Daftar isian wajib
+            // tetap BE-RWI-056 sudah dicabut; skor tidak dihitung ulang setelah dokumen selesai.
+            if (!isKajianMedis && NursingAssessmentDocumentService.IsInpatientV2(entity.InpEpisodeId, entity.AssessmentType))
             {
-                var bagianKeperawatanKosong = BagianPengkajianKeperawatanYangKosong(entity);
+                var penjagaSelesai = await _documentService.EnsureCanCompleteAsync(entity);
 
-                if (bagianKeperawatanKosong.Count > 0)
+                if (!penjagaSelesai.IsSuccess)
                 {
-                    return BadRequest(ApiResponse<object>.Fail(
-                        StatusCodes.Status400BadRequest,
-                        "Pengkajian belum dapat diselesaikan. Bagian berikut masih kosong: " +
-                        $"{string.Join(", ", bagianKeperawatanKosong)}."
-                    ));
+                    return StatusCode(penjagaSelesai.StatusCode, ApiResponse<object>.Fail(
+                        penjagaSelesai.StatusCode,
+                        penjagaSelesai.ErrorMessage ?? "Pengkajian belum dapat diselesaikan.",
+                        penjagaSelesai.Errors));
                 }
             }
 
@@ -1160,7 +1418,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             {
                 return StatusCode(kewenanganPerawat.StatusCode, ApiResponse<object>.Fail(
                     kewenanganPerawat.StatusCode,
-                    kewenanganPerawat.ErrorMessage ?? "Assessment ini tidak dapat dibatalkan."
+                    kewenanganPerawat.ErrorMessage ?? "Assessment ini tidak dapat dibatalkan.",
+                    kewenanganPerawat.Errors
                 ));
             }
 
@@ -1171,7 +1430,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             {
                 return StatusCode(penjagaPenulis.StatusCode, ApiResponse<object>.Fail(
                     penjagaPenulis.StatusCode,
-                    penjagaPenulis.ErrorMessage ?? "Assessment ini tidak dapat dibatalkan."
+                    penjagaPenulis.ErrorMessage ?? "Assessment ini tidak dapat dibatalkan.",
+                    penjagaPenulis.Errors
                 ));
             }
 
@@ -1274,7 +1534,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             {
                 return StatusCode(kewenanganPerawat.StatusCode, ApiResponse<object>.Fail(
                     kewenanganPerawat.StatusCode,
-                    kewenanganPerawat.ErrorMessage ?? "Koreksi tidak dapat ditambahkan."
+                    kewenanganPerawat.ErrorMessage ?? "Koreksi tidak dapat ditambahkan.",
+                    kewenanganPerawat.Errors
                 ));
             }
 
@@ -1447,6 +1708,66 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         }
 
         // =====================================================================
+        // BE-RWI-112 - progres pengkajian lima bagian
+        // =====================================================================
+
+        /// <summary>Progres Pengkajian Pasien lima bagian beserta alert klinis kepala konteks.</summary>
+        /// <remarks>
+        /// <para>
+        /// <c>BE-RWI-112</c>, <c>FR-KEP-050</c> s.d. <c>FR-KEP-052</c>, api-contract 0.5.0 bagian 7.1.
+        /// Persen dihitung server (<c>CompletedCount × 20</c>); Pengawasan Harian dan Evaluasi Awal tampil
+        /// tanpa dihitung. Temuan berisiko ada pada <c>Alerts</c>, tidak mengubah ✓/!/○.
+        /// </para>
+        /// <para>
+        /// <b>Gagal bukan ○.</b> Galat membaca data tidak pernah dijawab lima bagian kosong; layar
+        /// menampilkan "Gagal memuat progres pengkajian" (<c>AC-KEP-072</c>).
+        /// </para>
+        /// </remarks>
+        [HttpGet("episodes/{episodeId:guid}/progress")]
+        [ProducesResponseType(typeof(ApiResponse<NursingAssessmentProgressResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Patient Assessment", Description = "Melihat progres pengkajian lima bagian satu perawatan", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("PatientAssessment", "Read")]
+        public async Task<IActionResult> GetEpisodeProgress(
+            Guid episodeId,
+            CancellationToken cancellationToken = default)
+        {
+            var hasil = await _progressService.GetProgressAsync(episodeId, cancellationToken);
+
+            if (hasil == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Perawatan rawat inap tidak ditemukan."));
+            }
+
+            return Ok(ApiResponse<NursingAssessmentProgressResponse>.Ok(
+                hasil,
+                $"Progres pengkajian {hasil.ProgressPercent}%."));
+        }
+
+        /// <summary>Versi instrumen yang berlaku bagi pasien satu perawatan — dipanggil formulir.</summary>
+        /// <remarks>
+        /// <c>INT-KEP-16</c>, api-contract 0.5.0 bagian 7.2 <c>GET /resolve</c>. Dipasang pada grup ini
+        /// supaya pemanggilnya cukup memegang <c>PatientAssessment : Read</c> seperti yang diminta
+        /// kontrak. Contoh: Budi 67 tahun, <c>instrumentKind=FallRiskScale</c> → instrumen dewasa;
+        /// bila hanya ada konsep di produksi, <c>IsApproved = false</c> dan tombol Selesai nonaktif.
+        /// </remarks>
+        [HttpGet("instruments/resolve")]
+        [ProducesResponseType(typeof(ApiResponse<ResolvedInstrumentResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Patient Assessment", Description = "Melihat instrumen berversi yang berlaku bagi pasien", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("PatientAssessment", "Read")]
+        public async Task<IActionResult> ResolveInstrument(
+            [FromQuery] ClinicalInstrumentKind instrumentKind,
+            [FromQuery] Guid episodeId,
+            CancellationToken cancellationToken = default)
+        {
+            var hasil = await _instrumentService.ResolveForEpisodeAsync(instrumentKind, episodeId, cancellationToken);
+            return this.ToActionResult(hasil);
+        }
+
+        // =====================================================================
         // BE-RWI-064 - daftar pantau kepatuhan pengkajian awal
         // =====================================================================
 
@@ -1534,6 +1855,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         private async Task<CreateGuard> ValidateCreateRequestAsync(
             CreatePatientAssessmentRequest request)
         {
+            // BE-RWI-106 kriteria 1 / RLN3-CAP-29. Angka enum di luar daftar sah ditolak paling
+            // awal, sebelum satu pun penjaga lain membaca database.
+            var enumTidakSah = TemukanEnumTidakSah(
+                request.AssessmentType,
+                request.OxygenSupportType,
+                request.ConsciousnessStatus,
+                request.AppetiteStatus,
+                request.NutritionRiskStatus,
+                request.FallRiskStatus,
+                request.FunctionalStatus);
+
+            if (enumTidakSah != null)
+                return CreateGuard.Fail(enumTidakSah);
+
             // BE-RWI-044 / VAL-DOK-26 dan BE-RWI-045 / VAL-DOK-01, VAL-DOK-05. Penanda perawatan
             // dan kewenangan menulis kajian medis diperiksa pada kedua cabang: kunjungan yang
             // berantre pun dapat menaungi perawatan rawat inap, dan penanda yang salah di sana
@@ -1819,7 +2154,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             {
                 return CreateGuard.Fail(
                     InpatientClinicalContextService.PenolakanPerawatTanpaPegawai,
-                    StatusCodes.Status403Forbidden);
+                    StatusCodes.Status403Forbidden,
+                    KodeTanpaPegawai);
             }
 
             var bertugas = await _inpatientClinicalContextService.IsNurseOnDutyAtEpisodeAsync(
@@ -1829,7 +2165,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 ? CreateGuard.Ok()
                 : CreateGuard.Fail(
                     InpatientClinicalContextService.PenolakanPerawatUnitLain,
-                    StatusCodes.Status403Forbidden);
+                    StatusCodes.Status403Forbidden,
+                    KodeUnitLain);
         }
 
         /// <summary>
@@ -1869,7 +2206,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             return CreateGuard.Fail(
                 penjaga.ErrorMessage ?? InpatientClinicalContextService.PenolakanBukanPenulisKonsep,
-                penjaga.StatusCode);
+                penjaga.StatusCode,
+                penjaga.StatusCode == StatusCodes.Status403Forbidden ? KodeBukanPenulis : null);
         }
 
         /// <summary>
@@ -2204,48 +2542,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                     x.DiagnosisStatus != PatientDiagnosisStatus.Resolved);
         }
 
-        /// <summary>
-        /// Bagian pengkajian keperawatan rawat inap yang masih kosong saat hendak diselesaikan.
-        /// </summary>
-        /// <remarks>
-        /// <para>
-        /// <c>BE-RWI-056</c>, <c>VAL-KEP-08</c>, <c>UAT-KEP-07</c>. Dua bagian yang diperiksa
-        /// adalah <b>penilaian risiko jatuh</b> dan <b>skrining gizi</b>. Keduanya dipilih dari
-        /// bukti yang sudah disetujui, bukan dikarang: <c>UAT-KEP-07</c> menyebut risiko jatuh
-        /// secara langsung, dan <c>FR-KEP-007</c> menempatkan nyeri, risiko jatuh, serta gizi
-        /// sebagai tiga pengukuran yang wajib terbaca sebagai perkembangan.
-        /// </para>
-        /// <para>
-        /// <b>Nyeri sengaja tidak ikut diperiksa</b>, dan itu bukan kelalaian: pertanyaan nyeri
-        /// dijawab kolom <c>HasPain</c> yang selalu bernilai benar atau salah, sehingga ia tidak
-        /// pernah dapat "kosong". Memaksakan pemeriksaan di sana akan menolak pengkajian pasien
-        /// yang memang tidak nyeri.
-        /// </para>
-        /// <para>
-        /// <b>Daftar isian wajib yang dapat diatur admin belum ada.</b> <c>VAL-KEP-08</c>
-        /// menyebut "isian wajib menurut kebijakan aktif", sedangkan
-        /// <c>MstClinicalAssessmentPolicy</c> hanya menyimpan batas waktu. Perluasannya menuntut
-        /// keputusan pemilik klinis dan dicatat sebagai butir terbuka pada laporan task; sampai
-        /// itu turun, kedua bagian di ataslah yang ditegakkan.
-        /// </para>
-        /// </remarks>
-        private static List<string> BagianPengkajianKeperawatanYangKosong(
-            TrxPatientAssessment entity)
-        {
-            var kosong = new List<string>();
-
-            // BE-RWI-056 / UAT-KEP-07. Sejak penilaian risiko jatuh dapat benar-benar bernilai
-            // "belum diisi", bagian ini ikut terbaca kosong - sebelumnya ia selalu terlanjur
-            // berubah menjadi "tidak berisiko" sehingga tidak pernah dapat disebut.
-            if (entity.FallRiskStatus == FallRiskStatus.Unknown)
-                kosong.Add("penilaian risiko jatuh");
-
-            if (entity.NutritionRiskStatus == NutritionRiskStatus.Unknown)
-                kosong.Add("skrining gizi");
-
-            return kosong;
-        }
-
         private async Task<string> GenerateAssessmentNumberAsync(DateTime now)
         {
             var prefix = $"ASM-{now:yyyyMMdd}";
@@ -2273,13 +2569,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             var ewsRiskLevel = CalculateEwsRiskLevel(ewsScore);
             var ewsMonitoringRecommendation = GetEwsMonitoringRecommendation(ewsRiskLevel, ewsScore);
 
+            // BE-RWI-109 / FR-KEP-043, RWI-FACT-036. Jalur rawat inap tidak lagi menghitung risiko jatuh
+            // dari dua centang dan batas di kode. Kategori dan skornya lahir dari instrumen berversi
+            // lewat NursingAssessmentDocumentService; sebelum itu keadaannya "belum dikaji".
             var hasFallRisk = request.HasFallRisk || request.HasAtaxia || request.HasPosturalInstability;
-            var fallRiskScore = CalculateFallRiskScore(hasFallRisk, request.HasAtaxia, request.HasPosturalInstability);
-            var fallRiskStatus = CalculateFallRiskStatus(
-                hasFallRisk,
-                fallRiskScore,
-                request.FallRiskStatus,
-                pengkajianRawatInap);
+            int? fallRiskScore = null;
+            var fallRiskStatus = FallRiskStatus.Unknown;
+
+            if (!pengkajianRawatInap)
+            {
+                fallRiskScore = CalculateFallRiskScore(hasFallRisk, request.HasAtaxia, request.HasPosturalInstability);
+                fallRiskStatus = CalculateFallRiskStatus(hasFallRisk, fallRiskScore);
+            }
 
             return new CalculatedAssessmentValue
             {
@@ -2312,13 +2613,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             var ewsRiskLevel = CalculateEwsRiskLevel(ewsScore);
             var ewsMonitoringRecommendation = GetEwsMonitoringRecommendation(ewsRiskLevel, ewsScore);
 
+            // BE-RWI-109 / FR-KEP-043, RWI-FACT-036. Jalur rawat inap tidak lagi menghitung risiko jatuh
+            // dari dua centang dan batas di kode. Kategori dan skornya lahir dari instrumen berversi
+            // lewat NursingAssessmentDocumentService; sebelum itu keadaannya "belum dikaji".
             var hasFallRisk = request.HasFallRisk || request.HasAtaxia || request.HasPosturalInstability;
-            var fallRiskScore = CalculateFallRiskScore(hasFallRisk, request.HasAtaxia, request.HasPosturalInstability);
-            var fallRiskStatus = CalculateFallRiskStatus(
-                hasFallRisk,
-                fallRiskScore,
-                request.FallRiskStatus,
-                pengkajianRawatInap);
+            int? fallRiskScore = null;
+            var fallRiskStatus = FallRiskStatus.Unknown;
+
+            if (!pengkajianRawatInap)
+            {
+                fallRiskScore = CalculateFallRiskScore(hasFallRisk, request.HasAtaxia, request.HasPosturalInstability);
+                fallRiskStatus = CalculateFallRiskStatus(hasFallRisk, fallRiskScore);
+            }
 
             return new CalculatedAssessmentValue
             {
@@ -2492,44 +2798,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         }
 
         /// <summary>
-        /// Menentukan kategori risiko jatuh dari penanda risiko, skornya, dan kategori yang
-        /// dinyatakan perawat.
+        /// Kategori risiko jatuh jalur <b>non-rawat-inap</b> — poliklinik, medical check-up, IGD.
         /// </summary>
         /// <remarks>
         /// <para>
-        /// <b>BE-RWI-056 / UAT-KEP-07.</b> "Belum diisi" dan "tidak berisiko" adalah dua
-        /// pernyataan klinis yang berbeda. Perhitungan lama menyamakan keduanya: perawat yang
-        /// sama sekali tidak membuka bagian risiko jatuh tersimpan sebagai perawat yang menyatakan
-        /// pasiennya <b>tidak berisiko</b> — pernyataan yang tidak pernah ia buat. Karena itu
-        /// penyelesaian pengkajian tidak pernah dapat menolak bagian yang kosong.
+        /// <c>BE-RWI-109</c> kriteria 4. Perhitungan lama dipertahankan tanpa perubahan hasil sampai
+        /// pemilik <c>rawat-jalan</c> memutuskan sendiri (<c>RWI-DEC-152</c>). Jalur rawat inap tidak lagi
+        /// memanggil metode ini: kategorinya lahir dari pita instrumen berversi.
         /// </para>
         /// <para>
-        /// Pembedanya adalah <paramref name="kategoriDinyatakan"/>, yaitu field
-        /// <c>FallRiskStatus</c> yang <b>sudah ada</b> pada kedua request. Kontrak
-        /// <c>VAL-KEP-09</c> memang memperlakukan kategori risiko jatuh sebagai pilihan perawat
-        /// yang terpisah dari skornya, sehingga tidak ada bentuk data baru yang diperlukan dan
-        /// <c>HasFallRisk</c> tetap <c>bool</c>.
-        /// </para>
-        /// <para>
-        /// Pembedaan itu <b>hanya</b> berlaku bagi pengkajian yang menempel pada perawatan rawat
-        /// inap. Poliklinik, medical check-up, dan IGD memakai request yang sama, dan tidak satu
-        /// pun jalur mereka bergeser: tanpa perawatan, hasilnya tetap <see cref="FallRiskStatus.NoRisk"/>
-        /// persis seperti sebelumnya.
+        /// Hasil jalur lama sama persis dengan sebelum task ini: tanpa penanda risiko → <c>NoRisk</c>;
+        /// dengan penanda, skor 2 → <c>HighRisk</c>, skor 1 → <c>MediumRisk</c>, skor 0 → <c>LowRisk</c>.
         /// </para>
         /// </remarks>
         private static FallRiskStatus CalculateFallRiskStatus(
             bool hasFallRisk,
-            int? fallRiskScore,
-            FallRiskStatus kategoriDinyatakan,
-            bool pengkajianRawatInap)
+            int? fallRiskScore)
         {
             if (!hasFallRisk)
-            {
-                if (pengkajianRawatInap && kategoriDinyatakan == FallRiskStatus.Unknown)
-                    return FallRiskStatus.Unknown;
-
                 return FallRiskStatus.NoRisk;
-            }
 
             if (!fallRiskScore.HasValue)
                 return FallRiskStatus.Unknown;
@@ -2574,7 +2861,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 entity.AllergyNote = null;
             }
 
-            if (!entity.HasFallRisk)
+            // BE-RWI-109. Dokumen V2 rawat inap tidak memakai dua centang lama; catatan pencegahan
+            // Resiko Jatuh dan kategori dari instrumen tidak boleh ikut dirapikan menjadi kosong.
+            if (!entity.HasFallRisk &&
+                !NursingAssessmentDocumentService.IsInpatientV2(entity.InpEpisodeId, entity.AssessmentType))
             {
                 entity.HasAtaxia = false;
                 entity.HasPosturalInstability = false;
@@ -2696,7 +2986,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 StartedAt = x.StartedAt,
                 CompletedAt = x.CompletedAt,
                 IsActive = x.IsActive,
-                CreateDateTime = x.CreateDateTime
+                CreateDateTime = x.CreateDateTime,
+                UpdateDateTime = x.UpdateDateTime,
+                PainAssessmentState = x.PainAssessmentState,
+                PainReassessmentDueAt = x.PainReassessmentDueAt,
+                VitalSignId = x.VitalSignId
             };
         }
 
@@ -2807,9 +3101,147 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 CancelledByUserName = x.CancelledByUser != null ? x.CancelledByUser.DisplayName : null,
                 CancelReason = x.CancelReason,
                 IsActive = x.IsActive,
-                CreateDateTime = x.CreateDateTime
+                CreateDateTime = x.CreateDateTime,
+                UpdateDateTime = x.UpdateDateTime,
+                PainAssessmentState = x.PainAssessmentState,
+                PainReassessmentDueAt = x.PainReassessmentDueAt,
+                VitalSignId = x.VitalSignId
             };
         }
+
+        // =====================================================================
+        // BE-RWI-106 — pembantu enum satu sumber dan penjaga baca detail
+        // =====================================================================
+
+        /// <summary>
+        /// Toleransi perbandingan jejak waktu. PostgreSQL menyimpan mikrodetik, .NET menyimpan
+        /// 100 nanodetik; satu milidetik cukup menutup selisih pembulatan tanpa meloloskan
+        /// perubahan orang lain yang berselang detik.
+        /// </summary>
+        private static readonly TimeSpan ToleransiJejakWaktu = TimeSpan.FromMilliseconds(1);
+
+        /// <summary>
+        /// Menegakkan <c>BE-RWI-106</c> kriteria 4: penyuntingan pengkajian keperawatan rawat inap
+        /// wajib berangkat dari pembacaan detail terbaru.
+        /// </summary>
+        /// <remarks>
+        /// Wajib hanya untuk pengkajian keperawatan yang menempel pada perawatan rawat inap. Jalur
+        /// poliklinik, medical check-up, IGD, dan kajian medis tidak berubah perilakunya: tanpa
+        /// <c>ExpectedUpdateDate</c> tetap diterima, dan bila dikirim tetap diperiksa.
+        /// </remarks>
+        private static CreateGuard PeriksaBacaDetailSebelumSunting(
+            TrxPatientAssessment entity,
+            DateTime? expectedUpdateDate)
+        {
+            var wajib = entity.InpEpisodeId.HasValue &&
+                        entity.InpEpisodeId.Value != Guid.Empty &&
+                        !IsKajianMedis(entity.AssessmentType);
+
+            if (!expectedUpdateDate.HasValue)
+            {
+                return wajib
+                    ? CreateGuard.Fail(
+                        "Muat ulang detail pengkajian sebelum menyunting. Perubahan tidak " +
+                        "disimpan supaya isian yang tidak tampil di daftar tidak terhapus.",
+                        StatusCodes.Status400BadRequest,
+                        "DETAIL_NOT_LOADED")
+                    : CreateGuard.Ok();
+            }
+
+            var tersimpan = entity.UpdateDateTime ?? entity.CreateDateTime;
+            var dikirim = expectedUpdateDate.Value.Kind == DateTimeKind.Local
+                ? expectedUpdateDate.Value.ToUniversalTime()
+                : expectedUpdateDate.Value;
+
+            var selisih = (tersimpan - dikirim).Duration();
+
+            return selisih <= ToleransiJejakWaktu
+                ? CreateGuard.Ok()
+                : CreateGuard.Fail(
+                    "Pengkajian sudah diubah pengguna lain. Muat ulang detail sebelum menyunting.",
+                    StatusCodes.Status409Conflict,
+                    "STALE_ASSESSMENT");
+        }
+
+        /// <summary>
+        /// Mengembalikan kalimat penolakan untuk enum pertama yang nilainya di luar daftar sah,
+        /// atau <c>null</c> bila seluruhnya sah — <c>BE-RWI-106</c> kriteria 1.
+        /// </summary>
+        private static string? TemukanEnumTidakSah(
+            PatientAssessmentType? assessmentType,
+            OxygenSupportType oxygenSupportType,
+            ConsciousnessStatus consciousnessStatus,
+            AppetiteStatus appetiteStatus,
+            NutritionRiskStatus nutritionRiskStatus,
+            FallRiskStatus fallRiskStatus,
+            FunctionalStatus functionalStatus)
+        {
+            return (assessmentType.HasValue ? PeriksaEnum(assessmentType.Value, "jenis pengkajian") : null)
+                ?? PeriksaEnum(oxygenSupportType, "jenis alat bantu oksigen")
+                ?? PeriksaEnum(consciousnessStatus, "kesadaran")
+                ?? PeriksaEnum(appetiteStatus, "nafsu makan")
+                ?? PeriksaEnum(nutritionRiskStatus, "risiko gizi")
+                ?? PeriksaEnum(fallRiskStatus, "kategori risiko jatuh")
+                ?? PeriksaEnum(functionalStatus, "status fungsional");
+        }
+
+        /// <summary>
+        /// Kalimat penolakan satu enum yang tidak dikenal, menyebut seluruh nilai sahnya.
+        /// </summary>
+        /// <remarks>
+        /// Contoh: status fungsional <c>4</c> → "Nilai status fungsional (4) tidak dikenal. Nilai
+        /// yang sah: 0 = Unknown, 1 = Independent, 2 = NeedPartialAssistance, 3 = FullyDependent."
+        /// </remarks>
+        private static string? PeriksaEnum<TEnum>(TEnum value, string label)
+            where TEnum : struct, Enum
+        {
+            if (Enum.IsDefined(value))
+                return null;
+
+            var sah = string.Join(", ", Enum.GetValues<TEnum>()
+                .Select(x => $"{Convert.ToInt32(x)} = {x}"));
+
+            return $"Nilai {label} ({Convert.ToInt32(value)}) tidak dikenal. Nilai yang sah: {sah}.";
+        }
+
+        private static List<PatientAssessmentEnumOptionResponse> OpsiEnum<TEnum>(
+            Func<TEnum, string> label)
+            where TEnum : struct, Enum
+        {
+            return Enum.GetValues<TEnum>()
+                .Select(x => new PatientAssessmentEnumOptionResponse
+                {
+                    Value = Convert.ToInt32(x),
+                    Code = x.ToString(),
+                    Label = label(x)
+                })
+                .ToList();
+        }
+
+        /// <summary>Label jenis pengkajian sesuai nama menu ruang kerja keperawatan dan dokter.</summary>
+        internal static string LabelJenisPengkajian(PatientAssessmentType type) => type switch
+        {
+            PatientAssessmentType.Initial => "Kajian Umum — awal",
+            PatientAssessmentType.Reassessment => "Kajian Umum — ulang",
+            PatientAssessmentType.DailyReassessment => "Pengkajian ulang harian (tidak dipakai jalur V2)",
+            PatientAssessmentType.DischargePlanning => "Perencanaan Pulang",
+            PatientAssessmentType.MedicalInitial => "Kajian medis awal",
+            PatientAssessmentType.MedicalReassessment => "Kajian medis ulang",
+            PatientAssessmentType.FallRisk => "Resiko Jatuh",
+            PatientAssessmentType.PainMonitoring => "Monitoring Nyeri",
+            PatientAssessmentType.EducationAssessment => "Assesment Edukasi",
+            _ => type.ToString()
+        };
+
+        private static string LabelRisiko(NutritionRiskStatus status) => status switch
+        {
+            NutritionRiskStatus.Unknown => "Belum dikaji",
+            NutritionRiskStatus.NoRisk => "Tidak berisiko",
+            NutritionRiskStatus.LowRisk => "Risiko rendah",
+            NutritionRiskStatus.MediumRisk => "Risiko sedang",
+            NutritionRiskStatus.HighRisk => "Risiko tinggi",
+            _ => status.ToString()
+        };
 
         private static (int PageNumber, int PageSize) NormalizePaging(int pageNumber, int pageSize)
         {

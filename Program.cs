@@ -31,6 +31,7 @@ using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Servi
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Services;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Seeders;
@@ -342,6 +343,10 @@ try
     builder.Services.AddScoped<RadReportNumberService>();
     builder.Services.AddScoped<RadOrderNumberService>();
     builder.Services.AddScoped<BillingFolioService>();
+
+    // BE-RWI-126 / FR-KEP-082 / RWI-DEC-154. Ringkasan tagihan pasien rawat inap baca-saja tanpa
+    // harga per item, dibaca ruang kerja keperawatan lewat hak PatientBillingSummary : Read.
+    builder.Services.AddScoped<PatientBillingSummaryService>();
     builder.Services.AddScoped<ClinicalMilestoneFactProducer>();
 
     builder.Services.AddScoped<EncounterIntakeService>();
@@ -399,6 +404,28 @@ try
     // BE-RWI-061 / BE-RWI-062 / CAP-014. Pencatatan tindakan keperawatan, finalisasi, koreksi,
     // dan mesin keadaan pengiriman tagihan yang terpisah dari keadaan klinisnya.
     builder.Services.AddScoped<NursingInterventionService>();
+
+    // BE-RWI-107 s.d. BE-RWI-113, BE-RWI-121 — keperawatan rawat inap revision 7 (KEP-V2-1).
+    // Penjaga tulis episode bersama, instrumen klinis berversi beserta pengesahannya, dokumen
+    // Pengkajian Pasien V2, progres lima bagian, Evaluasi Awal MPP, dan deret tanda vital per episode.
+    builder.Services.AddScoped<NursingEpisodeWriteGuard>();
+    builder.Services.AddScoped<ClinicalInstrumentService>();
+    builder.Services.AddScoped<NursingAssessmentDocumentService>();
+    builder.Services.AddScoped<NursingAssessmentProgressService>();
+    builder.Services.AddScoped<CaseManagementEvaluationService>();
+    builder.Services.AddScoped<InpatientVitalSignService>();
+
+    // BE-RWI-114 s.d. BE-RWI-123 — keperawatan rawat inap revision 7 (KEP-V2-2). Pengawasan Harian
+    // (cairan, GDS bangsal, observasi, shift, balance), dugaan reaksi obat, MAR milik PharmacyManagement
+    // beserta pembentukan dosis terjadwal, dan pelaksanaan sliding scale satu transaksi. Pembentukan
+    // dosis terjadwal menyala bawaan; MAR yang dibuka tetap membentuk dosisnya sendiri bila dimatikan.
+    builder.Services.AddScoped<DailyMonitoringService>();
+    builder.Services.AddScoped<AdverseDrugReactionService>();
+    builder.Services.AddScoped<MedicationAdministrationService>();
+    builder.Services.AddScoped<SlidingScaleExecutionService>();
+    builder.Services.Configure<MedicationDoseSchedulerOptions>(
+        builder.Configuration.GetSection("HealthServices:MedicationDoseScheduler"));
+    builder.Services.AddHostedService<MedicationDoseSchedulerHostedService>();
 
     // BE-RWI-041 / CAP-025. Kejadian visite dokter beserta penyedia nomor bisnisnya. Nomor
     // dialokasikan service, tidak pernah oleh controller - QBE-CODE-002.
@@ -1296,6 +1323,10 @@ try
     // kapan pasien boleh disinari hanya berlaku setelah disahkan penanggung jawab klinis
     // (RJ-BIL-DEC-014, DEC-RAD-005).
     await RunStartupSeederAsync("RadiologyMasterDataSeeder", () => RadiologyMasterDataSeeder.SeedAsync(app.Services));
+
+    // BE-RWI-107 / RWI-DEC-124 butir 4. Instrumen dan formulir klinis awal sebagai DRAFT — tidak pernah
+    // disahkan oleh seeder. Batas yang bertabrakan pada V1 ditandai untuk ditinjau pemilik klinis.
+    await RunStartupSeederAsync("ClinicalInstrumentDraftSeeder", () => ClinicalInstrumentDraftSeeder.SeedAsync(app.Services));
 
     // Data induk contoh Laboratorium. Mati secara bawaan dan menolak berjalan di produksi:
     // katalog pemeriksaan, tarif, kelompok umur, dan sumber rujukan produksi ditetapkan pemilik

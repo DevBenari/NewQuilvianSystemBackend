@@ -165,7 +165,7 @@ namespace QuilvianSystemBackend.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_PhmMedicationReconciliationDecision_PhmMedicationReconcili~1",
+                        name: "FK_PhmMedicationReconciliationDecision_SupersedesDecisionId",
                         column: x => x.SupersedesDecisionId,
                         principalSchema: "public",
                         principalTable: "PhmMedicationReconciliationDecision",

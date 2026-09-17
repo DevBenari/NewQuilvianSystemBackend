@@ -1263,7 +1263,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
         /// <param name="nurseEmployeeId">Perawat yang kewenangannya diperiksa.</param>
         /// <param name="atUtc">Saat yang dipakai memeriksa periode penempatan.</param>
         /// <param name="cancellationToken">Token pembatalan permintaan.</param>
-        public async Task<bool> IsNurseOnDutyAtUnitAsync(
+        public Task<bool> IsNurseOnDutyAtUnitAsync(
+            Guid serviceUnitId,
+            Guid nurseEmployeeId,
+            DateTime atUtc,
+            CancellationToken cancellationToken = default) =>
+            IsEmployeeAssignedToUnitAsync(serviceUnitId, nurseEmployeeId, atUtc, cancellationToken);
+
+        /// <summary>
+        /// Menjawab apakah seorang pegawai — perawat maupun Manajer Pelayanan Pasien — ditempatkan di
+        /// sebuah unit pelayanan pada saat tertentu. <c>INT-KEP-07</c>, <c>RWI-DEC-131</c>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Logikanya persis logika <see cref="IsNurseOnDutyAtUnitAsync"/> sebelum
+        /// <c>BE-RWI-113</c>; namanya tanpa kata "perawat" karena Evaluasi Awal MPP memakai
+        /// pemeriksaan unit yang sama. Nama lama dipertahankan sebagai pembungkus satu baris,
+        /// sehingga seluruh pemanggil lama tidak disentuh (arsitektur 0.4 bagian 11.5.13).
+        /// </para>
+        /// <para>
+        /// Rantai penempatan, kelonggaran jatuh ke departemen, dan penolakan unit yang belum
+        /// terpetakan diwarisi apa adanya — lihat keterangan <see cref="IsNurseOnDutyAtUnitAsync"/>.
+        /// </para>
+        /// </remarks>
+        public async Task<bool> IsEmployeeAssignedToUnitAsync(
             Guid serviceUnitId,
             Guid nurseEmployeeId,
             DateTime atUtc,

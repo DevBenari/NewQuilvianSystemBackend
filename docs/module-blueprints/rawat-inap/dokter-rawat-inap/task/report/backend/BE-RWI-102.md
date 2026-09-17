@@ -17,7 +17,7 @@
 | Model | Claude Opus 5 |
 | Commit backend saat dikerjakan | `23a31501` (branch `MHamzah`) |
 | Tanggal | 17 September 2026 |
-| Status | ✅ Selesai berdasarkan validasi statis source dan skema; `dotnet build` dan eksekusi migration **NOT RUN** atas instruksi pemilik. **`RWI-OQ-097` tetap terbuka** |
+| Status | ✅ Selesai; validasi statis source dan skema. **`dotnet build` PASS dan migration R6 diterapkan ke `QuilvianNewDevHamzah` 17 September 2026** (bagian 8); uji runtime `NOT RUN`. **`RWI-OQ-097` tetap terbuka** |
 
 ## Backend Governance Preflight
 
@@ -29,7 +29,7 @@
 | QBE relevan | `QBE-ENT-001`, `QBE-CFG-001`, `QBE-NAM-001/002`, `QBE-MOD-002`, `QBE-SVC-001`, `QBE-API-001`, `QBE-PERM-001`, `QBE-LOG-001`, `QBE-VAL-001`, `QBE-TXN-001`, `QBE-DTO-001`, `QBE-ENUM-001` |
 | Hak akses baru | Resource `SlidingScaleTemplate` : `Read`, `Update`, **`Approve`** |
 | Persetujuan pemilik | Muhammad Hamzah selaku pemilik `PharmacyManagement` (`RWI-DEC-147`); kewenangan pemakaian `RWI-DEC-155` |
-| Database | Migration `20260916006000_AddSlidingScale` dibuat, **tidak dijalankan** |
+| Database | Migration `20260916006000_AddSlidingScale` dibuat; **diterapkan ke `QuilvianNewDevHamzah` 17 September 2026** |
 
 ## 1. Masalah yang diperbaiki
 
@@ -94,7 +94,7 @@ Kamus data 13.4–13.8, 13.13; arsitektur 0.5 bagian 11.4–11.9; state matrix 8
 | Aspek | Dampak |
 | --- | --- |
 | Kontrak API | Grup baru Sliding Scale Template (6 endpoint); tambahan murni |
-| Database | R6: lima tabel baru kosong; migration dibuat, **tidak dijalankan** |
+| Database | R6: lima tabel baru kosong; migration dibuat; **diterapkan ke `QuilvianNewDevHamzah` 17 September 2026** |
 | Keamanan/Auth | `Approve` terpisah dari `Update`; aturan pengesah ≠ pengubah terakhir dari data versi, bukan nama jabatan; pasangan atribut hak akses cocok huruf demi huruf |
 
 ## 4. Dokumentasi endpoint
@@ -119,8 +119,8 @@ Kamus data 13.4–13.8, 13.13; arsitektur 0.5 bagian 11.4–11.9; state matrix 8
 | Nama constraint ≤ 63 karakter mengikuti pemotongan EF Core | Sesuai | `PASS` | Perhitungan nama sesi ini |
 | Snapshot hanya bertambah | Nol baris terhapus | `PASS` | `git diff --diff-algorithm=histogram` |
 | Pemeriksaan statis ambiguitas tipe dan `using` hilang | Nol temuan pada kode task | `PASS` | Skrip analisis statis sesi ini |
-| `dotnet build` | Tidak dijalankan | `NOT RUN` | Instruksi eksplisit pemilik |
-| Verifikasi skema pada Postgres sekali pakai | Tidak dijalankan | `NOT RUN` | Migration belum dieksekusi |
+| `dotnet build` (perintah ringan pemilik: `-m:1`, tanpa shared compilation, tanpa analyzer) | Build ke-5 pada 17 September 2026: **0 error, 212 warning** | `PASS` | Bagian 8 |
+| Migration diterapkan ke `QuilvianNewDevHamzah` (database dev pribadi pemilik) | Tercatat di `__EFMigrationsHistory`, nol `Pending`; model = snapshot (`has-pending-model-changes` bersih) | `PASS` | Bagian 8 |
 | Verifikasi kontrak API dan proses bisnis runtime | Tidak dijalankan | `NOT RUN` | Menunggu build |
 
 **AUTOMATED TEST: NOT APPLICABLE** — backend tidak memelihara project test otomatis (`rules/backend/TEST_POLICY.md`).
@@ -136,7 +136,7 @@ Kamus data 13.4–13.8, 13.13; arsitektur 0.5 bagian 11.4–11.9; state matrix 8
 | 5. Pengesahan memensiunkan versi sah sebelumnya pada transaksi yang sama | Terpenuhi (statis) | Satu transaksi; versi lama disimpan `Retired` lebih dulu, lalu versi baru `Approved`, lalu commit |
 | 6. Versi `Draft` tidak dapat dipakai membuat order | Terpenuhi (statis) | `SlidingScaleOrderService.CreateAsync` → `409` VAL-DOK-55 |
 | `RWI-OQ-097` dicatat masih terbuka | Terpenuhi | Metadata, bagian 7, roadmap |
-| `dotnet build`, migration | Belum diverifikasi runtime | `NOT RUN` atas instruksi pemilik |
+| `dotnet build`, migration | Terpenuhi | `PASS` 17 September 2026 — build 0 error; migration diterapkan ke `QuilvianNewDevHamzah` — bagian 8 |
 
 ## 7. Catatan penutup
 
@@ -148,4 +148,24 @@ Kamus data 13.4–13.8, 13.13; arsitektur 0.5 bagian 11.4–11.9; state matrix 8
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
 | Status Git | Berkas baru `??` (14); berkas lain `M` |
-| Langkah berikutnya | `dotnet build`; jalankan migration R6; uji kedua contoh penolakan dan pengesahan oleh akun berbeda |
+| Langkah berikutnya | Uji kedua contoh penolakan dan pengesahan oleh akun berbeda |
+
+## 8. Verifikasi susulan — 17 September 2026
+
+Atas permintaan pemilik, build dan migration dijalankan setelah laporan ini ditulis. Perintah build
+yang dipakai persis perintah pemilik:
+`dotnet build .\QuilvianSystemBackend.csproj --configuration Debug -m:1 -p:BuildInParallel=false -p:UseSharedCompilation=false -p:RunAnalyzers=false`.
+
+| Langkah | Hasil | Tindakan |
+| --- | --- | --- |
+| Build ke-1 | Gagal dalam 12 detik — `CS1002` pada `ApplicationDbContextModelSnapshot.cs`: relasi `ConsultationId` milik `TrxPatientProcedure` kehilangan `;` (sisa suntingan `BE-RWI-097`) | `;` ditambahkan |
+| Build ke-2 | Pemeriksaan tipe penuh: **1 error** — `CS1931` pada `CpptVerificationService.cs`: variabel query `episode` bentrok dengan variabel lokal `episode` (kode `BE-RWI-096`) | Variabel query diganti nama `episodeBerjalan`, logika tidak berubah |
+| Build ke-3 | 0 error. `dotnet ef` menolak model: FK `SupersedesDecisionId` (merujuk tabelnya sendiri) dan FK `ReconciliationItemId` pada `PhmMedicationReconciliationDecision` bernama sama setelah dipotong 63 karakter — EF Core tidak memberi akhiran unik pada FK yang merujuk tabelnya sendiri. **Galat ini juga akan membuat aplikasi gagal saat `DbContext` pertama dipakai** | Nama constraint eksplisit `FK_PhmMedicationReconciliationDecision_SupersedesDecisionId` pada configuration, migration R5, dan snapshot |
+| Build ke-4 | 0 error. Snapshot gagal dibaca EF: lima navigasi koleksi (`Decisions`, `Versions`, `Ranges`) ditulis di blok relasi, sebelum relasinya dideklarasikan | Dipindahkan ke bagian navigasi snapshot; diperiksa tanpa build dengan simulasi urutan navigasi (0 galat), perbandingan DDL snapshot vs model runtime di 632 tabel, dan SQL migration vs model runtime (0 temuan) |
+| Build ke-5 | **0 error, 212 warning** (garis dasar 211) | — |
+| `dotnet ef migrations has-pending-model-changes --no-build` | "No changes have been made to the model since the last migration." | — |
+| `dotnet ef database update --no-build` ke `QuilvianNewDevHamzah` | `Done.` Delapan migration diterapkan: `20260916000000` s.d. `20260916007000` (termasuk R3, R7 milik task sebelumnya, lalu R4, R5, R6, R8) | `migrations list` sesudahnya: nol `Pending` |
+
+**Yang masih `NOT RUN`:** uji kontrak API dan proses bisnis runtime, uji jalur mundur migration
+(`Down`), serta regresi yang disyaratkan kartu roadmap. Database yang disentuh hanya
+`QuilvianNewDevHamzah` milik pemilik; database tim, staging, dan production tidak disentuh.

@@ -129,3 +129,12 @@ Tabel Status Respon:
 
 1. **Integritas Penutupan Episode**: Dengan terpasangnya `PatientProcedureOrderService.CancelPendingOrdersForClosureAsync` pada `InpDischargeService.Closure.cs`, Langkah 5 penutupan episode rawat inap kini aktif dan terhubung secara penuh.
 2. **Kesiapan Task Berikutnya**: Task `BE-RWI-098` (verifikasi instruksi oleh dokter) dan `BE-RWI-104` (instruksi pada pesanan Lab/Rad) kini dapat dilanjutkan karena fondasi `R7` dan service transaksi `PatientProcedureOrderService` telah selesai dibangun.
+
+## Catatan susulan — 17 September 2026
+
+Build pemilik (perintah ringan `-m:1`) gagal pada **`CS1002`** di
+`Migrations/ApplicationDbContextModelSnapshot.cs`: relasi `ConsultationId` milik `TrxPatientProcedure`
+kehilangan `;` setelah `.IsRequired()` dicabut saat kolom dibuat nullable. Diperbaiki; build sesudahnya
+**0 error** dan `has-pending-model-changes` bersih. **Migration R7 (`20260916003000`) sudah diterapkan**
+ke `QuilvianNewDevHamzah` (database dev pribadi pemilik) bersama migration 2026-09-16 lainnya.
+Regresi poliklinik tetap `NOT RUN`. Rincian: laporan `BE-RWI-091` s.d. `BE-RWI-105` bagian 8.

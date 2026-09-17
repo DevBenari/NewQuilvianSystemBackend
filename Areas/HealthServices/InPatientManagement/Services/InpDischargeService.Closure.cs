@@ -634,7 +634,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             "(sub-modul dokter-rawat-inap) dan belum mendarat.";
 
         /// <summary>
-        /// Keterangan langkah 6 penutupan yang belum terpasang, dengan alasan yang sama.
+        /// Keterangan lama langkah 6 sebelum terpasang. Sejak <c>BE-RWI-118</c> langkah 6 berjalan dan
+        /// konstanta ini tidak lagi dimasukkan ke ringkasan akibat maupun peringatan.
         /// </summary>
         public const string LangkahEnamBelumTerpasang =
             "Langkah 6 — pembatalan dosis obat berjadwal — belum terpasang. Tabel MAR " +
@@ -724,16 +725,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                       "TIDAK dibatalkan dan perlu ditindaklanjuti bersama Billing."
             });
 
-            // VAL-INP-16 — dosis obat yang jadwalnya sudah lewat tetapi belum dicatat. Tabel MAR
-            // belum ada pada repository ini; angkanya karena itu ditandai belum terukur, bukan
-            // dilaporkan nol. Lihat BE-RWI-114 pada roadmap keperawatan.
+            // VAL-INP-16 / INT-KEP-15 — dosis obat terjadwal yang jamnya sudah lewat tetapi belum
+            // dicatat. Dibaca dari MAR PharmacyManagement (BE-RWI-114). Peringatan, bukan syarat:
+            // dosis ini tetap Due, menjadi hanya-baca, dan tampil "Tidak dicatat sebelum perawatan
+            // ditutup" — RWI-DEC-129.
+            var unrecordedPastDoseCount = await _medicationAdministrationService
+                .CountUnrecordedPastDosesAsync(episode.Id, DateTime.UtcNow, cancellationToken);
+
             warnings.Add(new ClosureWarningResponse
             {
                 Code = ClosureWarningCode.UnrecordedPastDoses.ToString(),
-                Count = 0,
-                Message = "Jumlah dosis obat yang belum dicatat belum dapat dibaca.",
-                IsMeasured = false,
-                Details = { LangkahEnamBelumTerpasang }
+                Count = unrecordedPastDoseCount,
+                Message = unrecordedPastDoseCount == 0
+                    ? "Tidak ada dosis obat terjadwal yang terlewat tanpa dicatat."
+                    : $"{unrecordedPastDoseCount} dosis obat yang jadwalnya sudah lewat belum dicatat. " +
+                      "Dosis itu tidak dibatalkan dan akan tampil \"Tidak dicatat sebelum perawatan ditutup\".",
+                IsMeasured = true
             });
 
             return warnings;
@@ -1065,12 +1072,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                         cancellationToken);
 
                 // ---------------------------------------------------------------------
-                // Langkah 6 — BE-RWI-087 / INT-KEP-15 — BELUM TERPASANG.
+                // Langkah 6 — BE-RWI-087 / INT-KEP-15 / BE-RWI-118.
                 //
-                // Tabel dosis obat PharmacyManagement dibuat BE-RWI-114 pada sub-modul
-                // keperawatan dan belum ada sama sekali. 02-backend-architecture.md bagian 11.8
-                // menuliskannya apa adanya: "Selama tabel dosis belum ada, langkah 6 tidak
-                // dipasang."
+                // Dosis MAR Due yang jadwalnya SESUDAH waktu tutup dibatalkan beralasan
+                // "perawatan ditutup". Administered, Held, Refused, Missed, dan Due yang jamnya
+                // sudah lewat tidak disentuh. Di dalam transaksi ini: metode pemilik tidak
+                // menyimpan sendiri, sehingga galat pada langkah mana pun → nol dosis berubah.
+                var cancelledFutureDoseCount = await _medicationAdministrationService
+                    .CancelFutureDosesForEpisodeAsync(
+                        episode.Id,
+                        now,
+                        actorUserId,
+                        cancellationToken);
 
                 episode.ClosedAt = now;
 
@@ -1113,11 +1126,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     LockedDraftCount = lockedDraftCount,
                     CancelledProcedureOrderCount = cancelledProcedureOrderCount,
                     BilledPendingProcedureOrderCount = billedPendingCount,
-                    CancelledFutureDoseCount = 0,
-                    NotYetWiredSteps =
-                    {
-                        LangkahEnamBelumTerpasang
-                    }
+                    CancelledFutureDoseCount = cancelledFutureDoseCount
                 };
 
                 return result;
