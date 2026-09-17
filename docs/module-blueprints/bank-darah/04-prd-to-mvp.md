@@ -219,7 +219,7 @@ FR bernomor yang dapat diuji (contoh kunci; lengkap dipetakan ke `AC-BD-*`):
 > mengajukannya. Ia tidak dapat menyetujui permintaannya sendiri; rekan sejawatnya yang memutuskan.
 > (`AC-BD-088`)
 
-Seluruh FR lain diturunkan dari `AC-BD-001`..`088` (`testing/acceptance-test-matrix.md`) dan
+Seluruh FR dipetakan ke `testing/acceptance-test-matrix.md` `AC-BD-001`..`102` dan
 `contracts/validation-matrix.md`.
 
 ## 11. Model status yang diusulkan
@@ -242,20 +242,21 @@ Seluruh FR lain diturunkan dari `AC-BD-001`..`088` (`testing/acceptance-test-mat
 
 ## 13. Sasaran kemampuan API
 
-Endpoint identik dengan `contracts/api-contract.md` (semua `Rencana (belum tersedia)`), ditambah epic
-asal. Contoh:
+Endpoint identik dengan `contracts/api-contract.md`, ditambah epic asal. Status implementasi mengikuti
+`roadmap/backend-roadmap.md` dan `contracts/api-contract.md`; PRD ini tetap dokumen target bisnis, bukan
+pelacak progres. Contoh:
 
 ### Health Services / Blood Bank Management / Blood Unit
 
 Base URL: `api/v1/health-services/blood-bank-management/blood-units`
 
-| Method | Path | Kegunaan | Hak akses | Request | Response | Epic | Status |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| `POST` | `/{id}/allocate` | Alokasikan kantong | `BloodUnit : Allocate` | `AllocateUnitRequest` | `ApiResponse<BloodUnitDetailDto>` | `EPIC BD-03` | Rencana |
-| `POST` | `/{id}/issue` | Berikan kantong | `BloodUnit : Issue` | `IssueUnitRequest` | `ApiResponse<BloodUnitDetailDto>` | `EPIC BD-04` | Rencana |
-| `POST` | `/{id}/corrections` | **Ajukan** koreksi pencatatan pemberian | `BloodUnit : Correct` | `RequestIssuanceCorrectionRequest` | `ApiResponse<IssuanceCorrectionDto>` | `EPIC BD-06` | Rencana |
-| `POST` | `/{id}/corrections/{correctionId}/approve` | **Setujui** koreksi | `BloodUnit : ApproveCorrection` | `DecideCorrectionRequest` | `ApiResponse<IssuanceCorrectionDto>` | `EPIC BD-06` | Rencana |
-| `POST` | `/{id}/corrections/{correctionId}/reject` | **Tolak** koreksi | `BloodUnit : ApproveCorrection` | `DecideCorrectionRequest` | `ApiResponse<IssuanceCorrectionDto>` | `EPIC BD-06` | Rencana |
+| Method | Path | Kegunaan | Hak akses | Request | Response | Epic |
+| --- | --- | --- | --- | --- | --- | --- |
+| `POST` | `/{id}/allocate` | Alokasikan kantong | `BloodUnit : Allocate` | `AllocateUnitRequest` | `ApiResponse<BloodUnitDetailDto>` | `EPIC BD-03` |
+| `POST` | `/{id}/issue` | Berikan kantong | `BloodUnit : Issue` | `IssueUnitRequest` | `ApiResponse<BloodUnitDetailDto>` | `EPIC BD-04` |
+| `POST` | `/{id}/corrections` | **Ajukan** koreksi pencatatan pemberian | `BloodUnit : Correct` | `RequestIssuanceCorrectionRequest` | `ApiResponse<IssuanceCorrectionDto>` | `EPIC BD-06` |
+| `POST` | `/{id}/corrections/{correctionId}/approve` | **Setujui** koreksi | `BloodUnit : ApproveCorrection` | `DecideCorrectionRequest` | `ApiResponse<IssuanceCorrectionDto>` | `EPIC BD-06` |
+| `POST` | `/{id}/corrections/{correctionId}/reject` | **Tolak** koreksi | `BloodUnit : ApproveCorrection` | `DecideCorrectionRequest` | `ApiResponse<IssuanceCorrectionDto>` | `EPIC BD-06` |
 
 Daftar lengkap tujuh grup ada di `contracts/api-contract.md`; PRD ini tidak melebihinya.
 

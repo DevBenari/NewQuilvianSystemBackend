@@ -87,13 +87,13 @@ alasannya kini murni pasangan backend yang belum dikerjakan — bukan lagi `G4`.
 | --- | ---: | --- |
 | ✅ SELESAI | 1 | `FE-BD-001` |
 | 🟡 SELESAI SEBAGIAN | 2 | `FE-BD-011` dan `FE-BD-006` — masing-masing 1 dari 2 acceptance criteria |
-| 🟡 PENDING | 2 | `FE-BD-009`, `FE-BD-002` |
-| ⛔ BLOCKED | 7 | `FE-BD-003`, `004`, `005`, `007`, `008`, `010`, `012` |
+| 🟡 PENDING | 8 | `FE-BD-009`, `FE-BD-002`, `FE-BD-003`, `FE-BD-004`, `FE-BD-005`, `FE-BD-007`, `FE-BD-010`, `FE-BD-012` — **refresh dependency 17 September 2026:** enam terakhir naik dari ⛔ karena satu-satunya penahannya, task backend pasangan, kini ✅. **Riwayat:** 2 — `FE-BD-009`, `FE-BD-002` |
+| ⛔ BLOCKED | 1 | `FE-BD-008` — menunggu `BE-BD-010` (READY, belum diimplementasikan). **Riwayat:** 7 — `FE-BD-003`, `004`, `005`, `007`, `008`, `010`, `012` |
 | **Total** | **12** | |
 
 **Satu task frontend selesai (`FE-BD-001`).** `FE-BD-011` **dikerjakan 10 September 2026** dan
 berakhir 🟡 sebagian, dan `FE-BD-006` menyusul pada hari yang sama dengan hasil serupa. Satu
-task `PENDING` tersisa (`FE-BD-009`).
+task `PENDING` tersisa (`FE-BD-009`). **Refresh dependency 17 September 2026:** `FE-BD-003`, `004`, `005`, `007`, `010`, dan `012` kini 🟡 karena pasangan backend-nya ✅; hanya `FE-BD-008` tetap ⛔ menunggu `BE-BD-010`. Tidak ada task frontend yang ditandai selesai.
 
 **`FE-BD-009` terbuka sejak 9 September 2026**, ketika `BE-BD-011` selesai
 ([laporan](../task/report/backend/BE-BD-011.md)). Kedelapan yang masih terblokir kini **seluruhnya**
@@ -120,20 +120,20 @@ pasangannya, dimulai `BE-BD-003` yang sudah siap dijadwalkan.
                   └── 🟡 FE-BD-009 (penyelesaian konflik di layar pemeriksaan)
                              TERBUKA sejak 9 September 2026 — BE-BD-011 selesai
 
-════════ JALUR MENUNGGU BACKEND — G4 ✅ tertutup 10 Sep 2026 ════════
+════════ JALUR PASANGAN BACKEND — G4 ✅ tertutup 10 Sep 2026; refresh dependency 17 Sep 2026 ════════
 
 ✅ BE-BD-003 ──> 🟡 FE-BD-002 (order darah + pemenuhan + pembatalan)
-✅ BE-BD-004 ──> ⛔ FE-BD-003 (permintaan PMI + penerimaan)
-✅ BE-BD-012 ──> ⛔ FE-BD-010 (daftar & pencatatan tindakan Bank Darah)
-🟡 BE-BD-015 ──> ⛔ FE-BD-012 (penyimpanan & perpindahan lokasi kantong)
-⛔ BE-BD-006 ──> ⛔ FE-BD-004 (alokasi kantong + pembatalan alokasi)
-⛔ BE-BD-009 ──> ⛔ FE-BD-007 (penyelesaian PendingReview — tiga tombol tiga penjaga)
-⛔ BE-BD-010 ──> ⛔ FE-BD-008 (koreksi dua langkah + daftar tunggakan bukti darurat)
+✅ BE-BD-004 ──> 🟡 FE-BD-003 (permintaan PMI + penerimaan)
+✅ BE-BD-012 ──> 🟡 FE-BD-010 (daftar & pencatatan tindakan Bank Darah)
+✅ BE-BD-015 ──> 🟡 FE-BD-012 (penyimpanan & perpindahan lokasi kantong)
+✅ BE-BD-006 ──> 🟡 FE-BD-004 (alokasi kantong + pembatalan alokasi)
+✅ BE-BD-009 ──> 🟡 FE-BD-007 (penyelesaian PendingReview — tiga tombol tiga penjaga)
+🟡 BE-BD-010 ──> ⛔ FE-BD-008 (koreksi dua langkah + daftar tunggakan bukti darurat)   BE-BD-010 READY, belum diimplementasikan
 
-⛔ FE-BD-005 (golongan darah + bukti + pemberian + jalur darurat)
-       dep: BE-BD-005 ✅  +  BE-BD-007 ⛔  +  BE-BD-008 ⛔
-       └── SEBAGIAN terbuka: bagian pencatatan golongan darah mengikuti BE-BD-005,
-           tetapi bagian bukti kecocokan dan pemberian menunggu BE-BD-007/008.
+🟡 FE-BD-005 (golongan darah + bukti + pemberian + jalur darurat)
+       dep: BE-BD-005 ✅  +  BE-BD-007 ✅  +  BE-BD-008 ✅   (refresh 17 Sep 2026)
+       └── Riwayat: SEBAGIAN terbuka — bagian bukti kecocokan dan pemberian
+           menunggu BE-BD-007/008 sampai keduanya ✅ 16 Sep 2026.
            JANGAN dipecah tanpa persetujuan pemilik — lihat catatan pada task
 ```
 
@@ -225,11 +225,11 @@ berakhir 🟡 sebagian. `FE-BD-009` tidak bergantung pada keduanya.
 
 ---
 
-### ⛔ `FE-BD-003` — Petugas mengelola permintaan PMI dan penerimaan
+### 🟡 `FE-BD-003` — Petugas mengelola permintaan PMI dan penerimaan
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ⛔ **BLOCKED** — `BE-BD-004` menunggu `BE-BD-003`. **Riwayat:** tertahan `G4` sampai 10 September 2026 |
+| **Status** | 🟡 **PENDING — siap dijadwalkan (refresh dependency 17 September 2026).** `BE-BD-004` ✅. **Riwayat:** ⛔ BLOCKED — `BE-BD-004` menunggu `BE-BD-003`. **Riwayat:** tertahan `G4` sampai 10 September 2026 |
 | **Outcome** | Petugas membuat permintaan ke PMI dan mencatat penerimaan, termasuk penerimaan berlebih |
 | **Layar** | `FE-BD-03` |
 | **Kontrak** | api-contract `v4` — Provider Request |
@@ -239,57 +239,57 @@ berakhir 🟡 sebagian. `FE-BD-009` tidak bergantung pada keduanya.
 
 ---
 
-### ⛔ `FE-BD-012` — Penyimpanan dan perpindahan lokasi kantong
+### 🟡 `FE-BD-012` — Penyimpanan dan perpindahan lokasi kantong
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ⛔ **BLOCKED** — `BE-BD-015` tertahan lewat `BE-BD-004` |
+| **Status** | 🟡 **PENDING — siap dijadwalkan (refresh dependency 17 September 2026).** `BE-BD-015` ✅ selesai 11 September 2026 (roadmap backend revisi 10). **Riwayat:** ⛔ BLOCKED — `BE-BD-015` tertahan lewat `BE-BD-004` |
 | **Outcome** | Petugas menempatkan dan memindahkan kantong, dan kantong yang tertahan tersaring jelas |
 | **Layar** | `FE-BD-04`, `FE-BD-05` (parsial) |
 | **Kontrak** | api-contract `v4` |
-| **Dependency** | `G1` ✅, `BE-BD-015` 🟡 — selesai sebagian 11 September 2026 ([laporan](../task/report/backend/BE-BD-015.md)); belum ✅ |
+| **Dependency** | `G1` ✅, `BE-BD-015` ✅ ([laporan](../task/report/backend/BE-BD-015.md)). **Riwayat:** `BE-BD-015` 🟡 selesai sebagian 11 September 2026, sebelum roadmap backend revisi 10 |
 | **Acceptance** | `FE-BD-010` saringan `Received` dan lokasi nonaktif **wajib**; `FE-BD-011` kolom lokasi beserta penandanya |
 | **Risk/owner** | Sedang / BDRS |
 | **DoD** | **Bukan** daftar kerja keempat — saringan menempel pada daftar yang sudah ada |
 
 ---
 
-### ⛔ `FE-BD-004` — Petugas mengalokasikan kantong dan membatalkan alokasi
+### 🟡 `FE-BD-004` — Petugas mengalokasikan kantong dan membatalkan alokasi
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ⛔ **BLOCKED** — `BE-BD-006` tertahan lewat `BE-BD-015` |
+| **Status** | 🟡 **PENDING — siap dijadwalkan (refresh dependency 17 September 2026).** `BE-BD-006` ✅ 14 September 2026. **Riwayat:** ⛔ BLOCKED — `BE-BD-006` tertahan lewat `BE-BD-015` |
 | **Layar** | `FE-BD-05` (parsial) |
-| **Dependency** | `G1` ✅, `BE-BD-006` ⛔ |
+| **Dependency** | `G1` ✅, `BE-BD-006` ✅. **Riwayat:** `BE-BD-006` ⛔ |
 | **Acceptance** | Daftar `PendingReview` **wajib ada** (`FE-BD-002`) |
 | **Risk/owner** | Sedang / BDRS |
 | **DoD** | Worklist #2 tersedia |
 
 ---
 
-### ⛔ `FE-BD-005` — Golongan darah, bukti kecocokan, pemberian, dan jalur darurat
+### 🟡 `FE-BD-005` — Golongan darah, bukti kecocokan, pemberian, dan jalur darurat
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ⛔ **BLOCKED SEBAGIAN** — dependency-nya tiga task dengan keadaan berbeda |
-| **Rincian dependency** | `BE-BD-005` ✅ **SELESAI** · `BE-BD-007` ⛔ **BLOCKED** · `BE-BD-008` ⛔ **BLOCKED** |
+| **Status** | 🟡 **PENDING — siap dijadwalkan (refresh dependency 17 September 2026).** Ketiga pasangan backend ✅. **Riwayat:** ⛔ BLOCKED SEBAGIAN — dependency-nya tiga task dengan keadaan berbeda |
+| **Rincian dependency** | `BE-BD-005` ✅ **SELESAI** · `BE-BD-007` ✅ **SELESAI** 16 September 2026 · `BE-BD-008` ✅ **SELESAI** 16 September 2026. **Riwayat:** `BE-BD-007` ⛔ · `BE-BD-008` ⛔ |
 | **⚠️ Jangan dipecah sendiri** | Bagian pencatatan golongan darah secara teknis mengikuti `BE-BD-005` yang terbuka, tetapi bagian bukti kecocokan dan pemberian tertahan rantai `BE-BD-007`/`BE-BD-008` (`G4` sendiri tertutup 10 September 2026). Memecah task ini menjadi dua **mengubah scope roadmap** dan menuntut persetujuan pemilik. Roadmap ini **tidak** memecahnya sendiri |
 | **Outcome** | Petugas mencatat golongan darah, bukti kecocokan beserta hasilnya, lalu memberikan kantong; jalur darurat terbaca jelas dan berbeda dari jalur normal |
 | **Layar** | `FE-BD-05`, `FE-BD-06` (parsial) |
 | **Kontrak** | api-contract `v4` |
-| **Dependency** | `G1` ✅, `BE-BD-005` ✅, `BE-BD-007` ⛔, `BE-BD-008` ⛔ |
+| **Dependency** | `G1` ✅, `BE-BD-005` ✅, `BE-BD-007` ✅, `BE-BD-008` ✅ |
 | **Acceptance** | `FE-BD-021` hasil tidak cocok **menutup tombol Berikan** dengan pesan yang benar; `FE-BD-018` peran penerbit dipilih sendiri; `FE-BD-013` gerbang pemberian terbaca |
 | **Risk/owner** | **Tinggi / klinis & BDRS** |
 
 ---
 
-### ⛔ `FE-BD-007` — Penyelesaian `PendingReview`, tiga tombol tiga penjaga
+### 🟡 `FE-BD-007` — Penyelesaian `PendingReview`, tiga tombol tiga penjaga
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ⛔ **BLOCKED** — `BE-BD-009` tertahan lewat `BE-BD-006`/`007` |
+| **Status** | 🟡 **PENDING — siap dijadwalkan (refresh dependency 17 September 2026).** `BE-BD-009` ✅ 17 September 2026. **Riwayat:** ⛔ BLOCKED — `BE-BD-009` tertahan lewat `BE-BD-006`/`007` |
 | **Layar** | `FE-BD-05` |
-| **Dependency** | `G1` ✅, `BE-BD-009` ⛔ |
+| **Dependency** | `G1` ✅, `BE-BD-009` ✅. **Riwayat:** `BE-BD-009` ⛔ |
 | **Acceptance** | `FE-BD-020` — ketiga tombol punya penjaga hak akses **terpisah**, sesuai `DEC-BD-043` dan `DEC-BD-045` |
 | **Risk/owner** | Sedang / BDRS |
 
@@ -299,19 +299,19 @@ berakhir 🟡 sebagian. `FE-BD-009` tidak bergantung pada keduanya.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ⛔ **BLOCKED** — `BE-BD-010` tertahan lewat `BE-BD-007` |
+| **Status** | ⛔ **BLOCKED** — menunggu `BE-BD-010`, yang **READY tetapi belum diimplementasikan** (per 17 September 2026; `OQ-BD-014` ditutup `DEC-BD-051`). **Riwayat:** `BE-BD-010` tertahan lewat `BE-BD-007` |
 | **Layar** | `FE-BD-05`, `FE-BD-04` |
-| **Dependency** | `G1` ✅, `BE-BD-010` ⛔ |
+| **Dependency** | `G1` ✅, `BE-BD-010` 🟡 READY — belum diimplementasikan. **Riwayat:** `BE-BD-010` ⛔ |
 | **Acceptance** | Koreksi menuntut **dua langkah**; daftar tunggakan bukti darurat tersedia (worklist #3) |
 | **Risk/owner** | Sedang / BDRS |
 
 ---
 
-### ⛔ `FE-BD-010` — Daftar dan pencatatan tindakan Bank Darah
+### 🟡 `FE-BD-010` — Daftar dan pencatatan tindakan Bank Darah
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ⛔ **BLOCKED** — `BE-BD-012` menunggu `BE-BD-003`. **Riwayat:** tertahan `G4` sampai 10 September 2026 |
+| **Status** | 🟡 **PENDING — siap dijadwalkan (refresh dependency 17 September 2026).** `BE-BD-012` ✅. **Riwayat:** ⛔ BLOCKED — `BE-BD-012` menunggu `BE-BD-003`. **Riwayat:** tertahan `G4` sampai 10 September 2026 |
 | **Layar** | `FE-BD-07` |
 | **Dependency** | `G1` ✅, `BE-BD-012` ✅ — selesai 11 September 2026 ([laporan](../task/report/backend/BE-BD-012.md)) |
 | **Risk/owner** | Sedang / BDRS |
