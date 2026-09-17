@@ -161,7 +161,7 @@ flowchart LR
 | `BE-IGD-041` | Penolakan penutupan menyebut pesanan | R3.8 | 🟡 16 September 2026 — implementasi selesai, ketujuh kriteria terpetakan; `dotnet build` dan uji API belum dijalankan | [BE-IGD-041](../task/report/backend/BE-IGD-041.md) |
 | `BE-IGD-042` | Encounter `Outpatient` ditolak | R3.8 | ⛔ menunggu konfirmasi data owner | — |
 | `BE-IGD-043` | Laporan susulan pengaturan IGD tersirat | R3.8 | tanpa tanda — direncanakan | — |
-| `BE-IGD-044` | Histori penugasan dokter IGD | `MVP-5` | tanpa tanda — direncanakan | — |
+| `BE-IGD-044` | Histori penugasan dokter IGD | `MVP-5` | 🟡 17 September 2026 — model, EF configuration, DbSet, dan navigation selesai; acceptance 1–3 terpetakan ke source. Acceptance 4–6 menunggu migration yang dijalankan Rizki; `IGD-OQ-092` menahan pengisian data lama | [BE-IGD-044](../task/report/backend/BE-IGD-044.md) |
 | `BE-IGD-045` | Penetapan, pengalihan, dan pencarian dokter aktif | `MVP-5` | tanpa tanda — direncanakan | — |
 | `BE-IGD-046` | Validasi dan proyeksi tanda vital pada detail observasi | R3.9 | ✅ 16 September 2026 — implementasi + build bersih (nol error); runtime belum diverifikasi | [BE-IGD-046](../task/report/backend/BE-IGD-046.md) |
 | `BE-IGD-047` | Nomor urut penilaian triage ditetapkan server | R3.10 | ✅ **17 September 2026** — `dotnet build` lulus dan **uji API tiga skenario lulus** oleh pemilik; dibuktikan lagi lewat layar bersama `FE-IGD-033`. Tanpa UAT | [BE-IGD-047](../task/report/backend/BE-IGD-047.md) |
@@ -633,7 +633,7 @@ keduanya duplikat satu sama lain — pola yang sama dengan cacat `BE-IGD-016`.
 | `MVP-2` | Satu pasien satu episode: `EPIC IGD-02` | `MVP-1` | ✅ `BE-IGD-025` |
 | `MVP-3` | **Pengkajian IGD tuntas**: `EPIC IGD-09` | `MVP-1`; **approval pemilik `ClinicalManagement`** — dijawab sementara `IGD-DEC-107`/`108` | 🟡 empat task ✅; `BE-IGD-026` kriteria 1 belum |
 | `MVP-4` | Kepergian pasien: `EPIC IGD-05`, `EPIC IGD-06` | `MVP-1`; approval kontrak state/validation bagian kepergian — `IGD-DEC-108` | 🟡 tiga task ✅; `BE-IGD-031` kriteria 2 belum |
-| `MVP-5` | Riwayat dokter & serah terima: `EPIC IGD-04`, `EPIC IGD-07` | `MVP-4` untuk `EPIC IGD-07`; `MVP-1` untuk `EPIC IGD-04` (diperjelas 15 Sep 2026) | 🟡 `BE-IGD-035` sebagian; `EPIC IGD-04` direncanakan sebagai `BE-IGD-044`, `BE-IGD-045` (belum dikerjakan) |
+| `MVP-5` | Riwayat dokter & serah terima: `EPIC IGD-04`, `EPIC IGD-07` | `MVP-4` untuk `EPIC IGD-07`; `MVP-1` untuk `EPIC IGD-04` (diperjelas 15 Sep 2026) | 🟡 `BE-IGD-035` sebagian; `EPIC IGD-04` — `BE-IGD-044` 🟡 dikerjakan 17 September 2026, `BE-IGD-045` belum dikerjakan |
 | `MVP-6` | Kewenangan unit: `EPIC IGD-08` | Data pemetaan terisi; pengesahan Security/Privacy owner | ⛔ `BE-IGD-039`; pemetaan 0 dari 18 unit |
 | **Belum dapat direncanakan** | Penunjang medis, pemakaian alat, billing IGD | **Tidak punya blueprint sama sekali.** Lihat R3.5 | — |
 
@@ -883,7 +883,7 @@ flowchart LR
     BEIGD034["✅ BE-IGD-034<br/>Koreksi dan pembalikan berpersetujuan"]:::selesai
     BEIGD035["🟡 BE-IGD-035<br/>Sikap pesanan belum selesai"]:::sebagian
     OQ076{{"✅ IGD-OQ-076 dan IGD-OQ-077<br/>Ditutup IGD-DEC-101, 102"}}:::selesai
-    BEIGD044["BE-IGD-044<br/>Histori penugasan dokter tersimpan"]:::belum
+    BEIGD044["BE-IGD-044 🟡<br/>Histori penugasan dokter tersimpan"]:::sebagian
     BEIGD045["BE-IGD-045<br/>Dokter ditetapkan, dialihkan, dicari"]:::belum
     DEC116{{"✅ IGD-DEC-116<br/>API §3 dan nama EmgDoctorAssignment"}}:::selesai
     DEC117{{"✅ IGD-DEC-117<br/>Dokter aktif pada waktu tertentu"}}:::selesai
@@ -1059,11 +1059,11 @@ aktif, alasan kosong, atau waktu mendahului kedatangan; `403` tidak berhak; `404
 dokter aktif pada waktu yang ditanyakan; `409` kunjungan sudah punya dokter aktif, atau dua
 penetapan bersamaan.
 
-### `BE-IGD-044` — Histori penugasan dokter IGD tersimpan
+### 🟡 `BE-IGD-044` — Histori penugasan dokter IGD tersimpan
 
 | Field | Isi |
 | --- | --- |
-| **Status** | **Direncanakan 15 September 2026; rancangannya diselaraskan 16 September 2026 — belum dikerjakan.** Kontrak dan nama tabel sudah diputuskan (`IGD-DEC-116`), dan `IGD-DEC-130` menghapus `IsActive` dari rancangan sebelum model dibuat. **Batas eksekusi ditegaskan owner 16 September 2026:** agent membuat model, konfigurasi EF, navigation/DbSet, dan persiapan source migration, lalu **berhenti**; `dotnet ef migrations add` dan `database update` dijalankan Rizki sendiri sesudah review. `IGD-DEC-082` masih menunggu approval Clinical Governance; itu menahan butir 10 Definition of Done, **tidak** menahan pekerjaan dimulai — dan selama belum ada, **dilarang** menyatakan seluruh DoD atau governance selesai |
+| **Status** | 🟡 **SEBAGIAN — 17 September 2026.** Model `EmgDoctorAssignment`, EF configuration beserta unique bersyarat, `DbSet`, dan navigation `EmgVisit.DoctorAssignments` selesai; acceptance 1, 2, dan 3 terpetakan ke source. Acceptance 4, 5, dan 6 menunggu migration yang **dijalankan Rizki** sesuai batas eksekusi. `dotnet build` belum dijalankan agent. Satu keputusan terbuka baru, **`IGD-OQ-092`**, menahan pengisian data lama: `AssignedByUserId` wajib dan ber-FK, sedangkan baris lama tidak punya pelaku. `IGD-DEC-082` **`approved` 17 September 2026**, sehingga butir 10 DoD tidak lagi tertahan. [Laporan](../task/report/backend/BE-IGD-044.md) |
 | **Outcome** | Setiap kunjungan IGD punya tabel riwayat dokter penanggung jawab yang tidak pernah ditimpa, dan kunjungan lama yang sudah punya dokter langsung punya satu baris riwayat aktif |
 | **Slice** | `IGD-S06` · `EPIC IGD-04` · `MVP-5` |
 | **Requirement** | `FR-IGD-017` (struktur tutup-buka baris), `FR-IGD-019` (tepat satu dokter aktif, dijaga basis data) |

@@ -807,6 +807,7 @@ namespace QuilvianSystemBackend.Repositories
 
         #region transaction
         public DbSet<EmgVisit> EmgVisits { get; set; }
+        public DbSet<EmgDoctorAssignment> EmgDoctorAssignments { get; set; }
         public DbSet<EmgTriage> EmgTriages { get; set; }
         public DbSet<EmgTriageDetail> EmgTriageDetails { get; set; }
         public DbSet<EmgResuscitation> EmgResuscitations { get; set; }

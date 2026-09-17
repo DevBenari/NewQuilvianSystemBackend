@@ -2659,7 +2659,7 @@ menentukan. Hari ini urutan itu hilang tanpa jejak.
 | `IGD-OQ-063` | Open Question | Cara hak akses mengenal unit pelayanan | Product/Domain Owner IGD + Security/Privacy owner + pemilik Corporate/HR | `superseded` oleh `IGD-DEC-081` | — | F-15, laporan `BE-IGD-010` |
 | `IGD-DEC-081` | Decision | Hubungan pengguna ke unit pelayanan dibuat sebagai **tabel penugasan tersendiri**, berisi pengguna, unit pelayanan, berlaku sejak, berlaku sampai, dan siapa yang menugaskan. Penjaga kewenangan unit ditulis **di dalam service IGD**, bukan di mesin hak akses `SysAccessPolicy`. Setiap endpoint yang menuntut kewenangan unit wajib memanggilnya. Struktur organisasi dan mesin hak akses yang dipakai seluruh aplikasi **tidak disentuh** | Product/Domain Owner IGD, dengan Security/Privacy owner dan pemilik Corporate/HR sebagai approver akhir | `draft` — pilihan pengguna jelas; approval belum tercatat dan pengisian data penugasan untuk petugas yang sudah ada adalah keputusan organisasi | — | Jawaban pengguna 24 Agustus 2026, pilihan A untuk `IGD-OQ-063`; menutup `IGD-GAP-021` dan membuka jalan `BE-IGD-010` yang selama ini terhalang desain; memakai pola yang sama dengan `RWI-RULE-030` aturan 6 |
 | `IGD-OQ-064` | Open Question | Cara mencatat penetapan dokter pemeriksa IGD | Product/Domain Owner IGD + Clinical Governance | `superseded` oleh `IGD-DEC-082` | — | F-6, `IGD-GAP-022` |
-| `IGD-DEC-082` | Decision | Penetapan dokter pemeriksa IGD dicatat pada **tabel riwayat penugasan** berisi dokter, berlaku sejak, berakhir kapan, siapa yang menugaskan, dan alasannya. Pada satu waktu tepat satu dokter aktif untuk satu kunjungan IGD. Baris lama diberi waktu berakhir dan **tidak pernah ditimpa**. `TrxPatientEncounter.DoctorId` tetap diisi sebagai nilai efektif supaya layar dan laporan yang sudah ada tidak rusak | Product/Domain Owner IGD, dengan Clinical Governance sebagai approver akhir | `draft` — pilihan pengguna jelas; approval klinis belum tercatat | — | Jawaban pengguna 24 Agustus 2026, pilihan A untuk `IGD-OQ-064`; menutup `IGD-GAP-022`; menegakkan `IGD-DEC-073`; sejalan dengan `IGD-DEC-080`; bentuknya sama dengan `RWI-RULE-030` |
+| `IGD-DEC-082` | Decision | Penetapan dokter pemeriksa IGD dicatat pada **tabel riwayat penugasan** berisi dokter, berlaku sejak, berakhir kapan, siapa yang menugaskan, dan alasannya. Pada satu waktu tepat satu dokter aktif untuk satu kunjungan IGD. Baris lama diberi waktu berakhir dan **tidak pernah ditimpa**. `TrxPatientEncounter.DoctorId` tetap diisi sebagai nilai efektif supaya layar dan laporan yang sudah ada tidak rusak | Product/Domain Owner IGD, dengan Clinical Governance sebagai approver akhir | **`approved`** — disetujui 17 September 2026 | **Rizki Gunawan / 2026-09-17**, sebagai Product/Domain Owner IGD. *Catatan ketertelusuran: kolom approver keputusan ini menyebut Clinical Governance sebagai approver akhir, dan peran itu belum ditunjuk (`owners` pada manifest masih `OPEN`). Approval ini karena itu datang dari Product/Domain Owner, pola yang sama dengan `IGD-DEC-107`. Bila Clinical Governance kelak ditunjuk, keputusan ini termasuk yang wajib ditinjau ulang.* | Jawaban pengguna 24 Agustus 2026, pilihan A untuk `IGD-OQ-064`; menutup `IGD-GAP-022`; menegakkan `IGD-DEC-073`; sejalan dengan `IGD-DEC-080`; bentuknya sama dengan `RWI-RULE-030` |
 | `IGD-OQ-065` | Open Question | Perilaku sistem ketika pemicu pengkajian ulang terpenuhi tetapi pengkajian ulang belum dilakukan | Product/Domain Owner IGD + Nursing authority + Clinical Governance | `superseded` oleh `IGD-DEC-083` | — | `IGD-DEC-060`, `IGD-GAP-023` |
 | `IGD-DEC-083` | Decision | Pemicu pengkajian ulang yang sudah terpenuhi tetapi belum ditindaklanjuti ditampilkan sebagai **daftar pantau**, dan **tidak pernah memblokir** tindakan klinis maupun keputusan tindak lanjut. Perhitungannya memakai pola yang sama dengan pemantau pelampauan batas waktu triase yang sudah berjalan. Interval yang belum disahkan SOP ditandai belum tersedia dan **tidak boleh** dianggap patuh maupun terlambat secara otomatis | Product/Domain Owner IGD, dengan Nursing authority dan Clinical Governance sebagai approver akhir | `draft` — pilihan pengguna jelas; approval belum tercatat dan nilai interval menunggu SOP MMC | — | Jawaban pengguna 24 Agustus 2026, pilihan A untuk `IGD-OQ-065`; menutup `IGD-GAP-023`; menegakkan `IGD-DEC-060`; memperluas pola `EmergencyTriageSlaMonitorHostedService` |
 
@@ -4318,3 +4318,25 @@ layar untuk satu putaran, sehingga dua putaran berurutan tidak pernah terlihat b
 *Batas yang tetap berlaku:* aksi **Selesaikan** beserta isian **Kesimpulan** milik `FE-IGD-024`
 dan penautan tanda vital milik `FE-IGD-028` **tidak boleh berubah perilakunya**. Bawaan
 "Lembar Pemantauan" dipilih karena membaca tren lebih sering dilakukan daripada menambah baris.
+
+
+---
+
+## Pertanyaan terbuka 17 September 2026 — pelaku pada pengisian data lama penugasan dokter
+
+Lahir saat `BE-IGD-044` dikerjakan. **Bukan** keputusan teknis: ini tentang bagaimana riwayat
+klinis lama dinyatakan.
+
+| ID | Jenis | Pertanyaan | Pemilik | Status | Dampak |
+| --- | --- | --- | --- | --- | --- |
+| `IGD-OQ-092` | Open Question | `EmgDoctorAssignment.AssignedByUserId` wajib dan ber-foreign key ke `AspNetUsers`, sedangkan baris hasil pengisian data lama tidak punya pelaku yang sesungguhnya — penetapan dokternya terjadi sebelum tabel ini ada. Nilai mana yang dipakai: **(a)** `UpdateBy` encounter dengan jatuh ke `CreateBy`, **(b)** sama seperti (a) tetapi baris tanpa pelaku sah dilewati, atau **(c)** satu akun sistem yang ditunjuk pemilik? | Product/Domain Owner IGD | `open` | Menahan acceptance 4 `BE-IGD-044`. **Tidak** menahan migration tabelnya, dan **tidak** menahan `BE-IGD-045` |
+
+*Konsekuensi tiap pilihan:* **(a)** paling jujur secara audit, tetapi baris yang `UpdateBy` dan
+`CreateBy`-nya bernilai uuid nol akan melanggar foreign key dan **menggagalkan seluruh
+migration**. **(b)** aman dan tidak pernah mengarang pelaku, tetapi sebagian kunjungan berdokter
+tidak mendapat baris riwayat — melanggar bunyi acceptance 4 apa adanya. **(c)** memenuhi
+acceptance 4 penuh, tetapi menyatakan seorang pelaku yang tidak pernah melakukannya.
+
+*Rekomendasi agent:* **(b)**, dengan jumlah baris yang terlewati dilaporkan dan acceptance 4
+ditandai terpenuhi-dengan-pengecualian. Kunjungan yang terlewati tetap dapat diberi dokter lewat
+`BE-IGD-045` seperti kunjungan baru, sehingga tidak ada kemampuan yang hilang permanen.

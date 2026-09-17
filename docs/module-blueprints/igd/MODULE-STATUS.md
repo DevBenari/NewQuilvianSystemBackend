@@ -28,7 +28,7 @@ Dokumen ini ringkasan keadaan. Sumber kebenaran status per task tetap
 | `MVP-2` | Satu pasien satu episode (`BE-IGD-025`) | `DONE` ✅ | — |
 | `MVP-3` | Pengkajian IGD tanpa antrean (`BE-IGD-026`…`030`) | `IN_PROGRESS` 🟡 | `BE-IGD-026`: uji langkah mundur migration belum |
 | `MVP-4` | Kepergian pasien (`BE-IGD-031`…`034`) | `IN_PROGRESS` 🟡 | `BE-IGD-031`: uji `RENAME` balik belum. **Ditambahkan 17 September 2026:** runtime `arrive` dan `accept-handover` tertahan `BE-IGD-039` |
-| `MVP-5` | Riwayat dokter & serah terima (`BE-IGD-035`; `EPIC IGD-04`) | `IN_PROGRESS` 🟡 | `BE-IGD-035` kriteria 2 (dikerjakan `BE-IGD-041`); `EPIC IGD-04` direncanakan `BE-IGD-044`, `BE-IGD-045`, `FE-IGD-027` — belum dikerjakan. **Ditambahkan 17 September 2026:** runtime sikap pesanan tertahan `BE-IGD-039` |
+| `MVP-5` | Riwayat dokter & serah terima (`BE-IGD-035`; `EPIC IGD-04`) | `IN_PROGRESS` 🟡 | `BE-IGD-035` kriteria 2 (dikerjakan `BE-IGD-041`); `EPIC IGD-04`: `BE-IGD-044` 🟡 **dikerjakan 17 September 2026** (menunggu migration Rizki), `BE-IGD-045` dan `FE-IGD-027` belum dikerjakan. **Ditambahkan 17 September 2026:** runtime sikap pesanan tertahan `BE-IGD-039` |
 | R3.7 | Migration, master data pindah modul, kolom respons (`BE-IGD-036`…`038`) | `DONE` ✅ | — |
 | `MVP-6` | Kewenangan unit (`BE-IGD-039`) | `BLOCKED` ⛔ | Security/Privacy owner; pemetaan unit 0 dari 18 |
 
@@ -52,8 +52,9 @@ Dokumen ini ringkasan keadaan. Sumber kebenaran status per task tetap
 | `IGD-DEC-100`…`102` | Sikap pesanan, pesanan lab manual, penerimaan per pesanan masih `draft` | Clinical Governance, Nursing authority, pemilik Laboratorium | Butir 10 DoD `EPIC IGD-07` | Ya |
 | `IGD-OQ-083` | Tempat menyimpan alasan pembatalan observasi | Product/Domain Owner IGD | Bagian `Cancelled` dari `IGD-DEC-115` | Ya — bagian `Completed` tidak tertahan |
 | ~~`EPIC IGD-04`~~ | ~~Riwayat penugasan dokter belum punya task~~ — **ditutup 15 September 2026**: dipecah menjadi `BE-IGD-044`, `BE-IGD-045`, `FE-IGD-027` (`IGD-DEC-116`, `IGD-DEC-117`) | — | `MVP-5` | — |
+| `IGD-OQ-092` | Pelaku (`AssignedByUserId`) pada pengisian data lama `EmgDoctorAssignment` — baris lama tidak punya pelaku, sedangkan kolomnya wajib dan ber-FK | Product/Domain Owner IGD | Acceptance 4 `BE-IGD-044` | Ya — migration tabelnya dan `BE-IGD-045` **tidak** tertahan |
 | OWNER DATA CONFIRMATION | `BE-IGD-042` menunggu jumlah `EmgVisit` aktif dengan `EncounterType.Outpatient`; agent dilarang menjalankan kueri | Rizki | R3.8 | Ya — `BE-IGD-040`, `041`, `043` tidak tertahan |
-| `IGD-DEC-082` | Riwayat penugasan dokter masih `draft` klinis | Clinical Governance | Butir 10 DoD `EPIC IGD-04` | Ya — pekerjaan `BE-IGD-044`/`045` boleh dimulai |
+| ~~`IGD-DEC-082`~~ | ~~Riwayat penugasan dokter masih `draft` klinis~~ — **ditutup 17 September 2026**: `approved` oleh Rizki Gunawan sebagai Product/Domain Owner. *Catatan: approver yang disebut keputusan itu adalah Clinical Governance, dan peran itu masih `OPEN`; pola approval mengikuti `IGD-DEC-107`. Bila Clinical Governance kelak ditunjuk, keputusan ini wajib ditinjau ulang.* | — | Butir 10 DoD `EPIC IGD-04` — **tidak lagi tertahan** | — |
 | ~~Audit Observasi V1–V2~~ | **Ditutup 16 September 2026** — `IGD-OQ-084`…`088` dijawab menjadi `IGD-DEC-122`…`126`; kontrak API dan validation naik ke `0.6.0`; `BE-IGD-046` dan `FE-IGD-028` dialokasikan ([evidence](evidence/2026-09-15-audit-observasi-v1-v2.md)) | — | R3.9, R3.7 frontend | — |
 | Bentuk terstruktur alat jalan napas | `IGD-OQ-089` — OPA, NPA, ETT, LMA, stoma, bantuan napas bertekanan belum punya pemilik dan entity | Clinical Governance + Product/Domain Owner IGD | Pelaporan alat jalan napas | Ya — `BE-IGD-046` dan `FE-IGD-028` tidak tertahan |
 | Entri susulan setelah periode observasi ditutup | `IGD-OQ-090` — jalur addendum belum dirancang; dilarang menumpang `BE-IGD-046` | Product/Domain Owner IGD + Nursing authority | Dokumentasi susulan observasi | Ya |
@@ -323,7 +324,7 @@ lingkup `EPIC IGD-04`**. Keduanya milik formulir tanda vital bersama, bukan modu
 
 | Lapisan | Rumus | Hasil |
 | --- | --- | --- |
-| Backend | task ✅ / seluruh task roadmap | **21 / 31 = 68%** (`BE-IGD-047` ✅ 17 September 2026) (dihitung ulang 17 September 2026 dari *Register status task* `backend-roadmap.md`). Tidak dikecualikan: `BE-IGD-039` dan `BE-IGD-042` (⛔) tetap dihitung di penyebut. *Sebelumnya tertulis 18 / 29 = 62% — usang sejak `BE-IGD-040` dan `BE-IGD-046` ✅ dan `BE-IGD-046` masuk register* |
+| Backend | task ✅ / seluruh task roadmap | **21 / 31 = 68%** (`BE-IGD-047` ✅ 17 September 2026; `BE-IGD-044` 🟡 belum dihitung ✅) (dihitung ulang 17 September 2026 dari *Register status task* `backend-roadmap.md`). Tidak dikecualikan: `BE-IGD-039` dan `BE-IGD-042` (⛔) tetap dihitung di penyebut. *Sebelumnya tertulis 18 / 29 = 62% — usang sejak `BE-IGD-040` dan `BE-IGD-046` ✅ dan `BE-IGD-046` masuk register* |
 | Frontend | task ✅ / seluruh task roadmap | **14 / 23 = 61%** (dihitung ulang 17 September 2026 sesudah uji layar pemilik). ✅: `FE-IGD-015`, `016`, `018`, `019`, `020`, `021`, `023`, `024`, `028`, **`029`**, `030`, **`031`**, **`032`**, **`033`**. *Sebelumnya tertulis 6 / 17 = 35% — usang sejak `FE-IGD-023`, `024`, `028`, `030` ✅ dan `FE-IGD-029`…`032` masuk register* |
 
 Persentase turun dari 78%/45% bukan karena ada yang mundur, melainkan karena penyebutnya

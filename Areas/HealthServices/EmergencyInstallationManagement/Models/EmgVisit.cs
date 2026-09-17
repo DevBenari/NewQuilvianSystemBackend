@@ -110,6 +110,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public ICollection<EmgTriage> Triages { get; set; }
             = new List<EmgTriage>();
 
+        /// <summary>
+        /// Riwayat dokter penanggung jawab kunjungan ini, tambah-saja.
+        /// </summary>
+        /// <remarks>
+        /// Dokter yang sedang bertanggung jawab adalah baris dengan
+        /// <c>EffectiveTo IS NULL</c> — <c>IGD-DEC-130</c>. Koleksi ini memuat
+        /// seluruh riwayatnya, bukan hanya yang berjalan.
+        /// </remarks>
+        public ICollection<EmgDoctorAssignment> DoctorAssignments { get; set; }
+            = new List<EmgDoctorAssignment>();
+
         public ICollection<EmgResuscitation> Resuscitations { get; set; }
             = new List<EmgResuscitation>();
 
