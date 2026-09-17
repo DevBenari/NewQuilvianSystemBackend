@@ -164,6 +164,7 @@ flowchart LR
 | `BE-IGD-044` | Histori penugasan dokter IGD | `MVP-5` | tanpa tanda — direncanakan | — |
 | `BE-IGD-045` | Penetapan, pengalihan, dan pencarian dokter aktif | `MVP-5` | tanpa tanda — direncanakan | — |
 | `BE-IGD-046` | Validasi dan proyeksi tanda vital pada detail observasi | R3.9 | ✅ 16 September 2026 — implementasi + build bersih (nol error); runtime belum diverifikasi | [BE-IGD-046](../task/report/backend/BE-IGD-046.md) |
+| `BE-IGD-047` | Nomor urut penilaian triage ditetapkan server | R3.10 | 🟡 17 September 2026 — akar `409` terbukti dan source diubah; `dotnet build` dan uji API belum | [BE-IGD-047](../task/report/backend/BE-IGD-047.md) |
 
 
 **Tindak lanjut `BE-IGD-017`** (task yang sama, ID tidak diganti): laporan tracked susulan.
@@ -1441,3 +1442,52 @@ flowchart LR
 | **Risiko** | **Rendah–menengah.** Menambah penolakan pada endpoint yang sudah dipakai layar; pemantauan yang sudah berjalan tidak berubah bentuk requestnya. Perhatian: jangan mengubah perilaku `Escalated`, dan jangan membuka jalur entri susulan (`IGD-OQ-090`) |
 | **Owner** | Backend IGD |
 | **DoD** | DoD baku gelombang ini; butir 10 DoD dicatat terbuka selama `IGD-DEC-122`…`126` belum disetujui Clinical Governance dan Nursing authority |
+
+---
+
+## R3.10 Gelombang 17 September 2026 — nomor urut penilaian triage
+
+Lahir dari uji layar pemilik, bukan dari perencanaan. Saat mencoba **Simpan Pemeriksaan** pada
+triage IGD, layar menolak dengan `409`. Penelusuran menemukan cacat yang jauh lebih luas
+daripada satu layar.
+
+### 🟡 `BE-IGD-047` — Nomor urut, penanda penilaian ulang, dan penunjuk pendahulu ditetapkan server
+
+**Status.** 🟡 **SEBAGIAN — 17 September 2026.** Akar masalah terbukti lewat log, kueri basis
+data pemilik, dan pembacaan source. Ketujuh perubahan sudah ditulis. `dotnet build` dan uji API
+**belum dijalankan** — keduanya milik Rizki.
+[Laporan](../task/report/backend/BE-IGD-047.md).
+
+**Akar masalah.** `CreateEmergencyTriageRequest.Sequence` berbawaan `1`, sementara controller
+memakai `request.Sequence > 0 ? request.Sequence : hitung()`. Cabang penghitungan di server
+karena itu **tidak pernah dijalankan**, dan setiap penilaian disimpan dengan nomor urut `1`.
+Penilaian **kedua** pada kunjungan mana pun selalu menabrak
+`IX_EmgTriage_EmergencyVisitId_Sequence` dan ditolak `409`.
+
+Cacat ini sudah ada sejak endpoint-nya dibuat. Ia tidak pernah terlihat karena uji lewat layar
+pada modul ini baru dijalankan 16 September 2026.
+
+**Lingkup.** Nol migration, nol perubahan kontrak, nol kolom baru. Tiga ruas request menjadi
+usang-tetapi-tetap-diterima — pola yang sama dengan `recordedByUserId` pada `BE-IGD-046`.
+
+**Acceptance criteria.**
+
+| # | Kriteria | Bukti |
+| ---: | --- | --- |
+| 1 | Penilaian kedua pada satu kunjungan tersimpan dengan nomor urut `2` | Uji API skenario 1 |
+| 2 | Penilaian ketiga tersimpan dengan nomor urut `3` | Uji API skenario 2 |
+| 3 | `sequence` kiriman pemanggil diabaikan | Uji API skenario 1 dengan `sequence` diisi sembarang |
+| 4 | `isRetriage` dan `previousTriageId` diisi server | Response skenario 1 |
+| 5 | `PUT` tanpa `sequence` tidak mengubah nomor urut baris | Uji API skenario 3 |
+| 6 | Nomor urut dihitung tanpa menyaring `IsDelete`, sejajar index unik | Pembacaan source |
+| 7 | Tabrakan nomor urut diulang sekali sebelum ditolak | Pembacaan source |
+| 8 | Penolakan duplikat dan penolakan foreign key memakai pesan berbeda | Pembacaan source; uji API bila tersedia |
+| 9 | Kegagalan simpan mencatat `EmergencyVisitId` dan nomor urut yang dicoba | Entri log `EmergencyTriage.Create` |
+
+**Definition of Done.** Butir 1 dan 2 DoD gelombang tidak dapat dijawab — proyek test backend
+dihapus (`IGD-DEC-110`); penggantinya uji API tiga skenario pada laporan bagian 6. Butir 10
+tidak berlaku: seluruh perubahan berada di dalam `EmergencyInstallationManagement`.
+
+**Yang perlu dinilai pemilik.** `IsRetriage` dan `PreviousTriageId` kini terisi, padahal
+sebelumnya selalu kosong karena layar tidak pernah mengirimnya. Keduanya memakai definisi yang
+sudah dipakai jalur retriage. Lihat laporan bagian 4.
