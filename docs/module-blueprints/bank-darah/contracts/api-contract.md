@@ -61,6 +61,7 @@ Master lokasi penyimpanan darah milik BDRS (`DEC-BD-035`). **Bukan** cold storag
 | `POST` | `/` | Tambah lokasi penyimpanan darah | `BloodStorageLocation : Create` | `CreateBloodStorageLocationRequest` | `ApiResponse<BloodStorageLocationDto>` | Rencana · `422 VAL-BD-067` |
 | `PUT` | `/{id}` | Ubah kode, nama, keterangan | `BloodStorageLocation : Update` | `UpdateBloodStorageLocationRequest` | `ApiResponse<BloodStorageLocationDto>` | Rencana · `422 VAL-BD-067` |
 | `PATCH` | `/{id}/status` | **Aktifkan atau nonaktifkan lokasi** (`DEC-BD-037`) | `BloodStorageLocation : Update` | `SetActiveStatusRequest` | `ApiResponse<BloodStorageLocationDto>` | Rencana · `200 VAL-BD-068` |
+| `DELETE` | `/{id}` | Tandai lokasi terhapus (soft delete) — untuk keadaan sehari-hari **menonaktifkan tetap lebih tepat** | `BloodStorageLocation : Delete` | — | `ApiResponse<bool>` | **Terimplementasi `BE-BD-014`** — baris disinkronkan `BE-BD-016` 17 September 2026 |
 
 `GET /options` sengaja menyaring hanya lokasi aktif, sehingga frontend tidak perlu menyaring sendiri dan
 tidak mungkin menawarkan lokasi nonaktif sebagai tujuan penyimpanan (`INV-BD-027`).
