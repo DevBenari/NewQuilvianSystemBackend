@@ -372,6 +372,19 @@ try
     // aturan penginput (INV-DOK-17), dan pembatalan otomatis saat penutupan episode (Langkah 5).
     builder.Services.AddScoped<PatientProcedureOrderService>();
 
+    // BE-RWI-099 / R4. Resep Harian: saring periode pada zona waktu rumah sakit, butir beserta
+    // penghentiannya, dan racikan beserta bahannya. Hanya membaca.
+    builder.Services.AddScoped<InpatientPrescriptionService>();
+
+    // BE-RWI-101 / R5. Rekonsiliasi obat bawaan: pencatatan perawat, keputusan dokter berriwayat,
+    // dan pengisian butir draft resep untuk keputusan "Lanjut".
+    builder.Services.AddScoped<MedicationReconciliationService>();
+
+    // BE-RWI-102 dan BE-RWI-103 / R6. Protokol sliding scale berversi yang disahkan, dan order per
+    // pasien yang menyalin rentang versi sah. Nomor order dari NumberSeriesAllocator.
+    builder.Services.AddScoped<SlidingScaleTemplateService>();
+    builder.Services.AddScoped<SlidingScaleOrderService>();
+
     // BE-RWI-058 / BE-RWI-064. Pembacaan lini masa pengkajian, keadaan tenggat, dan daftar
     // pantau kepatuhan pengkajian awal. Seluruhnya hanya membaca; nol tabel baru.
     builder.Services.AddScoped<NursingAssessmentMonitoringService>();

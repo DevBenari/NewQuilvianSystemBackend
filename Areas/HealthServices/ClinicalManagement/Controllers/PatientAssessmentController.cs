@@ -791,7 +791,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             // Jenis dokumen yang belum ditegakkan dan dokumen yang belum terdaftar dilewatkan
             // apa adanya oleh EnsureMutableAsync, sehingga jalur poliklinik, medical check-up,
             // dan IGD tidak berubah sedikit pun - kriteria 5.
-            var keutuhan = await _integrityService.EnsureMutableAsync(
+            //
+            // BE-RWI-091 / VAL-DOK-43. Konsep kajian yang terkunci "Tidak Ditandatangani" karena
+            // perawatannya ditutup dijawab 409 beserta arahan addendum; keadaan lain diteruskan
+            // ke EnsureMutableAsync apa adanya.
+            var keutuhan = await _integrityService.EnsureDraftStillOpenAsync(
                 ClinicalDocumentKind.Assessment, id);
 
             if (!keutuhan.IsAllowed)
@@ -964,6 +968,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 return StatusCode(penjagaPenulis.StatusCode, ApiResponse<object>.Fail(
                     penjagaPenulis.StatusCode,
                     penjagaPenulis.ErrorMessage ?? "Assessment ini tidak dapat diselesaikan."
+                ));
+            }
+
+            // BE-RWI-091 / VAL-DOK-43, RWI-DEC-138 butir (2). Konsep yang sudah terkunci
+            // "Tidak Ditandatangani" tidak dapat diselesaikan belakangan: menyelesaikannya sama
+            // dengan menandatangani mundur. Tanpa penjaga ini kajian menjadi Completed sementara
+            // registrasinya tetap LockedUnsigned. Kajian yang belum terdaftar tidak tersentuh.
+            var penjagaKeutuhanSelesai = await _integrityService.EnsureDraftStillOpenAsync(
+                ClinicalDocumentKind.Assessment, entity.Id);
+
+            if (!penjagaKeutuhanSelesai.IsAllowed)
+            {
+                return StatusCode(penjagaKeutuhanSelesai.StatusCode, ApiResponse<object>.Fail(
+                    penjagaKeutuhanSelesai.StatusCode,
+                    penjagaKeutuhanSelesai.ErrorMessage ?? "Assessment ini tidak dapat diselesaikan."
                 ));
             }
 

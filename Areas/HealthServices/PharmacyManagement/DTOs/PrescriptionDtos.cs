@@ -227,4 +227,84 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.DTOs
         [MaxLength(250)]
         public string CancelReason { get; set; } = string.Empty;
     }
+
+    /// <summary>
+    /// Satu resep pada Resep Harian episode rawat inap — BE-RWI-099, api-contract 0.6.0 bagian
+    /// 12.6. Seluruh isian <see cref="PrescriptionResponse"/> tetap ada, sehingga pemanggil lama
+    /// endpoint yang sama tidak kehilangan satu field pun; yang bertambah hanya butir dan racikan.
+    /// </summary>
+    public class InpatientPrescriptionListItem : PrescriptionResponse
+    {
+        public List<InpatientPrescriptionItemResponse> Items { get; set; } = new();
+        public List<InpatientPrescriptionCompoundResponse> Compounds { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Butir obat non-racikan pada Resep Harian, termasuk keadaan penghentiannya — BE-RWI-099.
+    /// </summary>
+    public class InpatientPrescriptionItemResponse
+    {
+        public Guid Id { get; set; }
+        public Guid PrescriptionId { get; set; }
+        public Guid DrugId { get; set; }
+        public string DrugCodeSnapshot { get; set; } = string.Empty;
+        public string DrugNameSnapshot { get; set; } = string.Empty;
+        public string? GenericNameSnapshot { get; set; }
+        public string? DrugFormSnapshot { get; set; }
+        public string? StrengthSnapshot { get; set; }
+        public string? RouteSnapshot { get; set; }
+        public bool IsFormularySnapshot { get; set; }
+        public bool IsHighAlertSnapshot { get; set; }
+        public decimal Dose { get; set; }
+        public string? DoseUnitNameSnapshot { get; set; }
+        public string? FrequencyCode { get; set; }
+        public string? FrequencyText { get; set; }
+        public bool IsAsNeeded { get; set; }
+        public string? Signa { get; set; }
+        public string? AdministrationInstruction { get; set; }
+        public decimal Quantity { get; set; }
+        public string? DispenseUnitNameSnapshot { get; set; }
+        public PrescriptionDoseKind DoseKind { get; set; }
+        public bool IsStopped { get; set; }
+        public DateTime? StoppedAt { get; set; }
+        public Guid? StoppedByUserId { get; set; }
+        public string? StoppedByName { get; set; }
+        public string? StopReason { get; set; }
+        public int SortOrder { get; set; }
+    }
+
+    /// <summary>
+    /// Racikan pada Resep Harian beserta bahannya — BE-RWI-099 kriteria 3.
+    /// </summary>
+    public class InpatientPrescriptionCompoundResponse
+    {
+        public Guid Id { get; set; }
+        public Guid PrescriptionId { get; set; }
+        public string CompoundName { get; set; } = string.Empty;
+        public string? CompoundForm { get; set; }
+        public decimal TotalPackage { get; set; }
+        public string? PackageUnitNameSnapshot { get; set; }
+        public decimal DosePerUse { get; set; }
+        public string? DoseUnitNameSnapshot { get; set; }
+        public string? FrequencyText { get; set; }
+        public bool IsAsNeeded { get; set; }
+        public string? Signa { get; set; }
+        public string? AdministrationInstruction { get; set; }
+        public int SortOrder { get; set; }
+        public List<InpatientPrescriptionCompoundIngredientResponse> Ingredients { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Satu bahan racikan pada Resep Harian — BE-RWI-099.
+    /// </summary>
+    public class InpatientPrescriptionCompoundIngredientResponse
+    {
+        public Guid Id { get; set; }
+        public Guid DrugId { get; set; }
+        public string DrugNameSnapshot { get; set; } = string.Empty;
+        public string? StrengthSnapshot { get; set; }
+        public decimal AmountPerPackage { get; set; }
+        public decimal TotalQuantity { get; set; }
+        public string? QuantityUnitNameSnapshot { get; set; }
+    }
 }

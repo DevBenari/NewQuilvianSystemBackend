@@ -44,8 +44,9 @@ backend_source_sha: df3679c0d5b2f08106702153eb242d3a6cb2929b
 frontend_source_sha: 1ce219b40f8e411f3c4e66975626ab33ae81616a
 task_id_range: BE-RWI-088..BE-RWI-105
 task_id_next_free: BE-RWI-127
-completed_tasks: [BE-RWI-088, BE-RWI-089, BE-RWI-090, BE-RWI-092, BE-RWI-093, BE-RWI-094, BE-RWI-095, BE-RWI-096]
-last_updated: "2026-09-16 — delapan task ditandai selesai tanpa dotnet build atas instruksi pemilik"
+completed_tasks: [BE-RWI-088, BE-RWI-089, BE-RWI-090, BE-RWI-091, BE-RWI-092, BE-RWI-093, BE-RWI-094, BE-RWI-095, BE-RWI-096, BE-RWI-097, BE-RWI-098, BE-RWI-099, BE-RWI-101, BE-RWI-102, BE-RWI-103, BE-RWI-104, BE-RWI-105]
+blocked_tasks: [BE-RWI-100]   # menunggu BE-RWI-114 [BE-KEP]
+last_updated: "2026-09-17 — BE-RWI-091, 098, 099, 101 s.d. 105 ditandai selesai tanpa dotnet build dan tanpa eksekusi migration atas instruksi pemilik; BE-RWI-097 disusulkan ke completed_tasks; BE-RWI-100 ⛔ menunggu BE-RWI-114 [BE-KEP]"
 waves: [DOK-V2-0, DOK-V2-1, DOK-V2-2, DOK-V2-3]
 migration_steps: [R1, R2, R3, R4, R5, R6, R7, R8, R9]
 owned_tables_note: "Sub-modul ini TIDAK memiliki satu tabel pun — RWI-DEC-081. Seluruh tabel milik ClinicalManagement, PharmacyManagement, LaboratoryManagement, RadiologyManagement"
@@ -205,21 +206,21 @@ Pemetaan gelombang PRD:
 | `BE-RWI-088` | Hanya penulis yang menyunting konsepnya, dan hanya dokter berpenugasan yang menulis dokumen baru | `FR-DOK-075`, `FR-DOK-076`; `INV-DOK-14`, `INV-DOK-15` | `0.6.0` permission matrix | Penjaga penulis klinis yang sudah ada | `R1` — penulis tunggal konsep; penugasan dinilai pada **waktu klinis** dan wajib aktif saat disimpan | — | AC-1 s.d. AC-5 | Validasi source/QBE; `dotnet build` **NOT RUN** atas instruksi pemilik | `REPAIR` menyentuh 8 dari 9 titik panggil resolver / Muhammad Hamzah | ✅ [Laporan](../task/report/backend/BE-RWI-088.md) |
 | `BE-RWI-089` | Hanya DPJP aktif yang memverifikasi CPPT | `FR-DOK-082`; `INV-DOK-16` | `0.6.0` permission matrix | Jalur verifikasi CPPT yang sudah ada | `R1` — peran DPJP dinilai pada **detik verifikasi**; konsulen dan dokter jaga `403` | — | AC-1 s.d. AC-4 | Validasi source/QBE; `dotnet build` **NOT RUN** atas instruksi pemilik | Salah nilai peran = catatan terverifikasi orang yang tidak berwenang / Muhammad Hamzah | ✅ [Laporan](../task/report/backend/BE-RWI-089.md) |
 | `BE-RWI-090` | Tindakan baru tidak lahir pada episode yang sudah ditutup | `FR-DOK-081`; `RLN3-CAP-35` | `0.6.0` validation matrix | Pemeriksaan status episode yang sudah ada | `R1` — tindakan baru dari catatan dokter pada episode `Closed` ditolak `422` | — | AC-1 s.d. AC-3 | Validasi source/QBE; `dotnet build` **NOT RUN** atas instruksi pemilik | — / Muhammad Hamzah | ✅ [Laporan](../task/report/backend/BE-RWI-090.md) |
-| `BE-RWI-091` | Satu konsep membentuk tepat satu registrasi keutuhan | `FR-DOK-074`, `FR-DOK-077`; `INV-DOK-18` | `0.6.0` state matrix | Mesin keutuhan `MedicalRecordManagement` | `R2` — registrasi sejak konsep untuk SOAP dan kajian medis rawat inap; tanda tangan memakai registrasi yang sama | `BE-RWI-088`, `BE-RWI-079` [BE-INP] | AC-1 s.d. AC-5 | `dotnet build`; verifikasi proses bisnis; uji idempoten simpan otomatis | Registrasi ganda = riwayat dokumen pecah. Perubahan mesin **disetujui** 2026-09-16 `RWI-DEC-151` / Yoga Aji Pratama ✅ | Kartu `BE-RWI-091` |
+| `BE-RWI-091` | Satu konsep membentuk tepat satu registrasi keutuhan | `FR-DOK-074`, `FR-DOK-077`; `INV-DOK-18` | `0.6.0` state matrix | Mesin keutuhan `MedicalRecordManagement` | `R2` — registrasi sejak konsep untuk SOAP dan kajian medis rawat inap; tanda tangan memakai registrasi yang sama | `BE-RWI-088`, `BE-RWI-079` [BE-INP] | AC-1 s.d. AC-5 | Validasi source/QBE; `dotnet build` **NOT RUN** atas instruksi pemilik | Registrasi ganda = riwayat dokumen pecah. Perubahan mesin **disetujui** 2026-09-16 `RWI-DEC-151` / Yoga Aji Pratama ✅ | ✅ [Laporan](../task/report/backend/BE-RWI-091.md) |
 | `BE-RWI-092` | Dokter menemukan konsep dan catatan terkuncinya sendiri | `FR-DOK-079`; `RWI-DEC-127`, `RWI-DEC-142` | `0.6.0` API `my-authored` | Mesin keutuhan | Daftar `my-authored` — konsep dan catatan terkunci milik penulis login, identitas pasien **minimum saja** | `BE-RWI-091` | AC-1 s.d. AC-5 | Validasi source/QBE; `dotnet build` **NOT RUN** atas instruksi pemilik | ~~menunggu Yoga Aji Pratama~~ **disetujui 2026-09-16 `RWI-DEC-151`**; jalur baca data pasien wajib tetap sempit / Yoga Aji Pratama | ✅ [Laporan](../task/report/backend/BE-RWI-092.md) |
 | `BE-RWI-093` | Penulis mengoreksi catatannya sendiri walau penugasannya sudah berakhir | `FR-DOK-080`; `RWI-DEC-127` | `0.6.0` permission matrix | Mesin addendum `RWI-FACT-013` | Addendum oleh penulis asli pada catatan final atau terkunci miliknya, tanpa penugasan aktif | `BE-RWI-091` | AC-1 s.d. AC-4 | Validasi reuse/source; `dotnet build` **NOT RUN** atas instruksi pemilik | Pengecualian sempit terhadap hanya-baca episode tertutup / Muhammad Hamzah | ✅ [Laporan](../task/report/backend/BE-RWI-093.md) |
 | `BE-RWI-094` | CPPT tahu jenis catatan yang disimpan | `FR-DOK-085`; `RWI-DEC-141` | `0.6.0` data dictionary | `TrxPatientIntegratedProgressNote` | `R3` — kolom `NoteKind`; diperiksa terhadap profesi penulis; entri lama `Unspecified` **tanpa tebakan** | `BE-RWI-079` [BE-INP] | AC-1 s.d. AC-4 | Validasi source/QBE; build dan migration **NOT RUN** | Pengisian tebakan pada entri lama = pemalsuan data klinis / Muhammad Hamzah | ✅ [Laporan](../task/report/backend/BE-RWI-094.md) |
 | `BE-RWI-095` | DPJP terakhir tetap dapat memverifikasi entri yang tertinggal | `FR-DOK-083`; `RWI-DEC-125`, `RWI-DEC-126` | `0.6.0` state matrix | Jalur verifikasi dari `BE-RWI-089` | Pada episode `Closed`, DPJP **terakhir** memverifikasi entri yang ditulis sebelum penutupan; keterlambatan tetap tercatat | `BE-RWI-094`, `BE-RWI-089` | AC-1 s.d. AC-5 | Validasi source/QBE; `dotnet build` **NOT RUN** atas instruksi pemilik | DPJP **sebelumnya** tidak boleh ikut memverifikasi / Muhammad Hamzah | ✅ [Laporan](../task/report/backend/BE-RWI-095.md) |
 | `BE-RWI-096` | Entri yang menunggu verifikasi tidak hilang setelah episode ditutup | `FR-DOK-084` | `0.6.0` API daftar tunggu | Daftar tunggu verifikasi yang sudah ada | Daftar memuat episode `Closed` milik DPJP terakhir sampai seluruh entrinya terverifikasi | `BE-RWI-095` | AC-1 s.d. AC-4 | Validasi source/QBE; `dotnet build` **NOT RUN** atas instruksi pemilik | — / Muhammad Hamzah | ✅ [Laporan](../task/report/backend/BE-RWI-096.md) |
 | `BE-RWI-097` | Perawat memesan tindakan atas instruksi dokter yang bertugas | `FR-DOK-100`, `101`, `102`; `RWI-DEC-133` | `0.6.0` data + API | `TrxPatientProcedure` | `R7` — enam kolom baru; **longgarkan `ConsultationId`**; `PatientProcedureOrderService` | `BE-RWI-090`, `BE-RWI-079` [BE-INP] | AC-1 s.d. AC-6 | Validasi source/skema; `dotnet build` **NOT RUN** atas instruksi pemilik | Disetujui Sukma GP `RWI-DEC-152` / Muhammad Hamzah | ✅ [Laporan](../task/report/backend/BE-RWI-097.md) |
-| `BE-RWI-098` | Dokter pemberi instruksi memverifikasi pesanan yang dibuat perawat | `FR-DOK-103`, `FR-DOK-104`; `INV-DOK-17` | `0.6.0` state matrix | Jalur pesanan dari `BE-RWI-097` | Verifikasi instruksi hanya oleh dokter pemberi instruksi; verifikasi **tidak** mengubah penginput dan isi; pelaksana menjadi penulis catatan pelaksanaan | `BE-RWI-097` | AC-1 s.d. AC-5 | `dotnet build`; verifikasi kontrak API; verifikasi proses bisnis | — / Muhammad Hamzah | Kartu `BE-RWI-098` |
-| `BE-RWI-099` | Dokter melihat seluruh resep pasien dalam satu periode | `FR-DOK-086`; `RWI-DEC-134` | `0.6.0` data + API | `PhmPrescriptionItem` | `R4` — lima kolom baru; endpoint Resep Harian bersaring periode, termasuk racikan dan obat pulang | — | AC-1 s.d. AC-5 | `dotnet build`; verifikasi skema; verifikasi kontrak API | Kolom baru pada tabel milik `PharmacyManagement` / Muhammad Hamzah | Kartu `BE-RWI-099` |
-| `BE-RWI-100` | Obat yang dihentikan berhenti sampai ke perawat | `FR-DOK-087`; `INT-KEP-09` | `0.6.0` integrasi | Mesin MAR dari `BE-RWI-114` | Penghentian butir beralasan membatalkan dosis MAR `Due` sesudahnya **dalam satu transaksi** | `BE-RWI-099`, `BE-RWI-114` [BE-KEP] | AC-1 s.d. AC-5 | `dotnet build`; verifikasi proses bisnis; uji galat buatan | Dosis `Administered` tidak boleh tersentuh / Muhammad Hamzah | Kartu `BE-RWI-100` |
-| `BE-RWI-101` | Obat bawaan pasien diputuskan nasibnya satu per satu | `FR-DOK-092`, `FR-DOK-093` | `0.6.0` data + state | Jalur resep dari `BE-RWI-099` | `R5` — tabel rekonsiliasi; keputusan Lanjut Sama, Lanjut Ubah, Hentikan; jalur obat non-formularium | `BE-RWI-099` | AC-1 s.d. AC-6 | `dotnet build`; verifikasi skema; verifikasi kontrak API | Perawat `403` pada jalur keputusan / Muhammad Hamzah | Kartu `BE-RWI-101` |
-| `BE-RWI-102` | Protokol sliding scale disahkan sebagai versi, bukan angka lepas | `FR-DOK-094`, `FR-DOK-095`; `RWI-DEC-146`, `RWI-DEC-147` | `0.6.0` data + state | — (`MISSING / NEW`) | `R6` — tabel template dan versi protokol; rentang menutup seluruh nilai tanpa tumpuk; pengesah bukan pengubah terakhir | — | AC-1 s.d. AC-6 | `dotnet build`; verifikasi skema; verifikasi kontrak API | Rentang bertumpuk atau berlubang = dosis insulin salah / **pemilik klinis belum ditunjuk** | Kartu `BE-RWI-102` |
-| `BE-RWI-103` | Order sliding scale per pasien lahir dari versi yang sah | `FR-DOK-096`, `097`, `098`, `099`; `RWI-DEC-146` | `0.6.0` API + state | Tabel dari `BE-RWI-102` | Order hanya dari versi `Approved`; rentang **tersalin**; penyesuaian wajib beralasan dan membuat versi order baru | `BE-RWI-102` | AC-1 s.d. AC-6 | `dotnet build`; verifikasi kontrak API; verifikasi proses bisnis | Versi template baru tidak boleh mengubah order berjalan / Muhammad Hamzah | Kartu `BE-RWI-103` |
-| `BE-RWI-104` | Pesanan Lab dan Radiologi membawa pemberi instruksi | `FR-DOK-106` | `0.6.0` integrasi | `LabOrder`, `RadOrder` | `R8` — empat kolom instruksi pada dua tabel milik modul lain | `BE-RWI-097` | AC-1 s.d. AC-4 | `dotnet build`; verifikasi skema; verifikasi kontrak API; **regresi alur Lab/Rad** | ~~menunggu pemilik Lab/Rad~~ **disetujui 2026-09-16 `RWI-DEC-153`**; regresi Lab/Rad tetap wajib / Yoga Aji | Kartu `BE-RWI-104` |
-| `BE-RWI-105` | Template resep benar-benar milik dokter yang membuatnya | `FR-DOK-088`, `089`, `090`, `091` | `0.6.0` permission + validation | `PrescriptionTemplateService` | `R9` — pemilik dari **akun login**; hanya template milik sendiri; template kosong ditolak; butir bentrok ditandai | `BE-RWI-099` | AC-1 s.d. AC-6 | `dotnet build`; verifikasi proses bisnis; **regresi poliklinik** | **Mengubah perilaku poliklinik** — pemberitahuan pemilik `rawat-jalan` wajib / pemilik `rawat-jalan` | Kartu `BE-RWI-105` |
+| `BE-RWI-098` | Dokter pemberi instruksi memverifikasi pesanan yang dibuat perawat | `FR-DOK-103`, `FR-DOK-104`; `INV-DOK-17` | `0.6.0` state matrix | Jalur pesanan dari `BE-RWI-097` | Verifikasi instruksi hanya oleh dokter pemberi instruksi; verifikasi **tidak** mengubah penginput dan isi; pelaksana menjadi penulis catatan pelaksanaan | `BE-RWI-097` | AC-1 s.d. AC-5 | Validasi source/QBE; `dotnet build` **NOT RUN** atas instruksi pemilik | — / Muhammad Hamzah | ✅ [Laporan](../task/report/backend/BE-RWI-098.md) |
+| `BE-RWI-099` | Dokter melihat seluruh resep pasien dalam satu periode | `FR-DOK-086`; `RWI-DEC-134` | `0.6.0` data + API | `PhmPrescriptionItem` | `R4` — lima kolom baru; endpoint Resep Harian bersaring periode, termasuk racikan dan obat pulang | — | AC-1 s.d. AC-5 | Validasi source/skema; `dotnet build` dan migration **NOT RUN** atas instruksi pemilik | Kolom baru pada tabel milik `PharmacyManagement` / Muhammad Hamzah | ✅ [Laporan](../task/report/backend/BE-RWI-099.md) |
+| `BE-RWI-100` | Obat yang dihentikan berhenti sampai ke perawat | `FR-DOK-087`; `INT-KEP-09` | `0.6.0` integrasi | Mesin MAR dari `BE-RWI-114` | Penghentian butir beralasan membatalkan dosis MAR `Due` sesudahnya **dalam satu transaksi** | `BE-RWI-099`, `BE-RWI-114` [BE-KEP] | AC-1 s.d. AC-5 | `dotnet build`; verifikasi proses bisnis; uji galat buatan | Dosis `Administered` tidak boleh tersentuh / Muhammad Hamzah | ⛔ menunggu `BE-RWI-114` [BE-KEP] — [Laporan](../task/report/backend/BE-RWI-100.md) |
+| `BE-RWI-101` | Obat bawaan pasien diputuskan nasibnya satu per satu | `FR-DOK-092`, `FR-DOK-093` | `0.6.0` data + state | Jalur resep dari `BE-RWI-099` | `R5` — tabel rekonsiliasi; keputusan Lanjut Sama, Lanjut Ubah, Hentikan; jalur obat non-formularium | `BE-RWI-099` | AC-1 s.d. AC-6 | Validasi source/skema; `dotnet build` dan migration **NOT RUN** atas instruksi pemilik | Perawat `403` pada jalur keputusan / Muhammad Hamzah | ✅ [Laporan](../task/report/backend/BE-RWI-101.md) |
+| `BE-RWI-102` | Protokol sliding scale disahkan sebagai versi, bukan angka lepas | `FR-DOK-094`, `FR-DOK-095`; `RWI-DEC-146`, `RWI-DEC-147` | `0.6.0` data + state | — (`MISSING / NEW`) | `R6` — tabel template dan versi protokol; rentang menutup seluruh nilai tanpa tumpuk; pengesah bukan pengubah terakhir | — | AC-1 s.d. AC-6 | Validasi source/skema; `dotnet build` dan migration **NOT RUN** atas instruksi pemilik; `RWI-OQ-097` tetap terbuka | Rentang bertumpuk atau berlubang = dosis insulin salah / **pemilik klinis belum ditunjuk** | ✅ [Laporan](../task/report/backend/BE-RWI-102.md) |
+| `BE-RWI-103` | Order sliding scale per pasien lahir dari versi yang sah | `FR-DOK-096`, `097`, `098`, `099`; `RWI-DEC-146` | `0.6.0` API + state | Tabel dari `BE-RWI-102` | Order hanya dari versi `Approved`; rentang **tersalin**; penyesuaian wajib beralasan dan membuat versi order baru | `BE-RWI-102` | AC-1 s.d. AC-6 | Validasi source/QBE; `dotnet build` **NOT RUN** atas instruksi pemilik | Versi template baru tidak boleh mengubah order berjalan / Muhammad Hamzah | ✅ [Laporan](../task/report/backend/BE-RWI-103.md) |
+| `BE-RWI-104` | Pesanan Lab dan Radiologi membawa pemberi instruksi | `FR-DOK-106` | `0.6.0` integrasi | `LabOrder`, `RadOrder` | `R8` — empat kolom instruksi pada dua tabel milik modul lain | `BE-RWI-097` | AC-1 s.d. AC-4 | Validasi source/skema; `dotnet build`, migration, dan **regresi Lab/Rad NOT RUN** atas instruksi pemilik | ~~menunggu pemilik Lab/Rad~~ **disetujui 2026-09-16 `RWI-DEC-153`**; regresi Lab/Rad tetap wajib / Yoga Aji | ✅ [Laporan](../task/report/backend/BE-RWI-104.md) |
+| `BE-RWI-105` | Template resep benar-benar milik dokter yang membuatnya | `FR-DOK-088`, `089`, `090`, `091` | `0.6.0` permission + validation | `PrescriptionTemplateService` | `R9` — pemilik dari **akun login**; hanya template milik sendiri; template kosong ditolak; butir bentrok ditandai | `BE-RWI-099` | AC-1 s.d. AC-6 | Validasi source/QBE; `dotnet build` dan **regresi poliklinik NOT RUN** atas instruksi pemilik | **Mengubah perilaku poliklinik** — pemberitahuan pemilik `rawat-jalan` wajib / pemilik `rawat-jalan` | ✅ [Laporan](../task/report/backend/BE-RWI-105.md) |
 
 ---
 
@@ -326,7 +327,7 @@ pada perawatan yang sudah selesai, dan itu bisa ikut tertagih.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **Selesai 16 September 2026** — [laporan](../task/report/backend/BE-RWI-091.md); validasi source/QBE, `dotnet build` **NOT RUN** atas instruksi pemilik; merujuk `RWI-DEC-151` |
 | **Gelombang** | 2 — `DOK-V2-1` |
 | **Migration** | `R2` — kode saja; registrasi `Draft` yang telanjur terbentuk **tidak dihapus** saat mundur |
 
@@ -568,7 +569,7 @@ traceability diperbarui.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **Selesai 16 September 2026** — [laporan](../task/report/backend/BE-RWI-098.md); validasi source/QBE, `dotnet build` **NOT RUN** atas instruksi pemilik |
 | **Gelombang** | 3 — `DOK-V2-1` |
 
 **Bisnis prosesnya.** Pesanan yang dimasukkan perawat perlu dikonfirmasi bahwa instruksinya memang
@@ -594,7 +595,7 @@ penginputnya; ia hanya menambah status verifikasi.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **Selesai 16 September 2026** — [laporan](../task/report/backend/BE-RWI-099.md); validasi source/skema, `dotnet build` dan migration R4 **NOT RUN** atas instruksi pemilik |
 | **Gelombang** | 1 — `DOK-V2-2` |
 | **Migration** | `R4` — lima kolom pada `PhmPrescriptionItem`, milik `PharmacyManagement` |
 
@@ -639,7 +640,7 @@ GET /api/pharmacy-management/prescriptions/daily:
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
+| **Status** | ⛔ **Terblokir** — menunggu `BE-RWI-114` [BE-KEP]; nol source ditulis — [laporan](../task/report/backend/BE-RWI-100.md) |
 | **Gelombang** | 2 — `DOK-V2-2`, dirilis bersama `KEP-V2-2` |
 
 **Bisnis prosesnya.** Dokter menghentikan sebuah obat. Kalau dosis yang sudah terjadwal di MAR tidak
@@ -671,7 +672,7 @@ Laporan tracked ada; roadmap dan traceability diperbarui.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **Selesai 16 September 2026** — [laporan](../task/report/backend/BE-RWI-101.md); validasi source/skema, `dotnet build` dan migration R5 **NOT RUN** atas instruksi pemilik |
 | **Gelombang** | 2 — `DOK-V2-2` |
 | **Migration** | `R5` — tabel rekonsiliasi dan jalur pendaftaran obat non-formularium |
 
@@ -708,7 +709,7 @@ bisnis untuk keenam kriteria.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **Selesai 17 September 2026** — [laporan](../task/report/backend/BE-RWI-102.md); validasi source/skema, `dotnet build` dan migration R6 **NOT RUN** atas instruksi pemilik. **`RWI-OQ-097` tetap terbuka** |
 | **Gelombang** | 1 — `DOK-V2-2` |
 | **Migration** | `R6` — tabel template dan order sliding scale, milik `PharmacyManagement` (`RWI-DEC-147`) |
 
@@ -753,7 +754,7 @@ dicatat sebagai masih terbuka.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **Selesai 17 September 2026** — [laporan](../task/report/backend/BE-RWI-103.md); validasi source/QBE, `dotnet build` **NOT RUN** atas instruksi pemilik. Jalur penghentian lewat butir insulin aktif setelah `BE-RWI-100` |
 | **Gelombang** | 2 — `DOK-V2-2` |
 
 **Bisnis prosesnya.** Order adalah penerapan template pada satu pasien. Rentangnya **disalin** dari
@@ -784,7 +785,7 @@ di atas, termasuk pengesahan versi template baru.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan. ~~⛔ menunggu pemilik Lab/Rad~~ — **gerbang tertutup 2026-09-16 lewat `RWI-DEC-153`** |
+| **Status** | ✅ **Selesai 17 September 2026** — [laporan](../task/report/backend/BE-RWI-104.md); validasi source/skema, `dotnet build`, migration R8, dan **regresi Lab/Rad NOT RUN** atas instruksi pemilik; merujuk `RWI-DEC-153` |
 | **Gelombang** | 3 — `DOK-V2-3` |
 | **Migration** | `R8` — empat kolom pada `LabOrder` dan `RadOrder`, **milik modul lain** |
 
@@ -821,7 +822,7 @@ roadmap dan traceability diperbarui.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **Selesai 17 September 2026** — [laporan](../task/report/backend/BE-RWI-105.md); validasi source/QBE, `dotnet build` dan **regresi poliklinik NOT RUN** atas instruksi pemilik; merujuk `RWI-DEC-152` |
 | **Gelombang** | 2 — `DOK-V2-3` |
 | **Migration** | `R9` — **mengubah perilaku poliklinik**; pemberitahuan pemilik `rawat-jalan` wajib |
 

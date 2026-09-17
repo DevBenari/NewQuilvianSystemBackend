@@ -695,7 +695,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             // Catatan yang belum terdaftar dilewatkan apa adanya oleh EnsureMutableAsync,
             // sehingga seluruh catatan poliklinik dan IGD, serta catatan rawat inap yang lahir
             // sebelum task ini, tidak berubah perilakunya.
-            var penjagaKeutuhan = await _integrityService.EnsureMutableAsync(
+            //
+            // VAL-DOK-43: konsep LockedUnsigned dijawab 409 beserta arahan addendum dari
+            // Catatan Saya; keadaan lain diteruskan ke EnsureMutableAsync apa adanya.
+            var penjagaKeutuhan = await _integrityService.EnsureDraftStillOpenAsync(
                 ClinicalDocumentKind.Consultation, entity.Id);
 
             if (!penjagaKeutuhan.IsAllowed)
@@ -818,7 +821,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             // SENGAJA tidak mendaftarkan apa pun: registrasinya sudah lahir bersama catatannya,
             // dan simpan otomatis yang mendaftarkan akan menghasilkan satu registrasi per
             // ketikan — api-contract.md 0.6.0 bagian 12.2 menuliskannya tegas.
-            var penjagaKeutuhan = await _integrityService.EnsureMutableAsync(
+            var penjagaKeutuhan = await _integrityService.EnsureDraftStillOpenAsync(
                 ClinicalDocumentKind.Consultation, entity.Id);
 
             if (!penjagaKeutuhan.IsAllowed)
@@ -912,6 +915,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             var penjagaPenulis = await EnsureSoleAuthorAsync(entityUntukPenjaga, cancellationToken);
             if (penjagaPenulis != null)
                 return penjagaPenulis;
+
+            // BE-RWI-091 / VAL-DOK-43, RWI-DEC-138 butir (2). Menyelesaikan konsep yang sudah
+            // terkunci "Tidak Ditandatangani" karena perawatannya ditutup sama dengan
+            // menandatangani mundur. Tanpa penjaga ini, jalur finalisasi tetap menandai catatan
+            // selesai sementara registrasinya dibiarkan LockedUnsigned — dua keadaan yang saling
+            // membantah untuk satu dokumen. Konsep yang belum terdaftar dan catatan poliklinik
+            // tidak tersentuh.
+            var penjagaKeutuhan = await _integrityService.EnsureDraftStillOpenAsync(
+                ClinicalDocumentKind.Consultation, id, cancellationToken);
+
+            if (!penjagaKeutuhan.IsAllowed)
+            {
+                return StatusCode(penjagaKeutuhan.StatusCode, ApiResponse<object>.Fail(
+                    penjagaKeutuhan.StatusCode,
+                    penjagaKeutuhan.ErrorMessage ?? "Catatan ini tidak dapat diselesaikan."
+                ));
+            }
 
             var result = await _consultationFinalizationService.FinalizeAsync(
                 id,

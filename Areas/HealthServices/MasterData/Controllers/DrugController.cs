@@ -572,6 +572,124 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             ));
         }
 
+        /// <summary>
+        /// Mendaftarkan obat bawaan pasien yang belum ada di master obat sebagai
+        /// <b>non-formularium</b> — <c>BE-RWI-101</c> kriteria 6, <c>RWI-DEC-134</c>,
+        /// api-contract 0.6.0 bagian 12.9.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Nol hak akses baru.</b> Siapa yang boleh mendaftar ditentukan butir <c>Drug : Create</c>
+        /// yang sudah ada pada layar Akses Role — <c>RWI-DEC-134</c> butir (3).
+        /// </para>
+        /// <para>
+        /// <b>Penanda formularium dipaksa server.</b> <c>IsFormulary</c> selalu <c>false</c>, apa pun
+        /// isi permintaan; permintaan ini memang tidak punya isian itu. Tanpa pemaksaan ini obat
+        /// bawaan terdaftar sebagai formularium karena bawaan kolomnya <c>true</c> (<c>RWI-FACT-034</c>).
+        /// </para>
+        /// <para>
+        /// <b>Isian wajib hanya kategori dan nama.</b> Obat baru dapat diresepkan
+        /// (<c>IsPrescribable</c>) hanya bila ketiga satuan — dasar, serah, dan dosis — ikut diisi,
+        /// mengikuti aturan master obat yang sudah berlaku. Kelengkapan isian lain tanggung jawab
+        /// pendaftar (<c>RWI-DEC-134</c> konsekuensi 4).
+        /// </para>
+        /// <para>
+        /// <b>Contoh.</b> Sabtu 20.40 pengguna ber-hak <c>Drug : Create</c> mendaftarkan "Kapsul herbal
+        /// kunyit" berkategori Herbal → tersimpan non-formularium; 20.45 Ns. Siti dapat mencatatnya
+        /// pada rekonsiliasi. Tanpa nama → <c>400</c> "Nama dan kategori obat wajib diisi."
+        /// </para>
+        /// </remarks>
+        [HttpPost("non-formulary-registrations")]
+        [ProducesResponseType(typeof(ApiResponse<DrugCreateResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [AccessAction("Create", "Create Drug", Description = "Mendaftarkan obat bawaan pasien sebagai obat non-formularium", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessPermission("Drug", "Create")]
+        public async Task<IActionResult> RegisterNonFormularyDrug([FromBody] CreateNonFormularyDrugRequest request)
+        {
+            // VAL-DOK-53b.
+            if (request.DrugCategoryId == Guid.Empty || string.IsNullOrWhiteSpace(request.DrugName))
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Nama dan kategori obat wajib diisi."
+                ));
+            }
+
+            var baseUnit = NormalizeNullableGuid(request.BaseUnitMeasurementId);
+            var dispenseUnit = NormalizeNullableGuid(request.DispenseUnitMeasurementId);
+            var doseUnit = NormalizeNullableGuid(request.DefaultDoseUnitMeasurementId);
+            var dapatDiresepkan = baseUnit.HasValue && dispenseUnit.HasValue && doseUnit.HasValue;
+
+            var createRequest = new CreateDrugRequest
+            {
+                DrugCategoryId = request.DrugCategoryId,
+                DrugName = request.DrugName.Trim(),
+                GenericName = request.GenericName,
+                DrugForm = request.DrugForm,
+                Strength = request.Strength,
+                BaseUnitMeasurementId = baseUnit,
+                DispenseUnitMeasurementId = dispenseUnit,
+                DefaultDoseUnitMeasurementId = doseUnit,
+                IsFormulary = false,
+                IsPrescribable = dapatDiresepkan
+            };
+
+            var validation = await ValidateRequestAsync(null, createRequest);
+
+            if (!validation.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    validation.ErrorMessage ?? "Data obat non-formularium tidak valid."
+                ));
+            }
+
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
+            await using var transaction = await _dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+
+            var entity = new MstDrug
+            {
+                Id = Guid.NewGuid(),
+                DrugCategoryId = createRequest.DrugCategoryId,
+                DrugCode = await GenerateDrugCodeAsync(),
+                DrugName = createRequest.DrugName,
+                GenericName = NormalizeNullableString(createRequest.GenericName),
+                DrugForm = NormalizeDrugForm(createRequest.DrugForm),
+                Strength = NormalizeNullableString(createRequest.Strength),
+                BaseUnitMeasurementId = createRequest.BaseUnitMeasurementId,
+                DispenseUnitMeasurementId = createRequest.DispenseUnitMeasurementId,
+                DefaultDoseUnitMeasurementId = createRequest.DefaultDoseUnitMeasurementId,
+                // RWI-DEC-134 butir (2). Satu-satunya tempat nilai ini ditentukan.
+                IsFormulary = false,
+                IsPrescribable = createRequest.IsPrescribable,
+                IsActive = true,
+                CreateDateTime = now,
+                CreateBy = actorUserId,
+                IsDelete = false,
+                IsCancel = false
+            };
+
+            _dbContext.Set<MstDrug>().Add(entity);
+            await _dbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            var result = ToCreateResponse(entity);
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "Drug.RegisterNonFormularyDrug",
+                "Mendaftarkan obat non-formularium.",
+                result
+            );
+
+            return Ok(ApiResponse<DrugCreateResponse>.Ok(
+                result,
+                "Obat non-formularium berhasil didaftarkan."
+            ));
+        }
+
         [HttpPut("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<DrugUpdateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]

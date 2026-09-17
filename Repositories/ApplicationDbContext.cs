@@ -724,6 +724,17 @@ namespace QuilvianSystemBackend.Repositories
 
         public DbSet<PhmPrescription> PhmPrescriptions { get; set; }
         public DbSet<PhmPrescriptionItem> PhmPrescriptionItems { get; set; }
+
+        // BE-RWI-101 / migration R5 — rekonsiliasi obat bawaan, milik PharmacyManagement (RWI-DEC-132).
+        public DbSet<PhmMedicationReconciliationItem> PhmMedicationReconciliationItems { get; set; }
+        public DbSet<PhmMedicationReconciliationDecision> PhmMedicationReconciliationDecisions { get; set; }
+
+        // BE-RWI-102 dan BE-RWI-103 / migration R6 — sliding scale milik PharmacyManagement (RWI-DEC-147).
+        public DbSet<PhmSlidingScaleTemplate> PhmSlidingScaleTemplates { get; set; }
+        public DbSet<PhmSlidingScaleTemplateVersion> PhmSlidingScaleTemplateVersions { get; set; }
+        public DbSet<PhmSlidingScaleRange> PhmSlidingScaleRanges { get; set; }
+        public DbSet<PhmSlidingScaleOrder> PhmSlidingScaleOrders { get; set; }
+        public DbSet<PhmSlidingScaleOrderVersion> PhmSlidingScaleOrderVersions { get; set; }
         public DbSet<PhmPrescriptionCompound> PhmPrescriptionCompounds { get; set; }
         public DbSet<PhmPrescriptionCompoundItem> PhmPrescriptionCompoundItems { get; set; }
         public DbSet<MstPrescriptionTemplate> MstPrescriptionTemplates { get; set; }

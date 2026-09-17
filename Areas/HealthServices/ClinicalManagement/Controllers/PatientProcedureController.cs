@@ -7,6 +7,8 @@ using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
@@ -469,7 +471,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             CancellationToken cancellationToken)
         {
             var actorUserId = GetCurrentUserId();
-            var result = await _procedureOrderService.CreateInpatientOrderAsync(request, actorUserId, cancellationToken);
+            var result = await _procedureOrderService.CreateInpatientOrderAsync(request, User, actorUserId, cancellationToken);
 
             if (!result.IsSuccess)
             {
@@ -482,6 +484,83 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             }
 
             return StatusCode(StatusCodes.Status201Created, ApiResponse<PatientProcedureResponse>.Ok(result.Data!, result.Message));
+        }
+
+        /// <summary>
+        /// Dokter pemberi instruksi memverifikasi pesanan tindakan yang dibuat perawat —
+        /// <c>BE-RWI-098</c>, <c>FR-DOK-104</c>, <c>INV-DOK-17</c>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Hak akses baru <c>PatientProcedure : Verify</c></b> — permission-audit-matrix 0.6.0
+        /// bagian 6.1. Diberikan admin kepada dokter lewat layar Akses Role; pembatasan "hanya
+        /// pemberi instruksi pesanan ini" dijaga service dari data pesanan (<c>VAL-DOK-50</c>).
+        /// </para>
+        /// <para>
+        /// Verifikasi tidak mengubah penginput maupun isi pesanan. Jawaban: <c>200</c> terverifikasi;
+        /// <c>403</c> bukan pemberi instruksi; <c>404</c> pesanan tidak ada; <c>409</c> sudah
+        /// diverifikasi atau tidak memerlukan verifikasi.
+        /// </para>
+        /// </remarks>
+        [HttpPatch("{id:guid}/verify-instruction")]
+        [ProducesResponseType(typeof(ApiResponse<PatientProcedureResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [AccessAction("Verify", "Verify Patient Procedure Instruction", Description = "Dokter pemberi instruksi memverifikasi pesanan tindakan yang dibuat perawat", AccessType = AccessTypes.Update, SortOrder = 7)]
+        [AccessPermission("PatientProcedure", "Verify")]
+        public async Task<IActionResult> VerifyInstruction(
+            Guid id,
+            CancellationToken cancellationToken)
+        {
+            var result = await _procedureOrderService.VerifyInstructionAsync(
+                id, User, GetCurrentUserId(), cancellationToken);
+
+            if (!result.IsSuccess)
+            {
+                return StatusCode(result.StatusCode, ApiResponse<object>.Fail(result.StatusCode, result.Message));
+            }
+
+            return Ok(ApiResponse<PatientProcedureResponse>.Ok(result.Data!, result.Message));
+        }
+
+        /// <summary>
+        /// Daftar pesanan tindakan yang menunggu verifikasi dokter login — <c>BE-RWI-098</c>,
+        /// api-contract 0.6.0 bagian 12.5.
+        /// </summary>
+        /// <remarks>
+        /// Dokter diambil dari akun login, bukan dari query. Akun tanpa tautan dokter dijawab
+        /// <c>403</c> beserta arahannya, bukan daftar kosong yang tampak seperti tidak ada
+        /// pekerjaan tertinggal — pola yang sama dengan daftar tunggu verifikasi CPPT.
+        /// </remarks>
+        [HttpGet("instruction-verification-worklist")]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<InstructionVerificationItemResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [AccessAction("Read", "Read Patient Procedure", Description = "Melihat pesanan tindakan yang menunggu verifikasi dokter login", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("PatientProcedure", "Read")]
+        public async Task<IActionResult> GetInstructionVerificationWorklist(
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25,
+            CancellationToken cancellationToken = default)
+        {
+            (pageNumber, pageSize) = NormalizePaging(pageNumber, pageSize);
+
+            var doctorId = await _inpatientClinicalContextService.ResolveActorDoctorIdAsync(
+                User, GetCurrentUserId(), cancellationToken);
+
+            if (doctorId == null || doctorId.Value == Guid.Empty)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(
+                    StatusCodes.Status403Forbidden,
+                    InpatientClinicalContextService.PenolakanBukanDokter
+                ));
+            }
+
+            var hasil = await _procedureOrderService.GetInstructionVerificationWorklistAsync(
+                doctorId.Value, pageNumber, pageSize, cancellationToken);
+
+            return Ok(ApiResponse<PagedResult<InstructionVerificationItemResponse>>.Ok(
+                hasil, "Daftar tunggu verifikasi instruksi berhasil diambil."));
         }
 
         [HttpPost]
@@ -1170,6 +1249,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
+            // BE-RWI-098 kriteria 4 / FR-DOK-103, state matrix 0.6.0 bagian 8.3. Pada tindakan rawat
+            // inap, pelaksana dari akun login menjadi penulis dan penanda tangan catatan
+            // pelaksanaan, sehingga ia wajib berwenang: dokter lewat penugasan aktif, perawat lewat
+            // penempatan pada unit episode. Perawatan yang sudah ditutup ditolak 422. Tindakan
+            // poliklinik, medical check-up, dan IGD tidak membawa episode dan tidak tersentuh.
+            var penjagaPelaksana = await _procedureOrderService.EnsureInpatientExecutorAsync(
+                entity, User, actorUserId);
+
+            if (penjagaPelaksana != null)
+            {
+                return StatusCode(penjagaPelaksana.StatusCode, ApiResponse<object>.Fail(
+                    penjagaPelaksana.StatusCode,
+                    penjagaPelaksana.Message
+                ));
+            }
+
             entity.ProcedureStatus = PatientProcedureStatus.Completed;
             entity.IsExecuted = true;
             entity.ExecutedAt = now;
@@ -1336,7 +1431,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 var isSubmitter = entity.OrderedByUserId.Value == actorUserId;
                 var isDpjp = false;
 
-                var doctorId = await _inpatientClinicalContextService.ResolveActorDoctorIdAsync(actorUserId);
+                var doctorId = await _inpatientClinicalContextService.ResolveActorDoctorIdAsync(User, actorUserId);
                 if (doctorId.HasValue)
                 {
                     isDpjp = await _inpatientClinicalContextService.IsDpjpAssignedAsync(

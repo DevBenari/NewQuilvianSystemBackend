@@ -1,36 +1,68 @@
 using Microsoft.EntityFrameworkCore;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
-using QuilvianSystemBackend.Models;
 using QuilvianSystemBackend.Repositories;
-using QuilvianSystemBackend.Services;
+using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Services.Logging;
+using System.Security.Claims;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
 {
     /// <summary>
     /// Service pengelola pesanan tindakan rawat inap, aturan penginput/DPJP (INV-DOK-17),
-    /// serta pembatalan otomatis saat penutupan episode (RWI-DEC-143, BE-RWI-097).
+    /// verifikasi instruksi dokter (BE-RWI-098), serta pembatalan otomatis saat penutupan
+    /// episode (RWI-DEC-143, BE-RWI-097).
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// <b>Perbaikan kompilasi BE-RWI-098.</b> Versi yang mendarat bersama <c>BE-RWI-097</c>
+    /// memanggil <c>ILoggerService</c> yang tidak ada di repository, memanggil
+    /// <c>ResolveActorDoctorIdAsync</c> tanpa argumen identitas pengguna, dan membaca
+    /// <c>MstProcedure.Price</c> yang juga tidak ada. Ketiganya diperbaiki di sini: logger memakai
+    /// <see cref="LoggerService"/> seperti seluruh controller klinis, identitas dokter memakai
+    /// tanda tangan method yang sebenarnya, dan harga memakai
+    /// <see cref="InsuranceCoverageService.ResolveProcedureAsync"/> — sumber tarif yang sama dengan
+    /// jalur tindakan dari catatan dokter, sehingga pesanan perawat tidak menghasilkan harga yang
+    /// berbeda untuk tindakan yang sama.
+    /// </para>
+    /// </remarks>
     public class PatientProcedureOrderService
     {
         private const string LogCategory = "ClinicalManagement.PatientProcedureOrderService";
 
+        /// <summary>
+        /// <c>VAL-DOK-50</c> — pengguna bukan dokter pemberi instruksi.
+        /// </summary>
+        public const string PenolakanBukanPemberiInstruksi =
+            "Hanya dokter pemberi instruksi yang dapat memverifikasi pesanan ini.";
+
+        /// <summary>
+        /// <c>VAL-DOK-50a</c> — status verifikasi bukan <c>Pending</c>.
+        /// </summary>
+        public const string PenolakanBukanMenungguVerifikasi =
+            "Pesanan ini sudah diverifikasi atau tidak memerlukan verifikasi.";
+
         private readonly ApplicationDbContext _dbContext;
         private readonly InpatientClinicalContextService _clinicalContextService;
-        private readonly ILoggerService _loggerService;
+        private readonly InsuranceCoverageService _insuranceCoverageService;
+        private readonly NursingActorService _nursingActorService;
+        private readonly LoggerService _loggerService;
 
         public PatientProcedureOrderService(
             ApplicationDbContext dbContext,
             InpatientClinicalContextService clinicalContextService,
-            ILoggerService loggerService)
+            InsuranceCoverageService insuranceCoverageService,
+            NursingActorService nursingActorService,
+            LoggerService loggerService)
         {
             _dbContext = dbContext;
             _clinicalContextService = clinicalContextService;
+            _insuranceCoverageService = insuranceCoverageService;
+            _nursingActorService = nursingActorService;
             _loggerService = loggerService;
         }
 
@@ -40,6 +72,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
         /// </summary>
         public async Task<PatientProcedureOrderResult> CreateInpatientOrderAsync(
             CreateInpatientProcedureOrderRequest request,
+            ClaimsPrincipal? user,
             Guid actorUserId,
             CancellationToken cancellationToken = default)
         {
@@ -48,15 +81,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 return PatientProcedureOrderResult.BadRequest("Quantity tindakan harus lebih dari 0.");
             }
 
-            var idempotencyKey = request.IdempotencyKey?.Trim();
-            if (!string.IsNullOrEmpty(idempotencyKey))
+            var idempotencyKey = string.IsNullOrWhiteSpace(request.IdempotencyKey)
+                ? null
+                : request.IdempotencyKey.Trim();
+
+            if (idempotencyKey != null)
             {
                 var existing = await _dbContext.Set<TrxPatientProcedure>()
                     .AsNoTracking()
-                    .Include(x => x.Procedure)
-                    .Include(x => x.Doctor)
-                    .Include(x => x.InstructingDoctor)
-                    .Include(x => x.OrderedByUser)
                     .FirstOrDefaultAsync(x => x.IdempotencyKey == idempotencyKey && !x.IsDelete, cancellationToken);
 
                 if (existing != null)
@@ -68,7 +100,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             }
 
             var episode = await _dbContext.Set<InpEpisode>()
-                .Include(x => x.Encounter)
+                .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.Id == request.InpEpisodeId && !x.IsDelete, cancellationToken);
 
             if (episode == null)
@@ -89,11 +121,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             }
 
             var now = DateTime.UtcNow;
-            var doctorId = await _clinicalContextService.ResolveActorDoctorIdAsync(actorUserId, cancellationToken);
+            var doctorId = await _clinicalContextService.ResolveActorDoctorIdAsync(user, actorUserId, cancellationToken);
 
             Guid orderDoctorId;
-            Guid? instructingDoctorId = null;
-            var verificationStatus = PatientProcedureInstructionVerificationStatus.NotRequired;
+            Guid? instructingDoctorId;
+            PatientProcedureInstructionVerificationStatus verificationStatus;
 
             if (doctorId.HasValue)
             {
@@ -103,7 +135,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 if (!isDoctorAssigned)
                 {
                     return PatientProcedureOrderResult.Forbidden(
-                        "Dokter tidak memiliki penugasan aktif pada perawatan pasien ini.");
+                        "Anda tidak sedang bertugas atas pasien ini. Minta kepala ruangan membuatkan " +
+                        "penugasan singkat untuk menulis catatan terlambat.");
                 }
 
                 orderDoctorId = doctorId.Value;
@@ -112,19 +145,40 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             }
             else
             {
-                if (!request.InstructingDoctorId.HasValue || request.InstructingDoctorId.Value == Guid.Empty)
+                // State matrix 0.6.0 bagian 8.3: perawat memesan dari unit tempat episode dirawat
+                // (RWI-DEC-100). Penjaga ini tidak membaca nama peran; ia membaca penempatan
+                // pegawai pada unit episode.
+                var employeeId = await _nursingActorService.ResolveEmployeeIdAsync(user, actorUserId, cancellationToken);
+
+                if (employeeId == null)
                 {
-                    return PatientProcedureOrderResult.BadRequest(
-                        "Dokter pemberi instruksi wajib dipilih untuk pesanan tindakan oleh perawat.");
+                    return PatientProcedureOrderResult.Forbidden(
+                        InpatientClinicalContextService.PenolakanPerawatTanpaPegawai);
                 }
 
+                var nurseOnDuty = await _clinicalContextService.IsNurseOnDutyAtEpisodeAsync(
+                    episode.Id, employeeId.Value, now, cancellationToken);
+
+                if (!nurseOnDuty)
+                {
+                    return PatientProcedureOrderResult.Forbidden(
+                        InpatientClinicalContextService.PenolakanPerawatUnitLain);
+                }
+
+                // VAL-DOK-46.
+                if (!request.InstructingDoctorId.HasValue || request.InstructingDoctorId.Value == Guid.Empty)
+                {
+                    return PatientProcedureOrderResult.BadRequest("Pilih dokter yang memberi instruksi.");
+                }
+
+                // VAL-DOK-47.
                 var isInstructingDoctorAssigned = await _clinicalContextService.IsDoctorAssignedAsync(
                     episode.Id, request.InstructingDoctorId.Value, now, cancellationToken);
 
                 if (!isInstructingDoctorAssigned)
                 {
                     return PatientProcedureOrderResult.Forbidden(
-                        "Dokter pemberi instruksi yang dipilih tidak sedang bertugas atas pasien ini.");
+                        "Dokter yang dipilih tidak sedang bertugas atas pasien ini.");
                 }
 
                 orderDoctorId = request.InstructingDoctorId.Value;
@@ -133,11 +187,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             }
 
             var procedure = await _dbContext.Set<MstProcedure>()
+                .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.Id == request.ProcedureId && !x.IsDelete, cancellationToken);
 
             if (procedure == null)
             {
                 return PatientProcedureOrderResult.NotFound("Master tindakan tidak ditemukan.");
+            }
+
+            var pricing = await _insuranceCoverageService.ResolveProcedureAsync(
+                episode.EncounterId,
+                procedure.Id,
+                request.Quantity,
+                now,
+                cancellationToken);
+
+            if (!pricing.IsValid)
+            {
+                return PatientProcedureOrderResult.BadRequest(
+                    pricing.ErrorMessage ?? "Tarif atau coverage tindakan tidak dapat ditentukan.");
             }
 
             var entity = new TrxPatientProcedure
@@ -153,39 +221,42 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 PhysicianVisitId = null,
                 IdempotencyKey = idempotencyKey,
                 ProcedureId = procedure.Id,
-                TariffId = null,
-                InsuranceTariffId = null,
-                InsuranceCoverageRuleId = null,
-                ProcedureCodeSnapshot = procedure.ProcedureCode ?? string.Empty,
-                ProcedureNameSnapshot = procedure.ProcedureName ?? string.Empty,
+                TariffId = pricing.TariffId,
+                InsuranceTariffId = pricing.InsuranceTariffId,
+                InsuranceCoverageRuleId = pricing.InsuranceCoverageRuleId,
+                ProcedureCodeSnapshot = procedure.ProcedureCode,
+                ProcedureNameSnapshot = procedure.ProcedureName,
                 ProcedureTypeSnapshot = procedure.ProcedureType,
+                ProcedureCategoryNameSnapshot = procedure.ProcedureCategoryName,
                 ProcedureMasterType = "Master",
                 IsFromMasterProcedure = true,
                 IsPrimaryProcedure = request.IsPrimaryProcedure,
                 IsEmergencyProcedure = request.IsEmergencyProcedure,
-                IsSurgeryRelated = false,
+                IsSurgeryRelated = procedure.IsSurgery,
                 IsPackageProcedure = false,
                 ProcedureSource = PatientProcedureSource.DoctorOrder,
                 ProcedureStatus = PatientProcedureStatus.Ordered,
                 ProcedureDateTime = now,
                 PlannedAt = now,
-                Quantity = request.Quantity,
+                Quantity = pricing.Quantity,
                 UnitNameSnapshot = "Tindakan",
-                UnitPrice = procedure.Price,
-                TotalPrice = procedure.Price * request.Quantity,
-                HospitalPriceSnapshot = procedure.Price,
+                UnitPrice = pricing.UnitPrice,
+                TotalPrice = pricing.TotalPrice,
+                HospitalPriceSnapshot = pricing.HospitalUnitPrice,
+                InsuranceContractPrice = pricing.ContractUnitPrice,
                 IsFreeOfCharge = false,
                 IsBillable = true,
-                IsCoveredByInsurance = false,
-                CoverageStatus = "Unknown",
-                CoveragePercent = 0,
-                CoveredAmount = 0,
-                PatientPayAmount = procedure.Price * request.Quantity,
-                IsNeedApproval = false,
+                IsCoveredByInsurance = pricing.IsCovered,
+                CoverageStatus = pricing.CoverageStatus,
+                CoveragePercent = pricing.CoveragePercent,
+                CoveredAmount = pricing.CoveredAmount,
+                PatientPayAmount = pricing.PatientPayAmount,
+                CoverageNote = pricing.CoverageNote,
+                IsNeedApproval = pricing.IsNeedApproval || procedure.IsNeedApproval,
                 IsApproved = false,
                 IsExecuted = false,
-                ClinicalNote = request.ClinicalReason,
-                InstructionNote = request.InstructionNote,
+                ClinicalNote = NormalizeText(request.ClinicalReason),
+                InstructionNote = NormalizeText(request.InstructionNote),
                 IsBillingGenerated = false,
                 OrderedByUserId = actorUserId,
                 InstructingDoctorId = instructingDoctorId,
@@ -213,7 +284,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                     entity.OrderedByUserId
                 });
 
-            return PatientProcedureOrderResult.Success(
+            return PatientProcedureOrderResult.Created(
                 MapToResponse(entity),
                 "Pesanan tindakan rawat inap berhasil dibuat.");
         }
@@ -229,7 +300,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             CancellationToken cancellationToken = default)
         {
             var entity = await _dbContext.Set<TrxPatientProcedure>()
-                .Include(x => x.Consultation)
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
 
             if (entity == null)
@@ -237,20 +307,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 return PatientProcedureOrderResult.NotFound("Tindakan pasien tidak ditemukan.");
             }
 
-            // INV-DOK-17: Pesanan tindakan yang belum dilaksanakan hanya diubah penginputnya.
+            // INV-DOK-17 / VAL-DOK-48: pesanan yang belum dilaksanakan hanya diubah penginputnya.
             if (entity.OrderedByUserId.HasValue && entity.OrderedByUserId.Value != actorUserId)
             {
                 return PatientProcedureOrderResult.Forbidden(
-                    "Hanya penginput pesanan ini yang dapat mengubah pesanan.");
+                    "Pesanan ini dibuat petugas lain. Hanya penginputnya yang dapat mengubah isi pesanan.");
             }
 
             if (entity.InpEpisodeId.HasValue)
             {
-                var episode = await _dbContext.Set<InpEpisode>()
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(x => x.Id == entity.InpEpisodeId.Value && !x.IsDelete, cancellationToken);
+                var episodeStatus = await ReadEpisodeStatusAsync(entity.InpEpisodeId.Value, cancellationToken);
 
-                if (episode != null && (episode.EpisodeStatus == InpEpisodeStatus.Closed || episode.EpisodeStatus == InpEpisodeStatus.Cancelled))
+                if (episodeStatus is InpEpisodeStatus.Closed or InpEpisodeStatus.Cancelled)
                 {
                     return PatientProcedureOrderResult.UnprocessableEntity(
                         "Perawatan rawat inap sudah ditutup; tindakan tidak dapat diubah.");
@@ -259,17 +327,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
 
             if (entity.IsBillingGenerated)
             {
-                return PatientProcedureOrderResult.BadRequest("Tindakan yang sudah masuk billing tidak dapat diubah.");
+                return PatientProcedureOrderResult.Conflict("Tindakan yang sudah masuk billing tidak dapat diubah.");
             }
 
             if (entity.IsExecuted)
             {
-                return PatientProcedureOrderResult.BadRequest("Tindakan yang sudah dieksekusi tidak dapat diubah.");
+                return PatientProcedureOrderResult.Conflict("Tindakan yang sudah dieksekusi tidak dapat diubah.");
             }
 
             if (entity.ProcedureStatus == PatientProcedureStatus.Cancelled)
             {
-                return PatientProcedureOrderResult.BadRequest("Tindakan yang sudah dibatalkan tidak dapat diubah.");
+                return PatientProcedureOrderResult.Conflict("Tindakan yang sudah dibatalkan tidak dapat diubah.");
             }
 
             if (request.Quantity <= 0)
@@ -280,11 +348,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             var now = DateTime.UtcNow;
             entity.Quantity = request.Quantity;
             entity.TotalPrice = entity.UnitPrice * request.Quantity;
-            entity.PatientPayAmount = entity.TotalPrice;
+            entity.PatientPayAmount = entity.TotalPrice - entity.CoveredAmount;
             entity.IsPrimaryProcedure = request.IsPrimaryProcedure;
             entity.IsEmergencyProcedure = request.IsEmergencyProcedure;
-            entity.ClinicalNote = request.ClinicalNote;
-            entity.InstructionNote = request.InstructionNote;
+            entity.ClinicalNote = NormalizeText(request.ClinicalNote);
+            entity.InstructionNote = NormalizeText(request.InstructionNote);
             entity.UpdateDateTime = now;
             entity.UpdateBy = actorUserId;
 
@@ -302,12 +370,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
         public async Task<PatientProcedureOrderResult> CancelOrderAsync(
             Guid id,
             string reason,
+            ClaimsPrincipal? user,
             Guid actorUserId,
             CancellationToken cancellationToken = default)
         {
             if (string.IsNullOrWhiteSpace(reason))
             {
-                return PatientProcedureOrderResult.BadRequest("Alasan pembatalan tindakan wajib diisi.");
+                return PatientProcedureOrderResult.BadRequest("Alasan pembatalan wajib diisi.");
             }
 
             var entity = await _dbContext.Set<TrxPatientProcedure>()
@@ -320,13 +389,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
 
             if (entity.IsBillingGenerated)
             {
-                return PatientProcedureOrderResult.BadRequest(
+                return PatientProcedureOrderResult.Conflict(
                     "Tindakan yang sudah masuk billing tidak dapat dibatalkan dari modul klinis.");
             }
 
             if (entity.IsExecuted)
             {
-                return PatientProcedureOrderResult.BadRequest("Tindakan yang sudah dieksekusi tidak dapat dibatalkan.");
+                return PatientProcedureOrderResult.Conflict("Tindakan yang sudah dieksekusi tidak dapat dibatalkan.");
             }
 
             if (entity.ProcedureStatus == PatientProcedureStatus.Cancelled)
@@ -334,23 +403,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 return PatientProcedureOrderResult.Conflict("Tindakan sudah dibatalkan sebelumnya.");
             }
 
-            // FR-DOK-102: Pesanan hanya dibatalkan oleh penginput atau DPJP aktif.
+            // FR-DOK-102 / VAL-DOK-49: pesanan hanya dibatalkan oleh penginput atau DPJP aktif.
             if (entity.InpEpisodeId.HasValue && entity.OrderedByUserId.HasValue)
             {
                 var isSubmitter = entity.OrderedByUserId.Value == actorUserId;
                 var isDpjp = false;
 
-                var doctorId = await _clinicalContextService.ResolveActorDoctorIdAsync(actorUserId, cancellationToken);
-                if (doctorId.HasValue)
+                if (!isSubmitter)
                 {
-                    isDpjp = await _clinicalContextService.IsDpjpAssignedAsync(
-                        entity.InpEpisodeId.Value, doctorId.Value, DateTime.UtcNow, cancellationToken);
+                    var doctorId = await _clinicalContextService.ResolveActorDoctorIdAsync(
+                        user, actorUserId, cancellationToken);
+
+                    if (doctorId.HasValue)
+                    {
+                        isDpjp = await _clinicalContextService.IsDpjpAssignedAsync(
+                            entity.InpEpisodeId.Value, doctorId.Value, DateTime.UtcNow, cancellationToken);
+                    }
                 }
 
                 if (!isSubmitter && !isDpjp)
                 {
                     return PatientProcedureOrderResult.Forbidden(
-                        "Hanya penginput pesanan atau DPJP yang sedang bertugas yang dapat membatalkan pesanan ini.");
+                        "Pesanan hanya dapat dibatalkan penginputnya atau DPJP pasien.");
                 }
             }
 
@@ -368,6 +442,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
 
             await _dbContext.SaveChangesAsync(cancellationToken);
 
+            // CancelReason SENSITIF — permission-audit-matrix 0.6.0 bagian 9.2; tidak dicatat.
             await _loggerService.InfoAsync(
                 LogCategory,
                 "PatientProcedureOrderService.CancelOrderAsync",
@@ -376,7 +451,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 {
                     entity.Id,
                     entity.InpEpisodeId,
-                    entity.CancelReason,
                     CancelledBy = actorUserId
                 });
 
@@ -386,10 +460,38 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
         }
 
         /// <summary>
-        /// Verifikasi instruksi pesanan tindakan oleh dokter pemberi instruksi (FR-DOK-104 / BE-RWI-098).
+        /// Verifikasi instruksi pesanan tindakan oleh dokter pemberi instruksi —
+        /// <c>BE-RWI-098</c>, <c>FR-DOK-104</c>, <c>INV-DOK-17</c>, <c>VAL-DOK-50</c>.
         /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Siapa yang boleh.</b> Hanya dokter yang tertulis sebagai pemberi instruksi pada pesanan
+        /// itu — bukan DPJP, bukan dokter lain. Identitasnya diturunkan dari akun login, tidak
+        /// pernah dari isi permintaan. Pemeriksaan ini melekat pada data pesanan, sehingga bukan
+        /// hardcode peran: hak akses <c>PatientProcedure : Verify</c> tetap diatur layar Akses Role.
+        /// </para>
+        /// <para>
+        /// <b>Yang tidak berubah.</b> Verifikasi <b>hanya</b> menyentuh empat kolom:
+        /// <c>InstructionVerificationStatus</c>, <c>InstructionVerifiedAt</c>,
+        /// <c>InstructionVerifiedByUserId</c>, dan jejak audit ubah. Penginput
+        /// (<c>OrderedByUserId</c>), dokter pesanan, tindakan, jumlah, catatan klinis, maupun status
+        /// pesanan tidak disentuh — <c>RWI-DEC-139</c> butir (2).
+        /// </para>
+        /// <para>
+        /// <b>Tidak bergantung status pesanan.</b> Pesanan yang sudah dilaksanakan tetap dapat
+        /// diverifikasi, dan pemberi instruksi yang penugasannya sudah berakhir tetap boleh
+        /// memverifikasi — verifikasi bukan dokumen baru (permission-audit-matrix 0.6.0 bagian 8.6).
+        /// </para>
+        /// <para>
+        /// <b>Contoh.</b> 23.00 Ns. Siti memesan cek GDS untuk Budi atas instruksi dr. Ahmad → status
+        /// <c>Pending</c>. 07.30 dr. Rina (DPJP) menekan Verifikasi → <c>403</c>. 08.00 dr. Ahmad
+        /// menekan Verifikasi → <c>Verified</c>; penginput tetap Ns. Siti. 08.01 dr. Ahmad menekan lagi
+        /// → <c>409</c>.
+        /// </para>
+        /// </remarks>
         public async Task<PatientProcedureOrderResult> VerifyInstructionAsync(
             Guid id,
+            ClaimsPrincipal? user,
             Guid actorUserId,
             CancellationToken cancellationToken = default)
         {
@@ -401,21 +503,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 return PatientProcedureOrderResult.NotFound("Tindakan pasien tidak ditemukan.");
             }
 
-            if (entity.InstructionVerificationStatus == PatientProcedureInstructionVerificationStatus.Verified)
+            // Pesanan dokter tidak punya pemberi instruksi; tidak ada yang dapat diverifikasi.
+            if (!entity.InstructingDoctorId.HasValue ||
+                entity.InstructingDoctorId.Value == Guid.Empty)
             {
-                return PatientProcedureOrderResult.Conflict("Instruksi pesanan tindakan sudah diverifikasi.");
+                return PatientProcedureOrderResult.Conflict(PenolakanBukanMenungguVerifikasi);
             }
 
-            if (!entity.InstructingDoctorId.HasValue)
-            {
-                return PatientProcedureOrderResult.BadRequest("Pesanan tindakan ini tidak memerlukan verifikasi instruksi.");
-            }
+            // VAL-DOK-50.
+            var doctorId = await _clinicalContextService.ResolveActorDoctorIdAsync(
+                user, actorUserId, cancellationToken);
 
-            var doctorId = await _clinicalContextService.ResolveActorDoctorIdAsync(actorUserId, cancellationToken);
             if (!doctorId.HasValue || doctorId.Value != entity.InstructingDoctorId.Value)
             {
-                return PatientProcedureOrderResult.Forbidden(
-                    "Hanya dokter pemberi instruksi yang tercantum yang dapat memverifikasi pesanan ini.");
+                return PatientProcedureOrderResult.Forbidden(PenolakanBukanPemberiInstruksi);
+            }
+
+            // VAL-DOK-50a. Transisi hanya Pending → Verified (INV-DOK-17).
+            if (entity.InstructionVerificationStatus != PatientProcedureInstructionVerificationStatus.Pending)
+            {
+                return PatientProcedureOrderResult.Conflict(PenolakanBukanMenungguVerifikasi);
             }
 
             var now = DateTime.UtcNow;
@@ -427,9 +534,147 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
 
             await _dbContext.SaveChangesAsync(cancellationToken);
 
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "PatientProcedureOrderService.VerifyInstructionAsync",
+                "Instruksi pesanan tindakan diverifikasi dokter pemberi instruksi.",
+                new
+                {
+                    entity.Id,
+                    entity.InpEpisodeId,
+                    entity.InstructingDoctorId,
+                    entity.OrderedByUserId,
+                    VerifiedBy = actorUserId
+                });
+
             return PatientProcedureOrderResult.Success(
                 MapToResponse(entity),
                 "Instruksi pesanan tindakan berhasil diverifikasi.");
+        }
+
+        /// <summary>
+        /// Daftar tunggu verifikasi instruksi milik dokter login — <c>BE-RWI-098</c>,
+        /// api-contract 0.6.0 bagian 12.5 <c>GET /instruction-verification-worklist</c>.
+        /// </summary>
+        /// <remarks>
+        /// Hanya pesanan berstatus <c>Pending</c> yang pemberi instruksinya dokter login. Daftar
+        /// sengaja tidak menyaring penugasan aktif: dokter yang penugasannya sudah berakhir tetap
+        /// wajib dapat menemukan pesanan yang menunggu verifikasinya. Identitas pasien yang
+        /// dikembalikan hanya nama, nomor rekam medis, dan nomor episode.
+        /// </remarks>
+        public async Task<PagedResult<InstructionVerificationItemResponse>> GetInstructionVerificationWorklistAsync(
+            Guid doctorId,
+            int pageNumber,
+            int pageSize,
+            CancellationToken cancellationToken = default)
+        {
+            var query = _dbContext.Set<TrxPatientProcedure>()
+                .AsNoTracking()
+                .Where(x =>
+                    !x.IsDelete &&
+                    x.InstructingDoctorId == doctorId &&
+                    x.InstructionVerificationStatus == PatientProcedureInstructionVerificationStatus.Pending);
+
+            var totalData = await query.CountAsync(cancellationToken);
+
+            var items = await query
+                .OrderBy(x => x.CreateDateTime)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(x => new InstructionVerificationItemResponse
+                {
+                    PatientProcedureId = x.Id,
+                    InpEpisodeId = x.InpEpisodeId,
+                    EpisodeNumber = _dbContext.Set<InpEpisode>()
+                        .Where(e => e.Id == x.InpEpisodeId)
+                        .Select(e => e.EpisodeNumber)
+                        .FirstOrDefault(),
+                    PatientId = x.PatientId,
+                    PatientName = x.Patient != null ? x.Patient.FullName : string.Empty,
+                    MedicalRecordNumber = x.Patient != null ? x.Patient.MedicalRecordNumber : string.Empty,
+                    ProcedureId = x.ProcedureId,
+                    ProcedureCodeSnapshot = x.ProcedureCodeSnapshot,
+                    ProcedureNameSnapshot = x.ProcedureNameSnapshot,
+                    Quantity = x.Quantity,
+                    ProcedureStatus = x.ProcedureStatus,
+                    IsExecuted = x.IsExecuted,
+                    OrderedAt = x.CreateDateTime,
+                    OrderedByUserId = x.OrderedByUserId,
+                    OrderedByUserName = x.OrderedByUser != null ? x.OrderedByUser.DisplayName : null,
+                    InstructionVerificationStatus = x.InstructionVerificationStatus
+                })
+                .ToListAsync(cancellationToken);
+
+            return new PagedResult<InstructionVerificationItemResponse>
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = pageSize == 0 ? 0 : (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
+        }
+
+        /// <summary>
+        /// Penjaga pelaksanaan pesanan tindakan rawat inap — <c>BE-RWI-098</c> kriteria 4,
+        /// state matrix 0.6.0 bagian 8.3 baris "Melaksanakan".
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Pelaksana diambil dari akun login dan menjadi penulis sekaligus penanda tangan catatan
+        /// pelaksanaan; karena itu mesin addendum hanya mengenali pelaksana tersebut sebagai
+        /// penulis asli (<c>FR-DOK-103</c>). Penjaga ini memastikan pelaksananya memang berwenang:
+        /// dokter lewat penugasan aktif pada episode, perawat lewat penempatan pada unit episode.
+        /// </para>
+        /// <para>
+        /// Tindakan tanpa episode rawat inap — poliklinik, medical check-up, IGD — dijawab lolos
+        /// tanpa pemeriksaan apa pun, sehingga perilakunya tidak bergeser.
+        /// </para>
+        /// </remarks>
+        public async Task<PatientProcedureOrderResult?> EnsureInpatientExecutorAsync(
+            TrxPatientProcedure entity,
+            ClaimsPrincipal? user,
+            Guid actorUserId,
+            CancellationToken cancellationToken = default)
+        {
+            if (!entity.InpEpisodeId.HasValue || entity.InpEpisodeId.Value == Guid.Empty)
+                return null;
+
+            var episodeStatus = await ReadEpisodeStatusAsync(entity.InpEpisodeId.Value, cancellationToken);
+
+            if (episodeStatus is InpEpisodeStatus.Closed or InpEpisodeStatus.Cancelled)
+            {
+                return PatientProcedureOrderResult.UnprocessableEntity(
+                    "Perawatan pasien ini sudah ditutup, sehingga tindakan tidak dapat ditandai dilaksanakan.");
+            }
+
+            var now = DateTime.UtcNow;
+            var doctorId = await _clinicalContextService.ResolveActorDoctorIdAsync(user, actorUserId, cancellationToken);
+
+            if (doctorId.HasValue)
+            {
+                var bertugas = await _clinicalContextService.IsDoctorAssignedAsync(
+                    entity.InpEpisodeId.Value, doctorId.Value, now, cancellationToken);
+
+                return bertugas
+                    ? null
+                    : PatientProcedureOrderResult.Forbidden("Anda tidak sedang bertugas atas pasien ini.");
+            }
+
+            var employeeId = await _nursingActorService.ResolveEmployeeIdAsync(user, actorUserId, cancellationToken);
+
+            if (employeeId == null)
+            {
+                return PatientProcedureOrderResult.Forbidden(
+                    InpatientClinicalContextService.PenolakanPerawatTanpaPegawai);
+            }
+
+            var perawatBertugas = await _clinicalContextService.IsNurseOnDutyAtEpisodeAsync(
+                entity.InpEpisodeId.Value, employeeId.Value, now, cancellationToken);
+
+            return perawatBertugas
+                ? null
+                : PatientProcedureOrderResult.Forbidden(InpatientClinicalContextService.PenolakanPerawatUnitLain);
         }
 
         /// <summary>
@@ -469,6 +714,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             return pendingOrders.Count;
         }
 
+        private async Task<InpEpisodeStatus?> ReadEpisodeStatusAsync(
+            Guid episodeId,
+            CancellationToken cancellationToken)
+        {
+            return await _dbContext.Set<InpEpisode>()
+                .AsNoTracking()
+                .Where(x => x.Id == episodeId && !x.IsDelete)
+                .Select(x => (InpEpisodeStatus?)x.EpisodeStatus)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        private static string? NormalizeText(string? value)
+        {
+            return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+        }
+
         private static PatientProcedureResponse MapToResponse(TrxPatientProcedure entity)
         {
             return new PatientProcedureResponse
@@ -481,6 +742,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 ServiceUnitId = entity.ServiceUnitId,
                 ClinicId = entity.ClinicId,
                 ProcedureId = entity.ProcedureId,
+                TariffId = entity.TariffId,
+                InsuranceTariffId = entity.InsuranceTariffId,
+                InsuranceCoverageRuleId = entity.InsuranceCoverageRuleId,
                 ProcedureCodeSnapshot = entity.ProcedureCodeSnapshot,
                 ProcedureNameSnapshot = entity.ProcedureNameSnapshot,
                 ProcedureTypeSnapshot = entity.ProcedureTypeSnapshot,
@@ -492,6 +756,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 UnitPrice = entity.UnitPrice,
                 TotalPrice = entity.TotalPrice,
                 IsBillable = entity.IsBillable,
+                IsCoveredByInsurance = entity.IsCoveredByInsurance,
+                CoverageStatus = entity.CoverageStatus,
+                CoveredAmount = entity.CoveredAmount,
+                PatientPayAmount = entity.PatientPayAmount,
+                IsNeedApproval = entity.IsNeedApproval,
+                IsApproved = entity.IsApproved,
                 IsExecuted = entity.IsExecuted,
                 ExecutedAt = entity.ExecutedAt,
                 PerformedAt = entity.PerformedAt,
@@ -525,6 +795,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
 
         public static PatientProcedureOrderResult Success(PatientProcedureResponse data, string message) =>
             new() { IsSuccess = true, StatusCode = StatusCodes.Status200OK, Data = data, Message = message };
+
+        /// <summary>
+        /// Pesanan baru tersimpan — <c>201</c> menurut api-contract 0.6.0 bagian 12.5. Kiriman ulang
+        /// berkunci sama memakai <see cref="Success"/> (<c>200</c>).
+        /// </summary>
+        public static PatientProcedureOrderResult Created(PatientProcedureResponse data, string message) =>
+            new() { IsSuccess = true, StatusCode = StatusCodes.Status201Created, Data = data, Message = message };
 
         public static PatientProcedureOrderResult BadRequest(string message) =>
             new() { IsSuccess = false, StatusCode = StatusCodes.Status400BadRequest, Message = message };

@@ -512,4 +512,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         [MaxLength(250)]
         public string CancelReason { get; set; } = string.Empty;
     }
+
+    /// <summary>
+    /// Satu baris daftar tunggu verifikasi instruksi milik dokter login — BE-RWI-098,
+    /// api-contract 0.6.0 bagian 12.5. Identitas pasien sengaja minimum.
+    /// </summary>
+    public class InstructionVerificationItemResponse
+    {
+        public Guid PatientProcedureId { get; set; }
+        public Guid? InpEpisodeId { get; set; }
+        public string? EpisodeNumber { get; set; }
+        public Guid PatientId { get; set; }
+        public string PatientName { get; set; } = string.Empty;
+        public string MedicalRecordNumber { get; set; } = string.Empty;
+        public Guid ProcedureId { get; set; }
+        public string ProcedureCodeSnapshot { get; set; } = string.Empty;
+        public string ProcedureNameSnapshot { get; set; } = string.Empty;
+        public decimal Quantity { get; set; }
+        public PatientProcedureStatus ProcedureStatus { get; set; }
+        public bool IsExecuted { get; set; }
+        public DateTime OrderedAt { get; set; }
+        public Guid? OrderedByUserId { get; set; }
+        public string? OrderedByUserName { get; set; }
+        public PatientProcedureInstructionVerificationStatus InstructionVerificationStatus { get; set; }
+    }
 }

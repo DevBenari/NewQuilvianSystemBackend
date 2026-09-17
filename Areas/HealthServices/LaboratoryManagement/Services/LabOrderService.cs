@@ -12,6 +12,11 @@ using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 using System.Security.Claims;
 
+using InpatientClinicalContextService =
+    QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services.InpatientClinicalContextService;
+using MstDoctorForInstruction =
+    QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstDoctor;
+
 namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Services
 {
     /// <summary>
@@ -30,16 +35,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly LoggerService _loggerService;
 
+        /// <summary>
+        /// Pembaca penugasan dokter pada episode — <c>BE-RWI-104</c>, <c>INT-DOK-19</c>. Laboratorium
+        /// <b>membaca</b> penugasan lewat service bersama, bukan menyalinnya.
+        /// </summary>
+        private readonly InpatientClinicalContextService _clinicalContextService;
+
         public LabOrderService(
             ApplicationDbContext dbContext,
             LabSpecimenService labSpecimenService,
             IHttpContextAccessor httpContextAccessor,
-            LoggerService loggerService)
+            LoggerService loggerService,
+            InpatientClinicalContextService clinicalContextService)
         {
             _dbContext = dbContext;
             _labSpecimenService = labSpecimenService;
             _httpContextAccessor = httpContextAccessor;
             _loggerService = loggerService;
+            _clinicalContextService = clinicalContextService;
         }
 
         /// <summary>
@@ -313,9 +326,194 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     StatusBeforeHold = x.StatusBeforeHold != null ? x.StatusBeforeHold.ToString() : null,
                     Version = x.Version,
                     CancelDateTime = x.CancelDateTime,
-                    CancelBy = x.CancelBy == Guid.Empty ? null : x.CancelBy
+                    CancelBy = x.CancelBy == Guid.Empty ? null : x.CancelBy,
+                    InstructingDoctorId = x.InstructingDoctorId,
+                    InstructingDoctorName = x.InstructingDoctorId == null
+                        ? null
+                        : _dbContext.Set<MstDoctorForInstruction>()
+                            .Where(d => d.Id == x.InstructingDoctorId)
+                            .Select(d => d.FullName)
+                            .FirstOrDefault(),
+                    InstructionVerificationStatus = x.InstructionVerificationStatus.ToString(),
+                    InstructionVerifiedAt = x.InstructionVerifiedAt,
+                    InstructionVerifiedByUserId = x.InstructionVerifiedByUserId
                 })
                 .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        // =====================================================================
+        // BE-RWI-104 — pemberi instruksi dan verifikasinya
+        // =====================================================================
+
+        /// <summary>
+        /// Menentukan pemberi instruksi dan status verifikasi awal pesanan baru.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Pesanan tanpa perawatan rawat inap: <c>NotRequired</c>, isian pemberi instruksi diabaikan —
+        /// alur poliklinik dan IGD tidak berubah (kriteria 3).
+        /// </para>
+        /// <para>
+        /// Pesanan rawat inap oleh akun yang tertaut dokter: <c>NotRequired</c>. Oleh akun tanpa tautan
+        /// dokter (perawat): pemberi instruksi wajib dipilih (<c>400</c>) dan wajib punya penugasan
+        /// aktif atas pasien (<c>403</c>), lalu berstatus <c>Pending</c>.
+        /// </para>
+        /// </remarks>
+        private async Task<(Guid? InstructingDoctorId, LabOrderInstructionVerificationStatus Status)> ResolveInstructionAsync(
+            Guid? inpEpisodeId,
+            Guid? instructingDoctorId,
+            CancellationToken cancellationToken)
+        {
+            if (!inpEpisodeId.HasValue || inpEpisodeId.Value == Guid.Empty)
+                return (null, LabOrderInstructionVerificationStatus.NotRequired);
+
+            var user = _httpContextAccessor.HttpContext?.User;
+            var actorDoctorId = await _clinicalContextService.ResolveActorDoctorIdAsync(
+                user, GetCurrentUserId(), cancellationToken);
+
+            if (actorDoctorId.HasValue)
+                return (null, LabOrderInstructionVerificationStatus.NotRequired);
+
+            if (!instructingDoctorId.HasValue || instructingDoctorId.Value == Guid.Empty)
+                throw new ArgumentException("Pilih dokter yang memberi instruksi.");
+
+            var bertugas = await _clinicalContextService.IsDoctorAssignedAsync(
+                inpEpisodeId.Value, instructingDoctorId.Value, DateTime.UtcNow, cancellationToken);
+
+            if (!bertugas)
+                throw new UnauthorizedAccessException("Dokter yang dipilih tidak sedang bertugas atas pasien ini.");
+
+            return (instructingDoctorId.Value, LabOrderInstructionVerificationStatus.Pending);
+        }
+
+        /// <summary>
+        /// Dokter pemberi instruksi memverifikasi pesanan laboratorium yang dibuat perawat —
+        /// <c>BE-RWI-104</c>, <c>VAL-DOK-50</c>, <c>VAL-DOK-50a</c>.
+        /// </summary>
+        /// <remarks>
+        /// Verifikasi hanya menyentuh kolom verifikasi dan token konkurensi; penginput, pemeriksaan,
+        /// dan status pesanan tidak berubah. Tidak bergantung status pesanan, dan pemberi instruksi
+        /// yang penugasannya sudah berakhir tetap boleh memverifikasi.
+        /// Melempar <see cref="KeyNotFoundException"/> (404), <see cref="UnauthorizedAccessException"/>
+        /// (403), atau <see cref="InvalidOperationException"/> (409).
+        /// </remarks>
+        public async Task<LabOrderDetailResponse> VerifyInstructionAsync(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            var entity = await _dbContext.LabOrders
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+
+            if (entity == null)
+                throw new KeyNotFoundException("Order laboratorium tidak ditemukan.");
+
+            if (!entity.InstructingDoctorId.HasValue)
+                throw new InvalidOperationException("Pesanan ini sudah diverifikasi atau tidak memerlukan verifikasi.");
+
+            var actorUserId = GetCurrentUserId();
+            var actorDoctorId = await _clinicalContextService.ResolveActorDoctorIdAsync(
+                _httpContextAccessor.HttpContext?.User, actorUserId, cancellationToken);
+
+            if (!actorDoctorId.HasValue || actorDoctorId.Value != entity.InstructingDoctorId.Value)
+                throw new UnauthorizedAccessException("Hanya dokter pemberi instruksi yang dapat memverifikasi pesanan ini.");
+
+            if (entity.InstructionVerificationStatus != LabOrderInstructionVerificationStatus.Pending)
+                throw new InvalidOperationException("Pesanan ini sudah diverifikasi atau tidak memerlukan verifikasi.");
+
+            var now = DateTime.UtcNow;
+            entity.InstructionVerificationStatus = LabOrderInstructionVerificationStatus.Verified;
+            entity.InstructionVerifiedAt = now;
+            entity.InstructionVerifiedByUserId = actorUserId;
+            entity.Version++;
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
+
+            try
+            {
+                await _dbContext.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                throw new InvalidOperationException("Pesanan ini baru saja diubah petugas lain. Muat ulang lalu coba lagi.");
+            }
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "LabOrder.VerifyInstruction",
+                "Dokter pemberi instruksi memverifikasi order laboratorium.",
+                new { entity.Id, entity.InpEpisodeId, entity.InstructingDoctorId, entity.RequestedByUserId, VerifiedBy = actorUserId });
+
+            return (await GetDetailAsync(entity.Id, cancellationToken))!;
+        }
+
+        /// <summary>
+        /// Pesanan laboratorium yang menunggu verifikasi dokter login — <c>BE-RWI-104</c>.
+        /// </summary>
+        /// <remarks>
+        /// Dokter diambil dari akun login. Akun tanpa tautan dokter melempar
+        /// <see cref="UnauthorizedAccessException"/> (403) alih-alih daftar kosong.
+        /// </remarks>
+        public async Task<PagedResult<LabOrderInstructionVerificationItemResponse>> GetInstructionVerificationWorklistAsync(
+            int pageNumber,
+            int pageSize,
+            CancellationToken cancellationToken = default)
+        {
+            var doctorId = await _clinicalContextService.ResolveActorDoctorIdAsync(
+                _httpContextAccessor.HttpContext?.User, GetCurrentUserId(), cancellationToken);
+
+            if (!doctorId.HasValue)
+                throw new UnauthorizedAccessException(InpatientClinicalContextService.PenolakanBukanDokter);
+
+            if (pageNumber <= 0) pageNumber = 1;
+            if (pageSize <= 0) pageSize = 25;
+            if (pageSize > 100) pageSize = 100;
+
+            var query = _dbContext.LabOrders
+                .AsNoTracking()
+                .Where(x => !x.IsDelete &&
+                            x.InstructingDoctorId == doctorId.Value &&
+                            x.InstructionVerificationStatus == LabOrderInstructionVerificationStatus.Pending);
+
+            var totalData = await query.CountAsync(cancellationToken);
+
+            var items = await query
+                .OrderBy(x => x.RequestedAt)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(x => new LabOrderInstructionVerificationItemResponse
+                {
+                    OrderId = x.Id,
+                    EncounterId = x.EncounterId,
+                    InpEpisodeId = x.InpEpisodeId,
+                    EpisodeNumber = _dbContext.Set<InpEpisode>()
+                        .Where(e => e.Id == x.InpEpisodeId)
+                        .Select(e => e.EpisodeNumber)
+                        .FirstOrDefault(),
+                    PatientName = x.Encounter != null && x.Encounter.Patient != null ? x.Encounter.Patient.FullName : string.Empty,
+                    MedicalRecordNumber = x.Encounter != null && x.Encounter.Patient != null ? x.Encounter.Patient.MedicalRecordNumber : string.Empty,
+                    ProcedureId = x.ProcedureId,
+                    ProcedureName = x.Procedure != null ? x.Procedure.ProcedureName : string.Empty,
+                    OrderStatus = x.OrderStatus.ToString(),
+                    RequestedAt = x.RequestedAt,
+                    RequestedByUserId = x.RequestedByUserId,
+                    RequestedByName = x.RequestedByUserId == null
+                        ? null
+                        : _dbContext.Users
+                            .Where(u => u.Id == x.RequestedByUserId)
+                            .Select(u => u.DisplayName ?? u.UserName ?? u.Email ?? u.UserCode)
+                            .FirstOrDefault(),
+                    InstructionVerificationStatus = x.InstructionVerificationStatus.ToString()
+                })
+                .ToListAsync(cancellationToken);
+
+            return new PagedResult<LabOrderInstructionVerificationItemResponse>
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
+            };
         }
 
         public async Task<LabOrderDetailResponse> CreateAsync(
@@ -357,6 +555,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     throw new ArgumentException("Pesanan ini tidak cocok dengan perawatan pasien.");
             }
 
+            // BE-RWI-104 / FR-DOK-106, VAL-DOK-46, VAL-DOK-47. Hanya pesanan rawat inap yang
+            // dibaca; pesanan poliklinik dan IGD melewati blok ini tanpa perubahan apa pun.
+            var instruksi = await ResolveInstructionAsync(request.InpEpisodeId, request.InstructingDoctorId, cancellationToken);
+
             var procedure = await _dbContext.Set<MstProcedure>()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(x =>
@@ -388,6 +590,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 OrderStatus = LabOrderStatus.Requested,
                 RequestedAt = now,
                 RequestedByUserId = actorUserId,
+                InstructingDoctorId = instruksi.InstructingDoctorId,
+                InstructionVerificationStatus = instruksi.Status,
                 CreateDateTime = now,
                 CreateBy = actorUserId
             };
@@ -793,7 +997,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 StatusBeforeHold = entity.StatusBeforeHold?.ToString(),
                 Version = entity.Version,
                 CancelDateTime = entity.CancelDateTime,
-                CancelBy = entity.CancelBy == Guid.Empty ? null : entity.CancelBy
+                CancelBy = entity.CancelBy == Guid.Empty ? null : entity.CancelBy,
+                InstructingDoctorId = entity.InstructingDoctorId,
+                InstructionVerificationStatus = entity.InstructionVerificationStatus.ToString(),
+                InstructionVerifiedAt = entity.InstructionVerifiedAt,
+                InstructionVerifiedByUserId = entity.InstructionVerifiedByUserId
             };
         }
     }

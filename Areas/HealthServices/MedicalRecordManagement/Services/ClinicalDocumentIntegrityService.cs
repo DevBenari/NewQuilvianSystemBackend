@@ -281,6 +281,54 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
         }
 
         /// <summary>
+        /// Memeriksa apakah sebuah <b>konsep</b> masih boleh disunting <b>atau diselesaikan</b> —
+        /// <c>BE-RWI-091</c>, <c>VAL-DOK-43</c>, <c>RWI-DEC-138</c> butir (2).
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Bedanya dengan <see cref="EnsureMutableAsync"/>.</b> Sejak konsep catatan dokter dan
+        /// kajian medis rawat inap terdaftar <c>Draft</c> sejak simpan pertama, konsep yang
+        /// ditinggal penulisnya akan dikunci <c>LockedUnsigned</c> ketika perawatannya ditutup.
+        /// Menyelesaikan konsep seperti itu belakangan sama dengan menandatangani mundur, dan itu
+        /// menghapus fakta bahwa catatan tersebut <b>tidak</b> ditandatangani saat perawatan
+        /// berakhir. Karena itu jalur Selesai wajib menolaknya — bukan hanya jalur sunting.
+        /// </para>
+        /// <para>
+        /// <b>Kode dan kalimatnya sengaja berbeda.</b> Keadaan ini bukan kesalahan isian, melainkan
+        /// benturan dengan keadaan dokumen, sehingga dijawab <c>409</c> beserta arahan memakai
+        /// addendum dari Catatan Saya. Keadaan lain diteruskan apa adanya ke
+        /// <see cref="EnsureMutableAsync"/>, sehingga pesan yang sudah dikenal pengguna tidak
+        /// bergeser.
+        /// </para>
+        /// <para>
+        /// <b>Contoh.</b> dr. Yoga menyimpan konsep SOAP Joko pukul 06.30. Episode Joko ditutup
+        /// pukul 13.00 dan konsep itu terkunci. Pukul 15.00 dr. Yoga menekan Selesai → <c>409</c>
+        /// "Catatan ini terkunci karena perawatan pasien sudah ditutup. Lengkapi lewat addendum
+        /// dari Catatan Saya."
+        /// </para>
+        /// </remarks>
+        public async Task<IntegrityGuardResult> EnsureDraftStillOpenAsync(
+            ClinicalDocumentKind documentKind,
+            Guid documentId,
+            CancellationToken cancellationToken = default)
+        {
+            if (!DitegakkanUntuk(documentKind))
+                return IntegrityGuardResult.Allowed();
+
+            var keutuhan = await FindAsync(documentKind, documentId, cancellationToken);
+
+            if (keutuhan?.IntegrityStatus == ClinicalDocumentIntegrityStatus.LockedUnsigned)
+            {
+                return IntegrityGuardResult.Denied(
+                    StatusCodes.Status409Conflict,
+                    "Catatan ini terkunci karena perawatan pasien sudah ditutup. " +
+                    "Lengkapi lewat addendum dari Catatan Saya.");
+            }
+
+            return await EnsureMutableAsync(documentKind, documentId, cancellationToken);
+        }
+
+        /// <summary>
         /// Menandatangani dokumen, sekaligus menguncinya.
         ///
         /// Hanya penulis dokumen yang boleh menandatangani. Perangkat dan alamat jaringan
