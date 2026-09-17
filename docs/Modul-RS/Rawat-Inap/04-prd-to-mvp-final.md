@@ -1,12 +1,12 @@
-# PRD TO MVP FINAL — RAWAT INAP V2
+﻿# PRD TO MVP FINAL â€” RAWAT INAP V2
 ## Episode, Dokter Rawat Inap, Keperawatan/Pengkajian Rawat Inap, dan UI/UX Clinical Workspace
 
-> **PRD ID:** `PRD-RWI-V2-001`  
-> **Product:** Quilvian System V2  
-> **Module:** Rawat Inap  
-> **Version:** `2.0 FINAL`  
-> **Status:** `FINAL — AUTHORITY FOR BLUEPRINT REALIGNMENT`  
-> **Tanggal:** 14 September 2026  
+> **PRD ID:** `PRD-RWI-V2-001`<br>
+> **Product:** Quilvian System V2<br>
+> **Module:** Rawat Inap<br>
+> **Version:** `2.0 FINAL`<br>
+> **Status:** `FINAL â€” AUTHORITY FOR BLUEPRINT REALIGNMENT`<br>
+> **Tanggal:** 14 September 2026<br>
 > **Target Path:** `NewQuilvianSystemBackend/docs/module-blueprints/rawat-inap/04-prd-to-mvp-final.md`
 
 ---
@@ -19,29 +19,29 @@ Dokumen ini mengikat:
 
 ```text
 rawat-inap/
-├── episode/
-├── keperawatan/
-└── dokter-rawat-inap/
+â”œâ”€â”€ episode/
+â”œâ”€â”€ keperawatan/
+â””â”€â”€ dokter-rawat-inap/
 ```
 
 Urutan authority setelah dokumen ini disahkan:
 
 ```text
 PRD TO MVP FINAL RAWAT INAP V2
-        ↓
+        â†“
 Module Blueprint
-        ↓
+        â†“
 Frontend Architecture
 Backend Architecture
 API Contract
 Validation Matrix
 Data Dictionary
-        ↓
+        â†“
 Frontend Roadmap
 Backend Roadmap
-        ↓
+        â†“
 Implementation
-        ↓
+        â†“
 UAT
 ```
 
@@ -83,12 +83,12 @@ Blueprint yang menjadi bahan review:
 
 ```text
 NewQuilvianSystemBackend/
-└── docs/
-    └── module-blueprints/
-        └── rawat-inap/
-            ├── episode/
-            ├── keperawatan/
-            └── dokter-rawat-inap/
+â””â”€â”€ docs/
+    â””â”€â”€ module-blueprints/
+        â””â”€â”€ rawat-inap/
+            â”œâ”€â”€ episode/
+            â”œâ”€â”€ keperawatan/
+            â””â”€â”€ dokter-rawat-inap/
 ```
 
 ---
@@ -140,15 +140,15 @@ Rawat Inap V2 harus:
 
 ```text
 RAWAT INAP
-│
-├── EPISODE
-│   └── konteks perjalanan pasien
-│
-├── DOKTER RAWAT INAP
-│   └── pelayanan dan dokumentasi dokter
-│
-└── KEPERAWATAN / PENGKAJIAN RAWAT INAP
-    └── pengkajian dan pelayanan keperawatan
+â”‚
+â”œâ”€â”€ EPISODE
+â”‚   â””â”€â”€ konteks perjalanan pasien
+â”‚
+â”œâ”€â”€ DOKTER RAWAT INAP
+â”‚   â””â”€â”€ pelayanan dan dokumentasi dokter
+â”‚
+â””â”€â”€ KEPERAWATAN / PENGKAJIAN RAWAT INAP
+    â””â”€â”€ pengkajian dan pelayanan keperawatan
 ```
 
 Episode tetap menjadi:
@@ -173,7 +173,7 @@ Episode **bukan** tempat menaruh semua data klinis.
 
 # 5. SHARED BUSINESS RULES
 
-## BR-RWI-001 — Episode adalah clinical anchor
+## BR-RWI-001 â€” Episode adalah clinical anchor
 
 Semua dokumentasi Rawat Inap harus terkait:
 
@@ -185,39 +185,39 @@ InpEpisodeId
 
 ---
 
-## BR-RWI-002 — Tidak boleh fake queue
+## BR-RWI-002 â€” Tidak boleh fake queue
 
 Rawat Inap tidak boleh membuat antrean palsu untuk menggunakan flow Rawat Jalan.
 
 ---
 
-## BR-RWI-003 — Patient context tidak dapat dipindahkan
+## BR-RWI-003 â€” Patient context tidak dapat dipindahkan
 
 Update document tidak boleh mengubah document menjadi milik pasien/episode lain.
 
 ---
 
-## BR-RWI-004 — Draft boleh tidak lengkap
+## BR-RWI-004 â€” Draft boleh tidak lengkap
 
 ```text
 Draft
-→ incomplete allowed
+â†’ incomplete allowed
 ```
 
 ---
 
-## BR-RWI-005 — Complete harus tervalidasi
+## BR-RWI-005 â€” Complete harus tervalidasi
 
 ```text
 Complete
-→ required clinical validation
+â†’ required clinical validation
 ```
 
 Validasi harus server-side.
 
 ---
 
-## BR-RWI-006 — Final document immutable
+## BR-RWI-006 â€” Final document immutable
 
 Dokumen final tidak diedit langsung.
 
@@ -231,11 +231,11 @@ Revision
 
 ---
 
-## BR-RWI-007 — Unknown bukan negative
+## BR-RWI-007 â€” Unknown bukan negative
 
 ```text
 Belum dikaji
-≠
+â‰ 
 Tidak ada masalah
 ```
 
@@ -243,13 +243,13 @@ Contoh:
 
 ```text
 Belum dinilai nyeri
-≠
+â‰ 
 Tidak nyeri
 ```
 
 ---
 
-## BR-RWI-008 — Actor berasal dari authenticated user
+## BR-RWI-008 â€” Actor berasal dari authenticated user
 
 Frontend tidak bebas menentukan:
 
@@ -263,7 +263,7 @@ PerformedBy
 
 ---
 
-## BR-RWI-009 — Permission bukan hanya nama role
+## BR-RWI-009 â€” Permission bukan hanya nama role
 
 Authority:
 
@@ -279,21 +279,21 @@ Episode Context
 
 ---
 
-## BR-RWI-010 — Clinical save dipisahkan dari billing failure
+## BR-RWI-010 â€” Clinical save dipisahkan dari billing failure
 
 Target:
 
 ```text
 Clinical Save
-        ↓
+        â†“
 Commit
-        ↓
+        â†“
 Billing Fact / Event
 ```
 
 ---
 
-## BR-RWI-011 — Idempotency per command
+## BR-RWI-011 â€” Idempotency per command
 
 Retry request yang sama menggunakan key yang sama.
 
@@ -301,7 +301,7 @@ Aksi baru menggunakan key baru.
 
 ---
 
-## BR-RWI-012 — Clinical time berbeda dengan recorded time
+## BR-RWI-012 â€” Clinical time berbeda dengan recorded time
 
 Simpan secara jelas bila diperlukan:
 
@@ -315,21 +315,21 @@ CorrectedAt
 
 ---
 
-## BR-RWI-013 — Order bukan performed
+## BR-RWI-013 â€” Order bukan performed
 
 ```text
 Order
-≠
+â‰ 
 Performed
-≠
+â‰ 
 Result
-≠
+â‰ 
 Billing
 ```
 
 ---
 
-## BR-RWI-014 — SOAP bukan Visit
+## BR-RWI-014 â€” SOAP bukan Visit
 
 SOAP adalah dokumentasi perkembangan.
 
@@ -337,13 +337,13 @@ Visit adalah event visite dokter.
 
 ---
 
-## BR-RWI-015 — Prescription header bukan resep lengkap
+## BR-RWI-015 â€” Prescription header bukan resep lengkap
 
 Minimal resep klinis harus mempunyai item.
 
 ---
 
-## BR-RWI-016 — Discharge Planning bukan Discharge
+## BR-RWI-016 â€” Discharge Planning bukan Discharge
 
 Perencanaan pulang tidak menutup episode.
 
@@ -388,9 +388,9 @@ Conflict
 
 ---
 
-# 7. FINAL UI DECISION — DOKTER RAWAT INAP
+# 7. FINAL UI DECISION â€” DOKTER RAWAT INAP
 
-## UI-DEC-DOK-001 — EXACT LAYOUT PARITY
+## UI-DEC-DOK-001 â€” EXACT LAYOUT PARITY
 
 **Workspace Dokter Rawat Inap V2 WAJIB menggunakan layout Dokter Rawat Jalan V2 yang sudah FIX secara sama.**
 
@@ -463,23 +463,23 @@ Clinical alerts
 # 9. LAYOUT DOKTER RAWAT INAP FINAL
 
 ```text
-┌──────────────────────────────────────────────────────────────────────┐
-│ GLOBAL APP HEADER                                                    │
-├──────────────┬───────────────────────────────────────────────────────┤
-│              │ DOKTER RAWAT INAP                 SUMMARY METRICS     │
-│ GLOBAL       │ Kelola pelayanan klinis pasien                       │
-│ SIDEBAR      ├─────────────────┬─────────────────────────────────────┤
-│              │                 │                                     │
-│              │ DAFTAR PASIEN   │ PATIENT / EPISODE WORKSPACE         │
-│              │ RAWAT INAP      │                                     │
-│              │                 │ Patient Context Header              │
-│              │ Search          │                                     │
-│              │                 │ SOAP | CPPT | KAJIAN | ...         │
-│              │ Patient A       │                                     │
-│              │ Patient B       │ Clinical Content                    │
-│              │ Patient C       │                                     │
-│              │                 │                                     │
-└──────────────┴─────────────────┴─────────────────────────────────────┘
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ GLOBAL APP HEADER                                                    â”‚
+â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
+â”‚              â”‚ DOKTER RAWAT INAP                 SUMMARY METRICS     â”‚
+â”‚ GLOBAL       â”‚ Kelola pelayanan klinis pasien                       â”‚
+â”‚ SIDEBAR      â”œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¤
+â”‚              â”‚                 â”‚                                     â”‚
+â”‚              â”‚ DAFTAR PASIEN   â”‚ PATIENT / EPISODE WORKSPACE         â”‚
+â”‚              â”‚ RAWAT INAP      â”‚                                     â”‚
+â”‚              â”‚                 â”‚ Patient Context Header              â”‚
+â”‚              â”‚ Search          â”‚                                     â”‚
+â”‚              â”‚                 â”‚ SOAP | CPPT | KAJIAN | ...         â”‚
+â”‚              â”‚ Patient A       â”‚                                     â”‚
+â”‚              â”‚ Patient B       â”‚ Clinical Content                    â”‚
+â”‚              â”‚ Patient C       â”‚                                     â”‚
+â”‚              â”‚                 â”‚                                     â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 ---
@@ -517,8 +517,8 @@ Struktur mengikuti Rawat Jalan:
 
 ```text
 Daftar Pasien Rawat Inap                    [12]
-────────────────────────────────────────────────
-🔍 Cari nama / No. RM / kamar...
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+ðŸ” Cari nama / No. RM / kamar...
 ```
 
 Patient card:
@@ -527,7 +527,7 @@ Patient card:
 Budi Santoso
 RM 00-12-34-56
 
-Mawar 302 • Bed 2
+Mawar 302 â€¢ Bed 2
 Kelas I
 
 DPJP: dr. Ahmad Sp.PD
@@ -593,12 +593,12 @@ Data yang ditampilkan:
 
 ```text
 Budi Santoso
-RM 00-12-34-56 • Laki-laki • 57 tahun
+RM 00-12-34-56 â€¢ Laki-laki â€¢ 57 tahun
 
 Episode: RWI-20260914-001
 Hari Rawat ke-3
 
-Mawar 302 • Bed 2
+Mawar 302 â€¢ Bed 2
 Kelas I
 
 DPJP
@@ -617,9 +617,9 @@ Pneumonia
 Clinical alert contoh:
 
 ```text
-⚠ Alergi Penicillin
-⚠ Risiko Jatuh Tinggi
-⚠ Isolasi Contact Precaution
+âš  Alergi Penicillin
+âš  Risiko Jatuh Tinggi
+âš  Isolasi Contact Precaution
 ```
 
 ---
@@ -643,7 +643,7 @@ Style tab harus sama dengan tab Workspace Dokter Rawat Jalan.
 
 ---
 
-# 16. CONTENT DESIGN — SOAP
+# 16. CONTENT DESIGN â€” SOAP
 
 ## Tujuan
 
@@ -666,32 +666,32 @@ Catat perkembangan kondisi pasien selama episode Rawat Inap.
 [ + SOAP Baru ]
 
 Form SOAP | Riwayat SOAP | Koreksi
-────────────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 Status: Draft
 Terakhir disimpan: 14:35
 
 1. Tanda Vital
-────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 TD       HR       RR       Suhu       SpO2
 
 2. Subjective
-────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 [ textarea ]
 
 3. Objective
-────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 [ textarea ]
 
 4. Assessment
-────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 [ diagnosis / problem / textarea ]
 
 5. Plan
-────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 [ textarea ]
 
-────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 [ Simpan Draft ]      [ Selesaikan SOAP ]
 ```
 
@@ -708,7 +708,7 @@ TD       HR       RR       Suhu       SpO2
 Lebih baik timeline/card daripada table besar:
 
 ```text
-14 Sep 2026 • 14:35
+14 Sep 2026 â€¢ 14:35
 dr. Ahmad Sp.PD
 Completed
 
@@ -722,7 +722,7 @@ P: ...
 
 ---
 
-# 17. CONTENT DESIGN — CPPT
+# 17. CONTENT DESIGN â€” CPPT
 
 ## Tujuan
 
@@ -736,7 +736,7 @@ CPPT
 [ Semua ] [ Dokter ] [ Perawat ] [ Profesi Lain ]
 Tanggal: [ .... ]    Status: [ .... ]
 
-────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 14 September 2026
 
@@ -750,7 +750,7 @@ Status: Final
 DOKTER
 dr. Ahmad Sp.PD
 Catatan ...
-✓ Diverifikasi DPJP
+âœ“ Diverifikasi DPJP
 ```
 
 ## UI Rules
@@ -764,7 +764,7 @@ Catatan ...
 
 ---
 
-# 18. CONTENT DESIGN — KAJIAN PASIEN
+# 18. CONTENT DESIGN â€” KAJIAN PASIEN
 
 ## Tujuan
 
@@ -782,7 +782,7 @@ KAJIAN PASIEN
 
 ```text
 Kajian Awal Medis
-14 Sep 2026 • 10:30
+14 Sep 2026 â€¢ 10:30
 Completed
 Dokter: dr. Ahmad Sp.PD
 
@@ -791,7 +791,7 @@ Dokter: dr. Ahmad Sp.PD
 
 ```text
 Kajian Ulang #1
-15 Sep 2026 • 08:15
+15 Sep 2026 â€¢ 08:15
 Completed
 
 [ Detail ]
@@ -820,7 +820,7 @@ status
 
 ---
 
-# 19. CONTENT DESIGN — RESEP
+# 19. CONTENT DESIGN â€” RESEP
 
 ## Tujuan
 
@@ -838,18 +838,18 @@ Resep Harian
 ## Layout Target
 
 ```text
-┌───────────────────────────┬───────────────────────────────┐
-│ DAFTAR OBAT               │ DRAFT RESEP                  │
-│                           │                               │
-│ Search obat...            │ Paracetamol                  │
-│                           │ 500 mg                        │
-│ Paracetamol          [+]  │ 3 x sehari                   │
-│ Cefixime             [+]  │ 5 hari                       │
-│ ...                       │                               │
-│                           │ [hapus]                       │
-│                           │                               │
-│                           │ [ + Tambah Item ]             │
-└───────────────────────────┴───────────────────────────────┘
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ DAFTAR OBAT               â”‚ DRAFT RESEP                  â”‚
+â”‚                           â”‚                               â”‚
+â”‚ Search obat...            â”‚ Paracetamol                  â”‚
+â”‚                           â”‚ 500 mg                        â”‚
+â”‚ Paracetamol          [+]  â”‚ 3 x sehari                   â”‚
+â”‚ Cefixime             [+]  â”‚ 5 hari                       â”‚
+â”‚ ...                       â”‚                               â”‚
+â”‚                           â”‚ [hapus]                       â”‚
+â”‚                           â”‚                               â”‚
+â”‚                           â”‚ [ + Tambah Item ]             â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”´â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 ## Minimum Prescription Item
@@ -871,7 +871,7 @@ Header tanpa item tidak dianggap resep lengkap.
 
 ---
 
-# 20. CONTENT DESIGN — TINDAKAN
+# 20. CONTENT DESIGN â€” TINDAKAN
 
 ## Sub-content
 
@@ -903,7 +903,7 @@ Status klinis jangan dicampur dengan status billing.
 
 ---
 
-# 21. CONTENT DESIGN — RESUME MEDIS
+# 21. CONTENT DESIGN â€” RESUME MEDIS
 
 ## Primary Content
 
@@ -936,7 +936,7 @@ Display source bila relevan.
 
 ---
 
-# 22. CONTENT DESIGN — VISIT
+# 22. CONTENT DESIGN â€” VISIT
 
 ## Header
 
@@ -964,7 +964,7 @@ SOAP tidak otomatis menghasilkan visit.
 
 ---
 
-# 23. CONTENT DESIGN — PENUNJANG MEDIS
+# 23. CONTENT DESIGN â€” PENUNJANG MEDIS
 
 ## Menu
 
@@ -980,19 +980,19 @@ Rehab Medik
 ## Landing Grid
 
 ```text
-┌──────────────────┐ ┌──────────────────┐
-│ Radiologi        │ │ Laboratorium     │
-│ 2 order          │ │ 5 order          │
-│ 1 hasil baru     │ │ 2 hasil baru     │
-└──────────────────┘ └──────────────────┘
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â” â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ Radiologi        â”‚ â”‚ Laboratorium     â”‚
+â”‚ 2 order          â”‚ â”‚ 5 order          â”‚
+â”‚ 1 hasil baru     â”‚ â”‚ 2 hasil baru     â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜ â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 
-┌──────────────────┐ ┌──────────────────┐
-│ Gizi             │ │ Rehab Medik      │
-└──────────────────┘ └──────────────────┘
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â” â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ Gizi             â”‚ â”‚ Rehab Medik      â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜ â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 
-┌──────────────────┐ ┌──────────────────┐
-│ Hemodialisa      │ │ Bank Darah       │
-└──────────────────┘ └──────────────────┘
+â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â” â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+â”‚ Hemodialisa      â”‚ â”‚ Bank Darah       â”‚
+â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜ â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 ## Result
@@ -1005,15 +1005,15 @@ Contoh Lab:
 Darah Lengkap
 Status: FINAL
 
-Hb         10.2 g/dL ↓
-Leukosit   12.400    ↑
+Hb         10.2 g/dL â†“
+Leukosit   12.400    â†‘
 
 [Lihat Detail Hasil]
 ```
 
 ---
 
-# 24. FINAL UI DECISION — KEPERAWATAN / PENGKAJIAN RAWAT INAP
+# 24. FINAL UI DECISION â€” KEPERAWATAN / PENGKAJIAN RAWAT INAP
 
 Untuk **Keperawatan/Pengkajian Rawat Inap**, layout V2 yang sudah ada dinilai cukup aman dan **tidak perlu dirombak total**.
 
@@ -1039,65 +1039,65 @@ DISELARASKAN DENGAN V1 + PERBAIKAN V2
 
 ```text
 KEPERAWATAN RAWAT INAP
-│
-├── PENGKAJIAN PASIEN
-│   ├── Kajian Umum
-│   ├── Resiko Jatuh
-│   ├── Monitoring Nyeri
-│   ├── Assement Edukasi
-│   ├── Pengawasan Harian Pasien
-│   ├── Evaluasi Awal
-│   └── Perencanaan Pulang
-│
-├── ASUHAN KEPERAWATAN
-│   ├── Vital Sign
-│   ├── SOAP
-│   ├── Catatan Terintegrasi
-│   ├── Tindakan Harian
-│   ├── Obat & Alkes
-│   └── Catatan Keperawatan
-│
-├── TINDAKAN
-│   ├── Order Tindakan
-│   └── History Tindakan
-│
-├── PENUNJANG MEDIS
-│   ├── Radiologi
-│   ├── Laboratorium
-│   ├── Rehab Medik
-│   ├── Konsultasi Gizi
-│   ├── Hemodialisa
-│   └── Bank Darah
-│
-├── PEMAKAIAN ALAT
-│   ├── Order Alat Kesehatan
-│   └── History Alat Kesehatan
-│
-├── TRANSFER PASIEN
-│   ├── Form Transfer
-│   └── History Transfer
-│
-├── PEMESANAN RUANGAN BEDAH
-│   ├── Bedah Operasi
-│   └── Bedah Obgyn
-│
-└── TAGIHAN PASIEN
+â”‚
+â”œâ”€â”€ PENGKAJIAN PASIEN
+â”‚   â”œâ”€â”€ Kajian Umum
+â”‚   â”œâ”€â”€ Resiko Jatuh
+â”‚   â”œâ”€â”€ Monitoring Nyeri
+â”‚   â”œâ”€â”€ Assement Edukasi
+â”‚   â”œâ”€â”€ Pengawasan Harian Pasien
+â”‚   â”œâ”€â”€ Evaluasi Awal
+â”‚   â””â”€â”€ Perencanaan Pulang
+â”‚
+â”œâ”€â”€ ASUHAN KEPERAWATAN
+â”‚   â”œâ”€â”€ Vital Sign
+â”‚   â”œâ”€â”€ SOAP
+â”‚   â”œâ”€â”€ Catatan Terintegrasi
+â”‚   â”œâ”€â”€ Tindakan Harian
+â”‚   â”œâ”€â”€ Obat & Alkes
+â”‚   â””â”€â”€ Catatan Keperawatan
+â”‚
+â”œâ”€â”€ TINDAKAN
+â”‚   â”œâ”€â”€ Order Tindakan
+â”‚   â””â”€â”€ History Tindakan
+â”‚
+â”œâ”€â”€ PENUNJANG MEDIS
+â”‚   â”œâ”€â”€ Radiologi
+â”‚   â”œâ”€â”€ Laboratorium
+â”‚   â”œâ”€â”€ Rehab Medik
+â”‚   â”œâ”€â”€ Konsultasi Gizi
+â”‚   â”œâ”€â”€ Hemodialisa
+â”‚   â””â”€â”€ Bank Darah
+â”‚
+â”œâ”€â”€ PEMAKAIAN ALAT
+â”‚   â”œâ”€â”€ Order Alat Kesehatan
+â”‚   â””â”€â”€ History Alat Kesehatan
+â”‚
+â”œâ”€â”€ TRANSFER PASIEN
+â”‚   â”œâ”€â”€ Form Transfer
+â”‚   â””â”€â”€ History Transfer
+â”‚
+â”œâ”€â”€ PEMESANAN RUANGAN BEDAH
+â”‚   â”œâ”€â”€ Bedah Operasi
+â”‚   â””â”€â”€ Bedah Obgyn
+â”‚
+â””â”€â”€ TAGIHAN PASIEN
 ```
 
 ---
 
-# 26. PENGKAJIAN PASIEN — LAYOUT
+# 26. PENGKAJIAN PASIEN â€” LAYOUT
 
 Pertahankan layout existing:
 
 ```text
 Patient Information
-────────────────────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 Left Internal Navigation
-│
-└── Main Content
-    └── Secondary Tabs
-        └── Form / History
+â”‚
+â””â”€â”€ Main Content
+    â””â”€â”€ Secondary Tabs
+        â””â”€â”€ Form / History
 ```
 
 Tidak perlu diubah menjadi layout Dokter Rawat Jalan.
@@ -1122,7 +1122,7 @@ Tambahkan progress:
 Pengkajian Awal
 5 dari 7 bagian selesai
 
-████████████░░░ 71%
+â–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–ˆâ–‘â–‘â–‘ 71%
 
 Status: Draft
 ```
@@ -1130,23 +1130,23 @@ Status: Draft
 Status group:
 
 ```text
-✓ Selesai
+âœ“ Selesai
 ! Perlu perhatian
-○ Belum diisi
+â—‹ Belum diisi
 ```
 
 Secondary tab dapat mempunyai indicator:
 
 ```text
-Kajian Umum        ✓
-Resiko Jatuh       ✓
+Kajian Umum        âœ“
+Resiko Jatuh       âœ“
 Monitoring Nyeri   !
-Assement Edukasi   ○
+Assement Edukasi   â—‹
 ```
 
 ---
 
-# 28. CONTENT DESIGN — KAJIAN UMUM
+# 28. CONTENT DESIGN â€” KAJIAN UMUM
 
 Capability V1 yang perlu dipertahankan:
 
@@ -1171,31 +1171,31 @@ Gunakan accordion/section yang terstruktur:
 KAJIAN UMUM
 
 1. Sumber Data Pasien
-────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 [fields]
 
 2. Kondisi Umum
-────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 [fields]
 
 3. Pernapasan
-────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 [fields]
 
 4. Integritas Kulit
-────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 [fields]
 
 5. Nutrisi
-────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 [fields]
 
 6. Eliminasi
-────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 [fields]
 
 7. Status Fungsional
-────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 [fields]
 ```
 
@@ -1203,7 +1203,7 @@ Jangan membuat semua field menjadi satu form datar panjang.
 
 ---
 
-# 29. CONTENT DESIGN — RESIKO JATUH
+# 29. CONTENT DESIGN â€” RESIKO JATUH
 
 Layout:
 
@@ -1214,7 +1214,7 @@ Instrumen: [ .... ]
 Versi: [ .... ]
 
 Penilaian
-────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 [indikator / pertanyaan]
 
 Skor Total
@@ -1231,7 +1231,7 @@ Clinical instrument harus disahkan clinical owner.
 
 ---
 
-# 30. CONTENT DESIGN — MONITORING NYERI
+# 30. CONTENT DESIGN â€” MONITORING NYERI
 
 Bedakan state:
 
@@ -1252,7 +1252,7 @@ Status Nyeri
 ( ) Ada nyeri
 ( ) Tidak dapat dinilai
 
-Skala: [0—10]
+Skala: [0â€”10]
 
 Lokasi
 [ .... ]
@@ -1274,7 +1274,7 @@ Riwayat lebih baik menggunakan timeline/trend.
 
 ---
 
-# 31. CONTENT DESIGN — ASSEMENT EDUKASI
+# 31. CONTENT DESIGN â€” ASSEMENT EDUKASI
 
 Target:
 
@@ -1304,7 +1304,7 @@ Jangan hanya satu `EducationNote`.
 
 ---
 
-# 32. CONTENT DESIGN — PENGAWASAN HARIAN PASIEN
+# 32. CONTENT DESIGN â€” PENGAWASAN HARIAN PASIEN
 
 Pertahankan capability V1:
 
@@ -1330,13 +1330,13 @@ PENGAWASAN HARIAN PASIEN
 Riwayat | Form
 
 Tanda Vital
-────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 Nyeri
-────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 Intake
-────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 Infus
 Oral
 NGT
@@ -1344,24 +1344,24 @@ Darah
 Obat
 
 Output
-────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 Urin
 Feses
 NGT
 Lain
 
 Balance
-────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 Diet & Mobilisasi
-────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 ```
 
 Total/balance sebaiknya dihitung dari data terstruktur.
 
 ---
 
-# 33. CONTENT DESIGN — EVALUASI AWAL
+# 33. CONTENT DESIGN â€” EVALUASI AWAL
 
 Catatan penting:
 
@@ -1394,7 +1394,7 @@ Owner final harus dikunci melalui open decision.
 
 ---
 
-# 34. CONTENT DESIGN — PERENCANAAN PULANG
+# 34. CONTENT DESIGN â€” PERENCANAAN PULANG
 
 Layout:
 
@@ -1402,35 +1402,35 @@ Layout:
 PERENCANAAN PULANG
 
 Kebutuhan Pulang
-────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 Caregiver / Pendamping
-────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 Kontrol / Follow-up
-────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 Obat & Edukasi
-────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 Peralatan / Home Care
-────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 Transportasi
-────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 Hambatan
-────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 Status Rencana
-────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 ```
 
 Perencanaan Pulang tidak menutup episode.
 
 ---
 
-# 35. CONTENT DESIGN — ASUHAN KEPERAWATAN
+# 35. CONTENT DESIGN â€” ASUHAN KEPERAWATAN
 
 Sub-content mengikuti V1:
 
@@ -1503,7 +1503,7 @@ TINDAKAN HARIAN
 [ + Catat Tindakan ]
 
 Riwayat Tindakan
-──────────────────────────────
+â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 Waktu | Tindakan | Perawat | Hasil
 ```
 
@@ -1533,7 +1533,7 @@ Domain owner tetap harus jelas.
 Gunakan timeline/card:
 
 ```text
-14 Sep 2026 • 14:35
+14 Sep 2026 â€¢ 14:35
 Siti Rahma, Ns.
 
 Catatan:
@@ -1544,7 +1544,7 @@ Catatan:
 
 ---
 
-# 42. CONTENT DESIGN — TINDAKAN KEPERAWATAN
+# 42. CONTENT DESIGN â€” TINDAKAN KEPERAWATAN
 
 ```text
 TINDAKAN
@@ -1557,7 +1557,7 @@ Order tidak otomatis performed.
 
 ---
 
-# 43. CONTENT DESIGN — PENUNJANG MEDIS KEPERAWATAN
+# 43. CONTENT DESIGN â€” PENUNJANG MEDIS KEPERAWATAN
 
 Gunakan content V1:
 
@@ -1574,7 +1574,7 @@ Rawat Inap hanya menjadi integration surface.
 
 ---
 
-# 44. CONTENT DESIGN — PEMAKAIAN ALAT
+# 44. CONTENT DESIGN â€” PEMAKAIAN ALAT
 
 ```text
 PEMAKAIAN ALAT
@@ -1593,7 +1593,7 @@ Dilarang membuat dummy persistence.
 
 ---
 
-# 45. CONTENT DESIGN — TRANSFER PASIEN
+# 45. CONTENT DESIGN â€” TRANSFER PASIEN
 
 ```text
 TRANSFER PASIEN
@@ -1619,7 +1619,7 @@ Transfer klinis tidak otomatis sama dengan mutasi bed.
 
 ---
 
-# 46. CONTENT DESIGN — PEMESANAN RUANGAN BEDAH
+# 46. CONTENT DESIGN â€” PEMESANAN RUANGAN BEDAH
 
 ```text
 PEMESANAN RUANGAN BEDAH
@@ -1641,7 +1641,7 @@ Request bukan confirmed schedule.
 
 ---
 
-# 47. CONTENT DESIGN — TAGIHAN PASIEN
+# 47. CONTENT DESIGN â€” TAGIHAN PASIEN
 
 Keperawatan hanya mendapatkan tampilan sesuai permission.
 
@@ -1705,9 +1705,9 @@ Spacing:
 Rekomendasi:
 
 ```text
-Card radius 8–12px
-Input radius 6–8px
-Button radius 6–8px
+Card radius 8â€“12px
+Input radius 6â€“8px
+Button radius 6â€“8px
 ```
 
 Hindari:
@@ -1726,10 +1726,10 @@ giant header
 Rekomendasi:
 
 ```text
-Page Title      20–24px semibold
-Section Title   16–18px semibold
-Body            13–14px
-Supporting      12–13px
+Page Title      20â€“24px semibold
+Section Title   16â€“18px semibold
+Body            13â€“14px
+Supporting      12â€“13px
 ```
 
 Ikuti design token repository jika sudah tersedia.
@@ -1780,11 +1780,11 @@ Jangan menghilangkan seluruh workspace hanya karena satu API gagal.
 Contoh:
 
 ```text
-Patient ✓
-Episode ✓
-Bed ✓
-Alergi ✕
-SOAP ✓
+Patient âœ“
+Episode âœ“
+Bed âœ“
+Alergi âœ•
+SOAP âœ“
 ```
 
 Workspace tetap berjalan sesuai safety rule.
@@ -1810,7 +1810,7 @@ Correction tetap mengikuti permission.
 Jika ada perubahan:
 
 ```text
-SOAP •
+SOAP â€¢
 ```
 
 Sticky status:
@@ -1829,7 +1829,7 @@ Saat pindah:
 
 ---
 
-# 56. MVP-0 — CONTRACT STABILIZATION
+# 56. MVP-0 â€” CONTRACT STABILIZATION
 
 Wajib sebelum redesign dinyatakan selesai.
 
@@ -1867,7 +1867,7 @@ permission contract
 
 ---
 
-# 57. MVP-1 — SHARED WORKSPACE
+# 57. MVP-1 â€” SHARED WORKSPACE
 
 Deliverable:
 
@@ -1886,7 +1886,7 @@ Unsaved Guard
 
 ---
 
-# 58. MVP-2 — KEPERAWATAN
+# 58. MVP-2 â€” KEPERAWATAN
 
 Deliverable:
 
@@ -1906,7 +1906,7 @@ Correction
 
 ---
 
-# 59. MVP-3 — DOKTER
+# 59. MVP-3 â€” DOKTER
 
 Deliverable:
 
@@ -1924,7 +1924,7 @@ PENUNJANG MEDIS
 
 ---
 
-# 60. MVP-4 — CROSS MODULE
+# 60. MVP-4 â€” CROSS MODULE
 
 Target:
 
@@ -1941,7 +1941,7 @@ Billing Summary
 
 ---
 
-# 61. UI ACCEPTANCE CRITERIA — DOKTER
+# 61. UI ACCEPTANCE CRITERIA â€” DOKTER
 
 ## UI-AC-DOK-001
 Jika content text disamarkan, layout utama Dokter Rawat Inap dan Rawat Jalan harus terlihat sama.
@@ -1981,7 +1981,7 @@ Perbedaan hanya karena content/business process Rawat Inap.
 
 ---
 
-# 62. UI ACCEPTANCE CRITERIA — KEPERAWATAN
+# 62. UI ACCEPTANCE CRITERIA â€” KEPERAWATAN
 
 ## UI-AC-KEP-001
 Layout existing Keperawatan V2 tetap dipertahankan.
@@ -2014,26 +2014,26 @@ Unsaved changes dilindungi.
 
 # 63. BUSINESS ACCEPTANCE CRITERIA
 
-- **AC-RWI-001** — Wrong patient guard.
-- **AC-RWI-002** — Draft incomplete allowed.
-- **AC-RWI-003** — Final completeness validation.
-- **AC-RWI-004** — Final immutable.
-- **AC-RWI-005** — Correction preserves original.
-- **AC-RWI-006** — Unknown safety.
-- **AC-RWI-007** — Read after write.
-- **AC-RWI-008** — Partial edit safety.
-- **AC-RWI-009** — Permission consistency.
-- **AC-RWI-010** — SOAP complete tidak silent-finalize lifecycle lain.
-- **AC-RWI-011** — Non-DPJP tidak otomatis verify CPPT.
-- **AC-RWI-012** — New prescription command tidak dianggap retry.
-- **AC-RWI-013** — Header prescription tanpa item bukan lengkap.
-- **AC-RWI-014** — Multiple valid visit allowed.
-- **AC-RWI-015** — Billing failure tidak menghapus clinical record.
-- **AC-RWI-016** — Closed episode read-only.
-- **AC-RWI-017** — Unsaved draft tidak silent loss.
-- **AC-RWI-018** — Allergy error bukan no allergy.
-- **AC-RWI-019** — Final result dapat dibuka.
-- **AC-RWI-020** — No duplicate owner.
+- **AC-RWI-001** â€” Wrong patient guard.
+- **AC-RWI-002** â€” Draft incomplete allowed.
+- **AC-RWI-003** â€” Final completeness validation.
+- **AC-RWI-004** â€” Final immutable.
+- **AC-RWI-005** â€” Correction preserves original.
+- **AC-RWI-006** â€” Unknown safety.
+- **AC-RWI-007** â€” Read after write.
+- **AC-RWI-008** â€” Partial edit safety.
+- **AC-RWI-009** â€” Permission consistency.
+- **AC-RWI-010** â€” SOAP complete tidak silent-finalize lifecycle lain.
+- **AC-RWI-011** â€” Non-DPJP tidak otomatis verify CPPT.
+- **AC-RWI-012** â€” New prescription command tidak dianggap retry.
+- **AC-RWI-013** â€” Header prescription tanpa item bukan lengkap.
+- **AC-RWI-014** â€” Multiple valid visit allowed.
+- **AC-RWI-015** â€” Billing failure tidak menghapus clinical record.
+- **AC-RWI-016** â€” Closed episode read-only.
+- **AC-RWI-017** â€” Unsaved draft tidak silent loss.
+- **AC-RWI-018** â€” Allergy error bukan no allergy.
+- **AC-RWI-019** â€” Final result dapat dibuka.
+- **AC-RWI-020** â€” No duplicate owner.
 
 ---
 
@@ -2042,53 +2042,53 @@ Unsaved changes dilindungi.
 ```text
 DILARANG:
 
-❌ Fake queue untuk Rawat Inap.
-❌ Copy tabel V1 tanpa domain mapping.
-❌ Menu = tabel.
-❌ Actor bebas dari payload.
-❌ Role string sebagai authority tunggal.
-❌ Unknown menjadi negative.
-❌ Final document diedit langsung.
-❌ Diagnosis multi-value comma-separated.
-❌ Order = performed = billing.
-❌ SOAP = Visit.
-❌ Prescription header = complete prescription.
-❌ Discharge planning = discharge.
-❌ Signed resume = closed episode.
-❌ Duplicate hasil Lab/Radiologi di Rawat Inap.
-❌ Success sebelum transaksi wajib benar-benar berhasil.
-❌ Magic status number FE/BE berbeda.
-❌ Silent overwrite.
-❌ Silent discard draft.
-❌ Mock clinical data untuk terlihat selesai.
+âŒ Fake queue untuk Rawat Inap.
+âŒ Copy tabel V1 tanpa domain mapping.
+âŒ Menu = tabel.
+âŒ Actor bebas dari payload.
+âŒ Role string sebagai authority tunggal.
+âŒ Unknown menjadi negative.
+âŒ Final document diedit langsung.
+âŒ Diagnosis multi-value comma-separated.
+âŒ Order = performed = billing.
+âŒ SOAP = Visit.
+âŒ Prescription header = complete prescription.
+âŒ Discharge planning = discharge.
+âŒ Signed resume = closed episode.
+âŒ Duplicate hasil Lab/Radiologi di Rawat Inap.
+âŒ Success sebelum transaksi wajib benar-benar berhasil.
+âŒ Magic status number FE/BE berbeda.
+âŒ Silent overwrite.
+âŒ Silent discard draft.
+âŒ Mock clinical data untuk terlihat selesai.
 ```
 
 ---
 
-# 65. PROHIBITED UI — DOKTER
+# 65. PROHIBITED UI â€” DOKTER
 
 ```text
-❌ Membuat layout Rawat Inap "mirip" tetapi berbeda struktur.
-❌ Mengubah posisi patient list.
-❌ Mengubah width panel tanpa alasan teknis.
-❌ Mengubah tab horizontal menjadi sidebar.
-❌ Membuat card style khusus Rawat Inap.
-❌ Membuat empty-state pattern baru.
-❌ Membuat breakpoint berbeda tanpa kebutuhan.
-❌ Menyalin business process antrean Rawat Jalan.
+âŒ Membuat layout Rawat Inap "mirip" tetapi berbeda struktur.
+âŒ Mengubah posisi patient list.
+âŒ Mengubah width panel tanpa alasan teknis.
+âŒ Mengubah tab horizontal menjadi sidebar.
+âŒ Membuat card style khusus Rawat Inap.
+âŒ Membuat empty-state pattern baru.
+âŒ Membuat breakpoint berbeda tanpa kebutuhan.
+âŒ Menyalin business process antrean Rawat Jalan.
 ```
 
 ---
 
-# 66. PROHIBITED UI — KEPERAWATAN
+# 66. PROHIBITED UI â€” KEPERAWATAN
 
 ```text
-❌ Rombak total layout yang sudah aman.
-❌ Menghilangkan menu V1 tanpa keputusan eksplisit.
-❌ Membuat form panjang tanpa section.
-❌ Semua content dijadikan table.
-❌ Semua section dijadikan nested card.
-❌ Menampilkan success palsu untuk integrasi yang belum tersedia.
+âŒ Rombak total layout yang sudah aman.
+âŒ Menghilangkan menu V1 tanpa keputusan eksplisit.
+âŒ Membuat form panjang tanpa section.
+âŒ Semua content dijadikan table.
+âŒ Semua section dijadikan nested card.
+âŒ Menampilkan success palsu untuk integrasi yang belum tersedia.
 ```
 
 ---
@@ -2133,30 +2133,30 @@ Rawat Inap V2 dinyatakan selesai apabila:
 
 ```text
 EPISODE
-✓ menjadi context anchor
+âœ“ menjadi context anchor
 
 DOKTER
-✓ layout sama dengan Rawat Jalan V2
-✓ 8 content utama tersedia
-✓ business process tetap Rawat Inap
-✓ tidak memakai fake queue
-✓ draft aman
-✓ lifecycle benar
+âœ“ layout sama dengan Rawat Jalan V2
+âœ“ 8 content utama tersedia
+âœ“ business process tetap Rawat Inap
+âœ“ tidak memakai fake queue
+âœ“ draft aman
+âœ“ lifecycle benar
 
 KEPERAWATAN
-✓ layout existing dipertahankan
-✓ content mengikuti kebutuhan V1
-✓ pengkajian memiliki progress/completeness
-✓ care plan dan intervention V2 tetap hidup
-✓ tidak kehilangan capability V2
+âœ“ layout existing dipertahankan
+âœ“ content mengikuti kebutuhan V1
+âœ“ pengkajian memiliki progress/completeness
+âœ“ care plan dan intervention V2 tetap hidup
+âœ“ tidak kehilangan capability V2
 
 SHARED
-✓ actor tervalidasi
-✓ permission konsisten
-✓ correction traceable
-✓ integration owner jelas
-✓ tidak ada silent data loss
-✓ tidak ada dummy integration
+âœ“ actor tervalidasi
+âœ“ permission konsisten
+âœ“ correction traceable
+âœ“ integration owner jelas
+âœ“ tidak ada silent data loss
+âœ“ tidak ada dummy integration
 ```
 
 ---
@@ -2167,32 +2167,32 @@ Setelah dokumen ini menjadi authority, update:
 
 ```text
 rawat-inap/
-├── blueprint-manifest.md
-├── 04-prd-to-mvp-final.md
-│
-├── keperawatan/
-│   ├── 02-module-map.md
-│   ├── 03-frontend-architecture.md
-│   ├── 04-prd-to-mvp.md
-│   ├── skema-tampilan-keperawatan-rawat-inap.md
-│   ├── api-contract.md
-│   ├── validation-matrix.md
-│   ├── data/data-dictionary.md
-│   └── roadmap/
-│       ├── backend-roadmap.md
-│       └── frontend-roadmap.md
-│
-└── dokter-rawat-inap/
-    ├── 02-module-map.md
-    ├── 03-frontend-architecture.md
-    ├── 04-prd-to-mvp.md
-    ├── skema-tampilan-dokter-rawat-inap.md
-    ├── api-contract.md
-    ├── validation-matrix.md
-    ├── data/data-dictionary.md
-    └── roadmap/
-        ├── backend-roadmap.md
-        └── frontend-roadmap.md
+â”œâ”€â”€ blueprint-manifest.md
+â”œâ”€â”€ 04-prd-to-mvp-final.md
+â”‚
+â”œâ”€â”€ keperawatan/
+â”‚   â”œâ”€â”€ 02-module-map.md
+â”‚   â”œâ”€â”€ 03-frontend-architecture.md
+â”‚   â”œâ”€â”€ 04-prd-to-mvp.md
+â”‚   â”œâ”€â”€ skema-tampilan-keperawatan-rawat-inap.md
+â”‚   â”œâ”€â”€ api-contract.md
+â”‚   â”œâ”€â”€ validation-matrix.md
+â”‚   â”œâ”€â”€ data/data-dictionary.md
+â”‚   â””â”€â”€ roadmap/
+â”‚       â”œâ”€â”€ backend-roadmap.md
+â”‚       â””â”€â”€ frontend-roadmap.md
+â”‚
+â””â”€â”€ dokter-rawat-inap/
+    â”œâ”€â”€ 02-module-map.md
+    â”œâ”€â”€ 03-frontend-architecture.md
+    â”œâ”€â”€ 04-prd-to-mvp.md
+    â”œâ”€â”€ skema-tampilan-dokter-rawat-inap.md
+    â”œâ”€â”€ api-contract.md
+    â”œâ”€â”€ validation-matrix.md
+    â”œâ”€â”€ data/data-dictionary.md
+    â””â”€â”€ roadmap/
+        â”œâ”€â”€ backend-roadmap.md
+        â””â”€â”€ frontend-roadmap.md
 ```
 
 ---
