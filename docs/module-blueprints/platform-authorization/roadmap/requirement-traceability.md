@@ -83,6 +83,26 @@ source selesai (Fase A dan A′), sementara pemberian haknya belum. `SEC-REQ-014
 | Wewenang migrasi data development | `CONDITIONALLY APPROVED` |
 | Status | 🟡 **`PARTIAL`** — Fase A dan A′ selesai di source; Fase B (perluasan `SysAccessPolicy`) dan Fase C (audio) belum. Ditahan dua hal: gerbang test mati karena dua berkas test milik modul lain gagal kompilasi (Billing dan Patient Encounter, 14 galat), dan keadaan database belum terukur. Lihat `evidence/06` bagian G |
 
+### Penegakan otorisasi endpoint — `BE-SEC-012`
+
+Bukti ini menjawab pertanyaan yang berbeda dari tabel di atas. Tabel di atas menelusuri *apakah
+kemampuannya sudah dipecah dan diberikan*; bagian ini menelusuri *apakah endpoint-nya benar-benar
+bertanya sebelum menjalankan perintah*.
+
+| Aspek | Status | Bukti |
+| --- | --- | --- |
+| Endpoint HR master data yang hanya dilindungi `[Authorize]` | ✅ **Nol** — 20 endpoint diperbaiki | [`BE-SEC-012.md`](../task/report/backend/BE-SEC-012.md) bagian 5.3 |
+| Invarian yang mencegah terulangnya | ✅ **Ada** — invarian `[5]` authorization verifier, memakai `BuildCore` yang sama | [`BE-SEC-012.md`](../task/report/backend/BE-SEC-012.md) bagian 5.1 |
+| Titik buta `PermissionRegistryValidator` | ✅ **Tertutup** | [`evidence/12`](../evidence/12-authorization-orphan-audit.md) bagian E |
+| Identitas orphan `KioskScanSession.Cancel`, `Queue.*` | ✅ **Terjelaskan** — pensiun/normalisasi, nol jangkauan hilang | [`evidence/12`](../evidence/12-authorization-orphan-audit.md) bagian C.1, C.2 |
+| Identitas orphan `WorkSchedule.Update` / `Delete` | ✅ **Diputuskan `BE-SEC-014`** — Finance dicabut, Manajer HR dipertahankan | [`evidence/14`](../evidence/14-owner-policy-matrix-and-deployment-preparation.md) bagian C.2 |
+| Matriks hak akses master data HR | ✅ **Disetujui pemilik** — manajer CRUD, staff Read/Create | [`evidence/14`](../evidence/14-owner-policy-matrix-and-deployment-preparation.md) bagian B |
+| Baseline pemeliharaan registry | ✅ **Diperbarui** — 1.286/339/48 dicabut, diganti **1.300/340/48** | [`evidence/14`](../evidence/14-owner-policy-matrix-and-deployment-preparation.md) bagian F |
+| Urutan penerapan aman sebelum `BE-SEC-003B` | ✅ **Ditetapkan** — sepuluh langkah, belum dijalankan | [`evidence/14`](../evidence/14-owner-policy-matrix-and-deployment-preparation.md) bagian E |
+| Daftar posisi staff HR | ⛔ **Terbuka** — menunggu persetujuan pemilik, sengaja tidak ditebak | [`BE-SEC-014.md`](../task/report/backend/BE-SEC-014.md) bagian 6 |
+| 8 endpoint `WfpWorkScheduleAssignmentController` | ✅ **Ditutup `BE-SEC-013`** — 8 endpoint ditegakkan, baseline naked kosong | [`BE-SEC-013.md`](../task/report/backend/BE-SEC-013.md) bagian 6 |
+| Baseline naked endpoint yang diakui | ✅ **Kosong** — invarian sepenuhnya *fail closed* | [`BE-SEC-013.md`](../task/report/backend/BE-SEC-013.md) bagian 4.3 |
+
 Requirement yang **belum** didefinisikan dan **tidak** dianggap tercakup:
 
 | Area | Alasan belum didefinisikan |
@@ -92,3 +112,5 @@ Requirement yang **belum** didefinisikan dan **tidak** dianggap tercakup:
 | Clinical privilege per jenis tindakan | Lapisan terpisah di atas izin, bukan pengganti izin |
 | Tenancy per rumah sakit pada otorisasi | Rantai otorisasi saat ini hospital-agnostic; perubahannya blueprint tersendiri |
 | Otorisasi SignalR hub `/hubs/queues` | Belum diaudit |
+| Penegakan data-scope pada `WorkScheduleAssignment` | Izin sudah ditegakkan `BE-SEC-013`, tetapi pemegangnya masih dapat membaca dan mengubah penugasan milik profil pegawai mana pun. Pembatasan `OWN`/`SUBORDINATES` adalah lapisan data-scope yang memang belum ditegakkan |
+| `GET /options` pada `WorkScheduleAssignment` | Termasuk sembilan endpoint baseline master data tetapi tidak ada. Dilaporkan `BE-SEC-013`; pembuatannya di luar remediasi otorisasi |

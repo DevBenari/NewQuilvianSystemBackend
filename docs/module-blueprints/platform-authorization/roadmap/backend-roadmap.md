@@ -128,12 +128,50 @@ BE-SEC-003 🟡 (hardening identitas)
 
 ## Task terpisah di luar rantai
 
+### `BE-SEC-012` ✅ — Remediasi *naked endpoint* otorisasi dan invarian verifier
+
+| Field | Nilai |
+|---|---|
+| **Status** | ✅ **Selesai** 16 September 2026 — source diperbaiki dan invarian ditegakkan. Build `Release` `0 Error(s)`; authorization verifier `PASS` dengan invarian baru `[5]` = 0 endpoint telanjang baru, 8 utang baseline; `MetadataGaps` = 0; identitas wajib `BE-SEC-003` tetap 24/24; fallback tetap 69; `SysActionAccess` source 1.286 → 1.296 (+10). **Penerapan ke lingkungan masih ditahan** [`evidence/13`](../evidence/13-workschedule-dormant-grant-deployment-blocker.md). Laporan: [`BE-SEC-012.md`](../task/report/backend/BE-SEC-012.md) |
+| **Sebab** | Audit orphan [`evidence/12`](../evidence/12-authorization-orphan-audit.md) menemukan 20 endpoint tulis HR master data hanya dilindungi `[Authorize]` |
+| **Scope** | `WorkSchedule`, `Shift`, `ShiftGroup`, `ShiftPattern`, `WorkCalendar` — masing-masing `GET /{id}`, `PUT`, `PATCH /{id}/status`, `DELETE` |
+| **Database** | Tidak ada perubahan skema, tidak ada EF migration, tidak ada eksekusi database |
+| **Gerbang terbuka** | Keputusan pemilik modul HR atas hak tertidur `WorkSchedule.Update`/`Delete` — [`evidence/13`](../evidence/13-workschedule-dormant-grant-deployment-blocker.md) |
+
+---
+
+### `BE-SEC-013` ✅ — Penegakan otorisasi `WorkScheduleAssignment` dan pengosongan baseline
+
+| Field | Nilai |
+|---|---|
+| **Status** | ✅ **Selesai** 16 September 2026 — 8 endpoint `WfpWorkScheduleAssignmentController` diberi `[AccessAction]` + `[AccessPermission]`, baseline naked dikosongkan. Build `Release` `0 Error(s)`; authorization verifier `PASS` dengan **naked = 0 baru, 0 utang baseline**; `MetadataGaps` = 0; identitas wajib `BE-SEC-003` tetap 24/24; fallback tetap 69; registry source Resource 339 → 340 (+1), Action 1.296 → 1.300 (+4). Laporan: [`BE-SEC-013.md`](../task/report/backend/BE-SEC-013.md) |
+| **Sebab** | Utang yang dibekukan `BE-SEC-012` — seluruh endpoint controller ini hanya dilindungi `[Authorize]`, dan resource-nya tidak pernah terdaftar sehingga admin tidak dapat membatasinya |
+| **Scope** | `GET filters/metadata`, `GET summary`, `GET /`, `GET /{id}`, `POST`, `PUT /{id}`, `PATCH /{id}/status`, `DELETE /{id}` |
+| **Database** | Tidak ada perubahan skema, tidak ada EF migration, tidak ada eksekusi database. **Nol hak tertidur** — identitas `WorkScheduleAssignment` tidak pernah ada di registry, sehingga tidak ada `SysAccessPolicy` yang dapat hidup kembali |
+| **Gerbang terbuka** | Tidak menambah blocker baru. Penerapan tetap ditahan [`evidence/13`](../evidence/13-workschedule-dormant-grant-deployment-blocker.md) milik `BE-SEC-012` |
+
+---
+
+### `BE-SEC-014` ✅ — Matriks hak akses pemilik dan persiapan penerapan yang aman
+
+| Field | Nilai |
+|---|---|
+| **Status** | ✅ **Selesai** 16 September 2026 — matriks pemilik ditetapkan, tiga skrip database disiapkan (tidak satu pun dijalankan), baseline pemeliharaan diperbarui. Build `Release` `0 Error(s)`; authorization verifier `PASS`; registry source **1.300 / 340 / 48**; metadata gap 0; fallback 69; `BE-SEC-003` 24/24; naked 0 baru, 0 baseline. Laporan: [`BE-SEC-014.md`](../task/report/backend/BE-SEC-014.md) |
+| **Sebab** | `BE-SEC-012` dan `BE-SEC-013` selesai di source tetapi belum boleh diterapkan: penerapan tanpa persiapan menghidupkan hak Finance yang tidak pernah disetujui, dan membuat layar HR kosong bagi semua orang |
+| **Keputusan pemilik** | Master data mengikuti kepemilikan departemen. Manajer: Read/Create/Update/Delete. Staff: Read/Create. Finance **tidak** mempertahankan `WorkSchedule.Update`/`Delete` |
+| **Artefak** | [`evidence/14`](../evidence/14-owner-policy-matrix-and-deployment-preparation.md) + tiga skrip pada `Migrations/scripts/be-sec-014-*.sql` |
+| **Database** | **Tidak ada eksekusi.** Dua skrip tulis berakhir `ROLLBACK`; satu skrip baca-saja. Tidak ada EF migration |
+| **Gerbang terbuka** | Daftar posisi staff HR belum disetujui pemilik. Urutan sepuluh langkah penerapan belum dijalankan |
+
+---
+
 | Pekerjaan | Repository | Alasan terpisah |
 |---|---|---|
 | Perbaikan route tab Surat Dokter: `doctor-certificates` → `medical-certificates` | Frontend | Cacat kontrak yang sudah ada. **Dilarang** diselipkan ke task `BE-SEC` mana pun |
 | Pemecahan `MedicalCertificate.Update` (7 endpoint: `issue`, `verify`, `approve`, `reject`, `revoke`, `cancel`, `PUT`) | Backend | Menunggu perbaikan route di atas |
 | Tombol "Tidak Hadir" memakai `InstanceAxios`, bukan `fetch` mentah | Frontend | Kebersihan arsitektur |
 | Otorisasi SignalR hub `/hubs/queues` | Backend | Belum diaudit apakah `[Authorize]` saja memadai |
+| ✅ 8 endpoint `WfpWorkScheduleAssignmentController` tanpa penegakan otorisasi | Backend | Ditemukan invarian naked endpoint `BE-SEC-012`; **ditutup `BE-SEC-013`** 16 September 2026. Baseline `KnownUnenforcedBusinessEndpoints` kini kosong |
 
 ---
 
@@ -168,3 +206,5 @@ BE-SEC-003 🟡 (hardening identitas)
 | 17 policy inert warisan `BE-SEC-001` (5 `SEMANTIC_CHANGED`, 12 `REMOVED_CAPABILITY`) | — | Sengaja fail closed |
 | Dua baris proyeksi legacy-unresolved | — | Sengaja dipertahankan |
 | Penerapan ke lingkungan selain development | — | Operasional |
+| **Hak tertidur `WorkSchedule.Update` / `WorkSchedule.Delete`** | Penerapan `BE-SEC-012` | ✅ **Diputuskan** 16 September 2026 — Finance **dicabut**, Human Resource × Manajer HR **dipertahankan**. Skrip pencabutan siap, belum dijalankan: [`evidence/14`](../evidence/14-owner-policy-matrix-and-deployment-preparation.md) bagian C.2 |
+| Daftar posisi staff Human Resource | Pemberian hak awal `BE-SEC-014` | **TERBUKA.** Tidak tersedia sebagai bukti dan sengaja tidak ditebak. Pemilik memilih dari keluaran bagian 2.1 `be-sec-014-current-holders-readonly-dbeaver.sql` |
