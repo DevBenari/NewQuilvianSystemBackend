@@ -34,6 +34,7 @@ using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Workers;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Services;
@@ -504,6 +505,17 @@ try
     // BE-RWI-086 — penyusun usulan isian resume pulang. Hanya membaca, tidak pernah
     // menyimpan, dan tidak dipakai service Rawat Inap lain; ia dipanggil langsung controller.
     builder.Services.AddScoped<InpDischargeSummaryPrefillService>();
+
+    // BE-RWI-127 s.d. BE-RWI-134 (INP-S22) — Integrasi Rawat Inap ↔ Kasir / Billing.
+    // Layanan outbox transaksional, background worker polling outbox, kueri status kasir bangsal,
+    // dan gerbang clearance pemulangan / auto-reblock / supervisor override.
+    builder.Services.AddScoped<IInpIntegrationOutboxService, InpIntegrationOutboxService>();
+    builder.Services.AddScoped<InpIntegrationOutboxService>();
+    builder.Services.AddScoped<IInpatientBillingQueryService, InpatientBillingQueryService>();
+    builder.Services.AddScoped<InpatientBillingQueryService>();
+    builder.Services.AddScoped<IInpatientClearanceGateService, InpatientClearanceGateService>();
+    builder.Services.AddScoped<InpatientClearanceGateService>();
+    builder.Services.AddHostedService<InpatientIntegrationOutboxWorker>();
 
     // Master data Rawat Inap. Dipakai dua controller pada layar admin, bukan oleh service
     // Rawat Inap. Keduanya memegang seluruh pembacaan dan perubahan tabel masternya supaya

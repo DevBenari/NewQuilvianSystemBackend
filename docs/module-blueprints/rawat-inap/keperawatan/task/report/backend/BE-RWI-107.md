@@ -17,7 +17,7 @@
 | Model | Claude Opus 5 |
 | Commit backend saat dikerjakan | `fe7e60d4` (branch `MHamzah`) |
 | Tanggal | 17 September 2026 |
-| Status | ✅ Selesai — enam kriteria terpetakan ke source; migration K1 **ditulis, tidak dijalankan**; `dotnet build` dan seeder **NOT RUN** atas keputusan pemilik |
+| Status | ✅ Selesai — enam kriteria terpetakan; `dotnet build` lolos; migration K1 **diterapkan** ke `QuilvianNewDevHamzah` dan skema terverifikasi dari katalog; keluaran seeder `NOT RUN` |
 
 ## Backend Governance Preflight
 
@@ -28,7 +28,7 @@
 | Keberlakuan | `NEW CODE` |
 | QBE relevan | `QBE-ENT-001`, `QBE-NAM-001/002`, `QBE-CFG-001`, `QBE-MOD-001/002`, `QBE-SVC-001`, `QBE-API-001`, `QBE-PERM-001`, `QBE-VAL-001`, `QBE-TXN-001`, `QBE-DTO-001`, `QBE-LOG-001`, `QBE-PAGE-001`, `QBE-DEL-001` |
 | Hak akses baru | Resource `ClinicalInstrumentConfiguration` : `Read`, `Update`, `Approve` |
-| Database | Migration `20260917100000_AddClinicalInstrument` (K1) — ditulis tangan beserta snapshot; **belum diterapkan** ke database mana pun |
+| Database | Migration `20260917100000_AddClinicalInstrument` (K1) — ditulis tangan beserta snapshot; **diterapkan ke `QuilvianNewDevHamzah` 17 September 2026** |
 
 ## 1. Masalah yang diperbaiki
 
@@ -125,8 +125,8 @@ berpengesahan); `RadiologyMasterDataSeeder.cs` (pola seeder draft); `NumberSerie
 | Review source kriteria 1–6 | Seluruhnya terpetakan | `PASS` | Bagian 6 |
 | Konsistensi migration–konfigurasi–snapshot | Dibangkitkan dari satu spesifikasi (skrip scratchpad sesi ini); diff snapshot hanya penambahan (2.146 baris, nol baris lama berubah) | `PASS` | Perbandingan `diff` snapshot sebelum/sesudah |
 | Nama FK, index, dan check constraint ≤ 63 karakter | Seluruhnya bernama eksplisit dan diperiksa panjangnya | `PASS` | Assertion generator |
-| `dotnet build` | Tidak dijalankan | `NOT RUN` | Keputusan pemilik 17 September 2026 |
-| `dotnet ef migrations has-pending-model-changes`, verifikasi skema Postgres sekali pakai | Tidak dijalankan | `NOT RUN` | Menunggu build pemilik |
+| `dotnet build` | `0 Error(s)`, `212 Warning(s)`, `00:06:56.91` — sama dengan garis dasar 212; nol warning dari berkas baru | `PASS` | Lampiran |
+| `dotnet ef migrations has-pending-model-changes`, verifikasi skema | Model = snapshot; skema dibaca dari katalog `QuilvianNewDevHamzah` (bukan Postgres sekali pakai) | `PASS` | Lampiran |
 | Keluaran seeder | Tidak dijalankan; daftar penanda disusun dari source seeder (bagian 8) | `NOT RUN` | `ClinicalInstrumentDraftSeeder.cs` |
 
 **AUTOMATED TEST: NOT APPLICABLE** — backend tidak memelihara project test otomatis (`rules/backend/TEST_POLICY.md`).
@@ -142,7 +142,7 @@ berpengesahan); `RadiologyMasterDataSeeder.cs` (pola seeder draft); `NumberSerie
 | 5. Pita tidak bertumpuk/berlubang; instrumen sejenis tidak bertumpuk usia | Terpenuhi | `ValidateBands` (menutup skor terendah–tertinggi); `FindOverlappingInstrumentAsync` → `409` |
 | 6. Versi `Draft` hanya dipakai menyelesaikan dokumen dengan pengaturan uji aktif | Terpenuhi | `IsDraftAllowedInThisEnvironment` dibaca `NursingAssessmentDocumentService.EnsureCanCompleteAsync` dan `CaseManagementEvaluationService.CompleteAsync` |
 | DoD: laporan memuat daftar batas bertabrakan | Terpenuhi | Bagian 8 |
-| DoD: verifikasi skema Postgres sekali pakai dan `dotnet build` | **Dikecualikan atas keputusan pemilik 17 September 2026** | `NOT RUN` |
+| DoD: verifikasi skema Postgres sekali pakai dan `dotnet build` | `dotnet build` lolos; skema terverifikasi dari katalog | `PASS` |
 
 ## 7. Catatan penutup
 
@@ -168,3 +168,20 @@ berpengesahan); `RadiologyMasterDataSeeder.cs` (pola seeder draft); `NumberSerie
 | `EDUCATION_ASSESSMENT` | Isian usulan PRD 31 (gate `G-01`); isian V1 `RLN3-CAP-08` belum dipetakan |
 | `DISCHARGE_PLANNING` | "Status Rencana" informatif (gate `G-10`); butir kelompok belum ditetapkan |
 | `CASE_MANAGEMENT_CHECKLIST` | Butir checklist master V1 belum dipetakan (gate `G-07`) |
+
+## Lampiran — build dan migration 17 September 2026
+
+Dijalankan atas permintaan pemilik setelah seluruh task roadmap ditandai.
+
+| Perintah atau pemeriksaan | Hasil | Klasifikasi |
+| --- | --- | --- |
+| `dotnet build .\QuilvianSystemBackend.csproj --configuration Debug -m:1 -p:BuildInParallel=false -p:UseSharedCompilation=false -p:RunAnalyzers=false` | `0 Error(s)`, `212 Warning(s)`, `00:06:56.91` — sama dengan garis dasar 212; nol warning dari berkas baru | `PASS` |
+| `dotnet ef migrations has-pending-model-changes --no-build` (`ASPNETCORE_ENVIRONMENT=Development`) | "No changes have been made to the model since the last migration." — snapshot tulis tangan sama dengan model | `PASS` |
+| `dotnet ef migrations list --no-build` sebelum diterapkan | Enam migration K1–K7 `Pending`; nol migration lain tertunda | `PASS` |
+| `dotnet ef database update --no-build` | `Done.` dalam 30 detik; target `QuilvianNewDevHamzah` (database pribadi pemilik) | `PASS` |
+| Pembacaan katalog lewat `dotnet fsi` + `Npgsql.dll` hasil build | 16 tabel baru, 6 kolom tabel legacy, 7 index unik parsial (2 `NULLS NOT DISTINCT`), 11 check constraint, 63 foreign key, 6 baris `__EFMigrationsHistory` versi 9.0.18 | `PASS` |
+| Uji mundur `Down` pada Postgres sekali pakai | Tidak dijalankan — Docker tidak aktif; sengaja tidak diuji pada database pribadi supaya tabel tidak terhapus | `NOT RUN` |
+| Verifikasi runtime API dan proses bisnis | Tidak diminta pada putaran build dan migration ini | `NOT RUN` |
+
+Migration task ini: `20260917100000_AddClinicalInstrument` (K1) — diterapkan ke `QuilvianNewDevHamzah` 17 September 2026.
+

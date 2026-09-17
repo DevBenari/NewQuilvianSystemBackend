@@ -247,7 +247,7 @@ Pemetaan gelombang PRD:
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ✅ **SELESAI 17 September 2026.** Keenam acceptance criteria terpetakan ke source `PatientAssessmentController` dan `PatientAssessmentDtos`: kode alasan `errors.code` pada penolakan penjaga, metadata enum dari server, penolakan enum tidak sah, saringan `assessmentStatus` pada daftar berpaginasi, dan penjaga baca-detail-sebelum-sunting (`400 DETAIL_NOT_LOADED` / `409 STALE_ASSESSMENT`). `dotnet build` **NOT RUN** — dikecualikan atas keputusan pemilik pekerjaan 17 September 2026; pemilik menjalankan build sendiri. Verifikasi kontrak API runtime `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-106.md) |
+| **Status** | ✅ **SELESAI 17 September 2026.** Keenam acceptance criteria terpetakan ke source `PatientAssessmentController` dan `PatientAssessmentDtos`: kode alasan `errors.code` pada penolakan penjaga, metadata enum dari server, penolakan enum tidak sah, saringan `assessmentStatus` pada daftar berpaginasi, dan penjaga baca-detail-sebelum-sunting (`400 DETAIL_NOT_LOADED` / `409 STALE_ASSESSMENT`). `dotnet build` `0 Error(s)`, `212 Warning(s)`, `00:06:56` (garis dasar 212, nol warning berkas baru); `has-pending-model-changes` bersih. Verifikasi kontrak API runtime `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-106.md) |
 | **Gelombang** | 1 — `KEP-V2-0` |
 | **Migration** | `K0` — kode saja, nol perubahan bentuk data |
 
@@ -285,7 +285,7 @@ kelima perbaikan; roadmap dan `requirement-traceability-v2.md` diperbarui.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ✅ **SELESAI 17 September 2026.** Keenam acceptance criteria terpetakan: tabel instrumen, versi, dan jawaban beserta migration `K1` **ditulis, tidak dijalankan**; definisi JSON ber-hash SHA-256 dengan validasi pita; seeder **Draft** delapan baseline yang hanya **menandai** batas bertabrakan pada `reviewFlags`. `dotnet build` **NOT RUN** — dikecualikan atas keputusan pemilik pekerjaan 17 September 2026; pemilik menjalankan build sendiri. Verifikasi skema dan kontrak API `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-107.md) |
+| **Status** | ✅ **SELESAI 17 September 2026.** Keenam acceptance criteria terpetakan: tabel instrumen, versi, dan jawaban beserta migration `K1` **diterapkan ke `QuilvianNewDevHamzah` 17 September 2026**; definisi JSON ber-hash SHA-256 dengan validasi pita; seeder **Draft** delapan baseline yang hanya **menandai** batas bertabrakan pada `reviewFlags`. `dotnet build` `0 Error(s)`, `212 Warning(s)`, `00:06:56` (garis dasar 212, nol warning berkas baru); `has-pending-model-changes` bersih. Skema terverifikasi dari katalog database; verifikasi kontrak API runtime `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-107.md) |
 | **Gelombang** | 2 — `KEP-V2-1` |
 | **Migration** | `K1` — tabel instrumen, versi, jawaban; milik `ClinicalManagement` |
 
@@ -321,7 +321,7 @@ seeder; roadmap dan traceability diperbarui.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ✅ **SELESAI 17 September 2026.** Keempat acceptance criteria terpetakan: `Draft` → `Approved` → `Retired` dalam satu transaksi, pengesah bukan pengubah terakhir (`403`), penanda tinjauan terbuka menolak pengesahan. `dotnet build` **NOT RUN** — dikecualikan atas keputusan pemilik pekerjaan 17 September 2026; pemilik menjalankan build sendiri. Verifikasi proses bisnis `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-108.md) |
+| **Status** | ✅ **SELESAI 17 September 2026.** Keempat acceptance criteria terpetakan: `Draft` → `Approved` → `Retired` dalam satu transaksi, pengesah bukan pengubah terakhir (`403`), penanda tinjauan terbuka menolak pengesahan. `dotnet build` `0 Error(s)`, `212 Warning(s)`, `00:06:56` (garis dasar 212, nol warning berkas baru); `has-pending-model-changes` bersih. Verifikasi proses bisnis `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-108.md) |
 | **Gelombang** | 3 — `KEP-V2-1` |
 
 **Bisnis prosesnya.** Pemisahan pengubah dan pengesah adalah kendali empat mata. Orang yang mengetik
@@ -345,7 +345,7 @@ pengubah terakhir.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ✅ **SELESAI 17 September 2026.** Kelima acceptance criteria terpetakan: risiko jatuh rawat inap dihitung dari pita instrumen berversi lewat `NursingAssessmentDocumentService`; jalur poliklinik dan IGD tidak diubah. `dotnet build` **NOT RUN** — dikecualikan atas keputusan pemilik pekerjaan 17 September 2026; pemilik menjalankan build sendiri. **Regresi poliklinik `NOT RUN`**, dikecualikan atas keputusan yang sama dan wajib dijalankan sebelum rilis. Bukti: [laporan](../task/report/backend/BE-RWI-109.md) |
+| **Status** | ✅ **SELESAI 17 September 2026.** Kelima acceptance criteria terpetakan: risiko jatuh rawat inap dihitung dari pita instrumen berversi lewat `NursingAssessmentDocumentService`; jalur poliklinik dan IGD tidak diubah. `dotnet build` `0 Error(s)`, `212 Warning(s)`, `00:06:56` (garis dasar 212, nol warning berkas baru); `has-pending-model-changes` bersih. **Regresi poliklinik `NOT RUN`**, dikecualikan atas keputusan yang sama dan wajib dijalankan sebelum rilis. Bukti: [laporan](../task/report/backend/BE-RWI-109.md) |
 | **Gelombang** | 3 — `KEP-V2-1` |
 | **Migration** | `K2` — **mengubah perilaku**; wajib diberitahukan pemilik `rawat-jalan` |
 
@@ -382,7 +382,7 @@ traceability diperbarui.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ✅ **SELESAI 17 September 2026.** Keenam acceptance criteria terpetakan: tiga kolom `TrxPatientAssessment`, satu kolom `TrxPatientVitalSign`, migration `K3` **ditulis, tidak dijalankan** dengan `Down` yang menolak bila kolom berisi data; Kajian Umum menunjuk `VitalSignId`; tanda vital rawat inap menolak isian nyeri. `dotnet build` **NOT RUN** — dikecualikan atas keputusan pemilik pekerjaan 17 September 2026; pemilik menjalankan build sendiri. Verifikasi skema dan kontrak API `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-110.md) |
+| **Status** | ✅ **SELESAI 17 September 2026.** Keenam acceptance criteria terpetakan: tiga kolom `TrxPatientAssessment`, satu kolom `TrxPatientVitalSign`, migration `K3` **diterapkan ke `QuilvianNewDevHamzah` 17 September 2026** dengan `Down` yang menolak bila kolom berisi data; Kajian Umum menunjuk `VitalSignId`; tanda vital rawat inap menolak isian nyeri. `dotnet build` `0 Error(s)`, `212 Warning(s)`, `00:06:56` (garis dasar 212, nol warning berkas baru); `has-pending-model-changes` bersih. Skema terverifikasi dari katalog database; verifikasi kontrak API runtime `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-110.md) |
 | **Gelombang** | 3 — `KEP-V2-1` |
 | **Migration** | `K3` — tiga kolom `TrxPatientAssessment`, satu kolom `TrxPatientVitalSign` |
 
@@ -413,7 +413,7 @@ salinan di kajian tetap salah.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ✅ **SELESAI 17 September 2026.** Kelima acceptance criteria terpetakan: `PatientAssessmentType` `6`/`7`/`8`; Monitoring Nyeri mewajibkan keadaan nyeri (`422`) dan menyimpan `PainReassessmentDueAt` dari instrumen berversi. `dotnet build` **NOT RUN** — dikecualikan atas keputusan pemilik pekerjaan 17 September 2026; pemilik menjalankan build sendiri. Verifikasi kontrak API dan proses bisnis `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-111.md) |
+| **Status** | ✅ **SELESAI 17 September 2026.** Kelima acceptance criteria terpetakan: `PatientAssessmentType` `6`/`7`/`8`; Monitoring Nyeri mewajibkan keadaan nyeri (`422`) dan menyimpan `PainReassessmentDueAt` dari instrumen berversi. `dotnet build` `0 Error(s)`, `212 Warning(s)`, `00:06:56` (garis dasar 212, nol warning berkas baru); `has-pending-model-changes` bersih. Verifikasi kontrak API dan proses bisnis `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-111.md) |
 | **Gelombang** | 4 — `KEP-V2-1` |
 
 **Bisnis prosesnya.** Tiga penilaian ini punya siklus sendiri — dikaji, dinilai ulang, ditutup — dan
@@ -438,7 +438,7 @@ tersendiri dengan enum `6`, `7`, dan `8`.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ✅ **SELESAI 17 September 2026.** Keenam acceptance criteria terpetakan: `GET patient-assessments/episodes/{episodeId}/progress` menghitung lima bagian ✓/!/○ di server, persen kelipatan 20, alert klinis terpisah dari progres, galat tidak dijawab sebagai ○. `dotnet build` **NOT RUN** — dikecualikan atas keputusan pemilik pekerjaan 17 September 2026; pemilik menjalankan build sendiri. Verifikasi kontrak API runtime `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-112.md) |
+| **Status** | ✅ **SELESAI 17 September 2026.** Keenam acceptance criteria terpetakan: `GET patient-assessments/episodes/{episodeId}/progress` menghitung lima bagian ✓/!/○ di server, persen kelipatan 20, alert klinis terpisah dari progres, galat tidak dijawab sebagai ○. `dotnet build` `0 Error(s)`, `212 Warning(s)`, `00:06:56` (garis dasar 212, nol warning berkas baru); `has-pending-model-changes` bersih. Verifikasi kontrak API runtime `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-112.md) |
 | **Gelombang** | 5 — `KEP-V2-1` |
 
 **Bisnis prosesnya.** Perawat perlu tahu bagian mana dari pengkajian yang sudah beres dan mana yang
@@ -470,7 +470,7 @@ bagian itu belum dikaji, padahal yang sebenarnya terjadi adalah sistem tidak tah
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ✅ **SELESAI 17 September 2026.** Kelima acceptance criteria terpetakan: `CliCaseManagementEvaluation` dengan unique parsial satu dokumen hidup per episode, penjaga butir hak akses **dan** penempatan unit, migration `K3` **ditulis, tidak dijalankan**. Kriteria 5 adalah dependency yang diketahui: addendum menjawab `501` sampai `INT-KEP-12`. `dotnet build` **NOT RUN** — dikecualikan atas keputusan pemilik pekerjaan 17 September 2026; pemilik menjalankan build sendiri. Verifikasi skema dan proses bisnis `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-113.md) |
+| **Status** | ✅ **SELESAI 17 September 2026.** Kelima acceptance criteria terpetakan: `CliCaseManagementEvaluation` dengan unique parsial satu dokumen hidup per episode, penjaga butir hak akses **dan** penempatan unit, migration `K3` **diterapkan ke `QuilvianNewDevHamzah` 17 September 2026**. Kriteria 5 adalah dependency yang diketahui: addendum menjawab `501` sampai `INT-KEP-12`. `dotnet build` `0 Error(s)`, `212 Warning(s)`, `00:06:56` (garis dasar 212, nol warning berkas baru); `has-pending-model-changes` bersih. Skema terverifikasi dari katalog database; verifikasi proses bisnis `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-113.md) |
 | **Gelombang** | 3 — `KEP-V2-1` |
 | **Migration** | `K3` — dokumen Evaluasi Awal, milik `ClinicalManagement` |
 
@@ -501,7 +501,7 @@ cacat. Ia dicatat pada laporan task sebagai keadaan, bukan disembunyikan.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ✅ **SELESAI 17 September 2026.** Keenam acceptance criteria terpetakan: empat tabel MAR `PharmacyManagement` beserta migration `K4` **ditulis, tidak dijalankan**; `EnsureDosesAsync` idempoten (pembacaan slot + unique parsial) dipanggil saat MAR dibuka dan oleh `MedicationDoseSchedulerHostedService`; jadwal per kode frekuensi dan pengaturan MAR milik Farmasi; frekuensi tanpa jadwal tetap terlihat. `dotnet build` **NOT RUN** — dikecualikan atas keputusan pemilik pekerjaan 17 September 2026; pemilik menjalankan build sendiri. **Uji idempoten dua pemanggilan `NOT RUN`** — keluaran belum dapat ditempel. Bukti: [laporan](../task/report/backend/BE-RWI-114.md) |
+| **Status** | ✅ **SELESAI 17 September 2026.** Keenam acceptance criteria terpetakan: empat tabel MAR `PharmacyManagement` beserta migration `K4` **diterapkan ke `QuilvianNewDevHamzah` 17 September 2026**; `EnsureDosesAsync` idempoten (pembacaan slot + unique parsial) dipanggil saat MAR dibuka dan oleh `MedicationDoseSchedulerHostedService`; jadwal per kode frekuensi dan pengaturan MAR milik Farmasi; frekuensi tanpa jadwal tetap terlihat. `dotnet build` `0 Error(s)`, `212 Warning(s)`, `00:06:56` (garis dasar 212, nol warning berkas baru); `has-pending-model-changes` bersih. **Uji idempoten dua pemanggilan `NOT RUN`** — keluaran belum dapat ditempel. Bukti: [laporan](../task/report/backend/BE-RWI-114.md) |
 | **Gelombang** | 2 — `KEP-V2-2` |
 | **Migration** | `K4` — tabel MAR, revisi, jadwal, pengaturan; milik `PharmacyManagement` |
 
@@ -536,7 +536,7 @@ keluarannya ditempel apa adanya.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ✅ **SELESAI 17 September 2026.** Ketujuh acceptance criteria terpetakan: pencatatan `Administered`/`Held`/`Refused`/`Missed` bersyarat isian dan alasan, pelaksana dari akun login, penguncian baris dan `Idempotency-Key`, PRN berindikasi dan berevaluasi, pemberian tanpa jadwal beralasan, koreksi menyimpan revisi, catatan penyimpangan ±60 menit; nol jalur hapus. `dotnet build` **NOT RUN** — dikecualikan atas keputusan pemilik pekerjaan 17 September 2026; pemilik menjalankan build sendiri. Uji kiriman ulang `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-115.md) |
+| **Status** | ✅ **SELESAI 17 September 2026.** Ketujuh acceptance criteria terpetakan: pencatatan `Administered`/`Held`/`Refused`/`Missed` bersyarat isian dan alasan, pelaksana dari akun login, penguncian baris dan `Idempotency-Key`, PRN berindikasi dan berevaluasi, pemberian tanpa jadwal beralasan, koreksi menyimpan revisi, catatan penyimpangan ±60 menit; nol jalur hapus. `dotnet build` `0 Error(s)`, `212 Warning(s)`, `00:06:56` (garis dasar 212, nol warning berkas baru); `has-pending-model-changes` bersih. Uji kiriman ulang `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-115.md) |
 | **Gelombang** | 3 — `KEP-V2-2` |
 
 **Bisnis prosesnya.** Perawat mencatat apa yang terjadi pada setiap dosis: diberikan, ditahan,
@@ -564,7 +564,7 @@ keluaran ditempel.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ✅ **SELESAI 17 September 2026.** Kelima acceptance criteria terpetakan: dosis high-alert `Due` + `Pending`, pemeriksa kedua ditolak `403` bila sama dengan pencatat (akun maupun pegawai), `Rejected` mengembalikan dosis tanpa isian pemberian dengan revisi, daftar tunggu per unit. `dotnet build` **NOT RUN** — dikecualikan atas keputusan pemilik pekerjaan 17 September 2026; pemilik menjalankan build sendiri. Verifikasi proses bisnis `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-116.md) |
+| **Status** | ✅ **SELESAI 17 September 2026.** Kelima acceptance criteria terpetakan: dosis high-alert `Due` + `Pending`, pemeriksa kedua ditolak `403` bila sama dengan pencatat (akun maupun pegawai), `Rejected` mengembalikan dosis tanpa isian pemberian dengan revisi, daftar tunggu per unit. `dotnet build` `0 Error(s)`, `212 Warning(s)`, `00:06:56` (garis dasar 212, nol warning berkas baru); `has-pending-model-changes` bersih. Verifikasi proses bisnis `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-116.md) |
 | **Gelombang** | 4 — `KEP-V2-2` |
 
 **Bisnis prosesnya.** Obat high-alert — insulin, antikoagulan, elektrolit pekat — adalah obat yang
@@ -591,7 +591,7 @@ orang yang sama.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ✅ **SELESAI 17 September 2026.** Keempat acceptance criteria terpetakan: dua kolom `TrxPatientAllergy` beserta migration `K6` **ditulis, tidak dijalankan**; `POST patient-allergies/from-medication-administration` melahirkan alergi `Suspected` tertaut dosis tanpa mengubah baris MAR. `dotnet build` **NOT RUN** — dikecualikan atas keputusan pemilik pekerjaan 17 September 2026; pemilik menjalankan build sendiri. Verifikasi skema dan proses bisnis `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-117.md) |
+| **Status** | ✅ **SELESAI 17 September 2026.** Keempat acceptance criteria terpetakan: dua kolom `TrxPatientAllergy` beserta migration `K6` **diterapkan ke `QuilvianNewDevHamzah` 17 September 2026**; `POST patient-allergies/from-medication-administration` melahirkan alergi `Suspected` tertaut dosis tanpa mengubah baris MAR. `dotnet build` `0 Error(s)`, `212 Warning(s)`, `00:06:56` (garis dasar 212, nol warning berkas baru); `has-pending-model-changes` bersih. Skema terverifikasi dari katalog database; verifikasi proses bisnis `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-117.md) |
 | **Gelombang** | 4 — `KEP-V2-2` |
 | **Migration** | `K6` — dua kolom `TrxPatientAllergy` |
 
@@ -617,7 +617,7 @@ MAR tidak berubah.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ✅ **SELESAI 17 September 2026 — sisi keperawatan.** Keempat acceptance criteria terpetakan: `CancelDueDosesForItemAsync` dan `CancelFutureDosesForEpisodeAsync` tanpa transaksi sendiri; **langkah 6 penutupan episode terpasang** di dalam transaksi `CloseEpisodeInternalAsync`; jaring pengaman membatalkan dosis butir terhenti saat pembentukan dosis. Pemanggilan dari aksi penghentian butir adalah kriteria 2 `BE-RWI-100` [BE-DOK], yang kini tidak lagi terblokir. `dotnet build` **NOT RUN** — dikecualikan atas keputusan pemilik pekerjaan 17 September 2026; pemilik menjalankan build sendiri. Verifikasi proses bisnis dan uji galat buatan `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-118.md) |
+| **Status** | ✅ **SELESAI 17 September 2026 — sisi keperawatan.** Keempat acceptance criteria terpetakan: `CancelDueDosesForItemAsync` dan `CancelFutureDosesForEpisodeAsync` tanpa transaksi sendiri; **langkah 6 penutupan episode terpasang** di dalam transaksi `CloseEpisodeInternalAsync`; jaring pengaman membatalkan dosis butir terhenti saat pembentukan dosis. Pemanggilan dari aksi penghentian butir adalah kriteria 2 `BE-RWI-100` [BE-DOK], yang kini tidak lagi terblokir. `dotnet build` `0 Error(s)`, `212 Warning(s)`, `00:06:56` (garis dasar 212, nol warning berkas baru); `has-pending-model-changes` bersih. Verifikasi proses bisnis dan uji galat buatan `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-118.md) |
 | **Gelombang** | 3 — `KEP-V2-2` |
 
 **Bisnis prosesnya.** Dua kejadian membuat dosis yang akan datang tidak boleh lagi diberikan:
@@ -645,7 +645,7 @@ supaya tidak saling menimpa.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ✅ **SELESAI 17 September 2026.** Ketujuh acceptance criteria terpetakan: tujuh tabel Pengawasan Harian `ClinicalManagement` beserta migration `K5` **ditulis, tidak dijalankan** dengan `Down` yang menolak bila berisi data; entri cairan bersumber, ml, berwaktu, berpelaksana; koreksi dan pembatalan beralasan dengan revisi; GDS satu tempat dengan satuan wajib tanpa bawaan; observasi terstruktur. `dotnet build` **NOT RUN** — dikecualikan atas keputusan pemilik pekerjaan 17 September 2026; pemilik menjalankan build sendiri. Verifikasi skema dan kontrak API `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-119.md) |
+| **Status** | ✅ **SELESAI 17 September 2026.** Ketujuh acceptance criteria terpetakan: tujuh tabel Pengawasan Harian `ClinicalManagement` beserta migration `K5` **diterapkan ke `QuilvianNewDevHamzah` 17 September 2026** dengan `Down` yang menolak bila berisi data; entri cairan bersumber, ml, berwaktu, berpelaksana; koreksi dan pembatalan beralasan dengan revisi; GDS satu tempat dengan satuan wajib tanpa bawaan; observasi terstruktur. `dotnet build` `0 Error(s)`, `212 Warning(s)`, `00:06:56` (garis dasar 212, nol warning berkas baru); `has-pending-model-changes` bersih. Skema terverifikasi dari katalog database; verifikasi kontrak API runtime `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-119.md) |
 | **Gelombang** | 3 — `KEP-V2-2` |
 | **Migration** | `K5` — tabel cairan, gula darah, observasi, shift beserta revisi; FK ke MAR |
 
@@ -679,7 +679,7 @@ kesalahan berlipat delapan belas.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ✅ **SELESAI 17 September 2026.** Kelima acceptance criteria terpetakan: balance dari entri aktif per shift dan 24 jam, unit tanpa shift hanya 24 jam tanpa shift buatan, `nursing-shifts` per unit atau bawaan dengan validasi 24 jam tanpa celah, jam shift tidak dibaca penjaga kewenangan. `dotnet build` **NOT RUN** — dikecualikan atas keputusan pemilik pekerjaan 17 September 2026; pemilik menjalankan build sendiri. Verifikasi kontrak API 7.5 `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-120.md) |
+| **Status** | ✅ **SELESAI 17 September 2026.** Kelima acceptance criteria terpetakan: balance dari entri aktif per shift dan 24 jam, unit tanpa shift hanya 24 jam tanpa shift buatan, `nursing-shifts` per unit atau bawaan dengan validasi 24 jam tanpa celah, jam shift tidak dibaca penjaga kewenangan. `dotnet build` `0 Error(s)`, `212 Warning(s)`, `00:06:56` (garis dasar 212, nol warning berkas baru); `has-pending-model-changes` bersih. Verifikasi kontrak API 7.5 `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-120.md) |
 | **Gelombang** | 4 — `KEP-V2-2` |
 
 **Bisnis prosesnya.** Balance cairan adalah selisih masuk dan keluar. Ia dibaca per shift dan per 24
@@ -704,7 +704,7 @@ unit.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ✅ **SELESAI 17 September 2026.** Keempat acceptance criteria terpetakan: `InpEpisodeId` diisi saat mencatat tanda vital rawat inap, `GET patient-vital-signs/episodes/{episodeId}` mengembalikan deret terurut beserta MAP dan EWS dari server, jalur lama tidak diubah. `dotnet build` **NOT RUN** — dikecualikan atas keputusan pemilik pekerjaan 17 September 2026; pemilik menjalankan build sendiri. Verifikasi skema dan kontrak API `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-121.md) |
+| **Status** | ✅ **SELESAI 17 September 2026.** Keempat acceptance criteria terpetakan: `InpEpisodeId` diisi saat mencatat tanda vital rawat inap, `GET patient-vital-signs/episodes/{episodeId}` mengembalikan deret terurut beserta MAP dan EWS dari server, jalur lama tidak diubah. `dotnet build` `0 Error(s)`, `212 Warning(s)`, `00:06:56` (garis dasar 212, nol warning berkas baru); `has-pending-model-changes` bersih. Skema terverifikasi dari katalog database; verifikasi kontrak API runtime `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-121.md) |
 | **Gelombang** | 4 — `KEP-V2-2` |
 
 **Bisnis prosesnya.** Tanda vital selama ini tidak menyimpan episode, sehingga tidak bisa ditampilkan
@@ -728,7 +728,7 @@ sepanjang rawat inap, bukan sebagai angka lepas.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ✅ **SELESAI 17 September 2026.** Keenam acceptance criteria terpetakan: intake obat wajib menunjuk tepat satu dosis `Administered` episode yang sama, volume diketik, satu dosis satu entri aktif, pengingat dosis tanpa entri pada ringkasan harian, entri ditandai saat dosisnya dikoreksi di dalam transaksi koreksi MAR, entri ikut balance. `dotnet build` **NOT RUN** — dikecualikan atas keputusan pemilik pekerjaan 17 September 2026; pemilik menjalankan build sendiri. Verifikasi kontrak API dan proses bisnis `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-122.md) |
+| **Status** | ✅ **SELESAI 17 September 2026.** Keenam acceptance criteria terpetakan: intake obat wajib menunjuk tepat satu dosis `Administered` episode yang sama, volume diketik, satu dosis satu entri aktif, pengingat dosis tanpa entri pada ringkasan harian, entri ditandai saat dosisnya dikoreksi di dalam transaksi koreksi MAR, entri ikut balance. `dotnet build` `0 Error(s)`, `212 Warning(s)`, `00:06:56` (garis dasar 212, nol warning berkas baru); `has-pending-model-changes` bersih. Verifikasi kontrak API dan proses bisnis `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-122.md) |
 | **Gelombang** | 4 — `KEP-V2-2` |
 
 **Bisnis prosesnya.** Obat yang masuk lewat infus ikut menambah cairan masuk pasien. Supaya tidak
@@ -760,7 +760,7 @@ kriteria.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ✅ **SELESAI 17 September 2026.** Ketujuh acceptance criteria terpetakan: `PhmSlidingScaleExecution` beserta migration `K7` **ditulis, tidak dijalankan**; pelaksanaan ditolak tanpa order aktif, hanya dari GDS bangsal bersatuan sama tanpa konversi; GDS, dosis MAR, dan pelaksanaan dalam satu transaksi dengan `Idempotency-Key` wajib; pratinjau tanpa simpan; rentang 0 unit → `Held` beralasan. `dotnet build` **NOT RUN** — dikecualikan atas keputusan pemilik pekerjaan 17 September 2026; pemilik menjalankan build sendiri. Verifikasi skema, proses bisnis, dan uji galat buatan `NOT RUN`. **`RWI-OQ-097` masih terbuka** — tanpa nama pengesah isi protokol tidak ada order aktif pada pasien sungguhan. Bukti: [laporan](../task/report/backend/BE-RWI-123.md) |
+| **Status** | ✅ **SELESAI 17 September 2026.** Ketujuh acceptance criteria terpetakan: `PhmSlidingScaleExecution` beserta migration `K7` **diterapkan ke `QuilvianNewDevHamzah` 17 September 2026**; pelaksanaan ditolak tanpa order aktif, hanya dari GDS bangsal bersatuan sama tanpa konversi; GDS, dosis MAR, dan pelaksanaan dalam satu transaksi dengan `Idempotency-Key` wajib; pratinjau tanpa simpan; rentang 0 unit → `Held` beralasan. `dotnet build` `0 Error(s)`, `212 Warning(s)`, `00:06:56` (garis dasar 212, nol warning berkas baru); `has-pending-model-changes` bersih. Skema terverifikasi dari katalog database; verifikasi proses bisnis dan uji galat buatan `NOT RUN`. **`RWI-OQ-097` masih terbuka** — tanpa nama pengesah isi protokol tidak ada order aktif pada pasien sungguhan. Bukti: [laporan](../task/report/backend/BE-RWI-123.md) |
 | **Gelombang** | 4 — `KEP-V2-2` |
 | **Migration** | `K7` — tabel pelaksanaan; milik `PharmacyManagement`; **setelah** `R6` `dokter-rawat-inap` |
 
@@ -805,7 +805,7 @@ traceability diperbarui.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ✅ **SELESAI 17 September 2026.** Keempat acceptance criteria ditopang source `dokter-rawat-inap` (`BE-RWI-094`): `NursingSoap`/`NursingNarrative` dan penjaga profesi penulis sudah ada; task ini menambah saringan `noteKind` pada daftar dan lini masa CPPT. `dotnet build` **NOT RUN** — dikecualikan atas keputusan pemilik pekerjaan 17 September 2026; pemilik menjalankan build sendiri. Verifikasi kontrak API `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-124.md) |
+| **Status** | ✅ **SELESAI 17 September 2026.** Keempat acceptance criteria ditopang source `dokter-rawat-inap` (`BE-RWI-094`): `NursingSoap`/`NursingNarrative` dan penjaga profesi penulis sudah ada; task ini menambah saringan `noteKind` pada daftar dan lini masa CPPT. `dotnet build` `0 Error(s)`, `212 Warning(s)`, `00:06:56` (garis dasar 212, nol warning berkas baru); `has-pending-model-changes` bersih. Verifikasi kontrak API `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-124.md) |
 | **Gelombang** | 1 — `KEP-V2-3`, menunggu `BE-RWI-094` [BE-DOK] |
 
 **Bisnis prosesnya.** SOAP keperawatan dan Catatan Keperawatan bukan tabel baru — keduanya masuk ke
@@ -832,7 +832,7 @@ Itulah arti "catatan perkembangan pasien **terintegrasi**": satu lini masa, bany
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ✅ **SELESAI 17 September 2026.** Kelima acceptance criteria sudah ditopang source `dokter-rawat-inap` (`BE-RWI-097`, `BE-RWI-101`); nol berkas source diubah. `dotnet build` **NOT RUN** — dikecualikan atas keputusan pemilik pekerjaan 17 September 2026; pemilik menjalankan build sendiri. Verifikasi kontrak API dan proses bisnis termasuk percobaan perawat mengubah keputusan rekonsiliasi `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-125.md) |
+| **Status** | ✅ **SELESAI 17 September 2026.** Kelima acceptance criteria sudah ditopang source `dokter-rawat-inap` (`BE-RWI-097`, `BE-RWI-101`); nol berkas source diubah. `dotnet build` `0 Error(s)`, `212 Warning(s)`, `00:06:56` (garis dasar 212, nol warning berkas baru); `has-pending-model-changes` bersih. Verifikasi kontrak API dan proses bisnis termasuk percobaan perawat mengubah keputusan rekonsiliasi `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-125.md) |
 | **Gelombang** | 1 — `KEP-V2-3`, menunggu `BE-RWI-101` dan `BE-RWI-097` [BE-DOK] |
 
 **Bisnis prosesnya.** Perawatlah yang biasanya mendata obat bawaan pasien saat masuk, dan perawat
@@ -858,7 +858,7 @@ percobaan perawat mengubah keputusan rekonsiliasi.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ✅ **SELESAI 17 September 2026.** Keempat acceptance criteria terpetakan: `GET billing-management/patient-billing-summaries/episodes/{episodeId}` baca-saja tanpa harga per item, butir `PatientBillingSummary : Read`, nol jalur tulis. Kontrak disetujui `RWI-DEC-154`; source ditulis di modul `BillingManagement` dan **perlu ditinjau pemiliknya, Yasmina**. `dotnet build` **NOT RUN** — dikecualikan atas keputusan pemilik pekerjaan 17 September 2026; pemilik menjalankan build sendiri. Verifikasi kontrak API `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-126.md) |
+| **Status** | ✅ **SELESAI 17 September 2026.** Keempat acceptance criteria terpetakan: `GET billing-management/patient-billing-summaries/episodes/{episodeId}` baca-saja tanpa harga per item, butir `PatientBillingSummary : Read`, nol jalur tulis. Kontrak disetujui `RWI-DEC-154`; source ditulis di modul `BillingManagement` dan **perlu ditinjau pemiliknya, Yasmina**. `dotnet build` `0 Error(s)`, `212 Warning(s)`, `00:06:56` (garis dasar 212, nol warning berkas baru); `has-pending-model-changes` bersih. Verifikasi kontrak API `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-126.md) |
 | **Gelombang** | 1 — `KEP-V2-4`; tidak punya prasyarat sama sekali |
 
 **Bisnis prosesnya.** Perawat atau petugas tertentu kadang perlu tahu gambaran tagihan pasien —

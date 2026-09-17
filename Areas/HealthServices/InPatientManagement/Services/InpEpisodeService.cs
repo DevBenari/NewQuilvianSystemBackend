@@ -79,6 +79,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         private readonly ApplicationDbContext _dbContext;
         private readonly InpSettingService _settingService;
         private readonly InpEpisodeNumberService _episodeNumberService;
+        private readonly IInpIntegrationOutboxService _outboxService;
 
         /// <remarks>
         /// <b>Arah dependency dibalik pada `BE-RWI-011`.</b> Sampai `BE-RWI-008`, service ini
@@ -93,11 +94,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         public InpEpisodeService(
             ApplicationDbContext dbContext,
             InpSettingService settingService,
-            InpEpisodeNumberService episodeNumberService)
+            InpEpisodeNumberService episodeNumberService,
+            IInpIntegrationOutboxService outboxService)
         {
             _dbContext = dbContext;
             _settingService = settingService;
             _episodeNumberService = episodeNumberService;
+            _outboxService = outboxService;
         }
 
         // =====================================================================
@@ -630,6 +633,36 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
             _dbContext.Set<InpStatusHistory>().Add(history);
             episode.StatusHistories.Add(history);
+
+            // BE-RWI-130 / RWI-DEC-156 — Event ADMISSION_CONFIRMED saat status menjadi Admitted
+            if (toStatus == InpEpisodeStatus.Admitted)
+            {
+                var guarantor = await _dbContext.RegPatientEncounterGuarantors
+                    .AsNoTracking()
+                    .Where(x => x.EncounterId == episode.EncounterId && x.IsActive && !x.IsDelete)
+                    .OrderByDescending(x => x.IsPrimary)
+                    .ThenBy(x => x.Priority)
+                    .Select(x => (Guid?)x.Id)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                var admissionPayload = new
+                {
+                    encounterId = episode.EncounterId,
+                    episodeId = episode.Id,
+                    patientId = episode.PatientId,
+                    admissionDateTime = episode.AdmittedAt ?? now,
+                    guarantorId = guarantor
+                };
+
+                await _outboxService.EnqueueEventAsync(
+                    eventType: "ADMISSION_CONFIRMED",
+                    idempotencyKey: $"INPATIENT:ADMISSION:{episode.Id}:1",
+                    sourceDomain: "INPATIENT",
+                    sourceType: "ADMISSION",
+                    sourceDetailId: episode.Id.ToString(),
+                    payload: admissionPayload,
+                    cancellationToken: cancellationToken);
+            }
         }
 
         // =====================================================================

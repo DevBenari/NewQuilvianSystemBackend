@@ -17,7 +17,7 @@
 | Model | Claude Opus 5 |
 | Commit backend saat dikerjakan | `fe7e60d4` (branch `MHamzah`) |
 | Tanggal | 17 September 2026 |
-| Status | ✅ Selesai — empat kriteria terpetakan; migration K6 **ditulis, tidak dijalankan**; `dotnet build` **NOT RUN** atas keputusan pemilik |
+| Status | ✅ Selesai — empat kriteria terpetakan; `dotnet build` lolos; migration K6 **diterapkan** ke `QuilvianNewDevHamzah`, kolom terverifikasi dari katalog; verifikasi proses bisnis `NOT RUN` |
 
 ## Backend Governance Preflight
 
@@ -28,7 +28,7 @@
 | Keberlakuan | `TOUCHED LEGACY` (controller, tabel) + `NEW CODE` (`AdverseDrugReactionService`) |
 | QBE relevan | `QBE-SVC-001` (endpoint baru tanpa `DbContext` di controller), `QBE-CFG-002`, `QBE-CODE-006`, `QBE-VAL-001`, `QBE-LOG-001` |
 | Nomor bisnis | `AllergyRecordNumber` jalur ini dari `NumberSeriesAllocator` deret `CLI_PATIENT_ALLERGY_ADR`, awalan `ADR` — **tidak** memakai `Count+1` legacy `ALG-…` sehingga kedua deret tidak bertabrakan |
-| Database | `20260917104000_AddAllergyMedicationAdministrationLink` (K6); `Down` menolak bila kolom berisi data; belum diterapkan |
+| Database | `20260917104000_AddAllergyMedicationAdministrationLink` (K6); `Down` menolak bila kolom berisi data; **diterapkan ke `QuilvianNewDevHamzah` 17 September 2026** |
 
 ## 1. Masalah yang diperbaiki
 
@@ -89,8 +89,9 @@ pemetaan respons), integration contract 8.7, api-contract 7.10.
 | Skenario atau perintah | Hasil | Klasifikasi | Bukti |
 | --- | --- | --- | --- |
 | Review source: nol penulisan `PhmMedicationAdministration` di service | Dosis dibaca `AsNoTracking` | `PASS` | `AdverseDrugReactionService` |
-| `dotnet build`, verifikasi skema | Tidak dijalankan | `NOT RUN` | Keputusan pemilik 17 September 2026 |
-| Verifikasi proses bisnis MAR tidak berubah | Tidak dijalankan | `NOT RUN` | Menunggu build dan database |
+| `dotnet build` | `0 Error(s)`, `212 Warning(s)`, `00:06:56.91` — sama dengan garis dasar 212; nol warning dari berkas baru | `PASS` | Lampiran |
+| Verifikasi skema | Dibaca dari katalog `QuilvianNewDevHamzah` setelah `database update` | `PASS` | Lampiran |
+| Verifikasi proses bisnis MAR tidak berubah | Tidak dijalankan | `NOT RUN` | Build dan migration lolos; belum dijalankan pada putaran ini |
 
 **AUTOMATED TEST: NOT APPLICABLE** — backend tidak memelihara project test otomatis (`rules/backend/TEST_POLICY.md`).
 
@@ -102,7 +103,7 @@ pemetaan respons), integration contract 8.7, api-contract 7.10.
 | 2. Dugaan dicatat dari dosis dan tertaut | Terpenuhi | `SourceMedicationAdministrationId = dosis.Id` |
 | 3. Tidak mengubah status/isi dosis MAR | Terpenuhi | Dosis `AsNoTracking`; nol perubahan terlacak |
 | 4. Alergi lahir `Suspected` | Terpenuhi | `Certainty = Suspected`, `IsVerified = false` |
-| DoD: `dotnet build`, verifikasi skema dan proses bisnis | **Dikecualikan atas keputusan pemilik 17 September 2026** | `NOT RUN` |
+| DoD: `dotnet build`, verifikasi skema dan proses bisnis | `dotnet build` lolos; skema terverifikasi dari katalog; **verifikasi proses bisnis dikecualikan atas keputusan pemilik 17 September 2026** | `PASS` sebagian; sisanya `NOT RUN` |
 
 ## 7. Catatan penutup
 
@@ -110,8 +111,25 @@ pemetaan respons), integration contract 8.7, api-contract 7.10.
 | --- | --- |
 | Peringatan | Penerima notifikasi aktif (gate `G-15`) tidak dibangun; dugaan terbaca lewat peringatan alergi aktif dan saringan `certainty=Suspected&isVerified=false` yang sudah ada |
 | Masalah yang diketahui | `NONE` |
-| Risiko tersisa | Build dan migration belum dijalankan |
+| Risiko tersisa | Verifikasi runtime API dan proses bisnis belum dijalankan |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
 | Status Git | `M` model, konfigurasi, controller; berkas baru `??` |
 | Langkah berikutnya | Frontend tombol "Laporkan dugaan reaksi" |
+
+## Lampiran — build dan migration 17 September 2026
+
+Dijalankan atas permintaan pemilik setelah seluruh task roadmap ditandai.
+
+| Perintah atau pemeriksaan | Hasil | Klasifikasi |
+| --- | --- | --- |
+| `dotnet build .\QuilvianSystemBackend.csproj --configuration Debug -m:1 -p:BuildInParallel=false -p:UseSharedCompilation=false -p:RunAnalyzers=false` | `0 Error(s)`, `212 Warning(s)`, `00:06:56.91` — sama dengan garis dasar 212; nol warning dari berkas baru | `PASS` |
+| `dotnet ef migrations has-pending-model-changes --no-build` (`ASPNETCORE_ENVIRONMENT=Development`) | "No changes have been made to the model since the last migration." — snapshot tulis tangan sama dengan model | `PASS` |
+| `dotnet ef migrations list --no-build` sebelum diterapkan | Enam migration K1–K7 `Pending`; nol migration lain tertunda | `PASS` |
+| `dotnet ef database update --no-build` | `Done.` dalam 30 detik; target `QuilvianNewDevHamzah` (database pribadi pemilik) | `PASS` |
+| Pembacaan katalog lewat `dotnet fsi` + `Npgsql.dll` hasil build | 16 tabel baru, 6 kolom tabel legacy, 7 index unik parsial (2 `NULLS NOT DISTINCT`), 11 check constraint, 63 foreign key, 6 baris `__EFMigrationsHistory` versi 9.0.18 | `PASS` |
+| Uji mundur `Down` pada Postgres sekali pakai | Tidak dijalankan — Docker tidak aktif; sengaja tidak diuji pada database pribadi supaya tabel tidak terhapus | `NOT RUN` |
+| Verifikasi runtime API dan proses bisnis | Tidak diminta pada putaran build dan migration ini | `NOT RUN` |
+
+Migration task ini: `20260917104000_AddAllergyMedicationAdministrationLink` (K6) — diterapkan ke `QuilvianNewDevHamzah` 17 September 2026.
+

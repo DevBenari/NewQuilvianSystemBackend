@@ -89,11 +89,11 @@ Label `[BE-INP]`, `[FE-INP]`, `[FE-KEP]` menandai task milik sub-modul lain.
 
 | FR | Disposisi | Task BE | Task FE | Kontrak | Bukti acceptance | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| `FR-DOK-100` | `EXTEND` | `BE-RWI-097` | `FE-RWI-073`, `FE-RWI-089` [FE-KEP] | data + API | Validasi skema, migration R7, dan API | ✅ **BE selesai** — [laporan](../task/report/backend/BE-RWI-097.md); FE tetap terpisah |
+| `FR-DOK-100` | `EXTEND` | `BE-RWI-097` | `FE-RWI-073`, `FE-RWI-089` [FE-KEP] | data + API | Validasi skema, migration R7, dan API | ✅ **BE & FE selesai** — [laporan BE](../task/report/backend/BE-RWI-097.md), [laporan FE](../task/report/frontend/FE-RWI-073.md); FE-KEP tetap terpisah |
 | `FR-DOK-101` | `EXISTING / REUSE` | `BE-RWI-097` | — | validation matrix | Regresi poliklinik terjaga pada controller | ✅ **BE selesai** — [laporan](../task/report/backend/BE-RWI-097.md) |
-| `FR-DOK-102` | `REPAIR` | `BE-RWI-097` | `FE-RWI-073` | permission matrix | Validasi hak akses penginput dan DPJP aktif | ✅ **BE selesai** — [laporan](../task/report/backend/BE-RWI-097.md); FE tetap terpisah |
-| `FR-DOK-103` | `EXISTING / REUSE` | `BE-RWI-098` | `FE-RWI-073` | permission matrix | Validasi source/QBE; `dotnet build` **PASS** 17-09-2026 | ✅ **BE selesai** — [laporan](../task/report/backend/BE-RWI-098.md); FE tetap terpisah |
-| `FR-DOK-104` | `MISSING / NEW` | `BE-RWI-098` | `FE-RWI-073`, `FE-RWI-078` | state matrix | Validasi source/QBE; `dotnet build` **PASS** 17-09-2026 | ✅ **BE selesai** — [laporan](../task/report/backend/BE-RWI-098.md); FE tetap terpisah |
+| `FR-DOK-102` | `REPAIR` | `BE-RWI-097` | `FE-RWI-073` | permission matrix | Validasi hak akses penginput dan DPJP aktif | ✅ **BE & FE selesai** — [laporan BE](../task/report/backend/BE-RWI-097.md), [laporan FE](../task/report/frontend/FE-RWI-073.md) |
+| `FR-DOK-103` | `EXISTING / REUSE` | `BE-RWI-098` | `FE-RWI-073` | permission matrix | Validasi source/QBE; `dotnet build` **PASS** 17-09-2026 | ✅ **BE & FE selesai** — [laporan BE](../task/report/backend/BE-RWI-098.md), [laporan FE](../task/report/frontend/FE-RWI-073.md) |
+| `FR-DOK-104` | `MISSING / NEW` | `BE-RWI-098` | `FE-RWI-073`, `FE-RWI-078` | state matrix | Validasi source/QBE; `dotnet build` **PASS** 17-09-2026 | ✅ **BE & FE-RWI-073 selesai** — [laporan BE](../task/report/backend/BE-RWI-098.md), [laporan FE](../task/report/frontend/FE-RWI-073.md); FE-RWI-078 tetap terpisah |
 | `FR-DOK-105` | `MISSING / NEW` — dipicu `episode-rawat-inap` | `BE-RWI-083` [BE-INP] | `FE-RWI-066` [FE-INP] | `INT-INP-09` | `UAT-50` | Belum dikerjakan |
 | `FR-DOK-106` | `EXTEND` | `BE-RWI-104` | `FE-RWI-076` | integrasi Lab/Rad | Validasi source/skema; build **PASS**; migration R8 diterapkan ke DB dev pribadi 17-09-2026; **regresi Lab/Rad NOT RUN** | ✅ **BE selesai** — [laporan](../task/report/backend/BE-RWI-104.md) — merujuk `RWI-DEC-153`; FE tetap terpisah |
 
@@ -101,9 +101,9 @@ Label `[BE-INP]`, `[FE-INP]`, `[FE-KEP]` menandai task milik sub-modul lain.
 
 | FR | Disposisi | Task BE | Task FE | Kontrak | Bukti acceptance | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| `FR-DOK-107` | `EXTEND` — dirancang `episode-rawat-inap` | `BE-RWI-085` [BE-INP] | `FE-RWI-074` | `0.9.0` data 18.2–18.3 | Acceptance 18.3 | **Bebas** — `RWI-DEC-152` |
-| `FR-DOK-108` | `MISSING / NEW` | `BE-RWI-086` [BE-INP] | `FE-RWI-074` | `0.9.0` API 10.3 | Acceptance 18.3 | **Bebas** — `RWI-DEC-152` |
-| `FR-DOK-109` | Frontend | — | `FE-RWI-074` | — | Verifikasi manual | **Bebas** — `RWI-DEC-152` |
+| `FR-DOK-107` | `EXTEND` — dirancang `episode-rawat-inap` | `BE-RWI-085` [BE-INP] | `FE-RWI-074` | `0.9.0` data 18.2–18.3 | Unit test PASS, build PASS | ✅ **FE selesai** — [laporan FE](../task/report/frontend/FE-RWI-074.md); BE-RWI-085 pada `episode-rawat-inap` |
+| `FR-DOK-108` | `MISSING / NEW` | `BE-RWI-086` [BE-INP] | `FE-RWI-074` | `0.9.0` API 10.3 | Unit test PASS, build PASS | ✅ **FE selesai** — [laporan FE](../task/report/frontend/FE-RWI-074.md); BE-RWI-086 pada `episode-rawat-inap` |
+| `FR-DOK-109` | Frontend | — | `FE-RWI-074` | — | Verifikasi manual / nol request ODC | ✅ **FE selesai** — [laporan FE](../task/report/frontend/FE-RWI-074.md) |
 
 ## 8. `EPIC DOK-17` — Penunjang enam layanan
 

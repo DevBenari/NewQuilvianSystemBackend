@@ -46,24 +46,24 @@ Tabel berikut menghubungkan setiap Kebutuhan Fungsional (*Functional Requirement
 
 | FR ID | Epic & Kemampuan | Keputusan Terkait | Rujukan Desain Arsitektur | Kontrak `1.0.0` | Task Backend | Task Frontend | Bukti Acceptance / Kasus Uji | Status Implementasi |
 |---|---|---|---|---|---|---|---|:---:|
-| **`FR-INT-001`** | `EPIC-INT-01`<br>(`INT-CAP-01`) | `RWI-DEC-156` | `02-backend` §2.1 & §3 | `contracts/integration` §1.2 | `BE-RWI-130` | — | `RWI-AC-236`<br>`UAT-INT-001` | Siap Dikerjakan (Approved) |
-| **`FR-INT-002`** | `EPIC-INT-01`<br>(`INT-CAP-06`) | `RWI-DEC-161` | `02-backend` §3 & §7 | `contracts/integration` §1.1 | `BE-RWI-128` | — | `RWI-AC-241`<br>`TC-OUTBOX-01` | Siap Dikerjakan (Approved) |
-| **`FR-INT-003`** | `EPIC-INT-01`<br>(`INT-CAP-01`) | `RWI-DEC-156` | `02-backend` §2.1 | `contracts/state` §1 | `BE-RWI-130` | — | `RWI-AC-236`<br>`UAT-INT-001` | Siap Dikerjakan (Approved) |
-| **`FR-INT-004`** | `EPIC-INT-02`<br>(`INT-CAP-02`) | `RWI-DEC-156`, `159` | `02-backend` §2.2 | `contracts/integration` §1.2 | `BE-RWI-130` | — | `RWI-AC-236`<br>`UAT-INT-002` | Siap Dikerjakan (Approved) |
-| **`FR-INT-005`** | `EPIC-INT-02`<br>(`INT-CAP-02`) | `RWI-DEC-159` | `02-backend` §2.2 & §5 | `contracts/state` §2 | `BE-RWI-134` | `FE-RWI-100` | `RWI-AC-239`<br>`UAT-INT-013` | Siap Dikerjakan (Approved) |
-| **`FR-INT-006`** | `EPIC-INT-02`<br>(`INT-CAP-02`) | `RWI-DEC-159` | `02-backend` §3 & §5 | `contracts/integration` §1.2 | `BE-RWI-134` | `FE-RWI-100` | `RWI-AC-239`<br>`UAT-INT-013` | Siap Dikerjakan (Approved) |
-| **`FR-INT-007`** | `EPIC-INT-03`<br>(`INT-CAP-03`) | `RWI-DEC-157` | `02-backend` §2.3 | `contracts/validation` `VAL-INT-002` | `BE-RWI-131` | — | `RWI-AC-237`<br>`UAT-INT-004` | Siap Dikerjakan (Approved) |
-| **`FR-INT-008`** | `EPIC-INT-03`<br>(`INT-CAP-03`) | `RWI-DEC-157` | `02-backend` §2.3 | `contracts/validation` `VAL-INT-003` | `BE-RWI-131` | — | `RWI-AC-237`<br>`UAT-INT-005` | Siap Dikerjakan (Approved) |
-| **`FR-INT-009`** | `EPIC-INT-03`<br>(`INT-CAP-03`) | `RWI-DEC-157` | `02-backend` §2.3 & §3 | `data/data-dict` §2 | `BE-RWI-131` | — | `RWI-AC-237`<br>`UAT-INT-005` | Siap Dikerjakan (Approved) |
-| **`FR-INT-010`** | `EPIC-INT-03`<br>(`INT-CAP-03`) | `RWI-DEC-157` | `02-backend` §3 | `contracts/integration` §1.2 | `BE-RWI-131` | — | `RWI-AC-237`<br>`UAT-INT-005` | Siap Dikerjakan (Approved) |
-| **`FR-INT-011`** | `EPIC-INT-04`<br>(`INT-CAP-04`) | `RWI-DEC-160` | `02-backend` §4, `03-fe` §4 | `contracts/api` §1 | `BE-RWI-132` | `FE-RWI-095`, `096` | `RWI-AC-240`<br>`TC-PRIVACY-01` | Siap Dikerjakan (Approved) |
-| **`FR-INT-012`** | `EPIC-INT-04`<br>(`INT-CAP-04`) | `RWI-DEC-160` | `03-frontend` §4, `05-skema` §1, 2 | `contracts/api` §1 | `BE-RWI-132` | `FE-RWI-095`, `096` | `RWI-AC-240`<br>`UAT-INT-008` | Siap Dikerjakan (Approved) |
-| **`FR-INT-013`** | `EPIC-INT-04`<br>(`INT-CAP-04`) | `RWI-DEC-160` | `02-backend` §4, `05-skema` §5 | `contracts/permission` §1, 2 | `BE-RWI-132` | `FE-RWI-097` | `RWI-AC-240`<br>`TC-PRIVACY-02` | Siap Dikerjakan (Approved) |
-| **`FR-INT-014`** | `EPIC-INT-05`<br>(`INT-CAP-05`) | `RWI-DEC-158` | `02-backend` §5, `03-fe` §4.2 | `contracts/validation` `VAL-INT-001` | `BE-RWI-134` | `FE-RWI-098` | `RWI-AC-238`<br>`UAT-INT-012` | Siap Dikerjakan (Approved) |
-| **`FR-INT-015`** | `EPIC-INT-05`<br>(`INT-CAP-05`) | `RWI-DEC-158` | `02-backend` §5, `03-fe` §4.2 | `contracts/api` §2 (Webhook) | `BE-RWI-133` | `FE-RWI-098` | `RWI-AC-238`<br>`TC-GATE-02` | Siap Dikerjakan (Approved) |
-| **`FR-INT-016`** | `EPIC-INT-05`<br>(`INT-CAP-05`) | `RWI-DEC-158` | `02-backend` §5, `05-skema` §4 | `contracts/validation` `VAL-INT-004`, `005` | `BE-RWI-134` | `FE-RWI-099` | `RWI-AC-238`<br>`TC-GATE-03`, `04` | Siap Dikerjakan (Approved) |
-| **`FR-INT-017`** | `EPIC-INT-06`<br>(`INT-CAP-06`) | `RWI-DEC-161` | `02-backend` §3 & §7 | `data/data-dict` §3 | `BE-RWI-127`, `128` | — | `RWI-AC-241`<br>`TC-OUTBOX-01`, `02` | Siap Dikerjakan (Approved) |
-| **`FR-INT-018`** | `EPIC-INT-06`<br>(`INT-CAP-06`) | `RWI-DEC-161` | `02-backend` §7.2 | `contracts/integration` §1.1 | `BE-RWI-129` | — | `RWI-AC-241`<br>`TC-OUTBOX-03`, `UAT-INT-006` | Siap Dikerjakan (Approved) |
+| **`FR-INT-001`** | `EPIC-INT-01`<br>(`INT-CAP-01`) | `RWI-DEC-156` | `02-backend` §2.1 & §3 | `contracts/integration` §1.2 | `BE-RWI-130` | — | `RWI-AC-236`<br>`UAT-INT-001` | ✅ Backend Selesai |
+| **`FR-INT-002`** | `EPIC-INT-01`<br>(`INT-CAP-06`) | `RWI-DEC-161` | `02-backend` §3 & §7 | `contracts/integration` §1.1 | `BE-RWI-128` | — | `RWI-AC-241`<br>`TC-OUTBOX-01` | ✅ Backend Selesai |
+| **`FR-INT-003`** | `EPIC-INT-01`<br>(`INT-CAP-01`) | `RWI-DEC-156` | `02-backend` §2.1 | `contracts/state` §1 | `BE-RWI-130` | — | `RWI-AC-236`<br>`UAT-INT-001` | ✅ Backend Selesai |
+| **`FR-INT-004`** | `EPIC-INT-02`<br>(`INT-CAP-02`) | `RWI-DEC-156`, `159` | `02-backend` §2.2 | `contracts/integration` §1.2 | `BE-RWI-130` | — | `RWI-AC-236`<br>`UAT-INT-002` | ✅ Backend Selesai |
+| **`FR-INT-005`** | `EPIC-INT-02`<br>(`INT-CAP-02`) | `RWI-DEC-159` | `02-backend` §2.2 & §5 | `contracts/state` §2 | `BE-RWI-134` | `FE-RWI-100` | `RWI-AC-239`<br>`UAT-INT-013` | 🟡 Backend Selesai (Menunggu FE) |
+| **`FR-INT-006`** | `EPIC-INT-02`<br>(`INT-CAP-02`) | `RWI-DEC-159` | `02-backend` §3 & §5 | `contracts/integration` §1.2 | `BE-RWI-134` | `FE-RWI-100` | `RWI-AC-239`<br>`UAT-INT-013` | 🟡 Backend Selesai (Menunggu FE) |
+| **`FR-INT-007`** | `EPIC-INT-03`<br>(`INT-CAP-03`) | `RWI-DEC-157` | `02-backend` §2.3 | `contracts/validation` `VAL-INT-002` | `BE-RWI-131` | — | `RWI-AC-237`<br>`UAT-INT-004` | ✅ Backend Selesai |
+| **`FR-INT-008`** | `EPIC-INT-03`<br>(`INT-CAP-03`) | `RWI-DEC-157` | `02-backend` §2.3 | `contracts/validation` `VAL-INT-003` | `BE-RWI-131` | — | `RWI-AC-237`<br>`UAT-INT-005` | ✅ Backend Selesai |
+| **`FR-INT-009`** | `EPIC-INT-03`<br>(`INT-CAP-03`) | `RWI-DEC-157` | `02-backend` §2.3 & §3 | `data/data-dict` §2 | `BE-RWI-131` | — | `RWI-AC-237`<br>`UAT-INT-005` | ✅ Backend Selesai |
+| **`FR-INT-010`** | `EPIC-INT-03`<br>(`INT-CAP-03`) | `RWI-DEC-157` | `02-backend` §3 | `contracts/integration` §1.2 | `BE-RWI-131` | — | `RWI-AC-237`<br>`UAT-INT-005` | ✅ Backend Selesai |
+| **`FR-INT-011`** | `EPIC-INT-04`<br>(`INT-CAP-04`) | `RWI-DEC-160` | `02-backend` §4, `03-fe` §4 | `contracts/api` §1 | `BE-RWI-132` | `FE-RWI-095`, `096` | `RWI-AC-240`<br>`TC-PRIVACY-01` | 🟡 Backend Selesai (Menunggu FE) |
+| **`FR-INT-012`** | `EPIC-INT-04`<br>(`INT-CAP-04`) | `RWI-DEC-160` | `03-frontend` §4, `05-skema` §1, 2 | `contracts/api` §1 | `BE-RWI-132` | `FE-RWI-095`, `096` | `RWI-AC-240`<br>`UAT-INT-008` | 🟡 Backend Selesai (Menunggu FE) |
+| **`FR-INT-013`** | `EPIC-INT-04`<br>(`INT-CAP-04`) | `RWI-DEC-160` | `02-backend` §4, `05-skema` §5 | `contracts/permission` §1, 2 | `BE-RWI-132` | `FE-RWI-097` | `RWI-AC-240`<br>`TC-PRIVACY-02` | 🟡 Backend Selesai (Menunggu FE) |
+| **`FR-INT-014`** | `EPIC-INT-05`<br>(`INT-CAP-05`) | `RWI-DEC-158` | `02-backend` §5, `03-fe` §4.2 | `contracts/validation` `VAL-INT-001` | `BE-RWI-134` | `FE-RWI-098` | `RWI-AC-238`<br>`UAT-INT-012` | 🟡 Backend Selesai (Menunggu FE) |
+| **`FR-INT-015`** | `EPIC-INT-05`<br>(`INT-CAP-05`) | `RWI-DEC-158` | `02-backend` §5, `03-fe` §4.2 | `contracts/api` §2 (Webhook) | `BE-RWI-133` | `FE-RWI-098` | `RWI-AC-238`<br>`TC-GATE-02` | 🟡 Backend Selesai (Menunggu FE) |
+| **`FR-INT-016`** | `EPIC-INT-05`<br>(`INT-CAP-05`) | `RWI-DEC-158` | `02-backend` §5, `05-skema` §4 | `contracts/validation` `VAL-INT-004`, `005` | `BE-RWI-134` | `FE-RWI-099` | `RWI-AC-238`<br>`TC-GATE-03`, `04` | 🟡 Backend Selesai (Menunggu FE) |
+| **`FR-INT-017`** | `EPIC-INT-06`<br>(`INT-CAP-06`) | `RWI-DEC-161` | `02-backend` §3 & §7 | `data/data-dict` §3 | `BE-RWI-127`, `128` | — | `RWI-AC-241`<br>`TC-OUTBOX-01`, `02` | ✅ Backend Selesai |
+| **`FR-INT-018`** | `EPIC-INT-06`<br>(`INT-CAP-06`) | `RWI-DEC-161` | `02-backend` §7.2 | `contracts/integration` §1.1 | `BE-RWI-129` | — | `RWI-AC-241`<br>`TC-OUTBOX-03`, `UAT-INT-006` | ✅ Backend Selesai |
 
 > **Analisis Kelengkapan FR:** Tepat 18 Functional Requirements terpetakan penuh ke 8 task backend dan 6 task frontend. **Nol FR tanpa task penanggung (Zero Gap)**.
 

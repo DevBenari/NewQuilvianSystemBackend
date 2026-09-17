@@ -17,7 +17,7 @@
 | Model | Claude Opus 5 |
 | Commit backend saat dikerjakan | `fe7e60d4` (branch `MHamzah`, upstream `origin/MHamzah`) |
 | Tanggal | 17 September 2026 |
-| Status | ✅ Selesai — source terpetakan ke keenam kriteria; `dotnet build` **NOT RUN** atas keputusan pemilik 17 September 2026 |
+| Status | ✅ Selesai — keenam kriteria terpetakan; `dotnet build` lolos (0 error, 212 warning); verifikasi kontrak API runtime `NOT RUN` |
 
 ## Backend Governance Preflight
 
@@ -101,8 +101,8 @@ berangkat dari baris daftar dapat mengosongkan belasan isian yang tidak ikut tam
 | --- | --- | --- | --- |
 | Review source kriteria 1–6 | Seluruhnya terpetakan | `PASS` | Bagian 6 |
 | Review diff dan scope | Hanya dua berkas di atas; line ending mengikuti `.gitattributes` | `PASS` | `git diff --stat` sesi ini |
-| `dotnet build` | Tidak dijalankan | `NOT RUN` | Keputusan pemilik 17 September 2026: build dijalankan mandiri setelah seluruh roadmap selesai |
-| Verifikasi kontrak API runtime (Swagger) | Tidak dijalankan | `NOT RUN` | Menunggu build pemilik |
+| `dotnet build` | `0 Error(s)`, `212 Warning(s)`, `00:06:56.91` — sama dengan garis dasar 212; nol warning dari berkas baru | `PASS` | Lampiran |
+| Verifikasi kontrak API runtime (Swagger) | Tidak dijalankan | `NOT RUN` | Build lolos; belum dijalankan pada putaran ini |
 
 **AUTOMATED TEST: NOT APPLICABLE** — backend tidak memelihara project test otomatis (`rules/backend/TEST_POLICY.md`).
 
@@ -119,7 +119,7 @@ Uji manual: `NOT FEASIBLE` pada sesi ini (aplikasi tidak dibangun).
 | 5. `401` dan `403` dibedakan | Terpenuhi | `AccessPermissionFilter` (401/403 tanpa kode) + `errors.code` pada 403 kewenangan data |
 | 6. Regresi: pengkajian lama terbaca apa adanya | Terpenuhi (statis) | Seluruh perubahan aditif; tidak ada kolom maupun mapping yang dihapus |
 | DoD: laporan menyebut kelima perbaikan | Terpenuhi | Bagian 2 dan tabel ini |
-| DoD: `dotnet build` | **Dikecualikan atas keputusan pemilik 17 September 2026** | `NOT RUN` |
+| DoD: `dotnet build` | `dotnet build` lolos | `PASS` |
 
 ## 7. Catatan penutup
 
@@ -127,8 +127,22 @@ Uji manual: `NOT FEASIBLE` pada sesi ini (aplikasi tidak dibangun).
 | --- | --- |
 | Peringatan | Kontrak 7.1 menamai query `status`/`page`; source memakai `assessmentStatus`/`pageNumber` mengikuti endpoint yang sudah ada — delta kontrak dicatat. Standar endpoint transaksi memakai `POST /{id}/<aksi>`, sedangkan grup ini sudah memakai `PATCH /{id}/complete` sejak sebelum task; tidak diubah |
 | Masalah yang diketahui | Layar yang belum diperbarui dan menyunting tanpa `ExpectedUpdateDate` akan menerima `400` — disengaja, mencegah isian terhapus |
-| Risiko tersisa | Build belum dijalankan |
+| Risiko tersisa | Verifikasi runtime API dan proses bisnis belum dijalankan |
 | Perubahan sampingan | `NONE` |
 | Interupsi | Satu interupsi pengguna saat penelusuran; dilanjutkan dari kondisi terverifikasi, nol penyuntingan ganda |
 | Status Git | `M` pada dua berkas source di atas; laporan ini `??` |
 | Langkah berikutnya | `BE-RWI-107` dan `BE-RWI-114`; frontend menyelaraskan enum dan `ExpectedUpdateDate` |
+
+## Lampiran — build dan migration 17 September 2026
+
+Dijalankan atas permintaan pemilik setelah seluruh task roadmap ditandai.
+
+| Perintah atau pemeriksaan | Hasil | Klasifikasi |
+| --- | --- | --- |
+| `dotnet build .\QuilvianSystemBackend.csproj --configuration Debug -m:1 -p:BuildInParallel=false -p:UseSharedCompilation=false -p:RunAnalyzers=false` | `0 Error(s)`, `212 Warning(s)`, `00:06:56.91` — sama dengan garis dasar 212; nol warning dari berkas baru | `PASS` |
+| `dotnet ef migrations has-pending-model-changes --no-build` (`ASPNETCORE_ENVIRONMENT=Development`) | "No changes have been made to the model since the last migration." — snapshot tulis tangan sama dengan model | `PASS` |
+| `dotnet ef migrations list --no-build` sebelum diterapkan | Enam migration K1–K7 `Pending`; nol migration lain tertunda | `PASS` |
+| `dotnet ef database update --no-build` | `Done.` dalam 30 detik; target `QuilvianNewDevHamzah` (database pribadi pemilik) | `PASS` |
+| Pembacaan katalog lewat `dotnet fsi` + `Npgsql.dll` hasil build | 16 tabel baru, 6 kolom tabel legacy, 7 index unik parsial (2 `NULLS NOT DISTINCT`), 11 check constraint, 63 foreign key, 6 baris `__EFMigrationsHistory` versi 9.0.18 | `PASS` |
+| Uji mundur `Down` pada Postgres sekali pakai | Tidak dijalankan — Docker tidak aktif; sengaja tidak diuji pada database pribadi supaya tabel tidak terhapus | `NOT RUN` |
+| Verifikasi runtime API dan proses bisnis | Tidak diminta pada putaran build dan migration ini | `NOT RUN` |

@@ -696,6 +696,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<InpFinancialClearance> InpFinancialClearances { get; set; }
         public DbSet<InpStatusHistory> InpStatusHistories { get; set; }
         public DbSet<InpCorrectionSession> InpCorrectionSessions { get; set; }
+        public DbSet<InpIntegrationOutbox> InpIntegrationOutboxes { get; set; }
         public DbSet<TrxKioskScanSession> TrxKioskScanSessions { get; set; }
         public DbSet<RegPatientEncounter> RegPatientEncounters { get; set; }
         public DbSet<RegPatientEncounterGuarantor> RegPatientEncounterGuarantors { get; set; }
