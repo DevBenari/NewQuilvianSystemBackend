@@ -347,6 +347,42 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 return closedGuard;
             }
 
+            var targetStatus = (InpFinancialClearanceStatus)request.ClearanceStatus;
+
+            // BE-RWI-072: Validasi kelayakan keuangan yang tidak lagi buta (FR-RI-170 s.d. FR-RI-172)
+            if (targetStatus == InpFinancialClearanceStatus.Cleared)
+            {
+                if (_billingDepositAdapter == null)
+                {
+                    // Kriteria 4: Bila ringkasan Billing tidak dapat dibaca, status TIDAK boleh diasumsikan Cleared
+                    return InpDischargeSummaryOperationResult.BusinessRuleRejected(
+                        "Layanan integrasi Billing tidak terpasang di sistem. Status kelayakan keuangan tidak dapat ditandai Cleared tanpa verifikasi authoritative posisi tagihan.");
+                }
+
+                var depositSummary = await _billingDepositAdapter.GetDepositSummaryAsync(episodeId, cancellationToken);
+
+                if (!depositSummary.IsDataAvailable)
+                {
+                    // Kriteria 4: Bila ringkasan Billing tidak dapat dibaca, status TIDAK boleh diasumsikan Cleared
+                    return InpDischargeSummaryOperationResult.BusinessRuleRejected(
+                        $"Posisi keuangan episode tidak dapat diverifikasi dari sistem Billing: {depositSummary.UnavailableReason ?? "Data tidak dapat diakses"}. Status tidak dapat ditandai Cleared.");
+                }
+
+                // Kriteria 1: Tagihan final lebih besar dari deposit menghasilkan kekurangan yang terbaca, dan Cleared ditolak 422 sebelum dibayar
+                if (depositSummary.FinalBillShortfallAmount > 0)
+                {
+                    return InpDischargeSummaryOperationResult.BusinessRuleRejected(
+                        $"Tagihan final pasien (Rp {depositSummary.FinalBillAmount:N0}) melebihi deposit yang dialokasikan. Masih terdapat sisa tagihan sebesar Rp {depositSummary.FinalBillShortfallAmount:N0} yang harus dilunasi terlebih dahulu.");
+                }
+
+                // Kriteria 2: Deposit lebih besar dari tagihan final menghasilkan kelebihan, dan Cleared ditolak sebelum refund tercatat
+                if (depositSummary.AvailableBalance > 0)
+                {
+                    return InpDischargeSummaryOperationResult.BusinessRuleRejected(
+                        $"Terdapat sisa saldo deposit sebesar Rp {depositSummary.AvailableBalance:N0} yang belum direfund kepada pasien. Refund harus diselesaikan terlebih dahulu di kasir sebelum status kelayakan keuangan ditandai Cleared.");
+                }
+            }
+
             var now = DateTime.UtcNow;
 
             var lastSequence = await _dbContext.Set<InpFinancialClearance>()

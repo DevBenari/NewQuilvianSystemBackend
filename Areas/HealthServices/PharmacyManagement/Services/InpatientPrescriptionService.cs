@@ -1,11 +1,43 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
+using QuilvianSystemBackend.Models;
 using QuilvianSystemBackend.Repositories;
+using System.Security.Claims;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
 {
+    /// <summary>
+    /// Hasil aksi penghentian satu butir obat — BE-RWI-100.
+    /// </summary>
+    public sealed class StopPrescriptionItemResult
+    {
+        public bool IsSuccess { get; private init; }
+        public int StatusCode { get; private init; }
+        public string Message { get; private init; } = string.Empty;
+        public InpatientPrescriptionItemResponse? Data { get; private init; }
+
+        public static StopPrescriptionItemResult Success(InpatientPrescriptionItemResponse data, string message) => new()
+        {
+            IsSuccess = true,
+            StatusCode = StatusCodes.Status200OK,
+            Message = message,
+            Data = data
+        };
+
+        public static StopPrescriptionItemResult Fail(int statusCode, string message) => new()
+        {
+            IsSuccess = false,
+            StatusCode = statusCode,
+            Message = message
+        };
+    }
+
     /// <summary>
     /// Periode saring Resep Harian — <c>BE-RWI-099</c>, <c>RWI-DEC-121</c> butir (1).
     /// </summary>
@@ -69,10 +101,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
         private const string WindowsBusinessTimeZoneId = "SE Asia Standard Time";
 
         private readonly ApplicationDbContext _dbContext;
+        private readonly MedicationAdministrationService _medicationAdministrationService;
+        private readonly SlidingScaleOrderService _slidingScaleOrderService;
+        private readonly InpatientClinicalContextService _clinicalContextService;
 
-        public InpatientPrescriptionService(ApplicationDbContext dbContext)
+        public InpatientPrescriptionService(
+            ApplicationDbContext dbContext,
+            MedicationAdministrationService medicationAdministrationService,
+            SlidingScaleOrderService slidingScaleOrderService,
+            InpatientClinicalContextService clinicalContextService)
         {
             _dbContext = dbContext;
+            _medicationAdministrationService = medicationAdministrationService;
+            _slidingScaleOrderService = slidingScaleOrderService;
+            _clinicalContextService = clinicalContextService;
         }
 
         /// <summary>
@@ -255,7 +297,164 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
             return (totalData, hasil);
         }
 
-        private static InpatientPrescriptionItemResponse ToItemResponse(PhmPrescriptionItem x) => new()
+        /// <summary>
+        /// Menghentikan satu butir obat dari Resep Harian — BE-RWI-100, FR-DOK-087, INT-KEP-09, INT-DOK-16.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Aturan bisnis:</b>
+        /// 1. Dokter dengan penugasan aktif (VAL-DOK-51); dokter tidak bertugas → 403.
+        /// 2. Alasan penghentian wajib diisi (VAL-DOK-51a); kosong → 400.
+        /// 3. Butir sudah dihentikan atau resep dibatalkan → 409 (VAL-DOK-51b).
+        /// 4. Perawatan sudah ditutup → 422.
+        /// 5. Seluruh dosis Due pada MAR setelah waktu henti dibatalkan (CancelDueDosesForItemAsync).
+        /// 6. Order sliding scale aktif pada butir insulin ikut dihentikan (StopForPrescriptionItemAsync).
+        /// 7. Seluruh langkah dieksekusi dalam satu transaksi atomik (AC-5).
+        /// </para>
+        /// </remarks>
+        public async Task<StopPrescriptionItemResult> StopItemAsync(
+            Guid itemId,
+            StopPrescriptionItemRequest request,
+            ClaimsPrincipal? user,
+            Guid actorUserId,
+            CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(request?.Reason))
+            {
+                return StopPrescriptionItemResult.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Alasan penghentian wajib diisi.");
+            }
+
+            var item = await _dbContext.Set<PhmPrescriptionItem>()
+                .Include(x => x.Prescription)
+                .Include(x => x.StoppedByUser)
+                .FirstOrDefaultAsync(x => x.Id == itemId && !x.IsDelete, cancellationToken);
+
+            if (item == null || item.Prescription == null || item.Prescription.IsDelete)
+            {
+                return StopPrescriptionItemResult.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Item resep tidak ditemukan.");
+            }
+
+            if (item.IsStopped)
+            {
+                return StopPrescriptionItemResult.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Obat ini sudah dihentikan.");
+            }
+
+            if (item.Prescription.PrescriptionStatus == PrescriptionStatus.Cancelled)
+            {
+                return StopPrescriptionItemResult.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Resep ini sudah dibatalkan.");
+            }
+
+            var episodeId = item.Prescription.InpEpisodeId;
+            var nowUtc = DateTime.UtcNow;
+
+            if (episodeId.HasValue && episodeId.Value != Guid.Empty)
+            {
+                var episode = await _dbContext.Set<InpEpisode>()
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.Id == episodeId.Value && !x.IsDelete, cancellationToken);
+
+                if (episode != null && (episode.EpisodeStatus == InpEpisodeStatus.Closed || episode.EpisodeStatus == InpEpisodeStatus.Cancelled))
+                {
+                    return StopPrescriptionItemResult.Fail(
+                        StatusCodes.Status422UnprocessableEntity,
+                        "Perawatan pasien sudah ditutup.");
+                }
+
+                var doctorId = await _clinicalContextService.ResolveActorDoctorIdAsync(user, actorUserId, cancellationToken);
+                if (!doctorId.HasValue || doctorId.Value == Guid.Empty)
+                {
+                    return StopPrescriptionItemResult.Fail(
+                        StatusCodes.Status403Forbidden,
+                        "Anda tidak sedang bertugas atas pasien ini.");
+                }
+
+                var isAssigned = await _clinicalContextService.IsDoctorAssignedAsync(
+                    episodeId.Value,
+                    doctorId.Value,
+                    nowUtc,
+                    cancellationToken);
+
+                if (!isAssigned)
+                {
+                    return StopPrescriptionItemResult.Fail(
+                        StatusCodes.Status403Forbidden,
+                        "Anda tidak sedang bertugas atas pasien ini.");
+                }
+            }
+            else
+            {
+                var doctorId = await _clinicalContextService.ResolveActorDoctorIdAsync(user, actorUserId, cancellationToken);
+                if (!doctorId.HasValue || (item.Prescription.DoctorId != doctorId.Value && actorUserId != item.Prescription.CreateBy))
+                {
+                    return StopPrescriptionItemResult.Fail(
+                        StatusCodes.Status403Forbidden,
+                        "Hanya dokter yang merawat yang dapat menghentikan resep ini.");
+                }
+            }
+
+            var cleanReason = request.Reason.Trim();
+            var stoppedAt = nowUtc;
+
+            var executionStrategy = _dbContext.Database.CreateExecutionStrategy();
+            await executionStrategy.ExecuteAsync(async () =>
+            {
+                using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+                try
+                {
+                    // 1. Tandai butir dihentikan (tidak dihapus dan tidak dibatalkan)
+                    item.IsStopped = true;
+                    item.StoppedAt = stoppedAt;
+                    item.StoppedByUserId = actorUserId;
+                    item.StopReason = cleanReason.Length > 500 ? cleanReason[..500] : cleanReason;
+                    item.UpdateDateTime = stoppedAt;
+                    item.UpdateBy = actorUserId;
+
+                    // 2. Batalkan seluruh dosis Due pada MAR yang dijadwalkan >= waktu henti (INT-KEP-09)
+                    await _medicationAdministrationService.CancelDueDosesForItemAsync(
+                        item.Id,
+                        stoppedAt,
+                        actorUserId,
+                        MedicationAdministrationService.AlasanResepDihentikan,
+                        cancellationToken);
+
+                    // 3. Hentikan order sliding scale jika butir ini memiliki order aktif (INT-DOK-16)
+                    await _slidingScaleOrderService.StopForPrescriptionItemAsync(
+                        item.Id,
+                        cleanReason,
+                        actorUserId,
+                        stoppedAt,
+                        cancellationToken);
+
+                    // 4. Simpan seluruh entitas dalam transaksi yang sama
+                    await _dbContext.SaveChangesAsync(cancellationToken);
+                    await transaction.CommitAsync(cancellationToken);
+                }
+                catch
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    throw;
+                }
+            });
+
+            if (item.StoppedByUser == null && actorUserId != Guid.Empty)
+            {
+                item.StoppedByUser = await _dbContext.Users.AsNoTracking()
+                    .FirstOrDefaultAsync(u => u.Id == actorUserId, cancellationToken);
+            }
+
+            var response = ToItemResponse(item);
+            return StopPrescriptionItemResult.Success(response, "Obat berhasil dihentikan.");
+        }
+
+        public static InpatientPrescriptionItemResponse ToItemResponse(PhmPrescriptionItem x) => new()
         {
             Id = x.Id,
             PrescriptionId = x.PrescriptionId,

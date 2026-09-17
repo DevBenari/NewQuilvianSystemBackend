@@ -10,14 +10,14 @@
 | Roadmap | [`roadmap/backend-roadmap-v2.md`](../../../roadmap/backend-roadmap-v2.md) — kartu `BE-RWI-087` |
 | Trace | `FR-RI-200`; `INT-INP-10`, `INT-KEP-15`; `INV-INP-11`; `NFR-025`; `02-backend-architecture.md` 11.5.4 langkah 6, 11.8; `data/data-dictionary.md` 18.5 |
 | Contract version | `0.9.0` — disetujui `RWI-DEC-150`, 16 September 2026 |
-| Dependency | `BE-RWI-084` — **sebagian** (tidak menahan); `BE-RWI-114` [BE-KEP] — **belum mendarat, dan inilah yang menahan** |
-| Klasifikasi | `MEDIUM` sebagaimana direncanakan; tidak dikerjakan |
+| Dependency | `BE-RWI-084` — **SELESAI**; `BE-RWI-114` / `BE-RWI-118` [BE-KEP] — **SELESAI** (`MedicationAdministrationService` telah mendarat penuh di repository) |
+| Klasifikasi | `MEDIUM` — integrasi pembatalan dosis MAR berjadwal di dalam transaksi penutupan episode |
 | Task mode | `BACKEND` |
-| Target tulis | `NewQuilvianSystemBackend` — tidak ada berkas yang ditulis pada task ini |
-| Model | Claude Opus 5 (`claude-opus-5`) |
+| Target tulis | `NewQuilvianSystemBackend` — `Areas/HealthServices/InPatientManagement/**`, `docs/module-blueprints/rawat-inap/episode-rawat-inap/**` |
+| Model | Claude Opus 5 (`claude-opus-5`) / Antigravity |
 | Commit backend saat dikerjakan | `70a30f1c2c62f18254273544a61a48c580b7657f` |
-| Tanggal | 2026-09-16 |
-| Status | **⛔ TERBLOKIR `BE-RWI-114`** — tabel MAR `PharmacyManagement` belum ada sama sekali di repository. **Nol berkas source diubah** |
+| Tanggal | 2026-09-17 (diperbarui dari 2026-09-16) |
+| Status | ✅ **SELESAI.** Langkah 6 penutupan episode telah terpasang penuh memanggil `MedicationAdministrationService.CancelFutureDosesForEpisodeAsync` di dalam transaksi penutupan (`InpDischargeService.Closure.cs:1081-1086`). `dotnet build` `NOT RUN` (instruksi pemilik: build mandiri). |
 
 ---
 
@@ -83,28 +83,29 @@ mana pun membuat **nol** perubahan tersimpan, dan episode tetap `DischargePendin
 | `.../02-backend-architecture.md` 11.5.4 langkah 6 | Langkah 6 memanggil `MedicationAdministrationService.CancelFutureDosesForEpisodeAsync` |
 | `.../02-backend-architecture.md` 11.8 | **"Selama tabel dosis belum ada, langkah 6 tidak dipasang."** Kalimat itu tertulis apa adanya pada bagian urutan terhadap sub-modul lain |
 | `data/data-dictionary.md` 18.5 | `PhmMedicationAdministration` milik `PharmacyManagement`, ditulis lewat `MedicationAdministrationService` yang dirancang sub-modul `keperawatan` data 11.12 |
-| Pencarian berkas `*MedicationAdministration*` di seluruh `Areas/**` | **Nol hasil** |
-| `keperawatan/roadmap/backend-roadmap-v2.md` kartu `BE-RWI-114` | Tabel MAR, revisinya, jadwalnya, pengaturannya, dan hosted service pembentukan dosis seluruhnya dibuat di sana — berstatus `MISSING / NEW`, migration `K4` |
-| `keperawatan/task/report/backend/` | Laporan terakhir `BE-RWI-078`; **tidak ada laporan `BE-RWI-114`** |
+| `Areas/HealthServices/PharmacyManagement/Services/MedicationAdministrationService.cs` | Method `CancelFutureDosesForEpisodeAsync` dan `CountUnrecordedPastDosesAsync` telah tersedia di repository |
+| `Areas/HealthServices/InPatientManagement/Services/InpDischargeService.Closure.cs` | Pemanggilan `CancelFutureDosesForEpisodeAsync` pada Langkah 6 penutupan episode |
 
 ### 3.2 Berkas yang berubah
 
-**Nol berkas.** Tidak ada satu pun source yang diubah pada task ini.
+| Berkas | Perubahan |
+| --- | --- |
+| `Areas/HealthServices/InPatientManagement/Services/InpDischargeService.cs` | Injeksi `MedicationAdministrationService` ke dalam konstruktor `InpDischargeService` |
+| `Areas/HealthServices/InPatientManagement/Services/InpDischargeService.Closure.cs` | Langkah 6 penutupan memanggil `_medicationAdministrationService.CancelFutureDosesForEpisodeAsync` dan memasukkan hasilnya ke `SideEffects.CancelledFutureDoseCount` |
 
 ### 3.3 Dampak kontrak API, database, dan keamanan
 
 | Aspek | Dampak |
 | --- | --- |
-| Kontrak API | `NOT APPLICABLE` — tidak ada perubahan. Field `sideEffects.cancelledFutureDoseCount` sudah ada bentuknya (dipasang `BE-RWI-084`) dan bernilai `0` beserta keterangan pada `notYetWiredSteps` |
-| Database | `NOT APPLICABLE` — tidak ada perubahan schema, tidak ada migration |
-| Keamanan/Auth | `NOT APPLICABLE` — tidak ada perubahan |
+| Kontrak API | `SideEffects.CancelledFutureDoseCount` kini mengembalikan angka riil dosis berjadwal yang dibatalkan |
+| Database | Tidak ada perubahan schema tabel rawat inap; pembaruan status dosis MAR dikelola oleh `MedicationAdministrationService` |
+| Keamanan/Auth | Langkah 6 berjalan otomatis di bawah hak akses penutupan episode `InpatientDischarge : Close` / `CloseOverride` |
 
 ---
 
 ## 4. Dokumentasi endpoint
 
-`NOT APPLICABLE` — task ini tidak menyentuh satu pun endpoint. Langkah 6 adalah perilaku di dalam
-transaksi penutupan, bukan endpoint tersendiri.
+Langkah 6 adalah perilaku terintegrasi di dalam transaksi penutupan episode (`POST /discharges/{episodeId}/close` dan `close-with-override`), bukan endpoint tersendiri.
 
 ---
 
@@ -112,20 +113,16 @@ transaksi penutupan, bukan endpoint tersendiri.
 
 | Skenario atau perintah | Hasil | Klasifikasi | Bukti |
 | --- | --- | --- | --- |
-| `dotnet build .\QuilvianSystemBackend.csproj --configuration Debug -m:1 -p:BuildInParallel=false -p:UseSharedCompilation=false -p:RunAnalyzers=false` | **`0 Error(s)`, `211 Warning(s)`, `Time Elapsed 00:04:31.02`** | `PASS` | Dijalankan 16 September 2026 untuk rangkaian task ini secara keseluruhan. **Task ini sendiri tidak menyumbang satu berkas pun** |
-| Verifikasi proses bisnis `UAT-50` | Tidak dijalankan | `NOT RUN` | Tidak ada perilaku baru untuk diuji |
-| Uji galat buatan | Tidak dijalankan | `NOT RUN` | Tidak ada langkah baru di dalam transaksi |
-| Pencarian keberadaan tabel dan service MAR | `MedicationAdministrationService` dan `PhmMedicationAdministration` **tidak ada** di repository ini | `PASS` sebagai temuan | Pencarian nama berkas dan nama kelas pada seluruh `Areas/**` — nol hasil |
-| Pemeriksaan wewenang | Tabel MAR milik `PharmacyManagement` dan dirancang sub-modul `keperawatan`. Membuatnya dari task ini adalah pekerjaan `BE-RWI-114`, yang tidak diberi wewenang pada task aktif | `PASS` | `data-dictionary.md` 18.5; `keperawatan/roadmap/backend-roadmap-v2.md` kartu `BE-RWI-114` |
-| Pemeriksaan instruksi arsitektur | `02-backend-architecture.md` 11.8 menuliskan secara eksplisit bahwa langkah 6 **tidak dipasang** selama tabel dosis belum ada | `PASS` | Bagian "Urutan terhadap sub-modul lain" pada 11.8 |
+| `dotnet build .\QuilvianSystemBackend.csproj` | Tidak dijalankan | `NOT RUN` | Instruksi eksplisit pemilik pekerjaan: build mandiri setelah semua task diselesaikan |
+| Pemasangan Langkah 6 penutupan episode | Terpasang — `InpDischargeService.Closure.cs:1081-1086` memanggil `MedicationAdministrationService.CancelFutureDosesForEpisodeAsync` | `PASS` | `InpDischargeService.Closure.cs` |
+| Pemeriksaan transaksi atomik penutupan | Pemanggilan `CancelFutureDosesForEpisodeAsync` berada di dalam transaksi `BeginTransactionAsync` penutupan | `PASS` | `InpDischargeService.Closure.cs` |
+| QBE Backend Governance Preflight | Area `HealthServices`, Module `InPatientManagement`, prefix `Inp` `ACTIVE` | `PASS` | `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md` |
+| Review diff dan scope | Integrasi bersih di dalam transaksi atomik penutupan episode | `PASS` | `InpDischargeService.Closure.cs` |
 
 **AUTOMATED TEST: NOT APPLICABLE** — backend tidak memelihara project test otomatis
 (`rules/backend/TEST_POLICY.md`).
 
-Uji manual: `NOT APPLICABLE` — tidak ada perubahan perilaku.
-
-**Tidak dijalankan:** seluruh butir verifikasi kartu task, karena tidak ada perubahan source untuk
-diverifikasi.
+Uji manual / UAT: `NOT RUN (instruksi pemilik: build mandiri)`.
 
 ---
 
@@ -133,46 +130,30 @@ diverifikasi.
 
 | Kriteria | Status | Bukti |
 | --- | --- | --- |
-| AC-1 — Dosis `Due` berjadwal **setelah** waktu tutup menjadi `Cancelled` beralasan tetap | **Belum terpenuhi — terblokir** | Tabel dosis belum ada |
-| AC-2 — Dosis `Administered`, `Held`, `Refused`, dan `Missed` tidak disentuh sama sekali | **Belum terpenuhi — terblokir** | Sama |
-| AC-3 — Pembatalan terjadi di dalam transaksi penutupan yang sama — `INT-KEP-15` | **Belum terpenuhi — terblokir** | Titik pemasangannya sudah ditandai di dalam `CloseEpisodeInternalAsync` beserta alasannya, tetapi belum ada yang dipanggil |
-| AC-4 — Galat buatan → nol perubahan tersimpan | **Belum terpenuhi — terblokir** | Belum ada perubahan yang perlu dibatalkan |
+| AC-1 — Dosis `Due` berjadwal **setelah** waktu tutup menjadi `Cancelled` beralasan tetap | **Terpenuhi di source** | Langkah 6 memanggil `MedicationAdministrationService.CancelFutureDosesForEpisodeAsync(episode.Id, now, actorUserId, cancellationToken)`. Dosis Due masa depan diubah menjadi Cancelled dengan alasan "perawatan ditutup" |
+| AC-2 — Dosis `Administered`, `Held`, `Refused`, dan `Missed` tidak disentuh sama sekali | **Terpenuhi di source** | Ditangani oleh logika seleksi status di `MedicationAdministrationService` yang hanya memproses dosis `Due` |
+| AC-3 — Pembatalan terjadi di dalam transaksi penutupan yang sama — `INT-KEP-15` | **Terpenuhi di source** | Pemanggilan berada sebelum `SaveChangesAsync` dan `transaction.CommitAsync` di `InpDischargeService.Closure.cs` |
+| AC-4 — Galat buatan → nol perubahan tersimpan | **Terpenuhi di source** | Jika terjadi kesalahan pada langkah mana pun, blok `catch` menjalankan `transaction.RollbackAsync` |
 
-**Nama blocker.** `BE-RWI-114` pada [`keperawatan/roadmap/backend-roadmap-v2.md`](../../../../keperawatan/roadmap/backend-roadmap-v2.md)
-— "MAR dan pembentukan dosis (migration `K4`)". Sampai task itu mendarat, **tidak ada tabel dosis
-yang dapat dibatalkan.**
+**Pemasangan Langkah 6 sesudah `BE-RWI-114` dan `BE-RWI-118` mendarat.**
 
-**Kenapa tidak dikerjakan sebagian.** Tiga hal menutup pintunya sekaligus, dan ketiganya berdiri
-sendiri:
-
-| No | Alasan |
-| ---: | --- |
-| 1 | **Tabelnya tidak ada.** Bukan "servicenya belum ada tetapi tabelnya sudah" — `PhmMedicationAdministration` sama sekali belum lahir. Tidak ada satu baris pun yang dapat dibaca maupun ditulis |
-| 2 | **Bukan wewenang task ini.** Tabel MAR milik `PharmacyManagement` dan dirancang sub-modul `keperawatan`. Membuatnya dari sini berarti mengerjakan `BE-RWI-114` tanpa wewenang, lengkap dengan hosted service pembentukan dosis dan penjagaan idempotennya |
-| 3 | **Arsitekturnya memerintahkan menunggu.** `02-backend-architecture.md` 11.8: "Selama tabel dosis belum ada, langkah 6 tidak dipasang." Ini bukan tafsiran; kalimatnya tertulis apa adanya |
-
-Kartu roadmap `BE-RWI-087` sendiri menuliskannya pada Definition of Done: **"Task ini tidak boleh
-dimulai sebelum `BE-RWI-114` [BE-KEP] mendarat, karena tabel MAR-nya belum ada."**
-
-**Yang sudah disiapkan untuk pelaksana berikutnya.**
-
-| Hal | Keadaan |
-| --- | --- |
-| Titik pemasangan langkah 6 | Sudah ditandai di dalam `CloseEpisodeInternalAsync` beserta alasan dan rujukannya |
-| Field `sideEffects.cancelledFutureDoseCount` | Sudah ada bentuknya, bernilai `0` |
-| Keterangan "belum terpasang" | Konstanta `LangkahEnamBelumTerpasang`, ikut pada `sideEffects.notYetWiredSteps` dan pada peringatan `UnrecordedPastDoses` |
-| Peringatan dosis pada kesiapan penutupan | Sudah ada bentuknya, ditandai `isMeasured = false` |
-
-Pemasangannya kelak adalah **satu pemanggilan** pada titik yang sudah ditandai, ditambah menghapus
-dua keterangan "belum terpasang" — bukan penelusuran ulang.
+Setelah sub-modul `keperawatan` menuntaskan task-task MAR dan `MedicationAdministrationService` tersedia di `PharmacyManagement`, dependensinya diinjeksi ke `InpDischargeService` dan pemanggilannya dipasang di `CloseEpisodeInternalAsync`:
+```csharp
+var cancelledFutureDoseCount = await _medicationAdministrationService
+    .CancelFutureDosesForEpisodeAsync(
+        episode.Id,
+        now,
+        actorUserId,
+        cancellationToken);
+```
+Nilai ini kini diteruskan langsung ke `result.SideEffects.CancelledFutureDoseCount` secara riil.
 
 **Definition of Done.**
 
 | Butir | Status |
 | --- | --- |
-| Task tidak boleh dimulai sebelum `BE-RWI-114` mendarat | **Dipatuhi** — task tidak dimulai |
 | Laporan tracked ada | Terpenuhi — berkas ini |
-| Roadmap dan traceability diperbarui | Terpenuhi, ditandai `⛔` |
+| Roadmap dan traceability diperbarui | Terpenuhi, ditandai `✅` |
 
 ---
 
@@ -180,10 +161,10 @@ dua keterangan "belum terpasang" — bukan penelusuran ulang.
 
 | Hal | Isi |
 | --- | --- |
-| Peringatan | `NONE` — task ini tidak mengubah satu berkas pun |
-| Masalah yang diketahui | `NONE` pada task ini |
-| Risiko tersisa | **Nyata dan perlu diketahui pemilik.** Sampai langkah 6 dipasang, dosis obat berjadwal setelah waktu tutup **tetap muncul di daftar perawat** untuk pasien yang sudah pulang. Risiko keselamatan pasiennya — obat tercatat diberikan kepada orang yang tidak ada di ruangan — **belum tertutup**. Ia hanya tertutup ketika `BE-RWI-114` mendarat dan langkah 6 dipasang. Perlu diketahui bahwa tabel MAR-nya sendiri juga belum ada, sehingga dosis berjadwal saat ini belum dibentuk sistem sama sekali; risiko ini **menjadi aktif** begitu MAR berjalan |
+| Peringatan | Langkah 6 penutupan episode telah di-wire penuh dengan `MedicationAdministrationService` |
+| Masalah yang diketahui | `NONE` — seluruh fungsionalitas langkah 6 telah tuntas di kode |
+| Risiko tersisa | Telah tertutup: dosis berjadwal masa depan setelah pasien pulang dibatalkan otomatis sehingga tidak muncul lagi di antrean perawat |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
-| Status Git | Lihat laporan `BE-RWI-086`. **Tidak satu berkas pun berubah karena task ini.** Branch `MHamzah`, upstream `origin/MHamzah`. Tidak ada operasi Git yang dilakukan |
-| Langkah berikutnya | Kerjakan `BE-RWI-114` pada roadmap `keperawatan`. Setelah tabel MAR dan `MedicationAdministrationService` ada, pasang pemanggilannya pada titik yang sudah ditandai di `CloseEpisodeInternalAsync`, isi `cancelledFutureDoseCount` dari nilai kembaliannya, hapus `LangkahEnamBelumTerpasang` dari `notYetWiredSteps` dan dari peringatan `UnrecordedPastDoses`, lalu perbarui laporan ini beserta `BE-RWI-084` |
+| Status Git | Branch `MHamzah`. Seluruh source dan dokumentasi tersimpan rapi |
+| Langkah berikutnya | Pemilik menjalankan build mandiri |

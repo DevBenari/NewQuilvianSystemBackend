@@ -550,6 +550,46 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
                     : "Resep berhasil dibatalkan, tetapi penyerahan fakta ke Billing memerlukan tinjauan."));
         }
 
+        [HttpPatch("items/{itemId:guid}/stop")]
+        [ProducesResponseType(typeof(ApiResponse<InpatientPrescriptionItemResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [AccessAction("Stop", "Stop Prescription Item", Description = "Menghentikan satu butir obat pada resep rawat inap", AccessType = AccessTypes.Update, SortOrder = 8)]
+        [AccessPermission("Prescription", "Stop")]
+        public async Task<IActionResult> StopItem(
+            Guid itemId,
+            [FromBody] StopPrescriptionItemRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            var actorUserId = GetCurrentUserId();
+            var result = await _inpatientPrescriptionService.StopItemAsync(
+                itemId,
+                request,
+                User,
+                actorUserId,
+                cancellationToken);
+
+            if (!result.IsSuccess)
+            {
+                return StatusCode(result.StatusCode, ApiResponse<object>.Fail(
+                    result.StatusCode,
+                    result.Message));
+            }
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "Prescription.StopItem",
+                $"Menghentikan butir obat resep {itemId}.",
+                new { ItemId = itemId, StoppedBy = actorUserId });
+
+            return Ok(ApiResponse<InpatientPrescriptionItemResponse>.Ok(
+                result.Data!,
+                result.Message));
+        }
+
         [HttpDelete("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [AccessAction("Delete", "Delete Prescription", Description = "Menghapus resep draft kosong", AccessType = AccessTypes.Delete, SortOrder = 8)]

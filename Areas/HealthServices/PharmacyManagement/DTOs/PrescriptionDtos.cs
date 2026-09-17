@@ -1,4 +1,4 @@
-﻿using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using System.ComponentModel.DataAnnotations;
 
@@ -237,6 +237,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.DTOs
     {
         public List<InpatientPrescriptionItemResponse> Items { get; set; } = new();
         public List<InpatientPrescriptionCompoundResponse> Compounds { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Permintaan penghentian satu butir obat dari Resep Harian — BE-RWI-100, api-contract 0.6.0 bagian 12.6.
+    /// </summary>
+    public class StopPrescriptionItemRequest
+    {
+        /// <summary>
+        /// Alasan penghentian obat. Wajib diisi (VAL-DOK-51a).
+        /// </summary>
+        [Required(ErrorMessage = "Alasan penghentian wajib diisi.")]
+        [MaxLength(500, ErrorMessage = "Alasan penghentian maksimal 500 karakter.")]
+        public string Reason { get; set; } = string.Empty;
     }
 
     /// <summary>

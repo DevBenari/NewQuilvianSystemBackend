@@ -42,6 +42,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         private readonly ClinicalDocumentIntegrityService _clinicalDocumentIntegrityService;
         private readonly PatientProcedureOrderService _patientProcedureOrderService;
         private readonly MedicationAdministrationService _medicationAdministrationService;
+        private readonly IInpBillingDepositAdapter? _billingDepositAdapter;
 
         /// <remarks>
         /// <b>Kenapa service ini boleh memakai <see cref="InpBedOccupancyService"/>.</b>
@@ -87,7 +88,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             InpBedOccupancyService bedOccupancyService,
             ClinicalDocumentIntegrityService clinicalDocumentIntegrityService,
             PatientProcedureOrderService patientProcedureOrderService,
-            MedicationAdministrationService medicationAdministrationService)
+            MedicationAdministrationService medicationAdministrationService,
+            IInpBillingDepositAdapter? billingDepositAdapter = null)
         {
             _dbContext = dbContext;
             _episodeService = episodeService;
@@ -95,6 +97,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             _clinicalDocumentIntegrityService = clinicalDocumentIntegrityService;
             _patientProcedureOrderService = patientProcedureOrderService;
             _medicationAdministrationService = medicationAdministrationService;
+            _billingDepositAdapter = billingDepositAdapter;
         }
 
         // =====================================================================

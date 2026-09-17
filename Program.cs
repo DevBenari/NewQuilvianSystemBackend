@@ -502,6 +502,10 @@ try
     builder.Services.AddScoped<InpDischargeService>();
     builder.Services.AddScoped<InpCensusQueryService>();
 
+    // BE-RWI-071 & BE-RWI-072 — Adapter posisi deposit dan tagihan episode dari Billing
+    builder.Services.AddScoped<IInpBillingDepositAdapter, InpBillingDepositAdapter>();
+    builder.Services.AddScoped<InpBillingDepositAdapter>();
+
     // BE-RWI-086 — penyusun usulan isian resume pulang. Hanya membaca, tidak pernah
     // menyimpan, dan tidak dipakai service Rawat Inap lain; ia dipanggil langsung controller.
     builder.Services.AddScoped<InpDischargeSummaryPrefillService>();
@@ -522,6 +526,11 @@ try
     // controller tidak menyentuh ApplicationDbContext langsung.
     builder.Services.AddScoped<InpatientSettingService>();
     builder.Services.AddScoped<InpatientClearanceItemService>();
+
+    // Pembuatan data induk obat, termasuk pendaftaran obat bawaan pasien. Service ini menjaga
+    // validasi dan persistence tetap di luar controller serta memakai NumberSeriesAllocator
+    // untuk kode DRG-RSMMC yang atomik dan durabel.
+    builder.Services.AddScoped<DrugRegistrationService>();
 
     // Master keperluan akses rekam medis. Selama tabelnya kosong, pembukaan berkas pasien di
     // luar rawatan pengguna selalu ditolak — service ini yang memberi unit rekam medis cara

@@ -32,6 +32,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
     {
         private readonly ApplicationDbContext _dbContext;
         private readonly InpSettingService _settingService;
+        private readonly IInpBillingDepositAdapter? _billingDepositAdapter;
 
         /// <summary>
         /// Kalimat yang dibaca pengguna ketika akunnya tidak terhubung dengan data dokter.
@@ -42,10 +43,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
         public InpCensusQueryService(
             ApplicationDbContext dbContext,
-            InpSettingService settingService)
+            InpSettingService settingService,
+            IInpBillingDepositAdapter? billingDepositAdapter = null)
         {
             _dbContext = dbContext;
             _settingService = settingService;
+            _billingDepositAdapter = billingDepositAdapter;
         }
 
         // =====================================================================
@@ -1018,6 +1021,173 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             }
 
             return filtered;
+        }
+
+        // =====================================================================
+        // BE-RWI-071 — Daftar pantau kekurangan deposit
+        // =====================================================================
+
+        /// <summary>
+        /// Menyusun daftar pantau kekurangan deposit untuk episode rawat inap aktif.
+        /// (BE-RWI-071, RWI-DEC-096, FR-RI-177).
+        /// </summary>
+        /// <remarks>
+        /// Sesuai RWI-DEC-096, kekurangan minimum deposit ditagih secara berkala pada perawatan
+        /// yang melewati ambang hari (default 3 hari, dapat diatur admin via MstInpatientSetting).
+        /// Angka kekurangan dibaca dari ringkasan Billing (BE-BKC-040), bukan dihitung ulang di Rawat Inap.
+        /// Bila data Billing tidak dapat diakses, sistem menyatakan data tidak tersedia, bukan nol yang menyesatkan.
+        /// </remarks>
+        public async Task<DepositShortfallPagedResult> GetDepositShortfallAsync(
+            DepositShortfallQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            query ??= new DepositShortfallQuery();
+
+            var (pageNumber, pageSize) = InpEpisodeService.NormalizePaging(
+                query.PageNumber,
+                query.PageSize);
+
+            var setting = await _settingService.GetEffectiveSettingAsync(cancellationToken);
+            var thresholdDays = setting.DepositFollowUpIntervalDays < 1
+                ? InpatientSettingValues.Defaults.DepositFollowUpIntervalDays
+                : setting.DepositFollowUpIntervalDays;
+
+            var today = DateTime.UtcNow;
+
+            // Episode aktif: Admitted atau DischargePending
+            IQueryable<InpEpisode> baseQuery = _dbContext.Set<InpEpisode>()
+                .AsNoTracking()
+                .Include(x => x.Patient)
+                .Include(x => x.ServiceUnit)
+                .Include(x => x.BedPlacements.Where(p => p.EndDateTime == null && !p.IsDelete))
+                    .ThenInclude(p => p.Bed)
+                .Include(x => x.BedPlacements.Where(p => p.EndDateTime == null && !p.IsDelete))
+                    .ThenInclude(p => p.Room)
+                .Where(x =>
+                    !x.IsDelete &&
+                    (x.EpisodeStatus == InpEpisodeStatus.Admitted ||
+                     x.EpisodeStatus == InpEpisodeStatus.DischargePending));
+
+            if (query.ServiceUnitId.HasValue && query.ServiceUnitId.Value != Guid.Empty)
+            {
+                baseQuery = baseQuery.Where(x => x.ServiceUnitId == query.ServiceUnitId.Value);
+            }
+
+            var activeEpisodes = await baseQuery
+                .OrderBy(x => x.AdmittedAt ?? x.CreateDateTime)
+                .ToListAsync(cancellationToken);
+
+            var matchedItems = new List<DepositShortfallItemResponse>();
+
+            foreach (var ep in activeEpisodes)
+            {
+                var admittedDate = ep.AdmittedAt ?? ep.CreateDateTime;
+                var losDays = CalculateLengthOfStayDays(admittedDate, today);
+
+                // Kriteria 2: Episode yang lama rawatnya belum melewati ambang TIDAK muncul
+                if (losDays < thresholdDays)
+                {
+                    continue;
+                }
+
+                var bedPlacement = ep.BedPlacements.FirstOrDefault(p => p.EndDateTime == null && !p.IsDelete);
+
+                if (_billingDepositAdapter == null)
+                {
+                    // Kriteria 5: Bila ringkasan Billing tidak dapat dibaca, nyatakan tidak tersedia
+                    matchedItems.Add(new DepositShortfallItemResponse
+                    {
+                        EpisodeId = ep.Id,
+                        EpisodeNumber = ep.EpisodeNumber,
+                        PatientId = ep.PatientId,
+                        PatientName = ep.Patient?.FullName,
+                        MedicalRecordNumber = ep.Patient?.MedicalRecordNumber,
+                        ServiceUnitId = ep.ServiceUnitId,
+                        ServiceUnitName = ep.ServiceUnit?.ServiceUnitName,
+                        BedName = bedPlacement?.Bed?.BedName,
+                        RoomName = bedPlacement?.Room?.RoomName,
+                        AdmittedAt = ep.AdmittedAt,
+                        LengthOfStayDays = losDays,
+                        ThresholdDays = thresholdDays,
+                        BillingDataAvailable = false,
+                        BillingUnavailableReason = "Layanan integrasi Billing deposit tidak terpasang di sistem.",
+                        FollowUpDue = true
+                    });
+                    continue;
+                }
+
+                var depositSummary = await _billingDepositAdapter.GetDepositSummaryAsync(ep.Id, cancellationToken);
+
+                if (!depositSummary.IsDataAvailable)
+                {
+                    // Kriteria 5: Bila ringkasan Billing tidak dapat dibaca, daftar menyatakan datanya tidak tersedia
+                    matchedItems.Add(new DepositShortfallItemResponse
+                    {
+                        EpisodeId = ep.Id,
+                        EpisodeNumber = ep.EpisodeNumber,
+                        PatientId = ep.PatientId,
+                        PatientName = ep.Patient?.FullName,
+                        MedicalRecordNumber = ep.Patient?.MedicalRecordNumber,
+                        ServiceUnitId = ep.ServiceUnitId,
+                        ServiceUnitName = ep.ServiceUnit?.ServiceUnitName,
+                        BedName = bedPlacement?.Bed?.BedName,
+                        RoomName = bedPlacement?.Room?.RoomName,
+                        AdmittedAt = ep.AdmittedAt,
+                        LengthOfStayDays = losDays,
+                        ThresholdDays = thresholdDays,
+                        BillingDataAvailable = false,
+                        BillingUnavailableReason = depositSummary.UnavailableReason ?? "Ringkasan deposit Billing tidak dapat diakses.",
+                        FollowUpDue = true
+                    });
+                    continue;
+                }
+
+                // Kriteria 4: Angka kekurangan pada daftar sama persis dengan ringkasan Billing
+                var shortfall = depositSummary.PolicyShortfallAmount;
+
+                // Kriteria 1: Episode aktif yang kekurangannya di atas nol muncul pada daftar
+                // Kriteria 3: Episode yang kekurangannya sudah tertutup (<= 0) hilang dari daftar tanpa transaksi lama berubah
+                if (shortfall > 0)
+                {
+                    matchedItems.Add(new DepositShortfallItemResponse
+                    {
+                        EpisodeId = ep.Id,
+                        EpisodeNumber = ep.EpisodeNumber,
+                        PatientId = ep.PatientId,
+                        PatientName = ep.Patient?.FullName,
+                        MedicalRecordNumber = ep.Patient?.MedicalRecordNumber,
+                        ServiceUnitId = ep.ServiceUnitId,
+                        ServiceUnitName = ep.ServiceUnit?.ServiceUnitName,
+                        BedName = bedPlacement?.Bed?.BedName,
+                        RoomName = bedPlacement?.Room?.RoomName,
+                        AdmittedAt = ep.AdmittedAt,
+                        LengthOfStayDays = losDays,
+                        ThresholdDays = thresholdDays,
+                        MinimumPolicyAmount = depositSummary.MinimumPolicyAmount,
+                        TotalReceived = depositSummary.TotalReceived,
+                        ShortfallAmount = shortfall,
+                        BillingDataAvailable = true,
+                        FollowUpDue = true
+                    });
+                }
+            }
+
+            var totalData = matchedItems.Count;
+            var pagedItems = matchedItems
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            var totalPage = (int)Math.Ceiling((double)totalData / pageSize);
+
+            return new DepositShortfallPagedResult
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = totalPage,
+                Items = pagedItems
+            };
         }
     }
 }

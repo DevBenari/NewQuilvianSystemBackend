@@ -218,5 +218,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
                 result,
                 "Daftar pantau pesanan tindakan tertagih berhasil diambil."));
         }
+
+        /// <summary>
+        /// Daftar pantau episode aktif yang depositnya masih di bawah minimum kebijakan,
+        /// muncul kembali tiap kelipatan ambang tindak lanjut (BE-RWI-071).
+        /// </summary>
+        /// <remarks>
+        /// Sesuai RWI-DEC-096 dan FR-RI-177. Angka kekurangan dibaca dari ringkasan episode Billing,
+        /// bukan dihitung ulang di Rawat Inap. Ambang hari diambil dari MstInpatientSetting.
+        /// </remarks>
+        [HttpGet("deposit-shortfall")]
+        [ProducesResponseType(typeof(ApiResponse<DepositShortfallPagedResult>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Inpatient Monitoring", Description = "Melihat daftar pantau kekurangan deposit", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("InpatientMonitoring", "Read")]
+        public async Task<IActionResult> GetDepositShortfall(
+            [FromQuery] DepositShortfallQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _censusQueryService.GetDepositShortfallAsync(query, cancellationToken);
+
+            return Ok(ApiResponse<DepositShortfallPagedResult>.Ok(
+                result,
+                "Daftar pantau kekurangan deposit berhasil diambil."));
+        }
     }
 }

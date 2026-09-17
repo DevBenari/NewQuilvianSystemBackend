@@ -3,13 +3,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
-using System.Data;
 using System.Security.Claims;
 
 using ResponseDrugPagedResult =
@@ -34,8 +34,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
     public class DrugController : ControllerBase
     {
         private const string LogCategory = "HealthServices.MasterData";
-        private const string CodePrefix = "DRG-RSMMC-";
-        private const int CodeNumberLength = 5;
 
         private static readonly HashSet<string> DrugFormOptions = new(StringComparer.OrdinalIgnoreCase)
         {
@@ -61,13 +59,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         };
 
         private readonly ApplicationDbContext _dbContext;
+        private readonly DrugRegistrationService _drugRegistrationService;
         private readonly LoggerService _loggerService;
 
         public DrugController(
             ApplicationDbContext dbContext,
+            DrugRegistrationService drugRegistrationService,
             LoggerService loggerService)
         {
             _dbContext = dbContext;
+            _drugRegistrationService = drugRegistrationService;
             _loggerService = loggerService;
         }
 
@@ -475,89 +476,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction("Create", "Create Drug", Description = "Membuat data drug", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission("Drug", "Create")]
-        public async Task<IActionResult> CreateDrug([FromBody] CreateDrugRequest request)
+        public async Task<IActionResult> CreateDrug(
+            [FromBody] CreateDrugRequest request,
+            CancellationToken cancellationToken = default)
         {
-            var validation = await ValidateRequestAsync(null, request);
+            var registration = await _drugRegistrationService.CreateAsync(
+                request,
+                GetCurrentUserId(),
+                cancellationToken);
 
-            if (!validation.IsValid)
+            if (registration.Status != DrugRegistrationStatus.Success)
             {
                 return BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
-                    validation.ErrorMessage ?? "Data drug tidak valid."
+                    registration.Message
                 ));
             }
 
-            var now = DateTime.UtcNow;
-            var actorUserId = GetCurrentUserId();
-
-            await using var transaction = await _dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
-
-            var entity = new MstDrug
-            {
-                Id = Guid.NewGuid(),
-                DrugCategoryId = request.DrugCategoryId,
-                DrugCode = await GenerateDrugCodeAsync(),
-                DrugName = request.DrugName.Trim(),
-                GenericName = NormalizeNullableString(request.GenericName),
-                BrandName = NormalizeNullableString(request.BrandName),
-                ManufacturerName = NormalizeNullableString(request.ManufacturerName),
-                DrugForm = NormalizeDrugForm(request.DrugForm),
-                Strength = NormalizeNullableString(request.Strength),
-                StrengthValue = request.StrengthValue,
-                StrengthMeasurementId = NormalizeNullableGuid(request.StrengthMeasurementId),
-                BaseUnitMeasurementId = NormalizeNullableGuid(request.BaseUnitMeasurementId),
-                DispenseUnitMeasurementId = NormalizeNullableGuid(request.DispenseUnitMeasurementId),
-                PurchaseUnitMeasurementId = NormalizeNullableGuid(request.PurchaseUnitMeasurementId),
-                StockUnitMeasurementId = NormalizeNullableGuid(request.StockUnitMeasurementId),
-                DefaultDoseUnitMeasurementId = NormalizeNullableGuid(request.DefaultDoseUnitMeasurementId),
-                Route = NormalizeRoute(request.Route),
-                IsFormulary = request.IsFormulary,
-                IsGeneric = request.IsGeneric,
-                IsAntibiotic = request.IsAntibiotic,
-                IsNarcotic = request.IsNarcotic,
-                IsPsychotropic = request.IsPsychotropic,
-                IsHighAlert = request.IsHighAlert,
-                IsChronicDiseaseDrug = request.IsChronicDiseaseDrug,
-                IsVaccine = request.IsVaccine,
-                IsConsumable = request.IsConsumable,
-                IsCompoundIngredientAllowed = request.IsCompoundIngredientAllowed,
-                IsStockManaged = request.IsStockManaged,
-                IsBatchTracked = request.IsBatchTracked,
-                IsExpiryDateTracked = request.IsExpiryDateTracked,
-                IsAllowFractionalDispense = request.IsAllowFractionalDispense,
-                IsNeedPrescription = request.IsNeedPrescription,
-                IsPrescribable = request.IsPrescribable,
-                IsNeedApproval = request.IsNeedApproval,
-                Indication = NormalizeClinicalText(request.Indication),
-                Contraindication = NormalizeClinicalText(request.Contraindication),
-                SideEffect = NormalizeClinicalText(request.SideEffect),
-                WarningPrecaution = NormalizeClinicalText(request.WarningPrecaution),
-                DosageInformation = NormalizeClinicalText(request.DosageInformation),
-                DrugInteraction = NormalizeClinicalText(request.DrugInteraction),
-                AdministrationInstruction = NormalizeClinicalText(request.AdministrationInstruction),
-                StorageInstruction = NormalizeClinicalText(request.StorageInstruction),
-                PregnancyCategory = NormalizeClinicalText(request.PregnancyCategory),
-                LactationNote = NormalizeClinicalText(request.LactationNote),
-                PediatricNote = NormalizeClinicalText(request.PediatricNote),
-                GeriatricNote = NormalizeClinicalText(request.GeriatricNote),
-                ExternalDrugCode = NormalizeNullableString(request.ExternalDrugCode),
-                IntegrationCode = NormalizeNullableString(request.IntegrationCode),
-                BpomRegistrationNumber = NormalizeNullableString(request.BpomRegistrationNumber),
-                NationalDrugCode = NormalizeNullableString(request.NationalDrugCode),
-                SortOrder = request.SortOrder,
-                Description = NormalizeNullableString(request.Description),
-                IsActive = true,
-                CreateDateTime = now,
-                CreateBy = actorUserId,
-                IsDelete = false,
-                IsCancel = false
-            };
-
-            _dbContext.Set<MstDrug>().Add(entity);
-            await _dbContext.SaveChangesAsync();
-            await transaction.CommitAsync();
-
-            var result = ToCreateResponse(entity);
+            var result = ToCreateResponse(registration.Entity!);
 
             await _loggerService.InfoAsync(
                 LogCategory,
@@ -604,78 +540,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction("Create", "Create Drug", Description = "Mendaftarkan obat bawaan pasien sebagai obat non-formularium", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission("Drug", "Create")]
-        public async Task<IActionResult> RegisterNonFormularyDrug([FromBody] CreateNonFormularyDrugRequest request)
+        public async Task<IActionResult> RegisterNonFormularyDrug(
+            [FromBody] CreateNonFormularyDrugRequest request,
+            CancellationToken cancellationToken = default)
         {
-            // VAL-DOK-53b.
-            if (request.DrugCategoryId == Guid.Empty || string.IsNullOrWhiteSpace(request.DrugName))
+            var registration = await _drugRegistrationService.RegisterNonFormularyAsync(
+                request,
+                GetCurrentUserId(),
+                cancellationToken);
+
+            if (registration.Status != DrugRegistrationStatus.Success)
             {
                 return BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
-                    "Nama dan kategori obat wajib diisi."
+                    registration.Message
                 ));
             }
 
-            var baseUnit = NormalizeNullableGuid(request.BaseUnitMeasurementId);
-            var dispenseUnit = NormalizeNullableGuid(request.DispenseUnitMeasurementId);
-            var doseUnit = NormalizeNullableGuid(request.DefaultDoseUnitMeasurementId);
-            var dapatDiresepkan = baseUnit.HasValue && dispenseUnit.HasValue && doseUnit.HasValue;
-
-            var createRequest = new CreateDrugRequest
-            {
-                DrugCategoryId = request.DrugCategoryId,
-                DrugName = request.DrugName.Trim(),
-                GenericName = request.GenericName,
-                DrugForm = request.DrugForm,
-                Strength = request.Strength,
-                BaseUnitMeasurementId = baseUnit,
-                DispenseUnitMeasurementId = dispenseUnit,
-                DefaultDoseUnitMeasurementId = doseUnit,
-                IsFormulary = false,
-                IsPrescribable = dapatDiresepkan
-            };
-
-            var validation = await ValidateRequestAsync(null, createRequest);
-
-            if (!validation.IsValid)
-            {
-                return BadRequest(ApiResponse<object>.Fail(
-                    StatusCodes.Status400BadRequest,
-                    validation.ErrorMessage ?? "Data obat non-formularium tidak valid."
-                ));
-            }
-
-            var now = DateTime.UtcNow;
-            var actorUserId = GetCurrentUserId();
-
-            await using var transaction = await _dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
-
-            var entity = new MstDrug
-            {
-                Id = Guid.NewGuid(),
-                DrugCategoryId = createRequest.DrugCategoryId,
-                DrugCode = await GenerateDrugCodeAsync(),
-                DrugName = createRequest.DrugName,
-                GenericName = NormalizeNullableString(createRequest.GenericName),
-                DrugForm = NormalizeDrugForm(createRequest.DrugForm),
-                Strength = NormalizeNullableString(createRequest.Strength),
-                BaseUnitMeasurementId = createRequest.BaseUnitMeasurementId,
-                DispenseUnitMeasurementId = createRequest.DispenseUnitMeasurementId,
-                DefaultDoseUnitMeasurementId = createRequest.DefaultDoseUnitMeasurementId,
-                // RWI-DEC-134 butir (2). Satu-satunya tempat nilai ini ditentukan.
-                IsFormulary = false,
-                IsPrescribable = createRequest.IsPrescribable,
-                IsActive = true,
-                CreateDateTime = now,
-                CreateBy = actorUserId,
-                IsDelete = false,
-                IsCancel = false
-            };
-
-            _dbContext.Set<MstDrug>().Add(entity);
-            await _dbContext.SaveChangesAsync();
-            await transaction.CommitAsync();
-
-            var result = ToCreateResponse(entity);
+            var result = ToCreateResponse(registration.Entity!);
 
             await _loggerService.InfoAsync(
                 LogCategory,
@@ -709,7 +591,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 ));
             }
 
-            var validation = await ValidateRequestAsync(id, request);
+            var validation = await _drugRegistrationService.ValidateRequestAsync(id, request);
 
             if (!validation.IsValid)
             {
@@ -1105,188 +987,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             };
         }
 
-        private async Task<(bool IsValid, string? ErrorMessage)> ValidateRequestAsync(
-            Guid? excludeId,
-            CreateDrugRequest request)
-        {
-            if (request.DrugCategoryId == Guid.Empty)
-                return (false, "Drug category wajib dipilih.");
-
-            if (string.IsNullOrWhiteSpace(request.DrugName))
-                return (false, "Nama drug wajib diisi.");
-
-
-            if (request.StrengthValue.HasValue && request.StrengthValue.Value < 0)
-                return (false, "Nilai strength tidak boleh kurang dari 0.");
-
-            if (!string.IsNullOrWhiteSpace(request.DrugForm) && !DrugFormOptions.Contains(request.DrugForm.Trim()))
-                return (false, "Drug form tidak valid. Gunakan nilai dari endpoint filters/metadata.");
-
-            if (!string.IsNullOrWhiteSpace(request.Route) && !RouteOptions.Contains(request.Route.Trim()))
-                return (false, "Route tidak valid. Gunakan nilai dari endpoint filters/metadata.");
-
-            var categoryExists = await _dbContext.Set<MstDrugCategory>()
-                .AsNoTracking()
-                .AnyAsync(x => x.Id == request.DrugCategoryId && !x.IsDelete && x.IsActive);
-
-            if (!categoryExists)
-                return (false, "Drug category tidak ditemukan atau tidak aktif.");
-
-            if (request.IsPrescribable)
-            {
-                if (!request.BaseUnitMeasurementId.HasValue || request.BaseUnitMeasurementId.Value == Guid.Empty)
-                    return (false, "Base unit measurement wajib dipilih untuk obat yang dapat diresepkan.");
-
-                if (!request.DispenseUnitMeasurementId.HasValue || request.DispenseUnitMeasurementId.Value == Guid.Empty)
-                    return (false, "Dispense unit measurement wajib dipilih untuk obat yang dapat diresepkan.");
-
-                if (!request.DefaultDoseUnitMeasurementId.HasValue || request.DefaultDoseUnitMeasurementId.Value == Guid.Empty)
-                    return (false, "Default dose unit measurement wajib dipilih untuk obat yang dapat diresepkan.");
-            }
-
-            if (request.StrengthValue.HasValue && request.StrengthValue.Value > 0 &&
-                (!request.StrengthMeasurementId.HasValue || request.StrengthMeasurementId.Value == Guid.Empty))
-            {
-                return (false, "Strength measurement wajib dipilih jika strength value diisi.");
-            }
-
-            var measurementIds = new List<Guid?>
-            {
-                request.StrengthMeasurementId,
-                request.BaseUnitMeasurementId,
-                request.DispenseUnitMeasurementId,
-                request.PurchaseUnitMeasurementId,
-                request.StockUnitMeasurementId,
-                request.DefaultDoseUnitMeasurementId
-            }
-            .Where(x => x.HasValue && x.Value != Guid.Empty)
-            .Select(x => x!.Value)
-            .Distinct()
-            .ToList();
-
-            if (measurementIds.Count > 0)
-            {
-                var validMeasurementCount = await _dbContext.Set<MstMeasurement>()
-                    .AsNoTracking()
-                    .CountAsync(x => measurementIds.Contains(x.Id) && !x.IsDelete && x.IsActive && x.IsForDrug);
-
-                if (validMeasurementCount != measurementIds.Count)
-                    return (false, "Measurement yang dipilih tidak valid, tidak aktif, atau tidak ditandai untuk obat.");
-            }
-
-            if (request.IsAllowFractionalDispense && request.DispenseUnitMeasurementId.HasValue)
-            {
-                var dispenseUnitAllowsDecimal = await _dbContext.Set<MstMeasurement>()
-                    .AsNoTracking()
-                    .AnyAsync(x =>
-                        x.Id == request.DispenseUnitMeasurementId.Value &&
-                        !x.IsDelete &&
-                        x.IsActive &&
-                        x.IsForDrug &&
-                        x.IsDecimalAllowed);
-
-                if (!dispenseUnitAllowsDecimal)
-                    return (false, "Dispense unit harus mengizinkan nilai desimal jika fractional dispense diaktifkan.");
-            }
-
-            var normalizedName = request.DrugName.Trim().ToLower();
-            var normalizedStrength = NormalizeComparableText(request.Strength);
-            var normalizedDrugForm = NormalizeComparableText(request.DrugForm);
-            var normalizedBrandName = NormalizeComparableText(request.BrandName);
-
-            var duplicateNameQuery = _dbContext.Set<MstDrug>()
-                .AsNoTracking()
-                .Where(x =>
-                    !x.IsDelete &&
-                    x.DrugCategoryId == request.DrugCategoryId &&
-                    x.DrugName.ToLower() == normalizedName &&
-                    (x.Strength ?? string.Empty).Trim().ToLower() == normalizedStrength &&
-                    (x.DrugForm ?? string.Empty).Trim().ToLower() == normalizedDrugForm &&
-                    (x.BrandName ?? string.Empty).Trim().ToLower() == normalizedBrandName);
-
-            if (excludeId.HasValue)
-                duplicateNameQuery = duplicateNameQuery.Where(x => x.Id != excludeId.Value);
-
-            if (await duplicateNameQuery.AnyAsync())
-                return (false, "Drug dengan nama, kategori, strength, bentuk, dan brand tersebut sudah digunakan.");
-
-            if (!string.IsNullOrWhiteSpace(request.ExternalDrugCode))
-            {
-                var externalCode = request.ExternalDrugCode.Trim().ToLower();
-
-                var duplicateExternalCodeQuery = _dbContext.Set<MstDrug>()
-                    .AsNoTracking()
-                    .Where(x =>
-                        !x.IsDelete &&
-                        x.ExternalDrugCode != null &&
-                        x.ExternalDrugCode.ToLower() == externalCode);
-
-                if (excludeId.HasValue)
-                    duplicateExternalCodeQuery = duplicateExternalCodeQuery.Where(x => x.Id != excludeId.Value);
-
-                if (await duplicateExternalCodeQuery.AnyAsync())
-                    return (false, "External drug code sudah digunakan.");
-            }
-
-            if (!string.IsNullOrWhiteSpace(request.IntegrationCode))
-            {
-                var integrationCode = request.IntegrationCode.Trim().ToLower();
-
-                var duplicateIntegrationCodeQuery = _dbContext.Set<MstDrug>()
-                    .AsNoTracking()
-                    .Where(x =>
-                        !x.IsDelete &&
-                        x.IntegrationCode != null &&
-                        x.IntegrationCode.ToLower() == integrationCode);
-
-                if (excludeId.HasValue)
-                    duplicateIntegrationCodeQuery = duplicateIntegrationCodeQuery.Where(x => x.Id != excludeId.Value);
-
-                if (await duplicateIntegrationCodeQuery.AnyAsync())
-                    return (false, "Integration code sudah digunakan.");
-            }
-
-            return (true, null);
-        }
-
-        private async Task<string> GenerateDrugCodeAsync()
-        {
-            var existingCodes = await _dbContext.Set<MstDrug>()
-                .IgnoreQueryFilters()
-                .AsNoTracking()
-                .Where(x => x.DrugCode.StartsWith(CodePrefix))
-                .Select(x => x.DrugCode)
-                .ToListAsync();
-
-            var usedNumbers = existingCodes
-                .Select(ExtractDrugSequenceNumber)
-                .Where(x => x.HasValue)
-                .Select(x => x!.Value)
-                .Where(x => x > 0)
-                .ToHashSet();
-
-            var nextNumber = 1;
-            while (usedNumbers.Contains(nextNumber))
-                nextNumber++;
-
-            return CodePrefix + nextNumber.ToString().PadLeft(CodeNumberLength, '0');
-        }
-
-        private static int? ExtractDrugSequenceNumber(string drugCode)
-        {
-            if (string.IsNullOrWhiteSpace(drugCode))
-                return null;
-
-            if (!drugCode.StartsWith(CodePrefix, StringComparison.OrdinalIgnoreCase))
-                return null;
-
-            var numberText = drugCode[CodePrefix.Length..];
-
-            return int.TryParse(numberText, out var number)
-                ? number
-                : null;
-        }
-
         private async Task<Dictionary<Guid, string?>> GetActorNameMapAsync(IEnumerable<Guid> actorIds)
         {
             var ids = actorIds
@@ -1647,13 +1347,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
                 .Replace("\r\n", "\n")
                 .Replace("\r", "\n")
                 .Trim();
-        }
-
-        private static string NormalizeComparableText(string? value)
-        {
-            return string.IsNullOrWhiteSpace(value)
-                ? string.Empty
-                : value.Trim().ToLower();
         }
 
         private static string? NormalizeDrugForm(string? value)

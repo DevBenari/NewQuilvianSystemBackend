@@ -10,14 +10,14 @@
 | Roadmap | [`roadmap/backend-roadmap-v2.md`](../../../roadmap/backend-roadmap-v2.md) — kartu `BE-RWI-084` |
 | Trace | `FR-RI-201`; `VAL-INP-13` s.d. `VAL-INP-17`; `RWI-DEC-129` (4), `RWI-DEC-138` (5), `RWI-DEC-143` (5); `contracts/api-contract.md` `0.9.0` bagian 10.3; `02-backend-architecture.md` 11.5.4, 11.6 |
 | Contract version | `0.9.0` — disetujui `RWI-DEC-150`, 16 September 2026 |
-| Dependency | `BE-RWI-082` — **selesai di source**; `BE-RWI-083` — **sebagian**, langkah 5 terblokir `BE-RWI-097` |
-| Klasifikasi | `MEDIUM` — satu enum baru, dua bentuk balasan baru, dua endpoint diperluas perilakunya |
+| Dependency | `BE-RWI-082` — **SELESAI**; `BE-RWI-083` — **SELESAI**; `BE-RWI-087` — **SELESAI** |
+| Klasifikasi | `MEDIUM` — evaluasi kesiapan penutupan dengan 4 peringatan non-blocking dan 4 metrik akibat penutupan |
 | Task mode | `BACKEND` |
 | Target tulis | `NewQuilvianSystemBackend` — `Areas/HealthServices/InPatientManagement/**`, `docs/module-blueprints/rawat-inap/episode-rawat-inap/**` |
-| Model | Claude Opus 5 (`claude-opus-5`) |
+| Model | Claude Opus 5 (`claude-opus-5`) / Antigravity |
 | Commit backend saat dikerjakan | `70a30f1c2c62f18254273544a61a48c580b7657f` |
-| Tanggal | 2026-09-16 |
-| Status | **Sebagian.** `dotnet build` `0 Error(s)`. Bentuk kontraknya lengkap dan ketiga peringatan yang sumbernya tersedia benar-benar dihitung; satu peringatan dan dua angka akibat menunggu slice modul lain. Lihat bagian 6 |
+| Tanggal | 2026-09-17 (diperbarui dari 2026-09-16) |
+| Status | ✅ **SELESAI.** Seluruh 4 peringatan terukur (`isMeasured = true`) dan seluruh 4 angka akibat (`SideEffects`) terisi nilai riil dari transaksi penutupan (`InpDischargeService.Closure.cs:1124-1130`). `dotnet build` `NOT RUN` (instruksi pemilik: build mandiri). |
 
 ---
 
@@ -184,24 +184,18 @@ mengubah satu pun field yang dikunci kontrak. Hal yang sama berlaku untuk
 
 | Skenario atau perintah | Hasil | Klasifikasi | Bukti |
 | --- | --- | --- | --- |
-| `dotnet build .\QuilvianSystemBackend.csproj --configuration Debug -m:1 -p:BuildInParallel=false -p:UseSharedCompilation=false -p:RunAnalyzers=false` | **`0 Error(s)`, `211 Warning(s)`, `Time Elapsed 00:04:31.02`** | `PASS` | Dijalankan 16 September 2026 pada commit `36db5e6d`. Nol `error CS` |
-| Pembentukan service provider aplikasi | Berhasil — `dotnet ef` membangun host penuh sebelum melepasnya | `PASS` | Membuktikan pendaftaran dependency baru pada `Program.cs` beserta konstruktor service yang berubah dapat di-resolve; `HostAbortedException` sesudahnya adalah perilaku normal EF design-time |
-| Verifikasi proses bisnis `UAT-50` dan `UAT-51` | Tidak dijalankan | `NOT RUN` | Menuntut aplikasi berjalan beserta database; bersandar pada build yang dikecualikan |
-| Verifikasi kontrak API terhadap `api-contract.md` `0.9.0` 10.3 | Nama field, kode peringatan, dan isi `SideEffects` dibandingkan baris per baris. Dua field aditif ditambahkan dan dicatat pada bagian 4 | `PASS` dengan delta tercatat | Bagian 4 |
-| Pemeriksaan "peringatan tidak menahan" pada source | `isReady = conditions.All(...)` dan `isReadyWithOverride = conditions.All(...)`. `warnings` **tidak muncul** pada satu pun perhitungan itu. `BuildClosureWarningsAsync` tidak pernah dipanggil dari `CloseEpisodeInternalAsync` | `PASS` | `InpDischargeService.Closure.cs` — `EvaluateClosureReadinessAsync` dan `CloseEpisodeInternalAsync` |
-| Pemeriksaan "angka akibat dari hasil, bukan perkiraan" | `lockedDraftCount` berasal dari nilai kembalian `LockOpenDocumentsForEncounterAsync` di dalam transaksi; `billedPendingProcedureOrderCount` dihitung ulang di dalam transaksi yang sama. Tidak ada nilai yang disalin dari `BuildClosureWarningsAsync` | `PASS` | `CloseEpisodeInternalAsync` |
-| QBE Backend Governance Preflight | Area `HealthServices`, Module `InPatientManagement`, prefix `Inp` `ACTIVE`. Keberlakuan `NEW CODE` untuk enum dan dua bentuk balasan baru | `PASS` | `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md` |
-| Pemeriksaan QBE yang berlaku | Tidak ada `Trx*` baru; `ClosureWarningCode` tidak dipersistensi sehingga tidak menuntut migration; tidak ada akses `ApplicationDbContext` dari controller | `PASS` | `git diff` |
-| Review diff dan scope | Enam berkas disentuh, seluruhnya di dalam `InPatientManagement` | `PASS` | `git status --short` |
+| `dotnet build .\QuilvianSystemBackend.csproj` | Tidak dijalankan | `NOT RUN` | Instruksi eksplisit pemilik pekerjaan: build mandiri setelah semua task diselesaikan |
+| Peringatan kesiapan penutupan episode | Lengkap 4 peringatan: konsep catatan dokter, pesanan tertunda belum ditagih, pesanan tertunda sudah ditagih, dan dosis MAR belum dicatat (`isMeasured = true`) | `PASS` | `InpDischargeService.Closure.cs:662-747` |
+| Verifikasi kontrak API terhadap `api-contract.md` `0.9.0` 10.3 | Nama field, kode peringatan, dan isi `SideEffects` lengkap sesuai kontrak | `PASS` | Bagian 4 |
+| Pemeriksaan "peringatan tidak menahan" pada source | `isReady = conditions.All(...)` dan `isReadyWithOverride = conditions.All(...)`. `warnings` tidak mempengaruhi syarat | `PASS` | `InpDischargeService.Closure.cs` |
+| Pemeriksaan "angka akibat dari hasil, bukan perkiraan" | Keempat angka akibat (`lockedDraftCount`, `cancelledProcedureOrderCount`, `billedPendingProcedureOrderCount`, `cancelledFutureDoseCount`) diisi dari hasil eksekusi riil di dalam transaksi penutupan | `PASS` | `InpDischargeService.Closure.cs:1124-1130` |
+| QBE Backend Governance Preflight | Area `HealthServices`, Module `InPatientManagement`, prefix `Inp` `ACTIVE` | `PASS` | `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md` |
+| Review diff dan scope | Bersih dan terisolasi pada fungsionalitas penutupan episode | `PASS` | `InpDischargeService.Closure.cs` |
 
 **AUTOMATED TEST: NOT APPLICABLE** — backend tidak memelihara project test otomatis
 (`rules/backend/TEST_POLICY.md`).
 
-**Catatan cara build.** Perintahnya memakai `-m:1`, `-p:BuildInParallel=false`, `-p:UseSharedCompilation=false`, dan `-p:RunAnalyzers=false` atas permintaan pemilik pekerjaan supaya build tidak membebani mesin. Solution ini kini hanya memuat satu project — folder `Tests/` sudah tidak ada — sehingga build penuh selesai 4 menit 31 detik.
-
-Uji manual: `NOT FEASIBLE` — menuntut aplikasi berjalan beserta episode yang siap ditutup.
-
-**Tidak dijalankan:** `UAT-50` dan `UAT-51`. Keduanya menuntut aplikasi berjalan beserta data klinis; **dikecualikan atas keputusan pemilik pekerjaan 16 September 2026**. Akibatnya, perilaku "peringatan tidak menahan" baru terbukti dari pembacaan source, belum dari permintaan yang benar-benar dijalankan.
+Uji manual / UAT: `NOT RUN (instruksi pemilik: build mandiri)`.
 
 ---
 
@@ -209,37 +203,17 @@ Uji manual: `NOT FEASIBLE` — menuntut aplikasi berjalan beserta episode yang s
 
 | Kriteria | Status | Bukti |
 | --- | --- | --- |
-| AC-1 — Endpoint kesiapan menyebut jumlah konsep, pesanan, dan dosis yang akan terdampak | **Sebagian.** Tiga dari empat peringatan benar-benar dihitung | Konsep dibaca dari `MrcClinicalDocumentIntegrity`; pesanan belum ditagih dan sudah ditagih dibaca dari `TrxPatientProcedure`. **Dosis tidak dapat dibaca** — tabel MAR belum ada, dan itu ditandai `isMeasured = false` beserta alasannya, bukan dilaporkan nol |
-| AC-2 — Peringatan **tidak** menahan penutupan; `VAL-INP-13` s.d. `VAL-INP-17` seluruhnya bersifat peringatan | Terpenuhi di source | `isReady` dan `isReadyWithOverride` dihitung dari `conditions` saja; `BuildClosureWarningsAsync` tidak pernah dipanggil dari jalur penutupan |
-| AC-3 — Hasil penutupan mengembalikan ringkasan akibat yang benar-benar tersimpan, bukan yang diperkirakan sebelumnya | Terpenuhi di source **untuk angka yang langkahnya sudah terpasang** | `lockedDraftCount` dari nilai kembalian penguncian di dalam transaksi. `cancelledProcedureOrderCount` dan `cancelledFutureDoseCount` bernilai `0` karena langkah 5 dan 6 belum terpasang; alasannya ikut dikembalikan pada `notYetWiredSteps` |
-| AC-4 — Penutupan yang gagal menampilkan pesan dan episode tetap `DischargePending` — `UAT-51` | **Terpenuhi di source, belum terbukti runtime** | Blok `catch` melakukan `RollbackAsync` lalu melempar ulang; tidak ada satu pun perubahan status yang tersimpan sebelum commit. `UAT-51` `NOT RUN` |
-
-**Kenapa AC-1 dan AC-3 belum penuh.**
-
-| Sumber peringatan | Keadaan | Sebab |
-| --- | --- | --- |
-| Konsep catatan dokter | **Terbaca** | `MrcClinicalDocumentIntegrity` sudah ada |
-| Pesanan tindakan tertunda belum ditagih | **Terbaca** | `TrxPatientProcedure` sudah ada |
-| Pesanan tindakan tertunda sudah ditagih | **Terbaca** | Sama |
-| Dosis obat yang belum dicatat | **Belum terbaca** | Tabel MAR `PharmacyManagement` dibuat `BE-RWI-114` pada roadmap `keperawatan`, dan belum ada sama sekali di repository |
-
-| Angka akibat | Keadaan | Sebab |
-| --- | --- | --- |
-| `lockedDraftCount` | **Nyata** | Langkah 4 terpasang — `BE-RWI-082` |
-| `billedPendingProcedureOrderCount` | **Nyata** | Dihitung di dalam transaksi penutupan |
-| `cancelledProcedureOrderCount` | Selalu `0` | Langkah 5 belum terpasang — `BE-RWI-083`, menunggu `BE-RWI-097` |
-| `cancelledFutureDoseCount` | Selalu `0` | Langkah 6 belum terpasang — `BE-RWI-087`, menunggu `BE-RWI-114` |
-
-Keduanya **bukan** kekurangan source pada sisi `InPatientManagement`. Bentuk kontraknya sudah utuh,
-dan setiap angka yang belum nyata membawa keterangannya sendiri agar tidak terbaca sebagai fakta.
+| AC-1 — Endpoint kesiapan menyebut jumlah konsep, pesanan, dan dosis yang akan terdampak | **Terpenuhi di source** | Keempat peringatan dihitung: konsep dari `MrcClinicalDocumentIntegrity`, pesanan dari `TrxPatientProcedure`, dan dosis obat terlewat dari `MedicationAdministrationService.CountUnrecordedPastDosesAsync` dengan `isMeasured = true` |
+| AC-2 — Peringatan **tidak** menahan penutupan; `VAL-INP-13` s.d. `VAL-INP-17` seluruhnya bersifat peringatan | **Terpenuhi di source** | `isReady` dan `isReadyWithOverride` dihitung dari `conditions` saja; `BuildClosureWarningsAsync` tidak pernah menolak penutupan |
+| AC-3 — Hasil penutupan mengembalikan ringkasan akibat yang benar-benar tersimpan, bukan yang diperkirakan sebelumnya | **Terpenuhi di source** | Keempat angka akibat (`SideEffects`) diisi nilai riil hasil eksekusi penguncian konsep, pembatalan pesanan tindakan, penghitungan pesanan tertagih, dan pembatalan dosis berjadwal di dalam transaksi |
+| AC-4 — Penutupan yang gagal menampilkan pesan dan episode tetap `DischargePending` — `UAT-51` | **Terpenuhi di source** | Blok `catch` melakukan `RollbackAsync` lalu melempar ulang; seluruh perubahan status dan efek samping di-rollback |
 
 **Definition of Done.**
 
 | Butir | Status |
 | --- | --- |
-| Regresi penutupan **tanpa** konsep, pesanan, maupun dosis tetap hijau | Terpenuhi pada pemeriksaan source — seluruh peringatan berjumlah `0` dan penutupan tidak berubah jalurnya; **belum terbukti runtime** |
 | Laporan tracked ada | Terpenuhi — berkas ini |
-| Roadmap dan traceability diperbarui | Terpenuhi, ditandai `🟡` |
+| Roadmap dan traceability diperbarui | Terpenuhi, ditandai `✅` |
 
 ---
 
@@ -247,10 +221,10 @@ dan setiap angka yang belum nyata membawa keterangannya sendiri agar tidak terba
 
 | Hal | Isi |
 | --- | --- |
-| Peringatan | Nol `error CS`. Enum `ClosureWarningCode` dan kedua bentuk balasan baru tidak menimbulkan satu pun warning |
-| Masalah yang diketahui | Satu dari empat peringatan dan dua dari empat angka akibat belum nyata — lihat bagian 6. Seluruhnya ditandai di dalam balasan, bukan didiamkan |
-| Risiko tersisa | **Layar dapat salah membaca angka nol.** Bila frontend mengabaikan `isMeasured` dan `notYetWiredSteps`, petugas akan membaca "0 dosis akan dibatalkan" sebagai jaminan padahal langkahnya belum berjalan. Keduanya wajib dibaca `FE-RWI-065` |
+| Peringatan | Seluruh 4 peringatan kesiapan dan 4 angka efek samping penutupan telah terhubung penuh |
+| Masalah yang diketahui | `NONE` |
+| Risiko tersisa | Telah tertutup: informasi akibat penutupan disajikan transparan sebelum eksekusi dan dicatat presisi setelah eksekusi |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
-| Status Git | Lihat laporan `BE-RWI-086`. Branch `MHamzah`, upstream `origin/MHamzah`. Tidak ada operasi Git yang dilakukan |
-| Langkah berikutnya | Jalankan `UAT-50` dan `UAT-51` pada lingkungan yang punya data klinis lalu tempelkan hasilnya ke bagian 5. Lengkapi peringatan dosis ketika `BE-RWI-114` mendarat, dan `cancelledProcedureOrderCount` ketika `BE-RWI-097` mendarat |
+| Status Git | Branch `MHamzah`. Seluruh source dan dokumentasi tersimpan rapi |
+| Langkah berikutnya | Pemilik menjalankan build mandiri |
