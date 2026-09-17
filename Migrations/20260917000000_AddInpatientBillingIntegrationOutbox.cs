@@ -8,8 +8,8 @@ using QuilvianSystemBackend.Repositories;
 namespace QuilvianSystemBackend.Migrations
 {
     /// <summary>
-    /// BE-RWI-127 / RWI-DEC-161, langkah migration Fondasi Outbox & Occupancy Tracking.
-    /// Memasang tabel InpIntegrationOutboxes dan kolom tracking hunian pada InpBedPlacement & InpEpisode.
+    /// BE-RWI-127 / RWI-DEC-161, langkah migration Fondasi Outbox dan Occupancy Tracking.
+    /// Memasang tabel InpIntegrationOutboxes dan kolom tracking hunian pada InpBedPlacement dan InpEpisode.
     /// </summary>
     [DbContext(typeof(ApplicationDbContext))]
     [Migration("20260917000000_AddInpatientBillingIntegrationOutbox")]

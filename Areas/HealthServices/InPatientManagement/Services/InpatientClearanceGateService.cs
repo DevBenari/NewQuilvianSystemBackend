@@ -182,7 +182,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             }
 
             // VAL-INT-008: Jam kepulangan fisik tidak boleh mendahului jam mulai hunian kamar terakhir
-            if (dischargeTime < activePlacement.OccupancyStartAt)
+            if (dischargeTime < activePlacement.StartDateTime)
             {
                 return InpEpisodeOperationResult.BusinessRuleRejected(
                     "Jam kepulangan fisik tidak valid: Waktu keluar fisik tidak boleh mendahului waktu pasien mulai menempati tempat tidur.",
@@ -215,9 +215,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     EncounterId = episode.EncounterId,
                     BedId = activePlacement.BedId,
                     RoomId = activePlacement.RoomId,
-                    RoomClassId = activePlacement.RoomClassId,
-                    OccupancyStartAt = activePlacement.OccupancyStartAt,
-                    OccupancyEndAt = activePlacement.OccupancyEndAt ?? dischargeTime,
+                    RoomClassId = activePlacement.PatientClassId,
+                    OccupancyStartAt = activePlacement.StartDateTime,
+                    OccupancyEndAt = activePlacement.EndDateTime ?? dischargeTime,
                     PhysicallyLeftAt = dischargeTime,
                     ClearanceStatus = episode.ClearanceStatus.ToString(),
                     IsSupervisorOverridden = episode.IsSupervisorOverridden,

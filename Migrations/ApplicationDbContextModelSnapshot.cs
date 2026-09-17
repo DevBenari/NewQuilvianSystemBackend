@@ -68925,6 +68925,10 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<DateTime?>("CancelDateTime")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("ChangeReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<Guid>("CreateBy")
                         .HasColumnType("uuid");
 
@@ -68958,8 +68962,14 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<bool>("IsDelete")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsSuperseded")
+                        .HasColumnType("boolean");
+
                     b.Property<Guid>("PatientClassId")
                         .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("PhysicallyLeftAt")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid>("PlacedByUserId")
                         .HasColumnType("uuid");
@@ -68976,6 +68986,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<DateTime>("StartDateTime")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("SupersededAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<string>("TransferReason")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -68986,6 +68999,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<DateTime?>("UpdateDateTime")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int>("Version")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
 
                     b.HasIndex("BedId");
@@ -68995,6 +69011,8 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("EndedByUserId");
 
                     b.HasIndex("EpisodeId");
+
+                    b.HasIndex("IsSuperseded");
 
                     b.HasIndex("PatientClassId");
 
@@ -69593,6 +69611,13 @@ namespace QuilvianSystemBackend.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<string>("ClearanceRevokedReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int>("ClearanceStatus")
+                        .HasColumnType("integer");
+
                     b.Property<DateTime?>("ClosedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -69641,6 +69666,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<bool>("IsDelete")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsSupervisorOverridden")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("IsolationNote")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
@@ -69681,6 +69709,16 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.Property<Guid>("ServiceUnitId")
                         .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("SupervisorOverriddenAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("SupervisorOverriddenByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SupervisorOverrideReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<Guid>("UpdateBy")
                         .HasColumnType("uuid");
@@ -69807,6 +69845,112 @@ namespace QuilvianSystemBackend.Migrations
                         .IsUnique();
 
                     b.ToTable("InpFinancialClearance", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models.InpIntegrationOutbox", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("IdempotencyKey")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("LastError")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("NextRetryAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("PayloadJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("PublishedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("RetryCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SourceDetailId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("SourceDomain")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("SourceType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAtUtc");
+
+                    b.HasIndex("EventType");
+
+                    b.HasIndex("NextRetryAtUtc");
+
+                    b.HasIndex("SourceDetailId");
+
+                    b.HasIndex("SourceDomain");
+
+                    b.HasIndex("SourceType");
+
+                    b.HasIndex(new[] { "Status" }, "IX_InpIntegrationOutbox_Status_Pending")
+                        .HasFilter("\"Status\" IN (0, 3)");
+
+                    b.HasIndex(new[] { "IdempotencyKey" }, "UQ_InpIntegrationOutbox_IdempotencyKey")
+                        .IsUnique();
+
+                    b.ToTable("InpIntegrationOutboxes", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models.InpNurseAssignment", b =>
