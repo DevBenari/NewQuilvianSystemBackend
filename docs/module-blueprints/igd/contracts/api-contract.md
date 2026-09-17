@@ -2,7 +2,7 @@
 
 | Field | Nilai |
 | --- | --- |
-| `contract_version` | `0.6.0` — pemantauan observasi bertanda vital, 16 September 2026. **Aditif**: bagian 7 baru untuk `Emergency Observation Detail` — bentuk request tidak bertambah, response bertambah proyeksi `vitalSign` dan `recordedByName`, dan dua penolakan baru ditegakkan (`IGD-DEC-122`, `IGD-DEC-126`). Ruas `recordedByUserId` pada request menjadi **usang tetapi tetap diterima**. Lihat manifest bagian 0d. *Sebelumnya `0.5.0` — penyelarasan teks 15 September 2026: query `at` pada §3 dan penolakan catatan observasi lebih dari 1000 karakter* |
+| `contract_version` | `0.7.0` — kesiapan `EPIC IGD-04`, 16 September 2026 (ketiga). **Aditif**: response §3 bertambah proyeksi `doctorName` dan `assignedByName` (`IGD-DEC-129`, bagian 3.2), dan nama tabel Registrasi diselaraskan menjadi `RegPatientEncounter` (`IGD-DEC-132`). Nol route baru, nol bentuk request berubah, nol penolakan baru. Sebelumnya `0.6.0` — pemantauan observasi bertanda vital, 16 September 2026, **aditif**: bagian 7 baru untuk `Emergency Observation Detail` — bentuk request tidak bertambah, response bertambah proyeksi `vitalSign` dan `recordedByName`, dan dua penolakan baru ditegakkan (`IGD-DEC-122`, `IGD-DEC-126`). Ruas `recordedByUserId` pada request menjadi **usang tetapi tetap diterima**. Lihat manifest bagian 0d. *Sebelumnya `0.5.0` — penyelarasan teks 15 September 2026: query `at` pada §3 dan penolakan catatan observasi lebih dari 1000 karakter* |
 | Status | `draft` |
 | Owner | Product/Domain Owner IGD: **Rizki Gunawan** (`IGD-DEC-089`) |
 | `approved_by` / `approved_at` | — / — |
@@ -203,8 +203,9 @@ Base URL: `.../emergency-doctor-assignments`
 `POST /` menolak `409` bila kunjungan sudah memiliki dokter aktif — pengalihan wajib memakai
 `/{id}/handover` supaya baris lama memperoleh waktu berakhir dan alasannya tercatat.
 
-Setiap penulisan juga memperbarui `TrxPatientEncounter.DoctorId` sebagai nilai efektif dalam
-transaksi yang sama.
+Setiap penulisan juga memperbarui `RegPatientEncounter.DoctorId` sebagai nilai efektif dalam
+transaksi yang sama. *Nama tabel diselaraskan `IGD-DEC-132`; sebelumnya tertulis
+`TrxPatientEncounter`, nama yang sudah diganti tim Registrasi pada `58c61a5b`.*
 
 Endpoint lama `PATCH /patient-encounters/{id}/doctor` **tetap ada** dan tetap milik
 Registration Management, tetapi **tidak lagi dipakai layar IGD**.
@@ -223,6 +224,46 @@ tadi?"* dijawab oleh endpoint yang sama, bukan endpoint baru.
 
 Cara menyebut kunjungan yang ditanyakan mengikuti parameter yang sama dengan `GET /active` tanpa
 `at`; query `at` tidak mengubahnya.
+
+### 3.2 Proyeksi nama pada response — baru pada `0.7.0`
+
+Ditetapkan `IGD-DEC-129`. Penambahannya **aditif**: ruas lama tetap dikirim, nol ruas dihapus,
+nol kolom baru pada `EmgDoctorAssignment`.
+
+| Ruas | Tipe | Berlaku pada | Keterangan |
+| --- | --- | --- | --- |
+| `doctorId` | `uuid` | `GET /`, `GET /active` | **Tetap dikirim.** Identitas untuk pemrosesan |
+| `doctorName` | `string` | `GET /`, `GET /active` | **Baru.** Nama dokter untuk ditampilkan |
+| `assignedByUserId` | `uuid` | `GET /`, `GET /active` | **Tetap dikirim** |
+| `assignedByName` | `string` | `GET /`, `GET /active` | **Baru.** Nama pengguna yang menetapkan atau mengalihkan |
+
+Ketentuannya:
+
+| Ketentuan | Isi |
+| --- | --- |
+| Sumber nama | Proyeksi backend dari data pengguna dan dokter. **Bukan** kolom baru pada tabel penugasan |
+| Cara mengambilnya | Satu kueri berproyeksi, mengikuti pola `recordedByName` pada bagian 7. **Dilarang** `N+1` |
+| Nama yang tidak tersedia | Dikirim kosong; layar menampilkannya sebagai tanda hubung. **Dilarang** menampilkan GUID sebagai tampilan cadangan utama |
+| Kewajiban frontend | **Dilarang** meminta nama per baris riwayat |
+
+*Contoh response satu baris riwayat:*
+
+```json
+{
+  "id": "6f1c…",
+  "emergencyVisitId": "a72b…",
+  "doctorId": "3e90…",
+  "doctorName": "dr. Budi Santoso, Sp.EM",
+  "effectiveFrom": "2026-09-16T08:00:00Z",
+  "effectiveTo": "2026-09-16T14:00:00Z",
+  "assignedByUserId": "11a4…",
+  "assignedByName": "Perawat Sari",
+  "assignmentReason": "Pergantian jaga sore"
+}
+```
+
+*Catatan:* baris di atas **tidak** memuat `isActive`. Penugasan yang sedang berjalan dikenali dari
+`effectiveTo` yang kosong — `IGD-DEC-130`.
 
 | Keadaan | Jawaban |
 | --- | --- |

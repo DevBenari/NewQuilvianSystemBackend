@@ -8,7 +8,7 @@
 | Masukan | `00-interview-decisions.md` (88 keputusan), `01-existing-capability-map.md` revision `3` |
 | Keputusan yang mengikat | `IGD-DEC-067` sampai `IGD-DEC-088`; keputusan lama `IGD-DEC-001` sampai `IGD-DEC-066` tetap berlaku kecuali dinyatakan `superseded` |
 | Gerbang kemampuan rumah sakit | **BELUM TERPENUHI** — lihat bagian 0 |
-| Diselaraskan | 15 September 2026 — model `TrxEmergencyDoctorAssignment` beserta configuration-nya menjadi `EmgDoctorAssignment` (`IGD-DEC-116`). Nama service, controller, DTO, dan kolom tidak berubah. Nama entity IGD lain pada dokumen ini masih nama rancangan sebelum prefix `Emg` 27 Agustus 2026 |
+| Diselaraskan | **16 September 2026 (ketiga)** — `EmgDoctorAssignment` diperiksa ulang terhadap `IGD-DEC-130`: class diagram baris 131 dan configuration baris 456 **sudah** benar, yaitu tanpa `IsActive` dan bersandar pada `EffectiveTo IS NULL`. Nol perubahan dibutuhkan pada dokumen ini; yang diselaraskan adalah kamus data §4. Sebelumnya 15 September 2026 — model `TrxEmergencyDoctorAssignment` beserta configuration-nya menjadi `EmgDoctorAssignment` (`IGD-DEC-116`). Nama service, controller, DTO, dan kolom tidak berubah. Nama entity IGD lain pada dokumen ini masih nama rancangan sebelum prefix `Emg` 27 Agustus 2026 |
 
 Modul IGD menyimpan proses yang benar-benar khusus kegawatdaruratan. Data klinis yang dipakai
 lintas pelayanan tetap dimiliki modul pusat agar tidak terjadi duplikasi antara Rawat Jalan,

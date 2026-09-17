@@ -156,13 +156,28 @@ aslinya kemudian diubah atau dibatalkan modul pemiliknya.
 | `EmergencyVisitId` | `uuid` FK | Ya | — | — | — | Tidak |
 | `DoctorId` | `uuid` FK | Ya | — | — | Dokter harus ada dan aktif | Tidak |
 | `EffectiveFrom` | `timestamp` | Ya | Waktu server | — | Tidak boleh mendahului waktu kedatangan pasien | Tidak |
-| `EffectiveTo` | `timestamp?` | Tidak | — | — | Kosong berarti sedang aktif | Tidak |
+| `EffectiveTo` | `timestamp?` | Tidak | — | — | **Kosong berarti penugasan sedang berjalan** | Tidak |
 | `AssignedByUserId` | `uuid` FK | Ya | Pengguna aktif | — | Diisi sistem | Tidak |
 | `AssignmentReason` | `varchar` | Tidak | — | 500 | **Wajib** saat pengalihan, bukan saat penetapan pertama | Tidak |
-| `IsActive` | `boolean` | Ya | `true` | — | — | Tidak |
 
 **Index:** `(EmergencyVisitId, EffectiveFrom)`; **unique bersyarat** pada `(EmergencyVisitId)`
 untuk baris dengan `EffectiveTo IS NULL`.
+
+> **`IsActive` sengaja tidak ada — `IGD-DEC-130`, 16 September 2026.** Rancangan sebelumnya
+> memuat kolom `IsActive` **dan** `EffectiveTo`, padahal keduanya menyatakan fakta yang sama dan
+> hanya `EffectiveTo` yang dijaga unique bersyarat. Dua penanda untuk satu fakta pasti berbeda
+> suatu hari — satu diperbarui, satunya tertinggal. Kolom itu **dihapus sebelum model dan
+> migration dibuat**, bukan ditambahkan lalu dicabut pada migration berikutnya.
+>
+> Penentu waktunya tinggal satu:
+>
+> | Pertanyaan | Aturan |
+> | --- | --- |
+> | Penugasan yang sedang berjalan | `EffectiveTo IS NULL` |
+> | Penugasan pada waktu `T` | `EffectiveFrom <= T AND (EffectiveTo IS NULL OR T < EffectiveTo)` |
+>
+> `IsDelete` dan `IsCancel` bawaan `IdentityModel` tetap ada sebagai urusan **validitas baris dan
+> audit**, dan **bukan** pengganti `EffectiveTo`.
 
 ---
 

@@ -33,7 +33,7 @@
 | --- | --- | --- |
 | Kunjungan IGD dibuat | Mengirim `encounterType = Emergency` | Ditolak `400` bila nilai lain |
 | Kunjungan rawat inap dibuat dari disposisi `RANAP` | **Bukan IGD yang membuat.** Rawat Inap membuatnya dan mengisi `OriginEncounterId` dengan Id kunjungan IGD | `IGD-DEC-075`, `RWI-RULE-029` |
-| Dokter aktif berubah | Memperbarui `TrxPatientEncounter.DoctorId` sebagai nilai efektif, dalam transaksi yang sama dengan penulisan riwayat | `IGD-DEC-082` |
+| Dokter aktif berubah | Memperbarui `RegPatientEncounter.DoctorId` sebagai nilai efektif, dalam transaksi yang sama dengan penulisan riwayat. *Nama tabel diselaraskan `IGD-DEC-132`* | `IGD-DEC-082` |
 
 ### 2.2 IGD → Inpatient Management
 

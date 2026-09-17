@@ -8,7 +8,7 @@ roadmap_revision: 3
 wave: "Dikoreksi 2026-09-15: MVP-1, MVP-2, R3.7 selesai; MVP-0, MVP-3, MVP-4, MVP-5 sebagian; MVP-6 terblokir BE-IGD-039"
 status: ACTIVE
 status_synced_at: "2026-09-15 — backend e89907c5, frontend 43adae648; IGD-DEC-110 sampai IGD-DEC-115"
-planning_updated_at: "2026-09-16 (kedua) — FE-IGD-029 dan FE-IGD-030 (kunjungan keluar dari Arrived); IGD-DEC-127 dan IGD-DEC-128; nol perubahan kontrak. Lihat bagian R3.6. Sebelumnya 2026-09-16: BE-IGD-046 dan FE-IGD-028, IGD-DEC-122 sampai IGD-DEC-126, kontrak API dan validation 0.6.0 (bagian R3.5); 2026-09-15 (kedua): BE-IGD-040..045, FE-IGD-019, FE-IGD-023..027"
+planning_updated_at: "2026-09-16 (keempat) — plan-module-delivery: FE-IGD-031 dan FE-IGD-032 (tata letak riwayat pada ruang kerja pemeriksaan); IGD-DEC-133 dan IGD-DEC-134; evidence 2026-09-16-tata-letak-riwayat-pemeriksaan.md. Nol perubahan kontrak, nol perubahan backend, nol requirement didesain ulang. Lihat bagian R3.8. Sebelumnya 2026-09-16 (ketiga) — penyelarasan kesiapan EPIC IGD-04 sebelum coding: IGD-DEC-129 sampai IGD-DEC-132; API naik 0.7.0 (aditif, proyeksi nama §3.2 + nama canonical RegPatientEncounter); IsActive dihapus dari rancangan EmgDoctorAssignment; acceptance BE-IGD-044/045 dan FE-IGD-027 diperbarui. Nol requirement didesain ulang. Lihat bagian R3.7. Sebelumnya 2026-09-16 (kedua) — FE-IGD-029 dan FE-IGD-030 (kunjungan keluar dari Arrived); IGD-DEC-127 dan IGD-DEC-128; nol perubahan kontrak, bagian R3.6. Sebelumnya 2026-09-16: BE-IGD-046 dan FE-IGD-028, IGD-DEC-122 sampai IGD-DEC-126, kontrak API dan validation 0.6.0 (bagian R3.5); 2026-09-15 (kedua): BE-IGD-040..045, FE-IGD-019, FE-IGD-023..027"
 generated_at: "2026-08-24"
 aligned_at: "2026-08-26 (correction pass revisi 6)"
 input_revisions:
@@ -263,8 +263,8 @@ Empat keadaan dibedakan dengan tegas:
 | `BE-IGD-041` 🟡 | `FR-IGD-051`; `IGD-DEC-118` | `EmergencyDispositionService.ValidateVisitClosureAsync` memakai `EmergencyDepartureService.AmbilPesananPenahanPenutupanAsync`; pesan menyebut pesanan. Menutup kriteria 2 `BE-IGD-035` | `IGD-DEC-118` ✅ | Ya | Ya | **Sebagian** — 16 September 2026, [laporan](../task/report/backend/BE-IGD-041.md); ketujuh kriteria terpetakan ke source, `dotnet build` dan uji API belum dijalankan | Belum |
 | `BE-IGD-042` | `FR-IGD-001`, `FR-IGD-002`; `IGD-DEC-074`, `IGD-DEC-109`, `IGD-DEC-120` | `EmergencyVisitService.PeriksaJenisEncounter` menolak `Outpatient` | ⛔ **OWNER DATA CONFIRMATION** — jumlah `EmgVisit` aktif dengan `EncounterType.Outpatient`; `IGD-DEC-120` ✅ | Ya | Ya — **⛔ BLOCKED** | Belum | Belum |
 | `BE-IGD-043` | `IGD-DEC-112` | Laporan tracked `BE-IGD-043.md` atas `f76ebaab`; nol source | — | Ya | Ya | Source: ya (28 Agt). Laporan: **belum** | Belum |
-| `BE-IGD-044` | `FR-IGD-017`, `FR-IGD-019`; `IGD-DEC-082` (draft klinis), `IGD-DEC-116` | Tabel `EmgDoctorAssignment` + unique bersyarat + pengisian data lama; migration oleh Rizki | `MVP-1` ✅, `IGD-DEC-116` ✅ | Sebagian — `IGD-DEC-082` menunggu Clinical Governance | Ya | Belum | Belum |
-| `BE-IGD-045` | `FR-IGD-016`…`021`; `IGD-DEC-116`, `IGD-DEC-117` | `EmergencyDoctorAssignmentController`/`Service`: `GET /`, `GET /active?at=`, `POST /`, `POST /{id}/handover` | `BE-IGD-044`, `IGD-DEC-116` ✅, `IGD-DEC-117` ✅ | Sebagian — sama | Ya | Belum | Belum |
+| `BE-IGD-044` | `FR-IGD-017`, `FR-IGD-019`; `IGD-DEC-082` (draft klinis), `IGD-DEC-116`, `IGD-DEC-130` | Tabel `EmgDoctorAssignment` tanpa `IsActive` + unique bersyarat `EffectiveTo IS NULL` + pengisian data lama; migration oleh Rizki | `MVP-1` ✅, `IGD-DEC-116` ✅ | Sebagian — `IGD-DEC-082` menunggu Clinical Governance | Ya | Belum | Belum |
+| `BE-IGD-045` | `FR-IGD-016`…`021`; `IGD-DEC-116`, `IGD-DEC-117`, `IGD-DEC-129`, `IGD-DEC-130`, `IGD-DEC-131` | `EmergencyDoctorAssignmentController`/`Service`: `GET /`, `GET /active?at=`, `POST /`, `POST /{id}/handover`, beserta proyeksi `doctorName`/`assignedByName` | `BE-IGD-044`, `IGD-DEC-116` ✅, `IGD-DEC-117` ✅ | Sebagian — sama | Ya | Belum | Belum |
 
 ### R3.4.2 Task frontend
 
@@ -275,7 +275,7 @@ Empat keadaan dibedakan dengan tegas:
 | `FE-IGD-024` | `IGD-DEC-115`, `IGD-DEC-119`, `IGD-DEC-121`; **coverage gap: tanpa FR** | Isian Kesimpulan opsional saat Selesaikan | `BE-IGD-040` (source selesai; build dan runtime belum diverifikasi), `IGD-DEC-121` ✅ | Ya | Ya | **Ya** ✅ 15 September 2026 — 6/6 kriteria ke source; lint exit 0; unit test 852/852; build **Not Verified** — [laporan](../task/report/frontend/FE-IGD-024.md) | **Belum** — uji peramban `NOT FEASIBLE`; runtime `BE-IGD-040` juga belum |
 | `FE-IGD-025` | `IGD-EV-117`; `IGD-DEC-107` | Laporan tracked atas `bd1d94a8a` + daftar endpoint klinis tanpa filter; nol source | — | Ya | Ya | Source: ya (31 Agt). Laporan: **belum** | Belum |
 | `FE-IGD-026` | `FR-IGD-001`…`012` (dibaca); `IGD-DEC-084` | Laporan tracked atas `c8613d88c` (+ `40f0e6106`/`5bc96f09b`); nol source | — | Ya | Ya | Source: ya (29–30 Agt). Laporan: **belum** | Belum |
-| `FE-IGD-027` | `FR-IGD-016`…`021`; `IGD-DEC-116`, `IGD-DEC-117` | Layar triase memakai `Emergency Doctor Assignment`, bukan endpoint Registrasi | `BE-IGD-045` | Sebagian — `IGD-DEC-082` menunggu Clinical Governance | Ya | Belum | Belum |
+| `FE-IGD-027` | `FR-IGD-016`…`021`; `IGD-DEC-116`, `IGD-DEC-117`, `IGD-DEC-129`, `IGD-DEC-130` | Layar triase memakai `Emergency Doctor Assignment`, bukan endpoint Registrasi | `BE-IGD-045` | Sebagian — `IGD-DEC-082` menunggu Clinical Governance | Ya | Belum | Belum |
 
 ### R3.4.3 Requirement `EPIC IGD-04` — rantai penuh
 
@@ -378,3 +378,95 @@ sudah berjalan sebelum gelombang ini. `CanTransition` **tidak** disentuh.
 | Baris lama yang terlanjur `Arrived` | Dua kunjungan pada basis data dev (`IGD-EV-131`). `FE-IGD-029` **tidak** memindahkannya; jalan keluarnya lewat `FE-IGD-030` atau tindakan data terpisah |
 | Izin `EmergencyVisit` + `Update` pada peran perawat triage | Belum terverifikasi; menahan pembuktian runtime `FE-IGD-030`, bukan implementasinya |
 | Master level triage di basis data dev | `IGD-EV-135` — 4 baris manual lawan 6 baris seeder; `AllowsTreatmentBeforeRegistration` belum terbaca. Perlu pemeriksaan pemilik, bukan keputusan |
+
+---
+
+## R3.7 Penyelarasan kesiapan `EPIC IGD-04` — 16 September 2026 (ketiga)
+
+Pass ini **tidak menambah task dan tidak mengubah requirement**. Ia menutup empat celah
+pelaksanaan yang ditemukan pada tinjauan kesiapan sebelum coding, seluruhnya diputuskan owner
+pada hari yang sama.
+
+### R3.7.1 Ketujuh pertanyaan audit owner terhadap rantai yang sudah ada
+
+| Pertanyaan owner | Requirement | Dijawab oleh |
+| --- | --- | --- |
+| Siapa dokter penanggung jawab sekarang | `FR-IGD-019` | `GET /active` tanpa `at`; `EffectiveTo IS NULL` dijaga unique bersyarat |
+| Sejak kapan | `FR-IGD-017` | Kolom `EffectiveFrom` |
+| Siapa dokter sebelumnya | `FR-IGD-017` | `GET /` riwayat urut waktu; baris lama tidak pernah ditimpa |
+| Kapan pengalihan terjadi | `FR-IGD-017` | `EffectiveTo` lama ditutup bersamaan `EffectiveFrom` baru, satu transaksi |
+| Siapa yang mengalihkan | `FR-IGD-021` | `AssignedByUserId` pada baris baru |
+| Alasan pengalihan | `FR-IGD-021` | `AssignmentReason`, wajib saat pengalihan |
+| Siapa dokter pada waktu tertentu | `FR-IGD-018` | `GET /active?at={datetime}` (`IGD-DEC-117`) |
+
+**Nol requirement baru, nol requirement diubah.** Ketujuhnya sudah tertelusur pada bagian R3.4.3.
+
+### R3.7.2 Keputusan yang dipakai pass ini
+
+| Keputusan | Isi singkat | Task terdampak |
+| --- | --- | --- |
+| `IGD-DEC-129` | Response §3 menyertakan `doctorName` dan `assignedByName`; aditif, nol kolom baru, nol `N+1` | `BE-IGD-045`, `FE-IGD-027` |
+| `IGD-DEC-130` | `EffectiveFrom`/`EffectiveTo` satu-satunya penanda; `IsActive` dihapus dari rancangan sebelum migration | `BE-IGD-044`, `BE-IGD-045`, `FE-IGD-027` |
+| `IGD-DEC-131` | `Program.cs` boleh disentuh terbatas untuk pendaftaran DI service baru | `BE-IGD-045` |
+| `IGD-DEC-132` | Kontrak menyebut `RegPatientEncounter`, bukan `TrxPatientEncounter` | `BE-IGD-045` (kontrak), integration contract |
+
+### R3.7.3 Kontrak
+
+API naik **`0.6.0` → `0.7.0`**, **aditif**: bagian 3.2 baru untuk proyeksi nama, dan nama tabel
+Registrasi diselaraskan. Nol route baru, nol bentuk request berubah, nol penolakan baru. Validation,
+state, dan permission/audit **tidak berubah**. Integration contract disentuh hanya pada nama tabel.
+
+### R3.7.4 Coverage gap yang tetap terbuka
+
+| Gap | Keterangan |
+| --- | --- |
+| `IGD-DEC-082` masih `draft` | Menunggu Clinical Governance. Menahan butir 10 DoD `BE-IGD-045`, **bukan** dimulainya coding. Dilarang menyatakan seluruh DoD selesai sebelum approval ada |
+| Nama `TrxPatientEncounter` di luar kontrak | `erd/00-context-erd.md` dan kamus data §5.3 masih memakai nama lama, termasuk jalur berkas model. Di luar lingkup `IGD-DEC-132` yang menyebut *kontrak*; perlu keputusan terpisah bila hendak diselaraskan |
+| Uji langkah mundur migration `BE-IGD-044` | Menuntut basis data terpisah milik Rizki; syarat ✅ task itu |
+
+---
+
+## R3.8 Perencanaan 16 September 2026 (keempat) — tata letak riwayat pada ruang kerja pemeriksaan
+
+Sumber: tinjauan tampilan layar Assesmen IGD oleh Product/Domain Owner
+([evidence](../evidence/2026-09-16-tata-letak-riwayat-pemeriksaan.md)) dan keputusan
+`IGD-DEC-133` serta `IGD-DEC-134`.
+
+Gelombang ini **memperbaiki cara data yang sudah ada dibaca**. Tidak ada requirement baru, tidak
+ada requirement yang didesain ulang, dan tidak ada data baru yang diminta. Karena itu seluruh
+rantainya berhenti di keputusan, bukan di `FR-IGD-*` — susunan tampilan memang tidak pernah
+dituliskan sebagai requirement pada modul ini.
+
+### R3.8.1 Task
+
+| Task | Requirement / keputusan | Target implementasi | Dependency | Requirement approved | Delivery planned | Implementation complete | Runtime verified |
+| --- | --- | --- | --- | :-: | :-: | :-: | :-: |
+| `FE-IGD-031` 🟡 | `IGD-DEC-133`; wewenang UI `03-frontend-architecture.md` bagian 11 dan 12.5; **coverage gap: tanpa FR** | Satu pembungkus segmen "Formulir \| Riwayat" memakai `ClinicalSegmentedNav`, dipakai lima tab pemeriksaan; perpindahan otomatis ke Riwayat sesudah simpan berhasil; baris "terakhir dikaji" pada tab Assesmen Awal IGD | `IGD-DEC-133` ✅ | Ya | Ya | **Ya — 16 September 2026**, [laporan](../task/report/frontend/FE-IGD-031.md); lint dan 866 unit test lulus; `npm run build` belum dijalankan | **Belum** — uji lewat layar belum dijalankan |
+| `FE-IGD-032` 🟡 | `IGD-DEC-134`, `IGD-DEC-133`; `IGD-DEC-122`…`126` tetap berlaku; **coverage gap: tanpa FR** | Tab Observasi: pemilih periode di atas, primary survey diringkas jadi satu baris, lembar pemantauan berbentuk tabel berjajar, segmen "Lembar Pemantauan \| Catat Pemantauan" | `IGD-DEC-134` ✅, `FE-IGD-031` 🟡, `FE-IGD-028` ✅ | Ya | Ya | **Ya — 16 September 2026**, [laporan](../task/report/frontend/FE-IGD-032.md); lint dan 866 unit test lulus; **dua delta** pada kriteria 3 dan 4; `npm run build` belum dijalankan | **Belum** — kriteria 8 dan 9 menahan perilaku `FE-IGD-024` dan `FE-IGD-028`, dan keduanya menuntut uji lewat layar |
+
+### R3.8.2 Keputusan yang dipakai gelombang ini
+
+| Keputusan | Isi singkat | Task |
+| --- | --- | --- |
+| `IGD-DEC-133` | Segmen Formulir/Riwayat memakai `ClinicalSegmentedNav`; berpindah sendiri sesudah simpan; baris "terakhir dikaji" pada Assesmen Awal; SOAP, Catatan Terintegrasi, dan Resep dikecualikan | `FE-IGD-031`, `FE-IGD-032` |
+| `IGD-DEC-134` | Tata letak Observasi: pemilih periode, primary survey diringkas, lembar pemantauan berbentuk tabel, segmen Lembar/Catat | `FE-IGD-032` |
+| `IGD-DEC-123` | ABCDE terakhir dibaca saja — **tetap berlaku**, hanya berubah bentuk penyajiannya | `FE-IGD-032` |
+| `IGD-DEC-122`, `IGD-DEC-126` | Penautan tanda vital dan penolakan `409` pada periode tertutup — **tetap berlaku tanpa perubahan perilaku** | `FE-IGD-032` |
+
+### R3.8.3 Kontrak
+
+**Nol perubahan, nol kenaikan versi, nol endpoint baru, nol perubahan backend.** API `0.7.0`,
+validation `0.6.0`, state `0.4.0`, permission/audit, dan integration contract **tidak disentuh**.
+Aturan bagian 12.4 `03-frontend-architecture.md` tidak berubah. Yang dipakai gelombang ini adalah
+wewenang `DEV_DISCRETION` yang sudah tertulis pada bagian 11 dan 12.5 dokumen yang sama.
+
+### R3.8.4 Coverage gap yang tetap terbuka
+
+| Gap | Keterangan |
+| --- | --- |
+| `FE-IGD-031` dan `FE-IGD-032` tanpa `FR-IGD-*` | Susunan tampilan tidak pernah dituliskan sebagai requirement pada modul ini; dijejak ke `IGD-DEC-133` dan `IGD-DEC-134`. Sama polanya dengan `FE-IGD-028` dan `FE-IGD-030` |
+| Pengkajian ganda oleh dua perawat | Baris "terakhir dikaji" (`FE-IGD-031` kriteria 6 dan 7) adalah penambal tampilan, **bukan** penjaga aturan. Penjaga sesungguhnya harus di backend, dan belum ada requirement maupun keputusan yang memintanya. Dicatat sebagai lubang terbuka, bukan sebagai bagian gelombang ini |
+| Tab SOAP tanpa riwayat di tempatnya sendiri | Disengaja — riwayatnya milik tab Catatan Terintegrasi (`IGD-DEC-133`). Bila kelak dipandang perlu, itu keputusan baru, bukan kekurangan kedua task ini |
+| Uji lewat layar | Belum dijalankan untuk kedua task; keduanya `NOT FEASIBLE` bagi agent dan menunggu pemilik. Bukan UAT |
+| `ClinicalDataTable` tidak dapat dipakai tanpa kepalanya | Ditemukan saat mengerjakan `FE-IGD-032`: komponen bersama itu selalu merender judul, badge jumlah, dan empty state sendiri. Tabel lembar pemantauan karena itu ditulis sebagai `<table>` pada modul CSS layar IGD. Menambah prop untuk mematikan kepalanya berarti mengubah komponen bersama — perlu keputusan terpisah |
+| Prop `disabled` pada `EmergencyAssessmentFormCard` | Ditemukan saat mengerjakan `FE-IGD-031`: kartu koreksi tab Transfer mengirim `disabled`, sedangkan komponennya membaca `canSubmit`. Tombol Simpan Koreksi karena itu tidak pernah dinonaktifkan di layar. Cacat lama, dipindahkan apa adanya, belum diperbaiki |

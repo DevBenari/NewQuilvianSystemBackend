@@ -4203,3 +4203,118 @@ penilaian tersimpan dan status **tetap** `InTreatment`.
 | --- | --- | --- |
 | `IGD-EV-135` | Master `EmgTriageLevel` pada basis data dev berisi 4 baris "Prioritas" yang dimasukkan manual, bukan 6 baris seeder. Nilai `AllowsTreatmentBeforeRegistration` pada baris nyata belum diketahui | Tidak menahan kedua task; menahan pembacaan `ImmediateCareAllowed` sebagai angka yang dipercaya |
 | Grant izin `EmergencyVisit` + `Update` | Aksi `FE-IGD-030` menuntut izin itu. Bila peran perawat triage belum memilikinya, tombolnya akan dijawab `403` | Tidak menahan implementasi; menahan pembuktian runtime `FE-IGD-030` |
+
+---
+
+## Kesiapan `EPIC IGD-04` — 16 September 2026 (ketiga)
+
+Empat keputusan berikut lahir dari tinjauan kesiapan yang dijalankan **sebelum** coding
+`EPIC IGD-04` dimulai, atas perintah Product/Domain Owner. Tinjauan itu menegaskan lebih dulu
+bahwa **ketujuh pertanyaan audit owner sudah terjawab kontrak yang terkunci** — siapa dokter
+sekarang, sejak kapan, siapa sebelumnya, kapan pengalihan terjadi, siapa yang mengalihkan,
+alasannya, dan siapa dokter pada waktu tertentu. **Nol requirement didesain ulang.** Yang
+diputuskan di bawah adalah empat celah pelaksanaan, bukan perubahan kebutuhan.
+
+### `IGD-DEC-129` — response penugasan dokter menyertakan nama
+
+| ID | Jenis | Isi | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-129` | Decision | **Response `Emergency Doctor Assignment` wajib menyertakan `doctorName` dan `assignedByName`** pada `GET /`, `GET /active`, dan `GET /active?at={datetime}`. Penambahannya **aditif**: `doctorId` dan `assignedByUserId` **tetap dikirim**. Nama adalah **proyeksi untuk tampilan, bukan persistence baru** — nol kolom baru pada `EmgDoctorAssignment`. Backend menyelesaikan nama lewat kueri atau proyeksi yang efisien; frontend **dilarang** meminta nama per baris dan **dilarang** menampilkan GUID sebagai tampilan cadangan utama. Pola rujukannya `recordedByName` pada `BE-IGD-046`, yang sudah terbukti bekerja lewat layar 16 September 2026 | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-09-16** | Tinjauan kesiapan `EPIC IGD-04`; `IGD-EV-123`; `FE-IGD-027` acceptance 6 |
+
+*Sebabnya:* `FE-IGD-027` acceptance 6 menuntut dokter dan penugas tampil sebagai **nama**,
+sedangkan kesebelas acceptance `BE-IGD-045` tidak menjanjikan nama sama sekali. Tanpa keputusan
+ini, layar hanya punya dua pilihan buruk: memanggil endpoint tambahan untuk setiap baris riwayat,
+atau menampilkan GUID kepada perawat — cacat yang sama dengan `IGD-EV-123` pada `FE-IGD-017`.
+
+### `IGD-DEC-130` — `EffectiveFrom`/`EffectiveTo` satu-satunya penentu penugasan berjalan
+
+| ID | Jenis | Isi | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-130` | Decision | **`IsActive` tidak dipakai sebagai status penugasan pada `EmgDoctorAssignment`, dan dihapus dari rancangannya** sebelum model maupun migration dibuat. Rentang waktu menjadi satu-satunya sumber kebenaran: **penugasan berjalan = `EffectiveTo IS NULL`**; **penugasan pada waktu `T` = `EffectiveFrom <= T AND (EffectiveTo IS NULL OR T < EffectiveTo)`**. Saat pengalihan, baris lama ditutup `EffectiveTo = transferTime` dan baris baru dibuka `EffectiveFrom = transferTime` **dalam satu transaksi**. `IsDelete` dan `IsCancel` bawaan `IdentityModel` adalah urusan **validitas baris dan audit**, bukan pengganti `EffectiveTo`. Unique constraint satu dokter berjalan wajib konsisten dengan `EffectiveTo IS NULL`. **Dilarang** membuat migration berkolom `IsActive` lalu menghapusnya pada migration berikutnya | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-09-16** | Tinjauan kesiapan `EPIC IGD-04`; kamus data §4 sebelum penyelarasan |
+
+*Sebabnya:* kamus data §4 semula memuat `IsActive` **dan** `EffectiveTo`, sedangkan unique
+bersyarat hanya menjaga `EffectiveTo IS NULL`. Dua penanda untuk satu fakta pasti berbeda suatu
+hari — satu diperbarui, satunya tertinggal — dan riwayat dokter adalah tempat terakhir yang boleh
+mengalami itu.
+
+*Contoh:* dr. Budi `EffectiveFrom` 08.00, `EffectiveTo` kosong. Pukul 14.00 dialihkan ke dr. Sita:
+baris Budi ditutup `EffectiveTo` 14.00, baris Sita dibuka `EffectiveFrom` 14.00. Pertanyaan
+"siapa dokternya pukul 10.30?" dijawab baris Budi, karena `08.00 <= 10.30 < 14.00`.
+
+### `IGD-DEC-131` — perubahan `Program.cs` yang diizinkan `BE-IGD-045`
+
+| ID | Jenis | Isi | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-131` | Decision | **`BE-IGD-045` boleh mengubah `Program.cs` semata-mata untuk mendaftarkan DI service `Emergency Doctor Assignment` yang memang baru.** Dilarang melakukan pembersihan, penataan ulang, atau refactor `Program.cs` maupun pendaftaran DI lain yang tidak terkait. Baris pendaftarannya **wajib dicantumkan** pada laporan task. Izin ini **tidak berlaku** untuk task IGD lain | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-09-16** | Tinjauan kesiapan `EPIC IGD-04`; kartu `BE-IGD-045` bagian Scope |
+
+*Sebabnya:* service dan controller `EmergencyDoctorAssignment` sepenuhnya baru, sehingga
+pendaftaran DI tidak terhindarkan. Kartu `BE-IGD-045` sebelumnya mewajibkan agent berhenti dan
+meminta persetujuan; keputusan ini memberikan persetujuan itu di muka, dengan batas yang jelas.
+
+### `IGD-DEC-132` — nama canonical `RegPatientEncounter` pada kontrak
+
+| ID | Jenis | Isi | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-132` | Decision | **Kontrak menyebut `RegPatientEncounter`, bukan `TrxPatientEncounter`.** Penyelarasan terminologi mengikuti entity source saat ini sesudah rename tim Registrasi (`58c61a5b`, 10 September 2026). **Bukan perubahan perilaku**, nol dampak pada request maupun response. Seluruh bagian API §3 yang relevan dan integration contract memakai nama canonical terbaru | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-09-16** | Tinjauan kesiapan `EPIC IGD-04`; commit `58c61a5b` |
+
+### Urutan delivery yang ditetapkan bersama keempat keputusan ini
+
+1. Delta dokumentasi keempat keputusan ini dibuat konsisten lebih dulu.
+2. `BE-IGD-044` — agent membuat model, konfigurasi EF, navigation/DbSet yang diperlukan, dan
+   persiapan source untuk migration. **Agent berhenti sebelum `dotnet ef migrations add` dan
+   `database update`**; keduanya dijalankan Rizki sendiri sesudah review.
+3. Sesudah Rizki membuat dan meninjau migration serta menjalankan verifikasi yang diwajibkan
+   `BE-IGD-044`: `BE-IGD-045`, lalu `FE-IGD-027`.
+
+`IGD-DEC-082` tetap tercatat sebagai gerbang governance dan Definition of Done yang menunggu
+Clinical Governance. Ia **tidak** menghalangi coding dimulai, tetapi **dilarang** menyatakan
+seluruh DoD atau governance selesai sebelum approval itu benar-benar ada.
+
+## Keputusan 16 September 2026 (keempat) — tata letak riwayat pada ruang kerja pemeriksaan
+
+Lahir dari tinjauan tampilan layar Assesmen IGD oleh Product/Domain Owner, dibandingkan dengan
+pola Quilvian V1. Bukti lengkapnya:
+[evidence/2026-09-16-tata-letak-riwayat-pemeriksaan.md](evidence/2026-09-16-tata-letak-riwayat-pemeriksaan.md).
+
+Keduanya **murni tata letak**. Nol perubahan backend, nol endpoint baru, nol kenaikan versi
+kontrak, dan nol perubahan pada isi maupun sumber data yang ditampilkan.
+
+### `IGD-DEC-133` — segmen Formulir dan Riwayat pada tab pemeriksaan IGD
+
+| ID | Jenis | Isi | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-133` | Decision | **Tab pemeriksaan IGD yang berpasangan formulir–riwayat dipisah menjadi dua segmen "Formulir" dan "Riwayat" memakai `ClinicalSegmentedNav` yang sudah ada — bukan tab bersarang `react-bootstrap`.** Segmen Riwayat membawa badge jumlah data. Sesudah penyimpanan berhasil, layar **berpindah sendiri** ke segmen Riwayat dan daftarnya dimuat ulang; dari sisi Riwayat tersedia jalan kembali ke Formulir. Tab **Assesmen Awal IGD** wajib memuat satu baris ringkas **"terakhir dikaji"** yang **tetap terlihat saat segmen Formulir aktif**, dibentuk dari daftar riwayat yang sudah dimuat layar — **nol endpoint baru, nol ruas data baru, nol sumber data baru**. Tab **SOAP**, **Catatan Terintegrasi**, dan **Resep** **tidak** diberi segmen | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-09-16** | Tinjauan tata letak 16 September 2026; `ClinicalSegmentedNav.jsx:6-14`; `03-frontend-architecture.md:247`, `:328`, `:331` |
+
+*Sebabnya:* riwayat yang duduk di bawah formulir panjang praktis tidak terbaca, dan sesudah
+simpan berhasil posisi gulir tidak berpindah sehingga hasil simpan tidak terlihat. Pola V1
+(`assesment-awal-tabs.jsx`) menyelesaikan keduanya, tetapi memakai tab bersarang — dan V2 sudah
+memasang satu `role="tablist"` untuk tujuh tab utama, sehingga penyarangan membuat relasi
+tab/panel terbaca dua kali oleh pembaca layar. `ClinicalSegmentedNav` adalah komponen yang
+memang ditulis untuk keadaan itu, dan preseden pemakaiannya sudah ada pada ruang kerja dokter
+Rawat Inap.
+
+*Kenapa baris "terakhir dikaji" wajib:* menyembunyikan riwayat memindahkan risiko, bukan
+menghapusnya. Tanpa baris itu, perawat dapat mengkaji ulang pasien yang baru saja dikaji
+rekannya dalam satu giliran, dan menghasilkan dua dokumen sah yang saling bertentangan. V1
+membiarkan lubang ini terbuka; keputusan ini menutupnya.
+
+*Kenapa SOAP dikecualikan:* riwayat catatan SOAP memang dimiliki tab **Catatan Terintegrasi**,
+bukan tab SOAP. Memberi tab SOAP segmen Riwayat berarti menampilkan daftar yang sama di dua
+tempat. Catatan Terintegrasi dan Resep dikecualikan karena keduanya daftar baca-saja yang tidak
+punya sisi Formulir untuk dipasangkan.
+
+### `IGD-DEC-134` — tata letak tab Observasi
+
+| ID | Jenis | Isi | Owner | Status | Approved by/at | Evidence |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-134` | Decision | **Tab Observasi memakai tata letak induk–anak, bukan pasangan formulir–riwayat.** (a) Daftar periode observasi menjadi **baris pemilih ringkas di bagian atas**, dan periode yang sedang berjalan terpilih otomatis saat tab dibuka. (b) Kartu "Primary Survey Terakhir" diringkas menjadi **satu baris ringkas**. (c) Putaran pemantauan disajikan sebagai **tabel** memakai `ClinicalDataTable` yang sudah ada, bukan kartu bertumpuk. (d) Segmen pada tab ini berbunyi **"Lembar Pemantauan \| Catat Pemantauan"**, dengan Lembar Pemantauan sebagai bawaan. **Isi data, sumber data, dan aturan bagian 12.4 `03-frontend-architecture.md` tidak berubah** — yang berubah hanya susunannya | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-09-16** | Tinjauan tata letak 16 September 2026; `03-frontend-architecture.md:330`; `emergency-assessment-observation-tab.jsx:928`, `:1036`, `:1252` |
+
+*Sebabnya:* observasi bertingkat dua — periode sebagai induk, putaran pemantauan sebagai anak —
+sehingga pemilihan periode adalah prasyarat baik untuk mencatat maupun membaca, dan tidak boleh
+diletakkan di salah satu sisi segmen. Yang dicari perawat pada lembar pemantauan juga bukan satu
+kejadian, melainkan arah perubahannya. Susunan kartu yang dipakai sekarang memakai hampir satu
+layar untuk satu putaran, sehingga dua putaran berurutan tidak pernah terlihat bersamaan.
+
+*Batas yang tetap berlaku:* aksi **Selesaikan** beserta isian **Kesimpulan** milik `FE-IGD-024`
+dan penautan tanda vital milik `FE-IGD-028` **tidak boleh berubah perilakunya**. Bawaan
+"Lembar Pemantauan" dipilih karena membaca tren lebih sering dilakukan daripada menambah baris.
