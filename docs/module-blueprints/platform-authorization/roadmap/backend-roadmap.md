@@ -165,6 +165,20 @@ BE-SEC-003 🟡 (hardening identitas)
 
 ---
 
+### `BE-SEC-015` ✅ — Pengerasan skrip policy `BE-SEC-003B` dan varian eksekusi DBeaver
+
+| Field | Nilai |
+|---|---|
+| **Status** | ✅ **Selesai** 17 September 2026 — tiga cacat skrip penerapan ditutup, varian DBeaver resmi dibuat, parity dibuktikan mekanis. Build `Release` `0 Error(s)`; authorization verifier `PASS`; registry source **1.300 / 340 / 48**; metadata gap 0; fallback 69; `BE-SEC-003` 24/24; naked 0 baru, 0 baseline. Laporan: [`BE-SEC-015.md`](../task/report/backend/BE-SEC-015.md) |
+| **Sebab** | Ditemukan saat validasi `BE-SEC-014`. **1.** Kedua `INSERT` Tahap 1 menghilangkan `UpdateBy`/`DeleteBy`/`CancelBy` — `uuid NOT NULL` tanpa default database — sehingga Tahap 1 akan gagal `23502` saat dijalankan. **2.** Tahap 2 hanya `UPDATE` telanjang tanpa gerbang apa pun, padahal ia satu-satunya tahap yang **mencabut** hak. **3.** Operator memakai DBeaver, sedangkan skrip menuntut psql |
+| **Scope** | `Migrations/scripts/be-sec-003b-policy-expansion.sql` + varian `-dbeaver.sql` baru. **Nol berkas source aplikasi** |
+| **Pengerasan Tahap 2** | Sasaran dibekukan dari kunci bisnis, lalu ditegaskan **tepat 4** (`PatientProcedure.Update` = 1, `DoctorQueue.Update` = 3) sebelum menulis, jumlah baris yang berubah ditegaskan lewat `RETURNING`, dan dipastikan tidak ada policy di luar sasaran yang tersentuh |
+| **Parity** | Dibuktikan lewat diff ternormalisasi: peta 23, identitas wajib 24, aturan `Amend`, sasaran Tahap 1/2, sasaran rollback, kunci alami, kolom `NOT NULL`, dan seluruh kardinalitas **identik**. Yang berbeda hanya cangkang eksekusi dan gerbang operator tambahan |
+| **Database** | **Tidak ada eksekusi.** Kedua tahap tulis tetap berakhir `ROLLBACK`. `BE-SEC-003B` Tahap 1 dan Tahap 2 tetap `PAUSED`. Tidak ada EF migration |
+| **Gerbang terbuka** | Angka 4 pada gerbang Tahap 2 berasal dari kontrak pemilik dan **belum diukur** pada database; bagian 1.5 wajib dijalankan lebih dulu. Kedua varian belum pernah diuji terhadap database mana pun |
+
+---
+
 | Pekerjaan | Repository | Alasan terpisah |
 |---|---|---|
 | Perbaikan route tab Surat Dokter: `doctor-certificates` → `medical-certificates` | Frontend | Cacat kontrak yang sudah ada. **Dilarang** diselipkan ke task `BE-SEC` mana pun |

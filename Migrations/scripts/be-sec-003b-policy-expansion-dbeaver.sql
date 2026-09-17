@@ -1,20 +1,48 @@
 -- =====================================================================================
 -- BE-SEC-003B — Perluasan SysAccessPolicy ke exact historical capability set
+-- VARIAN DBEAVER. Pasangan resmi be-sec-003b-policy-expansion.sql.
 --
 -- STATUS BERKAS INI: RANCANGAN. BELUM DIJALANKAN. BELUM DIVALIDASI TERHADAP DATABASE.
 --
---   Bagian 1-3 HANYA MEMBACA (dry run). Aman dijalankan kapan saja.
---   Bagian 4 MENULIS dan sengaja dibungkus blok yang TIDAK akan jalan sampai
---   seseorang mengubahnya secara sadar. Jangan mengubahnya sebelum dry run ditinjau.
---   Bagian 6 adalah rollback.
+-- KENAPA BERKAS INI ADA
+--
+--   Varian psql memakai meta-command psql (penyetelan variabel dan pencetakan baris) serta
+--   interpolasi variabel operator bergaya psql. Ketiganya TIDAK dikenal DBeaver. Operator
+--   yang tidak memiliki psql karena itu tidak dapat menjalankan varian itu sama sekali.
+--   Berkas ini adalah pasangannya: PostgreSQL biasa, dapat dijalankan langsung dari DBeaver.
+--
+--   SEMANTIK BISNIS KEDUANYA IDENTIK. Yang berbeda hanya cangkang eksekusinya:
+--
+--     varian psql                     varian DBeaver
+--     ----------------------------------------------------------------------------
+--     meta-command hentikan-saat-galat (tidak perlu — lihat CARA MENJALANKAN)
+--     meta-command cetak-baris         komentar biasa
+--     interpolasi variabel operator    current_setting('be_sec_003b.aktor')::uuid
+--     (tanpa gerbang aktor)            gerbang aktor eksplisit: bukan nol-GUID,
+--                                      dan wajib ada di AspNetUsers
+--
+--   Peta pemecahan, 24 identitas wajib, penurunan pemegang historis, aturan
+--   PatientAssessment.Amend, sasaran Tahap 1, sasaran Tahap 2, sasaran rollback,
+--   perlindungan kunci alami, kolom NOT NULL SysAccessPolicy, dan seluruh kardinalitas
+--   yang diharapkan SAMA PERSIS dengan varian psql.
+--
+-- CARA MENJALANKAN
+--
+--   DBeaver: buka berkas ini, lalu Execute script (Alt+X) — bukan Execute statement.
+--   Pastikan "Stop at error" aktif pada pengaturan eksekusi skrip DBeaver; itulah
+--   padanan meta-command hentikan-saat-galat pada varian psql.
+--
+--   SELURUH bagian 0 sampai 3 WAJIB dijalankan lebih dulu DALAM KONEKSI YANG SAMA.
+--   View sementara di bawah bersifat per-sesi: bila koneksi DBeaver diputus atau diganti,
+--   view-nya hilang dan Tahap 1/2 tidak akan menemukan sasarannya. Bila ragu, jalankan
+--   ulang berkas ini dari atas.
 --
 -- PRINSIP YANG MENGIKAT SELURUH BERKAS INI
 --
 --   1. TIDAK ADA nama Departemen atau Jabatan yang ditulis di sini.
---      TIDAK ADA GUID yang ditulis di sini.
+--      TIDAK ADA GUID Departemen, Posisi, ControllerAccess, ActionAccess, maupun policy.
 --      Seluruh kepemilikan diturunkan dari baris SysAccessPolicy yang SUDAH ADA.
---      Konsekuensinya: skrip ini benar tanpa perlu tahu isi database sebelumnya,
---      dan tidak dapat mengarang penerima baru.
+--      Satu-satunya GUID yang diketik manusia adalah UUID operator.
 --
 --   2. BEFORE accessible endpoint set = AFTER accessible endpoint set.
 --      Setiap identitas baru hanya diberikan kepada pasangan Departemen x Posisi yang
@@ -24,9 +52,11 @@
 --
 --   4. Tidak ada baris yang dihapus. Penonaktifan memakai IsActive/IsDelete.
 --
+--   5. Kedua tahap tulis berakhir ROLLBACK. Apa adanya, berkas ini TIDAK mengubah apa pun.
+--
 -- PRASYARAT MUTLAK — DIKONFIRMASI PENGUKURAN 11 SEPTEMBER 2026
 --
---   Pada database development saat ini, SELURUH identitas hasil pemecahan berstatus
+--   Pada database development saat itu, SELURUH identitas hasil pemecahan berstatus
 --   TIDAK_TERDAFTAR, dan PatientProcedure.Update serta DoctorQueue.Update masih
 --   IsActive=true / IsDelete=false. Artinya AccessMenuSeeder BELUM pernah berjalan
 --   terhadap database ini pada HEAD.
@@ -38,7 +68,7 @@
 --
 --       Action 1.300 · Resource 340 · Modul 48
 --
---     Baseline lama 1.286 / 339 / 48 sudah TIDAK BERLAKU sebagai target. Skrip ini tidak
+--     Baseline lama 1.286 / 339 / 48 sudah TIDAK BERLAKU sebagai target. Berkas ini tidak
 --     pernah menegaskan angka registry mana pun, sehingga kontraknya tidak berubah — yang
 --     berubah hanya jumlah identitas yang akan dibuat seeder pada langkah 1 di bawah:
 --     seeder yang sama kini juga mendaftarkan 14 identitas BE-SEC-012/013 dan resource
@@ -50,23 +80,13 @@
 --     sesudah seeder dijalankan. Jangan memperlakukan 1.300 / 340 / 48 sebagai keadaan
 --     database.
 --
---   Konsekuensinya untuk skrip ini: bagian 4.1 dan 4.2 menyambung ke baris registry
---   identitas BARU. Selama baris itu belum ada, sambungannya kosong dan skrip ini
---   menyisipkan NOL baris. Itu bukan kegagalan senyap — bagian 1.1 memang dirancang
---   menangkapnya — tetapi berarti skrip ini TIDAK DAPAT dijalankan lebih dulu.
---
 --   Urutan yang benar dan tidak boleh dibalik:
 --
 --     1. Aplikasi HEAD start SEKALI dalam jendela pemeliharaan, tanpa traffic pengguna.
 --        AccessMenuSeeder membuat baris registry identitas baru dan menutup yang lama.
---     2. Jalankan bagian 1 skrip ini. Bagian 1.0b WAJIB berbunyi 24 / 24 dan seluruh
---        baris 1.0 serta 1.1 wajib berstatus 'ok'.
---     3. Baru Tahap 1, lalu verifikasi, lalu Tahap 2.
---
---   Sejak perbaikan gerbang prasyarat, Tahap 1 TIDAK LAGI dapat gagal secara senyap:
---   bagian 4.0 membatalkan transaksi bila salah satu dari 24 identitas target belum
---   terdaftar/aktif, dan bagian 4.2b membatalkan transaksi bila barisnya tidak terbentuk
---   sesuai kepemilikan — termasuk PatientAssessment.Amend.
+--     2. Jalankan bagian 0 sampai 3 berkas ini. Bagian 1.0b WAJIB berbunyi 24 / 24 dan
+--        seluruh baris 1.0 serta 1.1 wajib berstatus 'ok'.
+--     3. Baru Tahap 1, lalu verifikasi bagian 5, lalu Tahap 2.
 --
 --   Antara langkah 1 dan selesainya Tahap 1, identitas baru sudah ditegakkan endpoint
 --   tetapi belum diberikan kepada siapa pun. Pada jendela itu dokter akan ditolak 403.
@@ -75,7 +95,7 @@
 --
 -- CATATAN PENTING TENTANG IDENTITAS YANG SUDAH PENSIUN
 --
---   AccessMenuSeeder sudah menutup SysActionAccess milik PatientProcedure.Update dan
+--   AccessMenuSeeder menutup SysActionAccess milik PatientProcedure.Update dan
 --   DoctorQueue.Update (IsActive=false, IsDelete=true). Baris SysAccessPolicy yang
 --   menunjuk keduanya MASIH ADA dan flag-nya sendiri masih hidup — yang mati adalah
 --   baris registry-nya.
@@ -85,16 +105,22 @@
 --   dan seluruh migrasi ini menghasilkan nol baris — gagal senyap.
 -- =====================================================================================
 
-\set ON_ERROR_STOP on
-
 -- =====================================================================================
 -- BAGIAN 0 — Peta pemecahan (identitas lama -> identitas baru)
 --
 -- Ini satu-satunya bagian yang ditulis tangan, dan isinya HANYA nama identitas yang
 -- berasal dari source code ([AccessPermission] pada controller). Bukan data.
+--
+-- View dihapus dalam urutan KEBALIKAN ketergantungan supaya berkas ini dapat dijalankan
+-- ulang pada sesi DBeaver yang sama tanpa galat dependency.
 -- =====================================================================================
 
+DROP VIEW IF EXISTS be_sec_003b_target;
+DROP VIEW IF EXISTS be_sec_003b_pemegang;
+DROP VIEW IF EXISTS be_sec_003b_identitas;
+DROP VIEW IF EXISTS be_sec_003b_wajib;
 DROP VIEW IF EXISTS be_sec_003b_peta;
+
 CREATE TEMP VIEW be_sec_003b_peta (resource, action_lama, action_baru) AS
 VALUES
     -- PatientProcedure.Update  -> 5 identitas   (identitas lama PENSIUN)
@@ -136,35 +162,23 @@ VALUES
 
 -- PatientAssessment.Amend SENGAJA TIDAK ada di peta ini. Ia bukan pelestarian dari
 -- Update; sumbernya adalah Complete, dan Complete baru terisi oleh migrasi ini juga.
--- Karena itu Amend dikerjakan terpisah pada bagian 2, SESUDAH Complete.
+-- Karena itu Amend dikerjakan terpisah pada bagian 4.2, SESUDAH Complete.
 
 -- =====================================================================================
 -- BAGIAN 0b — Daftar 24 identitas target BE-SEC-003 yang WAJIB terdaftar dan AKTIF.
 --
--- KENAPA DAFTAR INI ADA TERPISAH DARI PETA
+-- Peta bagian 0 memuat 23 identitas baru. Identitas ke-24, PatientAssessment.Amend,
+-- sengaja tidak ada di sana karena sumber kepemilikannya bukan Update melainkan Complete.
+-- Tanpa daftar terpisah ini, Amend yang belum terdaftar membuat Tahap 1 menyisipkan 35
+-- baris, bukan 36 — TANPA error dan TANPA peringatan.
 --
---   Peta bagian 0 memuat 23 identitas baru. Identitas ke-24, PatientAssessment.Amend,
---   sengaja tidak ada di sana karena sumber kepemilikannya bukan Update melainkan
---   Complete.
+-- Isinya identik dengan tools/authorization-verifier/required-identities.txt.
 --
---   Akibatnya, sebelum perbaikan ini, TIDAK ADA satu pun pemeriksaan prasyarat yang
---   menyentuh Amend: bagian 1.1 hanya menelusuri peta, dan bagian 3.1 hanya menghitung
---   sisa terhadap be_sec_003b_target yang juga diturunkan dari peta. Bila baris registry
---   Amend belum dibuat seeder, JOIN pada bagian 4.2 menghasilkan nol baris dan Tahap 1
---   menyisipkan 35 baris, bukan 36 — TANPA error dan TANPA peringatan. Itu persis mode
---   'gagal senyap' yang dilarang berkas ini.
---
---   Daftar di bawah menutup celah itu. Isinya HANYA nama identitas yang berasal dari
---   source code, sama seperti peta bagian 0, dan identik dengan
---   tools/authorization-verifier/required-identities.txt. Bukan data, bukan GUID.
---
---   CATATAN: berbeda dari be_sec_003b_identitas yang sengaja tidak menuntut action aktif
---   (karena identitas LAMA yang sudah pensiun justru harus ketemu), daftar ini menuntut
---   identitas BARU benar-benar AKTIF — identitas target yang tidak aktif tidak akan
---   pernah ditegakkan endpoint mana pun.
+-- CATATAN: berbeda dari be_sec_003b_identitas yang sengaja tidak menuntut action aktif
+-- (karena identitas LAMA yang sudah pensiun justru harus ketemu), daftar ini menuntut
+-- identitas BARU benar-benar AKTIF.
 -- =====================================================================================
 
-DROP VIEW IF EXISTS be_sec_003b_wajib;
 CREATE TEMP VIEW be_sec_003b_wajib (resource, action) AS
 VALUES
     ('PatientProcedure',   'Select'),
@@ -204,7 +218,6 @@ VALUES
 -- justru merekalah yang policy-nya perlu dilestarikan.
 -- =====================================================================================
 
-DROP VIEW IF EXISTS be_sec_003b_identitas;
 CREATE TEMP VIEW be_sec_003b_identitas AS
 SELECT
     c."ControllerName"  AS resource,
@@ -217,7 +230,6 @@ FROM public."SysActionAccess" a
 JOIN public."SysControllerAccess" c ON c."Id" = a."ControllerAccessId";
 
 -- Pemegang efektif sebuah identitas, dibaca dari FLAG POLICY saja.
-DROP VIEW IF EXISTS be_sec_003b_pemegang;
 CREATE TEMP VIEW be_sec_003b_pemegang AS
 SELECT
     i.resource,
@@ -236,7 +248,6 @@ WHERE p."IsAllowed"
   AND NOT p."IsDelete";
 
 -- Baris yang SEHARUSNYA ada sesudah migrasi, untuk seluruh peta bagian 0.
-DROP VIEW IF EXISTS be_sec_003b_target;
 CREATE TEMP VIEW be_sec_003b_target AS
 SELECT DISTINCT
     m.resource,
@@ -258,11 +269,9 @@ JOIN be_sec_003b_identitas baru
 -- BAGIAN 1 — DRY RUN. Pemeriksaan prasyarat. HANYA MEMBACA.
 -- =====================================================================================
 
-\echo ''
-\echo '==== 1.0 PRASYARAT MUTLAK: 24 identitas target wajib TERDAFTAR dan AKTIF ===='
-\echo '     Mencakup PatientAssessment.Amend, yang TIDAK tercakup 1.1 maupun 3.1.'
-\echo '     Kolom status wajib ok untuk SELURUH 24 baris sebelum Tahap 1 dijalankan.'
-
+-- 1.0 PRASYARAT MUTLAK: 24 identitas target wajib TERDAFTAR dan AKTIF.
+--     Mencakup PatientAssessment.Amend, yang TIDAK tercakup 1.1 maupun 3.1.
+--     Kolom status wajib ok untuk SELURUH 24 baris sebelum Tahap 1 dijalankan.
 SELECT
     w.resource,
     w.action,
@@ -277,9 +286,7 @@ LEFT JOIN be_sec_003b_identitas i
        ON i.resource = w.resource AND i.action = w.action
 ORDER BY w.resource, w.action;
 
-\echo ''
-\echo '==== 1.0b Ringkasan prasyarat — wajib berbunyi 24 / 24 ===='
-
+-- 1.0b Ringkasan prasyarat — wajib berbunyi 24 / 24.
 SELECT
     count(*) FILTER (
         WHERE i.action_access_id IS NOT NULL
@@ -296,11 +303,9 @@ FROM be_sec_003b_wajib w
 LEFT JOIN be_sec_003b_identitas i
        ON i.resource = w.resource AND i.action = w.action;
 
-\echo ''
-\echo '==== 1.1 Apakah setiap identitas pada peta benar-benar terdaftar? ===='
-\echo '     Baris mana pun dengan status TIDAK_TERDAFTAR menghentikan migrasi:'
-\echo '     berarti aplikasi belum pernah start di HEAD ini, atau namanya salah ketik.'
-
+-- 1.1 Apakah setiap identitas pada peta benar-benar terdaftar?
+--     Baris mana pun dengan status TIDAK_TERDAFTAR menghentikan migrasi:
+--     berarti aplikasi belum pernah start di HEAD ini, atau namanya salah ketik.
 SELECT DISTINCT
     m.resource,
     m.action_lama,
@@ -313,10 +318,8 @@ LEFT JOIN be_sec_003b_identitas lama ON lama.resource = m.resource AND lama.acti
 LEFT JOIN be_sec_003b_identitas baru ON baru.resource = m.resource AND baru.action = m.action_baru
 ORDER BY m.resource, m.action_lama, m.action_baru;
 
-\echo ''
-\echo '==== 1.2 Pemegang identitas lama — inilah seluruh sumber kepemilikan ===='
-\echo '     Kalau bagian ini kosong untuk sebuah identitas lama, tidak ada yang dilestarikan.'
-
+-- 1.2 Pemegang identitas lama — inilah seluruh sumber kepemilikan.
+--     Kalau bagian ini kosong untuk sebuah identitas lama, tidak ada yang dilestarikan.
 SELECT
     h.resource,
     h.action,
@@ -343,9 +346,7 @@ WHERE (h.resource, h.action) IN (
         ('PatientVitalSign','Update'))
 ORDER BY h.resource, h.action, d."DepartmentName", pos."PositionName";
 
-\echo ''
-\echo '==== 1.3 Baris yang AKAN DIBUAT (belum ada) — inti dry run ===='
-
+-- 1.3 Baris yang AKAN DIBUAT (belum ada) — inti dry run.
 SELECT
     t.resource,
     t.action_lama || ' -> ' || t.action_baru AS pemecahan,
@@ -367,9 +368,7 @@ WHERE NOT EXISTS (
 )
 ORDER BY t.resource, t.action_baru, d."DepartmentName", pos."PositionName";
 
-\echo ''
-\echo '==== 1.4 Ringkasan jumlah per identitas baru ===='
-
+-- 1.4 Ringkasan jumlah per identitas baru.
 SELECT
     t.resource,
     t.action_baru,
@@ -385,10 +384,9 @@ WHERE NOT EXISTS (
 GROUP BY t.resource, t.action_baru
 ORDER BY t.resource, t.action_baru;
 
-\echo ''
-\echo '==== 1.5 Baris policy yang menggantung pada identitas yang sudah pensiun ===='
-\echo '     Kandidat untuk dinonaktifkan pada bagian 4.3 — HANYA sesudah penggantinya dibuat.'
-
+-- 1.5 Baris policy yang menggantung pada identitas yang sudah pensiun.
+--     Kandidat untuk dinonaktifkan pada Tahap 2 — HANYA sesudah penggantinya dibuat.
+--     Jumlahnya WAJIB tepat 4: PatientProcedure.Update = 1, DoctorQueue.Update = 3.
 SELECT
     h.resource, h.action, h.policy_id, h.department_id, h.position_id
 FROM be_sec_003b_pemegang h
@@ -405,21 +403,16 @@ ORDER BY h.resource, h.action;
 --
 -- URUTAN ITU PENTING. PatientAssessment.Complete adalah identitas BARU yang baru terisi
 -- oleh bagian 4.1 migrasi ini. Bila Amend dihitung sebelum Complete terisi, hasilnya
--- NOL BARIS. Karena itu bagian ini dijalankan SESUDAH bagian 4.1, dan query di bawah
--- memperlihatkan kedua kemungkinan supaya selisihnya terlihat sebelum menulis.
+-- NOL BARIS. Karena itu 4.2 dijalankan SESUDAH 4.1.
 -- =====================================================================================
 
-\echo ''
-\echo '==== 2.1 Pemegang PatientAssessment.Complete SEKARANG (sebelum migrasi) ===='
-\echo '     Bila kosong, keputusan owner dibaca harfiah menghasilkan NOL baris Amend.'
-
+-- 2.1 Pemegang PatientAssessment.Complete SEKARANG (sebelum migrasi).
+--     Bila kosong, keputusan owner dibaca harfiah menghasilkan NOL baris Amend.
 SELECT count(*) AS pemegang_complete_sekarang
 FROM be_sec_003b_pemegang
 WHERE resource = 'PatientAssessment' AND action = 'Complete';
 
-\echo ''
-\echo '==== 2.2 Pemegang PatientAssessment.Complete SESUDAH migrasi (= pemegang Update) ===='
-
+-- 2.2 Pemegang PatientAssessment.Complete SESUDAH migrasi (= pemegang Update).
 SELECT
     d."DepartmentName" AS department_name,
     pos."PositionName" AS position_name,
@@ -441,9 +434,7 @@ ORDER BY d."DepartmentName", pos."PositionName";
 -- ulang bagian 4 tidak akan membuat satu pun baris tambahan.
 -- =====================================================================================
 
-\echo ''
-\echo '==== 3.1 Sisa pekerjaan (wajib 0 sesudah migrasi) ===='
-
+-- 3.1 Sisa pekerjaan (wajib 0 sesudah migrasi).
 SELECT count(*) AS sisa_baris_belum_dibuat
 FROM be_sec_003b_target t
 WHERE NOT EXISTS (
@@ -454,9 +445,7 @@ WHERE NOT EXISTS (
       AND p."ActionAccessId"     = t.action_access_id
 );
 
-\echo ''
-\echo '==== 3.2 Duplikat kunci alami (wajib 0, sebelum maupun sesudah) ===='
-
+-- 3.2 Duplikat kunci alami (wajib 0, sebelum maupun sesudah).
 SELECT "DepartmentId", "PositionId", "ControllerAccessId", "ActionAccessId", count(*) AS jumlah
 FROM public."SysAccessPolicy"
 GROUP BY 1,2,3,4
@@ -467,14 +456,12 @@ HAVING count(*) > 1;
 --
 -- TIDAK AKAN BERJALAN apa adanya. Untuk menjalankannya, seseorang harus:
 --   (a) meninjau seluruh keluaran bagian 1 dan 2 lebih dulu;
---   (b) mengganti :'AKTOR' dengan Guid pengguna yang bertanggung jawab;
---   (c) menghapus baris \echo + ROLLBACK di akhir dan menggantinya dengan COMMIT.
+--   (b) melepas komentar blok Tahap 1;
+--   (c) mengisi UUID operator pada 4.0a dengan Guid pengguna yang bertanggung jawab;
+--   (d) mengganti ROLLBACK di akhir tahap dengan COMMIT.
 --
 -- Seluruh blok berjalan dalam SATU transaksi. Gagal di tengah = tidak ada yang berubah.
--- =====================================================================================
-
--- \set AKTOR '00000000-0000-0000-0000-000000000000'   -- WAJIB diisi Guid aktor sebenarnya
-
+--
 -- URUTAN WAJIB, ditetapkan pemilik sistem dan TIDAK BOLEH DIBALIK:
 --
 --   TAHAP 1 : buat baris pengganti          (4.1 + 4.2)   -> COMMIT
@@ -485,23 +472,55 @@ HAVING count(*) > 1;
 -- ternyata tidak terbukti, hak lama masih aktif dan tidak ada seorang pun yang kehilangan
 -- akses. Menyatukan keduanya dalam satu transaksi membuat penonaktifan ikut ter-commit
 -- sebelum siapa pun sempat memeriksa hasilnya — persis urutan yang dilarang.
+-- =====================================================================================
 
 /*  ---------- TAHAP 1 — LEPAS KOMENTAR HANYA SETELAH DRY RUN DITINJAU ----------
 
 BEGIN;
 
--- 4.0 GERBANG PRASYARAT — WAJIB, DAN SENGAJA MENGGAGALKAN TRANSAKSI.
+-- 4.0a Parameter transaksi. Nilai bertahan sampai transaksi berakhir (is_local = true),
+--      dan terbaca di dalam blok DO maupun DML di bawah.
+--
+--      >>> GANTI UUID DI BAWAH DENGAN GUID OPERATOR YANG SEBENARNYA <<<
+SELECT set_config('be_sec_003b.aktor', '00000000-0000-0000-0000-000000000000', true);
+
+-- 4.0b GERBANG OPERATOR — wajib nyata.
+DO $$
+DECLARE
+    aktor_teks text := current_setting('be_sec_003b.aktor', true);
+    aktor      uuid;
+    jml        integer;
+BEGIN
+    IF aktor_teks IS NULL OR aktor_teks = '' THEN
+        RAISE EXCEPTION 'Parameter be_sec_003b.aktor belum disetel. Jalankan 4.0a lebih dulu.';
+    END IF;
+
+    aktor := aktor_teks::uuid;
+
+    IF aktor = '00000000-0000-0000-0000-000000000000'::uuid THEN
+        RAISE EXCEPTION
+            'UUID operator belum diisi. Ganti nilai be_sec_003b.aktor pada 4.0a dengan Guid '
+            'pengguna yang bertanggung jawab atas migrasi ini. Jejak audit tanpa pelaku '
+            'tidak dapat dipertanggungjawabkan.';
+    END IF;
+
+    SELECT count(*) INTO jml FROM public."AspNetUsers" WHERE "Id" = aktor;
+
+    IF jml <> 1 THEN
+        RAISE EXCEPTION
+            'Operator % tidak ditemukan pada AspNetUsers. Pakai Guid pengguna yang benar-benar ada.',
+            aktor;
+    END IF;
+
+    RAISE NOTICE 'Operator terverifikasi: %', aktor;
+END $$;
+
+-- 4.0c GERBANG PRASYARAT — WAJIB, DAN SENGAJA MENGGAGALKAN TRANSAKSI.
 --
 -- Menghentikan Tahap 1 bila salah satu dari 24 identitas target belum terdaftar, atau
 -- terdaftar tetapi tidak aktif / sudah dihapus. Tanpa gerbang ini, identitas yang hilang
 -- hanya membuat JOIN-nya kosong: 4.1/4.2 menyisipkan lebih sedikit baris dari yang
 -- diharapkan dan transaksi tetap COMMIT — gagal senyap.
---
--- Khususnya PatientAssessment.Amend: ia tidak tercakup peta bagian 0, tidak tercakup 1.1,
--- dan tidak tercakup 3.1. Sebelum gerbang ini, Amend yang belum terdaftar menghasilkan
--- 35 baris, bukan 36, tanpa satu pun tanda.
---
--- RAISE EXCEPTION membatalkan SELURUH transaksi. Tidak ada baris yang tertinggal.
 DO $$
 DECLARE
     belum_siap  integer;
@@ -551,7 +570,7 @@ INSERT INTO public."SysAccessPolicy" (
 SELECT
     gen_random_uuid(), t.department_id, t.position_id,
     t.controller_access_id, t.action_access_id,
-    true, true, false, false, now(), :'AKTOR'::uuid,
+    true, true, false, false, now(), current_setting('be_sec_003b.aktor')::uuid,
     '00000000-0000-0000-0000-000000000000'::uuid,
     '00000000-0000-0000-0000-000000000000'::uuid,
     '00000000-0000-0000-0000-000000000000'::uuid
@@ -572,7 +591,7 @@ INSERT INTO public."SysAccessPolicy" (
 SELECT
     gen_random_uuid(), h.department_id, h.position_id,
     amend.controller_access_id, amend.action_access_id,
-    true, true, false, false, now(), :'AKTOR'::uuid,
+    true, true, false, false, now(), current_setting('be_sec_003b.aktor')::uuid,
     '00000000-0000-0000-0000-000000000000'::uuid,
     '00000000-0000-0000-0000-000000000000'::uuid,
     '00000000-0000-0000-0000-000000000000'::uuid
@@ -589,8 +608,8 @@ WHERE h.resource = 'PatientAssessment' AND h.action = 'Complete'
 
 -- 4.2b VERIFIKASI DI DALAM TRANSAKSI — menutup sisa jalur gagal senyap.
 --
--- Gerbang 4.0 membuktikan identitasnya ADA. Blok ini membuktikan barisnya BENAR-BENAR
--- TERBENTUK. Keduanya berbeda: 4.0 memeriksa registry, 4.2b memeriksa hasil penulisan.
+-- Gerbang 4.0c membuktikan identitasnya ADA. Blok ini membuktikan barisnya BENAR-BENAR
+-- TERBENTUK. Keduanya berbeda: 4.0c memeriksa registry, 4.2b memeriksa hasil penulisan.
 --
 -- Angka pembandingnya DITURUNKAN dari data, bukan ditulis tangan, sehingga tetap benar
 -- bila kepemilikan di database berubah. Nilai yang diharapkan pada database development
@@ -665,6 +684,40 @@ ROLLBACK;
 
 BEGIN;
 
+-- 4.3.0 Parameter transaksi. Tahap 2 adalah transaksi TERSENDIRI, sehingga UUID operator
+--       WAJIB disetel ulang di sini — nilai dari Tahap 1 sudah hilang bersama transaksinya.
+--
+--       >>> GANTI UUID DI BAWAH DENGAN GUID OPERATOR YANG SEBENARNYA <<<
+SELECT set_config('be_sec_003b.aktor', '00000000-0000-0000-0000-000000000000', true);
+
+-- 4.3.0b GERBANG OPERATOR — wajib nyata.
+DO $$
+DECLARE
+    aktor_teks text := current_setting('be_sec_003b.aktor', true);
+    aktor      uuid;
+    jml        integer;
+BEGIN
+    IF aktor_teks IS NULL OR aktor_teks = '' THEN
+        RAISE EXCEPTION 'Parameter be_sec_003b.aktor belum disetel. Jalankan 4.3.0 lebih dulu.';
+    END IF;
+
+    aktor := aktor_teks::uuid;
+
+    IF aktor = '00000000-0000-0000-0000-000000000000'::uuid THEN
+        RAISE EXCEPTION
+            'UUID operator belum diisi. Ganti nilai be_sec_003b.aktor pada 4.3.0 dengan Guid '
+            'pengguna yang bertanggung jawab atas pencabutan ini.';
+    END IF;
+
+    SELECT count(*) INTO jml FROM public."AspNetUsers" WHERE "Id" = aktor;
+
+    IF jml <> 1 THEN
+        RAISE EXCEPTION 'Operator % tidak ditemukan pada AspNetUsers.', aktor;
+    END IF;
+
+    RAISE NOTICE 'Operator terverifikasi: %', aktor;
+END $$;
+
 -- 4.3 Nonaktifkan policy yang menggantung pada identitas yang sudah pensiun.
 --     Dijalankan TERAKHIR dan sebagai transaksi TERSENDIRI.
 --
@@ -673,17 +726,10 @@ BEGIN;
 --       PatientProcedure.Update = 1 policy
 --       DoctorQueue.Update      = 3 policy
 --       TOTAL                   = 4 policy
---
---     Sebelumnya bagian ini hanya berupa UPDATE telanjang: berapa pun baris yang cocok
---     akan dinonaktifkan, tanpa satu pun pemeriksaan. Bila keadaan database berbeda dari
---     bukti yang mendasari keputusan pemilik — misalnya 7 baris, bukan 4 — UPDATE itu
---     tetap berjalan dan mencabut hak yang tidak pernah ditinjau siapa pun. Empat gerbang
---     di bawah menutup jalur itu: sasaran dibekukan lebih dulu, jumlahnya ditegaskan
---     sebelum menulis, dan hasil tulisnya ditegaskan lagi sesudahnya.
 
 -- 4.3a Bekukan sasaran SEBELUM menulis, supaya yang ditegaskan dan yang diubah benar-benar
---      himpunan yang sama. Predikatnya identik dengan UPDATE sebelumnya — diturunkan dari
---      kunci bisnis (resource, action) lewat registry. TIDAK ADA GUID policy yang diketik.
+--      himpunan yang sama. Diturunkan dari kunci bisnis (resource, action) lewat registry.
+--      TIDAK ADA GUID policy yang diketik.
 CREATE TEMP TABLE be_sec_003b_tahap2_sasaran ON COMMIT DROP AS
 SELECT p."Id" AS policy_id, i.resource, i.action
 FROM public."SysAccessPolicy" p
@@ -719,16 +765,12 @@ END $$;
 
 -- 4.3c Penonaktifan, DIBATASI pada himpunan beku 4.3a. Baris yang benar-benar berubah
 --      direkam lewat RETURNING supaya jumlahnya dapat ditegaskan tanpa menebak.
---
---      CATATAN psql: :'AKTOR' sengaja dipakai di sini, DI LUAR blok dollar-quoted. psql
---      TIDAK menginterpolasi :'variabel' di dalam $$ ... $$, sehingga UPDATE ini tidak
---      boleh dipindahkan ke dalam blok DO.
 CREATE TEMP TABLE be_sec_003b_tahap2_terubah ON COMMIT DROP AS
 WITH upd AS (
     UPDATE public."SysAccessPolicy" p
     SET "IsActive"       = false,
         "UpdateDateTime" = now(),
-        "UpdateBy"       = :'AKTOR'::uuid
+        "UpdateBy"       = current_setting('be_sec_003b.aktor')::uuid
     FROM be_sec_003b_tahap2_sasaran s
     WHERE p."Id" = s.policy_id
       AND p."IsActive"
@@ -786,9 +828,7 @@ ROLLBACK;
 -- BAGIAN 5 — Verifikasi sesudah penulisan
 -- =====================================================================================
 
-\echo ''
-\echo '==== 5.1 Metrik sesudah ===='
-
+-- 5.1 Metrik sesudah.
 SELECT
     (SELECT count(*) FROM public."SysAccessPolicy")                                AS policy_fisik,
     (SELECT count(*) FROM public."SysAccessPolicy"
@@ -799,10 +839,8 @@ SELECT
         SELECT DISTINCT "DepartmentId", "PositionId" FROM public."SysAccessPolicy"
         WHERE "IsAllowed" AND "IsActive" AND NOT "IsDelete") x)                    AS pasangan_dept_posisi;
 
-\echo ''
-\echo '==== 5.2 Parity — tidak boleh ada pasangan yang kehilangan atau memperoleh ===='
-\echo '     Jumlah pasangan Departemen x Posisi wajib SAMA dengan sebelum migrasi.'
-
+-- 5.2 Parity — tidak boleh ada pasangan yang kehilangan atau memperoleh.
+--     Jumlah pasangan Departemen x Posisi wajib SAMA dengan sebelum migrasi.
 SELECT
     d."DepartmentName" AS department_name,
     pos."PositionName" AS position_name,
@@ -825,11 +863,39 @@ ORDER BY d."DepartmentName", pos."PositionName";
 
 BEGIN;
 
+-- Guid yang SAMA dengan yang dipakai saat migrasi.
+SELECT set_config('be_sec_003b.aktor', '00000000-0000-0000-0000-000000000000', true);
+
+DO $$
+DECLARE
+    aktor_teks text := current_setting('be_sec_003b.aktor', true);
+    aktor      uuid;
+    jml        integer;
+BEGIN
+    IF aktor_teks IS NULL OR aktor_teks = '' THEN
+        RAISE EXCEPTION 'Parameter be_sec_003b.aktor belum disetel.';
+    END IF;
+
+    aktor := aktor_teks::uuid;
+
+    IF aktor = '00000000-0000-0000-0000-000000000000'::uuid THEN
+        RAISE EXCEPTION 'UUID operator belum diisi.';
+    END IF;
+
+    SELECT count(*) INTO jml FROM public."AspNetUsers" WHERE "Id" = aktor;
+
+    IF jml <> 1 THEN
+        RAISE EXCEPTION 'Operator % tidak ditemukan pada AspNetUsers.', aktor;
+    END IF;
+
+    RAISE NOTICE 'Operator terverifikasi: %', aktor;
+END $$;
+
 -- 6.1 Aktifkan kembali policy identitas lama yang dinonaktifkan 4.3.
 UPDATE public."SysAccessPolicy" p
 SET "IsActive" = true,
     "UpdateDateTime" = now(),
-    "UpdateBy" = :'AKTOR'::uuid
+    "UpdateBy" = current_setting('be_sec_003b.aktor')::uuid
 FROM be_sec_003b_identitas i
 WHERE p."ActionAccessId" = i.action_access_id
   AND (i.resource, i.action) IN (('PatientProcedure','Update'), ('DoctorQueue','Update'))
@@ -841,7 +907,7 @@ WHERE p."ActionAccessId" = i.action_access_id
 UPDATE public."SysAccessPolicy" p
 SET "IsActive" = false,
     "UpdateDateTime" = now(),
-    "UpdateBy" = :'AKTOR'::uuid
+    "UpdateBy" = current_setting('be_sec_003b.aktor')::uuid
 FROM be_sec_003b_identitas i
 WHERE p."ActionAccessId" = i.action_access_id
   AND (i.resource, i.action) IN (
@@ -866,5 +932,4 @@ ROLLBACK;
 
     ---------- BATAS ROLLBACK ---------- */
 
-\echo ''
-\echo '==== SELESAI ===='
+-- ==== SELESAI ====
