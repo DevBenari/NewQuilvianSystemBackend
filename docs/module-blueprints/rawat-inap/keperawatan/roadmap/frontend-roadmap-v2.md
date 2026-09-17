@@ -169,12 +169,12 @@ tabel task: **27**. Keduanya cocok.
 
 | Gelombang | Boleh mulai setelah | Task |
 | ---: | --- | --- |
-| 1 | `BE-RWI-106` [BE] mendarat | `FE-RWI-081` |
+| 1 | `BE-RWI-106` [BE] mendarat | `FE-RWI-081` ✅ |
 | 1 | `BE-RWI-116` [BE] mendarat | `FE-RWI-088` |
 | 1 | `BE-RWI-107` dan `BE-RWI-108` [BE] mendarat | `FE-RWI-091` |
 | 1 | `BE-RWI-120` [BE] mendarat | `FE-RWI-092` |
 | 1 | `BE-RWI-114` [BE] mendarat | `FE-RWI-093` |
-| 2 | `FE-RWI-081` dan `BE-RWI-112` [BE] | `FE-RWI-082` |
+| 2 | `FE-RWI-081` dan `BE-RWI-112` [BE] | `FE-RWI-082` ✅ |
 | 2 | `FE-RWI-081` dan `BE-RWI-119`, `BE-RWI-120` [BE] | `FE-RWI-084` |
 | 2 | `FE-RWI-081` dan `BE-RWI-113` [BE] | `FE-RWI-085` |
 | 2 | `FE-RWI-081` dan `BE-RWI-124`, `BE-RWI-121` [BE] | `FE-RWI-086` |
@@ -190,8 +190,8 @@ tabel task: **27**. Keduanya cocok.
 
 | Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `FE-RWI-081` | Perawat membuka satu ruang kerja berisi delapan menu | `FR-KEP-035`, `036`, `037`; `RWI-DEC-108`, `113` | `0.5.0` | `FE-KEP-01` — **layout dipertahankan** | `FE-KEP-07` — navigasi kiri delapan menu, tab sekunder, `?section=` dan `?tab=` menyimpan posisi | `BE-RWI-106` [BE] | AC-1 s.d. AC-6 | `npm run lint`, `npm run build`, verifikasi manual + panel Network | Menu tanpa backend **tidak boleh** memanggil jaringan / Muhammad Hamzah | Kartu `FE-RWI-081` |
-| `FE-RWI-082` | Perawat melihat berapa bagian pengkajian yang sudah beres | `FR-KEP-050`, `051`, `052`; `RWI-DEC-119`, `120` | `0.5.0` API 7.1 | `FE-KEP-02`, `FE-KEP-03` | `FE-KEP-08` — progres lima bagian ✓/!/○ dan tujuh sub-menu | `FE-RWI-081`, `BE-RWI-112` [BE] | AC-1 s.d. AC-5 | `npm run lint`, `npm run build`, verifikasi manual | Progres gagal dimuat **wajib** tampil galat, bukan ○ / Muhammad Hamzah | Kartu `FE-RWI-082` |
+| `FE-RWI-081` ✅ | Perawat membuka satu ruang kerja berisi delapan menu | `FR-KEP-035`, `036`, `037`; `RWI-DEC-108`, `113` | `0.5.0` | `FE-KEP-01` — **layout dipertahankan** | `FE-KEP-07` — navigasi kiri delapan menu, tab sekunder, `?section=` dan `?tab=` menyimpan posisi | `BE-RWI-106` [BE] | AC-1 s.d. AC-6 | `npm run lint`, `npm run build`, verifikasi manual + panel Network | Menu tanpa backend **tidak boleh** memanggil jaringan / Muhammad Hamzah | Kartu `FE-RWI-081` |
+| `FE-RWI-082` ✅ | Perawat melihat berapa bagian pengkajian yang sudah beres | `FR-KEP-050`, `051`, `052`; `RWI-DEC-119`, `120` | `0.5.0` API 7.1 | `FE-KEP-02`, `FE-KEP-03` | `FE-KEP-08` — progres lima bagian ✓/!/○ dan tujuh sub-menu | `FE-RWI-081`, `BE-RWI-112` [BE] | AC-1 s.d. AC-5 | `npm run lint`, `npm run build`, verifikasi manual | Progres gagal dimuat **wajib** tampil galat, bukan ○ / Muhammad Hamzah | Kartu `FE-RWI-082` |
 | `FE-RWI-083` | Formulir klinis digambar dari definisi versi, bukan dari kode layar | `FR-KEP-039`, `043`, `044`, `045`, `047`, `048` | `0.5.0` data 11.4–11.6 | — (layar baru) | `FE-KEP-09` — **satu penggambar** untuk Kajian Umum, Resiko Jatuh, Monitoring Nyeri, Assesment Edukasi, Perencanaan Pulang | `FE-RWI-082`, `BE-RWI-107` [BE], `BE-RWI-109` [BE] | AC-1 s.d. AC-7 | `npm run lint`, `npm run build`, verifikasi manual; **test unit direkomendasikan** | Skor dihitung server — frontend **tidak** menghitung ulang / komite keperawatan | Kartu `FE-RWI-083` |
 | `FE-RWI-084` | Perawat mencatat dan membaca pengawasan satu hari dalam satu layar | `FR-KEP-056` s.d. `063`; `RWI-DEC-148`, `149` | `0.5.0` data 11.8–11.10, API 7.5 | — (layar baru) | `FE-KEP-10` — tanda vital, nyeri, intake, output, balance, GDS, diet dan mobilisasi | `FE-RWI-081`, `BE-RWI-119` [BE], `BE-RWI-120` [BE] | AC-1 s.d. AC-7 | `npm run lint`, `npm run build`, verifikasi manual | Satuan GDS **tanpa bawaan** — salah satuan = salah dosis insulin / Muhammad Hamzah | Kartu `FE-RWI-084` |
 | `FE-RWI-085` | MPP mengisi Evaluasi Awal delapan bagian | `FR-KEP-053`, `054`, `055`; `RWI-DEC-115`, `140` | `0.5.0` data 11.7 | — (layar baru) | `FE-KEP-11` — delapan bagian checklist; MPP menulis, lainnya membaca | `FE-RWI-081`, `BE-RWI-113` [BE] | AC-1 s.d. AC-5 | `npm run lint`, `npm run build`, verifikasi manual | Jalur addendum belum ada sampai jenis dokumen `14` tersedia / Muhammad Hamzah | Kartu `FE-RWI-085` |
@@ -213,7 +213,7 @@ tabel task: **27**. Keduanya cocok.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **Selesai (17 September 2026)** — 8 menu, tab sekunder, deep-linking, nol network request. [Laporan tracked](../task/report/frontend/FE-RWI-081.md) |
 | **Gelombang** | 1, menunggu `BE-RWI-106` [BE] |
 | **Layar** | `FE-KEP-07` — rework `FE-KEP-01`, **layout dipertahankan** |
 | **Jalan masuk** | Baris Census `FE-INP-01` dan tombol "Buka Ruang Kerja Keperawatan" pada Detail Episode `FE-INP-04` → route yang **sudah ada** `…/episodes/{id}/nursing` |
@@ -247,7 +247,7 @@ lewat panel Network peramban dan tangkapannya dilampirkan.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **Selesai (17 September 2026)** — progres 5 bagian ✓/!/○, persen kelipatan 20, non-skor terpisah, alert tidak ubah progres, galat tanpa ○. [Laporan tracked](../task/report/frontend/FE-RWI-082.md) |
 | **Gelombang** | 2 |
 | **Layar** | `FE-KEP-08` — rework `FE-KEP-02` dan `FE-KEP-03` |
 

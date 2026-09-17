@@ -32,10 +32,10 @@ Label `[BE-DOK]` menandai task milik `dokter-rawat-inap`.
 
 | FR | Disposisi | Task BE | Task FE | Bukti acceptance | Status |
 | --- | --- | --- | --- | --- | --- |
-| `FR-KEP-035` | `EXTEND` | — | `FE-RWI-081` | `AC-KEP-130` | Belum dikerjakan |
-| `FR-KEP-036` | `MISSING / NEW` | — | `FE-RWI-081`, `FE-RWI-090` | `INT-KEP-17`; panel Network nol permintaan | Belum dikerjakan |
-| `FR-KEP-037` | `EXISTING / REUSE` | — | `FE-RWI-081` | `03` 3.1 | Belum dikerjakan |
-| `FR-KEP-038` | `EXTEND` — perbaikan | `BE-RWI-106` | `FE-RWI-082` | `RLN3-CAP-17`, `18`, `21`, `22`, `29` | ✅ Backend 17 September 2026 — lima perbaikan keselamatan di source; `dotnet build` 0 error. Frontend belum dikerjakan. [BE-RWI-106](../task/report/backend/BE-RWI-106.md) |
+| `FR-KEP-035` | `EXTEND` | — | `FE-RWI-081` | `AC-KEP-130` | ✅ Frontend 17 September 2026 — navigasi 8 menu urutan tetap & tab sekunder; 71/71 test pass. [FE-RWI-081](../task/report/frontend/FE-RWI-081.md) |
+| `FR-KEP-036` | `MISSING / NEW` | — | `FE-RWI-081`, `FE-RWI-090` | `INT-KEP-17`; panel Network nol permintaan | 🟡 Sebagian — `FE-RWI-081` selesai (permukaan konteks pasien + badge belum tersedia + nol network request terpasang); menunggu `FE-RWI-090`. [FE-RWI-081](../task/report/frontend/FE-RWI-081.md) |
+| `FR-KEP-037` | `EXISTING / REUSE` | — | `FE-RWI-081` | `03` 3.1 | ✅ Frontend 17 September 2026 — kegagalan konteks mematikan seluruh aksi tulis pada 8 menu. [FE-RWI-081](../task/report/frontend/FE-RWI-081.md) |
+| `FR-KEP-038` | `EXTEND` — perbaikan | `BE-RWI-106` | `FE-RWI-082` | `RLN3-CAP-17`, `18`, `21`, `22`, `29` | ✅ Backend 17 September 2026 [BE-RWI-106] / ✅ Frontend 17 September 2026 [FE-RWI-082](../task/report/frontend/FE-RWI-082.md) |
 
 ## 2. `EPIC KEP-10` — Konfigurasi klinis berversi
 
@@ -57,9 +57,9 @@ Label `[BE-DOK]` menandai task milik `dokter-rawat-inap`.
 | `FR-KEP-047` | `EXTEND` | `BE-RWI-111` | `FE-RWI-083` | Enum `6`–`8` | ✅ Backend 17 September 2026 — enum `6`–`8`; `dotnet build` 0 error. [BE-RWI-111](../task/report/backend/BE-RWI-111.md) |
 | `FR-KEP-048` | `MISSING / NEW` | `BE-RWI-111` | `FE-RWI-083` | `VAL-KEP-22` | ✅ Backend 17 September 2026 — keadaan nyeri wajib, waktu kajian ulang tersimpan; `dotnet build` 0 error. [BE-RWI-111](../task/report/backend/BE-RWI-111.md) |
 | `FR-KEP-049` | `EXTEND` | `BE-RWI-110` | `FE-RWI-084` | `VAL-KEP-22c` | ✅ Backend 17 September 2026 — tanda vital rawat inap menolak isian nyeri; `dotnet build` 0 error. [BE-RWI-110](../task/report/backend/BE-RWI-110.md) |
-| `FR-KEP-050` | `MISSING / NEW` | `BE-RWI-112` | `FE-RWI-082` | API 7.1 | ✅ Backend 17 September 2026 — `GET …/progress` lima bagian; `dotnet build` 0 error. [BE-RWI-112](../task/report/backend/BE-RWI-112.md) |
-| `FR-KEP-051` | `MISSING / NEW` | `BE-RWI-112` | `FE-RWI-082` | `RWI-DEC-119` (3) | ✅ Backend 17 September 2026 — persen kelipatan 20 dihitung server; `dotnet build` 0 error. [BE-RWI-112](../task/report/backend/BE-RWI-112.md) |
-| `FR-KEP-052` | `MISSING / NEW` | `BE-RWI-112` | `FE-RWI-082` | `AC-KEP-072` | ✅ Backend 17 September 2026 — alert klinis terpisah dari progres; `dotnet build` 0 error. [BE-RWI-112](../task/report/backend/BE-RWI-112.md) |
+| `FR-KEP-050` | `MISSING / NEW` | `BE-RWI-112` | `FE-RWI-082` | API 7.1 | ✅ Backend 17 September 2026 [BE-RWI-112] / ✅ Frontend 17 September 2026 — progres 5 bagian ✓/!/○ persen kelipatan 20, non-skor terpisah. [FE-RWI-082](../task/report/frontend/FE-RWI-082.md) |
+| `FR-KEP-051` | `MISSING / NEW` | `BE-RWI-112` | `FE-RWI-082` | `RWI-DEC-119` (3) | ✅ Backend 17 September 2026 [BE-RWI-112] / ✅ Frontend 17 September 2026 — alert temuan berisiko di kepala konteks tanpa menurunkan progres. [FE-RWI-082](../task/report/frontend/FE-RWI-082.md) |
+| `FR-KEP-052` | `MISSING / NEW` | `BE-RWI-112` | `FE-RWI-082` | `AC-KEP-072` | ✅ Backend 17 September 2026 [BE-RWI-112] / ✅ Frontend 17 September 2026 — galat eksplisit saat gagal dimuat, pantang menampilkan ○ palsu. [FE-RWI-082](../task/report/frontend/FE-RWI-082.md) |
 
 ## 4. `EPIC KEP-12` — Evaluasi Awal MPP
 
