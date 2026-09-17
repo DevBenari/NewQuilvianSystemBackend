@@ -384,15 +384,74 @@ WHERE NOT EXISTS (
 GROUP BY t.resource, t.action_baru
 ORDER BY t.resource, t.action_baru;
 
--- 1.5 Baris policy yang menggantung pada identitas yang sudah pensiun.
---     Kandidat untuk dinonaktifkan pada Tahap 2 — HANYA sesudah penggantinya dibuat.
---     Jumlahnya WAJIB tepat 4: PatientProcedure.Update = 1, DoctorQueue.Update = 3.
+-- 1.5 SASARAN TAHAP 2 — hanya dua identitas pensiun milik BE-SEC-003B.
+--     Predikatnya IDENTIK dengan bagian 4.3a, sehingga daftar di bawah adalah persis baris
+--     yang akan dinonaktifkan Tahap 2 — tidak kurang, tidak lebih.
+--     Kontrak pemilik: PatientProcedure.Update = 1, DoctorQueue.Update = 3, total 4.
+
+-- 1.5a Rincian sasaran.
+--
+--     KOREKSI BE-SEC-017. Sebelumnya bagian ini hanya menyaring i.action_is_delete, tanpa
+--     membatasi identitasnya. Artinya ia menampilkan SETIAP policy hidup yang menunjuk
+--     baris registry yang sudah dihapus — termasuk BillingItemCategory.*, CompanyGuarantor.*,
+--     dan identitas pensiun lain yang TIDAK ADA hubungannya dengan BE-SEC-003B. Dry-run
+--     terhadap database development 17 September 2026 memang memunculkan baris-baris itu,
+--     dan pembacanya wajar menyimpulkan kontrak 4 baris sudah salah. Padahal bagian 4.3a
+--     sejak awal sudah dibatasi dua identitas; yang keliru hanya pratinjaunya.
 SELECT
-    h.resource, h.action, h.policy_id, h.department_id, h.position_id
-FROM be_sec_003b_pemegang h
-JOIN be_sec_003b_identitas i ON i.resource = h.resource AND i.action = h.action
+    i.resource,
+    i.action,
+    p."Id"            AS policy_id,
+    p."DepartmentId"  AS department_id,
+    p."PositionId"    AS position_id,
+    d."DepartmentName" AS department_name,
+    pos."PositionName" AS position_name
+FROM public."SysAccessPolicy" p
+JOIN be_sec_003b_identitas i ON i.action_access_id = p."ActionAccessId"
+LEFT JOIN public."MstDepartment" d   ON d."Id"   = p."DepartmentId"
+LEFT JOIN public."MstPosition"   pos ON pos."Id" = p."PositionId"
 WHERE i.action_is_delete
-ORDER BY h.resource, h.action;
+  AND (i.resource, i.action) IN (('PatientProcedure','Update'), ('DoctorQueue','Update'))
+  AND p."IsActive"
+ORDER BY i.resource, i.action, d."DepartmentName", pos."PositionName";
+
+-- 1.5b Ringkasan kontrak Tahap 2 — wajib 1 + 3 = 4.
+--      Angka di bawah DIBACA dari database apa adanya. Bila statusnya BEDA, jangan
+--      jalankan Tahap 2 dan laporkan selisihnya kepada pemilik sistem.
+SELECT
+    count(*) FILTER (WHERE i.resource = 'PatientProcedure' AND i.action = 'Update') AS patientprocedure_update,
+    count(*) FILTER (WHERE i.resource = 'DoctorQueue'      AND i.action = 'Update') AS doctorqueue_update,
+    count(*)                                                                        AS total,
+    CASE
+        WHEN count(*) = 4
+         AND count(*) FILTER (WHERE i.resource = 'PatientProcedure' AND i.action = 'Update') = 1
+         AND count(*) FILTER (WHERE i.resource = 'DoctorQueue'      AND i.action = 'Update') = 3
+        THEN 'cocok — kontrak 1 + 3 = 4 terpenuhi'
+        ELSE 'BEDA — JANGAN jalankan Tahap 2; gerbang 4.3b akan membatalkan transaksi'
+    END AS status
+FROM public."SysAccessPolicy" p
+JOIN be_sec_003b_identitas i ON i.action_access_id = p."ActionAccessId"
+WHERE i.action_is_delete
+  AND (i.resource, i.action) IN (('PatientProcedure','Update'), ('DoctorQueue','Update'))
+  AND p."IsActive";
+
+-- 1.5c OBSERVASI DI LUAR SCOPE — JANGAN dijadikan sasaran Tahap 2.
+--      Identitas pensiun LAIN yang masih dipegang policy hidup. BE-SEC-003B TIDAK
+--      menyentuhnya sama sekali. Ditampilkan hanya supaya keberadaannya tercatat dan tidak
+--      lagi disalahartikan sebagai sasaran Tahap 2. Pembersihannya, bila memang diinginkan,
+--      adalah keputusan pemilik modul masing-masing dan task tersendiri.
+SELECT
+    i.resource,
+    i.action,
+    count(*) AS policy_hidup,
+    'DI LUAR SCOPE BE-SEC-003B — tidak disentuh' AS catatan
+FROM public."SysAccessPolicy" p
+JOIN be_sec_003b_identitas i ON i.action_access_id = p."ActionAccessId"
+WHERE i.action_is_delete
+  AND (i.resource, i.action) NOT IN (('PatientProcedure','Update'), ('DoctorQueue','Update'))
+  AND p."IsActive"
+GROUP BY i.resource, i.action
+ORDER BY i.resource, i.action;
 
 -- =====================================================================================
 -- BAGIAN 2 — DRY RUN PatientAssessment.Amend

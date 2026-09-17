@@ -195,6 +195,21 @@ BE-SEC-003 🟡 (hardening identitas)
 
 ---
 
+### `BE-SEC-017` ✅ — Koreksi lingkup dry-run `BE-SEC-003B` bagian 1.5
+
+| Field | Nilai |
+|---|---|
+| **Status** | ✅ **Selesai** 17 September 2026 — pratinjau sasaran Tahap 2 dibatasi ke dua identitas yang benar, ringkasan `1 + 3 = 4` ditambahkan, identitas pensiun lain dipisahkan sebagai observasi. Build `Release` `0 Error(s)`; authorization verifier `PASS`; registry source **1.300 / 340 / 48**; metadata gap 0; fallback 69; `BE-SEC-003` 24/24; naked 0 baru, 0 baseline. Laporan: [`BE-SEC-017.md`](../task/report/backend/BE-SEC-017.md) |
+| **Sebab** | **Ditemukan lewat dry-run baca-saja yang benar-benar dijalankan** terhadap `QuilvianNewDevAndryZain` — eksekusi pertama `BE-SEC-003B` terhadap database nyata. Bagian 1.0/1.0b/1.4/2.1/2.2/3.1/3.2 seluruhnya terbukti benar; hanya 1.5 yang salah lingkup |
+| **Akar masalah** | Predikat 1.5 hanya menyaring `i.action_is_delete` tanpa membatasi identitas, sehingga efektif berarti "seluruh policy hidup yang menunjuk registry mana pun yang sudah dihapus" — ikut menjaring `BillingItemCategory.*`, `CompanyGuarantor.*`, dan identitas pensiun lain |
+| **Yang TIDAK rusak** | Sasaran Tahap 2 (4.3a) dan gerbang kardinalitas (4.3b) **sudah benar sejak `BE-SEC-015`**. Tahap 2 tidak pernah akan menyentuh identitas yang tidak berhubungan — cacatnya murni pada pratinjau, tetapi pratinjau yang menyesatkan mengikis kepercayaan pada gerbang yang benar |
+| **Koreksi** | 1.5a memakai predikat **identik** dengan 4.3a; 1.5b meringkas `PatientProcedure.Update` / `DoctorQueue.Update` / total dan menandai `BEDA` bila bukan 1 + 3 = 4 — angkanya dibaca apa adanya, tidak dipaksakan; 1.5c mendaftar identitas pensiun lain dengan label eksplisit **DI LUAR SCOPE, tidak disentuh** |
+| **Identitas tidak berhubungan** | `BillingItemCategory.*`, `CompanyGuarantor.*`, dan lainnya **tidak** dihapus, diaktifkan, dinonaktifkan, maupun dimigrasikan. `BE-SEC-003B` tidak menyerap pembersihan otorisasi yang tidak berhubungan |
+| **Database** | **Tidak ada eksekusi pada task ini.** Seluruh koreksi pada query baca-saja. Tahap 1 dan Tahap 2 tetap `PAUSED` |
+| **Gerbang terbuka** | Kontrak `1 + 3 = 4` **belum pernah dikonfirmasi** oleh query yang lingkupnya benar — 1.5 hasil koreksi wajib dijalankan ulang lebih dulu. `CompanyGuarantor.*` belum pernah dianalisis siapa pun |
+
+---
+
 | Pekerjaan | Repository | Alasan terpisah |
 |---|---|---|
 | Perbaikan route tab Surat Dokter: `doctor-certificates` → `medical-certificates` | Frontend | Cacat kontrak yang sudah ada. **Dilarang** diselipkan ke task `BE-SEC` mana pun |
