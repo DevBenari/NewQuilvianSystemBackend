@@ -206,3 +206,75 @@ Setiap dokumen, skrip, atau dry-run yang masih menyebut `1.286 / 339 / 48` sebag
 | `BillingItemCategory.*` | Terbuka — milik tim Billing, lihat `evidence/10` |
 
 Ketiganya **tidak** disentuh skrip mana pun pada `BE-SEC-014`, dan tidak diselesaikan di sini.
+
+---
+
+## H. Penutupan gerbang posisi staff HR — 17 September 2026 (`BE-SEC-016`)
+
+> Bagian A–G di atas ditulis 16 September 2026 dan **benar pada saat itu**: daftar posisi staff HR
+> memang belum tersedia, dan skrip pemberian hak sengaja dibiarkan hanya melayani Manajer HR.
+> Bagian ini **tidak mengubah** catatan itu — ia mencatat penyelesaiannya.
+
+### H.1 Keputusan pemilik
+
+Audit baca-saja terhadap database dijalankan dan keluarannya ditinjau pemilik sistem. Departemen
+`Human Resource` hanya memiliki **dua** posisi:
+
+| Posisi | Status |
+|---|---|
+| `Manajer HR` | Sudah ada pada matriks `BE-SEC-014` bagian B.1 |
+| `Staff HR` | **Inilah posisi staff yang dimaksud.** Sebelumnya tidak diketahui |
+
+Keputusan pemilik dinyatakan **FINAL**:
+
+| Departemen × Posisi | Read | Create | Update | Delete |
+|---|:---:|:---:|:---:|:---:|
+| `Human Resource` × `Manajer HR` | ✅ | ✅ | ✅ | ✅ |
+| `Human Resource` × `Staff HR` | ✅ | ✅ | ⛔ | ⛔ |
+
+Berlaku untuk keenam resource: `WorkSchedule`, `Shift`, `ShiftGroup`, `ShiftPattern`,
+`WorkCalendar`, `WorkScheduleAssignment`.
+
+**Finance TIDAK termasuk dalam matriks di atas.** Satu-satunya pembatasan Finance yang disetujui
+pemilik adalah yang sudah ditetapkan bagian C.2:
+
+| Pembatasan Finance yang disetujui | Status |
+|---|---|
+| `Finance` × `Manajer Finance` — `WorkSchedule.Update` | ⛔ dicabut |
+| `Finance` × `Manajer Finance` — `WorkSchedule.Delete` | ⛔ dicabut |
+
+Di luar dua baris itu, **tidak ada keputusan pemilik tentang Finance**. `WorkSchedule.Read` dan
+`WorkSchedule.Create` milik Finance, seluruh izin Finance pada `Shift`, `ShiftGroup`,
+`ShiftPattern`, `WorkCalendar`, dan `WorkScheduleAssignment`, serta posisi Finance selain
+`Manajer Finance` **tetap berlaku apa adanya** dan berada di luar scope `BE-SEC-016`. Tidak boleh
+disimpulkan bahwa "Finance tidak memperoleh apa pun".
+
+### H.2 Kardinalitas final
+
+| Pasangan | Perhitungan | Kunci alami |
+|---|---|---:|
+| `Manajer HR` | 6 resource × 4 action | **24** |
+| `Staff HR` | 6 resource × 2 action | **12** |
+| **Total cakupan akhir** | | **36** |
+
+**36 adalah cakupan akhir yang dituntut, bukan jumlah `INSERT`.** Kunci alami yang sudah ada dan
+masih efektif dipertahankan apa adanya; hanya yang belum ada yang disisipkan. Kunci alami yang ada
+tetapi **nonaktif atau sudah dihapus** membatalkan transaksi — skrip menolak menghidupkan ulang
+policy yang pernah dicabut, karena keputusan itu milik pemilik sistem, bukan skrip.
+
+### H.3 Dampak pada gerbang yang sebelumnya terbuka
+
+| Gerbang `BE-SEC-014` | Keadaan sekarang |
+|---|---|
+| Daftar posisi staff HR belum disetujui | ✅ **DITUTUP** — `Staff HR`, dikodekan pada bagian 3.2 skrip pemberian hak |
+| Urutan sepuluh langkah penerapan belum dijalankan | ⛔ **Masih terbuka** — tidak disentuh `BE-SEC-016` |
+
+Bagian E (urutan penerapan) dan bagian F (baseline `1.300 / 340 / 48`) **tetap berlaku apa adanya**.
+
+### H.4 Yang tetap di luar scope
+
+`KioskScanSession.Cancel`, `Queue.*`, dan `BillingItemCategory.*` pada bagian G **tetap terbuka**
+dan tidak disentuh. Tidak ada izin Finance yang diperluas, dan tidak ada izin Finance yang dicabut
+selain dua baris `WorkSchedule.Update`/`Delete` milik `Manajer Finance` yang sudah ditetapkan
+bagian C.2. Tidak ada pasangan Departemen × Posisi di luar dua baris matriks H.1 yang memperoleh
+apa pun.

@@ -99,7 +99,7 @@ bertanya sebelum menjalankan perintah*.
 | Matriks hak akses master data HR | ✅ **Disetujui pemilik** — manajer CRUD, staff Read/Create | [`evidence/14`](../evidence/14-owner-policy-matrix-and-deployment-preparation.md) bagian B |
 | Baseline pemeliharaan registry | ✅ **Diperbarui** — 1.286/339/48 dicabut, diganti **1.300/340/48** | [`evidence/14`](../evidence/14-owner-policy-matrix-and-deployment-preparation.md) bagian F |
 | Urutan penerapan aman sebelum `BE-SEC-003B` | ✅ **Ditetapkan** — sepuluh langkah, belum dijalankan | [`evidence/14`](../evidence/14-owner-policy-matrix-and-deployment-preparation.md) bagian E |
-| Daftar posisi staff HR | ⛔ **Terbuka** — menunggu persetujuan pemilik, sengaja tidak ditebak | [`BE-SEC-014.md`](../task/report/backend/BE-SEC-014.md) bagian 6 |
+| Daftar posisi staff HR | ✅ **Ditutup `BE-SEC-016`** 17 September 2026 — pemilik menetapkan `Staff HR` (Read/Create saja). Matriks final 24 manajer + 12 staff = 36 kunci | [`evidence/14`](../evidence/14-owner-policy-matrix-and-deployment-preparation.md) bagian H, [`BE-SEC-016.md`](../task/report/backend/BE-SEC-016.md) |
 | 8 endpoint `WfpWorkScheduleAssignmentController` | ✅ **Ditutup `BE-SEC-013`** — 8 endpoint ditegakkan, baseline naked kosong | [`BE-SEC-013.md`](../task/report/backend/BE-SEC-013.md) bagian 6 |
 | Baseline naked endpoint yang diakui | ✅ **Kosong** — invarian sepenuhnya *fail closed* | [`BE-SEC-013.md`](../task/report/backend/BE-SEC-013.md) bagian 4.3 |
 

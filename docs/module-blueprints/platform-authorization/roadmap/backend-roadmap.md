@@ -161,7 +161,7 @@ BE-SEC-003 🟡 (hardening identitas)
 | **Keputusan pemilik** | Master data mengikuti kepemilikan departemen. Manajer: Read/Create/Update/Delete. Staff: Read/Create. Finance **tidak** mempertahankan `WorkSchedule.Update`/`Delete` |
 | **Artefak** | [`evidence/14`](../evidence/14-owner-policy-matrix-and-deployment-preparation.md) + tiga skrip pada `Migrations/scripts/be-sec-014-*.sql` |
 | **Database** | **Tidak ada eksekusi.** Dua skrip tulis berakhir `ROLLBACK`; satu skrip baca-saja. Tidak ada EF migration |
-| **Gerbang terbuka** | Daftar posisi staff HR belum disetujui pemilik. Urutan sepuluh langkah penerapan belum dijalankan |
+| **Gerbang terbuka** | ~~Daftar posisi staff HR belum disetujui pemilik~~ → ✅ ditutup `BE-SEC-016` 17 September 2026 (`Staff HR`, Read/Create). Urutan sepuluh langkah penerapan **masih** belum dijalankan |
 
 ---
 
@@ -176,6 +176,22 @@ BE-SEC-003 🟡 (hardening identitas)
 | **Parity** | Dibuktikan lewat diff ternormalisasi: peta 23, identitas wajib 24, aturan `Amend`, sasaran Tahap 1/2, sasaran rollback, kunci alami, kolom `NOT NULL`, dan seluruh kardinalitas **identik**. Yang berbeda hanya cangkang eksekusi dan gerbang operator tambahan |
 | **Database** | **Tidak ada eksekusi.** Kedua tahap tulis tetap berakhir `ROLLBACK`. `BE-SEC-003B` Tahap 1 dan Tahap 2 tetap `PAUSED`. Tidak ada EF migration |
 | **Gerbang terbuka** | Angka 4 pada gerbang Tahap 2 berasal dari kontrak pemilik dan **belum diukur** pada database; bagian 1.5 wajib dijalankan lebih dulu. Kedua varian belum pernah diuji terhadap database mana pun |
+
+---
+
+### `BE-SEC-016` ✅ — Penutupan matriks pemilik HR (`Staff HR`) dan penegakan 24 + 12 = 36
+
+| Field | Nilai |
+|---|---|
+| **Status** | ✅ **Selesai** 17 September 2026 — gerbang terbuka `BE-SEC-014` ditutup, matriks pemilik dikodekan dan ditegakkan berlapis. Build `Release` `0 Error(s)`; authorization verifier `PASS`; registry source **1.300 / 340 / 48**; metadata gap 0; fallback 69; `BE-SEC-003` 24/24; naked 0 baru, 0 baseline. Laporan: [`BE-SEC-016.md`](../task/report/backend/BE-SEC-016.md) |
+| **Sebab** | `BE-SEC-014` sengaja membiarkan daftar posisi staff HR kosong karena belum disetujui pemilik, sehingga seluruh staf HR tidak memperoleh akses apa pun — termasuk `Read` |
+| **Keputusan pemilik** | **FINAL.** Departemen `Human Resource` hanya memiliki dua posisi. `Manajer HR` → Read/Create/Update/Delete. `Staff HR` → Read/Create saja, **tanpa** Update dan Delete. **Finance tidak diputuskan di sini** — satu-satunya pembatasan Finance yang disetujui tetap `Manajer Finance` tidak mempertahankan `WorkSchedule.Update`/`Delete` (`BE-SEC-014`); izin Finance lain berlaku apa adanya |
+| **Kardinalitas** | `Manajer HR` 6×4 = **24**, `Staff HR` 6×2 = **12**, total cakupan akhir **36** kunci alami. 36 adalah cakupan akhir, **bukan** jumlah `INSERT` — skrip tetap idempoten |
+| **Penegakan** | Sebelum tulis: tepat-satu departemen/posisi, 24/12/36, dan nol sasaran `Update`/`Delete` untuk staff. Sesudah tulis (masih di dalam transaksi): cakupan 24/24 dan 12/12, staff `Update`/`Delete` = 0 dibaca dari database, `Finance` × `Manajer Finance` `WorkSchedule.Update`/`Delete` = 0 (**hanya pasangan itu**, nama departemen dicocokkan persis), nol duplikat, dan nol baris di luar matriks 36 kunci — diperiksa dari daftar `RETURNING` |
+| **Kunci bisnis** | Ditinjau ulang: `DepartmentCode` dan `(DepartmentId, PositionCode)` **unik**, nama **tidak**. Pencarian berbasis nama dipertahankan karena itulah bahasa keputusan pemilik, ketidakunikannya ditutup penegasan tepat-satu, dan code dibaca sebagai silang-periksa. Tidak ada konvensi kunci baru |
+| **Artefak** | [`evidence/14`](../evidence/14-owner-policy-matrix-and-deployment-preparation.md) bagian H + `Migrations/scripts/be-sec-014-post-seeder-hr-initial-grants.sql` |
+| **Database** | **Tidak ada eksekusi.** Skrip tetap berakhir `ROLLBACK`. Tidak ada EF migration |
+| **Gerbang terbuka** | Urutan sepuluh langkah penerapan `evidence/14` bagian E belum dijalankan. Skrip belum pernah diuji terhadap database |
 
 ---
 
@@ -221,4 +237,4 @@ BE-SEC-003 🟡 (hardening identitas)
 | Dua baris proyeksi legacy-unresolved | — | Sengaja dipertahankan |
 | Penerapan ke lingkungan selain development | — | Operasional |
 | **Hak tertidur `WorkSchedule.Update` / `WorkSchedule.Delete`** | Penerapan `BE-SEC-012` | ✅ **Diputuskan** 16 September 2026 — Finance **dicabut**, Human Resource × Manajer HR **dipertahankan**. Skrip pencabutan siap, belum dijalankan: [`evidence/14`](../evidence/14-owner-policy-matrix-and-deployment-preparation.md) bagian C.2 |
-| Daftar posisi staff Human Resource | Pemberian hak awal `BE-SEC-014` | **TERBUKA.** Tidak tersedia sebagai bukti dan sengaja tidak ditebak. Pemilik memilih dari keluaran bagian 2.1 `be-sec-014-current-holders-readonly-dbeaver.sql` |
+| Daftar posisi staff Human Resource | Pemberian hak awal `BE-SEC-014` | ✅ **DITUTUP `BE-SEC-016`** 17 September 2026 — audit baca-saja dijalankan, pemilik menetapkan `Staff HR` dengan Read/Create saja. Matriks final 24 + 12 = 36 kunci alami: [`evidence/14`](../evidence/14-owner-policy-matrix-and-deployment-preparation.md) bagian H |
