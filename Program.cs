@@ -324,6 +324,7 @@ try
     builder.Services.AddScoped<QueueVoiceService>();
     builder.Services.AddScoped<QueueRealtimeService>();
     builder.Services.AddScoped<LabOrderService>();
+    builder.Services.AddScoped<LabOrderNumberService>();
     builder.Services.AddScoped<LabSpecimenService>();
     builder.Services.AddScoped<LabValueBoundService>();
     builder.Services.AddScoped<LabCriticalBoundApprovalService>();
@@ -347,6 +348,19 @@ try
 
     builder.Services.AddScoped<EncounterIntakeService>();
     builder.Services.AddScoped<PatientEncounterNumberService>();
+
+    // BE-EXT-05 — penutupan otomatis kunjungan kiosk yang tidak dilanjutkan.
+    //
+    // Urutannya penting untuk dibaca, bukan untuk dijalankan: penjawab tiap unit didaftarkan
+    // sebagai IEncounterContinuationProbe, dan KioskEncounterClosureService hanya menutup
+    // kunjungan yang tujuan kiosknya punya penjawab. Mencabut satu baris AddScoped di bawah
+    // membuat unit itu berhenti ikut ditutup — bukan membuatnya ditutup membabi buta.
+    builder.Services.AddScoped<IEncounterContinuationProbe, LabEncounterContinuationProbe>();
+    builder.Services.AddScoped<KioskEncounterClosureService>();
+    builder.Services.Configure<KioskEncounterClosureOptions>(
+        builder.Configuration.GetSection("HealthServices:KioskEncounterClosure"));
+    builder.Services.AddHostedService<KioskEncounterClosureHostedService>();
+
     builder.Services.AddScoped<EncounterPaymentSourceService>();
     builder.Services.AddScoped<EncounterInsuranceService>();
     builder.Services.AddScoped<InsuranceCoverageService>();

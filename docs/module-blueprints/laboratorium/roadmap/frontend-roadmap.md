@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | `blueprint_id` | `LAB-BP-001` |
-| Roadmap revision | `21` |
+| Roadmap revision | `29` |
 | Status | `DRAFT` |
 | Bentuk blueprint | `SINGLE` |
 | Ditulis oleh | `plan-module-delivery` |
@@ -483,9 +483,9 @@ Legenda:
 
 | Gelombang eksekusi | Task | Kenapa di sini |
 |---:|---|---|
-| 1 | `FE-LAB-10` | Menunggu `BE-LAB-20` dan `BE-LAB-25` |
-| 2 | `FE-LAB-11` | Menunggu keempat task backend yang menyusun formulirnya |
-| 3 | `FE-LAB-12` | Menampilkan hasil yang dibuat `FE-LAB-11` |
+| 1 | `FE-LAB-10` ✅ | **Selesai 2026-09-16.** Kedua prasyaratnya, `BE-LAB-20` dan `BE-LAB-25`, sudah selesai sejak 2026-09-15 |
+| 2 | `FE-LAB-11` ✅ | **Selesai 2026-09-17.** Keempat task backendnya selesai sejak 2026-09-15 |
+| 3 | `FE-LAB-12` ✅ | **Selesai 2026-09-17.** Penahannya terangkat dan ditutup pada hari yang sama |
 
 **Tidak ada siklus.** Jumlah pasangan prasyarat→task pada grafik sama dengan isi kolom
 **Dependency** pada ketiga task di bawah.
@@ -494,7 +494,23 @@ Legenda:
 > frontend lama ditulis sebelum grafik urutan dependency menjadi kewajiban dan tidak memilikinya.
 > Dicatat sebagai gap, bukan diturunkan ulang dari ingatan dokumen.
 
-### `FE-LAB-10` — Pengelolaan jenis specimen dan daftar pantau `Lainnya`
+### `FE-LAB-10` ✅ — Pengelolaan jenis specimen dan daftar pantau `Lainnya`
+
+> **Status: ✅ `SELESAI` — 2026-09-16.** Seluruh butir DoD terpenuhi dan **terbukti pada aplikasi
+> yang benar-benar berjalan**, termasuk butir yang paling menentukan: tautan langsung ke layar
+> kelola memuat barisnya lewat `GET /{id}` dan **nol memanggil jalur daftar**. Laporan lengkap
+> beserta buktinya: [`task/report/frontend/FE-LAB-10.md`](../task/report/frontend/FE-LAB-10.md).
+>
+> **Dikerjakan justru karena ketiga penahan modul tidak menyentuhnya.** `LAB-SIGN-001`,
+> `LAB-REQ-007`, dan `LAB-COORD-010` seluruhnya mengunci `S17` dan `S4`; task ini milik
+> `MVP-5a`, kontraknya `r7`/`r8` terkunci sejak 2026-09-14, dan kedua dependency backendnya
+> selesai sejak 2026-09-15.
+>
+> **Satu bagian verifikasi tidak dapat dijalankan, dan sebabnya ketiadaan data — bukan ketiadaan
+> layar.** Skenario *"daftar pantau menampilkan cairan kista berjumlah tiga"* menuntut wadah
+> berjenis `Lainnya` yang tercatat; `GET /other-usage` terhadap basis data sebenarnya
+> mengembalikan `totalData 0`, karena jalur yang mengisinya adalah `FE-LAB-11` yang belum
+> dikerjakan. Perilaku layarnya dibuktikan terpisah dengan jawaban yang dipasang.
 
 | Butir | Isi |
 |---|---|
@@ -513,7 +529,26 @@ Legenda:
 memuat barisnya dari halaman daftar yang sedang terbuka, lalu diam-diam gagal pada tautan
 langsung dan muat ulang. Pola yang sama dicegah di sini sejak awal.
 
-### `FE-LAB-11` — Formulir Penerimaan Sampling/Specimen
+### `FE-LAB-11` ✅ — Formulir Penerimaan Sampling/Specimen
+
+> **Status: ✅ `SELESAI` — 2026-09-17.** Laporan:
+> [`task/report/frontend/FE-LAB-11.md`](../task/report/frontend/FE-LAB-11.md).
+> Lint bersih, build hijau, **1029/1029** uji unit, **6** pemeriksaan layar, dan **`AC-76`
+> terbukti**: 12/12 uji layar lab lama lulus tanpa satu berkas pun disentuh.
+>
+> **Tiga pemeriksaan layar sengaja menguji ketiadaan** — nol kotak Jumlah/Qty, nol `select`
+> metode pembayaran, dan tombol kelayakan yang tidak dapat ditekan beserta sebabnya. Ketiganya
+> paling mudah lolos bila hanya tampilannya dilihat sepintas.
+>
+> **Satu butir DoD dicabut sebelum dikerjakan** — lihat kotak `⛔` di bawah.
+>
+> **Dua batas dilaporkan apa adanya:** wadah direncanakan pada pesanan **pertama** ketika
+> pemeriksaannya melintasi beberapa disiplin, dan `BR-44` baru terpenuhi pada kalimatnya.
+>
+> **⚠ Satu temuan di luar cakupan, dan ia mendesak:** layar wadah lama `FE-LAB-07` **tidak lagi
+> dapat merencanakan wadah** — `VAL-51` menolak `422` setiap permintaan tanpa `specimenTypeId`,
+> dan layar itu nol mengirimnya, sejak migration `BE-LAB-21` diterapkan 2026-09-15. Perbaikannya
+> kecil tetapi menuntut task tersendiri.
 
 | Butir | Isi |
 |---|---|
@@ -526,7 +561,7 @@ langsung dan muat ulang. Pola yang sama dicegah di sini sejak awal.
 | **Acceptance criteria** | `AC-75`, `AC-77`, dan `AC-76` sebagai regresi |
 | **Verifikasi** | Uji komponen; verifikasi manual jalur berhasil `UAT-11.1` dan `UAT-11.2`; jalur gagal `UAT-11.3` dan `UAT-11.4`; **seluruh uji layar lab yang sudah ada dijalankan kembali dan lulus tanpa disentuh** |
 | **Risiko/pemilik** | Sedang. Layar terbesar modul ini, dan dua wilayahnya belum punya isi. Pemilik: Laboratorium. Tata letak `DEV_DISCRETION` sesuai `LAB-FE-002` |
-| **DoD** | Wilayah C dan D **terlihat berdampingan** sebelum kelayakan ditetapkan (`LAB-FE-010`); peringatan penguncian terlihat sebelum tombol kelayakan dapat ditekan; metode pembayaran **baca-saja tanpa kotak pilihan** dan menulis *belum dapat ditentukan* saat sumbernya tidak terjawab (`LAB-FE-011`); jumlah/Qty dapat diisi dan hasilnya tersimpan sebagai beberapa baris; penamaan menu membedakan jalur ini dari pesanan dokter (`LAB-FE-009`); `AC-76` terbukti — uji layar lama lulus tanpa perubahan |
+| **DoD** | Wilayah C dan D **terlihat berdampingan** sebelum kelayakan ditetapkan (`LAB-FE-010`); peringatan penguncian terlihat sebelum tombol kelayakan dapat ditekan; metode pembayaran **baca-saja tanpa kotak pilihan** dan menulis *belum dapat ditentukan* saat sumbernya tidak terjawab (`LAB-FE-011`); **nol kolom Jumlah/Qty dirender dan nol ruas `quantity` dikirim** (`LAB-DEC-050`); pembatalan pemeriksaan sesudah wadah `Layak` **mengatakan bahwa tagihannya tidak ikut batal** (`BR-44`); penamaan menu membedakan jalur ini dari pesanan dokter (`LAB-FE-009`); `AC-76` terbukti — uji layar lama lulus tanpa perubahan |
 
 > **Dua wilayah sengaja kosong, dan itu harus terlihat oleh petugas.** Wilayah metode
 > pembayaran menampilkan *belum dapat ditentukan*, bukan dikosongkan begitu saja. Wilayah
@@ -534,11 +569,123 @@ langsung dan muat ulang. Pola yang sama dicegah di sini sejak awal.
 > pendaftaran ditolak `VAL-43` seperti hari ini. **Jalan buntunya belum hilang**, dan layar ini
 > tidak boleh berpura-pura sudah hilang.
 
-**Satu hal yang perlu terlihat sejak formulir:** mengisi jumlah `3` menghasilkan **tiga baris**
-pemeriksaan setelah tersimpan, bukan satu baris bertuliskan "3". Bila layar detail menampilkan
-tiga baris sementara formulirnya menampilkan satu, petugas akan menyangka ada yang salah.
+> ## ⛔ Butir Jumlah/Qty DICABUT — koreksi 2026-09-17
+>
+> Paragraf di tempat ini semula berbunyi: *"mengisi jumlah `3` menghasilkan tiga baris
+> pemeriksaan setelah tersimpan, bukan satu baris bertuliskan '3'."* Butir itu **tidak berlaku**,
+> dan butir DoD yang menuntutnya sudah diganti.
+>
+> **Ketiga sumber otoritatif sepakat, dan ketiganya bertanggal 2026-09-14** — hari yang sama task
+> ini ditulis, sehingga besar kemungkinan ia tertulis tanpa memuat keputusan yang baru turun:
+>
+> | Sumber | Bunyi |
+> |---|---|
+> | `LAB-DEC-050`, `BR-45` | *"Kolom Jumlah tidak dibuat"*; `LAB-DEC-038` **dicabut** |
+> | `LAB-API-v1` `r9` | Ruas `Quantity` pada `POST /lab-examinations` **tidak jadi dibuat** |
+> | `03-frontend-architecture.md` §10.5 | Kolom Jumlah/Qty **tidak ada** — *"Tidak di layar, tidak di permintaan API"* |
+>
+> **Sebabnya bukan selera.** `BE-LAB-23` menemukan `LabExamination` memiliki index unik
+> `(SpecimenId, ProcedureId)` di tingkat database, dipasang atas dasar `BR-20` dan `AC-35`. Dua
+> baris untuk jenis pemeriksaan yang sama pada satu wadah **tidak mungkin ada**, sehingga
+> "jumlah 3 menjadi tiga baris" akan ditolak database pada baris kedua.
+>
+> **Yang berlaku sebagai gantinya:** petugas yang memerlukan dua pemeriksaan memilih **dua butir
+> katalog** yang berbeda; pengerjaan ganda satu pemeriksaan ditandai **`IsDuplo`**
+> (`LAB-DEC-026`).
 
-### `FE-LAB-12` — Daftar dan detail penerimaan
+**Satu hal yang tetap wajib terlihat petugas (`BR-44`).** Membatalkan pemeriksaan sesudah wadah
+dinyatakan `Layak` **tidak** serta-merta membatalkan tagihannya — kelayakan tagihnya sudah terbit
+dan koreksinya dikerjakan Billing. Layar wajib mengatakan itu pada saat tombol batal ditekan,
+bukan membiarkannya menjadi kejutan di loket.
+
+### `FE-LAB-12` ✅ — Daftar dan detail penerimaan
+
+> **Status: ✅ `SELESAI` — 2026-09-17**, pada hari yang sama ia sempat ditandai ⛔ `TERTAHAN`.
+> Laporan: [`task/report/frontend/FE-LAB-12.md`](../task/report/frontend/FE-LAB-12.md).
+> Lint bersih, build hijau, **1043/1043** uji unit, **4** pemeriksaan layar, dan **`AC-76`
+> terbukti**: 18/18 spec Laboratorium lain lulus.
+>
+> **Dengan ini `MVP-5a` TUNTAS** — ketiga task frontendnya selesai.
+>
+> **Pemeriksaan yang paling mudah terlewat dibuktikan sengaja:** baris yang waktu tibanya tidak
+> dicatat **ditandai terang-terangan**. Tanpa penanda itu, waktu pencatatan akan terbaca sebagai
+> waktu kedatangan — persis kekeliruan yang `LAB-DEC-042` ada untuk mencegahnya, dan persis
+> kekeliruan yang **tidak menimbulkan galat apa pun**.
+
+> **Penahannya TERANGKAT 2026-09-17, pada hari yang sama ia ditemukan.** `r17` disetujui pemilik
+> modul lalu dilaksanakan `BE-LAB-38`: `GET /lab-specimens` berdiri dan **terbukti menyaring pada
+> waktu kedatangan sebenarnya**, dibuktikan dua arah. Ruas `orderNumber` yang ikut dibutuhkan juga
+> sudah tersedia lewat `r16`/`BE-LAB-37`. **Nol penahan tersisa.**
+>
+> Catatan pertentangan di bawah **dipertahankan apa adanya**, bukan dihapus: urutan kejadiannya
+> pantas dibaca ulang — celahnya ditemukan pada pemeriksaan pra-implementasi, sebelum satu baris
+> pun ditulis, dan itulah kemunculan kelima pola yang sama pada modul ini.
+
+> **Status: ⛔ `TERTAHAN` — 2026-09-17.** Dihentikan pada pemeriksaan pra-implementasi, **sebelum
+> satu baris pun ditulis**. Penahannya bukan hambatan teknis: **jalur bacanya tidak ada**.
+>
+> **Yang dicari.** Cakupan task ini menuntut *"layar daftar penerimaan beserta penyaring rentang
+> tanggal"* — daftar wadah **lintas pesanan**, disaring menurut waktu kedatangan sebenarnya.
+>
+> **Yang benar-benar tersedia**, dibaca langsung dari source pada backend `13665452`:
+>
+> | Jalur | Yang dikembalikan |
+> |---|---|
+> | `GET /lab-specimens/summary?startDate=&endDate=` | **Angka rekap saja** — `TotalWadah`, `Direncanakan`, `Diambil`, `Diterima`, `DinyatakanLayak`, `Ditolak`, `PerluAmbilUlang`, `Dibatalkan`, `Ditahan`. Nol baris |
+> | `GET /lab-specimens/by-order/{labOrderId}` | Baris wadah untuk **satu pesanan** |
+> | `GET /lab-specimens/by-order/{labOrderId}/history` | Riwayat satu pesanan |
+> | `GET /lab-specimens/filters/metadata` | Keterangan bentuk layar |
+>
+> **Nol endpoint mengembalikan daftar wadah lintas pesanan.** Ditelusuri pula ke luar controller
+> wadah: `LabMonitoringService` menyentuh `LabSpecimens` hanya untuk **mencacah**
+> (`SpecimenCount`, `AcceptedSpecimenCount`) dan sebagai sub-query penyaring — ia memproyeksikan
+> **pesanan**, bukan wadah. `LabWorklistService` nol menyentuhnya.
+>
+> **Setengah task ini justru sudah siap.** `GET /summary` menyaring tepat pada
+> `PhysicallyReceivedAt ?? CreateDateTime`, dan komentarnya menyebut `AC-67` apa adanya — wadah
+> yang tiba Senin 21.10 dan diregistrasi Selasa 08.05 **sudah** terhitung pada hari Senin. Yang
+> hilang adalah barisnya, bukan aturannya.
+>
+> **Kenapa tidak diturunkan menjadi versi sebagian.** Layar yang menampilkan angka rekap tanpa
+> baris yang diringkasnya menimbulkan pertanyaan yang tidak dapat dijawab layar itu sendiri —
+> *"sembilan wadah diterima hari Senin, yang mana saja?"*. Keputusan menunda mengikuti preseden
+> `FE-LAB-17`, yang ditunda pemilik modul alih-alih diturunkan menjadi versi sebagian.
+>
+> **Ini kemunculan KELIMA dari pola yang sama pada modul ini**, dan bentuknya bergantian:
+>
+> | # | Kejadian | Bentuk |
+> |---:|---|---|
+> | 1 | `MVP-5d` — ruas konfirmasi | Nilai **tersimpan** tanpa jalan keluar |
+> | 2 | `MVP-5e` — `LabOrderedProcedure` | Tabel **ditulis** tanpa pembaca |
+> | 3 | `BE-LAB-36` — nomor order | Kolom **berdiri** tanpa jalan keluar; `r16` masih menunggu |
+> | 4 | `FE-LAB-19` — ruas wadah `r7` | Ruas **dituntut backend** tanpa penulis |
+> | 5 | **`FE-LAB-12`** | Layar **dituntut roadmap** tanpa jalur baca |
+>
+> Penjaganya sama, dan sudah tertulis pada kontrak bagian 10.9: telusuri setiap ruas sampai
+> **kedua** ujungnya sebelum task dimulai — bukan hanya ke ujung yang sedang dikerjakan.
+
+#### Usul amandemen `LAB-API-v1` `r17` — **belum disetujui**
+
+Satu endpoint baca baru pada grup Lab Specimen. **Aditif** — nol endpoint, ruas, nilai enum,
+permission, maupun migration yang berubah.
+
+| Method | Path | Kegunaan | Hak akses |
+|---|---|---|---|
+| `GET` | `/lab-specimens` | Daftar penerimaan lintas pesanan, disaring rentang waktu kedatangan sebenarnya | `LabSpecimen : Read` |
+
+**Penyaring:** `startDate`, `endDate`, `specimenStatus`, `search`, `pageNumber`, `pageSize` —
+bentuk yang sama dengan `LabOrderPagedQuery` yang sudah berjalan sejak `r5`.
+
+**Satu hal yang menentukan dan mudah keliru:** rentangnya wajib disaring pada
+`PhysicallyReceivedAt ?? CreateDateTime`, **persis seperti `GetSummaryAsync` baris 1119-1120** —
+bukan pada `CreateDateTime` saja. Bila keliru, seluruh guna kolom `PhysicallyReceivedAt` hilang
+**tanpa satu pun kesalahan yang terlihat**: layarnya tetap tampil benar, hanya tanggalnya yang
+salah. Itulah inti `LAB-DEC-042`, dan sudah ditulis sebagai peringatan pada DoD task ini sejak
+2026-09-14.
+
+**Ruas respons yang dibutuhkan layar**, di luar yang sudah ada pada `LabSpecimenResponse`:
+`labOrderId`, `orderNumber` (**menunggu `r16`**), nama pasien, dan `createDateTime` — yang
+terakhir supaya **selisih** terhadap waktu kedatangan dapat ditampilkan, sebagaimana dituntut DoD.
 
 | Butir | Isi |
 |---|---|
@@ -931,6 +1078,103 @@ lain — dan dugaan pertama yang wajar adalah ia tidak sengaja menekan simpan du
 
 ---
 
+### `FE-LAB-18` ✅ — Penjaga tanggal pada penyaring Laboratorium
+
+> **Status: ✅ `SELESAI` — 2026-09-16.** Seluruh butir DoD terpenuhi. Laporan:
+> [`task/report/frontend/FE-LAB-18.md`](../task/report/frontend/FE-LAB-18.md).
+>
+> **Bukti: 999/999 uji unit lulus** — seluruh berkas uji dijalankan, bukan hanya milik
+> Laboratorium, karena komponen yang disentuh dipakai bersama. Build produksi lulus.
+> Lint **5 warning sebelum, 5 warning sesudah** — nol tambahan, dan kelimanya sudah ada
+> pada baris yang tidak disentuh.
+>
+> **Butir DoD yang paling menentukan dibuktikan terbalik**, bukan diasumsikan: bahwa 132
+> pemakai lain `FilterDatePicker` **tidak berubah perilakunya**. Tanpa prop `max`,
+> `maxValue` bernilai kosong dan penjaganya hubung-singkat sebelum perbandingan apa pun.
+> Tiga asersi menjaga sifat itu tetap benar.
+>
+> **Satu cacat dicegah sebelum sempat ada:** `todayDateValue()` menyusun tanggal dari
+> komponen lokal, bukan `toISOString()`. Yang terakhir mengembalikan tanggal **kemarin**
+> bagi pengguna WIB pada pukul 00:00–07:00 — persis jam petugas shift pagi mulai bekerja.
+>
+> **Dibuktikan juga pada aplikasi yang benar-benar berjalan**, sama seperti `FE-LAB-17`:
+> 2 pemeriksaan layar Playwright lulus terhadap `.next/standalone`. `AC-99` diukur dengan
+> **menghitung permintaan yang tiba**, karena satu-satunya cara membuktikan sesuatu tidak
+> dikirim adalah menghitung yang sampai.
+>
+> **Dua kekeliruan uji dicatat di laporan, bukan disembunyikan:** pemicu pemilih tanggal
+> adalah `button` ber-nama-aksesibel dan bukan `input` ber-`placeholder`, dan penyaring
+> layar ini tidak sinkron dari URL. Keduanya membuat spec versi pertama gagal, dan keduanya
+> kekeliruan uji — bukan cacat produk.
+
+> **Dibuka 2026-09-16 oleh `LAB-DEC-074`, atas temuan `LAB-RDY-C02` pada audit kesiapan
+> `LAB-RDY-001`.** Ini **satu-satunya task pada roadmap ini yang lahir dari audit**, bukan dari
+> requirement baru — cacatnya sudah berjalan di layar yang dipakai petugas sejak `FE-LAB-09`.
+
+| Butir | Isi |
+|---|---|
+| **Outcome** | Petugas tidak dapat memilih tanggal masa depan pada penyaring Laboratorium, dan tidak dapat menjalankan pencarian dengan rentang terbalik tanpa diberi tahu sebabnya |
+| **Requirement/decision** | `FR-10.4`; `LAB-DEC-064`, `LAB-DEC-071`, `LAB-DEC-074` |
+| **Kontrak** | **Nol perubahan kontrak.** Backend sudah inklusif pada kedua ujung (`>= mulai`, `<= sampai`); yang ditambahkan penjaga di sisi layar |
+| **Cakupan** | Satu prop **opsional** `max` pada `FilterDatePicker`; satu aturan murni pembanding rentang pada `lab-monitoring-rules.js`; pemakaiannya pada tiga menu Pemeriksaan |
+| **Dependency** | Nol. Tidak menunggu task backend mana pun |
+| **Acceptance criteria** | `AC-98`, `AC-99` |
+| **Kewenangan UI** | Hari yang melewati batas **tidak dapat diklik** dan tampil teredam, bukan disembunyikan — petugas perlu melihat bahwa tanggalnya ada tetapi tidak boleh dipilih. Tombol `Hari ini` nonaktif bila hari ini sendiri melewati batas. Rentang terbalik memunculkan alert berisi sebabnya, dan tombol Cari ditahan selama rentangnya masih terbalik |
+| **Verifikasi** | Uji unit atas aturan murni pembanding rentang; uji unit atas penjaga `max` komponen; **pembuktian terbalik bahwa 132 pemakai lain nol terdampak** — komponen tanpa prop `max` wajib berperilaku persis seperti sebelumnya |
+| **Risiko/pemilik** | **Sedang, dan bukan karena Laboratorium.** `FilterDatePicker` dipakai **133 berkas lintas modul**; satu kekeliruan pada default-nya menyentuh administrator, workforce, dan master data sekaligus. Pemilik: Laboratorium, dengan kehati-hatian pada komponen base |
+| **DoD** | Tanggal masa depan tertolak di layar; rentang terbalik tertolak beserta sebabnya; komponen tanpa `max` terbukti tidak berubah perilakunya; seluruh uji Laboratorium tetap lulus |
+
+### `FE-LAB-19` ✅ — Perbaikan: layar wadah mengirim jenis specimen
+
+> **Status: ✅ `SELESAI` — 2026-09-17**, pada hari yang sama cacatnya ditemukan. Laporan:
+> [`task/report/frontend/FE-LAB-19.md`](../task/report/frontend/FE-LAB-19.md).
+> Lint bersih, build hijau, **1033/1033** uji unit, **18/18** pemeriksaan layar Laboratorium.
+>
+> **Aturan murninya dipakai ulang, bukan disalin** — `VAL-51`, `VAL-53`, dan `VAL-56` kini punya
+> satu definisi yang dipakai kedua layar.
+>
+> **Satu uji lama sengaja dibalik, dan itu bukan regresi.** Uji `FE-LAB-07 (VAL-05)` semula
+> menuntut `validatePlan({ examinations: ["a"] })` mengembalikan `{}` — ia **mengunci perilaku
+> yang cacat**. Cacat ini memang lolos dari build, lint, dan uji sekaligus; yang menemukannya
+> adalah penelusuran nama ruas pada seluruh `src`.
+
+> **Dibuka 2026-09-17 atas temuan `FE-LAB-11`.** Ini **task perbaikan**, bukan requirement baru —
+> dan bukan pula cacat yang lahir dari task mana pun. Ia lahir dari selisih antara backend yang
+> maju dan frontend yang tidak ikut.
+
+**Cacatnya sedang berjalan hari ini.** `BE-LAB-21` menambahkan lima ruas bahan wadah lewat
+`LAB-API-v1` `r7`, dan `VAL-51` menolak **tanpa syarat** setiap wadah baru yang tidak membawa
+`SpecimenTypeId`:
+
+```csharp
+if (specimenTypeId == Guid.Empty)
+    throw new LabSpecimenValidationException("Pilih jenis specimen terlebih dahulu.");
+```
+
+Sementara itu `buildPlanPayload` pada `lab-specimen-rules.js` hanya mengirim dua ruas —
+`examinations` dan `specimenDescription`. Akibatnya **layar wadah `FE-LAB-07` tidak lagi dapat
+merencanakan wadah sama sekali**; setiap percobaan dijawab `422`. Berlaku sejak migration
+`BE-LAB-21` diterapkan pada **2026-09-15**.
+
+> **Ini bukan kejutan.** `traceability.md` revisi 18 sudah menuliskannya pada 2026-09-15 —
+> *"`FE-LAB-11` berstatus mendesak karena layar wadah menjawab `422` sejak migration
+> diterapkan"*. Yang belum pernah dikerjakan adalah **layar lamanya**; `FE-LAB-11` mendirikan
+> layar baru dan sengaja tidak menyentuhnya, sesuai cakupannya.
+
+| Butir | Isi |
+|---|---|
+| **Status** | `SIAP DIKERJAKAN` — ditulis 2026-09-17 |
+| **Outcome** | Petugas dapat kembali merencanakan wadah dari layar pesanan, dan bahan yang dibawa wadah tercatat |
+| **Requirement/decision** | `LAB-DEC-040`, `LAB-DEC-041`, `LAB-DEC-042`, `BR-35`; `VAL-51`..`VAL-58` |
+| **Kontrak** | `LAB-API-v1` `r7` grup Lab Specimen — `approved`, terkunci. **Nol amandemen** |
+| **Reuse** | **Aturan murni `lab-reception-rules.js` yang dibuat `FE-LAB-11` dipakai ulang apa adanya.** Menyalinnya akan melahirkan definisi kedua atas `VAL-51`, `VAL-53`, dan `VAL-56` — dan salinan itulah yang kelak bercabang |
+| **Cakupan** | `buildPlanPayload` dan `validatePlan` meneruskan ruas bahan; daftar pilihan jenis specimen dimuat pada hook wadah; ruas wilayah C dirender pada formulir rencana |
+| **Dependency** | `FE-LAB-11` ✅ — aturan murninya berasal dari sana |
+| **Acceptance criteria** | `AC-58` bagian layar wadah; melengkapi `AC-62` dan `AC-64` |
+| **Verifikasi** | Uji unit atas payload yang kini membawa `specimenTypeId`; **pembuktian terbalik bahwa `FE-LAB-11` nol terdampak**; seluruh uji Laboratorium tetap lulus |
+| **Risiko/pemilik** | **Rendah pada kode, tinggi bila dibiarkan.** Perubahannya kecil dan terpusat; yang mahal adalah membiarkan layar yang dipakai petugas menolak setiap permintaan. Pemilik: Laboratorium |
+| **DoD** | Perencanaan wadah dari layar pesanan berhasil kembali; jenis `Lainnya` menuntut keterangan; volume tanpa satuan tertolak di layar; aturan murninya **dipakai ulang, bukan disalin**; seluruh uji lama lulus |
+
 ## 7. Layar yang Sengaja Tidak Dibuat
 
 Kelima layar berikut **tidak boleh** dibangun lebih dulu "sekalian", karena perilakunya belum
@@ -964,6 +1208,11 @@ diputuskan:
 | `FE-LAB-07` | `MVP-2` | `S2` | `BE-LAB-12` | **`SELESAI`** — [laporan](../task/report/frontend/FE-LAB-07.md). Verifikasi manual menunggu backend dijalankan |
 | `FE-LAB-08` | `MVP-3` | `S7` | `BE-LAB-14` | **`SELESAI`** — [laporan](../task/report/frontend/FE-LAB-08.md). Verifikasi manual menunggu backend dijalankan |
 | `FE-LAB-09` | `MVP-3` | `S15` | `BE-LAB-15` | **`SELESAI`** — [laporan](../task/report/frontend/FE-LAB-09.md). Verifikasi manual menunggu backend dijalankan |
+| `FE-LAB-12` ✅ | `MVP-5a` | `EPIC-LAB-11` | `FE-LAB-11` ✅, `BE-LAB-37` ✅, `BE-LAB-38` ✅ | **`SELESAI`** — 2026-09-17, pada hari yang sama ia sempat ⛔ `TERTAHAN`. Dua layar berdiri: daftar penerimaan berpenyaring rentang **waktu kedatangan sebenarnya** beserta kolom Selisih, dan detail satu penerimaan yang menampilkan **setiap pemeriksaan sebagai barisnya sendiri**. Lint bersih, build hijau, 10 uji unit baru, **1043/1043** uji repository lolos, 4 pemeriksaan layar, dan **`AC-76` terbukti** — 18/18 spec Laboratorium lain lulus — [laporan](../task/report/frontend/FE-LAB-12.md). **`MVP-5a` TUNTAS** — 2026-09-17, dihentikan pada pemeriksaan pra-implementasi **sebelum satu baris pun ditulis**. **Nol endpoint mengembalikan daftar wadah lintas pesanan:** yang ada hanya `GET /summary` (angka rekap, nol baris) dan `GET /by-order/{id}` (satu pesanan). Ditelusuri pula ke `LabMonitoringService`, yang menyentuh wadah hanya untuk **mencacah**. **Setengah task ini justru sudah siap** — `GET /summary` menyaring tepat pada `PhysicallyReceivedAt ?? CreateDateTime` dan `AC-67` sudah terpenuhi di sana; yang hilang barisnya, bukan aturannya | **Kemunculan kelima pola yang sama.** Sengaja **tidak** diturunkan menjadi versi sebagian: layar berisi angka rekap tanpa baris yang diringkasnya menimbulkan pertanyaan yang tidak dapat dijawabnya sendiri. **Usul `LAB-API-v1` `r17`** ditulis lengkap pada bagian 6b — satu endpoint baca, aditif, nol migration — dan **menunggu persetujuan pemilik modul**. Satu ruasnya, `orderNumber`, ikut menunggu `r16` |
+| `FE-LAB-18` ✅ | — audit | — | Nol | **`SELESAI`** — 2026-09-16. Penjaga tanggal pada penyaring Laboratorium: hari melewati batas tidak dapat diklik, rentang terbalik memunculkan sebabnya dan ditahan. **Satu-satunya task yang lahir dari audit**, bukan dari requirement — cacatnya sudah berjalan sejak `FE-LAB-09`. Prop `max` bersifat **opsional** dan 132 pemakai lain terbukti nol terdampak — [laporan](../task/report/frontend/FE-LAB-18.md) | Tidak ada. Batas jujur: nol verifikasi manual pada aplikasi berjalan saat itu; kemudian tertutup oleh 2 pemeriksaan layar |
+| `FE-LAB-19` ✅ | — perbaikan | `S2` | `FE-LAB-11` ✅ | **`SELESAI`** — 2026-09-17, pada hari yang sama cacatnya ditemukan. Layar wadah `FE-LAB-07` **tidak lagi dapat merencanakan wadah sama sekali** sejak migration `BE-LAB-21` diterapkan 2026-09-15: `VAL-51` menolak `422` setiap permintaan tanpa `specimenTypeId`, dan `buildPlanPayload` nol mengirimnya. Kelima ruas bahan `r7` kini diteruskan, dan aturan murninya **dipakai ulang dari `FE-LAB-11`, bukan disalin** — [laporan](../task/report/frontend/FE-LAB-19.md) | **Cacatnya lolos dari build, lint, dan uji sekaligus.** Uji yang ada justru **mengunci perilaku cacatnya**; ia sengaja dibalik, dan itu dicatat sebagai perubahan perilaku yang disengaja, bukan uji yang diperbaiki agar lulus. Batas: pembuktian ujung-ke-ujung menunggu data pesanan pada basis data bersama |
+| `FE-LAB-11` ✅ | `MVP-5a` | `EPIC-LAB-11` | `BE-LAB-21` ✅, `BE-LAB-22` ✅, `BE-LAB-23` ✅, `BE-LAB-24` ✅ | **`SELESAI`** — 2026-09-17. Layar terbesar modul ini berdiri: lima wilayah A–E pada satu halaman, merangkai **lima panggilan** dari pendaftaran sampai penetapan kelayakan. Lint bersih, build hijau, 15 uji unit baru, **1029/1029** uji repository lolos, 6 pemeriksaan layar — dan **`AC-76` terbukti**: 12/12 uji layar lab lama lulus **tanpa satu berkas pun disentuh**. Dua komponen dipakai ulang tanpa dipindahkan; `LabCatalogPicker` sengaja dipakai sebagai **komponen** karena memanggil hook-nya lagi akan melahirkan instance kedua yang state-nya terpisah — [laporan](../task/report/frontend/FE-LAB-11.md) | **Satu butir DoD dicabut sebelum dikerjakan:** kolom Jumlah/Qty bertentangan dengan `LAB-DEC-050`, `r9`, dan arsitektur §10.5; index unik `(SpecimenId, ProcedureId)` membuat "jumlah 3 → tiga baris" ditolak database pada baris kedua. **Dua batas:** wadah direncanakan pada pesanan **pertama** saat pemeriksaan melintasi beberapa disiplin — membentuk beberapa wadah sekaligus adalah keputusan yang belum diambil siapa pun; dan `BR-44` baru terpenuhi pada kalimatnya. **⚠ Temuan mendesak di luar cakupan:** `FE-LAB-07` **tidak lagi dapat merencanakan wadah** — `VAL-51` menolak `422` tanpa `specimenTypeId`, sejak migration `BE-LAB-21` diterapkan |
+| `FE-LAB-10` ✅ | `MVP-5a` | `EPIC-LAB-11` | `BE-LAB-20` ✅, `BE-LAB-25` ✅ | **`SELESAI`** — 2026-09-16. Dua layar berdiri di `health-services/master-data/lab-specimen-types/`: pengelolaan jenis specimen beserta formulirnya, dan daftar pantau pemakaian `Lainnya`. Kelima butir DoD **terbukti pada aplikasi yang benar-benar berjalan** — termasuk yang paling menentukan, **tautan langsung ke layar kelola memuat barisnya lewat `GET /{id}` dan nol memanggil jalur daftar**, diukur dengan menghitung permintaan yang tiba. Lint bersih, build produksi hijau, 15 uji unit baru, 1014/1014 uji repository lolos, 7 pemeriksaan layar — [laporan](../task/report/frontend/FE-LAB-10.md). **`AC-49` terpenuhi penuh; `AC-58` dan `AC-60` terpenuhi pada bagian yang memang milik task ini** | **Nol penahan.** Ketiga penahan modul — `LAB-SIGN-001`, `LAB-REQ-007`, `LAB-COORD-010` — seluruhnya mengunci `S17` dan `S4`, dan **nol menyentuh gelombang ini**. **Satu batas disebut apa adanya:** skenario *"cairan kista berjumlah tiga"* **tidak dapat dijalankan** — `GET /other-usage` terhadap basis data sebenarnya mengembalikan `totalData 0`, karena wadah berjenis `Lainnya` baru lahir dari `FE-LAB-11`. Ketiadaan **data**, bukan ketiadaan layar. **Satu thunk sengaja berdiri tanpa pembaca:** `GET /options`, yang konsumennya `FE-LAB-11` |
 
 **Tidak ada satu pun task frontend yang terblokir per 2026-09-07.** `FE-LAB-05`, yang sejak
 2026-09-04 menjadi satu-satunya task `BLOCKED`, kini terbuka: penahannya adalah **endpoint yang
@@ -1039,6 +1288,12 @@ mengosongkan disiplin mencabut golongannya.
 ## 9. Riwayat Revisi
 
 | Revision | Tanggal | Perubahan | Status |
+|---:|---|---|---|
+| 26 | 2026-09-17 | **`FE-LAB-12` SELESAI, dan `MVP-5a` TUNTAS — pada hari yang sama task itu sempat ditandai ⛔ `TERTAHAN`.** Penahannya, ketiadaan jalur baca lintas pesanan, ditutup `r17` yang disetujui pemilik modul lalu dilaksanakan `BE-LAB-38`; `orderNumber` yang ikut dibutuhkan datang dari `r16`/`BE-LAB-37`. **Tiga keputusan implementasi dicatat.** Penyaringan dikerjakan **backend**, bukan di browser — menyaring dua kali adalah cara paling cepat membuat angka pada layar berbeda dari angka pada rekap. Ekspresi waktu kedatangan ditulis **sama persis** dengan backend, dan uji unit menguncinya. Layar detail **memuat datanya sendiri** lewat `by-order`, bukan dari daftar yang kebetulan ada di memori — pelajaran `r6` yang lahir dari `FE-LAB-03`. **Pemeriksaan yang paling mudah terlewat dibuktikan sengaja:** baris yang waktu tibanya tidak dicatat **ditandai terang-terangan**, karena tanpa penanda itu waktu pencatatan akan terbaca sebagai waktu kedatangan — kekeliruan yang nol menimbulkan galat. **Aturan tanggal dipakai ulang untuk ketiga kalinya** dari `lab-monitoring-rules`, bukan disalin. **Satu kekeliruan uji dicatat:** ekspektasi selisih ditulis "10 jam" padahal 655 menit adalah 10 jam 55 menit; pada laporan keterlambatan, pembulatan ke jam membuang ketelitian yang justru dicari — ujinya diperbaiki, kodenya dipertahankan. 1043/1043 uji unit, 4 pemeriksaan layar, dan **`AC-76` terbukti**: 18/18 spec Laboratorium lain lulus | `DRAFT` |
+| 25 | 2026-09-17 | **`FE-LAB-12` ditandai ⛔ `TERTAHAN` pada pemeriksaan pra-implementasi, sebelum satu baris pun ditulis — dan penahannya adalah pola yang kini muncul untuk KELIMA kalinya.** Cakupan task menuntut daftar penerimaan **lintas pesanan** berpenyaring rentang tanggal; penelusuran source membuktikan **nol endpoint mengembalikannya**. Yang ada hanya `GET /lab-specimens/summary` — angka rekap, **nol baris** — dan `GET /by-order/{id}` yang melayani satu pesanan. Penelusuran diteruskan ke luar controller wadah: `LabMonitoringService` menyentuh `LabSpecimens` hanya untuk **mencacah** dan sebagai sub-query penyaring, sementara `LabWorklistService` nol menyentuhnya. **Setengah task ini justru sudah siap dan itu pantas dicatat:** `GET /summary` menyaring tepat pada `PhysicallyReceivedAt ?? CreateDateTime`, dan komentarnya menyebut `AC-67` apa adanya — wadah yang tiba Senin 21.10 dan diregistrasi Selasa 08.05 **sudah** terhitung pada hari Senin. Yang hilang **barisnya, bukan aturannya**. **Sengaja tidak diturunkan menjadi versi sebagian**, mengikuti preseden `FE-LAB-17`: layar berisi angka rekap tanpa baris yang diringkasnya menimbulkan pertanyaan yang tidak dapat dijawab layar itu sendiri. **Usul `LAB-API-v1` `r17` ditulis lengkap** — satu endpoint baca `GET /lab-specimens`, penyaring mengikuti bentuk `LabOrderPagedQuery` yang sudah berjalan sejak `r5`, aditif, nol migration — beserta **satu peringatan yang menentukan**: rentangnya wajib disaring pada `PhysicallyReceivedAt ?? CreateDateTime` persis seperti `GetSummaryAsync`, karena bila keliru seluruh guna kolom itu hilang **tanpa satu pun kesalahan yang terlihat**; layarnya tetap tampil benar, hanya tanggalnya yang salah. **Kelima kejadiannya kini ditabelkan pada bagian 6b** supaya polanya terbaca sebagai pola, bukan sebagai lima kejadian terpisah: nilai tersimpan tanpa jalan keluar, tabel ditulis tanpa pembaca, kolom berdiri tanpa jalan keluar, ruas dituntut backend tanpa penulis, dan kini layar dituntut roadmap tanpa jalur baca | `DRAFT` |
+| 24 | 2026-09-17 | **`FE-LAB-19` dibuka dan ditutup pada hari yang sama — satu cacat yang sedang berjalan, bukan requirement baru.** Layar wadah `FE-LAB-07` **berhenti dapat merencanakan wadah sama sekali** sejak migration `BE-LAB-21` diterapkan 2026-09-15: `VAL-51` menolak tanpa syarat setiap permintaan tanpa `specimenTypeId`, sementara `buildPlanPayload` hanya membawa `examinations` dan `specimenDescription`. **Yang pantas dicatat adalah bagaimana ia lolos:** build tidak melihatnya karena payload-nya JavaScript biasa; lint nol kaitannya; tinjauan kontrak nol menolong karena `r7` memang sudah disetujui — dan **uji yang ada justru mengunci perilaku cacatnya**, menyatakan rencana wadah tanpa jenis specimen adalah sah. Yang menemukannya adalah penelusuran kelima nama ruas pada seluruh `src` saat `FE-LAB-11` dikerjakan, dan hasilnya nol kemunculan. `traceability.md` revisi 18 bahkan sudah meramalkannya dua hari sebelumnya. **Perbaikannya memakai ulang aturan murni `FE-LAB-11`, bukan menyalinnya** — `VAL-51`, `VAL-53`, dan `VAL-56` kini punya satu definisi yang dipakai kedua layar; salinan kedua adalah yang kelak bercabang sehingga dua layar mulai menolak hal yang berbeda. **Satu uji lama sengaja dibalik** dan dicatat sebagai perubahan perilaku yang disengaja, bukan uji yang diperbaiki agar lulus. **Satu keputusan dicatat:** daftar jenis yang gagal dimuat **tidak** menahan petugas — menahan pekerjaan karena daftar yang belum tiba lebih buruk daripada satu `422` yang terbaca. 1033/1033 uji unit, 18/18 pemeriksaan layar Laboratorium, build hijau | `DRAFT` |
+| 23 | 2026-09-17 | **Bukti pelaksanaan `FE-LAB-11`. Layar terbesar modul ini berdiri, dan satu butir DoD-nya dicabut sebelum satu baris pun ditulis.** Butir *"jumlah/Qty dapat diisi dan hasilnya tersimpan sebagai beberapa baris"* bertentangan dengan **tiga sumber otoritatif sekaligus** — `LAB-DEC-050`/`BR-45`, kontrak `r9`, dan `03-frontend-architecture.md` §10.5 — dan ketiganya bertanggal **2026-09-14**, hari yang sama task ini ditulis. Sebabnya bukan selera: `LabExamination` memiliki index unik `(SpecimenId, ProcedureId)`, sehingga "jumlah 3 menjadi tiga baris" **ditolak database pada baris kedua**. Membangunnya sesuai DoD lama berarti membangun sesuatu yang pasti gagal saat dipakai. Butirnya diganti menjadi kebalikannya, dan `BR-44` yang sebelumnya nol masuk DoD ditambahkan. **Layarnya merangkai lima panggilan** — pendaftaran → kunjungan → pesanan per disiplin → wadah → kelayakan — karena pendaftaran hanya mengembalikan kunjungan dan wadah menempel pada pesanan. **Dua komponen dipakai ulang tanpa dipindahkan, dan cara memakainya menentukan:** `useLabPatientRegistrationForm` menerima **string posisional** bukan objek beropsi, dan `LabCatalogPicker` dipakai sebagai **komponen** bukan hook — memanggil hook-nya lagi akan melahirkan instance kedua yang state-nya terpisah, sehingga layar menampilkan satu pilihan sementara yang dikirim adalah pilihan yang lain. **Tiga dari enam pemeriksaan layar menguji KETIADAAN:** nol kotak Jumlah/Qty, nol `select` metode pembayaran, dan tombol kelayakan yang tidak dapat ditekan beserta sebabnya. **`AC-76` terbukti** — 12/12 uji layar lab lama lulus tanpa satu berkas pun disentuh; 1029/1029 uji repository lolos. **Satu kekeliruan uji dicatat supaya tidak terulang:** `datetime-local` menghasilkan waktu **lokal**, dan membandingkannya terhadap `now` bertulis UTC menggeser hasilnya sebesar offset zona tanpa satu pun galat muncul — versi pertama uji `VAL-58` tertangkap di WIB dan akan **lolos** pada mesin ber-UTC. **⚠ Satu cacat berjalan ditemukan dan ia bukan lahir dari task ini:** kelima ruas wadah `r7` **nol punya penulis di frontend**, sehingga `VAL-51` menolak `422` setiap perencanaan wadah dari `FE-LAB-07` sejak migration `BE-LAB-21` diterapkan 2026-09-15. Perbaikannya kecil — ruas wilayah C task ini tinggal dipasang — tetapi cakupan melarang mengubah layar lama, sehingga ia dilaporkan sebagai task tersendiri, bukan dikerjakan diam-diam. **Dua batas dilaporkan apa adanya:** wadah direncanakan pada pesanan **pertama** saat pemeriksaannya melintasi beberapa disiplin, karena membentuk beberapa wadah sekaligus adalah keputusan yang belum diambil siapa pun; dan `BR-44` baru terpenuhi pada **kalimatnya**, belum pada jalur pembatalan barisnya | `DRAFT` |
+| 22 | 2026-09-16 | **Bukti pelaksanaan `FE-LAB-10`. Gelombang `MVP-5a` dimulai, dan ia dipilih justru karena ketiga penahan modul tidak menyentuhnya.** `LAB-SIGN-001`, `LAB-REQ-007`, dan `LAB-COORD-010` seluruhnya mengunci `S17` dan `S4`; `FE-LAB-10` milik `MVP-5a`, kontraknya `r7`/`r8` terkunci sejak 2026-09-14, dan kedua dependency backendnya selesai sejak 2026-09-15. **Dua layar berdiri** di `health-services/master-data/lab-specimen-types/` — bukan di folder laboratorium, sesuai `AC-49` dan `LAB-FE-014`. **Butir DoD yang paling menentukan dibuktikan dengan menghitung permintaan yang tiba, bukan dengan melihat tampilan:** tautan langsung ke layar kelola memuat barisnya lewat `GET /{id}` dan **nol memanggil jalur daftar** — inilah jalur yang `LAB-API-v1` `r6` lahir untuk mencegah terulangnya, sesudah `FE-LAB-03` memuat barisnya dari halaman daftar yang sedang terbuka lalu diam-diam gagal di luar itu. **`VAL-63` ditegakkan di layar dan dibuktikan dua arah:** tombol Nonaktifkan pada baris `Lainnya` terakhir mati beserta sebabnya, **dan** baris biasa terbukti tetap hidup — tanpa pembuktian terbalik itu, penjaga yang salah pasang dan mematikan seluruh baris akan tetap lolos. Kalimat penolakannya diambil **kata demi kata** dari backend, dan kesamaannya diperiksa terhadap `HTTP 422` yang sungguhan. **Bukti data dijalankan terhadap basis data yang sebenarnya:** 7 jenis urut `sortOrder`, `jalanKeluarLainnyaAktif` bernilai 1, dan penolakan `VAL-63` diikuti pemeriksaan bahwa **nol baris berubah**. 15 uji unit baru, 1014/1014 uji repository lolos, 7 pemeriksaan layar, build produksi hijau. **Satu bagian verifikasi tidak dapat dijalankan dan disebut apa adanya:** skenario *"cairan kista berjumlah tiga"* menuntut wadah berjenis `Lainnya` yang tercatat, sedangkan `GET /other-usage` mengembalikan `totalData 0` — ketiadaan **data**, bukan ketiadaan layar, dan jalur yang mengisinya adalah `FE-LAB-11`. Membuat data uji pada basis data bersama adalah perubahan data di luar wewenang task frontend, dan tidak dilakukan. **Tiga selisih terhadap `master-data-feature-standard.md` dilaporkan, bukan didiamkan:** grup ini nol `DELETE` dan nol `PATCH /{id}/status`, fitur ini nol halaman detail, dan ia menambah satu CSS Module mengikuti preseden `lab-rejection-reasons`. **Satu thunk sengaja berdiri tanpa pembaca** — `GET /options`, konsumennya `FE-LAB-11` — dan itu dicatat supaya tidak terulang pola `BE-LAB-26`, yaitu sesuatu yang berdiri tanpa pembaca lalu tidak menghasilkan galat apa pun sampai seseorang membutuhkannya. **Satu kerusakan pembukuan ditemukan pada berkas ini sendiri dan diperbaiki seperlunya:** tabel Riwayat Revisi kehilangan baris pemisahnya, sehingga seluruh isinya tidak terbaca sebagai tabel; pemisahnya dikembalikan. Kerusakan lain pada tabel yang sama — nomor revisi 13 dan 14 yang masing-masing muncul dua kali, beserta satu baris pemisah yang tersesat di tengah tabel — **dicatat, tidak disentuh**, karena memperbaikinya berarti menyimpulkan ulang urutan kejadian dari ingatan dokumen | `DRAFT` |
 | 21 | 2026-09-16 | **`FE-LAB-17` SELESAI. Seluruh layar modul Laboratorium tuntas, dan `FR-11.12` tertutup ujung ke ujung.** Tombol Cetak berdiri per baris pada ketiga menu pemeriksaan dan membuka pratinjau berisi ringkasan **satu** pesanan: daftar pemeriksaan yang benar-benar dipesan, beserta tiga blok tanda tangan sejajar. **Butir DoD yang paling menentukan dibuktikan terbalik**, bukan diasumsikan: `window.print` diganti pencatat, dan sesudah satu klik Cetak pada baris ia tercatat **nol kali** — kertas benar-benar tidak keluar sampai tombol di dalam pratinjau ditekan; menutup pratinjau pun tercatat nol cetak dan nol permintaan tulis. **`AC-95` TERPENUHI PENUH**: ketiga nama tanda tangan terbukti tercetak pada pesanan yang sudah dikonfirmasi. **Dua catatan proses pantas dibaca ulang.** Pertama, satu asersi sempat gagal dan **yang salah adalah ujinya** — `react-to-print` v3 mencetak lewat iframe, sehingga stub pada `window.print` halaman utama memang tidak akan tertangkap; penyebabnya diperiksa, bukan langsung dianggap masalah harness, karena dugaan itu menyembunyikan cacat sungguhan bila keliru. Kedua, **satu pemeriksaan ditambahkan menyusul**: pemeriksaan tanda tangan semula memakai baris yang belum dikonfirmasi, sehingga hanya membuktikan bloknya ada dan bukan namanya tercetak — padahal itulah kriteria yang menjadi alasan task ini ada. Pelajaran `AC-83` dipakai lagi. **Satu batas disebut apa adanya:** jalur daftar terpesan **terisi** belum pernah terlihat pada data sungguhan karena `LabOrderedProcedure` masih berisi 0 baris; ia terbukti lewat jawaban yang dipalsukan dan uji unit, sedangkan jalur kosongnya — yang ditempuh seluruh pesanan nyata hari ini — terbukti pada keduanya. Pencetakan ke printer fisik juga belum dijalankan; yang terbukti adalah permintaan cetaknya dipicu. Empat belas uji unit baru; **977 dari 977** uji repository lolos; nol berkas uji layar tertinggal | `DRAFT` |
 | 20 | 2026-09-16 | **`FE-LAB-17` berpindah dari ⛔ `TERTAHAN` menjadi SIAP DIKERJAKAN — nol penahan, nol keputusan terbuka — dan seluruhnya terjadi pada hari yang sama.** `r15` disetujui lalu dilaksanakan `BE-LAB-35` ✅, terbukti dari database lewat 12 pemeriksaan. **Ketiga penahannya kini tertutup**, dan riwayatnya sengaja **dipertahankan** pada kartu task, bukan dihapus: sebuah task dapat berpindah dari tertahan menjadi siap tanpa satu baris pun ditulis untuknya — yang berubah adalah keputusan yang diambil dan kontrak yang dibuka. **Satu peringatan diteruskan dari `BE-LAB-35` dan ditulis pada kartu task, bukan disimpan di laporan backend saja:** `LabOrderedProcedure` berisi **0 baris** pada database, sehingga **seluruh 5 pesanan nyata menempuh jalur array kosong** — dan jalur itulah yang paling mungkin terlihat saat verifikasi layar nanti. Layar cetak wajib memperlakukannya sebagai keadaan **sah**, bukan data rusak, dan mencetak `procedureName` sebagai isi lengkap pesanan pada jalur itu. Peringatan ini ditulis di depan supaya pelaksananya tidak menyimpulkan fiturnya rusak ketika yang dilihatnya justru jalur normal untuk data hari ini. **Nol berkas frontend diubah pada revisi ini** | `DRAFT` |
 | 19 | 2026-09-16 | **`FE-LAB-17` tetap ⛔, tetapi bentuk penahannya berubah menyeluruh: ketiga keputusan pemilik kini tertutup, dan yang tersisa tinggal satu — dan itu penahan yang baru ditemukan hari ini.** **Penahan (b) ditutup:** ketiga tanda tangan dapat diisi sejak `r13`/`BE-LAB-33` dan `r14`/`BE-LAB-34`. **Penahan (a) diturunkan statusnya menjadi cakupan, bukan penahan** — fitur cetak memang harus dibangun dari nol, tetapi `react-to-print` sudah dipakai lima layar lain. **Penahan (c) ditemukan dan ia menentukan:** daftar pemeriksaan yang benar-benar dipesan **tidak dapat dibaca siapa pun di luar backend**. `LabOrderedProcedure` berdiri sejak `BE-LAB-26` dan terisi sejak `BE-LAB-27`, tetapi nol DTO dan nol endpoint mengembalikannya; `LabOrder.ProcedureId` hanyalah **penunjuk wakil**, dinyatakan komentar kodenya sendiri; dan `ExaminationCount` menghitung yang sedang dikerjakan dari wadah, bukan yang dipesan. Mencetak hari ini berarti dokumen resmi yang menyebut satu pemeriksaan padahal pesanan gabungan `BR-47` memuat beberapa. **Pemilik modul memilih menunda, bukan mencetak apa adanya** — kelas bahaya yang sama dengan alasan task ini ditolak pertama kali, dan konsisten dengan penolakan versi dua tanda tangan kosong. Usul **`LAB-API-v1` `r15`** ditulis beserta pelaksanaannya **`BE-LAB-35`** ⛔, keduanya menunggu persetujuan. **Ketiga keputusan pemilik ditetapkan, sesudah ditanyakan dan bukan dikarang:** isi cetak ditunda sampai `r15` jalan; tombol berdiri **per baris** pada kolom aksi ketiga menu dan mencetak **satu pesanan**, bukan rekap daftar; blok tanda tangan **tiga kolom sejajar** dan **yang belum terisi tetap dicetak bergaris kosong**, karena garis kosong itu sendiri adalah jejak bahwa pesanannya belum dikonfirmasi. **Satu aturan turunan dikunci pada kartu task** supaya tidak ditafsirkan sendiri kelak: `orderedProcedures` kosong berarti pesanan berpemeriksaan tunggal dan `procedureName` adalah isi lengkapnya; terisi berarti `procedureName` hanya wakil dan **tidak boleh** dicetak sebagai isi pesanan. **Nol berkas frontend diubah** | `DRAFT` |

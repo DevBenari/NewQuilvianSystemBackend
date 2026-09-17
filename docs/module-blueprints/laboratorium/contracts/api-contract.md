@@ -3,7 +3,10 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-API-v1` |
-| Revision | `15` |
+| Revision | `17` |
+| `r16` / `r17` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-17 |
+| Isi amandemen `r17` | **`approved` — 2026-09-17.** Satu endpoint baca baru `GET /lab-specimens`: daftar penerimaan **lintas pesanan**, disaring rentang **waktu kedatangan sebenarnya**. Menutup celah yang menahan `FE-LAB-12` — nol endpoint mengembalikan daftar wadah lintas pesanan; yang ada hanya rekap tanpa baris dan daftar per satu pesanan. Aditif, nol migration, nol permission baru. **Satu peringatan dibawa serta:** rentangnya wajib disaring pada `PhysicallyReceivedAt ?? CreateDateTime`, karena bila keliru seluruh guna kolom itu hilang tanpa satu pun kesalahan yang terlihat. Lihat bagian 12 |
+| Isi amandemen `r16` | **`approved` — 2026-09-17. Memuat DUA hal dari dua tempat berbeda.** Pertama, ruas `orderNumber` pada `LabOrderListResponse` dan `LabMonitoringItemResponse` — kolomnya berdiri lewat `BE-LAB-36` tetapi nol DTO mengembalikannya. Kedua, ruas `collectedAt` opsional pada `PlanLabSpecimenRequest`, menurunkan **`LAB-CONFLICT-006` pilihan A yang sudah diputuskan 2026-09-16** tetapi amandemennya tidak pernah ditulis; laporan `BE-LAB-22` §6 menyebut sasaran "`r10`" yang ditulis ketika kontrak masih `r7`. Membukanya membuat `VAL-59` dan `AC-66` dapat ditegakkan penuh. Aditif seluruhnya, nol migration, nol permission baru. Lihat bagian 11 |
 | `r15` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-16 |
 | Isi amandemen `r15` | **`approved` — 2026-09-16.** Satu ruas `orderedProcedures` pada `LabOrderDetailResponse`, berisi pemeriksaan yang benar-benar dipesan. Menutup celah yang menahan `FE-LAB-17`: `LabOrderedProcedure` berdiri sejak `BE-LAB-26` dan terisi sejak `BE-LAB-27`, tetapi **nol DTO dan nol endpoint mengembalikannya**, sedangkan `LabOrder.ProcedureId` hanyalah penunjuk **wakil**. Aditif, nol migration, nol permission baru. Lihat bagian 10 |
 | `r14` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-16 |
@@ -800,3 +803,141 @@ Yang menemukannya bukan lint, build, uji, maupun tinjauan kontrak — melainkan 
 "apa yang akan tercetak pada dokumen ini". **Task yang menghasilkan dokumen resmi wajib
 menelusuri setiap ruas dokumennya sampai ke sumbernya sebelum dimulai**, karena dokumen yang
 salah tidak menimbulkan galat; ia hanya dipercaya orang.
+
+---
+
+## 11. Amandemen `r16` — Nomor order terbaca dan waktu pengambilan yang dinyatakan, 2026-09-17
+
+**Status `approved`**, disetujui Yoga Aji Pratama selaku pemilik modul pada 2026-09-17.
+
+**Aditif seluruhnya.** Tidak satu pun endpoint, ruas, nilai enum, permission, atau migration
+`r3`..`r15` yang berubah, berganti nama, atau hilang.
+
+> **Amandemen ini memuat DUA hal yang datang dari dua tempat berbeda**, dan digabung justru
+> supaya nomornya tidak bertabrakan. Yang kedua **sudah menjadi keputusan sejak 2026-09-16** dan
+> hanya kurang dituliskan; laporan `BE-LAB-22` §6 menyebut sasarannya "`r10`" — angka itu ditulis
+> ketika kontrak masih `r7`, dan sasaran sebenarnya adalah revisi ini.
+
+### 11.1 Isi pertama — `orderNumber` dapat dibaca
+
+`BE-LAB-36` mendirikan kolom `LabOrder.OrderNumber` menurunkan `LAB-DEC-072`: nomor pesanan yang
+dapat dibaca, dicetak, dan **disebut lewat telepon**. Kolomnya `NOT NULL`, unik, dan kedelapan
+pesanan lama sudah terisi — tetapi **nol DTO mengembalikannya**, sehingga ia tidak dapat dibaca
+siapa pun di luar backend.
+
+| Ruas | DTO | Tipe | Alasan penempatan |
+|---|---|---|---|
+| `orderNumber` | `LabOrderListResponse` | `string` | Kolom `No. Order` pada daftar pesanan. Siap tampil, bukan penunjuk |
+| `orderNumber` | `LabMonitoringItemResponse` | `string` | Ketiga menu pemeriksaan membaca grup **Lab Monitoring**, bukan `LabOrderListResponse` |
+
+`LabOrderDetailResponse` **tidak perlu disebut terpisah**: ia mewarisi `LabOrderListResponse`.
+
+> **Kenapa dua DTO, bukan satu.** Ini pelajaran `r13`/`r14` yang diterapkan sejak awal, bukan
+> diulang. `r13` menambahkan ruas pada DTO yang **paling masuk akal namanya** dan ternyata nol
+> dipakai layar; `r14` harus mengoreksinya pada hari yang sama. Penempatan di sini diperiksa dari
+> **source konsumennya** lebih dulu.
+
+### 11.2 Isi kedua — `collectedAt` yang dinyatakan petugas
+
+Menurunkan **`LAB-CONFLICT-006` pilihan A**, yang diputuskan pemilik modul pada 2026-09-16.
+
+| Ruas | DTO | Tipe | Ketentuan |
+|---|---|---|---|
+| `collectedAt` | `PlanLabSpecimenRequest` | `DateTime?` | Waktu pengambilan sampel **yang dinyatakan petugas**. Boleh kosong |
+
+**Alasan yang menentukan bukan aturannya, melainkan datanya.** Waktu pengambilan di klinik
+perujuk memang diketahui petugas, dan hari ini **hilang — tidak tersimpan di mana pun**.
+`CollectedAt` yang ada diisi server pada tindakan pengambilan, dan pada jalur rujukan luar cap
+waktu itu justru **lebih akhir** daripada waktu kedatangan sampel.
+
+**Yang dibuka ruas ini:** `VAL-59` dan `AC-66` menjadi dapat ditegakkan penuh. Keduanya selama ini
+terpenuhi separuh — `VAL-58` tegak, `VAL-59` tidak, karena pembandingnya tidak ada pada satu pun
+DTO permintaan.
+
+> **Pilihan B ditolak, dan alasannya dicatat supaya tidak diusulkan ulang.** Mempersempit
+> `VAL-59` akan membuat aturannya tidak pernah menyala — sama dengan mencabutnya — tetapi
+> meninggalkan satu baris matriks validasi yang **terlihat aktif padahal tidak**. Aturan yang
+> tampak berlaku dan diam-diam tidak pernah berjalan lebih berbahaya daripada aturan yang
+> dicabut terang-terangan, seperti `VAL-60`.
+
+### 11.3 Dampak kompatibilitas
+
+| Yang dinilai | Hasil |
+|---|---|
+| Bentuk respons | **Aditif.** Pembaca lama menerima satu ruas tambahan yang boleh diabaikan |
+| Bentuk permintaan | **Aditif dan opsional.** `collectedAt` boleh tidak dikirim; pemanggil lama tidak berubah |
+| Permission | **Nol** resource maupun action baru |
+| Migration | **Nol.** `LabOrder.OrderNumber` sudah berdiri lewat `BE-LAB-36`; `LabSpecimen.CollectedAt` sudah ada sejak semula |
+
+---
+
+## 12. Amandemen `r17` — Daftar penerimaan lintas pesanan, 2026-09-17
+
+**Status `approved`**, disetujui Yoga Aji Pratama selaku pemilik modul pada 2026-09-17.
+
+**Aditif.** Satu endpoint baca baru; nol endpoint yang sudah ada berubah.
+
+### 12.1 Kenapa amandemen ini ada
+
+`FE-LAB-12` menuntut *"layar daftar penerimaan beserta penyaring rentang tanggal"* — daftar wadah
+**lintas pesanan**. Penelusuran source membuktikan **nol endpoint mengembalikannya**:
+
+| Jalur yang ada | Yang dikembalikan |
+|---|---|
+| `GET /lab-specimens/summary` | **Angka rekap saja** — nol baris |
+| `GET /lab-specimens/by-order/{labOrderId}` | Baris untuk **satu** pesanan |
+
+Ditelusuri pula ke luar controller wadah: `LabMonitoringService` menyentuh `LabSpecimens` hanya
+untuk **mencacah** dan sebagai sub-query penyaring; `LabWorklistService` nol menyentuhnya.
+
+**Setengahnya justru sudah siap.** `GetSummaryAsync` menyaring tepat pada
+`PhysicallyReceivedAt ?? CreateDateTime`, dan `AC-67` sudah terpenuhi di sana. **Yang hilang
+barisnya, bukan aturannya.**
+
+### 12.2 Endpoint
+
+Base URL: `api/v1/health-services/laboratory-management/lab-specimens`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+|---|---|---|---|---|---|
+| `GET` | `/` | Daftar penerimaan lintas pesanan | `LabSpecimen : Read` | `LabSpecimenPagedQuery` | `ApiResponse<PagedResult<LabSpecimenListResponse>>` |
+
+**`LabSpecimenPagedQuery`** mengikuti bentuk `LabOrderPagedQuery` yang sudah berjalan sejak `r5`:
+
+| Ruas | Tipe | Ketentuan |
+|---|---|---|
+| `startDate`, `endDate` | `DateTime?` | Rentang **waktu kedatangan sebenarnya** — lihat 12.3 |
+| `specimenStatus` | `LabSpecimenStatus?` | Menyaring menurut status wadah |
+| `search` | `string?` | Barcode wadah, nomor order, nama pasien, atau No. RM |
+| `pageNumber`, `pageSize` | `int` | Bawaan 1 dan 20; paling banyak 100 |
+
+**`LabSpecimenListResponse`** memuat seluruh ruas `LabSpecimenResponse` yang sudah ada, ditambah:
+
+| Ruas | Tipe | Alasan |
+|---|---|---|
+| `labOrderId` | `Guid` | Menautkan baris ke pesanannya |
+| `orderNumber` | `string` | Nomor yang dapat disebut petugas. **Bergantung `r16`** |
+| `patientName` | `string` | Daftar ini dibaca per pasien, bukan per penunjuk |
+| `medicalRecordNumber` | `string` | Pembeda ketika nama pasien sama |
+| `createDateTime` | `DateTime` | **Supaya selisihnya dapat ditampilkan** — lihat 12.3 |
+
+### 12.3 Satu hal yang menentukan, dan paling mudah keliru
+
+**Rentangnya wajib disaring pada `PhysicallyReceivedAt ?? CreateDateTime`** — persis seperti
+`GetSummaryAsync`, bukan pada `CreateDateTime` saja.
+
+Inilah inti `LAB-DEC-042`. Wadah yang tiba **Senin 21.10** dan baru diregistrasi **Selasa 08.05**
+wajib muncul pada hari **Senin**. Bila penyaringnya keliru, seluruh guna kolom
+`PhysicallyReceivedAt` hilang **tanpa satu pun kesalahan yang terlihat**: layarnya tetap tampil
+benar, hanya tanggalnya yang salah.
+
+`createDateTime` ikut dikembalikan justru supaya **selisih** kedua waktu itu dapat dilihat kepala
+instalasi, sebagaimana dituntut DoD `FE-LAB-12`.
+
+### 12.4 Dampak kompatibilitas
+
+| Yang dinilai | Hasil |
+|---|---|
+| Endpoint yang sudah ada | **Nol berubah** |
+| Permission | **Nol** resource baru. Memakai ulang `LabSpecimen : Read` |
+| Migration | **Nol.** Seluruh kolomnya sudah berdiri sejak `BE-LAB-21` dan `BE-LAB-22` |

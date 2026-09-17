@@ -65,6 +65,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 .Select(x => new LabMonitoringItemResponse
                 {
                     LabOrderId = x.Id,
+
+                    OrderNumber = x.OrderNumber,
                     EncounterId = x.EncounterId,
                     EncounterNumber = x.Encounter != null ? x.Encounter.EncounterNumber : null,
                     PatientId = x.Encounter != null ? x.Encounter.PatientId : null,

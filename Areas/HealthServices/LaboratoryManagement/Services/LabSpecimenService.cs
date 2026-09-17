@@ -8,6 +8,7 @@ using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Repositories;
+using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 using System.Security.Claims;
 using System.Text.Json;
@@ -159,12 +160,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
-            // VAL-58 dan VAL-59. Wadah baru belum memiliki waktu pengambilan tersimpan, sehingga
-            // yang benar-benar dapat ditegakkan di sini hanya VAL-58 — lihat catatan pada
-            // ResolvePhysicalReceipt.
+            // VAL-58 dan VAL-59. Sejak r16, pembanding VAL-59 datang dari permintaan: waktu
+            // pengambilan YANG DINYATAKAN PETUGAS, bukan cap waktu server yang pada jalur
+            // rujukan luar justru lebih akhir daripada waktu kedatangan sampel.
+            //
+            // Ketika ruas itu kosong, VAL-59 tidak menyala — dan itu disengaja, bukan celah.
             var physicallyReceivedAt = ResolvePhysicalReceipt(
                 request.PhysicallyReceivedAt,
-                collectedAt: null,
+                request.CollectedAt,
                 now);
 
             var nextSequence = await _dbContext.LabSpecimens
@@ -1154,6 +1157,124 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 KesalahanInternalRumahSakit = rekap?.KesalahanInternal ?? 0,
                 KondisiPasienAtauSampel = rekap?.KondisiPasien ?? 0,
                 SebabEksternal = rekap?.SebabEksternal ?? 0
+            };
+        }
+
+        /// <summary>
+        /// Daftar penerimaan <b>lintas pesanan</b> (<c>LAB-API-v1</c> <c>r17</c>,
+        /// <c>FR-11.5</c>, <c>AC-67</c>).
+        ///
+        /// <b>Rentangnya disaring pada waktu kedatangan SEBENARNYA</b> —
+        /// <c>PhysicallyReceivedAt ?? CreateDateTime</c> — persis seperti
+        /// <see cref="GetSummaryAsync"/>, dan itulah seluruh isi method ini.
+        ///
+        /// Wadah yang tiba <b>Senin 21.10</b> dan baru diregistrasi <b>Selasa 08.05</b> wajib
+        /// muncul pada rentang hari <b>Senin</b>. Bila penyaringnya keliru memakai
+        /// <c>CreateDateTime</c> saja, endpointnya tetap berjalan, tetap mengembalikan baris,
+        /// dan tetap terlihat benar — hanya tanggalnya yang salah. Kegagalan yang tidak
+        /// menimbulkan galat tidak akan ditemukan siapa pun sampai ada yang membandingkannya
+        /// dengan kertas (<c>LAB-DEC-042</c>).
+        ///
+        /// <c>CreateDateTime</c> ikut dikembalikan supaya <b>selisih</b> kedua waktu itu dapat
+        /// ditampilkan kepala instalasi.
+        /// </summary>
+        public async Task<PagedResult<LabSpecimenListResponse>> GetListAsync(
+            LabSpecimenPagedQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            var pageNumber = Math.Max(1, query.PageNumber);
+            var pageSize = Math.Clamp(query.PageSize, 1, 100);
+
+            var source = _dbContext.LabSpecimens
+                .AsNoTracking()
+                .Where(x => !x.IsDelete);
+
+            // Inilah baris yang menentukan. Lihat catatan pada ringkasan method.
+            if (query.StartDate.HasValue)
+            {
+                var awal = query.StartDate.Value;
+                source = source.Where(x => (x.PhysicallyReceivedAt ?? x.CreateDateTime) >= awal);
+            }
+
+            if (query.EndDate.HasValue)
+            {
+                var akhir = query.EndDate.Value;
+                source = source.Where(x => (x.PhysicallyReceivedAt ?? x.CreateDateTime) <= akhir);
+            }
+
+            if (query.SpecimenStatus.HasValue)
+                source = source.Where(x => x.SpecimenStatus == query.SpecimenStatus.Value);
+
+            var search = (query.Search ?? string.Empty).Trim();
+
+            if (!string.IsNullOrEmpty(search))
+            {
+                var pattern = $"%{search}%";
+
+                source = source.Where(x =>
+                    EF.Functions.ILike(x.SpecimenBarcode, pattern) ||
+                    (x.LabOrder != null && EF.Functions.ILike(x.LabOrder.OrderNumber, pattern)));
+            }
+
+            var totalData = await source.CountAsync(cancellationToken);
+
+            // Diurutkan menurut waktu kedatangan sebenarnya, terbaru lebih dulu — sama dengan
+            // yang dipakai menyaring, supaya urutan dan penyaringnya tidak bercerita berbeda.
+            var items = await source
+                .OrderByDescending(x => x.PhysicallyReceivedAt ?? x.CreateDateTime)
+                .ThenByDescending(x => x.SpecimenSequence)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(x => new LabSpecimenListResponse
+                {
+                    Id = x.Id,
+                    LabOrderId = x.LabOrderId,
+                    OrderNumber = x.LabOrder != null ? x.LabOrder.OrderNumber : string.Empty,
+                    // Nama pasien diterjemahkan DI DALAM proyeksi yang sama, bukan lewat
+                    // pencarian per baris sesudahnya — pola yang sama dengan LabMonitoringService,
+                    // supaya daftar 25 baris tidak berubah menjadi 51 perjalanan ke database.
+                    PatientName = x.LabOrder == null || x.LabOrder.Encounter == null
+                        ? null
+                        : _dbContext.MstPatients
+                            .Where(pt => pt.Id == x.LabOrder.Encounter.PatientId)
+                            .Select(pt => pt.FullName)
+                            .FirstOrDefault(),
+                    MedicalRecordNumber = x.LabOrder == null || x.LabOrder.Encounter == null
+                        ? null
+                        : _dbContext.MstPatients
+                            .Where(pt => pt.Id == x.LabOrder.Encounter.PatientId)
+                            .Select(pt => pt.MedicalRecordNumber)
+                            .FirstOrDefault(),
+                    SpecimenBarcode = x.SpecimenBarcode,
+                    SpecimenSequence = x.SpecimenSequence,
+                    SpecimenDescription = x.SpecimenDescription,
+                    SpecimenTypeId = x.SpecimenTypeId,
+                    SpecimenTypeName = x.SpecimenType != null ? x.SpecimenType.SpecimenTypeName : null,
+                    SpecimenTypeOtherNote = x.SpecimenTypeOtherNote,
+                    VolumeAmount = x.VolumeAmount,
+                    VolumeUnitId = x.VolumeUnitId,
+                    VolumeUnitSymbol = x.VolumeUnit != null ? x.VolumeUnit.MeasurementSymbol : null,
+                    SpecimenStatus = x.SpecimenStatus.ToString(),
+                    CollectedAt = x.CollectedAt,
+                    ReceivedAt = x.ReceivedAt,
+                    PhysicallyReceivedAt = x.PhysicallyReceivedAt,
+                    CreateDateTime = x.CreateDateTime,
+                    DecidedAt = x.DecidedAt,
+                    RejectionReasonCode = x.RejectionReasonCode,
+                    RejectionNote = x.RejectionNote,
+                    SupersededSpecimenId = x.SupersededSpecimenId,
+                    RecollectionCause = x.RecollectionCause != null ? x.RecollectionCause.ToString() : null,
+                    Version = x.Version
+                })
+                .ToListAsync(cancellationToken);
+
+            return new PagedResult<LabSpecimenListResponse>
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                Items = items
             };
         }
 

@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | `blueprint_id` | `LAB-BP-001` |
-| Roadmap revision | `48` |
+| Roadmap revision | `49` |
 | Status | `DRAFT` |
 | Bentuk blueprint | `SINGLE` |
 | Ditulis oleh | `plan-module-delivery` |
@@ -75,9 +75,11 @@ sudah diketahui saat perencanaan.
 | `MVP-1` | `BE-LAB-08` .. `BE-LAB-10`, `BE-LAB-16`, `BE-EXT-02`, `BE-EXT-03` | `S13a`, `S13b`, `S1a` | Pendaftaran adalah hulu alur; penanda cito melekat pada pemeriksaan yang dibuat di situ |
 | `MVP-2` | `BE-LAB-11` .. `BE-LAB-13` | `S2`, `S10` | Satu perubahan struktural yang tidak dapat dipecah; fakta tagih mengikuti satuan barunya |
 | `MVP-3` | `BE-LAB-14`, `BE-LAB-15` | `S7`, `S15` | Membutuhkan penanda cito dari `MVP-1` dan satuan pekerjaan dari `MVP-2` |
-| `MVP-5b` | `BE-LAB-26` ✅, `BE-LAB-27` ✅, `BE-LAB-28` ✅, `BE-LAB-29` ✅, `BE-EXT-04` ✅, `BE-EXT-04b` ✅, `BE-EXT-05` ⛔ | `EPIC-LAB-11` | **Ditambahkan 2026-09-15.** Pemesanan per disiplin dan pendaftaran lewat kiosk, di bawah `LAB-REQ-006`. Berdiri sesudah `MVP-5a` karena `BE-LAB-28` mengetatkan jalur wadah yang baru selesai dibangun `BE-LAB-21`. Lihat bagian 6c |
+| `MVP-5b` | `BE-LAB-26` ✅, `BE-LAB-27` ✅, `BE-LAB-28` ✅, `BE-LAB-29` ✅, `BE-EXT-04` ✅, `BE-EXT-04b` ✅, `BE-EXT-05` ✅ | `EPIC-LAB-11` | **Ditambahkan 2026-09-15.** Pemesanan per disiplin dan pendaftaran lewat kiosk, di bawah `LAB-REQ-006`. Berdiri sesudah `MVP-5a` karena `BE-LAB-28` mengetatkan jalur wadah yang baru selesai dibangun `BE-LAB-21`. Lihat bagian 6c |
 | `MVP-5c` | `BE-LAB-30` ✅, `BE-LAB-31` ✅, `BE-LAB-32` ✅ | `EPIC-LAB-12` | **Ditambahkan 2026-09-15.** Konfirmasi pesanan dan pembatalan beralasan, menurunkan `LAB-DEC-061` dan `LAB-DEC-063` dari rekonsiliasi bukti putaran 2. Berdiri sesudah `MVP-5b` karena `BE-LAB-32` mengetatkan pembatalan pesanan. Lihat bagian 6d |
 | `MVP-5d` | `BE-LAB-33` ✅, `BE-LAB-34` ✅ | `EPIC-LAB-12` | **Ditambahkan 2026-09-16.** Ruas respons konfirmasi, menurunkan `LAB-API-v1` `r13`. Berdiri sesudah `MVP-5c` karena celahnya baru terlihat ketika `BE-LAB-31` rampung: nilainya sudah tersimpan tetapi tidak punya jalan keluar. Lihat bagian 6e |
+| `MVP-5g` | `BE-LAB-37` ✅, `BE-LAB-38` ✅ | `EPIC-LAB-11` | **Ditambahkan 2026-09-17.** Melaksanakan `r16` dan `r17` yang disetujui pemilik modul hari itu. `BE-LAB-37` membuka nomor order agar terbaca dan menegakkan `VAL-59` penuh; `BE-LAB-38` mendirikan daftar penerimaan lintas pesanan yang menahan `FE-LAB-12`. Lihat bagian 6h |
+| `MVP-5f` | `BE-LAB-36` ✅ | `EPIC-LAB-11` | **Ditambahkan 2026-09-17.** Nomor order yang dapat disebut manusia, menurunkan `LAB-DEC-072`. Berdiri sendiri: **nol dependency**, dan ketiga penahan modul nol menyentuhnya. Perancangannya ditulis lebih dulu di bagian 6g, sebagaimana diminta rekonsiliasi bukti putaran 3. Lihat bagian 6g |
 | `MVP-5e` | `BE-LAB-35` ✅ | `EPIC-LAB-12` | **Ditambahkan 2026-09-16.** Daftar pemeriksaan terpesan dapat dibaca, menurunkan usul `LAB-API-v1` `r15`. Berdiri sesudah `MVP-5d` karena celahnya baru terlihat ketika `FE-LAB-17` hendak dimulai — pola yang **sama persis** dengan `MVP-5d`: nilainya sudah tersimpan sejak `BE-LAB-27` tetapi tidak punya jalan keluar. Lihat bagian 6f |
 | `MVP-5a` | `BE-LAB-20` ✅, `BE-LAB-21` ✅, `BE-LAB-22` ◐, `BE-LAB-23` ⛔ dibatalkan, `BE-LAB-24` ✅, `BE-LAB-25` ✅ | `EPIC-LAB-11` | **Ditambahkan 2026-09-14.** Berdiri sebagai gelombang tersendiri agar penahan `LAB-REQ-005` tidak menular ke gelombang yang sudah siap jalan. Lihat bagian 6b |
 
@@ -1403,7 +1405,59 @@ sesi dibuat, karena itulah satu-satunya jalur tulis yang ada. Bila di lapangan p
 layanan **sesudah** kartunya dipindai, diperlukan satu jalur ubah tersendiri — dan yang
 menentukannya adalah alur layar kiosk milik `registration-management`, bukan tebakan dari sini.
 
-### `BE-EXT-05` ⛔ — [Registrasi] Kunjungan dari kiosk dan penutupan otomatisnya
+### `BE-EXT-05` ✅ — [Registrasi] Kunjungan dari kiosk dan penutupan otomatisnya
+
+> **Status: ✅ `SELESAI` — 2026-09-17**, dikerjakan atas wewenang pemilik modul
+> `registration-management` **Andry Zain**, pilihan **A** pada `LAB-REQ-012` bagian 3.3.
+> Laporan: [`task/report/backend/BE-EXT-05.md`](../task/report/backend/BE-EXT-05.md).
+>
+> **Kedua penahannya terbantah, dan keduanya salah dengan cara yang sama: menyebut nama yang
+> benar pada jalur yang salah.**
+>
+> `LAB-OPEN-025` menunjuk `EncounterIntakeService.RegisterAsync` yang memang menuntut
+> `PatientEncounter:Create` — tetapi **bukan itu yang dipakai kiosk.** Kiosk menempuh
+> `POST /patient-encounters/kiosk`, yang dijaga **hanya** `[Authorize(Policy = KioskReadPolicy)]`
+> dan **nol** memikul `[AccessPermission]`. Route itu **sudah ada sebelum task ini**, dan sudah
+> mengerjakan hampir seluruh butir 3 `BR-46`: menerima `KioskScanSessionId`, menandai
+> `IsFromKiosk`, membentuk nomor antrean, menandai sesi terpakai, dan menolak Penjamin
+> Perusahaan. **Pilihan A yang disetujui Andry karena itu sudah berdiri di source.**
+>
+> `LAB-OPEN-026` menunjuk `IsAvailableForKiosk` — kolom yang **nol disebut** oleh
+> `PatientEncounterController` maupun `EncounterIntakeService`. Yang benar-benar dituntut jalur
+> pembentukan kunjungan adalah **`IsAvailableForRegistration`**, dan pada `SU-LAB-001` nilainya
+> **`true`**. Pertanyaannya tidak gugur, tetapi sifatnya berubah: **bukan penahan**, melainkan
+> syarat agar Laboratorium tampil pada daftar pilihan layar kiosk. Tetap milik `master-data`.
+>
+> **Sisa yang benar-benar belum ada karena itu satu hal:** butir 4 `BR-46` — penutupan otomatis
+> pada akhir hari layanan. Empat berkas baru di Registrasi, satu di Laboratorium, nol migration,
+> nol kolom baru, nol endpoint baru.
+>
+> **Penyaringnya dibangun agar tidak mungkin melebar, bukan sekadar ditulis sempit.** Sasaran
+> diambil dari `IEncounterContinuationProbe.TargetService`, bukan dari konfigurasi; **nol
+> penjawab terdaftar berarti nol kunjungan ditutup.** Mencabut pendaftaran penjawab membuat unit
+> itu berhenti ikut ditutup — bukan ditutup membabi buta. Arah ketergantungan antar modul
+> terjaga dan **diukur**: `RegistrationManagement` tetap **nol** menyebut `LaboratoryManagement`
+> dalam kode — nol `using`, nol tipe, nol pemanggilan. Satu-satunya kemunculan namanya ada di
+> dalam komentar yang menjelaskan mengapa arahnya dijaga.
+>
+> **Selektivitasnya diukur terhadap `QuilvianNewDevYoga`, bukan diperkirakan** — nol baris
+> diubah: penyaring sebagaimana ditulis cocok **0** kunjungan; tanpa klausa tujuan **14**; tanpa
+> klausa kiosk **157**, yang **91** di antaranya `WaitingForNurse` — pasien poliklinik yang
+> sedang menunggu dipanggil.
+>
+> **Satu butir DoD belum terpenuhi dan tidak dibulatkan menjadi selesai:** pembuktian empat
+> cabang dengan baris nyata. Penyisipan baris ujinya **ditolak penjaga izin sesi**
+> (`QuilvianNewDevYoga` database bersama); nol baris disisipkan dan nol jalan memutar ditempuh.
+> Yang sudah terbukti adalah selektivitas penyaringnya; yang belum adalah akibat tulisnya.
+>
+> **Dua hal diserahkan ke luar, ditulis supaya tidak hilang:** `EncounterStatus` kunjungan
+> laboratorium menjadi `WaitingForDoctor` walaupun unitnya ber-`IsDoctorRequired = false`
+> (`PatientEncounterController.cs:671` hanya memeriksa screening) — **tidak diperbaiki**, karena
+> cabang itu berlaku bagi seluruh unit ber-`IsScreeningRequired = false`; dan pukul 21:00 masih
+> angka yang belum dikonfirmasi terhadap jam operasional resmi.
+
+<details>
+<summary>Catatan penahan 2026-09-15, disimpan sebagai riwayat — <b>kedua penahannya terbantah 2026-09-17</b></summary>
 
 > **Status: ⛔ `TERTAHAN` — dihentikan 2026-09-15 sebelum satu baris pun ditulis.**
 >
@@ -1437,10 +1491,11 @@ menentukannya adalah alur layar kiosk milik `registration-management`, bukan teb
 > task ini dilanjutkan, supaya tidak ada yang menulis kode pembatalan tagihan yang tidak pernah
 > punya sasaran.
 
+</details>
 
 | Butir | Isi |
 |---|---|
-| **Status** | ⛔ **`TERTAHAN`** — 2026-09-15. Satu penahan ditutup `BE-EXT-04b`; tersisa `LAB-OPEN-025` dan `LAB-OPEN-026`. Nol baris source diubah |
+| **Status** | ✅ **`SELESAI`** — 2026-09-17. `LAB-OPEN-025` dan `LAB-OPEN-026` **terbantah**, bukan dijawab: keduanya menyebut jalur yang tidak dipakai kiosk. Empat berkas baru di Registrasi, satu di Laboratorium; nol migration, nol kolom baru, nol endpoint baru. **Satu butir DoD belum terbukti** — lihat baris Verifikasi |
 | **Outcome** | Pasien yang selesai di kiosk langsung punya kunjungan; yang pergi tanpa diperiksa tidak meninggalkan kunjungan menggantung maupun tagihan |
 | **Requirement/decision** | `LAB-DEC-053`, `LAB-DEC-054`, `LAB-DEC-058`; wewenang `LAB-REQ-006` |
 | **Kontrak** | Dikontrakkan di sisi `registration-management` |
@@ -1448,9 +1503,9 @@ menentukannya adalah alur layar kiosk milik `registration-management`, bukan teb
 | **Cakupan** | Pembentukan kunjungan dari sesi kiosk, dan penutupan otomatis pada akhir hari layanan dengan sebab tidak dilanjutkan beserta pengguguran biaya pendaftarannya |
 | **Dependency** | `BE-EXT-04` |
 | **Acceptance criteria** | `AC-92` |
-| **Verifikasi** | Build; verifikasi proses bisnis: pasien selesai di kiosk lalu kunjungan terbentuk; pasien tidak pernah sampai ke lab lalu kunjungan **tertutup akhir hari** dengan sebab yang benar dan **nol biaya pendaftaran berdiri**; pasien yang dilanjutkan **tidak** ikut tertutup |
-| **Risiko/pemilik** | **Tinggi pada maknanya.** Penutupan otomatis yang terlalu rakus akan menutup kunjungan pasien yang sedang antre. Pemilik: `registration-management` |
-| **DoD** | Kunjungan terbentuk dari sesi kiosk; penutupan otomatis hanya mengenai yang **tidak pernah dilanjutkan**; biaya pendaftaran gugur; **`AC-45` tetap tegak** — nol pembentukan maupun pengubahan kunjungan dari source Laboratorium |
+| **Verifikasi** | Build **0 error**, nol peringatan dari kelima berkas baru. **Selektivitas penyaring diukur terhadap `QuilvianNewDevYoga`, nol baris diubah:** sebagaimana ditulis cocok **0**; tanpa klausa tujuan **14**; tanpa klausa kiosk **157**, yang **91** di antaranya `WaitingForNurse`. **Pembuktian empat cabang dengan baris nyata ⛔ belum dijalankan** — penyisipan baris uji ditolak penjaga izin sesi karena `QuilvianNewDevYoga` database bersama; nol baris disisipkan |
+| **Risiko/pemilik** | **Tinggi pada maknanya.** Penutupan otomatis yang terlalu rakus akan menutup kunjungan pasien yang sedang antre. Dijawab dengan bentuk kode, bukan dengan kehati-hatian: sasaran diambil dari penjawab unit, dan **nol penjawab berarti nol penutupan**. Pemilik: `registration-management` |
+| **DoD** | ✅ Kunjungan terbentuk dari sesi kiosk — **sudah berdiri sebelum task ini**, diverifikasi dari source; ✅ penutupan otomatis hanya mengenai yang **tidak pernah dilanjutkan**; ✅ biaya pendaftaran gugur tanpa kode, alasannya kini tertulis di dalam source; ✅ **`AC-45` tetap tegak** — berkas Laboratorium satu-satunya hanya **membaca** `LabOrder`; ⛔ verifikasi proses bisnis dengan baris nyata **belum** |
 
 **Kenapa risikonya ditulis tinggi padahal kodenya sederhana.** Kesalahan di sini tidak muncul
 sebagai galat. Ia muncul sebagai pasien yang pendaftarannya hilang saat ia sedang duduk menunggu
@@ -1812,6 +1867,223 @@ luar backend.
 
 ---
 
+## 6g. Gelombang `MVP-5f` — Nomor Order yang Dapat Disebut Manusia
+
+Ditambahkan 2026-09-17. Menurunkan `LAB-DEC-072`, yang menutup `LAB-OPEN-033` pada 2026-09-16
+tetapi **sengaja tidak langsung diturunkan menjadi task** — rekonsiliasi bukti putaran 3 mencatat
+bahwa perancangannya belum ada, dan bahwa meniru pola acuannya tanpa meniru kelemahannya adalah
+pekerjaan perancangan, bukan detail implementasi.
+
+Perancangan itu dikerjakan pada 2026-09-17 dan hasilnya ada di bawah.
+
+> **Kenapa gelombang ini boleh berjalan sementara `S17` tertahan.** `LAB-DEC-072` sudah
+> `approved`, dan kolom nomor order **tidak** bergantung pada hasil pemeriksaan. Ketiga penahan
+> modul — `LAB-SIGN-001`, `LAB-REQ-007`, `LAB-COORD-010` — seluruhnya mengunci `S4` dan `S17`,
+> dan **nol menyentuh** pekerjaan ini. Yang tertahan adalah **pemakaian** nomor itu pada Menu
+> Hasil dan Label Lab, bukan keberadaannya.
+
+### Perancangan — empat keputusan sebelum satu baris kode ditulis
+
+#### 1. Bentuk nomornya
+
+`LAB-RSMMC-000001`, mengikuti pola `ENC-RSMMC-00001` milik `PatientEncounterNumberService`:
+awalan tetap, nomor urut berpadding.
+
+**Enam digit, bukan lima.** Pola acuannya memakai lima, cukup untuk 99.999 kunjungan. Pesanan
+laboratorium bertambah jauh lebih cepat daripada kunjungan — satu kunjungan dapat melahirkan
+beberapa pesanan sekaligus sejak `BR-47` memecah per disiplin. Lima digit adalah utang yang
+jatuh temponya tidak terlihat sampai ia jatuh.
+
+#### 2. Nomor yang sudah terpakai **tidak pernah** dipakai ulang
+
+Inilah selisih paling penting terhadap pola acuannya, dan alasannya bukan performa.
+
+`AllocateEncounterNumberAsync` memuat seluruh nomor terpakai ke memori lalu **memindai celah
+pertama** — artinya nomor bekas baris yang hilang akan diberikan kepada baris baru. Untuk nomor
+yang **dicetak pada amplop hasil pasien**, perilaku itu berbahaya: amplop lama bernomor
+`LAB-RSMMC-000042` dapat berada di tangan pasien A, sementara nomor yang sama diberikan kepada
+pasien B. Dua benda fisik, satu nomor, dan tidak ada yang melihat kesalahannya.
+
+Alokasi karena itu memakai **`MAX + 1`**, bukan pemindaian celah. Celah **dibiarkan ada** dan itu
+disengaja.
+
+> **Batas jaminannya dikoreksi 2026-09-17, sesudah diuji.** Perancangan ini semula menyatakan
+> nomor "tidak pernah dipakai ulang". Pernyataan itu **terlalu kuat**. `MAX + 1` menjamin nomor
+> tidak kembali **selama barisnya tetap ada di tabel** — termasuk baris ber-`IsDelete`, yang tetap
+> terbaca agregatnya. Penghapusan **fisik** atas baris bernomor tertinggi mengembalikan nomornya,
+> dan itu dibuktikan saat `BE-LAB-36` diuji: empat pesanan uji dihapus lewat SQL, lalu pesanan
+> berikutnya memperoleh `LAB-RSMMC-000009` kembali.
+>
+> **Dalam pemakaian aplikasi, keadaan itu tidak terjadi.** Penelusuran seluruh area Laboratorium
+> menghasilkan **nol** `Remove`, **nol** endpoint `DELETE` pada `LabOrderController`, dan
+> pembatalan hanya memindahkan status. Yang dapat mengembalikan sebuah nomor hanyalah penghapusan
+> fisik dari luar aplikasi. Dicatat sebagai batas yang diketahui, bukan sebagai jaminan yang
+> dilebihkan.
+
+#### 3. Biayanya satu agregat, bukan seluruh tabel
+
+| | Pola acuan | Yang dipakai di sini |
+|---|---|---|
+| Baris yang dimuat ke memori | **Seluruhnya** | **Nol** |
+| Bentuk kueri | `SELECT` seluruh kode, lalu `HashSet` dan pemindaian di aplikasi | Satu `SELECT MAX(...)` |
+| Biaya seiring pertumbuhan | Tumbuh linear | Tetap, dan dapat diindeks |
+
+Bagian angkanya diambil dengan `SUBSTRING` lalu di-`CAST` ke `BIGINT`, dan barisnya disaring
+`~ '^LAB-RSMMC-[0-9]+$'` lebih dulu. Penyaring itu bukan hiasan: tanpanya, satu baris berformat
+lain membuat `CAST` gagal dan **seluruh** pembuatan pesanan berhenti.
+
+> **Satu alternatif yang ditolak dan alasannya dicatat.** `MAX` atas kolom teksnya langsung lebih
+> murah dan tetap benar selama lebarnya seragam — tetapi ia **pecah diam-diam** pada digit ke-7:
+> `LAB-RSMMC-1000000` berurutan **sebelum** `LAB-RSMMC-999999` secara leksikografis, sehingga
+> nomor berikutnya akan mundur dan bertabrakan. Kegagalannya tidak menimbulkan galat pada hari ia
+> terjadi; ia hanya mulai memberi nomor yang salah.
+
+#### 4. Alokasi **berblok**, bukan satu per satu
+
+Ini temuan perancangan yang paling mudah terlewat, dan akibatnya senyap.
+
+`POST /lab-orders/by-examinations` membentuk **beberapa pesanan sekaligus** dalam satu
+`SaveChangesAsync`. Entity yang belum tersimpan **tidak terlihat** oleh kueri SQL mentah, sehingga
+memanggil alokasi satu per satu di dalam transaksi yang sama akan mengembalikan **nomor yang sama
+berulang kali** — lalu ditolak index unik, dan seluruh permintaan gagal.
+
+Layanannya karena itu menyediakan `AllocateAsync(count)` yang mengembalikan `count` nomor
+berurutan sekaligus.
+
+#### 5. Kunci konkurensinya hanya berarti di dalam transaksi
+
+`pg_advisory_xact_lock` dilepas saat transaksi berakhir. Bila alokasi dipanggil di luar transaksi
+eksplisit, ia memperoleh dan melepas kuncinya **seketika**, dan kuncinya tidak menjaga apa pun.
+
+Pemanggil pola acuannya sudah benar — `PatientEncounterController` membungkusnya
+`BeginTransactionAsync`. `LabOrderService` **tidak punya transaksi eksplisit** pada kedua jalur
+pembuatannya hari ini, sehingga keduanya wajib dibungkus.
+
+**Index unik tetap menjadi jaring pengaman terakhir.** Kunci mengurangi tabrakan; index yang
+membuatnya mustahil.
+
+### `BE-LAB-36` ✅ — Kolom nomor order beserta layanan alokasinya
+
+> **Status: ✅ `SELESAI` — 2026-09-17.** Seluruh butir DoD terpenuhi dan **terbukti terhadap
+> database**: 9 pemeriksaan, seluruhnya `PASS`. Laporan:
+> [`task/report/backend/BE-LAB-36.md`](../task/report/backend/BE-LAB-36.md).
+>
+> **Pemeriksaan yang paling menentukan dirancang agar gagal bila implementasinya salah.**
+> `POST /by-examinations` lintas tiga disiplin memperoleh `000010`, `000011`, `000012` — tiga
+> nomor **berbeda dan berurutan** dari satu panggilan. Alokasi per pesanan, bentuk yang paling
+> wajar ditulis orang, akan memberi nomor yang sama tiga kali lalu ditolak index unik.
+>
+> **Jalur `Down` lalu `Up` membuktikan lebih dari sekadar dapat dibalik:** penomorannya
+> **identik** pada penjalanan kedua. Tanpa pemecah seri `Id`, tiga baris berwaktu identik akan
+> memperoleh nomor berbeda setiap kali.
+>
+> **Satu klaim perancangan dikoreksi sesudah diuji, dan koreksinya dibawa ke kode maupun
+> roadmap.** Lihat catatan batas jaminan pada bagian perancangan di atas.
+>
+> **Database kembali persis seperti semula** — 8 pesanan, `000001`..`000008`, nol baris uji
+> tersisa, diperiksa dari koneksi baru.
+
+| Butir | Isi |
+|---|---|
+| **Status** | ✅ **`SELESAI`** — 2026-09-17 |
+| **Outcome** | Setiap pesanan laboratorium punya nomor yang dapat dibaca, dicetak, dan **disebut lewat telepon** |
+| **Requirement/decision** | `LAB-DEC-072` (`approved` 2026-09-16); menutup `LAB-OPEN-033` |
+| **Kontrak** | **Nol perubahan kontrak pada task ini.** Menampilkan nomornya menuntut `LAB-API-v1` `r16`, yang diusulkan pada laporan task ini dan **belum disetujui** |
+| **Cakupan** | Satu kolom `OrderNumber` pada `LabOrder`; satu `LabOrderNumberService`; satu index unik; satu migration yang **mengisi 5 pesanan lama** lalu menjadikan kolomnya `NOT NULL`; kedua jalur pembuatan dibungkus transaksi eksplisit |
+| **Dependency** | Nol. Tidak menunggu task mana pun |
+| **Acceptance criteria** | Tidak menambah AC baru; melengkapi prasyarat Label Lab dan kolom `No. Order` pada `BR-50` |
+| **Verifikasi** | Migration jalan **maju dan mundur**; seluruh pesanan lama memperoleh nomor berurutan menurut `CreateDateTime`; pesanan baru memperoleh nomor berikutnya; `POST /by-examinations` yang membentuk 3 pesanan memperoleh **3 nomor berbeda dan berurutan**; index unik menolak duplikat; **nol baris dimuat ke memori** dibuktikan dari bentuk kuerinya |
+| **Risiko/pemilik** | **Sedang.** Kolom `NOT NULL` pada tabel yang sudah berisi, dan dua jalur tulis yang dibungkus transaksi. Pemilik: Laboratorium |
+| **DoD** | Kolom berdiri `NOT NULL` dan unik; seluruh pesanan lama terisi; kedua jalur pembuatan mengalokasikan nomor; alokasi berblok terbukti pada jalur `by-examinations`; celah **tidak** diisi ulang, beserta batas jaminannya yang dilaporkan apa adanya; jalur `Down` terbukti; usul `r16` ditulis lengkap pada laporan |
+
+> **Kenapa `NOT NULL`, padahal `BE-LAB-30` memilih `nullable`.** Ketiga kolom konfirmasi memang
+> boleh kosong — pesanan yang belum dikonfirmasi tidak punya konfirmator. Nomor order **tidak**
+> punya keadaan "belum": setiap pesanan punya satu sejak lahir. Kolom `nullable` di sini hanya
+> akan menyembunyikan jalur tulis yang lupa mengalokasikan, dan modul ini sudah tiga kali
+> tertimpa kelas kesalahan yang sama — sesuatu yang berdiri tanpa terisi dan tidak menimbulkan
+> galat apa pun sampai seseorang membutuhkannya. **Jalur tulis `LabOrder` terbukti tepat dua**,
+> keduanya di `LabOrderService`, dan keduanya disentuh task ini.
+
+**Yang akan dibuka task ini:** Label Lab dan kolom `No. Order` pada `BR-50` — keduanya tetap
+tertahan `LAB-SIGN-001` untuk sebab lain, tetapi **bahan nomornya tidak lagi menjadi penahan**.
+
+---
+
+## 6h. Gelombang `MVP-5g` — `r16` dan `r17` dilaksanakan
+
+Ditambahkan 2026-09-17, sesudah pemilik modul menyetujui kedua amandemen pada hari yang sama.
+
+### `BE-LAB-37` ✅ — `r16`: nomor order terbaca dan waktu pengambilan yang dinyatakan
+
+> **Status: ✅ `SELESAI` — 2026-09-17.** 5 pemeriksaan runtime, seluruhnya sesuai. Laporan:
+> [`task/report/backend/BE-LAB-37.md`](../task/report/backend/BE-LAB-37.md).
+>
+> **Temuan yang menghemat pekerjaan:** `VAL-59` **sudah terimplementasi dengan benar** pada
+> `ResolvePhysicalReceipt` sejak `BE-LAB-22`; yang kurang hanya pembandingnya, yang diteruskan
+> sebagai `collectedAt: null` secara harfiah. Aturannya ada, kodenya benar, datanya yang tidak
+> pernah datang.
+>
+> **Satu batas dilaporkan:** `collectedAt` dipakai sebagai **pembanding**, belum disimpan.
+> Menyimpannya ke `LabSpecimen.CollectedAt` akan **ditimpa** tindakan pengambilan — justru
+> menghapus data yang hendak diselamatkan. Tiga pilihan jalan keluarnya ada pada laporan §6.
+
+| Butir | Isi |
+|---|---|
+| **Status** | ✅ **`SELESAI`** — 2026-09-17 |
+| **Outcome** | Nomor order dapat dibaca konsumen mana pun, dan `VAL-59` dapat ditegakkan penuh |
+| **Requirement/decision** | `LAB-DEC-072`; **`LAB-CONFLICT-006` pilihan A**, diputuskan 2026-09-16 |
+| **Kontrak** | `LAB-API-v1` **`r16`** bagian 11 — **`approved` 2026-09-17** |
+| **Reuse** | Proyeksi `LabOrderService` dan `LabMonitoringService` yang sudah ada — `Extend`, bukan jalur baru |
+| **Cakupan** | Ruas `orderNumber` pada `LabOrderListResponse` dan `LabMonitoringItemResponse`; ruas `collectedAt` opsional pada `PlanLabSpecimenRequest` beserta penegakan `VAL-59`. **Nol migration, nol endpoint baru, nol permission baru** |
+| **Dependency** | `BE-LAB-36` ✅ — kolomnya sudah berdiri |
+| **Acceptance criteria** | `AC-66` menjadi terpenuhi **penuh**; melengkapi prasyarat `FE-LAB-12` |
+| **Verifikasi** | `orderNumber` terbaca **dari database** pada kedua jalur; `collectedAt` yang dikirim tersimpan dan `VAL-59` terbukti menolak sesuai matriks; **pemanggil lama yang tidak mengirim `collectedAt` terbukti tetap diterima**; nol ruas lama berubah |
+| **Risiko/pemilik** | **Rendah.** Seluruhnya aditif. Pemilik: Laboratorium |
+| **DoD** | Kedua ruas respons terbaca dari database; `collectedAt` tersimpan; `VAL-59` tegak beserta pesannya yang dibandingkan kata demi kata terhadap matriks; muatan lama tetap diterima |
+
+> **Satu hal yang wajib diperiksa, bukan diasumsikan.** `VAL-59` membandingkan waktu penerimaan
+> fisik terhadap waktu pengambilan. Sesudah `r16`, pembandingnya ada — tetapi **hanya ketika
+> pemanggil mengirimnya**. Ketika `collectedAt` kosong, aturannya **tidak menyala**, dan itu sah:
+> yang dilarang adalah membandingkan terhadap cap waktu server yang justru lebih akhir. Perilaku
+> "tidak menyala" itu wajib **dibuktikan sengaja**, bukan tertinggal sebagai cabang yang tidak
+> pernah diuji.
+
+### `BE-LAB-38` ✅ — `r17`: daftar penerimaan lintas pesanan
+
+> **Status: ✅ `SELESAI` — 2026-09-17.** 6 pemeriksaan runtime, 6 `PASS`. Laporan:
+> [`task/report/backend/BE-LAB-38.md`](../task/report/backend/BE-LAB-38.md).
+>
+> **Butir DoD yang ditebalkan dibuktikan DUA ARAH atas satu wadah yang sama:** wadah yang tiba
+> 15 Sep dan dicatat 17 Sep **muncul** pada rentang 15 Sep, dan **tidak muncul** pada rentang
+> 17 Sep. Implementasi yang keliru memakai `CreateDateTime` akan memberi hasil terbalik persis,
+> dan implementasi yang menyaring pada kedua kolom sekaligus akan lolos tanpa pemeriksaan kedua.
+>
+> **Jalur cadangan ikut teruji:** kelima wadah lama ber-`PhysicallyReceivedAt` `null` terbaca
+> pada rentang tanggal pencatatannya.
+
+| Butir | Isi |
+|---|---|
+| **Status** | ✅ **`SELESAI`** — 2026-09-17 |
+| **Outcome** | Petugas dapat menelusuri penerimaan yang sudah dicatat, lintas pesanan, menurut waktu kedatangan sebenarnya |
+| **Requirement/decision** | `FR-11.5`, `LAB-DEC-042`; `AC-67` |
+| **Kontrak** | `LAB-API-v1` **`r17`** bagian 12 — **`approved` 2026-09-17** |
+| **Reuse** | Bentuk `LabOrderPagedQuery` beserta proyeksi pagingnya yang sudah berjalan sejak `r5`; penyaring rentang **disalin polanya dari `GetSummaryAsync`** |
+| **Cakupan** | Satu endpoint `GET /lab-specimens`, satu query DTO, satu response DTO, satu proyeksi. **Nol migration, nol permission baru** |
+| **Dependency** | `BE-LAB-37` — ruas `orderNumber` pada responsnya berasal dari sana |
+| **Acceptance criteria** | `AC-67` pada sisi daftar; melengkapi prasyarat `FE-LAB-12` |
+| **Verifikasi** | **Wadah yang tiba Senin malam dan dicatat Selasa pagi terbukti muncul pada rentang hari Senin**; `createDateTime` ikut terbaca sehingga selisihnya dapat dihitung; paging dan penyaring status terbukti; baris ber-`IsDelete` tidak ikut |
+| **Risiko/pemilik** | **Rendah pada kode, tinggi bila penyaringnya keliru.** Pemilik: Laboratorium |
+| **DoD** | Endpoint berdiri sesuai `r17`; **rentang disaring pada `PhysicallyReceivedAt ?? CreateDateTime`, dibuktikan dengan wadah yang kedua waktunya berbeda hari**; kelima ruas tambahan terbaca; nol endpoint lama berubah |
+
+> **Butir DoD yang ditebalkan itu adalah seluruh isi task ini.** Bila penyaringnya keliru memakai
+> `CreateDateTime` saja, endpointnya tetap berjalan, tetap mengembalikan baris, dan tetap terlihat
+> benar — hanya tanggalnya yang salah. Kegagalan yang tidak menimbulkan galat tidak akan
+> ditemukan siapa pun sampai ada yang membandingkannya dengan kertas.
+
+**Yang akan dibuka gelombang ini:** `FE-LAB-12`, dan dengan itu `MVP-5a` tuntas.
+
+---
+
 ## 7. Ringkasan Status Task
 
 | Task | Gelombang | Slice | Status rencana | Penahan spesifik |
@@ -1827,11 +2099,14 @@ luar backend.
 | `BE-LAB-33` ✅ | `MVP-5d` | `EPIC-LAB-12` | **`SELESAI`** — 2026-09-16. Kelima ruas `r13` terbaca dari database pada jalur daftar maupun detail; pesanan yang belum dikonfirmasi terbukti mengembalikan kelimanya `null`; nama konfirmator terbukti memakai jalur yang **sama** dengan `RequestedByName`. Sepuluh pemeriksaan, sepuluh `PASS` — [laporan](../task/report/backend/BE-LAB-33.md) | Nol migration, nol endpoint baru, nol permission baru. **`FE-LAB-15` kini terbuka sepenuhnya.** `FE-LAB-17` **tetap tertahan** — `r13` hanya menutup penahan tanda tangannya. Sisa risiko: kedua sub-query terjemahan nama belum diukur pada daftar besar (database uji hanya 5 pesanan) |
 | `BE-LAB-34` ✅ | `MVP-5d` | `EPIC-LAB-12` | **`SELESAI`** — 2026-09-16. Tiga ruas `r14` terbaca dari database lewat endpoint daftar pantau yang **benar-benar dipakai** ketiga menu pemeriksaan; pesanan belum dikonfirmasi mengembalikan ketiganya `null`; ruas lama terbukti tidak berubah. 15 pemeriksaan, 15 `PASS` — [laporan](../task/report/backend/BE-LAB-34.md) | **Koreksi atas sasaran `r13`.** `BE-LAB-33` benar terhadap kontraknya; kontraknya yang menyebut DTO keliru — ketiga menu membaca grup `Lab Monitoring`, bukan `LabOrderListResponse`. **`FE-LAB-15` kini nol penahan.** Sisa risiko: ruas `r13` pada `GET /lab-orders/by-discipline/{discipline}` belum punya pembaca |
 | `BE-LAB-35` ✅ | `MVP-5e` | `EPIC-LAB-12` | **`SELESAI`** — 2026-09-16. Ruas `orderedProcedures` terbaca **dari database**: daftar terpesan lengkap dan urut, nama dari **snapshot** bukan katalog, baris `Cancelled` ikut beserta statusnya, baris terhapus tidak ikut, dan pesanan lama mengembalikan array **kosong** bukan `null`. 12 pemeriksaan, 12 `PASS`; nol migration — [laporan](../task/report/backend/BE-LAB-35.md) | Tidak ada. **`FE-LAB-17` kini nol penahan.** Satu temuan dicatat untuk layar itu: `LabOrderedProcedure` berisi **0 baris** pada database, sehingga seluruh 5 pesanan nyata menempuh jalur array kosong |
+| `BE-LAB-36` ✅ | `MVP-5f` | `EPIC-LAB-11` | **`SELESAI`** — 2026-09-17. Kolom `OrderNumber` berdiri `NOT NULL` dan unik, **diterapkan ke `QuilvianNewDevYoga`**; kedelapan pesanan lama terisi `LAB-RSMMC-000001`..`000008` urut menurut `CreateDateTime`; `23505` menolak duplikat; **`POST /by-examinations` lintas 3 disiplin memperoleh 3 nomor berbeda dan berurutan**; jalur `Down` lalu `Up` menghasilkan penomoran **identik**. 9 pemeriksaan, 9 `PASS`; database kembali persis seperti semula — [laporan](../task/report/backend/BE-LAB-36.md) | Tidak ada penahan. **Satu klaim perancangan dikoreksi sesudah diuji:** `MAX + 1` menjamin nomor tidak kembali **selama barisnya tetap ada di tabel**; penghapusan **fisik** baris tertinggi mengembalikan nomornya. Aplikasi nol pernah menghapus `LabOrder` secara fisik — nol `Remove`, nol endpoint `DELETE`. **Nomornya belum dapat dibaca siapa pun di luar backend:** usul `r16` ditulis lengkap pada laporan bagian 7 dan **menunggu persetujuan pemilik modul**. **`QBE-CODE-006` tidak terpenuhi** — nol provider alokasi bersama dan nol retry `23505`; disebut apa adanya |
+| `BE-LAB-37` ✅ | `MVP-5g` | `EPIC-LAB-11` | **`SELESAI`** — 2026-09-17. `r16` dilaksanakan: `orderNumber` terbaca pada `GET /lab-orders` **dan** daftar pantau — jalur yang benar-benar dipakai ketiga menu; `collectedAt` opsional membuat `VAL-59` dapat menyala. 5 pemeriksaan runtime: `422` kata demi kata sesuai matriks, rentang sah diterima, dan **muatan lama tanpa `collectedAt` terbukti tetap diterima** — [laporan](../task/report/backend/BE-LAB-37.md) | **Temuan yang menghemat pekerjaan:** `VAL-59` sudah terimplementasi benar sejak `BE-LAB-22`; yang kurang hanya pembandingnya, diteruskan sebagai `collectedAt: null` secara harfiah. **Batas dilaporkan:** `collectedAt` dipakai sebagai pembanding dan **belum disimpan** — menyimpannya ke `LabSpecimen.CollectedAt` akan ditimpa tindakan pengambilan. Tiga pilihan menunggu keputusan pemilik modul |
+| `BE-LAB-38` ✅ | `MVP-5g` | `EPIC-LAB-11` | **`SELESAI`** — 2026-09-17. `r17` dilaksanakan: `GET /lab-specimens` berdiri berpaging, berpenyaring status dan pencarian. **Butir penentunya dibuktikan DUA ARAH atas satu wadah yang sama** — tiba 15 Sep, dicatat 17 Sep: muncul pada rentang 15 Sep, **tidak muncul** pada rentang 17 Sep. 6 pemeriksaan, 6 `PASS` — [laporan](../task/report/backend/BE-LAB-38.md) | **`FE-LAB-12` terbuka karenanya.** Sisa: pencarian bebas menjangkau barcode dan nomor order; nama pasien dan No. RM **ditampilkan tetapi belum ikut dicari** — menuntut `join` yang belum diukur pada daftar besar |
 | `BE-EXT-04b` ✅ | `MVP-5b` | `EPIC-LAB-11` | **`SELESAI`** — 2026-09-15. Susulan atas `BE-EXT-04`: jalur **tulis** kedua ruas kiosk dibuka. Controller sebenarnya dipanggil — `TargetService=Laboratory` tersimpan dan terbaca kembali, penyaring `GET /options` menemukan **1** sesi dari sebelumnya selalu **0**, nilai di luar daftar ditolak `400`, dan **muatan lama terbukti tetap diterima** — [laporan](../task/report/backend/BE-EXT-04b.md) | Tidak ada jalur **ubah** sesi kiosk; bila kiosk menanyakan layanan sesudah kartu dipindai, diperlukan satu jalur tersendiri milik `registration-management` |
-| `BE-EXT-05` | `MVP-5b` | `EPIC-LAB-11` | **`TERTAHAN`** — dihentikan sebelum ditulis 2026-09-15. Satu penahan dibuka `BE-EXT-04b`; dua tersisa | **`LAB-OPEN-025`** kewenangan prinsipal kiosk membentuk kunjungan, dan **`LAB-OPEN-026`** unit `SU-LAB-001` ber-`IsAvailableForKiosk=false`. Pukul penutupan sudah ditetapkan `LAB-DEC-059` (21:00 WIB, konfigurasi). Milik `registration-management` |
+| `BE-EXT-05` | `MVP-5b` | `EPIC-LAB-11` | **`SELESAI`** — 2026-09-17, atas wewenang Andry Zain (pilihan A `LAB-REQ-012`). Kedua penahan **terbantah**: `LAB-OPEN-025` menyebut `EncounterIntakeService` yang bukan jalur kiosk — `POST /patient-encounters/kiosk` sudah ada dan nol memikul `AccessPermission`; `LAB-OPEN-026` menyebut `IsAvailableForKiosk` yang nol dibaca jalur pembentukan kunjungan, sedangkan `IsAvailableForRegistration` pada `SU-LAB-001` bernilai `true`. Yang benar-benar dibangun hanya butir 4 `BR-46` — penutupan otomatis 21:00 WIB | **Satu butir DoD belum terbukti** — pembuktian empat cabang dengan baris nyata ditolak penjaga izin sesi (database bersama). Selektivitas penyaring **sudah** diukur: 0 / 14 / 157 (91 `WaitingForNurse`). Sisa di luar modul: `IsAvailableForKiosk` milik `master-data`, dan pukul 21:00 belum dikonfirmasi |
 | `BE-LAB-20` ✅ | `MVP-5a` | `EPIC-LAB-11` | **`SELESAI`** — 2026-09-14. Build 0 Error 0 Warning; 8 endpoint berdiri; migration diterapkan ke `QuilvianNewDevYoga`; 7 baris terisi; `T-M3` dan `VAL-61` terbukti `23505`; jalur `Down` lalu `Up` dibuktikan — [laporan](../task/report/backend/BE-LAB-20.md) | Tidak ada. `T-M4` menunggu foreign key dari `BE-LAB-21`; `VAL-63` terverifikasi source, pembuktian runtime menunggu aplikasi dijalankan |
 | `BE-LAB-21` ✅ | `MVP-5a` | `EPIC-LAB-11` | **`SELESAI`** — 2026-09-15. Build 0 Error; migration diterapkan ke `QuilvianNewDevYoga`; `T-M2`, `T-M4` (`23503`), dan jalur `Down` lalu `Up` terbukti; `T-63c` terbukti nol pembandingan volume — [laporan](../task/report/backend/BE-LAB-21.md) | Tidak ada penahan kode. `µL`, `blok`, dan `slide` menunggu Master Data — `mL` dan `gram` **sudah ada**. Layar wadah menjawab `422` sampai `FE-LAB-11` selesai, dan itu konsekuensi `r7` yang sudah diterima |
-| `BE-LAB-22` ◐ | `MVP-5a` | `EPIC-LAB-11` | **`SELESAI SEBAGIAN`** — 2026-09-15. Build 0 Error; migration diterapkan dan jalur `Down` terbukti; `AC-65`, `AC-67`, dan `AC-17` terbukti — [laporan](../task/report/backend/BE-LAB-22.md) | **`VAL-59` tidak dapat ditegakkan** pada kontrak `r7`: pembandingnya, waktu pengambilan, belum ada saat wadah direncanakan. `AC-66` terpenuhi separuh dan **menunggu keputusan pemilik modul** — `LAB-CONFLICT-006` |
+| `BE-LAB-22` ✅ | `MVP-5a` | `EPIC-LAB-11` | **`SELESAI`** — bagian terakhirnya ditutup 2026-09-17 oleh `BE-LAB-37`. Semula 2026-09-15: build 0 Error; migration diterapkan dan jalur `Down` terbukti; `AC-65`, `AC-67`, dan `AC-17` terbukti — [laporan](../task/report/backend/BE-LAB-22.md) | **`VAL-59` tidak dapat ditegakkan** pada kontrak `r7`: pembandingnya, waktu pengambilan, belum ada saat wadah direncanakan. `AC-66` terpenuhi separuh dan **menunggu keputusan pemilik modul** — `LAB-CONFLICT-006`. **DITUTUP 2026-09-17:** keputusannya turun 2026-09-16 (pilihan A), amandemennya ditulis sebagai `r16`, dan `BE-LAB-37` melaksanakannya — `VAL-59` kini menyala dan terbukti menolak `422`. **`AC-66` terpenuhi PENUH**, dan `BE-LAB-22` tidak lagi `SELESAI SEBAGIAN` |
 | `BE-LAB-23` ⛔ | `MVP-5a` | `EPIC-LAB-11` | **`DIBATALKAN`** — 2026-09-14 oleh `LAB-DEC-050`; nol baris source diubah dan tidak akan ada — [laporan](../task/report/backend/BE-LAB-23.md) | Tidak ada. Pekerjaannya dicabut bersama kolom Jumlah |
 | `BE-LAB-24` ✅ | `MVP-5a` | `EPIC-LAB-11` | **`SELESAI`** — 2026-09-14, keempat AC terpenuhi kode yang sudah berjalan; nol baris source diubah — [laporan](../task/report/backend/BE-LAB-24.md) | Tidak ada |
 | `BE-LAB-25` ✅ | `MVP-5a` | `EPIC-LAB-11` | **`SELESAI`** — 2026-09-15. Build 0 Error; `GET /other-usage` berdiri; `T-60d` terbukti terhadap database — tiga wadah `cairan kista` menjadi satu baris berjumlah tiga, dan `Cairan Kista` tetap baris tersendiri — [laporan](../task/report/backend/BE-LAB-25.md) | Tidak ada. Nol tabel, nol migration, nol permission baru |
@@ -1993,6 +2268,7 @@ kelalaian.
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 49 | 2026-09-17 | **`BE-EXT-05` selesai, dan dengan itu seluruh task backend modul Laboratorium tuntas. Tetapi yang paling pantas dibaca dari entri ini bukan tasknya — melainkan bahwa kedua penahannya tidak pernah ada.** Dikerjakan atas wewenang pemilik `registration-management` **Andry Zain**, pilihan **A** pada `LAB-REQ-012`. **Kedua penahan terbantah dalam satu jam pemeriksaan, dan keduanya salah dengan cara yang persis sama: menyebut nama yang benar pada jalur yang salah.** `LAB-OPEN-025` menunjuk `EncounterIntakeService.RegisterAsync` yang memang menuntut `PatientEncounter:Create` — tetapi itu jalur **layar pendaftaran pasien lab** (`BE-LAB-08`), bukan jalur kiosk. Kiosk menempuh **`POST /patient-encounters/kiosk`**, yang **sudah ada**, dijaga hanya `[Authorize(Policy = KioskReadPolicy)]`, dan **nol** memikul `[AccessPermission]`. Route itu bahkan sudah mengerjakan hampir seluruh butir 3 `BR-46`: menerima `KioskScanSessionId`, menandai `IsFromKiosk`, membentuk nomor antrean, menandai sesi terpakai, dan menolak Penjamin Perusahaan. **Pilihan A yang baru disetujui itu sudah berdiri di source sejak sebelum diusulkan.** Ketiadaan `[AccessPermission]` diperiksa benar berarti nol pemeriksaan izin: ia `TypeFilterAttribute` yang menjalankan filter, sedangkan `AccessActionAttribute` yang dipikul route kiosk hanyalah `Attribute` metadata katalog — dan `Program.cs` nol mendaftarkan filter global. `LAB-OPEN-026` menunjuk `IsAvailableForKiosk`, kolom yang **nol disebut** `PatientEncounterController` maupun `EncounterIntakeService`; yang benar-benar dituntut adalah **`IsAvailableForRegistration`**, dan pada `SU-LAB-001` nilainya **`true`**. **Sisa yang benar-benar belum ada karena itu satu hal:** butir 4 `BR-46` — penutupan otomatis akhir hari layanan. Empat berkas baru di Registrasi, satu di Laboratorium; **nol migration, nol kolom baru, nol endpoint baru** — ketiga kolom `NoShow*` pada `RegPatientEncounter` dan `TrxQueue` ternyata sudah ada. **Penyaringnya dibangun agar tidak mungkin melebar, bukan sekadar ditulis sempit,** dan itu keputusan perancangan yang paling menentukan pada task ini: sasaran diambil dari `IEncounterContinuationProbe.TargetService` — bukan dari konfigurasi, bukan dari konstanta — sehingga **nol penjawab terdaftar berarti nol kunjungan ditutup**, dan mencabut pendaftaran penjawab membuat unit itu **berhenti** ikut ditutup alih-alih ditutup membabi buta. Antarmuka itu juga menjaga arah ketergantungan tetap satu jalan, dan itu **diukur**: `LaboratoryManagement` menyebut `RegistrationManagement` pada 6 berkas (kini 7), sebaliknya **0 dalam kode** — nol `using`, nol tipe, nol pemanggilan — dan tetap 0 sesudah task ini; satu-satunya kemunculan namanya ada di dalam komentar yang menjelaskan mengapa arahnya dijaga. **Selektivitasnya diukur terhadap `QuilvianNewDevYoga`, bukan diperkirakan, dan nol baris diubah untuk mengukurnya:** penyaring sebagaimana ditulis cocok **0** kunjungan; tanpa klausa tujuan **14**; tanpa klausa kiosk **157**, yang **91** di antaranya `WaitingForNurse` — pasien poliklinik yang sedang duduk menunggu dipanggil. Itulah harga satu klausa yang hilang, dan itulah alasan bentuk kodenya. **Satu butir DoD sengaja tidak dibulatkan menjadi selesai:** pembuktian empat cabang dengan baris nyata — satu yang harus tertutup dan **tiga yang harus tetap utuh** — **ditolak penjaga izin sesi** karena `QuilvianNewDevYoga` database bersama; nol baris disisipkan dan nol jalan memutar ditempuh. Yang terbukti adalah selektivitas penyaringnya; yang belum adalah akibat tulisnya. **Dua hal diserahkan ke luar, ditulis supaya tidak hilang:** `PatientEncounterController.cs:671` menetapkan status kunjungan hanya dari **screening** dan tidak pernah melihat `IsDoctorRequired`, sehingga setiap kunjungan laboratorium berstatus **"Menunggu Dokter"** pada unit yang nol punya dokter — **tidak diperbaiki**, karena cabang itu berlaku bagi seluruh unit ber-`IsScreeningRequired = false` dan itu kelas pengetatan diam-diam yang mahal harganya pada `BE-LAB-21`; dan `IsAvailableForKiosk` tetap perlu dijawab `master-data`, kini **bukan sebagai penahan** melainkan sebagai syarat agar Laboratorium tampil pada daftar pilihan layar kiosk. **Pelajaran yang menguat untuk keempat kalinya dalam dua hari:** catatan penahan pada modul ini tidak pernah diverifikasi ulang terhadap source sebelum dipakai menghentikan pekerjaan — sesudah `LAB-COORD-010` dan `DATA-MST-MEASUREMENT` yang disangka sedang ditunggu padahal belum pernah diajukan, kini dua penahan yang menghentikan satu task selama dua hari ternyata **tidak ada** | `DRAFT` |
 | 48 | 2026-09-16 | **`r15` disetujui dan `BE-LAB-35` selesai pada hari yang sama ia diusulkan. `FE-LAB-17` kini nol penahan, dan dengan itu seluruh backend modul Laboratorium tuntas kecuali `BE-EXT-05` yang milik modul lain.** Ruas `orderedProcedures` berdiri pada `LabOrderDetailResponse` dan **terbukti dari database**: 12 pemeriksaan, 12 `PASS`. **Empat di antaranya sengaja menguji ketiadaan, bukan keberadaan** — baris ber-`IsDelete` tidak ikut terbaca; pesanan lama mengembalikan array **kosong** dan bukan `null`; daftar terpesan tidak ikut menimpa ruas wakil; dan DTO-nya **nol memuat penunjuk**, diperiksa lewat refleksi atas propertinya. Yang ketiga pantas dicatat alasannya: proyeksi yang keliru mengikat dapat menimpa `ProcedureName` wakil dengan nama snapshot dan tetap terlihat benar pada pandangan pertama. **Satu pemeriksaan dirancang agar gagal bila implementasinya salah:** nama snapshot baris uji sengaja dibuat berbeda dari nama katalognya, sehingga proyeksi yang menoleh ke `MstProcedure` akan tertangkap. **Tiga keputusan implementasi dicatat:** dibaca dari kolom snapshot bukan katalog hari ini, supaya nama yang kelak diganti tidak mengubah dokumen yang sudah dicetak; nol penunjuk dikirim mengikuti alasan `r14` bagian 9.3; dan proyeksinya memakai sub-query, **bukan** navigation property baru — menambah navigation berarti menyentuh entity dan configuration untuk kebutuhan yang murni pembacaan. **Satu temuan diserahkan ke `FE-LAB-17` sebagai peringatan, bukan disimpan:** `LabOrderedProcedure` berisi **0 baris** pada database, sehingga seluruh 5 pesanan nyata hari ini menempuh jalur array kosong — layar cetak wajib menangani jalur itu dengan benar dan tidak memperlakukannya sebagai data rusak. Nol migration dibuat dan nol dijalankan; dua pesanan uji dihapus permanen dan hitungannya diulang dari koneksi baru — `LabOrder` 5→5, `LabOrderedProcedure` 0→0 | `DRAFT` |
 | 47 | 2026-09-16 | **Gelombang `MVP-5e` ditambahkan berisi satu task tertahan, `BE-LAB-35`, dan penyebabnya adalah pola yang kini muncul untuk ketiga kalinya pada modul ini.** Pemeriksaan pra-implementasi `FE-LAB-17` menemukan bahwa **daftar pemeriksaan yang benar-benar dipesan tidak dapat dibaca siapa pun di luar backend**: `LabOrderedProcedure` berdiri sejak `BE-LAB-26`, terisi sejak `BE-LAB-27`, dan menegakkan `VAL-68` serta `VAL-69` dengan benar — tetapi **nol DTO dan nol endpoint mengembalikannya**; pencarian `ProcedureNameSnapshot` pada seluruh area `LaboratoryManagement` menghasilkan nol kemunculan. Sementara itu `LabOrder.ProcedureId` hanyalah **penunjuk wakil**, dan komentar kodenya sendiri menyatakan demikian. **Kenapa celah itu tidak memutus apa pun selama dua hari:** ketiga menu pemeriksaan adalah layar antrean yang memang tidak menampilkan isi pesanan, dan kedua aturan validasi membacanya **di dalam** backend. Yang pertama membutuhkannya adalah konsumen yang **mencetak**. **Usul `LAB-API-v1` `r15` ditulis** — satu ruas `orderedProcedures` pada `LabOrderDetailResponse`, keempat ruasnya dibaca dari kolom **snapshot** supaya nama katalog yang kelak diganti tidak mengubah dokumen yang sudah dicetak, **nol penunjuk dikirim** mengikuti alasan `r14` bagian 9.3, dan pesanan lama mengembalikan **array kosong** karena jalur `POST /lab-orders` memang tidak menghasilkan baris terpesan. **Statusnya `usulan`, belum disetujui**, dan `BE-LAB-35` sengaja ditandai ⛔ karena itu — bukan karena hambatan teknis; bahan teknisnya justru lengkap. **Keputusan pemilik modul dicatat:** `FE-LAB-17` **ditunda** sampai amandemen ini jalan, bukan diturunkan menjadi versi sebagian, karena versi sebagian berarti dokumen resmi yang menyebut satu pemeriksaan padahal pesanannya memuat beberapa — kelas bahaya yang sama dengan alasan task itu ditolak pertama kali. **Pelajarannya dicatat pada kontrak bagian 10.9:** tabel yang ditulis tanpa pembacanya tidak menghasilkan galat apa pun sampai seseorang membutuhkannya, dan task yang menghasilkan dokumen resmi wajib menelusuri setiap ruas dokumennya sampai ke sumbernya **sebelum** dimulai — karena dokumen yang salah tidak menimbulkan galat, ia hanya dipercaya orang | `DRAFT` |
 | 46 | 2026-09-16 | **`BE-LAB-34` menutup celah yang ditinggalkan `r13`, dan entri ini ditulis sebagai koreksi karena memang itu adanya.** `BE-LAB-33` benar terhadap `r13`; **`r13`-nya yang menyebut DTO keliru.** Usul itu disusun dengan membaca **apa yang dibutuhkan layar**, tetapi tanpa memeriksa **endpoint mana yang layar itu benar-benar panggil** — dua pertanyaan berbeda, dan hanya yang kedua dapat dijawab dari source. Ketiga menu pemeriksaan membaca grup **`Lab Monitoring`**; `GET /lab-orders/by-discipline/{discipline}` yang menerima kelima ruas `r13` ternyata **nol dipakai frontend**. Celahnya ketahuan saat `FE-LAB-15` hendak dimulai — bukan oleh build, bukan oleh uji, bukan oleh tinjauan kontrak. **`LAB-API-v1` `r14` disetujui pemilik modul** menambahkan tiga ruas tampil pada `LabMonitoringItemResponse`, dan `BE-LAB-34` melaksanakannya: aditif, nol migration, nol permission baru. **Nol penunjuk dikirim, dan itu disengaja** — daftar pantau adalah layar baca; penunjuk hanya dibutuhkan aksi, dan aksi berjalan lewat detail pesanan yang sudah membawanya sejak `r13`. **15 pemeriksaan, 15 `PASS`**, sebelas di antaranya pemeriksaan `BE-LAB-33` yang dijalankan ulang untuk memastikan jalur `r13` tidak tersentuh. **Pelajarannya dicatat pada kontrak bagian 9.6 supaya tidak terulang:** amandemen yang menambah ruas respons wajib menyebut **endpoint dan DTO yang diverifikasi dari source konsumennya**, bukan DTO yang paling masuk akal namanya. **Yang tidak terbuang dari `BE-LAB-33`:** detail pesanan dan setiap jawaban aksi — termasuk `POST /confirm` — membawa kelima ruasnya, dan pop-up `FE-LAB-15` memakainya untuk menampilkan hasil seketika tanpa memuat ulang daftar. **`FE-LAB-15` kini nol penahan** | `DRAFT` |

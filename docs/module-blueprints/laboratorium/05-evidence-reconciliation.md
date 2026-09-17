@@ -4,11 +4,12 @@
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
 | Reconciliation ID | `LAB-REC-001` |
-| Revision | `2` |
+| Revision | `4` |
 | Status | `draft` |
 | Verdict putaran 1 | **`RECONCILED`** — 5 pertentangan ditutup `LAB-DEC-025` sampai `LAB-DEC-029`; 11 kemampuan dimasukkan scope lewat `LAB-DEC-030` |
 | **Verdict putaran 2** | **`RECONCILED`** — 2026-09-15. Ketiga pertentangan ditutup `LAB-DEC-060` sampai `LAB-DEC-063` pada hari yang sama. Satu penahan baru terbuka: `LAB-COORD-010`, jalur baca status pembayaran milik Billing |
-| Revision efektif | `2` — pertentangan putaran 1 sudah ditutup; putaran 2 membuka tiga yang baru |
+| **Verdict putaran 3** | **`PARTIALLY_RECONCILED`** — 2026-09-16. Sepuluh klarifikasi diadopsi `LAB-DEC-064` sampai `LAB-DEC-073`. **Tiga dari lima pertentangan ditutup pada hari yang sama**; `REC3-CONF-003` dan `REC3-CONF-005` tetap terbuka karena **bukan wewenang pemilik modul sendiri**. Satu penahan baru: `LAB-COORD-011` |
+| Revision efektif | `4` — pertentangan putaran 1 dan 2 sudah ditutup; dari lima yang dibuka putaran 3, tiga ditutup dan dua tersisa |
 
 ## 0. Penutupan — 2026-09-01
 
@@ -430,9 +431,165 @@ modul `rawat-jalan`. Ia juga menyentuh `LAB-COORD-007` yang masih tertahan.
 `plan-module-delivery` menurunkannya menjadi task. `LAB-COORD-010` diajukan terpisah ke pemilik
 Billing, mengikuti pola `LAB-REQ-005` dan `LAB-REQ-006`.
 
+## 11. Putaran 3 — Artifact "Module Artifact - Laboratorium" (Menu Hasil), 2026-09-16
+
+**Bukti baru.** Pemilik modul menyerahkan `Laboratorium (4).md`, disimpan verbatim sebagai
+[`evidence/2026-09-16-menu-hasil-patologi-klinik-anatomi-mikrobiologi.md`](evidence/2026-09-16-menu-hasil-patologi-klinik-anatomi-mikrobiologi.md).
+Artifact ini memotret
+**satu menu**: *Menu Hasil Patologi Klinik, Patologi Anatomi dan Mikrobiologi*. Ia menyatakan
+dirinya pembaruan `Laboratorium (3).md` ditambah **sepuluh jawaban klarifikasi pemilik**
+bertanggal 2026-09-16, dan memuat `CAP-001`..`CAP-012`, `RULE-001`..`RULE-028`, serta
+`BP-001`..`BP-008`.
+
+**Baseline yang dirujuknya tidak ada di repository ini** — baik `Laboratorium (3).md` maupun
+`01-Menu-Hasil-Patologi-Klinik-Patologi-Anatomi-dan-Mikrobiologi.txt` baris 1-48 yang dikutip
+sebagai provenance. Mengikuti perlakuan putaran 2, artifact ini adalah **bukti tingkat pemilik**
+atas isi kesepuluh klarifikasinya, dan **bukti tingkat pengamatan** atas sisanya. Rujukan
+`Sumber baris ...` di dalamnya **tidak dapat diverifikasi** dari sini dan tidak diperlakukan
+sebagai bukti terpisah.
+
+**Satu kalimat menentukan cara membaca seluruh bagian ini.** Menu yang dipotret artifact ini
+adalah slice **`S17` — "Label, nota, dan pengiriman hasil ke pasien"**, yang berstatus
+`BUSINESS_DECISION_REQUIRED` sejak 2026-09-02 dengan alasan tertulis *"privasi pengiriman belum
+diputuskan"* (`02-requirement-completeness-assessment.md` bagian 0.2), dan yang seluruh isinya
+berdiri di atas **hasil pemeriksaan yang belum ada**: `LabExamination` hari ini nol kolom nilai
+hasil, nol waktu pemeriksaan, nol status verifikasi. Yang membentuknya adalah slice `S4`, dan
+`S4` tertahan `LAB-SIGN-001` sejak 2026-09-01.
+
+Artinya artifact ini **menjawab sebagian besar pertanyaan bisnis `S17`** — dan tetap **nol
+barisnya dapat dibangun** sebelum `S4` terbuka. Kedua hal itu benar bersamaan, dan keduanya
+ditulis di sini supaya tidak ada yang menyimpulkan salah satunya saja.
+
+### 11.1 Yang menguatkan blueprint dan source — nol pekerjaan baru
+
+| Isi artifact | Menguatkan | Bukti pada source |
+|---|---|---|
+| `RULE-024` data terbaru paling atas | `FE-LAB-09` | `LabMonitoringService.cs:60` sudah `OrderByDescending(x => x.RequestedAt ?? x.CreateDateTime)`. **Sudah terpenuhi** |
+| `RULE-023` pagination kelipatan 5 | `FE-LAB-09` | `lab-monitoring-constants.jsx` `pageSizeOptions` = `[10, 25, 50, 100]` — **keempatnya kelipatan 5**. Sudah terpenuhi tanpa perubahan |
+| `RULE-006` animasi loading, `RULE-025` alert kosong, `RULE-026` alasan error | Pola frontend yang sudah berjalan | `lab-monitoring-view.jsx` sudah memakai `InformationAlert variant="danger"` untuk galat dan `emptyTitle`/`emptyDescription` untuk kosong. Pola tersedia, tinggal dipakai ulang |
+| `RULE-016` nomor tujuan dari master pasien | — | **`MstPatient.WhatsAppNumber` sudah ada** (`MstPatient.cs:60`), terpisah dari `PhoneNumber`. Nol kolom baru untuk menyimpan nomor tujuan |
+| `RULE-021` satu nomor order = satu dokumen hasil final | `BR-23`, `LAB-DEC-055`, `BE-LAB-27` | Cocok **justru karena** pesanan dipecah per disiplin: satu pesanan selalu satu disiplin, dan satu disiplin selalu satu bentuk hasil. Sudah dicatat putaran 2 |
+| `RULE-020` seluruh pemeriksaan wajib berhasil sebelum final | `LAB-DEC-057`, `BE-LAB-26` | `LabOrderedProcedure` adalah daftar *apa yang diminta*; kelengkapan hasil diukur terhadapnya |
+| Jenis Kunjungan Rawat Jalan / Rawat Inap / IGD | — | `LabMonitoringQuery.EncounterType` sudah ada dan sudah dipakai penyaring frontend |
+| Alur normal `Menunggu -> Terkonfirmasi -> Diproses -> Selesai` | `LAB-DEC-061`, `LAB-STATE-v1` `r3` | **Menguatkan putaran 2.** `Confirmed` sudah masuk sebagai status pesanan 2026-09-15 dan sudah terpasang pada `LabOrder.ConfirmedAt`/`ConfirmedByUserId` |
+| `Dibatalkan` hanya lahir dari aksi pembatalan user | `LAB-DEC-063` | Sejalan. Artifact **diam** soal batas status sumber; `LAB-STATE-v1` `r3` mempersempitnya ke `Requested`/`Confirmed`. **Diam bukan pertentangan** — aturan blueprint yang lebih sempit tetap berlaku |
+| Status pembayaran `Belum ditagihkan` / `Belum Lunas` / `Lunas` | `LAB-DEC-062`, `REC2-NEW-005` | Pengulangan putaran 2. Tetap tertahan `LAB-COORD-010`; Laboratorium tetap nol kolom pembayaran |
+
+### 11.2 Yang benar-benar baru — nol kemunculan di blueprint maupun source
+
+| ID | Isi artifact | Keadaan hari ini |
+|---|---|---|
+| `REC3-NEW-001` | **Kolom `No. Order`** pada datatable, dan **barcode Label Lab dibangkitkan dari nomor order** (bagian 5.3 dan 5.5) | **`LabOrder` nol kolom nomor order.** Ditelusuri: `OrderNumber` nol kemunculan di seluruh `Areas/HealthServices/LaboratoryManagement/`. Yang ada barcode **wadah** (`LabSpecimen.SpecimenBarcode`), bukan nomor pesanan. Menuntut kolom baru, pembangkit nomor, keunikan, dan satu migration |
+| `REC3-NEW-002` | **Kategori Periode**: Tanggal Sampling, Tanggal Order, Tanggal Pemeriksaan — default Tanggal Order | `LabMonitoringService.cs:170-180` menyaring **hanya** pada `RequestedAt ?? CreateDateTime`. Tanggal sampling **bisa** diturunkan dari `LabSpecimen.CollectedAt`; **tanggal pemeriksaan tidak ada sama sekali** — `LabExamination` nol kolom waktu pemeriksaan. Satu dari tiga pilihan belum punya sumber data |
+| `REC3-NEW-003` | Penyaring **NIK**/No. RM | `MstPatient.IdentityNumber` ada (`MstPatient.cs:54`), tetapi pencarian Laboratorium hari ini hanya menjangkau `EncounterNumber`, `FullName`, dan `MedicalRecordNumber` (`LabMonitoringService.cs:232-240`). **NIK nol dijangkau** |
+| `REC3-NEW-004` | **Counter `Terkirim ke Pasien`** — integer, `+1` per pengiriman berhasil | Nol tabel, nol kolom. Counter telanjang menyimpan **angka tanpa riwayat**: tidak terjawab siapa mengirim, kapan, ke nomor mana, dan mana yang gagal. Bentuk yang memenuhi `RULE-014`/`RULE-015` **dan** kebijakan audit adalah **log pengiriman**, dengan counter sebagai turunannya. Bentuk finalnya keputusan perancangan, bukan keputusan artifact |
+| `REC3-NEW-005` | **Pengiriman hasil lewat WhatsApp** | `F7` (2026-09-01) diverifikasi **masih benar pada SHA berjalan**: penelusuran ulang `Twilio`, `Fonnte`, `SendMessageAsync`, `IWhatsAppService`, `SmtpClient`, dan `MailKit` di seluruh backend menghasilkan **nol**. `WhatsAppNumber` yang ada hanyalah kolom data induk, bukan pengirim. **Gerbang pengirimnya milik platform, bukan Laboratorium** |
+| `REC3-NEW-006` | **Berkas PDF/final yang tidak dapat diedit pasien** (`RULE-018`) | **Nol pustaka PDF** pada `NewQuilvianSystemBackend.csproj`. Pencetakan yang berjalan hari ini adalah **cetak peramban** dari frontend (`lab-order-print-document.jsx`) — tampilan cetak, bukan berkas yang dapat dilampirkan ke pesan. `QRCoder 1.8.0` **sudah ada** dan menutup kebutuhan barcode, tetapi tidak menutup kebutuhan PDF |
+| `REC3-NEW-007` | **Persetujuan Profesor dan Dokter Lab** sebagai syarat kirim (`RULE-017`) | Nol entity persetujuan hasil. `LabCriticalBoundApproval` yang ada adalah persetujuan **batas nilai**, bukan persetujuan hasil. Kedua peran ini pun **nol kemunculan** pada `LAB-PERM-v1` |
+| `REC3-NEW-008` | **Kolom Dokter Konfirmator angka kritis**, berjabatan `Dokter DPJP` atau `Dokter Lantai` | Angka kritis adalah slice `S5`, tertahan `LAB-P0-004` dan `LAB-OPEN-014`. **`Dokter Lantai` nol kemunculan** di seluruh blueprint — konsep peran baru |
+| `REC3-NEW-009` | **Nota Lab, Label Lab, Label Goldar** beserta preview sebelum cetak | Sudah masuk scope modul lewat `LAB-DEC-030`, ditempatkan **Rilis 2**. Nol kode. `REC2-NEW-006` sudah mencatat preview sebagai kewenangan UI |
+| `REC3-NEW-010` | **Ikon gender berwarna** pada kolom Pasien — biru/navy dan merah muda (bagian 5.3) | Kewenangan UI. Dicatat supaya tidak hilang; tidak menyentuh kontrak backend |
+
+### 11.3 Yang bertentangan — perlu keputusan pemilik, tidak dijawab artifact
+
+> **Keadaan per 2026-09-16 sore.** `REC3-CONF-001`, `REC3-CONF-002`, dan `REC3-CONF-004`
+> **ditutup pemilik modul pada hari yang sama** — lihat bagian 11.6. Keduanya yang tersisa,
+> `REC3-CONF-003` dan `REC3-CONF-005`, **tidak dapat ditutup pemilik modul sendirian**: yang
+> satu menuntut wewenang klinis, yang lain menuntut profil printer nyata. Tabel di bawah
+> dipertahankan apa adanya sebagai catatan pertentangannya, bukan sebagai daftar tugas.
+
+| ID | Pertentangan | Sisi artifact | Sisi blueprint dan source |
+|---|---|---|---|
+| `REC3-CONF-001` | **Satu datatable gabungan tiga disiplin** | Bagian 1 dan `CAP-003`: hasil Patologi Klinik, Patologi Anatomi, dan Mikrobiologi **dalam satu datatable** | `LAB-DEC-025` menetapkan **tiga daftar sejajar sebagai tiga menu**, dan `LabMonitoringQuery` **sengaja nol ruas disiplin** — alasannya ditulis panjang pada DTO-nya dan pada `lab-monitoring-constants.jsx`. Keduanya dapat benar bersamaan bila menu Hasil adalah **menu keempat** yang memang lintas disiplin, tetapi itu **penetapan yang belum pernah diambil** |
+| `REC3-CONF-002` | **`Tgl Awal < Tgl Akhir` tegas** | `RULE-004`: nilai Tgl Awal **wajib lebih kecil** daripada Tgl Akhir | Aturan ini **menutup pencarian satu hari** — petugas tidak dapat mencari pesanan hari ini saja, padahal `RULE-003` justru mengizinkan tanggal hari ini dipilih pada kedua ruas. Penyaring yang berjalan hari ini inklusif (`>= mulai`, `<= sampai`). Kemungkinan besar yang dimaksud `<=`, tetapi menebak arah aturan validasi bukan wewenang dokumen ini |
+| `REC3-CONF-003` | **Persetujuan Profesor dan Dokter Lab** | `RULE-017`: hasil hanya boleh dikirim sesudah disetujui keduanya | Inilah **persis** perkara `LAB-SIGN-001` yang menahan `S4`, `S4b`, `S4c`, `S5`, dan `S6` sejak 2026-09-01, dan yang permintaannya diajukan `LAB-REQ-004` pada 2026-09-09 dan **belum dijawab**. Artifact menyebut dua peran penyetuju, tetapi **tidak menetapkan** pemegang wewenang Clinical Governance, tidak menyatakan apakah persetujuan ini sama dengan tanda tangan klinis `LAB-DEC-011`, dan tidak menyebut keduanya sebagai peran pada `LAB-PERM-v1`. **Menganggapnya menutup `LAB-SIGN-001` adalah lompatan yang tidak dibuat artifact ini** |
+| `REC3-CONF-004` | **Unit Layanan dapat bernilai `Radiologi`** | `RULE-008`: pendaftaran radiologi dari Kiosk menampilkan Unit Layanan `Radiologi` | Ini **menu hasil Laboratorium**. Baris berunit layanan Radiologi pada daftar hasil laboratorium berarti salah satu dari dua hal: aturan itu terbawa dari tabel generik yang dipakai bersama, atau menu ini memang memuat pesanan di luar Laboratorium. Keduanya berkonsekuensi berbeda dan **tidak dinyatakan** |
+| `REC3-CONF-005` | **Ukuran cetak** A4 / 100x50 mm / 50x25 mm | `RULE-028` dan bagian 5.5 | **Artifact menyatakan sendiri** bahwa ini `Confidence: Medium` dan *"default umum implementasi, bukan ukuran klinis/regulasi yang ditetapkan oleh evidence"*. Karena itu **tidak diadopsi sebagai keputusan pemilik**; ia dicatat sebagai usulan yang menunggu profil printer nyata. Menaikkannya menjadi aturan berarti mengubah tingkat bukti diam-diam |
+
+### 11.4 Yang ikut terjawab
+
+| Pertanyaan terbuka | Dijawab artifact? |
+|---|---|
+| Gerbang `S17` *"privasi pengiriman belum diputuskan"* | **Sebagian besar ya.** Artifact menetapkan siapa penerimanya, dari mana nomornya, bentuk berkasnya, syarat persetujuan sebelum kirim, dan siapa yang boleh menekan tombolnya. Yang **belum**: persetujuan tertulis atas pengiriman data klinis ke kanal pihak ketiga, dan kepemilikan gerbangnya |
+| `LAB-SIGN-001` tanda tangan klinis | **Tidak.** Lihat `REC3-CONF-003`. Artifact menyebut dua peran penyetuju tanpa menetapkan wewenang klinisnya |
+| `LAB-P0-001` matriks kewenangan per peran | **Sebagian** — hanya untuk tombol aksi menu ini: Petugas Lab dan/atau Admin (`RULE-022`). Peran lain tidak disinggung |
+| `LAB-P0-002` urutan status resmi | **Menguatkan**, tidak menambah. `Terkonfirmasi` sudah ditetapkan `LAB-DEC-061`; penyelarasan lintas tiga aplikasi tetap terbuka |
+| `LAB-P0-004` alur nilai kritis | **Tidak.** Artifact justru menambah satu jabatan baru yang belum dikenal, `Dokter Lantai` |
+| `LAB-P0-007` aturan tagihan | **Tidak.** Artifact mengulang tampilan tiga status pembayaran; jalur bacanya tetap `LAB-COORD-010` |
+
+### 11.5 Biaya yang muncul bersamaan — ditulis supaya tidak ditemukan belakangan
+
+| Hal | Akibat |
+|---|---|
+| Urutan pekerjaan | Menu ini **tidak dapat dijadwalkan** sebelum `S4` terbuka. Hasil belum ada, jadi daftar hasil, dokumen final, dan pengirimannya pun belum ada isinya. `LAB-SIGN-001` tetap penahan pertamanya |
+| Migration | **Sekurang-kurangnya satu kolom nomor order pada `LabOrder`** beserta pembangkit dan keunikannya (`REC3-NEW-001`), ditambah tempat penyimpanan riwayat pengiriman (`REC3-NEW-004`). Keduanya **belum** dirancang dan tidak boleh diturunkan menjadi task sebelum dirancang |
+| `LAB-API-v1` | Akan naik revisi ketika slice dibuka: ruas nomor order, ruas kategori periode pada penyaring, penyaring NIK, ruas counter pengiriman, serta jalur kirim dan kirim ulang. **Nol di antaranya boleh dibangun hari ini** — kontrak terkunci penuh sejak 2026-09-02 |
+| `LAB-PERM-v1` | Dua peran penyetuju (`Profesor`, `Dokter Lab`) dan satu jabatan konfirmator (`Dokter Lantai`) belum punya padanan resource/permission |
+| `LAB-INT-v1` | Kanal WhatsApp adalah **integrasi keluar pertama** modul ini ke kanal pihak ketiga. Belum terkontrak |
+| **`LAB-COORD-011`** | **Penahan baru.** Gerbang pengiriman pesan (WhatsApp) **dan** pembangkit berkas PDF keduanya nol pada platform. Laboratorium tidak berwenang mengadakannya sendiri; keduanya keputusan platform |
+| Privasi | Mengirim hasil laboratorium ke kanal pihak ketiga adalah pengiriman data klinis ke luar sistem. `LAB-DEC-030` sudah menandainya *"menyentuh privasi, perlu keputusan tersendiri"* sejak 2026-09-01, dan artifact ini **belum** memberi keputusan itu — ia mengatur mekanismenya, bukan izinnya |
+
+### 11.6 Verdict putaran 3
+
+**`PARTIALLY_RECONCILED` — 2026-09-16.**
+
+Sepuluh butir diadopsi sebagai keputusan (`LAB-DEC-064` sampai `LAB-DEC-073`). Tujuh hal dibuka,
+dan **empat ditutup pemilik modul pada hari yang sama**. Tiga sisanya tetap terbuka bukan karena
+terlewat, melainkan karena **bukan wewenang pemilik modul sendiri**. Satu penahan baru dibuka
+(`LAB-COORD-011`), dan `LAB-SIGN-001` **tetap** menjadi penahan pertama seluruh menu ini.
+
+**Empat yang ditutup pemilik modul 2026-09-16:**
+
+| Hal | Ditutup oleh | Arah keputusan |
+|---|---|---|
+| `REC3-CONF-001` satu datatable gabungan | `LAB-DEC-070` | **Blueprint bertahan.** Menu Hasil mengikuti pola tiga daftar sejajar per disiplin; disiplin ditentukan jalur yang dipanggil. **Artifact tidak diadopsi apa adanya pada butir ini** — alasan `LAB-DEC-025` masih berlaku. `LabMonitoringQuery` dipakai ulang, nol ruas disiplin ditambahkan |
+| `REC3-CONF-002` arah pembanding tanggal | `LAB-DEC-071` | **`<=`, inklusif.** Pencarian satu hari tetap mungkin. **Mengoreksi `RULE-004` artifact**, dan **nol mengubah perilaku source** — penyaring yang berjalan sudah inklusif pada kedua ujung |
+| `REC3-CONF-004` Unit Layanan `Radiologi` | `LAB-DEC-073` | **Hanya pesanan Laboratorium.** Nilai `Radiologi` terbawa dari tabel unit layanan bersama dan tidak akan pernah muncul sebagai baris. Nol koordinasi dengan Radiologi yang perlu dibuka |
+| `REC3-NEW-001` nomor order | `LAB-DEC-072` | **Kolom baru berisi nomor urut terbaca**, pola `PatientEncounterNumberService` (`ENC-RSMMC-00001`, dijaga `pg_advisory_xact_lock`). Pola `LSP-{Guid:N}` milik barcode wadah **sengaja ditolak**: nomor yang dicetak di amplop pasien harus dapat disebut lewat telepon |
+
+> **Satu peringatan dibawa serta oleh `LAB-DEC-072`, dan lebih baik ditulis sekarang.**
+> `AllocateEncounterNumberAsync` — pola yang dijadikan acuan — memuat **seluruh** nomor terpakai
+> ke memori lalu memindai celah pertama. Biayanya tumbuh seiring jumlah baris, dan pesanan
+> laboratorium bertambah jauh lebih cepat daripada kunjungan. **Meniru polanya tanpa meniru
+> kelemahan itu** adalah bagian dari perancangan, bukan detail implementasi yang boleh
+> ditemukan sendiri saat menulis kode.
+
+**Tiga yang tetap terbuka — dan kenapa bukan pemilik modul yang menutupnya:**
+
+| Hal | Kenapa tertahan | Diajukan lewat |
+|---|---|---|
+| `REC3-CONF-003` / `LAB-OPEN-029` persetujuan Profesor dan Dokter Lab | Menuntut **wewenang Clinical Governance**, yang blueprint sendiri catat `belum ditetapkan`. Ini perkara `LAB-SIGN-001` yang permintaannya diajukan `LAB-REQ-004` pada 2026-09-09 dan belum dijawab | `LAB-REQ-007` |
+| `LAB-OPEN-030` jabatan `Dokter Lantai` | Bertaut `LAB-P0-004` alur nilai kritis dan `LAB-OPEN-014`, keduanya terbuka sejak 2026-09-01 | `LAB-REQ-007` |
+| `REC3-CONF-005` / `LAB-OPEN-032` ukuran cetak | Menuntut **profil printer dan media fisik yang nyata**, bukan keputusan di atas kertas. Artifact sendiri menandainya `Confidence: Medium` | `LAB-REQ-007` |
+| `LAB-COORD-011` gerbang WhatsApp dan pembangkit PDF | **Milik platform**, bukan Laboratorium | `LAB-REQ-007` |
+
+| Butir | Keadaan sesudah putaran ini |
+|---|---|
+| Aturan rentang tanggal dan loading | Diadopsi `LAB-DEC-064`, **kecuali** arah `<` versus `<=` yang dibuka sebagai `LAB-OPEN-028` |
+| Keyword Search mengikuti BE | Diadopsi `LAB-DEC-065` |
+| Counter `Terkirim ke Pasien` | Diadopsi `LAB-DEC-066`; **bentuk penyimpanannya** belum dirancang |
+| Syarat dan bentuk pengiriman hasil | Diadopsi `LAB-DEC-067`, **tertahan** `LAB-COORD-011`, `LAB-SIGN-001`, dan izin privasi |
+| Kewenangan tombol aksi | Diadopsi `LAB-DEC-068` |
+| Perilaku datatable | Diadopsi `LAB-DEC-069`; dua dari empat aturannya **sudah terpenuhi** source hari ini |
+| Satu datatable gabungan | **Ditutup** `LAB-DEC-070` — blueprint bertahan, tiga daftar sejajar |
+| Arah pembanding tanggal | **Ditutup** `LAB-DEC-071` — `<=`, inklusif |
+| Nomor order | **Ditutup** `LAB-DEC-072` — kolom baru, nomor urut terbaca. **Pekerjaannya tetap ada** |
+| Unit Layanan `Radiologi` | **Ditutup** `LAB-DEC-073` — hanya pesanan Laboratorium |
+| Persetujuan Profesor dan Dokter Lab | `LAB-OPEN-029`, terbuka — bertaut `LAB-SIGN-001`, diajukan `LAB-REQ-007` |
+| `Dokter Lantai` dan angka kritis | `LAB-OPEN-030`, terbuka — diajukan `LAB-REQ-007` |
+| Ukuran cetak | `LAB-OPEN-032`, terbuka — **tidak** diadopsi sebagai keputusan, diajukan `LAB-REQ-007` |
+
+**Langkah berikutnya, berurutan.** Pertama `LAB-SIGN-001` — tanpanya tidak ada yang bergerak.
+Lalu ketiga sisa bagian 11.3 dan `LAB-COORD-011` dijawab lewat `LAB-REQ-007`. Baru sesudah itu
+`requirement-completeness-gate` menilai ulang `S17`, `hospital-domain-architect` merancang
+nomor order dan log pengiriman, kontrak diamandemen, dan `plan-module-delivery` menurunkannya
+menjadi task. **Menulis kode hari ini akan mendahului keenam langkah itu.**
+
 ## Riwayat Revisi
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 3 | 2026-09-16 | **Putaran 3 — artifact "Module Artifact - Laboratorium" (Menu Hasil).** Artifact memotret satu menu yang seluruhnya adalah slice `S17`, dan `S17` berdiri di atas hasil pemeriksaan yang belum ada — `LabExamination` nol kolom hasil, nol waktu pemeriksaan, nol status verifikasi — sehingga `LAB-SIGN-001` tetap penahan pertamanya. **Sepuluh butir benar-benar baru**, dipimpin `No. Order` yang ternyata **nol ada** pada `LabOrder` padahal dipakai sebagai kolom daftar sekaligus sumber barcode Label Lab, disusul kategori periode yang salah satu pilihannya belum punya sumber data, counter pengiriman tanpa riwayat, gerbang WhatsApp yang `F7` buktikan masih nol, dan pembangkit PDF yang juga nol. **Sepuluh butir lain menguatkan tanpa pekerjaan baru** — termasuk tiga yang **sudah terpenuhi source hari ini**: urutan terbaru di atas, pagination kelipatan 5, dan `MstPatient.WhatsAppNumber` sebagai sumber nomor tujuan. **Lima pertentangan dibuka dan tidak dijawab artifact:** satu datatable gabungan versus `LAB-DEC-025`, `Tgl Awal < Tgl Akhir` yang menutup pencarian satu hari, persetujuan Profesor/Dokter Lab yang justru perkara `LAB-SIGN-001`, Unit Layanan `Radiologi` pada menu hasil Laboratorium, dan ukuran cetak yang artifact sendiri tandai `Medium`. Enam klarifikasi diadopsi `LAB-DEC-064`..`LAB-DEC-069`; satu penahan baru `LAB-COORD-011` | `draft` |
+| 4 | 2026-09-16 | **Empat dari tujuh hal yang dibuka putaran 3 ditutup pemilik modul pada hari yang sama.** `LAB-DEC-070` mempertahankan pola tiga daftar sejajar dan **menolak satu datatable gabungan** — artifact tidak diadopsi apa adanya pada butir ini. `LAB-DEC-071` menjadikan pembanding tanggal inklusif dan **mengoreksi `RULE-004` artifact**, yang bila dibaca tegas justru menutup pencarian satu hari. `LAB-DEC-072` memberi `LabOrder` kolom nomor order berupa nomor urut terbaca mengikuti `PatientEncounterNumberService`, **beserta peringatan** bahwa pola acuannya memuat seluruh nomor terpakai ke memori. `LAB-DEC-073` mengunci cakupan baris pada pesanan Laboratorium saja. **Tiga sisanya tetap terbuka bukan karena terlewat**, melainkan karena bukan wewenang pemilik modul sendiri: persetujuan klinis (`LAB-SIGN-001`), jabatan `Dokter Lantai` (`LAB-P0-004`), dan ukuran cetak yang menunggu profil printer nyata. Ketiganya beserta `LAB-COORD-011` diajukan lewat `LAB-REQ-007` | `draft` |
 | 1 | 2026-09-01 | Rekonsiliasi pertama terhadap tiga artifact bukti lapangan. 8 keputusan dikuatkan, 5 bertentangan, 11 kemampuan belum tercakup, 3 pertanyaan terjawab sebagian | `draft` |
 | 2 | 2026-09-15 | **Putaran 2 — artifact "Module Artifact - Laboratorium".** Tujuh butir benar-benar baru dicatat, dipimpin status `Terkonfirmasi` yang selama ini justru menjadi pertanyaan terbuka `LAB-P0-002`, alasan pembatalan wajib beserta pop-up alert konfirmasi akhir, dan status pembayaran yang menahan Proses Pemeriksaan. Lima butir lain **menguatkan** blueprint tanpa pekerjaan baru — terutama satu order berisi beberapa nama pemeriksaan, yang persis dijawab `LabOrderedProcedure` milik `BE-LAB-26`, dan satu order satu hasil yang justru cocok **karena** `BE-LAB-27` memecah pesanan per disiplin. **Tiga pertentangan dibuka dan tidak dijawab dokumen ini:** letak penerimaan sampling (satu centang vs siklus hidup wadah yang sudah dibangun delapan task), keberadaan status `Accepted`, dan pembayaran yang menahan pekerjaan klinis — yang bertabrakan dengan `RJ-BIL-GATE-DEC-003` milik `rawat-jalan`. **Ketiganya ditutup pada hari yang sama** oleh `LAB-DEC-060` sampai `LAB-DEC-063`: siklus hidup wadah bertahan dan centang menjadi jalan pintasnya, status `Confirmed` diadopsi beserta dokter pemeriksa, alasan pembatalan wajib disimpan backend, dan pembayaran mengunci tombol Proses tetapi nilainya dibaca dari Billing sehingga `RJ-BIL-GATE-DEC-003` tidak dilanggar. Verdict putaran 2 menjadi `RECONCILED`, dengan satu penahan baru `LAB-COORD-010` | `draft` |

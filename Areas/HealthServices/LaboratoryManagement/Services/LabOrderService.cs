@@ -29,17 +29,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LabSpecimenService _labSpecimenService;
+        private readonly LabOrderNumberService _labOrderNumberService;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly LoggerService _loggerService;
 
         public LabOrderService(
             ApplicationDbContext dbContext,
             LabSpecimenService labSpecimenService,
+            LabOrderNumberService labOrderNumberService,
             IHttpContextAccessor httpContextAccessor,
             LoggerService loggerService)
         {
             _dbContext = dbContext;
             _labSpecimenService = labSpecimenService;
+            _labOrderNumberService = labOrderNumberService;
             _httpContextAccessor = httpContextAccessor;
             _loggerService = loggerService;
         }
@@ -249,6 +252,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 .Select(x => new
                 {
                     x.Id,
+                    x.OrderNumber,
                     x.EncounterId,
                     x.InpEpisodeId,
                     x.ProcedureId,
@@ -289,6 +293,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 return new LabOrderListResponse
                 {
                     Id = x.Id,
+
+                    OrderNumber = x.OrderNumber,
                     EncounterId = x.EncounterId,
                     InpEpisodeId = x.InpEpisodeId,
                     ProcedureId = x.ProcedureId,
@@ -322,6 +328,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 .Select(x => new LabOrderDetailResponse
                 {
                     Id = x.Id,
+
+                    OrderNumber = x.OrderNumber,
                     EncounterId = x.EncounterId,
                     ProcedureId = x.ProcedureId,
                     ProcedureCode = x.Procedure != null ? x.Procedure.ProcedureCode : string.Empty,
@@ -447,11 +455,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
+            // LAB-DEC-072. Transaksi eksplisit dibuka SEBELUM nomor dialokasikan, dan itu
+            // menentukan apakah kuncinya berarti sama sekali: `pg_advisory_xact_lock` dilepas
+            // ketika transaksi berakhir, sehingga alokasi di luar transaksi memperoleh dan
+            // melepas kuncinya seketika dan tidak menjaga apa pun.
+            await using var transaction =
+                await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+
+            var orderNumber = await _labOrderNumberService.AllocateOneAsync(cancellationToken);
+
             // Endpoint pembuatan yang sudah ada sejak sebelum RJ-BIL-BE-003 berarti "pesanan
             // dikirim ke laboratorium", sehingga status awalnya Requested dan bukan Draft.
             // Mengubah artinya menjadi Draft akan mengubah perilaku endpoint lama tanpa manfaat.
             var entity = new LabOrder
             {
+                OrderNumber = orderNumber,
                 EncounterId = request.EncounterId,
                 // BE-RWI-052. Konteks perawatan distempel saat pesanan lahir, sehingga
                 // pembacaan per perawatan menjadi pemeriksaan satu kolom.
@@ -498,6 +516,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
 
             await _dbContext.SaveChangesAsync(cancellationToken);
 
+            // Kunci alokasi baru benar-benar dilepas di sini. Commit ditempatkan sesudah
+            // SaveChangesAsync dan SEBELUM pencatatan log, supaya kegagalan menulis log tidak
+            // membatalkan pesanan yang sudah sah tersimpan.
+            await transaction.CommitAsync(cancellationToken);
+
             await _loggerService.InfoAsync(
                 LogCategory,
                 "LabOrder.Create",
@@ -505,6 +528,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 new
                 {
                     entity.Id,
+                    entity.OrderNumber,
                     entity.EncounterId,
                     entity.ProcedureId,
                     Discipline = entity.Discipline?.ToString(),
@@ -627,12 +651,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
 
             var terbentuk = new List<(LabOrder Order, MstProcedure Wakil)>();
 
+            // LAB-DEC-072. Transaksi eksplisit, sebab yang sama dengan CreateAsync: kunci
+            // alokasi hanya berarti di dalamnya.
+            await using var transaction =
+                await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+
+            // Seluruh nomor diambil SEKALIGUS, bukan satu per satu di dalam perulangan.
+            //
+            // Entity yang belum tersimpan tidak terlihat oleh kueri SQL mentah, sehingga alokasi
+            // per pesanan di dalam transaksi yang sama akan mengembalikan NOMOR YANG SAMA
+            // BERULANG KALI — lalu ditolak index unik, dan seluruh permintaan gagal. Kegagalannya
+            // hanya muncul ketika seorang pasien memesan pemeriksaan lintas disiplin, bukan pada
+            // pemakaian biasa, sehingga ia mudah lolos dari pengujian yang memesan satu disiplin.
+            var orderNumbers = await _labOrderNumberService.AllocateAsync(
+                kelompok.Count, cancellationToken);
+
+            var nomorKe = 0;
+
             foreach (var g in kelompok)
             {
                 var wakil = g.First();
 
                 var entity = new LabOrder
                 {
+                    OrderNumber = orderNumbers[nomorKe++],
                     EncounterId = request.EncounterId,
                     InpEpisodeId = request.InpEpisodeId,
                     // Penunjuk wakil, bukan satu-satunya pemeriksaan pesanan ini. Kolomnya tidak
@@ -685,6 +727,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             // Satu penyimpanan untuk seluruhnya. EF membungkusnya dalam satu transaksi, sehingga
             // kegagalan di tengah tidak meninggalkan sebagian pesanan.
             await _dbContext.SaveChangesAsync(cancellationToken);
+
+            await transaction.CommitAsync(cancellationToken);
 
             await _loggerService.InfoAsync(
                 LogCategory,
@@ -1185,6 +1229,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             return new LabOrderDetailResponse
             {
                 Id = entity.Id,
+
+                OrderNumber = entity.OrderNumber,
                 EncounterId = entity.EncounterId,
                 ProcedureId = entity.ProcedureId,
                 ProcedureCode = procedure?.ProcedureCode ?? string.Empty,

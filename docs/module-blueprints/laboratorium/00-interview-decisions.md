@@ -3,9 +3,9 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `laboratorium` |
-| Revision | `32` |
+| Revision | `37` |
 | Status | `draft` |
-| Pass | `Scope pass` selesai; `Closure pass` selesai (tiga putaran); `Amendment pass` putaran 1 selesai; **putaran 2 selesai** (Penerimaan Sampling/Specimen, 2026-09-14); **putaran 3 selesai** (metode pembayaran, 2026-09-14); **putaran 4 selesai** (pendaftaran lewat kiosk dan pemecahan pesanan per disiplin, 2026-09-15) |
+| Pass | `Scope pass` selesai; `Closure pass` selesai (tiga putaran); `Amendment pass` putaran 1 selesai; **putaran 2 selesai** (Penerimaan Sampling/Specimen, 2026-09-14); **putaran 3 selesai** (metode pembayaran, 2026-09-14); **putaran 4 selesai** (pendaftaran lewat kiosk dan pemecahan pesanan per disiplin, 2026-09-15); **putaran 5 selesai sebagian** (Menu Hasil, pencetakan, dan pengiriman hasil ke pasien, 2026-09-16 — sepuluh klarifikasi diadopsi `LAB-DEC-064`..`LAB-DEC-073`; **empat dari tujuh hal yang dibuka ditutup pada hari yang sama**; sisanya `LAB-OPEN-029`, `LAB-OPEN-030`, `LAB-OPEN-032`) |
 | Product/domain owner | **Yoga Aji Pratama** (`yogaaji452@gmail.com`), ditetapkan 2026-09-01 |
 | Backend SHA | Dipindai pada `466a7127` (298 commit sejak `c87d9c0`). **`HEAD` bergeser ke `9067fa73` pada 2026-09-14 saat sesi berjalan** — diperiksa: source Laboratorium dan seluruh berkas yang menjadi dasar temuan **tidak berubah**, sehingga scan tetap sahih. **Putaran 4 dipindai pada `9067fa73`; `HEAD` kembali bergeser ke `e2152709` pada 2026-09-15 saat sesi berjalan** karena pekerjaan `BE-LAB-20`..`BE-LAB-25` di-commit (`7cd82c26`) lalu di-merge dari `origin/QuilvianIntegrationBackend` — diperiksa: merge itu **tidak menyentuh satu pun berkas Laboratorium** di luar commit tersebut, dan seluruh perubahan `BE-LAB-21`, `BE-LAB-22`, serta `BE-LAB-25` terverifikasi utuh sesudahnya |
 | Frontend SHA | `9cd4cd03f`, dipindai 2026-09-14 (155 commit sejak `688daff90`) |
@@ -2063,6 +2063,150 @@ menghindari seluruh kelas persoalan itu.
 
 ---
 
+### BR-48 — Konfirmasi pesanan dan dokter pemeriksa (`LAB-DEC-061`)
+
+> **Bagian ini ditulis 2026-09-16 untuk menutup selisih pembukuan, bukan untuk menambah aturan.**
+> `AC-94` dan `AC-95` merujuk `BR-48` sejak 2026-09-15, tetapi bagiannya tidak pernah ditulis —
+> putaran 2 menambahkan acceptance criteria-nya tanpa business rule-nya. Seluruh isi di bawah
+> **disusun ulang dari keputusan dan kontrak yang sudah terkunci**: `LAB-DEC-061`,
+> `LAB-STATE-v1` `r3`, `LAB-VAL-v1` `r6` (`VAL-70`..`VAL-73`), dan `LAB-API-v1` `r12`..`r14`.
+> **Nol aturan baru diperkenalkan di sini.** Bila ada yang terbaca seperti aturan baru, itu cacat
+> penulisan bagian ini dan yang berlaku tetap kontraknya.
+
+**Aturan:**
+
+1. **`Confirmed` adalah status pesanan tersendiri**, berada antara `Requested` dan `Accepted`.
+2. **Konfirmasi hanya sah sekali.** Pesanan yang sudah dikonfirmasi menolak konfirmasi berikutnya
+   (`VAL-70`, `409`), dan pesanan yang statusnya bukan `Requested` menolak konfirmasi sama sekali
+   (`VAL-71`, `409`).
+3. **Konfirmator mengikuti pengguna yang login**, bukan diisi manual. Nama dan tanggal/waktunya
+   terekam pada `LabOrder.ConfirmedByUserId` dan `LabOrder.ConfirmedAt`.
+4. **Dokter pemeriksa wajib dipilih sebelum konfirmasi disimpan.** Konfirmasi tanpa dokter
+   pemeriksa ditolak (`VAL-72`, `422`), dan dokter yang dipilih wajib ada serta aktif (`VAL-73`,
+   `422`). Nilainya tersimpan pada `LabOrder.ExaminerDoctorId`.
+5. **Ketiganya terbaca kembali pada daftar dan ringkasan cetak** lewat ruas tampil
+   `confirmedAt`, `confirmedByName`, dan `examinerDoctorName`.
+
+**Kenapa nama, bukan penunjuk, yang dikirim ke daftar.** Daftar pantau adalah layar **baca**: ia
+menampilkan antrean dan tidak melakukan aksi apa pun terhadap konfirmator maupun dokter pemeriksa.
+Penunjuk hanya dibutuhkan aksi, dan aksi pada modul ini berjalan lewat **detail** pesanan — yang
+sudah membawa `confirmedByUserId` dan `examinerDoctorId`. Mengirim penunjuk yang tidak dipakai
+berarti mengirim nilai yang tidak boleh ditampilkan ke layar yang tidak membutuhkannya.
+
+> **Satu hal sengaja TIDAK ditetapkan, dan bukan kelalaian.** Jalur `Requested` → `Accepted`
+> **tidak dicabut** `LAB-STATE-v1` `r3`, sehingga konfirmasi **belum wajib** sebelum `Accepted`.
+> Mewajibkannya menuntut perlakuan atas pesanan yang sedang berjalan dan kepastian bahwa setiap
+> jalur pembuat pesanan melewati layar bertombol Konfirmasi. Dicatat `LAB-OPEN-027`.
+
+---
+
+### BR-49 — Pembatalan pesanan wajib beralasan, dan batas statusnya (`LAB-DEC-063`)
+
+> **Sama seperti `BR-48`, bagian ini ditulis 2026-09-16 untuk menutup selisih pembukuan.**
+> `AC-96` dan `AC-97` merujuknya sejak 2026-09-15. Disusun ulang dari `LAB-DEC-063`,
+> `LAB-STATE-v1` `r3`, `LAB-VAL-v1` `r6` (`VAL-74`, `VAL-75`), dan `LAB-API-v1` `r12`.
+> **Nol aturan baru.**
+
+**Aturan:**
+
+1. **Alasan pembatalan wajib.** Pembatalan tanpa alasan, atau beralasan yang hanya berisi spasi,
+   ditolak (`VAL-74`, `422`).
+2. **Pembatalan hanya sah pada `Requested` dan `Confirmed`.** Pesanan yang sudah `Accepted`,
+   `InProcess`, `Completed`, atau `Cancelled` menolak pembatalan (`VAL-75`, `409`).
+3. **Alasannya tersimpan pada jejak audit, bukan pada pesanan.** `LabOrderService.CancelAsync`
+   sudah menyimpannya sebagai `ReasonNote` pada `LabTransitionHistory`, terbaca kembali per
+   pesanan lewat `LabOrderId`. **Nol kolom baru dibuat untuk ini.**
+4. **Pop-up alert konfirmasi akhir adalah kewenangan UI.** Backend menuntut alasannya ada, bukan
+   menuntut berapa kali petugas ditanya.
+
+**`VAL-75` adalah satu-satunya pengetatan, dan ia menyentuh endpoint yang sudah dipakai.**
+`PUT /lab-orders/{id}/cancel` sebelumnya menerima pembatalan dari status yang lebih luas. Ini
+dicatat terang pada `LAB-API-v1` `r12` sebagai perubahan **breaking**, bukan diselipkan sebagai
+penyesuaian kecil.
+
+**Apa yang TIDAK dijawab bagian ini.** `LAB-P0-003` menanyakan aturan pembatalan **dan koreksi**.
+Yang ditetapkan di sini hanya pembatalan. **Koreksi hasil belum disinggung sama sekali** dan tetap
+terbuka — ia melekat pada slice `S6`, yang tertahan `LAB-SIGN-001`.
+
+---
+
+### BR-50 — Menu Hasil tiga disiplin, pencetakan, dan pengiriman hasil ke pasien (`LAB-DEC-064` .. `LAB-DEC-069`)
+
+**Sumber:** artifact `Laboratorium (4).md`, diserahkan pemilik modul 2026-09-16, berisi sepuluh
+jawaban klarifikasi bertanggal sama. Rekonsiliasinya ada pada
+[`05-evidence-reconciliation.md`](05-evidence-reconciliation.md) bagian 11.
+
+> **Baca lebih dulu, sebelum satu baris pun diturunkan menjadi task.** Seluruh isi BR ini adalah
+> slice **`S17`**, dan `S17` berdiri di atas hasil pemeriksaan yang **belum ada**:
+> `LabExamination` hari ini nol kolom nilai hasil, nol waktu pemeriksaan, nol status verifikasi.
+> Yang membentuknya slice `S4`, dan `S4` tertahan `LAB-SIGN-001`. BR ini **mencatat requirement**,
+> **bukan** membuka izin membangun.
+
+**Aturan yang ditetapkan pemilik:**
+
+1. **Penyaring.** Keyword Search memakai kolom, relasi, dan pola query order pemeriksaan yang
+   **sudah ada di backend**; mengarang nama kolom baru dilarang (`LAB-DEC-065`). Penyaring
+   lainnya: NIK/No. RM, Kategori Periode, Tgl Awal, Tgl Akhir, dan Jenis Kunjungan.
+2. **Rentang tanggal.** Tanggal hari ini boleh dipilih pada kedua ruas; tanggal masa depan tidak
+   boleh; **tidak ada batas maksimum** panjang rentang; selama pemuatan wajib tampil animasi
+   loading (`LAB-DEC-064`). Pembandingnya **inklusif** — `Tgl Awal <= Tgl Akhir` — sehingga
+   pencarian satu hari tetap mungkin (`LAB-DEC-071`, mengoreksi `RULE-004` artifact).
+3. **Perilaku datatable.** Pagination kelipatan 5, urutan default data terbaru paling atas, alert
+   ketika hasil kosong, dan **alasan** ketika datatable gagal dimuat (`LAB-DEC-069`).
+4. **Satu hasil final per nomor order.** Seluruh pemeriksaan pada satu order wajib sudah
+   mempunyai hasil sebelum hasil final order dianggap lengkap, dan satu nomor order hanya
+   menghasilkan **satu** dokumen final betapapun banyak pemeriksaannya (`LAB-DEC-067`).
+5. **Syarat kirim.** Hasil hanya boleh dikirim sesudah memperoleh persetujuan **Profesor** dan
+   **Dokter Lab**; nomor tujuannya diambil dari nomor WhatsApp pasien pada data induk pasien;
+   berkasnya PDF atau laporan final yang **tidak dapat diedit pasien** (`LAB-DEC-067`).
+6. **Counter `Terkirim ke Pasien`.** Angka integer, bukan rasio. Setiap pengiriman berhasil
+   menambah `+1`; kegagalan **tidak** menambah. Tombol kirim ulang tetap tersedia, termasuk
+   sesudah pengiriman sebelumnya gagal (`LAB-DEC-066`).
+7. **Kewenangan.** Seluruh tombol aksi pada menu ini dipegang **Petugas Lab dan/atau Admin**
+   (`LAB-DEC-068`).
+8. **Bentuk menu.** Menu Hasil mengikuti pola **tiga daftar sejajar per disiplin**, bukan satu
+   datatable gabungan. Disiplin ditentukan jalur yang dipanggil, bukan ruas yang dikirim
+   (`LAB-DEC-070`).
+9. **Nomor order.** `LabOrder` memperoleh kolom nomor order berupa **nomor urut yang terbaca
+   manusia**, mengikuti pola `PatientEncounterNumberService`. Nomor ini mengisi kolom
+   `No. Order` sekaligus menjadi sumber barcode Label Lab (`LAB-DEC-072`).
+10. **Cakupan baris.** Menu Hasil hanya memuat pesanan Laboratorium; nilai Unit Layanan
+   `Radiologi` tidak akan pernah muncul di sini (`LAB-DEC-073`).
+
+**Yang sudah terpenuhi source hari ini — nol pekerjaan.** Urutan terbaru di atas sudah berjalan
+(`LabMonitoringService` mengurutkan menurun atas `RequestedAt ?? CreateDateTime`); keempat pilihan
+`pageSizeOptions` frontend (`10`, `25`, `50`, `100`) **semuanya kelipatan 5**; pola loading, empty,
+dan error sudah dipakai layar pantau; dan nomor tujuan sudah punya tempat, yaitu
+`MstPatient.WhatsAppNumber`.
+
+**Yang belum ada sama sekali, dan ini bagian yang mahal.** `LabOrder` **nol kolom nomor order** —
+bentuknya sudah diputuskan `LAB-DEC-072`, tetapi kolom, layanan alokasi, dan migration-nya belum
+dibangun. Tanggal pemeriksaan — satu dari tiga pilihan Kategori Periode — belum punya kolom mana
+pun. Counter pengiriman belum punya tabel. Gerbang pengiriman WhatsApp dan pembangkit berkas PDF
+**keduanya nol pada platform**, dan keduanya bukan wewenang Laboratorium (`LAB-COORD-011`).
+
+**Yang sengaja TIDAK diadopsi.** Ukuran cetak A4 / 100x50 mm / 50x25 mm **tidak** menjadi aturan.
+Artifact menandainya sendiri `Confidence: Medium` dan menyebutnya *"default umum implementasi,
+bukan ukuran klinis/regulasi yang ditetapkan oleh evidence"*. Menaikkannya menjadi keputusan
+berarti mengubah tingkat bukti diam-diam. Dicatat sebagai `LAB-OPEN-032`.
+
+> **Tujuh hal dibuka, empat ditutup pada hari yang sama.** Yang **ditutup** pemilik modul
+> 2026-09-16: bentuk menu (`LAB-CONFLICT-009` → `LAB-DEC-070`), arah pembanding tanggal
+> (`LAB-OPEN-028` → `LAB-DEC-071`), nomor order (`LAB-OPEN-033` → `LAB-DEC-072`), dan cakupan
+> baris (`LAB-OPEN-031` → `LAB-DEC-073`). Yang **tetap terbuka dan tidak boleh ditebak
+> implementer**: persetujuan Profesor dan Dokter Lab yang justru perkara `LAB-SIGN-001`
+> (`LAB-OPEN-029`, bukan wewenang pemilik modul sendiri); jabatan `Dokter Lantai` pada kolom
+> Dokter Konfirmator (`LAB-OPEN-030`, bertaut `LAB-P0-004`); dan ukuran cetak yang menunggu
+> profil printer nyata (`LAB-OPEN-032`). Ketiganya diajukan lewat `LAB-REQ-007`.
+
+> **Catatan pembukuan — ✅ ditutup 2026-09-16.** `AC-94` sampai `AC-97` merujuk `BR-48` dan
+> `BR-49`, tetapi kedua BR itu tidak pernah ditulis sebagai bagian — putaran 2 menambahkan
+> AC-nya tanpa BR-nya. **Keduanya kini ditulis** tepat di atas bagian ini, **disusun ulang dari
+> keputusan dan kontrak yang sudah terkunci**, nol aturan baru diperkenalkan. Penomoran `BR-50`
+> tetap seperti semula supaya rujukan yang sudah terlanjur dipakai tidak bergeser.
+
+---
+
 ## State dan Transition
 
 Kerangka mengikuti `LAB-INH-001`, `LAB-INH-002`, dan `LAB-INH-003`. Bagian yang ditambahkan
@@ -2257,6 +2401,19 @@ dengan alasan keselamatan **tidak boleh** dihapus atau diperlemah oleh keputusan
 | `LAB-DEC-061` | Decision | **Status `Confirmed` diadopsi sebagai status pesanan antara `Requested` dan `Accepted`, beserta konfirmator, waktu konfirmasi, dan dokter pemeriksa.** Konfirmasi hanya boleh sekali; sesudahnya aksinya nonaktif. Nama konfirmator mengikuti pengguna yang login. Dokter pemeriksa dipilih atau diganti sebelum konfirmasi disimpan, dan tampil pada daftar serta ringkasan cetak. **Menjawab `LAB-P0-002` untuk bagian yang selama ini paling sering ditanyakan** — posisi `Confirmed` | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-15 | Menuntut amandemen `LAB-STATE-v1` dan satu migration: `Confirmed` pada `LabOrderStatus`, ditambah kolom konfirmator, waktu konfirmasi, dan dokter pemeriksa pada `LabOrder`. Hubungan `Confirmed` dengan urutan status dua aplikasi lain **belum** dijawab; `LAB-P0-002` tetap terbuka untuk bagian itu |
 | `LAB-DEC-062` | Decision | **Status pembayaran tampil di layar Laboratorium dan mengunci aksi Proses Pemeriksaan bagi pasien Mandiri/tunai sampai `Lunas` — tetapi nilainya dibaca dari Billing, bukan disimpan Laboratorium.** Laboratorium **tidak** menambah kolom pembayaran apa pun pada `LabOrder`. `RJ-BIL-GATE-DEC-003` tetap berlaku penuh: keputusan uang milik Billing, dan Laboratorium hanya membaca serta menampilkannya. Menutup `REC2-CONF-003` | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-15 | **Jalur bacanya belum ada.** Dibuka sebagai `LAB-COORD-010`: Laboratorium memerlukan endpoint milik Billing yang menyatakan status pembayaran satu kunjungan atau satu pesanan. Sampai ada, penguncian tombol tidak dapat ditegakkan backend |
 | `LAB-DEC-063` | Decision | **Alasan pembatalan pesanan wajib, disimpan backend, dan pembatalan hanya sah saat status masih `Requested` atau `Confirmed`.** Pembatalan pada `InProcess`, `Completed`, atau `Cancelled` ditolak. Pop-up alert konfirmasi akhir sesudah `Lanjut Pembatalan` adalah **kewenangan UI**, bukan aturan backend — backend menuntut alasannya ada, bukan menuntut berapa kali petugas ditanya | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-15 | **Dikoreksi 2026-09-15 saat amandemen kontrak: kolom baru TIDAK diperlukan.** `LabOrderService.CancelAsync` sudah menyimpan alasannya sebagai `ReasonNote` pada `LabTransitionHistory` — jejak audit, tempat yang memang seharusnya, dan terbaca kembali per pesanan lewat `LabOrderId`. Artifact pun tidak menampilkan alasan pembatalan pada satu pun dari 14 kolomnya. Yang dibutuhkan hanya aturan baru pada `LAB-VAL-v1`: mewajibkan ruas yang hari ini opsional. **Menjawab sebagian `LAB-P0-003`** — aturan pembatalan ditetapkan, aturan **koreksi hasil** belum disinggung sama sekali dan tetap terbuka |
+| `LAB-EVD-002` | Fact | Artifact **`Laboratorium (4).md`** dilampirkan pemilik modul pada sesi 2026-09-16. Memuat `CAP-001`..`CAP-012`, `RULE-001`..`RULE-028`, dan `BP-001`..`BP-008` atas satu menu: *Hasil Patologi Klinik, Patologi Anatomi dan Mikrobiologi*. Menyatakan dirinya pembaruan `Laboratorium (3).md` ditambah sepuluh jawaban klarifikasi bertanggal sama. **Disimpan verbatim** pada [`evidence/2026-09-16-menu-hasil-patologi-klinik-anatomi-mikrobiologi.md`](evidence/2026-09-16-menu-hasil-patologi-klinik-anatomi-mikrobiologi.md) — putaran 1 dan 2 hanya menyebut nama berkas buktinya dan berkasnya kini tidak dapat ditemukan lagi; putaran ini tidak mengulanginya. **Kedua baseline yang dirujuk artifact sendiri tidak ikut diserahkan**, sehingga rujukan `Sumber baris ...` di dalamnya tidak dapat diverifikasi dari sini | Yoga Aji Pratama | `accepted` | Diterima 2026-09-16 sebagai bukti tingkat pemilik atas klarifikasinya, tingkat pengamatan atas sisanya | Rekonsiliasinya pada `05-evidence-reconciliation.md` bagian 11. **Seluruh isinya slice `S17`**, yang berdiri di atas hasil pemeriksaan yang belum ada |
+| `LAB-DEC-064` | Decision | **Aturan rentang tanggal penyaring: hari ini boleh, masa depan tidak, tanpa batas maksimum panjang rentang, dan wajib animasi loading selama pemuatan.** Berapa pun panjang rentang yang diminta petugas, sistem tidak menolaknya — yang wajib adalah memberi tahu bahwa data sedang diproses | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-16 | Arah pembandingnya — `Tgl Awal < Tgl Akhir` atau `<=` — **tidak** ikut diputuskan; lihat `LAB-OPEN-028`. Penyaring yang berjalan hari ini inklusif pada kedua ujung |
+| `LAB-DEC-065` | Decision | **Keyword Search mengikuti kolom, relasi, dan pola query order pemeriksaan yang sudah ada di backend; mengarang nama kolom baru dilarang.** Ini keputusan yang sengaja menahan diri: pemilik menolak menetapkan ruas pencarian di dokumen dan menyerahkannya pada implementasi yang sudah terbukti | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-16 | Pencarian Laboratorium hari ini menjangkau `EncounterNumber`, `FullName`, dan `MedicalRecordNumber`. **NIK nol dijangkau** walaupun `MstPatient.IdentityNumber` ada, dan **nomor order belum ada kolomnya** — lihat `REC3-NEW-003` dan `LAB-OPEN-033` |
+| `LAB-DEC-066` | Decision | **`Terkirim ke Pasien` adalah counter integer, bukan rasio.** Setiap pengiriman berhasil menambah `+1`; kegagalan tidak menambah apa pun. Tombol kirim ulang tetap tersedia sesudah fungsi pengiriman dapat dipakai, termasuk ketika pengiriman sebelumnya gagal, dan setiap pengiriman ulang yang berhasil menambah `+1` lagi | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-16 | **Bentuk penyimpanannya belum dirancang dan tidak diputuskan di sini.** Counter telanjang menyimpan angka tanpa riwayat: siapa mengirim, kapan, ke nomor mana, dan mana yang gagal tidak terjawab. Perancangannya milik `hospital-domain-architect` |
+| `LAB-DEC-067` | Decision | **Satu nomor order menghasilkan satu dokumen hasil final, dan hasil hanya boleh dikirim sesudah disetujui Profesor dan Dokter Lab.** Seluruh pemeriksaan pada order wajib sudah mempunyai hasil lebih dulu. Nomor tujuan diambil dari nomor WhatsApp pasien pada data induk pasien. Berkas yang dikirim PDF atau laporan final yang **tidak dapat diedit pasien** | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-16 | **Tertahan tiga hal sekaligus.** `LAB-SIGN-001` — siapa yang berwenang menyetujui secara klinis belum ditetapkan, lihat `LAB-OPEN-029`. `LAB-COORD-011` — gerbang WhatsApp dan pembangkit PDF keduanya nol pada platform. Dan izin privasi pengiriman data klinis ke kanal pihak ketiga, yang `LAB-DEC-030` tandai sejak 2026-09-01 dan **belum** diberikan artifact ini. Nomor tujuannya sendiri **sudah punya tempat**: `MstPatient.WhatsAppNumber` |
+| `LAB-DEC-068` | Decision | **Seluruh tombol aksi pada menu Hasil dipegang Petugas Lab dan/atau Admin** — Nota Lab, Label Lab, Label Goldar, Kirim Hasil ke Pasien, dan Kirim Ulang | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-16 | Menjawab `LAB-P0-001` **hanya untuk menu ini**. Peran lain pada matriks kewenangan tetap terbuka. Peran penyetuju Profesor dan Dokter Lab **bukan** bagian keputusan ini |
+| `LAB-DEC-069` | Decision | **Perilaku datatable: pagination kelipatan 5, urutan default data terbaru paling atas, alert ketika data kosong, dan alasan error ketika datatable gagal dimuat.** Petugas tidak boleh dibiarkan menatap tabel kosong tanpa tahu apakah datanya memang tidak ada atau pemuatannya gagal | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-16 | **Dua dari empat sudah terpenuhi source hari ini**: pengurutan menurun sudah berjalan pada `LabMonitoringService`, dan keempat `pageSizeOptions` frontend (`10`, `25`, `50`, `100`) semuanya kelipatan 5. Pola alert kosong dan alert galat pun sudah dipakai layar pantau |
+| `LAB-CONFLICT-009` | Conflict | **Artifact menyatukan hasil ketiga disiplin dalam satu datatable; `LAB-DEC-025` menetapkan tiga daftar sejajar sebagai tiga menu, dan `LabMonitoringQuery` sengaja nol ruas disiplin** | Yoga Aji Pratama | `closed` | Ditutup 2026-09-16 oleh `LAB-DEC-070` | Dibuka dan ditutup pada hari yang sama. **Blueprint bertahan:** tiga daftar sejajar, disiplin ditentukan jalur yang dipanggil. Artifact tidak diadopsi apa adanya pada butir ini |
+| `LAB-DEC-070` | Decision | **Menu Hasil mengikuti pola tiga daftar sejajar per disiplin, bukan satu datatable gabungan.** Disiplin tetap ditentukan jalur yang dipanggil, bukan ruas yang dikirim — persis seperti ketiga menu Pemeriksaan. **Artifact tidak diadopsi apa adanya pada butir ini**, dan itu disengaja: `LAB-DEC-025` menolak layar berpenyaring disiplin dengan alasan yang masih berlaku, yaitu memaksa petugas memilih hal yang bagi dirinya tidak pernah berubah. Menutup `LAB-CONFLICT-009` | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-16 | `LabMonitoringQuery` dipakai ulang apa adanya — nol ruas disiplin ditambahkan. Bentuk endpoint daftar hasil mengikuti `GET /lab-orders/by-discipline/{discipline}` yang sudah ada, bukan satu jalur lintas disiplin |
+| `LAB-DEC-071` | Decision | **Pembanding rentang tanggal inklusif: `Tgl Awal <= Tgl Akhir`.** Petugas dapat mencari satu hari saja dengan mengisi tanggal yang sama pada kedua ruas. **Mengamandemen `LAB-DEC-064`** dan mengoreksi `RULE-004` artifact, yang bila dibaca tegas justru menutup pencarian satu hari — padahal `RULE-003` di sebelahnya mengizinkan tanggal hari ini pada kedua ruas. Menutup `LAB-OPEN-028` | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-16 | **Nol perubahan perilaku pada source.** Penyaring yang berjalan hari ini sudah inklusif pada kedua ujung (`>= mulai`, `<= sampai`). Yang ditetapkan di sini aturan validasinya, supaya frontend tidak menolak apa yang backend terima |
+| `LAB-DEC-072` | Decision | **`LabOrder` memperoleh kolom nomor order baru berupa nomor urut yang terbaca manusia**, mengikuti pola `PatientEncounterNumberService` yang sudah berjalan: awalan tetap, nomor urut berpadding, dan `pg_advisory_xact_lock` sebagai penjaga konkurensi. Nomor ini menjadi isi kolom `No. Order` sekaligus sumber barcode Label Lab. **Pola `LSP-{Guid:N}` milik barcode wadah sengaja tidak dipakai** — nomor yang dicetak pada amplop pasien harus dapat disebut lewat telepon. Menutup `LAB-OPEN-033` | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-16 | Menuntut **satu kolom baru beserta migration**, satu layanan alokasi, dan satu index unik. **Satu peringatan dibawa serta dari pola acuannya:** `AllocateEncounterNumberAsync` memuat **seluruh** nomor terpakai ke memori lalu memindai celah pertama — biayanya tumbuh seiring jumlah baris. Meniru polanya **tanpa** meniru kelemahan itu adalah bagian dari perancangan, bukan detail implementasi |
+| `LAB-DEC-073` | Decision | **Menu Hasil hanya memuat pesanan Laboratorium.** Nilai Unit Layanan `Radiologi` pada `RULE-008` artifact terbawa dari tabel unit layanan yang dipakai bersama modul lain, dan **tidak akan pernah muncul** sebagai baris pada menu ini. Cakupan menu tidak melebar ke luar modul. Menutup `LAB-OPEN-031` | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-16 | Nol koordinasi dengan pemilik Radiologi yang perlu dibuka. Nilai `Laboratorium` pada aturan yang sama tetap sah dan tetap berlaku |
+| `LAB-DEC-074` | Decision | **Aturan tanggal `LAB-DEC-064` dan `LAB-DEC-071` berlaku untuk SELURUH penyaring tanggal modul Laboratorium, bukan hanya Menu Hasil.** Ketiga menu Pemeriksaan yang sudah dipakai petugas ikut terikat: tanggal masa depan tidak boleh dipilih, dan `Tgl Awal <= Tgl Akhir`. **Dasarnya konsistensi yang dirasakan petugas** — dua layar Laboratorium yang berperilaku berbeda untuk penyaring yang bentuknya sama adalah cacat yang dilaporkan sebagai bug, bukan sebagai perbedaan cakupan | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-16 | Menutup `LAB-RDY-C02`. **Perbaikannya menyentuh komponen base milik bersama:** `FilterDatePicker` dipakai 133 berkas lintas modul. Jalur yang ditempuh sengaja aditif — prop **opsional** `max` dengan default tidak berubah, sehingga 132 pemakai lain nol terdampak. Diturunkan menjadi `FE-LAB-18` |
 | `LAB-DEC-049` | Decision | **Penguncian daftar pemeriksaan hanya berlaku pada penambahan, bukan pembatalan.** Pembatalan tetap terbuka sesudah kelayakan ditetapkan dan koreksi tagihannya wewenang Billing. `VAL-18` tidak berubah bunyinya dan tidak diperluas. Mengamandemen `AC-55` dan `AC-57` | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-14 | Lihat BR-44. Menutup `LAB-CONFLICT-004` tanpa menyentuh `RJ-BIL-GATE-DEC-003`; [`BE-LAB-24.md`](task/report/backend/BE-LAB-24.md) |
 | `LAB-CONFLICT-005` | Conflict | **`AC-52` bertentangan dengan index unik `(SpecimenId, ProcedureId)`** yang dipasang atas dasar `BR-20` dan `AC-35` | Yoga Aji Pratama | `closed` | Ditutup 2026-09-14 oleh `LAB-DEC-050` | Ditemukan `BE-LAB-23` |
 | `LAB-CONFLICT-004` | Conflict | **`AC-55` dan `AC-57` bertentangan dengan `LAB-INH-001`, `LAB-INH-006`, dan `LAB-INH-010`** yang mengizinkan pembatalan terkendali sesudah titik tagih | Yoga Aji Pratama | `closed` | Ditutup 2026-09-14 oleh `LAB-DEC-049` | Ditemukan `BE-LAB-24` |
@@ -2385,6 +2542,8 @@ pengujian.
 | AC-95 | Konfirmasi **menolak** bila dokter pemeriksa belum dipilih, dan dokter yang dipilih tampil pada daftar serta ringkasan cetak | BR-48, `LAB-DEC-061` |
 | AC-96 | Pembatalan pesanan **tanpa alasan ditolak**; alasan yang diterima tersimpan pada jejak audit dan terbaca kembali per pesanan | BR-49, `LAB-DEC-063` |
 | AC-97 | Pembatalan **ditolak** ketika pesanan sudah `Accepted`, `InProcess`, `Completed`, atau `Cancelled`; **pesanan `Requested` dan `Confirmed` tetap dapat dibatalkan seperti sebelumnya** | BR-49, `LAB-DEC-063` |
+| AC-98 | Penyaring tanggal Laboratorium **menolak tanggal masa depan**: hari sesudah hari ini tidak dapat dipilih pada `Tgl Awal` maupun `Tgl Akhir`, dan hari ini sendiri **tetap** dapat dipilih | BR-50, `LAB-DEC-064`, `LAB-DEC-074` |
+| AC-99 | Rentang terbalik (`Tgl Awal` > `Tgl Akhir`) **ditolak beserta sebabnya** dan pencariannya tidak dijalankan; `Tgl Awal` **sama dengan** `Tgl Akhir` tetap sah, sehingga pencarian satu hari tetap mungkin | BR-50, `LAB-DEC-071`, `LAB-DEC-074` |
 | AC-77 | Daftar pemeriksaan dan wadahnya terlihat berdampingan sebelum kelayakan ditetapkan | BR-40, BR-34 |
 
 ---
@@ -2402,6 +2561,18 @@ pengujian.
 | `LAB-OPEN-023` | Dipersempit: hanya baris `decisions`, hash decision log, hash capability map, dan kedua `*_commit_sha` pada manifest. Dua masukan lain terverifikasi tidak berubah | Yoga Aji Pratama | `DESIGN` — pembukuan, bukan keputusan bisnis |
 | `LAB-OPEN-024` | Berapa lama usulan instansi perujuk boleh menggantung, apa yang terjadi pada kunjungan bila usulan **ditolak**, dan siapa yang berhak menggabungkan dua baris | Pemilik `master-data` | `IMPLEMENTATION` — jalur penolakan usulan |
 | `LAB-DEBT-001` | Seeder Laboratorium mengisi data induk global instansi perujuk — utang teknis terhadap `AC-49` | Yoga Aji Pratama + pemilik `master-data` | Tidak memblokir; dicatat agar tidak hilang |
+
+### Dibuka Amendment Pass putaran 5 — Menu Hasil, 2026-09-16
+
+| ID | Hal yang belum selesai | Pemilik | Memblokir |
+|---|---|---|---|
+| `LAB-COORD-011` | **Gerbang pengiriman pesan (WhatsApp) dan pembangkit berkas PDF, keduanya nol pada platform.** `F7` diverifikasi ulang 2026-09-16 dan masih benar: nol `Twilio`, `Fonnte`, `SendMessageAsync`, `IWhatsAppService`, `SmtpClient`, maupun `MailKit` di seluruh backend; nol pustaka PDF pada `.csproj`. `QRCoder 1.8.0` sudah ada dan menutup kebutuhan barcode, tetapi tidak menutup kebutuhan PDF. Laboratorium tidak berwenang mengadakan keduanya sendiri | Pemilik platform + Yoga Aji Pratama | Seluruh `CAP-009`/`CAP-010` artifact — pengiriman dan pengiriman ulang hasil |
+| ~~`LAB-OPEN-028`~~ | **Ditutup 2026-09-16** oleh `LAB-DEC-071` — pembandingnya inklusif, `Tgl Awal <= Tgl Akhir` | — | — |
+| `LAB-OPEN-029` | **Apakah persetujuan Profesor dan Dokter Lab yang disebut artifact adalah tanda tangan klinis `LAB-DEC-011`**, siapa pemegang wewenang Clinical Governance-nya, dan bagaimana keduanya menjadi peran pada `LAB-PERM-v1` | Yoga Aji Pratama + wewenang klinis | Bertaut `LAB-SIGN-001`. Memblokir pengiriman hasil |
+| `LAB-OPEN-030` | **Jabatan `Dokter Lantai` nol kemunculan** di seluruh blueprint, sedangkan artifact memakainya bersama `Dokter DPJP` pada kolom Dokter Konfirmator angka kritis | Yoga Aji Pratama | Bertaut `LAB-P0-004` dan `LAB-OPEN-014`. Memblokir kolom Dokter Konfirmator |
+| ~~`LAB-OPEN-031`~~ | **Ditutup 2026-09-16** oleh `LAB-DEC-073` — menu Hasil hanya memuat pesanan Laboratorium; nilai `Radiologi` terbawa dari tabel unit layanan bersama | — | — |
+| `LAB-OPEN-032` | **Ukuran cetak Nota Lab, Label Lab, dan Label Goldar.** Artifact menandainya sendiri `Confidence: Medium` dan menyebutnya default implementasi, bukan bukti — sehingga **tidak diadopsi** sebagai keputusan. Perlu profil printer dan media nyata | Yoga Aji Pratama + operasional laboratorium | Bentuk akhir ketiga dokumen cetak; tidak memblokir slice |
+| ~~`LAB-OPEN-033`~~ | **Ditutup 2026-09-16** oleh `LAB-DEC-072` — kolom baru berisi nomor urut terbaca, pola `PatientEncounterNumberService`. **Pekerjaannya tetap ada**: satu kolom, satu layanan alokasi, satu index unik, satu migration | — | — |
 
 **Yang sengaja ditinggalkan di luar scope** oleh `LAB-DEC-037`, dan **bukan** merupakan open
 question modul ini: pendaftaran RS perujuk sebagai data induk yang disahkan sendiri oleh
@@ -2531,6 +2702,13 @@ pada 2026-09-01. Yang perlu dicatat jujur tentang persetujuan ini:
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 37 | 2026-09-16 | **Aturan tanggal dinyatakan berlaku module-wide lewat `LAB-DEC-074`, menutup `LAB-RDY-C02`.** Audit kesiapan `LAB-RDY-001` menemukan tiga menu Pemeriksaan yang sudah dipakai petugas menerima tanggal masa depan sampai 20 tahun ke depan dan rentang terbalik, tanpa penolakan apa pun — keduanya menghasilkan daftar kosong yang tidak menjelaskan sebabnya. `LAB-DEC-064` dan `LAB-DEC-071` semula lahir dalam konteks `BR-50` (Menu Hasil, `S17`); pemilik modul menetapkan keduanya mengikat seluruh penyaring tanggal Laboratorium. Alasannya konsistensi yang dirasakan petugas, bukan kerapian dokumen. **Perbaikannya menyentuh komponen base yang dipakai 133 berkas lintas modul**, sehingga jalurnya dibuat aditif: prop opsional dengan default tidak berubah. Diturunkan menjadi `FE-LAB-18` | `draft` |
+| 36 | 2026-09-16 | **Riwayat revisi yang bolong dirapikan.** Baris `32` disusun ulang dari `blueprint-manifest.md` dan `05-evidence-reconciliation.md` revision 2, keduanya menyebut isinya secara langsung. Baris `31` **ditandai tidak tercatat dan tidak dapat dipulihkan** — nol berkas pada blueprint menyebut isinya, dan mengisinya dengan tebakan akan menghasilkan riwayat yang salah tetapi dipercaya. Dengan ini seluruh selisih pembukuan yang ditemukan saat memproses bukti putaran 3 sudah ditangani: `BR-48`/`BR-49` ditulis pada revision 35, dan riwayat revisi pada revision ini | `draft` |
+| 35 | 2026-09-16 | **Dua business rule yang hilang ditulis, menutup selisih pembukuan yang ditemukan saat menulis `BR-50`.** `AC-94` sampai `AC-97` merujuk `BR-48` dan `BR-49` sejak 2026-09-15, tetapi kedua bagiannya tidak pernah ada — putaran 2 menambahkan acceptance criteria tanpa business rule-nya. Keduanya kini ditulis: `BR-48` konfirmasi pesanan dan dokter pemeriksa, `BR-49` pembatalan wajib beralasan beserta batas statusnya. **Seluruh isinya disusun ulang dari `LAB-DEC-061`, `LAB-DEC-063`, `LAB-STATE-v1` `r3`, `LAB-VAL-v1` `r6` (`VAL-70`..`VAL-75`), dan `LAB-API-v1` `r12`..`r14` — nol aturan baru diperkenalkan**, dan itu dinyatakan terang di kepala kedua bagian supaya pembaca berikutnya tidak memperlakukannya sebagai sumber. Dua hal yang sengaja tetap tidak ditetapkan ikut ditulis apa adanya: `LAB-OPEN-027` (konfirmasi belum wajib sebelum `Accepted`) dan koreksi hasil yang tetap terbuka pada `LAB-P0-003` | `draft` |
+| 34 | 2026-09-16 | **Empat dari tujuh hal yang dibuka putaran 5 ditutup pada hari yang sama.** `LAB-DEC-070` menolak satu datatable gabungan dan mempertahankan pola tiga daftar sejajar — **artifact tidak diadopsi apa adanya pada butir ini**, karena alasan `LAB-DEC-025` masih berlaku. `LAB-DEC-071` menjadikan pembanding tanggal inklusif dan **mengoreksi `RULE-004` artifact**, yang bila dibaca tegas justru menutup pencarian satu hari. `LAB-DEC-072` memberi `LabOrder` kolom nomor order berupa nomor urut terbaca mengikuti `PatientEncounterNumberService` — beserta peringatan yang dibawa serta dari pola acuannya, yang memuat seluruh nomor terpakai ke memori. `LAB-DEC-073` mengunci cakupan baris menu Hasil pada pesanan Laboratorium saja. `LAB-CONFLICT-009`, `LAB-OPEN-028`, `LAB-OPEN-031`, dan `LAB-OPEN-033` ditutup. **Tiga tetap terbuka dan bukan wewenang pemilik modul sendiri:** `LAB-OPEN-029` persetujuan klinis, `LAB-OPEN-030` jabatan `Dokter Lantai`, dan `LAB-OPEN-032` ukuran cetak — ketiganya diajukan lewat `LAB-REQ-007` bersama `LAB-COORD-011` | `draft` |
+| 33 | 2026-09-16 | **Amendment pass putaran 5 — Menu Hasil tiga disiplin, pencetakan, dan pengiriman hasil ke pasien.** Artifact `Laboratorium (4).md` diterima sebagai `LAB-EVD-002`. Enam klarifikasi pemilik diadopsi `LAB-DEC-064` sampai `LAB-DEC-069` dan ditulis sebagai `BR-50`. **Temuan yang paling mahal justru yang paling sederhana:** `LabOrder` **nol kolom nomor order**, padahal `No. Order` dipakai sebagai kolom daftar sekaligus sumber barcode Label Lab. Menyusul di belakangnya tanggal pemeriksaan yang belum punya kolom mana pun, counter pengiriman yang belum punya tabel, dan gerbang WhatsApp beserta pembangkit PDF yang keduanya nol pada platform — dibuka sebagai `LAB-COORD-011`. **Tiga aturan justru sudah terpenuhi source hari ini**: urutan terbaru di atas, pagination kelipatan 5, dan `MstPatient.WhatsAppNumber` sebagai sumber nomor tujuan. **Lima hal dibuka dan sengaja tidak diputuskan:** `LAB-CONFLICT-009` satu datatable gabungan versus `LAB-DEC-025`, `LAB-OPEN-028` arah pembanding tanggal, `LAB-OPEN-029` persetujuan Profesor/Dokter Lab yang justru perkara `LAB-SIGN-001`, `LAB-OPEN-030` jabatan `Dokter Lantai`, dan `LAB-OPEN-031` Unit Layanan `Radiologi`. Ukuran cetak **tidak diadopsi** — artifact menandainya sendiri `Medium` — dan dicatat `LAB-OPEN-032`. **Seluruh BR ini slice `S17` dan tetap tertahan `LAB-SIGN-001`** | `draft` |
+| 32 | 2026-09-15 | **Disusun ulang 2026-09-16 dari sumber tertulis, bukan dari ingatan.** Baris ini tidak pernah ditulis pada waktunya. Isinya diambil dari dua sumber yang menyebutkannya secara langsung: `blueprint-manifest.md` bagian `input_revisions` (*"rev 32 — `LAB-DEC-060`..`LAB-DEC-063` menutup rekonsiliasi bukti putaran 2"*) dan `05-evidence-reconciliation.md` revision 2 bagian 10.5, yang mencatat keempat keputusan itu beserta arahnya pada tanggal yang sama. **Isi revision 32:** `LAB-DEC-060` mempertahankan siklus hidup wadah dan menjadikan centang `Sampling diterima` sebagai jalan pintasnya; `LAB-DEC-061` mengadopsi status `Confirmed` beserta konfirmator, waktu konfirmasi, dan dokter pemeriksa; `LAB-DEC-062` menampilkan status pembayaran yang mengunci tombol Proses tetapi dibaca dari Billing; `LAB-DEC-063` mewajibkan alasan pembatalan dan mempersempit batas statusnya. `REC2-CONF-001` sampai `REC2-CONF-003` ditutup, dan `LAB-COORD-010` dibuka | `draft` |
+| 31 | — | **Tidak tercatat, dan tidak dapat dipulihkan.** Header dokumen ini sempat menunjuk revision 31, tetapi baris riwayatnya tidak pernah ditulis dan **tidak satu pun berkas pada blueprint menyebut isinya** — manifest melompat dari rev 30 langsung ke rev 32 pada catatan `input_revisions`-nya. Baris ini sengaja ditinggalkan kosong dan ditandai, **bukan diisi tebakan**: riwayat revisi yang salah lebih berbahaya daripada riwayat revisi yang mengaku bolong, karena yang pertama akan dipercaya. Bila pemilik modul mengingat apa yang berubah pada revision 31, baris ini dapat diisi kemudian | `tidak tercatat` |
 | 30 | 2026-09-15 | **Persetujuan lintas modul turun, dan gelombang kiosk terbuka penuh.** Pemilik modul menyampaikan persetujuan **Andry Zain** atas penambahan bagian Laboratorium pada kiosk, dibukukan sebagai `LAB-REQ-006`. **Kedua penahan ditutup pada hari yang sama ia dibuka:** `LAB-COORD-008` oleh persetujuan itu, dan `LAB-COORD-009` oleh `LAB-DEC-058`. Keempat keputusan kiosk naik dari `draft` menjadi **`approved`**. `LAB-DEC-058` menetapkan butir yang paling berkonsekuensi dan belum pernah dijawab siapa pun: kunjungan kiosk yang tidak dilanjutkan ditutup **saat hari layanan berakhir**, dan **biaya pendaftarannya gugur** — pasien yang batal tidak menanggung apa pun. Alasannya ditulis terang pada `LAB-REQ-006` bagian 1.3: menagih orang yang tidak menerima satu pun layanan klinis paling sering terbongkar di meja kasir, di depan pasien lain. `LAB-DEC-057` ikut dicatat pada revisi ini setelah ditemukan **belum pernah masuk tabel keputusan** walaupun sudah dirujuk tiga dokumen arsitektur — kelalaian pembukuan, dicatat apa adanya. `AC-92` dan `AC-93` ditambahkan; `AC-93` menjaga agar penambahan ruas pada sesi kiosk bersifat aditif, karena **16 sesi nyata sudah tersimpan** pada tabel itu. **Cara pembukuan yang harus jujur:** persetujuan Andry disampaikan **lisan dan diteruskan pemilik modul**, bukan tertulis langsung. `LAB-REQ-006` menyatakan itu apa adanya, beserta ketentuan bahwa bila pemilik `registration-management` kelak menemukan cakupannya berbeda, dokumen itulah yang keliru — bukan pekerjaannya. **Yang tetap tertahan:** `LAB-COORD-006` data induk perujuk, sehingga jalur bawa surat dokter **luar** belum dapat dipakai penuh; dan `LAB-COORD-007` beserta `FR-11.9`/`FR-11.10` di bawah `LAB-REQ-005` | `draft` |
 | 29 | 2026-09-15 | **Amendment pass putaran 4 — pendaftaran lewat kiosk dan pemecahan pesanan per disiplin.** Enam keputusan baru dari wawancara pemilik modul. **Temuan pertama justru memperkecil pekerjaannya:** kiosk **sudah ada dan sudah dipakai** — `TrxKioskScanSession`, `KioskScanSessionController`, dan `MstKioskDevice` milik `registration-management`, dengan **16 sesi nyata dan 15 di antaranya cocok ke pasien**. Yang belum ada hanya sambungannya ke pendaftaran laboratorium, dan pengetahuan kiosk tentang layanan yang dituju pasien. `LAB-DEC-051` menetapkan pasien memilih Laboratorium sendiri di kiosk; `LAB-DEC-052` membedakan dua jalur sejak kiosk — bawa permintaan dokter dan periksa mandiri; `LAB-DEC-053` membentuk kunjungan begitu pasien selesai di kiosk; `LAB-DEC-054` menyerahkan penutupan kunjungan terbengkalai kepada Registrasi. **Keempatnya berstatus `draft`** karena seluruhnya menyentuh layar, tabel, dan kewenangan milik `registration-management` — diajukan sebagai `LAB-COORD-008` dan `LAB-COORD-009`. Risiko `LAB-DEC-053` ditulis apa adanya dan dipilih pemilik modul **setelah** diberi tahu: pasien yang pergi meninggalkan kunjungan tanpa pemeriksaan, dan selama `LAB-DEC-054` belum berjalan, angka kunjungan harian akan melebihi jumlah pasien yang benar-benar diperiksa. **Dua keputusan lain murni Laboratorium dan `approved`.** `LAB-DEC-055` **mengamandemen `LAB-DEC-048` butir 6**: keputusan itu sudah menurunkan disiplin dari pemeriksaan, tetapi tidak pernah menjawab apa yang terjadi bila pemeriksaan berasal dari dua disiplin sekaligus — jawabannya **pecah otomatis, satu pesanan per disiplin**, sehingga `INV-21`, `VAL-46`, dan penyaring ketiga layar Pemeriksaan tidak perlu disentuh sama sekali. `LAB-DEC-056` menetapkan **satu endpoint baru**, bukan memperluas `POST /lab-orders`, dengan alasan yang baru saja terbukti mahal pada `BE-LAB-21`: ruas wajib yang ditambahkan ke endpoint berjalan membuat layar yang sudah dipakai menjawab `422` seketika. BR-46 dan BR-47 ditulis; `AC-86` sampai `AC-90` ditambahkan; `AC-83` diamandemen. **Satu pertentangan dibuka sebagai `LAB-CONFLICT-007`:** `AC-83` menjanjikan tidak ada jalan menyimpan pesanan berdisiplin kosong, tetapi janji itu **hanya ditegakkan frontend** — `LabOrderService` menyalin `request.Discipline` apa adanya dan ruas itu tidak wajib. Terbukti pada data: **2 dari 5 pesanan tidak berdisiplin** dan hilang dari ketiga menu. Ini pola yang sama dengan `VAL-62` dan `T-M3`: aturan yang hanya dijaga satu lapis akan bocor lewat lapis lain, dan bocornya diam-diam | `draft` |
 | 28 | 2026-09-14 | **Dua pertentangan ditutup, dan keduanya ditemukan saat implementasi — bukan saat perancangan.** `LAB-DEC-049` mempersempit `AC-55`/`AC-57` ke **penambahan saja**: pembatalan tetap terbuka sesudah kelayakan dan koreksi tagihannya wewenang Billing, sehingga `RJ-BIL-GATE-DEC-003` milik `rawat-jalan` tidak perlu disentuh. `LAB-DEC-050` **mencabut `LAB-DEC-038`**: kolom Jumlah tidak dibuat sama sekali, karena index unik `(SpecimenId, ProcedureId)` atas dasar `BR-20` dan `AC-35` membuat Qty > 1 mustahil — dan contoh Glukosa pada `BR-33` sendiri keliru, sebab Glukosa Puasa dan Glukosa 2 Jam PP adalah dua `MstProcedure` berbeda. BR-44 dan BR-45 ditulis; `AC-52`..`AC-54` dicabut; `AC-55` dan `AC-57` diamandemen; `VAL-60` dicabut; `LAB-API-v1` naik ke `r9` mencabut ruas `Quantity` sebelum sempat dibangun. **Akar keduanya sama:** acceptance criteria revision 23 diturunkan dari `LAB-EVD-001` tanpa pernah diadu dengan model data yang dikunci `LAB-DEC-024`. Dicatat sebagai pelajaran proses pada `roadmap/traceability.md` bagian 5 | `draft` |

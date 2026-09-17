@@ -77,6 +77,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
     {
         public Guid LabOrderId { get; set; }
 
+        /// <summary>
+        /// Nomor pesanan yang dapat disebut manusia (<c>LAB-API-v1</c> <c>r16</c>).
+        ///
+        /// Ditempatkan di sini, bukan hanya pada <c>LabOrderListResponse</c>, karena ketiga menu
+        /// Pemeriksaan membaca grup <b>Lab Monitoring</b> — pelajaran <c>r13</c>/<c>r14</c> yang
+        /// diterapkan sejak awal alih-alih diulang.
+        /// </summary>
+        public string OrderNumber { get; set; } = string.Empty;
+
         public Guid EncounterId { get; set; }
 
         public string? EncounterNumber { get; set; }

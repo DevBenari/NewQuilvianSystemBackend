@@ -190,6 +190,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
     {
         public Guid Id { get; set; }
 
+        /// <summary>
+        /// Nomor pesanan yang dapat dibaca, dicetak, dan disebut lewat telepon
+        /// (<c>LAB-DEC-072</c>, <c>LAB-API-v1</c> <c>r16</c>). Bentuknya <c>LAB-RSMMC-000001</c>.
+        ///
+        /// Ruas <b>tampil</b>, bukan penunjuk — layar tidak boleh menampilkan GUID, dan daftar
+        /// yang hanya membawa penunjuk memaksa layar memanggil endpoint kedua per baris.
+        /// </summary>
+        public string OrderNumber { get; set; } = string.Empty;
+
         public Guid EncounterId { get; set; }
 
         /// <summary>Perawatan rawat inap yang menaungi pesanan, bila ada.</summary>

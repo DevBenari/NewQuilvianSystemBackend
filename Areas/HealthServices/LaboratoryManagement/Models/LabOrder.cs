@@ -17,6 +17,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 
+        /// <summary>
+        /// Nomor pesanan yang dapat dibaca, dicetak, dan <b>disebut lewat telepon</b>
+        /// (<c>LAB-DEC-072</c>). Bentuknya <c>LAB-RSMMC-000001</c>.
+        ///
+        /// Nilainya dialokasikan <see cref="LabOrderNumberService"/> pada saat pesanan dibuat dan
+        /// tidak pernah berubah sesudahnya. Celah penomoran <b>dibiarkan ada</b> dan tidak pernah
+        /// diisi ulang — nomor ini dicetak pada amplop hasil pasien, dan dua benda fisik bernomor
+        /// sama adalah kesalahan yang tidak terlihat oleh siapa pun. Batas jaminannya ada pada
+        /// <see cref="LabOrderNumberService"/>.
+        ///
+        /// <b>Pola <c>LSP-{Guid:N}</c> milik barcode wadah sengaja tidak dipakai.</b> Barcode
+        /// wadah dibaca mesin; nomor ini dibaca dan diucapkan manusia.
+        ///
+        /// Kolomnya wajib, dan itu disengaja: nomor order tidak punya keadaan "belum". Kolom yang
+        /// boleh kosong hanya akan menyembunyikan jalur tulis yang lupa mengalokasikan.
+        /// </summary>
+        [Required]
+        [MaxLength(32)]
+        public string OrderNumber { get; set; } = string.Empty;
+
         [Required]
         public Guid EncounterId { get; set; }
 

@@ -100,6 +100,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
                 "Katalog alasan penolakan sampel berhasil diambil."));
         }
 
+        // Daftar penerimaan LINTAS PESANAN (LAB-API-v1 r17, FR-11.5, AC-67).
+        //
+        // Rentangnya disaring pada waktu kedatangan SEBENARNYA — PhysicallyReceivedAt bila
+        // dicatat, CreateDateTime bila tidak — sehingga wadah yang tiba Senin malam dan baru
+        // diregistrasi Selasa pagi tetap muncul pada hari Senin (LAB-DEC-042).
+        [HttpGet]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<LabSpecimenListResponse>>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Lab Specimen", Description = "Melihat daftar penerimaan wadah lintas pesanan", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabSpecimen", "Read")]
+        public async Task<IActionResult> GetList(
+            [FromQuery] LabSpecimenPagedQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _labSpecimenService.GetListAsync(query, cancellationToken);
+
+            return Ok(ApiResponse<PagedResult<LabSpecimenListResponse>>.Ok(
+                result,
+                "Daftar penerimaan wadah berhasil diambil."));
+        }
+
         [HttpGet("by-order/{labOrderId:guid}")]
         [ProducesResponseType(typeof(ApiResponse<List<LabSpecimenResponse>>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Lab Specimen", Description = "Melihat sampel pada satu order laboratorium", AccessType = AccessTypes.Read, SortOrder = 1)]
