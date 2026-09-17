@@ -111,9 +111,9 @@ Base URL: `api/v1/health-services/blood-bank-management/blood-units`
 | `POST` | `/{id}/corrections/{correctionId}/approve` | **Setujui** koreksi; sejak saat ini koreksi berlaku dan pemenuhan dihitung ulang | `BloodUnit : ApproveCorrection` | `DecideCorrectionRequest` | `ApiResponse<IssuanceCorrectionDto>` | Rencana · `403 VAL-BD-074` · `422 VAL-BD-073/075` |
 | `POST` | `/{id}/corrections/{correctionId}/reject` | **Tolak** koreksi; rekam tidak berubah sama sekali | `BloodUnit : ApproveCorrection` | `DecideCorrectionRequest` | `ApiResponse<IssuanceCorrectionDto>` | Rencana · `403 VAL-BD-074` · `422 VAL-BD-073/075/077` |
 | `GET` | `/{id}/corrections` | Daftar koreksi pada kantong ini beserta keadaannya | `BloodUnit : Read` | — | `ApiResponse<List<IssuanceCorrectionDto>>` | Rencana |
-| `POST` | `/{id}/reallocate` | Alihkan kantong `PendingReview` ke pasien lain | **`BloodUnit : ResolveReallocate`** | `ReallocateUnitRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana · `403 VAL-BD-080` · `422 VAL-BD-016/064` |
-| `POST` | `/{id}/return-to-provider` | Kembalikan kantong ke PMI | **`BloodUnit : ResolveReturn`** | `ResolveWithReasonRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana · `403 VAL-BD-081` |
-| `POST` | `/{id}/mark-not-usable` | Nyatakan kantong tidak layak | **`BloodUnit : ResolveNotUsable`** | `ResolveWithReasonRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana · `403 VAL-BD-082` |
+| `POST` | `/{id}/reallocate` | Alihkan kantong `PendingReview` ke pasien lain | **`BloodUnit : ResolveReallocate`** | `ReallocateUnitRequest` | `ApiResponse<BloodUnitDetailDto>` | **Terimplementasi `BE-BD-009`** · `400 VAL-BD-016` · `403 VAL-BD-080` · `422 VAL-BD-064` |
+| `POST` | `/{id}/return-to-provider` | Kembalikan kantong ke PMI | **`BloodUnit : ResolveReturn`** | `ResolveWithReasonRequest` | `ApiResponse<BloodUnitDetailDto>` | **Terimplementasi `BE-BD-009`** · `400 VAL-BD-016` · `403 VAL-BD-081` |
+| `POST` | `/{id}/mark-not-usable` | Nyatakan kantong tidak layak | **`BloodUnit : ResolveNotUsable`** | `ResolveWithReasonRequest` | `ApiResponse<BloodUnitDetailDto>` | **Terimplementasi `BE-BD-009`** · `400 VAL-BD-016` · `403 VAL-BD-082` |
 
 Pemberian (`issue`/`emergency-issue`) tidak dapat dibatalkan — status terminal. Koreksi tidak
 memindahkan kantong keluar dari `Issued` (`VAL-BD-049`).
@@ -124,6 +124,14 @@ sedangkan pengembalian dan penetapan tidak layak **mengeluarkan** darah dari per
 `Resolve` untuk ketiganya berarti siapa pun yang boleh membuang kantong rusak otomatis boleh
 mengalihkan darah ke pasien lain — dan itu justru tindakan paling berisiko di antara ketiganya.
 Endpoint-nya sendiri **tidak berubah**; yang berubah hanya penjaganya.
+
+**Sinkronisasi HTTP penolakan penyelesaian — `BE-BD-009`, 17 September 2026.** Baris `reallocate`
+semula mengelompokkan `422 VAL-BD-016/064`. Kode HTTP per kode validasi dimiliki
+[validation-matrix](validation-matrix.md), yang menetapkan **`VAL-BD-016` = `400`** dan
+**`VAL-BD-064` = `422`**; runtime `BE-BD-009` membuktikan keduanya persis demikian pada endpoint ini.
+`VAL-BD-016` juga berlaku pada `return-to-provider` dan `mark-not-usable` — matriks perpindahan
+status §3 sudah mencantumkannya sejak semula, dan runtime membuktikannya. Ini penyelarasan penulisan,
+bukan perubahan aturan.
 
 **Bukti kecocokan kini menyimpan hasil keputusan.** `RecordEvidenceRequest` bertambah satu isian wajib:
 hasilnya cocok atau tidak cocok. Bukti bertanda tidak cocok **tetap tersimpan** dan **tidak** membuka

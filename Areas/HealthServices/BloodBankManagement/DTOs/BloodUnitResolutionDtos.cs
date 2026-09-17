@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.DTOs
 {
@@ -34,8 +34,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.DTOs
         public Guid BloodOrderLineId { get; set; }
 
         /// <summary>Kode alasan terkendali dari <c>MstBloodBankReason</c>.</summary>
-        [Required]
-        [MaxLength(30)]
+        /// <remarks>
+        /// <b>Sengaja tanpa <c>[Required]</c> maupun <c>[MaxLength]</c>.</b> Validasi model otomatis
+        /// ASP.NET menolak body lebih dulu dengan <c>ProblemDetails</c> generik, sehingga kode
+        /// <c>VAL-BD-016</c> dan pesan kanonisnya tidak pernah terkirim — terbukti runtime pada
+        /// <c>AC-BD-025</c>. Service menolak kode kosong maupun kode yang tidak ada di master
+        /// dengan <c>400 VAL-BD-016</c> secara <i>fail-closed</i>.
+        /// </remarks>
         public string ReasonCode { get; set; } = string.Empty;
 
         /// <summary>
@@ -73,8 +78,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.DTOs
     public class ResolveWithReasonRequest
     {
         /// <summary>Kode alasan terkendali dari <c>MstBloodBankReason</c>.</summary>
-        [Required]
-        [MaxLength(30)]
+        /// <remarks>
+        /// <b>Sengaja tanpa <c>[Required]</c> maupun <c>[MaxLength]</c>.</b> Validasi model otomatis
+        /// ASP.NET menolak body lebih dulu dengan <c>ProblemDetails</c> generik, sehingga kode
+        /// <c>VAL-BD-016</c> dan pesan kanonisnya tidak pernah terkirim — terbukti runtime pada
+        /// <c>AC-BD-025</c>. Service menolak kode kosong maupun kode yang tidak ada di master
+        /// dengan <c>400 VAL-BD-016</c> secara <i>fail-closed</i>.
+        /// </remarks>
         public string ReasonCode { get; set; } = string.Empty;
 
         /// <summary>Token konkurensi kantong yang dipegang layar.</summary>
