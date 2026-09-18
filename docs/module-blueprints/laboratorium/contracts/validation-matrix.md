@@ -3,7 +3,11 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-VAL-v1` |
-| Revision | `6` |
+| Revision | `8` |
+| `r8` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-18** |
+| Isi amandemen `r8` | **`approved` — 2026-09-18.** Sebelas aturan `VAL-92`..`VAL-102` untuk laporan Patologi Anatomi **per pesanan**, menurunkan `LAB-DEC-085`..`LAB-DEC-088`, `LAB-DEC-091`, dan `LAB-DA-001` rev 7. **Satu aturan DICABUT: `VAL-88`** — ia menuntut tiga nama kolom yang dihardcode (makroskopik, mikroskopik, kesimpulan), sedangkan kewajiban ruas kini **bergantung kategori** dan ditegakkan `VAL-95` terhadap data induk keberlakuan. `VAL-83`, `VAL-84`, dan `VAL-89` **tetap berlaku bagi Mikrobiologi**. **Nol aturan `VAL-01`..`VAL-87` dan `VAL-89`..`VAL-91` berubah.** Disetujui bersama `LAB-API-v1` `r25` dan `LAB-PERM-v1` rev 7 pada hari yang sama. Lihat bagian 10 |
+| `r7` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-18** |
+| Isi amandemen `r7` | **`approved` — 2026-09-18.** Sembilan aturan `VAL-83`..`VAL-91` untuk pengisian hasil Mikrobiologi dan Patologi Anatomi, menurunkan `LAB-DEC-027`, `LAB-DEC-084`, dan `LAB-DA-001` rev 6. **Nol aturan `VAL-01`..`VAL-82` berubah.** Bagian 9.1 mencatat selisih pembukuan yang ditemukan saat menulisnya: `VAL-76`..`VAL-82` lahir pada `LAB-API-v1` `r18`/`r21` tetapi tidak pernah masuk matriks ini, dan **sengaja tidak ditambal diam-diam** |
 | Status | `approved` — `VAL-01`..`VAL-50` dikunci 2026-09-02; **`VAL-51`..`VAL-63` disetujui pemilik modul 2026-09-14**; **`VAL-64`..`VAL-69` disetujui pemilik modul 2026-09-15** |; **`VAL-70`..`VAL-75` disetujui pemilik modul 2026-09-15**
 | `r5` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-15 |
 | Isi amandemen `r5` | **`approved` — 2026-09-15.** Enam aturan untuk pemesanan per disiplin. `VAL-64`..`VAL-67` menjaga isi permintaan pemesanan massal; `VAL-68` dan `VAL-69` menjaga agar wadah hanya memuat pemeriksaan yang memang dipesan, dan keduanya **hanya berlaku bila pesanannya punya baris terpesan** sehingga pesanan lama tidak berubah perilakunya. Tidak satu pun aturan `VAL-01`..`VAL-63` berubah. Menurunkan `LAB-DEC-055`..`LAB-DEC-057` |
@@ -281,3 +285,139 @@ sampai jawabannya datang.
 | `VAL-21`, `VAL-25` sampai `VAL-27` | `LAB-DEC-018` | AC-24 |
 | `VAL-28`, `VAL-31` sampai `VAL-35` | `LAB-DEC-023` | AC-33 |
 | `VAL-37` | `LAB-DEC-019`, `LAB-INH-010` | AC-26 |
+
+---
+
+## 9. Amandemen `r7` — Hasil Mikrobiologi dan Patologi Anatomi, 2026-09-18
+
+> ### ✅ STATUS: `approved` — 2026-09-18
+>
+> Disetujui **Yoga Aji Pratama** selaku pemilik modul pada 2026-09-18, bersama `LAB-API-v1` `r24`
+> dan `LAB-PERM-v1` revision 6. `approved_by` / `approved_at`:
+> Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-18.
+>
+> **Sembilan aturan baru, `VAL-83` sampai `VAL-91`. Nol aturan `VAL-01`..`VAL-82` berubah.**
+
+### 9.1 Satu selisih pembukuan ditemukan saat menulis bagian ini
+
+**`VAL-76` sampai `VAL-82` tidak pernah masuk ke matriks ini.** Ketujuhnya lahir pada
+`LAB-API-v1` `r18` dan `r21` — penyaring NIK, Kategori Periode, dan pengisian hasil Patologi
+Klinik — dan tertulis lengkap di sana, tetapi dokumen ini berhenti pada `VAL-75`.
+
+Selisihnya **tidak ditambal diam-diam di sini**: menyalinnya sekarang berarti mengaku ia sudah
+tercatat sejak `r18`, padahal tidak. Yang dilakukan adalah **mencatat keberadaan selisihnya**,
+dan penomoran usulan ini melanjutkan dari `VAL-82` supaya nomornya tidak bertabrakan.
+
+### 9.2 Aturan yang diusulkan
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|
+| `VAL-83` | Mengisi hasil Mikrobiologi atau Patologi Anatomi | Pemeriksaan sudah gugur karena wadahnya ditolak, atau sudah dibatalkan | "Pemeriksaan ini sudah tidak berjalan, hasilnya tidak dapat diisi." | `409` |
+| `VAL-84` | Mengisi hasil | Bentuk hasil pemeriksaan tidak cocok dengan jalur yang dipakai | "Pemeriksaan ini bukan pemeriksaan {Mikrobiologi/Patologi Anatomi}. Gunakan layar yang sesuai." | `422` |
+| `VAL-85` | Mencatat isolat | Organisme yang dipilih tidak ditemukan atau sudah dinonaktifkan | "Organisme ini sudah tidak dipakai lagi. Pilih dari daftar yang tersedia." | `422` |
+| `VAL-86` | Mencatat kepekaan | Antibiotik yang dipilih tidak ditemukan atau sudah dinonaktifkan | "Antibiotik ini sudah tidak ada pada panel uji. Pilih dari daftar yang tersedia." | `422` |
+| `VAL-87` | Mencatat kepekaan | Satu antibiotik dimasukkan dua kali pada isolat yang sama | "Antibiotik ini sudah diuji pada kuman tersebut. Satu antibiotik cukup sekali." | `422` |
+| ~~`VAL-88`~~ | ~~Mengisi hasil Patologi Anatomi~~ | ~~Makroskopik, mikroskopik, atau kesimpulan kosong atau hanya berisi spasi~~ | **DICABUT `r8` — 2026-09-18.** Digantikan `VAL-95`, yang menguji kelengkapan terhadap **data induk keberlakuan**, bukan terhadap tiga nama kolom | — |
+| `VAL-89` | Mengisi hasil | Waktu pemeriksaan berada di masa depan | "Waktu pemeriksaan tidak boleh melewati waktu sekarang." | `422` |
+| `VAL-90` | Mencatat kepekaan | Zona hambat diisi nol atau negatif | "Lebar zona hambat harus lebih dari nol milimeter." | `422` |
+| `VAL-91` | Menambah organisme atau antibiotik | Kodenya sudah dipakai baris lain | "Kode ini sudah dipakai data lain, jadi tidak bisa disimpan." | `409` |
+
+### 9.3 Catatan yang menentukan cara menegakkannya
+
+**`VAL-85` dan `VAL-86` hanya berlaku pada baris BARU.** Hasil lama yang menunjuk organisme yang
+kemudian dinonaktifkan **tetap sah dan tetap terbaca** (`INV-31`). Menegakkan "aktif" saat
+membaca akan membuat temuan pasien menghilang karena data induknya dirapikan — kelas kesalahan
+yang sama dengan mengubah batas nilai secara surut, dan itu yang sudah dicegah `S4a` lewat
+`ResultValueBoundId`.
+
+**`VAL-87` ditegakkan dua lapis**: pada aturan bisnis, dan pada index unik parsial
+`(LabMicrobiologyIsolateId, LabAntibioticId)` dengan pembatas `IsDelete = false`. Pembatas itu
+wajib — tanpanya, analis yang menghapus baris lalu memilih antibiotik yang sama lagi akan
+ditolak basis data tanpa sebab yang masuk akal baginya. Modul ini sudah pernah membayar persis
+kesalahan itu lewat `LAB-CONFLICT-005`.
+
+~~**`VAL-88` menolak, bukan menyimpan sebagai draft.** Laporan patologi tanpa kesimpulan tidak
+dapat dipakai dokter untuk memutuskan apa pun, dan `INV-25` menurunkannya langsung dari BR-23.~~
+
+> **Catatan ini ikut gugur bersama `VAL-88` pada `r8` (2026-09-18).** Yang bertahan dari isinya
+> adalah **niatnya**, dan niat itu kini dijaga `VAL-95`: laporan tetap tidak boleh difinalkan
+> selama isian **wajib** masih kosong. Yang gugur adalah anggapan bahwa "wajib" selalu berarti
+> persis tiga kolom itu — `LAB-DEC-086` menetapkan kewajibannya **bergantung kategori**.
+
+**`VAL-89` mengikuti `VAL-82` dan `LAB-DEC-064`** — aturan yang sama, diterapkan pada waktu
+kejadian.
+
+**Nol aturan validasi untuk penilaian kritis.** Hasil Mikrobiologi dan narasi Patologi Anatomi
+**tidak dinilai kritis** (`INV-28`), sehingga tidak ada yang perlu divalidasi. Ditulis eksplisit
+agar ketiadaannya tidak terbaca sebagai kelalaian.
+
+### 9.4 Traceability usulan
+
+| Aturan | Decision ID | Invariant |
+|---|---|---|
+| `VAL-83`, `VAL-84`, `VAL-89` | `LAB-DEC-027` | `INV-24` |
+| `VAL-85`, `VAL-86`, `VAL-91` | `LAB-DEC-084` | `INV-30`, `INV-31` |
+| `VAL-87`, `VAL-90` | `LAB-DEC-027` | `INV-27` |
+| ~~`VAL-88`~~ | ~~`LAB-DEC-027`~~ | **Dicabut** bersama `INV-25` — lihat bagian 10 |
+
+---
+
+## 10. Amandemen `r8` — Laporan Patologi Anatomi per pesanan, 2026-09-18
+
+> ### ✅ STATUS: `approved` — **DISETUJUI 2026-09-18**
+>
+> Disetujui bersama `LAB-API-v1` `r25` dan `LAB-PERM-v1` rev 7.
+> `approved_by` / `approved_at`: Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-18**.
+
+### 10.1 Satu aturan dicabut
+
+**`VAL-88` DICABUT.** Ia menuntut *"makroskopik, mikroskopik, dan kesimpulan ketiganya wajib
+terisi"* — benar terhadap BR-23, dan BR-23 sendiri yang ternyata tidak lengkap. Kewajiban ruas
+kini **bergantung kategori** dan ditegakkan `VAL-95` terhadap data induk keberlakuan, bukan
+terhadap tiga nama kolom yang dihardcode.
+
+**`VAL-83`, `VAL-84`, `VAL-89` tetap berlaku bagi Mikrobiologi.** Yang dicabut hanya `VAL-88`.
+
+### 10.2 Aturan yang berlaku
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|
+| `VAL-92` | Membuka atau menyimpan laporan PA | Pesanan tidak ditemukan, sudah dibatalkan, atau **bukan berdisiplin Patologi Anatomi** | "Pesanan ini bukan pemeriksaan Patologi Anatomi." | `404` / `422` |
+| `VAL-93` | Menyimpan nilai | Parameter yang dikirim **tidak berlaku** bagi kategori pesanan ini | "Isian ini tidak dipakai pada jenis pemeriksaan tersebut." | `422` |
+| `VAL-94` | Menyimpan nilai | Satu parameter dikirim dua kali dalam satu permintaan | "Isian yang sama dikirim dua kali." | `422` |
+| `VAL-95` | Memfinalkan | Masih ada parameter **wajib** yang kosong | "Laporan belum dapat diselesaikan. Isian berikut masih kosong: {daftar}." | `422` |
+| `VAL-96` | Menyimpan nilai | Laporan sudah final | "Laporan ini sudah diselesaikan. Buka kembali lebih dulu bila perlu diubah." | `409` |
+| `VAL-97` | Membuka kembali | Alasan kosong atau hanya spasi | "Tuliskan alasan membuka kembali laporan ini." | `422` |
+| `VAL-98` | Membuka kembali | Laporan belum pernah difinalkan | "Laporan ini belum pernah diselesaikan." | `409` |
+| `VAL-99` | Menyimpan nilai | Parameter atau kategorinya sudah dinonaktifkan | "Isian ini sudah tidak dipakai lagi." | `422` |
+| `VAL-100` | Membuka atau memfinalkan laporan | Pemeriksaan pada pesanan itu **nol punya pemetaan kategori** | "Jenis pemeriksaan pada pesanan ini belum digolongkan ke kategori Patologi Anatomi. Hubungi kepala instalasi." | `422` |
+| `VAL-101` | Menambah parameter atau kategori | Kodenya sudah dipakai | "Kode ini sudah dipakai data lain, jadi tidak bisa disimpan." | `409` |
+| `VAL-102` | Menulis konteks klinis | Pesanan bukan Patologi Anatomi | "Konteks klinis hanya diisi untuk pemeriksaan Patologi Anatomi." | `422` |
+
+### 10.3 Catatan yang menentukan cara menegakkannya
+
+**`VAL-95` wajib menyebut parameter mana saja yang kosong.** Menolak dengan *"laporan belum
+lengkap"* saja akan membuat patolog menebak ruas mana yang terlewat pada formulir berisi sampai
+lima belas isian.
+
+**`VAL-100` adalah keadaan yang PASTI terjadi pada hari pertama**, sebelum pemetaan jenis
+pemeriksaan diisi. Pesannya wajib menyebut **apa yang belum diatur dan siapa yang mengaturnya** —
+bukan hanya menolak. Tanpa itu, patolog pertama yang membuka layar akan mengira sistemnya rusak.
+
+**`VAL-99` berlaku hanya bagi nilai BARU.** Laporan lama yang menunjuk parameter yang kemudian
+dinonaktifkan **tetap terbaca utuh** (`INV-37`) — pola yang sama dengan `VAL-85`/`VAL-86` pada
+Mikrobiologi, dan dengan `ResultValueBoundId` pada `S4a`.
+
+**Nol aturan untuk `Waktu Issued` dan `Waktu Efektif`.** Keduanya **tidak diterima** dari
+pemanggil (`INV-38`), sehingga tidak ada yang perlu divalidasi. Ditulis eksplisit agar
+ketiadaannya tidak terbaca sebagai kelalaian.
+
+### 10.4 Traceability
+
+| Aturan | Decision ID | Invariant |
+|---|---|---|
+| `VAL-92`, `VAL-102` | `LAB-DEC-085`, `LAB-DEC-091` | `INV-32`, `INV-40` |
+| `VAL-93`, `VAL-94`, `VAL-95`, `VAL-99` | `LAB-DEC-086` | `INV-33`, `INV-34`, `INV-37` |
+| `VAL-96`, `VAL-97`, `VAL-98` | `LAB-DEC-088` | `INV-35`, `INV-36` |
+| `VAL-100` | `LAB-DEC-087` | `INV-39` |
+| `VAL-101` | `LAB-DEC-086` | — |

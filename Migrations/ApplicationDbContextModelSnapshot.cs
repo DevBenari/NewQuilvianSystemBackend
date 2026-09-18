@@ -68832,6 +68832,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<int>("ExaminationStatus")
                         .HasColumnType("integer");
 
+                    b.Property<DateTime?>("ExaminedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<bool>("IsCancel")
                         .HasColumnType("boolean");
 
@@ -68854,6 +68857,26 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<string>("ProcedureNameSnapshot")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("ResultEnteredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ResultEnteredByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal?>("ResultNumeric")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<Guid?>("ResultOptionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ResultUnitSnapshot")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<Guid?>("ResultValueBoundId")
+                        .HasColumnType("uuid");
 
                     b.Property<Guid>("SpecimenId")
                         .HasColumnType("uuid");
@@ -68894,9 +68917,15 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("ExaminationStatus");
 
+                    b.HasIndex("ExaminedAt");
+
                     b.HasIndex("LabOrderId");
 
                     b.HasIndex("ProcedureId");
+
+                    b.HasIndex("ResultOptionId");
+
+                    b.HasIndex("ResultValueBoundId");
 
                     b.HasIndex("Urgency");
 
@@ -69085,6 +69114,247 @@ namespace QuilvianSystemBackend.Migrations
                         .HasFilter("\"IsDelete\" = false");
 
                     b.ToTable("LabOrderedProcedure", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabPathologyCategory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CategoryCode")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("CategoryName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CategoryCode")
+                        .IsUnique()
+                        .HasDatabaseName("IX_LabPathologyCategory_CategoryCode")
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("IsActive", "SortOrder");
+
+                    b.ToTable("LabPathologyCategory", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabPathologyParameter", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ParameterCode")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("ParameterName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ParameterCode")
+                        .IsUnique()
+                        .HasDatabaseName("IX_LabPathologyParameter_ParameterCode")
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("ParameterName");
+
+                    b.HasIndex("IsActive", "SortOrder");
+
+                    b.ToTable("LabPathologyParameter", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabPathologyParameterCategory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsRequired")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("LabPathologyCategoryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("LabPathologyParameterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LabPathologyCategoryId");
+
+                    b.HasIndex("LabPathologyParameterId", "LabPathologyCategoryId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_LabPathologyParameterCategory_ParameterId_CategoryId")
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.ToTable("LabPathologyParameterCategory", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabProcedurePathologyCategory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("LabPathologyCategoryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ProcedureId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LabPathologyCategoryId");
+
+                    b.HasIndex("ProcedureId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_LabProcedurePathologyCategory_ProcedureId")
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.ToTable("LabProcedurePathologyCategory", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabSpecimen", b =>
@@ -104753,6 +105023,16 @@ namespace QuilvianSystemBackend.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabValueOption", "ResultOption")
+                        .WithMany()
+                        .HasForeignKey("ResultOptionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabValueBound", "ResultValueBound")
+                        .WithMany()
+                        .HasForeignKey("ResultValueBoundId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabSpecimen", "Specimen")
                         .WithMany("Examinations")
                         .HasForeignKey("SpecimenId")
@@ -104762,6 +105042,10 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("LabOrder");
 
                     b.Navigation("Procedure");
+
+                    b.Navigation("ResultOption");
+
+                    b.Navigation("ResultValueBound");
 
                     b.Navigation("Specimen");
                 });
@@ -104817,6 +105101,44 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("FulfilledExamination");
 
                     b.Navigation("LabOrder");
+
+                    b.Navigation("Procedure");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabPathologyParameterCategory", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabPathologyCategory", "LabPathologyCategory")
+                        .WithMany()
+                        .HasForeignKey("LabPathologyCategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabPathologyParameter", "LabPathologyParameter")
+                        .WithMany()
+                        .HasForeignKey("LabPathologyParameterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("LabPathologyCategory");
+
+                    b.Navigation("LabPathologyParameter");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabProcedurePathologyCategory", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabPathologyCategory", "LabPathologyCategory")
+                        .WithMany()
+                        .HasForeignKey("LabPathologyCategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstProcedure", "Procedure")
+                        .WithMany()
+                        .HasForeignKey("ProcedureId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("LabPathologyCategory");
 
                     b.Navigation("Procedure");
                 });

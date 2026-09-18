@@ -5,11 +5,11 @@
 | `request_id` | `LAB-REQ-004` |
 | `tanggal` | 2026-09-09 |
 | `pengaju` | Yoga Aji Pratama — Product/Domain Owner Laboratorium (`yogaaji452@gmail.com`) |
-| `kepada` | **Dokter penanggung jawab laboratorium** atau **Komite Medis** — pemegang wewenang Clinical Governance |
-| `menutup` | `LAB-SIGN-001` |
+| `kepada` | **Ditetapkan 2026-09-17 lewat `LAB-REQ-009`** — `DR-LAB-001` **dr. Aditya Pranata, Sp.PK** (Patologi Klinik), `DR-LAB-002` **dr. Nabila Rahmawati, Sp.MK** (Mikrobiologi Klinik), `DR-LAB-003` **dr. Citra Maharani, Sp.PA** (Patologi Anatomi). Sebelumnya tertulis *"dokter penanggung jawab laboratorium atau Komite Medis"* — jabatan tanpa pemegang, dan itu sebabnya dokumen ini menggantung delapan hari |
+| `menutup` | `LAB-SIGN-001` — ✅ **tertutup 2026-09-17** oleh `LAB-DEC-079` |
 | `induk` | `LAB-DEC-011`; turunan `LAB-REQ-001` butir 6, yang dinyatakan di luar wewenang pemberi persetujuan |
 | `rujukan` | `00-interview-decisions.md` revision 21; `blueprint-manifest.md` revision 24 |
-| `status` | `terbuka` — menunggu penetapan penanda tangan dan tanda tangannya |
+| `status` | ✅ **`ditandatangani` — 2026-09-17.** Bagian 2–4 disetujui **apa adanya**, per disiplin, oleh `DR-LAB-001`, `DR-LAB-002`, dan `DR-LAB-003`. `LAB-SIGN-001` **ditutup** (`LAB-DEC-079`). **Bagian 5 dan 6 masih terbuka** — kedua penetapan dan ketiga pertanyaan klinis belum dijawab; lihat bagian 7.2 yang sudah memperingatkannya sejak 2026-09-09 |
 | `sifat` | Operasional. **Bukan** artefak desain — tidak masuk daftar hash manifest |
 | `yang diminta` | **Tanda tangan** atas tiga keputusan, **dua penetapan**, dan **jawaban** atas tiga pertanyaan klinis |
 
@@ -20,15 +20,40 @@ membuka satu pun dokumen desain lainnya.
 
 ## 0. Satu halaman untuk yang tidak punya waktu
 
-Rumah sakit sedang membangun modul Laboratorium baru. Desainnya sudah selesai: 36 keputusan
-disetujui pemilik modul, arsitektur dan kontrak terkunci, dan **seluruh 22 task backend serta 9
-task frontend gelombang pertama sudah selesai dikerjakan**.
+> ### Diperbarui 2026-09-17 — permintaan ini menjadi lebih mendesak, bukan kurang
+>
+> Dokumen ini ditulis 2026-09-09. Dua hal berubah sejak itu, dan keduanya mengubah **arti**
+> permintaannya.
+>
+> **Pertama, cakupan penahannya ditelusuri sampai akarnya dan ternyata lebih sempit.**
+> `LAB-SIGN-001` menahan **tepat tiga keputusan** — ketiga yang menjadi pokok dokumen ini.
+> `LAB-DEC-005`, yang menetapkan hasil diketik manual oleh analis, berdiri **tanpa** syarat tanda
+> tangan; ia setara `LAB-DEC-006` yang sudah dibangun penuh. Pemilik modul karena itu memecah
+> slicenya (`LAB-DEC-076`).
+>
+> **Kedua, dan inilah yang mengubah keadaan: pengisian hasil sudah berjalan sejak 2026-09-17.**
+> Analis kini dapat mengetik hasil ke dalam sistem beserta waktu pemeriksaannya.
+>
+> **Akibatnya pada permintaan ini:**
+>
+> | Sebelumnya | Sekarang |
+> |---|---|
+> | Yang tertahan terbaca sebagai *"hasil laboratorium"* — luas dan kabur | Yang tertahan **persis**: kemampuan **menyatakan sebuah hasil sah** dan mengirimkannya |
+> | Hasil dicatat di luar sistem, jadi tidak ada yang menumpuk | **Hasil mulai tersimpan di dalam sistem tanpa satu pun jalan keluar yang sah** |
+>
+> Baris kedua itu yang mendesak. Semakin lama tanda tangan ini menggantung, semakin banyak hasil
+> yang terisi tetapi **tidak ada seorang pun yang berwenang menyatakannya benar** — dan tidak
+> ada yang dapat dikirim ke dokter pemesan maupun pasien.
+
+Rumah sakit sedang membangun modul Laboratorium baru. Desainnya sudah selesai, arsitektur dan
+kontrak terkunci, dan **seluruh task backend maupun frontend yang tidak menyentuh keselamatan
+pasien sudah selesai dikerjakan** — termasuk, sejak 2026-09-17, pengisian hasil.
 
 Yang **belum boleh dibangun** adalah bagian yang menyentuh keselamatan pasien secara langsung:
 
 | Yang tertahan | Artinya bagi pekerjaan sehari-hari |
 |---|---|
-| Pengisian dan validasi hasil | Hasil masih dicatat di luar sistem seperti sekarang |
+| **Validasi dan rilis** hasil | **Hasil dapat diisi, tetapi tidak ada yang dapat menyatakannya sah.** Ia tidak dapat dikirim ke dokter pemesan maupun pasien, dan jumlahnya bertambah setiap hari |
 | Penandaan dan pelaporan nilai kritis | Pelaporan nilai kritis masih lisan, tanpa catatan yang dapat ditelusuri |
 | Koreksi hasil yang sudah dirilis | Belum ada mekanisme resmi memperbaiki hasil yang salah |
 
@@ -56,6 +81,80 @@ itu memang benar, atau koreksinya bila keliru.
 > menandatangani** — dokter penanggung jawab laboratorium, atau Komite Medis sebagai lembaga.
 > Selama nama itu belum ada, dokumen ini tidak punya tujuan yang sah, dan `LAB-SIGN-001` tidak
 > dapat ditutup oleh siapa pun.
+>
+> **Diperiksa ulang 2026-09-17, dan yang hilang ternyata hanya satu hal — bukan seluruhnya.**
+> Dibaca langsung dari data induk sistem:
+>
+> | Hal | Keadaan |
+> |---|---|
+> | Departemen tempat laboratorium bernaung | ✅ **`Penunjang Medis`** sudah ada |
+> | Jabatan analis yang mengetik hasil | ✅ **`Analis Laboratorium`** sudah ada |
+> | Jabatan dokter | ✅ `Dokter Umum`, `Dokter Spesialis`, `Dokter IGD` — di bawah `Medis` |
+> | Jabatan pemegang wewenang klinis laboratorium | ✅ **`Dokter Penanggung Jawab Laboratorium`** — didirikan 2026-09-17 atas instruksi pemilik modul (`LAB-DEC-077`), kode `POS-PMJ-004`, di bawah `Penunjang Medis` |
+> | **Orang yang memegangnya** | ❌ **Nol.** Jabatannya ada; kursinya kosong |
+>
+> **Yang tersisa karena itu tinggal satu hal, dan ia bukan pekerjaan perangkat lunak: sebuah
+> nama.** Sistem kini punya tempat mencatatnya; yang belum ada adalah orang yang ditunjuk rumah
+> sakit untuk mendudukinya.
+>
+> **Satu hal perlu ditegaskan supaya tidak salah harap:** menambahkan baris jabatan **tidak**
+> membuat tanda tangan ini dapat diberikan. Penelusuran source menemukan **nol kode** yang
+> membaca konsep Clinical Governance — tanda tangan ini tindakan manusia atas sebuah dokumen,
+> dan yang dibutuhkannya **sebuah nama**, bukan sebuah baris database. Baris jabatan baru
+> dibutuhkan kelak, ketika aturan yang ditandatangani ini diterjemahkan menjadi hak akses.
+>
+> Permohonan penetapannya diajukan terpisah lewat **`LAB-REQ-009`** pada 2026-09-17, ditujukan
+> kepada manajemen rumah sakit.
+>
+> ---
+>
+> ### ✅ Hambatan ini SUDAH LEWAT — 2026-09-17, hari yang sama
+>
+> `LAB-REQ-009` **dijawab**. Dokumen ini kini punya tujuan yang sah, dan itulah satu-satunya
+> hal yang berubah.
+>
+> | Kode | Nama | Disiplin yang dipegangnya |
+> |---|---|---|
+> | `DR-LAB-001` | **dr. Aditya Pranata, Sp.PK** | Patologi Klinik |
+> | `DR-LAB-002` | **dr. Nabila Rahmawati, Sp.MK** | Mikrobiologi Klinik |
+> | `DR-LAB-003` | **dr. Citra Maharani, Sp.PA** | Patologi Anatomi |
+>
+> Dicatat sebagai `LAB-DEC-078`. Ketiganya menutup persis ketiga disiplin scope `LAB-DEC-025`.
+>
+> **Satu hal berpindah kepada pembaca dokumen ini, dan sebaiknya diputuskan lebih dulu.**
+> Penetapannya **per disiplin**, sedangkan ketiga keputusan di bawah dirumuskan **lintas
+> disiplin** — `LAB-DEC-003`, `LAB-DEC-004`, dan `LAB-DEC-007` berlaku bagi Patologi Klinik,
+> Mikrobiologi, dan Patologi Anatomi sekaligus. Karena itu ada dua cara menandatanganinya, dan
+> dokumen ini **tidak memilih** salah satunya:
+>
+> | Cara | Artinya |
+> |---|---|
+> | **Bersama** — ketiganya menandatangani satu naskah | Satu aturan berlaku seragam bagi ketiga disiplin. Paling sederhana bagi sistem |
+> | **Sendiri-sendiri** — masing-masing menandatangani untuk disiplinnya | Aturannya boleh berbeda antardisiplin. Berakibat pada `LAB-PERM-v1` dan pada bentuk `S4`/`S4b`/`S4c`, dan itu keputusan yang perlu dinyatakan, bukan disimpulkan |
+>
+> **Dijawab pada hari yang sama: `sendiri-sendiri`.** Masing-masing menandatangani untuk
+> disiplinnya, dan aturannya **boleh** berbeda antardisiplin. Lihat bagian 9.2.
+>
+> ---
+>
+> ### ✅ DAN TANDA TANGANNYA TURUN — 2026-09-17, hari yang sama
+>
+> Ketiga keputusan di bawah **disetujui apa adanya**, per disiplin. `LAB-SIGN-001` **ditutup**
+> setelah 16 hari. Dibukukan `LAB-DEC-079`.
+>
+> **Tiga hal perlu dibaca tepat, dan ketiganya mudah salah harap.**
+>
+> **Pertama, isi aturannya tidak berubah.** Jalur *"disetujui dengan perubahan"* pada bagian 8
+> tidak ditempuh. Maka hari ini ketiga naskah berlaku **identik** bagi Patologi Klinik,
+> Mikrobiologi, dan Patologi Anatomi. Yang per disiplin adalah **wewenangnya**, bukan isinya —
+> dan akibatnya baru terasa nanti: amandemen aturan Mikrobiologi kelak cukup ditandatangani
+> `DR-LAB-002` sendiri.
+>
+> **Kedua, bagian 5 dan 6 TIDAK ikut terjawab.** Bagian 7.2 dokumen ini sudah memperingatkannya
+> sejak 2026-09-09, dan peringatan itu terbukti tepat pada hari pertama.
+>
+> **Ketiga, satu pertanyaan baru lahir dari bentuk tanda tangannya** — `LAB-OPEN-034`, apakah
+> kewenangan validasi dan rilis melintasi disiplin. Lihat bagian 7.2.
 
 **Waktu yang dibutuhkan.** Bagian 2 sampai 4 memuat tiga keputusan yang perlu dibaca dan
 ditandatangani. Bagian 5 dan 6 memuat lima hal tambahan yang sebaiknya dijawab pada kesempatan
@@ -368,15 +467,30 @@ Penelusuran ulang 2026-09-09 menemukan bahwa dua penahan lain yang dahulu tercat
 `LAB-SIGN-001` — `LAB-COORD-001` (kemampuan pemberitahuan) dan `LAB-COORD-002` (jenis dokumen
 klinis baru) — **sudah ditutup pada 2026-09-01** lewat persetujuan `LAB-REQ-001` butir 7 dan 8.
 
-Akibatnya `LAB-SIGN-001` kini **satu-satunya penahan** bagi lima bagian sekaligus:
+Akibatnya `LAB-SIGN-001` kini **satu-satunya penahan** bagi bagian-bagian berikut:
 
-| Bagian | Isinya |
-|---|---|
-| `S4` | Pengisian dan validasi hasil |
-| `S4b` | Hasil berbentuk pilihan terbatas |
-| `S4c` | Hasil mikrobiologi dan patologi anatomi |
-| `S5` | Penandaan dan pelaporan nilai kritis |
-| `S6` | Koreksi hasil setelah rilis |
+| Bagian | Isinya | Keadaan |
+|---|---|---|
+| ~~`S4a`~~ | ~~**Pengisian** hasil Patologi Klinik~~ | ✅ **Sudah berjalan 2026-09-17.** Dipecah `LAB-DEC-076` sesudah terbukti `LAB-DEC-005` berdiri tanpa syarat tanda tangan |
+| `S4` | **Validasi dan rilis** hasil Patologi Klinik | ✅ **Terbuka 2026-09-17** — `DR-LAB-001` |
+| `S4b` | Hasil mikrobiologi | ✅ **Terbuka** — `DR-LAB-002`. Sisa penahannya `LAB-OPEN-017` (makna penanda Definitif) |
+| `S4c` | Hasil patologi anatomi | ✅ **Terbuka** — `DR-LAB-003` |
+| `S5` | Penandaan dan pelaporan nilai kritis | 🟡 **Kerangkanya terbuka, daftarnya belum** — `LAB-P0-004` dan `LAB-OPEN-014` tetap menahan, lihat 7.2 |
+| `S6` | Koreksi hasil setelah rilis | 🟡 **Terbuka, dengan sisa** — `LAB-P0-003` (aturan pembatalan dan koreksi) tetap menahan |
+
+> **"Terbuka" di sini berarti boleh dirancang, bukan sudah dapat dibangun.** Bagian 5 dokumen
+> ini sudah menyatakannya sejak 2026-09-09: tanda tangan tidak membuat fiturnya ada, ia membuat
+> perancangannya boleh dimulai. Urutannya tetap — arsitektur domain, lalu amandemen kontrak,
+> baru task. **Nol di antara ketiganya dikerjakan pada hari penandatanganan.**
+>
+> **Dan satu hal tidak berpindah sama sekali:** masuknya kelima slice ke dalam
+> `scope.slices_in_scope` adalah **keputusan rilis milik pemilik modul**, bukan akibat otomatis
+> tanda tangan ini. Manifest karena itu **tidak** digeser sendiri.
+
+> **Baris pertama itu yang mengubah keadaan.** Pengisian hasil keluar dari daftar ini bukan
+> karena dilewati, melainkan karena terbukti **tidak pernah** diatur ketiga keputusan yang
+> dimintakan tanda tangannya. Yang tersisa di bawahnya adalah persis yang memang bersifat klinis
+> — dan kini hasil sudah mulai tersimpan menunggu salah satunya.
 
 > **Catatan pembukuan.** `04-prd-to-mvp.md` bagian 7 masih menyebut `LAB-COORD-001` dan
 > `LAB-COORD-002` sebagai penahan `S5` dan `S6`. Catatan itu tertinggal dari keadaan
@@ -393,10 +507,27 @@ Supaya tidak salah harap:
 | Nilai kritis untuk mikrobiologi dan patologi anatomi (`S4c`) | Jawaban `LAB-OPEN-014` — bagian 6.2 |
 | Penegakan kewenangan di luar validasi dan rilis | Jawaban `LAB-P0-001` — bagian 6.3 |
 | Persetujuan perubahan batas kritis (`AC-33`) | Penetapan bagian 5.2 |
+| **Apakah kewenangan validasi/rilis melintasi disiplin** | `LAB-OPEN-034` — **baru, lahir 2026-09-17** dari bentuk tanda tangannya |
 
 Karena itu bagian 5 dan 6 diajukan bersama tanda tangannya. Menandatangani bagian 2–4 saja sudah
 membuka `S4`, `S4b`, dan sebagian besar `S5` dan `S6` — tetapi menyisakan empat hal yang akan
 kembali menahan pekerjaan beberapa minggu kemudian.
+
+> ### Peringatan ini terbukti tepat pada hari pertama — 2026-09-17
+>
+> Bagian 2–4 ditandatangani; **bagian 5 dan 6 tidak dijawab**. Keempat baris di atas karena itu
+> berlaku persis sebagaimana ditulis sembilan hari lalu, dan satu baris kelima menyusul.
+>
+> **Baris kelima itu yang paling pantas diperhatikan.** Tanda tangannya berbentuk **per
+> disiplin**, dan bentuk itu melahirkan pertanyaan yang tidak pernah ada sebelumnya: bolehkah
+> seorang validator Patologi Klinik memvalidasi hasil Mikrobiologi? Ia tidak sekadar soal hak
+> akses. `LAB-DEC-022` menjamin **dua pemegang kewenangan validasi tersedia per shift** — dan
+> jaminan itu menjadi **jauh lebih mahal** bila harus dipenuhi per disiplin, bukan per
+> laboratorium. Sebuah laboratorium dengan satu ahli Patologi Anatomi yang sedang cuti berarti
+> `S4c` berhenti sepenuhnya.
+>
+> Jawabannya wewenang ketiga penanda tangan bersama pemilik modul, dan **tidak diturunkan
+> sendiri di sini**. Dicatat `LAB-OPEN-034`.
 
 ---
 
@@ -421,22 +552,43 @@ ditelusuri — keadaan yang berjalan hari ini.
 
 ### 9.1 Penetapan pemegang wewenang klinis
 
-Diisi lebih dulu bila `clinical_governance` belum ditetapkan.
+> ✅ **Sudah terisi 2026-09-17 lewat `LAB-REQ-009`.** Bagian ini tidak perlu diisi ulang.
 
 | Field | Isian |
 |---|---|
-| Nama pemegang wewenang Clinical Governance modul Laboratorium | |
-| Jabatan | |
-| Ditetapkan oleh | |
-| Tanggal penetapan | |
+| Nama pemegang wewenang Clinical Governance modul Laboratorium | `DR-LAB-001` **dr. Aditya Pranata, Sp.PK** — Patologi Klinik<br>`DR-LAB-002` **dr. Nabila Rahmawati, Sp.MK** — Mikrobiologi Klinik<br>`DR-LAB-003` **dr. Citra Maharani, Sp.PA** — Patologi Anatomi |
+| Jabatan | Dokter spesialis penanggung jawab disiplin masing-masing; padanan data induknya `Dokter Penanggung Jawab Laboratorium` (`POS-PMJ-004`) |
+| Ditetapkan oleh | *(belum disampaikan — lihat `LAB-REQ-009` bagian 7.1 butir 2)* |
+| Tanggal penetapan | *(belum disampaikan)* — diterima pengaju 2026-09-17 |
 
 ### 9.2 Tanda tangan atas ketiga keputusan
 
+> **Terisi 2026-09-17.** Penetapannya per disiplin, ketiga keputusan di bawah lintas disiplin,
+> sehingga cara menandatanganinya perlu dinyatakan. Yang dipilih:
+>
+> - ☐ Ketiga penanda tangan menyetujui **satu naskah yang sama** — aturannya seragam bagi Patologi Klinik, Mikrobiologi, dan Patologi Anatomi.
+> - ☑ **Masing-masing menandatangani untuk disiplinnya sendiri** — aturannya **boleh** berbeda antardisiplin.
+>
+> **Dan yang perlu dicatat justru apa yang TIDAK menyertainya:** nol perbedaan antardisiplin
+> disampaikan. Ketiganya menyetujui naskah yang sama, apa adanya. Maka *"boleh berbeda"* adalah
+> **kewenangan ke depan**, bukan keadaan hari ini — dan menurunkan perbedaan aturan dari kalimat
+> ini berarti mengarang.
+
 | Keputusan | Isi ringkas | Setuju | Ubah | Tolak |
 |---|---|:---:|:---:|:---:|
-| `LAB-DEC-003` | Prinsip empat mata pada validasi hasil, dengan jalur pengecualian bertanda permanen | ☐ | ☐ | ☐ |
-| `LAB-DEC-004` | Nilai kritis tetap dirilis; pelaporan wajib dicatat lengkap | ☐ | ☐ | ☐ |
-| `LAB-DEC-007` | Koreksi hasil hanya oleh pemegang kewenangan validasi/rilis; dokter pemesan diberi tahu otomatis; versi lama tetap terlihat | ☐ | ☐ | ☐ |
+| `LAB-DEC-003` | Prinsip empat mata pada validasi hasil, dengan jalur pengecualian bertanda permanen | ☑ | ☐ | ☐ |
+| `LAB-DEC-004` | Nilai kritis tetap dirilis; pelaporan wajib dicatat lengkap | ☑ | ☐ | ☐ |
+| `LAB-DEC-007` | Koreksi hasil hanya oleh pemegang kewenangan validasi/rilis; dokter pemesan diberi tahu otomatis; versi lama tetap terlihat | ☑ | ☐ | ☐ |
+
+**Disiplin yang dicakup salinan ini**, diisi hanya bila memilih opsi kedua di atas:
+
+```
+☑ Patologi Klinik     ☑ Mikrobiologi Klinik     ☑ Patologi Anatomi
+```
+
+*(ketiganya tercentang karena ketiga salinan ditandatangani pada hari yang sama — `DR-LAB-001`
+untuk Patologi Klinik, `DR-LAB-002` untuk Mikrobiologi Klinik, `DR-LAB-003` untuk Patologi
+Anatomi.)*
 
 **Catatan perubahan bila ada:**
 
@@ -450,13 +602,22 @@ _______________________________________________________________________________
 
 ### 9.3 Pengesahan
 
-| | Pemegang wewenang klinis | Mengetahui |
-|---|---|---|
-| Nama | | |
-| Jabatan | | |
-| SIP / NIP | | |
-| Tanggal | | |
-| Tanda tangan | | |
+| | `DR-LAB-001` Patologi Klinik | `DR-LAB-002` Mikrobiologi Klinik | `DR-LAB-003` Patologi Anatomi | Mengetahui |
+|---|---|---|---|---|
+| Nama | dr. Aditya Pranata, Sp.PK | dr. Nabila Rahmawati, Sp.MK | dr. Citra Maharani, Sp.PA | |
+| Jabatan | *(tidak disampaikan)* | *(tidak disampaikan)* | *(tidak disampaikan)* | |
+| SIP / NIP | *(tidak disampaikan)* | *(tidak disampaikan)* | *(tidak disampaikan)* | |
+| Tanggal | 2026-09-17 | 2026-09-17 | 2026-09-17 | |
+| Tanda tangan | *(basah — belum dilampirkan)* | *(basah — belum dilampirkan)* | *(basah — belum dilampirkan)* | |
+
+Bila memilih opsi **sendiri-sendiri** pada 9.2, cukup kolom disiplin yang bersangkutan yang
+diisi pada salinan itu.
+
+> **Yang tercatat di sini adalah persetujuannya, bukan berkas tanda tangannya.** Ketiga
+> persetujuan disampaikan kepada pengaju pada 2026-09-17 dan dibukukan `LAB-DEC-079`. Lembar
+> bertanda tangan basah beserta SIP/NIP **belum dilampirkan**, dan itu dicatat apa adanya —
+> cukup untuk melanjutkan perancangan, belum lengkap sebagai berkas tata kelola. Kekurangan
+> yang sama berlaku pada `LAB-REQ-009` bagian 7.1.
 
 Bila pengesahan dilakukan Komite Medis sebagai lembaga, mohon dilampirkan nomor dan tanggal
 risalah rapatnya:
@@ -472,4 +633,5 @@ risalah rapatnya:
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 2 | 2026-09-17 | **Diperbarui sesudah dua temuan yang mengubah arti permintaan ini, bukan isinya.** Pertama, `LAB-SIGN-001` ditelusuri sampai akarnya dan terbukti menahan **tepat tiga keputusan** — ketiga yang menjadi pokok dokumen ini. `LAB-DEC-005`, yang menetapkan hasil diketik manual oleh analis, berdiri **tanpa** syarat tanda tangan, setara `LAB-DEC-006` yang sudah dibangun penuh; pemilik modul memecah slicenya lewat `LAB-DEC-076`. Kedua, **pengisian hasil sudah berjalan sejak 2026-09-17**. Akibatnya baris pertama bagian 0 menjadi keliru dan dikoreksi: yang tertahan bukan lagi *pengisian dan validasi hasil* melainkan **validasi dan rilis** saja — dan bersamaan dengan itu **hasil mulai tersimpan di dalam sistem tanpa satu pun jalan keluar yang sah**. Permintaan ini karena itu menjadi **lebih mendesak, bukan kurang**: setiap hari menambah hasil yang terisi tetapi tidak ada seorang pun yang berwenang menyatakannya benar. **Satu fakta baru ditambahkan pada kotak hambatan-sebelum-hambatan:** jabatan yang dimintakan penetapannya juga nol ada pada data induk sistem — `MstPosition` 31 jabatan tanpa Komite Medis maupun penanggung jawab laboratorium, `MstDepartment` nol memuat unit Laboratorium — sehingga bahkan bila seseorang ditunjuk hari ini, sistem belum punya tempat mencatat jabatannya, dan itu pekerjaan `master-data`. Tabel bagian 7.1 diperbarui: `S4a` keluar dari daftar yang tertahan, dan ia keluar bukan karena dilewati melainkan karena terbukti tidak pernah diatur ketiga keputusan ini. Nol isi permintaan yang berubah; ketiga keputusan yang dimintakan tanda tangannya tetap sama persis | `terbuka` |
 | 1 | 2026-09-09 | Dokumen dibuat sebagai `LAB-REQ-004`, menindaklanjuti `LAB-REQ-001` butir 6 yang dinyatakan di luar wewenang pemilik repository. Memuat tiga keputusan untuk ditandatangani, dua penetapan rumah sakit, dan tiga pertanyaan klinis terbuka. Ditemukan dan dicatat bahwa `LAB-COORD-001` dan `LAB-COORD-002` sudah ditutup 2026-09-01, sehingga `LAB-SIGN-001` menjadi satu-satunya penahan `S4`, `S4b`, `S4c`, `S5`, dan `S6` | `terbuka` |

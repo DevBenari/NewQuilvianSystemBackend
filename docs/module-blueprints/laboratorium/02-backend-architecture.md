@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `5` |
+| Revision | `8` |
 | Status | `draft` |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15`. **Revision 4 menambah amandemen Penerimaan Sampling/Specimen** — lihat bagian 11 |
 | Backend SHA | Revision 1-3: `c87d9c0`. **Revision 4: `466a7127`**, diverifikasi tidak berubah pada `9067fa73` |
@@ -1130,10 +1130,751 @@ supaya persetujuannya tidak terbaca lebih luas daripada yang diberikan.
 
 ---
 
+
+---
+
+## 13. Rancangan 2026-09-17 — Penyimpanan pengiriman hasil ke pasien (`REC3-NEW-004`)
+
+Menurunkan `LAB-DEC-066` dari decision log. **Rancangan, bukan pelaksanaan** — alasannya ditulis
+pada 13.6 dan itu bagian yang paling penting dibaca sebelum ada yang menjadwalkannya.
+
+`LAB-DEC-066` menetapkan **angkanya**, bukan **tempatnya**, dan menyerahkan bentuk penyimpanannya
+ke sini secara eksplisit.
+
+### 13.1 Kenapa bukan satu kolom counter
+
+Bentuk yang paling langsung adalah satu kolom `SentToPatientCount` pada `LabOrder`. Ia ditolak,
+dan alasannya bukan selera:
+
+| Pertanyaan yang pasti muncul | Counter telanjang | Log pengiriman |
+|---|---|---|
+| Siapa yang mengirim hasil pasien ini? | **Tidak terjawab** | Terjawab |
+| Kapan dikirim? | **Tidak terjawab** | Terjawab |
+| **Ke nomor mana?** | **Tidak terjawab** | Terjawab |
+| Pernahkah gagal, dan kenapa? | **Tidak terjawab** — `LAB-DEC-066` justru menetapkan kegagalan **tidak** menambah angka, sehingga kegagalan menjadi tidak terlihat sama sekali | Terjawab |
+| Angkanya cocok dengan kenyataan? | **Dapat melenceng** — setiap jalur yang lupa menambah, atau menambah dua kali, menghasilkan angka yang tidak dapat diperiksa terhadap apa pun | **Selalu cocok** — angkanya diturunkan, bukan disimpan |
+
+**Yang keempat yang menentukan.** Aturan "kegagalan tidak menambah" berarti pada bentuk counter
+telanjang, **pengiriman yang gagal tidak meninggalkan jejak apa pun**. Petugas melihat angka `0`
+dan tidak dapat membedakan "belum pernah dicoba" dari "sudah dicoba tiga kali dan gagal terus" —
+padahal `LAB-DEC-066` sendiri mengandaikan keadaan kedua itu ada, karena ia menyediakan tombol
+kirim ulang **khusus** untuk sesudah kegagalan.
+
+**Dan yang kelima menentukan cara membacanya.** Counter adalah **turunan**, bukan kolom:
+
+```
+Terkirim ke Pasien = COUNT(LabResultDelivery WHERE LabOrderId = ? AND Status = Sent AND NOT IsDelete)
+```
+
+Angka yang diturunkan tidak dapat melenceng dari kejadiannya. Ini pola yang sudah dipakai modul
+ini pada `SpecimenCount` dan `AcceptedSpecimenCount` di `LabMonitoringService` — nol pola baru.
+
+> **Satu pertimbangan kinerja ditulis supaya tidak ditemukan belakangan.** Bila kelak daftar
+> menampilkan counter ini per baris, ia wajib diproyeksikan sebagai sub-query **di dalam
+> proyeksi yang sama**, bukan dihitung per baris — pelajaran `BE-LAB-33`, yang mengubah daftar
+> 25 baris menjadi 51 perjalanan ke database ketika dikerjakan terbalik.
+
+### 13.2 Entity yang diusulkan — `LabResultDelivery`
+
+Satu baris = **satu upaya pengiriman**, berhasil maupun gagal.
+
+| Kolom | Tipe | Ketentuan |
+|---|---|---|
+| `Id` | `Guid` | Kunci |
+| `LabOrderId` | `Guid` | FK ke `LabOrder`. **Satu nomor order = satu dokumen hasil** (`LAB-DEC-067`), sehingga pengiriman melekat pada pesanan, bukan pada pemeriksaan |
+| `Channel` | `LabResultDeliveryChannel` | Hanya `WhatsApp = 1` untuk sekarang — lihat 13.4 |
+| `DestinationSnapshot` | `string(64)` | **Nomor tujuan sebagaimana dipakai saat itu**, bukan penunjuk ke data induk — lihat 13.3 |
+| `Status` | `LabResultDeliveryStatus` | `Sent = 1` atau `Failed = 2`. **Hanya dua** — lihat 13.5 |
+| `AttemptedAt` | `DateTime` | Kapan upaya dilakukan |
+| `FailureReason` | `string(512)?` | Terisi **hanya** ketika `Failed`; alasan apa adanya dari gerbang |
+| `RequestedByUserId` | `Guid?` | Siapa yang menekan tombolnya. Nullable dan ber-FK ke `AspNetUsers` — **lihat peringatan 13.7** |
+| *(warisan `IdentityModel`)* | | `CreateDateTime`, `CreateBy`, `IsDelete`, dan seterusnya |
+
+**Index yang diperlukan:** `(LabOrderId, Status)` — karena satu-satunya pembacaan yang pasti
+terjadi adalah pencacahan per pesanan menurut status.
+
+### 13.3 Kenapa nomor tujuan disimpan sebagai snapshot
+
+`RULE-016` menetapkan nomor tujuan diambil dari `MstPatient.WhatsAppNumber`. Menyimpan penunjuk
+ke pasien saja **tidak cukup**: nomor itu dapat berubah, dan ketika ia berubah, catatan
+pengiriman lama akan ikut berubah artinya — laporan yang kemarin berbunyi *"dikirim ke 0812-xxx"*
+besok berbunyi nomor yang berbeda, **tanpa satu pun baris yang disunting**.
+
+Untuk pengiriman **data klinis ke kanal pihak ketiga**, "ke mana sebenarnya ia pergi" adalah
+pertanyaan audit, bukan kenyamanan. Pola yang sama sudah dipakai modul ini pada
+`ProcedureNameSnapshot` (`BE-LAB-26`), dan alasannya identik: dokumen yang sudah terjadi tidak
+boleh berubah karena data induknya diperbarui.
+
+### 13.4 Kenapa `Channel` ada padahal nilainya cuma satu
+
+Bukan untuk berjaga-jaga. Ia ada karena **counter-nya khusus WhatsApp**: `LAB-DEC-066` dan
+`RULE-014` menyebut *"pengiriman hasil WhatsApp yang berhasil"*. Bila kelak ada kanal kedua —
+surel, cetak yang diserahkan langsung — angka `Terkirim ke Pasien` **tidak boleh** ikut naik
+tanpa keputusan tersendiri, dan tanpa ruas kanal pembedaan itu mustahil dibuat tanpa migration.
+
+Nilainya tetap **satu** karena hanya satu kanal yang benar-benar disebut keputusan. Menambahkan
+nilai untuk kanal yang belum diputuskan akan mendirikan pilihan yang tidak menuju ke mana-mana —
+pola yang sudah berulang kali menimpa modul ini, dan yang baru ditolak lagi pada `r18`.
+
+### 13.5 Kenapa hanya dua status, dan apa yang menentukan status ketiga
+
+`Sent` dan `Failed` adalah **seluruh** yang dituntut `LAB-DEC-066`. Status ketiga —
+`Queued`/`Pending` — **sengaja tidak dirancang**, dan alasannya bukan kehati-hatian umum:
+
+> **Bentuk gerbangnya yang menentukan apakah status itu ada.** Gerbang yang mengirim serentak
+> dan langsung menjawab berhasil/gagal **tidak pernah** membutuhkannya. Gerbang yang menerima
+> titipan lalu memberi kabar belakangan **wajib** memilikinya, beserta jalur webhook, penunjuk
+> pesan dari penyedia, dan kemungkinan `Delivered` terpisah dari `Sent`.
+>
+> Gerbang itu **belum ada** (`LAB-COORD-011`). Merancang statusnya sekarang berarti menebak
+> bentuk sesuatu yang belum diputuskan siapa pun.
+
+Ketika gerbangnya ditetapkan, tambahannya **aditif**: satu nilai enum, dan kolom penunjuk pesan
+bila penyedianya memberikannya. Nol kolom di atas yang perlu diubah.
+
+### 13.6 Kenapa migration-nya TIDAK dibuat sekarang
+
+Ini butir yang paling penting pada bagian ini, dan ia menolak pekerjaan yang terlihat mudah.
+
+**Tabel ini hari ini tidak punya penulis dan tidak punya pembaca.**
+
+| | Keadaan |
+|---|---|
+| **Penulis** | Pengirimannya sendiri tertahan `LAB-COORD-011` — gerbang pesan dan pembangkit PDF **keduanya nol** pada platform |
+| **Pembaca** | Kolom `Terkirim ke Pasien` adalah kolom **Datatable Hasil**, yaitu slice `S17`, yang tertahan `LAB-SIGN-001` |
+
+**Modul ini sudah membayar harga persis kesalahan itu.** `BE-EXT-04` mendirikan dua kolom pada
+`TrxKioskScanSession` tanpa jalur tulisnya; kolomnya berdiri **tanpa satu pun cara mengisinya**,
+dan datanya membenarkan — 16 dari 16 sesi bernilai `null`, termasuk yang dibuat sesudah kolomnya
+ada. `BE-EXT-04b` harus dibuat menyusul untuk menutupnya, dan dua task tertahan sementara itu.
+
+Mendirikan `LabResultDelivery` hari ini mengulang kesalahan yang sama dengan **kedua sisi**
+kosong sekaligus. Yang tertinggal hanyalah satu tabel kosong di database sungguhan, beserta
+migration yang perlu dirawat, untuk kemampuan yang tidak dapat dipakai siapa pun.
+
+**Yang dikerjakan sebagai gantinya adalah bagian ini** — supaya pada hari `LAB-COORD-011`
+dijawab, pekerjaannya tinggal dilaksanakan, bukan dirancang dari nol.
+
+### 13.7 Satu peringatan yang dibawa dari `BE-EXT-05`
+
+`RequestedByUserId` ber-**foreign key** ke `AspNetUsers` dan **nullable**. Pelaksananya wajib
+menulis **`null`**, bukan `Guid.Empty`, ketika pelakunya bukan orang.
+
+Ini bukan kehati-hatian teoretis: `BE-EXT-05` terkena persis begitu pada 2026-09-17 —
+`Guid.Empty` melanggar FK, seluruh transaksi ter-rollback, dan **tidak ada satu pun yang tampak
+rusak dari luar** kecuali baris log. Cacat yang sama berpotensi ada pada `CancelledByUserId`
+di `registration-management`, dan sudah dilaporkan ke sana.
+
+### 13.8 Yang **tidak** dirancang di sini
+
+| Hal | Alasan |
+|---|---|
+| Gerbang pengiriman dan pembangkit PDF | `LAB-COORD-011` — keputusan **platform**, bukan Laboratorium |
+| Endpoint kirim dan kirim ulang | Bentuknya mengikuti gerbang. Merancangnya sekarang berarti menebak sinkron atau asinkron |
+| Penyimpanan berkas hasil | Belum diketahui apakah berkasnya disimpan atau dibangkitkan saat diminta — itu pun ditentukan pembangkit PDF yang belum ada |
+| Izin `LabResultDelivery` | `LAB-DEC-068` sudah menetapkan **siapa** (Petugas Lab dan/atau Admin), tetapi resource/permission-nya lahir bersama endpointnya |
+| Persetujuan Profesor dan Dokter Lab sebagai syarat kirim | `RULE-017` — itu perkara `LAB-SIGN-001` (`LAB-OPEN-029`), bukan perkara penyimpanan |
+
+---
+
+## 14. Rancangan 2026-09-18 — Pengisian hasil Mikrobiologi dan Patologi Anatomi (`S4b`, `S4c`)
+
+### 14.1 Gerbang masuk dan hasil impact scan
+
+| Field | Nilai |
+|---|---|
+| Slice | `S4b` pengisian hasil Mikrobiologi; `S4c` pengisian hasil Patologi Anatomi |
+| Kesiapan requirement | `READY_FOR_DOMAIN_DESIGN` — `LAB-RCG-001-r7` bagian 0B.5 dan 0B.6 |
+| Kesiapan arsitektur domain | **`DOMAIN_ARCHITECTURE_READY`** — `LAB-DA-001` revision 6, bagian A3 |
+| Konsep yang diturunkan | `LAB-DC-036` sampai `LAB-DC-042` |
+| Invariant yang diturunkan | `INV-24` sampai `INV-31` |
+| Backend SHA saat dirancang | `5ee03294` (manifest mencatat `13665452`) |
+| Frontend SHA saat dirancang | `f89b728b7` (manifest mencatat `686038858`) |
+
+**Impact scan dijalankan karena kedua SHA bergeser, dan hasilnya tiga hal.**
+
+| # | Temuan | Dampak pada rancangan ini |
+|---:|---|---|
+| 1 | Backend naik **satu** commit — `5ee03294` *"updates BE modul lab"*: `OrderNumber` beserta `LabOrderNumberService`, migration `AddLabOrderNumber`, dan layanan penutupan kunjungan kiosk | **Nol.** Ia menyentuh `LabOrder`, `LabSpecimen`, dan monitoring — **nol** menyentuh `LabExamination` bagian hasil, `LabValueBound`, maupun `LabResultForm` |
+| 2 | Frontend naik **satu** commit — `f89b728b7`: laporan penerimaan, jenis wadah, dan `filter-date-picker` | **Nol.** Tidak satu pun menyentuh layar hasil |
+| 3 | **`S4a` — pola acuan seluruh rancangan ini — nol ada pada commit mana pun** | Lihat peringatan di bawah. Tidak memblokir rancangan, tetapi mengubah **tingkat bukti**-nya |
+
+> ### ⚠ Temuan 3 perlu dibaca utuh, sebab ia menyentuh cara dokumen ini boleh dipercaya
+>
+> `LabExamination.cs` terakhir masuk commit pada `259d53ce`. Kolom pengisian hasil yang menjadi
+> pola acuan bagian ini — `ResultNumeric`, `ResultOptionId`, `ResultValueBoundId`,
+> `ResultUnitSnapshot`, `ExaminedAt`, `ResultEnteredAt` — **hanya ada pada working tree, belum
+> di-commit**. Blueprint mencatat `S4a` *"selesai 2026-09-17"*, dan kodenya memang ada; yang
+> tidak ada adalah **jejaknya di repository**.
+>
+> Artinya: siapa pun yang meng-clone repository hari ini — termasuk CI — **tidak akan menemukan
+> `S4a`**. Rancangan ini tetap sah karena source-nya dibaca langsung dan dikutip apa adanya,
+> tetapi pembacanya berhak tahu bahwa acuannya belum dapat diperiksa dari Git.
+>
+> **Kelas yang sama dengan `LAB-RDY-C04`** — bukti uji yang dikecualikan `.gitignore` — dan
+> dicatat sebagai penahan tersendiri: **`LAB-SRC-UNCOMMITTED`**. Ia keputusan tata kelola
+> pemilik repository, bukan pekerjaan desain.
+
+### 14.2 Tabel kepemilikan data — tambahan
+
+| Kelompok data | Modul pemilik | Dipakai modul ini | Dibuat ulang di sini? |
+|---|---|---|---|
+| Nama organisme/kuman | **Laboratorium** — `LAB-DEC-084` | Ya | **Ya, baru.** Penelusuran menemukan **nol** data induk organisme di seluruh backend; tidak ada pemilik yang disaingi |
+| Nama antibiotik untuk uji kepekaan | **Laboratorium** — `LAB-DEC-084` | Ya | **Ya, baru.** Panel uji kepekaan **bukan** formularium farmasi; bila farmasi kelak mendirikan formularium, hubungannya pemetaan antardua konsep berbeda |
+| Obat/formularium farmasi | `pharmacy` | **Tidak** | **Tidak.** Ditegaskan di sini justru agar tidak ada yang menyamakan antibiotik uji kepekaan dengan obat |
+| Hasil pemeriksaan | Laboratorium | Ya | Diperluas, bukan dibuat ulang |
+| Pasien, dokter, kunjungan, katalog pemeriksaan, tarif | Modul masing-masing | Dirujuk | **Tidak** |
+
+### 14.3 Class diagram — Mikrobiologi (`S4b`)
+
+```mermaid
+classDiagram
+    class LabExamination {
+        +Guid Id
+        +Guid LabOrderId
+        +LabMicrobiologyFinding? MicrobiologyFinding
+        +DateTime? ExaminedAt
+        +DateTime? ResultEnteredAt
+    }
+    class LabMicrobiologyIsolate {
+        +Guid Id
+        +Guid LabExaminationId
+        +Guid LabOrganismId
+        +string OrganismNameSnapshot
+        +string Note
+    }
+    class LabIsolateSusceptibility {
+        +Guid Id
+        +Guid LabMicrobiologyIsolateId
+        +Guid LabAntibioticId
+        +string AntibioticNameSnapshot
+        +decimal? Concentration
+        +int? ZoneDiameterMm
+        +LabSusceptibilityResult Result
+    }
+    class LabOrganism {
+        +Guid Id
+        +string OrganismCode
+        +string OrganismName
+        +bool IsActive
+    }
+    class LabAntibiotic {
+        +Guid Id
+        +string AntibioticCode
+        +string AntibioticName
+        +bool IsActive
+    }
+    LabExamination "1" --> "0..*" LabMicrobiologyIsolate : menemukan
+    LabMicrobiologyIsolate "1" --> "0..*" LabIsolateSusceptibility : diuji terhadap
+    LabOrganism "1" --> "0..*" LabMicrobiologyIsolate : menamai
+    LabAntibiotic "1" --> "0..*" LabIsolateSusceptibility : menamai
+```
+
+### 14.4 Class diagram — Patologi Anatomi (`S4c`)
+
+```mermaid
+classDiagram
+    class LabExamination {
+        +Guid Id
+        +Guid LabOrderId
+        +string PathologyMacroscopic
+        +string PathologyMicroscopic
+        +string PathologyConclusion
+        +DateTime? ExaminedAt
+        +DateTime? ResultEnteredAt
+    }
+    class LabValueBound {
+        +Guid Id
+        +Guid ProcedureId
+        +LabResultForm ResultForm
+    }
+    LabValueBound "1" --> "0..*" LabExamination : menentukan bentuk hasil
+```
+
+> **Patologi Anatomi nol tabel baru, dan itu bukan kelalaian.** `LAB-DA-001` menetapkan laporan
+> PA sebagai **`VALUE_OBJECT`** — ketiga bagiannya wajib terisi, nol konsep lain menunjuk
+> kepadanya, dan ia berubah sebagai satu kesatuan. Konsekuensi teknisnya langsung: ia menjadi
+> **tiga kolom pada `LabExamination`**, sederajat dengan `ResultNumeric` milik Patologi Klinik —
+> bukan tabel tersendiri.
+
+### 14.5 `LabOrganism` — `Baru`
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/HealthServices/LaboratoryManagement/Models/LabOrganism.cs` |
+| Kategori | Data induk Laboratorium |
+| Tanggung jawab utama | Menyimpan daftar organisme yang boleh dilaporkan laboratorium ini. Analis memilih dari daftar, tidak mengetik bebas — supaya satu kuman yang sama tidak tertulis empat cara dan pola resistensi dapat dihitung |
+| Field penting | `OrganismCode` (unik, maks 32), `OrganismName` (maks 200), `IsActive` (bawaan `true`) |
+| Navigation property dan relasi | Ditunjuk banyak `LabMicrobiologyIsolate` |
+| Pemakaian dalam alur bisnis | Dipakai saat analis mencatat kuman yang tumbuh pada biakan |
+| Catatan desain | **Prefix `Lab`, bukan `Mst`** — mengikuti `LAB-OPEN-021` yang dijawab Muhammad Hamzah dan sudah melahirkan `LabValueBound`/`LabValueOption`. `MstLabRejectionReason` memakai pola lama dan **tidak** menjadi acuan. `IsActive=false` **tidak** menghapus isolat lama (`INV-31`) |
+| Ekuivalen model lama | — |
+
+### 14.6 `LabAntibiotic` — `Baru`
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/HealthServices/LaboratoryManagement/Models/LabAntibiotic.cs` |
+| Kategori | Data induk Laboratorium |
+| Tanggung jawab utama | Menyimpan panel antibiotik yang diuji kepekaannya di laboratorium ini |
+| Field penting | `AntibioticCode` (unik, maks 32), `AntibioticName` (maks 200), `IsActive` |
+| Navigation property dan relasi | Ditunjuk banyak `LabIsolateSusceptibility` |
+| Pemakaian dalam alur bisnis | Dipakai saat analis mencatat hasil uji kepekaan per antibiotik |
+| Catatan desain | **Bukan obat, dan bukan formularium farmasi.** Menyamakan keduanya akan menyeret modul ini ke ownership `pharmacy` tanpa dasar. Isinya keputusan laboratorium tentang panel ujinya sendiri |
+| Ekuivalen model lama | — |
+
+### 14.7 `LabMicrobiologyIsolate` — `Baru`
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/HealthServices/LaboratoryManagement/Models/LabMicrobiologyIsolate.cs` |
+| Kategori | Transaksi Laboratorium |
+| Tanggung jawab utama | Menyimpan **satu organisme yang ditemukan tumbuh** pada satu pemeriksaan. Barisnya ditambah dan dikurangi selama biakan dibaca |
+| Field penting | `LabExaminationId`, `LabOrganismId`, `OrganismNameSnapshot` (maks 200), `Note` (maks 500, opsional) |
+| Navigation property dan relasi | Milik `LabExamination`; menunjuk `LabOrganism`; punya banyak `LabIsolateSusceptibility` |
+| Pemakaian dalam alur bisnis | Dibuat analis ketika kuman teridentifikasi; dihapus bila ternyata keliru |
+| Catatan desain | **`OrganismNameSnapshot` wajib diisi saat baris dibuat**, mengikuti alasan `ResultUnitSnapshot` pada `S4a`: nama data induk yang diperbarui **tidak boleh berlaku surut** pada hasil yang sudah tercetak. Penunjuk dan snapshot **keduanya** disimpan — penunjuk untuk menghitung, snapshot untuk membaca ulang |
+| Ekuivalen model lama | — |
+
+### 14.8 `LabIsolateSusceptibility` — `Baru`
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/HealthServices/LaboratoryManagement/Models/LabIsolateSusceptibility.cs` |
+| Kategori | Transaksi Laboratorium |
+| Tanggung jawab utama | Menyimpan hasil pengujian **satu antibiotik terhadap satu isolat**: kadarnya, lebar zona hambat, dan kesimpulan `R`/`I`/`S` |
+| Field penting | `LabMicrobiologyIsolateId`, `LabAntibioticId`, `AntibioticNameSnapshot` (maks 200), `Concentration` (`decimal(18,4)`, opsional), `ZoneDiameterMm` (`int`, opsional), `Result` (`LabSusceptibilityResult`, wajib) |
+| Navigation property dan relasi | Milik `LabMicrobiologyIsolate`; menunjuk `LabAntibiotic` |
+| Pemakaian dalam alur bisnis | Diisi analis setelah membaca zona hambat pada cawan |
+| Catatan desain | **Baris ini tidak dapat berpindah isolat** (`INV-27`) — memindahkannya berarti mengubah temuan pasien. `Result` **wajib**: baris kepekaan tanpa kesimpulan `R`/`I`/`S` tidak punya arti klinis |
+| Ekuivalen model lama | — |
+
+### 14.9 `LabExamination` — `Diperbarui`
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Diperbarui` |
+| **Lokasi file** | `Areas/HealthServices/LaboratoryManagement/Models/LabExamination.cs` |
+| Kategori | Transaksi Laboratorium |
+| **Kolom yang ditambahkan** | `MicrobiologyFinding` (`LabMicrobiologyFinding?`, nullable) — status **temuan**, bukan status lifecycle;<br>`PathologyMacroscopic` (`string?`, maks 4000);<br>`PathologyMicroscopic` (`string?`, maks 4000);<br>`PathologyConclusion` (`string?`, maks 4000) |
+| Kolom yang **tidak** ditambahkan | **Nol status hasil** — `INV-29`. Nol penanda `Definitif` — `LAB-DEC-081`. Nol ruas waktu baru: `ExaminedAt` dan `ResultEnteredAt` sudah ada dan dipakai apa adanya |
+| Navigation property dan relasi | Bertambah: punya banyak `LabMicrobiologyIsolate` |
+| Catatan desain | Keempat kolom baru **nullable**, sebab satu pemeriksaan hanya memakai **satu** bentuk hasil (`INV-24`). Pemeriksaan berbentuk angka nol mengisi keempatnya; pemeriksaan PA nol mengisi `MicrobiologyFinding` |
+| Ekuivalen model lama | — |
+
+### 14.10 Enum
+
+| Enum | Lokasi | Status | Nilai | Bawaan |
+|---|---|---|---|---|
+| `LabResultForm` | `Areas/HealthServices/LaboratoryManagement/Enums/LaboratoryEnums.cs` | **`Diperbarui`** | `Numeric = 1`, `Choice = 2`, **`MicrobiologyStructured = 3`**, **`AnatomicPathologyNarrative = 4`** | — |
+| `LabMicrobiologyFinding` | file yang sama | **`Baru`** | `Normal = 1`, `Positive = 2`, `Negative = 3` | tidak ada; kolomnya nullable |
+| `LabSusceptibilityResult` | file yang sama | **`Baru`** | `Resistant = 1`, `Intermediate = 2`, `Sensitive = 3` | tidak ada; wajib diisi |
+
+> **Penambahan `LabResultForm` bersifat aditif dan nomornya tidak bergeser.** `Numeric` tetap
+> `1` dan `Choice` tetap `2`; baris `LabValueBound` yang sudah ada nol terdampak.
+
+### 14.11 Configuration
+
+| File | Lokasi | Status | Relasi yang diatur | Index | `DeleteBehavior` |
+|---|---|---|---|---|---|
+| `LabOrganismConfiguration.cs` | `Repositories/Configurations/HealthServices/LaboratoryManagement/` | `Baru` | — | **unik** pada `OrganismCode` | — |
+| `LabAntibioticConfiguration.cs` | folder yang sama | `Baru` | — | **unik** pada `AntibioticCode` | — |
+| `LabMicrobiologyIsolateConfiguration.cs` | folder yang sama | `Baru` | → `LabExamination`, → `LabOrganism` | `LabExaminationId` | **`Restrict`** pada keduanya |
+| `LabIsolateSusceptibilityConfiguration.cs` | folder yang sama | `Baru` | → `LabMicrobiologyIsolate`, → `LabAntibiotic` | `LabMicrobiologyIsolateId`; **unik** pada (`LabMicrobiologyIsolateId`, `LabAntibioticId`) | **`Restrict`** pada keduanya |
+| `LabExaminationConfiguration.cs` | folder yang sama | `Diperbarui` | Bertambah relasi ke `LabMicrobiologyIsolate` | — | — |
+
+> **`DeleteBehavior.Restrict` dipilih untuk seluruh relasi klinis**, mengikuti konvensi backend
+> dan alasannya: histori transaksi tidak boleh terhapus berantai. Penghapusan baris isolat
+> dilakukan lewat penandaan `IsDelete` milik `IdentityModel`, bukan penghapusan sungguhan —
+> dan itu yang memenuhi kebutuhan jejak audit `LAB-DA-001` A3.11.
+
+> **Index unik (`LabMicrobiologyIsolateId`, `LabAntibioticId`) perlu dibaca hati-hati.** Ia
+> mencegah satu antibiotik diuji dua kali terhadap isolat yang sama — yang memang tidak masuk
+> akal secara laboratorium. Tetapi karena penghapusan bersifat penandaan, **baris yang sudah
+> ditandai hapus akan tetap menempati kunci itu**. Index unik karena itu **wajib dibatasi pada
+> baris yang belum ditandai hapus** (*partial index*), persis masalah yang sudah pernah
+> ditemukan `LAB-CONFLICT-005` pada index `(SpecimenId, ProcedureId)`. Menyalinnya tanpa
+> pembatas akan mengulang cacat yang sama.
+
+### 14.12 Service dan Controller
+
+| Nama | Lokasi | Status | Fungsi utama | Dipanggil | Membuka transaksi DB |
+|---|---|---|---|---|---|
+| `LabExaminationService` | `Areas/HealthServices/LaboratoryManagement/Services/` | `Diperbarui` | Bertambah: mencatat hasil Mikrobiologi berstruktur dan laporan Patologi Anatomi, beserta penegakan `INV-24`..`INV-31` | `LabExaminationController` | **Ya** — satu pemeriksaan beserta isolat dan kepekaannya disimpan sebagai satu kesatuan |
+| `LabExaminationController` | `Areas/HealthServices/LaboratoryManagement/Controllers/` | `Diperbarui` | Bertambah jalur hasil per bentuk | — | Tidak |
+| `LabOrganismController` | folder yang sama | `Baru` | CRUD data induk organisme | — | Tidak — CRUD sederhana, `ApplicationDbContext` langsung sesuai konvensi |
+| `LabAntibioticController` | folder yang sama | `Baru` | CRUD data induk antibiotik | — | Tidak |
+
+### 14.13 Arsitektur folder — tambahan
+
+```text
+Areas/HealthServices/LaboratoryManagement/
+├── Models/
+│   ├── LabExamination.cs                   # Diperbarui — 4 kolom
+│   ├── LabOrganism.cs                      # Baru
+│   ├── LabAntibiotic.cs                    # Baru
+│   ├── LabMicrobiologyIsolate.cs           # Baru
+│   ├── LabIsolateSusceptibility.cs         # Baru
+│   └── MstLabRejectionReason.cs            # Sudah ada — prefix Mst, pola LAMA; jangan ditiru
+├── Enums/
+│   └── LaboratoryEnums.cs                  # Diperbarui — 1 enum diperluas, 2 enum baru
+├── Services/
+│   └── LabExaminationService.cs            # Diperbarui
+└── Controllers/
+    ├── LabExaminationController.cs         # Diperbarui
+    ├── LabOrganismController.cs            # Baru
+    └── LabAntibioticController.cs          # Baru
+
+Repositories/Configurations/HealthServices/LaboratoryManagement/
+├── LabExaminationConfiguration.cs          # Diperbarui
+├── LabOrganismConfiguration.cs             # Baru
+├── LabAntibioticConfiguration.cs           # Baru
+├── LabMicrobiologyIsolateConfiguration.cs  # Baru
+└── LabIsolateSusceptibilityConfiguration.cs # Baru
+```
+
+> **Catatan penempatan data induk.** Aturan struktur backend menempatkan model `Mst*` di
+> `Areas/<Domain>/MasterData/Models/`. Laboratorium **menyimpang**: `MstLabRejectionReason`
+> tinggal di dalam folder submodulnya. Rancangan ini **tidak meniru penyimpangan itu dan tidak
+> pula merapikannya** — ia memakai jalan ketiga yang sudah disahkan modul ini sendiri lewat
+> `LAB-OPEN-021`: **prefix `Lab`, di dalam submodul**, sama seperti `LabValueBound` dan
+> `LabValueOption` yang sudah berdiri. Perapian `MstLabRejectionReason` tetap utang teknis
+> tersendiri dan **bukan** bagian scope ini.
+
+### 14.14 Status model dan dampak migration
+
+| Model | Status | Dampak migration |
+|---|---|---|
+| `LabOrganism` | `Baru` | Satu tabel + index unik `OrganismCode` |
+| `LabAntibiotic` | `Baru` | Satu tabel + index unik `AntibioticCode` |
+| `LabMicrobiologyIsolate` | `Baru` | Satu tabel + dua FK + index |
+| `LabIsolateSusceptibility` | `Baru` | Satu tabel + dua FK + index + **partial unique index** |
+| `LabExamination` | `Diperbarui` | **Empat kolom nullable**: `MicrobiologyFinding` (`int?`), `PathologyMacroscopic`/`PathologyMicroscopic`/`PathologyConclusion` (`varchar(4000)?`) |
+
+### 14.15 Rencana migration
+
+| # | Migration | Tanpa downtime? | Cara mundur |
+|---:|---|---|---|
+| 1 | `AddLabMicrobiologyAndPathologyMasterData` — `LabOrganism`, `LabAntibiotic` | **Ya** — dua tabel baru, nol pembaca lama | `Down` menghapus kedua tabel; aman selama belum terisi |
+| 2 | `AddLabExaminationPathologyAndFindingColumns` — empat kolom pada `LabExamination` | **Ya** — seluruhnya nullable, nol pengisian data lama dibutuhkan | `Down` menghapus keempat kolom |
+| 3 | `AddLabMicrobiologyIsolateAndSusceptibility` — dua tabel transaksi beserta FK dan index | **Ya** | `Down` menghapus kedua tabel |
+
+**Urutannya mengikat**: langkah 3 menunjuk tabel langkah 1, dan langkah 1 tidak menunjuk apa pun.
+
+> **Pengisian data lama: nol.** Seluruh kolom baru nullable, dan seluruh tabel baru kosong.
+> Pemeriksaan yang sudah ada berbentuk `Numeric` atau `Choice`, dan tidak satu pun membaca
+> kolom baru ini.
+
+### 14.16 Rencana data master awal
+
+**Bagian ini yang paling mudah dilewati, dan `LAB-DEC-084` justru mewajibkannya.**
+
+| Tabel | Isi minimum agar modul dapat dipakai | Siapa yang menyediakan |
+|---|---|---|
+| `LabOrganism` | Daftar organisme yang lazim dilaporkan laboratorium ini | Kepala instalasi bersama `DR-LAB-002` |
+| `LabAntibiotic` | Panel antibiotik yang benar-benar diuji di laboratorium ini | Kepala instalasi bersama `DR-LAB-002` |
+
+> ### ⚠ Dua tabel ini **wajib** punya jalur tulisnya sendiri sejak hari pertama
+>
+> Modul ini sudah dua kali menemukan pola yang sama, dan keduanya masih terbuka hari ini:
+>
+> | Penahan | Apa yang terjadi |
+> |---|---|
+> | `LAB-COORD-006` | Data induk instansi perujuk **nol punya endpoint tulis sama sekali**; satu-satunya pengisinya seeder |
+> | `MST-POS-WRITE` | `MstPosition` dan `MstDepartment` juga nol; barisnya harus disisipkan lewat SQL langsung ke basis data |
+>
+> Karena itu `LabOrganismController` dan `LabAntibioticController` **bukan pelengkap** — keduanya
+> bagian dari definisi selesai slice ini. **Tabel data induk tanpa cara mengisinya adalah
+> kegagalan yang sudah terbukti berulang di modul ini, bukan risiko teoretis.**
+>
+> Satu hal lagi yang perlu diketahui: `LabDummyDataSeeder.cs` sedang **dalam keadaan terhapus
+> (staged)** pada working tree. Bila jalur tulisnya bergantung pada seeder, ia bergantung pada
+> berkas yang sedang dihapus.
+
+### 14.17 Yang sengaja tidak dibuat
+
+| Yang ditolak | Alasan |
+|---|---|
+| Tabel `LabPathologyReport` tersendiri | Laporan PA adalah `VALUE_OBJECT` (`LAB-DA-001` A3.6): ketiga bagiannya wajib, nol yang menunjuknya, dan ia berubah sebagai satu kesatuan. Tabel tersendiri menambah join tanpa menambah makna |
+| Kolom status hasil dalam bentuk apa pun | `LAB-DEC-080` dan `INV-29`. Ditolak **secara eksplisit** karena inilah yang paling mungkin diusulkan ulang implementer |
+| Kolom `IsDefinitive` pada hasil Mikrobiologi | `LAB-DEC-081` mengeluarkannya dari Rilis 1 |
+| Penilaian kritis otomatis atas hasil Mikrobiologi | `INV-28`; BR-23 menyatakan bakteri resisten adalah **penilaian klinis**, bukan perbandingan angka |
+| Tabel gambar hasil (`LAB-DC-039`) | Menunggu `DEC-LAB-016` — privasi penyimpanan belum diputuskan |
+| Menyatukan `LabAntibiotic` dengan data induk obat farmasi | Dua konsep berbeda. Panel uji kepekaan bukan formularium |
+| Jalur validasi, rilis, dan koreksi hasil | `S4`, `S4d`, `S4e`, `S6` — seluruhnya di luar scope, dan `DEC-LAB-011` masih menahan ketiga slice validasi |
+
+### 14.18 Traceability
+
+| Requirement | Keputusan | Konsep domain | Model | Invariant |
+|---|---|---|---|---|
+| BR-23 bentuk Mikrobiologi berstruktur | `LAB-DEC-027` | `LAB-DC-036`, `LAB-DC-037` | `LabMicrobiologyIsolate`, `LabIsolateSusceptibility` | `INV-24`, `INV-26`, `INV-27` |
+| BR-23 bentuk narasi Patologi Anatomi | `LAB-DEC-027` | `LAB-DC-038` | 3 kolom pada `LabExamination` | `INV-24`, `INV-25` |
+| Data induk terkendali | `LAB-DEC-084` | `LAB-DC-041`, `LAB-DC-042` | `LabOrganism`, `LabAntibiotic` | `INV-30`, `INV-31` |
+| Nol status hasil | `LAB-DEC-080` | — | — | `INV-29` |
+| Nol penilaian kritis otomatis | BR-23 | — | — | `INV-28` |
+
+---
+
+## 15. Rancangan 2026-09-18 sore — `S4c` DIRANCANG ULANG sesudah `LAB-EVD-003`
+
+> **Bagian ini MENGGANTI bagian 14 sejauh menyangkut Patologi Anatomi.** Bagian 14 untuk
+> Mikrobiologi — `LabOrganism`, `LabAntibiotic`, `LabMicrobiologyIsolate`,
+> `LabIsolateSusceptibility` — **tetap berlaku apa adanya**.
+
+Menurunkan `LAB-DA-001` revision 7 bagian A4, dan `LAB-DEC-085` sampai `LAB-DEC-094`.
+
+| Field | Nilai |
+|---|---|
+| Kesiapan arsitektur | **`DOMAIN_ARCHITECTURE_READY`**, berdiri sendiri |
+| Backend SHA | `5ee03294` — **tidak bergeser** sejak rancangan bagian 14 |
+| Frontend SHA | `f89b728b7` — tidak bergeser |
+| Kontrak | Menuntut **`LAB-API-v1` `r25`**; `r24` bagian 19.3 sudah `superseded` |
+
+### 15.1 Koreksi atas bagian 14 yang wajib dibaca lebih dulu
+
+> **Tiga kolom `Pathology*` pada `LabExamination` DICABUT dari rencana.** Bagian 14.9 merancang
+> `PathologyMacroscopic`, `PathologyMicroscopic`, dan `PathologyConclusion` sebagai kolom pada
+> `LabExamination`. **`LAB-DEC-085` memindahkan hasil PA ke tingkat pesanan**, sehingga ketiganya
+> **nol dipakai siapa pun**.
+>
+> | Kolom `BE-LAB-45` | Keadaan sesudah revision ini |
+> |---|---|
+> | `MicrobiologyFinding` | ✅ **Tetap** — dipakai `S4b` |
+> | `PathologyMacroscopic` | ❌ **Dicabut** |
+> | `PathologyMicroscopic` | ❌ **Dicabut** |
+> | `PathologyConclusion` | ❌ **Dicabut** |
+>
+> **`BE-LAB-45` belum dikerjakan**, sehingga pencabutan ini nol biaya. Bila ia sudah dibangun,
+> yang tertinggal adalah tiga kolom `varchar(4000)` yang nol punya penulis dan nol punya
+> pembaca — **persis `BE-EXT-04`** yang sudah pernah dibayar modul ini.
+
+**`LabResultForm.AnatomicPathologyNarrative` tetap ada, dengan arti yang dipertegas:** ia menandai
+bahwa pemeriksaan itu **hasilnya tidak diisi per pemeriksaan** — melainkan pada laporan tingkat
+pesanan. Tanpa penanda itu, jalur pengisian per pemeriksaan tidak punya cara menolak pemeriksaan PA.
+
+### 15.2 Tabel kepemilikan data — tambahan
+
+| Kelompok data | Modul pemilik | Dipakai modul ini | Dibuat ulang di sini? |
+|---|---|---|---|
+| Parameter laporan Patologi Anatomi | **Laboratorium** | Ya | **Ya, baru.** Nol data induk sejenis di mana pun |
+| Kategori Patologi Anatomi | **Laboratorium** | Ya | **Ya, baru** |
+| Pemetaan jenis pemeriksaan → kategori PA | **Laboratorium** | Ya | **Ya, baru.** Katalognya sendiri tetap milik `master-data` dan **nol disentuh** |
+| Jenis pemeriksaan | `master-data` | Dirujuk | **Tidak** |
+| Identitas analis penanggung jawab | Tenaga kerja / platform | Dirujuk | **Tidak.** Nol salinan |
+
+### 15.3 Class diagram — laporan Patologi Anatomi
+
+```mermaid
+classDiagram
+    class LabOrder {
+        +Guid Id
+        +LabDiscipline Discipline
+    }
+    class LabPathologyOrderContext {
+        +Guid Id
+        +Guid LabOrderId
+        +string InitialDiagnosis
+        +string RelevantHistory
+        +DateTime? LastMenstrualPeriod
+        +string ClinicalNote
+    }
+    class LabPathologyReport {
+        +Guid Id
+        +Guid LabOrderId
+        +LabPathologyFindingStatus? FindingStatus
+        +Guid? AnalystUserId
+        +DateTime? FinalizedAt
+        +Guid? FinalizedByUserId
+        +int ReopenCount
+    }
+    class LabPathologyReportValue {
+        +Guid Id
+        +Guid LabPathologyReportId
+        +Guid LabPathologyParameterId
+        +string ParameterNameSnapshot
+        +string Value
+    }
+    LabOrder "1" --> "0..1" LabPathologyOrderContext : konteks klinis
+    LabOrder "1" --> "0..1" LabPathologyReport : menghasilkan
+    LabPathologyReport "1" --> "0..*" LabPathologyReportValue : berisi
+```
+
+### 15.4 Class diagram — data induk Patologi Anatomi
+
+```mermaid
+classDiagram
+    class LabPathologyParameter {
+        +Guid Id
+        +string ParameterCode
+        +string ParameterName
+        +int SortOrder
+        +bool IsActive
+    }
+    class LabPathologyCategory {
+        +Guid Id
+        +string CategoryCode
+        +string CategoryName
+        +bool IsActive
+    }
+    class LabPathologyParameterCategory {
+        +Guid Id
+        +Guid LabPathologyParameterId
+        +Guid LabPathologyCategoryId
+        +bool IsRequired
+    }
+    class LabProcedurePathologyCategory {
+        +Guid Id
+        +Guid ProcedureId
+        +Guid LabPathologyCategoryId
+    }
+    LabPathologyParameter "1" --> "1..*" LabPathologyParameterCategory : berlaku bagi
+    LabPathologyCategory "1" --> "1..*" LabPathologyParameterCategory : memakai
+    LabPathologyCategory "1" --> "0..*" LabProcedurePathologyCategory : menggolongkan
+```
+
+### 15.5 `LabPathologyReport` — `Baru`
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/HealthServices/LaboratoryManagement/Models/LabPathologyReport.cs` |
+| Kategori | Transaksi Laboratorium |
+| Tanggung jawab utama | Menyimpan **satu laporan diagnostik per pesanan** Patologi Anatomi, beserta status temuan, penanggung jawab analis, dan fakta finalisasinya |
+| Field penting | `LabOrderId` (**unik**), `FindingStatus` (`LabPathologyFindingStatus?`), `AnalystUserId` (`Guid?`), `FinalizedAt`, `FinalizedByUserId`, `ReopenCount` (`int`, bawaan `0`) |
+| Navigation property dan relasi | Milik `LabOrder`; punya banyak `LabPathologyReportValue` |
+| Pemakaian dalam alur bisnis | Dibuat saat patolog pertama kali menyimpan isian; difinalkan saat ia menyatakan selesai |
+| Catatan desain | **Nol kolom status lifecycle** (`INV-36`). **Nol kolom `IssuedAt` maupun `EffectiveAt`** — keduanya diturunkan (`INV-38`). `AnalystUserId` **nullable dan sengaja tanpa foreign key**, mengikuti `ResultEnteredByUserId` pada `LabExamination` dan peringatan `REG-ACTOR-FK` |
+| Ekuivalen model lama | — |
+
+### 15.6 `LabPathologyReportValue` — `Baru`
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/HealthServices/LaboratoryManagement/Models/LabPathologyReportValue.cs` |
+| Kategori | Transaksi Laboratorium |
+| Tanggung jawab utama | Menyimpan **nilai satu parameter** pada satu laporan |
+| Field penting | `LabPathologyReportId`, `LabPathologyParameterId`, `ParameterNameSnapshot` (maks 200), `Value` (`text`, tanpa batas panjang — `RULE-011`) |
+| Navigation property dan relasi | Milik `LabPathologyReport`; menunjuk `LabPathologyParameter` |
+| Catatan desain | **Satu parameter muncul sekali per laporan** — index unik parsial. `Value` bertipe `text`, bukan `varchar(n)`: `RULE-011` menyatakan nol batas panjang, dan makroskopik patologi memang dapat panjang |
+| Ekuivalen model lama | — |
+
+### 15.7 `LabPathologyOrderContext` — `Baru`
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/HealthServices/LaboratoryManagement/Models/LabPathologyOrderContext.cs` |
+| Kategori | Transaksi Laboratorium |
+| Tanggung jawab utama | Menyimpan konteks klinis yang **ditulis dokter pemesan** dan dibaca patolog |
+| Field penting | `LabOrderId` (**unik**), `InitialDiagnosis` (`text`), `RelevantHistory` (`text?`), `LastMenstrualPeriod` (`date?`), `ClinicalNote` (`text?`) |
+| Catatan desain | **Seluruhnya nullable pada tingkat kolom**, dan itu disengaja: `ARCH-GAP-LAB-07` menyatakan alur pemesanan sudah berjalan, sehingga pesanan lama **nol terdampak**. `LastMenstrualPeriod` hanya bermakna bagi sitologi ginekologi; kewajibannya ditegakkan **aturan bisnis**, bukan kolom |
+| Ekuivalen model lama | — |
+
+### 15.8 Data induk — empat tabel
+
+| Model | Status | Lokasi | Field penting | Catatan |
+|---|---|---|---|---|
+| `LabPathologyParameter` | `Baru` | `Areas/HealthServices/LaboratoryManagement/Models/` | `ParameterCode` (unik, 32), `ParameterName` (200), `SortOrder`, `IsActive` | **Prefix `Lab`**, sesuai `LAB-OPEN-021`. Lima belas baris awal |
+| `LabPathologyCategory` | `Baru` | folder yang sama | `CategoryCode` (unik, 32), `CategoryName` (128), `IsActive` | Empat baris awal. **Tabel, bukan enum** — kategori kelima kelak cukup menambah data |
+| `LabPathologyParameterCategory` | `Baru` | folder yang sama | `LabPathologyParameterId`, `LabPathologyCategoryId`, `IsRequired` (`bool`) | Unik parsial pada pasangannya. `IsRequired` inilah yang menegakkan `INV-34` |
+| `LabProcedurePathologyCategory` | `Baru` | folder yang sama | `ProcedureId` (**unik**), `LabPathologyCategoryId` | Satu jenis pemeriksaan tepat satu kategori. **Ketiadaannya bermakna** (`INV-39`) |
+
+### 15.9 Enum
+
+| Enum | Status | Nilai |
+|---|---|---|
+| `LabPathologyFindingStatus` | **`Baru`** | `Normal = 1`, `NeedsAttention = 2`, `Critical = 3` |
+| `LabResultForm` | tidak berubah | Nilai `AnatomicPathologyNarrative = 4` **artinya dipertegas**: hasil tidak diisi per pemeriksaan |
+
+### 15.10 Configuration
+
+| File | Status | Index | `DeleteBehavior` |
+|---|---|---|---|
+| `LabPathologyReportConfiguration.cs` | `Baru` | **Unik parsial** pada `LabOrderId` | `Restrict` ke `LabOrder` |
+| `LabPathologyReportValueConfiguration.cs` | `Baru` | **Unik parsial** `(LabPathologyReportId, LabPathologyParameterId)` | `Restrict` pada keduanya |
+| `LabPathologyOrderContextConfiguration.cs` | `Baru` | **Unik parsial** pada `LabOrderId` | `Restrict` |
+| `LabPathologyParameterConfiguration.cs` | `Baru` | Unik parsial `ParameterCode` | — |
+| `LabPathologyCategoryConfiguration.cs` | `Baru` | Unik parsial `CategoryCode` | — |
+| `LabPathologyParameterCategoryConfiguration.cs` | `Baru` | **Unik parsial** `(ParameterId, CategoryId)` | `Restrict` |
+| `LabProcedurePathologyCategoryConfiguration.cs` | `Baru` | **Unik parsial** `ProcedureId` | `Restrict` |
+
+> **Seluruh index unik di atas WAJIB PARSIAL** dengan pembatas `IsDelete = false`. Alasannya sama
+> dengan `BE-LAB-47` dan `LAB-CONFLICT-005`: penghapusan bersifat penandaan, sehingga baris
+> tertandai hapus tetap menempati kuncinya. **Tujuh index, tujuh kesempatan mengulang kesalahan
+> yang sama.**
+
+### 15.11 Status model dan rencana migration
+
+| # | Migration | Tanpa downtime? | Cara mundur |
+|---:|---|---|---|
+| 1 | `AddLabPathologyMasterData` — parameter, kategori, keberlakuan, pemetaan | **Ya** — empat tabel baru | `DROP TABLE` |
+| 2 | `AddLabPathologyReport` — laporan, nilai, konteks klinis | **Ya** — tiga tabel baru | `DROP TABLE` |
+| 3 | `AddLabPathologyFindingStatusEnum` | Termasuk langkah 2 | — |
+
+**Urutannya mengikat**: langkah 2 menunjuk tabel langkah 1.
+
+**Pengisian data lama: nol.** Seluruh tabel baru kosong, dan nol kolom ditambahkan ke tabel yang
+sudah berisi data — **konteks klinis pun tabel tersendiri**, bukan kolom pada `LabOrder`.
+
+### 15.12 Rencana data master awal — dan ini yang paling menentukan halaman ini berguna atau tidak
+
+| Tabel | Isi minimum | Penyedia |
+|---|---|---|
+| `LabPathologyCategory` | **4 baris**: Histologi, Sitologi Ginekologi, Sitologi Non-Ginekologi, Imunohistokimia | Tetap; dari `LAB-EVD-003` |
+| `LabPathologyParameter` | **15 baris** sesuai BR-23 dan `LAB-EVD-003` bagian 5.6 | Tetap; dari artifact |
+| `LabPathologyParameterCategory` | **19 pasangan**: Histologi 3, Sitologi Non-Gin 3, Sitologi Gin 3, IHK 10 — dengan **empat** parameter dipakai **dua kategori** (`Makroskopik`, `Mikroskopik`, `Kesimpulan` pada Histologi + Sitologi Non-Gin; `Anjuran` pada Sitologi Gin + IHK), sehingga 15 parameter menghasilkan 19 pasangan. **Dikoreksi 2026-09-18 dari `21`** — lihat catatan di bawah | Tetap; dari artifact |
+| `LabProcedurePathologyCategory` | **Sebanyak jenis pemeriksaan PA yang ada di katalog** | **Kepala instalasi bersama `DR-LAB-003`** — keyword artifact dipakai sebagai alat bantu pengisian awal sekali |
+
+> ### ⚠ Baris keempat adalah penahan nyata, dan ia bukan pekerjaan programmer
+>
+> Tiga baris pertama **tetap** dan dapat diseed bersama migration. Baris keempat **tidak**: ia
+> bergantung pada jenis pemeriksaan PA yang benar-benar ada di katalog rumah sakit ini.
+>
+> **Tanpa pemetaan itu terisi, nol pemeriksaan PA punya kategori — dan `INV-39` menetapkan sistem
+> nol menebak. Akibatnya nol parameter muncul di layar, dan halaman hasil PA kosong sama sekali.**
+>
+> Keyword `HISTO`, `PAPSMEAR`, `LBC`, `HPV`, `NON GINEKOLOGI`, dan `IHK` dipakai untuk
+> **membangkitkan usulan pemetaan awal**, lalu diperiksa manusia. Sesudah itu keyword pensiun
+> (`LAB-DEC-087`).
+
+### 15.13 Yang sengaja tidak dibuat
+
+| Yang ditolak | Alasan |
+|---|---|
+| Tiga kolom `Pathology*` pada `LabExamination` | **Dicabut dari bagian 14.** Hasil PA kini per pesanan (`LAB-DEC-085`) |
+| Kolom `IssuedAt` dan `EffectiveAt` | `INV-38`, `LAB-DEC-092`. Keduanya diturunkan — **menyimpannya berarti dua sumber kebenaran** |
+| Kolom status `Draft`/`Final` | `LAB-DEC-088`, `INV-36`. Dibaca dari `FinalizedAt` |
+| Tabel terpisah per kategori | `LAB-DA-001` A4.4 — penggabungan lintas tabel adalah bagian tersulitnya, tanpa imbalan |
+| Empat kolom konteks klinis pada `LabOrder` | `LAB-DEC-091`. `LabOrder` dipakai tiga disiplin |
+| Data induk analis milik Laboratorium | Duplikasi data induk tenaga kerja |
+| Tabel gambar, ruas HL7, cetak bilingual | `DEC-LAB-016`, `LAB-COORD-012`, `LAB-COORD-013` |
+| Jalur validasi dan rilis | `S4e`, tertahan `DEC-LAB-011` |
+
+### 15.14 Traceability
+
+| Requirement | Keputusan | Konsep | Model | Invariant |
+|---|---|---|---|---|
+| Hasil PA per pesanan | `LAB-DEC-085` | `LAB-DC-043` | `LabPathologyReport` | `INV-32` |
+| Parameter berindentitas | `LAB-DEC-086` | `LAB-DC-044`..`047` | 4 tabel | `INV-33`, `INV-34`, `INV-37` |
+| Kategori dari pemetaan | `LAB-DEC-087` | `LAB-DC-048` | `LabProcedurePathologyCategory` | `INV-39` |
+| Final sebagai fakta | `LAB-DEC-088` | — | `FinalizedAt`, `ReopenCount` | `INV-35`, `INV-36` |
+| Konteks klinis pada pesanan | `LAB-DEC-091` | `LAB-DC-049` | `LabPathologyOrderContext` | `INV-40` |
+| Waktu diturunkan | `LAB-DEC-092` | — | **nol kolom** | `INV-38` |
+| Penanggung jawab analis | `LAB-DEC-093` | `LAB-DC-050` | `AnalystUserId` | — |
+| Status temuan sebagai nilai | `LAB-DEC-094` | — | `FindingStatus` | — |
+
 ## Riwayat Revisi
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 8 | 2026-09-18 | **`S4c` dirancang ulang seluruhnya** (bagian 15), menurunkan `LAB-DA-001` rev 7 bagian A4. Bagian 14 untuk Mikrobiologi **tetap berlaku apa adanya**. **Tujuh tabel baru, satu enum baru — dan TIGA KOLOM DICABUT dari rencana bagian 14.** Pencabutan itu butir terpenting revision ini: `PathologyMacroscopic`, `PathologyMicroscopic`, dan `PathologyConclusion` dirancang bagian 14.9 sebagai kolom pada `LabExamination`, dan `LAB-DEC-085` memindahkan hasil PA ke tingkat pesanan — sehingga ketiganya **nol dipakai siapa pun**. **`BE-LAB-45` belum dikerjakan, jadi pencabutannya nol biaya**; bila sudah dibangun, yang tertinggal adalah tiga kolom `varchar(4000)` tanpa penulis dan tanpa pembaca — **persis `BE-EXT-04`** yang sudah pernah dibayar modul ini. **Dua kolom lain yang diminta artifact juga ditolak:** `IssuedAt` dan `EffectiveAt` **nol disimpan**, sebab keduanya diturunkan dari `FinalizedAt` dan `LabSpecimen.CollectedAt` (`INV-38`) — menyimpannya berarti dua sumber kebenaran untuk satu kejadian. **Tujuh index unik, dan ketujuhnya WAJIB PARSIAL** dengan pembatas `IsDelete = false`: penghapusan di sistem ini bersifat penandaan, dan tujuh index berarti **tujuh kesempatan mengulang `LAB-CONFLICT-005`**. **Konteks klinis dibuat sebagai tabel tersendiri, bukan kolom pada `LabOrder`** — tabel itu dipakai tiga disiplin, dan seluruh ruasnya nullable supaya pesanan lama nol terdampak (`ARCH-GAP-LAB-07`). **Bagian 15.12 diberi peringatan tersendiri:** tiga dari empat data induk bersifat tetap dan dapat diseed, **tetapi pemetaan jenis pemeriksaan tidak** — dan tanpa isinya nol pemeriksaan PA punya kategori, `INV-39` melarang sistem menebak, sehingga **halaman hasil PA kosong sama sekali** | `draft` |
+| 7 | 2026-09-18 | **Pengisian hasil Mikrobiologi dan Patologi Anatomi dirancang** (bagian 14), menurunkan `LAB-DA-001` revision 6 yang menyerahkan `S4b` dan `S4c` berstatus `DOMAIN_ARCHITECTURE_READY`. **Empat tabel baru, empat kolom baru, dua enum baru, satu enum diperluas — dan nol status hasil**, yang terakhir ditegakkan sebagai `INV-29` dan dicatat juga pada daftar "yang sengaja tidak dibuat" justru karena ia yang paling mungkin diusulkan ulang implementer. **Patologi Anatomi nol tabel baru:** laporannya `VALUE_OBJECT`, sehingga menjadi tiga kolom pada `LabExamination` sederajat dengan `ResultNumeric` milik Patologi Klinik. **Dua data induk baru — `LabOrganism` dan `LabAntibiotic` — berprefix `Lab` dan di dalam submodul**, mengikuti `LAB-OPEN-021`, bukan meniru `MstLabRejectionReason` yang memakai pola lama dan bukan pula merapikannya. **Bagian 14.16 diberi peringatan tersendiri dan itu disengaja:** kedua data induk wajib punya endpoint tulisnya sejak hari pertama, sebab `LAB-COORD-006` dan `MST-POS-WRITE` membuktikan tabel data induk tanpa cara mengisinya adalah kegagalan yang **sudah berulang dua kali** di modul ini — dan `LabDummyDataSeeder.cs` justru sedang dalam keadaan terhapus (staged). **Satu jebakan teknis ditemukan sebelum sempat dibangun:** index unik `(LabMicrobiologyIsolateId, LabAntibioticId)` wajib **partial**, dibatasi pada baris yang belum ditandai hapus — sebab penghapusan di sistem ini bersifat penandaan, dan baris tertandai hapus akan tetap menempati kunci itu; persis cacat yang sudah pernah ditemukan `LAB-CONFLICT-005`. **Impact scan dijalankan** karena kedua SHA bergeser: backend naik satu commit (`5ee03294`, `OrderNumber` dan kiosk) dan frontend satu commit (`f89b728b7`), **nol** di antaranya menyentuh rancangan ini. **Temuan ketiganya yang paling perlu diketahui:** `S4a` — pola acuan seluruh bagian ini — **nol ada pada commit mana pun**; kolom hasilnya hanya hidup di working tree. Dicatat sebagai `LAB-SRC-UNCOMMITTED`, sekelas `LAB-RDY-C04` | `draft` |
+| 6 | 2026-09-17 | **Penyimpanan pengiriman hasil ke pasien dirancang** (bagian 13), menurunkan `LAB-DEC-066` yang menetapkan **angkanya** tetapi menyerahkan **tempatnya** ke sini. **Counter telanjang ditolak, dan alasannya terukur:** aturan "kegagalan tidak menambah angka" berarti pada bentuk counter, pengiriman yang gagal **nol meninggalkan jejak** — petugas melihat `0` dan tidak dapat membedakan "belum pernah dicoba" dari "sudah tiga kali gagal", padahal `LAB-DEC-066` sendiri mengandaikan keadaan kedua ada karena ia menyediakan tombol kirim ulang khusus untuk sesudah kegagalan. Gantinya **log pengiriman** dengan counter sebagai **turunan**, sehingga angkanya tidak dapat melenceng dari kejadiannya — pola yang sudah dipakai `SpecimenCount` dan `AcceptedSpecimenCount`. **Nomor tujuan disimpan sebagai snapshot**, bukan penunjuk: nomor pasien dapat berubah, dan ketika berubah, catatan pengiriman lama ikut berubah artinya tanpa satu pun baris disunting — untuk pengiriman data klinis ke kanal pihak ketiga, "ke mana sebenarnya ia pergi" adalah pertanyaan audit. **Ruas `Channel` ada walaupun nilainya satu**, karena counternya khusus WhatsApp dan kanal kedua kelak tidak boleh ikut menaikkannya tanpa keputusan tersendiri. **Status ketiga sengaja tidak dirancang:** ada-tidaknya `Queued` ditentukan bentuk gerbang yang belum ada — gerbang serentak nol membutuhkannya, gerbang bertitipan wajib memilikinya beserta webhook dan penunjuk pesan penyedia. **Migration-nya sengaja TIDAK dibuat**, dan itu butir terpenting bagian ini: tabelnya hari ini nol punya penulis (`LAB-COORD-011`) **dan** nol punya pembaca (`S17`/`LAB-SIGN-001`). Modul ini sudah membayar harga persis kesalahan itu lewat `BE-EXT-04` — dua kolom berdiri tanpa satu pun cara mengisinya, 16 dari 16 sesi `null`, dan `BE-EXT-04b` harus dibuat menyusul. Mendirikannya sekarang mengulangnya dengan **kedua sisi** kosong sekaligus | `draft` |
 | 5 | 2026-09-15 | **Amandemen pemesanan per disiplin** (bagian 12), menurunkan `LAB-DEC-055`, `LAB-DEC-056`, dan `LAB-DEC-057`. Satu tabel baru `LabOrderedProcedure` yang memisahkan **apa yang dipesan** dari **apa yang dikerjakan dari sebuah wadah** — dua konsep yang selama ini menumpang pada `LabExamination`. `LabExamination` **tidak berubah sama sekali**, dan unique index `(SpecimenId, ProcedureId)` yang sudah membatalkan `BE-LAB-23` tidak disentuh. Satu endpoint pemesanan massal yang memecah pesanan per disiplin; `POST /lab-orders` yang sudah ada tidak diubah bentuk maupun perilakunya. `VAL-68` dan `VAL-69` dibuat **aditif** — hanya berlaku bagi pesanan yang memiliki baris terpesan, sehingga pesanan lama tidak berubah perilakunya. Titik sambung kiosk dibiarkan terbuka tanpa kontrak karena `LAB-COORD-008` dan `LAB-COORD-009` belum dijawab | `draft` |
 | 4 | 2026-09-14 | **Amandemen Penerimaan Sampling/Specimen** (bagian 11), menurunkan `LAB-DEC-038`..`042` dan `045`. Satu tabel baru `LabSpecimenType` — memakai prefix `Lab`, bukan `Mst`, sesuai baris riwayat registry 2026-09-02. Lima kolom nullable ditambahkan ke `LabSpecimen`. **`LabExamination` tidak berubah sama sekali**: Qty diperbanyak menjadi baris di lapisan service, bukan disimpan sebagai kolom. Titik kunci `LAB-DEC-039` terbukti **sudah berjalan** sebagai `VAL-18` dan tidak dibangun ulang. Satuan volume **dipakai ulang** dari `MstMeasurement.IsForLaboratory`, bukan daftar baru — dan pengisian kelima barisnya dinyatakan sebagai pekerjaan Master Data agar `LAB-DEBT-001` tidak berulang. Dua titik sambung dibiarkan terbuka tanpa kontrak terkunci karena `LAB-REQ-005` belum dijawab | `draft` |
 | 1 | 2026-09-01 | Arsitektur backend pertama untuk enam slice yang lolos kedua gerbang. Delapan model ditetapkan, tiga di antaranya diperbarui dan lima baru. Tiga utang teknis struktur folder ditemukan dan dicatat tanpa dirapikan | `draft` |

@@ -4,6 +4,8 @@ using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
+using QuilvianSystemBackend.Enums;
 using QuilvianSystemBackend.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Services.Logging;
@@ -638,6 +640,324 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             return exception.InnerException?.GetType().Name == "PostgresException" &&
                    exception.InnerException.Message.Contains("duplicate key value", StringComparison.OrdinalIgnoreCase);
         }
+
+// =================================================================
+        // Pengisian hasil — slice S4a (LAB-DEC-005, LAB-DEC-076, LAB-API-v1 r21)
+        //
+        // BATAS YANG PALING PENTING: method ini MENGISI hasil. Ia tidak memvalidasi, tidak
+        // merilis, tidak menandai nilai kritis, dan tidak mengoreksi — keempatnya tertahan
+        // LAB-SIGN-001 lewat LAB-DEC-003, LAB-DEC-004, dan LAB-DEC-007.
+        //
+        // Nol status hasil disentuh. "Hasil sudah diisi" dibaca dari ResultEnteredAt != null —
+        // sebuah fakta yang tercatat, bukan janji tentang apa yang terjadi berikutnya.
+        // =================================================================
+
+        public async Task<LabExaminationResultResponse> SetResultAsync(
+            Guid id,
+            LabExaminationResultRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(request);
+
+            // VAL-77.
+            var examination = await _dbContext.LabExaminations
+                .Include(x => x.Procedure)
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Pemeriksaan tidak ditemukan.");
+
+            // VAL-78. Pemeriksaan yang gugur bersama wadahnya atau dibatalkan petugas tidak
+            // punya hasil yang sah untuk diisi.
+            if (examination.ExaminationStatus is LabExaminationStatus.Voided
+                or LabExaminationStatus.Cancelled)
+            {
+                throw new LabExaminationConflictException(
+                    "Pemeriksaan yang sudah gugur atau dibatalkan tidak dapat diisi hasilnya.");
+            }
+
+            var now = DateTime.UtcNow;
+
+            // VAL-82. Aturan yang sama dengan LAB-DEC-064 pada penyaring, diterapkan pada waktu
+            // kejadian: pemeriksaan yang mengaku dikerjakan besok adalah data yang salah, dan
+            // salahnya baru ketahuan ketika laporannya dibaca.
+            var examinedAt = request.ExaminedAt.HasValue
+                ? AppDateTimeHelper.ToUtc(request.ExaminedAt.Value)
+                : now;
+
+            if (examinedAt > now)
+            {
+                throw new LabExaminationValidationException(
+                    "Waktu pemeriksaan tidak boleh melewati waktu sekarang.");
+            }
+
+            var bound = await ResolveValueBoundAsync(examination, cancellationToken);
+
+            // VAL-79.
+            if (bound == null)
+            {
+                throw new LabExaminationValidationException(
+                    "Jenis pemeriksaan ini belum memiliki batas nilai yang berlaku, sehingga hasilnya belum dapat diisi.");
+            }
+
+            LabValueOption? option = null;
+
+            if (bound.ResultForm == LabResultForm.Numeric)
+            {
+                // VAL-80.
+                if (!request.ResultNumeric.HasValue)
+                {
+                    throw new LabExaminationValidationException(
+                        "Hasil pemeriksaan ini berupa angka, sehingga nilai angkanya wajib diisi.");
+                }
+
+                if (request.ResultOptionId.HasValue)
+                {
+                    throw new LabExaminationValidationException(
+                        "Hasil pemeriksaan ini berupa angka, sehingga pilihan hasil tidak dapat dipakai.");
+                }
+            }
+            else
+            {
+                // VAL-80.
+                if (!request.ResultOptionId.HasValue)
+                {
+                    throw new LabExaminationValidationException(
+                        "Hasil pemeriksaan ini berupa pilihan, sehingga salah satu pilihan wajib dipilih.");
+                }
+
+                if (request.ResultNumeric.HasValue)
+                {
+                    throw new LabExaminationValidationException(
+                        "Hasil pemeriksaan ini berupa pilihan, sehingga nilai angka tidak dapat dipakai.");
+                }
+
+                // VAL-81. Pilihan wajib milik batas nilai yang BERLAKU — bukan pilihan sah milik
+                // pemeriksaan lain. Tanpa penjagaan ini, "Negatif" milik Protein urin dapat
+                // tersimpan sebagai hasil Kalium tanpa satu pun galat.
+                option = await _dbContext.Set<LabValueOption>()
+                    .FirstOrDefaultAsync(
+                        x => x.Id == request.ResultOptionId.Value &&
+                             x.ValueBoundId == bound.Id &&
+                             !x.IsDelete,
+                        cancellationToken);
+
+                if (option == null)
+                {
+                    throw new LabExaminationValidationException(
+                        "Pilihan hasil tidak dikenal untuk jenis pemeriksaan ini.");
+                }
+            }
+
+            var actorUserId = GetCurrentUserId();
+
+            examination.ResultNumeric = bound.ResultForm == LabResultForm.Numeric
+                ? request.ResultNumeric
+                : null;
+            examination.ResultOptionId = option?.Id;
+            examination.ResultValueBoundId = bound.Id;
+            examination.ResultUnitSnapshot = bound.Unit;
+            examination.ExaminedAt = examinedAt;
+            examination.ResultEnteredAt = now;
+
+            // Guid.Empty adalah pelaku yang tidak pernah ada. Kolom ini nol ber-foreign key,
+            // sehingga database TIDAK akan menolaknya — justru itu yang membuatnya lebih
+            // berbahaya daripada kasus BE-EXT-05: ia tersimpan diam-diam. Pelajaran itu
+            // diterapkan di sini dengan menulis null.
+            examination.ResultEnteredByUserId = actorUserId == Guid.Empty ? null : actorUserId;
+
+            examination.UpdateDateTime = now;
+            examination.UpdateBy = actorUserId;
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            await _loggerService.AuditAsync(
+                LogCategory,
+                "LabExamination.SetResult",
+                "Hasil pemeriksaan diisi.",
+                new
+                {
+                    examination.Id,
+                    examination.LabOrderId,
+                    ResultForm = bound.ResultForm.ToString(),
+                    examination.ResultNumeric,
+                    examination.ResultOptionId,
+                    examination.ExaminedAt
+                });
+
+            return new LabExaminationResultResponse
+            {
+                LabExaminationId = examination.Id,
+                LabOrderId = examination.LabOrderId,
+                ProcedureName = examination.ProcedureNameSnapshot ?? examination.Procedure?.ProcedureName,
+                ResultForm = bound.ResultForm.ToString(),
+                ResultNumeric = examination.ResultNumeric,
+                ResultOptionId = examination.ResultOptionId,
+                ResultOptionName = option?.OptionName,
+                ResultUnitSnapshot = examination.ResultUnitSnapshot,
+                ResultValueBoundId = examination.ResultValueBoundId,
+                ExaminedAt = examination.ExaminedAt,
+                ResultEnteredAt = examination.ResultEnteredAt,
+                IsOutOfNormalRange = ResolveOutOfNormalRange(bound, examination.ResultNumeric, option)
+            };
+        }
+
+        /// <summary>
+        /// Bentuk hasil yang berlaku bagi satu pemeriksaan (<c>r22</c>).
+        ///
+        /// <b>Memakai jalur pemilihan batas yang sama persis dengan <see cref="SetResultAsync"/>.</b>
+        /// Dua salinan aturan yang sama pasti bercabang, dan cabangnya membuat layar menampilkan
+        /// rujukan yang berbeda dari yang dipakai menilai hasilnya — selisih yang nol terlihat
+        /// sampai seseorang membandingkan keduanya.
+        /// </summary>
+        public async Task<LabExaminationResultFormResponse> GetResultFormAsync(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            var examination = await _dbContext.LabExaminations
+                .Include(x => x.Procedure)
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Pemeriksaan tidak ditemukan.");
+
+            var response = new LabExaminationResultFormResponse
+            {
+                LabExaminationId = examination.Id,
+                ProcedureName = examination.ProcedureNameSnapshot ?? examination.Procedure?.ProcedureName,
+                ResultNumeric = examination.ResultNumeric,
+                ResultOptionId = examination.ResultOptionId,
+                ExaminedAt = examination.ExaminedAt,
+                ResultEnteredAt = examination.ResultEnteredAt
+            };
+
+            if (examination.ExaminationStatus is LabExaminationStatus.Voided
+                or LabExaminationStatus.Cancelled)
+            {
+                response.CanEnterResult = false;
+                response.BlockedReason =
+                    "Pemeriksaan yang sudah gugur atau dibatalkan tidak dapat diisi hasilnya.";
+                return response;
+            }
+
+            var bound = await ResolveValueBoundAsync(examination, cancellationToken);
+
+            if (bound == null)
+            {
+                response.CanEnterResult = false;
+                response.BlockedReason =
+                    "Jenis pemeriksaan ini belum memiliki batas nilai yang berlaku, sehingga hasilnya belum dapat diisi.";
+                return response;
+            }
+
+            response.CanEnterResult = true;
+            response.ResultForm = bound.ResultForm.ToString();
+            response.Unit = bound.Unit;
+            response.NormalLow = bound.NormalLow;
+            response.NormalHigh = bound.NormalHigh;
+
+            // CriticalLow dan CriticalHigh sengaja TIDAK ikut. Batas kritis adalah LAB-DEC-004,
+            // yang tertahan LAB-SIGN-001 — mengirimkannya mengundang layar menandai nilai
+            // kritis, dan penandaan itu menjanjikan alur pelaporan yang belum diputuskan.
+
+            if (bound.ResultForm == LabResultForm.Choice)
+            {
+                response.Options = await _dbContext.Set<LabValueOption>()
+                    .AsNoTracking()
+                    .Where(x => x.ValueBoundId == bound.Id && !x.IsDelete)
+                    .OrderBy(x => x.SortOrder)
+                    .Select(x => new LabExaminationResultOptionResponse
+                    {
+                        Id = x.Id,
+                        OptionName = x.OptionName,
+                        IsOutOfReference = x.IsOutOfReference
+                        // IsCritical sengaja tidak ikut, sebab yang sama dengan batas kritis.
+                    })
+                    .ToListAsync(cancellationToken);
+            }
+
+            return response;
+        }
+
+        /// <summary>
+        /// Memilih baris batas nilai yang berlaku bagi pasien pemeriksaan ini.
+        ///
+        /// Satu jenis pemeriksaan dapat punya beberapa baris yang dibedakan menurut jenis
+        /// kelamin dan kelompok umur (<c>LAB-DEC-018</c>) — Hemoglobin pria dewasa, wanita
+        /// dewasa, dan anak berdiri sebagai tiga baris terpisah.
+        ///
+        /// <b>Yang paling khusus menang.</b> Baris berjenis kelamin tertentu lebih diutamakan
+        /// daripada <c>All</c>, dan baris berkelompok umur tertentu lebih diutamakan daripada
+        /// yang tanpa kelompok umur. Tanpa urutan ini, baris umum dapat menang atas baris yang
+        /// justru dibuat untuk pasien itu — dan hasilnya terbaca normal memakai batas yang salah.
+        /// </summary>
+        private async Task<LabValueBound?> ResolveValueBoundAsync(
+            LabExamination examination,
+            CancellationToken cancellationToken)
+        {
+            var konteks = await _dbContext.LabOrders
+                .AsNoTracking()
+                .Where(o => o.Id == examination.LabOrderId)
+                .Select(o => new
+                {
+                    AgeCategoryId = o.Encounter != null ? o.Encounter.AgeCategoryId : null,
+                    Gender = o.Encounter == null
+                        ? null
+                        : _dbContext.MstPatients
+                            .Where(p => p.Id == o.Encounter.PatientId)
+                            .Select(p => p.Gender)
+                            .FirstOrDefault()
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            var genderScope = konteks?.Gender switch
+            {
+                Gender.Male => LabGenderScope.Male,
+                Gender.Female => LabGenderScope.Female,
+                _ => LabGenderScope.All
+            };
+
+            var ageCategoryId = konteks?.AgeCategoryId;
+
+            var kandidat = await _dbContext.Set<LabValueBound>()
+                .AsNoTracking()
+                .Where(x =>
+                    x.ProcedureId == examination.ProcedureId &&
+                    x.IsActive &&
+                    !x.IsDelete &&
+                    (x.GenderScope == LabGenderScope.All || x.GenderScope == genderScope) &&
+                    (x.AgeCategoryId == null || x.AgeCategoryId == ageCategoryId))
+                .ToListAsync(cancellationToken);
+
+            return kandidat
+                .OrderByDescending(x => x.GenderScope == genderScope && genderScope != LabGenderScope.All ? 1 : 0)
+                .ThenByDescending(x => x.AgeCategoryId != null ? 1 : 0)
+                .FirstOrDefault();
+        }
+
+        /// <summary>
+        /// Apakah nilainya di luar rentang normal batas yang berlaku.
+        ///
+        /// <b>Ini keterangan, bukan penandaan nilai kritis.</b> Nilai kritis beserta kewajiban
+        /// pelaporannya adalah <c>LAB-DEC-004</c>, yang tertahan <c>LAB-SIGN-001</c> — dan
+        /// menandainya di sini akan menjanjikan alur pelaporan yang belum diputuskan pihak
+        /// klinis.
+        /// </summary>
+        private static bool? ResolveOutOfNormalRange(
+            LabValueBound bound,
+            decimal? resultNumeric,
+            LabValueOption? option)
+        {
+            if (option != null)
+            {
+                return option.IsOutOfReference;
+            }
+
+            if (!resultNumeric.HasValue) return null;
+            if (!bound.NormalLow.HasValue && !bound.NormalHigh.HasValue) return null;
+
+            if (bound.NormalLow.HasValue && resultNumeric.Value < bound.NormalLow.Value) return true;
+            if (bound.NormalHigh.HasValue && resultNumeric.Value > bound.NormalHigh.Value) return true;
+
+            return false;
+        }
+
 
         private Guid GetCurrentUserId()
         {

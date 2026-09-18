@@ -3,7 +3,11 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-PERM-v1` |
-| Revision | `5` |
+| Revision | `7` |
+| Revision 7 approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-18** |
+| Isi amandemen revision 7 | **`approved` — 2026-09-18.** Dua resource baru — `LabPathologyParameter` dan `LabPathologyCategory`, masing-masing `Read`/`Create`/`Update`, **nol `Delete`**; keberlakuan parameter dan pemetaan jenis pemeriksaan ikut `LabPathologyCategory : Update`, bukan resource sendiri. Mengisi, memfinalkan, dan membuka kembali laporan PA **tidak menambah hak akses** — memakai `LabExamination : Update` yang sudah ada. **Satu pemisahan yang disengaja: konteks klinis pesanan memakai `LabOrder : Update`**, sebab penulisnya **dokter pemesan, bukan patolog** (`LAB-DEC-091`, `INV-40`). Lima kejadian audit baru; **`PathologyReport.Reopen` dan `PathologyReport.AmendValue` wajib beralasan**. Membawa **pembatasan logger dan DTO paling ketat pada modul ini**: nol isi parameter, nol diagnosa, nol riwayat penyakit boleh masuk log atau layar non-klinis. Disetujui bersama `LAB-API-v1` `r25` dan `LAB-VAL-v1` `r8` pada hari yang sama. Lihat bagian 9 |
+| Revision 6 approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-18** |
+| Isi amandemen revision 6 | **`approved` — 2026-09-18.** Dua resource baru — `LabOrganism` dan `LabAntibiotic`, masing-masing `Read`/`Create`/`Update`, **nol `Delete`**. Pengisian hasil Mikrobiologi dan Patologi Anatomi **tidak menambah hak akses**: keduanya memakai `LabExamination : Update` yang sudah ada, dan pemecahan izin per disiplin **sengaja ditolak** karena `LAB-OPEN-034` belum dijawab. Empat kejadian audit baru; dua di antaranya — penghapusan baris isolat dan baris kepekaan — **wajib beralasan** |
 | Status | `approved` — revision 1-3 dikunci 2026-09-02; **revision 4 disetujui pemilik modul 2026-09-14**; **revision 5 disetujui 2026-09-15** |
 | Revision 5 approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-15 |
 | Revision 4 approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-14 |
@@ -266,3 +270,218 @@ kolom itu untuk jenis bahan, bukan untuk catatan tentang orangnya.
 | `LabSpecimenType : Read` | `LAB-DEC-040` | AC-58, AC-60 |
 | `LabSpecimenType : Create`, `: Update` | `LAB-DEC-040` | AC-60 |
 | Jejak audit waktu penerimaan | `LAB-DEC-042` | AC-65, AC-67 |
+
+---
+
+## 8. Amandemen revision 6 — Hasil Mikrobiologi dan Patologi Anatomi, 2026-09-18
+
+> ### ✅ STATUS: `approved` — 2026-09-18
+>
+> Disetujui **Yoga Aji Pratama** selaku pemilik modul pada 2026-09-18, bersama `LAB-API-v1` `r24`
+> dan `LAB-VAL-v1` `r7`. `approved_by` / `approved_at`:
+> Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-18.
+>
+> Menurunkan `LAB-DEC-027`, `LAB-DEC-080`, `LAB-DEC-084`, dan `LAB-DA-001` rev 6.
+> **Dua resource baru; nol resource yang sudah ada berubah.**
+
+### 8.1 Kewenangan yang **tidak** bertambah — dan ini butir terpentingnya
+
+| Kemampuan baru | Hak akses yang dipakai | Kenapa tidak ada yang baru |
+|---|---|---|
+| Mengisi hasil Mikrobiologi beserta isolat dan kepekaannya | `LabExamination : Update` yang sudah ada | Isolat dan kepekaan adalah **isi sebuah hasil**, bukan kemampuan tersendiri. Mengikuti alasan `r21` |
+| Mengisi laporan Patologi Anatomi | `LabExamination : Update` yang sudah ada | Sama |
+| Membaca hasil kedua disiplin | `LabExamination : Read` yang sudah ada | Sama |
+
+> **Memecah izin pengisian hasil per disiplin ditolak, dan alasannya bukan kemalasan.**
+> `LAB-DEC-079` memberikan wewenang **klinis** per disiplin, dan `LAB-OPEN-034` menanyakan
+> apakah wewenang **validasi** melintasi disiplin — keduanya **belum dijawab**. Membuat
+> `LabExamination : UpdateMicrobiology` sekarang berarti menetapkan pembagian wewenang yang
+> justru sedang ditanyakan, dan menetapkannya lewat pintu belakang bernama permission.
+
+### 8.2 Kewenangan baru — hanya untuk kedua data induk
+
+| Resource | Action | String `[AccessPermission]` | Diberikan kepada | Kegunaan |
+|---|---|---|---|---|
+| `LabOrganism` | `Read` | `[AccessPermission("LabOrganism", "Read")]` | Petugas lab, kepala instalasi | Memilih kuman saat mencatat isolat |
+| `LabOrganism` | `Create` | `[AccessPermission("LabOrganism", "Create")]` | Kepala instalasi | Menambah organisme |
+| `LabOrganism` | `Update` | `[AccessPermission("LabOrganism", "Update")]` | Kepala instalasi | Mengubah nama, urutan, dan status aktif |
+| `LabAntibiotic` | `Read` | `[AccessPermission("LabAntibiotic", "Read")]` | Petugas lab, kepala instalasi | Memilih antibiotik saat mencatat kepekaan |
+| `LabAntibiotic` | `Create` | `[AccessPermission("LabAntibiotic", "Create")]` | Kepala instalasi | Menambah antibiotik ke panel uji |
+| `LabAntibiotic` | `Update` | `[AccessPermission("LabAntibiotic", "Update")]` | Kepala instalasi | Mengubah nama, urutan, dan status aktif |
+
+**Nol `Delete` pada keduanya**, mengikuti pola `LabSpecimenType` dan `MstLabRejectionReason`.
+Menghapus organisme yang sudah dipakai berarti menghapus temuan pasien.
+
+**Hak membaca daftar tidak memberi hak mengelolanya.** Analis memerlukan `Read` agar dapat
+memilih; ia tidak memerlukan `Create` maupun `Update`, dan tidak mendapatkannya dari jabatannya.
+
+### 8.3 Endpoint dan kewenangannya
+
+| Endpoint | Resource | Action | Dicatat logger |
+|---|---|---|:---:|
+| `PUT /lab-examinations/{id}/result/microbiology` | `LabExamination` | `Update` | **Ya** |
+| `GET /lab-examinations/{id}/result/microbiology` | `LabExamination` | `Read` | Tidak |
+| `PUT /lab-examinations/{id}/result/pathology` | `LabExamination` | `Update` | **Ya** |
+| `GET /lab-examinations/{id}/result/pathology` | `LabExamination` | `Read` | Tidak |
+| `GET /lab-organisms`, `GET /lab-organisms/options` | `LabOrganism` | `Read` | Tidak |
+| `POST /lab-organisms` | `LabOrganism` | `Create` | **Ya** |
+| `PUT /lab-organisms/{id}` | `LabOrganism` | `Update` | **Ya** |
+| `GET /lab-antibiotics`, `GET /lab-antibiotics/options` | `LabAntibiotic` | `Read` | Tidak |
+| `POST /lab-antibiotics` | `LabAntibiotic` | `Create` | **Ya** |
+| `PUT /lab-antibiotics/{id}` | `LabAntibiotic` | `Update` | **Ya** |
+
+> ### ⚠ Peringatan logger yang khusus berlaku di sini
+>
+> Payload log kedua `PUT` hasil **hanya** boleh memuat `EntityId`, controller, action, dan
+> status. Ia **tidak boleh** memuat nama organisme, pola resistensi, maupun ketiga ruas narasi
+> Patologi Anatomi — ketiganya **diagnosis pasien**, dan lebih berat daripada kolom sensitif
+> mana pun yang sudah ada pada modul ini.
+
+### 8.4 Kejadian yang wajib menghasilkan jejak audit
+
+| Kejadian | `Scope` | `Action` | Alasan wajib |
+|---|---|---|:---:|
+| Hasil Mikrobiologi diisi atau diubah | `LabExamination` | `Examination.EnterMicrobiologyResult` | Tidak |
+| Hasil Patologi Anatomi diisi atau diubah | `LabExamination` | `Examination.EnterPathologyResult` | Tidak |
+| Baris isolat **dihapus** | `LabExamination` | `Examination.RemoveIsolate` | **Ya** |
+| Baris kepekaan antibiotik **dihapus** | `LabExamination` | `Examination.RemoveSusceptibility` | **Ya** |
+| Organisme atau antibiotik ditambahkan, diubah, atau dinonaktifkan | — | Logger + jejak data induk | Tidak |
+
+> **Kenapa penghapusan baris menuntut alasan, sedangkan pengisian tidak.** Pada Patologi Klinik,
+> hasil berubah dengan **ditimpa** — nilai lamanya tetap terlihat pada jejaknya. Pada
+> mikrobiologi, hasil berubah dengan **baris hilang**, dan baris yang hilang tanpa alasan adalah
+> **temuan yang lenyap tanpa ada yang tahu ia pernah ada**. Kuman yang sempat tercatat lalu
+> dihapus adalah pertanyaan audit, bukan koreksi ketikan.
+
+### 8.5 Privasi — kolom sensitif yang bertambah
+
+| Kolom sensitif | Tabel | Aturan |
+|---|---|---|
+| `Note` | `LabMicrobiologyIsolate` | Tidak masuk logger; tinjau penyamaran pada response bagi pengguna non-klinis |
+| `PathologyMacroscopic` | `LabExamination` | Sama. **Diagnosis pasien** |
+| `PathologyMicroscopic` | `LabExamination` | Sama |
+| `PathologyConclusion` | `LabExamination` | Sama |
+
+**Satu batas baru yang tidak punya padanan pada amandemen sebelumnya.** Ketiga ruas narasi
+Patologi Anatomi adalah **isi rekam medis**, bukan catatan operasional. Response yang membawanya
+**tidak boleh** dipakai pada layar yang dibuka pengguna non-klinis — misalnya layar kasir atau
+daftar pantau umum — dan pembatasannya wajib ditegakkan pada **bentuk DTO**, bukan hanya pada
+hak akses endpoint.
+
+### 8.6 Pembatasan di luar sistem kewenangan
+
+| Aturan | Kenapa tidak cukup lewat kewenangan | Ditegakkan di |
+|---|---|---|
+| Jalur `/microbiology` hanya untuk pemeriksaan berbentuk mikrobiologi | Kewenangan menjawab "boleh mengisi hasil?", bukan "apakah bentuk hasil pemeriksaan ini cocok?" | `LabExaminationService` (`VAL-84`) |
+| Organisme nonaktif ditolak pada baris baru, tetapi baris lama tetap terbaca | Kewenangan tidak mengenal umur sebuah baris | `LabExaminationService` (`VAL-85`, `INV-31`) |
+
+### 8.7 Traceability usulan
+
+| Kewenangan | Decision ID | Invariant |
+|---|---|---|
+| `LabExamination : Update` dipakai ulang | `LAB-DEC-027`, alasan `r21` | `INV-24` |
+| `LabOrganism : *`, `LabAntibiotic : *` | `LAB-DEC-084` | `INV-30`, `INV-31` |
+| Jejak audit penghapusan baris | `LAB-DA-001` rev 6 bagian A3.11 | — |
+| Nol pemecahan izin per disiplin | `LAB-OPEN-034` **belum dijawab** | — |
+
+---
+
+## 9. Amandemen revision 7 — Laporan Patologi Anatomi per pesanan, 2026-09-18
+
+> ### ✅ STATUS: `approved` — **DISETUJUI 2026-09-18**
+>
+> Disetujui bersama `LAB-API-v1` `r25` dan `LAB-VAL-v1` `r8`. `approved_by` / `approved_at`:
+> Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-18**.
+> Menurunkan `LAB-DEC-085` sampai `LAB-DEC-094` dan `LAB-DA-001` rev 7.
+
+### 9.1 Dua hak akses yang dipakai ulang, dan satu pemisahan yang disengaja
+
+| Kemampuan | Hak akses | Alasan |
+|---|---|---|
+| Mengisi, memfinalkan, membuka kembali laporan PA | `LabExamination : Update` **yang sudah ada** | Mengikuti alasan `r21` dan `r24`: memecah izin per disiplin berarti menetapkan pembagian wewenang yang justru ditanyakan `LAB-OPEN-034` |
+| Membaca laporan PA | `LabExamination : Read` **yang sudah ada** | Sama |
+| **Menulis konteks klinis pesanan** | **`LabOrder : Update`** | **Penulisnya dokter pemesan, bukan patolog** (`LAB-DEC-091`, `INV-40`). Memakai `LabExamination : Update` akan memberi patolog hak menulis konteks yang bukan pengamatannya |
+
+> **Pemisahan pada baris ketiga adalah satu-satunya hak akses baru yang benar-benar memisahkan
+> dua orang pada halaman ini.** Dokter pemesan menulis konteks; patolog menulis laporan. Bila
+> keduanya berbagi satu izin, **patolog dapat menulis riwayat penyakit pasien yang tidak pernah
+> ia tanyakan** — dan itu masuk rekam medis.
+
+### 9.2 Kewenangan baru — hanya untuk data induk
+
+| Resource | Action | Diberikan kepada | Kegunaan |
+|---|---|---|---|
+| `LabPathologyParameter` | `Read` | Dokter Lab, Petugas Lab | Menampilkan formulir sesuai kategori |
+| `LabPathologyParameter` | `Create`, `Update` | Kepala instalasi | Mengelola daftar parameter |
+| `LabPathologyCategory` | `Read` | Dokter Lab, Petugas Lab | Menampilkan kategori dan keberlakuannya |
+| `LabPathologyCategory` | `Create`, `Update` | Kepala instalasi | Mengelola kategori, **keberlakuan parameter**, dan **pemetaan jenis pemeriksaan** |
+
+**Nol `Delete` pada keduanya.** Menghapus parameter yang sudah dipakai berarti menghapus isi
+laporan diagnostik pasien.
+
+**Keberlakuan dan pemetaan ikut `LabPathologyCategory : Update`, bukan resource sendiri.**
+Keduanya adalah cara kategori dipakai, bukan benda yang berdiri sendiri — dan menambah dua
+resource lagi hanya melahirkan pintu yang salah satunya pasti lupa dikunci.
+
+### 9.3 Endpoint dan kewenangannya
+
+| Endpoint | Resource | Action | Dicatat logger |
+|---|---|---|:---:|
+| `GET /lab-orders/{id}/pathology-report` | `LabExamination` | `Read` | Tidak |
+| `PUT /lab-orders/{id}/pathology-report` | `LabExamination` | `Update` | **Ya** |
+| `POST /lab-orders/{id}/pathology-report/finalize` | `LabExamination` | `Update` | **Ya** |
+| `POST /lab-orders/{id}/pathology-report/reopen` | `LabExamination` | `Update` | **Ya** |
+| `GET /lab-orders/{id}/pathology-context` | `LabOrder` | `Read` | Tidak |
+| `PUT /lab-orders/{id}/pathology-context` | `LabOrder` | `Update` | **Ya** |
+| Data induk — `GET` dan `GET /options` | masing-masing | `Read` | Tidak |
+| Data induk — `POST` dan `PUT` | masing-masing | `Create` / `Update` | **Ya** |
+
+> ### ⚠ Peringatan logger yang paling berat pada modul ini
+>
+> Payload log keempat jalur laporan **hanya** boleh memuat `EntityId`, controller, action, dan
+> status. Ia **tidak boleh** memuat isi parameter mana pun — makroskopik, mikroskopik, kesimpulan,
+> diagnosa PA, maupun status temuan. **Seluruhnya diagnosis pasien.**
+>
+> Hal yang sama berlaku pada konteks klinis: riwayat penyakit dan masa terakhir haid **tidak boleh**
+> masuk log.
+
+### 9.4 Kejadian yang wajib menghasilkan jejak audit
+
+| Kejadian | `Action` | Alasan wajib |
+|---|---|:---:|
+| Laporan PA diisi atau diubah | `PathologyReport.Write` | Tidak |
+| **Laporan difinalkan** | `PathologyReport.Finalize` | Tidak |
+| **Laporan dibuka kembali** | `PathologyReport.Reopen` | **Ya** |
+| Nilai parameter berubah **sesudah** laporan pernah difinalkan | `PathologyReport.AmendValue` | **Ya** |
+| Konteks klinis ditulis atau diubah | `PathologyContext.Write` | Tidak |
+| Parameter, kategori, keberlakuan, atau pemetaan diubah | Logger + jejak data induk | Tidak |
+
+> **Kenapa `Reopen` dan perubahan sesudahnya menuntut alasan, sedangkan pengisian pertama tidak.**
+> Sebelum difinalkan, laporan masih ditulis — perubahan adalah bagian dari menulis. **Sesudah
+> difinalkan, patolog sudah menyatakan diagnosisnya selesai.** Mengubahnya kembali adalah
+> pernyataan bahwa pernyataan sebelumnya perlu diperbaiki, dan itu perlu dapat dijelaskan.
+>
+> **`ReopenCount` saja tidak cukup** — yang dibutuhkan riwayat per kejadian beserta alasannya.
+
+### 9.5 Privasi
+
+| Kolom sensitif | Tabel | Aturan |
+|---|---|---|
+| `Value` | `LabPathologyReportValue` | **Diagnosis pasien.** Tidak masuk logger; tidak muncul pada layar non-klinis |
+| `InitialDiagnosis`, `RelevantHistory`, `LastMenstrualPeriod`, `ClinicalNote` | `LabPathologyOrderContext` | **Isi rekam medis.** Aturan yang sama |
+| `FindingStatus` | `LabPathologyReport` | Bukan teks bebas, tetapi **menyatakan tingkat bahaya pasien**. Tidak masuk logger |
+
+**Satu batas yang lebih ketat daripada amandemen mana pun sebelumnya.** Response yang membawa
+nilai parameter **tidak boleh** dipakai pada layar yang dibuka pengguna non-klinis — kasir, papan
+pemantauan, daftar pantau umum. Pembatasannya wajib ditegakkan pada **bentuk DTO**, bukan hanya
+pada hak akses endpoint. `LAB-DEC-068` memberi Petugas Lab hak mencetak; itu **tidak** berarti
+memberi layar lain hak menampilkan isinya.
+
+### 9.6 Traceability
+
+| Kewenangan | Decision ID | Invariant |
+|---|---|---|
+| `LabExamination : Update` dipakai ulang | `LAB-DEC-090`, alasan `r21` | — |
+| `LabOrder : Update` untuk konteks klinis | `LAB-DEC-091` | `INV-40` |
+| `LabPathologyParameter : *`, `LabPathologyCategory : *` | `LAB-DEC-086`, `LAB-DEC-087` | `INV-37`, `INV-39` |
+| Jejak `Reopen` beralasan | `LAB-DEC-088`; `LAB-DA-001` rev 7 A4.9 | `INV-35` |

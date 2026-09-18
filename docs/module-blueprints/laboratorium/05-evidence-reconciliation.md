@@ -4,12 +4,13 @@
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
 | Reconciliation ID | `LAB-REC-001` |
-| Revision | `4` |
+| Revision | `5` |
 | Status | `draft` |
 | Verdict putaran 1 | **`RECONCILED`** — 5 pertentangan ditutup `LAB-DEC-025` sampai `LAB-DEC-029`; 11 kemampuan dimasukkan scope lewat `LAB-DEC-030` |
 | **Verdict putaran 2** | **`RECONCILED`** — 2026-09-15. Ketiga pertentangan ditutup `LAB-DEC-060` sampai `LAB-DEC-063` pada hari yang sama. Satu penahan baru terbuka: `LAB-COORD-010`, jalur baca status pembayaran milik Billing |
 | **Verdict putaran 3** | **`PARTIALLY_RECONCILED`** — 2026-09-16. Sepuluh klarifikasi diadopsi `LAB-DEC-064` sampai `LAB-DEC-073`. **Tiga dari lima pertentangan ditutup pada hari yang sama**; `REC3-CONF-003` dan `REC3-CONF-005` tetap terbuka karena **bukan wewenang pemilik modul sendiri**. Satu penahan baru: `LAB-COORD-011` |
-| Revision efektif | `4` — pertentangan putaran 1 dan 2 sudah ditutup; dari lima yang dibuka putaran 3, tiga ditutup dan dua tersisa |
+| **Verdict putaran 4** | **`PARTIALLY_RECONCILED`** — 2026-09-18 sore. Artifact `LAB-EVD-003` *Detail Hasil Patologi Anatomi*. Pagi hari verdict-nya `NOT_RECONCILED` dengan 7 pertentangan; **ketujuhnya ditutup pada hari yang sama** lewat `LAB-DEC-085`..`LAB-DEC-090`, dan `REC4-CONF-006` **larut** sebagai konsekuensi `LAB-DEC-088`. **Nol keputusan berumur kurang dari 48 jam dibatalkan.** Sisa: **enam butir baru** belum terjawab — `LAB-COORD-012` HL7, `LAB-COORD-013` terjemahan otomatis beserta izin privasinya, dan `LAB-OPEN-035`..`LAB-OPEN-038`. **`BE-LAB-46` dan `FE-LAB-25` tetap dibekukan**, tetapi sebabnya berubah: bukan lagi pertentangan, melainkan **rancangannya berubah** — dan `LAB-API-v1` `r24` bagian 19.3 tergantikan, menuntut `r25` |
+| Revision efektif | `5` — pertentangan putaran 1 dan 2 sudah ditutup; dari lima yang dibuka putaran 3, tiga ditutup dan dua tersisa; **ketujuh pertentangan putaran 4 seluruhnya terbuka** |
 
 ## 0. Penutupan — 2026-09-01
 
@@ -584,6 +585,148 @@ Lalu ketiga sisa bagian 11.3 dan `LAB-COORD-011` dijawab lewat `LAB-REQ-007`. Ba
 `requirement-completeness-gate` menilai ulang `S17`, `hospital-domain-architect` merancang
 nomor order dan log pengiriman, kontrak diamandemen, dan `plan-module-delivery` menurunkannya
 menjadi task. **Menulis kode hari ini akan mendahului keenam langkah itu.**
+
+---
+
+## 12. Putaran 4 — Artifact "Detail Hasil Patologi Anatomi", 2026-09-18
+
+Artifact **`LAB-EVD-003`** dilampirkan pemilik modul pada 2026-09-18 dan disimpan verbatim pada
+[`evidence/2026-09-18-detail-hasil-patologi-anatomi.md`](evidence/2026-09-18-detail-hasil-patologi-anatomi.md).
+Memuat `CAP-001`..`CAP-020`, `RULE-001`..`RULE-036`, dan `BP-001`..`BP-006` atas **satu halaman**:
+detail hasil Patologi Anatomi.
+
+> ### ⚠ Putaran ini berbeda dari tiga putaran sebelumnya, dan bedanya perlu dinyatakan lebih dulu
+>
+> Ketiga putaran terdahulu merekonsiliasi bukti terhadap blueprint yang **belum diturunkan
+> menjadi task**. Putaran ini menyentuh `S4c` — slice yang **kontraknya disetujui pagi ini**
+> (`LAB-API-v1` `r24`), **arsitekturnya selesai kemarin** (`LAB-DA-001` rev 6), dan **task-nya
+> sudah diturunkan** (`BE-LAB-46`, `FE-LAB-25`).
+>
+> **Nol baris kode sudah ditulis**, dan itu satu-satunya sebab temuan ini masih murah. Bila
+> artifact ini datang seminggu lagi, ia datang setelah tabelnya berdiri.
+
+### 12.1 Yang menguatkan blueprint dan source — nol pekerjaan baru
+
+| Isi artifact | Menguatkan | Bukti |
+|---|---|---|
+| `RULE-007` Histologi dan Sitologi Non-Ginekologi memakai Makroskopik, Mikroskopik, Kesimpulan | BR-23 aturan turunan butir 3; `INV-25`; `VAL-88` | Persis sama, termasuk kewajiban ketiganya |
+| `RULE-014` satu order menghasilkan satu hasil terintegrasi | `LAB-DEC-067`, `RULE-021` putaran 3 | Pengulangan, **tetapi konsekuensinya baru** — lihat `REC4-CONF-003` |
+| `RULE-030` kop, footer, dan identitas pasien pada tiap lembar cetak | `REC3-NEW-009`, `LAB-DEC-075` | Sudah masuk Rilis 1 |
+| `RULE-034` delivery WhatsApp **bukan** konfirmasi klinis | `02-backend-architecture.md` bagian 13 | Menguatkan pemisahan log pengiriman dari fakta klinis yang sudah dirancang |
+| Hasil kritis PA **tidak** ditentukan angka | BR-23 catatan penilaian kritis; `INV-28` | **Menguatkan kuat.** Blueprint sudah menyatakan narasi PA tidak dapat dinilai lewat perbandingan angka, dan artifact menyetujuinya |
+| `Dokter Konfirmator` dipilih DPJP atau Dokter Lantai | `REC3-NEW-008`, `LAB-OPEN-030` | Pengulangan; jabatannya tetap belum dikenal sistem |
+
+### 12.2 Yang benar-benar baru — nol kemunculan di blueprint maupun source
+
+| ID | Isi artifact | Keadaan hari ini |
+|---|---|---|
+| `REC4-NEW-001` | **Bentuk hasil PA bergantung KATEGORI, dan ada tiga bentuk berbeda** — Histologi/Sitologi Non-Gin (3 ruas), Sitologi Ginekologi (Kondisi, Kategori, Anjuran), IHK (**10 ruas**) | BR-23 hanya mengenal **satu** bentuk narasi PA. `LabExamination` baru saja dirancang menerima **tiga** kolom. Lihat `REC4-CONF-002` |
+| `REC4-NEW-002` | **`Status Hasil PA`: Normal / Perlu Perhatian / Kritis**, dipilih manual | Nol kolom. Secara bentuk ia **sederajat `MicrobiologyFinding`** — sebuah **nilai**, bukan status lifecycle — sehingga ia **tidak** melanggar `LAB-DEC-080` |
+| `REC4-NEW-003` | **`Lokasi Specimen`** beserta data induknya, opsi `lainnya`, dan pemeriksaan duplikasi sebelum menambah master | `LabSpecimen` **nol** punya kolom lokasi. Diverifikasi pada `5ee03294`. Ini wilayah `S2b` yang masih `BUSINESS_DECISION_REQUIRED` |
+| `REC4-NEW-004` | **`Pola Pengambilan Specimen`**: Tunggal / Serial / Hormonal | Nol kolom, nol enum |
+| `REC4-NEW-005` | **`Metode Pengambilan Specimen`** berupa pilihan tercari | Nol kolom, nol data induk |
+| `REC4-NEW-006` | **`HL7`** berupa pilihan yang menampilkan list data HL7 | **Nol kemunculan `HL7` di SELURUH backend** — diverifikasi 2026-09-18. Bukan hanya modul ini. Jenis object/profil HL7-nya pun tidak dirinci artifact |
+| `REC4-NEW-007` | **`Waktu Issued`** dan **`Waktu Efektif`**, keduanya diisi manual | Nol kolom. `LabExamination` punya `ExaminedAt` dan `ResultEnteredAt`; keduanya **bukan** ini |
+| `REC4-NEW-008` | **Konteks klinis**: Diagnosa Awal, Riwayat Penyakit Relevan, Masa Terakhir Haid, Keterangan Klinis | **Nol kolom pada `LabOrder`** — diverifikasi. `LAB-API-v1` `r11` justru **mencabut** `clinicalNote` sebelum sempat dibangun karena tidak ada tempatnya. Kini requirement menuntut **empat** ruas, bukan satu |
+| `REC4-NEW-009` | **`Diagnosa Klinis` IHK terisi otomatis dari `Diagnosa Awal`** | Bergantung `REC4-NEW-008`. Tanpa sumbernya, auto-fill tidak punya asal |
+| `REC4-NEW-010` | **`Penanggung Jawab Analis`** dipilih dari daftar petugas lab | `LabOrder` punya `ExaminerDoctorId`, **bukan** analis. Jabatan `Analis Laboratorium` ada pada data induk dengan 2 pemegang |
+| `REC4-NEW-011` | **Cetak bilingual dengan terjemahan otomatis**, preview dapat disunting, suntingannya **tidak** menjadi versi hasil | Nol pustaka terjemahan, nol layanan. Sekelas `LAB-COORD-011` — kemampuan platform, bukan kemampuan Laboratorium |
+| `REC4-NEW-012` | **Retry WhatsApp 3 kali berbackoff, audit per attempt, status Pending/Sent/Delivered/Failed** | `02-backend-architecture.md` bagian 13 sudah merancang **log pengiriman**; artifact menambah **retry dan backoff** yang belum dirancang. Tetap tertahan `LAB-COORD-011` |
+| `REC4-NEW-013` | **Harga tampil pada list pemeriksaan di halaman hasil** | `UnitPriceSnapshot` ada pada `LabExamination`. **Tetapi** `LAB-DEC-037` melarang Laboratorium menampilkan nominal pada layar tertentu — perlu diperiksa apakah halaman hasil termasuk |
+
+### 12.3 Yang bertentangan — perlu keputusan pemilik, tidak dijawab artifact
+
+| ID | Pertentangan | Sisi artifact | Sisi blueprint dan source |
+|---|---|---|---|
+| `REC4-CONF-001` | **`Draft` / `Final` / `Reopen` adalah STATUS HASIL** | `CAP-013`..`CAP-015`, `RULE-024`..`RULE-026`: hasil disimpan Draft, difinalkan, lalu dapat dibuka kembali; Final mengunci editing | **`LAB-DEC-080` diputuskan 2026-09-18 pagi: NOL status hasil.** Validasi dan rilis dicatat sebagai **fakta**, dan `INV-29` menegakkannya. Draft/Final/Reopen persis sebuah lifecycle hasil — bukan fakta. **Ini pertentangan paling langsung pada seluruh putaran ini, dan usianya satu hari** |
+| `REC4-CONF-002` | **Bentuk hasil PA bukan tiga ruas** | Tiga bentuk berbeda menurut kategori; IHK sendirian punya 10 ruas | BR-23 menetapkan **satu** bentuk narasi PA: makroskopik, mikroskopik, kesimpulan — dan `LAB-DEC-027` menyebutnya salah satu dari **empat** bentuk hasil. `BE-LAB-46` dirancang menerima tepat tiga ruas. **Bila artifact benar, BR-23 tidak lengkap dan `S4c` lebih besar daripada yang direncanakan** |
+| `REC4-CONF-003` | **Hasil melekat pada ORDER, bukan pada PEMERIKSAAN** | `RULE-013`, `RULE-014`: satu order berisi beberapa pemeriksaan tetapi **satu hasil terintegrasi**, parameter digabung tanpa duplikasi | Seluruh model hasil — `S4a` yang sudah berjalan, `S4b`, dan `S4c` — meletakkan hasil pada **`LabExamination`**, satu baris per pemeriksaan. `LAB-DEC-024` memisahkan pemeriksaan dari wadah justru agar tiap pemeriksaan berdiri sendiri. **Ini pertentangan struktural, bukan pertentangan layar** |
+| `REC4-CONF-004` | **Kategori diturunkan dari KEYWORD pada nama pemeriksaan** | `RULE-001`..`RULE-006`: `HISTO`, `PAPSMEAR`, `LBC`, `HPV`, `NON GINEKOLOGI`, `IHK`; case-insensitive; maksimal dua keyword | `LAB-DEC-036` menetapkan disiplin melekat pada **kolom katalog** `MstProcedure.LabDiscipline`, dan `LAB-DEC-048` butir 6 **mencabut** penanyaan disiplin justru karena jawabannya sudah ada di katalog. Menurunkan kategori dari **teks nama** mengembalikan yang sudah ditutup, dan membuat penggantian nama pemeriksaan diam-diam mengubah bentuk hasil |
+| `REC4-CONF-005` | **Hak akses: Dokter Lab penuh, Petugas Lab hanya baca dan cetak** | `RULE-022`, `RULE-023` | `LAB-DEC-068` menetapkan **seluruh tombol aksi menu Hasil dipegang Petugas Lab dan/atau Admin**. Keduanya berbicara tentang halaman hasil dan **saling meniadakan**. Ditambah: `LAB-DEC-079` baru menetapkan wewenang klinis per disiplin, dan `DR-LAB-003` memegang Patologi Anatomi |
+| `REC4-CONF-006` | **`Reopen` sesudah Final adalah koreksi hasil** | `CAP-015`, `RULE-026` | Koreksi hasil adalah slice **`S6`**, dan sisa klinisnya `DEC-LAB-014` **belum dijawab** — termasuk pertanyaan apakah koreksi menuntut wewenang lebih tinggi. Artifact menjawabnya sendiri: cukup Dokter Lab. **Itu jawaban atas pertanyaan yang sedang diajukan kepada pihak klinis** |
+| `REC4-CONF-007` | **`Diplo` versus `Duplo`** | `RULE-016`: `Diplo` hanya **indikator**, tidak mengubah alur maupun output | `LAB-DEC-026` menetapkan **`Duplo`** sebagai penanda **pengerjaan ganda**, dan `IsDuplo` sudah berdiri pada `LabExamination`. Ejaannya berbeda satu huruf; **maknanya berbeda lebih dari satu huruf**. Bila keduanya hal yang sama, `LAB-DEC-026` perlu diperiksa ulang; bila berbeda, ada dua konsep berejaan nyaris sama pada satu layar |
+
+### 12.4 Yang ikut terjawab
+
+| Pertanyaan terbuka | Dijawab artifact? |
+|---|---|
+| `LAB-OPEN-017` makna penanda `Definitif` | **Sebagian, dan pada disiplin yang berbeda.** Artifact menyatakan `Definitif` = hasil sudah fix, **indikator saja**. Tetapi `LAB-OPEN-017` menanyakannya pada **Mikrobiologi**, sedangkan ini **Patologi Anatomi**. Memindahkan jawabannya lintas disiplin adalah lompatan — terlebih sesudah `LAB-DEC-079` memberi wewenang klinis **per disiplin** |
+| `LAB-P0-001` matriks kewenangan per peran | **Sebagian, dan bertentangan.** Lihat `REC4-CONF-005` |
+| `DEC-LAB-014` sisa klinis koreksi hasil | **Tidak sah dianggap terjawab.** Artifact menjawab dari sisi operasional; pertanyaannya ditujukan kepada wewenang klinis |
+| `LAB-OPEN-030` jabatan `Dokter Lantai` | **Tidak.** Artifact memakainya dan menyebut sumbernya "dokter yang sedang bertugas", tetapi jabatan itu tetap **nol kemunculan** pada data induk |
+| `LAB-OPEN-029` persetujuan Profesor dan Dokter Lab | **Tidak.** Artifact menyebut `Dokter Lab` sebagai pemegang wewenang penuh, tetapi tidak menghubungkannya dengan `Profesor` maupun dengan `DR-LAB-003` |
+
+### 12.5 Biaya yang muncul bersamaan — ditulis supaya tidak ditemukan belakangan
+
+| Hal | Akibat |
+|---|---|
+| **`BE-LAB-46` dan `FE-LAB-25`** | Keduanya dirancang untuk hasil PA berbentuk **tiga ruas** pada `LabExamination`. `REC4-CONF-002` dan `REC4-CONF-003` menyentuh **keduanya sekaligus**: bentuknya mungkin lebih besar, dan tempatnya mungkin bukan pada pemeriksaan. **Rekomendasi: bekukan keduanya sampai ketiga pertentangan struktural diputuskan** |
+| `LAB-API-v1` `r24` | `r24` disetujui pagi ini dan memuat `PUT /lab-examinations/{id}/result/pathology` dengan tiga ruas. Bila `REC4-CONF-002` atau `REC4-CONF-003` berujung pada perubahan, **`r24` perlu amandemen sebelum dibangun** — bukan sesudah |
+| `LAB-DEC-080` | Bila `REC4-CONF-001` diputuskan mengikuti artifact, keputusan yang berumur **satu hari** itu perlu diamandemen. Bila diputuskan mempertahankan blueprint, halaman ini perlu dirancang ulang tanpa Draft/Final |
+| Migration | Empat kolom `LabExamination` pada `BE-LAB-45` **tetap aman** — `MicrobiologyFinding` dan ketiga ruas narasi tidak terbantah. Yang terbantah adalah **kecukupannya**, bukan kebenarannya |
+| `S2b` | `REC4-NEW-003`, `004`, dan `005` seluruhnya atribut wadah khas PA — persis wilayah `S2b` yang masih `BUSINESS_DECISION_REQUIRED`. Halaman ini **tidak dapat utuh** tanpa `S2b` dibuka |
+| Platform | Dua kemampuan baru yang **bukan milik Laboratorium**: sumber data HL7 (`REC4-NEW-006`) dan layanan terjemahan otomatis (`REC4-NEW-011`). Keduanya sekelas `LAB-COORD-011` |
+| Privasi | Terjemahan otomatis mengirim **diagnosis pasien** ke layanan penerjemah. Bila layanannya pihak ketiga, ia pengiriman data klinis ke luar sistem — kelas yang sama dengan penandaan `LAB-DEC-030` atas WhatsApp, dan **belum pernah ditandai** |
+
+### 12.6 Verdict putaran 4
+
+> ### ✅ DIPERBARUI 2026-09-18 sore — `PARTIALLY_RECONCILED`
+>
+> Verdict `NOT_RECONCILED` di bawah ditulis **pagi hari**, sebelum amendment pass putaran 8.
+> Ketujuh pertentangan **ditutup pada hari yang sama** lewat `LAB-DEC-085` sampai `LAB-DEC-090`,
+> dan `REC4-CONF-006` **larut** tanpa perlu diputuskan.
+>
+> | Pertentangan | Ditutup oleh | Yang diputuskan |
+> |---|---|---|
+> | `REC4-CONF-003` | `LAB-DEC-085` | Tempat hasil **berbeda per disiplin**: PK dan Mikro per pemeriksaan, PA **per order** |
+> | `REC4-CONF-002` | `LAB-DEC-086` | **Data induk parameter + nilai per baris**, bukan kolom tetap |
+> | `REC4-CONF-004` | `LAB-DEC-087` | **Data induk pemetaan milik Laboratorium**; keyword hanya alat bantu pengisian awal |
+> | `REC4-CONF-001` | `LAB-DEC-088` | `Final` = **patolog selesai menulis, bukan rilis**. `LAB-DEC-080` dan `LAB-DEC-003` sama-sama bertahan |
+> | `REC4-CONF-006` | **larut** | Konsekuensi `LAB-DEC-088`: `Reopen` sebelum rilis adalah penyuntingan biasa, bukan koreksi hasil terrilis |
+> | `REC4-CONF-007` | `LAB-DEC-089` | `Diplo` = `Duplo`; pakai `IsDuplo` yang sudah berdiri |
+> | `REC4-CONF-005` | `LAB-DEC-090` | Pengisi hasil PA **Dokter Lab**; `LAB-DEC-068` utuh sebab ia mengatur layar yang berbeda |
+>
+> **Nol keputusan berumur kurang dari 48 jam yang dibatalkan.** Yang berubah hanya cakupan
+> `LAB-DEC-005`, dan ia **dipersempit**, bukan dibatalkan.
+>
+> **Verdict karena itu naik menjadi `PARTIALLY_RECONCILED`:** pertentangannya habis, tetapi
+> **enam butir baru** artifact belum punya jawaban — `LAB-COORD-012` (HL7), `LAB-COORD-013`
+> (terjemahan otomatis beserta izin privasinya), `LAB-OPEN-035` sampai `LAB-OPEN-038`. Ditambah
+> `S2b` yang sudah lebih dulu tertahan.
+>
+> **`BE-LAB-46` dan `FE-LAB-25` TETAP DIBEKUKAN**, dan sebabnya berubah: bukan lagi karena
+> pertentangan belum diputuskan, melainkan karena **keputusannya mengubah rancangannya**. Hasil
+> PA kini per order dengan data induk parameter — dan `LAB-API-v1` `r24` yang disetujui pagi ini
+> merancangnya sebagai tiga kolom pada `LabExamination`. **`r24` bagian 19.3 karena itu
+> tergantikan dan menuntut amandemen `r25` sebelum dibangun.**
+
+**Verdict pagi hari, dipertahankan sebagai jejak: `NOT_RECONCILED` — 2026-09-18.**
+
+Tiga belas butir baru dicatat dan **nol** diadopsi sebagai keputusan. Tujuh pertentangan dibuka,
+dan **tidak satu pun dapat ditutup dokumen ini** — seluruhnya menuntut keputusan pemilik modul,
+dan tiga di antaranya menyentuh keputusan yang baru diambil dalam 48 jam terakhir.
+
+> **Kenapa verdict-nya `NOT_RECONCILED`, bukan `PARTIALLY_RECONCILED` seperti putaran 3.**
+> Putaran 3 dapat menutup empat dari tujuh butirnya pada hari yang sama karena butir-butir itu
+> **menambah**. Putaran ini sebagian besar **membantah**: bentuk hasil, tempat hasil, cara
+> kategori ditentukan, siapa yang berwenang, dan ada-tidaknya status hasil. Menutup salah
+> satunya sepihak berarti mengubah keputusan yang sudah disetujui tanpa pemiliknya menyatakan.
+
+**Yang harus berhenti:** `BE-LAB-46` dan `FE-LAB-25`.
+
+**Yang tetap boleh berjalan, dan alasannya ditulis supaya tidak ikut dibekukan karena ragu:**
+
+| Task | Kenapa aman |
+|---|---|
+| `BE-LAB-44` dua data induk organisme dan antibiotik | Nol disentuh artifact ini. Artifact ini **tidak membahas Mikrobiologi sama sekali** |
+| `BE-LAB-45` enum dan empat kolom | Keempat kolomnya tidak terbantah; yang terbantah kecukupannya. Menambah kolom kemudian lebih murah daripada menunda seluruh gelombang |
+| `BE-LAB-47`, `BE-LAB-48`, `BE-LAB-49` Mikrobiologi | Nol disentuh artifact ini |
+| `FE-LAB-24` layar data induk | Nol disentuh |
+
+**Langkah berikutnya, berurutan:** `grill-me` Amendment Pass untuk ketujuh pertentangan →
+`requirement-completeness-gate` menilai ulang `S4c` → bila bentuknya berubah,
+`hospital-domain-architect` merancang ulang → amandemen `LAB-API-v1` → `plan-module-delivery`
+memperbarui `BE-LAB-46` dan `FE-LAB-25`.
 
 ## Riwayat Revisi
 

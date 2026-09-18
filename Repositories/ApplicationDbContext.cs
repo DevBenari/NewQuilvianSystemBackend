@@ -772,6 +772,14 @@ namespace QuilvianSystemBackend.Repositories
 
         public DbSet<LabValueBoundHistory> LabValueBoundHistories { get; set; }
 
+        public DbSet<LabPathologyCategory> LabPathologyCategories { get; set; }
+
+        public DbSet<LabPathologyParameter> LabPathologyParameters { get; set; }
+
+        public DbSet<LabPathologyParameterCategory> LabPathologyParameterCategories { get; set; }
+
+        public DbSet<LabProcedurePathologyCategory> LabProcedurePathologyCategories { get; set; }
+
         #endregion
 
         #region HEALTH SERVICE - Radiology Management

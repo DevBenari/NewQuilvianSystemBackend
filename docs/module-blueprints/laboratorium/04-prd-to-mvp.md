@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `4` |
+| Revision | `6` |
 | Status | `draft` |
 | Scope tambahan revision 4 | **`EPIC-LAB-11` Penerimaan Sampling/Specimen** dan gelombang `MVP-5` — lihat bagian 16 |
 | Scope tambahan revision 5 | **`EPIC-LAB-12` Konfirmasi Pesanan dan Pembatalan Beralasan** dan gelombang `MVP-5c` — lihat bagian 17. Ditambahkan 2026-09-15 dari rekonsiliasi bukti putaran 2 |
@@ -144,6 +144,21 @@ Setiap penundaan menyebut **alasan bersebab** dan **penggantinya selama MVP berj
 >
 > Akibatnya `LAB-SIGN-001` kini satu-satunya penahan `S4`, `S4b`, `S4c`, `S5`, dan `S6`.
 > Permintaan tanda tangannya diajukan 2026-09-09 sebagai `LAB-REQ-004`.
+
+> ### ✅ Diperbarui 2026-09-17 — `LAB-SIGN-001` ditutup
+>
+> `LAB-DEC-079`: ketiga keputusan klinis ditandatangani **apa adanya**, **per disiplin**, oleh
+> `DR-LAB-001` (Patologi Klinik), `DR-LAB-002` (Mikrobiologi Klinik), dan `DR-LAB-003`
+> (Patologi Anatomi), sesudah `LAB-DEC-078` menetapkan ketiganya pada hari yang sama.
+>
+> **Tabel di atas tetap berlaku, dan itu yang perlu dibaca tepat.** Kelima slice **belum**
+> pindah ke MVP Rilis 1. Yang berubah adalah izin merancangnya; arsitektur domain, amandemen
+> kontrak, dan task-nya **nol ada**. Penempatan rilisnya keputusan pemilik modul.
+>
+> **Dan tiga baris tabel itu punya sisa penahan masing-masing di luar `LAB-SIGN-001`:** `S5`
+> masih menunggu `LAB-P0-004` dan `LAB-OPEN-014` — persis seperti yang sudah tertulis di
+> barisnya sendiri — `S6` menunggu `LAB-P0-003`, dan `S4b` menunggu `LAB-OPEN-017`. Ditambah
+> `LAB-OPEN-034` yang lahir dari bentuk per-disiplin tanda tangannya.
 
 ---
 
@@ -652,3 +667,222 @@ saat konfirmasi, dan **alasan pembatalan** yang wajib.
 > **Satu butir DoD sengaja berbentuk ketiadaan perubahan**, sama seperti `EPIC-LAB-11`. Epic ini
 > mengandung satu-satunya pengetatan gelombang `MVP-5c` — `VAL-75` — dan pengetatan pada endpoint
 > yang sedang dipakai adalah hal yang paling mahal bila tidak dihitung dampaknya lebih dulu.
+
+---
+
+## 18. Amandemen 2026-09-18 — `EPIC-LAB-13` Pengisian hasil Mikrobiologi dan Patologi Anatomi
+
+Menurunkan `02-backend-architecture.md` bagian 14, `erd/` amandemen 2026-09-18, dan usulan
+kontrak `LAB-API-v1` `r24`, `LAB-VAL-v1` `r7`, `LAB-PERM-v1` revision 6.
+
+**Seluruh entity, status, permission, dan endpoint yang disebut di bawah sudah tercatat pada
+ketiga dokumen itu.** Nol konsep lahir di dokumen ini.
+
+### 18.1 Batas epic ini — titik mulai dan titik akhir
+
+| Batas | Isi |
+|---|---|
+| **Titik mulai** | Sebuah pemeriksaan Mikrobiologi atau Patologi Anatomi sudah berdiri, wadahnya sudah dinyatakan layak, dan analis membuka layar pengisian hasil |
+| **Titik akhir** | Hasilnya tersimpan dan dapat dibaca ulang. **Berhenti di situ** — nol validasi, nol rilis, nol pengiriman |
+
+**Yang dianggap selesai:** analis dapat mengetik hasil kedua disiplin ke dalam sistem, dengan
+organisme dan antibiotik terkendali. **Yang tidak berubah sama sekali:** hasilnya masih belum
+dapat dinyatakan sah oleh siapa pun, sama seperti Patologi Klinik sejak 2026-09-17.
+
+### 18.2 Kemampuan `MUST HAVE`
+
+| ID kemampuan asal | Kemampuan | Disposisi |
+|---|---|---|
+| BR-23 bentuk ketiga | Pengisian hasil Mikrobiologi berstruktur | **`MISSING / NEW`** |
+| BR-23 bentuk keempat | Pengisian laporan narasi Patologi Anatomi | **`MISSING / NEW`** |
+| `LAB-DEC-084` | Data induk organisme dan antibiotik **beserta pengelolaannya** | **`MISSING / NEW`** |
+| `LAB-DEC-027` | Perluasan `LabResultForm` menjadi empat bentuk | **`EXTEND`** |
+| `S4a` / `BE-LAB-43` | Pola pengisian hasil, snapshot, dan pemisahan waktu | **`EXISTING / REUSE`** |
+
+### 18.3 Functional requirement
+
+| ID | Kebutuhan | Dapat diuji lewat | Disposisi |
+|---|---|---|---|
+| `FR-13.1` | Analis dapat mencatat status temuan `Normal`/`Positif`/`Negatif` pada pemeriksaan Mikrobiologi | `PUT /lab-examinations/{id}/result/microbiology` | `MISSING / NEW` |
+| `FR-13.2` | Analis dapat menambah, menyunting, dan menghapus isolat, masing-masing menunjuk organisme dari daftar terkendali | Endpoint yang sama | `MISSING / NEW` |
+| `FR-13.3` | Setiap isolat dapat memuat sejumlah baris kepekaan antibiotik berisi kadar, zona hambat, dan `R`/`I`/`S` | Endpoint yang sama | `MISSING / NEW` |
+| `FR-13.4` | Hasil Mikrobiologi tanpa satu pun isolat **diterima** sebagai hasil yang sah | Endpoint yang sama, `isolates` kosong | `MISSING / NEW` |
+| `FR-13.5` | Analis dapat mencatat makroskopik, mikroskopik, dan kesimpulan Patologi Anatomi; ketiganya wajib | `PUT /lab-examinations/{id}/result/pathology` | `MISSING / NEW` |
+| `FR-13.6` | Kepala instalasi dapat menambah dan menonaktifkan organisme serta antibiotik | Grup Lab Organism dan Lab Antibiotic | `MISSING / NEW` |
+| `FR-13.7` | Organisme atau antibiotik yang dinonaktifkan **tidak dapat dipakai pada baris baru**, tetapi hasil lama yang menunjuknya tetap terbaca utuh | `VAL-85`, `VAL-86`, `INV-31` | `MISSING / NEW` |
+| `FR-13.8` | Sistem **menolak** pengisian lewat jalur yang tidak sesuai bentuk hasil pemeriksaan | `VAL-84` | `MISSING / NEW` |
+| `FR-13.9` | **Nol status hasil** muncul pada basis data maupun jawaban API | `INV-29`, diuji sebagai ketiadaan | `MISSING / NEW` |
+
+### 18.4 Skenario UAT
+
+**Jalur berhasil — Mikrobiologi.** Analis membuka hasil kultur darah pasien Andi. Ia memilih
+status temuan `Positif`, menambah isolat `Escherichia coli` dari daftar, lalu menambahkan tiga
+baris kepekaan: Ceftriaxone zona 22 mm `S`, Ampicillin zona 8 mm `R`, Ciprofloxacin zona 17 mm
+`I`. Ia menekan Simpan. Sistem menyimpan seluruhnya sebagai satu kesatuan, dan hasilnya terbaca
+ulang persis seperti yang diketik.
+
+**Jalur gagal — Mikrobiologi.** Analis menambahkan Ceftriaxone dua kali pada isolat yang sama.
+Sistem menolak dengan `422` dan pesan *"Antibiotik ini sudah diuji pada kuman tersebut."*
+(`VAL-87`). Tidak satu pun baris tersimpan sebagian.
+
+**Jalur berhasil — Patologi Anatomi.** Patolog mengisi ketiga ruas narasi lalu menyimpan.
+Hasilnya terbaca ulang utuh.
+
+**Jalur gagal — Patologi Anatomi.** Patolog mengisi makroskopik dan mikroskopik, mengosongkan
+kesimpulan, lalu menekan Simpan. Sistem menolak dengan `422` (`VAL-88`). **Tidak** disimpan
+sebagai draft.
+
+**Jalur gagal — data induk kosong.** Pada hari pertama, daftar organisme masih kosong. Analis
+membuka layar hasil Mikrobiologi dan melihat keterangan *"Daftar organisme belum diisi. Hubungi
+kepala instalasi."* — bukan pemilih kosong tanpa penjelasan.
+
+**Jalur gagal — organisme dinonaktifkan.** Kepala instalasi menonaktifkan satu organisme yang
+sudah dipakai pada hasil bulan lalu. Hasil lama **tetap terbaca utuh**; yang ditolak hanya
+pemakaiannya pada baris baru (`FR-13.7`).
+
+### 18.5 Definition of Done
+
+| # | Butir | Cara menjawabnya |
+|---:|---|---|
+| 1 | Usulan `LAB-API-v1` `r24`, `LAB-VAL-v1` `r7`, dan `LAB-PERM-v1` rev 6 **disetujui pemilik modul** | Ada tanda tangan pada ketiga dokumen kontrak |
+| 2 | Empat tabel baru dan empat kolom `LabExamination` berdiri lewat migration | Migration berjalan dan dapat dimundurkan |
+| 3 | Index unik `(LabMicrobiologyIsolateId, LabAntibioticId)` **parsial** — dibatasi `IsDelete = false` | Diperiksa langsung pada basis data, bukan pada niat |
+| 4 | Kedua data induk **punya endpoint tulisnya** dan **sudah terisi** | Daftar organisme dan antibiotik tidak kosong |
+| 5 | `VAL-83` sampai `VAL-91` ditegakkan | Setiap aturan punya bukti pemeriksaan |
+| 6 | **Nol status hasil** bertambah pada `LabExaminationStatus` maupun jawaban API | Dibuktikan **terbalik**: pemeriksaan yang membuktikan ketiadaannya |
+| 7 | **Nol tombol Validasi/Rilis** muncul pada kedua layar | Diperiksa pada layar berjalan |
+| 8 | Ketiga ruas narasi Patologi Anatomi **tidak muncul** pada logger maupun layar non-klinis | Diperiksa pada log dan pada DTO |
+
+> **Butir 6 dan 7 sengaja berbentuk ketiadaan**, sama seperti dua epic sebelumnya. Keduanya
+> adalah hal yang paling mungkin ditambahkan implementer dengan niat baik — status terasa rapi,
+> dan tombol Rilis terasa melengkapi layar. Keduanya **melanggar keputusan yang sudah diambil**,
+> dan satu-satunya cara mencegahnya adalah menuliskan ketiadaannya sebagai syarat selesai.
+
+### 18.6 Urutan pengiriman
+
+| Gelombang | Isi | Prasyarat |
+|---|---|---|
+| **`MVP-6a`** | Dua data induk beserta pengelolaannya, lalu **pengisiannya** | Kontrak disetujui |
+| **`MVP-6b`** | Pengisian hasil Patologi Anatomi | `MVP-6a` **tidak** menjadi prasyaratnya — PA nol menunjuk data induk |
+| **`MVP-6c`** | Pengisian hasil Mikrobiologi | **Wajib sesudah `MVP-6a`**, termasuk pengisian datanya |
+| **`POST-MVP`** | Lampiran gambar Patologi Anatomi; antibiogram; validasi dan rilis kedua disiplin | `DEC-LAB-016`; `DEC-LAB-011` |
+
+> **`MVP-6b` sengaja ditempatkan sebelum `MVP-6c`, dan itu keputusan urutan yang berbasis
+> risiko.** Patologi Anatomi tidak bergantung pada data induk mana pun, sehingga ia dapat selesai
+> penuh tanpa menunggu siapa pun mengisi daftar organisme. Mikrobiologi **tidak bisa** — layar
+> yang jadi tetapi daftarnya kosong adalah layar yang tidak dapat dipakai, dan itu keadaan yang
+> sudah dua kali terjadi di modul ini lewat `LAB-COORD-006` dan `MST-POS-WRITE`.
+
+### 18.7 Pertanyaan terbuka sebelum development lock
+
+| Pertanyaan | Memblokir? | Pemilik |
+|---|---|---|
+| ~~Persetujuan `LAB-API-v1` `r24` dan dua kontrak penyertanya~~ | ✅ **Terjawab 2026-09-18** — ketiganya disetujui Yoga Aji Pratama. **Tidak lagi memblokir** | — |
+| `DEC-LAB-016` — di mana gambar Patologi Anatomi disimpan | **Tidak** memblokir epic ini; memblokir lampiran gambarnya | Platform + pemilik modul |
+| Siapa mengisi daftar organisme dan antibiotik, dan kapan | **Ya** untuk `MVP-6c` | Kepala instalasi + `DR-LAB-002` |
+| `DEC-LAB-011` — pemegang kewenangan validasi | **Tidak** memblokir epic ini | Kepala instalasi + manajemen RS |
+
+> ### ✅ Gerbang perencanaan terbuka — 2026-09-18
+>
+> Butir pertama terjawab: `LAB-API-v1` `r24`, `LAB-VAL-v1` `r7`, dan `LAB-PERM-v1` revision 6
+> **disetujui** Yoga Aji Pratama pada 2026-09-18. **`EPIC-LAB-13` boleh diteruskan ke
+> `/plan-module-delivery`.**
+>
+> **Dua butir sisa tetap terbuka dan keduanya bukan penahan epic ini:** `DEC-LAB-016` memblokir
+> lampiran gambar Patologi Anatomi saja, dan `DEC-LAB-011` memblokir validasi/rilis yang memang
+> di luar scope epic ini.
+>
+> **Satu butir tetap memblokir gelombang `MVP-6c`, dan ia bukan pekerjaan programmer:** siapa
+> mengisi daftar organisme dan antibiotik, dan kapan. Layar Mikrobiologi dengan daftar kosong
+> tidak dapat dipakai sama sekali — itu sebabnya `MVP-6b` ditempatkan lebih dulu.
+
+---
+
+## 19. Amandemen 2026-09-18 sore — `EPIC-LAB-13` bagian Patologi Anatomi DIRANCANG ULANG
+
+> **Menggantikan `FR-13.5` dan gelombang `MVP-6b` pada bagian 18.** Bagian Mikrobiologi —
+> `FR-13.1`..`FR-13.4`, `FR-13.7`, `FR-13.8`, gelombang `MVP-6a` dan `MVP-6c` — **tetap berlaku
+> apa adanya**.
+
+Menurunkan `LAB-DEC-085`..`LAB-DEC-094`, `LAB-DA-001` rev 7 A4, `02-backend-architecture.md`
+bagian 15, dan usulan `LAB-API-v1` `r25`.
+
+### 19.1 Batas yang berubah
+
+| Bagian 18 (dicabut) | Bagian 19 (berlaku) |
+|---|---|
+| Hasil PA = tiga kolom pada `LabExamination` | Laporan PA **per pesanan**, tujuh tabel baru |
+| `FR-13.5` tiga ruas wajib | Ruas **bergantung kategori**, kewajibannya dari data induk |
+| Titik akhir: hasil tersimpan | Titik akhir: laporan tersimpan **dan dapat dinyatakan selesai** |
+
+### 19.2 Functional requirement — menggantikan `FR-13.5`
+
+| ID | Kebutuhan | Diuji lewat | Disposisi |
+|---|---|---|---|
+| `FR-13.10` | Dokter pemesan dapat menulis empat ruas konteks klinis pada pesanan PA, dan patolog membacanya | `PUT /lab-orders/{id}/pathology-context` | `MISSING / NEW` |
+| `FR-13.11` | Kepala instalasi dapat mengelola parameter, kategori, keberlakuan, dan **pemetaan jenis pemeriksaan** | Grup Lab Pathology Master Data | `MISSING / NEW` |
+| `FR-13.12` | Layar laporan menampilkan **hanya parameter yang berlaku** bagi kategori pesanan itu, **tanpa duplikasi** ketika beberapa kategori bertemu | `GET /lab-orders/{id}/pathology-report` | `MISSING / NEW` |
+| `FR-13.13` | Patolog dapat menyimpan nilai parameter sebagian, lalu **menyelesaikan** laporan | `PUT` + `POST /finalize` | `MISSING / NEW` |
+| `FR-13.14` | `Selesaikan` **ditolak** selama parameter wajib masih kosong, dan jawabannya **menyebut ruas mana saja** | `VAL-95` | `MISSING / NEW` |
+| `FR-13.15` | Patolog dapat **membuka kembali** laporan yang sudah selesai, dengan alasan, dan jejaknya tersimpan | `POST /reopen` | `MISSING / NEW` |
+| `FR-13.16` | `Waktu Efektif` dan `Waktu Issued` **ditampilkan sebagai turunan**, dan **tidak dapat diketik** | `INV-38` | `MISSING / NEW` |
+| `FR-13.17` | Pesanan yang jenis pemeriksaannya **belum dipetakan** menampilkan sebab dan siapa yang mengaturnya — bukan formulir kosong | `VAL-100` | `MISSING / NEW` |
+| ~~`FR-13.5`~~ | ~~Tiga ruas narasi wajib~~ | **Dicabut** — digantikan `FR-13.12` sampai `FR-13.14` | — |
+
+### 19.3 Skenario UAT
+
+**Jalur berhasil.** Satu pesanan PA memuat pemeriksaan Histologi **dan** IHK pada jaringan yang
+sama. Layar menampilkan **satu** formulir: Makroskopik, Mikroskopik, Kesimpulan, sepuluh ruas
+IHK — dan **`Anjuran` muncul sekali**, bukan dua kali. Patolog mengisi seluruhnya, menekan
+`Selesaikan`. Laporan terkunci, `Waktu Issued` terisi sendiri.
+
+**Jalur gagal — belum lengkap.** Patolog mengosongkan `Kesimpulan` lalu menekan `Selesaikan`.
+Sistem menolak `422` **dan menyebut "Kesimpulan"** — bukan sekadar "laporan belum lengkap".
+
+**Jalur gagal — belum dipetakan.** Hari pertama, pemetaan jenis pemeriksaan belum diisi. Patolog
+membuka layar dan melihat *"Jenis pemeriksaan pada pesanan ini belum digolongkan… Hubungi kepala
+instalasi."* — bukan formulir kosong tanpa sebab.
+
+**Jalur gagal — sudah selesai.** Patolog mencoba menyunting laporan yang sudah `Selesaikan`.
+Ditolak `409`; yang tersedia hanya `Buka Kembali`, dan itu menuntut alasan.
+
+**Jalur gagal — parameter dinonaktifkan.** Kepala instalasi menonaktifkan satu parameter yang
+sudah dipakai laporan bulan lalu. **Laporan lama tetap terbaca utuh**; yang ditolak hanya
+pemakaiannya pada nilai baru.
+
+### 19.4 Definition of Done — menggantikan butir PA pada 18.5
+
+| # | Butir | Cara menjawabnya |
+|---:|---|---|
+| 1 | `LAB-API-v1` `r25`, `LAB-VAL-v1` `r8`, `LAB-PERM-v1` rev 7 **disetujui** | Tanda tangan pada ketiga kontrak |
+| 2 | Tujuh tabel berdiri; **nol `ALTER TABLE`** pada tabel yang sudah berisi data | Migration berjalan dan dapat dimundurkan |
+| 3 | **Ketujuh index unik berbentuk PARSIAL** | Diperiksa pada definisi index di database |
+| 4 | Tiga data induk **terisi** — kategori 4, parameter 15, keberlakuan 21 | Diperiksa isinya, bukan tabelnya |
+| 5 | **Pemetaan jenis pemeriksaan terisi** untuk seluruh pemeriksaan PA di katalog | Diperiksa isinya |
+| 6 | `VAL-92`..`VAL-102` ditegakkan; `VAL-95` **menyebut ruas yang kosong** | Bukti per aturan |
+| 7 | **Nol kolom `IssuedAt`/`EffectiveAt`**, **nol kolom status hasil**, **nol kolom `Pathology*` pada `LabExamination`** | Dibuktikan **terbalik** |
+| 8 | Isi laporan dan konteks klinis **tidak muncul** pada logger maupun DTO layar non-klinis | Diperiksa pada log dan pada DTO |
+
+> **Butir 7 berbentuk ketiadaan rangkap tiga**, dan itu disengaja: ketiganya pernah dirancang
+> lalu dicabut dalam hari yang sama. Yang pernah ditulis di dokumen paling mudah dibangun ulang
+> oleh pelaksana yang membaca revisi lama.
+
+### 19.5 Urutan pengiriman — menggantikan `MVP-6b`
+
+| Gelombang | Isi | Prasyarat |
+|---|---|---|
+| **`MVP-6b1`** | Empat data induk PA beserta endpoint dan **pengisiannya** | Kontrak `r25` disetujui |
+| **`MVP-6b2`** | Laporan PA, konteks klinis, dan jalurnya | `MVP-6b1` **termasuk pemetaannya terisi** |
+| `POST-MVP` | Gambar, HL7, cetak bilingual, Informasi Specimen, validasi/rilis | `DEC-LAB-016`, `LAB-COORD-012`, `LAB-COORD-013`, `S2b`, `DEC-LAB-011` |
+
+> **`MVP-6b1` dan `MVP-6b2` tidak boleh ditukar.** Layar laporan yang jadi sebelum pemetaan
+> terisi akan menampilkan formulir kosong bagi **setiap** pesanan PA — dan itu bukan bug yang
+> akan terlihat saat pengujian, sebab pengujiannya memakai data yang sengaja disiapkan.
+
+### 19.6 Pertanyaan terbuka
+
+| Pertanyaan | Memblokir? | Pemilik |
+|---|---|---|
+| Persetujuan `r25`, `r8`, rev 7 | **Ya** — seluruh bagian PA | Yoga Aji Pratama |
+| Siapa mengisi pemetaan jenis pemeriksaan PA, dan kapan | **Ya** untuk `MVP-6b2` | Kepala instalasi + `DR-LAB-003` |
+| `DEC-LAB-016`, `LAB-COORD-012`, `LAB-COORD-013`, `S2b` | **Tidak** — masing-masing satu bagian | Platform / pemilik modul |

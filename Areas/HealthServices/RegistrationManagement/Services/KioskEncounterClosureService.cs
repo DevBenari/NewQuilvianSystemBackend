@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
+using QuilvianSystemBackend.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Services.Logging;
 
@@ -89,6 +90,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             var lowerBound = upperBound.AddDays(-Math.Max(0, options.LookBackDays));
             var batchSize = Math.Clamp(options.BatchSize, 1, 1000);
             var actorUserId = options.SystemActorUserId ?? Guid.Empty;
+            var noShowByUserId = await ResolveNoShowActorAsync(options, cancellationToken);
             var reason = string.IsNullOrWhiteSpace(options.NoShowReason)
                 ? "Tidak dilanjutkan sampai hari layanan berakhir."
                 : options.NoShowReason.Trim();
@@ -113,6 +115,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                     upperBound,
                     batchSize,
                     actorUserId,
+                    noShowByUserId,
                     reason,
                     cancellationToken);
 
@@ -122,6 +125,53 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             return result;
         }
 
+        /// <summary>
+        /// Menentukan siapa yang distempel pada <c>NoShowByUserId</c>.
+        ///
+        /// <b>Kolom itu ber-foreign key ke <c>AspNetUsers</c> dan nullable</b>, sehingga
+        /// <see cref="Guid.Empty"/> — nilai default sebuah <c>Guid</c> — **bukan** nilai yang
+        /// sah: ia menunjuk pengguna yang tidak ada dan membuat seluruh penutupan gagal.
+        /// Kegagalannya tidak terlihat dari mana pun kecuali log, dan akibatnya penutupan
+        /// otomatis tidak pernah terjadi sama sekali.
+        ///
+        /// <b><c>null</c> adalah nilai yang jujur di sini</b>, dan memang diizinkan kolomnya:
+        /// penutupan ini tidak dilakukan orang. Pelakunya tetap terbaca dari jejak audit dan
+        /// dari <c>NoShowReason</c>.
+        ///
+        /// Bila <see cref="KioskEncounterClosureOptions.SystemActorUserId"/> disetel tetapi
+        /// penggunanya tidak ada, penutupan **tetap berjalan** dengan <c>null</c> dan salah
+        /// setelnya dicatat — supaya satu baris konfigurasi yang keliru tidak menghentikan
+        /// seluruh penutupan setiap malam.
+        /// </summary>
+        private async Task<Guid?> ResolveNoShowActorAsync(
+            KioskEncounterClosureOptions options,
+            CancellationToken cancellationToken)
+        {
+            var configured = options.SystemActorUserId;
+
+            if (!configured.HasValue || configured.Value == Guid.Empty)
+            {
+                return null;
+            }
+
+            var exists = await _dbContext.Set<ApplicationUser>()
+                .AsNoTracking()
+                .AnyAsync(x => x.Id == configured.Value, cancellationToken);
+
+            if (exists)
+            {
+                return configured.Value;
+            }
+
+            await _loggerService.WarningAsync(
+                LogCategory,
+                "KioskEncounterClosure.ResolveActor",
+                "SystemActorUserId tidak cocok ke satu pun pengguna. Penutupan tetap berjalan tanpa pelaku.",
+                new { ConfiguredActorUserId = configured.Value });
+
+            return null;
+        }
+
         private async Task<int> CloseForTargetAsync(
             IEncounterContinuationProbe probe,
             KioskServiceTarget target,
@@ -129,6 +179,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             DateTime upperBound,
             int batchSize,
             Guid actorUserId,
+            Guid? noShowByUserId,
             string reason,
             CancellationToken cancellationToken)
         {
@@ -194,7 +245,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
             {
                 encounter.EncounterStatus = EncounterStatus.NoShow;
                 encounter.NoShowAt = now;
-                encounter.NoShowByUserId = actorUserId;
+                encounter.NoShowByUserId = noShowByUserId;
                 encounter.NoShowReason = reason;
                 encounter.IsActive = false;
                 encounter.UpdateDateTime = now;
@@ -207,7 +258,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                 // dan laporan antrean membedakannya.
                 queue.QueueStatus = QueueStatus.NoShow;
                 queue.NoShowAt = now;
-                queue.NoShowByUserId = actorUserId;
+                queue.NoShowByUserId = noShowByUserId;
                 queue.NoShowReason = reason;
                 queue.IsActive = false;
                 queue.UpdateDateTime = now;

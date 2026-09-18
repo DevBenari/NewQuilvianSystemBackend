@@ -130,6 +130,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             [FromQuery] LabSpecimenOtherUsageQuery query,
             CancellationToken cancellationToken = default)
         {
+            // Rentang disiapkan sebelum apa pun yang lain — lihat LabQueryDateRange.
+            (query.StartDate, query.EndDate) =
+                LabQueryDateRange.Normalize(query.StartDate, query.EndDate);
+
             if (query.StartDate.HasValue && query.EndDate.HasValue && query.StartDate > query.EndDate)
             {
                 return BadRequest(ApiResponse<object>.Fail(

@@ -58,8 +58,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             [FromQuery] DateTime? endDate = null,
             CancellationToken cancellationToken = default)
         {
-            var akhir = endDate ?? DateTime.UtcNow;
-            var awal = startDate ?? akhir.AddDays(-30);
+            // Rentang disiapkan sebelum bawaannya dihitung — lihat LabQueryDateRange. Bawaan
+            // `DateTime.UtcNow` sendiri sudah ber-Kind UTC, jadi ia tidak perlu disentuh.
+            var akhir = LabQueryDateRange.NormalizeEnd(endDate) ?? DateTime.UtcNow;
+            var awal = LabQueryDateRange.NormalizeStart(startDate) ?? akhir.AddDays(-30);
 
             if (awal > akhir)
             {
@@ -88,6 +90,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             [FromQuery] LabOrderPagedQuery query,
             CancellationToken cancellationToken = default)
         {
+            // Rentang disiapkan sebelum apa pun yang lain — lihat LabQueryDateRange.
+            (query.StartDate, query.EndDate) =
+                LabQueryDateRange.Normalize(query.StartDate, query.EndDate);
+
             if (query.StartDate.HasValue && query.EndDate.HasValue &&
                 query.StartDate.Value > query.EndDate.Value)
             {
@@ -143,6 +149,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             [FromQuery] LabOrderPagedQuery query,
             CancellationToken cancellationToken = default)
         {
+            (query.StartDate, query.EndDate) =
+                LabQueryDateRange.Normalize(query.StartDate, query.EndDate);
+
             if (!TryParseDiscipline(discipline, out var nilai))
             {
                 return BadRequest(ApiResponse<object>.Fail(

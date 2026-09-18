@@ -18,7 +18,7 @@
 | Commit backend saat dikerjakan | `13665452`, branch `yoga` |
 | Tanggal | 2026-09-17 |
 | Wewenang lintas modul | Pemilik modul `registration-management` — **Andry Zain**, disampaikan pemilik modul Laboratorium 2026-09-17, pilihan **A** pada `LAB-REQ-012` bagian 3.3 |
-| Status | **✅ `SELESAI` sebagian besar; satu langkah pembuktian tertahan izin** — lihat bagian 4 dan 6 |
+| Status | **✅ `SELESAI`** — seluruh butir DoD terpenuhi. Empat cabang dibuktikan terhadap `QuilvianNewDevYoga` lewat aplikasi yang benar-benar berjalan; **satu cacat ditemukan uji itu dan diperbaiki**; nol baris uji tertinggal |
 
 ## Backend Governance Preflight
 
@@ -220,6 +220,92 @@ laboratorium dari kiosk (0 dari 15 kunjungan kiosk; 1 sesi bertujuan Laboratoriu
 | Kunjungan kiosk **bertujuan Laboratorium** | **0** |
 | `LabOrder` aktif | 8 |
 
+### 3.4 Empat cabang, dijalankan lewat aplikasi yang sebenarnya
+
+Penyaring yang cocok nol baris tidak membuktikan apa pun tentang **akibat tulisnya**. Karena itu
+empat kunjungan uji dibentuk — **satu yang harus tertutup, dan tiga yang harus tetap utuh** —
+lalu penutupannya dijalankan oleh `KioskEncounterClosureHostedService` di dalam aplikasi yang
+benar-benar menyala, bukan oleh logikanya yang ditiru dari luar.
+
+**Pukul batasnya diturunkan lewat variabel lingkungan**
+`HealthServices__KioskEncounterClosure__ServiceDayEndHour=0`, bukan dengan menyunting berkas.
+Itu sekaligus membuktikan tuntutan `LAB-DEC-059`: angkanya benar-benar dapat diubah tanpa rilis
+ulang.
+
+| Cabang | Rancangannya | Harapan | Hasil |
+|---|---|---|---|
+| **A** | Kiosk bertujuan Laboratorium, nol `LabOrder`, nol `CheckedInAt` | **DITUTUP** | ✅ `EncounterStatus` **5 → 11** (`NoShow`), `NoShowAt` terisi, sebab persis, `IsActive` → `false`. Antreannya **4 → 8** (`NoShow`) |
+| **B** | Sama, tetapi **punya `LabOrder`** | tetap utuh | ✅ tetap `5`, nol `NoShowAt` |
+| **C** | Kiosk bertujuan **poliklinik** | tetap utuh | ✅ tetap `5`; antreannya tetap `4` |
+| **D** | Kiosk bertujuan Laboratorium, **sudah `CheckedInAt`** | tetap utuh | ✅ tetap `5` |
+
+**Ketiga cabang "harus tetap utuh" sengaja diuji, bukan hanya cabang yang menutup.** Penutupan
+yang terlalu rakus tidak akan pernah tertangkap oleh uji yang hanya memeriksa bahwa sesuatu
+tertutup.
+
+**Pagar terhadap data nyata diperiksa pada putaran yang sama:** 15 kunjungan kiosk nyata tetap
+terbuka, dan 91 kunjungan `WaitingForNurse` tidak bergeser satu pun. Sesudah pembersihan,
+penelusuran atas sebab khas task ini menghasilkan **nol** kunjungan dan **nol** antrean — tidak
+ada satu pun baris nyata yang pernah tersentuh.
+
+**Idempotensi dibuktikan terpisah:** putaran kedua menutup **0** kunjungan dan menghasilkan **0**
+galat — kunjungan yang sudah `NoShow` tidak terbaca lagi sebagai kandidat.
+
+### 3.5 Cacat yang ditemukan uji ini, dan kenapa ia pantas dicatat
+
+**Putaran pertama gagal seluruhnya.** `NoShowByUserId` ber-**foreign key** ke `AspNetUsers`, dan
+aktor sistem default — `Guid.Empty`, nilai bawaan sebuah `Guid` — menunjuk pengguna yang tidak
+ada:
+
+```
+23503: insert or update on table "RegPatientEncounter"
+violates foreign key constraint "FK_RegPatientEncounter_AspNetUsers_NoShowByUserId"
+```
+
+**Bentuk kegagalannya persis kelas yang paling berbahaya pada modul ini.** Transaksinya
+ter-rollback dengan benar — nol baris tertulis separuh — dan penjadwalnya mencatat galat lalu
+mencoba lagi. Tidak ada satu pun yang tampak rusak dari luar. Akibatnya: **penutupan otomatis
+tidak akan pernah terjadi**, setiap malam, tanpa satu pun tanda kecuali baris log yang tidak
+dibaca siapa pun.
+
+**Perbaikannya bukan menambal dengan GUID karangan, melainkan menulis nilai yang jujur.** Kedua
+kolom `NoShowByUserId` **nullable** — diperiksa dari `pg_constraint`, bukan diduga — dan `null`
+memang artinya yang benar: penutupan ini tidak dilakukan orang. `ResolveNoShowActorAsync`
+karena itu:
+
+| Keadaan | Yang ditulis |
+|---|---|
+| `SystemActorUserId` tidak disetel | `null` |
+| Disetel `Guid.Empty` | `null` |
+| Disetel, penggunanya **ada** | penunjuk itu |
+| Disetel, penggunanya **tidak ada** | `null`, **dan salah setelnya dicatat** — penutupan tetap berjalan |
+
+Cabang terakhir disengaja: satu baris konfigurasi yang keliru tidak boleh menghentikan seluruh
+penutupan setiap malam. Kolom `UpdateBy` dan `CreateBy` **tidak** ber-FK, sehingga tetap distempel
+`Guid.Empty` seperti jalur lain.
+
+Terbukti sesudah perbaikan: `NoShowByUserId` bernilai **`NULL`** pada kunjungan maupun antrean,
+`UpdateBy` bernilai `Guid.Empty`, dan penutupannya berhasil — **`Laboratory=1`, nol galat.**
+
+> **Satu hal yang perlu diketahui `registration-management`.** Cacat yang sama berpotensi ada
+> pada `CancelledByUserId` — juga ber-FK dan nullable — tetapi **tidak terlihat hari ini** karena
+> satu-satunya penulisnya, `CancelEncounter`, selalu berjalan di bawah pengguna yang sedang
+> login. Ia akan muncul pada penulis berikutnya yang berjalan **tanpa** pengguna. Dilaporkan,
+> tidak diperbaiki — di luar cakupan task ini.
+
+### 3.6 Kebersihan
+
+Keempat kunjungan uji, kedua antrean, keempat sesi kiosk, dan satu `LabOrder` dihapus permanen.
+Hitungan diulang **dari koneksi baru**:
+
+| Tabel | Sebelum | Sesudah |
+|---|---:|---:|
+| `TrxKioskScanSession` | 17 | **17** |
+| Kunjungan kiosk nyata | 15 | **15** |
+| `LabOrder` aktif | 8 | **8** |
+| `WaitingForNurse` | 91 | **91** |
+| Sisa baris uji `BEEXT05` | — | **0** |
+
 ---
 
 ## 4. Definition of Done
@@ -231,28 +317,19 @@ laboratorium dari kiosk (0 dari 15 kunjungan kiosk; 1 sesi bertujuan Laboratoriu
 | Biaya pendaftaran gugur | ✅ Terpenuhi tanpa kode; alasannya kini tertulis di dalam source (2.4) |
 | `AC-45` tetap tegak | ✅ Laboratorium nol menulis ke `RegPatientEncounter`. Berkas Laboratorium satu-satunya pada task ini **hanya membaca `LabOrder`** dan mengembalikan daftar penunjuk |
 | Build | ✅ 0 error, nol peringatan baru |
-| Verifikasi proses bisnis **dengan baris nyata** | ⛔ **Belum** — lihat 4.1 |
+| Verifikasi proses bisnis **dengan baris nyata** | ✅ **Empat cabang** dijalankan lewat aplikasi yang benar-benar menyala (3.4); pagar data nyata terbukti tidak bergeser; idempotensi terbukti; nol baris uji tertinggal (3.6) |
+| Pukul penutupan dapat diubah tanpa rilis ulang (`LAB-DEC-059`) | ✅ Dibuktikan — putaran uji memakai variabel lingkungan, bukan suntingan berkas |
 
-### 4.1 Satu langkah pembuktian yang tertahan, dan ditulis apa adanya
+### 4.1 Satu catatan tentang cara butir terakhir terpenuhi
 
-Rencana pembuktiannya sudah disusun penuh: empat cabang pada satu pemeriksaan — satu kunjungan
-yang **harus** tertutup, dan **tiga yang harus tetap utuh** (sudah punya `LabOrder`; bertujuan
-poliklinik; sudah `CheckedInAt`) — beserta pembuktian bahwa 15 kunjungan kiosk nyata dan 91
-kunjungan `WaitingForNurse` tidak bergeser, lalu pembersihan permanen dan hitung ulang dari
-koneksi baru.
+Butir ini sempat ditulis **belum terpenuhi**: penyisipan baris uji ditolak penjaga izin sesi
+dengan alasan `QuilvianNewDevYoga` database bersama. **Pemilik modul mengoreksi premis itu** —
+`QuilvianNewDevYoga` adalah database pengembangan miliknya sendiri, dan yang bersama adalah
+database lain — sehingga pembuktiannya dijalankan.
 
-**Penyisipan baris ujinya ditolak oleh penjaga izin sesi ini** (`Modify Shared Resources` —
-`QuilvianNewDevYoga` adalah database bersama). Tidak ada satu baris pun yang disisipkan, dan
-tidak ada jalan memutar yang ditempuh.
-
-**Ini ditulis sebagai butir yang belum terpenuhi, bukan dibulatkan menjadi selesai.** Yang sudah
-terbukti adalah **selektivitas penyaringnya** — sifat yang paling berbahaya bila salah, dan yang
-dapat diukur tanpa menulis apa pun (3.2). Yang belum terbukti adalah **akibat tulisnya**: bahwa
-kunjungan yang cocok benar-benar berpindah ke `NoShow` beserta antreannya, dan bahwa ketiga
-cabang penjagaan benar-benar menahan.
-
-Penyaring itu cocok **nol baris** pada database hari ini, sehingga risiko menjalankannya apa
-adanya **nol** — tetapi itu tidak sama dengan terbukti.
+Dicatat karena hasilnya menentukan: **uji itulah yang menemukan cacat bagian 3.5**, cacat yang
+akan membuat seluruh fitur ini tidak pernah berjalan satu malam pun tanpa satu pun tanda dari
+luar.
 
 ---
 
@@ -331,8 +408,9 @@ pekerjaan.** Dua hari berhenti untuk penahan yang tidak ada.
 
 | # | Hal | Pemilik |
 |---:|---|---|
-| 1 | Menjalankan pembuktian empat cabang pada bagian 4.1 | Perlu izin tulis ke `QuilvianNewDevYoga` |
+| 1 | Menetapkan `SystemActorUserId` ke akun sistem yang sah, atau membiarkannya `null` dengan sadar | `registration-management` |
 | 2 | Menjawab `LAB-REQ-012` bagian 4 — `IsAvailableForKiosk` pada `SU-LAB-001` | `master-data` |
 | 3 | Mengonfirmasi pukul 21:00 terhadap jam operasional resmi | `registration-management` + manajemen rumah sakit |
 | 4 | Memeriksa apakah layar kiosk menyaring unit dengan `isAvailableForKiosk=true` | `registration-management` |
 | 5 | Meninjau `EncounterStatus` bagi unit ber-`IsDoctorRequired = false` (6.1) | `registration-management` |
+| 6 | Meninjau `CancelledByUserId` terhadap penulis yang berjalan tanpa pengguna (3.5) | `registration-management` |

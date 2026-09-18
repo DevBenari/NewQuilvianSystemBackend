@@ -3,7 +3,15 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-API-v1` |
-| Revision | `17` |
+| Revision | `25` |
+| `r25` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-18** |
+| Isi amandemen `r25` | **`approved` — 2026-09-18.** Laporan Patologi Anatomi **per pesanan** (`S4c` sesudah dirancang ulang), menurunkan `LAB-DEC-085`..`LAB-DEC-088` dan `LAB-DEC-091`..`LAB-DEC-094` beserta `LAB-DA-001` rev 7. Enam endpoint laporan/konteks klinis dan empat data induk. **Menggantikan bagian 19.3** yang ditandai `superseded` — jalur `/lab-examinations/{id}/result/pathology` salah alamat karena laporan PA melekat pada **pesanan**, bukan pemeriksaan. **Aditif terhadap yang berjalan**: bagian 19.3 nol pernah dibangun, sehingga penggantiannya nol memutus pemakai. Bagian 19.2 Mikrobiologi dan 19.4 data induk Mikrobiologi **tidak tersentuh**. Disetujui bersama `LAB-VAL-v1` `r8` dan `LAB-PERM-v1` rev 7 pada hari yang sama. Lihat bagian 20 |
+| `r24` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-18** |
+| Isi amandemen `r24` | **`approved` — 2026-09-18.** Pengisian hasil Mikrobiologi dan Patologi Anatomi (`S4b`, `S4c`), menurunkan `LAB-DEC-027`, `LAB-DEC-080`, `LAB-DEC-081`, dan `LAB-DEC-084`. Empat jalur hasil dan delapan jalur data induk. **Aditif** — nol endpoint yang sudah ada berubah, nol ruas bergeser. Disetujui bersama `LAB-VAL-v1` `r7` dan `LAB-PERM-v1` rev 6 pada hari yang sama |
+| `r19` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-17 |
+| Isi amandemen `r19` | **`approved` — 2026-09-17.** Satu ruas `gender` pada `LabMonitoringItemResponse`, menutup `REC3-NEW-010`. **Mengoreksi catatan lama yang menyebutnya "kewenangan UI, tidak menyentuh kontrak backend"** — DTO itu ternyata **nol** membawa gender, sehingga ikonnya mustahil dibangun dari sisi layar saja. Aditif; nol endpoint, nol permission, nol migration. **Artifact hanya menyebut dua warna dan diam soal dua nilai enum lainnya beserta `null`;** kediaman itu tidak ditebak melainkan diputuskan pemilik modul — ikon netral abu-abu dengan **label yang tetap membedakan** "tidak diketahui" dari "tidak diinformasikan". Lihat bagian 14 |
+| `r18` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-17 |
+| Isi amandemen `r18` | **`approved` — 2026-09-17.** Dua ruas opsional pada `LabMonitoringQuery`, menurunkan `BR-50` butir 1: `identityNumber` (penyaring **NIK**, menutup `REC3-NEW-003`) dan `dateCategory` (**Kategori Periode**, menutup `REC3-NEW-002` **sebagian**). Aditif seluruhnya — nol endpoint, ruas respons, permission, dan migration. **Nilai `ExaminationDate` sengaja TIDAK dicantumkan** pada enumnya: `LabExamination` nol punya kolom waktu pemeriksaan, dan mencantumkannya berarti mendirikan pilihan yang tidak menuju ke mana-mana — pola yang sudah enam kali menimpa modul ini. **Dua keputusan pemilik diambil 2026-09-17:** bentuk penyaring memakai **dua ruas terpisah beserta pilihan di layar** (13.2.1 pilihan A), dan Kategori Periode berjalan **dua pilihan sekarang** tanpa menampilkan yang ketiga. Lihat bagian 13 |
 | `r16` / `r17` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-17 |
 | Isi amandemen `r17` | **`approved` — 2026-09-17.** Satu endpoint baca baru `GET /lab-specimens`: daftar penerimaan **lintas pesanan**, disaring rentang **waktu kedatangan sebenarnya**. Menutup celah yang menahan `FE-LAB-12` — nol endpoint mengembalikan daftar wadah lintas pesanan; yang ada hanya rekap tanpa baris dan daftar per satu pesanan. Aditif, nol migration, nol permission baru. **Satu peringatan dibawa serta:** rentangnya wajib disaring pada `PhysicallyReceivedAt ?? CreateDateTime`, karena bila keliru seluruh guna kolom itu hilang tanpa satu pun kesalahan yang terlihat. Lihat bagian 12 |
 | Isi amandemen `r16` | **`approved` — 2026-09-17. Memuat DUA hal dari dua tempat berbeda.** Pertama, ruas `orderNumber` pada `LabOrderListResponse` dan `LabMonitoringItemResponse` — kolomnya berdiri lewat `BE-LAB-36` tetapi nol DTO mengembalikannya. Kedua, ruas `collectedAt` opsional pada `PlanLabSpecimenRequest`, menurunkan **`LAB-CONFLICT-006` pilihan A yang sudah diputuskan 2026-09-16** tetapi amandemennya tidak pernah ditulis; laporan `BE-LAB-22` §6 menyebut sasaran "`r10`" yang ditulis ketika kontrak masih `r7`. Membukanya membuat `VAL-59` dan `AC-66` dapat ditegakkan penuh. Aditif seluruhnya, nol migration, nol permission baru. Lihat bagian 11 |
@@ -941,3 +949,981 @@ instalasi, sebagaimana dituntut DoD `FE-LAB-12`.
 | Endpoint yang sudah ada | **Nol berubah** |
 | Permission | **Nol** resource baru. Memakai ulang `LabSpecimen : Read` |
 | Migration | **Nol.** Seluruh kolomnya sudah berdiri sejak `BE-LAB-21` dan `BE-LAB-22` |
+
+---
+
+## 13. Amandemen `r18` — Penyaring NIK dan Kategori Periode pada daftar pantau, 2026-09-17
+
+**Status `approved`**, disetujui Yoga Aji Pratama selaku pemilik modul pada 2026-09-17.
+
+**Aditif seluruhnya.** Dua ruas opsional pada satu DTO permintaan. Nol endpoint baru, nol ruas
+respons, nol nilai enum yang bergeser, nol permission, nol migration.
+
+### 13.1 Kenapa amandemen ini ada
+
+`BR-50` butir 1 menetapkan penyaring menu Hasil: **NIK/No. RM, Kategori Periode, Tgl Awal, Tgl
+Akhir, dan Jenis Kunjungan.** Empat dari enam sudah berjalan. Dua belum, dan keduanya
+diturunkan di sini.
+
+| Penyaring `BR-50` | Keadaan hari ini |
+|---|---|
+| Tgl Awal / Tgl Akhir | ✅ `StartDate` / `EndDate`, beserta penjagaan tanggal masa depan (`FE-LAB-18`, `AC-98`) |
+| Jenis Kunjungan | ✅ `EncounterType` |
+| No. RM | ✅ `MedicalRecordNumber` |
+| Keyword Search | ✅ `Search` — nama pasien, No. RM, nomor kunjungan |
+| **NIK** | ❌ `MstPatient.IdentityNumber` **ada** (`MstPatient.cs:54`), tetapi nol dijangkau penyaring Laboratorium |
+| **Kategori Periode** | ❌ `LabMonitoringService.cs:172-182` menyaring **hanya** pada `RequestedAt ?? CreateDateTime` |
+
+> **Kenapa diusulkan sekarang padahal menu Hasil sendiri tertahan `LAB-SIGN-001`.** Keduanya
+> **tidak** bergantung pada hasil pemeriksaan. Ia menyaring pesanan, dan pesanan sudah ada.
+> Ketiga menu Pemeriksaan yang berjalan hari ini memakai DTO yang sama dan memperoleh keduanya
+> seketika. Sisa `BR-50` tetap tertahan; dua butir ini memang tidak.
+
+### 13.2 Ruas pertama — `identityNumber`
+
+Ditambahkan pada **`LabMonitoringQuery`**.
+
+| Ruas | Tipe | Ketentuan |
+|---|---|---|
+| `identityNumber` | `string?` | NIK pasien, **cocok sebagian**, mengikuti persis pola `medicalRecordNumber` yang sudah berjalan |
+
+Dibaca dari `MstPatient.IdentityNumber` lewat sub-query ke `Encounter.PatientId` — **cara yang
+sama** dengan `PatientName` dan `MedicalRecordNumber` pada service itu, bukan lewat navigation
+property baru. `BR-50` butir 1 melarang mengarang kolom; ruas ini memakai kolom yang sudah ada.
+
+**`Search` sengaja TIDAK ikut diperlebar, dan itu keputusan, bukan kelalaian.** Memasukkan NIK
+ke pencarian bebas membuat ketiga menu Pemeriksaan yang sudah berjalan **mengembalikan baris
+yang sebelumnya tidak muncul**, tanpa satu pun layar meminta perubahan itu. Pelebaran diam-diam
+sama merusaknya dengan pengetatan diam-diam — pelajaran `BE-LAB-21`, yang di sini berlaku ke
+arah sebaliknya.
+
+#### 13.2.1 Satu hal yang perlu diputuskan pemilik modul
+
+Artifact menuliskannya sebagai **satu** kotak, `NIK/No. RM`. Kontrak ini menyediakan **dua**
+ruas terpisah. Keduanya dapat benar, tetapi bentuk layarnya berbeda:
+
+| # | Bentuk | Konsekuensinya |
+|---:|---|---|
+| **A** | Dua ruas tetap terpisah; layar menampilkan **pilihan** `Cari menurut: NIK / No. RM` di samping satu kotak | Tegas dan dapat diaudit. Petugas tahu persis apa yang dicarinya. **Nol tebakan format** |
+| B | Satu kotak; layar **menebak** dari bentuk isian — 16 digit dianggap NIK, selainnya No. RM | Satu kotak, tetapi tebakannya rapuh: No. RM 16 digit akan dibaca sebagai NIK dan hasilnya kosong tanpa sebab yang terlihat |
+| C | Satu ruas baru yang mencocokkan **NIK atau No. RM** sekaligus di backend | Paling dekat dengan artifact, tetapi menduplikasi `medicalRecordNumber` yang sudah ada, dan dua ruas yang saling tumpang tindih akan membingungkan pemanggil berikutnya |
+
+**Usul: A.** Ia menghindari tebakan format yang gagalnya tidak terlihat, dan nol menduplikasi
+ruas yang sudah berjalan. Pilihan ada pada pemilik modul.
+
+### 13.3 Ruas kedua — `dateCategory`
+
+Ditambahkan pada **`LabMonitoringQuery`**.
+
+| Ruas | Tipe | Bawaan |
+|---|---|---|
+| `dateCategory` | `LabDateCategory?` | Kosong berarti `OrderDate` |
+
+**`LabDateCategory`** — enum baru, **dua** nilai:
+
+| Nilai | Angka | Disaring pada | Sumber |
+|---|---:|---|---|
+| `OrderDate` | `1` | `RequestedAt ?? CreateDateTime` | Perilaku yang berjalan hari ini |
+| `SamplingDate` | `2` | `LabSpecimen.CollectedAt` | `BE-LAB-21`; ruas tulisnya dibuka `r16` |
+
+#### 13.3.1 Kompatibilitas: pemanggil lama tidak boleh berubah perilakunya
+
+**Ruasnya opsional, dan kosong berarti `OrderDate`.** Ketiga menu Pemeriksaan yang berjalan hari
+ini nol mengirimnya, sehingga keduanya menempuh cabang yang **persis sama** dengan hari ini.
+Inilah butir DoD yang paling mudah dilanggar diam-diam, dan ia wajib dibuktikan terbalik saat
+dibangun: muatan lama **tetap** menghasilkan baris yang sama.
+
+#### 13.3.2 Aturan `SamplingDate` — satu pesanan, beberapa wadah
+
+Satu pesanan dapat memiliki beberapa wadah dengan waktu pengambilan berbeda. Aturannya:
+
+> Sebuah pesanan ikut tersaring bila **salah satu** wadahnya ber-`CollectedAt` di dalam rentang.
+
+Pola ini **bukan baru** — ia persis aturan `SpecimenStatus` yang sudah berlaku pada DTO yang
+sama, dan alasannya ditulis di sana. Memakai ulang aturan yang sudah dipahami petugas lebih baik
+daripada memperkenalkan aturan kedua untuk perkara yang sama.
+
+#### 13.3.3 `CollectedAt` kosong tidak pernah cocok — dan kenapa ini BERBEDA dari `r17`
+
+Wadah yang belum dinyatakan waktu pengambilannya ber-`CollectedAt` **`null`**. Aturannya:
+**baris itu tidak pernah cocok ke rentang mana pun** pada kategori `SamplingDate`. **Tidak ada
+jatuh-tempo ke `CreateDateTime`.**
+
+Ini **sengaja berbeda** dari `r17`, yang justru menyaring pada `PhysicallyReceivedAt ??
+CreateDateTime`, dan perbedaannya ditulis terang supaya tidak terbaca sebagai ketidakkonsistenan:
+
+| | `r17` — laporan penerimaan | `r18` — kategori periode |
+|---|---|---|
+| Pertanyaannya | *"Wadah apa saja yang masuk hari itu?"* | *"Pesanan mana yang **diambil sampelnya** dalam rentang ini?"* |
+| Substitusi terlihat pembaca? | **Ya** — `FE-LAB-12` menandai terang-terangan baris yang waktu tibanya tidak pernah dicatat, beserta selisihnya | **Tidak** — hasilnya hanya daftar; baris bersubstitusi tidak dapat dibedakan |
+| Akibat substitusi | Baris tetap terhitung, dan pembacanya tahu | Pesanan yang **tidak pernah diambil sampelnya** akan muncul sebagai *"diambil tanggal sekian"* |
+
+Jatuh-tempo di sini akan menjawab pertanyaan yang tidak ditanyakan, dan salahnya **tidak terlihat
+dari layar**. Itu kelas kesalahan yang sudah enam kali menimpa modul ini.
+
+#### 13.3.4 `ExaminationDate` sengaja TIDAK ada pada enum
+
+Artifact menawarkan **tiga** pilihan; yang ketiga adalah **Tanggal Pemeriksaan**. Ia **tidak
+dicantumkan**, dan itu keputusan yang paling penting pada amandemen ini.
+
+`LabExamination` hari ini punya 20 properti dan **nol** di antaranya waktu pemeriksaan —
+diverifikasi ulang 2026-09-17. Mencantumkan nilai enum yang tidak punya kolom pendukung berarti
+mendirikan **pilihan yang tidak menuju ke mana-mana**: layar menawarkannya, petugas memilihnya,
+dan daftarnya kosong atau salah tanpa satu pun galat.
+
+**Itu persis pola yang sudah enam kali menimpa modul ini** — sesuatu yang berdiri tanpa
+pasangannya dan nol menimbulkan galat sampai seseorang membutuhkannya. Nilai `ExaminationDate`
+masuk **bersama** kolomnya, pada amandemen tersendiri, ketika `S4` terbuka.
+
+**Akibatnya pada layar, ditulis supaya tidak ditemukan belakangan:** pilihan Kategori Periode
+memuat **dua** butir, bukan tiga. Bila yang ketiga wajib terlihat sebagai penanda arah, ia
+ditampilkan **nonaktif beserta alasannya** — bukan aktif dan kosong.
+
+### 13.4 Validasi
+
+Satu aturan baru pada `LAB-VAL-v1`:
+
+| ID | Aturan | Kode | Ditegakkan oleh |
+|---|---|---|---|
+| `VAL-76` | `dateCategory` wajib salah satu nilai yang dikenal | `400` | **Pengikatan query ASP.NET Core**, bukan penjaga di controller |
+
+**Penegaknya diperiksa, bukan diasumsikan — dan hasilnya membalik rancangan awal.** Penjaga
+`Enum.IsDefined` sempat ditulis di controller, lalu dibuktikan **tidak pernah tercapai**:
+pengikatan query menjalankan pemeriksaan yang sama lebih dulu, sehingga `?dateCategory=99`
+maupun `=0` sudah ditolak sebelum satu baris controller pun berjalan. Penjaganya **dicabut** —
+penjaga yang tidak pernah tercapai terbaca seolah menjadi penegaknya, dan pesannya akan
+dipelihara orang tanpa pernah sampai ke siapa pun.
+
+**Bentuk jawaban yang benar-benar diterima pemanggil**, dibaca apa adanya dari aplikasi yang
+berjalan pada 2026-09-17:
+
+```json
+{
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+  "title": "One or more validation errors occurred.",
+  "status": 400,
+  "errors": { "DateCategory": ["The value '99' is invalid."] }
+}
+```
+
+> **Satu selisih dilaporkan, tidak diperbaiki di sini.** Bentuk itu adalah `ProblemDetails`
+> bawaan framework, **bukan** amplop `ApiResponse` yang dipakai seluruh jawaban modul ini, dan
+> pesannya berbahasa Inggris. Selisih ini **berlaku bagi setiap ruas enum pada query string di
+> seluruh aplikasi**, bukan hanya ruas ini — menyeragamkannya adalah keputusan tingkat aplikasi
+> di luar cakupan amandemen ini. Yang perlu diketahui sisi layar: nilai di luar daftar **ditolak**
+> dengan benar, tetapi pesannya tidak siap ditampilkan apa adanya kepada petugas. Layar memang
+> tidak pernah mengirimkannya — pilihannya datang dari daftar tertutup.
+
+**Nol aturan baru untuk `identityNumber`** — ia dirapikan dan diabaikan bila kosong, persis
+`medicalRecordNumber`.
+
+> **Satu catatan teknis yang pernah menelan biaya.** `Program.cs` **nol** mendaftarkan
+> `JsonStringEnumConverter`, sehingga enum pada **body** JSON hanya terbaca sebagai angka —
+> temuan `FE-LAB-13`. `dateCategory` adalah ruas **query string**, dan pengikatan query mengenali
+> **nama**; `?dateCategory=SamplingDate` sah. Ditulis di sini supaya tidak diperdebatkan ulang
+> saat dibangun.
+
+### 13.4b Cacat yang sudah ada, ditemukan saat amandemen ini diverifikasi
+
+**Penyaring tanggal pada ketiga layar Pemeriksaan menjawab `500`, bukan daftar** — dan sudah
+begitu sebelum amandemen ini. Ditemukan 2026-09-17 ketika `dateCategory` diuji terhadap aplikasi
+yang benar-benar berjalan; **cabang `OrderDate` yang tidak disentuh `r18` gagal identik**,
+sehingga ia bukan regresi amandemen ini.
+
+| Hal | Temuan |
+|---|---|
+| Yang dikirim layar | `YYYY-MM-DD` apa adanya — `FilterDatePicker` menghasilkan bentuk itu, dan `cleanParams` hanya membuang nilai kosong |
+| Yang dikontrakkan | `Type = "date"`, `Example = "2026-09-01"` — **bentuk itu memang kontraknya** |
+| Yang terjadi | Nilai tanpa zona terikat `DateTimeKind.Unspecified`; Npgsql **menolak** menulisnya ke `timestamp with time zone` |
+| Jawabannya | `500 Terjadi kesalahan pada server.` |
+
+**Dua hal diperbaiki sekaligus, dan yang kedua tidak akan terlihat tanpa yang pertama.**
+
+1. **Penormalan zona.** Nilai tanpa zona dibaca sebagai **jam dinding WIB** — bukan UTC — karena
+   itulah yang dimaksud petugas ketika mengetik satu tanggal. Ditempatkan pada
+   `AppDateTimeHelper.ToUtc`, bukan disalin ke controller.
+2. **Akhir rentang dinaikkan ke penghabisan hari.** `LAB-DEC-071` menetapkan pembandingnya
+   **inklusif** justru supaya pencarian **satu hari** mungkin. Tanpa ini,
+   `startDate=2026-09-16&endDate=2026-09-16` berarti 00:00 sampai 00:00 dan mengembalikan **nol
+   baris** — persis kegagalan yang keputusan itu tulis untuk dicegah. Hanya nilai yang jamnya
+   tepat tengah malam yang dinaikkan; nilai yang membawa jam sendiri tidak disentuh.
+
+Terbukti sesudah perbaikan, dengan format polos yang **persis** dikirim layar:
+
+| Pencarian satu hari | Hasil |
+|---|---:|
+| `OrderDate` 2026-09-09 | 3 baris |
+| `OrderDate` 2026-09-16 | 1 baris |
+| `SamplingDate` 2026-09-09 | 3 baris |
+| `SamplingDate` 2026-09-16 | **0 baris** — benar; pesanan hari itu nol wadah terambil |
+
+> **Cakupan perbaikan pertama hanya grup `Lab Monitoring`;** grup lain dicatat sebagai pekerjaan
+> tersendiri, bukan diperbaiki diam-diam di luar cakupan. **Pemeriksaan itu dijalankan pada hari
+> yang sama — lihat 13.4c.**
+
+### 13.4c Pemeriksaan susulan — cacat yang sama ternyata mengenai lima endpoint lain
+
+Dijalankan 2026-09-17 sebagai penutup utang 13.4b. **Setiap** ruas tanggal pada grup Laboratorium
+diprobe dengan bentuk polos `YYYY-MM-DD` terhadap aplikasi yang berjalan.
+
+| Endpoint | Sebelum | Sesudah |
+|---|---|---|
+| `GET /lab-orders` | **`500`** | `200` |
+| `GET /lab-orders/summary` | **`500`** | `200` |
+| `GET /lab-specimens` | **`500`** | `200` |
+| `GET /lab-specimens/summary` | **`500`** | `200` |
+| `GET /lab-specimen-types/other-usage` | **`500`** | `200` |
+| `GET /lab-monitoring/*` | sudah diperbaiki 13.4b | `200` |
+
+> **Satu negatif palsu dicatat supaya caranya tidak ditiru.** Putaran pertama menyimpulkan
+> `lab-specimen-types` **selamat**, padahal yang diprobe adalah `/summary` — endpoint yang
+> **nol menerima** ruas tanggal, sehingga parameternya diabaikan dan jawabannya `200` tanpa
+> membuktikan apa pun. Endpoint yang sebenarnya, `/other-usage`, ternyata ikut terkena.
+> **Probe yang menjawab `200` karena tidak membaca masukannya terlihat persis sama dengan probe
+> yang benar-benar lulus.**
+
+**Aturannya dipindah ke satu tempat, bukan disalin enam kali.** `LabQueryDateRange` memegang
+penormalan zona dan kenaikan akhir hari; keenam pemanggilnya menyebut nama yang sama. Enam
+salinan aturan yang sama pasti bercabang, dan cabangnya **tidak menimbulkan galat** — hanya
+tanggal yang salah pada satu layar dan benar pada layar lain.
+
+**Dibuktikan isinya, bukan hanya kode statusnya:** pencarian satu hari pada `lab-orders`
+mengembalikan 3, 2, dan 3 baris untuk 09-09, 09-14, dan 09-16 — berjumlah **8**, yaitu seluruh
+pesanan aktif. Bentuk polos dan bentuk `...Z` menghasilkan angka yang sama pada data ini.
+
+> **Keduanya bukan rentang yang identik, dan itu disengaja.** Bentuk polos berarti hari kalender
+> **WIB**; bentuk `...Z` dihormati apa adanya sebagai UTC. Keduanya kebetulan sama di sini karena
+> barisnya jauh dari batas hari. Pemanggil yang sudah mengirim `...Z` karena itu **nol berubah
+> perilakunya**.
+
+### 13.5 Dampak kompatibilitas
+
+| Yang dinilai | Hasil |
+|---|---|
+| Endpoint | **Nol berubah.** Keduanya ruas pada DTO permintaan yang sudah ada |
+| Ruas respons | **Nol.** Tidak ada satu pun ruas baru dikembalikan |
+| Nilai enum yang sudah ada | **Nol bergeser.** `LabDateCategory` enum **baru**, bukan sisipan ke enum lama |
+| Pemanggil lama | **Nol diketatkan.** Kedua ruas opsional; kosong berarti perilaku hari ini |
+| Permission | **Nol** resource baru. Memakai ulang `LabOrder : Read` |
+| Migration | **Nol.** `MstPatient.IdentityNumber` dan `LabSpecimen.CollectedAt` keduanya sudah berdiri |
+
+### 13.6 Traceability
+
+| Butir | Menurunkan | Menutup |
+|---|---|---|
+| `identityNumber` | `BR-50` butir 1; `LAB-DEC-065` | `REC3-NEW-003` |
+| `dateCategory` | `BR-50` butir 1 | `REC3-NEW-002` **sebagian** — dua dari tiga pilihan |
+
+`REC3-NEW-002` **tidak** tertutup penuh, dan itu ditulis terang: pilihan ketiga menunggu `S4`.
+
+### 13.7 Keputusan pemilik modul — 2026-09-17
+
+| # | Pertanyaan | Keputusan |
+|---:|---|---|
+| 1 | Bentuk penyaring NIK/No. RM | **A** — dua ruas tetap terpisah; layar menampilkan pilihan `Cari menurut: NIK / No. RM` di samping satu kotak. Nol tebakan format |
+| 2 | Kategori Periode dua pilihan sekarang, atau tunggu `S4` | **Dua sekarang.** Pilihan ketiga **tidak** ditampilkan sama sekali — bukan ditampilkan nonaktif — sampai kolomnya ada |
+
+---
+
+## 14. Amandemen `r19` — Gender pasien pada daftar pantau, 2026-09-17
+
+**Status `approved`**, disetujui Yoga Aji Pratama selaku pemilik modul pada 2026-09-17.
+
+**Aditif.** Satu ruas respons. Nol endpoint, nol ruas permintaan, nol permission, nol migration.
+
+### 14.1 Kenapa amandemen ini ada — dan koreksi atas catatan sebelumnya
+
+`REC3-NEW-010` sempat dicatat sebagai **"kewenangan UI, tidak menyentuh kontrak backend"**.
+Pemeriksaan source 2026-09-17 membantahnya: **`LabMonitoringItemResponse` nol membawa gender**,
+dan penelusuran seluruh DTO Laboratorium hanya menemukannya pada
+`LabPatientRegistrationDtos.cs` — jalur pendaftaran, bukan daftar pantau.
+
+Ikon gender karena itu **tidak dapat dibangun dari sisi layar saja**. Catatan lamanya keliru
+karena mengandaikan datanya sudah sampai; ia tidak.
+
+### 14.2 Ruas
+
+Ditambahkan pada **`LabMonitoringItemResponse`**.
+
+| Ruas | Tipe | Nilai |
+|---|---|---|
+| `gender` | `string?` | `Male`, `Female`, `Unknown`, `NotDisclosed`, atau `null` |
+
+**Bentuknya mengikuti ruas enum lain pada DTO yang sama** — `orderStatus`, `encounterType`, dan
+`paymentType` seluruhnya `string` berisi **nama enum**, dihasilkan `.ToString()`. Nol pola baru
+diperkenalkan.
+
+**`null` tetap mungkin dan bukan kelalaian:** `MstPatient.Gender` nullable, dan pesanan tanpa
+kunjungan tidak punya pasien yang dapat dibaca.
+
+### 14.3 Empat keadaan, tiga tampilan — keputusan pemilik modul
+
+Artifact hanya menyebut **dua** warna: biru/navy untuk laki-laki, pink untuk perempuan. Ia
+**diam** soal dua nilai enum lainnya dan soal `null`. Kediaman itu tidak ditebak.
+
+| Nilai | Tampilan | Label aksesibel |
+|---|---|---|
+| `Male` | Ikon **biru/navy** | Laki-laki |
+| `Female` | Ikon **pink** | Perempuan |
+| `Unknown` / `null` | Ikon **netral abu-abu** | Gender tidak diketahui |
+| `NotDisclosed` | Ikon **netral abu-abu** | Gender tidak diinformasikan |
+
+**Kenapa bukan "tanpa ikon".** Baris tanpa ikon tidak dapat dibedakan dari baris yang ikonnya
+gagal dimuat — petugas tidak tahu apakah datanya memang kosong atau layarnya bermasalah.
+
+**Kenapa bukan tanda tanya.** `NotDisclosed` adalah pilihan **sadar** pasien, bukan pengisian
+yang kurang. Tanda tanya membacanya sebagai kekurangan data; keduanya hal yang berbeda.
+Warnanya disamakan karena keduanya sama-sama "bukan laki-laki/perempuan yang dapat ditampilkan",
+tetapi **labelnya dibedakan** sehingga perbedaannya tetap terbaca pembaca layar dan tooltip.
+
+### 14.4 Dampak kompatibilitas
+
+| Yang dinilai | Hasil |
+|---|---|
+| Endpoint | **Nol berubah** |
+| Ruas yang sudah ada | **Nol berubah**; `gender` murni tambahan |
+| Pemanggil lama | **Nol diketatkan** — ruas baru pada respons diabaikan pemanggil yang tidak membacanya |
+| Permission | **Nol** resource baru |
+| Migration | **Nol.** `MstPatient.Gender` sudah berdiri |
+
+### 14.5 Traceability
+
+| Butir | Menurunkan | Menutup |
+|---|---|---|
+| `gender` | `BR-50` bagian 5.3 baris kolom Pasien | `REC3-NEW-010` |
+
+> **Cakupannya ketiga layar Pemeriksaan, bukan Menu Hasil.** Kolom Pasien pada artifact adalah
+> kolom **Datatable Hasil** (`S17`), yang belum ada. Karena `LAB-DEC-070` menetapkan Menu Hasil
+> mengikuti pola **tiga daftar sejajar** yang sama, ruas ini berdiri pada DTO yang kelak
+> dipakainya — dan ketiga layar Pemeriksaan memperolehnya sekarang.
+
+---
+
+## 15. Amandemen `r20` — Golongan darah pada daftar pantau, 2026-09-17
+
+**Status `approved`**, disetujui Yoga Aji Pratama selaku pemilik modul pada 2026-09-17.
+
+**Aditif.** Satu ruas respons. Nol endpoint, nol ruas permintaan, nol permission, nol migration.
+
+### 15.1 Kenapa amandemen ini ada
+
+`REC3-NEW-009` dipindahkan ke **Rilis 1** atas keputusan pemilik modul 2026-09-17, mengamandemen
+penempatan `LAB-DEC-030`. Dari ketiga dokumennya, **Label Goldar** ditempel pada tube berisi
+sampling pasien dan — atas keputusan pemilik modul pada tanggal yang sama — **menampilkan
+golongan darahnya**.
+
+Artifact sendiri hanya menulis *"informasi utama pasien"* untuk label ini dan **tidak menyebut
+golongan darah**, walaupun namanya menyebutnya. Kediaman itu tidak ditebak: pemilik modul
+memutuskan golongan darahnya ikut, karena label tube tanpa golongan darah sulit dibedakan
+gunanya dari Label Lab.
+
+`MstPatient.BloodType` **sudah berdiri**; yang tidak ada adalah jalannya ke layar.
+
+### 15.2 Ruas
+
+Ditambahkan pada **`LabMonitoringItemResponse`**.
+
+| Ruas | Tipe | Nilai |
+|---|---|---|
+| `bloodType` | `string?` | `APositive`, `ANegative`, `BPositive`, `BNegative`, `ABPositive`, `ABNegative`, `OPositive`, `ONegative`, `Unknown`, `NotDisclosed`, atau `null` |
+
+**Ditempatkan bersama `gender` dan `patientName`, bukan pada detail pesanan.** Dokumen cetak
+mengambil identitas pasien dari **baris daftar**; detail hanya dipanggil untuk dua hal yang tidak
+dimiliki baris — nama pembuat order dan daftar pemeriksaan terpesan (`r15`). Menempatkan
+golongan darah di detail berarti label tube sebesar 50×25 mm memaksa satu panggilan tambahan
+untuk satu kata.
+
+**Bentuknya nama enum**, mengikuti `orderStatus`, `encounterType`, `paymentType`, dan `gender`
+pada DTO yang sama. Nol pola baru.
+
+> **`MstPatient.BloodType` non-nullable dan berbawaan `Unknown`**, tetapi ruas ini tetap `string?`
+> karena pesanan tanpa kunjungan nol punya pasien yang dapat dibaca. Layar memperlakukan `null`
+> sama dengan `Unknown`.
+
+### 15.3 Singkatannya milik layar, bukan kontrak
+
+Kontrak mengirim **nama enum**; `A+` dan `O−` dibentuk layar. Alasannya: singkatan adalah
+keputusan tampilan yang berbeda per media — label tube 50×25 mm menuntut `A+`, sedangkan layar
+dan Nota Lab masih muat menuliskan `A Positif`. Mengirim singkatannya dari backend mengunci
+keduanya pada satu bentuk.
+
+**`Unknown`, `NotDisclosed`, dan `null` ditampilkan sebagai tanda pisah beserta katanya, bukan
+dikosongkan.** Label tube yang kosong pada bagian golongan darah tidak dapat dibedakan dari label
+yang tercetak tidak sempurna — dan ini label yang menempel pada spesimen pasien.
+
+### 15.4 Dampak kompatibilitas
+
+| Yang dinilai | Hasil |
+|---|---|
+| Endpoint | **Nol berubah** |
+| Ruas yang sudah ada | **Nol berubah** |
+| Pemanggil lama | **Nol diketatkan** — ruas baru pada respons diabaikan pemanggil yang tidak membacanya |
+| Permission | **Nol** resource baru |
+| Migration | **Nol.** `MstPatient.BloodType` sudah berdiri |
+
+### 15.5 Traceability
+
+| Butir | Menurunkan | Menutup |
+|---|---|---|
+| `bloodType` | `BR-50` bagian 5.5 Label Goldar; `LAB-DEC-030` sebagaimana diamandemen 2026-09-17 | Bagian `REC3-NEW-009` yang menuntut golongan darah |
+
+---
+
+## 16. Amandemen `r21` — Pengisian hasil pemeriksaan, 2026-09-17
+
+**Status `approved`**, disetujui Yoga Aji Pratama selaku pemilik modul pada 2026-09-17,
+menurunkan `LAB-DEC-005` di bawah pemecahan slice `LAB-DEC-076`.
+
+**Satu endpoint tulis baru.** Nol endpoint yang sudah ada berubah.
+
+### 16.1 Batas yang paling penting pada amandemen ini
+
+**Endpoint ini mengisi hasil. Ia tidak memvalidasi, tidak merilis, tidak menandai nilai kritis,
+dan tidak mengoreksi.** Keempatnya tertahan `LAB-SIGN-001` lewat `LAB-DEC-003`, `LAB-DEC-004`,
+dan `LAB-DEC-007`.
+
+**Nol status hasil diperkenalkan.** `LabExaminationStatus` tetap berisi empat nilainya yang lama,
+dan komentar pada enum itu — yang sudah menyatakan `Pending`/`InProcess`/`Completed`/
+`Validated`/`Released` sengaja ditahan — **tetap berlaku apa adanya**.
+
+> *"Hasil sudah diisi"* dibaca dari `resultEnteredAt != null`. Itu **fakta yang tercatat**, bukan
+> **janji tentang apa yang terjadi berikutnya** — dan perbedaan itu persis yang memisahkan `S4a`
+> dari `S4`.
+
+### 16.2 Endpoint
+
+Base URL: `api/v1/health-services/laboratory-management/lab-examinations`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+|---|---|---|---|---|---|
+| `PUT` | `/{id}/result` | Mengisi atau memperbaiki hasil yang **belum** divalidasi | `LabExamination : Update` | `LabExaminationResultRequest` | `ApiResponse<LabExaminationResultResponse>` |
+
+**Memakai ulang `LabExamination : Update`, bukan resource baru.** Selama validasi dan rilis belum
+ada, memecah izin pengisian dari izin pemeriksaan lain berarti menetapkan pembagian wewenang yang
+justru menunggu jawaban `LAB-SIGN-001`.
+
+**`LabExaminationResultRequest`**
+
+| Ruas | Tipe | Ketentuan |
+|---|---|---|
+| `resultNumeric` | `decimal?` | Diisi **hanya** bila bentuk hasilnya `Numeric` |
+| `resultOptionId` | `Guid?` | Diisi **hanya** bila bentuk hasilnya `Choice`; wajib menunjuk `LabValueOption` milik batas nilai yang berlaku |
+| `examinedAt` | `DateTime?` | **Kapan pemeriksaannya dikerjakan.** Boleh kosong; bila kosong diisi waktu sekarang |
+
+**Yang sengaja TIDAK diterima:** satuan, batas nilai, waktu pengetikan, dan pelakunya.
+Keempatnya **diturunkan server** — satuan dan batas dari `LabValueBound` yang berlaku, waktu dan
+pelaku dari sesi. Menerimanya dari pemanggil berarti mengizinkan hasil mengaku diperiksa dengan
+batas yang tidak pernah berlaku baginya.
+
+### 16.3 Validasi
+
+| ID | Aturan | Kode |
+|---|---|---|
+| `VAL-77` | Pemeriksaan wajib ada dan belum terhapus | `404` |
+| `VAL-78` | Pemeriksaan yang `Voided` atau `Cancelled` tidak dapat diisi hasilnya | `409` |
+| `VAL-79` | Bentuk hasilnya wajib punya batas nilai yang berlaku bagi pemeriksaan itu | `422` |
+| `VAL-80` | Bentuk `Numeric` menuntut `resultNumeric` dan **menolak** `resultOptionId`; bentuk `Choice` sebaliknya | `422` |
+| `VAL-81` | `resultOptionId` wajib milik batas nilai yang berlaku, bukan pilihan dari pemeriksaan lain | `422` |
+| `VAL-82` | `examinedAt` **tidak boleh di masa depan** | `422` |
+
+**`VAL-82` mengikuti `LAB-DEC-064`** yang sudah melarang tanggal masa depan pada penyaring —
+aturan yang sama, diterapkan pada waktu kejadian. Pemeriksaan yang mengaku dikerjakan besok
+adalah data yang salah, dan salahnya baru ketahuan ketika laporannya dibaca.
+
+### 16.4 Batas nilai dipilih server, dan snapshot-nya disimpan
+
+`LabValueBound` dibedakan menurut **jenis kelamin** dan **kelompok umur** (`LAB-DEC-018`), jadi
+satu jenis pemeriksaan dapat punya beberapa baris batas. Server memilih baris yang berlaku bagi
+pasien pemeriksaan itu, lalu menyimpan **penunjuknya** (`resultValueBoundId`) beserta **satuannya**
+(`resultUnitSnapshot`).
+
+**Tanpa ini, hasil lama berubah artinya ketika batasnya diperbarui.** Kalium 3,4 yang hari ini di
+bawah normal dapat menjadi normal besok bila batasnya digeser — dan perubahan itu berlaku surut
+pada hasil yang sudah tercetak.
+
+### 16.5 Dampak kompatibilitas
+
+| Yang dinilai | Hasil |
+|---|---|
+| Endpoint yang sudah ada | **Nol berubah** |
+| Nilai enum | **Nol bertambah** — `LabExaminationStatus` tidak disentuh |
+| Permission | **Nol** resource baru |
+| Migration | **Satu**, aditif — tujuh kolom nullable pada `LabExamination`; ketujuh baris lama utuh |
+
+---
+
+## 17. Amandemen `r22` — Jalur baca pengisian hasil, 2026-09-17
+
+**Status `approved`**, disetujui Yoga Aji Pratama selaku pemilik modul pada 2026-09-17.
+
+**Aditif.** Satu endpoint baca baru dan dua ruas pada daftar kerja. Nol endpoint yang sudah ada
+berubah bentuk maupun perilakunya.
+
+### 17.1 Kenapa amandemen ini ada
+
+`r21` membuka jalur **tulis** hasil, tetapi layar tidak dapat memakainya tanpa mengetahui **bentuk
+hasil** pemeriksaan itu lebih dulu: kotak angka untuk `Numeric`, daftar pilihan untuk `Choice`.
+Bentuk itu ditentukan `LabValueBound` yang berlaku bagi **pasien tertentu** — dibedakan jenis
+kelamin dan kelompok umur — sehingga layar tidak dapat menurunkannya sendiri dari jenis
+pemeriksaan saja.
+
+**Menebaknya berarti menampilkan kotak angka untuk pemeriksaan yang hanya menerima pilihan**, dan
+petugas baru mengetahuinya sesudah `422` datang.
+
+### 17.2 Endpoint
+
+| Method | Path | Kegunaan | Hak akses | Response |
+|---|---|---|---|---|
+| `GET` | `/lab-examinations/{id}/result` | Bentuk hasil yang berlaku, batas rujukannya, pilihan yang sah, dan hasil yang sudah terisi | `LabExamination : Read` | `ApiResponse<LabExaminationResultFormResponse>` |
+
+**Batas yang berlaku dipilih server dengan aturan yang sama persis** seperti pada `r21` — yang
+paling khusus menang. Satu jalur pemilihan, dipakai baca maupun tulis; dua salinan aturan yang
+sama pasti bercabang, dan cabangnya membuat layar menampilkan rujukan yang berbeda dari yang
+dipakai menilai hasilnya.
+
+**`LabExaminationResultFormResponse`**
+
+| Ruas | Tipe | Keterangan |
+|---|---|---|
+| `resultForm` | `string` | `Numeric` atau `Choice` |
+| `unit`, `normalLow`, `normalHigh` | — | **Rujukan yang ditampilkan kepada analis** saat mengetik |
+| `options[]` | daftar | Hanya terisi pada `Choice`: `id`, `optionName`, `isOutOfReference` |
+| `resultNumeric`, `resultOptionId`, `examinedAt`, `resultEnteredAt` | — | Hasil yang **sudah** terisi, supaya layar dapat menampilkan dan memperbaikinya |
+| `canEnterResult` | `bool` | `false` bila pemeriksaannya `Voided`/`Cancelled` atau nol punya batas nilai |
+
+> **`criticalLow` dan `criticalHigh` sengaja TIDAK dikembalikan.** Batas kritis adalah
+> `LAB-DEC-004`, yang tertahan `LAB-SIGN-001`. Mengirimkannya akan mengundang layar menandai
+> nilai kritis — dan penandaan itu menjanjikan alur pelaporan yang belum diputuskan pihak klinis.
+
+### 17.3 Dua ruas pada daftar kerja
+
+Ditambahkan pada **`LabWorklistItemResponse`**: `examinedAt` dan `resultEnteredAt`.
+
+**Tanpa keduanya, daftar kerja tidak dapat membedakan pemeriksaan yang sudah diisi dari yang
+belum** — dan analis akan mengetik ulang hasil yang sudah ada tanpa satu pun tanda.
+
+Keduanya **waktu, bukan status**. Disiplin `r21` tetap berlaku: yang dikirim adalah **apa yang
+tercatat**, bukan **apa yang terjadi berikutnya**.
+
+### 17.4 Dampak kompatibilitas
+
+| Yang dinilai | Hasil |
+|---|---|
+| Endpoint yang sudah ada | **Nol berubah** |
+| Pemanggil lama | **Nol diketatkan** — dua ruas baru pada respons diabaikan yang tidak membacanya |
+| Permission | **Nol** resource baru; memakai ulang `LabExamination : Read` |
+| Migration | **Nol** |
+
+---
+
+## 18. Amandemen `r23` — Pilihan ketiga Kategori Periode, 2026-09-17
+
+**Status `approved`**, disetujui Yoga Aji Pratama selaku pemilik modul pada 2026-09-17.
+
+**Satu nilai enum baru.** Nol endpoint, nol ruas, nol permission, nol migration.
+
+### 18.1 Kenapa sekarang, padahal `r18` menolaknya
+
+`r18` menolak mencantumkan `ExaminationDate` dengan alasan yang ditulis terang: `LabExamination`
+nol punya kolom waktu pemeriksaan, sehingga mencantumkannya berarti mendirikan **pilihan yang
+tidak menuju ke mana-mana** — layar menawarkannya, petugas memilihnya, dan daftarnya kosong tanpa
+satu pun galat.
+
+**Kedua syarat itu kini terpenuhi:**
+
+| Syarat | Dipenuhi oleh |
+|---|---|
+| Kolomnya ada | `LabExamination.ExaminedAt` — `r21`, migration `AddLabExaminationResultEntry` |
+| **Ada yang mengisinya** | `PUT /lab-examinations/{id}/result` (`r21`) beserta layar pengisiannya (`r22`) |
+
+Syarat kedua yang menentukan. Kolom tanpa penulis adalah persis kesalahan `BE-EXT-04`, dan
+mencantumkan pilihannya saat itu akan mengulangnya dari sisi yang berbeda.
+
+> **Penjagaan `r18` bekerja sebagaimana dirancang.** Uji unit dan pemeriksaan layar yang mengunci
+> **ketiadaan** pilihan ketiga adalah gerbangnya — dan gerbang itu baru dibuka sekarang, bukan
+> dicabut diam-diam. Keduanya diperbarui bersama amandemen ini, dan perubahannya sendiri yang
+> menjadi bukti bahwa prasyaratnya berubah.
+
+### 18.2 Nilai
+
+`LabDateCategory` memperoleh nilai ketiga:
+
+| Nilai | Angka | Disaring pada |
+|---|---:|---|
+| `OrderDate` | `1` | `RequestedAt ?? CreateDateTime` |
+| `SamplingDate` | `2` | `LabSpecimen.CollectedAt` |
+| **`ExaminationDate`** | **`3`** | **`LabExamination.ExaminedAt`** |
+
+**Nilai lama nol bergeser**, sehingga pemanggil yang mengirim `1` atau `2` — maupun namanya —
+memperoleh perilaku yang persis sama.
+
+### 18.3 Aturannya sama dengan `SamplingDate`, dan itu disengaja
+
+> Sebuah pesanan ikut tersaring bila **salah satu** pemeriksaannya ber-`ExaminedAt` di dalam
+> rentang.
+
+Satu pesanan dapat memuat beberapa pemeriksaan yang dikerjakan pada waktu berbeda — elektrolit
+pagi, kultur sore. Pola ini sudah dipakai `SamplingDate` dan penyaring status wadah pada DTO yang
+sama; memperkenalkan aturan kedua untuk perkara yang sama hanya akan membuat dua penyaring
+bertetangga berperilaku berbeda tanpa sebab yang terbaca.
+
+**`ExaminedAt` kosong tidak pernah cocok, dan tidak jatuh-tempo ke waktu mana pun.** Sebab yang
+sama dengan `CollectedAt` pada `r18` bagian 13.3.3: pertanyaannya *"pesanan mana yang
+**dikerjakan** dalam rentang ini"*, dan pemeriksaan yang belum dikerjakan bukan bagian dari
+jawabannya.
+
+### 18.4 Dampak kompatibilitas
+
+| Yang dinilai | Hasil |
+|---|---|
+| Endpoint | **Nol berubah** |
+| Nilai enum yang sudah ada | **Nol bergeser** — `ExaminationDate` disisipkan sebagai `3`, bukan menggeser yang lain |
+| Pemanggil lama | **Nol diketatkan** — ruasnya tetap opsional dan bawaannya tetap `OrderDate` |
+| Permission, migration | **Nol** |
+
+### 18.5 Traceability
+
+Menutup **`REC3-NEW-002` sepenuhnya**. Ketiga pilihan yang artifact tawarkan kini berdiri, dan
+ketiganya punya sumber data yang benar-benar terisi.
+
+---
+
+## 19. Amandemen `r24` — Pengisian hasil Mikrobiologi dan Patologi Anatomi, 2026-09-18
+
+> ### ✅ STATUS: `approved` — 2026-09-18
+>
+> Disetujui **Yoga Aji Pratama** selaku pemilik modul pada 2026-09-18, bersama `LAB-VAL-v1` `r7`
+> dan `LAB-PERM-v1` revision 6.
+>
+> | Field | Nilai |
+> |---|---|
+> | `contract_version` | `LAB-API-v1` |
+> | Revision | `r24` |
+> | Status | **`approved`** |
+> | `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-18 |
+> | `input_revision` | decisions rev 44; `LAB-RCG-001-r7`; `LAB-DA-001` rev 6 |
+> | Kesiapan arsitektur domain | `DOMAIN_ARCHITECTURE_READY` |
+> | Dampak kompatibilitas | **Aditif.** Nol endpoint yang sudah ada berubah; nol ruas yang sudah ada bergeser |
+>
+> **Label `Rencana (belum tersedia)` pada tabel di bawah tetap berlaku apa adanya.** Ia menyatakan
+> endpointnya **belum ada di kode**, bukan bahwa kontraknya belum disetujui. Keduanya hal yang
+> berbeda, dan label itu baru dicabut ketika task pembangunannya selesai.
+
+Menurunkan `LAB-DEC-027` (BR-23), `LAB-DEC-084`, `LAB-DEC-080`, dan `LAB-DEC-081`.
+
+### 19.1 Batas yang paling penting pada amandemen ini
+
+Sama seperti `r21`, dan perlu diulang karena scope-nya persis sekelas:
+
+**Seluruh endpoint di bawah mengisi hasil. Nol di antaranya memvalidasi, merilis, menandai nilai
+kritis, atau mengoreksi hasil yang sudah dirilis.** Keempatnya milik `S4`, `S4d`, `S4e`, dan
+`S6` — dan ketiga slice validasi masih tertahan `DEC-LAB-011`.
+
+**Nol status hasil diperkenalkan** (`LAB-DEC-080`, ditegakkan `INV-29`). *"Hasil sudah diisi"*
+tetap dibaca dari `resultEnteredAt != null`.
+
+**Nol penanda `Definitif`** (`LAB-DEC-081`). **Nol penilaian kritis otomatis** (`INV-28`) — BR-23
+menyatakan bakteri resisten dan kesimpulan patologi adalah penilaian klinis, bukan perbandingan
+angka.
+
+### 19.2 Endpoint — hasil Mikrobiologi (`S4b`)
+
+Base URL: `api/v1/health-services/laboratory-management/lab-examinations`
+
+`[Tags("Health Services / Laboratory Management / Lab Examination")]`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `PUT` | `/{id}/result/microbiology` | Mengisi status temuan beserta seluruh isolat dan kepekaannya sekaligus | `LabExamination : Update` | `LabMicrobiologyResultRequest` | `ApiResponse<LabMicrobiologyResultResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}/result/microbiology` | Membaca hasil mikrobiologi yang sudah diisi | `LabExamination : Read` | — | `ApiResponse<LabMicrobiologyResultResponse>` | **Rencana (belum tersedia)** |
+
+> **Kenapa satu `PUT` utuh, bukan endpoint terpisah per isolat.** Isolat dan kepekaannya adalah
+> **isi sebuah hasil**, bukan benda yang berdiri sendiri — `LAB-DA-001` menempatkan keduanya di
+> dalam `AGG-LAB-01` lewat pemeriksaan. Endpoint `POST /isolates` tersendiri akan membuat separuh
+> hasil dapat tersimpan tanpa separuh lainnya, dan itu persis batas konsistensi yang dilindungi
+> aggregate. Mengganti seluruh isi dalam satu panggilan juga membuatnya **idempoten** — pola yang
+> sama dengan `PUT /{id}/result` pada `r21`.
+
+**`LabMicrobiologyResultRequest`**
+
+| Ruas | Tipe | Ketentuan |
+|---|---|---|
+| `microbiologyFinding` | `LabMicrobiologyFinding` | **Wajib.** `Normal` / `Positive` / `Negative`. **Status TEMUAN, bukan status lifecycle** |
+| `examinedAt` | `DateTime?` | Kapan pemeriksaannya dikerjakan; bila kosong diisi waktu sekarang |
+| `isolates` | `LabMicrobiologyIsolateRequest[]` | Boleh **kosong** — nol pertumbuhan adalah hasil yang sah |
+
+**`LabMicrobiologyIsolateRequest`**
+
+| Ruas | Tipe | Ketentuan |
+|---|---|---|
+| `labOrganismId` | `Guid` | **Wajib**, menunjuk `LabOrganism` yang aktif. Pengetikan bebas **ditolak** (`INV-30`) |
+| `note` | `string?` | Maks 500 |
+| `susceptibilities` | `LabIsolateSusceptibilityRequest[]` | Boleh kosong |
+
+**`LabIsolateSusceptibilityRequest`**
+
+| Ruas | Tipe | Ketentuan |
+|---|---|---|
+| `labAntibioticId` | `Guid` | **Wajib**, menunjuk `LabAntibiotic` yang aktif |
+| `concentration` | `decimal?` | Kadar; opsional |
+| `zoneDiameterMm` | `int?` | Lebar zona hambat dalam milimeter; opsional |
+| `result` | `LabSusceptibilityResult` | **Wajib.** `Resistant` / `Intermediate` / `Sensitive` |
+
+**Yang sengaja TIDAK diterima:** nama organisme, nama antibiotik, waktu pengetikan, dan
+pelakunya. Nama **diturunkan server** dari data induk lalu disimpan sebagai snapshot; waktu dan
+pelaku dari sesi. Menerimanya dari pemanggil berarti mengizinkan hasil menyebut kuman yang tidak
+ada di daftar mana pun.
+
+### 19.3 Endpoint — hasil Patologi Anatomi (`S4c`)
+
+> ### ⚠ BAGIAN INI `superseded` — 2026-09-18 sore, pada hari ia disetujui
+>
+> Bukti lapangan `LAB-EVD-003` datang beberapa jam sesudah `r24` disetujui, dan amendment pass
+> putaran 8 mengubah **tiga hal yang menjadi dasar bagian ini**:
+>
+> | Keputusan | Yang berubah |
+> |---|---|
+> | `LAB-DEC-085` | Hasil Patologi Anatomi melekat pada **order**, bukan pada pemeriksaan. Path `/lab-examinations/{id}/result/pathology` **salah alamat** |
+> | `LAB-DEC-086` | Ruas hasilnya **bukan tiga kolom tetap**, melainkan nilai per parameter dari data induk — dan ada **15** parameter, bukan 3 |
+> | `LAB-DEC-088` | Bertambah `Simpan Final` dan `Reopen`, dicatat sebagai fakta `FinalizedAt`/`FinalizedByUserId` |
+>
+> **Bagian 19.2 hasil Mikrobiologi dan bagian 19.4 data induk TIDAK terdampak** dan tetap
+> `approved` — artifact itu nol membahas Mikrobiologi.
+>
+> **Amandemen `r25` dibutuhkan sebelum bagian ini dibangun.** Ia belum ditulis. `BE-LAB-46` dan
+> `FE-LAB-25` dibekukan sampai itu selesai dan disetujui.
+>
+> Isi di bawah dipertahankan apa adanya sebagai jejak — **bukan** sebagai kontrak yang berlaku.
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `PUT` | `/{id}/result/pathology` | Mengisi laporan makroskopik, mikroskopik, dan kesimpulan | `LabExamination : Update` | `LabPathologyResultRequest` | `ApiResponse<LabPathologyResultResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}/result/pathology` | Membaca laporan yang sudah diisi | `LabExamination : Read` | — | `ApiResponse<LabPathologyResultResponse>` | **Rencana (belum tersedia)** |
+
+**`LabPathologyResultRequest`**
+
+| Ruas | Tipe | Ketentuan |
+|---|---|---|
+| `macroscopic` | `string` | **Wajib**, maks 4000 |
+| `microscopic` | `string` | **Wajib**, maks 4000 |
+| `conclusion` | `string` | **Wajib**, maks 4000 |
+| `examinedAt` | `DateTime?` | Bila kosong diisi waktu sekarang |
+
+> **Ketiganya wajib, dan itu bukan pilihan desain melainkan `INV-25`** yang diturunkan langsung
+> dari BR-23 aturan turunan butir 3. Laporan dengan mikroskopik terisi tetapi kesimpulan kosong
+> **ditolak**, bukan disimpan sebagai draft — sebab laporan patologi tanpa kesimpulan tidak dapat
+> dipakai dokter untuk memutuskan apa pun.
+>
+> **Gambar contoh TIDAK ada pada amandemen ini.** Ia menunggu `DEC-LAB-016`, keputusan privasi
+> penyimpanan berkas klinis.
+
+### 19.4 Endpoint — dua data induk baru (`LAB-DEC-084`)
+
+`[Tags("Health Services / Laboratory Management / Lab Organism")]`
+Base URL: `api/v1/health-services/laboratory-management/lab-organisms`
+
+| Method | Path | Kegunaan | Hak akses | Status |
+|---|---|---|---|---|
+| `GET` | `/` | Daftar organisme, ber-pagination dan penyaring aktif | `LabOrganism : Read` | **Rencana (belum tersedia)** |
+| `GET` | `/options` | Daftar ringkas untuk pilihan di layar | `LabOrganism : Read` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Menambah organisme | `LabOrganism : Create` | **Rencana (belum tersedia)** |
+| `PUT` | `/{id}` | Mengubah nama atau penanda aktif | `LabOrganism : Update` | **Rencana (belum tersedia)** |
+
+`[Tags("Health Services / Laboratory Management / Lab Antibiotic")]`
+Base URL: `api/v1/health-services/laboratory-management/lab-antibiotics`
+
+| Method | Path | Kegunaan | Hak akses | Status |
+|---|---|---|---|---|
+| `GET` | `/` | Daftar antibiotik | `LabAntibiotic : Read` | **Rencana (belum tersedia)** |
+| `GET` | `/options` | Daftar ringkas untuk pilihan di layar | `LabAntibiotic : Read` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Menambah antibiotik | `LabAntibiotic : Create` | **Rencana (belum tersedia)** |
+| `PUT` | `/{id}` | Mengubah nama atau penanda aktif | `LabAntibiotic : Update` | **Rencana (belum tersedia)** |
+
+> ### Kedua kelompok endpoint ini bukan pelengkap
+>
+> **Nol `DELETE` disediakan**, dan itu disengaja: menghapus organisme yang sudah dipakai berarti
+> menghapus temuan pasien. Penonaktifan lewat `IsActive` sudah cukup, dan `INV-31` menjamin baris
+> lama tidak ikut berubah.
+>
+> **Keduanya bagian dari definisi selesai slice ini, bukan tambahan yang boleh menyusul.**
+> `LAB-COORD-006` dan `MST-POS-WRITE` membuktikan tabel data induk tanpa endpoint tulis adalah
+> kegagalan yang **sudah berulang dua kali** di modul ini — satu masih terbuka sampai hari ini,
+> satu lagi harus ditambal lewat SQL langsung ke basis data.
+
+### 19.5 Validasi
+
+| ID | Aturan | Kode |
+|---|---|---|
+| `VAL-83` | Pemeriksaan wajib ada, belum terhapus, dan tidak `Voided`/`Cancelled` | `404` / `409` |
+| `VAL-84` | Jalur `/microbiology` **hanya** untuk pemeriksaan berbentuk `MicrobiologyStructured`; jalur `/pathology` **hanya** untuk `AnatomicPathologyNarrative` | `422` |
+| `VAL-85` | `labOrganismId` wajib menunjuk organisme yang **ada dan aktif** | `422` |
+| `VAL-86` | `labAntibioticId` wajib menunjuk antibiotik yang **ada dan aktif** | `422` |
+| `VAL-87` | Satu antibiotik **tidak boleh** muncul dua kali pada isolat yang sama | `422` |
+| `VAL-88` | Ketiga ruas laporan Patologi Anatomi wajib terisi dan tidak boleh hanya berisi spasi | `422` |
+| `VAL-89` | `examinedAt` **tidak boleh di masa depan** — aturan yang sama dengan `VAL-82` | `422` |
+| `VAL-90` | `zoneDiameterMm` bila diisi wajib **lebih besar dari nol** | `422` |
+| `VAL-91` | Kode organisme dan kode antibiotik **unik** pada data induknya | `409` |
+
+> **`VAL-85` dan `VAL-86` menyebut "aktif", dan itu berlaku hanya bagi baris BARU.** Hasil lama
+> yang menunjuk organisme yang kemudian dinonaktifkan **tetap sah dan tetap terbaca** — `INV-31`.
+> Menegakkan "aktif" pada pembacaan akan membuat hasil pasien menghilang karena data induknya
+> dirapikan, dan itu kelas kesalahan yang sama dengan mengubah batas nilai secara surut.
+
+### 19.6 Permission yang diusulkan
+
+| Resource | Action | Keterangan |
+|---|---|---|
+| `LabExamination` | `Update`, `Read` | **Dipakai ulang**, nol resource baru untuk pengisian hasil — mengikuti alasan `r21` |
+| `LabOrganism` | `Read`, `Create`, `Update` | **Baru.** Nol `Delete` |
+| `LabAntibiotic` | `Read`, `Create`, `Update` | **Baru.** Nol `Delete` |
+
+### 19.7 Traceability
+
+| Yang diusulkan | Keputusan | Invariant |
+|---|---|---|
+| Jalur hasil Mikrobiologi | `LAB-DEC-027` (BR-23) | `INV-24`, `INV-26`, `INV-27` |
+| Jalur hasil Patologi Anatomi | `LAB-DEC-027` (BR-23) | `INV-24`, `INV-25` |
+| Dua data induk beserta endpoint tulisnya | `LAB-DEC-084` | `INV-30`, `INV-31` |
+| Nol status hasil | `LAB-DEC-080` | `INV-29` |
+| Nol penilaian kritis otomatis | BR-23 | `INV-28` |
+| Nol penanda `Definitif` | `LAB-DEC-081` | — |
+
+---
+
+## 20. Amandemen `r25` — Laporan Patologi Anatomi per pesanan, 2026-09-18
+
+> ### ✅ STATUS: `approved` — **DISETUJUI 2026-09-18**
+>
+> **Menggantikan bagian 19.3** yang sudah ditandai `superseded`. Bagian 19.2 Mikrobiologi dan
+> 19.4 data induk Mikrobiologi **tidak tersentuh** dan tetap `approved`.
+>
+> | Field | Nilai |
+> |---|---|
+> | Revision | `r25` |
+> | Status | **`approved`** |
+> | `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-18** |
+> | `input_revision` | decisions rev 48; `LAB-DA-001` rev 7 |
+> | Dampak kompatibilitas | **Aditif terhadap yang berjalan.** `r24` bagian 19.3 belum pernah dibangun, sehingga penggantiannya nol memutus pemakai |
+>
+> **Label "Rencana (belum tersedia)" pada tabel endpoint di bawah TETAP berlaku** dan tidak
+> berubah oleh persetujuan ini. Ia menyatakan endpointnya belum ada **di kode**, bukan bahwa
+> kontraknya belum disetujui. Yang membangunnya: `BE-LAB-50` (bagian 20.3), `BE-LAB-51`, dan
+> `BE-LAB-52` (bagian 20.2).
+
+### 20.1 Batas amandemen ini
+
+**Mengisi laporan. Bukan memvalidasi, bukan merilis, bukan mengirim.** `S4e` tertahan
+`DEC-LAB-011`. **Nol status hasil** (`INV-36`). **Nol ruas `issuedAt` dan `effectiveAt` yang
+dapat dikirim pemanggil** — keduanya diturunkan server (`INV-38`).
+
+### 20.2 Endpoint — laporan Patologi Anatomi
+
+`[Tags("Health Services / Laboratory Management / Lab Pathology Report")]`
+Base URL: `api/v1/health-services/laboratory-management/lab-orders`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/{labOrderId}/pathology-report` | Membaca laporan beserta **parameter yang berlaku** bagi pesanan itu | `LabExamination : Read` | — | `ApiResponse<LabPathologyReportResponse>` | **Rencana (belum tersedia)** |
+| `PUT` | `/{labOrderId}/pathology-report` | Menyimpan seluruh isi laporan sekaligus | `LabExamination : Update` | `LabPathologyReportRequest` | `ApiResponse<LabPathologyReportResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{labOrderId}/pathology-report/finalize` | Menyatakan laporan selesai ditulis | `LabExamination : Update` | — | `ApiResponse<LabPathologyReportResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{labOrderId}/pathology-report/reopen` | Membuka kembali laporan yang sudah final | `LabExamination : Update` | `LabPathologyReopenRequest` | `ApiResponse<LabPathologyReportResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/{labOrderId}/pathology-context` | Membaca konteks klinis pesanan | `LabOrder : Read` | — | `ApiResponse<LabPathologyOrderContextResponse>` | **Rencana (belum tersedia)** |
+| `PUT` | `/{labOrderId}/pathology-context` | Menulis konteks klinis | `LabOrder : Update` | `LabPathologyOrderContextRequest` | `ApiResponse<LabPathologyOrderContextResponse>` | **Rencana (belum tersedia)** |
+
+> **Base URL-nya `lab-orders`, bukan `lab-examinations`, dan itu bukan kerapian.** `LAB-DEC-085`
+> menetapkan laporan PA melekat pada **pesanan**. Jalur `/lab-examinations/{id}/result/pathology`
+> pada `r24` **salah alamat**, dan itu sebab utama ia digantikan.
+
+> **`finalize` dan `reopen` dipisahkan dari `PUT`, dan itu disengaja.** Keduanya **pernyataan
+> profesional**, bukan penyimpanan. Menggabungkannya ke dalam `PUT` akan membuat seseorang dapat
+> memfinalkan laporan **tanpa sadar** hanya karena mengirim satu ruas tambahan.
+
+> **Konteks klinis memakai `LabOrder : Update`, bukan `LabExamination : Update`.** `LAB-DEC-091`
+> menetapkan penulisnya **dokter pemesan**, bukan patolog — dan keduanya tidak boleh berbagi satu
+> hak akses.
+
+**`LabPathologyReportRequest`**
+
+| Ruas | Tipe | Ketentuan |
+|---|---|---|
+| `findingStatus` | `LabPathologyFindingStatus?` | `Normal` / `NeedsAttention` / `Critical`. **Nilai temuan, bukan status lifecycle** |
+| `analystUserId` | `Guid?` | Penanggung jawab analis |
+| `values` | `LabPathologyReportValueRequest[]` | Nilai per parameter. Boleh sebagian saat menyimpan; kelengkapannya diuji saat `finalize` |
+
+**`LabPathologyReportValueRequest`**
+
+| Ruas | Tipe | Ketentuan |
+|---|---|---|
+| `labPathologyParameterId` | `Guid` | **Wajib**, dan wajib berlaku bagi kategori pesanan ini (`VAL-93`) |
+| `value` | `string` | Teks tanpa batas panjang (`RULE-011`) |
+
+**`LabPathologyReportResponse`** — selain isinya, **wajib membawa daftar parameter yang berlaku**
+beserta penanda wajibnya, sehingga layar nol perlu menebak bentuk formulirnya. Ditambah dua ruas
+**turunan**: `issuedAt` dari `FinalizedAt`, dan `effectiveAt` dari `LabSpecimen.CollectedAt`.
+
+**`LabPathologyReopenRequest`** — satu ruas `reason` (`string`, **wajib**).
+
+**Yang sengaja TIDAK diterima:** `issuedAt`, `effectiveAt`, waktu finalisasi, pelaku, dan nama
+parameter. Seluruhnya **diturunkan server**. Menerimanya berarti mengizinkan laporan mengaku
+terbit pada waktu yang tidak pernah terjadi.
+
+### 20.3 Endpoint — empat data induk Patologi Anatomi
+
+`[Tags("Health Services / Laboratory Management / Lab Pathology Master Data")]`
+
+| Resource | Base URL | Method yang disediakan | Hak akses |
+|---|---|---|---|
+| Parameter | `.../lab-pathology-parameters` | `GET`, `GET /options`, `POST`, `PUT /{id}` | `LabPathologyParameter : Read/Create/Update` |
+| Kategori | `.../lab-pathology-categories` | `GET`, `GET /options`, `POST`, `PUT /{id}` | `LabPathologyCategory : Read/Create/Update` |
+| Keberlakuan | `.../lab-pathology-categories/{id}/parameters` | `GET`, `PUT` (mengganti seluruh daftar) | `LabPathologyCategory : Update` |
+| Pemetaan pemeriksaan | `.../lab-procedure-pathology-categories` | `GET`, `POST`, `PUT /{id}`, `GET /suggestions` | `LabPathologyCategory : Read/Update` |
+
+**Nol `DELETE` pada keempatnya.** Penonaktifan lewat `IsActive`; `INV-37` menjamin laporan lama
+tidak berubah.
+
+> **`GET /suggestions` adalah satu-satunya tempat keenam keyword artifact hidup.** Ia
+> **mengusulkan** pemetaan awal dengan mencocokkan `HISTO`, `PAPSMEAR`, `LBC`, `HPV`,
+> `NON GINEKOLOGI`, dan `IHK` pada nama pemeriksaan — lalu **manusia memeriksanya sebelum
+> disimpan**. Sesudah pengisian awal selesai, endpoint ini boleh tidak dipakai lagi
+> (`LAB-DEC-087`).
+
+### 20.4 Validasi
+
+| ID | Aturan | Kode |
+|---|---|---|
+| `VAL-92` | Pesanan wajib ada, belum dibatalkan, dan berdisiplin **Patologi Anatomi** | `404` / `422` |
+| `VAL-93` | Setiap `labPathologyParameterId` wajib **berlaku bagi sekurang-kurangnya satu kategori** yang melekat pada pesanan itu | `422` |
+| `VAL-94` | Satu parameter **tidak boleh** dikirim dua kali dalam satu permintaan | `422` |
+| `VAL-95` | `finalize` **ditolak** selama masih ada parameter **wajib** yang kosong; jawabannya menyebut parameter mana saja | `422` |
+| `VAL-96` | `PUT` **ditolak** ketika laporan sudah final; yang tersedia hanya `reopen` | `409` |
+| `VAL-97` | `reopen` menuntut **alasan**; kosong atau hanya spasi ditolak | `422` |
+| `VAL-98` | `reopen` **ditolak** bila laporan belum pernah difinalkan | `409` |
+| `VAL-99` | Parameter atau kategori yang **dinonaktifkan** ditolak pada nilai **baru**; laporan lama tetap terbaca utuh | `422` |
+| `VAL-100` | Pesanan yang **nol punya pemetaan kategori** menjawab daftar parameter **kosong**, dan `finalize` ditolak dengan sebab yang menyebutkan pemetaannya belum diatur | `422` |
+| `VAL-101` | Kode parameter dan kode kategori **unik** | `409` |
+
+> **`VAL-100` adalah keadaan yang PASTI terjadi pada hari pertama**, sebelum pemetaan diisi.
+> Menjawabnya dengan daftar kosong tanpa sebab akan membuat patolog mengira sistemnya rusak.
+> Pesannya wajib menyebut **apa yang belum diatur dan siapa yang mengaturnya**.
+
+### 20.5 Permission yang diusulkan
+
+| Resource | Action | Keterangan |
+|---|---|---|
+| `LabExamination` | `Read`, `Update` | **Dipakai ulang** untuk laporan PA — mengikuti alasan `r21` dan `r24` |
+| `LabOrder` | `Read`, `Update` | **Dipakai ulang** untuk konteks klinis; penulisnya dokter pemesan |
+| `LabPathologyParameter` | `Read`, `Create`, `Update` | **Baru.** Nol `Delete` |
+| `LabPathologyCategory` | `Read`, `Create`, `Update` | **Baru.** Nol `Delete`. Mencakup keberlakuan dan pemetaan |
+
+### 20.6 Traceability
+
+| Yang diusulkan | Keputusan | Invariant |
+|---|---|---|
+| Laporan per pesanan | `LAB-DEC-085` | `INV-32` |
+| Parameter berindentitas + keberlakuan | `LAB-DEC-086` | `INV-33`, `INV-34`, `INV-37` |
+| Pemetaan kategori + `GET /suggestions` | `LAB-DEC-087` | `INV-39` |
+| `finalize` / `reopen` sebagai fakta | `LAB-DEC-088` | `INV-35`, `INV-36` |
+| Konteks klinis ber-hak akses `LabOrder` | `LAB-DEC-091` | `INV-40` |
+| `issuedAt` / `effectiveAt` turunan | `LAB-DEC-092` | `INV-38` |
+| `analystUserId` | `LAB-DEC-093` | — |
+| `findingStatus` sebagai nilai | `LAB-DEC-094` | — |

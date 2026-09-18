@@ -70,8 +70,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             [FromQuery] DateTime? endDate = null,
             CancellationToken cancellationToken = default)
         {
-            var akhir = endDate ?? DateTime.UtcNow;
-            var awal = startDate ?? akhir.AddDays(-30);
+            // Rentang disiapkan sebelum bawaannya dihitung — lihat LabQueryDateRange.
+            var akhir = LabQueryDateRange.NormalizeEnd(endDate) ?? DateTime.UtcNow;
+            var awal = LabQueryDateRange.NormalizeStart(startDate) ?? akhir.AddDays(-30);
 
             if (awal > akhir)
             {
@@ -113,6 +114,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             [FromQuery] LabSpecimenPagedQuery query,
             CancellationToken cancellationToken = default)
         {
+            (query.StartDate, query.EndDate) =
+                LabQueryDateRange.Normalize(query.StartDate, query.EndDate);
+
             var result = await _labSpecimenService.GetListAsync(query, cancellationToken);
 
             return Ok(ApiResponse<PagedResult<LabSpecimenListResponse>>.Ok(
