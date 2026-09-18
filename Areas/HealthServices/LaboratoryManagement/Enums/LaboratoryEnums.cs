@@ -307,4 +307,40 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums
         [Display(Name = "Cancelled")]
         Cancelled = 3
     }
+
+    /// <summary>
+    /// Tingkat temuan sebuah laporan Patologi Anatomi sesuai <c>LAB-DEC-094</c>.
+    ///
+    /// <b>Ini NILAI, bukan status lifecycle, dan perbedaannya menentukan.</b> Ia menyatakan
+    /// seberapa berbahaya temuannya bagi pasien — bukan sudah sampai mana laporannya diproses.
+    /// <c>INV-36</c> menegakkan bahwa laporan Patologi Anatomi <b>nol</b> punya status lifecycle;
+    /// selesai-tidaknya dibaca dari <c>FinalizedAt</c>, sebuah fakta yang tercatat, bukan sebuah
+    /// janji tentang apa berikutnya.
+    ///
+    /// <b>Penggolongannya manual, bukan hasil evaluasi angka.</b> Berbeda dari Patologi Klinik
+    /// yang menilai kritis dengan membandingkan hasil terhadap <c>LabValueBound</c>, di sini
+    /// patolog yang memutuskannya sendiri — narasi diagnostik nol punya batas atas dan bawah
+    /// (<c>LAB-EVD-003</c> Klarifikasi Q14).
+    ///
+    /// <b>Nilainya sensitif.</b> Ia menyatakan tingkat bahaya pasien, sehingga dilarang masuk
+    /// logger dan dilarang muncul pada layar non-klinis (<c>LAB-PERM-v1</c> rev 7 bagian 9.5).
+    ///
+    /// <b>Yang TIDAK diurus enum ini:</b> pelaporan nilai kritis beserta alurnya tetap milik
+    /// <c>S5</c>. Nilai <see cref="Critical"/> di sini mencatat penilaian patolog, dan <b>nol</b>
+    /// memicu alur pelaporan apa pun.
+    /// </summary>
+    public enum LabPathologyFindingStatus
+    {
+        /// <summary>Normal — nol temuan yang menuntut perhatian khusus.</summary>
+        [Display(Name = "Normal")]
+        Normal = 1,
+
+        /// <summary>Perlu Perhatian — temuan bermakna yang belum tergolong kritis.</summary>
+        [Display(Name = "Needs Attention")]
+        NeedsAttention = 2,
+
+        /// <summary>Kritis — temuan yang menuntut tindakan segera, dinilai patolog secara manual.</summary>
+        [Display(Name = "Critical")]
+        Critical = 3
+    }
 }

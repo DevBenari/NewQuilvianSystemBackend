@@ -195,7 +195,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             var suggestions = candidates
                 .Select(procedure =>
                 {
-                    var match = FindKeyword(procedure.ProcedureName);
+                    var match = FindKeyword($"{procedure.ProcedureCode} {procedure.ProcedureName}");
 
                     LabPathologyCategory? category = null;
 
@@ -395,7 +395,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         }
 
         /// <summary>
-        /// Mencari kata kunci pertama yang cocok pada nama pemeriksaan.
+        /// Mencari kata kunci pertama yang cocok pada <b>kode dan nama</b> pemeriksaan.
+        ///
+        /// <b>Kodenya ikut dicari, dan itu bukan kelengkapan melainkan perbaikan cacat.</b>
+        /// Mencocokkan hanya pada nama membuat <c>Imunohistokimia ER</c> tertangkap kata kunci
+        /// <c>HISTO</c> — sebab kata "Imuno<b>histo</b>kimia" memuatnya — lalu diusulkan ke
+        /// golongan Histologi, yang salah. Kodenya, <c>LAB-IHK-ER</c>, memuat <c>IHK</c> dan
+        /// diperiksa lebih dulu, sehingga usulannya benar. Cacat ini ditemukan uji `BE-LAB-52`
+        /// terhadap katalog sungguhan, bukan diperkirakan.
         ///
         /// Pembandingnya mengabaikan besar kecil huruf <b>dan spasi</b>, sehingga
         /// <c>PAP SMEAR</c> pada katalog tetap tertangkap kata kunci <c>PAPSMEAR</c>. Tanpa itu,
@@ -403,12 +410,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         /// paling lazim dipakai katalog rumah sakit — dan usulan yang melewatkan kasus terlazim
         /// nol menghemat pekerjaan siapa pun.
         /// </summary>
-        private static (string Keyword, string CategoryCode)? FindKeyword(string? procedureName)
+        private static (string Keyword, string CategoryCode)? FindKeyword(string? codeAndName)
         {
-            if (string.IsNullOrWhiteSpace(procedureName))
+            if (string.IsNullOrWhiteSpace(codeAndName))
                 return null;
 
-            var haystack = Squash(procedureName);
+            var haystack = Squash(codeAndName);
 
             foreach (var candidate in SuggestionKeywords)
             {

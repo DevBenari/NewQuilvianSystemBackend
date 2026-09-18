@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | `blueprint_id` | `LAB-BP-001` |
-| Roadmap revision | `32` |
+| Roadmap revision | `34` |
 | Status | `DRAFT` |
 | Bentuk blueprint | `SINGLE` |
 | Ditulis oleh | `plan-module-delivery` |
@@ -1252,12 +1252,12 @@ bersama `LAB-VAL-v1` `r8` dan `LAB-PERM-v1` rev 7.
 
 | Butir | Isi |
 |---|---|
-| **Status** | ⛔ `MENUNGGU BE-LAB-50` — gelombang `MVP-6b1` |
+| **Status** | ✅ `SIAP DIKERJAKAN` — gelombang `MVP-6b1`. `BE-LAB-50` **selesai 2026-09-18**: keempat tabel berdiri, migration terterap, dan kesepuluh endpoint data induk sudah ada di kode |
 | **Outcome** | Kepala instalasi dapat mengelola parameter, kategori, keberlakuan, dan **pemetaan jenis pemeriksaan** |
 | **Requirement/decision** | `FR-13.11`; `LAB-FE-014` |
 | **Reuse** | Layar `lab-organisms`/`lab-antibiotics` dari `FE-LAB-24`, dan `lab-specimen-types` |
 | **Cakupan** | Dua route di `master-data/`, dua komponen tampilan, dua API service. Layar kategori memuat **tiga hal**: kategori, keberlakuan parameter, dan pemetaan pemeriksaan |
-| **Dependency** | `BE-LAB-50` |
+| **Dependency** | ✅ Terpenuhi — `BE-LAB-50` selesai 2026-09-18 |
 | **Acceptance criteria** | `AC-143` **nol tombol Hapus**; `AC-144` layar pemetaan menyediakan **usulan dari `GET /suggestions`** yang **wajib dikonfirmasi manusia** sebelum disimpan; `AC-145` layar keberlakuan menampilkan penanda **wajib** per pasangan parameter-kategori |
 | **Verifikasi** | Uji unit; dijalankan terhadap backend berisi data |
 | **Risiko/pemilik** | Sedang. `AC-144` mudah disederhanakan menjadi tombol "terapkan semua" — dan itu menghapus pemeriksaan manusianya |
@@ -1267,7 +1267,7 @@ bersama `LAB-VAL-v1` `r8` dan `LAB-PERM-v1` rev 7.
 
 | Butir | Isi |
 |---|---|
-| **Status** | ⛔ `MENUNGGU BE-LAB-52` **dan pemetaan terisi** — gelombang `MVP-6b2` |
+| **Status** | ⚠ `MENUNGGU PEMETAAN TERISI` — gelombang `MVP-6b2`. `BE-LAB-52` **selesai 2026-09-18**, sehingga penahan teknisnya gugur. **Yang tersisa BUKAN pekerjaan programmer**: empat dari sepuluh pemeriksaan PA sudah dipetakan sebagai data uji dan **perlu ditinjau kepala instalasi**, enam sisanya belum |
 | **Outcome** | Patolog dapat mengisi laporan sesuai kategori pesanan, menyelesaikannya, dan membukanya kembali |
 | **Requirement/decision** | `FR-13.12`..`FR-13.17`; `LAB-FE-022`..`LAB-FE-029` |
 | **Reuse** | Pola formulir dinamis; pola muat-simpan `FE-LAB-23` |
@@ -1282,7 +1282,7 @@ bersama `LAB-VAL-v1` `r8` dan `LAB-PERM-v1` rev 7.
 
 | Butir | Isi |
 |---|---|
-| **Status** | ⛔ `MENUNGGU BE-LAB-52` — gelombang `MVP-6b2` |
+| **Status** | ✅ `SIAP DIKERJAKAN` — gelombang `MVP-6b2`. `BE-LAB-52` **selesai 2026-09-18**; kedua jalur konteks klinis berjalan dan berhak akses `LabOrder`, bukan `LabExamination` |
 | **Outcome** | Dokter pemesan dapat menulis empat ruas konteks klinis saat memesan pemeriksaan PA |
 | **Requirement/decision** | `FR-13.10`; `LAB-DEC-091`, `INV-40` |
 | **Reuse** | Layar pemesanan yang **sudah berjalan** |
@@ -1419,6 +1419,8 @@ mengosongkan disiplin mencabut golongannya.
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 34 | 2026-09-18 | **Ketiga task frontend Patologi Anatomi kini terbuka, dan satu penahan yang tersisa BUKAN pekerjaan programmer.** `BE-LAB-52` selesai, sehingga `FE-LAB-29` naik `SIAP DIKERJAKAN` dan `FE-LAB-28` kehilangan penahan teknisnya. **`FE-LAB-28` masih menunggu PEMETAAN TERISI**: empat dari sepuluh pemeriksaan PA sudah dipetakan sebagai data uji `BE-LAB-52` dan **perlu ditinjau kepala instalasi bersama `DR-LAB-003`**, enam sisanya belum sama sekali — tanpa itu formulir hasil PA kosong bagi pemeriksaan yang belum digolongkan (`INV-39`). **Dua hal yang wajib dibaca `FE-LAB-28` sebelum menulis satu baris:** bentuk formulir **dibangkitkan dari `fields` pada tanggapan** — ruas yang dipakai dua golongan datang **sekali** beserta `categoryCodes` keduanya, dan menuliskan lima belas ruas di kode akan membatalkan seluruh manfaat `LAB-DEC-086`; serta `issuedAt`/`effectiveAt` **hanya keluar, nol boleh dikirim** — mengirimnya dijawab `422`. **Peringatan `GET /{id}` dari revision 33 masih berlaku** bagi `FE-LAB-27` | `DRAFT` |
+| 33 | 2026-09-18 | **`FE-LAB-27` dibuka; `FE-LAB-28` dan `FE-LAB-29` tetap tertahan, dan sekarang penahannya berbeda.** `BE-LAB-50` selesai beserta kesepuluh endpoint data induknya, sehingga `FE-LAB-27` naik `SIAP DIKERJAKAN`. `FE-LAB-28` dan `FE-LAB-29` menunggu `BE-LAB-52` yang **belum** dikerjakan — `BE-LAB-51` yang selesai menyusul hanya mendirikan tabelnya, **nol endpoint**. **Satu peringatan yang perlu dibaca `FE-LAB-27` lebih dulu:** ketiga resource data induk **nol punya `GET /{id}`**, sehingga formulir ubah yang dibuka lewat tautan langsung atau sesudah halaman disegarkan nol punya jalur memuat barisnya — kelas kesalahan yang sudah dibayar modul ini lewat `r6` sesudah `FE-LAB-03` diam-diam gagal di luar halaman daftar. Diusulkan sebagai `r26` bila pemilik modul menghendaki | `DRAFT` |
 | 32 | 2026-09-18 | **Kontrak `r25`/`r8`/rev 7 disetujui; ketiga task frontend tetap tertahan, dan itu bukan kelalaian pembukuan.** Yang menahan `FE-LAB-27`, `FE-LAB-28`, dan `FE-LAB-29` tidak pernah kontraknya melainkan **endpoint yang belum ada di kode** — persis yang dinyatakan label "Rencana (belum tersedia)". `FE-LAB-27` tetap menunggu `BE-LAB-50`; `FE-LAB-28` tetap menunggu `BE-LAB-52` **dan pemetaan terisi**; `FE-LAB-29` tetap menunggu `BE-LAB-52`. **Nol acceptance criteria, cakupan, atau dependency berubah**; yang berubah hanya catatan gerbang pada bagian 6e.5 | `DRAFT` |
 | 31 | 2026-09-18 | **Bagian Patologi Anatomi diturunkan ulang.** `FE-LAB-25` **dibatalkan**, digantikan `FE-LAB-27` dua layar data induk, `FE-LAB-28` layar laporan, dan `FE-LAB-29` konteks klinis pada layar pemesanan. **Nol baris kode terbuang.** **Tiga belas acceptance criteria baru, `AC-143`..`AC-155`.** **`AC-146` yang paling berisiko** dan saya beri penilaian risiko **tinggi**: formulir wajib **dibangkitkan dari daftar parameter server**, bukan dari lima belas ruas yang ditulis di kode — menuliskannya di kode terasa lebih cepat dan **membatalkan seluruh manfaat `LAB-DEC-086`**, sebab parameter keenam belas kelak akan menuntut rilis frontend. **`AC-144` juga mudah disederhanakan keliru**: layar pemetaan menyediakan usulan dari `GET /suggestions`, dan usulan itu **wajib dikonfirmasi manusia** — tombol "terapkan semua" akan menghapus pemeriksaan manusianya, dan itu persis yang `LAB-DEC-087` hendak cegah. **`FE-LAB-29` menyentuh layar yang SEDANG DIPAKAI PETUGAS** (`ARCH-GAP-LAB-07`), sehingga `AC-154` menuntut **pembuktian terbalik** bahwa pemesanan Patologi Klinik dan Mikrobiologi nol terdampak — kelas yang sama dengan `BE-LAB-21` yang sempat membuat layar wadah menjawab `422` | `DRAFT` |
 | 30 | 2026-09-18 | **Gelombang `MVP-6` diturunkan — tiga task frontend, `FE-LAB-24` sampai `FE-LAB-26`** (bagian 6e). Ketiganya berstatus **`MENUNGGU`** pasangan backend-nya, dan itu disengaja: layar yang dibangun terhadap endpoint yang belum ada tidak dapat diuji selain pada keadaan gagalnya. **Sepuluh acceptance criteria, dan empat di antaranya berbentuk ketiadaan** — `AC-117` nol tombol Hapus, `AC-120` nol tombol Validasi/Rilis, `AC-121` nol Simpan draft, `AC-122` nol lencana status hasil. Keempatnya **diuji secara terbalik**, bukan diasumsikan, sebab ketiganya hal yang terasa melengkapi layar dan justru karena itu paling mungkin ditambahkan. **`AC-123` saya beri penjelasan risiko tersendiri:** isolat dan kepekaannya wajib terlihat **bersarang**, bukan dua daftar sejajar — sebab dua daftar sejajar membuat petugas mengira antibiotik diuji terhadap *pemeriksaan*, bukan terhadap kuman tertentu, dan salah baca itu berujung pada terapi yang keliru. **`FE-LAB-26` punya dependency yang bukan kode:** daftar organisme dan antibiotik **terisi**, dan `AC-127` menuntut layar menyebutkan penyebab serta siapa yang mengisinya ketika daftarnya masih kosong — bukan menampilkan pemilih kosong tanpa penjelasan. **Satu catatan pembukuan:** header dokumen ini menunjuk revision `29` sedangkan baris riwayat terakhir `26`. Baris `27` sampai `29` **tidak pernah ditulis dan tidak saya susun ulang dari ingatan**; nomor berikutnya diambil `30` agar hitungannya tidak mundur | `DRAFT` |
