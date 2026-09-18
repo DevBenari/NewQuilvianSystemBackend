@@ -57,12 +57,11 @@ public sealed class TaxRulesController : ControllerBase
     [AccessPermission("TaxRule", "Read")]
     [ProducesResponseType(typeof(ApiResponse<List<TaxRuleOptionResponse>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetOptions(
-        [FromQuery] string? taxableCategory,
         [FromQuery] bool onlyActive = true,
         [FromQuery] string? search = null,
         CancellationToken cancellationToken = default) =>
         Ok(ApiResponse<List<TaxRuleOptionResponse>>.Ok(
-            await _service.GetOptionsAsync(taxableCategory, onlyActive, search, cancellationToken),
+            await _service.GetOptionsAsync(onlyActive, search, cancellationToken),
             "Data pilihan tax rule berhasil diambil."));
 
     [HttpGet("{id:guid}")]

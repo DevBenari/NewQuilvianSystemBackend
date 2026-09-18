@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Dtos;
+namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.MasterData.Dtos;
 
 public sealed class PettyCashCategoryQuery
 {
@@ -75,3 +75,4 @@ public sealed class PettyCashCategoryFilterMetadataResponse
     public List<int> PageSizeOptions { get; set; } = new();
     public List<string> SortableFields { get; set; } = new();
 }
+

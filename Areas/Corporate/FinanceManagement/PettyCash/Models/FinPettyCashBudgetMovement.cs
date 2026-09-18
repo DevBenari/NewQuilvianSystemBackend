@@ -1,8 +1,9 @@
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Models;
 using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Models;
+namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.PettyCash.Models;
 
 /// <summary>
 /// Ledger append-only yang menjelaskan KENAPA saldo kolam bergerak (PC-DES-004).
@@ -10,8 +11,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash
 /// Unique index parsial pada (VoucherId) untuk MovementType = 'DISBURSEMENT'
 /// menegakkan invariant "satu voucher paling banyak satu pengurangan saldo".
 /// </summary>
-[Table("BilPettyCashBudgetMovement", Schema = "public")]
-public sealed class BilPettyCashBudgetMovement : IdentityModel
+[Table("FinPettyCashBudgetMovement", Schema = "public")]
+public sealed class FinPettyCashBudgetMovement : IdentityModel
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -33,6 +34,15 @@ public sealed class BilPettyCashBudgetMovement : IdentityModel
     /// <summary>SENSITIF. Wajib untuk TOP_UP dan ADJUSTMENT; kosong untuk DISBURSEMENT.</summary>
     [MaxLength(500)] public string? Reason { get; set; }
 
+    /// <summary>Sumber dana penambahan anggaran (TRANSFER atau CASH). Diisi hanya untuk
+    /// MovementType = TOP_UP. Null untuk seluruh jenis pergerakan lain.
+    /// Historical records pra-task ini sah dengan nilai null (PC-DES-026).</summary>
+    [MaxLength(30)] public string? FundingSourceType { get; set; }
+
+    /// <summary>Nomor referensi transfer. Diisi hanya bila FundingSourceType = TRANSFER.
+    /// Null untuk CASH dan untuk seluruh jenis pergerakan selain TOP_UP.</summary>
+    [MaxLength(100)] public string? TransferReference { get; set; }
+
     public Guid ActorUserId { get; set; }
 
     public Guid? IdempotencyKey { get; set; }
@@ -41,7 +51,7 @@ public sealed class BilPettyCashBudgetMovement : IdentityModel
 
     public DateTimeOffset OccurredAt { get; set; }
 
-    public BilPettyCashBudget Budget { get; set; } = null!;
+    public FinPettyCashBudget Budget { get; set; } = null!;
 
     public BilPettyCashVoucher? Voucher { get; set; }
 }
@@ -69,3 +79,19 @@ public static class PettyCashBudgetMovementTypes
     /// dengan satu baris CarryForwardOut pada periode asal (PC-DES-018).</summary>
     public const string CarryForwardIn = "CARRY_FORWARD_IN";
 }
+
+/// <summary>Sumber dana penambahan anggaran kas kecil (PC-DES-026).
+/// Hanya berlaku untuk movement berjenis TOP_UP.
+/// Nilai ini adalah kode internal; label tampilan dikelola frontend.</summary>
+public static class PettyCashFundingSourceTypes
+{
+    /// <summary>Dana masuk melalui transfer bank. TransferReference wajib diisi.</summary>
+    public const string Transfer = "TRANSFER";
+
+    /// <summary>Dana masuk secara tunai/langsung. TransferReference tidak diwajibkan.</summary>
+    public const string Cash = "CASH";
+
+    public static readonly IReadOnlySet<string> All =
+        new HashSet<string>([Transfer, Cash], StringComparer.OrdinalIgnoreCase);
+}
+

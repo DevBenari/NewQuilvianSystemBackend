@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Models;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Configurations;

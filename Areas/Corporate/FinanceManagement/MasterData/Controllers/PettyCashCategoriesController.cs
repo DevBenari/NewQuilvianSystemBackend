@@ -1,20 +1,21 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Dtos;
-using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Services;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.MasterData.Dtos;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.MasterData.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Responses;
 using System.Security.Claims;
 
-namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Controllers;
+namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.MasterData.Controllers;
 
 [ApiController]
 [Authorize]
+[Route("api/v1/corporate/finance-management/master-data/petty-cash-categories")]
 [Route("api/v1/health-services/billing-management/master-data/petty-cash-categories")]
-[AccessController("HEALTH_SERVICE_BILLING_MANAGEMENT_MASTER_DATA", "Health Service Billing Management Master Data", "Petty Cash Category",
-    AreaName = "HealthServices", ControllerName = "PettyCashCategory", Description = "Master data kategori pengeluaran kas kecil", SortOrder = 27)]
-[Tags("Health Services / Billing Management / Master Data / Petty Cash Category")]
+[AccessController("CORPORATE_FINANCE_MANAGEMENT_MASTER_DATA", "Corporate Finance Management Master Data", "Petty Cash Category",
+    AreaName = "Corporate", ControllerName = "PettyCashCategory", Description = "Master data kategori pengeluaran kas kecil", SortOrder = 27)]
+[Tags("Corporate / Finance Management / Master Data / Petty Cash Category")]
 public sealed class PettyCashCategoriesController : ControllerBase
 {
     private readonly PettyCashCategoryService _service;
@@ -110,3 +111,4 @@ public sealed class PettyCashCategoriesController : ControllerBase
         return Guid.TryParse(value, out var userId) ? userId : Guid.Empty;
     }
 }
+

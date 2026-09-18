@@ -1,17 +1,18 @@
 using Microsoft.EntityFrameworkCore;
-using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Dtos;
-using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.MasterData.Dtos;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.MasterData.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 
-namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Services;
+namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.MasterData.Services;
 
-// BE-BKC-035 / PC-DES-002 / PC-DEC-012: CRUD baseline master data kategori pengeluaran kas kecil,
-// mengikuti TaxRuleService apa adanya (CRUD baris tunggal, tanpa transaction eksplisit).
+/// <summary>
+/// Service CRUD master data kategori pengeluaran kas kecil pada Bounded Context Corporate/FinanceManagement/MasterData.
+/// </summary>
 public sealed class PettyCashCategoryService
 {
-    private const string LogCategory = "HealthServices.BillingManagement.MasterData";
+    private const string LogCategory = "Corporate.FinanceManagement.MasterData";
     private readonly ApplicationDbContext _dbContext;
     private readonly LoggerService _loggerService;
 
@@ -141,9 +142,6 @@ public sealed class PettyCashCategoryService
         return Map(entity);
     }
 
-    // Soft delete - baris tidak pernah dihapus fisik. Ditolak selama masih ada voucher (aktif
-    // maupun histori) yang menunjuk kategori ini (BIL-VAL-053); nonaktifkan saja bila sudah tidak
-    // dipakai lagi tetapi riwayatnya tetap harus ditelusuri.
     public async Task<PettyCashCategoryDeleteResponse> DeleteAsync(Guid id, Guid actorUserId, CancellationToken cancellationToken)
     {
         var entity = await FindAsync(id, cancellationToken);
@@ -213,3 +211,4 @@ public sealed class PettyCashCategoryService
 public sealed class PettyCashCategoryValidationException(string message) : Exception(message);
 public sealed class PettyCashCategoryConflictException(string message) : Exception(message);
 public sealed class PettyCashCategoryInUseException(string message) : Exception(message);
+

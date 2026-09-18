@@ -43,6 +43,7 @@ governance_dependency: BKC-BLK-FE-001
 | Verifikasi | Component tests per master, lint/build |
 | Risiko/pemilik | UI menyiratkan update retroaktif. Owner Finance/Product |
 | DoD | Empat workspace atau tab setara, tests, accessibility, no hardcoded business values |
+| Perbaikan 16 September 2026 (`BE-BKC-FIX-010`) | Field "Kategori Kena Pajak"/`taxableCategory` dihapus total dari form create/update, kolom list, dan teks deskripsi CRUD Tax Rule — mengikuti penghapusan kolom `TaxableCategory` di backend (`BKC-DEC-098`). Lint/test/build **belum dijalankan** (instruksi baku pengguna). Laporan: [BE-BKC-FIX-010](../task/report/frontend/BE-BKC-FIX-010.md) |
 
 ## `FE-BKC-003` — Workspace charge, recalculation, dan void
 
@@ -1334,7 +1335,7 @@ BE-BKC-057 [BE] ───────────────┴─> FE-BKC-038
 | Kewenangan UI | Penggabungan halaman, route kanonik, sumber data per wilayah, dan urutan wilayah **dikunci**. Bentuk wadah panel, warna, jarak, ikon, dan component library `DEV_DISCRETION` |
 | Risiko/pemilik | Pendaftaran butir menu **MUST** menjadi acceptance criteria task ini, bukan pekerjaan yang menganggur. Modul ini punya preseden lima halaman selesai tetapi tidak terjangkau sampai task menu tersendiri dikerjakan. Owner Frontend |
 | DoD | Halaman kanonik terjangkau dari sidebar; kedua route lama mengalihkan; kelima kartu dari satu panggilan; keadaan memuat, kosong, dan gagal tertangani per wilayah; `npm run build` lulus; `git status --short` dilaporkan |
-| Status | Belum dikerjakan |
+| Status | **Source selesai — belum diverifikasi.** `npm run lint:errors`/`test:unit`/`build` dan verifikasi manual browser belum dijalankan (instruksi eksplisit pengguna sesi ini); hanya `node --check` pada berkas logika non-JSX yang lulus. Detail dan temuan (termasuk `api-contract.md` yang basi untuk `GET /overview`/`/periods`): [task/report/frontend/fe-bkc-035-halaman-kanonik-petty-cash-dan-pengalihan-route-lama.md](../task/report/frontend/fe-bkc-035-halaman-kanonik-petty-cash-dan-pengalihan-route-lama.md) |
 
 ## `FE-BKC-036` — Kosakata status baru dan pembuangan aksi persetujuan
 
@@ -1353,7 +1354,7 @@ BE-BKC-057 [BE] ───────────────┴─> FE-BKC-038
 | Kewenangan UI | Label status dan hak akses tombol **dikunci**. Bentuk penanda status dan tata letak aksi baris `DEV_DISCRETION` |
 | Risiko/pemilik | Layar yang masih membandingkan status dengan `WAITING_APPROVAL` atau `APPROVED` akan diam-diam menyembunyikan tombol Cairkan — gagalnya tidak berupa error, melainkan tombol yang tidak pernah muncul. Owner Frontend |
 | DoD | Tidak ada pemanggilan endpoint persetujuan tersisa; seluruh label memakai kosakata baru; aksi baris digerakkan server; `npm run build` lulus; `git status --short` dilaporkan |
-| Status | Belum dikerjakan |
+| Status | **Source selesai — belum diverifikasi.** `npm run lint:errors`/`test:unit`/`build` dan verifikasi manual browser belum dijalankan (instruksi eksplisit pengguna sesi ini); `node --check` pada berkas logika non-JSX lulus. Ditemukan `GET /vouchers/summary` juga berganti bentuk response (di luar Kontrak eksplisit task ini tapi dalam wewenang tulisnya) — detail: [task/report/frontend/fe-bkc-036-kosakata-status-baru-dan-pembuangan-aksi-persetujuan.md](../task/report/frontend/fe-bkc-036-kosakata-status-baru-dan-pembuangan-aksi-persetujuan.md) |
 
 ## `FE-BKC-037` — Layar Kelola Periode Anggaran
 
@@ -1372,7 +1373,7 @@ BE-BKC-057 [BE] ───────────────┴─> FE-BKC-038
 | Kewenangan UI | Isi dialog tutup periode dan sumber datanya **dikunci**. Bentuk wadah (modal, laci, halaman anak) `DEV_DISCRETION` |
 | Risiko/pemilik | Dialog tutup tanpa kalimat pemindahan membuat Finance tidak punya cara tahu ke mana uangnya pergi. Owner Frontend bersama Finance |
 | DoD | Ketiga aksi daur hidup berjalan dari layar; dialog tutup menampilkan sisa dan periode penerus; pesan penolakan server tampil apa adanya; `npm run build` lulus; `git status --short` dilaporkan |
-| Status | Belum dikerjakan |
+| Status | **Source selesai — belum diverifikasi.** `npm run lint:errors`/`test:unit`/`build` dan verifikasi manual browser belum dijalankan (instruksi eksplisit pengguna sesi ini); `node --check` pada berkas logika non-JSX lulus. Ditemukan ketiga endpoint periode TIDAK menerima header Idempotency-Key (beda dari pola Petty Cash lain) — detail: [task/report/frontend/fe-bkc-037-layar-kelola-periode-anggaran.md](../task/report/frontend/fe-bkc-037-layar-kelola-periode-anggaran.md) |
 
 ## `FE-BKC-038` — Kembalikan sisa uang dan batalkan pencairan
 
@@ -1391,7 +1392,7 @@ BE-BKC-057 [BE] ───────────────┴─> FE-BKC-038
 | Kewenangan UI | Alasan wajib pada kedua aksi dan penampilan sisa di tangan penerima **dikunci**. Bentuk wadah (modal atau laci) `DEV_DISCRETION` |
 | Risiko/pemilik | Keduanya memindahkan uang. Tombol **MUST** dinonaktifkan selama pengiriman **dan** memakai kunci idempotensi — keduanya, bukan salah satu. Owner Frontend |
 | DoD | Kedua aksi berjalan dari baris permintaan; batas nominal pengembalian terbaca pengguna sebelum mengirim; pengiriman ganda tidak menambah saldo dua kali; `npm run build` lulus; `git status --short` dilaporkan |
-| Status | Belum dikerjakan |
+| Status | **Source selesai — belum diverifikasi.** `npm run lint:errors`/`test:unit`/`build` dan verifikasi manual browser belum dijalankan (instruksi eksplisit pengguna sesi ini); `node --check` pada berkas logika non-JSX lulus. Ditemukan `PettyCashVoucherCommandResponse` tidak mengekspos nominal per kejadian Return, dan label movement type `RETURN`/`REVERSAL`/`CARRY_FORWARD_OUT`/`CARRY_FORWARD_IN` terlewat sejak `FE-BKC-037` (sudah dilengkapi) — detail: [task/report/frontend/fe-bkc-038-kembalikan-sisa-uang-dan-batalkan-pencairan.md](../task/report/frontend/fe-bkc-038-kembalikan-sisa-uang-dan-batalkan-pencairan.md) |
 
 ## Paralelisme dan urutan ringkas
 

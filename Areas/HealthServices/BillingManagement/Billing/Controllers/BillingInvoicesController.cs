@@ -459,6 +459,32 @@ public sealed class BillingInvoicesController : ControllerBase
         ExecuteDiscountCommandAsync(() => _discountService.ApproveDoctorAsync(
             id, discountId, request, CurrentUserId(), cancellationToken), "Diskon jasa dokter berhasil disetujui.");
 
+    [HttpPost("{id:guid}/discounts/{discountId:guid}/cancel")]
+    [AccessAction("Update", "Cancel Billing Discount", AccessType = AccessTypes.Update, SortOrder = 8)]
+    [AccessPermission("BillingDiscount", "Update")]
+    [ProducesResponseType(typeof(ApiResponse<DiscountResponse>), StatusCodes.Status200OK)]
+    public Task<IActionResult> CancelDiscount(
+        Guid id,
+        Guid discountId,
+        [FromBody] CancelDiscountRequest? request,
+        CancellationToken cancellationToken) =>
+        ExecuteDiscountCommandAsync(() => _discountService.CancelAsync(
+            id, discountId, request ?? new CancelDiscountRequest(), CurrentUserId(), cancellationToken),
+            "Penerapan diskon/voucher berhasil dibatalkan.");
+
+    [HttpDelete("{id:guid}/discounts/{discountId:guid}")]
+    [AccessAction("Delete", "Delete Billing Discount", AccessType = AccessTypes.Delete, SortOrder = 9)]
+    [AccessPermission("BillingDiscount", "Delete")]
+    [ProducesResponseType(typeof(ApiResponse<DiscountResponse>), StatusCodes.Status200OK)]
+    public Task<IActionResult> DeleteDiscount(
+        Guid id,
+        Guid discountId,
+        [FromQuery] Guid? expectedRowVersion,
+        CancellationToken cancellationToken) =>
+        ExecuteDiscountCommandAsync(() => _discountService.CancelAsync(
+            id, discountId, new CancelDiscountRequest { ExpectedRowVersion = expectedRowVersion ?? Guid.Empty }, CurrentUserId(), cancellationToken),
+            "Penerapan diskon/voucher berhasil dibatalkan.");
+
     // Antrean approval milik dokter yang login - dipakai layar "Persetujuan Diskon Dokter" yang
     // berdiri sendiri, supaya dokter tidak perlu masuk Menu Pembayaran milik kasir untuk
     // menyetujui. Kepemilikan disaring di service dari DPJP encounter, bukan dari query client.
