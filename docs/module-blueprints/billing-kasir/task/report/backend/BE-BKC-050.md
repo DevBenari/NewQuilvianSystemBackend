@@ -205,7 +205,7 @@ paths:
         Membaca data kalkulasi tagihan terkunci atau kalkulasi aktif untuk menyusun lembar penagihan ke perusahaan
         penjamin tempat pasien bekerja. Memuat identitas perusahaan, identitas karyawan, rute reimbursement
         (sebagai metadata informatif), dan daftar item yang ditanggung perusahaan.
-        
+
         Kunjungan tunai atau asuransi pribadi akan mengembalikan status 200 dengan isPrintable = false beserta
         penjelasan pada daftar warnings.
       operationId: GetCompanyGuarantorInvoiceDocument

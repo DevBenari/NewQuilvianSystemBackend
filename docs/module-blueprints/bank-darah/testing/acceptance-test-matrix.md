@@ -56,7 +56,7 @@ Wajib memuat **jalur gagal**, bukan hanya jalur berhasil. Jenis test: `Unit` (at
 | `AC-BD-018` | Kantong dialokasikan, bukti belum tercatat, tekan pemberian | Integ | Ditolak (`VAL-BD-018`) |
 | `AC-BD-019` | Bukti lengkap lalu pemberian | Integ | Berhasil; kantong `Issued` |
 | `AC-BD-020` | Jalur darurat oleh peran berwenang + alasan | Integ | Berhasil, ditandai tanpa bukti, muncul di daftar #3 |
-| `AC-BD-021` | Jalur darurat oleh peran tak berwenang | Integ | Ditolak (`VAL-BD-021`) |
+| `AC-BD-021` | Jalur darurat oleh peran tak berwenang | Integ | **Ditolak** `VAL-BD-072` (`DEC-BD-050`; sebelumnya tertulis `VAL-BD-021`) |
 | `AC-BD-038` | Bukti tercatat, masa berlaku lewat, tekan pemberian | Integ | Ditolak (`VAL-BD-020`); bukti lama tetap riwayat |
 | `AC-BD-039` | Bukti masih di dalam masa berlaku | Integ | Pemberian berhasil |
 | `AC-BD-040` | Masa berlaku komponen belum dikonfigurasi | Integ | Pemberian ditahan (`VAL-BD-020b`), tak pakai nilai tebakan |

@@ -12,17 +12,33 @@ namespace QuilvianSystemBackend.Filters
         private readonly LoggerService _loggerService;
         private readonly string _controllerName;
         private readonly string _actionName;
+        private readonly string _deniedCode;
+        private readonly string _deniedMessage;
 
+        private const string GenericDeniedMessage =
+            "Anda tidak memiliki akses ke menu atau fitur ini.";
+
+        /// <param name="deniedCode">
+        /// Kode penolakan khusus endpoint ini, atau string kosong untuk balasan generic.
+        /// Tidak pernah ikut menentukan keputusan izin.
+        /// </param>
+        /// <param name="deniedMessage">
+        /// Kalimat penolakan khusus endpoint ini, atau string kosong untuk kalimat generic.
+        /// </param>
         public AccessPermissionFilter(
             AccessPermissionService accessPermissionService,
             LoggerService loggerService,
             string controllerName,
-            string actionName)
+            string actionName,
+            string deniedCode = "",
+            string deniedMessage = "")
         {
             _accessPermissionService = accessPermissionService;
             _loggerService = loggerService;
             _controllerName = controllerName;
             _actionName = actionName;
+            _deniedCode = deniedCode ?? string.Empty;
+            _deniedMessage = deniedMessage ?? string.Empty;
         }
 
         public async Task OnAuthorizationAsync(AuthorizationFilterContext context)
@@ -65,10 +81,23 @@ namespace QuilvianSystemBackend.Filters
                 }
             );
 
+            // Keputusan penolakan di atas tidak berubah. Yang dikhususkan hanya isi balasannya,
+            // dan hanya bila endpoint-nya memang mendaftarkan kode dan kalimat kontrak sendiri.
+            var deniedMessage =
+                string.IsNullOrWhiteSpace(_deniedMessage)
+                    ? GenericDeniedMessage
+                    : _deniedMessage;
+
+            object? deniedErrors =
+                string.IsNullOrWhiteSpace(_deniedCode)
+                    ? null
+                    : new { Code = _deniedCode };
+
             context.Result = new ObjectResult(
                 ApiResponse<object>.Fail(
                     StatusCodes.Status403Forbidden,
-                    "Anda tidak memiliki akses ke menu atau fitur ini."
+                    deniedMessage,
+                    deniedErrors
                 )
             )
             {

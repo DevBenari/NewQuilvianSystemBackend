@@ -301,7 +301,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Control
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
         [AccessAction("Validate", "Validate Blood Group Exam Result", Description = "Memvalidasi hasil golongan darah rutin", AccessType = AccessTypes.Update, SortOrder = 4)]
-        [AccessPermission("BloodGroupExam", "Validate")]
+        [AccessPermission(
+            "BloodGroupExam",
+            "Validate",
+            DeniedCode = "VAL-BD-037",
+            DeniedMessage =
+                "Hanya peran validator yang boleh memvalidasi atau menyelesaikan perbedaan hasil " +
+                "golongan darah.")]
         public async Task<IActionResult> Validate(
             Guid id,
             CancellationToken cancellationToken = default)
@@ -362,7 +368,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Control
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
         [AccessAction("ResolveConflict", "Resolve Blood Group Conflict", Description = "Menyelesaikan perbedaan hasil golongan darah", AccessType = AccessTypes.Update, SortOrder = 5)]
-        [AccessPermission("BloodGroupExam", "ResolveConflict")]
+        [AccessPermission(
+            "BloodGroupExam",
+            "ResolveConflict",
+            DeniedCode = "VAL-BD-069",
+            DeniedMessage =
+                "Hanya validator klinis yang ditunjuk yang boleh menyelesaikan perbedaan hasil " +
+                "golongan darah.")]
         public async Task<IActionResult> ResolveConflict(
             [FromBody] ResolveConflictRequest request,
             CancellationToken cancellationToken = default)

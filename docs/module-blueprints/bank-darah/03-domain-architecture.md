@@ -482,7 +482,9 @@ Menempatkan koreksi di luar akan mengubahnya menjadi catatan yang kebenarannya h
 **Batas yang sengaja tidak ditembus.** Catatan koreksi berhenti pada pernyataan "pencatatannya
 keliru". Ia tidak mengubah pasien tujuan, tidak mengembalikan kantong ke keadaan tersedia, dan tidak
 membatalkan pemberian. Nasib kantong yang tercatat keliru dinyatakan terpisah oleh manusia, dan
-mekanismenya belum ditetapkan — `OQ-BD-014`.
+mekanismenya belum ditetapkan — `OQ-BD-014`. **Ditutup `DEC-BD-051` (17 September 2026):** sesudah
+koreksi disetujui kantong **tetap `ISSUED`**; penanganan fisik kantong yang ternyata masih ada berada di
+luar jalur koreksi, dan tidak ada state transition baru.
 
 **Kenapa penempatan berada di dalam batas kantong, sedangkan master lokasi di luarnya.** Dua hal ini
 mudah tertukar. Penempatan (`BD-DOM-25`) adalah fakta tentang **kantong tertentu** — kantong ini ada
@@ -1288,7 +1290,7 @@ luar** scope yang dinilai, dan beberapa nilai yang hanya menahan `IMPLEMENTATION
 | Mekanik label golongan darah | `OQ-BD-011` | **Di luar** scope sejak revisi 1. Bukan bagian kesiapan ini |
 | Penetapan peran pada jalur darurat, validasi hasil, pencatatan koreksi, penyelesaian kantong, dan pembatalan order | `DEF-BD-004` | Menahan `IMPLEMENTATION`, **bukan** rancangan. Bentuk setiap alurnya sudah pasti |
 | Nilai jam masa berlaku bukti kecocokan per komponen | `OQ-BD-012` | Menahan `IMPLEMENTATION`. Rancangannya cukup tahu bahwa nilainya datang dari konfigurasi katalog |
-| Keadaan kantong yang tercatat keliru sesudah dikoreksi | `OQ-BD-014` | Menahan `IMPLEMENTATION` jalur koreksi. Konsep `BD-DOM-23` tetap dapat dirancang |
+| Keadaan kantong yang tercatat keliru sesudah dikoreksi | `OQ-BD-014` — **ditutup `DEC-BD-051`** | Tidak lagi menahan: kantong tetap `ISSUED` sesudah koreksi disetujui, penanganan fisik di luar jalur koreksi. **Riwayat:** menahan `IMPLEMENTATION` jalur koreksi; konsep `BD-DOM-23` tetap dapat dirancang |
 | Rumah slice resmi untuk `BR-BD-020` | `02-requirement-completeness-assessment.md` masih revisi 2 | **Tidak menahan `DESIGN`.** Pekerjaan `requirement-completeness-gate`, bukan sesi arsitektur. Sementara ini `BR-BD-020` diperlakukan sebagai perluasan `BD-SLICE-03`, `BD-SLICE-04`, dan `BD-SLICE-10` |
 
 **Kenapa kini `READY`.** Kontrak menuntut, untuk `DOMAIN_ARCHITECTURE_READY`, bahwa slice yang dinilai
