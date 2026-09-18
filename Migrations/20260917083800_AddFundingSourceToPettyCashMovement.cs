@@ -174,11 +174,15 @@ namespace QuilvianSystemBackend.Migrations
                 table: "FinPettyCashBudgetMovement",
                 newName: "IX_FinPettyCashBudgetMovement_IdempotencyKey");
 
-            migrationBuilder.RenameIndex(
-                name: "IX_BilPettyCashBudgetMovement_Voucher_Disbursement",
+            // NOTE: not a rename — RevisiTablePettyCash (20260915074405) already dropped this
+            // index under its old Bil name, so it must be recreated fresh here instead.
+            migrationBuilder.CreateIndex(
+                name: "IX_FinPettyCashBudgetMovement_Voucher_Disbursement",
                 schema: "public",
                 table: "FinPettyCashBudgetMovement",
-                newName: "IX_FinPettyCashBudgetMovement_Voucher_Disbursement");
+                column: "VoucherId",
+                unique: true,
+                filter: "\"MovementType\" = 'DISBURSEMENT' AND \"IsDelete\" = false");
 
             migrationBuilder.RenameIndex(
                 name: "IX_BilPettyCashBudgetMovement_Voucher_Reversal",
@@ -289,11 +293,10 @@ namespace QuilvianSystemBackend.Migrations
                 table: "FinPettyCashBudgetMovement",
                 newName: "IX_BilPettyCashBudgetMovement_Voucher_Reversal");
 
-            migrationBuilder.RenameIndex(
+            migrationBuilder.DropIndex(
                 name: "IX_FinPettyCashBudgetMovement_Voucher_Disbursement",
                 schema: "public",
-                table: "FinPettyCashBudgetMovement",
-                newName: "IX_BilPettyCashBudgetMovement_Voucher_Disbursement");
+                table: "FinPettyCashBudgetMovement");
 
             migrationBuilder.RenameIndex(
                 name: "IX_FinPettyCashBudgetMovement_IdempotencyKey",

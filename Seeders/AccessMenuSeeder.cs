@@ -656,8 +656,12 @@ namespace QuilvianSystemBackend.Seeders
         private static string BuildControllerRoutePath(
             ControllerActionDescriptor controllerAction)
         {
+            // Controller boleh punya lebih dari satu [Route] (mis. jalur Corporate/FinanceManagement
+            // baru dipertahankan berdampingan dengan jalur lama untuk kompatibilitas mundur saat
+            // reklasifikasi modul) — ambil yang pertama sebagai jalur kanonis untuk seeding menu.
             var routeAttribute = controllerAction.ControllerTypeInfo
-                .GetCustomAttribute<RouteAttribute>();
+                .GetCustomAttributes<RouteAttribute>()
+                .FirstOrDefault();
 
             var template = routeAttribute?.Template;
 
