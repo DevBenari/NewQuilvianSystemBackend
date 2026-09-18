@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
 
 namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
@@ -57,6 +58,17 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             entity.Property(x => x.SortOrder).HasDefaultValue(0);
             entity.Property(x => x.IsActive).HasDefaultValue(true);
 
+            // BE-RWI-099 / migration R4 — kamus data 0.5 bagian 13.1. Bawaan false dan Fixed
+            // membuat seluruh butir lama terbaca sebagai butir aktif berdosis tetap tanpa diisi.
+            entity.Property(x => x.IsStopped).HasDefaultValue(false);
+            entity.Property(x => x.StoppedAt).HasColumnType("timestamp with time zone");
+            entity.Property(x => x.StoppedByUserId).IsRequired(false);
+            entity.Property(x => x.StopReason).HasMaxLength(500);
+            entity.Property(x => x.DoseKind)
+                .HasConversion<int>()
+                .HasDefaultValue(PrescriptionDoseKind.Fixed)
+                .IsRequired();
+
             entity.Property(x => x.ApprovedAt).HasColumnType("timestamp with time zone");
             entity.Property(x => x.CreateDateTime).HasColumnType("timestamp with time zone").HasDefaultValueSql("CURRENT_TIMESTAMP");
             entity.Property(x => x.UpdateDateTime).HasColumnType("timestamp with time zone");
@@ -77,6 +89,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             entity.HasOne(x => x.DoseUnitMeasurement).WithMany().HasForeignKey(x => x.DoseUnitMeasurementId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.DispenseUnitMeasurement).WithMany().HasForeignKey(x => x.DispenseUnitMeasurementId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.ApprovedByUser).WithMany().HasForeignKey(x => x.ApprovedByUserId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.StoppedByUser).WithMany().HasForeignKey(x => x.StoppedByUserId).OnDelete(DeleteBehavior.Restrict);
 
             entity.HasIndex(x => x.PrescriptionId);
             entity.HasIndex(x => x.DrugId);
@@ -88,6 +101,8 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             entity.HasIndex(x => x.ApprovedByUserId);
             entity.HasIndex(x => new { x.PrescriptionId, x.SortOrder, x.IsDelete });
             entity.HasIndex(x => new { x.PrescriptionId, x.IsNeedApproval, x.IsApproved, x.IsDelete });
+            entity.HasIndex(x => x.StoppedByUserId);
+            entity.HasIndex(x => new { x.PrescriptionId, x.IsStopped });
         }
     }
 }

@@ -31,11 +31,13 @@ Both exclusions are reported rather than silent. The terminal report prints `Gen
 
 ## Code-only evidence
 
-The persisted-entity detectors read code, not prose. Before QBE-ENT-001, QBE-CFG-001, and QBE-MOD-002 inspect a file, comments (`//`, `///`, `/* */`) and literal text (regular, interpolated, verbatim `@"..."`, raw `"""..."""`, and character literals) are removed, leaving declarations only. Line structure is preserved, so nothing else shifts.
+The persisted-entity detectors read code, not prose. Before QBE-ENT-001, QBE-CFG-001, and QBE-MOD-002 inspect a file, comments (`//`, `///`, `/* */`) and literal text (regular, interpolated, verbatim `@"..."`, raw `"""..."""`, and character literals) are removed, leaving declarations only. Line structure is preserved, so nothing else shifts. Entity markers are then tied to each declared class: an `IdentityModel` constraint on a configuration helper cannot turn that helper into an entity, and every actual class declaration in a multi-class file is evaluated independently.
 
 Without this, documentation decided rule outcomes. A read-only service whose XML documentation explained why it exists — `<c>MstReferralInstitution</c> ... beserta <c>DbSet</c>-nya` — matched the `DbSet<` entity marker on the `DbSet</c>` tag, so the service class was reported as a new persisted entity failing all three rules. The remedy is not to reword documentation: prose is not code and must never be able to create or hide a violation.
 
 The same applies to cross-file lookups. `DbSet<T>` registration and `IEntityTypeConfiguration<T>` mapping are confirmed against stripped code, so a commented-out registration cannot supply evidence and a mapping named only inside a comment cannot suppress QBE-CFG-001. Those repository-wide lookups also skip `bin/` and `obj/`, matching the generated-output exclusion already applied to the evaluation scope.
+
+The added-line detectors use the same code-only view, so XML documentation cannot create QBE-SVC-001 or QBE-CODE findings. QBE-NAM-001 treats a `Trx*` file name as new naming only when the file itself is new. Adding an import at line 1 of an existing legacy `Trx*` file is not a rename and cannot create a finding; an added `Trx*` class, `DbSet`, or configuration declaration is still detected from the added code line.
 
 Detection strength is unchanged. A genuine new entity that does not inherit `IdentityModel`, has no dedicated configuration, or resolves to no registry owner is still reported. This is an evidence correction, not a relaxation, and the canonical contract is unchanged.
 

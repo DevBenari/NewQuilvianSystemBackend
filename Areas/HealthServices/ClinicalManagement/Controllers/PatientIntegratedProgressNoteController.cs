@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
@@ -21,6 +21,11 @@ using System.Text;
 using ResponsePatientIntegratedProgressNotePagedResult =
     QuilvianSystemBackend.Responses.PagedResult<
         QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs.PatientIntegratedProgressNoteResponse>;
+
+// BE-RWI-096. Daftar tunggu verifikasi milik dokter login, satu baris per perawatan.
+using ResponseCpptVerificationWorklistPagedResult =
+    QuilvianSystemBackend.Responses.PagedResult<
+        QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services.CpptVerificationWorklistItem>;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controllers
 {
@@ -184,6 +189,51 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             ));
         }
 
+        /// <summary>
+        /// Penjaga penulis tunggal atas satu catatan terpadu yang sudah ada — <c>BE-RWI-088</c>,
+        /// <c>INV-DOK-14</c>, <c>FR-DOK-075</c>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Penulisnya dibaca dari <c>ProviderUserId</c>, kolom yang sejak <c>RM-CAP-012</c>
+        /// sengaja tidak pernah ditetapkan dari isi permintaan ubah. Bila kosong, dipakai kolom
+        /// audit <c>CreateBy</c>.
+        /// </para>
+        /// <para>
+        /// <b>Berlaku bagi seluruh profesi, bukan hanya dokter.</b> Catatan perawat pun hanya
+        /// disunting perawat yang menulisnya; yang menahan profesi lain di jalur ini sebelumnya
+        /// hanya kewenangan unit, dan kewenangan unit dimiliki seluruh perawat pada bangsal itu.
+        /// Verifikasi DPJP tidak tersentuh penjaga ini — ia memang pekerjaan orang lain, dan
+        /// dijaga <c>CpptVerificationService</c>.
+        /// </para>
+        /// </remarks>
+        private async Task<IActionResult?> EnsureSoleAuthorAsync(
+            TrxPatientIntegratedProgressNote entity,
+            CancellationToken cancellationToken = default)
+        {
+            if (!entity.EncounterId.HasValue || entity.EncounterId.Value == Guid.Empty)
+                return null;
+
+            var penulis = entity.ProviderUserId.HasValue && entity.ProviderUserId.Value != Guid.Empty
+                ? entity.ProviderUserId
+                : entity.CreateBy;
+
+            var penjaga = await _inpatientClinicalContextService.ResolveForAuthorEditAsync(
+                entity.EncounterId.Value,
+                documentAuthorUserId: penulis,
+                actorUserId: GetCurrentUserId(),
+                expectedEpisodeId: entity.InpEpisodeId,
+                cancellationToken: cancellationToken);
+
+            if (!InpatientClinicalContextService.PerluDitolak(penjaga))
+                return null;
+
+            return StatusCode(penjaga.StatusCode, ApiResponse<object>.Fail(
+                penjaga.StatusCode,
+                penjaga.ErrorMessage ?? InpatientClinicalContextService.PenolakanBukanPenulisKonsep
+            ));
+        }
+
         [HttpGet("filters/metadata")]
         [ProducesResponseType(typeof(ApiResponse<PatientIntegratedProgressNoteFilterMetadataResponse>), StatusCodes.Status200OK)]
         [AccessAction("Read", "Read Patient Integrated Progress Note", Description = "Melihat metadata filter CPPT", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -242,6 +292,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             [FromQuery] bool? isActive,
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
+            [FromQuery] CpptNoteKind? noteKind = null,
             [FromQuery] string? sortBy = "noteDateTime",
             [FromQuery] string? sortDirection = "desc",
             [FromQuery] int pageNumber = 1,
@@ -273,6 +324,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 startDate,
                 endDate
             );
+
+            // BE-RWI-124 kriteria 3 / FR-KEP-077. Menu SOAP menyaring NursingSoap, menu Catatan
+            // Keperawatan menyaring NursingNarrative — pada daftar umum sama seperti pada
+            // GET /episodes/{episodeId} milik BE-RWI-094.
+            if (noteKind.HasValue)
+                query = query.Where(x => x.NoteKind == noteKind.Value);
 
             var totalData = await query.CountAsync();
 
@@ -309,7 +366,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
             [FromQuery] bool includeCancelled = false,
-            [FromQuery] int limit = 100)
+            [FromQuery] int limit = 100,
+            [FromQuery] CpptNoteKind? noteKind = null)
         {
             if ((!patientId.HasValue || patientId.Value == Guid.Empty) &&
                 (!encounterId.HasValue || encounterId.Value == Guid.Empty))
@@ -349,6 +407,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 startDate,
                 endDate
             );
+
+            // BE-RWI-124 kriteria 3.
+            if (noteKind.HasValue)
+                query = query.Where(x => x.NoteKind == noteKind.Value);
 
             var data = await query
                 .OrderBy(x => x.NoteDateTime)
@@ -431,8 +493,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 ));
             }
 
+            // BE-RWI-094 / VAL-DOK-59a. Profesi penulis berasal dari tautan akun, bukan dari
+            // ProfessionType pada payload. Selain mencegah penyamaran profesi, sumber yang sama
+            // dipakai oleh penjaga unit, penjaga dokter, dan validasi jenis catatan.
+            var authorProfession = await _inpatientClinicalContextService
+                .ResolveCpptAuthorProfessionAsync(actorUserId, HttpContext.RequestAborted);
+
+            if (!authorProfession.IsResolved)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(
+                    StatusCodes.Status403Forbidden,
+                    InpatientClinicalContextService.PenolakanTanpaProfesiKlinis
+                ));
+            }
+
+            var profesiTersimpan = authorProfession.ProfessionType;
+
             var penjagaPerawat = await EnsureNursingUnitAuthorityAsync(
-                request.ProfessionType, context.InpEpisodeId);
+                profesiTersimpan, context.InpEpisodeId);
 
             if (penjagaPerawat != null)
                 return penjagaPerawat;
@@ -442,7 +520,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             // pemeriksaan yang setara, dan supaya penambahan profesi berikutnya punya tempat
             // yang jelas.
             var penjagaDokter = await EnsureDoctorWriteAuthorityAsync(
-                request.ProfessionType,
+                profesiTersimpan,
                 context.EncounterId,
                 context.InpEpisodeId,
                 request.DoctorId,
@@ -450,6 +528,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             if (penjagaDokter != null)
                 return penjagaDokter;
+
+            // BE-RWI-094 / FR-DOK-085, VAL-DOK-59. Jenis catatan diperiksa terhadap profesi
+            // penulis, supaya perawat tidak dapat menyimpan catatan berjenis dokter.
+            var jenisCatatan = request.NoteKind ?? CpptNoteKindPolicy.JenisBawaan(profesiTersimpan);
+
+            if (!CpptNoteKindPolicy.SahUntukCatatanBaru(profesiTersimpan, jenisCatatan))
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    CpptNoteKindPolicy.Penolakan(profesiTersimpan, jenisCatatan)
+                ));
+            }
 
             var entity = new TrxPatientIntegratedProgressNote
             {
@@ -472,9 +562,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 ServiceUnitId = context.ServiceUnitId,
                 ClinicId = context.ClinicId,
                 NoteDateTime = request.NoteDateTime ?? now,
-                ProfessionType = NormalizeProfessionType(request.ProfessionType),
-                ProfessionName = NormalizeNullableText(request.ProfessionName) ?? GetDefaultProfessionName(request.ProfessionType),
-                ProviderUserId = request.ProviderUserId ?? actorUserId,
+
+                // BE-RWI-094. Jenis catatan sudah lolos pemeriksaan terhadap profesi penulis di
+                // atas, sehingga nilai yang tersimpan di sini selalu pasangan yang sah.
+                NoteKind = jenisCatatan,
+
+                ProfessionType = profesiTersimpan,
+                ProfessionName = authorProfession.ProfessionName,
+                ProviderUserId = actorUserId,
                 ProviderDisplayNameSnapshot = NormalizeNullableText(request.ProviderDisplayNameSnapshot),
                 ProviderRoleSnapshot = NormalizeNullableText(request.ProviderRoleSnapshot),
                 ServiceUnitNameSnapshot = NormalizeNullableText(request.ServiceUnitNameSnapshot) ?? context.ServiceUnitNameSnapshot,
@@ -567,7 +662,31 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
+            var authorProfession = await _inpatientClinicalContextService
+                .ResolveCpptAuthorProfessionAsync(actorUserId, HttpContext.RequestAborted);
+
+            if (!authorProfession.IsResolved)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(
+                    StatusCodes.Status403Forbidden,
+                    InpatientClinicalContextService.PenolakanTanpaProfesiKlinis
+                ));
+            }
+
+            if (!CpptNoteKindPolicy.SahUntukCatatanBaru(
+                    authorProfession.ProfessionType, CpptNoteKind.PhysicianNote))
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    CpptNoteKindPolicy.Penolakan(
+                        authorProfession.ProfessionType, CpptNoteKind.PhysicianNote)
+                ));
+            }
+
             var draft = BuildRequestFromConsultation(consultation, request, actorUserId, now);
+            draft.ProfessionType = authorProfession.ProfessionType;
+            draft.ProfessionName = authorProfession.ProfessionName;
+            draft.ProviderUserId = actorUserId;
             draft.VitalSignId = await ResolveVitalSignIdForConsultationAsync(consultation);
 
             var entity = new TrxPatientIntegratedProgressNote
@@ -584,6 +703,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 ServiceUnitId = draft.ServiceUnitId,
                 ClinicId = draft.ClinicId,
                 NoteDateTime = draft.NoteDateTime ?? now,
+                NoteKind = CpptNoteKind.PhysicianNote,
                 ProfessionType = draft.ProfessionType,
                 ProfessionName = draft.ProfessionName,
                 ProviderUserId = draft.ProviderUserId,
@@ -692,6 +812,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         [HttpPut("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<PatientIntegratedProgressNoteUpdateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Update", "Update Patient Integrated Progress Note", Description = "Mengubah CPPT", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("PatientIntegratedProgressNote", "Update")]
@@ -716,11 +837,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 ));
             }
 
+            var actorUserId = GetCurrentUserId();
+            var authorProfession = await _inpatientClinicalContextService
+                .ResolveCpptAuthorProfessionAsync(actorUserId, HttpContext.RequestAborted);
+
+            if (!authorProfession.IsResolved)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(
+                    StatusCodes.Status403Forbidden,
+                    InpatientClinicalContextService.PenolakanTanpaProfesiKlinis
+                ));
+            }
+
             var penjagaPerawat = await EnsureNursingUnitAuthorityAsync(
-                entity.ProfessionType, entity.InpEpisodeId);
+                authorProfession.ProfessionType, entity.InpEpisodeId);
 
             if (penjagaPerawat != null)
                 return penjagaPerawat;
+
+            // BE-RWI-088 titik panggil 8 dari 9. INV-DOK-14 pada lembar terpadu.
+            var penjagaPenulis = await EnsureSoleAuthorAsync(entity);
+
+            if (penjagaPenulis != null)
+                return penjagaPenulis;
 
             if (entity.IsReadOnlyGenerated)
             {
@@ -745,11 +884,33 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             }
 
             var now = DateTime.UtcNow;
-            var actorUserId = GetCurrentUserId();
+
+            // BE-RWI-094 / VAL-DOK-59. Aturan yang sama seperti pada pembuatan, dan diperiksa
+            // SEBELUM satu kolom pun diubah — supaya permintaan yang ditolak tidak meninggalkan
+            // baris setengah berubah.
+            //
+            // Kosong berarti jenis yang sudah tersimpan dipertahankan. Entri lama bernilai
+            // Unspecified karena itu tetap Unspecified; menaikkannya menjadi jenis tertentu
+            // berdasarkan profesi adalah tebakan atas data klinis lama.
+            var profesiBaru = authorProfession.ProfessionType;
+            var jenisBaru = request.NoteKind ?? entity.NoteKind;
+            var mempertahankanLegacy =
+                !request.NoteKind.HasValue &&
+                entity.NoteKind == CpptNoteKind.Unspecified;
+
+            if (!mempertahankanLegacy &&
+                !CpptNoteKindPolicy.SahUntukCatatanBaru(profesiBaru, jenisBaru))
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    CpptNoteKindPolicy.Penolakan(profesiBaru, jenisBaru)
+                ));
+            }
 
             entity.NoteDateTime = request.NoteDateTime ?? entity.NoteDateTime;
-            entity.ProfessionType = NormalizeProfessionType(request.ProfessionType);
-            entity.ProfessionName = NormalizeNullableText(request.ProfessionName) ?? GetDefaultProfessionName(request.ProfessionType);
+            entity.NoteKind = jenisBaru;
+            entity.ProfessionType = profesiBaru;
+            entity.ProfessionName = authorProfession.ProfessionName;
             // ProviderUserId SENGAJA TIDAK ditetapkan dari isi permintaan.
             //
             // Sebelumnya baris ini memungkinkan penulis sebuah catatan dipindahkan ke orang lain
@@ -814,6 +975,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         public async Task<IActionResult> GetByEpisode(
             Guid episodeId,
             [FromQuery] string? professionType = null,
+            [FromQuery] CpptNoteKind? noteKind = null,
+            [FromQuery] CpptVerificationStatus? verificationStatus = null,
             [FromQuery] DateTime? from = null,
             [FromQuery] DateTime? to = null,
             [FromQuery] int pageNumber = 1,
@@ -836,6 +999,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 var jenis = NormalizeProfessionType(professionType);
                 query = query.Where(x => x.ProfessionType == jenis);
             }
+
+            // BE-RWI-094 kriteria 4 / api-contract.md 0.6.0 bagian 12.4. Saring jenis catatan.
+            // Index pendukungnya ("InpEpisodeId", "NoteKind", "NoteDateTime") dipasang pada
+            // migration R3 dengan urutan kolom yang sama seperti penyaringan di sini.
+            if (noteKind.HasValue)
+                query = query.Where(x => x.NoteKind == noteKind.Value);
+
+            // Saring keadaan verifikasi. Dipakai DPJP yang ingin melihat hanya entri yang masih
+            // menunggu dirinya - BE-RWI-095, BE-RWI-096.
+            if (verificationStatus.HasValue)
+                query = query.Where(x => x.VerificationStatus == verificationStatus.Value);
 
             if (from.HasValue)
                 query = query.Where(x => x.NoteDateTime >= from.Value);
@@ -937,6 +1111,78 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         }
 
         /// <summary>
+        /// Daftar tunggu verifikasi milik dokter yang sedang masuk — <c>BE-RWI-096</c>,
+        /// <c>FR-DOK-084</c>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Kenapa endpoint ini ada.</b> Pengecualian <c>BE-RWI-095</c> memberi DPJP terakhir
+        /// hak memverifikasi entri yang tertinggal pada perawatan yang sudah ditutup. Hak itu
+        /// tidak berguna kalau DPJP tidak tahu entri mana yang tertinggal — perawatan yang
+        /// ditutup hilang dari daftar pasiennya, dan entri yang menggantung ikut hilang. Daftar
+        /// ini memuatnya kembali, dan baru melepas sebuah perawatan setelah <b>seluruh</b>
+        /// entrinya terverifikasi.
+        /// </para>
+        /// <para>
+        /// <b>Yang dibaca dari pasien hanya nama dan nomor rekam medis</b> —
+        /// <c>RWI-DEC-127</c> butir (2). Daftar tunggu bukan jalan masuk ke data klinis pasien.
+        /// </para>
+        /// <para>
+        /// <b>Contoh.</b> dr. Ahmad DPJP tiga pasien; dua masih dirawat, satu sudah pulang
+        /// Minggu dengan satu catatan perawat Sabtu 21.00 yang belum diverifikasi. Daftarnya
+        /// memuat tiga baris, dan baris ketiga bertanda perawatan tertutup. Sesudah entri Sabtu
+        /// itu diverifikasi, baris ketiga hilang dengan sendirinya.
+        /// </para>
+        /// </remarks>
+        [HttpGet("verification-worklist")]
+        [ProducesResponseType(typeof(ApiResponse<ResponseCpptVerificationWorklistPagedResult>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [AccessAction("Read", "Read Patient Integrated Progress Note", Description = "Melihat daftar tunggu verifikasi milik dokter yang sedang masuk", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("PatientIntegratedProgressNote", "Read")]
+        public async Task<IActionResult> GetVerificationWorklist(
+            [FromQuery] bool includeClosedEpisodes = true,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25,
+            CancellationToken cancellationToken = default)
+        {
+            (pageNumber, pageSize) = NormalizePaging(pageNumber, pageSize);
+
+            var actorDoctorId = await ResolveCurrentDoctorIdAsync(cancellationToken);
+
+            // Akun tanpa tautan baris dokter tidak dapat menjadi DPJP siapa pun, sehingga
+            // daftarnya tidak dapat dibentuk. Dijawab 403 beserta arahannya, bukan daftar
+            // kosong yang tampak seperti tidak ada pekerjaan tertinggal.
+            if (actorDoctorId == null || actorDoctorId.Value == Guid.Empty)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(
+                    StatusCodes.Status403Forbidden,
+                    InpatientClinicalContextService.PenolakanBukanDokter
+                ));
+            }
+
+            var seluruh = await _verificationService.GetVerificationWorklistAsync(
+                actorDoctorId.Value,
+                DateTime.UtcNow,
+                includeClosedEpisodes,
+                cancellationToken);
+
+            var hasil = new ResponseCpptVerificationWorklistPagedResult
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = seluruh.Count,
+                TotalPage = pageSize == 0 ? 0 : (int)Math.Ceiling(seluruh.Count / (double)pageSize),
+                Items = seluruh
+                    .Skip((pageNumber - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToList()
+            };
+
+            return Ok(ApiResponse<ResponseCpptVerificationWorklistPagedResult>.Ok(
+                hasil, "Daftar tunggu verifikasi berhasil diambil."));
+        }
+
+        /// <summary>
         /// Keadaan verifikasi seluruh catatan terpadu pada satu perawatan, beserta daftar
         /// pantaunya.
         /// </summary>
@@ -976,6 +1222,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         [HttpPatch("{id:guid}/cancel")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
         [AccessAction("Update", "Cancel Patient Integrated Progress Note", Description = "Membatalkan CPPT", AccessType = AccessTypes.Update, SortOrder = 4)]
@@ -998,6 +1245,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             if (penjagaPerawat != null)
                 return penjagaPerawat;
+
+            // BE-RWI-088 titik panggil 9 dari 9. Membatalkan catatan orang lain menghapusnya
+            // dari lini masa profesi lain yang membacanya; ia tunduk pada penjaga yang sama.
+            var penjagaPenulis = await EnsureSoleAuthorAsync(entity);
+
+            if (penjagaPenulis != null)
+                return penjagaPenulis;
 
             // RWI-DEC-098 / BE-RWI-075. Pembatalan wajib beralasan, dan alasan yang hanya
             // berisi spasi bukan alasan. [Required] menolak kosong dan null, tetapi meloloskan
@@ -1478,6 +1732,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 ServiceUnitId = consultation.ServiceUnitId,
                 ClinicId = consultation.ClinicId,
                 NoteDateTime = request.NoteDateTime ?? now,
+                NoteKind = CpptNoteKind.PhysicianNote,
                 ProfessionType = "Doctor",
                 ProfessionName = "Dokter",
                 ProviderUserId = request.UseCurrentUserAsProvider ? currentUserId : null,
@@ -1580,6 +1835,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 ClinicId = x.ClinicId,
                 ClinicName = x.Clinic != null ? x.Clinic.ClinicName : null,
                 NoteDateTime = x.NoteDateTime,
+
+                // BE-RWI-094. Nilai enum dan labelnya dikembalikan bersamaan: layar menyaring
+                // dengan nilainya dan menampilkan labelnya, tanpa menerjemahkan sendiri.
+                NoteKind = x.NoteKind,
+                NoteKindName = CpptNoteKindPolicy.NamaJenis(x.NoteKind),
+
                 ProfessionType = x.ProfessionType,
                 ProfessionName = x.ProfessionName,
                 ProviderUserId = x.ProviderUserId,
@@ -1631,6 +1892,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 ClinicId = x.ClinicId,
                 ClinicName = x.Clinic != null ? x.Clinic.ClinicName : null,
                 NoteDateTime = x.NoteDateTime,
+
+                // BE-RWI-094. Nilai enum dan labelnya dikembalikan bersamaan: layar menyaring
+                // dengan nilainya dan menampilkan labelnya, tanpa menerjemahkan sendiri.
+                NoteKind = x.NoteKind,
+                NoteKindName = CpptNoteKindPolicy.NamaJenis(x.NoteKind),
+
                 ProfessionType = x.ProfessionType,
                 ProfessionName = x.ProfessionName,
                 ProviderUserId = x.ProviderUserId,
@@ -1675,6 +1942,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 Id = x.Id,
                 ProgressNoteNumber = x.ProgressNoteNumber,
                 NoteDateTime = x.NoteDateTime,
+
+                // BE-RWI-094. Nilai enum dan labelnya dikembalikan bersamaan: layar menyaring
+                // dengan nilainya dan menampilkan labelnya, tanpa menerjemahkan sendiri.
+                NoteKind = x.NoteKind,
+                NoteKindName = CpptNoteKindPolicy.NamaJenis(x.NoteKind),
+
                 ProfessionType = x.ProfessionType,
                 ProfessionName = x.ProfessionName ?? GetDefaultProfessionName(x.ProfessionType),
                 ProfessionTone = GetProfessionTone(x.ProfessionType),
@@ -1752,6 +2025,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 QueueId = x.QueueId,
                 ConsultationId = x.ConsultationId,
                 NoteDateTime = x.NoteDateTime,
+
+                // BE-RWI-094. Nilai enum dan labelnya dikembalikan bersamaan: layar menyaring
+                // dengan nilainya dan menampilkan labelnya, tanpa menerjemahkan sendiri.
+                NoteKind = x.NoteKind,
+                NoteKindName = CpptNoteKindPolicy.NamaJenis(x.NoteKind),
+
                 ProfessionType = x.ProfessionType,
                 ProfessionName = x.ProfessionName,
                 SourceModule = x.SourceModule,
@@ -1774,6 +2053,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 QueueId = x.QueueId,
                 ConsultationId = x.ConsultationId,
                 NoteDateTime = x.NoteDateTime,
+
+                // BE-RWI-094. Nilai enum dan labelnya dikembalikan bersamaan: layar menyaring
+                // dengan nilainya dan menampilkan labelnya, tanpa menerjemahkan sendiri.
+                NoteKind = x.NoteKind,
+                NoteKindName = CpptNoteKindPolicy.NamaJenis(x.NoteKind),
+
                 ProfessionType = x.ProfessionType,
                 ProfessionName = x.ProfessionName,
                 SourceModule = x.SourceModule,

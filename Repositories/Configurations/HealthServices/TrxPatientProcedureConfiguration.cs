@@ -18,7 +18,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
                 .IsRequired();
 
             entity.Property(x => x.ConsultationId)
-                .IsRequired();
+                .IsRequired(false);
 
             entity.Property(x => x.PatientId)
                 .IsRequired();
@@ -540,6 +540,53 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             entity.HasIndex(x => x.IdempotencyKey)
                 .IsUnique()
                 .HasFilter("\"IdempotencyKey\" IS NOT NULL AND \"IsDelete\" = false");
+
+            // =========================================================================
+            // BE-RWI-097 / Migration R7 — Enam kolom instruksi dan pembatalan penutupan
+            // =========================================================================
+            entity.Property(x => x.OrderedByUserId)
+                .IsRequired(false);
+
+            entity.Property(x => x.InstructingDoctorId)
+                .IsRequired(false);
+
+            entity.Property(x => x.InstructionVerificationStatus)
+                .IsRequired()
+                .HasDefaultValue(PatientProcedureInstructionVerificationStatus.NotRequired);
+
+            entity.Property(x => x.InstructionVerifiedAt)
+                .IsRequired(false);
+
+            entity.Property(x => x.InstructionVerifiedByUserId)
+                .IsRequired(false);
+
+            entity.Property(x => x.CancelledByEpisodeClosure)
+                .IsRequired()
+                .HasDefaultValue(false);
+
+            entity.HasOne(x => x.OrderedByUser)
+                .WithMany()
+                .HasForeignKey(x => x.OrderedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.InstructingDoctor)
+                .WithMany()
+                .HasForeignKey(x => x.InstructingDoctorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.InstructionVerifiedByUser)
+                .WithMany()
+                .HasForeignKey(x => x.InstructionVerifiedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(x => new
+            {
+                x.InstructingDoctorId,
+                x.InstructionVerificationStatus
+            }).HasDatabaseName("IX_TrxPatientProcedure_InstructingDoctor_Verification");
+
+            entity.HasIndex(x => x.OrderedByUserId);
+            entity.HasIndex(x => x.InstructionVerifiedByUserId);
         }
     }
 }

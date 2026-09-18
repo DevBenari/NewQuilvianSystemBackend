@@ -74,6 +74,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models
         /// </summary>
         public int Version { get; set; }
 
+        // =====================================================================
+        // BE-RWI-104 / migration R8 — kamus data 0.5 bagian 13.11, RWI-DEC-153.
+        //
+        // Pesanan rawat inap yang dimasukkan perawat membawa dokter pemberi instruksi dan status
+        // verifikasinya. Penginput tetap RequestedByUserId yang sudah ada; nol kolom penginput baru.
+        // Pesanan poliklinik, IGD, dan pesanan lama bernilai NotRequired tanpa diisi.
+        // =====================================================================
+
+        /// <summary>Dokter pemberi instruksi pada pesanan rawat inap yang dibuat perawat.</summary>
+        public Guid? InstructingDoctorId { get; set; }
+
+        public LabOrderInstructionVerificationStatus InstructionVerificationStatus { get; set; } = LabOrderInstructionVerificationStatus.NotRequired;
+
+        public DateTime? InstructionVerifiedAt { get; set; }
+
+        /// <summary>Wajib akun dokter pemberi instruksi.</summary>
+        public Guid? InstructionVerifiedByUserId { get; set; }
+
         public RegPatientEncounter? Encounter { get; set; }
 
         public MstProcedure? Procedure { get; set; }

@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Helpers;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
@@ -72,7 +73,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
             [FromQuery] CensusQuery query,
             CancellationToken cancellationToken = default)
         {
-            var result = await _censusQueryService.GetCensusSummaryAsync(query, cancellationToken);
+            var result = await _censusQueryService.GetCensusSummaryAsync(
+                query,
+                User.GetDoctorId(),
+                cancellationToken);
 
             return Ok(ApiResponse<CensusSummaryResponse>.Ok(
                 result,
@@ -87,6 +91,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
         /// Lama dirawat dihitung dari selisih tanggal dan bernilai paling sedikit 1 hari.
         /// Pasien yang masuk 21 September pukul 22:30 dan dibaca 22 September pukul 06:00
         /// tercatat 1 hari, bukan 0.
+        ///
+        /// <para>
+        /// <b><c>assignedToMe=true</c> menyempitkan daftar menjadi pasien yang dokter login
+        /// punya penugasan aktif atasnya</b> — DPJP, konsulen, maupun dokter jaga
+        /// (<c>BE-RWI-081</c>, <c>INV-INP-13</c>). Identitas dokternya diambil dari klaim akun,
+        /// dan <c>doctorId</c> yang dikirim bersamanya <b>diabaikan seluruhnya</b>. Akun yang
+        /// tidak terhubung dengan data dokter menerima <c>200</c> berdaftar kosong beserta
+        /// alasannya, bukan <c>403</c> — <c>FR-RI-192</c>.
+        /// </para>
         /// </remarks>
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<CensusPagedResult>), StatusCodes.Status200OK)]
@@ -96,11 +109,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
             [FromQuery] CensusQuery query,
             CancellationToken cancellationToken = default)
         {
-            var result = await _censusQueryService.GetCensusAsync(query, cancellationToken);
+            var result = await _censusQueryService.GetCensusAsync(
+                query,
+                User.GetDoctorId(),
+                cancellationToken);
 
             return Ok(ApiResponse<CensusPagedResult>.Ok(
                 result,
-                "Daftar pasien yang sedang dirawat berhasil diambil."));
+                result.EmptyReason ?? "Daftar pasien yang sedang dirawat berhasil diambil."));
         }
     }
 }

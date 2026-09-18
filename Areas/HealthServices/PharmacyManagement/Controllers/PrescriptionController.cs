@@ -48,6 +48,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
         private readonly PrescriptionSummaryService _prescriptionSummaryService;
         private readonly PrescriptionWorkflowService _prescriptionWorkflowService;
         private readonly ClinicalMilestoneFactProducer _clinicalMilestoneFactProducer;
+        private readonly InpatientPrescriptionService _inpatientPrescriptionService;
         private readonly LoggerService _loggerService;
 
         public PrescriptionController(
@@ -57,6 +58,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
             PrescriptionSummaryService prescriptionSummaryService,
             PrescriptionWorkflowService prescriptionWorkflowService,
             ClinicalMilestoneFactProducer clinicalMilestoneFactProducer,
+            InpatientPrescriptionService inpatientPrescriptionService,
             LoggerService loggerService)
         {
             _dbContext = dbContext;
@@ -65,6 +67,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
             _prescriptionSummaryService = prescriptionSummaryService;
             _prescriptionWorkflowService = prescriptionWorkflowService;
             _clinicalMilestoneFactProducer = clinicalMilestoneFactProducer;
+            _inpatientPrescriptionService = inpatientPrescriptionService;
             _loggerService = loggerService;
         }
 
@@ -387,14 +390,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
         /// ini yang mengubahnya - <c>RUL-DOK-01</c>. Menandai obat sudah diserahkan adalah
         /// kewenangan petugas Farmasi lewat permukaannya sendiri.
         /// </para>
+        /// <para>
+        /// <b>Resep Harian — <c>BE-RWI-099</c>, <c>FR-DOK-086</c>, api-contract 0.6.0 bagian 12.6.</b>
+        /// Query <c>period</c> (<c>Today</c>/<c>today</c>, <c>ThisWeek</c>/<c>week</c>,
+        /// <c>ThisMonth</c>/<c>month</c>, <c>Range</c>) beserta <c>from</c>/<c>to</c> menyaring
+        /// resep menurut waktu penulisannya pada zona waktu rumah sakit. Setiap resep kini membawa
+        /// butir — termasuk yang sudah dihentikan beserta penghentinya — dan racikan beserta
+        /// bahannya. Tanpa <c>period</c> dan tanpa tanggal, seluruh resep episode dikembalikan
+        /// seperti sebelumnya. <c>period=Range</c> tanpa <c>from</c> atau <c>to</c> ditolak
+        /// <c>422</c>.
+        /// </para>
         /// </remarks>
         [HttpGet("episodes/{episodeId:guid}")]
-        [ProducesResponseType(typeof(ApiResponse<ResponsePrescriptionPagedResult>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<InpatientPrescriptionListItem>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
         [AccessAction("Read", "Read Prescription", Description = "Melihat resep satu perawatan rawat inap beserta status pemenuhannya", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("Prescription", "Read")]
         public async Task<IActionResult> GetByEpisode(
             Guid episodeId,
             [FromQuery] PrescriptionOrderType? orderType = null,
+            [FromQuery] string? period = null,
+            [FromQuery] DateOnly? from = null,
+            [FromQuery] DateOnly? to = null,
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 25,
             CancellationToken cancellationToken = default)
@@ -403,31 +421,34 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
             pageNumber = paging.PageNumber;
             pageSize = paging.PageSize;
 
-            var query = BuildBaseQuery()
-                .AsNoTracking()
-                .Where(x => x.InpEpisodeId == episodeId && !x.IsDelete);
+            var periode = InpatientPrescriptionService.ResolvePeriod(period, from, to, DateTime.UtcNow);
 
-            if (orderType.HasValue)
-                query = query.Where(x => x.PrescriptionOrderType == orderType.Value);
+            if (!periode.IsValid)
+            {
+                return StatusCode(periode.StatusCode, ApiResponse<object>.Fail(
+                    periode.StatusCode,
+                    periode.ErrorMessage ?? "Periode Resep Harian tidak valid."));
+            }
 
-            var totalData = await query.CountAsync(cancellationToken);
+            var (totalData, items) = await _inpatientPrescriptionService.GetDailyPrescriptionsAsync(
+                episodeId,
+                periode,
+                orderType,
+                pageNumber,
+                pageSize,
+                ToInpatientListItem,
+                cancellationToken);
 
-            var entities = await query
-                .OrderBy(x => x.PrescriptionDateTime)
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync(cancellationToken);
-
-            var hasil = new ResponsePrescriptionPagedResult
+            var hasil = new PagedResult<InpatientPrescriptionListItem>
             {
                 PageNumber = pageNumber,
                 PageSize = pageSize,
                 TotalData = totalData,
                 TotalPage = pageSize == 0 ? 0 : (int)Math.Ceiling(totalData / (double)pageSize),
-                Items = entities.Select(ToResponse).ToList()
+                Items = items
             };
 
-            return Ok(ApiResponse<ResponsePrescriptionPagedResult>.Ok(
+            return Ok(ApiResponse<PagedResult<InpatientPrescriptionListItem>>.Ok(
                 hasil, "Resep perawatan rawat inap berhasil diambil."));
         }
 
@@ -527,6 +548,46 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
                 emission.IsClinicallySafe
                     ? "Resep berhasil dibatalkan."
                     : "Resep berhasil dibatalkan, tetapi penyerahan fakta ke Billing memerlukan tinjauan."));
+        }
+
+        [HttpPatch("items/{itemId:guid}/stop")]
+        [ProducesResponseType(typeof(ApiResponse<InpatientPrescriptionItemResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [AccessAction("Stop", "Stop Prescription Item", Description = "Menghentikan satu butir obat pada resep rawat inap", AccessType = AccessTypes.Update, SortOrder = 8)]
+        [AccessPermission("Prescription", "Stop")]
+        public async Task<IActionResult> StopItem(
+            Guid itemId,
+            [FromBody] StopPrescriptionItemRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            var actorUserId = GetCurrentUserId();
+            var result = await _inpatientPrescriptionService.StopItemAsync(
+                itemId,
+                request,
+                User,
+                actorUserId,
+                cancellationToken);
+
+            if (!result.IsSuccess)
+            {
+                return StatusCode(result.StatusCode, ApiResponse<object>.Fail(
+                    result.StatusCode,
+                    result.Message));
+            }
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "Prescription.StopItem",
+                $"Menghentikan butir obat resep {itemId}.",
+                new { ItemId = itemId, StoppedBy = actorUserId });
+
+            return Ok(ApiResponse<InpatientPrescriptionItemResponse>.Ok(
+                result.Data!,
+                result.Message));
         }
 
         [HttpDelete("{id:guid}")]
@@ -751,6 +812,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
                 CancelledByUserName = x.CancelledByUser?.DisplayName,
                 CancelReason = x.CancelReason
             };
+            CopyBaseResponse(x, response);
+            return response;
+        }
+
+        private static InpatientPrescriptionListItem ToInpatientListItem(PhmPrescription x)
+        {
+            var response = new InpatientPrescriptionListItem();
             CopyBaseResponse(x, response);
             return response;
         }

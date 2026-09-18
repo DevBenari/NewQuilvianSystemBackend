@@ -22,11 +22,17 @@ namespace QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services
     /// <param name="SequenceDigits">Jumlah digit bagian urut, antara 4 dan 12.</param>
     /// <param name="ActorUserId">Pelaku, disimpan sebagai audit pada baris deret.</param>
     /// <param name="Instant">Waktu acuan penghitungan periode.</param>
+    /// <param name="MinimumValue">
+    /// Batas bawah opsional saat sebuah deret legacy pertama kali dipindahkan ke provider ini.
+    /// Provider tetap menaikkan dan menyimpan pencacahnya secara atomik; pemanggil tidak boleh
+    /// membentuk nomor langsung dari nilai ini.
+    /// </param>
     public sealed record NumberAllocationRequest(
         string SequenceKey,
         string Prefix,
         string ResetPolicy,
         int SequenceDigits,
         Guid ActorUserId,
-        DateTimeOffset Instant);
+        DateTimeOffset Instant,
+        long MinimumValue = 0);
 }

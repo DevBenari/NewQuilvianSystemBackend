@@ -2,7 +2,10 @@
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
+using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
+using QuilvianSystemBackend.Models;
 
 namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
 {
@@ -83,6 +86,37 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
                 x.InpEpisodeId,
                 x.CreateDateTime
             });
+
+            // =========================================================================
+            // BE-RWI-104 / migration R8 — pemberi instruksi dan verifikasinya, RWI-DEC-153
+            // =========================================================================
+            entity.Property(x => x.InstructingDoctorId)
+                .IsRequired(false);
+
+            entity.Property(x => x.InstructionVerificationStatus)
+                .HasConversion<int>()
+                .HasDefaultValue(LabOrderInstructionVerificationStatus.NotRequired)
+                .IsRequired();
+
+            entity.Property(x => x.InstructionVerifiedAt)
+                .HasColumnType("timestamp with time zone");
+
+            entity.Property(x => x.InstructionVerifiedByUserId)
+                .IsRequired(false);
+
+            entity.HasOne<MstDoctor>()
+                .WithMany()
+                .HasForeignKey(x => x.InstructingDoctorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne<ApplicationUser>()
+                .WithMany()
+                .HasForeignKey(x => x.InstructionVerifiedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Daftar tunggu verifikasi membaca "pesanan Pending milik dokter ini".
+            entity.HasIndex(x => new { x.InstructingDoctorId, x.InstructionVerificationStatus });
+            entity.HasIndex(x => x.InstructionVerifiedByUserId);
         }
     }
 }
