@@ -4,10 +4,10 @@
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
 | Sub-modul | `keperawatan` — bentuk `COMPOSITE`, `RWI-DEC-082` |
-| Contract version | `0.4.0` |
-| `last_changed_in` | `0.4.0` — bagian 3A lahir: jalur hapus tanda vital dicabut |
+| Contract version | **`0.5.0`** — bagian 5, `draft` |
+| `last_changed_in` | **`0.5.0`** — bagian 5: versi konfigurasi klinis, Evaluasi Awal, entri terukur, dosis MAR, pelaksanaan sliding scale. Sebelumnya `0.4.0` — bagian 3A |
 | Compatibility impact | `0.3.0`: status **`Amended` dicabut** dari mesin pengkajian dan mesin catatan tindakan. Koreksi kini dipegang mesin addendum `MedicalRecordManagement`, sejalan `RWI-DEC-091`. Mesin butir rencana asuhan **tidak berubah**. Nol nilai status baru, nol enum baru |
-| Status | **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
+| Status | **`draft`** untuk `0.5.0`. `0.4.0` **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
 | Owner | Product/Domain: **Muhammad Hamzah** (`RWI-DEC-061`); pemilik tabel: `ClinicalManagement` (`RWI-DEC-081`) |
 | `approved_by` / `approved_at` | — belum |
 | `input_revision` | `02-backend-architecture.md` `0.3`; `PRD-RWI-FINAL-001` v1.0.0; decision log `13` |
@@ -185,3 +185,129 @@ nomor** bagi jenis dokumen yang dibutuhkan — tetapi **belum menegakkannya**.
 > **Catatan untuk pembaca `RM-FE-009`.** Selama jenis dokumen keperawatan belum ditegakkan, keadaan
 > itu **wajib dinyatakan terbuka di layar**, bukan didiamkan — aturan itu berasal dari
 > `MedicalRecordManagement` sendiri dan berlaku sama bagi sub-modul ini.
+
+---
+
+## 5. Perubahan pada `contract_version` `0.5.0` — penyelarasan `PRD-RWI-V2-001` ★ 15 September 2026
+
+**Status `draft`.** Tujuh mesin status baru atau diperluas. Mesin order sliding scale dan penghentian butir resep
+**bukan** milik sub-modul ini — keduanya di `../../dokter-rawat-inap/contracts/state-transition-matrix.md` bagian 8.
+
+### 5.1 Versi konfigurasi klinis — `ClinicalInstrumentVersionStatus`
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| *(tidak ada baris)* | Membuat versi | `Draft` | Pemegang `ClinicalInstrumentConfiguration : Update` | Definisi sah `VAL-KEP-19` | `400` |
+| `Draft` | Mengubah | `Draft` | Sama | Hash sama | `409` |
+| `Draft` | Mengesahkan | `Approved` | Pemegang `ClinicalInstrumentConfiguration : Approve` | Bukan pengubah terakhir `VAL-KEP-20a` | `403` |
+| `Approved` | Versi lain disahkan | `Retired` | Otomatis, satu transaksi dengan pengesahan | — | — |
+| `Approved` | Memensiunkan | `Retired` | Pemegang `Approve` | Alasan wajib | `400` |
+
+| Dari | Ke | Kenapa dilarang |
+| --- | --- | --- |
+| `Approved` / `Retired` | `Draft` | Hasil pengkajian menyimpan versi ini; mengubahnya mengubah arti skor lama — `RWI-DEC-136` |
+| `Retired` | `Approved` | Menghidupkan versi lama tanpa pengesahan baru. Yang benar: buat versi baru dari salinannya |
+| Dua versi | `Approved` bersamaan | Unique parsial; formulir harus punya satu jawaban "versi mana yang berlaku" |
+
+### 5.2 Dokumen Pengkajian Pasien V2 — mesin bagian 1 dengan dua syarat tambahan
+
+Mesin `Draft`/`InProgress`/`Completed`/`Cancelled` dan koreksi lewat addendum **tidak berubah**. Yang bertambah:
+
+| Transisi | Syarat baru | Bila dilanggar |
+| --- | --- | --- |
+| `Draft`/`InProgress` → `Completed` | Versi instrumen `Approved` di produksi; isian wajib versi itu terisi — `VAL-KEP-21a`, `21b` | `422`; dokumen tetap konsep |
+| `Draft`/`InProgress` → `Completed` untuk Monitoring Nyeri | `PainAssessmentState ≠ NotAssessed` | `422` |
+| `Completed` | Hasil instrumen **beku** bersama versinya; addendum tidak menghitung ulang skor | — |
+
+Contoh: Ns. Siti menyimpan Resiko Jatuh Budi Senin 08.00 dengan versi draft (lingkungan uji) → `Draft`. Di produksi yang
+sama tanpa versi sah, tombol Selesai ditolak; Selasa 10.00 versi disahkan, Siti memuat ulang formulir, jawaban dihitung
+ulang dari versi sah, lalu diselesaikan.
+
+### 5.3 Evaluasi Awal MPP — `CaseManagementEvaluationStatus`
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| *(tidak ada baris)* | Membuat | `Draft` | MPP di unit episode | Episode `Admitted`; belum ada dokumen hidup | `403`, `409`, `422` |
+| `Draft` | Menyimpan | `Draft` | Penulis konsep | — | `403` |
+| `Draft` | Menyelesaikan | `Completed` | Penulis konsep | Checklist `Approved` di produksi | `422` |
+| `Draft` | Membatalkan | `Cancelled` | Penulis konsep | Alasan wajib | `400` |
+| `Completed` | Addendum | Tetap `Completed` | Pemegang `CaseManagementEvaluation : Amend` di unit episode | Alasan wajib; bergantung `INT-KEP-12` | `400`, `403` |
+
+| Dari | Ke | Kenapa dilarang |
+| --- | --- | --- |
+| `Completed` | `Draft` | Sama dengan pengkajian — koreksi lewat addendum |
+| `Cancelled` | Apa pun | Akhir; buat dokumen baru |
+| Apa pun | Status baru saat episode `Closed` | `INV-KEP-02` |
+
+### 5.4 Entri terukur — cairan, GDS bangsal, observasi harian — `ClinicalMeasurementStatus`
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| *(tidak ada baris)* | Mencatat | `Active`, `RevisionNumber = 0` | Perawat di unit episode | `VAL-KEP-24`–`26` | `400`/`403`/`409` |
+| `Active` | Mengoreksi | `Active`, `RevisionNumber + 1`; baris revisi menyimpan nilai lama | Pemegang `Update` di unit episode | Alasan; versi tidak basi | `400`/`409` |
+| `Active` | Membatalkan | `Cancelled` | Pemegang `Update` di unit episode | Alasan; untuk GDS: belum dipakai pelaksanaan | `400`/`409` |
+
+Contoh: intake infus 500 ml pukul 10.00 dikoreksi 450 ml pukul 14.30 → `RevisionNumber = 1`, revisi menyimpan 500 ml;
+total 24 jam turun 50 ml. Tidak ada `Cancelled` → `Active`.
+
+### 5.5 Dosis MAR — `MedicationDoseStatus` bersama `MedicationDoubleCheckStatus`
+
+```mermaid
+stateDiagram-v2
+    [*] --> Due : dosis terjadwal dibentuk
+    Due --> Administered : dicatat, bukan high-alert
+    Due --> MenungguCekGanda : dicatat, high-alert
+    MenungguCekGanda --> Administered : perawat kedua konfirmasi
+    MenungguCekGanda --> Due : perawat kedua menolak
+    Due --> Held : ditahan beralasan
+    Due --> Refused : ditolak pasien beralasan
+    Due --> Missed : terlewat beralasan
+    Due --> Cancelled : butir dihentikan atau perawatan ditutup
+    [*] --> Administered : PRN, tanpa jadwal, atau sliding scale
+    Administered --> Administered : koreksi beralasan
+```
+
+`MenungguCekGanda` bukan nilai `MedicationDoseStatus`; ia adalah `DoseStatus = Due` dengan `DoubleCheckStatus = Pending`.
+
+| Dari | Tindakan | Ke | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| — | Pembentukan dosis | `Due`, `NotRequired` | Sistem — `INT-KEP-08` | Butir aktif, tidak dihentikan, berjadwal, bukan PRN, bukan sliding scale | Tidak terbentuk; pesan jadwal belum dikonfigurasi |
+| `Due` | Mencatat `Administered` — obat biasa | `Administered` | Perawat unit, `MedicationAdministration : Create` | `VAL-KEP-30` | `400`/`409` |
+| `Due` | Mencatat `Administered` — high-alert | `Due` + `Pending` | Sama | Sama | Sama |
+| `Due` + `Pending` | Konfirmasi | `Administered` + `Confirmed` | Perawat **lain**, `MedicationAdministration : DoubleCheck` | `VAL-KEP-31a` | `403` |
+| `Due` + `Pending` | Menolak | `Due` + `Rejected`; isian pemberian dikosongkan dan tersimpan pada revisi | Sama | Catatan wajib | `400` |
+| `Due` + `Rejected` | Mencatat ulang | `Due` + `Pending` atau `Administered` | Perawat unit | — | — |
+| `Due` | `Held`/`Refused`/`Missed` | Status itu | Perawat unit | Alasan | `400` |
+| `Due` | Penghentian butir | `Cancelled` beralasan "resep dihentikan" | Sistem — `INT-DOK-16`/`INT-KEP-09` | `ScheduledAt ≥ StoppedAt` | — |
+| `Due` | Penutupan episode | `Cancelled` beralasan "perawatan ditutup" | Sistem — `INT-KEP-15` | `ScheduledAt > ClosedAt` | — |
+| `Administered`/`Held`/`Refused`/`Missed` | Koreksi | Status mana pun kecuali `Due`; revisi menyimpan nilai lama | `MedicationAdministration : Update` di unit episode | Alasan; `VAL-KEP-33` | `400`/`409` |
+
+| Dari | Ke | Kenapa dilarang |
+| --- | --- | --- |
+| Apa pun | Terhapus | Riwayat pemberian obat adalah rekam medis |
+| `Administered` | `Due` | Membuka kembali dosis membuat pemberian dapat dicatat dua kali — `INV-KEP-05` |
+| `Cancelled` | Apa pun | Dosis dibatalkan sistem; pemberian di luar jadwal dicatat sebagai baris baru |
+| `Due` + `Pending` | `Administered` oleh pencatat sendiri | Cek ganda kehilangan arti |
+| `Due` | `Missed` otomatis oleh sistem | `AC-MVP-027`; sistem hanya menandai lewat waktu |
+
+**Dosis `Due` yang terjadwal sebelum waktu penutupan dan belum dicatat** tetap `Due`, menjadi hanya-baca, dan tampil
+"Tidak dicatat sebelum perawatan ditutup". Nasibnya pertanyaan terbuka non-blocking `04-prd-to-mvp.md` bagian 22.
+
+### 5.6 Pelaksanaan sliding scale — `SlidingScaleExecutionStatus`
+
+| Dari | Tindakan | Ke | Siapa yang boleh | Syarat |
+| --- | --- | --- | --- | --- |
+| — | Mencatat | `Recorded` | Perawat unit, `SlidingScaleExecution : Create` | `VAL-KEP-27`–`29`; satu transaksi dengan GDS dan dosis MAR |
+| `Recorded` | Dosis MAR dikoreksi `Cancelled` | `Cancelled` | Mengikuti koreksi MAR | Alasan koreksi MAR |
+| `Recorded` | GDS rujukan dikoreksi | Tetap `Recorded`, `ReadingCorrectedAfterExecution = true` | Mengikuti koreksi GDS | — |
+
+Order yang disesuaikan atau dihentikan setelahnya **tidak** mengubah pelaksanaan lama — `RWI-AC-224`.
+
+### 5.7 Mesin yang dibaca, bukan dimiliki
+
+| Mesin | Pemilik | Yang dilarang dilakukan sub-modul ini |
+| --- | --- | --- |
+| `SlidingScaleOrderStatus` | `dokter-rawat-inap` | Mengubah status order dari layar perawat |
+| `PhmPrescriptionItem.IsStopped` | `dokter-rawat-inap` | Menghentikan butir resep |
+| `ReconciliationDecisionType` | `dokter-rawat-inap` | Mengambil keputusan per obat — `RWI-AC-192` |
+| `InpEpisodeStatus` | `episode-rawat-inap` | Mengubah status episode dari dokumentasi keperawatan — `AC-CAP012-03` |

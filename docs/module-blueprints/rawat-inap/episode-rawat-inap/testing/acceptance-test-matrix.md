@@ -3,9 +3,9 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | `0.8.0` |
-| `last_changed_in` | `0.8.0` — bagian 2A.1 ditulis ulang karena aturan kamar dicabut; bagian 4.1 lahir untuk peran penugasan dokter |
-| Status | **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
+| `contract_version` | **`0.9.0`** — bagian 18, `draft` |
+| `last_changed_in` | **`0.9.0`** — bagian 18. Sebelumnya `0.8.0` — bagian 2A.1 dan 4.1 |
+| Status | **`draft`** untuk `0.9.0`. `0.8.0` **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
 | Masukan | `00-interview-decisions.md` revision `6` (149 acceptance criteria); `contracts/api-contract.md`, `contracts/validation-matrix.md`, dan `contracts/permission-audit-matrix.md` revision `0.3.0`; kontrak lain revision `0.2.0` |
 | Backend SHA | `5afb54b` |
 | Frontend SHA | `dec4fdeff` |
@@ -395,3 +395,65 @@ Dua belas acceptance criteria baru `RWI-AC-128` sampai `RWI-AC-139` seluruhnya t
 | Satu skenario kepemilikan riwayat lokasi pada bagian 12A | `RWI-DEC-053` |
 
 Tidak ada skenario yang dihapus pada revision ini.
+
+---
+
+## 18. Perubahan pada `contract_version` `0.9.0` — amandemen terbatas ★ 15 September 2026
+
+**Status `draft`.** Seluruh skenario negatif memakai peran nyata non-SuperAdmin.
+
+### 18.1 Census dokter — `RWI-DEC-111`
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- |
+| `FR-RI-191` | dr. Ahmad DPJP Budi, konsulen Sari, 120 pasien lain; `assignedToMe=true` | Integrasi | Dua baris; `TotalCount = 2`; baris Sari `MyAssignmentRole = Consultant` |
+| `FR-RI-191` | dr. Yoga jaga Joko 22.00–07.00; query 06.59 dan 07.01 | Integrasi | Joko ada pada 06.59, tidak ada pada 07.01, tanpa proses latar |
+| **Gagal** `FR-RI-191` | dr. Ahmad mengirim `DoctorId` dr. Rina bersama `assignedToMe=true` | Integrasi | Hasil tetap milik dr. Ahmad |
+| **Gagal** `FR-RI-192` | Akun tanpa data dokter | Integrasi | Daftar kosong beserta pesan; bukan `403` |
+| Regresi | Census tanpa `assignedToMe` oleh kepala ruangan | Integrasi | Hasil sama seperti sebelum perubahan |
+
+### 18.2 Penugasan pendukung — `RWI-DEC-099`, `RWI-DEC-130`
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- |
+| `FR-RI-193` | Kepala ruangan melibatkan dr. Ahmad sebagai konsulen | Integrasi | `201`; dr. Ahmad muncul pada census dirinya |
+| `FR-RI-194`, `RWI-AC-189` | Penugasan singkat dr. Rina Kamis 10.00–11.00 beralasan | Integrasi | `201`; peran `OnCallDoctor`; DPJP aktif tetap dr. Ahmad |
+| **Gagal** `RWI-AC-189` | Penugasan singkat tanpa waktu selesai | Integrasi | `400` `VAL-INP-01`; nol baris |
+| **Gagal** `FR-RI-194` | Penugasan singkat berperan konsulen | Integrasi | `400` `VAL-INP-01` |
+| **Gagal** `FR-RI-194` | Penugasan singkat berwaktu mulai Selasa | Integrasi | `400` `VAL-INP-08` |
+| **Gagal** `FR-RI-193` | Perawat pelaksana pemegang `InpatientEpisode : Update` membuat penugasan | Integrasi | `403` `GUARD-INP-09` |
+| **Gagal** `RWI-AC-190` | Selama penugasan singkat aktif, dr. Rina memverifikasi CPPT | Integrasi | `403` |
+| `FR-RI-195` | Kepala ruangan mengakhiri penugasan konsulen | Integrasi | `EndDateTime` terisi; dr. Ahmad hilang dari census dirinya |
+| **Gagal** `FR-RI-195` | Mengakhiri penugasan DPJP lewat `…/end` | Integrasi | `409` |
+| Database | Menyisipkan baris `LateDocumentation` tanpa waktu selesai langsung ke database | Integrasi PostgreSQL | Check constraint menolak |
+
+### 18.3 Resume — `RWI-DEC-112`
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- |
+| `FR-RI-196` | dr. Rina menyimpan draf dengan tiga isian baru lalu menandatangani | Integrasi | Tiga isian tersimpan; episode **tidak** tertutup |
+| `FR-RI-196` | Resume bertanda tangan dikoreksi lewat sesi koreksi | Integrasi | Versi lama menyimpan tiga isian lamanya |
+| `FR-RI-197` | `summary-prefill` untuk Budi | Integrasi | Diagnosis, tindakan, obat pulang, hasil kritis, edukasi terisi beserta sumber; nol baris resume berubah |
+| **Gagal** `FR-RI-197` | Modul laboratorium tidak menjawab | Integrasi | `ImportantFindingsSummary.SourceStatus = Unavailable`; isian lain tetap |
+| **Gagal** `FR-RI-196` | Edukasi 2.500 karakter | Integrasi | `400` `VAL-INP-12` |
+
+### 18.4 Penutupan episode — `RWI-DEC-138`, `RWI-DEC-143`
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- |
+| `FR-RI-198`, `RWI-AC-199` | Joko: satu konsep SOAP dr. Yoga; ditutup 13.00 | Integrasi | Konsep `LockedUnsigned`; `SideEffects.LockedDraftCount = 1` |
+| `FR-RI-199`, `RWI-AC-213` | Pesanan cek GDS Ns. Siti belum dilaksanakan | Integrasi | `Cancelled` "episode ditutup sebelum dilaksanakan" |
+| `FR-RI-199` | Pesanan tertunda sudah ditagih | Integrasi | Tidak dibatalkan; muncul pada `billed-pending-procedure-orders`; penutupan tidak tertahan |
+| `FR-RI-200`, `AC-KEP-113` | Dosis 08.00 belum dicatat, dosis 20.00 | Integrasi | 20.00 `Cancelled`; 08.00 tetap `Due` |
+| `FR-RI-201` | `closure-readiness` 12.55 | Integrasi | `CanClose = true`; tiga peringatan |
+| **Gagal** `INV-INP-11` | Galat buatan pada langkah penguncian | Integrasi PostgreSQL | Episode tetap `DischargePending`; tempat tidur tetap terisi; pesanan dan dosis tidak berubah |
+| **Gagal** `RWI-AC-201` | Episode dibuka kembali lewat sesi koreksi | Integrasi | Konsep tetap `LockedUnsigned`; pesanan dan dosis tetap batal |
+| `RWI-AC-214` | Setelah penutupan | Integrasi | Nol pesanan tindakan berstatus terkunci "Tidak Ditandatangani" |
+
+### 18.5 Yang belum dapat diuji pada `0.9.0`
+
+| Skenario | Sebab | Diuji setelah |
+| --- | --- | --- |
+| Langkah 5 penutupan | Kolom pesanan tindakan `dokter-rawat-inap` `DOK-V2-1` | `DOK-V2-1` |
+| Langkah 6 penutupan | Tabel dosis `keperawatan` `KEP-V2-2` | `KEP-V2-2` |
+| Bagian Lab/Rad `NeedsReviewCount` | Persetujuan pemilik Lab/Rad | Persetujuan tercatat |

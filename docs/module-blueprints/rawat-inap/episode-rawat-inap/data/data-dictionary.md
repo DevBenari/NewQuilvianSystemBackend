@@ -3,8 +3,8 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| Revision | `0.4` |
-| Status | `draft` |
+| Revision | **`0.5`** — bagian 18 penyelarasan `PRD-RWI-V2-001`, blueprint revision `7` |
+| Status | **`draft`** untuk `0.5` |
 | Backend SHA | `5afb54b` |
 
 Seluruh tabel mewarisi `IdentityModel`, sehingga memiliki kolom audit `CreateDateTime`,
@@ -609,3 +609,73 @@ DDL-nya tidak ditulis ulang di sini karena tidak menambah informasi baru.
 | Pada revision `0.4`: satu kolom milik modul lain dicatat sebagai **dibaca**, yaitu `TrxPatientEncounter.OriginEncounterId`. Tidak dibuat modul ini | `RWI-DEC-073` |
 
 Tidak ada kolom yang dihapus dan tidak ada tipe yang berubah pada revision ini.
+
+---
+
+## 18. Amandemen revision `0.5` — penyelarasan `PRD-RWI-V2-001` ★ 15 September 2026
+
+| Field | Nilai |
+| --- | --- |
+| Sumber | [`../02-backend-architecture.md`](../02-backend-architecture.md) revision `0.8` bagian 11 |
+| Status | **`draft`** |
+| Keputusan | `RWI-DEC-112`, `RWI-DEC-130` |
+
+**Nol tabel baru.** Tiga tabel `Diperbarui`, seluruhnya milik `InPatientManagement`.
+
+### 18.1 `InpDoctorAssignment` — `Diperbarui` — sumber lengkap `Areas/HealthServices/InPatientManagement/Models/InpDoctorAssignment.cs`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `AssignmentPurpose` | `integer` | Ya | `0` `Regular` | `IX_InpDoctorAssignment_DoctorId_Active` (`DoctorId`, `EndDateTime`) — **baru**, untuk census `assignedToMe` | — | — | Tidak | `1` `LateDocumentation`: wajib `AssignmentRole = 3` `OnCallDoctor`, `EndDateTime` terisi dan lebih besar dari `StartDateTime`, `HandoverReason` terisi |
+
+**Kolom lama yang dipakai aturan baru:** `AssignmentRole`, `StartDateTime`, `EndDateTime`, `HandoverReason` (alasan
+pelibatan konsulen, pemanggilan dokter jaga, atau penulisan catatan terlambat), `AssignedByUserId`.
+
+### 18.2 `InpDischargeSummary` — `Diperbarui` — sumber lengkap `Areas/HealthServices/InPatientManagement/Models/InpDischargeSummary.cs`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | --- | :---: | --- |
+| `ImportantFindingsSummary` | `varchar(4000)` | Tidak | `null` | — | — | — | **Ya** | Pemeriksaan Penting. Contoh "Hb 7,8 g/dL (12/09) → transfusi; Rontgen toraks: efusi pleura kanan" |
+| `DischargeConditionNote` | `varchar(2000)` | Tidak | `null` | — | — | — | **Ya** | Kondisi Saat Pulang. Contoh "Sadar penuh, TD 120/80, jalan sendiri, luka operasi kering" |
+| `EducationSummary` | `varchar(2000)` | Tidak | `null` | — | — | — | **Ya** | Edukasi. Contoh "Diet rendah garam; tanda bahaya sesak — segera ke IGD; kontrol poli jantung 22/09" |
+
+`ClinicalSummary` yang sudah ada **tidak** berubah bentuk; labelnya di layar menjadi "Ringkasan Perawatan".
+
+### 18.3 `InpDischargeSummaryRevision` — `Diperbarui`
+
+Tiga kolom yang sama persis dengan 18.2, bertipe, panjang, dan sensitivitas sama. Diisi dari nilai versi bertanda tangan
+sebelumnya ketika resume ditandatangani ulang lewat sesi koreksi.
+
+### 18.4 Skema DDL revision `0.5`
+
+> **Peringatan.** Dokumentasi bentuk, bukan skrip yang dijalankan. Skema sungguhan lahir dari EF Core migration
+> `InPatientManagement`. Kolom warisan `IdentityModel` tidak ditulis ulang.
+
+```sql
+ALTER TABLE public."InpDoctorAssignment" ADD COLUMN "AssignmentPurpose" integer NOT NULL DEFAULT 0;
+ALTER TABLE public."InpDoctorAssignment" ADD CONSTRAINT "CK_InpDoctorAssignment_LateDocumentation"
+    CHECK ("AssignmentPurpose" <> 1
+        OR ("AssignmentRole" = 3 AND "EndDateTime" IS NOT NULL AND "EndDateTime" > "StartDateTime"
+            AND "HandoverReason" IS NOT NULL AND length(trim("HandoverReason")) > 0));
+CREATE INDEX "IX_InpDoctorAssignment_DoctorId_Active"
+    ON public."InpDoctorAssignment" ("DoctorId", "EndDateTime")
+    WHERE "IsDelete" = false;
+
+ALTER TABLE public."InpDischargeSummary" ADD COLUMN "ImportantFindingsSummary" varchar(4000) NULL;  -- SENSITIF
+ALTER TABLE public."InpDischargeSummary" ADD COLUMN "DischargeConditionNote" varchar(2000) NULL;    -- SENSITIF
+ALTER TABLE public."InpDischargeSummary" ADD COLUMN "EducationSummary" varchar(2000) NULL;          -- SENSITIF
+
+ALTER TABLE public."InpDischargeSummaryRevision" ADD COLUMN "ImportantFindingsSummary" varchar(4000) NULL;
+ALTER TABLE public."InpDischargeSummaryRevision" ADD COLUMN "DischargeConditionNote" varchar(2000) NULL;
+ALTER TABLE public."InpDischargeSummaryRevision" ADD COLUMN "EducationSummary" varchar(2000) NULL;
+```
+
+### 18.5 Tabel milik modul lain yang **ditulis** lewat penutupan episode
+
+| Tabel | Pemilik | Kolom yang berubah saat penutupan | Lewat service |
+| --- | --- | --- | --- |
+| `MrcClinicalDocumentIntegrity` | `MedicalRecordManagement` | Status `Draft` → `LockedUnsigned`, `LockTrigger` | `ClinicalDocumentIntegrityService` |
+| `TrxPatientProcedure` | `ClinicalManagement` | Status → `Cancelled`, alasan, `CancelledByEpisodeClosure` | `PatientProcedureOrderService` — kolom dirancang `dokter-rawat-inap` data 13.10 |
+| `PhmMedicationAdministration` | `PharmacyManagement` | `DoseStatus` → `Cancelled`, `StatusReason` | `MedicationAdministrationService` — dirancang `keperawatan` data 11.12 |
+
+`InPatientManagement` **tidak** memetakan tabel-tabel itu pada configuration-nya dan tidak menulis kolomnya sendiri.

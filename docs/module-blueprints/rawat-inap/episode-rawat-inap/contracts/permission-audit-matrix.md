@@ -3,9 +3,9 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| `contract_version` | `0.8.0` |
-| `last_changed_in` | `0.8.0` — peran penugasan dokter, tiga penjaga penulisan klinis baru |
-| Status | **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
+| `contract_version` | **`0.9.0`** — bagian 8, `draft` |
+| `last_changed_in` | **`0.9.0`** — `GUARD-INP-09`, `10`; nol butir baru. Sebelumnya `0.8.0` |
+| Status | **`draft`** untuk `0.9.0`. `0.8.0` **`approved`** — disetujui **Muhammad Hamzah** 2026-09-11 lewat `RWI-DEC-105` |
 | Owner | Product/Domain Owner sementara sesuai `RWI-DEC-006`; pemilik keamanan/privasi **belum ditunjuk** |
 | `input_revision` | `00-interview-decisions.md` revision `15`; `contracts/api-contract.md` revision `0.6.0` |
 | Backend SHA | `5afb54b` |
@@ -377,3 +377,40 @@ wajib ditinjau sebelum modul dipakai melayani pasien sungguhan.
 | 4 | `RWI-RULE-030`, `RWI-DEC-042`, `RWI-TF-014`, `RWI-RISK-004` |
 | 5 | `RWI-RULE-031`, `RWI-DEC-043` |
 | 6 | `RWI-OQ-035`, gerbang privasi pada dokumen keputusan |
+
+---
+
+## 8. Perubahan pada `contract_version` `0.9.0` — amandemen terbatas ★ 15 September 2026
+
+**Status `draft`.** **Nol Resource dan nol Action baru.** Seluruh endpoint baru memakai butir yang sudah ada.
+
+### 8.1 Butir hak akses pada endpoint baru
+
+| Endpoint | Butir | Penjaga tambahan di service |
+| --- | --- | --- |
+| `GET census?assignedToMe=true` | `InpatientCensus : Read` | Dokter dari akun login — `GUARD-INP-05` |
+| `POST episodes/{id}/doctor-assignments/supporting` | `InpatientEpisode : Update` | **`GUARD-INP-09`** kepala ruangan atau supervisor (`User.IsSupervisorOrWardHead()`, sama dengan pengalihan DPJP) |
+| `PATCH episodes/{id}/doctor-assignments/{assignmentId}/end` | `InpatientEpisode : Update` | `GUARD-INP-09` |
+| `GET discharges/{episodeId}/summary-prefill` | `InpatientDischarge : Read` | — |
+| `GET monitoring/billed-pending-procedure-orders` | `InpatientMonitoring : Read` | — |
+
+### 8.2 Penjaga baru
+
+| Penjaga | Isinya | Kenapa bukan butir hak akses |
+| --- | --- | --- |
+| `GUARD-INP-09` | Hanya kepala ruangan atau supervisor yang membuat dan mengakhiri penugasan konsulen dan dokter jaga | `InpatientEpisode : Update` juga dipegang petugas admisi untuk mengubah admisi |
+| `GUARD-INP-10` | Dokter berpenugasan `LateDocumentation` hanya memegang kewenangan dokter jaga, dan **tidak** memverifikasi CPPT walau pada waktu klinis catatan ia DPJP | Bergantung baris penugasan; ditegakkan `INT-INP-13` |
+
+### 8.3 Audit
+
+| Kejadian | Jejaknya |
+| --- | --- |
+| Penugasan pendukung dibuat atau diakhiri | `AssignedByUserId`, `HandoverReason`, `AssignmentPurpose`, periode — baris tidak dihapus |
+| Penutupan episode beserta akibatnya | Riwayat status episode; registrasi terkunci, pesanan dan dosis batal membawa alasan dan pelaku penutup; custom logger mencatat `SideEffects` **tanpa** isi klinis |
+
+### 8.4 Kolom sensitif baru
+
+| Kolom | Tabel | Kenapa sensitif |
+| --- | --- | --- |
+| `ImportantFindingsSummary`, `DischargeConditionNote`, `EducationSummary` | `InpDischargeSummary`, `InpDischargeSummaryRevision` | Ringkasan klinis pasien |
+| Isi `DischargeSummaryPrefillResponse` | — tidak dipersistensi | Sama; tidak masuk logger |

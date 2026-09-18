@@ -86,9 +86,9 @@ Admin Master Data / Billing Supervisor
 
 ### 2.2 Spesifikasi 9 Endpoint API (Bergaya Swagger)
 
-Grup Tag: `[Tags("Health Services / Master Data / Company Guarantor Coverage Rule")]`  
-Base URL: `api/v1/health-services/master-data/company-guarantor-coverage-rules`  
-Kontrak: `BIL-API-1.0`  
+Grup Tag: `[Tags("Health Services / Master Data / Company Guarantor Coverage Rule")]`<br>
+Base URL: `api/v1/health-services/master-data/company-guarantor-coverage-rules`<br>
+Kontrak: `BIL-API-1.0`<br>
 Resource Hak Akses: `CompanyGuarantorCoverageRule`
 
 | Method | Path | Deskripsi | Hak Akses | Request Body / Query | Status Code Response |
