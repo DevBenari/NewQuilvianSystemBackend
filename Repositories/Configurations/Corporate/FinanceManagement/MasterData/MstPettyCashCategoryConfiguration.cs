@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.MasterData.Models;
 
-namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Configurations;
+namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.FinanceManagement.MasterData;
 
 public sealed class MstPettyCashCategoryConfiguration : IEntityTypeConfiguration<MstPettyCashCategory>
 {
@@ -28,8 +28,6 @@ public sealed class MstPettyCashCategoryConfiguration : IEntityTypeConfiguration
             .HasFilter("\"IsDelete\" = false")
             .HasDatabaseName("IX_MstPettyCashCategory_CategoryCode");
 
-        // Data induk awal — 02-backend-architecture.md § "Rencana data master awal".
-        // Daftar final dikonfirmasi Finance sebelum diaktifkan di produksi.
         var seedTime = new DateTime(2026, 9, 7, 0, 0, 0, DateTimeKind.Utc);
         entity.HasData(
             Seed(new Guid("c8d2e6b3-4a15-4f79-8b21-000000000001"), "TRANSPORT", "Transport", "Ongkos transport kurir dan perjalanan dinas singkat", seedTime),
@@ -55,3 +53,4 @@ public sealed class MstPettyCashCategoryConfiguration : IEntityTypeConfiguration
         IsCancel = false
     };
 }
+

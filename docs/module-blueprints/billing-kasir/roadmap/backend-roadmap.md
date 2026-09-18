@@ -75,6 +75,7 @@ Seluruh task berstatus `READY_FOR_TASK_APPROVAL` bila dependency-nya terpenuhi. 
 | Verifikasi | Boundary test period, rounding, tanggal efektif, unauthorized update |
 | Risiko/pemilik | Kontrak penjamin dapat berbeda. Owner Finance/Tax + Inpatient |
 | DoD | Dua API master, tests, migration source, tanpa DB execution |
+| Perbaikan 16 September 2026 (`BE-BKC-FIX-010`) | Kolom `TaxableCategory` pada `MstTaxRule` dihapus dari model/DTO/service/controller (`BKC-DEC-098`) — sudah tidak punya konsekuensi kalkulasi apa pun sejak gerbang PPN dipindah ke `item.IsPharmacy`+`ServiceType` (`BKC-DEC-078`/`079`). Overlap-check periode tax rule aktif jadi global, tanpa kategori (`BKC-DEC-099`). Kolom fisik database dipertahankan sebagai orphan, tanpa migration. Frontend belum disesuaikan. Laporan: [BE-BKC-FIX-010](../task/report/backend/BE-BKC-FIX-010.md) |
 
 ## `BE-BKC-005` — Running invoice dan charge idempotent
 

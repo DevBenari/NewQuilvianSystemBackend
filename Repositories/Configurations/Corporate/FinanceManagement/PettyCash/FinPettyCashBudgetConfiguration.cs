@@ -1,21 +1,18 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Models;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.PettyCash.Models;
 
-namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Configurations;
+namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.FinanceManagement.PettyCash;
 
-public sealed class BilPettyCashBudgetConfiguration : IEntityTypeConfiguration<BilPettyCashBudget>
+public sealed class FinPettyCashBudgetConfiguration : IEntityTypeConfiguration<FinPettyCashBudget>
 {
-    public void Configure(EntityTypeBuilder<BilPettyCashBudget> entity)
+    public void Configure(EntityTypeBuilder<FinPettyCashBudget> entity)
     {
-        entity.ToTable("BilPettyCashBudget", "public", table =>
+        entity.ToTable("FinPettyCashBudget", "public", table =>
         {
-            table.HasCheckConstraint("CK_BilPettyCashBudget_CurrentBalance", "\"CurrentBalance\" >= 0");
-            // Union nilai lama (ACTIVE/INACTIVE, masih ditulis PettyCashBudgetService yang
-            // belum disentuh task ini) dan nilai baru (DRAFT/CLOSED, PC-DES-017). Dipersempit
-            // ke empat nilai final saat BE-BKC-054 menyentuh service tersebut.
-            table.HasCheckConstraint("CK_BilPettyCashBudget_Status", "\"Status\" IN ('ACTIVE','INACTIVE','DRAFT','CLOSED')");
-            table.HasCheckConstraint("CK_BilPettyCashBudget_BudgetAmount", "\"BudgetAmount\" >= 0");
+            table.HasCheckConstraint("CK_FinPettyCashBudget_CurrentBalance", "\"CurrentBalance\" >= 0");
+            table.HasCheckConstraint("CK_FinPettyCashBudget_Status", "\"Status\" IN ('ACTIVE','INACTIVE','DRAFT','CLOSED')");
+            table.HasCheckConstraint("CK_FinPettyCashBudget_BudgetAmount", "\"BudgetAmount\" >= 0");
         });
 
         entity.HasKey(x => x.Id);
@@ -39,36 +36,21 @@ public sealed class BilPettyCashBudgetConfiguration : IEntityTypeConfiguration<B
         entity.Property(x => x.IsDelete).HasDefaultValue(false);
         entity.Property(x => x.IsCancel).HasDefaultValue(false);
 
-        // PC-DES-017 SUPERSEDES catatan lama pada berkas ini: sebelum revisi 15 September
-        // 2026, index ini unik secara GLOBAL pada PoolCode (satu PoolCode paling banyak satu
-        // baris selamanya) — sengaja benar untuk kolam statis PC-DES-014. Model periode
-        // butuh BANYAK baris berbagi PoolCode yang sama dari waktu ke waktu (satu per
-        // periode), sehingga index lama itu akan menolak pembuatan periode kedua. Diganti
-        // index non-unique murni untuk pencarian/pengurutan per kolam beserta periodenya.
         entity.HasIndex(x => new { x.PoolCode, x.PeriodStart })
-            .HasDatabaseName("IX_BilPettyCashBudget_PoolCode_PeriodStart");
+            .HasDatabaseName("IX_FinPettyCashBudget_PoolCode_PeriodStart");
 
-        // "Paling banyak satu periode aktif per kolam" (PC-DES-017), menggantikan singleton
-        // global lama yang tidak mengenal konsep periode. PoolCode ikut masuk index supaya
-        // desain ini tetap benar bila PC-DEC-010 (multi-kolam) kelak dicabut — untuk MVP ini,
-        // dengan hanya satu PoolCode yang pernah ada, efeknya identik dengan singleton lama.
         entity.HasIndex(x => x.PoolCode)
             .IsUnique()
             .HasFilter("\"Status\" = 'ACTIVE' AND \"IsDelete\" = false")
-            .HasDatabaseName("IX_BilPettyCashBudget_ActivePerPool");
+            .HasDatabaseName("IX_FinPettyCashBudget_ActivePerPool");
 
-        entity.HasOne<BilPettyCashBudget>()
+        entity.HasOne<FinPettyCashBudget>()
             .WithMany()
             .HasForeignKey(x => x.SupersededByBudgetId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        // Kolam tunggal HOSPITAL_MAIN — 02-backend-architecture.md § "Rencana data master awal".
-        // Saldo awal sengaja 0 agar angka pertama di layar adalah angka yang
-        // benar-benar dimasukkan Finance, bukan angka karangan migration.
-        // PeriodStart/BudgetAmount ikut disemai (PC-DES-017) supaya baris kompile-time ini
-        // konsisten dengan pemetaan yang migration terapkan ke baris runtime yang sudah ada.
         var seedTime = new DateTime(2026, 9, 7, 0, 0, 0, DateTimeKind.Utc);
-        entity.HasData(new BilPettyCashBudget
+        entity.HasData(new FinPettyCashBudget
         {
             Id = new Guid("b7c1f5a2-9d34-4e88-9a10-000000000001"),
             PoolCode = "HOSPITAL_MAIN",
@@ -93,3 +75,4 @@ public sealed class BilPettyCashBudgetConfiguration : IEntityTypeConfiguration<B
         });
     }
 }
+

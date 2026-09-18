@@ -1632,3 +1632,45 @@ bukan langkah eksekusinya.
 dipilih sengaja TIDAK menambah field, job terjadwal, maupun logika baru pada
 `BilPettyCashBudget`; seluruh mekanisme yang dibutuhkan (endpoint create/activate periode, gerbang
 `BIL-VAL-106`) sudah ada dari `BE-BKC-054`.
+
+### Amendment lanjutan 16 September 2026 — Penghapusan kolom `TaxableCategory` pada `MstTaxRule`
+
+**Konteks.** User (module owner) bertanya makna kolom `TaxableCategory` pada `MstTaxRule` di luar
+sesi wawancara utama. Audit read-only membuktikan kolom ini sudah tidak lagi punya konsekuensi
+kalkulasi pajak sejak `BKC-DEC-078`/`079` mengubah basis gerbang PPN menjadi
+`item.IsPharmacy` + `BilInvoice.ServiceType` (rawat jalan vs rawat inap) — bukan lagi kategori pada
+tax rule (komentar eksplisit `BillingCalculationService.cs:790-793`: "Isi TaxableCategory kini
+murni label bagi pengguna dan tidak memengaruhi perhitungan sama sekali"). Satu-satunya pemakaian
+aktif yang tersisa: (1) label/filter UI, (2) overlap-check periode — dua tax rule aktif dengan
+`TaxableCategory` sama tidak boleh periodenya tumpang tindih (`TaxRuleService.cs` `ValidateAsync`
+baris 249-252, `ActivateAsync` baris 176-179). Audit lanjutan tidak menemukan satu pun tempat lain
+(laporan, snapshot histori, `TaxCalculationResponse`, dsb.) yang menyimpan atau membaca nilai
+`TaxableCategory` — hanya komentar kode yang menyebut namanya, bukan pemakaian nilai.
+
+**Scope pass ini**: Amendment terhadap blueprint yang sudah `APPROVED` (revisi `0.8`). Di dalam
+scope: keputusan hapus/pertahankan kolom `TaxableCategory` pada `MstTaxRule` (schema, DTO, service,
+frontend form/tampilan) dan pengganti overlap-check periode. Di luar scope — tidak disentuh: gerbang
+PPN rawat jalan/rawat inap (`BKC-DEC-078`/`079`) dan alokasi PPN `PROPORTIONAL` (`BKC-DEC-077`).
+
+Pertanyaan pertama sempat dijawab "hapus permanen lewat migration" lalu DIREVISI Owner sendiri pada
+giliran berikutnya sebelum dikunci — dicatat apa adanya sebagai provenance keputusan, bukan
+disembunyikan.
+
+| Decision ID | Type | Keputusan/pertanyaan | Owner | Status | Approved by/at | Evidence |
+|---|---|---|---|---|---|---|
+| `BKC-DEC-098` | Decision | **Kolom `TaxableCategory` DIHAPUS TOTAL dari entity model (`MstTaxRule.cs`), DTO (`TaxRuleDtos.cs`: `TaxRuleQuery`, `CreateTaxRuleRequest`/`UpdateTaxRuleRequest`, `TaxRuleResponse`, `TaxRuleOptionResponse`, `TaxRuleDefaultFilterResponse`, `TaxRuleFilterMetadataResponse.TaxableCategories`), service (`TaxRuleService.cs`, termasuk filter-by-category dan `GetFilterMetadataAsync`), dan frontend (form create/update, tampilan detail/list, filter) — field tidak lagi muncul di CRUD sama sekali, request/response API juga tidak lagi membawanya. Kolom fisik di database database TETAP DIPERTAHANKAN sebagai orphan (tidak dimapping `MstTaxRuleConfiguration`, tidak dibaca/ditulis EF Core sama sekali) — **BUKAN** drop column via migration. Jawaban pertama Owner ("hapus permanen lewat migration") DIREVISI menjadi ini pada giliran berikutnya di sesi yang sama, dengan alasan: menghindari kebutuhan otorisasi migration terpisah sekarang dan tetap reversibel (kolom fisik masih ada bila suatu saat ingin dipakai ulang). | Product/Domain Owner (persetujuan eksplisit dalam percakapan, dengan revisi) | `approved` | Revisi eksplisit: opsi B ("Pertahankan kolom di database, tapi lepas dari model/DTO/validasi/UI... kolom jadi orphan") dari 2 opsi bertanda rekomendasi, lalu diperjelas lanjutan: "option A" untuk klarifikasi field dihapus total dari form/tampilan (bukan cuma jadi opsional) | 16 September 2026 |
+| `BKC-DEC-099` | Decision | **Overlap-check periode tax rule yang sebelumnya per-`TaxableCategory`** (dua tax rule aktif tidak boleh periodenya tumpang tindih untuk kategori yang sama) **diganti jadi overlap-check GLOBAL** — dua tax rule aktif tidak boleh periodenya tumpang tindih sama sekali, tanpa dibedakan kategori apa pun. Berlaku di `TaxRuleService.ValidateAsync` (baris 249-252) dan `ActivateAsync` (baris 176-179). Alasan: sistem sudah membatasi hanya SATU tax rule aktif secara global sepanjang waktu (`LoadInvoiceTaxRuleAsync` di `BillingCalculationService.cs` melempar exception bila lebih dari satu aktif), jadi overlap-check global ini hanya menyamakan validasi dini saat create/update/activate dengan aturan yang sudah berlaku saat kalkulasi tagihan berjalan — bukan aturan bisnis baru. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "pilihan A" dari 2 opsi bertanda rekomendasi | 16 September 2026 |
+
+**Catatan konsekuensi teknis (bukan keputusan baru, turunan `BKC-DEC-098`)**: karena kolom fisik
+dipertahankan (bukan drop), tidak ada kebutuhan migration EF Core untuk pass ini — otorisasi
+migration terpisah sesuai `AGENTS.md` bagian Aturan Entity Framework dan Akses Data TIDAK
+diperlukan untuk keputusan ini. Index gabungan existing `(TaxableCategory, EffectiveFrom,
+EffectiveTo, IsActive, IsDelete)` pada `MstTaxRuleConfiguration.cs:35` ikut menjadi pertimbangan
+desain (apakah dipertahankan apa adanya karena kolom underlying masih fisik ada, atau diganti index
+tanpa `TaxableCategory` mengikuti overlap-check global `BKC-DEC-099`) — ini keputusan arsitektur
+teknis, dilempar ke `/design-business-module` atau langsung ke `/plan-module-delivery`+
+`/build-module-backend` mengingat cakupannya sudah sangat sempit dan tidak ada open question bisnis
+lain yang tersisa.
+
+**Status**: Tidak ada open question bisnis yang tersisa untuk topik ini. `BKC-DEC-098`–`099`
+MENGUNCI seluruh keputusan bisnis penghapusan kolom `TaxableCategory`.

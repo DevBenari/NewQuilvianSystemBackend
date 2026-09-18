@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Dtos;
+namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.PettyCash.Dtos;
 
 public static class PettyCashBudgetAdjustmentDirections
 {
@@ -24,7 +24,7 @@ public sealed class PettyCashBudgetMovementQuery
     [Range(1, 100)] public int PageSize { get; set; } = 25;
 }
 
-public class PettyCashBudgetTopUpRequest
+public class PettyCashBudgetAmountRequestBase
 {
     [Range(typeof(decimal), "0.01", "9999999999999999.99",
         ParseLimitsInInvariantCulture = true,
@@ -34,7 +34,18 @@ public class PettyCashBudgetTopUpRequest
     public Guid ExpectedRowVersion { get; set; }
 }
 
-public sealed class PettyCashBudgetAdjustmentRequest : PettyCashBudgetTopUpRequest
+public class PettyCashBudgetTopUpRequest : PettyCashBudgetAmountRequestBase
+{
+    /// <summary>Sumber dana penambahan anggaran: TRANSFER atau CASH (PC-DES-026).
+    /// TRANSFER = dana masuk melalui transfer bank; CASH = dana masuk secara tunai/langsung.</summary>
+    [Required, MaxLength(30)] public string FundingSourceType { get; set; } = string.Empty;
+
+    /// <summary>Nomor referensi transfer (contoh: nomor bukti transfer BCA/BNI/dll).
+    /// Wajib bila FundingSourceType = TRANSFER. Boleh kosong bila FundingSourceType = CASH.</summary>
+    [MaxLength(100)] public string? TransferReference { get; set; }
+}
+
+public sealed class PettyCashBudgetAdjustmentRequest : PettyCashBudgetAmountRequestBase
 {
     [Required, MaxLength(20)] public string Direction { get; set; } = string.Empty;
 }
@@ -100,8 +111,8 @@ public sealed class PettyCashBudgetResponse
     public decimal CurrentBalance { get; set; }
 
     /// <summary>Warisan pra-revisi 15 September 2026 (PC-DES-016). Tetap diisi karena
-    /// PettyCashVoucherService (di luar scope BE-BKC-054) masih membaca AvailableAmount
-    /// pada ApproveAsync; dihapus penuh saat BE-BKC-055 menyentuh service tersebut.</summary>
+    /// PettyCashVoucherService masih membaca AvailableAmount pada ApproveAsync; dihapus penuh
+    /// saat BE-BKC-055 menyentuh service tersebut.</summary>
     public decimal ReservedAmount { get; set; }
 
     /// <summary>Warisan, lihat catatan pada <see cref="ReservedAmount"/>.</summary>
@@ -140,7 +151,10 @@ public sealed class PettyCashBudgetMovementResponse
     public Guid? VoucherId { get; set; }
     public string? VoucherNumber { get; set; }
     public string? Reason { get; set; }
+    public string? FundingSourceType { get; set; }
+    public string? TransferReference { get; set; }
     public Guid ActorUserId { get; set; }
     public string? ActorName { get; set; }
     public DateTimeOffset OccurredAt { get; set; }
 }
+

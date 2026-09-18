@@ -2,7 +2,7 @@ using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Models;
+namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.PettyCash.Models;
 
 /// <summary>
 /// Baris periode anggaran kas kecil beserta saldo berjalannya (PC-DES-004, PC-DES-017).
@@ -12,8 +12,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash
 /// satu waktu (ditegakkan index parsial pada configuration).
 /// CurrentBalance MUST NOT ditulis di luar PettyCashBudgetService dan MUST NOT negatif.
 /// </summary>
-[Table("BilPettyCashBudget", Schema = "public")]
-public sealed class BilPettyCashBudget : IdentityModel
+[Table("FinPettyCashBudget", Schema = "public")]
+public sealed class FinPettyCashBudget : IdentityModel
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -52,14 +52,14 @@ public sealed class BilPettyCashBudget : IdentityModel
 
     public Guid RowVersion { get; set; } = Guid.NewGuid();
 
-    public ICollection<BilPettyCashBudgetMovement> Movements { get; set; } = new List<BilPettyCashBudgetMovement>();
+    public ICollection<FinPettyCashBudgetMovement> Movements { get; set; } = new List<FinPettyCashBudgetMovement>();
 }
 
 public static class PettyCashBudgetStatuses
 {
     /// <summary>Warisan pra-revisi 15 September 2026. Tetap ada karena
-    /// PettyCashBudgetService (di luar scope task fondasi ini) masih menulis/membacanya;
-    /// dipensiunkan penuh saat BE-BKC-054 menyentuh service tersebut.</summary>
+    /// PettyCashBudgetService masih menulis/membacanya; dipensiunkan penuh saat
+    /// BE-BKC-054 menyentuh service tersebut.</summary>
     public const string Active = "ACTIVE";
 
     /// <summary>Warisan pra-revisi 15 September 2026, lihat catatan pada <see cref="Active"/>.
@@ -74,3 +74,4 @@ public static class PettyCashBudgetStatuses
     /// penerus (PC-DES-018).</summary>
     public const string Closed = "CLOSED";
 }
+

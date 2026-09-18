@@ -89,6 +89,58 @@ public sealed class BillingInvoiceService
             var serviceType = request.ServiceType.Trim().ToUpperInvariant();
             query = query.Where(x => x.ServiceType == serviceType);
         }
+
+        var period = !string.IsNullOrWhiteSpace(request.PeriodPreset)
+            ? request.PeriodPreset
+            : request.Period;
+
+        var fromDate = request.VisitDateFrom ?? request.StartDate;
+        var toDate = request.VisitDateTo ?? request.EndDate;
+
+        if (!string.IsNullOrWhiteSpace(period))
+        {
+            var p = period.Trim().ToLowerInvariant();
+            var utcNow = DateTime.UtcNow;
+            var today = new DateTime(utcNow.Year, utcNow.Month, utcNow.Day, 0, 0, 0, DateTimeKind.Utc);
+
+            if (p is "all" or "semua" or "semua_periode" or "semuaperiode")
+            {
+                fromDate = null;
+                toDate = null;
+            }
+            else if (p is "today" or "hari_ini" or "hariini")
+            {
+                fromDate = today;
+                toDate = today.AddDays(1).AddTicks(-1);
+            }
+            else if (p is "yesterday" or "kemaren" or "kemarin")
+            {
+                var y = today.AddDays(-1);
+                fromDate = y;
+                toDate = y.AddDays(1).AddTicks(-1);
+            }
+            else if (p is "thisweek" or "this_week" or "minggu_ini" or "mingguini")
+            {
+                var diff = (7 + (int)today.DayOfWeek - (int)DayOfWeek.Monday) % 7;
+                var weekStart = today.AddDays(-diff);
+                fromDate = weekStart;
+                toDate = today.AddDays(1).AddTicks(-1);
+            }
+            else if (p is "thismonth" or "this_month" or "bulan_ini" or "bulanini")
+            {
+                var monthStart = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                fromDate = monthStart;
+                toDate = monthStart.AddMonths(1).AddTicks(-1);
+            }
+            else if (p is "lastmonth" or "last_month" or "bulan_lalu" or "bulanlalu")
+            {
+                var prevMonthDate = today.AddMonths(-1);
+                var lastMonthStart = new DateTime(prevMonthDate.Year, prevMonthDate.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+                fromDate = lastMonthStart;
+                toDate = lastMonthStart.AddMonths(1).AddTicks(-1);
+            }
+        }
+
         // Identitas pasien di-join dari encounter. Left join dipertahankan lewat DefaultIfEmpty
         // supaya invoice dengan encounter yang tidak terbaca tetap muncul di daftar - hilang dari
         // daftar tagihan jauh lebih berbahaya daripada tampil tanpa nama.
@@ -109,6 +161,22 @@ public sealed class BillingInvoiceService
                 x.invoice.InvoiceNumber.ToUpper().Contains(search) ||
                 (x.patient != null && x.patient.FullName.ToUpper().Contains(search)) ||
                 (x.patient != null && x.patient.MedicalRecordNumber.ToUpper().Contains(search)));
+        }
+
+        if (fromDate.HasValue)
+        {
+            var utcFrom = fromDate.Value.Kind == DateTimeKind.Unspecified
+                ? DateTime.SpecifyKind(fromDate.Value, DateTimeKind.Utc)
+                : fromDate.Value.ToUniversalTime();
+            joined = joined.Where(x => x.encounter != null && x.encounter.EncounterDate >= utcFrom);
+        }
+
+        if (toDate.HasValue)
+        {
+            var utcTo = toDate.Value.Kind == DateTimeKind.Unspecified
+                ? DateTime.SpecifyKind(toDate.Value, DateTimeKind.Utc)
+                : toDate.Value.ToUniversalTime();
+            joined = joined.Where(x => x.encounter != null && x.encounter.EncounterDate <= utcTo);
         }
 
         var total = await joined.CountAsync(cancellationToken);
@@ -514,7 +582,7 @@ public sealed class BillingInvoiceService
                 _dbContext.RegPatientEncounterGuarantors.Any(g =>
                     g.EncounterId == x.invoice.EncounterId &&
                     g.IsActive && !g.IsDelete &&
-                    g.PaymentSourceNameSnapshot.ToUpper().Contains(search)));
+                    EF.Functions.Like(g.PaymentSourceNameSnapshot, $"%{search}%")));
         }
 
         if (request.VisitDateFrom.HasValue)
@@ -540,7 +608,14 @@ public sealed class BillingInvoiceService
                 PatientName = x.patient != null ? x.patient.FullName : string.Empty,
                 MedicalRecordNumber = x.patient != null ? x.patient.MedicalRecordNumber : string.Empty,
                 EncounterType = x.encounter != null ? x.encounter.EncounterType.ToString() : string.Empty,
-                VisitDate = x.encounter != null ? (DateTime?)x.encounter.EncounterDate : null
+                VisitDate = x.encounter != null ? (DateTime?)x.encounter.EncounterDate : null,
+                // Fallback jumlah item aktif (Quantity × UnitPrice) tanpa kalkulasi: dipakai bila
+                // BilCalculationVersion belum ada (invoice baru, belum di-recalculate eksplisit).
+                // Untuk pasien Tunai/Cash ini adalah nilai terbaik yang tersedia dari data invoice;
+                // untuk penjamin asuransi/perusahaan tidak relevan karena coverage-nya belum diketahui.
+                RunningGrossAmount = x.invoice.Items
+                    .Where(i => !i.IsDelete && i.Status != BillingInvoiceItemStatuses.Voided)
+                    .Sum(i => i.Quantity * i.UnitPrice)
             })
             .ToListAsync(cancellationToken);
 
@@ -737,12 +812,31 @@ public sealed class BillingInvoiceService
             DateTimeOffset? lastPaymentAt = tenders.Count > 0 ? tenders.Max(t => (DateTimeOffset?)t.AttemptedAt) : null;
 
             latestCalcByInvoice.TryGetValue(x.Id, out var calc);
-            var patientAmount = calc?.PatientAmount ?? 0m;
+
+            // BUG FIX (BE-BKC-FIX-OUTSTANDING): bila BilCalculationVersion belum ada (invoice baru
+            // yang belum di-recalculate eksplisit), patientAmount ?? 0m menghasilkan outstanding = 0
+            // meski item aktif sudah ada, menyebabkan List menampilkan Sisa Pembayaran = Rp 0 sementara
+            // Detail (calculation-preview, live-calc) menampilkan angka yang benar.
+            //
+            // Fallback: untuk pasien Tunai/Cash (atau encounter tanpa penjamin), gunakan
+            // RunningGrossAmount (sum(Qty × UnitPrice) item aktif non-void) karena:
+            //   • Tidak ada penjamin → tidak ada coverage → patientAmount ≡ grossAmount pre-tax
+            //   • Lebih baik daripada Rp 0 yang menyesatkan kasir
+            // Untuk asuransi/penjamin perusahaan tetap 0 karena coverage-nya belum diketahui;
+            // mereka HARUS recalculate lebih dulu sebelum data akurat tersedia.
+            //
+            // CATATAN: fallback ini HANYA aktif bila calc null. Begitu recalculate dijalankan
+            // (BilCalculationVersion terbentuk), calc.PatientAmount yang authoritative dipakai.
+            var isCashPayer = guarantor == null || guarantor.PaymentType == EncounterPaymentType.Cash;
+            var patientAmount = calc?.PatientAmount
+                ?? (isCashPayer ? x.RunningGrossAmount : 0m);
+
             // Gross sebelum coverage penjamin (subtotal + admin/room + tax - diskon item, sebelum
             // waterfall insurance/company-guarantor) - direkonstruksi dari kolom yang sudah dipersist
             // BillingCalculationService.CalculateAsync, TANPA menghitung ulang pajak/diskon di sini.
+            // Fallback ke RunningGrossAmount (tanpa tax/admin/room) bila calc belum ada.
             var totalInvoiceAmount = calc is null
-                ? 0m
+                ? x.RunningGrossAmount
                 : calc.GrossAmount + calc.AdministrationFeeAmount + calc.RoomChargeAmount
                     - calc.ItemDiscount + calc.TaxAmount + calc.RoundingAmount;
 

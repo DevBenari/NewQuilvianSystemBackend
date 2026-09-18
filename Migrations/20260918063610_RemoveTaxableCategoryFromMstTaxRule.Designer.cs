@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using QuilvianSystemBackend.Repositories;
@@ -11,9 +12,11 @@ using QuilvianSystemBackend.Repositories;
 namespace QuilvianSystemBackend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260918063610_RemoveTaxableCategoryFromMstTaxRule")]
+    partial class RemoveTaxableCategoryFromMstTaxRule
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -60236,9 +60239,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<DateTime?>("CancelDateTime")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<Guid?>("CompatibilityEvidenceIdUsed")
-                        .HasColumnType("uuid");
-
                     b.Property<Guid>("CreateBy")
                         .HasColumnType("uuid");
 
@@ -60304,8 +60304,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("BloodComponentId");
-
-                    b.HasIndex("CompatibilityEvidenceIdUsed");
 
                     b.HasIndex("CurrentPlacementId");
 
@@ -60539,246 +60537,6 @@ namespace QuilvianSystemBackend.Migrations
                         .IsUnique();
 
                     b.ToTable("BbkBloodUnitReceipt", "public");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Models.BbkCompatibilityEvidence", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("BloodUnitId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("CheckedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("EvidenceResult")
-                        .HasColumnType("integer");
-
-                    b.Property<bool>("IsCancel")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsDelete")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsSuperseded")
-                        .HasColumnType("boolean");
-
-                    b.Property<Guid>("PatientId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("SupersededReason")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("ValidatedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PatientId");
-
-                    b.HasIndex(new[] { "BloodUnitId" }, "IX_BbkCompatibilityEvidence_BloodUnitId");
-
-                    b.HasIndex(new[] { "BloodUnitId", "PatientId" }, "IX_BbkCompatibilityEvidence_BloodUnitId_PatientId");
-
-                    b.HasIndex(new[] { "BloodUnitId", "PatientId", "IsSuperseded", "CheckedAt" }, "IX_BbkCompatibilityEvidence_IssuanceLookup");
-
-                    b.ToTable("BbkCompatibilityEvidence", "public");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Models.BbkEmergencyAuthorization", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("AuthorizedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("AuthorizedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("AuthorizerRole")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("BloodUnitId")
-                        .HasColumnType("uuid");
-
-                    b.Property<int>("BypassScope")
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("EmergencyConditionNote")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<bool>("IsCancel")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsDelete")
-                        .HasColumnType("boolean");
-
-                    b.Property<Guid>("PatientId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("ReasonCode")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
-
-                    b.Property<string>("ReasonNote")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex(new[] { "AuthorizerRole" }, "IX_BbkEmergencyAuthorization_AuthorizerRole");
-
-                    b.HasIndex(new[] { "BloodUnitId" }, "IX_BbkEmergencyAuthorization_BloodUnitId");
-
-                    b.HasIndex(new[] { "PatientId" }, "IX_BbkEmergencyAuthorization_PatientId");
-
-                    b.ToTable("BbkEmergencyAuthorization", "public");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Models.BbkIssuanceCorrection", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("BloodUnitId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("CorrectionStatus")
-                        .IsConcurrencyToken()
-                        .HasColumnType("integer");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("DecidedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("DecidedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("DecisionNote")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("IsCancel")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsDelete")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("ReasonCode")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
-
-                    b.Property<DateTime>("RequestedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("RequestedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("SupportingEvidenceNote")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("character varying(1000)");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("WhatIsCorrect")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<string>("WhatWasWrong")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex(new[] { "BloodUnitId" }, "IX_BbkIssuanceCorrection_BloodUnitId");
-
-                    b.HasIndex(new[] { "CorrectionStatus" }, "IX_BbkIssuanceCorrection_CorrectionStatus");
-
-                    b.HasIndex(new[] { "RequestedByUserId" }, "IX_BbkIssuanceCorrection_RequestedByUserId");
-
-                    b.ToTable("BbkIssuanceCorrection", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Models.BbkProviderRequest", b =>
@@ -102484,11 +102242,6 @@ namespace QuilvianSystemBackend.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Models.BbkCompatibilityEvidence", "CompatibilityEvidenceUsed")
-                        .WithMany()
-                        .HasForeignKey("CompatibilityEvidenceIdUsed")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Models.BbkBloodUnitPlacement", "CurrentPlacement")
                         .WithMany()
                         .HasForeignKey("CurrentPlacementId")
@@ -102512,8 +102265,6 @@ namespace QuilvianSystemBackend.Migrations
                         .IsRequired();
 
                     b.Navigation("BloodComponent");
-
-                    b.Navigation("CompatibilityEvidenceUsed");
 
                     b.Navigation("CurrentPlacement");
 
@@ -102578,55 +102329,6 @@ namespace QuilvianSystemBackend.Migrations
                         .IsRequired();
 
                     b.Navigation("ProviderRequest");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Models.BbkCompatibilityEvidence", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Models.BbkBloodUnit", "BloodUnit")
-                        .WithMany()
-                        .HasForeignKey("BloodUnitId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models.MstPatient", "Patient")
-                        .WithMany()
-                        .HasForeignKey("PatientId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("BloodUnit");
-
-                    b.Navigation("Patient");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Models.BbkEmergencyAuthorization", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Models.BbkBloodUnit", "BloodUnit")
-                        .WithMany()
-                        .HasForeignKey("BloodUnitId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models.MstPatient", "Patient")
-                        .WithMany()
-                        .HasForeignKey("PatientId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("BloodUnit");
-
-                    b.Navigation("Patient");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Models.BbkIssuanceCorrection", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Models.BbkBloodUnit", "BloodUnit")
-                        .WithMany()
-                        .HasForeignKey("BloodUnitId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("BloodUnit");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Models.BbkProviderRequest", b =>
@@ -109384,3 +109086,4 @@ namespace QuilvianSystemBackend.Migrations
         }
     }
 }
+
