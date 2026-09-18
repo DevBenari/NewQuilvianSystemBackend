@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Models;
@@ -257,7 +257,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
 
             detail.Transitions = await ReadTransitionsAsync(id, cancellationToken);
             ApplyTransitionFacts(detail);
-            detail.Fulfillment = BuildFulfillment(entity);
+            detail.Fulfillment = BuildFulfillment(
+                entity,
+                await CountIssuedByLineAsync(entity, cancellationToken));
 
             return detail;
         }
@@ -267,10 +269,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
         /// </summary>
         /// <remarks>
         /// <para>
-        /// <b>Batas yang jujur pada tahap pengiriman ini.</b> Pemberian kantong belum ada di
-        /// source — ia lahir pada <c>BE-BD-006</c> (alokasi) dan <c>BE-BD-007</c> (pemberian),
-        /// dan catatan koreksinya pada <c>BE-BD-010</c>. Karena itu jumlah yang diberikan pada
-        /// slice <c>BE-BD-003</c> <b>selalu nol</b>, dan sisanya sama dengan yang diminta.
+        /// <b>Sejak <c>BE-BD-010</c> jumlah diberikan dihitung dari kantong nyata</b> — lihat
+        /// <see cref="CountIssuedByLineAsync"/>. Kantong yang koreksi pencatatannya sudah
+        /// <c>Approved</c> tidak dihitung; koreksi <c>Requested</c> dan <c>Rejected</c> tidak
+        /// menggerakkan angka apa pun (<c>INV-BD-033</c>).
+        /// </para>
+        /// <para>
+        /// <b>Riwayat.</b> Pada slice <c>BE-BD-003</c> pemberian kantong belum ada di source, sehingga
+        /// jumlah yang diberikan selalu nol dan sisanya sama dengan yang diminta.
         /// </para>
         /// <para>
         /// Yang penting: angka itu <b>dihitung</b>, bukan dibaca dari kolom. Ketika pemberian
@@ -286,7 +292,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
             var entity = await DetailQuery()
                 .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
 
-            return entity == null ? null : BuildFulfillment(entity);
+            return entity == null
+                ? null
+                : BuildFulfillment(entity, await CountIssuedByLineAsync(entity, cancellationToken));
         }
 
         // =================================================================
@@ -963,7 +971,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
         /// Menyusun ringkasan pemenuhan dari baris order. Lihat catatan batas pada
         /// <see cref="GetFulfillmentAsync"/>.
         /// </summary>
-        private static FulfillmentSummaryDto BuildFulfillment(BbkBloodOrder entity)
+        private static FulfillmentSummaryDto BuildFulfillment(
+            BbkBloodOrder entity,
+            IReadOnlyDictionary<Guid, int> issuedByLine)
         {
             var lines = entity.Lines
                 .Where(x => !x.IsDelete)
@@ -976,10 +986,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
                     BloodComponentName = x.BloodComponent?.ComponentName,
                     RequestedQuantity = x.RequestedQuantity,
 
-                    // Pemberian kantong lahir pada BE-BD-006/BE-BD-007; koreksinya pada
-                    // BE-BD-010. Sampai keduanya ada, jumlah yang diberikan memang nol.
-                    IssuedQuantity = 0,
-                    OutstandingQuantity = x.RequestedQuantity
+                    IssuedQuantity = issuedByLine.TryGetValue(x.Id, out var issued) ? issued : 0,
+
+                    // Batas bawah nol (INV-BD-017): kiriman berlebih tidak membuat sisa negatif.
+                    OutstandingQuantity = Math.Max(
+                        0,
+                        x.RequestedQuantity - (issuedByLine.TryGetValue(x.Id, out var used) ? used : 0))
                 })
                 .ToList();
 
@@ -994,10 +1006,56 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
                 TotalOutstandingQuantity = lines.Sum(x => x.OutstandingQuantity),
                 Lines = lines,
                 Message =
-                    "Jumlah diberikan dihitung dari pemberian kantong yang nyata. " +
-                    "Pencatatan pemberian kantong belum tersedia pada tahap ini, sehingga " +
-                    "seluruh kebutuhan masih tercatat belum terpenuhi."
+                    "Jumlah diberikan dihitung dari pemberian kantong yang nyata. Pemberian yang " +
+                    "pencatatannya dikoreksi dan sudah disetujui tidak dihitung; koreksi yang masih " +
+                    "menunggu atau ditolak tidak mengubah angka."
             };
+        }
+
+        /// <summary>
+        /// Jumlah kantong yang benar-benar diberikan per baris kebutuhan order (<c>BD-DOM-17</c>).
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Sumbernya transaksi, bukan kolom.</b> Kantong dihitung bila berstatus <c>Issued</c> dan
+        /// alokasi aktifnya menunjuk baris order ini — pemberian mempertahankan alokasi aktif, dan
+        /// pembatalan maupun pengalihan menutupnya lebih dulu, sehingga satu kantong tidak pernah
+        /// terhitung pada dua baris.
+        /// </para>
+        /// <para>
+        /// <b>Menghormati koreksi, hanya yang disetujui</b> (<c>DEC-BD-030</c>, <c>INV-BD-033</c>).
+        /// Kantong yang punya koreksi pencatatan <c>Approved</c> dikeluarkan dari hitungan: rekam
+        /// pemberiannya sudah dinyatakan keliru oleh dua orang. Kantong itu tetap <c>Issued</c> dan
+        /// pemberian asalnya tetap tersimpan — yang berubah hanya penjumlahan ini. Bentuk efek ini
+        /// keputusan pemilik sebelum implementasi <c>BE-BD-010</c>, 17 September 2026.
+        /// </para>
+        /// </remarks>
+        private async Task<IReadOnlyDictionary<Guid, int>> CountIssuedByLineAsync(
+            BbkBloodOrder entity,
+            CancellationToken cancellationToken)
+        {
+            var lineIds = entity.Lines.Where(x => !x.IsDelete).Select(x => x.Id).ToList();
+
+            if (lineIds.Count == 0)
+                return new Dictionary<Guid, int>();
+
+            var rows = await _dbContext.Set<BbkBloodUnitAllocation>()
+                .AsNoTracking()
+                .Where(a =>
+                    a.AllocationStatus == BbkAllocationStatus.Active &&
+                    lineIds.Contains(a.BloodOrderLineId) &&
+                    a.BloodUnit != null &&
+                    !a.BloodUnit.IsDelete &&
+                    a.BloodUnit.UnitStatus == BbkBloodUnitStatus.Issued &&
+                    !_dbContext.Set<BbkIssuanceCorrection>().Any(c =>
+                        c.BloodUnitId == a.BloodUnitId &&
+                        !c.IsDelete &&
+                        c.CorrectionStatus == BbkCorrectionStatus.Approved))
+                .GroupBy(a => a.BloodOrderLineId)
+                .Select(g => new { LineId = g.Key, Count = g.Count() })
+                .ToListAsync(cancellationToken);
+
+            return rows.ToDictionary(x => x.LineId, x => x.Count);
         }
 
         /// <summary>

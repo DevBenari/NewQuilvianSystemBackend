@@ -37,6 +37,36 @@ Action yang dipakai: `Read`, `Create`, `Update`, `Delete`, `Process`, `Allocate`
 **`ApproveCorrection`**, **`ResolveReallocate`**, **`ResolveReturn`**, **`ResolveNotUsable`**,
 **`Cancel`**.
 
+### 1.1 Inventaris kanonik current — rekonsiliasi `BE-BD-016`, 17 September 2026
+
+**38 butir `Resource : Action`**, dihitung dari endpoint nyata — bukan dari hitungan historis. Tiga sumber
+dibandingkan dan identik: **source** (78 endpoint pada 8 controller, dibaca dari assembly terkompilasi),
+**api-contract** (baris endpoint), dan **database** (`SysControllerAccess`/`SysActionAccess` hasil
+`AccessMenuSeeder`). Rincian bukti pada [laporan BE-BD-016](../task/report/backend/BE-BD-016.md) bagian 10.
+
+| Resource | Action | Jumlah |
+| --- | --- | ---: |
+| `BloodOrder` | `Read`, `Create`, `Cancel` | 3 |
+| `BloodProviderRequest` | `Read`, `Create`, `Process`, `Update` | 4 |
+| `BloodUnit` | `Read`, `Store`, `Allocate`, `Compatibility`, `Issue`, `EmergencyIssue`, `ResolveReallocate`, `ResolveReturn`, `ResolveNotUsable`, `Correct`, `ApproveCorrection` | 11 |
+| `BloodGroupExam` | `Read`, `Create`, `Update`, `Validate`, `ResolveConflict` | 5 |
+| `BloodBankProcedure` | `Read`, `Create`, `Update` | 3 |
+| `BloodComponent` | `Read`, `Create`, `Update`, `Delete` | 4 |
+| `BloodBankReason` | `Read`, `Create`, `Update`, `Delete` | 4 |
+| `BloodStorageLocation` | `Read`, `Create`, `Update`, `Delete` | 4 |
+| **Total** | | **38** |
+
+**Yang sengaja tidak ada:**
+
+- **`BloodUnit : Resolve`** — tidak ada di source, kontrak, maupun baris database dalam keadaan apa pun.
+- **`BloodOrder : Update`** — tidak ada satu pun endpoint `v4` yang memakainya, sehingga **bukan** butir
+  kanonik. `BloodOrder : Cancel` berdiri sendiri. Kalimat "dipisah dari `Update`" di bawah menjelaskan asal
+  keputusan `DEC-BD-044`, bukan keberadaan butir `Update`.
+
+**Riwayat hitungan (HISTORY):** baseline roadmap **39** = 38 butir di atas + `BloodOrder : Update`. Inventaris
+deklarasi tercatat 12 (3 September 2026), lalu 17/20/25/28/29 (11 September 2026), dan 30 (audit 14 September
+2026, sebelum `BE-BD-007`..`010` melahirkan delapan butir `BloodUnit` sisanya).
+
 Action `Resolve` **tidak lagi dipakai** sejak `v4`; ia digantikan tiga butir penyelesaian yang
 terpisah (`DEC-BD-043`). Seeder **MUST NOT** mendaftarkannya, supaya tidak ada jalan pintas yang
 membatalkan pemisahan itu.
@@ -58,7 +88,7 @@ Empat butir lagi pada `v4`, seluruhnya turunan penutupan sisa `DEF-BD-004`:
 | `BloodUnit : ResolveReallocate` | `BloodUnit : Resolve` | Pengalihan kantong `PendingReview` ke pasien lain |
 | `BloodUnit : ResolveReturn` | `BloodUnit : Resolve` | Pengembalian kantong ke PMI |
 | `BloodUnit : ResolveNotUsable` | `BloodUnit : Resolve` | Penetapan kantong tidak layak |
-| `BloodOrder : Cancel` | dipisah dari `BloodOrder : Update` | Pembatalan order darah |
+| `BloodOrder : Cancel` | dipisah dari `BloodOrder : Update` — yang tidak pernah punya endpoint `v4` dan karena itu bukan butir kanonik (§1.1) | Pembatalan order darah |
 
 **Butir `BloodUnit : Resolve` dihapus, bukan disisakan sebagai payung.** Membiarkannya hidup
 berdampingan dengan ketiga penggantinya akan menciptakan jalan pintas: siapa pun yang memegang `Resolve`
