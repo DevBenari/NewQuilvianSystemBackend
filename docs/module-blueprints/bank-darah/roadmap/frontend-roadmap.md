@@ -55,8 +55,12 @@ status_note: >-
   revisi 4 sampai approval revisi 8.
 approval_gate: BLUEPRINT_APPROVED
 contract_version: v4 (approved)
-frontend_source_sha: e24c9e4c53f64e8c8972d8fd317355099c065695
+frontend_source_sha: fbe29f6d1b7408b13f4377b1fe4b77fc4dabf82e
 frontend_source_sha_note: >-
+  18 September 2026 (jangkar bukti FE-BD-006): naik dari e24c9e4c53f64e8c8972d8fd317355099c065695
+  ke fbe29f6d1b7408b13f4377b1fe4b77fc4dabf82e (feat(bank-darah): enforce permission-aware setup
+  menu), commit implementasi FE-BD-006 di sukmagpV2, di-push ke origin/sukmagpV2. Satu-satunya
+  commit di atas e24c9e4c; isinya persis 7 berkas FE-BD-006. Riwayat e24c9e4c:
   18 September 2026: naik dari 6640a5e7 ke e24c9e4c (commit implementasi FE-BD-011, di-push ke
   origin/sukmagpV2). Berkas Bank Darah yang berubah hanya milik FE-BD-001 (2d0ac741) dan FE-BD-011
   (e24c9e4c). Dari 10 base component yang dikutip BD-CAP-021, dua berubah secara aditif dan opt-in
@@ -76,10 +80,13 @@ backend_branch: sukmagp
 decision_revision: 12
 decision_note: >-
   Register memuat DEC-BD-001 sampai DEC-BD-054. DEC-BD-016 disetujui Sukmagp 2026-09-17.
-open_ui_gaps:
-  - BD-UI-GAP-002
+open_ui_gaps: []
+open_ui_gaps_note: >-
+  Riwayat: BD-UI-GAP-002 terbuka sejak 2026-09-18 pagi; tertutup pada tingkat implementasi
+  2026-09-18 lewat FE-BD-006; ditutup penuh 2026-09-18 sesudah uji runtime pemilik R1-R8 PASS.
 closed_ui_gaps:
   - "BD-UI-GAP-001 — ditutup Opsi A, Sukmagp 2026-09-18"
+  - "BD-UI-GAP-002 — ditutup penuh lewat FE-BD-006, uji runtime pemilik Sukmagp R1-R8 PASS 2026-09-18"
   - "BD-UI-GAP-003 — diserap ke acceptance kartu, Sukmagp 2026-09-18"
 owners:
   - "Product/Domain: pemilik proses BDRS"
@@ -188,7 +195,7 @@ BE-BD-014 ✅ [BE] ─┬─> FE-BD-011 ✅
                    │
 BE-BD-015 ✅ [BE] ─┘
 
-FE-BD-006 🟡
+FE-BD-006 ✅
 ```
 
 ### Slice 2 — Order darah, permintaan PMI, dan tindakan
@@ -264,7 +271,7 @@ Dengan begitu, setiap layar dapat diuji memakai data yang dihasilkan layar sebel
 | 9 | `FE-BD-007` | Tiga tombol penyelesaian `PendingReview` |
 | 10 | `FE-BD-008` | Koreksi dua langkah dan tunggakan bukti darurat |
 | 11 | `FE-BD-010` | Tindakan dan penampilan hasil penyerahan biaya. Cakupannya **terkunci** sejak `BD-UI-GAP-001` ditutup Opsi A, 18 September 2026 |
-| — | `FE-BD-006` kriteria kedua | Menyusul sesudah pembaca hak akses frontend (`BD-UI-GAP-002`) berdiri. Pembaca itu diputuskan dan dibangun pada task disetujui **pertama** yang benar-benar membutuhkannya, mengikuti `base-component-decision-gate`. Ini gap implementasi, bukan penahan approval |
+| — | `FE-BD-006` kriteria kedua | ✅ **Selesai 18 September 2026** — dikerjakan ulang atas keputusan pemilik, terbukti otomatis dan lewat uji runtime pemilik R1–R8 `PASS` ([laporan](../task/report/frontend/FE-BD-006.md)). **Riwayat:** terimplementasi dan terbukti otomatis, menunggu bukti runtime; sebelumnya: Menyusul sesudah pembaca hak akses frontend (`BD-UI-GAP-002`) berdiri. Pembaca itu diputuskan dan dibangun pada task disetujui **pertama** yang benar-benar membutuhkannya, mengikuti `base-component-decision-gate`. Ini gap implementasi, bukan penahan approval |
 
 ---
 
@@ -274,7 +281,7 @@ Dengan begitu, setiap layar dapat diuji memakai data yang dihasilkan layar sebel
 | --- | --- | --- | --- | :---: | --- |
 | `FE-BD-001` | Setup master dapat dikelola petugas | 1 | `BE-BD-001` ✅ [BE] | ✅ 1 dari 1 — diverifikasi ulang 18 September 2026. **Riwayat:** 🟡 0 dari 1 — simpan rusak | [FE-BD-001](../task/report/frontend/FE-BD-001.md) |
 | `FE-BD-011` | Lokasi penyimpanan dikelola, akibat penonaktifan terbaca | 1 | `BE-BD-014` ✅ [BE], `BE-BD-015` ✅ [BE] | ✅ 2 dari 2 — 18 September 2026. **Riwayat:** 🟡 1 dari 2 kriteria | [FE-BD-011](../task/report/frontend/FE-BD-011.md) |
-| `FE-BD-006` | Seluruh layar Bank Darah terjangkau dari menu | 1 | — | 🟡 1 dari 2 kriteria | [FE-BD-006](../task/report/frontend/FE-BD-006.md) |
+| `FE-BD-006` | Seluruh layar Bank Darah terjangkau dari menu | 1 | — | ✅ 2 dari 2 — 18 September 2026, uji runtime pemilik R1–R8 `PASS`. **Riwayat:** 🟡 1 dari 2 terbukti penuh, kriteria kedua terbukti otomatis dan menunggu bukti runtime; 🟡 1 dari 2 kriteria | [FE-BD-006](../task/report/frontend/FE-BD-006.md) |
 | `FE-BD-002` | Order darah, pemenuhan, dan pembatalan | 2 | `BE-BD-003` ✅ [BE] | belum dikerjakan | — |
 | `FE-BD-003` | Permintaan PMI dan penerimaan | 2 | `BE-BD-004` ✅ [BE] | belum dikerjakan | — |
 | `FE-BD-010` | Daftar, pencatatan, dan penyelesaian tindakan | 2 | `BE-BD-012` ✅ [BE], `BE-BD-013` ✅ [BE] | belum dikerjakan | — |
@@ -285,9 +292,12 @@ Dengan begitu, setiap layar dapat diuji memakai data yang dihasilkan layar sebel
 | `FE-BD-007` | Penyelesaian `PendingReview`, tiga tombol tiga penjaga | 3 | `BE-BD-009` ✅ [BE] | belum dikerjakan | — |
 | `FE-BD-008` | Koreksi dua langkah dan tunggakan bukti darurat | 3 | `BE-BD-010` ✅ [BE] | belum dikerjakan | — |
 
-**Hitungan per 18 September 2026, sesudah `FE-BD-011` ✅:** 12 task = **2 selesai** (`FE-BD-001`,
-`FE-BD-011`) + **1 sebagian** (`FE-BD-006`) + **9 belum dikerjakan** + **0 terblokir**. Task berikutnya
-menurut urutan yang disetujui: **`FE-BD-002`**.
+**Hitungan per 18 September 2026, sesudah `FE-BD-006` ✅:** 12 task = **3 selesai** (`FE-BD-001`,
+`FE-BD-011`, `FE-BD-006`) + **0 sebagian** + **9 belum dikerjakan** + **0 terblokir**. Slice 1 selesai.
+Task berikutnya menurut urutan yang disetujui: **`FE-BD-002`**.
+
+**Riwayat — sesudah `FE-BD-011` ✅:** 12 task = 2 selesai (`FE-BD-001`, `FE-BD-011`) + 1 sebagian
+(`FE-BD-006`) + 9 belum dikerjakan + 0 terblokir. Task berikutnya waktu itu: `FE-BD-002`.
 
 **Riwayat — sesudah `FE-BD-001` ✅:** 12 task = 1 selesai (`FE-BD-001`) + 2 sebagian (`FE-BD-006`,
 `FE-BD-011`) + 9 belum dikerjakan + 0 terblokir. Task berikutnya waktu itu: `FE-BD-011`.
@@ -342,11 +352,11 @@ Sebelumnya ⛔ 1 (`FE-BD-008`, menunggu `BE-BD-010` sampai ✅ 17 September 2026
 
 ---
 
-### 🟡 `FE-BD-006` — Seluruh layar Bank Darah terjangkau dari menu
+### ✅ `FE-BD-006` — Seluruh layar Bank Darah terjangkau dari menu
 
 | Field | Isi |
 | --- | --- |
-| **Status** | 🟡 **SELESAI SEBAGIAN — 1 dari 2 (tidak berubah).** Perubahan `menu-items.jsx` yang dulu dicatat "belum di-commit" kini sudah ter-commit di `b98f5bdc9` (10 September 2026) dan ada di `6640a5e7`. Grup Bank Darah → Setup memuat tepat tiga butir, tanpa duplikat. **Kriteria kedua tetap belum terpenuhi**, karena `filterMenuItemsByRole` masih stub pada `6640a5e7`. **Yang berubah:** sumber hak akses pengguna yang sedang login kini **ada di backend**, yaitu `GET /api/v1/Auth/permissions`. Jawabannya `EffectivePermissionSet`, berisi pasangan `Resource` / `Action` dengan penamaan yang sama dengan `[AccessPermission]`. Endpoint ini masuk `sukmagp` sesudah `d07dcf3` dan ada di `77f60c88`. Frontend belum memakainya: nol pemakai pada `6640a5e7`. Jadi penahannya kini **bukan backend**. Yang kurang adalah pembaca hak akses di frontend (`BD-UI-GAP-002`). Pembaca itu komponen berstatus `NEW` menurut `base-component-decision-gate`, dan statusnya diputuskan pemilik saat build. **Riwayat:** 🟡 **SELESAI SEBAGIAN 10 September 2026.** Bukti: [laporan](../task/report/frontend/FE-BD-006.md). `npm run lint` **`0 errors, 608 warnings`** — nol dari berkas task ini; `npm run build` **`✓ Compiled successfully in 33.9s`**; `node --test tests/unit` **434 lulus, 0 gagal**. **1 dari 2 acceptance terpenuhi.** Bagian *mengarah ke layar* ✅: ketiga butir Setup menunjuk route yang terbukti ada, susunannya cocok `03-frontend-architecture.md` §2, dan **tiga entri duplikat dibuang** — sebelumnya ketiga layar muncul dua kali (3 dari hanya 4 path terduplikat di seluruh berkas). Bagian *hanya tampil bagi peran yang berhak* ⛔ **belum**: `filterMenuItemsByRole` adalah **stub** yang seluruh logikanya dikomentari, dan frontend **tidak punya katalog permission** pengguna berjalan — tidak dapat dikerjakan dengan menyunting `menu-items.jsx`. Uji manual `NOT FEASIBLE`: menuntut aplikasi berjalan beserta sesi login |
+| **Status** | ✅ **SELESAI 18 September 2026 — 2 dari 2 acceptance.** Uji runtime pemilik `Sukmagp` R1–R8 seluruhnya `PASS`: akses penuh, sebagian, tanpa akses, ganti pengguna di tab yang sama, kegagalan endpoint (gagal-tertutup, tanpa error mentah), URL langsung tanpa hak (`403` + `AccessDeniedGate`), SuperAdmin mengikuti pasangan dari endpoint, dan regresi Lab `SystemFlag`. Validasi otomatis tetap: unit **785/785**, `lint:errors` 0, `npm run lint` **`0 errors, 679 warnings`** (nol dari berkas task), build **`✓ Compiled successfully in 63s`**, `git diff --check` bersih. Nol DoD dikecualikan. Nol perubahan source sesudah uji runtime. **Ter-commit** sebagai `fbe29f6d1b7408b13f4377b1fe4b77fc4dabf82e` (`feat(bank-darah): enforce permission-aware setup menu`) di atas titik awal `e24c9e4c5`, ter-push ke `origin/sukmagpV2` (laporan §9; riwayat: belum di-commit saat penutupan). `BD-UI-GAP-002` ditutup penuh. Bukti: [laporan](../task/report/frontend/FE-BD-006.md) §6.3 dan §7. **Riwayat (18 September 2026, sebelum uji runtime):** 🟡 **SELESAI SEBAGIAN — dikerjakan ulang 18 September 2026 atas keputusan pemilik `Sukmagp` (paket A #2–#6, perluasan scope ke sidebar bersama dan slice `authPermission`, gagal-tertutup).** Kriteria kedua kini **terimplementasi dan terbukti otomatis**, tetapi **bukti runtime di browser belum ada**, sehingga belum ✅. Tiga butir Setup memperoleh `requiredPermission` (`BloodComponent`/`BloodBankReason`/`BloodStorageLocation` : `Read`); sidebar menyaringnya lewat keputusan ketat baru di atas pembaca kewenangan yang **sudah ada sejak `622a46f41`** (8 September 2026, masuk `sukmagpV2` lewat merge `d7059b563`, tidak ditemukan saat sinkronisasi roadmap). Validasi: unit **785 lulus, 0 gagal** (759 baseline + 26 baru, bentuk direktori Windows — `npm run test:unit` menjalankan nol test karena glob); `npm run lint:errors` keluar `0`; `npm run lint` **`0 errors, 679 warnings`**, nol dari berkas task; `npm run build` **`✓ Compiled successfully in 63s`**; `git diff --check` bersih. DoD yang belum: bukti runtime R1–R8 ([laporan](../task/report/frontend/FE-BD-006.md) §6.3). Source frontend belum di-commit di atas `e24c9e4c5`. **Riwayat (sebelum 18 September 2026, pengerjaan ulang):** 🟡 **SELESAI SEBAGIAN — 1 dari 2 (tidak berubah).** Perubahan `menu-items.jsx` yang dulu dicatat "belum di-commit" kini sudah ter-commit di `b98f5bdc9` (10 September 2026) dan ada di `6640a5e7`. Grup Bank Darah → Setup memuat tepat tiga butir, tanpa duplikat. **Kriteria kedua tetap belum terpenuhi**, karena `filterMenuItemsByRole` masih stub pada `6640a5e7`. **Yang berubah:** sumber hak akses pengguna yang sedang login kini **ada di backend**, yaitu `GET /api/v1/Auth/permissions`. Jawabannya `EffectivePermissionSet`, berisi pasangan `Resource` / `Action` dengan penamaan yang sama dengan `[AccessPermission]`. Endpoint ini masuk `sukmagp` sesudah `d07dcf3` dan ada di `77f60c88`. Frontend belum memakainya: nol pemakai pada `6640a5e7`. Jadi penahannya kini **bukan backend**. Yang kurang adalah pembaca hak akses di frontend (`BD-UI-GAP-002`). Pembaca itu komponen berstatus `NEW` menurut `base-component-decision-gate`, dan statusnya diputuskan pemilik saat build. **Riwayat:** 🟡 **SELESAI SEBAGIAN 10 September 2026.** Bukti: [laporan](../task/report/frontend/FE-BD-006.md). `npm run lint` **`0 errors, 608 warnings`** — nol dari berkas task ini; `npm run build` **`✓ Compiled successfully in 33.9s`**; `node --test tests/unit` **434 lulus, 0 gagal**. **1 dari 2 acceptance terpenuhi.** Bagian *mengarah ke layar* ✅: ketiga butir Setup menunjuk route yang terbukti ada, susunannya cocok `03-frontend-architecture.md` §2, dan **tiga entri duplikat dibuang** — sebelumnya ketiga layar muncul dua kali (3 dari hanya 4 path terduplikat di seluruh berkas). Bagian *hanya tampil bagi peran yang berhak* ⛔ **belum**: `filterMenuItemsByRole` adalah **stub** yang seluruh logikanya dikomentari, dan frontend **tidak punya katalog permission** pengguna berjalan — tidak dapat dikerjakan dengan menyunting `menu-items.jsx`. Uji manual `NOT FEASIBLE`: menuntut aplikasi berjalan beserta sesi login |
 | **Outcome** | Setiap layar Bank Darah dapat dicapai dari menu, dan butir menu hanya tampil bagi peran yang berhak |
 | **Scope** | `menu-items.jsx` |
 | **Gerbang** | `G1` ✅ — tertutup 3 September 2026 |
@@ -470,7 +480,7 @@ Sebelumnya ⛔ 1 (`FE-BD-008`, menunggu `BE-BD-010` sampai ✅ 17 September 2026
 | **Gerbang** | `G1` ✅ |
 | **Dependency** | `BE-BD-011` ✅ [BE] |
 | **Acceptance** | Penyelesaian konflik hidup di layar pemeriksaan, bukan daftar kerja keempat (kewajiban layar `FE-BD-009`). **Kewajiban layar `FE-BD-019`**, diserap dari `BD-UI-GAP-003` dan disetujui 18 September 2026: tombol Validasi (`BloodGroupExam : Validate`) dan tindakan Penyelesaian konflik (`BloodGroupExam : ResolveConflict`) tampil **terpisah** menurut hak akses. Contoh: petugas BDRS berwenang validasi melihat tombol Validasi, tetapi tidak melihat tindakan Penyelesaian konflik. **Aturan pemilik yang disetujui:** `FE-BD-019` dipegang task terakhir di antara `FE-BD-005` dan task ini yang menyentuh layar `FE-BD-06`. Menurut urutan yang disetujui, itu task ini; bila task ini selesai lebih dulu, kewajibannya berpindah ke `FE-BD-005` dan perpindahannya dicatat pada kedua kartu |
-| **Catatan hak akses** | Tombol Validasi dan tindakan Penyelesaian konflik wajib tampil terpisah menurut hak akses (`03-frontend-architecture.md` §3, `FE-BD-019`). Untuk itu layar harus tahu hak akses pengguna **sebelum** menampilkan tombol. Sumbernya ada di backend (`GET /api/v1/Auth/permissions`), tetapi frontend belum punya pembacanya — lihat `BD-UI-GAP-002` |
+| **Catatan hak akses** | Tombol Validasi dan tindakan Penyelesaian konflik wajib tampil terpisah menurut hak akses (`03-frontend-architecture.md` §3, `FE-BD-019`). Untuk itu layar harus tahu hak akses pengguna **sebelum** menampilkan tombol. Sumbernya ada di backend (`GET /api/v1/Auth/permissions`), tetapi frontend belum punya pembacanya — lihat `BD-UI-GAP-002`. **Koreksi 18 September 2026:** pembacanya sudah ada sejak `622a46f41` (`permission-slice.jsx`, `use-permission.jsx`), dan `FE-BD-006` menambahkan keputusan ketat `selectPermissionDecision` / `useEffectivePermissions` yang dapat dipakai ulang di sini — terbukti runtime lewat `FE-BD-006` ✅ 18 September 2026, ter-commit `fbe29f6d1` di `origin/sukmagpV2` (riwayat: belum di-commit; belum terbukti runtime). Memakainya pada layar ini tetap pekerjaan task ini |
 | **Risk/owner** | Tinggi / klinis |
 | **DoD** | **Bukan** daftar kerja keempat — penyelesaian konflik hidup di layar pemeriksaan |
 
@@ -485,7 +495,7 @@ Sebelumnya ⛔ 1 (`FE-BD-008`, menunggu `BE-BD-010` sampai ✅ 17 September 2026
 | **Gerbang** | `G1` ✅ |
 | **Dependency** | `BE-BD-009` ✅ [BE]. **Riwayat:** `BE-BD-009` ⛔ |
 | **Acceptance** | `FE-BD-020` — ketiga tombol punya penjaga hak akses **terpisah**, sesuai `DEC-BD-043` dan `DEC-BD-045` |
-| **Catatan hak akses** | `AvailableActions` pada detail kantong menyatakan **kelayakan**, bukan izin (`BbkBloodUnitService.cs`, komentar `AvailableActionsFor`). Karena itu `FE-BD-020` tidak dapat dipenuhi hanya dari `AvailableActions`. Layar membutuhkan hak akses pengguna, dan pembacanya belum ada di frontend — lihat `BD-UI-GAP-002` |
+| **Catatan hak akses** | `AvailableActions` pada detail kantong menyatakan **kelayakan**, bukan izin (`BbkBloodUnitService.cs`, komentar `AvailableActionsFor`). Karena itu `FE-BD-020` tidak dapat dipenuhi hanya dari `AvailableActions`. Layar membutuhkan hak akses pengguna, dan pembacanya belum ada di frontend — lihat `BD-UI-GAP-002`. **Koreksi 18 September 2026:** pembacanya sudah ada sejak `622a46f41`, dan `FE-BD-006` menambahkan keputusan ketat `selectPermissionDecision` / `useEffectivePermissions` yang dapat dipakai ulang di sini — terbukti runtime lewat `FE-BD-006` ✅ 18 September 2026, ter-commit `fbe29f6d1` di `origin/sukmagpV2` (riwayat: belum di-commit; belum terbukti runtime). Memakainya pada layar ini tetap pekerjaan task ini |
 | **Risk/owner** | Sedang / BDRS |
 
 ---
@@ -508,7 +518,7 @@ Sebelumnya ⛔ 1 (`FE-BD-008`, menunggu `BE-BD-010` sampai ✅ 17 September 2026
 
 | Slice | Outcome | Task | Keadaan |
 | --- | --- | --- | --- |
-| **1 — Setup master dan menu** | Master Bank Darah dapat disiapkan, dan layar terjangkau dari menu | `FE-BD-001`, `FE-BD-011`, `FE-BD-006` | 🟡 `FE-BD-001` dan `FE-BD-011` ✅ selesai 18 September 2026; `FE-BD-006` masih sebagian — kriteria keduanya menunggu pembaca hak akses frontend (`BD-UI-GAP-002`). **Riwayat:** `FE-BD-001` ✅, `FE-BD-011` dan `FE-BD-006` sebagian; sebelumnya ketiganya sebagian, nol selesai |
+| **1 — Setup master dan menu** | Master Bank Darah dapat disiapkan, dan layar terjangkau dari menu | `FE-BD-001`, `FE-BD-011`, `FE-BD-006` | ✅ **Selesai 18 September 2026** — `FE-BD-001`, `FE-BD-011`, dan `FE-BD-006` ✅; `FE-BD-006` ditutup sesudah uji runtime pemilik R1–R8 `PASS` ([laporan](../task/report/frontend/FE-BD-006.md)). **Riwayat:** `FE-BD-001` dan `FE-BD-011` ✅, `FE-BD-006` sebagian — kriteria keduanya terbukti otomatis, menunggu bukti runtime; kriteria kedua `FE-BD-006` menunggu pembaca hak akses frontend (`BD-UI-GAP-002`); `FE-BD-001` ✅, `FE-BD-011` dan `FE-BD-006` sebagian; sebelumnya ketiganya sebagian, nol selesai |
 | **2 — Order darah, permintaan PMI, dan tindakan** | Pintu masuk permintaan darah dan penutup biaya berjalan dari layar | `FE-BD-002`, `FE-BD-003`, `FE-BD-010` | Belum dikerjakan |
 | **3 — Kantong darah, pemberian, dan penyelesaiannya** | Kantong disimpan, dialokasikan, diberikan, diselesaikan, dan dikoreksi dari layar | `FE-BD-012`, `FE-BD-004`, `FE-BD-005`, `FE-BD-009`, `FE-BD-007`, `FE-BD-008` | Belum dikerjakan |
 
@@ -519,7 +529,7 @@ Sebelumnya ⛔ 1 (`FE-BD-008`, menunggu `BE-BD-010` sampai ✅ 17 September 2026
 | Gap | Keadaan | Akibat pada rencana |
 | --- | --- | --- |
 | ~~**`BD-UI-GAP-001` — tombol kirim ulang biaya**~~ — **DITUTUP 18 September 2026, keputusan pemilik `Sukmagp`: Opsi A** (dicatat sebagai gap pada hari yang sama) | Backend menyediakan `POST /blood-bank-procedures/{id}/resend-cost-fact` (`BE-BD-013`). Endpoint ini jalur pemulihan, bukan langkah lifecycle, dan hak aksesnya sama dengan `complete` (`BloodBankProcedure : Update`). **Tidak ada** dokumen yang disetujui mewajibkan tombolnya di layar: `03-frontend-architecture.md` tidak memuatnya, `AC-BD-026/027/058` seluruhnya uji backend dan sudah terbukti, dan `DEC-BD-016` tidak menyebut layar. Laporan `BE-BD-013` menulis "layar kirim ulang **bila dikehendaki**". **Diputuskan: tidak ada tombol kirim ulang biaya di layar.** | **Ditutup.** Acceptance `FE-BD-010` kini terkunci pada butir (2)–(4) kartunya. `POST /resend-cost-fact` tetap kemampuan API teknis untuk pemulihan. Nol perubahan pada `03-frontend-architecture.md` dan kontrak. **Riwayat:** keputusan pemilik terbuka; Opsi B (tombol) akan menuntut delta arsitektur `FE-BD-07` dan approval ulang |
-| **`BD-UI-GAP-002` — pembaca hak akses di frontend** — **BARU 18 September 2026**, menggantikan catatan "katalog permission tidak ada" | Backend kini punya sumbernya: `GET /api/v1/Auth/permissions` → `EffectivePermissionSet` berisi pasangan `Resource` / `Action` (ada di `77f60c88`, masuk sesudah `d07dcf3`). Frontend `6640a5e7` belum memakainya. Seluruh frontend masih memakai pola reaktif `AccessDeniedGate`, yaitu menampilkan pesan sesudah backend menolak `403`. `filterMenuItemsByRole` masih stub | Menahan kriteria kedua `FE-BD-006`. Juga dibutuhkan kewajiban mengikat `FE-BD-019` (`FE-BD-009`), `FE-BD-020` (`FE-BD-007`), dan aturan `03-frontend-architecture.md` §4 "tombol yang tak berhak **MUST** disembunyikan". Membuat pembaca bersama berstatus `NEW` menurut `base-component-decision-gate`, sehingga diputuskan pemilik saat build task pertama yang membutuhkannya. **Tidak** menjadi dependency keras, karena sumber backend-nya sudah ada. **Keputusan pemilik 18 September 2026:** tetap gap implementasi, **bukan** penahan approval roadmap. Pembacanya diputuskan dan dibangun pada task disetujui pertama yang benar-benar membutuhkannya |
+| ~~**`BD-UI-GAP-002` — pembaca hak akses di frontend**~~ — **DITUTUP PENUH 18 September 2026 lewat `FE-BD-006`**, sesudah uji runtime pemilik `Sukmagp` R1–R8 `PASS`. **Riwayat:** BARU 18 September 2026, menggantikan catatan "katalog permission tidak ada"; lalu tertutup pada tingkat implementasi 18 September 2026 dengan bukti runtime menunggu | **Koreksi 18 September 2026:** pembaca frontend **sudah ada** sejak commit `622a46f41` (8 September 2026, pemakai pertama layar Lab `LabRejectionReason : SystemFlag`) dan masuk `sukmagpV2` lewat merge `d7059b563` sesudah `6640a5e7` diperiksa — sinkronisasi roadmap tidak menemukannya. Semantiknya longgar (belum termuat/gagal = boleh, `isSuperAdmin` = boleh), sehingga `FE-BD-006` menambahkan keputusan ketat `selectPermissionDecision`/`useEffectivePermissions`, invalidasi sesi, dan penolak permintaan ganda tanpa mengubah perilaku Lab ([laporan](../task/report/frontend/FE-BD-006.md) §1.1, §3.3). **Riwayat:** Backend kini punya sumbernya: `GET /api/v1/Auth/permissions` → `EffectivePermissionSet` berisi pasangan `Resource` / `Action` (ada di `77f60c88`, masuk sesudah `d07dcf3`). Frontend `6640a5e7` belum memakainya. Seluruh frontend masih memakai pola reaktif `AccessDeniedGate`, yaitu menampilkan pesan sesudah backend menolak `403`. `filterMenuItemsByRole` masih stub | Menahan kriteria kedua `FE-BD-006`. Juga dibutuhkan kewajiban mengikat `FE-BD-019` (`FE-BD-009`), `FE-BD-020` (`FE-BD-007`), dan aturan `03-frontend-architecture.md` §4 "tombol yang tak berhak **MUST** disembunyikan". Membuat pembaca bersama berstatus `NEW` menurut `base-component-decision-gate`, sehingga diputuskan pemilik saat build task pertama yang membutuhkannya. **Tidak** menjadi dependency keras, karena sumber backend-nya sudah ada. **Keputusan pemilik 18 September 2026:** tetap gap implementasi, **bukan** penahan approval roadmap. Pembacanya diputuskan dan dibangun pada task disetujui pertama yang benar-benar membutuhkannya |
 | ~~**`BD-UI-GAP-003` — kewajiban layar mengikat belum tertulis di kartu**~~ — **DISERAP 18 September 2026 ke roadmap revisi 8 yang disetujui** | Tujuh kewajiban berlabel "mengikat" pada `03-frontend-architecture.md` belum disebut pada baris Acceptance kartu mana pun: `FE-BD-001` golongan darah diminta vs hasil, `FE-BD-007` penanda konflik menahan, `FE-BD-008` penanda bukti lewat masa berlaku, `FE-BD-012` pesan penolakan menyebut lokasi, `FE-BD-016` koreksi menunggu tidak mengubah angka pemenuhan, `FE-BD-017` tombol keputusan tersembunyi pada koreksi sendiri, dan `FE-BD-019` Validasi terpisah dari Penyelesaian konflik | Kewajiban itu tetap mengikat builder lewat arsitektur. Yang kurang hanya jejaknya di roadmap. **Usulan pemilik task**, mengikuti layar yang dibangun: `FE-BD-001` → `FE-BD-002`; `FE-BD-007`, `FE-BD-008`, `FE-BD-012` → `FE-BD-005`; `FE-BD-016`, `FE-BD-017` → `FE-BD-008`; `FE-BD-019` → task terakhir dari `FE-BD-005` / `FE-BD-009` yang menyentuh layar `FE-BD-06`. **Disetujui `Sukmagp` 18 September 2026 tanpa koreksi**, dan kini tertulis pada baris Acceptance kartu `FE-BD-002`, `FE-BD-005`, `FE-BD-008`, dan `FE-BD-009`. Nol task baru, nol task ID berubah. **Riwayat:** usulan ini menunggu approval bersama revisi 8 |
 | **Batas yang bukan gap: status penyerahan biaya tidak dapat dibaca ulang** — **BARU 18 September 2026** | `BillingHandoff` hanya ada pada jawaban `complete` dan `resend-cost-fact`; `GET` selalu `null` (`api-contract.md` delta 17 September 2026) | Frontend hanya dapat menampilkan hasil penyerahan **saat itu juga**. Daftar "tindakan yang biayanya belum sampai" tidak dapat dibangun tanpa perubahan backend. Tidak dijadwalkan |
 | **Cacat sisa backend: `HeldUnitCount` `0` pada balasan penonaktifan** | Balasan `PATCH /blood-storage-locations/{id}/status` tetap memetakan ulang entity tanpa angka dari service di `77f60c88`. Milik `BE-BD-015` ✅, tidak dibuka ulang | **Tidak** menahan `FE-BD-011`: konfirmasi membaca `GET /{id}` sebelum penonaktifan, yang angkanya benar. **Riwayat (14 September 2026):** dicatat sebagai penahan satu acceptance `FE-BD-011` |

@@ -61,8 +61,13 @@ backend_source_sha_note: >-
   yang kini ter-commit. Nol baris peta kemampuan berpindah status dan nol yang memburuk,
   karena perubahannya adalah hasil kerja modul ini sendiri. Sisanya dokumentasi.
 backend_branch: sukmagp
-frontend_source_sha: e24c9e4c53f64e8c8972d8fd317355099c065695
+frontend_source_sha: fbe29f6d1b7408b13f4377b1fe4b77fc4dabf82e
 frontend_source_sha_note: >-
+  Naik dari e24c9e4c53f64e8c8972d8fd317355099c065695 ke fbe29f6d1b7408b13f4377b1fe4b77fc4dabf82e
+  pada 18 September 2026 — commit implementasi FE-BD-006 (feat(bank-darah): enforce
+  permission-aware setup menu), di-push ke origin/sukmagpV2; satu-satunya commit di atas e24c9e4c,
+  isinya persis 7 berkas FE-BD-006. capability_map_frontend_impact_scan_sha sengaja tetap e24c9e4c:
+  pass jangkar ini tidak menjalankan impact scan. Riwayat e24c9e4c:
   Naik dari 6640a5e7 ke e24c9e4c pada 18 September 2026 — commit implementasi FE-BD-011
   (feat(bank-darah): close FE-BD-011 storage deactivation flow), di-push ke origin/sukmagpV2.
   Impact scan terbatas: berkas Bank Darah yang berubah hanya milik FE-BD-001 (2d0ac741) dan
@@ -827,7 +832,7 @@ test, migration, maupun database disentuh.
 | Roadmap frontend revisi 8 | **`APPROVED`** — `approved_by` `Sukmagp`, `approved_at` `2026-09-18` | Metadata `roadmap/frontend-roadmap.md` |
 | `BD-UI-GAP-001` tombol kirim ulang biaya | **Ditutup, Opsi A.** Tidak ada tombol di layar. `FE-BD-010` wajib membaca `BillingHandoff` dari `POST /complete`, menampilkannya apa adanya, dan tidak pernah menyatakan Billing berhasil bila `Kind` bukan `Emitted`/`Replayed`. `FE-BD-010` tidak boleh menyediakan `resend-cost-fact` sebagai aksi biasa, mengarang status Billing yang tetap dari `GET`, maupun mengirim ulang otomatis. `POST /resend-cost-fact` tetap kemampuan API teknis untuk pemulihan | Baris Acceptance dan Di luar cakupan kartu `FE-BD-010` |
 | `BD-UI-GAP-003` tujuh kewajiban layar mengikat | **Pemetaan disetujui tanpa koreksi**: `FE-BD-001` → `FE-BD-002`; `FE-BD-007`/`008`/`012` → `FE-BD-005`; `FE-BD-016`/`017` → `FE-BD-008`; `FE-BD-019` → task terakhir di antara `FE-BD-005` dan `FE-BD-009` yang menyentuh layar `FE-BD-06`, yaitu `FE-BD-009` menurut urutan yang disetujui | Baris Acceptance keempat kartu itu |
-| `BD-UI-GAP-002` pembaca hak akses frontend | **Tetap gap implementasi, bukan penahan approval.** Sumber backend `GET /api/v1/Auth/permissions` sudah ada. Pembacanya diputuskan dan dibangun pada task disetujui pertama yang membutuhkannya, mengikuti `base-component-decision-gate` | Tabel coverage gap roadmap frontend |
+| `BD-UI-GAP-002` pembaca hak akses frontend | **Tetap gap implementasi, bukan penahan approval.** Sumber backend `GET /api/v1/Auth/permissions` sudah ada. Pembacanya diputuskan dan dibangun pada task disetujui pertama yang membutuhkannya, mengikuti `base-component-decision-gate`. **Koreksi 18 September 2026:** pembaca frontend ternyata sudah ada sejak `622a46f41` (`permission-slice.jsx`, `use-permission.jsx`; masuk `sukmagpV2` lewat merge `d7059b563`) dan tidak ditemukan saat sinkronisasi roadmap. `FE-BD-006` memakainya lewat keputusan ketat baru; gap tertutup pada tingkat implementasi, bukti runtime menunggu ([laporan](task/report/frontend/FE-BD-006.md)). **DITUTUP PENUH 18 September 2026:** uji runtime pemilik `Sukmagp` R1–R8 `PASS`, `FE-BD-006` ✅ | Tabel coverage gap roadmap frontend |
 
 **Yang sengaja tidak bergerak.** `revision` tetap `27`: approval roadmap bukan perubahan arsitektur target,
 kontrak, dependency, atau keputusan desain. Polanya sama dengan approval roadmap backend revisi 11, yang
@@ -860,3 +865,33 @@ Keadaan current yang ditegaskan: `FE-BD-001` ✅ (`2d0ac741`), `FE-BD-011` ✅ (
 Frontend: 2 selesai, 1 sebagian, 9 belum dikerjakan, 0 terblokir. `BD-PH-008` tetap `IN_PROGRESS`, dan
 task frontend berikutnya `FE-BD-002`. `revision` tetap `27` karena pergerakan SHA dan jangkar bukti
 bukan perubahan material atas blueprint target.
+
+---
+
+**Penutupan `FE-BD-006` — 18 September 2026, revisi tetap 27.**
+
+Pass dokumentasi saja. Nol source, build, test, migration, maupun database disentuh pada pass ini.
+`FE-BD-006` ✅ sesudah uji runtime pemilik `Sukmagp` R1–R8 seluruhnya `PASS`
+([laporan](task/report/frontend/FE-BD-006.md) §6.3), dan `BD-UI-GAP-002` ditutup penuh. Source
+frontend `FE-BD-006` belum di-commit di atas `e24c9e4c`, sehingga `frontend_source_sha` tidak bergerak.
+
+Keadaan current yang ditegaskan: `FE-BD-001` ✅ (`2d0ac741`), `FE-BD-011` ✅ (`e24c9e4c`), `FE-BD-006` ✅
+(belum di-commit). Frontend: **3 selesai, 0 sebagian, 9 belum dikerjakan, 0 terblokir**; Slice 1
+selesai. Nol gap UI terbuka. `BD-PH-008` tetap `IN_PROGRESS`, dan task frontend berikutnya `FE-BD-002`.
+`revision` tetap `27` karena penutupan task bukan perubahan material atas blueprint target.
+
+---
+
+**Jangkar bukti git `FE-BD-006` — 18 September 2026, revisi tetap 27.**
+
+Pass dokumentasi saja. Nol source, build, test, migration, maupun database disentuh.
+
+| Field | Dari | Menjadi |
+| --- | --- | --- |
+| `frontend_source_sha` | `e24c9e4c53f64e8c8972d8fd317355099c065695` | **`fbe29f6d1b7408b13f4377b1fe4b77fc4dabf82e`** — commit implementasi `FE-BD-006` (`feat(bank-darah): enforce permission-aware setup menu`) di `sukmagpV2`, di-push ke `origin/sukmagpV2` |
+| `capability_map_frontend_impact_scan_sha` | `e24c9e4c` | **Tetap `e24c9e4c`** — pass ini tidak menjalankan impact scan |
+
+Keadaan current yang ditegaskan: `FE-BD-001` ✅ (`2d0ac741`), `FE-BD-011` ✅ (`e24c9e4c`), `FE-BD-006` ✅
+(`fbe29f6d1`). Frontend: **3 selesai, 0 sebagian, 9 belum dikerjakan, 0 terblokir**; Slice 1 selesai;
+`BD-UI-GAP-002` tertutup; `BD-PH-008` tetap `IN_PROGRESS`; task frontend berikutnya `FE-BD-002`.
+Pernyataan "belum di-commit" pada bagian penutupan di atas adalah riwayat keadaan saat itu.
