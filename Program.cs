@@ -336,6 +336,8 @@ try
     builder.Services.AddScoped<LabPathologyCategoryService>();
     builder.Services.AddScoped<LabProcedurePathologyCategoryService>();
     builder.Services.AddScoped<LabPathologyReportService>();
+    builder.Services.AddScoped<LabOrganismService>();
+    builder.Services.AddScoped<LabAntibioticService>();
     builder.Services.AddScoped<LabExaminationService>();
     builder.Services.AddScoped<LabWorklistService>();
     builder.Services.AddScoped<LabMonitoringService>();
