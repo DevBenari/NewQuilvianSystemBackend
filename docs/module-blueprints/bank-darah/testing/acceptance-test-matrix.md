@@ -96,9 +96,9 @@ Wajib memuat **jalur gagal**, bukan hanya jalur berhasil. Jenis test: `Unit` (at
 | `AC-BD-024` | Kantong `PendingReview` dialihkan dengan alasan | Integ | Berhasil; rantai pasien asal→alasan→tujuan tersimpan |
 | `AC-BD-025` | Kantong `PendingReview` diselesaikan tanpa alasan | Unit | Ditolak (`VAL-BD-016`) |
 | `AC-BD-029` | Alasan tidak layak diketik bebas | Unit | Ditolak (`VAL-BD-016`) |
-| `AC-BD-026` | Satu tindakan selesai dengan 2 kantong diberikan | Integ | Satu fakta biaya (bila kontrak Billing turun), bukan dua — **ditandai tertunda `DEC-BD-016`**. **Milik `BE-BD-013` sejak roadmap revisi 8 (11 September 2026)**; semula `BE-BD-012` |
-| `AC-BD-027` | Fakta biaya tindakan sama dikirim ulang | Integ | **Tertunda `DEC-BD-016`** — tidak diuji sampai kontrak Billing disetujui |
-| `AC-BD-058` | Koreksi pencatatan pemberian dibuat; sistem mencoba otomatis membalik fakta biaya tindakan | Integ | Ditolak — koreksi tidak mengubah biaya (`DEC-BD-034`, `INV-BD-024`). **Tertunda `DEC-BD-016`**. **Milik `BE-BD-013` sejak roadmap revisi 8**; semula `BE-BD-012`. Baris ini baru ditambahkan 11 September 2026 — sebelumnya kriteria ini tidak punya baris uji |
+| `AC-BD-026` | Satu tindakan selesai dengan 2 kantong diberikan | Integ | Satu fakta biaya (bila kontrak Billing turun), bukan dua — **ditandai tertunda `DEC-BD-016`**. **Milik `BE-BD-013` sejak roadmap revisi 8 (11 September 2026)**; semula `BE-BD-012` **Terbukti runtime 17 September 2026 — `BE-BD-013`** ([laporan](../task/report/backend/BE-BD-013.md)): satu tindakan dengan 2 kantong `Issued` → tepat 1 fakta `BloodBank`/`BloodBankCharge` dan 1 charge line. Penanda tertunda `DEC-BD-016` di atas adalah riwayat. |
+| `AC-BD-027` | Fakta biaya tindakan sama dikirim ulang | Integ | **Tertunda `DEC-BD-016`** — tidak diuji sampai kontrak Billing disetujui **Terbukti runtime 17 September 2026 — `BE-BD-013`**: kiriman ulang → `Replayed`, fakta, charge line, dan processing effect tetap 1. Penanda tertunda di atas adalah riwayat. |
+| `AC-BD-058` | Koreksi pencatatan pemberian dibuat; sistem mencoba otomatis membalik fakta biaya tindakan | Integ | Ditolak — koreksi tidak mengubah biaya (`DEC-BD-034`, `INV-BD-024`). **Tertunda `DEC-BD-016`**. **Milik `BE-BD-013` sejak roadmap revisi 8**; semula `BE-BD-012`. Baris ini baru ditambahkan 11 September 2026 — sebelumnya kriteria ini tidak punya baris uji **Terbukti runtime 17 September 2026 — `BE-BD-013`**: koreksi `Approved` oleh aktor berbeda → nol fakta pembatalan, charge line dan folio identik sebelum/sesudah. Penanda tertunda di atas adalah riwayat. |
 
 ---
 
@@ -217,7 +217,7 @@ seluruh kolom yang diuji sudah ada di kamus data sejak `v1`.
 | `AC-BD-100` | Tindakan tercatat, lalu kode, nama tindakan, dan nominal tarif di data induk diubah | Integ | Ketiga kolom salinan pada tindakan lama **tidak berubah** |
 | `AC-BD-101` | Tindakan `Recorded` diselesaikan | Integ | `Completed`; transisi, pelaku, dan waktu tersimpan |
 | `AC-BD-101` — jalur gagal | Tindakan yang sudah `Completed` diselesaikan lagi | Integ | **Ditolak** secara terkendali; status dan audit tidak bergerak |
-| `AC-BD-102` | Tindakan dibuat dan diselesaikan | Unit + Integ | Nol baris pada tabel Billing; nol pemanggilan service Billing; tidak ada endpoint maupun producer penyaluran biaya |
+| `AC-BD-102` | Tindakan dibuat dan diselesaikan | Unit + Integ | Nol baris pada tabel Billing; nol pemanggilan service Billing; tidak ada endpoint maupun producer penyaluran biaya. — **HISTORICAL / SUPERSEDED oleh `DEC-BD-016` + `BE-BD-013`** (keputusan pemilik 18 September 2026): hasil ini sah saat `BE-BD-012` ditutup 11 September 2026; **tidak lagi diuji sebagai syarat saat ini**. Harapan yang berlaku untuk tindakan selesai adalah `AC-BD-026` — tepat satu fakta biaya |
 | Konkurensi nomor | Beberapa tindakan dicatat serentak | Concurrency | Tidak ada `ProcedureNumber` ganda; dijaga provider number-series dan index unik |
 
 ---
@@ -240,5 +240,5 @@ seluruh kolom yang diuji sudah ada di kamus data sejak `v1`.
 | Kantong di lokasi nonaktif tak dapat dialokasikan maupun diberikan lewat jalur normal | `AC-BD-068/072`; jalur darurat `AC-BD-074/075` |
 | Riwayat penempatan tak pernah ditimpa, dan sistem tak pernah memindahkan kantong sendiri | `AC-BD-063/069` |
 | Seluruh master MVP terisi — **termasuk minimal satu lokasi penyimpanan aktif** | Rencana data master awal `02-backend-architecture.md` §J. Tanpa ini modul berhenti total |
-| Tindakan tercatat dengan tarif dari data induk, salinannya tidak berubah, dan tanpa jalur Billing | `AC-BD-098/099/100/101/102` |
-| Billing charge & label **tidak** diuji pada MVP | `DEC-BD-016`, `OQ-BD-011` — di luar cakupan |
+| Tindakan tercatat dengan tarif dari data induk, salinannya tidak berubah, dan tanpa jalur Billing | `AC-BD-098/099/100/101/102`. **Catatan 18 September 2026:** bagian "tanpa jalur Billing" (`AC-BD-102`) **HISTORICAL / SUPERSEDED oleh `DEC-BD-016` + `BE-BD-013`**; tindakan selesai kini menyerahkan satu fakta biaya (`AC-BD-026/027/058`) |
+| Label **tidak** diuji pada MVP. Billing charge **diuji sejak 17 September 2026** lewat `BE-BD-013` (`AC-BD-026/027/058`) | `OQ-BD-011` — di luar cakupan. **Riwayat:** `DEC-BD-016` — Billing charge juga di luar cakupan |

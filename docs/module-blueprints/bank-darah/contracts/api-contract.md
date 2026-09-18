@@ -218,10 +218,28 @@ Base URL: `api/v1/health-services/blood-bank-management/blood-bank-procedures`
 | `GET` | `/` | Daftar tindakan Bank Darah | `BloodBankProcedure : Read` | `ProcedurePagedQuery` | `ApiResponse<PagedResult<ProcedureListDto>>` | Rencana |
 | `GET` | `/{id}` | Detail tindakan | `BloodBankProcedure : Read` | — | `ApiResponse<ProcedureDetailDto>` | Rencana |
 | `POST` | `/` | Catat tindakan atas satu order | `BloodBankProcedure : Create` | `CreateProcedureRequest` | `ApiResponse<ProcedureDetailDto>` | Rencana · `400 VAL-BD-026` |
-| `POST` | `/{id}/complete` | Nyatakan tindakan selesai | `BloodBankProcedure : Update` | — | `ApiResponse<ProcedureDetailDto>` | Rencana |
+| `POST` | `/{id}/complete` | Nyatakan tindakan selesai; sesudah tersimpan, serahkan satu fakta biaya ke Billing | `BloodBankProcedure : Update` | — | `ApiResponse<ProcedureDetailDto>` + `BillingHandoff` | Tersedia · `422` tindakan tidak `Recorded` · `409` konkurensi |
+| `POST` | `/{id}/resend-cost-fact` | Kirim ulang fakta biaya tindakan yang sudah selesai, tanpa perpindahan status | `BloodBankProcedure : Update` | — | `ApiResponse<ProcedureDetailDto>` + `BillingHandoff` | Tersedia · `422` belum `Completed` atau fakta ditolak · `409` hasil kiriman sebelumnya belum pasti |
 
-**Tidak ada endpoint penyaluran biaya ke Billing** — tertahan `DEC-BD-016`. Fakta biaya boleh dirancang
-sebagai kejadian domain nanti, tetapi kontraknya belum dibekukan.
+**Delta 17 September 2026 — `DEC-BD-016` disetujui, `BE-BD-013`.** Satu endpoint baru dan satu isian respons
+baru; tidak ada yang dihapus maupun diganti nama.
+
+- **`BillingHandoff`** — isian **aditif dan nullable** pada `ProcedureDetailDto`. Terisi hanya pada jawaban
+  `complete` dan `resend-cost-fact`; selalu `null` pada `GET`. Isinya `Kind` (`Emitted`, `Replayed`,
+  `OutcomeUnknown`, `ReconciliationRequired`, `RejectedByBilling`, `Invalid`), `IsClinicallySafe`,
+  `MilestoneFactId`, `MilestoneFactVersion`, `DispatchStatus`, `Code`, `Message`. Keterangan proses, **bukan**
+  status pembayaran.
+- **`complete`** tetap `200` bila penyelesaian tersimpan, walau Billing menolak atau belum pasti — pesannya
+  menyebut bahwa penyerahan memerlukan tinjauan. Menyelesaikan ulang tindakan `Completed` tetap `422`.
+- **`resend-cost-fact`** memakai hak akses yang sama dengan `complete`, sehingga butir hak akses tidak
+  bertambah. `200` untuk `Emitted`/`Replayed`; `409` untuk `OutcomeUnknown`/`ReconciliationRequired`; `422`
+  untuk `RejectedByBilling`/`Invalid` atau tindakan belum `Completed`. Ringkasan penyerahan ikut pada `errors`.
+- **Tidak ada isian Billing dari client.** Kedua endpoint tanpa body; konteks sumber, jenis efek, kunjungan,
+  identitas fakta, dan nominal diturunkan backend.
+- `AvailableActions` **tidak** berubah: kirim ulang adalah jalur pemulihan, bukan langkah lifecycle.
+
+**Riwayat — sampai 17 September 2026:** tidak ada endpoint penyaluran biaya ke Billing — tertahan
+`DEC-BD-016`. Fakta biaya boleh dirancang sebagai kejadian domain nanti, tetapi kontraknya belum dibekukan.
 
 ---
 

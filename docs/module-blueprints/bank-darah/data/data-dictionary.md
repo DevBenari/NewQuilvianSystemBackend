@@ -30,7 +30,7 @@ Eksekusi migration-nya sendiri tetap wewenang terpisah yang diminta per tindakan
 | `BbkBloodUnit`, `BbkBloodUnitAllocation`, `BbkCompatibilityEvidence`, `BbkEmergencyAuthorization`, `BbkIssuanceCorrection` | Baru | Bank Darah | `v2`: `BbkBloodUnit` +`CurrentPlacementId`, `BbkEmergencyAuthorization` +`BypassScope`. **`v3`**: `BbkEmergencyAuthorization` +`AuthorizerRole`/`EmergencyConditionNote`; `BbkIssuanceCorrection` memperoleh lifecycle dua tahap |
 | `BbkBloodUnitPlacement` | **Baru pada `v2`** | Bank Darah | Riwayat penempatan kantong, append-only (`BD-DOM-25`, `DEC-BD-036`) |
 | `BbkBloodGroupExam`, `BbkBloodGroupSample`, `BbkBloodGroupConflictResolution` | Baru | Bank Darah | — |
-| `BbkBloodBankProcedure` | Baru | Bank Darah | Tanpa penyaluran charge (`DEC-BD-016`) |
+| `BbkBloodBankProcedure` | Baru | Bank Darah | Tanpa kolom penagihan. Sejak `DEC-BD-016` disetujui (17 September 2026) penyelesaiannya menyerahkan satu fakta biaya; status penyerahan tinggal di `CliClinicalMilestoneFact`, bukan di tabel ini (`BE-BD-013`). **Riwayat:** tanpa penyaluran charge |
 | `BbkTransitionHistory` | Baru | Bank Darah | Append-only |
 | `MstBloodComponent`, `MstBloodBankReason` | Baru | Bank Darah (master) | Setup MVP |
 | `MstBloodStorageLocation` | **Baru pada `v2`** | Bank Darah (master) | Master ketiga Setup MVP (`BD-DOM-24`, `DEC-BD-035`). Prasyarat go-live |

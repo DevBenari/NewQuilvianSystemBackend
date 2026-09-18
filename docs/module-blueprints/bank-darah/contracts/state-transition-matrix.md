@@ -129,9 +129,17 @@ boleh menjadi sah bila validator menyatakannya (`AC-BD-053`).
 | --- | --- | --- | --- | --- | --- |
 | — | Catat tindakan | `Recorded` | Petugas Bank Darah | Menunjuk satu order sah; tarif dirujuk (snapshot) | `VAL-BD-026` |
 | `Recorded` | Nyatakan selesai | `Completed` | Petugas Bank Darah | — | — |
+| `Completed` | Kirim ulang fakta biaya | **status tidak berubah** | Petugas Bank Darah (hak akses yang sama dengan selesai) | Tindakan sudah `Completed` | `422` bila belum `Completed` |
 
-**Penyaluran fakta biaya ke Billing tertahan `DEC-BD-016`** — tidak ada perpindahan yang menyalurkan
-charge pada kontrak ini.
+**Efek sesudah `Recorded` → `Completed` (`DEC-BD-016`, disetujui 17 September 2026).** Sesudah perpindahan
+dan riwayatnya tersimpan, tepat **satu** fakta biaya `BloodBank`/`BloodBankCharge` diserahkan ke Billing.
+Penyerahan itu **bukan** perpindahan status: kegagalan Billing tidak mengembalikan tindakan ke `Recorded`,
+dan tidak ada status penagihan pada enum ini. Menyelesaikan tindakan yang sudah `Completed` **tetap ditolak**.
+"Kirim ulang fakta biaya" tidak menambah baris riwayat, tidak menyentuh salinan tarif, dan tidak pernah
+melahirkan charge kedua. Bentuk faktanya ada pada `integration-contract.md` bagian 3.
+
+**Riwayat — sampai 17 September 2026:** penyaluran fakta biaya ke Billing tertahan `DEC-BD-016`; tidak ada
+perpindahan yang menyalurkan charge pada kontrak ini.
 
 ---
 

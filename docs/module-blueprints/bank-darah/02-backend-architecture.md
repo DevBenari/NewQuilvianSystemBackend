@@ -62,7 +62,7 @@ Dua dari tiga keputusan ini **tidak menambah satu pun entity**. Yang bertambah h
 enum, dan empat butir hak akses.
 
 Yang **tidak** dirancang, sesuai perintah dan sesuai batas scope arsitektur: implementasi charge
-Billing (`DEC-BD-016` menggantung), mekanik cetak label golongan darah (`OQ-BD-011`), integrasi API
+Billing (`DEC-BD-016` menggantung — **disetujui 17 September 2026**, penyerahan fakta biaya kini dikerjakan `BE-BD-013`), mekanik cetak label golongan darah (`OQ-BD-011`), integrasi API
 PMI, integrasi HCLAB, mesin crossmatch, dan manajemen donor.
 
 ---
@@ -129,7 +129,7 @@ master bersama; Bank Darah menyimpan rujukan (`Id`), bukan salinan.
 | Kewenangan unit memesan darah | HealthServices — Master Data | Ya | **Extend** — tambah satu kolom penanda pada `MstServiceUnit` (`BD-CAP-005`, `BD-DOM-18`) |
 | Tindakan & tarif | HealthServices — Master Data / Billing | Ya | Tidak — rujuk `ProcedureId`/`TariffId` + snapshot kode-nama-tarif (`BD-CAP-008`) |
 | Nilai golongan darah (ABO+Rhesus) | Platform backend | Ya | Tidak — pakai enum `BloodType` yang sudah ada (`BD-CAP-016`) |
-| Fakta biaya (charge) ke Billing | BillingManagement | Ya (produsen fakta) | **Tidak dirancang** — `DEC-BD-016` menggantung (`BD-CAP-015`) |
+| Fakta biaya (charge) ke Billing | BillingManagement | Ya (produsen fakta) | **Ya, lewat producer yang sudah ada** — `DEC-BD-016` disetujui 17 September 2026; satu fakta `BloodBank`/`BloodBankCharge` per tindakan selesai (`BE-BD-013`). **Riwayat:** tidak dirancang — `DEC-BD-016` menggantung (`BD-CAP-015`) |
 | Order darah, permintaan PMI, kantong, alokasi, bukti kecocokan, pemeriksaan golongan darah, sampel, tindakan, riwayat | **Bank Darah** | Ya | **Ya, baru** — belum ada di sistem (`BD-CAP-019`, `BD-CAP-017`) |
 | Katalog komponen darah | **Bank Darah** | Ya | **Ya, baru** master (`BD-CAP-018`, `BD-DOM-13`) |
 | **Lokasi penyimpanan darah (kulkas darah)** | **Bank Darah** | Ya | **Ya, baru** master `MstBloodStorageLocation` (`BD-DOM-24`, `DEC-BD-035`) |
@@ -439,7 +439,7 @@ terpisah di `Repositories/Configurations/HealthServices/BloodBankManagement/`.
 | Status | `Baru` |
 | Lokasi file | `.../BloodBankManagement/Models/BbkBloodBankProcedure.cs` |
 | Kategori | Transaksi |
-| Tanggung jawab | Mencatat tindakan Bank Darah beserta konteksnya sebagai dasar biaya. **Penyaluran fakta biaya ke Billing tidak dirancang** (`DEC-BD-016`) |
+| Tanggung jawab | Mencatat tindakan Bank Darah beserta konteksnya sebagai dasar biaya. Sejak `DEC-BD-016` disetujui (17 September 2026), penyelesaian tindakan menyerahkan **satu** fakta biaya ke Billing tanpa kolom penagihan pada tindakan (`BE-BD-013`). **Riwayat:** penyaluran fakta biaya ke Billing tidak dirancang |
 | Field penting | `ProcedureNumber`, `BloodOrderId`, `ServiceUnitId`, `BdrsDoctorId`, `ProcedureRefId`, `TariffId` + snapshot kode/nama/tarif, `ProcedureStatus` |
 | Relasi | Milik satu `BbkBloodOrder`; merujuk tindakan & tarif milik Master Data/Billing |
 | Pemakaian alur | Dicatat lalu dinyatakan selesai; satu tindakan ≤ satu fakta biaya |
@@ -478,7 +478,7 @@ terpisah di `Repositories/Configurations/HealthServices/BloodBankManagement/`.
 | `BbkProviderRequestService` | `Baru` | `.../Services/BbkProviderRequestService.cs` | Buat permintaan (`BD-XINV-02`), catat penerimaan (termasuk kelebihan `BD-XINV-03`), tutup administratif | Ya |
 | `BbkBloodUnitService` | `Baru` | `.../Services/BbkBloodUnitService.cs` | **Penetapan lokasi (`Received`→`Stored`) & perpindahan lokasi**, alokasi & pembatalan, catat bukti kecocokan, pemberian (+darurat), koreksi, penyelesaian `PendingReview`. Memegang **dua gerbang**: `EvaluateAllocationGate` dan `EvaluateIssuanceGate` — lihat catatan di bawah | Ya |
 | `BbkBloodGroupExamService` | `Baru` | `.../Services/BbkBloodGroupExamService.cs` | Sampel, catat hasil, **validasi rutin**, deteksi konflik `BD-XINV-04`, **penyelesaian konflik**. Dua tindakan terakhir dijaga butir hak akses yang **berbeda** (`DEC-BD-039`) | Ya |
-| `BbkBloodBankProcedureService` | `Baru` | `.../Services/BbkBloodBankProcedureService.cs` | Catat & selesaikan tindakan. **Tidak** memanggil producer Billing (tertahan `DEC-BD-016`) | Ya |
+| `BbkBloodBankProcedureService` | `Baru` | `.../Services/BbkBloodBankProcedureService.cs` | Catat & selesaikan tindakan; sesudah penyelesaian tersimpan, serahkan satu fakta biaya lewat `ClinicalMilestoneFactProducer`, dan kirim ulang fakta secara idempotent (`DEC-BD-016`, `BE-BD-013`). **Riwayat:** tidak memanggil producer Billing (tertahan `DEC-BD-016`) | Ya |
 | `BbkEncounterStatusReader` (`BD-DOM-16`) | `Baru` | `.../Services/BbkEncounterStatusReader.cs` | Adapter baca status kunjungan/episode; **tak pernah menulis** ke modul hulu (`DEC-BD-014`) | Tidak |
 | `MstBloodComponentService` | `Baru` | `Areas/HealthServices/MasterData/Services/MstBloodComponentService.cs` | CRUD katalog komponen | Ya |
 | `MstBloodBankReasonService` | `Baru` | `Areas/HealthServices/MasterData/Services/MstBloodBankReasonService.cs` | CRUD daftar alasan | Ya |
@@ -773,7 +773,7 @@ Nilai seperti masa berlaku bukti **MUST** dari master, **MUST NOT** di-hardcode 
 | **Lomba antara menonaktifkan lokasi dan mengalokasikan kantong** | Perlombaan ini **tidak berbahaya**: yang kalah hanyalah satu alokasi yang terlanjur lolos beberapa milidetik sebelum penanda berubah. Kantongnya tetap tidak dapat **diberikan**, karena gerbang pemberian dinilai ulang (`INV-BD-029`) — inilah nilai praktis dari gerbang pemberian yang memuat gerbang alokasi | `DEC-BD-038`, `ARCH-BD-POS-07` |
 | **Koreksi diputuskan dua kali** | Keputusan menyaring `CorrectionStatus = Requested`; token `Version` kantong mengawal. Koreksi yang sudah `Approved`/`Rejected` tidak dapat diputuskan lagi | `DEC-BD-041` |
 | **Peminta menyetujui permintaannya sendiri** | Dijaga aturan bisnis di service, **bukan** hak akses — seseorang dapat sah memegang kedua butir hak akses sekaligus, dan justru itu kasus yang perlu ditahan. Perbandingannya `RequestedByUserId ≠ DecidedByUserId` | `DEC-BD-041` |
-| Pengiriman fakta biaya idempotent | **Tidak dirancang** — `DEC-BD-016` menggantung | `BD-CAP-015` |
+| Pengiriman fakta biaya idempotent | Fakta disusun ulang dari data tersimpan sehingga identik; producer mengembalikan `Replayed`, Billing tidak membuat charge kedua (`BE-BD-013`). **Riwayat:** tidak dirancang — `DEC-BD-016` menggantung | `BD-CAP-015` |
 
 ---
 
@@ -806,7 +806,7 @@ Nilai seperti masa berlaku bukti **MUST** dari master, **MUST NOT** di-hardcode 
 | Lampiran berkas pada bukti pendukung koreksi | Bukti yang disetujui menyebut "bukti pendukung" tanpa menyatakan bentuknya. Dirancang sebagai **teks**; lampiran berkas adalah kemampuan penyimpanan berkas tersendiri yang belum diputuskan — lihat `OQ-BD-016` |
 | Model keamanan baru | Pola `[AccessController]/[AccessAction]/[AccessPermission]` sudah ada (`BD-CAP-013`) |
 | Mekanisme konfigurasi unit baru | Cukup extend `MstServiceUnit` dengan satu flag (`BD-CAP-005`) |
-| Perhitungan tarif / charge sendiri | Billing pemilik tarif; hanya kirim fakta — dan itu pun tertahan `DEC-BD-016` (`BD-CAP-015`) |
+| Perhitungan tarif / charge sendiri | Billing pemilik tarif; Bank Darah hanya kirim fakta — sejak 17 September 2026 tidak lagi tertahan `DEC-BD-016` (`BD-CAP-015`, `BE-BD-013`) |
 | Sampel/pesanan Laboratorium | Sampel Bank Darah terpisah, tak menimbulkan tagihan Lab (`DEC-BD-018`) |
 | Producer/menu Label golongan darah | `OQ-BD-011` di luar scope |
 | Klien PMI / HCLAB / mesin crossmatch / donor | Di luar scope MVP (`DEC-BD-002`, `DEC-BD-022`, BRD §9) |
@@ -841,7 +841,7 @@ Nilai seperti masa berlaku bukti **MUST** dari master, **MUST NOT** di-hardcode 
 keterangan pribadi → identifier internal & sampel mengikuti pola `BD-CAP-008` (tanpa data pribadi).
 Detail di `contracts/permission-audit-matrix.md`.
 
-**Dampak billing:** berdampak charge tetapi penyalurannya tertahan `DEC-BD-016` — lihat
+**Dampak billing:** berdampak charge; penyalurannya berlaku sejak `DEC-BD-016` disetujui 17 September 2026 (**riwayat:** tertahan `DEC-BD-016`) — lihat
 `contracts/integration-contract.md`.
 
 **Acceptance test pembukti:** `AC-BD-001`..`AC-BD-088` di `testing/acceptance-test-matrix.md`.

@@ -319,7 +319,7 @@ sudah disetujui; lalu kebiasaan project; baru kemudian kebebasan pengembang.
 | `DEC-BD-013` | `Decision` | Bukti pemeriksaan kecocokan **wajib** tercatat sebelum darah diberikan. Quilvian mencatat titik pemeriksaan klinis, tidak menghitung kompatibilitas | `draft` |
 | `DEC-BD-014` | `Decision` | Sinyal berakhirnya kunjungan mengikuti sumber lifecycle masing-masing jenis kunjungan | `draft` |
 | `DEC-BD-015` | `Decision` | Hasil golongan darah dan Rhesus dicatat sebagai hasil pemeriksaan tersendiri milik Bank Darah | `draft` |
-| `DEC-BD-016` | `Open Question` | Persetujuan pemilik Billing untuk konteks sumber Bank Darah pada kontrak Billing | `OPEN` |
+| `DEC-BD-016` | `Decision` | Fakta biaya Bank Darah ke Billing: `BloodBank`/`BloodBankCharge`, satu fakta per tindakan `Recorded` → `Completed`, nominal dari salinan tarif, koreksi tidak membalik biaya. Rincian di bagian 8.31. **Riwayat:** `Open Question` — persetujuan pemilik Billing untuk konteks sumber Bank Darah pada kontrak Billing, `OPEN` sampai 17 September 2026 | `approved` — `Sukmagp` 2026-09-17 |
 | `DEC-BD-017` | `Decision` | Jalur darurat tersedia, hanya untuk peran berwenang, dengan alasan wajib dan penanda permanen | `draft` |
 | `DEC-BD-018` | `Decision` | Sampling untuk pemeriksaan golongan darah dicatat Bank Darah sendiri, bukan sampel Laboratorium | `draft` |
 | `DEC-BD-019` | `Decision` | Kantong `PENDING_REVIEW` diselesaikan lewat tiga pilihan akhir: dialihkan, dikembalikan ke PMI, atau tidak layak | `draft` |
@@ -1441,7 +1441,7 @@ kolom salinan sudah ada di sana sejak `v1`.
 | `AC-BD-099` | Satu tindakan punya tarif berbeda menurut kelas pasien; tindakan dicatat untuk kunjungan pasien | Backend memilih tarif aktif dan masih berlaku yang cocok dengan `ProcedureRefId` dan `PatientClassId` dari kunjungan (`DEC-BD-048`, `DEC-BD-049`) — **bukan** menerima nominal harga dari client |
 | `AC-BD-100` | Tindakan sudah tercatat dengan salinan tarif, lalu `MstProcedure` atau `MstTariff` diubah | `ProcedureCodeSnapshot`, `ProcedureNameSnapshot`, dan `TariffAmountSnapshot` pada tindakan lama **tidak berubah** |
 | `AC-BD-101` | Tindakan berstatus `Recorded`; petugas berwenang menyelesaikannya | Status menjadi `Completed` dan transisi beserta auditnya tersimpan. Percobaan menyelesaikan tindakan pada keadaan yang tidak sah ditolak secara terkendali |
-| `AC-BD-102` | Tindakan dibuat maupun diselesaikan | Tidak ada invoice, item, maupun fakta biaya yang dibuat; tidak ada pemanggilan posting Billing; tidak ada jalur penyaluran biaya. Penyaluran tetap milik `BE-BD-013` |
+| `AC-BD-102` | Tindakan dibuat maupun diselesaikan | Tidak ada invoice, item, maupun fakta biaya yang dibuat; tidak ada pemanggilan posting Billing; tidak ada jalur penyaluran biaya. Penyaluran tetap milik `BE-BD-013`. — **HISTORICAL / SUPERSEDED oleh `DEC-BD-016` + `BE-BD-013`** (keputusan pemilik 18 September 2026): kriteria ini **bukti historis** `BE-BD-012` saat `DEC-BD-016` masih terbuka, dan **bukan** syarat yang berlaku sekarang. Sejak 17 September 2026 tindakan yang selesai **menghasilkan tepat satu** fakta biaya (`AC-BD-026`) |
 
 `AC-BD-071` adalah turunan langsung dari model alokasi yang sudah disepakati, bukan aturan baru:
 pengalihan kantong ke pasien lain menghasilkan ikatan alokasi yang sama bentuknya dengan alokasi
@@ -1456,7 +1456,7 @@ Seluruh nama pasien dan nomor kunjungan pada contoh adalah data samaran.
 
 | ID | Isi | Pemilik | Memblokir |
 | --- | --- | --- | --- |
-| `DEC-BD-016` | Persetujuan pemilik Billing untuk menambah konteks sumber dan jenis efek biaya Bank Darah pada kontrak Billing. Pemicunya sudah jelas: satu tindakan Bank Darah yang selesai | Pemilik BillingManagement | Penyerahan biaya ke Billing |
+| ~~`DEC-BD-016`~~ | Persetujuan pemilik Billing untuk menambah konteks sumber dan jenis efek biaya Bank Darah pada kontrak Billing. Pemicunya sudah jelas: satu tindakan Bank Darah yang selesai | Pemilik BillingManagement | **Ditutup 17 September 2026** — `approved` `Sukmagp` (bagian 8.31). Tidak lagi menahan penyerahan biaya ke Billing |
 | `DEF-BD-003` | Apakah semua komponen darah menuntut bukti kecocokan yang sama | Pemilik proses klinis | `IMPLEMENTATION` aturan per komponen |
 | `OQ-BD-010` | Apakah PMI menerima pengembalian kantong yang sudah keluar. Fakta di luar sistem | Pemilik proses BDRS | Tidak memblokir rancangan |
 | `OQ-BD-011` | Isi label golongan darah, kapan boleh dicetak, identifier uniknya, dan perilaku cetak ulang. `DEC-BD-015` baru menutup sumber datanya, bukan mekanik labelnya | Pemilik proses klinis | `DESIGN` label dan pencetakan |
@@ -1570,6 +1570,43 @@ Turunannya: **nol invariant baru, nol kode validasi baru, nol state transition b
 `DEC-BD-054` mempertajam `DEC-BD-030`, `INV-BD-033`, dan catatan kamus data "angka pemenuhan menyaring
 `CorrectionStatus = Approved`" menjadi aturan hitung yang dapat diuji, tanpa menyentuh `DEC-BD-051`.
 
+### 8.31 Persetujuan pemilik `DEC-BD-016` — penyaluran biaya tindakan ke Billing
+
+Pemilik, **`Sukmagp`**, menyetujui `DEC-BD-016` pada **17 September 2026**. Keputusan ini membuka
+`BE-BD-013`, satu-satunya task backend Bank Darah yang sebelumnya berada di future scope.
+
+| Decision ID | Menutup | Type | Keputusan | Owner | Status | Approved by/at |
+| --- | --- | --- | --- | --- | --- | --- |
+| `DEC-BD-016` | Persetujuan konteks sumber biaya Bank Darah pada kontrak Billing (semula `Open Question`) | `Decision` | Bank Darah menyerahkan fakta biaya ke Billing dengan `SourceContext` **`BloodBank`** dan `EffectType` **`BloodBankCharge`**. Pemicunya **satu** perpindahan `BbkBloodBankProcedure` `Recorded` → `Completed`. Satuannya **tepat satu fakta per tindakan selesai** — tindakan yang memberikan dua kantong atau lebih **tidak** melahirkan satu fakta per kantong. Nominalnya **salinan tarif yang tersimpan** oleh `BE-BD-012`; tarif data induk saat ini **tidak** dihitung ulang saat penyerahan. Akibat finansialnya tetap **milik Billing**. Koreksi pemberian kantong **tidak** membalik, membatalkan, mengembalikan dana, maupun mengubah biaya tindakan secara otomatis | Pemilik BillingManagement bersama pemilik proses BDRS | `approved` | `Sukmagp` 2026-09-17 |
+
+**Contoh.** Pasien A menerima dua kantong PRC dalam satu tindakan "Uji Silang Serasi" bertarif salinan
+Rp250.000. Saat tindakan dinyatakan selesai, Billing menerima **satu** fakta bernilai rujukan Rp250.000,
+bukan dua. Seminggu kemudian tarif data induk naik menjadi Rp300.000 — fakta yang dikirim ulang tetap
+membawa Rp250.000. Lalu petugas mengoreksi pencatatan salah satu kantong; biaya tindakan tidak disentuh
+Bank Darah, dan bila perlu ditinjau, Billing yang memutuskan.
+
+**Yang dipertahankan, bukan diubah.** `DEC-BD-021` (biaya dari tindakan, bukan kantong) dan `DEC-BD-034`
+beserta `INV-BD-024` (koreksi tidak membalik biaya) berlaku apa adanya; `DEC-BD-016` justru menjadi kontrak
+yang dirujuk keduanya. Kasus tepi `ARCH-BD-GAP-09` — koreksi yang menghapus satu-satunya pemberian di bawah
+sebuah tindakan — **tertutup di sisi Bank Darah**: tetap tidak ada pembalikan otomatis. Kebijakan peninjauan
+finansialnya milik Billing dan tidak menahan modul ini.
+
+**Yang gugur karena keputusan ini: batas `AC-BD-102`.** `AC-BD-102` ("tidak ada fakta biaya, tidak ada
+pemanggilan Billing") adalah batas lingkup `BE-BD-012` **selama** `DEC-BD-016` masih terbuka, dan kalimatnya
+sendiri menyebut "penyaluran tetap milik `BE-BD-013`". Buktinya pada 11 September 2026 tetap sah sebagai
+riwayat. Sejak persetujuan ini, penyelesaian tindakan **memang** menyerahkan tepat satu fakta biaya.
+
+**Keputusan pemilik 18 September 2026 atas `AC-BD-102`.** Kriteria **tidak dihapus**. Statusnya **HISTORICAL / SUPERSEDED oleh `DEC-BD-016` + `BE-BD-013`**:
+ia tetap menjadi bukti bahwa pada 11 September 2026, saat `BE-BD-012` ditutup, penyaluran ke Billing memang
+sengaja dimatikan selama `DEC-BD-016` terbuka — dan bukti itu sah untuk saat itu. Kriteria ini **tidak boleh**
+dibaca sebagai syarat saat ini bahwa tindakan `Completed` menghasilkan nol fakta Billing. Syarat yang berlaku
+adalah `AC-BD-026`, `AC-BD-027`, dan `AC-BD-058` milik `BE-BD-013`.
+
+**Turunannya:** nol entity baru, nol kolom baru, nol migration, nol state transition baru pada Bank Darah.
+Satu baris registri pada `BillingSourceContract`, satu fakta lewat `ClinicalMilestoneFactProducer` yang sudah
+ada, dan satu endpoint kirim ulang fakta biaya. Bukti implementasinya ada pada
+[laporan `BE-BD-013`](task/report/backend/BE-BD-013.md).
+
 ---
 
 ## 11. Langkah Berikutnya
@@ -1589,7 +1626,7 @@ pertanyaan terbuka yang menempel pada `v4`**, dan set kontrak tetap `v4` `approv
 perubahan — rinciannya di bagian 8.24.
 
 Pertanyaan terbuka yang masih hidup seluruhnya berada di luar rilis pertama atau bersifat masukan
-konfigurasi: `DEC-BD-016` (persetujuan pemilik Billing), `OQ-BD-011` (mekanik label), `DEF-BD-003`,
+konfigurasi: `DEC-BD-016` (persetujuan pemilik Billing — **ditutup 17 September 2026**, bagian 8.31), `OQ-BD-011` (mekanik label), `DEF-BD-003`,
 `OQ-BD-010`, `OQ-BD-012`, `OQ-BD-014` (**ditutup `DEC-BD-051`**, 17 September 2026), `OQ-BD-016`, dan `BD-DEP-009`. Tidak satu pun menahan gelombang
 `MVP-0` sampai `MVP-4`.
 
@@ -1671,7 +1708,7 @@ pemberian.
 
 | ID | Memblokir | Apakah menahan perancangan? |
 | --- | --- | --- |
-| `DEC-BD-016` | Penyerahan fakta biaya ke Billing | Ya, hanya bagian penyerahan biayanya |
+| `DEC-BD-016` | Penyerahan fakta biaya ke Billing | **Ditutup 17 September 2026** — `approved` `Sukmagp` (bagian 8.31). **Riwayat:** ya, hanya bagian penyerahan biayanya |
 | `OQ-BD-011` | Mekanik label golongan darah | Ya, hanya slice label |
 | `DEF-BD-003` | Aturan bukti kecocokan per komponen | Tidak. `IMPLEMENTATION` saja |
 | `DEF-BD-004` | Enam wewenang: jalur darurat, validator, pencatat koreksi, bukti kecocokan, penyelesaian `PendingReview`, pembatalan order | **Ditutup seluruhnya** — `DEC-BD-039` sampai `DEC-BD-044` |
