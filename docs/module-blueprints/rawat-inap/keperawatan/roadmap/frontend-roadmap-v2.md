@@ -192,9 +192,9 @@ tabel task: **27**. Keduanya cocok.
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `FE-RWI-081` ✅ | Perawat membuka satu ruang kerja berisi delapan menu | `FR-KEP-035`, `036`, `037`; `RWI-DEC-108`, `113` | `0.5.0` | `FE-KEP-01` — **layout dipertahankan** | `FE-KEP-07` — navigasi kiri delapan menu, tab sekunder, `?section=` dan `?tab=` menyimpan posisi | `BE-RWI-106` [BE] | AC-1 s.d. AC-6 | `npm run lint`, `npm run build`, verifikasi manual + panel Network | Menu tanpa backend **tidak boleh** memanggil jaringan / Muhammad Hamzah | Kartu `FE-RWI-081` |
 | `FE-RWI-082` ✅ | Perawat melihat berapa bagian pengkajian yang sudah beres | `FR-KEP-050`, `051`, `052`; `RWI-DEC-119`, `120` | `0.5.0` API 7.1 | `FE-KEP-02`, `FE-KEP-03` | `FE-KEP-08` — progres lima bagian ✓/!/○ dan tujuh sub-menu | `FE-RWI-081`, `BE-RWI-112` [BE] | AC-1 s.d. AC-5 | `npm run lint`, `npm run build`, verifikasi manual | Progres gagal dimuat **wajib** tampil galat, bukan ○ / Muhammad Hamzah | Kartu `FE-RWI-082` |
-| `FE-RWI-083` | Formulir klinis digambar dari definisi versi, bukan dari kode layar | `FR-KEP-039`, `043`, `044`, `045`, `047`, `048` | `0.5.0` data 11.4–11.6 | — (layar baru) | `FE-KEP-09` — **satu penggambar** untuk Kajian Umum, Resiko Jatuh, Monitoring Nyeri, Assesment Edukasi, Perencanaan Pulang | `FE-RWI-082`, `BE-RWI-107` [BE], `BE-RWI-109` [BE] | AC-1 s.d. AC-7 | `npm run lint`, `npm run build`, verifikasi manual; **test unit direkomendasikan** | Skor dihitung server — frontend **tidak** menghitung ulang / komite keperawatan | Kartu `FE-RWI-083` |
-| `FE-RWI-084` | Perawat mencatat dan membaca pengawasan satu hari dalam satu layar | `FR-KEP-056` s.d. `063`; `RWI-DEC-148`, `149` | `0.5.0` data 11.8–11.10, API 7.5 | — (layar baru) | `FE-KEP-10` — tanda vital, nyeri, intake, output, balance, GDS, diet dan mobilisasi | `FE-RWI-081`, `BE-RWI-119` [BE], `BE-RWI-120` [BE] | AC-1 s.d. AC-7 | `npm run lint`, `npm run build`, verifikasi manual | Satuan GDS **tanpa bawaan** — salah satuan = salah dosis insulin / Muhammad Hamzah | Kartu `FE-RWI-084` |
-| `FE-RWI-085` | MPP mengisi Evaluasi Awal delapan bagian | `FR-KEP-053`, `054`, `055`; `RWI-DEC-115`, `140` | `0.5.0` data 11.7 | — (layar baru) | `FE-KEP-11` — delapan bagian checklist; MPP menulis, lainnya membaca | `FE-RWI-081`, `BE-RWI-113` [BE] | AC-1 s.d. AC-5 | `npm run lint`, `npm run build`, verifikasi manual | Jalur addendum belum ada sampai jenis dokumen `14` tersedia / Muhammad Hamzah | Kartu `FE-RWI-085` |
+| `FE-RWI-083` ✅ | Formulir klinis digambar dari definisi versi, bukan dari kode layar | `FR-KEP-039`, `043`, `044`, `045`, `047`, `048` | `0.5.0` data 11.4–11.6 | — (layar baru) | `FE-KEP-09` — **satu penggambar** untuk Kajian Umum, Resiko Jatuh, Monitoring Nyeri, Assesment Edukasi, Perencanaan Pulang | `FE-RWI-082`, `BE-RWI-107` [BE], `BE-RWI-109` [BE] | AC-1 s.d. AC-7 | `npm run lint`, `npm run build`, unit test (7/7 passing) | Skor dihitung server — frontend **tidak** menghitung ulang / komite keperawatan | Kartu `FE-RWI-083` |
+| `FE-RWI-084` ✅ | Perawat mencatat dan membaca pengawasan satu hari dalam satu layar | `FR-KEP-056` s.d. `063`; `RWI-DEC-148`, `149` | `0.5.0` data 11.8–11.10, API 7.5 | — (layar baru) | `FE-KEP-10` — tanda vital, nyeri, intake, output, balance, GDS, diet dan mobilisasi | `FE-RWI-081`, `BE-RWI-119` [BE], `BE-RWI-120` [BE] | AC-1 s.d. AC-7 | `npm run lint`, `npm run build`, unit test (7/7 passing) | Satuan GDS **tanpa bawaan** — salah satuan = salah dosis insulin / Muhammad Hamzah | Kartu `FE-RWI-084` |
+| `FE-RWI-085` ✅ | MPP mengisi Evaluasi Awal delapan bagian | `FR-KEP-053`, `054`, `055`; `RWI-DEC-115`, `140` | `0.5.0` data 11.7 | — (layar baru) | `FE-KEP-11` — delapan bagian checklist; MPP menulis, lainnya membaca | `FE-RWI-081`, `BE-RWI-113` [BE] | AC-1 s.d. AC-5 | `npm run lint`, `npm run build`, unit test (6/6 passing) | Jalur addendum belum ada sampai jenis dokumen `14` tersedia / Muhammad Hamzah | Kartu `FE-RWI-085` |
 | `FE-RWI-086` | Perawat menulis asuhan dan catatan dalam satu tempat | `FR-KEP-077`; `FR-KEP-056`; `RWI-DEC-113`, `114` | `0.5.0` + `0.6.0` [DOK] | `FE-KEP-04`, `FE-KEP-05` | `FE-KEP-12` — Vital Sign, SOAP, Catatan Terintegrasi, Tindakan Harian, Obat & Alkes, Catatan Keperawatan, Rencana Asuhan | `FE-RWI-081`, `BE-RWI-124` [BE], `BE-RWI-121` [BE] | AC-1 s.d. AC-5 | `npm run lint`, `npm run build`, verifikasi manual | SOAP perawat masuk CPPT yang sama dengan dokter / Muhammad Hamzah | Kartu `FE-RWI-086` |
 | `FE-RWI-087` | Perawat memberikan obat dari daftar yang benar | `FR-KEP-064` s.d. `076`, `078`; `RWI-DEC-116`, `117`, `145` s.d. `148` | `0.5.0` state 5.5–5.6 | — (layar baru) | `FE-KEP-13` — Pemberian Obat (MAR), Sliding Scale, Obat Bawaan, Resep Aktif, Pemakaian Alkes | `FE-RWI-081`, `BE-RWI-115` [BE], `BE-RWI-123` [BE], `BE-RWI-125` [BE] | AC-1 s.d. AC-8 | `npm run lint`, `npm run build`, verifikasi manual; **test unit direkomendasikan** | **Layar paling berbahaya di roadmap ini** — salah tampil dosis / pemilik klinis belum ditunjuk | Kartu `FE-RWI-087` |
 | `FE-RWI-088` | Perawat kedua menemukan dosis yang menunggu konfirmasinya | `FR-KEP-066`; `RWI-DEC-117` | `0.5.0` API double-check | — (layar baru) | `FE-KEP-22` — daftar tunggu cek ganda per unit; kartu keenam pada `FE-INP-09` | `BE-RWI-116` [BE] | AC-1 s.d. AC-5 | `npm run lint`, `npm run build`, verifikasi manual | Perawat kedua tidak boleh orang yang sama / Muhammad Hamzah | Kartu `FE-RWI-088` |
@@ -281,7 +281,7 @@ roadmap dan traceability diperbarui.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **Selesai (18 September 2026)** — Satu penggambar terpadu 5 formulir, skor server murni, unassessed bukan normal, 8 seksi Kajian Umum, rujukan VitalSignId, validasi status nyeri, immutabilitas versi lama; 7/7 unit test pass. [Laporan tracked](../task/report/frontend/FE-RWI-083.md) |
 | **Gelombang** | 3 |
 | **Layar** | `FE-KEP-09` — **satu penggambar** untuk lima formulir |
 
@@ -317,7 +317,7 @@ roadmap dan traceability diperbarui.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **Selesai (18 September 2026)** — TTV deret/grafik tanpa input nyeri, entri cairan lengkap penautan MAR, koreksi/batal beralasan min 5 karakter, GDS wajib satuan tanpa bawaan, balance shift & 24 jam murni server, observasi diet/mobilisasi terstruktur. Pengujian unit 7/7 passing. [Laporan tracked](../task/report/frontend/FE-RWI-084.md) |
 | **Gelombang** | 2 |
 | **Layar** | `FE-KEP-10` — layar baru |
 
@@ -351,7 +351,7 @@ roadmap dan traceability diperbarui.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
+| **Status** | Selesai dikerjakan ✅ (18 September 2026) |
 | **Gelombang** | 2 |
 | **Layar** | `FE-KEP-11` — layar baru |
 

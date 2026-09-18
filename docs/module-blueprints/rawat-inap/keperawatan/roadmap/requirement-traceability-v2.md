@@ -45,18 +45,18 @@ Label `[BE-DOK]` menandai task milik `dokter-rawat-inap`.
 | `FR-KEP-040` | `MISSING / NEW` | `BE-RWI-108` | `FE-RWI-091` | `VAL-KEP-20a` | ✅ Backend 17 September 2026 — pengesah bukan pengubah terakhir; `dotnet build` 0 error. [BE-RWI-108](../task/report/backend/BE-RWI-108.md) |
 | `FR-KEP-041` | `MISSING / NEW` | `BE-RWI-107` | `FE-RWI-091` | `VAL-KEP-19` | ✅ Backend 17 September 2026 — validasi pita tanpa tumpuk dan lubang; `dotnet build` 0 error. [BE-RWI-107](../task/report/backend/BE-RWI-107.md) |
 | `FR-KEP-042` | `MISSING / NEW` | `BE-RWI-107` | `FE-RWI-091` | `INT-KEP-16` | ✅ Backend 17 September 2026 — `resolve` versi berlaku per usia pasien; `dotnet build` 0 error. [BE-RWI-107](../task/report/backend/BE-RWI-107.md) |
-| `FR-KEP-043` | `EXTEND` — mencabut `RWI-FACT-036` | `BE-RWI-109` | `FE-RWI-083` | `AC-KEP-054`, `061` | ✅ Backend 17 September 2026 — risiko jatuh rawat inap dari instrumen berversi; regresi poliklinik NOT RUN; `dotnet build` 0 error. [BE-RWI-109](../task/report/backend/BE-RWI-109.md) |
+| `FR-KEP-043` | `EXTEND` — mencabut `RWI-FACT-036` | `BE-RWI-109` | `FE-RWI-083` | `AC-KEP-054`, `061` | ✅ Backend 17 September 2026 [BE-RWI-109] / ✅ Frontend 18 September 2026 — formulir risiko jatuh digambar dari instrumen berversi, 7/7 test pass. [FE-RWI-083](../task/report/frontend/FE-RWI-083.md) |
 
 ## 3. `EPIC KEP-11` — Pengkajian Pasien dan progres
 
 | FR | Disposisi | Task BE | Task FE | Bukti acceptance | Status |
 | --- | --- | --- | --- | --- | --- |
-| `FR-KEP-044` | `MISSING / NEW` | `BE-RWI-109` | `FE-RWI-083` | Data 11.6 | ✅ Backend 17 September 2026 — jawaban instrumen dan skor server; `dotnet build` 0 error. [BE-RWI-109](../task/report/backend/BE-RWI-109.md) |
-| `FR-KEP-045` | `EXTEND` | `BE-RWI-110` | `FE-RWI-083` | `03` 10.4.3 | ✅ Backend 17 September 2026 — Kajian Umum delapan bagian (definisi draft); migration `K3` diterapkan ke `QuilvianNewDevHamzah`; `dotnet build` 0 error. [BE-RWI-110](../task/report/backend/BE-RWI-110.md) |
-| `FR-KEP-046` | `EXTEND` | `BE-RWI-110` | `FE-RWI-083` | `VitalSignId` | ✅ Backend 17 September 2026 — Kajian Umum menunjuk `VitalSignId`; `dotnet build` 0 error. [BE-RWI-110](../task/report/backend/BE-RWI-110.md) |
-| `FR-KEP-047` | `EXTEND` | `BE-RWI-111` | `FE-RWI-083` | Enum `6`–`8` | ✅ Backend 17 September 2026 — enum `6`–`8`; `dotnet build` 0 error. [BE-RWI-111](../task/report/backend/BE-RWI-111.md) |
-| `FR-KEP-048` | `MISSING / NEW` | `BE-RWI-111` | `FE-RWI-083` | `VAL-KEP-22` | ✅ Backend 17 September 2026 — keadaan nyeri wajib, waktu kajian ulang tersimpan; `dotnet build` 0 error. [BE-RWI-111](../task/report/backend/BE-RWI-111.md) |
-| `FR-KEP-049` | `EXTEND` | `BE-RWI-110` | `FE-RWI-084` | `VAL-KEP-22c` | ✅ Backend 17 September 2026 — tanda vital rawat inap menolak isian nyeri; `dotnet build` 0 error. [BE-RWI-110](../task/report/backend/BE-RWI-110.md) |
+| `FR-KEP-044` | `MISSING / NEW` | `BE-RWI-109` | `FE-RWI-083` | Data 11.6 | ✅ Backend 17 September 2026 [BE-RWI-109] / ✅ Frontend 18 September 2026 — skor total & pita risiko murni dari server via score-preview, tanpa kalkulasi ulang di frontend. [FE-RWI-083](../task/report/frontend/FE-RWI-083.md) |
+| `FR-KEP-045` | `EXTEND` | `BE-RWI-110` | `FE-RWI-083` | `03` 10.4.3 | ✅ Backend 17 September 2026 [BE-RWI-110] / ✅ Frontend 18 September 2026 — Kajian Umum 8 seksi terstruktur RWI-DEC-141. [FE-RWI-083](../task/report/frontend/FE-RWI-083.md) |
+| `FR-KEP-046` | `EXTEND` | `BE-RWI-110` | `FE-RWI-083` | `VitalSignId` | ✅ Backend 17 September 2026 [BE-RWI-110] / ✅ Frontend 18 September 2026 — Kajian Umum menunjuk VitalSignId baca-saja tanpa salin angka. [FE-RWI-083](../task/report/frontend/FE-RWI-083.md) |
+| `FR-KEP-047` | `EXTEND` | `BE-RWI-111` | `FE-RWI-083` | Enum `6`–`8` | ✅ Backend 17 September 2026 [BE-RWI-111] / ✅ Frontend 18 September 2026 — integrasi enum instrumen 6–8 pada penggambar terpadu. [FE-RWI-083](../task/report/frontend/FE-RWI-083.md) |
+| `FR-KEP-048` | `MISSING / NEW` | `BE-RWI-111` | `FE-RWI-083` | `VAL-KEP-22` | ✅ Backend 17 September 2026 [BE-RWI-111] / ✅ Frontend 18 September 2026 — validasi status nyeri wajib sebelum finalisasi (VAL-KEP-22a). [FE-RWI-083](../task/report/frontend/FE-RWI-083.md) |
+| `FR-KEP-049` | `EXTEND` | `BE-RWI-110` | `FE-RWI-084` | `VAL-KEP-22c` | ✅ Backend 17 September 2026 [BE-RWI-110] / ✅ Frontend 18 September 2026 — tanda vital rawat inap menolak isian nyeri langsung (FR-KEP-049), nyeri dibaca dari latestPain. [FE-RWI-084](../task/report/frontend/FE-RWI-084.md) |
 | `FR-KEP-050` | `MISSING / NEW` | `BE-RWI-112` | `FE-RWI-082` | API 7.1 | ✅ Backend 17 September 2026 [BE-RWI-112] / ✅ Frontend 17 September 2026 — progres 5 bagian ✓/!/○ persen kelipatan 20, non-skor terpisah. [FE-RWI-082](../task/report/frontend/FE-RWI-082.md) |
 | `FR-KEP-051` | `MISSING / NEW` | `BE-RWI-112` | `FE-RWI-082` | `RWI-DEC-119` (3) | ✅ Backend 17 September 2026 [BE-RWI-112] / ✅ Frontend 17 September 2026 — alert temuan berisiko di kepala konteks tanpa menurunkan progres. [FE-RWI-082](../task/report/frontend/FE-RWI-082.md) |
 | `FR-KEP-052` | `MISSING / NEW` | `BE-RWI-112` | `FE-RWI-082` | `AC-KEP-072` | ✅ Backend 17 September 2026 [BE-RWI-112] / ✅ Frontend 17 September 2026 — galat eksplisit saat gagal dimuat, pantang menampilkan ○ palsu. [FE-RWI-082](../task/report/frontend/FE-RWI-082.md) |
@@ -65,22 +65,22 @@ Label `[BE-DOK]` menandai task milik `dokter-rawat-inap`.
 
 | FR | Disposisi | Task BE | Task FE | Bukti acceptance | Status |
 | --- | --- | --- | --- | --- | --- |
-| `FR-KEP-053` | `MISSING / NEW` | `BE-RWI-113` | `FE-RWI-085` | Data 11.7 | ✅ Backend 17 September 2026 — dokumen Evaluasi Awal; migration `K3` diterapkan ke `QuilvianNewDevHamzah`; `dotnet build` 0 error. [BE-RWI-113](../task/report/backend/BE-RWI-113.md) |
-| `FR-KEP-054` | `MISSING / NEW` | `BE-RWI-113` | `FE-RWI-085` | `VAL-KEP-23` | ✅ Backend 17 September 2026 — hak akses MPP dan penempatan unit; `dotnet build` 0 error. [BE-RWI-113](../task/report/backend/BE-RWI-113.md) |
-| `FR-KEP-055` | `MISSING / NEW` — addendum bergantung `INT-KEP-12` | `BE-RWI-113` | `FE-RWI-085` | State 5.3 | ✅ Backend 17 September 2026 — satu dokumen hidup per episode; **jalur addendum tetap terbuka** (`501` sampai `INT-KEP-12`); `dotnet build` 0 error. [BE-RWI-113](../task/report/backend/BE-RWI-113.md) |
+| `FR-KEP-053` | `MISSING / NEW` | `BE-RWI-113` | `FE-RWI-085` | Data 11.7 | ✅ Backend 17 September 2026 [BE-RWI-113] / ✅ Frontend 18 September 2026 — delapan bagian checklist tampil dari definisi versi, unit test 6/6 pass. [FE-RWI-085](../task/report/frontend/FE-RWI-085.md) |
+| `FR-KEP-054` | `MISSING / NEW` | `BE-RWI-113` | `FE-RWI-085` | `VAL-KEP-23` | ✅ Backend 17 September 2026 [BE-RWI-113] / ✅ Frontend 18 September 2026 — kontrol tulis eksklusif hak MPP di unit pasien, non-MPP baca-saja, galat 403 transparan. [FE-RWI-085](../task/report/frontend/FE-RWI-085.md) |
+| `FR-KEP-055` | `MISSING / NEW` — addendum bergantung `INT-KEP-12` | `BE-RWI-113` | `FE-RWI-085` | State 5.3 | ✅ Backend 17 September 2026 [BE-RWI-113] / ✅ Frontend 18 September 2026 — satu dokumen hidup per episode, jalur addendum tidak ditampilkan sebelum jenis dokumen 14 tersedia (INT-KEP-12). [FE-RWI-085](../task/report/frontend/FE-RWI-085.md) |
 
 ## 5. `EPIC KEP-13` — Pengawasan Harian
 
 | FR | Disposisi | Task BE | Task FE | Bukti acceptance | Status |
 | --- | --- | --- | --- | --- | --- |
-| `FR-KEP-056` | `EXTEND` | `BE-RWI-121` | `FE-RWI-084` | Data 11.2 | ✅ Backend 17 September 2026 — tanda vital menyimpan episode dan terbaca sebagai deret; `dotnet build` 0 error. [BE-RWI-121](../task/report/backend/BE-RWI-121.md) |
-| `FR-KEP-057` | `MISSING / NEW` | `BE-RWI-119` | `FE-RWI-084` | Data 11.8 | ✅ Backend 17 September 2026 — entri cairan bersumber, ml, berwaktu, berpelaksana; migration `K5` diterapkan ke `QuilvianNewDevHamzah`; `dotnet build` 0 error. [BE-RWI-119](../task/report/backend/BE-RWI-119.md) |
-| `FR-KEP-058` | `MISSING / NEW` | `BE-RWI-122` | `FE-RWI-084` | `VAL-KEP-24d`–`g` | ✅ Backend 17 September 2026 — intake obat menunjuk tepat satu dosis `Administered`; `dotnet build` 0 error. [BE-RWI-122](../task/report/backend/BE-RWI-122.md) |
-| `FR-KEP-059` | `MISSING / NEW` | `BE-RWI-120` | `FE-RWI-084` | API 7.5 | ✅ Backend 17 September 2026 — balance dari entri aktif per shift dan 24 jam; `dotnet build` 0 error. [BE-RWI-120](../task/report/backend/BE-RWI-120.md) |
+| `FR-KEP-056` | `EXTEND` | `BE-RWI-121` | `FE-RWI-084` | Data 11.2 | ✅ Backend 17 September 2026 [BE-RWI-121] / ✅ Frontend 18 September 2026 — tanda vital tampil deret dan grafik per episode, unit test 7/7 pass. [FE-RWI-084](../task/report/frontend/FE-RWI-084.md) |
+| `FR-KEP-057` | `MISSING / NEW` | `BE-RWI-119` | `FE-RWI-084` | Data 11.8 | ✅ Backend 17 September 2026 [BE-RWI-119] / ✅ Frontend 18 September 2026 — entri cairan wajib arah, sumber, volume ml, waktu, pelaksana. [FE-RWI-084](../task/report/frontend/FE-RWI-084.md) |
+| `FR-KEP-058` | `MISSING / NEW` | `BE-RWI-122` | `FE-RWI-084` | `VAL-KEP-24d`–`g` | ✅ Backend 17 September 2026 [BE-RWI-122] / ✅ Frontend 18 September 2026 — penautan dosis MAR pada intake obat (kategori 5). [FE-RWI-084](../task/report/frontend/FE-RWI-084.md) |
+| `FR-KEP-059` | `MISSING / NEW` | `BE-RWI-120` | `FE-RWI-084` | API 7.5 | ✅ Backend 17 September 2026 [BE-RWI-120] / ✅ Frontend 18 September 2026 — total balance per shift & 24 jam murni dari server, tanpa rekalkulasi klien. [FE-RWI-084](../task/report/frontend/FE-RWI-084.md) |
 | `FR-KEP-060` | `MISSING / NEW` | `BE-RWI-120` | `FE-RWI-092` | `AC-KEP-093` | ✅ Backend 17 September 2026 — shift per unit atau bawaan, tidak mempengaruhi kewenangan; `dotnet build` 0 error. [BE-RWI-120](../task/report/backend/BE-RWI-120.md) |
-| `FR-KEP-061` | `MISSING / NEW` | `BE-RWI-119` | `FE-RWI-084` | Data 11.9 | ✅ Backend 17 September 2026 — GDS bangsal satu tempat, satuan wajib tanpa bawaan; `dotnet build` 0 error. [BE-RWI-119](../task/report/backend/BE-RWI-119.md) |
-| `FR-KEP-062` | `MISSING / NEW` | `BE-RWI-119` | `FE-RWI-084` | Data 11.10 | ✅ Backend 17 September 2026 — observasi harian terstruktur; `dotnet build` 0 error. [BE-RWI-119](../task/report/backend/BE-RWI-119.md) |
-| `FR-KEP-063` | `MISSING / NEW` — usulan `G-26`, `G-27` | `BE-RWI-122` | `FE-RWI-084` | `VAL-KEP-36c`, `f` | ✅ Backend 17 September 2026 — pengingat tanpa kewajiban dan penandaan entri; usulan `ADOPTED_AS_PROPOSED`; `dotnet build` 0 error. [BE-RWI-122](../task/report/backend/BE-RWI-122.md) |
+| `FR-KEP-061` | `MISSING / NEW` | `BE-RWI-119` | `FE-RWI-084` | Data 11.9 | ✅ Backend 17 September 2026 [BE-RWI-119] / ✅ Frontend 18 September 2026 — GDS bangsal terpadu, satuan wajib dipilih tanpa nilai bawaan/default (VAL-KEP-25a). [FE-RWI-084](../task/report/frontend/FE-RWI-084.md) |
+| `FR-KEP-062` | `MISSING / NEW` | `BE-RWI-119` | `FE-RWI-084` | Data 11.10 | ✅ Backend 17 September 2026 [BE-RWI-119] / ✅ Frontend 18 September 2026 — observasi harian diet, mobilisasi, lingkar perut, agitasi terstruktur. [FE-RWI-084](../task/report/frontend/FE-RWI-084.md) |
+| `FR-KEP-063` | `MISSING / NEW` — usulan `G-26`, `G-27` | `BE-RWI-122` | `FE-RWI-084` | `VAL-KEP-36c`, `f` | ✅ Backend 17 September 2026 [BE-RWI-122] / ✅ Frontend 18 September 2026 — banner pengingat dosis MAR tanpa intake dengan tombol pintas catat cairan. [FE-RWI-084](../task/report/frontend/FE-RWI-084.md) |
 
 ## 6. `EPIC KEP-14` — MAR
 
