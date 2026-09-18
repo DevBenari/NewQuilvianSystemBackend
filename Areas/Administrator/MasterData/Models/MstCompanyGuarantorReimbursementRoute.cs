@@ -1,4 +1,4 @@
-using QuilvianSystemBackend.Models;
+﻿using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -14,7 +14,7 @@ namespace QuilvianSystemBackend.Areas.Administrator.MasterData.Models
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 
-        
+
         public Guid? CompanyGuarantorId { get; set; }
 
         [Required]

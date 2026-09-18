@@ -101,13 +101,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Models
         /// <summary>Pelaku pemberian.</summary>
         public Guid? IssuedByUserId { get; set; }
 
+        /// <summary>
+        /// Bukti kecocokan yang benar-benar dipakai saat pemberian jalur normal.
+        /// Kosong sebelum pemberian dan tetap kosong untuk pemberian darurat.
+        /// </summary>
+        public Guid? CompatibilityEvidenceIdUsed { get; set; }
+
+        [ForeignKey(nameof(CompatibilityEvidenceIdUsed))]
+        public BbkCompatibilityEvidence? CompatibilityEvidenceUsed { get; set; }
+
         /// <summary>Penanda permanen pemberian lewat jalur darurat.</summary>
         public bool IssuedViaEmergency { get; set; }
 
         /// <summary>
-        /// Token pencegah tulis-bersamaan. Menjaga penempatan tunggal yang berlaku
-        /// (<c>BE-BD-015</c>) dan kelak alokasi tunggal aktif.
+        /// Token konkurensi optimistis aggregate kantong.
+        /// Menjaga agar perubahan penempatan, alokasi, pencatatan bukti kecocokan,
+        /// dan pemberian tidak saling menimpa ketika dilakukan hampir bersamaan.
         /// </summary>
         public int Version { get; set; }
-    }
+        }
 }

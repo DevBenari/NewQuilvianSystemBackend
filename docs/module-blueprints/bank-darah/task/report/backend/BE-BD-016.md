@@ -17,10 +17,12 @@
 | Model | Claude Opus 5 |
 | Commit backend saat dikerjakan | `ec2bcac` cabang `sukmagp` |
 | Tanggal | `2026-09-03` |
-| Status | 🟡 **SELESAI SEBAGIAN.** Per audit source pemilik 14 September 2026: **30 deklarasi unik terhadap baseline roadmap 39**; pendaftaran DB dan penegakan akses non-SuperAdmin belum diverifikasi pada review ini. Lihat bagian 9. **Riwayat 3 September 2026:** **`SELESAI SEBAGIAN`** — **12 dari 39** butir terdaftar per 3 September 2026, naik dari 8 setelah `MstBloodBankReason` selesai. Sisanya **tidak dapat didaftarkan sekarang**, dan alasannya arsitektural, bukan kelalaian. Lihat bagian 8 |
+| Status | ✅ **SELESAI 17 September 2026** — inventaris current **38 butir**, identik pada source, `api-contract.md`, dan database hasil `AccessMenuSeeder`; `BloodUnit : Resolve` dan `BloodOrder : Update` absen; pemisahan wewenang dibuktikan runtime dengan aktor non-SuperAdmin (bagian 10). **Riwayat:** 🟡 **SELESAI SEBAGIAN.** Per audit source pemilik 14 September 2026: **30 deklarasi unik terhadap baseline roadmap 39**; pendaftaran DB dan penegakan akses non-SuperAdmin belum diverifikasi pada review ini. Lihat bagian 9. **Riwayat 3 September 2026:** **`SELESAI SEBAGIAN`** — **12 dari 39** butir terdaftar per 3 September 2026, naik dari 8 setelah `MstBloodBankReason` selesai. Sisanya **tidak dapat didaftarkan sekarang**, dan alasannya arsitektural, bukan kelalaian. Lihat bagian 8 |
 
 ---
 
+> **Penutupan current ada pada bagian 10 (17 September 2026).** Bagian 1–9 adalah HISTORY.
+>
 > **Cara membaca laporan:** bagian 1-8 dan preflight di bawah dipertahankan sebagai histori pengerjaan awal 3 September 2026. Angka 8/12/39 serta test historis di dalamnya bukan inventaris source terkini. Pembaruan terbatas yang memiliki bukti output pemilik ada pada bagian 9.
 
 ## 1. Masalah yang diperbaiki
@@ -357,3 +359,117 @@ pola itu, dan pengujian kontrak task ini menjaganya tetap begitu.
 4. Saat BE-BD-007/008/009/010 melahirkan pemakai sah, perbarui inventaris secara incremental dan rekonsiliasi baseline kontrak. Jangan membuat permission, controller, endpoint, atau seeder tandingan palsu untuk mencapai 39/39.
 
 Status tetap **SELESAI SEBAGIAN**. Adendum ini tidak menjalankan test otomatis, tidak membuat folder `Tests/`, tidak menambah permission, tidak menulis database, dan tidak menutup keputusan kontrak.
+
+---
+
+## 10. Penutupan — rekonsiliasi inventaris current, 17 September 2026
+
+Dikerjakan dari HEAD `f3aedffa` cabang `sukmagp`, working tree bersih. **Status: ✅ SELESAI.**
+
+### 10.1 Inventaris source
+
+Dibaca dari **8 controller**: lima pada `Areas/HealthServices/BloodBankManagement/Controllers` ditambah tiga
+master Bank Darah pada `Areas/HealthServices/MasterData/Controllers` (`BloodComponent`, `BloodBankReason`,
+`BloodStorageLocation`) — ketiganya bagian scope task ini sejak awal (§8.1, §9).
+
+| Pemeriksaan | Hasil |
+| --- | --- |
+| Endpoint ber-routing | **78** (4 + 9 + 10 + 20 + 8 + 9 + 9 + 9), dicocokkan dengan hitungan `[Http*]` per berkas |
+| Endpoint tanpa `[AccessAction]` | 0 |
+| Endpoint tanpa `[AccessPermission]` | 0 |
+| Resource ≠ `AccessController.ControllerName` | 0 |
+| Action ≠ `AccessAction.ActionName` | 0 |
+| Butir unik | **38** |
+| Deklarasi ganda yang sah | Beberapa endpoint berbagi satu butir: `Read` pada setiap resource (daftar, detail, ringkasan, metadata, riwayat, koreksi), `BloodOrder : Create` (elektronik, manual, konfirmasi ganda), `BloodUnit : Store` (tetapkan dan pindahkan lokasi), `BloodUnit : Allocate` (alokasi dan pembatalan), `BloodUnit : ApproveCorrection` (setujui dan tolak), `Update` master (`PUT` dan `PATCH /status`) |
+
+### 10.2 Source vs kontrak vs database
+
+| Sisi | Butir unik | Selisih |
+| --- | ---: | --- |
+| Source | 38 | — |
+| `api-contract.md` | 38 | Semula 37: baris `DELETE /{id}` master lokasi penyimpanan (`BloodStorageLocation : Delete`, dibuat `BE-BD-014`) tidak tertulis. Baris ditambahkan — sinkronisasi dokumen atas endpoint yang sudah ada, bukan endpoint baru |
+| Database (`AccessMenuSeeder`) | 38 aktif, 0 terhapus | 0 ganda, 0 yatim, 0 hilang; 8 baris controller aktif, 0 ganda |
+
+`BloodUnit : Resolve`: **tidak ada** di source, kontrak, maupun database (nol baris dalam keadaan apa pun,
+nol policy). `BloodOrder : Update`: **tidak ada** di ketiganya; tidak ada endpoint `v4` yang memakainya, sehingga
+dikeluarkan dari hitungan kanonik. Baseline historis **39** = 38 + `BloodOrder : Update`.
+
+Seeder yang dipakai adalah `AccessMenuSeeder` yang sudah ada, dijalankan saat aplikasi start pada build ini
+(`[StartupSeed] AccessMenuSeeder completed`). Tidak ada seeder baru dan tidak ada SQL yang menulis tabel hak akses.
+
+### 10.3 Perbaikan source minimal — kode penolakan kontrak
+
+`api-contract.md` menetapkan `403 VAL-BD-037` pada `POST /blood-group-exams/{id}/validate` dan `403 VAL-BD-069`
+pada `POST /blood-group-exams/conflict-resolution` (dituntut `AC-BD-078`), tetapi kedua endpoint memulangkan 403
+generik. Diperbaiki dengan `DeniedCode`/`DeniedMessage` pada `[AccessPermission]` — mekanisme opt-in yang sama
+dengan `BE-BD-007`..`010`. **Keputusan izin tidak berubah**; yang berubah hanya isi balasan penolakan. Satu
+berkas: `BbkBloodGroupExamController.cs`. Nol perubahan model, nol migration.
+
+### 10.4 Verifikasi kontrak terhadap assembly terkompilasi
+
+`BloodBankRoleAccessContractTests.cs` **tidak lagi ada di repository**: dihapus pada `cefd927d` ("Remove backend
+test projects and simplify Integration gate", 11 September 2026) dan `/Tests/` di-gitignore pada `fcabdff9`.
+Proyek uji itu tidak dipulihkan. Sebagai gantinya, sepuluh pernyataan kontrak dijalankan sebagai pemeriksa
+reflection **di luar repository** terhadap `QuilvianSystemBackend.dll` build ini:
+
+| # | Pernyataan | Hasil |
+| --- | --- | --- |
+| 1 | Setiap endpoint ber-routing punya `AccessAction` | PASS |
+| 2 | Setiap endpoint punya `AccessPermission` | PASS |
+| 3 | Resource == `AccessController.ControllerName` | PASS |
+| 4 | Action == `AccessAction` | PASS |
+| 5 | Set source == set kanonik kontrak (38) | PASS |
+| 6 | `BloodUnit : Resolve` absen | PASS |
+| 7 | `ResolveReallocate`/`ResolveReturn`/`ResolveNotUsable` terpisah, satu endpoint masing-masing | PASS |
+| 8 | `Correct` (pengajuan) terpisah dari `ApproveCorrection` (setujui, tolak) | PASS |
+| 9 | `Validate` dan `ResolveConflict` terpisah, dengan `VAL-BD-037`/`VAL-BD-069` | PASS |
+| 10 | `BloodOrder : Cancel` berdiri sendiri; `BloodOrder : Update` absen | PASS |
+
+Tidak ada angka yang dikunci secara manual: himpunan kanonik dibaca dari `api-contract.md`.
+
+### 10.5 Otorisasi non-SuperAdmin
+
+Bukti runtime yang sudah ada dipakai ulang karena eksplisit dan masih berlaku:
+
+| Butir | Bukti | Sumber |
+| --- | --- | --- |
+| `BloodUnit : Compatibility` | `AC-BD-090` `403 VAL-BD-078`, `AC-BD-091` `200` | `BE-BD-007` §6 |
+| `BloodUnit : EmergencyIssue` | `403 VAL-BD-072` lalu `200` untuk request identik | `BE-BD-008` §6 |
+| `ResolveReallocate`/`ResolveReturn`/`ResolveNotUsable` | `AC-BD-093` `403 VAL-BD-080`; `403 VAL-BD-081/082`; ketiga jalur `200` | `BE-BD-009` §6 |
+| `Correct`/`ApproveCorrection` | `403 VAL-BD-024/074`; `422 VAL-BD-073` pemegang dua butir | `BE-BD-010` §6 |
+
+Yang sebelumnya hanya terbukti pada tingkat atribut (`BE-BD-003`/`005`/`011`) dibuktikan runtime pada sesi ini.
+Lima aktor `Employee`, **nol role**: `validate`, `conflict`, `cancel`, `issue`, `none`. Panggilan memakai id acak,
+sehingga lolos filter terlihat sebagai `404`/`400` dari service dan **nol baris domain ditulis** (jumlah
+`BbkBloodGroupExam`, `BbkBloodGroupConflictResolution`, `BbkBloodOrder`, `BbkBloodUnit`, `BbkTransitionHistory`
+sama sebelum/sesudah).
+
+| Kasus | Aktor | HTTP | `errors.code` / pesan |
+| --- | --- | --- | --- |
+| `POST /blood-group-exams/{id}/validate` | `validate` | `404` | lolos filter |
+| **`AC-BD-078`** `POST /blood-group-exams/conflict-resolution` | `validate` | **`403`** | **`VAL-BD-069`**, pesan persis |
+| `POST /blood-group-exams/conflict-resolution` | `conflict` | `400` | lolos filter |
+| `POST /blood-group-exams/{id}/validate` | `conflict`, `none` | `403` | `VAL-BD-037`, pesan persis |
+| `POST /blood-group-exams/conflict-resolution` | `none` | `403` | `VAL-BD-069`, pesan persis |
+| `POST /blood-orders/{id}/cancel` | `cancel` | `404` | lolos filter |
+| `POST /blood-orders/{id}/cancel` | `none`, `validate` | `403` | generik — kontrak tidak menetapkan kode `403` |
+| `POST /blood-units/{id}/issue` | `issue` | `404` | lolos filter |
+| `POST /blood-units/{id}/issue` | `none`, `cancel` | `403` | generik — kontrak tidak menetapkan kode `403` |
+
+13/13 lulus. `AC-BD-090` dan `AC-BD-093` tetap pada bukti `BE-BD-007`/`BE-BD-009`.
+
+### 10.6 Build dan QBE
+
+| Gate | Hasil |
+| --- | --- |
+| `dotnet build` (memory-safe) | `Build succeeded`, **`0 Error(s)`**, `198 Warning(s)` — sama dengan baseline |
+| EF | Nol perubahan model, nol migration |
+| QBE Strict | Lihat laporan penutupan sesi |
+
+### 10.7 Fixture `TEST-BD016` — belum dibersihkan
+
+Hanya identitas; nol baris domain. Lima Department/Position `TEST-BD016 …`, lima akun
+`test.bd016.{validate,conflict,cancel,issue,none}@rsmmc.local` (user `69c0a86f-04e9-43b0-b99e-9185d7723352`,
+`ab147ba1-a6f6-463e-bf41-3ad253a801c7`, `179d8112-31bf-49c5-9396-d38a069cd0bb`,
+`c77decff-1051-4b49-af6f-ca69bd397873`, `721d9cd3-3b70-4b48-b9da-640a53db610a`) beserta employee/workforce
+profile, dan sebelas baris `SysAccessPolicy`. Fixture `TEST-BD006`..`TEST-BD010` tidak disentuh.
