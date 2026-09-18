@@ -61,9 +61,17 @@ backend_source_sha_note: >-
   yang kini ter-commit. Nol baris peta kemampuan berpindah status dan nol yang memburuk,
   karena perubahannya adalah hasil kerja modul ini sendiri. Sisanya dokumentasi.
 backend_branch: sukmagp
-frontend_source_sha: 6640a5e7df1e78d6d0d4bb6f3adb3463a39e3795
+frontend_source_sha: e24c9e4c53f64e8c8972d8fd317355099c065695
 frontend_source_sha_note: >-
-  Naik dari f79af16847c99961842081f707bc0c4ff6c2d93b pada 18 September 2026. Rentang itu memuat
+  Naik dari 6640a5e7 ke e24c9e4c pada 18 September 2026 — commit implementasi FE-BD-011
+  (feat(bank-darah): close FE-BD-011 storage deactivation flow), di-push ke origin/sukmagpV2.
+  Impact scan terbatas: berkas Bank Darah yang berubah hanya milik FE-BD-001 (2d0ac741) dan
+  FE-BD-011 (e24c9e4c). Dari 10 base component yang dikutip BD-CAP-021, dua berubah lewat merge
+  cabang lain — filter-select.jsx (prop opt-in renderOption) dan base-editor-form.jsx (prop opt-in
+  remountKey). Keduanya aditif dan tidak mengubah perilaku default, sehingga bukti kemampuan
+  frontend tetap sahih. information-alert.jsx, yang tidak dikutip peta, mendapat ikon dan
+  dukungan children; pesannya tetap tampil.
+  Sebelumnya: naik dari f79af16847c99961842081f707bc0c4ff6c2d93b ke 6640a5e7 pada 18 September 2026. Rentang itu memuat
   puluhan commit merge, tetapi selisih isi berkasnya hanya satu: menu-items.jsx, 18 baris
   dihapus lewat b98f5bdc9 — pekerjaan FE-BD-006 yang dulu belum di-commit, kini ter-commit.
   Nol berkas Bank Darah lain dan nol berkas base-features/ berubah, sehingga bukti kemampuan
@@ -106,7 +114,7 @@ capability_map_impact_scan_result: >-
   TrxLabSpecimen.cs -> LabSpecimen.cs + LabExamination.cs (dipecah dua tingkat, pola tetap
   berlaku). Nol berkas source Bank Darah tersentuh; nol berkas bukti frontend berubah karena
   SHA frontend BERGERAK sejak 10 September 2026 -- lihat frontend_source_sha_note.
-capability_map_frontend_impact_scan_sha: 6640a5e7df1e78d6d0d4bb6f3adb3463a39e3795
+capability_map_frontend_impact_scan_sha: e24c9e4c53f64e8c8972d8fd317355099c065695
 capability_map_full_audit_recommended_before: MVP-2
 capability_map_full_audit_reason: >-
   MstBloodStorageLocation dan MstBloodBankReason sudah berdiri tetapi belum punya baris
@@ -835,3 +843,20 @@ pada `03-frontend-architecture.md`. Nol task baru, nol task ID berubah, dan nol 
 | Backend | 16 dari 16 selesai |
 | Frontend | 0 selesai · 3 sebagian (`FE-BD-001`, `FE-BD-006`, `FE-BD-011`) · 9 belum dikerjakan · 0 terblokir |
 | Task frontend pertama | Buka ulang `FE-BD-001` — tetap 🟡 sampai simpan pada kedua layar master diperbaiki dan dibuktikan |
+
+---
+
+**Jangkar bukti git frontend — 18 September 2026, revisi tetap 27.**
+
+Pass dokumentasi saja. Nol source, build, test, migration, maupun database disentuh, dan bukti runtime
+pemilik tidak diubah.
+
+| Field | Dari | Menjadi |
+| --- | --- | --- |
+| `frontend_source_sha` | `6640a5e7` | **`e24c9e4c`** — commit implementasi `FE-BD-011`, di-push ke `origin/sukmagpV2` |
+| `capability_map_frontend_impact_scan_sha` | `6640a5e7` | **`e24c9e4c`** — impact scan terbatas; bukti frontend tetap sahih |
+
+Keadaan current yang ditegaskan: `FE-BD-001` ✅ (`2d0ac741`), `FE-BD-011` ✅ (`e24c9e4c`), `FE-BD-006` 🟡.
+Frontend: 2 selesai, 1 sebagian, 9 belum dikerjakan, 0 terblokir. `BD-PH-008` tetap `IN_PROGRESS`, dan
+task frontend berikutnya `FE-BD-002`. `revision` tetap `27` karena pergerakan SHA dan jangkar bukti
+bukan perubahan material atas blueprint target.

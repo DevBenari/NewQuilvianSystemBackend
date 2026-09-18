@@ -55,9 +55,13 @@ status_note: >-
   revisi 4 sampai approval revisi 8.
 approval_gate: BLUEPRINT_APPROVED
 contract_version: v4 (approved)
-frontend_source_sha: 6640a5e7df1e78d6d0d4bb6f3adb3463a39e3795
+frontend_source_sha: e24c9e4c53f64e8c8972d8fd317355099c065695
 frontend_source_sha_note: >-
-  Naik dari f79af16847c99961842081f707bc0c4ff6c2d93b. Rentang itu membawa puluhan commit
+  18 September 2026: naik dari 6640a5e7 ke e24c9e4c (commit implementasi FE-BD-011, di-push ke
+  origin/sukmagpV2). Berkas Bank Darah yang berubah hanya milik FE-BD-001 (2d0ac741) dan FE-BD-011
+  (e24c9e4c). Dari 10 base component yang dikutip BD-CAP-021, dua berubah secara aditif dan opt-in
+  lewat merge dari cabang lain (filter-select renderOption, base-editor-form remountKey); perilaku
+  default tidak berubah. Riwayat 6640a5e7: naik dari f79af16847c99961842081f707bc0c4ff6c2d93b. Rentang itu membawa puluhan commit
   merge, tetapi selisih isi berkasnya hanya SATU: src/utils/menu-sidebar/menu-items.jsx,
   18 baris dihapus lewat b98f5bdc9. Itu pekerjaan FE-BD-006 yang dulu belum di-commit —
   tiga butir menu Bank Darah yang terduplikasi di bawah grup lain dibuang. Grup Bank Darah
@@ -124,7 +128,9 @@ nominal, dan identitas fakta biaya diturunkan backend.
    walaupun backend sudah menyimpannya. Rinciannya ada pada kartu `FE-BD-001`. **Diperbarui hari yang
    sama:** task ini dibuka ulang, diperbaiki, dan diverifikasi ulang lewat uji runtime pemilik, lalu
    kembali ✅.
-2. `FE-BD-011` **tidak lagi tertahan backend**. Angka kantong tertahan sudah tersedia.
+2. `FE-BD-011` **tidak lagi tertahan backend**. Angka kantong tertahan sudah tersedia. **Diperbarui hari
+   yang sama:** kriteria `FE-BD-015` diimplementasikan dan diverifikasi runtime oleh pemilik, sehingga
+   `FE-BD-011` ✅.
 3. `BE-BD-013` menambah satu hal yang **wajib** dihormati `FE-BD-010`, yaitu jawaban `complete` yang
    membawa `BillingHandoff`. Tombol kirim ulang biaya **tidak** disediakan: pemilik menutup
    `BD-UI-GAP-001` dengan Opsi A pada 18 September 2026.
@@ -178,7 +184,7 @@ Slice 3 — Kantong darah, pemberian, dan penyelesaiannya
 ```text
 BE-BD-001 ✅ [BE] ─> FE-BD-001 ✅
 
-BE-BD-014 ✅ [BE] ─┬─> FE-BD-011 🟡
+BE-BD-014 ✅ [BE] ─┬─> FE-BD-011 ✅
                    │
 BE-BD-015 ✅ [BE] ─┘
 
@@ -248,7 +254,7 @@ Dengan begitu, setiap layar dapat diuji memakai data yang dihasilkan layar sebel
 | Urutan | Task | Alasan |
 | ---: | --- | --- |
 | 1 | ✅ `FE-BD-001` — buka ulang | **Selesai 18 September 2026.** Alasan urutannya: layar master rusak saat menyimpan. Komponen darah dan alasan terkendali dipakai hampir semua layar sesudahnya. Perbaikannya kecil dan tidak menunggu siapa pun |
-| 2 | `FE-BD-011` | Sisa satu kriteria, dan angkanya sudah ada di backend. Lokasi aktif adalah syarat semua penyimpanan kantong |
+| 2 | ✅ `FE-BD-011` | **Selesai 18 September 2026.** Alasan urutannya: sisa satu kriteria, dan angkanya sudah ada di backend. Lokasi aktif adalah syarat semua penyimpanan kantong |
 | 3 | `FE-BD-002` | Order darah adalah pintu masuk seluruh alur |
 | 4 | `FE-BD-003` | Kantong lahir dari penerimaan PMI |
 | 5 | `FE-BD-012` | Kantong disimpan sebelum dapat dialokasikan |
@@ -267,7 +273,7 @@ Dengan begitu, setiap layar dapat diuji memakai data yang dihasilkan layar sebel
 | Task | Outcome | Slice | Dependency | Status | Laporan |
 | --- | --- | --- | --- | :---: | --- |
 | `FE-BD-001` | Setup master dapat dikelola petugas | 1 | `BE-BD-001` ✅ [BE] | ✅ 1 dari 1 — diverifikasi ulang 18 September 2026. **Riwayat:** 🟡 0 dari 1 — simpan rusak | [FE-BD-001](../task/report/frontend/FE-BD-001.md) |
-| `FE-BD-011` | Lokasi penyimpanan dikelola, akibat penonaktifan terbaca | 1 | `BE-BD-014` ✅ [BE], `BE-BD-015` ✅ [BE] | 🟡 1 dari 2 kriteria | [FE-BD-011](../task/report/frontend/FE-BD-011.md) |
+| `FE-BD-011` | Lokasi penyimpanan dikelola, akibat penonaktifan terbaca | 1 | `BE-BD-014` ✅ [BE], `BE-BD-015` ✅ [BE] | ✅ 2 dari 2 — 18 September 2026. **Riwayat:** 🟡 1 dari 2 kriteria | [FE-BD-011](../task/report/frontend/FE-BD-011.md) |
 | `FE-BD-006` | Seluruh layar Bank Darah terjangkau dari menu | 1 | — | 🟡 1 dari 2 kriteria | [FE-BD-006](../task/report/frontend/FE-BD-006.md) |
 | `FE-BD-002` | Order darah, pemenuhan, dan pembatalan | 2 | `BE-BD-003` ✅ [BE] | belum dikerjakan | — |
 | `FE-BD-003` | Permintaan PMI dan penerimaan | 2 | `BE-BD-004` ✅ [BE] | belum dikerjakan | — |
@@ -279,9 +285,12 @@ Dengan begitu, setiap layar dapat diuji memakai data yang dihasilkan layar sebel
 | `FE-BD-007` | Penyelesaian `PendingReview`, tiga tombol tiga penjaga | 3 | `BE-BD-009` ✅ [BE] | belum dikerjakan | — |
 | `FE-BD-008` | Koreksi dua langkah dan tunggakan bukti darurat | 3 | `BE-BD-010` ✅ [BE] | belum dikerjakan | — |
 
-**Hitungan per 18 September 2026, sesudah `FE-BD-001` ✅:** 12 task = **1 selesai** (`FE-BD-001`) +
-**2 sebagian** (`FE-BD-006`, `FE-BD-011`) + **9 belum dikerjakan** + **0 terblokir**. Task berikutnya
-menurut urutan yang disetujui: **`FE-BD-011`**.
+**Hitungan per 18 September 2026, sesudah `FE-BD-011` ✅:** 12 task = **2 selesai** (`FE-BD-001`,
+`FE-BD-011`) + **1 sebagian** (`FE-BD-006`) + **9 belum dikerjakan** + **0 terblokir**. Task berikutnya
+menurut urutan yang disetujui: **`FE-BD-002`**.
+
+**Riwayat — sesudah `FE-BD-001` ✅:** 12 task = 1 selesai (`FE-BD-001`) + 2 sebagian (`FE-BD-006`,
+`FE-BD-011`) + 9 belum dikerjakan + 0 terblokir. Task berikutnya waktu itu: `FE-BD-011`.
 
 **Riwayat — pagi 18 September 2026:** 12 task = 0 selesai + 3 sebagian (`FE-BD-001`, `FE-BD-006`,
 `FE-BD-011`) + 9 belum dikerjakan + 0 terblokir. Seluruh 12 task dapat dijadwalkan sejak revisi 8
@@ -302,7 +311,7 @@ Sebelumnya ⛔ 1 (`FE-BD-008`, menunggu `BE-BD-010` sampai ✅ 17 September 2026
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ✅ **SELESAI 18 September 2026 — dibuka ulang, diperbaiki, dan diverifikasi ulang.** Kriteria tunggalnya terbukti penuh (**1 dari 1**). Perbaikannya: kedua hook editor memakai named import `unwrapApiData`, mengikuti pola `blood-storage-locations` dan `hr/master-data/job-level`. Total +6 / −4 baris di frontend `sukmagpV2`, di atas snapshot awal baru `beba89e3` yang disetujui pemilik; belum di-commit saat laporan ditulis. Validasi: 10 test baru `tests/unit/blood-bank-master-editor-save.test.mjs` lulus; suite `tests/unit/` **747 lulus, 0 gagal** (`npm run test:unit` sendiri `EXISTING / ENVIRONMENT ISSUE` — pola glob tidak diperluas Node `v20.20.0` di Windows); `npm run lint:errors` **`0 errors`**; `npm run build` **`✓ Compiled successfully in 5.2min`**. **Uji runtime oleh pemilik `Sukmagp` 18 September 2026** pada komponen darah dan alasan terkendali — tambah, ubah, smoke daftar/detail, validasi isian wajib, dan penolakan duplikat oleh backend seluruhnya `PASS`; backend menyimpan, tidak ada "Gagal Menyimpan" palsu, layar berpindah ke detail, dan isi detail sesuai hasil simpan. Nol butir DoD dikecualikan. Risiko sisa yang bukan kriteria: jeda 800 ms sesudah sukses. Bukti: [laporan](../task/report/frontend/FE-BD-001.md) bagian 9. **Riwayat:** 🟡 **SEBAGIAN — diturunkan dari ✅ pada 18 September 2026.** Kriteria tunggalnya belum terbukti penuh (**0 dari 1**). Daftar, detail, dan penonaktifan berdiri. **Simpan (tambah dan ubah) rusak pada kedua layar.** Buktinya dari source frontend `6640a5e7`: `use-master-data-blood-components-editor.jsx` baris 153 dan 179, serta `use-master-data-blood-bank-reasons-editor.jsx` baris 153 dan 179, memanggil `utils.unwrapApiData(...)`. Padahal `utils` di sana adalah objek default export `blood-components-utils.jsx` / `blood-bank-reasons-utils.jsx`, dan objek itu **tidak memuat** `unwrapApiData`. Fungsi itu hanya ada sebagai named export. Akibatnya, sesudah backend berhasil menyimpan, layar menampilkan toast "Berhasil", lalu langsung toast "Gagal Menyimpan", dan tidak berpindah ke halaman detail. **Contoh:** petugas menambah komponen `PRC`. Datanya tersimpan di server, tetapi layar menyatakan gagal. Petugas mencoba lagi, lalu ditolak karena kodenya sudah dipakai. Kedua berkas terakhir berubah pada `7e90e0477`, commit task ini sendiri. Cacat yang sama sudah dilaporkan builder `FE-BD-011` untuk layar alasan terkendali ([laporan FE-BD-011](../task/report/frontend/FE-BD-011.md) bagian 8, "Temuan di luar cakupan" butir 2). Pass ini menemukan cacat yang sama pada layar komponen darah. Cacat lolos karena uji runtime 7 September 2026 `NOT FEASIBLE`: migration belum dijalankan. **Penutupan:** buka ulang task ini lewat `build-module-frontend` dengan laporan dan task ID yang sama. **Riwayat:** ✅ **SELESAI (2026-09-07).** Laporan tracked: [FE-BD-001](../task/report/frontend/FE-BD-001.md). Pasangan backend `BE-BD-001` **`SELESAI`** dengan 18 endpoint terbukti. ESLint `0 Error(s)`, UI GATE 10 elemen `REUSE` |
+| **Status** | ✅ **SELESAI 18 September 2026 — dibuka ulang, diperbaiki, dan diverifikasi ulang.** Kriteria tunggalnya terbukti penuh (**1 dari 1**). Perbaikannya: kedua hook editor memakai named import `unwrapApiData`, mengikuti pola `blood-storage-locations` dan `hr/master-data/job-level`. Total +6 / −4 baris di frontend `sukmagpV2`, di atas snapshot awal baru `beba89e3` yang disetujui pemilik, lalu **ter-commit dan ter-push** sebagai `2d0ac741` (`fix(bank-darah): restore FE-BD-001 master save flow`) ke `origin/sukmagpV2`. **Riwayat:** belum di-commit saat laporan ditulis. Validasi: 10 test baru `tests/unit/blood-bank-master-editor-save.test.mjs` lulus; suite `tests/unit/` **747 lulus, 0 gagal** (`npm run test:unit` sendiri `EXISTING / ENVIRONMENT ISSUE` — pola glob tidak diperluas Node `v20.20.0` di Windows); `npm run lint:errors` **`0 errors`**; `npm run build` **`✓ Compiled successfully in 5.2min`**. **Uji runtime oleh pemilik `Sukmagp` 18 September 2026** pada komponen darah dan alasan terkendali — tambah, ubah, smoke daftar/detail, validasi isian wajib, dan penolakan duplikat oleh backend seluruhnya `PASS`; backend menyimpan, tidak ada "Gagal Menyimpan" palsu, layar berpindah ke detail, dan isi detail sesuai hasil simpan. Nol butir DoD dikecualikan. Risiko sisa yang bukan kriteria: jeda 800 ms sesudah sukses. Bukti: [laporan](../task/report/frontend/FE-BD-001.md) bagian 9. **Riwayat:** 🟡 **SEBAGIAN — diturunkan dari ✅ pada 18 September 2026.** Kriteria tunggalnya belum terbukti penuh (**0 dari 1**). Daftar, detail, dan penonaktifan berdiri. **Simpan (tambah dan ubah) rusak pada kedua layar.** Buktinya dari source frontend `6640a5e7`: `use-master-data-blood-components-editor.jsx` baris 153 dan 179, serta `use-master-data-blood-bank-reasons-editor.jsx` baris 153 dan 179, memanggil `utils.unwrapApiData(...)`. Padahal `utils` di sana adalah objek default export `blood-components-utils.jsx` / `blood-bank-reasons-utils.jsx`, dan objek itu **tidak memuat** `unwrapApiData`. Fungsi itu hanya ada sebagai named export. Akibatnya, sesudah backend berhasil menyimpan, layar menampilkan toast "Berhasil", lalu langsung toast "Gagal Menyimpan", dan tidak berpindah ke halaman detail. **Contoh:** petugas menambah komponen `PRC`. Datanya tersimpan di server, tetapi layar menyatakan gagal. Petugas mencoba lagi, lalu ditolak karena kodenya sudah dipakai. Kedua berkas terakhir berubah pada `7e90e0477`, commit task ini sendiri. Cacat yang sama sudah dilaporkan builder `FE-BD-011` untuk layar alasan terkendali ([laporan FE-BD-011](../task/report/frontend/FE-BD-011.md) bagian 8, "Temuan di luar cakupan" butir 2). Pass ini menemukan cacat yang sama pada layar komponen darah. Cacat lolos karena uji runtime 7 September 2026 `NOT FEASIBLE`: migration belum dijalankan. **Penutupan:** buka ulang task ini lewat `build-module-frontend` dengan laporan dan task ID yang sama. **Riwayat:** ✅ **SELESAI (2026-09-07).** Laporan tracked: [FE-BD-001](../task/report/frontend/FE-BD-001.md). Pasangan backend `BE-BD-001` **`SELESAI`** dengan 18 endpoint terbukti. ESLint `0 Error(s)`, UI GATE 10 elemen `REUSE` |
 | **Outcome** | Petugas mengelola katalog komponen darah dan daftar alasan terkendali lewat layar |
 | **Layar** | `FE-BD-08`, `FE-BD-09` |
 | **Kontrak** | api-contract `v4` — Blood Component, Blood Bank Reason |
@@ -316,11 +325,11 @@ Sebelumnya ⛔ 1 (`FE-BD-008`, menunggu `BE-BD-010` sampai ✅ 17 September 2026
 
 ---
 
-### 🟡 `FE-BD-011` — Lokasi penyimpanan darah dikelola, akibat penonaktifan terbaca
+### ✅ `FE-BD-011` — Lokasi penyimpanan darah dikelola, akibat penonaktifan terbaca
 
 | Field | Isi |
 | --- | --- |
-| **Status** | 🟡 **SELESAI SEBAGIAN — 1 dari 2 (tidak berubah).** **Penahan backend-nya gugur** (diperiksa 18 September 2026 pada backend `77f60c88`). `GET /api/v1/health-services/master-data/blood-storage-locations/{id}` membawa `HeldUnitCount`, yang dihitung saat dibaca (`BloodStorageLocationController.cs` baris 148–171). Dokumentasi controller itu sendiri menyebut angka ini untuk konfirmasi penonaktifan `FE-BD-015`. Layar belum memakainya: nol pemakaian `heldUnitCount` pada frontend `6640a5e7`. Sisa pekerjaannya murni frontend dan dapat dijadwalkan. **Batas yang perlu diketahui builder:** balasan `PATCH /{id}/status` tetap mengembalikan `HeldUnitCount` `0`, karena controller memetakan ulang entity tanpa membawa angka dari service. Ini cacat sisa milik `BE-BD-015`, yang sudah ✅ dan tidak dibuka ulang oleh pass ini ([BE-BD-006](../task/report/backend/BE-BD-006.md) bagian 9.6). Karena itu konfirmasi **wajib** membaca angka dari `GET /{id}` **sebelum** penonaktifan, bukan dari balasan PATCH. **Contoh:** lokasi "Kulkas BDRS-2" berisi 3 kantong. Detailnya memulangkan `HeldUnitCount = 3`, dan konfirmasi berbunyi "3 kantong akan tertahan di lokasi ini dan tidak dipindahkan sistem." **Riwayat:** 🟡 **SELESAI SEBAGIAN 10 September 2026.** Bukti: [laporan](../task/report/frontend/FE-BD-011.md). Layar `FE-BD-10` berdiri penuh — 14 berkas baru mengikuti bentuk baku master data, nol komponen baru (12 elemen seluruhnya `REUSE`). `npm run lint` **`0 errors, 608 warnings`** — nol dari berkas task ini; `npm run build` **`✓ Compiled successfully in 27.1s`** dengan keempat route terdaftar; `node --test tests/unit` **434 lulus, 0 gagal**. **1 dari 2 acceptance terpenuhi:** `FE-BD-014` ✅ terbukti lewat penanda `IsBloodBankHaltedByEmptyActiveLocation`; **`FE-BD-015` ⛔ belum** — angka kantong tertahan **tidak ada di backend**, entity `BbkBloodUnitPlacement` menunggu `BE-BD-015`. Uji manual `NOT FEASIBLE`: migration `20260903083142_AddMstBloodStorageLocation` belum dijalankan |
+| **Status** | ✅ **SELESAI 18 September 2026.** Kedua kriteria terbukti (**2 dari 2**). `FE-BD-015`: konfirmasi penonaktifan mengambil ulang `GET /{id}` lalu menyebut `HeldUnitCount` yang sebenarnya. Angka yang hilang atau `GET` yang gagal tidak membuka konfirmasi, dan `PATCH` tidak dipakai sebagai sumber angka. Perubahan +169 / −22 baris pada utils, hook detail, dan view detail di atas `2d0ac741`, lalu **ter-commit dan ter-push** sebagai `e24c9e4c` (`feat(bank-darah): close FE-BD-011 storage deactivation flow`) ke `origin/sukmagpV2`. **Riwayat:** belum di-commit saat laporan ditulis. Validasi: 12 test baru lulus; suite `tests/unit/` **759 lulus, 0 gagal** (`npm run test:unit` sendiri `EXISTING / ENVIRONMENT ISSUE` — pola glob tidak diperluas Node `v20.20.0` di Windows); `npm run lint:errors` **`0 errors`**; `npm run build` **`✓ Compiled successfully in 37.9s`**. **Uji runtime pemilik `Sukmagp` 18 September 2026** seluruhnya `PASS`: angka lebih dari 0 sama dengan `GET` dan bukan dari `PATCH`; batal tanpa perubahan; angka 0; `GET` gagal atau offline; status basi dari tab lain; klik berulang. Nol butir DoD dikecualikan. Bukti: [laporan](../task/report/frontend/FE-BD-011.md) bagian 10. **Riwayat:** 🟡 **SELESAI SEBAGIAN — 1 dari 2 (tidak berubah).** **Penahan backend-nya gugur** (diperiksa 18 September 2026 pada backend `77f60c88`). `GET /api/v1/health-services/master-data/blood-storage-locations/{id}` membawa `HeldUnitCount`, yang dihitung saat dibaca (`BloodStorageLocationController.cs` baris 148–171). Dokumentasi controller itu sendiri menyebut angka ini untuk konfirmasi penonaktifan `FE-BD-015`. Layar belum memakainya: nol pemakaian `heldUnitCount` pada frontend `6640a5e7`. Sisa pekerjaannya murni frontend dan dapat dijadwalkan. **Batas yang perlu diketahui builder:** balasan `PATCH /{id}/status` tetap mengembalikan `HeldUnitCount` `0`, karena controller memetakan ulang entity tanpa membawa angka dari service. Ini cacat sisa milik `BE-BD-015`, yang sudah ✅ dan tidak dibuka ulang oleh pass ini ([BE-BD-006](../task/report/backend/BE-BD-006.md) bagian 9.6). Karena itu konfirmasi **wajib** membaca angka dari `GET /{id}` **sebelum** penonaktifan, bukan dari balasan PATCH. **Contoh:** lokasi "Kulkas BDRS-2" berisi 3 kantong. Detailnya memulangkan `HeldUnitCount = 3`, dan konfirmasi berbunyi "3 kantong akan tertahan di lokasi ini dan tidak dipindahkan sistem." **Riwayat:** 🟡 **SELESAI SEBAGIAN 10 September 2026.** Bukti: [laporan](../task/report/frontend/FE-BD-011.md). Layar `FE-BD-10` berdiri penuh — 14 berkas baru mengikuti bentuk baku master data, nol komponen baru (12 elemen seluruhnya `REUSE`). `npm run lint` **`0 errors, 608 warnings`** — nol dari berkas task ini; `npm run build` **`✓ Compiled successfully in 27.1s`** dengan keempat route terdaftar; `node --test tests/unit` **434 lulus, 0 gagal**. **1 dari 2 acceptance terpenuhi:** `FE-BD-014` ✅ terbukti lewat penanda `IsBloodBankHaltedByEmptyActiveLocation`; **`FE-BD-015` ⛔ belum** — angka kantong tertahan **tidak ada di backend**, entity `BbkBloodUnitPlacement` menunggu `BE-BD-015`. Uji manual `NOT FEASIBLE`: migration `20260903083142_AddMstBloodStorageLocation` belum dijalankan |
 | **Outcome** | Petugas mengelola lokasi penyimpanan darah, dan akibat penonaktifan sebuah lokasi terbaca jelas sebelum dikonfirmasi |
 | **Layar** | `FE-BD-10` |
 | **Kontrak** | api-contract `v4` — Blood Storage Location |
@@ -499,7 +508,7 @@ Sebelumnya ⛔ 1 (`FE-BD-008`, menunggu `BE-BD-010` sampai ✅ 17 September 2026
 
 | Slice | Outcome | Task | Keadaan |
 | --- | --- | --- | --- |
-| **1 — Setup master dan menu** | Master Bank Darah dapat disiapkan, dan layar terjangkau dari menu | `FE-BD-001`, `FE-BD-011`, `FE-BD-006` | 🟡 `FE-BD-001` ✅ selesai 18 September 2026; `FE-BD-011` dan `FE-BD-006` masih sebagian. **Riwayat:** ketiganya sebagian, nol selesai |
+| **1 — Setup master dan menu** | Master Bank Darah dapat disiapkan, dan layar terjangkau dari menu | `FE-BD-001`, `FE-BD-011`, `FE-BD-006` | 🟡 `FE-BD-001` dan `FE-BD-011` ✅ selesai 18 September 2026; `FE-BD-006` masih sebagian — kriteria keduanya menunggu pembaca hak akses frontend (`BD-UI-GAP-002`). **Riwayat:** `FE-BD-001` ✅, `FE-BD-011` dan `FE-BD-006` sebagian; sebelumnya ketiganya sebagian, nol selesai |
 | **2 — Order darah, permintaan PMI, dan tindakan** | Pintu masuk permintaan darah dan penutup biaya berjalan dari layar | `FE-BD-002`, `FE-BD-003`, `FE-BD-010` | Belum dikerjakan |
 | **3 — Kantong darah, pemberian, dan penyelesaiannya** | Kantong disimpan, dialokasikan, diberikan, diselesaikan, dan dikoreksi dari layar | `FE-BD-012`, `FE-BD-004`, `FE-BD-005`, `FE-BD-009`, `FE-BD-007`, `FE-BD-008` | Belum dikerjakan |
 
