@@ -121,7 +121,9 @@ nominal, dan identitas fakta biaya diturunkan backend.
 (penyaluran biaya tindakan ke Billing). Pass ini menemukan tiga hal yang mengubah pembacaan roadmap:
 
 1. `FE-BD-001` **diturunkan ke 🟡**. Menyimpan data pada kedua layar master gagal di sisi layar
-   walaupun backend sudah menyimpannya. Rinciannya ada pada kartu `FE-BD-001`.
+   walaupun backend sudah menyimpannya. Rinciannya ada pada kartu `FE-BD-001`. **Diperbarui hari yang
+   sama:** task ini dibuka ulang, diperbaiki, dan diverifikasi ulang lewat uji runtime pemilik, lalu
+   kembali ✅.
 2. `FE-BD-011` **tidak lagi tertahan backend**. Angka kantong tertahan sudah tersedia.
 3. `BE-BD-013` menambah satu hal yang **wajib** dihormati `FE-BD-010`, yaitu jawaban `complete` yang
    membawa `BillingHandoff`. Tombol kirim ulang biaya **tidak** disediakan: pemilik menutup
@@ -174,7 +176,7 @@ Slice 3 — Kantong darah, pemberian, dan penyelesaiannya
 ### Slice 1 — Setup master dan menu
 
 ```text
-BE-BD-001 ✅ [BE] ─> FE-BD-001 🟡
+BE-BD-001 ✅ [BE] ─> FE-BD-001 ✅
 
 BE-BD-014 ✅ [BE] ─┬─> FE-BD-011 🟡
                    │
@@ -245,7 +247,7 @@ Dengan begitu, setiap layar dapat diuji memakai data yang dihasilkan layar sebel
 
 | Urutan | Task | Alasan |
 | ---: | --- | --- |
-| 1 | `FE-BD-001` — buka ulang | Layar master rusak saat menyimpan. Komponen darah dan alasan terkendali dipakai hampir semua layar sesudahnya. Perbaikannya kecil dan tidak menunggu siapa pun |
+| 1 | ✅ `FE-BD-001` — buka ulang | **Selesai 18 September 2026.** Alasan urutannya: layar master rusak saat menyimpan. Komponen darah dan alasan terkendali dipakai hampir semua layar sesudahnya. Perbaikannya kecil dan tidak menunggu siapa pun |
 | 2 | `FE-BD-011` | Sisa satu kriteria, dan angkanya sudah ada di backend. Lokasi aktif adalah syarat semua penyimpanan kantong |
 | 3 | `FE-BD-002` | Order darah adalah pintu masuk seluruh alur |
 | 4 | `FE-BD-003` | Kantong lahir dari penerimaan PMI |
@@ -264,7 +266,7 @@ Dengan begitu, setiap layar dapat diuji memakai data yang dihasilkan layar sebel
 
 | Task | Outcome | Slice | Dependency | Status | Laporan |
 | --- | --- | --- | --- | :---: | --- |
-| `FE-BD-001` | Setup master dapat dikelola petugas | 1 | `BE-BD-001` ✅ [BE] | 🟡 0 dari 1 kriteria — simpan rusak | [FE-BD-001](../task/report/frontend/FE-BD-001.md) |
+| `FE-BD-001` | Setup master dapat dikelola petugas | 1 | `BE-BD-001` ✅ [BE] | ✅ 1 dari 1 — diverifikasi ulang 18 September 2026. **Riwayat:** 🟡 0 dari 1 — simpan rusak | [FE-BD-001](../task/report/frontend/FE-BD-001.md) |
 | `FE-BD-011` | Lokasi penyimpanan dikelola, akibat penonaktifan terbaca | 1 | `BE-BD-014` ✅ [BE], `BE-BD-015` ✅ [BE] | 🟡 1 dari 2 kriteria | [FE-BD-011](../task/report/frontend/FE-BD-011.md) |
 | `FE-BD-006` | Seluruh layar Bank Darah terjangkau dari menu | 1 | — | 🟡 1 dari 2 kriteria | [FE-BD-006](../task/report/frontend/FE-BD-006.md) |
 | `FE-BD-002` | Order darah, pemenuhan, dan pembatalan | 2 | `BE-BD-003` ✅ [BE] | belum dikerjakan | — |
@@ -277,9 +279,13 @@ Dengan begitu, setiap layar dapat diuji memakai data yang dihasilkan layar sebel
 | `FE-BD-007` | Penyelesaian `PendingReview`, tiga tombol tiga penjaga | 3 | `BE-BD-009` ✅ [BE] | belum dikerjakan | — |
 | `FE-BD-008` | Koreksi dua langkah dan tunggakan bukti darurat | 3 | `BE-BD-010` ✅ [BE] | belum dikerjakan | — |
 
-**Hitungan per 18 September 2026:** 12 task = **0 selesai** + **3 sebagian** (`FE-BD-001`, `FE-BD-006`,
-`FE-BD-011`) + **9 belum dikerjakan** + **0 terblokir**. Seluruh 12 task dapat dijadwalkan sejak
-revisi 8 disetujui 18 September 2026. Task pertama yang dibuka ulang: `FE-BD-001`.
+**Hitungan per 18 September 2026, sesudah `FE-BD-001` ✅:** 12 task = **1 selesai** (`FE-BD-001`) +
+**2 sebagian** (`FE-BD-006`, `FE-BD-011`) + **9 belum dikerjakan** + **0 terblokir**. Task berikutnya
+menurut urutan yang disetujui: **`FE-BD-011`**.
+
+**Riwayat — pagi 18 September 2026:** 12 task = 0 selesai + 3 sebagian (`FE-BD-001`, `FE-BD-006`,
+`FE-BD-011`) + 9 belum dikerjakan + 0 terblokir. Seluruh 12 task dapat dijadwalkan sejak revisi 8
+disetujui 18 September 2026. Task pertama yang dibuka ulang: `FE-BD-001`.
 
 **Riwayat — ringkasan revisi 7 (17 September 2026):** ✅ 1 (`FE-BD-001`); 🟡 sebagian 2 (`FE-BD-011`,
 `FE-BD-006`); 🟡 PENDING 9 (`FE-BD-009`, `002`, `003`, `004`, `005`, `007`, `008`, `010`, `012`); ⛔ 0.
@@ -292,11 +298,11 @@ Sebelumnya ⛔ 1 (`FE-BD-008`, menunggu `BE-BD-010` sampai ✅ 17 September 2026
 
 ## 3. Task
 
-### 🟡 `FE-BD-001` — Setup master dapat dikelola petugas
+### ✅ `FE-BD-001` — Setup master dapat dikelola petugas
 
 | Field | Isi |
 | --- | --- |
-| **Status** | 🟡 **SEBAGIAN — diturunkan dari ✅ pada 18 September 2026.** Kriteria tunggalnya belum terbukti penuh (**0 dari 1**). Daftar, detail, dan penonaktifan berdiri. **Simpan (tambah dan ubah) rusak pada kedua layar.** Buktinya dari source frontend `6640a5e7`: `use-master-data-blood-components-editor.jsx` baris 153 dan 179, serta `use-master-data-blood-bank-reasons-editor.jsx` baris 153 dan 179, memanggil `utils.unwrapApiData(...)`. Padahal `utils` di sana adalah objek default export `blood-components-utils.jsx` / `blood-bank-reasons-utils.jsx`, dan objek itu **tidak memuat** `unwrapApiData`. Fungsi itu hanya ada sebagai named export. Akibatnya, sesudah backend berhasil menyimpan, layar menampilkan toast "Berhasil", lalu langsung toast "Gagal Menyimpan", dan tidak berpindah ke halaman detail. **Contoh:** petugas menambah komponen `PRC`. Datanya tersimpan di server, tetapi layar menyatakan gagal. Petugas mencoba lagi, lalu ditolak karena kodenya sudah dipakai. Kedua berkas terakhir berubah pada `7e90e0477`, commit task ini sendiri. Cacat yang sama sudah dilaporkan builder `FE-BD-011` untuk layar alasan terkendali ([laporan FE-BD-011](../task/report/frontend/FE-BD-011.md) bagian 8, "Temuan di luar cakupan" butir 2). Pass ini menemukan cacat yang sama pada layar komponen darah. Cacat lolos karena uji runtime 7 September 2026 `NOT FEASIBLE`: migration belum dijalankan. **Penutupan:** buka ulang task ini lewat `build-module-frontend` dengan laporan dan task ID yang sama. **Riwayat:** ✅ **SELESAI (2026-09-07).** Laporan tracked: [FE-BD-001](../task/report/frontend/FE-BD-001.md). Pasangan backend `BE-BD-001` **`SELESAI`** dengan 18 endpoint terbukti. ESLint `0 Error(s)`, UI GATE 10 elemen `REUSE` |
+| **Status** | ✅ **SELESAI 18 September 2026 — dibuka ulang, diperbaiki, dan diverifikasi ulang.** Kriteria tunggalnya terbukti penuh (**1 dari 1**). Perbaikannya: kedua hook editor memakai named import `unwrapApiData`, mengikuti pola `blood-storage-locations` dan `hr/master-data/job-level`. Total +6 / −4 baris di frontend `sukmagpV2`, di atas snapshot awal baru `beba89e3` yang disetujui pemilik; belum di-commit saat laporan ditulis. Validasi: 10 test baru `tests/unit/blood-bank-master-editor-save.test.mjs` lulus; suite `tests/unit/` **747 lulus, 0 gagal** (`npm run test:unit` sendiri `EXISTING / ENVIRONMENT ISSUE` — pola glob tidak diperluas Node `v20.20.0` di Windows); `npm run lint:errors` **`0 errors`**; `npm run build` **`✓ Compiled successfully in 5.2min`**. **Uji runtime oleh pemilik `Sukmagp` 18 September 2026** pada komponen darah dan alasan terkendali — tambah, ubah, smoke daftar/detail, validasi isian wajib, dan penolakan duplikat oleh backend seluruhnya `PASS`; backend menyimpan, tidak ada "Gagal Menyimpan" palsu, layar berpindah ke detail, dan isi detail sesuai hasil simpan. Nol butir DoD dikecualikan. Risiko sisa yang bukan kriteria: jeda 800 ms sesudah sukses. Bukti: [laporan](../task/report/frontend/FE-BD-001.md) bagian 9. **Riwayat:** 🟡 **SEBAGIAN — diturunkan dari ✅ pada 18 September 2026.** Kriteria tunggalnya belum terbukti penuh (**0 dari 1**). Daftar, detail, dan penonaktifan berdiri. **Simpan (tambah dan ubah) rusak pada kedua layar.** Buktinya dari source frontend `6640a5e7`: `use-master-data-blood-components-editor.jsx` baris 153 dan 179, serta `use-master-data-blood-bank-reasons-editor.jsx` baris 153 dan 179, memanggil `utils.unwrapApiData(...)`. Padahal `utils` di sana adalah objek default export `blood-components-utils.jsx` / `blood-bank-reasons-utils.jsx`, dan objek itu **tidak memuat** `unwrapApiData`. Fungsi itu hanya ada sebagai named export. Akibatnya, sesudah backend berhasil menyimpan, layar menampilkan toast "Berhasil", lalu langsung toast "Gagal Menyimpan", dan tidak berpindah ke halaman detail. **Contoh:** petugas menambah komponen `PRC`. Datanya tersimpan di server, tetapi layar menyatakan gagal. Petugas mencoba lagi, lalu ditolak karena kodenya sudah dipakai. Kedua berkas terakhir berubah pada `7e90e0477`, commit task ini sendiri. Cacat yang sama sudah dilaporkan builder `FE-BD-011` untuk layar alasan terkendali ([laporan FE-BD-011](../task/report/frontend/FE-BD-011.md) bagian 8, "Temuan di luar cakupan" butir 2). Pass ini menemukan cacat yang sama pada layar komponen darah. Cacat lolos karena uji runtime 7 September 2026 `NOT FEASIBLE`: migration belum dijalankan. **Penutupan:** buka ulang task ini lewat `build-module-frontend` dengan laporan dan task ID yang sama. **Riwayat:** ✅ **SELESAI (2026-09-07).** Laporan tracked: [FE-BD-001](../task/report/frontend/FE-BD-001.md). Pasangan backend `BE-BD-001` **`SELESAI`** dengan 18 endpoint terbukti. ESLint `0 Error(s)`, UI GATE 10 elemen `REUSE` |
 | **Outcome** | Petugas mengelola katalog komponen darah dan daftar alasan terkendali lewat layar |
 | **Layar** | `FE-BD-08`, `FE-BD-09` |
 | **Kontrak** | api-contract `v4` — Blood Component, Blood Bank Reason |
@@ -493,7 +499,7 @@ Sebelumnya ⛔ 1 (`FE-BD-008`, menunggu `BE-BD-010` sampai ✅ 17 September 2026
 
 | Slice | Outcome | Task | Keadaan |
 | --- | --- | --- | --- |
-| **1 — Setup master dan menu** | Master Bank Darah dapat disiapkan, dan layar terjangkau dari menu | `FE-BD-001`, `FE-BD-011`, `FE-BD-006` | 🟡 ketiganya sebagian; nol selesai |
+| **1 — Setup master dan menu** | Master Bank Darah dapat disiapkan, dan layar terjangkau dari menu | `FE-BD-001`, `FE-BD-011`, `FE-BD-006` | 🟡 `FE-BD-001` ✅ selesai 18 September 2026; `FE-BD-011` dan `FE-BD-006` masih sebagian. **Riwayat:** ketiganya sebagian, nol selesai |
 | **2 — Order darah, permintaan PMI, dan tindakan** | Pintu masuk permintaan darah dan penutup biaya berjalan dari layar | `FE-BD-002`, `FE-BD-003`, `FE-BD-010` | Belum dikerjakan |
 | **3 — Kantong darah, pemberian, dan penyelesaiannya** | Kantong disimpan, dialokasikan, diberikan, diselesaikan, dan dikoreksi dari layar | `FE-BD-012`, `FE-BD-004`, `FE-BD-005`, `FE-BD-009`, `FE-BD-007`, `FE-BD-008` | Belum dikerjakan |
 
