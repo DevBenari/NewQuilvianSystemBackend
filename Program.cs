@@ -326,10 +326,18 @@ try
     builder.Services.AddScoped<QueueVoiceService>();
     builder.Services.AddScoped<QueueRealtimeService>();
     builder.Services.AddScoped<LabOrderService>();
+    builder.Services.AddScoped<LabOrderNumberService>();
     builder.Services.AddScoped<LabSpecimenService>();
     builder.Services.AddScoped<LabValueBoundService>();
     builder.Services.AddScoped<LabCriticalBoundApprovalService>();
     builder.Services.AddScoped<LabRejectionReasonService>();
+    builder.Services.AddScoped<LabSpecimenTypeService>();
+    builder.Services.AddScoped<LabPathologyParameterService>();
+    builder.Services.AddScoped<LabPathologyCategoryService>();
+    builder.Services.AddScoped<LabProcedurePathologyCategoryService>();
+    builder.Services.AddScoped<LabPathologyReportService>();
+    builder.Services.AddScoped<LabOrganismService>();
+    builder.Services.AddScoped<LabAntibioticService>();
     builder.Services.AddScoped<LabExaminationService>();
     builder.Services.AddScoped<LabWorklistService>();
     builder.Services.AddScoped<LabMonitoringService>();
@@ -348,6 +356,19 @@ try
 
     builder.Services.AddScoped<EncounterIntakeService>();
     builder.Services.AddScoped<PatientEncounterNumberService>();
+
+    // BE-EXT-05 — penutupan otomatis kunjungan kiosk yang tidak dilanjutkan.
+    //
+    // Urutannya penting untuk dibaca, bukan untuk dijalankan: penjawab tiap unit didaftarkan
+    // sebagai IEncounterContinuationProbe, dan KioskEncounterClosureService hanya menutup
+    // kunjungan yang tujuan kiosknya punya penjawab. Mencabut satu baris AddScoped di bawah
+    // membuat unit itu berhenti ikut ditutup — bukan membuatnya ditutup membabi buta.
+    builder.Services.AddScoped<IEncounterContinuationProbe, LabEncounterContinuationProbe>();
+    builder.Services.AddScoped<KioskEncounterClosureService>();
+    builder.Services.Configure<KioskEncounterClosureOptions>(
+        builder.Configuration.GetSection("HealthServices:KioskEncounterClosure"));
+    builder.Services.AddHostedService<KioskEncounterClosureHostedService>();
+
     builder.Services.AddScoped<EncounterPaymentSourceService>();
     builder.Services.AddScoped<EncounterInsuranceService>();
     builder.Services.AddScoped<InsuranceCoverageService>();
@@ -1270,25 +1291,30 @@ try
     await RunStartupSeederAsync("DefaultWorkScheduleSeeder", () => DefaultWorkScheduleSeeder.SeedAsync(app.Services));
     await RunStartupSeederAsync("SuperAdminSeeder", () => SuperAdminSeeder.SeedAsync(app.Services));
     await RunStartupSeederAsync("AccessMenuSeeder", () => AccessMenuSeeder.SeedAsync(app.Services));
+    // Data induk OPERASIONAL Laboratorium. Keduanya sengaja tetap berdiri: alasan penolakan
+    // wadah dan jenis specimen adalah data yang dibutuhkan modul sejak hari pertama, bukan data
+    // contoh. Environment baru yang berangkat tanpa keduanya akan menolak setiap penerimaan
+    // wadah tanpa sebab yang dapat dipilih petugas.
+    //
+    // Hanya LabDummyDataSeeder yang dicabut 2026-09-17 atas instruksi pemilik modul — ia memang
+    // data CONTOH, mati secara bawaan dan menolak berjalan di produksi.
     await RunStartupSeederAsync("LabRejectionReasonSeeder", () => LabRejectionReasonSeeder.SeedAsync(app.Services));
+    await RunStartupSeederAsync("LabSpecimenTypeSeeder", () => LabSpecimenTypeSeeder.SeedAsync(app.Services));
+
+    // Data induk Patologi Anatomi: golongan, ruas isian, dan keberlakuannya. Ketiganya TETAP —
+    // isinya datang dari LAB-EVD-003 bagian 5.6, bukan dari kebiasaan satu rumah sakit.
+    //
+    // Data induk KEEMPAT — pemetaan jenis pemeriksaan ke golongan — sengaja TIDAK diseed; ia
+    // bergantung katalog rumah sakit yang bersangkutan dan diisi kepala instalasi. Selama ia
+    // kosong, formulir hasil Patologi Anatomi kosong sama sekali (INV-39), dan seeder ini
+    // menuliskan peringatan penyalaan untuk keadaan itu.
+    await RunStartupSeederAsync("LabPathologyMasterDataSeeder", () => LabPathologyMasterDataSeeder.SeedAsync(app.Services));
 
     // Data master Radiologi. Mengisi alat pencitraan dan butir keselamatan, lalu menyusun
     // usulan aturan keselamatan sebagai DRAF — tidak pernah Active. Aturan yang menentukan
     // kapan pasien boleh disinari hanya berlaku setelah disahkan penanggung jawab klinis
     // (RJ-BIL-DEC-014, DEC-RAD-005).
     await RunStartupSeederAsync("RadiologyMasterDataSeeder", () => RadiologyMasterDataSeeder.SeedAsync(app.Services));
-
-    // Data induk contoh Laboratorium. Mati secara bawaan dan menolak berjalan di produksi:
-    // katalog pemeriksaan, tarif, kelompok umur, dan sumber rujukan produksi ditetapkan pemilik
-    // proses bisnis lewat layar admin, bukan lewat seeder.
-    var runLabDummySeed = builder.Configuration.GetValue<bool>("Seeders:RunLabDummySeed");
-
-    if (runLabDummySeed)
-    {
-        await RunStartupSeederAsync(
-            "LabDummyDataSeeder",
-            () => LabDummyDataSeeder.SeedAsync(app.Services, app.Environment.EnvironmentName));
-    }
 
     var runOperatingRoomDemoSeed =
         builder.Configuration.GetValue<bool>("Seeders:RunOperatingRoomDemoSeed");

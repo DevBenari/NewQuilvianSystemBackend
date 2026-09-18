@@ -58,8 +58,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             [FromQuery] DateTime? endDate = null,
             CancellationToken cancellationToken = default)
         {
-            var akhir = endDate ?? DateTime.UtcNow;
-            var awal = startDate ?? akhir.AddDays(-30);
+            // Rentang disiapkan sebelum bawaannya dihitung — lihat LabQueryDateRange. Bawaan
+            // `DateTime.UtcNow` sendiri sudah ber-Kind UTC, jadi ia tidak perlu disentuh.
+            var akhir = LabQueryDateRange.NormalizeEnd(endDate) ?? DateTime.UtcNow;
+            var awal = LabQueryDateRange.NormalizeStart(startDate) ?? akhir.AddDays(-30);
 
             if (awal > akhir)
             {
@@ -88,6 +90,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             [FromQuery] LabOrderPagedQuery query,
             CancellationToken cancellationToken = default)
         {
+            // Rentang disiapkan sebelum apa pun yang lain — lihat LabQueryDateRange.
+            (query.StartDate, query.EndDate) =
+                LabQueryDateRange.Normalize(query.StartDate, query.EndDate);
+
             if (query.StartDate.HasValue && query.EndDate.HasValue &&
                 query.StartDate.Value > query.EndDate.Value)
             {
@@ -143,6 +149,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             [FromQuery] LabOrderPagedQuery query,
             CancellationToken cancellationToken = default)
         {
+            (query.StartDate, query.EndDate) =
+                LabQueryDateRange.Normalize(query.StartDate, query.EndDate);
+
             if (!TryParseDiscipline(discipline, out var nilai))
             {
                 return BadRequest(ApiResponse<object>.Fail(
@@ -203,6 +212,55 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             return Ok(ApiResponse<LabOrderDetailResponse>.Ok(
                 result,
                 "Detail order laboratorium berhasil diambil."));
+        }
+
+        // Memesan beberapa pemeriksaan sekaligus. Sistem memecahnya menjadi satu pesanan per
+        // disiplin, sehingga setiap pemeriksaan muncul pada menu Pemeriksaan yang benar tanpa
+        // petugas perlu memikirkan disiplinnya.
+        //
+        // Endpoint POST / yang lama tidak berubah sama sekali: ia tetap menerima satu procedure
+        // dan tetap mengembalikan satu pesanan.
+        [HttpPost("by-examinations")]
+        [ProducesResponseType(typeof(ApiResponse<List<LabOrderDetailResponse>>), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [AccessAction("Create", "Create Lab Order", Description = "Membuat order pemeriksaan laboratorium", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessPermission("LabOrder", "Create")]
+        public async Task<IActionResult> CreateByExaminations(
+            [FromBody] CreateLabOrderByExaminationsRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var result = await _labOrderService.CreateByExaminationsAsync(request, cancellationToken);
+
+                return StatusCode(
+                    StatusCodes.Status201Created,
+                    ApiResponse<List<LabOrderDetailResponse>>.Ok(
+                        result,
+                        result.Count == 1
+                            ? "Pesanan laboratorium berhasil dibuat."
+                            : $"{result.Count} pesanan laboratorium berhasil dibuat, satu untuk setiap disiplin."));
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    ex.Message));
+            }
+            catch (LabOrderValidationException ex)
+            {
+                return UnprocessableEntity(ApiResponse<object>.Fail(
+                    StatusCodes.Status422UnprocessableEntity,
+                    ex.Message));
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    ex.Message));
+            }
         }
 
         [HttpPost]
@@ -267,6 +325,31 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
                 () => _labOrderService.CompleteAsync(id, cancellationToken),
                 "Order laboratorium selesai dikerjakan.");
 
+        // Mengonfirmasi pesanan beserta dokter pemeriksanya.
+        //
+        // Nama konfirmator dan waktu konfirmasi TIDAK diterima dari badan permintaan. Keduanya
+        // diturunkan server dari pengguna yang sedang login dan dari jam server, karena nama
+        // konfirmator adalah pertanyaan audit, bukan pertanyaan tampilan.
+        //
+        // Konfirmasi tidak mewajibkan apa pun pada jalur lama: pesanan yang tidak pernah
+        // dikonfirmasi tetap berpindah Requested ke Accepted ketika wadah pertamanya dinyatakan
+        // layak.
+        [HttpPost("{id:guid}/confirm")]
+        [ProducesResponseType(typeof(ApiResponse<LabOrderDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [AccessAction("Update", "Cancel Lab Order", Description = "Mengonfirmasi order laboratorium beserta dokter pemeriksanya", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("LabOrder", "Update")]
+        public Task<IActionResult> Confirm(
+            Guid id,
+            [FromBody] ConfirmLabOrderRequest request,
+            CancellationToken cancellationToken = default) =>
+            ExecuteAsync(
+                () => _labOrderService.ConfirmAsync(id, request, cancellationToken),
+                "Pesanan laboratorium berhasil dikonfirmasi.");
+
         [HttpPut("{id:guid}/hold")]
         [ProducesResponseType(typeof(ApiResponse<LabOrderDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
@@ -302,16 +385,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         // Pembatalan ini bersifat klinis. Untuk sampel yang sebelumnya sudah dinyatakan layak,
         // diterbitkan fakta pembatalan sebagai revisi baru sehingga tagihan lama tetap utuh
         // dan Billing yang menentukan koreksinya. Laboratorium tidak menghapus tagihan.
+        //
+        // Sejak r12: alasan pembatalan WAJIB (VAL-74), dan pembatalan hanya sah pada pesanan
+        // berstatus Requested atau Confirmed (VAL-75). Keduanya perubahan breaking terhadap
+        // pemanggil lama, dan hitungan dampaknya dilaporkan pada BE-LAB-32.
         [HttpPut("{id:guid}/cancel")]
         [ProducesResponseType(typeof(ApiResponse<LabOrderCancellationResult>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
         [AccessAction("Update", "Cancel Lab Order", Description = "Membatalkan order laboratorium", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("LabOrder", "Update")]
         public async Task<IActionResult> Cancel(
             Guid id,
-            [FromBody] CancelLabSpecimenRequest? request = null,
+            [FromBody] CancelLabOrderRequest request,
             CancellationToken cancellationToken = default)
         {
             try
@@ -332,6 +420,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             {
                 return Conflict(ApiResponse<object>.Fail(
                     StatusCodes.Status409Conflict,
+                    ex.Message));
+            }
+            catch (LabOrderConflictException ex)
+            {
+                // VAL-75. Pesanan sudah melewati keadaan yang menerima pembatalan.
+                return Conflict(ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    ex.Message));
+            }
+            catch (LabOrderValidationException ex)
+            {
+                // VAL-74. Bentuk permintaannya benar, isinya yang belum lengkap.
+                return UnprocessableEntity(ApiResponse<object>.Fail(
+                    StatusCodes.Status422UnprocessableEntity,
                     ex.Message));
             }
             catch (InvalidOperationException ex)
@@ -366,6 +468,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             {
                 return Conflict(ApiResponse<object>.Fail(
                     StatusCodes.Status409Conflict,
+                    ex.Message));
+            }
+            catch (LabOrderConflictException ex)
+            {
+                // VAL-70, VAL-71. Permintaannya benar; pesanannya yang sudah tidak berada pada
+                // keadaan yang menerimanya. Memperbaiki isian tidak akan menolong, sehingga
+                // 409 — bukan 400 maupun 422.
+                return Conflict(ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    ex.Message));
+            }
+            catch (LabOrderValidationException ex)
+            {
+                // VAL-72, VAL-73. Bentuk permintaannya benar, isinya yang melanggar aturan
+                // bisnis — pembagian yang sama dengan yang dipakai POST /by-examinations.
+                return UnprocessableEntity(ApiResponse<object>.Fail(
+                    StatusCodes.Status422UnprocessableEntity,
                     ex.Message));
             }
             catch (ArgumentException ex)

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
@@ -64,6 +65,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 .Select(x => new LabMonitoringItemResponse
                 {
                     LabOrderId = x.Id,
+
+                    OrderNumber = x.OrderNumber,
                     EncounterId = x.EncounterId,
                     EncounterNumber = x.Encounter != null ? x.Encounter.EncounterNumber : null,
                     PatientId = x.Encounter != null ? x.Encounter.PatientId : null,
@@ -78,6 +81,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                         : _dbContext.MstPatients
                             .Where(p => p.Id == x.Encounter.PatientId)
                             .Select(p => p.MedicalRecordNumber)
+                            .FirstOrDefault(),
+                    // r19. Dibaca lewat sub-query ke MstPatient, cara yang sama dengan kedua
+                    // ruas di atas. Nama enum, bukan angka — mengikuti OrderStatus,
+                    // EncounterType, dan PaymentType pada DTO yang sama.
+                    Gender = x.Encounter == null
+                        ? null
+                        : _dbContext.MstPatients
+                            .Where(p => p.Id == x.Encounter.PatientId)
+                            .Select(p => p.Gender.HasValue ? p.Gender.Value.ToString() : null)
+                            .FirstOrDefault(),
+                    // r20. Dipakai Label Goldar. Sub-query yang sama dengan Gender di atas.
+                    BloodType = x.Encounter == null
+                        ? null
+                        : _dbContext.MstPatients
+                            .Where(p => p.Id == x.Encounter.PatientId)
+                            .Select(p => p.BloodType.ToString())
                             .FirstOrDefault(),
                     Discipline = discipline.ToString(),
                     OrderStatus = x.OrderStatus.ToString(),
@@ -101,7 +120,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     HasCito = _dbContext.LabExaminations
                         .Any(e => e.LabOrderId == x.Id && !e.IsDelete &&
                                   e.Urgency == LabExaminationUrgency.Cito),
-                    CreateDateTime = x.CreateDateTime
+                    CreateDateTime = x.CreateDateTime,
+
+                    // LAB-API-v1 r14. Kedua nama diterjemahkan di dalam proyeksi yang sama,
+                    // mengikuti cara PatientName dan MedicalRecordNumber di atas — bukan lewat
+                    // pencarian per baris sesudahnya. Jalur terjemahannya sama persis dengan
+                    // yang dipakai LabOrderService, supaya satu orang tidak terbaca dengan dua
+                    // nama berbeda antar layar.
+                    ConfirmedAt = x.ConfirmedAt,
+                    ConfirmedByName = x.ConfirmedByUserId == null
+                        ? null
+                        : _dbContext.Users
+                            .Where(u => u.Id == x.ConfirmedByUserId)
+                            .Select(u => u.DisplayName ?? u.UserName ?? u.Email ?? u.UserCode)
+                            .FirstOrDefault(),
+                    ExaminerDoctorName = x.ExaminerDoctorId == null
+                        ? null
+                        : _dbContext.Set<MstDoctor>()
+                            .Where(d => d.Id == x.ExaminerDoctorId)
+                            .Select(d => d.FullName)
+                            .FirstOrDefault()
                 })
                 .ToListAsync(cancellationToken);
 
@@ -139,6 +177,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                         p.Id == x.Encounter.PatientId && p.MedicalRecordNumber.Contains(nomor)));
             }
 
+            // NIK (r18). Dibaca lewat sub-query ke MstPatient — cara yang sama dengan
+            // MedicalRecordNumber di atas, bukan lewat navigation property baru. BR-50 butir 1
+            // melarang mengarang kolom; IdentityNumber memang sudah ada pada data induk pasien.
+            if (!string.IsNullOrWhiteSpace(query.IdentityNumber))
+            {
+                var nik = query.IdentityNumber.Trim();
+
+                source = source.Where(x =>
+                    x.Encounter != null &&
+                    _dbContext.MstPatients.Any(p =>
+                        p.Id == x.Encounter.PatientId &&
+                        p.IdentityNumber != null &&
+                        p.IdentityNumber.Contains(nik)));
+            }
+
             if (!string.IsNullOrWhiteSpace(query.EncounterNumber))
             {
                 var nomor = query.EncounterNumber.Trim();
@@ -147,16 +200,67 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     x.Encounter != null && x.Encounter.EncounterNumber.Contains(nomor));
             }
 
-            if (query.StartDate.HasValue)
+            // Kategori Periode (r18). Kosong berarti OrderDate — cabang yang persis sama dengan
+            // sebelum ruas ini ada, sehingga pemanggil lama tidak berubah perilakunya.
+            if (query.DateCategory == LabDateCategory.SamplingDate)
             {
-                var mulai = query.StartDate.Value;
-                source = source.Where(x => (x.RequestedAt ?? x.CreateDateTime) >= mulai);
-            }
+                var mulai = query.StartDate;
+                var sampai = query.EndDate;
 
-            if (query.EndDate.HasValue)
+                if (mulai.HasValue || sampai.HasValue)
+                {
+                    // Satu pesanan dapat memiliki beberapa wadah dengan waktu pengambilan
+                    // berbeda; yang dicari keberadaan salah satunya di dalam rentang — pola yang
+                    // sama dengan penyaring status wadah di bawah.
+                    //
+                    // CollectedAt kosong TIDAK PERNAH cocok, dan tidak jatuh-tempo ke
+                    // CreateDateTime. Pertanyaannya "pesanan mana yang diambil sampelnya dalam
+                    // rentang ini"; pesanan yang wadahnya belum pernah dinyatakan diambil tidak
+                    // termasuk jawabannya, dan mensubstitusinya akan memunculkannya sebagai
+                    // "diambil tanggal sekian" tanpa satu pun tanda di layar.
+                    source = source.Where(x => _dbContext.LabSpecimens
+                        .Any(s => s.LabOrderId == x.Id &&
+                                  !s.IsDelete &&
+                                  s.CollectedAt.HasValue &&
+                                  (!mulai.HasValue || s.CollectedAt.Value >= mulai.Value) &&
+                                  (!sampai.HasValue || s.CollectedAt.Value <= sampai.Value)));
+                }
+            }
+            else if (query.DateCategory == LabDateCategory.ExaminationDate)
             {
-                var sampai = query.EndDate.Value;
-                source = source.Where(x => (x.RequestedAt ?? x.CreateDateTime) <= sampai);
+                var mulai = query.StartDate;
+                var sampai = query.EndDate;
+
+                if (mulai.HasValue || sampai.HasValue)
+                {
+                    // r23. Aturan yang sama persis dengan SamplingDate di atas — satu pesanan
+                    // dapat memuat beberapa pemeriksaan yang dikerjakan pada waktu berbeda,
+                    // dan ExaminedAt kosong TIDAK PERNAH cocok.
+                    //
+                    // Nilai ini baru dicantumkan sesudah DUA syarat terpenuhi: kolomnya ada
+                    // (r21), dan ada yang mengisinya (r21/r22). Kolom tanpa penulis adalah
+                    // persis kesalahan BE-EXT-04.
+                    source = source.Where(x => _dbContext.LabExaminations
+                        .Any(e => e.LabOrderId == x.Id &&
+                                  !e.IsDelete &&
+                                  e.ExaminedAt.HasValue &&
+                                  (!mulai.HasValue || e.ExaminedAt.Value >= mulai.Value) &&
+                                  (!sampai.HasValue || e.ExaminedAt.Value <= sampai.Value)));
+                }
+            }
+            else
+            {
+                if (query.StartDate.HasValue)
+                {
+                    var mulai = query.StartDate.Value;
+                    source = source.Where(x => (x.RequestedAt ?? x.CreateDateTime) >= mulai);
+                }
+
+                if (query.EndDate.HasValue)
+                {
+                    var sampai = query.EndDate.Value;
+                    source = source.Where(x => (x.RequestedAt ?? x.CreateDateTime) <= sampai);
+                }
             }
 
             if (query.EncounterType.HasValue)
