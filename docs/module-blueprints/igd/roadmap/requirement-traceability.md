@@ -264,7 +264,8 @@ Empat keadaan dibedakan dengan tegas:
 | `BE-IGD-042` | `FR-IGD-001`, `FR-IGD-002`; `IGD-DEC-074`, `IGD-DEC-109`, `IGD-DEC-120` | `EmergencyVisitService.PeriksaJenisEncounter` menolak `Outpatient` | ⛔ **OWNER DATA CONFIRMATION** — jumlah `EmgVisit` aktif dengan `EncounterType.Outpatient`; `IGD-DEC-120` ✅ | Ya | Ya — **⛔ BLOCKED** | Belum | Belum |
 | `BE-IGD-043` | `IGD-DEC-112` | Laporan tracked `BE-IGD-043.md` atas `f76ebaab`; nol source | — | Ya | Ya | Source: ya (28 Agt). Laporan: **belum** | Belum |
 | `BE-IGD-044` 🟡 | `FR-IGD-017`, `FR-IGD-019`; `IGD-DEC-082` (**`approved` 17 Sep 2026**), `IGD-DEC-116`, `IGD-DEC-130` | Tabel `EmgDoctorAssignment` tanpa `IsActive` + unique bersyarat `EffectiveTo IS NULL` + pengisian data lama; migration oleh Rizki | `MVP-1` ✅, `IGD-DEC-116` ✅ | **Ya** — `IGD-DEC-082` approved 17 Sep 2026 | Ya | **Sebagian** — 17 September 2026: model, EF configuration, DbSet, navigation selesai; acceptance 1–3 terpetakan ([laporan](../task/report/backend/BE-IGD-044.md)). Acceptance 4–6 menunggu migration Rizki; `IGD-OQ-092` menahan pengisian data lama | Belum |
-| `BE-IGD-045` | `FR-IGD-016`…`021`; `IGD-DEC-116`, `IGD-DEC-117`, `IGD-DEC-129`, `IGD-DEC-130`, `IGD-DEC-131` | `EmergencyDoctorAssignmentController`/`Service`: `GET /`, `GET /active?at=`, `POST /`, `POST /{id}/handover`, beserta proyeksi `doctorName`/`assignedByName` | `BE-IGD-044` 🟡 (menunggu migration diterapkan), `IGD-DEC-116` ✅, `IGD-DEC-117` ✅ | **Ya** — `IGD-DEC-082` approved 17 Sep 2026 | Ya | Belum | Belum |
+| `BE-IGD-045` ✅ | `FR-IGD-016`…`021`; `IGD-DEC-116`, `IGD-DEC-117`, `IGD-DEC-129`, `IGD-DEC-130`, `IGD-DEC-131` | `EmergencyDoctorAssignmentController`/`Service`: `GET /`, `GET /active?at=`, `POST /`, `POST /{id}/handover`, beserta proyeksi `doctorName`/`assignedByName` | `BE-IGD-044` — tabel sudah ada dan migration diterapkan 17 Sep 2026 | **Ya** — `IGD-DEC-082` approved, `IGD-DEC-135` | Ya | **Ya** — 17 September 2026, ketiga belas acceptance terpetakan; source diterima pemilik ([laporan](../task/report/backend/BE-IGD-045.md)) | **Ya** — 17 September 2026: build nol error dan **12 dari 12 skenario uji API `PASS`** termasuk concurrency S12, dijalankan pemilik ([evidence](../evidence/2026-09-17-verifikasi-runtime-be-igd-045.md)). UAT belum |
+| `BE-IGD-048` ⛔ | `FR-IGD-017`, `FR-IGD-019` (melanjutkan acceptance 4 `BE-IGD-044`) | Migration data-only `BackfillEmergencyDoctorAssignment` | `BE-IGD-044` ✅; **`IGD-OQ-092` belum dijawab** | Sebagian — menunggu `IGD-OQ-092` | Ya | Belum | Belum |
 
 ### R3.4.2 Task frontend
 
@@ -275,7 +276,7 @@ Empat keadaan dibedakan dengan tegas:
 | `FE-IGD-024` | `IGD-DEC-115`, `IGD-DEC-119`, `IGD-DEC-121`; **coverage gap: tanpa FR** | Isian Kesimpulan opsional saat Selesaikan | `BE-IGD-040` (source selesai; build dan runtime belum diverifikasi), `IGD-DEC-121` ✅ | Ya | Ya | **Ya** ✅ 15 September 2026 — 6/6 kriteria ke source; lint exit 0; unit test 852/852; build **Not Verified** — [laporan](../task/report/frontend/FE-IGD-024.md) | **Belum** — uji peramban `NOT FEASIBLE`; runtime `BE-IGD-040` juga belum |
 | `FE-IGD-025` | `IGD-EV-117`; `IGD-DEC-107` | Laporan tracked atas `bd1d94a8a` + daftar endpoint klinis tanpa filter; nol source | — | Ya | Ya | Source: ya (31 Agt). Laporan: **belum** | Belum |
 | `FE-IGD-026` | `FR-IGD-001`…`012` (dibaca); `IGD-DEC-084` | Laporan tracked atas `c8613d88c` (+ `40f0e6106`/`5bc96f09b`); nol source | — | Ya | Ya | Source: ya (29–30 Agt). Laporan: **belum** | Belum |
-| `FE-IGD-027` | `FR-IGD-016`…`021`; `IGD-DEC-116`, `IGD-DEC-117`, `IGD-DEC-129`, `IGD-DEC-130` | Layar triase memakai `Emergency Doctor Assignment`, bukan endpoint Registrasi | `BE-IGD-045` | Sebagian — `IGD-DEC-082` menunggu Clinical Governance | Ya | Belum | Belum |
+| `FE-IGD-027` 🟡 | `FR-IGD-016`…`021`; `IGD-DEC-116`, `IGD-DEC-117`, `IGD-DEC-129`, `IGD-DEC-130` | Layar triase memakai `Emergency Doctor Assignment`, bukan endpoint Registrasi | `BE-IGD-045` ✅ Build dan Runtime terverifikasi 17 Sep 2026 | **Ya** — `IGD-DEC-082` `approved` 17 Sep 2026 | Ya | **Ya** — 17 September 2026, ketujuh acceptance terpetakan; lint `PASS`, unit test 866/866 ([laporan](../task/report/frontend/FE-IGD-027.md)) | **Belum** — `npm run build` dan uji layar milik pemilik |
 
 ### R3.4.3 Requirement `EPIC IGD-04` — rantai penuh
 
@@ -420,7 +421,7 @@ state, dan permission/audit **tidak berubah**. Integration contract disentuh han
 
 | Gap | Keterangan |
 | --- | --- |
-| `IGD-DEC-082` masih `draft` | Menunggu Clinical Governance. Menahan butir 10 DoD `BE-IGD-045`, **bukan** dimulainya coding. Dilarang menyatakan seluruh DoD selesai sebelum approval ada |
+| ~~`IGD-DEC-082` masih `draft`~~ | **Ditutup 17 September 2026** — `approved` oleh Product/Domain Owner; butir 10 DoD `BE-IGD-045` tidak lagi tertahan. Peran Clinical Governance tetap `OPEN` dan wajib meninjau ulang bila kelak ditunjuk |
 | Nama `TrxPatientEncounter` di luar kontrak | `erd/00-context-erd.md` dan kamus data §5.3 masih memakai nama lama, termasuk jalur berkas model. Di luar lingkup `IGD-DEC-132` yang menyebut *kontrak*; perlu keputusan terpisah bila hendak diselaraskan |
 | Uji langkah mundur migration `BE-IGD-044` | Menuntut basis data terpisah milik Rizki; syarat ✅ task itu |
 

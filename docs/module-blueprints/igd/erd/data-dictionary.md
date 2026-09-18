@@ -155,13 +155,26 @@ aslinya kemudian diubah atau dibatalkan modul pemiliknya.
 | `Id` | `uuid` PK | Ya | `NEWID()` | — | — | Tidak |
 | `EmergencyVisitId` | `uuid` FK | Ya | — | — | — | Tidak |
 | `DoctorId` | `uuid` FK | Ya | — | — | Dokter harus ada dan aktif | Tidak |
-| `EffectiveFrom` | `timestamp` | Ya | Waktu server | — | Tidak boleh mendahului waktu kedatangan pasien | Tidak |
-| `EffectiveTo` | `timestamp?` | Tidak | — | — | **Kosong berarti penugasan sedang berjalan** | Tidak |
+| `EffectiveFrom` | `timestamp with time zone` | Ya | Waktu server | — | Tidak boleh mendahului waktu kedatangan pasien | Tidak |
+| `EffectiveTo` | `timestamp with time zone?` | Tidak | — | — | **Kosong berarti penugasan sedang berjalan** | Tidak |
 | `AssignedByUserId` | `uuid` FK | Ya | Pengguna aktif | — | Diisi sistem | Tidak |
 | `AssignmentReason` | `varchar` | Tidak | — | 500 | **Wajib** saat pengalihan, bukan saat penetapan pertama | Tidak |
 
-**Index:** `(EmergencyVisitId, EffectiveFrom)`; **unique bersyarat** pada `(EmergencyVisitId)`
-untuk baris dengan `EffectiveTo IS NULL`.
+**Index sebagaimana benar-benar diterapkan** (migration `20260917072515`, 17 September 2026):
+
+| Nama | Bentuk | Asal |
+| --- | --- | --- |
+| `IX_EmgDoctorAssignment_EmergencyVisitId_Active` | **unique bersyarat**, penyaring `EffectiveTo IS NULL` | Kamus data ini |
+| `IX_EmgDoctorAssignment_EmergencyVisitId_EffectiveFrom` | komposit | Kamus data ini |
+| `IX_EmgDoctorAssignment_DoctorId` | tunggal | Ditambahkan `BE-IGD-044` untuk pencarian per dokter |
+| `IX_EmgDoctorAssignment_EffectiveTo` | tunggal | Ditambahkan `BE-IGD-044` untuk penyaringan penugasan berjalan |
+| `IX_EmgDoctorAssignment_AssignedByUserId` | tunggal | Dibuat EF otomatis untuk foreign key |
+
+Penyaring unique bersyarat **tidak** menyertakan `IsDelete`. Menyertakannya membuat baris
+yang di-soft-delete melepaskan slot berjalannya, sehingga satu kunjungan dapat punya dua
+baris `EffectiveTo IS NULL` — pelajaran `BE-IGD-047`.
+
+**Foreign key:** `AspNetUsers.Id`, `EmgVisit.Id`, dan `MstDoctor.Id`, ketiganya `Restrict`.
 
 > **`IsActive` sengaja tidak ada — `IGD-DEC-130`, 16 September 2026.** Rancangan sebelumnya
 > memuat kolom `IsActive` **dan** `EffectiveTo`, padahal keduanya menyatakan fakta yang sama dan

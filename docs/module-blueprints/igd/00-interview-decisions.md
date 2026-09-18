@@ -3277,7 +3277,7 @@ pun jelas maksudnya.
 | `IGD-DEC-079` | Nursing authority, Clinical Governance |
 | `IGD-DEC-080` | Security/Privacy owner, Clinical Governance |
 | `IGD-DEC-081` | Security/Privacy owner, pemilik Corporate/HR |
-| `IGD-DEC-082` | Clinical Governance |
+| ~~`IGD-DEC-082`~~ | ~~Clinical Governance~~ — **`approved` 17 September 2026** oleh Product/Domain Owner; peran Clinical Governance masih `OPEN` dan wajib meninjau ulang bila kelak ditunjuk |
 | `IGD-DEC-083` | Nursing authority, Clinical Governance |
 | `IGD-DEC-084` | Registration API owner |
 | `IGD-DEC-085` | Nursing authority, Clinical Governance, Integration owner |
@@ -4266,9 +4266,10 @@ meminta persetujuan; keputusan ini memberikan persetujuan itu di muka, dengan ba
 3. Sesudah Rizki membuat dan meninjau migration serta menjalankan verifikasi yang diwajibkan
    `BE-IGD-044`: `BE-IGD-045`, lalu `FE-IGD-027`.
 
-`IGD-DEC-082` tetap tercatat sebagai gerbang governance dan Definition of Done yang menunggu
-Clinical Governance. Ia **tidak** menghalangi coding dimulai, tetapi **dilarang** menyatakan
-seluruh DoD atau governance selesai sebelum approval itu benar-benar ada.
+`IGD-DEC-082` **sudah `approved` 17 September 2026** oleh Product/Domain Owner, sehingga ia
+**tidak lagi** menjadi gerbang Definition of Done yang terbuka. Peran Clinical Governance tetap
+`OPEN`; bila kelak ditunjuk, keputusan ini wajib ditinjau ulang olehnya. Larangan menyatakan UAT
+lulus tanpa bukti tetap berlaku dan tidak dicabut oleh approval ini.
 
 ## Keputusan 16 September 2026 (keempat) — tata letak riwayat pada ruang kerja pemeriksaan
 
@@ -4340,3 +4341,38 @@ acceptance 4 penuh, tetapi menyatakan seorang pelaku yang tidak pernah melakukan
 *Rekomendasi agent:* **(b)**, dengan jumlah baris yang terlewati dilaporkan dan acceptance 4
 ditandai terpenuhi-dengan-pengecualian. Kunjungan yang terlewati tetap dapat diberi dokter lewat
 `BE-IGD-045` seperti kunjungan baru, sehingga tidak ada kemampuan yang hilang permanen.
+
+---
+
+## Keputusan 17 September 2026 (kedua) — approval peran yang belum ditunjuk
+
+### `IGD-DEC-135` — izin melanjutkan remediasi teknis selama pemilik lintas domain belum ditunjuk
+
+> **Dikoreksi 17 September 2026 (ketiga) oleh Product/Domain Owner.** Rumusan pertama keputusan
+> ini menulis bahwa approval keempat peran itu "dipegang" Product/Domain Owner, dan turunannya
+> pada `MODULE-STATUS.md` sempat memindahkan pemilik `BE-IGD-039` menjadi Backend IGD. **Itu
+> salah baca.** Izin yang diberikan adalah izin **melanjutkan remediasi teknis**, bukan
+> pemindahan ownership. Teks di bawah adalah rumusan yang berlaku.
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-135` | Decision | Ketiadaan Security/Privacy owner, Master Data owner, Nursing authority, dan Clinical Governance **tidak lagi menghentikan remediasi teknis** pada modul IGD. Pekerjaan perbaikan yang sudah sesuai kontrak terkunci boleh dikerjakan tanpa menunggu penunjukan mereka. **Ownership keempat domain itu tetap `OPEN`** dan tetap melekat pada pemilik domain masing-masing; keputusan ini **tidak** memindahkannya kepada Backend IGD maupun Product/Domain Owner | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-09-17** | Instruksi pengguna 17 September 2026, dikoreksi pada hari yang sama |
+
+**Batas keputusan ini.**
+
+| Yang dibuka | Yang **tidak** berubah |
+| --- | --- |
+| Pekerjaan remediasi teknis boleh berjalan tanpa menunggu penunjukan pemilik | **Ownership** keempat domain tetap `OPEN` / milik pemilik domainnya |
+| Task tidak lagi berstatus terblokir semata-mata karena peran itu kosong | Keputusan kebijakan yang menjadi wewenang mereka tetap milik mereka |
+| Butir 10 DoD tidak dinyatakan terbuka hanya karena peran itu kosong | Cacat kode `BE-IGD-039` tetap salah; izin tidak memperbaikinya |
+| — | `MstServiceUnit.OrganizationUnitId` tetap kosong 0 dari 18 sampai diisi |
+| — | Kebijakan klinis yang belum pernah diputuskan tetap tidak boleh dikarang |
+
+Blocker berjenis *"menunggu orang"* menjadi *"boleh dikerjakan"*. Blocker berjenis *"kodenya
+salah"* dan *"datanya kosong"* tetap nyata, dan **pemiliknya tetap sebagaimana tercatat**.
+
+**Kewajiban tinjau ulang.** Bila salah satu peran itu kelak ditunjuk, keputusan yang disahkan
+lewat `IGD-DEC-135` — termasuk `IGD-DEC-082` — ditinjau ulang oleh pemilik barunya.
+
+**Yang tetap berlaku.** Izin ini terbatas pada pekerjaan yang sesuai kaidah rumah sakit dan
+kontrak terkunci. Larangan menyatakan UAT PASS tanpa bukti tidak dicabut.

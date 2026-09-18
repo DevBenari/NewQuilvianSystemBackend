@@ -136,7 +136,7 @@ flowchart LR
 | `FE-IGD-024` | Isian Kesimpulan saat menyelesaikan observasi | ✅ 15 September 2026 — implementasi; `npm run build` lulus 17 September 2026. **Uji layar pemilik 17 September 2026 LULUS** — satu periode observasi diselesaikan beserta isian Kesimpulan | [FE-IGD-024](../task/report/frontend/FE-IGD-024.md) |
 | `FE-IGD-025` | Laporan susulan perombakan layar pengkajian dan temuan privasi | tanpa tanda — direncanakan | — |
 | `FE-IGD-026` | Laporan susulan layar pendaftaran IGD | tanpa tanda — direncanakan | — |
-| `FE-IGD-027` | Layar triase memakai riwayat penugasan dokter | tanpa tanda — direncanakan, menunggu `BE-IGD-045` | — |
+| `FE-IGD-027` | Layar triase memakai riwayat penugasan dokter | 🟡 17 September 2026 — **Implementation Complete / Runtime Not Verified.** Ketujuh acceptance terpetakan ke source; lint `PASS`; unit test **866/866**. Layar IGD **tidak lagi** memakai endpoint Registrasi untuk penetapan dokter. `npm run build` dan uji layar belum | [FE-IGD-027](../task/report/frontend/FE-IGD-027.md) |
 | `FE-IGD-028` | Pemantauan observasi dengan tanda vital tertaut | ✅ 16 September 2026 — lint, 857 unit test, dan `npm run build` lulus; **runtime terverifikasi sebagian lewat layar** (jalur pilih-existing dan ABCDE terisi belum dilalui) | [FE-IGD-028](../task/report/frontend/FE-IGD-028.md) |
 | `FE-IGD-029` | Pendaftaran IGD menutup dengan status Menunggu Triage | ✅ **17 September 2026** — kedua kriteria terbukti lewat layar. Pasien `RAYYAN DHAFIR PRASETYA MAULANA` didaftarkan 17 September 2026 09.35, lahir berstatus "Menunggu Triage", lalu triage-nya tersimpan sampai berstatus "Sudah ditriage". Penolakan `409` yang memicu gelombang ini **hilang**. Tanpa UAT | [FE-IGD-029](../task/report/frontend/FE-IGD-029.md) |
 | `FE-IGD-030` | Aksi Tangani Segera pada daftar triage | ✅ 16 September 2026 — kedelapan kriteria terbukti lewat layar; lint, 859 unit test, dan `npm run build` lulus; tanpa UAT | [FE-IGD-030](../task/report/frontend/FE-IGD-030.md) |
@@ -779,11 +779,11 @@ flowchart LR
 | **Owner** | Frontend |
 | **DoD** | Acceptance 1–4 terpenuhi; laporan tracked ada; roadmap dan traceability diperbarui |
 
-### `FE-IGD-027` — Layar triase memakai riwayat penugasan dokter
+### 🟡 `FE-IGD-027` — Layar triase memakai riwayat penugasan dokter
 
 | Field | Isi |
 | --- | --- |
-| **Status** | **Direncanakan 15 September 2026; kontraknya diperluas 16 September 2026 — belum dikerjakan.** Mulai setelah `BE-IGD-045` selesai. Acceptance 6 kini bersandar pada proyeksi `doctorName`/`assignedByName` yang dijamin `IGD-DEC-129`, dan bertambah butir 7 dari `IGD-DEC-130` |
+| **Status** | 🟡 **IMPLEMENTATION COMPLETE / RUNTIME NOT VERIFIED — 17 September 2026.** Ketujuh acceptance criteria terpetakan ke source. Penetapan dokter IGD berpindah ke kontrak `EmergencyDoctorAssignment`; **nol** kemunculan endpoint Registrasi pada kode layar IGD. `npm run lint:errors` **PASS**; unit test **866/866**. `npm run build` dan uji lewat layar **belum** — keduanya milik pemilik. Dependency `BE-IGD-045` ✅ Build + Runtime Verified. [Laporan](../task/report/frontend/FE-IGD-027.md) |
 | **Outcome** | Penetapan dan pengalihan dokter IGD dilakukan lewat `Emergency Doctor Assignment`, dan petugas melihat riwayat dokter penanggung jawab, bukan hanya dokter sekarang |
 | **Slice** | `IGD-S06` · `EPIC IGD-04` |
 | **Requirement** | `FR-IGD-016`…`021` sisi tampilan |

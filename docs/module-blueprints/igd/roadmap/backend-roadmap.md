@@ -161,8 +161,9 @@ flowchart LR
 | `BE-IGD-041` | Penolakan penutupan menyebut pesanan | R3.8 | 🟡 16 September 2026 — implementasi selesai, ketujuh kriteria terpetakan; `dotnet build` dan uji API belum dijalankan | [BE-IGD-041](../task/report/backend/BE-IGD-041.md) |
 | `BE-IGD-042` | Encounter `Outpatient` ditolak | R3.8 | ⛔ menunggu konfirmasi data owner | — |
 | `BE-IGD-043` | Laporan susulan pengaturan IGD tersirat | R3.8 | tanpa tanda — direncanakan | — |
-| `BE-IGD-044` | Histori penugasan dokter IGD | `MVP-5` | 🟡 17 September 2026 — model, EF configuration, DbSet, dan navigation selesai; acceptance 1–3 terpetakan ke source. Acceptance 4–6 menunggu migration yang dijalankan Rizki; `IGD-OQ-092` menahan pengisian data lama | [BE-IGD-044](../task/report/backend/BE-IGD-044.md) |
-| `BE-IGD-045` | Penetapan, pengalihan, dan pencarian dokter aktif | `MVP-5` | tanpa tanda — direncanakan | — |
+| `BE-IGD-044` | Histori penugasan dokter IGD | `MVP-5` | 🟡 17 September 2026 — migration diterapkan Rizki. Acceptance 1, 2, 3, dan **6** ✅ (snapshot +102 baris, nol penghapusan). **Acceptance 4 ⛔** — migration terbit tanpa pengisian data lama, tabel kosong; dipindahkan ke `BE-IGD-048`. Acceptance 5 menunggu konfirmasi uji langkah mundur ([audit](../evidence/2026-09-17-audit-be-igd-044-igd-oq-092.md)) | [BE-IGD-044](../task/report/backend/BE-IGD-044.md) |
+| `BE-IGD-045` | Penetapan, pengalihan, dan pencarian dokter aktif | `MVP-5` | ✅ **17 September 2026** — Implementation Complete, Build Verified, Runtime Verified. Build nol error; **12 dari 12 skenario uji API `PASS`** termasuk concurrency S12. Tanpa UAT | [BE-IGD-045](../task/report/backend/BE-IGD-045.md) |
+| `BE-IGD-048` | Pengisian data lama penugasan dokter IGD | `MVP-5` | ⛔ menunggu jawaban `IGD-OQ-092` — corrective migration data-only, belum disusun | — |
 | `BE-IGD-046` | Validasi dan proyeksi tanda vital pada detail observasi | R3.9 | ✅ 16 September 2026 — implementasi + build bersih (nol error); runtime belum diverifikasi | [BE-IGD-046](../task/report/backend/BE-IGD-046.md) |
 | `BE-IGD-047` | Nomor urut penilaian triage ditetapkan server | R3.10 | ✅ **17 September 2026** — `dotnet build` lulus dan **uji API tiga skenario lulus** oleh pemilik; dibuktikan lagi lewat layar bersama `FE-IGD-033`. Tanpa UAT | [BE-IGD-047](../task/report/backend/BE-IGD-047.md) |
 
@@ -884,7 +885,7 @@ flowchart LR
     BEIGD035["🟡 BE-IGD-035<br/>Sikap pesanan belum selesai"]:::sebagian
     OQ076{{"✅ IGD-OQ-076 dan IGD-OQ-077<br/>Ditutup IGD-DEC-101, 102"}}:::selesai
     BEIGD044["BE-IGD-044 🟡<br/>Histori penugasan dokter tersimpan"]:::sebagian
-    BEIGD045["BE-IGD-045<br/>Dokter ditetapkan, dialihkan, dicari"]:::belum
+    BEIGD045["BE-IGD-045 ✅<br/>Dokter ditetapkan, dialihkan, dicari"]:::selesai
     DEC116{{"✅ IGD-DEC-116<br/>API §3 dan nama EmgDoctorAssignment"}}:::selesai
     DEC117{{"✅ IGD-DEC-117<br/>Dokter aktif pada waktu tertentu"}}:::selesai
 
@@ -1080,11 +1081,11 @@ penetapan bersamaan.
 | **Owner** | Backend IGD; migration: Rizki |
 | **DoD** | Acceptance 1–6 terpetakan; laporan tracked ada; roadmap dan traceability diperbarui; QBE preflight dan kesesuaian engineering diselesaikan saat eksekusi mengikuti `AGENTS.md` backend; tanpa UAT PASS |
 
-### `BE-IGD-045` — Dokter penanggung jawab ditetapkan, dialihkan, dan dicari berdasarkan waktu
+### ✅ `BE-IGD-045` — Dokter penanggung jawab ditetapkan, dialihkan, dan dicari berdasarkan waktu
 
 | Field | Isi |
 | --- | --- |
-| **Status** | **Direncanakan 15 September 2026; kontraknya diperluas 16 September 2026 — belum dikerjakan.** Menunggu `BE-IGD-044` **selesai beserta migration yang dibuat dan diverifikasi Rizki**. Acceptance bertambah dua butir (12 dan 13) dari `IGD-DEC-129` dan `IGD-DEC-130`, dan `Program.cs` memperoleh izin terbatas lewat `IGD-DEC-131` |
+| **Status** | ✅ **SELESAI — 17 September 2026.** Ketiga belas acceptance terpetakan ke source; **build lulus nol error** (207 warning, nol warning baru); **dua belas skenario uji API seluruhnya `PASS`** termasuk concurrency S12 yang menghasilkan satu `201` dan satu `409` dengan tepat satu penugasan berjalan. Dijalankan pemilik — [evidence](../evidence/2026-09-17-verifikasi-runtime-be-igd-045.md). **UAT belum dan tidak diklaim**. [Laporan](../task/report/backend/BE-IGD-045.md) |
 | **Outcome** | Petugas IGD menetapkan dokter pertama, mengalihkan dengan alasan, membaca riwayat, dan menanyakan dokter aktif sekarang maupun pada waktu tertentu |
 | **Slice** | `IGD-S06` · `EPIC IGD-04` · `MVP-5` |
 | **Requirement** | `FR-IGD-016`, `FR-IGD-017`, `FR-IGD-018`, `FR-IGD-019`, `FR-IGD-020`, `FR-IGD-021` |
@@ -1097,7 +1098,7 @@ penetapan bersamaan.
 | **Bukti** | Pemetaan acceptance criteria ke source; contoh request/response untuk uji API manual per kriteria (`IGD-DEC-110`); perintah build untuk Rizki; laporan `task/report/backend/BE-IGD-045.md` |
 | **Risiko** | **Menengah.** Menulis tabel milik Registrasi (`RegPatientEncounter`) dalam transaksi yang sama; konkurensi penetapan |
 | **Owner** | Backend IGD |
-| **DoD** | Acceptance 1–13 terpetakan; baris pendaftaran DI pada `Program.cs` dicantumkan di laporan (`IGD-DEC-131`); laporan tracked ada; roadmap dan traceability diperbarui; QBE preflight diselesaikan saat eksekusi mengikuti `AGENTS.md` backend; butir 10 DoD dicatat terbuka selama `IGD-DEC-082` belum disetujui Clinical Governance — dan selama itu **dilarang** menyatakan seluruh DoD atau governance selesai; tanpa UAT PASS |
+| **DoD** | Acceptance 1–13 terpetakan; baris pendaftaran DI pada `Program.cs` dicantumkan di laporan (`IGD-DEC-131`); laporan tracked ada; roadmap dan traceability diperbarui; QBE preflight diselesaikan saat eksekusi mengikuti `AGENTS.md` backend; butir 10 DoD **tidak lagi terbuka** sejak `IGD-DEC-082` `approved` 17 September 2026 oleh Product/Domain Owner — peran Clinical Governance tetap `OPEN` dan wajib meninjau ulang bila kelak ditunjuk; tanpa UAT PASS |
 
 ---
 
@@ -1492,3 +1493,33 @@ tidak berlaku: seluruh perubahan berada di dalam `EmergencyInstallationManagemen
 **Yang perlu dinilai pemilik.** `IsRetriage` dan `PreviousTriageId` kini terisi, padahal
 sebelumnya selalu kosong karena layar tidak pernah mengirimnya. Keduanya memakai definisi yang
 sudah dipakai jalur retriage. Lihat laporan bagian 4.
+
+---
+
+## R3.11 Gelombang 17 September 2026 (kedua) — `EPIC IGD-04` dikerjakan
+
+Dua task dikerjakan dan satu task lahir dari audit.
+
+### ✅ `BE-IGD-045` — selesai dan terverifikasi
+
+Lihat kartunya di R3.4. Build lulus nol error dan **dua belas skenario uji API seluruhnya `PASS`**
+17 September 2026, dijalankan pemilik. UAT belum dan tidak diklaim.
+
+### ⛔ `BE-IGD-048` — Pengisian data lama penugasan dokter IGD
+
+| Field | Isi |
+| --- | --- |
+| **Status** | ⛔ **TERBLOKIR — 17 September 2026.** Menunggu jawaban `IGD-OQ-092`. Lahir dari [audit `BE-IGD-044`](../evidence/2026-09-17-audit-be-igd-044-igd-oq-092.md): migration `AddEmergencyDoctorAssignment` terbit **tanpa** pengisian data lama, sehingga tabelnya kosong |
+| **Outcome** | Setiap kunjungan IGD yang encounter-nya sudah punya dokter memperoleh satu baris riwayat berjalan, sehingga `GET /active` tidak lagi membalas `404` untuk kunjungan lama |
+| **Slice** | `IGD-S06` · `EPIC IGD-04` · `MVP-5` |
+| **Requirement** | `FR-IGD-017`, `FR-IGD-019` — melanjutkan acceptance 4 `BE-IGD-044` |
+| **Keputusan** | `IGD-DEC-082`, `IGD-DEC-116`, `IGD-DEC-130`; **menunggu `IGD-OQ-092`** |
+| **Kontrak** | Nol perubahan. Nol kolom, nol index, nol endpoint baru |
+| **Scope** | Satu migration **data-only** bernama `BackfillEmergencyDoctorAssignment`. Dilarang menyunting, menghapus, atau meregenerasi `20260917072515_AddEmergencyDoctorAssignment` yang sudah applied |
+| **Perubahan** | `Up()` satu `Sql()` berisi `INSERT ... SELECT` sesuai pilihan `IGD-OQ-092`; `Down()` satu `Sql()` berisi `DELETE` berpembatas. **Wajib idempoten** lewat `WHERE NOT EXISTS` terhadap baris berjalan pada kunjungan yang sama |
+| **Dependency** | `BE-IGD-044` ✅ tabelnya ada; **`IGD-OQ-092` belum dijawab** |
+| **Acceptance** | 1. Setiap kunjungan IGD berdokter yang memenuhi pilihan `IGD-OQ-092` memperoleh tepat satu baris `EffectiveTo IS NULL`. 2. `EffectiveFrom` diambil dari `UpdateDateTime` encounter, jatuh ke `CreateDateTime` bila kosong. 3. Kunjungan tanpa dokter **tidak** mendapat baris. 4. Dijalankan dua kali tidak melanggar index unik bersyarat. 5. Jumlah baris yang **dilewati** beserta alasannya dicatat pada laporan task. 6. `Down()` hanya menghapus baris hasil pengisian ini, bukan penugasan yang dibuat petugas lewat `BE-IGD-045` |
+| **Batas eksekusi** | Agent menyusun migration lalu **berhenti**; `migrations add` dan `database update` dijalankan Rizki |
+| **Risiko** | **Menengah.** Menyentuh data klinis historis; celahnya bertambah setiap penetapan dokter sampai `FE-IGD-027` rilis |
+| **Owner** | Backend IGD; migration: Rizki; keputusan `IGD-OQ-092`: Product/Domain Owner |
+| **DoD** | Acceptance 1–6 terpetakan; jumlah baris terisi dan terlewati dicatat; laporan tracked ada; roadmap dan traceability diperbarui; tanpa UAT PASS |
