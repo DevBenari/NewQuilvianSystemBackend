@@ -5,9 +5,9 @@
 | Field | Value |
 | --- | --- |
 | Blueprint ID | `BD-BP-001` |
-| Blueprint revision | `13` |
-| Contract version | `v4` — status **`approved`** |
-| `last_changed_in` | `v4` |
+| Blueprint revision | `14` — amendment `v5` 18 September 2026 (bagian N). **Riwayat:** `13` |
+| Contract version | **`v5` — `approved`** (`Sukmagp` 2026-09-19; `v4` kini **`superseded`**). **Riwayat:** `v5` `draft` 18 September 2026. Arah keempat perubahan disetujui `Sukmagp` 18 September 2026 (`DEC-BD-055`..`058`). **Riwayat:** `v4` — `approved` `Sukmagp` 2026-09-03, kini `superseded` begitu `v5` disetujui |
+| `last_changed_in` | `v5` (bagian E.1, F.1, F.4, F.5, H, I, M, N). **Riwayat:** `v4` |
 | Modul | Bank Darah (`bank-darah`) · Area `HealthServices` · Module `BloodBankManagement` (baru) |
 | Tanggal | `2026-09-02` |
 | Backend SHA | `ab39b63edd912e7a825e186be75537fc319a36ce` cabang `sukmagp` |
@@ -16,7 +16,7 @@
 | Sumber arsitektur domain | `03-domain-architecture.md` revisi 6 — `DOMAIN_ARCHITECTURE_READY` |
 | Pass ini | `v4` — penyerapan role residue closure (`DEC-BD-042`, `DEC-BD-043`, `DEC-BD-044`) |
 | Owner | Product/domain: pemilik proses BDRS · API: pemilik arsitektur backend · Security: pemilik keamanan platform · Frontend authority: pemilik proses BDRS |
-| `approved_by` / `approved_at` | `Sukmagp` / `2026-09-03` |
+| `approved_by` / `approved_at` | `Sukmagp` / `2026-09-19` (`v5`). **Riwayat:** `Sukmagp` / `2026-09-03` (`v4`) |
 
 ### Jejak requirement-ke-domain yang dipatuhi
 
@@ -168,6 +168,7 @@ classDiagram
         +Guid RequestingDoctorId
         +BbkOrderSource OrderSource
         +Guid~nullable~ InputByUserId
+        +BloodType~nullable~ RequestedBloodGroup
         +BbkBloodOrderStatus OrderStatus
         +int Version
     }
@@ -384,10 +385,10 @@ terpisah di `Repositories/Configurations/HealthServices/BloodBankManagement/`.
 | Lokasi file | `Areas/HealthServices/BloodBankManagement/Models/BbkBloodOrder.cs` |
 | Kategori | Transaksi |
 | Tanggung jawab | Menyimpan satu permintaan kebutuhan darah untuk seorang pasien, dari unit pelayanan (elektronik) atau diinput Bank Darah (manual). Angka pemenuhan tidak disimpan sebagai kolom; dihitung dari pemberian nyata |
-| Field penting | `OrderNumber` (dari number-series), `PatientId`, `EncounterId`, `ServiceUnitId`, `RequestingDoctorId`, `OrderSource`, `InputByUserId` (wajib bila manual), `OrderStatus`, `Version` |
+| Field penting | `OrderNumber` (dari number-series), `PatientId`, `EncounterId`, `ServiceUnitId`, `RequestingDoctorId`, `OrderSource`, `InputByUserId` (wajib bila manual), **`RequestedBloodGroup`** (`v5`, `DEC-BD-055` — keterangan dari permintaan, **bukan** golongan darah sah), `OrderStatus`, `Version` |
 | Relasi | Memiliki banyak `BbkBloodOrderLine`; dirujuk `BbkProviderRequest` dan `BbkBloodBankProcedure` |
 | Pemakaian alur | Dibuat di awal proses; ditutup saat terpenuhi penuh, dibatalkan, atau kunjungan berakhir |
-| Catatan desain | Jangan menyimpan `FulfilledQuantity` sebagai kolom yang disunting; dihitung `BD-DOM-17`. Deteksi ganda `BD-XINV-01` bukan urusan satu order |
+| Catatan desain | Jangan menyimpan `FulfilledQuantity` sebagai kolom yang disunting; dihitung `BD-DOM-17`. Deteksi ganda `BD-XINV-01` bukan urusan satu order. **`v5`:** `RequestedBloodGroup` milik **order**, bukan baris — satu pasien satu golongan darah diminta per order, tidak diulang per komponen. Tidak pernah dibaca gerbang alokasi, bukti kecocokan, maupun pemberian (`INV-BD-011`) |
 | Ekuivalen lama | — |
 
 **`BbkProviderRequest`** — `BD-DOM-03`
@@ -474,7 +475,7 @@ terpisah di `Repositories/Configurations/HealthServices/BloodBankManagement/`.
 
 | Service | Status | Lokasi | Fungsi utama | Buka transaksi DB |
 | --- | --- | --- | --- | --- |
-| `BbkBloodOrderService` | `Baru` | `.../BloodBankManagement/Services/BbkBloodOrderService.cs` | CRUD order, deteksi ganda `BD-XINV-01`, hitung pemenuhan `BD-DOM-17`, alokasi number-series order | Ya |
+| `BbkBloodOrderService` | `Baru` · **`Diperbarui` pada `v5`** | `.../BloodBankManagement/Services/BbkBloodOrderService.cs` | CRUD order, deteksi ganda `BD-XINV-01`, hitung pemenuhan `BD-DOM-17`, alokasi number-series order. **`v5`:** validasi `RequestedBloodGroup` (`VAL-BD-085`) sebelum nomor diminta; turunan `CancellationReasonCategory` memakai **fungsi yang sama** dengan `CancelAsync`; proyeksi komponen + jumlah diberikan untuk satu halaman daftar dalam kueri berkelompok, memakai perhitungan `BD-DOM-17` yang sama dengan `GET /{id}/fulfillment` | Ya |
 | `BbkProviderRequestService` | `Baru` | `.../Services/BbkProviderRequestService.cs` | Buat permintaan (`BD-XINV-02`), catat penerimaan (termasuk kelebihan `BD-XINV-03`), tutup administratif | Ya |
 | `BbkBloodUnitService` | `Baru` | `.../Services/BbkBloodUnitService.cs` | **Penetapan lokasi (`Received`→`Stored`) & perpindahan lokasi**, alokasi & pembatalan, catat bukti kecocokan, pemberian (+darurat), koreksi, penyelesaian `PendingReview`. Memegang **dua gerbang**: `EvaluateAllocationGate` dan `EvaluateIssuanceGate` — lihat catatan di bawah | Ya |
 | `BbkBloodGroupExamService` | `Baru` | `.../Services/BbkBloodGroupExamService.cs` | Sampel, catat hasil, **validasi rutin**, deteksi konflik `BD-XINV-04`, **penyelesaian konflik**. Dua tindakan terakhir dijaga butir hak akses yang **berbeda** (`DEC-BD-039`) | Ya |
@@ -523,7 +524,7 @@ setengah-jalan.
 
 | Controller | Status | Lokasi | Service dipakai | Atribut akses |
 | --- | --- | --- | --- | --- |
-| `BbkBloodOrderController` | `Baru` | `.../BloodBankManagement/Controllers/BbkBloodOrderController.cs` | `BbkBloodOrderService` | `[AccessController]`, `[AccessPermission("BloodOrder", ...)]` |
+| `BbkBloodOrderController` | `Baru` · **`Diperbarui` pada `v5`** | `.../BloodBankManagement/Controllers/BbkBloodOrderController.cs` | `BbkBloodOrderService` | `[AccessController]`, `[AccessPermission("BloodOrder", ...)]`. **`v5`:** `MapFailure` meneruskan `DuplicateComponentIds` ke slot `errors` untuk `VAL-BD-001`, mengikuti konvensi `BbkBloodUnitController.MapFailure`; `GetAll` menerima `bloodComponentId`; `GET /{id}` dan jawaban tulis menurunkan `CancellationReasonCategory` untuk pengguna yang login. Butir hak akses **tidak** bertambah |
 | `BbkProviderRequestController` | `Baru` | `.../Controllers/BbkProviderRequestController.cs` | `BbkProviderRequestService` | `[AccessPermission("BloodProviderRequest", ...)]` |
 | `BbkBloodUnitController` | `Baru` | `.../Controllers/BbkBloodUnitController.cs` | `BbkBloodUnitService` | `[AccessPermission("BloodUnit", ...)]` |
 | `BbkBloodGroupExamController` | `Baru` | `.../Controllers/BbkBloodGroupExamController.cs` | `BbkBloodGroupExamService` | `[AccessPermission("BloodGroupExam", ...)]` |
@@ -651,6 +652,8 @@ ditiru.
 | --- | --- | --- | --- |
 | 15 tabel `Bbk*` + 3 master `Mst*` | `Baru` | seluruh kolom (lihat `data/data-dictionary.md`) | `CREATE TABLE` + index + FK |
 | `MstServiceUnit` | `Diperbarui` | **+1 kolom** `IsAvailableForBloodOrder` `bool NOT NULL DEFAULT false` | `ADD COLUMN` dengan default; aman tanpa downtime |
+| `BbkBloodOrder` | **`Diperbarui` pada `v5`** (`DEC-BD-055`) | **+1 kolom** `RequestedBloodGroup` `int NULL` (`BloodType`), **tanpa** nilai bawaan dan **tanpa** index | `ADD COLUMN` nullable; aman tanpa downtime. Baris lama tetap `NULL` — **tidak** di-backfill (bagian I langkah 4) |
+| `BbkBloodOrderLine` | Tidak berubah pada `v5` | — | Golongan darah diminta sengaja **tidak** ditaruh per baris |
 
 Perubahan `v2` terhadap hitungan di atas — dirinci karena "diperbarui" tanpa rincian kolom membuat
 migration tidak dapat direncanakan:
@@ -703,6 +706,15 @@ Urutan (satu migration modul, dapat dipecah bila perlu):
    `MstServiceUnit`. Data lama otomatis `false` — sesuai `DEC-BD-012` "bawaan menolak". Tanpa downtime.
 3. **`AddBloodBankOperational`** — 15 tabel `Bbk*` (termasuk **`BbkBloodUnitPlacement`**) beserta FK
    `Restrict` dan index. Tanpa downtime (tabel baru, tidak menyentuh trafik existing).
+
+4. **Migration `v5` untuk `RequestedBloodGroup`** (`DEC-BD-055`) — nama migration ditetapkan builder saat
+   eksekusi. `ADD COLUMN "RequestedBloodGroup" integer NULL` pada `BbkBloodOrder`: tanpa default, tanpa
+   index, tanpa backfill. Tanpa downtime, karena kolom nullable tidak mengunci baris lama. **Pengisian
+   data lama: tidak ada** — baris lama bermakna "golongan darah diminta tidak tercatat pada order lama",
+   dan mengisinya dari `MstPatient.BloodType`, hasil pemeriksaan tervalidasi, atau sumber klinis lain
+   **dilarang**. **Langkah mundur:** `DROP COLUMN`; tidak ada data lain yang terdampak. Migration ini
+   hanya boleh **dibuat** oleh task backend `v5` pemiliknya, dan **diterapkan** ke database mana pun
+   dengan wewenang terpisah per database.
 
 **Catatan `v3`.** Perubahan pass ini menyentuh dua tabel yang **belum pernah dibuat**, sehingga tidak
 menambah satu pun migration baru maupun satu pun `ALTER TABLE`. Seluruhnya larut ke dalam langkah 3.
@@ -818,6 +830,8 @@ Nilai seperti masa berlaku bukti **MUST** dari master, **MUST NOT** di-hardcode 
 | Requirement / Decision | Konsep domain | Realisasi backend |
 | --- | --- | --- |
 | `DEC-BD-004/005/006` | `BD-AGG-01` | `BbkBloodOrder`, `BbkBloodOrderLine`, `BbkBloodOrderService` (deteksi ganda) |
+| `DEC-BD-055` (`v5`) | `BD-AGG-01` | `BbkBloodOrder.RequestedBloodGroup`, `VAL-BD-085`, migration `ADD COLUMN` nullable |
+| `DEC-BD-056/057/058` (`v5`) | `BD-AGG-01`, `BD-DOM-17` | `BbkBloodOrderController.MapFailure` (`errors`), `BloodOrderDetailDto.CancellationReasonCategory`, `BloodOrderListDto.Components`/`TotalIssuedQuantity`, query `bloodComponentId` |
 | `DEC-BD-002/003/008/020/025` | `BD-AGG-02` | `BbkProviderRequest`, `BbkBloodUnitReceipt`, `IsExcess` |
 | `DEC-BD-007/013/017/019/027/028/029/030` | `BD-AGG-03` | `BbkBloodUnit` + alokasi/bukti/otorisasi/koreksi |
 | `DEC-BD-015/018/026/031` | `BD-AGG-04` | `BbkBloodGroupExam`, `BbkBloodGroupSample`, `BbkBloodGroupConflictResolution` |
@@ -874,3 +888,40 @@ menahan **tindakan administratif**, bukan menilai kelayakan darah — batas `INV
 wajib dibaca apa adanya oleh siapa pun yang membaca dokumen ini: status `Stored` menyatakan kantong
 punya tempat yang tercatat, **bukan** menyatakan rantai dinginnya terjaga. Sistem tidak memantau suhu
 pada MVP (`DEC-BD-035`).
+
+---
+
+## N. Amendment `v5` — kontrak Order Darah untuk `FE-BD-002` (18 September 2026)
+
+**Kenapa ada amendment ini.** Discovery `FE-BD-002` menemukan empat hal yang dituntut layar dan
+kewajiban FE-BD-001/003 yang disetujui, tetapi tidak pernah dikirim atau disimpan backend `v4`. Pemilik
+modul, **`Sukmagp`**, menyetujui arah perbaikannya pada 18 September 2026 (`DEC-BD-055` sampai
+`DEC-BD-058`, `00-interview-decisions.md` bagian 8.32). `BE-BD-003` **tidak** dibuka ulang: seluruh
+kriteria penerimaannya tetap terpenuhi; yang kurang adalah kemampuan yang memang belum pernah
+dirancang.
+
+| Kode | Kebutuhan | Perubahan backend | Tabel/kolom | Migration |
+| --- | --- | --- | --- | --- |
+| D1 (`DEC-BD-055`) | Golongan darah **diminta** sebagai fakta order | Kolom `BbkBloodOrder.RequestedBloodGroup` (`BloodType?`); wajib pada tiga endpoint pembuatan; `VAL-BD-085` | `BbkBloodOrder` **Diperbarui** +1 kolom | **Ya** — satu `ADD COLUMN` nullable (bagian I langkah 4) |
+| D2 (`DEC-BD-056`) | Penahanan order ganda terbaca mesin | Slot `errors` pada `422 VAL-BD-001` berisi `code` dan `duplicateComponentIds` | — | Tidak |
+| D3 (`DEC-BD-057`) | Kategori alasan pembatalan ditentukan backend | Isian turunan `CancellationReasonCategory` pada `BloodOrderDetailDto` | — | Tidak |
+| D4 (`DEC-BD-058`) | Daftar kerja FE-BD-01 dapat dibangun dari satu request | Query `bloodComponentId`; `Components[]` + `TotalIssuedQuantity` pada `BloodOrderListDto` | — | Tidak — index baru hanya bila bukti eksekusi menuntut |
+
+**Batas keselamatan klinis `D1`.** `RequestedBloodGroup` adalah keterangan dari permintaan. Ia **tidak
+pernah** menjadi golongan darah sah pasien, bukti kecocokan, dasar alokasi, dasar pemberian, maupun
+pengganti pemeriksaan tervalidasi (`INV-BD-011`, `INV-BD-014`). Gerbang `BbkBloodUnitService` dan
+`BbkBloodGroupExamService` **tidak** membacanya. Contoh: order meminta PRC dengan golongan darah diminta
+A Positif, sedangkan pemeriksaan tervalidasi pasien B Positif. Alokasi dan pemberian tetap dinilai
+terhadap B Positif, dan layar `FE-BD-02` menampilkan keduanya dengan label berbeda.
+
+**Yang sengaja tidak dibuat pada `v5`.**
+
+| Dipertimbangkan | Ditolak karena |
+| --- | --- |
+| Kolom golongan darah diminta pada `BbkBloodOrderLine` | Satu pasien satu golongan darah diminta per order; menaruhnya per baris membuka kemungkinan dua nilai berbeda pada satu order |
+| Enum golongan darah kedua khusus Bank Darah | Enum `BloodType` sudah ada (`Enums/BloodType.cs`); dua enum yang bersaing mengundang pemetaan salah |
+| Backfill order lama dari `MstPatient.BloodType` atau hasil pemeriksaan | Mengarang fakta permintaan yang tidak pernah diminta; dilarang `DEC-BD-055` |
+| Menyimpan kategori alasan pembatalan pada order | Nilainya bergantung pada siapa yang membuka order; menyimpannya menciptakan dua sumber kebenaran dengan `CancelAsync` |
+| Menyimpan penghitung jumlah diberikan pada order atau baris | Melanggar `BD-DOM-17`: pemenuhan dihitung dari pemberian nyata dan menghormati koreksi `Approved` (`DEC-BD-054`) |
+| Menyertakan daftar alasan pembatalan di dalam detail order | Menyembunyikan ketergantungan `BloodBankReason : Read` alih-alih mengaturnya (`DEC-BD-057`) |
+| Menyimpan percobaan order yang tertahan supaya `confirm-duplicate` dibandingkan dengannya | Menambah state baru untuk satu layar; kesetiaan nilai golongan darah pada lanjutan order ganda dijaga layar (`DEC-BD-055`) |

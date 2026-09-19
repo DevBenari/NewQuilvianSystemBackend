@@ -9,7 +9,20 @@ entity_prefix: Bbk
 blueprint_id: BD-BP-001
 blueprint_shape: SINGLE
 blueprint_root: docs/module-blueprints/bank-darah/
-roadmap_revision: 11
+roadmap_revision: 12
+revision_12_scope: CONTRACT_V5_BLOOD_ORDER_NEW_TASKS
+revision_12_status: APPROVED — Sukmagp 2026-09-19. Riwayat: DRAFT 2026-09-18
+revision_12_note: >-
+  Amendment kontrak v5 untuk FE-BD-002. Pemilik Sukmagp memutuskan jalur C lalu B pada
+  2026-09-18: set kontrak direvisi v4 -> v5 (DEC-BD-055..058), lalu dua task backend BARU
+  ditetapkan skill perencanaan. BE-BD-017: golongan darah diminta pada BbkBloodOrder beserta
+  migration ADD COLUMN nullable dan VAL-BD-085 (AC-BD-103..106). BE-BD-018: errors terstruktur
+  VAL-BD-001, CancellationReasonCategory turunan, ketergantungan hak akses BloodOrder : Cancel ->
+  BloodBankReason : Read, dan proyeksi komponen + jumlah diberikan pada GET /blood-orders
+  (AC-BD-107..112). Keduanya semula BLOCKED oleh gerbang baru G5 (approval naskah v5), BE-BD-017
+  juga oleh persetujuan proses klinis DEC-BD-055; keduanya tertutup 2026-09-19 dan kedua task kini
+  siap dijadwalkan dengan urutan kanonik BE-BD-017 -> migration -> BE-BD-018 -> FE-BD-002. BE-BD-003 TIDAK dibuka ulang dan seluruh bukti
+  BE-BD-001..016 tidak ditulis ulang. Nol task lama berubah ID, acceptance, atau dependency.
 revision_11_scope: ACCEPTANCE_REHOME_AC_BD_071_AND_VERIFICATION_POLICY
 revision_11_note: >-
   Koreksi tata kelola saja, dijalankan SEBELUM BE-BD-006 dikerjakan. Nol source backend,
@@ -80,22 +93,30 @@ revision_6_note: >-
   implementasi, bukan penahan perencanaan.
 status: APPROVED
 status_note: >-
+  19 September 2026: revisi 12 DISETUJUI Sukmagp bersama kontrak v5; G5 tertutup. Riwayat: DRAFT.
+  18 September 2026: revisi 12 (amendment kontrak v5, BE-BD-017 dan BE-BD-018) berstatus DRAFT
+  sampai pemilik meninjau naskahnya. Revisi 11 tetap APPROVED (Sukmagp 2026-09-12) dan seluruh
+  task BE-BD-001..016 beserta buktinya tidak berubah. Riwayat: APPROVED.
   Revisi 7 disetujui Sukmagp 2026-09-10. Pada hari yang sama gerbang G4 ditutup atas
   pernyataan pemiliknya, Andry, setelah PLT-BE-003 dan PLT-BE-004 selesai. Nol task,
   acceptance criteria, kontrak, maupun dependency antar-task berubah; yang berubah hanya
   status gerbang dan status task.
 approval_gate: BLUEPRINT_APPROVED
-contract_version: v4 (approved)
-backend_source_sha: 55ac6ab
+contract_version: v5 (approved — Sukmagp 2026-09-19). Riwayat v5 draft 2026-09-18; v4 (approved, kini superseded)
+backend_source_sha: 2bd9fc2addb373873494cb7342316fec143312d5
 backend_source_sha_note: >-
+  18 September 2026: dibaca pada 2bd9fc2a (sama dengan origin/sukmagp, working tree bersih).
+  Rentang 77f60c88..2bd9fc2a hanya docs/, nol berkas source. Riwayat 55ac6ab:
   Rentang 55ac6ab..f0d6855 mengubah nol berkas .cs, sehingga SHA ini masih menggambarkan
   source yang ter-commit. PERINGATAN: working tree memuat 17 berkas .cs milik BE-BD-005
   dan BE-BD-011 yang BELUM ter-commit, sehingga source aktual sudah melampaui SHA mana pun
   di dokumen ini.
 backend_branch: sukmagp
-frontend_source_sha: f79af16847c99961842081f707bc0c4ff6c2d93b
+frontend_source_sha: fbe29f6d1b7408b13f4377b1fe4b77fc4dabf82e
+frontend_source_sha_note: >-
+  18 September 2026: commit FE-BD-006 di origin/sukmagpV2. Riwayat: f79af16847c99961842081f707bc0c4ff6c2d93b.
 frontend_branch: sukmagpV2
-decision_revision: 12
+decision_revision: 13
 domain_architecture_revision: 6
 owners:
   - "Product/Domain: pemilik proses BDRS"
@@ -108,7 +129,8 @@ approved_by:
   - "Sukmagp — penerusan AC-BD-023/032 ke BE-BD-015 dan AC-BD-033 ke BE-BD-006 (roadmap revisi 9), 2026-09-11"
   - "Sukmagp — penerusan verifikasi final bagian alokasi AC-BD-060/068/070 dari BE-BD-015 ke BE-BD-006 (roadmap revisi 10), 2026-09-11"
   - "Sukmagp — pelepasan AC-BD-071 dari BE-BD-006 ke pemilik reallocate BE-BD-009 dan pencatatan kebijakan verifikasi repository (roadmap revisi 11), 2026-09-12"
-approved_at: "2026-09-12"
+  - "Sukmagp — kontrak v5, roadmap backend revisi 12, BE-BD-017 dan BE-BD-018, DEC-BD-055..058 termasuk persetujuan proses klinis DEC-BD-055, 2026-09-19"
+approved_at: "2026-09-19"
 approval_note: >-
   Approval 2026-09-03 berlaku atas roadmap revisi 2. Revisi 3 menambahkan gerbang G4
   dan revisi 4 memecah roadmap menjadi backend dan frontend; approval tidak berpindah
@@ -212,6 +234,7 @@ dan menjalankannya sekarang akan menghasilkan kode yang melanggar kontrak sendir
 | `G2a` | Pendaftaran prefix `Bbk` di registry | Pemilik registry engineering | ✅ **TERTUTUP** 2026-09-03, commit `ed7fba8` |
 | `G2b` | Lifecycle registri `PLANNED` → `ACTIVE` | Pemilik registry engineering | ✅ **TERTUTUP** 2026-09-03, commit `8075784` |
 | `G4` | Provider number-series yang dapat dipakai Bank Darah | Pemilik platform + pemilik kontrak engineering backend — `Andry` | ✅ **TERTUTUP** 2026-09-10 oleh `Andry` — bukti `PLT-BE-003` dan `PLT-BE-004`; riwayatnya di 2.1 |
+| **`G5`** (revisi 12) | Approval **naskah** set kontrak `v5` — amendment Blood Order `DEC-BD-055`..`058` | `Sukmagp` | ✅ **TERTUTUP** 2026-09-19 oleh `Sukmagp`. **Riwayat:** ⛔ terbuka sejak 2026-09-18, menahan `BE-BD-017` dan `BE-BD-018` |
 
 **`G4` tertutup 10 September 2026.** Pemilik gerbang, `Andry`, menyatakan gerbang ini tertutup.
 Keterangan itu disampaikan `Sukmagp` pada hari yang sama, tanpa dokumen persetujuan tertulis yang
@@ -281,10 +304,10 @@ Yang **belum** berubah, dan inilah sebab `G4` masih ⛔:
 | --- | ---: | --- |
 | ✅ SELESAI | 16 | `BE-BD-001`, `BE-BD-002`, `BE-BD-003`, `BE-BD-004`, `BE-BD-005`, `BE-BD-006`, `BE-BD-007`, `BE-BD-008`, `BE-BD-009`, `BE-BD-010`, `BE-BD-011`, `BE-BD-012`, `BE-BD-013`, `BE-BD-014`, `BE-BD-015`, `BE-BD-016`. **`BE-BD-013` ✅ SELESAI 17 September 2026** — `DEC-BD-016` disetujui `Sukmagp` hari yang sama; `AC-BD-026`/`027`/`058` terbukti runtime lewat API sungguhan + verifikasi database; build `0 Error(s)` / `214 Warning(s)` (nol dari berkas task); `has-pending-model-changes` bersih, nol migration; QBE Strict `PASS` ([laporan](../task/report/backend/BE-BD-013.md)). **Riwayat:** 15 tanpa `BE-BD-013`. **`BE-BD-016` selesai 17 September 2026 — 38 butir identik source/kontrak/database ([laporan](../task/report/backend/BE-BD-016.md)).** **Riwayat:** 14 tanpa `BE-BD-016`. **`BE-BD-010` selesai 17 September 2026 — ketujuh acceptance terbukti runtime, migration `0 pending`, QBE Strict `PASS` ([laporan](../task/report/backend/BE-BD-010.md)).** **Riwayat:** 13 tanpa `BE-BD-010`. **`BE-BD-009` selesai 17 September 2026 — kesembilan acceptance dan kelima kode kontrak `VAL-BD-016/064/080/081/082` terbukti runtime, migration terterapkan `0 pending`, QBE Strict `PASS` ([laporan](../task/report/backend/BE-BD-009.md)).** **Riwayat:** 12 tanpa `BE-BD-009`. **`BE-BD-008` selesai 16 September 2026 — kesembilan acceptance dan kelima kode kontrak terbukti runtime, migration terterapkan `0 pending`, QBE Strict `PASS` ([laporan](../task/report/backend/BE-BD-008.md)).** **Riwayat:** 11 tanpa `BE-BD-008`. **`BE-BD-007` selesai 16 September 2026 — kedua belas business acceptance dan ketujuh kode kontrak terbukti runtime ([laporan](../task/report/backend/BE-BD-007.md)); build `0 Error(s)`, QBE Strict `PASS`.** **Riwayat:** 10 tanpa `BE-BD-007`. **`BE-BD-006` selesai 14 September 2026 — kesembilan runtime acceptance terbukti** ([laporan](../task/report/backend/BE-BD-006.md)). `BE-BD-001` dan `BE-BD-014` sempat diturunkan ke 🟡 pada 14 September 2026 karena regresi registrasi DI, lalu **dikembalikan ✅ pada hari yang sama** sesudah smoke validation lolos. `BE-BD-015` selesai pada roadmap revisi 10 ([laporan](../task/report/backend/BE-BD-015.md)); `BE-BD-004` selesai pada roadmap revisi 9 ([laporan](../task/report/backend/BE-BD-004.md)); `BE-BD-012` selesai 11 September 2026 ([laporan](../task/report/backend/BE-BD-012.md)). **Riwayat:** 8 sebelum revisi 10 |
 | 🟡 SELESAI SEBAGIAN | 0 | Tidak ada. **Riwayat (HISTORY):** 1 — `BE-BD-016` sampai ✅ 17 September 2026 — **30 deklarasi unik terhadap baseline 39** menurut audit source pemilik 14 September 2026; bukan bukti seeder DB/otorisasi runtime. **Riwayat:** 2 — `BE-BD-016` dan `BE-BD-015` (9 dari 12 kriteria) sebelum penerusan revisi 10; 1 — `BE-BD-016` sesudah revisi 9; sebelumnya 2, termasuk `BE-BD-004` — 6 dari 9 kriteria sebelum penerusan revisi 9 |
-| 🟡 PENDING — siap dijadwalkan | 0 | Tidak ada. **Riwayat:** 1 — `BE-BD-010` sampai ✅ 17 September 2026 — **READY, belum diimplementasikan.** Dependency tertutup; `OQ-BD-014` ditutup `DEC-BD-051` dan `VAL-BD-049` terdefinisi lewat `DEC-BD-052` (17 September 2026). Tidak dikerjakan pada sesi `BE-BD-009`. **Riwayat:** 2 — `BE-BD-009`, `BE-BD-010`, sampai `BE-BD-009` ✅ 17 September 2026. **Riwayat:** 3 termasuk `BE-BD-008`, sampai `BE-BD-008` ✅ 16 September 2026 **Riwayat:** 1 — `BE-BD-007`, penahannya `BE-BD-006` gugur 14 September 2026. **Riwayat `BE-BD-006` pada baris ini:** 🟡 PARTIAL — READY FOR RUNTIME VALIDATION per 14 September 2026, runtime acceptance 0 dari 9 `PENDING` ([laporan](../task/report/backend/BE-BD-006.md)), kini ✅. build, migration, dan QBE Strict lolos 13 September 2026; penerapan database `BLOCKED — UNRELATED PENDING MIGRATIONS`. **Riwayat:** dikerjakan 12 September 2026, source lengkap, build dan migration menunggu pemilik. **Riwayat:** 🟡 PENDING — siap dijadwalkan sejak roadmap revisi 10, 11 September 2026; sejak roadmap revisi 11 dapat diselesaikan penuh secara mandiri tanpa `reallocate`. **Riwayat:** 0 sesudah `BE-BD-015` 🟡 selesai sebagian; 1 — `BE-BD-015`, siap dijadwalkan sejak roadmap revisi 9; sebelumnya 0 sesudah `BE-BD-012` ✅; sebelumnya 1 — `BE-BD-012`, siap dijadwalkan kembali sejak roadmap revisi 8; sebelumnya terbuka setelah `BE-BD-003` selesai, lalu ⛔ pada hari yang sama |
-| ⛔ BLOCKED | 0 | Tidak ada. **Riwayat:** 3 — `BE-BD-008`, `009`, `010`, seluruhnya lewat `BE-BD-007`, sampai `BE-BD-007` ✅ 16 September 2026 **Riwayat:** 4 termasuk `BE-BD-007`, sampai `BE-BD-006` ✅ 14 September 2026; 5 termasuk `BE-BD-006`, lewat rantai yang berawal dari `BE-BD-015`; sebelumnya 6 termasuk `BE-BD-015`; sebelumnya 7, termasuk `BE-BD-012` yang menunggu tiga keputusan ([laporan](../task/report/backend/BE-BD-012.md)) |
+| 🟡 PENDING — siap dijadwalkan | **2** | **`BE-BD-017`** lalu **`BE-BD-018`** — siap dijadwalkan sejak 19 September 2026 (kontrak `v5` disetujui, `G5` tertutup), belum dikerjakan. **Riwayat:** 0 sampai 19 September 2026. **Riwayat:** 1 — `BE-BD-010` sampai ✅ 17 September 2026 — **READY, belum diimplementasikan.** Dependency tertutup; `OQ-BD-014` ditutup `DEC-BD-051` dan `VAL-BD-049` terdefinisi lewat `DEC-BD-052` (17 September 2026). Tidak dikerjakan pada sesi `BE-BD-009`. **Riwayat:** 2 — `BE-BD-009`, `BE-BD-010`, sampai `BE-BD-009` ✅ 17 September 2026. **Riwayat:** 3 termasuk `BE-BD-008`, sampai `BE-BD-008` ✅ 16 September 2026 **Riwayat:** 1 — `BE-BD-007`, penahannya `BE-BD-006` gugur 14 September 2026. **Riwayat `BE-BD-006` pada baris ini:** 🟡 PARTIAL — READY FOR RUNTIME VALIDATION per 14 September 2026, runtime acceptance 0 dari 9 `PENDING` ([laporan](../task/report/backend/BE-BD-006.md)), kini ✅. build, migration, dan QBE Strict lolos 13 September 2026; penerapan database `BLOCKED — UNRELATED PENDING MIGRATIONS`. **Riwayat:** dikerjakan 12 September 2026, source lengkap, build dan migration menunggu pemilik. **Riwayat:** 🟡 PENDING — siap dijadwalkan sejak roadmap revisi 10, 11 September 2026; sejak roadmap revisi 11 dapat diselesaikan penuh secara mandiri tanpa `reallocate`. **Riwayat:** 0 sesudah `BE-BD-015` 🟡 selesai sebagian; 1 — `BE-BD-015`, siap dijadwalkan sejak roadmap revisi 9; sebelumnya 0 sesudah `BE-BD-012` ✅; sebelumnya 1 — `BE-BD-012`, siap dijadwalkan kembali sejak roadmap revisi 8; sebelumnya terbuka setelah `BE-BD-003` selesai, lalu ⛔ pada hari yang sama |
+| ⛔ BLOCKED | 0 | Tidak ada sejak 19 September 2026. **Riwayat:** 2 — `BE-BD-017` (menunggu `G5` dan persetujuan klinis `DEC-BD-055`) dan `BE-BD-018` (menunggu `G5`), 18 September 2026. **Riwayat:** 0 sejak `BE-BD-007` ✅ 16 September 2026 sampai revisi 12. **Riwayat:** 3 — `BE-BD-008`, `009`, `010`, seluruhnya lewat `BE-BD-007`, sampai `BE-BD-007` ✅ 16 September 2026 **Riwayat:** 4 termasuk `BE-BD-007`, sampai `BE-BD-006` ✅ 14 September 2026; 5 termasuk `BE-BD-006`, lewat rantai yang berawal dari `BE-BD-015`; sebelumnya 6 termasuk `BE-BD-015`; sebelumnya 7, termasuk `BE-BD-012` yang menunggu tiga keputusan ([laporan](../task/report/backend/BE-BD-012.md)) |
 | — Future scope | 0 | Tidak ada. **Riwayat:** 1 — `BE-BD-013`, sampai `DEC-BD-016` disetujui dan task ✅ 17 September 2026 |
-| **Total** | **16** | |
+| **Total** | **18** | 16 selesai + 2 siap dijadwalkan (amendment `v5`). **Riwayat:** 16 selesai + 2 terblokir (18 September 2026); 16 sampai revisi 11 |
 
 ---
 
@@ -325,7 +348,40 @@ Yang **belum** berubah, dan inilah sebab `G4` masih ⛔:
 ════════ FUTURE SCOPE ════════
 
 ✅ BE-BD-013 (penyaluran biaya ke Billing)   SELESAI 17 Sep 2026 — DEC-BD-016 disetujui · 3/3 AC terbukti runtime
+
+════════ AMENDMENT KONTRAK v5 — revisi 12, APPROVED 19 Sep 2026 ════════
+
+BE-BD-003 ✅ ─┬─> BE-BD-017 🟡 (golongan darah diminta + migration)
+BE-BD-005 ✅ ─┤
+G5 ✅ ─────────┤
+DEC-BD-055 ✅ ─┘
+
+BE-BD-003 ✅ ─┬─> BE-BD-018 🟡 (errors VAL-BD-001, kategori pembatalan, daftar kerja)
+BE-BD-010 ✅ ─┤
+G5 ✅ ─────────┘
+
+G5         = naskah set kontrak v5 disetujui pemilik — tertutup 19 Sep 2026
+DEC-BD-055 = persetujuan proses klinis atas DEC-BD-055 — disetujui 19 Sep 2026
 ```
+
+**Gelombang eksekusi amendment `v5` (revisi 12).**
+
+| Gelombang | Boleh mulai setelah | Task |
+| ---: | --- | --- |
+| 1 | Seluruh prasyaratnya ✅ sejak 19 September 2026 | `BE-BD-017`, `BE-BD-018` |
+
+**Urutan pelaksanaan kanonik — ditetapkan pemilik 19 September 2026.** Keduanya tidak saling bergantung
+secara data dan tetap dua task terpisah, tetapi dikerjakan berurutan:
+
+| Urutan | Langkah |
+| ---: | --- |
+| 1 | `BE-BD-017` |
+| 2 | Penerapan migration `BE-BD-017` ke database pengembangan yang diberi wewenang eksplisit |
+| 3 | `BE-BD-018` |
+| 4 | `FE-BD-002` (roadmap frontend) |
+
+**Riwayat (18 September 2026):** keduanya tanpa nomor gelombang — `BE-BD-018` menunggu `G5`, `BE-BD-017`
+menunggu `G5` dan persetujuan klinis `DEC-BD-055`.
 
 **Riwayat 9 September 2026 - jalur terbuka saat itu sudah habis.** `BE-BD-005` dan `BE-BD-011` selesai 9 September 2026 tanpa menyentuh
 penomoran sama sekali, persis seperti yang direncanakan. Akibatnya **tidak ada lagi task backend yang
@@ -582,10 +638,55 @@ tidak dapat diberikan sebelum dialokasikan.
 
 ---
 
+### 🟡 `BE-BD-017` — Golongan darah diminta tercatat pada order darah
+
+| Field | Isi |
+| --- | --- |
+| **Status** | 🟡 **PENDING — siap dijadwalkan, belum dikerjakan** (roadmap revisi 12 disetujui `Sukmagp` 19 September 2026). **Task pertama pada urutan kanonik.** `G5` tertutup dan persetujuan proses klinis `DEC-BD-055` diberikan `Sukmagp` 19 September 2026. Nol source, nol migration. **Riwayat:** ⛔ **BLOCKED — belum dikerjakan (roadmap revisi 12, `DRAFT`, 18 September 2026).** Menunggu dua hal: **(1)** gerbang `G5` — naskah set kontrak `v5` disetujui pemilik; **(2)** persetujuan proses klinis atas `DEC-BD-055`, yang di register berstatus **BLOCKED** karena pemilik proses klinis belum pernah disebutkan namanya (`00-interview-decisions.md` §8.32). Nol source, nol migration |
+| **Yang memblokir** | **Nihil sejak 19 September 2026.** **Riwayat:** `G5` · persetujuan proses klinis `DEC-BD-055` — dilepas oleh tanda tangan pemilik proses klinis, **atau** pernyataan tertulis `Sukmagp` bahwa ia bertindak sebagai pemilik proses klinis untuk keputusan ini |
+| **Pekerjaan yang tetap aman** | Nol untuk source. `BE-BD-018` tidak bergantung pada task ini dan dapat berjalan begitu `G5` tertutup |
+| **Outcome** | Setiap order darah **baru** mencatat golongan darah yang diminta — sebagai keterangan permintaan, terpisah dari golongan darah hasil pemeriksaan. Order lama jujur tanpa nilai |
+| **Trace** | `DEC-BD-055`; `FE-BD-001`, `ASM-BD-004`; `INV-BD-011`, `INV-BD-014`; `BD-AGG-01` |
+| **Kontrak** | api-contract **`v5`** — Blood Order, Amendment `v5` D1; `data/data-dictionary.md` `BbkBloodOrder.RequestedBloodGroup`; `validation-matrix.md` `VAL-BD-085` |
+| **Reuse** | Enum `BloodType` yang sudah ada (`Enums/BloodType.cs`); jalur validasi, deteksi ganda, dan alokasi nomor `BE-BD-003` |
+| **Scope** | Kolom `RequestedBloodGroup` (`BloodType?`) pada `BbkBloodOrder`, **bukan** baris; isian wajib `requestedBloodGroup` pada `CreateBloodOrderRequest`, `CreateManualBloodOrderRequest`, `ConfirmDuplicateOrderRequest`; tolak kosong / `NotDisclosed` / di luar enum dengan `400 VAL-BD-085` **sebelum** deteksi ganda dan alokasi nomor; `requestedBloodGroup` + label pada `BloodOrderDetailDto`; satu migration `ADD COLUMN` nullable tanpa default, tanpa index, **tanpa backfill** |
+| **Di luar scope** | Membaca nilai ini pada `BbkBloodUnitService`, `BbkBloodGroupExamService`, atau gerbang klinis mana pun; mengisi order lama; enum kedua; kolom per baris |
+| **Dependency** | `BE-BD-003` ✅, `BE-BD-005` ✅ (golongan darah sah untuk membuktikan `AC-BD-106`), gerbang **`G5`** ✅, persetujuan klinis **`DEC-BD-055`** ✅ (keduanya 19 September 2026). **Riwayat:** `G5` ⛔, `DEC-BD-055` ⛔ |
+| **Acceptance** | `AC-BD-103`, `AC-BD-104`, `AC-BD-105`, `AC-BD-106` |
+| **Verifikasi** | QBE preflight dan kesesuaian engineering diselesaikan pada waktu eksekusi dari `AGENTS.md` backend. Build project aplikasi; `has-pending-model-changes` bersih sesudah migration dibuat; review diff/scope; verifikasi kontrak API dan proses bisnis lewat panggilan API sungguhan terhadap database pengembangan yang **diberi wewenang eksplisit**. Automated test tidak diwajibkan (`TEST_POLICY`) |
+| **Wewenang database** | **Pembuatan** migration termasuk wewenang build task ini. **Penerapan** ke database mana pun **tidak** termasuk dan wajib diminta terpisah per database |
+| **Risk/owner** | Sedang, bersinggungan dengan keselamatan klinis / pemilik proses BDRS + pemilik proses klinis |
+| **DoD** | Keempat acceptance terbukti; `VAL-BD-085` terkirim dengan kalimat persis `validation-matrix.md`; nol pembacaan `RequestedBloodGroup` di luar layanan order; migration terterapkan di database pengembangan yang diberi wewenang dengan `0 pending`; laporan tracked `task/report/backend/BE-BD-017.md` |
+
+---
+
+### 🟡 `BE-BD-018` — Order darah terbaca layar: penahanan ganda, kategori pembatalan, dan daftar kerja
+
+| Field | Isi |
+| --- | --- |
+| **Status** | 🟡 **PENDING — siap dijadwalkan, belum dikerjakan** (roadmap revisi 12 disetujui `Sukmagp` 19 September 2026). Urutan kanonik: dikerjakan **sesudah** `BE-BD-017` selesai dan migration-nya diterapkan ke database pengembangan yang diberi wewenang. Nol source. **Riwayat:** ⛔ **BLOCKED — belum dikerjakan (roadmap revisi 12, `DRAFT`, 18 September 2026).** Menunggu gerbang `G5`: naskah set kontrak `v5` disetujui pemilik. `DEC-BD-056`/`057`/`058` sudah disetujui `Sukmagp`. Nol source |
+| **Yang memblokir** | **Nihil sejak 19 September 2026.** **Riwayat:** `G5` |
+| **Pekerjaan yang tetap aman** | Seluruhnya sejak 19 September 2026, mengikuti urutan kanonik. **Riwayat:** nol untuk source sebelum `G5`. Tidak bergantung pada `BE-BD-017`; keduanya menyentuh `BbkBloodOrderService`, `BbkBloodOrderController`, dan `BloodOrderDtos.cs`, sehingga disarankan **dijalankan berurutan** — bukan karena ketergantungan logis, melainkan supaya dua sesi builder tidak menyunting berkas yang sama bersamaan |
+| **Outcome** | Layar order darah dapat mengenali penahanan order ganda beserta komponennya, mengetahui kategori alasan pembatalan yang sah dari backend, dan menampilkan daftar kerja `FE-BD-01` lengkap dari satu request |
+| **Trace** | `DEC-BD-056`, `DEC-BD-057`, `DEC-BD-058`; `DEC-BD-044`, `DEC-BD-054`; `BD-DOM-17`, `BD-XINV-01`; `INV-BD-035` |
+| **Kontrak** | api-contract **`v5`** — Blood Order, Amendment `v5` D2/D3/D4; `validation-matrix.md` `VAL-BD-001` (bentuk `errors`); `permission-audit-matrix.md` §2 |
+| **Reuse** | Konvensi slot `errors` `BbkBloodUnitController.MapFailure`; `BloodOrderResult.DuplicateComponentIds` yang sudah dihitung; aturan `IsRequestingDoctorAsync` milik `CancelAsync`; perhitungan pemenuhan `GetFulfillmentAsync` |
+| **Scope** | **D2** — `422 VAL-BD-001` dari `POST /` dan `/manual` membawa `errors { code, duplicateComponentIds }`; kegagalan lain tidak berubah. **D3** — `CancellationReasonCategory` turunan pada `BloodOrderDetailDto` (semua jawaban yang memulangkan detail), memakai fungsi yang sama dengan `CancelAsync`, `null` bila tidak dapat dibatalkan. **Hak akses** — pemeriksaan bahwa kebijakan akses pengembangan pemegang `BloodOrder : Cancel` juga memegang `BloodBankReason : Read`; nol butir baru. **D4** — query `bloodComponentId`; `Components[]` + `TotalIssuedQuantity` pada `BloodOrderListDto`, dihitung berkelompok per halaman dengan aturan `BD-DOM-17` yang sama. **Dokumentasi** — catatan koreksi bertanggal pada laporan `BE-BD-003` §2.3 tanpa mengubah status ✅ maupun buktinya (`00-interview-decisions.md` §8.32) |
+| **Di luar scope** | Mengubah bentuk kegagalan order selain `VAL-BD-001`; menyimpan kategori pembatalan atau penghitung pemenuhan; menyertakan daftar alasan di detail order; membuat butir hak akses baru; migration kecuali bukti eksekusi membuktikan index diperlukan — bila begitu, berhenti dan minta keputusan pemilik |
+| **Dependency** | `BE-BD-003` ✅, `BE-BD-010` ✅ (koreksi `Approved` yang dihormati `BD-DOM-17`), gerbang **`G5`** ✅ (19 September 2026). **Riwayat:** `G5` ⛔ |
+| **Acceptance** | `AC-BD-107`, `AC-BD-108`, `AC-BD-109`, `AC-BD-110`, `AC-BD-111`, `AC-BD-112` |
+| **Verifikasi** | QBE preflight dan kesesuaian engineering diselesaikan pada waktu eksekusi dari `AGENTS.md` backend. Build project aplikasi; review diff/scope; verifikasi kontrak API lewat panggilan sungguhan dengan aktor non-SuperAdmin (dokter peminta dan petugas BDRS); pembuktian `AC-BD-111` lewat pencatatan kueri atau bukti setara; `has-pending-model-changes` bersih tanpa migration. Automated test tidak diwajibkan (`TEST_POLICY`) |
+| **Risk/owner** | Sedang, berdampak pada performa daftar kerja / pemilik proses BDRS + pemilik arsitektur backend |
+| **DoD** | Keenam acceptance terbukti; bentuk `errors` sama persis dengan `api-contract.md`; angka daftar sama dengan `GET /{id}/fulfillment`; nol migration; catatan koreksi laporan `BE-BD-003` ada; laporan tracked `task/report/backend/BE-BD-018.md` |
+
+---
+
 ## 6. Gerbang yang masih terbuka
 
 | Gate | Pemilik | Menahan |
 | --- | --- | --- |
+| ~~**`G5`** naskah set kontrak `v5` disetujui (**baru, revisi 12**)~~ — **TERTUTUP 19 September 2026** | `Sukmagp` — pemilik modul dan kontrak | **Tidak lagi menahan.** **Riwayat:** menahan `BE-BD-017`, `BE-BD-018`, dan melalui keduanya `FE-BD-002`. Arah keempat keputusan sudah disetujui 18 September 2026; yang ditunggu persetujuan atas **naskah** kontrak `v5` |
+| ~~**Persetujuan proses klinis `DEC-BD-055`** (**baru, revisi 12**)~~ — **DISETUJUI 19 September 2026** | `Sukmagp`, yang menyatakan berwenang sebagai pemilik proses klinis untuk keputusan ini | **Tidak lagi menahan.** **Riwayat:** menahan `BE-BD-017`; pemilik proses klinis belum pernah disebutkan namanya |
 | ~~**`G4`** provider number-series~~ | ✅ **TERTUTUP 10 September 2026** — pemiliknya, `Andry`, menyatakan setuju; bukti `PLT-BE-003` dan `PLT-BE-004` | **Tidak lagi menahan.** Semula menahan 9 task backend dan 8 task frontend. **Nol gerbang terbuka per 10 September 2026** |
 
 ### 6.1 `G4` kini dependency lintas modul yang konkret

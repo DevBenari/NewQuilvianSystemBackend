@@ -2,10 +2,10 @@
 
 | Field | Value |
 | --- | --- |
-| Blueprint ID | `BD-BP-001` · Contract version `v4` — **`approved`** |
-| `last_changed_in` | `v4` |
+| Blueprint ID | `BD-BP-001` · Contract version **`v5` — `approved`** (`Sukmagp` 2026-09-19; `v4` kini `superseded`). **Riwayat:** `v5` `draft` 18 September 2026. Arah disetujui `Sukmagp` 2026-09-18 (`DEC-BD-055`..`058`). **Riwayat:** `v4` — `approved` `Sukmagp` 2026-09-03 |
+| `last_changed_in` | **`v5`** — grup Blood Order saja (bagian "Amendment `v5`" di bawah tabel grup itu). Grup lain tidak berubah. **Riwayat:** `v4` |
 | Owner | Pemilik arsitektur backend (bentuk kontrak) · pemilik proses BDRS (perilaku) |
-| `approved_by` / `approved_at` | `Sukmagp` / `2026-09-03` |
+| `approved_by` / `approved_at` | `Sukmagp` / `2026-09-19` (`v5`). **Riwayat:** `Sukmagp` / `2026-09-03` (`v4`) |
 | Sumber | `02-backend-architecture.md` (controller) · `contracts/state-transition-matrix.md` · `contracts/validation-matrix.md` |
 
 **Seluruh endpoint di bawah berstatus `Rencana (belum tersedia)`** — belum ada di kode. Route & grup
@@ -43,6 +43,89 @@ wewenang membatalkan dapat diberikan kepada dokter peminta **tanpa** ikut member
 order secara umum. Keduanya memakai **satu** butir yang sama — dokter maupun petugas BDRS — dan yang
 membedakan sebabnya pada rekam adalah **kategori alasan** yang wajib diisi: pembatalan klinis atau
 pembatalan operasional. Tidak ada pembatalan order tanpa audit (`INV-BD-035`).
+
+**Keadaan terkini sebelum `v5`.** Ketujuh endpoint di atas **tersedia** sejak `BE-BD-003` (11 September
+2026), ditambah tiga permukaan teknis `GET /filters/metadata`, `GET /summary`, dan `GET /{id}/status-history`.
+`BloodOrder : Update` tetap **tanpa** endpoint. Label "Rencana" pada tabel adalah riwayat penulisan `v4`.
+
+#### Amendment `v5` — Blood Order (18 September 2026; **`approved`** `Sukmagp` 2026-09-19)
+
+Empat perubahan **aditif** untuk `FE-BD-002`, diputuskan `Sukmagp` 18 September 2026. Nol endpoint baru,
+nol endpoint dihapus, nol butir hak akses baru. Seluruh perubahan berstatus **`Rencana (belum tersedia)`**
+sampai task backend `v5` pemiliknya selesai.
+
+| Method | Path | Yang berubah pada `v5` | Hak akses | Status |
+| --- | --- | --- | --- | --- |
+| `GET` | `/` | Query baru `bloodComponentId`; isian baru `Components` dan `TotalIssuedQuantity` pada `BloodOrderListDto` (`DEC-BD-058`) | `BloodOrder : Read` | Rencana (belum tersedia) |
+| `GET` | `/{id}` | Isian baru `RequestedBloodGroup` + label (`DEC-BD-055`) dan `CancellationReasonCategory` (`DEC-BD-057`) pada `BloodOrderDetailDto` | `BloodOrder : Read` | Rencana (belum tersedia) |
+| `POST` | `/` | Isian wajib baru `RequestedBloodGroup` (`400 VAL-BD-085`); `422 VAL-BD-001` membawa `errors` terstruktur (`DEC-BD-056`) | `BloodOrder : Create` | Rencana (belum tersedia) |
+| `POST` | `/manual` | Sama dengan `POST /` | `BloodOrder : Create` | Rencana (belum tersedia) |
+| `POST` | `/confirm-duplicate` | Isian wajib baru `RequestedBloodGroup` (`400 VAL-BD-085`) | `BloodOrder : Create` | Rencana (belum tersedia) |
+| `POST` | `/{id}/cancel` | Request tidak berubah. Jawaban detail ikut membawa isian baru | `BloodOrder : Cancel` | Rencana (belum tersedia) |
+
+**D1 — `RequestedBloodGroup` (`DEC-BD-055`).**
+
+| Tempat | Isian | Tipe | Wajib | Aturan |
+| --- | --- | --- | --- | --- |
+| `CreateBloodOrderRequest`, `CreateManualBloodOrderRequest`, `ConfirmDuplicateOrderRequest` | `requestedBloodGroup` | `BloodType?` (angka enum `BloodType` yang sudah ada) | **Ya** | Harus **dikirim**. Kosong, `NotDisclosed` (`99`), atau angka di luar enum → `400 VAL-BD-085`, **sebelum** nomor order diminta. `Unknown` (`0`) **sah**. Tipe request sengaja nullable: `Unknown` adalah nilai bawaan enum, sehingga isian yang lupa dikirim tidak boleh diam-diam terbaca sebagai "Tidak diketahui" |
+| `BloodOrderDetailDto` | `requestedBloodGroup`, `requestedBloodGroupLabel` | `BloodType?`, `string?` | — | Nilai tersimpan apa adanya. `null` hanya pada order sebelum `v5` — layar menulisnya sebagai "golongan darah diminta tidak tercatat pada order lama" |
+
+`confirm-duplicate` membawa `requestedBloodGroup` sebagai bagian body pembuatan yang utuh. Backend **tidak**
+menyimpan percobaan yang tertahan, sehingga backend menjaga keberadaan dan keabsahan nilainya, sedangkan
+kesamaan nilai dengan percobaan yang tertahan dijaga layar: panel lanjutan order ganda mengirim ulang
+isian percobaan itu tanpa menyuntingnya.
+
+**Batas klinis.** `RequestedBloodGroup` tidak pernah mengubah, menggantikan, atau dibaca oleh golongan
+darah sah (`GET /blood-group-exams/patient/{patientId}/valid`), bukti kecocokan, alokasi, maupun pemberian
+(`INV-BD-011`). Golongan darah hasil pemeriksaan **tidak** ditambahkan ke `BloodOrderDetailDto`.
+
+**D2 — `errors` pada penahanan order ganda (`DEC-BD-056`).** Hanya untuk `422 VAL-BD-001` dari `POST /`
+dan `POST /manual`. Mengikuti konvensi slot `errors` `BbkBloodUnitController`:
+
+```json
+{
+  "success": false,
+  "statusCode": 422,
+  "message": "Sudah ada order darah aktif untuk pasien dan komponen ini pada kunjungan yang sama. Lanjutkan hanya dengan alasan tertulis.",
+  "data": null,
+  "errors": {
+    "code": "VAL-BD-001",
+    "duplicateComponentIds": ["<BloodComponentId yang benar-benar bentrok>"]
+  }
+}
+```
+
+`duplicateComponentIds` hanya memuat komponen yang bentrok. Contoh: order baru PRC + trombosit, dan hanya
+PRC yang sudah punya order aktif, maka isinya satu ID PRC. `message` hanya untuk ditampilkan; layar mengenali
+penahanan dari `errors.code`. Kegagalan order lain **tidak** diubah bentuknya pada `v5` (`errors` tetap `null`).
+
+**D3 — `CancellationReasonCategory` (`DEC-BD-057`).**
+
+| Isian | Tipe | Nilai |
+| --- | --- | --- |
+| `BloodOrderDetailDto.cancellationReasonCategory` | `string?` | `OrderCancellationClinical` bila pengguna yang login tertaut ke dokter peminta order ini (`ApplicationUser.DoctorId == RequestingDoctorId`); `OrderCancellationOperational` untuk pengguna lain; `null` bila `Cancel` tidak ada di `AvailableActions` |
+
+Nilainya **diturunkan** per request dengan fungsi yang sama dengan `POST /{id}/cancel`, dan **tidak disimpan**.
+Isian ini hanya menyatakan kategori mana yang akan diterima; ia **bukan** pernyataan bahwa pengguna berhak
+membatalkan, yang tetap dijaga `BloodOrder : Cancel`. `POST /{id}/cancel` tetap memeriksa `VAL-BD-083`.
+Layar memakainya untuk memanggil `GET /api/v1/health-services/master-data/blood-bank-reasons/options?category=<nilai>`.
+
+**D4 — daftar kerja (`DEC-BD-058`).**
+
+| Tempat | Isian | Tipe | Aturan |
+| --- | --- | --- | --- |
+| `GET /` query | `bloodComponentId` | `Guid?` | Order yang memiliki **sekurang-kurangnya satu** baris dengan komponen itu. Digabung dengan penyaring lain secara "dan" |
+| `BloodOrderListDto` | `components` | `List<BloodOrderListComponentDto>` | Satu butir per baris order, urut `Sequence` |
+| `BloodOrderListComponentDto` | `bloodComponentId`, `bloodComponentCode`, `bloodComponentName`, `requestedQuantity`, `issuedQuantity` | `Guid`, `string?`, `string?`, `int`, `int` | `issuedQuantity` dihitung dengan aturan `BD-DOM-17` yang sama dengan `GET /{id}/fulfillment`: kantong `Issued` nyata, dikurangi yang koreksinya `Approved` (`DEC-BD-054`) |
+| `BloodOrderListDto` | `totalIssuedQuantity` | `int` | Jumlah `issuedQuantity` seluruh baris. `totalRequestedQuantity` yang sudah ada tetap |
+
+Perhitungan dikerjakan sekaligus untuk seluruh order pada satu halaman — satu kueri berkelompok per jenis
+data, bukan satu kueri per baris — sampai ukuran halaman maksimum yang sudah berlaku. Tidak ada penghitung
+pemenuhan yang disimpan.
+
+**Kompatibilitas.** Seluruh isian respons baru bersifat aditif. Satu-satunya perubahan yang menolak klien lama
+adalah `requestedBloodGroup` yang **wajib** pada tiga endpoint pembuatan. Klien lama yang tidak mengirimnya
+akan ditolak `400 VAL-BD-085`; pada 18 September 2026 belum ada klien frontend order darah.
 
 ---
 

@@ -5,11 +5,22 @@ blueprint_id: BD-BP-001
 module_name: Bank Darah
 module_slug: bank-darah
 module_prefix: BD
-revision: 27
+revision: 28
+revision_28_note: >-
+  18 September 2026 — amendment kontrak v5 untuk FE-BD-002 (perubahan material: model data,
+  request, response, kamus data). Pemilik Sukmagp memutuskan jalur C lalu B dan menyetujui arah
+  DEC-BD-055..058. Naskah set kontrak v5 berstatus draft menunggu review pemilik (gerbang G5);
+  persetujuan proses klinis DEC-BD-055 BLOCKED. Task baru BE-BD-017 dan BE-BD-018 (roadmap backend
+  revisi 12, DRAFT); FE-BD-002 memperoleh dependency keduanya (roadmap frontend revisi 9, DRAFT)
+  dan tetap belum dikerjakan. BE-BD-003 tidak dibuka ulang. Riwayat: revisi 27.
+  19 September 2026: Sukmagp MENYETUJUI set kontrak v5, revisi 28, roadmap backend revisi 12,
+  roadmap frontend revisi 9, DEC-BD-055..058, BE-BD-017, BE-BD-018, dan dependency FE-BD-002.
+  Sukmagp menyatakan berwenang sebagai pemilik proses klinis untuk DEC-BD-055, sehingga
+  persetujuan klinisnya tertutup. G5 tertutup. v4 superseded oleh v5.
 status: IN_PROGRESS
 current_phase: BD-PH-008
 created_at: 2026-09-02T00:40:53+07:00
-updated_at: 2026-09-18T00:00:00+07:00
+updated_at: 2026-09-19T00:00:00+07:00
 last_verified_at: 2026-09-04
 last_readiness_result: NOT_READY
 last_readiness_scope_note: >-
@@ -26,8 +37,11 @@ last_readiness_scope_note: >-
   empat, karena AddBbkBloodGroupExam lahir 9 September 2026 dari BE-BD-005/BE-BD-011.
   Batas yang jujur: baru SATU database yang diterapkan. QuilvianNewDevTim01, staging,
   dan production BELUM, dan masing-masing menuntut wewenang tersendiri.
-backend_source_sha: 77f60c88f47a7cd4d109aad4c958d5b2aad4f5ea
+backend_source_sha: 2bd9fc2addb373873494cb7342316fec143312d5
 backend_source_sha_note: >-
+  18 September 2026 (amendment v5): dibaca pada 2bd9fc2a, sama dengan origin/sukmagp, working tree
+  bersih. Rentang 77f60c88..2bd9fc2a hanya docs/ — nol berkas source — sehingga tidak ada impact scan
+  dan peta kemampuan tidak berubah status karenanya. Riwayat 77f60c88:
   Naik dari d07dcf3 pada 18 September 2026 ke 77f60c88 (feat(bank-darah): close BE-BD-013
   billing handoff), sudah di-push ke origin/sukmagp; working tree bersih. Rentangnya 302 commit
   dan 825 berkas di luar docs/, termasuk merge QuilvianIntegrationBackend. Impact scan terbatas
@@ -91,8 +105,10 @@ frontend_source_sha_note: >-
   di-commit pada saat catatan ini ditulis.
 frontend_branch: sukmagpV2
 skill_suite_version: 1.18.0
-input_revision_hash: design-business-module-role-residue-2026-09-03
-decision_revision: 12
+input_revision_hash: design-business-module-blood-order-v5-2026-09-18
+input_revision_hash_note: >-
+  Riwayat: design-business-module-role-residue-2026-09-03 (set kontrak v4).
+decision_revision: 13
 capability_map_revision: 5
 capability_map_status: STALE
 capability_map_stale_note: >-
@@ -183,10 +199,15 @@ contract_versions:
     status: superseded
     superseded_by: v4
   - version: v4
-    status: approved
+    status: superseded
+    superseded_by: v5
+    superseded_at: 2026-09-19
     approved_by: Sukmagp
     approved_at: 2026-09-03
     last_changed_in: v4
+    status_note: >-
+      Disetujui Sukmagp 2026-09-03 dan berlaku sampai v5 disetujui 2026-09-19. Dipertahankan
+      utuh sebagai riwayat. Riwayat status: approved.
     covers:
       - 02-backend-architecture.md
       - 03-frontend-architecture.md
@@ -199,13 +220,46 @@ contract_versions:
       - contracts/permission-audit-matrix.md
       - flowcharts/
       - testing/acceptance-test-matrix.md
+  - version: v5
+    status: approved
+    direction_approved_by: Sukmagp
+    direction_approved_at: 2026-09-18
+    approved_by: Sukmagp
+    approved_at: 2026-09-19
+    approval_gate: G5 — TERTUTUP 2026-09-19 (approval naskah set kontrak v5 oleh Sukmagp)
+    clinical_approval_DEC_BD_055: APPROVED — Sukmagp 2026-09-19, menyatakan berwenang sebagai pemilik proses klinis untuk DEC-BD-055. Riwayat BLOCKED 2026-09-18
+    status_history: draft 2026-09-18 -> approved 2026-09-19
+    decisions:
+      - DEC-BD-055
+      - DEC-BD-056
+      - DEC-BD-057
+      - DEC-BD-058
+    changed_in_v5:
+      - 02-backend-architecture.md
+      - 03-frontend-architecture.md
+      - data/data-dictionary.md
+      - contracts/api-contract.md
+      - contracts/validation-matrix.md
+      - contracts/permission-audit-matrix.md
+      - testing/acceptance-test-matrix.md
+    unchanged_in_v5:
+      - 04-prd-to-mvp.md
+      - contracts/state-transition-matrix.md
+      - contracts/integration-contract.md
+      - flowcharts/
+    compatibility_impact: >-
+      Respons aditif. Satu perubahan menolak klien lama: requestedBloodGroup wajib pada POST /,
+      /manual, dan /confirm-duplicate (400 VAL-BD-085). Belum ada klien frontend order darah.
+    migration_impact: Satu ADD COLUMN nullable BbkBloodOrder.RequestedBloodGroup, tanpa backfill (BE-BD-017).
 owners:
   product_domain: pemilik proses BDRS
   api: pemilik arsitektur backend
   security: pemilik keamanan platform
   frontend: pemilik proses BDRS
 approved_by: Sukmagp
-approved_at: 2026-09-03
+approved_at: 2026-09-19
+approved_at_note: >-
+  Set kontrak v5 disetujui 2026-09-19. Riwayat: 2026-09-03 untuk set kontrak v4.
 resolved_dependency_ids:
   - BD-DEP-004
   - BD-DEP-005
@@ -225,13 +279,22 @@ active_dependency_ids:
   - BD-DEP-013
   - BD-DEP-014
   - BD-DEP-015
-active_roadmap_revision: 11
+active_roadmap_revision: 12
 roadmap_status: APPROVED
-frontend_roadmap_revision: 8
+roadmap_approved_by: Sukmagp
+roadmap_approved_at: 2026-09-19
+frontend_roadmap_revision: 9
 frontend_roadmap_status: APPROVED
 frontend_roadmap_approved_by: Sukmagp
-frontend_roadmap_approved_at: 2026-09-18
+frontend_roadmap_approved_at: 2026-09-19
 roadmap_status_note: >-
+  19 September 2026: roadmap backend revisi 12 dan frontend revisi 9 DISETUJUI Sukmagp bersama
+  kontrak v5; G5 tertutup; BE-BD-017 dan BE-BD-018 siap dijadwalkan. Riwayat: keduanya DRAFT
+  2026-09-18; frontend_roadmap_approved_at sebelumnya 2026-09-18 untuk revisi 8.
+  18 September 2026 (amendment v5): roadmap backend revisi 12 dan frontend revisi 9 berstatus
+  DRAFT menunggu review pemilik. Revisi backend 11 (APPROVED 2026-09-12) dan frontend 8 (APPROVED
+  2026-09-18, frontend_roadmap_approved_by/at di atas) tetap berlaku untuk seluruh task lama.
+  Riwayat: roadmap_status APPROVED, active_roadmap_revision 11, frontend_roadmap_revision 8.
   18 September 2026 (lanjutan): Sukmagp MENYETUJUI frontend-roadmap.md revisi 8. Bersamaan dengan
   itu BD-UI-GAP-001 ditutup Opsi A (tanpa tombol kirim ulang biaya; resend-cost-fact tetap API
   teknis untuk pemulihan), dan pemetaan BD-UI-GAP-003 ke acceptance FE-BD-002/005/008/009 disetujui
@@ -895,3 +958,47 @@ Keadaan current yang ditegaskan: `FE-BD-001` ✅ (`2d0ac741`), `FE-BD-011` ✅ (
 (`fbe29f6d1`). Frontend: **3 selesai, 0 sebagian, 9 belum dikerjakan, 0 terblokir**; Slice 1 selesai;
 `BD-UI-GAP-002` tertutup; `BD-PH-008` tetap `IN_PROGRESS`; task frontend berikutnya `FE-BD-002`.
 Pernyataan "belum di-commit" pada bagian penutupan di atas adalah riwayat keadaan saat itu.
+
+---
+
+**Amendment kontrak `v5` — 18 September 2026, revisi 27 → 28.**
+
+Pass blueprint, kontrak, dan roadmap saja. Nol source backend/frontend, nol migration, nol database, nol
+operasi Git tulis.
+
+| Field | Dari | Menjadi |
+| --- | --- | --- |
+| `revision` | `27` | **`28`** — perubahan material pada kontrak (model data, request, response, kamus data) |
+| `contract_versions` | `v4` `approved` | `v4` tetap berlaku; **`v5` `draft`** menunggu review naskah (gerbang `G5`) |
+| `decision_revision` | `12` | **`13`** — `DEC-BD-055` sampai `DEC-BD-058` |
+| `active_roadmap_revision` (backend) | `11` `APPROVED` | **`12` `DRAFT`** — `BE-BD-017`, `BE-BD-018` |
+| `frontend_roadmap_revision` | `8` `APPROVED` | **`9` `DRAFT`** — dependency baru `FE-BD-002` |
+| `backend_source_sha` | `77f60c88` | **`2bd9fc2a`** — hanya dokumen yang bergerak |
+
+Keadaan current yang ditegaskan: backend 16 selesai + 2 terblokir (`BE-BD-017`, `BE-BD-018`); frontend
+**3 selesai, 0 sebagian, 9 belum dikerjakan, 0 terblokir**; `FE-BD-002` belum dikerjakan dan kini
+bergantung pada kedua task baru; `BD-PH-008` tetap `IN_PROGRESS`. Penahan yang tersisa: gerbang `G5`
+(`Sukmagp`) dan persetujuan proses klinis `DEC-BD-055` (pemilik proses klinis, belum disebutkan namanya).
+
+---
+
+**Persetujuan akhir kontrak `v5` — 19 September 2026, revisi tetap 28.**
+
+`Sukmagp` menyetujui set kontrak **`v5`**, revisi blueprint `28`, roadmap backend revisi `12`, roadmap frontend revisi
+`9`, `DEC-BD-055` sampai `DEC-BD-058`, `BE-BD-017`, `BE-BD-018`, dan dependency `FE-BD-002` pada keduanya. Ia juga
+menyatakan berwenang bertindak sebagai pemilik proses klinis untuk `DEC-BD-055`, sehingga penahan klinisnya ditutup
+tanpa penyetuju lain. Dokumentasi saja: nol source, nol migration, nol database.
+
+| Butir | Keadaan |
+| --- | --- |
+| `G5` | **Tertutup** |
+| `DEC-BD-055` sampai `DEC-BD-058` | **`approved`** |
+| Set kontrak `v5` | **`approved`** `Sukmagp` 2026-09-19 |
+| Set kontrak `v4` | **`superseded`** oleh `v5`; riwayatnya utuh |
+| Roadmap backend revisi `12` / frontend revisi `9` | **`APPROVED`** |
+| `BE-BD-017`, `BE-BD-018` | **Siap dijadwalkan, belum dikerjakan** |
+| `FE-BD-002` | **Belum dikerjakan** — hanya menunggu `BE-BD-017` dan `BE-BD-018` selesai |
+
+Urutan pelaksanaan kanonik: `BE-BD-017` → penerapan migration-nya ke database pengembangan yang diberi wewenang
+→ `BE-BD-018` → `FE-BD-002`. Task implementasi berikutnya: **`BE-BD-017`**. Tabel amendment 18 September 2026
+di atas dipertahankan sebagai riwayat keadaan `draft`.

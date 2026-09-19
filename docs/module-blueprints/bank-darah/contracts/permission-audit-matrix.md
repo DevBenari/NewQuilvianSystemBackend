@@ -2,10 +2,10 @@
 
 | Field | Value |
 | --- | --- |
-| Blueprint ID | `BD-BP-001` · Contract version `v4` — **`approved`** |
-| `last_changed_in` | `v4` |
+| Blueprint ID | `BD-BP-001` · Contract version **`v5` — `approved`** (`Sukmagp` 2026-09-19; `v4` kini `superseded`). **Riwayat:** `v5` `draft` 18 September 2026 (arah disetujui `Sukmagp` 2026-09-18). **Riwayat:** `v4` — `approved` |
+| `last_changed_in` | **`v5`** — bagian 2 (ketergantungan `BloodOrder : Cancel` → `BloodBankReason : Read`, `DEC-BD-057`) dan bagian 5 (`RequestedBloodGroup`). Inventaris butir kanonik §1.1 **tidak** berubah. **Riwayat:** `v4` |
 | Owner | Pemilik keamanan platform · pemilik proses BDRS (peran) |
-| `approved_by` / `approved_at` | `Sukmagp` / `2026-09-03` |
+| `approved_by` / `approved_at` | `Sukmagp` / `2026-09-19` (`v5`). **Riwayat:** `Sukmagp` / `2026-09-03` (`v4`) |
 | Sumber | `contracts/api-contract.md` (pemetaan endpoint) · `data/data-dictionary.md` (kolom sensitif) · `BD-CAP-013` |
 
 Dokumen ini **tidak** mendaftar ulang endpoint. Pemetaan endpoint→hak akses hanya hidup di kolom
@@ -154,6 +154,7 @@ sakit lewat pengelolaan role platform.
 | **Pemegang kewenangan operasional BDRS** (butir kedua) | `BloodUnit : ResolveNotUsable` | **Ditetapkan `DEC-BD-043` (bentuk) dan `DEC-BD-045` (peran).** Peran yang sama dengan `ResolveReturn`, tetapi **butir seeder yang terpisah** — lihat peringatan di atas. Mengeluarkan darah dari peredaran |
 | **Dokter peminta** | `BloodOrder : Cancel` | **Ditetapkan `DEC-BD-044`.** Alasan berkategori pembatalan klinis |
 | **Petugas BDRS** (butir pembatalan) | `BloodOrder : Cancel` | **Ditetapkan `DEC-BD-044`.** Alasan berkategori pembatalan operasional |
+| **Setiap pemegang `BloodOrder : Cancel`** — dokter peminta maupun petugas BDRS (`v5`) | **`BloodBankReason : Read`** wajib ikut diberikan | **Ditetapkan `DEC-BD-057`, 18 September 2026.** Pembatalan menuntut alasan dari daftar terkendali (`VAL-BD-016`), dan daftar itu dibaca lewat `GET /blood-bank-reasons/options?category=`. Lihat peringatan di bawah |
 | Admin master data Bank Darah | `BloodComponent : *`, `BloodBankReason : *`, **`BloodStorageLocation : *`** | Setup MVP — kini **tiga** master setelah amandemen `DEC-BD-024` oleh `DEC-BD-035` |
 
 ⚠️ **`BloodUnit : Compatibility` hanya milik petugas berwenang validasi, dan tidak boleh dikembalikan
@@ -171,6 +172,20 @@ dapat dinyatakan cocok oleh petugas yang tidak ditunjuk memvalidasi.
 Yang **tidak** ikut berubah: kelonggaran `DEC-BD-042` tetap utuh. Pelaksana pemeriksaan boleh berbeda
 dari validator, tetapi tidak diwajibkan — petugas berwenang validasi yang mengerjakan ujinya sendiri
 tetap boleh menyatakannya sendiri (`AC-BD-091`).
+
+⚠️ **`BloodOrder : Cancel` tanpa `BloodBankReason : Read` adalah wewenang yang tidak dapat dipakai** (`v5`,
+`DEC-BD-057`). Pembatalan order menuntut satu alasan aktif dari daftar terkendali, dan satu-satunya jalan
+membaca daftar itu adalah `GET /blood-bank-reasons/options`, yang dijaga `BloodBankReason : Read`.
+Kebijakan akses yang memberi `BloodOrder : Cancel` **wajib** ikut memberi `BloodBankReason : Read`.
+Contoh: dokter peminta diberi `BloodOrder : Cancel` saja. Tombol Batalkan tidak akan tampil karena layar
+tidak dapat memuat alasan, dan permintaan langsung ke daftar alasan ditolak `403`. Dokter itu memegang
+wewenang membatalkan tetapi tidak pernah bisa memakainya.
+
+Ketergantungan ini **tidak** menambah butir kanonik (inventaris §1.1 tetap). Ia juga **tidak** diselesaikan
+dengan menyertakan daftar alasan di dalam detail order: cara itu memberi pembacaan master alasan tanpa
+butir yang menjaganya. `BloodBankReason : Read` hanya membuka **pembacaan** master alasan, bukan
+penyuntingannya (`Create`/`Update`/`Delete` tetap milik admin master). Pemeriksaan kebijakan akses
+sungguhan menjadi bagian verifikasi task backend `v5` pemiliknya.
 
 Pembatalan alokasi (`BloodUnit : Allocate` pada `cancel-allocation`) **tidak** menunggu `DEF-BD-004`:
 `DEC-BD-029` menyatakannya kekeliruan administratif biasa, cukup petugas Bank Darah.
@@ -252,6 +267,7 @@ tentang pasien — sehingga boleh muncul pada pesan penolakan `VAL-BD-060`, `VAL
 | `PatientId` (dan seluruh rujukan pasien) | banyak | Rujukan; response pasien mengikuti kebijakan masking PatientManagement |
 | `ReasonNote` | riwayat/koreksi | Dapat memuat konteks; **MUST NOT** masuk log; tinjau masking pada response |
 | `AboRhesusResult` | `BbkBloodGroupExam` | Data klinis — **MUST NOT** masuk log |
+| `RequestedBloodGroup` (`v5`) | `BbkBloodOrder` | Data klinis dari permintaan — **MUST NOT** masuk log. **Bukan** golongan darah sah dan **MUST NOT** dipakai alat otorisasi maupun gerbang klinis (`INV-BD-011`) |
 
 Masa simpan mengikuti kebijakan retensi rekam medis rumah sakit; sifat append-only (`IsDelete` sebagai
 penandaan, bukan hapus keras — `BD-CAP-011`) menjaga jejak klinis tetap dapat ditelusuri.

@@ -2,9 +2,9 @@
 
 | Field | Value |
 | --- | --- |
-| Blueprint ID | `BD-BP-001` · Contract version `v4` — **`approved`** |
-| `last_changed_in` | `v4` |
-| `approved_by` / `approved_at` | `Sukmagp` / `2026-09-03` |
+| Blueprint ID | `BD-BP-001` · Contract version **`v5` — `approved`** (`Sukmagp` 2026-09-19; `v4` kini `superseded`). **Riwayat:** `v5` `draft` 18 September 2026 (arah disetujui `Sukmagp` 2026-09-18, `DEC-BD-055`). **Riwayat:** `v4` — `approved` |
+| `last_changed_in` | **`v5`** — satu kolom baru `BbkBloodOrder.RequestedBloodGroup`. **Riwayat:** `v4` |
+| `approved_by` / `approved_at` | `Sukmagp` / `2026-09-19` (`v5`). **Riwayat:** `Sukmagp` / `2026-09-03` (`v4`) |
 | Sumber | `02-backend-architecture.md` (model) · `contracts/` |
 
 Seluruh tabel mewarisi `IdentityModel`, sehingga memiliki kolom audit `CreateDateTime`, `CreateBy`,
@@ -25,7 +25,7 @@ Eksekusi migration-nya sendiri tetap wewenang terpisah yang diminta per tindakan
 
 | Entity / Tabel | Status | Owner | Catatan |
 | --- | --- | --- | --- |
-| `BbkBloodOrder`, `BbkBloodOrderLine` | Baru | Bank Darah | — |
+| `BbkBloodOrder`, `BbkBloodOrderLine` | Baru · `BbkBloodOrder` **Diperbarui pada `v5`** | Bank Darah | `v5`: +1 kolom `RequestedBloodGroup` pada `BbkBloodOrder` saja; `BbkBloodOrderLine` tidak berubah |
 | `BbkProviderRequest`, `BbkBloodUnitReceipt` | Baru | Bank Darah | — |
 | `BbkBloodUnit`, `BbkBloodUnitAllocation`, `BbkCompatibilityEvidence`, `BbkEmergencyAuthorization`, `BbkIssuanceCorrection` | Baru | Bank Darah | `v2`: `BbkBloodUnit` +`CurrentPlacementId`, `BbkEmergencyAuthorization` +`BypassScope`. **`v3`**: `BbkEmergencyAuthorization` +`AuthorizerRole`/`EmergencyConditionNote`; `BbkIssuanceCorrection` memperoleh lifecycle dua tahap |
 | `BbkBloodUnitPlacement` | **Baru pada `v2`** | Bank Darah | Riwayat penempatan kantong, append-only (`BD-DOM-25`, `DEC-BD-036`) |
@@ -56,6 +56,7 @@ Enum disimpan sebagai `integer` (`HasConversion<int>`). `BloodType` dipakai ulan
 | `RequestingDoctorId` | `Guid` | Ya | — | Index | FK `MstDoctor` | `Restrict` | Tidak | Dokter peminta |
 | `OrderSource` | `int` (`BbkOrderSource`) | Ya | `Electronic` | — | — | — | Tidak | Elektronik/manual |
 | `InputByUserId` | `Guid?` | Tidak | — | — | — | — | Tidak | Wajib bila `Manual` |
+| `RequestedBloodGroup` | `int?` (`BloodType`) | Tidak di database; **wajib** pada setiap order baru sejak `v5` | `NULL` | — | — | — | **Ya** | **Baru pada `v5`** (`DEC-BD-055`). Golongan darah dan Rhesus **yang diminta** pada permintaan — keterangan permintaan, **bukan** golongan darah sah pasien. Nilai order baru: delapan nilai ABO/Rhesus atau `Unknown`; `NotDisclosed` ditolak (`VAL-BD-085`). `NULL` hanya untuk order lama sebelum `v5`, bermakna "golongan darah diminta tidak tercatat pada order lama"; **dilarang** diisi dari `MstPatient.BloodType` atau hasil pemeriksaan. Tidak pernah dibaca gerbang alokasi, bukti kecocokan, maupun pemberian (`INV-BD-011`). Tanpa index |
 | `OrderStatus` | `int` (`BbkBloodOrderStatus`) | Ya | `Active` | Index | — | — | Tidak | Status order |
 | `Version` | `int` | Ya | `0` | — | — | — | Tidak | Token konkurensi |
 
@@ -395,6 +396,7 @@ CREATE TABLE public."BbkBloodOrder" (
     "RequestingDoctorId"  uuid        NOT NULL,
     "OrderSource"         integer     NOT NULL,   -- enum HasConversion<int>
     "InputByUserId"       uuid,
+    "RequestedBloodGroup" integer,                -- v5: enum BloodType, nullable, tanpa default
     "OrderStatus"         integer     NOT NULL,   -- enum
     "Version"             integer     NOT NULL,
     CONSTRAINT "PK_BbkBloodOrder" PRIMARY KEY ("Id"),

@@ -2,8 +2,9 @@
 
 | Field | Value |
 | --- | --- |
-| Blueprint ID | `BD-BP-001` · Contract version `v4` — **`approved`** |
-| `approved_by` / `approved_at` | `Sukmagp` / `2026-09-03` |
+| Blueprint ID | `BD-BP-001` · Contract version **`v5` — `approved`** (`Sukmagp` 2026-09-19; `v4` kini `superseded`). **Riwayat:** `v5` `draft` 18 September 2026 (arah disetujui `Sukmagp` 2026-09-18). **Riwayat:** `v4` — `approved` |
+| `last_changed_in` | **`v5`** — bagian 11 (`AC-BD-103` sampai `AC-BD-112`). Bagian 1–10 tidak berubah |
+| `approved_by` / `approved_at` | `Sukmagp` / `2026-09-03` (`v4`) · **`Sukmagp` / `2026-09-19` (`v5`)** |
 | Sumber | `00-interview-decisions.md` revisi 9 (`AC-BD-001`..`097`) · `contracts/state-transition-matrix.md` · `contracts/validation-matrix.md` |
 
 Wajib memuat **jalur gagal**, bukan hanya jalur berhasil. Jenis test: `Unit` (aturan service), `Integ`
@@ -219,6 +220,30 @@ seluruh kolom yang diuji sudah ada di kamus data sejak `v1`.
 | `AC-BD-101` — jalur gagal | Tindakan yang sudah `Completed` diselesaikan lagi | Integ | **Ditolak** secara terkendali; status dan audit tidak bergerak |
 | `AC-BD-102` | Tindakan dibuat dan diselesaikan | Unit + Integ | Nol baris pada tabel Billing; nol pemanggilan service Billing; tidak ada endpoint maupun producer penyaluran biaya. — **HISTORICAL / SUPERSEDED oleh `DEC-BD-016` + `BE-BD-013`** (keputusan pemilik 18 September 2026): hasil ini sah saat `BE-BD-012` ditutup 11 September 2026; **tidak lagi diuji sebagai syarat saat ini**. Harapan yang berlaku untuk tindakan selesai adalah `AC-BD-026` — tepat satu fakta biaya |
 | Konkurensi nomor | Beberapa tindakan dicatat serentak | Concurrency | Tidak ada `ProcedureNumber` ganda; dijaga provider number-series dan index unik |
+
+---
+
+## 11. Kontrak Order Darah `v5` untuk `FE-BD-002` — tambahan 18 September 2026
+
+Menutup `AC-BD-103` sampai `AC-BD-112`, lahir dari `DEC-BD-055` sampai `DEC-BD-058`
+(`00-interview-decisions.md` §8.32). Kolom "Jenis" dibaca seperti catatan di kepala dokumen: sifat
+skenario, bukan perintah membuat project test.
+
+| Requirement | Skenario | Jenis | Bukti yang diharapkan |
+| --- | --- | --- | --- |
+| `AC-BD-103` | Order elektronik, order manual, dan lanjutan order ganda dibuat dengan golongan darah diminta A Positif | Integ | Tersimpan pada `BbkBloodOrder.RequestedBloodGroup`; `GET /{id}` memulangkan nilai dan labelnya persis; nilai **tidak** tersalin ke baris order |
+| `AC-BD-103` — "Tidak diketahui" | Order dibuat dengan golongan darah diminta `Unknown` | Integ | **Diterima**; tersimpan `Unknown`, bukan `NULL` |
+| `AC-BD-104` — jalur gagal | Golongan darah diminta tidak dikirim, bernilai `NotDisclosed`, atau angka di luar enum — pada ketiga endpoint pembuatan | Integ | **Ditolak** `400 VAL-BD-085`; nol order tersimpan; nomor order **tidak** terbit |
+| `AC-BD-105` | Order yang dibuat sebelum `v5` dibuka sesudah migration | Integ | `requestedBloodGroup = null`; **tidak** diisi dari `MstPatient.BloodType` maupun hasil pemeriksaan; migration tanpa backfill |
+| `AC-BD-106` — batas klinis | Order meminta A Positif; pemeriksaan tervalidasi pasien B Positif | Integ | `GET /blood-group-exams/patient/{id}/valid` tetap B Positif; alokasi, bukti kecocokan, dan pemberian dinilai terhadap hasil pemeriksaan saja; nol pembacaan `RequestedBloodGroup` di luar layanan order (`INV-BD-011`) |
+| `AC-BD-107` | Pasien sudah punya order PRC aktif; dibuat order PRC + trombosit pada kunjungan yang sama | Integ | **Tertahan** `422`; `errors.code = "VAL-BD-001"`; `errors.duplicateComponentIds` berisi **hanya** ID PRC; kalimat pesan sama persis dengan `validation-matrix.md` |
+| `AC-BD-107` — tanpa perubahan lain | Order ditolak karena alasan selain order ganda | Integ | Bentuk jawabannya tetap seperti `v4` (`errors = null`) |
+| `AC-BD-108` | Order `Active` dibuka oleh pengguna yang tertaut ke dokter peminta order itu, lalu oleh pemegang `BloodOrder : Cancel` lain | Integ | `cancellationReasonCategory` berturut-turut `OrderCancellationClinical` dan `OrderCancellationOperational`; pembatalan memakai alasan kategori itu berhasil |
+| `AC-BD-108` — jalur gagal | Order terminal dibuka; lalu pembatalan dikirim dengan alasan kategori lawannya | Integ | Order terminal → `null`. Kategori lawan → **ditolak** `422 VAL-BD-083` — backend tetap penentu |
+| `AC-BD-109` | Tiga order: hanya PRC; PRC + trombosit; hanya trombosit. Daftar disaring `bloodComponentId` = PRC | Integ | Dua order pertama muncul, yang ketiga tidak; paging dan penyaring lain tetap berlaku bersamaan |
+| `AC-BD-110` | Order PRC 2 kantong, satu kantong `Issued`, lalu satu koreksi pemberian `Approved` | Integ | `components[].issuedQuantity` dan `totalIssuedQuantity` pada daftar sama persis dengan `GET /{id}/fulfillment`, sebelum dan sesudah koreksi (`DEC-BD-054`) |
+| `AC-BD-111` | Satu halaman daftar berukuran maksimum yang berlaku berisi order multi-baris | Integ | Proyeksi komponen dan jumlah diberikan dihitung dengan kueri berkelompok untuk seluruh halaman — jumlah kueri **tidak** tumbuh mengikuti jumlah baris; nol kolom penghitung tersimpan |
+| `AC-BD-112` — hak akses | Kebijakan akses pengembangan yang memberi `BloodOrder : Cancel` | Manual | Setiap kebijakan itu juga memberi `BloodBankReason : Read`; kebijakan yang tidak memenuhinya dicatat sebagai temuan, **tanpa** membuat butir hak akses baru (`DEC-BD-057`) |
 
 ---
 
