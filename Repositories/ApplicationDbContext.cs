@@ -758,9 +758,13 @@ namespace QuilvianSystemBackend.Repositories
 
         public DbSet<LabExamination> LabExaminations { get; set; }
 
+        public DbSet<LabOrderedProcedure> LabOrderedProcedures { get; set; }
+
         public DbSet<LabTransitionHistory> LabTransitionHistories { get; set; }
 
         public DbSet<MstLabRejectionReason> MstLabRejectionReasons { get; set; }
+
+        public DbSet<LabSpecimenType> LabSpecimenTypes { get; set; }
 
         public DbSet<LabValueBound> LabValueBounds { get; set; }
 
@@ -769,6 +773,24 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<LabValueBoundChangeRequest> LabValueBoundChangeRequests { get; set; }
 
         public DbSet<LabValueBoundHistory> LabValueBoundHistories { get; set; }
+
+        public DbSet<LabPathologyCategory> LabPathologyCategories { get; set; }
+
+        public DbSet<LabPathologyParameter> LabPathologyParameters { get; set; }
+
+        public DbSet<LabPathologyParameterCategory> LabPathologyParameterCategories { get; set; }
+
+        public DbSet<LabProcedurePathologyCategory> LabProcedurePathologyCategories { get; set; }
+
+        public DbSet<LabPathologyReport> LabPathologyReports { get; set; }
+
+        public DbSet<LabPathologyReportValue> LabPathologyReportValues { get; set; }
+
+        public DbSet<LabPathologyOrderContext> LabPathologyOrderContexts { get; set; }
+
+        public DbSet<LabOrganism> LabOrganisms { get; set; }
+
+        public DbSet<LabAntibiotic> LabAntibiotics { get; set; }
 
         #endregion
 

@@ -4,6 +4,7 @@ using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Services;
 using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Responses;
 
@@ -73,6 +74,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             string namaDisiplin,
             CancellationToken cancellationToken)
         {
+            NormalkanRentangTanggal(query);
+
             if (query.StartDate.HasValue && query.EndDate.HasValue &&
                 query.StartDate.Value > query.EndDate.Value)
             {
@@ -81,10 +84,34 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
                     "Tanggal awal tidak boleh melewati tanggal akhir."));
             }
 
+            // VAL-76 sengaja TIDAK ditulis sebagai penjaga di sini, dan itu hasil pemeriksaan,
+            // bukan kelalaian.
+            //
+            // Penjaga `Enum.IsDefined` sempat ditulis, lalu dibuktikan **tidak pernah
+            // tercapai**: pengikatan query ASP.NET Core sendiri sudah menjalankan pemeriksaan
+            // itu, sehingga `?dateCategory=99` maupun `=0` ditolak `400` sebelum satu baris pun
+            // di sini berjalan — diverifikasi 2026-09-17 terhadap aplikasi yang berjalan.
+            //
+            // Penjaga yang tidak pernah tercapai lebih buruk daripada tidak ada: ia terbaca
+            // seolah menjadi penegaknya, dan pembaca berikutnya akan memelihara pesan yang tidak
+            // pernah sampai ke siapa pun. Bentuk jawaban yang benar-benar diterima pemanggil
+            // dicatat pada `LAB-API-v1` bagian 13.4.
+
             var hasil = await _labMonitoringService.GetByDisciplineAsync(discipline, query, cancellationToken);
 
             return Ok(ApiResponse<PagedResult<LabMonitoringItemResponse>>.Ok(
                 hasil, $"Daftar pantau {namaDisiplin} berhasil diambil."));
+        }
+
+        /// <summary>
+        /// Aturannya tinggal bersama pada <see cref="LabQueryDateRange"/> — enam tempat yang
+        /// menyalin aturan yang sama pasti bercabang, dan cabangnya tidak menimbulkan galat,
+        /// hanya tanggal yang salah pada satu layar dan benar pada layar lain.
+        /// </summary>
+        private static void NormalkanRentangTanggal(LabMonitoringQuery query)
+        {
+            (query.StartDate, query.EndDate) =
+                LabQueryDateRange.Normalize(query.StartDate, query.EndDate);
         }
     }
 }

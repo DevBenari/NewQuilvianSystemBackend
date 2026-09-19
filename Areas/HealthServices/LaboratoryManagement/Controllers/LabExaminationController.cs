@@ -159,6 +159,75 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             }
         }
 
+        [HttpGet("{id:guid}/result")]
+        [ProducesResponseType(typeof(ApiResponse<LabExaminationResultFormResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Lab Examination Result Form", Description = "Melihat bentuk hasil dan hasil yang sudah terisi", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabExamination", "Read")]
+        public async Task<IActionResult> GetResultForm(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            // r22. Layar tidak dapat menurunkan bentuk hasil sendiri: ia ditentukan batas nilai
+            // yang berlaku bagi PASIEN tertentu, bukan oleh jenis pemeriksaannya saja.
+            try
+            {
+                var result = await _labExaminationService.GetResultFormAsync(id, cancellationToken);
+
+                return Ok(ApiResponse<LabExaminationResultFormResponse>.Ok(
+                    result, "Bentuk hasil pemeriksaan berhasil diambil."));
+            }
+            catch (KeyNotFoundException exception)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound, exception.Message));
+            }
+        }
+
+        [HttpPut("{id:guid}/result")]
+        [ProducesResponseType(typeof(ApiResponse<LabExaminationResultResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [AccessAction("Update", "Set Lab Examination Result", Description = "Mengisi hasil pemeriksaan laboratorium", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("LabExamination", "Update")]
+        public async Task<IActionResult> SetResult(
+            Guid id,
+            [FromBody] LabExaminationResultRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            // Slice S4a. Endpoint ini MENGISI hasil — ia tidak memvalidasi, tidak merilis, tidak
+            // menandai nilai kritis, dan tidak mengoreksi. Keempatnya tertahan LAB-SIGN-001
+            // lewat LAB-DEC-003, LAB-DEC-004, dan LAB-DEC-007, dan nol status hasil disentuh
+            // di sini.
+            //
+            // Hak akses memakai ulang LabExamination:Update, bukan resource baru: memecah izin
+            // pengisian dari izin pemeriksaan lain berarti menetapkan pembagian wewenang yang
+            // justru menunggu jawaban LAB-SIGN-001.
+            try
+            {
+                var result = await _labExaminationService.SetResultAsync(id, request, cancellationToken);
+
+                return Ok(ApiResponse<LabExaminationResultResponse>.Ok(
+                    result, "Hasil pemeriksaan berhasil disimpan."));
+            }
+            catch (KeyNotFoundException exception)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound, exception.Message));
+            }
+            catch (LabExaminationConflictException exception)
+            {
+                return Conflict(ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict, exception.Message));
+            }
+            catch (LabExaminationValidationException exception)
+            {
+                return UnprocessableEntity(ApiResponse<object>.Fail(
+                    StatusCodes.Status422UnprocessableEntity, exception.Message));
+            }
+        }
+
         /// <summary>
         /// Menjalankan satu perubahan dan menerjemahkan kegagalannya menjadi status HTTP yang
         /// tepat, tanpa membocorkan detail exception ke pemanggil.
