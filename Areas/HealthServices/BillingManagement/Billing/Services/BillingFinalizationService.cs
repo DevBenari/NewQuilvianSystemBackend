@@ -16,17 +16,20 @@ public sealed class BillingFinalizationService
     private readonly ApplicationDbContext _dbContext;
     private readonly IBillingChargeSourceAdapter _chargeSourceAdapter;
     private readonly BillingArApHandoffService _arApHandoffService;
+    private readonly BillingInvoiceClosureService _closureService;
     private readonly LoggerService _loggerService;
 
     public BillingFinalizationService(
         ApplicationDbContext dbContext,
         IBillingChargeSourceAdapter chargeSourceAdapter,
         BillingArApHandoffService arApHandoffService,
+        BillingInvoiceClosureService closureService,
         LoggerService loggerService)
     {
         _dbContext = dbContext;
         _chargeSourceAdapter = chargeSourceAdapter;
         _arApHandoffService = arApHandoffService;
+        _closureService = closureService;
         _loggerService = loggerService;
     }
 
@@ -123,7 +126,7 @@ public sealed class BillingFinalizationService
             };
             _dbContext.BilFinalizationRecords.Add(record);
             // Kontrak BIL-STATE-0.4: finalisasi selalu menghasilkan FINAL.
-            // CLOSED hanya terjadi setelah AR/AP posting sukses.
+            // CLOSED hanya terjadi setelah sisa tagihan pasien mencapai nol (BKC-DEC-100).
             invoice.Status = BillingInvoiceStatuses.Final;
             invoice.InvoiceDate ??= now;
             invoice.RowVersion = Guid.NewGuid();
@@ -139,8 +142,28 @@ public sealed class BillingFinalizationService
                 actorUserId, cancellationToken);
 
             await _dbContext.SaveChangesAsync(cancellationToken);
+            // BKC-DES-036: titik ketujuh di luar BKC-DES-029. Untuk jalur bukan departure
+            // exception, outstanding SUDAH terbukti nol pada baris 99 - tanpa panggilan ini
+            // invoice tetap FINAL selamanya, karena pembayaran yang melunasinya terjadi SEBELUM
+            // invoice ini sempat FINAL (penjaga status SyncClosureAsync melewatkan invoice OPEN).
+            // Untuk departure exception, SyncClosureAsync menghitung ulang dan biasanya tidak
+            // menulis apa pun (outstanding masih > 0) - perilaku BKC-DEC-102 tidak berubah.
+            InvoiceClosureChange closureChange;
+            try
+            {
+                closureChange = await _closureService.SyncClosureAsync(
+                    invoice.Id, actorUserId, now, cancellationToken);
+            }
+            catch (BillingInvoiceClosureValidationException exception)
+            {
+                throw new BillingFinalizationValidationException(exception.Message);
+            }
+            if (closureChange.Changed)
+                await _dbContext.SaveChangesAsync(cancellationToken);
             if (transaction is not null) await transaction.CommitAsync(cancellationToken);
             await AuditFinalizationAsync(record, actorUserId, false);
+            if (closureChange.Changed)
+                await AuditClosureChangeAsync(closureChange, actorUserId);
             return Map(record, false);
         }
         catch (DbUpdateConcurrencyException exception)
@@ -192,7 +215,7 @@ public sealed class BillingFinalizationService
 
         var allOrdersComplete = await AreAllOrdersCompleteAsync(invoice.Id, cancellationToken);
         var calculationCurrent = await IsCalculationCurrentAsync(invoice.Id, calculation, cancellationToken);
-        var outstanding = await CalculateOutstandingAsync(invoice, calculation, cancellationToken);
+        var outstanding = await _closureService.CalculateOutstandingAsync(invoice, calculation, cancellationToken);
 
         var blockingReasons = new List<string>();
         if (!allOrdersComplete)
@@ -242,46 +265,6 @@ public sealed class BillingFinalizationService
             .FirstOrDefaultAsync(cancellationToken);
         var latestChange = latestItemChange > latestDiscountChange ? latestItemChange : latestDiscountChange;
         return latestChange <= calculation.CalculatedAt.UtcDateTime;
-    }
-
-    private async Task<decimal> CalculateOutstandingAsync(
-        BilInvoice invoice,
-        BilCalculationVersion calculation,
-        CancellationToken cancellationToken)
-    {
-        var paidAmount = await _dbContext.BilPaymentAllocations.AsNoTracking()
-            .Where(x => x.TargetType == BillingAllocationTargetTypes.Invoice
-                && x.TargetId == invoice.Id && !x.IsDelete)
-            .SumAsync(
-                x => (decimal?)(x.ReversesAllocationId.HasValue ? -x.Amount : x.Amount),
-                cancellationToken) ?? 0;
-        var allocationExcess = await _dbContext.BilRefundableCredits.AsNoTracking()
-            .Where(x => x.InvoiceId == invoice.Id
-                && x.SourceType == BillingRefundableCreditSourceTypes.AllocationExcess && !x.IsDelete)
-            .SumAsync(x => (decimal?)x.AvailableAmount, cancellationToken) ?? 0;
-        // BE-BKC-029/BKC-DES-024: writeOffTotal HANYA menyaring kategori PATIENT_AR - write-off
-        // residual non-billable tidak pernah mengurangi piutang pasien (BE-BKC-028). adjustmentNet
-        // mengecualikan reversal yang menunjuk case residual - satu paket dengan penyaringan di
-        // atas, sama seperti BillingFinancialExceptionService.CalculateOutstandingAsync.
-        var writeOffTotal = await _dbContext.BilWriteOffCases.AsNoTracking()
-            .Where(x => x.InvoiceId == invoice.Id
-                && x.Status == BillingWriteOffCaseStatuses.Posted
-                && x.Category == BillingWriteOffCategories.PatientAr && !x.IsDelete)
-            .SumAsync(x => (decimal?)x.Amount, cancellationToken) ?? 0;
-        var residualCaseIds = await _dbContext.BilWriteOffCases.AsNoTracking()
-            .Where(x => x.InvoiceId == invoice.Id && x.Category == BillingWriteOffCategories.NonBillableResidual)
-            .Select(x => x.Id)
-            .ToListAsync(cancellationToken);
-        var adjustmentNet = await _dbContext.BilAdjustments.AsNoTracking()
-            .Where(x => x.InvoiceId == invoice.Id
-                && x.Status == BillingAdjustmentStatuses.Posted && !x.IsDelete
-                && (x.ReversesWriteOffCaseId == null
-                    || !residualCaseIds.Contains(x.ReversesWriteOffCaseId.Value)))
-            .SumAsync(
-                x => (decimal?)(x.Direction == BillingAdjustmentDirections.Credit ? x.Amount : -x.Amount),
-                cancellationToken) ?? 0;
-        return Math.Max(
-            calculation.PatientAmount - paidAmount + allocationExcess - writeOffTotal - adjustmentNet, 0);
     }
 
     private static void ValidateFinalizeRequest(FinalizeInvoiceRequest request, Guid actorUserId)
@@ -343,6 +326,24 @@ public sealed class BillingFinalizationService
                 record.CorrelationId,
                 ActorUserId = actorUserId,
                 IsReplay = isReplay
+            });
+
+    // BKC-DES-036: audit perpindahan FINAL<->CLOSED yang terjadi sebagai efek langsung
+    // finalisasi. Kategori/bentuk payload sama dengan yang dipakai BillingSettlementService dan
+    // BillingFinancialExceptionService untuk peristiwa closure lainnya (BKC-DES-029/030).
+    private Task AuditClosureChangeAsync(InvoiceClosureChange change, Guid actorUserId) =>
+        _loggerService.AuditAsync(
+            LogCategory,
+            "BillingInvoice.ClosureSynced",
+            "Status penutupan invoice diselaraskan berdasarkan sisa tagihan pasien.",
+            new
+            {
+                change.InvoiceId,
+                StatusBefore = change.StatusBefore,
+                StatusAfter = change.StatusAfter,
+                change.Outstanding,
+                Trigger = "Finalization",
+                ActorUserId = actorUserId
             });
 
     private static FinalizationResponse Map(BilFinalizationRecord record, bool isReplay) => new()
