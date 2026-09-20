@@ -535,3 +535,61 @@ runtime pada task yang menyentuh uang dan data lama. Kebijakan test frontend tet
 | Pemeriksaan peran `PC-OQ-007` | Pemilik arsitektur backend | Pemeriksaan data, bukan perubahan source |
 | Penetapan plafon anggaran `PC-OQ-008` | Finance | Keputusan anggaran, bukan pekerjaan teknis |
 | Pembuatan dan eksekusi migration | Pemilik modul, wewenang terpisah | `PC-DEC-026` menyetujui desainnya, bukan menjalankannya |
+
+---
+
+# Amendment 18 September 2026 — Penutupan gap `FINAL`→`CLOSED`, gelombang `MVP-24`–`MVP-25`
+
+`roadmap_revision: 3` · blueprint revisi `1.3` **approved** · backend SHA `21b47331` · frontend SHA `1f2f2c93c`.
+
+## 1. Requirement → task → acceptance test
+
+| Requirement | Keputusan asal | Task | Acceptance test | Coverage |
+| --- | --- | --- | --- | :---: |
+| `FR-BKC-109` — tagihan `FINAL` yang sisa tagihannya nol berpindah ke `CLOSED` pada transaksi yang sama | `BKC-DEC-100` | `BE-BKC-061` | `BIL-AT-121`, `BIL-AT-122` | ✅ |
+| `FR-BKC-110` — waktu penutupan diisi waktu peristiwa, bukan waktu eksekusi | `BKC-DEC-100`, `BKC-DES-030` | `BE-BKC-061` | `BIL-AT-121`, `BIL-AT-128` | ✅ |
+| `FR-BKC-111` — pemeriksaan berjalan pada keenam peristiwa yang menggerakkan sisa tagihan | `BKC-DEC-104`, `BKC-DES-029` | `BE-BKC-061`, `BE-BKC-062` | `BIL-AT-123`, `BIL-AT-125`, `BIL-AT-127` | ✅ |
+| `FR-BKC-112` — sisa tagihan dihitung kumulatif lintas seluruh sesi pembayaran | `BKC-DEC-100`; § 21 capability map | `BE-BKC-060`, `BE-BKC-061` | `BIL-AT-122` | ✅ |
+| `FR-BKC-113` — tagihan `CLOSED` yang sisa tagihannya naik kembali ke `FINAL`, waktu penutupan dikosongkan | `BKC-DES-031` | `BE-BKC-061`, `BE-BKC-062` | `BIL-AT-126`, `BIL-AT-127`, `BIL-AT-128` | ✅ |
+| `FR-BKC-114` — `OPEN` dan `SETTLED_BY_WRITE_OFF` tidak pernah disentuh penyelarasan | `BKC-DES-029`; `BIL-VAL-108` | `BE-BKC-062` | `BIL-AT-130`, `BIL-AT-131` | ✅ |
+| `FR-BKC-115` — koreksi piutang tercatat untuk tagihan `FINAL` maupun `CLOSED` | `BKC-DEC-101`, `BKC-DES-035` | `BE-BKC-063` | `BIL-AT-129`, `BIL-AT-130`, `BIL-AT-131` | ✅ |
+| `FR-BKC-116` — perhitungan sisa tagihan berdiri di satu tempat | `BKC-DES-028`; § 21 capability map | `BE-BKC-060` | `BIL-AT-134`(b) | ✅ |
+| `FR-BKC-117` — data tagihan lama diperbaiki, didahului penghitungan baca-saja | `BKC-DEC-100`, `BKC-DES-034` | `BE-BKC-064`, `BE-BKC-065` | `BIL-AT-134`(c) | ✅ |
+| Verifikasi frontend menangani `CLOSED` yang baru lahir | `03-frontend-architecture.md` amendment 18 Sep 2026 | `FE-BKC-039` | `UAT-68`, `UAT-69` | ✅ |
+
+**Nol coverage gap.** Kesembilan functional requirement dan satu butir verifikasi frontend seluruhnya punya sekurang-kurangnya satu acceptance test.
+
+## 2. Acceptance test yang tidak menempel pada satu requirement
+
+Tiga test menjaga sifat yang berlaku lintas requirement, bukan satu requirement tertentu:
+
+| Test | Yang dijaga | Task yang membuktikannya |
+| --- | --- | --- |
+| `BIL-AT-132` | Pengiriman ulang event provider yang sama tidak memindahkan status dua kali | `BE-BKC-061` |
+| `BIL-AT-133` | Dua pembayaran bersamaan pada satu tagihan tidak memunculkan galat ke kasir | `BE-BKC-061` |
+| `BIL-AT-124` | Tagihan departure exception tidak dikecualikan dari aturan mana pun | `BE-BKC-061` |
+| `BIL-AT-134`(a) | Finalisasi **tetap** menghasilkan `FINAL`, tidak pernah langsung `CLOSED` | `BE-BKC-060`, `BE-BKC-061` |
+
+## 3. Keputusan → artefak
+
+| Keputusan | Artefak yang menurunkannya |
+| --- | --- |
+| `BKC-DEC-100` (syarat `FINAL`→`CLOSED` diganti) | `contracts/state-transition-matrix.md`, `02-backend-architecture.md`, `BE-BKC-061`, `BE-BKC-065` |
+| `BKC-DEC-101` (penjaga koreksi AR diperluas) | `contracts/integration-contract.md`, `BE-BKC-063` |
+| `BKC-DEC-102` (departure exception tidak dikecualikan) | `contracts/state-transition-matrix.md`, `BIL-AT-124` |
+| `BKC-DEC-103` (menutup `BKC-CQ-01`, `BilArHandoff` tidak disentuh) | `BKC-DES-033`; `contracts/integration-contract.md`; **nol task** — justru karena tidak ada yang dikerjakan |
+| `BKC-DEC-104` (enam peristiwa, bukan hanya tender) | `BKC-DES-029`; `BE-BKC-061`, `BE-BKC-062` |
+| `BKC-DEC-105` (approval menyeluruh `BKC-DES-028`–`035`) | Seluruh task gelombang ini |
+| `BKC-DES-036` (titik ketujuh, ditemukan+ditutup saat implementasi `BE-BKC-061`, 18 September 2026) | `BillingFinalizationService.FinalizeAsync` memanggil `SyncClosureAsync` — mencegah invoice yang auto-finalize dari pembayaran lunas sekali bayar (`TryAutoFinalizeInvoiceAsync`, mekanisme existing) macet permanen di `FINAL`. **Belum** ditulis sebagai baris kontrak/acceptance test tersendiri — lihat `KNOWN ISSUES` pada laporan `BE-BKC-060-061` |
+| Temuan `BE-BKC-062` (18 September 2026, tidak melahirkan `BKC-DES` baru) | Titik `BillingAllocationService.AllocateDepositAsync` provably tidak pernah aktif — gerbang OPEN-only existing (tidak diubah) membuat penjaga `SyncClosureAsync` selalu no-op di titik itu. `BIL-AT-123` perlu ditinjau ulang — lihat laporan `BE-BKC-062` |
+| `FE-BKC-039` (18 September 2026, verifikasi — nol `BKC-DES` baru) | Nol gap ditemukan pada penanganan `CLOSED` di frontend. `isFinal`/`isFinalOrClosed` sudah benar sejak sebelum task ini; `BilInvoice.ClosedAt` belum pernah ditampilkan di layar manapun (bukan bug, belum diminta); daftar tagihan fetch-per-view otomatis benar untuk transisi balik. Verifikasi manual sungguhan tertahan build backend — lihat laporan `FE-BKC-039` |
+
+## 4. Pekerjaan di luar roadmap gelombang ini
+
+| Pekerjaan | Pemilik | Kenapa di luar |
+| --- | --- | --- |
+| Penyerahan nyata ke sistem AR/AP beserta pengakuannya | Pemilik konsumen AR/AP | `BKC-BLK-INT-001` masih terbuka. Amendment ini **memutus ketergantungan status invoice** padanya, bukan membangunnya |
+| Sumbu status "piutang tertagih" pada `BilArHandoff` | Pemilik konsumen AR/AP bersama Backend/API | `BKC-DES-033`/`BKC-DEC-103`. Bentuknya tidak dapat ditebak sebelum konsumennya ada |
+| Wewenang baca database untuk dry-run | Pemilik modul | Pemeriksaan data, bukan perubahan source (`BE-BKC-064`) |
+| Pembuatan dan eksekusi migration backfill | Pemilik modul, wewenang terpisah | `BKC-DEC-105` menyetujui desainnya, bukan menjalankannya (`BE-BKC-065`) |
+| Koreksi piutang susulan atas tagihan yang terlanjur di-adjust | Pemilik Billing/Finance | Keputusannya menunggu angka `BKC-OQ-100` dari `BE-BKC-064`; belum ada yang dapat direncanakan sebelum angkanya ada |

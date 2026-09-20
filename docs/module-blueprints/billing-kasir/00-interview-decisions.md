@@ -1674,3 +1674,170 @@ lain yang tersisa.
 
 **Status**: Tidak ada open question bisnis yang tersisa untuk topik ini. `BKC-DEC-098`–`099`
 MENGUNCI seluruh keputusan bisnis penghapusan kolom `TaxableCategory`.
+
+## Amendment 18 September 2026 — Penutupan gap `FINAL`→`CLOSED` (invoice lunas macet permanen)
+
+**Konteks.** Pengguna (Product/Domain Owner) melaporkan invoice yang sudah dibayar lunas dan
+jumlahnya sudah sesuai tetap menampilkan status `FINAL`, bukan status yang berarti lunas.
+Audit read-only membuktikan ini bukan bug tampilan, melainkan gap yang sudah pernah didokumentasikan
+tapi belum pernah ditutup:
+
+- Kontrak `BIL-STATE-0.4` (`state-transition-matrix.md` baris 12) mensyaratkan transisi
+  `FINAL` → `CLOSED` terjadi setelah **"AR/AP posting sukses"**.
+- `BillingArApHandoffService.cs` (doc-comment kelas, baris 12–15) menyatakan eksplisit: *"belum
+  ada konsumen AR/AP nyata di repository ini, sehingga tidak ada pengiriman aktif yang dibangun."*
+  Peristiwa "AR/AP posting sukses" karena itu **tidak pernah terjadi** di sistem ini.
+- Grep menyeluruh atas `BillingInvoiceStatuses.Closed` di seluruh backend hanya menemukan SATU
+  titik yang MEMBACA nilai ini (`BillingFinancialExceptionService.cs:796`); **tidak ada satu pun**
+  titik yang MENULISNYA. `BilInvoice.ClosedAt` juga tidak pernah di-set di manapun.
+- Ini sudah tercatat sebagai temuan lintas modul sebelumnya:
+  `docs/module-blueprints/laboratorium/approval-requests/2026-09-02-temuan-billing-final-closed.md`
+  (status `terbuka — menunggu keputusan pemilik Billing`). "Pilihan A" dokumen itu (finalisasi
+  selalu `FINAL`) sudah diadopsi di `BillingFinalizationService.cs:125-127`
+  (komentar source: *"Kontrak BIL-STATE-0.4: finalisasi selalu menghasilkan FINAL. CLOSED hanya
+  terjadi setelah AR/AP posting sukses."*), tetapi bagian kedua — jalur nyata yang memindahkan
+  `FINAL` → `CLOSED` — memang belum pernah dibangun, persis risiko yang diperingatkan dokumen
+  temuan itu sendiri di bagian "Pilihan A": *"Bila belum ada, invoice lunas akan berhenti di
+  FINAL selamanya."*
+
+**Scope pass ini**: amendment atas rumpun status invoice inti (bukan Petty Cash, bukan Edit
+Tagihan/Multi-Payer). Di dalam scope: syarat baru transisi `FINAL`→`CLOSED`, kebijakan invoice
+lama yang sudah lunas, perlakuan guard `RecordCorrectionIfLinkedAsync`, dan perlakuan invoice
+departure exception. Di luar scope — tidak disentuh: integrasi AR/AP nyata (`BKC-BLK-INT-001`),
+integrasi payment provider (`BKC-BLK-PROV-001`), mesin kalkulasi tagihan, dan jalur
+`SETTLED_BY_WRITE_OFF` yang sudah punya aturannya sendiri (`BKC-DEC-036`).
+
+| Decision ID | Type | Keputusan/pertanyaan | Owner | Status | Approved by/at | Evidence |
+|---|---|---|---|---|---|---|
+| `BKC-DEC-100` | Decision | **Mengganti syarat transisi `FINAL`→`CLOSED` pada `BIL-STATE-0.4`.** Syarat lama "AR/AP posting sukses" (yang tidak pernah dan tidak bisa terjadi — tidak ada konsumen AR/AP nyata) DIGANTI menjadi **"outstanding invoice mencapai 0 dari akumulasi tender berstatus `SUCCEEDED`"**. Pelaku transisi TETAP Sistem, tidak berubah dari kontrak lama. Invoice `FINAL` yang SEKARANG di database sudah lunas penuh ikut di-backfill ke `CLOSED` lewat satu migration data terpisah — BUKAN dibiarkan macet di `FINAL` menunggu pelunasan baru. Backfill ini murni kebijakan pass ini; PEMBUATAN dan EKSEKUSI migration-nya tetap menuntut otorisasi eksplisit terpisah sesuai `AGENTS.md` bagian Aturan Entity Framework dan Akses Data serta Keselamatan Database. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Backfill: ikut dipindah ke CLOSED" dari 2 opsi bertanda rekomendasi | 18 September 2026 |
+| `BKC-DEC-101` | Decision | **Memperluas guard `RecordCorrectionIfLinkedAsync`** (`BillingArApHandoffService.cs:150`) supaya menerima invoice berstatus `FINAL` **maupun** `CLOSED` — bukan hanya `FINAL` seperti sekarang. Alasan: begitu `BKC-DEC-100` membuat invoice lunas otomatis pindah ke `CLOSED`, adjustment/write-off yang diposting SETELAH invoice lunas (kasus paling umum — kebanyakan koreksi ketahuan setelah pasien sudah bayar, persis contoh Tn. Budi pada dokumen temuan 2 September 2026) akan kembali gagal tercatat sebagai koreksi AR bila guard tetap hanya menerima `FINAL`. Ini menutup lubang koreksi AR yang menjadi alasan utama temuan itu ditulis, bukan sekadar memindahkannya. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Ya, guard menerima FINAL maupun CLOSED" dari 2 opsi bertanda rekomendasi | 18 September 2026 |
+| `BKC-DEC-102` | Decision | **Invoice departure exception TIDAK dikecualikan dari `BKC-DEC-100`.** Invoice yang difinalisasi lewat jalur departure exception (`isDepartureException = true`, `BillingFinalizationService.cs:55`) sengaja tetap `FINAL` saat outstanding-nya 0 pada momen finalisasi, karena masih ada piutang penjamin (`BilArHandoff` `DebtorType = PatientGuarantor`) yang ditagihkan belakangan — itu TIDAK berubah. Tapi begitu piutang itu KELAK benar-benar tertagih dan outstanding invoice ini mencapai 0 di kemudian hari, invoice ini ikut aturan `BKC-DEC-100` yang sama dan boleh otomatis pindah ke `CLOSED` — tidak ada perlakuan berbeda berdasarkan riwayat departure exception-nya. **Konsekuensi desain yang MUST dibawa ke `design-business-module`**: `BilArHandoff` milik invoice itu (`DebtorType = PatientGuarantor`) MUST ikut ditandai selesai/collected pada transaksi yang sama saat invoice pindah ke `CLOSED`, supaya tidak ada piutang yang tercatat closed di invoice tapi masih open di catatan AR handoff. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Ya, ikut aturan yang sama begitu benar-benar lunas" dari 2 opsi bertanda rekomendasi | 18 September 2026 |
+
+**Open question — MUST diselesaikan sebelum implementasi backfill, TIDAK memblokir desain**:
+
+- `BKC-OQ-100` — Dokumen temuan 2 September 2026 sudah mengangkat pertanyaan yang belum terjawab:
+  *"berapa banyak adjustment dan write-off yang sudah diposting atas invoice berstatus `CLOSED`
+  sejak perilaku ini berlaku."* Ini menentukan apakah backfill `BKC-DEC-100` butuh langkah koreksi
+  AR susulan (bukan cuma pemindahan status) untuk invoice yang sudah kadung di-adjust/write-off
+  saat masih `CLOSED` tanpa koreksi AR tercatat. Penjawab: pemilik modul Billing/Finance, lewat
+  query rekonsiliasi read-only terhadap `BilHandoffAdjustment` vs `BilAdjustment`/`BilWriteOffCase`
+  pada invoice yang terkena backfill.
+
+**Status pass ini**: tiga keputusan (`BKC-DEC-100`–`102`) MENGUNCI seluruh keputusan bisnis untuk
+gap `FINAL`→`CLOSED`. Tidak ada open question bisnis yang memblokir desain; `BKC-OQ-100` adalah
+pekerjaan rekonsiliasi data yang MUST diselesaikan sebelum backfill dieksekusi, bukan sebelum
+desain.
+
+**Langkah berikutnya**: `01-existing-capability-map.md` blueprint ini terakhir diaudit pada SHA
+`0ca85ba4`/`1f2f2c93c` (lihat `blueprint-manifest.md`); HEAD backend saat ini `21b47331`, sudah
+bergerak. Sebelum `design-business-module` mengunci arsitektur perubahan ini (titik kode tepat
+untuk recompute outstanding, penanganan idempotency bila tender di-reversal setelah invoice
+sempat `CLOSED`, dan detail migration backfill), jalankan `trace-existing-capabilities` mode
+impact scan untuk memverifikasi tidak ada perubahan lain pada jalur settlement/finalisasi sejak
+SHA tersebut.
+
+### Penutupan `BKC-CQ-01` dan penegasan cakupan penyelarasan (18 September 2026, sesudah pass desain)
+
+**Konteks.** Impact scan (`01-existing-capability-map.md` § 21) dan pass desain
+(`02-backend-architecture.md` amendment 18 September 2026) sama-sama menemukan bahwa dua keputusan
+bisnis di atas tidak dapat diterjemahkan apa adanya menjadi arsitektur tanpa satu keputusan
+tambahan. Keduanya diangkat eksplisit kepada Owner, **bukan** diputuskan sendiri oleh pass desain,
+karena keduanya menyimpang dari bunyi harfiah keputusan yang sudah `approved`.
+
+| Decision ID | Type | Keputusan/pertanyaan | Owner | Status | Approved by/at | Evidence |
+|---|---|---|---|---|---|---|
+| `BKC-DEC-103` | Decision | **Menutup `BKC-CQ-01` PENUH, dengan MEMPERSEMPIT konsekuensi `BKC-DEC-102`.** `BilArHandoff` **tidak disentuh sama sekali**: tidak ada nilai status `COLLECTED` baru, tidak ada kolom `CollectedAt` baru, tidak ada migration skema. Dasarnya dua fakta source yang diverifikasi langsung: (1) `BillingHandoffStatuses` (`BilArHandoff.cs:35-39`) hanya mengenal `CREATED` dan `ACKNOWLEDGED`, dan keduanya menggambarkan **penyerahan fakta ke AR** — bukan tertagihnya piutang; (2) satu-satunya penulisan status itu di seluruh source adalah `Status = Created` saat baris handoff dibuat. Konsekuensi `BKC-DEC-102` ("tidak boleh ada piutang yang closed di invoice tapi masih open di catatan AR") dipenuhi dengan cara berbeda: catatan AR memang tidak pernah mengklaim "masih berjalan" sejak awal. Sumber kebenaran "tagihan ini lunas" adalah `BilInvoice.Status`/`ClosedAt`. Sumbu status penagihan piutang dirancang bersama pemilik konsumen AR/AP ketika konsumen itu benar-benar dibangun (`BKC-BLK-INT-001`), **MUST NOT** ditebak sekarang. Dengan ini `BKC-DES-033` berstatus `approved`. | Product/Domain Owner (persetujuan eksplisit dalam percakapan, sesudah ketiga opsi beserta konsekuensinya disajikan) | `approved` | "Terima BKC-DES-033: BilArHandoff tidak disentuh (Direkomendasikan)" dari 3 opsi bertanda rekomendasi — opsi status `COLLECTED` dan opsi kolom `CollectedAt` TIDAK dipilih | 18 September 2026 |
+| `BKC-DEC-104` | Decision | **MEMPERLUAS cakupan harfiah `BKC-DEC-100`.** Penyelarasan status dipasang pada **enam** peristiwa yang benar-benar menggerakkan sisa tagihan pasien — pembayaran, pembalikan pembayaran, alokasi deposit, penyesuaian arah `Credit`, penyesuaian arah `Debit`, serta write-off beserta kedua jalur pembalikannya — **bukan** hanya pada tender `SUCCEEDED` yang disebut teks `BKC-DEC-100`. Alasan yang diterima Owner: memasang penyelarasan hanya di jalur tender akan meninggalkan lubang yang **jenisnya sama persis** dengan gap yang sedang ditutup — tagihan yang dilunasi seluruhnya dari deposit pasien, atau yang sisa tagihannya dinolkan penyesuaian `Credit`, akan tetap macet di `FINAL` tanpa batas waktu beserta lubang koreksi AR-nya. Perluasan ini melayani **maksud** `BKC-DEC-100`, bukan menggantikannya. Dengan ini `BKC-DES-029` berstatus `approved`. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Enam peristiwa — BKC-DES-029 (Direkomendasikan)" dari 2 opsi bertanda rekomendasi — opsi "hanya jalur tender, persis bunyi keputusan" TIDAK dipilih | 18 September 2026 |
+
+**Status pass ini**: `BKC-CQ-01` **DITUTUP PENUH**. Dua keputusan arsitektur yang menyimpang dari
+bunyi harfiah keputusan bisnis (`BKC-DES-029`, `BKC-DES-033`) kini `approved` secara eksplisit,
+bukan lolos diam-diam.
+
+**Yang MASIH terbuka**, dan sengaja tidak ikut ditutup pass ini:
+
+- `BKC-OQ-100` — jumlah penyesuaian/write-off yang terlanjur diposting tanpa koreksi AR. Dijawab
+  keluaran **dry-run baca-saja** (`BKC-DES-034`), bukan perkiraan. Tidak memblokir gelombang
+  `MVP-24`; memblokir penutupan `MVP-25`.
+- Approval menyeluruh atas `BKC-DES-028`, `030`, `031`, `032`, `034`, `035` — keenamnya keputusan
+  teknis turunan langsung dari keputusan bisnis yang sudah `approved`, tidak ada yang menyimpang
+  dari bunyi keputusan mana pun. Statusnya tetap `draft` sampai Owner menyatakan approval
+  menyeluruh, karena approval adalah tindakan manusia dan tidak boleh disimpulkan dari jawaban
+  atas dua pertanyaan yang berbeda.
+- Otorisasi membuat dan menjalankan migration backfill — **terpisah**, sesuai `AGENTS.md` bagian
+  Keselamatan Database. `BKC-DEC-103`/`104` **bukan** otorisasi itu.
+
+### Approval menyeluruh keputusan arsitektur revisi `1.3` (18 September 2026)
+
+| Decision ID | Type | Keputusan/pertanyaan | Owner | Status | Approved by/at | Evidence |
+|---|---|---|---|---|---|---|
+| `BKC-DEC-105` | Decision | **Menyetujui `BKC-DES-028`–`BKC-DES-035` secara utuh** — satu service `BillingInvoiceClosureService` yang memegang perhitungan sisa tagihan sekaligus penyelarasan status (`BKC-DES-028`), penyelarasan di enam peristiwa (`BKC-DES-029`, sudah disetujui terpisah lewat `BKC-DEC-104`), pola `SaveChanges`→selaraskan→`SaveChanges` di dalam satu transaksi (`BKC-DES-030`), transisi balik `CLOSED`→`FINAL` saat sisa tagihan naik lagi (`BKC-DES-031`), pemakaian ulang kunci penasihat `BIL_INVOICE_LEDGER_*` beserta invariant urutan pengambilannya (`BKC-DES-032`), `BilArHandoff` tidak disentuh (`BKC-DES-033`, sudah disetujui terpisah lewat `BKC-DEC-103`), migration backfill yang didahului dry-run baca-saja (`BKC-DES-034`), dan perluasan penjaga koreksi AR menerima `FINAL` maupun `CLOSED` (`BKC-DES-035`). Dengan ini keenam sumbu kontrak revisi `1.3` (`BIL-API-1.2`, `BIL-STATE-1.1`, `BIL-VALIDATION-1.1`, `BIL-INTEGRATION-1.0`, `BIL-PERMISSION-1.0`, `BIL-TEST-1.2`) naik dari `draft` menjadi `approved`; sumbu `calculation` tidak bergerak. Status revisi `1.3` naik dari `draft` menjadi `approved`. | Product/Domain Owner (persetujuan eksplisit dalam percakapan, wewenang ganda Finance/AR `BKC-DEC-085`) | `approved` | "Saya approve BKC-DES-028–035 — susun roadmap siap eksekusi" dari 3 opsi, dipilih sesudah konsekuensinya disajikan | 18 September 2026 |
+
+> **Approval ini BUKAN otorisasi membuat maupun menjalankan migration.** Migration
+> `BackfillClosedInvoicesFromFullySettledFinal` memuat pemutakhiran data yang **tidak dapat
+> dimundurkan secara selektif** (`BKC-DES-034`): sesudah aplikasi berjalan, invoice `CLOSED` hasil
+> backfill tidak dapat dibedakan dari invoice `CLOSED` yang lahir normal. Pembuatan dan eksekusinya
+> menuntut konfirmasi eksplisit tersendiri, sesudah backup, sesuai `AGENTS.md` bagian Aturan Entity
+> Framework dan Akses Data serta Keselamatan Database.
+
+**Status setelah approval ini**: seluruh keputusan bisnis dan arsitektur revisi `1.3` tertutup.
+Satu-satunya yang masih terbuka adalah `BKC-OQ-100`, yang **dijawab keluaran dry-run** — bukan
+keputusan manusia, melainkan angka yang harus diukur lebih dulu. Ia tidak memblokir gelombang
+`MVP-24`; ia memblokir penutupan `MVP-25`.
+
+### Penutupan `BKC-OQ-100` (18 September 2026, keluaran dry-run `BE-BKC-064`)
+
+**Konteks.** Dry-run baca-saja (`BE-BKC-064`) dijalankan pengguna sendiri di database dev/lokal,
+memakai query yang kriterianya identik dengan `BillingInvoiceClosureService.CalculateOutstandingAsync`
+(lihat `task/report/backend/be-bkc-064-dry-run-dampak-backfill.md`). Bukan keputusan yang
+diputuskan manusia — murni angka yang harus diukur lebih dulu sebelum keputusan lanjutannya bisa
+diambil dengan dasar, bukan dugaan.
+
+| Metric | Nilai | Artinya |
+| --- | --- | --- |
+| `candidates_final_zero_outstanding` | **1** | Hanya satu invoice `FINAL` yang sisa tagihannya sudah nol pada database yang diukur — akan berpindah ke `CLOSED` bila `BE-BKC-065` dijalankan |
+| `candidates_missing_ar_correction` | **0** | **Tidak ada** invoice di antara kandidat itu yang kehilangan koreksi AR — tidak dibutuhkan koreksi piutang susulan |
+| `legacy_closed_missing_closed_at` | **0** | Tidak ada invoice `CLOSED` warisan dengan `ClosedAt` kosong pada database ini |
+
+**Jawaban `BKC-OQ-100`**: **tidak dibutuhkan koreksi AR susulan.** Skala keterpaparan gap ini pada
+database yang diukur jauh lebih kecil daripada skenario "seluruh invoice yang dibayar lunas" yang
+diperingatkan temuan 2 September 2026 — kemungkinan karena database ini masih tahap pengembangan
+dengan volume data terbatas, bukan bukti bahwa gap-nya tidak serius di produksi. `BE-BKC-065`
+karena itu murni pemindahan status untuk **satu baris**, tanpa langkah koreksi tambahan.
+
+**Catatan penting yang MUST dibawa ke eksekusi `BE-BKC-065`**: angka ini berasal dari database
+tempat dry-run dijalankan. Bila migration nanti dijalankan ke database **lain** (staging/production
+dengan volume data berbeda), dry-run ini **MUST diulang** pada database tujuan sebelum migration
+dieksekusi di sana — angka `1`/`0`/`0` ini tidak otomatis berlaku untuk database lain.
+
+**Status**: `BKC-OQ-100` **DITUTUP**. `BE-BKC-065` tidak lagi tertahan oleh pertanyaan ini — yang
+tersisa murni otorisasi pembuatan dan eksekusi migration (`AGENTS.md` bagian Keselamatan Database),
+belum diberikan pada pass ini.
+
+### Eksekusi `BE-BKC-065` (18 September 2026) — backfill selesai, jalur berubah dari migration ke SQL langsung
+
+Otorisasi diberikan bertahap sesuai `AskUserQuestion`: (1) `dotnet ef migrations add` diizinkan
+khusus task ini — **dicoba, build internalnya gagal** sebelum satu file pun terbentuk (root cause
+belum didiagnosis, dicatat sebagai temuan terbuka); (2) pengguna kemudian meminta eksplisit
+"tidak usah pake migration dotnet" dan "lewat update query sql saja" — perubahan pendekatan yang
+disetujui di tengah percakapan, bukan penyimpangan sepihak agent.
+
+Skrip SQL baca-tulis (dibungkus `BEGIN`/`COMMIT` supaya dapat ditinjau) disusun dengan kriteria
+identik dry-run `BE-BKC-064`, diserahkan sebagai teks, **dieksekusi pengguna sendiri** di tool
+database miliknya. Hasil: **1 baris** (`BIL-20260903-00000004`) berpindah `FINAL`→`CLOSED`,
+`ClosedAt` terisi `2026-09-10 11:45:53 +0700` (waktu pelunasan sebenarnya, terverifikasi BUKAN
+waktu eksekusi script) — persis sesuai prediksi `BE-BKC-064`. Pengguna mengonfirmasi eksplisit
+"sudah saya commit".
+
+**Konsekuensi yang MUST dicatat**: backfill ini **tidak tercatat di `__EFMigrationsHistory`**
+karena bukan EF Core migration. Jejak satu-satunya adalah laporan task
+(`task/report/backend/be-bkc-065-backfill-data-invoice-lunas.md`), baris `00-interview-decisions.md`
+ini, dan `UpdateBy = Guid.Empty` pada baris `BilInvoice` yang bersangkutan. Bila kelak dibutuhkan
+jejak formal EF Core, itu keputusan terpisah.
+
+**Temuan yang MUST ditindaklanjuti terpisah**: `dotnet build` untuk source `BE-BKC-060`–`063` GAGAL
+saat dicoba (lewat build internal `dotnet ef migrations add`). Root cause belum didiagnosis pada
+pass ini — keempat task itu masih berstatus "source lengkap, build belum diverifikasi" di roadmap,
+dan sekarang punya bukti konkret bahwa build-nya memang bermasalah, bukan sekadar belum dicoba.
+
+**Status**: Gelombang `MVP-24`+`MVP-25` (`BE-BKC-060`–`065`) selesai secara data dan keputusan.
+Satu blocker teknis tersisa: kegagalan build source yang belum didiagnosis.

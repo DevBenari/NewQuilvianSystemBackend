@@ -26,6 +26,7 @@ public static class BillingManagementServiceCollectionExtensions
         services.AddScoped<BillingAllocationService>();
         services.AddScoped<BillingSettlementService>();
         services.AddScoped<BillingRefundService>();
+        services.AddScoped<BillingInvoiceClosureService>();
         services.AddScoped<BillingFinancialExceptionService>();
         services.AddScoped<BillingArApHandoffService>();
         services.AddScoped<BillingFinalizationService>();

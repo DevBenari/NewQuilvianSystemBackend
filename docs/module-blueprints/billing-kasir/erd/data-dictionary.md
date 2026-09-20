@@ -153,3 +153,29 @@ Amendment 4 September 2026 (`BKC-DEC-070`–`079`, `BKC-DES-010`–`020`) **tida
 Berkas ini (`erd/data-dictionary.md`) tetap memegang kamus data **baseline** — seluruh kolom tabel `Bil*`, empat master policy, skema DDL, dan kolom milik modul lain yang dibaca dokumen Invoice Asuransi. Isinya **tidak** disalin ke lokasi baru, supaya tidak ada dua sumber kebenaran yang dapat saling menyimpang.
 
 Penyatuan keduanya ke satu lokasi adalah perubahan struktur yang menyentuh rujukan pada belasan berkas lain. Ia **MUST** dikerjakan sebagai revisi tersendiri oleh `/manage-module-blueprint`, bukan sebagai efek samping pass desain — lihat `BKC-OQ-089` pada [`../04-prd-to-mvp.md`](../04-prd-to-mvp.md).
+
+---
+
+## Amendment 18 September 2026 — Penutupan gap `FINAL`→`CLOSED`
+
+Input: **`BKC-DEC-100`–`BKC-DEC-102`**; keputusan arsitektur `BKC-DES-028`–`BKC-DES-035` (`draft`).
+
+### Nol kolom baru, nol tabel baru
+
+Amendment ini **tidak menambah satu pun kolom** dan **tidak menambah satu pun tabel**. Yang berubah adalah nilai yang benar-benar tersimpan pada dua kolom `BilInvoice` yang sudah terdaftar di kamus ini sejak baseline.
+
+| Tabel | Kolom | Status kolom | Yang berubah |
+| --- | --- | --- | --- |
+| `BilInvoice` | `Status` | **Sudah ada**, tidak berubah tipe maupun panjang | Nilai `CLOSED` kini benar-benar tercapai pada alur normal. Sebelum amendment ini, nilai itu praktis hanya dimiliki baris warisan dari era sebelum kontrak `BIL-STATE-0.4` diadopsi source |
+| `BilInvoice` | `ClosedAt` | **Sudah ada** (`DateTimeOffset?`, nullable), tidak berubah tipe | Kini benar-benar diisi. Sebelum amendment ini kolom ini **tidak pernah** ditulis satu baris pun — terbukti dari pencarian menyeluruh: satu-satunya kemunculannya di source adalah pembacaan pada pemetaan response |
+| `BilArHandoff` | `Status` | **Sudah ada** | **Tidak berubah sama sekali.** Kosakatanya tetap `CREATED`/`ACKNOWLEDGED`; tidak ada nilai "tertagih" yang ditambahkan (`BKC-DES-033`) |
+
+### Makna `ClosedAt` — supaya tidak salah dibaca laporan
+
+`ClosedAt` menyatakan **kapan sisa tagihan pasien mencapai nol**, yaitu waktu peristiwa pelunasan itu sendiri (waktu pembayaran, waktu alokasi deposit, atau waktu penyesuaian diposting). Ia **bukan** waktu baris database disentuh, dan **bukan** waktu migration backfill dijalankan.
+
+Kolom ini dapat **kembali kosong**: bila pembayaran dibalik atau penyesuaian arah `Debit` diposting sesudah tagihan tertutup, invoice kembali ke `FINAL` dan `ClosedAt` dikosongkan (`BKC-DES-031`). Laporan yang menghitung "jumlah tagihan yang lunas pada periode tertentu" karena itu **MUST** memperlakukan kolom ini sebagai keadaan saat ini, bukan sebagai jejak peristiwa yang tidak dapat dicabut. Jejak peristiwa yang tidak dapat dicabut tetap berada pada tender, alokasi, dan catatan audit perpindahan status.
+
+### Sensitif
+
+Tidak bertambah. `ClosedAt` adalah stempel waktu tanpa identitas pasien dan **tidak** bertanda sensitif; ia boleh muncul pada payload audit perpindahan status.

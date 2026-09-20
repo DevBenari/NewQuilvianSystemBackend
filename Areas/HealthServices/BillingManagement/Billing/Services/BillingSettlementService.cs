@@ -24,6 +24,7 @@ public sealed class BillingSettlementService
     private readonly CashierShiftService _cashierShiftService;
     private readonly BillingNumberSeriesService _numberSeries;
     private readonly BillingFinalizationService _finalizationService;
+    private readonly BillingInvoiceClosureService _closureService;
     private readonly LoggerService _loggerService;
 
     public BillingSettlementService(
@@ -33,6 +34,7 @@ public sealed class BillingSettlementService
         CashierShiftService cashierShiftService,
         BillingNumberSeriesService numberSeries,
         BillingFinalizationService finalizationService,
+        BillingInvoiceClosureService closureService,
         LoggerService loggerService)
     {
         _dbContext = dbContext;
@@ -41,6 +43,7 @@ public sealed class BillingSettlementService
         _cashierShiftService = cashierShiftService;
         _numberSeries = numberSeries;
         _finalizationService = finalizationService;
+        _closureService = closureService;
         _loggerService = loggerService;
     }
 
@@ -520,6 +523,28 @@ public sealed class BillingSettlementService
                 throw new BillingSettlementValidationException(exception.Message);
             }
             await _dbContext.SaveChangesAsync(cancellationToken);
+
+            // BKC-DES-029/030: penyelarasan FINAL<->CLOSED dipanggil SESUDAH SaveChanges di atas,
+            // supaya perhitungan sisa tagihan (AsNoTracking) melihat alokasi yang baru saja
+            // ditulis. Hanya berlaku untuk settlement yang menyasar invoice - settlement
+            // DEPOSIT_TOP_UP tidak punya InvoiceId (BilSettlementConfiguration: constraint
+            // InvoiceId XOR DepositAccountId), sehingga tidak ada invoice untuk diselaraskan.
+            var closureChange = InvoiceClosureChange.None(Guid.Empty, string.Empty);
+            if (tender.Settlement.InvoiceId.HasValue)
+            {
+                try
+                {
+                    closureChange = await _closureService.SyncClosureAsync(
+                        tender.Settlement.InvoiceId.Value, actorUserId, result.OccurredAt, cancellationToken);
+                }
+                catch (BillingInvoiceClosureValidationException exception)
+                {
+                    throw new BillingSettlementValidationException(exception.Message);
+                }
+                if (closureChange.Changed)
+                    await _dbContext.SaveChangesAsync(cancellationToken);
+            }
+
             if (transaction is not null) await transaction.CommitAsync(cancellationToken);
             await AuditTenderResultAsync(
                 tender, beforeTenderStatus, beforeSettlementStatus, actorUserId);
@@ -528,6 +553,8 @@ public sealed class BillingSettlementService
             if (cashReceiptApplied)
                 await _cashierShiftService.AuditCashReceiptAsync(
                     tender.Id, cancellationToken);
+            if (closureChange.Changed)
+                await AuditClosureChangeAsync(closureChange, actorUserId);
             return MapTender(tender, false);
         }
         catch (DbUpdateConcurrencyException exception)
@@ -1003,6 +1030,24 @@ public sealed class BillingSettlementService
                 tender.Settlement.SuccessfulAmount,
                 tender.Settlement.AllocatedAmount,
                 tender.CorrelationId,
+                ActorUserId = actorUserId
+            });
+
+    // BKC-DES-029/030: audit perpindahan FINAL<->CLOSED sebagai efek langsung rekonsiliasi
+    // tender. Kategori/bentuk payload sama dengan yang dipakai BillingFinalizationService dan
+    // BillingFinancialExceptionService untuk peristiwa closure lainnya.
+    private Task AuditClosureChangeAsync(InvoiceClosureChange change, Guid actorUserId) =>
+        _loggerService.AuditAsync(
+            LogCategory,
+            "BillingInvoice.ClosureSynced",
+            "Status penutupan invoice diselaraskan berdasarkan sisa tagihan pasien.",
+            new
+            {
+                change.InvoiceId,
+                StatusBefore = change.StatusBefore,
+                StatusAfter = change.StatusAfter,
+                change.Outstanding,
+                Trigger = "TenderReconciled",
                 ActorUserId = actorUserId
             });
 

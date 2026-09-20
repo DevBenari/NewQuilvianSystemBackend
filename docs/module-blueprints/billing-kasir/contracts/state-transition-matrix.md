@@ -420,3 +420,67 @@ Tabel ini **menggantikan** tabel yang sama pada amendment 7 September. Kolom `Re
 ### Kesetaraan dengan flowchart
 
 Nama status pada `flowcharts/voucher-petty-cash.md` dan `flowcharts/anggaran-petty-cash.md` **MUST** sama persis dengan kolom **Label** pada tabel kosakata di atas. Keduanya diperbarui pada revisi yang sama.
+
+---
+
+# Amendment 18 September 2026 — Syarat `FINAL`→`CLOSED` diganti, dan transisi baliknya
+
+`last_changed_in: BIL-STATE-1.1` · status **approved** · owner Billing/Finance/Cashier · `approved_by`: Product/Domain Owner (wewenang ganda Finance/AR, `BKC-DEC-085`) lewat `BKC-DEC-105` · `approved_at`: 2026-09-18 · input: **`BKC-DEC-100`–`BKC-DEC-102`** (`approved` 18 September 2026); keputusan arsitektur `BKC-DES-028`–`BKC-DES-035` (`draft`).
+
+## Apa yang berubah pada tabel Invoice di kepala dokumen
+
+Baris ke-12 pada tabel Invoice (`FINAL` → `CLOSED`) **DIGANTI**. Baris lamanya dipertahankan terbaca di atas sebagai jejak alasan; yang berlaku adalah baris pada tabel di bawah.
+
+| Keadaan | Baris lama (`BIL-STATE-0.4`) | Baris baru (`BIL-STATE-1.1`) |
+| --- | --- | --- |
+| Syarat | "AR/AP posting sukses" dengan handoff idempotent tercatat | "sisa tagihan pasien mencapai nol" |
+| Pelaku | Sistem | Sistem — **tidak berubah** |
+| Bila dilanggar | Tetap `FINAL` dan retry | Tetap `FINAL`; tidak ada retry karena tidak ada pihak luar yang ditunggu |
+
+**Kenapa diganti.** Syarat lama menunggu peristiwa yang tidak pernah terjadi: belum ada konsumen AR/AP nyata di sistem ini, sehingga tidak ada "posting" yang bisa sukses. Akibatnya seluruh invoice yang difinalisasi berhenti di `FINAL` selamanya, termasuk yang pasiennya sudah membayar lunas. Lihat `00-interview-decisions.md` amendment 18 September 2026 dan `01-existing-capability-map.md` § 21.
+
+## Tabel transisi Invoice — bagian yang berlaku sesudah amendment ini
+
+| Dari | Tindakan | Ke | Pelaku | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| `OPEN` | finalisasi | `FINAL` | Billing | Tidak berubah dari `BIL-STATE-0.4` baris 11 | `422`, tampilkan checklist |
+| `FINAL` | sisa tagihan pasien mencapai nol | `CLOSED` | **Sistem** | Sisa tagihan pasien `<= 0` dihitung dari versi kalkulasi berjalan, dikurangi alokasi pembayaran bersih, ditambah kelebihan alokasi, dikurangi write-off `PATIENT_AR` yang diposting, dikurangi penyesuaian bersih. `ClosedAt` diisi waktu peristiwa yang membuatnya nol | Tetap `FINAL`. Tidak ada galat yang ditampilkan — ini akibat, bukan perintah |
+| `CLOSED` | sisa tagihan pasien naik kembali di atas nol | `FINAL` | **Sistem** | Pembalikan tender yang pernah berhasil, atau penyesuaian arah `Debit` yang diposting. `ClosedAt` dikosongkan kembali | Tetap `CLOSED` — dan itu **cacat**, bukan keadaan sah; lihat kotak di bawah |
+| `OPEN` | full write-off | `SETTLED_BY_WRITE_OFF` | Finance | Tidak berubah (`BKC-DEC-036`) | Tidak boleh menjadi PAID |
+| `FINAL/CLOSED` | edit/delete item | tidak sah | siapa pun | — | Tolak; gunakan adjustment |
+
+> **Kenapa transisi balik `CLOSED` → `FINAL` ada, dan kenapa ia bukan `OPEN`.** Pembayaran yang sudah berhasil dapat dibalik secara sah (`SUCCEEDED` → `REVERSED`, baris 24 tabel Tender), dan penyesuaian arah `Debit` dapat menaikkan tagihan sesudah invoice ditutup. Tanpa transisi balik, akan ada invoice bertanda selesai yang pasiennya masih berutang — tagihan seperti itu tidak akan muncul di daftar tagihan berjalan siapa pun dan tidak akan ditagih. Tujuannya `FINAL`, **bukan** `OPEN`, karena yang dibatalkan adalah pembayarannya, bukan finalisasinya: catatan finalisasi tetap ada dan versi kalkulasi tetap terkunci. Mengembalikannya ke `OPEN` justru akan membuka kembali penyuntingan item yang sudah sah ditutup.
+
+## Peristiwa mana saja yang memicu pemeriksaan
+
+Pemeriksaan sisa tagihan dijalankan pada **enam** peristiwa, bukan hanya pembayaran (`BKC-DES-029`):
+
+| Peristiwa | Arah gerak sisa tagihan |
+| --- | --- |
+| Tender menjadi `SUCCEEDED` | Turun |
+| Tender `SUCCEEDED` menjadi `REVERSED` | Naik |
+| Deposit pasien dialokasikan ke invoice | Turun |
+| Penyesuaian arah `Credit` diposting | Turun |
+| Penyesuaian arah `Debit` diposting | Naik |
+| Write-off diposting, dan kedua jalur pembalikannya | Dua arah |
+
+Pemeriksaan **MUST** berjalan di dalam transaksi peristiwa yang memicunya, sehingga perpindahan status dan peristiwanya tersimpan atau gagal bersama-sama.
+
+## Transisi yang tidak sah dan tetap tidak sah
+
+| Dari | Tindakan | Siapa pun | Kenapa tidak sah | Yang terjadi |
+| --- | --- | --- | --- | --- |
+| `OPEN` | pindah langsung ke `CLOSED` karena kebetulan sudah lunas | Sistem maupun manusia | Tagihan yang belum difinalisasi belum tentu lengkap; melunasi tagihan yang masih berjalan bukan alasan menutupnya | Penyelarasan berhenti tanpa menulis apa pun |
+| `SETTLED_BY_WRITE_OFF` | pindah ke `CLOSED` | Siapa pun | Piutangnya dihapusbukukan, bukan dibayar. Kedua keadaan itu berbeda maknanya bagi Finance | Penyelarasan berhenti tanpa menulis apa pun |
+| `FINAL` atau `CLOSED` | dipindahkan manual lewat endpoint atau layar | Kasir, Finance, siapa pun | `BKC-DEC-100` menetapkan pelakunya Sistem. Perpindahan manual membuka jalan menutup tagihan yang belum lunas | Tidak ada endpointnya sama sekali |
+| `CLOSED` | tetap `CLOSED` padahal sisa tagihan sudah di atas nol | — | Bukan transisi, melainkan **kegagalan** menjalankan transisi balik | Cacat; `BIL-AT-126` menjaganya |
+
+## Yang tidak berubah pada rumpun lain
+
+Amendment ini **tidak** menambah, menghapus, maupun mengubah satu pun status pada `BilInvoiceItem`, `BilSettlement`, `BilTender`, `BilCashierShift`, `BilWriteOffCase`, `BilRefundCase`, `BilAdjustment`, `BilArHandoff`, `BilApHandoff`, maupun seluruh rumpun Petty Cash. Secara khusus:
+
+- Kosakata status `BilArHandoff` **tetap** `CREATED`/`ACKNOWLEDGED` (`BKC-DES-033`). Tidak ada nilai "tertagih" yang ditambahkan.
+- Finalisasi **tetap** selalu menghasilkan `FINAL`, tidak pernah langsung `CLOSED`. Itu perilaku yang sudah benar dan sengaja tidak disentuh.
+- Seluruh gerbang yang sudah memperlakukan `FINAL` dan `CLOSED` sama (ganti payer, ubah penanggung item, ubah disposisi obat pada amendment 11 September 2026) **tetap** berlaku apa adanya.
+
+Trace **`BKC-DEC-100`–`102`**, `BKC-DES-028`–`035`. Tests `BIL-AT-121`–`BIL-AT-134`.

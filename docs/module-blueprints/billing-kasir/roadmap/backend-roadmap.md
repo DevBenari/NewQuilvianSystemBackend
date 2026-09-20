@@ -2141,3 +2141,169 @@ periode dengan plafon riil) belum terjadi, sehingga task ini **tetap** `⛔` sam
 Tidak ada task pada gelombang ini yang mengubah rumus, status, atau perilaku bisnis rumpun
 `billing-kasir` lainnya. Petty Cash tetap tidak menyentuh tagihan pasien, kas fisik shift kasir,
 maupun Accounting (`PC-DES-023`).
+
+---
+
+# Amendment 18 September 2026 — Penutupan gap `FINAL`→`CLOSED`, gelombang `MVP-24`–`MVP-25`
+
+`roadmap_revision: 3` · status `DRAFT_FORWARD_TEST` · blueprint revisi `1.3` **approved** · backend SHA `21b4733154e91962cbd7094a102615b1d9eb2bf2` · masukan: `BKC-DEC-100`–`105` (`approved`), `BKC-DES-028`–`035` (`approved` lewat `BKC-DEC-105`), kontrak `BIL-API-1.2`/`BIL-STATE-1.1`/`BIL-VALIDATION-1.1`/`BIL-INTEGRATION-1.0`/`BIL-PERMISSION-1.0`/`BIL-TEST-1.2` (seluruhnya `approved`).
+
+## 0. Yang membedakan gelombang ini
+
+Seluruh gelombang sebelumnya membangun **kemampuan baru**. Gelombang ini **memperbaiki cacat yang sudah berjalan di produksi**, dan cacatnya berlapis dua:
+
+| Lapis | Yang terjadi | Siapa yang melihatnya |
+| --- | --- | --- |
+| Pertama | Tagihan lunas macet di `FINAL` selamanya | Kasir — setiap hari, tetapi tidak tahu itu cacat |
+| Kedua | Koreksi tagihan sesudah lunas gagal menjadi koreksi piutang, **tanpa galat dan tanpa log** | **Tidak ada siapa pun**, sampai ada yang merekonsiliasi manual |
+
+Konsekuensi langsung bagi cara mengerjakannya: **tidak boleh ada task yang dinyatakan selesai hanya karena kode berjalan tanpa galat.** Lapis kedua justru berbentuk "tidak ada galat". Setiap task di bawah karena itu menuntut bukti bahwa sesuatu yang selama ini **tidak terjadi** kini **benar-benar terjadi** — bukan sekadar bukti bahwa tidak ada yang rusak.
+
+Perbedaan kedua: amendment ini **nol perubahan skema**. Tidak ada tabel, kolom, index, endpoint, butir hak akses, maupun master data baru. Satu-satunya sentuhan database adalah migration yang isinya **hanya `UPDATE` data**, dan ia sengaja dipisah ke gelombang tersendiri.
+
+## Grafik urutan dependency
+
+```text
+BE-BKC-060 ─┬─> BE-BKC-061 ─┐
+            │               │
+            └─> BE-BKC-062 ─┼─> BE-BKC-064 ─┬─> BE-BKC-065 ⛔
+                            │               │
+            BE-BKC-063 ─────┘    {otorisasi migration} ─┘
+
+FE-BKC-039 (verifikasi) ──> boleh kapan saja sesudah BE-BKC-061
+```
+
+`{otorisasi migration}` = konfirmasi eksplisit pemilik untuk membuat dan menjalankan migration, sesudah backup. `BKC-DEC-105` menyetujui desainnya, **bukan** menjalankannya.
+
+| Gelombang | Boleh mulai setelah | Task |
+| ---: | --- | --- |
+| 1 | — | `BE-BKC-060` |
+| 2 | `BE-BKC-060` | `BE-BKC-061`, `BE-BKC-062` — boleh paralel, service berbeda |
+| 2 | — | `BE-BKC-063` — boleh paralel sejak awal, berkas berbeda dari semuanya |
+| 3 | `BE-BKC-061`, `BE-BKC-062`, `BE-BKC-063` | `BE-BKC-064` |
+| — | ⛔ menunggu `BE-BKC-064` dan otorisasi migration | `BE-BKC-065` |
+
+## 1. Pemetaan gelombang MVP ke gelombang eksekusi
+
+| Gelombang MVP | Task | Yang dapat diverifikasi bisnis sesudahnya |
+| --- | --- | --- |
+| `MVP-24` (tagihan lunas benar-benar tertutup) | `BE-BKC-060`, `BE-BKC-061`, `BE-BKC-062`, `BE-BKC-063`, `FE-BKC-039` | Kasir melihat tagihan yang sudah dibayar lunas berstatus `Closed` beserta waktu penutupannya; koreksi yang diposting sesudah tagihan lunas benar-benar memperbaiki catatan piutang |
+| `MVP-25` (data tagihan lama diperbaiki) | `BE-BKC-064`, ⛔ `BE-BKC-065` | Tagihan lama yang sudah lunas tidak lagi tampil `Final`; jumlah koreksi piutang yang terlanjur gagal diketahui angkanya |
+
+**Kenapa `BE-BKC-060` mendahului semuanya.** Ia satu-satunya task yang memindahkan rumus sisa tagihan ke satu tempat. Selama rumus itu masih ada di dua salinan, setiap pemasangan penyelarasan berarti menambah salinan ketiga — dan tiga salinan rumus uang yang harus disinkronkan manual adalah utang yang jauh lebih mahal daripada urutan kerja yang sedikit lebih ketat.
+
+**Kenapa `BE-BKC-065` dipisah dari `MVP-24`.** Migration-nya tidak dapat dimundurkan secara selektif: sesudah aplikasi berjalan, tagihan `CLOSED` hasil backfill tidak dapat dibedakan dari yang lahir normal. Menggabungkannya ke gelombang yang sama berarti menyandera perbaikan yang aman pada gerbang otorisasi yang belum tentu turun hari itu.
+
+## `BE-BKC-060` — Service penutupan tagihan dan konsolidasi perhitungan sisa tagihan
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Rumus sisa tagihan pasien berdiri di **satu** tempat dan dipakai bersama oleh finalisasi, pengecualian finansial, serta penyelarasan status yang akan datang. Service penyelarasan sudah ada dan teruji, tetapi **belum dipanggil siapa pun** — sehingga task ini **nol perubahan perilaku bisnis** |
+| Gelombang | `MVP-24` — eksekusi gelombang 1 |
+| Trace | `FR-BKC-116`; `BKC-DES-028`, `BKC-DES-030`, `BKC-DES-032` |
+| Kontrak | `BIL-STATE-1.1`, `BIL-VALIDATION-1.1` (`BIL-VAL-107`, `BIL-VAL-108`) |
+| Reuse | Rumus `CalculateOutstandingAsync` yang sudah ada — **disalin apa adanya, bukan ditulis ulang**; pola service tanpa interface dengan `AddScoped`; pola "menumpang transaksi pemanggil" dari `BillingArApHandoffService.StageHandoffsForFinalizationAsync`; kunci penasihat `BIL_INVOICE_LEDGER_{invoiceId:N}` yang sudah dipakai tiga tempat lain |
+| Scope | Satu berkas baru `Areas/HealthServices/BillingManagement/Billing/Services/BillingInvoiceClosureService.cs` berisi dua overload perhitungan dan `SyncClosureAsync`; **hapus** salinan privat di `BillingFinalizationService.cs` (baris 247–285) dan `BillingFinancialExceptionService.cs` (baris 669–722), ganti dengan pemanggilan ke service baru; satu baris `AddScoped<BillingInvoiceClosureService>()` pada `BillingManagementServiceCollectionExtensions.cs`. **Nol pemanggilan `SyncClosureAsync` dipasang pada task ini** |
+| Dependency | — |
+| Acceptance | `BIL-AT-134`(b) — sisa tagihan sepuluh invoice lama menghasilkan angka **identik** sebelum dan sesudah konsolidasi |
+| Verifikasi | Review diff dan scope; `dotnet restore` dan `dotnet build`; bandingkan hasil perhitungan pada sekurang-kurangnya sepuluh invoice yang mewakili kasus berbeda (lunas, sebagian, ada write-off `PATIENT_AR`, ada write-off residual, ada penyesuaian dua arah, ada kelebihan alokasi) |
+| Risiko/pemilik | Rumusnya menyentuh angka uang yang dipakai gerbang finalisasi dan plafon write-off. Satu suku yang tergeser saat memindahkan akan mengubah kedua gerbang itu sekaligus, dan gejalanya tidak muncul sebagai galat. **Pesan galat `"Invoice belum memiliki hasil perhitungan terkini."` MUST tetap identik** sampai ke layar — service bersama melempar exception netral dan `BillingFinancialExceptionService` membungkusnya kembali. Owner Backend/API |
+| DoD | Berkas service baru ada dan terdaftar di DI; kedua salinan privat benar-benar hilang dari source; kesepuluh angka pembanding dilaporkan berpasangan sebelum/sesudah; pesan galat diverifikasi identik; `dotnet build` lulus; `git status --short` dilaporkan |
+| Status | 🟡 **Source lengkap, build BELUM diverifikasi** — pengguna menjalankan `dotnet build` sendiri sesuai instruksi berlaku sepanjang sesi ("jangan lakukan build secara automatis"). Berkas service baru ada, kedua salinan privat hilang dari source, pesan galat dibungkus ulang identik. **Belum dilakukan**: `dotnet build`, dan pembandingan sepuluh angka outstanding sebelum/sesudah. Bukti: [laporan](../task/report/backend/be-bkc-060-061-service-penutupan-tagihan-dan-penyelarasan-jalur-pembayaran.md) |
+
+## `BE-BKC-061` — Penyelarasan pada jalur pembayaran
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Tagihan yang dibayar lunas berpindah ke `CLOSED` beserta waktu penutupannya, dan kembali ke `FINAL` bila pembayarannya dibalik. **Inilah task yang pertama kali terlihat pengguna** |
+| Gelombang | `MVP-24` — eksekusi gelombang 2 |
+| Trace | `FR-BKC-109`, `FR-BKC-110`, `FR-BKC-112`, `FR-BKC-113`; `BKC-DES-029`–`032` |
+| Kontrak | `BIL-STATE-1.1` (baris `FINAL`→`CLOSED` dan `CLOSED`→`FINAL`), `BIL-API-1.2` (perubahan nilai `status`/`closedAt`), `BIL-PERMISSION-1.0` (audit perpindahan status) |
+| Reuse | `BillingInvoiceClosureService` dari `BE-BKC-060`; pola audit sesudah commit dari `AuditTenderResultAsync`; kunci penasihat yang sudah ada |
+| Scope | `BillingSettlementService.ReconcileTenderAsync`: ganti `SaveChangesAsync` tunggal (baris 522) menjadi pola tiga langkah `SaveChanges` → `SyncClosureAsync` → `SaveChanges`, seluruhnya **sebelum** `CommitAsync` (baris 523); ambil `BIL_INVOICE_LEDGER_*` **sesudah** `BIL_TENDER_*` (`BKC-DES-032`); tulis audit perpindahan status sesudah commit. `occurredAt` diisi `result.OccurredAt`, **bukan** `DateTimeOffset.UtcNow` |
+| Dependency | `BE-BKC-060` |
+| Acceptance | `BIL-AT-121`, `BIL-AT-122`, `BIL-AT-124`, `BIL-AT-126`, `BIL-AT-128`, `BIL-AT-132`, `BIL-AT-133` |
+| Verifikasi | Review diff dan scope; `dotnet build`; verifikasi proses bisnis pelunasan sekali bayar, cicilan dua settlement terpisah, tagihan departure exception, pembalikan, pengiriman ulang event yang sama, dan dua tender bersamaan pada satu invoice |
+| Risiko/pemilik | Menyentuh jalur pembayaran yang dipakai kasir setiap hari. **Dua jebakan yang sudah diketahui dan MUST dihindari**: (1) memanggil penyelarasan **sebelum** `SaveChanges` pertama membuat perhitungan tidak melihat alokasi yang baru dibuat dan masih di ChangeTracker — hasilnya status yang salah tanpa galat; (2) melewatkan kunci penasihat membuat dua tender bersamaan sama-sama menulis status, dan `Serializable` menolak salah satunya sebagai galat "Data telah berubah" yang sampai ke kasir padahal pembayarannya sah. Owner Backend/API |
+| DoD | Ketujuh acceptance test lulus; `closedAt` terbukti berisi waktu pembayaran (bukan waktu eksekusi) pada bukti verifikasi; pengiriman ulang event terbukti tidak menaikkan `rowVersion` dua kali; dua pembayaran bersamaan terbukti tidak memunculkan galat ke kasir; `dotnet build` lulus; `git status --short` dilaporkan |
+| Status | 🟡 **Source lengkap, build dan ketujuh acceptance test BELUM diverifikasi.** Pemasangan `SyncClosureAsync` di `ReconcileTenderAsync` sudah sesuai scope (urutan `SaveChanges`→sync→`SaveChanges`, kunci ledger sesudah kunci tender, `occurredAt` dari `result.OccurredAt`, audit sesudah commit). **Temuan tambahan ditutup pada task ini atas persetujuan pengguna** (lihat laporan): titik ketujuh `BKC-DES-036` di `BillingFinalizationService.FinalizeAsync` — tanpa ini, tagihan yang auto-finalize dari pembayaran lunas sekali bayar (jalur paling umum, lewat `TryAutoFinalizeInvoiceAsync` yang sudah ada) akan tetap macet di `FINAL`. Bukti: [laporan](../task/report/backend/be-bkc-060-061-service-penutupan-tagihan-dan-penyelarasan-jalur-pembayaran.md) |
+
+## `BE-BKC-062` — Penyelarasan pada jalur deposit dan pengecualian finansial
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Tagihan yang lunas **tanpa pembayaran baru** — seluruhnya dari deposit pasien, atau karena penyesuaian `Credit` — juga berpindah ke `CLOSED`; penyesuaian `Debit` sesudah tagihan tertutup mengembalikannya ke `FINAL` |
+| Gelombang | `MVP-24` — eksekusi gelombang 2, boleh paralel dengan `BE-BKC-061` |
+| Trace | `FR-BKC-111`, `FR-BKC-114`; `BKC-DES-029`, `BKC-DES-030` |
+| Kontrak | `BIL-STATE-1.1` (tabel enam peristiwa pemicu) |
+| Reuse | `BillingInvoiceClosureService`; pola tiga langkah yang sama persis dengan `BE-BKC-061` |
+| Scope | `BillingAllocationService.AllocateDepositAsync`: pola tiga langkah sesudah alokasi dibuat. `BillingFinancialExceptionService`: **empat** titik, yaitu pasangan dari keempat pemanggilan `RecordCorrectionIfLinkedAsync` yang sudah ada (baris 215, 431, 545, 641) — penyesuaian diposting, write-off diposting, pembalikan penyesuaian, pembalikan write-off. Penyelarasan dipasang **di dalam** transaksi, **bukan** berdampingan dengan pemanggilan koreksi yang berjalan sesudah commit |
+| Dependency | `BE-BKC-060` |
+| Acceptance | `BIL-AT-123`, `BIL-AT-125`, `BIL-AT-127` |
+| Verifikasi | Review diff dan scope; `dotnet build`; verifikasi proses bisnis pelunasan penuh dari deposit, penyesuaian `Credit` yang menolkan sisa tagihan, dan penyesuaian `Debit` atas tagihan yang sudah tertutup |
+| Risiko/pemilik | Write-off `PATIENT_AR` yang melunasi penuh memindahkan tagihan ke `SETTLED_BY_WRITE_OFF`, dan penyelarasan **MUST** berhenti tanpa menulis apa pun pada keadaan itu (`BIL-VAL-108`). Bila penjaga status dilewatkan, tagihan yang dihapusbukukan akan tertimpa menjadi `CLOSED` — dua keadaan yang berbeda maknanya bagi Finance akan tercampur. Owner Backend/API |
+| DoD | Ketiga acceptance test lulus; terbukti write-off penuh tetap menghasilkan `SETTLED_BY_WRITE_OFF` dan bukan `CLOSED`; `dotnet build` lulus; `git status --short` dilaporkan |
+| Status | 🟡 **Source lengkap, build BELUM diverifikasi.** Empat titik `BillingFinancialExceptionService` genuinely aktif (write-off `PATIENT_AR` dapat menyentuh invoice `FINAL`/`CLOSED`). **Temuan implementasi**: titik `AllocateDepositAsync` provably tidak pernah aktif pada source saat ini — endpoint itu menolak invoice non-`OPEN` (baris 114, tidak diubah task ini), sehingga penjaga `SyncClosureAsync` selalu melewatkannya. Dipertahankan sebagai jaring pengaman, **MUST** dikonfirmasi owner apakah tetap diinginkan. `BIL-AT-123` (lunas dari deposit) **tidak dapat lulus** dengan gerbang OPEN-only itu — skenarionya perlu ditinjau ulang di `/design-business-module`. Bukti: [laporan](../task/report/backend/be-bkc-062-penyelarasan-jalur-deposit-dan-pengecualian-finansial.md) |
+
+## `BE-BKC-063` — Perluasan penjaga koreksi piutang
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Penyesuaian dan write-off yang diposting atas tagihan berstatus `CLOSED` **benar-benar menghasilkan koreksi piutang**. Inilah lapis kedua cacat yang selama ini gagal diam-diam |
+| Gelombang | `MVP-24` — boleh paralel sejak awal, berkas berbeda dari seluruh task lain |
+| Trace | `FR-BKC-115`; `BKC-DES-035` |
+| Kontrak | `BIL-INTEGRATION-1.0` |
+| Reuse | Seluruh badan `RecordCorrectionIfLinkedAsync` dipakai apa adanya; hanya kondisi penjaganya yang berubah |
+| Scope | **Satu baris**: `BillingArApHandoffService.cs:150`, dari `invoice.Status != BillingInvoiceStatuses.Final` menjadi kondisi yang menerima `Final` maupun `Closed`. `OPEN` dan `SETTLED_BY_WRITE_OFF` **tetap ditolak** |
+| Dependency | Tidak ada dependency kode. Pengujiannya bermakna sesudah `BE-BKC-061` karena butuh tagihan berstatus `CLOSED` yang lahir normal |
+| Acceptance | `BIL-AT-129` (koreksi lahir untuk `CLOSED`), `BIL-AT-130` dan `BIL-AT-131` (tetap ditolak untuk `SETTLED_BY_WRITE_OFF` dan `OPEN`) |
+| Verifikasi | Review diff; `dotnet build`; verifikasi proses bisnis skenario Tn. Budi pada temuan 2 September 2026 — tagihan lunas, tiga hari kemudian diposting penyesuaian Rp 300.000, dan **satu baris `BilHandoffAdjustment` benar-benar terbentuk** |
+| Risiko/pemilik | Perubahannya sekecil mungkin, tetapi **bukti lulusnya harus positif**, bukan sekadar "tidak ada galat" — sebab kegagalan yang diperbaiki di sini memang berbentuk `return` diam-diam. Test yang hanya memastikan tidak ada exception akan lulus bahkan bila baris ini tidak diubah sama sekali. Owner Backend/API |
+| DoD | `BIL-AT-129` membuktikan baris koreksi **ada** dengan nominal dan sumber yang benar; `BIL-AT-130`/`BIL-AT-131` membuktikan penolakan masih bekerja; `dotnet build` lulus; `git status --short` dilaporkan |
+| Status | 🟡 **Source selesai — satu baris, sesuai scope persis.** Build dan ketiga acceptance test BELUM diverifikasi. Seluruh gelombang `MVP-24` (`BE-BKC-060`–`063`) kini source-complete secara bersamaan. Bukti: [laporan](../task/report/backend/be-bkc-063-perluasan-penjaga-koreksi-piutang.md) |
+
+## `BE-BKC-064` — Dry-run baca-saja: mengukur dampak backfill
+
+| Field | Isi |
+| --- | --- |
+| Outcome | `BKC-OQ-100` terjawab **dengan angka**, bukan perkiraan: berapa tagihan lama yang perlu dipindahkan, dan berapa di antaranya sudah menerima penyesuaian atau write-off tanpa koreksi piutang |
+| Gelombang | `MVP-25` — eksekusi gelombang 3 |
+| Trace | `FR-BKC-117`; `BKC-DES-034`; menjawab `BKC-OQ-100` |
+| Kontrak | Rumus sisa tagihan pada `BIL-STATE-1.1`, dipakai **identik** dengan `BE-BKC-065` |
+| Reuse | Rumus yang sama persis dengan `BillingInvoiceClosureService` hasil `BE-BKC-060` |
+| Scope | **Query `SELECT` baca-saja**, bukan source aplikasi dan bukan migration. Tiga angka: (1) jumlah tagihan `FINAL` yang sisa tagihannya sudah nol; (2) berapa di antaranya punya penyesuaian/write-off diposting **tanpa** baris `BilHandoffAdjustment` pasangannya; (3) jumlah tagihan `CLOSED` warisan yang `ClosedAt`-nya masih kosong |
+| Dependency | `BE-BKC-061`, `BE-BKC-062`, `BE-BKC-063` — dijalankan sesudah jalur normal aktif, supaya yang tersisa murni data lama dan angkanya tidak bergerak lagi |
+| **Gerbang eksternal** | **Menuntut wewenang baca database eksplisit** sesuai `AGENTS.md` bagian Keselamatan Database. Task ini **tidak menulis satu baris pun** |
+| Acceptance | Ketiga angka dilaporkan tertulis; kriteria query terbukti identik dengan yang akan dipakai `BE-BKC-065` |
+| Verifikasi | Jalankan query pada database yang diberi wewenang; lampirkan angka beserta tanggal pengambilannya pada laporan task |
+| Risiko/pemilik | Bila kriteria di sini berbeda sedikit pun dari kriteria `BE-BKC-065`, angka yang dilaporkan tidak lagi memprediksi apa yang akan berubah — dan kegunaan utama dry-run hilang. Keduanya **MUST** memakai teks kriteria yang sama. Owner Billing/Finance bersama Backend/API |
+| DoD | Ketiga angka ada di laporan task; `BKC-OQ-100` ditutup pada `00-interview-decisions.md` dengan angka itu; keputusan apakah dibutuhkan koreksi piutang susulan dicatat beserta alasannya |
+| Status | ✅ **SELESAI 18 September 2026.** Query dijalankan pengguna sendiri di database dev/lokalnya. Hasil: `candidates_final_zero_outstanding = 1`, `candidates_missing_ar_correction = 0`, `legacy_closed_missing_closed_at = 0`. `BKC-OQ-100` **DITUTUP** — tidak dibutuhkan koreksi AR susulan. `BE-BKC-065` kini murni pemindahan status **satu baris** pada database yang sama; bila dijalankan ke database lain, dry-run ini MUST diulang di sana. Bukti: [laporan](../task/report/backend/be-bkc-064-dry-run-dampak-backfill.md) |
+
+## `BE-BKC-065` — Migration backfill data tagihan lama
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Tagihan lama yang sudah lunas tidak lagi tampil `Final`, dan `ClosedAt` terisi waktu pelunasan yang sebenarnya — termasuk pada tagihan `CLOSED` warisan yang selama ini kosong |
+| Gelombang | `MVP-25` |
+| Trace | `FR-BKC-117`; `BKC-DES-034` |
+| Kontrak | `BIL-STATE-1.1` |
+| Reuse | Pola migration berisi pemutakhiran data yang sudah dipakai `BE-BKC-053` |
+| Scope | **Direalisasikan sebagai skrip SQL langsung** (`BEGIN`/`UPDATE`/`SELECT` verifikasi/`COMMIT`), **bukan** EF Core migration — `dotnet ef migrations add` dicoba dengan otorisasi eksplisit tapi build internalnya gagal (root cause belum didiagnosis, lihat laporan), lalu pengguna secara eksplisit meminta jalur SQL langsung. Nol perubahan skema, dua langkah dieksekusi: pindahkan `FINAL` yang sisa tagihannya nol menjadi `CLOSED`; isi `ClosedAt` dari `MAX(BilTender.SettledAt)` tender `SUCCEEDED` atau `MAX(BilPaymentAllocation.CreateDateTime)`; isi `ClosedAt` tagihan `CLOSED` warisan yang masih kosong dari sumber waktu yang sama |
+| Dependency | `BE-BKC-064` |
+| **Gerbang eksternal** | **Pembuatan dan eksekusi migration menuntut otorisasi terpisah, sesudah backup.** `BKC-DEC-105` menyetujui desainnya, **bukan** menjalankannya. Langkah pertama **tidak dapat dimundurkan secara selektif**: sesudah aplikasi berjalan, tagihan `CLOSED` hasil backfill tidak dapat dibedakan dari yang lahir normal — dan memang seharusnya tidak dapat dibedakan |
+| Acceptance | `BIL-AT-134`(c) — jumlah baris yang benar-benar berpindah **sama persis** dengan yang dilaporkan `BE-BKC-064`, dan **tidak ada** dua baris hasil backfill yang `ClosedAt`-nya sama dengan waktu migration dijalankan |
+| Verifikasi | Jalankan pada salinan lebih dulu; bandingkan jumlah baris per status sebelum dan sesudah; periksa sebaran `ClosedAt` untuk memastikan ia mengikuti waktu pelunasan, bukan menumpuk pada satu detik |
+| Risiko/pemilik | **Tertinggi pada gelombang ini.** Menyentuh baris yang mencatat uang yang benar-benar diterima. Mengisi `ClosedAt` dengan waktu eksekusi migration akan menyatakan seluruh tagihan lama lunas pada detik yang sama — angka yang salah, dan salahnya tidak akan pernah muncul sebagai galat. Owner Backend/API bersama pemilik modul |
+| DoD | Jumlah baris berpindah sama dengan prediksi `BE-BKC-064`; sebaran `ClosedAt` dilaporkan; backup sebelum eksekusi dikonfirmasi; `dotnet build` lulus; `git status --short` dilaporkan |
+| Status | ✅ **SELESAI 18 September 2026.** Satu baris (`BIL-20260903-00000004`) berpindah ke `CLOSED`, persis sesuai prediksi `BE-BKC-064`; `ClosedAt` terverifikasi berisi waktu pelunasan sebenarnya (2026-09-10), bukan waktu eksekusi (2026-09-18) — bukti rumus derivasi bekerja benar. Dieksekusi pengguna sendiri lewat SQL langsung, dikonfirmasi commit permanen. **Menyimpang dari rencana**: bukan EF Core migration (`dotnet ef migrations add` gagal karena build error yang belum didiagnosis) — **tidak** tercatat di `__EFMigrationsHistory`. `dotnet build` **belum** lulus untuk `BE-BKC-060`–`063`; root cause-nya **MUST** ditemukan sebagai task terpisah. Bukti: [laporan](../task/report/backend/be-bkc-065-backfill-data-invoice-lunas.md) |
+
+## Paralelisme dan urutan ringkas
+
+`BE-BKC-060` **MUST** selesai lebih dulu — ia satu-satunya yang memindahkan rumus uang ke satu tempat, dan seluruh task sesudahnya memanggil hasilnya. Sesudahnya `BE-BKC-061` dan `BE-BKC-062` boleh paralel karena menyentuh service yang berbeda: yang pertama `BillingSettlementService`, yang kedua `BillingAllocationService` dan `BillingFinancialExceptionService`.
+
+`BE-BKC-063` boleh dikerjakan kapan saja sejak awal — berkasnya (`BillingArApHandoffService.cs`) tidak disentuh task lain mana pun. Yang tidak boleh adalah **menguji**nya sebelum `BE-BKC-061` selesai, karena sebelum itu tidak ada tagihan `CLOSED` yang lahir normal untuk diuji.
+
+Dua task tertahan gerbang, dan keduanya **bukan** blocker teknis: `BE-BKC-064` menunggu wewenang baca database, `BE-BKC-065` menunggu hasil `BE-BKC-064` beserta otorisasi migration. Keduanya tidak menahan satu pun task `MVP-24`.
+
+**Satu peringatan yang berlaku untuk seluruh gelombang ini.** Cacat yang diperbaiki berbentuk "tidak terjadi apa-apa" — `return` diam-diam, status yang tidak berpindah, koreksi yang tidak lahir. Test dan verifikasi manual yang hanya membuktikan ketiadaan galat **akan lulus bahkan bila tidak ada satu baris pun yang benar diperbaiki**. Setiap bukti verifikasi karena itu **MUST** berbentuk positif: baris yang **ada**, status yang **berpindah**, kolom yang **terisi**.

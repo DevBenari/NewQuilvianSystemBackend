@@ -163,3 +163,24 @@ Rincian lengkap: [backend § Amendment 7 September 2026 (kedua)](./backend-roadm
 Amendment 7 September 2026 (kedua)](./frontend-roadmap.md), dan [traceability § Amendment 7
 September 2026 (kedua)](./requirement-traceability.md).
 
+---
+
+## Amendment 18 September 2026 — `roadmap_revision: 3`, gelombang `MVP-24`–`MVP-25`
+
+`status: DRAFT_FORWARD_TEST` · blueprint revisi `1.3` **approved** (`BKC-DEC-105`) · backend SHA `21b47331` · frontend SHA `1f2f2c93c`.
+
+Enam task backend (`BE-BKC-060`–`BE-BKC-065`) dan satu task frontend (`FE-BKC-039`) untuk menutup gap `FINAL`→`CLOSED`: tagihan yang sudah dibayar lunas selama ini macet di `Final` selamanya, dan — bagian yang lebih mahal — koreksi tagihan yang diposting sesudahnya gagal menjadi koreksi piutang tanpa galat maupun log.
+
+| Gelombang MVP | Task | Keadaan |
+| --- | --- | --- |
+| `MVP-24` | `BE-BKC-060`, `BE-BKC-061`, `BE-BKC-062`, `BE-BKC-063`, `FE-BKC-039` | Siap dikerjakan — nol gerbang |
+| `MVP-25` | `BE-BKC-064`, `BE-BKC-065` | ⛔ Tertahan wewenang baca database dan otorisasi migration. Bukan blocker teknis, dan tidak menahan `MVP-24` |
+
+**Nol perubahan skema pada seluruh gelombang ini**: tidak ada tabel, kolom, index, endpoint, butir hak akses, maupun master data baru. Satu berkas service baru, enam titik pemanggilan pada service yang sudah ada, satu penjaga diperluas satu baris, dua salinan rumus dikonsolidasi menjadi satu, dan satu migration yang isinya hanya `UPDATE` data.
+
+**Dua prasyarat non-blocking** dicatat sebagai gerbang tingkat task, bukan roadmap blocker: wewenang baca database untuk dry-run (`BE-BKC-064`) dan otorisasi migration (`BE-BKC-065`). Keduanya menahan langkah pertama `build-module-backend` pada task itu saja.
+
+**Satu peringatan yang berlaku lintas task.** Cacat yang diperbaiki berbentuk "tidak terjadi apa-apa". Verifikasi yang hanya membuktikan ketiadaan galat akan lulus bahkan bila tidak ada satu baris pun yang benar diperbaiki — setiap bukti karena itu **MUST** berbentuk positif: baris yang **ada**, status yang **berpindah**, kolom yang **terisi**.
+
+Rincian lengkap: [backend § Amendment 18 September 2026](./backend-roadmap.md), [frontend § Amendment 18 September 2026](./frontend-roadmap.md), dan [traceability § Amendment 18 September 2026](./requirement-traceability.md).
+
