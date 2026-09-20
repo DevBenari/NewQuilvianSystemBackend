@@ -720,7 +720,8 @@ try
     builder.Services.AddScoped<BillingReminderService>();
 
     builder.Services.AddScoped<BillingFinancialExceptionService>();
-
+    
+    builder.Services.AddScoped<BillingInvoiceClosureService>();
 
     // ============================================================
     // CASHIER
