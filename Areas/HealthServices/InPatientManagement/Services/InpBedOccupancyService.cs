@@ -1,10 +1,12 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Models;
 using QuilvianSystemBackend.Enums;
 using QuilvianSystemBackend.Repositories;
 
@@ -41,6 +43,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         private readonly ApplicationDbContext _dbContext;
         private readonly InpSettingService _settingService;
         private readonly InpEpisodeService _episodeService;
+        private readonly IInpIntegrationOutboxService _outboxService;
 
         /// <remarks>
         /// Arah dependency ke <see cref="InpEpisodeService"/> ditetapkan `BE-RWI-011`:
@@ -51,11 +54,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         public InpBedOccupancyService(
             ApplicationDbContext dbContext,
             InpSettingService settingService,
-            InpEpisodeService episodeService)
+            InpEpisodeService episodeService,
+            IInpIntegrationOutboxService outboxService)
         {
             _dbContext = dbContext;
             _settingService = settingService;
             _episodeService = episodeService;
+            _outboxService = outboxService;
         }
 
         // =====================================================================
@@ -860,6 +865,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     touchEpisode: true,
                     cancellationToken: cancellationToken);
 
+                // BE-RWI-130 / RWI-DEC-156 — Event BED_OCCUPIED saat bed fisik ditempati
+                var bedOccupiedPayload = new
+                {
+                    encounterId = episode.EncounterId,
+                    episodeId = episode.Id,
+                    patientId = episode.PatientId,
+                    roomId = context.Room.Id,
+                    roomName = context.Room.RoomName,
+                    bedId = context.Bed.Id,
+                    bedCode = context.Bed.BedCode,
+                    roomClassId = placement.PatientClassId,
+                    occupancyStartAt = placement.StartDateTime
+                };
+
+                await _outboxService.EnqueueEventAsync(
+                    eventType: "BED_OCCUPIED",
+                    idempotencyKey: $"INPATIENT:ROOM_STAY:{placement.Id}:{placement.Version}",
+                    sourceDomain: "INPATIENT",
+                    sourceType: "ROOM_STAY",
+                    sourceDetailId: placement.Id.ToString(),
+                    payload: bedOccupiedPayload,
+                    cancellationToken: cancellationToken);
+
                 await _dbContext.SaveChangesAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
 
@@ -927,10 +955,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     "Episode dan tempat tidur tujuan wajib dipilih.");
             }
 
+            // VAL-INT-003 / RWI-DEC-157 — Alasan perubahan kamar wajib minimal 10 karakter
             if (string.IsNullOrWhiteSpace(request.TransferReason) ||
-                !request.TransferReason.Any(char.IsLetterOrDigit))
+                request.TransferReason.Trim().Length < 10)
             {
-                return InpBedOccupancyOperationResult.Invalid("Alasan perpindahan wajib diisi.");
+                return InpBedOccupancyOperationResult.Invalid(
+                    "Alasan perubahan kamar wajib diisi minimal 10 karakter untuk keperluan jejak rekam audit.");
             }
 
             await ExpireDueReservationsAsync(cancellationToken);
@@ -945,6 +975,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             {
                 return InpBedOccupancyOperationResult.NotFound(
                     "Episode rawat inap tidak ditemukan.");
+            }
+
+            // VAL-INT-002 / RWI-DEC-157 — Validasi status billing kasir: tolak jika CLOSED
+            var isBillingClosed = await _dbContext.BilFolios
+                .AsNoTracking()
+                .AnyAsync(
+                    x => x.EncounterId == episode.EncounterId &&
+                         x.Status == BillingFolioStatus.Closed &&
+                         !x.IsDelete,
+                    cancellationToken);
+
+            if (isBillingClosed)
+            {
+                return InpBedOccupancyOperationResult.BusinessRuleRejected(
+                    "Mutasi kamar ditolak: Tagihan kasir pasien sudah berstatus CLOSED. Data hunian kamar tidak dapat diubah kembali. Hubungi bagian Kasir/Keuangan bila diperlukan pembukaan kembali tagihan.");
             }
 
             if (episode.EpisodeStatus == InpEpisodeStatus.DischargePending)
@@ -1051,6 +1096,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 currentPlacement.EndReason = InpBedPlacementEndReason.Transfer;
                 currentPlacement.EndedByUserId = actorUserId;
                 currentPlacement.TransferReason = reason;
+                currentPlacement.ChangeReason = reason;
+                currentPlacement.IsSuperseded = true;
+                currentPlacement.SupersededAtUtc = now;
                 currentPlacement.IsActive = false;
                 currentPlacement.UpdateDateTime = now;
                 currentPlacement.UpdateBy = actorUserId;
@@ -1069,9 +1117,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     ServiceUnitId = context.Room.ServiceUnitId,
                     PatientClassId = ResolveBilledPatientClassId(context.Room, episode),
                     SequenceNumber = lastSequence + 1,
+                    Version = currentPlacement.Version + 1,
                     StartDateTime = now,
                     EndDateTime = null,
                     TransferReason = reason,
+                    ChangeReason = reason,
+                    IsSuperseded = false,
                     PlacedByUserId = actorUserId,
                     IsActive = true,
                     CreateDateTime = now,
@@ -1101,6 +1152,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 // "2 hari kelas 2 lalu 2 hari kelas 1" tidak lagi dapat dibaca.
                 episode.UpdateDateTime = now;
                 episode.UpdateBy = actorUserId;
+
+                // BE-RWI-131 / RWI-DEC-157 — Event OCCUPANCY_CORRECTED saat mutasi / koreksi kamar
+                var occupancyCorrectedPayload = new
+                {
+                    encounterId = episode.EncounterId,
+                    episodeId = episode.Id,
+                    oldRoomId = currentPlacement.RoomId,
+                    newRoomId = context.Room.Id,
+                    oldRoomClassId = currentPlacement.PatientClassId,
+                    newRoomClassId = placement.PatientClassId,
+                    effectiveAtUtc = now,
+                    reason = reason,
+                    version = placement.Version
+                };
+
+                await _outboxService.EnqueueEventAsync(
+                    eventType: "OCCUPANCY_CORRECTED",
+                    idempotencyKey: $"INPATIENT:ROOM_STAY:{placement.Id}:{placement.Version}",
+                    sourceDomain: "INPATIENT",
+                    sourceType: "ROOM_STAY",
+                    sourceDetailId: placement.Id.ToString(),
+                    payload: occupancyCorrectedPayload,
+                    cancellationToken: cancellationToken);
 
                 await _dbContext.SaveChangesAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);

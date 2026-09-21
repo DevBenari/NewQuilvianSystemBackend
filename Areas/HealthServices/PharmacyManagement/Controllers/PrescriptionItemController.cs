@@ -289,6 +289,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
                 IsAllowExcessPaymentByPatient = coverage.IsAllowExcessPaymentByPatient,
                 CoverageNote = BuildCoverageNote(coverage),
                 SortOrder = request.SortOrder,
+                // BE-RWI-103. Butir insulin berdosis skala ditandai sejak dibuat; bawaan dosis tetap.
+                DoseKind = request.DoseKind ?? QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Enums.PrescriptionDoseKind.Fixed,
                 IsActive = true,
                 CreateDateTime = now,
                 CreateBy = actorUserId,
@@ -421,6 +423,32 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
             entity.DispenseUnitSymbolSnapshot = dispenseUnit?.MeasurementSymbol;
             ApplyCoverage(entity, coverage, drug.IsNeedApproval);
             entity.SortOrder = request.SortOrder;
+
+            // BE-RWI-103. Butir yang masih punya protokol sliding scale aktif tidak boleh diturunkan
+            // menjadi dosis tetap: protokolnya akan menggantung pada butir yang bukan lagi insulin
+            // berdosis skala. Protokol dihentikan lebih dulu lewat grup Sliding Scale Order.
+            if (request.DoseKind.HasValue && request.DoseKind.Value != entity.DoseKind)
+            {
+                if (request.DoseKind.Value == QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Enums.PrescriptionDoseKind.Fixed)
+                {
+                    var adaProtokolAktif = await _dbContext.Set<PhmSlidingScaleOrder>()
+                        .AsNoTracking()
+                        .AnyAsync(x =>
+                            x.PrescriptionItemId == entity.Id &&
+                            !x.IsDelete &&
+                            x.OrderStatus == QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Enums.SlidingScaleOrderStatus.Active,
+                            cancellationToken);
+
+                    if (adaProtokolAktif)
+                    {
+                        return Conflict(ApiResponse<object>.Fail(
+                            StatusCodes.Status409Conflict,
+                            "Butir ini masih memiliki protokol sliding scale aktif. Hentikan protokolnya lebih dulu."));
+                    }
+                }
+
+                entity.DoseKind = request.DoseKind.Value;
+            }
             entity.IsApproved = false;
             entity.ApprovedAt = null;
             entity.ApprovedByUserId = null;

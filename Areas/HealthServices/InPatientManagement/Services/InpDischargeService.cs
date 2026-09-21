@@ -1,7 +1,10 @@
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services;
 using QuilvianSystemBackend.Repositories;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services
@@ -36,6 +39,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         private readonly ApplicationDbContext _dbContext;
         private readonly InpEpisodeService _episodeService;
         private readonly InpBedOccupancyService _bedOccupancyService;
+        private readonly ClinicalDocumentIntegrityService _clinicalDocumentIntegrityService;
+        private readonly PatientProcedureOrderService _patientProcedureOrderService;
+        private readonly MedicationAdministrationService _medicationAdministrationService;
+        private readonly IInpBillingDepositAdapter? _billingDepositAdapter;
 
         /// <remarks>
         /// <b>Kenapa service ini boleh memakai <see cref="InpBedOccupancyService"/>.</b>
@@ -49,15 +56,48 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// menggambar panah ke <see cref="InpEpisodeService"/>, dicatat pada laporan
         /// `BE-RWI-025`.
         /// </para>
+        ///
+        /// <para>
+        /// <b>Kenapa service ini boleh memakai <c>ClinicalDocumentIntegrityService</c>.</b>
+        /// Langkah 4 penutupan episode mengunci konsep catatan dokter, dan penguncian itu milik
+        /// <c>MedicalRecordManagement</c> — <c>BE-RWI-082</c>, <c>INT-INP-08</c>, disetujui
+        /// Yoga Aji Pratama lewat <c>RWI-DEC-151</c>. Pemanggilannya lewat service pemilik,
+        /// bukan dengan menulis <c>MrcClinicalDocumentIntegrity</c> langsung dari sini; keduanya
+        /// memakai <c>ApplicationDbContext</c> yang sama sehingga ikut satu transaksi.
+        /// </para>
+        ///
+        /// <para>
+        /// <b>Kenapa service ini boleh memakai <c>PatientProcedureOrderService</c>.</b>
+        /// Langkah 5 penutupan episode membatalkan pesanan tindakan rawat inap tertunda milik
+        /// <c>ClinicalManagement</c> — <c>BE-RWI-083</c>, <c>BE-RWI-097</c>, <c>INT-INP-09</c>.
+        /// Pemanggilannya lewat service pemilik; keduanya memakai <c>ApplicationDbContext</c>
+        /// yang sama sehingga ikut satu transaksi penutupan.
+        /// </para>
+        ///
+        /// <para>
+        /// <b>Kenapa service ini boleh memakai <c>MedicationAdministrationService</c>.</b>
+        /// Langkah 6 penutupan episode membatalkan dosis MAR <c>Due</c> yang jadwalnya sesudah
+        /// waktu tutup — <c>INT-KEP-15</c>, <c>BE-RWI-118</c> sisi keperawatan dari
+        /// <c>BE-RWI-087</c>. Pemanggilannya lewat service pemilik <c>PharmacyManagement</c>;
+        /// metode itu tidak membuka transaksi dan tidak menyimpan, sehingga ikut transaksi ini.
+        /// </para>
         /// </remarks>
         public InpDischargeService(
             ApplicationDbContext dbContext,
             InpEpisodeService episodeService,
-            InpBedOccupancyService bedOccupancyService)
+            InpBedOccupancyService bedOccupancyService,
+            ClinicalDocumentIntegrityService clinicalDocumentIntegrityService,
+            PatientProcedureOrderService patientProcedureOrderService,
+            MedicationAdministrationService medicationAdministrationService,
+            IInpBillingDepositAdapter? billingDepositAdapter = null)
         {
             _dbContext = dbContext;
             _episodeService = episodeService;
             _bedOccupancyService = bedOccupancyService;
+            _clinicalDocumentIntegrityService = clinicalDocumentIntegrityService;
+            _patientProcedureOrderService = patientProcedureOrderService;
+            _medicationAdministrationService = medicationAdministrationService;
+            _billingDepositAdapter = billingDepositAdapter;
         }
 
         // =====================================================================
@@ -219,6 +259,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     FollowUpInstruction = x.FollowUpInstruction,
                     ReferralDestination = x.ReferralDestination,
                     ClinicalSummary = x.ClinicalSummary,
+                    ImportantFindingsSummary = x.ImportantFindingsSummary,
+                    DischargeConditionNote = x.DischargeConditionNote,
+                    EducationSummary = x.EducationSummary,
                     SignedAt = x.SignedAt,
                     SignedByDoctorId = x.SignedByDoctorId,
                     SignedByDoctorName = x.SignedByDoctor != null ? x.SignedByDoctor.FullName : null,
@@ -258,6 +301,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     FollowUpInstruction = x.FollowUpInstruction,
                     ReferralDestination = x.ReferralDestination,
                     ClinicalSummary = x.ClinicalSummary,
+                    ImportantFindingsSummary = x.ImportantFindingsSummary,
+                    DischargeConditionNote = x.DischargeConditionNote,
+                    EducationSummary = x.EducationSummary,
                     PreviousDischargeType = (int)x.PreviousDischargeType,
                     PreviousSignedAt = x.PreviousSignedAt,
                     PreviousSignedByDoctorId = x.PreviousSignedByDoctorId,
@@ -565,6 +611,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 FollowUpInstruction = summary.FollowUpInstruction,
                 ReferralDestination = summary.ReferralDestination,
                 ClinicalSummary = summary.ClinicalSummary,
+                // BE-RWI-085 — ketiga isian baru IKUT disalin. Tanpa ketiganya, setiap
+                // penandatanganan ulang lewat sesi koreksi akan menghapus Pemeriksaan Penting,
+                // Kondisi Saat Pulang, dan Edukasi versi lama tanpa jejak — persis kebalikan
+                // dari gunanya tabel versi (RWI-DEC-057).
+                ImportantFindingsSummary = summary.ImportantFindingsSummary,
+                DischargeConditionNote = summary.DischargeConditionNote,
+                EducationSummary = summary.EducationSummary,
                 PreviousDischargeType = previousDischargeType,
                 PreviousSignedAt = summary.SignedAt ?? now,
                 PreviousSignedByDoctorId = summary.SignedByDoctorId ?? Guid.Empty,
@@ -610,6 +663,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             summary.FollowUpInstruction = NormalizeText(request.FollowUpInstruction);
             summary.ReferralDestination = NormalizeText(request.ReferralDestination);
             summary.ClinicalSummary = NormalizeText(request.ClinicalSummary);
+            summary.ImportantFindingsSummary = NormalizeText(request.ImportantFindingsSummary);
+            summary.DischargeConditionNote = NormalizeText(request.DischargeConditionNote);
+            summary.EducationSummary = NormalizeText(request.EducationSummary);
         }
 
         private static string? NormalizeText(string? value)

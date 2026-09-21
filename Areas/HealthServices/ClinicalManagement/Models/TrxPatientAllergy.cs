@@ -132,6 +132,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models
 
         public bool IsActive { get; set; } = true;
 
+        /// <summary>
+        /// Episode rawat inap tempat dugaan reaksi obat terjadi — <c>BE-RWI-117</c>, migration K6.
+        /// </summary>
+        public Guid? InpEpisodeId { get; set; }
+
+        /// <summary>
+        /// Dosis MAR yang diduga memicu reaksi — <c>BE-RWI-117</c>, <c>FR-KEP-070</c>. Baris MAR-nya
+        /// sendiri tidak pernah diubah oleh pencatatan alergi (<c>AC-MVP-029</c>).
+        /// </summary>
+        public Guid? SourceMedicationAdministrationId { get; set; }
+
         // =========================
         // NAVIGATION
         // =========================

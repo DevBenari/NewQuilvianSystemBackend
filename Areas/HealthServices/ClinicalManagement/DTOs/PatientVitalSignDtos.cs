@@ -3,6 +3,39 @@ using System.ComponentModel.DataAnnotations;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
 {
+    /// <summary>
+    /// Satu titik deret tanda vital per episode — <c>BE-RWI-121</c>, api-contract 0.5.0 bagian 7.4.
+    /// </summary>
+    /// <remarks>
+    /// Data grafik diambil dari kontrak yang sama; layar tidak menghitung ulang MAP maupun EWS. Baris
+    /// yang dibatalkan atau salah catat tetap dikirim dengan <c>IsExcludedFromChart = true</c>, supaya
+    /// lubang pada deret terlihat, bukan hilang diam-diam.
+    /// </remarks>
+    public class PatientVitalSignSeriesItem
+    {
+        public Guid Id { get; set; }
+        public DateTime ObservationDateTime { get; set; }
+        public PatientVitalSignStatus VitalSignStatus { get; set; }
+        public int? BloodPressureSystolic { get; set; }
+        public int? BloodPressureDiastolic { get; set; }
+        public decimal? MeanArterialPressure { get; set; }
+        public int? PulseRate { get; set; }
+        public int? RespiratoryRate { get; set; }
+        public decimal? Temperature { get; set; }
+        public decimal? OxygenSaturation { get; set; }
+        public bool IsUsingOxygen { get; set; }
+        public ConsciousnessStatus ConsciousnessStatus { get; set; }
+        public int? GcsTotal { get; set; }
+        public int? EarlyWarningScore { get; set; }
+        public EwsRiskLevel EwsRiskLevel { get; set; }
+        public bool IsAbnormal { get; set; }
+        public bool IsCritical { get; set; }
+        public bool IsExcludedFromChart { get; set; }
+        public Guid? ObservedByUserId { get; set; }
+        public string? ObservedByName { get; set; }
+        public DateTime? UpdateDateTime { get; set; }
+    }
+
     public class PatientVitalSignResponse
     {
         public Guid Id { get; set; }

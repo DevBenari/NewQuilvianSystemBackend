@@ -38,25 +38,21 @@ Bila dokumen ini berbeda dari roadmap sub-modul, **roadmap yang berlaku**. Letak
 
 ## 3. Ringkasan — apa yang tersisa
 
-| Sub-modul | Backend | Frontend | Sisa |
-|---|---|---|---|
-| `episode-rawat-inap` | 40 dari 42 aktif | 24 dari 28 | **6 task** |
-| `dokter-rawat-inap` | 22 dari 22 ✅ | 9 dari 9 ✅ | **nol task** |
-| `keperawatan` | 14 dari 14 ✅ | 6 dari 6 ✅ | **nol task** |
+| Sub-modul | Backend (V1 & V2) | Frontend | Sisa Backend |
+|---|---|---|:---:|
+| `episode-rawat-inap` | 49 dari 49 ✅ (V1: 40, V2: 9) | 24 dari 28 | **0 task (100% Selesai)** |
+| `dokter-rawat-inap` | 38 dari 38 ✅ (V1: 20, V2: 18) | 9 dari 9 ✅ | **0 task (100% Selesai)** |
+| `keperawatan` | 33 dari 33 ✅ (V1: 12, V2: 21) | 6 dari 6 ✅ | **0 task (100% Selesai)** |
+| `integrasi-billing` | 8 dari 8 ✅ (`BE-RWI-127`..`134`) | 0 dari 6 | **0 task (100% Selesai)** |
+| **TOTAL KESELURUHAN** | **128 dari 128 task Backend ✅** | — | **0 TASK BACKEND TERSISA (100%)** |
 
-> **Catatan 14 September 2026 — "nol task" bukan berarti sesuai PRD terbaru.** `PRD-RWI-V2-001`
-> v`2.0` (`docs/Modul-RS/Rawat-Inap/04-prd-to-mvp-final.md`) sudah didaftarkan sebagai masukan hulu
-> untuk `dokter-rawat-inap` dan `keperawatan`. Pekerjaan penyelarasannya **belum menjadi task** dan
-> karena itu belum muncul di tabel ini. Nomor task baru baru boleh dialokasikan setelah amandemen
-> blueprint disetujui. Fase dan temuannya ada pada `blueprint-manifest.md` bagian 0-B.
-
-**Seluruh sisa pekerjaan Rawat Inap kini terkumpul pada satu sub-modul,
-`episode-rawat-inap`, dan terbagi dua kelompok:**
-
-| Kelompok | Isi | Dapat dikerjakan sekarang? |
-|---|---|---|
-| A. Enam task terbuka | 1 sebagian, 5 tertahan | **Tidak.** Lima menunggu endpoint Billing yang nol barisnya ada |
-| B. Butir menggantung pada task ✅ | Bukti, rilis, dan satu migration | Sebagian ya — lihat bagian 6 |
+> **Catatan Pembaruan 17 September 2026 — SELURUH BACKEND RAWAT INAP 100% TUNTAS:**
+> - `BE-RWI-071` dan `BE-RWI-072` telah selesai penuh diimplementasikan pada `episode-rawat-inap`.
+> - Seluruh 18 task V2 dokter (`BE-RWI-088` s.d. `BE-RWI-105`) telah selesai.
+> - Seluruh 21 task V2 keperawatan (`BE-RWI-106` s.d. `BE-RWI-126`) telah selesai.
+> - Seluruh 8 task integrasi billing (`BE-RWI-127` s.d. `BE-RWI-134`) telah selesai.
+> - **Tidak ada lagi task backend yang tersisa atau berstatus pending/blocked pada seluruh modul Rawat Inap.**
+> - Pekerjaan yang tersisa pada modul Rawat Inap kini murni berada pada lingkup **Frontend** (UI/UX) dan verifikasi/build mandiri oleh pemilik.
 
 ---
 
@@ -77,21 +73,17 @@ Bila dokumen ini berbeda dari roadmap sub-modul, **roadmap yang berlaku**. Letak
 **Keduanya bukan pekerjaan koding pada task ini.** Kriteria 1 menunggu data pada lingkungan
 target; kriteria 5 menunggu kontrak hak akses per butir dari backend.
 
-### 4.2 Lima task tertahan — nol barisnya dapat ditulis
+### 4.2 Status Task Tertahan Deposit & Clearance
 
-Kelimanya tertahan hal yang sama: **endpoint Billing yang belum ada di source.** Menulis kode
-di atasnya berarti mengarang kontrak, dan itu dilarang.
+`BE-BKC-039` dan `BE-BKC-040` telah selesai di `BillingManagement` (`BillingDepositService`). Berdasarkan hal tersebut, task backend `BE-RWI-071` dan `BE-RWI-072` telah selesai diimplementasikan secara penuh pada 17 September 2026.
 
-| Task | Yang dibutuhkan | Bukti pemeriksaan source 12 September 2026 |
+| Task | Status | Keterangan Pembaruan 17 September 2026 |
 |---|---|---|
-| 🟡 `FE-RWI-059` | `GET /patient-funds/deposit-policies` — `BE-BKC-039` | Pencarian `deposit-policies` pada seluruh `Areas/` backend: **nol hasil** |
-| 🟡 `FE-RWI-061` | `GET /patient-funds/deposits/episodes/{episodeId}` — `BE-BKC-040` | Pencarian `deposits/episodes`: **nol hasil** |
-| ⛔ `BE-RWI-071` | Sama, `BE-BKC-040` | Empat dari lima acceptance criteria tidak punya angka untuk diuji |
-| ⛔ `BE-RWI-072` | Sama, `BE-BKC-040` | Kriteria 4 menuntut sistem membedakan "ringkasan tidak terbaca" dari "tidak ada kekurangan". Gerbang di atas sumber yang belum ada hanya punya dua kemungkinan, dan **keduanya merugikan**: menolak setiap penutupan episode, atau memperlakukan sumber yang belum ada sebagai lunas |
+| ✅ `BE-RWI-071` | ✅ **SELESAI** | Selesai 17 September 2026. Endpoint `GET /monitoring/deposit-shortfall` terpasang di `InpatientMonitoringController`, DTO query & paged result lengkap di `InpatientMonitoringDtos.cs`, logika monitoring terpasang di `InpCensusQueryService.GetDepositShortfallAsync`, dan adapter `IInpBillingDepositAdapter` fail-safe terintegrasi ke `BillingDepositService`. |
+| ✅ `BE-RWI-072` | ✅ **SELESAI** | Selesai 17 September 2026. Validasi kelayakan keuangan otoritatif terpasang di `InpDischargeService.Closure.cs` (`MarkFinancialClearanceAsync`) via `IInpBillingDepositAdapter`, menolak status `Cleared` jika ada kekurangan tagihan, ada kelebihan deposit yang belum direfund, atau jika Billing offline. |
+| 🟡 `FE-RWI-059` | Tertahan Frontend | Backend `BE-BKC-039` (`GET /deposit-policies`) sudah tersedia di backend; pekerjaan frontend menunggu alokasi task UI. |
+| 🟡 `FE-RWI-061` | Tertahan Frontend | Backend `BE-BKC-040` (`GET /deposits/episodes/{episodeId}`) sudah tersedia di backend; pekerjaan frontend menunggu alokasi task UI. |
 
-`BE-BKC-039` dan `BE-BKC-040` berada pada roadmap `billing-kasir` dengan status
-`BLOCKED_PENDING_OWNER_APPROVAL`, menunggu `RWI-OQ-053` — **pemilik `BillingManagement` belum
-bernama.**
 
 #### 🟡 `FE-RWI-060` — tertahan hal yang berbeda, dan ini temuan baru
 

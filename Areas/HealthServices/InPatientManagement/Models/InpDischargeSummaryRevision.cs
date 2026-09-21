@@ -41,6 +41,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models
         [MaxLength(4000)]
         public string? ClinicalSummary { get; set; }
 
+        /// <summary>
+        /// Salinan Pemeriksaan Penting versi sebelumnya. Kolom baru <c>BE-RWI-085</c>.
+        /// <b>SENSITIF.</b>
+        /// </summary>
+        [MaxLength(4000)]
+        public string? ImportantFindingsSummary { get; set; }
+
+        /// <summary>
+        /// Salinan Kondisi Saat Pulang versi sebelumnya. Kolom baru <c>BE-RWI-085</c>.
+        /// <b>SENSITIF.</b>
+        /// </summary>
+        [MaxLength(2000)]
+        public string? DischargeConditionNote { get; set; }
+
+        /// <summary>
+        /// Salinan Edukasi versi sebelumnya. Kolom baru <c>BE-RWI-085</c>. <b>SENSITIF.</b>
+        /// </summary>
+        [MaxLength(2000)]
+        public string? EducationSummary { get; set; }
+
         public InpDischargeType PreviousDischargeType { get; set; }
 
         public DateTime PreviousSignedAt { get; set; }

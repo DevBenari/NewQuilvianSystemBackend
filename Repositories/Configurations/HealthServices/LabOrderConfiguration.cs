@@ -3,7 +3,10 @@ using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
+using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
+using QuilvianSystemBackend.Models;
 
 namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
 {
@@ -102,30 +105,35 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
             });
 
             // =========================================================================
-            // BE-LAB-30 / LAB-DEC-061 - konfirmasi pesanan
+            // BE-RWI-104 / migration R8 — pemberi instruksi dan verifikasinya, RWI-DEC-153
             // =========================================================================
-
-            // Ketiganya nullable tanpa nilai bawaan. Seluruh pesanan yang sudah ada memang
-            // tidak pernah dikonfirmasi; nilai bawaan apa pun akan mengarang riwayat yang
-            // tidak pernah terjadi.
-            entity.Property(x => x.ConfirmedByUserId)
+            entity.Property(x => x.InstructingDoctorId)
                 .IsRequired(false);
 
-            entity.Property(x => x.ConfirmedAt)
+            entity.Property(x => x.InstructionVerificationStatus)
+                .HasConversion<int>()
+                .HasDefaultValue(LabOrderInstructionVerificationStatus.NotRequired)
+                .IsRequired();
+
+            entity.Property(x => x.InstructionVerifiedAt)
+                .HasColumnType("timestamp with time zone");
+
+            entity.Property(x => x.InstructionVerifiedByUserId)
                 .IsRequired(false);
 
-            entity.Property(x => x.ExaminerDoctorId)
-                .IsRequired(false);
-
-            // Dokter pemeriksa menunjuk data induk global. Restrict, bukan Cascade: menghapus
-            // seorang dokter tidak boleh ikut menghapus pesanan yang pernah ditanganinya.
             entity.HasOne<MstDoctor>()
                 .WithMany()
-                .HasForeignKey(x => x.ExaminerDoctorId)
+                .HasForeignKey(x => x.InstructingDoctorId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Daftar pesanan per dokter pemeriksa menyaring tepat pada kolom ini.
-            entity.HasIndex(x => x.ExaminerDoctorId);
+            entity.HasOne<ApplicationUser>()
+                .WithMany()
+                .HasForeignKey(x => x.InstructionVerifiedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Daftar tunggu verifikasi membaca "pesanan Pending milik dokter ini".
+            entity.HasIndex(x => new { x.InstructingDoctorId, x.InstructionVerificationStatus });
+            entity.HasIndex(x => x.InstructionVerifiedByUserId);
         }
     }
 }

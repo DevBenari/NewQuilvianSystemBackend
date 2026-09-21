@@ -268,6 +268,20 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
                 .WithMany()
                 .HasForeignKey(x => x.CancelledByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // BE-RWI-110 / BE-RWI-121, migration K3 - deret tanda vital per episode rawat inap.
+            builder.Property(x => x.InpEpisodeId)
+                .IsRequired(false);
+
+            builder.HasOne<QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models.InpEpisode>()
+                .WithMany()
+                .HasForeignKey(x => x.InpEpisodeId)
+                .HasConstraintName("FK_TrxPatientVitalSign_InpEpisodeId")
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasIndex(
+                x => new { x.InpEpisodeId, x.ObservationDateTime },
+                "IX_TrxPatientVitalSign_InpEpisodeId_ObservationDateTime");
         }
     }
 }
