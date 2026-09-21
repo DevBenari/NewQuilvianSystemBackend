@@ -72,7 +72,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
             {
                 if (!input.PrescriptionItemId.HasValue && !input.PrescriptionCompoundItemId.HasValue)
                     throw new InvalidOperationException("Item penyiapan harus merujuk ke item resep reguler atau bahan racikan.");
-                preparation.Items.Add(new TrxPrescriptionPreparationItem
+                // Item baru didaftarkan lewat DbSet, bukan hanya lewat navigasi induknya.
+                // Induk sudah dilacak dan Id item diisi sendiri, sehingga EF memperlakukan
+                // item ini sebagai baris lama lalu menerbitkan UPDATE yang tidak mengenai
+                // baris mana pun — penyiapan gagal diselesaikan.
+                var item = new TrxPrescriptionPreparationItem
                 {
                     Id = Guid.NewGuid(), PrescriptionPreparationId = preparation.Id,
                     PrescriptionItemId = input.PrescriptionItemId,
@@ -84,14 +88,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
                     BatchNumber = Normalize(input.BatchNumber), ExpiryDate = input.ExpiryDate,
                     Note = Normalize(input.Note), SortOrder = input.SortOrder,
                     CreateDateTime = now, CreateBy = actorUserId, IsActive = true
-                });
+                };
+                _dbContext.Set<TrxPrescriptionPreparationItem>().Add(item);
+                preparation.Items.Add(item);
             }
             preparation.Status = PrescriptionPreparationStatus.Prepared;
             preparation.PreparationCompletedAt = now;
             preparation.PreparationNote = Normalize(request.PreparationNote) ?? preparation.PreparationNote;
             preparation.UpdateDateTime = now;
             preparation.UpdateBy = actorUserId;
-            prescription.FulfillmentStatus = PrescriptionFulfillmentStatus.ReadyToDispense;
+            // Penyiapan selesai TIDAK langsung membuka penyerahan. Telaah obat akhir oleh
+            // apoteker wajib bagi seluruh resep, dan hanya telaah itu yang boleh menetapkan
+            // ReadyToDispense. Tanpa batas ini, obat yang belum diperiksa apoteker sudah
+            // dapat diserahkan begitu petugas farmasi menekan selesai.
+            prescription.FulfillmentStatus = PrescriptionFulfillmentStatus.AwaitingFinalCheck;
             prescription.UpdateDateTime = now;
             prescription.UpdateBy = actorUserId;
             await _dbContext.SaveChangesAsync(ct);
