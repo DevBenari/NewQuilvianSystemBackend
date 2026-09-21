@@ -1390,17 +1390,12 @@ try
     // disahkan oleh seeder. Batas yang bertabrakan pada V1 ditandai untuk ditinjau pemilik klinis.
     await RunStartupSeederAsync("ClinicalInstrumentDraftSeeder", () => ClinicalInstrumentDraftSeeder.SeedAsync(app.Services));
 
-    // Data induk contoh Laboratorium. Mati secara bawaan dan menolak berjalan di produksi:
-    // katalog pemeriksaan, tarif, kelompok umur, dan sumber rujukan produksi ditetapkan pemilik
-    // proses bisnis lewat layar admin, bukan lewat seeder.
-    var runLabDummySeed = builder.Configuration.GetValue<bool>("Seeders:RunLabDummySeed");
-
-    if (runLabDummySeed)
-    {
-        await RunStartupSeederAsync(
-            "LabDummyDataSeeder",
-            () => LabDummyDataSeeder.SeedAsync(app.Services, app.Environment.EnvironmentName));
-    }
+    // Pemanggilan LabDummyDataSeeder dihapus 21 September 2026, menuntaskan pencabutan
+    // 2026-09-17 di atas. Kelasnya sudah tidak ada dan kunci "Seeders:RunLabDummySeed"
+    // tidak ada di appsettings mana pun, sehingga blok ini tidak pernah berjalan — ia
+    // hanya membuat Program.cs gagal dikompilasi (CS0103). Kegagalan itu selama ini
+    // tertutup oleh OutOfMemoryException dari kompilasi migration, sehingga baru
+    // terlihat setelah beban kompilasi migration diturunkan.
 
     var runOperatingRoomDemoSeed =
         builder.Configuration.GetValue<bool>("Seeders:RunOperatingRoomDemoSeed");

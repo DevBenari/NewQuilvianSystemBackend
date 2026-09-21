@@ -134,6 +134,26 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
             // Daftar tunggu verifikasi membaca "pesanan Pending milik dokter ini".
             entity.HasIndex(x => new { x.InstructingDoctorId, x.InstructionVerificationStatus });
             entity.HasIndex(x => x.InstructionVerifiedByUserId);
+
+            // =========================================================================
+            // migration 20260916022245_AddLabOrderConfirmation — dokter pemeriksa
+            // =========================================================================
+            //
+            // Migration itu membuat index IX_LabOrder_ExaminerDoctorId beserta foreign key
+            // FK_LabOrder_MstDoctor_ExaminerDoctorId, tetapi konfigurasinya tidak pernah ikut
+            // ditulis di sini. Akibatnya model dan ApplicationDbContextModelSnapshot berselisih,
+            // dan EF menolak "database update" dengan PendingModelChangesWarning: menurut model,
+            // index dan foreign key itu harus dibuang.
+            //
+            // Relasinya sengaja tanpa navigation property, mengikuti InstructingDoctorId di atas.
+            // Nama index dan constraint dibiarkan bawaan agar persis sama dengan yang sudah
+            // ditulis migration; memberi nama sendiri di sini justru akan melahirkan selisih baru.
+            entity.HasIndex(x => x.ExaminerDoctorId);
+
+            entity.HasOne<MstDoctor>()
+                .WithMany()
+                .HasForeignKey(x => x.ExaminerDoctorId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }
