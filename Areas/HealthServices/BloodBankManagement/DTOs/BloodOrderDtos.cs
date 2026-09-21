@@ -1,4 +1,5 @@
 using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Enums;
+using QuilvianSystemBackend.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.DTOs
@@ -44,6 +45,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.DTOs
 
         [Required]
         public Guid RequestingDoctorId { get; set; }
+
+        /// <summary>
+        /// Golongan darah dan Rhesus <b>yang diminta</b>. Wajib dikirim sejak <c>v5</c>
+        /// (<c>VAL-BD-085</c>, <c>DEC-BD-055</c>).
+        /// </summary>
+        /// <remarks>
+        /// <b>Nullable di sini disengaja, dan bukan berarti boleh kosong.</b> <c>Unknown</c>
+        /// adalah nilai bawaan enum <c>BloodType</c>, sehingga isian yang lupa dikirim akan
+        /// terbaca diam-diam sebagai "Tidak diketahui" bila tipenya tidak nullable — persis
+        /// kekeliruan yang tidak boleh terjadi pada keterangan klinis. Tipe nullable membuat
+        /// "tidak dikirim" dapat dibedakan dari "Tidak diketahui", lalu keduanya dinilai
+        /// <c>VAL-BD-085</c>: kosong ditolak, <c>Unknown</c> diterima.
+        /// </remarks>
+        public BloodType? RequestedBloodGroup { get; set; }
 
         /// <summary>Baris kebutuhan. Minimal satu baris.</summary>
         [Required]
@@ -138,6 +153,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.DTOs
         /// <summary>Total kantong yang diminta seluruh baris.</summary>
         public int TotalRequestedQuantity { get; set; }
 
+        /// <summary>Total kantong yang benar-benar diberikan dan masih sah setelah koreksi disetujui.</summary>
+        public int TotalIssuedQuantity { get; set; }
+
+        /// <summary>Ringkasan komponen pada order, satu item per baris kebutuhan.</summary>
+        public List<BloodOrderListComponentDto> Components { get; set; } = new();
+
         /// <summary>
         /// Benar bila order ini dilanjutkan walau terdeteksi ganda. Dihitung dari riwayat
         /// <c>BbkTransitionHistory</c>, bukan kolom order.
@@ -146,6 +167,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.DTOs
 
         public int Version { get; set; }
         public DateTime CreateDateTime { get; set; }
+    }
+
+    /// <summary>Ringkasan satu komponen pada daftar kerja order darah.</summary>
+    public class BloodOrderListComponentDto
+    {
+        public Guid BloodComponentId { get; set; }
+        public string? BloodComponentCode { get; set; }
+        public string? BloodComponentName { get; set; }
+        public int RequestedQuantity { get; set; }
+        public int IssuedQuantity { get; set; }
     }
 
     /// <summary>Baris kebutuhan pada detail order.</summary>
@@ -175,12 +206,35 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.DTOs
         public Guid RequestingDoctorId { get; set; }
         public string? RequestingDoctorName { get; set; }
 
+        /// <summary>
+        /// Golongan darah <b>yang diminta</b> pada permintaan ini (<c>DEC-BD-055</c>).
+        /// </summary>
+        /// <remarks>
+        /// <b>Bukan golongan darah hasil pemeriksaan.</b> Layar wajib menampilkan keduanya
+        /// sebagai dua fakta berbeda: yang ini keterangan permintaan, sedangkan golongan darah
+        /// sah pasien dibaca dari
+        /// <c>GET /blood-group-exams/patient/{patientId}/valid</c>. Yang satu tidak pernah
+        /// menyimpulkan yang lain (<c>INV-BD-011</c>). <c>null</c> hanya pada order sebelum
+        /// <c>v5</c> — layar menulisnya sebagai "golongan darah diminta tidak tercatat pada
+        /// order lama", bukan sebagai "Tidak diketahui".
+        /// </remarks>
+        public BloodType? RequestedBloodGroup { get; set; }
+
+        /// <summary>Label tampilan <see cref="RequestedBloodGroup"/>; <c>null</c> bila nilainya <c>null</c>.</summary>
+        public string? RequestedBloodGroupLabel { get; set; }
+
         public BbkOrderSource OrderSource { get; set; }
         public string OrderSourceLabel { get; set; } = string.Empty;
         public Guid? InputByUserId { get; set; }
 
         public BbkBloodOrderStatus OrderStatus { get; set; }
         public string OrderStatusLabel { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Kategori alasan pembatalan yang akan diterima backend untuk pengguna saat ini.
+        /// Nilai diturunkan per request dan tidak disimpan. Null bila order tidak dapat dibatalkan.
+        /// </summary>
+        public string? CancellationReasonCategory { get; set; }
 
         /// <summary>
         /// Alasan tertulis ketika order ganda tetap dilanjutkan (<c>ASM-BD-001</c>), beserta
@@ -307,6 +361,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.DTOs
         public Guid? PatientId { get; set; }
         public Guid? EncounterId { get; set; }
         public Guid? ServiceUnitId { get; set; }
+        public Guid? BloodComponentId { get; set; }
         public BbkBloodOrderStatus? OrderStatus { get; set; }
         public BbkOrderSource? OrderSource { get; set; }
         public string SortBy { get; set; } = "createDateTime";
