@@ -135,6 +135,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
 
         public bool IsUsedForRegistration { get; set; }
 
+        /// <summary>
+        /// Layanan yang dituju pasien. Kosong pada sesi yang dibuat sebelum ruas ini ada
+        /// (`LAB-REQ-006`).
+        /// </summary>
+        public KioskServiceTarget? TargetService { get; set; }
+
+        /// <summary>
+        /// Pasien membawa permintaan dokter, memeriksakan diri sendiri, atau belum ditanyakan.
+        /// Ketiganya bermakna; `null` bukan sama dengan `false`.
+        /// </summary>
+        public bool? HasPhysicianRequest { get; set; }
+
         public DateTime StartedAt { get; set; }
     }
 
@@ -287,6 +299,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
 
         [MaxLength(250)]
         public string? FailureReason { get; set; }
+
+        /// <summary>
+        /// Layanan yang dituju pasien, dinyatakan olehnya sendiri di kiosk
+        /// (<c>LAB-REQ-006</c> §1.1, <c>LAB-DEC-052</c>).
+        ///
+        /// <b>Boleh kosong.</b> Kiosk yang belum menanyakannya tetap dapat mengirim hasil scan
+        /// seperti sebelumnya — ruas ini aditif dan tidak mengubah satu pun pemanggil lama.
+        /// </summary>
+        public KioskServiceTarget? TargetService { get; set; }
+
+        /// <summary>
+        /// Pasien membawa permintaan dokter, atau memeriksakan diri sendiri
+        /// (<c>LAB-DEC-052</c>).
+        ///
+        /// Tiga keadaan, dan ketiganya bermakna: <c>true</c> membawa permintaan, <c>false</c>
+        /// memeriksakan diri sendiri, dan <c>null</c> <b>belum ditanyakan</b> — bukan sama dengan
+        /// <c>false</c>.
+        /// </summary>
+        public bool? HasPhysicianRequest { get; set; }
 
         public bool IsManualInput { get; set; } = false;
     }
