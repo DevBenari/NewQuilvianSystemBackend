@@ -8,6 +8,7 @@ using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegrat
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.BillingIntake.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.MasterData.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.PettyCash.Services;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.CashManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Services;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing;
@@ -31,6 +32,7 @@ public static class BillingManagementServiceCollectionExtensions
         services.AddScoped<BillingRefundService>();
         services.AddScoped<BillingInvoiceClosureService>();
         services.AddScoped<BilConsumerHandoffService>();
+        services.AddScoped<BilPrescriptionClearanceRecoveryService>();
         services.AddScoped<BillingFinancialExceptionService>();
         services.AddScoped<BillingArApHandoffService>();
         services.AddScoped<BillingFinalizationService>();
@@ -83,6 +85,8 @@ public static class BillingManagementServiceCollectionExtensions
         services.AddScoped<FinanceReceivableService>();
         // BE-FIN-009: konsumen fakta AR dari Billing (gap FinanceBillingIntakeService ditutup di sini).
         services.AddScoped<FinanceBillingIntakeService>();
+        // BE-FIN-014 / MVP-4: layanan perhitungan kas tersedia, setoran bank, dan penutupan harian.
+        services.AddScoped<FinanceCashManagementService>();
         // BE-BKC-036 / PC-DES-004: kolam anggaran dan saldo berjalan kas kecil.
         services.AddScoped<PettyCashBudgetService>();
         // BE-BKC-037 / PC-DES-001: siklus hidup voucher kas kecil penuh.

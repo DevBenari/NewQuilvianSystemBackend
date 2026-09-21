@@ -605,14 +605,14 @@ Masukan `BKC-DEC-106`–`111`, `BKC-DES-036`–`041`, seluruhnya `approved` 21 S
 | Requirement | Keputusan asal | Task | Bukti verifikasi |
 | --- | --- | --- | --- |
 | `FR-BKC-230` — surat penerimaan terbit saat tender mencapai keadaan akhirnya | `BKC-DEC-106`, `FIN-DEC-005` | 🟡 `BE-BKC-066` | `BIL-AT-135`, `BIL-AT-136` · [Laporan](../task/report/backend/BE-BKC-066.md) |
-| `FR-BKC-231` — surat clearance terbit saat keadaan resep berubah | `BKC-DEC-106`, `PHA-DEC-070` | `BE-BKC-067` | `BIL-AT-135`, `BIL-AT-138` |
-| `FR-BKC-232` — keduanya lahir dari satu titik deteksi, satu transaksi | `BKC-DEC-106` | 🟡 `BE-BKC-066`, `BE-BKC-067` | `BIL-AT-135`, `BIL-AT-135-F` |
-| `FR-BKC-233` — biaya di luar resep tidak mencabut clearance | `PHA-DEC-068` | `BE-BKC-067` | `BIL-AT-137` |
-| `FR-BKC-234` — penarikan uang mencabut seluruh resep pada tagihan | `PHA-DEC-068-A` | `BE-BKC-067` | `BIL-AT-139` |
-| `FR-BKC-235` — hasil finansial ditentukan penanda cara bayar | `PHA-DEC-065` | `BE-BKC-067` | `BIL-AT-140` |
-| `FR-BKC-236` — pembacaan keadaan clearance terkini | `BKC-DEC-107` | `BE-BKC-068` | `BIL-AT-141`, `BIL-AT-141-F` |
-| `FR-BKC-237` — pengakuan penerimaan dan daftar surat menggantung | `BKC-DEC-108` | `BE-BKC-069`, `FE-BKC-040` | `BIL-AT-142` |
-| Pemulihan resep yang terlanjur tertahan | **`BKC-DEC-111`** | `BE-BKC-070` | Hitungan sebelum dan sesudah pada basis data pengembang |
+| `FR-BKC-231` — surat clearance terbit saat keadaan resep berubah | `BKC-DEC-106`, `PHA-DEC-070` | 🟡 `BE-BKC-067` | `BIL-AT-135`, `BIL-AT-138` · [Laporan](../task/report/backend/BE-BKC-067.md) |
+| `FR-BKC-232` — keduanya lahir dari satu titik deteksi, satu transaksi | `BKC-DEC-106` | 🟡 `BE-BKC-066`, 🟡 `BE-BKC-067` | `BIL-AT-135`, `BIL-AT-135-F` |
+| `FR-BKC-233` — biaya di luar resep tidak mencabut clearance | `PHA-DEC-068` | 🟡 `BE-BKC-067` | `BIL-AT-137` |
+| `FR-BKC-234` — penarikan uang mencabut seluruh resep pada tagihan | `PHA-DEC-068-A` | 🟡 `BE-BKC-067` | `BIL-AT-139` |
+| `FR-BKC-235` — hasil finansial ditentukan penanda cara bayar | `PHA-DEC-065` | 🟡 `BE-BKC-067` | `BIL-AT-140` |
+| `FR-BKC-236` — pembacaan keadaan clearance terkini | `BKC-DEC-107` | 🟡 `BE-BKC-068` | `BIL-AT-141`, `BIL-AT-141-F` · [Laporan](../task/report/backend/BE-BKC-068.md) |
+| `FR-BKC-237` — pengakuan penerimaan dan daftar surat menggantung | `BKC-DEC-108` | 🟡 `BE-BKC-069`, `FE-BKC-040` | `BIL-AT-142` · [Laporan](../task/report/backend/BE-BKC-069.md) |
+| Pemulihan resep yang terlanjur tertahan | **`BKC-DEC-111`** | 🟡 `BE-BKC-070` | Hitungan sebelum dan sesudah pada basis data pengembang · [Laporan](../task/report/backend/BE-BKC-070.md) |
 
 **Nol requirement tanpa bukti verifikasi.** Kedelapan functional requirement pada
 `04-prd-to-mvp.md` beserta satu pekerjaan pemulihan seluruhnya terpetakan ke task dan buktinya.
@@ -623,8 +623,8 @@ Masukan `BKC-DEC-106`–`111`, `BKC-DES-036`–`041`, seluruhnya `approved` 21 S
 | --- | --- | --- |
 | Penerbitan gagal di tengah transaksi pembayaran | 🟡 `BE-BKC-066` | `BIL-AT-135-F` — pembayarannya ikut batal |
 | Peristiwa diproses dua kali | 🟡 `BE-BKC-066` | `BIL-AT-136-F` |
-| Dua perubahan clearance bersamaan pada resep yang sama | `BE-BKC-067` | `BIL-AT-139-F` |
-| Keadaan ditanyakan untuk resep yang belum punya surat | `BE-BKC-068` | `BIL-AT-141-F` |
+| Dua perubahan clearance bersamaan pada resep yang sama | 🟡 `BE-BKC-067` | `BIL-AT-139-F` |
+| Keadaan ditanyakan untuk resep yang belum punya surat | 🟡 `BE-BKC-068` | `BIL-AT-141-F` |
 | Tender tunai tanpa shift kasir | 🟡 `BE-BKC-066` | `BIL-AT-142-F` |
 
 Empat dari lima menguji hal yang sama dari sudut berbeda: **uang dan suratnya tidak pernah boleh

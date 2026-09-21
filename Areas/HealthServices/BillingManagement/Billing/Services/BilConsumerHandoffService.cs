@@ -1,8 +1,10 @@
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
 using QuilvianSystemBackend.Repositories;
+using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 using System.Security.Cryptography;
 using System.Text;
@@ -176,6 +178,470 @@ public sealed class BilConsumerHandoffService
         var hash = MD5.HashData(raw);
         return new Guid(hash);
     }
+
+    /// <summary>
+    /// BKC-DEC-106, BKC-DES-038, BKC-DES-039, BIL-INT-014:
+    /// Menerbitkan surat clearance resep (BilPrescriptionClearanceHandoff) ke Farmasi saat keadaan clearance berubah.
+    /// Menegakkan BIL-VAL-112 (nomor versi naik monoton), BIL-VAL-113 (sebab sesuai arah),
+    /// BIL-VAL-114 (hasil finansial wajib saat CLEARED), dan BIL-VAL-115 (biaya bukan obat tidak mencabut clearance).
+    /// Menggunakan kunci penasihat tagihan yang sudah ada (BKC-DES-032).
+    /// </summary>
+    public async Task<List<BilPrescriptionClearanceHandoff>> PublishForClearanceChangeAsync(
+        Guid invoiceId,
+        string reasonCode,
+        Guid actorUserId,
+        DateTimeOffset occurredAt,
+        Guid correlationId,
+        Guid causationId,
+        CancellationToken cancellationToken,
+        Guid? specificPrescriptionId = null)
+    {
+        // BIL-VAL-115: Penambahan biaya tindakan, lab, rad, atau kamar TIDAK melahirkan surat pencabutan.
+        // Jika reasonCode bukan salah satu dari 6 reason code resmi, abaikan tanpa melempar galat.
+        if (reasonCode != PrescriptionClearanceReasonCodes.InvoiceSettled
+            && reasonCode != PrescriptionClearanceReasonCodes.InvoiceWrittenOff
+            && reasonCode != PrescriptionClearanceReasonCodes.PrescriptionChargeIncreased
+            && reasonCode != PrescriptionClearanceReasonCodes.PaymentReversed
+            && reasonCode != PrescriptionClearanceReasonCodes.WriteOffReversed
+            && reasonCode != PrescriptionClearanceReasonCodes.PayerCoverageReversed)
+        {
+            return [];
+        }
+
+        // Tentukan arah status clearance
+        var isCleared = reasonCode is PrescriptionClearanceReasonCodes.InvoiceSettled
+            or PrescriptionClearanceReasonCodes.InvoiceWrittenOff;
+
+        var clearanceStatus = isCleared
+            ? PrescriptionClearanceStatuses.Cleared
+            : PrescriptionClearanceStatuses.Revoked;
+
+        // BIL-VAL-113: Sebab wajib sesuai arah
+        if (isCleared && (reasonCode is PrescriptionClearanceReasonCodes.PrescriptionChargeIncreased
+            or PrescriptionClearanceReasonCodes.PaymentReversed
+            or PrescriptionClearanceReasonCodes.WriteOffReversed
+            or PrescriptionClearanceReasonCodes.PayerCoverageReversed))
+        {
+            throw new BillingConsumerHandoffValidationException(
+                "Sebab clearance tidak sesuai arah status clearance.");
+        }
+
+        if (!isCleared && (reasonCode is PrescriptionClearanceReasonCodes.InvoiceSettled
+            or PrescriptionClearanceReasonCodes.InvoiceWrittenOff))
+        {
+            throw new BillingConsumerHandoffValidationException(
+                "Sebab pencabutan tidak sesuai arah status clearance.");
+        }
+
+        // Tentukan hasil finansial (FinancialOutcome)
+        string? financialOutcome = null;
+        if (isCleared)
+        {
+            if (reasonCode == PrescriptionClearanceReasonCodes.InvoiceWrittenOff)
+            {
+                financialOutcome = PrescriptionFinancialOutcomes.PaymentWaived;
+            }
+            else // INVOICE_SETTLED
+            {
+                // BKC-DEC-106, PHA-DEC-065, BIL-AT-140:
+                // Tender bercampur menghasilkan hasil penjaminan terlepas dari proporsi nominal.
+                var hasInsuranceOrGuarantor = await _dbContext.BilTenders.AsNoTracking()
+                    .Include(t => t.PaymentMethod)
+                    .Where(t => t.Settlement.InvoiceId == invoiceId
+                        && t.Status == BillingTenderStatuses.Succeeded
+                        && !t.IsDelete)
+                    .AnyAsync(t => t.PaymentMethod.IsInsurance
+                        || t.PaymentMethod.IsCompanyGuarantor
+                        || t.PaymentMethod.PaymentMethodType == "Insurance"
+                        || t.PaymentMethod.PaymentMethodType == "CompanyGuarantor",
+                        cancellationToken);
+
+                financialOutcome = hasInsuranceOrGuarantor
+                    ? PrescriptionFinancialOutcomes.InsuranceApproved
+                    : PrescriptionFinancialOutcomes.Paid;
+            }
+        }
+
+        // BIL-VAL-114: Hasil finansial wajib ada saat menyatakan boleh diambil (CLEARED), dan harus kosong saat REVOKED
+        if (isCleared && string.IsNullOrWhiteSpace(financialOutcome))
+        {
+            throw new BillingConsumerHandoffValidationException(
+                "Hasil finansial wajib ada saat menyatakan clearance resep.");
+        }
+        if (!isCleared && financialOutcome != null)
+        {
+            throw new BillingConsumerHandoffValidationException(
+                "Hasil finansial harus kosong saat clearance resep dicabut.");
+        }
+
+        // BKC-DES-032: Ambil kunci penasihat tagihan di dalam transaksi berjalan
+        if (_dbContext.Database.IsRelational())
+        {
+            await _dbContext.Database.ExecuteSqlRawAsync(
+                "SELECT pg_advisory_xact_lock(hashtext({0}));",
+                [$"BIL_INVOICE_LEDGER_{invoiceId:N}"],
+                cancellationToken);
+        }
+
+        // Kumpulkan daftar PrescriptionId yang terikat ke invoice ini
+        List<Guid> targetPrescriptionIds;
+        if (specificPrescriptionId.HasValue)
+        {
+            targetPrescriptionIds = [specificPrescriptionId.Value];
+        }
+        else
+        {
+            var pharmacyItems = await _dbContext.BilInvoiceItems.AsNoTracking()
+                .Where(x => x.InvoiceId == invoiceId
+                    && x.SourceDomain == "PHARMACY"
+                    && x.Status != BillingInvoiceItemStatuses.Voided
+                    && !x.IsDelete)
+                .ToListAsync(cancellationToken);
+
+            targetPrescriptionIds = pharmacyItems
+                .Select(x => Guid.TryParse(x.SourceDetailId, out var presId) ? presId : Guid.Empty)
+                .Where(g => g != Guid.Empty)
+                .Distinct()
+                .ToList();
+        }
+
+        if (targetPrescriptionIds.Count == 0)
+        {
+            return [];
+        }
+
+        var publishedHandoffs = new List<BilPrescriptionClearanceHandoff>();
+
+        foreach (var prescriptionId in targetPrescriptionIds)
+        {
+            // Ambil surat clearance terakhir untuk resep ini untuk menentukan versi dan mencegah duplikasi keadaan
+            var latestHandoff = await _dbContext.BilPrescriptionClearanceHandoffs
+                .Where(x => x.PrescriptionId == prescriptionId && !x.IsDelete)
+                .OrderByDescending(x => x.FinancialVersion)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            // Jika keadaan terakhir sudah identik (sama-sama CLEARED dengan outcome yang sama, atau sama-sama REVOKED dengan reason yang sama), no-op
+            if (latestHandoff != null
+                && latestHandoff.ClearanceStatus == clearanceStatus
+                && latestHandoff.FinancialOutcome == financialOutcome
+                && latestHandoff.ReasonCode == reasonCode)
+            {
+                continue;
+            }
+
+            // BIL-VAL-112, BKC-DES-039: FinancialVersion naik monoton per resep
+            var nextVersion = (latestHandoff?.FinancialVersion ?? 0L) + 1L;
+
+            var handoff = new BilPrescriptionClearanceHandoff
+            {
+                Id = Guid.NewGuid(),
+                PrescriptionId = prescriptionId,
+                InvoiceId = invoiceId,
+                ClearanceStatus = clearanceStatus,
+                FinancialOutcome = financialOutcome,
+                ReasonCode = reasonCode,
+                FinancialVersion = nextVersion,
+                EffectiveAt = occurredAt,
+                CorrelationId = correlationId,
+                CausationId = causationId,
+                Status = BillingHandoffStatuses.Created,
+                AcknowledgedAt = null,
+                RowVersion = Guid.NewGuid(),
+                CreateDateTime = DateTime.UtcNow,
+                CreateBy = actorUserId
+            };
+
+            _dbContext.BilPrescriptionClearanceHandoffs.Add(handoff);
+            publishedHandoffs.Add(handoff);
+
+            await _loggerService.AuditAsync(
+                LogCategory,
+                "BillingPrescriptionClearanceHandoff.Created",
+                "Surat clearance resep diterbitkan untuk Farmasi.",
+                new
+                {
+                    HandoffId = handoff.Id,
+                    handoff.PrescriptionId,
+                    handoff.InvoiceId,
+                    handoff.ClearanceStatus,
+                    handoff.FinancialOutcome,
+                    handoff.ReasonCode,
+                    handoff.FinancialVersion,
+                    ActorUserId = actorUserId
+                });
+        }
+
+        return publishedHandoffs;
+    }
+
+    /// <summary>
+    /// BKC-DEC-107, BKC-DES-040, PHA-DEC-063, BIL-INT-014:
+    /// Membaca keadaan clearance terkini sebuah resep secara in-process untuk rekonsiliasi Farmasi.
+    /// Operasi baca murni tanpa efek samping (read-only AsNoTracking), aman dipanggil berulang.
+    /// Resep yang belum pernah memiliki surat dijawab UNKNOWN (IsKnown: false, IsCleared: false),
+    /// bukan galat dan bukan boleh diambil (BIL-VAL-117, BIL-AT-141-F).
+    /// </summary>
+    public async Task<PrescriptionClearanceStatusResponse> ReadPrescriptionClearanceAsync(
+        Guid prescriptionId,
+        CancellationToken cancellationToken)
+    {
+        var latestHandoff = await _dbContext.BilPrescriptionClearanceHandoffs.AsNoTracking()
+            .Where(x => x.PrescriptionId == prescriptionId && !x.IsDelete)
+            .OrderByDescending(x => x.FinancialVersion)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (latestHandoff == null)
+        {
+            return new PrescriptionClearanceStatusResponse(
+                PrescriptionId: prescriptionId,
+                ClearanceStatus: PrescriptionClearanceStatuses.Unknown,
+                FinancialOutcome: null,
+                ReasonCode: null,
+                FinancialVersion: null,
+                EffectiveAt: null,
+                IsKnown: false,
+                IsCleared: false);
+        }
+
+        return new PrescriptionClearanceStatusResponse(
+            PrescriptionId: prescriptionId,
+            ClearanceStatus: latestHandoff.ClearanceStatus,
+            FinancialOutcome: latestHandoff.FinancialOutcome,
+            ReasonCode: latestHandoff.ReasonCode,
+            FinancialVersion: latestHandoff.FinancialVersion,
+            EffectiveAt: latestHandoff.EffectiveAt,
+            IsKnown: true,
+            IsCleared: latestHandoff.ClearanceStatus == PrescriptionClearanceStatuses.Cleared);
+    }
+
+    /// <summary>
+    /// Membaca daftar surat handoff yang belum diambil konsumen (BKC-DEC-108, BIL-API-1.3, BIL-SCR-41).
+    /// </summary>
+    public async Task<PagedResult<PendingHandoffResponse>> GetPendingHandoffsAsync(
+        PendingHandoffQuery query,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+
+        if (query.FromDate.HasValue && query.ToDate.HasValue && query.FromDate.Value > query.ToDate.Value)
+        {
+            throw new BillingConsumerHandoffValidationException(
+                "Rentang tanggal terbalik. Tanggal awal tidak boleh lebih besar dari tanggal akhir.");
+        }
+
+        var pageNumber = query.PageNumber < 1 ? 1 : query.PageNumber;
+        var pageSize = query.PageSize < 1 ? 10 : (query.PageSize > 100 ? 100 : query.PageSize);
+
+        var handoffType = query.HandoffType?.Trim().ToUpperInvariant();
+        var includeCollection = string.IsNullOrEmpty(handoffType)
+            || handoffType == BillingHandoffTypes.Collection
+            || handoffType == "ALL";
+        var includePrescription = string.IsNullOrEmpty(handoffType)
+            || handoffType == BillingHandoffTypes.Prescription
+            || handoffType == "ALL";
+
+        var pendingItems = new List<PendingHandoffResponse>();
+
+        if (includeCollection)
+        {
+            var collectionQuery = _dbContext.BilCollectionHandoffs
+                .AsNoTracking()
+                .Include(x => x.Invoice)
+                .Where(x => x.Status == BillingHandoffStatuses.Created && !x.IsDelete);
+
+            if (query.FromDate.HasValue)
+            {
+                collectionQuery = collectionQuery.Where(x => x.OccurredAt >= query.FromDate.Value);
+            }
+
+            if (query.ToDate.HasValue)
+            {
+                collectionQuery = collectionQuery.Where(x => x.OccurredAt <= query.ToDate.Value);
+            }
+
+            var collectionList = await collectionQuery
+                .Select(x => new PendingHandoffResponse(
+                    x.Id,
+                    BillingHandoffTypes.Collection,
+                    BillingHandoffTargetModules.Finance,
+                    x.OccurredAt,
+                    x.KwitansiNumber ?? (x.Invoice != null ? x.Invoice.InvoiceNumber : x.Id.ToString()),
+                    x.InvoiceId,
+                    x.Invoice != null ? x.Invoice.InvoiceNumber : null,
+                    x.Status,
+                    $"TenderStatus: {x.TenderStatus}, Amount: {x.Amount:N2}"))
+                .ToListAsync(cancellationToken);
+
+            pendingItems.AddRange(collectionList);
+        }
+
+        if (includePrescription)
+        {
+            var prescriptionQuery = _dbContext.BilPrescriptionClearanceHandoffs
+                .AsNoTracking()
+                .Include(x => x.Invoice)
+                .Where(x => x.Status == BillingHandoffStatuses.Created && !x.IsDelete);
+
+            if (query.FromDate.HasValue)
+            {
+                prescriptionQuery = prescriptionQuery.Where(x => x.EffectiveAt >= query.FromDate.Value);
+            }
+
+            if (query.ToDate.HasValue)
+            {
+                prescriptionQuery = prescriptionQuery.Where(x => x.EffectiveAt <= query.ToDate.Value);
+            }
+
+            var prescriptionList = await prescriptionQuery
+                .Select(x => new PendingHandoffResponse(
+                    x.Id,
+                    BillingHandoffTypes.Prescription,
+                    BillingHandoffTargetModules.Pharmacy,
+                    x.EffectiveAt,
+                    x.PrescriptionId.ToString(),
+                    x.InvoiceId,
+                    x.Invoice != null ? x.Invoice.InvoiceNumber : null,
+                    x.Status,
+                    $"ClearanceStatus: {x.ClearanceStatus}, Outcome: {x.FinancialOutcome ?? "-"}, Reason: {x.ReasonCode}"))
+                .ToListAsync(cancellationToken);
+
+            pendingItems.AddRange(prescriptionList);
+        }
+
+        var totalData = pendingItems.Count;
+        var totalPage = (int)Math.Ceiling(totalData / (double)pageSize);
+
+        var pagedItems = pendingItems
+            .OrderByDescending(x => x.CreatedAt)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+
+        return new PagedResult<PendingHandoffResponse>
+        {
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            TotalData = totalData,
+            TotalPage = totalPage,
+            Items = pagedItems
+        };
+    }
+
+    /// <summary>
+    /// Mencatat pengakuan penerimaan surat handoff oleh modul konsumen (BKC-DEC-108, BIL-API-1.3, BIL-AT-142).
+    /// Menegakkan penolakan 409 Conflict bila sudah pernah diakui sebelumnya.
+    /// Mematuhi BIL-PERMISSION-1.1: mencatat audit identitas surat, jenis, pelaku, dan waktu tanpa menyertakan kolom sensitif.
+    /// </summary>
+    public async Task<HandoffResponse> AcknowledgeHandoffAsync(
+        Guid handoffId,
+        AcknowledgeHandoffRequest? request,
+        Guid actorUserId,
+        CancellationToken cancellationToken = default)
+    {
+        if (handoffId == Guid.Empty)
+        {
+            throw new BillingConsumerHandoffValidationException("Identitas surat handoff tidak boleh kosong.");
+        }
+
+        var requestedType = request?.HandoffType?.Trim().ToUpperInvariant();
+        var now = DateTimeOffset.UtcNow;
+
+        // 1. Periksa tabel BilCollectionHandoff
+        if (string.IsNullOrEmpty(requestedType) || requestedType == BillingHandoffTypes.Collection)
+        {
+            var collectionHandoff = await _dbContext.BilCollectionHandoffs
+                .SingleOrDefaultAsync(x => x.Id == handoffId && !x.IsDelete, cancellationToken);
+
+            if (collectionHandoff != null)
+            {
+                if (collectionHandoff.Status == BillingHandoffStatuses.Acknowledged)
+                {
+                    // BIL-AT-142: Pengakuan kedua atas surat yang sama ditolak tanpa mengubah apa pun
+                    throw new BillingConsumerHandoffConflictException(
+                        $"Surat penerimaan uang dengan ID '{handoffId}' sudah pernah diakui sebelumnya pada {collectionHandoff.AcknowledgedAt:yyyy-MM-dd HH:mm:ss} UTC. Pengakuan kedua tidak mengubah apa pun.");
+                }
+
+                collectionHandoff.Status = BillingHandoffStatuses.Acknowledged;
+                collectionHandoff.AcknowledgedAt = now;
+                collectionHandoff.UpdateDateTime = now.UtcDateTime;
+                collectionHandoff.UpdateBy = actorUserId;
+                collectionHandoff.RowVersion = Guid.NewGuid();
+
+                // BIL-PERMISSION-1.1: Audit log MUST NOT memuat ProviderReference, ProviderEventId, maupun identitas pasien
+                await _loggerService.AuditAsync(
+                    LogCategory,
+                    "BillingConsumerHandoff.Acknowledged",
+                    "Surat penerimaan uang ke Finance telah diakui oleh konsumen.",
+                    new
+                    {
+                        HandoffId = handoffId,
+                        HandoffType = BillingHandoffTypes.Collection,
+                        TargetModule = BillingHandoffTargetModules.Finance,
+                        ActorUserId = actorUserId,
+                        AcknowledgedAt = now
+                    });
+
+                await _dbContext.SaveChangesAsync(cancellationToken);
+
+                return new HandoffResponse(
+                    collectionHandoff.Id,
+                    BillingHandoffTypes.Collection,
+                    BillingHandoffTargetModules.Finance,
+                    collectionHandoff.Status,
+                    collectionHandoff.AcknowledgedAt,
+                    "Surat penerimaan uang berhasil diakui.");
+            }
+        }
+
+        // 2. Periksa tabel BilPrescriptionClearanceHandoff
+        if (string.IsNullOrEmpty(requestedType) || requestedType == BillingHandoffTypes.Prescription)
+        {
+            var prescriptionHandoff = await _dbContext.BilPrescriptionClearanceHandoffs
+                .SingleOrDefaultAsync(x => x.Id == handoffId && !x.IsDelete, cancellationToken);
+
+            if (prescriptionHandoff != null)
+            {
+                if (prescriptionHandoff.Status == BillingHandoffStatuses.Acknowledged)
+                {
+                    // BIL-AT-142: Pengakuan kedua atas surat yang sama ditolak tanpa mengubah apa pun
+                    throw new BillingConsumerHandoffConflictException(
+                        $"Surat clearance resep dengan ID '{handoffId}' sudah pernah diakui sebelumnya pada {prescriptionHandoff.AcknowledgedAt:yyyy-MM-dd HH:mm:ss} UTC. Pengakuan kedua tidak mengubah apa pun.");
+                }
+
+                prescriptionHandoff.Status = BillingHandoffStatuses.Acknowledged;
+                prescriptionHandoff.AcknowledgedAt = now;
+                prescriptionHandoff.UpdateDateTime = now.UtcDateTime;
+                prescriptionHandoff.UpdateBy = actorUserId;
+                prescriptionHandoff.RowVersion = Guid.NewGuid();
+
+                // BIL-PERMISSION-1.1: Audit log
+                await _loggerService.AuditAsync(
+                    LogCategory,
+                    "BillingConsumerHandoff.Acknowledged",
+                    "Surat clearance resep ke Farmasi telah diakui oleh konsumen.",
+                    new
+                    {
+                        HandoffId = handoffId,
+                        HandoffType = BillingHandoffTypes.Prescription,
+                        TargetModule = BillingHandoffTargetModules.Pharmacy,
+                        ActorUserId = actorUserId,
+                        AcknowledgedAt = now
+                    });
+
+                await _dbContext.SaveChangesAsync(cancellationToken);
+
+                return new HandoffResponse(
+                    prescriptionHandoff.Id,
+                    BillingHandoffTypes.Prescription,
+                    BillingHandoffTargetModules.Pharmacy,
+                    prescriptionHandoff.Status,
+                    prescriptionHandoff.AcknowledgedAt,
+                    "Surat clearance resep berhasil diakui.");
+            }
+        }
+
+        throw new KeyNotFoundException($"Surat handoff konsumen dengan ID '{handoffId}' tidak ditemukan.");
+    }
 }
 
 public abstract class BillingConsumerHandoffException : Exception
@@ -184,4 +650,7 @@ public abstract class BillingConsumerHandoffException : Exception
 }
 
 public sealed class BillingConsumerHandoffValidationException(string message)
+    : BillingConsumerHandoffException(message);
+
+public sealed class BillingConsumerHandoffConflictException(string message)
     : BillingConsumerHandoffException(message);

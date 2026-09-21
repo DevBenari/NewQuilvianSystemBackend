@@ -2333,9 +2333,9 @@ Dua kerugian sedang berjalan hari ini, bukan risiko yang mungkin terjadi:
 ## Grafik Urutan Dependency
 
 ```text
-🟡 BE-BKC-066 ─> BE-BKC-067 ─┬─> BE-BKC-068 ─> BE-BKC-070
+🟡 BE-BKC-066 ─> 🟡 BE-BKC-067 ─┬─> 🟡 BE-BKC-068 ─> 🟡 BE-BKC-070
                              │
-                             └─> BE-BKC-069 ─> [FE] FE-BKC-040
+                             └─> 🟡 BE-BKC-069 ─> [FE] FE-BKC-040
 ```
 
 Legenda: `[FE]` adalah cermin baca-saja milik `frontend-roadmap.md`; task itu dihitung dan
@@ -2345,9 +2345,9 @@ seluruh keputusan yang menahannya sudah turun.
 | Gelombang eksekusi | Task | Dapat berjalan paralel? |
 | --- | --- | --- |
 | 1 | 🟡 `BE-BKC-066` | Tidak — seluruhnya bergantung padanya |
-| 2 | `BE-BKC-067` | Tidak |
-| 3 | `BE-BKC-068`, `BE-BKC-069` | **Ya**, keduanya hanya bergantung pada `067` |
-| 4 | `BE-BKC-070` | Tidak |
+| 2 | 🟡 `BE-BKC-067` | Tidak |
+| 3 | 🟡 `BE-BKC-068`, 🟡 `BE-BKC-069` | **Ya**, keduanya hanya bergantung pada `067` |
+| 4 | 🟡 `BE-BKC-070` | Tidak |
 
 Jumlah pasangan prasyarat→task pada grafik: **lima**, sama persis dengan isi kolom `Dependency`
 pada tabel task di bawah.
@@ -2375,7 +2375,7 @@ pada tabel task di bawah.
 > diminta tersendiri saat eksekusi. Approval `BKC-DEC-110` menyetujui desainnya, bukan
 > menjalankannya.
 
-### `BE-BKC-067` — Surat clearance resep terbit saat keadaan berubah
+### 🟡 `BE-BKC-067` — Surat clearance resep terbit saat keadaan berubah
 
 | Field | Isi |
 | --- | --- |
@@ -2390,8 +2390,9 @@ pada tabel task di bawah.
 | Risiko | Baris "biaya tindakan tidak mencabut clearance" adalah perilaku yang paling mudah dirancang keliru. Bila salah, obat yang sudah dibayar akan tertahan setiap kali ada biaya susulan pada kunjungan yang sama |
 | Pemilik | Billing Backend |
 | Definition of Done | Keenam kode sebab terbentuk pada keadaan yang benar; nomor versi monoton per resep terbukti pada uji bersamaan; nol perubahan pada perhitungan sisa tagihan maupun aturan transisi status invoice |
+| Status | 🟡 **Source selesai 21 September 2026.** Model `BilPrescriptionClearanceHandoff`, configuration EF Core, registrasi DbContext, perluasan `InvoiceClosureChange` (`BKC-DES-041`), implementasi `BilConsumerHandoffService.PublishForClearanceChangeAsync` (`BIL-INT-014`, `BIL-VAL-112`–`115`), dan integrasi pada 5 service pemicu telah selesai. QBE Conformance `PASS` (10 berkas). Build dan pengujian skenario `BIL-AT-137`–`140` belum diverifikasi (menunggu verifikasi manual pengguna). Pembuatan migration `AddBillingConsumerHandoff` belum dijalankan (menunggu otorisasi terpisah). Bukti: [laporan](../task/report/backend/BE-BKC-067.md) |
 
-### `BE-BKC-068` — Permukaan pemeriksaan ulang keadaan clearance
+### 🟡 `BE-BKC-068` — Permukaan pemeriksaan ulang keadaan clearance
 
 | Field | Isi |
 | --- | --- |
@@ -2406,8 +2407,9 @@ pada tabel task di bawah.
 | Risiko | Bila permukaan ini dibuat sebagai endpoint HTTP, ia menambah mode gagal tanpa menambah kemampuan — dan membuka jalan modul lain memanggilnya dari luar proses |
 | Pemilik | Billing Backend |
 | Definition of Done | Method tersedia dan dipakai; nol endpoint HTTP baru untuk keperluan ini; keadaan belum diketahui tidak pernah dijawab sebagai boleh |
+| Status | 🟡 **Source selesai 21 September 2026.** Method in-process `BilConsumerHandoffService.ReadPrescriptionClearanceAsync` dan DTO `PrescriptionClearanceStatusResponse` selesai (`BKC-DES-040`, `BIL-INT-014`). Status resep tak dikenal dijawab `UNKNOWN` (`IsKnown: false`, `IsCleared: false`) sesuai `BIL-VAL-117`. QBE Conformance `PASS` (3 berkas). Verifikasi runtime `BIL-AT-141` & `141-F` menunggu build mandiri pengguna. Bukti: [laporan](../task/report/backend/BE-BKC-068.md) |
 
-### `BE-BKC-069` — Permukaan operasional surat yang menggantung
+### 🟡 `BE-BKC-069` — Permukaan operasional surat yang menggantung
 
 | Field | Isi |
 | --- | --- |
@@ -2422,8 +2424,9 @@ pada tabel task di bawah.
 | Risiko | Endpoint penerbitan **MUST NOT** ikut dibuat. Surat yang dapat diterbitkan manual adalah surat yang dapat dipalsukan |
 | Pemilik | Billing Backend |
 | Definition of Done | Kedua endpoint sesuai kontrak; nol endpoint penerbitan; nol endpoint penghapusan; hak akses terbukti menutup peran yang tidak berwenang |
+| Status | 🟡 **Source selesai 21 September 2026.** Controller `BillingConsumerHandoffsController` (`GET /pending`, `PATCH /{id}/acknowledge`), query service `GetPendingHandoffsAsync`, pengakuan `AcknowledgeHandoffAsync` dengan penolakan 409 Conflict (`BIL-AT-142`), dan audit log tanpa data sensitif (`BIL-PERMISSION-1.1`) selesai. QBE Conformance `PASS` (3 berkas). Verifikasi runtime menunggu build mandiri pengguna. Bukti: [laporan](../task/report/backend/BE-BKC-069.md) |
 
-### `BE-BKC-070` — Pemulihan resep yang terlanjur tertahan
+### 🟡 `BE-BKC-070` — Pemulihan resep yang terlanjur tertahan
 
 | Field | Isi |
 | --- | --- |
@@ -2438,6 +2441,7 @@ pada tabel task di bawah.
 | Risiko | Godaan memakai skrip pemutakhiran data langsung. `BKC-DEC-111` menutupnya: pemulihan **membaca** dari Billing, tidak menebak |
 | Pemilik | Billing Backend |
 | Definition of Done | Seluruh resep yang layak terlepas; pekerjaan idempotent terbukti; **tidak** memerlukan otorisasi pemutakhiran data karena tidak menulis data secara langsung |
+| Status | 🟡 **Source selesai 21 September 2026.** Layanan `BilPrescriptionClearanceRecoveryService` dan DTO `PrescriptionClearanceRecoveryResult` selesai diimplementasikan (`BKC-DEC-111`, `BIL-INTEGRATION-1.1`). Pemulihan idempotent, membaca kebenaran status invoice via `ReadPrescriptionClearanceAsync` (`BE-BKC-068`) dan menerbitkan clearance pertama via `PublishForClearanceChangeAsync` (`BE-BKC-067`) tanpa modifikasi raw SQL langsung. QBE Conformance `PASS` (3 berkas). Verifikasi runtime menunggu build mandiri pengguna. Bukti: [laporan](../task/report/backend/BE-BKC-070.md) |
 
 ## Catatan kebijakan verifikasi
 

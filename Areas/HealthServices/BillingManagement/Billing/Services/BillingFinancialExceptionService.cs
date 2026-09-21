@@ -18,17 +18,20 @@ public sealed class BillingFinancialExceptionService
     private readonly ApplicationDbContext _dbContext;
     private readonly BillingArApHandoffService _arApHandoffService;
     private readonly BillingInvoiceClosureService _closureService;
+    private readonly BilConsumerHandoffService _consumerHandoffService;
     private readonly LoggerService _loggerService;
 
     public BillingFinancialExceptionService(
         ApplicationDbContext dbContext,
         BillingArApHandoffService arApHandoffService,
         BillingInvoiceClosureService closureService,
+        BilConsumerHandoffService consumerHandoffService,
         LoggerService loggerService)
     {
         _dbContext = dbContext;
         _arApHandoffService = arApHandoffService;
         _closureService = closureService;
+        _consumerHandoffService = consumerHandoffService;
         _loggerService = loggerService;
     }
 
@@ -215,6 +218,27 @@ public sealed class BillingFinancialExceptionService
             await _dbContext.SaveChangesAsync(cancellationToken);
             var closureChange = await SyncClosureInsideTransactionAsync(
                 adjustment.InvoiceId, actorUserId, adjustment.PostedAt!.Value, cancellationToken);
+            if (closureChange.Changed)
+            {
+                string? reasonCode = closureChange.StatusAfter switch
+                {
+                    BillingInvoiceStatuses.Closed => PrescriptionClearanceReasonCodes.InvoiceSettled,
+                    BillingInvoiceStatuses.Final => PrescriptionClearanceReasonCodes.PayerCoverageReversed,
+                    _ => null
+                };
+                if (reasonCode != null)
+                {
+                    await _consumerHandoffService.PublishForClearanceChangeAsync(
+                        adjustment.InvoiceId,
+                        reasonCode,
+                        actorUserId,
+                        adjustment.PostedAt!.Value,
+                        adjustment.CorrelationId,
+                        adjustment.CausationId,
+                        cancellationToken);
+                    await _dbContext.SaveChangesAsync(cancellationToken);
+                }
+            }
             if (transaction is not null) await transaction.CommitAsync(cancellationToken);
             await AuditAdjustmentApprovalAsync(adjustment, beforeStatus, actorUserId);
             if (closureChange.Changed)
@@ -439,7 +463,19 @@ public sealed class BillingFinancialExceptionService
             // penjaga status SyncClosureAsync melewatkannya secara alami (bukan FINAL/CLOSED) -
             // tidak perlu percabangan khusus di sini.
             var closureChange = await SyncClosureInsideTransactionAsync(
-                writeOffCase.InvoiceId, actorUserId, writeOffCase.PostedAt!.Value, cancellationToken);
+                writeOffCase.InvoiceId, actorUserId, writeOffCase.PostedAt!.Value, cancellationToken, PrescriptionClearanceReasonCodes.InvoiceWrittenOff);
+            if (writeOffCase.IsFullSettlement || (closureChange.Changed && closureChange.StatusAfter == BillingInvoiceStatuses.Closed))
+            {
+                await _consumerHandoffService.PublishForClearanceChangeAsync(
+                    writeOffCase.InvoiceId,
+                    PrescriptionClearanceReasonCodes.InvoiceWrittenOff,
+                    actorUserId,
+                    writeOffCase.PostedAt!.Value,
+                    writeOffCase.CorrelationId,
+                    writeOffCase.CausationId,
+                    cancellationToken);
+                await _dbContext.SaveChangesAsync(cancellationToken);
+            }
             if (transaction is not null) await transaction.CommitAsync(cancellationToken);
             await AuditWriteOffApprovalAsync(
                 writeOffCase, beforeStatus, plafonBefore, plafonAfter, actorUserId);
@@ -559,6 +595,27 @@ public sealed class BillingFinancialExceptionService
             await _dbContext.SaveChangesAsync(cancellationToken);
             var closureChange = await SyncClosureInsideTransactionAsync(
                 reversal.InvoiceId, actorUserId, now, cancellationToken);
+            if (closureChange.Changed)
+            {
+                string? reasonCode = closureChange.StatusAfter switch
+                {
+                    BillingInvoiceStatuses.Closed => PrescriptionClearanceReasonCodes.InvoiceSettled,
+                    BillingInvoiceStatuses.Final => PrescriptionClearanceReasonCodes.PayerCoverageReversed,
+                    _ => null
+                };
+                if (reasonCode != null)
+                {
+                    await _consumerHandoffService.PublishForClearanceChangeAsync(
+                        reversal.InvoiceId,
+                        reasonCode,
+                        actorUserId,
+                        now,
+                        reversal.CorrelationId,
+                        reversal.CausationId,
+                        cancellationToken);
+                    await _dbContext.SaveChangesAsync(cancellationToken);
+                }
+            }
             if (transaction is not null) await transaction.CommitAsync(cancellationToken);
             await AuditReversalAsync("BillingAdjustment.Reverse", reversal, original.Id, actorUserId);
             if (closureChange.Changed)
@@ -661,7 +718,19 @@ public sealed class BillingFinancialExceptionService
             // PATIENT_AR yang dibalik), penjaga status SyncClosureAsync melewatkannya secara
             // alami - tidak perlu percabangan khusus di sini.
             var closureChange = await SyncClosureInsideTransactionAsync(
-                reversal.InvoiceId, actorUserId, now, cancellationToken);
+                reversal.InvoiceId, actorUserId, now, cancellationToken, PrescriptionClearanceReasonCodes.WriteOffReversed);
+            if (original.IsFullSettlement || (closureChange.Changed && closureChange.StatusAfter == BillingInvoiceStatuses.Final))
+            {
+                await _consumerHandoffService.PublishForClearanceChangeAsync(
+                    reversal.InvoiceId,
+                    PrescriptionClearanceReasonCodes.WriteOffReversed,
+                    actorUserId,
+                    now,
+                    reversal.CorrelationId,
+                    reversal.CausationId,
+                    cancellationToken);
+                await _dbContext.SaveChangesAsync(cancellationToken);
+            }
             if (transaction is not null) await transaction.CommitAsync(cancellationToken);
             await AuditReversalAsync("BillingWriteOff.Reverse", reversal, original.Id, actorUserId);
             if (closureChange.Changed)

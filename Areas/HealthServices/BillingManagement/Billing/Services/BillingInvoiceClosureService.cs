@@ -94,7 +94,8 @@ public sealed class BillingInvoiceClosureService
         Guid invoiceId,
         Guid actorUserId,
         DateTimeOffset occurredAt,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string? closureReason = null)
     {
         var invoice = await _dbContext.BilInvoices
             .SingleOrDefaultAsync(x => x.Id == invoiceId && !x.IsDelete, cancellationToken)
@@ -134,7 +135,7 @@ public sealed class BillingInvoiceClosureService
         invoice.UpdateDateTime = DateTime.UtcNow;
         invoice.UpdateBy = actorUserId;
 
-        return new InvoiceClosureChange(invoiceId, statusBefore, invoice.Status, outstanding, true);
+        return new InvoiceClosureChange(invoiceId, statusBefore, invoice.Status, outstanding, true, closureReason);
     }
 
     private async Task<BilCalculationVersion> RequireCurrentCalculationAsync(
@@ -158,7 +159,8 @@ public sealed class BillingInvoiceClosureService
 
 /// <summary>
 /// Hasil kecil, tidak dipersist - memberi tahu pemanggil apakah status invoice berpindah,
-/// supaya pemanggil dapat menulis audit sesudah commit (mengikuti pola
+/// beserta sebab perpindahan (BKC-DES-041), supaya pemanggil dapat menerbitkan surat handoff
+/// atau menulis audit sesudah commit (mengikuti pola
 /// BillingAllocationService.SettlementAllocationResult).
 /// </summary>
 public readonly record struct InvoiceClosureChange(
@@ -166,10 +168,11 @@ public readonly record struct InvoiceClosureChange(
     string StatusBefore,
     string StatusAfter,
     decimal Outstanding,
-    bool Changed)
+    bool Changed,
+    string? ClosureReason = null)
 {
     public static InvoiceClosureChange None(Guid invoiceId, string status) =>
-        new(invoiceId, status, status, 0, false);
+        new(invoiceId, status, status, 0, false, null);
 }
 
 public abstract class BillingInvoiceClosureException : Exception
