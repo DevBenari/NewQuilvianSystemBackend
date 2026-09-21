@@ -4,8 +4,11 @@ using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Servi
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Services;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Services;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.BillingIntake.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.MasterData.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.PettyCash.Services;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Services;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing;
 
@@ -27,6 +30,7 @@ public static class BillingManagementServiceCollectionExtensions
         services.AddScoped<BillingSettlementService>();
         services.AddScoped<BillingRefundService>();
         services.AddScoped<BillingInvoiceClosureService>();
+        services.AddScoped<BilConsumerHandoffService>();
         services.AddScoped<BillingFinancialExceptionService>();
         services.AddScoped<BillingArApHandoffService>();
         services.AddScoped<BillingFinalizationService>();
@@ -67,6 +71,18 @@ public static class BillingManagementServiceCollectionExtensions
         services.AddScoped<RegisterService>();
         // BE-BKC-035 / PC-DES-002: master data kategori pengeluaran kas kecil.
         services.AddScoped<PettyCashCategoryService>();
+        // BE-FIN-004: rekening bank dan mata uang/kurs milik Finance.
+        services.AddScoped<BankAccountService>();
+        services.AddScoped<CurrencyService>();
+        // BE-FIN-011, FIN-DES-017: satu-satunya penulis FinAccountingEventOutbox. Dipakai
+        // FinanceReceivableService dan FinanceBillingIntakeService lewat DI (scoped, DbContext sama).
+        services.AddScoped<FinanceAccountingOutboxService>();
+        // BE-FIN-012: pantauan kotak keluar kejadian, baca saja — tidak ada penulisan data.
+        services.AddScoped<FinanceAccountingEventService>();
+        // BE-FIN-008: satu-satunya penulis OutstandingAmount piutang — aging, koreksi, write-off.
+        services.AddScoped<FinanceReceivableService>();
+        // BE-FIN-009: konsumen fakta AR dari Billing (gap FinanceBillingIntakeService ditutup di sini).
+        services.AddScoped<FinanceBillingIntakeService>();
         // BE-BKC-036 / PC-DES-004: kolam anggaran dan saldo berjalan kas kecil.
         services.AddScoped<PettyCashBudgetService>();
         // BE-BKC-037 / PC-DES-001: siklus hidup voucher kas kecil penuh.

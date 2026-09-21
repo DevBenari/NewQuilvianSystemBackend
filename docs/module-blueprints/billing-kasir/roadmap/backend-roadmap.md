@@ -2307,3 +2307,154 @@ FE-BKC-039 (verifikasi) ──> boleh kapan saja sesudah BE-BKC-061
 Dua task tertahan gerbang, dan keduanya **bukan** blocker teknis: `BE-BKC-064` menunggu wewenang baca database, `BE-BKC-065` menunggu hasil `BE-BKC-064` beserta otorisasi migration. Keduanya tidak menahan satu pun task `MVP-24`.
 
 **Satu peringatan yang berlaku untuk seluruh gelombang ini.** Cacat yang diperbaiki berbentuk "tidak terjadi apa-apa" — `return` diam-diam, status yang tidak berpindah, koreksi yang tidak lahir. Test dan verifikasi manual yang hanya membuktikan ketiadaan galat **akan lulus bahkan bila tidak ada satu baris pun yang benar diperbaiki**. Setiap bukti verifikasi karena itu **MUST** berbentuk positif: baris yang **ada**, status yang **berpindah**, kolom yang **terisi**.
+
+---
+
+# Gelombang `MVP-26` — Penerbitan fakta finansial ke dua modul konsumen
+
+| Field | Nilai |
+| --- | --- |
+| Blueprint | `BIL-CASH-001` revisi `1.4` · status `approved` |
+| Masukan | `BKC-DEC-106`–`111`, `BKC-DES-036`–`041` — seluruhnya `approved` 21 September 2026 |
+| Contract version berlaku | `BIL-API-1.3`, `BIL-STATE-1.2`, `BIL-VALIDATION-1.2`, `BIL-INTEGRATION-1.1`, `BIL-PERMISSION-1.1`, `BIL-TEST-1.3` — seluruhnya `approved` |
+| Backend SHA | `6782ae652ca53299f7469c49b2edb64d23e77b60` |
+| Frontend SHA | `1b138b9aac7a50524fd751a47c9a76e0a55f8803` |
+| Yang dibuka gelombang ini | `BE-FIN-016`, `BE-FIN-017`, `BE-FIN-018` di Finance; seluruh slice Financial Clearance di Farmasi |
+
+## Mengapa gelombang ini mendesak
+
+Dua kerugian sedang berjalan hari ini, bukan risiko yang mungkin terjadi:
+
+| Yang terjadi | Sejak |
+| --- | --- |
+| Bagian keuangan tidak punya cara resmi mengetahui pasien sudah membayar; uang yang sudah diterima berisiko ditagihkan ulang sebagai piutang | Sejak modul Finance berdiri |
+| Seluruh resep rawat jalan macet permanen di keadaan menunggu pembayaran; apoteker tidak dapat memulai telaah untuk resep mana pun | 24 Agustus 2026 |
+
+## Grafik Urutan Dependency
+
+```text
+🟡 BE-BKC-066 ─> BE-BKC-067 ─┬─> BE-BKC-068 ─> BE-BKC-070
+                             │
+                             └─> BE-BKC-069 ─> [FE] FE-BKC-040
+```
+
+Legenda: `[FE]` adalah cermin baca-saja milik `frontend-roadmap.md`; task itu dihitung dan
+dijadwalkan di roadmap frontend, bukan di sini. Tidak ada node `{DEC-...}` pada gelombang ini —
+seluruh keputusan yang menahannya sudah turun.
+
+| Gelombang eksekusi | Task | Dapat berjalan paralel? |
+| --- | --- | --- |
+| 1 | 🟡 `BE-BKC-066` | Tidak — seluruhnya bergantung padanya |
+| 2 | `BE-BKC-067` | Tidak |
+| 3 | `BE-BKC-068`, `BE-BKC-069` | **Ya**, keduanya hanya bergantung pada `067` |
+| 4 | `BE-BKC-070` | Tidak |
+
+Jumlah pasangan prasyarat→task pada grafik: **lima**, sama persis dengan isi kolom `Dependency`
+pada tabel task di bawah.
+
+## Task
+
+### 🟡 `BE-BKC-066` — Surat penerimaan uang terbit saat tender mencapai keadaan akhirnya
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Setiap tender yang berhasil atau dibalik melahirkan tepat satu surat berisi rincian uang yang dibutuhkan buku penerimaan Finance |
+| Jejak | `BKC-DEC-106`, `BKC-DES-036`, `BKC-DES-037`, `BKC-DES-038`, `FIN-DEC-005`, `FIN-DEC-006` |
+| Contract | `BIL-INTEGRATION-1.1` (`BIL-INT-013`), `BIL-STATE-1.2`, `BIL-VALIDATION-1.2` |
+| Kemampuan existing yang dipakai | `BilTender`, `BilSettlement`, `BillingSettlementService`, `BillingInvoiceClosureService`, pola `BilArHandoff` |
+| Cakupan yang diharapkan | Satu tabel baru beserta configuration dan migration; satu service penerbit; pemasangan pada empat titik yang sama dengan penyelaras status |
+| Dependency | — |
+| Acceptance criteria | Pembayaran berhasil melahirkan tepat satu baris surat; pembayaran yang belum melunasi tagihan **tetap** melahirkan surat; pembalikan melahirkan **baris baru**, bukan mengubah baris lama; percobaan ulang atas peristiwa yang sama tidak menambah baris; tender tunai tanpa shift kasir **ditolak beserta transaksinya** |
+| Bukti verifikasi | QBE preflight dan conformance; review diff dan scope; `dotnet restore` dan `dotnet build` berhasil; verifikasi proses bisnis atas skenario `BIL-AT-135`, `136`, `142-F`; pemeriksaan runtime bahwa baris surat benar-benar lahir dengan kolom terisi |
+| Risiko | Penerbitan di luar transaksi akan membuat uang bergerak tanpa suratnya. Ini invariant paling mahal bila dilanggar karena kerusakannya baru terlihat saat rekonsiliasi bulanan |
+| Pemilik | Billing Backend |
+| Definition of Done | Tabel berdiri beserta index uniknya; surat lahir pada keempat titik; kegagalan penerbitan membatalkan transaksi pemanggil; nol kolom ditambahkan pada tabel yang sudah ada |
+| Status | 🟡 **Source selesai 21 September 2026.** Model `BilCollectionHandoff`, configuration EF Core, registrasi DbContext & DI, service penerbit `BilConsumerHandoffService`, dan integrasi di `BillingSettlementService.ReconcileTenderAsync` telah diimplementasikan. Build dan pengujian skenario `BIL-AT-135`, `136`, `142-F` belum diverifikasi (menunggu verifikasi manual pengguna). Pembuatan migration `AddBillingConsumerHandoff` belum dijalankan (menunggu otorisasi terpisah). Bukti: [laporan](../task/report/backend/BE-BKC-066.md) |
+
+> **Wewenang terpisah.** Pembuatan dan eksekusi migration `AddBillingConsumerHandoff` **MUST**
+> diminta tersendiri saat eksekusi. Approval `BKC-DEC-110` menyetujui desainnya, bukan
+> menjalankannya.
+
+### `BE-BKC-067` — Surat clearance resep terbit saat keadaan berubah
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Perubahan keadaan clearance sebuah resep melahirkan surat bernomor versi yang naik monoton, dengan sebab yang eksplisit |
+| Jejak | `BKC-DEC-106`, `BKC-DES-036`, `BKC-DES-039`, `BKC-DES-041`, `PHA-DEC-064`, `PHA-DEC-065`, `PHA-DEC-068`, `PHA-DEC-068-A` |
+| Contract | `BIL-INTEGRATION-1.1` (`BIL-INT-014`), `BIL-STATE-1.2`, `BIL-VALIDATION-1.2` |
+| Kemampuan existing yang dipakai | `BilInvoiceItem.SourceDomain` untuk membedakan baris resep; `MstPaymentMethod` untuk menentukan hasil finansial; kunci penasihat tagihan (`BKC-DES-032`) |
+| Cakupan yang diharapkan | Tabel kedua beserta configuration; aturan penentuan sebab; perluasan hasil penyelarasan agar membawa keterangan sebab; alokasi nomor versi |
+| Dependency | `BE-BKC-066` |
+| Acceptance criteria | Tagihan lunas melahirkan surat boleh dikerjakan; penghapusan tagihan melahirkan hasil pembayaran ditiadakan; **penambahan biaya tindakan, laboratorium, radiologi, atau kamar TIDAK melahirkan surat pencabutan**; kenaikan harga obat melahirkan pencabutan; penarikan uang melahirkan pencabutan untuk **seluruh** resep pada tagihan; tender bercampur menghasilkan hasil penjaminan terlepas dari proporsi nominal |
+| Bukti verifikasi | QBE preflight dan conformance; review diff dan scope; build berhasil; verifikasi proses bisnis atas `BIL-AT-137`–`140`; pemeriksaan runtime bahwa nomor versi naik dan tidak pernah bentrok |
+| Risiko | Baris "biaya tindakan tidak mencabut clearance" adalah perilaku yang paling mudah dirancang keliru. Bila salah, obat yang sudah dibayar akan tertahan setiap kali ada biaya susulan pada kunjungan yang sama |
+| Pemilik | Billing Backend |
+| Definition of Done | Keenam kode sebab terbentuk pada keadaan yang benar; nomor versi monoton per resep terbukti pada uji bersamaan; nol perubahan pada perhitungan sisa tagihan maupun aturan transisi status invoice |
+
+### `BE-BKC-068` — Permukaan pemeriksaan ulang keadaan clearance
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Farmasi dapat menanyakan keadaan clearance terkini sebuah resep kapan saja, tanpa menunggu perubahan berikutnya |
+| Jejak | `BKC-DEC-107`, `BKC-DES-040`, `PHA-DEC-063` |
+| Contract | `BIL-INTEGRATION-1.1`, `BIL-VALIDATION-1.2` |
+| Kemampuan existing yang dipakai | Pola pemanggilan dalam proses `BIL-INT-010`–`012` |
+| Cakupan yang diharapkan | Satu method baca murni pada service penerbit; **bukan** endpoint HTTP |
+| Dependency | `BE-BKC-067` |
+| Acceptance criteria | Jawaban sama persis dengan surat terakhir yang sah, walau surat itu belum pernah diambil konsumen; resep yang belum pernah punya surat dijawab **belum diketahui**, bukan galat dan bukan boleh diambil; pemanggilan berulang tidak menimbulkan efek samping apa pun |
+| Bukti verifikasi | QBE preflight; review diff dan scope; build berhasil; verifikasi proses bisnis atas `BIL-AT-141` dan `BIL-AT-141-F` |
+| Risiko | Bila permukaan ini dibuat sebagai endpoint HTTP, ia menambah mode gagal tanpa menambah kemampuan — dan membuka jalan modul lain memanggilnya dari luar proses |
+| Pemilik | Billing Backend |
+| Definition of Done | Method tersedia dan dipakai; nol endpoint HTTP baru untuk keperluan ini; keadaan belum diketahui tidak pernah dijawab sebagai boleh |
+
+### `BE-BKC-069` — Permukaan operasional surat yang menggantung
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Petugas berwenang dapat melihat surat yang belum diambil konsumen dan mencatat pengakuan penerimaan bila diperlukan pemulihan |
+| Jejak | `BKC-DEC-108`, `BKC-DEC-109` |
+| Contract | `BIL-API-1.3`, `BIL-PERMISSION-1.1` |
+| Kemampuan existing yang dipakai | Pola controller, `ApiResponse<T>`, atribut hak akses, konvensi pencatatan |
+| Cakupan yang diharapkan | Satu controller dengan dua endpoint; satu Resource hak akses baru dengan dua Action; DTO |
+| Dependency | `BE-BKC-067` |
+| Acceptance criteria | Daftar surat menggantung dapat disaring jenis dan rentang waktu; pengakuan kedua atas surat yang sama ditolak tanpa mengubah apa pun; peran tak berwenang ditolak; kolom sensitif tidak muncul pada catatan log |
+| Bukti verifikasi | QBE preflight dan conformance; review diff dan scope; build berhasil; verifikasi kontrak API terhadap `BIL-API-1.3`; verifikasi hak akses dengan akun non-superadmin; verifikasi proses bisnis atas `BIL-AT-142` |
+| Risiko | Endpoint penerbitan **MUST NOT** ikut dibuat. Surat yang dapat diterbitkan manual adalah surat yang dapat dipalsukan |
+| Pemilik | Billing Backend |
+| Definition of Done | Kedua endpoint sesuai kontrak; nol endpoint penerbitan; nol endpoint penghapusan; hak akses terbukti menutup peran yang tidak berwenang |
+
+### `BE-BKC-070` — Pemulihan resep yang terlanjur tertahan
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Resep yang tagihannya sudah lunas **sebelum** jalur ini berdiri ikut terlepas, sehingga tidak ada dua jenis resep yang berperilaku berbeda |
+| Jejak | **`BKC-DEC-111`** |
+| Contract | `BIL-INTEGRATION-1.1` |
+| Kemampuan existing yang dipakai | Permukaan pemeriksaan ulang dari `BE-BKC-068` |
+| Cakupan yang diharapkan | Satu pekerjaan sekali jalan yang memanggil pemeriksaan ulang untuk resep yang masih menunggu pembayaran, lalu menerbitkan surat pertamanya bila memang sudah lunas |
+| Dependency | `BE-BKC-068` |
+| Acceptance criteria | Resep yang tagihannya sudah lunas memperoleh surat pertamanya; resep yang tagihannya **belum** lunas tidak memperoleh apa pun; pekerjaan dapat dijalankan dua kali tanpa melahirkan surat ganda; nol baris data diubah secara langsung |
+| Bukti verifikasi | Review diff dan scope; build berhasil; verifikasi proses bisnis pada basis data pengembang dengan hitungan sebelum dan sesudah; bukti bahwa jumlah surat yang lahir sama dengan jumlah resep yang memang sudah lunas |
+| Risiko | Godaan memakai skrip pemutakhiran data langsung. `BKC-DEC-111` menutupnya: pemulihan **membaca** dari Billing, tidak menebak |
+| Pemilik | Billing Backend |
+| Definition of Done | Seluruh resep yang layak terlepas; pekerjaan idempotent terbukti; **tidak** memerlukan otorisasi pemutakhiran data karena tidak menulis data secara langsung |
+
+## Catatan kebijakan verifikasi
+
+Mengikuti kebijakan test backend yang berlaku di repository ini, gelombang ini **tidak**
+memunculkan task penulisan automated test, dan acceptance criteria maupun Definition of Done di
+atas **tidak** menuntutnya. Skenario `BIL-AT-135`–`142` pada `testing/acceptance-test-matrix.md`
+dipakai sebagai **daftar skenario yang diverifikasi**, bukan sebagai kewajiban menulis test
+otomatis. Bila pemilik menghendaki automated test, itu permintaan eksplisit tersendiri.
+
+QBE preflight dan kesesuaian engineering diselesaikan **pada waktu eksekusi**, dari `AGENTS.md`
+backend target beserta dokumen engineering canonical — bukan dari roadmap ini.
+
+## Wewenang yang tetap terpisah
+
+| Wewenang | Pemilik | Catatan |
+| --- | --- | --- |
+| Menulis source | Diminta per task saat handoff | `BKC-DEC-110` menyetujui desain, bukan eksekusi |
+| Membuat migration | Diminta terpisah | Berlaku untuk `BE-BKC-066` dan `BE-BKC-067` |
+| Menjalankan migration | Diminta terpisah, sesudah backup | Sama seperti gelombang sebelumnya |
+| Eksekusi database langsung | **Tidak dibutuhkan** gelombang ini | `BE-BKC-070` membaca lewat permukaan resmi, tidak menulis data langsung |

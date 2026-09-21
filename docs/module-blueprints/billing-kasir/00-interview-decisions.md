@@ -1841,3 +1841,183 @@ dan sekarang punya bukti konkret bahwa build-nya memang bermasalah, bukan sekada
 
 **Status**: Gelombang `MVP-24`+`MVP-25` (`BE-BKC-060`–`065`) selesai secara data dan keputusan.
 Satu blocker teknis tersisa: kegagalan build source yang belum didiagnosis.
+
+## Amandemen 21 September 2026 — Penerbitan fakta finansial ke modul konsumen
+
+### Mengapa pass ini ada
+
+Dua modul menunggu Billing menerbitkan fakta, dan **blueprint ini belum mencatat satu pun dari
+keduanya**. Penelusuran menyeluruh atas folder `billing-kasir/` pada 21 September 2026 tidak
+menemukan sebutan `BilCollectionHandoff` maupun kewajiban apa pun terhadap Farmasi.
+
+Akibatnya nyata dan sedang berjalan hari ini:
+
+| Modul | Yang tertahan | Sejak |
+| --- | --- | --- |
+| Finance (AR/AP) | Task `BE-FIN-016`, `BE-FIN-017`, dan turunannya `BE-FIN-018` berstatus `BLOCKED` | Permintaan 20 September 2026, belum dijawab |
+| Farmasi | Seluruh resep rawat jalan macet permanen di `WaitingForPayment`; telaah apoteker tidak dapat dimulai sama sekali | Sejak `RJ-BIL-BE-002` menutup jalur lama, 24 Agustus 2026 |
+
+### Dua konsumen, satu sumber peristiwa
+
+**Finance** meminta jalur pemberitahuan bahwa sebuah tender berhasil. Tanpa itu, Finance tidak
+punya cara resmi mengetahui pasien sudah membayar, sehingga uang yang sudah diterima kasir
+berisiko dicatat ulang sebagai piutang — satu tagihan terhitung dua kali. Finance menolak membaca
+`BilTender` langsung karena itu melanggar batas modul. Rincian lengkapnya pada
+`finance-management/evidence/02-permintaan-kontrak-untuk-owner-billing.md`, berdasar `FIN-DEC-005`
+dan `FIN-DEC-006`. Finance sudah memverifikasi seluruh bidang yang dibutuhkannya **sudah ada** di
+`BilTender` dan `BilSettlement` — permintaan ini tidak menuntut Billing menyimpan data baru.
+
+**Farmasi** membutuhkan pernyataan clearance per resep, dengan aturan yang sudah dikunci pada
+`pharmacy/00-interview-decisions.md` `PHA-DEC-063` sampai `PHA-DEC-070`. Yang penting bagi Billing:
+clearance **tidak** dicabut hanya karena invoice kembali `FINAL` (`PHA-DEC-068`), dan tiga sebab
+berbasis penarikan uang selalu mencabut secara fail-closed (`PHA-DEC-068-A`).
+
+Keduanya bertumpu pada peristiwa yang sama dan data yang sama. `PaymentMethodId` sekaligus
+membedakan tunai dari non-tunai bagi Finance **dan** menentukan hasil `Paid` versus
+`InsuranceApproved` bagi Farmasi lewat flag `IsInsurance`/`IsCompanyGuarantor` (`PHA-DEC-065`).
+
+### Keputusan
+
+| ID | Keputusan | Owner | Status | Evidence |
+| --- | --- | --- | --- | --- |
+| `BKC-DEC-106` | Satu titik deteksi peristiwa, dua jenis surat berkolom tegas | Owner Billing | `approved` | Pilihan eksplisit user "Satu titik deteksi, dua jenis surat" dari 3 opsi, 21 September 2026 |
+| `BKC-DEC-107` | Surat clearance terbit saat keadaan berubah, ditambah jalur pemeriksaan ulang | Owner Billing | `approved` | Pilihan eksplisit user "Terbit saat berubah, plus jalur pemeriksaan ulang" dari 3 opsi |
+| `BKC-DEC-108` | Pengambilan surat dicatat dan terlihat; Billing tidak menggantungkan apa pun padanya | Owner Billing | `approved` | Pilihan eksplisit user "Dicatat dan terlihat, Billing tidak menggantungkan apa pun" dari 2 opsi |
+| `BKC-DEC-109` | Baris handoff disimpan selamanya | Owner Billing | `approved` | Pilihan eksplisit user "Disimpan selamanya" dari 2 opsi |
+
+Seluruhnya disetujui oleh user sesi ini yang menyatakan eksplisit dapat menyetujui atas nama owner
+modul Billing, sejalan dengan `PHA-DEC-066` yang mencatatnya mewakili Product/Domain Owner,
+Billing/Payer owner, dan Clinical Governance.
+
+#### `BKC-DEC-106` — Satu titik deteksi, dua jenis surat
+
+Billing mendeteksi peristiwa finansialnya **sekali di satu tempat**, lalu menerbitkan surat
+terpisah sesuai konsumennya: satu berisi rincian uang untuk Finance, satu berisi pernyataan
+clearance per resep untuk Farmasi.
+
+Jaminan yang diberikan bentuk ini: mustahil terjadi keadaan Finance mengetahui sebuah pembayaran
+sementara Farmasi tidak, atau sebaliknya — keduanya lahir dari deteksi yang sama.
+
+**Bentuk transportnya tabel handoff persisted berkolom tegas**, mengikuti pola `BilArHandoff` yang
+sudah terbukti. Ini konsekuensi langsung dari keputusan di atas dan didukung tiga hal: tiga jalur
+handoff existing seluruhnya berbentuk demikian; Finance sendiri mengusulkannya dan menyerahkan
+pilihan akhirnya ke Billing; dan `FinBillingHandoffIntake` di sisi konsumen sudah dibangun untuk
+membaca baris, bukan menerima event — bahkan `HandoffType`-nya sudah memuat nilai `COLLECTION`.
+
+Opsi tabel serba-guna bermuatan bebas **ditolak**: muatan bebas menghilangkan penjagaan bentuk,
+sehingga kesalahan isi baru ketahuan saat dibaca konsumen.
+
+#### `BKC-DEC-107` — Terbit saat berubah, plus jalur pemeriksaan ulang
+
+Surat clearance untuk Farmasi terbit **hanya ketika keadaan clearance sebuah resep benar-benar
+berubah** — menjadi boleh dikerjakan, atau ditahan kembali. Satu surat berarti satu perubahan
+nyata; tidak ada surat berisi kabar yang sama berulang-ulang.
+
+Karena surat bisa gagal diproses — konsumen error, sempat mati, atau baris terlewat — Billing
+**juga menyediakan cara bagi Farmasi memeriksa ulang keadaan clearance terkini sebuah resep**,
+tanpa menunggu perubahan berikutnya.
+
+Ini bukan tambahan baru melainkan pemenuhan janji yang sudah disetujui: `PHA-DEC-063` menuntut
+proyeksi di sisi Farmasi bersifat *reconcilable*, dan tanpa permukaan baca dari Billing, janji itu
+tidak dapat dipenuhi.
+
+**Konsekuensi yang dibawa ke desain**: Billing perlu menyediakan satu permukaan baca keadaan
+clearance, bukan hanya menerbitkan surat. Bentuk teknisnya wewenang `design-business-module`.
+
+Contoh mengapa ini penting. Pasien lunas pukul 09.00 dan suratnya terbit, tetapi proses di sisi
+Farmasi sedang bermasalah sehingga surat itu tidak terbaca. Tanpa jalur pemeriksaan ulang, resep
+akan tertahan sampai ada perubahan finansial berikutnya — yang mungkin tidak pernah terjadi,
+karena tagihannya memang sudah lunas. Pasien menunggu di loket tanpa ada yang menyadari sebabnya.
+
+#### `BKC-DEC-108` — Pengambilan surat dicatat, tetapi tidak menggantungkan apa pun
+
+Billing mencatat kapan sebuah surat diambil konsumen, dan surat yang belum diambil dapat dilihat
+sebagai daftar yang bisa diperiksa.
+
+Billing sendiri **tidak menahan apa pun dan tidak mengubah perilakunya** karena surat belum
+diambil. Uang sudah diterima, dan pelayanan tidak boleh tertahan karena urusan teknis antar modul.
+
+Konsisten dengan `BKC-DEC-103`, yang sudah memutuskan status pada `BilArHandoff` menggambarkan
+**penyerahan fakta**, bukan hasil di sisi konsumen. Sumber kebenaran "tagihan ini lunas" tetap
+`BilInvoice.Status`, bukan status handoff.
+
+Batas yang disadari: keterlihatan hanya berguna bila ada yang memeriksa daftarnya. Peringatan aktif
+dicatat terbuka sebagai `BKC-OQ-101`.
+
+#### `BKC-DEC-109` — Baris handoff disimpan selamanya
+
+Tidak ada pembersihan maupun pengarsipan. Baris handoff adalah **jejak audit lintas modul**: ia
+membuktikan Billing pernah memberi tahu, dan kapan persisnya.
+
+Sejalan dengan tiga jalur handoff existing yang memang tidak punya mekanisme pembersihan.
+Volumenya sebanding jumlah transaksi, bukan sesuatu yang meledak tanpa batas.
+
+### Pertanyaan terbuka
+
+| ID | Pertanyaan | Dampak | Owner | Status |
+| --- | --- | --- | --- | --- |
+| `BKC-OQ-101` | Berapa lama sebuah surat boleh menggantung sebelum dianggap tidak wajar, dan siapa yang menerima peringatannya? | `NON_BLOCKING` — desain dapat berjalan dengan keterlihatan pasif sesuai `BKC-DEC-108` | Operasional Billing + Finance + Farmasi | `open` |
+
+Pertanyaan ini sejenis dengan butir terbuka di Farmasi soal durasi outage sebelum eskalasi.
+Keduanya keputusan operasional yang lebih baik ditetapkan bersama setelah jalurnya berjalan dan
+volumenya terlihat, bukan ditebak sekarang.
+
+### Acceptance criteria
+
+1. Satu pembayaran yang berhasil menghasilkan surat untuk Finance berisi rincian uang, dan — bila
+   keadaan clearance resep ikut berubah — surat untuk Farmasi, keduanya lahir dari deteksi
+   peristiwa yang sama.
+2. Pembayaran yang berhasil tetapi belum melunasi tagihan menghasilkan surat untuk Finance tanpa
+   surat clearance untuk Farmasi, karena keadaan resep belum berubah.
+3. Tagihan yang lunas lewat penghapusan tagihan menghasilkan surat clearance berhasil finansial
+   `PaymentWaived` walau tidak ada uang yang masuk.
+4. Penambahan biaya tindakan pada tagihan yang sudah lunas **tidak** menerbitkan surat pencabutan
+   clearance untuk resep pada tagihan itu.
+5. Pembalikan pembayaran menerbitkan surat pencabutan clearance untuk seluruh resep pada tagihan
+   itu, dan bagi Finance menerbitkan baris baru — bukan mengubah baris lama.
+6. Surat yang sama diterbitkan dua kali untuk peristiwa yang sama menghasilkan tepat satu baris
+   efektif di sisi konsumen, dikunci oleh kunci idempotensi.
+7. Farmasi dapat menanyakan keadaan clearance terkini sebuah resep dan memperoleh jawaban yang
+   sama dengan surat terakhir yang sah, walau surat itu belum pernah terbaca.
+8. Surat yang belum diambil konsumen dapat ditemukan dan dihitung, tanpa mengubah perilaku Billing
+   mana pun.
+
+### Yang sengaja tidak diubah
+
+| Hal | Alasan |
+| --- | --- |
+| Cara Billing menghitung sisa tagihan dan menutup invoice | Sudah terkunci `BKC-DEC-100` dan `BKC-DEC-105`; pass ini tidak mengusiknya |
+| `BilArHandoff`, `BilApHandoff`, `BilHandoffAdjustment` | Tetap apa adanya; `BKC-DEC-103` sudah memutuskan `BilArHandoff` tidak disentuh |
+| Alokasi uang per baris invoice | Ditolak dua kali sebelumnya — `PHA-DEC-064` dan `PHA-DEC-068-A`. `BilPaymentAllocation` tetap hanya mengenal sasaran `INVOICE` |
+| Aturan internal Finance soal piutang dan jurnal | Milik `finance-management` |
+| Aturan internal Farmasi soal telaah, penyiapan, dan penyerahan | Milik `pharmacy` |
+
+### Yang belum ada dan dibutuhkan
+
+Belum ada task roadmap di `billing-kasir` untuk membangun kedua jalur penerbitan ini. Task-nya
+perlu dibuat lewat `plan-module-delivery`, dan penyelesaiannya membuka `BE-FIN-016`, `BE-FIN-017`,
+`BE-FIN-018` di Finance sekaligus slice financial clearance handoff di Farmasi yang sudah berstatus
+`READY_FOR_DOMAIN_DESIGN`.
+
+### `BKC-DEC-110` — Approval keputusan arsitektur dan penempatan pekerjaan pemulihan
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Menyetujui `BKC-DES-036`–`BKC-DES-041` secara utuh** — dua tabel handoff berkolom tegas (`036`), surat penerimaan sebagai aggregate root tersendiri tanpa ketergantungan pada finalisasi (`037`), satu service penerbit dipanggil dari empat titik yang sama dengan penyelaras status (`038`), nomor versi finansial monoton per resep yang dilindungi kunci penasihat yang sudah ada (`039`), pembacaan keadaan clearance berbentuk pemanggilan dalam proses (`040`), dan hasil penyelarasan yang membawa keterangan sebab (`041`). Dengan ini keenam sumbu kontrak revisi `1.4` — `BIL-API-1.3`, `BIL-STATE-1.2`, `BIL-VALIDATION-1.2`, `BIL-INTEGRATION-1.1`, `BIL-PERMISSION-1.1`, `BIL-TEST-1.3` — naik dari `draft` menjadi `approved`. Sumbu `calculation` tidak bergerak dan berkasnya tidak disunting |
+| Owner | Product/Domain Owner, Billing/Payer owner, Clinical Governance (ketiganya per `PHA-DEC-066`) |
+| Status | `approved` |
+| Approval evidence | Pilihan eksplisit user "Saya setujui desainnya sekarang" atas pertanyaan gerbang `plan-module-delivery`, 21 September 2026 |
+| Batas approval | Approval ini **bukan** wewenang menulis source, membuat migration, maupun menjalankannya. Ketiganya tetap diminta terpisah per task saat eksekusi, sesuai `AGENTS.md` |
+
+### `BKC-DEC-111` — Pemulihan resep yang terlanjur macet masuk gelombang yang sama
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | Pekerjaan memulihkan resep yang sudah terlanjur tertahan — yang tagihannya sudah lunas sebelum jalur penerbitan berdiri — **masuk gelombang yang sama** dengan pembangunan jalurnya, bukan menyusul sebagai pekerjaan terpisah. Pemulihan dikerjakan dengan memanggil permukaan pemeriksaan ulang (`BKC-DEC-107`) untuk resep yang masih menunggu pembayaran, **bukan** dengan skrip pemutakhiran data langsung |
+| Owner | Product/Domain Owner |
+| Status | `approved` |
+| Approval evidence | Pilihan eksplisit user "Gelombang yang sama" dari 2 opsi, 21 September 2026 |
+| Alasan | Menyalakan jalur baru sementara resep lama tetap macet akan membuat dua jenis resep berperilaku berbeda tanpa sebab yang terlihat petugas — dan petugas akan menyimpulkan fiturnya tidak bekerja |
+| Konsekuensi | Satu task tambahan pada gelombang yang sama. Karena pemulihan membaca dari Billing dan tidak menulis data secara langsung, ia **tidak** menuntut otorisasi pemutakhiran data terpisah — berbeda dari backfill `BE-BKC-065` |

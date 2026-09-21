@@ -25,6 +25,7 @@ public sealed class BillingSettlementService
     private readonly BillingNumberSeriesService _numberSeries;
     private readonly BillingFinalizationService _finalizationService;
     private readonly BillingInvoiceClosureService _closureService;
+    private readonly BilConsumerHandoffService _consumerHandoffService;
     private readonly LoggerService _loggerService;
 
     public BillingSettlementService(
@@ -35,6 +36,7 @@ public sealed class BillingSettlementService
         BillingNumberSeriesService numberSeries,
         BillingFinalizationService finalizationService,
         BillingInvoiceClosureService closureService,
+        BilConsumerHandoffService consumerHandoffService,
         LoggerService loggerService)
     {
         _dbContext = dbContext;
@@ -44,6 +46,7 @@ public sealed class BillingSettlementService
         _numberSeries = numberSeries;
         _finalizationService = finalizationService;
         _closureService = closureService;
+        _consumerHandoffService = consumerHandoffService;
         _loggerService = loggerService;
     }
 
@@ -543,6 +546,23 @@ public sealed class BillingSettlementService
                 }
                 if (closureChange.Changed)
                     await _dbContext.SaveChangesAsync(cancellationToken);
+            }
+
+            // BE-BKC-066 / BKC-DEC-106 / BKC-DES-038 / BIL-INT-013: Menerbitkan surat penerimaan uang
+            // (BilCollectionHandoff) untuk Finance saat tender mencapai SUCCEEDED atau REVERSED.
+            // Berada di dalam batas transaksi yang sama sebelum commit (uang dan surat tidak terpisah nasib).
+            if (targetStatus is BillingTenderStatuses.Succeeded or BillingTenderStatuses.Reversed)
+            {
+                try
+                {
+                    await _consumerHandoffService.PublishForTenderAsync(
+                        tender, actorUserId, result.OccurredAt, cancellationToken);
+                    await _dbContext.SaveChangesAsync(cancellationToken);
+                }
+                catch (BillingConsumerHandoffValidationException exception)
+                {
+                    throw new BillingSettlementValidationException(exception.Message);
+                }
             }
 
             if (transaction is not null) await transaction.CommitAsync(cancellationToken);

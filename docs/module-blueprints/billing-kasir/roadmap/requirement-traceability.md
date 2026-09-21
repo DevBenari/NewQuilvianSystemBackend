@@ -593,3 +593,65 @@ Tiga test menjaga sifat yang berlaku lintas requirement, bukan satu requirement 
 | Wewenang baca database untuk dry-run | Pemilik modul | Pemeriksaan data, bukan perubahan source (`BE-BKC-064`) |
 | Pembuatan dan eksekusi migration backfill | Pemilik modul, wewenang terpisah | `BKC-DEC-105` menyetujui desainnya, bukan menjalankannya (`BE-BKC-065`) |
 | Koreksi piutang susulan atas tagihan yang terlanjur di-adjust | Pemilik Billing/Finance | Keputusannya menunggu angka `BKC-OQ-100` dari `BE-BKC-064`; belum ada yang dapat direncanakan sebelum angkanya ada |
+
+---
+
+# Gelombang `MVP-26` dan `MVP-27` — Penerbitan fakta finansial ke modul konsumen
+
+Masukan `BKC-DEC-106`–`111`, `BKC-DES-036`–`041`, seluruhnya `approved` 21 September 2026.
+
+## Requirement ke task ke bukti verifikasi
+
+| Requirement | Keputusan asal | Task | Bukti verifikasi |
+| --- | --- | --- | --- |
+| `FR-BKC-230` — surat penerimaan terbit saat tender mencapai keadaan akhirnya | `BKC-DEC-106`, `FIN-DEC-005` | 🟡 `BE-BKC-066` | `BIL-AT-135`, `BIL-AT-136` · [Laporan](../task/report/backend/BE-BKC-066.md) |
+| `FR-BKC-231` — surat clearance terbit saat keadaan resep berubah | `BKC-DEC-106`, `PHA-DEC-070` | `BE-BKC-067` | `BIL-AT-135`, `BIL-AT-138` |
+| `FR-BKC-232` — keduanya lahir dari satu titik deteksi, satu transaksi | `BKC-DEC-106` | 🟡 `BE-BKC-066`, `BE-BKC-067` | `BIL-AT-135`, `BIL-AT-135-F` |
+| `FR-BKC-233` — biaya di luar resep tidak mencabut clearance | `PHA-DEC-068` | `BE-BKC-067` | `BIL-AT-137` |
+| `FR-BKC-234` — penarikan uang mencabut seluruh resep pada tagihan | `PHA-DEC-068-A` | `BE-BKC-067` | `BIL-AT-139` |
+| `FR-BKC-235` — hasil finansial ditentukan penanda cara bayar | `PHA-DEC-065` | `BE-BKC-067` | `BIL-AT-140` |
+| `FR-BKC-236` — pembacaan keadaan clearance terkini | `BKC-DEC-107` | `BE-BKC-068` | `BIL-AT-141`, `BIL-AT-141-F` |
+| `FR-BKC-237` — pengakuan penerimaan dan daftar surat menggantung | `BKC-DEC-108` | `BE-BKC-069`, `FE-BKC-040` | `BIL-AT-142` |
+| Pemulihan resep yang terlanjur tertahan | **`BKC-DEC-111`** | `BE-BKC-070` | Hitungan sebelum dan sesudah pada basis data pengembang |
+
+**Nol requirement tanpa bukti verifikasi.** Kedelapan functional requirement pada
+`04-prd-to-mvp.md` beserta satu pekerjaan pemulihan seluruhnya terpetakan ke task dan buktinya.
+
+## Jalur gagal yang terpetakan
+
+| Jalur gagal | Task | Bukti |
+| --- | --- | --- |
+| Penerbitan gagal di tengah transaksi pembayaran | 🟡 `BE-BKC-066` | `BIL-AT-135-F` — pembayarannya ikut batal |
+| Peristiwa diproses dua kali | 🟡 `BE-BKC-066` | `BIL-AT-136-F` |
+| Dua perubahan clearance bersamaan pada resep yang sama | `BE-BKC-067` | `BIL-AT-139-F` |
+| Keadaan ditanyakan untuk resep yang belum punya surat | `BE-BKC-068` | `BIL-AT-141-F` |
+| Tender tunai tanpa shift kasir | 🟡 `BE-BKC-066` | `BIL-AT-142-F` |
+
+Empat dari lima menguji hal yang sama dari sudut berbeda: **uang dan suratnya tidak pernah boleh
+terpisah nasib**.
+
+## Yang dibuka gelombang ini untuk modul lain
+
+| Modul | Yang terbuka | Prasyaratnya |
+| --- | --- | --- |
+| `finance-management` | `BE-FIN-016`, `BE-FIN-017`, dan turunannya `BE-FIN-018` | `BE-BKC-066` |
+| `pharmacy` | `PHA-BE-004` | `BE-BKC-067` |
+| `pharmacy` | `PHA-BE-005` | `BE-BKC-068` |
+
+Ketiganya tercatat sebagai cermin baca-saja pada roadmap modul masing-masing, bukan sebagai
+salinan task.
+
+## Blocker yang statusnya berubah
+
+| Blocker | Sebelum | Sesudah |
+| --- | --- | --- |
+| `BKC-BLK-INT-001` — konsumen AR/AP belum dibuktikan | Terbuka penuh | **Tertutup sebagian** untuk sisi AR: Finance berdiri, intake-nya sudah dibangun, kontraknya disepakati. Sisi AP dan sumbu status penagihan piutang **tetap terbuka** |
+
+## Gap dan wewenang yang masih terpisah
+
+| Hal | Pemilik | Catatan |
+| --- | --- | --- |
+| `BKC-OQ-101` — ambang waktu surat menggantung dan penerimanya | Operasional Billing + Finance + Farmasi | **Tidak memblokir** `MVP-26` maupun `MVP-27`; keterlihatan pasif sudah cukup |
+| Wewenang menulis source | Diminta per task saat handoff | `BKC-DEC-110` menyetujui desain, bukan eksekusi |
+| Pembuatan dan eksekusi migration | Diminta terpisah sesudah backup | Berlaku untuk `BE-BKC-066` dan `BE-BKC-067` |
+| Sumbu status penagihan piutang | Pemilik konsumen AR/AP | `BKC-DES-033` tetap berlaku: **MUST NOT** ditebak sekarang |
