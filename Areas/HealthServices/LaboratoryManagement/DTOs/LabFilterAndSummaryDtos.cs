@@ -290,6 +290,47 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         public List<string> SystemFlagFields { get; set; } = new();
     }
 
+    public class LabSpecimenTypeFilterMetadataResponse
+    {
+        public string DateFormat { get; set; } = "yyyy-MM-dd";
+
+        public List<LabSortOptionResponse> SortOptions { get; set; } = new();
+        public List<string> SortDirections { get; set; } = new();
+        public List<int> PageSizeOptions { get; set; } = new();
+        public List<LabQueryParameterInfoResponse> QueryParameters { get; set; } = new();
+
+        public bool SupportsServerSideFiltering { get; set; } = true;
+        public bool SupportsServerSidePaging { get; set; } = true;
+
+        /// <summary>
+        /// Jenis specimen tidak pernah dihapus; ia dinonaktifkan lewat
+        /// <c>PUT /{id}/activation</c>. Jenis yang pernah dipakai menempel pada wadah yang
+        /// sudah tersimpan, dan baris <c>Lainnya</c> yang aktif tidak dapat dinonaktifkan
+        /// selama ia satu-satunya (<c>VAL-63</c>).
+        /// </summary>
+        public bool IsDeletable { get; set; } = false;
+
+        /// <summary>
+        /// Penanda <c>Lainnya</c> tidak dapat disetel dari layar mana pun. Ia lahir dari data
+        /// awal, dan hanya satu baris aktif yang boleh memilikinya (<c>VAL-62</c>).
+        /// </summary>
+        public bool IsOtherBucketEditable { get; set; } = false;
+    }
+
+    public class LabSpecimenTypeSummaryResponse
+    {
+        public int TotalJenis { get; set; }
+        public int Aktif { get; set; }
+        public int Nonaktif { get; set; }
+
+        /// <summary>
+        /// Berapa banyak baris berpenanda <c>Lainnya</c> yang aktif. Nilai sehatnya selalu
+        /// <c>1</c>; <c>0</c> berarti jalan keluar bagi jenis yang belum terdaftar sedang
+        /// tertutup, dan penerimaan sampel aneh akan tertahan.
+        /// </summary>
+        public int JalanKeluarLainnyaAktif { get; set; }
+    }
+
     public class LabRejectionReasonSummaryResponse
     {
         public int TotalAlasan { get; set; }

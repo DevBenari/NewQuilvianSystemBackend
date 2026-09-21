@@ -380,3 +380,31 @@ Trace **`MPY-DEC-001`–`010`**, `MPY-DES-001`–`017`. Test mapping: `BIL-AT-08
 **Pengembalian sisa bertahap.** Voucher Rp 500.000 sudah dicairkan. Penerima mengembalikan Rp 50.000 — sah, `returnedAmount` menjadi Rp 50.000, sisa di tangan Rp 450.000. Ia mengembalikan Rp 60.000 lagi — sah, `returnedAmount` Rp 110.000. Ia mencoba mengembalikan Rp 400.000 — **ditolak** `BIL-VAL-098`, karena sisa yang masih di tangan hanya Rp 390.000.
 
 **Pembalikan setelah pengembalian sebagian.** Voucher yang sama, `returnedAmount` Rp 110.000. Kasir membalik pencairannya: saldo bertambah Rp 390.000 (bukan Rp 500.000 — Rp 110.000 sudah kembali lebih dulu lewat baris `RETURN`). Total yang kembali ke kolam tetap Rp 500.000, dan ledger memperlihatkan keduanya secara terpisah.
+
+---
+
+## Amendment 18 September 2026 — Penutupan gap `FINAL`→`CLOSED`
+
+`last_changed_in: BIL-VALIDATION-1.1` · status **approved** (`BKC-DEC-105`, 18 September 2026) · input: **`BKC-DEC-100`–`BKC-DEC-102`**; keputusan arsitektur `BKC-DES-028`–`BKC-DES-035`.
+
+Amendment ini menambah **tiga** aturan dan sengaja menambah **nol** pesan galat baru bagi pengguna. Perpindahan status `FINAL`↔`CLOSED` adalah akibat, bukan perintah — tidak ada layar yang memintanya, sehingga tidak ada layar yang perlu diberi tahu bila ia tidak terjadi.
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | --- |
+| `BIL-VAL-107` | Perhitungan sisa tagihan pasien | Invoice tidak memiliki versi kalkulasi berjalan | "Invoice belum memiliki hasil perhitungan terkini." — **pesan yang sudah ada hari ini, MUST NOT berubah** walaupun perhitungannya dipindahkan ke service bersama (`BKC-DES-028`) | `422` |
+| `BIL-VAL-108` | Penyelarasan status penutupan | Status invoice `OPEN` atau `SETTLED_BY_WRITE_OFF` | — (tidak ada pesan; penyelarasan berhenti tanpa menulis apa pun dan tanpa menggagalkan peristiwa pemicunya) | — |
+| `BIL-VAL-109` | Perpindahan `FINAL`↔`CLOSED` | Pihak mana pun mencoba memindahkannya lewat endpoint atau layar | — (tidak ada endpointnya sama sekali; permintaan semacam itu berakhir `404` pada lapis routing) | `404` |
+
+### Kenapa tidak ada pesan galat baru
+
+Bila perhitungan sisa tagihan gagal di tengah sebuah pembayaran, yang gagal adalah **pembayarannya** — seluruh transaksi dibatalkan dan kasir menerima pesan galat milik pembayaran itu, bukan pesan baru tentang status invoice. Menambahkan pesan tersendiri hanya akan memberi tahu kasir tentang mekanisme internal yang tidak dapat ia perbaiki.
+
+Sebaliknya, bila penyelarasan berhenti karena statusnya memang bukan urusannya (`BIL-VAL-108`), itu **bukan** kegagalan: peristiwa pemicunya tetap berhasil dan tetap tersimpan.
+
+### Contoh berangka
+
+**Tagihan lunas menjadi tertutup.** Tagihan Ny. Sari Rp 1.500.000 berstatus `FINAL`. Kasir menerima pembayaran tunai Rp 1.500.000. Pada transaksi yang sama, sisa tagihan terhitung Rp 0, status berpindah ke `CLOSED`, dan `closedAt` diisi waktu pembayaran itu. Kasir tidak melihat pesan tambahan apa pun — ia hanya melihat pembayarannya berhasil.
+
+**Tagihan tertutup yang terbuka kembali.** Tagihan yang sama, tiga hari kemudian, pembayarannya dibalik karena kesalahan mesin EDC. Sisa tagihan terhitung Rp 1.500.000 lagi, status kembali ke `FINAL`, `closedAt` dikosongkan. Tagihan itu muncul lagi pada daftar tagihan yang masih punya sisa — yang memang seharusnya terjadi, karena uangnya memang tidak jadi diterima.
+
+Trace **`BKC-DEC-100`–`102`**, `BKC-DES-028`–`035`. Tests `BIL-AT-121`–`BIL-AT-134`.

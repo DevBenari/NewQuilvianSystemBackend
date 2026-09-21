@@ -15,6 +15,8 @@ using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.PettyCash.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Models;
@@ -611,11 +613,11 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<BilCashVarianceReview> BilCashVarianceReviews { get; set; }
         public DbSet<BilCashierShiftHandover> BilCashierShiftHandovers { get; set; }
         public DbSet<BilCashierShiftCommand> BilCashierShiftCommands { get; set; }
-        // Petty Cash (Kas Kecil) — BE-BKC-033, PC-DES-001. Kolam anggaran terpisah
-        // dari kas fisik shift kasir (PC-DEC-001); tidak ada relasi ke BilCashierShift.
+        // Petty Cash (Kas Kecil) — BE-BKC-033, PC-DES-001. Anggaran dan kategori dipindahkan
+        // ke Corporate/FinanceManagement (Clean Architecture & DDD).
         public DbSet<MstPettyCashCategory> MstPettyCashCategories { get; set; }
-        public DbSet<BilPettyCashBudget> BilPettyCashBudgets { get; set; }
-        public DbSet<BilPettyCashBudgetMovement> BilPettyCashBudgetMovements { get; set; }
+        public DbSet<FinPettyCashBudget> FinPettyCashBudgets { get; set; }
+        public DbSet<FinPettyCashBudgetMovement> FinPettyCashBudgetMovements { get; set; }
         public DbSet<BilPettyCashVoucher> BilPettyCashVouchers { get; set; }
         public DbSet<BilPettyCashVoucherCommand> BilPettyCashVoucherCommands { get; set; }
         public DbSet<BilFolio> BilFolios { get; set; }
@@ -790,9 +792,13 @@ namespace QuilvianSystemBackend.Repositories
 
         public DbSet<LabExamination> LabExaminations { get; set; }
 
+        public DbSet<LabOrderedProcedure> LabOrderedProcedures { get; set; }
+
         public DbSet<LabTransitionHistory> LabTransitionHistories { get; set; }
 
         public DbSet<MstLabRejectionReason> MstLabRejectionReasons { get; set; }
+
+        public DbSet<LabSpecimenType> LabSpecimenTypes { get; set; }
 
         public DbSet<LabValueBound> LabValueBounds { get; set; }
 
@@ -801,6 +807,24 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<LabValueBoundChangeRequest> LabValueBoundChangeRequests { get; set; }
 
         public DbSet<LabValueBoundHistory> LabValueBoundHistories { get; set; }
+
+        public DbSet<LabPathologyCategory> LabPathologyCategories { get; set; }
+
+        public DbSet<LabPathologyParameter> LabPathologyParameters { get; set; }
+
+        public DbSet<LabPathologyParameterCategory> LabPathologyParameterCategories { get; set; }
+
+        public DbSet<LabProcedurePathologyCategory> LabProcedurePathologyCategories { get; set; }
+
+        public DbSet<LabPathologyReport> LabPathologyReports { get; set; }
+
+        public DbSet<LabPathologyReportValue> LabPathologyReportValues { get; set; }
+
+        public DbSet<LabPathologyOrderContext> LabPathologyOrderContexts { get; set; }
+
+        public DbSet<LabOrganism> LabOrganisms { get; set; }
+
+        public DbSet<LabAntibiotic> LabAntibiotics { get; set; }
 
         #endregion
 
@@ -919,6 +943,9 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<BbkBloodBankProcedure> BbkBloodBankProcedures { get; set; }
         public DbSet<BbkBloodUnitPlacement> BbkBloodUnitPlacements { get; set; }
         public DbSet<BbkBloodUnitAllocation> BbkBloodUnitAllocations { get; set; }
+        public DbSet<BbkCompatibilityEvidence> BbkCompatibilityEvidences { get; set; }
+        public DbSet<BbkEmergencyAuthorization> BbkEmergencyAuthorizations { get; set; }
+        public DbSet<BbkIssuanceCorrection> BbkIssuanceCorrections { get; set; }
         #endregion BLOOD BANK MANAGEMENT
 
         #endregion HEALTH SERVICE

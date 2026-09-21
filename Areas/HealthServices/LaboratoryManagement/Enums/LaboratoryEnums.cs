@@ -57,7 +57,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums
         CancelRequested = 7,
 
         [Display(Name = "Cancelled")]
-        Cancelled = 8
+        Cancelled = 8,
+
+        /// <summary>
+        /// Pesanan sudah dikonfirmasi petugas laboratorium, beserta dokter pemeriksanya
+        /// (<c>LAB-DEC-061</c>, <c>LAB-STATE-v1</c> <c>r3</c> bagian 1a).
+        ///
+        /// Pada alur kerja status ini berdiri <b>antara</b> <see cref="Requested"/> dan
+        /// <see cref="Accepted"/>. Angkanya sengaja <b>9</b>, bukan 3: nilai enum ini
+        /// dipersistensi sebagai <c>integer</c> pada kolom <c>OrderStatus</c>, sehingga
+        /// menyisipkannya di tengah akan mengubah arti setiap pesanan yang sudah tersimpan.
+        /// Urutan alur kerja ditentukan matriks transisi, bukan oleh urutan angkanya.
+        ///
+        /// Jalur <see cref="Requested"/> ke <see cref="Accepted"/> <b>tidak dicabut</b>:
+        /// pesanan yang tidak pernah dikonfirmasi tetap dapat berjalan.
+        /// </summary>
+        [Display(Name = "Confirmed")]
+        Confirmed = 9
     }
 
     /// <summary>
@@ -267,5 +283,64 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums
         /// <summary>Ditarik oleh pengajunya sendiri sebelum diputuskan.</summary>
         [Display(Name = "Withdrawn")]
         Withdrawn = 4
+    }
+
+    /// <summary>
+    /// Keadaan satu baris pemeriksaan terpesan (<c>LAB-DEC-057</c>).
+    ///
+    /// Menjawab pertanyaan yang selama ini tidak dapat dijawab: dari seluruh pemeriksaan yang
+    /// diminta untuk pasien ini, mana yang <b>sudah masuk wadah</b> dan mana yang masih
+    /// menunggu. Sebelum ada entity terpesan, pemeriksaan baru muncul bersamaan dengan wadahnya,
+    /// sehingga yang belum berwadah tidak tercatat di mana pun.
+    /// </summary>
+    public enum LabOrderedProcedureStatus
+    {
+        /// <summary>Sudah dipesan, belum masuk wadah mana pun.</summary>
+        [Display(Name = "Ordered")]
+        Ordered = 1,
+
+        /// <summary>Sudah dikerjakan dari sebuah wadah; baris pemeriksaannya sudah terbentuk.</summary>
+        [Display(Name = "Fulfilled")]
+        Fulfilled = 2,
+
+        /// <summary>Dibatalkan sebelum sempat masuk wadah.</summary>
+        [Display(Name = "Cancelled")]
+        Cancelled = 3
+    }
+
+    /// <summary>
+    /// Tingkat temuan sebuah laporan Patologi Anatomi sesuai <c>LAB-DEC-094</c>.
+    ///
+    /// <b>Ini NILAI, bukan status lifecycle, dan perbedaannya menentukan.</b> Ia menyatakan
+    /// seberapa berbahaya temuannya bagi pasien — bukan sudah sampai mana laporannya diproses.
+    /// <c>INV-36</c> menegakkan bahwa laporan Patologi Anatomi <b>nol</b> punya status lifecycle;
+    /// selesai-tidaknya dibaca dari <c>FinalizedAt</c>, sebuah fakta yang tercatat, bukan sebuah
+    /// janji tentang apa berikutnya.
+    ///
+    /// <b>Penggolongannya manual, bukan hasil evaluasi angka.</b> Berbeda dari Patologi Klinik
+    /// yang menilai kritis dengan membandingkan hasil terhadap <c>LabValueBound</c>, di sini
+    /// patolog yang memutuskannya sendiri — narasi diagnostik nol punya batas atas dan bawah
+    /// (<c>LAB-EVD-003</c> Klarifikasi Q14).
+    ///
+    /// <b>Nilainya sensitif.</b> Ia menyatakan tingkat bahaya pasien, sehingga dilarang masuk
+    /// logger dan dilarang muncul pada layar non-klinis (<c>LAB-PERM-v1</c> rev 7 bagian 9.5).
+    ///
+    /// <b>Yang TIDAK diurus enum ini:</b> pelaporan nilai kritis beserta alurnya tetap milik
+    /// <c>S5</c>. Nilai <see cref="Critical"/> di sini mencatat penilaian patolog, dan <b>nol</b>
+    /// memicu alur pelaporan apa pun.
+    /// </summary>
+    public enum LabPathologyFindingStatus
+    {
+        /// <summary>Normal — nol temuan yang menuntut perhatian khusus.</summary>
+        [Display(Name = "Normal")]
+        Normal = 1,
+
+        /// <summary>Perlu Perhatian — temuan bermakna yang belum tergolong kritis.</summary>
+        [Display(Name = "Needs Attention")]
+        NeedsAttention = 2,
+
+        /// <summary>Kritis — temuan yang menuntut tindakan segera, dinilai patolog secara manual.</summary>
+        [Display(Name = "Critical")]
+        Critical = 3
     }
 }

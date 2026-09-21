@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums;
@@ -16,6 +17,22 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
             entity.ToTable("LabOrder", "public");
 
             entity.HasKey(x => x.Id);
+
+            // LAB-DEC-072: nomor pesanan yang dapat disebut manusia.
+            //
+            // Wajib, dan nilainya tidak berpindah sesudah pesanan tersimpan. Nomor ini dicetak
+            // pada amplop hasil pasien; mengubahnya berarti dokumen fisik yang beredar tidak lagi
+            // menunjuk pesanan yang benar. Seperti Discipline, larangannya ditegakkan di sini —
+            // bukan hanya lewat ketiadaan endpoint yang mengubahnya.
+            entity.Property(x => x.OrderNumber)
+                .HasMaxLength(32)
+                .IsRequired()
+                .Metadata.SetAfterSaveBehavior(PropertySaveBehavior.Throw);
+
+            // Jaring pengaman terakhir alokasi nomor. Kunci advisory mengurangi tabrakan; index
+            // inilah yang membuat dua pesanan bernomor sama menjadi mustahil.
+            entity.HasIndex(x => x.OrderNumber)
+                .IsUnique();
 
             entity.Property(x => x.EncounterId)
                 .IsRequired();

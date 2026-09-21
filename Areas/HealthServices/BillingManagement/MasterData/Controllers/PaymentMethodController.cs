@@ -324,11 +324,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterDat
         [AccessPermission("PaymentMethod", "Read")]
         public async Task<IActionResult> GetPaymentMethodById(Guid id)
         {
-            var entity = await BuildBaseQuery()
-                .FirstOrDefaultAsync(x => x.Id == id);
+            var entity = await _dbContext.Set<MstPaymentMethod>()
+                .Include(x => x.Accounts.Where(a => !a.IsDelete))
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete);
 
             if (entity == null)
             {
+                await _loggerService.WarningAsync(
+                    LogCategory,
+                    "PaymentMethod.GetByIdNotFound",
+                    $"Payment method dengan ID {id} tidak ditemukan atau sudah dihapus.",
+                    new { PaymentMethodId = id, Result = "not-found" }
+                );
+
                 return NotFound(ApiResponse<object>.Fail(
                     StatusCodes.Status404NotFound,
                     "Payment method tidak ditemukan."
@@ -336,6 +345,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterDat
             }
 
             var data = ToDetailResponse(entity);
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "PaymentMethod.GetById",
+                $"Mengambil detail payment method {entity.PaymentMethodCode}.",
+                new { PaymentMethodId = id, Result = "found", entity.PaymentMethodCode }
+            );
 
             return Ok(ApiResponse<PaymentMethodDetailResponse>.Ok(
                 data,
@@ -460,6 +476,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterDat
         [HttpPut("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<PaymentMethodUpdateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [AccessAction("Update", "Update Payment Method", Description = "Mengubah data payment method", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("PaymentMethod", "Update")]
         public async Task<IActionResult> UpdatePaymentMethod(Guid id, [FromBody] UpdatePaymentMethodRequest request)
@@ -470,6 +487,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterDat
 
             if (entity == null)
             {
+                await _loggerService.WarningAsync(
+                    LogCategory,
+                    "PaymentMethod.UpdateNotFound",
+                    $"Payment method dengan ID {id} tidak ditemukan atau sudah dihapus.",
+                    new { PaymentMethodId = id, Result = "not-found" }
+                );
+
                 return NotFound(ApiResponse<object>.Fail(
                     StatusCodes.Status404NotFound,
                     "Payment method tidak ditemukan."
@@ -564,9 +588,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterDat
                     if (string.IsNullOrWhiteSpace(acc.BankName) || string.IsNullOrWhiteSpace(acc.AccountNumber))
                         continue;
 
+                    sort++;
+                    var accountSortOrder = acc.SortOrder > 0 ? acc.SortOrder : sort;
+
                     if (acc.Id.HasValue && acc.Id.Value != Guid.Empty)
                     {
-                        var existingAccount = entity.Accounts.FirstOrDefault(a => a.Id == acc.Id.Value && !a.IsDelete);
+                        var existingAccount = entity.Accounts.FirstOrDefault(a => a.Id == acc.Id.Value);
                         if (existingAccount != null)
                         {
                             existingAccount.BankName = acc.BankName.Trim();
@@ -575,9 +602,31 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterDat
                             existingAccount.Purpose = string.IsNullOrWhiteSpace(acc.Purpose) ? "OPERASIONAL" : acc.Purpose.Trim();
                             existingAccount.Description = NormalizeNullableText(acc.Description);
                             existingAccount.IsActive = acc.IsActive;
-                            existingAccount.SortOrder = acc.SortOrder != 0 ? acc.SortOrder : ++sort;
+                            existingAccount.SortOrder = accountSortOrder;
+                            existingAccount.IsDelete = false;
+                            existingAccount.DeleteDateTime = null;
+                            existingAccount.DeleteBy = Guid.Empty;
                             existingAccount.UpdateDateTime = now;
                             existingAccount.UpdateBy = actorUserId;
+                        }
+                        else
+                        {
+                            entity.Accounts.Add(new MstPaymentMethodAccount
+                            {
+                                Id = acc.Id.Value,
+                                PaymentMethodId = entity.Id,
+                                BankName = acc.BankName.Trim(),
+                                AccountNumber = acc.AccountNumber.Trim(),
+                                AccountHolderName = acc.AccountHolderName.Trim(),
+                                Purpose = string.IsNullOrWhiteSpace(acc.Purpose) ? "OPERASIONAL" : acc.Purpose.Trim(),
+                                Description = NormalizeNullableText(acc.Description),
+                                IsActive = acc.IsActive,
+                                SortOrder = accountSortOrder,
+                                CreateDateTime = now,
+                                CreateBy = actorUserId,
+                                IsDelete = false,
+                                IsCancel = false
+                            });
                         }
                     }
                     else
@@ -592,7 +641,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterDat
                             Purpose = string.IsNullOrWhiteSpace(acc.Purpose) ? "OPERASIONAL" : acc.Purpose.Trim(),
                             Description = NormalizeNullableText(acc.Description),
                             IsActive = acc.IsActive,
-                            SortOrder = acc.SortOrder != 0 ? acc.SortOrder : ++sort,
+                            SortOrder = accountSortOrder,
                             CreateDateTime = now,
                             CreateBy = actorUserId,
                             IsDelete = false,
@@ -602,7 +651,72 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterDat
                 }
             }
 
-            await _dbContext.SaveChangesAsync();
+            try
+            {
+                await _dbContext.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                // Diagnostik dulu, sebelum diputuskan apa artinya — supaya kalau retry di bawah
+                // ini masih gagal, log-nya langsung menunjuk entity+state mana yang bermasalah,
+                // bukan menerka lagi dari nol.
+                await _loggerService.WarningAsync(
+                    LogCategory,
+                    "PaymentMethod.UpdateConcurrencyConflict",
+                    "SaveChanges melaporkan jumlah baris tidak cocok saat memperbarui payment method.",
+                    new
+                    {
+                        PaymentMethodId = id,
+                        Entries = ex.Entries.Select(e => new
+                        {
+                            Entity = e.Entity.GetType().Name,
+                            e.State,
+                            Id = (e.Entity as MstPaymentMethodAccount)?.Id ?? (e.Entity as MstPaymentMethod)?.Id
+                        }).ToList()
+                    }
+                );
+
+                var hasGenuinelyMissingRow = false;
+
+                foreach (var entry in ex.Entries)
+                {
+                    // Entry yang statusnya Added belum pernah ada di database sama sekali —
+                    // GetDatabaseValuesAsync SELALU null untuk itu, itu bukan tanda "dihapus
+                    // orang lain". Biarkan apa adanya supaya SaveChanges berikutnya mengulang
+                    // INSERT yang sama persis.
+                    if (entry.State == EntityState.Added)
+                    {
+                        continue;
+                    }
+
+                    var databaseValues = await entry.GetDatabaseValuesAsync();
+
+                    if (databaseValues == null)
+                    {
+                        hasGenuinelyMissingRow = true;
+                        continue;
+                    }
+
+                    entry.OriginalValues.SetValues(databaseValues);
+                }
+
+                if (hasGenuinelyMissingRow)
+                {
+                    return Conflict(ApiResponse<object>.Fail(
+                        StatusCodes.Status409Conflict,
+                        "Payment method atau salah satu rekeningnya sudah diubah/dihapus oleh pengguna lain. Silakan muat ulang data."
+                    ));
+                }
+
+                await _dbContext.SaveChangesAsync();
+            }
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "PaymentMethod.Update",
+                $"Payment method {entity.PaymentMethodCode} berhasil diperbarui.",
+                new { PaymentMethodId = id, Result = "updated", entity.PaymentMethodCode }
+            );
 
             var result = new PaymentMethodUpdateResponse
             {
@@ -914,6 +1028,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterDat
                 AdminFeeAmount = x.AdminFeeAmount,
                 AdminFeePercent = x.AdminFeePercent,
                 SortOrder = x.SortOrder,
+                Description = x.Description,
                 IsActive = x.IsActive,
                 CreateDateTime = x.CreateDateTime,
                 Accounts = x.Accounts

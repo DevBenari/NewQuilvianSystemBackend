@@ -1,11 +1,13 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
@@ -32,6 +34,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LabSpecimenService _labSpecimenService;
+        private readonly LabOrderNumberService _labOrderNumberService;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly LoggerService _loggerService;
 
@@ -44,12 +47,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         public LabOrderService(
             ApplicationDbContext dbContext,
             LabSpecimenService labSpecimenService,
+            LabOrderNumberService labOrderNumberService,
             IHttpContextAccessor httpContextAccessor,
             LoggerService loggerService,
             InpatientClinicalContextService clinicalContextService)
         {
             _dbContext = dbContext;
             _labSpecimenService = labSpecimenService;
+            _labOrderNumberService = labOrderNumberService;
             _httpContextAccessor = httpContextAccessor;
             _loggerService = loggerService;
             _clinicalContextService = clinicalContextService;
@@ -243,8 +248,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         ///
         /// Dipakai bersama oleh daftar berpagination dan daftar per perawatan, supaya penanda
         /// keselamatan ini tidak dapat hilang hanya karena barisnya dibaca lewat jalur lain.
+        ///
+        /// <para>
+        /// Sejak <c>LAB-API-v1</c> <c>r13</c> method ini <b>bukan lagi</b> <c>static</c>: kedua
+        /// nama yang ditambahkan amandemen itu diterjemahkan di dalam proyeksi yang sama,
+        /// sehingga ia membutuhkan <c>DbContext</c>. Menjadikannya method instance lebih murah
+        /// daripada meneruskan context sebagai parameter, dan ia tetap privat sehingga nol
+        /// pemanggil di luar kelas ini terpengaruh.
+        /// </para>
         /// </remarks>
-        private static async Task<List<LabOrderListResponse>> ProyeksikanDaftarAsync(
+        private async Task<List<LabOrderListResponse>> ProyeksikanDaftarAsync(
             IQueryable<LabOrder> query,
             CancellationToken cancellationToken)
         {
@@ -252,6 +265,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 .Select(x => new
                 {
                     x.Id,
+                    x.OrderNumber,
                     x.EncounterId,
                     x.InpEpisodeId,
                     x.ProcedureId,
@@ -262,7 +276,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     AcceptedSpecimenCount = x.Specimens.Count(s =>
                         !s.IsDelete && s.SpecimenStatus == LabSpecimenStatus.Accepted),
                     x.IsCancel,
-                    x.CreateDateTime
+                    x.CreateDateTime,
+
+                    // LAB-API-v1 r13. Kedua nama diambil di dalam proyeksi yang sama, bukan
+                    // lewat pencarian per baris sesudahnya — daftar berisi 25 pesanan tidak
+                    // boleh berubah menjadi 51 perjalanan ke database hanya untuk menerjemahkan
+                    // dua penunjuk. Cara yang sama sudah dipakai RequestedByName pada
+                    // GetDetailAsync.
+                    x.ConfirmedAt,
+                    ConfirmedByName = x.ConfirmedByUserId == null
+                        ? null
+                        : _dbContext.Users
+                            .Where(u => u.Id == x.ConfirmedByUserId)
+                            .Select(u => u.DisplayName ?? u.UserName ?? u.Email ?? u.UserCode)
+                            .FirstOrDefault(),
+                    ExaminerDoctorName = x.ExaminerDoctorId == null
+                        ? null
+                        : _dbContext.Set<MstDoctor>()
+                            .Where(d => d.Id == x.ExaminerDoctorId)
+                            .Select(d => d.FullName)
+                            .FirstOrDefault()
                 })
                 .ToListAsync(cancellationToken);
 
@@ -273,6 +306,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 return new LabOrderListResponse
                 {
                     Id = x.Id,
+
+                    OrderNumber = x.OrderNumber,
                     EncounterId = x.EncounterId,
                     InpEpisodeId = x.InpEpisodeId,
                     ProcedureId = x.ProcedureId,
@@ -288,7 +323,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                         : final
                             ? "Hasil sudah final."
                             : "Hasil belum final. Jangan dipakai sebagai dasar keputusan klinis.",
-                    CreateDateTime = x.CreateDateTime
+                    CreateDateTime = x.CreateDateTime,
+                    ConfirmedAt = x.ConfirmedAt,
+                    ConfirmedByName = x.ConfirmedByName,
+                    ExaminerDoctorName = x.ExaminerDoctorName
                 };
             }).ToList();
         }
@@ -303,6 +341,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 .Select(x => new LabOrderDetailResponse
                 {
                     Id = x.Id,
+
+                    OrderNumber = x.OrderNumber,
                     EncounterId = x.EncounterId,
                     ProcedureId = x.ProcedureId,
                     ProcedureCode = x.Procedure != null ? x.Procedure.ProcedureCode : string.Empty,
@@ -574,11 +614,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
+            // LAB-DEC-072. Transaksi eksplisit dibuka SEBELUM nomor dialokasikan, dan itu
+            // menentukan apakah kuncinya berarti sama sekali: `pg_advisory_xact_lock` dilepas
+            // ketika transaksi berakhir, sehingga alokasi di luar transaksi memperoleh dan
+            // melepas kuncinya seketika dan tidak menjaga apa pun.
+            await using var transaction =
+                await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+
+            var orderNumber = await _labOrderNumberService.AllocateOneAsync(cancellationToken);
+
             // Endpoint pembuatan yang sudah ada sejak sebelum RJ-BIL-BE-003 berarti "pesanan
             // dikirim ke laboratorium", sehingga status awalnya Requested dan bukan Draft.
             // Mengubah artinya menjadi Draft akan mengubah perilaku endpoint lama tanpa manfaat.
             var entity = new LabOrder
             {
+                OrderNumber = orderNumber,
                 EncounterId = request.EncounterId,
                 // BE-RWI-052. Konteks perawatan distempel saat pesanan lahir, sehingga
                 // pembacaan per perawatan menjadi pemeriksaan satu kolom.
@@ -586,7 +636,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 ProcedureId = request.ProcedureId,
                 // Disiplin hanya boleh ditetapkan di sini. Setelah baris ini tersimpan, EF
                 // menolak setiap upaya mengubahnya (INV-21).
-                Discipline = request.Discipline,
+                //
+                // BE-LAB-29: bila permintaan tidak membawa disiplin, ia DITURUNKAN dari
+                // penggolongan katalog. Sebelumnya ruas ini disalin apa adanya, dan karena
+                // ruasnya tidak wajib, setiap pesanan yang dibuat tanpa memilihnya tersimpan
+                // berdisiplin kosong — lalu HILANG dari ketiga layar Pemeriksaan, yang menyaring
+                // tepat atas kolom ini. Pasiennya tersimpan dengan benar tetapi tidak muncul di
+                // layar yang justru dipakai petugas mengerjakannya.
+                //
+                // AC-83 menjanjikan hal ini sejak LAB-DEC-048, tetapi janji itu selama ini hanya
+                // ditegakkan layar. Pemanggil lain mana pun masih dapat menembusnya, dan memang
+                // sudah terjadi.
+                //
+                // Nilai yang DIKIRIM pemanggil tetap dihormati apa adanya — penurunan ini
+                // mengisi yang kosong, bukan menimpa yang terisi. Katalog yang belum digolongkan
+                // tetap menghasilkan pesanan tanpa disiplin, dan itu sah (AC-85).
+                Discipline = request.Discipline ?? procedure.LabDiscipline,
                 OrderStatus = LabOrderStatus.Requested,
                 RequestedAt = now,
                 RequestedByUserId = actorUserId,
@@ -612,6 +677,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
 
             await _dbContext.SaveChangesAsync(cancellationToken);
 
+            // Kunci alokasi baru benar-benar dilepas di sini. Commit ditempatkan sesudah
+            // SaveChangesAsync dan SEBELUM pencatatan log, supaya kegagalan menulis log tidak
+            // membatalkan pesanan yang sudah sah tersimpan.
+            await transaction.CommitAsync(cancellationToken);
+
             await _loggerService.InfoAsync(
                 LogCategory,
                 "LabOrder.Create",
@@ -619,6 +689,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 new
                 {
                     entity.Id,
+                    entity.OrderNumber,
                     entity.EncounterId,
                     entity.ProcedureId,
                     Discipline = entity.Discipline?.ToString(),
@@ -626,6 +697,313 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 });
 
             return MapDetailResponse(entity, procedure, await ResolveUserNameAsync(entity.RequestedByUserId, cancellationToken));
+        }
+
+        /// <summary>
+        /// Memesan beberapa pemeriksaan sekaligus, dipecah menjadi <b>satu pesanan per disiplin</b>
+        /// (<c>LAB-DEC-055</c>, <c>LAB-DEC-056</c>).
+        ///
+        /// <b>Kenapa dipecah, bukan satu pesanan lintas disiplin.</b>
+        /// <see cref="LabOrder.Discipline"/> adalah satu nilai dan terkunci setelah pesanan
+        /// dibuat (<c>INV-21</c>); ketiga layar Pemeriksaan menyaring tepat atas kolom itu; dan
+        /// <c>VAL-46</c> sudah menolak pemeriksaan yang disiplinnya tidak cocok. Memindahkan
+        /// disiplin ke baris pemeriksaan berarti membongkar ketiganya sekaligus. Pemecahan
+        /// mencapai hasil yang sama — setiap pemeriksaan muncul di menu yang benar — tanpa
+        /// menyentuh satu pun invariant yang sudah berjalan.
+        ///
+        /// <b>Satu transaksi.</b> Seluruh pemeriksaan divalidasi <b>sebelum</b> satu baris pun
+        /// ditambahkan, dan seluruh pesanan beserta permintaannya disimpan lewat satu
+        /// <c>SaveChangesAsync</c>. Satu pemeriksaan ditolak berarti nol pesanan terbentuk —
+        /// pemesanan yang gagal separuh akan meninggalkan pasien dengan satu disiplin terpesan
+        /// dan satu disiplin hilang, dan hilangnya tidak terlihat sampai hasil yang ditunggu
+        /// tidak pernah keluar.
+        ///
+        /// <b>Endpoint lama tidak disentuh.</b> <see cref="CreateAsync"/> tetap menerima satu
+        /// procedure dan tetap mengembalikan satu pesanan (<c>AC-88</c>).
+        /// </summary>
+        public async Task<List<LabOrderDetailResponse>> CreateByExaminationsAsync(
+            CreateLabOrderByExaminationsRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            if (request.EncounterId == Guid.Empty)
+                throw new ArgumentException("EncounterId wajib diisi.");
+
+            var procedureIds = request.Examinations?
+                .Where(x => x != Guid.Empty)
+                .ToList() ?? new List<Guid>();
+
+            // VAL-64.
+            if (procedureIds.Count == 0)
+                throw new LabOrderValidationException("Pilih sekurang-kurangnya satu pemeriksaan.");
+
+            // VAL-65. Pesannya menyebut duplo karena tanpa itu petugas yang benar-benar perlu
+            // mengerjakan satu pemeriksaan dua kali akan mencoba memilihnya dua kali, ditolak,
+            // lalu tidak tahu harus berbuat apa.
+            if (procedureIds.Count != procedureIds.Distinct().Count())
+            {
+                throw new LabOrderValidationException(
+                    "Pemeriksaan yang sama tidak boleh dipilih dua kali. " +
+                    "Untuk pengerjaan ganda, tandai duplo saat mencatat wadah.");
+            }
+
+            var encounter = await _dbContext.Set<RegPatientEncounter>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == request.EncounterId && !x.IsDelete, cancellationToken);
+
+            if (encounter == null)
+                throw new KeyNotFoundException("Encounter tidak ditemukan.");
+
+            // VAL-67.
+            if (encounter.EncounterStatus is EncounterStatus.Completed
+                or EncounterStatus.Cancelled
+                or EncounterStatus.NoShow)
+            {
+                throw new LabOrderValidationException(
+                    "Kunjungan ini sudah selesai, pemeriksaan baru tidak dapat dipesankan.");
+            }
+
+            // BE-RWI-052, VAL-DOK-22 — penjagaan yang sama persis dengan CreateAsync.
+            if (request.InpEpisodeId.HasValue && request.InpEpisodeId.Value != Guid.Empty)
+            {
+                var episodeCocok = await _dbContext.Set<InpEpisode>()
+                    .AsNoTracking()
+                    .AnyAsync(x => x.Id == request.InpEpisodeId.Value
+                                   && x.EncounterId == request.EncounterId
+                                   && !x.IsDelete,
+                              cancellationToken);
+
+                if (!episodeCocok)
+                    throw new ArgumentException("Pesanan ini tidak cocok dengan perawatan pasien.");
+            }
+
+            var procedures = await _dbContext.Set<MstProcedure>()
+                .AsNoTracking()
+                .Where(x =>
+                    procedureIds.Contains(x.Id) &&
+                    x.IsLaboratory &&
+                    x.IsActive &&
+                    !x.IsDelete)
+                .ToListAsync(cancellationToken);
+
+            // VAL-66.
+            if (procedures.Count != procedureIds.Count)
+            {
+                throw new LabOrderValidationException(
+                    "Ada pemeriksaan yang tidak dapat dipesan. Periksa kembali pilihan Anda.");
+            }
+
+            var cito = new HashSet<Guid>(request.CitoExaminations ?? new List<Guid>());
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
+            // Urutan pilihan pemanggil dipertahankan di dalam setiap kelompok, supaya pemeriksaan
+            // pertama yang menjadi penunjuk wakil pesanan bukan hasil pengurutan yang sewenang.
+            var berurutan = procedureIds
+                .Select(id => procedures.First(p => p.Id == id))
+                .ToList();
+
+            // Kelompok tanpa disiplin diletakkan paling akhir. Ia tetap dibentuk — AC-85
+            // menyatakan pemeriksaan yang belum digolongkan tetap sah dipesan, dan pesanannya
+            // memang tidak akan muncul di ketiga layar Pemeriksaan sampai katalognya dirawat.
+            var kelompok = berurutan
+                .GroupBy(x => x.LabDiscipline)
+                .OrderBy(g => g.Key.HasValue ? (int)g.Key.Value : int.MaxValue)
+                .ToList();
+
+            var terbentuk = new List<(LabOrder Order, MstProcedure Wakil)>();
+
+            // LAB-DEC-072. Transaksi eksplisit, sebab yang sama dengan CreateAsync: kunci
+            // alokasi hanya berarti di dalamnya.
+            await using var transaction =
+                await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+
+            // Seluruh nomor diambil SEKALIGUS, bukan satu per satu di dalam perulangan.
+            //
+            // Entity yang belum tersimpan tidak terlihat oleh kueri SQL mentah, sehingga alokasi
+            // per pesanan di dalam transaksi yang sama akan mengembalikan NOMOR YANG SAMA
+            // BERULANG KALI — lalu ditolak index unik, dan seluruh permintaan gagal. Kegagalannya
+            // hanya muncul ketika seorang pasien memesan pemeriksaan lintas disiplin, bukan pada
+            // pemakaian biasa, sehingga ia mudah lolos dari pengujian yang memesan satu disiplin.
+            var orderNumbers = await _labOrderNumberService.AllocateAsync(
+                kelompok.Count, cancellationToken);
+
+            var nomorKe = 0;
+
+            foreach (var g in kelompok)
+            {
+                var wakil = g.First();
+
+                var entity = new LabOrder
+                {
+                    OrderNumber = orderNumbers[nomorKe++],
+                    EncounterId = request.EncounterId,
+                    InpEpisodeId = request.InpEpisodeId,
+                    // Penunjuk wakil, bukan satu-satunya pemeriksaan pesanan ini. Kolomnya tidak
+                    // dapat dikosongkan tanpa mengubah endpoint lama, dan pembaca yang sudah ada
+                    // tetap memperoleh nilai yang masuk akal.
+                    ProcedureId = wakil.Id,
+                    Discipline = g.Key,
+                    OrderStatus = LabOrderStatus.Requested,
+                    RequestedAt = now,
+                    RequestedByUserId = actorUserId,
+                    CreateDateTime = now,
+                    CreateBy = actorUserId
+                };
+
+                _dbContext.LabOrders.Add(entity);
+
+                _labSpecimenService.AppendHistory(
+                    entity,
+                    specimen: null,
+                    LabTransitionScope.LabOrder,
+                    "Order.Request",
+                    fromStatus: null,
+                    LabOrderStatus.Requested.ToString(),
+                    reasonCode: null,
+                    reasonNote: null,
+                    actorUserId,
+                    now);
+
+                foreach (var procedure in g)
+                {
+                    _dbContext.LabOrderedProcedures.Add(new LabOrderedProcedure
+                    {
+                        LabOrderId = entity.Id,
+                        ProcedureId = procedure.Id,
+                        ProcedureCodeSnapshot = procedure.ProcedureCode,
+                        ProcedureNameSnapshot = procedure.ProcedureName,
+                        DisciplineSnapshot = procedure.LabDiscipline,
+                        Urgency = cito.Contains(procedure.Id)
+                            ? LabExaminationUrgency.Cito
+                            : LabExaminationUrgency.Routine,
+                        OrderedStatus = LabOrderedProcedureStatus.Ordered,
+                        CreateDateTime = now,
+                        CreateBy = actorUserId
+                    });
+                }
+
+                terbentuk.Add((entity, wakil));
+            }
+
+            // Satu penyimpanan untuk seluruhnya. EF membungkusnya dalam satu transaksi, sehingga
+            // kegagalan di tengah tidak meninggalkan sebagian pesanan.
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            await transaction.CommitAsync(cancellationToken);
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "LabOrder.CreateByExaminations",
+                "Membuat pesanan laboratorium dari daftar pemeriksaan.",
+                new
+                {
+                    request.EncounterId,
+                    ExaminationCount = berurutan.Count,
+                    OrderCount = terbentuk.Count,
+                    Disciplines = terbentuk.Select(x => x.Order.Discipline?.ToString() ?? "TanpaDisiplin").ToList(),
+                    ActorUserId = actorUserId
+                });
+
+            var namaPemesan = await ResolveUserNameAsync(actorUserId, cancellationToken);
+
+            return terbentuk
+                .Select(x => MapDetailResponse(x.Order, x.Wakil, namaPemesan))
+                .ToList();
+        }
+
+        /// <summary>
+        /// Mengonfirmasi pesanan laboratorium beserta dokter pemeriksanya
+        /// (<c>LAB-DEC-061</c>, <c>LAB-STATE-v1</c> <c>r3</c> bagian 1a, <c>AC-94</c>,
+        /// <c>AC-95</c>).
+        ///
+        /// <para>
+        /// <b>Konfirmator dan waktunya diturunkan di sini, tidak pernah dari badan permintaan.</b>
+        /// Nama konfirmator adalah pertanyaan audit: siapa yang menyatakan pesanan ini siap
+        /// dikerjakan. Ruas yang boleh dikirim pemanggil adalah ruas yang boleh dipalsukan
+        /// pemanggil, dan ini bukan salah satunya.
+        /// </para>
+        ///
+        /// <para>
+        /// <b>Jalur lama tidak disentuh.</b> Konfirmasi tidak diwajibkan: pesanan yang tidak
+        /// pernah dikonfirmasi tetap berpindah <c>Requested</c> ke <c>Accepted</c> ketika wadah
+        /// pertamanya dinyatakan layak. Mewajibkannya akan menghentikan seluruh pesanan yang
+        /// sedang berjalan, dan keputusan itu belum diambil (<c>LAB-OPEN-027</c>).
+        /// </para>
+        /// </summary>
+        public async Task<LabOrderDetailResponse> ConfirmAsync(
+            Guid id,
+            ConfirmLabOrderRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            var entity = await LoadTrackedAsync(id, cancellationToken);
+
+            // VAL-70 diperiksa lebih dulu daripada VAL-71, dan urutannya bermakna. Pesanan yang
+            // sudah dikonfirmasi lalu berpindah ke Accepted memenuhi kedua syarat sekaligus;
+            // yang benar dibaca petugas adalah "sudah dikonfirmasi", bukan "sudah melewati
+            // tahap konfirmasi". Jejaknya dibaca dari ConfirmedAt, bukan dari statusnya saja,
+            // supaya pesanan yang sudah melaju tetap terbaca pernah dikonfirmasi.
+            if (entity.OrderStatus == LabOrderStatus.Confirmed || entity.ConfirmedAt != null)
+                throw new LabOrderConflictException("Pesanan ini sudah dikonfirmasi.");
+
+            // VAL-71.
+            if (entity.OrderStatus != LabOrderStatus.Requested)
+                throw new LabOrderConflictException("Pesanan ini sudah melewati tahap konfirmasi.");
+
+            // VAL-72.
+            if (request == null || request.ExaminerDoctorId == Guid.Empty)
+                throw new LabOrderValidationException("Pilih dokter pemeriksa terlebih dahulu.");
+
+            // VAL-73. Dokter yang sudah dihapus maupun yang sudah tidak aktif sama-sama ditolak:
+            // keduanya berarti tidak ada orang yang dapat dimintai pertanggungjawaban atas
+            // pemeriksaan ini.
+            var examinerIsSelectable = await _dbContext.Set<MstDoctor>()
+                .AsNoTracking()
+                .AnyAsync(
+                    x => x.Id == request.ExaminerDoctorId && !x.IsDelete && x.IsActive,
+                    cancellationToken);
+
+            if (!examinerIsSelectable)
+                throw new LabOrderValidationException("Dokter pemeriksa tidak ditemukan atau tidak aktif.");
+
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+            var fromStatus = entity.OrderStatus;
+
+            entity.OrderStatus = LabOrderStatus.Confirmed;
+            entity.ConfirmedByUserId = actorUserId;
+            entity.ConfirmedAt = now;
+            entity.ExaminerDoctorId = request.ExaminerDoctorId;
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
+            entity.Version++;
+
+            _labSpecimenService.AppendHistory(
+                entity,
+                specimen: null,
+                LabTransitionScope.LabOrder,
+                "Order.Confirm",
+                fromStatus.ToString(),
+                LabOrderStatus.Confirmed.ToString(),
+                reasonCode: null,
+                reasonNote: null,
+                actorUserId,
+                now);
+
+            await SaveWithConcurrencyGuardAsync(cancellationToken);
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "LabOrder.Confirm",
+                "Mengonfirmasi pesanan laboratorium.",
+                new
+                {
+                    entity.Id,
+                    entity.EncounterId,
+                    entity.ExaminerDoctorId,
+                    ActorUserId = actorUserId
+                });
+
+            return await GetDetailOrThrowAsync(entity.Id, cancellationToken);
         }
 
         /// <summary>
@@ -747,24 +1125,56 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         /// yang sama, sehingga tagihan lama tetap utuh dan Billing yang menentukan koreksinya.
         /// Sampel yang belum pernah layak tidak menghasilkan koreksi apa pun karena tagihannya
         /// memang belum pernah terbentuk.
+        ///
+        /// <para>
+        /// <b>Dua aturan ditambahkan <c>BE-LAB-32</c> (<c>LAB-DEC-063</c>, <c>LAB-VAL-v1</c>
+        /// <c>r6</c>).</b> Alasan pembatalan kini <b>wajib</b> (<c>VAL-74</c>), dan pembatalan
+        /// hanya sah pada <c>Requested</c> serta <c>Confirmed</c> (<c>VAL-75</c>). Alasannya
+        /// tetap disimpan sebagai <c>ReasonNote</c> pada jejak audit; nol kolom baru dibutuhkan.
+        /// </para>
+        ///
+        /// <para>
+        /// <b>Sampel yang sudah layak tidak akan pernah lagi sampai ke sini.</b> Penerbitan
+        /// fakta pembatalan di bawah karena itu menjadi jalur yang secara praktis tidak lagi
+        /// tercapai lewat pembatalan pesanan — ia sengaja <b>tidak dibongkar</b>, karena
+        /// pembatalan pada tingkat wadah tetap memakainya dan aturan koreksi pesanan yang sudah
+        /// berjalan belum diputuskan (<c>LAB-P0-003</c>).
+        /// </para>
         /// </summary>
         public async Task<LabOrderCancellationResult> CancelAsync(
             Guid id,
-            CancelLabSpecimenRequest? request = null,
+            CancelLabOrderRequest request,
             CancellationToken cancellationToken = default)
         {
             var entity = await LoadTrackedAsync(id, cancellationToken);
 
-            if (entity.OrderStatus == LabOrderStatus.Cancelled || entity.IsCancel)
-                throw new InvalidOperationException("Order laboratorium sudah dibatalkan.");
+            // VAL-75 — satu-satunya pengetatan pada amandemen r12, dan ia disengaja.
+            //
+            // Pembatalan kini hanya sah pada Requested dan Confirmed. Pesanan yang wadahnya
+            // sudah dinyatakan layak berarti bahan pasien sudah diambil dan pekerjaan sudah
+            // dimulai; membatalkannya bukan lagi pembatalan melainkan koreksi — dan aturan
+            // koreksi belum diputuskan (LAB-P0-003).
+            //
+            // Satu penjaga digantikan tiga: baris ini sekaligus menutup Cancelled, Completed,
+            // Accepted, InProcess, OnHold, Draft, dan CancelRequested, persis seperti yang
+            // ditagih T-97a. IsCancel ikut diperiksa supaya pesanan yang sudah ditandai batal
+            // tanpa sempat berpindah status tidak dapat dibatalkan dua kali.
+            if (entity.IsCancel ||
+                entity.OrderStatus is not (LabOrderStatus.Requested or LabOrderStatus.Confirmed))
+            {
+                throw new LabOrderConflictException("Pesanan yang sudah diproses tidak dapat dibatalkan.");
+            }
 
-            if (entity.OrderStatus == LabOrderStatus.Completed)
-                throw new InvalidOperationException("Order laboratorium yang sudah selesai tidak dapat dibatalkan.");
+            // VAL-74. Diperiksa sesudah VAL-75, mengikuti urutan yang sama dengan ConfirmAsync:
+            // keadaan pesanan lebih dulu, isi permintaan sesudahnya. Pesanan yang memang tidak
+            // boleh dibatalkan tidak perlu diminta alasannya lebih dulu.
+            var reason = request?.CancelReason?.Trim();
+            if (string.IsNullOrWhiteSpace(reason))
+                throw new LabOrderValidationException("Alasan pembatalan wajib diisi.");
 
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
             var fromStatus = entity.OrderStatus;
-            var reason = string.IsNullOrWhiteSpace(request?.Reason) ? null : request!.Reason!.Trim();
 
             var previouslyAccepted = await _labSpecimenService.CancelAllForOrderInMemoryAsync(
                 entity,
@@ -980,6 +1390,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             return new LabOrderDetailResponse
             {
                 Id = entity.Id,
+
+                OrderNumber = entity.OrderNumber,
                 EncounterId = entity.EncounterId,
                 ProcedureId = entity.ProcedureId,
                 ProcedureCode = procedure?.ProcedureCode ?? string.Empty,
@@ -1013,4 +1425,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
     public sealed record LabOrderCancellationResult(
         LabOrderDetailResponse Order,
         List<LabBillingHandoffResponse> BillingHandoffs);
+
+    /// <summary>
+    /// Pelanggaran aturan isi permintaan pemesanan. Dipetakan menjadi <c>422</c>.
+    ///
+    /// Dibedakan dari <see cref="ArgumentException"/> yang tetap menjadi <c>400</c>, mengikuti
+    /// pembagian yang sudah dipakai <c>LabSpecimenService</c>: <c>400</c> berarti permintaannya
+    /// cacat bentuk, <c>422</c> berarti bentuknya benar tetapi isinya melanggar aturan bisnis.
+    /// Matriks validasi menetapkan kode yang berbeda untuk aturan yang berbeda, dan layar
+    /// membedakan keduanya.
+    /// </summary>
+    public sealed class LabOrderValidationException(string message) : Exception(message);
+
+    /// <summary>
+    /// Tindakan yang bertabrakan dengan keadaan pesanan saat ini. Dipetakan menjadi <c>409</c>.
+    ///
+    /// Dibedakan dari <see cref="LabOrderValidationException"/> yang menjadi <c>422</c>:
+    /// <c>422</c> berarti isi permintaannya yang salah dan pemanggil dapat memperbaikinya,
+    /// sedangkan <c>409</c> berarti permintaannya benar tetapi pesanannya sudah tidak berada
+    /// pada keadaan yang menerimanya — memperbaiki isian tidak akan menolong. Matriks validasi
+    /// menetapkan kode yang berbeda untuk keduanya, dan layar membedakannya.
+    /// </summary>
+    public sealed class LabOrderConflictException(string message) : Exception(message);
 }

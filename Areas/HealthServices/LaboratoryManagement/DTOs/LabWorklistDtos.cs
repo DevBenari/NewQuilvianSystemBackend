@@ -61,6 +61,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
 
         public string ExaminationStatus { get; set; } = string.Empty;
 
+        /// <summary>
+        /// Kapan pemeriksaannya dikerjakan, dan kapan hasilnya diketik (<c>r22</c>).
+        ///
+        /// <b>Tanpa keduanya, daftar kerja tidak dapat membedakan pemeriksaan yang sudah diisi
+        /// dari yang belum</b> — dan analis akan mengetik ulang hasil yang sudah ada tanpa satu
+        /// pun tanda.
+        ///
+        /// Keduanya <b>waktu, bukan status</b>. Disiplin <c>r21</c> tetap berlaku: yang dikirim
+        /// adalah apa yang tercatat, bukan apa yang terjadi berikutnya.
+        /// </summary>
+        public DateTime? ExaminedAt { get; set; }
+
+        public DateTime? ResultEnteredAt { get; set; }
+
         public string SpecimenStatus { get; set; } = string.Empty;
 
         /// <summary>Waktu pesanan masuk. Inilah dasar urutan di antara sesama tingkat kesegeraan.</summary>

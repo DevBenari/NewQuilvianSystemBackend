@@ -43,6 +43,7 @@ governance_dependency: BKC-BLK-FE-001
 | Verifikasi | Component tests per master, lint/build |
 | Risiko/pemilik | UI menyiratkan update retroaktif. Owner Finance/Product |
 | DoD | Empat workspace atau tab setara, tests, accessibility, no hardcoded business values |
+| Perbaikan 16 September 2026 (`BE-BKC-FIX-010`) | Field "Kategori Kena Pajak"/`taxableCategory` dihapus total dari form create/update, kolom list, dan teks deskripsi CRUD Tax Rule — mengikuti penghapusan kolom `TaxableCategory` di backend (`BKC-DEC-098`). Lint/test/build **belum dijalankan** (instruksi baku pengguna). Laporan: [BE-BKC-FIX-010](../task/report/frontend/BE-BKC-FIX-010.md) |
 
 ## `FE-BKC-003` — Workspace charge, recalculation, dan void
 
@@ -1334,7 +1335,7 @@ BE-BKC-057 [BE] ───────────────┴─> FE-BKC-038
 | Kewenangan UI | Penggabungan halaman, route kanonik, sumber data per wilayah, dan urutan wilayah **dikunci**. Bentuk wadah panel, warna, jarak, ikon, dan component library `DEV_DISCRETION` |
 | Risiko/pemilik | Pendaftaran butir menu **MUST** menjadi acceptance criteria task ini, bukan pekerjaan yang menganggur. Modul ini punya preseden lima halaman selesai tetapi tidak terjangkau sampai task menu tersendiri dikerjakan. Owner Frontend |
 | DoD | Halaman kanonik terjangkau dari sidebar; kedua route lama mengalihkan; kelima kartu dari satu panggilan; keadaan memuat, kosong, dan gagal tertangani per wilayah; `npm run build` lulus; `git status --short` dilaporkan |
-| Status | Belum dikerjakan |
+| Status | **Source selesai — belum diverifikasi.** `npm run lint:errors`/`test:unit`/`build` dan verifikasi manual browser belum dijalankan (instruksi eksplisit pengguna sesi ini); hanya `node --check` pada berkas logika non-JSX yang lulus. Detail dan temuan (termasuk `api-contract.md` yang basi untuk `GET /overview`/`/periods`): [task/report/frontend/fe-bkc-035-halaman-kanonik-petty-cash-dan-pengalihan-route-lama.md](../task/report/frontend/fe-bkc-035-halaman-kanonik-petty-cash-dan-pengalihan-route-lama.md) |
 
 ## `FE-BKC-036` — Kosakata status baru dan pembuangan aksi persetujuan
 
@@ -1353,7 +1354,7 @@ BE-BKC-057 [BE] ───────────────┴─> FE-BKC-038
 | Kewenangan UI | Label status dan hak akses tombol **dikunci**. Bentuk penanda status dan tata letak aksi baris `DEV_DISCRETION` |
 | Risiko/pemilik | Layar yang masih membandingkan status dengan `WAITING_APPROVAL` atau `APPROVED` akan diam-diam menyembunyikan tombol Cairkan — gagalnya tidak berupa error, melainkan tombol yang tidak pernah muncul. Owner Frontend |
 | DoD | Tidak ada pemanggilan endpoint persetujuan tersisa; seluruh label memakai kosakata baru; aksi baris digerakkan server; `npm run build` lulus; `git status --short` dilaporkan |
-| Status | Belum dikerjakan |
+| Status | **Source selesai — belum diverifikasi.** `npm run lint:errors`/`test:unit`/`build` dan verifikasi manual browser belum dijalankan (instruksi eksplisit pengguna sesi ini); `node --check` pada berkas logika non-JSX lulus. Ditemukan `GET /vouchers/summary` juga berganti bentuk response (di luar Kontrak eksplisit task ini tapi dalam wewenang tulisnya) — detail: [task/report/frontend/fe-bkc-036-kosakata-status-baru-dan-pembuangan-aksi-persetujuan.md](../task/report/frontend/fe-bkc-036-kosakata-status-baru-dan-pembuangan-aksi-persetujuan.md) |
 
 ## `FE-BKC-037` — Layar Kelola Periode Anggaran
 
@@ -1372,7 +1373,7 @@ BE-BKC-057 [BE] ───────────────┴─> FE-BKC-038
 | Kewenangan UI | Isi dialog tutup periode dan sumber datanya **dikunci**. Bentuk wadah (modal, laci, halaman anak) `DEV_DISCRETION` |
 | Risiko/pemilik | Dialog tutup tanpa kalimat pemindahan membuat Finance tidak punya cara tahu ke mana uangnya pergi. Owner Frontend bersama Finance |
 | DoD | Ketiga aksi daur hidup berjalan dari layar; dialog tutup menampilkan sisa dan periode penerus; pesan penolakan server tampil apa adanya; `npm run build` lulus; `git status --short` dilaporkan |
-| Status | Belum dikerjakan |
+| Status | **Source selesai — belum diverifikasi.** `npm run lint:errors`/`test:unit`/`build` dan verifikasi manual browser belum dijalankan (instruksi eksplisit pengguna sesi ini); `node --check` pada berkas logika non-JSX lulus. Ditemukan ketiga endpoint periode TIDAK menerima header Idempotency-Key (beda dari pola Petty Cash lain) — detail: [task/report/frontend/fe-bkc-037-layar-kelola-periode-anggaran.md](../task/report/frontend/fe-bkc-037-layar-kelola-periode-anggaran.md) |
 
 ## `FE-BKC-038` — Kembalikan sisa uang dan batalkan pencairan
 
@@ -1391,7 +1392,7 @@ BE-BKC-057 [BE] ───────────────┴─> FE-BKC-038
 | Kewenangan UI | Alasan wajib pada kedua aksi dan penampilan sisa di tangan penerima **dikunci**. Bentuk wadah (modal atau laci) `DEV_DISCRETION` |
 | Risiko/pemilik | Keduanya memindahkan uang. Tombol **MUST** dinonaktifkan selama pengiriman **dan** memakai kunci idempotensi — keduanya, bukan salah satu. Owner Frontend |
 | DoD | Kedua aksi berjalan dari baris permintaan; batas nominal pengembalian terbaca pengguna sebelum mengirim; pengiriman ganda tidak menambah saldo dua kali; `npm run build` lulus; `git status --short` dilaporkan |
-| Status | Belum dikerjakan |
+| Status | **Source selesai — belum diverifikasi.** `npm run lint:errors`/`test:unit`/`build` dan verifikasi manual browser belum dijalankan (instruksi eksplisit pengguna sesi ini); `node --check` pada berkas logika non-JSX lulus. Ditemukan `PettyCashVoucherCommandResponse` tidak mengekspos nominal per kejadian Return, dan label movement type `RETURN`/`REVERSAL`/`CARRY_FORWARD_OUT`/`CARRY_FORWARD_IN` terlewat sejak `FE-BKC-037` (sudah dilengkapi) — detail: [task/report/frontend/fe-bkc-038-kembalikan-sisa-uang-dan-batalkan-pencairan.md](../task/report/frontend/fe-bkc-038-kembalikan-sisa-uang-dan-batalkan-pencairan.md) |
 
 ## Paralelisme dan urutan ringkas
 
@@ -1402,3 +1403,38 @@ keduanya. Sepakati urutan commit sebelum mulai.
 
 Dua task gelombang 2 masing-masing menempel pada satu task gelombang 1, sehingga tidak ada
 titik sempit di roadmap ini. Yang menentukan kecepatan seluruhnya adalah backend.
+
+---
+
+# Amendment 18 September 2026 — Penutupan gap `FINAL`→`CLOSED`, gelombang `MVP-24`
+
+`roadmap_revision: 3` · status `DRAFT_FORWARD_TEST` · blueprint revisi `1.3` **approved** · frontend SHA `1f2f2c93c9e4369db6c60246776de4c3bd52b3af` · masukan: `BKC-DEC-100`–`105`, `BKC-DES-028`–`035` (seluruhnya `approved`).
+
+## Satu task, dan sengaja bukan task fitur
+
+Amendment backend revisi `1.3` **tidak menuntut satu pun perubahan source frontend**, dan itu kesimpulan berbukti, bukan perkiraan: status `CLOSED` sudah terdaftar pada opsi filter maupun peta badge di `billing-invoice-constants.js` (`01-existing-capability-map.md` § 21). Badge dan filter akan bekerja apa adanya begitu backend mulai mengirim nilai itu.
+
+Yang tetap dibutuhkan adalah **verifikasi**, karena satu hal berubah diam-diam: nilai yang selama ini praktis tidak pernah muncul kini menjadi keadaan normal. Kode yang menangani `CLOSED` dengan benar di atas kertas belum tentu pernah benar-benar dijalani.
+
+## `FE-BKC-039` — Verifikasi penanganan status `Closed` yang kini benar-benar muncul
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Terbukti — lewat pembacaan source, bukan asumsi — bahwa layar menangani tagihan yang **baru** berpindah ke `Closed` sama benarnya dengan tagihan `Final`, termasuk saat tagihan itu **kembali** ke `Final` |
+| Gelombang | `MVP-24` |
+| Trace | `BKC-DES-029`, `BKC-DES-031`; `03-frontend-architecture.md` amendment 18 September 2026 |
+| Kontrak | `BIL-API-1.2` — **nol perubahan bentuk**, dua perubahan nilai: `status` kini dapat bernilai `CLOSED` pada alur normal, dan `closedAt` kini benar-benar terisi |
+| Reuse | Seluruhnya. `BILLING_INVOICE_STATUS_OPTIONS` dan `BILLING_INVOICE_STATUS_BADGE_CONFIG` sudah memuat `CLOSED` |
+| Scope | **Pembacaan source, bukan penulisan fitur.** Tiga hal yang diperiksa: (1) setiap pemakaian `isFinal` atau pemeriksaan status setara yang **mengunci** aksi penyuntingan memperlakukan `CLOSED` sama seperti `FINAL`; (2) layar yang menampilkan waktu penutupan tidak mengandaikan nilainya selalu kosong; (3) tagihan yang kembali dari `CLOSED` ke `FINAL` muncul lagi pada daftar yang masih punya sisa. **Perbaikan source hanya ditulis bila ditemukan gap** — dan bila ditemukan, gap itu dilaporkan sebagai temuan, bukan disenyapkan |
+| Dependency | `BE-BKC-061` — butuh tagihan `CLOSED` yang lahir normal untuk diverifikasi, bukan yang sudah `CLOSED` sejak dulu |
+| Acceptance | `UAT-69` (aksi sunting tetap terkunci pada tagihan `Closed`), `UAT-68` (tagihan yang kembali ke `Final` muncul lagi sebagai punya sisa) |
+| Verifikasi | Pembacaan source `isFinal` dan seluruh turunannya; `npm run lint` dan `npm run build` **hanya bila ada source yang benar-benar diubah**; verifikasi manual pada layar daftar tagihan, Menu Pembayaran, dan Riwayat Pembayaran |
+| Risiko/pemilik | `MODULE-STATUS.md` mencatat gap `isFinal`/`CLOSED` pernah ada dan **sudah** diperbaiki 30 Agustus 2026. Perbaikan itu lahir ketika `CLOSED` praktis tidak pernah muncul, sehingga cakupannya belum pernah teruji terhadap tagihan yang baru berpindah. **Jangan menganggap catatan "sudah diperbaiki" sebagai bukti** — itu persis jenis asumsi yang melahirkan gap ini. Owner Frontend |
+| DoD | Ketiga butir pemeriksaan dilaporkan satu per satu beserta berkas dan barisnya; bila nol gap ditemukan, laporan menyebut **apa yang diperiksa**, bukan sekadar "tidak ada masalah"; bila ada gap, perbaikannya masuk laporan yang sama; `git status --short` dilaporkan |
+| Status | ✅ **SELESAI 18 September 2026 — nol gap ditemukan, nol source diubah.** Ketiga butir diverifikasi lewat pembacaan source dengan sitasi baris persis: (1) `isFinal`/`isFinalOrClosed` di `billing-invoices-view.jsx:94` dan `menu-pembayaran-view.jsx:180` sudah menyamakan `CLOSED` dengan `FINAL`; `ledgerMutable` yang sengaja TIDAK mengecualikan `FINAL` diverifikasi cocok dengan gerbang backend (write-off `PATIENT_AR` boleh diajukan atas invoice `FINAL`). (2) `BilInvoice.ClosedAt` ternyata **tidak ditampilkan di layar manapun** untuk domain Billing — pencarian menyeluruh `closedAt` hanya menemukan domain Inpatient/Cashier Shift/Nutrition, jadi tidak ada yang "berasumsi kosong". (3) Daftar tagihan fetch-per-view tanpa cache status sisi klien — tagihan yang kembali `CLOSED`→`FINAL` otomatis benar tanpa kode khusus. **Verifikasi manual sungguhan (klik tombol pada invoice `CLOSED` nyata) tertahan** — backend belum lulus build. Bukti: [laporan](../task/report/frontend/fe-bkc-039-verifikasi-penanganan-status-closed.md) |
+
+## Kewenangan UI
+
+Nihil yang baru. Amendment ini tidak menambah menu, route, tab, modal, maupun kontrol, sehingga tidak ada ruang `DEV_DISCRETION` yang dibuka. Kosakata label (`Open`, `Final`, `Closed`, `Settled by Write-off`) **MUST** tetap memakai peta label yang sudah ada — **MUST NOT** diterjemahkan ulang menjadi "Lunas" di satu layar saja.
+
+Badge `Lunas`/`Cicilan` pada Riwayat Pembayaran dan Kwitansi **bukan** status invoice dan **tidak disentuh** amendment ini. Keduanya menjawab pertanyaan yang berbeda: badge `Lunas` menjawab "berapa yang sudah dibayar", status `Closed` menjawab "apakah tagihan ini masih berjalan".

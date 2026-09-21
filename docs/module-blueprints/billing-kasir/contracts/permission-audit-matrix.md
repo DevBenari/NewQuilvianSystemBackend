@@ -379,3 +379,41 @@ Tidak berubah bentuknya. Yang bertambah: perintah `RETURNED` dan `REVERSED` pada
 ### Kolom sensitif
 
 Bertambah satu: `BilPettyCashVoucher.ReversalReason` bertanda **Sensitif** dan **MUST NOT** masuk payload custom logger, mengikuti perlakuan `Reason` pada ledger dan `Purpose` pada voucher.
+
+---
+
+## Amendment 18 September 2026 — Penutupan gap `FINAL`→`CLOSED`
+
+`last_changed_in: BIL-PERMISSION-1.0` · status **approved** (`BKC-DEC-105`, 18 September 2026) · input: **`BKC-DEC-100`–`BKC-DEC-102`**; keputusan arsitektur `BKC-DES-028`–`BKC-DES-035`.
+
+### Hak akses — nol butir baru, nol butir dihapus
+
+Amendment ini tidak menambah satu pun butir `[AccessPermission(...)]`, tidak menghapus satu pun, dan tidak mengubah satu pun atribut hak akses yang sudah terpasang. Sebabnya lurus: perpindahan `FINAL`↔`CLOSED` dijalankan **Sistem** (`BKC-DEC-100`), bukan oleh perintah pengguna, sehingga tidak ada endpoint baru yang perlu dijaga.
+
+Hak akses tetap diperiksa di pintu masuk peristiwa yang memicunya, dan seluruh pemeriksaan itu sudah ada hari ini:
+
+| Peristiwa pemicu | Pemeriksaan hak akses yang sudah berlaku di pintu masuknya |
+| --- | --- |
+| Rekonsiliasi tender (pembayaran) | Butir hak akses pada endpoint rekonsiliasi settlement yang sudah tercatat di tabel dokumen ini |
+| Alokasi deposit pasien ke invoice | Butir hak akses pada endpoint alokasi dana pasien yang sudah tercatat |
+| Penyesuaian dan write-off beserta kedua jalur pembalikannya | Butir `BillingFinancialException`/write-off yang sudah tercatat |
+
+Tidak ada peran yang perlu diberi butir baru, dan tidak ada peran yang kehilangan kemampuan. Implementer **MUST** memakai butir yang sudah ada apa adanya, **MUST NOT** menambahkan pemeriksaan hak akses baru di dalam service penyelarasan — service itu tidak pernah menjadi pintu masuk permintaan pengguna.
+
+### Audit
+
+Satu jenis catatan audit baru, mengikuti pola yang sudah dipakai modul ini:
+
+| Peristiwa | Kategori | Isi payload | Dicatat logger |
+| --- | --- | --- | :---: |
+| Invoice berpindah `FINAL` → `CLOSED` atau `CLOSED` → `FINAL` | `HealthServices.BillingManagement.Billing` | `InvoiceId`, status sebelum, status sesudah, sisa tagihan yang terhitung, waktu peristiwa, `ActorUserId` | Ya |
+
+Catatan itu ditulis **sesudah** transaksi peristiwanya berhasil di-commit, mengikuti pola `AuditTenderResultAsync` dan `AuditCorrectionAsync` yang sudah ada — sehingga tidak pernah ada baris audit untuk perpindahan yang ternyata dibatalkan.
+
+`ActorUserId` diisi pengguna yang menjalankan peristiwa pemicunya (kasir yang menerima pembayaran, petugas yang memposting penyesuaian), **bukan** identitas sistem — karena memang tindakan merekalah yang menyebabkan perpindahan itu. Ini juga yang membuat catatan audit dapat menjawab "siapa yang menyebabkan tagihan ini tertutup", pertanyaan yang tidak terjawab bila pelakunya ditulis sebagai sistem.
+
+### Kolom sensitif
+
+Tidak bertambah. Payload audit di atas **MUST NOT** memuat identitas pasien, nomor polis, nomor kartu, maupun payload provider — konsisten dengan aturan yang sudah berlaku pada dokumen ini.
+
+Trace **`BKC-DEC-100`–`102`**, `BKC-DES-028`–`035`.

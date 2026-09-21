@@ -8,7 +8,7 @@
 | Jenis audit | Revision 1: audit penuh. Revision 2: *impact scan* terbatas. Revision 3: *impact scan* terbatas atas kemampuan yang terdampak `LAB-DEC-037`..`LAB-DEC-045` |
 | Sifat audit | **Read-only.** Tidak ada satu baris source aplikasi yang diubah |
 | Product/domain owner | Yoga Aji Pratama (`yogaaji452@gmail.com`) |
-| Backend SHA | `466a7127` (branch `yoga`) — `HEAD` pada 2026-09-14. Revision 1-2 diaudit pada `c87d9c0`; **298 commit** di antaranya |
+| Backend SHA | Diaudit pada `466a7127` (branch `yoga`). Revision 1-2 diaudit pada `c87d9c0`; **298 commit** di antaranya. **`HEAD` bergeser ke `9067fa73` saat sesi 2026-09-14 berjalan** — `git diff 466a7127..9067fa73` atas `Areas/HealthServices/LaboratoryManagement`, `MstReferralInstitution.cs`, `ReferralInstitutionController.cs`, `EncounterPaymentType.cs`, dan `RegPatientEncounterGuarantor.cs` **kosong**, sehingga seluruh temuan di bawah tetap sahih |
 | Frontend SHA | `9cd4cd03f` — `HEAD` pada 2026-09-14. Revision 1-2 diaudit pada `688daff90`; **155 commit** di antaranya |
 | Masukan | Revision 1-2: `00-interview-decisions.md` revision 7. **Revision 3: revision 23**, keputusan `LAB-DEC-037` sampai `LAB-DEC-045` |
 | Tanggal audit | Revision 1: 2026-09-01. Revision 2: 2026-09-02. Revision 3: 2026-09-14 |

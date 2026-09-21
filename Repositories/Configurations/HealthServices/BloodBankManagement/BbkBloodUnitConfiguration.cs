@@ -44,6 +44,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Blood
             builder.HasIndex(x => x.BloodComponentId);
             builder.HasIndex(x => x.UnitStatus);
             builder.HasIndex(x => x.IssuedToPatientId);
+            builder.HasIndex(x => x.CompatibilityEvidenceIdUsed);
             // Index biasa, sesuai kamus data. Dinyatakan eksplisit karena FK melingkar kantong ⇄
             // penempatan membuat konvensi EF menandainya unik.
             builder.HasIndex(x => x.CurrentPlacementId).IsUnique(false);
@@ -62,6 +63,11 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Blood
                 .WithMany()
                 .HasForeignKey(x => x.IssuedToPatientId)
                 .OnDelete(DeleteBehavior.Restrict);
-        }
+
+            builder.HasOne(x => x.CompatibilityEvidenceUsed)
+                .WithMany()
+                .HasForeignKey(x => x.CompatibilityEvidenceIdUsed)
+                .OnDelete(DeleteBehavior.Restrict);
+                    }
     }
 }

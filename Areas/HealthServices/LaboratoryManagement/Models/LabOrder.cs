@@ -17,6 +17,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models
     {
         public Guid Id { get; set; } = Guid.NewGuid();
 
+        /// <summary>
+        /// Nomor pesanan yang dapat dibaca, dicetak, dan <b>disebut lewat telepon</b>
+        /// (<c>LAB-DEC-072</c>). Bentuknya <c>LAB-RSMMC-000001</c>.
+        ///
+        /// Nilainya dialokasikan <see cref="LabOrderNumberService"/> pada saat pesanan dibuat dan
+        /// tidak pernah berubah sesudahnya. Celah penomoran <b>dibiarkan ada</b> dan tidak pernah
+        /// diisi ulang — nomor ini dicetak pada amplop hasil pasien, dan dua benda fisik bernomor
+        /// sama adalah kesalahan yang tidak terlihat oleh siapa pun. Batas jaminannya ada pada
+        /// <see cref="LabOrderNumberService"/>.
+        ///
+        /// <b>Pola <c>LSP-{Guid:N}</c> milik barcode wadah sengaja tidak dipakai.</b> Barcode
+        /// wadah dibaca mesin; nomor ini dibaca dan diucapkan manusia.
+        ///
+        /// Kolomnya wajib, dan itu disengaja: nomor order tidak punya keadaan "belum". Kolom yang
+        /// boleh kosong hanya akan menyembunyikan jalur tulis yang lupa mengalokasikan.
+        /// </summary>
+        [Required]
+        [MaxLength(32)]
+        public string OrderNumber { get; set; } = string.Empty;
+
         [Required]
         public Guid EncounterId { get; set; }
 
@@ -67,6 +87,32 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models
         public Guid? RequestedByUserId { get; set; }
 
         public DateTime? CompletedAt { get; set; }
+
+        /// <summary>
+        /// Petugas yang mengonfirmasi pesanan ini (<c>LAB-DEC-061</c>).
+        ///
+        /// Nilainya diturunkan server dari pengguna yang sedang login, tidak pernah dari badan
+        /// permintaan. Kosong selama pesanan belum pernah dikonfirmasi.
+        /// </summary>
+        public Guid? ConfirmedByUserId { get; set; }
+
+        /// <summary>
+        /// Waktu pesanan dikonfirmasi (<c>LAB-DEC-061</c>).
+        ///
+        /// Sengaja didenormalisasi dari jejak audit supaya daftar pesanan tidak perlu menggabung
+        /// riwayat baris per baris hanya untuk menampilkan satu tanggal.
+        /// </summary>
+        public DateTime? ConfirmedAt { get; set; }
+
+        /// <summary>
+        /// Dokter pemeriksa yang dipilih saat konfirmasi (<c>LAB-DEC-061</c>). Menunjuk
+        /// <c>MstDoctor</c>.
+        ///
+        /// Boleh kosong semata-mata karena seluruh pesanan yang sudah ada tidak pernah memilih
+        /// dokter pemeriksa. Kolom wajib akan menggagalkan migrationnya atau memaksa pengisian
+        /// tebakan atas pesanan yang benar-benar sudah terjadi.
+        /// </summary>
+        public Guid? ExaminerDoctorId { get; set; }
 
         /// <summary>
         /// Token konkurensi. Dua petugas yang memindahkan status pesanan yang sama secara
