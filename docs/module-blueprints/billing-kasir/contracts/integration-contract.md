@@ -221,3 +221,32 @@ Ditulis sekarang supaya rilis berikutnya tidak mengulang penelusuran yang sama:
 1. Pemilik modul Accounting **MUST** memutuskan apakah `AccJournalService` mendapat jalur posting sistem yang melewati `Submit`/`Approve` manusia, atau apakah jurnal dari subledger tetap melewati pengesahan.
 2. Pemetaan akun (Kas Kecil, akun perantara uang muka, akun beban per kategori) **MUST** datang dari konfigurasi Accounting, **MUST NOT** ditulis tetap di controller maupun service Petty Cash.
 3. Titik pemicu jurnal **MUST** ditetapkan per peristiwa: pencairan, pengembalian, pembalikan, penambahan saldo, dan penutupan periode — kelimanya sudah punya baris ledger sendiri, sehingga pemicunya sudah tersedia tanpa perubahan skema.
+
+---
+
+## Amendment 18 September 2026 — Ketergantungan AR/AP diputus dari status invoice
+
+`last_changed_in: BIL-INTEGRATION-1.0` · status **approved** (`BKC-DEC-105`, 18 September 2026) · input: **`BKC-DEC-100`–`BKC-DEC-102`**; keputusan arsitektur `BKC-DES-028`–`BKC-DES-035`.
+
+### Yang berubah pada permukaan AR/AP
+
+| Hal | Hari ini | Sesudah amendment ini |
+| --- | --- | --- |
+| Syarat invoice berpindah ke `CLOSED` | Menunggu "AR/AP posting sukses" — peristiwa yang **tidak pernah terjadi** karena konsumen AR/AP-nya belum ada | Sisa tagihan pasien mencapai nol; tidak menunggu pihak luar mana pun |
+| Penjaga pencatatan koreksi AR (`RecordCorrectionIfLinkedAsync`) | Hanya menerima invoice `FINAL` | Menerima `FINAL` **dan** `CLOSED`; tetap menolak `OPEN` dan `SETTLED_BY_WRITE_OFF` (`BKC-DES-035`) |
+| Bentuk dan isi `BilArHandoff`/`BilApHandoff` | — | **Tidak disentuh sama sekali** (`BKC-DES-033`) |
+| Penyerahan nyata ke sistem AR/AP | Belum ada konsumennya (`BKC-BLK-INT-001`) | **Masih belum ada** — amendment ini tidak membangunnya dan tidak berpura-pura membangunnya |
+
+### Kenapa ketergantungan pada AR/AP diputus, bukan ditunggu
+
+`BKC-BLK-INT-001` (consumer contract AR/AP belum dibuktikan) sudah tercatat sebagai dependency terbuka sejak awal modul ini. Selama syarat transisi `CLOSED` menggantung pada peristiwa milik konsumen yang belum ada, seluruh invoice lunas ikut menggantung — dependency yang seharusnya menahan **satu** kemampuan ternyata menahan **jalur paling umum** di modul ini. `BKC-DEC-100` memutus ketergantungan itu: status invoice kini ditentukan fakta yang dimiliki Billing sendiri (sisa tagihan pasien), sementara penyerahan fakta ke AR/AP tetap menjadi pekerjaan terpisah yang menunggu konsumennya.
+
+`BKC-BLK-INT-001` **tetap terbuka** dan tetap menahan hal-hal yang memang miliknya: penyerahan nyata, pengakuan (`ACKNOWLEDGED`) oleh sistem AR, dan sumbu status penagihan piutang.
+
+### Kontrak yang MUST dijaga ketika konsumen AR/AP kelak dibangun
+
+1. Sumbu status `BilArHandoff` (`CREATED`/`ACKNOWLEDGED`) menyatakan **penyerahan fakta**, bukan tertagihnya piutang. Bila kelak dibutuhkan sumbu "tertagih", ia dirancang bersama pemilik konsumen AR/AP — **MUST NOT** ditebak sekarang (`BKC-DES-033`).
+2. `BilInvoice.Status`/`ClosedAt` adalah sumber kebenaran "tagihan pasien ini sudah lunas". Konsumen AR/AP membacanya, **MUST NOT** membentuk salinan kebenarannya sendiri.
+3. Koreksi AR (`BilHandoffAdjustment`) tetap idempotent per sumber (`SourceAdjustmentId`/`SourceWriteOffCaseId`); amendment ini tidak mengubahnya.
+
+Trace **`BKC-DEC-100`–`102`**, `BKC-DES-028`–`035`. Tests `BIL-AT-129`–`BIL-AT-131`.

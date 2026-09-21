@@ -18,7 +18,6 @@ public sealed class MstTaxRuleConfiguration : IEntityTypeConfiguration<MstTaxRul
         entity.HasKey(x => x.Id);
         entity.Property(x => x.Code).HasMaxLength(30).IsRequired();
         entity.Property(x => x.Name).HasMaxLength(100).IsRequired();
-        entity.Property(x => x.TaxableCategory).HasMaxLength(30).IsRequired();
         entity.Property(x => x.Rate).HasPrecision(18, 6);
         entity.Property(x => x.RoundingMode).HasMaxLength(30).IsRequired();
         entity.Property(x => x.AllocationRule).HasMaxLength(50).IsRequired();
@@ -32,6 +31,8 @@ public sealed class MstTaxRuleConfiguration : IEntityTypeConfiguration<MstTaxRul
         entity.Property(x => x.IsDelete).HasDefaultValue(false);
         entity.Property(x => x.IsCancel).HasDefaultValue(false);
         entity.HasIndex(x => x.Code).IsUnique().HasFilter("\"IsDelete\" = false");
-        entity.HasIndex(x => new { x.TaxableCategory, x.EffectiveFrom, x.EffectiveTo, x.IsActive, x.IsDelete });
+        // BKC-DEC-099: overlap-check periode tax rule aktif kini global (tanpa TaxableCategory),
+        // index disesuaikan agar tetap menopang query overlap tersebut.
+        entity.HasIndex(x => new { x.EffectiveFrom, x.EffectiveTo, x.IsActive, x.IsDelete });
     }
 }

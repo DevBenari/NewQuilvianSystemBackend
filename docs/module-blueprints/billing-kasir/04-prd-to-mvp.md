@@ -2351,3 +2351,117 @@ Diturunkan utuh dari `contracts/state-transition-matrix.md` amendment 15 Septemb
 | `PC-OQ-008` | Siapa yang membuat periode anggaran pertama setelah rilis, dan berapa plafonnya? | **Tidak memblokir pembangunan; memblokir aktivasi fitur** | Finance |
 
 Keduanya **bukan** `OPEN DECISION` pada tingkat epic: tidak ada epic yang menunggu jawabannya untuk dapat dirancang maupun dikerjakan. Keempat gelombang `MVP-20`–`MVP-23` siap diteruskan ke `plan-module-delivery`.
+
+---
+
+# Amendment 18 September 2026 — Penutupan gap `FINAL`→`CLOSED`
+
+`revisi blueprint 1.3` · status **approved** (`BKC-DEC-105`, 18 September 2026) · input: **`BKC-DEC-100`–`BKC-DEC-102`**; keputusan arsitektur `BKC-DES-028`–`BKC-DES-035`; masukan audit `01-existing-capability-map.md` § 21.
+
+## Ringkasan eksekutif
+
+Tagihan pasien yang sudah dibayar lunas dan jumlahnya sudah sesuai tetap tampil berstatus `Final`, bukan tertutup. Itu bukan salah tulis label: syarat perpindahannya menunggu peristiwa penyerahan ke sistem piutang yang **tidak pernah terjadi**, karena sistem piutang itu sendiri belum ada. Akibatnya setiap tagihan yang difinalisasi berhenti di `Final` selamanya, dan — bagian yang paling mahal — koreksi tagihan yang diposting sesudahnya gagal tercatat sebagai koreksi piutang **tanpa galat dan tanpa catatan apa pun**. Amendment ini mengganti syarat itu dengan fakta yang dimiliki Billing sendiri: sisa tagihan pasien mencapai nol.
+
+## Masalah produk
+
+| Yang dialami pengguna | Sebab sebenarnya |
+| --- | --- |
+| Tagihan lunas tetap bertanda `Final`; kasir tidak punya cara membedakan tagihan yang sudah selesai dari yang masih berjalan lewat statusnya | Syarat transisi menggantung pada peristiwa milik sistem luar yang belum dibangun |
+| Kolom waktu penutupan tagihan selalu kosong di layar mana pun | Tidak ada satu baris kode pun yang pernah mengisinya |
+| Koreksi salah tagih yang ditemukan sesudah pasien membayar tidak pernah memperbaiki catatan piutang | Penjaga pencatatan koreksi hanya menerima status `FINAL`, dan pada era sebelumnya tagihan lunas justru langsung `CLOSED` — sehingga koreksinya berhenti diam-diam |
+
+## Batas rilis
+
+| Batas | Isi |
+| --- | --- |
+| **Titik mulai** | Sebuah tagihan sudah difinalisasi (`FINAL`) dan sisa tagihan pasiennya masih di atas nol |
+| **Titik akhir** | Sisa tagihan mencapai nol lewat jalur apa pun, tagihan berpindah ke `CLOSED` beserta waktu penutupannya — dan kembali ke `FINAL` bila sisa tagihannya naik lagi |
+| **Pelaku sasaran** | Kasir dan petugas Finance sebagai penerima manfaat; pelaku perpindahannya **Sistem**, bukan manusia |
+
+## Kemampuan `MUST HAVE`
+
+| Kemampuan | Asal | Disposisi |
+| --- | --- | --- |
+| Perpindahan otomatis `FINAL` → `CLOSED` saat sisa tagihan nol | `BKC-DEC-100` | **MISSING / NEW** |
+| Perpindahan balik `CLOSED` → `FINAL` saat sisa tagihan naik lagi | `BKC-DES-031` | **MISSING / NEW** |
+| Pencatatan koreksi piutang untuk tagihan berstatus `CLOSED` | `BKC-DEC-101` | **EXTEND** — satu penjaga yang sudah ada diperluas |
+| Perhitungan sisa tagihan pasien | § 21 capability map | **EXTEND** — dua salinan yang sudah ada dikonsolidasi, rumusnya tidak berubah |
+| Perbaikan data tagihan lama yang sudah lunas tetapi masih `FINAL` | `BKC-DEC-100` | **MISSING / NEW** — satu migration data |
+| Tampilan status dan filter `Closed` | § 21 capability map | **EXISTING / REUSE** — sudah ada di frontend, nol perubahan |
+
+## Kemampuan yang ditunda
+
+| Yang ditunda | Alasan bersebab | Penggantinya selama MVP berjalan |
+| --- | --- | --- |
+| Penyerahan nyata ke sistem piutang (AR/AP) beserta pengakuannya | Konsumennya belum ada (`BKC-BLK-INT-001`); menunggunya adalah persis penyebab gap ini | Fakta handoff tetap direkam idempotent seperti hari ini dan dapat dibaca kapan saja lewat endpoint status handoff yang sudah ada |
+| Sumbu status "piutang tertagih" pada catatan handoff | `BKC-DES-033` — bentuknya tidak dapat ditebak sebelum konsumennya bicara | `BilInvoice.Status`/`ClosedAt` menjadi sumber kebenaran tunggal "tagihan ini lunas" |
+| Koreksi piutang susulan untuk tagihan yang terlanjur di-adjust saat masih `CLOSED` era lama | Jumlahnya belum diketahui — itulah `BKC-OQ-100` | Dry-run backfill menghitungnya lebih dulu, sehingga keputusannya diambil di atas angka, bukan dugaan |
+
+## Epic dan functional requirement
+
+### `EPIC BKC-22` — Tagihan lunas benar-benar tertutup
+
+| ID | Functional requirement | Disposisi |
+| --- | --- | --- |
+| `FR-BKC-109` | Tagihan `FINAL` yang sisa tagihan pasiennya mencapai nol berpindah ke `CLOSED` pada transaksi yang sama dengan peristiwa yang menolkannya | **MISSING / NEW** |
+| `FR-BKC-110` | Waktu penutupan diisi waktu peristiwa pelunasan, **bukan** waktu baris kode dieksekusi maupun waktu migration dijalankan | **MISSING / NEW** |
+| `FR-BKC-111` | Pemeriksaan sisa tagihan berjalan pada keenam peristiwa yang menggerakkannya — pembayaran, pembalikan pembayaran, alokasi deposit, penyesuaian dua arah, dan write-off beserta pembalikannya | **MISSING / NEW** |
+| `FR-BKC-112` | Sisa tagihan dihitung kumulatif lintas seluruh sesi pembayaran satu tagihan, bukan per sesi | **EXTEND** |
+| `FR-BKC-113` | Tagihan `CLOSED` yang sisa tagihannya naik kembali di atas nol kembali ke `FINAL` dan waktu penutupannya dikosongkan | **MISSING / NEW** |
+| `FR-BKC-114` | Tagihan berstatus `OPEN` maupun `SETTLED_BY_WRITE_OFF` tidak pernah disentuh penyelarasan ini | **MISSING / NEW** |
+| `FR-BKC-115` | Koreksi piutang tercatat untuk penyesuaian dan write-off yang diposting atas tagihan `FINAL` **maupun** `CLOSED` | **EXTEND** |
+| `FR-BKC-116` | Perhitungan sisa tagihan pasien berdiri di satu tempat, dipakai bersama oleh finalisasi, pengecualian finansial, dan penyelarasan status | **EXTEND** |
+| `FR-BKC-117` | Tagihan lama yang sudah lunas tetapi masih `FINAL` diperbaiki datanya, didahului penghitungan baca-saja yang memakai kriteria identik | **MISSING / NEW** |
+
+Tidak ada functional requirement berdisposisi `OPEN DECISION` pada epic ini.
+
+## Model status
+
+Diturunkan utuh dari `contracts/state-transition-matrix.md` amendment 18 September 2026. **Nol status baru.** Kosakata invoice tetap empat nilai (`OPEN`, `FINAL`, `CLOSED`, `SETTLED_BY_WRITE_OFF`); yang berubah adalah syarat masuk `CLOSED` dan lahirnya satu transisi balik.
+
+## Skenario UAT
+
+| ID | Epic | Jalur | Skenario | Hasil yang diharapkan |
+| --- | --- | --- | --- | --- |
+| `UAT-65` | `BKC-22` | **Berhasil** | Kasir menerima pelunasan Rp 2.000.000 atas tagihan yang sudah difinalisasi | Tagihan langsung tampil `Closed` beserta waktu penutupan yang sama dengan waktu pembayaran; kasir tidak diminta melakukan langkah tambahan apa pun |
+| `UAT-66` | `BKC-22` | **Berhasil** | Pasien mencicil dua kali pada hari yang berbeda sampai lunas | Sesudah cicilan pertama tagihan **tetap** `Final`; sesudah cicilan kedua menjadi `Closed`. Kwitansi kedua cicilan tetap tercetak seperti biasa |
+| `UAT-67` | `BKC-22` | **Berhasil** | Tagihan pasien DAMA difinalisasi dengan sisa tagihan, lalu keluarganya melunasi seminggu kemudian | Saat finalisasi tampil `Final`; setelah pelunasan menjadi `Closed` |
+| `UAT-68` | `BKC-22` | **Gagal** | Pembayaran sebuah tagihan yang sudah `Closed` dibalik karena kesalahan mesin EDC | Tagihan **kembali** tampil `Final`, waktu penutupannya kosong lagi, dan tagihan itu muncul lagi pada daftar yang masih punya sisa — bukan tetap tampak selesai |
+| `UAT-69` | `BKC-22` | **Gagal** | Petugas mencoba menyunting item pada tagihan yang sudah `Closed` | Ditolak sama seperti pada tagihan `Final`; layar tidak menawarkan tombol sunting |
+| `UAT-70` | `BKC-22` | **Berhasil** | Tiga hari setelah tagihan lunas, ketahuan salah tagih Rp 300.000 dan petugas memposting penyesuaian | Penyesuaian tercatat **dan** koreksi piutangnya ikut terbentuk — inilah yang selama ini gagal diam-diam |
+
+## Definition of Done
+
+| Butir | Bukti |
+| --- | --- |
+| Tagihan lunas berpindah ke `Closed` pada jalur pembayaran, deposit, dan penyesuaian | `BIL-AT-121`, `BIL-AT-123`, `BIL-AT-125` lulus |
+| Perhitungan kumulatif lintas sesi pembayaran terbukti benar | `BIL-AT-122` lulus |
+| Tagihan departure exception tidak dikecualikan | `BIL-AT-124` lulus |
+| Transisi balik bekerja pada kedua penyebabnya | `BIL-AT-126`, `BIL-AT-127`, `BIL-AT-128` lulus |
+| Koreksi piutang tercatat untuk tagihan `CLOSED`, dan tetap ditolak untuk status yang memang harus ditolak | `BIL-AT-129`, `BIL-AT-130`, `BIL-AT-131` lulus |
+| Aman terhadap pengiriman ulang peristiwa dan terhadap dua pembayaran bersamaan | `BIL-AT-132`, `BIL-AT-133` lulus |
+| Finalisasi tetap menghasilkan `FINAL`, dan angka sisa tagihan tidak bergeser sesudah konsolidasi | `BIL-AT-134` (a) dan (b) lulus |
+| Hasil backfill sama persis dengan yang dilaporkan dry-run | `BIL-AT-134` (c) lulus |
+| `BKC-OQ-100` terjawab dengan angka | Keluaran dry-run, tercatat pada laporan task |
+| Frontend terverifikasi menangani `CLOSED` yang baru lahir | Pembacaan source `isFinal` dan turunannya, tercatat pada laporan task frontend |
+| Migration backfill dijalankan atas otorisasi terpisah, sesudah backup | Konfirmasi eksplisit pemilik, bukan turunan approval desain |
+| `BKC-DES-033` dan `BKC-DES-029` dijawab owner saat approval | Catatan approval pada `blueprint-manifest.md` |
+
+## Urutan pengiriman
+
+| Gelombang | Isi | Alasan urutannya |
+| --- | --- | --- |
+| `MVP-24` | Service penyelarasan penutupan beserta konsolidasi perhitungan sisa tagihan, pemasangan di enam titik peristiwa, dan perluasan penjaga koreksi piutang | Satu paket yang tidak dapat dipecah: konsolidasi tanpa pemasangan tidak memperbaiki apa pun, dan pemasangan tanpa konsolidasi menambah salinan rumus ketiga. Perluasan penjaga ikut di sini karena tanpanya perpindahan ke `CLOSED` justru **mematikan** koreksi piutang yang hari ini masih jalan untuk tagihan `FINAL` |
+| `MVP-25` | Dry-run baca-saja, lalu migration backfill data tagihan lama | Dikerjakan **sesudah** `MVP-24` berjalan, supaya tagihan yang baru lunas sudah tertangani jalur normal dan backfill hanya menyisakan data lama. Menuntut otorisasi terpisah, sehingga tidak boleh menahan `MVP-24` |
+| `POST-MVP` | Penyerahan nyata ke sistem piutang beserta sumbu status penagihannya | Menunggu `BKC-BLK-INT-001` |
+
+Nol gelombang frontend. Verifikasi frontend (`FR` tidak bernomor karena tidak menghasilkan source baru) menjadi butir Definition of Done pada `MVP-24`.
+
+## Pertanyaan terbuka sebelum development lock
+
+| ID | Pertanyaan | Memblokir? | Penjawab |
+| --- | --- | :---: | --- |
+| `BKC-OQ-100` | Berapa banyak penyesuaian dan write-off yang sudah diposting atas tagihan yang tidak pernah menerima koreksi piutang, dan apakah dibutuhkan koreksi susulan selain pemindahan status? | **Tidak memblokir `MVP-24`; memblokir penutupan `MVP-25`** | Pemilik Billing/Finance, lewat keluaran dry-run |
+| `BKC-CQ-01` | Apakah owner menerima `BKC-DES-033` (catatan handoff tidak disentuh) sebagai pemenuhan konsekuensi `BKC-DEC-102`, atau tetap menghendaki penandaan eksplisit pada catatan handoff? | **Tidak memblokir `MVP-24`**; bila jawabannya "tetap menghendaki", satu kolom/nilai status baru beserta migration-nya masuk scope | Product/Domain Owner + pemilik arsitektur backend |
+
+Keduanya **bukan** `OPEN DECISION` pada tingkat epic: `EPIC BKC-22` dapat dirancang dan dikerjakan penuh tanpa menunggu jawabannya. Gelombang `MVP-24` siap diteruskan ke `plan-module-delivery` begitu desain ini disetujui; `MVP-25` menunggu `BKC-OQ-100` terjawab dan otorisasi migration diberikan.

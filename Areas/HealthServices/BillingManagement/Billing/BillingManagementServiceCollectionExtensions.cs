@@ -4,6 +4,8 @@ using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Servi
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Services;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.MasterData.Services;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.PettyCash.Services;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing;
 
@@ -24,6 +26,7 @@ public static class BillingManagementServiceCollectionExtensions
         services.AddScoped<BillingAllocationService>();
         services.AddScoped<BillingSettlementService>();
         services.AddScoped<BillingRefundService>();
+        services.AddScoped<BillingInvoiceClosureService>();
         services.AddScoped<BillingFinancialExceptionService>();
         services.AddScoped<BillingArApHandoffService>();
         services.AddScoped<BillingFinalizationService>();

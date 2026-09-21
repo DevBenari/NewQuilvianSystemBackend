@@ -70,8 +70,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             [FromQuery] DateTime? endDate = null,
             CancellationToken cancellationToken = default)
         {
-            var akhir = endDate ?? DateTime.UtcNow;
-            var awal = startDate ?? akhir.AddDays(-30);
+            // Rentang disiapkan sebelum bawaannya dihitung — lihat LabQueryDateRange.
+            var akhir = LabQueryDateRange.NormalizeEnd(endDate) ?? DateTime.UtcNow;
+            var awal = LabQueryDateRange.NormalizeStart(startDate) ?? akhir.AddDays(-30);
 
             if (awal > akhir)
             {
@@ -98,6 +99,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             return Ok(ApiResponse<List<LabRejectionReasonResponse>>.Ok(
                 result,
                 "Katalog alasan penolakan sampel berhasil diambil."));
+        }
+
+        // Daftar penerimaan LINTAS PESANAN (LAB-API-v1 r17, FR-11.5, AC-67).
+        //
+        // Rentangnya disaring pada waktu kedatangan SEBENARNYA — PhysicallyReceivedAt bila
+        // dicatat, CreateDateTime bila tidak — sehingga wadah yang tiba Senin malam dan baru
+        // diregistrasi Selasa pagi tetap muncul pada hari Senin (LAB-DEC-042).
+        [HttpGet]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<LabSpecimenListResponse>>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Lab Specimen", Description = "Melihat daftar penerimaan wadah lintas pesanan", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabSpecimen", "Read")]
+        public async Task<IActionResult> GetList(
+            [FromQuery] LabSpecimenPagedQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            (query.StartDate, query.EndDate) =
+                LabQueryDateRange.Normalize(query.StartDate, query.EndDate);
+
+            var result = await _labSpecimenService.GetListAsync(query, cancellationToken);
+
+            return Ok(ApiResponse<PagedResult<LabSpecimenListResponse>>.Ok(
+                result,
+                "Daftar penerimaan wadah berhasil diambil."));
         }
 
         [HttpGet("by-order/{labOrderId:guid}")]
@@ -348,9 +372,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
                 SpecimenBarcode = specimen.SpecimenBarcode,
                 SpecimenSequence = specimen.SpecimenSequence,
                 SpecimenDescription = specimen.SpecimenDescription,
+                SpecimenTypeId = specimen.SpecimenTypeId,
+                SpecimenTypeName = specimen.SpecimenType?.SpecimenTypeName,
+                SpecimenTypeOtherNote = specimen.SpecimenTypeOtherNote,
+                VolumeAmount = specimen.VolumeAmount,
+                VolumeUnitId = specimen.VolumeUnitId,
+                VolumeUnitSymbol = specimen.VolumeUnit?.MeasurementSymbol,
                 SpecimenStatus = specimen.SpecimenStatus.ToString(),
                 CollectedAt = specimen.CollectedAt,
                 ReceivedAt = specimen.ReceivedAt,
+                PhysicallyReceivedAt = specimen.PhysicallyReceivedAt,
                 DecidedAt = specimen.DecidedAt,
                 RejectionReasonCode = specimen.RejectionReasonCode,
                 RejectionNote = specimen.RejectionNote,

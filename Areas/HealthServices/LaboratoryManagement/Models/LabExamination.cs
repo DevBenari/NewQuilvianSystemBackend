@@ -104,6 +104,91 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models
         /// </summary>
         public int Version { get; set; }
 
+        // =================================================================
+        // Pengisian hasil — slice S4a (LAB-DEC-005, LAB-DEC-076)
+        //
+        // DISIPLIN YANG DIPERTAHANKAN DARI KOMENTAR LabExaminationStatus: kolom-kolom di bawah
+        // mencatat APA YANG TERJADI — nilainya, kapan diperiksa, siapa yang mengetik — dan nol
+        // MENJANJIKAN apa yang terjadi berikutnya. Tidak ada satu pun status hasil di sini.
+        //
+        // Validasi, rilis, nilai kritis, dan koreksi tetap tertahan LAB-SIGN-001 (S4), dan
+        // ketiga keputusan yang mengaturnya justru yang memberi arti kepada status. Menambahkan
+        // statusnya sekarang berarti menjanjikan perilaku yang belum diputuskan pihak klinis.
+        //
+        // "Hasil sudah diisi" karena itu dibaca dari ResultEnteredAt != null — sebuah fakta,
+        // bukan sebuah janji.
+        // =================================================================
+
+        /// <summary>
+        /// Nilai hasil ketika bentuknya <c>LabResultForm.Numeric</c>.
+        ///
+        /// Tepat satu dari <see cref="ResultNumeric"/> dan <see cref="ResultOptionId"/> terisi;
+        /// bentuknya ditentukan <c>LabValueBound.ResultForm</c> pemeriksaan ini.
+        /// </summary>
+        public decimal? ResultNumeric { get; set; }
+
+        /// <summary>
+        /// Pilihan hasil ketika bentuknya <c>LabResultForm.Choice</c> — menunjuk
+        /// <c>LabValueOption</c>.
+        ///
+        /// Pengetikan bebas tidak diterima pada bentuk ini (<c>AC-28</c>), sehingga yang
+        /// disimpan penunjuk pilihan yang sah, bukan teks.
+        /// </summary>
+        public Guid? ResultOptionId { get; set; }
+
+        /// <summary>
+        /// Batas nilai yang <b>berlaku saat hasil diisi</b>, disimpan sebagai penunjuk.
+        ///
+        /// <b>Tanpa ini, hasil lama berubah artinya ketika batasnya diperbarui.</b> Kalium 3,4
+        /// yang hari ini di bawah normal dapat menjadi normal besok bila batasnya digeser — dan
+        /// perubahan itu akan berlaku surut pada hasil yang sudah tercetak.
+        /// </summary>
+        public Guid? ResultValueBoundId { get; set; }
+
+        /// <summary>
+        /// Satuan sebagaimana berlaku saat hasil diisi, disalin dari batas nilainya.
+        ///
+        /// Snapshot, bukan penunjuk, dengan alasan yang sama seperti
+        /// <c>ProcedureNameSnapshot</c>: dokumen yang sudah terjadi tidak boleh berubah karena
+        /// data induknya diperbarui.
+        /// </summary>
+        [MaxLength(32)]
+        public string? ResultUnitSnapshot { get; set; }
+
+        /// <summary>
+        /// <b>Kapan pemeriksaannya dikerjakan</b> — bukan kapan hasilnya diketik.
+        ///
+        /// Keduanya berbeda dan bedanya bermakna: analis dapat mengerjakan pemeriksaan pukul
+        /// 21.10 lalu mengetiknya pukul 08.05 keesokan harinya, persis alasan
+        /// <c>LAB-DEC-042</c> memisahkan waktu tiba dari waktu pencatatan pada wadah.
+        ///
+        /// Inilah kolom yang dituntut pilihan <b>Tanggal Pemeriksaan</b> pada Kategori Periode
+        /// (<c>REC3-NEW-002</c>), dan yang ketiadaannya menahannya sampai hari ini.
+        /// </summary>
+        public DateTime? ExaminedAt { get; set; }
+
+        /// <summary>Kapan hasilnya diketik. Diturunkan server, bukan dikirim pemanggil.</summary>
+        public DateTime? ResultEnteredAt { get; set; }
+
+        /// <summary>
+        /// Siapa yang mengetik hasilnya.
+        ///
+        /// <b>Nullable, dan sengaja TANPA foreign key</b> — mengikuti
+        /// <see cref="UrgencyMarkedByUserId"/> pada entity yang sama, yang juga nol ber-FK.
+        /// Diverifikasi terhadap database 2026-09-17: <c>LabExamination</c> hanya punya tiga
+        /// foreign key, dan tidak satu pun menunjuk pengguna.
+        ///
+        /// Penulisnya tetap wajib mengisi <c>null</c>, bukan <see cref="System.Guid.Empty"/>,
+        /// ketika pelakunya bukan orang. Di sini ia tidak akan ditolak database — justru itu
+        /// yang membuatnya lebih berbahaya daripada kasus <c>BE-EXT-05</c>: <c>Guid.Empty</c>
+        /// akan tersimpan diam-diam sebagai pelaku yang tidak pernah ada, dan nol galat muncul.
+        /// </summary>
+        public Guid? ResultEnteredByUserId { get; set; }
+
+        public LabValueOption? ResultOption { get; set; }
+
+        public LabValueBound? ResultValueBound { get; set; }
+
         public LabOrder? LabOrder { get; set; }
 
         public LabSpecimen? Specimen { get; set; }

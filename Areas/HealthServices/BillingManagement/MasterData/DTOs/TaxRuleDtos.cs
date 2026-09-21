@@ -22,7 +22,6 @@ public static class TaxRuleValues
 public sealed class TaxRuleQuery
 {
     public DateTimeOffset? EffectiveAt { get; set; }
-    public string? TaxableCategory { get; set; }
     public bool? IsActive { get; set; }
     public string? Search { get; set; }
     [Range(1, int.MaxValue)] public int PageNumber { get; set; } = 1;
@@ -33,7 +32,6 @@ public class CreateTaxRuleRequest
 {
     [Required, MaxLength(30)] public string Code { get; set; } = string.Empty;
     [Required, MaxLength(100)] public string Name { get; set; } = string.Empty;
-    [Required, MaxLength(30)] public string TaxableCategory { get; set; } = string.Empty;
     [Range(typeof(decimal), "0.000001", "100.000000",
         ParseLimitsInInvariantCulture = true,
         ConvertValueInInvariantCulture = true)] public decimal Rate { get; set; }
@@ -51,7 +49,6 @@ public sealed class TaxRuleResponse
     public Guid Id { get; set; }
     public string Code { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
-    public string TaxableCategory { get; set; } = string.Empty;
     public decimal Rate { get; set; }
     public string RoundingMode { get; set; } = string.Empty;
     public string AllocationRule { get; set; } = string.Empty;
@@ -75,7 +72,6 @@ public sealed class TaxRuleOptionResponse
     public Guid Id { get; set; }
     public string Code { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
-    public string TaxableCategory { get; set; } = string.Empty;
     public decimal Rate { get; set; }
     public bool IsActive { get; set; }
 }
@@ -90,7 +86,6 @@ public sealed class TaxRuleSummaryResponse
 public sealed class TaxRuleDefaultFilterResponse
 {
     public bool? IsActive { get; set; }
-    public string? TaxableCategory { get; set; }
     public string? Search { get; set; }
     public DateTimeOffset? EffectiveAt { get; set; }
 }
@@ -101,5 +96,4 @@ public sealed class TaxRuleFilterMetadataResponse
     public List<int> PageSizeOptions { get; set; } = new();
     public List<string> RoundingModes { get; set; } = new();
     public List<string> AllocationRules { get; set; } = new();
-    public List<string> TaxableCategories { get; set; } = new();
 }

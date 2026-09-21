@@ -3850,6 +3850,419 @@ namespace QuilvianSystemBackend.Migrations
                         });
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.MasterData.Models.MstPettyCashCategory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CategoryCode")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("CategoryName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CategoryCode")
+                        .IsUnique()
+                        .HasDatabaseName("IX_MstPettyCashCategory_CategoryCode")
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.ToTable("MstPettyCashCategory", "public");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("c8d2e6b3-4a15-4f79-8b21-000000000001"),
+                            CancelBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            CategoryCode = "TRANSPORT",
+                            CategoryName = "Transport",
+                            CreateBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            CreateDateTime = new DateTime(2026, 9, 7, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DeleteBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            Description = "Ongkos transport kurir dan perjalanan dinas singkat",
+                            IsActive = true,
+                            IsCancel = false,
+                            IsDelete = false,
+                            UpdateBy = new Guid("00000000-0000-0000-0000-000000000000")
+                        },
+                        new
+                        {
+                            Id = new Guid("c8d2e6b3-4a15-4f79-8b21-000000000002"),
+                            CancelBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            CategoryCode = "OPERASIONAL",
+                            CategoryName = "Operasional",
+                            CreateBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            CreateDateTime = new DateTime(2026, 9, 7, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DeleteBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            Description = "Keperluan operasional harian rumah sakit",
+                            IsActive = true,
+                            IsCancel = false,
+                            IsDelete = false,
+                            UpdateBy = new Guid("00000000-0000-0000-0000-000000000000")
+                        },
+                        new
+                        {
+                            Id = new Guid("c8d2e6b3-4a15-4f79-8b21-000000000003"),
+                            CancelBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            CategoryCode = "KONSUMSI",
+                            CategoryName = "Konsumsi",
+                            CreateBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            CreateDateTime = new DateTime(2026, 9, 7, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DeleteBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            Description = "Konsumsi rapat dan kegiatan internal",
+                            IsActive = true,
+                            IsCancel = false,
+                            IsDelete = false,
+                            UpdateBy = new Guid("00000000-0000-0000-0000-000000000000")
+                        },
+                        new
+                        {
+                            Id = new Guid("c8d2e6b3-4a15-4f79-8b21-000000000004"),
+                            CancelBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            CategoryCode = "MAINTENANCE",
+                            CategoryName = "Maintenance",
+                            CreateBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            CreateDateTime = new DateTime(2026, 9, 7, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DeleteBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            Description = "Perbaikan kecil sarana dan prasarana",
+                            IsActive = true,
+                            IsCancel = false,
+                            IsDelete = false,
+                            UpdateBy = new Guid("00000000-0000-0000-0000-000000000000")
+                        },
+                        new
+                        {
+                            Id = new Guid("c8d2e6b3-4a15-4f79-8b21-000000000005"),
+                            CancelBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            CategoryCode = "ATK",
+                            CategoryName = "Alat Tulis Kantor",
+                            CreateBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            CreateDateTime = new DateTime(2026, 9, 7, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DeleteBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            Description = "Pembelian alat tulis kantor",
+                            IsActive = true,
+                            IsCancel = false,
+                            IsDelete = false,
+                            UpdateBy = new Guid("00000000-0000-0000-0000-000000000000")
+                        });
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.PettyCash.Models.FinPettyCashBudget", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("BudgetAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<decimal>("CurrentBalance")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTimeOffset?>("LastMovementAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateOnly?>("PeriodEnd")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly>("PeriodStart")
+                        .HasColumnType("date");
+
+                    b.Property<string>("PoolCode")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("PoolName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("ACTIVE");
+
+                    b.Property<Guid?>("SupersededByBudgetId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("TotalDisbursedAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<decimal>("TotalTopUpAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PoolCode")
+                        .IsUnique()
+                        .HasDatabaseName("IX_FinPettyCashBudget_ActivePerPool")
+                        .HasFilter("\"Status\" = 'ACTIVE' AND \"IsDelete\" = false");
+
+                    b.HasIndex("SupersededByBudgetId");
+
+                    b.HasIndex("PoolCode", "PeriodStart")
+                        .HasDatabaseName("IX_FinPettyCashBudget_PoolCode_PeriodStart");
+
+                    b.ToTable("FinPettyCashBudget", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_FinPettyCashBudget_BudgetAmount", "\"BudgetAmount\" >= 0");
+
+                            t.HasCheckConstraint("CK_FinPettyCashBudget_CurrentBalance", "\"CurrentBalance\" >= 0");
+
+                            t.HasCheckConstraint("CK_FinPettyCashBudget_Status", "\"Status\" IN ('ACTIVE','INACTIVE','DRAFT','CLOSED')");
+                        });
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("b7c1f5a2-9d34-4e88-9a10-000000000001"),
+                            BudgetAmount = 0m,
+                            CancelBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            CreateBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            CreateDateTime = new DateTime(2026, 9, 7, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CurrentBalance = 0m,
+                            DeleteBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            IsCancel = false,
+                            IsDelete = false,
+                            PeriodStart = new DateOnly(2026, 9, 7),
+                            PoolCode = "HOSPITAL_MAIN",
+                            PoolName = "Kas Kecil Rumah Sakit",
+                            RowVersion = new Guid("b7c1f5a2-9d34-4e88-9a10-0000000000f1"),
+                            Status = "ACTIVE",
+                            TotalDisbursedAmount = 0m,
+                            TotalTopUpAmount = 0m,
+                            UpdateBy = new Guid("00000000-0000-0000-0000-000000000000")
+                        });
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.PettyCash.Models.FinPettyCashBudgetMovement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ActorUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("BalanceAfter")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("BalanceBefore")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("BudgetId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CorrelationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FundingSourceType")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<Guid?>("IdempotencyKey")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("MovementType")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<DateTimeOffset>("OccurredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("TransferReference")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("VoucherId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IdempotencyKey")
+                        .IsUnique()
+                        .HasDatabaseName("IX_FinPettyCashBudgetMovement_IdempotencyKey")
+                        .HasFilter("\"IdempotencyKey\" IS NOT NULL");
+
+                    b.HasIndex("VoucherId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_FinPettyCashBudgetMovement_Voucher_Reversal")
+                        .HasFilter("\"MovementType\" = 'REVERSAL' AND \"IsDelete\" = false");
+
+                    b.HasIndex("BudgetId", "OccurredAt")
+                        .HasDatabaseName("IX_FinPettyCashBudgetMovement_Budget_OccurredAt");
+
+                    b.ToTable("FinPettyCashBudgetMovement", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_FinPettyCashBudgetMovement_Amount", "\"Amount\" > 0");
+
+                            t.HasCheckConstraint("CK_FinPettyCashBudgetMovement_BalanceAfter", "\"BalanceAfter\" >= 0");
+
+                            t.HasCheckConstraint("CK_FinPettyCashBudgetMovement_FundingSourceType", "\"FundingSourceType\" IS NULL OR \"FundingSourceType\" IN ('TRANSFER','CASH')");
+
+                            t.HasCheckConstraint("CK_FinPettyCashBudgetMovement_MovementType", "\"MovementType\" IN ('TOP_UP','DISBURSEMENT','ADJUSTMENT','RETURN','REVERSAL','CARRY_FORWARD_OUT','CARRY_FORWARD_IN')");
+
+                            t.HasCheckConstraint("CK_FinPettyCashBudgetMovement_Reason", "\"MovementType\" = 'DISBURSEMENT' OR \"Reason\" IS NOT NULL");
+
+                            t.HasCheckConstraint("CK_FinPettyCashBudgetMovement_TransferReference", "\"TransferReference\" IS NULL OR \"FundingSourceType\" = 'TRANSFER'");
+
+                            t.HasCheckConstraint("CK_FinPettyCashBudgetMovement_VoucherId", "(\"MovementType\" IN ('DISBURSEMENT','RETURN','REVERSAL') AND \"VoucherId\" IS NOT NULL) OR (\"MovementType\" NOT IN ('DISBURSEMENT','RETURN','REVERSAL') AND \"VoucherId\" IS NULL)");
+                        });
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models.HrdAttendance", b =>
                 {
                     b.Property<Guid>("Id")
@@ -58438,154 +58851,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("MstPaymentMethodAccount", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models.MstPettyCashCategory", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CategoryCode")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
-
-                    b.Property<string>("CategoryName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(300)
-                        .HasColumnType("character varying(300)");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true);
-
-                    b.Property<bool>("IsCancel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsDelete")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CategoryCode")
-                        .IsUnique()
-                        .HasDatabaseName("IX_MstPettyCashCategory_CategoryCode")
-                        .HasFilter("\"IsDelete\" = false");
-
-                    b.ToTable("MstPettyCashCategory", "public");
-
-                    b.HasData(
-                        new
-                        {
-                            Id = new Guid("c8d2e6b3-4a15-4f79-8b21-000000000001"),
-                            CancelBy = new Guid("00000000-0000-0000-0000-000000000000"),
-                            CategoryCode = "TRANSPORT",
-                            CategoryName = "Transport",
-                            CreateBy = new Guid("00000000-0000-0000-0000-000000000000"),
-                            CreateDateTime = new DateTime(2026, 9, 7, 0, 0, 0, 0, DateTimeKind.Utc),
-                            DeleteBy = new Guid("00000000-0000-0000-0000-000000000000"),
-                            Description = "Ongkos transport kurir dan perjalanan dinas singkat",
-                            IsActive = true,
-                            IsCancel = false,
-                            IsDelete = false,
-                            UpdateBy = new Guid("00000000-0000-0000-0000-000000000000")
-                        },
-                        new
-                        {
-                            Id = new Guid("c8d2e6b3-4a15-4f79-8b21-000000000002"),
-                            CancelBy = new Guid("00000000-0000-0000-0000-000000000000"),
-                            CategoryCode = "OPERASIONAL",
-                            CategoryName = "Operasional",
-                            CreateBy = new Guid("00000000-0000-0000-0000-000000000000"),
-                            CreateDateTime = new DateTime(2026, 9, 7, 0, 0, 0, 0, DateTimeKind.Utc),
-                            DeleteBy = new Guid("00000000-0000-0000-0000-000000000000"),
-                            Description = "Keperluan operasional harian rumah sakit",
-                            IsActive = true,
-                            IsCancel = false,
-                            IsDelete = false,
-                            UpdateBy = new Guid("00000000-0000-0000-0000-000000000000")
-                        },
-                        new
-                        {
-                            Id = new Guid("c8d2e6b3-4a15-4f79-8b21-000000000003"),
-                            CancelBy = new Guid("00000000-0000-0000-0000-000000000000"),
-                            CategoryCode = "KONSUMSI",
-                            CategoryName = "Konsumsi",
-                            CreateBy = new Guid("00000000-0000-0000-0000-000000000000"),
-                            CreateDateTime = new DateTime(2026, 9, 7, 0, 0, 0, 0, DateTimeKind.Utc),
-                            DeleteBy = new Guid("00000000-0000-0000-0000-000000000000"),
-                            Description = "Konsumsi rapat dan kegiatan internal",
-                            IsActive = true,
-                            IsCancel = false,
-                            IsDelete = false,
-                            UpdateBy = new Guid("00000000-0000-0000-0000-000000000000")
-                        },
-                        new
-                        {
-                            Id = new Guid("c8d2e6b3-4a15-4f79-8b21-000000000004"),
-                            CancelBy = new Guid("00000000-0000-0000-0000-000000000000"),
-                            CategoryCode = "MAINTENANCE",
-                            CategoryName = "Maintenance",
-                            CreateBy = new Guid("00000000-0000-0000-0000-000000000000"),
-                            CreateDateTime = new DateTime(2026, 9, 7, 0, 0, 0, 0, DateTimeKind.Utc),
-                            DeleteBy = new Guid("00000000-0000-0000-0000-000000000000"),
-                            Description = "Perbaikan kecil sarana dan prasarana",
-                            IsActive = true,
-                            IsCancel = false,
-                            IsDelete = false,
-                            UpdateBy = new Guid("00000000-0000-0000-0000-000000000000")
-                        },
-                        new
-                        {
-                            Id = new Guid("c8d2e6b3-4a15-4f79-8b21-000000000005"),
-                            CancelBy = new Guid("00000000-0000-0000-0000-000000000000"),
-                            CategoryCode = "ATK",
-                            CategoryName = "Alat Tulis Kantor",
-                            CreateBy = new Guid("00000000-0000-0000-0000-000000000000"),
-                            CreateDateTime = new DateTime(2026, 9, 7, 0, 0, 0, 0, DateTimeKind.Utc),
-                            DeleteBy = new Guid("00000000-0000-0000-0000-000000000000"),
-                            Description = "Pembelian alat tulis kantor",
-                            IsActive = true,
-                            IsCancel = false,
-                            IsDelete = false,
-                            UpdateBy = new Guid("00000000-0000-0000-0000-000000000000")
-                        });
-                });
-
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models.MstRegister", b =>
                 {
                     b.Property<Guid>("Id")
@@ -58842,11 +59107,6 @@ namespace QuilvianSystemBackend.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
 
-                    b.Property<string>("TaxableCategory")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
-
                     b.Property<Guid>("UpdateBy")
                         .HasColumnType("uuid");
 
@@ -58859,7 +59119,7 @@ namespace QuilvianSystemBackend.Migrations
                         .IsUnique()
                         .HasFilter("\"IsDelete\" = false");
 
-                    b.HasIndex("TaxableCategory", "EffectiveFrom", "EffectiveTo", "IsActive", "IsDelete");
+                    b.HasIndex("EffectiveFrom", "EffectiveTo", "IsActive", "IsDelete");
 
                     b.ToTable("MstTaxRule", "public", t =>
                         {
@@ -59226,259 +59486,6 @@ namespace QuilvianSystemBackend.Migrations
                         .IsUnique();
 
                     b.ToTable("BilProcessingEffect", "public");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Models.BilPettyCashBudget", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("BudgetAmount")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)")
-                        .HasDefaultValue(0m);
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<decimal>("CurrentBalance")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)")
-                        .HasDefaultValue(0m);
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("IsCancel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsDelete")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<DateTimeOffset?>("LastMovementAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateOnly?>("PeriodEnd")
-                        .HasColumnType("date");
-
-                    b.Property<DateOnly>("PeriodStart")
-                        .HasColumnType("date");
-
-                    b.Property<string>("PoolCode")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
-
-                    b.Property<string>("PoolName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<Guid>("RowVersion")
-                        .IsConcurrencyToken()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
-                        .HasDefaultValue("ACTIVE");
-
-                    b.Property<Guid?>("SupersededByBudgetId")
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("TotalDisbursedAmount")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)")
-                        .HasDefaultValue(0m);
-
-                    b.Property<decimal>("TotalTopUpAmount")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)")
-                        .HasDefaultValue(0m);
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PoolCode")
-                        .IsUnique()
-                        .HasDatabaseName("IX_BilPettyCashBudget_ActivePerPool")
-                        .HasFilter("\"Status\" = 'ACTIVE' AND \"IsDelete\" = false");
-
-                    b.HasIndex("SupersededByBudgetId");
-
-                    b.HasIndex("PoolCode", "PeriodStart")
-                        .HasDatabaseName("IX_BilPettyCashBudget_PoolCode_PeriodStart");
-
-                    b.ToTable("BilPettyCashBudget", "public", t =>
-                        {
-                            t.HasCheckConstraint("CK_BilPettyCashBudget_BudgetAmount", "\"BudgetAmount\" >= 0");
-
-                            t.HasCheckConstraint("CK_BilPettyCashBudget_CurrentBalance", "\"CurrentBalance\" >= 0");
-
-                            t.HasCheckConstraint("CK_BilPettyCashBudget_Status", "\"Status\" IN ('ACTIVE','INACTIVE','DRAFT','CLOSED')");
-                        });
-
-                    b.HasData(
-                        new
-                        {
-                            Id = new Guid("b7c1f5a2-9d34-4e88-9a10-000000000001"),
-                            BudgetAmount = 0m,
-                            CancelBy = new Guid("00000000-0000-0000-0000-000000000000"),
-                            CreateBy = new Guid("00000000-0000-0000-0000-000000000000"),
-                            CreateDateTime = new DateTime(2026, 9, 7, 0, 0, 0, 0, DateTimeKind.Utc),
-                            CurrentBalance = 0m,
-                            DeleteBy = new Guid("00000000-0000-0000-0000-000000000000"),
-                            IsCancel = false,
-                            IsDelete = false,
-                            PeriodStart = new DateOnly(2026, 9, 7),
-                            PoolCode = "HOSPITAL_MAIN",
-                            PoolName = "Kas Kecil Rumah Sakit",
-                            RowVersion = new Guid("b7c1f5a2-9d34-4e88-9a10-0000000000f1"),
-                            Status = "ACTIVE",
-                            TotalDisbursedAmount = 0m,
-                            TotalTopUpAmount = 0m,
-                            UpdateBy = new Guid("00000000-0000-0000-0000-000000000000")
-                        });
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Models.BilPettyCashBudgetMovement", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("ActorUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("Amount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<decimal>("BalanceAfter")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<decimal>("BalanceBefore")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<Guid>("BudgetId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CorrelationId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("IdempotencyKey")
-                        .HasColumnType("uuid");
-
-                    b.Property<bool>("IsCancel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsDelete")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<string>("MovementType")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
-
-                    b.Property<DateTimeOffset>("OccurredAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Reason")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("VoucherId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("IdempotencyKey")
-                        .IsUnique()
-                        .HasDatabaseName("IX_BilPettyCashBudgetMovement_IdempotencyKey")
-                        .HasFilter("\"IdempotencyKey\" IS NOT NULL");
-
-                    b.HasIndex("VoucherId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_BilPettyCashBudgetMovement_Voucher_Reversal")
-                        .HasFilter("\"MovementType\" = 'REVERSAL' AND \"IsDelete\" = false");
-
-                    b.HasIndex("BudgetId", "OccurredAt")
-                        .HasDatabaseName("IX_BilPettyCashBudgetMovement_Budget_OccurredAt");
-
-                    b.ToTable("BilPettyCashBudgetMovement", "public", t =>
-                        {
-                            t.HasCheckConstraint("CK_BilPettyCashBudgetMovement_Amount", "\"Amount\" > 0");
-
-                            t.HasCheckConstraint("CK_BilPettyCashBudgetMovement_BalanceAfter", "\"BalanceAfter\" >= 0");
-
-                            t.HasCheckConstraint("CK_BilPettyCashBudgetMovement_MovementType", "\"MovementType\" IN ('TOP_UP','DISBURSEMENT','ADJUSTMENT','RETURN','REVERSAL','CARRY_FORWARD_OUT','CARRY_FORWARD_IN')");
-
-                            t.HasCheckConstraint("CK_BilPettyCashBudgetMovement_Reason", "\"MovementType\" = 'DISBURSEMENT' OR \"Reason\" IS NOT NULL");
-
-                            t.HasCheckConstraint("CK_BilPettyCashBudgetMovement_VoucherId", "(\"MovementType\" IN ('DISBURSEMENT','RETURN','REVERSAL') AND \"VoucherId\" IS NOT NULL) OR (\"MovementType\" NOT IN ('DISBURSEMENT','RETURN','REVERSAL') AND \"VoucherId\" IS NULL)");
-                        });
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Models.BilPettyCashVoucher", b =>
@@ -69047,6 +69054,76 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("InpStatusHistory", "public");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabAntibiotic", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AntibioticCode")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("AntibioticName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AntibioticCode")
+                        .IsUnique()
+                        .HasDatabaseName("IX_LabAntibiotic_AntibioticCode")
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("AntibioticName");
+
+                    b.HasIndex("IsActive", "SortOrder");
+
+                    b.ToTable("LabAntibiotic", "public");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabExamination", b =>
                 {
                     b.Property<Guid>("Id")
@@ -69077,6 +69154,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<int>("ExaminationStatus")
                         .HasColumnType("integer");
 
+                    b.Property<DateTime?>("ExaminedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<bool>("IsCancel")
                         .HasColumnType("boolean");
 
@@ -69099,6 +69179,26 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<string>("ProcedureNameSnapshot")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("ResultEnteredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ResultEnteredByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal?>("ResultNumeric")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<Guid?>("ResultOptionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ResultUnitSnapshot")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<Guid?>("ResultValueBoundId")
+                        .HasColumnType("uuid");
 
                     b.Property<Guid>("SpecimenId")
                         .HasColumnType("uuid");
@@ -69139,9 +69239,15 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("ExaminationStatus");
 
+                    b.HasIndex("ExaminedAt");
+
                     b.HasIndex("LabOrderId");
 
                     b.HasIndex("ProcedureId");
+
+                    b.HasIndex("ResultOptionId");
+
+                    b.HasIndex("ResultValueBoundId");
 
                     b.HasIndex("Urgency");
 
@@ -69168,6 +69274,12 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<DateTime?>("CompletedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("ConfirmedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ConfirmedByUserId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("CreateBy")
                         .HasColumnType("uuid");
 
@@ -69186,6 +69298,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<Guid>("EncounterId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("ExaminerDoctorId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid?>("InpEpisodeId")
                         .HasColumnType("uuid");
 
@@ -69194,6 +69309,11 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.Property<bool>("IsDelete")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("OrderNumber")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
 
                     b.Property<int>("OrderStatus")
                         .HasColumnType("integer");
@@ -69226,6 +69346,11 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("EncounterId");
 
+                    b.HasIndex("ExaminerDoctorId");
+
+                    b.HasIndex("OrderNumber")
+                        .IsUnique();
+
                     b.HasIndex("OrderStatus");
 
                     b.HasIndex("ProcedureId");
@@ -69233,6 +69358,587 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("InpEpisodeId", "CreateDateTime");
 
                     b.ToTable("LabOrder", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabOrderedProcedure", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("DisciplineSnapshot")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("FulfilledExaminationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("LabOrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("OrderedStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ProcedureCodeSnapshot")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid>("ProcedureId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ProcedureNameSnapshot")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Urgency")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FulfilledExaminationId");
+
+                    b.HasIndex("OrderedStatus");
+
+                    b.HasIndex("ProcedureId");
+
+                    b.HasIndex("LabOrderId", "ProcedureId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_LabOrderedProcedure_LabOrderId_ProcedureId")
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.ToTable("LabOrderedProcedure", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabOrganism", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("OrganismCode")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("OrganismName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrganismCode")
+                        .IsUnique()
+                        .HasDatabaseName("IX_LabOrganism_OrganismCode")
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("OrganismName");
+
+                    b.HasIndex("IsActive", "SortOrder");
+
+                    b.ToTable("LabOrganism", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabPathologyCategory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CategoryCode")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("CategoryName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CategoryCode")
+                        .IsUnique()
+                        .HasDatabaseName("IX_LabPathologyCategory_CategoryCode")
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("IsActive", "SortOrder");
+
+                    b.ToTable("LabPathologyCategory", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabPathologyOrderContext", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ClinicalNote")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("InitialDiagnosis")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("LabOrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateOnly?>("LastMenstrualPeriod")
+                        .HasColumnType("date");
+
+                    b.Property<string>("RelevantHistory")
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LabOrderId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_LabPathologyOrderContext_LabOrderId")
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.ToTable("LabPathologyOrderContext", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabPathologyParameter", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("ParameterCode")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("ParameterName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ParameterCode")
+                        .IsUnique()
+                        .HasDatabaseName("IX_LabPathologyParameter_ParameterCode")
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("ParameterName");
+
+                    b.HasIndex("IsActive", "SortOrder");
+
+                    b.ToTable("LabPathologyParameter", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabPathologyParameterCategory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsRequired")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("LabPathologyCategoryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("LabPathologyParameterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LabPathologyCategoryId");
+
+                    b.HasIndex("LabPathologyParameterId", "LabPathologyCategoryId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_LabPathologyParameterCategory_ParameterId_CategoryId")
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.ToTable("LabPathologyParameterCategory", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabPathologyReport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("AnalystUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("FinalizedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("FinalizedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int?>("FindingStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("LabOrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("ReopenCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FinalizedAt");
+
+                    b.HasIndex("LabOrderId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_LabPathologyReport_LabOrderId")
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.ToTable("LabPathologyReport", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabPathologyReportValue", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("LabPathologyParameterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("LabPathologyReportId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ParameterNameSnapshot")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LabPathologyParameterId");
+
+                    b.HasIndex("LabPathologyReportId", "LabPathologyParameterId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_LabPathologyReportValue_ReportId_ParameterId")
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.ToTable("LabPathologyReportValue", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabProcedurePathologyCategory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("LabPathologyCategoryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ProcedureId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LabPathologyCategoryId");
+
+                    b.HasIndex("ProcedureId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_LabProcedurePathologyCategory_ProcedureId")
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.ToTable("LabProcedurePathologyCategory", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabSpecimen", b =>
@@ -69280,6 +69986,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<Guid>("LabOrderId")
                         .HasColumnType("uuid");
 
+                    b.Property<DateTime?>("PhysicallyReceivedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTime?>("ReceivedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -69325,6 +70034,13 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<int>("SpecimenStatus")
                         .HasColumnType("integer");
 
+                    b.Property<Guid?>("SpecimenTypeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SpecimenTypeOtherNote")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
                     b.Property<int?>("StatusBeforeHold")
                         .HasColumnType("integer");
 
@@ -69341,7 +70057,16 @@ namespace QuilvianSystemBackend.Migrations
                         .IsConcurrencyToken()
                         .HasColumnType("integer");
 
+                    b.Property<decimal?>("VolumeAmount")
+                        .HasPrecision(12, 3)
+                        .HasColumnType("numeric(12,3)");
+
+                    b.Property<Guid?>("VolumeUnitId")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("PhysicallyReceivedAt");
 
                     b.HasIndex("RejectionReasonId");
 
@@ -69350,11 +70075,90 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("SpecimenStatus");
 
+                    b.HasIndex("SpecimenTypeId");
+
                     b.HasIndex("SupersededSpecimenId");
+
+                    b.HasIndex("VolumeUnitId");
 
                     b.HasIndex("LabOrderId", "SpecimenSequence");
 
                     b.ToTable("LabSpecimen", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabSpecimenType", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsOtherBucket")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SpecimenTypeCode")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<string>("SpecimenTypeName")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsOtherBucket")
+                        .IsUnique()
+                        .HasDatabaseName("IX_LabSpecimenType_SingleOtherBucket")
+                        .HasFilter("\"IsOtherBucket\" = true AND \"IsActive\" = true AND \"IsDelete\" = false");
+
+                    b.HasIndex("SpecimenTypeCode")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("IsActive", "SortOrder");
+
+                    b.ToTable("LabSpecimenType", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabTransitionHistory", b =>
@@ -83972,6 +84776,9 @@ namespace QuilvianSystemBackend.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<bool?>("HasPhysicianRequest")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("IdentityNumber")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
@@ -84062,6 +84869,9 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
+                    b.Property<int?>("TargetService")
+                        .HasColumnType("integer");
+
                     b.Property<Guid>("UpdateBy")
                         .HasColumnType("uuid");
 
@@ -84088,6 +84898,8 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("SessionCode")
                         .IsUnique();
+
+                    b.HasIndex("TargetService");
 
                     b.HasIndex("PatientId", "IsUsedForRegistration", "IsDelete");
 
@@ -85913,6 +86725,32 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("CostCenter");
 
                     b.Navigation("Template");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.PettyCash.Models.FinPettyCashBudget", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.PettyCash.Models.FinPettyCashBudget", null)
+                        .WithMany()
+                        .HasForeignKey("SupersededByBudgetId")
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.PettyCash.Models.FinPettyCashBudgetMovement", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.PettyCash.Models.FinPettyCashBudget", "Budget")
+                        .WithMany("Movements")
+                        .HasForeignKey("BudgetId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Models.BilPettyCashVoucher", "Voucher")
+                        .WithMany()
+                        .HasForeignKey("VoucherId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Budget");
+
+                    b.Navigation("Voucher");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models.HrdAttendance", b =>
@@ -102275,35 +103113,9 @@ namespace QuilvianSystemBackend.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Models.BilPettyCashBudget", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Models.BilPettyCashBudget", null)
-                        .WithMany()
-                        .HasForeignKey("SupersededByBudgetId")
-                        .OnDelete(DeleteBehavior.Restrict);
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Models.BilPettyCashBudgetMovement", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Models.BilPettyCashBudget", "Budget")
-                        .WithMany("Movements")
-                        .HasForeignKey("BudgetId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Models.BilPettyCashVoucher", "Voucher")
-                        .WithMany()
-                        .HasForeignKey("VoucherId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("Budget");
-
-                    b.Navigation("Voucher");
-                });
-
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Models.BilPettyCashVoucher", b =>
                 {
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models.MstPettyCashCategory", "Category")
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.MasterData.Models.MstPettyCashCategory", "Category")
                         .WithMany()
                         .HasForeignKey("CategoryId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -104851,6 +105663,16 @@ namespace QuilvianSystemBackend.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabValueOption", "ResultOption")
+                        .WithMany()
+                        .HasForeignKey("ResultOptionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabValueBound", "ResultValueBound")
+                        .WithMany()
+                        .HasForeignKey("ResultValueBoundId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabSpecimen", "Specimen")
                         .WithMany("Examinations")
                         .HasForeignKey("SpecimenId")
@@ -104860,6 +105682,10 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("LabOrder");
 
                     b.Navigation("Procedure");
+
+                    b.Navigation("ResultOption");
+
+                    b.Navigation("ResultValueBound");
 
                     b.Navigation("Specimen");
                 });
@@ -104871,6 +105697,11 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("EncounterId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstDoctor", null)
+                        .WithMany()
+                        .HasForeignKey("ExaminerDoctorId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models.InpEpisode", null)
                         .WithMany()
@@ -104888,6 +105719,111 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("Procedure");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabOrderedProcedure", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabExamination", "FulfilledExamination")
+                        .WithMany()
+                        .HasForeignKey("FulfilledExaminationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabOrder", "LabOrder")
+                        .WithMany()
+                        .HasForeignKey("LabOrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstProcedure", "Procedure")
+                        .WithMany()
+                        .HasForeignKey("ProcedureId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("FulfilledExamination");
+
+                    b.Navigation("LabOrder");
+
+                    b.Navigation("Procedure");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabPathologyOrderContext", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabOrder", "LabOrder")
+                        .WithMany()
+                        .HasForeignKey("LabOrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("LabOrder");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabPathologyParameterCategory", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabPathologyCategory", "LabPathologyCategory")
+                        .WithMany()
+                        .HasForeignKey("LabPathologyCategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabPathologyParameter", "LabPathologyParameter")
+                        .WithMany()
+                        .HasForeignKey("LabPathologyParameterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("LabPathologyCategory");
+
+                    b.Navigation("LabPathologyParameter");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabPathologyReport", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabOrder", "LabOrder")
+                        .WithMany()
+                        .HasForeignKey("LabOrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("LabOrder");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabPathologyReportValue", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabPathologyParameter", "LabPathologyParameter")
+                        .WithMany()
+                        .HasForeignKey("LabPathologyParameterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabPathologyReport", "LabPathologyReport")
+                        .WithMany("Values")
+                        .HasForeignKey("LabPathologyReportId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("LabPathologyParameter");
+
+                    b.Navigation("LabPathologyReport");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabProcedurePathologyCategory", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabPathologyCategory", "LabPathologyCategory")
+                        .WithMany()
+                        .HasForeignKey("LabPathologyCategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstProcedure", "Procedure")
+                        .WithMany()
+                        .HasForeignKey("ProcedureId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("LabPathologyCategory");
+
+                    b.Navigation("Procedure");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabSpecimen", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabOrder", "LabOrder")
@@ -104901,16 +105837,30 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("RejectionReasonId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabSpecimenType", "SpecimenType")
+                        .WithMany()
+                        .HasForeignKey("SpecimenTypeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabSpecimen", "SupersededSpecimen")
                         .WithMany()
                         .HasForeignKey("SupersededSpecimenId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstMeasurement", "VolumeUnit")
+                        .WithMany()
+                        .HasForeignKey("VolumeUnitId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("LabOrder");
 
                     b.Navigation("RejectionReason");
 
+                    b.Navigation("SpecimenType");
+
                     b.Navigation("SupersededSpecimen");
+
+                    b.Navigation("VolumeUnit");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabTransitionHistory", b =>
@@ -107959,6 +108909,11 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("Runs");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.PettyCash.Models.FinPettyCashBudget", b =>
+                {
+                    b.Navigation("Movements");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models.HrdAttendanceCorrectionRequest", b =>
                 {
                     b.Navigation("Approvals");
@@ -109013,11 +109968,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("ChargeLines");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Models.BilPettyCashBudget", b =>
-                {
-                    b.Navigation("Movements");
-                });
-
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Models.BilPettyCashVoucher", b =>
                 {
                     b.Navigation("Commands");
@@ -109152,6 +110102,11 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("Examinations");
 
                     b.Navigation("Specimens");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabPathologyReport", b =>
+                {
+                    b.Navigation("Values");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabSpecimen", b =>
