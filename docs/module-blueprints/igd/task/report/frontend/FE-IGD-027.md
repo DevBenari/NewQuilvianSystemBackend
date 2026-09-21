@@ -4,7 +4,7 @@
 | --- | --- |
 | Task | `FE-IGD-027` |
 | Gelombang | `EPIC IGD-04` · slice `IGD-S06` |
-| Status | 🟡 **IMPLEMENTATION COMPLETE / RUNTIME NOT VERIFIED — 17 September 2026.** Ketujuh acceptance terpetakan ke source; lint `PASS`; unit test **866/866**. `npm run build` dan uji lewat layar **belum** — keduanya milik pemilik |
+| Status | 🟡 **SEBAGIAN — dinilai ulang 21 September 2026, karena source berubah sesudah verifikasi pemilik (bagian 8).** Bukti dicatat **per revisi**; bukti revisi lama tidak dipakai untuk revisi terbaru. **Implementation Complete = ya** (revisi terbaru). **Scoped eslint = PASS** dan **unit test IGD = 38/38 PASS** (bagian 8.3; tidak dijalankan ulang pada penilaian ini). **Runtime inti = PASS 18 September 2026** pada revisi `3213419a7` — tiga belas pemeriksaan lewat layar, dijalankan pemilik — [evidence](../evidence/2026-09-18-verifikasi-runtime-fe-igd-027.md); **tidak diulang** untuk revisi terbaru. **Build penuh revisi terbaru = belum diverifikasi pemilik.** Tampilan baris legacy "Data historis" belum diuji lewat layar (menunggu migration `BE-IGD-048`). **UAT belum dan tidak diklaim** |
 | Frontend | branch `RizkiV2` `3213419a7` |
 | Requirement | `FR-IGD-016` sampai `FR-IGD-021`, sisi tampilan |
 | Kontrak | API `0.7.0` bagian 3, 3.1, 3.2 — dipakai persis seperti yang dibangun `BE-IGD-045` |
@@ -71,8 +71,8 @@ menunggu keputusan pemilik.
 | --- | --- |
 | `npm run lint:errors` | ✅ **PASS**, exit 0 |
 | `AUTOMATED TEST: npm test` | ✅ **PASS** — 866 lulus, 0 gagal |
-| `npm run build` | **Belum dijalankan** — milik pemilik |
-| `MANUAL TEST` | **NOT FEASIBLE** bagi agent — menuntut kredensial petugas, backend berjalan, dan hak akses `EmergencyDoctorAssignment` yang dicentang admin |
+| `npm run build` | ✅ **PASS 18 September 2026 pada revisi `3213419a7`**, dijalankan pemilik. **Bukan Build Verified untuk revisi terbaru** (perubahan bagian 8: terminologi dan fallback "Data historis"): build penuh revisi itu **belum diverifikasi pemilik** |
+| `MANUAL TEST` | ✅ **PASS 18 September 2026** — 13 pemeriksaan lewat layar oleh pemilik, [evidence](../evidence/2026-09-18-verifikasi-runtime-fe-igd-027.md). Satu skenario **NOT FEASIBLE**: tampilan baris legacy tanpa pelaku, karena **nol** data yang cocok pada dev (kandidat backfill 0 baris). Bukan `FAIL` |
 
 ### 5.1 Checklist konsistensi UI — grep anti-regresi
 
@@ -100,7 +100,7 @@ menyelundupkannya lewat task ini. Blok CSS barunya diberi komentar yang menyatak
 
 | Hal | Alasan |
 | --- | --- |
-| `BE-IGD-048` | Dilarang disentuh pada task ini; tetap ⛔ menunggu `IGD-OQ-092` |
+| `BE-IGD-048` | Dilarang disentuh pada task ini. *Keadaan 18 September: ⛔ menunggu `IGD-OQ-092`. Diperbarui 21 September 2026: ✅ — `IGD-OQ-092` ditutup `IGD-DEC-136`, migration diterapkan ke dev dan terbukti di salinan basis data terpisah ([laporan](../backend/BE-IGD-048.md))* |
 | Penyelarasan CSS modul ke design token | Pekerjaan satu berkas penuh, di luar lingkup |
 | Endpoint Registrasi `PATCH /patient-encounters/{id}/doctor` | **Tidak dihapus** — tetap ada dan tetap milik Registration Management, sesuai API bagian 3. Yang berhenti hanyalah pemakaiannya oleh layar IGD |
 
@@ -108,6 +108,86 @@ menyelundupkannya lewat task ini. Blok CSS barunya diberi komentar yang menyatak
 
 | Risiko | Keadaan |
 | --- | --- |
-| Riwayat kosong pada kunjungan lama | Tabel `EmgDoctorAssignment` belum diisi data lama (`BE-IGD-048` ⛔). Kunjungan lama menampilkan "Belum ada dokter penanggung jawab", dan penetapan berikutnya berjalan sebagai penetapan pertama — bukan pengalihan |
+| Riwayat kosong pada kunjungan lama | Tabel `EmgDoctorAssignment` belum diisi data lama (`BE-IGD-048` ✅ — migration diterapkan 21 September 2026; dev tetap tanpa baris legacy karena 0 kandidat). Kunjungan lama menampilkan "Belum ada dokter penanggung jawab", dan penetapan berikutnya berjalan sebagai penetapan pertama — bukan pengalihan |
 | Celah berhenti membesar | Sejak layar ini memakai kontrak baru, setiap penetapan dokter menghasilkan baris riwayat. Himpunan yang perlu diisi `BE-IGD-048` tidak lagi bertambah |
 | Hak akses belum dicentang | `EmergencyDoctorAssignment` Read/Create/Update wajib dicentang admin, kalau tidak seluruh bagian ini gagal `403` |
+
+## 8. Tambahan 18 September 2026 sesudah verifikasi pemilik
+
+### 8.1 Terminologi diperketat
+
+Banner menulis *"dokter pemeriksa"* sementara section menulis *"Dokter Penanggung Jawab"*.
+Keduanya diselaraskan menjadi **"Dokter Penanggung Jawab IGD"** atas permintaan pemilik, supaya
+tidak rancu dengan DPJP Rawat Inap. Perubahan ini **hanya kata**; nol perubahan perilaku, nol
+perluasan lingkup ke domain Rawat Inap.
+
+Batas domainnya ikut ditulis sebagai komentar pada komponen: penugasan IGD berganti mengikuti
+shift dan **tidak** diteruskan otomatis menjadi DPJP Rawat Inap.
+
+### 8.2 Tampilan aman untuk baris hasil migrasi data lama
+
+`IGD-DEC-136` mengizinkan `assignedByUserId` kosong pada baris legacy. Layar kini membedakan
+dua keadaan yang sebelumnya sama-sama menjadi tanda hubung:
+
+| Keadaan | Tampilan |
+| --- | --- |
+| `assignedByUserId` kosong atau GUID nol | **"Data historis"** |
+| `assignedByUserId` ada tetapi namanya kosong | `-` |
+
+Nol GUID, nol `null` mentah, dan nol `00000000-0000-0000-0000-000000000000` yang tampil ke
+petugas. Jalur ini **belum dapat diuji lewat layar** karena datanya belum ada; ia menunggu
+`BE-IGD-048`. *Diperluas 21 September 2026 (8.4): baris historis juga tidak lagi menampilkan
+`assignmentReason` sebagai "Alasan pengalihan".*
+
+### 8.3 Validasi ulang sesudah dua perubahan di atas
+
+Basis kode bergerak di luar task ini: HEAD berpindah ke `ca31c09c9` dan jumlah unit test naik
+dari 866 menjadi 1329 karena pekerjaan modul lain ikut masuk.
+
+| Jenis | Hasil |
+| --- | --- |
+| `npx eslint --quiet` pada **dua berkas yang disentuh task ini** | ✅ **PASS**, exit 0 |
+| Unit test **berkas IGD** (4 berkas `*emergency*`) | ✅ **PASS** — 38 lulus, 0 gagal |
+| `npm run lint:errors` **seluruh repo** | ❌ **4 error** — seluruhnya di `inpatient-management/nursing-workspace/.../clinical-instrument-form-renderer.jsx` (`BaseCheckboxCard`, `BaseTextField`, `BaseFormControl` tidak terdefinisi) |
+| `npm test` **seluruh repo** | ❌ **9 gagal** dari 1329 — seluruhnya `FE-RWI-*` pada `inpatient-medical-assessment`, `inpatient-physician-entry`, `inpatient-physician-workspace` |
+
+**Kegagalan itu bukan milik `FE-IGD-027`.** Buktinya: **nol** berkas test menyebut
+`emergency-triage-doctor-section` maupun `emergency-triage-form-view`; kesembilan kegagalan ada
+pada berkas test `inpatient-*`; dan berkas yang memicu lint error berasal dari commit
+`8143874d8` milik modul Rawat Inap, bukan dari task ini.
+
+**Dilaporkan apa adanya, bukan diperbaiki** — modul Rawat Inap bukan lingkup task ini, dan
+memperbaikinya tanpa wewenang justru menyentuh pekerjaan tim lain.
+
+### 8.4 Koreksi 21 September 2026 — marker teknis tidak tampil sebagai "Alasan pengalihan"
+
+Ditugaskan pemilik pada review final `BE-IGD-048`. Baris hasil `BE-IGD-048` menyimpan penanda
+teknis `Data historis - pengisian BE-IGD-048` pada `assignmentReason`; penanda itu dipakai
+`Down()` migration dan **tidak diubah**. Sebelum koreksi, layar menampilkannya sebagai
+*"Alasan pengalihan: Data historis - pengisian BE-IGD-048"* — keliru, karena baris legacy bukan
+hasil pengalihan.
+
+| Baris | Tampilan sesudah koreksi |
+| --- | --- |
+| Historis (`assignedByUserId` kosong atau GUID nol) | `Ditetapkan Data historis` pada baris meta, lalu baris terpisah **`Sumber: Data historis`**. `assignmentReason` **tidak ditampilkan** |
+| Penetapan biasa (ada pelaku, tanpa alasan) | Tidak berubah |
+| Handover biasa (ada pelaku, ada alasan) | Tidak berubah — `Alasan pengalihan: <alasan>` tetap tampil |
+
+Satu berkas berubah: `emergency-triage-doctor-section.jsx` (25 tambah, 8 hapus). Nol perubahan pada
+hook, slice, CSS, komponen bersama, backend, atau marker basis data. Kriteria baris historis dipakai
+bersama oleh `tampilkanPenugas` dan penentu baris "Sumber", lewat satu fungsi `penugasanHistoris`.
+
+| Validasi | Hasil |
+| --- | --- |
+| `npx eslint` dan `npx eslint --quiet` pada berkas itu | ✅ **PASS**, exit 0, nol keluaran |
+| `AUTOMATED TEST`: empat berkas `tests/unit/*emergency*` | ✅ **PASS** — 38 lulus, 0 gagal. Tidak ada test yang menyebut komponen ini; test baru tidak ditulis (komposisi view, opsional menurut `test-policy`) |
+| Grep anti-regresi pada baris yang ditambah | ✅ `<button>`/`btn-*` 0, `<table>` 0, `fw-`/`fs-` 0, `!important` 0, literal warna 0, `style=` 0 |
+| `MANUAL TEST` — render statis `DaftarRiwayatDokter` (`react-dom/server`, komponen ditransform dari source, hook/CSS/format tanggal di-stub) atas lima skenario: legacy `null`, legacy GUID nol, penetapan biasa, handover biasa, riwayat campuran | ✅ **PASS** — marker `BE-IGD-048` tidak muncul pada satu pun; `Sumber: Data historis` muncul tepat sebanyak baris historis; `Alasan pengalihan: …` hanya pada baris ber-pelaku dan isinya utuh. **Bukan uji browser** |
+| `MANUAL TEST` lewat layar | **NOT FEASIBLE** — dev tidak punya baris legacy: migration `BE-IGD-048` sudah dijalankan (21 September 2026), tetapi dev **0 kandidat**, jadi 0 baris tersisip. Baris legacy hanya ada pada salinan basis data terpisah yang sudah dihapus |
+| `npm run build` | **NOT RUN** — dipegang pemilik. Build penuh revisi ini **belum diverifikasi** |
+
+**Status `FE-IGD-027` tetap 🟡** — perubahan ini menambah satu revisi lagi yang belum dibangun pemilik.
+
+**Catatan.** Baris historis menampilkan `Sejak <waktu kedatangan pasien>`: `effectiveFrom` hasil
+`BE-IGD-048` adalah *historical fallback*, bukan waktu penetapan dokter yang terbukti. Label
+"Sejak" tidak diubah (di luar arahan pemilik); kata "Sumber: Data historis" yang menandainya.

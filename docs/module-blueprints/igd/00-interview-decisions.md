@@ -4376,3 +4376,33 @@ lewat `IGD-DEC-135` — termasuk `IGD-DEC-082` — ditinjau ulang oleh pemilik b
 
 **Yang tetap berlaku.** Izin ini terbatas pada pekerjaan yang sesuai kaidah rumah sakit dan
 kontrak terkunci. Larangan menyatakan UAT PASS tanpa bukti tidak dicabut.
+
+---
+
+## Keputusan 18 September 2026 — pelaku pada pengisian data lama penugasan dokter
+
+### `IGD-DEC-136` — `AssignedByUserId` boleh kosong hanya untuk baris hasil migrasi data lama
+
+Menutup `IGD-OQ-092`.
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-136` | Decision | `EmgDoctorAssignment.AssignedByUserId` boleh bernilai `NULL` **hanya** untuk baris hasil pengisian data lama, dan hanya bila pelaku historisnya tidak dapat dibuktikan. Untuk setiap transaksi baru sesudah `BE-IGD-045` — `POST /` maupun `POST /{id}/handover` — pelakunya **tetap wajib** dan **wajib berasal dari token pengguna terautentikasi**; request body **dilarang** menentukan pelaku | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-09-18** | Jawaban pemilik atas `IGD-OQ-092` |
+
+**Dilarang mengarang pelaku.** `RegPatientEncounter.UpdateBy` dan `CreateBy` **tidak boleh**
+dipakai sebagai pelaku penugasan tanpa bukti bahwa kolom itu memang berasal dari operasi
+penetapan dokter. Pada data lama bukti itu tidak ada, sehingga jawabannya kosong — bukan tebakan.
+
+Ini **membatalkan rekomendasi agent** pada `IGD-OQ-092` yang mengusulkan pilihan (b), yaitu
+memakai `UpdateBy` dengan jatuh ke `CreateBy`. Usul itu memang memakai pelaku yang tidak
+terbukti melakukan penetapan.
+
+**Penanda baris legacy.** `AssignmentReason` diisi penanda data historis, dan `EffectiveTo`
+dibiarkan `NULL` karena penugasannya memang masih berjalan.
+
+**Tampilan.** Baris tanpa pelaku ditampilkan sebagai **"Data historis"**. Dilarang menampilkan
+GUID, `null` mentah, maupun `00000000-0000-0000-0000-000000000000`.
+
+**Konsekuensi schema yang wajib diselesaikan lebih dulu.** Schema yang sudah diterapkan
+menyatakan kolom ini `NOT NULL`, sehingga keputusan ini **belum dapat dijalankan** tanpa
+perubahan schema. Rinciannya pada kartu `BE-IGD-048`.

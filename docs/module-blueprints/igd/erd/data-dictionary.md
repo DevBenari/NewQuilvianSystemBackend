@@ -157,7 +157,7 @@ aslinya kemudian diubah atau dibatalkan modul pemiliknya.
 | `DoctorId` | `uuid` FK | Ya | — | — | Dokter harus ada dan aktif | Tidak |
 | `EffectiveFrom` | `timestamp with time zone` | Ya | Waktu server | — | Tidak boleh mendahului waktu kedatangan pasien | Tidak |
 | `EffectiveTo` | `timestamp with time zone?` | Tidak | — | — | **Kosong berarti penugasan sedang berjalan** | Tidak |
-| `AssignedByUserId` | `uuid` FK | Ya | Pengguna aktif | — | Diisi sistem | Tidak |
+| `AssignedByUserId` | `uuid?` FK | **Bersyarat** | Pengguna aktif | — | Diisi sistem. **Wajib** untuk setiap penetapan dan pengalihan baru. Boleh `NULL` **hanya** pada baris hasil pengisian data lama `BE-IGD-048` ketika pelaku historisnya tidak dapat dibuktikan (`IGD-DEC-136`) | Tidak |
 | `AssignmentReason` | `varchar` | Tidak | — | 500 | **Wajib** saat pengalihan, bukan saat penetapan pertama | Tidak |
 
 **Index sebagaimana benar-benar diterapkan** (migration `20260917072515`, 17 September 2026):
@@ -174,7 +174,23 @@ Penyaring unique bersyarat **tidak** menyertakan `IsDelete`. Menyertakannya memb
 yang di-soft-delete melepaskan slot berjalannya, sehingga satu kunjungan dapat punya dua
 baris `EffectiveTo IS NULL` — pelajaran `BE-IGD-047`.
 
-**Foreign key:** `AspNetUsers.Id`, `EmgVisit.Id`, dan `MstDoctor.Id`, ketiganya `Restrict`.
+**Foreign key:** `AspNetUsers.Id`, `EmgVisit.Id`, dan `MstDoctor.Id`, ketiganya `Restrict`. FK ke
+`AspNetUsers.Id` (`AssignedByUserId`) bersifat opsional sejak `BE-IGD-048` — `NULL` tidak
+melanggar foreign key di PostgreSQL.
+
+> **`EffectiveFrom` pada baris hasil `BE-IGD-048` adalah *historical fallback*.** Diisi
+> `EmgVisit.ArrivalDateTime` (awal episode IGD) karena waktu penetapan dokter sesungguhnya pada data
+> lama **tidak tersimpan**. Nilainya **bukan** waktu penetapan yang terbukti; artinya "tercatat sebagai
+> penanggung jawab sejak awal episode". `RegPatientEncounter.UpdateDateTime` sengaja **tidak** dipakai
+> — ia waktu edit terakhir apa pun. Baris legacy dikenali dari `AssignedByUserId IS NULL` dan
+> `AssignmentReason = 'Data historis - pengisian BE-IGD-048'`.
+
+> **`AssignedByUserId` menjadi nullable — `BE-IGD-048`, `IGD-DEC-136`, 18 September 2026.**
+> Migration `20260917072515` menerapkannya `NOT NULL`. Audit schema hari itu juga menemukan
+> `Up()` migration tersebut nol `InsertData`/`Sql` — tabelnya applied kosong. `IGD-DEC-136`
+> menutup `IGD-OQ-092` dengan menetapkan kolom ini boleh `NULL` khusus baris hasil pengisian
+> data lama yang pelaku historisnya tak terbukti; migration korektif `BE-IGD-048` mengubah
+> nullability sekaligus mengisi data lama. Baris riwayat sungguhan tetap wajib berpelaku.
 
 > **`IsActive` sengaja tidak ada — `IGD-DEC-130`, 16 September 2026.** Rancangan sebelumnya
 > memuat kolom `IsActive` **dan** `EffectiveTo`, padahal keduanya menyatakan fakta yang sama dan

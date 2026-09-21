@@ -163,7 +163,7 @@ flowchart LR
 | `BE-IGD-043` | Laporan susulan pengaturan IGD tersirat | R3.8 | tanpa tanda — direncanakan | — |
 | `BE-IGD-044` | Histori penugasan dokter IGD | `MVP-5` | 🟡 17 September 2026 — migration diterapkan Rizki. Acceptance 1, 2, 3, dan **6** ✅ (snapshot +102 baris, nol penghapusan). **Acceptance 4 ⛔** — migration terbit tanpa pengisian data lama, tabel kosong; dipindahkan ke `BE-IGD-048`. Acceptance 5 menunggu konfirmasi uji langkah mundur ([audit](../evidence/2026-09-17-audit-be-igd-044-igd-oq-092.md)) | [BE-IGD-044](../task/report/backend/BE-IGD-044.md) |
 | `BE-IGD-045` | Penetapan, pengalihan, dan pencarian dokter aktif | `MVP-5` | ✅ **17 September 2026** — Implementation Complete, Build Verified, Runtime Verified. Build nol error; **12 dari 12 skenario uji API `PASS`** termasuk concurrency S12. Tanpa UAT | [BE-IGD-045](../task/report/backend/BE-IGD-045.md) |
-| `BE-IGD-048` | Pengisian data lama penugasan dokter IGD | `MVP-5` | ⛔ menunggu jawaban `IGD-OQ-092` — corrective migration data-only, belum disusun | — |
+| `BE-IGD-048` | Pengisian data lama penugasan dokter IGD | `MVP-5` | ✅ **21 September 2026** — Implementation Complete, Build Verified (`0 Error(s)`, 207 warning), Migration Applied (dev, `20260921032943`), Data Migration Verified. Kriteria A–E terbukti pada **salinan basis data terpisah** berkandidat (3 tersisip) dan pada dev (0 tersisip, dev 0 kandidat); siklus `Up→Down→Up`, guard `Down()` A dan C (atomik), dan idempotensi diuji; probe service asli membuktikan `"Data historis"` dalam satu kueri. **Tidak dijalankan:** uji HTTP dengan token, tampilan layar baris legacy. Tanpa UAT | [BE-IGD-048](../task/report/backend/BE-IGD-048.md) |
 | `BE-IGD-046` | Validasi dan proyeksi tanda vital pada detail observasi | R3.9 | ✅ 16 September 2026 — implementasi + build bersih (nol error); runtime belum diverifikasi | [BE-IGD-046](../task/report/backend/BE-IGD-046.md) |
 | `BE-IGD-047` | Nomor urut penilaian triage ditetapkan server | R3.10 | ✅ **17 September 2026** — `dotnet build` lulus dan **uji API tiga skenario lulus** oleh pemilik; dibuktikan lagi lewat layar bersama `FE-IGD-033`. Tanpa UAT | [BE-IGD-047](../task/report/backend/BE-IGD-047.md) |
 
@@ -1505,21 +1505,80 @@ Dua task dikerjakan dan satu task lahir dari audit.
 Lihat kartunya di R3.4. Build lulus nol error dan **dua belas skenario uji API seluruhnya `PASS`**
 17 September 2026, dijalankan pemilik. UAT belum dan tidak diklaim.
 
-### ⛔ `BE-IGD-048` — Pengisian data lama penugasan dokter IGD
+### ✅ `BE-IGD-048` — Pengisian data lama penugasan dokter IGD
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ⛔ **TERBLOKIR — 17 September 2026.** Menunggu jawaban `IGD-OQ-092`. Lahir dari [audit `BE-IGD-044`](../evidence/2026-09-17-audit-be-igd-044-igd-oq-092.md): migration `AddEmergencyDoctorAssignment` terbit **tanpa** pengisian data lama, sehingga tabelnya kosong |
+| **Status** | ✅ **SELESAI — 21 September 2026.** Pemilik menyetujui rekonsiliasi schema (`IGD-DEC-136`). Source: model `Guid?`, konfigurasi EF opsional, DTO `Guid?`, proyeksi service `"Data historis"` dalam satu kueri, kamus data, API contract `0.8.0`. Migration `20260921032943_BackfillEmergencyDoctorAssignment`: `AlterColumn` nullable + `INSERT` idempoten (`EffectiveFrom` = `EmgVisit.ArrivalDateTime`, historical fallback) + `Down()` berguard (guard A, `DELETE` terbatas, guard C). `dotnet build` → `0 Error(s)`, `207 Warning(s)`. **Terbukti** di salinan basis data terpisah berkandidat sintetis dan di dev; rinciannya di [laporan](../task/report/backend/BE-IGD-048.md) bagian 5.1. **Tidak dijalankan:** uji HTTP dengan token dan tampilan layar baris legacy; UAT belum. *Sebelumnya ⛔ 18 September (schema `NOT NULL`), lalu 🟡 pada hari yang sama sebelum migration dijalankan* |
 | **Outcome** | Setiap kunjungan IGD yang encounter-nya sudah punya dokter memperoleh satu baris riwayat berjalan, sehingga `GET /active` tidak lagi membalas `404` untuk kunjungan lama |
 | **Slice** | `IGD-S06` · `EPIC IGD-04` · `MVP-5` |
 | **Requirement** | `FR-IGD-017`, `FR-IGD-019` — melanjutkan acceptance 4 `BE-IGD-044` |
-| **Keputusan** | `IGD-DEC-082`, `IGD-DEC-116`, `IGD-DEC-130`; **menunggu `IGD-OQ-092`** |
-| **Kontrak** | Nol perubahan. Nol kolom, nol index, nol endpoint baru |
-| **Scope** | Satu migration **data-only** bernama `BackfillEmergencyDoctorAssignment`. Dilarang menyunting, menghapus, atau meregenerasi `20260917072515_AddEmergencyDoctorAssignment` yang sudah applied |
-| **Perubahan** | `Up()` satu `Sql()` berisi `INSERT ... SELECT` sesuai pilihan `IGD-OQ-092`; `Down()` satu `Sql()` berisi `DELETE` berpembatas. **Wajib idempoten** lewat `WHERE NOT EXISTS` terhadap baris berjalan pada kunjungan yang sama |
-| **Dependency** | `BE-IGD-044` ✅ tabelnya ada; **`IGD-OQ-092` belum dijawab** |
-| **Acceptance** | 1. Setiap kunjungan IGD berdokter yang memenuhi pilihan `IGD-OQ-092` memperoleh tepat satu baris `EffectiveTo IS NULL`. 2. `EffectiveFrom` diambil dari `UpdateDateTime` encounter, jatuh ke `CreateDateTime` bila kosong. 3. Kunjungan tanpa dokter **tidak** mendapat baris. 4. Dijalankan dua kali tidak melanggar index unik bersyarat. 5. Jumlah baris yang **dilewati** beserta alasannya dicatat pada laporan task. 6. `Down()` hanya menghapus baris hasil pengisian ini, bukan penugasan yang dibuat petugas lewat `BE-IGD-045` |
-| **Batas eksekusi** | Agent menyusun migration lalu **berhenti**; `migrations add` dan `database update` dijalankan Rizki |
-| **Risiko** | **Menengah.** Menyentuh data klinis historis; celahnya bertambah setiap penetapan dokter sampai `FE-IGD-027` rilis |
-| **Owner** | Backend IGD; migration: Rizki; keputusan `IGD-OQ-092`: Product/Domain Owner |
-| **DoD** | Acceptance 1–6 terpetakan; jumlah baris terisi dan terlewati dicatat; laporan tracked ada; roadmap dan traceability diperbarui; tanpa UAT PASS |
+| **Keputusan** | `IGD-DEC-082`, `IGD-DEC-116`, `IGD-DEC-130`, **`IGD-DEC-136`** |
+| **Dependency** | `BE-IGD-044` ✅ tabel ada; `BE-IGD-045` ✅ terverifikasi; rekonsiliasi schema **disetujui pemilik 21 September 2026** |
+| **Batas eksekusi** | Agent menyusun source dan migration lalu **berhenti**; `migrations add` dan `database update` dijalankan Rizki. **Dilarang** menyunting, menghapus, atau meregenerasi `20260917072515_AddEmergencyDoctorAssignment` yang sudah applied |
+| **Owner** | Backend IGD; migration: Rizki |
+
+#### Hasil audit schema — semuanya `NOT NULL`
+
+| Artefak | Keadaan aktual |
+| --- | --- |
+| `Models/EmgDoctorAssignment.cs` | `[Required] public Guid AssignedByUserId` — value type non-nullable |
+| `EmgDoctorAssignmentConfiguration.cs` | `HasOne(AssignedByUser).HasForeignKey(AssignedByUserId)` — relasi wajib, `Restrict` |
+| Migration `20260917072515` | `AssignedByUserId = table.Column<Guid>(type: "uuid", nullable: false)` + FK `Restrict` |
+| `ApplicationDbContextModelSnapshot.cs` | `b.Property<Guid>("AssignedByUserId")` tanpa `IsRequired(false)` |
+| `erd/data-dictionary.md` §4 | "Wajib" |
+| DTO `EmergencyDoctorAssignmentResponse` | `public Guid AssignedByUserId` |
+
+Keenam artefak konsisten satu sama lain, dan **keenamnya bertentangan dengan `IGD-DEC-136`**.
+
+#### Rekonsiliasi yang dibutuhkan
+
+| Berkas | Perubahan |
+| --- | --- |
+| `Models/EmgDoctorAssignment.cs` | `[Required] Guid` → `Guid?`; atribut `[Required]` dicabut |
+| `EmgDoctorAssignmentConfiguration.cs` | Relasi menjadi opsional; FK tetap `Restrict` |
+| `DTOs/EmergencyDoctorAssignmentDtos.cs` | `AssignedByUserId` pada response → `Guid?` |
+| `erd/data-dictionary.md` §4 | "Wajib" → wajib untuk transaksi baru, boleh kosong untuk baris legacy |
+| `contracts/api-contract.md` §3.2 | Catatan bahwa `assignedByUserId` dapat kosong pada baris legacy |
+
+**Harga yang harus disadari.** Mencabut `NOT NULL` memindahkan jaminan "setiap penugasan baru
+punya pelaku" dari basis data ke lapisan service. Jaminan itu **tetap kuat**, karena
+`AssignEmergencyDoctorRequest` dan `HandoverEmergencyDoctorRequest` tidak punya ruas pelaku
+sama sekali — pemanggil tidak dapat menentukannya, dan service selalu mengisinya dari token.
+Yang hilang hanyalah jaring pengaman terakhir bila kelak ada jalur tulis baru yang lupa.
+
+#### Perubahan data
+
+| Kolom | Nilai untuk baris legacy |
+| --- | --- |
+| `EmergencyVisitId` | Kunjungan lama |
+| `DoctorId` | Dari `RegPatientEncounter.DoctorId` |
+| `EffectiveFrom` | **`v."ArrivalDateTime"`** (`EmgVisit`, waktu kedatangan pasien di IGD) — **historical fallback**, bukan waktu penetapan dokter yang terbukti. *Dikoreksi 21 September 2026 (review final pemilik): sebelumnya `COALESCE(e."UpdateDateTime", e."CreateDateTime")`; `UpdateDateTime` adalah waktu edit terakhir apa pun, bukan waktu penetapan dokter* |
+| `EffectiveTo` | `NULL` — penugasannya memang masih berjalan |
+| `AssignedByUserId` | **`NULL`** — pelaku historis tidak dapat dibuktikan (`IGD-DEC-136`) |
+| `AssignmentReason` | Penanda data historis |
+
+`RegPatientEncounter.DoctorId` **tidak dipindahkan dan tidak dihapus**. Ia tetap menjadi pointer
+dokter efektif; tabel penugasan menyimpan riwayat temporalnya.
+
+#### Acceptance — diverifikasi pemilik lewat kueri sesudah migration
+
+| # | Kriteria | Kueri | Harapan |
+| ---: | --- | --- | :-: |
+| A | Nol kunjungan berdokter yang belum punya assignment | `MissingAssignment` | `0` |
+| B | Nol kunjungan dengan lebih dari satu assignment aktif | `ActiveAssignmentCount > 1` | `0 row` |
+| C | Dokter aktif sinkron dengan `RegPatientEncounter.DoctorId` | `IS DISTINCT FROM` | `0 row` |
+| D | ~~Dijalankan dua kali~~ **Dikoreksi pemilik 21 September 2026:** migration yang sudah applied tidak menjalankan `Up()` lagi. Diuji di basis data terpisah dengan siklus `Up → verifikasi → Down → verifikasi → Up → verifikasi`; idempotensi `INSERT … WHERE NOT EXISTS` diuji terpisah sebagai pernyataan lepas | `Up→Down→Up` + `INSERT` lepas | hasil `Up` kedua sama dengan pertama; `INSERT` lepas menyisipkan `0` baris |
+| E | Jumlah baris tersisip dan terlewati dicatat pada laporan task | — | tercatat |
+
+#### Nol kandidat bukan tanda task ini tidak perlu
+
+Kueri kandidat pemilik pada basis data dev 18 September 2026 mengembalikan **0 baris**. Pada
+environment itu migration akan menyisipkan 0 baris, dan **itu hasil yang benar**. Task ini tetap
+diperlukan sebagai jalur migrasi bagi environment dan basis data lain yang memuat data lama.
+**Dilarang** menyatakan task ini selesai hanya karena dev bersih.
+
+#### Yang **tidak** dibuat
+
+Nol halaman, nol menu, dan nol layar frontend untuk pengisian data lama. `BE-IGD-048` adalah
+corrective/data migration, bukan fitur operasional. Hasilnya dibaca `FE-IGD-027` yang sudah ada.

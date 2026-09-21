@@ -67,7 +67,7 @@ erDiagram
         uuid DoctorId FK
         datetime EffectiveFrom
         datetime EffectiveTo "nullable"
-        uuid AssignedByUserId FK
+        uuid AssignedByUserId FK "nullable, legacy only"
         string AssignmentReason "nullable, 500"
     }
     MstEmergencyTriageLevel {

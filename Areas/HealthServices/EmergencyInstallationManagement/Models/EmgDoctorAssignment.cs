@@ -68,8 +68,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         /// Pengguna yang menetapkan atau mengalihkan. Diisi sistem dari pengguna aktif, bukan
         /// dari kiriman pemanggil.
         /// </summary>
-        [Required]
-        public Guid AssignedByUserId { get; set; }
+        /// <remarks>
+        /// <c>null</c> HANYA pada baris hasil pengisian data lama (<c>BE-IGD-048</c>) ketika
+        /// pelaku historisnya tidak dapat dibuktikan — <c>IGD-DEC-136</c>. Untuk setiap
+        /// penetapan dan pengalihan baru, <c>EmergencyDoctorAssignmentService</c> selalu mengisi
+        /// kolom ini dari token pengguna terautentikasi; request tidak pernah menentukannya
+        /// sendiri, sehingga jaminan itu tetap kuat walau kolomnya nullable.
+        /// </remarks>
+        public Guid? AssignedByUserId { get; set; }
 
         /// <summary>
         /// Alasan pengalihan. Wajib saat <b>pengalihan</b>, tidak wajib saat penetapan pertama;

@@ -2,7 +2,7 @@
 
 | Field | Nilai |
 | --- | --- |
-| `contract_version` | `0.7.0` — kesiapan `EPIC IGD-04`, 16 September 2026 (ketiga). **Aditif**: response §3 bertambah proyeksi `doctorName` dan `assignedByName` (`IGD-DEC-129`, bagian 3.2), dan nama tabel Registrasi diselaraskan menjadi `RegPatientEncounter` (`IGD-DEC-132`). Nol route baru, nol bentuk request berubah, nol penolakan baru. Sebelumnya `0.6.0` — pemantauan observasi bertanda vital, 16 September 2026, **aditif**: bagian 7 baru untuk `Emergency Observation Detail` — bentuk request tidak bertambah, response bertambah proyeksi `vitalSign` dan `recordedByName`, dan dua penolakan baru ditegakkan (`IGD-DEC-122`, `IGD-DEC-126`). Ruas `recordedByUserId` pada request menjadi **usang tetapi tetap diterima**. Lihat manifest bagian 0d. *Sebelumnya `0.5.0` — penyelarasan teks 15 September 2026: query `at` pada §3 dan penolakan catatan observasi lebih dari 1000 karakter* |
+| `contract_version` | `0.8.0` — pengisian data lama penugasan dokter, 21 September 2026. **Relaxed nullability change for legacy response**, bukan aditif murni: `assignedByUserId` pada response §3.2 (`GET /`, `GET /active`) dapat bernilai `null` khusus baris riwayat hasil pengisian data lama `BE-IGD-048` yang pelaku historisnya tidak dapat dibuktikan (`IGD-DEC-136`). **Bukan** perubahan semantics penetapan atau pengalihan baru: pelaku tetap wajib dari token dan request tidak menerimanya. Nol route baru, nol ruas dihapus, nol bentuk request berubah. **Dampak konsumen**: kode yang mengasumsikan `assignedByUserId` selalu berupa GUID (misalnya tipe non-nullable di frontend) harus direvisi sebelum menampilkan baris legacy — lihat bagian 3.2. Sebelumnya `0.7.0` — kesiapan `EPIC IGD-04`, 16 September 2026 (ketiga). **Aditif**: response §3 bertambah proyeksi `doctorName` dan `assignedByName` (`IGD-DEC-129`, bagian 3.2), dan nama tabel Registrasi diselaraskan menjadi `RegPatientEncounter` (`IGD-DEC-132`). Nol route baru, nol bentuk request berubah, nol penolakan baru. *Sebelumnya `0.6.0` — pemantauan observasi bertanda vital, 16 September 2026, **aditif**: bagian 7 baru untuk `Emergency Observation Detail` — bentuk request tidak bertambah, response bertambah proyeksi `vitalSign` dan `recordedByName`, dan dua penolakan baru ditegakkan (`IGD-DEC-122`, `IGD-DEC-126`). Ruas `recordedByUserId` pada request menjadi **usang tetapi tetap diterima**. Lihat manifest bagian 0d. Sebelumnya `0.5.0` — penyelarasan teks 15 September 2026: query `at` pada §3 dan penolakan catatan observasi lebih dari 1000 karakter* |
 | Status | `draft` |
 | Owner | Product/Domain Owner IGD: **Rizki Gunawan** (`IGD-DEC-089`) |
 | `approved_by` / `approved_at` | — / — |
@@ -225,7 +225,7 @@ tadi?"* dijawab oleh endpoint yang sama, bukan endpoint baru.
 Cara menyebut kunjungan yang ditanyakan mengikuti parameter yang sama dengan `GET /active` tanpa
 `at`; query `at` tidak mengubahnya.
 
-### 3.2 Proyeksi nama pada response — baru pada `0.7.0`
+### 3.2 Proyeksi nama pada response — baru pada `0.7.0`; `assignedByUserId` nullable pada `0.8.0`
 
 Ditetapkan `IGD-DEC-129`. Penambahannya **aditif**: ruas lama tetap dikirim, nol ruas dihapus,
 nol kolom baru pada `EmgDoctorAssignment`.
@@ -234,7 +234,7 @@ nol kolom baru pada `EmgDoctorAssignment`.
 | --- | --- | --- | --- |
 | `doctorId` | `uuid` | `GET /`, `GET /active` | **Tetap dikirim.** Identitas untuk pemrosesan |
 | `doctorName` | `string` | `GET /`, `GET /active` | **Baru.** Nama dokter untuk ditampilkan |
-| `assignedByUserId` | `uuid` | `GET /`, `GET /active` | **Tetap dikirim** |
+| `assignedByUserId` | `uuid?` | `GET /`, `GET /active` | **Tetap dikirim.** **Nullable sejak `0.8.0`** — lihat catatan legacy di bawah |
 | `assignedByName` | `string` | `GET /`, `GET /active` | **Baru.** Nama pengguna yang menetapkan atau mengalihkan |
 
 Ketentuannya:
@@ -246,7 +246,27 @@ Ketentuannya:
 | Nama yang tidak tersedia | Dikirim kosong; layar menampilkannya sebagai tanda hubung. **Dilarang** menampilkan GUID sebagai tampilan cadangan utama |
 | Kewajiban frontend | **Dilarang** meminta nama per baris riwayat |
 
-*Contoh response satu baris riwayat:*
+**`assignedByUserId` boleh `null` — `BE-IGD-048`, `IGD-DEC-136`, sejak `0.8.0`.** Hanya terjadi
+pada baris riwayat hasil pengisian data lama ketika pelaku historisnya tidak dapat dibuktikan.
+Pada baris itu `assignedByName` **selalu** berisi teks tetap `"Data historis"`, dihasilkan
+proyeksi backend — **bukan** ditebak dari `RegPatientEncounter.UpdateBy`/`CreateBy` yang memang
+tidak terbukti berasal dari operasi penetapan dokter. Untuk setiap penugasan yang dibuat lewat
+`POST /` atau `POST /{id}/handover`, kedua ruas ini **tetap wajib terisi** seperti sebelumnya —
+pelakunya selalu berasal dari token pengguna terautentikasi, request tidak pernah menentukannya.
+
+**`effectiveFrom` pada baris legacy adalah *historical fallback*.** Baris hasil `BE-IGD-048` memuat
+waktu kedatangan pasien di IGD, **bukan** waktu penetapan dokter yang terbukti — waktu itu tidak
+tersimpan pada data lama. Konsumen yang menjawab "siapa dokter pada waktu `T`" (`GET /active?at=`)
+harus tahu bahwa untuk baris legacy jawabannya berarti *tercatat sebagai penanggung jawab sejak awal
+episode*, tidak lebih. Baris legacy dikenali dari `assignedByUserId = null` dan
+`assignmentReason = "Data historis - pengisian BE-IGD-048"`.
+
+**Dampak bagi konsumen.** Sebelum `0.8.0`, `assignedByUserId` selalu berupa GUID. Konsumen yang
+mengetikkannya sebagai non-nullable (misalnya `string` wajib pada TypeScript, bukan
+`string | null`) harus direvisi sebelum menampilkan baris legacy, atau parsing responsnya gagal.
+Baris hasil transaksi baru **tidak terdampak** — bentuknya sama seperti sebelum `0.8.0`.
+
+*Contoh response satu baris riwayat (penugasan baru, punya pelaku):*
 
 ```json
 {
@@ -262,8 +282,24 @@ Ketentuannya:
 }
 ```
 
-*Catatan:* baris di atas **tidak** memuat `isActive`. Penugasan yang sedang berjalan dikenali dari
-`effectiveTo` yang kosong — `IGD-DEC-130`.
+*Contoh response satu baris riwayat legacy (pelaku historis tidak dapat dibuktikan, `0.8.0`):*
+
+```json
+{
+  "id": "9c2e…",
+  "emergencyVisitId": "a72b…",
+  "doctorId": "3e90…",
+  "doctorName": "dr. Budi Santoso, Sp.EM",
+  "effectiveFrom": "2026-08-01T08:00:00Z",
+  "effectiveTo": null,
+  "assignedByUserId": null,
+  "assignedByName": "Data historis",
+  "assignmentReason": "Data historis - pengisian BE-IGD-048"
+}
+```
+
+*Catatan:* kedua contoh di atas **tidak** memuat `isActive`. Penugasan yang sedang berjalan
+dikenali dari `effectiveTo` yang kosong — `IGD-DEC-130`.
 
 | Keadaan | Jawaban |
 | --- | --- |

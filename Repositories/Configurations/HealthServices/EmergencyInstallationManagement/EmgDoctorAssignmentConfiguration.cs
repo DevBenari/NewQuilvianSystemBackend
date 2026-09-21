@@ -47,9 +47,14 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Emerg
                 .HasForeignKey(x => x.DoctorId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // Nullable BE-IGD-048 / IGD-DEC-136: pelaku historis boleh tidak dapat dibuktikan
+            // pada baris hasil pengisian data lama. Relasi karena itu opsional; FK tetap
+            // Restrict supaya AspNetUsers yang pernah jadi pelaku tidak dapat dihapus begitu
+            // saja selama riwayatnya masih dirujuk.
             builder.HasOne(x => x.AssignedByUser)
                 .WithMany()
                 .HasForeignKey(x => x.AssignedByUserId)
+                .IsRequired(false)
                 .OnDelete(DeleteBehavior.Restrict);
         }
     }

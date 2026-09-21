@@ -55,14 +55,36 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         }
 
         /// <summary>
+        /// Teks nama pelaku yang ditampilkan untuk baris riwayat hasil pengisian data lama,
+        /// yaitu baris yang pelaku historisnya tidak dapat dibuktikan.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-IGD-048</c>, <c>IGD-DEC-136</c>. Baris seperti ini mustahil punya
+        /// <c>AssignedByUserId</c> terisi — jadi memeriksa nilai ini sudah cukup, tanpa perlu
+        /// membedakan lebih lanjut sumber datanya.
+        /// </remarks>
+        private const string NamaPelakuDataHistoris = "Data historis";
+
+        /// <summary>
         /// Bentuk balasan tunggal untuk daftar, pencarian, penetapan, dan pengalihan.
         /// </summary>
         /// <remarks>
-        /// API 0.7.0 bagian 3.2, <c>IGD-DEC-129</c>. Ditulis sebagai satu expression supaya
+        /// API 0.8.0 bagian 3.2, <c>IGD-DEC-129</c>. Ditulis sebagai satu expression supaya
         /// nama dokter dan nama penugas ikut terbawa SATU kueri lewat relasi <c>Doctor</c> dan
         /// <c>AssignedByUser</c> yang sudah dikonfigurasi, jadi nol <c>N+1</c>. Nama yang tidak
         /// tersedia menjadi <c>null</c>, bukan GUID. Urutan cadangan nama penugas mengikuti
         /// pola <c>recordedByName</c> pada <c>BE-IGD-046</c>.
+        ///
+        /// <para>
+        /// <b><c>assignedByName</c> pada baris legacy — <c>BE-IGD-048</c>.</b>
+        /// <c>AssignedByUserId</c> kini <c>Guid?</c>; baris hasil pengisian data lama yang
+        /// pelaku historisnya tidak dapat dibuktikan menyimpannya <c>NULL</c>
+        /// (<c>IGD-DEC-136</c>). Proyeksi ini memeriksa <c>x.AssignedByUserId == null</c> lebih
+        /// dulu dan mengembalikan teks tetap <see cref="NamaPelakuDataHistoris"/> — dihasilkan
+        /// BACKEND di sini, bukan diserahkan ke fallback frontend. Pemeriksaan ini tetap bagian
+        /// dari expression tree yang sama, sehingga tetap diterjemahkan EF menjadi SATU kueri;
+        /// nol pemanggilan tambahan ke basis data.
+        /// </para>
         /// </remarks>
         private static readonly Expression<Func<EmgDoctorAssignment, EmergencyDoctorAssignmentResponse>> ProyeksiResponse =
             x => new EmergencyDoctorAssignmentResponse
@@ -74,9 +96,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 EffectiveFrom = x.EffectiveFrom,
                 EffectiveTo = x.EffectiveTo,
                 AssignedByUserId = x.AssignedByUserId,
-                AssignedByName = x.AssignedByUser == null
-                    ? null
-                    : x.AssignedByUser.DisplayName ?? x.AssignedByUser.UserName ?? x.AssignedByUser.Email ?? x.AssignedByUser.UserCode,
+                AssignedByName = x.AssignedByUserId == null
+                    ? NamaPelakuDataHistoris
+                    : (x.AssignedByUser == null
+                        ? null
+                        : x.AssignedByUser.DisplayName ?? x.AssignedByUser.UserName ?? x.AssignedByUser.Email ?? x.AssignedByUser.UserCode),
                 AssignmentReason = x.AssignmentReason
             };
 

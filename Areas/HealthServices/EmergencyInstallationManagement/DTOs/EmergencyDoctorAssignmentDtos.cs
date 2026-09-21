@@ -6,13 +6,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
     /// Satu baris riwayat penugasan dokter penanggung jawab IGD.
     /// </summary>
     /// <remarks>
-    /// API 0.7.0 bagian 3.2. <c>doctorId</c> dan <c>assignedByUserId</c> tetap dikirim untuk
+    /// API 0.8.0 bagian 3.2. <c>doctorId</c> dan <c>assignedByUserId</c> tetap dikirim untuk
     /// pemrosesan; <c>doctorName</c> dan <c>assignedByName</c> ditambahkan untuk ditampilkan
     /// (<c>IGD-DEC-129</c>). Nama yang tidak tersedia dikirim kosong, bukan GUID.
     ///
     /// <para>
     /// <b>Tidak ada ruas <c>isActive</c></b> — penugasan yang sedang berjalan dikenali dari
     /// <see cref="EffectiveTo"/> yang kosong (<c>IGD-DEC-130</c>).
+    /// </para>
+    ///
+    /// <para>
+    /// <b><c>assignedByUserId</c> boleh <c>null</c> — <c>BE-IGD-048</c>, <c>IGD-DEC-136</c>.</b>
+    /// Hanya terjadi pada baris hasil pengisian data lama ketika pelaku historisnya tidak dapat
+    /// dibuktikan. Pada baris itu <c>assignedByName</c> selalu berisi teks tetap
+    /// <c>"Data historis"</c>, dihasilkan proyeksi backend — bukan tebakan dari kolom audit lain.
+    /// Untuk setiap penugasan baru, kedua ruas ini tetap terisi seperti sebelumnya.
     /// </para>
     /// </remarks>
     public class EmergencyDoctorAssignmentResponse
@@ -29,7 +37,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
         public DateTime? EffectiveTo { get; set; }
 
-        public Guid AssignedByUserId { get; set; }
+        public Guid? AssignedByUserId { get; set; }
 
         public string? AssignedByName { get; set; }
 

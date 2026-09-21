@@ -136,7 +136,7 @@ flowchart LR
 | `FE-IGD-024` | Isian Kesimpulan saat menyelesaikan observasi | ✅ 15 September 2026 — implementasi; `npm run build` lulus 17 September 2026. **Uji layar pemilik 17 September 2026 LULUS** — satu periode observasi diselesaikan beserta isian Kesimpulan | [FE-IGD-024](../task/report/frontend/FE-IGD-024.md) |
 | `FE-IGD-025` | Laporan susulan perombakan layar pengkajian dan temuan privasi | tanpa tanda — direncanakan | — |
 | `FE-IGD-026` | Laporan susulan layar pendaftaran IGD | tanpa tanda — direncanakan | — |
-| `FE-IGD-027` | Layar triase memakai riwayat penugasan dokter | 🟡 17 September 2026 — **Implementation Complete / Runtime Not Verified.** Ketujuh acceptance terpetakan ke source; lint `PASS`; unit test **866/866**. Layar IGD **tidak lagi** memakai endpoint Registrasi untuk penetapan dokter. `npm run build` dan uji layar belum | [FE-IGD-027](../task/report/frontend/FE-IGD-027.md) |
+| `FE-IGD-027` | Layar triase memakai riwayat penugasan dokter | 🟡 **21 September 2026** (dinilai ulang; sebelumnya ✅ 18 September) — Implementation Complete; eslint berkas task dan 38 test IGD `PASS`; **runtime inti PASS 18 September 2026 pada revisi `3213419a7`** (13 pemeriksaan lewat layar, pemilik). Source berubah sesudahnya (terminologi "Dokter Penanggung Jawab IGD", fallback "Data historis"): **build penuh revisi terbaru belum diverifikasi pemilik**. Tanpa UAT | [FE-IGD-027](../task/report/frontend/FE-IGD-027.md) |
 | `FE-IGD-028` | Pemantauan observasi dengan tanda vital tertaut | ✅ 16 September 2026 — lint, 857 unit test, dan `npm run build` lulus; **runtime terverifikasi sebagian lewat layar** (jalur pilih-existing dan ABCDE terisi belum dilalui) | [FE-IGD-028](../task/report/frontend/FE-IGD-028.md) |
 | `FE-IGD-029` | Pendaftaran IGD menutup dengan status Menunggu Triage | ✅ **17 September 2026** — kedua kriteria terbukti lewat layar. Pasien `RAYYAN DHAFIR PRASETYA MAULANA` didaftarkan 17 September 2026 09.35, lahir berstatus "Menunggu Triage", lalu triage-nya tersimpan sampai berstatus "Sudah ditriage". Penolakan `409` yang memicu gelombang ini **hilang**. Tanpa UAT | [FE-IGD-029](../task/report/frontend/FE-IGD-029.md) |
 | `FE-IGD-030` | Aksi Tangani Segera pada daftar triage | ✅ 16 September 2026 — kedelapan kriteria terbukti lewat layar; lint, 859 unit test, dan `npm run build` lulus; tanpa UAT | [FE-IGD-030](../task/report/frontend/FE-IGD-030.md) |
@@ -694,7 +694,7 @@ flowchart LR
     FEIGD024["✅ FE-IGD-024<br/>Kesimpulan diisi saat Selesaikan"]:::selesai
     FEIGD025["FE-IGD-025<br/>Laporan perombakan pengkajian"]:::belum
     FEIGD026["FE-IGD-026<br/>Laporan layar pendaftaran"]:::belum
-    FEIGD027["FE-IGD-027<br/>Triase pakai riwayat dokter"]:::belum
+    FEIGD027["🟡 FE-IGD-027<br/>Triase pakai riwayat dokter"]:::sebagian
 
     DEC111 --> FEIGD023
     BEIGD040 --> FEIGD024
@@ -783,7 +783,7 @@ flowchart LR
 
 | Field | Isi |
 | --- | --- |
-| **Status** | 🟡 **IMPLEMENTATION COMPLETE / RUNTIME NOT VERIFIED — 17 September 2026.** Ketujuh acceptance criteria terpetakan ke source. Penetapan dokter IGD berpindah ke kontrak `EmergencyDoctorAssignment`; **nol** kemunculan endpoint Registrasi pada kode layar IGD. `npm run lint:errors` **PASS**; unit test **866/866**. `npm run build` dan uji lewat layar **belum** — keduanya milik pemilik. Dependency `BE-IGD-045` ✅ Build + Runtime Verified. [Laporan](../task/report/frontend/FE-IGD-027.md) |
+| **Status** | 🟡 **SEBAGIAN — dinilai ulang 21 September 2026.** Ketujuh acceptance terpetakan ke source. **Per revisi:** *Implementation Complete* = ya (revisi terbaru). *Scoped eslint* = `PASS` dan *unit test IGD* = 38/38 `PASS`. *Runtime inti* = **PASS 18 September 2026 pada revisi `3213419a7`** — 13 pemeriksaan lewat layar oleh pemilik ([evidence](../evidence/2026-09-18-verifikasi-runtime-fe-igd-027.md)), tidak diulang untuk revisi terbaru. `npm run build` **lulus 18 September 2026 hanya untuk `3213419a7`**; **build penuh revisi terbaru belum diverifikasi pemilik**. Source berubah sesudah verifikasi itu: terminologi "Dokter Penanggung Jawab IGD" dan tampilan "Data historis" untuk baris legacy `IGD-DEC-136` (belum diuji lewat layar — menunggu migration `BE-IGD-048`). **UAT belum dan tidak diklaim**. [Laporan](../task/report/frontend/FE-IGD-027.md) |
 | **Outcome** | Penetapan dan pengalihan dokter IGD dilakukan lewat `Emergency Doctor Assignment`, dan petugas melihat riwayat dokter penanggung jawab, bukan hanya dokter sekarang |
 | **Slice** | `IGD-S06` · `EPIC IGD-04` |
 | **Requirement** | `FR-IGD-016`…`021` sisi tampilan |
