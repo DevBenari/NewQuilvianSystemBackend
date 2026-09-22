@@ -64,7 +64,7 @@
 | `MVP-1` | `FE-HMD-05` | `FE-HMD-11` | Pengaturan kebijakan unit hemodialisa | `COMPLETED` ([Laporan](../task/report/frontend/FE-HMD-05.md)) |
 | `MVP-1` | `FE-HMD-06` | `FE-HMD-05` | Lembar kerja kesiapan unit shift dan pengolahan air | `COMPLETED` ([Laporan](../task/report/frontend/FE-HMD-06.md)) |
 
-| `MVP-2` | `FE-HMD-07` s/d `FE-HMD-11` | `FE-HMD-12`, `02`, `03`, `06` | Permintaan HD dari rawat inap, penerimaan order, daftar pasien, dan ruang kerja episode klinis | `BLOCKED` (`MVP-1`, `BE-HMD-07..09`) |
+| `MVP-2` | `FE-HMD-07` s/d `FE-HMD-11` | `FE-HMD-12`, `02`, `03`, `06` | Permintaan HD dari rawat inap, penerimaan order, daftar pasien, dan ruang kerja episode klinis | `IN_PROGRESS` (`FE-HMD-07` Selesai) |
 | `MVP-3` | `FE-HMD-12` s/d `FE-HMD-13` | `FE-HMD-04` | Tampilan jadwal kerja harian, alokasi mesin/station, dan penugasan perawat | `BLOCKED` (`MVP-2`, `BE-HMD-10..11`) |
 | `MVP-4` | `FE-HMD-14` s/d `FE-HMD-15` | `FE-HMD-07` (Pra & Intra) | Checklist Pra-HD, mulai sesi idempoten, garis waktu observasi, obat Farmasi, dan komplikasi | `BLOCKED` (`MVP-3`, `BE-HMD-12..15`) |
 | `MVP-5` | `FE-HMD-16` s/d `FE-HMD-18` | `FE-HMD-07` (Pasca & Final), `FE-HMD-01` | Penilaian pasca-HD, submit perawat, pengesahan DPJP, addendum koreksi, dan dashboard unit | `BLOCKED` (`MVP-4`, `BE-HMD-16..18`) |
@@ -216,7 +216,7 @@
 ### 4.3 Gelombang `MVP-2` — Permintaan Masuk, Daftar Pasien, dan Ruang Kerja Episode
 
 #### `FE-HMD-07` — Formulir Permintaan HD Terintegrasi pada Ruang Kerja Dokter & Perawat Rawat Inap (`FE-HMD-12`)
-
+* **Status**: `COMPLETED` ✅ — [Laporan Perubahan](../task/report/frontend/FE-HMD-07.md) (22 September 2026)
 * **Outcome**: Dokter dan perawat rawat inap dapat membuat permintaan cuci darah langsung dari berkas rekam medis elektronik bangsal tanpa membuka modul terpisah atau menelpon manual.
 * **Requirement / Decision**: `FR-HMD-001`, `FE-HMD-12`, `CAP-40`, `HMD-CAP-001`, `03-frontend-architecture.md` Bagian 8.
 * **Kontrak**: `contracts/api-contract.md` Grup Hemodialysis Order (`POST /`).
