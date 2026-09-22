@@ -320,3 +320,91 @@ Dua puluh acceptance test, `BIL-AT-101`–`BIL-AT-120`. **Lima di antaranya regr
 | Perpindahan `EVIDENCE_SUBMITTED` ke `SETTLED` | Status itu tidak ada (`PC-DEC-025`) |
 | Posting jurnal otomatis ke Kas Kecil | Ditunda (`PC-DEC-023`); `BIL-AT-120` justru menguji ketiadaannya |
 | Approval berjenjang berdasarkan nominal | Tidak pernah masuk scope revisi ini |
+
+---
+
+## Amendment 18 September 2026 — Penutupan gap `FINAL`→`CLOSED`
+
+`last_changed_in: BIL-TEST-1.2` · status **approved** (`BKC-DEC-105`, 18 September 2026) · input: **`BKC-DEC-100`–`BKC-DEC-102`**; keputusan arsitektur `BKC-DES-028`–`BKC-DES-035`.
+
+Empat belas acceptance test, `BIL-AT-121`–`BIL-AT-134`. **Lima di antaranya regresi** — menjaga hal-hal yang paling mudah rusak tanpa disadari ketika status invoice mulai berpindah sendiri.
+
+### Jalur utama — tagihan lunas menjadi tertutup
+
+| ID | Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- | --- |
+| `BIL-AT-121` | `BKC-DEC-100` | Tagihan `FINAL` senilai Rp 2.000.000 dibayar lunas sekali bayar | Integrasi | Status berpindah ke `CLOSED` pada transaksi yang sama dengan pembayarannya; `closedAt` terisi **waktu pembayaran itu**, bukan waktu baris kode dieksekusi; `rowVersion` berubah tepat sekali |
+| `BIL-AT-122` | `BKC-DEC-100`, § 21 capability map | Tagihan `FINAL` Rp 2.000.000 dicicil dua kali (Rp 1.200.000 lalu Rp 800.000) lewat **dua settlement terpisah** | Integrasi | Sesudah cicilan pertama status **tetap** `FINAL`; sesudah cicilan kedua berpindah ke `CLOSED`. Membuktikan perhitungan kumulatif lintas settlement, bukan per settlement |
+| `BIL-AT-123` | `BKC-DES-029` | Tagihan `FINAL` dilunasi **seluruhnya dari alokasi deposit pasien**, tanpa satu pun tender baru | Integrasi | Status berpindah ke `CLOSED`. Membuktikan penyelarasan tidak hanya terpasang di jalur tender |
+| `BIL-AT-124` | **`BKC-DEC-102`** | Tagihan departure exception (DAMA) difinalisasi dengan sisa tagihan, lalu piutangnya dilunasi beberapa hari kemudian | Integrasi | Saat finalisasi status `FINAL` (**tidak** langsung `CLOSED`); sesudah pelunasan berpindah ke `CLOSED`. Membuktikan invoice departure exception tidak dikecualikan |
+| `BIL-AT-125` | `BKC-DEC-100` | Tagihan `FINAL` yang sisa tagihannya dinolkan oleh **penyesuaian arah `Credit`** yang diposting | Integrasi | Status berpindah ke `CLOSED` tanpa satu rupiah pembayaran baru |
+
+### Jalur balik — tagihan tertutup yang terbuka kembali
+
+| ID | Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- | --- |
+| `BIL-AT-126` | **`BKC-DES-031`** | Tagihan yang sudah `CLOSED` pembayarannya dibalik (`SUCCEEDED` → `REVERSED`) | Integrasi | Status kembali ke `FINAL`; `closedAt` kembali **kosong**; tagihan muncul lagi sebagai punya sisa tagihan |
+| `BIL-AT-127` | `BKC-DES-031` | Tagihan yang sudah `CLOSED` menerima penyesuaian arah `Debit` yang diposting | Integrasi | Status kembali ke `FINAL`; sisa tagihan sama dengan nominal penyesuaian itu |
+| `BIL-AT-128` | `BKC-DES-031` | Tagihan yang kembali `FINAL` pada `BIL-AT-126` dibayar lunas lagi | Integrasi | Status berpindah ke `CLOSED` lagi; `closedAt` terisi waktu pembayaran **yang kedua**, bukan yang pertama |
+
+### Lubang koreksi AR — inti perbaikan `BKC-DEC-101`
+
+| ID | Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- | --- |
+| `BIL-AT-129` | **`BKC-DEC-101`**, `BKC-DES-035` | Tagihan lunas berstatus `CLOSED`; tiga hari kemudian ketahuan salah tagih Rp 300.000 dan petugas memposting penyesuaian atasnya | Integrasi | **Satu baris koreksi AR (`BilHandoffAdjustment`) benar-benar lahir.** Inilah skenario Tn. Budi pada temuan 2 September 2026 yang selama ini gagal diam-diam |
+| `BIL-AT-130` | `BKC-DES-035` | Write-off diposting atas tagihan berstatus `SETTLED_BY_WRITE_OFF` | Integrasi | **Nol** baris koreksi AR lahir — penjaga tetap menolak status ini dengan sengaja. **Regresi** |
+| `BIL-AT-131` | `BKC-DES-035` | Penyesuaian diposting atas tagihan yang masih `OPEN` | Integrasi | **Nol** baris koreksi AR lahir; belum ada handoff yang dapat dikoreksi. **Regresi** |
+
+### Idempotency, konkurensi, dan regresi
+
+| ID | Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- | --- |
+| `BIL-AT-132` | `BKC-DES-030` | Event provider yang sama dikirim **dua kali** untuk tender pelunasan yang sama | Integrasi | Status berpindah **tepat sekali**; `rowVersion` invoice naik tepat sekali; tepat satu baris audit perpindahan status; `closedAt` tidak bergeser pada pengiriman kedua |
+| `BIL-AT-133` | **`BKC-DES-032`** | Dua tender berbeda pada **satu invoice yang sama** direkonsiliasi bersamaan, dan bersama-sama melunasinya | Integrasi/konkurensi | Tepat satu perpindahan status; **tidak ada** galat "Data telah berubah" yang sampai ke kasir; saldo dan status akhir benar |
+| `BIL-AT-134` | `BKC-DES-028`, `BKC-DES-034` | (a) Finalisasi tagihan lunas dijalankan. (b) Sisa tagihan sepuluh invoice lama dihitung sebelum dan sesudah konsolidasi perhitungan. (c) Dry-run backfill dijalankan, lalu migration-nya | Regresi | (a) Status hasil finalisasi **tetap `FINAL`**, tidak pernah langsung `CLOSED`. (b) Kesepuluh angka **identik** sebelum dan sesudah konsolidasi. (c) Jumlah baris yang benar-benar berpindah **sama persis** dengan jumlah yang dilaporkan dry-run; `closedAt` hasil backfill berasal dari waktu pelunasan, dan **tidak ada** dua baris hasil backfill yang `closedAt`-nya sama dengan waktu migration dijalankan |
+
+### Yang sengaja tidak diuji
+
+| Yang tidak diuji | Alasan |
+| --- | --- |
+| Penyerahan nyata ke sistem AR/AP | Konsumennya belum ada (`BKC-BLK-INT-001`); justru ketiadaannya yang memicu amendment ini |
+| Perpindahan status `BilArHandoff` menjadi "tertagih" | Status itu tidak ada dan sengaja tidak dibuat (`BKC-DES-033`) |
+| Endpoint manual untuk menutup invoice | Tidak ada endpointnya; `BIL-AT-134`(a) menguji bahwa satu-satunya jalur ke `CLOSED` adalah penyelarasan otomatis |
+| Layar frontend baru | Nol perubahan frontend (§ 21 capability map) |
+
+Approval blueprint bukan bukti test.
+
+Trace **`BKC-DEC-100`–`102`**, `BKC-DES-028`–`035`.
+
+---
+
+## Amendment 21 September 2026 — Penerbitan fakta ke modul konsumen
+
+`last_changed_in: BIL-TEST-1.3` · status **draft** · input `BKC-DEC-106`–`109`, `BKC-DES-036`–`041`.
+
+| ID | Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- | --- |
+| `BIL-AT-135` | `BKC-DEC-106` | Satu pembayaran berhasil melunasi tagihan yang memuat resep | Integrasi | Tepat satu surat penerimaan **dan** tepat satu surat clearance, keduanya membawa korelasi yang sama, keduanya tercipta dalam satu transaksi |
+| `BIL-AT-136` | `BKC-DEC-106`, `FIN-DEC-005` | Pembayaran berhasil tetapi tagihan belum lunas | Integrasi | Surat penerimaan terbit; **nol** surat clearance. Membuktikan surat Finance tidak menunggu pelunasan maupun finalisasi |
+| `BIL-AT-137` | `PHA-DEC-068` | Biaya tindakan ditambahkan pada tagihan yang sudah lunas | Integrasi | **Nol** surat clearance pencabutan. Keadaan clearance resep tetap boleh diambil walau tagihan kembali bersisa |
+| `BIL-AT-138` | `PHA-DEC-068` | Harga obat pada resep dikoreksi naik | Integrasi | Satu surat pencabutan bersebab kenaikan biaya resep, bernomor versi lebih tinggi dari surat sebelumnya |
+| `BIL-AT-139` | `PHA-DEC-068-A` | Pembayaran dibalik pada tagihan yang memuat tiga resep | Integrasi | Tiga surat pencabutan — satu per resep — seluruhnya bersebab pembalikan pembayaran. Membuktikan perilaku fail-closed berlaku menyeluruh, bukan selektif |
+| `BIL-AT-140` | `PHA-DEC-065` | Tagihan lunas dengan tender bercampur: sebagian asuransi, sebagian tunai | Integrasi | Surat clearance berhasil finansial penjaminan, bukan pembayaran tunai, terlepas dari proporsi nominalnya |
+| `BIL-AT-141` | `BKC-DEC-107` | Surat clearance terbit tetapi tidak pernah diproses konsumen, lalu keadaan resep ditanyakan lewat permukaan pemeriksaan | Integrasi | Jawaban pemeriksaan sama persis dengan isi surat terakhir yang sah, walau suratnya belum pernah diakui |
+| `BIL-AT-142` | `BKC-DEC-108`, `BKC-DEC-109` | Surat diakui dua kali berturut-turut | API | Pengakuan pertama berhasil; pengakuan kedua ditolak tanpa mengubah apa pun, dan baris tetap ada |
+
+### Jalur gagal yang wajib dibuktikan
+
+| ID | Skenario gagal | Bukti yang diharapkan |
+| --- | --- | --- |
+| `BIL-AT-135-F` | Penerbitan surat gagal di tengah transaksi pembayaran | **Pembayarannya ikut batal.** Tidak ada keadaan uang tercatat masuk tanpa suratnya |
+| `BIL-AT-136-F` | Peristiwa yang sama diproses dua kali karena percobaan ulang | Tepat satu baris efektif per tender per keadaan; percobaan kedua tidak menambah baris |
+| `BIL-AT-139-F` | Dua perubahan clearance pada resep yang sama terjadi bersamaan | Tepat satu yang berhasil per nomor versi; yang kalah diulang dengan nomor berikutnya, bukan menimpa |
+| `BIL-AT-141-F` | Keadaan clearance ditanyakan untuk resep yang belum pernah punya surat | Dijawab "belum diketahui". **Bukan** galat, dan **bukan** boleh diambil |
+| `BIL-AT-142-F` | Tender tunai tanpa identitas shift kasir | Penerbitan ditolak beserta transaksinya; pesan menyebut shift kasir, bukan istilah teknis |
+
+Empat dari lima jalur gagal di atas menguji hal yang sama dari sudut berbeda: **uang dan
+suratnya tidak pernah boleh terpisah nasib.** Itu invariant paling mahal bila dilanggar, karena
+kerusakannya baru terlihat saat rekonsiliasi bulanan.
+
+Trace `BKC-DEC-106`–`109`, `BKC-DES-036`–`041`, `PHA-DEC-065`, `PHA-DEC-068`, `PHA-DEC-068-A`.

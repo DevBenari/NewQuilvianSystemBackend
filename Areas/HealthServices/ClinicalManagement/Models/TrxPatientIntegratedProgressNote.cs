@@ -86,6 +86,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models
 
         public DateTime NoteDateTime { get; set; } = DateTime.UtcNow;
 
+        /// <summary>
+        /// Jenis catatan pada lembar terpadu — <c>BE-RWI-094</c>, <c>FR-DOK-085</c>,
+        /// <c>RWI-DEC-141</c>.
+        /// </summary>
+        /// <remarks>
+        /// Diperiksa terhadap profesi klinis yang diturunkan dari akun login pada jalur tulis:
+        /// perawat tidak dapat menyimpan catatan berjenis dokter, dan sebaliknya. Bawaannya
+        /// <see cref="CpptNoteKind.Unspecified"/> supaya seluruh entri lama tetap sah tanpa
+        /// pengisian tebakan.
+        /// </remarks>
+        public CpptNoteKind NoteKind { get; set; } = CpptNoteKind.Unspecified;
+
         [Required]
         [MaxLength(50)]
         public string ProfessionType { get; set; } = string.Empty;

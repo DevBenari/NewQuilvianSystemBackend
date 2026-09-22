@@ -103,6 +103,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
         public const string InvalidTransition = "RAD_INVALID_TRANSITION";
         public const string ConcurrencyConflict = "RAD_CONCURRENCY_CONFLICT";
 
+        /* ---------------------------------------------------------------- *
+         * Pemberi instruksi pesanan rawat inap — BE-RWI-104, RWI-DEC-153
+         * ---------------------------------------------------------------- */
+
+        /// <summary>Perawat membuat pesanan rawat inap tanpa memilih dokter pemberi instruksi (VAL-DOK-46).</summary>
+        public const string InstructingDoctorRequired = "RAD_INSTRUCTING_DOCTOR_REQUIRED";
+
+        /// <summary>Dokter pemberi instruksi tidak bertugas atas pasien (VAL-DOK-47).</summary>
+        public const string InstructingDoctorNotAssigned = "RAD_INSTRUCTING_DOCTOR_NOT_ASSIGNED";
+
+        /// <summary>Pengguna bukan dokter pemberi instruksi pesanan (VAL-DOK-50).</summary>
+        public const string NotInstructingDoctor = "RAD_NOT_INSTRUCTING_DOCTOR";
+
+        /// <summary>Status verifikasi instruksi bukan Pending (VAL-DOK-50a).</summary>
+        public const string InstructionNotPending = "RAD_INSTRUCTION_NOT_PENDING";
+
+        /// <summary>Akun tanpa tautan dokter meminta daftar tunggu verifikasi.</summary>
+        public const string DoctorNotIdentified = "RAD_DOCTOR_NOT_IDENTIFIED";
+
         /// <summary>Identitas pasien, kunjungan, pemeriksaan, atau modalitas belum diverifikasi.</summary>
         public const string IdentityNotVerified = "RAD_IDENTITY_NOT_VERIFIED";
 

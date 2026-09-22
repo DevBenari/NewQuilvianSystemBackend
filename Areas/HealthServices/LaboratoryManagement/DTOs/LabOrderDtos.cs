@@ -123,6 +123,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         /// bercampur pada layar dokter.
         /// </remarks>
         public Guid? InpEpisodeId { get; set; }
+
+        /// <summary>
+        /// Dokter pemberi instruksi — BE-RWI-104, FR-DOK-106. Hanya dibaca pada pesanan rawat inap
+        /// (InpEpisodeId terisi) yang dibuat pengguna tanpa tautan dokter: wajib diisi dan wajib
+        /// bertugas atas pasien. Pesanan poliklinik dan IGD mengabaikannya, sehingga pemanggil lama
+        /// tidak berubah perilakunya.
+        /// </summary>
+        public Guid? InstructingDoctorId { get; set; }
     }
 
     /// <summary>
@@ -399,5 +407,37 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         public DateTime? CancelDateTime { get; set; }
 
         public Guid? CancelBy { get; set; }
+
+        /// <summary>Dokter pemberi instruksi pesanan rawat inap yang dibuat perawat — BE-RWI-104.</summary>
+        public Guid? InstructingDoctorId { get; set; }
+
+        public string? InstructingDoctorName { get; set; }
+
+        public string InstructionVerificationStatus { get; set; } = "NotRequired";
+
+        public DateTime? InstructionVerifiedAt { get; set; }
+
+        public Guid? InstructionVerifiedByUserId { get; set; }
+    }
+
+    /// <summary>
+    /// Satu baris daftar tunggu verifikasi instruksi pesanan laboratorium milik dokter login — BE-RWI-104,
+    /// api-contract 0.6.0 bagian 12.12. Identitas pasien sengaja minimum.
+    /// </summary>
+    public class LabOrderInstructionVerificationItemResponse
+    {
+        public Guid OrderId { get; set; }
+        public Guid EncounterId { get; set; }
+        public Guid? InpEpisodeId { get; set; }
+        public string? EpisodeNumber { get; set; }
+        public string PatientName { get; set; } = string.Empty;
+        public string MedicalRecordNumber { get; set; } = string.Empty;
+        public Guid ProcedureId { get; set; }
+        public string ProcedureName { get; set; } = string.Empty;
+        public string OrderStatus { get; set; } = string.Empty;
+        public DateTime? RequestedAt { get; set; }
+        public Guid? RequestedByUserId { get; set; }
+        public string? RequestedByName { get; set; }
+        public string InstructionVerificationStatus { get; set; } = string.Empty;
     }
 }

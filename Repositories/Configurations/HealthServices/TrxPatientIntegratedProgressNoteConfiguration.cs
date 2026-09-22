@@ -324,6 +324,30 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
             // membaca baris itu, dan meng-index seluruh baris memboroskan tanpa dipakai.
             entity.HasIndex(x => x.VerificationDueAt)
                 .HasFilter("\"VerificationStatus\" = 1 AND \"IsDelete\" = false");
+
+            // =========================================================================
+            // BE-RWI-094 - jenis catatan pada lembar terpadu (migration R3)
+            // =========================================================================
+
+            // data-dictionary.md 13.9. Bawaannya Unspecified, bukan PhysicianNote: seluruh entri
+            // lama memang tidak pernah punya jenis, dan menebaknya dari isi catatan adalah
+            // pemalsuan data klinis. Keabsahan pasangan jenis-profesi ditegakkan jalur tulis
+            // (VAL-DOK-59), bukan check constraint - pemetaannya melibatkan kolom teks
+            // ProfessionType yang nilainya ditentukan aplikasi, bukan enum basis data.
+            entity.Property(x => x.NoteKind)
+                .HasConversion<int>()
+                .HasDefaultValue(CpptNoteKind.Unspecified)
+                .IsRequired();
+
+            // Index penyaring lini masa per perawatan: saringnya berangkat dari perawatan, lalu
+            // jenis, lalu waktu klinis - persis urutan kolom di sini.
+            entity.HasIndex(x => new
+            {
+                x.InpEpisodeId,
+                x.NoteKind,
+                x.NoteDateTime
+            })
+            .HasDatabaseName("IX_TrxPatientIntegratedProgressNote_Episode_Kind_Time");
         }
     }
 }

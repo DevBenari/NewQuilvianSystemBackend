@@ -25,8 +25,8 @@ public sealed class BillingInvoiceService
     private readonly BillingNumberSeriesService _numberSeries;
     private readonly BillingCalculationService _calculationService;
     private readonly LoggerService _loggerService;
-
     private readonly InsuranceCoverageService _insuranceCoverageService;
+    private readonly BilConsumerHandoffService _consumerHandoffService;
 
     public BillingInvoiceService(
         ApplicationDbContext dbContext,
@@ -34,7 +34,8 @@ public sealed class BillingInvoiceService
         BillingNumberSeriesService numberSeries,
         BillingCalculationService calculationService,
         LoggerService loggerService,
-        InsuranceCoverageService insuranceCoverageService)
+        InsuranceCoverageService insuranceCoverageService,
+        BilConsumerHandoffService consumerHandoffService)
     {
         _dbContext = dbContext;
         _sourceAdapter = sourceAdapter;
@@ -42,6 +43,7 @@ public sealed class BillingInvoiceService
         _calculationService = calculationService;
         _loggerService = loggerService;
         _insuranceCoverageService = insuranceCoverageService;
+        _consumerHandoffService = consumerHandoffService;
     }
 
     // BKC-DEC-060: preview read-only, tanpa efek samping - dipakai layar entri sebelum item
@@ -1588,10 +1590,37 @@ public sealed class BillingInvoiceService
                 }
                 else
                 {
+                    var oldCharge = existingItem.Quantity * existingItem.UnitPrice;
+                    var newCharge = request.Quantity * request.UnitPrice;
+                    var isPharmacyChargeIncrease = existingItem.SourceDomain == "PHARMACY" && newCharge > oldCharge;
+
                     ApplySource(existingItem, request, source, payloadHash, idempotencyKey, actorUserId);
                     invoice.RowVersion = Guid.NewGuid();
                     invoice.UpdateDateTime = DateTime.UtcNow;
                     invoice.UpdateBy = actorUserId;
+
+                    // BE-BKC-067 / PHA-DEC-068 / BIL-AT-138: Jika harga atau kuantitas obat pada resep
+                    // yang sudah pernah CLEARED dikoreksi naik, terbitkan surat pencabutan clearance (REVOKED / PRESCRIPTION_CHARGE_INCREASED).
+                    if (isPharmacyChargeIncrease && Guid.TryParse(existingItem.SourceDetailId, out var presId))
+                    {
+                        var latestHandoff = await _dbContext.BilPrescriptionClearanceHandoffs
+                            .Where(x => x.PrescriptionId == presId && !x.IsDelete)
+                            .OrderByDescending(x => x.FinancialVersion)
+                            .FirstOrDefaultAsync(cancellationToken);
+
+                        if (latestHandoff != null && latestHandoff.ClearanceStatus == PrescriptionClearanceStatuses.Cleared)
+                        {
+                            await _consumerHandoffService.PublishForClearanceChangeAsync(
+                                invoice.Id,
+                                PrescriptionClearanceReasonCodes.PrescriptionChargeIncreased,
+                                actorUserId,
+                                DateTimeOffset.UtcNow,
+                                request.CorrelationId,
+                                request.CausationId,
+                                cancellationToken,
+                                presId);
+                        }
+                    }
                 }
                 item = existingItem;
             }

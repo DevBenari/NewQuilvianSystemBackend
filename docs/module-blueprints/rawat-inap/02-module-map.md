@@ -3,16 +3,16 @@
 | Field | Value |
 |---|---|
 | Dokumen | `02-module-map.md` — hanya lahir pada `blueprint_shape: COMPOSITE` |
-| Revision | **`2`** — penyelarasan `PRD-RWI-V2-001`, blueprint revision `7`, 15 September 2026. Isi revision `2` ditandai ★ pada bagian 1, 2.5, 3.3, 3.4.1, 3.5, 4.5, 5, 6 |
-| Status | **`approved`** — revision `2` disetujui Muhammad Hamzah 2026-09-16 lewat `RWI-DEC-150`, bersama blueprint revision `7` ketiga sub-modul. Sebelumnya `draft` |
-| Tanggal | 2026-09-02; revision `2` ditulis 2026-09-15, disetujui 2026-09-16 |
+| Revision | **`3`** — pendaftaran sub-modul `integrasi-billing` (Slice `INP-S22`), 17 September 2026. Sebelumnya Revision `2` (15 September 2026) |
+| Status | **`draft`** — sub-modul `integrasi-billing` berstatus `draft` menunggu approval bersama Muhammad Hamzah & Yasmina. Ketiga sub-modul lama tetap mempertahankan status sebelumnya |
+| Tanggal | 2026-09-02; revision `2` ditulis 2026-09-15, disetujui 2026-09-16; **revision `3` ditulis 2026-09-17** |
 | Modul | `rawat-inap` / `InPatientManagement`, prefix entity `Inp` |
 | Bentuk blueprint | `COMPOSITE`, ditetapkan `RWI-DEC-082`, `shape_decided_by: USER_CONFIRMED` |
-| Masukan keputusan | [`00-interview-decisions.md`](./00-interview-decisions.md) revision `7` — `RWI-DEC-080` s.d. `RWI-DEC-083`, `RWI-OQ-047`. **Revision `2`:** revision `21` SHA-256 `1c55c80a50aee11ef005ccde6315c2935cbe21504e8596798b89bf7f2d45102a` — `RWI-DEC-097` s.d. `149`; gate `1.6` SHA-256 `f31d207ae0cac120b0821d4474a3d952e109293c2b517aa630370396e49b5300` |
-| Masukan keadaan saat ini | [`01-existing-capability-map.md`](./01-existing-capability-map.md) revision `1.2` |
-| Baseline requirement | `PRD_Final_Rawat_Inap_100_Persen.md` v1.0.0 (`PRD-RWI-FINAL-001`), `docs/Modul-RS/Rawat-Inap/` — menggantikan batas scope revision `4` lewat `RWI-DEC-080` |
-| Owner | Product/Domain: **Muhammad Hamzah**, ditunjuk `RWI-DEC-061` |
-| Ditulis oleh | `/qv-design` gerakan ① `bentuk-blueprint.md` bagian 6 |
+| Masukan keputusan | [`00-interview-decisions.md`](./00-interview-decisions.md) revision `25` (17 September 2026) — `RWI-DEC-156` s.d. `161`, `RWI-AC-236` s.d. `241` |
+| Masukan keadaan saat ini | [`01-existing-capability-map.md`](./01-existing-capability-map.md) revision `1.5` Bagian 18 |
+| Baseline requirement | `docs/Modul-RS/Rawat-Inap-To-Billing/PRD Integrasi-Rawat-Inap-dengan-Billing.md` (2.282 baris) dan `PRD_Final_Rawat_Inap_100_Persen.md` v1.0.0 |
+| Owner | Product/Domain: **Muhammad Hamzah**, ditunjuk `RWI-DEC-061`; Integrasi Billing: **Muhammad Hamzah & Yasmina** |
+| Ditulis oleh | `design-business-module` untuk slice `INP-S22` |
 
 ---
 
@@ -39,17 +39,18 @@ laporan task **tidak** ada di sini; semuanya tinggal di dalam folder sub-modul m
 
 ## 1. Registry sub-modul
 
-Tiga sub-modul, hasil uji pemecahan `bentuk-blueprint.md` bagian 4.1 yang dicatat `RWI-DEC-082`.
+Empat sub-modul di bawah naungan blueprint composite Rawat Inap (`rawat-inap`):
 
 | Slug | Rumpun kemampuan | Uji pemecahan | Jumlah kemampuan | Status | Pemilik | Approval |
 |---|---|:---:|:---:|---|---|---|
 | [`episode-rawat-inap/`](./episode-rawat-inap/) | Episode, tempat tidur, penanggung jawab, pemulangan, penutupan | **5/5** | 16 | ★ **`draft`** — revision `7`, kontrak `0.9.0` amandemen terbatas | Muhammad Hamzah | Revision `7` belum. Sebelumnya **Muhammad Hamzah, 2026-08-24** lewat `RWI-DEC-074`; kontrak `0.8.0` 2026-09-11 lewat `RWI-DEC-105` |
 | [`keperawatan/`](./keperawatan/) | Pengkajian, asuhan, tindakan keperawatan, gizi, pemakaian alat, ★ MAR dan pelaksanaan sliding scale | **3/5** | 5, ★ ditambah `CAP-023-MAR` | ★ **`draft`** — revision `7`, kontrak `0.5.0` | Muhammad Hamzah | Revision `7` belum. Sebelumnya revision `5` 2026-09-03 lewat `RWI-DEC-092`; kontrak `0.4.0` 2026-09-11 |
 | [`dokter-rawat-inap/`](./dokter-rawat-inap/) | SOAP, CPPT, kajian medis, resep, tindakan, visite, penunjang | **3/5** | 7, ★ `CAP-015` dan `CAP-023` dipecah per bagian | ★ **`draft`** — revision `7`, kontrak `0.6.0` | Muhammad Hamzah | Revision `7` belum. Sebelumnya revision `5` / kontrak `0.5.0` `approved` 2026-09-11 |
+| **[`integrasi-billing/`](./integrasi-billing/)** | **Integrasi Rawat Inap ↔ Kasir / Billing, Outbox Event, Room Charge, Clearance & Auto-Reblock (Slice `INP-S22`)** | **5/5** | 6 (`INT-CAP-01` s.d. `06`) | ★ **`draft`** — kontrak `1.0.0` (17 September 2026) | **Muhammad Hamzah & Yasmina** | Menunggu approval |
 
-> ★ **Revision `2` — 15 September 2026.** Ketiga sub-modul kembali **`draft`** karena amandemen revision `7`. Status modul
-> diturunkan: **tiga `draft` = `draft`**. Isi yang sudah `approved` sebelumnya tetap sah dan task `✅` tetap sah; yang
-> `draft` hanya isi revision `7`.
+> ★ **Revision `3` — 17 September 2026.** Menambahkan sub-modul ke-4 **`integrasi-billing`** untuk menaungi slice integrasi
+> `INP-S22` berbasis `PRD Integrasi-Rawat-Inap-dengan-Billing.md` dan keputusan `RWI-DEC-156` s.d. `161`. Status modul
+> secara composite berstatus **`draft`** menunggu persetujuan human owner.
 
 **Status modul diturunkan, bukan ditulis tangan.** Satu `approved` + dua `draft` = **`partial`**,
 mengikuti `bentuk-blueprint.md` bagian 7. Modul ini **tidak boleh** terlihat `approved` selama dua
@@ -120,7 +121,7 @@ sana sekarang hanya kelompok data milik sub-modul itu sendiri, beserta rujukan b
 | Dokter | Corporate HR Workforce (modul lain) | `episode-rawat-inap`, `dokter-rawat-inap` | Tidak — `InpDoctorAssignment.DoctorId` |
 | Pegawai dan profil tenaga kerja | Corporate HR Workforce (modul lain) | `episode-rawat-inap`, `keperawatan` | Tidak — `InpNurseAssignment.EmployeeId` |
 | Surat keterangan medis | Clinical Management (modul lain) | `episode-rawat-inap` | Tidak — dipakai apa adanya untuk lembar yang diserahkan pasien |
-| Faktur, tagihan, pembayaran | Billing Management (modul lain) | Tidak dipakai pada MVP | Tidak |
+| Faktur, tagihan, pembayaran, tarif kamar, dan clearance | Billing Management (modul lain) | `integrasi-billing`, **dibaca** | Tidak — seluruh tarif, ledger, dan invoice dimiliki eksklusif oleh `BillingManagement` (`RWI-DEC-156`) |
 | Deposit pasien rawat inap — akun, mutasi, kebijakan minimum, alokasi, refund | Billing Management (modul lain) | `episode-rawat-inap`, **dibaca**; `EpisodeId` **dikirim** saat penerimaan | Tidak — `BilDepositAccount` dan `BilDepositMovement` sudah ada. Rawat Inap **dilarang** membuat tabel `InpDeposit` apa pun (`RWI-DEC-093`). **Dikoreksi 2026-09-08 sore.** Penelusuran episode dicapai lewat join pada `EncounterId` yang sudah unique di kedua sisi (`RWI-FACT-017`), sehingga **nol kolom** ditambahkan. Yang masih dituntut dari pemilik Billing tinggal dua: master kebijakan minimum deposit dan satu operasi baca ringkasan per episode — keduanya **menunggu `RWI-OQ-053`** |
 | Disposisi IGD | Emergency Installation Management (modul lain) | `episode-rawat-inap`, hanya jalur serah terima | Tidak — di luar scope MVP; `DEC-INP-002` menunggu Rizki Gunawan |
 | Catatan kepergian pasien dari IGD | Emergency Installation Management (modul lain) | `episode-rawat-inap`, **dibaca** | Tidak — waktu tiba dibaca dari event `Tiba` di sana, `RWI-DEC-072` |
@@ -130,13 +131,14 @@ sana sekarang hanya kelompok data milik sub-modul itu sendiri, beserta rujukan b
 
 | Kelompok data | Pemilik | Dipakai sub-modul | Dibuat ulang |
 |---|---|---|---|
-| Episode rawat inap | **`episode-rawat-inap`** | **Ketiganya** — keperawatan dan dokter membacanya sebagai konteks, tidak menulisnya | **Ya** — konsep baru, tidak ada pemiliknya di mana pun |
-| Pemesanan dan penempatan tempat tidur | **`episode-rawat-inap`** | `episode-rawat-inap` | **Ya** — konsep baru; hari ini tidak ada satu pun catatan penghunian di dalam sistem |
+| Episode rawat inap | **`episode-rawat-inap`** | **Keempatnya** — keperawatan, dokter, dan integrasi-billing membacanya sebagai konteks | **Ya** — konsep baru, tidak ada pemiliknya di mana pun |
+| Pemesanan dan penempatan tempat tidur | **`episode-rawat-inap`** | `episode-rawat-inap`, `integrasi-billing` | **Ya** — konsep baru; hari ini tidak ada satu pun catatan penghunian di dalam sistem |
 | Penanggung jawab episode — DPJP dan perawat | **`episode-rawat-inap`** | Ketiganya — dibaca sebagai penentu kewenangan menulis dokumentasi | **Ya** — berbentuk riwayat berperiode, berbeda dari kolom dokter pada kunjungan |
 | Resume pulang beserta versinya | **`episode-rawat-inap`** | `episode-rawat-inap`, ditulis DPJP | **Ya** — catatan resmi episode, berbeda dari surat keterangan milik Clinical Management. `CAP-026` tetap milik episode, `RWI-DEC-083` |
 | Daftar periksa administrasi dan penandaannya | **`episode-rawat-inap`** | `episode-rawat-inap` | **Ya** — butir per rumah sakit, dapat diubah admin |
-| Riwayat status episode | **`episode-rawat-inap`** | Ketiganya, **dibaca** | **Ya** — jejak yang tidak dapat dihapus |
+| Riwayat status episode | **`episode-rawat-inap`** | Keempatnya, **dibaca** | **Ya** — jejak yang tidak dapat dihapus |
 | Sesi koreksi episode | **`episode-rawat-inap`** | `episode-rawat-inap` | **Ya** — konsep tersendiri, bukan status episode keenam |
+| **Antrean Outbox Integrasi Transaksional (`InpIntegrationOutboxes`)** | **`integrasi-billing`** | `integrasi-billing`, dipublikasikan ke Billing | **Ya (Baru)** — tabel di skema Rawat Inap untuk menjamin *at-least-once delivery* dan idempotensi event integrasi (`RWI-DEC-161`) |
 | Pengaturan Rawat Inap yang dapat diubah admin | **`episode-rawat-inap`** | Ketiganya, **dibaca** | **Ya** — mengikuti pola `MstEmergencySetting` |
 
 ### 2.3 Dokumentasi klinis — dimiliki `ClinicalManagement`, `RWI-DEC-081`
