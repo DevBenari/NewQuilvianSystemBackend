@@ -23,6 +23,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         [MaxLength(20, ErrorMessage = "Awalan nomor cetak paling panjang 20 karakter.")]
         public string? ReportNumberPrefix { get; set; }
 
+        /// <summary>
+        /// Pemisah antara tahun dan nomor urut. <b>Teks kosong berarti tanpa pemisah</b>, dan
+        /// itu nilai yang sah — Patologi Klinik memang menempelkan tahun langsung pada
+        /// nomornya (<c>25039254</c>).
+        /// </summary>
+        [MaxLength(5, ErrorMessage = "Pemisah nomor cetak paling panjang 5 karakter.")]
+        public string? ReportNumberSeparator { get; set; }
+
+        /// <summary>Lebar minimum nomor urut. Empat pada Mikrobiologi dan Patologi Anatomi, enam pada Patologi Klinik.</summary>
+        [Range(1, 12, ErrorMessage = "Lebar nomor cetak harus antara 1 dan 12 digit.")]
+        public int ReportNumberLength { get; set; } = 4;
+
         public bool IsActive { get; set; } = true;
     }
 
@@ -41,6 +53,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         public string? StandingNote { get; set; }
 
         public string? ReportNumberPrefix { get; set; }
+
+        public string? ReportNumberSeparator { get; set; }
+
+        public int ReportNumberLength { get; set; }
+
+        /// <summary>
+        /// Contoh nomor yang akan dihasilkan bentuk ini pada tahun berjalan — misalnya
+        /// <c>26-0001</c>. Baca-saja, dan ada supaya kepala instalasi melihat akibat
+        /// setelannya <b>sebelum</b> lembar pertama tercetak.
+        /// </summary>
+        public string ReportNumberExample { get; set; } = string.Empty;
 
         public bool IsActive { get; set; }
     }

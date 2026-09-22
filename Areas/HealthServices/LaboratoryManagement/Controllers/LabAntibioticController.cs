@@ -46,7 +46,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         // Daftar antibiotik untuk layar pengelolaan kepala instalasi. Memuat yang nonaktif juga.
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<LabAntibioticResponse>>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Lab Antibiotic", Description = "Melihat daftar antibiotik pada panel uji", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction("Read", "Read Lab Antibiotic", Description = "Melihat daftar, ringkasan, pilihan, dan detail antibiotik pada panel uji", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("LabAntibiotic", "Read")]
         public async Task<IActionResult> GetList(
             [FromQuery] LabAntibioticPagedQuery query,
@@ -61,7 +61,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         // Daftar pilihan untuk layar pencatatan kepekaan. Hanya antibiotik aktif (VAL-86).
         [HttpGet("options")]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<LabAntibioticOptionResponse>>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Lab Antibiotic", Description = "Melihat daftar pilihan antibiotik", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction("Read", "Read Lab Antibiotic", Description = "Melihat daftar, ringkasan, pilihan, dan detail antibiotik pada panel uji", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("LabAntibiotic", "Read")]
         public async Task<IActionResult> GetOptions(
             [FromQuery] LabAntibioticOptionQuery query,
@@ -93,7 +93,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-        [AccessAction("Update", "Update Lab Antibiotic", Description = "Mengubah antibiotik pada panel uji", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessAction("Update", "Update Lab Antibiotic", Description = "Mengubah antibiotik pada panel uji beserta status aktifnya", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("LabAntibiotic", "Update")]
         public Task<IActionResult> Update(
             Guid id,
@@ -107,6 +107,85 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         /// Menjalankan satu perubahan dan menerjemahkan kegagalannya menjadi status HTTP yang
         /// tepat, tanpa membocorkan detail exception ke pemanggil.
         /// </summary>
+        // =============================================================
+        // Baseline data induk yang dilengkapi 2026-09-22 — `LAB-API-v1` r31.
+        // =============================================================
+
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<LabAntibioticFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Lab Antibiotic", Description = "Melihat daftar, ringkasan, pilihan, dan detail antibiotik pada panel uji", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabAntibiotic", "Read")]
+        public IActionResult GetFilterMetadata()
+        {
+            var result = LabFilterMetadataFactory.LabAntibiotic();
+
+            return Ok(ApiResponse<LabAntibioticFilterMetadataResponse>.Ok(
+                result, "Metadata penyaring antibiotik pada panel uji berhasil diambil."));
+        }
+
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<LabAntibioticSummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Lab Antibiotic", Description = "Melihat daftar, ringkasan, pilihan, dan detail antibiotik pada panel uji", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabAntibiotic", "Read")]
+        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
+        {
+            var result = await _labAntibioticService.GetSummaryAsync(cancellationToken);
+
+            return Ok(ApiResponse<LabAntibioticSummaryResponse>.Ok(
+                result, "Ringkasan antibiotik pada panel uji berhasil diambil."));
+        }
+
+        // Jalur detail. Tanpa ini, formulir ubah yang dibuka lewat tautan langsung atau sesudah
+        // halaman disegarkan nol punya cara memuat barisnya — dan gagalnya DIAM.
+        [HttpGet("{id:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<LabAntibioticResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Lab Antibiotic", Description = "Melihat daftar, ringkasan, pilihan, dan detail antibiotik pada panel uji", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabAntibiotic", "Read")]
+        public async Task<IActionResult> GetById(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var result = await _labAntibioticService.GetByIdAsync(id, cancellationToken);
+
+                return Ok(ApiResponse<LabAntibioticResponse>.Ok(
+                    result, "Detail antibiotik pada panel uji berhasil diambil."));
+            }
+            catch (KeyNotFoundException exception)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound, exception.Message));
+            }
+        }
+
+        // Penonaktifan, BUKAN penghapusan. Barisnya tetap terlihat beserta penandanya (AC-118).
+        [HttpPatch("{id:guid}/status")]
+        [ProducesResponseType(typeof(ApiResponse<LabAntibioticResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Update", "Update Lab Antibiotic", Description = "Mengubah antibiotik pada panel uji beserta status aktifnya", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("LabAntibiotic", "Update")]
+        public async Task<IActionResult> SetStatus(
+            Guid id,
+            [FromBody] LabMicrobiologyMasterDataStatusRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var result = await _labAntibioticService.SetStatusAsync(id, request.IsActive, cancellationToken);
+
+                return Ok(ApiResponse<LabAntibioticResponse>.Ok(
+                    result,
+                    request.IsActive ? "Antibiotik diaktifkan." : "Antibiotik dinonaktifkan."));
+            }
+            catch (KeyNotFoundException exception)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound, exception.Message));
+            }
+        }
+
         private async Task<IActionResult> ExecuteAsync(
             Func<Task<LabAntibioticResponse>> action,
             string successMessage)

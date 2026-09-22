@@ -443,7 +443,7 @@ belum pernah dijalankan sekalipun.
 | Keputusan | Task backend | Task frontend | Kontrak | AC |
 |---|---|---|---|---|
 | `LAB-DEC-095` hasil per pemeriksaan | — (bentuknya sudah benar sejak `r24`) | `FE-LAB-30` | `r24` 19.2 | `AC-156` |
-| `LAB-DEC-096` waktu turunan | `BE-LAB-58` | `FE-LAB-33` | `r26` 21.3 | `AC-157` |
+| `LAB-DEC-096` waktu turunan | `BE-LAB-58` ✅ | `FE-LAB-33` | `r26` 21.3 | `AC-157` ✅ |
 | `LAB-DEC-097` Final bukan rilis | `BE-LAB-53`, `BE-LAB-54` | `FE-LAB-33` | `r26` 21.2 | `AC-158`, `AC-159` |
 | `LAB-DEC-098` Spesifik Specimen | `BE-LAB-55` | `FE-LAB-32` | `r26` 21.5 | `AC-160`, `AC-161` |
 | `LAB-DEC-099` isi awal disaring | `BE-LAB-55` (tabel saja) | — | `r26` 21.5 | `AC-161` |
@@ -452,7 +452,7 @@ belum pernah dijalankan sekalipun.
 | `LAB-DEC-102` nol subbakteri | — (sudah benar sejak `r24`) | `FE-LAB-31` | `r24` 19.2 | — |
 | `LAB-DEC-103` aturan kritis | `BE-LAB-56`, `BE-LAB-58` | `FE-LAB-31` | `r26` 21.6 | `AC-166`, `AC-167` |
 | `LAB-DEC-104` wajib bersyarat | `BE-LAB-54`, `BE-LAB-56` | `FE-LAB-31` | `LAB-VAL-v1` `r9` | `AC-163`, `AC-164`, `AC-165` |
-| `LAB-DEC-105` Analis turunan | `BE-LAB-58` | `FE-LAB-33` | `r26` 21.3 | `AC-168` |
+| `LAB-DEC-105` Analis turunan | `BE-LAB-58` ✅ | `FE-LAB-33` | `r26` 21.3 | `AC-168` ✅ |
 | `LAB-DEC-106` `Definitif` fakta | `BE-LAB-53`, `BE-LAB-54` | `FE-LAB-33` | `r26` 21.2 | `AC-169` |
 | `LAB-DEC-107` koreksi specimen | `BE-LAB-57` ✅ | `FE-LAB-32` | `r27` 21.4 | `AC-170` ✅ |
 | `LAB-DEC-109` nol HL7 | — (ketiadaan) | `FE-LAB-33` (ketiadaan) | `r26` 21.8 | `AC-172` |
@@ -525,13 +525,13 @@ diubah.**
 | `LAB-DEC-115` satuan MIC | `BE-LAB-61` | `FE-LAB-31` | `AC-178` |
 | `LAB-DEC-116`+`124` dua penanda | `BE-LAB-53` *(cakupan bertambah)* | `FE-LAB-31`, `FE-LAB-33` | `AC-179`, `AC-188` |
 | `LAB-DEC-117` nomor cetak | `BE-LAB-63` ✅ | — | `AC-180` ✅ |
-| `LAB-DEC-118` tanggal cetak | `BE-LAB-58` *(dikoreksi 2026-09-22 — ia ruas TURUNAN pada jalur baca `r27` 22.3, bukan milik `BE-LAB-63`)* | — | `AC-181` |
-| `LAB-DEC-119`+`127` pengaturan disiplin | `BE-LAB-63` ✅ | `FE-LAB-34` | `AC-182` ✅ |
-| `LAB-DEC-120` petugas otorisasi | `BE-LAB-58` *(dikoreksi 2026-09-22)* — **dan nilainya tetap kosong sampai `S4d` dibuka `DEC-LAB-011`** | `FE-LAB-33` | `AC-183` |
+| `LAB-DEC-118` tanggal cetak | `BE-LAB-58` *(dikoreksi 2026-09-22 — ia ruas TURUNAN pada jalur baca `r27` 22.3, bukan milik `BE-LAB-63`)* | — | `AC-181` ✅ |
+| `LAB-DEC-119`+`127` pengaturan disiplin | `BE-LAB-63` ✅ | `FE-LAB-34` ⚠ | `AC-182` ✅ |
+| `LAB-DEC-120` petugas otorisasi | `BE-LAB-58` *(dikoreksi 2026-09-22)* — **dan nilainya tetap kosong sampai `S4d` dibuka `DEC-LAB-011`** | `FE-LAB-33` | `AC-183` ⚠ **terbuka** — sisi positifnya nol dapat diuji sampai `S4d` dibuka |
 | `LAB-DEC-121` permintaan klinis | — *(dokumen)* | — | `AC-184` |
-| `LAB-DEC-122` breakpoint + UG | `BE-LAB-60` | `FE-LAB-34` | `AC-185` |
+| `LAB-DEC-122` breakpoint + UG | `BE-LAB-60` ✅ + **`BE-LAB-64`** ✅ *(permukaan baseline)* | `FE-LAB-34` ⚠ | `AC-185` |
 | `LAB-DEC-123` interpretasi terhitung | `BE-LAB-61` | `FE-LAB-31` | `AC-186`, `AC-187` |
-| `LAB-DEC-125` profil katalog | `BE-LAB-62` | `FE-LAB-34` | `AC-189` |
+| `LAB-DEC-125` profil katalog | `BE-LAB-62` ✅ + **`BE-LAB-64`** ✅ *(permukaan baseline)* | `FE-LAB-34` ⚠ | `AC-189` |
 | `LAB-DEC-126` isolat tanpa uji | `BE-LAB-61` | `FE-LAB-31` | `AC-190` |
 | `LAB-DEC-128` zona nol | `BE-LAB-61` | `FE-LAB-31` | `AC-191` |
 

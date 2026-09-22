@@ -40,7 +40,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
 
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<LabProcedureMicrobiologyProfileResponse>>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Lab Procedure Microbiology Profile", Description = "Melihat daftar pemetaan set bakteri", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction("Read", "Read Lab Procedure Microbiology Profile", Description = "Melihat daftar, ringkasan, pilihan, dan detail pemetaan set bakteri", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("LabProcedureMicrobiologyProfile", "Read")]
         public async Task<IActionResult> GetList(
             [FromQuery] LabProcedureMicrobiologyProfilePagedQuery query,
@@ -55,7 +55,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         [HttpGet("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<LabProcedureMicrobiologyProfileResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Read", "Read Lab Procedure Microbiology Profile Detail", Description = "Melihat satu pemetaan", AccessType = AccessTypes.Read, SortOrder = 2)]
+        [AccessAction("Read", "Read Lab Procedure Microbiology Profile", Description = "Melihat daftar, ringkasan, pilihan, dan detail pemetaan set bakteri", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("LabProcedureMicrobiologyProfile", "Read")]
         public async Task<IActionResult> GetById(
             Guid id,
@@ -107,7 +107,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         [HttpPut("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<LabProcedureMicrobiologyProfileResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Update", "Update Lab Procedure Microbiology Profile", Description = "Mengubah pemetaan", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessAction("Update", "Update Lab Procedure Microbiology Profile", Description = "Mengubah pemetaan beserta status aktifnya", AccessType = AccessTypes.Update, SortOrder = 4)]
         [AccessPermission("LabProcedureMicrobiologyProfile", "Update")]
         public async Task<IActionResult> Update(
             Guid id,
@@ -143,6 +143,77 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
 
                 return Ok(ApiResponse<object>.Ok(
                     null!, "Profil Mikrobiologi berhasil dinonaktifkan."));
+            }
+            catch (KeyNotFoundException exception)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound, exception.Message));
+            }
+        }
+
+        // =============================================================
+        // Baseline master data yang dilengkapi 2026-09-22 — `LAB-API-v1` r30.
+        // =============================================================
+
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<LabProcedureMicrobiologyProfileFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Lab Procedure Microbiology Profile", Description = "Melihat daftar, ringkasan, pilihan, dan detail pemetaan set bakteri", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabProcedureMicrobiologyProfile", "Read")]
+        public IActionResult GetFilterMetadata()
+        {
+            var result = LabFilterMetadataFactory.LabProcedureMicrobiologyProfile();
+
+            return Ok(ApiResponse<LabProcedureMicrobiologyProfileFilterMetadataResponse>.Ok(
+                result, "Metadata penyaring profil Mikrobiologi berhasil diambil."));
+        }
+
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<LabProcedureMicrobiologyProfileSummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Lab Procedure Microbiology Profile", Description = "Melihat daftar, ringkasan, pilihan, dan detail pemetaan set bakteri", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabProcedureMicrobiologyProfile", "Read")]
+        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
+        {
+            var result = await _service.GetSummaryAsync(cancellationToken);
+
+            return Ok(ApiResponse<LabProcedureMicrobiologyProfileSummaryResponse>.Ok(
+                result, "Ringkasan profil Mikrobiologi berhasil diambil."));
+        }
+
+        [HttpGet("options")]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<LabProcedureMicrobiologyProfileOptionResponse>>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Lab Procedure Microbiology Profile", Description = "Melihat daftar, ringkasan, pilihan, dan detail pemetaan set bakteri", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabProcedureMicrobiologyProfile", "Read")]
+        public async Task<IActionResult> GetOptions(
+            [FromQuery] string? search = null,
+            [FromQuery] bool onlyActive = true,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _service.GetOptionsAsync(
+                search, onlyActive, pageNumber, pageSize, cancellationToken);
+
+            return Ok(ApiResponse<PagedResult<LabProcedureMicrobiologyProfileOptionResponse>>.Ok(
+                result, "Pilihan profil Mikrobiologi berhasil diambil."));
+        }
+
+        [HttpPatch("{id:guid}/status")]
+        [ProducesResponseType(typeof(ApiResponse<LabProcedureMicrobiologyProfileResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Update", "Update Lab Procedure Microbiology Profile", Description = "Mengubah pemetaan beserta status aktifnya", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("LabProcedureMicrobiologyProfile", "Update")]
+        public async Task<IActionResult> SetStatus(
+            Guid id,
+            [FromBody] LabProcedureMicrobiologyProfileStatusRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var result = await _service.SetStatusAsync(id, request.IsActive, cancellationToken);
+
+                return Ok(ApiResponse<LabProcedureMicrobiologyProfileResponse>.Ok(
+                    result,
+                    request.IsActive ? "Profil Mikrobiologi diaktifkan." : "Profil Mikrobiologi dinonaktifkan."));
             }
             catch (KeyNotFoundException exception)
             {

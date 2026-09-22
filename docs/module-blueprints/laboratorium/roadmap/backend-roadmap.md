@@ -1013,7 +1013,7 @@ memutuskannya.
 
 ### `BE-LAB-22` — Waktu penerimaan fisik
 
-> **Status: `SELESAI SEBAGIAN` — 2026-09-15.** Kolom `PhysicallyReceivedAt` beserta indexnya
+> **Status: `SELESAI SEBAGIAN` — 2026-09-15, DITUTUP PENUH 2026-09-17 oleh `BE-LAB-37`.** Uraian di bawah adalah keadaan saat ia ditulis dan sengaja dibiarkan sebagai jejak. Kolom `PhysicallyReceivedAt` beserta indexnya
 > berdiri, migration dibuat, dan `dotnet build -p:RunAnalyzers=False --no-incremental`
 > **0 Error** tanpa satu pun warning dari berkas task ini.
 >
@@ -1041,7 +1041,7 @@ memutuskannya.
 
 | Butir | Isi |
 |---|---|
-| **Status** | **`SELESAI SEBAGIAN`** — 2026-09-15. `AC-65`, `AC-67`, `AC-17` terpenuhi; `AC-66` separuh karena `VAL-59` tertahan kontrak |
+| **Status** | ✅ **`SELESAI`** — **ditutup PENUH 2026-09-17** oleh `BE-LAB-37` yang melaksanakan `r16`; `VAL-59` kini menyala dan `AC-66` terpenuhi penuh. *(status diperbaiki 2026-09-22; blok ini tertinggal `SELESAI SEBAGIAN` sejak 2026-09-15, padahal penutupannya sudah tercatat pada tabel gelombang)* |
 | **Outcome** | Wadah yang datang setelah jam operasional tercatat pada hari kedatangannya, sementara jejak kapan datanya masuk sistem tetap utuh |
 | **Requirement/decision** | `FR-11.5`, `LAB-DEC-042`, BR-37 |
 | **Kontrak** | `LAB-API-v1` `r7`; `LAB-VAL-v1` `r4` `VAL-58`, `VAL-59` |
@@ -2097,7 +2097,13 @@ Ditambahkan 2026-09-17, sesudah pemilik modul menyetujui kedua amandemen pada ha
 
 ---
 
-## 6h. `BE-LAB-41` ⛔ — Penyimpanan pengiriman hasil ke pasien
+## 6h-B. `BE-LAB-41` ⛔ — Penyimpanan pengiriman hasil ke pasien
+
+> **Dinomori ulang 2026-09-22.** Bagian ini sebelumnya bernomor `6h`, sama dengan gelombang
+> `MVP-5g` di atasnya — dua bagian bernomor sama pada satu dokumen 3.800 baris. Ditemukan oleh
+> audit kesiapan. **Yang diubah hanya bagian ini**, sebab ketiga rujukan silang yang ada
+> (`backend-roadmap` baris 81, laporan `BE-LAB-37`, laporan `BE-LAB-38`) seluruhnya menunjuk
+> `6h` yang pertama; bagian ini nol dirujuk siapa pun.
 
 > **Status: ⛔ `TERTAHAN` — dirancang 2026-09-17, sengaja belum dilaksanakan.**
 >
@@ -2202,7 +2208,7 @@ MVP-6c  BE-LAB-47  tabel Mikro       ←─┘   (butuh BE-LAB-44 + BE-LAB-45)
 
 | Butir | Isi |
 |---|---|
-| **Status** | 🟢 `SIAP DIKERJAKAN` — prasyarat `MVP-6b` **dan** `MVP-6c` |
+| **Status** | ⛔ **`DILEBUR`** ke `BE-LAB-53` pada 2026-09-21 — digantikan, bukan dibatalkan. Lihat bagian 6m. *(status diperbaiki 2026-09-22; blok ini sempat tertinggal `SIAP DIKERJAKAN` sesudah peleburannya)* |
 | **Outcome** | Sistem mengenal empat bentuk hasil, dan `LabExamination` punya tempat bagi status temuan serta ketiga ruas narasi Patologi Anatomi |
 | **Requirement/decision** | `LAB-DEC-027` (BR-23); `LAB-DEC-080`; `LAB-DC-040` |
 | **Kontrak** | `LAB-API-v1` `r24`; `02-backend-architecture.md` bagian 14.9 dan 14.10 |
@@ -2281,7 +2287,7 @@ MVP-6c  BE-LAB-47  tabel Mikro       ←─┘   (butuh BE-LAB-44 + BE-LAB-45)
 
 | Butir | Isi |
 |---|---|
-| **Status** | 🟢 `SIAP DIKERJAKAN` — gelombang `MVP-6c` |
+| **Status** | ✅ **`SELESAI`** 2026-09-21 — lihat bagian 6o dan [`BE-LAB-47.md`](../task/report/backend/BE-LAB-47.md). *(status diperbaiki 2026-09-22; blok ini sempat tertinggal `SIAP DIKERJAKAN`)* |
 | **Outcome** | Isolat dan kepekaan antibiotik punya tempat tersimpan, beserta penjaga yang mencegah satu antibiotik diuji dua kali pada isolat yang sama |
 | **Requirement/decision** | `FR-13.2`, `FR-13.3`; `LAB-DC-036`, `LAB-DC-037`; `INV-27`, `INV-30`, `INV-31` |
 | **Kontrak** | `02-backend-architecture.md` bagian 14.7, 14.8, 14.11; `erd/data-dictionary.md` bagian 14.3, 14.4 |
@@ -2308,7 +2314,7 @@ MVP-6c  BE-LAB-47  tabel Mikro       ←─┘   (butuh BE-LAB-44 + BE-LAB-45)
 
 | Butir | Isi |
 |---|---|
-| **Status** | 🟢 `SIAP DIKERJAKAN` — gelombang `MVP-6c` |
+| **Status** | ✅ **`SELESAI`** 2026-09-21 — lihat bagian 6r dan [`BE-LAB-48.md`](../task/report/backend/BE-LAB-48.md). *(status diperbaiki 2026-09-22; blok ini sempat tertinggal `SIAP DIKERJAKAN`)* |
 | **Outcome** | Analis dapat menyimpan status temuan beserta seluruh isolat dan kepekaannya dalam satu tindakan, lalu membacanya ulang utuh |
 | **Requirement/decision** | `FR-13.1`..`FR-13.4`, `FR-13.7`, `FR-13.8` |
 | **Kontrak** | `LAB-API-v1` `r24` bagian 19.2; `LAB-VAL-v1` `r7` (`VAL-83`..`VAL-87`, `VAL-89`, `VAL-90`) |
@@ -2324,14 +2330,14 @@ MVP-6c  BE-LAB-47  tabel Mikro       ←─┘   (butuh BE-LAB-44 + BE-LAB-45)
 
 | Butir | Isi |
 |---|---|
-| **Status** | 🟢 `SIAP DIKERJAKAN` — gelombang `MVP-6c`, **sesudah** `BE-LAB-48` |
+| **Status** | ✅ **`SELESAI`** 2026-09-22 — lihat bagian 6z dan [`BE-LAB-49.md`](../task/report/backend/BE-LAB-49.md). `AC-115` sempat terbukti separuh; **`LAB-CONFLICT-011` ditutup pemilik modul lewat jalan B pada hari yang sama**, dan AC-nya dipersempit sehingga kini terbukti utuh |
 | **Outcome** | Terbukti bahwa analis dapat menghapus satu baris kepekaan lalu memilih antibiotik yang **sama** lagi tanpa ditolak basis data |
 | **Requirement/decision** | `INV-27`; `LAB-CONFLICT-005` sebagai pelajaran |
 | **Kontrak** | `LAB-VAL-v1` `r7` (`VAL-87`) |
 | **Reuse** | — |
 | **Cakupan** | **Nol source baru.** Task ini seluruhnya verifikasi berbukti |
 | **Dependency** | `BE-LAB-47`, `BE-LAB-48` |
-| **Acceptance criteria** | `AC-115` urutan **simpan → hapus baris → simpan lagi dengan antibiotik yang sama** berhasil, dan baris lama tetap ada bertanda `IsDelete = true` |
+| **Acceptance criteria** | `AC-115` **(dipersempit 2026-09-22, `LAB-CONFLICT-011` jalan B)** urutan **simpan → hapus baris → simpan lagi dengan antibiotik yang sama** berhasil. ~~dan baris lama tetap ada bertanda `IsDelete = true`~~ — **klausa itu DICABUT**: koleksi anak pada tabel ini memang diganti utuh secara fisik, dan jejak perubahannya milik `LabFieldChangeLog` (`LAB-DEC-112`), bukan baris nisan |
 | **Verifikasi** | Dijalankan terhadap database sungguhan, dan **hasilnya dilampirkan pada laporan task** |
 | **Risiko/pemilik** | **Rendah pada kodenya, tinggi pada akibat bila dilewatkan.** Kegagalannya tidak terlihat sampai analis pertama mengalaminya di meja kerja |
 | **DoD** | `AC-115` terbukti dengan bukti yang dapat dibaca ulang |
@@ -2516,7 +2522,7 @@ MVP-7d  BE-LAB-58  ruas turunan pada jalur baca       ← butuh 54, 56
 
 | Butir | Isi |
 |---|---|
-| **Status** | 🔲 **`SIAP DIKERJAKAN`** |
+| **Status** | ✅ **`SELESAI`** 2026-09-21 — lihat bagian 6m dan [`BE-LAB-53.md`](../task/report/backend/BE-LAB-53.md). Cakupannya bertambah oleh peleburan `BE-LAB-45`. *(status diperbaiki 2026-09-22; blok ini tertinggal `SIAP DIKERJAKAN`)* |
 | **Outcome** | Hasil Mikrobiologi punya tempat menyatakan dirinya selesai ditulis, dan punya tempat mencatat fakta konsultasi |
 | **Requirement/decision** | `LAB-DEC-097`, `LAB-DEC-106`, `LAB-DEC-113`; menutup `ARCH-GAP-LAB-04` |
 | **Kontrak** | `LAB-API-v1` `r26` bagian 21.2 |
@@ -2532,7 +2538,7 @@ MVP-7d  BE-LAB-58  ruas turunan pada jalur baca       ← butuh 54, 56
 
 | Butir | Isi |
 |---|---|
-| **Status** | 🔲 **`MENUNGGU PENDAHULU`** — `BE-LAB-53` |
+| **Status** | ✅ **`SELESAI`** 2026-09-21 — lihat bagian 6n dan [`BE-LAB-54.md`](../task/report/backend/BE-LAB-54.md). *(status diperbaiki 2026-09-22; blok ini tertinggal `MENUNGGU PENDAHULU`)* |
 | **Outcome** | Analis dapat menyatakan penulisan selesai, membukanya kembali sebelum rilis, dan mencatat konsultasi |
 | **Requirement/decision** | `LAB-DEC-097`, `LAB-DEC-106` |
 | **Kontrak** | `r26` bagian 21.2; `LAB-VAL-v1` `r9` (`VAL-107`, `VAL-108`); `LAB-PERM-v1` rev 8 bagian 10.1 |
@@ -2548,7 +2554,7 @@ MVP-7d  BE-LAB-58  ruas turunan pada jalur baca       ← butuh 54, 56
 
 | Butir | Isi |
 |---|---|
-| **Status** | 🔲 **`MENUNGGU PENDAHULU`** — `BE-LAB-53` (migration tunggal) |
+| **Status** | ✅ **`SELESAI`** 2026-09-21 — lihat bagian 6t dan [`BE-LAB-55.md`](../task/report/backend/BE-LAB-55.md). *(status diperbaiki 2026-09-22; blok ini tertinggal `MENUNGGU PENDAHULU`)* |
 | **Outcome** | Kepala instalasi dapat mengelola rincian specimen, dan satu specimen dapat menunjuk lebih dari satu rincian |
 | **Requirement/decision** | `LAB-DEC-098`, `LAB-DEC-099`; menegakkan `LAB-DEC-040` |
 | **Kontrak** | `r26` bagian 21.5; `LAB-VAL-v1` `r9` (`VAL-104`, `VAL-105`, `VAL-111`); `LAB-PERM-v1` rev 8 |
@@ -2564,7 +2570,7 @@ MVP-7d  BE-LAB-58  ruas turunan pada jalur baca       ← butuh 54, 56
 
 | Butir | Isi |
 |---|---|
-| **Status** | 🔲 **`MENUNGGU PENDAHULU`** — `BE-LAB-53` |
+| **Status** | ✅ **`SELESAI`** 2026-09-21 — lihat bagian 6u dan [`BE-LAB-56.md`](../task/report/backend/BE-LAB-56.md). *(status diperbaiki 2026-09-22; blok ini tertinggal `MENUNGGU PENDAHULU`)* |
 | **Outcome** | `DR-LAB-002` dapat menetapkan kombinasi yang kritis, dan penanda menyala tanpa satu angka pun dihardcode |
 | **Requirement/decision** | `LAB-DEC-103`; mempersempit `INV-28` |
 | **Kontrak** | `r26` bagian 21.6; `LAB-VAL-v1` `r9` (`VAL-106`); `LAB-PERM-v1` rev 8 bagian 10.2 |
@@ -2596,7 +2602,7 @@ MVP-7d  BE-LAB-58  ruas turunan pada jalur baca       ← butuh 54, 56
 
 | Butir | Isi |
 |---|---|
-| **Status** | 🔲 **`SIAP DIKERJAKAN`** sejak 2026-09-21 — kedua pendahulunya selesai (`BE-LAB-54`, `BE-LAB-56`). **Cakupannya BERTAMBAH oleh `r27` bagian 22.3**, lihat catatan di bawah tabel |
+| **Status** | ✅ **`SELESAI`** 2026-09-22 — lihat bagian 6y dan [`BE-LAB-58.md`](../task/report/backend/BE-LAB-58.md). **`AC-183` tetap terbuka**, tertahan `DEC-LAB-011` |
 | **Outcome** | Layar hasil memperoleh waktu, nama analis, keadaan kelengkapan, dan penanda kritis tanpa menghitung sendiri |
 | **Requirement/decision** | `LAB-DEC-096`, `LAB-DEC-097`, `LAB-DEC-103`, `LAB-DEC-105`, `LAB-DEC-106` |
 | **Kontrak** | `r26` bagian 21.3 |
@@ -2703,7 +2709,7 @@ MVP-7b-3  BE-LAB-62  profil katalog Mikrobiologi     (bebas)
 
 | Butir | Isi |
 |---|---|
-| **Status** | 🔲 **`MENUNGGU PENDAHULU`** — `BE-LAB-53` |
+| **Status** | ✅ **`SELESAI`** 2026-09-21 — lihat bagian 6p dan [`BE-LAB-60.md`](../task/report/backend/BE-LAB-60.md). *(status diperbaiki 2026-09-22; blok ini tertinggal `MENUNGGU PENDAHULU`)* |
 | **Outcome** | `DR-LAB-002` dapat menetapkan rentang breakpoint, dan panel antibiotik membawa kandungan cakramnya |
 | **Requirement/decision** | `LAB-DEC-122` |
 | **Kontrak** | `r27` bagian 22.5; `LAB-VAL-v1` `r10` (`VAL-115`, `VAL-119`); `LAB-PERM-v1` rev 9 |
@@ -2719,7 +2725,7 @@ MVP-7b-3  BE-LAB-62  profil katalog Mikrobiologi     (bebas)
 
 | Butir | Isi |
 |---|---|
-| **Status** | 🔲 **`MENUNGGU PENDAHULU`** — `BE-LAB-60` |
+| **Status** | ✅ **`SELESAI`** 2026-09-21 — lihat bagian 6q dan [`BE-LAB-61.md`](../task/report/backend/BE-LAB-61.md). *(status diperbaiki 2026-09-22; blok ini tertinggal `MENUNGGU PENDAHULU`)* |
 | **Outcome** | Analis tidak lagi mengetik `S`/`I`/`R`; sistem menghitungnya, dan penimpaan tercatat beserta alasannya |
 | **Requirement/decision** | `LAB-DEC-123`, `LAB-DEC-115`, `LAB-DEC-128` |
 | **Kontrak** | `r27` bagian 22.2 dan 22.4; `LAB-VAL-v1` `r10` (`VAL-112`, `VAL-113`, `VAL-114`, `VAL-116`) |
@@ -2734,7 +2740,7 @@ MVP-7b-3  BE-LAB-62  profil katalog Mikrobiologi     (bebas)
 
 | Butir | Isi |
 |---|---|
-| **Status** | 🔲 **`MENUNGGU PENDAHULU`** — `BE-LAB-53` |
+| **Status** | ✅ **`SELESAI`** 2026-09-21 — lihat bagian 6s dan [`BE-LAB-62.md`](../task/report/backend/BE-LAB-62.md). *(status diperbaiki 2026-09-22; blok ini tertinggal `MENUNGGU PENDAHULU`)* |
 | **Outcome** | Kepala instalasi menentukan pemeriksaan mana memakai set bakteri |
 | **Requirement/decision** | `LAB-DEC-125` |
 | **Kontrak** | `r27` bagian 22.6; `LAB-VAL-v1` `r10` (`VAL-118`) |
@@ -3688,3 +3694,433 @@ seluruh modul — **milik yang melakukan merge, bukan milik task ini.**
 Dua belas selesai: `53`, `54`, `47`, `55`, `56`, `57`, `59`, `60`, `61`, `48`, `62`, `63`.
 **Tersisa satu task backend:** `BE-LAB-58` (ruas turunan pada jalur baca hasil), yang kini
 bebas pendahulu dan cakupannya sudah bertambah oleh `r27` bagian 22.3.
+
+---
+
+## 6y. `BE-LAB-58` SELESAI — backend slice `S4b` TUNTAS, 2026-09-22
+
+Laporan: [`BE-LAB-58.md`](../task/report/backend/BE-LAB-58.md). **Nol tabel, nol kolom, nol
+migration** — seluruh sumber ruas turunan sudah berdiri lebih dulu.
+
+### Cakupan roadmap ternyata salah di dua arah sekaligus
+
+| Arah | Kenyataan |
+|---|---|
+| **Terlalu banyak** | Lima dari delapan ruas `r26` 21.3 **sudah berdiri**, dibangun `BE-LAB-48`, `61`, `62` sebagai bagian pekerjaannya sendiri |
+| **Terlalu sedikit** | `r27` bagian 22.3 menambah **sembilan ruas lagi** sesudah roadmap ditulis |
+
+Keduanya ditulis apa adanya di laporan, bukan dirapikan menjadi "sesuai rencana".
+
+### `AC-157` dan `AC-168`: sembilan nilai palsu dikirim, nol diterima
+
+Satu `PUT` memuat `effectiveAt` 1999, `analystName` *"dr. Palsu Sekali"*, `reopenCount` 999,
+`isFinalized` true, `labReportNumber` 99-9999, dan `authorizingOfficerName`
+*"dr. Pengesah Palsu"*. Permintaannya **berhasil `200`** — dan pembacaan ulang mengembalikan
+**kesembilan nilai aslinya**.
+
+Berhasil, bukan ditolak, memang yang diminta: *"dikirim pada request pun diabaikan"*.
+Bentuknya ditegakkan pada DTO, yang nol memuat satu pun ruas tersebut.
+
+### `AC-181`: tiga tanggal, dan ketiganya berbeda
+
+Satu pemeriksaan dibawa melewati siklus penuh — collect → receive → koreksi waktu terima →
+isi hasil → finalize:
+
+| Ruas | Nilai |
+|---|---|
+| `effectiveAt` | `04:40:41` — pengambilan |
+| `printReceivedAt` | `04:40:48` — penerimaan fisik |
+| `issuedAt` = `printCompletedAt` | `04:40:49` — `FinalizedAt` |
+
+**`effectiveAt` ≠ `printReceivedAt` adalah inti `LAB-DEC-118`.** Menyamakannya membuat bahan
+yang diambil Senin dan diterima Rabu tercatat efektif hari Rabu. Nilai berbeda pada pembacaan
+nyata itulah buktinya — bukan komentar di kode.
+
+### Footer terbukti per disiplin, bukan tetapan
+
+Pesanan Patologi Klinik menjawab `Konsultan` / `Prof.Dr.Riadi Wirawan SpPK(K)` tanpa kalimat
+baku; pesanan Mikrobiologi menjawab `Konsultan Mikrobiologi Klinik` /
+`Usman Chatib Warsa, PhD, SpMK-K, Prof. dr.` beserta kalimat bakunya. Satu ruas yang selalu
+bernilai sama nol membuktikan pencariannya bekerja.
+
+### ⚠ `AC-183` TIDAK ditandai tertutup
+
+`authorizingOfficerName` dan `validatedByName` tetap kosong **bahkan sesudah `finalize`
+berhasil** — dan itu memang yang diminta `LAB-DEC-120`. Tetapi sisi positifnya, nama perilis
+benar-benar muncul, **nol dapat diuji sampai `S4d` dibuka `DEC-LAB-011`**.
+
+### Keadaan slice `S4b`
+
+**Tiga belas dari tiga belas task backend selesai:** `47`, `48`, `53`, `54`, `55`, `56`, `57`,
+`58`, `59`, `60`, `61`, `62`, `63`. **Backend `S4b` tuntas.**
+
+Yang tersisa pada slice ini seluruhnya di luar backend: `FE-LAB-30`..`FE-LAB-34`, dan penahan
+`DEC-LAB-011` (`S4d`), `LAB-OPEN-029`, `LAB-OPEN-039`, `LAB-OPEN-041`, `LAB-OPEN-042`,
+`LAB-OPEN-043`, serta `LAB-COORD-011`..`014`.
+
+---
+
+## 6z. `BE-LAB-49` SELESAI DENGAN TEMUAN, dan audit kesiapan memberi `NOT_READY` — 2026-09-22
+
+Laporan: [`BE-LAB-49.md`](../task/report/backend/BE-LAB-49.md).
+Audit: [`readiness-report.md`](../testing/readiness-report.md).
+
+### Task ini ditemukan oleh audit, bukan oleh perencanaan
+
+Bagian 6y menyebut *"tiga belas dari tiga belas selesai"* dan **nol memuat `BE-LAB-49`** — ia
+hidup di gelombang `MVP-6c`, berdependency `BE-LAB-47` dan `BE-LAB-48` yang baru selesai
+2026-09-21.
+
+Roadmap sudah memperingatkan hal ini pada task-nya sendiri: pembuktian dipisahkan **justru
+supaya tidak ikut tertelan anggapan _"migration sudah jalan, berarti beres"_**. Ia lalu
+tertelan anggapan yang berbeda — perhitungan gelombang yang tidak memuatnya.
+
+### `AC-115` punya dua bagian, dan keduanya berbeda nasib
+
+| Bagian | Hasil |
+|---|---|
+| Hapus baris kepekaan → pilih **antibiotik yang sama** lagi → berhasil | ✅ **TERBUKTI** `200`, baris baru zona 14 → `Intermediate` |
+| Baris lama **tetap ada** bertanda `IsDelete = true` | ⛔ **TERBANTAH** — lenyap fisik, `0` baris bertanda terhapus |
+
+Outcome yang diminta task ini terbukti. Yang terbantah adalah **mekanisme yang diasumsikan**
+menghasilkannya.
+
+### `LAB-CONFLICT-011` — komentar index menyatakan premis yang kodenya bantah
+
+`LabIsolateSusceptibilityConfiguration` menulis *"penghapusan berupa penandaan (IsDelete)"*,
+sedangkan `LabMicrobiologyResultService` memakai `RemoveRange`/`Remove` dan **nol tempat di
+codebase** mengubah `EntityState.Deleted` menjadi penandaan. Filter parsial pada index itu
+karena itu **nol pernah teruji**.
+
+Modul ini memang memakai dua gaya hapus dan keduanya disengaja — penandaan untuk data induk,
+hapus fisik untuk koleksi anak yang diganti utuh. **Yang salah bukan kodenya, melainkan
+komentar index beserta `AC-115` — atau sebaliknya.** Keputusannya milik pemilik modul; task
+verifikasi nol berwenang memilih.
+
+### ⚠ Audit kesiapan: `NOT_READY`
+
+Tiga blocker, dan **nol di antaranya soal mutu kode backend**:
+
+| # | Blocker |
+|---|---|
+| B1 | **Nol hak akses diberikan** untuk lima controller baru — `SysAccessPolicy` mencatat `0` kebijakan diizinkan bagi `LabDisciplineSetting`, `LabMicrobiologyCriticalRule`, `LabProcedureMicrobiologyProfile`, `LabSpecimenDetailType`, `LabSusceptibilityBreakpoint`. Seluruh pengujian memakai `superadmin`, sehingga ini nol pernah menampakkan diri |
+| B2 | **Nol layar** — penelusuran frontend atas delapan penanda endpoint baru menemukan nol berkas |
+| B3 | **Data induk praktis kosong** — organisme 2, antibiotik 2, breakpoint 1, profil 1, aturan kritis 2, dan **seluruhnya baris uji** |
+
+**B1 memblokir B3:** kepala instalasi dan `DR-LAB-002` nol dapat mengisi satu baris pun sebelum
+hak aksesnya ada.
+
+### Satu laporan sebelumnya dikoreksi
+
+Bagian 6x menyebut snapshot EF rusak sehingga `database update` menolak jalan. **Itu tidak
+lagi benar.** `has-pending-model-changes` bersih, `database update` menyatakan database sudah
+mutakhir, dan snapshot sama dengan commit. Pemulihan foreign key `ExaminerDoctorId` menutup
+drift itu; angka 182 KB yang sempat disebut diukur terhadap snapshot yang sudah lebih dulu
+ditulis ulang oleh siklus `migrations add`/`remove` itu sendiri.
+
+### Keadaan slice `S4b`
+
+**Empat belas task backend selesai** — `47`, `48`, `49`, `53`..`63`. Backend tuntas, **slice
+tidak**. Jalan menuju `READY` ada pada bagian 7 laporan audit.
+
+---
+
+## 6aa. `LAB-CONFLICT-011` dan `LAB-OPEN-043` DITUTUP pemilik modul — 2026-09-22
+
+Keduanya diputuskan pada hari yang sama, dan **keduanya memilih rekomendasi**.
+
+### `LAB-CONFLICT-011` → jalan **B**: dokumennya yang salah, bukan kodenya
+
+`AC-115` dipersempit menjadi *"pilih ulang antibiotik yang sama berhasil"*; klausa *"baris lama
+tetap ada bertanda `IsDelete = true`"* **dicabut**. Komentar index diperbaiki agar menyatakan
+kebenarannya: **filternya jaring pengaman, bukan kebutuhan** — hapus pada tabel ini memang
+fisik, dan `BE-LAB-49` sudah membuktikannya.
+
+**Filter parsialnya TETAP dipertahankan.** Bila gaya hapus tabel ini kelak berubah menjadi
+penandaan, index penuh akan mulai menolak antibiotik yang sama dipilih ulang — dan
+kegagalannya muncul di tangan analis, bukan di pipeline.
+
+Jalan A ditolak karena menyimpan generasi baris mati membuat **dua tempat menjawab pertanyaan
+riwayat**; `LAB-DEC-080` dan `LAB-DEC-112` sudah menolak pola itu dua kali, dan jejak
+perubahan sudah punya rumahnya sendiri di `LabFieldChangeLog`.
+
+### `LAB-OPEN-043` → jalan **A**: dua kolom, bukan satu template
+
+`LAB-API-v1` `r29` bagian 24, `approved` hari yang sama, **aditif penuh**.
+Migration `20260922064824_AddLabReportNumberShape`.
+
+| Disiplin | Pemisah | Lebar | Nomor nyata yang dialokasikan |
+|---|---|---|---|
+| Mikrobiologi | `-` | 4 | **`26-0004`** |
+| Patologi Anatomi | `.` | 4 | **`26.0001`** |
+| Patologi Klinik | **kosong** | **6** | **`26000001`** |
+
+Ketiganya cocok dengan `LAB-EVD-005`. Sebelumnya ketiganya dipaksa `-` dan empat digit.
+
+**`null` dan teks kosong sengaja dibedakan** — "tanpa pemisah" adalah jawaban yang sah bagi
+Patologi Klinik, bukan pertanyaan yang belum dijawab. `LabDisciplineSettingService` karena itu
+**tidak** menormalkan ruas ini menjadi `null` seperti ruas teks lainnya.
+
+### ⚠ Satu akibat yang ditemukan pengujiannya sendiri
+
+**Mengubah bentuk nomor MENGULANG penghitung dari satu.** Nomor urut dicari lewat pencocokan
+awalan tetap; mengubah pemisah mengubah awalan itu, sehingga nomor lama nol ditemukan.
+Terbukti: Patologi Anatomi yang sudah punya `26-0001` memperoleh **`26.0001`**, bukan `26.0002`.
+
+Index unik tetap menjaga nol ada dua lembar bernomor sama, tetapi **urutannya patah** dan itu
+terbaca siapa pun yang mengarsipkan lembar per nomor. **Anjuran: ubah bentuk nomor hanya pada
+pergantian tahun.** Ditulis pada kontrak bagian 24.5, bukan hanya di sini.
+
+### Migration ikut mengisi sekali jalan, dan itu disengaja
+
+Tanpa itu, ketiga baris yang sudah ada memakai bawaan `-` dan 4 digit — benar bagi Mikrobiologi,
+**salah bagi dua lainnya** — dan seeder **nol akan memperbaikinya**, sebab ia hanya menyisipkan.
+Pengisian ini **bukan** pelanggaran prinsip tersebut: kedua kolomnya baru lahir pada migration
+yang sama, sehingga nol mungkin ada manusia yang pernah menyetelnya. Syarat
+`ReportNumberSeparator IS NULL` ditulis agar ia tetap aman pada database yang sudah disetel
+lebih dulu.
+
+---
+
+## 6ab. Sapuan status seluruh task backend — 2026-09-22
+
+Dijalankan atas permintaan pemilik modul: *"ada task yang tertinggal di BE, cek apalagi"*.
+
+### Delapan blok status ternyata stale, bukan tiga
+
+Bagian 6z sempat menyebut **tiga** blok stale (`BE-LAB-45`, `47`, `48`). Sapuan menyeluruh
+menemukan **delapan**, dan kelima tambahannya luput karena perbaikan sebelumnya hanya
+menyisir gelombang `MVP-6` — **kesalahan yang persis sama dengan yang membuat `BE-LAB-49`
+terlewat**: menyisir sebagian lalu menyimpulkan keseluruhan.
+
+| Task | Tertulis | Sebenarnya |
+|---|---|---|
+| `BE-LAB-22` | `SELESAI SEBAGIAN` sejak 2026-09-15 | **Ditutup penuh 2026-09-17** oleh `BE-LAB-37`; `VAL-59` menyala, `AC-66` penuh |
+| `BE-LAB-53` | `SIAP DIKERJAKAN` | ✅ bagian 6m |
+| `BE-LAB-54` | `MENUNGGU PENDAHULU` | ✅ bagian 6n |
+| `BE-LAB-55` | `MENUNGGU PENDAHULU` | ✅ bagian 6t |
+| `BE-LAB-56` | `MENUNGGU PENDAHULU` | ✅ bagian 6u |
+| `BE-LAB-60` | `MENUNGGU PENDAHULU` | ✅ bagian 6p |
+| `BE-LAB-61` | `MENUNGGU PENDAHULU` | ✅ bagian 6q |
+| `BE-LAB-62` | `MENUNGGU PENDAHULU` | ✅ bagian 6s |
+
+Seluruh penyelesaiannya **sudah tercatat** pada bagian naratif masing-masing; yang tertinggal
+hanya blok status di tabel task. Pembaca yang membuka tabel — bukan narasi — akan mengambil
+pekerjaan yang sudah selesai. Kedelapannya kini diperbaiki dan **masing-masing bertanda kapan
+diperbaiki**, supaya jejaknya tidak hilang.
+
+### Nomor yang bolong sudah ditelusuri, dan bukan lubang
+
+| Task | Keadaan |
+|---|---|
+| `BE-LAB-23`, `39`, `43` | ✅ selesai, berlaporan sendiri |
+| `BE-LAB-40`, `42` | ✅ selesai — **dilaporkan bersama di dalam `BE-LAB-39.md`**, ditandai ✅ pada traceability. Nol laporan terpisah, dan itu disengaja |
+
+### Yang benar-benar masih terbuka: dua, dan keduanya di luar `S4b`
+
+| Task | Status | Penahan |
+|---|---|---|
+| `BE-LAB-41` | ⛔ `TERTAHAN` | Penyimpanan pengiriman hasil ke pasien — milik `S5`/`S6` |
+| `BE-LAB-46` | 🧊 `DIBEKUKAN` 2026-09-18 | Jalur pengisian hasil Patologi Anatomi — milik `S4e`, dibekukan rekonsiliasi bukti putaran 4 |
+
+`BE-LAB-45` berstatus `DILEBUR`, bukan terbuka.
+
+**Kesimpulan: nol task backend `S4b` yang tertinggal.** Tujuh belas blok task kini seluruhnya
+`SELESAI` kecuali ketiga di atas, dan ketiganya memang bukan milik slice ini.
+
+---
+
+## 6ac. `BE-LAB-64` SELESAI — permukaan baseline dua data induk Mikrobiologi, 2026-09-22
+
+Dikerjakan atas keputusan pemilik modul **"A. Lengkapi backend dahulu"**, diambil ketika
+`FE-LAB-34` hendak dimulai dan ternyata nol dapat dibangun sesuai standar.
+
+### 6ac.1 Bagaimana selisihnya ditemukan
+
+`FE-LAB-34` membangun tiga layar data induk Mikrobiologi. Standar frontend
+`rules/frontend/master-data-feature-standard.md` menuntut setiap layar data induk memuat kartu
+ringkasan, penyaring yang bentuknya **dibaca dari server**, dan sakelar aktif per baris —
+ketiganya bersandar pada `GET /summary`, `GET /filters/metadata`, dan `PATCH /{id}/status`.
+
+Nol satu pun dari ketiganya ada.
+
+| Grup | Dibangun | Dituntut standar |
+|---|---|---|
+| `lab-susceptibility-breakpoints` | 5 | 9 |
+| `lab-procedure-microbiology-profiles` | 5 | 9 |
+| `lab-discipline-settings` | 4 | 4 — **varian sah**, lihat 6ac.4 |
+
+### 6ac.2 Ini kelalaian pengerjaan `BE-LAB-60` dan `BE-LAB-62`, bukan temuan pada pekerjaan orang lain
+
+Kedua task itu dibangun **ke kontrak `r27`** dan berhenti di situ. `r27` menyebut lima endpoint,
+dan lima endpoint itulah yang dibuat. `rules/backend/master-data-endpoint-standard.md`
+**nol dibaca** saat keduanya dikerjakan — padahal standar itulah yang menentukan berapa
+endpoint yang wajib ada, dan kontrak hanya mencatat hasilnya.
+
+Akibatnya selisih ini melewati dua task, satu audit kesiapan, dan sapuan status bagian `6ab`
+tanpa terlihat. **Bagian `6ab` menyimpulkan "nol task backend `S4b` yang tertinggal", dan itu
+tetap benar** — tidak ada task yang tertinggal. Yang tertinggal adalah permukaan yang nol
+pernah dijadikan task oleh siapa pun. Sapuan yang menyisir daftar task nol akan menemukannya;
+yang menemukannya adalah upaya membangun layar di atasnya.
+
+### 6ac.3 Yang dikerjakan
+
+| Berkas | Perubahan |
+|---|---|
+| `DTOs/LabSusceptibilityBreakpointDtos.cs` | `SummaryResponse`, `OptionResponse`, `StatusRequest` |
+| `DTOs/LabFilterAndSummaryDtos.cs` | Empat DTO profil dan satu metadata breakpoint |
+| `Services/LabFilterMetadataFactory.cs` | Dua pabrik metadata baru |
+| `Services/LabSusceptibilityBreakpointService.cs` | `GetSummaryAsync`, `GetOptionsAsync`, `SetStatusAsync` |
+| `Services/LabProcedureMicrobiologyProfileService.cs` | Ketiganya, sama |
+| `Controllers/LabSusceptibilityBreakpointController.cs` | Empat endpoint; 5 → **9** |
+| `Controllers/LabProcedureMicrobiologyProfileController.cs` | Empat endpoint; 5 → **9** |
+
+Nol migration, nol kolom, nol permission baru.
+
+### 6ac.4 `lab-discipline-settings` sengaja TIDAK disentuh
+
+`rules/backend/master-data-endpoint-standard.md` menyebut varian sah **"master data pengaturan
+tunggal"**: entity yang hanya memuat satu baris konfigurasi cukup `GET /` dan `PUT /{id}`,
+sebab *"metadata, summary, options, dan delete tidak berlaku karena tidak ada koleksi data"*.
+
+`LabDisciplineSetting` memuat **tiga baris tetap**, satu per disiplin, yang nol pernah
+bertambah maupun berkurang. Menambahkan `summary` di atasnya berarti melaporkan "3 dari 3
+aktif" selamanya, dan `DELETE` di atasnya berarti membuka jalan menghapus disiplin yang
+dipakai penghitung nomor cetak `r29`.
+
+### 6ac.5 Satu cacat pendaftaran hak akses ikut ditutup
+
+`AccessMenuSeeder` memakai kunci **`(controller, ActionName)`** — satu baris `SysActionAccess`
+per nama aksi, bukan per endpoint. Kedua controller sudah memuat dua method bernama `"Read"`
+dengan `DisplayName`, `Description`, dan `SortOrder` **berbeda**, sehingga baris yang tersimpan
+bergantung pada urutan refleksi menemukan method-nya.
+
+Empat endpoint baru menaikkan taruhannya dari dua menjadi **lima** pesaing untuk satu baris
+`Read`. Seluruh atribut `Read` dan `Update` pada kedua controller karena itu diseragamkan,
+mengikuti `LabOrganismController` dan `LabAntibioticController` yang memang sudah menuliskan
+`DisplayName` dan `SortOrder` identik untuk nama aksi yang sama.
+
+Dibuktikan atas database: kedua controller kini memiliki **tepat empat** baris
+`SysActionAccess` — `Read`, `Create`, `Update`, `Delete` — dengan `DisplayName` dan `SortOrder`
+yang nol lagi bergantung urutan.
+
+> `RoutePath` pada baris `Read` menunjuk `/options`, yakni method yang terakhir ditemukan.
+> **Itu perilaku repo yang sudah ada, bukan cacat baru**: baris `Read` milik `LabOrganism` dan
+> `LabAntibiotic` menunjuk `/options` dengan cara yang sama persis. Kolom itu keterangan pada
+> layar Akses Role; yang menjaga gerbang adalah `[AccessPermission]`, dan ia berkunci pada
+> `(resource, action)`.
+
+### 6ac.6 Verifikasi
+
+| Perintah | Hasil |
+|---|---|
+| `dotnet build -p:RunAnalyzers=False` | **0 error** |
+| Kedelapan endpoint baru lewat HTTP | **`200`** |
+| Kelima endpoint lama kedua grup | **`200`** — sekaligus mengoreksi status `r27` 22.5 |
+| `PATCH` → `false` lalu `true` | Ringkasan dan `options` bergerak sesuai, data dev **pulih seperti semula** |
+| `PATCH` penunjuk asing | **`404`** |
+| Baris `SysActionAccess` sesudah seeder | **4 per controller**, deterministik |
+
+Bukti lengkap: kontrak bagian **25.6**, dan [`BE-LAB-64.md`](../task/report/backend/BE-LAB-64.md).
+
+### 6ac.7 Akibatnya bagi `FE-LAB-34`
+
+**Penahannya hilang.** Ketiga layar kini berdiri di atas sembilan endpoint penuh dan dapat
+dibangun persis sesuai `master-data-feature-standard.md`, tanpa satu pun permukaan yang
+dipalsukan di sisi layar.
+
+### 6ac.8 Status
+
+| Butir | Isi |
+|---|---|
+| **Status** | ✅ **`SELESAI`** 2026-09-22 |
+| Kontrak | `LAB-API-v1` **`r30`** — `approved` 2026-09-22 |
+| Sifat | Aditif; nol migration, nol permission baru |
+| Batas diketahui | Nol |
+
+---
+
+## 6ad. `BE-LAB-65` SELESAI — dan sapuan menyeluruh menemukan gapnya SISTEMIK, 2026-09-22
+
+Dikerjakan sebagai prasyarat `FE-LAB-24`, mengikuti keputusan pemilik modul yang sama dengan
+`BE-LAB-64`: **lengkapi backend dahulu, baru bangun layarnya.**
+
+### 6ad.1 Kali ini disapu SELURUHNYA, bukan ditambal saat tersandung
+
+`BE-LAB-64` menutup dua controller karena `FE-LAB-34` tersandung padanya. Alih-alih menunggu
+task berikutnya tersandung lagi, **kedua puluh dua controller Laboratorium diperiksa sekaligus**
+terhadap baseline sembilan endpoint.
+
+Gapnya ternyata **sistemik**:
+
+| Grup | Http | Kurang | Menahan |
+|---|---|---|---|
+| `LabOrganism` | 4 | metadata, summary, `GET /{id}`, `PATCH` | **`FE-LAB-24`** — ditutup di sini |
+| `LabAntibiotic` | 4 | keempatnya | **`FE-LAB-24`** — ditutup di sini |
+| `LabPathologyCategory` | 6 | keempatnya | `FE-LAB-27` — **masih terbuka** |
+| `LabPathologyParameter` | 4 | keempatnya | `FE-LAB-27` — **masih terbuka** |
+| `LabProcedurePathologyCategory` | 4 | kelimanya | `FE-LAB-27` — **masih terbuka** |
+| `LabDisciplineSetting` | 4 | — | Varian sah "pengaturan tunggal" |
+
+**Ketiga grup Patologi Anatomi sengaja nol disentuh** — mereka milik `FE-LAB-27`, dan
+mengerjakannya di sini berarti dua task dalam satu pemanggilan. Gapnya **dicatat**, bukan
+ditambal diam-diam, supaya `FE-LAB-27` nol tersandung pada hal yang sudah diketahui.
+
+### 6ad.2 `GET /{id}` — kelas kesalahan yang sudah pernah dibayar modul ini
+
+Tanpa jalur detail, formulir ubah yang dibuka lewat tautan langsung atau sesudah halaman
+disegarkan nol punya cara memuat barisnya, dan **gagalnya diam** — layarnya sekadar tampak
+kosong. `r6` menutup persis kelas ini sesudah `FE-LAB-03` diam-diam gagal di luar halaman
+daftar. Roadmap frontend revision 33 sudah menuliskannya sebagai peringatan bagi `FE-LAB-27`.
+
+### 6ad.3 Satu kolom yang nol punya jalan diisi
+
+`LabAntibiotic.DiscContentUg` sudah ada di tabel sejak `BE-LAB-60`, tetapi **nol satu pun DTO
+membawanya**. Akibatnya `missingDiscContent` — angka yang baru dibangun `BE-LAB-64` sehari
+sebelumnya — melaporkan pekerjaan yang tersisa **tanpa menyediakan jalan mengerjakannya**.
+
+Ruasnya dibuka pada respons, create, dan update antibiotik. Dibuktikan menutup lingkarnya:
+menyetel `discContentUg` menjadi `10` menurunkan `missingDiscContent` dari `1` menjadi `0` pada
+**kedua** ringkasan, dan mengisi kolom `UG` pada daftar breakpoint.
+
+### 6ad.4 `DELETE` tetap nol disediakan
+
+`r24` 19.4 menolaknya atas alasan klinis: isolat yang sudah tercatat menunjuk ke baris ini.
+`AC-117` menuntut layarnya nol menampilkan tombol Hapus. Kedua grup berhenti di **delapan**
+endpoint, dan `filters/metadata` menyatakannya lewat `isDeletable: false` — supaya layar
+membacanya alih-alih menyimpulkan dari ada-tidaknya endpoint.
+
+Dibuktikan pada database: **3 baris `SysActionAccess` per controller** — `Read`, `Create`,
+`Update` — dan **nol baris `Delete`**.
+
+### 6ad.5 Dua cacat ditemukan saat menguji, dan diperbaiki
+
+**`withBreakpoint` membantah dirinya sendiri.** Versi pertama menghitung breakpoint aktif tanpa
+memeriksa apakah organismenya sendiri masih aktif, sehingga ringkasannya berbunyi *"nol organisme
+aktif, tetapi satu tercakup"*. Kini kedua syarat diperiksa.
+
+**Pesan jawaban `PATCH` berbahasa Inggris** — *"Lab Organism dinonaktifkan."*, nama teknis
+controller. Diganti menjadi *"Organisme dinonaktifkan."*
+
+### 6ad.6 Verifikasi
+
+| Yang diuji | Hasil |
+|---|---|
+| `dotnet build -p:RunAnalyzers=False` | **0 error** |
+| Kedelapan endpoint baru | `200` |
+| Keempat endpoint lama kedua grup | `200` — sekaligus mengoreksi status `r24` 19.4 |
+| `GET /{id}` dan `PATCH` penunjuk asing | `404` |
+| `missingDiscContent` sesudah `discContentUg` diisi | 1 → **0** pada **kedua** ringkasan |
+| `PATCH` → `false`: `options` / `GET /` | `0` / `1` — `VAL-85` dan `AC-118` tegak bersamaan |
+| Data dev sesudah seluruh uji | **Pulih seperti semula** |
+
+Bukti lengkap: kontrak bagian **26.6**, dan [`BE-LAB-65.md`](../task/report/backend/BE-LAB-65.md).
+
+### 6ad.7 Status
+
+| Butir | Isi |
+|---|---|
+| **Status** | ✅ **`SELESAI`** 2026-09-22 |
+| Kontrak | `LAB-API-v1` **`r31`** — `approved` 2026-09-22 |
+| Sifat | Aditif; nol migration, nol permission baru |
+| Batas diketahui | Nol pada cakupannya. **Tiga grup Patologi Anatomi tetap kurang** — `FE-LAB-27`, bagian 6ad.1 |

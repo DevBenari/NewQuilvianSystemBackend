@@ -22,24 +22,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
     public class LabReportNumberService
     {
         /// <summary>
-        /// Lebar minimum bagian urut. Bukti <c>LAB-EVD-005</c> menunjukkan <c>26-1129</c> dan
-        /// <c>26.0919</c> — keduanya empat digit.
+        /// Lebar urut yang dipakai ketika pengaturan disiplin belum ada sama sekali. Empat,
+        /// mengikuti Mikrobiologi dan Patologi Anatomi pada <c>LAB-EVD-005</c>.
         /// </summary>
-        public const int SequenceLength = 4;
+        public const int DefaultSequenceLength = 4;
 
         /// <summary>
-        /// Pemisah antara tahun dan nomor urut.
-        ///
-        /// <b>Ia konstanta, dan itu batas yang diketahui — bukan kelalaian.</b> Bukti cetak
-        /// memperlihatkan tiga bentuk berbeda: Mikrobiologi <c>26-1129</c>, Patologi Anatomi
-        /// <c>26.0919</c>, dan Patologi Klinik <c>25039254</c> yang nol berpemisah serta
-        /// berurut enam digit. <c>LAB-API-v1</c> <c>r27</c> bagian 22.7 hanya menyetujui satu
-        /// ruas <c>reportNumberPrefix</c>, dan satu ruas awalan <b>tidak dapat</b> menyatakan
-        /// pemisah maupun lebar. Menambah kolomnya sendiri berarti mengubah kontrak yang sudah
-        /// disetujui secara sepihak, sehingga perbedaannya diangkat sebagai
-        /// <c>LAB-OPEN-043</c>.
+        /// Pemisah yang dipakai ketika pengaturan disiplin belum ada sama sekali.
         /// </summary>
-        public const string YearSeparator = "-";
+        public const string DefaultYearSeparator = "-";
+
+        /// <summary>
+        /// Batas lebar urut yang diterima, supaya angka yang salah ketik nol menghasilkan
+        /// nomor sepanjang ratusan digit.
+        /// </summary>
+        public const int MinSequenceLength = 1;
+
+        /// <inheritdoc cref="MinSequenceLength"/>
+        public const int MaxSequenceLength = 12;
+
+        /// <summary>
+        /// Bentuk nomor satu disiplin, dibaca dari <c>LabDisciplineSetting</c>
+        /// (<c>LAB-API-v1</c> <c>r29</c>, menutup <c>LAB-OPEN-043</c>).
+        /// </summary>
+        public readonly record struct LabReportNumberShape(string Prefix, string Separator, int Length);
 
         private readonly ApplicationDbContext _dbContext;
 
@@ -51,14 +57,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         /// <summary>
         /// Menyusun satu nomor: awalan pengaturan, dua digit tahun, pemisah, lalu nomor urut.
         /// </summary>
-        public static string Format(string? prefix, int year, long sequence)
+        public static string Format(LabReportNumberShape shape, int year, long sequence)
         {
             var duaDigitTahun = (year % 100).ToString("D2", CultureInfo.InvariantCulture);
             var urut = sequence.ToString(CultureInfo.InvariantCulture)
-                .PadLeft(SequenceLength, '0');
+                .PadLeft(shape.Length, '0');
 
-            return $"{prefix}{duaDigitTahun}{YearSeparator}{urut}";
+            return $"{shape.Prefix}{duaDigitTahun}{shape.Separator}{urut}";
         }
+
+        /// <summary>Awalan tetap satu nomor, yaitu bagian di hadapan nomor urutnya.</summary>
+        private static string BuildStem(LabReportNumberShape shape, int year)
+            => $"{shape.Prefix}{(year % 100).ToString("D2", CultureInfo.InvariantCulture)}{shape.Separator}";
 
         /// <summary>
         /// Mengalokasikan <paramref name="count"/> nomor berurutan untuk satu disiplin pada satu
@@ -86,8 +96,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     "Jumlah nomor yang dialokasikan minimal satu.");
             }
 
-            var prefix = await ReadPrefixAsync(discipline, cancellationToken);
-            var awalan = $"{prefix}{(year % 100).ToString("D2", CultureInfo.InvariantCulture)}{YearSeparator}";
+            var shape = await ReadShapeAsync(discipline, cancellationToken);
+            var awalan = BuildStem(shape, year);
 
             if (_dbContext.Database.IsNpgsql())
             {
@@ -104,7 +114,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             var numbers = new List<string>(count);
             for (var offset = 1; offset <= count; offset++)
             {
-                numbers.Add(Format(prefix, year, last + offset));
+                numbers.Add(Format(shape, year, last + offset));
             }
 
             return numbers;
@@ -121,20 +131,46 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         }
 
         /// <summary>
-        /// Awalan milik disiplin ini. Mengembalikan teks kosong bila pengaturannya belum ada —
-        /// <b>pengaturan yang hilang nol boleh menghentikan pembuatan pesanan.</b>
+        /// Bentuk nomor milik disiplin ini — awalan, pemisah, dan lebar urut.
+        ///
+        /// <b>Pengaturan yang hilang nol boleh menghentikan pembuatan pesanan</b>, sehingga
+        /// ketiadaannya jatuh ke bentuk bawaan alih-alih melempar galat.
+        ///
+        /// <b>Lebar yang di luar batas dijepit, bukan ditolak.</b> Alokasi nomor berjalan di
+        /// tengah pembuatan pesanan; menggagalkannya karena satu angka pengaturan yang keliru
+        /// berarti menahan pekerjaan atas bahan yang sudah diambil dari tubuh pasien. Nilai
+        /// yang keliru dicegah di hulu oleh validasi layar pengaturan.
         /// </summary>
-        private async Task<string> ReadPrefixAsync(
+        private async Task<LabReportNumberShape> ReadShapeAsync(
             LabDiscipline discipline,
             CancellationToken cancellationToken)
         {
-            var prefix = await _dbContext.LabDisciplineSettings
+            var setting = await _dbContext.LabDisciplineSettings
                 .AsNoTracking()
                 .Where(x => x.Discipline == discipline && !x.IsDelete && x.IsActive)
-                .Select(x => x.ReportNumberPrefix)
+                .Select(x => new
+                {
+                    x.ReportNumberPrefix,
+                    x.ReportNumberSeparator,
+                    x.ReportNumberLength
+                })
                 .FirstOrDefaultAsync(cancellationToken);
 
-            return prefix ?? string.Empty;
+            if (setting is null)
+            {
+                return new LabReportNumberShape(
+                    string.Empty, DefaultYearSeparator, DefaultSequenceLength);
+            }
+
+            var lebar = Math.Clamp(setting.ReportNumberLength, MinSequenceLength, MaxSequenceLength);
+
+            // Pemisah KOSONG adalah nilai yang sah, bukan nilai yang belum diisi — Patologi
+            // Klinik memang menempelkan tahun langsung pada nomornya (25039254). Karena itu
+            // null dan string kosong DIBEDAKAN: null berarti belum pernah disetel dan jatuh ke
+            // bawaan, string kosong berarti sengaja tanpa pemisah.
+            var pemisah = setting.ReportNumberSeparator ?? DefaultYearSeparator;
+
+            return new LabReportNumberShape(setting.ReportNumberPrefix ?? string.Empty, pemisah, lebar);
         }
 
         /// <summary>

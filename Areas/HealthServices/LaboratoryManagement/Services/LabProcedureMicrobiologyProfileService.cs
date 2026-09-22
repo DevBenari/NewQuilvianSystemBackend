@@ -236,6 +236,125 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 new { entity.Id, entity.ProcedureId });
         }
 
+        /// <summary>
+        /// Ringkasan pemetaan (<c>GET /summary</c>, baseline master data).
+        ///
+        /// <b>Kedua pencacah terakhir sengaja dipisah.</b> "Belum diprofilkan" dan "tegas
+        /// ditandai tidak memakai set bakteri" adalah dua keadaan yang berbeda akibatnya:
+        /// yang pertama tetap menerima isolat, yang kedua ditolak <c>VAL-118</c>. Satu angka
+        /// gabungan akan menyembunyikan perbedaan itu.
+        /// </summary>
+        public async Task<LabProcedureMicrobiologyProfileSummaryResponse> GetSummaryAsync(
+            CancellationToken cancellationToken = default)
+        {
+            var source = _dbContext.LabProcedureMicrobiologyProfiles
+                .AsNoTracking()
+                .Where(x => !x.IsDelete);
+
+            return new LabProcedureMicrobiologyProfileSummaryResponse
+            {
+                TotalProfile = await source.CountAsync(cancellationToken),
+                ActiveProfile = await source.CountAsync(x => x.IsActive, cancellationToken),
+                InactiveProfile = await source.CountAsync(x => !x.IsActive, cancellationToken),
+
+                UsesSusceptibilitySet = await source
+                    .CountAsync(x => x.IsActive && x.UsesSusceptibilitySet, cancellationToken),
+
+                WithoutSusceptibilitySet = await source
+                    .CountAsync(x => x.IsActive && !x.UsesSusceptibilitySet, cancellationToken)
+            };
+        }
+
+        /// <summary>Feed ringan untuk dropdown (<c>GET /options</c>). Hanya baris aktif secara bawaan.</summary>
+        public async Task<PagedResult<LabProcedureMicrobiologyProfileOptionResponse>> GetOptionsAsync(
+            string? search = null,
+            bool onlyActive = true,
+            int pageNumber = 1,
+            int pageSize = 25,
+            CancellationToken cancellationToken = default)
+        {
+            var halaman = pageNumber < 1 ? 1 : pageNumber;
+            var ukuran = pageSize is < 1 or > 100 ? 25 : pageSize;
+
+            var source = _dbContext.LabProcedureMicrobiologyProfiles
+                .AsNoTracking()
+                .Include(x => x.Procedure)
+                .Where(x => !x.IsDelete);
+
+            if (onlyActive)
+                source = source.Where(x => x.IsActive);
+
+            var kata = search?.Trim();
+
+            if (!string.IsNullOrEmpty(kata))
+            {
+                source = source.Where(x =>
+                    x.Procedure != null &&
+                    (EF.Functions.ILike(x.Procedure.ProcedureName, $"%{kata}%") ||
+                     EF.Functions.ILike(x.Procedure.ProcedureCode, $"%{kata}%")));
+            }
+
+            var total = await source.CountAsync(cancellationToken);
+
+            var items = await source
+                .OrderBy(x => x.Procedure!.ProcedureName)
+                .Skip((halaman - 1) * ukuran)
+                .Take(ukuran)
+                .Select(x => new LabProcedureMicrobiologyProfileOptionResponse
+                {
+                    Id = x.Id,
+                    ProcedureId = x.ProcedureId,
+                    UsesSusceptibilitySet = x.UsesSusceptibilitySet,
+                    Label = x.Procedure != null ? x.Procedure.ProcedureName : "-"
+                })
+                .ToListAsync(cancellationToken);
+
+            return new PagedResult<LabProcedureMicrobiologyProfileOptionResponse>
+            {
+                PageNumber = halaman,
+                PageSize = ukuran,
+                TotalData = total,
+                TotalPage = ukuran == 0 ? 0 : (int)Math.Ceiling(total / (double)ukuran),
+                Items = items
+            };
+        }
+
+        /// <summary>
+        /// Mengubah status aktif saja (<c>PATCH /{id}/status</c>).
+        ///
+        /// <b>Menonaktifkan profil BUKAN sama dengan menandainya tidak memakai set bakteri.</b>
+        /// Profil nonaktif membuat pemeriksaannya kembali ke perilaku bawaan — tetap menerima
+        /// isolat; sedangkan <c>UsesSusceptibilitySet = false</c> menolaknya. Karena itu kedua
+        /// ruas itu punya jalur yang berbeda.
+        /// </summary>
+        public async Task<LabProcedureMicrobiologyProfileResponse> SetStatusAsync(
+            Guid id,
+            bool isActive,
+            CancellationToken cancellationToken = default)
+        {
+            var entity = await _dbContext.LabProcedureMicrobiologyProfiles
+                .Include(x => x.Procedure)
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Profil Mikrobiologi tidak ditemukan.");
+
+            if (entity.IsActive != isActive)
+            {
+                entity.IsActive = isActive;
+                entity.UpdateDateTime = DateTime.UtcNow;
+                entity.UpdateBy = GetCurrentUserId();
+
+                await _dbContext.SaveChangesAsync(cancellationToken);
+
+                await _loggerService.AuditAsync(
+                    LogCategory,
+                    "LabProcedureMicrobiologyProfile.SetStatus",
+                    isActive ? "Mengaktifkan profil Mikrobiologi." : "Menonaktifkan profil Mikrobiologi.",
+                    new { entity.Id, entity.ProcedureId, isActive });
+            }
+
+            return MapToResponse(entity);
+        }
+
         private static LabProcedureMicrobiologyProfileResponse MapToResponse(LabProcedureMicrobiologyProfile entity)
             => new()
             {

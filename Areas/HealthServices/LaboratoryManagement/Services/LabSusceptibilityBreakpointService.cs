@@ -227,6 +227,160 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 new { entity.Id, entity.LabOrganismId, entity.LabAntibioticId });
         }
 
+        /// <summary>
+        /// Ringkasan data induk breakpoint (<c>GET /summary</c>, baseline master data).
+        ///
+        /// <b>Dihitung dari baris yang belum ditandai terhapus.</b> Tiga pencacah terakhir
+        /// menjawab pertanyaan yang benar-benar ditanyakan wewenang klinis ketika membuka
+        /// layar ini: berapa kombinasi yang sudah tertutup, dan berapa yang masih menganga.
+        /// </summary>
+        public async Task<LabSusceptibilityBreakpointSummaryResponse> GetSummaryAsync(
+            CancellationToken cancellationToken = default)
+        {
+            var source = _dbContext.LabSusceptibilityBreakpoints
+                .AsNoTracking()
+                .Where(x => !x.IsDelete);
+
+            return new LabSusceptibilityBreakpointSummaryResponse
+            {
+                TotalBreakpoint = await source.CountAsync(cancellationToken),
+                ActiveBreakpoint = await source.CountAsync(x => x.IsActive, cancellationToken),
+                InactiveBreakpoint = await source.CountAsync(x => !x.IsActive, cancellationToken),
+
+                CoveredOrganism = await source
+                    .Where(x => x.IsActive)
+                    .Select(x => x.LabOrganismId)
+                    .Distinct()
+                    .CountAsync(cancellationToken),
+
+                CoveredAntibiotic = await source
+                    .Where(x => x.IsActive)
+                    .Select(x => x.LabAntibioticId)
+                    .Distinct()
+                    .CountAsync(cancellationToken),
+
+                // Kandungan cakram melekat pada ANTIBIOTIK, bukan pada rentangnya — satu
+                // antibiotik memakai cakram yang sama pada kuman mana pun.
+                MissingDiscContent = await source
+                    .CountAsync(x => x.IsActive && x.LabAntibiotic!.DiscContentUg == null, cancellationToken)
+            };
+        }
+
+        /// <summary>
+        /// Feed ringan untuk dropdown (<c>GET /options</c>).
+        ///
+        /// <b>Hanya baris aktif secara bawaan</b>, dan payload-nya jauh lebih ringkas daripada
+        /// list utama — pemakainya hanya perlu mengenali kombinasinya, bukan membaca rentang
+        /// maupun versi pedomannya.
+        /// </summary>
+        public async Task<PagedResult<LabSusceptibilityBreakpointOptionResponse>> GetOptionsAsync(
+            string? search = null,
+            bool onlyActive = true,
+            int pageNumber = 1,
+            int pageSize = 25,
+            CancellationToken cancellationToken = default)
+        {
+            var halaman = pageNumber < 1 ? 1 : pageNumber;
+            var ukuran = pageSize is < 1 or > 100 ? 25 : pageSize;
+
+            var source = _dbContext.LabSusceptibilityBreakpoints
+                .AsNoTracking()
+                .Include(x => x.LabOrganism)
+                .Include(x => x.LabAntibiotic)
+                .Where(x => !x.IsDelete);
+
+            if (onlyActive)
+                source = source.Where(x => x.IsActive);
+
+            var kata = search?.Trim();
+
+            if (!string.IsNullOrEmpty(kata))
+            {
+                source = source.Where(x =>
+                    (x.LabOrganism != null && EF.Functions.ILike(x.LabOrganism.OrganismName, $"%{kata}%")) ||
+                    (x.LabAntibiotic != null && EF.Functions.ILike(x.LabAntibiotic.AntibioticName, $"%{kata}%")));
+            }
+
+            var total = await source.CountAsync(cancellationToken);
+
+            var items = await source
+                .OrderBy(x => x.LabOrganism!.OrganismName)
+                .ThenBy(x => x.LabAntibiotic!.AntibioticName)
+                .Skip((halaman - 1) * ukuran)
+                .Take(ukuran)
+                .Select(x => new LabSusceptibilityBreakpointOptionResponse
+                {
+                    Id = x.Id,
+                    LabOrganismId = x.LabOrganismId,
+                    LabAntibioticId = x.LabAntibioticId,
+                    Label =
+                        (x.LabOrganism != null ? x.LabOrganism.OrganismName : "-") +
+                        " — " +
+                        (x.LabAntibiotic != null ? x.LabAntibiotic.AntibioticName : "-")
+                })
+                .ToListAsync(cancellationToken);
+
+            return new PagedResult<LabSusceptibilityBreakpointOptionResponse>
+            {
+                PageNumber = halaman,
+                PageSize = ukuran,
+                TotalData = total,
+                TotalPage = ukuran == 0 ? 0 : (int)Math.Ceiling(total / (double)ukuran),
+                Items = items
+            };
+        }
+
+        /// <summary>
+        /// Mengubah status aktif saja (<c>PATCH /{id}/status</c>).
+        ///
+        /// <b>Jalur tersendiri, terpisah dari <c>PUT</c>.</b> Menonaktifkan rentang yang keliru
+        /// dan mengubah angka rentangnya adalah dua tindakan yang berbeda akibatnya; satu
+        /// jalur untuk keduanya membuat keduanya sama mudahnya terjadi tanpa sengaja.
+        ///
+        /// <b>Nol menyentuh hasil yang sudah tersimpan</b> — snapshot pada baris kepekaan
+        /// menjaganya (<c>AC-185</c>).
+        /// </summary>
+        public async Task<LabSusceptibilityBreakpointResponse> SetStatusAsync(
+            Guid id,
+            bool isActive,
+            CancellationToken cancellationToken = default)
+        {
+            var entity = await _dbContext.LabSusceptibilityBreakpoints
+                .Include(x => x.LabOrganism)
+                .Include(x => x.LabAntibiotic)
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Rentang breakpoint tidak ditemukan.");
+
+            if (entity.IsActive != isActive)
+            {
+                entity.IsActive = isActive;
+                entity.UpdateDateTime = DateTime.UtcNow;
+                entity.UpdateBy = GetCurrentUserId();
+
+                await _dbContext.SaveChangesAsync(cancellationToken);
+
+                await _loggerService.AuditAsync(
+                    LogCategory,
+                    "LabSusceptibilityBreakpoint.SetStatus",
+                    isActive ? "Mengaktifkan rentang breakpoint." : "Menonaktifkan rentang breakpoint.",
+                    new { entity.Id, entity.LabOrganismId, entity.LabAntibioticId, isActive });
+            }
+
+            return new LabSusceptibilityBreakpointResponse
+            {
+                Id = entity.Id,
+                LabOrganismId = entity.LabOrganismId,
+                OrganismName = entity.LabOrganism?.OrganismName,
+                LabAntibioticId = entity.LabAntibioticId,
+                AntibioticName = entity.LabAntibiotic?.AntibioticName,
+                DiscContentUg = entity.LabAntibiotic?.DiscContentUg,
+                LowerMm = entity.LowerMm,
+                UpperMm = entity.UpperMm,
+                GuidelineVersion = entity.GuidelineVersion,
+                IsActive = entity.IsActive
+            };
+        }
+
         private async Task EnsureMasterDataExistsAsync(
             Guid organismId,
             Guid antibioticId,
