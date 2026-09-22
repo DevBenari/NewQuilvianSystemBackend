@@ -4,7 +4,7 @@
 blueprint_id: BIL-CASH-001
 module_name: Billing dan Kasir
 module_slug: billing-kasir
-revision: 1.3
+revision: 1.4
 revision_note_field_vs_prose: >
   KETIDAKSESUAIAN YANG SUDAH DIKETAHUI DAN KINI DITUTUP. Sebelum revisi 1.0, field `revision`
   bernilai 0.8 sementara badan dokumen ini beserta seluruh berkas kontrak sudah menyebut revisi
@@ -202,10 +202,17 @@ last_revision_note: >
   menaruh Petty Cash sebagai rumpun di dalam struktur SINGLE yang sudah ada sudah diambil pada
   00-interview-decisions.md amendment 7 September 2026, mengikuti preseden Shift Kasir, Diskon,
   Deposit, Refund, dan Pengecualian Finansial.
-backend_commit_sha: 21b4733154e91962cbd7094a102615b1d9eb2bf2
-frontend_commit_sha: 1f2f2c93c9e4369db6c60246776de4c3bd52b3af
-previous_backend_commit_sha: 0ca85ba4610f2745b761d5e092b495bfc35396b0
-previous_frontend_commit_sha: d295c4d59b68d223edc597c8b165b7ef4282b49f
+backend_commit_sha: 6782ae652ca53299f7469c49b2edb64d23e77b60
+frontend_commit_sha: 1b138b9aac7a50524fd751a47c9a76e0a55f8803
+previous_backend_commit_sha: 21b4733154e91962cbd7094a102615b1d9eb2bf2
+previous_frontend_commit_sha: 1f2f2c93c9e4369db6c60246776de4c3bd52b3af
+commit_sha_note_revision_1_4: >
+  SHA dimutakhirkan pada revisi 1.4 (21 September 2026). Working tree backend saat desain ini
+  disusun memuat perubahan yang BELUM di-commit, terutama area Corporate/FinanceManagement
+  (BillingIntake, Receivable, MasterData) beserta tiga migration bertanggal 20260921. Bukti
+  FinBillingHandoffIntake yang dipakai amendment ini berasal dari working tree itu, bukan dari
+  commit 6782ae65 — dicatat apa adanya supaya pembaca berikutnya tidak bingung mencarinya di
+  riwayat commit.
 sha_move_note_revision_1_3: >
   Backend SHA naik pada revisi 1.3 (0ca85ba4 -> 21b47331, 18 September 2026 15:13 WIB, working
   tree BERSIH). Frontend SHA TIDAK bergerak dan memang tidak diaudit ulang: amendment ini tidak
@@ -430,13 +437,27 @@ superseded_design_decisions:
 narrowed_design_decisions:
   BKC-DES-013: dipersempit dua kali (BUKAN digugurkan). Revisi 0.8 (BKC-DES-021): makna UnresolvedAmount menyisakan jalur rule NotCovered + IsAllowExcessPaymentByPatient=false saja; residual perhitungan pindah ke NonBillableResidualAmount. Revisi 0.9 (BKC-DES-026/027, approved 5 Sep 2026): dipersempit lagi menjadi NOL jalur — UnresolvedAmount selalu 0 pada versi kalkulasi baru; field/kolomnya tetap dipertahankan sebagai bukti perhitungan versi lama
 contract_versions:
-  api: BIL-API-1.2 (draft, revisi 1.3 — gap FINAL->CLOSED; NOL endpoint baru, NOL field baru, NOL yang dihapus. Naik karena perubahan NILAI: status CLOSED kini tercapai pada alur normal dan closedAt kini benar-benar terisi) atas BIL-API-1.1
-  state: BIL-STATE-1.1 (draft, revisi 1.3 — syarat FINAL->CLOSED diganti, satu transisi balik CLOSED->FINAL lahir; NOL status baru) atas BIL-STATE-1.0
-  validation: BIL-VALIDATION-1.1 (draft, revisi 1.3 — BIL-VAL-107-109; NOL pesan galat baru bagi pengguna) atas BIL-VALIDATION-1.0
-  integration: BIL-INTEGRATION-1.0 (draft, revisi 1.3 — ketergantungan status invoice pada AR/AP diputus; BKC-BLK-INT-001 tetap terbuka untuk hal-hal yang memang miliknya) atas BIL-INTEGRATION-0.9
-  permission: BIL-PERMISSION-1.0 (draft, revisi 1.3 — NOL butir hak akses baru; satu jenis catatan audit perpindahan status) atas BIL-PERMISSION-0.9
-  testing: BIL-TEST-1.2 (draft, revisi 1.3 — BIL-AT-121-134, lima di antaranya regresi) atas BIL-TEST-1.1
-  calculation: BIL-CALCULATION-0.9 — TIDAK BERGERAK pada revisi 1.3. Rumus sisa tagihan pasien dikonsolidasi dari dua salinan menjadi satu, tetapi isinya TIDAK berubah satu suku pun; BIL-AT-134(b) menjaganya
+  api: BIL-API-1.3 (**approved**, revisi 1.4 — dua endpoint operasional baru pada Resource baru BillingConsumerHandoff; NOL endpoint lama yang berubah bentuk maupun arti) atas BIL-API-1.2
+  state: BIL-STATE-1.2 (**approved**, revisi 1.4 — sumbu status surat ke konsumen CREATED/ACKNOWLEDGED, dan keadaan clearance resep CLEARED/REVOKED yang dimiliki Billing) atas BIL-STATE-1.1
+  validation: BIL-VALIDATION-1.2 (**approved**, revisi 1.4 — BIL-VAL-110-117; dua di antaranya fail-closed yang MUST NOT diperlakukan sebagai izin) atas BIL-VALIDATION-1.1
+  integration: BIL-INTEGRATION-1.1 (**approved**, revisi 1.4 — BIL-INT-013 dan BIL-INT-014; dua konsumen nyata pertama modul ini. Menutup sebagian BKC-BLK-INT-001 untuk sisi AR) atas BIL-INTEGRATION-1.0
+  permission: BIL-PERMISSION-1.1 (**approved**, revisi 1.4 — satu Resource baru dengan dua Action; dua kolom sensitif baru yang MUST NOT masuk payload log) atas BIL-PERMISSION-1.0
+  testing: BIL-TEST-1.3 (**approved**, revisi 1.4 — BIL-AT-135-142 beserta lima jalur gagal bernama) atas BIL-TEST-1.2
+contract_versions_approval_revision_1_4: >
+  Keenam sumbu di atas naik dari `draft` menjadi `approved` pada 21 September 2026 lewat
+  BKC-DEC-110, disetujui Product/Domain Owner dengan wewenang ganda Billing/Payer dan Clinical
+  Governance (PHA-DEC-066). Approval ini BUKAN wewenang menulis source, membuat migration,
+  maupun menjalankannya — ketiganya tetap diminta terpisah per task saat eksekusi.
+  calculation: BIL-CALCULATION-0.9 — TIDAK BERGERAK pada revisi 1.4. Amendment ini menerbitkan fakta yang sudah dihitung; ia tidak menyentuh satu suku pun rumus mana pun
+contract_versions_note_revision_1_4: >
+  Enam dari tujuh sumbu naik pada revisi 1.4; sumbu calculation TIDAK bergerak dan berkasnya
+  TIDAK disunting, sesuai aturan bahwa file contract yang isinya tidak bergerak MUST NOT disunting
+  hanya untuk menaikkan angka. Seluruh kenaikan berstatus `draft` — menunggu approval
+  Product/Domain Owner atas BKC-DES-036-041.
+  Yang membedakan revisi ini dari seluruh revisi sebelumnya: ini revisi pertama yang membangun
+  KONSUMEN NYATA. Revisi 1.3 bahkan sengaja MEMUTUS ketergantungan status invoice dari AR/AP
+  justru karena konsumennya belum ada. Kini Finance berdiri dengan intake yang sudah dibangun,
+  dan Farmasi menunggu dengan keputusan PHA-DEC-063-070 yang sudah approved.
 contract_versions_note_revision_1_3: >
   Enam dari tujuh sumbu naik pada revisi 1.3; sumbu calculation TIDAK bergerak. Seluruh kenaikan
   itu kini `approved` sejak 18 September 2026 lewat BKC-DEC-105. Label `(draft, revisi 1.3 ...)`
@@ -584,16 +605,25 @@ blocked_by_external_action_not_business_decision:
   - Review Security atas BillingInvoice:Read untuk dokumen berisi nomor polis.
   - Kelengkapan MstInsuranceProvider/MstInsuranceCoverageRule untuk verifikasi UAT — perlu pengecekan data langsung.
 artifact_hashes:
-  02-backend-architecture.md: 2c09d5dd531373b696e3e85bf66bbadbdc11265a79387eeb906f7c5f0d5ebdee
-  03-frontend-architecture.md: 2e12e28609b4bd8f5cc1d07cf0ead6d6a6862f8fb7f0f251f963adaa1e837c02
-  04-prd-to-mvp.md: e5306a84e031857c671df38987c471a4a121dafc5c44ba4e589227a810160417
-  contracts/api-contract.md: 0c57fa18e4f480ca72e35ce753be3a1048b5a2874d95e5ee00c41fa9b44c3241
-  contracts/state-transition-matrix.md: 9738d5cfe3154ce60e3b3f614382182a382aed5dcedb02884d3ece009c95c9cb
-  contracts/validation-matrix.md: 6ba7075a409dfa4e8057989e0ff6c8fbfe373b40ab500f9ac7a43bfb5feff607
-  contracts/integration-contract.md: 5c9033272314de2b40e25436c71b026355ba62ef5989f95dd2f4838c17028698
-  contracts/permission-audit-matrix.md: 7bf54c8826a1a9a76a6375c2ce846e2b8fd098420d3923150b476de12f304ad3
-  data/data-dictionary.md: 831de56c5b0eaa72f84e7e5481e1cd80cc7afe2440f6b898201ad145a391770d
-  testing/acceptance-test-matrix.md: 385436d1b034e7434defe4fe3c2ea1daf0c0b7159647a924b027fa70f63969c9
+  02-backend-architecture.md: 21c5b9f44c6d5068f63e011857145f9c3ea9fe75916ca1801b68ad35ad9d9920
+  03-frontend-architecture.md: 26913a4cf6a5bb9a52817e16012e524c22d2905b41fb5df5db974fcec0f4451e
+  04-prd-to-mvp.md: d1abc5a104121cfe57339b26c557f9a5b3039fd0ebcabff5f42ff71fb03f928b
+  contracts/api-contract.md: 39e85a2f6d6f0ea598a420b76e1fe4219f96c2731363821d820d1ac1e6ac170d
+  contracts/state-transition-matrix.md: af0d53b3abfa68e4c584921c461cec09be90925316c9311471d1952c81564134
+  contracts/validation-matrix.md: b19880f87936000a6d4dfc58e36c444a6dcad3c5cf02e92caa0ac3d783cafa36
+  contracts/integration-contract.md: aeb049e115351ca6a2e67d6d4b3f54a4c4ea60b9a21cca9eb25a70dbf2bbd2ba
+  contracts/permission-audit-matrix.md: 2130aabaacaaecd4bc3c86632a7e2694762c3b9b56d067790170c564bdf94a89
+  data/data-dictionary.md: 38238d0481b385c04db105c684ba6419170d640ecdbf435e2ecc4717d71cae84
+  testing/acceptance-test-matrix.md: 45222b5b6217aff219f2f2952993e262bd57f5df75d54589ab9e9c1de5b25eeb
+  flowcharts/penerbitan-fakta-ke-modul-konsumen.md: 2f1dc45371e051cc357727faece98c8ac672cce836943245cdfa67b46fac4870
+artifact_hashes_note_revision_1_4: >
+  Sebelas berkas dimutakhirkan pada revisi 1.4, satu di antaranya berkas baru
+  (flowcharts/penerbitan-fakta-ke-modul-konsumen.md). Hash dihitung sha256 atas isi berkas
+  sesudah amendment 21 September 2026 ditulis.
+  Berkas yang TIDAK disunting dan karena itu hashnya TIDAK berubah: seluruh flowchart lama,
+  erd/, dan 01-existing-capability-map.md. Sumbu calculation juga tidak punya berkas yang
+  bergerak. Hash yang tertinggal di belakang bukan ketidakrapian — ia keterangan bahwa berkas
+  itu memang tidak tersentuh.
   flowcharts/00-alur-utama.md: 4efffec07b85ff73b852491ed9266a5717c76529777e1908f967cb200cdb38f7
   flowcharts/ganti-payer-kunjungan.md: f177c0850754d074a713165b7db02c6cc242ed9a8892aa913e92188e08e119b2
   flowcharts/penanggung-per-item-tagihan.md: 6565c1773f01494dc19b721c87a51809fb2fa12bcf44db0b3c937866bf440e3a

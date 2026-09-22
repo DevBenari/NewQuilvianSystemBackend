@@ -206,7 +206,7 @@ invariant, permission, privacy, dan brief yang disetujui.
 | `PHA-DEC-040` | Decision | Depo pelayanan ditentukan otomatis dari layanan encounter menggunakan kontrak `PHA-DEPOT-ROUTING-v1`; hasil wajib tepat satu dan tidak boleh memilih Gudang Utama, lokasi karantina, atau kandidat secara acak | Product/domain owner | `approved` | Persetujuan user 20 Agustus 2026 |
 | `PHA-DEC-041` | Decision | Reservasi dilakukan setelah pembayaran/jaminan valid dan Farmasi mulai memproses resep; penentuan Depo tidak mengambil stok, sedangkan stok fisik baru berkurang saat penyerahan berhasil | Product/domain owner; Billing dan Pharmacy owner perlu memverifikasi integrasi | `approved` oleh product owner | Klarifikasi dan persetujuan user 20 Agustus 2026 |
 | `PHA-OQ-014` | Open Question | Hasil resmi ketika pembayaran/jaminan valid tetapi reservasi atomik gagal karena stok sudah habis | Product/domain + Billing/Finance + Pharmacy | `open`; `BLOCKING` untuk reservasi | Requirement gate `PHA-RCG-001`, 20 Agustus 2026 |
-| `PHA-OQ-015` | Open Question | Sumber authoritative status paid/approved/reversal/refund serta idempotency callback Billing | Billing/Finance + Security | `open`; `BLOCKING` untuk integrasi Billing | Requirement gate `PHA-RCG-001`, 20 Agustus 2026 |
+| `PHA-OQ-015` | Open Question | Sumber authoritative status paid/approved/reversal/refund serta idempotency callback Billing | Billing/Finance + Security | **`closed`** — dijawab `PHA-DEC-063`, `PHA-DEC-064`, `PHA-DEC-065`; reversal/refund detail tetap terbuka pada `PHA-OQ-005` | Closure amendment 21 September 2026 |
 | `PHA-OQ-016` | Open Question | Kebijakan partial dispensing, cakupan obat/layanan, approver, sisa resep, dan koreksi tagihan | Pharmacy + Clinical Governance + Billing | `open`; `BLOCKING` untuk penyerahan | Requirement gate `PHA-RCG-001`, 20 Agustus 2026 |
 | `PHA-OQ-017` | Open Question | Daftar obat yang wajib checker kedua dan matriks kewenangan checker | Pharmacy + Clinical Governance + Security | `open`; `BLOCKING` untuk penyerahan | Requirement gate `PHA-RCG-001`, 20 Agustus 2026 |
 | `PHA-DEC-042` | Decision | Klasifikasi pelayanan: OP = rawat jalan, IP = rawat inap, APS = pasien mandiri tanpa encounter reguler. APS tidak boleh disamakan dengan IP/OP dan hanya dipakai bila rumah sakit menyediakan pelayanan farmasi mandiri | Product/domain owner | `approved`; pemakaian APS masih bersyarat | `FARMASI BUSINESS DECISION` §1, 3 September 2026 |
@@ -221,7 +221,7 @@ invariant, permission, privacy, dan brief yang disetujui.
 | `PHA-DEC-051` | Decision | Transaksi lama tidak boleh diedit langsung. Koreksi melalui adjustment yang menghasilkan transaksi baru dan audit history, menyimpan nilai sebelum, nilai sesudah, alasan koreksi, user, dan waktu koreksi | Product/domain owner | `approved` | `FARMASI BUSINESS DECISION` §9, 3 September 2026 |
 | `PHA-DEC-052` | Decision | Urutan implementasi: (1) master item farmasi, (2) lokasi/depo, (3) batch dan expired, (4) saldo stok per lokasi, (5) kartu stok/ledger mutasi, (6) transfer obat, (7) pemakaian obat pasien, (8) retur, (9) etiket dan copy resep, (10) integrasi Billing. Pemakaian obat tidak boleh dibangun sebelum ledger stok tersedia | Product/domain owner | `approved`; menutup `PHA-OQ-001` | `FARMASI BUSINESS DECISION`, 3 September 2026 |
 | `PHA-DEC-053` | Decision | Prinsip implementasi: reuse capability existing; tidak membuat duplicate source of truth; tidak membuat master pasien/dokter/lokasi baru bila sudah ada; backend menjadi authority validasi; seluruh transaksi stok immutable melalui mutation history; tidak membuat keputusan klinis yang belum disetujui | Product/domain owner | `approved` | `FARMASI BUSINESS DECISION`, 3 September 2026 |
-| `PHA-OQ-018` | Open Question | Bagaimana lifecycle `PHA-DEC-044` berdamai dengan gating pembayaran/jaminan (`PHA-DEC-008`) dan reservasi setelah pembayaran (`PHA-DEC-041`)? Lifecycle baru tidak memuat state pembayaran, sedangkan enum terpasang memuat `WaitingForPayment` dan `ReadyForPharmacy` | Product/domain + Billing/Finance owner | `open`; `BLOCKING` untuk perubahan lifecycle resep | Konflik ditemukan saat pencatatan keputusan 3 September 2026 |
+| `PHA-OQ-018` | Open Question | Bagaimana lifecycle `PHA-DEC-044` berdamai dengan gating pembayaran/jaminan (`PHA-DEC-008`) dan reservasi setelah pembayaran (`PHA-DEC-041`)? Lifecycle baru tidak memuat state pembayaran, sedangkan enum terpasang memuat `WaitingForPayment` dan `ReadyForPharmacy` | Product/domain + Billing/Finance owner | **`partially closed`** — `PHA-DEC-063` menegaskan gating pembayaran TETAP berlaku dan `WaitingForPayment`/`ReadyForPharmacy` TIDAK dihapus; pemetaan penuh `PHA-DEC-044` enam-state ke enum sebelas-state tetap `open`, bukan wewenang closure pass ini | Closure amendment 21 September 2026 |
 | `PHA-OQ-019` | Open Question | Unit mana di antara ICU, ICCU, OK, Kebidanan, Kamar Bayi, HD, Poli, dan CCVC yang memiliki saldo stok sendiri sehingga menjadi Depo, dan mana yang hanya unit pelayanan | Pharmacy + warehouse owner | `superseded` oleh `PHA-DEC-054` | Diputuskan 3 September 2026 |
 | `PHA-DEC-054` | Decision | Lokasi dengan saldo stok sendiri hanya empat: Gudang Farmasi, Depo Rawat Jalan, Depo Rawat Inap, dan Depo IGD. ICU, ICCU, OK, Kebidanan, Kamar Bayi, HD, Poli, dan CCVC bukan depo stok mandiri pada tahap ini dan memperoleh obat lewat permintaan kepada Farmasi/Depo terkait. Bila kelak sebuah unit membutuhkan stok mandiri, dibuat keputusan dan konfigurasi terpisah | Product/domain owner | `approved` | Keputusan `PHA-OQ-019`, 3 September 2026 |
 | `PHA-DEC-055` | Decision | Transfer antar lokasi hanya sah bila lokasi asal berbendera `IsAllowTransferOut` dan lokasi tujuan berbendera `IsAllowTransferIn` pada `MstDrugStorageLocation`. Bendera yang sudah ada dipakai ulang; tidak dibuat penanda depo tersendiri | Product/domain owner | `approved`; hasil audit model lokasi 3 September 2026 | Implementasi transfer, 3 September 2026 |
@@ -387,7 +387,7 @@ Dicatat agar prioritas berikutnya tidak mengulang pekerjaan yang sudah selesai.
 | Copy resep — data | Selesai; angka diambil dari histori penyerahan, identitas penerbit dari master |
 | Copy resep — dokumen | `PHA-DEC-061`; **`BUSINESS DECISION REQUIRED`** untuk format legalnya. UI final belum boleh dibangun |
 | Pencatatan penyerahan obat per item | `PHA-DEC-059`; **selesai dan teruji** — `PhmPrescriptionCopy` membacanya sebagai sumber |
-| Integrasi Billing | Menunggu `PHA-OQ-005` dan `PHA-OQ-015` |
+| Integrasi Billing | `PHA-OQ-015` closed 21 September 2026 (`PHA-DEC-063`–`065`); tertahan sekarang oleh wewenang implementasi (belum ada task roadmap) dan sign-off lintas pemilik `RJ-BIL-GATE-DEC-007` yang belum lengkap, bukan lagi oleh open question |
 | Penerimaan barang dari pemasok | `PHA-DEC-052` menempatkannya pada fase berikutnya |
 
 ### Belum diverifikasi
@@ -396,3 +396,210 @@ Dicatat agar prioritas berikutnya tidak mengulang pekerjaan yang sudah selesai.
   lewat pengujian unit, belum dengan akun non-superadmin pada sistem berjalan. Superadmin
   melewati pemeriksaan kebijakan lebih dahulu, sehingga pengujian dengannya tidak membuktikan
   apa pun tentang sakelar itu.
+
+## Closure Amendment 21 September 2026 — Handoff financial clearance Billing → Farmasi
+
+Menutup `PHA-OQ-015` dan sebagian `PHA-OQ-018`. Dipicu permintaan user untuk menutup tiga hal:
+linkage `PrescriptionId` ke tagihan/pembayaran, mekanisme Billing memberi tahu Farmasi bahwa
+resep *financially clear*, dan pemetaan outcome finansial ke `Paid`/`InsuranceApproved`/
+`PaymentWaived`. Seluruh evidence diverifikasi langsung ke source sebelum pertanyaan diajukan;
+tidak ada klaim yang diterima tanpa dicek.
+
+### Evidence yang mendasari (dicek langsung ke source, bukan dokumen)
+
+| Bukti | Lokasi | Arti |
+|---|---|---|
+| `PrescriptionItemId` menautkan penyerahan ke baris resep | `PhmDrugUsageItem` | Linkage `PrescriptionId` → baris resep → catatan penyerahan bersifat deterministic |
+| `SourceDomain="PHARMACY"`, `SourceDetailId` = id item penyerahan | `BillingChargeSourceAdapter.cs:36`; `BKC-DEC-039` | Linkage catatan penyerahan → `BilInvoiceItem` → `BilInvoice` bersifat deterministic |
+| `BilInvoice.EncounterId` ber-`unique index` | `BilInvoiceConfiguration.cs:26` | Satu kunjungan = tepat satu invoice; charge resep selalu bergabung dengan charge lain di kunjungan yang sama |
+| `BilInvoiceItem` tidak punya kolom nominal terbayar per baris | `BilInvoiceItem.cs` | Billing hanya melacak outstanding di level invoice, bukan per item |
+| `BillingInvoiceStatuses.Closed` vs `SettledByWriteOff` adalah dua status invoice yang berbeda | `BilInvoice.cs:26-29` | Jalur pembayaran normal dan jalur waiver/write-off sudah bisa dibedakan tanpa skema baru |
+| `MstPaymentMethod.IsInsurance` / `IsCompanyGuarantor` | `MstPaymentMethod.cs:21-37` | Tender asuransi/penjamin sudah bisa dibedakan dari tender tunai/kartu tanpa skema baru |
+| `PrescriptionPaymentStatus.PaymentStatus` hanya pernah ditulis `NotBilled` di seluruh source | `PrescriptionWorkflowService.cs:39`; tidak ada penulis lain | Tidak ada jalur aktif yang menetapkan `Paid`/`InsuranceApproved`/`PaymentWaived` hari ini |
+| `FulfillmentStatus` tidak pernah ditulis `ReadyForPharmacy` di seluruh source | Grep menyeluruh `Areas/HealthServices/PharmacyManagement` | Transisi `WaitingForPayment` → `ReadyForPharmacy` tidak punya jalur kode sama sekali hari ini |
+| `PrescriptionReviewService.StartAsync` mensyaratkan `FulfillmentStatus` sudah `QueuedAtPharmacy`/`ReadyForPharmacy` | `PrescriptionReviewService.cs:51-56` | **Akibat gabungan dua baris di atas: setiap resep rawat jalan macet permanen di `WaitingForPayment` sejak `RJ-BIL-BE-002` menghapus jalur lama** — bukan risiko masa depan, tapi kondisi berjalan saat ini |
+| `SettledPayments = [Paid, InsuranceApproved, PaymentWaived]` | `PrescriptionDispensingService.cs:58-63` | Tiga outcome yang ditanyakan user sudah menjadi gate di kode, hanya belum pernah terisi |
+| `RJ-BIL-GATE-DEC-007` (`locked-draft`, governance `OPEN`) | `rawat-jalan/00-interview-decisions.md` | Rancangan mekanisme read-only financial projection sudah ada, disetujui product owner, belum sign-off lintas pemilik |
+| `RJ-BIL-BE-002` `COMPLETE` | `rawat-jalan/execution-evidence-RJ-BIL-BE-002.md` | Jalur lama (Farmasi menulis status bayar sendiri) sudah ditutup 24 Agustus 2026 |
+| `RJ-BIL-BE-005` scope-nya multi-payer allocation, bukan projection ini | `rawat-jalan/roadmap/backend-roadmap.md:132` | Belum ada task roadmap untuk membangun proyeksi Billing → Farmasi ini |
+
+### `PHA-DEC-063` — Mekanisme handoff
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | Adopsi `RJ-BIL-GATE-DEC-007` sebagai jawaban formal mekanisme handoff Billing → Farmasi. Farmasi menyimpan **read-only financial projection** (bukan event mentah, bukan service call sinkron) yang disinkronkan dari Billing — idempotent, versioned, auditable, reconcilable; versi basi/out-of-order ditolak; kebenaran Billing selalu menang saat konflik. Syarat dispensing bersifat policy-driven, bukan hardcode "harus Paid". Empat endpoint lama tetap tidak aktif (sudah ditutup `RJ-BIL-BE-002`); `WaitingForPayment` dan `ReadyForPharmacy` **dipertahankan** sebagai state gating pembayaran nyata, bukan dihapus dari lifecycle |
+| Owner | Product/Domain Owner |
+| Status | `approved` |
+| Approval evidence | Pilihan eksplisit user atas opsi "Adopsi RJ-BIL-GATE-DEC-007 sebagai jawaban formal (Direkomendasikan)" dari 3 opsi, 21 September 2026 |
+| Catatan | Governance `RJ-BIL-GATE-DEC-007` awalnya `OPEN` menunggu sign-off Billing/Payer dan Clinical Governance terpisah dari Product/Domain Owner. Ditutup `CLOSED` 21 September 2026 setelah user menyatakan eksplisit mewakili ketiga pihak sekaligus — lihat `PHA-DEC-066` dan pembaruan field "Formal governance status" pada `rawat-jalan/00-interview-decisions.md` |
+
+### `PHA-DEC-064` — Definisi financially clear tingkat invoice
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | Karena satu kunjungan = satu invoice (unique constraint `BilInvoice.EncounterId`) dan Billing tidak melacak nominal terbayar per baris item, "resep ini financially clear" didefinisikan sebagai **seluruh invoice kunjungan tersebut berstatus `CLOSED`** (`BKC-DEC-100`) — bukan status per baris item. Konsekuensi disadari dan diterima: item lain pada invoice yang sama yang masih menunggak ikut menahan resep, walau resep itu sendiri "lunas" secara logis |
+| Owner | Product/Domain Owner; Billing/Finance perlu memverifikasi |
+| Status | `approved` |
+| Approval evidence | Pilihan eksplisit user atas opsi "Invoice-level: seluruh invoice harus CLOSED (Direkomendasikan)" dari 3 opsi, 21 September 2026 |
+| Catatan | Opsi item-level settlement tracking ditolak eksplisit — bukan diam-diam diabaikan. Bila kebutuhan itu muncul kembali di kemudian hari, itu scope baru bagi Billing (menyentuh `BillingInvoiceClosureService`), bukan amandemen kecil atas keputusan ini |
+
+### `PHA-DEC-065` — Pemetaan outcome finansial
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | Pemetaan `BilInvoice`/tender ke tiga outcome Farmasi: (1) `BilInvoice.Status = CLOSED` dan ADA sekurang-kurangnya satu tender sukses dengan `MstPaymentMethod.IsInsurance = true` atau `IsCompanyGuarantor = true` → `InsuranceApproved`, berlaku juga untuk tender campuran (sebagian cash/excess pasien, sebagian asuransi/penjamin) — kehadiran satu tender penjamin sudah cukup, tanpa membandingkan proporsi nominal; (2) `BilInvoice.Status = CLOSED` dan seluruh tender sukses tanpa flag asuransi/penjamin → `Paid`; (3) `BilInvoice.Status = SETTLED_BY_WRITE_OFF` → `PaymentWaived` |
+| Owner | Product/Domain Owner; Billing/Finance perlu memverifikasi |
+| Status | `approved` |
+| Approval evidence | Pilihan eksplisit user atas opsi "Ada tender asuransi/penjamin → InsuranceApproved (Direkomendasikan)" dari 3 opsi, 21 September 2026, menyusul konfirmasi opsi invoice-level pada `PHA-DEC-064` |
+
+### `PHA-DEC-066` — Kapasitas owner pada closure amendment ini
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | User closure amendment ini menyatakan eksplisit menjawab mewakili ketiga pihak sekaligus: Product/Domain Owner, Billing/Payer owner, dan Clinical Governance — bukan hanya Product/Domain Owner seperti pola default seluruh decision log modul lain sebelumnya. Atas dasar ini, governance `RJ-BIL-GATE-DEC-007` yang sebelumnya `OPEN` dinyatakan `CLOSED` |
+| Owner | Product/Domain Owner, Billing/Payer owner, Clinical Governance (ketiganya, oleh satu orang yang sama) |
+| Status | `approved` |
+| Approval evidence | Pilihan eksplisit user atas opsi "Mewakili ketiganya" dari 3 opsi, 21 September 2026 |
+| Catatan | Ini pola pengecualian dari kebiasaan project sejauh ini (modul lain selalu mencatat sign-off terpisah per pemilik). Bila kelak ternyata Billing/Payer atau Clinical Governance punya pemilik berbeda yang belum diajak bicara, keputusan ini perlu ditinjau ulang — dicatat di sini supaya mudah ditemukan, bukan untuk membatalkan approval yang sudah diberikan |
+
+### `PHA-DEC-067` — Kebijakan outage sinkronisasi proyeksi financial
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | Ketika sinkronisasi proyeksi financial dari Billing terputus (state `Unknown`/`PendingVerification`/`Stale` per `RJ-BIL-GATE-DEC-007`), resep **tetap tertahan tanpa override** sampai sinkronisasi pulih dan mengonfirmasi status terbaru — tidak ada jalur manual bagi petugas Farmasi biasa maupun Kepala Farmasi/Supervisor untuk melewati outage teknis ini. Ini **berbeda** dari, dan **tidak mengubah**, invariant clinical urgency exception yang sudah diadopsi lewat `PHA-DEC-063` (`RJ-BIL-GATE-DEC-007`): darurat klinis nyata tetap punya jalurnya sendiri lewat approved policy/reason/authorizing actor yang terpisah dari sekadar "Billing sedang tidak terjangkau" |
+| Owner | Product/Domain Owner, Billing/Payer owner, Clinical Governance |
+| Status | `approved` |
+| Approval evidence | Pilihan eksplisit user atas opsi "Tahan total sampai proyeksi pulih, tanpa override (Direkomendasikan)" dari 3 opsi, 21 September 2026 |
+| Catatan | Durasi outage yang memicu eskalasi/notifikasi operasional (berapa lama dianggap wajar sebelum jadi insiden) belum digali — dicatat sebagai sisa open item, bukan bagian keputusan fail-closed ini |
+
+## Closure Amendment lanjutan 21 September 2026 — Pencabutan clearance (`PHA-OQ-026`)
+
+Menutup `PHA-OQ-026` yang ditemukan `PHA-RCG-002`. Pemicunya: `BillingInvoiceClosureService.cs:104-126`
+membuktikan invoice `CLOSED` **kembali** menjadi `FINAL` ketika sisa tagihan naik lagi
+(disetujui pemilik Billing sebagai `BKC-DES-031` dalam `BKC-DEC-105`), sementara tidak satu pun
+`PHA-DEC-063`–`067` mengatur akibatnya pada resep yang sudah dikerjakan Farmasi.
+
+### `PHA-DEC-068` — Pencabutan clearance tidak mengikuti status invoice
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | Clearance resep **tidak dicabut otomatis** hanya karena invoice kunjungan berubah dari `CLOSED` kembali ke `FINAL`. Clearance ditentukan pada tingkat resep, bukan tingkat seluruh kunjungan. Penambahan biaya yang tidak menyentuh resep — tindakan, laboratorium, kamar — membuat pasien punya kewajiban baru atas biaya itu, tetapi **tidak** membatalkan kenyataan bahwa obatnya sudah dibayar; resep tetap `Paid`/`InsuranceApproved`/`PaymentWaived` dan Farmasi tetap boleh bekerja. Clearance hanya dicabut bila perubahan finansialnya material terhadap resep itu sendiri |
+| Owner | Product/Domain Owner, Billing/Payer owner, Clinical Governance (ketiganya per `PHA-DEC-066`) |
+| Status | `approved` |
+| Approval evidence | Jawaban tertulis user 21 September 2026 yang mengoreksi premis pertanyaan: "jangan otomatis mencabut clearance resep hanya karena invoice kunjungan berubah dari `CLOSED` kembali menjadi `FINAL`; clearance harus ditentukan pada level prescription, bukan level seluruh encounter/invoice" |
+| Hubungan dengan `PHA-DEC-064` | **Menyempurnakan, bukan membatalkan.** `PHA-DEC-064` tetap berlaku untuk **pemberian** clearance: resep menjadi clear ketika invoice kunjungan mencapai `CLOSED`. Yang diubah keputusan ini adalah **pencabutannya**, yang sengaja dibuat **tidak simetris** — clearance yang sudah diberikan tidak ikut gugur saat invoice kembali `FINAL` |
+
+**Daftar sebab yang mencabut dan yang tidak.** Dipisah berdasarkan apakah Billing benar-benar
+dapat membuktikan perubahan itu menyentuh resep.
+
+| Sebab perubahan | Mencabut clearance? | Dasar kemampuan |
+|---|---|---|
+| Biaya tindakan, laboratorium, radiologi, atau kamar ditambahkan | **Tidak** | `BilInvoiceItem.SourceDomain` membedakan baris milik resep (`PHARMACY`) dari baris lain |
+| Harga atau jumlah obat pada resep itu dikoreksi naik | **Ya** | Perubahan terjadi pada baris ber-`SourceDomain` `PHARMACY` yang `SourceDetailId`-nya menunjuk penyerahan resep itu |
+| Pembayaran direversal | **Ya, fail-closed** | Lihat `PHA-DEC-068-A` |
+| Penghapusan tagihan (write-off) direversal | **Ya, fail-closed** | Lihat `PHA-DEC-068-A` |
+| Penjaminan penjamin dikurangi atau dibatalkan | **Ya, fail-closed** | Lihat `PHA-DEC-068-A` |
+
+### `PHA-DEC-068-A` — Fail-closed untuk sebab berbasis uang
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | Untuk tiga sebab yang berbasis penarikan uang — pembayaran direversal, write-off direversal, dan penjaminan dicabut — clearance **selalu** dicabut untuk seluruh resep pada invoice itu, tanpa mencoba menentukan apakah uang yang ditarik itu porsi resep atau porsi layanan lain |
+| Owner | Product/Domain Owner, Billing/Payer owner, Clinical Governance |
+| Status | `approved` |
+| Approval evidence | Pilihan eksplisit user "Selalu cabut clearance (fail-closed)" atas pertanyaan tentang tiga ReasonCode berbasis uang, 21 September 2026 |
+| Alasan berbukti | Billing **tidak dapat** membuktikan uang mana milik resep. `BilPaymentAllocation.cs:12,21-24` hanya mengenal satu jenis sasaran alokasi, yaitu `INVOICE` — pembayaran tidak pernah dialokasikan per baris. `BilWriteOffCase.cs:11` juga hanya menyimpan `InvoiceId`. Angka `CoveredAmount`/`PatientPayAmount` per resep memang ada, tetapi tersimpan di sisi Farmasi (`PhmPrescription.cs:157-159`) — justru angka finansial milik modul klinis yang `RJ-BIL-CONFLICT-001` tandai bermasalah dan sedang dipindahkan ke Billing; memakainya sebagai dasar akan memutar balik `PHA-DEC-063` |
+| Konsekuensi yang disadari | Reversal yang sebenarnya administratif — misalnya kasir salah memilih metode bayar lalu mengulanginya — akan ikut mencabut clearance walau nominalnya segera dipulihkan. Resep akan tertahan sesaat sampai pembayaran ulang membuat invoice `CLOSED` kembali. Ini diterima sebagai harga dari sikap fail-closed |
+| Yang ditolak | Membangun alokasi uang per baris invoice di Billing. Itu scope baru yang besar dan membalik penolakan item-level pada `PHA-DEC-064`. Bila kelak dibutuhkan, itu keputusan tersendiri milik pemilik Billing |
+
+### `PHA-DEC-069` — Perlakuan resep saat clearance benar-benar dicabut
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | Ketika pencabutan yang sah terjadi sementara Farmasi sudah mulai bekerja, resep **ditahan di tempat dan kemajuannya dikunci** — bukan ditarik mundur. Resep yang sudah `InPreparation` tetap `InPreparation`; obat yang sudah diracik tetap tercatat sudah diracik dan **tidak** direstock bila secara fisik tidak memungkinkan (`PHA-DEC-032`). Sistem memasang penanda tahan finansial sehingga resep tidak boleh maju ke tahap berikutnya — termasuk `ReadyToDispense` dan penyerahan — sampai Billing menyatakan clear kembali. Setelah pasien melunasi kekurangannya, penahanan dilepas dan proses **dilanjutkan dari titik terakhir**, tanpa mengulang antrean, telaah apoteker, maupun penyiapan |
+| Owner | Product/Domain Owner, Billing/Payer owner, Clinical Governance |
+| Status | `approved` |
+| Approval evidence | Jawaban tertulis user 21 September 2026: "tahan di tempat dan kunci kemajuannya", berikut penegasan "hold dilepas dan proses dilanjutkan dari titik terakhir tanpa mengulang antrean, verifikasi, atau preparation" |
+| Alasan | Menarik status mundur akan membuat catatan berbohong tentang keadaan fisik: obat sudah diracik dan stok sudah berkurang, sementara status menyatakan belum diproses — dan saat lunas kembali, apoteker berisiko meracik untuk kedua kalinya. Menahan di tempat menjaga catatan tetap jujur, sejalan dengan `PHA-DEC-032` dan `PHA-DEC-051` |
+| Catatan penyajian | Penahanan finansial **wajib terlihat** pada daftar kerja Farmasi beserta sebabnya, karena petugas bisa sedang memegang obatnya saat penahanan terjadi. Bentuk tampilannya `DEV_DISCRETION`; keberadaan dan keterbacaannya bukan |
+
+### `PHA-DEC-070` — Bentuk kontrak clearance
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | Kontrak Billing → Farmasi berbentuk pernyataan clearance **per resep**, bukan per invoice, memuat sekurang-kurangnya: identitas resep, identitas invoice, keadaan clearance (`Cleared`/`Revoked`), hasil finansial (`Paid`/`InsuranceApproved`/`PaymentWaived` sesuai `PHA-DEC-065`), kode sebab, nomor versi finansial, dan waktu berlaku. Billing hanya menerbitkan pencabutan untuk sebab yang material terhadap resep sesuai `PHA-DEC-068` dan `PHA-DEC-068-A` |
+| Owner | Product/Domain Owner, Billing/Payer owner |
+| Status | `approved` |
+| Approval evidence | Jawaban tertulis user 21 September 2026 yang menyebut isi kontrak beserta daftar kode sebab yang mencabut dan yang tidak |
+| Batas | Ini menetapkan **isi minimum dan tingkat granularitas** kontrak, bukan bentuk teknisnya. Apakah diwujudkan sebagai baris handoff, event, tabel proyeksi, atau gabungannya adalah wewenang `design-business-module`. Pola `BilArHandoff` ↔ `FinBillingHandoffIntake` yang sudah dipakai konsumen lain patut dinilai lebih dulu sebelum membuat pola baru |
+
+### Konsekuensi asimetri yang perlu disadari
+
+`PHA-DEC-064` (pemberian clearance mengikuti invoice `CLOSED`) digabung `PHA-DEC-068`
+(pencabutan tidak mengikuti invoice) menghasilkan satu akibat yang ditentukan urutan waktu:
+
+- Pasien lunas pukul 09.00, biaya tindakan yang terlewat baru dicatat pukul 09.30 → resep
+  **tetap** clear, obat boleh diserahkan, dan tindakan itu menjadi kewajiban baru pasien.
+- Biaya tindakan yang sama dicatat pukul 08.50, sebelum pasien membayar → invoice tidak pernah
+  mencapai `CLOSED`, sehingga resep **tidak pernah** clear sampai seluruhnya dilunasi, walau
+  porsi obatnya sudah dibayar.
+
+Dua pasien dengan tagihan identik dapat mengalami hasil berbeda semata karena urutan pencatatan.
+Ini konsekuensi langsung dari tidak adanya alokasi uang per baris, dan diterima sebagai batas
+yang diketahui — bukan cacat yang tersembunyi. Menghilangkannya menuntut keputusan Billing
+tersendiri untuk membangun alokasi per baris.
+
+### Acceptance criteria closure amendment ini
+
+1. Resep tidak dapat mencapai `FulfillmentStatus` `QueuedAtPharmacy`/`ReadyForPharmacy` tanpa proyeksi financial dari Billing yang secara eksplisit menyatakan clear — Farmasi tidak pernah menyimpulkannya sendiri.
+2. Proyeksi financial di Farmasi menolak versi basi/out-of-order dari Billing; versi terbaru dari Billing selalu menang saat konflik.
+3. **Pemberian clearance:** resep yang belum pernah clear dan invoice kunjungannya masih memiliki item menunggak tetap tertahan sampai seluruh invoice berstatus `CLOSED` — bukan diloloskan per baris.
+4. Resep pada invoice yang ditutup dengan tender bercampur (ada sekurang-kurangnya satu tender `IsInsurance`/`IsCompanyGuarantor`) tercatat `InsuranceApproved`, bukan `Paid`, terlepas dari proporsi nominal tunai vs asuransi.
+5. Resep pada invoice berstatus `SETTLED_BY_WRITE_OFF` tercatat `PaymentWaived`.
+6. Saat proyeksi berstatus `Unknown`/`PendingVerification`/`Stale` akibat outage Billing, tidak ada jalur override oleh petugas Farmasi maupun Kepala Farmasi/Supervisor untuk melanjutkan resep tanpa proyeksi valid — berbeda dari jalur clinical urgency exception yang tetap tersedia terpisah.
+7. **Pencabutan tidak mengikuti invoice:** resep yang sudah clear, lalu invoicenya kembali `FINAL` semata karena penambahan biaya tindakan, laboratorium, radiologi, atau kamar, **tetap** clear dan Farmasi tetap boleh melanjutkan pekerjaannya.
+8. Kenaikan harga atau jumlah obat pada resep itu sendiri mencabut clearance resep tersebut.
+9. Reversal pembayaran, reversal write-off, atau pencabutan penjaminan mencabut clearance **seluruh** resep pada invoice itu, tanpa mencoba memilah porsi uangnya.
+10. Resep yang clearance-nya dicabut tetap berada pada tahap terakhirnya, tidak dapat maju ke tahap berikutnya, tidak dapat diserahkan, dan obat yang sudah diracik tidak direstock.
+11. Resep yang clearance-nya dipulihkan melanjutkan dari tahap terakhirnya — antrean, telaah apoteker, dan penyiapan yang sudah selesai tidak diulang.
+12. Penahanan finansial terlihat pada daftar kerja Farmasi beserta sebabnya, sehingga petugas yang sedang memegang obat mengetahui alasan pekerjaannya terhenti.
+
+### `PHA-DEC-071` — Approval keputusan arsitektur slice Financial Clearance
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Menyetujui `PHA-DES-001`–`PHA-DES-006` secara utuh** — satu baris proyeksi per resep yang diperbarui di tempat (`001`), surat bernomor versi lebih rendah ditolak diam-diam tanpa menimbulkan galat (`002`), penanda tahan finansial dihitung dan tidak disimpan sebagai kolom (`003`), `PaymentStatus` dipertahankan sebagai salinan satu-penulis (`004`), gerbang dipasang di empat titik yaitu telaah, penyiapan, pemeriksaan akhir, dan penyerahan (`005`), serta keadaan tidak diketahui diperlakukan sebagai belum boleh (`006`). Dengan ini keenam sumbu kontrak `PHA-*-CLEARANCE-v1` naik dari `draft` menjadi `approved` |
+| Owner | Product/Domain Owner, Billing/Payer owner, Clinical Governance |
+| Status | `approved` |
+| Approval evidence | Pilihan eksplisit user "Saya setujui desainnya sekarang" atas pertanyaan gerbang `plan-module-delivery`, 21 September 2026 |
+| Batas approval | Bukan wewenang menulis source maupun migration; keduanya diminta terpisah per task. Seluruh kontrak `PHA-*-ROUTING-v1` tidak tersentuh dan tetap `approved` apa adanya |
+| Ketergantungan yang tetap berlaku | Sisi penerbit Billing (`BKC-DES-036`–`041`) **MUST** berdiri lebih dulu. Slice ini tidak dapat dieksekusi tanpanya, dan itu bukan pilihan urutan melainkan kenyataan: tanpa surat yang terbit, tidak ada masukan apa pun |
+
+### Pertanyaan yang tetap terbuka setelah closure amendment ini
+
+- ~~**`PHA-OQ-026` — pencabutan status lunas atas resep yang sudah diproses**~~ — **`closed`** 21 September 2026 oleh `PHA-DEC-068`, `PHA-DEC-068-A`, `PHA-DEC-069`, dan `PHA-DEC-070`. Jawabannya mengoreksi premis pertanyaan: pencabutan tidak mengikuti status invoice, melainkan ditentukan pada tingkat resep; dan bila pencabutan memang sah, resep ditahan di tempat, bukan ditarik mundur.
+- **`PHA-OQ-027` — kebijakan pengecualian darurat klinis** (tidak memblokir, ditemukan `PHA-RCG-002`). `RJ-BIL-GATE-DEC-007` menyediakan jalur darurat klinis yang mendahului penyelesaian finansial, tetapi kebijakan yang disahkan beserta pemberi wewenangnya belum ada. Selama terbuka, satu-satunya jalan resep masuk antrean adalah pernyataan lunas dari Billing. Pemilik: Clinical Governance + Billing/Finance.
+- **Belum ada task roadmap** — tidak ada task backend yang mencakup pembangunan projection sync ini; `RJ-BIL-BE-005` scope-nya multi-payer allocation, bukan ini. Perlu ditambahkan ke roadmap `rawat-jalan` dan/atau `pharmacy` pada `plan-module-delivery`.
+- **Manifest `PHA-BP-001` usang** — mencatat `decision_revision: 2` dan SHA `767470f7`/`400104f2`, padahal decision log sudah di `PHA-DEC-067` dan SHA kini `6782ae65`/`1b138b9a`; `domain_architecture_readiness` hanya berlaku untuk slice Routing Depo. Perlu disinkronkan sebelum atau saat desain slice ini.
+- **Durasi outage sebelum eskalasi** — `PHA-DEC-067` menutup perilaku fail-closed-nya, tapi berapa lama outage dianggap wajar sebelum menjadi insiden operasional (SLA, notifikasi ke siapa) belum digali.
+- **Pemetaan penuh `PHA-DEC-044` ke enum sebelas-state** — `PHA-OQ-018` baru tertutup sebagian; kepastian bahwa gating pembayaran tetap ada tidak sama dengan rancangan pemetaan state-machine yang lengkap.
+- **Reversal/refund dan idempotency callback detail** — tetap milik `PHA-OQ-005`, belum digali pada closure amendment ini.
+
+### Status kapabilitas — pembaruan baris "Integrasi Billing"
+
+Baris "Integrasi Billing" pada tabel "Tertahan" (§ Status kapabilitas Farmasi per 3 September
+2026) diperbarui: sebab tertahannya sekarang **bukan lagi** "menunggu `PHA-OQ-005` dan
+`PHA-OQ-015`" — `PHA-OQ-015` sudah tertutup lewat closure amendment ini. Sebab tertahan yang
+tersisa: **belum ada wewenang implementasi** (task roadmap belum dibuat) dan **sign-off lintas
+pemilik `RJ-BIL-GATE-DEC-007` belum lengkap**, sebagaimana tercatat pada bagian "Pertanyaan yang
+tetap terbuka" di atas.

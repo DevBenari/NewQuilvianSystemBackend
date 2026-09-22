@@ -375,3 +375,36 @@ Empat belas acceptance test, `BIL-AT-121`–`BIL-AT-134`. **Lima di antaranya re
 Approval blueprint bukan bukti test.
 
 Trace **`BKC-DEC-100`–`102`**, `BKC-DES-028`–`035`.
+
+---
+
+## Amendment 21 September 2026 — Penerbitan fakta ke modul konsumen
+
+`last_changed_in: BIL-TEST-1.3` · status **draft** · input `BKC-DEC-106`–`109`, `BKC-DES-036`–`041`.
+
+| ID | Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- | --- |
+| `BIL-AT-135` | `BKC-DEC-106` | Satu pembayaran berhasil melunasi tagihan yang memuat resep | Integrasi | Tepat satu surat penerimaan **dan** tepat satu surat clearance, keduanya membawa korelasi yang sama, keduanya tercipta dalam satu transaksi |
+| `BIL-AT-136` | `BKC-DEC-106`, `FIN-DEC-005` | Pembayaran berhasil tetapi tagihan belum lunas | Integrasi | Surat penerimaan terbit; **nol** surat clearance. Membuktikan surat Finance tidak menunggu pelunasan maupun finalisasi |
+| `BIL-AT-137` | `PHA-DEC-068` | Biaya tindakan ditambahkan pada tagihan yang sudah lunas | Integrasi | **Nol** surat clearance pencabutan. Keadaan clearance resep tetap boleh diambil walau tagihan kembali bersisa |
+| `BIL-AT-138` | `PHA-DEC-068` | Harga obat pada resep dikoreksi naik | Integrasi | Satu surat pencabutan bersebab kenaikan biaya resep, bernomor versi lebih tinggi dari surat sebelumnya |
+| `BIL-AT-139` | `PHA-DEC-068-A` | Pembayaran dibalik pada tagihan yang memuat tiga resep | Integrasi | Tiga surat pencabutan — satu per resep — seluruhnya bersebab pembalikan pembayaran. Membuktikan perilaku fail-closed berlaku menyeluruh, bukan selektif |
+| `BIL-AT-140` | `PHA-DEC-065` | Tagihan lunas dengan tender bercampur: sebagian asuransi, sebagian tunai | Integrasi | Surat clearance berhasil finansial penjaminan, bukan pembayaran tunai, terlepas dari proporsi nominalnya |
+| `BIL-AT-141` | `BKC-DEC-107` | Surat clearance terbit tetapi tidak pernah diproses konsumen, lalu keadaan resep ditanyakan lewat permukaan pemeriksaan | Integrasi | Jawaban pemeriksaan sama persis dengan isi surat terakhir yang sah, walau suratnya belum pernah diakui |
+| `BIL-AT-142` | `BKC-DEC-108`, `BKC-DEC-109` | Surat diakui dua kali berturut-turut | API | Pengakuan pertama berhasil; pengakuan kedua ditolak tanpa mengubah apa pun, dan baris tetap ada |
+
+### Jalur gagal yang wajib dibuktikan
+
+| ID | Skenario gagal | Bukti yang diharapkan |
+| --- | --- | --- |
+| `BIL-AT-135-F` | Penerbitan surat gagal di tengah transaksi pembayaran | **Pembayarannya ikut batal.** Tidak ada keadaan uang tercatat masuk tanpa suratnya |
+| `BIL-AT-136-F` | Peristiwa yang sama diproses dua kali karena percobaan ulang | Tepat satu baris efektif per tender per keadaan; percobaan kedua tidak menambah baris |
+| `BIL-AT-139-F` | Dua perubahan clearance pada resep yang sama terjadi bersamaan | Tepat satu yang berhasil per nomor versi; yang kalah diulang dengan nomor berikutnya, bukan menimpa |
+| `BIL-AT-141-F` | Keadaan clearance ditanyakan untuk resep yang belum pernah punya surat | Dijawab "belum diketahui". **Bukan** galat, dan **bukan** boleh diambil |
+| `BIL-AT-142-F` | Tender tunai tanpa identitas shift kasir | Penerbitan ditolak beserta transaksinya; pesan menyebut shift kasir, bukan istilah teknis |
+
+Empat dari lima jalur gagal di atas menguji hal yang sama dari sudut berbeda: **uang dan
+suratnya tidak pernah boleh terpisah nasib.** Itu invariant paling mahal bila dilanggar, karena
+kerusakannya baru terlihat saat rekonsiliasi bulanan.
+
+Trace `BKC-DEC-106`–`109`, `BKC-DES-036`–`041`, `PHA-DEC-065`, `PHA-DEC-068`, `PHA-DEC-068-A`.

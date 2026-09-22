@@ -3319,3 +3319,301 @@ Audit perpindahan status dicatat mengikuti pola yang sudah ada di modul ini: kat
 | Backend SHA diaudit | `21b4733154e91962cbd7094a102615b1d9eb2bf2` |
 | Butir yang MUST dijawab owner saat approval | ~~`BKC-DES-033` dan `BKC-DES-029`~~ — **keduanya sudah dijawab dan `approved`** 18 September 2026 (`BKC-DEC-103`, `BKC-DEC-104`). Tidak ada butir menyimpang yang tersisa |
 | Status | ~~draft~~ **approved** — `BKC-DES-028`–`035` disetujui Product/Domain Owner 18 September 2026 (`BKC-DEC-105`, wewenang ganda Finance/AR `BKC-DEC-085`). Approval ini **bukan** otorisasi membuat maupun menjalankan migration backfill; gerbang itu terpisah dan tetap menuntut konfirmasi eksplisit sesudah backup |
+
+---
+
+# Amendment 21 September 2026 — Penerbitan fakta finansial ke dua modul konsumen
+
+> `revisi blueprint`: `1.4`, status **draft**. Masukan: `BKC-DEC-106`–`109` (approved
+> 21 September 2026), `PHA-DEC-063`–`070`, `FIN-DEC-005`–`006`.
+> Backend SHA diaudit: `6782ae652ca53299f7469c49b2edb64d23e77b60`.
+>
+> **Ini amendment pertama yang membangun konsumen nyata.** Seluruh amendment sebelumnya bekerja
+> di dalam Billing sendiri; `BIL-INTEGRATION-1.0` bahkan sengaja *memutus* ketergantungan status
+> invoice dari AR/AP karena konsumennya belum ada. Kini dua konsumen berdiri dan menunggu.
+
+## 1. Perubahan pada bounded context
+
+Tidak ada konteks baru. Yang berubah adalah **invariant** `BIL-CTX-05`.
+
+| Konteks | Aggregate root | Invariant sesudah amendment ini | Owner |
+| --- | --- | --- | --- |
+| `BIL-CTX-05` Billing Finalization & Handoff | `BilFinalizationRecord`, **`BilCollectionHandoff`** (baru), **`BilPrescriptionClearanceHandoff`** (baru) | Finalisasi sekali per versi; AR per debtor dan AP dokter idempotent; koreksi memakai handoff adjustment. **Baru:** surat penerimaan uang dan surat clearance resep adalah aggregate root tersendiri yang **MUST NOT** bergantung pada finalisasi | Billing/Finance Integration |
+
+### Invariant baru yang paling mudah dilanggar
+
+| Invariant | Sebabnya |
+| --- | --- |
+| `BilCollectionHandoff` **MUST NOT** memiliki foreign key ke `BilFinalizationRecord` | Pasien dapat membayar sementara tagihan masih terbuka, dan finalisasi menyusul belakangan. Menjadikannya anak finalisasi berarti uang yang masuk lebih dulu tidak akan pernah sampai ke buku Finance — persis yang diminta dicegah |
+| Surat **MUST** terbit di dalam transaksi yang sama dengan pergerakan uang atau perubahan keadaan yang melahirkannya | Surat yang terbit belakangan di luar transaksi membuka kemungkinan uang bergerak tanpa suratnya. Itu tepat yang tidak boleh terjadi pada angka |
+| Nomor versi finansial **MUST** naik monoton per resep | Konsumen menolak versi yang lebih tua (`PHA-DEC-063`). Nomor yang melompat mundur membuat resep tertahan selamanya |
+| Satu peristiwa **MUST NOT** diasumsikan melahirkan dua surat | Syarat keduanya berbeda. Lihat tabel peristiwa pada `contracts/integration-contract.md` |
+
+## 2. Tabel kepemilikan data
+
+| Kelompok data | Modul pemilik | Dipakai modul ini | Dibuat ulang di modul ini |
+| --- | --- | :---: | --- |
+| Tagihan pasien dan barisnya | `billing-kasir` (`BIL-CTX-01`) | Ya | Tidak — tabel yang sudah ada dibaca |
+| Tender, penyelesaian, alokasi pembayaran | `billing-kasir` (`BIL-CTX-02`) | Ya | Tidak — tabel yang sudah ada dibaca |
+| Cara bayar beserta penanda asuransi/penjamin | Billing Master Data (`MstPaymentMethod`) | Ya | Tidak — dibaca untuk menentukan hasil finansial |
+| Shift kasir | `billing-kasir` (`BIL-CTX-04`) | Ya | Tidak — hanya identitasnya yang disalin ke surat |
+| **Surat penerimaan uang** | `billing-kasir` (`BIL-CTX-05`) | Ya | **Ya — tabel baru** |
+| **Surat clearance resep** | `billing-kasir` (`BIL-CTX-05`) | Ya | **Ya — tabel baru** |
+| Resep, baris resep, penyerahan obat | Pharmacy Management | Ya, **baca saja** | Tidak — **MUST NOT** ditulis dalam keadaan apa pun |
+| Buku piutang dan penerimaan Finance | `finance-management` | Tidak | Tidak — Finance membacanya sendiri dari surat |
+| Proyeksi finansial di sisi Farmasi | `pharmacy` | Tidak | Tidak — milik konsumen, dirancang pada blueprint Farmasi |
+| Jurnal akuntansi | `AccountingManagement` | Tidak | Tidak — Billing **MUST NOT** mengirim apa pun langsung ke Accounting |
+
+Dua baris terakhir adalah batas yang paling mudah dilanggar tanpa sengaja. Billing menerbitkan
+fakta; ia **tidak** ikut memutuskan apa yang konsumen lakukan dengan fakta itu.
+
+## 3. Class diagram — tambahan pada `BIL-CTX-05`
+
+```mermaid
+classDiagram
+  direction LR
+
+  class BilInvoice {
+    +Guid Id
+    +Guid EncounterId
+    +string Status
+    +DateTimeOffset ClosedAt
+  }
+
+  class BilTender {
+    +Guid Id
+    +Guid SettlementId
+    +Guid PaymentMethodId
+    +decimal Amount
+    +string Status
+    +string KwitansiNumber
+    +Guid CashierShiftId
+  }
+
+  class BilCollectionHandoff {
+    +Guid Id
+    +Guid TenderId
+    +Guid SettlementId
+    +Guid InvoiceId
+    +string TenderStatus
+    +string SourceInvoiceStatus
+    +decimal Amount
+    +Guid HandoffKey
+    +string Status
+    +DateTimeOffset AcknowledgedAt
+  }
+
+  class BilPrescriptionClearanceHandoff {
+    +Guid Id
+    +Guid PrescriptionId
+    +Guid InvoiceId
+    +string ClearanceStatus
+    +string FinancialOutcome
+    +string ReasonCode
+    +long FinancialVersion
+    +DateTimeOffset EffectiveAt
+    +string Status
+    +DateTimeOffset AcknowledgedAt
+  }
+
+  class BilConsumerHandoffService {
+    +PublishForTenderAsync()
+    +PublishForClearanceChangeAsync()
+    +ReadPrescriptionClearanceAsync()
+  }
+
+  BilInvoice "1" --> "many" BilCollectionHandoff : menjadi rujukan
+  BilTender "1" --> "many" BilCollectionHandoff : satu per status
+  BilInvoice "1" --> "many" BilPrescriptionClearanceHandoff : menjadi rujukan
+  BilConsumerHandoffService ..> BilCollectionHandoff : menerbitkan
+  BilConsumerHandoffService ..> BilPrescriptionClearanceHandoff : menerbitkan
+```
+
+Perhatikan yang **tidak** ada pada diagram: tidak ada garis dari `BilFinalizationRecord` ke
+kedua tabel baru. Itu disengaja, sesuai invariant pada bagian 1.
+
+## 4. Penjelasan setiap class
+
+### `BilCollectionHandoff`
+
+| Aspek | Isi |
+| --- | --- |
+| **Status** | **Baru** |
+| **Lokasi file** | `Areas/HealthServices/BillingManagement/Billing/Models/BilCollectionHandoff.cs` |
+| Konteks | `BIL-CTX-05` |
+| Peran | Menyatakan kepada Finance bahwa satu tender mencapai keadaan akhirnya, beserta seluruh rincian yang dibutuhkan buku penerimaan |
+| Kunci alami | Pasangan identitas tender dan status tender |
+| Relasi | Menunjuk tagihan, penyelesaian, dan tender lewat identitas. **Tanpa** foreign key ke finalisasi |
+| Perilaku hapus | `DeleteBehavior.Restrict` — jejak audit lintas modul tidak boleh ikut terhapus berantai |
+| Sifat | Tetap setelah dibuat. Pembalikan tender melahirkan **baris baru**, bukan pembaruan baris lama |
+
+### `BilPrescriptionClearanceHandoff`
+
+| Aspek | Isi |
+| --- | --- |
+| **Status** | **Baru** |
+| **Lokasi file** | `Areas/HealthServices/BillingManagement/Billing/Models/BilPrescriptionClearanceHandoff.cs` |
+| Konteks | `BIL-CTX-05` |
+| Peran | Menyatakan kepada Farmasi bahwa keadaan clearance sebuah resep berubah, beserta sebab dan nomor versinya |
+| Kunci alami | Pasangan identitas resep dan nomor versi finansial |
+| Relasi | Menunjuk tagihan lewat identitas; menunjuk resep lewat identitas **tanpa** foreign key ke tabel Farmasi |
+| Perilaku hapus | `DeleteBehavior.Restrict` |
+| Sifat | Tetap setelah dibuat. Perubahan berikutnya melahirkan baris baru bernomor versi lebih tinggi |
+
+Alasan identitas resep sengaja **bukan** foreign key: pola yang sama sudah dipakai
+`FinBillingHandoffIntake` di sisi konsumen, dan alasannya identik — tidak mengunci tabel milik
+modul lain. Foreign key ke tabel Farmasi akan membuat penghapusan atau perubahan skema di
+Farmasi menyeret Billing ikut gagal.
+
+### `BilConsumerHandoffService`
+
+| Aspek | Isi |
+| --- | --- |
+| **Status** | **Baru** |
+| **Lokasi file** | `Areas/HealthServices/BillingManagement/Billing/Services/BilConsumerHandoffService.cs` |
+| Fungsi utama | Satu-satunya tempat yang menerbitkan surat ke konsumen hilir, dan satu-satunya tempat yang menjawab pemeriksaan ulang keadaan clearance |
+| Dipanggil siapa | `BillingSettlementService`, `BillingAllocationService`, `BillingFinalizationService`, `BillingFinancialExceptionService` — empat pemanggil yang sama dengan `BillingInvoiceClosureService` |
+| Membuka transaksi sendiri | **Tidak.** Ia selalu ikut transaksi pemanggil, supaya surat dan pergerakan uangnya tidak pernah terpisah nasib |
+| Kunci penasihat | Memakai ulang kunci penasihat tagihan yang sudah ada (`BKC-DES-032`), tidak membuat kunci baru |
+
+### `BillingInvoiceClosureService`
+
+| Aspek | Isi |
+| --- | --- |
+| **Status** | **Diperbarui** |
+| **Lokasi file** | `Areas/HealthServices/BillingManagement/Billing/Services/BillingInvoiceClosureService.cs` |
+| Yang berubah | Hasil penyelarasan (`InvoiceClosureChange`) kini ikut membawa keterangan **sebab** perubahan, supaya penerbit dapat menentukan kode sebab tanpa menebak dari selisih angka |
+| Yang **tidak** berubah | Perhitungan sisa tagihan dan aturan transisi status. `BKC-DEC-100` dan `BKC-DES-031` tidak diusik sama sekali |
+
+### Configuration EF Core
+
+| Class | Status | Lokasi file |
+| --- | --- | --- |
+| `BilCollectionHandoffConfiguration` | **Baru** | `Repositories/Configurations/HealthServices/BillingManagement/Billing/BilCollectionHandoffConfiguration.cs` |
+| `BilPrescriptionClearanceHandoffConfiguration` | **Baru** | `Repositories/Configurations/HealthServices/BillingManagement/Billing/BilPrescriptionClearanceHandoffConfiguration.cs` |
+
+Configuration **tidak** berada di dalam `Areas/`. Ia terpisah di bawah
+`Repositories/Configurations/`, mengikuti aturan struktur backend.
+
+### Controller
+
+| Class | Status | Lokasi file | Service yang dipakai |
+| --- | --- | --- | --- |
+| `BillingConsumerHandoffController` | **Baru** | `Areas/HealthServices/BillingManagement/Billing/Controllers/BillingConsumerHandoffController.cs` | `BilConsumerHandoffService` |
+
+Controller ini **hanya** melayani kebutuhan operasional manusia — melihat surat yang menggantung
+dan mencatat pengakuan penerimaan. Pembacaan keadaan clearance oleh Farmasi **tidak** lewat
+controller ini, melainkan pemanggilan langsung di dalam proses yang sama.
+
+## 5. Arsitektur folder
+
+```text
+Areas/HealthServices/BillingManagement/Billing/
+├── Models/
+│   ├── BilCollectionHandoff.cs                      # BARU
+│   ├── BilPrescriptionClearanceHandoff.cs           # BARU
+│   ├── BilArHandoff.cs                              # sudah ada — tidak disentuh (BKC-DES-033)
+│   └── BilInvoice.cs                                # sudah ada — tidak disentuh
+├── Services/
+│   ├── BilConsumerHandoffService.cs                 # BARU
+│   └── BillingInvoiceClosureService.cs              # DIPERBARUI — sebab perubahan ikut dibawa
+├── Controllers/
+│   └── BillingConsumerHandoffController.cs          # BARU
+└── Dtos/
+    └── BillingConsumerHandoffDtos.cs                # BARU
+
+Repositories/Configurations/HealthServices/BillingManagement/Billing/
+├── BilCollectionHandoffConfiguration.cs             # BARU
+└── BilPrescriptionClearanceHandoffConfiguration.cs  # BARU
+```
+
+Tidak ada penyimpangan struktur pada amendment ini. Seluruh berkas mengikuti pola standar.
+
+## 6. Status model dan dampak migration
+
+| Tabel | Status | Kolom yang berubah | Dampak migration |
+| --- | --- | --- | --- |
+| `BilCollectionHandoff` | **Baru** | Seluruhnya | Satu tabel baru beserta index |
+| `BilPrescriptionClearanceHandoff` | **Baru** | Seluruhnya | Satu tabel baru beserta index |
+| `BilInvoice` | Sudah ada | **Nol** | Tidak tersentuh |
+| `BilTender` | Sudah ada | **Nol** | Tidak tersentuh |
+| `BilArHandoff` | Sudah ada | **Nol** | Tidak tersentuh — `BKC-DES-033` tetap berlaku |
+
+**Nol kolom ditambahkan pada tabel yang sudah ada.** Ini konsekuensi langsung dari verifikasi
+Finance bahwa seluruh bidang yang dibutuhkannya sudah tersedia di `BilTender` dan
+`BilSettlement` — penerbitan hanya meneruskan, tidak menyimpan yang baru.
+
+## 7. Rencana migration
+
+| Urutan | Nama | Tanpa mematikan layanan | Pengisian data lama | Langkah mundur |
+| --- | --- | --- | --- | --- |
+| 1 | `AddBillingConsumerHandoff` | **Ya** — hanya menambah dua tabel baru, tidak menyentuh tabel yang sedang dipakai | **Tidak ada.** Surat hanya terbit untuk peristiwa sejak tabel berdiri | `Down` menghapus kedua tabel; aman karena belum ada konsumen yang bergantung |
+
+### Yang sengaja tidak di-backfill, dan akibatnya
+
+Tender yang sudah berhasil **sebelum** tabel ini berdiri tidak akan punya surat. Begitu pula
+resep yang tagihannya sudah lunas sebelum itu.
+
+Akibatnya nyata dan **MUST** diketahui pemilik proses: resep yang sudah terlanjur macet di
+keadaan menunggu pembayaran **tidak** akan otomatis terlepas begitu jalur ini dibangun. Keduanya
+memerlukan satu pekerjaan pemulihan tersendiri — memeriksa resep yang tagihannya sudah lunas
+lalu menerbitkan surat pertamanya.
+
+Pekerjaan itu **bukan** bagian migration ini, karena ia pemutakhiran data yang menuntut
+otorisasi terpisah. Ia dicatat sebagai pekerjaan susulan pada roadmap, dan permukaan pemeriksaan
+ulang (`BKC-DEC-107`) sudah menyediakan jalannya tanpa skrip khusus.
+
+## 8. Rencana data master awal
+
+**Tidak ada tabel master baru.** Amendment ini tidak menambah satu pun master, dan tidak
+memerlukan isi awal apa pun agar dapat dipakai.
+
+Satu master yang sudah ada menjadi **penentu perilaku** dan karena itu isinya wajib benar:
+
+| Master | Isi minimum | Sumber nilai | Akibat bila salah |
+| --- | --- | --- | --- |
+| `MstPaymentMethod` | Setiap cara bayar yang mewakili penjaminan **MUST** bertanda asuransi atau penjamin perusahaan | Kebijakan Finance | Pembayaran lewat asuransi akan tercatat sebagai `Paid`, bukan `InsuranceApproved`, dan hasil finansial pada resep menjadi keliru |
+
+Penanda itu **MUST NOT** ditulis tetap di service maupun controller; ia dibaca dari master.
+
+## 9. Yang sengaja tidak dibuat
+
+| Yang ditolak | Alasan |
+| --- | --- |
+| Satu tabel handoff serba-guna bermuatan bebas | Ditolak `BKC-DEC-106`. Muatan bebas menghilangkan penjagaan bentuk; kesalahan isi baru ketahuan saat dibaca konsumen |
+| Kolom nominal terbayar per baris tagihan | Ditolak dua kali — `PHA-DEC-064` dan `PHA-DEC-068-A`. Bila kelak dibutuhkan, itu keputusan pemilik Billing tersendiri |
+| Sasaran alokasi pembayaran selain tagihan utuh | Sama seperti di atas. `BilPaymentAllocation` tetap hanya mengenal `INVOICE` |
+| Tabel proyeksi finansial di sisi Billing | Proyeksi adalah milik konsumen. Billing memegang kebenaran, bukan salinannya |
+| Foreign key ke tabel Farmasi | Akan membuat perubahan skema di Farmasi menyeret Billing ikut gagal. Pola `FinBillingHandoffIntake` sudah memutuskan hal yang sama untuk alasan yang sama |
+| Anak `BilFinalizationRecord` untuk surat penerimaan | Akan membuat uang yang masuk sebelum finalisasi tidak pernah sampai ke Finance |
+| Pekerjaan latar penyapu surat menggantung | `BKC-DEC-108` memilih keterlihatan pasif; ambang waktunya belum diputuskan (`BKC-OQ-101`) |
+| Jenis surat ketiga untuk pemberitahuan finalisasi | Finance menerima `BilArHandoff` yang menyusul sebagai penanda yang sudah cukup |
+
+## 10. Keputusan arsitektur
+
+| ID | Keputusan | Dasar | Alasan |
+| --- | --- | --- | --- |
+| `BKC-DES-036` | Dua tabel handoff berkolom tegas, bukan satu tabel serba-guna | `BKC-DEC-106` | Isi keduanya memang berbeda; kolom tegas menjaga bentuk pada saat penulisan, bukan saat pembacaan |
+| `BKC-DES-037` | `BilCollectionHandoff` aggregate root tersendiri, tanpa foreign key ke finalisasi | `BKC-DEC-106`, `FIN-DEC-005` | Pembayaran dapat mendahului finalisasi |
+| `BKC-DES-038` | Satu service penerbit dipanggil dari empat titik yang sama dengan penyelaras status | `BKC-DEC-106` | Satu titik deteksi; mustahil satu konsumen tahu sementara yang lain tidak |
+| `BKC-DES-039` | Nomor versi finansial naik monoton per resep, dilindungi kunci penasihat yang sudah ada | `PHA-DEC-063` | Konsumen menolak versi lebih tua; kunci penasihat mencegah dua surat berversi sama |
+| `BKC-DES-040` | Pembacaan keadaan clearance berbentuk pemanggilan dalam proses, bukan HTTP | `BKC-DEC-107` | Konsisten `BIL-INT-010`–`012`; satu assembly |
+| `BKC-DES-041` | `InvoiceClosureChange` membawa keterangan sebab | `BKC-DEC-106`, `PHA-DEC-068` | Kode sebab **MUST NOT** ditebak dari selisih angka; membedakan biaya non-farmasi dari koreksi harga obat menuntut sebab yang eksplisit |
+
+## 11. Yang MUST dijawab owner saat approval
+
+| Butir | Pertanyaan |
+| --- | --- |
+| Pekerjaan pemulihan | Resep yang sudah terlanjur macet tidak terlepas sendiri oleh migration ini. Apakah pekerjaan pemulihannya masuk gelombang yang sama, atau menyusul? |
+| `BKC-OQ-101` | Ambang waktu surat menggantung dan penerimanya — dapat ditunda, tetapi **MUST** diakui terbuka |
+
+## 12. Status amendment
+
+| Field | Nilai |
+| --- | --- |
+| Keputusan lama yang digantikan | **Nol.** Tidak ada `BKC-DES-*` sebelumnya yang dicabut maupun dipersempit. `BKC-DES-031` dan `BKC-DES-033` tetap berlaku utuh |
+| Dampak skema | **Dua tabel baru**, nol kolom baru pada tabel yang sudah ada |
+| Dampak kontrak API | Dua endpoint operasional baru; nol endpoint lama yang berubah |
+| Dampak frontend | Satu layar operasional baru untuk memeriksa surat menggantung |
+| Ketergantungan lintas modul | Finance dan Farmasi sebagai konsumen; keduanya sudah menyetujui kontraknya |
+| Status | **draft** — menunggu approval Product/Domain Owner |
