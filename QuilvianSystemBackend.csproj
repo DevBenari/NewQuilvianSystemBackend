@@ -116,6 +116,25 @@
 		<Content Remove="Tests\**" />
 		<EmbeddedResource Remove="Tests\**" />
 		<None Remove="Tests\**" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!--
+		Data induk Spesifik Specimen (LAB-DEC-129, LAB-DEC-130), 1.767 baris dari LAB-EVD-007.
+
+		DITANAM KE DALAM DLL, bukan disalin ke samping aplikasi: berkas tertanam tidak dapat
+		hilang saat deployment, dan tidak ada langkah "jangan lupa salin berkasnya" yang dapat
+		terlewat.
+
+		Kenapa berkas, bukan daftar di dalam kode C#: 1.767 baris data di dalam berkas C#
+		adalah berkas yang nol dapat ditinjau siapa pun, dan setiap pembaruan dataset menjadi
+		diff raksasa. Alternatifnya InsertData pada migration — lebih buruk, sebab barisnya
+		masuk ke berkas yang nol boleh disunting lagi sesudah diterapkan.
+
+		Ini pola seeder berbasis berkas PERTAMA pada repository ini, dinyatakan terbuka pada
+		02-backend-architecture.md bagian 18.2 — bukan diselundupkan.
+		-->
+		<EmbeddedResource Include="Areas\HealthServices\LaboratoryManagement\Seeders\Data\lab-specimen-detail-types.csv" />
 
 
 		<Content Remove="Areas\HealthServices\DeviceManagement\**" />

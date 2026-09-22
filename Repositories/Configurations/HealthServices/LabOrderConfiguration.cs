@@ -31,6 +31,26 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
             entity.HasIndex(x => x.OrderNumber)
                 .IsUnique();
 
+            entity.Property(x => x.LabReportNumber)
+                .HasMaxLength(32);
+
+            // Unik atas (Discipline, LabReportNumber) — dan tahunnya ikut terjaga karena ia
+            // TERKANDUNG di dalam nomornya sendiri: 26-1129 nol dapat bertabrakan dengan
+            // 27-1129. Menambah kolom tahun tersendiri hanya menyimpan hal yang sama dua kali.
+            //
+            // PARSIAL atas dua hal sekaligus, dan keduanya perlu:
+            //   IsDelete = false            — penghapusan di sini berupa penandaan
+            //   LabReportNumber IS NOT NULL — seluruh pesanan lama nol bernomor cetak, dan
+            //                                 index unik penuh akan menolak yang kedua.
+            //
+            // PostgreSQL sebenarnya memperlakukan NULL sebagai saling berbeda, sehingga syarat
+            // kedua tidak wajib secara teknis. Ia ditulis supaya index-nya menyatakan maksudnya
+            // sendiri, dan supaya ia tetap benar bila penyedia lain dipakai.
+            entity.HasIndex(x => new { x.Discipline, x.LabReportNumber })
+                .IsUnique()
+                .HasDatabaseName("IX_LabOrder_Discipline_LabReportNumber")
+                .HasFilter("\"IsDelete\" = false AND \"LabReportNumber\" IS NOT NULL");
+
             entity.Property(x => x.EncounterId)
                 .IsRequired();
 

@@ -1457,3 +1457,139 @@ mengosongkan disiplin mencabut golongannya.
 | 7 | 2026-09-07 | **Penahan `FE-LAB-05` dicabut, ditulis `build-module-backend`.** `BE-LAB-08` selesai, sehingga `FE-LAB-05` berpindah dari **`BLOCKED`** menjadi **siap dikerjakan** — dan dengan itu **tidak ada lagi task frontend Laboratorium yang terblokir**. Ketiga endpoint yang dibutuhkannya tersedia dan terdokumentasi Swagger pada grup `Health Services / Laboratory Management / Lab Patient Registration`. Tiga hal ditambahkan pada kartu task sebagai syarat pelaksanaan, dan ketiganya wajib dibaca sebelum layarnya dibuat: `idempotencyKey` dibuat layar **saat formulir dibuka**, bukan saat tombol ditekan, dan wajib dikirim — tanpa itu penekanan Simpan dua kali menghasilkan dua kunjungan; jawaban membawa `isReplay` yang berarti **berhasil**, bukan gagal; serta instansi dan dokter perujuk dikirim sebagai penunjuk, karena permintaannya memang tidak punya ruas nama sama sekali | `DRAFT` |
 | 6 | 2026-09-04 | `FE-LAB-05` ditandai **`BLOCKED`** setelah diverifikasi terhadap source backend: `BE-LAB-08` belum ada sama sekali. Pemilik modul memutuskan mewaive dependency itu dan mendahulukan `FE-LAB-06`, yang kemudian **selesai** — penanda cito dan duplo melekat pada baris pemeriksaan, dan `AC-40` dijaga uji unit. Satu batas kontrak dibuka: respons pesanan tidak membawa `requestedByUserId`, sehingga `VAL-03` belum dapat ditegakkan penuh di layar | `DRAFT` |
 | 7 | 2026-09-04 | Dua paragraf naratif yang sudah basi disesuaikan dengan tabel status: catatan `LAB-OPEN-018` pada bagian 1 ditandai sudah ditutup, dan kalimat di bawah tabel bagian 8 diganti ringkasan keadaan yang benar-benar berlaku — lima task selesai, satu terblokir, tiga siap dikerjakan. Tidak ada status task yang berubah pada revisi ini | `DRAFT` |
+
+---
+
+## Gelombang `MVP-7` — Halaman Hasil Mikrobiologi (`S4b`)
+
+Menurunkan [`03-frontend-architecture.md`](../03-frontend-architecture.md) amandemen
+2026-09-21.
+
+| Field | Nilai |
+|---|---|
+| Kontrak yang berlaku | `LAB-API-v1` **`r26`**, `LAB-PERM-v1` **rev 8** — keduanya `approved` 2026-09-21 |
+| Frontend SHA saat direncanakan | `ebef7ebe5` |
+| Slice | `S4b` saja |
+
+**Keadaan awal yang berbeda dari perencanaan sebelumnya.** Peta kemampuan revision 4 mencabut
+`F5`: frontend **sudah** punya modul Laboratorium — 17 route, 159 berkas, termasuk route daftar
+pantau Mikrobiologi. Gelombang ini karena itu **menyambung**, bukan mendirikan dari nol.
+
+```text
+MVP-7a  FE-LAB-30  kerangka halaman + pemilih pemeriksaan  ──┐
+                                                             │
+MVP-7b  FE-LAB-31  form isolat dan antibiogram             ←─┘
+        FE-LAB-32  Informasi Specimen yang dapat disunting ←─┘
+                                                             
+MVP-7c  FE-LAB-33  kelengkapan, konsultasi, dan konfirmator ← butuh 30
+```
+
+> **Paralel dengan backend diizinkan** karena `LAB-API-v1` `r26` sudah `approved` dan
+> hash-nya terkunci. Tanpa itu, `FE-LAB-31` dan seterusnya wajib menunggu.
+
+### `FE-LAB-30` — Kerangka halaman dan pemilih pemeriksaan
+
+| Butir | Isi |
+|---|---|
+| **Status** | 🔲 **`SIAP DIKERJAKAN`** |
+| **Outcome** | Petugas membuka satu No. Order dari daftar pantau Mikrobiologi dan melihat konteks pasien, pemeriksaan, diagnosis, serta daftar pemeriksaan di dalamnya |
+| **Requirement/decision** | `LAB-DEC-095` |
+| **Kontrak** | `r26`; `GET /{id}/result/microbiology` dari `r24` |
+| **Reuse** | `lab-monitoring-view` sebagai titik masuk; pola route `[slug]` dari `lab-orders/[slug]`; komponen kartu informasi pasien yang sudah dipakai halaman lain |
+| **Cakupan** | Satu route `lab-monitoring/microbiology/[slug]`; kerangka halaman; **pemilih baris pemeriksaan** |
+| **Dependency** | Nol pada frontend; kontrak sudah terkunci |
+| **Acceptance criteria** | `AC-156` dua pemeriksaan dalam satu order tampil sebagai **dua tempat hasil terpisah**; memilih baris A tidak mengubah satu ruas pun pada baris B |
+| **Risiko/pemilik** | **Sedang.** Godaan terbesar menampilkan dua form utuh sekaligus. Itu membuat petugas mudah mengisi antibiogram pada baris yang salah |
+| **DoD** | Route hidup; pemilih bekerja; informasi pasien/pemeriksaan/diagnosis tampil baca-saja; `AC-156` terbukti |
+
+### `FE-LAB-31` — Form isolat dan antibiogram
+
+| Butir | Isi |
+|---|---|
+| **Status** | 🔲 **`MENUNGGU PENDAHULU`** — `FE-LAB-30` |
+| **Outcome** | Analis mengisi status temuan, menambah isolat, dan mengisi baris kepekaan antibiotik |
+| **Requirement/decision** | `LAB-DEC-101`, `LAB-DEC-102`, `LAB-DEC-104`, `LAB-DEC-113` |
+| **Kontrak** | `r24` bagian 19.2; `r26` bagian 21.3 untuk penanda kritis |
+| **Reuse** | Pola tabel baris yang dapat ditambah/dikurangi; searchable select dari `LabOrganism` dan `LabAntibiotic` yang **endpointnya sudah berjalan** |
+| **Cakupan** | Pemilih status temuan (tiga nilai); daftar isolat; tabel antibiogram per isolat; penanda kritis |
+| **Dependency** | `FE-LAB-30`; backend `BE-LAB-56` untuk penanda kritis yang sungguhan |
+| **Acceptance criteria** | `AC-163` baris kepekaan tanpa MIC dan tanpa zona tersimpan; `AC-164` **kultur tanpa satu pun isolat tersimpan tanpa peringatan**; `AC-165` baris tanpa interpretasi ditolak beserta sebabnya; `AC-166` ketika aturan kritis kosong, layar **menyatakannya** — bukan diam; `AC-176` status temuan menawarkan tepat tiga nilai |
+| **Risiko/pemilik** | **Tinggi.** Dua jebakan: memaksa isolat terisi (mematikan hasil kultur steril), dan layar bersih yang terlihat aman padahal aturan kritis belum ada |
+| **DoD** | Kelima AC terbukti; **nol** pengetikan bebas pada organisme dan antibiotik; nol pilihan `NeedsAttention`/`Critical` |
+
+### `FE-LAB-32` — Informasi Specimen yang dapat disunting
+
+| Butir | Isi |
+|---|---|
+| **Status** | 🔲 **`MENUNGGU PENDAHULU`** — tinggal `FE-LAB-30`. **Kedua penahan backend lepas 2026-09-21:** `BE-LAB-55` ✅ dan `BE-LAB-57` ✅ |
+| **Outcome** | Petugas melengkapi dan mengoreksi specimen dari halaman hasil, dan dapat melihat nilai lamanya |
+| **Requirement/decision** | `LAB-DEC-098`, `LAB-DEC-100`, `LAB-DEC-107`, `LAB-DEC-112` |
+| **Kontrak** | `r26` bagian 21.4 dan 21.5 |
+| **Reuse** | Pola form specimen pada `lab-orders/[slug]/specimens` yang sudah ada |
+| **Cakupan** | Bagian Informasi Specimen; pemilih Spesifik Specimen **banyak pilihan**; pasangan angka + satuan volume; panel riwayat perubahan |
+| **Dependency** | `FE-LAB-30`, `BE-LAB-55`, `BE-LAB-57` |
+| **Acceptance criteria** | `AC-160` lebih dari satu Spesifik Specimen dapat dipilih; `AC-162` `2 swab` tampil sebagai angka dan satuan; `AC-170` sesudah Final seluruh bagian menjadi baca-saja |
+| **Risiko/pemilik** | **Sedang.** Volume mudah keliru dibuat satu kotak teks bebas, dan itu mencabut `LAB-DEC-100` diam-diam |
+| **DoD** | Ketiga AC terbukti; **nol** tombol menambah Spesifik Specimen baru dari halaman ini (`LAB-DEC-098` butir 5) |
+
+### `FE-LAB-33` — Kelengkapan, konsultasi, dan dokter konfirmator
+
+| Butir | Isi |
+|---|---|
+| **Status** | 🔲 **`MENUNGGU PENDAHULU`** — `FE-LAB-30`; backend `BE-LAB-54`, `BE-LAB-58`, `BE-LAB-59` |
+| **Outcome** | Petugas menyimpan Draft/Final, membuka kembali, mencatat konsultasi, dan memilih dokter konfirmator |
+| **Requirement/decision** | `LAB-DEC-096`, `LAB-DEC-097`, `LAB-DEC-105`, `LAB-DEC-106`, `LAB-DEC-111` |
+| **Kontrak** | `r26` bagian 21.2, 21.3, 21.7 |
+| **Reuse** | Pola tombol aksi dan konfirmasi yang sudah dipakai halaman Laboratorium lain |
+| **Cakupan** | Tombol Simpan Draft/Final/Reopen; bagian Diagnostic Report baca-saja; bagian konsultasi; pemilih dokter konfirmator beserta jalur jatuhnya |
+| **Dependency** | `FE-LAB-30`, `BE-LAB-54`, `BE-LAB-58`, `BE-LAB-59` |
+| **Acceptance criteria** | `AC-157` kedua waktu tampil baca-saja; `AC-158` sesudah Final layar menyatakan hasil **belum dirilis**; `AC-168` `Analis` baca-saja dan sama dengan pengguna yang menyimpan; `AC-169` konsultasi **tidak** membuka tombol apa pun; `AC-173`/`AC-174` pemilih dokter bekerja pada **kedua** keadaan jadwal jaga |
+| **Risiko/pemilik** | **Tinggi, dan risikonya kata-kata pada tombol.** Melabeli `Simpan Final` sebagai "sahkan" atau "kirim" mencabut `LAB-DEC-097` tanpa satu baris kode melanggar apa pun. Label tombol dan pernyataan "belum dirilis" **bukan** `DEV_DISCRETION` |
+| **DoD** | Kelima AC terbukti; **nol** tombol kirim ke pasien; nol pilihan `HL7`; nol tombol validasi/rilis |
+
+### Yang TIDAK menjadi task frontend gelombang ini
+
+| Yang dikecualikan | Alasan |
+|---|---|
+| Tombol validasi dan rilis | `S4d`, tertahan `DEC-LAB-011` |
+| Tombol kirim hasil ke pasien | `LAB-COORD-011`; dan Final bukan rilis |
+| Preview dan cetak Bahasa Inggris | `LAB-COORD-013` |
+| Tata letak cetak yang pasti | `LAB-OPEN-039` — kedua screenshot belum diserahkan |
+| Pilihan `HL7` | `LAB-DEC-109` |
+
+---
+
+## Gelombang `MVP-7b` — layar `S4b` sesudah bukti cetak
+
+Menurunkan [`03-frontend-architecture.md`](../03-frontend-architecture.md) amandemen kedua
+2026-09-21. Kontrak `LAB-API-v1` **`r27`** dan `LAB-PERM-v1` **rev 9**, keduanya `approved`
+2026-09-21.
+
+### ⚠ `FE-LAB-31` dan `FE-LAB-33` BERUBAH CAKUPAN
+
+| Task | Yang bertambah |
+|---|---|
+| `FE-LAB-31` | Tabel antibiogram menjadi **dua bentuk** — difusi (`UG`, `R-S`, `Zona/mm`) dan dilusi (`Kadar`, `Satuan`). Kolom `Hasil` **terisi sendiri** dan dapat ditimpa beralasan. Penanda isolat tidak diuji. Bagian set bakteri **disembunyikan** bila profil menyatakan tidak memakainya |
+| `FE-LAB-33` | Pemilih kualifikasi `Definitif`/`Sementara`; pemilih jenis biakan dan metode uji; `Petugas Otorisasi` tampil kosong sebelum rilis |
+
+AC yang bertambah: `FE-LAB-31` memperoleh `AC-179`, `AC-186`, `AC-187`, `AC-188`, `AC-189`,
+`AC-190`, `AC-191`; `FE-LAB-33` memperoleh `AC-177`, `AC-183`.
+
+### `FE-LAB-34` — Tiga layar data induk baru
+
+| Butir | Isi |
+|---|---|
+| **Status** | 🔲 **`MENUNGGU PENDAHULU`** — `BE-LAB-60`, `BE-LAB-62`, `BE-LAB-63` |
+| **Outcome** | Wewenang klinis mengelola breakpoint; kepala instalasi mengelola profil katalog dan pengaturan disiplin |
+| **Requirement/decision** | `LAB-DEC-119`, `122`, `125`, `127` |
+| **Kontrak** | `r27` bagian 22.5, 22.6, 22.7 |
+| **Reuse** | `master-data-feature-standard` sepenuhnya — pola yang sama dengan layar `LabOrganism` dan `LabAntibiotic` |
+| **Cakupan** | Tiga layar: breakpoint (CRUD penuh), profil Mikrobiologi katalog (CRUD penuh), pengaturan disiplin (**baca dan ubah saja** — nol tambah, nol hapus) |
+| **Acceptance criteria** | `AC-182` mengubah nama konsultan mengubah footer dan **tidak** mengubah pemegang wewenang klinis; `AC-185` mengubah breakpoint **tidak** mengubah hasil lama |
+| **Risiko/pemilik** | **Sedang.** Layar breakpoint dipegang wewenang klinis, bukan kepala instalasi — pemisahan itu harus terlihat pada menu, bukan hanya ditegakkan server |
+| **DoD** | Ketiga layar hidup; pengaturan disiplin **nol punya tombol tambah maupun hapus**; kedua AC terbukti |
+
+### Yang TIDAK dibangun
+
+Susunan dua isolat berantibiogram, tampilan hasil nol pertumbuhan, dan pengulangan kop halaman
+kedua — ketiganya belum pernah terlihat (`LAB-OPEN-039`).

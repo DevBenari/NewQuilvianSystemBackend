@@ -37,6 +37,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models
         [MaxLength(32)]
         public string OrderNumber { get; set; } = string.Empty;
 
+        /// <summary>
+        /// Nomor yang tercetak pada lembar hasil — <c>26-1129</c> — dialokasikan
+        /// <b>per disiplin per tahun</b> (<c>LAB-DEC-117</c>).
+        ///
+        /// <b>Ia BUKAN pengganti <see cref="OrderNumber"/>, dan keduanya hidup berdampingan.</b>
+        /// <c>OrderNumber</c> tetap identitas internal serta sumber barcode Label Lab
+        /// (<c>LAB-DEC-072</c> utuh); nomor ini dipegang pasien dan disebut lisan antarpetugas.
+        /// Mengubah <c>OrderNumber</c> menjadi format cetak berarti membongkar layanan alokasi,
+        /// index unik, dan sumber barcode yang sudah berjalan — serta meninggalkan pesanan lama
+        /// berformat berbeda selamanya.
+        ///
+        /// <b>Boleh kosong, berbeda dari <see cref="OrderNumber"/>.</b> Seluruh pesanan yang
+        /// sudah ada sebelum kolom ini lahir nol punya nomor cetak, dan membubuhkannya
+        /// belakangan akan memberi nomor tahun ini kepada pesanan tahun lalu.
+        /// </summary>
+        [MaxLength(32)]
+        public string? LabReportNumber { get; set; }
+
         [Required]
         public Guid EncounterId { get; set; }
 

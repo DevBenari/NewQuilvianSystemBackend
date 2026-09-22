@@ -32,10 +32,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
     public class LabExaminationController : ControllerBase
     {
         private readonly LabExaminationService _labExaminationService;
+        private readonly LabMicrobiologyResultService _labMicrobiologyResultService;
 
-        public LabExaminationController(LabExaminationService labExaminationService)
+        public LabExaminationController(
+            LabExaminationService labExaminationService,
+            LabMicrobiologyResultService labMicrobiologyResultService)
         {
             _labExaminationService = labExaminationService;
+            _labMicrobiologyResultService = labMicrobiologyResultService;
         }
 
         // Daftar pemeriksaan terpesan pada satu pesanan.
@@ -270,6 +274,190 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             {
                 return BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest, exception.Message));
+            }
+        }
+
+        // =============================================================
+        // Kelengkapan dan konsultasi hasil Mikrobiologi — BE-LAB-54, slice S4b
+        //
+        // KETIGA ENDPOINT DI BAWAH TIDAK MERILIS. Simpan Final berarti penulisnya selesai
+        // menulis — sebuah fakta (LAB-DEC-097). Rilis Mikrobiologi adalah S4d, tertahan
+        // DEC-LAB-011, dan nol endpoint rilis ada di sini.
+        //
+        // Hak akses memakai ulang LabExamination:Update sesuai LAB-PERM-v1 rev 8 bagian 10.1 —
+        // nol resource permission baru.
+        // =============================================================
+
+        [HttpPost("{id:guid}/result/microbiology/finalize")]
+        [ProducesResponseType(typeof(ApiResponse<LabExaminationCompletionResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [AccessAction("Update", "Finalize Lab Microbiology Result", Description = "Menyatakan penulisan hasil Mikrobiologi selesai", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("LabExamination", "Update")]
+        public async Task<IActionResult> FinalizeMicrobiologyResult(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            // Nol badan permintaan diterima, dan itu disengaja: endpoint ini menyatakan
+            // "saya selesai", sedangkan seluruh isinya sudah tersimpan lewat PUT /result.
+            // Menerima badan permintaan akan membuat dua jalur menulis hasil yang sama.
+            try
+            {
+                var result = await _labExaminationService.FinalizeMicrobiologyResultAsync(id, cancellationToken);
+
+                return Ok(ApiResponse<LabExaminationCompletionResponse>.Ok(
+                    result, "Penulisan hasil dinyatakan selesai. Hasil ini belum dirilis."));
+            }
+            catch (KeyNotFoundException exception)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound, exception.Message));
+            }
+            catch (LabExaminationConflictException exception)
+            {
+                return Conflict(ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict, exception.Message));
+            }
+            catch (LabExaminationValidationException exception)
+            {
+                return UnprocessableEntity(ApiResponse<object>.Fail(
+                    StatusCodes.Status422UnprocessableEntity, exception.Message));
+            }
+        }
+
+        [HttpPost("{id:guid}/result/microbiology/reopen")]
+        [ProducesResponseType(typeof(ApiResponse<LabExaminationCompletionResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [AccessAction("Update", "Reopen Lab Microbiology Result", Description = "Membuka kembali penulisan hasil Mikrobiologi sebelum rilis", AccessType = AccessTypes.Update, SortOrder = 5)]
+        [AccessPermission("LabExamination", "Update")]
+        public async Task<IActionResult> ReopenMicrobiologyResult(
+            Guid id,
+            [FromBody] LabReopenRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            // Reopen SEBELUM rilis adalah penyuntingan biasa, bukan koreksi hasil terrilis —
+            // ia nol menyentuh S6 maupun DEC-LAB-014 (LAB-DEC-097).
+            try
+            {
+                var result = await _labExaminationService.ReopenMicrobiologyResultAsync(id, request, cancellationToken);
+
+                return Ok(ApiResponse<LabExaminationCompletionResponse>.Ok(
+                    result, "Penulisan hasil dibuka kembali."));
+            }
+            catch (KeyNotFoundException exception)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound, exception.Message));
+            }
+            catch (LabExaminationValidationException exception)
+            {
+                return UnprocessableEntity(ApiResponse<object>.Fail(
+                    StatusCodes.Status422UnprocessableEntity, exception.Message));
+            }
+        }
+
+        [HttpPut("{id:guid}/result/microbiology/consultation")]
+        [ProducesResponseType(typeof(ApiResponse<LabExaminationCompletionResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [AccessAction("Update", "Record Lab Result Consultation", Description = "Mencatat fakta konsultasi hasil", AccessType = AccessTypes.Update, SortOrder = 6)]
+        [AccessPermission("LabExamination", "Update")]
+        public async Task<IActionResult> RecordConsultation(
+            Guid id,
+            [FromBody] LabConsultationRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            // Endpoint tersendiri, bukan ikut PUT /result: hasil diisi analis hari ini,
+            // konsultasi dicatat sesudah berbicara dengan konsultan besok. Menggabungkannya
+            // memaksa pemanggil mengirim ulang seluruh isolat hanya untuk menambah satu
+            // tanggal — dan setiap pengiriman ulang adalah kesempatan isolat tertimpa.
+            try
+            {
+                var result = await _labExaminationService.RecordConsultationAsync(id, request, cancellationToken);
+
+                return Ok(ApiResponse<LabExaminationCompletionResponse>.Ok(
+                    result, "Fakta konsultasi berhasil dicatat."));
+            }
+            catch (KeyNotFoundException exception)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound, exception.Message));
+            }
+            catch (LabExaminationValidationException exception)
+            {
+                return UnprocessableEntity(ApiResponse<object>.Fail(
+                    StatusCodes.Status422UnprocessableEntity, exception.Message));
+            }
+        }
+
+        // =============================================================
+        // Pengisian hasil Mikrobiologi berstruktur — BE-LAB-48, slice S4b
+        //
+        // Satu PUT utuh, bukan endpoint terpisah per isolat: isolat dan kepekaannya adalah
+        // ISI sebuah hasil, dan endpoint terpisah akan membuat separuh hasil tersimpan tanpa
+        // separuh lainnya.
+        //
+        // MENGISI saja. Nol memvalidasi, nol merilis, nol menandai kritis (INV-28 dipersempit
+        // LAB-DEC-103, tetapi penandaannya sendiri milik S5).
+        // =============================================================
+
+        [HttpPut("{id:guid}/result/microbiology")]
+        [ProducesResponseType(typeof(ApiResponse<LabMicrobiologyResultResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [AccessAction("Update", "Set Lab Microbiology Result", Description = "Mengisi hasil Mikrobiologi beserta isolat dan antibiogramnya", AccessType = AccessTypes.Update, SortOrder = 7)]
+        [AccessPermission("LabExamination", "Update")]
+        public async Task<IActionResult> SetMicrobiologyResult(
+            Guid id,
+            [FromBody] LabMicrobiologyResultRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var result = await _labMicrobiologyResultService.SetResultAsync(id, request, cancellationToken);
+
+                return Ok(ApiResponse<LabMicrobiologyResultResponse>.Ok(
+                    result, "Hasil Mikrobiologi berhasil disimpan."));
+            }
+            catch (KeyNotFoundException exception)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound, exception.Message));
+            }
+            catch (LabMicrobiologyResultValidationException exception)
+            {
+                return UnprocessableEntity(ApiResponse<object>.Fail(
+                    StatusCodes.Status422UnprocessableEntity, exception.Message));
+            }
+            catch (LabSusceptibilityInterpretationException exception)
+            {
+                return UnprocessableEntity(ApiResponse<object>.Fail(
+                    StatusCodes.Status422UnprocessableEntity, exception.Message));
+            }
+        }
+
+        [HttpGet("{id:guid}/result/microbiology")]
+        [ProducesResponseType(typeof(ApiResponse<LabMicrobiologyResultResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Lab Microbiology Result", Description = "Membaca hasil Mikrobiologi yang sudah diisi", AccessType = AccessTypes.Read, SortOrder = 8)]
+        [AccessPermission("LabExamination", "Read")]
+        public async Task<IActionResult> GetMicrobiologyResult(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var result = await _labMicrobiologyResultService.GetResultAsync(id, cancellationToken);
+
+                return Ok(ApiResponse<LabMicrobiologyResultResponse>.Ok(
+                    result, "Hasil Mikrobiologi berhasil diambil."));
+            }
+            catch (KeyNotFoundException exception)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound, exception.Message));
             }
         }
     }

@@ -338,6 +338,16 @@ try
     builder.Services.AddScoped<LabPathologyReportService>();
     builder.Services.AddScoped<LabOrganismService>();
     builder.Services.AddScoped<LabAntibioticService>();
+    builder.Services.AddScoped<LabSusceptibilityBreakpointService>();
+    builder.Services.AddScoped<LabSusceptibilityInterpreter>();
+    builder.Services.AddScoped<LabProcedureMicrobiologyProfileService>();
+    builder.Services.AddScoped<LabSpecimenDetailTypeService>();
+    builder.Services.AddScoped<LabMicrobiologyCriticalRuleService>();
+    builder.Services.AddScoped<LabFieldChangeRecorder>();
+    builder.Services.AddScoped<LabSpecimenCorrectionService>();
+    builder.Services.AddScoped<LabReportNumberService>();
+    builder.Services.AddScoped<LabDisciplineSettingService>();
+    builder.Services.AddScoped<LabMicrobiologyResultService>();
     builder.Services.AddScoped<LabExaminationService>();
     builder.Services.AddScoped<LabWorklistService>();
     builder.Services.AddScoped<LabMonitoringService>();
@@ -1309,6 +1319,9 @@ try
     // kosong, formulir hasil Patologi Anatomi kosong sama sekali (INV-39), dan seeder ini
     // menuliskan peringatan penyalaan untuk keadaan itu.
     await RunStartupSeederAsync("LabPathologyMasterDataSeeder", () => LabPathologyMasterDataSeeder.SeedAsync(app.Services));
+    await RunStartupSeederAsync("LabSpecimenDetailTypeSeeder", () => LabSpecimenDetailTypeSeeder.SeedAsync(app.Services));
+
+    await RunStartupSeederAsync("LabDisciplineSettingSeeder", () => LabDisciplineSettingSeeder.SeedAsync(app.Services));
 
     // Data master Radiologi. Mengisi alat pencitraan dan butir keselamatan, lalu menyusun
     // usulan aturan keselamatan sebagai DRAF — tidak pernah Active. Aturan yang menentukan
