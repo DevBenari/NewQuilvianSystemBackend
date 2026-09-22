@@ -116,21 +116,21 @@ Rincian lengkap 11 kolom ada di berkas anak. Tabel ini hanya indeks.
 
 | Task | Outcome ringkas | Gelombang | Keadaan |
 |---|---|---|---|
-| `BE-FIN-001` | Pendaftaran enam submodul ke registry | `MVP-0` | Siap |
-| `BE-FIN-002` | Entity dan configuration data induk | `MVP-0` | Siap |
-| `BE-FIN-003` | Migration `AddFinanceMasterData` | `MVP-0` | Siap — butuh otorisasi migration |
-| `BE-FIN-004` | API data induk | `MVP-0` | Siap |
-| `BE-FIN-005` | Pintu masuk fakta Billing | `MVP-1` | Siap |
-| `BE-FIN-006` | Entity buku piutang | `MVP-1` | Siap |
-| `BE-FIN-007` | Migration intake dan piutang | `MVP-1` | Siap — butuh otorisasi migration |
-| `BE-FIN-008` | Layanan piutang dan umur piutang | `MVP-1` | Siap |
-| `BE-FIN-009` | API intake dan piutang | `MVP-1` | Siap |
-| `BE-FIN-010` | Kotak keluar kejadian Accounting | `MVP-5` | Siap — butuh otorisasi migration |
-| `BE-FIN-011` | Outbox ikut transaksi pemanggil | `MVP-5` | Siap |
-| `BE-FIN-012` | Pantauan kejadian (baca saja) | `MVP-5` | Siap |
-| `BE-FIN-013` | Entity kas dan setoran | `MVP-4` | Siap — butuh otorisasi migration |
-| `BE-FIN-014` | Kas tersedia dan penutupan harian | `MVP-4` | Siap — lihat catatan 3.1 |
-| `BE-FIN-015` | API setoran dan kas harian | `MVP-4` | Siap |
+| `BE-FIN-001` | Pendaftaran enam submodul ke registry | `MVP-0` | ✅ Selesai 21 September 2026 — [laporan](../task/report/backend/BE-FIN-001.md) |
+| `BE-FIN-002` | Entity dan configuration data induk | `MVP-0` | 🟡 Sebagian 21 September 2026 — `MstBank` tidak dibuat baru (dipakai ulang dari Administrator), 3 entity lain selesai — [laporan](../task/report/backend/BE-FIN-002.md) |
+| `BE-FIN-003` | Migration `AddFinanceMasterData` | `MVP-0` | 🟡 Sebagian 21 September 2026 — file migration (3 tabel) dibuat tangan, belum dijalankan — [laporan](../task/report/backend/BE-FIN-003.md) |
+| `BE-FIN-004` | API data induk | `MVP-0` | 🟡 Sebagian 21 September 2026 — 2 dari 3 controller (grup Bank sengaja dilewati), belum diuji end-to-end — [laporan](../task/report/backend/BE-FIN-004.md) |
+| `BE-FIN-005` | Pintu masuk fakta Billing | `MVP-1` | 🟡 Sebagian 21 September 2026 — entity+configuration selesai; service konsumen belum ada pemilik task — [laporan](../task/report/backend/BE-FIN-005.md) |
+| `BE-FIN-006` | Entity buku piutang | `MVP-1` | 🟡 Sebagian 21 September 2026 — 5 entity+configuration selesai, invariant seimbang sudah check constraint — [laporan](../task/report/backend/BE-FIN-006.md) |
+| `BE-FIN-007` | Migration intake dan piutang | `MVP-1` | 🟡 Sebagian 21 September 2026 — file migration dibuat (6 dari 8 tabel; Collection 2 tabel belum punya task pemilik), belum dijalankan — [laporan](../task/report/backend/BE-FIN-007.md) |
+| `BE-FIN-008` | Layanan piutang dan umur piutang | `MVP-1` | 🟡 Sebagian 21 September 2026 — `FinanceReceivableService` selesai, 3 temuan kontrak menunggu ratifikasi — [laporan](../task/report/backend/BE-FIN-008.md) |
+| `BE-FIN-009` | API intake dan piutang | `MVP-1` | 🟡 Sebagian 21 September 2026 — Receivable API selesai; Billing Intake API+Service dibangun atas otorisasi eksplisit, beberapa inferensi menunggu ratifikasi — [laporan](../task/report/backend/BE-FIN-009.md) |
+| `BE-FIN-010` | Kotak keluar kejadian Accounting | `MVP-5` | 🟡 Sebagian 21 September 2026 — entity, configuration, dan migration `AddFinanceAccountingOutbox` ditulis tangan, belum dijalankan; `FinSubledgerPeriodBalance` sengaja dilewati (bukan Cakupan, menunggu `FIN-OQ-011`) — [laporan](../task/report/backend/BE-FIN-010.md) |
+| `BE-FIN-011` | Outbox ikut transaksi pemanggil | `MVP-5` | 🟡 Sebagian 21 September 2026 — `FinanceAccountingOutboxService` selesai, diperluas ke 3 pemanggilan nyata atas otorisasi eksplisit, QBE `PASS` (47 berkas), belum diuji end-to-end — [laporan](../task/report/backend/BE-FIN-011.md) |
+| `BE-FIN-012` | Pantauan kejadian (baca saja) | `MVP-5` | 🟡 Sebagian 21 September 2026 — `FinanceAccountingEventsController` (4 endpoint `GET`) dan `FinanceAccountingEventService` selesai, QBE `PASS` (50 berkas), belum diuji end-to-end — [laporan](../task/report/backend/BE-FIN-012.md) |
+| `BE-FIN-013` | Entity kas dan setoran | `MVP-4` | 🟡 Sebagian 21 September 2026 — entity `FinBankDeposit` dan `FinDailyCashSnapshot` selesai beserta EF configuration dan migration `AddFinanceCashManagement` ditulis tangan, QBE `PASS`, belum dijalankan — [laporan](../task/report/backend/BE-FIN-013.md) |
+| `BE-FIN-014` | Kas tersedia dan penutupan harian | `MVP-4` | 🟡 Sebagian 21 September 2026 — `FinanceCashManagementService` selesai beserta DTO dan registrasi DI, saldo dihitung saat posting (`Serializable` + advisory lock), pembekuan penutupan kas harian, kas kecil tidak mengganggu kas kasir, QBE `PASS` — [laporan](../task/report/backend/BE-FIN-014.md) |
+| `BE-FIN-015` | API setoran dan kas harian | `MVP-4` | 🟡 Sebagian 21 September 2026 — `FinanceBankDepositsController` (7 endpoint) dan `FinanceDailyCashController` (4 endpoint) selesai, kepatuhan `role-access-rules.md`, QBE `PASS`, belum diuji end-to-end — [laporan](../task/report/backend/BE-FIN-015.md) |
 | `BE-FIN-016` | Penerimaan dari tender kasir | `MVP-2` | **BLOCKED** — owner Billing |
 | `BE-FIN-017` | Pembagian bayar-vs-piutang | `MVP-2` | **BLOCKED** — owner Billing |
 | `BE-FIN-018` | Alokasi, koreksi, penghapusan | `MVP-3` | **BLOCKED** — turunan `MVP-2` |
@@ -165,14 +165,14 @@ menuntut dua layar pemantauan, dan keduanya sebelumnya tidak punya task frontend
 
 | Requirement | Decision | Desain | Kontrak | Task BE | Task FE | Bukti | Status |
 |---|---|---|---|---|---|---|---|
-| `FR-FIN-001`..`004` | `FIN-DEC-013`, `FIN-DEC-014` | `FIN-DES-001`..`005` | `FIN-API-1.0`, `FIN-VAL-1.0` | `BE-FIN-001`..`004` | `FE-FIN-001` | `UAT-01`, `UAT-02` | Siap |
-| `FR-FIN-010`..`013` | `FIN-DEC-005` (konsumsi) | `FIN-DES-008`, `009` | `FIN-INTEGRATION-1.0` | `BE-FIN-005`, `009` | `FE-FIN-006` | `UAT-04` | Siap |
-| `FR-FIN-020`..`024` | `FIN-DEC-010`..`012` | `FIN-DES-010`..`013` | `FIN-VAL-1.0` | `BE-FIN-006`..`009` | `FE-FIN-002` | `UAT-03` | Siap |
+| `FR-FIN-001`..`004` | `FIN-DEC-013`, `FIN-DEC-014` | `FIN-DES-001`..`005` | `FIN-API-1.0`, `FIN-VAL-1.0` | `BE-FIN-001`..`004` | `FE-FIN-001` | `UAT-01`, `UAT-02` | Siap — `BE-FIN-001` ✅ selesai 21 September 2026 ([laporan](../task/report/backend/BE-FIN-001.md)); `BE-FIN-002` 🟡 sebagian, `MstBank` dipakai ulang dari Administrator bukan dibuat baru ([laporan](../task/report/backend/BE-FIN-002.md)); `BE-FIN-003` 🟡 sebagian, migration dibuat belum dijalankan ([laporan](../task/report/backend/BE-FIN-003.md)); `BE-FIN-004` 🟡 sebagian, 2 dari 3 controller, `UAT-01`/`UAT-02` belum dapat dijalankan ([laporan](../task/report/backend/BE-FIN-004.md)) |
+| `FR-FIN-010`..`013` | `FIN-DEC-005` (konsumsi) | `FIN-DES-008`, `009` | `FIN-INTEGRATION-1.0` | `BE-FIN-005`, `009` | `FE-FIN-006` | `UAT-04` | 🟡 Sebagian — `FinanceBillingIntakeService` selesai dibangun `BE-FIN-009` (otorisasi eksplisit, menutup gap `BE-FIN-005`), beberapa inferensi menunggu ratifikasi, belum diuji runtime ([laporan](../task/report/backend/BE-FIN-009.md)) |
+| `FR-FIN-020`..`024` | `FIN-DEC-010`..`012` | `FIN-DES-010`..`013` | `FIN-VAL-1.0` | `BE-FIN-006`..`009` | `FE-FIN-002` | `UAT-03` | 🟡 Sebagian — `BE-FIN-006` entity+configuration selesai, invariant seimbang sudah check constraint ([laporan](../task/report/backend/BE-FIN-006.md)); `BE-FIN-007` migration dibuat, diterapkan pengguna 21 September 2026, 2 tabel Collection tertunda gap task pemilik ([laporan](../task/report/backend/BE-FIN-007.md)); `BE-FIN-008` `FinanceReceivableService` selesai dengan 3 temuan kontrak menunggu ratifikasi ([laporan](../task/report/backend/BE-FIN-008.md)); `BE-FIN-009` `FinanceReceivablesController` selesai, `FR-FIN-024` (PatientId) belum penuh ([laporan](../task/report/backend/BE-FIN-009.md)) |
 | `FR-FIN-030`..`035` | `FIN-DEC-005`, `FIN-DEC-015` | `FIN-DES-014` | `FIN-INTEGRATION-1.0` — permukaan collection dikecualikan | `BE-FIN-016`, `017` | `FE-FIN-004` | `UAT-05`, `06`, `20` | **BLOCKED** |
 | `FR-FIN-040`..`046` | `FIN-DEC-017` | `FIN-DES-014` | `FIN-STATE-1.0` | `BE-FIN-018` | `FE-FIN-004` | `UAT-08`..`12` | **BLOCKED** |
 | `FR-FIN-050`, `051` | `FIN-DEC-019` | `FIN-DES-015`, `026`..`028` | `FIN-API-1.0`, `FIN-VAL-1.0` | `BE-FIN-020` | — | — | **BLOCKED** — `FIN-OQ-010` |
-| `FR-FIN-060`..`065` | `FIN-DEC-018` | `FIN-DES-018`..`020` | `FIN-VAL-1.0` | `BE-FIN-013`..`015` | `FE-FIN-003` | `UAT-13`..`16` | Siap |
-| `FR-FIN-070`..`074` | `FIN-DEC-001`, `004` | `FIN-DES-017`, `021`..`023` | `FIN-INTEGRATION-1.0`, `ACC-XMOD-0.2` | `BE-FIN-010`..`012` | `FE-FIN-006` | `UAT-07`, `UAT-17`..`19` | Siap |
+| `FR-FIN-060`..`065` | `FIN-DEC-018` | `FIN-DES-018`..`020` | `FIN-VAL-1.0` | `BE-FIN-013`..`015` | `FE-FIN-003` | `UAT-13`..`16` | 🟡 Sebagian — `BE-FIN-013` entity+configuration+migration ditulis tangan, belum dijalankan ([laporan](../task/report/backend/BE-FIN-013.md)); `BE-FIN-014` service selesai, saldo dihitung saat posting ([laporan](../task/report/backend/BE-FIN-014.md)); `BE-FIN-015` 2 controller selesai, QBE `PASS` ([laporan](../task/report/backend/BE-FIN-015.md)); ketiganya belum diuji end-to-end — migration `BE-FIN-013` belum jalan |
+| `FR-FIN-070`..`074` | `FIN-DEC-001`, `004` | `FIN-DES-017`, `021`..`023` | `FIN-INTEGRATION-1.0`, `ACC-XMOD-0.2` | `BE-FIN-010`..`012` | `FE-FIN-006` | `UAT-07`, `UAT-17`..`19` | 🟡 Sebagian — `BE-FIN-010` entity+configuration+migration ditulis tangan, belum dijalankan ([laporan](../task/report/backend/BE-FIN-010.md)); `BE-FIN-011` service+3 pemanggilan selesai, QBE `PASS` (47 berkas) ([laporan](../task/report/backend/BE-FIN-011.md)); `BE-FIN-012` `FinanceAccountingEventsController`+`Service` selesai, QBE `PASS` (50 berkas) ([laporan](../task/report/backend/BE-FIN-012.md)); ketiganya belum diuji end-to-end — migration `BE-FIN-010` belum jalan |
 | `FR-FIN-075` | `FIN-DEC-003`, `019` | `FIN-DES-025` | `FIN-API-1.0` | `BE-FIN-021` | — | — | **BLOCKED** — Medical Fee |
 | Manfaat karyawan | `FIN-DEC-006`, `016` | — | — | — | — | — | `OPEN DECISION` |
 | Pengiriman ke Accounting | `FIN-DEC-007` | `FIN-DES-024` | — | — | — | — | `OPEN DECISION` |
@@ -197,8 +197,8 @@ bagian 5. Ringkasnya:
 | # | Prasyarat | Status |
 |---:|---|---|
 | 1 | QBE preflight diselesaikan **pada waktu eksekusi**, dari `AGENTS.md` backend target | Berlaku terus |
-| 2 | `BE-FIN-001` selesai sebelum file model pertama | **Belum** |
-| 3 | Otorisasi terpisah untuk membuat **dan** menjalankan setiap migration | **Belum** |
+| 2 | `BE-FIN-001` selesai sebelum file model pertama | ✅ **Sudah** — selesai 21 September 2026. Lihat [laporan](../task/report/backend/BE-FIN-001.md) |
+| 3 | Otorisasi terpisah untuk membuat **dan** menjalankan setiap migration | 🟡 **Sebagian** — otorisasi pembuatan file `AddFinanceMasterData` diberikan pemilik repository 21 September 2026 (lihat [laporan BE-FIN-003](../task/report/backend/BE-FIN-003.md)); otorisasi **eksekusi** (`dotnet ef database update`) masih **Belum** |
 | 4 | Implementasi lewat `quilvian-engineering-skills:build-module-backend` | Berlaku terus |
 | 5 | Task `BLOCKED` MUST NOT dimulai | Berlaku terus |
 | 6 | Penguncian versi kontrak | **Terpenuhi** 20 September 2026 |

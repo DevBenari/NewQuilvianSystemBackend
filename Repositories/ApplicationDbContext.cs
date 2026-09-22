@@ -15,8 +15,12 @@ using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Models;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.BillingIntake.Models;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.CashManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.PettyCash.Models;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Models;
@@ -61,6 +65,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Mo
 using QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models;
+#pragma warning disable CS8618 // DbSet properties are initialized by Entity Framework Core.
 
 namespace QuilvianSystemBackend.Repositories
 {
@@ -71,7 +76,7 @@ namespace QuilvianSystemBackend.Repositories
             : base(options)
         {
         }
-
+        
         #region GLOBAL
         public DbSet<SysAppVersion> SysAppVersions { get; set; }
         public DbSet<SysAppVersionBuild> SysAppVersionBuilds { get; set; }
@@ -609,6 +614,8 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<BilPaymentReminder> BilPaymentReminders { get; set; }
         public DbSet<BilApHandoff> BilApHandoffs { get; set; }
         public DbSet<BilHandoffAdjustment> BilHandoffAdjustments { get; set; }
+        public DbSet<BilCollectionHandoff> BilCollectionHandoffs { get; set; }
+        public DbSet<BilPrescriptionClearanceHandoff> BilPrescriptionClearanceHandoffs { get; set; }
         public DbSet<BilCashierShift> BilCashierShifts { get; set; }
         public DbSet<BilCashVarianceReview> BilCashVarianceReviews { get; set; }
         public DbSet<BilCashierShiftHandover> BilCashierShiftHandovers { get; set; }
@@ -616,6 +623,36 @@ namespace QuilvianSystemBackend.Repositories
         // Petty Cash (Kas Kecil) — BE-BKC-033, PC-DES-001. Anggaran dan kategori dipindahkan
         // ke Corporate/FinanceManagement (Clean Architecture & DDD).
         public DbSet<MstPettyCashCategory> MstPettyCashCategories { get; set; }
+        // Data induk Finance — BE-FIN-002, FIN-DES-003. MstBank Finance sengaja TIDAK dibuat:
+        // "MstBank" sudah dipakai Areas/Administrator/MasterData (tabel dan controller aktif,
+        // dipakai WfpBankAccount) — dipakai ulang apa adanya (keputusan pemilik repository,
+        // 21 September 2026, preseden FIN-DEC-014/MstSupplier). MstBankAccount.BankId merujuk
+        // MstBank milik Administrator, bukan master Bank baru. Lihat laporan task BE-FIN-002.
+        public DbSet<MstBankAccount> MstBankAccounts { get; set; }
+        public DbSet<MstCurrency> MstCurrencies { get; set; }
+        public DbSet<MstExchangeRate> MstExchangeRates { get; set; }
+        // BE-FIN-005, FIN-DES-008: satu pintu masuk seluruh fakta dari Billing. Migration
+        // AddFinanceBillingIntake (BE-FIN-007) dibuat tangan, belum dijalankan. Service konsumen
+        // (FinanceBillingIntakeService) belum ada task pemilik eksplisit.
+        public DbSet<FinBillingHandoffIntake> FinBillingHandoffIntakes { get; set; }
+        // BE-FIN-006, FIN-DES-010..013: buku piutang. Migration AddFinanceReceivableAndCollection
+        // (BE-FIN-007) dibuat tangan untuk 5 tabel ini saja — 2 tabel Collection (FinReceipt,
+        // FinReceiptAllocation) belum punya entity/task pemilik, lihat laporan BE-FIN-007.
+        // FinanceReceivableService (BE-FIN-008) belum dikerjakan.
+        public DbSet<FinReceivable> FinReceivables { get; set; }
+        public DbSet<FinReceivableItem> FinReceivableItems { get; set; }
+        public DbSet<FinReceivableDocument> FinReceivableDocuments { get; set; }
+        public DbSet<FinReceivableAdjustment> FinReceivableAdjustments { get; set; }
+        public DbSet<FinReceivableWriteOff> FinReceivableWriteOffs { get; set; }
+        // BE-FIN-010, FIN-DES-017..019: kotak keluar kejadian Finance -> Accounting (transactional
+        // outbox). Migration AddFinanceAccountingOutbox dibuat tangan, belum dijalankan. Worker
+        // pengiriman (FIN-DES-020) dan endpoint penerima Accounting belum ada (FIN-CAP-018) — di
+        // luar lingkup task ini.
+        public DbSet<FinAccountingEventOutbox> FinAccountingEventOutboxes { get; set; }
+        public DbSet<FinAccountingEventAttempt> FinAccountingEventAttempts { get; set; }
+        // BE-FIN-013, FIN-DES-018..020: Kas dan setoran bank. Migration AddFinanceCashManagement.
+        public DbSet<FinBankDeposit> FinBankDeposits { get; set; }
+        public DbSet<FinDailyCashSnapshot> FinDailyCashSnapshots { get; set; }
         public DbSet<FinPettyCashBudget> FinPettyCashBudgets { get; set; }
         public DbSet<FinPettyCashBudgetMovement> FinPettyCashBudgetMovements { get; set; }
         public DbSet<BilPettyCashVoucher> BilPettyCashVouchers { get; set; }
