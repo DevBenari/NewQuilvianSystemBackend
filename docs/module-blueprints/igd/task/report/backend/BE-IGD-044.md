@@ -4,7 +4,7 @@
 | --- | --- |
 | Task | `BE-IGD-044` |
 | Gelombang | `MVP-5` · `EPIC IGD-04` · slice `IGD-S06` |
-| Status | 🟡 **SEBAGIAN — 17 September 2026.** Acceptance 1, 2, dan 3 terpetakan ke source. Acceptance 4, 5, dan 6 menunggu migration yang **dijalankan Rizki**, sesuai batas eksekusi kartu. `dotnet build` belum dijalankan agent |
+| Status | ✅ **SELESAI — 21 September 2026** (sebelumnya 🟡 17 September 2026). Acceptance 1, 2, 3 terpetakan ke source; 4 dikerjakan `BE-IGD-048` ✅; **5 terbukti 21 September 2026** — `Down` asli diuji di basis data terpisah, lihat bagian 10; 6 snapshot +102 baris tanpa penghapusan. Migration `20260917072515` diterapkan pemilik 17 September 2026. UAT belum dan tidak diklaim |
 | Branch | `rizkiG`, di atas `81366bf3` |
 | Requirement | `FR-IGD-017`, `FR-IGD-019` |
 | Keputusan | `IGD-DEC-082` (**`approved` 17 September 2026**), `IGD-DEC-073`, `IGD-DEC-107`, `IGD-DEC-116`, `IGD-DEC-130` |
@@ -170,7 +170,7 @@ tidak pernah menggagalkan migration; kunjungan yang terlewati tetap dapat diberi
 | Keseimbangan struktur berkas yang disentuh | ✅ Diperiksa |
 | `dotnet build` | **Belum** — batas eksekusi; perintah di 5.1 |
 | `dotnet ef migrations add` | **Belum** — batas eksekusi |
-| Uji langkah mundur di basis data terpisah | **Belum** — acceptance 5 |
+| Uji langkah mundur di basis data terpisah | ✅ **Dijalankan 21 September 2026** — bagian 10 (pada 17 September 2026: belum) |
 | Automated test | Tidak ada — proyek test backend dihapus (`IGD-DEC-110`) |
 | Kueri basis data oleh agent | **Nol**, sesuai batas eksekusi |
 
@@ -178,7 +178,7 @@ tidak pernah menggagalkan migration; kunjungan yang terlewati tetap dapat diberi
 
 | Butir | Status |
 | ---: | --- |
-| Acceptance 1 sampai 6 terpetakan | 🟡 1–3 selesai; 4–6 menunggu migration Rizki |
+| Acceptance 1 sampai 6 terpetakan | ✅ 21 September 2026 — 1–3 source; 4 `BE-IGD-048`; 5 bagian 10; 6 snapshot |
 | Laporan tracked ada | ✅ berkas ini |
 | Roadmap dan traceability diperbarui | ✅ |
 | QBE preflight dan kesesuaian engineering | ✅ bagian 1 |
@@ -190,4 +190,22 @@ tidak pernah menggagalkan migration; kunjungan yang terlewati tetap dapat diberi
 `BE-IGD-045` — controller dan service `EmergencyDoctorAssignment`: `GET /`, `GET /active?at=`,
 `POST /`, `POST /{id}/handover`, beserta proyeksi `doctorName` dan `assignedByName`
 (`IGD-DEC-129`). **Menunggu migration `BE-IGD-044` diterapkan lebih dulu**, karena tanpa tabelnya
-tidak ada yang dapat diuji.
+tidak ada yang dapat diuji. *(Terpenuhi: `BE-IGD-045` ✅ terverifikasi runtime 17 September 2026.)*
+
+## 10. Pembaruan 21 September 2026 — acceptance 5 dibuktikan
+
+Atas perintah pemilik, `Down` migration asli `20260917072515_AddEmergencyDoctorAssignment`
+(`DropTable`) diuji pada basis data terpisah: kontainer PostgreSQL 16.15 lokal dari image yang sudah
+ada, tanpa instalasi dan tanpa menulis ke dev. Seluruh 189 migration diterapkan ke basis data kosong
+(628 tabel), lalu `Down` ke `20260915074405_RevisiTablePettyCash`, lalu `Up` kembali ke head.
+
+| Pengukuran | Sebelum | Sesudah `Down` | Sesudah `Up` |
+| --- | --- | --- | --- |
+| Jumlah tabel `public` | 628 | **627** | 628 |
+| Sidik jari kolom, index, constraint tabel lain | — | **sama dengan sebelum** | **sama dengan sebelum** |
+| Definisi `EmgDoctorAssignment` | `b5cc176b…` | tidak ada | **`b5cc176b…` identik** |
+| FK dari tabel lain ke tabel ini | 0 | 0 | 0 |
+
+**Hasil:** `Down` menghapus tepat satu tabel dan tidak menyentuh objek lain; `Up` mengembalikannya
+identik. Rincian, keterbatasan (tabel kosong saat `Down`; PostgreSQL 16 lokal lawan 15 di dev), dan
+pembersihan ada di [bukti](../../../evidence/2026-09-21-uji-down-migration-be-igd-044.md).

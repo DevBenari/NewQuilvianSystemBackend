@@ -4,7 +4,7 @@
 | --- | --- |
 | Task | `FE-IGD-027` |
 | Gelombang | `EPIC IGD-04` · slice `IGD-S06` |
-| Status | 🟡 **SEBAGIAN — dinilai ulang 21 September 2026, karena source berubah sesudah verifikasi pemilik (bagian 8).** Bukti dicatat **per revisi**; bukti revisi lama tidak dipakai untuk revisi terbaru. **Implementation Complete = ya** (revisi terbaru). **Scoped eslint = PASS** dan **unit test IGD = 38/38 PASS** (bagian 8.3; tidak dijalankan ulang pada penilaian ini). **Runtime inti = PASS 18 September 2026** pada revisi `3213419a7` — tiga belas pemeriksaan lewat layar, dijalankan pemilik — [evidence](../evidence/2026-09-18-verifikasi-runtime-fe-igd-027.md); **tidak diulang** untuk revisi terbaru. **Build penuh revisi terbaru = belum diverifikasi pemilik.** Tampilan baris legacy "Data historis" belum diuji lewat layar (menunggu migration `BE-IGD-048`). **UAT belum dan tidak diklaim** |
+| Status | ✅ **SELESAI — dinaikkan kembali 21 September 2026 atas keputusan pemilik, sesudah `npm run build` revisi terbaru lulus** (dijalankan pemilik: `Compiled successfully`, 362/362 halaman, `postbuild` standalone berhasil; commit frontend `16c767916`). Sebelumnya 🟡 pada hari yang sama karena source berubah sesudah verifikasi pemilik (bagian 8); riwayat penilaian itu dipertahankan di bawah. Tampilan baris legacy "Data historis" **tetap belum terlihat di layar** karena dev 0 baris legacy — diterima pemilik sebagai catatan, bukan penghalang. Bukti dicatat **per revisi**; bukti revisi lama tidak dipakai untuk revisi terbaru. **Implementation Complete = ya** (revisi terbaru). **Scoped eslint = PASS** dan **unit test IGD = 38/38 PASS** (bagian 8.3; tidak dijalankan ulang pada penilaian ini). **Runtime inti = PASS 18 September 2026** pada revisi `3213419a7` — tiga belas pemeriksaan lewat layar, dijalankan pemilik — [evidence](../evidence/2026-09-18-verifikasi-runtime-fe-igd-027.md); **tidak diulang** untuk revisi terbaru. **Build penuh revisi terbaru = belum diverifikasi pemilik.** Tampilan baris legacy "Data historis" belum diuji lewat layar (menunggu migration `BE-IGD-048`). **UAT belum dan tidak diklaim** |
 | Frontend | branch `RizkiV2` `3213419a7` |
 | Requirement | `FR-IGD-016` sampai `FR-IGD-021`, sisi tampilan |
 | Kontrak | API `0.7.0` bagian 3, 3.1, 3.2 — dipakai persis seperti yang dibangun `BE-IGD-045` |
@@ -186,7 +186,7 @@ bersama oleh `tampilkanPenugas` dan penentu baris "Sumber", lewat satu fungsi `p
 | `MANUAL TEST` lewat layar | **NOT FEASIBLE** — dev tidak punya baris legacy: migration `BE-IGD-048` sudah dijalankan (21 September 2026), tetapi dev **0 kandidat**, jadi 0 baris tersisip. Baris legacy hanya ada pada salinan basis data terpisah yang sudah dihapus |
 | `npm run build` | **NOT RUN** — dipegang pemilik. Build penuh revisi ini **belum diverifikasi** |
 
-**Status `FE-IGD-027` tetap 🟡** — perubahan ini menambah satu revisi lagi yang belum dibangun pemilik.
+**Status `FE-IGD-027` tetap 🟡** — perubahan ini menambah satu revisi lagi yang belum dibangun pemilik. *(Pembaruan 21 September 2026 sore: pemilik menjalankan `npm run build` pada revisi ini dan lulus — status kini ✅, lihat baris `Status` di atas.)*
 
 **Catatan.** Baris historis menampilkan `Sejak <waktu kedatangan pasien>`: `effectiveFrom` hasil
 `BE-IGD-048` adalah *historical fallback*, bukan waktu penetapan dokter yang terbukti. Label

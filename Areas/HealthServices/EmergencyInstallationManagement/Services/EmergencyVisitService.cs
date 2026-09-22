@@ -328,17 +328,33 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         /// milik orang yang sama, dan menahan pendaftarannya berarti menahan pasien yang
         /// justru paling gawat di depan pintu IGD.
         /// </para>
+        ///
+        /// <para>
+        /// <b>Pra-cek sebelum encounter dibuat</b> — <c>BE-IGD-050</c>, <c>IGD-DEC-138</c>.
+        /// <c>GET emergency-visits/active-episode</c> memanggil method ini juga, sehingga
+        /// aturan "episode berjalan" hanya ada di satu tempat dan pra-cek tidak dapat
+        /// menyimpang dari penolakan <c>409</c> pada <c>POST /</c>. Parameter
+        /// <paramref name="sertakanPasien"/> memuat navigasi <see cref="EmgVisit.Patient"/>
+        /// dalam kueri yang sama (satu <c>JOIN</c>, bukan kueri kedua) supaya nama pasien
+        /// tersedia tanpa <c>N+1</c>. Bawaannya <c>false</c>, jadi pemanggil lama — <c>POST /</c>
+        /// — menjalankan kueri yang persis sama seperti sebelumnya.
+        /// </para>
         /// </remarks>
         public async Task<EmgVisit?> CariEpisodeAktifAsync(
             Guid? patientId,
             Guid? kecualiVisitId = null,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default,
+            bool sertakanPasien = false)
         {
             if (!patientId.HasValue || patientId.Value == Guid.Empty)
                 return null;
 
-            return await _dbContext.Set<EmgVisit>()
-                .AsNoTracking()
+            IQueryable<EmgVisit> kueri = _dbContext.Set<EmgVisit>().AsNoTracking();
+
+            if (sertakanPasien)
+                kueri = kueri.Include(x => x.Patient);
+
+            return await kueri
                 .Where(x => x.PatientId == patientId.Value
                     && !x.IsDelete
                     && x.VisitStatus != EmergencyVisitStatus.Completed

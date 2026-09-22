@@ -56,6 +56,42 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public DateTime? UpdateDateTime { get; set; }
     }
 
+    /// <summary>
+    /// Hasil pra-cek episode IGD berjalan — <c>BE-IGD-050</c>, <c>IGD-DEC-138</c>. Dipanggil
+    /// layar <b>sebelum</b> encounter dibuat, supaya penolakan episode ganda tidak lagi
+    /// meninggalkan encounter tanpa kunjungan IGD. Baca-saja; tidak menulis apa pun.
+    /// </summary>
+    public class EmergencyActiveEpisodeResponse
+    {
+        /// <summary>Benar bila pasien masih punya kunjungan IGD yang episodenya berjalan.</summary>
+        public bool HasActiveEpisode { get; set; }
+
+        /// <summary>Kunjungan yang sudah ada; <c>null</c> bila <see cref="HasActiveEpisode"/> salah.</summary>
+        public EmergencyActiveEpisodeVisitSummary? Visit { get; set; }
+    }
+
+    /// <summary>
+    /// Ringkasan kunjungan yang menahan pendaftaran. Sengaja hanya tujuh ruas — cukup untuk
+    /// menampilkan nomor dan status serta membuka kunjungannya, tanpa menyalin seluruh
+    /// <see cref="EmergencyVisitResponse"/>.
+    /// </summary>
+    public class EmergencyActiveEpisodeVisitSummary
+    {
+        public Guid Id { get; set; }
+        public Guid? EncounterId { get; set; }
+        public Guid PatientId { get; set; }
+
+        /// <summary>
+        /// Nama yang sama dengan <see cref="EmergencyVisitResponse.PatientName"/>: nama pasien,
+        /// lalu alias sementara, lalu keterangan bawaan. Tidak pernah kosong.
+        /// </summary>
+        public string PatientName { get; set; } = string.Empty;
+
+        public string EmergencyVisitNumber { get; set; } = string.Empty;
+        public EmergencyVisitStatus VisitStatus { get; set; }
+        public DateTime ArrivalDateTime { get; set; }
+    }
+
     public class CreateEmergencyVisitRequest
     {
         [MaxLength(50)]

@@ -4406,3 +4406,59 @@ GUID, `null` mentah, maupun `00000000-0000-0000-0000-000000000000`.
 **Konsekuensi schema yang wajib diselesaikan lebih dulu.** Schema yang sudah diterapkan
 menyatakan kolom ini `NOT NULL`, sehingga keputusan ini **belum dapat dijalankan** tanpa
 perubahan schema. Rinciannya pada kartu `BE-IGD-048`.
+
+---
+
+## Keputusan 21 September 2026 (sore) — nama pelaku pada event kepergian, dan pendaftaran IGD ganda tanpa encounter yatim
+
+Keputusan pemilik atas dua temuan gerbang backlog frontend: `FE-IGD-017` dan `FE-IGD-014`. Keduanya
+**sempit** dan **tidak** menyentuh kewenangan, kepemilikan, atau kebijakan modul lain.
+
+### `IGD-DEC-137` — respons event kepergian menyertakan nama pelaku selain ID
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-137` | Decision | **Respons event kepergian menyertakan nama tampilan pelaku sebagai tambahan atas ID pelaku.** Pada `EmergencyDepartureEventResponse`, ruas `recordedByName` dan `approvedByName` (`string?`) ditambahkan, dan `recordedByUserId` serta `approvedByUserId` **tetap dikirim**. Perubahan **aditif**. Nama diambil dengan kueri yang efisien dan **tanpa `N+1`**, tanpa kolom baru dan tanpa migration. Nama kosong (`null`) bila pengguna tidak ditemukan atau ruas ID-nya kosong. Frontend **dilarang** menampilkan GUID mentah sebagai representasi pengguna | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-09-21** | Jawaban pemilik atas gerbang `FE-IGD-017` (`IGD-EV-123` butir 2) |
+
+**Batas keputusan — sengaja sempit.** Keputusan ini **hanya** menambah dua ruas nama pada respons event
+kepergian. Ia **tidak** mengubah authorization, permission, ownership, maupun kebijakan siapa boleh
+membaca data pengguna. Ia **tidak** mencakup ruas aktor lain pada kontrak kepergian —
+`requestedByUserId`, `sendingNurseUserId`, `receivingNurseUserId` (pada departure), serta
+`actionByUserId` dan `acceptedByUserId` (pada order item). Ruas-ruas itu tetap berupa ID dan dicatat
+sebagai coverage gap pada traceability; menambah nama untuk ruas tersebut butuh keputusan tersendiri.
+
+**Pola.** Meniru `recordedByName` pada observasi (`BE-IGD-046`) dan `assignedByName` pada penugasan
+dokter (`IGD-DEC-129`): urutan `DisplayName`, `UserName`, `Email`, `UserCode`.
+
+### `IGD-DEC-138` — pendaftaran IGD ganda ditolak tanpa meninggalkan encounter yatim
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-138` | Decision | **Pendaftaran IGD yang ditolak karena episode aktif ganda tidak boleh meninggalkan `RegPatientEncounter` baru tanpa `EmgVisit`.** Target perilaku: (1) episode aktif ganda dideteksi **sebelum** encounter baru dibuat; (2) bila ganda, sistem mengembalikan kunjungan yang sudah ada dan **tidak** membuat `RegPatientEncounter`; (3) bila validasi sebelum pembuatan tidak mungkin, pembuatan encounter dan kunjungan wajib **transaksional** sehingga penolakan tidak meninggalkan yatim. **Dilarang** menghapus keras (`hard-delete`) atau membersihkan manual encounter yatim yang sudah ada tanpa audit terhadap seluruh referensi lain | Product/Domain Owner IGD | `approved` (**perilaku target**); mekanisme: lapis A pada `BE-IGD-050` — **menunggu konfirmasi pemilik atas laporan rencana**; sisa jendela pada `IGD-OQ-093` | **Rizki Gunawan / 2026-09-21** | Jawaban pemilik atas temuan `FE-IGD-014` (`FE-IGD-014` laporan bagian 8, butir Peringatan) |
+
+**Hasil audit alur backend aktual (21 September 2026, baca source saja).** Penyebab encounter yatim
+**terkonfirmasi**, bukan dugaan:
+
+| Langkah | Modul | Commit | Validasi episode ganda |
+| ---: | --- | --- | --- |
+| 1 | Registrasi — `POST /patient-encounters` (`PatientEncounterController.CreateEncounterCoreAsync`, transaksi sendiri) | **Ya — encounter tersimpan** | **Tidak ada.** Controller ini tidak menyebut `Emergency`, `EmgVisit`, maupun IGD sama sekali |
+| 2 | IGD — `POST /emergency-visits` (`EmergencyVisitController.Create`) | Hanya bila lolos | **Di sini** (`CariEpisodeAktifAsync`, baris 202–213), sesudah langkah 1 sudah commit |
+
+Layar memanggil keduanya berurutan sebagai dua permintaan HTTP terpisah. Penolakan `409` pada langkah 2
+karenanya **selalu** meninggalkan encounter dari langkah 1. Layar sudah memberi peringatan *"Encounter
+sudah terbentuk"* dan menyuruh menekan simpan lagi, tetapi tidak ada jalur yang menyelesaikannya.
+
+**Batas.** Keputusan ini menetapkan **perilaku**, bukan **tempat** perbaikannya. Perbaikan yang menyentuh
+berkas milik modul Registrasi tidak diputuskan di sini — lihat `IGD-OQ-093`. `IGD-DEC-135` mengizinkan
+remediasi teknis dan **tidak** memindahkan kepemilikan modul mana pun.
+
+### `IGD-OQ-093` — sisa jendela encounter yatim sesudah pra-cek
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-OQ-093` | Open Question | Lapis A (`BE-IGD-050`: pra-cek episode aktif sebelum encounter dibuat, dipanggil layar) menutup kasus normal tetapi **tidak menutup dua celah**: (a) dua pendaftaran serentak untuk pasien yang sama, keduanya lolos pra-cek lalu salah satunya ditolak `409`; (b) klien mana pun yang memanggil `POST /patient-encounters` lalu `POST /emergency-visits` **tanpa** pra-cek. Untuk menutupnya, jaminan harus ditegakkan di sisi server. Tiga opsi: **B1** — guard episode ganda pada pembuatan encounter bertipe `Emergency` di modul Registrasi (menyentuh berkas milik Registrasi); **B2** — satu endpoint orkestrasi IGD yang membuat encounter dan kunjungan dalam satu transaksi (butuh logika pembuatan encounter yang dapat dipanggil dari luar controller); **B3** — kompensasi otomatis pada penolakan (ditolak: menghapus/membatalkan encounter tanpa audit referensi bertentangan dengan `IGD-DEC-138`) | Product/Domain Owner IGD + pemilik modul Registrasi (**belum dipetakan pada dokumen ini**) | `open` | Tidak menahan `BE-IGD-050` maupun `FE-IGD-034`. Menahan hanya klaim "tanpa encounter yatim dalam segala keadaan" | Keputusan pemilik: `IGD-DEC-138` butir 3 |
+
+**Rekomendasi agent.** B1 bila pemilik Registrasi setuju, karena ia menutup celah (a) dan (b) sekaligus
+di satu tempat; B2 bila tidak. **Agent tidak memilih**: keduanya menyentuh modul lain atau membuat pola baru.
+Sampai diputuskan, celah ini adalah **backend gap eksplisit**, dan `FE-IGD-014` tidak boleh ditandai
+final end-to-end atas nama celah itu.

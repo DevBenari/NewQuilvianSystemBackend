@@ -825,6 +825,91 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             item.RejectionReason = null;
         }
 
+        // -----------------------------------------------------------------------------
+        // BE-IGD-049 / IGD-DEC-137 - nama pelaku pada event kepergian.
+        //
+        // EmgDepartureEvent tidak punya navigasi maupun foreign key ke tabel pengguna
+        // (RecordedByUserId dan ApprovedByUserId adalah kolom Guid biasa), dan pemeta di
+        // bawah adalah fungsi statis di memori. Karena itu nama tidak dapat diproyeksikan di
+        // dalam kueri seperti pada observasi (BE-IGD-046). Nama diambil dengan SATU kueri
+        // ke tabel pengguna untuk seluruh kejadian pada respons, berapa pun jumlah kejadian
+        // atau kepergiannya - jadi bebas N+1 - dan tanpa perubahan schema.
+        // -----------------------------------------------------------------------------
+
+        /// <summary>Respons satu kepergian beserta nama pelaku setiap kejadiannya.</summary>
+        public async Task<EmergencyDepartureResponse> ToResponseAsync(
+            EmgDeparture x, CancellationToken cancellationToken = default)
+        {
+            var response = ToResponse(x);
+            await IsiNamaPelakuAsync(response.Events, cancellationToken);
+            return response;
+        }
+
+        /// <summary>
+        /// Respons satu halaman kepergian. Nama seluruh kejadian pada halaman itu diambil
+        /// dengan satu kueri, bukan satu kueri per kepergian.
+        /// </summary>
+        public async Task<List<EmergencyDepartureResponse>> ToResponseAsync(
+            IEnumerable<EmgDeparture> items, CancellationToken cancellationToken = default)
+        {
+            var responses = items.Select(x => ToResponse(x)).ToList();
+            await IsiNamaPelakuAsync(responses.SelectMany(r => r.Events), cancellationToken);
+            return responses;
+        }
+
+        /// <summary>Respons satu kejadian (koreksi atau pembalikan) beserta nama pelakunya.</summary>
+        public async Task<EmergencyDepartureEventResponse> ToResponseAsync(
+            EmgDepartureEvent x, CancellationToken cancellationToken = default)
+        {
+            var response = ToResponse(x);
+            await IsiNamaPelakuAsync(new[] { response }, cancellationToken);
+            return response;
+        }
+
+        private async Task IsiNamaPelakuAsync(
+            IEnumerable<EmergencyDepartureEventResponse> events, CancellationToken cancellationToken)
+        {
+            var daftar = events.ToList();
+
+            var idPelaku = daftar
+                .SelectMany(e => new[] { e.RecordedByUserId, e.ApprovedByUserId ?? Guid.Empty })
+                .Where(id => id != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            if (idPelaku.Count == 0) return;
+
+            // Tanpa saringan status pengguna: ini riwayat, jadi nama pelaku yang sudah tidak
+            // aktif tetap terbaca.
+            var pengguna = await _dbContext.Set<QuilvianSystemBackend.Models.ApplicationUser>()
+                .AsNoTracking()
+                .Where(u => idPelaku.Contains(u.Id))
+                .Select(u => new { u.Id, u.DisplayName, u.UserName, u.Email, u.UserCode })
+                .ToListAsync(cancellationToken);
+
+            var nama = pengguna.ToDictionary(
+                u => u.Id,
+                u => PilihNamaTampilan(u.DisplayName, u.UserName, u.Email, u.UserCode));
+
+            foreach (var e in daftar)
+            {
+                // Pengguna tidak ditemukan atau ruas ID kosong menghasilkan null, bukan GUID.
+                e.RecordedByName = nama.GetValueOrDefault(e.RecordedByUserId);
+                e.ApprovedByName = e.ApprovedByUserId is { } disetujuOleh
+                    ? nama.GetValueOrDefault(disetujuOleh)
+                    : null;
+            }
+        }
+
+        /// <summary>
+        /// Urutan yang sama dengan backend lain: DisplayName, UserName, Email, UserCode. Nilai
+        /// kosong atau spasi dilewati, karena <c>ApplicationUser.DisplayName</c> bernilai
+        /// bawaan string kosong dan tidak pernah <c>null</c> — tanpa ini, urutan itu tidak
+        /// pernah jatuh ke calon berikutnya.
+        /// </summary>
+        private static string? PilihNamaTampilan(params string?[] kandidat)
+            => kandidat.FirstOrDefault(k => !string.IsNullOrWhiteSpace(k))?.Trim();
+
         public static EmergencyDepartureResponse ToResponse(EmgDeparture x)
             => new()
             {

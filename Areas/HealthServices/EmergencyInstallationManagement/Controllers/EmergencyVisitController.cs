@@ -180,6 +180,63 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             return Ok(ApiResponse<EmergencyVisitResponse>.Ok(ToResponse(entity), "Detail kunjungan IGD berhasil diambil."));
         }
 
+        /// <summary>
+        /// Pra-cek episode IGD berjalan — <c>BE-IGD-050</c>, <c>IGD-DEC-138</c> (lapis A).
+        ///
+        /// Dipanggil layar <b>sebelum</b> <c>POST patient-encounters</c>. Penolakan episode ganda
+        /// pada <c>POST /</c> baru terjadi sesudah encounter di modul Registrasi tersimpan, sehingga
+        /// selalu meninggalkan encounter tanpa kunjungan IGD. Baca-saja: tidak menulis apa pun dan
+        /// tidak menahan pendaftaran — keputusan berhenti atau lanjut ada di pemanggil.
+        ///
+        /// Aturan "berjalan" bukan salinan: memanggil <see cref="EmergencyVisitService.CariEpisodeAktifAsync"/>
+        /// yang sama dengan <c>POST /</c>. <c>POST /</c> tetap menolak <c>409</c> sebagai jaring pengaman.
+        /// Celah yang tidak ditutup — pendaftaran serentak dan klien tanpa pra-cek — dicatat pada
+        /// <c>IGD-OQ-093</c>.
+        /// </summary>
+        [HttpGet("active-episode")]
+        [ProducesResponseType(typeof(ApiResponse<EmergencyActiveEpisodeResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [AccessAction("Create", "Create Emergency Visit", Description = "Membuat kunjungan IGD dan memeriksa kunjungan IGD yang masih berjalan sebelum mendaftarkan encounter baru", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessPermission("EmergencyVisit", "Create")]
+        public async Task<IActionResult> GetActiveEpisode([FromQuery] Guid patientId, CancellationToken cancellationToken = default)
+        {
+            if (patientId == Guid.Empty)
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "patientId wajib diisi. Pilih pasien lebih dulu sebelum memeriksa kunjungan IGD yang masih berjalan."));
+
+            // sertakanPasien: nama pasien ikut terbaca dalam kueri yang sama, tanpa kueri kedua.
+            var episodeAktif = await _emergencyVisitService.CariEpisodeAktifAsync(
+                patientId,
+                cancellationToken: cancellationToken,
+                sertakanPasien: true);
+
+            if (episodeAktif == null)
+            {
+                return Ok(ApiResponse<EmergencyActiveEpisodeResponse>.Ok(
+                    new EmergencyActiveEpisodeResponse { HasActiveEpisode = false, Visit = null },
+                    "Pasien tidak punya kunjungan IGD yang masih berjalan."));
+            }
+
+            return Ok(ApiResponse<EmergencyActiveEpisodeResponse>.Ok(
+                new EmergencyActiveEpisodeResponse
+                {
+                    HasActiveEpisode = true,
+                    Visit = new EmergencyActiveEpisodeVisitSummary
+                    {
+                        Id = episodeAktif.Id,
+                        EncounterId = episodeAktif.EncounterId,
+                        // Kueri menyaring PatientId == patientId, jadi nilainya pasti sama.
+                        PatientId = patientId,
+                        PatientName = ResolvePatientName(episodeAktif),
+                        EmergencyVisitNumber = episodeAktif.EmergencyVisitNumber,
+                        VisitStatus = episodeAktif.VisitStatus,
+                        ArrivalDateTime = episodeAktif.ArrivalDateTime
+                    }
+                },
+                "Pasien masih punya kunjungan IGD yang berjalan."));
+        }
+
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse<EmergencyVisitResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]

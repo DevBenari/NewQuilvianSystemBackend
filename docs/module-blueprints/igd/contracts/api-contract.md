@@ -2,7 +2,7 @@
 
 | Field | Nilai |
 | --- | --- |
-| `contract_version` | `0.8.0` — pengisian data lama penugasan dokter, 21 September 2026. **Relaxed nullability change for legacy response**, bukan aditif murni: `assignedByUserId` pada response §3.2 (`GET /`, `GET /active`) dapat bernilai `null` khusus baris riwayat hasil pengisian data lama `BE-IGD-048` yang pelaku historisnya tidak dapat dibuktikan (`IGD-DEC-136`). **Bukan** perubahan semantics penetapan atau pengalihan baru: pelaku tetap wajib dari token dan request tidak menerimanya. Nol route baru, nol ruas dihapus, nol bentuk request berubah. **Dampak konsumen**: kode yang mengasumsikan `assignedByUserId` selalu berupa GUID (misalnya tipe non-nullable di frontend) harus direvisi sebelum menampilkan baris legacy — lihat bagian 3.2. Sebelumnya `0.7.0` — kesiapan `EPIC IGD-04`, 16 September 2026 (ketiga). **Aditif**: response §3 bertambah proyeksi `doctorName` dan `assignedByName` (`IGD-DEC-129`, bagian 3.2), dan nama tabel Registrasi diselaraskan menjadi `RegPatientEncounter` (`IGD-DEC-132`). Nol route baru, nol bentuk request berubah, nol penolakan baru. *Sebelumnya `0.6.0` — pemantauan observasi bertanda vital, 16 September 2026, **aditif**: bagian 7 baru untuk `Emergency Observation Detail` — bentuk request tidak bertambah, response bertambah proyeksi `vitalSign` dan `recordedByName`, dan dua penolakan baru ditegakkan (`IGD-DEC-122`, `IGD-DEC-126`). Ruas `recordedByUserId` pada request menjadi **usang tetapi tetap diterima**. Lihat manifest bagian 0d. Sebelumnya `0.5.0` — penyelarasan teks 15 September 2026: query `at` pada §3 dan penolakan catatan observasi lebih dari 1000 karakter* |
+| `contract_version` | `0.10.0` — pra-cek episode IGD berjalan, 21 September 2026. **Aditif** (`BE-IGD-050`, `IGD-DEC-138`): satu endpoint baca-saja `GET emergency-visits/active-episode?patientId=` pada grup `Emergency Visit`, bagian 1.3. Hak akses `EmergencyVisit : Create` (aksi `Create` yang sudah ada — nol permission baru). `POST /` **tidak berubah**: penolakan `409` episode ganda tetap sebagai jaring pengaman. Nol ruas lama berubah, nol perubahan bentuk request, nol schema. **Tidak menutup** dua celah `IGD-OQ-093` (pendaftaran serentak; klien tanpa pra-cek). Sebelumnya `0.9.0` — nama pelaku pada event kepergian, 21 September 2026. **Aditif** (`BE-IGD-049`, `IGD-DEC-137`): `EmergencyDepartureEventResponse` bertambah `recordedByName` dan `approvedByName` (`string?`), bagian 2.4; `recordedByUserId` dan `approvedByUserId` tetap dikirim. Nol route baru, nol bentuk request berubah, nol perubahan hak akses, nol schema. Sebelumnya `0.8.0` — pengisian data lama penugasan dokter, 21 September 2026. **Relaxed nullability change for legacy response**, bukan aditif murni: `assignedByUserId` pada response §3.2 (`GET /`, `GET /active`) dapat bernilai `null` khusus baris riwayat hasil pengisian data lama `BE-IGD-048` yang pelaku historisnya tidak dapat dibuktikan (`IGD-DEC-136`). **Bukan** perubahan semantics penetapan atau pengalihan baru: pelaku tetap wajib dari token dan request tidak menerimanya. Nol route baru, nol ruas dihapus, nol bentuk request berubah. **Dampak konsumen**: kode yang mengasumsikan `assignedByUserId` selalu berupa GUID (misalnya tipe non-nullable di frontend) harus direvisi sebelum menampilkan baris legacy — lihat bagian 3.2. Sebelumnya `0.7.0` — kesiapan `EPIC IGD-04`, 16 September 2026 (ketiga). **Aditif**: response §3 bertambah proyeksi `doctorName` dan `assignedByName` (`IGD-DEC-129`, bagian 3.2), dan nama tabel Registrasi diselaraskan menjadi `RegPatientEncounter` (`IGD-DEC-132`). Nol route baru, nol bentuk request berubah, nol penolakan baru. *Sebelumnya `0.6.0` — pemantauan observasi bertanda vital, 16 September 2026, **aditif**: bagian 7 baru untuk `Emergency Observation Detail` — bentuk request tidak bertambah, response bertambah proyeksi `vitalSign` dan `recordedByName`, dan dua penolakan baru ditegakkan (`IGD-DEC-122`, `IGD-DEC-126`). Ruas `recordedByUserId` pada request menjadi **usang tetapi tetap diterima**. Lihat manifest bagian 0d. Sebelumnya `0.5.0` — penyelarasan teks 15 September 2026: query `at` pada §3 dan penolakan catatan observasi lebih dari 1000 karakter* |
 | Status | `draft` |
 | Owner | Product/Domain Owner IGD: **Rizki Gunawan** (`IGD-DEC-089`) |
 | `approved_by` / `approved_at` | — / — |
@@ -57,6 +57,7 @@ Base URL: `api/v1/health-services/emergency-installation-management/emergency-vi
 | --- | --- | --- | --- | --- |
 | `GET` | `/` | Daftar kunjungan IGD dengan penyaring dan halaman | `EmergencyVisit : Read` | `200`, `403` |
 | `GET` | `/{id}` | Satu kunjungan beserta konteksnya | `EmergencyVisit : Read` | `200`, `403`, `404` |
+| `GET` | `/active-episode?patientId={uuid}` | Pra-cek: apakah pasien masih punya kunjungan IGD berjalan — baca-saja, dipanggil **sebelum** encounter dibuat (bagian 1.3, `0.10.0`) | `EmergencyVisit : Create` | `200`, `400`, `401`, `403` |
 | `POST` | `/` | Membuat kunjungan IGD | `EmergencyVisit : Create` | `201`, `400`, `403`, `409` |
 | `PUT` | `/{id}` | Mengubah data kunjungan | `EmergencyVisit : Update` | `200`, `400`, `403`, `404` |
 | `PATCH` | `/{id}/registration-status` | Mengubah status registrasi | `EmergencyVisit : Update` | `200`, `400`, `403`, `404` |
@@ -93,6 +94,79 @@ Gerbang penutupan diperluas. Menolak `409` bila salah satu berlaku:
    diajukan.
 
 Status tagihan **tidak** diperiksa, sesuai `IGD-DEC-021`.
+
+### 1.3 `GET /active-episode` — pra-cek episode berjalan, baru pada `0.10.0` (`BE-IGD-050`, `IGD-DEC-138`)
+
+`GET .../emergency-visits/active-episode?patientId={uuid}`
+
+**Latar.** Pendaftaran IGD terdiri atas dua permintaan terpisah: `POST patient-encounters` (modul Registrasi, commit
+lebih dulu) lalu `POST /` di atas. Penolakan `409` episode ganda (§1.1) baru terjadi pada permintaan kedua, sehingga
+selalu meninggalkan `RegPatientEncounter` tanpa `EmgVisit`. Endpoint ini memungkinkan layar bertanya **lebih dulu**,
+sebelum encounter dibuat. Ini lapis A pada `IGD-DEC-138`; lapis B tercatat pada `IGD-OQ-093`.
+
+| Query | Tipe | Wajib | Keterangan |
+| --- | --- | :---: | --- |
+| `patientId` | `uuid` | Ya | Pasien yang akan didaftarkan. Kosong atau `00000000-0000-0000-0000-000000000000` → `400` |
+
+**Respons `200`** — `ApiResponse<EmergencyActiveEpisodeResponse>`:
+
+| Ruas | Tipe | Keterangan |
+| --- | --- | --- |
+| `hasActiveEpisode` | `bool` | `true` bila pasien masih punya kunjungan IGD yang episodenya berjalan |
+| `visit` | `object?` | Kunjungan yang sudah ada; `null` bila `hasActiveEpisode` `false` |
+| `visit.id` | `uuid` | Untuk membuka kunjungan yang sudah ada |
+| `visit.encounterId` | `uuid?` | Encounter kunjungan itu |
+| `visit.patientId` | `uuid` | Sama dengan `patientId` pada query |
+| `visit.patientName` | `string` | Nama pasien; bila tidak ada, alias sementara; bila tidak ada, "Pasien belum teridentifikasi". **Tidak pernah kosong**, sama dengan `patientName` pada `EmergencyVisitResponse` |
+| `visit.emergencyVisitNumber` | `string` | Nomor kunjungan |
+| `visit.visitStatus` | `int` | Nilai `EmergencyVisitStatus` yang sama dengan `EmergencyVisitResponse.visitStatus` (`1` `Arrived` … `9` `Completed`) |
+| `visit.arrivalDateTime` | `datetime` | Waktu tiba (UTC) |
+
+```json
+{ "hasActiveEpisode": true,
+  "visit": { "id": "…", "encounterId": "…", "patientId": "…",
+             "patientName": "RAYYAN DHAFIR PRASETYA MAULANA",
+             "emergencyVisitNumber": "IGD-0001", "visitStatus": 2,
+             "arrivalDateTime": "2026-09-21T09:35:00Z" } }
+```
+
+Tanpa episode berjalan: `{ "hasActiveEpisode": false, "visit": null }`. Status `200` dipilih, **bukan** `404`, supaya
+pra-cek yang normal tidak menghasilkan galat pada log maupun layar.
+
+| Kode | Sebab | Pesan |
+| --- | --- | --- |
+| `400` | `patientId` kosong atau `Guid.Empty` | "patientId wajib diisi. Pilih pasien lebih dulu sebelum memeriksa kunjungan IGD yang masih berjalan." |
+| `401` | Belum login | — |
+| `403` | Tidak memegang `EmergencyVisit : Create` | — |
+
+*Nilai `patientId` yang bukan berbentuk GUID ditolak `400` oleh pengikat model bawaan ASP.NET Core dengan bentuk galat
+bawaannya, bukan `ApiResponse` — perilaku yang sama dengan seluruh filter `Guid` pada `GET /`.*
+
+**Aturan.**
+
+1. **Baca-saja.** Nol `INSERT`, `UPDATE`, atau `DELETE`: jumlah baris `RegPatientEncounter` dan `EmgVisit` sebelum dan
+   sesudah pemanggilan sama.
+2. **Satu aturan "berjalan".** Endpoint memanggil `EmergencyVisitService.CariEpisodeAktifAsync` — method yang **sama**
+   dengan penolakan `409` pada `POST /`. Kunjungan dihitung berjalan bila milik pasien itu, belum ditandai terhapus,
+   dan statusnya **bukan** `Completed` maupun `Cancelled`; `Disposed` **masih berjalan**. Bila lebih dari satu, yang
+   `arrivalDateTime`-nya terbaru dikembalikan. Nol salinan aturan, sehingga pra-cek tidak dapat menyimpang dari `POST /`.
+3. **Tidak menahan apa pun.** Endpoint hanya menyatakan fakta. Keputusan berhenti atau lanjut ada pada pemanggil: layar
+   menampilkan kunjungan yang sudah ada dan **tidak membuat encounter** bila `hasActiveEpisode` `true` dan alasan
+   pendaftaran ganda (§1.1) kosong. Pra-cek yang gagal atau tidak dijawab tidak boleh menutup pendaftaran; sikap layar
+   pada keadaan itu (`fail-open`) adalah keputusan pemilik untuk `FE-IGD-034`.
+4. **Satu kueri.** Nama pasien terbaca dalam kueri yang sama dengan pencarian kunjungan (satu `JOIN` ke `MstPatient`).
+   Nol `N+1`, nol kueri kedua.
+5. **Hak akses `EmergencyVisit : Create`.** Peran yang boleh mendaftarkan kunjungan otomatis boleh memeriksanya. Memakai
+   aksi `Create` yang sudah ada — **nol permission baru**, tidak ada baris baru pada layar Akses Role.
+6. **`POST /` tidak berubah.** Penolakan `409` episode ganda (§1.1) tetap ada sebagai jaring pengaman.
+
+**Celah yang tidak ditutup endpoint ini (`IGD-OQ-093`, `open`).** Pra-cek ditegakkan oleh **pemanggil**, bukan server.
+Karena itu: (a) dua pendaftaran serentak untuk pasien yang sama dapat sama-sama lolos pra-cek lalu salah satunya
+ditolak `409` sesudah encounter-nya terbentuk; (b) klien yang memanggil `POST patient-encounters` lalu `POST /` tanpa
+memanggil pra-cek tetap dapat meninggalkan encounter yatim. Encounter yatim yang **sudah ada** tidak dibersihkan oleh
+task ini; menghapus atau membersihkannya dilarang tanpa audit seluruh referensi (`IGD-DEC-138`).
+
+**Dampak konsumen.** Aditif: tidak ada yang rusak. `FE-IGD-034` memanggil endpoint ini sebelum `POST patient-encounters`.
 
 ---
 
@@ -186,6 +260,66 @@ tidak memutus pemakai mana pun.
 | `action`, `actionReason`, `actionByUserId`, `actionAt` | Ya | `actionReason` wajib untuk `Cancel` |
 | `acceptanceStatus`, `acceptedByUserId`, `acceptedAt`, `rejectionReason` | — | Diisi jalur `accept` / `reject` |
 | `isEffective`, `supersedesOrderItemId` | — | Menandai baris yang sudah digantikan |
+
+### 2.4 Nama pelaku pada event kepergian — baru pada `0.9.0` (`BE-IGD-049`, `IGD-DEC-137`)
+
+Setiap **event** kepergian kini membawa nama tampilan pelaku **selain** ID-nya. Perubahan ini **aditif**:
+tidak ada ruas yang dihapus, diganti nama, atau berubah nilainya.
+
+| Ruas pada `EmergencyDepartureEventResponse` | Tipe | Keterangan |
+| --- | --- | --- |
+| `recordedByUserId` | `uuid` | **Tetap.** Pengguna yang mencatat kejadian |
+| `recordedByName` | `string?` | **Baru.** Nama tampilan pencatat |
+| `approvedByUserId` | `uuid?` | **Tetap.** Penyetuju pembalikan; kosong bila kejadian tidak butuh persetujuan |
+| `approvedByName` | `string?` | **Baru.** Nama tampilan penyetuju |
+
+**Aturan.**
+
+1. **`null` bukan GUID.** Nama bernilai `null` bila pengguna tidak ditemukan, atau bila ruas ID-nya kosong
+   (`approvedByUserId` kosong pada kejadian biasa, atau `Guid.Empty`). Layar **dilarang** menampilkan GUID sebagai
+   gantinya; tampilkan tanda hubung.
+2. **Urutan nama:** `DisplayName`, lalu `UserName`, `Email`, `UserCode` — urutan yang sama dengan `recordedByName`
+   pada §7 dan `assignedByName` pada §3.2. Nilai **kosong atau spasi dilewati**: `ApplicationUser.DisplayName`
+   bernilai bawaan string kosong dan tidak pernah `null`, jadi tanpa penyaringan ini urutan itu tidak pernah
+   jatuh ke calon berikutnya. Hasilnya tidak pernah string kosong.
+3. **Riwayat tetap terbaca.** Nama diambil tanpa menyaring status pengguna, sehingga pelaku yang sudah tidak
+   aktif tetap muncul.
+4. **Efisiensi.** Nama seluruh kejadian pada **satu respons** diambil dengan **satu** kueri ke tabel pengguna
+   (`WHERE Id IN (...)`), berapa pun jumlah kejadian atau kepergian pada halaman itu. Nol `N+1`, nol kolom baru,
+   nol migration.
+
+**Endpoint yang bentuk responsnya berubah** (route, request, dan hak akses **tidak** berubah):
+
+| Method | Path | Respons yang memuat event |
+| --- | --- | --- |
+| `GET` | `/` | Setiap kepergian pada halaman, `events[]` |
+| `GET` | `/{id}` | `events[]` |
+| `POST` | `/` | `events[]` (event `Prepared`) |
+| `POST` | `/{id}/submit-handover`, `/depart`, `/arrive`, `/accept-handover`, `/reject-handover`; `PATCH /{id}/cancel` | `events[]` |
+| `POST` | `/{id}/events/{eventId}/amend` | Satu event (`EmergencyDepartureEventResponse`) |
+| `POST` | `/{id}/events/{eventId}/reverse` | Satu event; `approvedByName` terisi |
+
+Contoh event hasil pembalikan:
+
+```json
+{
+  "id": "…",
+  "eventType": 11,
+  "recordedByUserId": "0ba84a1a-…",
+  "recordedByName": "Ns. Ani Rahmawati",
+  "approvedByUserId": "5c21e0d4-…",
+  "approvedByName": "dr. Budi Santoso",
+  "isEffective": true
+}
+```
+
+**Yang sengaja tidak termasuk (`IGD-DEC-137`).** Ruas aktor lain tetap berupa ID dan **tidak** diberi nama:
+`requestedByUserId`, `sendingNurseUserId`, `receivingNurseUserId` pada kepergian, serta `actionByUserId` dan
+`acceptedByUserId` pada baris pesanan. Menambahkannya butuh keputusan tersendiri. Keputusan ini juga tidak
+mengubah authorization maupun siapa yang boleh membaca data pengguna: hak akses tiap endpoint sama seperti sebelumnya.
+
+**Dampak konsumen.** Tidak ada yang rusak: konsumen lama mengabaikan dua ruas baru. `FE-IGD-017` menampilkan
+`recordedByName` dan `approvedByName` pada tab kepergian menggantikan GUID mentah.
 
 ---
 

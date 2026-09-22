@@ -2,11 +2,11 @@
 
 | Field | Nilai |
 | --- | --- |
-| `contract_version` | `0.6.0` — pemantauan observasi bertanda vital, 16 September 2026. **Aditif**: bagian 9 baru; nol aturan lama diubah teksnya. Empat penolakan baru pada `POST .../emergency-observation-details` (`IGD-DEC-122`, `IGD-DEC-126`). *Sebelumnya `0.5.0` — penyelarasan teks 15 September 2026: pesan bagian 1 aturan 2 (`IGD-DEC-120`), pesan bagian 6 aturan 4 (`IGD-DEC-118`), dan bagian 8 baru (`IGD-DEC-119`, `IGD-DEC-121`)* |
+| `contract_version` | `0.7.0` — pra-cek episode IGD berjalan, 21 September 2026. **Aditif**: bagian 1.2 baru (`BE-IGD-050`, `IGD-DEC-138`); nol aturan lama diubah teksnya — aturan 4 bagian 1 dan penolakan `409`-nya tetap sebagai jaring pengaman. Sebelumnya `0.6.0` — pemantauan observasi bertanda vital, 16 September 2026. **Aditif**: bagian 9 baru; nol aturan lama diubah teksnya. Empat penolakan baru pada `POST .../emergency-observation-details` (`IGD-DEC-122`, `IGD-DEC-126`). *Sebelumnya `0.5.0` — penyelarasan teks 15 September 2026: pesan bagian 1 aturan 2 (`IGD-DEC-120`), pesan bagian 6 aturan 4 (`IGD-DEC-118`), dan bagian 8 baru (`IGD-DEC-119`, `IGD-DEC-121`)* |
 | Status | `draft`, **kecuali bagian 2 aturan 4 dan 5 yang `approved`** |
 | Owner | Product/Domain Owner IGD: **Rizki Gunawan** (`IGD-DEC-089`) |
 | `approved_by` / `approved_at` | **Rizki Gunawan / 2026-08-24** — terbatas pada bagian 2 aturan 4 dan 5 lewat `IGD-DEC-093`. Seluruh aturan lain tetap `draft` |
-| Versi sebelumnya | `0.5.0`, sebelumnya `0.4.0`, `0.3.0`, dan `0.2.0` |
+| Versi sebelumnya | `0.6.0`, sebelumnya `0.5.0`, `0.4.0`, `0.3.0`, dan `0.2.0` |
 
 Aturan penulisan pesan: pesan penolakan **wajib** menyebut apa yang salah dan apa yang harus
 dilakukan petugas. Pesan yang hanya menyebut nama kolom teknis dianggap belum selesai.
@@ -38,6 +38,26 @@ server. Pemakaian jalan keluar **wajib** muncul pada daftar pantau.
 
 Aturan 4 **tidak pernah** menahan penanganan klinis; yang tertahan hanya pembuatan kunjungan
 kedua.
+
+### 1.2 Pra-cek aturan 4 sebelum encounter dibuat — baru pada `0.7.0` (`BE-IGD-050`, `IGD-DEC-138`)
+
+Aturan 4 ditegakkan pada `POST /`, yaitu **sesudah** `POST patient-encounters` (modul Registrasi) commit. Penolakannya
+karena itu selalu meninggalkan encounter tanpa kunjungan IGD. Pra-cek `GET emergency-visits/active-episode` (API §1.3)
+memeriksa keadaan yang sama **sebelum** encounter dibuat. Aturan 4 sendiri dan `409`-nya **tidak berubah**.
+
+| No | Aturan | Kode | Pesan | Keputusan |
+| ---: | --- | :-: | --- | --- |
+| 1 | `patientId` pada pra-cek wajib berupa identitas pasien yang valid (bukan kosong, bukan `Guid.Empty`) | `400` | "patientId wajib diisi. Pilih pasien lebih dulu sebelum memeriksa kunjungan IGD yang masih berjalan." | `IGD-DEC-138` |
+| 2 | Pasien dengan kunjungan IGD berjalan **bukan** penolakan pada pra-cek: jawabannya `200`, `hasActiveEpisode` `true`, beserta kunjungannya | `200` | — (tidak ada pesan galat) | `IGD-DEC-138` |
+| 3 | Pasien tanpa kunjungan IGD berjalan: `200`, `hasActiveEpisode` `false`, `visit` `null` — bukan `404` | `200` | — | `IGD-DEC-138` |
+| 4 | Pra-cek **baca-saja**: tidak boleh membuat, mengubah, atau menghapus baris apa pun | — | — | `IGD-DEC-138` |
+| 5 | Definisi "berjalan" **satu sumber** dengan aturan 4: `EmergencyVisitService.CariEpisodeAktifAsync`. Pra-cek tidak boleh memakai definisi sendiri | — | — | `IGD-DEC-084`, `IGD-DEC-138` |
+
+**Yang tidak ditegakkan pra-cek, dan sebabnya.** Pra-cek dipanggil dan ditegakkan oleh **klien**, bukan server. Ia
+tidak menutup dua keadaan: pendaftaran serentak untuk pasien yang sama, dan klien yang tidak memanggilnya
+(`IGD-OQ-093`, `open`). Untuk keduanya aturan 4 pada `POST /` tetap menolak `409`, tetapi encounter dari
+`POST patient-encounters` sudah terlanjur tersimpan. Encounter yatim yang sudah ada dilarang dihapus atau dibersihkan
+tanpa audit seluruh referensi.
 
 ---
 
