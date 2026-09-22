@@ -3,9 +3,9 @@
 | Field | Nilai |
 | --- | --- |
 | `contract_version` | `0.4.0` — encounter-first, 22 September 2026, **Rencana (belum tersedia)**. **Aditif pada dokumen**: bagian 5 baru; bagian 1–4 tidak diubah. Secara perilaku **memutus** untuk Registrasi (penolakan Emergency pada jalur umum, pintu encounter memanggil aturan IGD). Sebelumnya `0.3.0` |
-| Status | `draft` |
+| Status | `draft`, **kecuali bagian 5 (encounter-first) yang `approved`** (`IGD-DEC-157`, 22 September 2026) |
 | Owner | Product/Domain Owner IGD: **Rizki Gunawan** (`IGD-DEC-089`) |
-| `approved_by` / `approved_at` | — / — |
+| `approved_by` / `approved_at` | **Rizki Gunawan / 2026-09-22** — bagian 5 (encounter-first) lewat `IGD-DEC-157` — termasuk koreksi B1 pada §5.2. Bagian 1–4 tetap `draft` |
 | Versi sebelumnya | `0.2.0` |
 
 ---
@@ -119,6 +119,8 @@ Titik sentuh lintas modul yang lahir dari `IGD-DEC-139`, `142`, `144`, `145`, `1
 integrasi **di dalam satu proses** (panggilan service/static method dalam satu `ApplicationDbContext`) —
 nol antrean pesan, nol integrasi eksternal.
 
+**Status bagian ini: `approved`** — `IGD-DEC-157`, 22 September 2026; terkunci hash (manifest bagian 2).
+
 ### 5.1 Modul yang disentuh
 
 | Modul | Arah | Sifat | Pemilik | Menahan rilis |
@@ -133,7 +135,7 @@ nol antrean pesan, nol integrasi eksternal.
 
 | Kejadian | Siapa memanggil siapa | Kontrak | Transaksi |
 | --- | --- | --- | --- |
-| Encounter Emergency dibuat | `PatientEncounterController.CreateEncounterCoreAsync` (Registrasi) → aturan episode IGD (`public static` pada `EmergencyVisitService`) | Kunci per pasien → rumus episode → tolak `409` atau tulis catatan override IGD → **baru** kunci penomoran dan sisip encounter; tanpa `TrxQueue` | Transaksi Registrasi yang sudah ada (`:559`) — satu transaksi |
+| Encounter Emergency dibuat | `PatientEncounterController.CreateEncounterCoreAsync` (Registrasi) → aturan episode IGD (static class `EmergencyEpisodeRule`, `02-backend-architecture.md` §13.4 — **dikoreksi 22 September 2026, B1 `IGD-DEC-157`**; sebelumnya ditulis "`public static` pada `EmergencyVisitService`") | Kunci per pasien → rumus episode → tolak `409` atau tulis catatan override IGD → **baru** kunci penomoran dan sisip encounter; tanpa `TrxQueue` | Transaksi Registrasi yang sudah ada (`:559`) — satu transaksi |
 | Status encounter Emergency diubah lewat jalur umum | Registrasi menolak berdasarkan `EncounterType` | Validation §10.1 aturan 8–9 | — |
 | Kunjungan IGD selesai / batal | `EmergencyVisitController` (IGD) menulis kolom status akhir `RegPatientEncounter` dan memanggil penguncian catatan Medical Record | Kolom yang ditulis: API §8.3.7 | Satu `SaveChanges` milik aksi kunjungan |
 | Pasien pergi sebelum ditriage | IGD menulis `EncounterStatus = NoShow`, `NoShowAt`, `NoShowByUserId`, `NoShowReason` | Validation §10.3 | Satu `SaveChanges` |

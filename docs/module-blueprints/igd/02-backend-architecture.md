@@ -1284,6 +1284,9 @@ tetapi tidak lagi menentukan perilaku (`IGD-DEC-144`).
 
 Bukan keputusan bisnis baru — pilihan realisasi yang agent ambil dan perlu dilihat pemilik.
 
+**Dijawab 22 September 2026:** ketiganya disahkan apa adanya — `IGD-OQ-104` → `IGD-DEC-159`, `IGD-OQ-105` →
+`IGD-DEC-160`, `IGD-OQ-106` → `IGD-DEC-161`. Rekonsiliasi tanpa layar (`IGD-OQ-107`) → `IGD-DEC-162`.
+
 | ID | Pilihan desain | Alasan | Bila ditolak |
 | --- | --- | --- | --- |
 | `IGD-OQ-104` | Waktu tiba hanya dapat diubah lewat `PATCH /{id}/arrival-time`; `PUT` menolak perubahannya | Satu jalur yang menegakkan `IGD-DEC-152` dan menulis penanda; nol layar memakai `PUT` | `PUT` menjalankan validasi yang sama dan ikut menandai `Confirmed` |

@@ -479,6 +479,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
+            var statusSebelumnya = entity.VisitStatus;
             entity.VisitStatus = request.VisitStatus;
             if (request.VisitStatus == EmergencyVisitStatus.InTreatment)
                 entity.TreatmentStartedAt ??= now;
@@ -493,13 +494,31 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             entity.UpdateDateTime = now;
             entity.UpdateBy = actorUserId;
 
+            // BE-IGD-051 - kunjungan yang BARU dibatalkan ikut membatalkan encounter-nya pada
+            // penyimpanan yang sama. Dipicu perpindahannya, bukan status tujuannya: CanTransition
+            // menerima Cancelled ke Cancelled sebagai tindakan idempoten, dan pengiriman ulang
+            // itu tidak boleh menutup encounter lama dengan waktu pembatalan hari ini. Encounter
+            // lama semacam itu milik rekonsiliasi berbasis bukti (BE-IGD-052).
+            var encounterDitutup = false;
+            if (request.VisitStatus == EmergencyVisitStatus.Cancelled &&
+                statusSebelumnya != EmergencyVisitStatus.Cancelled)
+            {
+                encounterDitutup = await _emergencyVisitService.ApplyEncounterClosureAsync(
+                    entity,
+                    EmergencyVisitStatus.Cancelled,
+                    actorUserId,
+                    now,
+                    request.Notes,
+                    cancellationToken);
+            }
+
             await _dbContext.SaveChangesAsync(cancellationToken);
 
             await _loggerService.InfoAsync(
                 LogCategory,
                 "EmergencyVisit.UpdateVisitStatus",
                 "Memperbarui proses Emergency Visit melalui aksi UpdateVisitStatus.",
-                new { EntityId = id, Controller = "EmergencyVisit", Action = "UpdateVisitStatus" }
+                new { EntityId = id, Controller = "EmergencyVisit", Action = "UpdateVisitStatus", entity.EncounterId, EncounterDitutup = encounterDitutup }
             );
 
             return Ok(ApiResponse<EmergencyVisitResponse>.Ok(ToResponse(entity), "Status kunjungan IGD berhasil diubah."));
@@ -559,13 +578,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             entity.UpdateDateTime = now;
             entity.UpdateBy = actorUserId;
 
+            // BE-IGD-051 - encounter ikut Completed dan catatan klinis yang belum ditandatangani
+            // dikunci (RM-DEC-003), pada SaveChanges yang sama dengan penyelesaian kunjungan.
+            // TryApplyVisitStatus di atas selalu merupakan perpindahan nyata: CanTransition
+            // menolak Completed ke Completed.
+            var encounterDitutup = await _emergencyVisitService.ApplyEncounterClosureAsync(
+                entity,
+                EmergencyVisitStatus.Completed,
+                actorUserId,
+                now,
+                cancellationToken: cancellationToken);
+
             await _dbContext.SaveChangesAsync(cancellationToken);
 
             await _loggerService.InfoAsync(
                 LogCategory,
                 "EmergencyVisit.Complete",
                 "Memperbarui proses Emergency Visit melalui aksi Complete.",
-                new { EntityId = id, Controller = "EmergencyVisit", Action = "Complete" }
+                new { EntityId = id, Controller = "EmergencyVisit", Action = "Complete", entity.EncounterId, EncounterDitutup = encounterDitutup }
             );
 
             // IGD-DEC-106 syarat (d) - penutupan tidak boleh pernah diam soal dokumen serah

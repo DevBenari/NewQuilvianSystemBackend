@@ -364,7 +364,7 @@ Instalasi Gawat Darurat                  <- tingkat 0 (sudah ada)
 | Pendaftaran Pasien | 1 | Instalasi Gawat Darurat | `/health-services/registration-management/emergency-registration` | 13.3 A | `PatientEncounter : Create` | Sudah ada — **isi berubah** |
 | Triage Pasien | 1 | Instalasi Gawat Darurat | `/health-services/emergency-installation-management/emergency-triage` | 13.3 B, C | `EmergencyVisit : Read` | Sudah ada — **sumber data dan aksi berubah** |
 | Detail triage (layar anak) | — | Triage Pasien | `.../emergency-triage/[slug]` | 13.3 D | `EmergencyTriage : Read` | Sudah ada — **panel waktu tiba ditambahkan** |
-| Rekonsiliasi encounter (admin) | — | — | — | **Tidak ada layar** pada slice ini | `EmergencyEncounterReconciliation : Read` | Lihat `IGD-OQ-107` |
+| Rekonsiliasi encounter (admin) | — | — | — | **Tidak ada layar** pada slice ini | `EmergencyEncounterReconciliation : Read` | `IGD-DEC-162` (menjawab `IGD-OQ-107`) |
 
 ### 13.3 Skema fitur per layar
 
@@ -393,7 +393,7 @@ Instalasi Gawat Darurat                  <- tingkat 0 (sudah ada)
 
 **Langkah "Kunjungan IGD" pada wizard.** Isian **waktu tiba dihapus** dari loket (`IGD-DEC-147`). Nasib ruas
 kunjungan lain (cara datang, jenis kasus, lokasi/waktu trauma, penanda tanpa identitas) mengikuti
-`IGD-OQ-106`; usulan desain: pindah ke Mulai Triage, dan keluhan utama tetap di loket karena encounter sudah
+`IGD-DEC-161` (menjawab `IGD-OQ-106`): pindah ke Mulai Triage, dan keluhan utama tetap di loket karena encounter sudah
 punya ruasnya.
 
 **Pasien tanpa identitas** (`IGD-DEC-151`): dicari/didaftarkan lewat langkah Pasien yang sudah ada sebagai
@@ -438,7 +438,7 @@ rekam pengganti. Tidak ada jalur "lewati pasien".
 | Wilayah | Isi | Sumber data | Hak akses | Gagal |
 | --- | --- | --- | --- | --- |
 | Waktu tiba | Wajib; terisi awal `registeredAt` dari baris daftar; boleh dimundurkan; tidak boleh di masa depan | Dikirim ke `POST /start-triage` (`mode = Triage`) | `EmergencyVisit : Create` | `400` ditampilkan di bawah isian |
-| Ruas opsional | Cara datang, jenis kasus, keluhan, penanda tanpa identitas | Master yang sudah ada; keluhan awal dari encounter | — | Mengikuti `IGD-OQ-106` |
+| Ruas opsional | Cara datang, jenis kasus, keluhan, penanda tanpa identitas | Master yang sudah ada; keluhan awal dari encounter | — | `IGD-DEC-161` |
 | Hasil | `201`/`200` → langsung membuka **Detail triage** kunjungan itu | Respons `start-triage` | — | `409` (encounter berakhir, K4, kunjungan lain berjalan) → pesan apa adanya, baris dimuat ulang |
 
 **Tangani Segera** dari baris tanpa kunjungan: konfirmasi pola yang sudah ada (`FE-IGD-030`), **tanpa isian**,
@@ -458,7 +458,7 @@ lalu `POST /start-triage` `mode = ImmediateCare`, lalu membuka Pengkajian IGD se
 | --- | --- | --- | --- | --- |
 | Panel | Tampil bila `arrivalTimeSource` = `0` atau `1`; bila `2`, tampil ringkas "Tiba 09.20 · dikonfirmasi <nama>" | `GET /emergency-visits/{id}` (ruas baru §8.3.4) | `EmergencyVisit : Read` | — |
 | Konfirmasi | Menyimpan waktu tiba | `PATCH /emergency-visits/{id}/arrival-time` | `EmergencyVisit : Update` | `409` menyebut peristiwa penghalang — ditampilkan apa adanya |
-| Simpan triage | **Layar** meminta konfirmasi lebih dulu bila masih sementara; **backend tidak menolak** triage karena ini (`IGD-OQ-105`) | — | — | — |
+| Simpan triage | **Layar** meminta konfirmasi lebih dulu bila masih sementara; **backend tidak menolak** triage karena ini (`IGD-DEC-160`, menjawab `IGD-OQ-105`) | — | — | — |
 
 ### 13.4 Aturan layar yang mengikat
 

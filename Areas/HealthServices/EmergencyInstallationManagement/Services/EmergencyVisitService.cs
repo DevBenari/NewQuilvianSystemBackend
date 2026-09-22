@@ -5,6 +5,7 @@ using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
@@ -20,14 +21,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
     {
         private readonly ApplicationDbContext _dbContext;
         private readonly EmergencyDocumentNumberService _documentNumberService;
+        private readonly ClinicalDocumentIntegrityService _integrityService;
 
         public EmergencyVisitService(
             ApplicationDbContext dbContext,
-            EmergencyDocumentNumberService documentNumberService)
+            EmergencyDocumentNumberService documentNumberService,
+            ClinicalDocumentIntegrityService integrityService)
         {
             _dbContext = dbContext;
             _documentNumberService = documentNumberService;
+            _integrityService = integrityService;
         }
+
+        /// <summary>
+        /// Alasan pembatalan encounter bila petugas tidak menulis catatan saat membatalkan
+        /// kunjungan IGD (API <c>0.11.0</c> §8.3.7).
+        /// </summary>
+        public const string AlasanBakuPembatalanEncounter = "Kunjungan IGD dibatalkan";
+
+        // Batas kolom RegPatientEncounter.CancelReason (HasMaxLength(250)). Catatan permintaan
+        // pembatalan kunjungan boleh sampai 2000 karakter; tanpa pemotongan, catatan panjang
+        // menggagalkan seluruh pembatalan.
+        private const int PanjangMaksimalAlasanPembatalanEncounter = 250;
 
         /// <summary>
         /// Pesan penolakan ketika pengaturan IGD tidak tersedia dan tidak dapat disimpulkan.
@@ -481,6 +496,119 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             visit.VisitStatus = target;
             visit.UpdateDateTime = now;
             visit.UpdateBy = actorUserId;
+            return true;
+        }
+
+        /// <summary>
+        /// Menutup encounter milik kunjungan IGD yang baru saja berakhir. Mengembalikan
+        /// <c>true</c> bila encounter ditutup oleh pemanggilan ini.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-IGD-051</c>, keputusan <c>IGD-DEC-139</c> butir 5 dan <c>IGD-DEC-148</c>
+        /// (TK-1 tidak, TK-2 ya); kontrak API <c>0.11.0</c> §8.3.7, validation <c>0.8.0</c>
+        /// §10.5, integration <c>0.4.0</c> §5.2.
+        ///
+        /// <para>
+        /// Sebelum task ini, IGD tidak pernah menyentuh <c>EncounterStatus</c>. Setiap kunjungan
+        /// yang selesai meninggalkan encounter "masih terbuka" selamanya, dan catatan klinis yang
+        /// lupa ditandatangani tetap dapat diubah.
+        /// </para>
+        ///
+        /// <para>
+        /// Metode ini <b>tidak</b> memanggil <c>SaveChangesAsync</c> dan tidak membuka transaksi.
+        /// Perubahan encounter dan penguncian catatan ikut penyimpanan aksi kunjungan, sehingga
+        /// bila salah satunya gagal, kunjungan dan encounter sama-sama tidak berubah.
+        /// </para>
+        ///
+        /// <para>
+        /// Kolom encounter yang ditulis hanya yang ada pada daftar tertutup integration §5.2.
+        /// <c>CancelDateTime</c>/<c>CancelBy</c> dan pembatalan antrean yang dilakukan jalur
+        /// Registrasi <b>tidak</b> ikut ditulis.
+        /// </para>
+        ///
+        /// <para>
+        /// Encounter tidak ditulis bila: kunjungan tanpa encounter; encounter tidak ditemukan
+        /// atau terhapus; tipenya bukan <c>Emergency</c> maupun <c>Outpatient</c> masa transisi
+        /// (lihat <see cref="PeriksaJenisEncounter"/>); atau encounter sudah berakhir menurut
+        /// <see cref="EmergencyEpisodeRule.IsEncounterEnded"/> — waktu, pelaku, dan alasan lama
+        /// tidak ditimpa. Hapus lunak kunjungan <b>tidak</b> memanggil metode ini (TK-1).
+        /// </para>
+        /// </remarks>
+        /// <param name="visit">Kunjungan yang statusnya baru saja menjadi terminal.</param>
+        /// <param name="terminalStatus"><c>Completed</c> atau <c>Cancelled</c>.</param>
+        /// <param name="catatanPembatalan">
+        /// Catatan permintaan pembatalan kunjungan. Dipakai sebagai <c>CancelReason</c> encounter,
+        /// dipotong ke batas kolomnya; bila kosong dipakai
+        /// <see cref="AlasanBakuPembatalanEncounter"/>. Diabaikan untuk <c>Completed</c>.
+        /// </param>
+        public async Task<bool> ApplyEncounterClosureAsync(
+            EmgVisit visit,
+            EmergencyVisitStatus terminalStatus,
+            Guid actorUserId,
+            DateTime now,
+            string? catatanPembatalan = null,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(visit);
+
+            if (terminalStatus is not (EmergencyVisitStatus.Completed or EmergencyVisitStatus.Cancelled))
+                throw new ArgumentOutOfRangeException(
+                    nameof(terminalStatus),
+                    terminalStatus,
+                    "Encounter hanya ditutup ketika kunjungan IGD selesai atau dibatalkan.");
+
+            if (!visit.EncounterId.HasValue || visit.EncounterId.Value == Guid.Empty)
+                return false;
+
+            var encounter = await _dbContext.Set<RegPatientEncounter>()
+                .FirstOrDefaultAsync(
+                    x => x.Id == visit.EncounterId.Value && !x.IsDelete,
+                    cancellationToken);
+
+            if (encounter == null)
+                return false;
+
+            if (PeriksaJenisEncounter(encounter.EncounterType) != null)
+                return false;
+
+            if (EmergencyEpisodeRule.IsEncounterEnded(encounter))
+                return false;
+
+            if (terminalStatus == EmergencyVisitStatus.Completed)
+            {
+                encounter.EncounterStatus = EncounterStatus.Completed;
+                encounter.CompletedAt ??= now;
+                encounter.UpdateDateTime = now;
+                encounter.UpdateBy = actorUserId;
+
+                // RM-DEC-003 lapis kedua, sama dengan PATCH /patient-encounters/{id}/status ke
+                // Completed. Penguncian tidak menyimpan sendiri; ia ikut SaveChanges pemanggil.
+                await _integrityService.LockOpenDocumentsForEncounterAsync(
+                    encounter.Id,
+                    actorUserId,
+                    now,
+                    encounter.CompletedAt,
+                    cancellationToken: cancellationToken);
+
+                return true;
+            }
+
+            var alasan = string.IsNullOrWhiteSpace(catatanPembatalan)
+                ? AlasanBakuPembatalanEncounter
+                : catatanPembatalan.Trim();
+
+            if (alasan.Length > PanjangMaksimalAlasanPembatalanEncounter)
+                alasan = alasan[..PanjangMaksimalAlasanPembatalanEncounter];
+
+            encounter.EncounterStatus = EncounterStatus.Cancelled;
+            encounter.IsCancel = true;
+            encounter.IsActive = false;
+            encounter.CancelledAt = now;
+            encounter.CancelledByUserId = actorUserId;
+            encounter.CancelReason = alasan;
+            encounter.UpdateDateTime = now;
+            encounter.UpdateBy = actorUserId;
+
             return true;
         }
 

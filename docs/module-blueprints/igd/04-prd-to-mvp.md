@@ -363,7 +363,7 @@ saat proses klinis dimulai, dan berakhir bersih — tidak ada encounter yang ter
 | Ditunda | Alasan bersebab | Pengganti selama MVP |
 | --- | --- | --- |
 | Kelayakan dokter jaga dan override (`IGD-CAP-64`) | `IGD-OQ-102` (sumber roster) dan `IGD-OQ-103` (penyimpanan penanda) belum dijawab; angka E1–E3 belum ada | Penetapan dokter berjalan seperti hari ini (`BE-IGD-045`, `FE-IGD-027` ✅) — pilihan dari seluruh master dokter aktif |
-| Layar rekonsiliasi admin | `IGD-OQ-107` — usulan desain: tanpa layar | Admin menjalankan lewat API (Swagger) dengan hak akses khusus |
+| Layar rekonsiliasi admin | `IGD-DEC-162` (menjawab `IGD-OQ-107`) — tanpa layar | Admin menjalankan lewat API dengan hak akses khusus. **Koreksi B4, 22 September 2026:** Swagger hanya aktif di Development (`Program.cs:1330`); lingkungan lain lewat HTTP client bertoken |
 | Penggabungan rekam pasien pengganti dengan rekam asli | Milik Master Patient (`IGD-OQ-098`, pemilik belum dipetakan) | Rekam pengganti tetap terpisah; kunjungan bertanda `IsUnknownPatient` untuk ditelusuri |
 | Layar laporan override dan "pergi sebelum ditriage" | Slice kemudian (gate §5.2) | Datanya tersimpan; kueri baca-saja oleh pemilik |
 | Tindak lanjut pasien berisiko yang pergi | Menunggu Clinical Governance (`IGD-DEC-150`) | Prosedur manual di luar sistem |
@@ -434,7 +434,7 @@ Urutan **di dalam** `MVP-7` yang mengikat (rinciannya milik `plan-module-deliver
 | 4 | Snapshot EF hanya bertambah blok tabel slice ini | `git diff` snapshot |
 | 5 | Nol kolom baru pada `RegPatientEncounter`; nol baris baru `Program.cs` | `git diff --stat` |
 | 6 | Kueri invariant "kunjungan berakhir, encounter terbuka" sesudah rilis = 0 | Kueri baca-saja pemilik |
-| 7 | Kontrak `0.11.0`/`0.8.0`/`0.5.0`/`0.4.0`/`0.5.0` dinyatakan `approved` oleh pemilik dan hash dihitung ulang | `blueprint-manifest.md` |
+| 7 | Kontrak `0.11.0`/`0.8.0`/`0.5.0`/`0.4.0`/`0.5.0` dinyatakan `approved` oleh pemilik dan hash dihitung ulang | `blueprint-manifest.md` — **terpenuhi 22 September 2026** (`IGD-DEC-157`; manifest bagian 2) |
 | 8 | Perubahan pada berkas Registrasi disetujui pemilik Registrasi secara tertulis | **Belum dapat dijawab "ya"** — pemilik belum dipetakan; berjalan di bawah `IGD-DEC-135` |
 | 9 | Butir wajib tinjau klinis (`IGD-DEC-150`) tercatat belum ditinjau | Manifest dan MODULE-STATUS |
 | 10 | UAT oleh tim UAT terpisah | Status UAT dipisah; agent tidak pernah menulis `UAT PASS` |
@@ -444,10 +444,11 @@ Urutan **di dalam** `MVP-7` yang mengikat (rinciannya milik `plan-module-deliver
 | ID | Pertanyaan | Memblokir |
 | --- | --- | :-: |
 | `IGD-OQ-102`, `IGD-OQ-103` | Sumber roster dan penanda override dokter | **Ya** — hanya `EPIC IGD-12` (tidak di gelombang mana pun) |
-| `IGD-OQ-104` | Waktu tiba hanya lewat `PATCH …/arrival-time` | Tidak — pilihan desain berlaku sampai pemilik menolak |
-| `IGD-OQ-105` | Backend tidak menahan triage karena waktu tiba sementara | Tidak — sama |
-| `IGD-OQ-106` | Letak ruas kunjungan non-waktu (Mulai Triage) | Tidak untuk backend (ruasnya opsional); **Ya** untuk isi layar loket/Mulai Triage |
-| `IGD-OQ-107` | Rekonsiliasi tanpa layar | Tidak |
+| `IGD-OQ-104` | Waktu tiba hanya lewat `PATCH …/arrival-time` | **Dijawab `IGD-DEC-159`** (22 September 2026) — pilihan desain disahkan |
+| `IGD-OQ-105` | Backend tidak menahan triage karena waktu tiba sementara | **Dijawab `IGD-DEC-160`** — disahkan; wajib tinjau Nursing authority |
+| `IGD-OQ-106` | Letak ruas kunjungan non-waktu (Mulai Triage) | **Dijawab `IGD-DEC-161`** — ruas pindah ke Mulai Triage; keluhan utama tetap di loket |
+| `IGD-OQ-107` | Rekonsiliasi tanpa layar | **Dijawab `IGD-DEC-162`** — tanpa layar |
+| `IGD-OQ-108` | Encounter kedua hasil override belum dapat Mulai Triage selama kunjungan lama berjalan | Tidak — kontrak berlaku sampai pemilik mengubahnya; sebaiknya dijawab sebelum `FE-IGD-036` dirilis |
 | Kueri D | Angka K1–K4 per lingkungan | Tidak untuk development; **Ya** untuk eksekusi rekonsiliasi |
 | `IGD-OQ-098`, `IGD-OQ-099` | Pemilik Master Patient; penunjukan Clinical Governance / Nursing | Tidak |
 | Pemilik Registrasi | Persetujuan tertulis atas titik sentuh | Tidak untuk development (`IGD-DEC-135`); **Ya** untuk DoD butir 8 |

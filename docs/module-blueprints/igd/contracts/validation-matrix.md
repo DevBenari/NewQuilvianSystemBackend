@@ -3,9 +3,9 @@
 | Field | Nilai |
 | --- | --- |
 | `contract_version` | `0.8.0` — encounter-first, 22 September 2026, **Rencana (belum tersedia)**. Bagian 10 baru (enam sub-bagian); **bukan aditif murni**: sumber aturan §1.2 aturan 5 (dan §1 aturan 4) berganti dari `CariEpisodeAktifAsync` ke rumus §10.1 aturan 2 (klausa A+B). Kalimat aturan lama **tidak** diubah; teks penggantian dicatat di §10.1. Sebelumnya `0.7.0` — pra-cek episode IGD berjalan, 21 September 2026. **Aditif**: bagian 1.2 baru (`BE-IGD-050`, `IGD-DEC-138`); nol aturan lama diubah teksnya — aturan 4 bagian 1 dan penolakan `409`-nya tetap sebagai jaring pengaman. Sebelumnya `0.6.0` — pemantauan observasi bertanda vital, 16 September 2026. **Aditif**: bagian 9 baru; nol aturan lama diubah teksnya. Empat penolakan baru pada `POST .../emergency-observation-details` (`IGD-DEC-122`, `IGD-DEC-126`). *Sebelumnya `0.5.0` — penyelarasan teks 15 September 2026: pesan bagian 1 aturan 2 (`IGD-DEC-120`), pesan bagian 6 aturan 4 (`IGD-DEC-118`), dan bagian 8 baru (`IGD-DEC-119`, `IGD-DEC-121`)* |
-| Status | `draft`, **kecuali bagian 2 aturan 4 dan 5 yang `approved`** |
+| Status | `draft`, **kecuali bagian 2 aturan 4 dan 5, dan bagian 10 (encounter-first), yang `approved`** |
 | Owner | Product/Domain Owner IGD: **Rizki Gunawan** (`IGD-DEC-089`) |
-| `approved_by` / `approved_at` | **Rizki Gunawan / 2026-08-24** — terbatas pada bagian 2 aturan 4 dan 5 lewat `IGD-DEC-093`. Seluruh aturan lain tetap `draft` |
+| `approved_by` / `approved_at` | **Rizki Gunawan / 2026-08-24** — terbatas pada bagian 2 aturan 4 dan 5 lewat `IGD-DEC-093`. **Rizki Gunawan / 2026-09-22** — bagian 10 (encounter-first) lewat `IGD-DEC-157` — termasuk koreksi pesan §10.4 aturan 4 (B2). Seluruh aturan lain tetap `draft` |
 | Versi sebelumnya | `0.6.0`, sebelumnya `0.5.0`, `0.4.0`, `0.3.0`, dan `0.2.0` |
 
 Aturan penulisan pesan: pesan penolakan **wajib** menyebut apa yang salah dan apa yang harus
@@ -304,6 +304,8 @@ benar, permintaan itu tetap ditolak.
 Aturan untuk API bagian 8 (`0.11.0`). Diturunkan dari `IGD-DEC-139`, `142`…`148`, `150`…`154`. Kalimat
 pesan di bawah **mengikat**: layar menampilkannya apa adanya, dan flowchart tidak menyalinnya.
 
+**Status bagian ini: `approved`** — `IGD-DEC-157`, 22 September 2026; terkunci hash (manifest bagian 2).
+
 ### 10.1 Episode terbuka dan pendaftaran Emergency
 
 | No | Aturan | Kode | Pesan | Keputusan |
@@ -359,7 +361,7 @@ kunjungan dan pesan aturan 3 bagian "belum lahir" bila berupa encounter.
 | 1 | Tidak boleh di masa depan | `400` | Pesan §10.2 aturan 9 | `IGD-DEC-152` |
 | 2 | Tidak boleh lebih lambat dari peristiwa klinis pertama yang sudah tercatat: mulai triage paling awal (`EmgTriage.StartedAt`), `TreatmentStartedAt`, atau `EffectiveFrom` penugasan dokter paling awal | `409` | *"Waktu tiba tidak boleh lebih lambat dari {mulai triage / mulai penanganan / penugasan dokter pertama} pukul {jam}."* | `IGD-DEC-152` |
 | 3 | Batasnya peristiwa klinis, **bukan** `RegisteredAt` — pasien yang didaftarkan sebelum tiba tetap dapat dicatat | — | — | `IGD-DEC-152` |
-| 4 | `PUT /emergency-visits/{id}` yang mengubah `patientId`, `encounterId`, atau `arrivalDateTime` ditolak | `409` | *"Pasien, encounter, dan waktu tiba kunjungan IGD tidak dapat diubah dari sini. Waktu tiba diubah lewat konfirmasi waktu tiba; perubahan identitas pasien lewat penggabungan rekam pasien."* | `IGD-DEC-154`, `147` |
+| 4 | `PUT /emergency-visits/{id}` yang mengubah `patientId`, `encounterId`, atau `arrivalDateTime` ditolak | `409` | *"Pasien, encounter, dan waktu tiba kunjungan IGD tidak dapat diubah dari sini. Waktu tiba diubah lewat konfirmasi waktu tiba. Perubahan identitas pasien belum dapat dilakukan dari layar IGD; hubungi petugas rekam medis."* — **dikoreksi 22 September 2026 (B2, `IGD-DEC-157`)**: teks lama menyuruh petugas memakai penggabungan rekam pasien yang belum ada (`IGD-DEC-151`, `IGD-OQ-098`). Teks ini usulan agent; pemilik menjawab dengan placeholder dan boleh menggantinya | `IGD-DEC-154`, `147`, `157` |
 
 ### 10.5 Penutupan encounter mengikuti kunjungan
 

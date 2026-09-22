@@ -8,7 +8,7 @@ roadmap_revision: 3
 wave: "Dikoreksi 2026-09-15: MVP-1, MVP-2, dan R3.7 selesai; MVP-0, MVP-3, MVP-4, MVP-5 sebagian; MVP-6 terblokir BE-IGD-039. Klaim lama 'MVP-0..MVP-5 selesai' tidak akurat — lihat evidence/2026-09-15-pemeriksaan-status.md bagian 8"
 status: ACTIVE
 status_synced_at: "2026-09-15 — pemetaan ulang acceptance criteria pada backend e89907c5; IGD-DEC-110 sampai IGD-DEC-115"
-planning_updated_at: "2026-09-22 — plan-module-delivery (MODULE BLUEPRINT MODE, docs saja) pada backend 0d13f3a8: R3.13 BE-IGD-051 sampai BE-IGD-056 ditambahkan (encounter-first); IGD-DEC-139 sampai IGD-DEC-141; IGD-OQ-093 ditutup; IGD-OQ-094 sampai IGD-OQ-101 dibuka; evidence 2026-09-22-desain-encounter-first.md. Sebelumnya 2026-09-15 (kedua) — plan-module-delivery pada backend 7b0c2ece: BE-IGD-040 sampai BE-IGD-045 ditambahkan, tindak lanjut BE-IGD-017; IGD-DEC-116 sampai IGD-DEC-121. Revision roadmap tetap 3 — task baru ditambahkan tanpa mengubah task lama"
+planning_updated_at: "2026-09-22 (penutup) — plan-module-delivery FINAL (docs saja) pada source backend 0d13f3a8 (dokumen di commit 69953e98, source tidak berubah): R3.13 diselaraskan dengan IGD-DEC-142 sampai IGD-DEC-162 dan kontrak encounter-first yang disetujui IGD-DEC-157 (API 0.11.0 §8, validation 0.8.0 §10, state 0.5.0 §8, integration 0.4.0 §5, permission/audit 0.5.0 §7); BE-IGD-057 sampai BE-IGD-059 ditambahkan; BE-IGD-056 tetap ⛔ S7 (IGD-OQ-102/103); kandidat tautkan identitas U1 dibatalkan (IGD-DEC-151); IGD-OQ-108 dibuka (tidak menahan). Sebelumnya 2026-09-22 — plan-module-delivery (MODULE BLUEPRINT MODE, docs saja) pada backend 0d13f3a8: R3.13 BE-IGD-051 sampai BE-IGD-056 ditambahkan (encounter-first); IGD-DEC-139 sampai IGD-DEC-141; IGD-OQ-093 ditutup [DIKOREKSI 22 Sep penutup: superseded sebagian, realisasi di BE-IGD-053]; IGD-OQ-094 sampai IGD-OQ-101 dibuka; evidence 2026-09-22-desain-encounter-first.md. Sebelumnya 2026-09-15 (kedua) — plan-module-delivery pada backend 7b0c2ece: BE-IGD-040 sampai BE-IGD-045 ditambahkan, tindak lanjut BE-IGD-017; IGD-DEC-116 sampai IGD-DEC-121. Revision roadmap tetap 3 — task baru ditambahkan tanpa mengubah task lama"
 generated_at: "2026-08-24"
 activated_at: "2026-08-26"
 revision_3_at: "2026-08-26"
@@ -33,6 +33,13 @@ contract_versions:
   - "API 0.4.0 — draft, TIDAK dipakai gelombang ini"
   - "Integration 0.3.0 — draft, TIDAK dipakai gelombang ini"
   - "Permission/Audit 0.4.0 — draft, TIDAK dipakai gelombang ini"
+  - "R3.13 (22 Sep 2026 penutup): API 0.11.0 §8, validation 0.8.0 §10, state 0.5.0 §8, integration 0.4.0 §5, permission/audit 0.5.0 §7 — bagian encounter-first APPROVED (IGD-DEC-157), terkunci hash di contract_hashes_r313"
+contract_hashes_r313:
+  contracts/api-contract.md: "c0bcea54125879e328a1b4f28cfcc6adaa5356a7272316cb4dd56a6a8b9fcedd"
+  contracts/validation-matrix.md: "580832c37db3f3a1b73b03b6a366d5d5108ee745e4c408ece53b01034d98b504"
+  contracts/state-transition-matrix.md: "0661fdf4326f927425828afa42ce71c69ed8a030c599d17eb9063d44d2e6a793"
+  contracts/integration-contract.md: "46c869830a078bc2288005cae9b16b44970ccd9bfa6b38c80b01ced249683d53"
+  contracts/permission-audit-matrix.md: "597b8f5ef0e8cbed6963c98374508a80726d652ac4dfa3c2bb99eccef4dec662"
 artifact_hashes:
   00-interview-decisions.md: "43ba0661bf30d0bd626bca8d4592abbfb6a334fe18dffeaba2d9d4ad1bbb7fb0"
   02-backend-architecture.md: "20fcaad625ab52b7058f751cad96c8732d234264d1d94a28b1f1ccd6f3aa6753"
@@ -44,6 +51,8 @@ source_commits:
   backend: "300922c — merge Hamzah/Ikbal/Yasmina; bukti bagian 2 diperiksa ulang 2026-08-26"
   backend_at_authoring: "f69e9e483052845d11c91d8b7bbdce33c4acc8d8"
   frontend: "96a9120111f6acc6b7c0f37973ea0c717ba41f17"
+  backend_r313: "0d13f3a8 — source yang diaudit untuk R3.13; commit dokumen 69953e98 sesudahnya tidak mengubah source"
+  frontend_r313: "c941012ac (RizkiV2)"
 supersedes: "roadmap/archive/revision-1/backend-roadmap.md"
 ```
 
@@ -69,7 +78,7 @@ Revision `1` **tidak dihapus**. Seluruh isinya ada di `roadmap/archive/revision-
 
 ## Grafik Urutan Dependency
 
-Roadmap ini memuat **40 task** menurut *Register status task* (22 September 2026: 34 baris + `BE-IGD-051`…`056`. Angka `35` yang tertulis sebelumnya selisih satu dari register dan dikoreksi hari ini; sebelumnya dikoreksi 21 September 2026 — angka `23` tertinggal sejak `BE-IGD-040`
+Roadmap ini memuat **43 task** menurut *Register status task* (22 September 2026 penutup: 40 baris + `BE-IGD-057`…`059`; sebelumnya 22 September 2026: 34 baris + `BE-IGD-051`…`056`. Angka `35` yang tertulis sebelumnya selisih satu dari register dan dikoreksi hari ini; sebelumnya dikoreksi 21 September 2026 — angka `23` tertinggal sejak `BE-IGD-040`
 ditambahkan), melewati batas 15 node untuk satu grafik. Karena itu grafik dipecah:
 satu **grafik ringkasan antar-gelombang** di bawah ini, lalu satu grafik per gelombang yang
 diletakkan di bawah judul gelombangnya — bagian 4 (`MVP-0`), R3.2 (`MVP-1`/`MVP-2`), R3.3
@@ -86,10 +95,16 @@ melintasi gelombang terwakili di sana:
 | `BE-IGD-049` menunggu `BE-IGD-033` dan `BE-IGD-034` (`MVP-4`) | `MVP4 --> R312` |
 | `BE-IGD-050` menunggu `BE-IGD-023` (`MVP-1`) dan `BE-IGD-025` (`MVP-2`) | `MVP2 --> R312` |
 | `BE-IGD-051` menunggu `BE-IGD-022` (`MVP-0`) | `MVP0 --> R313` |
-| `BE-IGD-051`, `BE-IGD-054`, `BE-IGD-055` menunggu `BE-IGD-024` (`MVP-1`) | `MVP1 --> R313` |
+| `BE-IGD-051` menunggu `BE-IGD-024` (`MVP-1`) | `MVP1 --> R313` |
 | `BE-IGD-055` menunggu `BE-IGD-025` (`MVP-2`) | `MVP2 --> R313` |
-| `BE-IGD-056` menunggu `BE-IGD-045` (`EPIC IGD-04` pada `MVP-5`) | `MVP5 --> R313` |
 | `BE-IGD-053` menunggu `BE-IGD-050` (R3.12) | `R312 --> R313` |
+| `BE-IGD-056` menunggu `BE-IGD-045` (`EPIC IGD-04` pada `MVP-5`) | `MVP5 --> R313S7` |
+
+*Diselaraskan 22 September 2026 (penutup):* R3.13 dipecah menjadi dua node ringkasan — `R313` (`EPIC IGD-11`,
+delapan task, tidak tertahan keputusan) dan `R313S7` (`EPIC IGD-12`, `BE-IGD-056`, ditahan `IGD-OQ-102`/`103`).
+Node gerbang lama *"kueri D, E1–E3, IGD-OQ-094…101"* dihapus: `IGD-OQ-094`…`101` sudah `superseded`, kueri D
+bukan lagi blocker pengembangan, dan E1–E3 kini bagian dari `IGD-OQ-102`. Blocker `S7` ditulis pada label node
+`R313S7` supaya grafik tetap 15 node.
 
 ```mermaid
 flowchart LR
@@ -109,8 +124,8 @@ flowchart LR
     R38["🟡 R3.8<br/>Perbaikan pasca-pemeriksaan"]:::sebagian
     R39["✅ R3.9<br/>Pemantauan observasi bertanda vital"]:::selesai
     R312["✅ R3.12<br/>Dua task korektif 21 September"]:::selesai
-    R313["⛔ R3.13<br/>Encounter-first dan dokter jaga<br/>2 siap, 4 tertahan"]:::terblokir
-    GATE313{{"⛔ Keputusan dan data pemilik<br/>kueri D, E1–E3, IGD-OQ-094…101"}}:::terblokir
+    R313["🟡 R3.13 EPIC IGD-11<br/>Encounter-first, 8 task<br/>BE-IGD-051 siap"]:::sebagian
+    R313S7["⛔ R3.13 EPIC IGD-12<br/>BE-IGD-056 dokter jaga<br/>menunggu IGD-OQ-102, 103"]:::terblokir
     MVP6["⛔ MVP-6<br/>Kewenangan unit"]:::terblokir
     SEC{{"⛔ Security/Privacy owner<br/>BE-IGD-039, IGD-DEC-092"}}:::terblokir
     MAP{{"⛔ Pemetaan unit terisi<br/>0 dari 18 unit"}}:::terblokir
@@ -126,9 +141,8 @@ flowchart LR
     MVP0 --> R313
     MVP1 --> R313
     MVP2 --> R313
-    MVP5 --> R313
+    MVP5 --> R313S7
     R312 --> R313
-    GATE313 --> R313
     SEC --> MVP6
     MAP --> MVP6
     R38 --> R39
@@ -148,7 +162,8 @@ flowchart LR
 | 4 | `MVP-4` | `EPIC IGD-07` pada `MVP-5` |
 | 2 | R3.8 (`BE-IGD-040` ✅) | R3.9 — `BE-IGD-046` ✅ |
 | 4 | `MVP-2` dan `MVP-4` (task prasyarat `BE-IGD-023`, `025`, `033`, `034` sudah ✅ — boleh mulai begitu pemilik menyetujui laporan rencana) | R3.12 — `BE-IGD-049`, `BE-IGD-050`, boleh paralel |
-| 5 | `MVP-0`, `MVP-1`, `MVP-2`, `EPIC IGD-04`, R3.12 — seluruh task prasyaratnya sudah ✅ | R3.13 — `BE-IGD-051` dan `BE-IGD-054` boleh mulai begitu pemilik memberi go-ahead; `BE-IGD-052`, `053`, `055`, `056` ⛔ keputusan/data pemilik (rincian di bagian R3.13) |
+| 5 | `MVP-0`, `MVP-1`, `MVP-2`, R3.12 — seluruh task prasyaratnya sudah ✅ | R3.13 `EPIC IGD-11` — `BE-IGD-051` boleh mulai begitu pemilik memberi go-ahead; tujuh task lainnya berurutan di belakangnya (empat gelombang internal, rincian di bagian R3.13.4) |
+| — | ⛔ menunggu `IGD-OQ-102` dan `IGD-OQ-103` | R3.13 `EPIC IGD-12` — `BE-IGD-056` |
 | — | ⛔ menunggu Security/Privacy owner dan pemetaan unit | `MVP-6` |
 
 ### Register status task
@@ -189,12 +204,15 @@ flowchart LR
 | `BE-IGD-049` | Nama pelaku pada event kepergian (`IGD-DEC-137`) | R3.12 | ✅ **22 September 2026 — atas penilaian pemilik.** Implementation Complete, **Build Verified** (`0 Error(s)`, 207 warning = baseline); kontrak `0.9.0`. Jalur `GET` daftar terbukti lewat layar `FE-IGD-017` 21 September (pelaku `SuperAdmin`). **S2–S5 (`amend`, `reverse`, pelaku tidak ada, satu kueri) dijalankan pemilik dan dilaporkan lulus** — badan respons dan log SQL tidak dilampirkan, jadi hitungan kueri acceptance 5 tidak tercatat sebagai angka. Tanpa UAT | [BE-IGD-049](../task/report/backend/BE-IGD-049.md) |
 | `BE-IGD-050` | Pra-cek episode ganda sebelum encounter dibuat — **korektif** encounter yatim (`IGD-DEC-138`) | R3.12 | ✅ **21 September 2026 (malam) — atas penilaian pemilik.** Implementation Complete (tiga berkas source, kontrak `0.10.0`); build dan **uji API S1–S7 `PASS` semuanya menurut pemilik** (agent tidak mengamati). **Dikecualikan:** acceptance 8 (hasil kueri audit A/B belum dilaporkan); angka warning, hitungan baris, log SQL tidak dilampirkan. `IGD-OQ-093` `open` = backend gap eksplisit. Tanpa UAT | [BE-IGD-050](../task/report/backend/BE-IGD-050.md) |
 | `BE-IGD-047` | Nomor urut penilaian triage ditetapkan server | R3.10 | ✅ **17 September 2026** — `dotnet build` lulus dan **uji API tiga skenario lulus** oleh pemilik; dibuktikan lagi lewat layar bersama `FE-IGD-033`. Tanpa UAT | [BE-IGD-047](../task/report/backend/BE-IGD-047.md) |
-| `BE-IGD-051` | Kunjungan IGD yang berakhir ikut menutup encounter-nya (`IGD-DEC-139`) | R3.13 | tanpa tanda — direncanakan 22 September 2026; menunggu go-ahead pemilik + jawaban TK-1/TK-2 | — |
-| `BE-IGD-052` | Rekonsiliasi encounter `Emergency` historis (`IGD-DEC-139`) | R3.13 | ⛔ kueri D + konfirmasi K1–K4, `IGD-OQ-095` | — |
-| `BE-IGD-053` | Penjaga episode terbuka pada pintu encounter `Emergency` — menutup `IGD-OQ-093` | R3.13 | ⛔ `BE-IGD-051`, `BE-IGD-052`, `IGD-OQ-096`, `IGD-OQ-101` | — |
-| `BE-IGD-054` | Daftar Menunggu Triage terpadu (`GET triage-queue`) | R3.13 | tanpa tanda — direncanakan 22 September 2026; menunggu go-ahead pemilik | — |
-| `BE-IGD-055` | Kunjungan IGD lahir lewat Mulai Triage (`POST start-triage`, idempoten) | R3.13 | ⛔ `IGD-OQ-094` (W1), `IGD-OQ-100` | — |
-| `BE-IGD-056` | Dokter layak IGD, validasi ulang, dan override beralasan (`IGD-DEC-141`) | R3.13 | ⛔ kueri E1–E3 | — |
+| `BE-IGD-051` | Kunjungan IGD yang berakhir ikut menutup encounter-nya (`IGD-DEC-139`, `148`) | R3.13 | ✅ **22 September 2026 — atas penilaian pemilik.** Implementation Complete, Build Verified (artefak), uji API S1–S9 lulus menurut pemilik (tanpa lampiran). Kriteria 8 (kueri invarian) dikecualikan sampai sesudah rilis. Tanpa UAT | [BE-IGD-051](../task/report/backend/BE-IGD-051.md) |
+| `BE-IGD-052` | Rekonsiliasi encounter `Emergency` historis — endpoint admin (`IGD-DEC-148`) | R3.13 | tanpa tanda — menunggu `BE-IGD-051`; angka kueri D dibutuhkan untuk acceptance 1 dan eksekusi, **bukan** untuk mulai | — |
+| `BE-IGD-053` | Penjaga episode terbuka pada pintu encounter `Emergency` — **realisasi** `IGD-OQ-093` (`superseded` sebagian) | R3.13 | tanpa tanda — menunggu `BE-IGD-052`, `BE-IGD-055`; dirilis bersama `FE-IGD-038` sesudah rekonsiliasi K1 dijalankan | — |
+| `BE-IGD-054` | Daftar Menunggu Triage terpadu (`GET triage-queue`) | R3.13 | tanpa tanda — menunggu `BE-IGD-051` | — |
+| `BE-IGD-055` | Kunjungan IGD lahir lewat Mulai Triage atau Tangani Segera (`POST start-triage`) | R3.13 | tanpa tanda — menunggu `BE-IGD-051` | — |
+| `BE-IGD-056` | Dokter layak IGD, validasi ulang, dan override beralasan (`IGD-DEC-141`) | R3.13 | ⛔ `IGD-OQ-102`, `IGD-OQ-103` (`S7`, tidak dikontrakkan); isi kartu dibekukan | — |
+| `BE-IGD-057` | Pasien pergi sebelum ditriage ditandai perawat (`POST no-show`, `IGD-DEC-142`) — **baru** | R3.13 | tanpa tanda — menunggu `BE-IGD-055` | — |
+| `BE-IGD-058` | Waktu tiba satu jalur; identitas kunjungan terkunci pada `PUT` (`IGD-DEC-152`, `154`, `159`) — **baru** | R3.13 | tanpa tanda — menunggu `BE-IGD-055` | — |
+| `BE-IGD-059` | Jalur umum Registrasi dibatasi untuk encounter `Emergency` (`IGD-DEC-153`) — **baru** | R3.13 | tanpa tanda — menunggu `BE-IGD-051`, `BE-IGD-057` | — |
 
 
 **Tindak lanjut `BE-IGD-017`** (task yang sama, ID tidak diganti): laporan tracked susulan.
@@ -1888,27 +1906,75 @@ dimulai** setelah kontrak selesai dan build terverifikasi.
 
 ---
 
-## R3.13 Gelombang 22 September 2026 — encounter-first, pasien tanpa identitas, dan dokter jaga
+## R3.13 Gelombang 22 September 2026 — encounter-first (`EPIC IGD-11`, `MVP-7`) dan dokter jaga (`EPIC IGD-12`, ditahan)
 
-Enam task dari tiga keputusan pemilik yang **disetujui prinsip** 22 September 2026: `IGD-DEC-139`
-(encounter-first dan rumus episode terbuka), `IGD-DEC-140` (pasien tanpa identitas), `IGD-DEC-141`
-(kelayakan dokter jaga dan override). `IGD-OQ-093` **ditutup**, pelaksanaannya `BE-IGD-053`. Bukti
-source: [evidence/2026-09-22-desain-encounter-first.md](../evidence/2026-09-22-desain-encounter-first.md)
-(`IGD-EV-140`…`144`).
+> **Diselaraskan 22 September 2026 (penutup) — `plan-module-delivery` final.** Kartu versi pagi disusun dari
+> `IGD-DEC-139`…`141` yang baru disetujui **prinsip**, dengan `IGD-OQ-094`…`101` sebagai blocker. Sejak itu pemilik
+> menjawab seluruh pertanyaan itu (`IGD-DEC-142`…`154`), kontraknya disusun (`design-business-module`), lalu
+> disetujui (`IGD-DEC-157`…`162`). Bagian ini **menggantikan** isi kartu versi pagi. Versi pagi tetap ada di riwayat
+> git (commit backend `69953e98`). Nomor task lama **tidak** diganti; tiga task baru ditambahkan (`BE-IGD-057`…`059`).
 
-**Direncanakan saja — nol source ditulis, nol task dimulai.** Setiap task butuh go-ahead pemilik
-sendiri-sendiri. Empat dari enam task tertahan keputusan atau data pemilik.
+**Keputusan yang menjadi dasar.** `IGD-DEC-139` (encounter-first, lima tanda "berakhir" — koreksi amendment),
+`IGD-DEC-142` (NoShow), `143` (Tangani Segera), `144` (tanpa antrean), `145` (catatan override milik IGD), `146`
+(kunci per pasien), `147` (waktu tiba oleh perawat triage), `148` (rekonsiliasi endpoint admin, K1–K4 disahkan,
+TK-1 tidak, TK-2 ya), `150` (pembagian wewenang), `151` (pasien tanpa identitas lewat rekam pengganti), `152`
+(batas koreksi waktu tiba), `153` (jalur umum Registrasi dibatasi), `154` (identitas kunjungan terkunci),
+`157` (kontrak disetujui), `158` (izin bersama `EmergencyVisit : Create`), `159`…`162` (jawaban `IGD-OQ-104`…`107`).
+`IGD-DEC-140` U1 dan `IGD-DEC-149` **`superseded`** oleh `IGD-DEC-151`; `IGD-DEC-141` tetap `approved` prinsip
+tetapi kriterianya ditahan `IGD-OQ-102`/`103`.
 
-**Mengapa urutannya begini, dalam satu kalimat per langkah.**
+**Kontrak terkunci** (`IGD-DEC-157`, hash SHA-256 di metadata roadmap ini dan manifest bagian 2):
 
-1. `BE-IGD-051` lebih dulu — selama IGD tidak pernah menutup encounter, setiap kunjungan yang selesai
-   hari ini menambah satu encounter "masih terbuka" yang kelak harus dibereskan.
-2. `BE-IGD-052` sesudahnya — membereskan encounter lama **berdasarkan bukti**, begitu tidak ada lagi
-   yang bertambah.
-3. `BE-IGD-053` terakhir — penjaga episode ganda baru boleh menyala ketika data lama tidak lagi
-   membuat pasien yang sudah pulang tertolak.
-4. `BE-IGD-054` dan `BE-IGD-055` berdiri sendiri — daftar Menunggu Triage dan tombol Mulai Triage.
-5. `BE-IGD-056` berdiri sendiri — kelayakan dokter, menunggu data jadwal IGD.
+| Kontrak | Versi dan bagian | Status bagian |
+| --- | --- | --- |
+| API | `0.11.0` §8 | `approved`, Rencana (belum tersedia) |
+| Validation | `0.8.0` §10 | `approved` |
+| State | `0.5.0` §8 | `approved` |
+| Integration | `0.4.0` §5 | `approved` |
+| Permission/audit | `0.5.0` §7 | `approved` |
+
+Task pada gelombang ini **merealisasikan** kontrak tersebut dan **tidak** mengubah teksnya. Bila implementasi
+menemukan cacat kontrak, task berhenti dan dikembalikan ke perencanaan. Label *Rencana (belum tersedia)* pada
+kontrak diganti oleh pass penyelarasan sesudah task-nya ✅ — bukan oleh task build.
+
+**`IGD-OQ-093` — status yang benar.** Versi pagi menulis `IGD-OQ-093` "**ditutup**" dan menamai `BE-IGD-053`
+"**menutup** `IGD-OQ-093`". Keduanya **dikoreksi**: repository tidak punya status `closed`. Status yang benar adalah
+**`superseded` sebagian** — sisi bisnis dijawab `IGD-DEC-139` (bentuk B1), sisi teknis dijawab `IGD-DEC-145` dan
+`IGD-DEC-146`, sedangkan **realisasinya masih terbuka sampai `BE-IGD-053` ✅**.
+
+**Snapshot.** Source backend `0d13f3a8` (branch `rizkiG`). Commit dokumen `69953e98` sesudahnya tidak mengubah
+source. Frontend `c941012ac` (branch `RizkiV2`).
+
+### R3.13.0 Keputusan perencanaan pass ini
+
+| # | Kandidat | Keputusan | Alasan |
+| ---: | --- | --- | --- |
+| 1 | Aksi NoShow (backend + frontend) | **Kartu baru `BE-IGD-057` dan `FE-IGD-039`** | Endpoint baru, aksi hak akses baru (`EmergencyVisit : NoShow`), dan uji serentak melawan Mulai Triage. Tidak cocok ditumpangkan ke `BE-IGD-053` yang sudah menjadi task berisiko tertinggi |
+| 2 | Penguncian identitas pada `PUT` | **Masuk kartu baru `BE-IGD-058`**, bersama `PATCH /{id}/arrival-time`; **bukan** kartu tersendiri | `PUT` mengunci tiga ruas (`patientId`, `encounterId`, `arrivalDateTime`) di satu method. Mengunci `arrivalDateTime` hanya sah bila jalur penggantinya ada (`IGD-DEC-159`). Nol layar memakai `PUT` (`IGD-FACT-023`), jadi tidak ada pasangan frontend |
+| 3 | Aksi tautkan identitas U1 | **Dibatalkan** — tidak ada kartu | `IGD-DEC-151` menggantikan U1; rekam pengganti sudah punya encounter sejak awal |
+| 4 | Pembatasan jalur umum Registrasi (`IGD-DEC-153`) | **Kartu baru `BE-IGD-059`** | API §8.1 nomor 3 dan 4 belum punya kartu. Menolak `PATCH …/status` sebelum NoShow dan penutupan encounter tersedia akan menghapus satu-satunya jalan keluar hari ini |
+| 5 | Loket mengirim alasan pendaftaran ganda ke pintu encounter | **Kartu baru `FE-IGD-038`** (frontend) — rilis **bersama** `BE-IGD-053` | Loket hari ini mengirim alasan itu **hanya** ke `POST /emergency-visits` (`use-emergency-registration.js:983`, `emergency-registration.utils.js:1191`). Begitu `BE-IGD-053` aktif, `POST /patient-encounters` tanpa alasan ditolak `409`, dan pendaftaran ganda yang sah tidak dapat disimpan dari layar |
+| 6 | Panel waktu tiba pada Detail triage | **Kartu baru `FE-IGD-040`** (frontend) | Layar dan endpoint berbeda dari Mulai Triage (`03-frontend-architecture.md` §13.3 D) |
+| 7 | Kueri D | **Bukan lagi blocker pengembangan** `BE-IGD-052` | `04-prd-to-mvp.md` §8.7: angka K1–K4 dibutuhkan untuk acceptance 1 dan untuk **eksekusi** di tiap lingkungan, bukan untuk menulis kode |
+| 8 | `BE-IGD-056` / `FE-IGD-037` | **Tetap ⛔**, isi kartu dibekukan | `S7` tidak dikontrakkan (API §8.5). Kartu diselaraskan ulang sesudah `IGD-OQ-102`/`103` dijawab |
+
+### R3.13.1 Mengapa urutannya begini
+
+1. **`BE-IGD-051` lebih dulu.** Selama IGD tidak pernah menutup encounter, setiap kunjungan yang selesai hari ini
+   menambah satu encounter "masih terbuka" (K1 baru). Task ini juga melahirkan `EmergencyEpisodeRule` dengan rumus
+   "encounter berakhir" — satu-satunya rumus yang dipakai seluruh task sesudahnya.
+2. **`BE-IGD-052`, `054`, `055` sesudahnya, boleh paralel.** Rekonsiliasi membutuhkan penutupan sudah berjalan
+   (tidak ada K1 baru); daftar triage dan Mulai Triage membutuhkan rumus "berakhir".
+3. **`BE-IGD-053` sesudah rekonsiliasi dan Mulai Triage.** Penjaga episode ganda baru boleh menyala ketika K1 lama
+   sudah dibereskan — kalau tidak, pasien yang kunjungan lamanya sudah selesai ikut tertolak. Kunci per pasien
+   dilahirkan `BE-IGD-055`, dan `BE-IGD-053` memakainya.
+4. **`BE-IGD-057` dan `058` sesudah Mulai Triage.** NoShow harus diuji serentak melawan Mulai Triage; waktu tiba
+   butuh kolom sumber waktu tiba yang dibuat migration `BE-IGD-055`.
+5. **`BE-IGD-059` terakhir.** Jalur umum Registrasi baru boleh ditutup untuk encounter Emergency setelah dua jalan
+   penggantinya ada: penutupan ikut kunjungan (`BE-IGD-051`) dan NoShow (`BE-IGD-057`).
+6. **`BE-IGD-056` berdiri sendiri** dan ditahan keputusan `S7`.
+
+### R3.13.2 Grafik urutan — `EPIC IGD-11` (`MVP-7`)
 
 ```mermaid
 flowchart LR
@@ -1922,138 +1988,185 @@ flowchart LR
         BEIGD022["✅ BE-IGD-022<br/>Penyelesaian lewat penjaga"]:::luar
         BEIGD024["✅ BE-IGD-024<br/>Kunjungan tertaut encounter"]:::luar
         BEIGD025["✅ BE-IGD-025<br/>Satu pasien satu episode"]:::luar
-        BEIGD045["✅ BE-IGD-045<br/>Penetapan dan pengalihan dokter"]:::luar
         BEIGD050["✅ BE-IGD-050<br/>Pra-cek episode ganda"]:::luar
     end
 
-    KUERID{{"⛔ Kueri D + konfirmasi K1–K4<br/>data pemilik"}}:::terblokir
-    OQ095{{"⛔ IGD-OQ-095<br/>endpoint admin atau migration"}}:::terblokir
-    OQ096{{"⛔ IGD-OQ-096<br/>pasien pergi sebelum ditriage"}}:::terblokir
-    OQ101{{"⛔ IGD-OQ-101<br/>jalan keluar dan serentak"}}:::terblokir
-    OQ094{{"⛔ IGD-OQ-094 (W1)<br/>sumber waktu tiba"}}:::terblokir
-    OQ100{{"⛔ IGD-OQ-100<br/>Tangani Segera tanpa kunjungan"}}:::terblokir
-    E13{{"⛔ Kueri E1–E3<br/>jadwal dokter IGD"}}:::terblokir
-
-    BEIGD051["BE-IGD-051<br/>Kunjungan berakhir menutup encounter"]:::belum
-    BEIGD052["⛔ BE-IGD-052<br/>Rekonsiliasi encounter historis"]:::terblokir
-    BEIGD053["⛔ BE-IGD-053<br/>Penjaga di pintu encounter"]:::terblokir
+    BEIGD051["✅ BE-IGD-051<br/>Kunjungan berakhir menutup encounter"]:::selesai
+    BEIGD052["BE-IGD-052<br/>Rekonsiliasi encounter historis"]:::belum
     BEIGD054["BE-IGD-054<br/>Daftar Menunggu Triage terpadu"]:::belum
-    BEIGD055["⛔ BE-IGD-055<br/>Kunjungan lahir lewat Mulai Triage"]:::terblokir
-    BEIGD056["⛔ BE-IGD-056<br/>Dokter layak dan override"]:::terblokir
+    BEIGD055["BE-IGD-055<br/>Kunjungan lahir lewat Mulai Triage"]:::belum
+    BEIGD053["BE-IGD-053<br/>Penjaga episode di pintu encounter"]:::belum
+    BEIGD057["BE-IGD-057<br/>Pasien pergi sebelum ditriage"]:::belum
+    BEIGD058["BE-IGD-058<br/>Waktu tiba satu jalur, identitas terkunci"]:::belum
+    BEIGD059["BE-IGD-059<br/>Jalur umum Registrasi dibatasi"]:::belum
 
     BEIGD022 --> BEIGD051
     BEIGD024 --> BEIGD051
     BEIGD051 --> BEIGD052
-    KUERID --> BEIGD052
-    OQ095 --> BEIGD052
-    BEIGD050 --> BEIGD053
-    BEIGD051 --> BEIGD053
-    BEIGD052 --> BEIGD053
-    OQ096 --> BEIGD053
-    OQ101 --> BEIGD053
-    BEIGD024 --> BEIGD054
-    BEIGD024 --> BEIGD055
+    BEIGD051 --> BEIGD054
     BEIGD025 --> BEIGD055
-    OQ094 --> BEIGD055
-    OQ100 --> BEIGD055
-    BEIGD045 --> BEIGD056
-    E13 --> BEIGD056
+    BEIGD051 --> BEIGD055
+    BEIGD050 --> BEIGD053
+    BEIGD052 --> BEIGD053
+    BEIGD055 --> BEIGD053
+    BEIGD055 --> BEIGD057
+    BEIGD055 --> BEIGD058
+    BEIGD051 --> BEIGD059
+    BEIGD057 --> BEIGD059
 ```
 
-Jumlah panah: **17**, sama dengan isi kolom `Dependency` keenam kartu (2 + 3 + 5 + 1 + 4 + 2).
+Jumlah panah: **13**, sama dengan isi kolom `Dependency` kedelapan kartu (2 + 1 + 1 + 2 + 3 + 1 + 1 + 2).
+
+### R3.13.3 Grafik urutan — `EPIC IGD-12` (ditahan `S7`)
+
+```mermaid
+flowchart LR
+    classDef selesai fill:#DCFCE7,stroke:#16A34A,color:#14532D
+    classDef sebagian fill:#FEF9C3,stroke:#CA8A04,color:#713F12
+    classDef terblokir fill:#FEE2E2,stroke:#DC2626,color:#7F1D1D
+    classDef belum fill:#F1F5F9,stroke:#64748B,color:#0F172A
+    classDef luar fill:#EDE9FE,stroke:#7C3AED,color:#3B0764
+
+    subgraph prasyarat12["Prasyarat — task gelombang lain yang sudah selesai"]
+        BEIGD045["✅ BE-IGD-045<br/>Penetapan dan pengalihan dokter"]:::luar
+    end
+
+    OQ102{{"⛔ IGD-OQ-102<br/>Sumber roster dan kriteria layak"}}:::terblokir
+    OQ103{{"⛔ IGD-OQ-103<br/>Tempat penanda override"}}:::terblokir
+    BEIGD056["⛔ BE-IGD-056<br/>Dokter layak dan override"]:::terblokir
+
+    BEIGD045 --> BEIGD056
+    OQ102 --> BEIGD056
+    OQ103 --> BEIGD056
+```
+
+Jumlah panah: **3**, sama dengan kolom `Dependency` `BE-IGD-056`. Total R3.13: **16 panah** pada kedua grafik.
+
+### R3.13.4 Gelombang eksekusi
 
 | Gelombang | Boleh mulai setelah | Task |
 | ---: | --- | --- |
 | 1 | `BE-IGD-022` ✅, `BE-IGD-024` ✅ — **boleh mulai begitu pemilik memberi go-ahead** | `BE-IGD-051` |
-| 1 | `BE-IGD-024` ✅ — boleh mulai begitu pemilik memberi go-ahead | `BE-IGD-054` |
-| ⛔ | Kueri D + konfirmasi K1–K4, `IGD-OQ-095`; sesudah itu gelombang 2 (menunggu `BE-IGD-051`) | `BE-IGD-052` |
-| ⛔ | `IGD-OQ-096`, `IGD-OQ-101`; sesudah itu gelombang 3 (menunggu `BE-IGD-051` dan `BE-IGD-052`) | `BE-IGD-053` |
-| ⛔ | `IGD-OQ-094` (W1), `IGD-OQ-100`; sesudah itu gelombang 1 | `BE-IGD-055` |
-| ⛔ | Kueri E1–E3; sesudah itu gelombang 1 | `BE-IGD-056` |
+| 2 | `BE-IGD-051` (dan `BE-IGD-025` ✅ untuk `055`) | `BE-IGD-052`, `BE-IGD-054`, `BE-IGD-055` — boleh paralel, **kecuali migration** (lihat di bawah) |
+| 3 | `BE-IGD-055`; untuk `053` juga `BE-IGD-052` dan `BE-IGD-050` ✅ | `BE-IGD-053`, `BE-IGD-057`, `BE-IGD-058` — boleh paralel |
+| 4 | `BE-IGD-051` dan `BE-IGD-057` | `BE-IGD-059` |
+| — | ⛔ menunggu `IGD-OQ-102` dan `IGD-OQ-103` (pemilik: Product/Domain Owner IGD + pemilik jadwal dokter/HR, belum dipetakan) | `BE-IGD-056` |
 
-`BE-IGD-051` dan `BE-IGD-054` tidak saling menunggu dan boleh paralel. Titik temu seluruh task R3.13
-adalah `contracts/api-contract.md`, `validation-matrix.md`, `state-transition-matrix.md`, dan
-`integration-contract.md`: masing-masing task menaikkan versi **satu minor dari versi yang berlaku saat
-task itu dikerjakan** (API berlaku `0.10.0`, validation `0.7.0`).
+**Migration tidak paralel.** Tiga task membawa migration yang **dibuat Rizki sendiri** — agent berhenti sebelum
+`dotnet ef migrations add`:
 
-**Sisi frontend.** `FE-IGD-035` menunggu `BE-IGD-054`; `FE-IGD-036` menunggu `BE-IGD-053`,
-`BE-IGD-055`, dan `FE-IGD-035`; `FE-IGD-037` menunggu `BE-IGD-056`. Lihat `frontend-roadmap.md`
-bagian R3.12.
+| Task | Migration (`02-backend-architecture.md` §13.8) | Isi |
+| --- | --- | --- |
+| `BE-IGD-055` | `AddEmergencyArrivalTimeSource` | 3 kolom pada `EmgVisit` + FK |
+| `BE-IGD-052` | `AddEmergencyEncounterReconciliation` | 2 tabel rekonsiliasi |
+| `BE-IGD-053` | `AddEmergencyDuplicateEpisodeOverride` | 1 tabel catatan override |
 
-**Batas eksekusi untuk seluruh task R3.13.** Agent menyusun source lalu **berhenti**; `dotnet build`
-dijalankan Rizki. **Nol migration yang dijalankan agent** — bila sebuah task ternyata butuh kolom baru,
-agent berhenti sebelum `dotnet ef migrations add`. **Nol tulis basis data.** Tanpa commit, push, merge,
-atau pindah branch. QBE preflight dan kesesuaian engineering diselesaikan pada waktu eksekusi dari
-`AGENTS.md` backend dan dokumen engineering canonical. Perubahan pada berkas modul Registrasi berjalan
-di bawah `IGD-DEC-135` — izin remediasi teknis, **bukan** pemindahan kepemilikan.
+Ketiganya tidak saling merujuk (nol FK antar-tabel baru), jadi nomor urut pada §13.8 **bukan** urutan wajib. Yang
+wajib: dibuat **satu per satu di branch yang sama**, supaya snapshot EF tidak bentrok — pelajaran snapshot yang
+kehilangan blok modul lain. Contoh: bila `BE-IGD-055` selesai lebih dulu, migration-nya dibuat dan diterapkan,
+baru migration `BE-IGD-052` dibuat di atasnya.
 
-### `BE-IGD-051` — Kunjungan IGD yang berakhir ikut menutup encounter-nya
+### R3.13.5 Urutan rilis per lingkungan
+
+Dependency di atas mengatur **kapan task boleh dikerjakan**. Urutan rilis mengatur **kapan task boleh dinyalakan**
+di satu lingkungan (dev, staging, produksi). Keduanya berbeda, dan yang kedua tidak boleh dibalik:
+
+| Langkah | Yang dirilis | Syarat di lingkungan itu | Bila dibalik |
+| ---: | --- | --- | --- |
+| 1 | `BE-IGD-051` | — | K1 baru terus bertambah |
+| 2 | `BE-IGD-052`, lalu **jalankan** pratinjau dan eksekusi K1 | Angka pratinjau dicatat; sesudah eksekusi, K1 = 0 | — |
+| 3 | `BE-IGD-053` **bersama** `FE-IGD-038` | Langkah 2 selesai di lingkungan yang sama | Tanpa langkah 2: pasien yang kunjungan lamanya sudah selesai ikut ditolak. Tanpa `FE-IGD-038`: pendaftaran ganda sah tidak dapat disimpan dari loket |
+| 4 | `BE-IGD-057`, lalu `BE-IGD-059` | `BE-IGD-051` sudah aktif | Encounter Emergency kehilangan jalan keluar |
+| 5 | `FE-IGD-036` | `BE-IGD-053`, `BE-IGD-055`, `BE-IGD-059`, `FE-IGD-035`, `FE-IGD-038` sudah aktif | Membuka pintu pendaftaran ganda |
+
+**K3 tidak pernah ditutup otomatis** (`IGD-DEC-148`). Daftar K3 dari pratinjau `BE-IGD-052` menjadi daftar kerja
+petugas pendaftaran: encounter yang memang duplikat dibatalkan lewat `PATCH /patient-encounters/{id}/cancel`
+(masih boleh karena belum punya kunjungan, `IGD-DEC-153`). Selama belum dibatalkan, baris K3 tampil *Menunggu
+Triage* di `triage-queue`, dan pasiennya tertolak di pintu encounter kecuali petugas mengisi alasan override.
+
+### R3.13.6 Batas eksekusi untuk seluruh task R3.13
+
+Agent menyusun source lalu **berhenti**; `dotnet build -p:RunAnalyzers=false` dijalankan Rizki. **Nol migration yang
+dijalankan agent**. **Nol tulis basis data** — kueri acceptance dijalankan pemilik. Tanpa commit, push, merge, atau
+pindah branch. **Nol baris `Program.cs`**: aturan episode dan rekonsiliasi berupa static class
+(`02-backend-architecture.md` §13.10). QBE preflight dan kesesuaian engineering diselesaikan pada waktu eksekusi dari
+`AGENTS.md` backend dan dokumen engineering canonical. Perubahan pada berkas Registrasi (`PatientEncounterController.cs`,
+`PatientEncounterDtos.cs`) berjalan di bawah `IGD-DEC-135` — izin remediasi teknis, **bukan** pemindahan kepemilikan;
+butir 8 DoD PRD §8.6 (persetujuan tertulis pemilik Registrasi) tetap **belum dapat dijawab "ya"**.
+Proyek test backend sudah dihapus (`IGD-CAP-43`), jadi skenario `AT-IGD-*` dibuktikan lewat **uji API dan kueri
+baca-saja oleh pemilik**. Status UAT dipisah; agent tidak pernah menulis `UAT PASS`.
+
+**Sisi frontend.** Pasangan layar ada di `frontend-roadmap.md` bagian R3.12: `FE-IGD-035` menunggu `BE-IGD-054`;
+`FE-IGD-038` menunggu `BE-IGD-053`; `FE-IGD-039` menunggu `BE-IGD-057`; `FE-IGD-040` menunggu `BE-IGD-058`;
+`FE-IGD-036` menunggu `BE-IGD-053`, `055`, `059`; `FE-IGD-037` menunggu `BE-IGD-056`.
+
+### ✅ `BE-IGD-051` — Kunjungan IGD yang berakhir ikut menutup encounter-nya
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Tanpa tanda — **direncanakan 22 September 2026**. Prasyarat task sudah ✅; boleh mulai begitu pemilik memberi go-ahead dan menjawab dua titik keputusan TK-1 dan TK-2 di bawah. `IGD-OQ-097` (antrean) diperiksa di awal eksekusi |
+| **Status** | ✅ **SELESAI atas penilaian pemilik — 22 September 2026.** Build terverifikasi dari artefak (DLL 15.23 WIB, sesudah edit source; jumlah warning tidak dilaporkan); **uji API S1–S9 dinyatakan lulus semua oleh pemilik** (dengan bantuan agent GPT, tanpa lampiran). **Kriteria 8 dikecualikan atas keputusan pemilik 22 September 2026** — kueri invarian baru dapat dijalankan sesudah rilis; dijalankan dan dicatat pada laporan yang sama sesudah rilis. Bukti: [laporan](../task/report/backend/BE-IGD-051.md). *Riwayat:* 🟡 **SEBAGIAN — 22 September 2026.** Implementation Complete: `EmergencyEpisodeRule.cs` (baru), `EmergencyVisitService.ApplyEncounterClosureAsync`, dua titik panggil di `EmergencyVisitController`. Kesepuluh kriteria terpetakan ke source; kriteria 3, 7, 9 terbukti (pembacaan source, `git diff --stat`). **Belum:** `dotnet build` (kriteria 10, milik pemilik — `NOT RUN`), uji API S1–S9 (kriteria 1, 2, 4, 5, 6), kueri invarian sesudah rilis (kriteria 8). Nol migration, nol tulis basis data, nol `Program.cs`. Lima selisih terhadap kartu dicatat pada laporan bagian 3.2. Bukti: [laporan](../task/report/backend/BE-IGD-051.md) *Sebelumnya: tanpa tanda — siap (go-ahead pemilik diberikan 22 September 2026).* |
 | **Outcome** | Setiap kunjungan IGD yang selesai atau dibatalkan tidak lagi meninggalkan encounter "masih terbuka" — encounter-nya berakhir pada detik dan penyimpanan yang sama |
-| **Slice** | `IGD-S02` · `EPIC IGD-01` · `MVP-2` |
-| **Requirement** | `FR-IGD-009` (pasien yang kunjungannya selesai dapat didaftarkan kembali — pada klausa A `IGD-DEC-139` ini hanya benar bila encounter ikut ditutup). Tidak ada FR khusus "encounter ikut ditutup" — coverage gap R3.13 |
-| **Keputusan** | **`IGD-DEC-139`** butir 5; `RM-DEC-003` (penguncian catatan klinis saat encounter selesai); `IGD-DEC-135` |
-| **Kontrak** | API — bentuk request dan respons **tidak berubah**; efek samping pada `PATCH /{id}/complete` dan `PATCH /{id}/visit-status` (target `Cancelled`) ditulis. Integration — baris baru: **IGD menulis status `RegPatientEncounter`**. State — encounter mengikuti status akhir kunjungan. Masing-masing naik satu minor |
-| **Reuse** | `EmergencyVisitService.TryApplyVisitStatus` (penjaga transisi yang sudah ada); `ClinicalDocumentIntegrityService.LockOpenDocumentsForEncounterAsync` — **tidak menyimpan sendiri**, ikut `SaveChanges` pemanggil, sudah terdaftar di DI (`Program.cs` baris 392); ruas yang diisi `PATCH /patient-encounters/{id}/cancel` sebagai acuan — **tanpa** memanggil controller Registrasi |
+| **Slice** | `S5` · `EPIC IGD-11` · `MVP-7` |
+| **Requirement** | `FR-IGD-080`, `FR-IGD-081` |
+| **Keputusan** | `IGD-DEC-139` butir 5 + koreksi lima tanda; `IGD-DEC-148` (TK-1 tidak, TK-2 ya); `RM-DEC-003`; `IGD-DEC-135` |
+| **Kontrak** | API `0.11.0` §8.3.7 (efek samping `complete` dan `visit-status` → `Cancelled`; `DELETE` tidak menutup); validation `0.8.0` §10.1 aturan 1, §10.5; state `0.5.0` §8.2; integration `0.4.0` §5.2 (daftar kolom tertutup); permission/audit `0.5.0` §7.2 baris terakhir |
+| **Reuse** | `EmergencyVisitService.TryApplyVisitStatus` (penjaga transisi); `ClinicalDocumentIntegrityService.LockOpenDocumentsForEncounterAsync` — tidak menyimpan sendiri, sudah terdaftar di DI (`Program.cs:392`); ruas yang diisi `PATCH /patient-encounters/{id}/cancel` sebagai acuan — **tanpa** memanggil controller Registrasi |
 | **Dependency** | `BE-IGD-022` ✅, `BE-IGD-024` ✅ |
 | **Owner** | Backend IGD |
-| **Risiko** | **Menengah-tinggi.** (1) Menulis ke tabel milik Registrasi. (2) Billing menganggap `Completed` dapat ditagih dan `Cancelled` tidak (`IGD-EV-142` butir 7): kunjungan yang **dibatalkan padahal pasien sempat dilayani** akan hilang dari daftar tagihan. Billing IGD belum direncanakan (`belum_direncanakan` pada manifest) — risiko ini dinyatakan, bukan diselesaikan |
+| **Risiko** | **Menengah-tinggi.** (1) Menulis ke tabel milik Registrasi — dibatasi daftar kolom tertutup integration §5.2. (2) Billing menagih `Completed` dan tidak menagih `Cancelled` (`IGD-EV-142` butir 7): kunjungan yang dibatalkan padahal pasien sempat dilayani hilang dari daftar tagihan. Billing IGD belum direncanakan — risiko dinyatakan, tidak diselesaikan |
 
-#### Pemetaan kejadian kunjungan ke encounter
+#### Aturan
 
-| Kejadian pada kunjungan | Titik di source | Yang ditulis pada encounter |
-| --- | --- | --- |
-| Diselesaikan — `PATCH /{id}/complete` → `Completed` | `EmergencyVisitController.cs` baris 513–562 | `EncounterStatus = Completed`; `CompletedAt` = waktu server bila masih kosong; `UpdateBy`/`UpdateDateTime`; **catatan klinis yang belum ditandatangani dikunci** (`RM-DEC-003`), persis seperti `PATCH /patient-encounters/{id}/status` ke `Completed` |
-| Dibatalkan — `PATCH /{id}/visit-status` → `Cancelled` | `EmergencyVisitController.cs` baris 460–496 | `EncounterStatus = Cancelled`; `IsCancel = true`; `IsActive = false`; `CancelledAt` = waktu server; `CancelledByUserId` = pelaku dari token; `CancelReason` = catatan permintaan bila ada, bila tidak teks baku *"Kunjungan IGD dibatalkan"* |
-| Encounter sudah berakhir (salah satu dari empat tanda `IGD-DEC-139`) | — | **Tidak ada yang ditulis.** Waktu dan pelaku lama tidak ditimpa |
-| Kunjungan tanpa encounter (pasien tanpa identitas, U1 `IGD-DEC-140`) | — | Tidak ada; aksi berjalan seperti sebelumnya |
-| Dihapus lunak — `DELETE /{id}` | `EmergencyVisitController.cs` baris 595–612 | **TK-1** |
+| # | Aturan | Contoh |
+| ---: | --- | --- |
+| 1 | `EmergencyEpisodeRule.IsEncounterEnded` adalah **satu-satunya** rumus "encounter berakhir": salah satu dari `EncounterStatus` ∈ {`Completed`, `Cancelled`, `NoShow`}, `IsCancel = true`, `CancelledAt`/`CompletedAt`/`NoShowAt` terisi. Rumus disediakan dalam dua bentuk dari sumber yang sama: pemeriksaan objek dan *expression* yang dapat diterjemahkan ke SQL (dipakai `BE-IGD-052` dan `054`) | Encounter `REG-…-7` berstatus `Registered` dengan `CompletedAt` terisi → **berakhir** (tanda keempat), walau statusnya belum 9 |
+| 2 | `complete` → encounter `Completed`, `CompletedAt` = waktu server bila kosong, catatan klinis belum ditandatangani dikunci | Kunjungan `IGD-0007` diselesaikan 13.10 → encounter `Completed` 13.10, SOAP yang lupa ditandatangani terkunci |
+| 3 | `visit-status` → `Cancelled` → encounter `Cancelled`, `IsCancel = true`, `IsActive = false`, `CancelledAt`, `CancelledByUserId` (token), `CancelReason` = catatan permintaan atau *"Kunjungan IGD dibatalkan"* | — |
+| 4 | Encounter yang sudah berakhir **tidak ditimpa** — waktu, pelaku, dan alasan lama tetap | Encounter yang sudah dibatalkan manual pukul 10.00 tetap bertanda 10.00 |
+| 5 | Encounter `Outpatient` yang tertaut kunjungan IGD **ikut** ditutup (TK-2) | Kunjungan masa transisi ber-encounter `Outpatient` diselesaikan → encounter itu `Completed` |
+| 6 | `DELETE` kunjungan (hapus lunak) **tidak** menutup encounter (TK-1); encounter-nya menjadi K4 | — |
+| 7 | Perubahan encounter dan penguncian catatan ikut `SaveChangesAsync` aksi kunjungan yang sudah ada; gagal = keduanya batal | — |
 
-**Titik keputusan sebelum eksekusi** — dijawab pemilik bersama go-ahead:
+#### Endpoint yang berubah perilakunya
 
-| # | Pertanyaan | Usulan agent | Alasan |
-| --- | --- | --- | --- |
-| TK-1 | Kunjungan yang dihapus lunak — encounter-nya ikut ditutup? | **Tidak.** Dibiarkan dan masuk kelas K4 `BE-IGD-052` | Hapus lunak adalah koreksi data, bukan peristiwa klinis; menutup encounter karenanya menulis status yang tidak pernah terjadi |
-| TK-2 | Encounter bertipe `Outpatient` yang tertaut kunjungan IGD masa transisi (`IGD-DEC-109`) — ikut ditutup? | **Ya** | `EmgVisit.EncounterId` adalah bukti bahwa encounter itu milik kunjungan IGD, apa pun tipenya |
+#### Health Services / Emergency Installation Management / Emergency Visit
 
-**Satu penyimpanan, bukan dua.** Perubahan encounter dan penguncian catatan ikut `SaveChangesAsync`
-yang sudah ada pada kedua aksi (baris 496 dan 562). Bila salah satu gagal, status kunjungan **dan**
-encounter sama-sama tidak berubah — tidak pernah ada keadaan "kunjungan selesai tetapi encounter
-masih terbuka".
+Base URL: `api/v1/health-services/emergency-installation-management/emergency-visits`
 
-*Contoh.* Kunjungan `IGD-0007` diselesaikan pukul 13.10. Sebelum task ini: `EmgVisit` `Completed`,
-encounter `REG-…-7` tetap `Registered` selamanya, catatan SOAP yang belum ditandatangani tetap terbuka.
-Sesudah: keduanya berakhir pukul 13.10 dalam satu penyimpanan, dan catatan itu terkunci.
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+| --- | --- | --- | --- | --- | --- |
+| `PATCH` | `/{id}/complete` | Menyelesaikan kunjungan — **kini** encounter ikut `Completed` | `EmergencyVisit : Update` (tidak berubah) | Tidak berubah | Tidak berubah |
+| `PATCH` | `/{id}/visit-status` | Mengubah status kunjungan — target `Cancelled` **kini** ikut membatalkan encounter | `EmergencyVisit : Update` (tidak berubah) | Tidak berubah | Tidak berubah |
+| `DELETE` | `/{id}` | Hapus lunak — **ditegaskan tidak** menutup encounter | `EmergencyVisit : Delete` (tidak berubah) | — | Tidak berubah |
+
+Kode status tidak bertambah. Kegagalan penguncian catatan menggagalkan seluruh penyimpanan (integration §5.4).
 
 #### File yang akan disentuh
 
 | Berkas | Perubahan |
 | --- | --- |
-| `Areas/HealthServices/EmergencyInstallationManagement/Services/EmergencyVisitService.cs` | Satu method penutup encounter yang **tidak menyimpan sendiri**; memakai rumus "sudah berakhir" `IGD-DEC-139` |
-| `Areas/HealthServices/EmergencyInstallationManagement/Controllers/EmergencyVisitController.cs` | Dua titik panggil (`complete`, `visit-status` → `Cancelled`); constructor menerima `ClinicalDocumentIntegrityService` yang sudah terdaftar |
-| `contracts/api-contract.md`, `integration-contract.md`, `state-transition-matrix.md` | Efek samping, baris integrasi baru, perpindahan encounter; versi naik satu minor |
+| `Areas/HealthServices/EmergencyInstallationManagement/Services/EmergencyEpisodeRule.cs` | **Baru** (static) — `IsEncounterEnded` dalam dua bentuk (objek + expression) |
+| `Areas/HealthServices/EmergencyInstallationManagement/Services/EmergencyVisitService.cs` | `ApplyEncounterClosure` — tidak membuka transaksi, tidak menyimpan |
+| `Areas/HealthServices/EmergencyInstallationManagement/Controllers/EmergencyVisitController.cs` | Titik panggil `complete` (:513) dan `visit-status` (:460); constructor menerima `ClinicalDocumentIntegrityService` |
 | Roadmap, traceability, `MODULE-STATUS.md`, laporan `BE-IGD-051.md` | Penandaan status |
 
-**Tidak disentuh:** `PatientEncounterController.cs` dan seluruh modul Registrasi, `Program.cs`, model,
-konfigurasi EF, `Migrations/`, snapshot, seluruh frontend.
+**Tidak disentuh:** seluruh berkas Registrasi, `Program.cs`, model, konfigurasi EF, `Migrations/`, snapshot, berkas
+kontrak, seluruh frontend.
 
 #### Acceptance
 
-| # | Kriteria | Bukti yang diminta |
-| ---: | --- | --- |
-| 1 | `complete` → encounter `Completed` dan `CompletedAt` terisi, pada **satu** `SaveChangesAsync` — tidak ada penyimpanan kedua | Baca source + uji API |
-| 2 | `visit-status` → `Cancelled` → encounter `Cancelled`, `IsCancel`, `IsActive = false`, `CancelledAt`, `CancelledByUserId`, `CancelReason` terisi | Uji API |
-| 3 | **Atomik:** bila penyimpanan gagal, status kunjungan dan encounter sama-sama tidak berubah | Baca source; skenario gagal bila dapat dipicu |
-| 4 | Encounter yang sudah berakhir **tidak ditimpa** — waktu, pelaku, dan alasan lama tetap | Uji API pada encounter yang sudah dibatalkan manual |
-| 5 | Kunjungan tanpa encounter tetap dapat diselesaikan dan dibatalkan seperti sebelumnya | Uji API |
-| 6 | Catatan klinis yang belum ditandatangani pada encounter terkunci saat `complete`, sama dengan jalur Registrasi | Uji API + baca source |
-| 7 | **Invarian:** nol kunjungan yang berakhir **sesudah rilis** dengan encounter belum berakhir — kueri di bawah mengembalikan **0 baris** | Kueri baca-saja dijalankan pemilik; angkanya dicatat |
-| 8 | Nol perubahan pada rawat jalan, rawat inap, controller Registrasi, dan `Program.cs`; nol schema, nol migration | `git diff --stat` |
-| 9 | Kontrak API, integration, dan state naik satu minor dengan efek samping tertulis; TK-1 dan TK-2 tercatat sesuai jawaban pemilik | Berkas kontrak |
-| 10 | `dotnet build -p:RunAnalyzers=false` → 0 error, warning sama dengan baseline | Keluaran build **milik Rizki** |
+| # | Kriteria | Bukti yang diminta | `AT-IGD-*` |
+| ---: | --- | --- | --- |
+| 1 | `complete` → encounter `Completed` dan `CompletedAt` terisi pada **satu** `SaveChangesAsync` | Baca source + uji API | `178` |
+| 2 | `visit-status` → `Cancelled` → keenam ruas pembatalan encounter terisi | Uji API | — |
+| 3 | Atomik: penyimpanan gagal → kunjungan dan encounter sama-sama tidak berubah | Baca source; skenario gagal bila dapat dipicu | — |
+| 4 | Encounter yang sudah berakhir tidak ditimpa | Uji API pada encounter yang sudah dibatalkan manual | — |
+| 5 | Hapus lunak tidak menutup encounter; encounter `Outpatient` tertaut ikut ditutup | Uji API | `179` |
+| 6 | Catatan klinis belum ditandatangani terkunci saat `complete`, sama dengan jalur Registrasi | Uji API + baca source | `178` |
+| 7 | Rumus "berakhir" satu tempat (`EmergencyEpisodeRule`), dua bentuk dari sumber yang sama; nol salinan di berkas lain | Baca source | — |
+| 8 | **Invarian:** kueri di bawah mengembalikan **0 baris** sesudah rilis | Kueri baca-saja pemilik; angka dicatat | PRD §8.6 butir 6 |
+| 9 | Nol perubahan rawat jalan, rawat inap, berkas Registrasi, `Program.cs`, schema, migration, dan berkas kontrak | `git diff --stat` | — |
+| 10 | Build 0 error, warning sama dengan baseline | Keluaran build **milik Rizki** | — |
 
 ```sql
 -- Invarian BE-IGD-051 (baca-saja, dijalankan pemilik). Harus 0 baris.
@@ -2063,330 +2176,537 @@ JOIN public."RegPatientEncounter" e ON e."Id" = v."EncounterId"
 WHERE NOT v."IsDelete"
   AND v."VisitStatus" IN (8, 9)                    -- Cancelled, Completed
   AND v."UpdateDateTime" >= :waktu_rilis_be_igd_051
-  AND NOT e."IsCancel" AND e."CancelledAt" IS NULL AND e."CompletedAt" IS NULL
+  AND NOT e."IsCancel" AND e."CancelledAt" IS NULL AND e."CompletedAt" IS NULL AND e."NoShowAt" IS NULL
   AND e."EncounterStatus" NOT IN (9, 10, 11);
 ```
 
-**DoD.** Acceptance 1–10 terpenuhi; laporan tracked ada; roadmap, traceability, dan `MODULE-STATUS.md`
-diperbarui; `BE-IGD-052` boleh dimulai sesudahnya bila blocker-nya sudah dijawab.
+**DoD.** Acceptance 1–10; laporan tracked; roadmap, traceability, `MODULE-STATUS.md` diperbarui.
 
-### ⛔ `BE-IGD-052` — Rekonsiliasi encounter `Emergency` historis (*Historical Emergency Encounter Reconciliation*)
+### `BE-IGD-052` — Rekonsiliasi encounter `Emergency` historis (*Historical Emergency Encounter Reconciliation*)
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ⛔ **Terblokir** — menunggu (1) konfirmasi pemilik atas rumusan kelas K1–K4 (disusun ulang agent, evidence bagian 6); (2) **angka** kueri D per kelas (evidence bagian 7.1); (3) bentuk task, `IGD-OQ-095`. Task-nya sendiri menunggu `BE-IGD-051` |
-| **Outcome** | Encounter `Emergency` lama yang tertinggal terbuka dibereskan **berdasarkan bukti per baris**, sehingga penjaga `BE-IGD-053` tidak menolak pasien yang kunjungannya sebenarnya sudah lama selesai |
-| **Slice** | `IGD-S02` · `EPIC IGD-01` · `MVP-2` |
-| **Requirement** | `FR-IGD-009`; `IGD-DEC-138` (larangan pembersihan tanpa audit referensi) |
-| **Keputusan** | **`IGD-DEC-139`** (rumus); `IGD-DEC-138`; prinsip `IGD-DEC-136` (dilarang mengarang pelaku); pola `BE-IGD-048` (penanda, idempoten, `Down()` berpenjaga) |
-| **Kontrak** | Bergantung bentuk: endpoint admin → API bagian baru; migration → nol perubahan API |
-| **Reuse** | Rumus "sudah berakhir" `IGD-DEC-139` dari `BE-IGD-051`; kueri B `BE-IGD-050` acceptance 8 (audit referensi) |
-| **Dependency** | `BE-IGD-051`; ⛔ kueri D + konfirmasi K1–K4; ⛔ `IGD-OQ-095` |
-| **Owner** | Backend IGD; bila migration, **dijalankan Rizki sendiri** |
-| **Risiko** | **Tinggi** — mengubah data historis tabel milik modul lain |
+| **Status** | Tanpa tanda — **siap sesudah `BE-IGD-051`**. Bentuk sudah diputuskan (`IGD-DEC-148`: endpoint admin), kelas K1–K4 disahkan. **Angka kueri D belum ada** — tidak menahan pengembangan, tetapi acceptance 1 dan eksekusi di setiap lingkungan membutuhkannya (evidence `2026-09-22-desain-encounter-first.md` §7.1) |
+| **Outcome** | Admin data melihat berapa encounter `Emergency` lama yang tertinggal terbuka per kelas, lalu menutup **hanya** yang buktinya pasti (K1) — tercatat siapa, kapan, dan baris mana, dan dapat dibalik |
+| **Slice** | `S6` · `EPIC IGD-11` · `MVP-7` |
+| **Requirement** | `FR-IGD-084` |
+| **Keputusan** | `IGD-DEC-148`, `IGD-DEC-162` (tanpa layar); `IGD-DEC-138` (larangan pembersihan tanpa audit); prinsip `IGD-DEC-136` (pelaku tidak dikarang) |
+| **Kontrak** | API `0.11.0` §8.4 (grup baru); validation `0.8.0` §10.6; state `0.5.0` §8.4 (`EmergencyReconciliationRunStatus`); integration `0.4.0` §5.2 baris K1; permission/audit `0.5.0` §7.1 (resource `EmergencyEncounterReconciliation` Read/Process/Reverse), §7.2 |
+| **Reuse** | `EmergencyEpisodeRule.IsEncounterEnded` (expression) dari `BE-IGD-051`; pola admin preview + execute `YearEndClosing`/`LeaveAccrual` (`IGD-FACT-020`); `DocumentNumberService` untuk `RunNumber`; pola `Down()` berpenjaga `BE-IGD-048` |
+| **Dependency** | `BE-IGD-051` |
+| **Owner** | Backend IGD; migration **dibuat dan dijalankan Rizki** |
+| **Risiko** | **Tinggi** — mengubah data historis tabel milik modul lain. Dijaga oleh `expectedCount`, evaluasi per baris, dan run yang dapat dibalik |
 
-#### Aturan yang berlaku apa pun bentuknya
+#### Kelas (disahkan `IGD-DEC-148`)
 
-1. **Dilarang `UPDATE` massal.** Tidak ada satu pernyataan yang menutup semua encounter `Emergency`
-   sekaligus. Setiap baris yang ditutup harus lolos syarat kelasnya sendiri.
-2. **Hanya K1 yang boleh ditutup otomatis** — status encounter mengikuti status akhir kunjungan
-   (`Completed` → `Completed`, `Cancelled` → `Cancelled`).
-3. **Waktu hanya dari bukti.** `CompletedAt` diisi `EmgVisit.VisitCompletedAt` bila ada. Bila tidak ada,
-   **dibiarkan kosong** — `EncounterStatus` sudah cukup sebagai tanda berakhir. **Dilarang** memakai
-   waktu sekarang atau `UpdateDateTime` sebagai waktu historis.
-4. **Pelaku tidak dikarang.** Sama dengan `IGD-DEC-136`: tidak ada `UpdateBy` tebakan.
-5. **Penanda tetap** pada setiap baris yang ditutup, supaya baris itu dapat ditelusuri dan dibalik. Penanda
-   **tidak boleh menimpa** isi yang sudah ada pada kolom mana pun.
-6. **K2, K3, K4 tidak ditulis** — hanya dilaporkan (jumlah + daftar). K3 ditindaklanjuti manusia per baris
-   sesudah audit referensi, lewat jalan keluar Registrasi yang sudah ada — **bukan** oleh task ini.
-7. **Uji-kering lebih dulu:** hitung per kelas tanpa menulis; hasilnya harus sama dengan kueri D.
-8. **Idempoten** — dijalankan dua kali, kali kedua menulis 0 baris. **Dapat dibalik** — baris bertanda
-   dapat dikembalikan dengan penjaga, pola `BE-IGD-048`.
+| Kelas | Isi | Ditulis? |
+| --- | --- | :-: |
+| K1 | Encounter `Emergency` belum berakhir, kunjungannya `Completed`/`Cancelled` | **Ya** — status mengikuti kunjungan |
+| K1-Outpatient | Sama dengan K1, tetapi encounter bertipe `Outpatient` (masa transisi, TK-2) | **Ya** |
+| K2 | Encounter dengan kunjungan yang masih berjalan | Tidak — normal |
+| K3 | Encounter `Emergency` tanpa kunjungan | Tidak — dilaporkan; ditindaklanjuti petugas pendaftaran (R3.13.5) |
+| K4 | Encounter yang satu-satunya kunjungannya dihapus lunak | Tidak — dilaporkan |
 
-#### Dua bentuk yang menunggu `IGD-OQ-095`
+*Contoh.* Pratinjau di dev menampilkan K1 = 42, K1-Outpatient = 3, K2 = 5, K3 = 7, K4 = 1. Admin mengisi alasan
+*"Penutupan encounter IGD sebelum BE-IGD-051"* dan `expectedCount = 45`. Bila di antara pratinjau dan eksekusi satu
+kunjungan lain selesai (K1 menjadi 43), eksekusi ditolak `409` *"Data berubah sejak pratinjau; muat ulang
+pratinjau."* Sesudah dimuat ulang dengan `expectedCount = 46`, run tercatat dengan 46 baris.
 
-| Bentuk | Kelebihan | Kekurangan |
-| --- | --- | --- |
-| **Endpoint admin** (uji-kering + terapkan per kelas) | Dijalankan sadar oleh orang yang berwenang; jejak audit per pemanggilan; dapat dipakai ulang bila K1 baru ditemukan | Butuh permission dan route baru; setiap lingkungan harus dijalankan manual dan bisa terlupa |
-| **Migration data-only** berpola `BE-IGD-048` | Berjalan sama persis di setiap lingkungan saat deploy; pola sudah terbukti di modul ini (siklus `Up→Down→Up`, penjaga `Down()`) | Sekali jalan; K1 yang muncul sesudahnya tidak tertangani (seharusnya nol sesudah `BE-IGD-051`); dijalankan Rizki |
+#### Endpoint baru
 
-*Usulan agent, bukan keputusan:* migration untuk K1, karena buktinya deterministik dan `BE-IGD-051`
-menjamin tidak ada K1 baru. K3/K4 tidak ditulis bentuk mana pun.
+#### Emergency Encounter Reconciliation
+
+Base URL: `api/v1/health-services/emergency-installation-management/emergency-encounter-reconciliations` ·
+**Rencana (belum tersedia)**
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+| --- | --- | --- | --- | --- | --- |
+| `GET` | `/preview` | Jumlah tiap kelas + daftar K1/K1-Outpatient berhalaman; **tidak menulis** | `EmergencyEncounterReconciliation : Read` | Query halaman | `…PreviewResponse` |
+| `POST` | `/runs` | Menutup K1 dan K1-Outpatient yang lolos syarat | `EmergencyEncounterReconciliation : Process` | `ExecuteEmergencyEncounterReconciliationRequest` (`reason`, `expectedCount`) | `…RunResponse` |
+| `GET` | `/runs` | Riwayat run | `EmergencyEncounterReconciliation : Read` | Query halaman | `PagedResult<…RunResponse>` |
+| `GET` | `/runs/{id}` | Satu run beserta barisnya | `EmergencyEncounterReconciliation : Read` | — | `…RunResponse` + `…ItemResponse[]` |
+| `POST` | `/runs/{id}/reverse` | Membalik satu run | `EmergencyEncounterReconciliation : Reverse` | `ReverseEmergencyEncounterReconciliationRequest` (`reason`) | `…RunResponse` |
+
+Kode status: `201` run tercatat; `400` alasan kosong/terlalu panjang; `401` belum login; `403` tidak memegang hak
+admin rekonsiliasi; `404` run tidak ada; `409` data berubah sejak pratinjau, atau run sudah dibalik. **Tanpa layar**
+(`IGD-DEC-162`): dijalankan lewat Swagger di Development, atau HTTP client bertoken di lingkungan lain.
+
+#### File yang akan disentuh
+
+| Berkas | Perubahan |
+| --- | --- |
+| `…/Controllers/EmergencyEncounterReconciliationController.cs` | **Baru** — lima action; `[AccessController]` resource `EmergencyEncounterReconciliation`; pasangan `[AccessAction]` + `[AccessPermission]` per method (permission §7.1) |
+| `…/Services/EmergencyEncounterReconciliation.cs` | **Baru** (static) — pratinjau, eksekusi, pembalikan; satu transaksi per run |
+| `…/DTOs/EmergencyEncounterReconciliationDtos.cs` | **Baru** |
+| `…/Enums/EmergencyReconciliationClass.cs`, `EmergencyReconciliationRunStatus.cs` | **Baru** |
+| `…/Models/EmgEncounterReconciliationRun.cs`, `EmgEncounterReconciliationItem.cs` | **Baru** |
+| `Repositories/Configurations/…/EmgEncounterReconciliationRunConfiguration.cs`, `…ItemConfiguration.cs` | **Baru** (02 §13.6) |
+| `Repositories/ApplicationDbContext.cs` | + 2 `DbSet` |
+| `Migrations/` | `AddEmergencyEncounterReconciliation` — **dibuat Rizki**; `Down()` berpenjaga menolak bila ada run |
+
+**Tidak disentuh:** berkas Registrasi, `Program.cs`, berkas kontrak, frontend.
 
 #### Acceptance
 
-| # | Kriteria | Bukti yang diminta |
-| ---: | --- | --- |
-| 1 | Uji-kering menghasilkan jumlah per kelas yang **sama** dengan kueri D | Angka keduanya dicatat |
-| 2 | Hanya baris K1 yang berubah; jumlah baris berubah = jumlah K1 uji-kering | Hitungan sebelum/sesudah |
-| 3 | Nol baris K2, K3, K4 berubah | Kueri D sesudah: K1 = 0, K2/K3/K4 tidak berubah |
-| 4 | Nol waktu historis dan nol pelaku yang dikarang (aturan 3–4) | Baca source + contoh baris |
-| 5 | Dijalankan kedua kali → 0 baris | Hitungan |
-| 6 | Dapat dibalik dengan penjaga; balikan hanya menyentuh baris bertanda | Diuji di basis data terpisah, pola `BE-IGD-048` |
-| 7 | Daftar K3/K4 diserahkan sebagai laporan, tanpa ditulis | Laporan task |
-| 8 | Build 0 error, warning sama dengan baseline | Keluaran build **milik Rizki** |
+| # | Kriteria | Bukti yang diminta | `AT-IGD-*` |
+| ---: | --- | --- | --- |
+| 1 | Pratinjau menghasilkan jumlah per kelas yang **sama** dengan kueri D; **nol** baris berubah | Angka keduanya dicatat — **menunggu angka kueri D dari pemilik** | `182` |
+| 2 | Eksekusi dengan `expectedCount` basi → `409`; eksekusi benar → hanya K1/K1-Outpatient berubah, jumlahnya = `expectedCount` | Hitungan sebelum/sesudah | `183` |
+| 3 | Nol pernyataan update massal; setiap baris dievaluasi ulang di dalam transaksi run | Baca source | — |
+| 4 | `CompletedAt` hanya dari `EmgVisit.VisitCompletedAt`; bila kosong tetap kosong; nol pelaku dikarang | Baca source + contoh baris | `183` |
+| 5 | Pembalikan mengembalikan nilai sebelum; baris yang sudah berubah sesudah run dilewati dan dilaporkan; run yang sudah dibalik → `409` | Uji API | `183` |
+| 6 | Nilai sebelum/sesudah tercatat per baris; alasan tidak masuk custom logger (permission §7.2) | Baca source + isi tabel | — |
+| 7 | `Down()` berpenjaga diuji di basis data terpisah (pola `BE-IGD-048`); snapshot hanya bertambah blok dua tabel ini | Catatan uji + `git diff` snapshot | PRD §8.6 butir 3–4 |
+| 8 | Nol baris `Program.cs`; nol kolom baru `RegPatientEncounter` | `git diff --stat` | PRD §8.6 butir 5 |
+| 9 | Build 0 error, warning sama dengan baseline | Keluaran build **milik Rizki** | — |
 
-**DoD.** Acceptance 1–8; laporan tracked; `BE-IGD-053` boleh dimulai bila `IGD-OQ-096` dan `IGD-OQ-101`
-sudah dijawab.
+**DoD.** Acceptance 1–9; laporan tracked; daftar K3/K4 diserahkan pada laporan sebagai daftar kerja, tanpa ditulis.
 
-### ⛔ `BE-IGD-053` — Penjaga episode terbuka pada pintu encounter `Emergency` (menutup `IGD-OQ-093`)
+### `BE-IGD-053` — Penjaga episode terbuka pada pintu encounter `Emergency` (realisasi `IGD-OQ-093`)
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ⛔ **Terblokir** — menunggu `BE-IGD-051` dan `BE-IGD-052`, serta jawaban `IGD-OQ-096` (pasien pergi sebelum ditriage) dan `IGD-OQ-101` (jalan keluar beralasan dan mekanisme serentak) |
-| **Outcome** | Pendaftaran IGD kedua untuk pasien yang episodenya masih terbuka **ditolak server sebelum encounter dibuat** — dari layar mana pun, dan juga bila dua petugas menekan simpan pada detik yang sama |
-| **Slice** | `IGD-S02` · `EPIC IGD-01` · `MVP-2` |
-| **Requirement** | `FR-IGD-007`…`012` |
-| **Keputusan** | **`IGD-DEC-139`** (rumus episode terbuka), `IGD-DEC-138`, `IGD-DEC-084`, `IGD-DEC-135`; menjalankan jawaban `IGD-OQ-093` (bentuk B1) |
-| **Kontrak** | API — `POST /patient-encounters` (dan `/admin`, `/kiosk`) mendapat penolakan `409` baru **khusus** `EncounterType = Emergency`; `GET /emergency-visits/active-episode` (bagian `1.3`) diperluas **aditif**: ruas `encounter` terisi bila episode terbuka lewat klausa A. Validation — aturan episode ganda memakai rumus `IGD-DEC-139`. Integration — Registrasi memanggil aturan IGD |
-| **Reuse** | Pola `public static` pada service yang sudah terdaftar dengan `ApplicationDbContext` sebagai parameter (`EmergencyVisitService.PeriksaJenisEncounter`) — **nol baris `Program.cs`**; transaksi yang sudah ada di `CreateEncounterCoreAsync` (baris 559); pesan penolakan `IGD-DEC-084` |
-| **Dependency** | `BE-IGD-050` ✅, `BE-IGD-051`, `BE-IGD-052`; ⛔ `IGD-OQ-096`; ⛔ `IGD-OQ-101` |
-| **Owner** | Backend IGD; penyentuhan berkas Registrasi di bawah `IGD-DEC-135` |
-| **Risiko** | **Tinggi** — ini pintu masuk pasien. Penjaga yang salah menolak pasien gawat. Karena itu tiga gerbang di atas **tidak boleh** dilewati |
+| **Status** | Tanpa tanda — **menunggu `BE-IGD-052` dan `BE-IGD-055`**. Keputusan yang dulu menahannya (`IGD-OQ-096`, `IGD-OQ-101`) sudah dijawab `IGD-DEC-142`, `145`, `146`. **Dirilis** di satu lingkungan hanya sesudah rekonsiliasi K1 dijalankan di sana (R3.13.5), dan **bersama** `FE-IGD-038` |
+| **Outcome** | Pendaftaran IGD kedua untuk pasien yang episodenya masih terbuka ditolak server **sebelum** encounter dibuat — dari layar mana pun, juga bila dua petugas menekan simpan pada detik yang sama; pendaftaran ganda yang sah tetap bisa, dengan alasan tercatat; encounter IGD tidak lagi membuat antrean |
+| **Slice** | `S1` · `EPIC IGD-11` · `MVP-7` |
+| **Requirement** | `FR-IGD-069` (sisi backend: pintu encounter tanpa kunjungan), `FR-IGD-071`, `FR-IGD-072`, `FR-IGD-073`, `FR-IGD-074` |
+| **Keputusan** | `IGD-DEC-139` (rumus A+B), `IGD-DEC-144`, `IGD-DEC-145`, `IGD-DEC-146`, `IGD-DEC-084`, `IGD-DEC-138`, `IGD-DEC-135`. **Realisasi `IGD-OQ-093`** — status OQ tetap `superseded` sebagian sampai task ini ✅ |
+| **Kontrak** | API `0.11.0` §8.1 nomor 1, 2, 7, 8, 9; §8.2 (baris `POST`); §8.3.6 (`active-episode` + ruas `encounter`); validation `0.8.0` §10.1 aturan 2–7; integration `0.4.0` §5.2 baris pertama, §5.3 dua baris pertama, §5.4; permission/audit `0.5.0` §7.1 baris `PatientEncounter`, §7.2 baris override |
+| **Reuse** | `EmergencyEpisodeRule` (`IsEncounterEnded` dari `BE-IGD-051`; `FindOpenEpisodeAsync` dan `LockPatientEpisodeAsync` dari `BE-IGD-055`); transaksi `CreateEncounterCoreAsync` yang sudah ada (`PatientEncounterController.cs:559`); pola `EmergencyVisitService.PeriksaJenisEncounter` (static tanpa DI); pesan `IGD-DEC-084` |
+| **Dependency** | `BE-IGD-050` ✅, `BE-IGD-052`, `BE-IGD-055` |
+| **Owner** | Backend IGD; berkas Registrasi di bawah `IGD-DEC-135`; migration **dibuat Rizki** |
+| **Risiko** | **Tinggi** — ini pintu masuk pasien. Penjaga yang salah menolak pasien gawat. Karena itu urutan rilis R3.13.5 langkah 2–3 **tidak boleh** dilewati |
 
-#### Rancangan
+#### Aturan
 
-| Unsur | Isi |
-| --- | --- |
-| Tempat aturan | Satu method `public static` di `EmergencyVisitService` yang menjalankan rumus episode terbuka `IGD-DEC-139` (klausa A + B). Dipakai **juga** oleh `active-episode`, `POST /emergency-visits`, dan `start-triage` — nol salinan |
-| Titik panggil | `PatientEncounterController.CreateEncounterCoreAsync`, **hanya** bila `request.EncounterType == Emergency`, di dalam transaksi yang sudah ada, sebelum encounter disisipkan |
-| Serentak | Penguncian per pasien di dalam transaksi — tanpa schema. Unique index bersyarat pada tabel encounter **tidak dipilih**: ia akan melarang pendaftaran ganda yang sah lewat jalan keluar beralasan (`IGD-OQ-101` butir 2) |
-| Jalan keluar beralasan | Menunggu `IGD-OQ-101` butir 1. Bila jawabannya butuh kolom baru di tabel Registrasi, agent berhenti sebelum migration |
-| Pesan `409` | Mengikuti `IGD-DEC-084`: menyebut nomor kunjungan bila sudah ada; bila belum, nomor encounter dan keterangan *"Menunggu Triage"* |
-| Yang **tidak** dilewati penjaga | Rawat jalan dan rawat inap (tipe lain tidak diperiksa); pasien tanpa identitas (tidak lewat pintu ini — U1 `IGD-DEC-140`) |
-| Yang **dilarang** | Heuristik waktu dalam bentuk apa pun |
+| # | Aturan | Contoh |
+| ---: | --- | --- |
+| 1 | Hanya `encounterType = Emergency`. Rawat jalan dan rawat inap **tidak** diperiksa, tidak dikunci | Pendaftaran poliklinik berjalan persis seperti hari ini |
+| 2 | Urutan di dalam transaksi yang sudah ada: kunci `EMG_EPISODE_{patientId}` → rumus episode terbuka → tolak `409` **atau** tulis catatan override → **baru** kunci penomoran `REG_PATIENT_ENCOUNTER_NUMBER` dan sisip encounter | Tidak ada jalur yang mengambil kunci penomoran lebih dulu (integration §5.3 — mencegah *deadlock*, yaitu dua proses saling menunggu selamanya) |
+| 3 | Episode terbuka = klausa A (encounter Emergency lain belum berakhir) **atau** klausa B (kunjungan belum `Completed`/`Cancelled`) — `EmergencyEpisodeRule.FindOpenEpisodeAsync`, satu method untuk keempat pemakai | Pasien dengan encounter K3 lama tanpa kunjungan → klausa A → ditolak kecuali beralasan |
+| 4 | Alasan kosong → `409` dengan pesan validation §10.1 aturan 3; alasan terisi (≤ 500) → encounter dibuat **dan** `EmgDuplicateEpisodeOverride` ditulis pada transaksi yang sama | Petugas mengisi *"Pasien kembali 2 jam kemudian, kunjungan pagi belum ditutup dokter"* → encounter kedua lahir, catatan override menunjuk kunjungan pagi |
+| 5 | Encounter Emergency **tidak pernah** membuat `TrxQueue`, apa pun `IsQueueRequired` (`PatientEncounterController.cs:544`, `:608`, `:749`) | Unit IGD diset `IsQueueRequired = true` → nol baris antrean |
+| 6 | `POST /emergency-visits` (jalur lama) dibungkus **transaksi eksplisit**, mengambil kunci yang sama, memakai rumus A+B dengan pengecualian encounter miliknya sendiri. Alasan tingkat kunjungan (`EmgVisit.DuplicateEpisodeOverride*`) tetap berlaku di jalur ini (`IGD-DEC-145`) | Loket sebelum `FE-IGD-036`: encounter dibuat lalu kunjungan dibuat untuk encounter yang sama → tidak tertolak oleh encounter-nya sendiri |
+| 7 | `CariEpisodeAktifAsync` **mendelegasikan** ke `FindOpenEpisodeAsync`; `GET /active-episode` kini benar untuk klausa A atau B dan mengisi ruas `encounter` | Pra-cek pasien yang sedang *Menunggu Triage* → `hasActiveEpisode = true`, `encounter = { encounterNumber: "REG-260922-0012", registeredAt: … }`, `visit = null` |
+| 8 | **Dilarang** heuristik waktu dalam bentuk apa pun | — |
 
-*Contoh serentak.* Dua petugas loket mendaftarkan RAYYAN pada 09.40:00 dan 09.40:00,3. Tanpa
-penguncian, keduanya membaca "tidak ada episode terbuka" lalu keduanya membuat encounter. Dengan
-penguncian per pasien, permintaan kedua menunggu yang pertama selesai, lalu membaca encounter yang
-baru dibuat dan ditolak `409`.
+*Contoh serentak.* Dua petugas loket mendaftarkan RAYYAN pukul 09.40:00 dan 09.40:00,3. Permintaan kedua menunggu
+kunci per pasien sampai yang pertama selesai, lalu membaca encounter yang baru dibuat dan ditolak `409`. Tepat satu
+encounter terbuka di basis data.
 
 #### Endpoint yang berubah perilakunya
 
 #### Health Services / Registration Management / Patient Encounter
 
-| Method | Path | Perubahan | Hak akses |
-| --- | --- | --- | --- |
-| `POST` | `/api/v1/health-services/registration-management/patient-encounters` (juga `/admin`, `/kiosk`) | `409` baru bila `encounterType = Emergency` dan episode pasien masih terbuka; tipe lain **tidak berubah** | Tidak berubah |
+Base URL: `api/v1/health-services/registration-management/patient-encounters` — **milik Registration Management**
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+| --- | --- | --- | --- | --- | --- |
+| `POST` | `/`, `/admin`, `/kiosk` | Membuat encounter — **khusus Emergency:** kunci, rumus episode, override, tanpa antrean | `PatientEncounter : Create` (tidak berubah) | `PatientEncounterCreateRequest` + `duplicateEpisodeOverrideReason` (`string?`, aditif) | Tidak berubah |
+
+Kode status baru: `409` — pasien masih punya episode IGD terbuka dan alasan pendaftaran ganda kosong. Pesannya
+menyebut nomor kunjungan (bila sudah lahir) atau nomor encounter dan *"Menunggu Triage"*.
 
 #### Health Services / Emergency Installation Management / Emergency Visit
 
-| Method | Path | Perubahan | Hak akses |
-| --- | --- | --- | --- |
-| `GET` | `/api/v1/health-services/emergency-installation-management/emergency-visits/active-episode?patientId={guid}` | Ruas baru `encounter` (`id`, `encounterNumber`, `registeredAt`) terisi saat episode terbuka lewat klausa A dan `visit` masih `null`. Ruas lama tidak berubah | `EmergencyVisit : Create` — tidak berubah |
+Base URL: `api/v1/health-services/emergency-installation-management/emergency-visits`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+| --- | --- | --- | --- | --- | --- |
+| `GET` | `/active-episode?patientId=` | Pra-cek — kini klausa A atau B | `EmergencyVisit : Create` (tidak berubah; keterbatasan `IGD-DEC-158`) | Query `patientId` | `EmergencyActiveEpisodeResponse` + ruas `encounter` (aditif) |
+| `POST` | `/` | Jalur lama — kini transaksi + kunci + rumus A+B | `EmergencyVisit : Create` (tidak berubah) | Tidak berubah | Tidak berubah; `409` kini juga untuk klausa A |
+
+#### File yang akan disentuh
+
+| Berkas | Perubahan |
+| --- | --- |
+| `Areas/HealthServices/RegistrationManagement/Controllers/PatientEncounterController.cs` | **Berkas Registrasi.** Cabang Emergency di `CreateEncounterCoreAsync` sebelum alokasi nomor (`:567`) |
+| `Areas/HealthServices/RegistrationManagement/DTOS/PatientEncounterDtos.cs` | **Berkas Registrasi.** `DuplicateEpisodeOverrideReason` (`string?` — supaya tidak terkena `[Required]` implisit) |
+| `…/Services/EmergencyEpisodeRule.cs` | Dipakai; tidak ada rumus baru |
+| `…/Services/EmergencyVisitService.cs` | `CariEpisodeAktifAsync` mendelegasikan |
+| `…/Controllers/EmergencyVisitController.cs` | `Create` (:240) dibungkus transaksi + kunci; `ActiveEpisode` (:196) + ruas `encounter` |
+| `…/DTOs/EmergencyVisitDtos.cs` | `EmergencyActiveEncounterSummary`; `EmergencyActiveEpisodeResponse` + `Encounter` |
+| `…/Models/EmgDuplicateEpisodeOverride.cs`, konfigurasinya, `ApplicationDbContext` (+1 `DbSet`) | **Baru** (02 §13.6) |
+| `Migrations/` | `AddEmergencyDuplicateEpisodeOverride` — **dibuat Rizki**; `Down()` berpenjaga menolak bila tabel berisi |
+
+**Tidak disentuh:** `EncounterIntakeService`, `InpEpisodeService`, `Program.cs`, berkas kontrak, frontend.
 
 #### Acceptance
 
-| # | Kriteria | Bukti yang diminta |
-| ---: | --- | --- |
-| 1 | Pasien dengan encounter `Emergency` belum berakhir (klausa A) → `POST /patient-encounters` bertipe `Emergency` ditolak `409`; jumlah encounter tidak bertambah | Uji API + hitungan baris |
-| 2 | Pasien dengan kunjungan lama belum berakhir (klausa B) → ditolak `409` | Uji API |
-| 3 | Pasien yang episodenya sudah berakhir → encounter dibuat | Uji API |
-| 4 | Encounter `Outpatient`/`Inpatient` dan jalur `EncounterIntakeService`/`InpEpisodeService` **tidak berubah** | Uji API + `git diff` |
-| 5 | **Serentak:** dua permintaan paralel untuk pasien yang sama → tepat satu berhasil, satu `409`, tepat satu encounter terbuka di basis data | Uji paralel seperti S12 `BE-IGD-045`; hitungan dicatat |
-| 6 | Jalan keluar beralasan sesuai jawaban `IGD-OQ-101` → encounter kedua dibuat dan alasan, pelaku, waktunya tercatat | Uji API |
-| 7 | `active-episode` mengenali klausa A (ruas `encounter`), ruas lama tidak berubah | Uji API |
-| 8 | Rumus episode terbuka **satu tempat**; nol heuristik waktu | Baca source |
-| 9 | Jalan keluar untuk pasien yang pergi sebelum ditriage tersedia sesuai jawaban `IGD-OQ-096` | Uji sesuai jawaban |
-| 10 | Kontrak API dan validation naik satu minor; `IGD-OQ-093` dicatat tertutup pada laporan | Berkas kontrak + laporan |
-| 11 | Build 0 error, warning sama dengan baseline | Keluaran build **milik Rizki** |
+| # | Kriteria | Bukti yang diminta | `AT-IGD-*` |
+| ---: | --- | --- | --- |
+| 1 | Pasien beridentitas didaftarkan → satu encounter Emergency, nol baris antrean | Uji API + hitungan | `166` (sisi backend), `171` |
+| 2 | Pasien *Menunggu Triage* didaftarkan lagi tanpa alasan → `409`, pesan menyebut nomor encounter dan "Menunggu Triage"; jumlah encounter tetap | Uji API + hitungan | `168` |
+| 3 | Klausa B (kunjungan lama berjalan) → `409` dengan nomor kunjungan | Uji API | — |
+| 4 | Dua pendaftaran paralel → satu `200`, satu `409`, tepat satu episode terbuka | Uji paralel seperti S12 `BE-IGD-045`; hitungan | `169` |
+| 5 | Pendaftaran kedua beralasan → encounter lahir, catatan override berisi alasan, pelaku token, waktu server, episode yang dilangkahi; tabel encounter tanpa kolom baru | Uji API + isi tabel | `170` |
+| 6 | Klien memanggil `POST /patient-encounters` **tanpa** pra-cek → tetap `409` | Uji API | `185` |
+| 7 | Pasien yang episodenya sudah berakhir (termasuk K1 yang sudah direkonsiliasi) → encounter dibuat | Uji API | — |
+| 8 | Rawat jalan/rawat inap dan `EncounterIntakeService`/`InpEpisodeService` tidak berubah | Uji API + `git diff` | — |
+| 9 | Jalur lama `POST /emergency-visits` dalam transaksi eksplisit dengan kunci yang sama; loket sebelum `FE-IGD-036` tetap dapat mendaftar | Baca source + uji layar pemilik | — |
+| 10 | `active-episode` mengenali klausa A (ruas `encounter`); ruas lama tidak berubah | Uji API | — |
+| 11 | Satu rumus episode (`FindOpenEpisodeAsync`) untuk keempat pemakai; nol heuristik waktu | Baca source | — |
+| 12 | `Down()` berpenjaga diuji di basis data terpisah; snapshot hanya bertambah blok tabel override | Catatan uji + `git diff` snapshot | PRD §8.6 butir 3–4 |
+| 13 | Laporan menyatakan celah `IGD-OQ-093` (serentak + klien tanpa pra-cek) **hilang**, dengan bukti acceptance 4 dan 6 | Laporan task | — |
+| 14 | Build 0 error, warning sama dengan baseline | Keluaran build **milik Rizki** | — |
 
-**DoD.** Acceptance 1–11; laporan tracked; celah `IGD-OQ-093` dinyatakan **hilang** pada laporan;
-`FE-IGD-036` boleh dimulai bila `BE-IGD-055` dan `FE-IGD-035` juga selesai.
+**Data yang belum ada:** `IGD-UNK-06` (jumlah `TrxQueue` lama yang tertaut encounter Emergency). Task ini **tidak**
+membersihkan antrean lama — hanya berhenti membuat yang baru; angkanya dicatat pada laporan bila pemilik
+menjalankan kuerinya.
+
+**DoD.** Acceptance 1–14; laporan tracked; `IGD-OQ-093` dicatat realisasinya pada decision log oleh pass
+penyelarasan; `FE-IGD-038` dirilis pada waktu yang sama.
 
 ### `BE-IGD-054` — Daftar Menunggu Triage terpadu (`GET triage-queue`)
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Tanpa tanda — **direncanakan 22 September 2026**. Prasyarat task sudah ✅; boleh mulai begitu pemilik memberi go-ahead |
-| **Outcome** | Perawat triage melihat **satu** daftar yang memuat semua pasien yang perlu ditriage — yang baru didaftarkan (belum punya kunjungan), pasien tanpa identitas, dan kunjungan lama — tanpa layar menggabungkan dua sumber sendiri |
-| **Slice** | `IGD-S02` · `EPIC IGD-01` |
-| **Requirement** | Tidak ada FR khusus daftar triage terpadu — coverage gap R3.13; `FR-IGD-011` (pasien tanpa identitas tetap tampil) |
-| **Keputusan** | **`IGD-DEC-139`** butir 2, **`IGD-DEC-140`** U1 |
-| **Kontrak** | API — bagian baru pada grup `Emergency Visit`: satu endpoint baca-saja. `GET /emergency-visits` **tidak berubah** |
-| **Reuse** | Proyeksi daftar kunjungan yang ada (`EmergencyVisitController` baris 766–780); rumus episode terbuka `IGD-DEC-139` |
-| **Dependency** | `BE-IGD-024` ✅ |
+| **Status** | Tanpa tanda — **siap sesudah `BE-IGD-051`** |
+| **Outcome** | Perawat triage melihat **satu** daftar berisi semua pasien yang perlu ditriage — yang baru didaftarkan (belum punya kunjungan) maupun kunjungan yang sudah lahir — tanpa layar menggabungkan dua sumber sendiri |
+| **Slice** | `S2` · `EPIC IGD-11` · `MVP-7` |
+| **Requirement** | `FR-IGD-070` |
+| **Keputusan** | `IGD-DEC-139` butir 2, `IGD-DEC-144` (daftar = tampilan turunan milik IGD, bukan antrean), `IGD-DEC-143` (aksi `ImmediateCare` pada baris tanpa kunjungan), `IGD-DEC-142` (aksi `NoShow`), `IGD-DEC-151` (rekam pengganti tampil apa adanya) |
+| **Kontrak** | API `0.11.0` §8.3.1; permission/audit `0.5.0` §7.1 baris `Read` |
+| **Reuse** | `EmergencyEpisodeRule.IsEncounterEnded` (expression) dari `BE-IGD-051`; proyeksi daftar kunjungan yang ada (`EmergencyVisitController` :57); `PagedResult<T>` |
+| **Dependency** | `BE-IGD-051` |
 | **Owner** | Backend IGD |
-| **Risiko** | Menengah. Sampai `BE-IGD-052` dan `IGD-OQ-096` selesai, encounter K3 lama dan pasien yang sudah pergi **ikut tampil** sebagai *Menunggu Triage*. Pemilik memutuskan pada go-ahead: diterima, atau task ini ditunda sampai `BE-IGD-052` |
+| **Risiko** | Menengah. Encounter K3 lama **tidak pernah** ditutup otomatis (`IGD-DEC-148`) — mereka tampil *Menunggu Triage* sampai petugas pendaftaran membatalkannya (R3.13.5). Risiko ini **dikoreksi** dari versi pagi, yang menyebut K3 hilang sesudah `BE-IGD-052` |
 
-#### Isi daftar
+#### Aturan
 
-| Jenis baris | Syarat | Status yang ditampilkan | Waktu yang ditampilkan |
-| --- | --- | --- | --- |
-| Encounter belum punya kunjungan | Klausa A `IGD-DEC-139` dan tidak ada `EmgVisit` untuk encounter itu | *Menunggu Triage* | `registeredAt` berlabel **"Terdaftar"** — **bukan** waktu tiba (pemilik menolak menyamakannya) |
-| Kunjungan (termasuk pasien tanpa identitas dan data lama) | `EmgVisit` tidak dihapus, sesuai filter status | Status kunjungan | `arrivalDateTime` berlabel "Tiba" |
-
-**Satu episode satu baris.** Encounter yang sudah punya kunjungan hanya tampil sebagai baris kunjungan.
-Asal baris (`origin`) **dipakai backend** untuk menurunkan aksi yang tersedia dan **tidak** diekspos
-sebagai ruas yang harus dibaca layar untuk logika — layar membaca `availableActions`.
-
-**Halaman dihitung di basis data**, atas gabungan kedua jenis baris, bukan digabung di memori sesudah
-dua kueri terpisah — supaya halaman 2 tidak mengulang atau melompati pasien.
+| # | Aturan | Contoh |
+| ---: | --- | --- |
+| 1 | Dua jenis baris: encounter Emergency belum berakhir **tanpa** kunjungan (`queueStatus = WaitingForTriage`, `rowKey = enc:{id}`), dan kunjungan (`rowKey = visit:{id}`) | — |
+| 2 | Satu episode satu baris — encounter yang sudah punya kunjungan hanya tampil sebagai baris kunjungan | RAYYAN yang sudah Mulai Triage tampil sekali, sebagai `IGD-0012` |
+| 3 | Baris tanpa kunjungan membawa `registeredAt` dan **tanpa** `arrivalDateTime` | *"Terdaftar 09.35"*, tidak pernah *"Tiba 09.35"* |
+| 4 | `availableActions`: baris tanpa kunjungan → `StartTriage`, `ImmediateCare`, `NoShow`; baris kunjungan `Arrived`/`WaitingForTriage` → `FillTriage`, `ImmediateCare` (`IGD-DEC-128`) | Asal baris tidak diekspos sebagai ruas yang wajib dibaca layar |
+| 5 | Encounter yang sudah berakhir (lima tanda) dan encounter bertipe lain tidak tampil | Encounter `NoShow` hilang dari daftar |
+| 6 | Halaman dihitung di basis data atas gabungan kedua jenis baris | Halaman 2 tidak mengulang atau melompati pasien |
 
 #### Endpoint baru
 
 #### Health Services / Emergency Installation Management / Emergency Visit
 
-| Method | Path | Kegunaan | Hak akses | Respons |
-| --- | --- | --- | --- | --- |
-| `GET` | `/api/v1/health-services/emergency-installation-management/emergency-visits/triage-queue?page=&pageSize=&search=&visitStatus=` | Daftar Menunggu Triage terpadu, baca-saja | `EmergencyVisit : Read` — pasangan `[AccessAction("Read", …)]` + `[AccessPermission("EmergencyVisit","Read")]` pada method yang sama | `200`, `401`, `403` |
+Base URL: `api/v1/health-services/emergency-installation-management/emergency-visits`
 
-Contoh satu baris encounter yang belum ditriage:
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+| --- | --- | --- | --- | --- | --- |
+| `GET` | `/triage-queue` | Daftar Menunggu Triage terpadu, baca-saja | `EmergencyVisit : Read` — pasangan `[AccessAction]` + `[AccessPermission("EmergencyVisit","Read")]` | `EmergencyTriageQueueQuery` (`page`, `pageSize` 1–100, `search`, `queueStatus`) | `PagedResult<EmergencyTriageQueueRowResponse>` |
 
-```json
-{
-  "rowKey": "enc:3f2a…",
-  "encounterId": "3f2a…",
-  "emergencyVisitId": null,
-  "patientId": "9b1c…",
-  "patientName": "RAYYAN DHAFIR PRASETYA MAULANA",
-  "isUnknownPatient": false,
-  "temporaryPatientAlias": null,
-  "encounterNumber": "REG-260922-0012",
-  "emergencyVisitNumber": null,
-  "queueStatus": "WaitingForTriage",
-  "visitStatus": null,
-  "registeredAt": "2026-09-22T02:35:00Z",
-  "arrivalDateTime": null,
-  "availableActions": ["StartTriage"]
-}
-```
+Kode status: `200`; `400` parameter halaman tidak sah; `401`; `403` tidak memegang `EmergencyVisit : Read`. Contoh
+baris ada pada API §8.3.1.
 
-Isi `availableActions` untuk baris encounter-saja bergantung `IGD-OQ-100` (apakah `ImmediateCare`
-tersedia sebelum kunjungan lahir).
+#### File yang akan disentuh
+
+| Berkas | Perubahan |
+| --- | --- |
+| `…/Controllers/EmergencyVisitController.cs` | Action `TriageQueue` |
+| `…/Services/EmergencyVisitService.cs` | `GetTriageQueueAsync` |
+| `…/DTOs/EmergencyVisitDtos.cs` | `EmergencyTriageQueueQuery`, `EmergencyTriageQueueRowResponse` |
+
+**Tidak disentuh:** `GET /emergency-visits` (tetap dipakai layar lain), berkas Registrasi, schema, migration,
+`Program.cs`, berkas kontrak, frontend.
 
 #### Acceptance
 
-| # | Kriteria | Bukti yang diminta |
-| ---: | --- | --- |
-| 1 | Encounter `Emergency` belum berakhir tanpa kunjungan tampil sebagai *Menunggu Triage* dengan `registeredAt`, **tanpa** `arrivalDateTime` | Uji API |
-| 2 | Kunjungan pasien tanpa identitas tampil dengan alias sementaranya | Uji API |
-| 3 | Satu episode tidak pernah tampil dua kali | Uji API pada encounter yang sudah punya kunjungan |
-| 4 | Encounter yang sudah berakhir dan encounter bertipe lain tidak tampil | Uji API |
-| 5 | Halaman konsisten: gabungan halaman 1..n = seluruh baris, tanpa ulang dan tanpa loncat | Uji API dengan `pageSize` kecil |
-| 6 | Jumlah kueri tetap berapa pun jumlah baris; nol `N+1` | Log SQL EF |
-| 7 | `GET /emergency-visits` tidak berubah | `git diff` + uji API |
-| 8 | Nol schema, nol migration; kontrak API naik satu minor | `git diff --stat` + berkas kontrak |
-| 9 | Build 0 error, warning sama dengan baseline | Keluaran build **milik Rizki** |
+| # | Kriteria | Bukti yang diminta | `AT-IGD-*` |
+| ---: | --- | --- | --- |
+| 1 | Encounter Emergency belum berakhir tanpa kunjungan tampil `WaitingForTriage` dengan `registeredAt`, tanpa `arrivalDateTime` | Uji API | `167` |
+| 2 | Satu episode tidak pernah tampil dua kali | Uji API pada encounter yang sudah punya kunjungan | `167` |
+| 3 | Encounter berakhir dan tipe lain tidak tampil | Uji API | — |
+| 4 | `availableActions` sesuai aturan 4 | Uji API | — |
+| 5 | Gabungan halaman 1..n = seluruh baris, tanpa ulang, tanpa loncat | Uji API dengan `pageSize` kecil | — |
+| 6 | Jumlah kueri tetap berapa pun jumlah baris; nol `N+1` | Log SQL EF | — |
+| 7 | `GET /emergency-visits` tidak berubah; nol schema, nol migration | `git diff` + uji API | — |
+| 8 | Build 0 error, warning sama dengan baseline | Keluaran build **milik Rizki** | — |
 
-**DoD.** Acceptance 1–9; laporan tracked; `FE-IGD-035` boleh dimulai sesudah kontrak selesai dan build
-terverifikasi.
+**DoD.** Acceptance 1–8; laporan tracked; `FE-IGD-035` boleh mulai sesudah build terverifikasi.
 
-### ⛔ `BE-IGD-055` — Kunjungan IGD lahir lewat Mulai Triage (`POST start-triage`, idempoten)
+### `BE-IGD-055` — Kunjungan IGD lahir lewat Mulai Triage atau Tangani Segera (`POST start-triage`)
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ⛔ **Terblokir** — menunggu `IGD-OQ-094` (W1: sumber waktu tiba dan ruas kedatangan lain) dan `IGD-OQ-100` (Tangani Segera pada baris tanpa kunjungan); status awal kunjungan dikonfirmasi pemilik bersama go-ahead |
-| **Outcome** | Perawat triage menekan **Mulai Triage** pada pasien yang baru didaftarkan, dan kunjungan IGD lahir saat itu — sekali saja, walau tombolnya ditekan dua kali atau oleh dua perawat |
-| **Slice** | `IGD-S02` · `EPIC IGD-01` |
-| **Requirement** | Tidak ada FR khusus titik lahir kunjungan — coverage gap R3.13; `FR-IGD-007` (tidak melahirkan episode kedua) |
-| **Keputusan** | **`IGD-DEC-139`** butir 3; `IGD-DEC-127` (status awal); `IGD-DEC-128` (lewat `IGD-OQ-100`) |
-| **Kontrak** | API — bagian baru pada grup `Emergency Visit`. State — titik lahir kunjungan. Validation — aturan Mulai Triage. `POST /emergency-visits` **tetap ada** untuk pasien tanpa identitas (U1) |
-| **Reuse** | `EmergencyVisitService.GenerateVisitNumberAsync`; rumus episode terbuka `IGD-DEC-139`; unique index `EmgVisit.EncounterId` sebagai jaring pengaman serentak |
-| **Dependency** | `BE-IGD-024` ✅, `BE-IGD-025` ✅; ⛔ `IGD-OQ-094`; ⛔ `IGD-OQ-100` |
-| **Owner** | Backend IGD |
+| **Status** | Tanpa tanda — **siap sesudah `BE-IGD-051`**. Keputusan yang dulu menahannya (`IGD-OQ-094` W1, `IGD-OQ-100`) sudah dijawab `IGD-DEC-147` dan `IGD-DEC-143`; status awal disahkan (koreksi `IGD-DEC-139`) |
+| **Outcome** | Perawat triage menekan **Mulai Triage** (dengan waktu tiba) atau **Tangani Segera** (tanpa isian) pada pasien yang baru didaftarkan, dan kunjungan IGD lahir saat itu — sekali saja, walau tombolnya ditekan dua kali atau oleh dua perawat |
+| **Slice** | `S3` (dan `S8`) · `EPIC IGD-11` · `MVP-7` |
+| **Requirement** | `FR-IGD-075`, `FR-IGD-076`, `FR-IGD-077`; `FR-IGD-085` (ruas pasien tanpa identitas) |
+| **Keputusan** | `IGD-DEC-139` butir 3; `IGD-DEC-143`; `IGD-DEC-147`; `IGD-DEC-151`; `IGD-DEC-161` (ruas opsional); `IGD-DEC-158` (izin bersama); `IGD-DEC-146` (kunci) |
+| **Kontrak** | API `0.11.0` §8.3.2, §8.3.4 (tiga ruas waktu tiba pada `EmergencyVisitResponse`); validation `0.8.0` §10.2; state `0.5.0` §8.1, §8.3; integration `0.4.0` §5.3 baris `start-triage`; permission/audit `0.5.0` §7.1 baris `Create` |
+| **Reuse** | `EmergencyVisitService.GenerateVisitNumberAsync`; `CanTransition`/`TryApplyVisitStatus` (penerusan `WaitingForTriage`/`Arrived` → `InTreatment`); unique index `EmgVisit.EncounterId` sebagai jaring pengaman serentak; `EmergencyEpisodeRule.IsEncounterEnded` |
+| **Dependency** | `BE-IGD-025` ✅, `BE-IGD-051` |
+| **Owner** | Backend IGD; migration **dibuat Rizki** |
 | **Risiko** | Menengah — titik lahir data klinis; kesalahan idempotensi melahirkan dua kunjungan untuk satu encounter |
 
 #### Aturan
 
-| # | Aturan |
-| ---: | --- |
-| 1 | Kunjungan hanya lahir lewat endpoint ini (untuk pasien beridentitas). Membuka layar atau membaca detail **tidak** melahirkan kunjungan |
-| 2 | **Idempoten:** encounter yang sudah punya kunjungan → `200` dengan kunjungan yang sama, bukan `409`, bukan kunjungan kedua. Dua panggilan serentak → insert kedua bentrok unique index, ditangkap, dan dijawab dengan kunjungan yang sudah ada |
-| 3 | Encounter harus ada, bertipe `Emergency`, dan **belum berakhir** |
-| 4 | Encounter yang kunjungannya pernah dihapus lunak (K4) → `409` dengan pesan jelas; unique index tanpa filter membuatnya tidak dapat diberi kunjungan baru (`IGD-EV-143` butir 7) |
-| 5 | Unit layanan diambil dari encounter, bukan dari body |
-| 6 | Status awal — **usulan agent:** `WaitingForTriage`, supaya `CanTransition` dan `IGD-DEC-127` tidak berubah; simpan triage pertama tetap memindahkannya ke `Triaged` seperti hari ini |
-| 7 | `ArrivalDateTime` — sesuai jawaban W1. **Dilarang** disamakan dengan `RegisteredAt`, **dilarang** jatuh ke jam browser. Usulan: wajib, diisi awal waktu server, tidak boleh di masa depan |
-| 8 | Nilai `RegistrationStatus`/`RegistrationCompletedAt` pada kunjungan yang lahir di sini dikunci di kontrak saat eksekusi — **dilarang** mengarang waktu |
+| # | Aturan | Contoh |
+| ---: | --- | --- |
+| 1 | `mode = Triage` → lahir `WaitingForTriage`; waktu tiba **wajib**, tidak di masa depan, sumber `Confirmed` (pelaku token, waktu server) | Perawat mengubah prefill 09.35 menjadi 09.25 → kunjungan `WaitingForTriage`, tiba 09.25 *dikonfirmasi* |
+| 2 | `mode = ImmediateCare` → lahir `InTreatment` dengan `TreatmentStartedAt` = waktu server; `arrivalDateTime` dari body **diabaikan**, diisi `RegisteredAt`, sumber `Fallback` | Pasien kejang, perawat menekan Tangani Segera → nol ketikan |
+| 3 | Idempoten: kunjungan sudah ada + `Triage` → `200` kunjungan yang sama, status tidak diubah; + `ImmediateCare` pada `WaitingForTriage`/`Arrived` → diteruskan ke `InTreatment`; status lain tidak diubah. Status **tidak pernah mundur** | Ani menekan Mulai Triage, dua detik kemudian Budi menekan Tangani Segera → satu kunjungan `InTreatment` (`IGD-DEC-143`) |
+| 4 | Kunci `EMG_EPISODE_{patientId}` diambil di dalam transaksi eksplisit; insert kedua yang bentrok unique index ditangkap dan dijawab sesuai aturan 3 | — |
+| 5 | Encounter tidak ada → `404`; bukan Emergency → `400`; sudah berakhir → `409`; K4 → `409` | Pesan validation §10.2 aturan 3–6 |
+| 6 | Pasien punya **kunjungan** lain yang belum berakhir pada encounter berbeda → `409` (validation §10.2 aturan 7 — **klausa B saja**). Encounter lain tanpa kunjungan (klausa A) **tidak** menolak, karena encounter kedua hanya dapat lahir lewat override (`IGD-DEC-145`) | Lihat `IGD-OQ-108` untuk kasus encounter kedua hasil override |
+| 7 | Ruas opsional `arrivalModeId`, `caseTypeId`, `chiefComplaint` (bawaan: salinan `RegPatientEncounter.ChiefComplaint`), `isUnknownPatient` + `temporaryPatientAlias` (wajib bila tanpa identitas) — `IGD-DEC-161` | — |
+| 8 | Unit layanan diambil dari encounter, bukan dari body | — |
+| 9 | Membuka detail atau membaca daftar **tidak pernah** melahirkan kunjungan | — |
+
+`IGD-DEC-160`: task ini **tidak** menambahkan penolakan triage selama waktu tiba `Fallback`.
+
+`EmergencyEpisodeRule` bertambah `FindOpenEpisodeAsync` (klausa A+B, mengembalikan jenis episode) dan
+`LockPatientEpisodeAsync`. Keduanya **lahir di task ini** dan dipakai ulang `BE-IGD-053`, `057`, `059`.
 
 #### Endpoint baru
 
 #### Health Services / Emergency Installation Management / Emergency Visit
 
-| Method | Path | Kegunaan | Hak akses | Respons |
-| --- | --- | --- | --- | --- |
-| `POST` | `/api/v1/health-services/emergency-installation-management/emergency-visits/start-triage` | Melahirkan kunjungan IGD dari encounter `Emergency` | `EmergencyVisit : Create` — pasangan `[AccessAction("Create", …)]` + `[AccessPermission("EmergencyVisit","Create")]` | `201` (baru), `200` (sudah ada — idempoten), `400`, `401`, `403`, `404` (encounter tidak ada), `409` (encounter sudah berakhir, atau K4) |
+Base URL: `api/v1/health-services/emergency-installation-management/emergency-visits`
 
-Contoh body — ruas di luar `encounterId` **menunggu W1**:
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+| --- | --- | --- | --- | --- | --- |
+| `POST` | `/start-triage` | Melahirkan kunjungan dari encounter — Mulai Triage atau Tangani Segera | `EmergencyVisit : Create` — pasangan `[AccessAction]` + `[AccessPermission("EmergencyVisit","Create")]` | `StartEmergencyVisitRequest` (API §8.3.2) | `EmergencyVisitResponse` + `arrivalTimeSource`, `arrivalConfirmedByName`, `arrivalConfirmedAt` |
 
-```json
-{
-  "encounterId": "3f2a…",
-  "arrivalDateTime": "2026-09-22T02:31:00Z"
-}
-```
+Kode status: `201` kunjungan lahir; `200` kunjungan sudah ada (idempoten); `400` mode/waktu tiba/alias tidak sah
+atau encounter bukan Emergency; `401`; `403`; `404` encounter tidak ada; `409` encounter berakhir, K4, atau
+kunjungan lain masih berjalan.
+
+#### File yang akan disentuh
+
+| Berkas | Perubahan |
+| --- | --- |
+| `…/Services/EmergencyEpisodeRule.cs` | + `FindOpenEpisodeAsync`, `LockPatientEpisodeAsync` |
+| `…/Services/EmergencyVisitService.cs` | `StartVisitAsync` (transaksi eksplisit) |
+| `…/Controllers/EmergencyVisitController.cs` | Action `StartTriage`; `EmergencyVisitResponse` membawa ruas waktu tiba |
+| `…/DTOs/EmergencyVisitDtos.cs` | `StartEmergencyVisitRequest`; tiga ruas waktu tiba pada `EmergencyVisitResponse` |
+| `…/Enums/EmergencyArrivalTimeSource.cs`, `EmergencyVisitStartMode.cs` | **Baru** |
+| `…/Models/EmgVisit.cs`, `EmgVisitConfiguration.cs` | + `ArrivalTimeSource` (bawaan `Unverified`), `ArrivalConfirmedByUserId` (FK `Restrict`), `ArrivalConfirmedAt` |
+| `Migrations/` | `AddEmergencyArrivalTimeSource` — **dibuat Rizki**; seluruh baris lama `Unverified`; `Down()` berpenjaga menolak bila ada `ArrivalTimeSource <> 0` |
+
+**Tidak disentuh:** berkas Registrasi, `Program.cs`, berkas kontrak, frontend. `POST /emergency-visits` (jalur lama)
+tidak diubah task ini — perubahannya milik `BE-IGD-053`.
 
 #### Acceptance
 
-| # | Kriteria | Bukti yang diminta |
-| ---: | --- | --- |
-| 1 | Encounter `Emergency` tanpa kunjungan → `201`, kunjungan lahir tertaut, status awal sesuai jawaban pemilik | Uji API |
-| 2 | Panggilan kedua → `200`, kunjungan yang sama; jumlah kunjungan tetap satu | Uji API + hitungan |
-| 3 | Dua panggilan serentak → tepat satu kunjungan | Uji paralel; hitungan dicatat |
-| 4 | Encounter berakhir → `409`; encounter bertipe lain → `400`; tidak ada → `404`; K4 → `409` | Uji API |
-| 5 | `ArrivalDateTime` sesuai W1; tidak pernah sama dengan `RegisteredAt` secara bawaan | Uji API + baca source |
-| 6 | Membuka detail kunjungan/encounter tidak melahirkan kunjungan | Uji API: `GET` lalu hitungan |
-| 7 | `POST /emergency-visits` untuk pasien tanpa identitas tetap berjalan | Uji API |
-| 8 | Nol schema, nol migration; kontrak API, state, validation naik satu minor | `git diff --stat` + berkas kontrak |
-| 9 | Build 0 error, warning sama dengan baseline | Keluaran build **milik Rizki** |
+| # | Kriteria | Bukti yang diminta | `AT-IGD-*` |
+| ---: | --- | --- | --- |
+| 1 | Mulai Triage dengan waktu tiba 10 menit sebelum waktu terdaftar → `201`, `WaitingForTriage`, sumber `Confirmed` | Uji API | `172` |
+| 2 | Tangani Segera pada baris tanpa kunjungan → `201`, `InTreatment` dalam satu permintaan tanpa isian, tiba = waktu terdaftar, sumber `Fallback` | Uji API | `173` |
+| 3 | Mulai Triage dan Tangani Segera paralel → tepat satu kunjungan, status akhir `InTreatment` | Uji paralel; hitungan | `174` |
+| 4 | Panggilan kedua `Triage` → `200`, kunjungan sama, status tidak mundur | Uji API + hitungan | `174` |
+| 5 | Encounter berakhir → `409`; bukan Emergency → `400`; tidak ada → `404`; K4 → `409`; kunjungan lain berjalan → `409` | Uji API | — |
+| 6 | Waktu tiba di masa depan → `400`; nol jalur yang mengisi waktu tiba dari jam klien untuk mode `ImmediateCare` | Uji API + baca source | — |
+| 7 | Pasien rekam pengganti: `isUnknownPatient` + alias tersimpan; tanpa alias → `400` | Uji API | `184` (sisi backend) |
+| 8 | Membuka detail atau daftar tidak melahirkan kunjungan | `GET` lalu hitungan | — |
+| 9 | Migration: baris lama `Unverified`; `Down()` berpenjaga diuji di basis data terpisah; snapshot hanya bertambah tiga kolom | Catatan uji + `git diff` snapshot | PRD §8.6 butir 3–4 |
+| 10 | Build 0 error, warning sama dengan baseline | Keluaran build **milik Rizki** | — |
 
-**DoD.** Acceptance 1–9; laporan tracked; `FE-IGD-036` boleh dimulai bila `BE-IGD-053` dan `FE-IGD-035`
-juga selesai.
+**DoD.** Acceptance 1–10; laporan tracked; `BE-IGD-053`, `057`, `058` boleh mulai sesudahnya.
 
-### ⛔ `BE-IGD-056` — Dokter layak IGD, validasi ulang saat penetapan, dan override beralasan
+### `BE-IGD-056` — Dokter layak IGD, validasi ulang saat penetapan, dan override beralasan
 
 | Field | Isi |
 | --- | --- |
-| **Status** | ⛔ **Terblokir** — menunggu kueri E1–E3 (evidence bagian 7.2): apakah jadwal dokter IGD ada di `MstDoctorSchedule`, dan dalam bentuk apa. Tanpa itu kriteria kelayakan tidak dapat dikunci (`IGD-DEC-141` butir 5) |
-| **Outcome** | Petugas triage hanya ditawari dokter yang memang sedang jaga IGD, backend menolak penetapan dokter yang tidak jaga kecuali ada alasan tertulis, dan pelayanan darurat tidak pernah terhenti karena roster kosong |
-| **Slice** | `IGD-S06` · `EPIC IGD-04` · `MVP-5` |
-| **Requirement** | `FR-IGD-016`…`021` (penugasan dokter); kelayakan sendiri belum punya FR — coverage gap R3.13 |
-| **Keputusan** | **`IGD-DEC-141`**; `IGD-DEC-082`, `IGD-DEC-129`, `IGD-DEC-130`, `IGD-DEC-136` (pelaku dari token) |
-| **Kontrak** | API grup `Emergency Doctor Assignment`: satu endpoint baca baru; `POST /` dan `POST /{id}/handover` mendapat ruas request **opsional** `eligibilityOverrideReason` (aditif) dan penolakan baru untuk dokter tidak layak tanpa alasan |
-| **Reuse** | `EmergencyDoctorAssignmentService` (`BE-IGD-045`, sudah terdaftar); proyeksi nama dokter `IGD-DEC-129` |
-| **Dependency** | `BE-IGD-045` ✅; ⛔ kueri E1–E3 |
+| **Status** | ⛔ **Terblokir** — menunggu **`IGD-OQ-102`** (sumber roster dokter jaga dan kriteria "layak"; mencakup angka kueri E1–E3, evidence §7.2) dan **`IGD-OQ-103`** (tempat penanda override: kolom baru pada `EmgDoctorAssignment` atau teks `AssignmentReason`). Pemilik: Product/Domain Owner IGD + pemilik jadwal dokter/Human Resource (belum dipetakan). `S7` **tidak dikontrakkan** (API §8.5) |
+| **Outcome** | Petugas triage hanya ditawari dokter yang sedang jaga IGD, backend menolak penetapan dokter yang tidak jaga kecuali beralasan, dan pelayanan darurat tidak pernah terhenti karena roster kosong |
+| **Slice** | `S7` · `EPIC IGD-12` (`OPEN DECISION`, tidak di gelombang mana pun) |
+| **Requirement** | `FR-IGD-016`…`021`; kelayakan belum punya FR — coverage gap (PRD §8.4 `EPIC IGD-12`) |
+| **Keputusan** | `IGD-DEC-141` (prinsip); `IGD-DEC-082`, `129`, `130`, `136` |
+| **Kontrak** | **Belum ada** — dikontrakkan sesudah `IGD-OQ-102`/`103` dijawab |
+| **Reuse** | `EmergencyDoctorAssignmentService` (`BE-IGD-045`) |
+| **Dependency** | `BE-IGD-045` ✅; ⛔ `IGD-OQ-102`; ⛔ `IGD-OQ-103` |
 | **Owner** | Backend IGD; kriteria cuti menunggu jembatan identitas milik Human Resource |
-| **Risiko** | **Tinggi (keselamatan).** Kriteria yang salah atau roster kosong dapat membuat tidak ada dokter yang dapat ditetapkan. Override wajib selalu tersedia |
+| **Risiko** | **Tinggi (keselamatan)** — kriteria yang salah atau roster kosong dapat membuat tidak ada dokter yang dapat ditetapkan; override wajib selalu tersedia |
 
-#### Rancangan
+**Isi kartu dibekukan.** Rancangan, endpoint, dan acceptance versi pagi (endpoint `eligible-doctors`, ruas
+`eligibilityOverrideReason`, sepuluh kriteria acceptance) **tidak** diselaraskan pada pass ini dan **tidak** boleh
+dipakai sebagai dasar implementasi. Kartu disusun ulang `plan-module-delivery` sesudah `IGD-OQ-102`/`103` dijawab
+dan kontraknya disetujui. Yang tetap: `FE-IGD-027` **tetap ✅** (`IGD-DEC-141` butir 6); penetapan dokter berjalan
+seperti hari ini (`BE-IGD-045`) selama task ini ditahan.
 
-| Unsur | Isi |
+### `BE-IGD-057` — Pasien pergi sebelum ditriage ditandai perawat (`POST no-show`)
+
+| Field | Isi |
 | --- | --- |
-| Daftar | Setiap dokter membawa `isEligible` dan `eligibilityReason` (contoh: *"Jadwal IGD 19.00–07.00 (malam)"* atau *"Tidak ada jadwal IGD pada waktu ini"*). Dokter tidak layak **tetap dapat diminta** (`includeIneligible=true`) supaya override mungkin |
-| Validasi ulang | `POST /` dan `POST /{id}/handover` menghitung ulang kelayakan dokter tujuan **di server** pada waktu transaksi |
-| Override | Dokter tidak layak + `eligibilityOverrideReason` kosong → ditolak dengan pesan jelas. Terisi → diterima; alasan, pelaku (token), dan waktu (server) tercatat |
-| Penyimpanan penanda override | **Belum dikunci.** Kolom baru = migration milik Rizki — agent berhenti sebelumnya. Alternatif tanpa kolom (teks di `AssignmentReason`) menjadikan arti bisnis bergantung pada isi teks. Diputuskan pemilik saat go-ahead |
-| Roster kosong | Bila tidak satu dokter pun layak, daftar tetap mengembalikan dokter aktif dengan `isEligible = false` sehingga override selalu dapat dipakai |
-| Kriteria | Kandidat K-a, K-b, K-c pada `IGD-DEC-141`; **K-c (cuti) dilarang dipakai** sampai jembatan identitas terbukti |
+| **Status** | Tanpa tanda — **baru, direncanakan 22 September 2026 (penutup)**. Menunggu `BE-IGD-055` |
+| **Outcome** | Perawat triage menandai pasien yang pergi sebelum ditriage, dengan alasan; encounter-nya berakhir `NoShow` secara final, hilang dari daftar triage, tidak ditagih, dan pasien yang kembali dapat didaftarkan ulang |
+| **Slice** | `S4` · `EPIC IGD-11` · `MVP-7` |
+| **Requirement** | `FR-IGD-079` |
+| **Keputusan** | `IGD-DEC-142`; `IGD-DEC-146` (kunci); `IGD-DEC-150` (kriteria wajib ditinjau Clinical Governance + Nursing authority); asumsi `IGD-ASM-001` (cukup alasan wajib, tanpa jumlah panggilan minimum — `PROPOSED`) |
+| **Kontrak** | API `0.11.0` §8.3.3; validation `0.8.0` §10.3; state `0.5.0` §8.2 baris NoShow; integration `0.4.0` §5.2 baris NoShow, §5.3 baris `no-show`; permission/audit `0.5.0` §7.1 aksi **`NoShow`** (baru), §7.2 |
+| **Reuse** | `EmergencyEpisodeRule.IsEncounterEnded` dan `LockPatientEpisodeAsync`; kolom `RegPatientEncounter.NoShowAt`/`NoShowByUserId`/`NoShowReason` yang **sudah ada** (dipakai antrean dokter, `DoctorQueueController.cs:674-676`) — nol kolom baru |
+| **Dependency** | `BE-IGD-055` |
+| **Owner** | Backend IGD |
+| **Risiko** | Menengah — NoShow final; salah tandai tidak dapat dibatalkan dan pasien harus didaftarkan ulang. Karena itu alasan wajib dan tombolnya hanya pada baris tanpa kunjungan |
 
-#### Endpoint
+#### Aturan
 
-#### Health Services / Emergency Installation Management / Emergency Doctor Assignment
+| # | Aturan | Contoh |
+| ---: | --- | --- |
+| 1 | Hanya encounter Emergency **tanpa** kunjungan dan belum berakhir | Bu Sari terdaftar 10.05, dipanggil tiga kali tidak ada → perawat menandai *pergi* |
+| 2 | Alasan wajib (1–500, di-*trim*) | Tanpa alasan → `400` *"Alasan pasien dinyatakan pergi sebelum ditriage wajib diisi."* |
+| 3 | Kunci per pasien, lalu periksa ulang "belum punya kunjungan" **di dalam** kunci | NoShow dan Mulai Triage serentak: yang kedua membaca hasil yang pertama — tidak pernah ada kunjungan pada encounter `NoShow` |
+| 4 | Menulis `EncounterStatus = NoShow`, `NoShowAt` (server), `NoShowByUserId` (token), `NoShowReason` pada satu `SaveChanges` | — |
+| 5 | Final — tidak ada endpoint pembatalan | Bu Sari kembali 11.30 → didaftarkan ulang sebagai encounter baru; tidak tertolak penjaga karena encounter lama sudah berakhir |
+| 6 | Alasan **tidak** masuk custom logger (permission §7.2) | — |
 
-| Method | Path | Kegunaan | Hak akses | Respons |
-| --- | --- | --- | --- | --- |
-| `GET` | `/api/v1/health-services/emergency-installation-management/emergency-doctor-assignments/eligible-doctors?emergencyVisitId={guid}&at={datetime?}&includeIneligible={bool?}` | Daftar dokter beserta kelayakannya pada waktu `at` (bawaan: sekarang, waktu server) | `EmergencyDoctorAssignment : Read` | `200`, `400`, `401`, `403`, `404` |
-| `POST` | `/api/v1/health-services/emergency-installation-management/emergency-doctor-assignments` | **Berubah:** validasi ulang kelayakan; ruas opsional `eligibilityOverrideReason` | `EmergencyDoctorAssignment : Create` — tidak berubah | Ditambah penolakan dokter tidak layak tanpa alasan |
-| `POST` | `/api/v1/health-services/emergency-installation-management/emergency-doctor-assignments/{id}/handover` | Sama | `EmergencyDoctorAssignment : Update` — tidak berubah | Sama |
+#### Endpoint baru
+
+#### Health Services / Emergency Installation Management / Emergency Visit
+
+Base URL: `api/v1/health-services/emergency-installation-management/emergency-visits`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+| --- | --- | --- | --- | --- | --- |
+| `POST` | `/no-show` | Menandai pasien pergi sebelum ditriage | `EmergencyVisit : NoShow` — `[AccessAction("NoShow", "Mark Emergency Encounter No Show", Description = "Menandai pasien IGD pergi sebelum ditriage", AccessType = AccessTypes.Update)]` + `[AccessPermission("EmergencyVisit", "NoShow")]` | `MarkEmergencyEncounterNoShowRequest` (`encounterId`, `reason`) | `EmergencyEncounterNoShowResponse` (`encounterId`, `encounterStatus`, `noShowAt`, `noShowByName`, `noShowReason`) |
+
+Kode status: `200` ditandai; `400` alasan kosong/terlalu panjang atau encounter bukan Emergency; `401`; `403` tidak
+memegang `EmergencyVisit : NoShow`; `404` encounter tidak ada; `409` encounter sudah punya kunjungan atau sudah
+berakhir. **Pemberian hak ke peran** (`IGD-UNK-11`) dilakukan admin di basis data; rekomendasi: perawat triage.
+
+#### File yang akan disentuh
+
+| Berkas | Perubahan |
+| --- | --- |
+| `…/Controllers/EmergencyVisitController.cs` | Action `NoShow` dengan pasangan atribut di atas |
+| `…/Services/EmergencyVisitService.cs` | `MarkNoShowAsync` (transaksi eksplisit) |
+| `…/DTOs/EmergencyVisitDtos.cs` | `MarkEmergencyEncounterNoShowRequest`, `EmergencyEncounterNoShowResponse` |
+
+**Tidak disentuh:** berkas Registrasi, schema, migration, `Program.cs`, berkas kontrak, frontend.
 
 #### Acceptance
 
-| # | Kriteria | Bukti yang diminta |
+| # | Kriteria | Bukti yang diminta | `AT-IGD-*` |
+| ---: | --- | --- | --- |
+| 1 | Tanpa alasan → `400` | Uji API | `176` |
+| 2 | Dengan alasan → encounter `NoShow` + pelaku/waktu/alasan; hilang dari `triage-queue` | Uji API | `177` |
+| 3 | Encounter `NoShow` tidak muncul di daftar tagihan | Uji API/layar billing oleh pemilik | `177` |
+| 4 | Pasien yang kembali didaftarkan ulang → encounter baru, tanpa penolakan | Uji API (sesudah `BE-IGD-053` aktif, juga tanpa penolakan) | `177` |
+| 5 | Encounter yang sudah punya kunjungan atau sudah berakhir → `409` | Uji API | — |
+| 6 | NoShow dan Mulai Triage paralel pada encounter yang sama → tidak pernah ada kunjungan pada encounter `NoShow` | Uji paralel; hitungan | — |
+| 7 | Aksi `NoShow` muncul pada daftar hak akses peran (pasangan atribut identik huruf demi huruf) | Layar hak akses + baca source | — |
+| 8 | Nol schema, nol migration, nol `Program.cs` | `git diff --stat` | — |
+| 9 | Build 0 error, warning sama dengan baseline | Keluaran build **milik Rizki** | — |
+
+**DoD.** Acceptance 1–9; laporan tracked; `FE-IGD-039` dan `BE-IGD-059` boleh mulai sesudahnya.
+
+### `BE-IGD-058` — Waktu tiba dikonfirmasi lewat satu jalur; identitas kunjungan terkunci pada `PUT`
+
+| Field | Isi |
+| --- | --- |
+| **Status** | Tanpa tanda — **baru, direncanakan 22 September 2026 (penutup)**. Menunggu `BE-IGD-055` (kolom sumber waktu tiba) |
+| **Outcome** | Perawat mengonfirmasi atau mengoreksi waktu tiba lewat satu jalur yang menolak nilai mustahil (masa depan, atau sesudah peristiwa klinis pertama); pasien, encounter, dan waktu tiba kunjungan tidak lagi dapat ditimpa diam-diam lewat ubah kunjungan |
+| **Slice** | `S3` · `EPIC IGD-11` · `MVP-7` |
+| **Requirement** | `FR-IGD-078`, `FR-IGD-083` |
+| **Keputusan** | `IGD-DEC-147`, `IGD-DEC-152`, `IGD-DEC-154`, `IGD-DEC-159` (satu jalur); `IGD-DEC-160` (tidak menahan triage) |
+| **Kontrak** | API `0.11.0` §8.1 nomor 5, §8.3.4, §8.3.5; validation `0.8.0` §10.4 (termasuk pesan aturan 4 hasil koreksi B2); state `0.5.0` §8.3; permission/audit `0.5.0` §7.1 baris `Update`, §7.2 baris waktu tiba |
+| **Reuse** | Kolom dan enum dari `BE-IGD-055`; `EmgTriage.StartedAt`, `EmgVisit.TreatmentStartedAt`, `EmgDoctorAssignment.EffectiveFrom` (dibaca untuk batas); penjaga `EffectiveFrom` penugasan dokter yang membaca `ArrivalDateTime` (`EmergencyDoctorAssignmentService.cs:173,261`) — tidak diubah |
+| **Dependency** | `BE-IGD-055` |
+| **Owner** | Backend IGD |
+| **Risiko** | Rendah-menengah. `PUT` menjadi lebih ketat, tetapi nol layar memakainya (`IGD-FACT-023`). Riwayat koreksi waktu tiba **tidak** disimpan — hanya nilai terakhir (`IGD-DEC-152` tidak memintanya) |
+
+#### Aturan
+
+| # | Aturan | Contoh |
 | ---: | --- | --- |
-| 1 | Dokter berjadwal IGD pada waktu `at` → `isEligible = true` dengan alasan terbaca | Uji API |
-| 2 | Dokter tanpa jadwal IGD → `isEligible = false`; hanya tampil bila `includeIneligible` | Uji API |
-| 3 | Jadwal lintas tengah malam dihitung benar di kedua sisi pukul 00.00 | Uji API pada 23.30 dan 00.30 |
-| 4 | Penetapan/pengalihan dokter tidak layak tanpa alasan → ditolak; dengan alasan → diterima dan tercatat | Uji API |
-| 5 | Validasi ulang berjalan walau klien melewati daftar (memanggil `POST` langsung) | Uji API tanpa memanggil `eligible-doctors` |
-| 6 | Roster kosong → override tetap mungkin; tidak ada keadaan tanpa jalan keluar | Uji API |
-| 7 | Pelaku override dari token, bukan body (`IGD-DEC-136`) | Baca source + uji API |
-| 8 | Ruas dan perilaku `BE-IGD-045` yang lama tidak berubah bagi dokter yang layak | Uji API regresi 12 skenario `BE-IGD-045` yang relevan |
-| 9 | Kontrak API naik satu minor (aditif); keputusan penyimpanan penanda override tercatat | Berkas kontrak |
-| 10 | Build 0 error, warning sama dengan baseline | Keluaran build **milik Rizki** |
+| 1 | `PATCH /{id}/arrival-time` menyimpan nilai lalu menandai `Confirmed` (pelaku token, waktu server); nilai sama dengan sekarang = konfirmasi tanpa koreksi | Sesudah Tangani Segera (tiba sementara 09.35), perawat mengonfirmasi 09.28 → sumber `Confirmed` atas nama perawat itu |
+| 2 | Nilai di masa depan → `400` | — |
+| 3 | Nilai lebih lambat dari peristiwa klinis pertama yang sudah tercatat (triage paling awal `StartedAt`, `TreatmentStartedAt`, `EffectiveFrom` penugasan dokter paling awal) → `409` menyebut peristiwanya | Triage dimulai 09.42; koreksi menjadi 10.00 → *"Waktu tiba tidak boleh lebih lambat dari mulai triage pukul 09.42."* |
+| 4 | Batasnya peristiwa klinis, **bukan** `RegisteredAt` | Pasien pra-notifikasi didaftarkan 09.00, tiba 09.20 → koreksi ke 09.20 diterima |
+| 5 | `PUT /{id}` yang **mengubah** `patientId`, `encounterId`, atau `arrivalDateTime` → `409` dengan pesan validation §10.4 aturan 4; mengirim nilai yang sama diterima; ruas lain tidak berubah perilakunya | Klien mengirim `PUT` dengan `patientId` berbeda → `409` |
 
-**Yang tidak berubah karena task ini.** `FE-IGD-027` **tetap ✅** (`IGD-DEC-141` butir 6). Riwayat
-penugasan (`EmgDoctorAssignment`) dan aturan tepat-satu-dokter-aktif (`IGD-DEC-130`) tidak disentuh.
+#### Endpoint baru dan yang berubah
 
-**DoD.** Acceptance 1–10; laporan tracked; `FE-IGD-037` boleh dimulai sesudah kontrak selesai dan build
-terverifikasi.
+#### Health Services / Emergency Installation Management / Emergency Visit
+
+Base URL: `api/v1/health-services/emergency-installation-management/emergency-visits`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+| --- | --- | --- | --- | --- | --- |
+| `PATCH` | `/{id}/arrival-time` | Mengonfirmasi atau mengoreksi waktu tiba — **baru** | `EmergencyVisit : Update` | `UpdateEmergencyArrivalTimeRequest` (`arrivalDateTime`) | `EmergencyVisitResponse` |
+| `PUT` | `/{id}` | Ubah kunjungan — **kini** menolak perubahan tiga ruas | `EmergencyVisit : Update` (tidak berubah) | Tidak berubah | Tidak berubah; + `409` |
+
+Kode status `PATCH`: `200`; `400` masa depan; `401`; `403`; `404` kunjungan tidak ada; `409` sesudah peristiwa klinis
+pertama. `PUT`: tambahan `409` untuk perubahan identitas atau waktu tiba.
+
+#### File yang akan disentuh
+
+| Berkas | Perubahan |
+| --- | --- |
+| `…/Controllers/EmergencyVisitController.cs` | Action `UpdateArrivalTime`; `Update` (:349) mengunci tiga ruas |
+| `…/Services/EmergencyVisitService.cs` | `ValidateArrivalTimeAsync` |
+| `…/DTOs/EmergencyVisitDtos.cs` | `UpdateEmergencyArrivalTimeRequest` |
+
+**Tidak disentuh:** schema, migration (kolom sudah dibuat `BE-IGD-055`), penyimpanan triage (`IGD-DEC-160`),
+berkas Registrasi, `Program.cs`, berkas kontrak, frontend.
+
+#### Acceptance
+
+| # | Kriteria | Bukti yang diminta | `AT-IGD-*` |
+| ---: | --- | --- | --- |
+| 1 | Konfirmasi/koreksi sah → nilai tersimpan, sumber `Confirmed`, pelaku dan waktu terisi | Uji API | — |
+| 2 | Koreksi sesudah mulai triage → `409` menyebut "mulai triage" dan jamnya; waktu tiba tidak berubah | Uji API | `175` |
+| 3 | Koreksi di masa depan → `400`; koreksi lebih awal dari `RegisteredAt` → diterima | Uji API | — |
+| 4 | `PUT` mengubah `patientId` → `409`; ruas lain tetap dapat diubah | Uji API | `181` |
+| 5 | `PUT` mengubah `encounterId` atau `arrivalDateTime` → `409`; nilai sama → diterima | Uji API | — |
+| 6 | Penyimpanan triage tidak ditolak karena sumber `Fallback` | Uji API | — |
+| 7 | Nol schema, nol migration, nol `Program.cs` | `git diff --stat` | — |
+| 8 | Build 0 error, warning sama dengan baseline | Keluaran build **milik Rizki** | — |
+
+**DoD.** Acceptance 1–8; laporan tracked; `FE-IGD-040` boleh mulai sesudah build terverifikasi.
+
+### `BE-IGD-059` — Jalur umum Registrasi dibatasi untuk encounter `Emergency`
+
+| Field | Isi |
+| --- | --- |
+| **Status** | Tanpa tanda — **baru, direncanakan 22 September 2026 (penutup)**. Menunggu `BE-IGD-051` dan `BE-IGD-057` — jalan pengganti harus ada sebelum jalur umum ditutup |
+| **Outcome** | Status akhir encounter IGD hanya dapat ditetapkan lewat aksi IGD, sehingga tidak pernah ada keadaan "kunjungan berjalan, encounter sudah berakhir", dan setiap NoShow IGD berpelaku dan beralasan |
+| **Slice** | `S1` · `EPIC IGD-11` · `MVP-7` |
+| **Requirement** | `FR-IGD-082` |
+| **Keputusan** | `IGD-DEC-153`; `IGD-DEC-146` (kunci pada pembatalan); `IGD-DEC-135` |
+| **Kontrak** | API `0.11.0` §8.1 nomor 3 dan 4, §8.2 baris `PATCH`; validation `0.8.0` §10.1 aturan 8–9; state `0.5.0` §8.2 tabel transisi yang ditolak; integration `0.4.0` §5.2 baris kedua, §5.3 baris `cancel` |
+| **Reuse** | `EmergencyEpisodeRule.LockPatientEpisodeAsync` (`BE-IGD-055`); pembatalan Registrasi yang sudah ada (`CancelEncounter`, `PatientEncounterController.cs:1046`) — isinya tidak diubah |
+| **Dependency** | `BE-IGD-051`, `BE-IGD-057` |
+| **Owner** | Backend IGD; berkas Registrasi di bawah `IGD-DEC-135` |
+| **Risiko** | Menengah — mengubah perilaku endpoint milik modul lain. Layar Registrasi yang memakai kedua endpoint untuk encounter IGD akan menerima `409` dengan pesan yang menjelaskan jalan penggantinya |
+
+#### Aturan
+
+| # | Aturan | Contoh |
+| ---: | --- | --- |
+| 1 | `PATCH /{id}/status` dan `/admin/{id}/status` pada encounter Emergency → `409` (validation §10.1 aturan 8); tipe lain tidak berubah | Petugas mencoba menandai encounter IGD `Completed` dari layar Registrasi → ditolak, diarahkan ke layar IGD |
+| 2 | `PATCH /{id}/cancel` dan `/admin/{id}/cancel` pada encounter Emergency yang **sudah punya kunjungan** → `409` (aturan 9) | Encounter `REG-…-0012` sudah punya `IGD-0012` → *"Batalkan lewat kunjungan IGD tersebut; encounter akan ikut dibatalkan."* |
+| 3 | Pembatalan encounter Emergency **tanpa** kunjungan tetap boleh (salah daftar/duplikat, termasuk K3); diambil kunci per pasien lalu diperiksa ulang "belum punya kunjungan" di dalam kunci | Pembatalan dan Mulai Triage serentak: tidak pernah ada kunjungan pada encounter yang dibatalkan |
+
+#### Endpoint yang berubah perilakunya
+
+#### Health Services / Registration Management / Patient Encounter
+
+Base URL: `api/v1/health-services/registration-management/patient-encounters` — **milik Registration Management**
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+| --- | --- | --- | --- | --- | --- |
+| `PATCH` | `/{id}/status`, `/admin/{id}/status` | Ubah status encounter — **menolak** Emergency | `PatientEncounter : Update` (tidak berubah) | Tidak berubah | Tidak berubah; + `409` |
+| `PATCH` | `/{id}/cancel`, `/admin/{id}/cancel` | Batalkan encounter — **menolak** Emergency yang sudah punya kunjungan | `PatientEncounter : Update` (tidak berubah) | Tidak berubah | Tidak berubah; + `409` |
+
+#### File yang akan disentuh
+
+| Berkas | Perubahan |
+| --- | --- |
+| `Areas/HealthServices/RegistrationManagement/Controllers/PatientEncounterController.cs` | **Berkas Registrasi.** Penolakan di `UpdateEncounterStatus` (:906); syarat "belum punya kunjungan" + kunci di `CancelEncounter` (:1046) |
+
+**Tidak disentuh:** berkas IGD selain pemakaian `EmergencyEpisodeRule`, schema, migration, `Program.cs`, berkas
+kontrak, frontend.
+
+#### Acceptance
+
+| # | Kriteria | Bukti yang diminta | `AT-IGD-*` |
+| ---: | --- | --- | --- |
+| 1 | `PATCH …/status` pada encounter Emergency → `409` dengan pesan aturan 8 | Uji API | `180` |
+| 2 | `PATCH …/cancel` pada encounter Emergency yang sudah punya kunjungan → `409` dengan pesan aturan 9 | Uji API | `180` |
+| 3 | Pembatalan encounter Emergency tanpa kunjungan tetap berhasil, isi pembatalannya sama dengan hari ini | Uji API | — |
+| 4 | Pembatalan dan Mulai Triage paralel → tidak pernah ada kunjungan pada encounter yang dibatalkan | Uji paralel; hitungan | — |
+| 5 | Encounter rawat jalan/rawat inap: kedua endpoint tidak berubah | Uji API + `git diff` | — |
+| 6 | Nol schema, nol migration, nol `Program.cs` | `git diff --stat` | — |
+| 7 | Build 0 error, warning sama dengan baseline | Keluaran build **milik Rizki** | — |
+
+**DoD.** Acceptance 1–7; laporan tracked; `FE-IGD-036` boleh dirilis sesudah task ini aktif.

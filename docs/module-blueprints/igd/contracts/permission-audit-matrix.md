@@ -3,9 +3,9 @@
 | Field | Nilai |
 | --- | --- |
 | `contract_version` | `0.5.0` — encounter-first, 22 September 2026, **Rencana (belum tersedia)**. **Aditif**: bagian 7 baru — aksi `EmergencyVisit : NoShow`, resource baru `EmergencyEncounterReconciliation` (`Read`/`Process`/`Reverse`), jejak audit override, NoShow, waktu tiba, rekonsiliasi. Sebelumnya `0.4.0` — bagian 3.1 (kewenangan atas pesanan) ditambahkan correction pass revisi 6. **Aditif** |
-| Status | `draft` |
+| Status | `draft`, **kecuali bagian 7 (encounter-first) yang `approved`** (`IGD-DEC-157`, 22 September 2026) |
 | Owner | Product/Domain Owner IGD: **Rizki Gunawan** (`IGD-DEC-089`) |
-| `approved_by` / `approved_at` | — / — |
+| `approved_by` / `approved_at` | **Rizki Gunawan / 2026-09-22** — bagian 7 (encounter-first) lewat `IGD-DEC-157`; keterbatasan izin bersama pada §7.1 diterima lewat `IGD-DEC-158`. Bagian lain tetap `draft` |
 | Versi sebelumnya | `0.3.0`, sebelumnya `0.2.0` |
 
 ---
@@ -191,6 +191,16 @@ yang sama dengan nama aksi identik huruf demi huruf.
 **Pemberian hak ke peran** ada di basis data dan berbeda antar rumah sakit (`CONFIGURABLE_DEFAULT`,
 gate §5.3). Rekomendasi awal: `NoShow` untuk perawat triage; `EmergencyEncounterReconciliation : Process` dan
 `Reverse` **hanya** untuk peran admin data, **terpisah** dari peran klinis.
+
+**Keterbatasan yang diterima — `IGD-DEC-158` (B3).** Pra-cek loket `GET /active-episode` dan `POST /start-triage`
+sama-sama memakai `EmergencyVisit : Create`. Petugas loket yang memegang izin itu untuk pra-cek karena itu **secara
+teknis** dapat memanggil Mulai Triage lewat API, walau `IGD-DEC-147` menetapkan pengisi waktu tiba adalah perawat
+triage. *Contoh:* petugas loket Sari memanggil `start-triage` dari Postman; kunjungan lahir dengan waktu tiba
+`Confirmed` atas nama Sari. Pelakunya terekam, dan layar Mulai Triage hanya ada di menu Triage. Aksi tersendiri
+`EmergencyVisit : StartTriage` boleh ditambahkan kemudian secara **aditif**. Wajib ditinjau ulang bila Nursing
+authority ditunjuk.
+
+**Status bagian ini: `approved`** — `IGD-DEC-157`, 22 September 2026; terkunci hash (manifest bagian 2).
 
 ### 7.2 Jejak audit
 

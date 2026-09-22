@@ -3,9 +3,9 @@
 | Field | Nilai |
 | --- | --- |
 | `contract_version` | `0.5.0` — encounter-first, 22 September 2026, **Rencana (belum tersedia)**. **Aditif**: bagian 8 baru (titik lahir kunjungan, pengakhiran encounter Emergency oleh IGD, enum `EmergencyArrivalTimeSource` dan `EmergencyReconciliationRunStatus`); bagian 1–7 **tidak** diubah. Sebelumnya `0.4.0` — revisi 6. **Aditif**: bagian 6a murni baru, nol bagian lama diubah |
-| Status | `draft`, **kecuali bagian 1, 1.1, dan 1.2 yang `approved`** |
+| Status | `draft`, **kecuali bagian 1, 1.1, 1.2, dan bagian 8 (encounter-first) yang `approved`** |
 | Owner | Product/Domain Owner IGD: **Rizki Gunawan** (`IGD-DEC-089`) |
-| `approved_by` / `approved_at` | **Rizki Gunawan / 2026-08-24** — terbatas pada bagian 1, 1.1, 1.2 (`EmergencyVisitStatus`) lewat `IGD-DEC-093`. Bagian 2 sampai 7 tetap `draft` |
+| `approved_by` / `approved_at` | **Rizki Gunawan / 2026-08-24** — terbatas pada bagian 1, 1.1, 1.2 (`EmergencyVisitStatus`) lewat `IGD-DEC-093`. **Rizki Gunawan / 2026-09-22** — bagian 8 (encounter-first) lewat `IGD-DEC-157`. Bagian 2 sampai 7 tetap `draft` |
 | Versi sebelumnya | `0.4.0`, `0.3.0`, sebelumnya `0.2.0` |
 
 ---
@@ -183,6 +183,8 @@ penerimaan pesanan tidak ditumpangkan pada `EmergencyHandoverStatus`.
 Bagian 1, 1.1, dan 1.2 (`approved`) **tidak** diubah: tidak ada transisi `EmergencyVisitStatus` baru. Yang
 baru adalah **titik lahir** kunjungan, keadaan encounter Emergency yang dikelola IGD, dan dua status milik
 tabel baru. Keputusan: `IGD-DEC-139`, `142`, `143`, `147`, `148`, `153`.
+
+**Status bagian ini: `approved`** — `IGD-DEC-157`, 22 September 2026; terkunci hash (manifest bagian 2).
 
 ### 8.1 Titik lahir kunjungan
 
