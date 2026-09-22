@@ -131,7 +131,7 @@ flowchart LR
 | `FE-IGD-014` | Pendaftaran mengikuti `Emergency` | ✅ **Dinilai ulang 21 September 2026 (malam) — atas penilaian pemilik, sesudah `FE-IGD-034` ✅; celah `IGD-OQ-093` `open` dinyatakan** ([laporan](../task/report/frontend/FE-IGD-014.md) bagian 9): ✅ ini tidak menyatakan tidak ada encounter yatim dalam segala keadaan. *Riwayat 🟡 21 September 2026:* kriteria 2 **kini ada di source** (kotak peringatan berisi nomor kunjungan + tombol *Buka Kunjungan IGD*); eslint berkas task 0 error, 9 unit test baru lulus, **`npm run build` lulus (pemilik, 21 September 2026 malam)**. **Uji layar pemilik 21 September 2026 malam: kotak, nomor, status, dan tombol tampil benar; hasil klik tombol belum dikonfirmasi.** **Belum boleh ✅ end-to-end** (keputusan pemilik 21 September 2026, `IGD-DEC-138`): encounter yatim ditangani `BE-IGD-050` + `FE-IGD-034`, sisa celah `IGD-OQ-093` | [FE-IGD-014](../task/report/frontend/FE-IGD-014.md) |
 | `FE-IGD-015` | Route `emergency-departures` | ✅ | [fe-igd-012-018](../task/report/frontend/fe-igd-012-018-penyelesaian-antarmuka.md) |
 | `FE-IGD-016` | Dua rangkaian status kepergian | ✅ | [fe-igd-012-018](../task/report/frontend/fe-igd-012-018-penyelesaian-antarmuka.md) |
-| `FE-IGD-017` | Entri susulan, koreksi, daftar pantau | 🟡 **21 September 2026 (larut malam) — Implementation Complete**: kolom pelaku/penyetuju membaca nama (`IGD-DEC-137`, `BE-IGD-049`); eslint 0 error, 5 test baru lulus. **Uji layar pemilik LULUS** (pelaku `SuperAdmin`, bukan GUID, 21 September 2026 larut malam); tersisa `npm run build` revisi ini yang belum dilaporkan. Kriteria 2–3 terpenuhi | [FE-IGD-017](../task/report/frontend/FE-IGD-017.md) |
+| `FE-IGD-017` | Entri susulan, koreksi, daftar pantau | ✅ **22 September 2026 — atas penilaian pemilik**: kolom pelaku/penyetuju membaca nama (`IGD-DEC-137`, `BE-IGD-049` ✅); eslint 0 error, 5 test baru lulus. **Uji layar pemilik LULUS** (pelaku `SuperAdmin`, bukan GUID, 21 September 2026 larut malam); **`npm run build` dinyatakan lulus pemilik** 22 September 2026 (keluaran tidak dilampirkan; artefak `.next` 16:03 dari commit `c941012ac` diperiksa agent). Kriteria 2–3 terpenuhi | [FE-IGD-017](../task/report/frontend/FE-IGD-017.md) |
 | `FE-IGD-018` | Bersih-bersih sisa yang tidak dipakai | ✅ | [fe-igd-012-018](../task/report/frontend/fe-igd-012-018-penyelesaian-antarmuka.md) |
 | `FE-IGD-020` | Route master data IGD | ✅ | [fe-igd-020-021](../task/report/frontend/fe-igd-020-021-route-master-igd-dan-kolom-kesimpulan.md) |
 | `FE-IGD-021` | Kolom Kesimpulan observasi | ✅ | [fe-igd-020-021](../task/report/frontend/fe-igd-020-021-route-master-igd-dan-kolom-kesimpulan.md) |
@@ -371,11 +371,11 @@ tetapi hanya setelah `BE-IGD-027`.
 | **Risiko** | Menengah. Dua status berdampingan mudah membingungkan bila penamaannya tidak jelas |
 | **Owner** | Frontend |
 
-### 🟡 `FE-IGD-017` — Entri susulan, koreksi, dan daftar pantau
+### ✅ `FE-IGD-017` — Entri susulan, koreksi, dan daftar pantau
 
 | Field | Isi |
 | --- | --- |
-| **Status** | 🟡 **SEBAGIAN — Implementation Complete 21 September 2026 (larut malam); blokir `BE-IGD-049` sebelumnya dicabut.** Syarat pemilik (`IGD-DEC-137`: *`BE-IGD-049` kontrak selesai **dan** build terverifikasi*) **terpenuhi**: `BE-IGD-049` 🟡 Implementation Complete, `dotnet build` 0 error ([laporan](../task/report/backend/BE-IGD-049.md)). **Dikerjakan:** dua nilai pada `emergency-assessment-transfer-tab.jsx` kini membaca `recordedByName`/`approvedByName`, tanda hubung bila kosong, **tanpa** jatuh ke ID (`IGD-DEC-137`). `eslint` 0 error; 5 unit test baru lulus (dengan kontrol negatif terhadap `HEAD`); suite 1415 dari 1424 lulus (9 gagal sudah ada sebelumnya, semuanya Rawat Inap); grep anti-regresi bersih; `UI GATE` REUSE 2 / NEW 0. **Uji layar kriteria 1 (pemilik, 21 September 2026 larut malam): LULUS** — kolom *Pelaku* menampilkan `SuperAdmin` pada ketiga kejadian `DEP-260921064559-9B2DB7`, menggantikan GUID pada uji sebelumnya. **Belum:** `npm run build` revisi ini tidak dilaporkan pemilik — satu-satunya butir yang menahan ✅ (standar yang sama dengan `FE-IGD-027`). [Laporan](../task/report/frontend/FE-IGD-017.md). Kriteria 2 dan 3 tetap terpenuhi (15 September 2026). *Riwayat: 🟡 15 September 2026; dihentikan pada gerbang 21 September 2026.* Kriteria 1 tertahan **delta kontrak backend**: respons event kepergian hanya memuat `recordedByUserId`/`approvedByUserId` tanpa nama, kontrak terkunci tidak menjanjikannya, dan frontend tidak punya pencarian pengguna — menebak payload atau memanggil endpoint pengguna satu per satu ditolak ([laporan](../task/report/frontend/FE-IGD-017.md)). Keputusan pemilik sudah ada (`IGD-DEC-137`, aditif, pola `IGD-DEC-129`) dan task backend `BE-IGD-049` sudah direncanakan; sisi frontend sesudahnya dua baris. Nol source diubah. Sebelumnya: Kriteria 2 dan 3 terpetakan: kejadian yang dikoreksi tetap tampil dengan badge "Tidak berlaku" (`emergency-assessment-transfer-tab.jsx:229`), dan waktu sebenarnya di masa depan ditolak di layar (baris 141 dan 258). **Kriteria 1 sebagian:** riwayat tampil bersama waktu terjadi dan waktu dicatat, tetapi kolom "Pelaku" dan "Penyetuju pembalikan" (baris 234–235) menampilkan **ID pengguna mentah**, bukan nama petugas (`IGD-EV-123`). Bukti: [laporan gabungan](../task/report/frontend/fe-igd-012-018-penyelesaian-antarmuka.md) |
+| **Status** | ✅ **22 September 2026 — atas penilaian pemilik**: `npm run build` dinyatakan lulus (keluaran tidak dilampirkan; artefak `.next` 21 September 16:03 dari commit `c941012ac` yang memuat kedua berkas task ini diperiksa agent), sehingga satu-satunya butir penahan tertutup. Uji layar kriteria 1 sudah lulus 21 September. `BE-IGD-049` kini ✅. *Riwayat penilaian:* 🟡 **SEBAGIAN — Implementation Complete 21 September 2026 (larut malam); blokir `BE-IGD-049` sebelumnya dicabut.** Syarat pemilik (`IGD-DEC-137`: *`BE-IGD-049` kontrak selesai **dan** build terverifikasi*) **terpenuhi**: `BE-IGD-049` 🟡 Implementation Complete, `dotnet build` 0 error ([laporan](../task/report/backend/BE-IGD-049.md)). **Dikerjakan:** dua nilai pada `emergency-assessment-transfer-tab.jsx` kini membaca `recordedByName`/`approvedByName`, tanda hubung bila kosong, **tanpa** jatuh ke ID (`IGD-DEC-137`). `eslint` 0 error; 5 unit test baru lulus (dengan kontrol negatif terhadap `HEAD`); suite 1415 dari 1424 lulus (9 gagal sudah ada sebelumnya, semuanya Rawat Inap); grep anti-regresi bersih; `UI GATE` REUSE 2 / NEW 0. **Uji layar kriteria 1 (pemilik, 21 September 2026 larut malam): LULUS** — kolom *Pelaku* menampilkan `SuperAdmin` pada ketiga kejadian `DEP-260921064559-9B2DB7`, menggantikan GUID pada uji sebelumnya. **Belum:** `npm run build` revisi ini tidak dilaporkan pemilik — satu-satunya butir yang menahan ✅ (standar yang sama dengan `FE-IGD-027`). [Laporan](../task/report/frontend/FE-IGD-017.md). Kriteria 2 dan 3 tetap terpenuhi (15 September 2026). *Riwayat: 🟡 15 September 2026; dihentikan pada gerbang 21 September 2026.* Kriteria 1 tertahan **delta kontrak backend**: respons event kepergian hanya memuat `recordedByUserId`/`approvedByUserId` tanpa nama, kontrak terkunci tidak menjanjikannya, dan frontend tidak punya pencarian pengguna — menebak payload atau memanggil endpoint pengguna satu per satu ditolak ([laporan](../task/report/frontend/FE-IGD-017.md)). Keputusan pemilik sudah ada (`IGD-DEC-137`, aditif, pola `IGD-DEC-129`) dan task backend `BE-IGD-049` sudah direncanakan; sisi frontend sesudahnya dua baris. Nol source diubah. Sebelumnya: Kriteria 2 dan 3 terpetakan: kejadian yang dikoreksi tetap tampil dengan badge "Tidak berlaku" (`emergency-assessment-transfer-tab.jsx:229`), dan waktu sebenarnya di masa depan ditolak di layar (baris 141 dan 258). **Kriteria 1 sebagian:** riwayat tampil bersama waktu terjadi dan waktu dicatat, tetapi kolom "Pelaku" dan "Penyetuju pembalikan" (baris 234–235) menampilkan **ID pengguna mentah**, bukan nama petugas (`IGD-EV-123`). Bukti: [laporan gabungan](../task/report/frontend/fe-igd-012-018-penyelesaian-antarmuka.md) |
 | **Slice** | `IGD-S05` · `EPIC IGD-06` |
 | **Scope** | Tab kepergian, ditambah satu daftar pantau |
 | **Perubahan** | Mencatat waktu kejadian sebenarnya yang berbeda dari waktu pencatatan; menampilkan riwayat koreksi tanpa menyembunyikan yang lama; pembalikan menampilkan siapa yang menyetujui |
@@ -421,14 +421,14 @@ flowchart LR
         BEIGD032["✅ BE-IGD-032<br/>Dua kolom status kepergian"]:::luar
         BEIGD033["✅ BE-IGD-033<br/>Kejadian kepergian tambah-saja"]:::luar
         BEIGD034["✅ BE-IGD-034<br/>Koreksi dan pembalikan berpersetujuan"]:::luar
-        BEIGD049["🟡 BE-IGD-049<br/>Nama pelaku pada event kepergian"]:::luar
+        BEIGD049["✅ BE-IGD-049<br/>Nama pelaku pada event kepergian"]:::luar
     end
 
     FEIGD013["🟡 FE-IGD-013<br/>Pengkajian tersimpan lewat layar"]:::sebagian
     FEIGD014["✅ FE-IGD-014<br/>Pendaftaran kirim Emergency"]:::selesai
     FEIGD015["✅ FE-IGD-015<br/>Route emergency-departures"]:::selesai
     FEIGD016["✅ FE-IGD-016<br/>Dua status kepergian tampil"]:::selesai
-    FEIGD017["🟡 FE-IGD-017<br/>Riwayat koreksi kepergian"]:::sebagian
+    FEIGD017["✅ FE-IGD-017<br/>Riwayat koreksi kepergian"]:::selesai
     FEIGD018["✅ FE-IGD-018<br/>Sisa tak terpakai dihapus"]:::selesai
 
     BEIGD023 --> FEIGD014
@@ -449,7 +449,7 @@ flowchart LR
 | 1 | `BE-IGD-027` ✅, `BE-IGD-028` ✅ | `FE-IGD-013` |
 | 1 | `BE-IGD-031` 🟡 — rilis serentak | `FE-IGD-015` |
 | 1 | `BE-IGD-032` ✅ | `FE-IGD-016` |
-| 1 | `BE-IGD-033` ✅, `BE-IGD-034` ✅, `BE-IGD-049` 🟡 (kontrak selesai, build terverifikasi 21 September 2026 malam — boleh dimulai) | `FE-IGD-017` |
+| 1 | `BE-IGD-033` ✅, `BE-IGD-034` ✅, `BE-IGD-049` ✅ (selesai 22 September 2026) | `FE-IGD-017` ✅ |
 
 ## R3.3 Yang belum dapat direncanakan
 
@@ -1121,11 +1121,11 @@ pemanggil mana pun. Layar tidak lagi memancingnya, tetapi penjaga sesungguhnya h
 
 ## R3.11 Gelombang 21 September 2026 (sore) — pra-cek episode ganda dan nama pelaku
 
-Dua keputusan pemilik memengaruhi frontend. **`FE-IGD-017` 🟡 dan `FE-IGD-034` ✅ sudah dikerjakan (21 September 2026); `FE-IGD-034` dinyatakan ✅ atas penilaian pemilik sesudah build dan uji layar lulus (menurut pemilik).**
+Dua keputusan pemilik memengaruhi frontend. **`FE-IGD-017` ✅ dan `FE-IGD-034` ✅ — keduanya dinyatakan selesai atas penilaian pemilik (21–22 September 2026) sesudah build dan uji layar dilaporkan lulus.**
 
 | Task | Nasib | Menunggu |
 | --- | --- | --- |
-| `FE-IGD-017` | 🟡 `IGD-DEC-137` — dua baris nama pelaku. **Implementation Complete 21 September 2026 (larut malam)** | `BE-IGD-049` 🟡 — kontrak selesai **dan** build terverifikasi ✅. Build frontend dan uji layar milik pemilik. Kartunya di R3.2 |
+| `FE-IGD-017` | ✅ `IGD-DEC-137` — dua baris nama pelaku. **22 September 2026: ✅ atas penilaian pemilik** (build dinyatakan lulus; uji layar lulus 21 September) | `BE-IGD-049` ✅ — selesai 22 September 2026. Kartunya di R3.2 |
 | `FE-IGD-034` (baru) | ✅ `IGD-DEC-138` — layar memeriksa episode ganda **sebelum** encounter dibuat. **21 September 2026 (malam): ✅ atas penilaian pemilik** — build dan uji layar dilaporkan lulus (tanpa lampiran) | `BE-IGD-050` ✅ (kontrak selesai **dan** build terverifikasi — atas pernyataan pemilik) |
 | `FE-IGD-014` | ✅ **dinilai ulang 21 September 2026 (malam)** sesudah `FE-IGD-034` ✅ — **dengan celah `IGD-OQ-093` dinyatakan**: ✅ ini tidak berarti tidak ada encounter yatim dalam segala keadaan ([laporan](../task/report/frontend/FE-IGD-014.md) bagian 9) | `FE-IGD-034` ✅ |
 
@@ -1138,7 +1138,7 @@ flowchart LR
     classDef luar fill:#EDE9FE,stroke:#7C3AED,color:#3B0764
 
     subgraph backend["Prasyarat backend — backend-roadmap.md R3.12"]
-        BEIGD049["🟡 BE-IGD-049<br/>Nama pelaku pada event kepergian"]:::luar
+        BEIGD049["✅ BE-IGD-049<br/>Nama pelaku pada event kepergian"]:::luar
         BEIGD050["✅ BE-IGD-050<br/>Pra-cek episode ganda"]:::luar
     end
 
@@ -1146,7 +1146,7 @@ flowchart LR
         FEIGD014["✅ FE-IGD-014<br/>Pendaftaran kirim Emergency"]:::luar
     end
 
-    FEIGD017["🟡 FE-IGD-017<br/>Riwayat koreksi kepergian"]:::sebagian
+    FEIGD017["✅ FE-IGD-017<br/>Riwayat koreksi kepergian"]:::selesai
     FEIGD034["✅ FE-IGD-034<br/>Pra-cek sebelum encounter dibuat"]:::selesai
 
     BEIGD049 --> FEIGD017
@@ -1156,7 +1156,7 @@ flowchart LR
 
 | Gelombang | Boleh mulai setelah | Task |
 | ---: | --- | --- |
-| 1 | `BE-IGD-049` 🟡 — kontrak selesai, build terverifikasi 21 September 2026 malam; **dikerjakan — Implementation Complete** | `FE-IGD-017` |
+| 1 | `BE-IGD-049` ✅ — selesai 22 September 2026 (uji API S2–S5 dilaporkan lulus pemilik); **dikerjakan — selesai** | `FE-IGD-017` ✅ |
 | 1 | `BE-IGD-050` ✅ — kontrak `0.10.0` selesai, build dan uji API dilaporkan `PASS` oleh pemilik 21 September 2026 malam; **dikerjakan — Implementation Complete**; `FE-IGD-014` kriteria 2 sudah di-commit (`198d56d9e`) | `FE-IGD-034` |
 
 ### ✅ `FE-IGD-034` — Pendaftaran IGD memeriksa episode ganda sebelum membuat encounter

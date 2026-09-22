@@ -17,7 +17,7 @@
 | Model | Claude Sonnet 5 |
 | Commit backend saat dikerjakan | `267b56a0` pada branch `rizkiG` — **working tree belum di-commit** |
 | Tanggal | 21 September 2026 (malam) |
-| Status | 🟡 **Implementation Complete, Build Verified — Runtime Not Verified.** `dotnet build` → **0 Error(s), 207 Warning(s)** (sama dengan baseline; nol warning pada berkas yang diubah). Acceptance 1–4 dan 6–8 terpetakan ke source; **runtime parsial (21 September 2026, larut malam): jalur `GET` daftar terbukti lewat layar `FE-IGD-017` — pelaku tampil `SuperAdmin`.** **Acceptance 5 (satu kueri) dan uji API S2–S5 belum dijalankan** — milik pemilik. UAT belum dan tidak diklaim |
+| Status | ✅ **Selesai — 22 September 2026, atas penilaian pemilik.** `dotnet build` → **0 Error(s), 207 Warning(s)** (sama dengan baseline; nol warning pada berkas yang diubah). Jalur `GET` daftar terbukti lewat layar `FE-IGD-017` 21 September 2026 (pelaku tampil `SuperAdmin`) — diperiksa agent lewat tangkapan layar pemilik. **Uji API S2–S5 (`amend`, `reverse`, pelaku tidak ada, satu kueri) dijalankan pemilik dan dilaporkan lulus** (22 September 2026; pernyataan pemilik, tanpa lampiran — agent tidak mengamati dan tidak menerima log SQL maupun badan respons). Pernyataan pemilik bahwa agent lain memverifikasi hasil yang sama **tidak** dipakai sebagai bukti tersendiri. UAT belum dan tidak diklaim |
 
 ### Backend Governance Preflight
 
@@ -144,8 +144,8 @@ Route, request, dan hak akses **tidak berubah**. Hanya bentuk respons yang memua
 | Tinjauan diff | 3 berkas source, `+106/−6`. Atribut `Access*`, `Http*`, `Route`, `Authorize` **nol baris berubah** | `PASS` | `git diff` |
 | Akhir baris berkas | Ketiganya konsisten CRLF, sama dengan `HEAD` | `PASS` | Hitungan CRLF per berkas |
 | Sisa pemakai pemeta lama pada event/kepergian di controller | 0 (tersisa 3 milik baris pesanan) | `PASS` | Pencarian teks |
-| Uji API S1–S5 (bagian 5.1) | **Sebagian, lewat layar:** jalur `GET` daftar kepergian yang dipakai tab kepergian mengirim `recordedByName` (lihat baris berikut). **S2 (`amend`), S3 (`reverse`), S4 (pengguna tidak ada), S5 (satu kueri) belum dijalankan** | `PASS` (jalur `GET` daftar) / `NOT RUN` (S2–S5) | Backend yang berjalan sudah memuat perubahan (dibangun ulang dan dijalankan ulang pemilik) |
-| Pembuktian **satu kueri** (acceptance 5) | Tidak dijalankan | `NOT RUN` | Butuh log SQL EF atau probe service seperti `BE-IGD-048` langkah H; keduanya menyentuh basis data dan tidak dijalankan agent |
+| Uji API S1–S5 (bagian 5.1) | **Seluruhnya dijalankan pemilik dan dilaporkan lulus** (22 September 2026). S1 setara sudah terbukti lewat layar 21 September; S2–S5 menurut pernyataan pemilik | `PASS` (S1 lewat layar, diperiksa agent; S2–S5 pernyataan pemilik) | Backend yang berjalan sudah memuat perubahan. **Badan respons S2–S4 tidak dilampirkan** |
+| Pembuktian **satu kueri** (acceptance 5, S5) | Dijalankan pemilik; dilaporkan lulus | `PASS` (pernyataan pemilik) | **Log SQL EF tidak dilampirkan**, jadi hitungan kueri tidak tercatat sebagai angka pada laporan ini |
 | Tampilan layar `FE-IGD-017` | **`SuperAdmin`** tampil pada kolom *Pelaku* di ketiga kejadian `DEP-260921064559-9B2DB7`, menggantikan GUID `0ba84a1a-…` | `PASS` | Tangkapan layar pemilik, 21 September 2026 (larut malam); [laporan `FE-IGD-017`](../frontend/FE-IGD-017.md) bagian 6.1. Membuktikan **acceptance 1 pada jalur `GET` daftar** dan bahwa backend baru berjalan |
 
 **Tidak ada automated test** (proyek test dihapus 11 September 2026, `IGD-DEC-110`).
@@ -168,19 +168,23 @@ Jalankan **sesudah** build ulang dan restart backend.
 
 | # | Kriteria | Status | Bukti |
 | ---: | --- | --- | --- |
-| 1 | Setiap respons yang memuat event menyertakan `recordedByName`; `approvedByName` terisi bila `approvedByUserId` ada | **Terbukti runtime untuk `GET` daftar** (`recordedByName = SuperAdmin`, 21 Sep 2026 larut malam); **`amend`, `reverse`, dan `approvedByName` terisi belum** | Keenam titik controller memakai `ToResponseAsync`; layar `FE-IGD-017`; uji API S2–S3 milik pemilik |
+| 1 | Setiap respons yang memuat event menyertakan `recordedByName`; `approvedByName` terisi bila `approvedByUserId` ada | **Terpenuhi.** `GET` daftar terbukti lewat layar 21 Sep 2026 (`recordedByName = SuperAdmin`); `amend`, `reverse`, dan `approvedByName` terisi **dilaporkan lulus pemilik** (S2–S3, 22 Sep 2026) | Keenam titik controller memakai `ToResponseAsync`; layar `FE-IGD-017`; S2–S3 tanpa lampiran badan respons |
 | 2 | `recordedByUserId` dan `approvedByUserId` tetap dikirim dengan nilai yang sama | **Terpenuhi** | `ToResponse` statis tidak diubah; ruas ID tidak disentuh |
-| 3 | Pengguna tidak ditemukan, atau ruas ID kosong → `null` — bukan GUID, `Guid.Empty`, maupun string kosong | **Terpetakan ke source; runtime belum** | `Guid.Empty` disaring sebelum kueri; `GetValueOrDefault` memberi `null`; `PilihNamaTampilan` melewati nilai kosong. Uji S4 |
+| 3 | Pengguna tidak ditemukan, atau ruas ID kosong → `null` — bukan GUID, `Guid.Empty`, maupun string kosong | **Terpenuhi — runtime dilaporkan pemilik lulus (S4)** | `Guid.Empty` disaring sebelum kueri; `GetValueOrDefault` memberi `null`; `PilihNamaTampilan` melewati nilai kosong. Badan respons S4 tidak dilampirkan |
 | 4 | Urutan nama `DisplayName`, `UserName`, `Email`, `UserCode` | **Terpenuhi** | `PilihNamaTampilan(u.DisplayName, u.UserName, u.Email, u.UserCode)` |
-| 5 | **Tanpa `N+1`:** satu kueri nama per respons (satu kepergian berkejadian ≥ 3 **dan** `GET /` berisi ≥ 2 kepergian) | **Terpetakan ke source; pembuktian runtime belum** | Satu `ToListAsync` di `IsiNamaPelakuAsync`, dipanggil **sekali** per respons dengan seluruh event terkumpul (overload halaman memakai `SelectMany`). Butuh log SQL/probe — S5 |
+| 5 | **Tanpa `N+1`:** satu kueri nama per respons (satu kepergian berkejadian ≥ 3 **dan** `GET /` berisi ≥ 2 kepergian) | **Terpenuhi — runtime dilaporkan pemilik lulus (S5)** | Satu `ToListAsync` di `IsiNamaPelakuAsync`, dipanggil **sekali** per respons dengan seluruh event terkumpul (overload halaman memakai `SelectMany`). **Log SQL tidak dilampirkan** — hitungan kueri tidak tercatat sebagai angka |
 | 6 | Nol perubahan schema: model, konfigurasi EF, snapshot, `Migrations/`; nol route baru; nol perubahan request | **Terpenuhi** | `git status --short`: hanya tiga berkas di `Areas/…` yang berubah |
 | 7 | Nol perubahan authorization | **Terpenuhi** | Nol baris atribut `Access*` berubah pada diff |
 | 8 | `api-contract.md` naik satu minor (aditif); bagian `2.4` memuat ruas, aturan `null`, urutan nama, larangan GUID; ruas aktor lain dicatat tidak termasuk | **Terpenuhi** | `api-contract.md` `0.9.0`, bagian 2.4 |
 | 9 | `dotnet build -p:RunAnalyzers=false` → 0 error, warning sama dengan baseline (207) | **Terpenuhi** | Bagian 5 |
 
-**Definition of Done.** Terpenuhi **dengan pengecualian yang disebut apa adanya**: acceptance 1, 3, dan 5 belum terbukti pada
-runtime; uji API S1–S5 dan tampilan layar belum dijalankan. Karena itu status **🟡**, bukan ✅. Syarat pemilik untuk membuka
-`FE-IGD-017` — *"kontrak selesai dan build verified"* — **terpenuhi**.
+**Definition of Done.** Terpenuhi. Acceptance 1–9 terpenuhi; laporan tracked ada; roadmap, traceability, dan `MODULE-STATUS.md`
+diperbarui. **Dicatat apa adanya:** kesahihan acceptance 1 (jalur `amend`/`reverse`), 3, dan 5 bertumpu pada **pernyataan pemilik**
+bahwa uji API S2–S5 lulus — badan respons dan log SQL tidak dilampirkan, sehingga hitungan kueri acceptance 5 tidak tercatat
+sebagai angka. Status **✅** ditetapkan atas penilaian pemilik pada 22 September 2026. Syarat pemilik untuk membuka
+`FE-IGD-017` — *"kontrak selesai dan build verified"* — sudah terpenuhi sejak 21 September 2026; `FE-IGD-017` kini ✅.
+
+*Riwayat penilaian 21 September 2026:* status 🟡 karena acceptance 1 (sebagian), 3, dan 5 belum terbukti runtime.
 
 ---
 
@@ -193,5 +197,5 @@ runtime; uji API S1–S5 dan tampilan layar belum dijalankan. Karena itu status 
 | Risiko tersisa | Rendah. Kueri nama tambahan (satu per respons) bertambah pada semua pembacaan kepergian; tanpa indeks baru karena pencarian memakai kunci utama `Id` |
 | Perubahan sampingan | Direktori build sementara `obj/efbuild/` (270 MB) **dihapus** segera setelah build. Nol berkas lain |
 | Interupsi | `NONE` |
-| Status Git | `M` tiga source (`EmergencyDepartureController.cs`, `EmergencyDepartureDtos.cs`, `EmergencyDepartureService.cs`); `M` dokumen `igd/**` (kontrak, roadmap, traceability, status, keputusan, laporan) dan `??` laporan/evidence baru. Sebagian dokumen sudah `M`/`??` sebelum task ini. Tidak ada stage atau commit |
-| Langkah berikutnya | (1) ~~Pemilik bangun ulang + restart backend~~ — sudah; jalankan S2–S5 (S1 setara sudah lewat layar). (2) `FE-IGD-017` boleh dimulai — dua baris pada `emergency-assessment-transfer-tab.jsx` |
+| Status Git | **Diperbarui 22 September 2026:** ketiga berkas source dan seluruh dokumen `igd/**` sudah di-commit pemilik sebagai **`3ebc4110`** ("update asigment IGD", 22 September 2026 08:30, 21 berkas) dan **sudah di-push** ke `origin/rizkiG` — diperiksa agent. Perubahan dokumen sesudah commit itu (penilaian ulang ini) belum di-commit. Agent tidak melakukan stage, commit, maupun push |
+| Langkah berikutnya | (1) ~~Pemilik bangun ulang + restart backend, jalankan S2–S5~~ — **dilaporkan lulus 22 September 2026**. (2) ~~`FE-IGD-017` boleh dimulai~~ — **selesai ✅**. (3) Pemilik: commit ulang dokumen `igd/**` sesudah penilaian ulang ini |

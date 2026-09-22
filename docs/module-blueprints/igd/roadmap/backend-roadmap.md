@@ -172,7 +172,7 @@ flowchart LR
 | `BE-IGD-045` | Penetapan, pengalihan, dan pencarian dokter aktif | `MVP-5` | ✅ **17 September 2026** — Implementation Complete, Build Verified, Runtime Verified. Build nol error; **12 dari 12 skenario uji API `PASS`** termasuk concurrency S12. Tanpa UAT | [BE-IGD-045](../task/report/backend/BE-IGD-045.md) |
 | `BE-IGD-048` | Pengisian data lama penugasan dokter IGD | `MVP-5` | ✅ **21 September 2026** — Implementation Complete, Build Verified (`0 Error(s)`, 207 warning), Migration Applied (dev, `20260921032943`), Data Migration Verified. Kriteria A–E terbukti pada **salinan basis data terpisah** berkandidat (3 tersisip) dan pada dev (0 tersisip, dev 0 kandidat); siklus `Up→Down→Up`, guard `Down()` A dan C (atomik), dan idempotensi diuji; probe service asli membuktikan `"Data historis"` dalam satu kueri. **Tidak dijalankan:** uji HTTP dengan token, tampilan layar baris legacy. Tanpa UAT | [BE-IGD-048](../task/report/backend/BE-IGD-048.md) |
 | `BE-IGD-046` | Validasi dan proyeksi tanda vital pada detail observasi | R3.9 | ✅ 16 September 2026 — implementasi + build bersih (nol error); runtime belum diverifikasi | [BE-IGD-046](../task/report/backend/BE-IGD-046.md) |
-| `BE-IGD-049` | Nama pelaku pada event kepergian (`IGD-DEC-137`) | R3.12 | 🟡 **21 September 2026 (malam)** — Implementation Complete, **Build Verified** (`0 Error(s)`, 207 warning = baseline, nol warning pada berkas yang diubah); kontrak `0.9.0`. **Runtime parsial (21 September 2026, larut malam):** lewat layar `FE-IGD-017`, kolom pelaku menampilkan `SuperAdmin` dari `GET` daftar — backend baru sudah berjalan. **Belum:** S2 (`amend`), S3 (`reverse`), S4 (pengguna tidak ada), S5 (satu kueri) — acceptance 1 sisa, 3, 5 — milik pemilik. Tanpa UAT | [BE-IGD-049](../task/report/backend/BE-IGD-049.md) |
+| `BE-IGD-049` | Nama pelaku pada event kepergian (`IGD-DEC-137`) | R3.12 | ✅ **22 September 2026 — atas penilaian pemilik.** Implementation Complete, **Build Verified** (`0 Error(s)`, 207 warning = baseline); kontrak `0.9.0`. Jalur `GET` daftar terbukti lewat layar `FE-IGD-017` 21 September (pelaku `SuperAdmin`). **S2–S5 (`amend`, `reverse`, pelaku tidak ada, satu kueri) dijalankan pemilik dan dilaporkan lulus** — badan respons dan log SQL tidak dilampirkan, jadi hitungan kueri acceptance 5 tidak tercatat sebagai angka. Tanpa UAT | [BE-IGD-049](../task/report/backend/BE-IGD-049.md) |
 | `BE-IGD-050` | Pra-cek episode ganda sebelum encounter dibuat — **korektif** encounter yatim (`IGD-DEC-138`) | R3.12 | ✅ **21 September 2026 (malam) — atas penilaian pemilik.** Implementation Complete (tiga berkas source, kontrak `0.10.0`); build dan **uji API S1–S7 `PASS` semuanya menurut pemilik** (agent tidak mengamati). **Dikecualikan:** acceptance 8 (hasil kueri audit A/B belum dilaporkan); angka warning, hitungan baris, log SQL tidak dilampirkan. `IGD-OQ-093` `open` = backend gap eksplisit. Tanpa UAT | [BE-IGD-050](../task/report/backend/BE-IGD-050.md) |
 | `BE-IGD-047` | Nomor urut penilaian triage ditetapkan server | R3.10 | ✅ **17 September 2026** — `dotnet build` lulus dan **uji API tiga skenario lulus** oleh pemilik; dibuktikan lagi lewat layar bersama `FE-IGD-033`. Tanpa UAT | [BE-IGD-047](../task/report/backend/BE-IGD-047.md) |
 
@@ -1597,8 +1597,8 @@ corrective/data migration, bukan fitur operasional. Hasilnya dibaca `FE-IGD-027`
 ## R3.12 Gelombang 21 September 2026 (sore) — dua task dari keputusan pemilik
 
 Keputusan pemilik atas dua temuan gerbang backlog frontend (`IGD-DEC-137`, `IGD-DEC-138`, `IGD-OQ-093`).
-**`BE-IGD-049` sudah diimplementasikan (21 September 2026 malam, build lulus); `BE-IGD-050` ✅ sudah diimplementasikan
-(21 September 2026 malam, tiga berkas source dan kontrak `0.10.0`); build dan uji API S1–S7 `PASS` menurut pemilik.** Keputusan pemilik untuk `BE-IGD-050`: mekanisme lapis A,
+**`BE-IGD-049` ✅ dan `BE-IGD-050` ✅ — keduanya selesai atas penilaian pemilik (`BE-IGD-049` uji API S2–S5 lulus 22 September 2026;
+`BE-IGD-050` build dan uji API S1–S7 lulus 21 September 2026 malam). Source dan dokumen sudah di-commit pemilik sebagai `3ebc4110`.** Keputusan pemilik untuk `BE-IGD-050`: mekanisme lapis A,
 hak akses `EmergencyVisit : Create`, dan `fail-open` pada `FE-IGD-034`.
 
 ```mermaid
@@ -1616,7 +1616,7 @@ flowchart LR
         BEIGD034["✅ BE-IGD-034<br/>Koreksi dan pembalikan"]:::luar
     end
 
-    BEIGD049["🟡 BE-IGD-049<br/>Nama pelaku pada event kepergian"]:::sebagian
+    BEIGD049["✅ BE-IGD-049<br/>Nama pelaku pada event kepergian"]:::selesai
     BEIGD050["✅ BE-IGD-050<br/>Pra-cek episode ganda sebelum encounter"]:::selesai
 
     BEIGD033 --> BEIGD049
@@ -1635,14 +1635,14 @@ Kedua task **tidak saling menunggu** dan boleh paralel. Satu-satunya titik temu 
 saat task itu dikerjakan** (rencana `0.9.0` untuk task yang lebih dulu, `0.10.0` untuk yang berikutnya).
 `IGD-OQ-093` (jaminan sisi server) **tidak menahan** salah satunya.
 
-**Sisi frontend.** `FE-IGD-017` 🟡 dan `FE-IGD-034` 🟡 sudah diimplementasikan (21 September 2026) sesudah `BE-IGD-049` dan `BE-IGD-050`; build dan uji layar keduanya milik pemilik.
+**Sisi frontend.** `FE-IGD-017` ✅ dan `FE-IGD-034` ✅ — keduanya selesai atas penilaian pemilik (build dan uji layar dilaporkan lulus), sesudah `BE-IGD-049` dan `BE-IGD-050`.
 Lihat `frontend-roadmap.md` bagian R3.11.
 
-### 🟡 `BE-IGD-049` — Nama pelaku pada event kepergian
+### ✅ `BE-IGD-049` — Nama pelaku pada event kepergian
 
 | Field | Isi |
 | --- | --- |
-| **Status** | 🟡 **SEBAGIAN — 21 September 2026 (malam).** Keputusan `IGD-DEC-137` **`approved`**; go-ahead implementasi dari pemilik. **Implementation Complete** — tiga berkas source (`EmergencyDepartureDtos.cs` +13, `EmergencyDepartureService.cs` +85, `EmergencyDepartureController.cs` 14 baris), kontrak `0.9.0` bagian `2.4`. **Build Verified**: `dotnet build -p:RunAnalyzers=false` → `0 Error(s)`, `207 Warning(s)` (sama dengan baseline), 4 menit 51 detik, nol warning pada berkas yang diubah. Acceptance 2, 4, 6, 7, 8, 9 ✅; **1 terbukti runtime hanya untuk `GET` daftar** (layar `FE-IGD-017`, `recordedByName = SuperAdmin`, 21 September 2026 larut malam); **`amend`/`reverse`, 3, dan 5 terpetakan ke source tetapi belum terbukti runtime** — uji API S2–S5 dan log SQL milik pemilik (laporan bagian 5.1). Catatan: `DisplayName` bawaan `""` sehingga nilai kosong dilewati — laporan 3.3. Syarat pemilik untuk membuka `FE-IGD-017` (*kontrak selesai dan build verified*) **terpenuhi**. Tanpa UAT. [Laporan](../task/report/backend/BE-IGD-049.md) |
+| **Status** | ✅ **22 September 2026 — atas penilaian pemilik.** Uji API **S2–S5 dijalankan pemilik dan dilaporkan lulus** (`amend`, `reverse`, pelaku tidak ada, satu kueri), melengkapi acceptance 1, 3, dan 5; badan respons dan log SQL **tidak dilampirkan**, sehingga hitungan kueri tidak tercatat sebagai angka. Agent tidak mengamati uji itu. *Riwayat penilaian 21 September 2026 (malam):* 🟡 **SEBAGIAN.** Keputusan `IGD-DEC-137` **`approved`**; go-ahead implementasi dari pemilik. **Implementation Complete** — tiga berkas source (`EmergencyDepartureDtos.cs` +13, `EmergencyDepartureService.cs` +85, `EmergencyDepartureController.cs` 14 baris), kontrak `0.9.0` bagian `2.4`. **Build Verified**: `dotnet build -p:RunAnalyzers=false` → `0 Error(s)`, `207 Warning(s)` (sama dengan baseline), 4 menit 51 detik, nol warning pada berkas yang diubah. Acceptance 2, 4, 6, 7, 8, 9 ✅; **1 terbukti runtime hanya untuk `GET` daftar** (layar `FE-IGD-017`, `recordedByName = SuperAdmin`, 21 September 2026 larut malam); **`amend`/`reverse`, 3, dan 5 terpetakan ke source tetapi belum terbukti runtime** — uji API S2–S5 dan log SQL milik pemilik (laporan bagian 5.1). Catatan: `DisplayName` bawaan `""` sehingga nilai kosong dilewati — laporan 3.3. Syarat pemilik untuk membuka `FE-IGD-017` (*kontrak selesai dan build verified*) **terpenuhi**. Tanpa UAT. [Laporan](../task/report/backend/BE-IGD-049.md) |
 | **Outcome** | Petugas yang membuka riwayat kejadian kepergian pasien membaca **nama** pencatat dan penyetuju, bukan deretan GUID |
 | **Slice** | `IGD-S05` · `EPIC IGD-06` · `MVP-4` |
 | **Requirement** | `FR-IGD-036`…`043` — melanjutkan kriteria 1 `FE-IGD-017` |

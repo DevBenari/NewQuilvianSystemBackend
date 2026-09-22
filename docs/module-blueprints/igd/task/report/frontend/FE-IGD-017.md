@@ -16,10 +16,10 @@
 | Task mode | `FRONTEND` dengan wewenang laporan lintas repository yang sempit |
 | Target tulis | `QuilvianSystemFrontendDev` (source dan test); laporan ini dan tautan bukti pada roadmap/traceability di `NewQuilvianSystemBackend` |
 | Model | Claude Sonnet 5 |
-| Commit frontend saat dikerjakan | `198d56d9e` pada branch `RizkiV2` (bersih, sinkron dengan origin sebelum task) — **perubahan task ini belum di-commit** |
+| Commit frontend saat dikerjakan | `198d56d9e` pada branch `RizkiV2` (bersih, sinkron dengan origin sebelum task). **Kemudian di-commit pemilik sebagai `c941012ac`** ("melanjutkan asigment pasien", 21 September 2026 16:01), bersama berkas `FE-IGD-034`. **Belum di-push** — `RizkiV2` `ahead 1` terhadap `origin/RizkiV2` pada 22 September 2026 (diperiksa agent) |
 | Commit backend yang dijadikan rujukan | `267b56a0` pada branch `rizkiG`; source `BE-IGD-049` masih di working tree, belum di-commit |
 | Tanggal | 21 September 2026 (larut malam) |
-| Status | 🟡 **Implementation Complete.** Kolom *Pelaku* dan *Penyetuju pembalikan* kini membaca nama dari backend, bukan GUID. `eslint` 0 error, 5 unit test baru lulus, seluruh suite 1415 dari 1424 lulus (9 gagal = sudah ada sebelumnya, semuanya Rawat Inap). **Uji layar pemilik 21 September 2026 (larut malam) LULUS**: kolom *Pelaku* menampilkan `SuperAdmin` pada ketiga kejadian, bukan GUID (bagian 6.1). **`npm run build` untuk revisi ini tidak dilaporkan** — satu-satunya butir tersisa. UAT belum dan tidak diklaim |
+| Status | ✅ **Selesai — 22 September 2026, atas penilaian pemilik.** Kolom *Pelaku* dan *Penyetuju pembalikan* membaca nama dari backend, bukan GUID. `eslint` 0 error, 5 unit test baru lulus, seluruh suite 1415 dari 1424 lulus (9 gagal = sudah ada sebelumnya, semuanya Rawat Inap). **Uji layar pemilik 21 September 2026 (larut malam) LULUS**: kolom *Pelaku* menampilkan `SuperAdmin` pada ketiga kejadian, bukan GUID (bagian 6.1). **`npm run build` dinyatakan lulus oleh pemilik** (22 September 2026); artefak `.next` 21 September 16:03 dibangun dari commit `c941012ac` yang memuat kedua berkas task ini — diperiksa agent. UAT belum dan tidak diklaim |
 
 **UI GATE: 2 elemen — REUSE 2, EXTEND 0, COMPOSE 0, WRAP 0, NEW 0** (bagian 3.3).
 
@@ -131,7 +131,7 @@ Request, route, dan hak akses **tidak berubah**.
 | `npm run test:unit` (seluruh suite) | 1424 test: **1415 lulus, 9 gagal** | `EXISTING / ENVIRONMENT ISSUE` | Sembilan yang gagal identik dengan sebelum task ini: delapan `FE-RWI-042`/`043`/`044` dan satu `accounting-reconciliation` (menu rute Rawat Inap). Nol rujukan ke berkas yang diubah. Total naik 1419 → 1424 = lima test baru |
 | Grep anti-regresi checklist UI, 9 baris ditambahkan | Warna literal 0, typography 0, `<button` mentah 0, `<table` 0, `fw-`/`fs-` 0, `!important` 0, inline style 0; berkas CSS berubah 0 | `PASS` | Keluaran perintah |
 | Tampilan nama pada layar dengan backend yang memuat `BE-IGD-049` | *Pelaku* menampilkan **`SuperAdmin`** pada ketiga kejadian `DEP-260921064559-9B2DB7`; *Penyetuju pembalikan* `-` | `PASS` | Tangkapan layar pemilik, 21 September 2026 (larut malam) — bagian 6.1 |
-| `npm run build` | Tidak dijalankan | `NOT RUN` | Milik pemilik |
+| `npm run build` | Dijalankan **pemilik**; dinyatakan lulus (22 September 2026) | `PASS` (pernyataan pemilik) | Keluaran build **tidak dilampirkan**. Jejak yang diperiksa agent: `.next/BUILD_ID` dan `.next/standalone/server.js` berjam 21 September 16:03, lebih baru dari commit `c941012ac` (16:01) yang memuat kedua berkas task ini |
 
 Uji manual: `NOT FEASIBLE` oleh agent (tidak ada sesi login; uji layar berjalan pada backend milik pemilik dan menulis ke basis data
 yang dilarang bagi agent); **`REQUIRED`** oleh pemilik.
@@ -168,7 +168,10 @@ di mana pun; kolom *Terjadi* dan *Dicatat* tidak berubah. **Tidak dibuktikan:** 
 | 2. Baris yang dikoreksi tetap terlihat, ditandai tidak berlaku | Terpenuhi (tidak berubah) | Badge "Tidak berlaku"; uji 5 menjaga kolom lain tetap |
 | 3. Waktu sebenarnya di masa depan ditolak di layar | Terpenuhi (tidak berubah) | `emergency-assessment-transfer-tab.jsx` — logika koreksi tidak disentuh |
 
-**Definition of Done.** Laporan tracked ada; roadmap, traceability, dan `MODULE-STATUS.md` diperbarui. **Belum:** `npm run build`,
+**Definition of Done.** Terpenuhi. Laporan tracked ada; roadmap, traceability, dan `MODULE-STATUS.md` diperbarui. `npm run build`
+dinyatakan lulus pemilik 22 September 2026 (keluaran tidak dilampirkan), sehingga satu-satunya butir penahan ✅ tertutup.
+
+*Riwayat penilaian sebelumnya (21 September 2026).* **Belum:** `npm run build`,
 tersisa **satu butir**: `npm run build` untuk revisi ini tidak dilaporkan pemilik. Uji layar kriteria 1 sudah **lulus** (6.1). Status tetap **🟡** hanya karena butir build itu, mengikuti standar yang dipakai pada `FE-IGD-027`; bila pemilik menyatakan build lulus atau menerima ✅ tanpa build terpisah, task ini ✅.
 
 ---
@@ -182,5 +185,5 @@ tersisa **satu butir**: `npm run build` untuk revisi ini tidak dilaporkan pemili
 | Dependency backend | `BE-IGD-049` 🟡 — uji API S1–S5 milik pemilik (laporan `BE-IGD-049` bagian 5.1) |
 | Perubahan sampingan | `NONE`. Berkas sementara untuk kontrol negatif (salinan `HEAD`) dihapus segera setelah dipakai |
 | Interupsi | `NONE` |
-| Status Git | Frontend: `M` satu berkas source dan `??` satu berkas test, branch `RizkiV2` di atas `198d56d9e`. Tidak ada stage atau commit |
-| Langkah berikutnya | (1) ~~Bangun ulang + restart backend, buka riwayat `DEP-260921064559-9B2DB7`~~ — **lulus** (6.1). (2) Pemilik menyatakan `npm run build` lulus atau menerima ✅ tanpa build terpisah → `FE-IGD-017` ✅. (3) Uji API `BE-IGD-049` S2–S5 tetap milik pemilik |
+| Status Git | **Diperbarui 22 September 2026:** kedua berkas sudah di-commit pemilik sebagai `c941012ac`; working tree frontend bersih. **Commit itu belum di-push** — `RizkiV2` `ahead 1` terhadap `origin/RizkiV2`. Agent tidak melakukan stage, commit, maupun push |
+| Langkah berikutnya | (1) ~~Bangun ulang + restart backend, buka riwayat `DEP-260921064559-9B2DB7`~~ — **lulus** (6.1). (2) ~~Pemilik menyatakan `npm run build` lulus~~ — **dinyatakan 22 September 2026** → `FE-IGD-017` ✅. (3) ~~Uji API `BE-IGD-049` S2–S5~~ — dinyatakan lulus pemilik 22 September 2026 ([laporan `BE-IGD-049`](../backend/BE-IGD-049.md)). (4) **Pemilik: push `c941012ac`** |
