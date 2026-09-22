@@ -284,6 +284,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
                         result,
                         "Order laboratorium berhasil dibuat."));
             }
+            catch (UnauthorizedAccessException ex)
+            {
+                // BE-RWI-104 / VAL-DOK-47: dokter pemberi instruksi tidak bertugas atas pasien.
+                return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(
+                    StatusCodes.Status403Forbidden,
+                    ex.Message));
+            }
             catch (KeyNotFoundException ex)
             {
                 return NotFound(ApiResponse<object>.Fail(
@@ -295,6 +302,77 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
                 return BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
                     ex.Message));
+            }
+        }
+
+        /// <summary>
+        /// Dokter pemberi instruksi memverifikasi pesanan laboratorium rawat inap yang dibuat perawat —
+        /// <c>BE-RWI-104</c>, api-contract 0.6.0 bagian 12.12.
+        /// </summary>
+        /// <remarks>
+        /// Hak akses baru <c>LabOrder : Verify</c>, disetujui pemilik modul lewat <c>RWI-DEC-153</c>.
+        /// Verb <c>PUT</c> mengikuti konvensi transisi yang sudah dipakai controller ini. Jawaban:
+        /// <c>200</c> terverifikasi; <c>403</c> bukan pemberi instruksi; <c>404</c> pesanan tidak ada;
+        /// <c>409</c> sudah diverifikasi atau tidak memerlukan verifikasi.
+        /// </remarks>
+        [HttpPut("{id:guid}/verify-instruction")]
+        [ProducesResponseType(typeof(ApiResponse<LabOrderDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [AccessAction("Verify", "Verify Lab Order Instruction", Description = "Dokter pemberi instruksi memverifikasi pesanan laboratorium yang dibuat perawat", AccessType = AccessTypes.Update, SortOrder = 6)]
+        [AccessPermission("LabOrder", "Verify")]
+        public async Task<IActionResult> VerifyInstruction(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var result = await _labOrderService.VerifyInstructionAsync(id, cancellationToken);
+
+                return Ok(ApiResponse<LabOrderDetailResponse>.Ok(
+                    result,
+                    "Instruksi order laboratorium berhasil diverifikasi."));
+            }
+            catch (KeyNotFoundException ex)
+            {
+                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, ex.Message));
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(StatusCodes.Status403Forbidden, ex.Message));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, ex.Message));
+            }
+        }
+
+        /// <summary>
+        /// Pesanan laboratorium yang menunggu verifikasi dokter login — <c>BE-RWI-104</c>.
+        /// </summary>
+        [HttpGet("instruction-verification-worklist")]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<LabOrderInstructionVerificationItemResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [AccessAction("Read", "Read Lab Order", Description = "Melihat pesanan laboratorium yang menunggu verifikasi dokter login", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabOrder", "Read")]
+        public async Task<IActionResult> GetInstructionVerificationWorklist(
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var result = await _labOrderService.GetInstructionVerificationWorklistAsync(
+                    pageNumber, pageSize, cancellationToken);
+
+                return Ok(ApiResponse<PagedResult<LabOrderInstructionVerificationItemResponse>>.Ok(
+                    result,
+                    "Daftar tunggu verifikasi instruksi laboratorium berhasil diambil."));
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(StatusCodes.Status403Forbidden, ex.Message));
             }
         }
 

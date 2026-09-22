@@ -3,8 +3,8 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| Assessment revision | **`1.6`** |
-| Assessment date | 21 Agustus 2026 (`Asia/Jakarta`); focused reassessment Dokter Rawat Inap dan Keperawatan, 2 September 2026; focused reassessment penyelarasan `PRD-RWI-V2-001`, 15 September 2026; **penutupan keputusan `RLN-PH-04`, 15 September 2026** |
+| Assessment revision | **`1.7`** |
+| Assessment date | 21 Agustus 2026 (`Asia/Jakarta`); focused reassessment Dokter Rawat Inap dan Keperawatan, 2 September 2026; focused reassessment penyelarasan `PRD-RWI-V2-001`, 15 September 2026; penutupan keputusan `RLN-PH-04`, 15 September 2026; **evaluasi gerbang kelengkapan requirement Integrasi Rawat Inap ↔ Billing (`INP-S22`), 17 September 2026** |
 | Assessment status | `CURRENT` |
 | Koreksi `1.1` | Tiga keterangan yang menyatakan `DEC-INP-001` masih terbuka diperbaiki; kesiapan belum dinilai ulang pada revision itu |
 | Focused reassessment `1.2` | Menilai ulang `INP-S05` bagian dokter, `INP-S06`, serta `CAP-015` berdasarkan decision log revision `7`, PRD final, dan capability map revision `1.3`. Hasil kanonisnya ada pada bagian 11 |
@@ -12,15 +12,16 @@
 | Focused reassessment `1.4` | Menilai **lima kemampuan Keperawatan** yang tidak pernah punya slice sendiri: `CAP-012`, `CAP-013`, `CAP-014`, `CAP-016`, dan `CAP-027`. Slice baru `INP-S16`. Hasilnya pada bagian 13 |
 | Focused reassessment `1.5` | Fase `RLN-PH-04`: kemampuan baru dan yatim dari `PRD-RWI-V2-001`. Slice baru `INP-S17` s.d. `INP-S21`. Decision ID baru `DEC-INP-010` s.d. `DEC-INP-012`. Menutup temuan manifest `RLN-04` dan `RLN-07`. Hasilnya pada bagian 14 |
 | Decision closure `1.6` | Menyerap Amendment Pass penutupan gate `RLN-PH-04`: `RWI-DEC-145` s.d. `RWI-DEC-149` dan `RWI-AC-219` s.d. `RWI-AC-231`. `DEC-INP-010` dan `DEC-INP-011` **`CLOSED`**, `DEC-INP-012` **`DEFERRED`**. `INP-S17` naik ke `READY_FOR_DOMAIN_DESIGN`; `INP-S19` `READY_FOR_DOMAIN_DESIGN` terbatas pada sliding scale, handover shift dan transfusi `DEFERRED`. Hasil kanonis terbaru untuk `INP-S17` dan `INP-S19` ada pada bagian 15 |
+| **Focused reassessment `1.7`** | **Evaluasi gerbang kelengkapan requirement untuk integrasi Rawat Inap ↔ Kasir / Billing (slice `INP-S22`) berbasis `PRD Integrasi-Rawat-Inap-dengan-Billing.md`, keputusan wawancara `RWI-DEC-156` s.d. `RWI-DEC-161` dan kriteria penerimaan `RWI-AC-236` s.d. `RWI-AC-241` pada `00-interview-decisions.md` revision 25, serta audit kemampuan pada `01-existing-capability-map.md` revision 1.5 Bagian 18. Hasil kanonisnya ada pada Bagian 16** |
 | **Overall readiness** | **`PARTIALLY_READY`** |
-| Ready destination | `hospital-domain-architect` atau langsung `design-business-module`. Ketujuh capability Dokter Rawat Inap siap sesuai bagian 12; empat kemampuan Keperawatan aktif siap sesuai bagian 13; **slice penyelarasan V2 `INP-S17`, `S18`, `S19` (sliding scale), `S20`, dan `S21` siap sesuai bagian 14 dan 15; handover shift dan transfusi `DEFERRED`** |
-| Business evidence | **Bagian 15:** [`00-interview-decisions.md`](../00-interview-decisions.md) revision `21`, SHA-256 `1c55c80a50aee11ef005ccde6315c2935cbe21504e8596798b89bf7f2d45102a`, dihitung **setelah** sinkronisasi register oleh gate ini (catatan blocker, satu baris Gate Sebelum Produksi, satu baris Riwayat Pass). Isi keputusannya sama dengan hash sebelum sinkronisasi `1eaaa7ab…aa168ad`. **Bagian 14:** [`00-interview-decisions.md`](../00-interview-decisions.md) revision `20`, SHA-256 `b278013547dfa3c8f1bfa21fdd442cdaa416a8015939f1628794ab7e03db0fb7`. Sebelumnya revision `11`, SHA-256 `f34b7aef1352d4c5a817ffeaf988c6eed514d668d3d92051b78806bfc09e635c`. Revision `8` SHA-256 `065b5cd5…` dipakai pada penilaian `1.0` s.d. `1.3` |
-| Capability evidence | **Bagian 14 dan 15:** [`01-existing-capability-map.md`](../01-existing-capability-map.md) revision `1.4`, SHA-256 `337a10f09d6e91b06395405098bad09623452de062e10a720a637bd22daa543a`. Sebelumnya revision `1.3`, SHA-256 `0155b345abea61f1b69e6adaf48ee91056b5efaf7fa672ea6300e0546bf4db03` |
-| Primary business source | **Bagian 14 dan 15:** `PRD-RWI-V2-001` v`2.0` SHA-256 `2b3b2f29c9e547f448f186d7ac990e33dc3bdede8043a9b4bebfad6fbe0a679f` dan `PRD-to-MVP-Rawat-Inap-V2` v`1.0.0` SHA-256 `9804b9680580f6b15a5008b9bcbb13a419fef077ef6680d732a6e2135b3ce141`, dibaca berlapis sesuai `RWI-DEC-110`. Baseline: `docs/Modul-RS/Rawat-Inap/PRD_Final_Rawat_Inap_100_Persen.md`, `PRD-RWI-FINAL-001` v1.0.0, SHA-256 `fb5e75d7a1ffffdaddf084a90ec417b00b893b2be23aac0a98ddef5d7bbddc55` |
+| Ready destination | `hospital-domain-architect` atau langsung `design-business-module`. Ketujuh capability Dokter Rawat Inap siap sesuai bagian 12; empat kemampuan Keperawatan aktif siap sesuai bagian 13; slice penyelarasan V2 `INP-S17`, `S18`, `S19` (sliding scale), `S20`, dan `S21` siap sesuai bagian 14 dan 15; **slice integrasi Rawat Inap ↔ Billing `INP-S22` siap untuk domain design sesuai bagian 16**; handover shift dan transfusi `DEFERRED` |
+| Business evidence | **Bagian 16:** [`00-interview-decisions.md`](../00-interview-decisions.md) revision `25` (Pass A — Muhammad Hamzah, 17 September 2026), memuat keputusan `RWI-DEC-156` s.d. `RWI-DEC-161` dan kriteria penerimaan `RWI-AC-236` s.d. `RWI-AC-241`. **Bagian 15:** [`00-interview-decisions.md`](../00-interview-decisions.md) revision `21`, SHA-256 `1c55c80a50aee11ef005ccde6315c2935cbe21504e8596798b89bf7f2d45102a`. **Bagian 14:** [`00-interview-decisions.md`](../00-interview-decisions.md) revision `20`, SHA-256 `b278013547dfa3c8f1bfa21fdd442cdaa416a8015939f1628794ab7e03db0fb7`. Sebelumnya revision `11` dan revision `8` |
+| Capability evidence | **Bagian 16:** [`01-existing-capability-map.md`](../01-existing-capability-map.md) revision `1.5` Bagian 18 (Audit Kemampuan Integrasi Rawat Inap ↔ Billing, 17 September 2026). **Bagian 14 dan 15:** [`01-existing-capability-map.md`](../01-existing-capability-map.md) revision `1.4`. Sebelumnya revision `1.3` |
+| Primary business source | **Bagian 16:** `docs/Modul-RS/Rawat-Inap-To-Billing/PRD Integrasi-Rawat-Inap-dengan-Billing.md` (2.282 baris). **Bagian 14 dan 15:** `PRD-RWI-V2-001` v`2.0` dan `PRD-to-MVP-Rawat-Inap-V2` v`1.0.0`. Baseline: `docs/Modul-RS/Rawat-Inap/PRD_Final_Rawat_Inap_100_Persen.md` |
 | Baseline rujukan | `indonesia-hospital-domain-reference`, berkas `references/inpatient.md`, `Reference coverage: PARTIAL`, seluruh observasi berstatus `REFERENCE_ONLY` |
-| Backend snapshot | **Bagian 14: `df3679c0d5b2f08106702153eb242d3a6cb2929b`** (branch `MHamzah`); bagian 15 tidak membaca source ulang karena seluruh kemampuan yang dinilainya berstatus `Missing` pada capability map; sebelumnya `93b3227c431401d8f586dec4e1fb25fbf41766e3` |
-| Frontend snapshot | **Bagian 14: `147355f505e875148b8416866ada6cf8b2f1ad99`** (branch `HamzahV2`), pembanding V1 `13c3a96b`; sebelumnya `863f24b0d1617069310c04e5770b47fd1b518b5b` |
-| Write boundary | Dokumen evidence ini dan sinkronisasi metadata/hash blueprint. Revision `1.6` juga menyinkronkan register pemicunya: catatan blocker, tabel Gate Sebelum Produksi, dan Riwayat Pass pada `00-interview-decisions.md`, serta tabel fase dan baris artefak pada `blueprint-manifest.md`. Tidak ada source aplikasi, migration, entity, endpoint, UI, task, database, atau ClickUp yang diubah |
+| Backend snapshot | **Bagian 16: `fe7e60d4b2ef1eecffa72cef4f4fd33f9dbe0344`** (branch `MHamzah`); Bagian 14: `df3679c0d5b2f08106702153eb242d3a6cb2929b`; sebelumnya `93b3227c431401d8f586dec4e1fb25fbf41766e3` |
+| Frontend snapshot | **Bagian 16: `2c00758832f834cff0288bef4f0d2fcf1161fb52`** (branch `HamzahV2`); Bagian 14: `147355f505e875148b8416866ada6cf8b2f1ad99`; sebelumnya `863f24b0d1617069310c04e5770b47fd1b518b5b` |
+| Write boundary | Dokumen evidence ini dan sinkronisasi metadata/hash blueprint. Tidak ada source aplikasi, migration, entity, endpoint, UI, task, database, atau ClickUp yang diubah |
 
 > **Apa gunanya dokumen ini.** Dokumen ini tidak merancang apa pun. Tugasnya satu: memeriksa
 > apakah kebutuhan bisnis Rawat Inap sudah cukup lengkap dan cukup berbukti untuk mulai dirancang
@@ -42,7 +43,7 @@
 | Modul | `InPatientManagement` / Rawat Inap, prefix `Inp`, lifecycle registry `PLANNED` |
 | Batas scope bisnis | Satu episode perawatan pasien menginap, dari pasien diterima masuk sampai episode ditutup dan tempat tidur kembali kosong, sesuai `RWI-DEC-004` |
 
-### 1.2 Lima belas slice yang dinilai
+### 1.2 Slice yang dinilai
 
 Penilaian dilakukan **per slice**, bukan per modul. Ini penting: satu slice yang terhambat tidak
 boleh menghentikan slice lain yang sebenarnya sudah siap.
@@ -64,10 +65,18 @@ boleh menghentikan slice lain yang sebenarnya sudah siap.
 | `INP-S13` | Riwayat status, audit, dan daftar pantau kepatuhan | NFR-003 | `RWI-RULE-023`, `RWI-RULE-031` |
 | `INP-S14` | Pengaturan yang dapat diubah admin | Pendukung | `RWI-RULE-034` |
 | `INP-S15` | Interoperabilitas SATUSEHAT dan pelaporan | **Belum ada di daftar kemampuan** | **Belum ada aturannya** |
-| **`INP-S16`** | **Keperawatan rawat inap** — ditambahkan revision `1.4` | CAP-012, CAP-013, CAP-014, CAP-016, CAP-027 | `RWI-RULE-021`, `RWI-RULE-026`, `RWI-RULE-033` |
+| `INP-S16` | Keperawatan rawat inap (revision `1.4`) | CAP-012, CAP-013, CAP-014, CAP-016, CAP-027 | `RWI-RULE-021`, `RWI-RULE-026`, `RWI-RULE-033` |
+| `INP-S17` | Pengkajian Keperawatan Lanjutan & Pengawasan Harian (revision `1.5` & `1.6`) | V2-CAP-01 s.d. 06, 08, RLN3-CAP-15 | `RWI-DEC-110` s.d. `113`, `149` |
+| `INP-S18` | MAR & Rekonsiliasi Obat Admisi (revision `1.5`) | V2-CAP-07, V2-CAP-09 | `RWI-DEC-114` s.d. `122` |
+| `INP-S19` | Sliding Scale Insulin, Handover Shift, Transfusi Darah (revision `1.5` & `1.6`) | V2-CAP-10, V2-CAP-11, V2-CAP-12 | `RWI-DEC-123`, `145` s.d. `148` |
+| `INP-S20` | Integrasi Enam Layanan Penunjang Diagnostik V2 (revision `1.5`) | RLN3-CAP-01 s.d. 06 | `RWI-DEC-124` s.d. `133` |
+| `INP-S21` | CPPT & Ruang Kerja Dokter Rawat Inap V2 (revision `1.5`) | RLN3-CAP-07, 08, 10 s.d. 14 | `RWI-DEC-134` s.d. `144` |
+| **`INP-S22`** | **Integrasi Rawat Inap ↔ Kasir / Billing (revision `1.7`)** | `INT-CAP-01` s.d. `06` (`RANAP-INT-001` s.d. `006`) | `RWI-DEC-156` s.d. `RWI-DEC-161`, `RWI-AC-236` s.d. `RWI-AC-241` |
 
 `INP-S15` **tidak** berasal dari dokumen keputusan. Slice ini muncul dari pembandingan dengan
-baseline rumah sakit Indonesia, dan penjelasannya ada di bagian 4.11.
+baseline rumah sakit Indonesia, dan penjelasannya ada di bagian 4.11. Slice `INP-S22` ditambahkan
+pada assessment revision `1.7` untuk mengevaluasi kelengkapan integrasi operasional dan keuangan
+antara Modul Rawat Inap (`InPatientManagement`) dan Modul Kasir/Billing (`BillingManagement`).
 
 ### 1.3 Yang sengaja tidak dinilai
 
@@ -1678,3 +1687,181 @@ amandemen `keperawatan` dan satu gelombang rilis. Urutan pembangunannya ditetapk
 | `next_owner` | `design-business-module` untuk amandemen `dokter-rawat-inap` dan `keperawatan`, fase `RLN-PH-06` |
 | `required_boundary` | Dokumentasi keperawatan dan dokter, termasuk entri intake dan gula darah, tetap milik `ClinicalManagement`. MAR, rekonsiliasi, template, order, dan pelaksanaan sliding scale milik `PharmacyManagement`. Desain **MUST NOT**: membuat tabel sliding scale di `ClinicalManagement` atau `InPatientManagement` (`RWI-AC-225`); menyimpan salinan GDS pada pelaksanaan sliding scale (`RWI-DEC-148` (2)); menambah isian volume pada MAR (`RWI-DEC-149` (4)); membuat menu, tabel, atau endpoint handover shift dan transfusi (`RWI-AC-221`); memakai hasil laboratorium sebagai sumber dosis (`RWI-AC-228`) |
 | `expected_output` | Amandemen blueprint kedua sub-modul revision `7`: sliding scale dan intake obat/darah dirancang penuh bersama MAR, termasuk dua kontrak rujukan lintas modul dan baris kepemilikan `PharmacyManagement` pada `02-module-map.md`; handover shift dan transfusi ditandai `DEFERRED`; `G-22` dan `G-26` diajukan untuk dikonfirmasi saat approval; `keperawatan/04-prd-to-mvp.md` bagian 21.6 diperbarui |
+
+---
+
+## 16. Evaluasi Gerbang Kelengkapan Requirement — Integrasi Rawat Inap ↔ Kasir / Billing (`INP-S22`)
+
+Evaluasi ini dilakukan pada **17 September 2026** menyusul penuntasan wawancara keputusan bisnis
+(Pass A — Muhammad Hamzah) dan audit kemampuan eksisting. Tujuannya adalah memastikan bahwa seluruh
+dimensi requirement untuk integrasi operasional dan keuangan antara Rawat Inap (`InPatientManagement`)
+dan Kasir/Billing (`BillingManagement`) telah lengkap, berbukti, bebas dari kontradiksi bisnis, dan siap
+melangkah ke tahap perancangan domain arsitektur (`hospital-domain-architect`) serta blueprint modul
+(`design-business-module`).
+
+### 16.1 Scope, Identitas Slice, dan Bukti Acuan
+
+| Atribut | Rincian |
+|---|---|
+| **Slice ID** | **`INP-S22`** |
+| **Nama Slice** | **Integrasi Rawat Inap ↔ Kasir / Billing (Inpatient to Billing Integration)** |
+| **Domain Modul** | `InPatientManagement` (Rawat Inap) bertukar data dengan `BillingManagement` (Kasir & Tagihan Rumah Sakit) |
+| **Kemampuan yang Dicakup** | 6 Kemampuan Integrasi Kanonik: `INT-CAP-01` s.d. `INT-CAP-06` (alias `RANAP-INT-001` s.d. `006` pada PRD Integrasi) |
+| **Dokumen Sumber Bisnis Primer** | `docs/Modul-RS/Rawat-Inap-To-Billing/PRD Integrasi-Rawat-Inap-dengan-Billing.md` (2.282 baris, v1.0.0) |
+| **Bukti Keputusan Bisnis Terkunci** | [`00-interview-decisions.md`](../00-interview-decisions.md) revision `25`, memuat keputusan `RWI-DEC-156` s.d. `RWI-DEC-161` dan kriteria penerimaan `RWI-AC-236` s.d. `RWI-AC-241` |
+| **Bukti Kemampuan Eksisting** | [`01-existing-capability-map.md`](../01-existing-capability-map.md) revision `1.5` Bagian 18 (`INT-CAP-01` Extend, `INT-CAP-02` Extend, `INT-CAP-03` Missing, `INT-CAP-04` Extend, `INT-CAP-05` Repair & Extend, `INT-CAP-06` Missing & Reuse with Adapter) |
+| **Penanggung Jawab / Domain Owner** | Muhammad Hamzah (Product & Domain Owner Modul Rawat Inap) |
+
+---
+
+### 16.2 Evaluasi 18 Dimensi Kelengkapan Minimum
+
+Sesuai piagam rekayasa Quilvian, setiap slice kemampuan wajib dievaluasi terhadap 18 dimensi
+kelengkapan sebelum arsitektur target disusun.
+
+| No | Dimensi Kelengkapan | Status | Evaluasi Bukti & Penjelasan Detail |
+|---:|---|:---:|---|
+| 1 | **Tujuan Bisnis** | `CONFIRMED` | Menjamin sinkronisasi otomatis dan nir-desinkronisasi antara status perawatan rawat inap pasien dengan tagihan di kasir rumah sakit. Mencegah kebocoran pendapatan (*revenue leakage*), sengketa jam sewa kamar (*room charge*), ketidaksesuaian kelas tarif saat mutasi pasien, serta mencegah pasien pulang tanpa pelunasan kasir (*billing clearance*). |
+| 2 | **Aktor & Pemangku Kepentingan** | `CONFIRMED` | Teridentifikasi dengan tegas: (1) **Staf Admisi Rawat Inap** (menerima pasien & penempatan awal); (2) **Perawat Bangsal / Kepala Ruangan** (konfirmasi penempatan bed fisik, pantau status pembayaran tanpa rupiah, konfirmasi kepulangan fisik); (3) **Staf Kasir / Billing** (verifikasi komponen biaya, terima pembayaran, terbitkan/cabut clearance); (4) **Supervisor Bangsal / Supervisor Kasir** (otorisasi mutasi/koreksi saat billing `OPEN`, supervisor override pemulangan saat darurat); (5) **Dokter DPJP** (memberi instruksi izin pulang klinis / `DischargeRequested`); (6) **Pasien / Penjamin** (pihak yang menyelesaikan administrasi); (7) **Sistem Otomasi / Worker** (outbox processor pengirim event). |
+| 3 | **Pemicu & Prasyarat (Triggers/Preconditions)** | `CONFIRMED` | **Prasyarat & Pemicu Terkunci:**<br>• *Sinkronisasi Tagihan:* Dipicu saat status admisi pasien mencapai status resmi `Admitted` (`RWI-DEC-156`). Pasien berstatus *Booking* atau *Draft* tidak boleh men-generate tagihan aktif.<br>• *Room Charge:* Dipicu sejak tempat tidur berstatus `Bed Occupied` secara fisik (`RWI-DEC-156`).<br>• *Koreksi/Mutasi:* Dipicu oleh aksi mutasi kamar atau koreksi admisi oleh Supervisor, dengan prasyarat status folio kasir masih `OPEN` (`RWI-DEC-157`).<br>• *Pelepasan Pasien:* Dipicu setelah adanya izin pulang DPJP (`DischargeRequested`) DAN clearance kasir (`PaymentCleared` / `ClearanceApproved`, `RWI-DEC-158`, `RWI-DEC-159`). |
+| 4 | **Alur Utama (Happy Path)** | `CONFIRMED` | Alur proses bisnis 6 tahap berjalan runtut:<br>1. *Admisi Masuk:* Pasien diterima di bangsal → Status `Admitted` → Rawat Inap menerbitkan event `ADMISSION_CONFIRMED` via Outbox → Billing membuat `BillingFolio` berstatus `OPEN`.<br>2. *Penempatan Bed & Charge:* Perawat konfirmasi `Bed Occupied` → Event `BED_OCCUPIED` dikirim → Billing mulai mencatat kalkulasi harian kamar.<br>3. *Pemantauan di Bangsal:* UI Rawat Inap menampilkan lencana tagihan operasional kasir (misal: "Tagihan Berjalan", "Menunggu Kasir") tanpa memuat angka rupiah (`RWI-DEC-160`).<br>4. *Instruksi Pulang:* DPJP menerbitkan `DischargeRequested` → Kasir menerima notifikasi untuk finalisasi biaya.<br>5. *Pelunasan Kasir:* Pasien melunasi tagihan → Kasir terbitkan `ClearanceApproved` → Event clearance masuk ke Rawat Inap → Tombol kepulangan fisik diaktifkan.<br>6. *Kepulangan Fisik Pasien:* Pasien meninggalkan ruangan secara nyata → Perawat klik `Pasien Pulang Fisik` (`PhysicallyLeftAt`) → Event `BED_RELEASED` terbit → Durasi hunian final dihitung (`OccupancyEndAt = PhysicallyLeftAt`, `RWI-DEC-159`) → Billing menutup tagihan (`CLOSED`). |
+| 5 | **Alur Alternatif & Exception** | `CONFIRMED` | Ditutup lengkap oleh keputusan wawancara:<br>• *Koreksi Kamar/Kelas saat OPEN:* Supervisor dapat mengoreksi data dengan alasan wajib; sistem membuat versi baru (tanpa hard-delete) dan menerbitkan event `OCCUPANCY_CORRECTED` (`RWI-DEC-157`).<br>• *Koreksi Kamar saat CLOSED/LOCKED:* Sistem menolak mutasi kamar langsung; wajib melalui proses un-finalizing di Kasir (`RWI-DEC-157`).<br>• *Pencabutan Clearance (Auto-Reblock):* Jika ada tagihan susulan (misal obat/lab darurat menit akhir) dan Kasir mencabut clearance (`ClearanceRevoked`), Rawat Inap seketika mengunci kembali tombol pelepasan pasien (*Auto-Reblock*, `RWI-DEC-158`).<br>• *Supervisor Override:* Jika terjadi kondisi kedaruratan klinis / rujukan kritis yang tidak boleh tertahan administrasi kasir, Supervisor Bangsal dapat melakukan override beralasan wajib (`RWI-DEC-158`, `RWI-DEC-015`).<br>• *Gangguan Jaringan / Downtime:* Event tersimpan aman di outbox lokal dan di-retry otomatis dengan exponential backoff (`RWI-DEC-161`). |
+| 6 | **Data Minimum** | `CONFIRMED` | Terdefinisi lengkap pada level payload integrasi:<br>• Entitas Admisi: `AdmissionId`, `PatientId`, `MedicalRecordNumber`, `AdmissionDateTime`, `AdmissionStatus`.<br>• Entitas Hunian Bed: `OccupancyId`, `BedId`, `BedCode`, `RoomId`, `RoomName`, `ClassCategory`, `ClassDailyRate`, `OccupancyStartAt`, `OccupancyEndAt`, `PhysicallyLeftAt`, `Version`, `ChangeReason`.<br>• Entitas Outbox: `OutboxMessageId`, `IdempotencyKey` (`SourceDomain:SourceType:SourceDetailId:Version`), `EventType`, `PayloadJson`, `CreatedAtUtc`, `Status`, `RetryCount`, `LastAttemptAtUtc`, `LastError`.<br>• Kontrak Status Kasir: `FolioId`, `FolioStatus`, `ClearanceStatus`, `BlockerReasons[]` (string informatif tanpa saldo). |
+| 7 | **Aturan Bisnis & Validasi** | `CONFIRMED` | Terkunci oleh 6 aturan utama:<br>• `RWI-RULE-INT-001`: Tidak ada tagihan aktif sebelum admisi `Admitted`.<br>• `RWI-RULE-INT-002`: Room charge dihitung murni sejak `Bed Occupied`.<br>• `RWI-RULE-INT-003`: Koreksi kamar hanya saat billing `OPEN`, otorisasi Supervisor, wajib mencatat alasan, immutable history.<br>• `RWI-RULE-INT-004`: Pelepasan fisik pasien dilarang tanpa clearance kasir aktif atau supervisor override.<br>• `RWI-RULE-INT-005`: Auto-reblock seketika saat clearance revoked.<br>• `RWI-RULE-INT-006`: `OccupancyEndAt` identik dengan `PhysicallyLeftAt`.<br>• `RWI-RULE-INT-007`: Layar bangsal tanpa nominal rupiah (`InpatientBilling:View` diperlukan untuk melihat rupiah).<br>• `RWI-RULE-INT-008`: Outbox idempoten dengan compound key unik. |
+| 8 | **Status & Perubahan Status (Lifecycle)** | `CONFIRMED` | Siklus hidup terdefinisi jelas di kedua modul:<br>• Siklus Admisi: `Draft` → `Admitted` → `Active` → `DischargeRequested` → `PaymentCleared` → `Discharged` → `Closed`.<br>• Siklus Hunian Bed: `Assigned` → `Occupied` → `Vacating` → `Released` (status koreksi: `Superseded`).<br>• Siklus Clearance Kasir: `None` → `Pending` → `Cleared` → (`Revoked` / `Overridden`) → `Finalized`.<br>• Siklus Outbox: `Pending` → `Processing` → `Published` / `Failed` (retry exponential backoff). |
+| 9 | **Peran & Otorisasi (Authorization)** | `CONFIRMED` | Pembagian wewenang kedap dan jelas:<br>• `InpatientAdmission:Write`: Membuat admisi dan penempatan kamar awal.<br>• `InpatientNurse:Write`: Konfirmasi bed occupied, request discharge, konfirmasi fisik pulang.<br>• `InpatientSupervisor:Override`: Koreksi kamar/kelas saat billing OPEN, supervisor override discharge saat status clearance revoked.<br>• `InpatientBilling:View`: Hak khusus melihat rincian angka rupiah tagihan rawat inap.<br>• `BillingStaff:Write`: Kasir pelunasan dan penerbitan/pencabutan clearance tagihan. |
+| 10 | **Dependency Antarmodul** | `CONFIRMED` | Teridentifikasi secara tegas:<br>• Modul `BillingManagement`: penyedia siklus hidup `BillingFolio`, kalkulasi room rate, clearance status, dan penutupan tagihan.<br>• Modul `BedManagement` / `MasterData`: penyedia master tempat tidur, kelas kamar, dan tarif acuan.<br>• Modul `MedicalRecordManagement`: sinkronisasi nomor rekam medis dan resume medis pemulangan.<br>• Modul `UserManagement`: otorisasi peran perawat, supervisor, dan staf kasir. |
+| 11 | **Integrasi Internal / Eksternal** | `CONFIRMED` | • Integrasi Internal: Asinkronus berbasis Transactional Outbox (`InpIntegrationOutbox`) untuk pengiriman event dari Rawat Inap ke Kasir/Billing, serta REST API internal terproteksi JWT untuk kueri status kasir secara langsung.<br>• Integrasi Eksternal: Tidak ada integrasi eksternal langsung pada slice `INP-S22`. Modul Billing bertanggung jawab atas jembatan BPJS/Klaim Eksternal. |
+| 12 | **Hasil Akhir (Outcome)** | `CONFIRMED` | Terwujudnya integrasi yang akurat, real-time, dan taat audit. Pasien pulang dengan administrasi beres, kamar langsung siap dibersihkan dan dialokasikan ke pasien baru, dan tidak terjadi kehilangan pendapatan sewa kamar bagi rumah sakit. |
+| 13 | **Pembatalan & Koreksi** | `CONFIRMED` | Mekanisme koreksi terdefinisi utuh: pembatalan admisi menerbitkan event pembatalan tagihan jika belum ada charge; koreksi kamar/waktu dilakukan melalui penambahan record versi baru (`Superseded`) dan penerbitan event `OCCUPANCY_CORRECTED` tanpa menghapus baris lama. |
+| 14 | **Audit & Histori** | `CONFIRMED` | Seluruh mutasi kamar, perubahan jam hunian, penerbitan clearance, pembatalan clearance, dan supervisor override wajib mencatat jejak audit immutable: `UserId`, `TimestampUtc`, `IpAddress`, `ActionType`, `PreviousValueJson`, `NewValueJson`, dan `Reason` (`RWI-AC-237`, `RWI-AC-238`). |
+| 15 | **Notifikasi & Sinyal Sistem** | `CONFIRMED` | Sinyal terkirim otomatis antar-staf: notifikasi visual ke bangsal saat clearance terbit atau dicabut; notifikasi ke kasir saat dokter menyetujui pemulangan (`DischargeRequested`) atau terjadi mutasi kamar pasien. |
+| 16 | **Dampak Billing & Biaya (Charge Impact)** | `CONFIRMED` | Menjadi inti fungsionalitas slice ini: penentuan trigger awal pembuatan invoice, akumulasi sewa kamar harian (*room charge*), perhitungan selisih kelas kamar, dan validasi pelunasan kasir. |
+| 17 | **Dampak Keselamatan Klinis** | `CONFIRMED` | Sangat terlindungi: Perawat bangsal terbebas dari sengketa uang dengan keluarga pasien karena UI tidak menampilkan angka rupiah (`RWI-DEC-160`). Mekanisme *Supervisor Override* menjamin pasien dalam ancaman klinis gawat/rujukan tidak tertahan di ruangan akibat kendala kasir (`RWI-DEC-158`, `RWI-DEC-015`). |
+| 18 | **Pelaporan & Keterlacakan (Traceability)** | `CONFIRMED` | Setiap event integrasi membawa ID korelasi unik (`CorrelationId`, `TraceId`). Memungkinkan rekonsiliasi otomatis harian antara data sensus tempat tidur bangsal dengan daftar tagihan kamar di kasir. |
+
+---
+
+### 16.3 Klasifikasi Status Bukti
+
+Dari evaluasi 18 dimensi di atas, seluruh komponen arsitektural inti berstatus **`CONFIRMED`**
+berkat penutupan keputusan `RWI-DEC-156` s.d. `RWI-DEC-161` pada `00-interview-decisions.md` revision 25.
+
+Ditemukan 5 (lima) butir gap teknis/konfigurasi, yang seluruhnya bersifat non-blocking:
+
+| Gap ID | Dimensi Terkait | Status Bukti | Klasifikasi Dampak | Deskripsi Gap & Rekomendasi Penanganan |
+|---|---|:---:|:---:|---|
+| **`G-INT-01`** | Aturan Validasi / Billing | `PROPOSED` | `CONFIGURABLE_DEFAULT` | **Toleransi Jam Cut-Off Sewa Kamar Harian:** Rumah sakit umumnya menerapkan aturan cut-off (misal: checkout lewat pkl 12.00 dikenakan charge setengah hari, lewat pkl 18.00 satu hari penuh).<br>*Rekomendasi:* Diatur melalui parameter konfigurasi rumah sakit di modul Master/Billing. Modul Rawat Inap hanya wajib mengirimkan stempel waktu presisi `PhysicallyLeftAt`. |
+| **`G-INT-02`** | Aturan Validasi / Billing | `PROPOSED` | `NON_BLOCKING_STANDARD` | **Perhitungan Biaya Pindah Kelas di Tengah Hari:** Jika pasien pindah kelas kamar (misal pkl 10.00 pindah dari Kelas 2 ke VIP), penentuan apakah hari itu dihitung tarif VIP penuh atau pro-rata durasi adalah domain kalkulasi `BillingManagement`.<br>*Rekomendasi:* Rawat Inap mencatat riwayat occupancy per segmen jam dengan akurat; formula perhitungan biaya diserahkan ke mesin kalkulasi billing. |
+| **`G-INT-03`** | Integrasi Kontrak | `PROPOSED` | `NON_BLOCKING_STANDARD` | **Format Skema Kontrak JSON & Nama Topic / Queue Broker:** Spesifikasi struktur JSON detail untuk event outbox `ADMISSION_CONFIRMED`, `BED_OCCUPIED`, `OCCUPANCY_CORRECTED`, `BED_RELEASED`.<br>*Rekomendasi:* Ditetapkan pada tahap perancangan kontrak API & integrasi di `design-business-module`. |
+| **`G-INT-04`** | Notifikasi / Frontend | `PROPOSED` | `NON_BLOCKING_STANDARD` | **Metode Pembaruan Status Kasir di UI Bangsal (Polling vs WebSocket):** Apakah status clearance di UI perawat diperbarui via polling berkala (misal tiap 30 detik) atau via WebSocket/SignalR push.<br>*Rekomendasi:* Polling berkala ringan sebagai baseline yang andal, dapat ditingkatkan ke SignalR pada fase delivery frontend. |
+| **`G-INT-05`** | Audit & Outbox | `PROPOSED` | `CONFIGURABLE_DEFAULT` | **Masa Retensi Riwayat Tabel Outbox:** Batas waktu penyimpanan log event outbox yang berstatus `Published` sebelum diarsipkan.<br>*Rekomendasi:* Nilai bawaan sistem 30 hari sebelum pengarsipan berkala oleh worker. |
+
+---
+
+### 16.4 Dampak Gap dan Ketiadaan Blocker Bisnis
+
+Berdasarkan analisis klasifikasi dampak:
+- Jumlah gap berstatus **`BLOCKING`**: **`0 (NOL)`**.
+- Jumlah gap berstatus **`NON_BLOCKING_STANDARD`**: **`3 (Tiga)`** (`G-INT-02`, `G-INT-03`, `G-INT-04`).
+- Jumlah gap berstatus **`CONFIGURABLE_DEFAULT`**: **`2 (Dua)`** (`G-INT-01`, `G-INT-05`).
+
+> **Kesimpulan Ketiadaan Blocker:** Tidak terdapat satu pun ketidakpastian bisnis, pertentangan
+> kewenangan klinis, atau kebuntuan regulasi rumah sakit yang menahan slice `INP-S22`. Seluruh pertanyaan
+> esensial telah dijawab secara konsisten oleh Product Owner (Muhammad Hamzah). Dengan demikian,
+> slice `INP-S22` dinyatakan **MEMENUHI SYARAT KELENGKAPAN REQUIREMENT**.
+
+---
+
+### 16.5 Skenario Contoh Konkret Rumah Sakit
+
+Untuk menjamin pemahaman yang utuh bagi pemangku kepentingan rumah sakit (perawat, kasir, dokter, dan staf IT),
+berikut adalah skenario alur terpadu yang menggambarkan penerapan aturan di lapangan:
+
+#### Skenario A: Admisi Masuk, Penempatan Tempat Tidur, dan Pembuatan Tagihan Kasir
+1. **Pasien Masuk:** Pasien bernama Budi Santoso (No. RM `RM-2026-08891`) dirujuk dari IGD ke Rawat Inap.
+2. **Konfirmasi Admisi:** Petugas Admisi Rawat Inap mengonfirmasi admisi pukul 08.00 WIB → Status berubah menjadi `Admitted`.
+3. **Penerbitan Event:** Sistem Rawat Inap menyimpan pesan outbox `ADMISSION_CONFIRMED` dengan kunci idempoten `INP:ADMISSION:ADM-08891:1`. Worker outbox mengirimkan event ke Modul Billing.
+4. **Pembentukan Folio:** Modul Billing menerima event dan otomatis membuat tagihan terbuka `BillingFolio` dengan status `OPEN`.
+5. **Penempatan Bed Fisik:** Pukul 09.30 WIB, Perawat Siti Aminah mengantar Budi ke Bangsal Melati Kamar 02 (Bed Melati-02A, Kelas 2) dan menekan tombol `Konfirmasi Penempatan Fisik`.
+6. **Mulai Room Charge:** Status hunian bed berubah menjadi `Bed Occupied` (`OccupancyStartAt = 09:30`). Event `BED_OCCUPIED` dikirim via outbox ke Kasir. Mulai detik ini, perhitungan tarif kamar harian Melati Kelas 2 aktif dicatat di folio kasir.
+
+#### Skenario B: Pindah Kamar (Mutasi) dan Koreksi Kamar saat Billing `OPEN`
+1. **Permintaan Pindah:** Pada hari kedua pukul 14.00 WIB, keluarga Budi mengajukan kenaikan kelas ke Ruang VIP Aster 01.
+2. **Validasi Status Kasir:** Sistem memverifikasi bahwa tagihan Budi di Modul Billing masih berstatus `OPEN`.
+3. **Pencatatan Segmen Hunian:** Perawat mengonfirmasi kepindahan:
+   - Segmen Bed Melati-02A ditutup pukul 14.00 WIB (`OccupancyEndAt = 14:00`).
+   - Segmen Bed VIP Aster-01A dibuka pukul 14.00 WIB (`OccupancyStartAt = 14:00`).
+4. **Event Mutasi:** Event `OCCUPANCY_CORRECTED` diterbitkan ke Kasir. Kasir memperbarui rincian sewa kamar tanpa menghapus data historis hari sebelumnya (`RWI-DEC-157`).
+5. **Penolakan saat CLOSED:** Seandainya folio tagihan pasien telah ditutup/dikunci (`CLOSED`), sistem Rawat Inap akan langsung menolak mutasi dengan pesan peringatan: *"Tagihan pasien sudah berstatus CLOSED. Hubungi bagian Kasir/Keuangan untuk pembukaan kembali tagihan."*
+
+#### Skenario C: Keputusan Pulang DPJP, Pelunasan Kasir, dan Kepulangan Fisik Pasien
+1. **Izin Pulang DPJP:** Pada hari kelima pukul 10.00 WIB, dr. Anwar Sp.PD melakukan visite dan mengesahkan rencana pulang medis (`DischargeRequested`).
+2. **Pemberitahuan ke Kasir:** Status rencana pulang tampil di dasbor Kasir Hendra. Kasir memeriksa seluruh komponen biaya (sewa kamar Melati 2 hari, VIP 2 hari, obat farmasi, jasa visite dokter, laboratorium).
+3. **Tampilan di Bangsal:** Perawat Siti melihat layar bangsal Budi: tertera lencana oranye bertuliskan *"Menunggu Penyelesaian Kasir"* beserta catatan kendala *"Belum Clearance Kasir"*. Sesuai aturan `RWI-DEC-160`, **tidak ada angka saldo rupiah** yang tampil pada layar perawat.
+4. **Pembayaran di Kasir:** Keluarga Budi membayar lunas di loket kasir pukul 11.30 WIB. Kasir Hendra menerbitkan tanda lunas dan menekan tombol `Setujui Clearance Kepulangan` (`PaymentCleared`).
+5. **Sinyal Clearance Masuk ke Bangsal:** Layar bangsal Budi seketika berganti menjadi hijau bertuliskan *"Clearance Kasir Disetujui"*. Tombol `Pasien Pulang Fisik` pada aplikasi perawat kini aktif (tidak lagi disabled).
+6. **Pasien Meninggalkan Kamar:** Pukul 12.15 WIB, setelah keluarga selesai berkemas dan menerima obat pulang, Budi meninggalkan ruangan secara fisik. Perawat Siti mengklik tombol `Pasien Pulang Fisik`.
+7. **Finalisasi Jam Kamar:** Sistem mencatat `PhysicallyLeftAt = 12:15 WIB` dan secara otomatis mengunci `OccupancyEndAt = 12:15 WIB` (`RWI-DEC-159`). Event `BED_RELEASED` dikirim ke Kasir. Kasir memfinalisasi durasi sewa kamar dan mengunci invoice menjadi `CLOSED`. Tempat tidur VIP Aster-01A berubah status menjadi `Vacant / Needs Cleaning`.
+
+#### Skenario D: Tagihan Susulan, Pencabutan Clearance (*Auto-Reblock*), dan Eksekusi *Supervisor Override*
+1. **Pencabutan Clearance Kasir:** Pukul 11.45 WIB (sebelum Budi pulang fisik), bagian Farmasi mendadak menginput resep obat injeksi darurat yang tertinggal. Kasir Hendra menemukan tagihan baru dan segera menekan tombol `Cabut Clearance Tagihan` (`ClearanceRevoked`).
+2. **Reaksi Auto-Reblock di Bangsal:** Secara seketika (real-time), modul Rawat Inap mendeteksi status pencabutan tersebut. Sistem mengunci kembali (*Auto-Reblock*) tombol kepulangan fisik di layar perawat dan memunculkan peringatan merah: *"Clearance kasir telah dibatalkan: Ada tagihan tambahan farmasi."* (`RWI-DEC-158`).
+3. **Kondisi Kedaruratan & Kebutuhan Rujukan:** Namun, pada saat yang sama kondisi Budi mendadak mengalami komplikasi pernapasan akut dan dokter DPJP memerintahkan Budi segera dirujuk ke RS Jantung rujukan dengan ambulans siaga.
+4. **Eksekusi Supervisor Override:** Menghadapi kondisi kritis tersebut, Supervisor Bangsal Ns. Dewi menggunakan wewenang darurat dengan menekan tombol `Supervisor Override Pelepasan Pasien`. Ns. Dewi memasukkan PIN otorisasi dan mengetik alasan wajib: *"Pasien darurat rujukan kritis ke RS Harapan Kita via ambulans siaga, penyelesaian administrasi kasir dilanjutkan oleh penjamin keluarga di kasir."* (`RWI-DEC-158`, `RWI-DEC-015`).
+5. **Pelepasan Terlaksana & Jejak Audit:** Sistem mengizinkan Budi keluar fisik, mencatat kepulangan dengan penanda khusus `Discharged via Supervisor Override`, serta mencatat jejak audit lengkap (nama Ns. Dewi, timestamp, alasan darurat). Event `BED_RELEASED` tetap terkirim ke Billing untuk penghentian sewa kamar fisik.
+
+---
+
+### 16.6 Decision Log dan Keterkaitan Keputusan
+
+Evaluasi requirement untuk slice `INP-S22` secara resmi menutup Decision ID kanonik:
+
+| Decision ID | Status | Pertanyaan Keputusan | Keputusan Penutup & Bukti |
+|---|:---:|---|---|
+| **`DEC-INP-013`** | **`CLOSED`** | Bagaimana batasan dan mekanisme integrasi antara Rawat Inap dan Billing/Kasir terkait sinkronisasi admisi, room charge, koreksi hunian, auto-reblock clearance, dan privasi nominal uang? | Ditutup secara tuntas oleh keputusan wawancara `RWI-DEC-156` s.d. `RWI-DEC-161` dan kriteria penerimaan `RWI-AC-236` s.d. `RWI-AC-241` pada [`00-interview-decisions.md`](../00-interview-decisions.md) revision `25`. Tidak ada isu wewenang atau fungsionalitas yang menggantung. |
+
+---
+
+### 16.7 Kesiapan Per Slice dan Status Modul
+
+| Slice ID | Nama Slice | Status Kesiapan | Catatan Evaluasi & Blocker |
+|---|---|:---:|---|
+| **`INP-S22`** | **Integrasi Rawat Inap ↔ Kasir / Billing** | **`READY_FOR_DOMAIN_DESIGN`** | **Siap penuh.** Tidak ada keputusan bisnis pemblokir. 18 dimensi lengkap. 5 gap teknis non-blocking. |
+| `INP-S01` s.d. `INP-S06` | Admisi, Penempatan, Mutasi, Perawat, Dokter, Resep | `READY_FOR_DOMAIN_DESIGN` | Mempertahankan status kesiapan sebelumnya. |
+| `INP-S09` | Serah terima IGD ke Rawat Inap | `BUSINESS_DECISION_REQUIRED` | Masih menunggu kesepakatan formal dari domain owner IGD (Rizki Gunawan). |
+| `INP-S17` s.d. `INP-S21` | Pengkajian Keperawatan, MAR, Sliding Scale, Penunjang, CPPT V2 | `READY_FOR_DOMAIN_DESIGN` | Mempertahankan status kesiapan penutupan gate revision `1.6`. |
+| **Keseluruhan Modul Rawat Inap** | **`InPatientManagement`** | **`PARTIALLY_READY`** | Modul secara keseluruhan tetap *Partially Ready* karena ketergantungan historis pada slice `INP-S09` (IGD) yang masih menunggu approval owner luar. Namun, hal ini **TIDAK MENGHALANGI** kemajuan slice `INP-S22`. |
+
+---
+
+### 16.8 Apa yang Boleh Berjalan dan Apa yang Harus Berhenti
+
+#### Apa yang Boleh Berjalan:
+1. **Perancangan Domain Arsitektur (`hospital-domain-architect`):** Pemetaan bounded context antara `InPatientManagement` dan `BillingManagement`, pemisahan aggregate root (`InpatientAdmission` vs `BillingFolio`), dan pendefinisian domain events integrasi.
+2. **Penyusunan Blueprint Bisnis (`design-business-module`):** Perancangan flowchart alur data, kontrak API endpoint Swagger, kamus data tabel outbox `InpIntegrationOutbox`, serta perancangan komponen UI operasional bangsal (tanpa nominal rupiah).
+3. **Penyusunan Delivery Plan (`plan-module-delivery`):** Pemecahan task implementasi berukuran kecil berbasis vertical slice setelah blueprint disetujui.
+
+#### Apa yang Harus Berhenti / Dilarang Keras:
+1. **DILARANG** menulis kode implementasi backend (C#) atau frontend (Next.js) sebelum blueprint modul dan roadmap delivery disetujui.
+2. **DILARANG** membuat tabel tagihan baru atau memproses posting akun buku besar keuangan di dalam modul Rawat Inap (`RWI-DEC-156`). Seluruh tagihan dan keuangan adalah domain eksklusif `BillingManagement`.
+3. **DILARANG** menampilkan angka nominal rupiah pada layar operasional keperawatan rawat inap, kecuali pengguna memiliki izin khusus `InpatientBilling:View` (`RWI-DEC-160`).
+4. **DILARANG** memulangkan pasien secara fisik tanpa clearance kasir aktif atau otorisasi resmi *Supervisor Override* beralasan wajib (`RWI-DEC-158`).
+5. **DILARANG** melakukan koreksi penempatan kamar langsung di Rawat Inap apabila status tagihan di Kasir telah `CLOSED` (`RWI-DEC-157`).
+
+---
+
+### 16.9 Handoff ke Tahap Berikutnya
+
+| Parameter Handoff | Rincian Spesifikasi |
+|---|---|
+| **`capability_scope`** | Slice `INP-S22` (Kemampuan `INT-CAP-01` s.d. `INT-CAP-06` / `RANAP-INT-001` s.d. `006`) |
+| **`requirement_readiness`** | **`READY_FOR_DOMAIN_DESIGN`** |
+| **`requirement_evidence_status`** | Mayoritas mutlak **`CONFIRMED`**; 5 gap non-blocking (`G-INT-01` s.d. `G-INT-05`); **`0 BLOCKING`** |
+| **`domain_architecture_readiness`** | **`READY`**. Dapat dilanjutkan ke `hospital-domain-architect` untuk pemetaan formal relasi aggregate lintas modul, atau langsung ke `design-business-module` bila pola aggregate integrasi dipandang cukup lugas. |
+| **`decision_ids`** | `DEC-INP-013` (`CLOSED`); `RWI-DEC-156` s.d. `RWI-DEC-161`; `RWI-AC-236` s.d. `RWI-AC-241` |
+| **`dependency_ids`** | Kontrak API modul `BillingManagement` (pembuatan folio, verifikasi status `OPEN`, penerbitan/pencabutan clearance) |
+| **`next_owner`** | `hospital-domain-architect` atau `design-business-module` |
+| **`required_boundary`** | • Modul Rawat Inap **TIDAK BOLEH** membuat tabel invoice/folio tandingan.<br>• Room charge hanya boleh aktif saat `Bed Occupied`.<br>• Waktu hunian kamar berakhir saat `PhysicallyLeftAt`.<br>• UI bangsal steril dari nominal rupiah.<br>• Mekanisme *Auto-Reblock* dan *Supervisor Override* wajib dipertahankan secara transaksional. |
+| **`expected_output`** | Blueprint integrasi lengkap memuat: arsitektur event-driven outbox, kontrak API Swagger untuk kueri status kasir, kamus data tabel outbox, state-machine pemulangan pasien, flowchart alur mutasi/auto-reblock, serta spesifikasi izin peran `InpatientSupervisor:Override` dan `InpatientBilling:View`. |
+

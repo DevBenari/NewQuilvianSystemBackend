@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Helpers;
@@ -59,15 +59,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
 
         private readonly InpDischargeService _dischargeService;
         private readonly InpEpisodeService _episodeService;
+        private readonly InpDischargeSummaryPrefillService _prefillService;
         private readonly LoggerService _loggerService;
 
         public InpatientDischargeController(
             InpDischargeService dischargeService,
             InpEpisodeService episodeService,
+            InpDischargeSummaryPrefillService prefillService,
             LoggerService loggerService)
         {
             _dischargeService = dischargeService;
             _episodeService = episodeService;
+            _prefillService = prefillService;
             _loggerService = loggerService;
         }
 
@@ -264,6 +267,45 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
                 cancellationToken);
 
             return Ok(ApiResponse<DischargeSummaryResponse>.Ok(summary, result.Message));
+        }
+
+        /// <summary>
+        /// Menyusun usulan isian resume pulang dari data klinis yang sudah ada, beserta label
+        /// sumbernya. <b>Tidak menyimpan apa pun.</b>
+        /// </summary>
+        /// <remarks>
+        /// <b>Usulan, bukan resume.</b> Yang tersimpan sebagai resume selalu teks final dokter,
+        /// lewat <c>PUT /{episodeId}/summary</c>. Resume adalah dokumen bertanda tangan, dan
+        /// tanda tangan itu berarti dokter menyatakan isinya benar — <c>RWI-DEC-112</c>.
+        ///
+        /// <para>
+        /// <b>Satu sumber yang gagal tidak menggagalkan usulan lainnya.</b> Bagian yang gagal
+        /// dibaca kembali kosong berstatus <c>Unavailable</c> beserta keterangannya, dan bagian
+        /// lain tetap diusulkan. Waktu penyelesaian setiap sumber ikut dilaporkan pada
+        /// <c>SourceTimings</c> — <c>NFR-027</c>.
+        /// </para>
+        /// </remarks>
+        [HttpGet("{episodeId:guid}/summary-prefill")]
+        [ProducesResponseType(typeof(ApiResponse<DischargeSummaryPrefillResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Inpatient Discharge", Description = "Melihat usulan isian resume pulang dari data klinis", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("InpatientDischarge", "Read")]
+        public async Task<IActionResult> GetSummaryPrefill(
+            Guid episodeId,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _prefillService.BuildPrefillAsync(episodeId, cancellationToken);
+
+            if (result == null)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound,
+                    "Episode rawat inap tidak ditemukan."));
+            }
+
+            return Ok(ApiResponse<DischargeSummaryPrefillResponse>.Ok(
+                result,
+                result.Message ?? "Usulan isian resume pulang berhasil disusun."));
         }
 
         // =====================================================================
@@ -512,6 +554,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
                 null,
                 cancellationToken);
 
+            // BE-RWI-084 — ringkasan akibat penutupan ikut pada balasan, diambil dari hasil
+            // transaksi yang benar-benar tersimpan. Layar menampilkan apa yang SUDAH terjadi,
+            // bukan mengulang perkiraan yang ditampilkannya sebelum tombol ditekan.
+            if (detail != null)
+            {
+                detail.SideEffects = result.SideEffects;
+            }
+
             return Ok(ApiResponse<InpatientEpisodeDetailResponse>.Ok(detail, result.Message));
         }
 
@@ -562,6 +612,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
                 episodeId,
                 null,
                 cancellationToken);
+
+            // BE-RWI-084 — ringkasan akibat penutupan ikut pada balasan, diambil dari hasil
+            // transaksi yang benar-benar tersimpan. Layar menampilkan apa yang SUDAH terjadi,
+            // bukan mengulang perkiraan yang ditampilkannya sebelum tombol ditekan.
+            if (detail != null)
+            {
+                detail.SideEffects = result.SideEffects;
+            }
 
             return Ok(ApiResponse<InpatientEpisodeDetailResponse>.Ok(detail, result.Message));
         }

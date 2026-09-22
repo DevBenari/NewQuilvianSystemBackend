@@ -10,7 +10,7 @@
 blueprint_id: RWI-BP-001
 blueprint_revision: 7
 submodule: episode-rawat-inap
-traceability_revision: 1
+traceability_revision: 4
 contract_version: 0.9.0
 approval_decision: RWI-DEC-150
 gate_closure_decision: RWI-DEC-151   # {GATE-YOGA} tertutup 2026-09-16
@@ -30,17 +30,17 @@ frontend_roadmap: roadmap/frontend-roadmap-v2.md
 
 | FR | Epic | Keputusan | Desain | Kontrak `0.9.0` | Task BE | Task FE | Bukti acceptance | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `FR-RI-191` | `RI-38` | `RWI-DEC-117` | `02-backend` 11 | API 10.1 | `BE-RWI-081` | `FE-RWI-067` [FE-DOK] | Acceptance 18.1; `UAT-45` | Belum dikerjakan |
-| `FR-RI-192` | `RI-38` | `VAL-INP-11` | `02-backend` 11 | API 10.1 | `BE-RWI-081` | `FE-RWI-067` [FE-DOK] | Acceptance 18.1 | Belum dikerjakan |
-| `FR-RI-193` | `RI-39` | `RWI-DEC-099` | `02-backend` 11.8 E1 | API 10.2 | `BE-RWI-079`, `BE-RWI-080` | `FE-RWI-063` | Acceptance 18.2; `UAT-46` | Belum dikerjakan |
-| `FR-RI-194` | `RI-39` | `RWI-DEC-130`; `INV-INP-12` | `02-backend` 11.8 E1 | `VAL-INP-01`, `08` | `BE-RWI-079`, `BE-RWI-080` | `FE-RWI-063` | Acceptance 18.2; `UAT-46`, `UAT-47` | Belum dikerjakan |
-| `FR-RI-195` | `RI-39` | `VAL-INP-09` | `02-backend` 11 | API 10.2 | `BE-RWI-080` | `FE-RWI-063` | Acceptance 18.2; `UAT-48` | Belum dikerjakan |
-| `FR-RI-196` | `RI-40` | `RWI-DEC-112` | `data-dictionary` 18.2–18.3 | data 18.2–18.3 | `BE-RWI-085` | `FE-RWI-064` | Acceptance 18.3; `UAT-49` | Belum dikerjakan |
-| `FR-RI-197` | `RI-40` | `NFR-027` | `02-backend` 11 | API 10.3 | `BE-RWI-086` | `FE-RWI-064` | Acceptance 18.3; `UAT-49` | Belum dikerjakan |
-| `FR-RI-198` | `RI-41` | `RWI-DEC-138`; `RM-DEC-003` | `02-backend` 11.8 E3 langkah 4 | `INT-INP-08` | `BE-RWI-082` | `FE-RWI-065` | Acceptance 18.4; `UAT-50` | Belum dikerjakan |
-| `FR-RI-199` | `RI-41` | `RWI-DEC-143` | `02-backend` 11.8 E3 langkah 5 | `INT-INP-09`; API 10.4 | `BE-RWI-083` | `FE-RWI-065`, `FE-RWI-066` | Acceptance 18.4; `UAT-50` | Belum dikerjakan |
-| `FR-RI-200` | `RI-41` | `RWI-DEC-143`; `INT-KEP-15` | `02-backend` 11.8 E3 langkah 6 | `INT-INP-10` | `BE-RWI-087` | `FE-RWI-065` | Acceptance 18.4; `UAT-50` | Belum dikerjakan |
-| `FR-RI-201` | `RI-41` | `VAL-INP-13` s.d. `17` | `03-frontend` 12 | validation matrix | `BE-RWI-084` | `FE-RWI-065` | Acceptance 18.4; `UAT-51` | Belum dikerjakan |
+| `FR-RI-191` | `RI-38` | `RWI-DEC-117` | `02-backend` 11 | API 10.1 | `BE-RWI-081` | `FE-RWI-067` [FE-DOK] | Acceptance 18.1; `UAT-45` | ✅ Terbukti di source. Census `assignedToMe` menyaring dari penugasan aktif dokter login. [BE-RWI-081](../task/report/backend/BE-RWI-081.md) |
+| `FR-RI-192` | `RI-38` | `VAL-INP-11` | `02-backend` 11 | API 10.1 | `BE-RWI-081` | `FE-RWI-067` [FE-DOK] | Acceptance 18.1 | ✅ Terbukti di source. Akun tanpa data dokter menerima `200` berdaftar kosong beserta `emptyReason`, bukan `403`. [BE-RWI-081](../task/report/backend/BE-RWI-081.md) |
+| `FR-RI-193` | `RI-39` | `RWI-DEC-099` | `02-backend` 11.8 E1 | API 10.2 | `BE-RWI-079`, `BE-RWI-080` | `FE-RWI-063` | Acceptance 18.2; `UAT-46` | ✅ Terbukti di source. Kolom `AssignmentPurpose` beserta check constraint, dan jalur tulis penugasan pendukung. Dialog UI penugasan pendukung terpasang pada panel detail episode. [BE-RWI-079](../task/report/backend/BE-RWI-079.md), [BE-RWI-080](../task/report/backend/BE-RWI-080.md), [FE-RWI-063](../task/report/frontend/FE-RWI-063.md) |
+| `FR-RI-194` | `RI-39` | `RWI-DEC-130`; `INV-INP-12` | `02-backend` 11.8 E1 | `VAL-INP-01`, `08` | `BE-RWI-079`, `BE-RWI-080` | `FE-RWI-063` | Acceptance 18.2; `UAT-46`, `UAT-47` | ✅ Terbukti di source. `INV-INP-12` ditegakkan di service **dan** database; di UI peran terkunci ke Dokter Jaga saat LateDocumentation dan tombol simpan nonaktif bila waktu selesai kosong. [BE-RWI-079](../task/report/backend/BE-RWI-079.md), [BE-RWI-080](../task/report/backend/BE-RWI-080.md), [FE-RWI-063](../task/report/frontend/FE-RWI-063.md) |
+| `FR-RI-195` | `RI-39` | `VAL-INP-09` | `02-backend` 11 | API 10.2 | `BE-RWI-080` | `FE-RWI-063` | Acceptance 18.2; `UAT-48` | ✅ Terbukti di source. Pengakhiran konsulen/dokter jaga lewat `PATCH .../{assignmentId}/end`; penugasan DPJP ditolak `409` `VAL-INP-09` dan di UI baris DPJP tidak memiliki tombol Akhiri; akses tombol dibatasi untuk kepala ruangan/supervisor. [BE-RWI-080](../task/report/backend/BE-RWI-080.md), [FE-RWI-063](../task/report/frontend/FE-RWI-063.md) |
+| `FR-RI-196` | `RI-40` | `RWI-DEC-112` | `data-dictionary` 18.2–18.3 | data 18.2–18.3 | `BE-RWI-085` | `FE-RWI-064` | Acceptance 18.3; `UAT-49` | ✅ Terbukti di source. Enam kolom pada dua tabel; ketiga isian melewati baca, simpan, dan salinan versi. Formulir resume 8 bagian terpasang di frontend `FE-INP-22`. [BE-RWI-085](../task/report/backend/BE-RWI-085.md), [FE-RWI-064](../task/report/frontend/FE-RWI-064.md) |
+| `FR-RI-197` | `RI-40` | `NFR-027` | `02-backend` 11 | API 10.3 | `BE-RWI-086` | `FE-RWI-064` | Acceptance 18.3; `UAT-49` | ✅ Terbukti di source. Usulan berlabel sumber, zero-persistence, tahan sumber unavailable, dan form terlindungi. Instrumen pengukuran `SourceTimings` aktif; pengukuran data riil NOT RUN (instruksi pemilik: build mandiri). [BE-RWI-086](../task/report/backend/BE-RWI-086.md), [FE-RWI-064](../task/report/frontend/FE-RWI-064.md) |
+| `FR-RI-198` | `RI-41` | `RWI-DEC-138`; `RM-DEC-003` | `02-backend` 11.8 E3 langkah 4 | `INT-INP-08` | `BE-RWI-082` | `FE-RWI-065` | Acceptance 18.4; `UAT-50` | ✅ Terbukti di source. Langkah 4 penutupan mengunci konsep lewat service pemiliknya, di dalam transaksi yang sama. [BE-RWI-082](../task/report/backend/BE-RWI-082.md) |
+| `FR-RI-199` | `RI-41` | `RWI-DEC-143` | `02-backend` 11.8 E3 langkah 5 | `INT-INP-09`; API 10.4 | `BE-RWI-083` | `FE-RWI-065`, `FE-RWI-066` | Acceptance 18.4; `UAT-50` | ✅ Terbukti di source. Langkah 5 penutupan membatalkan pesanan tindakan tertunda non-billed via `PatientProcedureOrderService.CancelPendingOrdersForClosureAsync` di dalam transaksi penutupan (`InpDischargeService.Closure.cs:1055-1059`). Daftar pantau pesanan tertagih terpasang. [BE-RWI-083](../task/report/backend/BE-RWI-083.md) |
+| `FR-RI-200` | `RI-41` | `RWI-DEC-143`; `INT-KEP-15` | `02-backend` 11.8 E3 langkah 6 | `INT-INP-10` | `BE-RWI-087` | `FE-RWI-065` | Acceptance 18.4; `UAT-50` | ✅ Terbukti di source. Langkah 6 penutupan membatalkan dosis MAR masa depan via `MedicationAdministrationService.CancelFutureDosesForEpisodeAsync` di dalam transaksi penutupan (`InpDischargeService.Closure.cs:1081-1086`). [BE-RWI-087](../task/report/backend/BE-RWI-087.md) |
+| `FR-RI-201` | `RI-41` | `VAL-INP-13` s.d. `17` | `03-frontend` 12 | validation matrix | `BE-RWI-084` | `FE-RWI-065` | Acceptance 18.4; `UAT-51` | ✅ Terbukti di source. Endpoint kesiapan mengembalikan seluruh 4 peringatan non-blocking dengan `isMeasured = true` dan balasan penutupan mengembalikan 4 metrik akibat riil dari transaksi database (`lockedDraftCount`, `cancelledProcedureOrderCount`, `billedPendingProcedureOrderCount`, `cancelledFutureDoseCount`). [BE-RWI-084](../task/report/backend/BE-RWI-084.md) |
 
 **Sebelas FR, sebelas baris, nol FR tanpa task, nol FR tanpa bukti acceptance.**
 
@@ -50,9 +50,9 @@ frontend_roadmap: roadmap/frontend-roadmap-v2.md
 
 | NFR | Bunyi | Task | Cara membuktikan | Status |
 | --- | --- | --- | --- | --- |
-| `NFR-025` | Penutupan beserta akibatnya atomik pada PostgreSQL sungguhan | `BE-RWI-082`, `BE-RWI-083`, `BE-RWI-084`, `BE-RWI-087` | Galat buatan tiap langkah → nol perubahan, dijalankan pada container Postgres sekali pakai | Belum dikerjakan |
-| `NFR-026` | Census `assignedToMe` memakai index penugasan per dokter; waktu aktif dibaca saat query tanpa proses latar | `BE-RWI-081` | Rencana eksekusi memakai index; uji batas 06.59 dan 07.01 | Belum dikerjakan |
-| `NFR-027` | Usulan isian resume selesai paling lama 5 detik per sumber — **angka usulan desain** | `BE-RWI-086` | Pengukuran dicatat pada laporan task; angka nyata dilaporkan apa adanya | Belum dikerjakan |
+| `NFR-025` | Penutupan beserta akibatnya atomik pada PostgreSQL sungguhan | `BE-RWI-082`, `BE-RWI-083`, `BE-RWI-084`, `BE-RWI-087` | Galat buatan tiap langkah → nol perubahan, dijalankan pada container Postgres sekali pakai | 🟡 `NOT RUN`. Langkah yang terpasang berada di dalam transaksi penutupan dan blok `catch` melakukan rollback — terbukti dari pembacaan source, bukan dari percobaan. **Uji galat buatan belum dijalankan** karena menuntut aplikasi berjalan beserta data klinis; dikecualikan atas keputusan pemilik pekerjaan 16 September 2026 |
+| `NFR-026` | Census `assignedToMe` memakai index penugasan per dokter; waktu aktif dibaca saat query tanpa proses latar | `BE-RWI-081` | Rencana eksekusi memakai index; uji batas 06.59 dan 07.01 | 🟡 `NOT RUN`. Index `IX_InpDoctorAssignment_DoctorId_Active` **terbukti lahir di database** (dibaca dari `pg_indexes` pada container Postgres 16) dan penyaringnya menyaring persis pada `DoctorId` lalu menilai `EndDateTime`. Yang belum ada adalah **rencana eksekusi query pada tabel berisi data nyata**: pada tabel kosong PostgreSQL memilih `Seq Scan` apa pun index-nya, sehingga `EXPLAIN` di sana tidak membuktikan apa pun. Uji batas 06.59/07.01 juga belum diambil |
+| `NFR-027` | Usulan isian resume selesai paling lama 5 detik per sumber — **angka usulan desain** | `BE-RWI-086` | Pengukuran dicatat pada laporan task; angka nyata dilaporkan apa adanya | 🟡 `NOT RUN`. Pengukuran terpasang, lolos kompilasi, dan keluar pada `sourceTimings` setiap balasan, tetapi **angka dari data nyata belum ada** karena menuntut lingkungan berisi diagnosis, tindakan, resep pulang, dan bacaan radiologi. Bila pengukuran nanti jauh melampaui 5 detik, angkanya dilaporkan apa adanya dan dibawa kembali ke pemilik — bukan diubah di roadmap |
 
 ---
 
@@ -74,9 +74,9 @@ frontend_roadmap: roadmap/frontend-roadmap-v2.md
 
 | Task di sini | Menunggu | Milik | Kenapa |
 | --- | --- | --- | --- |
-| `BE-RWI-082` | `BE-RWI-091` | `dokter-rawat-inap` | Penguncian konsep butuh registrasi keutuhan sejak konsep (`R2`) |
-| `BE-RWI-083` | `BE-RWI-097` | `dokter-rawat-inap` | Pembatalan pesanan butuh `PatientProcedureOrderService` (`R7`) |
-| `BE-RWI-087` | `BE-RWI-114` | `keperawatan` | Pembatalan dosis butuh tabel MAR (`K4`) |
+| `BE-RWI-082` ✅ | `BE-RWI-091` | `dokter-rawat-inap` | **TERTUTUP.** `BE-RWI-082` ✅ Langkah 4 terpasang
+| `BE-RWI-083` ✅ | `BE-RWI-097` | `dokter-rawat-inap` | **TERTUTUP.** `PatientProcedureOrderService` mendarat dan langkah 5 terpasang penuh
+| `BE-RWI-087` ✅ | `BE-RWI-114` | `keperawatan` | **TERTUTUP.** `MedicationAdministrationService` mendarat dan langkah 6 terpasang penuh
 
 ## 5. Dependency yang masuk ke sub-modul ini
 
@@ -104,3 +104,7 @@ frontend_roadmap: roadmap/frontend-roadmap-v2.md
 | Revision | Tanggal | Isi |
 | ---: | --- | --- |
 | `1` | 2026-09-16 | Dibuat `plan-module-delivery` fase `RLN-PH-07` sesudah `RWI-DEC-150`. Sebelas FR amandemen terbatas revision `7` dipetakan ke sembilan task backend dan empat task frontend. Ditulis sebagai berkas terpisah atas permintaan pemilik agar berkas lama tetap terbaca |
+| `2` | 2026-09-16 | Bukti gelombang eksekusi pertama dimasukkan. Empat FR `✅`, tiga FR `🟡`, satu FR `⛔`. Ketiga NFR berstatus `NOT RUN`: butir verifikasi `dotnet build`, verifikasi skema, uji migration, uji galat buatan, rencana eksekusi query, dan pengukuran waktu sumber **dikecualikan atas keputusan pemilik pekerjaan 16 September 2026** yang menyatakan akan menjalankan build sendiri sesudah implementasi source selesai. Pengecualian itu tidak menjangkau acceptance criteria yang belum ada source-nya — `FR-RI-199`, `FR-RI-200`, dan `FR-RI-201` tetap belum penuh karena slice modul lain belum mendarat, bukan karena bukti yang belum diambil |
+| `3` | 2026-09-16 | **Verifikasi benar-benar dijalankan.** `dotnet build` pada project aplikasi: `0 Error(s)`, `211 Warning(s)`, `00:04:31` — nol `error CS`. `dotnet ef migrations has-pending-model-changes`: `No changes have been made to the model since the last migration`, membuktikan suntingan tangan pada model snapshot cocok dengan model. Migration `E1` dan `E2` dijalankan maju dan mundur pada container Postgres 16 sekali pakai beserta pembacaan katalog; kedua penjaga rollback terbukti menolak dengan pesan dan jumlah baris yang benar; check constraint `INV-INP-12` diuji 6 kasus. Container dibuang, dan **tidak satu pun migration diterapkan ke database dev, staging, atau production.** Yang tetap `NOT RUN`: `UAT-46` s.d. `UAT-51`, rencana eksekusi query `NFR-026`, uji galat buatan `NFR-025`, dan pengukuran waktu `NFR-027` — seluruhnya menuntut aplikasi berjalan beserta data klinis |
+| `4` | 2026-09-16 | `FE-RWI-063` selesai diimplementasikan pada frontend (`QuilvianSystemFrontendDev`). Komposisi dialog dokter pendukung `FE-INP-21`, aksi tambah dan akhiri penugasan, penguncian peran dan waktu selesai pada `LateDocumentation`, penyembunyian tombol bagi selain kepala ruangan/supervisor (`UAT-48`), penanganan galat 422, dan auto-refresh riwayat penugasan terbukti di source. `npm run lint:errors` bersih (0 error), `npm run build` sukses (exit code 0). Laporan tracked: [FE-RWI-063.md](../task/report/frontend/FE-RWI-063.md) |
+| `5` | 2026-09-17 | Seluruh task backend V2 `BE-RWI-083`, `BE-RWI-084`, `BE-RWI-086`, `BE-RWI-087` diselesaikan `✅` sesudah dependensi `BE-RWI-097` (`PatientProcedureOrderService`) dan `BE-RWI-114`/`BE-RWI-118` (`MedicationAdministrationService`) mendarat penuh. Langkah 5 dan Langkah 6 penutupan episode telah terintegrasi di `InpDischargeService.Closure.cs`. Seluruh 9 task backend V2 kini `✅` SELESAI (9/9). |

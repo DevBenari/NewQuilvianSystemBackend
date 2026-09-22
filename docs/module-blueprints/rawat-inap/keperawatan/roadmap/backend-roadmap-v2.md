@@ -109,7 +109,7 @@ roadmap ini digambar **penuh tepat satu kali**.
 ### `KEP-V2-0` — perbaikan keselamatan tanpa bentuk data
 
 ```text
-BE-RWI-106
+BE-RWI-106 ✅
 ```
 
 Tidak menunggu siapa pun. Nol pasangan.
@@ -117,15 +117,15 @@ Tidak menunggu siapa pun. Nol pasangan.
 ### `KEP-V2-1` — konfigurasi klinis, pengkajian, Evaluasi Awal
 
 ```text
-BE-RWI-106 [V0] ─> BE-RWI-107 ─┬─> BE-RWI-108
-                               │
-                               ├─> BE-RWI-109
-                               │
-                               ├─> BE-RWI-113
-                               │
-                               └─> BE-RWI-110 ─┬─> BE-RWI-111 ─┐
-                                               │               │
-                                               └───────────────┴─> BE-RWI-112
+BE-RWI-106 ✅ [V0] ─> BE-RWI-107 ✅ ─┬─> BE-RWI-108 ✅
+                                     │
+                                     ├─> BE-RWI-109 ✅
+                                     │
+                                     ├─> BE-RWI-113 ✅
+                                     │
+                                     └─> BE-RWI-110 ✅ ─┬─> BE-RWI-111 ✅ ─┐
+                                                        │                  │
+                                                        └──────────────────┴─> BE-RWI-112 ✅
 ```
 
 Delapan pasangan.
@@ -133,11 +133,11 @@ Delapan pasangan.
 ### `KEP-V2-2` blok a — MAR
 
 ```text
-BE-RWI-106 [V0] ─> BE-RWI-114 ─┬─> BE-RWI-115 ─┬─> BE-RWI-116
-                               │               │
-                               │               └─> BE-RWI-117
-                               │
-                               └─> BE-RWI-118
+BE-RWI-106 ✅ [V0] ─> BE-RWI-114 ✅ ─┬─> BE-RWI-115 ✅ ─┬─> BE-RWI-116 ✅
+                                     │                  │
+                                     │                  └─> BE-RWI-117 ✅
+                                     │
+                                     └─> BE-RWI-118 ✅
 ```
 
 Lima pasangan.
@@ -145,17 +145,17 @@ Lima pasangan.
 ### `KEP-V2-2` blok b — Pengawasan Harian dan sliding scale
 
 ```text
-BE-RWI-114 [K2a] ─> BE-RWI-119 ─┬─> BE-RWI-120
-                                │
-                                ├─> BE-RWI-122
-                                │
-                                └─> BE-RWI-123
+BE-RWI-114 ✅ [K2a] ─> BE-RWI-119 ✅ ─┬─> BE-RWI-120 ✅
+                                      │
+                                      ├─> BE-RWI-122 ✅
+                                      │
+                                      └─> BE-RWI-123 ✅
 
-BE-RWI-115 [K2a] ─────────────────> BE-RWI-122 [atas]
+BE-RWI-115 ✅ [K2a] ────────────────────> BE-RWI-122 ✅ [atas]
 
-BE-RWI-103 [BE-DOK] ──────────────> BE-RWI-123 [atas]
+BE-RWI-103 [BE-DOK] ────────────────────> BE-RWI-123 ✅ [atas]
 
-BE-RWI-110 [K1] ─> BE-RWI-121
+BE-RWI-110 ✅ [K1] ─> BE-RWI-121 ✅
 ```
 
 Tujuh pasangan.
@@ -163,9 +163,9 @@ Tujuh pasangan.
 ### `KEP-V2-3` — permukaan yang memakai kontrak `dokter-rawat-inap`
 
 ```text
-BE-RWI-094 [BE-DOK] ─> BE-RWI-124
+BE-RWI-094 [BE-DOK] ─> BE-RWI-124 ✅
 
-BE-RWI-101 [BE-DOK] ─┬─> BE-RWI-125
+BE-RWI-101 [BE-DOK] ─┬─> BE-RWI-125 ✅
                      │
 BE-RWI-097 [BE-DOK] ─┘
 ```
@@ -175,7 +175,7 @@ Tiga pasangan.
 ### `KEP-V2-4` — tagihan pasien
 
 ```text
-BE-RWI-126
+BE-RWI-126 ✅
 ```
 
 Tidak menunggu siapa pun. Nol pasangan — node `{GATE-BILLING}` dicabut 2026-09-16 setelah
@@ -217,37 +217,37 @@ Pemetaan gelombang PRD:
 
 | Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `BE-RWI-106` | Lima cacat keselamatan pengkajian tertutup tanpa menyentuh bentuk data | `FR-KEP-038`; `RLN3-CAP-17`, `18`, `21`, `22`, `29` | `0.5.0` API pengkajian | Jalur pengkajian yang sudah ada | `K0` — enum frontend–backend sejajar; daftar berpaginasi; isian belum dikaji tidak terkirim sebagai normal; detail dibaca sebelum disunting; penanganan `401`/`403` | — | AC-1 s.d. AC-6 | `dotnet build`; verifikasi kontrak API; review diff dan scope | "Belum dikaji" terkirim sebagai "normal" adalah cacat keselamatan / Muhammad Hamzah | Kartu `BE-RWI-106` |
-| `BE-RWI-107` | Instrumen klinis menjadi konfigurasi berversi, bukan angka di dalam kode | `FR-KEP-039`, `041`, `042`; `RWI-DEC-124`, `136` | `0.5.0` data 11.4–11.5 | — (`MISSING / NEW`) | `K1` — tabel instrumen, versi, jawaban; definisi JSON beserta hash; seeder **draft** lima instrumen dan formulir | `BE-RWI-106` | AC-1 s.d. AC-6 | `dotnet build`; verifikasi skema; verifikasi kontrak API | Seeder **tidak** membereskan batas yang bertabrakan — hanya menandainya / komite keperawatan | Kartu `BE-RWI-107` |
-| `BE-RWI-108` | Versi instrumen disahkan orang yang berbeda dari pengubahnya | `FR-KEP-040`; `VAL-KEP-20a` | `0.5.0` state 5.1 | Tabel dari `BE-RWI-107` | Siklus `Draft` → `Approved` → `Retired`; pengesah bukan pengubah terakhir | `BE-RWI-107` | AC-1 s.d. AC-4 | `dotnet build`; verifikasi proses bisnis | — / komite keperawatan | Kartu `BE-RWI-108` |
-| `BE-RWI-109` | Skor risiko jatuh dihitung dari instrumen berversi, bukan angka tetap | `FR-KEP-043`, `FR-KEP-044`; mencabut `RWI-FACT-036` | `0.5.0` data 11.6 | Perhitungan risiko jatuh yang sudah ada | `K2` — perhitungan rawat inap pindah ke instrumen berversi; jalur non-rawat-inap **tetap** sampai pemilik `rawat-jalan` memutuskan | `BE-RWI-107` | AC-1 s.d. AC-5 | `dotnet build`; verifikasi proses bisnis; **regresi poliklinik** | **Mengubah perilaku** — pemberitahuan pemilik `rawat-jalan` wajib; mundur wajib dicatat sebagai kejadian keselamatan / pemilik `rawat-jalan` | Kartu `BE-RWI-109` |
-| `BE-RWI-110` | Kajian Umum delapan bagian tersimpan terstruktur | `FR-KEP-045`, `046`, `049`; `RWI-DEC-131` | `0.5.0` data + API | `TrxPatientAssessment`, `TrxPatientVitalSign` | `K3` — tiga kolom `TrxPatientAssessment`, satu kolom `TrxPatientVitalSign`; Kajian Umum **menunjuk** satu baris tanda vital, tidak menyalin angkanya | `BE-RWI-107` | AC-1 s.d. AC-6 | `dotnet build`; verifikasi skema; verifikasi kontrak API | Menyalin angka vital = dua sumber kebenaran / Muhammad Hamzah | Kartu `BE-RWI-110` |
-| `BE-RWI-111` | Risiko jatuh, nyeri, dan edukasi menjadi dokumen tersendiri | `FR-KEP-047`, `FR-KEP-048`; `VAL-KEP-22` | `0.5.0` enum 6–8 | Jenis dokumen pengkajian | Tiga jenis dokumen baru; Monitoring Nyeri mewajibkan keadaan nyeri sebelum selesai dan menyimpan waktu kajian ulang | `BE-RWI-110` | AC-1 s.d. AC-5 | `dotnet build`; verifikasi kontrak API; verifikasi proses bisnis | — / Muhammad Hamzah | Kartu `BE-RWI-111` |
-| `BE-RWI-112` | Perawat melihat berapa bagian pengkajian yang sudah beres | `FR-KEP-050`, `051`, `052`; `RWI-DEC-119` | `0.5.0` API 7.1 | — (`MISSING / NEW`) | Progres lima bagian ✓/!/○, persen kelipatan 20; temuan berisiko menjadi **alert kepala konteks**, bukan mengubah progres | `BE-RWI-110`, `BE-RWI-111` | AC-1 s.d. AC-6 | `dotnet build`; verifikasi kontrak API | Progres gagal dimuat **tidak boleh** tampil sebagai ○ / Muhammad Hamzah | Kartu `BE-RWI-112` |
-| `BE-RWI-113` | MPP mengisi Evaluasi Awal sebagai satu dokumen hidup per episode | `FR-KEP-053`, `054`, `055`; `RWI-DEC-115`, `140` | `0.5.0` data 11.7, state 5.3 | — (`MISSING / NEW`) | `K3` — dokumen Evaluasi Awal delapan bagian checklist berversi; hanya pemegang hak MPP di unit episode yang menulis | `BE-RWI-107` | AC-1 s.d. AC-5 | `dotnet build`; verifikasi skema; verifikasi proses bisnis | Addendum menunggu jenis dokumen `14` — `INT-KEP-12` / Muhammad Hamzah | Kartu `BE-RWI-113` |
-| `BE-RWI-114` | Dosis obat berjadwal terbentuk sendiri dan tidak pernah ganda | `FR-KEP-064`, `FR-KEP-071`; `INT-KEP-08` | `0.5.0` data 11.13, API 7.13 | — (`MISSING / NEW`) | `K4` — tabel MAR, revisi, jadwal, pengaturan; hosted service pembentukan dosis; **idempoten** saat MAR dibuka dan saat terjadwal | `BE-RWI-106` | AC-1 s.d. AC-6 | `dotnet build`; verifikasi skema; uji idempoten dua pemanggilan | Dosis ganda = risiko pemberian obat berlebih / Muhammad Hamzah | Kartu `BE-RWI-114` |
-| `BE-RWI-115` | Perawat mencatat pemberian obat beserta alasannya | `FR-KEP-065`, `067`, `068`; `VAL-KEP-30` | `0.5.0` state 5.5, API 7.11 | Tabel dari `BE-RWI-114` | Dosis `Administered`/`Held`/`Refused`/`Missed` bersyarat isian dan alasan; PRN mencatat indikasi dan evaluasi; koreksi **menyimpan revisi**, dosis tidak pernah dihapus | `BE-RWI-114` | AC-1 s.d. AC-7 | `dotnet build`; verifikasi kontrak API; uji kiriman ulang | Kiriman ulang **tidak boleh** menggandakan pencatatan / Muhammad Hamzah | Kartu `BE-RWI-115` |
-| `BE-RWI-116` | Obat high-alert menunggu perawat kedua | `FR-KEP-066`; `VAL-KEP-31`; `RWI-DEC-117` | `0.5.0` state 5.5 | Jalur pencatatan dari `BE-RWI-115` | Cek ganda `NotRequired`/`Pending`/`Confirmed`/`Rejected` sebelum `Administered` | `BE-RWI-115` | AC-1 s.d. AC-5 | `dotnet build`; verifikasi proses bisnis | Perawat kedua **tidak boleh** orang yang sama / Muhammad Hamzah | Kartu `BE-RWI-116` |
-| `BE-RWI-117` | Dugaan reaksi obat tercatat sebagai alergi tertaut | `FR-KEP-070`; `INT-KEP-13` | `0.5.0` data | `TrxPatientAllergy` | `K6` — dua kolom baru; dugaan reaksi dicatat dari dosis sebagai alergi `Suspected` tertaut, **tanpa mengubah MAR** | `BE-RWI-115` | AC-1 s.d. AC-4 | `dotnet build`; verifikasi skema; verifikasi proses bisnis | Mengubah MAR dari jalur alergi = riwayat pemberian obat berubah / Muhammad Hamzah | Kartu `BE-RWI-117` |
-| `BE-RWI-118` | Obat yang dihentikan tidak muncul lagi di daftar perawat | `FR-KEP-069`; `INT-KEP-09`, `INT-KEP-15` | `0.5.0` integrasi | Tabel dari `BE-RWI-114` | Penghentian butir membatalkan dosis `Due` sesudahnya; penutupan episode membatalkan dosis `Due` masa depan | `BE-RWI-114` | AC-1 s.d. AC-4 | `dotnet build`; verifikasi proses bisnis; uji galat buatan | Titik temu dengan `BE-RWI-100` [BE-DOK] dan `BE-RWI-087` [BE-INP] / Muhammad Hamzah | Kartu `BE-RWI-118` |
-| `BE-RWI-119` | Cairan, gula darah, dan observasi harian tersimpan terstruktur | `FR-KEP-057`, `061`, `062`; `RWI-DEC-148` | `0.5.0` data 11.8–11.10 | — (`MISSING / NEW`) | `K5` — tabel cairan, gula darah, observasi, shift beserta revisi; entri bersumber, bervolume ml, berwaktu, berpelaksana; GDS **satu tempat** dengan satuan wajib tanpa bawaan | `BE-RWI-114` | AC-1 s.d. AC-7 | `dotnet build`; verifikasi skema; verifikasi kontrak API | Satuan GDS berbawaan = salah hitung dosis insulin / Muhammad Hamzah | Kartu `BE-RWI-119` |
-| `BE-RWI-120` | Balance cairan per shift dan 24 jam terbaca | `FR-KEP-059`, `FR-KEP-060`; `AC-KEP-093` | `0.5.0` API 7.5 | Tabel dari `BE-RWI-119` | Balance dihitung dari entri **aktif**; jam shift dikonfigurasi per unit atau bawaan; tanpa shift hanya 24 jam | `BE-RWI-119` | AC-1 s.d. AC-5 | `dotnet build`; verifikasi kontrak API | Jam shift **tidak** mempengaruhi kewenangan / Muhammad Hamzah | Kartu `BE-RWI-120` |
-| `BE-RWI-121` | Tanda vital terbaca sebagai deret per episode | `FR-KEP-056`; `RWI-DEC-118` | `0.5.0` data 11.2 | `TrxPatientVitalSign` | Tanda vital menyimpan episode; tampil sebagai deret dan grafik per episode | `BE-RWI-110` | AC-1 s.d. AC-4 | `dotnet build`; verifikasi skema; verifikasi kontrak API | — / Muhammad Hamzah | Kartu `BE-RWI-121` |
-| `BE-RWI-122` | Intake obat tertaut ke dosis yang benar-benar diberikan | `FR-KEP-058`, `FR-KEP-063`; `RWI-DEC-149`; `VAL-KEP-24d`–`g` | `0.5.0` validation | Tabel dari `BE-RWI-119`, dosis dari `BE-RWI-115` | Intake obat menunjuk **tepat satu** dosis MAR `Administered`, volume diketik termasuk pelarut; pengingat dosis tanpa entri; penanda entri yang dosisnya dikoreksi — **tanpa mewajibkan** | `BE-RWI-119`, `BE-RWI-115` | AC-1 s.d. AC-6 | `dotnet build`; verifikasi kontrak API; verifikasi proses bisnis | Usulan `G-26`, `G-27` — `ADOPTED_AS_PROPOSED` `RWI-DEC-150` / Muhammad Hamzah | Kartu `BE-RWI-122` |
-| `BE-RWI-123` | Dosis insulin dihitung dari GDS bangsal menurut order yang aktif | `FR-KEP-072` s.d. `076`; `RWI-DEC-146`, `148` | `0.5.0` state 5.6, API 7.12 | Order dari `BE-RWI-103` [BE-DOK] | `K7` — tabel pelaksanaan; ditolak tanpa order aktif; hanya dari GDS bangsal bersatuan sama; GDS, dosis MAR, dan pelaksanaan dalam **satu transaksi idempoten** | `BE-RWI-119`, `BE-RWI-103` [BE-DOK] | AC-1 s.d. AC-7 | `dotnet build`; verifikasi skema; verifikasi proses bisnis; uji galat buatan | **Paling berbahaya di roadmap ini** — salah hitung = dosis insulin salah / pemilik klinis **belum ditunjuk** | Kartu `BE-RWI-123` |
-| `BE-RWI-124` | SOAP dan catatan keperawatan masuk ke CPPT yang sama | `FR-KEP-077`; `RWI-AC-204`, `205` | `0.5.0` + `0.6.0` [DOK] | Kolom `NoteKind` dari `BE-RWI-094` | SOAP dan Catatan Keperawatan disimpan sebagai CPPT berjenis `NursingSoap` dan `NursingNarrative`; menu masing-masing menyaring jenisnya | `BE-RWI-094` [BE-DOK] | AC-1 s.d. AC-4 | `dotnet build`; verifikasi kontrak API | Enum jenis dikunci `dokter-rawat-inap`, bukan di sini / Muhammad Hamzah | Kartu `BE-RWI-124` |
-| `BE-RWI-125` | Perawat mencatat obat bawaan dan memesan tindakan atas instruksi dokter | `FR-KEP-078`, `FR-KEP-079`; `INT-DOK-19` | `0.6.0` [DOK] API 7.15 | Kontrak `dokter-rawat-inap` | Perawat mencatat obat bawaan dan **membaca** keputusan rekonsiliasi; perawat memesan tindakan dengan dokter pemberi instruksi | `BE-RWI-101` [BE-DOK], `BE-RWI-097` [BE-DOK] | AC-1 s.d. AC-5 | `dotnet build`; verifikasi kontrak API; verifikasi proses bisnis | Perawat **tidak** memutuskan rekonsiliasi — hanya membaca / Muhammad Hamzah | Kartu `BE-RWI-125` |
-| `BE-RWI-126` | Ringkasan tagihan terbaca bagi pemegang hak khusus | `FR-KEP-082`; `RWI-DEC-137` | `0.5.0` API 7.14 | — (`MISSING / NEW`) | Ringkasan **baca-saja tanpa harga per item**, hanya bagi pemegang `PatientBillingSummary : Read` | — | AC-1 s.d. AC-4 | `dotnet build`; verifikasi kontrak API | ~~menunggu kontrak Billing~~ **disetujui 2026-09-16 `RWI-DEC-154`**; `RWI-OQ-053` tertutup / **Yasmina** ✅ | Kartu `BE-RWI-126` |
+| ✅ `BE-RWI-106` | Lima cacat keselamatan pengkajian tertutup tanpa menyentuh bentuk data | `FR-KEP-038`; `RLN3-CAP-17`, `18`, `21`, `22`, `29` | `0.5.0` API pengkajian | Jalur pengkajian yang sudah ada | `K0` — enum frontend–backend sejajar; daftar berpaginasi; isian belum dikaji tidak terkirim sebagai normal; detail dibaca sebelum disunting; penanganan `401`/`403` | — | AC-1 s.d. AC-6 | `dotnet build`; verifikasi kontrak API; review diff dan scope | "Belum dikaji" terkirim sebagai "normal" adalah cacat keselamatan / Muhammad Hamzah | Kartu `BE-RWI-106`; [laporan](../task/report/backend/BE-RWI-106.md) |
+| ✅ `BE-RWI-107` | Instrumen klinis menjadi konfigurasi berversi, bukan angka di dalam kode | `FR-KEP-039`, `041`, `042`; `RWI-DEC-124`, `136` | `0.5.0` data 11.4–11.5 | — (`MISSING / NEW`) | `K1` — tabel instrumen, versi, jawaban; definisi JSON beserta hash; seeder **draft** lima instrumen dan formulir | `BE-RWI-106` | AC-1 s.d. AC-6 | `dotnet build`; verifikasi skema; verifikasi kontrak API | Seeder **tidak** membereskan batas yang bertabrakan — hanya menandainya / komite keperawatan | Kartu `BE-RWI-107`; [laporan](../task/report/backend/BE-RWI-107.md) |
+| ✅ `BE-RWI-108` | Versi instrumen disahkan orang yang berbeda dari pengubahnya | `FR-KEP-040`; `VAL-KEP-20a` | `0.5.0` state 5.1 | Tabel dari `BE-RWI-107` | Siklus `Draft` → `Approved` → `Retired`; pengesah bukan pengubah terakhir | `BE-RWI-107` | AC-1 s.d. AC-4 | `dotnet build`; verifikasi proses bisnis | — / komite keperawatan | Kartu `BE-RWI-108`; [laporan](../task/report/backend/BE-RWI-108.md) |
+| ✅ `BE-RWI-109` | Skor risiko jatuh dihitung dari instrumen berversi, bukan angka tetap | `FR-KEP-043`, `FR-KEP-044`; mencabut `RWI-FACT-036` | `0.5.0` data 11.6 | Perhitungan risiko jatuh yang sudah ada | `K2` — perhitungan rawat inap pindah ke instrumen berversi; jalur non-rawat-inap **tetap** sampai pemilik `rawat-jalan` memutuskan | `BE-RWI-107` | AC-1 s.d. AC-5 | `dotnet build`; verifikasi proses bisnis; **regresi poliklinik** | **Mengubah perilaku** — pemberitahuan pemilik `rawat-jalan` wajib; mundur wajib dicatat sebagai kejadian keselamatan / pemilik `rawat-jalan` | Kartu `BE-RWI-109`; [laporan](../task/report/backend/BE-RWI-109.md) |
+| ✅ `BE-RWI-110` | Kajian Umum delapan bagian tersimpan terstruktur | `FR-KEP-045`, `046`, `049`; `RWI-DEC-131` | `0.5.0` data + API | `TrxPatientAssessment`, `TrxPatientVitalSign` | `K3` — tiga kolom `TrxPatientAssessment`, satu kolom `TrxPatientVitalSign`; Kajian Umum **menunjuk** satu baris tanda vital, tidak menyalin angkanya | `BE-RWI-107` | AC-1 s.d. AC-6 | `dotnet build`; verifikasi skema; verifikasi kontrak API | Menyalin angka vital = dua sumber kebenaran / Muhammad Hamzah | Kartu `BE-RWI-110`; [laporan](../task/report/backend/BE-RWI-110.md) |
+| ✅ `BE-RWI-111` | Risiko jatuh, nyeri, dan edukasi menjadi dokumen tersendiri | `FR-KEP-047`, `FR-KEP-048`; `VAL-KEP-22` | `0.5.0` enum 6–8 | Jenis dokumen pengkajian | Tiga jenis dokumen baru; Monitoring Nyeri mewajibkan keadaan nyeri sebelum selesai dan menyimpan waktu kajian ulang | `BE-RWI-110` | AC-1 s.d. AC-5 | `dotnet build`; verifikasi kontrak API; verifikasi proses bisnis | — / Muhammad Hamzah | Kartu `BE-RWI-111`; [laporan](../task/report/backend/BE-RWI-111.md) |
+| ✅ `BE-RWI-112` | Perawat melihat berapa bagian pengkajian yang sudah beres | `FR-KEP-050`, `051`, `052`; `RWI-DEC-119` | `0.5.0` API 7.1 | — (`MISSING / NEW`) | Progres lima bagian ✓/!/○, persen kelipatan 20; temuan berisiko menjadi **alert kepala konteks**, bukan mengubah progres | `BE-RWI-110`, `BE-RWI-111` | AC-1 s.d. AC-6 | `dotnet build`; verifikasi kontrak API | Progres gagal dimuat **tidak boleh** tampil sebagai ○ / Muhammad Hamzah | Kartu `BE-RWI-112`; [laporan](../task/report/backend/BE-RWI-112.md) |
+| ✅ `BE-RWI-113` | MPP mengisi Evaluasi Awal sebagai satu dokumen hidup per episode | `FR-KEP-053`, `054`, `055`; `RWI-DEC-115`, `140` | `0.5.0` data 11.7, state 5.3 | — (`MISSING / NEW`) | `K3` — dokumen Evaluasi Awal delapan bagian checklist berversi; hanya pemegang hak MPP di unit episode yang menulis | `BE-RWI-107` | AC-1 s.d. AC-5 | `dotnet build`; verifikasi skema; verifikasi proses bisnis | Addendum menunggu jenis dokumen `14` — `INT-KEP-12` / Muhammad Hamzah | Kartu `BE-RWI-113`; [laporan](../task/report/backend/BE-RWI-113.md) |
+| ✅ `BE-RWI-114` | Dosis obat berjadwal terbentuk sendiri dan tidak pernah ganda | `FR-KEP-064`, `FR-KEP-071`; `INT-KEP-08` | `0.5.0` data 11.13, API 7.13 | — (`MISSING / NEW`) | `K4` — tabel MAR, revisi, jadwal, pengaturan; hosted service pembentukan dosis; **idempoten** saat MAR dibuka dan saat terjadwal | `BE-RWI-106` | AC-1 s.d. AC-6 | `dotnet build`; verifikasi skema; uji idempoten dua pemanggilan | Dosis ganda = risiko pemberian obat berlebih / Muhammad Hamzah | Kartu `BE-RWI-114`; [laporan](../task/report/backend/BE-RWI-114.md) |
+| ✅ `BE-RWI-115` | Perawat mencatat pemberian obat beserta alasannya | `FR-KEP-065`, `067`, `068`; `VAL-KEP-30` | `0.5.0` state 5.5, API 7.11 | Tabel dari `BE-RWI-114` | Dosis `Administered`/`Held`/`Refused`/`Missed` bersyarat isian dan alasan; PRN mencatat indikasi dan evaluasi; koreksi **menyimpan revisi**, dosis tidak pernah dihapus | `BE-RWI-114` | AC-1 s.d. AC-7 | `dotnet build`; verifikasi kontrak API; uji kiriman ulang | Kiriman ulang **tidak boleh** menggandakan pencatatan / Muhammad Hamzah | Kartu `BE-RWI-115`; [laporan](../task/report/backend/BE-RWI-115.md) |
+| ✅ `BE-RWI-116` | Obat high-alert menunggu perawat kedua | `FR-KEP-066`; `VAL-KEP-31`; `RWI-DEC-117` | `0.5.0` state 5.5 | Jalur pencatatan dari `BE-RWI-115` | Cek ganda `NotRequired`/`Pending`/`Confirmed`/`Rejected` sebelum `Administered` | `BE-RWI-115` | AC-1 s.d. AC-5 | `dotnet build`; verifikasi proses bisnis | Perawat kedua **tidak boleh** orang yang sama / Muhammad Hamzah | Kartu `BE-RWI-116`; [laporan](../task/report/backend/BE-RWI-116.md) |
+| ✅ `BE-RWI-117` | Dugaan reaksi obat tercatat sebagai alergi tertaut | `FR-KEP-070`; `INT-KEP-13` | `0.5.0` data | `TrxPatientAllergy` | `K6` — dua kolom baru; dugaan reaksi dicatat dari dosis sebagai alergi `Suspected` tertaut, **tanpa mengubah MAR** | `BE-RWI-115` | AC-1 s.d. AC-4 | `dotnet build`; verifikasi skema; verifikasi proses bisnis | Mengubah MAR dari jalur alergi = riwayat pemberian obat berubah / Muhammad Hamzah | Kartu `BE-RWI-117`; [laporan](../task/report/backend/BE-RWI-117.md) |
+| ✅ `BE-RWI-118` | Obat yang dihentikan tidak muncul lagi di daftar perawat | `FR-KEP-069`; `INT-KEP-09`, `INT-KEP-15` | `0.5.0` integrasi | Tabel dari `BE-RWI-114` | Penghentian butir membatalkan dosis `Due` sesudahnya; penutupan episode membatalkan dosis `Due` masa depan | `BE-RWI-114` | AC-1 s.d. AC-4 | `dotnet build`; verifikasi proses bisnis; uji galat buatan | Titik temu dengan `BE-RWI-100` [BE-DOK] dan `BE-RWI-087` [BE-INP] / Muhammad Hamzah | Kartu `BE-RWI-118`; [laporan](../task/report/backend/BE-RWI-118.md) |
+| ✅ `BE-RWI-119` | Cairan, gula darah, dan observasi harian tersimpan terstruktur | `FR-KEP-057`, `061`, `062`; `RWI-DEC-148` | `0.5.0` data 11.8–11.10 | — (`MISSING / NEW`) | `K5` — tabel cairan, gula darah, observasi, shift beserta revisi; entri bersumber, bervolume ml, berwaktu, berpelaksana; GDS **satu tempat** dengan satuan wajib tanpa bawaan | `BE-RWI-114` | AC-1 s.d. AC-7 | `dotnet build`; verifikasi skema; verifikasi kontrak API | Satuan GDS berbawaan = salah hitung dosis insulin / Muhammad Hamzah | Kartu `BE-RWI-119`; [laporan](../task/report/backend/BE-RWI-119.md) |
+| ✅ `BE-RWI-120` | Balance cairan per shift dan 24 jam terbaca | `FR-KEP-059`, `FR-KEP-060`; `AC-KEP-093` | `0.5.0` API 7.5 | Tabel dari `BE-RWI-119` | Balance dihitung dari entri **aktif**; jam shift dikonfigurasi per unit atau bawaan; tanpa shift hanya 24 jam | `BE-RWI-119` | AC-1 s.d. AC-5 | `dotnet build`; verifikasi kontrak API | Jam shift **tidak** mempengaruhi kewenangan / Muhammad Hamzah | Kartu `BE-RWI-120`; [laporan](../task/report/backend/BE-RWI-120.md) |
+| ✅ `BE-RWI-121` | Tanda vital terbaca sebagai deret per episode | `FR-KEP-056`; `RWI-DEC-118` | `0.5.0` data 11.2 | `TrxPatientVitalSign` | Tanda vital menyimpan episode; tampil sebagai deret dan grafik per episode | `BE-RWI-110` | AC-1 s.d. AC-4 | `dotnet build`; verifikasi skema; verifikasi kontrak API | — / Muhammad Hamzah | Kartu `BE-RWI-121`; [laporan](../task/report/backend/BE-RWI-121.md) |
+| ✅ `BE-RWI-122` | Intake obat tertaut ke dosis yang benar-benar diberikan | `FR-KEP-058`, `FR-KEP-063`; `RWI-DEC-149`; `VAL-KEP-24d`–`g` | `0.5.0` validation | Tabel dari `BE-RWI-119`, dosis dari `BE-RWI-115` | Intake obat menunjuk **tepat satu** dosis MAR `Administered`, volume diketik termasuk pelarut; pengingat dosis tanpa entri; penanda entri yang dosisnya dikoreksi — **tanpa mewajibkan** | `BE-RWI-119`, `BE-RWI-115` | AC-1 s.d. AC-6 | `dotnet build`; verifikasi kontrak API; verifikasi proses bisnis | Usulan `G-26`, `G-27` — `ADOPTED_AS_PROPOSED` `RWI-DEC-150` / Muhammad Hamzah | Kartu `BE-RWI-122`; [laporan](../task/report/backend/BE-RWI-122.md) |
+| ✅ `BE-RWI-123` | Dosis insulin dihitung dari GDS bangsal menurut order yang aktif | `FR-KEP-072` s.d. `076`; `RWI-DEC-146`, `148` | `0.5.0` state 5.6, API 7.12 | Order dari `BE-RWI-103` [BE-DOK] | `K7` — tabel pelaksanaan; ditolak tanpa order aktif; hanya dari GDS bangsal bersatuan sama; GDS, dosis MAR, dan pelaksanaan dalam **satu transaksi idempoten** | `BE-RWI-119`, `BE-RWI-103` [BE-DOK] | AC-1 s.d. AC-7 | `dotnet build`; verifikasi skema; verifikasi proses bisnis; uji galat buatan | **Paling berbahaya di roadmap ini** — salah hitung = dosis insulin salah / pemilik klinis **belum ditunjuk** | Kartu `BE-RWI-123`; [laporan](../task/report/backend/BE-RWI-123.md) |
+| ✅ `BE-RWI-124` | SOAP dan catatan keperawatan masuk ke CPPT yang sama | `FR-KEP-077`; `RWI-AC-204`, `205` | `0.5.0` + `0.6.0` [DOK] | Kolom `NoteKind` dari `BE-RWI-094` | SOAP dan Catatan Keperawatan disimpan sebagai CPPT berjenis `NursingSoap` dan `NursingNarrative`; menu masing-masing menyaring jenisnya | `BE-RWI-094` [BE-DOK] | AC-1 s.d. AC-4 | `dotnet build`; verifikasi kontrak API | Enum jenis dikunci `dokter-rawat-inap`, bukan di sini / Muhammad Hamzah | Kartu `BE-RWI-124`; [laporan](../task/report/backend/BE-RWI-124.md) |
+| ✅ `BE-RWI-125` | Perawat mencatat obat bawaan dan memesan tindakan atas instruksi dokter | `FR-KEP-078`, `FR-KEP-079`; `INT-DOK-19` | `0.6.0` [DOK] API 7.15 | Kontrak `dokter-rawat-inap` | Perawat mencatat obat bawaan dan **membaca** keputusan rekonsiliasi; perawat memesan tindakan dengan dokter pemberi instruksi | `BE-RWI-101` [BE-DOK], `BE-RWI-097` [BE-DOK] | AC-1 s.d. AC-5 | `dotnet build`; verifikasi kontrak API; verifikasi proses bisnis | Perawat **tidak** memutuskan rekonsiliasi — hanya membaca / Muhammad Hamzah | Kartu `BE-RWI-125`; [laporan](../task/report/backend/BE-RWI-125.md) |
+| ✅ `BE-RWI-126` | Ringkasan tagihan terbaca bagi pemegang hak khusus | `FR-KEP-082`; `RWI-DEC-137` | `0.5.0` API 7.14 | — (`MISSING / NEW`) | Ringkasan **baca-saja tanpa harga per item**, hanya bagi pemegang `PatientBillingSummary : Read` | — | AC-1 s.d. AC-4 | `dotnet build`; verifikasi kontrak API | ~~menunggu kontrak Billing~~ **disetujui 2026-09-16 `RWI-DEC-154`**; `RWI-OQ-053` tertutup / **Yasmina** ✅ | Kartu `BE-RWI-126`; [laporan](../task/report/backend/BE-RWI-126.md) |
 
 ---
 
 ## Kartu task
 
-### `BE-RWI-106` — Lima perbaikan keselamatan pengkajian (migration K0)
+### ✅ `BE-RWI-106` — Lima perbaikan keselamatan pengkajian (migration K0)
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 17 September 2026.** Keenam acceptance criteria terpetakan ke source `PatientAssessmentController` dan `PatientAssessmentDtos`: kode alasan `errors.code` pada penolakan penjaga, metadata enum dari server, penolakan enum tidak sah, saringan `assessmentStatus` pada daftar berpaginasi, dan penjaga baca-detail-sebelum-sunting (`400 DETAIL_NOT_LOADED` / `409 STALE_ASSESSMENT`). `dotnet build` `0 Error(s)`, `212 Warning(s)`, `00:06:56` (garis dasar 212, nol warning berkas baru); `has-pending-model-changes` bersih. Verifikasi kontrak API runtime `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-106.md) |
 | **Gelombang** | 1 — `KEP-V2-0` |
 | **Migration** | `K0` — kode saja, nol perubahan bentuk data |
 
@@ -281,11 +281,11 @@ kelima perbaikan; roadmap dan `requirement-traceability-v2.md` diperbarui.
 
 ---
 
-### `BE-RWI-107` — Instrumen dan formulir klinis berversi (migration K1)
+### ✅ `BE-RWI-107` — Instrumen dan formulir klinis berversi (migration K1)
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 17 September 2026.** Keenam acceptance criteria terpetakan: tabel instrumen, versi, dan jawaban beserta migration `K1` **diterapkan ke `QuilvianNewDevHamzah` 17 September 2026**; definisi JSON ber-hash SHA-256 dengan validasi pita; seeder **Draft** delapan baseline yang hanya **menandai** batas bertabrakan pada `reviewFlags`. `dotnet build` `0 Error(s)`, `212 Warning(s)`, `00:06:56` (garis dasar 212, nol warning berkas baru); `has-pending-model-changes` bersih. Skema terverifikasi dari katalog database; verifikasi kontrak API runtime `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-107.md) |
 | **Gelombang** | 2 — `KEP-V2-1` |
 | **Migration** | `K1` — tabel instrumen, versi, jawaban; milik `ClinicalManagement` |
 
@@ -317,11 +317,11 @@ seeder; roadmap dan traceability diperbarui.
 
 ---
 
-### `BE-RWI-108` — Pengesahan versi instrumen
+### ✅ `BE-RWI-108` — Pengesahan versi instrumen
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 17 September 2026.** Keempat acceptance criteria terpetakan: `Draft` → `Approved` → `Retired` dalam satu transaksi, pengesah bukan pengubah terakhir (`403`), penanda tinjauan terbuka menolak pengesahan. `dotnet build` `0 Error(s)`, `212 Warning(s)`, `00:06:56` (garis dasar 212, nol warning berkas baru); `has-pending-model-changes` bersih. Verifikasi proses bisnis `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-108.md) |
 | **Gelombang** | 3 — `KEP-V2-1` |
 
 **Bisnis prosesnya.** Pemisahan pengubah dan pengesah adalah kendali empat mata. Orang yang mengetik
@@ -341,11 +341,11 @@ pengubah terakhir.
 
 ---
 
-### `BE-RWI-109` — Risiko jatuh memakai instrumen berversi (migration K2)
+### ✅ `BE-RWI-109` — Risiko jatuh memakai instrumen berversi (migration K2)
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 17 September 2026.** Kelima acceptance criteria terpetakan: risiko jatuh rawat inap dihitung dari pita instrumen berversi lewat `NursingAssessmentDocumentService`; jalur poliklinik dan IGD tidak diubah. `dotnet build` `0 Error(s)`, `212 Warning(s)`, `00:06:56` (garis dasar 212, nol warning berkas baru); `has-pending-model-changes` bersih. **Regresi poliklinik `NOT RUN`**, dikecualikan atas keputusan yang sama dan wajib dijalankan sebelum rilis. Bukti: [laporan](../task/report/backend/BE-RWI-109.md) |
 | **Gelombang** | 3 — `KEP-V2-1` |
 | **Migration** | `K2` — **mengubah perilaku**; wajib diberitahukan pemilik `rawat-jalan` |
 
@@ -378,11 +378,11 @@ traceability diperbarui.
 
 ---
 
-### `BE-RWI-110` — Kajian Umum delapan bagian (migration K3)
+### ✅ `BE-RWI-110` — Kajian Umum delapan bagian (migration K3)
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 17 September 2026.** Keenam acceptance criteria terpetakan: tiga kolom `TrxPatientAssessment`, satu kolom `TrxPatientVitalSign`, migration `K3` **diterapkan ke `QuilvianNewDevHamzah` 17 September 2026** dengan `Down` yang menolak bila kolom berisi data; Kajian Umum menunjuk `VitalSignId`; tanda vital rawat inap menolak isian nyeri. `dotnet build` `0 Error(s)`, `212 Warning(s)`, `00:06:56` (garis dasar 212, nol warning berkas baru); `has-pending-model-changes` bersih. Skema terverifikasi dari katalog database; verifikasi kontrak API runtime `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-110.md) |
 | **Gelombang** | 3 — `KEP-V2-1` |
 | **Migration** | `K3` — tiga kolom `TrxPatientAssessment`, satu kolom `TrxPatientVitalSign` |
 
@@ -409,11 +409,11 @@ salinan di kajian tetap salah.
 
 ---
 
-### `BE-RWI-111` — Risiko jatuh, nyeri, dan edukasi sebagai dokumen tersendiri
+### ✅ `BE-RWI-111` — Risiko jatuh, nyeri, dan edukasi sebagai dokumen tersendiri
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 17 September 2026.** Kelima acceptance criteria terpetakan: `PatientAssessmentType` `6`/`7`/`8`; Monitoring Nyeri mewajibkan keadaan nyeri (`422`) dan menyimpan `PainReassessmentDueAt` dari instrumen berversi. `dotnet build` `0 Error(s)`, `212 Warning(s)`, `00:06:56` (garis dasar 212, nol warning berkas baru); `has-pending-model-changes` bersih. Verifikasi kontrak API dan proses bisnis `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-111.md) |
 | **Gelombang** | 4 — `KEP-V2-1` |
 
 **Bisnis prosesnya.** Tiga penilaian ini punya siklus sendiri — dikaji, dinilai ulang, ditutup — dan
@@ -434,11 +434,11 @@ tersendiri dengan enum `6`, `7`, dan `8`.
 
 ---
 
-### `BE-RWI-112` — Progres pengkajian lima bagian
+### ✅ `BE-RWI-112` — Progres pengkajian lima bagian
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 17 September 2026.** Keenam acceptance criteria terpetakan: `GET patient-assessments/episodes/{episodeId}/progress` menghitung lima bagian ✓/!/○ di server, persen kelipatan 20, alert klinis terpisah dari progres, galat tidak dijawab sebagai ○. `dotnet build` `0 Error(s)`, `212 Warning(s)`, `00:06:56` (garis dasar 212, nol warning berkas baru); `has-pending-model-changes` bersih. Verifikasi kontrak API runtime `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-112.md) |
 | **Gelombang** | 5 — `KEP-V2-1` |
 
 **Bisnis prosesnya.** Perawat perlu tahu bagian mana dari pengkajian yang sudah beres dan mana yang
@@ -466,11 +466,11 @@ bagian itu belum dikaji, padahal yang sebenarnya terjadi adalah sistem tidak tah
 
 ---
 
-### `BE-RWI-113` — Evaluasi Awal MPP (migration K3)
+### ✅ `BE-RWI-113` — Evaluasi Awal MPP (migration K3)
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 17 September 2026.** Kelima acceptance criteria terpetakan: `CliCaseManagementEvaluation` dengan unique parsial satu dokumen hidup per episode, penjaga butir hak akses **dan** penempatan unit, migration `K3` **diterapkan ke `QuilvianNewDevHamzah` 17 September 2026**. Kriteria 5 adalah dependency yang diketahui: addendum menjawab `501` sampai `INT-KEP-12`. `dotnet build` `0 Error(s)`, `212 Warning(s)`, `00:06:56` (garis dasar 212, nol warning berkas baru); `has-pending-model-changes` bersih. Skema terverifikasi dari katalog database; verifikasi proses bisnis `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-113.md) |
 | **Gelombang** | 3 — `KEP-V2-1` |
 | **Migration** | `K3` — dokumen Evaluasi Awal, milik `ClinicalManagement` |
 
@@ -497,11 +497,11 @@ cacat. Ia dicatat pada laporan task sebagai keadaan, bukan disembunyikan.
 
 ---
 
-### `BE-RWI-114` — MAR dan pembentukan dosis (migration K4)
+### ✅ `BE-RWI-114` — MAR dan pembentukan dosis (migration K4)
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 17 September 2026.** Keenam acceptance criteria terpetakan: empat tabel MAR `PharmacyManagement` beserta migration `K4` **diterapkan ke `QuilvianNewDevHamzah` 17 September 2026**; `EnsureDosesAsync` idempoten (pembacaan slot + unique parsial) dipanggil saat MAR dibuka dan oleh `MedicationDoseSchedulerHostedService`; jadwal per kode frekuensi dan pengaturan MAR milik Farmasi; frekuensi tanpa jadwal tetap terlihat. `dotnet build` `0 Error(s)`, `212 Warning(s)`, `00:06:56` (garis dasar 212, nol warning berkas baru); `has-pending-model-changes` bersih. **Uji idempoten dua pemanggilan `NOT RUN`** — keluaran belum dapat ditempel. Bukti: [laporan](../task/report/backend/BE-RWI-114.md) |
 | **Gelombang** | 2 — `KEP-V2-2` |
 | **Migration** | `K4` — tabel MAR, revisi, jadwal, pengaturan; milik `PharmacyManagement` |
 
@@ -532,11 +532,11 @@ keluarannya ditempel apa adanya.
 
 ---
 
-### `BE-RWI-115` — Pencatatan pemberian obat
+### ✅ `BE-RWI-115` — Pencatatan pemberian obat
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 17 September 2026.** Ketujuh acceptance criteria terpetakan: pencatatan `Administered`/`Held`/`Refused`/`Missed` bersyarat isian dan alasan, pelaksana dari akun login, penguncian baris dan `Idempotency-Key`, PRN berindikasi dan berevaluasi, pemberian tanpa jadwal beralasan, koreksi menyimpan revisi, catatan penyimpangan ±60 menit; nol jalur hapus. `dotnet build` `0 Error(s)`, `212 Warning(s)`, `00:06:56` (garis dasar 212, nol warning berkas baru); `has-pending-model-changes` bersih. Uji kiriman ulang `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-115.md) |
 | **Gelombang** | 3 — `KEP-V2-2` |
 
 **Bisnis prosesnya.** Perawat mencatat apa yang terjadi pada setiap dosis: diberikan, ditahan,
@@ -560,11 +560,11 @@ keluaran ditempel.
 
 ---
 
-### `BE-RWI-116` — Cek ganda obat high-alert
+### ✅ `BE-RWI-116` — Cek ganda obat high-alert
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 17 September 2026.** Kelima acceptance criteria terpetakan: dosis high-alert `Due` + `Pending`, pemeriksa kedua ditolak `403` bila sama dengan pencatat (akun maupun pegawai), `Rejected` mengembalikan dosis tanpa isian pemberian dengan revisi, daftar tunggu per unit. `dotnet build` `0 Error(s)`, `212 Warning(s)`, `00:06:56` (garis dasar 212, nol warning berkas baru); `has-pending-model-changes` bersih. Verifikasi proses bisnis `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-116.md) |
 | **Gelombang** | 4 — `KEP-V2-2` |
 
 **Bisnis prosesnya.** Obat high-alert — insulin, antikoagulan, elektrolit pekat — adalah obat yang
@@ -587,11 +587,11 @@ orang yang sama.
 
 ---
 
-### `BE-RWI-117` — Dugaan reaksi obat sebagai alergi tertaut (migration K6)
+### ✅ `BE-RWI-117` — Dugaan reaksi obat sebagai alergi tertaut (migration K6)
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 17 September 2026.** Keempat acceptance criteria terpetakan: dua kolom `TrxPatientAllergy` beserta migration `K6` **diterapkan ke `QuilvianNewDevHamzah` 17 September 2026**; `POST patient-allergies/from-medication-administration` melahirkan alergi `Suspected` tertaut dosis tanpa mengubah baris MAR. `dotnet build` `0 Error(s)`, `212 Warning(s)`, `00:06:56` (garis dasar 212, nol warning berkas baru); `has-pending-model-changes` bersih. Skema terverifikasi dari katalog database; verifikasi proses bisnis `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-117.md) |
 | **Gelombang** | 4 — `KEP-V2-2` |
 | **Migration** | `K6` — dua kolom `TrxPatientAllergy` |
 
@@ -613,11 +613,11 @@ MAR tidak berubah.
 
 ---
 
-### `BE-RWI-118` — Penghentian butir dan penutupan episode membatalkan dosis
+### ✅ `BE-RWI-118` — Penghentian butir dan penutupan episode membatalkan dosis
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 17 September 2026 — sisi keperawatan.** Keempat acceptance criteria terpetakan: `CancelDueDosesForItemAsync` dan `CancelFutureDosesForEpisodeAsync` tanpa transaksi sendiri; **langkah 6 penutupan episode terpasang** di dalam transaksi `CloseEpisodeInternalAsync`; jaring pengaman membatalkan dosis butir terhenti saat pembentukan dosis. Pemanggilan dari aksi penghentian butir adalah kriteria 2 `BE-RWI-100` [BE-DOK], yang kini tidak lagi terblokir. `dotnet build` `0 Error(s)`, `212 Warning(s)`, `00:06:56` (garis dasar 212, nol warning berkas baru); `has-pending-model-changes` bersih. Verifikasi proses bisnis dan uji galat buatan `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-118.md) |
 | **Gelombang** | 3 — `KEP-V2-2` |
 
 **Bisnis prosesnya.** Dua kejadian membuat dosis yang akan datang tidak boleh lagi diberikan:
@@ -641,11 +641,11 @@ supaya tidak saling menimpa.
 
 ---
 
-### `BE-RWI-119` — Cairan, gula darah, dan observasi harian (migration K5)
+### ✅ `BE-RWI-119` — Cairan, gula darah, dan observasi harian (migration K5)
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 17 September 2026.** Ketujuh acceptance criteria terpetakan: tujuh tabel Pengawasan Harian `ClinicalManagement` beserta migration `K5` **diterapkan ke `QuilvianNewDevHamzah` 17 September 2026** dengan `Down` yang menolak bila berisi data; entri cairan bersumber, ml, berwaktu, berpelaksana; koreksi dan pembatalan beralasan dengan revisi; GDS satu tempat dengan satuan wajib tanpa bawaan; observasi terstruktur. `dotnet build` `0 Error(s)`, `212 Warning(s)`, `00:06:56` (garis dasar 212, nol warning berkas baru); `has-pending-model-changes` bersih. Skema terverifikasi dari katalog database; verifikasi kontrak API runtime `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-119.md) |
 | **Gelombang** | 3 — `KEP-V2-2` |
 | **Migration** | `K5` — tabel cairan, gula darah, observasi, shift beserta revisi; FK ke MAR |
 
@@ -675,11 +675,11 @@ kesalahan berlipat delapan belas.
 
 ---
 
-### `BE-RWI-120` — Balance cairan per shift dan 24 jam
+### ✅ `BE-RWI-120` — Balance cairan per shift dan 24 jam
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 17 September 2026.** Kelima acceptance criteria terpetakan: balance dari entri aktif per shift dan 24 jam, unit tanpa shift hanya 24 jam tanpa shift buatan, `nursing-shifts` per unit atau bawaan dengan validasi 24 jam tanpa celah, jam shift tidak dibaca penjaga kewenangan. `dotnet build` `0 Error(s)`, `212 Warning(s)`, `00:06:56` (garis dasar 212, nol warning berkas baru); `has-pending-model-changes` bersih. Verifikasi kontrak API 7.5 `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-120.md) |
 | **Gelombang** | 4 — `KEP-V2-2` |
 
 **Bisnis prosesnya.** Balance cairan adalah selisih masuk dan keluar. Ia dibaca per shift dan per 24
@@ -700,11 +700,11 @@ unit.
 
 ---
 
-### `BE-RWI-121` — Tanda vital per episode
+### ✅ `BE-RWI-121` — Tanda vital per episode
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 17 September 2026.** Keempat acceptance criteria terpetakan: `InpEpisodeId` diisi saat mencatat tanda vital rawat inap, `GET patient-vital-signs/episodes/{episodeId}` mengembalikan deret terurut beserta MAP dan EWS dari server, jalur lama tidak diubah. `dotnet build` `0 Error(s)`, `212 Warning(s)`, `00:06:56` (garis dasar 212, nol warning berkas baru); `has-pending-model-changes` bersih. Skema terverifikasi dari katalog database; verifikasi kontrak API runtime `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-121.md) |
 | **Gelombang** | 4 — `KEP-V2-2` |
 
 **Bisnis prosesnya.** Tanda vital selama ini tidak menyimpan episode, sehingga tidak bisa ditampilkan
@@ -724,11 +724,11 @@ sepanjang rawat inap, bukan sebagai angka lepas.
 
 ---
 
-### `BE-RWI-122` — Intake obat tertaut dosis MAR
+### ✅ `BE-RWI-122` — Intake obat tertaut dosis MAR
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 17 September 2026.** Keenam acceptance criteria terpetakan: intake obat wajib menunjuk tepat satu dosis `Administered` episode yang sama, volume diketik, satu dosis satu entri aktif, pengingat dosis tanpa entri pada ringkasan harian, entri ditandai saat dosisnya dikoreksi di dalam transaksi koreksi MAR, entri ikut balance. `dotnet build` `0 Error(s)`, `212 Warning(s)`, `00:06:56` (garis dasar 212, nol warning berkas baru); `has-pending-model-changes` bersih. Verifikasi kontrak API dan proses bisnis `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-122.md) |
 | **Gelombang** | 4 — `KEP-V2-2` |
 
 **Bisnis prosesnya.** Obat yang masuk lewat infus ikut menambah cairan masuk pasien. Supaya tidak
@@ -756,11 +756,11 @@ kriteria.
 
 ---
 
-### `BE-RWI-123` — Pelaksanaan sliding scale (migration K7)
+### ✅ `BE-RWI-123` — Pelaksanaan sliding scale (migration K7)
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 17 September 2026.** Ketujuh acceptance criteria terpetakan: `PhmSlidingScaleExecution` beserta migration `K7` **diterapkan ke `QuilvianNewDevHamzah` 17 September 2026**; pelaksanaan ditolak tanpa order aktif, hanya dari GDS bangsal bersatuan sama tanpa konversi; GDS, dosis MAR, dan pelaksanaan dalam satu transaksi dengan `Idempotency-Key` wajib; pratinjau tanpa simpan; rentang 0 unit → `Held` beralasan. `dotnet build` `0 Error(s)`, `212 Warning(s)`, `00:06:56` (garis dasar 212, nol warning berkas baru); `has-pending-model-changes` bersih. Skema terverifikasi dari katalog database; verifikasi proses bisnis dan uji galat buatan `NOT RUN`. **`RWI-OQ-097` masih terbuka** — tanpa nama pengesah isi protokol tidak ada order aktif pada pasien sungguhan. Bukti: [laporan](../task/report/backend/BE-RWI-123.md) |
 | **Gelombang** | 4 — `KEP-V2-2` |
 | **Migration** | `K7` — tabel pelaksanaan; milik `PharmacyManagement`; **setelah** `R6` `dokter-rawat-inap` |
 
@@ -801,11 +801,11 @@ traceability diperbarui.
 
 ---
 
-### `BE-RWI-124` — SOAP dan catatan keperawatan sebagai CPPT berjenis
+### ✅ `BE-RWI-124` — SOAP dan catatan keperawatan sebagai CPPT berjenis
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 17 September 2026.** Keempat acceptance criteria ditopang source `dokter-rawat-inap` (`BE-RWI-094`): `NursingSoap`/`NursingNarrative` dan penjaga profesi penulis sudah ada; task ini menambah saringan `noteKind` pada daftar dan lini masa CPPT. `dotnet build` `0 Error(s)`, `212 Warning(s)`, `00:06:56` (garis dasar 212, nol warning berkas baru); `has-pending-model-changes` bersih. Verifikasi kontrak API `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-124.md) |
 | **Gelombang** | 1 — `KEP-V2-3`, menunggu `BE-RWI-094` [BE-DOK] |
 
 **Bisnis prosesnya.** SOAP keperawatan dan Catatan Keperawatan bukan tabel baru — keduanya masuk ke
@@ -828,11 +828,11 @@ Itulah arti "catatan perkembangan pasien **terintegrasi**": satu lini masa, bany
 
 ---
 
-### `BE-RWI-125` — Obat bawaan dan pesanan tindakan dari sisi perawat
+### ✅ `BE-RWI-125` — Obat bawaan dan pesanan tindakan dari sisi perawat
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **SELESAI 17 September 2026.** Kelima acceptance criteria sudah ditopang source `dokter-rawat-inap` (`BE-RWI-097`, `BE-RWI-101`); nol berkas source diubah. `dotnet build` `0 Error(s)`, `212 Warning(s)`, `00:06:56` (garis dasar 212, nol warning berkas baru); `has-pending-model-changes` bersih. Verifikasi kontrak API dan proses bisnis termasuk percobaan perawat mengubah keputusan rekonsiliasi `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-125.md) |
 | **Gelombang** | 1 — `KEP-V2-3`, menunggu `BE-RWI-101` dan `BE-RWI-097` [BE-DOK] |
 
 **Bisnis prosesnya.** Perawatlah yang biasanya mendata obat bawaan pasien saat masuk, dan perawat
@@ -854,11 +854,11 @@ percobaan perawat mengubah keputusan rekonsiliasi.
 
 ---
 
-### `BE-RWI-126` — Ringkasan tagihan pasien baca-saja
+### ✅ `BE-RWI-126` — Ringkasan tagihan pasien baca-saja
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan. ~~⛔ menunggu kontrak Billing~~ — **gerbang tertutup 2026-09-16 lewat `RWI-DEC-154`** |
+| **Status** | ✅ **SELESAI 17 September 2026.** Keempat acceptance criteria terpetakan: `GET billing-management/patient-billing-summaries/episodes/{episodeId}` baca-saja tanpa harga per item, butir `PatientBillingSummary : Read`, nol jalur tulis. Kontrak disetujui `RWI-DEC-154`; source ditulis di modul `BillingManagement` dan **perlu ditinjau pemiliknya, Yasmina**. `dotnet build` `0 Error(s)`, `212 Warning(s)`, `00:06:56` (garis dasar 212, nol warning berkas baru); `has-pending-model-changes` bersih. Verifikasi kontrak API `NOT RUN`. Bukti: [laporan](../task/report/backend/BE-RWI-126.md) |
 | **Gelombang** | 1 — `KEP-V2-4`; tidak punya prasyarat sama sekali |
 
 **Bisnis prosesnya.** Perawat atau petugas tertentu kadang perlu tahu gambaran tagihan pasien —
@@ -901,12 +901,12 @@ Mengikuti `rules/backend/TEST_POLICY.md`:
 
 | Gerbang | Jenis | Menahan | Siapa yang membukanya |
 | --- | --- | --- | --- |
-| ~~`{GATE-BILLING}` — kontrak Billing~~ | **TERTUTUP 2026-09-16** lewat `RWI-DEC-154` | ~~`BE-RWI-126`~~ — kini bebas, gelombang 1 | **Yasmina** ✅ |
+| ~~`{GATE-BILLING}` — kontrak Billing~~ | **TERTUTUP 2026-09-16** lewat `RWI-DEC-154` | ~~`BE-RWI-126`~~ ✅ — kini bebas, gelombang 1 | **Yasmina** ✅ |
 | `BE-BKC-040` kelayakan keuangan | `P0 — external dependency`, **tetap terbuka** | Gerbang kesiapan produksi Rawat Inap; **tidak** menahan task mana pun di roadmap ini | Yasmina — `RWI-DEC-102` |
-| ~~Pemberitahuan pemilik `rawat-jalan` atas `K2`~~ | **TERTUTUP 2026-09-16** lewat `RWI-DEC-152` | ~~Rilis `BE-RWI-109`~~ — **regresi poliklinik tetap wajib** | **Sukma GP** ✅ |
+| ~~Pemberitahuan pemilik `rawat-jalan` atas `K2`~~ | **TERTUTUP 2026-09-16** lewat `RWI-DEC-152` | ~~Rilis `BE-RWI-109`~~ ✅ — **regresi poliklinik tetap wajib** | **Sukma GP** ✅ |
 | Pengesah isi protokol sliding scale — **`RWI-OQ-097`** | Gerbang produksi, **sebagian tertutup** | Kewenangan memakai **sudah** diberikan `RWI-DEC-155`; yang belum: **nama** pengesah isi | Manajemen rumah sakit |
-| Jenis dokumen `14` untuk addendum Evaluasi Awal — `INT-KEP-12` | Dependency yang diketahui | Jalur addendum `BE-RWI-113`; **tidak** menahan task-nya | Pemilik `MedicalRecordManagement` |
-| `BE-RWI-094`, `097`, `101`, `103` [BE-DOK] | Dependency lintas sub-modul | `BE-RWI-123`, `124`, `125` | Roadmap `dokter-rawat-inap` |
+| Jenis dokumen `14` untuk addendum Evaluasi Awal — `INT-KEP-12` | Dependency yang diketahui | Jalur addendum `BE-RWI-113` ✅; **tidak** menahan task-nya | Pemilik `MedicalRecordManagement` |
+| `BE-RWI-094`, `097`, `101`, `103` [BE-DOK] | Dependency lintas sub-modul | `BE-RWI-123` ✅, `124` ✅, `125` ✅ | Roadmap `dokter-rawat-inap` |
 | Handover shift dan transfusi | `DEFERRED` | Tidak ada task pada revision `7` | Muhammad Hamzah — gate `1.6` bagian 15 |
 
 ---

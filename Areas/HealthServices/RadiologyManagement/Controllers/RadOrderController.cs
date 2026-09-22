@@ -127,6 +127,43 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Control
             Execute(() => _radOrderService.CreateAsync(request, cancellationToken),
                 "Order radiologi berhasil dibuat.");
 
+        /// <summary>
+        /// Dokter pemberi instruksi memverifikasi pesanan radiologi rawat inap yang dibuat perawat —
+        /// <c>BE-RWI-104</c>, api-contract 0.6.0 bagian 12.12.
+        /// </summary>
+        /// <remarks>
+        /// Hak akses baru <c>RadOrder : Verify</c>, disetujui pemilik modul lewat <c>RWI-DEC-153</c>.
+        /// Jawaban: <c>200</c>; <c>403</c> bukan pemberi instruksi; <c>404</c>; <c>409</c> sudah
+        /// diverifikasi atau tidak memerlukan verifikasi.
+        /// </remarks>
+        [HttpPut("{id:guid}/verify-instruction")]
+        [ProducesResponseType(typeof(ApiResponse<RadOrderDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [AccessAction("Verify", "Verify Rad Order Instruction", Description = "Dokter pemberi instruksi memverifikasi pesanan radiologi yang dibuat perawat", AccessType = AccessTypes.Update, SortOrder = 6)]
+        [AccessPermission("RadOrder", "Verify")]
+        public Task<IActionResult> VerifyInstruction(
+            Guid id,
+            CancellationToken cancellationToken = default) =>
+            Execute(() => _radOrderService.VerifyInstructionAsync(id, cancellationToken),
+                "Instruksi order radiologi berhasil diverifikasi.");
+
+        /// <summary>
+        /// Pesanan radiologi yang menunggu verifikasi dokter login — <c>BE-RWI-104</c>.
+        /// </summary>
+        [HttpGet("instruction-verification-worklist")]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<RadOrderInstructionVerificationItemResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [AccessAction("Read", "Read Rad Order", Description = "Melihat pesanan radiologi yang menunggu verifikasi dokter login", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("RadOrder", "Read")]
+        public Task<IActionResult> GetInstructionVerificationWorklist(
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25,
+            CancellationToken cancellationToken = default) =>
+            Execute(() => _radOrderService.GetInstructionVerificationWorklistAsync(pageNumber, pageSize, cancellationToken),
+                "Daftar tunggu verifikasi instruksi radiologi berhasil diambil.");
+
         [HttpPut("{id:guid}/accept")]
         [AccessAction("Process", "Process Rad Order", Description = "Menerima order radiologi", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("RadOrder", "Process")]
@@ -271,6 +308,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Control
                         Conflict(ApiResponse<object>.Fail(
                             StatusCodes.Status409Conflict,
                             result.ErrorMessage ?? "Terjadi konflik.",
+                            new { Code = result.ErrorCode })),
+
+                    // BE-RWI-104. Sebelumnya tidak ada jalur RadOrderService yang menghasilkan
+                    // Forbidden, sehingga penambahan cabang ini tidak mengubah jawaban endpoint lama.
+                    RadOperationResultKind.Forbidden =>
+                        StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(
+                            StatusCodes.Status403Forbidden,
+                            result.ErrorMessage ?? "Anda tidak berwenang.",
                             new { Code = result.ErrorCode })),
 
                     RadOperationResultKind.SafetyBlocked or
