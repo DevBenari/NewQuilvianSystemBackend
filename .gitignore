@@ -376,3 +376,6 @@ agency-local/
 
 
 /Tests/
+
+# ASP.NET Core Data Protection keys
+DataProtectionKeys/
