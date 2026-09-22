@@ -26,6 +26,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Ser
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Services;
@@ -802,6 +803,12 @@ try
     builder.Services.AddScoped<PettyCashCategoryService>();
     builder.Services.AddScoped<PettyCashVoucherService>();
     builder.Services.AddScoped<PettyCashBudgetService>();
+
+    // Registrasi kanonik Billing/Kasir/Petty Cash/Finance. Wajib dipanggil: hanya di sini
+    // BilConsumerHandoffService, service Finance, dan options penomoran didaftarkan. Diletakkan
+    // setelah registrasi manual di atas supaya adapter payment provider berbasis konfigurasi
+    // (Billing:PaymentProvider:AutoAcceptWithoutProvider) yang berlaku.
+    builder.Services.AddBillingManagement();
 
     builder.Services.AddAuthorization(options =>
     {
