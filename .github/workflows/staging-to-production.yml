@@ -208,7 +208,7 @@ jobs:
           echo "${{ secrets.SSH_KNOWN_HOSTS }}" \
             > ~/.ssh/known_hosts
 
-      - name: Verify current Production runtime
+      - name: Verify current Production state
         shell: bash
         run: |
           set -euo pipefail
@@ -217,46 +217,105 @@ jobs:
 
           ssh \
             "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}" \
-            "EXPECTED_CURRENT='${EXPECTED_CURRENT}' bash -s" <<'REMOTE'
+            "EXPECTED_CURRENT='${EXPECTED_CURRENT}' IMAGE_NAME='${IMAGE_NAME}' bash -s" <<'REMOTE'
           set -euo pipefail
+
+          CONTAINER_NAME="quilvianprov2-container"
+          EXPECTED_IMAGE="${IMAGE_NAME}:${EXPECTED_CURRENT}"
 
           HEALTH_URL="http://127.0.0.1:5002/health"
           VERSION_URL="http://127.0.0.1:5002/api/v1/system/version"
 
-          curl -fsS "$HEALTH_URL" > /dev/null
+          CONTAINER_ID="$(
+            docker ps -aq \
+              -f "name=^/${CONTAINER_NAME}$" || true
+          )"
 
-          RESPONSE="$(curl -fsS "$VERSION_URL")"
+          if [ -z "$CONTAINER_ID" ]; then
+            echo "ERROR: Production container does not exist."
+            exit 1
+          fi
 
-          ACTUAL_SHA="$(
-            printf '%s' "$RESPONSE" |
-              python3 -c '
+          RUNNING="$(
+            docker inspect \
+              --format '{{.State.Running}}' \
+              "$CONTAINER_ID"
+          )"
+
+          CONFIG_IMAGE="$(
+            docker inspect \
+              --format '{{.Config.Image}}' \
+              "$CONTAINER_ID"
+          )"
+
+          IMAGE_COMMIT="$(
+            docker image inspect \
+              "$CONFIG_IMAGE" \
+              --format '{{range .Config.Env}}{{println .}}{{end}}' \
+              | awk -F= '$1 == "APP_COMMIT_SHA" {
+                  print substr($0, index($0, "=") + 1)
+                  exit
+                }'
+          )"
+
+          echo "Production pointer : $EXPECTED_CURRENT"
+          echo "Container running  : $RUNNING"
+          echo "Container image    : $CONFIG_IMAGE"
+          echo "Image commit       : ${IMAGE_COMMIT:-unknown}"
+
+          if [ "$CONFIG_IMAGE" != "$EXPECTED_IMAGE" ]; then
+            echo "ERROR: stopped/running Production container image does not match QuilvianProductionDeploy."
+            exit 1
+          fi
+
+          if [ -n "$IMAGE_COMMIT" ] &&
+             [ "$IMAGE_COMMIT" != "$EXPECTED_CURRENT" ]; then
+
+            echo "ERROR: Production image metadata does not match QuilvianProductionDeploy."
+            exit 1
+          fi
+
+          if [ "$RUNNING" = "true" ]; then
+            curl -fsS "$HEALTH_URL" > /dev/null
+
+            RESPONSE="$(curl -fsS "$VERSION_URL")"
+
+            ACTUAL_SHA="$(
+              printf '%s' "$RESPONSE" |
+                python3 -c '
           import json, sys
           payload = json.load(sys.stdin)
           print((payload.get("data") or {}).get("commitSha", ""))
           '
-          )"
+            )"
 
-          ACTUAL_ENV="$(
-            printf '%s' "$RESPONSE" |
-              python3 -c '
+            ACTUAL_ENV="$(
+              printf '%s' "$RESPONSE" |
+                python3 -c '
           import json, sys
           payload = json.load(sys.stdin)
           print((payload.get("data") or {}).get("environment", ""))
           '
-          )"
+            )"
 
-          echo "Production pointer : $EXPECTED_CURRENT"
-          echo "Runtime SHA        : $ACTUAL_SHA"
-          echo "Runtime environment: $ACTUAL_ENV"
+            echo "Runtime SHA         : $ACTUAL_SHA"
+            echo "Runtime environment : $ACTUAL_ENV"
 
-          if [ "$ACTUAL_SHA" != "$EXPECTED_CURRENT" ]; then
-            echo "ERROR: current Production runtime does not match QuilvianProductionDeploy."
-            exit 1
-          fi
+            if [ "$ACTUAL_SHA" != "$EXPECTED_CURRENT" ]; then
+              echo "ERROR: current Production runtime does not match QuilvianProductionDeploy."
+              exit 1
+            fi
 
-          if [ "$ACTUAL_ENV" != "Production" ]; then
-            echo "ERROR: current runtime environment is not Production."
-            exit 1
+            if [ "$ACTUAL_ENV" != "Production" ]; then
+              echo "ERROR: current runtime environment is not Production."
+              exit 1
+            fi
+
+            echo "Running Production baseline validation: PASS."
+          else
+            echo "Production maintenance state detected."
+            echo "Stopped container matches QuilvianProductionDeploy."
+            echo "Maintenance preflight: PASS."
           fi
           REMOTE
 
@@ -318,6 +377,7 @@ jobs:
             "IMAGE_NAME='${IMAGE_NAME}' \
              IMAGE_TAG='${TARGET_SHA}' \
              EXPECTED_COMMIT_SHA='${TARGET_SHA}' \
+             ALLOW_APP_ROLLBACK='false' \
              bash /opt/QuilvianProductionV2/deploy.sh"
 
       - name: Verify public PRODUCTION health
@@ -383,24 +443,6 @@ jobs:
             exit 1
           fi
 
-      - name: Roll back Production when deployment verification fails
-        if: failure()
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          ROLLBACK_SHA="${{ needs.validate.outputs.current_production_sha }}"
-
-          echo "Rolling back Production to: $ROLLBACK_SHA"
-
-          ssh \
-            "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}" \
-            "IMAGE_NAME='${IMAGE_NAME}' \
-             IMAGE_TAG='${ROLLBACK_SHA}' \
-             EXPECTED_COMMIT_SHA='${ROLLBACK_SHA}' \
-             bash /opt/QuilvianProductionV2/deploy.sh"
-
-          echo "Production rollback command completed."
 
       - name: Cleanup SSH credentials
         if: always()
@@ -494,4 +536,3 @@ jobs:
             echo "- Public runtime identity: PASS"
             echo "- QuilvianProductionDeploy pointer: PASS"
           } >> "$GITHUB_STEP_SUMMARY"
-
