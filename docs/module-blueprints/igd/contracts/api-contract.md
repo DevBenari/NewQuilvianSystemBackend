@@ -2,14 +2,14 @@
 
 | Field | Nilai |
 | --- | --- |
-| `contract_version` | `0.10.0` — pra-cek episode IGD berjalan, 21 September 2026. **Aditif** (`BE-IGD-050`, `IGD-DEC-138`): satu endpoint baca-saja `GET emergency-visits/active-episode?patientId=` pada grup `Emergency Visit`, bagian 1.3. Hak akses `EmergencyVisit : Create` (aksi `Create` yang sudah ada — nol permission baru). `POST /` **tidak berubah**: penolakan `409` episode ganda tetap sebagai jaring pengaman. Nol ruas lama berubah, nol perubahan bentuk request, nol schema. **Tidak menutup** dua celah `IGD-OQ-093` (pendaftaran serentak; klien tanpa pra-cek). Sebelumnya `0.9.0` — nama pelaku pada event kepergian, 21 September 2026. **Aditif** (`BE-IGD-049`, `IGD-DEC-137`): `EmergencyDepartureEventResponse` bertambah `recordedByName` dan `approvedByName` (`string?`), bagian 2.4; `recordedByUserId` dan `approvedByUserId` tetap dikirim. Nol route baru, nol bentuk request berubah, nol perubahan hak akses, nol schema. Sebelumnya `0.8.0` — pengisian data lama penugasan dokter, 21 September 2026. **Relaxed nullability change for legacy response**, bukan aditif murni: `assignedByUserId` pada response §3.2 (`GET /`, `GET /active`) dapat bernilai `null` khusus baris riwayat hasil pengisian data lama `BE-IGD-048` yang pelaku historisnya tidak dapat dibuktikan (`IGD-DEC-136`). **Bukan** perubahan semantics penetapan atau pengalihan baru: pelaku tetap wajib dari token dan request tidak menerimanya. Nol route baru, nol ruas dihapus, nol bentuk request berubah. **Dampak konsumen**: kode yang mengasumsikan `assignedByUserId` selalu berupa GUID (misalnya tipe non-nullable di frontend) harus direvisi sebelum menampilkan baris legacy — lihat bagian 3.2. Sebelumnya `0.7.0` — kesiapan `EPIC IGD-04`, 16 September 2026 (ketiga). **Aditif**: response §3 bertambah proyeksi `doctorName` dan `assignedByName` (`IGD-DEC-129`, bagian 3.2), dan nama tabel Registrasi diselaraskan menjadi `RegPatientEncounter` (`IGD-DEC-132`). Nol route baru, nol bentuk request berubah, nol penolakan baru. *Sebelumnya `0.6.0` — pemantauan observasi bertanda vital, 16 September 2026, **aditif**: bagian 7 baru untuk `Emergency Observation Detail` — bentuk request tidak bertambah, response bertambah proyeksi `vitalSign` dan `recordedByName`, dan dua penolakan baru ditegakkan (`IGD-DEC-122`, `IGD-DEC-126`). Ruas `recordedByUserId` pada request menjadi **usang tetapi tetap diterima**. Lihat manifest bagian 0d. Sebelumnya `0.5.0` — penyelarasan teks 15 September 2026: query `at` pada §3 dan penolakan catatan observasi lebih dari 1000 karakter* |
+| `contract_version` | `0.11.0` — encounter-first, 22 September 2026, **Rencana (belum tersedia)**. **Bukan aditif murni**: lima perilaku lama berubah (bagian 8.1 nomor 1–5, 7) — penjaga episode dan tanpa-antrean pada `POST /patient-encounters` bertipe Emergency, penolakan `PATCH …/status` dan `…/cancel` Registrasi untuk Emergency, penguncian `PUT /emergency-visits/{id}`; ditambah efek samping penutupan encounter, perluasan `active-episode`, empat endpoint baru pada `Emergency Visit`, dan grup baru `Emergency Encounter Reconciliation` (`IGD-DEC-139`, `142`…`148`, `150`…`154`). Kelayakan dokter jaga **tidak** dikontrakkan (`IGD-OQ-102`/`103`). Sebelumnya `0.10.0` — pra-cek episode IGD berjalan, 21 September 2026. **Aditif** (`BE-IGD-050`, `IGD-DEC-138`): satu endpoint baca-saja `GET emergency-visits/active-episode?patientId=` pada grup `Emergency Visit`, bagian 1.3. Hak akses `EmergencyVisit : Create` (aksi `Create` yang sudah ada — nol permission baru). `POST /` **tidak berubah**: penolakan `409` episode ganda tetap sebagai jaring pengaman. Nol ruas lama berubah, nol perubahan bentuk request, nol schema. **Tidak menutup** dua celah `IGD-OQ-093` (pendaftaran serentak; klien tanpa pra-cek). Sebelumnya `0.9.0` — nama pelaku pada event kepergian, 21 September 2026. **Aditif** (`BE-IGD-049`, `IGD-DEC-137`): `EmergencyDepartureEventResponse` bertambah `recordedByName` dan `approvedByName` (`string?`), bagian 2.4; `recordedByUserId` dan `approvedByUserId` tetap dikirim. Nol route baru, nol bentuk request berubah, nol perubahan hak akses, nol schema. Sebelumnya `0.8.0` — pengisian data lama penugasan dokter, 21 September 2026. **Relaxed nullability change for legacy response**, bukan aditif murni: `assignedByUserId` pada response §3.2 (`GET /`, `GET /active`) dapat bernilai `null` khusus baris riwayat hasil pengisian data lama `BE-IGD-048` yang pelaku historisnya tidak dapat dibuktikan (`IGD-DEC-136`). **Bukan** perubahan semantics penetapan atau pengalihan baru: pelaku tetap wajib dari token dan request tidak menerimanya. Nol route baru, nol ruas dihapus, nol bentuk request berubah. **Dampak konsumen**: kode yang mengasumsikan `assignedByUserId` selalu berupa GUID (misalnya tipe non-nullable di frontend) harus direvisi sebelum menampilkan baris legacy — lihat bagian 3.2. Sebelumnya `0.7.0` — kesiapan `EPIC IGD-04`, 16 September 2026 (ketiga). **Aditif**: response §3 bertambah proyeksi `doctorName` dan `assignedByName` (`IGD-DEC-129`, bagian 3.2), dan nama tabel Registrasi diselaraskan menjadi `RegPatientEncounter` (`IGD-DEC-132`). Nol route baru, nol bentuk request berubah, nol penolakan baru. *Sebelumnya `0.6.0` — pemantauan observasi bertanda vital, 16 September 2026, **aditif**: bagian 7 baru untuk `Emergency Observation Detail` — bentuk request tidak bertambah, response bertambah proyeksi `vitalSign` dan `recordedByName`, dan dua penolakan baru ditegakkan (`IGD-DEC-122`, `IGD-DEC-126`). Ruas `recordedByUserId` pada request menjadi **usang tetapi tetap diterima**. Lihat manifest bagian 0d. Sebelumnya `0.5.0` — penyelarasan teks 15 September 2026: query `at` pada §3 dan penolakan catatan observasi lebih dari 1000 karakter* |
 | Status | `draft` |
 | Owner | Product/Domain Owner IGD: **Rizki Gunawan** (`IGD-DEC-089`) |
 | `approved_by` / `approved_at` | — / — |
-| `input_revision` | `00-interview-decisions.md` **126 keputusan**, terakhir `IGD-DEC-126`; `01-existing-capability-map.md` revision `3` + suplemen `3.1` |
-| `input_hash` | Dihitung ulang pada manifest bagian 2, penyelarasan teks 2026-09-15 |
+| `input_revision` | `00-interview-decisions.md` **154 keputusan**, terakhir `IGD-DEC-154`; `01-existing-capability-map.md` revision `3` + suplemen `3.1` + suplemen `3.2`; `evidence/02-requirement-completeness-gate.md` `0.1` (slice encounter-first). *Sebelumnya 126 keputusan sampai `IGD-DEC-126`* |
+| `input_hash` | Dihitung ulang pada manifest bagian 0g (22 September 2026); sebelumnya bagian 2, penyelarasan teks 2026-09-15 |
 | Versi sebelumnya | `0.4.0` (revisi 6, 26 Agustus 2026). Versi `approved` penuh terakhir: `0.2.0`, 14 Agustus 2026 |
-| Commit diaudit | backend `300922c` (suplemen capability `3.1`); revisi 5 disusun pada `f69e9e48` |
+| Commit diaudit | backend `0d13f3a8` / frontend `c941012ac` untuk bagian 8 (suplemen capability `3.2`); backend `300922c` (suplemen `3.1`); revisi 5 disusun pada `f69e9e48` |
 
 ## Dampak kompatibilitas terhadap `0.2.0`
 
@@ -44,6 +44,8 @@ diam-diam akan menyimpan data yang salah.
 | `Emergency Departure` | `.../emergency-departures` |
 | `Emergency Doctor Assignment` | `.../emergency-doctor-assignments` |
 | `Emergency Reassessment Watchlist` | `.../emergency-reassessment-watchlist` |
+| `Emergency Encounter Reconciliation` | `.../emergency-encounter-reconciliations` — **Rencana (belum tersedia)**, bagian 8.4 |
+| `Patient Encounter` *(milik Registration Management)* | `api/v1/health-services/registration-management/patient-encounters` — hanya perilaku khusus Emergency, bagian 8.2 |
 
 Seluruh balasan terbungkus `ApiResponse<T>`. Daftar memakai `PagedResult<T>`.
 
@@ -616,3 +618,248 @@ penyaring akan menampilkan tanda vital pasien lain (`IGD-EV-117`).
 | Gambaran EKG | Tindakan/penunjang | Tidak ada requirement yang disetujui |
 | DC Shock, RJP, ROSC | `EmgResuscitation` | `IGD-CAP-28`; perburukan ditangani lewat aksi Eskalasi |
 | Entri susulan setelah periode ditutup | — | `IGD-OQ-090`, belum dirancang |
+
+---
+
+## 8. Encounter-first — **Rencana (belum tersedia)**, baru pada `0.11.0`
+
+Disusun pass `design-business-module` 22 September 2026 dari `IGD-DEC-139`, `142`…`148`, `150`…`154`
+(`approved`) dan gate [evidence/02-requirement-completeness-gate.md](../evidence/02-requirement-completeness-gate.md)
+sub-slice `S1`…`S6`, `S8`. **Seluruh endpoint dan perilaku di bagian ini belum ada di kode**, kecuali yang
+ditulis "sudah ada". Kelayakan dokter jaga (`S7`) **tidak** dikontrakkan — ditahan `IGD-OQ-102` dan `IGD-OQ-103`.
+
+**`0.11.0` bukan aditif murni.** Lima perilaku yang sudah ada berubah (bagian 8.1).
+
+### 8.1 Dampak kompatibilitas terhadap `0.10.0`
+
+| # | Perubahan | Sifat | Akibat bagi pemanggil | Keputusan |
+| ---: | --- | --- | --- | --- |
+| 1 | `POST /patient-encounters` bertipe Emergency ditolak `409` bila episode pasien masih terbuka | **Memutus perilaku** | Pendaftaran ganda tanpa alasan tidak lagi menghasilkan encounter | `IGD-DEC-139`, `146` |
+| 2 | `POST /patient-encounters` bertipe Emergency **tidak** membuat antrean | **Perilaku berubah** | Pasien IGD tidak muncul di antrean dokter/perawat walau unit/klinik `IsQueueRequired` | `IGD-DEC-144` |
+| 3 | `PATCH /patient-encounters/{id}/status` menolak encounter Emergency | **Memutus** | Penutupan encounter IGD lewat jalur umum ditolak `409` | `IGD-DEC-153` |
+| 4 | `PATCH /patient-encounters/{id}/cancel` menolak encounter Emergency yang sudah punya kunjungan | **Memutus** | Batal sesudah kunjungan lahir harus lewat kunjungan | `IGD-DEC-153` |
+| 5 | `PUT /emergency-visits/{id}` menolak perubahan `patientId`, `encounterId`, dan `arrivalDateTime` | **Memutus** — nol layar memakai `PUT` (`IGD-FACT-023`) | Identitas dikunci; waktu tiba lewat `PATCH /{id}/arrival-time` | `IGD-DEC-154`, `147`, `152` |
+| 6 | `PATCH /emergency-visits/{id}/complete` dan `…/visit-status` ke `Cancelled` ikut menutup encounter | Efek samping baru | Encounter tidak lagi tertinggal terbuka | `IGD-DEC-139` butir 5 |
+| 7 | `POST /emergency-visits` memakai rumus episode klausa A+B dan kunci per pasien | **Perilaku berubah** | Kunjungan untuk pasien yang punya encounter Emergency terbuka lain ditolak `409` | `IGD-DEC-139`, `146` |
+| 8 | `GET /emergency-visits/active-episode` bertambah ruas `encounter` | Aditif | — | `IGD-DEC-139` |
+| 9 | Ruas request `duplicateEpisodeOverrideReason` pada `POST /patient-encounters` | Aditif | Opsional | `IGD-DEC-145` |
+| 10 | Endpoint baru `triage-queue`, `start-triage`, `no-show`, `{id}/arrival-time`, grup rekonsiliasi | Aditif | — | Bagian 8.3–8.4 |
+
+**Urutan rilis wajib.** Nomor 1, 3, 4, 7 (penjaga) dirilis **sebelum** layar pendaftaran berhenti membuat
+kunjungan (`FE-IGD-036`). Membalik urutannya membuka pendaftaran ganda (roadmap frontend R3.12).
+
+### 8.2 Titik sentuh Registrasi — grup `Patient Encounter`
+
+`[Tags("Patient Encounter")]` · Base URL `api/v1/health-services/registration-management/patient-encounters`
+
+Grup ini **milik Registration Management**. Kontrak di bawah hanya mengatur perilaku **khusus
+`encounterType = Emergency`**, di bawah izin remediasi teknis `IGD-DEC-135` — **bukan** pemindahan
+kepemilikan. Tipe lain **tidak berubah sedikit pun**.
+
+| Method | Path | Perubahan khusus Emergency | Hak akses (tidak berubah) | Kode status |
+| --- | --- | --- | --- | --- |
+| `POST` | `/`, `/admin`, `/kiosk` | (a) Kunci per pasien diambil **sebelum** kunci penomoran encounter; (b) rumus episode terbuka dijalankan; (c) episode terbuka + alasan kosong → `409`; alasan terisi → encounter dibuat dan catatan override ditulis dalam transaksi yang sama; (d) **tidak** membuat `TrxQueue` | `PatientEncounter : Create` | `200`, `400`, `401`, `403`, **`409` baru** |
+| `PATCH` | `/{id}/status`, `/admin/{id}/status` | Encounter Emergency **ditolak** — status akhirnya hanya lewat aksi IGD | `PatientEncounter : Update` | **`409` baru** |
+| `PATCH` | `/{id}/cancel`, `/admin/{id}/cancel` | Encounter Emergency yang **sudah punya kunjungan** ditolak; yang belum punya kunjungan tetap boleh (salah daftar/duplikat) | `PatientEncounter : Update` | **`409` baru** |
+
+**Ruas request baru pada `POST /` (aditif).**
+
+| Ruas | Tipe | Wajib | Aturan |
+| --- | --- | :-: | --- |
+| `duplicateEpisodeOverrideReason` | `string?` | Tidak | Di-*trim*; maksimal 500 karakter; hanya dibaca bila `encounterType = Emergency` dan episode pasien terbuka; **diabaikan** untuk tipe lain. String kosong/spasi = tidak ada alasan |
+
+**Balasan `409` episode terbuka.** Pesan mengikuti validation §10.1 aturan 3 (menyebut nomor kunjungan bila
+sudah ada, atau nomor encounter dan keterangan *"Menunggu Triage"*). Data terstruktur episode tersebut
+diambil layar lewat pra-cek `GET /emergency-visits/active-episode` (bagian 8.3.6), bukan dari badan `409`.
+
+### 8.3 `Emergency Visit` — endpoint baru dan yang berubah
+
+`[Tags("Emergency Visit")]` · Base URL `api/v1/health-services/emergency-installation-management/emergency-visits`
+
+| Method | Path | Kegunaan | Hak akses | Kode status | Keadaan |
+| --- | --- | --- | --- | --- | --- |
+| `GET` | `/triage-queue` | Daftar *Menunggu Triage* terpadu: encounter tanpa kunjungan + kunjungan | `EmergencyVisit : Read` | `200`, `400`, `401`, `403` | **Rencana (belum tersedia)** |
+| `POST` | `/start-triage` | Melahirkan kunjungan dari encounter — mode Mulai Triage atau Tangani Segera | `EmergencyVisit : Create` | `201`, `200`, `400`, `401`, `403`, `404`, `409` | **Rencana (belum tersedia)** |
+| `POST` | `/no-show` | Menandai pasien pergi sebelum ditriage | `EmergencyVisit : NoShow` | `200`, `400`, `401`, `403`, `404`, `409` | **Rencana (belum tersedia)** |
+| `PATCH` | `/{id}/arrival-time` | Mengonfirmasi atau mengoreksi waktu tiba | `EmergencyVisit : Update` | `200`, `400`, `401`, `403`, `404`, `409` | **Rencana (belum tersedia)** |
+| `GET` | `/active-episode?patientId=` | Pra-cek — **bertambah** ruas `encounter` | `EmergencyVisit : Create` | Tidak berubah | Sudah ada; **perluasan Rencana** |
+| `POST` | `/` | Jalur lama — kini kunci per pasien + klausa A+B | `EmergencyVisit : Create` | Tidak berubah | Sudah ada; **perilaku Rencana** |
+| `PUT` | `/{id}` | Menolak perubahan `patientId`, `encounterId`, `arrivalDateTime` | `EmergencyVisit : Update` | + `409` | Sudah ada; **perilaku Rencana** |
+| `PATCH` | `/{id}/visit-status` | Ke `Cancelled` → encounter ikut dibatalkan | `EmergencyVisit : Update` | Tidak berubah | Sudah ada; **efek samping Rencana** |
+| `PATCH` | `/{id}/complete` | Encounter ikut `Completed` + catatan klinis terbuka dikunci | `EmergencyVisit : Update` | Tidak berubah | Sudah ada; **efek samping Rencana** |
+| `DELETE` | `/{id}` | **Tidak** menutup encounter (hapus lunak bukan peristiwa klinis) | `EmergencyVisit : Delete` | Tidak berubah | Sudah ada; ditegaskan |
+
+#### 8.3.1 `GET /triage-queue`
+
+**Query.**
+
+| Parameter | Tipe | Wajib | Bawaan | Aturan |
+| --- | --- | :-: | --- | --- |
+| `page` | `int` | Tidak | `1` | ≥ 1 |
+| `pageSize` | `int` | Tidak | `20` | 1–100 |
+| `search` | `string?` | Tidak | — | Nama pasien, nomor RM, nomor encounter, nomor kunjungan |
+| `queueStatus` | `string?` | Tidak | — | `WaitingForTriage` untuk baris tanpa kunjungan; atau nilai `EmergencyVisitStatus` untuk baris kunjungan |
+
+**Baris respons** (`EmergencyTriageQueueRowResponse`, di dalam `PagedResult<T>`).
+
+| Ruas | Tipe | Isi |
+| --- | --- | --- |
+| `rowKey` | `string` | Kunci stabil baris untuk layar (`enc:{encounterId}` atau `visit:{visitId}`) |
+| `encounterId` | `uuid?` | Kosong hanya untuk kunjungan lama tanpa encounter |
+| `emergencyVisitId` | `uuid?` | Kosong bila kunjungan belum lahir |
+| `patientId` | `uuid?` | |
+| `patientName` | `string?` | Untuk pasien tanpa identitas: nama rekam pengganti apa adanya (`IGD-DEC-151`, `IGD-DEC-007`) |
+| `medicalRecordNumber` | `string?` | |
+| `isUnknownPatient` | `bool` | Dari kunjungan; `false` bila kunjungan belum lahir |
+| `temporaryPatientAlias` | `string?` | Dari kunjungan |
+| `encounterNumber` | `string?` | |
+| `emergencyVisitNumber` | `string?` | |
+| `queueStatus` | `string` | `WaitingForTriage` untuk baris tanpa kunjungan; nama `VisitStatus` untuk baris kunjungan |
+| `visitStatus` | `int?` | Kosong bila kunjungan belum lahir |
+| `registeredAt` | `datetime` | Waktu terdaftar — **ditampilkan berlabel "Terdaftar", tidak pernah sebagai waktu tiba** |
+| `arrivalDateTime` | `datetime?` | Hanya untuk baris kunjungan |
+| `availableActions` | `string[]` | Baris tanpa kunjungan: `StartTriage`, `ImmediateCare`, `NoShow`. Baris kunjungan `Arrived`/`WaitingForTriage`: `FillTriage`, `ImmediateCare` (`IGD-DEC-128`) |
+
+**Aturan.** Satu episode satu baris — encounter yang sudah punya kunjungan hanya tampil sebagai baris
+kunjungan. Encounter yang sudah berakhir (lima tanda, validation §10.1 aturan 1) dan encounter bertipe
+lain tidak tampil. Halaman dihitung di basis data atas gabungan kedua jenis baris. Asal baris **tidak**
+diekspos sebagai ruas yang wajib dibaca layar.
+
+#### 8.3.2 `POST /start-triage`
+
+**Request** (`StartEmergencyVisitRequest`).
+
+| Ruas | Tipe | Wajib | Bawaan | Aturan |
+| --- | --- | :-: | --- | --- |
+| `encounterId` | `uuid` | **Ya** | — | Encounter Emergency yang belum berakhir |
+| `mode` | `string` | **Ya** | — | `Triage` (Mulai Triage) atau `ImmediateCare` (Tangani Segera) |
+| `arrivalDateTime` | `datetime?` | Wajib bila `mode = Triage` | — | Tidak di masa depan; untuk `ImmediateCare` **diabaikan** dan diisi `RegisteredAt` sebagai fallback |
+| `arrivalModeId` | `uuid?` | Tidak | — | Master cara datang IGD |
+| `caseTypeId` | `uuid?` | Tidak | — | Master jenis kasus IGD |
+| `chiefComplaint` | `string?` | Tidak | Salinan `RegPatientEncounter.ChiefComplaint` | Maks. mengikuti kolom kunjungan |
+| `isUnknownPatient` | `bool` | Tidak | `false` | Menandai rekam pengganti (`IGD-DEC-151`) |
+| `temporaryPatientAlias` | `string?` | Wajib bila `isUnknownPatient` | — | Aturan yang sudah ada (validation §1 aturan 3) |
+
+**Contoh — Mulai Triage.**
+
+```json
+{
+  "encounterId": "3f2a1c9e-…",
+  "mode": "Triage",
+  "arrivalDateTime": "2026-09-22T02:31:00Z"
+}
+```
+
+**Contoh — Tangani Segera (nol ketikan).**
+
+```json
+{ "encounterId": "3f2a1c9e-…", "mode": "ImmediateCare" }
+```
+
+**Respons** — `EmergencyVisitResponse` yang sudah ada, ditambah ruas waktu tiba bagian 8.3.4.
+
+| Keadaan | Kode | Hasil |
+| --- | --- | --- |
+| Kunjungan belum ada | `201` | Lahir `WaitingForTriage` (`Triage`) atau `InTreatment` + `TreatmentStartedAt` server (`ImmediateCare`) |
+| Kunjungan sudah ada, `mode = Triage` | `200` | Kunjungan yang sama, status **tidak** diubah (tidak pernah mundur) |
+| Kunjungan sudah ada `WaitingForTriage`/`Arrived`, `mode = ImmediateCare` | `200` | Diteruskan ke `InTreatment` lewat penjaga transisi |
+| Kunjungan sudah ada di status lain, `mode = ImmediateCare` | `200` | Kunjungan yang sama, status tidak diubah |
+| Encounter tidak ada | `404` | |
+| Encounter bukan Emergency | `400` | |
+| Encounter sudah berakhir | `409` | |
+| Satu-satunya kunjungan encounter itu pernah dihapus lunak (K4) | `409` | Unique index tanpa filter (`IGD-EV-143` butir 7) |
+| Pasien punya kunjungan lain yang belum berakhir (klausa B, encounter berbeda) | `409` | Pesan validation §1 aturan 4 |
+
+**Idempoten.** Dua panggilan serentak → tepat satu kunjungan; insert kedua bentrok unique index
+`EmgVisit.EncounterId`, ditangkap, lalu dijawab sesuai tabel di atas.
+
+#### 8.3.3 `POST /no-show`
+
+**Request** (`MarkEmergencyEncounterNoShowRequest`).
+
+| Ruas | Tipe | Wajib | Aturan |
+| --- | --- | :-: | --- |
+| `encounterId` | `uuid` | **Ya** | Encounter Emergency tanpa kunjungan, belum berakhir |
+| `reason` | `string` | **Ya** | Di-*trim*; 1–500 karakter |
+
+**Respons `200`.** `{ "encounterId": "…", "encounterStatus": 11, "noShowAt": "…", "noShowByName": "…", "noShowReason": "…" }`.
+Pelaku dari token, waktu dari server. **Final** — tidak ada endpoint pembatalannya (`IGD-DEC-142`).
+
+| Keadaan | Kode |
+| --- | --- |
+| Alasan kosong, atau encounter bukan Emergency | `400` |
+| Encounter tidak ada | `404` |
+| Encounter sudah punya kunjungan, atau sudah berakhir | `409` |
+
+#### 8.3.4 `PATCH /{id}/arrival-time`
+
+**Request** (`UpdateEmergencyArrivalTimeRequest`): `arrivalDateTime` (`datetime`, wajib).
+
+Menyimpan nilai, lalu menandai **dikonfirmasi**: `arrivalTimeSource = Confirmed`, `arrivalConfirmedByUserId`
+dari token, `arrivalConfirmedAt` waktu server. Mengirim nilai yang sama dengan nilai sekarang = konfirmasi
+tanpa koreksi.
+
+| Ruas baru pada `EmergencyVisitResponse` | Tipe | Isi |
+| --- | --- | --- |
+| `arrivalTimeSource` | `int` | `0` = data lama belum dikonfirmasi; `1` = fallback `RegisteredAt`; `2` = dikonfirmasi perawat |
+| `arrivalConfirmedByName` | `string?` | |
+| `arrivalConfirmedAt` | `datetime?` | |
+
+| Keadaan | Kode |
+| --- | --- |
+| Nilai di masa depan | `400` |
+| Nilai lebih lambat dari peristiwa klinis pertama (mulai triage, mulai penanganan, penugasan dokter pertama) | `409` — pesan menyebut peristiwanya (`IGD-DEC-152`) |
+| Kunjungan tidak ada | `404` |
+
+#### 8.3.5 Perubahan pada `PUT /{id}`
+
+Permintaan yang **mengubah** `patientId`, `encounterId`, atau `arrivalDateTime` dari nilai tersimpan ditolak
+`409`. Mengirim nilai yang sama diterima. Ruas lain tidak berubah perilakunya.
+
+#### 8.3.6 Perluasan `GET /active-episode`
+
+| Ruas baru | Tipe | Isi |
+| --- | --- | --- |
+| `encounter` | objek? | Terisi bila episode terbuka lewat klausa A dan kunjungan belum lahir: `{ "id", "encounterNumber", "registeredAt" }` |
+
+`hasActiveEpisode` kini benar untuk klausa A **atau** B. `visit` tetap terisi bila kunjungan ada.
+
+#### 8.3.7 Efek samping penutupan encounter
+
+| Aksi | Yang terjadi pada encounter, pada penyimpanan yang sama |
+| --- | --- |
+| `PATCH /{id}/complete` | `EncounterStatus = Completed`; `CompletedAt` server bila kosong; catatan klinis belum ditandatangani dikunci (`RM-DEC-003`) |
+| `PATCH /{id}/visit-status` → `Cancelled` | `EncounterStatus = Cancelled`; `IsCancel`; `IsActive = false`; `CancelledAt`/`By`; `CancelReason` = catatan permintaan atau *"Kunjungan IGD dibatalkan"* |
+| Encounter sudah berakhir | Tidak ada yang ditulis |
+| Encounter bertipe `Outpatient` tertaut (masa transisi) | Ikut ditutup (`IGD-DEC-148` TK-2) |
+
+### 8.4 `Emergency Encounter Reconciliation` — grup baru
+
+`[Tags("Emergency Encounter Reconciliation")]` · Base URL
+`api/v1/health-services/emergency-installation-management/emergency-encounter-reconciliations` ·
+**Rencana (belum tersedia)**
+
+| Method | Path | Kegunaan | Hak akses | Kode status |
+| --- | --- | --- | --- | --- |
+| `GET` | `/preview` | Jumlah K1, K1-Outpatient, K2, K3, K4 + daftar baris K1/K1-Outpatient berhalaman; **tidak menulis** | `EmergencyEncounterReconciliation : Read` | `200`, `401`, `403` |
+| `POST` | `/runs` | Menutup baris K1 dan K1-Outpatient yang lolos syarat | `EmergencyEncounterReconciliation : Process` | `201`, `400`, `401`, `403`, `409` |
+| `GET` | `/runs` | Riwayat run | `EmergencyEncounterReconciliation : Read` | `200`, `401`, `403` |
+| `GET` | `/runs/{id}` | Satu run beserta barisnya | `EmergencyEncounterReconciliation : Read` | `200`, `401`, `403`, `404` |
+| `POST` | `/runs/{id}/reverse` | Membalik satu run berpenjaga | `EmergencyEncounterReconciliation : Reverse` | `200`, `400`, `401`, `403`, `404`, `409` |
+
+**Request `POST /runs`:** `reason` (`string`, wajib, 1–500) dan `expectedCount` (`int`, wajib) — jumlah baris
+K1 + K1-Outpatient yang dilihat petugas pada preview. Bila jumlah saat eksekusi berbeda → `409` *"Data
+berubah sejak pratinjau; muat ulang pratinjau."* Ini menahan eksekusi atas data yang sudah basi.
+
+**Request `POST /runs/{id}/reverse`:** `reason` (`string`, wajib, 1–500). Hanya baris yang encounter-nya
+**masih** bernilai hasil run yang dikembalikan; baris yang sudah berubah sesudahnya dilewati dan
+dilaporkan. Run yang sudah dibalik → `409`.
+
+**Aturan eksekusi** (`IGD-DEC-148`): nol update massal — setiap baris dievaluasi syaratnya; status
+mengikuti kunjungan; `CompletedAt` hanya dari `EmgVisit.VisitCompletedAt`, bila kosong dibiarkan kosong;
+K2/K3/K4 hanya muncul di preview.
+
+### 8.5 `Emergency Doctor Assignment` — tidak berubah pada `0.11.0`
+
+Endpoint kelayakan dokter dan ruas override **belum dikontrakkan** (`IGD-OQ-102`, `IGD-OQ-103`). Perilaku
+bagian 3 tetap berlaku.

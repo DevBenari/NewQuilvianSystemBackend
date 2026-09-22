@@ -2,7 +2,7 @@
 
 | Field | Nilai |
 | --- | --- |
-| `contract_version` | `0.3.0` |
+| `contract_version` | `0.4.0` — encounter-first, 22 September 2026, **Rencana (belum tersedia)**. **Aditif pada dokumen**: bagian 5 baru; bagian 1–4 tidak diubah. Secara perilaku **memutus** untuk Registrasi (penolakan Emergency pada jalur umum, pintu encounter memanggil aturan IGD). Sebelumnya `0.3.0` |
 | Status | `draft` |
 | Owner | Product/Domain Owner IGD: **Rizki Gunawan** (`IGD-DEC-089`) |
 | `approved_by` / `approved_at` | — / — |
@@ -110,3 +110,57 @@ menolak tindakan privileged, bukan menolak pelayanan klinis darurat.**
 | Integrasi tagihan pada penutupan klinis | `IGD-DEC-021` memisahkan keduanya |
 | Penulisan ke tabel Corporate/HR | IGD hanya membaca |
 | Pemindahan catatan klinis IGD ke kunjungan rawat inap | `RWI-RULE-029` aturan 6 melarangnya |
+
+---
+
+## 5. Encounter-first — baru pada `0.4.0`, **Rencana (belum tersedia)**
+
+Titik sentuh lintas modul yang lahir dari `IGD-DEC-139`, `142`, `144`, `145`, `146`, `151`, `153`. Semuanya
+integrasi **di dalam satu proses** (panggilan service/static method dalam satu `ApplicationDbContext`) —
+nol antrean pesan, nol integrasi eksternal.
+
+### 5.1 Modul yang disentuh
+
+| Modul | Arah | Sifat | Pemilik | Menahan rilis |
+| --- | --- | --- | --- | :-: |
+| Registration Management | **Dua arah** | Pintu encounter memanggil aturan episode IGD; IGD menulis kolom status akhir `RegPatientEncounter` | Belum dipetakan — disentuh di bawah `IGD-DEC-135` | Tidak — tetapi butir 10 DoD PRD tetap "belum" |
+| Medical Record Management | IGD memanggil | `ClinicalDocumentIntegrityService.LockOpenDocumentsForEncounterAsync` dipakai ulang | Pemilik Medical Record | Tidak |
+| Billing Management | Billing membaca | Tidak ada perubahan; membaca `EncounterStatus` seperti hari ini | Pemilik Billing | Tidak |
+| Blood Bank, Medical Record (pembaca status) | Membaca | Status `NoShow` otomatis dibaca tertutup | Pemilik masing-masing | Tidak |
+| Master Patient | Tidak disentuh | Rekam pengganti dibuat lewat alur pasien baru yang **sudah ada**; penggabungan rekam **tidak** dirancang IGD | Belum dipetakan (`IGD-OQ-098`) | Tidak |
+
+### 5.2 Titik sentuh yang mengikat
+
+| Kejadian | Siapa memanggil siapa | Kontrak | Transaksi |
+| --- | --- | --- | --- |
+| Encounter Emergency dibuat | `PatientEncounterController.CreateEncounterCoreAsync` (Registrasi) → aturan episode IGD (`public static` pada `EmergencyVisitService`) | Kunci per pasien → rumus episode → tolak `409` atau tulis catatan override IGD → **baru** kunci penomoran dan sisip encounter; tanpa `TrxQueue` | Transaksi Registrasi yang sudah ada (`:559`) — satu transaksi |
+| Status encounter Emergency diubah lewat jalur umum | Registrasi menolak berdasarkan `EncounterType` | Validation §10.1 aturan 8–9 | — |
+| Kunjungan IGD selesai / batal | `EmergencyVisitController` (IGD) menulis kolom status akhir `RegPatientEncounter` dan memanggil penguncian catatan Medical Record | Kolom yang ditulis: API §8.3.7 | Satu `SaveChanges` milik aksi kunjungan |
+| Pasien pergi sebelum ditriage | IGD menulis `EncounterStatus = NoShow`, `NoShowAt`, `NoShowByUserId`, `NoShowReason` | Validation §10.3 | Satu `SaveChanges` |
+| Rekonsiliasi K1 | IGD menulis `EncounterStatus` (+ `CompletedAt` dari bukti) dan catatan run IGD | API §8.4 | Satu transaksi per run |
+
+**Kolom `RegPatientEncounter` yang boleh ditulis IGD — daftar tertutup.** `EncounterStatus`, `CompletedAt`,
+`NoShowAt`, `NoShowByUserId`, `NoShowReason`, `IsCancel`, `CancelledAt`, `CancelledByUserId`, `CancelReason`,
+`IsActive`, `UpdateBy`, `UpdateDateTime`. **Tidak ada kolom baru** pada tabel ini (`IGD-DEC-145`).
+
+### 5.3 Urutan kunci — wajib seragam
+
+| Jalur | Kunci yang diambil, berurutan |
+| --- | --- |
+| `POST /patient-encounters` bertipe Emergency | (1) kunci per pasien `EMG_EPISODE_{patientId}` → (2) kunci penomoran `REG_PATIENT_ENCOUNTER_NUMBER` yang sudah ada |
+| `POST /emergency-visits` (jalur lama, pasien beridentitas) | (1) kunci per pasien — jalur ini **wajib dibungkus transaksi eksplisit**, karena hari ini hanya satu `SaveChanges` tanpa transaksi dan kunci transaksi akan lepas seketika |
+| `POST /start-triage` | (1) kunci per pasien |
+| `POST /no-show` | (1) kunci per pasien, lalu periksa ulang "belum punya kunjungan" **di dalam** kunci — mencegah NoShow dan Mulai Triage serentak menghasilkan kunjungan pada encounter yang sudah `NoShow` |
+| `PATCH /patient-encounters/{id}/cancel` bertipe Emergency | (1) kunci per pasien, lalu periksa ulang "belum punya kunjungan" di dalam kunci — alasan yang sama |
+
+Tidak ada jalur yang mengambil kunci penomoran lebih dulu lalu kunci per pasien — urutan terbalik dapat
+menimbulkan *deadlock*.
+
+### 5.4 Perilaku saat gagal
+
+| Kegagalan | Perilaku |
+| --- | --- |
+| Penguncian catatan klinis gagal saat kunjungan diselesaikan | Seluruh penyimpanan batal — kunjungan **dan** encounter tidak berubah; petugas mengulang |
+| Penulisan catatan override gagal | Encounter tidak dibuat |
+| Kunci per pasien menunggu lama (pendaftaran serentak) | Permintaan kedua menunggu sampai yang pertama selesai, lalu membaca hasilnya — bukan galat |
+| Registrasi mengubah pintu encounter tanpa memanggil aturan IGD | Penjaga episode hilang diam-diam — karena itu acceptance `BE-IGD-053` memuat uji paralel dan uji "klien tanpa pra-cek" |

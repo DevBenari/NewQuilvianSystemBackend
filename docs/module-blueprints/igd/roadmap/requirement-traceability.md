@@ -8,7 +8,7 @@ roadmap_revision: 3
 wave: "Dikoreksi 2026-09-15: MVP-1, MVP-2, R3.7 selesai; MVP-0, MVP-3, MVP-4, MVP-5 sebagian; MVP-6 terblokir BE-IGD-039"
 status: ACTIVE
 status_synced_at: "2026-09-15 — backend e89907c5, frontend 43adae648; IGD-DEC-110 sampai IGD-DEC-115"
-planning_updated_at: "2026-09-16 (keempat) — plan-module-delivery: FE-IGD-031 dan FE-IGD-032 (tata letak riwayat pada ruang kerja pemeriksaan); IGD-DEC-133 dan IGD-DEC-134; evidence 2026-09-16-tata-letak-riwayat-pemeriksaan.md. Nol perubahan kontrak, nol perubahan backend, nol requirement didesain ulang. Lihat bagian R3.8. Sebelumnya 2026-09-16 (ketiga) — penyelarasan kesiapan EPIC IGD-04 sebelum coding: IGD-DEC-129 sampai IGD-DEC-132; API naik 0.7.0 (aditif, proyeksi nama §3.2 + nama canonical RegPatientEncounter); IsActive dihapus dari rancangan EmgDoctorAssignment; acceptance BE-IGD-044/045 dan FE-IGD-027 diperbarui. Nol requirement didesain ulang. Lihat bagian R3.7. Sebelumnya 2026-09-16 (kedua) — FE-IGD-029 dan FE-IGD-030 (kunjungan keluar dari Arrived); IGD-DEC-127 dan IGD-DEC-128; nol perubahan kontrak, bagian R3.6. Sebelumnya 2026-09-16: BE-IGD-046 dan FE-IGD-028, IGD-DEC-122 sampai IGD-DEC-126, kontrak API dan validation 0.6.0 (bagian R3.5); 2026-09-15 (kedua): BE-IGD-040..045, FE-IGD-019, FE-IGD-023..027"
+planning_updated_at: "2026-09-22 — plan-module-delivery (docs saja): BE-IGD-051..056 dan FE-IGD-035..037 (encounter-first, pasien tanpa identitas, dokter jaga); IGD-DEC-139 sampai IGD-DEC-141; IGD-OQ-093 ditutup; IGD-OQ-094 sampai IGD-OQ-101; IGD-EV-140 sampai IGD-EV-144. Kontrak tidak dinaikkan pass ini. Lihat bagian R3.13. Sebelumnya 2026-09-16 (keempat) — plan-module-delivery: FE-IGD-031 dan FE-IGD-032 (tata letak riwayat pada ruang kerja pemeriksaan); IGD-DEC-133 dan IGD-DEC-134; evidence 2026-09-16-tata-letak-riwayat-pemeriksaan.md. Nol perubahan kontrak, nol perubahan backend, nol requirement didesain ulang. Lihat bagian R3.8. Sebelumnya 2026-09-16 (ketiga) — penyelarasan kesiapan EPIC IGD-04 sebelum coding: IGD-DEC-129 sampai IGD-DEC-132; API naik 0.7.0 (aditif, proyeksi nama §3.2 + nama canonical RegPatientEncounter); IsActive dihapus dari rancangan EmgDoctorAssignment; acceptance BE-IGD-044/045 dan FE-IGD-027 diperbarui. Nol requirement didesain ulang. Lihat bagian R3.7. Sebelumnya 2026-09-16 (kedua) — FE-IGD-029 dan FE-IGD-030 (kunjungan keluar dari Arrived); IGD-DEC-127 dan IGD-DEC-128; nol perubahan kontrak, bagian R3.6. Sebelumnya 2026-09-16: BE-IGD-046 dan FE-IGD-028, IGD-DEC-122 sampai IGD-DEC-126, kontrak API dan validation 0.6.0 (bagian R3.5); 2026-09-15 (kedua): BE-IGD-040..045, FE-IGD-019, FE-IGD-023..027"
 generated_at: "2026-08-24"
 aligned_at: "2026-08-26 (correction pass revisi 6)"
 input_revisions:
@@ -494,15 +494,84 @@ Dua keputusan pemilik atas temuan gerbang backlog frontend. **`BE-IGD-049` dan `
 | --- | --- | --- |
 | `IGD-DEC-137` | Respons event kepergian menyertakan nama pelaku selain ID; aditif; tanpa `N+1`; tanpa schema; **tidak** menyentuh authorization/ownership/ruas aktor lain | `BE-IGD-049`, `FE-IGD-017` |
 | `IGD-DEC-138` | Pendaftaran IGD ganda tidak boleh meninggalkan encounter yatim; deteksi sebelum encounter dibuat; dilarang `hard-delete` tanpa audit referensi | `BE-IGD-050`, `FE-IGD-034`, `FE-IGD-014` |
-| `IGD-OQ-093` | `open` — jaminan sisi server untuk dua celah pra-cek (serentak; klien tanpa pra-cek); opsi B1/B2/B3 | Backend gap eksplisit; tidak menahan `BE-IGD-050`/`FE-IGD-034` |
+| `IGD-OQ-093` | ~~`open`~~ **`superseded` sebagian 22 September 2026** — bisnis dijawab `IGD-DEC-139` (bentuk B1), teknis dijawab `IGD-DEC-145`/`146`, realisasi `BE-IGD-053` (R3.13). *Semula:* jaminan sisi server untuk dua celah pra-cek (serentak; klien tanpa pra-cek); opsi B1/B2/B3 | Celah teknis tetap ada sampai `BE-IGD-053` ✅; tidak menahan `BE-IGD-050`/`FE-IGD-034` |
 
 ### R3.12.3 Coverage gap yang dicatat
 
 | Gap | Keterangan |
 | --- | --- |
 | Encounter yatim yang sudah ada | Kandidat belum diketahui jumlahnya; **hasil kueri audit belum dilaporkan** (`BE-IGD-050` ✅ dengan acceptance 8 dikecualikan). Kueri baca-saja ada pada kartu `BE-IGD-050` acceptance 8, dijalankan pemilik. **Tidak ada pembersihan** tanpa audit referensi (`IGD-DEC-138`) |
-| Jaminan sisi server | `IGD-OQ-093` — pra-cek dijaga pemanggil, bukan server; dua celah tetap terbuka |
+| Jaminan sisi server | `IGD-OQ-093` — pra-cek dijaga pemanggil, bukan server; dua celah tetap terbuka. **22 September 2026:** pertanyaannya `superseded` sebagian (bisnis `IGD-DEC-139`, teknis `IGD-DEC-145`/`146`); celahnya hilang saat `BE-IGD-053` ✅ — lihat R3.13 |
 | Ruas aktor lain pada kontrak kepergian | `requestedByUserId`, `sendingNurseUserId`, `receivingNurseUserId`, `actionByUserId`, `acceptedByUserId` tetap ID. `IGD-DEC-137` sengaja sempit; layar kepergian yang ada tidak menampilkannya |
 | Perilaku bila pra-cek itu sendiri gagal | `FE-IGD-034` butir 5 — **`fail-open` diputuskan pemilik** (21 September 2026 malam) dan diimplementasikan; runtime belum terbukti (uji layar U5) |
 | Hak akses pra-cek | `EmergencyVisit : Create` diusulkan; pilihan `Read` belum tentu dipegang petugas pendaftaran. Hak akses basis data tidak diperiksa agent |
 | `FE-IGD-014` | Pencarian daftar kunjungan pada implementasi sekarang memakai `Read` dan **dapat gagal senyap** untuk peran tanpa `Read`; digantikan `FE-IGD-034` |
+
+
+## R3.13 Perencanaan 22 September 2026 — encounter-first, pasien tanpa identitas, dan dokter jaga
+
+Tiga keputusan pemilik yang **disetujui prinsip** 22 September 2026 (`IGD-DEC-139`…`141`) menjadi enam
+task backend (roadmap backend R3.13) dan tiga task frontend (roadmap frontend R3.12). **Direncanakan
+saja** — nol source, nol task dimulai. Snapshot: backend `rizkiG` `0d13f3a8`, frontend `RizkiV2`
+`c941012ac`. Kontrak berlaku: API `0.10.0`, validation `0.7.0` — tidak dinaikkan pass ini; masing-masing
+task menaikkannya satu minor saat dikerjakan. Bukti:
+[evidence/2026-09-22-desain-encounter-first.md](../evidence/2026-09-22-desain-encounter-first.md).
+
+### R3.13.1 Task
+
+| Task | Requirement / keputusan | Target implementasi | Dependency | Requirement approved | Delivery planned | Implementation complete | Runtime verified |
+| --- | --- | --- | --- | :-: | :-: | :-: | :-: |
+| `BE-IGD-051` | `FR-IGD-009`; **`IGD-DEC-139`** butir 5; `RM-DEC-003` | Kunjungan `Completed`/`Cancelled` menutup encounter-nya pada satu `SaveChanges`; catatan klinis terbuka dikunci | `BE-IGD-022` ✅, `BE-IGD-024` ✅ | **Ya** (prinsip); TK-1/TK-2 menunggu jawaban | Ya | Tidak | Tidak |
+| `BE-IGD-052` | `FR-IGD-009`; `IGD-DEC-139`, `IGD-DEC-138`, prinsip `IGD-DEC-136` | Rekonsiliasi berbasis bukti per kelas K1–K4; hanya K1 ditulis; dilarang `UPDATE` massal | `BE-IGD-051`; ⛔ kueri D + K1–K4; ⛔ `IGD-OQ-095` | Sebagian — bentuk belum | Ya | Tidak | Tidak |
+| `BE-IGD-053` | `FR-IGD-007`…`012`; `IGD-DEC-139`, `IGD-DEC-138`, `IGD-DEC-084`; menjalankan jawaban `IGD-OQ-093` | Penjaga episode terbuka di `CreateEncounterCoreAsync` (tipe `Emergency` saja), penguncian per pasien; `active-episode` diperluas aditif | `BE-IGD-050` ✅, `BE-IGD-051`, `BE-IGD-052`; ⛔ `IGD-OQ-096`; ⛔ `IGD-OQ-101` | Sebagian | Ya | Tidak | Tidak |
+| `BE-IGD-054` | `FR-IGD-011`; `IGD-DEC-139` butir 2, `IGD-DEC-140` U1 | `GET emergency-visits/triage-queue` terpadu, halaman dihitung di basis data | `BE-IGD-024` ✅ | **Ya** (prinsip) | Ya | Tidak | Tidak |
+| `BE-IGD-055` | `FR-IGD-007`; `IGD-DEC-139` butir 3, `IGD-DEC-127` | `POST emergency-visits/start-triage` idempoten | `BE-IGD-024` ✅, `BE-IGD-025` ✅; ⛔ `IGD-OQ-094`; ⛔ `IGD-OQ-100` | Sebagian — W1 belum | Ya | Tidak | Tidak |
+| `BE-IGD-056` | `FR-IGD-016`…`021`; **`IGD-DEC-141`** | `GET eligible-doctors`; validasi ulang pada `POST /` dan `/handover`; override beralasan | `BE-IGD-045` ✅; ⛔ kueri E1–E3 | Sebagian — kriteria belum | Ya | Tidak | Tidak |
+| `FE-IGD-035` | `FR-IGD-011` sisi tampilan; `IGD-DEC-139`, `IGD-DEC-140` | Daftar triage membaca `triage-queue`; aksi dari `availableActions`; label "Terdaftar" lawan "Tiba" | `BE-IGD-054` | Ya (prinsip) | Ya | Tidak | Tidak |
+| `FE-IGD-036` | `FR-IGD-007`…`012` sisi tampilan; `IGD-DEC-139`, `IGD-DEC-140` U1 | Loket berhenti `POST emergency-visits` (pasien beridentitas); Mulai Triage; waktu tiba sesuai W1 | `BE-IGD-053`, `BE-IGD-055`, `FE-IGD-035` | Sebagian — W1, `IGD-OQ-100` | Ya | Tidak | Tidak |
+| `FE-IGD-037` | `FR-IGD-016`…`021` sisi tampilan; `IGD-DEC-141` | Pemilih dokter membaca `eligible-doctors`; override beralasan; roster kosong tidak buntu | `BE-IGD-056` | Sebagian — kriteria belum | Ya | Tidak | Tidak |
+
+### R3.13.2 Keputusan dan pertanyaan terbuka
+
+| ID | Isi ringkas | Dipakai oleh |
+| --- | --- | --- |
+| `IGD-DEC-139` | Encounter-first; rumus episode terbuka klausa A (encounter) + B (kunjungan); "berakhir" = empat tanda; dilarang heuristik waktu | `BE-IGD-051`…`055`, `FE-IGD-035`, `FE-IGD-036` |
+| `IGD-DEC-140` | U1 jalur transisi pasien tanpa identitas (`approved`); U2 rekam pasien sementara (`candidate`) | `BE-IGD-054`, `BE-IGD-055`, `FE-IGD-035`, `FE-IGD-036` |
+| `IGD-DEC-141` | Kelayakan dokter ditegakkan backend, validasi ulang, override beralasan; kriteria ⛔ E1–E3; `FE-IGD-027` tetap ✅ | `BE-IGD-056`, `FE-IGD-037` |
+| `IGD-OQ-093` | **`superseded` sebagian** 22 September 2026 — bisnis `IGD-DEC-139` (bentuk B1), teknis `IGD-DEC-145`/`146`; realisasi terbuka sampai `BE-IGD-053` ✅ | `BE-IGD-053` |
+| `IGD-OQ-094` | W1 — sumber waktu tiba dan ruas kedatangan lain | `BE-IGD-055`, `FE-IGD-036` |
+| `IGD-OQ-095` | Bentuk `BE-IGD-052`: endpoint admin atau migration | `BE-IGD-052` |
+| `IGD-OQ-096` | Pasien pergi sebelum ditriage — **belum digali** | `BE-IGD-053`; isi daftar `BE-IGD-054` |
+| `IGD-OQ-097` | Apakah encounter IGD memakai `TrxQueue` — **belum digali** | Cakupan `BE-IGD-051`, `BE-IGD-054` |
+| `IGD-OQ-098` | Pemilik Master Patient — **belum digali** | U2 `IGD-DEC-140` |
+| `IGD-OQ-099` | Approval Clinical Governance — **belum digali** | `IGD-DEC-139`, `IGD-DEC-141` |
+| `IGD-OQ-100` | Tangani Segera pada baris tanpa kunjungan | `BE-IGD-055`, `FE-IGD-036` |
+| `IGD-OQ-101` | Jalan keluar beralasan dan mekanisme serentak pada pintu encounter | `BE-IGD-053` |
+
+> **Amendment pass sore 22 September 2026.** `IGD-OQ-094`, `095`, `096`, `097`, `100`, `101` kini `superseded`
+> oleh `IGD-DEC-147`, `148`, `142`, `144`, `143`, dan `145`+`146`; `IGD-OQ-098` dipersempit (`IGD-DEC-149`);
+> `IGD-OQ-099` tetap `open` tetapi tidak menahan (`IGD-DEC-150`). **Malam:** `IGD-DEC-151`…`154` menjawab `IGD-TRQ-08`…`11`;
+> `IGD-DEC-140` U1 dan `IGD-DEC-149` `superseded`. Tabel R3.13.1 **belum** diselaraskan —
+> menunggu `plan-module-delivery` final. Rincian di `00-interview-decisions.md` bagian amendment pass 22 September 2026 (lanjutan).
+
+### R3.13.3 Bukti
+
+| ID | Isi ringkas | Dipakai oleh |
+| --- | --- | --- |
+| `IGD-EV-140` | Pilihan dokter = seluruh master; `MstDoctorSchedule` ber-DNA poliklinik; jembatan identitas cuti tidak ada | `IGD-DEC-141`, `BE-IGD-056`, `FE-IGD-037` |
+| `IGD-EV-141` | `ArrivalDateTime`: validasi dikomentari, nilai kosong jatuh ke jam browser | `IGD-OQ-094`, `FE-IGD-036` |
+| `IGD-EV-142` | IGD tidak pernah menutup encounter; empat tanda "berakhir" tidak seragam; penguncian `RM-DEC-003`; billing | `IGD-DEC-139`, `BE-IGD-051`, `BE-IGD-052` |
+| `IGD-EV-143` | Satu pintu `Emergency`; `PatientId` encounter wajib; unique index `EncounterId` tanpa filter | `IGD-DEC-139`, `IGD-DEC-140`, `BE-IGD-053`, `BE-IGD-055` |
+| `IGD-EV-144` | Tangani Segera dan penugasan dokter menuntut kunjungan sudah lahir | `IGD-OQ-100`, `BE-IGD-055` |
+
+### R3.13.4 Coverage gap yang dicatat
+
+| Gap | Keterangan |
+| --- | --- |
+| Requirement baru tanpa FR/AT | Encounter ikut ditutup, daftar triage terpadu, titik lahir kunjungan, dan kelayakan dokter **belum punya** ID `FR-IGD-*` maupun `AT-IGD-*`. Ditelusuri langsung ke keputusan. Alokasi FR/AT adalah pekerjaan `design-business-module` pada pass berikutnya |
+| Kontrak belum diselaraskan | API, validation, state, integration, dan permission belum memuat R3.13 — dicatat pada `koreksi_desain_tertunda` manifest; masing-masing task menyelaraskannya saat dikerjakan |
+| Rumusan K1–K4 dan teks kueri D/E | Disusun ulang agent dari ringkasan; **wajib dikonfirmasi pemilik** sebelum dipakai |
+| Penautan identitas pasien tanpa identitas | Menautkan `PatientId` dan membuat encounter bagi kunjungan U1 yang identitasnya ditemukan belum dirancang |
+| SLA triage baris encounter-saja | Belum punya waktu tiba sampai kunjungan lahir, jadi tidak ikut SLA — dinyatakan, tidak dirancang |
+| Tanggal lahir jatuh ke hari ini | `birthDate: toIsoDateOrNow(...)` di layar pendaftaran IGD (`IGD-EV-141` temuan sampingan) — di luar lingkup IGD, tanpa task |
+| Kueri audit A/B `BE-IGD-050` | Masih tanpa angka sejak 21 September 2026 |

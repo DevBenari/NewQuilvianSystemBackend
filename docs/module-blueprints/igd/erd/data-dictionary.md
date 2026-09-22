@@ -2,7 +2,7 @@
 
 | Field | Nilai |
 | --- | --- |
-| Blueprint | `IGD-BP-001` revision `5` |
+| Blueprint | `IGD-BP-001` revision `5`; **bagian 6 ditambahkan 22 September 2026** (encounter-first) |
 | Status | `draft` |
 | Commit diaudit | backend `f69e9e48` |
 | Diselaraskan | 15 September 2026 — nama tabel bagian 4 dan rujukan bagian 5.3 menjadi `EmgDoctorAssignment` (`IGD-DEC-116`); isi kolom tidak berubah |
@@ -282,3 +282,95 @@ Berlaku untuk `TrxPatientAssessment`, `TrxPatientVitalSign`, dan
 | `AmendmentReason` | `varchar(500)` | Tidak | — | **Wajib** bila `Amends…Id` terisi |
 
 Ketiganya **milik Clinical Management** dan menunggu persetujuan pemiliknya.
+
+---
+
+## 6. Encounter-first — 22 September 2026 (**Rencana (belum tersedia)**)
+
+Kontrak kolom untuk tabel `Baru`/`Diperbarui` slice encounter-first (`IGD-DEC-139`, `142`…`148`, `150`…`154`).
+Salinannya ada di `02-backend-architecture.md` §13.6; **berkas ini yang mengikat** bila keduanya berbeda.
+Sepuluh kolom `IdentityModel` tidak diulang. Kolom bertanda **Sensitif** tidak boleh masuk custom logger
+dan tidak boleh dipakai sebagai contoh berisi data asli.
+
+| Tabel | Status | Pemilik | Schema |
+| --- | --- | --- | --- |
+| `EmgVisit` | **Diperbarui** — 3 kolom | IGD | `public` |
+| `EmgDuplicateEpisodeOverride` | **Baru** | IGD | `public` |
+| `EmgEncounterReconciliationRun` | **Baru** | IGD | `public` |
+| `EmgEncounterReconciliationItem` | **Baru** | IGD | `public` |
+| `RegPatientEncounter` | **Sudah ada** — nol kolom baru | Registration Management | `public` |
+
+**`EmgVisit` — Diperbarui** (`public."EmgVisit"`)
+
+| Kolom | Tipe | Wajib | Bawaan | Validasi | Sensitif |
+| --- | --- | :-: | --- | --- | :-: |
+| `ArrivalTimeSource` | `int` (`EmergencyArrivalTimeSource`) | Ya | `0` (`Unverified`) | Nilai enum | Tidak |
+| `ArrivalConfirmedByUserId` | `uuid?` | Tidak | `null` | FK `AspNetUsers`, `Restrict`; diisi dari token | Tidak |
+| `ArrivalConfirmedAt` | `timestamptz?` | Tidak | `null` | Waktu server | Tidak |
+
+Index: tidak ada yang baru. Perilaku hapus: tidak berubah.
+
+**`EmgDuplicateEpisodeOverride` — Baru** (`public."EmgDuplicateEpisodeOverride"`, mewarisi `IdentityModel`)
+
+| Kolom | Tipe | Wajib | Aturan | Sensitif |
+| --- | --- | :-: | --- | :-: |
+| `Id` | `uuid` | Ya | PK | Tidak |
+| `EncounterId` | `uuid` | Ya | FK `RegPatientEncounter`, `Restrict`; **unique** — satu catatan per encounter baru | Tidak |
+| `PatientId` | `uuid` | Ya | FK `MstPatient`, `Restrict`; index | Tidak |
+| `OverriddenEncounterId` | `uuid?` | Tidak | FK `RegPatientEncounter`, `Restrict` — episode lama bila berupa encounter | Tidak |
+| `OverriddenVisitId` | `uuid?` | Tidak | FK `EmgVisit`, `Restrict` — episode lama bila berupa kunjungan | Tidak |
+| `Reason` | `varchar(500)` | Ya | Di-*trim*, 1–500 | **Ya** — dapat memuat keterangan klinis |
+| `OverriddenByUserId` | `uuid` | Ya | FK `AspNetUsers`, `Restrict`; dari token | Tidak |
+| `OverriddenAt` | `timestamptz` | Ya | Waktu server | Tidak |
+
+Check constraint: `OverriddenEncounterId IS NOT NULL OR OverriddenVisitId IS NOT NULL`. Tambah-saja: tidak
+ada endpoint ubah/hapus.
+
+**`EmgEncounterReconciliationRun` — Baru**
+
+| Kolom | Tipe | Wajib | Aturan | Sensitif |
+| --- | --- | :-: | --- | :-: |
+| `Id` | `uuid` | Ya | PK | Tidak |
+| `RunNumber` | `varchar(50)` | Ya | Unique; dibentuk `DocumentNumberService` | Tidak |
+| `Status` | `int` | Ya | `EmergencyReconciliationRunStatus` | Tidak |
+| `Reason` | `varchar(500)` | Ya | 1–500 | Ya |
+| `CountK1`, `CountK1Outpatient`, `CountK2`, `CountK3`, `CountK4` | `int` | Ya | Hasil hitung saat eksekusi | Tidak |
+| `ExecutedByUserId` | `uuid` | Ya | FK `AspNetUsers`, `Restrict` | Tidak |
+| `ExecutedAt` | `timestamptz` | Ya | Server | Tidak |
+| `ReversedByUserId` | `uuid?` | Tidak | FK `AspNetUsers`, `Restrict` | Tidak |
+| `ReversedAt` | `timestamptz?` | Tidak | Server | Tidak |
+| `ReverseReason` | `varchar(500)?` | Tidak | Wajib saat dibalik | Ya |
+
+**`EmgEncounterReconciliationItem` — Baru**
+
+| Kolom | Tipe | Wajib | Aturan | Sensitif |
+| --- | --- | :-: | --- | :-: |
+| `Id` | `uuid` | Ya | PK | Tidak |
+| `RunId` | `uuid` | Ya | FK run, `Cascade` (baris ikut run; run sendiri tidak pernah dihapus) | Tidak |
+| `EncounterId` | `uuid` | Ya | FK `RegPatientEncounter`, `Restrict`; index | Tidak |
+| `EmergencyVisitId` | `uuid` | Ya | FK `EmgVisit`, `Restrict` | Tidak |
+| `Class` | `int` | Ya | Hanya `K1` atau `K1Outpatient` yang pernah ditulis | Tidak |
+| `StatusBefore`, `StatusAfter` | `int` | Ya | Nilai `EncounterStatus` | Tidak |
+| `CompletedAtBefore`, `CompletedAtAfter` | `timestamptz?` | Tidak | — | Tidak |
+| `IsReversed` | `bool` | Ya | Bawaan `false` | Tidak |
+| `ReverseSkipReason` | `varchar(200)?` | Tidak | Diisi bila baris dilewati saat pembalikan | Tidak |
+
+Unique `(RunId, EncounterId)`.
+
+**`RegPatientEncounter` — Sudah ada, kolom kunci yang dipakai aturan slice ini** (model: `Areas/HealthServices/RegistrationManagement/Models/RegPatientEncounter.cs`)
+
+| Kolom | Dipakai untuk | Ditulis IGD? |
+| --- | --- | :-: |
+| `Id`, `PatientId`, `EncounterType` | Rumus episode terbuka klausa A | Tidak |
+| `EncounterStatus` | Tanda berakhir; NoShow; penutupan ikut kunjungan; rekonsiliasi | **Ya** |
+| `RegisteredAt` | Label "Terdaftar" di daftar triage; fallback waktu tiba | Tidak |
+| `CompletedAt` | Tanda berakhir | **Ya** |
+| `NoShowAt`, `NoShowByUserId`, `NoShowReason` | Tanda berakhir; NoShow IGD | **Ya** |
+| `IsCancel`, `CancelledAt`, `CancelledByUserId`, `CancelReason`, `IsActive` | Tanda berakhir; pembatalan ikut kunjungan | **Ya** |
+| `ChiefComplaint` | Nilai awal keluhan saat kunjungan lahir | Tidak |
+| `IsQueueRequired` | **Tidak lagi menentukan** antrean untuk Emergency (`IGD-DEC-144`) | Tidak |
+
+**Enum baru** — disimpan sebagai `int`: `EmergencyArrivalTimeSource` (`Unverified = 0` bawaan, `Fallback = 1`,
+`Confirmed = 2`); `EmergencyReconciliationClass` (`K1 = 1`, `K1Outpatient = 2`, `K2 = 3`, `K3 = 4`, `K4 = 5`);
+`EmergencyReconciliationRunStatus` (`Executed = 1`, `Reversed = 2`). `EmergencyVisitStartMode` hanya untuk request,
+tidak disimpan.

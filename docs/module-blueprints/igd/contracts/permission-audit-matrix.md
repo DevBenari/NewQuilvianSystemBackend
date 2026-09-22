@@ -2,7 +2,7 @@
 
 | Field | Nilai |
 | --- | --- |
-| `contract_version` | `0.4.0` — bagian 3.1 (kewenangan atas pesanan) ditambahkan correction pass revisi 6. **Aditif** |
+| `contract_version` | `0.5.0` — encounter-first, 22 September 2026, **Rencana (belum tersedia)**. **Aditif**: bagian 7 baru — aksi `EmergencyVisit : NoShow`, resource baru `EmergencyEncounterReconciliation` (`Read`/`Process`/`Reverse`), jejak audit override, NoShow, waktu tiba, rekonsiliasi. Sebelumnya `0.4.0` — bagian 3.1 (kewenangan atas pesanan) ditambahkan correction pass revisi 6. **Aditif** |
 | Status | `draft` |
 | Owner | Product/Domain Owner IGD: **Rizki Gunawan** (`IGD-DEC-089`) |
 | `approved_by` / `approved_at` | — / — |
@@ -166,3 +166,43 @@ tidak dapat dijawab**. Ini keterbatasan yang disadari, bukan kelalaian.
 
 Prinsip yang tidak berubah: **gerbang menolak tindakan privileged, integrasi, dan finansial.
 Gerbang tidak pernah memblokir pelayanan klinis darurat.**
+
+---
+
+## 7. Encounter-first — baru pada `0.5.0`, **Rencana (belum tersedia)**
+
+### 7.1 Aksi dan resource baru
+
+| Resource | Aksi | Pasangan atribut pada method (persis) | Dipakai | Keputusan |
+| --- | --- | --- | --- | --- |
+| `EmergencyVisit` | `Read` *(sudah ada)* | `[AccessPermission("EmergencyVisit", "Read")]` | `GET /triage-queue` | `IGD-DEC-139` |
+| `EmergencyVisit` | `Create` *(sudah ada)* | `[AccessPermission("EmergencyVisit", "Create")]` | `POST /start-triage` (kedua mode) | `IGD-DEC-139`, `143` |
+| `EmergencyVisit` | **`NoShow`** — **baru** | `[AccessAction("NoShow", "Mark Emergency Encounter No Show", Description = "Menandai pasien IGD pergi sebelum ditriage", AccessType = AccessTypes.Update)]` + `[AccessPermission("EmergencyVisit", "NoShow")]` | `POST /no-show` | `IGD-DEC-142` — hak akses IGD tersendiri |
+| `EmergencyVisit` | `Update` *(sudah ada)* | `[AccessPermission("EmergencyVisit", "Update")]` | `PATCH /{id}/arrival-time` | `IGD-DEC-147` |
+| **`EmergencyEncounterReconciliation`** — resource **baru** | `Read` | `[AccessPermission("EmergencyEncounterReconciliation", "Read")]` | `GET /preview`, `GET /runs`, `GET /runs/{id}` | `IGD-DEC-148` |
+| `EmergencyEncounterReconciliation` | **`Process`** | `[AccessAction("Process", "Execute Emergency Encounter Reconciliation", AccessType = AccessTypes.Update)]` + `[AccessPermission("EmergencyEncounterReconciliation", "Process")]` | `POST /runs` | `IGD-DEC-148` — admin khusus |
+| `EmergencyEncounterReconciliation` | **`Reverse`** | `[AccessAction("Reverse", "Reverse Emergency Encounter Reconciliation", AccessType = AccessTypes.Update)]` + `[AccessPermission("EmergencyEncounterReconciliation", "Reverse")]` | `POST /runs/{id}/reverse` | `IGD-DEC-148` |
+| `PatientEncounter` *(milik Registrasi)* | `Create`, `Update` *(sudah ada)* | Tidak berubah | Override pendaftaran ganda **tanpa** permission baru | `IGD-DEC-145` |
+
+Nama aksi khusus berjenis `Update` sudah lazim di repository (`Cancel`, `Reverse`, `Process`,
+`Approve`). Setiap method baru **wajib** memuat pasangan `[AccessAction]` + `[AccessPermission]` pada method
+yang sama dengan nama aksi identik huruf demi huruf.
+
+**Pemberian hak ke peran** ada di basis data dan berbeda antar rumah sakit (`CONFIGURABLE_DEFAULT`,
+gate §5.3). Rekomendasi awal: `NoShow` untuk perawat triage; `EmergencyEncounterReconciliation : Process` dan
+`Reverse` **hanya** untuk peran admin data, **terpisah** dari peran klinis.
+
+### 7.2 Jejak audit
+
+| Kejadian | Yang tersimpan tahan lama | Tempat |
+| --- | --- | --- |
+| Pendaftaran ganda dengan override | Encounter baru, episode yang dilangkahi, alasan, pelaku (token), waktu (server) | Tabel IGD baru `EmgDuplicateEpisodeOverride` — tambah-saja |
+| Pasien pergi sebelum ditriage | Pelaku, waktu, alasan | `RegPatientEncounter.NoShowByUserId` / `NoShowAt` / `NoShowReason` |
+| Konfirmasi/koreksi waktu tiba | Sumber nilai, pelaku, waktu konfirmasi | `EmgVisit.ArrivalTimeSource` / `ArrivalConfirmedByUserId` / `ArrivalConfirmedAt` — **hanya nilai terakhir**; riwayat koreksi tidak disimpan (`IGD-DEC-152` tidak memintanya) |
+| Run rekonsiliasi | Pelaku, waktu, alasan, jumlah per kelas, baris yang ditulis beserta nilai **sebelum** dan **sesudah** | Tabel IGD baru `EmgEncounterReconciliationRun` + `EmgEncounterReconciliationItem` |
+| Pembalikan run | Pelaku, waktu, alasan, baris yang dikembalikan dan yang dilewati | Tabel yang sama |
+| Encounter ditutup mengikuti kunjungan | Pelaku = pelaku aksi kunjungan; waktu server | Kolom status akhir `RegPatientEncounter` + `UpdateBy`/`UpdateDateTime` |
+
+**Tidak boleh masuk log** (tambahan pada bagian 5.3): alasan override, alasan NoShow, dan alasan
+rekonsiliasi dapat memuat keterangan klinis atau identitas — dicatat di tabel audit di atas, **bukan** di
+custom logger.

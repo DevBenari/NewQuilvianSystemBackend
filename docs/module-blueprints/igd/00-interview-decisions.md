@@ -4456,9 +4456,461 @@ remediasi teknis dan **tidak** memindahkan kepemilikan modul mana pun.
 
 | ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
 | --- | --- | --- | --- | --- | --- | --- |
-| `IGD-OQ-093` | Open Question | Lapis A (`BE-IGD-050`: pra-cek episode aktif sebelum encounter dibuat, dipanggil layar) menutup kasus normal tetapi **tidak menutup dua celah**: (a) dua pendaftaran serentak untuk pasien yang sama, keduanya lolos pra-cek lalu salah satunya ditolak `409`; (b) klien mana pun yang memanggil `POST /patient-encounters` lalu `POST /emergency-visits` **tanpa** pra-cek. Untuk menutupnya, jaminan harus ditegakkan di sisi server. Tiga opsi: **B1** — guard episode ganda pada pembuatan encounter bertipe `Emergency` di modul Registrasi (menyentuh berkas milik Registrasi); **B2** — satu endpoint orkestrasi IGD yang membuat encounter dan kunjungan dalam satu transaksi (butuh logika pembuatan encounter yang dapat dipanggil dari luar controller); **B3** — kompensasi otomatis pada penolakan (ditolak: menghapus/membatalkan encounter tanpa audit referensi bertentangan dengan `IGD-DEC-138`) | Product/Domain Owner IGD + pemilik modul Registrasi (**belum dipetakan pada dokumen ini**) | `open` | Tidak menahan `BE-IGD-050` maupun `FE-IGD-034`. Menahan hanya klaim "tanpa encounter yatim dalam segala keadaan" | Keputusan pemilik: `IGD-DEC-138` butir 3 |
+| `IGD-OQ-093` | Open Question | Lapis A (`BE-IGD-050`: pra-cek episode aktif sebelum encounter dibuat, dipanggil layar) menutup kasus normal tetapi **tidak menutup dua celah**: (a) dua pendaftaran serentak untuk pasien yang sama, keduanya lolos pra-cek lalu salah satunya ditolak `409`; (b) klien mana pun yang memanggil `POST /patient-encounters` lalu `POST /emergency-visits` **tanpa** pra-cek. Untuk menutupnya, jaminan harus ditegakkan di sisi server. Tiga opsi: **B1** — guard episode ganda pada pembuatan encounter bertipe `Emergency` di modul Registrasi (menyentuh berkas milik Registrasi); **B2** — satu endpoint orkestrasi IGD yang membuat encounter dan kunjungan dalam satu transaksi (butuh logika pembuatan encounter yang dapat dipanggil dari luar controller); **B3** — kompensasi otomatis pada penolakan (ditolak: menghapus/membatalkan encounter tanpa audit referensi bertentangan dengan `IGD-DEC-138`) | Product/Domain Owner IGD + pemilik modul Registrasi (**belum dipetakan pada dokumen ini**) | ~~`open`~~ **`superseded` sebagian — 22 September 2026.** Keputusan bisnis dijawab `IGD-DEC-139` (bentuk B1: penjaga pada satu pintu encounter `Emergency`); mekanisme teknis dijawab `IGD-DEC-145` + `IGD-DEC-146`; **realisasi masih terbuka** sampai `BE-IGD-053` ✅. *Tulisan `closed` yang sempat dipasang pagi hari dikoreksi pada amendment pass sore hari yang sama* | Tidak menahan `BE-IGD-050` maupun `FE-IGD-034`. Menahan hanya klaim "tanpa encounter yatim dalam segala keadaan" | Keputusan pemilik: `IGD-DEC-138` butir 3 |
 
 **Rekomendasi agent.** B1 bila pemilik Registrasi setuju, karena ia menutup celah (a) dan (b) sekaligus
 di satu tempat; B2 bila tidak. **Agent tidak memilih**: keduanya menyentuh modul lain atau membuat pola baru.
 Sampai diputuskan, celah ini adalah **backend gap eksplisit**, dan `FE-IGD-014` tidak boleh ditandai
 final end-to-end atas nama celah itu.
+
+> **Diputuskan 22 September 2026.** Pemilik memilih arah encounter-first (`IGD-DEC-139`), yang
+> menjadikan B1 satu-satunya pilihan yang masuk akal dan B2 tidak dibutuhkan. Status pertanyaan ini
+> **`superseded` sebagian**: bisnis terjawab `IGD-DEC-139`, mekanisme teknis terjawab `IGD-DEC-145`/`146`,
+> realisasi terbuka sampai `BE-IGD-053` ✅. Alasan lengkap pada bagian keputusan 22 September 2026.
+
+---
+
+## Keputusan 22 September 2026 — encounter-first, pasien tanpa identitas, dan kelayakan dokter jaga
+
+Sesudah gelombang R3.12 tuntas, pemilik meninjau ulang **urutan lahirnya data** pada perjalanan pasien
+IGD. Pemicunya dua temuan yang tidak bisa ditambal di tempat: encounter yatim yang terus muncul
+(`IGD-DEC-138`, `IGD-OQ-093`), dan fakta bahwa modul IGD **tidak pernah menutup encounter** sama sekali.
+Tiga keputusan di bawah **disetujui prinsip** oleh pemilik di percakapan 22 September 2026 dan ditulis
+ke repo pada pass blueprint hari yang sama. Mekanismenya dirinci per kartu pada roadmap backend
+**R3.13** dan roadmap frontend **R3.12**.
+
+Seluruh fakta source yang dipakai ada di
+[evidence/2026-09-22-desain-encounter-first.md](evidence/2026-09-22-desain-encounter-first.md)
+(`IGD-EV-140` sampai `IGD-EV-144`).
+
+### Alur yang berubah — dalam satu gambar
+
+```mermaid
+flowchart LR
+    subgraph lama["Hari ini — kunjungan lahir di loket"]
+        L1["Loket: POST patient-encounters"] --> L2["Loket: POST emergency-visits"]
+        L2 --> L3["Daftar triase membaca EmgVisit"]
+        L2 -.->|409 episode ganda| L4["Encounter tertinggal tanpa kunjungan"]
+    end
+    subgraph baru["Encounter-first — kunjungan lahir di meja triase"]
+        B1["Loket: POST patient-encounters<br/>(penjaga episode ganda di sini)"] --> B2["Daftar Menunggu Triage<br/>encounter tanpa kunjungan = normal"]
+        B2 --> B3["Perawat: Mulai Triage<br/>EmgVisit lahir, idempoten"]
+        B3 --> B4["Triage, penanganan, disposisi"]
+        B4 --> B5["Kunjungan selesai/batal<br/>encounter ikut ditutup"]
+    end
+```
+
+### `IGD-DEC-139` — encounter-first: encounter `Emergency` lahir lebih dulu, `EmgVisit` lahir saat Mulai Triage
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-139` | Decision | **Perjalanan pasien IGD dibalik menjadi encounter-first.** (1) Pendaftaran membuat `RegPatientEncounter` bertipe `Emergency` lewat satu-satunya pintu yang dapat menghasilkan tipe itu (`PatientEncounterController.CreateEncounterCoreAsync`) dan **tidak lagi** membuat `EmgVisit`. (2) Encounter `Emergency` yang belum punya kunjungan tampil pada daftar **Menunggu Triage** dan merupakan **keadaan normal, bukan encounter yatim**. (3) `EmgVisit` lahir **hanya** lewat aksi eksplisit **Mulai Triage**, idempoten; membuka layar detail **tidak** membuat kunjungan. (4) **Episode IGD terbuka** didefinisikan secara deterministik oleh rumus di bawah; **dilarang** heuristik waktu seperti "encounter tanpa kunjungan lebih dari 30 menit dianggap ditinggal". (5) Kunjungan yang mencapai status akhir **wajib** menutup encounter-nya pada penyimpanan yang sama. (6) Pasien tanpa identitas dikecualikan — lihat `IGD-DEC-140` | Product/Domain Owner IGD; Registration API owner (**belum dipetakan**) sebagai approver akhir untuk penjaga di pintu Registrasi | `approved` — **prinsip (arah)**. Mekanisme per kartu belum; tertahan: W1 (`IGD-OQ-094`), bentuk `BE-IGD-052` (`IGD-OQ-095`), kueri D, `IGD-OQ-096`, `IGD-OQ-100`, `IGD-OQ-101` | **Rizki Gunawan / 2026-09-22** (prinsip, di percakapan) | Tinjauan desain pemilik 22 September 2026; `IGD-EV-142`, `IGD-EV-143`, `IGD-EV-144` |
+
+#### Definisi episode IGD terbuka
+
+Episode IGD pasien P dinyatakan **terbuka** bila **salah satu** klausa berlaku:
+
+| Klausa | Syarat | Kenapa klausa ini perlu |
+| --- | --- | --- |
+| **A — encounter** | Ada `RegPatientEncounter` dengan `PatientId = P`, `EncounterType = Emergency`, `IsDelete = false`, dan encounter itu **belum berakhir** | Jalur encounter-first: pasien yang sudah didaftarkan tetapi belum ditriage belum punya kunjungan |
+| **B — kunjungan** | Ada `EmgVisit` dengan `PatientId = P`, `IsDelete = false`, dan `VisitStatus` bukan `Completed` dan bukan `Cancelled` | Aturan `CariEpisodeAktifAsync` yang berlaku hari ini; menangkap kunjungan lama dan kunjungan ber-encounter `Outpatient` masa transisi (`IGD-DEC-109`) |
+
+**Encounter belum berakhir** berarti **keempat** tanda berikut kosong: `EncounterStatus` bukan
+`Completed` (9), `Cancelled` (10), atau `NoShow` (11); `IsCancel = false`; `CancelledAt` kosong;
+`CompletedAt` kosong. Empat tanda sekaligus karena Registrasi sendiri tidak menulisnya seragam
+(`IGD-EV-142` butir 5): pembatalan lewat `PATCH …/cancel` tidak mengubah `EncounterStatus`, dan
+penyelesaian lewat `PATCH …/status` tidak mengisi `CompletedAt`. Rumus yang membaca satu tanda saja
+akan salah membaca data yang ditulis jalur lain.
+
+Rumus ini **satu tempat**: dipakai penjaga pendaftaran (`BE-IGD-053`), pra-cek `active-episode`
+(`BE-IGD-050`, diperluas oleh `BE-IGD-053`), `POST /emergency-visits`, dan Mulai Triage
+(`BE-IGD-055`). Tidak boleh ada salinan kedua.
+
+**Contoh perjalanan satu pasien.**
+
+1. RAYYAN didaftarkan 09.35 → encounter `E1` bertipe `Emergency`, tanpa kunjungan. Klausa A benar →
+   episode **terbuka**, tampil *Menunggu Triage*.
+2. Pukul 09.40 petugas lain mencoba mendaftarkannya lagi → ditolak **sebelum** encounter baru dibuat
+   (`BE-IGD-053`), dengan nomor encounter/kunjungan yang sudah ada. Tidak ada `E2`.
+3. Pukul 09.42 perawat menekan **Mulai Triage** → kunjungan `V1` lahir, tertaut `E1`. Klausa A dan B
+   sama-sama benar — tetap **satu** episode.
+4. Pukul 13.10 kunjungan `V1` diselesaikan → `E1` ikut ditutup pada penyimpanan yang sama
+   (`BE-IGD-051`). A dan B salah → pasien boleh didaftarkan kembali.
+5. **Data lama:** kunjungan `V0` sudah `Completed` sejak Agustus, tetapi `E0` masih `Registered`
+   karena IGD tidak pernah menutup encounter. Klausa A benar **selamanya** → pasien itu akan tertolak
+   di setiap pendaftaran berikutnya. Inilah sebab `BE-IGD-053` baru boleh menyala sesudah
+   `BE-IGD-052` membereskan data lama.
+
+#### Hubungan dengan keputusan yang sudah ada
+
+| Keputusan | Hubungan |
+| --- | --- |
+| `IGD-DEC-084` | Perilakunya **sama** — tolak selama episode terbuka, pesan menyebut kunjungan yang ada, jalan keluar beralasan tersedia. Yang berubah adalah **isi** "episode terbuka": ditambah klausa A. Tempat mencatat jalan keluar beralasan pada pintu encounter belum ada — `IGD-OQ-101` |
+| `IGD-DEC-109` | Tidak berubah. Kunjungan ber-encounter `Outpatient` masa transisi tetap tertangkap klausa B |
+| `IGD-DEC-127` | Pendaftaran tidak lagi melahirkan kunjungan, jadi keputusan ini kehilangan penghasilnya pada layar pendaftaran. **Tidak** di-supersede oleh pass ini. Usulan agent pada kartu `BE-IGD-055`: kunjungan yang lahir lewat Mulai Triage berstatus awal `WaitingForTriage` supaya `CanTransition` tidak berubah — menunggu konfirmasi pemilik |
+| `IGD-DEC-128` | Tangani Segera memakai `PATCH …/visit-status` pada kunjungan yang **sudah ada**. Pada baris encounter-saja kunjungannya belum ada — bertabrakan, dicatat `IGD-OQ-100` |
+| `IGD-DEC-138` | **Dipenuhi dengan cara lain.** Dengan penjaga di satu pintu, penolakan terjadi **sebelum** encounter dibuat (butir 1 dan 2). Larangan `hard-delete` tanpa audit referensi tetap mengikat `BE-IGD-052` |
+| `IGD-OQ-093` | **`superseded` sebagian** — bisnis dijawab di sini; mekanisme teknis `IGD-DEC-145`/`146`; realisasi `BE-IGD-053`. Lihat bagian di bawah |
+
+**Batas keputusan.** Tidak mengubah rawat jalan maupun rawat inap (`EncounterIntakeService` menulis
+`Outpatient`, `InpEpisodeService` menulis `Inpatient` — `IGD-EV-143` butir 1). **Tidak** memindahkan
+kepemilikan modul Registrasi; perubahan pada berkas Registrasi berjalan di bawah izin remediasi teknis
+`IGD-DEC-135`. **Tidak** memberi wewenang migration, tulis basis data, commit, atau push.
+
+### `IGD-DEC-140` — pasien tanpa identitas: jalur transisi disetujui, rekam pasien sementara jadi kandidat target
+
+**Masalahnya.** `RegPatientEncounter.PatientId` bertipe `Guid` wajib (`IGD-EV-143` butir 5). Pasien
+tanpa identitas — korban kecelakaan tak sadar tanpa dompet, misalnya — **tidak dapat** punya encounter,
+sehingga encounter-first mustahil baginya. Sebaliknya `EmgVisit` sudah dirancang untuk mereka:
+`PatientId` boleh kosong, `IsUnknownPatient`, dan `TemporaryPatientAlias` (butir 6).
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-140` | Decision | **U1 — jalur transisi (disetujui).** Pasien tanpa identitas **tetap** memakai jalur kunjungan-lebih-dulu seperti hari ini: `EmgVisit` dengan `IsUnknownPatient = true`, `PatientId` dan `EncounterId` kosong, dibuat lewat `POST /emergency-visits`. Ini **pengecualian yang disengaja** terhadap `IGD-DEC-139`: kunjungannya tampil pada daftar Menunggu Triage (`BE-IGD-054`) dan **tidak** kena penjaga episode ganda — tanpa `PatientId` tidak ada yang dapat dibandingkan, sejalan `FR-IGD-011`. **U2 — `TARGET CANDIDATE`, belum disetujui.** Rekam pasien sementara di master pasien (`MstPatient` sementara) sehingga encounter-first berlaku seragam untuk semua pasien, lalu digabungkan saat identitas diketahui. Keputusan atas U2 **milik pemilik Master Patient**, bukan IGD | Product/Domain Owner IGD untuk U1; **pemilik Master Patient — belum dipetakan** untuk U2 (`IGD-OQ-098`) | ~~U1 `approved` (**transisi**)~~ **U1 `superseded` oleh `IGD-DEC-151` (22 September 2026 malam)**; U2 `candidate` | **Rizki Gunawan / 2026-09-22** (U1 dan penetapan U2 sebagai kandidat, di percakapan) | Tinjauan desain pemilik 22 September 2026; `IGD-EV-143` butir 5–7 |
+
+**Akibat U1 yang diterima dan dinyatakan, bukan disembunyikan.**
+
+| Akibat | Keterangan |
+| --- | --- |
+| Tidak ada encounter | Fitur yang membaca encounter — tagihan, pesanan penunjang berbasis encounter, antrean — tidak berlaku untuk kunjungan ini sampai identitasnya diketahui |
+| Tidak ada penjaga episode ganda | Pasien tanpa identitas yang sama dapat terdaftar dua kali dengan alias berbeda; hanya petugas yang dapat mengenalinya |
+| Penautan saat identitas ditemukan | **Belum dirancang.** Menautkan `PatientId`, lalu membuat encounter bagi kunjungan yang sedang berjalan, adalah alur tersendiri — dicatat sebagai coverage gap pada traceability R3.13 |
+
+Pilihan lain yang secara teknis ada — misalnya menjadikan `RegPatientEncounter.PatientId` boleh
+kosong — **tidak dibahas** keputusan ini dan **tidak** boleh dianggap disetujui.
+
+### `IGD-DEC-141` — kelayakan dokter jaga IGD dan aturan override
+
+**Masalahnya.** Pilihan dokter pada layar triase hari ini adalah **seluruh** master dokter aktif
+(`IGD-EV-140` butir 1). Dokter poliklinik yang sedang tidak bertugas di IGD tetap bisa ditetapkan
+sebagai Dokter Penanggung Jawab IGD. Tabel jadwal dokter ada tetapi dirancang untuk poliklinik, dan
+belum terbukti berisi jadwal IGD (butir 2–5).
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-141` | Decision | **Dokter yang ditetapkan atau dialihkan sebagai Dokter Penanggung Jawab IGD harus layak pada saat itu, dan kelayakannya ditegakkan backend.** (1) Backend menyediakan daftar dokter layak sebagai **satu sumber**; frontend tidak menghitung kelayakan sendiri. (2) Backend **memvalidasi ulang** kelayakan pada penetapan (`POST /emergency-doctor-assignments`) **dan** pengalihan (`POST /emergency-doctor-assignments/{id}/handover`) — daftar di layar bukan penjaga. (3) Dokter yang tidak layak boleh ditetapkan **hanya** lewat **override beralasan**: alasan wajib, pelaku dari token, waktu dari server, tercatat; ditolak bila alasan kosong. (4) Override **tidak boleh** menghalangi pelayanan darurat — tidak boleh ada keadaan di mana tidak satu dokter pun dapat ditetapkan. (5) **Kriteria kelayakan belum dikunci** sampai kueri E1–E3 dijawab. (6) `FE-IGD-027` **tetap ✅** — kelayakan adalah kebutuhan baru, bukan cacat acceptance `FE-IGD-027` | Product/Domain Owner IGD; **Clinical Governance — `OPEN`** untuk aturan override (`IGD-OQ-099`) | `approved` — **prinsip**. Kriteria ⛔ E1–E3 | **Rizki Gunawan / 2026-09-22** (prinsip, di percakapan; butir 6 ditegaskan dua kali) | Tinjauan desain pemilik 22 September 2026; `IGD-EV-140`, `IGD-EV-144` butir 3–4 |
+
+**Kandidat kriteria kelayakan — usulan agent, belum dikunci.** Ditulis supaya E1–E3 dapat dibaca
+terhadap sesuatu, bukan untuk dijalankan.
+
+| # | Kandidat | Sumber | Yang harus dibuktikan dulu |
+| ---: | --- | --- | --- |
+| K-a | Dokter punya jadwal `ScheduleStatus = Active`, `IsActive`, pada unit layanan IGD, yang mencakup waktu penetapan — termasuk jadwal lintas tengah malam (`IsOvernight`) dan jadwal khusus tanggal (`PracticeDate`) | `MstDoctorSchedule` | E1–E3: jadwal IGD memang ada di tabel ini |
+| K-b | Jadwal pengganti (`SubstituteDoctorId`) dihitung sebagai dokter pengganti yang layak, bukan dokter asli | `MstDoctorSchedule` | E2: jadwal pengganti dipakai |
+| K-c | Dokter yang sedang cuti disetujui dinyatakan tidak layak | `WfpLeaveRequest` | Jembatan identitas `WorkforceProfileId` ↔ `EmployeeId` terbukti, dan arti nilai `LeaveRequestStatus` "disetujui" diketahui. **Sampai itu, kriteria ini tidak boleh dipakai** — jebakannya sama dengan `BE-IGD-039` |
+
+**Tempat menyimpan penanda override belum ada.** `EmgDoctorAssignment` hanya punya `AssignmentReason`
+(`IGD-EV-144` butir 4). Penanda override tersendiri berarti kolom baru, dan kolom baru berarti migration
+yang dijalankan Rizki sendiri. Memakai awalan teks di `AssignmentReason` tanpa kolom juga mungkin,
+tetapi menjadikan arti bisnis bergantung pada isi teks. Pilihan ini diputuskan pada kartu `BE-IGD-056`;
+agent berhenti sebelum migration.
+
+### `IGD-OQ-093` dijawab sebagian — jaminan sisi server ditegakkan pada satu pintu encounter
+
+| ID | Status baru | Ditutup oleh | Tanggal |
+| --- | --- | --- | --- |
+| `IGD-OQ-093` | ~~`closed` — **dijawab**~~ **`superseded` sebagian** (dikoreksi sore hari yang sama: `closed` bukan kosakata status repo dan terbaca seolah masalah teknis selesai) — bisnis: `IGD-DEC-139`; teknis: `IGD-DEC-145` + `IGD-DEC-146`; realisasi: `BE-IGD-053` | `IGD-DEC-139` + task **`BE-IGD-053`** | 2026-09-22 |
+
+**Alasan penutupan.**
+
+1. **Pertanyaannya "di mana jaminan server ditegakkan" kini terjawab**: pada satu-satunya pintu yang
+   dapat membuat encounter `Emergency` (`IGD-EV-143` butir 1–3). Ini bentuk **B1** — penjaga episode
+   ganda pada pembuatan encounter `Emergency` di Registrasi.
+2. **B2 tidak lagi dibutuhkan.** Endpoint orkestrasi yang membuat encounter dan kunjungan dalam satu
+   transaksi hanya perlu bila pendaftaran membuat keduanya. Pada encounter-first pendaftaran hanya
+   membuat encounter, jadi tidak ada dua langkah yang perlu disatukan.
+3. **B3 tetap ditolak**, dengan alasan yang sama (`IGD-DEC-138`).
+4. **Kedua celah tertutup oleh penjaga yang sama.** Celah (a) dua pendaftaran serentak — penjaga
+   berjalan di dalam transaksi pembuatan encounter dengan penguncian per pasien (mekanisme dipilih di
+   kartu `BE-IGD-053`, dibuktikan uji paralel). Celah (b) klien tanpa pra-cek — penjaga ada di server,
+   bukan di layar, jadi klien mana pun melewatinya.
+5. **Penjaganya deterministik**, tanpa heuristik waktu, dan memakai rumus episode terbuka `IGD-DEC-139`.
+
+**Yang tidak ikut tertutup — dinyatakan apa adanya.** Penutupan ini menjawab **pertanyaan desainnya**.
+Celah teknisnya baru hilang ketika `BE-IGD-053` ✅, dan `BE-IGD-053` baru boleh menyala sesudah
+`BE-IGD-051` dan `BE-IGD-052` serta jawaban `IGD-OQ-096` dan `IGD-OQ-101`. Sampai saat itu
+`FE-IGD-014` ✅ **tetap** dibaca dengan celah yang dinyatakan pada laporannya bagian 9, dan
+encounter yatim lama belum diaudit (kueri A/B `BE-IGD-050` acceptance 8 belum dilaporkan).
+
+*Pemilik modul Registrasi tetap belum dipetakan.* `BE-IGD-053` menyentuh berkas Registrasi di bawah
+`IGD-DEC-135`; itu izin remediasi teknis, **bukan** pemindahan kepemilikan.
+
+### Pertanyaan terbuka yang lahir dari ketiga keputusan ini
+
+Empat di antaranya (`IGD-OQ-096` sampai `IGD-OQ-099`) adalah gap yang **belum digali sama sekali** —
+dicatat supaya tidak hilang, bukan karena sudah diteliti.
+
+| ID | Jenis | Isi | Pemilik | Status | Menahan |
+| --- | --- | --- | --- | --- | --- |
+| `IGD-OQ-094` | Open Question | **W1 — sumber waktu tiba pada encounter-first.** Usulan: `ArrivalDateTime` diisi **perawat triage saat Mulai Triage**, diisi awal dengan **waktu server**, boleh dikoreksi, tidak boleh di masa depan. **Bukan** `RegisteredAt` (ditolak pemilik) dan **bukan** jam browser. Butir turunan: ruas kedatangan lain yang hari ini diisi di langkah *Emergency Visit* pendaftaran — cara datang, keluhan utama, jenis kasus, lokasi dan waktu trauma — ikut pindah ke Mulai Triage atau tetap di loket? | Product/Domain Owner IGD + Nursing authority (`OPEN`) | `open` | `BE-IGD-055`, `FE-IGD-036`; penyelesaian temuan `IGD-EV-141` |
+| `IGD-OQ-095` | Open Question | **Bentuk `BE-IGD-052`:** endpoint admin (uji-kering lalu terapkan per kelas, jejak audit, dapat dipakai ulang di lingkungan lain) **atau** migration data-only berpola `BE-IGD-048` (idempoten, penanda, `Down()` berpenjaga, berjalan sama di setiap lingkungan)? | Product/Domain Owner IGD | `open` | `BE-IGD-052` |
+| `IGD-OQ-096` | Open Question — **belum digali** | **Pasien pergi sebelum ditriage.** Encounter `Emergency` tanpa kunjungan milik pasien yang pulang sendiri tidak pernah mencapai status akhir, sehingga klausa A menahannya **selamanya** dan pasien itu tertolak pada kunjungan berikutnya. Siapa yang menutupnya, dengan status apa (`NoShow`? `Cancelled`?), dan lewat layar apa? Jalan keluar manual yang ada: `PATCH /patient-encounters/{id}/status` dan `…/cancel` milik Registrasi | Product/Domain Owner IGD + Nursing authority (`OPEN`) | `open` | **`BE-IGD-053`** (penjaga tidak boleh menyala tanpa jalan keluar ini); memengaruhi isi daftar `BE-IGD-054` |
+| `IGD-OQ-097` | Open Question — **belum digali** | **Apakah encounter IGD memakai `TrxQueue`?** Status awal encounter bergantung pada `IsQueueRequired` klinik/unit (`IGD-EV-143` butir 4). Bila unit IGD wajib antre, menutup encounter harus ikut menyelesaikan antrean, dan daftar Menunggu Triage bisa bersinggungan dengan antrean Registrasi | Product/Domain Owner IGD + pemilik Registrasi (belum dipetakan) | `open` | Cakupan `BE-IGD-051` dan `BE-IGD-054` — diperiksa lebih dulu saat eksekusi |
+| `IGD-OQ-098` | Open Question — **belum digali** | **Siapa pemilik Master Patient?** Dibutuhkan untuk memutuskan U2 `IGD-DEC-140` (rekam pasien sementara) dan penggabungan rekam saat identitas diketahui | Belum dipetakan | `open` | U2 `IGD-DEC-140`; tidak menahan U1 |
+| `IGD-OQ-099` | Open Question — **belum digali** | **Approval Clinical Governance** atas aturan kelayakan dan override dokter IGD (`IGD-DEC-141`) serta perubahan titik lahir kunjungan (`IGD-DEC-139`). Clinical Governance masih `OPEN`; approval saat ini datang dari Product/Domain Owner, pola `IGD-DEC-107` dan `IGD-DEC-135`, dan wajib ditinjau ulang bila peran itu ditunjuk | Clinical Governance (`OPEN`) | `open` | Tidak menahan remediasi teknis (`IGD-DEC-135`); menahan klaim bahwa aturan override sudah disahkan secara klinis |
+| `IGD-OQ-100` | Open Question | **Tangani Segera pada baris encounter-saja.** `IGD-DEC-128` memindahkan kunjungan ke `InTreatment`, padahal pada encounter-first baris Menunggu Triage belum punya kunjungan (`IGD-EV-144` butir 1). Pilihan: (a) aksi Tangani Segera melahirkan kunjungan sekaligus berstatus `InTreatment` dalam satu panggilan; (b) layar memanggil Mulai Triage lalu `visit-status` berurutan. Pasien gawat tidak boleh menunggu dua langkah terpisah bila salah satunya gagal | Product/Domain Owner IGD | `open` | `BE-IGD-055`, `FE-IGD-036` |
+| `IGD-OQ-101` | Open Question | **Dua hal pada penjaga pintu encounter.** (1) **Jalan keluar beralasan `IGD-DEC-084`**: hari ini alasannya disimpan di `EmgVisit.DuplicateEpisodeOverride*`, padahal pada encounter-first kunjungan belum lahir saat pendaftaran. Di mana alasan pendaftaran ganda disimpan? (2) **Mekanisme serentak**: unique index bersyarat pada tabel encounter **tidak cocok** karena akan melarang pendaftaran ganda yang sah lewat jalan keluar; alternatifnya penguncian per pasien di dalam transaksi (tanpa schema). Keduanya dapat berarti kolom baru di tabel milik Registrasi | Product/Domain Owner IGD + pemilik Registrasi (belum dipetakan) | `open` | **`BE-IGD-053`** |
+
+**Yang juga menunggu pemilik, bukan keputusan melainkan data.** Kueri D (jumlah encounter `Emergency`
+belum berakhir per kelas K1–K4) dan kueri E1–E3 (jadwal dokter IGD) — teksnya diarsipkan di evidence
+bagian 7, begitu pula rumusan K1–K4 yang **harus dikonfirmasi** karena disusun ulang agent. Kueri A/B
+`BE-IGD-050` acceptance 8 juga masih belum berangka.
+
+---
+
+## Amendment pass 22 September 2026 (lanjutan) — kasus tepi encounter-first
+
+Pass `grill-me` mode **amendment** atas baseline encounter-first. Pemilik (Rizki Gunawan, Product/Domain
+Owner IGD) menjawab satu per satu lewat wawancara 22 September 2026. **Prinsip encounter-first tidak
+ditanyakan ulang** — tujuh butir baseline di bawah terkunci. Snapshot: backend `rizkiG` `0d13f3a8`,
+frontend `RizkiV2` `c941012ac`. Capability map revisi `3` tercatat pada `f69e9e48`, sehingga
+**berpotensi basi**; impact scan `trace-existing-capabilities` adalah langkah berikutnya.
+
+**Kartu roadmap R3.13/R3.12 sengaja belum diubah** — atas keputusan pemilik, kartu diselaraskan pada
+`plan-module-delivery` final sesudah `trace-existing-capabilities` dan `design-business-module`.
+
+### Baseline yang terkunci (tidak ditanyakan)
+
+1. Registrasi membuat `RegPatientEncounter` `EncounterType = Emergency`.
+2. Encounter Emergency tanpa `EmgVisit` boleh menjadi keadaan normal *Menunggu Triage*.
+3. `EmgVisit` lahir saat proses klinis IGD resmi dimulai, bukan otomatis saat registrasi.
+4. Frontend memakai satu daftar triage terpadu.
+5. Satu pasien maksimal satu episode Emergency terbuka.
+6. `FE-IGD-027` tetap ✅.
+7. Dokter Penanggung Jawab IGD nantinya hanya dari kandidat layak/jaga, dengan override beralasan dan audit.
+
+### Batas scope pass ini
+
+| Di dalam scope | Di luar scope — untuk modul lain |
+| --- | --- |
+| Pasien pergi sebelum ditriage; Tangani Segera tanpa kunjungan; antrean; override pendaftaran ganda; serentak; waktu tiba; bentuk rekonsiliasi; pasien tanpa identitas (sebatas titik sentuh); pembagian wewenang Clinical Governance | Sumber roster dokter final (**Human Resource / pemilik jadwal**, ditahan E1–E3); aturan penggabungan rekam medis dan rekam pasien sementara (**Master Patient**, pemilik belum dipetakan); aturan pengembalian deposit (**Billing**); aturan antrean rawat jalan (**Registrasi**) |
+
+### Fakta source yang dipakai (tidak ditanyakan)
+
+| ID | Fakta | Lokasi |
+| --- | --- | --- |
+| `IGD-FACT-011` | `RegPatientEncounter` sudah punya `NoShowAt`, `NoShowByUserId`, `NoShowReason`. Satu-satunya penulisnya hari ini adalah antrean dokter rawat jalan ("dilewati setelah dipanggil") | `RegPatientEncounter.cs` baris 171–176; `DoctorQueueController.cs` baris 663–676 |
+| `IGD-FACT-012` | `PATCH /patient-encounters/{id}/status` menerima `NoShow` tetapi **tidak** mengisi `NoShowAt`/`By`/`Reason` | `PatientEncounterController.cs` baris 906–962 |
+| `IGD-FACT-013` | Pembuatan encounter **tidak** membuat tagihan; encounter `Cancelled`/`NoShow` tidak masuk daftar yang dapat ditagih; deposit ditolak untuk keduanya | `BillingInvoiceService.cs` baris 1205–1227; `BillingDepositService.cs` baris 264 |
+| `IGD-FACT-014` | `EmgDisposition.EmergencyVisitId` wajib — disposisi tidak tersedia sebelum kunjungan lahir | `EmgDisposition.cs` baris 17 |
+| `IGD-FACT-015` | `TrxQueue` dibuat hanya bila klinik/unit `IsQueueRequired`; kode IGD menyebut `TrxQueue` **nol** kali; `IGD-DEC-068` (`draft`) "IGD tidak membuat antrean semu"; nilai `IsQueueRequired` unit IGD di basis data belum diketahui | `PatientEncounterController.cs` baris 544, 634–670 |
+| `IGD-FACT-016` | Pola serentak yang sudah dipakai repo: `pg_advisory_xact_lock(hashtext(...))` (Accounting), `IsolationLevel.Serializable` (master data), unique index bersyarat + tangkap `UniqueViolation` (Bank Darah, `BE-IGD-045`). Transaksi pembuatan encounter memakai isolasi bawaan (ReadCommitted) | `AccJournalService.cs` baris 948; `BankController.cs` baris 358; `BbkProviderRequestService.cs` baris 404; `PatientEncounterController.cs` baris 559 |
+| `IGD-FACT-017` | Encounter tidak punya ruas override; `Notes` teks bebas dan ditimpa `PATCH …/status`; ruas override yang ada hanya `EmgVisit.DuplicateEpisodeOverride*` | `RegPatientEncounter.cs`; `EmgVisit.cs` baris 84–96 |
+| `IGD-FACT-018` | Encounter tidak punya ruas waktu tiba; `CheckedInAt` selalu jam server saat tombol ditekan | `PatientEncounterController.cs` baris 984 |
+| `IGD-FACT-019` | Kunjungan butuh minimal: unit layanan (harus unit IGD pada pengaturan), pasien, encounter, nomor kunjungan — semuanya dapat diturunkan server; cara datang, jenis kasus, keluhan, data trauma boleh kosong | `EmergencyVisitService.cs` baris 129–162; `EmergencyVisitDtos.cs` baris 95–140 |
+| `IGD-FACT-020` | Pola endpoint preview lalu eksekusi sudah ada; pola perintah CLI tidak ada di `Program.cs` | `YearEndClosingController.cs` baris 73; `LeaveAccrualController.cs` baris 103 |
+
+### Keputusan
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-142` | Decision | **Pasien yang pergi sebelum ditriage ditutup `NoShow`.** Hanya berlaku bagi encounter Emergency yang belum punya kunjungan. Ditandai **perawat triage** lewat **aksi IGD** pada baris daftar *Menunggu Triage*; backend IGD menulis `EncounterStatus = NoShow`, `NoShowAt` (waktu server), `NoShowByUserId` (dari token), `NoShowReason` (**wajib**). **NoShow final** — tidak dapat dibatalkan; pasien yang kembali didaftarkan ulang sebagai encounter Emergency baru. **Tidak ditagih** (perilaku billing yang sudah ada, `IGD-FACT-013`). `Cancelled` dicadangkan untuk salah daftar/duplikat. Tampilan memakai label khusus IGD karena "Tidak Hadir" kurang tepat bagi pasien yang sempat datang | Product/Domain Owner IGD; kriteria menyatakan pasien pergi wajib ditinjau Clinical Governance + Nursing authority (`IGD-DEC-150`) | `approved` | **Rizki Gunawan / 2026-09-22** | Wawancara A1–A4; `IGD-FACT-011`, `IGD-FACT-012`, `IGD-FACT-013`, `IGD-FACT-014` |
+| `IGD-DEC-143` | Decision | **Tangani Segera pada baris tanpa kunjungan melahirkan `EmgVisit` langsung berstatus `InTreatment`** dalam **satu** permintaan dan satu penyimpanan (`TreatmentStartedAt` = waktu server); triage disusulkan tanpa memundurkan status (`IGD-DEC-104` huruf b, `IGD-DEC-128`). Bedanya dengan Mulai Triage **hanya status awal** (Mulai Triage → `WaitingForTriage`). **Nol ketikan**: hanya data turunan server (`IGD-FACT-019`); keluhan utama, cara datang, dan jenis kasus dilengkapi saat triage susulan. **Tabrakan**: bila Mulai Triage dan Tangani Segera ditekan bersamaan pada baris yang sama, kunjungan tetap satu dan **Tangani Segera menang** — Mulai Triage yang datang belakangan menerima kunjungan `InTreatment` apa adanya; Tangani Segera yang datang belakangan meneruskan `WaitingForTriage` → `InTreatment`. Status **tidak pernah mundur** | Product/Domain Owner IGD; wajib ditinjau Clinical Governance + Nursing authority (`IGD-DEC-150`) | `approved` | **Rizki Gunawan / 2026-09-22** | Wawancara B1–B3; `IGD-EV-144`; `IGD-FACT-019` |
+| `IGD-DEC-144` | Decision | **Encounter Emergency tidak membuat `TrxQueue`.** Urutan IGD ditentukan kegawatan, bukan urutan datang; semantik antrean dokter (panggil, lewati, NoShow saat dilewati) tidak berlaku. Daftar *Menunggu Triage* adalah **tampilan turunan milik IGD**, bukan tabel antrean. Aturan ini **dijamin kode** pada `CreateEncounterCoreAsync`: tipe Emergency tidak pernah membuat `TrxQueue`, **apa pun** nilai `IsQueueRequired` pada master unit/klinik | Product/Domain Owner IGD; titik sentuh modul Registrasi di bawah `IGD-DEC-135` | `approved` | **Rizki Gunawan / 2026-09-22** | Wawancara C, C2; `IGD-FACT-015`; sejalan `IGD-DEC-068` |
+| `IGD-DEC-145` | Decision | **Alasan pendaftaran ganda (jalan keluar `IGD-DEC-084`) disimpan di entity baru milik IGD**, berprefix `Emg`, tambah-saja: encounter baru, episode lama yang dilangkahi (encounter dan/atau kunjungan), alasan, pelaku dari token, waktu server. **Tidak** menambah ruas IGD ke tabel global `RegPatientEncounter`; **tidak** memakai `Notes` (`IGD-FACT-017`). Ditulis dalam transaksi yang sama dengan pembuatan encounter. **Wewenang:** setiap petugas yang berhak membuat encounter boleh memakainya — tanpa permission baru — dengan alasan **wajib**; kendalinya lewat audit sesudahnya. `EmgVisit.DuplicateEpisodeOverride*` tetap untuk jalur pasien tanpa identitas dan data lama | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-09-22** | Wawancara D, D2; `IGD-FACT-017` |
+| `IGD-DEC-146` | Decision | **Pendaftaran serentak dicegah dengan penguncian per pasien** (`pg_advisory_xact_lock` atas kunci turunan pasien) di dalam transaksi pembuatan encounter, **sebelum** rumus episode terbuka dijalankan. Kunci lepas sendiri saat transaksi berakhir. Cek-lalu-sisip biasa **tidak cukup** (ReadCommitted, `IGD-FACT-016`). **Setiap** jalur yang dapat membuka episode bagi pasien beridentitas — pintu encounter dan `POST /emergency-visits` lama — **wajib** mengambil kunci yang sama. Unique index bersyarat **tidak** dipakai karena akan menolak pendaftaran ganda sah (`IGD-DEC-145`). Acceptance wajib memuat uji paralel | Product/Domain Owner IGD (bentuk teknis diterima) | `approved` | **Rizki Gunawan / 2026-09-22** | Wawancara E; `IGD-FACT-016` |
+| `IGD-DEC-147` | Decision | **Waktu tiba diisi perawat triage saat kunjungan lahir.** Pada Mulai Triage isiannya **wajib**, diisi awal dengan `RegisteredAt` (batas atas terdekat — pasien tiba sebelum didaftarkan), boleh dikoreksi mundur, **tidak boleh** di masa depan. Loket **berhenti** mengetik waktu tiba. Pada Tangani Segera (nol ketikan) `RegisteredAt` dipakai sebagai **fallback** dan dikoreksi saat triage susulan. `RegisteredAt` **hanya** prefill/fallback, **bukan** otomatis `ArrivalDateTime`; jam browser **dilarang**. **Penanda konfirmasi** disimpan di `EmgVisit` (sumber nilai: fallback/dikonfirmasi, siapa, kapan); triage susulan wajib mengonfirmasi atau mengoreksi, sehingga laporan SLA dapat memisahkan nilai fallback | Product/Domain Owner IGD; wajib ditinjau Nursing authority (`IGD-DEC-150`) | `approved` | **Rizki Gunawan / 2026-09-22** | Wawancara F, F2; `IGD-EV-141`; `IGD-FACT-018` |
+| `IGD-DEC-148` | Decision | **`BE-IGD-052` berbentuk endpoint admin preview + execute** (pola `YearEndClosing`/`LeaveAccrual`, `IGD-FACT-020`). Preview menampilkan jumlah dan daftar kelas tanpa menulis; execute **hanya K1**, per baris yang lolos syarat; hak akses admin khusus; setiap run tercatat (siapa, kapan, baris mana); aksi balik per run berpenjaga; **dilarang** update massal buta. **Kelas K1–K4 disahkan** sesuai evidence `2026-09-22-desain-encounter-first.md` bagian 6: K1 dieksekusi, K2 tidak disentuh, K3 dan K4 hanya dilaporkan. Akibatnya **TK-1 `BE-IGD-051` = tidak** — kunjungan yang dihapus lunak tidak menutup encounter. **TK-2 = ya** — encounter bertipe `Outpatient` yang tertaut `EmgVisit` (masa transisi `IGD-DEC-109`) ikut ditutup `BE-IGD-051` dan ikut preview sebagai subkelas K1 tersendiri; klausa A rumus episode tetap hanya menghitung tipe Emergency | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-09-22** | Wawancara G, G2, G3; `IGD-FACT-020` |
+| `IGD-DEC-149` | Decision | **Pasien tanpa identitas yang dikenali di tengah episode ditautkan lewat pendaftaran normal.** Loket mencari atau mendaftarkan pasien lewat alur pasien standar dan membuat encounter Emergency; kunjungan U1 yang **sedang berjalan** ditautkan ke encounter itu (`EncounterId` dan `PatientId` diisi) — **tanpa kunjungan baru**. Penjaga episode wajib mengenali encounter itu sebagai **kelanjutan** episode U1, bukan episode kedua. Yang tetap milik pemilik Master Patient: penggabungan bila pasien ternyata punya dua rekam medis, dan rekam pasien sementara (U2) | Product/Domain Owner IGD + titik sentuh Registrasi; penggabungan rekam: pemilik Master Patient (belum dipetakan) | ~~`approved`~~ **`superseded` oleh `IGD-DEC-151`** (22 September 2026 malam — kunjungan tanpa pasien tidak dapat ditangani secara klinis, `IGD-FACT-021`) | **Rizki Gunawan / 2026-09-22** | Wawancara H; `IGD-DEC-140` |
+| `IGD-DEC-150` | Decision | **Pembagian wewenang keputusan kasus tepi** — tabel di bawah diterima. Butir bertanda Clinical Governance atau Nursing authority **di-approve Product/Domain Owner sekarang** dengan catatan **wajib ditinjau ulang** saat peran itu ditunjuk (pola `IGD-DEC-107`, `IGD-DEC-135`, `IGD-DEC-082`), dan **tidak menahan** implementasi. Perubahan dari peninjauan itu menjadi amendment | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-09-22** | Wawancara I |
+
+**Tabel wewenang `IGD-DEC-150`.**
+
+| Keputusan | Clinical Governance | Nursing authority | Product/Domain | Murni teknis |
+| --- | :-: | :-: | :-: | :-: |
+| Kriteria menyatakan pasien pergi sebelum ditriage + kewajiban tindak lanjut pasien berisiko | ✔ | ✔ | | |
+| Status `NoShow`, final, tidak ditagih (`IGD-DEC-142`) | | | ✔ | |
+| Perawat triage yang menandai (`IGD-DEC-142`) | | ✔ | ✔ | |
+| Tangani Segera, triage disusulkan, nol ketikan (`IGD-DEC-143`) | ✔ | ✔ | ✔ | |
+| Tanpa `TrxQueue` (`IGD-DEC-144`) | | | ✔ | ✔ |
+| Override pendaftaran ganda dan wewenangnya (`IGD-DEC-145`) | | | ✔ | |
+| Penguncian per pasien, bentuk entity, penanda, bentuk endpoint (`IGD-DEC-146`, bagian teknis `145`/`147`/`148`) | | | | ✔ |
+| Waktu tiba oleh perawat triage (`IGD-DEC-147`) | | ✔ | ✔ | |
+| Rekonsiliasi berbasis bukti (`IGD-DEC-148`) | | | ✔ | |
+| Penautan identitas (`IGD-DEC-149`) | | | ✔ | |
+| Override dokter di luar jadwal + aturan "dokter jaga saja" (`IGD-DEC-141`) | ✔ | | ✔ | |
+
+### Koreksi atas keputusan yang sudah ada
+
+| Keputusan | Koreksi |
+| --- | --- |
+| `IGD-DEC-139` | Rumus **"encounter belum berakhir"** menjadi **lima** tanda kosong: `EncounterStatus` bukan 9/10/11; `IsCancel = false`; `CancelledAt` kosong; `CompletedAt` kosong; **`NoShowAt` kosong** (ditambahkan — `IGD-FACT-011`: antrean dokter mengisi `NoShowAt` bersama status). Status awal kunjungan: `WaitingForTriage` lewat Mulai Triage, `InTreatment` lewat Tangani Segera (`IGD-DEC-143`) — usulan pada kartu `BE-IGD-055` kini **disahkan** |
+| `IGD-DEC-127` | Tetap tidak di-supersede. Kunjungan yang lahir lewat Mulai Triage memulai dari `WaitingForTriage`, sejalan dengan keputusan ini |
+
+### Status pertanyaan terbuka sesudah pass ini
+
+| ID | Status baru | Oleh |
+| --- | --- | --- |
+| `IGD-OQ-093` | **`superseded` sebagian** — bagian **keputusan bisnis** dijawab `IGD-DEC-139` (satu pasien maksimal satu episode Emergency terbuka); bagian **mekanisme teknis** dijawab `IGD-DEC-145` + `IGD-DEC-146` (lewat `IGD-OQ-101`); **realisasi masih terbuka** sampai `BE-IGD-053` ✅. Menggantikan tulisan `closed` sebelumnya, yang tidak sesuai kosakata status repo (`open`/`draft`/`superseded`) dan terbaca seolah seluruh masalah teknis selesai | `IGD-DEC-139`, `145`, `146` |
+| `IGD-OQ-094` | `superseded` | `IGD-DEC-147` |
+| `IGD-OQ-095` | `superseded` | `IGD-DEC-148` |
+| `IGD-OQ-096` | `superseded` | `IGD-DEC-142` |
+| `IGD-OQ-097` | `superseded` | `IGD-DEC-144` |
+| `IGD-OQ-098` | `open` — **dipersempit**: tinggal penggabungan rekam medis ganda dan U2. Tidak menahan jalur transisi maupun penautan `IGD-DEC-149` | — |
+| `IGD-OQ-099` | `open` — Clinical Governance dan Nursing authority belum ditunjuk; **tidak menahan** (`IGD-DEC-150`) | — |
+| `IGD-OQ-100` | `superseded` | `IGD-DEC-143` |
+| `IGD-OQ-101` | `superseded` | `IGD-DEC-145` (butir 1), `IGD-DEC-146` (butir 2) |
+
+### Asumsi sementara — pemilik boleh membatalkan kapan saja
+
+| ID | Asumsi | Ditinjau oleh |
+| --- | --- | --- |
+| `IGD-ASM-001` | Menyatakan pasien pergi sebelum ditriage cukup dengan **alasan wajib**; belum ada jumlah panggilan minimum | Clinical Governance + Nursing authority |
+| `IGD-ASM-002` | Batas waktu triage susulan sesudah Tangani Segera memakai **SLA triage yang sudah ada**; tidak ada batas baru | Clinical Governance + Nursing authority |
+
+### Acceptance yang kini dapat diuji
+
+1. Baris *Menunggu Triage* → aksi NoShow tanpa alasan ditolak; dengan alasan → `EncounterStatus = NoShow`, `NoShowAt`/`By`/`Reason` terisi dari server/token; baris hilang dari daftar; encounter tidak muncul di daftar tagihan.
+2. Pasien yang ditandai NoShow lalu didaftarkan ulang → encounter Emergency baru dibuat, tidak ditolak penjaga.
+3. Tangani Segera pada baris tanpa kunjungan → satu kunjungan `InTreatment`, satu permintaan, tanpa isian wajib.
+4. Mulai Triage dan Tangani Segera serentak → tepat satu kunjungan, status akhir `InTreatment`.
+5. Encounter Emergency dengan unit/klinik `IsQueueRequired = true` → nol baris `TrxQueue`.
+6. Pendaftaran ganda beralasan → entity override berisi alasan, pelaku, waktu, episode yang dilangkahi; tabel `RegPatientEncounter` tidak bertambah ruas.
+7. Dua pendaftaran Emergency paralel untuk pasien yang sama → tepat satu berhasil, satu `409`, tepat satu episode terbuka.
+8. Mulai Triage → waktu tiba wajib, terisi awal `RegisteredAt`, menolak masa depan; Tangani Segera → penanda "fallback" tersimpan dan triage susulan wajib mengonfirmasi.
+9. Preview rekonsiliasi → jumlah K1–K4 (+ subkelas `Outpatient` tertaut) sama dengan kueri D; execute hanya mengubah K1; aksi balik hanya menyentuh baris run itu.
+10. Pasien U1 dikenali → kunjungan berjalan tertaut ke encounter baru; jumlah kunjungan tetap satu.
+
+### Blocker desain yang tersisa
+
+| Blocker | Menahan |
+| --- | --- |
+| Angka kueri D (evidence bagian 7.1) | Eksekusi `BE-IGD-052`, lalu `BE-IGD-053` |
+| Angka kueri E1–E3 | `BE-IGD-056`, `FE-IGD-037` — sumber roster **bukan** `MstDoctorSchedule` sampai terbukti |
+| Angka kueri A/B (`BE-IGD-050` acceptance 8) | Pengecualian ✅ `BE-IGD-050` |
+| Pemilik Registrasi belum dipetakan | Bukan blocker (`IGD-DEC-135`), tetapi titik sentuh `CreateEncounterCoreAsync` bertambah: penjaga episode, penguncian, tanpa-`TrxQueue`, entity override |
+| Migration baru | Entity override (`IGD-DEC-145`) dan penanda waktu tiba (`IGD-DEC-147`) butuh migration — dijalankan Rizki sendiri; agent berhenti sebelumnya |
+
+### Langkah berikutnya
+
+`trace-existing-capabilities` mode **impact scan** — capability map revisi `3` tercatat pada `f69e9e48`,
+HEAD `0d13f3a8`. Sesudahnya `design-business-module` (kontrak API/state/validation/integration/permission,
+FR/AT untuk kebutuhan baru, `koreksi_desain_tertunda` pada manifest), lalu `plan-module-delivery` final yang
+menyelaraskan kartu R3.13/R3.12 dan memutuskan kandidat kartu baru: **aksi NoShow** (backend + frontend) dan
+**aksi tautkan identitas U1** (backend + frontend).
+
+### Koreksi fakta sesudah impact scan — 22 September 2026 (malam)
+
+Impact scan `trace-existing-capabilities` (capability map **suplemen 3.2**) menemukan satu kekeliruan
+fakta yang dipakai agent saat bertanya kepada pemilik, dan satu conflict baru.
+
+| # | Yang keliru / baru | Yang benar | Akibat pada keputusan |
+| ---: | --- | --- | --- |
+| 1 | Pada pertanyaan F/F2 agent menulis bahwa waktu tiba adalah titik nol SLA triage (`EmgTriage.ResponseDueAt`) | `ResponseDueAt = StartedAt + MaxWaitingMinutes` — dihitung dari **mulai triage**, bukan waktu tiba; pemantau SLA membaca `ResponseDueAt`. Tidak ada perhitungan *door-to-triage* di kode | **Isi `IGD-DEC-147` tidak berubah.** Alasan penanda konfirmasi dikoreksi: berguna untuk kejujuran catatan waktu tiba dan laporan *door-to-triage* bila kelak dibuat — **tidak** memengaruhi SLA triage yang berjalan. Frasa "laporan SLA dapat memisahkan nilai fallback" pada `IGD-DEC-147` dibaca sebagai "laporan waktu tiba" |
+| 2 | — | `IGD-CONF-06`: layar pendaftaran selalu menuntut `patientId` dan selalu membuat encounter, sehingga jalur U1 `IGD-DEC-140` ("seperti hari ini") **tidak punya penghasil di frontend** | `IGD-DEC-140` U1 dan `IGD-DEC-149` perlu diperjelas — pertanyaan penutup `IGD-TRQ-08` |
+
+Pertanyaan penutup baru untuk pass `grill-me` berikutnya: `IGD-TRQ-08` (arti U1 di lapangan),
+`IGD-TRQ-09` (koreksi waktu tiba ke arah lebih lambat), `IGD-TRQ-10` (penutupan encounter Emergency
+lewat jalur umum Registrasi), `IGD-TRQ-11` (`PUT` kunjungan mengganti identitas). Rinciannya di
+`01-existing-capability-map.md` suplemen 3.2 bagian S3.2.8.
+
+---
+
+## Amendment pass 22 September 2026 (penutup impact scan) — `IGD-TRQ-08` sampai `IGD-TRQ-11`
+
+Pass `grill-me` lanjutan atas empat pertanyaan penutup capability map **suplemen 3.2**. Pemilik
+(Rizki Gunawan, Product/Domain Owner IGD) menjawab satu per satu. Snapshot tidak bergerak: backend
+`rizkiG` `0d13f3a8`, frontend `RizkiV2` `c941012ac` — suplemen 3.2 masih sahih. **Kartu roadmap tetap
+belum diubah**, sesuai urutan pemilik.
+
+### Fakta source yang dipakai
+
+| ID | Fakta | Lokasi |
+| --- | --- | --- |
+| `IGD-FACT-021` | Catatan klinis yang dipakai IGD menuntut identitas: pengkajian, konsultasi dokter, dan resep mewajibkan `PatientId` **dan** `EncounterId`; tanda vital dan catatan terintegrasi mewajibkan `PatientId`; pesanan lab dan radiologi mewajibkan `EncounterId`. Hanya triage dan observasi IGD yang cukup dengan `EmergencyVisitId` | `ClinicalManagement/Models/TrxPatientAssessment.cs`, `TrxDoctorConsultation.cs`, `TrxPatientVitalSign.cs`, `TrxPatientIntegratedProgressNote.cs`; `LaboratoryManagement/Models/LabOrder.cs`; `RadiologyManagement/Models/RadOrder.cs`; `PharmacyManagement/Models/PhmPrescription.cs`; `EmergencyInstallationManagement/Models/EmgTriage.cs`, `EmgObservation.cs` |
+| `IGD-FACT-022` | `MstPatient` tidak punya penanda pasien tanpa identitas maupun rekam sementara, dan kemampuan penggabungan rekam pasien **tidak ada** di source | `PatientManagement/MasterData/Models/MstPatient.cs`; pencarian `PatientMerge`/`MergePatient` → kosong |
+| `IGD-FACT-023` | Tidak ada layar yang memanggil `PUT /emergency-visits/{id}` | Pencarian `.put(` pada `src/` frontend — satu-satunya hasil bertema "emergency" adalah kontak darurat pasien |
+
+### Keputusan
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-151` | Decision | **Pasien tanpa identitas didaftarkan dengan rekam pasien pengganti lewat alur "pasien baru" yang sudah ada**, lalu encounter-first berlaku **penuh**: encounter Emergency, penjaga episode, daftar *Menunggu Triage*, dan seluruh catatan klinis. Kunjungan ditandai `EmgVisit.IsUnknownPatient = true` beserta `TemporaryPatientAlias` — satu-satunya penanda rekam pengganti (`IGD-FACT-022`). IGD **tidak** membuat fitur rekam sementara. Saat identitas diketahui, yang dibutuhkan adalah **penggabungan rekam pasien**, dan itu **milik Master Patient** — IGD tidak merancangnya. Alasan: kunjungan tanpa pasien tidak dapat diberi tanda vital, SOAP, pesanan penunjang, maupun resep (`IGD-FACT-021`), padahal pasien tanpa identitas sering yang paling gawat | Product/Domain Owner IGD; penggabungan rekam: pemilik Master Patient (belum dipetakan) | `approved` | **Rizki Gunawan / 2026-09-22** | Wawancara `IGD-TRQ-08`; `IGD-CONF-06`; `IGD-FACT-021`, `IGD-FACT-022` |
+| `IGD-DEC-152` | Decision | **Koreksi waktu tiba dibatasi urutan peristiwa.** Waktu tiba (`IGD-DEC-147`) boleh dikoreksi ke arah mana pun, asalkan **tidak** di masa depan dan **tidak** lebih lambat dari peristiwa pertama yang sudah tercatat pada kunjungan: mulai triage (`EmgTriage.StartedAt`), mulai penanganan (`TreatmentStartedAt`), atau penugasan dokter pertama (`EffectiveFrom`). Pelanggaran ditolak dengan pesan yang menyebut peristiwa penghalangnya. Batasnya peristiwa klinis, **bukan** `RegisteredAt`, sehingga pasien yang didaftarkan sebelum tiba (pra-notifikasi, `IGD-OQ-091`) tetap dapat dicatat benar | Product/Domain Owner IGD; wajib ditinjau Nursing authority (`IGD-DEC-150`) | `approved` | **Rizki Gunawan / 2026-09-22** | Wawancara `IGD-TRQ-09`; capability map S3.2.5 |
+| `IGD-DEC-153` | Decision | **Jalur umum Registrasi dibatasi untuk encounter Emergency.** `PATCH /patient-encounters/{id}/status` **menolak** encounter bertipe Emergency — status akhirnya hanya lewat aksi IGD (NoShow `IGD-DEC-142`; penutupan ikut kunjungan `BE-IGD-051`). `PATCH /patient-encounters/{id}/cancel` **tetap boleh** untuk salah daftar/duplikat, **hanya selama encounter belum punya kunjungan**; sesudah kunjungan lahir, pembatalan lewat kunjungan dan encounter ikut ditutup. Tujuannya: tidak pernah ada keadaan "kunjungan berjalan, encounter sudah berakhir", dan NoShow selalu berpelaku dan beralasan | Product/Domain Owner IGD; titik sentuh berkas Registrasi di bawah `IGD-DEC-135` | `approved` | **Rizki Gunawan / 2026-09-22** | Wawancara `IGD-TRQ-10`; `IGD-CONF-07` |
+| `IGD-DEC-154` | Decision | **`PatientId` dan `EncounterId` kunjungan IGD terkunci sejak kunjungan lahir.** `PUT /emergency-visits/{id}` menolak permintaan yang mengubah salah satunya dengan pesan jelas; ruas lain tetap dapat diubah. Perubahan identitas hanya lewat penggabungan rekam milik Master Patient. Nol layar terdampak (`IGD-FACT-023`) | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-09-22** | Wawancara `IGD-TRQ-11`; `IGD-CONF-08` |
+
+### Keputusan yang digantikan
+
+| Keputusan | Status baru | Oleh | Yang tetap berlaku |
+| --- | --- | --- | --- |
+| `IGD-DEC-140` | **`superseded` sebagian** | `IGD-DEC-151` menggantikan **U1** (kunjungan tanpa pasien dan tanpa encounter) | **U2** tetap `candidate` milik Master Patient. Dengan `IGD-DEC-151`, U2 berubah arti: bukan lagi "agar encounter-first berlaku", melainkan tata kelola rekam pengganti (penanda di master, penggabungan) |
+| `IGD-DEC-149` | **`superseded`** | `IGD-DEC-151` | Tidak ada — penautan kunjungan ke encounter baru tidak lagi dibutuhkan karena rekam pengganti sudah punya encounter sejak awal |
+
+### Conflict dan pertanyaan yang tertutup
+
+| ID | Status | Oleh |
+| --- | --- | --- |
+| `IGD-CONF-06` | Terselesaikan | `IGD-DEC-151` |
+| `IGD-CONF-07` | Terselesaikan | `IGD-DEC-153` |
+| `IGD-CONF-08` | Terselesaikan | `IGD-DEC-154` |
+| `IGD-TRQ-08` … `IGD-TRQ-11` | Dijawab | `IGD-DEC-151` … `IGD-DEC-154` |
+| `IGD-OQ-098` | `open` — **naik menjadi dependency nyata**: tata kelola rekam pengganti (penanda pada master pasien, aturan penamaan) dan penggabungan rekam pasien. **Tidak menahan** jalur transisi `IGD-DEC-151` | — |
+| `IGD-UNK-10` | `open` — tetap berguna untuk mengukur jumlah rekam pengganti yang sudah ada; tidak lagi menahan keputusan | — |
+
+### Pembagian wewenang (tambahan pada tabel `IGD-DEC-150`)
+
+| Keputusan | Clinical Governance | Nursing authority | Product/Domain | Master Patient | Murni teknis |
+| --- | :-: | :-: | :-: | :-: | :-: |
+| `IGD-DEC-151` rekam pengganti | | | ✔ | ✔ (penggabungan, penanda master) | |
+| `IGD-DEC-152` batas koreksi waktu tiba | | ✔ | ✔ | | |
+| `IGD-DEC-153` jalur Registrasi dibatasi | | | ✔ | | |
+| `IGD-DEC-154` kunci identitas kunjungan | | | ✔ | | ✔ |
+
+### Acceptance yang kini dapat diuji
+
+1. Pasien tanpa identitas didaftarkan lewat alur pasien baru → encounter Emergency lahir, kunjungan bertanda `IsUnknownPatient` dengan alias; tanda vital, SOAP, pesanan lab/radiologi, dan resep dapat dibuat.
+2. Koreksi waktu tiba ke masa depan → ditolak. Koreksi lebih lambat dari mulai triage, mulai penanganan, atau penugasan dokter pertama → ditolak dengan pesan yang menyebut peristiwanya. Koreksi lebih awal → diterima.
+3. `PATCH …/status` pada encounter Emergency → ditolak. `PATCH …/cancel` pada encounter Emergency tanpa kunjungan → berhasil; dengan kunjungan → ditolak dengan arahan membatalkan lewat kunjungan.
+4. `PUT /emergency-visits/{id}` yang mengubah `PatientId` atau `EncounterId` → ditolak; yang mengubah ruas lain → berhasil.
+
+### Dampak ke kartu (untuk `plan-module-delivery` final — belum diterapkan)
+
+| Kartu / kandidat | Dampak |
+| --- | --- |
+| `BE-IGD-054` / `FE-IGD-035` | Pasien tanpa identitas baru tampil sebagai baris encounter biasa (dengan alias); baris kunjungan-saja hanya tersisa untuk data lama |
+| `BE-IGD-055` | Rumus batas koreksi `IGD-DEC-152` masuk kontrak waktu tiba |
+| `BE-IGD-053` | Cakupan pintu Registrasi bertambah: penolakan `PATCH …/status` Emergency dan syarat `PATCH …/cancel` (`IGD-DEC-153`) |
+| Kandidat "aksi tautkan identitas U1" | **Dibatalkan** — digantikan penggabungan rekam milik Master Patient |
+| Kandidat baru | Penguncian identitas pada `PUT` kunjungan (`IGD-DEC-154`) — kecil, dapat menumpang task kunjungan IGD terdekat |
+| `POST /emergency-visits` jalur pasien tanpa `PatientId` | Tidak lagi punya kebutuhan bisnis baru; nasibnya (dibiarkan untuk data lama atau ditutup) diputuskan saat `design-business-module` |
+
+### Langkah berikutnya
+
+Seluruh pertanyaan penutup terjawab dan tidak ada conflict terbuka pada klaster encounter-first.
+Yang tersisa adalah **data** (kueri D, E1–E3, A/B, `IGD-UNK-06`, `IGD-UNK-10`) dan **pemilik yang belum
+dipetakan** (Master Patient, Registrasi, Clinical Governance, Nursing authority) — tidak ada yang
+menahan desain. Langkah berikutnya: **`design-business-module`** untuk kontrak API, state, validation,
+integration, dan permission; FR/AT kebutuhan baru; dan `koreksi_desain_tertunda` pada manifest.
+
+### Pertanyaan terbuka dari requirement-completeness-gate — 22 September 2026
+
+Gate slice encounter-first ([evidence/02-requirement-completeness-gate.md](evidence/02-requirement-completeness-gate.md))
+menyatakan slice `PARTIALLY_READY`. Dua keputusan pemblokir menahan **hanya** sub-slice `S7`
+(kelayakan dokter jaga); sub-slice lain diserahkan ke `design-business-module`.
+
+| ID | Jenis | Isi | Pemilik | Status | Menahan |
+| --- | --- | --- | --- | --- | --- |
+| `IGD-OQ-102` | Open Question | Dari mana daftar dokter jaga IGD diambil, dan apa kriteria "layak" pada waktu T? `MstDoctorSchedule` belum boleh dianggap sumber final (`IGD-EV-140`); angka E1–E3 belum ada | Product/Domain Owner IGD + pemilik jadwal dokter / Human Resource (belum dipetakan) | `open` | `S7`: `BE-IGD-056`, `FE-IGD-037` |
+| `IGD-OQ-103` | Open Question | Penanda "penugasan ini override kelayakan" disimpan sebagai kolom baru pada `EmgDoctorAssignment` (tabel IGD) atau sebagai teks pada `AssignmentReason`? | Product/Domain Owner IGD | `open` | `S7` |
+
+### Butir tinjauan desain dari `design-business-module` — 22 September 2026
+
+Pilihan **realisasi** yang agent ambil saat menyelaraskan kontrak encounter-first (`0.11.0` dan kawan-kawan).
+Bukan keputusan bisnis baru; pemilik meninjaunya sebelum development lock. Tidak satu pun menahan desain.
+
+| ID | Jenis | Pilihan desain | Bila ditolak | Pemilik | Status |
+| --- | --- | --- | --- | --- | --- |
+| `IGD-OQ-104` | Open Question | Waktu tiba hanya dapat diubah lewat `PATCH /emergency-visits/{id}/arrival-time`; `PUT` menolak perubahannya | `PUT` menjalankan validasi `IGD-DEC-152` yang sama dan ikut menandai `Confirmed` | Product/Domain Owner IGD | `open` |
+| `IGD-OQ-105` | Open Question | Konfirmasi waktu tiba sesudah Tangani Segera diwajibkan **layar**; backend **tidak** menolak penyimpanan triage bila masih `Fallback` (menghindari tertundanya dokumentasi pasien gawat) | Backend menolak triage selama waktu tiba `Fallback` | Product/Domain Owner IGD + Nursing authority (`OPEN`) | `open` |
+| `IGD-OQ-106` | Open Question | Ruas kunjungan non-waktu (cara datang, jenis kasus, lokasi/waktu trauma, penanda tanpa identitas) diisi opsional di Mulai Triage; keluhan utama tetap di loket (`RegPatientEncounter.ChiefComplaint`) dan disalin saat kunjungan lahir | Loket tetap mengisi, tetapi butuh tempat penyimpanan sebelum kunjungan lahir | Product/Domain Owner IGD | `open` |
+| `IGD-OQ-107` | Open Question | Rekonsiliasi encounter historis **tanpa layar** pada slice ini — dijalankan admin lewat API (Swagger) | Layar admin baru (butir menu baru, task frontend baru) | Product/Domain Owner IGD | `open` |
+
+### Keputusan bentuk dan susunan blueprint — 22 September 2026
+
+Diputuskan pemilik pada gerbang masuk `design-business-module`, sebelum satu berkas desain pun ditulis.
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-155` | Decision | **`blueprint_shape: SINGLE`**, `shape_decided_by: USER_CONFIRMED`. Uji pemecahan: rumpun Pendaftaran & episode 2/5, Triage & penanganan 2/5, Kepergian & serah terima 3/5, Dokter penanggung jawab 1/5 — hanya satu rumpun lolos, sehingga syarat `COMPOSITE` (≥ 2 rumpun lolos) tidak terpenuhi. Kemampuan tanpa rumpun: nihil | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-09-22** | Jawaban atas saran uji pemecahan |
+| `IGD-DEC-156` | Decision | **Susunan `erd/` dipertahankan**; kamus data tetap di `erd/data-dictionary.md`. Folder `flowcharts/` ditambahkan untuk alur baru. Migrasi `erd/` → `data/` dan ERD → flowchart dicatat sebagai **utang struktur** dan dikerjakan terpisah — memindahkan berkas yang dirujuk puluhan dokumen di tengah amendment slice berisiko merusak rujukan | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-09-22** | Jawaban atas pertanyaan struktur berkas |
