@@ -1,0 +1,497 @@
+﻿name: STAGING to PRODUCTION Promotion
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_sha:
+        description: "Full 40-character SHA currently approved in QuilvianStaDeploy"
+        required: true
+        type: string
+
+      uat_approved:
+        description: "UAT for this exact STAGING release has passed"
+        required: true
+        default: false
+        type: boolean
+
+      database_ready:
+        description: "Production database is ready for this exact release"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  packages: read
+
+concurrency:
+  group: backend-production-promotion
+  cancel-in-progress: false
+
+env:
+  IMAGE_NAME: ghcr.io/devbenari/newquilviansystembackend
+  PRODUCTION_HEALTH_URL: https://api-pro.quilvian-mmchospital.com/health
+  PRODUCTION_VERSION_URL: https://api-pro.quilvian-mmchospital.com/api/v1/system/version
+
+jobs:
+  validate:
+    name: Validate STAGING Release
+    runs-on: ubuntu-latest
+
+    outputs:
+      target_sha: ${{ steps.target.outputs.sha }}
+      current_production_sha: ${{ steps.release.outputs.current_production_sha }}
+
+    steps:
+      - name: Require explicit release approvals
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ "${{ inputs.uat_approved }}" != "true" ]; then
+            echo "::error::Production promotion blocked: UAT has not been explicitly approved."
+            exit 1
+          fi
+
+          if [ "${{ inputs.database_ready }}" != "true" ]; then
+            echo "::error::Production promotion blocked: Production database has not been declared ready."
+            exit 1
+          fi
+
+          echo "UAT approval gate: PASS"
+          echo "Database readiness gate: PASS"
+
+      - name: Checkout repository history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Normalize target SHA
+        id: target
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TARGET_SHA="${{ inputs.target_sha }}"
+
+          if [[ ! "$TARGET_SHA" =~ ^[0-9a-fA-F]{40}$ ]]; then
+            echo "::error::target_sha must be a full 40-character Git SHA."
+            exit 1
+          fi
+
+          TARGET_SHA="$(printf '%s' "$TARGET_SHA" | tr 'A-F' 'a-f')"
+
+          echo "sha=$TARGET_SHA" >> "$GITHUB_OUTPUT"
+
+      - name: Validate release lineage
+        id: release
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TARGET_SHA="${{ steps.target.outputs.sha }}"
+
+          git fetch origin \
+            QuilvianStaDeploy \
+            QuilvianProductionDeploy
+
+          CURRENT_STAGING="$(
+            git rev-parse origin/QuilvianStaDeploy
+          )"
+
+          CURRENT_PRODUCTION="$(
+            git rev-parse origin/QuilvianProductionDeploy
+          )"
+
+          echo "Current STAGING    : $CURRENT_STAGING"
+          echo "Current PRODUCTION : $CURRENT_PRODUCTION"
+          echo "Target             : $TARGET_SHA"
+
+          if ! git cat-file -e "${TARGET_SHA}^{commit}" 2>/dev/null; then
+            echo "::error::Target SHA does not exist in this repository."
+            exit 1
+          fi
+
+          if [ "$TARGET_SHA" != "$CURRENT_STAGING" ]; then
+            echo "::error::Target SHA is not the exact current QuilvianStaDeploy release."
+            exit 1
+          fi
+
+          if [ "$CURRENT_PRODUCTION" != "$TARGET_SHA" ]; then
+            if ! git merge-base --is-ancestor \
+              "$CURRENT_PRODUCTION" \
+              "$TARGET_SHA"; then
+
+              echo "::error::Promotion would rewind or diverge QuilvianProductionDeploy."
+              exit 1
+            fi
+          fi
+
+          echo "current_production_sha=$CURRENT_PRODUCTION" >> "$GITHUB_OUTPUT"
+
+          echo "Exact STAGING release validation: PASS"
+          echo "Forward-only PRODUCTION validation: PASS"
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Verify immutable backend image exists
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TARGET_SHA="${{ steps.target.outputs.sha }}"
+
+          docker buildx imagetools inspect \
+            "${IMAGE_NAME}:${TARGET_SHA}" \
+            > /dev/null
+
+          echo "Immutable image exists: ${IMAGE_NAME}:${TARGET_SHA}"
+
+      - name: Validation summary
+        shell: bash
+        run: |
+          {
+            echo "## STAGING → PRODUCTION Validation"
+            echo ""
+            echo "- Target SHA: `${{ steps.target.outputs.sha }}`"
+            echo "- Current Production: `${{ steps.release.outputs.current_production_sha }}`"
+            echo "- Exact STAGING pointer: PASS"
+            echo "- Forward-only Production lineage: PASS"
+            echo "- UAT approval: PASS"
+            echo "- Database readiness: PASS"
+            echo "- Immutable image: PASS"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  production-approval:
+    name: Production Approval
+    needs:
+      - validate
+
+    runs-on: ubuntu-latest
+
+    environment:
+      name: production
+      url: https://api-pro.quilvian-mmchospital.com
+
+    steps:
+      - name: Approval confirmed
+        shell: bash
+        run: |
+          echo "Production environment approval gate passed."
+
+  production-preflight:
+    name: Production Preflight
+    needs:
+      - validate
+      - production-approval
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Prepare SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p ~/.ssh
+
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" \
+            > ~/.ssh/id_ed25519
+
+          chmod 600 ~/.ssh/id_ed25519
+
+          echo "${{ secrets.SSH_KNOWN_HOSTS }}" \
+            > ~/.ssh/known_hosts
+
+      - name: Verify current Production runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          EXPECTED_CURRENT="${{ needs.validate.outputs.current_production_sha }}"
+
+          ssh \
+            "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}" \
+            "EXPECTED_CURRENT='${EXPECTED_CURRENT}' bash -s" <<'REMOTE'
+          set -euo pipefail
+
+          HEALTH_URL="http://127.0.0.1:5002/health"
+          VERSION_URL="http://127.0.0.1:5002/api/v1/system/version"
+
+          curl -fsS "$HEALTH_URL" > /dev/null
+
+          RESPONSE="$(curl -fsS "$VERSION_URL")"
+
+          ACTUAL_SHA="$(
+            printf '%s' "$RESPONSE" |
+              python3 -c '
+          import json, sys
+          payload = json.load(sys.stdin)
+          print((payload.get("data") or {}).get("commitSha", ""))
+          '
+          )"
+
+          ACTUAL_ENV="$(
+            printf '%s' "$RESPONSE" |
+              python3 -c '
+          import json, sys
+          payload = json.load(sys.stdin)
+          print((payload.get("data") or {}).get("environment", ""))
+          '
+          )"
+
+          echo "Production pointer : $EXPECTED_CURRENT"
+          echo "Runtime SHA        : $ACTUAL_SHA"
+          echo "Runtime environment: $ACTUAL_ENV"
+
+          if [ "$ACTUAL_SHA" != "$EXPECTED_CURRENT" ]; then
+            echo "ERROR: current Production runtime does not match QuilvianProductionDeploy."
+            exit 1
+          fi
+
+          if [ "$ACTUAL_ENV" != "Production" ]; then
+            echo "ERROR: current runtime environment is not Production."
+            exit 1
+          fi
+          REMOTE
+
+      - name: Run deployment precheck
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TARGET_SHA="${{ needs.validate.outputs.target_sha }}"
+
+          ssh \
+            "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}" \
+            "IMAGE_NAME='${IMAGE_NAME}' \
+             IMAGE_TAG='${TARGET_SHA}' \
+             EXPECTED_COMMIT_SHA='${TARGET_SHA}' \
+             PRECHECK_ONLY='true' \
+             bash /opt/QuilvianProductionV2/deploy.sh"
+
+      - name: Cleanup SSH credentials
+        if: always()
+        shell: bash
+        run: |
+          rm -f ~/.ssh/id_ed25519
+          rm -f ~/.ssh/known_hosts
+
+  deploy-production:
+    name: Deploy PRODUCTION
+    needs:
+      - validate
+      - production-preflight
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Prepare SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p ~/.ssh
+
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" \
+            > ~/.ssh/id_ed25519
+
+          chmod 600 ~/.ssh/id_ed25519
+
+          echo "${{ secrets.SSH_KNOWN_HOSTS }}" \
+            > ~/.ssh/known_hosts
+
+      - name: Deploy immutable STAGING artifact to PRODUCTION
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TARGET_SHA="${{ needs.validate.outputs.target_sha }}"
+
+          ssh \
+            "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}" \
+            "IMAGE_NAME='${IMAGE_NAME}' \
+             IMAGE_TAG='${TARGET_SHA}' \
+             EXPECTED_COMMIT_SHA='${TARGET_SHA}' \
+             bash /opt/QuilvianProductionV2/deploy.sh"
+
+      - name: Verify public PRODUCTION health
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          for i in {1..12}; do
+            if curl -fsS \
+              "${PRODUCTION_HEALTH_URL}" \
+              > /dev/null; then
+
+              echo "Public Production health check PASS."
+              exit 0
+            fi
+
+            echo "Waiting for Production ${i}/12..."
+            sleep 5
+          done
+
+          echo "::error::Public Production health check failed."
+          exit 1
+
+      - name: Verify public PRODUCTION identity
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TARGET_SHA="${{ needs.validate.outputs.target_sha }}"
+
+          RESPONSE="$(
+            curl -fsS \
+              "${PRODUCTION_VERSION_URL}"
+          )"
+
+          ACTUAL_SHA="$(
+            printf '%s' "$RESPONSE" \
+              | jq -er '.data.commitSha'
+          )"
+
+          ACTUAL_ENV="$(
+            printf '%s' "$RESPONSE" \
+              | jq -er '.data.environment'
+          )"
+
+          BUILD_VERSION="$(
+            printf '%s' "$RESPONSE" \
+              | jq -er '.data.buildVersion'
+          )"
+
+          echo "Target SHA  : $TARGET_SHA"
+          echo "Runtime SHA : $ACTUAL_SHA"
+          echo "Environment : $ACTUAL_ENV"
+          echo "Build       : $BUILD_VERSION"
+
+          if [ "$ACTUAL_SHA" != "$TARGET_SHA" ]; then
+            echo "::error::Public Production SHA does not match target."
+            exit 1
+          fi
+
+          if [ "$ACTUAL_ENV" != "Production" ]; then
+            echo "::error::Public runtime environment is not Production."
+            exit 1
+          fi
+
+      - name: Roll back Production when deployment verification fails
+        if: failure()
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ROLLBACK_SHA="${{ needs.validate.outputs.current_production_sha }}"
+
+          echo "Rolling back Production to: $ROLLBACK_SHA"
+
+          ssh \
+            "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}" \
+            "IMAGE_NAME='${IMAGE_NAME}' \
+             IMAGE_TAG='${ROLLBACK_SHA}' \
+             EXPECTED_COMMIT_SHA='${ROLLBACK_SHA}' \
+             bash /opt/QuilvianProductionV2/deploy.sh"
+
+          echo "Production rollback command completed."
+
+      - name: Cleanup SSH credentials
+        if: always()
+        shell: bash
+        run: |
+          rm -f ~/.ssh/id_ed25519
+          rm -f ~/.ssh/known_hosts
+
+  mark-production:
+    name: Update Production Release Pointer
+    needs:
+      - validate
+      - deploy-production
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Move QuilvianProductionDeploy
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TARGET_SHA="${{ needs.validate.outputs.target_sha }}"
+          EXPECTED_OLD="${{ needs.validate.outputs.current_production_sha }}"
+
+          git config \
+            user.name \
+            "github-actions[bot]"
+
+          git config \
+            user.email \
+            "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git fetch origin \
+            QuilvianProductionDeploy \
+            QuilvianStaDeploy
+
+          CURRENT_PRODUCTION="$(
+            git rev-parse origin/QuilvianProductionDeploy
+          )"
+
+          CURRENT_STAGING="$(
+            git rev-parse origin/QuilvianStaDeploy
+          )"
+
+          echo "Expected old Production : $EXPECTED_OLD"
+          echo "Current Production      : $CURRENT_PRODUCTION"
+          echo "Current Staging         : $CURRENT_STAGING"
+          echo "Target                  : $TARGET_SHA"
+
+          if [ "$CURRENT_PRODUCTION" != "$EXPECTED_OLD" ]; then
+            echo "::error::Production pointer changed during this workflow."
+            exit 1
+          fi
+
+          if [ "$CURRENT_STAGING" != "$TARGET_SHA" ]; then
+            echo "::error::STAGING pointer changed during Production promotion."
+            exit 1
+          fi
+
+          if ! git merge-base --is-ancestor \
+            "$CURRENT_PRODUCTION" \
+            "$TARGET_SHA"; then
+
+            echo "::error::Refusing non-fast-forward Production pointer update."
+            exit 1
+          fi
+
+          git push \
+            origin \
+            "${TARGET_SHA}:refs/heads/QuilvianProductionDeploy"
+
+      - name: Promotion summary
+        shell: bash
+        run: |
+          {
+            echo "## PRODUCTION Promotion PASSED"
+            echo ""
+            echo "- SHA: `${{ needs.validate.outputs.target_sha }}`"
+            echo "- Exact STAGING release: PASS"
+            echo "- UAT approval: PASS"
+            echo "- Database readiness: PASS"
+            echo "- Production preflight: PASS"
+            echo "- Backend deployment: PASS"
+            echo "- Public health: PASS"
+            echo "- Public runtime identity: PASS"
+            echo "- QuilvianProductionDeploy pointer: PASS"
+          } >> "$GITHUB_STEP_SUMMARY"
+
