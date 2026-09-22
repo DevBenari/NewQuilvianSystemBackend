@@ -153,6 +153,39 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models
 
         public bool IsActive { get; set; } = true;
 
+        // =====================================================================
+        // BE-RWI-099 / migration R4 — kamus data 0.5 bagian 13.1, RWI-DEC-121.
+        //
+        // Penghentian butir dari Resep Harian. Butir yang dihentikan TIDAK dihapus dan TIDAK
+        // dibatalkan: ia tetap terbaca pada daftar beserta siapa, kapan, dan kenapa ia
+        // dihentikan. Aksi penghentiannya sendiri milik BE-RWI-100, karena ia wajib membatalkan
+        // dosis MAR dalam transaksi yang sama.
+        // =====================================================================
+
+        /// <summary>
+        /// <c>true</c> bila dokter menghentikan butir ini dari Resep Harian. Tidak dapat kembali
+        /// menjadi <c>false</c> — terapi baru ditulis sebagai butir resep baru.
+        /// </summary>
+        public bool IsStopped { get; set; } = false;
+
+        /// <summary>Waktu penghentian. Wajib terisi bila <see cref="IsStopped"/> bernilai <c>true</c>.</summary>
+        public DateTime? StoppedAt { get; set; }
+
+        /// <summary>Dokter penghenti, diambil dari akun login.</summary>
+        public Guid? StoppedByUserId { get; set; }
+
+        /// <summary>
+        /// Alasan penghentian. SENSITIF — tidak boleh masuk payload logger
+        /// (permission-audit-matrix 0.6.0 bagian 9.2).
+        /// </summary>
+        [MaxLength(500)]
+        public string? StopReason { get; set; }
+
+        /// <summary>
+        /// Jenis dosis butir. <c>SlidingScale</c> mewajibkan tepat satu order sliding scale.
+        /// </summary>
+        public PrescriptionDoseKind DoseKind { get; set; } = PrescriptionDoseKind.Fixed;
+
         public PhmPrescription? Prescription { get; set; }
 
         public MstDrug? Drug { get; set; }
@@ -168,5 +201,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models
         public MstMeasurement? DispenseUnitMeasurement { get; set; }
 
         public ApplicationUser? ApprovedByUser { get; set; }
+
+        public ApplicationUser? StoppedByUser { get; set; }
     }
 }

@@ -15,8 +15,12 @@ using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Models;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.BillingIntake.Models;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.CashManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.PettyCash.Models;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Models;
@@ -61,6 +65,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.LifecycleManagement.Mo
 using QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models;
+#pragma warning disable CS8618 // DbSet properties are initialized by Entity Framework Core.
 
 namespace QuilvianSystemBackend.Repositories
 {
@@ -71,7 +76,7 @@ namespace QuilvianSystemBackend.Repositories
             : base(options)
         {
         }
-
+        
         #region GLOBAL
         public DbSet<SysAppVersion> SysAppVersions { get; set; }
         public DbSet<SysAppVersionBuild> SysAppVersionBuilds { get; set; }
@@ -609,6 +614,8 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<BilPaymentReminder> BilPaymentReminders { get; set; }
         public DbSet<BilApHandoff> BilApHandoffs { get; set; }
         public DbSet<BilHandoffAdjustment> BilHandoffAdjustments { get; set; }
+        public DbSet<BilCollectionHandoff> BilCollectionHandoffs { get; set; }
+        public DbSet<BilPrescriptionClearanceHandoff> BilPrescriptionClearanceHandoffs { get; set; }
         public DbSet<BilCashierShift> BilCashierShifts { get; set; }
         public DbSet<BilCashVarianceReview> BilCashVarianceReviews { get; set; }
         public DbSet<BilCashierShiftHandover> BilCashierShiftHandovers { get; set; }
@@ -616,6 +623,36 @@ namespace QuilvianSystemBackend.Repositories
         // Petty Cash (Kas Kecil) — BE-BKC-033, PC-DES-001. Anggaran dan kategori dipindahkan
         // ke Corporate/FinanceManagement (Clean Architecture & DDD).
         public DbSet<MstPettyCashCategory> MstPettyCashCategories { get; set; }
+        // Data induk Finance — BE-FIN-002, FIN-DES-003. MstBank Finance sengaja TIDAK dibuat:
+        // "MstBank" sudah dipakai Areas/Administrator/MasterData (tabel dan controller aktif,
+        // dipakai WfpBankAccount) — dipakai ulang apa adanya (keputusan pemilik repository,
+        // 21 September 2026, preseden FIN-DEC-014/MstSupplier). MstBankAccount.BankId merujuk
+        // MstBank milik Administrator, bukan master Bank baru. Lihat laporan task BE-FIN-002.
+        public DbSet<MstBankAccount> MstBankAccounts { get; set; }
+        public DbSet<MstCurrency> MstCurrencies { get; set; }
+        public DbSet<MstExchangeRate> MstExchangeRates { get; set; }
+        // BE-FIN-005, FIN-DES-008: satu pintu masuk seluruh fakta dari Billing. Migration
+        // AddFinanceBillingIntake (BE-FIN-007) dibuat tangan, belum dijalankan. Service konsumen
+        // (FinanceBillingIntakeService) belum ada task pemilik eksplisit.
+        public DbSet<FinBillingHandoffIntake> FinBillingHandoffIntakes { get; set; }
+        // BE-FIN-006, FIN-DES-010..013: buku piutang. Migration AddFinanceReceivableAndCollection
+        // (BE-FIN-007) dibuat tangan untuk 5 tabel ini saja — 2 tabel Collection (FinReceipt,
+        // FinReceiptAllocation) belum punya entity/task pemilik, lihat laporan BE-FIN-007.
+        // FinanceReceivableService (BE-FIN-008) belum dikerjakan.
+        public DbSet<FinReceivable> FinReceivables { get; set; }
+        public DbSet<FinReceivableItem> FinReceivableItems { get; set; }
+        public DbSet<FinReceivableDocument> FinReceivableDocuments { get; set; }
+        public DbSet<FinReceivableAdjustment> FinReceivableAdjustments { get; set; }
+        public DbSet<FinReceivableWriteOff> FinReceivableWriteOffs { get; set; }
+        // BE-FIN-010, FIN-DES-017..019: kotak keluar kejadian Finance -> Accounting (transactional
+        // outbox). Migration AddFinanceAccountingOutbox dibuat tangan, belum dijalankan. Worker
+        // pengiriman (FIN-DES-020) dan endpoint penerima Accounting belum ada (FIN-CAP-018) — di
+        // luar lingkup task ini.
+        public DbSet<FinAccountingEventOutbox> FinAccountingEventOutboxes { get; set; }
+        public DbSet<FinAccountingEventAttempt> FinAccountingEventAttempts { get; set; }
+        // BE-FIN-013, FIN-DES-018..020: Kas dan setoran bank. Migration AddFinanceCashManagement.
+        public DbSet<FinBankDeposit> FinBankDeposits { get; set; }
+        public DbSet<FinDailyCashSnapshot> FinDailyCashSnapshots { get; set; }
         public DbSet<FinPettyCashBudget> FinPettyCashBudgets { get; set; }
         public DbSet<FinPettyCashBudgetMovement> FinPettyCashBudgetMovements { get; set; }
         public DbSet<BilPettyCashVoucher> BilPettyCashVouchers { get; set; }
@@ -642,6 +679,20 @@ namespace QuilvianSystemBackend.Repositories
         // dipakai ulang: ia mewajibkan ConsultationId dan DoctorId, dan melonggarkannya akan
         // melemahkan penjagaan bagi tindakan dokter yang membutuhkan keduanya untuk penagihan.
         public DbSet<CliNursingIntervention> CliNursingInterventions { get; set; }
+
+        // BE-RWI-107 s.d. BE-RWI-121 / migration K1, K3, K5 — keperawatan rawat inap revision 7.
+        // Seluruh tabel milik ClinicalManagement (RWI-DEC-081); nol tabel di InPatientManagement.
+        public DbSet<CliClinicalInstrument> CliClinicalInstruments { get; set; }
+        public DbSet<CliClinicalInstrumentVersion> CliClinicalInstrumentVersions { get; set; }
+        public DbSet<CliAssessmentInstrumentResponse> CliAssessmentInstrumentResponses { get; set; }
+        public DbSet<CliCaseManagementEvaluation> CliCaseManagementEvaluations { get; set; }
+        public DbSet<CliFluidBalanceEntry> CliFluidBalanceEntries { get; set; }
+        public DbSet<CliFluidBalanceEntryRevision> CliFluidBalanceEntryRevisions { get; set; }
+        public DbSet<CliBloodGlucoseReading> CliBloodGlucoseReadings { get; set; }
+        public DbSet<CliBloodGlucoseReadingRevision> CliBloodGlucoseReadingRevisions { get; set; }
+        public DbSet<CliDailyObservation> CliDailyObservations { get; set; }
+        public DbSet<CliDailyObservationRevision> CliDailyObservationRevisions { get; set; }
+        public DbSet<CliNursingShift> CliNursingShifts { get; set; }
 
         public DbSet<MstProcedure> MstProcedures { get; set; }
 
@@ -684,6 +735,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<InpFinancialClearance> InpFinancialClearances { get; set; }
         public DbSet<InpStatusHistory> InpStatusHistories { get; set; }
         public DbSet<InpCorrectionSession> InpCorrectionSessions { get; set; }
+        public DbSet<InpIntegrationOutbox> InpIntegrationOutboxes { get; set; }
         public DbSet<TrxKioskScanSession> TrxKioskScanSessions { get; set; }
         public DbSet<RegPatientEncounter> RegPatientEncounters { get; set; }
         public DbSet<RegPatientEncounterGuarantor> RegPatientEncounterGuarantors { get; set; }
@@ -726,6 +778,25 @@ namespace QuilvianSystemBackend.Repositories
 
         public DbSet<PhmPrescription> PhmPrescriptions { get; set; }
         public DbSet<PhmPrescriptionItem> PhmPrescriptionItems { get; set; }
+
+        // BE-RWI-101 / migration R5 — rekonsiliasi obat bawaan, milik PharmacyManagement (RWI-DEC-132).
+        public DbSet<PhmMedicationReconciliationItem> PhmMedicationReconciliationItems { get; set; }
+        public DbSet<PhmMedicationReconciliationDecision> PhmMedicationReconciliationDecisions { get; set; }
+
+        // BE-RWI-102 dan BE-RWI-103 / migration R6 — sliding scale milik PharmacyManagement (RWI-DEC-147).
+        public DbSet<PhmSlidingScaleTemplate> PhmSlidingScaleTemplates { get; set; }
+        public DbSet<PhmSlidingScaleTemplateVersion> PhmSlidingScaleTemplateVersions { get; set; }
+        public DbSet<PhmSlidingScaleRange> PhmSlidingScaleRanges { get; set; }
+        public DbSet<PhmSlidingScaleOrder> PhmSlidingScaleOrders { get; set; }
+        public DbSet<PhmSlidingScaleOrderVersion> PhmSlidingScaleOrderVersions { get; set; }
+
+        // BE-RWI-114 s.d. BE-RWI-123 / migration K4 dan K7 — MAR dan pelaksanaan sliding scale milik
+        // PharmacyManagement (RWI-DEC-117, RWI-DEC-147).
+        public DbSet<PhmMedicationAdministration> PhmMedicationAdministrations { get; set; }
+        public DbSet<PhmMedicationAdministrationRevision> PhmMedicationAdministrationRevisions { get; set; }
+        public DbSet<PhmMedicationScheduleTime> PhmMedicationScheduleTimes { get; set; }
+        public DbSet<PhmMedicationAdministrationSetting> PhmMedicationAdministrationSettings { get; set; }
+        public DbSet<PhmSlidingScaleExecution> PhmSlidingScaleExecutions { get; set; }
         public DbSet<PhmPrescriptionCompound> PhmPrescriptionCompounds { get; set; }
         public DbSet<PhmPrescriptionCompoundItem> PhmPrescriptionCompoundItems { get; set; }
         public DbSet<MstPrescriptionTemplate> MstPrescriptionTemplates { get; set; }

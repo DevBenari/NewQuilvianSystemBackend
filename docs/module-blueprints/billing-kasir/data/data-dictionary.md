@@ -908,3 +908,167 @@ CREATE UNIQUE INDEX "IX_BilPettyCashBudgetMovement_VoucherReversal"
 ### Ringkasan dampak
 
 Delapan kolom baru pada dua tabel, empat nilai `MovementType` baru, dua index baru, satu index diganti, dan pemetaan data pada dua kolom `Status`. **Nol tabel baru, nol kolom dihapus, nol relasi antar tabel berubah.**
+
+---
+
+## Amendment 21 September 2026 — Dua tabel penerbitan fakta ke modul konsumen
+
+Masukan `BKC-DEC-106`–`109`, `BKC-DES-036`–`041`. Status **draft**.
+
+Seluruh tabel mewarisi `IdentityModel`; sepuluh kolom audit warisannya tidak diulang di bawah.
+
+### `BilCollectionHandoff` — status **Baru**, pemilik `billing-kasir`
+
+Surat kepada Finance bahwa satu tender mencapai keadaan akhirnya.
+
+| Kolom | Tipe | Wajib | Bawaan | Panjang | Index | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | — | PK | Tidak | — |
+| `TenderId` | `Guid` | Ya | — | — | Unik bersama `TenderStatus` | Tidak | Tender yang keadaannya dilaporkan |
+| `SettlementId` | `Guid` | Ya | — | — | Index | Tidak | Penyelesaian pembayaran induknya |
+| `InvoiceId` | `Guid` | Ya | — | — | Index | Tidak | Tagihan yang dibayar |
+| `PaymentAllocationIds` | `string` | Tidak | `null` | 1000 | — | Tidak | Daftar identitas alokasi pembayaran, dipisah koma. Kosong bila tender belum dialokasikan |
+| `PaymentMethodId` | `Guid` | Ya | — | — | — | Tidak | Membedakan tunai dari non-tunai, dan menentukan hasil finansial resep |
+| `PaymentMethodAccountId` | `Guid?` | Tidak | `null` | — | — | Tidak | Rekening atau kanal non-tunai |
+| `Amount` | `decimal` | Ya | — | 18,2 | — | Tidak | Disalin apa adanya. Finance **MUST NOT** menghitung ulang |
+| `KwitansiNumber` | `string` | Tidak | `null` | 50 | — | Tidak | Bukti yang dipegang pasien. Kosong bila tender belum menghasilkan kwitansi |
+| `CashierShiftId` | `Guid?` | Tidak | `null` | — | Index | Tidak | **Wajib terisi untuk tender tunai**; dasar rekonsiliasi kas shift |
+| `ProviderReference` | `string` | Tidak | `null` | 150 | — | **Ya** | Rujukan penyedia pembayaran untuk non-tunai |
+| `ProviderEventId` | `string` | Tidak | `null` | 100 | — | **Ya** | Identitas kejadian penyedia; anti-ganda dari sisi penyedia |
+| `OccurredAt` | `DateTimeOffset` | Ya | — | — | Index | Tidak | Waktu uang benar-benar diterima, bukan waktu baris dibuat |
+| `SourceInvoiceStatus` | `string` | Ya | — | 30 | — | Tidak | Status tagihan pada saat itu. **Penentu Finance menahan jurnal atau tidak** |
+| `TenderStatus` | `string` | Ya | — | 30 | Unik bersama `TenderId` | Tidak | `SUCCEEDED` atau `REVERSED` |
+| `HandoffKey` | `Guid` | Ya | — | — | Unik | Tidak | Kunci idempotensi, pola sama dengan `BilArHandoff` |
+| `CorrelationId` | `Guid` | Ya | — | — | — | Tidak | Rantai telusur ujung ke ujung |
+| `CausationId` | `Guid` | Ya | — | — | — | Tidak | Peristiwa yang menyebabkannya |
+| `Status` | `string` | Ya | `CREATED` | 30 | Index | Tidak | `CREATED` atau `ACKNOWLEDGED` |
+| `AcknowledgedAt` | `DateTimeOffset?` | Tidak | `null` | — | — | Tidak | Kapan Finance mengambilnya |
+| `RowVersion` | `Guid` | Ya | `Guid.NewGuid()` | — | — | Tidak | Kendali konkurensi optimistik |
+
+**Perilaku hapus:** `DeleteBehavior.Restrict` pada seluruh relasi. Jejak audit lintas modul
+tidak boleh ikut terhapus berantai.
+
+### `BilPrescriptionClearanceHandoff` — status **Baru**, pemilik `billing-kasir`
+
+Surat kepada Farmasi bahwa keadaan clearance sebuah resep berubah.
+
+| Kolom | Tipe | Wajib | Bawaan | Panjang | Index | Sensitif | Keterangan |
+| --- | --- | :---: | --- | --- | --- | :---: | --- |
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | — | PK | Tidak | — |
+| `PrescriptionId` | `Guid` | Ya | — | — | Unik bersama `FinancialVersion` | Tidak | Resep yang keadaannya berubah. **Bukan** foreign key ke tabel Farmasi |
+| `InvoiceId` | `Guid` | Ya | — | — | Index | Tidak | Tagihan kunjungan tempat resep itu ditagihkan |
+| `ClearanceStatus` | `string` | Ya | — | 20 | Index | Tidak | `CLEARED` atau `REVOKED` |
+| `FinancialOutcome` | `string` | Tidak | `null` | 30 | — | Tidak | `PAID`, `INSURANCE_APPROVED`, atau `PAYMENT_WAIVED`. Kosong saat `REVOKED` |
+| `ReasonCode` | `string` | Ya | — | 40 | — | Tidak | Sebab perubahan; daftar nilainya pada tabel di bawah |
+| `FinancialVersion` | `long` | Ya | — | — | Unik bersama `PrescriptionId` | Tidak | Naik monoton per resep. Konsumen menolak versi lebih tua |
+| `EffectiveAt` | `DateTimeOffset` | Ya | — | — | Index | Tidak | Waktu perubahan berlaku |
+| `CorrelationId` | `Guid` | Ya | — | — | — | Tidak | Rantai telusur |
+| `CausationId` | `Guid` | Ya | — | — | — | Tidak | Peristiwa penyebab |
+| `Status` | `string` | Ya | `CREATED` | 30 | Index | Tidak | `CREATED` atau `ACKNOWLEDGED` |
+| `AcknowledgedAt` | `DateTimeOffset?` | Tidak | `null` | — | — | Tidak | Kapan Farmasi mengambilnya |
+| `RowVersion` | `Guid` | Ya | `Guid.NewGuid()` | — | — | Tidak | Kendali konkurensi optimistik |
+
+**Tidak ada kolom klinis.** Nama obat, dosis, aturan pakai, dan keterangan klinis apa pun
+**MUST NOT** masuk tabel ini. Billing tidak perlu mengetahuinya untuk menyatakan clearance.
+
+### Nilai `ReasonCode` yang sah
+
+| Nilai | Arah | Arti |
+| --- | --- | --- |
+| `INVOICE_SETTLED` | `CLEARED` | Tagihan kunjungan lunas lewat pembayaran |
+| `INVOICE_WRITTEN_OFF` | `CLEARED` | Tagihan lunas lewat penghapusan tagihan |
+| `PRESCRIPTION_CHARGE_INCREASED` | `REVOKED` | Harga atau jumlah obat pada resep itu dikoreksi naik |
+| `PAYMENT_REVERSED` | `REVOKED` | Pembayaran dibalik — fail-closed, mencabut seluruh resep pada tagihan |
+| `WRITE_OFF_REVERSED` | `REVOKED` | Penghapusan tagihan dibalik — fail-closed |
+| `PAYER_COVERAGE_REVERSED` | `REVOKED` | Penjaminan dikurangi atau dibatalkan — fail-closed |
+
+Tiga nilai terakhir bersifat fail-closed sesuai `PHA-DEC-068-A`: Billing **tidak dapat**
+membuktikan uang yang ditarik itu porsi resep atau porsi layanan lain, karena alokasi pembayaran
+hanya mengenal sasaran tagihan utuh.
+
+**Yang sengaja bukan `ReasonCode`:** penambahan biaya tindakan, laboratorium, radiologi, dan
+kamar. Ketiganya membuat tagihan kembali bersisa tetapi **tidak** mencabut clearance obat yang
+sudah dibayar (`PHA-DEC-068`). Ketiadaannya di daftar ini adalah isi, bukan kelalaian.
+
+### Skema DDL
+
+Bagian ini **dokumentasi bentuk**, bukan skrip yang dijalankan. Skema sebenarnya dibangun EF
+Core dari berkas configuration.
+
+```sql
+CREATE TABLE public."BilCollectionHandoff" (
+    "Id"                     uuid           NOT NULL,
+    "TenderId"               uuid           NOT NULL,
+    "SettlementId"           uuid           NOT NULL,
+    "InvoiceId"              uuid           NOT NULL,
+    "PaymentAllocationIds"   varchar(1000)  NULL,
+    "PaymentMethodId"        uuid           NOT NULL,
+    "PaymentMethodAccountId" uuid           NULL,
+    "Amount"                 numeric(18,2)  NOT NULL,
+    "KwitansiNumber"         varchar(50)    NULL,
+    "CashierShiftId"         uuid           NULL,
+    "ProviderReference"      varchar(150)   NULL,
+    "ProviderEventId"        varchar(100)   NULL,
+    "OccurredAt"             timestamptz    NOT NULL,
+    "SourceInvoiceStatus"    varchar(30)    NOT NULL,
+    "TenderStatus"           varchar(30)    NOT NULL,
+    "HandoffKey"             uuid           NOT NULL,
+    "CorrelationId"          uuid           NOT NULL,
+    "CausationId"            uuid           NOT NULL,
+    "Status"                 varchar(30)    NOT NULL DEFAULT 'CREATED',
+    "AcknowledgedAt"         timestamptz    NULL,
+    "RowVersion"             uuid           NOT NULL,
+    CONSTRAINT "PK_BilCollectionHandoff" PRIMARY KEY ("Id")
+);
+
+CREATE UNIQUE INDEX "IX_BilCollectionHandoff_Tender_Status"
+    ON public."BilCollectionHandoff" ("TenderId", "TenderStatus");
+CREATE UNIQUE INDEX "IX_BilCollectionHandoff_HandoffKey"
+    ON public."BilCollectionHandoff" ("HandoffKey");
+CREATE INDEX "IX_BilCollectionHandoff_Status"
+    ON public."BilCollectionHandoff" ("Status");
+CREATE INDEX "IX_BilCollectionHandoff_Invoice"
+    ON public."BilCollectionHandoff" ("InvoiceId");
+
+CREATE TABLE public."BilPrescriptionClearanceHandoff" (
+    "Id"                uuid          NOT NULL,
+    "PrescriptionId"    uuid          NOT NULL,
+    "InvoiceId"         uuid          NOT NULL,
+    "ClearanceStatus"   varchar(20)   NOT NULL,
+    "FinancialOutcome"  varchar(30)   NULL,
+    "ReasonCode"        varchar(40)   NOT NULL,
+    "FinancialVersion"  bigint        NOT NULL,
+    "EffectiveAt"       timestamptz   NOT NULL,
+    "CorrelationId"     uuid          NOT NULL,
+    "CausationId"       uuid          NOT NULL,
+    "Status"            varchar(30)   NOT NULL DEFAULT 'CREATED',
+    "AcknowledgedAt"    timestamptz   NULL,
+    "RowVersion"        uuid          NOT NULL,
+    CONSTRAINT "PK_BilPrescriptionClearanceHandoff" PRIMARY KEY ("Id")
+);
+
+CREATE UNIQUE INDEX "IX_BilPrescriptionClearanceHandoff_Prescription_Version"
+    ON public."BilPrescriptionClearanceHandoff" ("PrescriptionId", "FinancialVersion");
+CREATE INDEX "IX_BilPrescriptionClearanceHandoff_Status"
+    ON public."BilPrescriptionClearanceHandoff" ("Status");
+CREATE INDEX "IX_BilPrescriptionClearanceHandoff_Invoice"
+    ON public."BilPrescriptionClearanceHandoff" ("InvoiceId");
+```
+
+### Tabel yang dibaca tetapi tidak berubah
+
+| Tabel | Status | Kolom kunci yang dipakai | Berkas model |
+| --- | --- | --- | --- |
+| `BilInvoice` | Sudah ada | `Id`, `EncounterId`, `Status`, `ClosedAt` | `Billing/Models/BilInvoice.cs` |
+| `BilInvoiceItem` | Sudah ada | `InvoiceId`, `SourceDomain`, `SourceDetailId`, `Status` | `Billing/Models/BilInvoiceItem.cs` |
+| `BilTender` | Sudah ada | `Id`, `SettlementId`, `PaymentMethodId`, `Amount`, `Status`, `KwitansiNumber`, `CashierShiftId`, `ProviderReference` | `Billing/Models/BilTender.cs` |
+| `BilSettlement` | Sudah ada | `Id`, `InvoiceId` | `Billing/Models/BilSettlement.cs` |
+| `MstPaymentMethod` | Sudah ada | `Id`, `IsInsurance`, `IsCompanyGuarantor` | `BillingManagement/MasterData/Models/MstPaymentMethod.cs` |
+
+### Ringkasan dampak amendment ini
+
+**Dua tabel baru, nol kolom baru pada tabel yang sudah ada, nol kolom dihapus, nol relasi lama
+berubah.** Seluruh bidang yang diterbitkan sudah tersedia di tabel yang ada — penerbitan hanya
+meneruskan, tidak menyimpan yang baru.
+
+Trace `BKC-DEC-106`–`109`, `BKC-DES-036`–`041`. Tests `BIL-AT-135`–`BIL-AT-142`.

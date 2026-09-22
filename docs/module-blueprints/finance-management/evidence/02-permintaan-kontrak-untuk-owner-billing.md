@@ -213,3 +213,35 @@ yang tidak macet karenanya.
 | `docs/module-blueprints/finance-management/00-interview-decisions.md` | `FIN-DEC-005` dan `FIN-DEC-006` beserta alasannya |
 | `docs/module-blueprints/finance-management/04-prd-to-mvp.md` bagian 20 | Urutan gelombang Finance dan apa yang tertahan |
 | `docs/module-blueprints/billing-kasir/` | Blueprint Billing, tempat keputusan ini akan dicatat bila disetujui |
+
+---
+
+## 7. Jawaban owner Billing — 21 September 2026
+
+**Permintaan pada bagian 2 DISETUJUI.** Dicatat pada `billing-kasir/00-interview-decisions.md`,
+bagian "Amandemen 21 September 2026 — Penerbitan fakta finansial ke modul konsumen".
+
+| Hal | Jawaban Billing | Keputusan |
+| --- | --- | --- |
+| Jalur pemberitahuan tender berhasil | Disetujui dibangun | `BKC-DEC-106` |
+| Bentuk transport | Tabel handoff persisted berkolom tegas, pola `BilArHandoff` — sesuai usulan Finance | `BKC-DEC-106` |
+| Dapat di-ACK | Ya; pengambilan surat dicatat dan surat yang menggantung dapat diperiksa. Billing tidak menggantungkan perilakunya pada ACK | `BKC-DEC-108` |
+| Retensi baris handoff | Disimpan selamanya sebagai jejak audit lintas modul | `BKC-DEC-109` |
+
+**Yang perlu Finance ketahui.** Billing memutuskan melayani **dua** konsumen dari satu titik
+deteksi peristiwa yang sama: Finance dan Farmasi. Keduanya bertumpu pada data yang sama —
+`PaymentMethodId` sekaligus membedakan tunai dari non-tunai bagi Finance dan menentukan hasil
+`Paid` versus `InsuranceApproved` bagi Farmasi. Bentuk ini menjamin tidak mungkin Finance
+mengetahui sebuah pembayaran sementara Farmasi tidak.
+
+Bagi Finance, isi dan pemicu yang diminta pada bagian 2.2 dan 2.3 **diterima apa adanya** —
+termasuk terbit saat tender `SUCCEEDED` tanpa menunggu finalisasi, dan pembalikan tender sebagai
+baris baru sesuai bagian 2.5.
+
+**Yang belum selesai.** Task roadmap Billing untuk membangunnya belum dibuat. Sampai task itu
+dikerjakan, `BE-FIN-016` dan `BE-FIN-017` tetap tertahan — tetapi sebabnya kini berpindah dari
+"menunggu jawaban owner Billing" menjadi "menunggu eksekusi task Billing yang sudah disetujui".
+
+**Satu butir terbuka yang tidak memblokir.** Berapa lama sebuah surat boleh menggantung sebelum
+dianggap tidak wajar, dan siapa yang menerima peringatannya, dicatat sebagai `BKC-OQ-101` dan
+sebaiknya ditetapkan bersama Finance serta Farmasi setelah jalurnya berjalan.

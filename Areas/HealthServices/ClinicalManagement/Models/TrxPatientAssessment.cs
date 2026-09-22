@@ -328,6 +328,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models
         // =========================
         // WORKFLOW
         // =========================
+        // =====================================================================
+        // BE-RWI-110 / migration K3 — kamus data 0.4 bagian 11.1
+        // =====================================================================
+
+        /// <summary>
+        /// Keadaan penilaian nyeri. Pada Monitoring Nyeri wajib selain <c>NotAssessed</c> sebelum
+        /// dokumen selesai — <c>VAL-KEP-22a</c>. Baris lama bernilai <c>NotAssessed</c>.
+        /// </summary>
+        public PainAssessmentState PainAssessmentState { get; set; } = PainAssessmentState.NotAssessed;
+
+        /// <summary>
+        /// Waktu kajian ulang nyeri setelah intervensi, dihitung dari interval instrumen nyeri yang
+        /// disahkan. Contoh: nyeri 7 pukul 08.00, interval 60 menit → 09.00.
+        /// </summary>
+        public DateTime? PainReassessmentDueAt { get; set; }
+
+        /// <summary>
+        /// Baris tanda vital yang ditunjuk Kondisi Umum Kajian Umum. Angka tanda vital <b>tidak</b>
+        /// disalin ke pengkajian — <c>INV-KEP-04</c>, <c>FR-KEP-046</c>.
+        /// </summary>
+        public Guid? VitalSignId { get; set; }
+
         public DateTime? StartedAt { get; set; }
 
         public DateTime? CompletedAt { get; set; }
