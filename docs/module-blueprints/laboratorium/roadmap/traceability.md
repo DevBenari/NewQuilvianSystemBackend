@@ -456,7 +456,7 @@ belum pernah dijalankan sekalipun.
 | `LAB-DEC-106` `Definitif` fakta | `BE-LAB-53`, `BE-LAB-54` | `FE-LAB-33` | `r26` 21.2 | `AC-169` |
 | `LAB-DEC-107` koreksi specimen | `BE-LAB-57` ✅ | `FE-LAB-32` | `r27` 21.4 | `AC-170` ✅ |
 | `LAB-DEC-109` nol HL7 | — (ketiadaan) | `FE-LAB-33` (ketiadaan) | `r26` 21.8 | `AC-172` |
-| `LAB-DEC-111` dokter konfirmator | `BE-LAB-59` | `FE-LAB-33` | `r26` 21.7 | `AC-171`, `AC-173`, `AC-174` |
+| `LAB-DEC-111` dokter konfirmator | `BE-LAB-59` ✅ | `FE-LAB-33` | `r26` 21.7 | `AC-173` ✅, `AC-174` ✅; `AC-171` milik layar |
 | `LAB-DEC-112` jejak ruas | `BE-LAB-57` ✅ | `FE-LAB-32` | `r27` 21.4 | `AC-175` ✅ |
 | `LAB-DEC-113` status temuan | `BE-LAB-53` | `FE-LAB-31` | `r24` 19.2 | `AC-176` |
 

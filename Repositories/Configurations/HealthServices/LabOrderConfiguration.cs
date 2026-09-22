@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
-using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
 using QuilvianSystemBackend.Models;
@@ -154,6 +153,36 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
             // Daftar tunggu verifikasi membaca "pesanan Pending milik dokter ini".
             entity.HasIndex(x => new { x.InstructingDoctorId, x.InstructionVerificationStatus });
             entity.HasIndex(x => x.InstructionVerifiedByUserId);
+
+            // =========================================================================
+            // DIPULIHKAN 2026-09-22 sesudah merge 4ba789b2 membuangnya.
+            //
+            // Ketiga baris di bawah ada pada cabang yoga (0ae2d2b4) dan TIDAK ada pada
+            // QuilvianIntegrationBackend (0801da9d); merge mengambil sisi kedua, sehingga
+            // model kehilangan foreign key ini sementara database masih memilikinya.
+            // Akibatnya `dotnet ef database update` menolak jalan dengan
+            // PendingModelChangesWarning, dan migration yang dibangkitkan dari drift itu
+            // akan MENGHAPUS foreign key-nya dari database — mencabut integritas referensial
+            // atas dokter pemeriksa tanpa seorang pun memutuskannya.
+            // =========================================================================
+            entity.Property(x => x.ConfirmedByUserId)
+                .IsRequired(false);
+
+            entity.Property(x => x.ConfirmedAt)
+                .IsRequired(false);
+
+            entity.Property(x => x.ExaminerDoctorId)
+                .IsRequired(false);
+
+            // Dokter pemeriksa menunjuk data induk global. Restrict, bukan Cascade: menghapus
+            // seorang dokter tidak boleh ikut menghapus pesanan yang pernah ditanganinya.
+            entity.HasOne<MstDoctor>()
+                .WithMany()
+                .HasForeignKey(x => x.ExaminerDoctorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Daftar pesanan per dokter pemeriksa menyaring tepat pada kolom ini.
+            entity.HasIndex(x => x.ExaminerDoctorId);
         }
     }
 }

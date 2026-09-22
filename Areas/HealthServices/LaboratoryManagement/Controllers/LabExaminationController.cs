@@ -33,13 +33,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
     {
         private readonly LabExaminationService _labExaminationService;
         private readonly LabMicrobiologyResultService _labMicrobiologyResultService;
+        private readonly LabConfirmingDoctorResolver _confirmingDoctorResolver;
 
         public LabExaminationController(
             LabExaminationService labExaminationService,
-            LabMicrobiologyResultService labMicrobiologyResultService)
+            LabMicrobiologyResultService labMicrobiologyResultService,
+            LabConfirmingDoctorResolver confirmingDoctorResolver)
         {
             _labExaminationService = labExaminationService;
             _labMicrobiologyResultService = labMicrobiologyResultService;
+            _confirmingDoctorResolver = confirmingDoctorResolver;
         }
 
         // Daftar pemeriksaan terpesan pada satu pesanan.
@@ -453,6 +456,40 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
 
                 return Ok(ApiResponse<LabMicrobiologyResultResponse>.Ok(
                     result, "Hasil Mikrobiologi berhasil diambil."));
+            }
+            catch (KeyNotFoundException exception)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound, exception.Message));
+            }
+        }
+
+        // =============================================================
+        // Pilihan Dokter Konfirmator — BE-LAB-59, LAB-DEC-111, r26 bagian 21.7
+        //
+        // Membaca, bukan menetapkan. Endpoint ini nol menyimpan apa pun; penetapan
+        // konfirmatornya terjadi pada jalur konsultasi yang sudah ada (BE-LAB-54).
+        // =============================================================
+
+        [HttpGet("{id:guid}/confirming-doctor-options")]
+        [ProducesResponseType(typeof(ApiResponse<LabConfirmingDoctorOptionsResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Lab Confirming Doctor Options", Description = "Melihat pilihan dokter konfirmator beserta sumbernya", AccessType = AccessTypes.Read, SortOrder = 6)]
+        [AccessPermission("LabExamination", "Read")]
+        public async Task<IActionResult> GetConfirmingDoctorOptions(
+            Guid id,
+            [FromQuery] string? search = null,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var result = await _confirmingDoctorResolver.ResolveAsync(id, search, cancellationToken);
+
+                return Ok(ApiResponse<LabConfirmingDoctorOptionsResponse>.Ok(
+                    result,
+                    result.OnDutyScheduleAvailable
+                        ? "Pilihan dokter konfirmator berhasil diambil."
+                        : "Jadwal jaga belum tersedia; seluruh dokter aktif ditampilkan."));
             }
             catch (KeyNotFoundException exception)
             {

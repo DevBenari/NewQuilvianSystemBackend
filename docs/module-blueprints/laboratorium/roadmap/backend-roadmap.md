@@ -2596,7 +2596,7 @@ MVP-7d  BE-LAB-58  ruas turunan pada jalur baca       ← butuh 54, 56
 
 | Butir | Isi |
 |---|---|
-| **Status** | 🔲 **`MENUNGGU PENDAHULU`** — `BE-LAB-54`, `BE-LAB-56` |
+| **Status** | 🔲 **`SIAP DIKERJAKAN`** sejak 2026-09-21 — kedua pendahulunya selesai (`BE-LAB-54`, `BE-LAB-56`). **Cakupannya BERTAMBAH oleh `r27` bagian 22.3**, lihat catatan di bawah tabel |
 | **Outcome** | Layar hasil memperoleh waktu, nama analis, keadaan kelengkapan, dan penanda kritis tanpa menghitung sendiri |
 | **Requirement/decision** | `LAB-DEC-096`, `LAB-DEC-097`, `LAB-DEC-103`, `LAB-DEC-105`, `LAB-DEC-106` |
 | **Kontrak** | `r26` bagian 21.3 |
@@ -2608,11 +2608,26 @@ MVP-7d  BE-LAB-58  ruas turunan pada jalur baca       ← butuh 54, 56
 | **Risiko/pemilik** | **Rendah pada bentuknya, sedang pada kinerjanya.** Setiap pembacaan ikut membaca tabel aturan; tabelnya kecil dan boleh di-cache per permintaan |
 | **DoD** | Kedelapan ruas tersaji; nol di antaranya diterima pada request mana pun; `AC-157` dan `AC-168` terbukti |
 
+> **Cakupan task ini BERTAMBAH sesudah roadmap ditulis, dan itu perlu dibaca sebelum
+> dikerjakan.** `r27` bagian 22.3 menambahkan ruas turunan di luar delapan milik `r26` 21.3:
+> `labReportNumber`, `printReceivedAt`, `printCompletedAt`, `consultantLabel`,
+> `consultantName`, `standingNote`, `authorizingOfficerName`, `validatedByName`,
+> `usesSusceptibilitySet`, `breakpointAvailable`, beserta lima ruas snapshot pada setiap baris
+> kepekaan. Seluruh **sumbernya sudah berdiri** — `BE-LAB-60`..`63` membangunnya.
+>
+> **Dua AC ikut pindah ke sini** (dikoreksi 2026-09-22): `AC-181` tanggal cetak
+> (`LAB-DEC-118`) dan `AC-183` petugas otorisasi (`LAB-DEC-120`). Traceability sempat mencatat
+> keduanya milik `BE-LAB-63`, padahal 63 hanya menyediakan sumbernya.
+>
+> **`AC-183` tidak dapat ditutup task ini.** `authorizingOfficerName` diisi **perilis**, dan
+> rilis milik `S4d` yang tertahan `DEC-LAB-011`. Ruasnya dibangun sekarang dan **tampil
+> kosong** — itu memang yang diminta `LAB-DEC-120`.
+
 ### 6j.7 `BE-LAB-59` — Pilihan dokter konfirmator beserta jalur jatuhnya
 
 | Butir | Isi |
 |---|---|
-| **Status** | 🔲 **`SIAP DIKERJAKAN`** — bebas dari pendahulu mana pun |
+| **Status** | ✅ **`SELESAI`** 2026-09-22 — lihat bagian 6x dan [`BE-LAB-59.md`](../task/report/backend/BE-LAB-59.md) |
 | **Outcome** | Petugas dapat memilih dokter konfirmator **walaupun** jadwal jaga belum pernah diisi siapa pun |
 | **Requirement/decision** | `LAB-DEC-111`; menggantikan butir 2 `LAB-DEC-108` |
 | **Kontrak** | `r26` bagian 21.7 |
@@ -3540,7 +3555,7 @@ Sepuluh selesai: `53`, `54`, `47`, `60`, `61`, `48`, `62`, `55`, `56`, `57`. **T
 
 ---
 
-## 6w. `BE-LAB-63` SELESAI — gelombang `MVP-7b` tuntas, 2026-09-22
+## 6w. `BE-LAB-63` SELESAI — gelombang `MVP-7b` tuntas, slice `S4b` belum, 2026-09-22
 
 Laporan: [`BE-LAB-63.md`](../task/report/backend/BE-LAB-63.md).
 
@@ -3596,10 +3611,80 @@ dibangun.
 Empat pesanan `LAB-RSMMC-000010`..`000013` pada encounter `d6fdf9f0-…`. Pengaturan disiplin
 sudah dikembalikan ke nilai `LAB-EVD-005`.
 
+### Keadaan slice `S4b` — dan satu koreksi atas pernyataan yang keliru
+
+**Gelombang `MVP-7b` (bagian 6k) tuntas:** keempat tasknya — `60`, `61`, `62`, `63` — selesai.
+
+**Tetapi slice `S4b` BELUM selesai, dan pernyataan pertama bagian ini sempat mengatakan
+sebaliknya.** Gelombang `MVP-7` (bagian 6j) berisi **tujuh** task, dan dua di antaranya masih
+terbuka:
+
+| Task | Keadaan |
+|---|---|
+| `BE-LAB-58` — ruas turunan pada jalur baca hasil | 🔲 **kini SIAP** — kedua pendahulunya (`BE-LAB-54`, `BE-LAB-56`) selesai |
+| `BE-LAB-59` — pilihan dokter konfirmator | 🔲 **SIAP**, bebas pendahulu sejak awal |
+
+Selesai sejauh ini: `53`, `54`, `47`, `55`, `56`, `57`, `60`, `61`, `48`, `62`, `63` —
+**sebelas task, tetapi bukan sebelas dari sebelas.** Menghitung hanya gelombang terakhir lalu
+menyebut slice-nya tuntas adalah cara paling mudah kehilangan dua task yang justru menyuplai
+layar hasil.
+
+Sesudah keduanya, sisa `S4b` milik frontend (`FE-LAB-30`..`FE-LAB-33`) dan penahan di luar
+modul — `DEC-LAB-011` untuk `S4d`, `LAB-OPEN-029`, `LAB-OPEN-039`, `LAB-OPEN-041`,
+`LAB-OPEN-042`, `LAB-OPEN-043`, serta `LAB-COORD-011`..`014`.
+
+---
+
+## 6x. `BE-LAB-59` SELESAI — dan tiga kerusakan merge ditemukan di jalannya, 2026-09-22
+
+Laporan: [`BE-LAB-59.md`](../task/report/backend/BE-LAB-59.md). **Nol tabel baru, nol
+migration** — rantai `TrxOnCallAssignment` → `WorkforceProfileId` → `MstDoctor` memang sudah
+lengkap, persis seperti temuan `LAB-DEC-111`.
+
+### Keadaan yang pasti terjadi lebih dulu terbukti pada keadaan sesungguhnya
+
+`TrxOnCallAssignment` benar-benar **nol baris** saat `AC-174` diuji — bukan dikosongkan untuk
+pengujian. Itulah yang diramalkan `LAB-DEC-111`, dan jalur jatuhnya menyala: seluruh dokter
+aktif tampil beserta nomor WhatsApp dan keterangan bahwa jadwal jaga belum tersedia.
+
+`AC-173` dibuktikan sesudahnya dengan satu penugasan aktif yang disisipkan atas izin pemilik
+modul: **tepat satu** dokter tampil, dan jalur jatuh **padam sendiri**.
+
+### Dua pembuktian yang tidak diminta AC mana pun, tetapi tanpanya slice ini rapuh
+
+| Yang diuji | Kenapa perlu |
+|---|---|
+| Jendela jaga digeser ke **masa lalu** | Menguji hanya "ada baris" akan meloloskan resolver yang **mengabaikan jam**. Digeser lewat, `onDutyScheduleAvailable` kembali `false` |
+| `attendingDoctor` pada kunjungan **berdokter** | Seluruh pemeriksaan yang ada bernaung pada kunjungan tanpa dokter, sehingga ruas ini selalu kosong — **terlihat sama** dengan ruas yang tidak pernah bekerja |
+
+Pada pembuktian kedua, satu respons memuat `dr. Rendy Pangalila` sebagai DPJP dan
+`dr. Nabila Rahmawati` sebagai dokter jaga: **dua dokter berbeda dari dua sumber berbeda**,
+persis *"dua cara memilih, bukan dua jabatan"*.
+
+### ⚠ Merge 4ba789b2 meninggalkan HEAD tidak dapat dibuild maupun dinyalakan
+
+Ditemukan berurutan saat mencoba menguji task ini, dan **ketiganya bukan berasal dari task
+ini**:
+
+| # | Kerusakan | Perbaikan |
+|---|---|---|
+| 1 | `Program.cs` memanggil `LabDummyDataSeeder` yang berkasnya **nol ada pada kedua sisi merge** | Pemanggilnya dicabut ulang |
+| 2 | Blok DI Billing/Finance cabang integrasi **nol pernah dipanggil** — aplikasi gagal pada validasi DI, bukan saat dibuild | `AddBillingManagement()` disambungkan |
+| 3 | **Foreign key `LabOrder.ExaminerDoctorId` → `MstDoctor` hilang** dari konfigurasi | Dipulihkan beserta index-nya |
+
+> **Yang ketiga hampir lolos, dan itu bagian yang perlu diingat.** Ia menampakkan diri sebagai
+> `PendingModelChangesWarning`. Membangkitkan migration dari drift itu — langkah yang paling
+> wajar diambil — akan **MENGHAPUS foreign key-nya dari database**, mencabut integritas
+> referensial atas dokter pemeriksa tanpa seorang pun memutuskannya.
+
+**Satu kerusakan sengaja dibiarkan:** `ApplicationDbContextModelSnapshot` terbawa dari sisi
+`yoga` dan nol memuat perubahan model 21 migration cabang lain, sehingga setiap
+`database update` tanpa target eksplisit menolak jalan dengan drift setebal 182 KB. Ke-21
+migration diterapkan dengan menyebut target secara tegas. Menyegarkan snapshot menyentuh model
+seluruh modul — **milik yang melakukan merge, bukan milik task ini.**
+
 ### Keadaan slice `S4b`
 
-**Sebelas dari sebelas selesai:** `53`, `54`, `47`, `60`, `61`, `48`, `62`, `55`, `56`, `57`,
-`63`. **Gelombang `MVP-7b` tuntas.** Yang tersisa pada slice ini milik frontend
-(`FE-LAB-30`..`FE-LAB-33`) dan penahan di luar modul — `DEC-LAB-011` untuk `S4d`,
-`LAB-OPEN-029`, `LAB-OPEN-039`, `LAB-OPEN-041`, `LAB-OPEN-042`, `LAB-OPEN-043`, serta
-`LAB-COORD-011`..`014`.
+Dua belas selesai: `53`, `54`, `47`, `55`, `56`, `57`, `59`, `60`, `61`, `48`, `62`, `63`.
+**Tersisa satu task backend:** `BE-LAB-58` (ruas turunan pada jalur baca hasil), yang kini
+bebas pendahulu dan cakupannya sudah bertambah oleh `r27` bagian 22.3.

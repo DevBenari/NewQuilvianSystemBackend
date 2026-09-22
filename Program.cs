@@ -26,6 +26,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Ser
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Services;
@@ -349,6 +350,7 @@ try
     builder.Services.AddScoped<LabSpecimenCorrectionService>();
     builder.Services.AddScoped<LabReportNumberService>();
     builder.Services.AddScoped<LabDisciplineSettingService>();
+    builder.Services.AddScoped<LabConfirmingDoctorResolver>();
     builder.Services.AddScoped<LabMicrobiologyResultService>();
     builder.Services.AddScoped<LabExaminationService>();
     builder.Services.AddScoped<LabWorklistService>();
@@ -789,6 +791,23 @@ try
     builder.Services.AddScoped<BillingRefundService>();
 
     builder.Services.AddScoped<BillingFinalizationService>();
+
+    // Empat layanan di bawah masuk lewat merge 4ba789b2 dari QuilvianIntegrationBackend
+    // bersama BillingManagementServiceCollectionExtensions.AddBillingManagement(), TETAPI
+    // extension itu nol pernah dipanggil dari mana pun — sedangkan Program.cs cabang ini
+    // mendaftarkan Billing satu per satu. Akibatnya BillingAllocationService,
+    // BillingFinalizationService, dan BillingFinancialExceptionService menuntut
+    // BilConsumerHandoffService yang tidak terdaftar, dan APLIKASI GAGAL MENYALA pada
+    // validasi DI — bukan pada saat dibuild.
+    //
+    // Mendaftarkannya satu per satu dicoba lebih dulu dan TERBUKTI KELIRU: kekurangannya
+    // berantai — BilConsumerHandoffService, lalu FinanceAccountingOutboxService, dan
+    // seterusnya. Extension itulah daftar lengkapnya, jadi ia yang dipanggil.
+    //
+    // Sebagian layanan menjadi terdaftar dua kali, dan itu aman: keduanya Scoped atas tipe
+    // implementasi yang sama. Pemilik modul Billing tetap perlu memutuskan satu tempat
+    // pendaftaran dan mencabut yang lain.
+    builder.Services.AddBillingManagement();
 
     builder.Services.AddScoped<BillingArApHandoffService>();
 
@@ -1403,17 +1422,14 @@ try
     // disahkan oleh seeder. Batas yang bertabrakan pada V1 ditandai untuk ditinjau pemilik klinis.
     await RunStartupSeederAsync("ClinicalInstrumentDraftSeeder", () => ClinicalInstrumentDraftSeeder.SeedAsync(app.Services));
 
-    // Data induk contoh Laboratorium. Mati secara bawaan dan menolak berjalan di produksi:
-    // katalog pemeriksaan, tarif, kelompok umur, dan sumber rujukan produksi ditetapkan pemilik
-    // proses bisnis lewat layar admin, bukan lewat seeder.
-    var runLabDummySeed = builder.Configuration.GetValue<bool>("Seeders:RunLabDummySeed");
-
-    if (runLabDummySeed)
-    {
-        await RunStartupSeederAsync(
-            "LabDummyDataSeeder",
-            () => LabDummyDataSeeder.SeedAsync(app.Services, app.Environment.EnvironmentName));
-    }
+    // LabDummyDataSeeder DICABUT 2026-09-17 atas instruksi pemilik modul, dan berkasnya
+    // dihapus pada commit 0bc921b0. Pemanggilnya sempat hidup kembali lewat merge
+    // 4ba789b2 dari QuilvianIntegrationBackend — cabang itu belum menerima pencabutannya —
+    // sehingga HEAD memanggil kelas yang tidak ada pada kedua sisi merge dan GAGAL DIBUILD.
+    // Dicabut ulang 2026-09-22 supaya instruksi pemilik modul kembali berlaku.
+    //
+    // Pengaturan `Seeders:RunLabDummySeed` dibiarkan ada pada appsettings dan nol dibaca.
+    // Mencabutnya adalah perubahan konfigurasi milik pemilik modul, bukan perbaikan build.
 
     var runOperatingRoomDemoSeed =
         builder.Configuration.GetValue<bool>("Seeders:RunOperatingRoomDemoSeed");
