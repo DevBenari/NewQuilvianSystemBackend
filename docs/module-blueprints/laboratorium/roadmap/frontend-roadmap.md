@@ -1188,7 +1188,7 @@ bagian 12. Kontrak `LAB-API-v1` **`r24`** `approved` 2026-09-18.
 
 | Butir | Isi |
 |---|---|
-| **Status** | ⛔ `MENUNGGU BE-LAB-44` — gelombang `MVP-6a` |
+| **Status** | 🟢 **`SIAP DIKERJAKAN`** — *(status diperbaiki 2026-09-22; blok ini tertinggal `MENUNGGU BE-LAB-44` padahal `BE-LAB-44` selesai 2026-09-18)*. **Kedua penahan backend kini gugur:** `BE-LAB-44` ✅ mendirikan tabel dan empat endpoint per grup, dan **`BE-LAB-65` ✅** (2026-09-22) melengkapinya menjadi **delapan** — `filters/metadata`, `summary`, `GET /{id}`, dan `PATCH {id}/status`. Tanpa `BE-LAB-65`, kedua layar nol dapat dibangun sesuai `master-data-feature-standard`: formulir ubahnya nol punya jalur memuat baris, dan gagalnya diam. **`BE-LAB-65` juga membuka `discContentUg`**, sehingga layar Antibiotik dapat menurunkan `missingDiscContent` yang sebelumnya nol punya jalan diisi |
 | **Outcome** | Kepala instalasi dapat mengelola daftar organisme dan panel antibiotik dari aplikasi |
 | **Requirement/decision** | `FR-13.6`; `LAB-DEC-084`; `LAB-FE-014` |
 | **Kontrak** | `LAB-API-v1` `r24` bagian 19.4 |
@@ -1220,7 +1220,9 @@ bagian 12. Kontrak `LAB-API-v1` **`r24`** `approved` 2026-09-18.
 
 | Butir | Isi |
 |---|---|
-| **Status** | ⛔ `MENUNGGU BE-LAB-48` **dan data induk terisi** — gelombang `MVP-6c` |
+| **Status** | ⚠ **`SEBAGIAN BESAR DIGANTIKAN` `FE-LAB-30`..`FE-LAB-33`** — *(diperiksa 2026-09-22; sebelumnya `MENUNGGU BE-LAB-48`, padahal `BE-LAB-48` selesai 2026-09-21)*. **Layarnya sudah dibangun**, tetapi terhadap `r26`/`r27`, bukan `r24` bagian 19.2. **JANGAN dibatalkan begitu saja:** pemeriksaan satu per satu menemukan **dua acceptance criteria yang benar-benar belum tertutup** — lihat baris di bawah. Sisanya (`AC-123`, `AC-124`, `AC-125`) sudah terpenuhi |
+| **Dua AC yang sempat terbuka — DITUTUP 2026-09-22** | **`AC-126`** ✅ `Hapus Isolat` kini melewati `ConfirmModal`, dan konfirmasinya **menyebutkan akibatnya**: nama kuman beserta jumlah baris antibiotik yang ikut terbuang. Pertanyaan yang nol menyebutkan akibatnya dijawab "ya" tanpa dibaca. **`AC-127`** ✅ daftar kuman kosong kini memunculkan peringatan yang menyebut **penyebabnya** (data induk belum diisi) dan **siapa yang mengisinya** (kepala instalasi, lewat Data Master → Organisme Mikrobiologi); tombol `Tambah Isolat` ikut dinonaktifkan selama daftarnya kosong. Keduanya melekat pada `lab-microbiology-result-form.jsx` yang sudah ada — **nol layar dibangun ulang**. Lint 0 error 0 warning, build hijau, suite 1556/1562 tanpa tambahan kegagalan. **Belum diklik di peramban** |
+| **Sisa** | Nol pekerjaan kode. Blok ini dapat ditandai `DIGANTIKAN` penuh begitu `AC-126` dan `AC-127` terlihat bekerja di layar |
 | **Outcome** | Analis dapat mencatat status temuan, menambah isolat, dan mengisi kepekaan antibiotik per isolat dari satu layar |
 | **Requirement/decision** | `FR-13.1`..`FR-13.4`; `LAB-FE-015`..`LAB-FE-017`, `LAB-FE-019`, `LAB-FE-020` |
 | **Kontrak** | `LAB-API-v1` `r24` bagian 19.2 |
@@ -1491,7 +1493,7 @@ MVP-7c  FE-LAB-33  kelengkapan, konsultasi, dan konfirmator ← butuh 30
 
 | Butir | Isi |
 |---|---|
-| **Status** | 🔲 **`SIAP DIKERJAKAN`** |
+| **Status** | ✅ **`SELESAI`** 2026-09-22 — lihat [`FE-LAB-30.md`](../task/report/frontend/FE-LAB-30.md). `AC-156` terbukti lewat 8 uji unit; **satu butir DoD (diagnosis) BELUM terpenuhi karena nol endpoint menyediakannya** |
 | **Outcome** | Petugas membuka satu No. Order dari daftar pantau Mikrobiologi dan melihat konteks pasien, pemeriksaan, diagnosis, serta daftar pemeriksaan di dalamnya |
 | **Requirement/decision** | `LAB-DEC-095` |
 | **Kontrak** | `r26`; `GET /{id}/result/microbiology` dari `r24` |
@@ -1506,7 +1508,7 @@ MVP-7c  FE-LAB-33  kelengkapan, konsultasi, dan konfirmator ← butuh 30
 
 | Butir | Isi |
 |---|---|
-| **Status** | 🔲 **`MENUNGGU PENDAHULU`** — `FE-LAB-30` |
+| **Status** | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** 2026-09-22 — lihat [`FE-LAB-31.md`](../task/report/frontend/FE-LAB-31.md). Permukaan terbangun, lint dan build hijau, 22 uji baru lulus. **Nol AC terbukti di layar** — verifikasi klik belum dijalankan |
 | **Outcome** | Analis mengisi status temuan, menambah isolat, dan mengisi baris kepekaan antibiotik |
 | **Requirement/decision** | `LAB-DEC-101`, `LAB-DEC-102`, `LAB-DEC-104`, `LAB-DEC-113` |
 | **Kontrak** | `r24` bagian 19.2; `r26` bagian 21.3 untuk penanda kritis |
@@ -1521,7 +1523,7 @@ MVP-7c  FE-LAB-33  kelengkapan, konsultasi, dan konfirmator ← butuh 30
 
 | Butir | Isi |
 |---|---|
-| **Status** | 🔲 **`MENUNGGU PENDAHULU`** — tinggal `FE-LAB-30`. **Kedua penahan backend lepas 2026-09-21:** `BE-LAB-55` ✅ dan `BE-LAB-57` ✅ |
+| **Status** | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** 2026-09-22 — lihat [`FE-LAB-32.md`](../task/report/frontend/FE-LAB-32.md). Permukaan terbangun, lint dan build hijau, 22 uji baru lulus. **Nol AC terbukti di layar** — verifikasi klik belum dijalankan |
 | **Outcome** | Petugas melengkapi dan mengoreksi specimen dari halaman hasil, dan dapat melihat nilai lamanya |
 | **Requirement/decision** | `LAB-DEC-098`, `LAB-DEC-100`, `LAB-DEC-107`, `LAB-DEC-112` |
 | **Kontrak** | `r26` bagian 21.4 dan 21.5 |
@@ -1536,7 +1538,7 @@ MVP-7c  FE-LAB-33  kelengkapan, konsultasi, dan konfirmator ← butuh 30
 
 | Butir | Isi |
 |---|---|
-| **Status** | 🔲 **`MENUNGGU PENDAHULU`** — `FE-LAB-30`; backend `BE-LAB-54`, `BE-LAB-58`, `BE-LAB-59` |
+| **Status** | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** 2026-09-22 — lihat [`FE-LAB-33.md`](../task/report/frontend/FE-LAB-33.md). Permukaan terbangun, lint dan build hijau, 22 uji baru lulus. **Nol AC terbukti di layar** — verifikasi klik belum dijalankan |
 | **Outcome** | Petugas menyimpan Draft/Final, membuka kembali, mencatat konsultasi, dan memilih dokter konfirmator |
 | **Requirement/decision** | `LAB-DEC-096`, `LAB-DEC-097`, `LAB-DEC-105`, `LAB-DEC-106`, `LAB-DEC-111` |
 | **Kontrak** | `r26` bagian 21.2, 21.3, 21.7 |
@@ -1579,10 +1581,10 @@ AC yang bertambah: `FE-LAB-31` memperoleh `AC-179`, `AC-186`, `AC-187`, `AC-188`
 
 | Butir | Isi |
 |---|---|
-| **Status** | 🔲 **`MENUNGGU PENDAHULU`** — `BE-LAB-60`, `BE-LAB-62`, `BE-LAB-63` |
+| **Status** | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** 2026-09-22 — ketiga layar terbangun sesuai `master-data-feature-standard` (38 berkas source, 6 registrasi), lint dan build hijau, 20 uji baru lulus, sepuluh route masuk keluaran build dan delapan di antaranya dipanggil `200`. **Hak aksesnya terbukti pada akun sungguhan bukan superadmin**: keenam endpoint baca dijawab `200` bagi Kepala Instalasi, dan `PATCH` status breakpoint dijawab **`403`** — pemisahan `DR-LAB-002` tegak di sisi server. **Nol kontrol diklik di peramban.** Lihat [`FE-LAB-34.md`](../task/report/frontend/FE-LAB-34.md). *(Sebelumnya `SIAP DIKERJAKAN`; blok ini sempat tertinggal `MENUNGGU PENDAHULU`.)* **Keempat penahan backend selesai:** `BE-LAB-60` ✅, `BE-LAB-62` ✅, `BE-LAB-63` ✅, dan **`BE-LAB-64` ✅** (permukaan baseline dua data induk dilengkapi 5→9 endpoint — tanpanya ketiga layar nol dapat dibangun sesuai standar) |
 | **Outcome** | Wewenang klinis mengelola breakpoint; kepala instalasi mengelola profil katalog dan pengaturan disiplin |
 | **Requirement/decision** | `LAB-DEC-119`, `122`, `125`, `127` |
-| **Kontrak** | `r27` bagian 22.5, 22.6, 22.7 |
+| **Kontrak** | `r27` bagian 22.5, 22.6, 22.7 **dan `r30` bagian 25** (delapan endpoint baseline) |
 | **Reuse** | `master-data-feature-standard` sepenuhnya — pola yang sama dengan layar `LabOrganism` dan `LabAntibiotic` |
 | **Cakupan** | Tiga layar: breakpoint (CRUD penuh), profil Mikrobiologi katalog (CRUD penuh), pengaturan disiplin (**baca dan ubah saja** — nol tambah, nol hapus) |
 | **Acceptance criteria** | `AC-182` mengubah nama konsultan mengubah footer dan **tidak** mengubah pemegang wewenang klinis; `AC-185` mengubah breakpoint **tidak** mengubah hasil lama |

@@ -41,7 +41,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
 
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<LabSusceptibilityBreakpointResponse>>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Lab Susceptibility Breakpoint", Description = "Melihat daftar rentang breakpoint", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction("Read", "Read Lab Susceptibility Breakpoint", Description = "Melihat daftar, ringkasan, pilihan, dan detail rentang breakpoint", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("LabSusceptibilityBreakpoint", "Read")]
         public async Task<IActionResult> GetList(
             [FromQuery] LabSusceptibilityBreakpointPagedQuery query,
@@ -56,7 +56,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         [HttpGet("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<LabSusceptibilityBreakpointResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Read", "Read Lab Susceptibility Breakpoint Detail", Description = "Melihat satu rentang breakpoint", AccessType = AccessTypes.Read, SortOrder = 2)]
+        [AccessAction("Read", "Read Lab Susceptibility Breakpoint", Description = "Melihat daftar, ringkasan, pilihan, dan detail rentang breakpoint", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("LabSusceptibilityBreakpoint", "Read")]
         public async Task<IActionResult> GetById(
             Guid id,
@@ -109,7 +109,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         [ProducesResponseType(typeof(ApiResponse<LabSusceptibilityBreakpointResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Update", "Update Lab Susceptibility Breakpoint", Description = "Mengubah rentang breakpoint", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessAction("Update", "Update Lab Susceptibility Breakpoint", Description = "Mengubah rentang breakpoint beserta status aktifnya", AccessType = AccessTypes.Update, SortOrder = 4)]
         [AccessPermission("LabSusceptibilityBreakpoint", "Update")]
         public async Task<IActionResult> Update(
             Guid id,
@@ -152,6 +152,82 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
 
                 return Ok(ApiResponse<object>.Ok(
                     null!, "Rentang breakpoint berhasil dinonaktifkan."));
+            }
+            catch (KeyNotFoundException exception)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound, exception.Message));
+            }
+        }
+
+        // =============================================================
+        // Baseline master data yang dilengkapi 2026-09-22 — `LAB-API-v1` r30.
+        //
+        // Keempat endpoint di bawah dituntut `master-data-endpoint-standard` dan nol ada saat
+        // BE-LAB-60 dikerjakan. Kekurangannya ditemukan gate FE-LAB-34, bukan oleh pengujian.
+        // =============================================================
+
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<LabSusceptibilityBreakpointFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Lab Susceptibility Breakpoint", Description = "Melihat daftar, ringkasan, pilihan, dan detail rentang breakpoint", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabSusceptibilityBreakpoint", "Read")]
+        public IActionResult GetFilterMetadata()
+        {
+            var result = LabFilterMetadataFactory.LabSusceptibilityBreakpoint();
+
+            return Ok(ApiResponse<LabSusceptibilityBreakpointFilterMetadataResponse>.Ok(
+                result, "Metadata penyaring breakpoint berhasil diambil."));
+        }
+
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<LabSusceptibilityBreakpointSummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Lab Susceptibility Breakpoint", Description = "Melihat daftar, ringkasan, pilihan, dan detail rentang breakpoint", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabSusceptibilityBreakpoint", "Read")]
+        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
+        {
+            var result = await _service.GetSummaryAsync(cancellationToken);
+
+            return Ok(ApiResponse<LabSusceptibilityBreakpointSummaryResponse>.Ok(
+                result, "Ringkasan breakpoint berhasil diambil."));
+        }
+
+        [HttpGet("options")]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<LabSusceptibilityBreakpointOptionResponse>>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Lab Susceptibility Breakpoint", Description = "Melihat daftar, ringkasan, pilihan, dan detail rentang breakpoint", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabSusceptibilityBreakpoint", "Read")]
+        public async Task<IActionResult> GetOptions(
+            [FromQuery] string? search = null,
+            [FromQuery] bool onlyActive = true,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _service.GetOptionsAsync(
+                search, onlyActive, pageNumber, pageSize, cancellationToken);
+
+            return Ok(ApiResponse<PagedResult<LabSusceptibilityBreakpointOptionResponse>>.Ok(
+                result, "Pilihan breakpoint berhasil diambil."));
+        }
+
+        [HttpPatch("{id:guid}/status")]
+        [ProducesResponseType(typeof(ApiResponse<LabSusceptibilityBreakpointResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Update", "Update Lab Susceptibility Breakpoint", Description = "Mengubah rentang breakpoint beserta status aktifnya", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("LabSusceptibilityBreakpoint", "Update")]
+        public async Task<IActionResult> SetStatus(
+            Guid id,
+            [FromBody] LabSusceptibilityBreakpointStatusRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var result = await _service.SetStatusAsync(id, request.IsActive, cancellationToken);
+
+                return Ok(ApiResponse<LabSusceptibilityBreakpointResponse>.Ok(
+                    result,
+                    request.IsActive
+                        ? "Rentang breakpoint diaktifkan."
+                        : "Rentang breakpoint dinonaktifkan."));
             }
             catch (KeyNotFoundException exception)
             {

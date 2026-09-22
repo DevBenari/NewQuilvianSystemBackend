@@ -320,9 +320,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             Guid examinationId,
             CancellationToken cancellationToken = default)
         {
+            // LabOrder dan Specimen ikut dimuat karena ruas turunan r27 22.3 bersumber pada
+            // keduanya — nomor cetak dan disiplin dari pesanan, waktu pengambilan serta
+            // penerimaan fisik dari wadah. BE-LAB-54 sudah sekali gagal karena penunjuk
+            // induknya tidak dimuat lalu jatuh ke nilai kosong tanpa galat.
             var examination = await _dbContext.LabExaminations
                 .AsNoTracking()
                 .Include(x => x.Procedure)
+                .Include(x => x.LabOrder)
+                .Include(x => x.Specimen)
                 .FirstOrDefaultAsync(x => x.Id == examinationId && !x.IsDelete, cancellationToken)
                 ?? throw new KeyNotFoundException("Pemeriksaan tidak ditemukan.");
 
@@ -348,10 +354,40 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 ResultEnteredByUserId = examination.ResultEnteredByUserId,
                 IsFinalized = examination.FinalizedAt is not null,
 
+                // LAB-DEC-096. Waktu efektif menjawab kapan bahan meninggalkan TUBUH PASIEN,
+                // bukan kapan ia sampai di laboratorium — lihat PrintReceivedAt di bawah.
+                EffectiveAt = examination.Specimen?.CollectedAt,
+                IssuedAt = examination.FinalizedAt,
+
+                ReopenCount = examination.ReopenCount,
+                IsConsulted = examination.ConsultedAt is not null,
+                ConsultedToName = examination.ConsultedToName,
+                ConsultedAt = examination.ConsultedAt,
+
+                // LAB-DEC-117 dan LAB-DEC-118 — ruas cetak.
+                LabReportNumber = examination.LabOrder?.LabReportNumber,
+                PrintReceivedAt = examination.Specimen?.PhysicallyReceivedAt,
+                PrintCompletedAt = examination.FinalizedAt,
+
+                // LAB-DEC-120. Keduanya SENGAJA dibiarkan kosong: pengisinya adalah perilis
+                // dan pemvalidasi, dan keduanya milik S4d yang tertahan DEC-LAB-011.
+                // Mengisinya dari pencetak atau penulis hasil akan membuat dokumen menyebut
+                // pihak yang salah sebagai pengesah.
+                AuthorizingOfficerName = null,
+                ValidatedByName = null,
+
                 // Rilis Mikrobiologi adalah S4d dan belum dibangun. Dinyatakan, bukan
                 // disimpulkan pemanggil (LAB-DEC-097).
                 IsReleased = false
             };
+
+            response.AnalystName = await ReadAnalystNameAsync(
+                examination.ResultEnteredByUserId, cancellationToken);
+
+            response.UsesSusceptibilitySet = await _profileService.UsesSusceptibilitySetAsync(
+                examination.ProcedureId, cancellationToken);
+
+            await ApplyDisciplineSettingAsync(response, examination.LabOrder?.Discipline, cancellationToken);
 
             // Seluruh aturan kritis ditarik SEKALI, lalu dicocokkan di memori terhadap setiap
             // baris antibiogram — satu antibiogram lazim memuat dua puluh baris lebih.
@@ -400,6 +436,54 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             }
 
             return response;
+        }
+
+        /// <summary>
+        /// Nama analis, diturunkan dari pencatat hasil (<c>LAB-DEC-105</c>, <c>AC-168</c>).
+        ///
+        /// <b>Mengembalikan null bila penggunanya sudah tidak ada</b> — bukan melempar galat.
+        /// Pencatat yang akunnya dihapus tidak boleh membuat hasil lama gagal dibaca; yang
+        /// hilang hanya namanya, sedangkan <c>ResultEnteredByUserId</c> tetap tersimpan.
+        /// </summary>
+        private async Task<string?> ReadAnalystNameAsync(
+            Guid? userId,
+            CancellationToken cancellationToken)
+        {
+            if (userId is null || userId == Guid.Empty) return null;
+
+            return await _dbContext.Users
+                .AsNoTracking()
+                .Where(x => x.Id == userId.Value)
+                .Select(x => x.DisplayName)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        /// <summary>
+        /// Menempelkan label konsultan, nama konsultan, dan kalimat baku milik disiplin
+        /// pesanan (<c>LAB-DEC-119</c>, <c>LAB-DEC-127</c>).
+        ///
+        /// <b>Pesanan tanpa disiplin dibiarkan tanpa ketiganya.</b> Pesanan berdisiplin kosong
+        /// memang sah (<c>AC-85</c>), dan menebak disiplinnya di sini berarti mencetak footer
+        /// milik disiplin lain.
+        /// </summary>
+        private async Task ApplyDisciplineSettingAsync(
+            LabMicrobiologyResultResponse response,
+            LabDiscipline? discipline,
+            CancellationToken cancellationToken)
+        {
+            if (discipline is null) return;
+
+            var setting = await _dbContext.LabDisciplineSettings
+                .AsNoTracking()
+                .FirstOrDefaultAsync(
+                    x => x.Discipline == discipline.Value && !x.IsDelete && x.IsActive,
+                    cancellationToken);
+
+            if (setting is null) return;
+
+            response.ConsultantLabel = setting.ConsultantLabel;
+            response.ConsultantName = setting.ConsultantName;
+            response.StandingNote = setting.StandingNote;
         }
 
         private static string? Normalize(string? value)

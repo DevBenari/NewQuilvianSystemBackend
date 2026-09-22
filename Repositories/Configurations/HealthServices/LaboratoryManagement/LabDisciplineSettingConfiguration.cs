@@ -17,6 +17,15 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Labor
             builder.Property(x => x.ConsultantName).HasMaxLength(200);
             builder.Property(x => x.StandingNote).HasMaxLength(1000);
             builder.Property(x => x.ReportNumberPrefix).HasMaxLength(20);
+
+            // r29, menutup LAB-OPEN-043. Pemisah boleh kosong — Patologi Klinik memang
+            // menempelkan tahun langsung pada nomornya (25039254).
+            builder.Property(x => x.ReportNumberSeparator).HasMaxLength(5);
+
+            // Berdefault 4 supaya baris yang sudah ada nol berubah bentuknya saat migration
+            // berjalan. Patologi Klinik dinaikkan menjadi 6 lewat seeder dan layar pengaturan.
+            builder.Property(x => x.ReportNumberLength).IsRequired().HasDefaultValue(4);
+
             builder.Property(x => x.IsActive).IsRequired();
 
             // Satu disiplin punya paling banyak SATU pengaturan. Parsial atas IsDelete, sebab

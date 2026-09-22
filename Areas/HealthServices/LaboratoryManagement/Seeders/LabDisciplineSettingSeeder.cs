@@ -22,13 +22,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Seeder
     /// </summary>
     public static class LabDisciplineSettingSeeder
     {
+        /// <remarks>
+        /// <b>Bentuk nomor cetak ditambahkan 2026-09-22</b> (<c>r29</c>, menutup
+        /// <c>LAB-OPEN-043</c>). Ketiganya terbaca apa adanya dari <c>LAB-EVD-005</c>:
+        /// Mikrobiologi <c>26-1129</c>, Patologi Anatomi <c>26.0919</c>, Patologi Klinik
+        /// <c>25039254</c> — <b>pemisah dan lebarnya memang berbeda-beda</b>.
+        /// </remarks>
         private static readonly BaselineDisciplineSetting[] Baseline =
         {
             new(
                 LabDiscipline.Microbiology,
                 "Konsultan Mikrobiologi Klinik",
                 "Usman Chatib Warsa, PhD, SpMK-K, Prof. dr.",
-                "LEBAR ZONA ANTIBIOTIK TIDAK MEMPENGARUHI TINGKAT KEPEKAAN BAKTERI."),
+                "LEBAR ZONA ANTIBIOTIK TIDAK MEMPENGARUHI TINGKAT KEPEKAAN BAKTERI.",
+                Separator: "-",
+                Length: 4),
 
             new(
                 LabDiscipline.AnatomicalPathology,
@@ -36,13 +44,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Seeder
                 "Ening Krisnuhoni, SpPA-K, dr.",
                 // Kosong, dan itu pembacaan — bukan kelalaian. Footer Patologi Anatomi pada
                 // LAB-EVD-005 nol memuat kalimat baku.
-                null),
+                null,
+                Separator: ".",
+                Length: 4),
 
             new(
                 LabDiscipline.ClinicalPathology,
                 "Konsultan",
                 "Prof.Dr.Riadi Wirawan SpPK(K)",
-                null)
+                null,
+                // Teks KOSONG, bukan null: Patologi Klinik menempelkan tahun langsung pada
+                // nomornya. 25039254 berarti tahun 25 diikuti enam digit tanpa pemisah.
+                Separator: "",
+                Length: 6)
         };
 
         public static async Task SeedAsync(
@@ -101,6 +115,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Seeder
                     ConsultantName = baris.ConsultantName,
                     StandingNote = baris.StandingNote,
                     ReportNumberPrefix = null,
+                    ReportNumberSeparator = baris.Separator,
+                    ReportNumberLength = baris.Length,
                     IsActive = true,
                     CreateDateTime = now,
                     CreateBy = Guid.Empty
@@ -126,6 +142,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Seeder
             LabDiscipline Discipline,
             string ConsultantLabel,
             string? ConsultantName,
-            string? StandingNote);
+            string? StandingNote,
+            string? Separator,
+            int Length);
     }
 }

@@ -102,6 +102,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             row.ConsultantName = Normalize(request.ConsultantName);
             row.StandingNote = Normalize(request.StandingNote);
             row.ReportNumberPrefix = Normalize(request.ReportNumberPrefix);
+
+            // SENGAJA TIDAK memakai Normalize pada pemisah. Normalize memetakan teks kosong
+            // menjadi null, sedangkan di sini keduanya BERBEDA ARTI: null berarti belum pernah
+            // disetel dan jatuh ke bawaan, teks kosong berarti sengaja tanpa pemisah —
+            // Patologi Klinik memang menempelkan tahun langsung pada nomornya (25039254).
+            row.ReportNumberSeparator = request.ReportNumberSeparator;
+
+            row.ReportNumberLength = request.ReportNumberLength;
             row.IsActive = request.IsActive;
 
             await _dbContext.SaveChangesAsync(cancellationToken);
@@ -151,6 +159,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             ConsultantName = row.ConsultantName,
             StandingNote = row.StandingNote,
             ReportNumberPrefix = row.ReportNumberPrefix,
+            ReportNumberSeparator = row.ReportNumberSeparator,
+            ReportNumberLength = row.ReportNumberLength,
+            ReportNumberExample = LabReportNumberService.Format(
+                new LabReportNumberService.LabReportNumberShape(
+                    row.ReportNumberPrefix ?? string.Empty,
+                    row.ReportNumberSeparator ?? LabReportNumberService.DefaultYearSeparator,
+                    Math.Clamp(
+                        row.ReportNumberLength,
+                        LabReportNumberService.MinSequenceLength,
+                        LabReportNumberService.MaxSequenceLength)),
+                DateTime.UtcNow.Year,
+                1),
             IsActive = row.IsActive
         };
 

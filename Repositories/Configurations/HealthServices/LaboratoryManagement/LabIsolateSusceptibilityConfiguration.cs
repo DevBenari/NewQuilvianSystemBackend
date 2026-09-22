@@ -52,13 +52,27 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Labor
 
             builder.HasIndex(x => x.LabMicrobiologyIsolateId);
 
-            // AC-109 — BUTIR PALING MUDAH DILEWATKAN PADA GELOMBANG INI.
+            // AC-109. Satu antibiotik tidak boleh diuji dua kali pada isolat yang sama.
             //
-            // Satu antibiotik tidak boleh diuji dua kali pada isolat yang sama. Index ini
-            // WAJIB parsial: penghapusan berupa penandaan (IsDelete), sehingga index unik
-            // penuh membuat baris yang sudah ditandai hapus TETAP MENEMPATI kuncinya —
-            // analis yang salah memilih antibiotik, menghapusnya, lalu memilih antibiotik
-            // yang benar akan ditolak database tanpa sebab yang dapat ia pahami.
+            // FILTERNYA PARSIAL SEBAGAI JARING PENGAMAN, BUKAN SEBAGAI KEBUTUHAN — dan
+            // pembedaan itu dikoreksi 2026-09-22 (LAB-CONFLICT-011, ditutup lewat BE-LAB-49).
+            //
+            // Komentar sebelumnya menyatakan "penghapusan berupa penandaan (IsDelete)".
+            // ITU TIDAK BERLAKU BAGI TABEL INI. LabMicrobiologyResultService mengganti seluruh
+            // koleksi anak dengan RemoveRange, dan nol tempat di codebase mengubah
+            // EntityState.Deleted menjadi penandaan — nol interseptor SaveChanges, nol
+            // HasQueryFilter global. Baris kepekaan yang dihapus LENYAP SECARA FISIK, dan
+            // BE-LAB-49 membuktikannya terhadap database sungguhan: 0 baris bertanda terhapus.
+            //
+            // Artinya index unik PENUH akan berperilaku sama persis pada jalur yang ada hari
+            // ini. Filter ini tetap dipertahankan justru karena itu murah: bila kelak gaya
+            // hapus tabel ini berubah menjadi penandaan — seperti LabPathologyCategoryService
+            // dan LabPathologyReportService yang memang memakai IsDelete=true — index penuh
+            // akan mulai menolak antibiotik yang sama dipilih ulang, dan kegagalannya muncul
+            // di tangan analis, bukan di pipeline.
+            //
+            // Mencabut filter ini karena "belum terpakai" adalah cara menukar jaring pengaman
+            // gratis dengan cacat yang hanya terlihat saat sudah terjadi.
             builder.HasIndex(x => new { x.LabMicrobiologyIsolateId, x.LabAntibioticId })
                 .IsUnique()
                 .HasDatabaseName("IX_LabIsolateSusceptibility_IsolateId_AntibioticId")

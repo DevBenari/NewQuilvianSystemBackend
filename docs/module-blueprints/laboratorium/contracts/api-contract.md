@@ -1724,20 +1724,20 @@ Base URL: `api/v1/health-services/laboratory-management/lab-organisms`
 
 | Method | Path | Kegunaan | Hak akses | Status |
 |---|---|---|---|---|
-| `GET` | `/` | Daftar organisme, ber-pagination dan penyaring aktif | `LabOrganism : Read` | **Rencana (belum tersedia)** |
-| `GET` | `/options` | Daftar ringkas untuk pilihan di layar | `LabOrganism : Read` | **Rencana (belum tersedia)** |
-| `POST` | `/` | Menambah organisme | `LabOrganism : Create` | **Rencana (belum tersedia)** |
-| `PUT` | `/{id}` | Mengubah nama atau penanda aktif | `LabOrganism : Update` | **Rencana (belum tersedia)** |
+| `GET` | `/` | Daftar organisme, ber-pagination dan penyaring aktif | `LabOrganism : Read` | **Tersedia** — `BE-LAB-44` |
+| `GET` | `/options` | Daftar ringkas untuk pilihan di layar | `LabOrganism : Read` | **Tersedia** — `BE-LAB-44` |
+| `POST` | `/` | Menambah organisme | `LabOrganism : Create` | **Tersedia** — `BE-LAB-44` |
+| `PUT` | `/{id}` | Mengubah nama atau penanda aktif | `LabOrganism : Update` | **Tersedia** — `BE-LAB-44` |
 
 `[Tags("Health Services / Laboratory Management / Lab Antibiotic")]`
 Base URL: `api/v1/health-services/laboratory-management/lab-antibiotics`
 
 | Method | Path | Kegunaan | Hak akses | Status |
 |---|---|---|---|---|
-| `GET` | `/` | Daftar antibiotik | `LabAntibiotic : Read` | **Rencana (belum tersedia)** |
-| `GET` | `/options` | Daftar ringkas untuk pilihan di layar | `LabAntibiotic : Read` | **Rencana (belum tersedia)** |
-| `POST` | `/` | Menambah antibiotik | `LabAntibiotic : Create` | **Rencana (belum tersedia)** |
-| `PUT` | `/{id}` | Mengubah nama atau penanda aktif | `LabAntibiotic : Update` | **Rencana (belum tersedia)** |
+| `GET` | `/` | Daftar antibiotik | `LabAntibiotic : Read` | **Tersedia** — `BE-LAB-44` |
+| `GET` | `/options` | Daftar ringkas untuk pilihan di layar | `LabAntibiotic : Read` | **Tersedia** — `BE-LAB-44` |
+| `POST` | `/` | Menambah antibiotik | `LabAntibiotic : Create` | **Tersedia** — `BE-LAB-44` |
+| `PUT` | `/{id}` | Mengubah nama atau penanda aktif | `LabAntibiotic : Update` | **Tersedia** — `BE-LAB-44` |
 
 > ### Kedua kelompok endpoint ini bukan pelengkap
 >
@@ -2307,11 +2307,11 @@ Base URL: `api/v1/health-services/laboratory-management/lab-susceptibility-break
 
 | Method | Path | Kegunaan | Hak akses | Status |
 |---|---|---|---|---|
-| `GET` | `/` | Daftar berhalaman, dapat disaring organisme dan antibiotik | `LabSusceptibilityBreakpoint : Read` | **Rencana (belum tersedia)** |
-| `GET` | `/{id}` | Satu baris | `LabSusceptibilityBreakpoint : Read` | **Rencana (belum tersedia)** |
-| `POST` | `/` | Menambah | `LabSusceptibilityBreakpoint : Create` | **Rencana (belum tersedia)** |
-| `PUT` | `/{id}` | Mengubah | `LabSusceptibilityBreakpoint : Update` | **Rencana (belum tersedia)** |
-| `DELETE` | `/{id}` | Menonaktifkan | `LabSusceptibilityBreakpoint : Delete` | **Rencana (belum tersedia)** |
+| `GET` | `/` | Daftar berhalaman, dapat disaring organisme dan antibiotik | `LabSusceptibilityBreakpoint : Read` | **Tersedia** — `BE-LAB-60` |
+| `GET` | `/{id}` | Satu baris | `LabSusceptibilityBreakpoint : Read` | **Tersedia** — `BE-LAB-60` |
+| `POST` | `/` | Menambah | `LabSusceptibilityBreakpoint : Create` | **Tersedia** — `BE-LAB-60` |
+| `PUT` | `/{id}` | Mengubah | `LabSusceptibilityBreakpoint : Update` | **Tersedia** — `BE-LAB-60` |
+| `DELETE` | `/{id}` | Menonaktifkan | `LabSusceptibilityBreakpoint : Delete` | **Tersedia** — `BE-LAB-60` |
 
 Ruas: `labOrganismId` dan `labAntibioticId` **wajib**, `lowerMm` dan `upperMm` **wajib** dengan
 `lowerMm <= upperMm` (`VAL-115`), `guidelineVersion` opsional.
@@ -2473,3 +2473,369 @@ dan diturunkan dari data induk lewat snapshot nama yang sudah ada.
 | Seed 1.601 aktif + 166 nonaktif | `LAB-DEC-130` | `AC-193` |
 | Nama dua bahasa + `untranslatedOnly` | `LAB-DEC-131` | `AC-194` |
 | `snomedCode` | `LAB-DEC-132` | `AC-195` |
+
+---
+
+## 24. Amandemen `r29` — Bentuk nomor cetak per disiplin, 2026-09-22
+
+> ### ✅ STATUS: `approved` — 2026-09-22
+>
+> | Butir | Isi |
+> |---|---|
+> | Status | **`approved`** |
+> | `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-22 |
+> | Menutup | `LAB-OPEN-043` |
+> | Sifat | **ADITIF.** Dua kolom ditambahkan; nol ruas dicabut, nol ruas berubah arti |
+> | Dilaksanakan | Migration `20260922064824_AddLabReportNumberShape`, diterapkan hari yang sama |
+
+### 24.1 Kenapa amandemen ini ada
+
+`r27` bagian 22.7 menyetujui **satu** ruas `reportNumberPrefix`. Bukti cetak `LAB-EVD-005`
+memperlihatkan bahwa satu ruas awalan **tidak cukup**:
+
+| Disiplin | Bukti | Awalan | Pemisah | Lebar urut |
+|---|---|---|---|---|
+| Mikrobiologi | `26-1129` | — | `-` | 4 |
+| Patologi Anatomi | `26.0919` | — | `.` | 4 |
+| Patologi Klinik | `25039254` | — | **kosong** | **6** |
+
+`BE-LAB-63` membangunnya dengan `-` dan empat digit bagi ketiganya — **cocok Mikrobiologi
+saja** — lalu mengangkat selisihnya sebagai `LAB-OPEN-043` alih-alih menutupnya diam-diam.
+
+### 24.2 `LabDisciplineSetting` bertambah dua kolom
+
+| Ruas | Tipe | Keterangan |
+|---|---|---|
+| `reportNumberSeparator` | `string?`, maks 5 | Pemisah tahun dan nomor urut. **Teks kosong = sengaja tanpa pemisah**; `null` = belum pernah disetel, jatuh ke `-` |
+| `reportNumberLength` | `int`, 1..12, default 4 | Lebar minimum nomor urut, diisi nol di depan |
+
+**`null` dan teks kosong sengaja DIBEDAKAN**, dan itu satu-satunya kehalusan pada amandemen
+ini. Patologi Klinik memang menempelkan tahun langsung pada nomornya, sehingga "tanpa
+pemisah" adalah jawaban yang sah — bukan pertanyaan yang belum dijawab. Karena itu
+`LabDisciplineSettingService` **tidak** menormalkan ruas ini menjadi `null` seperti ruas teks
+lainnya.
+
+### 24.3 Satu ruas baca-saja ditambahkan pada respons
+
+| Ruas | Isi |
+|---|---|
+| `reportNumberExample` | Contoh nomor yang dihasilkan bentuk ini pada tahun berjalan — `26-0001`, `26.0001`, `26000001` |
+
+Ia ada supaya kepala instalasi melihat akibat setelannya **sebelum** lembar pertama tercetak,
+bukan sesudah.
+
+### 24.4 Kenapa dua kolom, bukan satu template
+
+Jalan `ReportNumberFormat` berisi `{yy}.{0000}` sempat dinilai dan **ditolak**: yang dibutuhkan
+hanya dua hal dan keduanya berhingga — pemisah dan lebar. Kolom bertipe tegas dapat
+divalidasi saat disimpan (`Range(1,12)`, `MaxLength(5)`); template teks bebas hanya gagal
+ketika lembarnya sudah tercetak dan berada di tangan pasien.
+
+### 24.5 AKIBAT YANG WAJIB DIBACA — mengubah bentuk MENGULANG penghitung
+
+Nomor urut dihitung dengan mencocokkan **awalan tetap** nomor (`prefix` + dua digit tahun +
+pemisah). Mengubah pemisah atau awalan berarti awalan tetapnya berubah, sehingga pencarian
+nomor tertinggi **nol menemukan nomor lama** dan urutannya mulai dari satu lagi.
+
+Terbukti saat pengujian: Patologi Anatomi sudah memiliki `26-0001`; sesudah pemisahnya diubah
+menjadi `.`, pesanan berikutnya memperoleh **`26.0001`**, bukan `26.0002`.
+
+> **Ini bukan cacat, dan bukan pula hal yang boleh dilupakan.** Dua seri penomoran dalam satu
+> tahun pada satu disiplin adalah akibat langsung dari mengubah bentuknya di tengah tahun.
+> Index unik atas `(Discipline, LabReportNumber)` tetap menjaga nol ada dua lembar bernomor
+> sama — `26-0001` dan `26.0001` memang berbeda — tetapi **urutannya patah**, dan itu terbaca
+> oleh siapa pun yang mengarsipkan lembar per nomor.
+>
+> **Anjuran: ubah bentuk nomor hanya pada pergantian tahun.**
+
+### 24.6 Yang TIDAK diubah amandemen ini
+
+| Yang tetap | Alasan |
+|---|---|
+| `OrderNumber` | `LAB-DEC-072` utuh — ia identitas internal dan sumber barcode |
+| Index unik `(Discipline, LabReportNumber)` parsial | Nol alasan berubah |
+| Alokasi per disiplin per tahun | `LAB-DEC-117` nol disentuh |
+| `reportNumberPrefix` | Tetap ada dan tetap kosong pada ketiga baris awal |
+
+### 24.7 Traceability `r29`
+
+| Keputusan | Ruas | Dilaksanakan | Terbukti |
+|---|---|---|---|
+| `LAB-OPEN-043` ditutup | `reportNumberSeparator`, `reportNumberLength` | `BE-LAB-63` diperluas | Tiga pesanan nyata: `26.0001`, `26000001`, `26-0004` |
+
+---
+
+## 25. Amandemen `r30` — Permukaan baseline data induk Mikrobiologi, 2026-09-22
+
+> ### ✅ STATUS: `approved` — 2026-09-22
+>
+> | Butir | Isi |
+> |---|---|
+> | Status | **`approved`** |
+> | `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-22 |
+> | Menutup | Selisih antara `r26`/`r27` dan `rules/backend/master-data-endpoint-standard.md` |
+> | Sifat | **ADITIF.** Delapan endpoint ditambahkan; nol endpoint berubah route, verb, bentuk, atau hak akses |
+> | Migration | **Nol.** Nol kolom, nol tabel, nol index |
+> | Permission baru | **Nol.** Kedelapannya menumpang `Read` dan `Update` yang sudah ada |
+
+### 25.1 Kenapa amandemen ini ada
+
+`rules/backend/master-data-endpoint-standard.md` mewajibkan **sembilan** endpoint bagi setiap
+grup data induk berkoleksi. Dua grup Mikrobiologi berdiri hanya dengan **lima**:
+
+| Grup | Dikontrakkan | Dibangun | Kurang |
+|---|---|---|---|
+| `lab-susceptibility-breakpoints` | `r27` 22.5 — lima | `BE-LAB-60` — lima | `filters/metadata`, `summary`, `options`, `PATCH {id}/status` |
+| `lab-procedure-microbiology-profiles` | `r27` 22.6 — "lima endpoint bergaya sama" | `BE-LAB-62` — lima | keempat yang sama |
+
+**Ini kelalaian penulisan kontrak, bukan keputusan** — bentuk kelalaian yang sama persis
+dengan `r8`, yang dahulu menambahkan dua endpoint baseline pada `Lab Specimen Type` atas alasan
+identik. `r27` menyebut kelimanya dan berhenti di situ; nol baris menyatakan keempat sisanya
+sengaja ditiadakan, dan nol alasan dapat dikemukakan mengapa dua grup Mikrobiologi berbeda dari
+tujuh grup data induk Laboratorium lain yang sudah memenuhi baseline.
+
+Selisihnya tidak terlihat sampai `FE-LAB-34` hendak dibangun: standar frontend
+`master-data-feature-standard.md` menuntut layar data induk memuat kartu ringkasan, penyaring
+yang bentuknya dibaca dari server, dan sakelar aktif per baris. Ketiganya mustahil dibangun di
+atas lima endpoint.
+
+### 25.2 Delapan endpoint yang ditambahkan
+
+Keduanya memakai bentuk baku yang sama dengan grup data induk Laboratorium lain.
+
+**`api/v1/health-services/laboratory-management/lab-susceptibility-breakpoints`**
+
+| Method | Path | Kegunaan | Hak akses | Status |
+|---|---|---|---|---|
+| `GET` | `/filters/metadata` | Bentuk penyaring, pengurutan, dan ukuran halaman | `LabSusceptibilityBreakpoint : Read` | **Tersedia** |
+| `GET` | `/summary` | Enam angka ringkasan | `LabSusceptibilityBreakpoint : Read` | **Tersedia** |
+| `GET` | `/options` | Pilihan berhalaman untuk dropdown | `LabSusceptibilityBreakpoint : Read` | **Tersedia** |
+| `PATCH` | `/{id}/status` | Mengaktifkan atau menonaktifkan satu baris | `LabSusceptibilityBreakpoint : Update` | **Tersedia** |
+
+**`api/v1/health-services/laboratory-management/lab-procedure-microbiology-profiles`**
+
+| Method | Path | Kegunaan | Hak akses | Status |
+|---|---|---|---|---|
+| `GET` | `/filters/metadata` | Bentuk penyaring, ditambah pilihan enum jenis biakan dan metode uji | `LabProcedureMicrobiologyProfile : Read` | **Tersedia** |
+| `GET` | `/summary` | Lima angka ringkasan | `LabProcedureMicrobiologyProfile : Read` | **Tersedia** |
+| `GET` | `/options` | Pilihan berhalaman untuk dropdown | `LabProcedureMicrobiologyProfile : Read` | **Tersedia** |
+| `PATCH` | `/{id}/status` | Mengaktifkan atau menonaktifkan satu pemetaan | `LabProcedureMicrobiologyProfile : Update` | **Tersedia** |
+
+### 25.3 Bentuk `summary`
+
+| Grup | Ruas |
+|---|---|
+| Breakpoint | `totalBreakpoint`, `activeBreakpoint`, `inactiveBreakpoint`, `coveredOrganism`, `coveredAntibiotic`, `missingDiscContent` |
+| Profil | `totalProfile`, `activeProfile`, `inactiveProfile`, `usesSusceptibilitySet`, `withoutSusceptibilitySet` |
+
+**Keempat angka cakupan dihitung atas baris AKTIF saja**, dan itu disengaja.
+`coveredOrganism` menjawab "berapa kuman yang interpretasinya dapat dihitung hari ini" —
+baris nonaktif nol dipakai penghitung `r27` 22.4, sehingga memasukkannya akan melaporkan
+kesiapan yang tidak dimiliki. Ia dibuktikan pada bagian 25.6.
+
+`missingDiscContent` menghitung breakpoint aktif yang antibiotiknya **nol** punya
+`discContentUg`. Angka itu bukan kesalahan melainkan pekerjaan yang tersisa: tanpa kandungan
+cakram, lembar antibiogram kehilangan kolom UG-nya.
+
+### 25.4 Bentuk `options`
+
+| Grup | Ruas | Penyaring |
+|---|---|---|
+| Breakpoint | `id`, `label`, `labOrganismId`, `labAntibioticId` | `search`, `onlyActive` (default `true`), `pageNumber`, `pageSize` |
+| Profil | `id`, `procedureId`, `label`, `usesSusceptibilitySet` | sama |
+
+`label` breakpoint berbentuk `"<nama kuman> — <nama antibiotik>"`. Kedua penunjuk **tetap
+dikirim di samping label** karena pemanggil yang hendak menyaring antibiogram per kuman
+membutuhkan penunjuknya, dan mengurainya kembali dari teks label adalah cara yang pasti pecah
+pada nama kuman yang memuat tanda pisah.
+
+### 25.5 `PATCH /{id}/status`
+
+Permintaan: `{ "isActive": true | false }`. Jawaban: **baris utuh** dalam bentuk respons
+detail yang sudah dikontrakkan, bukan sekadar `204`, supaya layar dapat memperbarui satu baris
+tanpa memuat ulang daftarnya.
+
+`404` ketika penunjuknya tidak ditemukan atau barisnya sudah terhapus.
+
+> **`PATCH /{id}/status` dan `DELETE /{id}` bukan dua nama untuk satu hal.** `DELETE`
+> menonaktifkan **dan** menandai `IsDelete`, sehingga barisnya lenyap dari daftar. `PATCH`
+> hanya membalik `IsActive`, dan barisnya tetap terlihat beserta sakelarnya. Menggabungkan
+> keduanya akan membuat menonaktifkan satu breakpoint sementara — hal yang lazim ketika
+> pedoman CLSI sedang ditinjau — mustahil dibatalkan dari layar.
+
+### 25.6 Bukti terhadap database sungguhan
+
+Dijalankan 2026-09-22 atas `QuilvianNewDevYoga`, seluruhnya lewat HTTP.
+
+| Yang diuji | Hasil |
+|---|---|
+| Kedelapan endpoint | `200` |
+| `PATCH` breakpoint → `false` | `activeBreakpoint` 1→0, `inactiveBreakpoint` 0→1 |
+| Akibatnya pada cakupan | `coveredOrganism` 1→0, `coveredAntibiotic` 1→0, `missingDiscContent` 1→0 — membuktikan 25.3 |
+| `options?onlyActive=true` sesudahnya | `totalData` 0 |
+| `options?onlyActive=false` sesudahnya | `totalData` 1 |
+| `PATCH` profil → `false` | `activeProfile` 1→0, `usesSusceptibilitySet` 1→0 |
+| `options?search=Leuko` / `search=zzz` | `totalData` 1 / 0 |
+| `PATCH` dengan penunjuk asing | `404` beserta pesan Indonesia |
+| Keduanya dikembalikan ke `true` | `activeBreakpoint` 1, `activeProfile` 1 — **data dev pulih seperti semula** |
+
+### 25.7 Yang TIDAK diubah amandemen ini
+
+| Butir | Alasan |
+|---|---|
+| Kelima endpoint lama pada kedua grup | Nol berubah route, verb, bentuk, maupun hak akses |
+| `lab-discipline-settings` | **Sengaja tetap empat endpoint.** Standar backend menyebut varian sah **"master data pengaturan tunggal"**: baris yang jumlahnya tetap tiga dan hanya isinya berubah nol memerlukan `summary`, `metadata`, maupun `DELETE`. Bagian `r29` 24 nol tersentuh |
+| Hak akses | Nol permission baru. `Read` dan `Update` yang sudah ada menaungi kedelapannya |
+| Skema database | Nol migration |
+
+### 25.8 Satu koreksi status yang dibawa serta
+
+Bagian 22.5 menandai kelima endpoint breakpoint **`Rencana (belum tersedia)`** padahal
+`BE-LAB-60` membangunnya pada 2026-09-21. Kolom statusnya dikoreksi menjadi **`Tersedia`**.
+**Yang berubah hanya kolom status** — nol endpoint ditambah, dihapus, atau diubah oleh koreksi
+itu.
+
+### 25.9 Traceability `r30`
+
+| Yang ditutup | Endpoint | Dilaksanakan | Terbukti |
+|---|---|---|---|
+| Selisih baseline data induk Mikrobiologi | Delapan | `BE-LAB-64` | Bagian 25.6 — seluruhnya terhadap `QuilvianNewDevYoga` |
+| Status `22.5` yang tertinggal | — | Koreksi dokumen | Kelimanya dipanggil dan menjawab `200` |
+
+---
+
+## 26. Amandemen `r31` — Permukaan baseline dua data induk Mikrobiologi, 2026-09-22
+
+> ### ✅ STATUS: `approved` — 2026-09-22
+>
+> | Butir | Isi |
+> |---|---|
+> | Status | **`approved`** |
+> | `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-22 |
+> | Menutup | Selisih `19.4` terhadap `rules/backend/master-data-endpoint-standard.md`, dan satu kolom yang nol punya jalan diisi |
+> | Sifat | **ADITIF.** Delapan endpoint dan satu ruas ditambahkan; nol endpoint berubah route, verb, bentuk, atau hak akses |
+> | Migration | **Nol.** `DiscContentUg` sudah ada pada tabel sejak `BE-LAB-60`; yang kurang hanya jalan keluarnya |
+> | Permission baru | **Nol.** Kedelapannya menumpang `Read` dan `Update` yang sudah ada |
+
+### 26.1 Kenapa amandemen ini ada
+
+Ini **pengulangan `r30` pada dua grup berikutnya**, dan sebabnya sama persis: `r24` bagian 19.4
+menyebut empat endpoint, empat endpoint itulah yang dibangun `BE-LAB-44`, dan
+`master-data-endpoint-standard.md` nol dibaca saat itu.
+
+| Grup | Dikontrakkan `r24` | Dibangun | Kurang |
+|---|---|---|---|
+| `lab-organisms` | empat | empat | `filters/metadata`, `summary`, `GET /{id}`, `PATCH {id}/status` |
+| `lab-antibiotics` | empat | empat | keempat yang sama |
+
+**`GET /{id}` adalah yang paling mahal di antara keempatnya.** Tanpa jalur detail, formulir ubah
+yang dibuka lewat tautan langsung atau sesudah halaman disegarkan nol punya cara memuat
+barisnya — dan **gagalnya diam**: layarnya sekadar tampak kosong. Modul ini sudah membayar kelas
+kesalahan itu sekali lewat `r6`, sesudah `FE-LAB-03` diam-diam gagal di luar halaman daftar.
+Roadmap frontend revision 33 sudah mencatatnya sebagai peringatan bagi `FE-LAB-27`; di sini ia
+ditutup untuk kedua data induk Mikrobiologi.
+
+### 26.2 Delapan endpoint yang ditambahkan
+
+**`api/v1/health-services/laboratory-management/lab-organisms`**
+
+| Method | Path | Kegunaan | Hak akses | Status |
+|---|---|---|---|---|
+| `GET` | `/filters/metadata` | Bentuk penyaring, pengurutan, dan ukuran halaman | `LabOrganism : Read` | **Tersedia** |
+| `GET` | `/summary` | Empat angka ringkasan | `LabOrganism : Read` | **Tersedia** |
+| `GET` | `/{id}` | Satu baris beserta seluruh ruasnya | `LabOrganism : Read` | **Tersedia** |
+| `PATCH` | `/{id}/status` | Mengaktifkan atau menonaktifkan satu baris | `LabOrganism : Update` | **Tersedia** |
+
+**`api/v1/health-services/laboratory-management/lab-antibiotics`**
+
+| Method | Path | Kegunaan | Hak akses | Status |
+|---|---|---|---|---|
+| `GET` | `/filters/metadata` | Bentuk penyaring, pengurutan, dan ukuran halaman | `LabAntibiotic : Read` | **Tersedia** |
+| `GET` | `/summary` | Lima angka ringkasan | `LabAntibiotic : Read` | **Tersedia** |
+| `GET` | `/{id}` | Satu baris beserta seluruh ruasnya | `LabAntibiotic : Read` | **Tersedia** |
+| `PATCH` | `/{id}/status` | Mengaktifkan atau menonaktifkan satu baris | `LabAntibiotic : Update` | **Tersedia** |
+
+> ### `DELETE` tetap NOL disediakan, dan itu bukan kelalaian
+>
+> `r24` bagian 19.4 menolaknya atas alasan klinis: isolat yang sudah tercatat menunjuk ke baris
+> ini, dan menghapusnya berarti menghapus temuan pasien. `AC-117` menuntut layarnya nol
+> menampilkan tombol Hapus. Kedua grup karena itu berhenti di **delapan** endpoint, bukan
+> sembilan — dan `filters/metadata` menyatakannya lewat `isDeletable: false`, supaya layar
+> membacanya alih-alih menyimpulkan dari ada-tidaknya endpoint.
+
+### 26.3 Satu ruas ditambahkan — `discContentUg`
+
+| Ruas | Tipe | Ada pada |
+|---|---|---|
+| `discContentUg` | `int?` | `LabAntibioticResponse`, `CreateLabAntibioticRequest`, `UpdateLabAntibioticRequest` |
+
+**Kolomnya sudah ada di tabel sejak `BE-LAB-60`, tetapi nol satu pun DTO membawanya.** Akibatnya
+`missingDiscContent` pada ringkasan breakpoint (`r30` bagian 25.3) adalah angka yang **nol dapat
+diturunkan dari layar mana pun** — ia melaporkan pekerjaan yang tersisa tanpa menyediakan jalan
+mengerjakannya.
+
+`null` berarti **belum diisi**, bukan nol mikrogram. Lembar antibiogram mencetaknya sebagai
+kolom `UG`, dan baris tanpa angka ini tercetak dengan kolom kosong.
+
+### 26.4 Bentuk `summary`
+
+| Grup | Ruas |
+|---|---|
+| Organisme | `totalOrganism`, `activeOrganism`, `inactiveOrganism`, `withBreakpoint` |
+| Antibiotik | `totalAntibiotic`, `activeAntibiotic`, `inactiveAntibiotic`, `withBreakpoint`, `missingDiscContent` |
+
+**`withBreakpoint` menghitung baris yang AKTIF dan punya breakpoint AKTIF — kedua syarat.**
+Menghitung hanya breakpoint aktif tanpa memeriksa barisnya sendiri menghasilkan ringkasan yang
+membantah dirinya: nol organisme aktif, tetapi satu tercakup. Perilaku ini **dibuktikan** pada
+bagian 26.6, bukan diasumsikan.
+
+### 26.5 `PATCH /{id}/status` bukan jalan pintas `PUT /{id}`
+
+`PUT` menuntut seluruh ruas dikirim. Menonaktifkan satu baris dari halaman daftar lewat `PUT`
+karena itu memaksa layar memuat detailnya lebih dulu hanya untuk mengirim balik ruas yang nol
+berubah — dan **setiap ruas yang ikut terkirim adalah ruas yang dapat tertimpa nilai basi**.
+
+Permintaan: `{ "isActive": true | false }`. Jawaban: baris utuh. `404` bila penunjuknya tidak
+ditemukan.
+
+### 26.6 Bukti terhadap database sungguhan
+
+Dijalankan 2026-09-22 atas `QuilvianNewDevYoga`, seluruhnya lewat HTTPS.
+
+| Yang diuji | Hasil |
+|---|---|
+| Kedelapan endpoint baru | `200` |
+| `GET /{id}` penunjuk asing | `404` |
+| `PATCH` penunjuk asing | `404` |
+| `PUT` antibiotik dengan `discContentUg: 10` | Tersimpan dan terbaca |
+| `missingDiscContent` ringkasan **antibiotik** sesudahnya | 1 → **0** |
+| `missingDiscContent` ringkasan **breakpoint** sesudahnya | 1 → **0** |
+| Kolom `discContentUg` pada daftar breakpoint | `null` → **10** |
+| `PATCH` organisme → `false` | `activeOrganism` 1→0, `withBreakpoint` 1→**0** |
+| `GET /options` sesudahnya | `totalData` **0** — `VAL-85` tegak, kuman nonaktif nol dapat dipilih |
+| `GET /` sesudahnya | `totalData` **1** — `AC-118` tegak, barisnya tetap terlihat |
+| Seluruhnya dikembalikan | `missingDiscContent` kembali 1, keduanya aktif — **data dev pulih seperti semula** |
+| Baris `SysActionAccess` sesudah seeder | **3 per controller** — `Read`, `Create`, `Update`; **nol baris `Delete`**, sejalan dengan nol endpoint `DELETE` |
+
+### 26.7 Yang TIDAK diubah amandemen ini
+
+| Butir | Alasan |
+|---|---|
+| Keempat endpoint lama pada kedua grup | Nol berubah route, verb, bentuk, maupun hak akses |
+| `DELETE` | Bagian 26.2 — ditolak atas alasan klinis, bukan kelalaian |
+| Hak akses | Nol permission baru |
+| Skema database | Nol migration — `DiscContentUg` sudah ada sejak `BE-LAB-60` |
+
+### 26.8 Satu koreksi status yang dibawa serta
+
+Bagian 19.4 menandai kedelapan endpoint lama **`Rencana (belum tersedia)`** padahal `BE-LAB-44`
+membangunnya 2026-09-18. Kolom statusnya dikoreksi menjadi **`Tersedia`**. Yang berubah hanya
+kolom status.
+
+### 26.9 Traceability `r31`
+
+| Yang ditutup | Endpoint/ruas | Dilaksanakan | Terbukti |
+|---|---|---|---|
+| Selisih baseline `19.4` | Delapan endpoint | `BE-LAB-65` | Bagian 26.6 |
+| `missingDiscContent` nol punya jalan diisi | `discContentUg` | `BE-LAB-65` | 1 → 0 pada **kedua** ringkasan |
+| Status `19.4` yang tertinggal | — | Koreksi dokumen | Kedelapannya dipanggil dan menjawab `200` |

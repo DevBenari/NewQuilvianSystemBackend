@@ -119,8 +119,92 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         /// <summary>Nama analis, diturunkan dari pencatat (<c>LAB-DEC-105</c>).</summary>
         public Guid? ResultEnteredByUserId { get; set; }
 
+        /// <summary>
+        /// Nama analis yang tercetak, diturunkan dari <see cref="ResultEnteredByUserId"/>
+        /// (<c>LAB-DEC-105</c>).
+        ///
+        /// <b>Ia nol dapat dikirim pemanggil.</b> Ruas yang dapat dikirim adalah ruas yang
+        /// dapat dipalsukan, sedangkan nama analis adalah pertanyaan audit — bukan pertanyaan
+        /// tampilan (<c>AC-168</c>).
+        /// </summary>
+        public string? AnalystName { get; set; }
+
+        /// <summary>
+        /// Kapan bahan meninggalkan tubuh pasien — dari <c>LabSpecimen.CollectedAt</c>
+        /// (<c>LAB-DEC-096</c>).
+        ///
+        /// <b>Berbeda dari <see cref="PrintReceivedAt"/>, dan perbedaannya bermakna klinis.</b>
+        /// Bahan yang diambil Senin dan baru diterima Rabu tetap efektif hari Senin
+        /// (<c>LAB-DEC-118</c>).
+        /// </summary>
+        public DateTime? EffectiveAt { get; set; }
+
+        /// <summary>Dari <c>FinalizedAt</c> (<c>LAB-DEC-096</c>). Kosong selama belum final.</summary>
+        public DateTime? IssuedAt { get; set; }
+
         /// <summary><c>FinalizedAt != null</c>.</summary>
         public bool IsFinalized { get; set; }
+
+        /// <summary>Berapa kali penulisan hasil dibuka kembali (<c>LAB-DEC-097</c>).</summary>
+        public int ReopenCount { get; set; }
+
+        /// <summary><c>ConsultedAt != null</c> (<c>LAB-DEC-106</c>).</summary>
+        public bool IsConsulted { get; set; }
+
+        /// <summary>Nama pihak yang dikonsultasi. Kosong selama belum ada konsultasi.</summary>
+        public string? ConsultedToName { get; set; }
+
+        public DateTime? ConsultedAt { get; set; }
+
+        // =============================================================
+        // Ruas cetak — r27 bagian 22.3
+        // =============================================================
+
+        /// <summary>Nomor yang tercetak pada kolom <c>No. Lab</c> (<c>LAB-DEC-117</c>).</summary>
+        public string? LabReportNumber { get; set; }
+
+        /// <summary>
+        /// <c>Tanggal Terima</c> pada cetakan — waktu penerimaan <b>fisik</b> specimen
+        /// (<c>LAB-DEC-118</c>).
+        /// </summary>
+        public DateTime? PrintReceivedAt { get; set; }
+
+        /// <summary><c>Tanggal Selesai</c> pada cetakan — dari <c>FinalizedAt</c>.</summary>
+        public DateTime? PrintCompletedAt { get; set; }
+
+        /// <summary>Label konsultan disiplin ini, dari pengaturan (<c>LAB-DEC-119</c>).</summary>
+        public string? ConsultantLabel { get; set; }
+
+        /// <summary>
+        /// Nama konsultan yang tercetak. <b>Bukan pemegang wewenang klinis</b> — dua peran
+        /// berbeda (<c>LAB-DEC-119</c>).
+        /// </summary>
+        public string? ConsultantName { get; set; }
+
+        /// <summary>Kalimat penjelas baku disiplin ini (<c>LAB-DEC-127</c>).</summary>
+        public string? StandingNote { get; set; }
+
+        /// <summary>
+        /// <c>Petugas Otorisasi</c> — pihak yang <b>merilis</b> (<c>LAB-DEC-120</c>).
+        ///
+        /// <b>SELALU kosong pada rilis ini, dan itu benar.</b> Rilis Mikrobiologi adalah
+        /// <c>S4d</c> yang tertahan <c>DEC-LAB-011</c>. Mengisinya dari pencetak atau penulis
+        /// hasil <b>ditolak</b>: dokumen akan menyebut pihak yang salah sebagai pengesah.
+        /// </summary>
+        public string? AuthorizingOfficerName { get; set; }
+
+        /// <summary>
+        /// <c>Validasi oleh</c> — pemvalidasi, dan <b>tidak boleh orang yang sama</b> dengan
+        /// pengotorisasi kecuali pengecualian <c>LAB-DEC-003</c> tercatat. Kosong sampai
+        /// <c>S4d</c> dibuka.
+        /// </summary>
+        public string? ValidatedByName { get; set; }
+
+        /// <summary>
+        /// Apakah pemeriksaan ini memakai set bakteri (<c>LAB-DEC-125</c>). Layar memakainya
+        /// untuk memutuskan apakah bagian isolat ditampilkan sama sekali.
+        /// </summary>
+        public bool UsesSusceptibilitySet { get; set; }
 
         /// <summary>
         /// <b>Selalu salah pada rilis ini</b> — rilis Mikrobiologi adalah <c>S4d</c>.

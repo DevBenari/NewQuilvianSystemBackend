@@ -58,12 +58,35 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models
 
         /// <summary>
         /// Teks yang mendahului nomor cetak. Kosong pada ketiga baris awal.
-        ///
-        /// <b>Ia nol menentukan pemisah maupun lebar nomor</b> — lihat
-        /// <see cref="Services.LabReportNumberService"/> dan <c>LAB-OPEN-043</c>.
         /// </summary>
         [MaxLength(20)]
         public string? ReportNumberPrefix { get; set; }
+
+        /// <summary>
+        /// Pemisah antara dua digit tahun dan nomor urut (<c>LAB-API-v1</c> <c>r29</c>,
+        /// menutup <c>LAB-OPEN-043</c>).
+        ///
+        /// <b>Ketiga disiplin memakai pemisah yang berbeda, dan itu terbaca dari bukti cetak
+        /// `LAB-EVD-005`:</b> Mikrobiologi <c>26-1129</c>, Patologi Anatomi <c>26.0919</c>, dan
+        /// Patologi Klinik <c>25039254</c> yang <b>nol berpemisah</b>.
+        ///
+        /// <b>Kosong berarti tanpa pemisah</b> — itu nilai yang sah, bukan nilai yang belum
+        /// diisi. Patologi Klinik memang menempelkan tahun langsung pada nomornya.
+        /// </summary>
+        [MaxLength(5)]
+        public string? ReportNumberSeparator { get; set; }
+
+        /// <summary>
+        /// Lebar minimum nomor urut, diisi nol di depan.
+        ///
+        /// <b>Empat pada Mikrobiologi dan Patologi Anatomi, ENAM pada Patologi Klinik</b>
+        /// (<c>25039254</c> — tahun 25 diikuti enam digit).
+        ///
+        /// <b>Kolom tersendiri, bukan bagian dari sebuah template teks bebas.</b> Pemisah dan
+        /// lebar keduanya berhingga dan dapat divalidasi saat disimpan; template bebas hanya
+        /// gagal ketika lembarnya sudah tercetak dan berada di tangan pasien.
+        /// </summary>
+        public int ReportNumberLength { get; set; } = 4;
 
         /// <summary>Pengaturan yang tidak dipakai dinonaktifkan, bukan dihapus.</summary>
         public bool IsActive { get; set; } = true;

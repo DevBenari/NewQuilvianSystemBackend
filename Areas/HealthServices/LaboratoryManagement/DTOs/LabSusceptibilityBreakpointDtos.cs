@@ -80,4 +80,61 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
 
         public bool IsActive { get; set; }
     }
+
+    /// <summary>
+    /// Ringkasan data induk breakpoint (<c>GET /summary</c>).
+    ///
+    /// Dihitung <b>hanya dari baris yang belum ditandai terhapus</b>, mengikuti baseline
+    /// master data. Ketiga pencacah terakhir menjawab pertanyaan yang benar-benar ditanyakan
+    /// wewenang klinis: berapa kombinasi yang sudah punya rentang, dan berapa yang masih
+    /// kosong kandungan cakramnya.
+    /// </summary>
+    public class LabSusceptibilityBreakpointSummaryResponse
+    {
+        public int TotalBreakpoint { get; set; }
+
+        public int ActiveBreakpoint { get; set; }
+
+        public int InactiveBreakpoint { get; set; }
+
+        /// <summary>Banyaknya organisme berbeda yang sudah punya sedikitnya satu rentang.</summary>
+        public int CoveredOrganism { get; set; }
+
+        /// <summary>Banyaknya antibiotik berbeda yang sudah punya sedikitnya satu rentang.</summary>
+        public int CoveredAntibiotic { get; set; }
+
+        /// <summary>Baris aktif yang kandungan cakramnya belum diisi — kolom <c>UG</c> pada cetakan.</summary>
+        public int MissingDiscContent { get; set; }
+    }
+
+    /// <summary>
+    /// Baris ringan untuk dropdown (<c>GET /options</c>).
+    ///
+    /// <b>Sengaja jauh lebih ringkas daripada baris list.</b> Pemakainya hanya perlu
+    /// mengenali kombinasinya; rentang dan versi pedoman nol dipakai memilih.
+    /// </summary>
+    public class LabSusceptibilityBreakpointOptionResponse
+    {
+        public Guid Id { get; set; }
+
+        /// <summary>Teks gabungan kuman dan antibiotik, misalnya <c>Branhamella catarrhalis — Ampicillin</c>.</summary>
+        public string Label { get; set; } = string.Empty;
+
+        public Guid LabOrganismId { get; set; }
+
+        public Guid LabAntibioticId { get; set; }
+    }
+
+    /// <summary>
+    /// Mengubah status aktif saja (<c>PATCH /{id}/status</c>).
+    ///
+    /// <b>Endpoint tersendiri, bukan <c>PUT</c> bersebagian ruas.</b> Menonaktifkan satu
+    /// rentang yang keliru dan mengubah angka rentangnya adalah dua tindakan yang berbeda
+    /// akibatnya; menyatukannya pada satu jalur membuat keduanya sama mudahnya terjadi tanpa
+    /// sengaja — pada data yang menentukan penilaian <c>S</c>/<c>I</c>/<c>R</c>.
+    /// </summary>
+    public class LabSusceptibilityBreakpointStatusRequest
+    {
+        public bool IsActive { get; set; }
+    }
 }
