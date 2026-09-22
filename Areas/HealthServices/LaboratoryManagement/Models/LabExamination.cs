@@ -185,6 +185,114 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models
         /// </summary>
         public Guid? ResultEnteredByUserId { get; set; }
 
+        // =================================================================
+        // Hasil Mikrobiologi berstruktur — slice S4b
+        // (LAB-DEC-095, LAB-DEC-097, LAB-DEC-106, LAB-DEC-113, LAB-DEC-114, LAB-DEC-124)
+        //
+        // DISIPLIN YANG SAMA TETAP BERLAKU: kolom-kolom di bawah mencatat APA YANG TERJADI.
+        // FinalizedAt mencatat bahwa seseorang menekan Simpan Final — sebuah fakta. Ia BUKAN
+        // status, dan ia BUKAN rilis (LAB-DEC-097).
+        //
+        // Validasi dan rilis Mikrobiologi adalah S4d, dan S4d tertahan DEC-LAB-011. Nol kolom
+        // ValidatedAt maupun ReleasedAt ditambahkan di sini.
+        //
+        // Isolat dan baris kepekaan antibiotik TIDAK tinggal di sini — keduanya tabel
+        // tersendiri pada task BE-LAB-47, dan keduanya melekat pada pemeriksaan ini.
+        // =================================================================
+
+        /// <summary>
+        /// Status temuan Mikrobiologi — Normal, Positif, atau Negatif (<c>LAB-DEC-113</c>).
+        ///
+        /// <b>Negatif adalah hasil yang sah</b>, bukan hasil kosong: biakan yang tidak
+        /// menumbuhkan apa pun menyingkirkan dugaan infeksi bakteri, dan itu temuan yang
+        /// berguna. Pemeriksaan berbentuk ini boleh punya <b>nol</b> isolat (<c>AC-164</c>).
+        ///
+        /// Terisi hanya ketika bentuk hasilnya <c>LabResultForm.MicrobiologyStructured</c>.
+        /// </summary>
+        public LabMicrobiologyFinding? MicrobiologyFinding { get; set; }
+
+        /// <summary>
+        /// Kualifikasi hasil yang <b>dicetak</b> pada baris <c>HASIL YANG DIPEROLEH</c>
+        /// (<c>LAB-DEC-114</c>).
+        ///
+        /// <b>Nilai tersimpan, bukan kesimpulan.</b> Ia sengaja tidak diturunkan dari
+        /// <see cref="ConsultedAt"/>: menurunkannya berarti menyimpulkan bahwa
+        /// <i>dikonsultasikan</i> sama dengan <i>definitif</i>, dan bukti nol menyatakan itu.
+        /// </summary>
+        public LabResultQualifier? ResultQualifier { get; set; }
+
+        /// <summary>
+        /// Jenis biakan — menentukan <b>kata</b> pada label cetak (<c>LAB-DEC-124</c>).
+        ///
+        /// Bebas dari <see cref="SusceptibilityMethod"/>: kultur jamur pun dapat diuji dengan
+        /// difusi cakram.
+        /// </summary>
+        public LabCultureType? CultureType { get; set; }
+
+        /// <summary>
+        /// Metode uji kepekaan — menentukan <b>bentuk tabel</b> dan kolom mana yang berlaku
+        /// (<c>LAB-DEC-124</c>).
+        /// </summary>
+        public LabSusceptibilityMethod? SusceptibilityMethod { get; set; }
+
+        /// <summary>
+        /// <b>Kapan penulis menyatakan selesai menulis hasil</b> — dan ini BUKAN rilis
+        /// (<c>LAB-DEC-097</c>, menyalin pola <c>LAB-DEC-088</c> pada Patologi Anatomi).
+        ///
+        /// <c>Draft</c> berarti kolom ini masih kosong. Hasil yang sudah Final <b>tetap belum
+        /// boleh dikirim ke pasien</b>: pengiriman menunggu rilis, dan rilis Mikrobiologi
+        /// adalah <c>S4d</c> yang tertahan <c>DEC-LAB-011</c>.
+        ///
+        /// <b>Kenapa pembedaan ini dijaga keras.</b> Bila Final diartikan rilis, orang yang
+        /// mengisi hasil sekaligus yang mengesahkannya — dan itu melanggar prinsip empat mata
+        /// <c>LAB-DEC-003</c> yang ditandatangani <c>DR-LAB-002</c> pada 2026-09-17. Bukti
+        /// lapangan menguatkannya: cetakan Patologi Klinik memuat <b>dua baris terpisah</b>,
+        /// <c>Otorisasi oleh</c> dan <c>Validasi oleh</c> (<c>LAB-EVD-005</c>).
+        /// </summary>
+        public DateTime? FinalizedAt { get; set; }
+
+        /// <summary>
+        /// Siapa yang menyatakan selesai menulis.
+        ///
+        /// <b>Nullable dan sengaja TANPA foreign key</b>, mengikuti
+        /// <see cref="ResultEnteredByUserId"/> pada entity yang sama. Penulisnya tetap wajib
+        /// mengisi <c>null</c>, bukan <see cref="System.Guid.Empty"/>.
+        /// </summary>
+        public Guid? FinalizedByUserId { get; set; }
+
+        /// <summary>
+        /// Berapa kali penulisan dibuka kembali sebelum rilis (<c>LAB-DEC-097</c>).
+        ///
+        /// <b>Reopen sebelum rilis adalah penyuntingan biasa</b>, bukan koreksi hasil terrilis
+        /// — ia <b>tidak</b> menyentuh <c>S6</c> maupun <c>DEC-LAB-014</c>.
+        ///
+        /// Berdefault <c>0</c> dan <b>bukan</b> nullable: tabel ini sudah berisi data, dan
+        /// kolom hitung yang kosong tidak dapat dibedakan dari nol kali dibuka.
+        /// </summary>
+        public int ReopenCount { get; set; }
+
+        /// <summary>
+        /// Siapa yang mengonsultasikan hasil ini — penanda <c>Definitif</c> sebagai
+        /// <b>fakta</b>, bukan status dan bukan izin (<c>LAB-DEC-106</c>).
+        ///
+        /// Mencatat konsultasi <b>nol</b> membuka pengiriman hasil kepada siapa pun. Gerbang
+        /// pengirimannya tetap <c>LAB-DEC-067</c>.
+        /// </summary>
+        public Guid? ConsultedByUserId { get; set; }
+
+        /// <summary>
+        /// Kepada siapa hasil ini dikonsultasikan.
+        ///
+        /// Disimpan sebagai teks, bukan penunjuk: konsultannya sering berada di luar daftar
+        /// pengguna sistem — bukti <c>LAB-EVD-005</c> menampilkan seorang Profesor sebagai
+        /// Konsultan Mikrobiologi Klinik yang <b>bukan</b> pemegang wewenang klinis terdaftar.
+        /// </summary>
+        [MaxLength(200)]
+        public string? ConsultedToName { get; set; }
+
+        /// <summary>Kapan konsultasinya terjadi. Tidak boleh berada di masa depan (<c>VAL-108</c>).</summary>
+        public DateTime? ConsultedAt { get; set; }
+
         public LabValueOption? ResultOption { get; set; }
 
         public LabValueBound? ResultValueBound { get; set; }

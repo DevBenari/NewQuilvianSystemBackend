@@ -421,3 +421,95 @@ ketiadaannya tidak terbaca sebagai kelalaian.
 | `VAL-96`, `VAL-97`, `VAL-98` | `LAB-DEC-088` | `INV-35`, `INV-36` |
 | `VAL-100` | `LAB-DEC-087` | `INV-39` |
 | `VAL-101` | `LAB-DEC-086` | — |
+
+---
+
+## 11. Amandemen `r9` — `S4b` sesudah putaran 9 dan 10, 2026-09-21
+
+| Field | Nilai |
+|---|---|
+| `contract_version` | `LAB-VAL-v1` |
+| Revision | `r9` |
+| Status | **`approved`** |
+| `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-21 |
+| `input_revision` | decisions rev 50; `LAB-API-v1` `r26` |
+
+### 11.1 Aturan validasi yang ditambahkan
+
+| ID | Aturan | Pesan bagi pengguna | Dasar |
+|---|---|---|---|
+| `VAL-103` | Hasil Mikrobiologi **tidak dapat disimpan** bila `microbiologyFinding` kosong | "Status temuan wajib dipilih sebelum hasil disimpan." | `LAB-DEC-104` |
+| `VAL-104` | `specimenTypeOtherNote` **wajib** terisi bila jenis specimen yang dipilih bertanda `IsOtherBucket` | "Jenis specimen `Lainnya` wajib disertai keterangan." | `LAB-DEC-098`, menegakkan `LAB-DEC-040` butir 3 |
+| `VAL-105` | Satu specimen **tidak boleh** memuat Spesifik Specimen yang sama dua kali | "Rincian specimen itu sudah dipilih." | `LAB-DEC-098` |
+| `VAL-106` | Baris aturan kritis yang **ketiga ruas penilainya kosong** ditolak | "Aturan kritis harus menyebut sedikitnya organisme, antibiotik, atau hasil kepekaan." | `LAB-DEC-103` |
+| `VAL-107` | `reopen` ditolak bila hasil **belum** pernah `finalize` | "Hasil ini belum pernah dinyatakan selesai, jadi tidak ada yang perlu dibuka kembali." | `LAB-DEC-097` |
+| `VAL-108` | `consultedAt` **tidak boleh** berada di masa depan | "Waktu konsultasi tidak boleh melewati waktu sekarang." | `LAB-DEC-106` |
+| `VAL-109` | `PATCH /correction` ditolak bila hasil pemeriksaan yang memakai specimen itu **sudah** `finalize` | "Hasil sudah dinyatakan selesai; buka kembali hasilnya lebih dulu sebelum mengoreksi specimen." | `LAB-DEC-107` butir 3 |
+| `VAL-110` | `volumeUnitId` **wajib** menunjuk `MstMeasurement` bertanda `IsForLaboratory` | "Satuan itu tidak berlaku untuk specimen laboratorium." | `LAB-DEC-100` |
+| `VAL-111` | `LabSpecimenDetailType` yang **nonaktif** tidak dapat dipakai pada pilihan **baru**, tetapi pilihan lama yang sudah menunjuknya tetap sah dan tetap terbaca | "Rincian specimen itu sudah tidak dipakai lagi." | Mengikuti pola `VAL-85`/`VAL-86` dan `INV-31` |
+
+### 11.2 Aturan yang sengaja TIDAK dibuat
+
+| Yang ditolak | Alasan |
+|---|---|
+| "Seluruh ruas form hasil wajib diisi" | **`LAB-DEC-104` menolaknya secara tegas.** Kultur steril adalah hasil yang sah dan nol isolat; mewajibkan organisme membuatnya mustahil disimpan. Ini pengulangan kesalahan `VAL-88` yang sudah dicabut |
+| Wajib mengisi MIC atau zona hambat | `LAB-DEC-101` — difusi cakram menghasilkan mm, dilusi menghasilkan MIC, dan mewajibkan salah satunya memaksa analis mengisi angka karangan |
+| Pembandingan kronologis `issuedAt` terhadap `effectiveAt` | Keduanya kini **turunan** (`LAB-DEC-096`); nol yang dapat diketik, sehingga nol yang perlu dibandingkan. `LAB-DEC-023` tetap berlaku sebagai keputusan, hanya kehilangan objeknya |
+| Menolak isolat ketika status temuan `Negatif` | `INV-26` menyebutnya *usulan arsitektur*, bukan keputusan pemilik modul. Dibiarkan terbuka sebagai `LAB-OPEN-042` daripada ditegakkan diam-diam |
+
+### 11.3 Traceability `r9`
+
+| Aturan | Keputusan | Invariant |
+|---|---|---|
+| `VAL-103`, `VAL-104` | `LAB-DEC-104`, `LAB-DEC-098` | `INV-26` |
+| `VAL-105`, `VAL-111` | `LAB-DEC-098` | `INV-31` (pola) |
+| `VAL-106` | `LAB-DEC-103` | Mempersempit `INV-28` |
+| `VAL-107`, `VAL-109` | `LAB-DEC-097`, `LAB-DEC-107` | — |
+| `VAL-108` | `LAB-DEC-106` | — |
+| `VAL-110` | `LAB-DEC-100` | — |
+
+---
+
+## 12. Amandemen `r10` — `S4b` sesudah bukti cetak, 2026-09-21
+
+| Field | Nilai |
+|---|---|
+| `contract_version` | `LAB-VAL-v1` |
+| Revision | `r10` |
+| Status | **`approved`** |
+| `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-21 |
+| `input_revision` | decisions rev 52; `LAB-API-v1` `r27` |
+
+### 12.1 Aturan yang ditambahkan
+
+| ID | Aturan | Pesan bagi pengguna | Dasar |
+|---|---|---|---|
+| `VAL-112` | `concentrationUnitId` **wajib** bila `concentration` terisi | "Pilih satuan untuk nilai kadar." | `LAB-DEC-115` |
+| `VAL-113` | `resultOverrideReason` **wajib** bila interpretasi yang dikirim berbeda dari hitungan sistem | "Interpretasi berbeda dari hitungan sistem; tuliskan alasannya." | `LAB-DEC-123` |
+| `VAL-114` | `result` **wajib** bila breakpoint untuk kombinasi itu **tidak tersedia** | "Breakpoint untuk kuman dan antibiotik ini belum disetel, jadi interpretasinya harus diisi sendiri." | `LAB-DEC-123` |
+| `VAL-115` | `lowerMm` tidak boleh melebihi `upperMm` pada data induk breakpoint | "Batas bawah tidak boleh lebih besar daripada batas atas." | `LAB-DEC-122` |
+| `VAL-116` | `zoneDiameterMm` **tidak boleh negatif**; nilai `0` **diterima** | "Lebar zona tidak boleh kurang dari nol." | `LAB-DEC-128` |
+| `VAL-117` | Isolat bertanda **tidak diuji kepekaannya** tidak boleh memiliki satu pun baris kepekaan | "Kuman ini ditandai tidak diuji, jadi tidak boleh punya baris antibiotik." | `LAB-DEC-126` |
+| `VAL-118` | Bagian isolat dan antibiogram **ditolak** pada pemeriksaan yang profilnya menyatakan tidak memakai set bakteri | "Pemeriksaan ini tidak memakai set bakteri." | `LAB-DEC-125` |
+| `VAL-119` | Satu kombinasi organisme dan antibiotik hanya boleh punya **satu** breakpoint aktif | "Breakpoint untuk pasangan ini sudah ada." | `LAB-DEC-122` |
+
+### 12.2 Aturan yang sengaja TIDAK dibuat
+
+| Yang ditolak | Alasan |
+|---|---|
+| Mewajibkan `zoneDiameterMm` terisi | Metode dilusi nol menghasilkan zona sama sekali; mewajibkannya membuat hasil jamur `LAB-EVD-005` mustahil disimpan (`LAB-DEC-128`) |
+| Menolak zona `0` | `0` adalah **temuan terkuat** bahwa kuman kebal — sebelas dari 22 baris pada `LAB-EVD-006` bernilai `0` dan seluruhnya `R` |
+| Mewajibkan `cultureType` dan `susceptibilityMethod` | Enam varian cetak belum pernah dilihat; `r27` bagian 22.8 menjelaskannya |
+| Menolak interpretasi yang berbeda dari hitungan | **Resistensi intrinsik** menuntut penilaian di luar rumus. Yang diwajibkan alasannya, bukan kepatuhannya (`VAL-113`) |
+| Mewajibkan `resultQualifier` | Sama dengan dua penanda di atas — menunggu varian yang belum terlihat |
+
+### 12.3 Traceability `r10`
+
+| Aturan | Keputusan |
+|---|---|
+| `VAL-112` | `LAB-DEC-115` |
+| `VAL-113`, `VAL-114` | `LAB-DEC-123` |
+| `VAL-115`, `VAL-119` | `LAB-DEC-122` |
+| `VAL-116` | `LAB-DEC-128` |
+| `VAL-117` | `LAB-DEC-126` |
+| `VAL-118` | `LAB-DEC-125` |

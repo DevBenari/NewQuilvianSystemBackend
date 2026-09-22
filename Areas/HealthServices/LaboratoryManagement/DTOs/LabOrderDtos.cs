@@ -207,6 +207,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         /// </summary>
         public string OrderNumber { get; set; } = string.Empty;
 
+        /// <summary>
+        /// Nomor yang tercetak pada lembar hasil — <c>26-1129</c> — per disiplin per tahun
+        /// (<c>LAB-DEC-117</c>, <c>LAB-API-v1</c> <c>r27</c>).
+        ///
+        /// <b>Ia berdiri di samping <see cref="OrderNumber"/>, bukan menggantikannya</b>
+        /// (<c>AC-180</c>). Kosong pada pesanan yang lahir sebelum kolomnya ada, dan pada
+        /// pesanan yang disiplinnya belum diketahui.
+        /// </summary>
+        public string? LabReportNumber { get; set; }
+
         public Guid EncounterId { get; set; }
 
         /// <summary>Perawatan rawat inap yang menaungi pesanan, bila ada.</summary>

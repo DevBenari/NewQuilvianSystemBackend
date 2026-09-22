@@ -32,15 +32,51 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Seeder
         /// Baris terakhir adalah satu-satunya yang berpenanda <c>Lainnya</c>, dan urutannya
         /// sengaja <c>99</c> supaya ia selalu berada di bawah pilihan yang lebih tepat.
         /// </summary>
+        /// <remarks>
+        /// <b>Diperluas 7 → 31 pada 2026-09-21</b> (<c>LAB-DEC-129</c>, <c>BE-LAB-55</c>),
+        /// mengikuti kolom <c>jenis_specimen</c> pada <c>LAB-EVD-007</c>.
+        ///
+        /// <b>GUID ketujuh baris lama DIPERTAHANKAN.</b> Ketujuhnya terbukti punya padanan di
+        /// antara 31 kelompok, sehingga ini penambahan 24 baris beserta penyelarasan nama —
+        /// bukan pembongkaran. <c>LabSpecimen.SpecimenTypeId</c> yang sudah menunjuk
+        /// ketujuhnya <b>nol perlu dipetakan ulang</b>.
+        /// </remarks>
         private static readonly BaselineSpecimenType[] BaselineSpecimenTypes =
         {
-            new("2c7e5d10-0001-4b20-8e11-7c2e1b6f8d01", "BLOOD", "Blood", false, 1),
+            // Tujuh baris asli — GUID TIDAK BOLEH BERUBAH.
+            new("2c7e5d10-0001-4b20-8e11-7c2e1b6f8d01", "BLOOD", "Darah", false, 1),
             new("2c7e5d10-0002-4b20-8e11-7c2e1b6f8d02", "URINE", "Urine", false, 2),
-            new("2c7e5d10-0003-4b20-8e11-7c2e1b6f8d03", "BODYFLUID", "Body Fluid", false, 3),
-            new("2c7e5d10-0004-4b20-8e11-7c2e1b6f8d04", "SPUTUM", "Sputum", false, 4),
-            new("2c7e5d10-0005-4b20-8e11-7c2e1b6f8d05", "PUS", "Pus", false, 5),
-            new("2c7e5d10-0006-4b20-8e11-7c2e1b6f8d06", "TISSUE", "Jaringan", false, 6),
-            new("2c7e5d10-0007-4b20-8e11-7c2e1b6f8d07", "OTHER", "Lainnya", true, 99)
+            new("2c7e5d10-0003-4b20-8e11-7c2e1b6f8d03", "BODYFLUID", "Cairan Tubuh", false, 3),
+            new("2c7e5d10-0004-4b20-8e11-7c2e1b6f8d04", "SPUTUM", "Sputum / Specimen Respirasi", false, 4),
+            new("2c7e5d10-0005-4b20-8e11-7c2e1b6f8d05", "PUS", "Pus / Luka / Drainase", false, 5),
+            new("2c7e5d10-0006-4b20-8e11-7c2e1b6f8d06", "TISSUE", "Jaringan / Spesimen Bedah", false, 6),
+            new("2c7e5d10-0007-4b20-8e11-7c2e1b6f8d07", "OTHER", "Lainnya / Belum Spesifik", true, 99),
+
+            // Dua puluh empat kelompok tambahan dari LAB-EVD-007.
+            new("2c7e5d10-0008-4b20-8e11-7c2e1b6f8d08", "BIOPSY", "Biopsi", false, 7),
+            new("2c7e5d10-0009-4b20-8e11-7c2e1b6f8d09", "ANATOMIC", "Spesimen Anatomi - Material Tidak Disebutkan", false, 8),
+            new("2c7e5d10-0010-4b20-8e11-7c2e1b6f8d10", "CYTOLOGY", "Sitologi / Smear / Brushing", false, 9),
+            new("2c7e5d10-0011-4b20-8e11-7c2e1b6f8d11", "SWAB", "Swab", false, 10),
+            new("2c7e5d10-0012-4b20-8e11-7c2e1b6f8d12", "ASPIRATE", "Aspirat / Pungsi", false, 11),
+            new("2c7e5d10-0013-4b20-8e11-7c2e1b6f8d13", "DEVICE", "Perangkat / Kateter / Benda Asing", false, 12),
+            new("2c7e5d10-0014-4b20-8e11-7c2e1b6f8d14", "ENVIRONMENT", "Lingkungan / Non-pasien", false, 13),
+            new("2c7e5d10-0015-4b20-8e11-7c2e1b6f8d15", "SECRETION", "Sekret / Isi Organ", false, 14),
+            new("2c7e5d10-0016-4b20-8e11-7c2e1b6f8d16", "PLACENTA", "Produk Kehamilan / Plasenta", false, 15),
+            new("2c7e5d10-0017-4b20-8e11-7c2e1b6f8d17", "MILK", "ASI / Milk", false, 16),
+            new("2c7e5d10-0018-4b20-8e11-7c2e1b6f8d18", "MARROW", "Sumsum Tulang", false, 17),
+            new("2c7e5d10-0019-4b20-8e11-7c2e1b6f8d19", "SALIVA", "Saliva / Oral Fluid", false, 18),
+            new("2c7e5d10-0020-4b20-8e11-7c2e1b6f8d20", "HAIRNAIL", "Rambut / Kuku / Kerokan", false, 19),
+            new("2c7e5d10-0021-4b20-8e11-7c2e1b6f8d21", "SERUM", "Serum", false, 20),
+            new("2c7e5d10-0022-4b20-8e11-7c2e1b6f8d22", "ISOLATE", "Isolat / Organisme", false, 21),
+            new("2c7e5d10-0023-4b20-8e11-7c2e1b6f8d23", "PLASMA", "Plasma", false, 22),
+            new("2c7e5d10-0024-4b20-8e11-7c2e1b6f8d24", "STOOL", "Feses / Stool", false, 23),
+            new("2c7e5d10-0025-4b20-8e11-7c2e1b6f8d25", "BONE", "Tulang / Gigi", false, 24),
+            new("2c7e5d10-0026-4b20-8e11-7c2e1b6f8d26", "CONTAINER", "Wadah / Preparat / Media Koleksi", false, 25),
+            new("2c7e5d10-0027-4b20-8e11-7c2e1b6f8d27", "CALCULUS", "Batu / Kalkulus / Kristal", false, 26),
+            new("2c7e5d10-0028-4b20-8e11-7c2e1b6f8d28", "SEMEN", "Semen", false, 27),
+            new("2c7e5d10-0029-4b20-8e11-7c2e1b6f8d29", "CELL", "Sel / Material Seluler", false, 28),
+            new("2c7e5d10-0030-4b20-8e11-7c2e1b6f8d30", "MOLECULAR", "Material Molekuler", false, 29),
+            new("2c7e5d10-0031-4b20-8e11-7c2e1b6f8d31", "CONTROL", "Kontrol / Material Referensi", false, 30)
         };
 
         public static async Task SeedAsync(

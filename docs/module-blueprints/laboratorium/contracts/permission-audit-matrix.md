@@ -485,3 +485,140 @@ memberi layar lain hak menampilkan isinya.
 | `LabOrder : Update` untuk konteks klinis | `LAB-DEC-091` | `INV-40` |
 | `LabPathologyParameter : *`, `LabPathologyCategory : *` | `LAB-DEC-086`, `LAB-DEC-087` | `INV-37`, `INV-39` |
 | Jejak `Reopen` beralasan | `LAB-DEC-088`; `LAB-DA-001` rev 7 A4.9 | `INV-35` |
+
+---
+
+## 10. Amandemen revision 8 — `S4b` sesudah putaran 9 dan 10, 2026-09-21
+
+| Field | Nilai |
+|---|---|
+| `contract_version` | `LAB-PERM-v1` |
+| Revision | **8** |
+| Status | **`approved`** |
+| `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-21 |
+| `input_revision` | decisions rev 50; `LAB-API-v1` `r26` |
+
+### 10.1 Resource dan aksi yang ditambahkan
+
+| Resource | Aksi | Atribut | Pemegang | Kegunaan |
+|---|---|---|---|---|
+| `LabSpecimenDetailType` | `Read` | `[AccessPermission("LabSpecimenDetailType", "Read")]` | Petugas lab, kepala instalasi | Menampilkan pilihan Spesifik Specimen |
+| `LabSpecimenDetailType` | `Create` | `[AccessPermission("LabSpecimenDetailType", "Create")]` | **Kepala instalasi** | Menaikkan rincian dari daftar pantau menjadi nilai tetap |
+| `LabSpecimenDetailType` | `Update` | `[AccessPermission("LabSpecimenDetailType", "Update")]` | **Kepala instalasi** | Mengubah nama, urutan, dan status aktif |
+| `LabSpecimenDetailType` | `Delete` | `[AccessPermission("LabSpecimenDetailType", "Delete")]` | **Kepala instalasi** | Menonaktifkan rincian |
+| `LabMicrobiologyCriticalRule` | `Read` | `[AccessPermission("LabMicrobiologyCriticalRule", "Read")]` | Petugas lab, kepala instalasi, `DR-LAB-002` | Menghitung penanda kritis saat hasil dibaca |
+| `LabMicrobiologyCriticalRule` | `Create` | `[AccessPermission("LabMicrobiologyCriticalRule", "Create")]` | **Wewenang klinis Mikrobiologi (`DR-LAB-002`)** | Menetapkan kombinasi yang dianggap kritis |
+| `LabMicrobiologyCriticalRule` | `Update` | `[AccessPermission("LabMicrobiologyCriticalRule", "Update")]` | **Wewenang klinis Mikrobiologi (`DR-LAB-002`)** | Mengubah aturan |
+| `LabMicrobiologyCriticalRule` | `Delete` | `[AccessPermission("LabMicrobiologyCriticalRule", "Delete")]` | **Wewenang klinis Mikrobiologi (`DR-LAB-002`)** | Menonaktifkan aturan |
+
+**Yang dipakai ulang, nol resource baru:**
+
+| Endpoint | Hak akses | Alasan |
+|---|---|---|
+| `finalize`, `reopen`, `consultation` | `LabExamination : Update` | Ketiganya tindakan atas hasil pemeriksaan yang sama. Pola `r21` dan `LAB-DEC-090` |
+| `PATCH /correction`, `GET /field-changes` | `LabSpecimen : Update` / `Read` | Koreksi specimen tetap tindakan atas specimen |
+| `GET /confirming-doctor-options` | `LabExamination : Read` | Ia bagian dari membaca hasil, bukan membaca data induk dokter |
+
+### 10.2 Kenapa aturan kritis dipegang wewenang klinis, bukan kepala instalasi
+
+Ini **berbeda** dari `LabOrganism` dan `LabAntibiotic` yang revision 7 serahkan kepada kepala
+instalasi, dan perbedaannya disengaja.
+
+> Menentukan **kuman apa yang dilaporkan** dan **antibiotik apa yang dipanel** adalah keputusan
+> operasional laboratorium — itu urusan kepala instalasi. Menentukan **kombinasi mana yang
+> membahayakan pasien sehingga dokter wajib dihubungi malam itu juga** adalah penilaian
+> klinis. `LAB-DEC-103` butir 4 menyerahkannya kepada `DR-LAB-002` secara tegas, dan matriks
+> ini hanya menjalankan pemisahan itu.
+>
+> Menyatukan keduanya akan membuat seseorang yang berwenang menambah antibiotik ke panel uji
+> **sekaligus** berwenang menyatakan resistensi terhadapnya sebagai kegawatan — dua kompetensi
+> berbeda pada satu tanda tangan.
+
+### 10.3 Audit
+
+| Tindakan | Direkam ke | Isi |
+|---|---|---|
+| `finalize` | `LabExamination.FinalizedAt` + `FinalizedByUserId` | Fakta, sesuai `LAB-DEC-080` |
+| `reopen` | `LabExamination.ReopenCount` + `LabTransitionHistory` | Alasan wajib (`VAL-107` jalur sahnya) |
+| `consultation` | `ConsultedByUserId`, `ConsultedToName`, `ConsultedAt` | Fakta, sesuai `LAB-DEC-106` |
+| `PATCH /correction` | **`LabFieldChangeLog`** | Satu baris per ruas yang berubah, memuat nilai lama (`LAB-DEC-112`) |
+| Perubahan `LabMicrobiologyCriticalRule` | Jejak audit data induk yang berlaku umum | Aturan kritis adalah keputusan keselamatan; perubahannya wajib dapat ditelusuri |
+
+> **`PATCH /correction` menulis ke `LabFieldChangeLog`, bukan ke `LabTransitionHistory`.**
+> `LAB-DEC-112` memisahkan keduanya, dan `AC-175` mengujinya secara langsung: satu koreksi
+> menambah satu baris jejak ruas dan **nol** baris jejak status.
+
+### 10.4 Traceability revision 8
+
+| Yang ditambahkan | Keputusan | Invariant |
+|---|---|---|
+| `LabSpecimenDetailType : *` | `LAB-DEC-098`, `LAB-DEC-099` | Menegakkan `LAB-DEC-040` |
+| `LabMicrobiologyCriticalRule : *` | `LAB-DEC-103` | Mempersempit `INV-28` |
+| `LabExamination : Update` dipakai ulang | `LAB-DEC-097`, `LAB-DEC-106` | — |
+| `LabSpecimen : Update` dipakai ulang | `LAB-DEC-107` | — |
+| Audit ke `LabFieldChangeLog` | `LAB-DEC-112` | — |
+
+---
+
+## 11. Amandemen revision 9 — `S4b` sesudah bukti cetak, 2026-09-21
+
+| Field | Nilai |
+|---|---|
+| `contract_version` | `LAB-PERM-v1` |
+| Revision | **9** |
+| Status | **`approved`** |
+| `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-21 |
+| `input_revision` | decisions rev 52; `LAB-API-v1` `r27` |
+
+### 11.1 Resource yang ditambahkan
+
+| Resource | Aksi | Pemegang | Kegunaan |
+|---|---|---|---|
+| `LabSusceptibilityBreakpoint` | `Read` | Petugas lab, kepala instalasi, `DR-LAB-002` | Menghitung interpretasi saat hasil disimpan |
+| `LabSusceptibilityBreakpoint` | `Create`, `Update`, `Delete` | **Wewenang klinis Mikrobiologi (`DR-LAB-002`)** | Menetapkan rentang breakpoint |
+| `LabProcedureMicrobiologyProfile` | `Read` | Petugas lab, kepala instalasi | Menentukan apakah layar menampilkan set bakteri |
+| `LabProcedureMicrobiologyProfile` | `Create`, `Update`, `Delete` | **Kepala instalasi** | Memetakan pemeriksaan mana memakai set bakteri |
+| `LabDisciplineSetting` | `Read` | Petugas lab, kepala instalasi | Menyusun footer cetak |
+| `LabDisciplineSetting` | `Update` | **Kepala instalasi** | Mengubah nama konsultan dan kalimat baku |
+
+**Yang dipakai ulang, nol resource baru:** seluruh ruas hasil tambahan — `resultQualifier`,
+`cultureType`, `susceptibilityMethod`, `isSusceptibilityTested`, dan penimpaan interpretasi —
+tetap di bawah `LabExamination : Update`.
+
+### 11.2 Kenapa breakpoint dipegang wewenang klinis, sedangkan profil katalog tidak
+
+Pemisahan yang sama dengan revision 8 pada aturan kritis, dan atas alasan yang sama.
+
+> **Angka breakpoint menentukan pasien mendapat antibiotik yang benar.** Menggeser batas bawah
+> dari `13` menjadi `12` mengubah sebagian hasil dari `Resistant` menjadi `Intermediate` —
+> tanpa satu pun hasil disunting dan tanpa satu pun galat terlihat. Itu penilaian klinis.
+>
+> **Memetakan pemeriksaan mana memakai set bakteri** adalah penataan katalog. Ia tidak
+> mengubah arti satu pun hasil yang sudah ada, dan itu memang urusan kepala instalasi.
+
+### 11.3 Audit yang ditambahkan
+
+| Tindakan | Direkam | Kenapa |
+|---|---|---|
+| Menimpa interpretasi | `IsResultOverridden`, `ResultOverrideReason`, dan `ComputedResult` yang ditimpa | Pertanyaan *"analis menimpa dari apa"* harus tetap terjawab sesudah breakpoint diperbarui |
+| Perubahan `LabSusceptibilityBreakpoint` | Jejak audit data induk | Sekelas dengan aturan kritis — perubahannya menggeser arti hasil berikutnya |
+| Perubahan `LabDisciplineSetting` | Jejak audit data induk | Nama konsultan yang tercetak adalah pernyataan tanggung jawab klinis |
+
+### 11.4 Peran cetak yang belum punya pemegang
+
+`LAB-DEC-120` menetapkan `Petugas Otorisasi` sebagai **perilis**, dan `Validasi oleh` sebagai
+**pemvalidasi**. Keduanya berasal dari `S4d` yang **tertahan `DEC-LAB-011`**.
+
+Matriks ini karena itu **belum dapat menyebut pemegangnya**. Yang ditetapkan sekarang hanya
+**asal datanya**; siapa yang boleh menjadi perilis Mikrobiologi tetap menunggu `DEC-LAB-011`
+dan `LAB-OPEN-034`.
+
+### 11.5 Traceability revision 9
+
+| Yang ditambahkan | Keputusan |
+|---|---|
+| `LabSusceptibilityBreakpoint : *` | `LAB-DEC-122` |
+| `LabProcedureMicrobiologyProfile : *` | `LAB-DEC-125` |
+| `LabDisciplineSetting : Read`, `Update` | `LAB-DEC-119`, `LAB-DEC-127` |
+| Audit penimpaan interpretasi | `LAB-DEC-123` |
+| Asal `Petugas Otorisasi` dan `Validasi oleh` | `LAB-DEC-120` |

@@ -863,6 +863,24 @@ namespace QuilvianSystemBackend.Repositories
 
         public DbSet<LabAntibiotic> LabAntibiotics { get; set; }
 
+        public DbSet<LabMicrobiologyIsolate> LabMicrobiologyIsolates { get; set; }
+
+        public DbSet<LabIsolateSusceptibility> LabIsolateSusceptibilities { get; set; }
+
+        public DbSet<LabSusceptibilityBreakpoint> LabSusceptibilityBreakpoints { get; set; }
+
+        public DbSet<LabProcedureMicrobiologyProfile> LabProcedureMicrobiologyProfiles { get; set; }
+
+        public DbSet<LabSpecimenDetailType> LabSpecimenDetailTypes { get; set; }
+
+        public DbSet<LabSpecimenDetail> LabSpecimenDetails { get; set; }
+
+        public DbSet<LabMicrobiologyCriticalRule> LabMicrobiologyCriticalRules { get; set; }
+
+        public DbSet<LabFieldChangeLog> LabFieldChangeLogs { get; set; }
+
+        public DbSet<LabDisciplineSetting> LabDisciplineSettings { get; set; }
+
         #endregion
 
         #region HEALTH SERVICE - Radiology Management
