@@ -45,6 +45,8 @@ using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.HemodialysisManagement.Seeders;
+using QuilvianSystemBackend.Areas.HealthServices.HemodialysisManagement.Services;
 using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Services;
@@ -589,6 +591,21 @@ try
     builder.Services.AddScoped<BloodComponentService>();
     builder.Services.AddScoped<BloodStorageLocationService>();
     builder.Services.AddScoped<BloodBankReasonService>();
+
+    // HMD-BP-001, BE-HMD-03. Sepuluh service modul Hemodialisa, tanpa interface mengikuti pola
+    // modul terdekat. Seluruh controller Hemodialisa menyerahkan CRUD dan orkestrasinya ke sini
+    // dan tidak pernah menyentuh ApplicationDbContext langsung (QBE-SVC-001). Penyerahan ke Billing
+    // sengaja service tersendiri karena ia dijalankan di luar transaksi pengesahan.
+    builder.Services.AddScoped<HmdOrderService>();
+    builder.Services.AddScoped<HmdEpisodeService>();
+    builder.Services.AddScoped<HmdPrescriptionService>();
+    builder.Services.AddScoped<HmdScheduleService>();
+    builder.Services.AddScoped<HmdSessionService>();
+    builder.Services.AddScoped<HmdSessionFinalizationService>();
+    builder.Services.AddScoped<HmdBillingHandoffService>();
+    builder.Services.AddScoped<HmdUnitReadinessService>();
+    builder.Services.AddScoped<HmdResourceService>();
+    builder.Services.AddScoped<HmdCompetencyGateService>();
 
     // Alokator nomor bisnis bersama milik Platform. Satu-satunya cara sah menerbitkan nomor
     // bisnis pada kode baru (QBE-CODE-006). Ia membuka koneksi sendiri lewat IDbContextFactory,
@@ -1392,6 +1409,11 @@ try
     // kapan pasien boleh disinari hanya berlaku setelah disahkan penanggung jawab klinis
     // (RJ-BIL-DEC-014, DEC-RAD-005).
     await RunStartupSeederAsync("RadiologyMasterDataSeeder", () => RadiologyMasterDataSeeder.SeedAsync(app.Services));
+
+    // HMD-BP-001, BE-HMD-03. Data master awal Hemodialisa: unit HD, tindakan hemodialisis, dua belas
+    // butir checklist Pra-HD yang SELURUHNYA tidak boleh dilewati (HMD-ASM-001), lima butir kesiapan
+    // unit, dan satu baris pengaturan unit. Idempoten — baris yang sudah ada tidak diisi ulang.
+    await RunStartupSeederAsync("HemodialysisMasterDataSeeder", () => HemodialysisMasterDataSeeder.SeedAsync(app.Services));
 
     // BE-RWI-107 / RWI-DEC-124 butir 4. Instrumen dan formulir klinis awal sebagai DRAFT — tidak pernah
     // disahkan oleh seeder. Batas yang bertabrakan pada V1 ditandai untuk ditinjau pemilik klinis.
