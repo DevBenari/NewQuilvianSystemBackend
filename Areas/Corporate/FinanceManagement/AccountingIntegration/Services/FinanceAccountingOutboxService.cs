@@ -46,7 +46,7 @@ public sealed class FinanceAccountingOutboxService
             ?? await ResolveNextSourceVersionAsync(request.SourceTransactionId, request.EventTypeCode, cancellationToken);
 
         var eventNumber = GenerateEventNumber();
-        var payloadJson = BuildPayloadJson(eventNumber, request, sourceVersion, legalEntityId.Value);
+        var payloadJson = BuildPayloadJson(eventNumber, request, sourceVersion, legalEntityId);
         var componentsJson = request.Components is { Count: > 0 } ? JsonSerializer.Serialize(request.Components) : null;
 
         var entity = new FinAccountingEventOutbox
@@ -60,7 +60,7 @@ public sealed class FinanceAccountingOutboxService
             AccountingDate = request.AccountingDate,
             Amount = request.Amount,
             CurrencyCode = "IDR",
-            LegalEntityId = legalEntityId.Value,
+            LegalEntityId = legalEntityId,
             CorrelationId = request.CorrelationId,
             CausationId = request.CausationId,
             ComponentsJson = componentsJson,

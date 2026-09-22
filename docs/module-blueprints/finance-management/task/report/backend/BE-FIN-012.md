@@ -17,7 +17,7 @@
 | Model | Claude Sonnet 5 |
 | Commit backend saat dikerjakan | Working tree pada branch `Yasmina`; commit dasar `09101d0581695e20345a9efa8af3fce7c38b1ae4` |
 | Tanggal | 21 September 2026 |
-| Status | 🟡 **SEBAGIAN — kode selesai, QBE `PASS` (50 berkas, 0 pelanggaran); menunggu `dotnet build` dan migration `BE-FIN-010` dijalankan sebelum dapat diuji terhadap database sungguhan.** Seluruh empat endpoint baca (`filters/metadata`, `summary`, daftar, detail) selesai sesuai arketipe monitoring/read-only. |
+| Status | 🟡 **SEBAGIAN — kode selesai, QBE `PASS` (50 berkas, 0 pelanggaran).** `dotnet build` pengguna (22 September 2026) sempat gagal 1 error (`AccountingEventResponse` tidak boleh `sealed` agar bisa diwarisi `AccountingEventDetailResponse`) — sudah diperbaiki (bagian 5), menunggu konfirmasi build ulang dari pengguna serta migration `BE-FIN-010` sebelum dapat diuji terhadap database sungguhan. Seluruh empat endpoint baca (`filters/metadata`, `summary`, daftar, detail) selesai sesuai arketipe monitoring/read-only. |
 
 ---
 
@@ -172,7 +172,7 @@ Tidak ada `POST`/`PATCH`/`PUT`/`DELETE` — sesuai DoD roadmap.
 
 | Skenario atau perintah | Hasil | Klasifikasi | Bukti |
 | --- | --- | --- | --- |
-| `dotnet build` | **Tidak dijalankan oleh saya** | `NOT RUN` | Atas instruksi pengguna sejak `BE-FIN-002` |
+| `dotnet build` | Dijalankan pengguna (22 September 2026). Hasil pertama: **1 error** — `AccountingEventDtos.cs(46,53): CS0509 'AccountingEventDetailResponse': cannot derive from sealed type 'AccountingEventResponse'` (10 warning lain milik berkas di luar task ini — `FinanceBankDepositsController.cs`, `MstPettyCashCategory.cs`, migrasi `test.cs`, `ShiftDtos.cs`/dst — tidak disentuh). Diperbaiki: `AccountingEventResponse` diubah dari `sealed class` menjadi `class` (tetap `internal`/`public` sesuai semula) supaya `AccountingEventDetailResponse` dapat mewarisinya; `AccountingEventDetailResponse` sendiri tetap `sealed`. Build ulang oleh pengguna untuk konfirmasi belum dilaporkan kembali saat laporan ini ditulis | `NOT RUN OLEH SAYA — 1 ERROR DITEMUKAN PENGGUNA, SUDAH DIPERBAIKI` | Pesan build pengguna; `AccountingEventDtos.cs` |
 | `powershell.exe -NoProfile -File tooling/qbe/Invoke-QbeConformanceCheck.ps1` | Lihat kutipan bagian bawah | `PASS` | Dijalankan latar belakang, hasil disalin apa adanya |
 | Review manual: `FinanceAccountingEventService` nol pemanggilan `Add`/`Update`/`Remove`/`SaveChangesAsync` | Dikonfirmasi — hanya query `AsNoTracking()` | `PASS` | `FinanceAccountingEventService.cs` |
 | Review manual: `FinanceAccountingEventsController` nol atribut `[HttpPost]`/`[HttpPatch]`/`[HttpPut]`/`[HttpDelete]` | Dikonfirmasi — hanya 4 `[HttpGet]` | `PASS` | `FinanceAccountingEventsController.cs` |

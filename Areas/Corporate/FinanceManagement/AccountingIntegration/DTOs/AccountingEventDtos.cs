@@ -17,7 +17,7 @@ public sealed class AccountingEventQuery
 }
 
 /// <summary>Baris daftar/antrean — sengaja TANPA PayloadJson/ComponentsJson (lihat detail).</summary>
-public sealed class AccountingEventResponse
+public class AccountingEventResponse
 {
     public Guid Id { get; set; }
     public string EventNumber { get; set; } = string.Empty;

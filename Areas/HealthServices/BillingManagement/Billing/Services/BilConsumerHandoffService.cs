@@ -245,15 +245,19 @@ public sealed class BilConsumerHandoffService
             {
                 // BKC-DEC-106, PHA-DEC-065, BIL-AT-140:
                 // Tender bercampur menghasilkan hasil penjaminan terlepas dari proporsi nominal.
-                var hasInsuranceOrGuarantor = await _dbContext.BilTenders.AsNoTracking()
-                    .Include(t => t.PaymentMethod)
-                    .Where(t => t.Settlement.InvoiceId == invoiceId
+                // BilTender hanya menyimpan PaymentMethodId (tanpa navigasi) — dicocokkan manual
+                // ke MstPaymentMethod, sama seperti pola pencarian tunggal pada PublishForTenderAsync.
+                var hasInsuranceOrGuarantor = await (
+                    from t in _dbContext.BilTenders.AsNoTracking()
+                    join pm in _dbContext.MstPaymentMethods.AsNoTracking() on t.PaymentMethodId equals pm.Id
+                    where t.Settlement.InvoiceId == invoiceId
                         && t.Status == BillingTenderStatuses.Succeeded
-                        && !t.IsDelete)
-                    .AnyAsync(t => t.PaymentMethod.IsInsurance
-                        || t.PaymentMethod.IsCompanyGuarantor
-                        || t.PaymentMethod.PaymentMethodType == "Insurance"
-                        || t.PaymentMethod.PaymentMethodType == "CompanyGuarantor",
+                        && !t.IsDelete
+                    select pm)
+                    .AnyAsync(pm => pm.IsInsurance
+                        || pm.IsCompanyGuarantor
+                        || pm.PaymentMethodType == "Insurance"
+                        || pm.PaymentMethodType == "CompanyGuarantor",
                         cancellationToken);
 
                 financialOutcome = hasInsuranceOrGuarantor

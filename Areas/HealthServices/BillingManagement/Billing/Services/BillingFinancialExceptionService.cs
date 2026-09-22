@@ -463,7 +463,7 @@ public sealed class BillingFinancialExceptionService
             // penjaga status SyncClosureAsync melewatkannya secara alami (bukan FINAL/CLOSED) -
             // tidak perlu percabangan khusus di sini.
             var closureChange = await SyncClosureInsideTransactionAsync(
-                writeOffCase.InvoiceId, actorUserId, writeOffCase.PostedAt!.Value, cancellationToken, PrescriptionClearanceReasonCodes.InvoiceWrittenOff);
+                writeOffCase.InvoiceId, actorUserId, writeOffCase.PostedAt!.Value, cancellationToken);
             if (writeOffCase.IsFullSettlement || (closureChange.Changed && closureChange.StatusAfter == BillingInvoiceStatuses.Closed))
             {
                 await _consumerHandoffService.PublishForClearanceChangeAsync(
@@ -718,7 +718,7 @@ public sealed class BillingFinancialExceptionService
             // PATIENT_AR yang dibalik), penjaga status SyncClosureAsync melewatkannya secara
             // alami - tidak perlu percabangan khusus di sini.
             var closureChange = await SyncClosureInsideTransactionAsync(
-                reversal.InvoiceId, actorUserId, now, cancellationToken, PrescriptionClearanceReasonCodes.WriteOffReversed);
+                reversal.InvoiceId, actorUserId, now, cancellationToken);
             if (original.IsFullSettlement || (closureChange.Changed && closureChange.StatusAfter == BillingInvoiceStatuses.Final))
             {
                 await _consumerHandoffService.PublishForClearanceChangeAsync(
