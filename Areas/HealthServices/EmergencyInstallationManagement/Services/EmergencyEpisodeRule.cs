@@ -1,6 +1,10 @@
 using System.Linq.Expressions;
+using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
+using QuilvianSystemBackend.Repositories;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Services
 {
@@ -50,6 +54,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         private static readonly Func<RegPatientEncounter, bool> EncounterEndedCompiled =
             EncounterEnded.Compile();
 
+        public static readonly Expression<Func<RegPatientEncounter, bool>> EncounterNotEnded =
+            Expression.Lambda<Func<RegPatientEncounter, bool>>(
+                Expression.Not(EncounterEnded.Body),
+                EncounterEnded.Parameters);
+
+        public enum OpenEpisodeKind
+        {
+            Visit = 1,
+            Encounter = 2
+        }
+
+        public sealed record OpenEpisode(
+            OpenEpisodeKind Kind,
+            EmgVisit? Visit,
+            RegPatientEncounter? Encounter);
+
         /// <summary>
         /// Rumus "encounter berakhir" untuk encounter yang sudah dimuat.
         /// </summary>
@@ -61,6 +81,70 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         {
             ArgumentNullException.ThrowIfNull(encounter);
             return EncounterEndedCompiled(encounter);
+        }
+
+        public static async Task<OpenEpisode?> FindOpenEpisodeAsync(
+            ApplicationDbContext dbContext,
+            Guid patientId,
+            Guid? exceptEncounterId = null,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(dbContext);
+
+            if (patientId == Guid.Empty)
+                return null;
+
+            var kunjungan = await dbContext.Set<EmgVisit>()
+                .AsNoTracking()
+                .Where(x => x.PatientId == patientId
+                            && !x.IsDelete
+                            && x.VisitStatus != EmergencyVisitStatus.Completed
+                            && x.VisitStatus != EmergencyVisitStatus.Cancelled)
+                .Where(x => exceptEncounterId == null || x.EncounterId != exceptEncounterId)
+                .OrderByDescending(x => x.ArrivalDateTime)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (kunjungan != null)
+                return new OpenEpisode(OpenEpisodeKind.Visit, kunjungan, null);
+
+            var encounter = await dbContext.Set<RegPatientEncounter>()
+                .AsNoTracking()
+                .Where(x => x.PatientId == patientId
+                            && !x.IsDelete
+                            && x.EncounterType == EncounterType.Emergency)
+                .Where(x => exceptEncounterId == null || x.Id != exceptEncounterId)
+                .Where(EncounterNotEnded)
+                .OrderByDescending(x => x.RegisteredAt)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            return encounter == null
+                ? null
+                : new OpenEpisode(OpenEpisodeKind.Encounter, null, encounter);
+        }
+
+        public static async Task LockPatientEpisodeAsync(
+            ApplicationDbContext dbContext,
+            Guid patientId,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(dbContext);
+
+            if (patientId == Guid.Empty)
+                throw new ArgumentException(
+                    "Kunci episode IGD membutuhkan pasien yang teridentifikasi.",
+                    nameof(patientId));
+
+            if (dbContext.Database.CurrentTransaction is null)
+                throw new InvalidOperationException(
+                    "Kunci episode pasien IGD wajib diambil di dalam transaksi.");
+
+            if (!dbContext.Database.IsNpgsql())
+                return;
+
+            var kunci = $"EMG_EPISODE_{patientId}";
+            await dbContext.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT pg_advisory_xact_lock(hashtext({kunci})::bigint)",
+                cancellationToken);
         }
     }
 }

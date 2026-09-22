@@ -25,6 +25,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public Guid? CaseTypeId { get; set; }
         public string? CaseTypeName { get; set; }
         public DateTime ArrivalDateTime { get; set; }
+        public EmergencyArrivalTimeSource ArrivalTimeSource { get; set; }
+        public string? ArrivalConfirmedByName { get; set; }
+        public DateTime? ArrivalConfirmedAt { get; set; }
         public string? ChiefComplaint { get; set; }
         public string? ArrivalLocation { get; set; }
         public string? FoundLocation { get; set; }
@@ -160,6 +163,27 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
     public class UpdateEmergencyVisitRequest : CreateEmergencyVisitRequest
     {
+    }
+
+    public class StartEmergencyVisitRequest
+    {
+        public Guid? EncounterId { get; set; }
+
+        public string? Mode { get; set; }
+
+        public DateTime? ArrivalDateTime { get; set; }
+
+        public Guid? ArrivalModeId { get; set; }
+
+        public Guid? CaseTypeId { get; set; }
+
+        [MaxLength(1000)]
+        public string? ChiefComplaint { get; set; }
+
+        public bool IsUnknownPatient { get; set; }
+
+        [MaxLength(100)]
+        public string? TemporaryPatientAlias { get; set; }
     }
 
     public class UpdateEmergencyVisitRegistrationStatusRequest

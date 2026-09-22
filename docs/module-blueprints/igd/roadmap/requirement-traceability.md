@@ -531,7 +531,7 @@ Dua keputusan pemilik atas temuan gerbang backlog frontend. **`BE-IGD-049` dan `
 | `BE-IGD-052` | `FR-IGD-084`; `IGD-DEC-148`, `162` | Endpoint admin preview/runs/reverse; hanya K1 ditulis; 2 tabel + migration Rizki | API §8.4; val §10.6; state §8.4; perm §7.1 | `BE-IGD-051` | Ya | Ya | Tidak | Tidak |
 | `BE-IGD-053` | `FR-IGD-069`, `071`…`074`; `IGD-DEC-139`, `144`…`146`; realisasi `IGD-OQ-093` | Penjaga di `CreateEncounterCoreAsync` (Emergency saja), kunci per pasien, override tercatat, tanpa antrean; `POST /emergency-visits` bertransaksi; `active-episode` + `encounter`; 1 tabel + migration Rizki | API §8.1, §8.2, §8.3.6; val §10.1 a.2–7; int §5.2–5.4 | `BE-IGD-050` ✅, `BE-IGD-052`, `BE-IGD-055` | Ya | Ya | Tidak | Tidak |
 | `BE-IGD-054` | `FR-IGD-070`; `IGD-DEC-139` b.2, `142`, `143`, `144` | `GET triage-queue` terpadu, halaman di basis data | API §8.3.1 | `BE-IGD-051` | Ya | Ya | Tidak | Tidak |
-| `BE-IGD-055` | `FR-IGD-075`…`077`, `085`; `IGD-DEC-143`, `147`, `151`, `161` | `POST start-triage` (Triage/ImmediateCare), idempoten; lahir `FindOpenEpisodeAsync`, `LockPatientEpisodeAsync`; 3 kolom + migration Rizki | API §8.3.2, §8.3.4; val §10.2; state §8.1, §8.3 | `BE-IGD-025` ✅, `BE-IGD-051` | Ya | Ya | Tidak | Tidak |
+| 🟡 `BE-IGD-055` | `FR-IGD-075`…`077`, `085`; `IGD-DEC-143`, `147`, `151`, `161` | `POST start-triage` (Triage/ImmediateCare), idempoten; lahir `FindOpenEpisodeAsync`, `LockPatientEpisodeAsync`; 3 kolom + migration Rizki | API §8.3.2, §8.3.4; val §10.2; state §8.1, §8.3 | `BE-IGD-025` ✅, `BE-IGD-051` ✅ | Ya | Ya | **Source ya — 22 September 2026**; build dan migration `AddEmergencyArrivalTimeSource` belum (milik pemilik) ([laporan](../task/report/backend/BE-IGD-055.md)) | Tidak — uji API S1–S12 dan uji paralel belum dijalankan |
 | `BE-IGD-056` | `FR-IGD-016`…`021`; `IGD-DEC-141` | Dibekukan | **Belum ada** | `BE-IGD-045` ✅; ⛔ `IGD-OQ-102`; ⛔ `IGD-OQ-103` | **Tidak** — `S7` | Sebagian (dibekukan) | Tidak | Tidak |
 | `BE-IGD-057` | `FR-IGD-079`; `IGD-DEC-142` | `POST no-show`, aksi `EmergencyVisit : NoShow` | API §8.3.3; val §10.3; perm §7.1 | `BE-IGD-055` | Ya | Ya | Tidak | Tidak |
 | `BE-IGD-058` | `FR-IGD-078`, `083`; `IGD-DEC-152`, `154`, `159` | `PATCH {id}/arrival-time`; `PUT` mengunci tiga ruas | API §8.3.4, §8.3.5; val §10.4 | `BE-IGD-055` | Ya | Ya | Tidak | Tidak |
@@ -553,9 +553,9 @@ Dua keputusan pemilik atas temuan gerbang backlog frontend. **`BE-IGD-049` dan `
 | `FR-IGD-072` serentak satu episode | `BE-IGD-053` | — | `AT-IGD-169` | Lengkap |
 | `FR-IGD-073` override tercatat | `BE-IGD-053` | `FE-IGD-038` | `AT-IGD-170` | Lengkap |
 | `FR-IGD-074` tanpa antrean | `BE-IGD-053` | — | `AT-IGD-171` | Lengkap |
-| `FR-IGD-075` Mulai Triage | `BE-IGD-055` | `FE-IGD-036` | `AT-IGD-172` | Lengkap |
-| `FR-IGD-076` Tangani Segera | `BE-IGD-055` | `FE-IGD-036` | `AT-IGD-173` | Lengkap |
-| `FR-IGD-077` idempoten, Tangani Segera menang | `BE-IGD-055` | `FE-IGD-036` | `AT-IGD-174` | Lengkap |
+| `FR-IGD-075` Mulai Triage | `BE-IGD-055` 🟡 | `FE-IGD-036` | `AT-IGD-172` (skenario S1 laporan `BE-IGD-055` — belum dijalankan) | Lengkap |
+| `FR-IGD-076` Tangani Segera | `BE-IGD-055` 🟡 | `FE-IGD-036` | `AT-IGD-173` (skenario S2, S3 — belum dijalankan) | Lengkap |
+| `FR-IGD-077` idempoten, Tangani Segera menang | `BE-IGD-055` 🟡 | `FE-IGD-036` | `AT-IGD-174` (skenario S4–S6 — belum dijalankan) | Lengkap |
 | `FR-IGD-078` batas koreksi waktu tiba | `BE-IGD-058` | `FE-IGD-040` | `AT-IGD-175` | Lengkap |
 | `FR-IGD-079` pergi sebelum ditriage | `BE-IGD-057` | `FE-IGD-039` | `AT-IGD-176`, `177` | Lengkap |
 | `FR-IGD-080` encounter ikut ditutup | `BE-IGD-051` ✅ | — | `AT-IGD-178` (skenario S1 laporan `BE-IGD-051` — lulus menurut pemilik) | Lengkap |
@@ -563,7 +563,7 @@ Dua keputusan pemilik atas temuan gerbang backlog frontend. **`BE-IGD-049` dan `
 | `FR-IGD-082` jalur umum Registrasi dibatasi | `BE-IGD-059` | — | `AT-IGD-180` | Lengkap |
 | `FR-IGD-083` identitas kunjungan terkunci | `BE-IGD-058` | — | `AT-IGD-181` | Lengkap |
 | `FR-IGD-084` rekonsiliasi | `BE-IGD-052` | — (tanpa layar, `IGD-DEC-162`) | `AT-IGD-182`, `183` | Lengkap; acceptance 1 menunggu angka kueri D |
-| `FR-IGD-085` pasien tanpa identitas | `BE-IGD-055` (ruas) | `FE-IGD-036` | `AT-IGD-184` | Lengkap; praktik lapangan `IGD-UNK-10` belum diketahui |
+| `FR-IGD-085` pasien tanpa identitas | `BE-IGD-055` 🟡 (ruas) | `FE-IGD-036` | `AT-IGD-184` (skenario S10 laporan `BE-IGD-055` — belum dijalankan) | Lengkap; praktik lapangan `IGD-UNK-10` belum diketahui |
 | Kelayakan dokter jaga (`EPIC IGD-12`) | `BE-IGD-056` ⛔ | `FE-IGD-037` ⛔ | — | **Gap** — tanpa FR/AT sampai `IGD-OQ-102`/`103` dijawab |
 
 Seluruh `FR-IGD-069`…`085` dan `AT-IGD-166`…`185` terpetakan ke minimal satu task.

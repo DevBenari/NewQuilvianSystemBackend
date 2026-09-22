@@ -86,6 +86,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 .Include(x => x.ServiceUnit)
                 .Include(x => x.ArrivalMode)
                 .Include(x => x.CaseType)
+                .Include(x => x.ArrivalConfirmedByUser)
                 .Where(x => !x.IsDelete);
 
             if (!string.IsNullOrWhiteSpace(search))
@@ -173,7 +174,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [AccessPermission("EmergencyVisit", "Read")]
         public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<EmgVisit>().AsNoTracking().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+            var entity = await _dbContext.Set<EmgVisit>().AsNoTracking().Include(x => x.ArrivalConfirmedByUser).FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Data kunjungan IGD tidak ditemukan."));
 
@@ -344,6 +345,45 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             );
 
             return Ok(ApiResponse<EmergencyVisitResponse>.Ok(ToResponse(entity), "Data kunjungan IGD berhasil dibuat."));
+        }
+
+        [HttpPost("start-triage")]
+        [ProducesResponseType(typeof(ApiResponse<EmergencyVisitResponse>), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ApiResponse<EmergencyVisitResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [AccessAction("Create", "Create Emergency Visit", Description = "Membuat kunjungan IGD, memeriksa kunjungan IGD yang masih berjalan, serta memulai triage atau penanganan segera dari encounter IGD", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessPermission("EmergencyVisit", "Create")]
+        public async Task<IActionResult> StartTriage([FromBody] StartEmergencyVisitRequest request, CancellationToken cancellationToken = default)
+        {
+            var actorUserId = GetCurrentUserId();
+            var hasil = await _emergencyVisitService.StartVisitAsync(request, actorUserId, cancellationToken);
+
+            if (!hasil.Berhasil)
+                return StatusCode(hasil.StatusCode, ApiResponse<object>.Fail(hasil.StatusCode, hasil.Penolakan!));
+
+            var kunjungan = hasil.Data!;
+            var lahir = hasil.StatusCode == StatusCodes.Status201Created;
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "EmergencyVisit.StartTriage",
+                lahir
+                    ? "Melahirkan Emergency Visit melalui aksi StartTriage."
+                    : "Aksi StartTriage pada Emergency Visit yang sudah ada.",
+                new { EntityId = kunjungan.Id, Controller = "EmergencyVisit", Action = "StartTriage", kunjungan.EncounterId, request.Mode, kunjungan.VisitStatus, kunjungan.ArrivalTimeSource, Lahir = lahir }
+            );
+
+            var pesan = lahir
+                ? (kunjungan.VisitStatus == EmergencyVisitStatus.InTreatment
+                    ? "Kunjungan IGD dimulai dengan penanganan segera."
+                    : "Kunjungan IGD dimulai dan menunggu triage.")
+                : $"Kunjungan IGD untuk encounter ini sudah ada dengan status {kunjungan.VisitStatus}.";
+
+            var respons = ApiResponse<EmergencyVisitResponse>.Ok(ToResponse(kunjungan), pesan);
+            respons.StatusCode = hasil.StatusCode;
+            return StatusCode(hasil.StatusCode, respons);
         }
 
         [HttpPut("{id:guid}")]
@@ -794,6 +834,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 CaseTypeId = x.CaseTypeId,
                 CaseTypeName = x.CaseType?.Name,
                 ArrivalDateTime = x.ArrivalDateTime,
+                ArrivalTimeSource = x.ArrivalTimeSource,
+                ArrivalConfirmedByName = x.ArrivalConfirmedByUser == null
+                    ? null
+                    : x.ArrivalConfirmedByUser.DisplayName ?? x.ArrivalConfirmedByUser.UserName ?? x.ArrivalConfirmedByUser.Email ?? x.ArrivalConfirmedByUser.UserCode,
+                ArrivalConfirmedAt = x.ArrivalConfirmedAt,
                 ChiefComplaint = x.ChiefComplaint,
                 ArrivalLocation = x.ArrivalLocation,
                 FoundLocation = x.FoundLocation,

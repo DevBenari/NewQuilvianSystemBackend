@@ -208,7 +208,7 @@ flowchart LR
 | `BE-IGD-052` | Rekonsiliasi encounter `Emergency` historis — endpoint admin (`IGD-DEC-148`) | R3.13 | tanpa tanda — menunggu `BE-IGD-051`; angka kueri D dibutuhkan untuk acceptance 1 dan eksekusi, **bukan** untuk mulai | — |
 | `BE-IGD-053` | Penjaga episode terbuka pada pintu encounter `Emergency` — **realisasi** `IGD-OQ-093` (`superseded` sebagian) | R3.13 | tanpa tanda — menunggu `BE-IGD-052`, `BE-IGD-055`; dirilis bersama `FE-IGD-038` sesudah rekonsiliasi K1 dijalankan | — |
 | `BE-IGD-054` | Daftar Menunggu Triage terpadu (`GET triage-queue`) | R3.13 | tanpa tanda — menunggu `BE-IGD-051` | — |
-| `BE-IGD-055` | Kunjungan IGD lahir lewat Mulai Triage atau Tangani Segera (`POST start-triage`) | R3.13 | tanpa tanda — menunggu `BE-IGD-051` | — |
+| `BE-IGD-055` | Kunjungan IGD lahir lewat Mulai Triage atau Tangani Segera (`POST start-triage`) | R3.13 | 🟡 **22 September 2026 — Implementation Complete.** Belum: migration `AddEmergencyArrivalTimeSource` dan build (milik pemilik), uji API S1–S12 + uji paralel. Aplikasi tidak boleh dijalankan sebelum migration diterapkan | [BE-IGD-055](../task/report/backend/BE-IGD-055.md) |
 | `BE-IGD-056` | Dokter layak IGD, validasi ulang, dan override beralasan (`IGD-DEC-141`) | R3.13 | ⛔ `IGD-OQ-102`, `IGD-OQ-103` (`S7`, tidak dikontrakkan); isi kartu dibekukan | — |
 | `BE-IGD-057` | Pasien pergi sebelum ditriage ditandai perawat (`POST no-show`, `IGD-DEC-142`) — **baru** | R3.13 | tanpa tanda — menunggu `BE-IGD-055` | — |
 | `BE-IGD-058` | Waktu tiba satu jalur; identitas kunjungan terkunci pada `PUT` (`IGD-DEC-152`, `154`, `159`) — **baru** | R3.13 | tanpa tanda — menunggu `BE-IGD-055` | — |
@@ -1994,7 +1994,7 @@ flowchart LR
     BEIGD051["✅ BE-IGD-051<br/>Kunjungan berakhir menutup encounter"]:::selesai
     BEIGD052["BE-IGD-052<br/>Rekonsiliasi encounter historis"]:::belum
     BEIGD054["BE-IGD-054<br/>Daftar Menunggu Triage terpadu"]:::belum
-    BEIGD055["BE-IGD-055<br/>Kunjungan lahir lewat Mulai Triage"]:::belum
+    BEIGD055["🟡 BE-IGD-055<br/>Kunjungan lahir lewat Mulai Triage"]:::sebagian
     BEIGD053["BE-IGD-053<br/>Penjaga episode di pintu encounter"]:::belum
     BEIGD057["BE-IGD-057<br/>Pasien pergi sebelum ditriage"]:::belum
     BEIGD058["BE-IGD-058<br/>Waktu tiba satu jalur, identitas terkunci"]:::belum
@@ -2422,11 +2422,11 @@ baris ada pada API §8.3.1.
 
 **DoD.** Acceptance 1–8; laporan tracked; `FE-IGD-035` boleh mulai sesudah build terverifikasi.
 
-### `BE-IGD-055` — Kunjungan IGD lahir lewat Mulai Triage atau Tangani Segera (`POST start-triage`)
+### 🟡 `BE-IGD-055` — Kunjungan IGD lahir lewat Mulai Triage atau Tangani Segera (`POST start-triage`)
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Tanpa tanda — **siap sesudah `BE-IGD-051`**. Keputusan yang dulu menahannya (`IGD-OQ-094` W1, `IGD-OQ-100`) sudah dijawab `IGD-DEC-147` dan `IGD-DEC-143`; status awal disahkan (koreksi `IGD-DEC-139`) |
+| **Status** | 🟡 **SEBAGIAN — 22 September 2026.** Implementation Complete: `POST start-triage` (`StartTriage` → `EmergencyVisitService.StartVisitAsync`, transaksi eksplisit + kunci `EMG_EPISODE_{patientId}` + satu kali ulang saat bentrok unique index), `EmergencyEpisodeRule.FindOpenEpisodeAsync` dan `LockPatientEpisodeAsync`, dua enum baru, tiga kolom `EmgVisit` + FK, tiga ruas waktu tiba pada `EmergencyVisitResponse`. Kesepuluh kriteria terpetakan ke source; bagian "baca source" kriteria 6 dan 8 terbukti. **Belum:** migration `AddEmergencyArrivalTimeSource` (kriteria 9, milik pemilik — belum dibuat), `dotnet build` (kriteria 10, milik pemilik — `NOT RUN`), uji API S1–S12 dan uji paralel (kriteria 1–8 — `NOT RUN`). **Aplikasi tidak boleh dijalankan terhadap basis data sebelum migration diterapkan.** Nol `Program.cs`, nol berkas Registrasi, nol tulis basis data. Dua belas selisih terhadap kartu dicatat pada laporan bagian 3.2. Bukti: [laporan](../task/report/backend/BE-IGD-055.md) *Sebelumnya: tanpa tanda — siap sesudah `BE-IGD-051`. Keputusan yang dulu menahannya (`IGD-OQ-094` W1, `IGD-OQ-100`) sudah dijawab `IGD-DEC-147` dan `IGD-DEC-143`; status awal disahkan (koreksi `IGD-DEC-139`).* |
 | **Outcome** | Perawat triage menekan **Mulai Triage** (dengan waktu tiba) atau **Tangani Segera** (tanpa isian) pada pasien yang baru didaftarkan, dan kunjungan IGD lahir saat itu — sekali saja, walau tombolnya ditekan dua kali atau oleh dua perawat |
 | **Slice** | `S3` (dan `S8`) · `EPIC IGD-11` · `MVP-7` |
 | **Requirement** | `FR-IGD-075`, `FR-IGD-076`, `FR-IGD-077`; `FR-IGD-085` (ruas pasien tanpa identitas) |

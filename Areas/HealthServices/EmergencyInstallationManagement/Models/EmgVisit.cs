@@ -31,6 +31,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
         public DateTime ArrivalDateTime { get; set; } = DateTime.UtcNow;
 
+        public EmergencyArrivalTimeSource ArrivalTimeSource { get; set; }
+            = EmergencyArrivalTimeSource.Unverified;
+
+        public Guid? ArrivalConfirmedByUserId { get; set; }
+
+        public DateTime? ArrivalConfirmedAt { get; set; }
+
         [MaxLength(1000)]
         public string? ChiefComplaint { get; set; }
 
@@ -106,6 +113,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public EmgCaseType? CaseType { get; set; }
 
         public ApplicationUser? RegistrationCompletedByUser { get; set; }
+
+        public ApplicationUser? ArrivalConfirmedByUser { get; set; }
 
         public ICollection<EmgTriage> Triages { get; set; }
             = new List<EmgTriage>();
