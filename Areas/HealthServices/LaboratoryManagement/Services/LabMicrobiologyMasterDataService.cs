@@ -235,6 +235,96 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         private Guid GetCurrentUserId() =>
             LabMicrobiologyMasterDataText.ResolveActor(_httpContextAccessor);
 
+        /// <summary>
+        /// Satu organisme beserta seluruh ruasnya (<c>GET /{id}</c>).
+        ///
+        /// <b>Ketiadaannya adalah kelas kesalahan yang sudah pernah dibayar modul ini.</b>
+        /// Sesudah <c>FE-LAB-03</c>, formulir ubah yang dibuka lewat tautan langsung atau
+        /// sesudah halaman disegarkan nol punya jalur memuat barisnya, dan kegagalannya diam —
+        /// layar hanya tampak kosong. <c>r6</c> menutupnya untuk alasan penolakan; ini
+        /// menutupnya untuk kedua data induk Mikrobiologi.
+        /// </summary>
+        public async Task<LabOrganismResponse> GetByIdAsync(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            var entity = await _dbContext.LabOrganisms
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Organisme tidak ditemukan.");
+
+            return Map(entity);
+        }
+
+        /// <summary>
+        /// Ringkasan data induk organisme (<c>GET /summary</c>).
+        ///
+        /// <c>WithBreakpoint</c> dihitung dari rentang breakpoint yang <b>aktif</b>, bukan
+        /// seluruhnya: rentang nonaktif nol dipakai penghitung interpretasi, sehingga
+        /// memasukkannya akan melaporkan kesiapan yang tidak dimiliki.
+        /// </summary>
+        public async Task<LabOrganismSummaryResponse> GetSummaryAsync(
+            CancellationToken cancellationToken = default)
+        {
+            var source = _dbContext.LabOrganisms.AsNoTracking().Where(x => !x.IsDelete);
+
+            var total = await source.CountAsync(cancellationToken);
+            var aktif = await source.CountAsync(x => x.IsActive, cancellationToken);
+
+            // Penyaring `IsActive` pada organismenya BUKAN hiasan: tanpa itu, organisme yang
+            // sudah dinonaktifkan tetap terhitung "tercakup", dan ringkasannya membantah dirinya
+            // sendiri — nol organisme aktif, tetapi satu tercakup.
+            var idAktif = source.Where(x => x.IsActive).Select(x => x.Id);
+
+            var berbreakpoint = await _dbContext.LabSusceptibilityBreakpoints
+                .AsNoTracking()
+                .Where(x => !x.IsDelete && x.IsActive && idAktif.Contains(x.LabOrganismId))
+                .Select(x => x.LabOrganismId)
+                .Distinct()
+                .CountAsync(cancellationToken);
+
+            return new LabOrganismSummaryResponse
+            {
+                TotalOrganism = total,
+                ActiveOrganism = aktif,
+                InactiveOrganism = total - aktif,
+                WithBreakpoint = berbreakpoint
+            };
+        }
+
+        /// <summary>
+        /// Membalik penanda aktif satu organisme (<c>PATCH /{id}/status</c>).
+        ///
+        /// <b>Ini bukan penghapusan, dan bukan pula jalan pintas <c>PUT</c>.</b> <c>PUT</c>
+        /// menuntut seluruh ruas dikirim; menonaktifkan satu baris dari halaman daftar karena
+        /// itu akan memaksa layar memuat detailnya lebih dulu hanya untuk mengirim balik ruas
+        /// yang nol berubah — dan setiap ruas yang ikut terkirim adalah ruas yang dapat
+        /// tertimpa nilai basi.
+        /// </summary>
+        public async Task<LabOrganismResponse> SetStatusAsync(
+            Guid id,
+            bool isActive,
+            CancellationToken cancellationToken = default)
+        {
+            var entity = await _dbContext.LabOrganisms
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Organisme tidak ditemukan.");
+
+            entity.IsActive = isActive;
+            entity.UpdateDateTime = DateTime.UtcNow;
+            entity.UpdateBy = GetCurrentUserId();
+
+            await SaveAsync(cancellationToken);
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "LabOrganism.SetStatus",
+                isActive ? "Mengaktifkan organisme Mikrobiologi." : "Menonaktifkan organisme Mikrobiologi.",
+                new { entity.Id, entity.OrganismCode, entity.OrganismName, entity.IsActive, ActorUserId = GetCurrentUserId() });
+
+            return Map(entity);
+        }
+
         private static LabOrganismResponse Map(LabOrganism x) =>
             new()
             {
@@ -396,6 +486,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 AntibioticName = name,
                 Description = LabMicrobiologyMasterDataText.Normalize(request.Description),
                 SortOrder = request.SortOrder,
+                DiscContentUg = request.DiscContentUg,
                 IsActive = true,
                 CreateDateTime = now,
                 CreateBy = actorUserId
@@ -438,6 +529,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             entity.Description = LabMicrobiologyMasterDataText.Normalize(request.Description);
             entity.SortOrder = request.SortOrder;
             entity.IsActive = request.IsActive;
+            // Kosong DIPERTAHANKAN kosong: nol berarti "belum diisi", bukan "nol mikrogram".
+            entity.DiscContentUg = request.DiscContentUg;
             entity.UpdateDateTime = now;
             entity.UpdateBy = actorUserId;
 
@@ -467,6 +560,81 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         private Guid GetCurrentUserId() =>
             LabMicrobiologyMasterDataText.ResolveActor(_httpContextAccessor);
 
+        /// <summary>Satu antibiotik beserta seluruh ruasnya (<c>GET /{id}</c>).</summary>
+        public async Task<LabAntibioticResponse> GetByIdAsync(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            var entity = await _dbContext.LabAntibiotics
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Antibiotik tidak ditemukan.");
+
+            return Map(entity);
+        }
+
+        /// <summary>
+        /// Ringkasan panel uji antibiotik (<c>GET /summary</c>).
+        ///
+        /// <c>MissingDiscContent</c> menghitung antibiotik <b>aktif</b> yang kandungan cakramnya
+        /// belum diisi. Ia sengaja dihitung di sini dan bukan hanya pada ringkasan breakpoint:
+        /// layar inilah satu-satunya tempat angka itu dapat diperbaiki.
+        /// </summary>
+        public async Task<LabAntibioticSummaryResponse> GetSummaryAsync(
+            CancellationToken cancellationToken = default)
+        {
+            var source = _dbContext.LabAntibiotics.AsNoTracking().Where(x => !x.IsDelete);
+
+            var total = await source.CountAsync(cancellationToken);
+            var aktif = await source.CountAsync(x => x.IsActive, cancellationToken);
+            var tanpaCakram = await source
+                .CountAsync(x => x.IsActive && x.DiscContentUg == null, cancellationToken);
+
+            // Sama seperti organisme: yang dihitung hanya antibiotik yang masih aktif.
+            var idAktif = source.Where(x => x.IsActive).Select(x => x.Id);
+
+            var berbreakpoint = await _dbContext.LabSusceptibilityBreakpoints
+                .AsNoTracking()
+                .Where(x => !x.IsDelete && x.IsActive && idAktif.Contains(x.LabAntibioticId))
+                .Select(x => x.LabAntibioticId)
+                .Distinct()
+                .CountAsync(cancellationToken);
+
+            return new LabAntibioticSummaryResponse
+            {
+                TotalAntibiotic = total,
+                ActiveAntibiotic = aktif,
+                InactiveAntibiotic = total - aktif,
+                WithBreakpoint = berbreakpoint,
+                MissingDiscContent = tanpaCakram
+            };
+        }
+
+        /// <summary>Membalik penanda aktif satu antibiotik (<c>PATCH /{id}/status</c>).</summary>
+        public async Task<LabAntibioticResponse> SetStatusAsync(
+            Guid id,
+            bool isActive,
+            CancellationToken cancellationToken = default)
+        {
+            var entity = await _dbContext.LabAntibiotics
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Antibiotik tidak ditemukan.");
+
+            entity.IsActive = isActive;
+            entity.UpdateDateTime = DateTime.UtcNow;
+            entity.UpdateBy = GetCurrentUserId();
+
+            await SaveAsync(cancellationToken);
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "LabAntibiotic.SetStatus",
+                isActive ? "Mengaktifkan antibiotik pada panel uji." : "Menonaktifkan antibiotik pada panel uji.",
+                new { entity.Id, entity.AntibioticCode, entity.AntibioticName, entity.IsActive, ActorUserId = GetCurrentUserId() });
+
+            return Map(entity);
+        }
+
         private static LabAntibioticResponse Map(LabAntibiotic x) =>
             new()
             {
@@ -475,7 +643,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 AntibioticName = x.AntibioticName,
                 SortOrder = x.SortOrder,
                 IsActive = x.IsActive,
-                Description = x.Description
+                Description = x.Description,
+                DiscContentUg = x.DiscContentUg
             };
     }
 

@@ -141,4 +141,95 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         /// </summary>
         public bool IsOutOfReference { get; set; }
     }
+
+    /// <summary>
+    /// Membuka kembali penulisan hasil sebelum rilis (<c>LAB-API-v1</c> <c>r26</c>
+    /// bagian 21.2, <c>LAB-DEC-097</c>).
+    ///
+    /// <b>Reopen di sini BUKAN koreksi hasil terrilis.</b> Ia penyuntingan biasa atas hasil
+    /// yang belum pernah dirilis, sehingga ia <b>tidak</b> menyentuh <c>S6</c> maupun
+    /// <c>DEC-LAB-014</c>.
+    /// </summary>
+    public class LabReopenRequest
+    {
+        /// <summary>
+        /// Alasan membuka kembali. <b>Wajib</b> (<c>VAL-107</c> jalur sahnya), maksimal 500.
+        /// </summary>
+        public string? Reason { get; set; }
+    }
+
+    /// <summary>
+    /// Mencatat fakta konsultasi — penanda <c>Definitif</c> (<c>LAB-DEC-106</c>).
+    ///
+    /// <b>Dua hal sengaja TIDAK diterima dari pemanggil:</b> siapa yang mencatat, dan kapan
+    /// ia dicatat. Keduanya diturunkan dari sesi. Menerimanya berarti mengizinkan seseorang
+    /// mencatat konsultasi atas nama orang lain — alasan yang sama dipakai
+    /// <c>LAB-DEC-105</c> menolak ruas <c>Analis</c> yang dapat dipilih.
+    /// </summary>
+    public class LabConsultationRequest
+    {
+        /// <summary>
+        /// Kepada siapa hasil ini dikonsultasikan. <b>Wajib</b>, maksimal 200.
+        ///
+        /// Teks, bukan penunjuk pengguna: konsultannya sering berada di luar daftar pengguna
+        /// sistem (<c>LAB-EVD-005</c>).
+        /// </summary>
+        public string? ConsultedToName { get; set; }
+
+        /// <summary>
+        /// Kapan konsultasinya terjadi. <b>Wajib</b>, dan <b>tidak boleh berada di masa
+        /// depan</b> (<c>VAL-108</c>).
+        /// </summary>
+        public DateTime? ConsultedAt { get; set; }
+    }
+
+    /// <summary>
+    /// Keadaan kelengkapan dan konsultasi sebuah hasil Mikrobiologi
+    /// (<c>LAB-API-v1</c> <c>r26</c> bagian 21.3).
+    ///
+    /// <b>Bacalah <see cref="IsFinalized"/> bersama <see cref="IsReleased"/>.</b> Hasil yang
+    /// sudah Final <b>belum</b> boleh dikirim ke pasien — pengiriman menunggu rilis, dan rilis
+    /// Mikrobiologi adalah <c>S4d</c> yang tertahan <c>DEC-LAB-011</c>.
+    /// </summary>
+    public class LabExaminationCompletionResponse
+    {
+        public Guid LabExaminationId { get; set; }
+
+        public Guid LabOrderId { get; set; }
+
+        public string? ProcedureName { get; set; }
+
+        /// <summary><c>FinalizedAt != null</c>. Penulis menyatakan selesai menulis.</summary>
+        public bool IsFinalized { get; set; }
+
+        public DateTime? FinalizedAt { get; set; }
+
+        public Guid? FinalizedByUserId { get; set; }
+
+        /// <summary>Berapa kali penulisan dibuka kembali sebelum rilis.</summary>
+        public int ReopenCount { get; set; }
+
+        /// <summary><c>ConsultedAt != null</c> — penanda <c>Definitif</c>.</summary>
+        public bool IsConsulted { get; set; }
+
+        public string? ConsultedToName { get; set; }
+
+        public DateTime? ConsultedAt { get; set; }
+
+        public Guid? ConsultedByUserId { get; set; }
+
+        /// <summary>
+        /// <b>Selalu bernilai salah pada rilis ini</b>, dan itu disengaja.
+        ///
+        /// Rilis Mikrobiologi adalah <c>S4d</c> dan belum dibangun. Ruas ini ada supaya layar
+        /// dan pemanggil <b>tidak perlu menyimpulkan</b> bahwa Final sama dengan rilis —
+        /// kesimpulan yang justru ditolak <c>LAB-DEC-097</c>.
+        /// </summary>
+        public bool IsReleased { get; set; }
+
+        /// <summary>
+        /// Kenapa hasil ini belum boleh dikirim ke pasien. Kosong ketika sudah boleh.
+        /// </summary>
+        public string? DeliveryBlockedReason { get; set; }
+    }
 }

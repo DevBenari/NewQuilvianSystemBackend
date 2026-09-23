@@ -73140,6 +73140,9 @@ namespace QuilvianSystemBackend.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
 
+                    b.Property<int?>("DiscContentUg")
+                        .HasColumnType("integer");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
@@ -73172,6 +73175,84 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("LabAntibiotic", "public");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabDisciplineSetting", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ConsultantLabel")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<string>("ConsultantName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Discipline")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("ReportNumberLength")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(4);
+
+                    b.Property<string>("ReportNumberPrefix")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("ReportNumberSeparator")
+                        .HasMaxLength(5)
+                        .HasColumnType("character varying(5)");
+
+                    b.Property<string>("StandingNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Discipline")
+                        .IsUnique()
+                        .HasDatabaseName("IX_LabDisciplineSetting_Discipline")
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.ToTable("LabDisciplineSetting", "public");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabExamination", b =>
                 {
                     b.Property<Guid>("Id")
@@ -73187,11 +73268,24 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<DateTime?>("ChargeEligibleAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("ConsultedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ConsultedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ConsultedToName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
                     b.Property<Guid>("CreateBy")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime>("CreateDateTime")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("CultureType")
+                        .HasColumnType("integer");
 
                     b.Property<Guid>("DeleteBy")
                         .HasColumnType("uuid");
@@ -73205,6 +73299,12 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<DateTime?>("ExaminedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("FinalizedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("FinalizedByUserId")
+                        .HasColumnType("uuid");
+
                     b.Property<bool>("IsCancel")
                         .HasColumnType("boolean");
 
@@ -73217,6 +73317,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<Guid>("LabOrderId")
                         .HasColumnType("uuid");
 
+                    b.Property<int?>("MicrobiologyFinding")
+                        .HasColumnType("integer");
+
                     b.Property<string>("ProcedureCodeSnapshot")
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
@@ -73227,6 +73330,11 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<string>("ProcedureNameSnapshot")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
+
+                    b.Property<int>("ReopenCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
 
                     b.Property<DateTime?>("ResultEnteredAt")
                         .HasColumnType("timestamp with time zone");
@@ -73241,6 +73349,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<Guid?>("ResultOptionId")
                         .HasColumnType("uuid");
 
+                    b.Property<int?>("ResultQualifier")
+                        .HasColumnType("integer");
+
                     b.Property<string>("ResultUnitSnapshot")
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)");
@@ -73250,6 +73361,9 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.Property<Guid>("SpecimenId")
                         .HasColumnType("uuid");
+
+                    b.Property<int?>("SusceptibilityMethod")
+                        .HasColumnType("integer");
 
                     b.Property<string>("TariffCodeSnapshot")
                         .HasMaxLength(50)
@@ -73289,6 +73403,8 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("ExaminedAt");
 
+                    b.HasIndex("FinalizedAt");
+
                     b.HasIndex("LabOrderId");
 
                     b.HasIndex("ProcedureId");
@@ -73305,6 +73421,308 @@ namespace QuilvianSystemBackend.Migrations
                         .HasFilter("\"IsDelete\" = false");
 
                     b.ToTable("LabExamination", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabFieldChangeLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ChangedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ChangedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("EntityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("EntityName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("FieldName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("NewValue")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("OldValue")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EntityName", "EntityId", "ChangedAt")
+                        .HasDatabaseName("IX_LabFieldChangeLog_Entity_ChangedAt");
+
+                    b.ToTable("LabFieldChangeLog", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabIsolateSusceptibility", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AntibioticNameSnapshot")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int?>("BreakpointLowerMmSnapshot")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("BreakpointUpperMmSnapshot")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("ComputedResult")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("Concentration")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<Guid?>("ConcentrationUnitId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("DiscContentUgSnapshot")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsResultOverridden")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("LabAntibioticId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("LabMicrobiologyIsolateId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("Result")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ResultOverrideReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("ZoneDiameterMm")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ConcentrationUnitId");
+
+                    b.HasIndex("LabAntibioticId");
+
+                    b.HasIndex("LabMicrobiologyIsolateId");
+
+                    b.HasIndex("LabMicrobiologyIsolateId", "LabAntibioticId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_LabIsolateSusceptibility_IsolateId_AntibioticId")
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.ToTable("LabIsolateSusceptibility", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabMicrobiologyCriticalRule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("LabAntibioticId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("LabOrganismId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RuleNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int?>("SusceptibilityResult")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsActive");
+
+                    b.HasIndex("LabAntibioticId");
+
+                    b.HasIndex("LabOrganismId", "LabAntibioticId", "SusceptibilityResult")
+                        .HasDatabaseName("IX_LabMicrobiologyCriticalRule_Kombinasi");
+
+                    b.ToTable("LabMicrobiologyCriticalRule", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabMicrobiologyIsolate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsSusceptibilityTested")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("LabExaminationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("LabOrganismId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("OrganismNameSnapshot")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LabExaminationId");
+
+                    b.HasIndex("LabOrganismId");
+
+                    b.HasIndex("LabExaminationId", "LabOrganismId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_LabMicrobiologyIsolate_LabExaminationId_LabOrganismId")
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.ToTable("LabMicrobiologyIsolate", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabOrder", b =>
@@ -73372,6 +73790,10 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<bool>("IsDelete")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("LabReportNumber")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
                     b.Property<string>("OrderNumber")
                         .IsRequired()
                         .HasMaxLength(32)
@@ -73416,6 +73838,11 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("OrderStatus");
 
                     b.HasIndex("ProcedureId");
+
+                    b.HasIndex("Discipline", "LabReportNumber")
+                        .IsUnique()
+                        .HasDatabaseName("IX_LabOrder_Discipline_LabReportNumber")
+                        .HasFilter("\"IsDelete\" = false AND \"LabReportNumber\" IS NOT NULL");
 
                     b.HasIndex("InpEpisodeId", "CreateDateTime");
 
@@ -73951,6 +74378,67 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("LabPathologyReportValue", "public");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabProcedureMicrobiologyProfile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int?>("DefaultCultureType")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("DefaultSusceptibilityMethod")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("ProcedureId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("UsesSusceptibilitySet")
+                        .HasColumnType("boolean");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProcedureId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_LabProcedureMicrobiologyProfile_ProcedureId")
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.ToTable("LabProcedureMicrobiologyProfile", "public");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabProcedurePathologyCategory", b =>
                 {
                     b.Property<Guid>("Id")
@@ -74150,6 +74638,155 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("LabSpecimen", "public");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabSpecimenDetail", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DetailNameSnapshot")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("LabSpecimenDetailTypeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("LabSpecimenId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LabSpecimenDetailTypeId");
+
+                    b.HasIndex("LabSpecimenId", "LabSpecimenDetailTypeId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_LabSpecimenDetail_SpecimenId_DetailTypeId")
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.ToTable("LabSpecimenDetail", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabSpecimenDetailType", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DetailTypeCode")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("DetailTypeNameEn")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("DetailTypeNameId")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("LabSpecimenTypeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SnomedCode")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SubTypeName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DetailTypeCode")
+                        .IsUnique()
+                        .HasDatabaseName("IX_LabSpecimenDetailType_DetailTypeCode")
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.HasIndex("DetailTypeNameEn");
+
+                    b.HasIndex("DetailTypeNameId");
+
+                    b.HasIndex("LabSpecimenTypeId");
+
+                    b.HasIndex("SnomedCode")
+                        .IsUnique()
+                        .HasDatabaseName("IX_LabSpecimenDetailType_SnomedCode")
+                        .HasFilter("\"IsDelete\" = false AND \"SnomedCode\" IS NOT NULL");
+
+                    b.HasIndex("SubTypeName");
+
+                    b.ToTable("LabSpecimenDetailType", "public");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabSpecimenType", b =>
                 {
                     b.Property<Guid>("Id")
@@ -74223,6 +74860,75 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("IsActive", "SortOrder");
 
                     b.ToTable("LabSpecimenType", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabSusceptibilityBreakpoint", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("GuidelineVersion")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("LabAntibioticId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("LabOrganismId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("LowerMm")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("UpperMm")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsActive");
+
+                    b.HasIndex("LabAntibioticId");
+
+                    b.HasIndex("LabOrganismId", "LabAntibioticId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_LabSusceptibilityBreakpoint_OrganismId_AntibioticId")
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.ToTable("LabSusceptibilityBreakpoint", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabTransitionHistory", b =>
@@ -111664,6 +112370,68 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("Specimen");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabIsolateSusceptibility", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstMeasurement", "ConcentrationUnit")
+                        .WithMany()
+                        .HasForeignKey("ConcentrationUnitId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabAntibiotic", "LabAntibiotic")
+                        .WithMany()
+                        .HasForeignKey("LabAntibioticId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabMicrobiologyIsolate", "LabMicrobiologyIsolate")
+                        .WithMany("Susceptibilities")
+                        .HasForeignKey("LabMicrobiologyIsolateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ConcentrationUnit");
+
+                    b.Navigation("LabAntibiotic");
+
+                    b.Navigation("LabMicrobiologyIsolate");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabMicrobiologyCriticalRule", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabAntibiotic", "LabAntibiotic")
+                        .WithMany()
+                        .HasForeignKey("LabAntibioticId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabOrganism", "LabOrganism")
+                        .WithMany()
+                        .HasForeignKey("LabOrganismId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("LabAntibiotic");
+
+                    b.Navigation("LabOrganism");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabMicrobiologyIsolate", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabExamination", "LabExamination")
+                        .WithMany()
+                        .HasForeignKey("LabExaminationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabOrganism", "LabOrganism")
+                        .WithMany()
+                        .HasForeignKey("LabOrganismId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("LabExamination");
+
+                    b.Navigation("LabOrganism");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabOrder", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.RegPatientEncounter", "Encounter")
@@ -111784,6 +112552,17 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("LabPathologyReport");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabProcedureMicrobiologyProfile", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstProcedure", "Procedure")
+                        .WithMany()
+                        .HasForeignKey("ProcedureId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Procedure");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabProcedurePathologyCategory", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabPathologyCategory", "LabPathologyCategory")
@@ -111840,6 +112619,55 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("SupersededSpecimen");
 
                     b.Navigation("VolumeUnit");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabSpecimenDetail", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabSpecimenDetailType", "LabSpecimenDetailType")
+                        .WithMany()
+                        .HasForeignKey("LabSpecimenDetailTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabSpecimen", "LabSpecimen")
+                        .WithMany()
+                        .HasForeignKey("LabSpecimenId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("LabSpecimen");
+
+                    b.Navigation("LabSpecimenDetailType");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabSpecimenDetailType", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabSpecimenType", "LabSpecimenType")
+                        .WithMany()
+                        .HasForeignKey("LabSpecimenTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("LabSpecimenType");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabSusceptibilityBreakpoint", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabAntibiotic", "LabAntibiotic")
+                        .WithMany()
+                        .HasForeignKey("LabAntibioticId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabOrganism", "LabOrganism")
+                        .WithMany()
+                        .HasForeignKey("LabOrganismId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("LabAntibiotic");
+
+                    b.Navigation("LabOrganism");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabTransitionHistory", b =>
@@ -116540,6 +117368,11 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("NurseAssignments");
 
                     b.Navigation("StatusHistories");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabMicrobiologyIsolate", b =>
+                {
+                    b.Navigation("Susceptibilities");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabOrder", b =>
