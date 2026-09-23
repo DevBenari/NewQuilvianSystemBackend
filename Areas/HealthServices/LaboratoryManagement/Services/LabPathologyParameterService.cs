@@ -250,6 +250,116 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         }
 
         // =================================================================
+        // Permukaan baseline yang dilengkapi 2026-09-23 — `r32`, `BE-LAB-66`
+        // =================================================================
+
+        /// <summary>
+        /// Detail satu parameter (<c>GET /{id}</c>).
+        ///
+        /// <b>Ketiadaannya adalah kelas kesalahan yang sudah pernah dibayar modul ini.</b>
+        /// Sesudah <c>FE-LAB-03</c>, formulir ubah yang dibuka lewat tautan langsung atau sesudah
+        /// halaman disegarkan nol punya jalur memuat barisnya, dan kegagalannya diam — layar
+        /// hanya tampak kosong. <c>r6</c> menutupnya untuk alasan penolakan, <c>r31</c> untuk
+        /// kedua data induk Mikrobiologi; ini menutupnya untuk Patologi Anatomi.
+        /// </summary>
+        public async Task<LabPathologyParameterResponse> GetByIdAsync(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            var entity = await _dbContext.LabPathologyParameters
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Parameter Patologi Anatomi tidak ditemukan.");
+
+            return Map(entity);
+        }
+
+        /// <summary>
+        /// Ringkasan data induk parameter (<c>GET /summary</c>).
+        ///
+        /// <c>UsedInCategory</c> dihitung dari keberlakuan yang <b>hidup</b>, bukan dari seluruh
+        /// barisnya. Selisihnya terhadap total adalah parameter yang terdaftar tetapi nol akan
+        /// pernah muncul pada satu formulir pun — keadaan yang nol terlihat dari daftar mana pun,
+        /// sebab daftar parameter tidak tahu apa-apa soal golongan yang memakainya.
+        /// </summary>
+        public async Task<LabPathologyParameterSummaryResponse> GetSummaryAsync(
+            CancellationToken cancellationToken = default)
+        {
+            var source = _dbContext.LabPathologyParameters.AsNoTracking().Where(x => !x.IsDelete);
+
+            var total = await source.CountAsync(cancellationToken);
+            var aktif = await source.CountAsync(x => x.IsActive, cancellationToken);
+
+            // Penyaring pada parameternya sendiri BUKAN hiasan. Tanpa itu, keberlakuan yang
+            // menunjuk parameter terhapus tetap terhitung "terpakai", dan ringkasannya dapat
+            // melaporkan angka terpakai yang LEBIH BESAR daripada totalnya. Bentuk kesalahan yang
+            // sama sudah pernah ditemukan pada `withBreakpoint` (`BE-LAB-65` bagian 6ad.5).
+            var idHidup = source.Select(x => x.Id);
+
+            var terpakai = await _dbContext.LabPathologyParameterCategories
+                .AsNoTracking()
+                .Where(x => !x.IsDelete && idHidup.Contains(x.LabPathologyParameterId))
+                .Select(x => x.LabPathologyParameterId)
+                .Distinct()
+                .CountAsync(cancellationToken);
+
+            return new LabPathologyParameterSummaryResponse
+            {
+                TotalParameter = total,
+                ActiveParameter = aktif,
+                InactiveParameter = total - aktif,
+                UsedInCategory = terpakai
+            };
+        }
+
+        /// <summary>
+        /// Membalik penanda aktif satu parameter (<c>PATCH /{id}/status</c>).
+        ///
+        /// <b>Ini bukan penghapusan, dan bukan pula jalan pintas <c>PUT</c>.</b> <c>PUT</c>
+        /// menuntut seluruh ruas dikirim; menonaktifkan satu baris dari halaman daftar karena itu
+        /// akan memaksa layar memuat detailnya lebih dulu hanya untuk mengirim balik ruas yang
+        /// nol berubah — dan setiap ruas yang ikut terkirim adalah ruas yang dapat tertimpa nilai
+        /// basi.
+        ///
+        /// <b>Keberlakuan yang sudah tersusun nol ikut dicabut.</b> Parameter yang dinonaktifkan
+        /// berhenti ditawarkan saat menyusun keberlakuan baru (<c>VAL-99</c>), tetapi golongan
+        /// yang terlanjur memakainya tetap utuh — mencabutnya diam-diam akan mengubah bentuk
+        /// formulir laporan tanpa satu pun manusia memutuskannya.
+        /// </summary>
+        public async Task<LabPathologyParameterResponse> SetStatusAsync(
+            Guid id,
+            bool isActive,
+            CancellationToken cancellationToken = default)
+        {
+            var entity = await FindAsync(id, cancellationToken);
+
+            var actorUserId = GetCurrentUserId();
+
+            entity.IsActive = isActive;
+            entity.UpdateDateTime = DateTime.UtcNow;
+            entity.UpdateBy = actorUserId;
+
+            await SaveAsync(cancellationToken);
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "LabPathologyParameter.SetStatus",
+                isActive
+                    ? "Mengaktifkan parameter Patologi Anatomi."
+                    : "Menonaktifkan parameter Patologi Anatomi.",
+                new
+                {
+                    entity.Id,
+                    entity.ParameterCode,
+                    entity.ParameterName,
+                    entity.IsActive,
+                    ActorUserId = actorUserId
+                });
+
+            return Map(entity);
+        }
+
+        // =================================================================
         // Pembantu
         // =================================================================
 

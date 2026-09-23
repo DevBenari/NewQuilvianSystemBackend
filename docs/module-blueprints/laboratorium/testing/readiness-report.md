@@ -61,7 +61,7 @@ Verdict ini **bukan** penilaian atas mutu pekerjaan backend. Ia penilaian atas j
 >
 > | Hal | Keadaan |
 > |---|---|
-> | `Kepala Instalasi Laboratorium` | **0 pengguna aktif.** dr. Bima Prasetya, Sp.PK ada sebagai `MstDoctor` tetapi **nol punya akun**, dan nol endpoint menyediakan akun bagi dokter yang sudah ada — `POST /doctors` hanya membuat dokter baru |
+> | `Kepala Instalasi Laboratorium` | ~~**0 pengguna aktif.** dr. Bima Prasetya, Sp.PK ada sebagai `MstDoctor` tetapi **nol punya akun**~~ — **DIPERBARUI 2026-09-23: akunnya kini ADA dan berhasil login** (diuji sesi 2026-09-23, roadmap bagian 6ah). **Yang tersisa bukan lagi akunnya, melainkan izinnya:** akun itu ditolak `403` pada ketiga grup data induk Patologi Anatomi, padahal `LAB-PERM-v1` rev 7 baris 415 dan 417 menugaskan kedua resource itu kepadanya. Nol baris `SysAccessPolicy` bagi pasangan departemen-posisi jabatan ini |
 > | `Dokter Penanggung Jawab Laboratorium` | **0 pengguna aktif** |
 >
 > Izinnya sudah ada; **yang belum ada adalah orang yang memegangnya.**
