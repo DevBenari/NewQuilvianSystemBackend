@@ -216,8 +216,8 @@ FE-BD-006 ✅
 
 ```text
 BE-BD-003 ✅ [BE] ─┬─> FE-BD-002
-BE-BD-017 🟡 [BE] ─┤
-BE-BD-018 🟡 [BE] ─┘
+BE-BD-017 ✅ [BE] ─┤
+BE-BD-018 ✅ [BE] ─┘
 
 BE-BD-004 ✅ [BE] ─> FE-BD-003
 
@@ -264,7 +264,7 @@ pada baris **Gerbang** di setiap kartu, bukan sebagai garis.
 
 | Gelombang | Boleh mulai setelah | Task |
 | ---: | --- | --- |
-| — | `BE-BD-017` dan `BE-BD-018` `[BE]` selesai — keduanya 🟡 siap dijadwalkan sejak 19 September 2026. **Riwayat:** keduanya tertahan gerbang `G5` (revisi 9 draft) | `FE-BD-002` — tanpa nomor gelombang sampai kedua prasyaratnya ✅; sesudahnya kembali ke gelombang 1 |
+| — | ✅ **Terpenuhi 23 September 2026** — `BE-BD-017` dan `BE-BD-018` `[BE]` keduanya selesai. **Riwayat:** keduanya 🟡 siap dijadwalkan sejak 19 September 2026; sebelumnya tertahan gerbang `G5` (revisi 9 draft) | `FE-BD-002` — tanpa nomor gelombang sampai kedua prasyaratnya ✅; sesudahnya kembali ke gelombang 1 |
 | 1 | Prasyarat backend-nya seluruhnya ✅ `[BE]` | `FE-BD-001`, `FE-BD-011`, `FE-BD-006`, `FE-BD-003`, `FE-BD-010`, `FE-BD-012`, `FE-BD-004`, `FE-BD-005`, `FE-BD-009`, `FE-BD-007`, `FE-BD-008` — boleh paralel — revisi 8 **disetujui 18 September 2026** |
 
 **Revisi 9:** `FE-BD-002` keluar sementara dari gelombang 1 karena menunggu dua task backend baru — sejak
@@ -301,7 +301,7 @@ Dengan begitu, setiap layar dapat diuji memakai data yang dihasilkan layar sebel
 | `FE-BD-001` | Setup master dapat dikelola petugas | 1 | `BE-BD-001` ✅ [BE] | ✅ 1 dari 1 — diverifikasi ulang 18 September 2026. **Riwayat:** 🟡 0 dari 1 — simpan rusak | [FE-BD-001](../task/report/frontend/FE-BD-001.md) |
 | `FE-BD-011` | Lokasi penyimpanan dikelola, akibat penonaktifan terbaca | 1 | `BE-BD-014` ✅ [BE], `BE-BD-015` ✅ [BE] | ✅ 2 dari 2 — 18 September 2026. **Riwayat:** 🟡 1 dari 2 kriteria | [FE-BD-011](../task/report/frontend/FE-BD-011.md) |
 | `FE-BD-006` | Seluruh layar Bank Darah terjangkau dari menu | 1 | — | ✅ 2 dari 2 — 18 September 2026, uji runtime pemilik R1–R8 `PASS`. **Riwayat:** 🟡 1 dari 2 terbukti penuh, kriteria kedua terbukti otomatis dan menunggu bukti runtime; 🟡 1 dari 2 kriteria | [FE-BD-006](../task/report/frontend/FE-BD-006.md) |
-| `FE-BD-002` | Order darah, pemenuhan, dan pembatalan | 2 | `BE-BD-003` ✅ [BE], `BE-BD-017` 🟡 [BE], `BE-BD-018` 🟡 [BE] | belum dikerjakan — menunggu `BE-BD-017` dan `BE-BD-018` selesai (revisi 9, disetujui 19 September 2026) | — |
+| `FE-BD-002` | Order darah, pemenuhan, dan pembatalan | 2 | `BE-BD-003` ✅ [BE], `BE-BD-017` ✅ [BE], `BE-BD-018` ✅ [BE] | belum dikerjakan — kini **tanpa penahan**: `BE-BD-017` dan `BE-BD-018` ✅ 23 September 2026, sehingga ketiga prasyarat backend terpenuhi dan task ini masuk gelombang 1. **Riwayat:** menunggu `BE-BD-017` dan `BE-BD-018` selesai (revisi 9, disetujui 19 September 2026) | — |
 | `FE-BD-003` | Permintaan PMI dan penerimaan | 2 | `BE-BD-004` ✅ [BE] | belum dikerjakan | — |
 | `FE-BD-010` | Daftar, pencatatan, dan penyelesaian tindakan | 2 | `BE-BD-012` ✅ [BE], `BE-BD-013` ✅ [BE] | belum dikerjakan | — |
 | `FE-BD-012` | Penyimpanan dan perpindahan lokasi kantong | 3 | `BE-BD-015` ✅ [BE] | belum dikerjakan | — |
@@ -392,7 +392,7 @@ Sebelumnya ⛔ 1 (`FE-BD-008`, menunggu `BE-BD-010` sampai ✅ 17 September 2026
 
 | Field | Isi |
 | --- | --- |
-| **Status** | **Belum dikerjakan — hanya menunggu implementasi `BE-BD-017` dan `BE-BD-018` selesai** (roadmap revisi 9 disetujui `Sukmagp` 19 September 2026; kontrak `v5` disetujui). Urutan kanonik: `BE-BD-017` → migration → `BE-BD-018` → `FE-BD-002`. **Riwayat:** tidak dapat dijadwalkan sampai `BE-BD-017` dan `BE-BD-018` ✅ (roadmap revisi 9 `DRAFT`, 18 September 2026). Discovery dan gerbang keputusan komponen sudah dijalankan 18 September 2026 tanpa satu baris source pun; keputusan UI pemilik tetap berlaku: halaman `/create` terpisah, detail dirangkai `Hero` + `BaseDetailCard` + `SummaryGrid` + `DataTable`, pembatalan `ConfirmModal` + `FilterSelect` lewat `children`, nol komponen `NEW`/`EXTEND`, menu "Order Darah" `BloodOrder : Read`. Discovery menemukan empat kewajiban yang tidak didukung kontrak `v4`, lalu ditutup pemilik lewat kontrak `v5` (`DEC-BD-055`..`058`). Nol source order darah di frontend `fbe29f6d1`. **Riwayat:** belum dikerjakan — siap dijadwalkan (revisi 8 disetujui 18 September 2026); 🟡 PENDING pada revisi 7; menunggu `BE-BD-003` sampai 11 September 2026; `BE-BD-003` tertahan `G4` sampai 10 September 2026 |
+| **Status** | **Belum dikerjakan — SIAP DIJADWALKAN, nol penahan sejak 23 September 2026.** Seluruh urutan kanonik `BE-BD-017` → migration → `BE-BD-018` sudah tuntas: keduanya ✅, migration terterapkan di `QuilvianNewDevSukma`, dan kontrak `v5` terbukti runtime. **Riwayat:** belum dikerjakan — hanya menunggu implementasi `BE-BD-017` dan `BE-BD-018` selesai (roadmap revisi 9 disetujui `Sukmagp` 19 September 2026). **Riwayat:** tidak dapat dijadwalkan sampai `BE-BD-017` dan `BE-BD-018` ✅ (roadmap revisi 9 `DRAFT`, 18 September 2026). Discovery dan gerbang keputusan komponen sudah dijalankan 18 September 2026 tanpa satu baris source pun; keputusan UI pemilik tetap berlaku: halaman `/create` terpisah, detail dirangkai `Hero` + `BaseDetailCard` + `SummaryGrid` + `DataTable`, pembatalan `ConfirmModal` + `FilterSelect` lewat `children`, nol komponen `NEW`/`EXTEND`, menu "Order Darah" `BloodOrder : Read`. Discovery menemukan empat kewajiban yang tidak didukung kontrak `v4`, lalu ditutup pemilik lewat kontrak `v5` (`DEC-BD-055`..`058`). Nol source order darah di frontend `fbe29f6d1`. **Riwayat:** belum dikerjakan — siap dijadwalkan (revisi 8 disetujui 18 September 2026); 🟡 PENDING pada revisi 7; menunggu `BE-BD-003` sampai 11 September 2026; `BE-BD-003` tertahan `G4` sampai 10 September 2026 |
 | **Outcome** | Petugas membuat order darah, melihat pemenuhannya, dan membatalkannya dengan alasan berkategori |
 | **Layar** | `FE-BD-01`, `FE-BD-02` |
 | **Kontrak** | api-contract **`v5`** — Blood Order, termasuk Amendment `v5` (`requestedBloodGroup`, `errors` `VAL-BD-001`, `cancellationReasonCategory`, `bloodComponentId` + `components[]`/`totalIssuedQuantity`), ditambah `GET /blood-group-exams/patient/{patientId}/valid` untuk golongan darah hasil pemeriksaan (`03-frontend-architecture.md` §3). **Riwayat:** `v4` |
@@ -400,7 +400,7 @@ Sebelumnya ⛔ 1 (`FE-BD-008`, menunggu `BE-BD-010` sampai ✅ 17 September 2026
 | **Catatan backend** | Sepuluh endpoint tersedia per `BE-BD-003`: tujuh dari kontrak, ditambah `filters/metadata`, `summary`, dan `status-history`. **Tidak ada** endpoint suntingan order — `BloodOrder : Update` tidak punya endpoint kontrak `v4`. Rincian di [laporan](../task/report/backend/BE-BD-003.md) bagian 4 dan 7 |
 | **Reuse** | `BD-CAP-021` |
 | **Gerbang** | `G1` ✅ |
-| **Dependency** | `BE-BD-003` ✅ [BE], **`BE-BD-017` 🟡 [BE]**, **`BE-BD-018` 🟡 [BE]** (keduanya baru pada revisi 9; siap dijadwalkan sejak 19 September 2026, belum dikerjakan). **Riwayat:** keduanya ⛔ [BE] pada 18 September 2026. **Riwayat:** `BE-BD-003` ✅ [BE] saja |
+| **Dependency** | `BE-BD-003` ✅ [BE], **`BE-BD-017` ✅ [BE]**, **`BE-BD-018` ✅ [BE]** (keduanya baru pada revisi 9; siap dijadwalkan sejak 19 September 2026, belum dikerjakan). **Riwayat:** keduanya ⛔ [BE] pada 18 September 2026. **Riwayat:** `BE-BD-003` ✅ [BE] saja |
 | **Acceptance** | Order ganda tertahan beserta alasannya (kewajiban layar `FE-BD-003`); kategori alasan pembatalan **sesuai peran**; **kewajiban layar `FE-BD-001`** — golongan darah yang **diminta** pada order terlihat jelas berbeda dari golongan darah **hasil pemeriksaan** pada layar `FE-BD-02`. Contoh: order meminta PRC golongan A+, sedangkan hasil pemeriksaan sah pasien B+; keduanya tampil dengan label berbeda, bukan satu kolom "Golongan darah". Kewajiban ini diserap dari `BD-UI-GAP-003`, disetujui 18 September 2026 |
 | **Risk/owner** | Sedang / BDRS |
 | **DoD** | Empat keadaan layar digambar: kosong, memuat, berisi, gagal |
