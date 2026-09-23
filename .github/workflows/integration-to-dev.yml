@@ -247,10 +247,10 @@ jobs:
             exit 1
           fi
 
-          # Deployment branch must contain exactly the same source tree
-          # as the validated Integration candidate.
-          if ! git diff --quiet "$CANDIDATE" HEAD -- .; then
-            echo "::error::Promotion blocked because resulting DEV source differs from the validated Integration candidate."
+          # Validate promoted source before runtime manifest update
+          if ! git diff --quiet "$CANDIDATE" HEAD -- \
+            ':!version.json'; then
+            echo "::error::Promotion blocked because resulting DEV source differs from validated Integration candidate."
             exit 1
           fi
 
@@ -262,7 +262,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-
+          echo "Preparing runtime version manifest"
+          cp .github/release/version.json version.json
+          git add version.json
+          git commit -m "chore: update runtime version manifest" || echo "No version change"
           git push origin HEAD:QuilvianDevDeploy
 
       - name: Trigger DEV deployment
