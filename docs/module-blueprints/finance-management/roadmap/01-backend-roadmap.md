@@ -46,11 +46,11 @@ MVP-0   BE-FIN-001 ✅ → BE-FIN-002 🟡 → BE-FIN-003 🟡 → BE-FIN-004 �
 MVP-1   BE-FIN-005 🟡 → BE-FIN-006 🟡 → BE-FIN-007 🟡 → BE-FIN-008 🟡 → BE-FIN-009 🟡
 MVP-5   BE-FIN-010 🟡 → BE-FIN-011 🟡 → BE-FIN-012 🟡      (paralel sejak MVP-1)
 MVP-4   BE-FIN-013 🟡 → BE-FIN-014 🟡 → BE-FIN-015 🟡            (boleh mendahului MVP-2)
-MVP-2   BE-FIN-016 → BE-FIN-017                          BLOCKED — owner Billing
-MVP-3   BE-FIN-018                                       BLOCKED — turunan MVP-2
-POST    BE-FIN-019                                       bebas
-POST    BE-FIN-020                                       BLOCKED — FIN-OQ-010
-POST    BE-FIN-021                                       BLOCKED — Medical Fee BE-MDF-014
+MVP-2   BE-FIN-016 🟡 → BE-FIN-017 🟡                      BLOCKED — owner Billing
+MVP-3   BE-FIN-018 🟡                                     BLOCKED — turunan MVP-2
+POST    BE-FIN-019 🟡                                     bebas
+POST    BE-FIN-020 🟡                                     sebagian — model & service siap
+POST    BE-FIN-021 🟡                                     sebagian — model & migration siap; intake BLOCKED BE-MDF-014
 ```
 
 ### 2.1 Catatan urutan `MVP-4`
@@ -84,12 +84,12 @@ yang MUST dilaporkan balik ke pass desain — bukan diselesaikan dengan improvis
 | `BE-FIN-013` 🟡 | Entity kas dan setoran | `FIN-DES-018`..`020`, `FR-FIN-060`..`065` | `FIN-VAL-1.0` §kas | `BilCashierShift` (`FIN-CAP-006`) | `FinBankDeposit`, `FinDailyCashSnapshot` + migration `AddFinanceCashManagement` | `BE-FIN-009` | Kas kecil tidak memengaruhi kas kasir | Uji unit | Backend Owner; **migration butuh otorisasi terpisah** | Aditif |
 | 🟡 `BE-FIN-014` | Perhitungan kas tersedia dan penutupan harian | `FR-FIN-060`..`065` | `FIN-STATE-1.0` | `BilCashierShift` | `FinanceCashManagementService` | `BE-FIN-013` | Setoran melebihi kas ditolak; setoran sebagian diterima; saldo dihitung saat posting; angka tertutup dibekukan | `UAT-13`..`UAT-16` | Backend Owner — lihat bagian 2.1 | `Serializable` |
 | 🟡 `BE-FIN-015` | API setoran dan kas harian | `FR-FIN-060`..`065` | `FIN-API-1.0`, `FIN-PERM-1.0` | — | `FinanceBankDepositsController`, `FinanceDailyCashController` | `BE-FIN-014` | Penutupan hari menolak setoran belum terposting | `UAT-16` | Backend Owner | Pembungkus `ApiResponse<T>` |
-| `BE-FIN-016` | **BLOCKED** — penerimaan dari tender kasir | `FIN-DEC-005`, `FR-FIN-030`..`035` | `FIN-INTEGRATION-1.0` — **permukaan `BilCollectionHandoff` dikecualikan dari penguncian** | `BilTender`, `BilSettlement` (`FIN-CAP-004`, `007`) | `FinReceipt`, `FinReceiptAllocation` | `BE-FIN-009` **dan** konfirmasi owner Billing | Satu tender berhasil → satu penerimaan; nominal disalin apa adanya | `UAT-05`, `UAT-06`, `UAT-20` | **Owner Billing.** Permintaan sudah dikirim lewat `evidence/02-permintaan-kontrak-untuk-owner-billing.md` | — |
-| `BE-FIN-017` | **BLOCKED** — pembagian bayar-vs-piutang | `FR-FIN-031`, `FR-FIN-035` | Idem | — | Logika pembagian di `FinanceReceiptService` | `BE-FIN-016` | Pasien lunas tidak melahirkan piutang; dobel-hitung dapat dibuktikan tidak terjadi | `UAT-05`, `UAT-20` | Owner Billing | — |
-| `BE-FIN-018` | **BLOCKED** — alokasi, koreksi, penghapusan piutang | `FIN-DES-014`, `FR-FIN-040`..`046` | `FIN-STATE-1.0` §piutang — **terkunci**; yang menahan hanya dependency-nya | — | Alokasi manual, maker-checker, pembalikan | `BE-FIN-017` | Pengaju tidak dapat menyetujui permohonannya sendiri; nilai piutang tidak berubah selama belum diputus; pembalikan tidak menghapus riwayat | `UAT-08`..`UAT-12` | Owner Billing (turunan `MVP-2`) | Maker-checker tiga lapis |
-| `BE-FIN-019` | Utang supplier | `FIN-DES-015` (bagian supplier) | `FIN-API-1.0` §payable supplier | `MstSupplier` (`FIN-CAP-014`) | `FinSupplierPayable`, `FinSupplierPayableItem`, `FinPayableAdjustment` | `BE-FIN-009` | Input manual utang dan koreksinya | Uji integrasi | Backend Owner — tidak menunggu siapa pun | `POST-MVP` |
-| `BE-FIN-020` | **BLOCKED sebagian** — pembayaran keluar dan potongan | `FIN-DES-015`, `026`, `027`, `028` — **approved** | `FIN-API-1.0`, `FIN-VAL-1.0` §payable — **terkunci** | — | `FinPayment`, `FinPaymentAllocation`, `FinPaymentDeduction`, `NetTransferAmount` | `FIN-OQ-010` — model dan kontraknya sudah bebas | Uang keluar berbeda dari utang lunas; potongan tidak menyisakan utang | `FR-FIN-050`, `FR-FIN-051` | Finance Supervisor + Yasmin — **hanya aturan validasi angkanya** yang tertahan, bukan modelnya | `POST-MVP` |
-| `BE-FIN-021` | **BLOCKED** — utang jasa tenaga medis | `FIN-DES-025` — **approved**, `FIN-CAP-021` | `FIN-API-1.0` §payable | — | `FinMedicalServicePayable`, `FinMedicalServicePayableItem` | `BE-FIN-020` **dan** Medical Fee `BE-MDF-014` | Satu penyerahan Medical Fee menghasilkan satu utang; nilai kotor diterima apa adanya | `FR-FIN-075` | **Owner Medical Fee** — `MdfFinanceHandoff` belum ada | — |
+| `BE-FIN-016` 🟡 | **BLOCKED** — penerimaan dari tender kasir | `FIN-DEC-005`, `FR-FIN-030`..`035` | `FIN-INTEGRATION-1.0` — **permukaan `BilCollectionHandoff` dikecualikan dari penguncian** | `BilTender`, `BilSettlement` (`FIN-CAP-004`, `007`) | `FinReceipt`, `FinReceiptAllocation` | `BE-FIN-009` **dan** konfirmasi owner Billing | Satu tender berhasil → satu penerimaan; nominal disalin apa adanya | `UAT-05`, `UAT-06`, `UAT-20` | **Owner Billing.** Permintaan sudah dikirim lewat `evidence/02-permintaan-kontrak-untuk-owner-billing.md` | — |
+| `BE-FIN-017` 🟡 | **BLOCKED** — pembagian bayar-vs-piutang | `FR-FIN-031`, `FR-FIN-035` | Idem | — | Logika pembagian di `FinanceReceiptService` | `BE-FIN-016` | Pasien lunas tidak melahirkan piutang; dobel-hitung dapat dibuktikan tidak terjadi | `UAT-05`, `UAT-20` | Owner Billing | — |
+| `BE-FIN-018` 🟡 | **BLOCKED** — alokasi, koreksi, penghapusan piutang | `FIN-DES-014`, `FR-FIN-040`..`046` | `FIN-STATE-1.0` §piutang — **terkunci**; yang menahan hanya dependency-nya | — | Alokasi manual, maker-checker, pembalikan | `BE-FIN-017` | Pengaju tidak dapat menyetujui permohonannya sendiri; nilai piutang tidak berubah selama belum diputus; pembalikan tidak menghapus riwayat | `UAT-08`..`UAT-12` | Owner Billing (turunan `MVP-2`) | Maker-checker tiga lapis |
+| `BE-FIN-019` 🟡 | Utang supplier | `FIN-DES-015` (bagian supplier) | `FIN-API-1.0` §payable supplier | `MstSupplier` (`FIN-CAP-014`) | `FinSupplierPayable`, `FinSupplierPayableItem`, `FinPayableAdjustment` | `BE-FIN-009` | Input manual utang dan koreksinya | Uji integrasi | Backend Owner — tidak menunggu siapa pun | `POST-MVP` |
+| `BE-FIN-020` 🟡 | **SEBAGIAN** — pembayaran keluar dan potongan | `FIN-DES-015`, `026`, `027`, `028` — **approved** | `FIN-API-1.0`, `FIN-VAL-1.0` §payable — **terkunci** | — | `FinPayment`, `FinPaymentAllocation`, `FinPaymentDeduction`, `NetTransferAmount` | `FIN-OQ-010` — model dan kontraknya sudah bebas | Uang keluar berbeda dari utang lunas; potongan tidak menyisakan utang | `FR-FIN-050`, `FR-FIN-051` | Finance Supervisor + Yasmin — **hanya aturan validasi angkanya** yang tertahan, bukan modelnya | `POST-MVP` |
+| `BE-FIN-021` 🟡 | **SEBAGIAN** — utang jasa tenaga medis | `FIN-DES-025` — **approved**, `FIN-CAP-021` | `FIN-API-1.0` §payable | — | `FinMedicalServicePayable`, `FinMedicalServicePayableItem` | `BE-FIN-020` **dan** Medical Fee `BE-MDF-014` | Model domain, EF configuration, relasi FK polimorfik, dan migration siap; intake otomatis menunggu handoff Medical Fee | `FR-FIN-075` | **Owner Medical Fee** — `MdfFinanceHandoff` belum ada (intake ditangguhkan) | `POST-MVP` |
 
 ## 4. Rincian per gelombang
 
@@ -139,11 +139,40 @@ Keduanya menunggu owner Billing. Permintaannya sudah dikirim dan berdiri sendiri
 pekerjaan backend yang bisa dicicil tanpa jawabannya, karena bentuk `BilCollectionHandoff`
 menentukan bentuk `FinReceipt`.
 
+| Aspek | Isi |
+|---|---|
+| Status | 🟡 **SEBAGIAN.** `BE-FIN-016` 🟡 sebagian 22 September 2026 — jawaban owner Billing turun 21 September 2026 (`BKC-DEC-106`, `108`, `109`, disetujui) dan task Billing-nya (`BE-BKC-069`) ternyata sudah dieksekusi hari berikutnya, sehingga blocker berpindah dari "menunggu jawaban" menjadi "source siap dikonsumsi". `FinReceipt`, `FinReceiptAllocation` (entity+configuration+migration `AddFinanceCollection`, tangan, **belum dijalankan**) selesai; `FinanceBillingIntakeService` (`BE-FIN-009`) diperluas otorisasi eksplisit untuk `HandoffType = COLLECTION` — satu tender `SUCCEEDED` menghasilkan satu `FinReceipt` (`FR-FIN-030`/`032`), penerimaan tunai tanpa shift ditolak (`FR-FIN-033`), kejadian `PENERIMAAN-KASIR`/`PEMBALIKAN-PENERIMAAN-KASIR` ditahan `HELD_FOR_FINALIZATION` bila tagihan masih `OPEN` (`FR-FIN-034`). Mekanisme pembalikan (`TenderStatus = REVERSED`) **BLOCKED** — ditemukan `CK_FinReceipt_TenderRequired` dan `IX_FinReceipt_SourceTenderId` (keduanya terkunci `data-dictionary.md`) berkonflik untuk kasus ini; jalur ini sengaja melempar error tersimpan alih-alih menulis baris yang melanggar constraint, menunggu keputusan pemilik repository atas skema — lihat [laporan](../task/report/backend/BE-FIN-016.md) bagian 1.5. `BE-FIN-017` 🟡 sebagian 22 September 2026 — ditemukan `FinanceReceiptService` (bukan `FinanceBillingIntakeService`) yang ditetapkan `02-backend-architecture.md` §4.22 sebagai pemilik logika penerimaan; logika `BE-FIN-016` dipindah ke sana atas otorisasi eksplisit ("Refactor now"), ditambah `GetInvoiceBreakdownAsync` untuk membuktikan `FR-FIN-035`. Alokasi manual maker-checker (`FR-FIN-040`..`046`) **sengaja tidak dibangun** — itu cakupan `BE-FIN-018`, lihat [laporan](../task/report/backend/BE-FIN-017.md) bagian 1.3. `BE-FIN-018` 🟡 sebagian 22 September 2026 — `FinanceReceivableService.ApplyAllocationAsync`/`ReverseAllocationAsync` (FR-FIN-042, satu-satunya penulis `OutstandingAmount`) dan `FinanceReceiptService.AllocateAsync`/`ReverseAllocationAsync` (FR-FIN-040/041/045, orkestrasi + `FinReceiptAllocation`) selesai; FR-FIN-043/044/046 dikonfirmasi sudah terpenuhi sejak `BE-FIN-008`. Ditemukan alokasi adalah aksi LANGSUNG Petugas AR menurut `state-transition-matrix.md` §2 — bukan maker-checker seperti tersirat DoD ringkas di bawah, lihat [laporan](../task/report/backend/BE-FIN-018.md) bagian 0 dan 7. Belum ada controller (`FinanceReceiptsController` belum punya task pemilik), QBE `PASS` (13 file) |
+| Tabel baru | `FinReceipt`, `FinReceiptAllocation` |
+| Migration | `AddFinanceCollection` |
+| Selesai bila | `UAT-05`, `UAT-06`, `UAT-20` lulus |
+| Yang mudah salah | `FinReceiptAllocation` diisi dari task ini — **bukan** cakupan `BE-FIN-016`/`017`; pembagian bayar-vs-piutang MANUAL dengan maker-checker tetap tanggung jawab `BE-FIN-018`, dan MUST tidak menciptakan penulis kedua untuk `FinReceivable.OutstandingAmount` (`FinanceReceivableService` tetap satu-satunya) |
+
 ### `POST-MVP`
 
-`BE-FIN-019` bebas dan bisa dikerjakan kapan saja setelah `MVP-1`. `BE-FIN-020` dan
-`BE-FIN-021` menunggu, dan keduanya nol baris kode — jadi tidak ada yang perlu dibongkar bila
-jawabannya mengubah arah.
+`BE-FIN-019`, `BE-FIN-020`, dan `BE-FIN-021` telah dikerjakan sebagian. Konsumsi intake `BE-FIN-021` menunggu kesiapan modul Medical Fee (`BE-MDF-014`).
+
+`BE-FIN-019` 🟡 sebagian 22 September 2026 — `FinSupplierPayable`, `FinSupplierPayableItem`,
+`FinPayableAdjustment` (entity+configuration+migration `AddFinanceSupplierPayable`, tangan,
+**belum dijalankan**) dan `FinanceSupplierPayableService` (input manual, koreksi maker-checker,
+pembatalan) selesai; `MedicalServicePayableId` disiapkan tanpa FK menunggu `BE-FIN-021`. Belum
+ada controller, dan kejadian Accounting (`PENGAKUAN-HUTANG-SUPPLIER`/`PENYESUAIAN-HUTANG`) sengaja
+belum disambungkan (pola `BE-FIN-011`, tersendiri). QBE `PASS` (22 berkas) — lihat
+[laporan](../task/report/backend/BE-FIN-019.md).
+
+`BE-FIN-020` 🟡 sebagian 22 September 2026 — `FinPayment`, `FinPaymentAllocation`,
+`FinPaymentDeduction` (entity+configuration+migration `AddFinancePayment`, tangan,
+**belum dijalankan**) dan `FinancePaymentService` (siklus hidup lengkap DRAFT→SUBMITTED→APPROVED/REJECTED→PAID/CANCELLED,
+pembuktian FR-FIN-050 uang keluar vs utang lunas, pembuktian FR-FIN-051 potongan tidak menyisakan utang,
+satu-satunya penulis `PaidAmount` pada utang supplier) selesai; `MedicalServicePayableId` disiapkan
+tanpa FK menunggu `BE-FIN-021`. Belum ada controller. QBE `PASS` (9 berkas) — lihat
+[laporan](../task/report/backend/BE-FIN-020.md).
+
+`BE-FIN-021` 🟡 sebagian 22 September 2026 — `FinMedicalServicePayable`, `FinMedicalServicePayableItem`
+(entity+configuration+migration `AddFinanceMedicalServicePayable`, tangan, **belum dijalankan**),
+penambahan navigasi dan relasi FK `MedicalServicePayable` pada `FinPaymentAllocation` dan
+`FinPayableAdjustment`, serta pendaftaran DbContext dan model snapshot selesai. Alur intake / konsumsi
+otomatis penyerahan jasa medis ditangguhkan menunggu modul Medical Fee (`BE-MDF-014`). QBE `PASS` (8 berkas) —
+lihat [laporan](../task/report/backend/BE-FIN-021.md).
 
 ## 5. Task yang sengaja tidak dibuat
 
