@@ -456,3 +456,62 @@ Urutan **di dalam** `MVP-7` yang mengikat (rinciannya milik `plan-module-deliver
 **Kesimpulan.** `EPIC IGD-11` tidak memuat pertanyaan pemblokir untuk development. Dokumen ini tetap `draft`
 sampai pemilik menyetujui bagian 8 beserta kontrak `0.11.0` dan kawan-kawannya; sesudah itu slice ini boleh
 diteruskan ke `plan-module-delivery` final.
+
+## 9. `EPIC IGD-13` — penutupan kunjungan lewat disposisi yang dilaksanakan
+
+Gelombang **`MVP-8`**, sesudah `MVP-7` (encounter-first). Sumber: `IGD-DEC-163`…`169`; kemampuan asal
+`IGD-CAP-66`, `IGD-CAP-67`, `IGD-CAP-68` (capability map suplemen 3.3).
+
+**Status: `draft`** — menunggu approval pemilik.
+
+### 9.1 Batas slice
+
+| Butir | Isi |
+| --- | --- |
+| Titik mulai | Petugas menandai disposisi pasien sebagai dilaksanakan |
+| Titik akhir | Kunjungan IGD tertutup beserta encounter-nya, atau tercatat menunggu penutupan dengan alasan yang terbaca |
+| Di luar slice | Data lama (`IGD-DEC-167`); perubahan pada modul Bank Darah dan Laboratorium (`IGD-DEC-169`); rekonsiliasi `BE-IGD-052` |
+
+### 9.2 Functional requirement
+
+| ID | Requirement | Disposisi |
+| --- | --- | --- |
+| `FR-IGD-086` | Disposisi yang berpindah ke dilaksanakan memicu penutupan kunjungan, untuk semua jenis disposisi | `MISSING / NEW` |
+| `FR-IGD-087` | Bila masih ada penahan, disposisi tetap tercatat dilaksanakan dan kunjungan ditandai menunggu penutupan beserta alasannya | `MISSING / NEW` |
+| `FR-IGD-088` | Kunjungan yang menunggu penutupan tertutup otomatis pada aksi yang membereskan penahan terakhir, atas nama petugas yang melakukannya | `MISSING / NEW` |
+| `FR-IGD-089` | Asal penutupan terbaca pada kunjungan — dari disposisi yang mana, atau manual | `MISSING / NEW` |
+| `FR-IGD-090` | Pembatalan disposisi atas kunjungan yang sudah selesai ditolak | `EXTEND` — menumpang endpoint status disposisi yang sudah ada |
+| `FR-IGD-091` | Petugas dapat menyaring daftar kunjungan untuk melihat yang menunggu penutupan beserta jumlahnya | `EXTEND` — menumpang daftar kunjungan yang sudah ada |
+
+### 9.3 Skenario UAT
+
+| # | Jalur | Langkah | Hasil yang diharapkan |
+| ---: | --- | --- | --- |
+| `AT-IGD-186` | Berhasil | Pasien tanpa penahan; tandai disposisi dilaksanakan | Kunjungan langsung selesai, encounter ikut tertutup, asal penutupan menunjuk disposisi itu |
+| `AT-IGD-187` | Berhasil (menyusul) | Ada satu observasi aktif; tandai disposisi dilaksanakan, lalu tutup observasinya | Langkah pertama: disposisi berhasil, kunjungan menunggu penutupan dengan alasan observasi. Langkah kedua: kunjungan tertutup atas nama petugas yang menutup observasi |
+| `AT-IGD-188` | Berhasil (kepergian) | Ada serah terima menggantung; terima serah terima itu | Kunjungan tertutup pada aksi penerimaan |
+| `AT-IGD-189` | Gagal | Batalkan disposisi pada kunjungan yang sudah selesai | Ditolak dengan pesan yang menyuruh mendaftarkan episode baru |
+| `AT-IGD-190` | Gagal (hilir) | Sesudah kunjungan tertutup, coba pesan pemeriksaan laboratorium baru pada encounter itu | Ditolak modul Laboratorium dengan pesannya sendiri — perilaku yang diterima `IGD-DEC-169` |
+| `AT-IGD-191` | Daftar | Saring daftar kunjungan dengan "menunggu penutupan" | Hanya kunjungan berdisposisi dilaksanakan yang belum selesai yang tampil, masing-masing dengan alasan penahannya |
+
+### 9.4 Definition of Done
+
+| # | Butir | Cara menjawab |
+| ---: | --- | --- |
+| 1 | Keempat titik pemicu terpasang dan diuji satu per satu | Uji `AT-IGD-186`…`188` ditambah uji sikap pesanan |
+| 2 | Kunjungan tidak pernah tertutup saat masih ada penahan | Uji `AT-IGD-187` langkah pertama |
+| 3 | Pelaku penutupan susulan adalah petugas yang membereskan penahan, bukan sistem | Baca baris kunjungan sesudah `AT-IGD-187` |
+| 4 | Asal penutupan terbaca dan dapat dibedakan dari penutupan manual | Bandingkan dua kunjungan: satu ditutup manual, satu lewat disposisi |
+| 5 | Pembatalan disposisi atas kunjungan selesai ditolak | Uji `AT-IGD-189` |
+| 6 | Saringan menunggu penutupan menampilkan jumlah dan alasan | Uji `AT-IGD-191` |
+| 7 | Migration satu kolom diterapkan; `Down()` berpenjaga diuji di basis data terpisah | Catatan uji migration |
+| 8 | Nol perubahan `Program.cs`; nol perubahan modul Bank Darah dan Laboratorium | `git diff --stat` |
+| 9 | Build 0 error | Keluaran build milik pemilik |
+
+### 9.5 Pertanyaan terbuka sebelum development lock
+
+| ID | Pertanyaan | Memblokir? |
+| --- | --- | :-: |
+| `IGD-OQ-110` | Jumlah encounter `IsActive = false` tanpa tanda berakhir pada data lama | Tidak — memengaruhi angka, bukan bentuk aturan |
+
+Nol pertanyaan memblokir. Slice ini boleh diteruskan ke `plan-module-delivery` begitu pemilik menyetujui kontraknya.

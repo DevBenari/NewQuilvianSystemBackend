@@ -2,8 +2,8 @@
 
 | Field | Nilai |
 | --- | --- |
-| `contract_version` | `0.5.0` — encounter-first, 22 September 2026, **Rencana (belum tersedia)**. **Aditif**: bagian 7 baru — aksi `EmergencyVisit : NoShow`, resource baru `EmergencyEncounterReconciliation` (`Read`/`Process`/`Reverse`), jejak audit override, NoShow, waktu tiba, rekonsiliasi. Sebelumnya `0.4.0` — bagian 3.1 (kewenangan atas pesanan) ditambahkan correction pass revisi 6. **Aditif** |
-| Status | `draft`, **kecuali bagian 7 (encounter-first) yang `approved`** (`IGD-DEC-157`, 22 September 2026) |
+| `contract_version` | `0.6.0` — penutupan kunjungan lewat disposisi, 23 September 2026, **Rencana (belum tersedia)**, status `draft`: bagian 8 baru (penutupan lewat disposisi, `IGD-DEC-163`…`169`). **Aditif** — nol resource dan nol aksi baru. Sebelumnya `0.5.0` — encounter-first, 22 September 2026, **Rencana (belum tersedia)**. **Aditif**: bagian 7 baru — aksi `EmergencyVisit : NoShow`, resource baru `EmergencyEncounterReconciliation` (`Read`/`Process`/`Reverse`), jejak audit override, NoShow, waktu tiba, rekonsiliasi. Sebelumnya `0.4.0` — bagian 3.1 (kewenangan atas pesanan) ditambahkan correction pass revisi 6. **Aditif** |
+| Status | `draft`, **kecuali bagian 7 (encounter-first) yang `approved`** (`IGD-DEC-157`, 22 September 2026). Bagian 8 **`approved`** (`IGD-DEC-170`, 23 September 2026) |
 | Owner | Product/Domain Owner IGD: **Rizki Gunawan** (`IGD-DEC-089`) |
 | `approved_by` / `approved_at` | **Rizki Gunawan / 2026-09-22** — bagian 7 (encounter-first) lewat `IGD-DEC-157`; keterbatasan izin bersama pada §7.1 diterima lewat `IGD-DEC-158`. Bagian lain tetap `draft` |
 | Versi sebelumnya | `0.3.0`, sebelumnya `0.2.0` |
@@ -216,3 +216,34 @@ authority ditunjuk.
 **Tidak boleh masuk log** (tambahan pada bagian 5.3): alasan override, alasan NoShow, dan alasan
 rekonsiliasi dapat memuat keterangan klinis atau identitas — dicatat di tabel audit di atas, **bukan** di
 custom logger.
+
+## 8. Penutupan lewat disposisi — baru pada `0.6.0`, **Rencana (belum tersedia)**
+
+### 8.1 Hak akses
+
+**Nol resource baru, nol aksi baru.** Penutupan kunjungan yang terjadi sebagai akibat disposisi, observasi,
+kepergian, atau sikap pesanan **menumpang** izin yang sudah dimiliki petugas untuk aksi itu sendiri.
+
+| Aksi petugas | Izin yang sudah dipakai | Efek samping penutupan |
+| --- | --- | --- |
+| Menandai disposisi `Executed` | `EmergencyDisposition : Update` | Kunjungan ditutup bila penjaga lolos |
+| Menutup observasi | `EmergencyObservation : Update` | Sama, bila observasi itu penahan terakhir |
+| Menerima/menolak/membatalkan serah terima | `EmergencyDeparture : Update` | Sama |
+| Menetapkan sikap pesanan | `EmergencyDeparture : Update` | Sama |
+| Melihat daftar menunggu penutupan | `EmergencyVisit : Read` | — (baca-saja) |
+
+**Keterbatasan yang diterima.** Petugas yang hanya memegang izin observasi atau kepergian secara **tidak langsung**
+dapat menyebabkan kunjungan tertutup, walaupun ia tidak memegang `EmergencyVisit : Update`. Ini disengaja:
+penutupan itu bukan tindakan terpisah, melainkan akibat dari aksi yang memang wewenangnya, dan penjaga penutupan
+tetap memastikan seluruh kewajiban klinis sudah tuntas lebih dulu. Pelakunya tetap terekam.
+
+### 8.2 Jejak audit
+
+| Kejadian | Yang tersimpan tahan lama | Tempat |
+| --- | --- | --- |
+| Kunjungan ditutup lewat disposisi | Disposisi pemicunya, pelaku, dan waktu | `EmgVisit.ClosedByDispositionId`, `VisitCompletedAt`, `UpdateBy`, `UpdateDateTime` |
+| Kunjungan ditutup manual | Pelaku dan waktu; `ClosedByDispositionId` kosong | `EmgVisit.VisitCompletedAt`, `UpdateBy` |
+| Encounter ikut tertutup | Sama dengan `BE-IGD-051` — kolom status akhir `RegPatientEncounter` | Daftar tertutup integration §5.2 |
+
+Alasan penahan **tidak** disimpan tahan lama: ia dihitung ulang saat dibaca, karena keadaannya berubah begitu
+penahannya dibereskan. Menyimpannya akan menghasilkan alasan basi yang terbaca sebagai fakta.

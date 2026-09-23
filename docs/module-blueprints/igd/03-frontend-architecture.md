@@ -492,3 +492,35 @@ kolom dan tombol daftar; ikon; bentuk isian tanggal-jam — selama isi, sumber d
 | `tests/unit/emergency-registration-payload.test.mjs` — `FE-IGD-029 K1`/`K4` (payload kunjungan dari loket) | Usang begitu loket berhenti membuat kunjungan untuk pasien beridentitas — diperbarui pada task yang sama, bukan dihapus diam-diam |
 | `tests/unit/emergency-registration-existing-visit.test.mjs` (`FE-IGD-034`) | Diperluas untuk ruas `encounter` |
 | `tests/unit/emergency-visit-status.test.mjs` | Tetap; tambah kasus baris tanpa kunjungan |
+
+## 14. Penutupan lewat disposisi — 23 September 2026
+
+Slice `IGD-DEC-163`…`169` **tidak menambah layar dan tidak menambah butir menu** (`IGD-DEC-168`). Seluruh
+perubahan frontend menumpang layar daftar kunjungan IGD yang sudah ada.
+
+**Status bagian ini: `draft`**.
+
+### 14.1 Peta butir menu
+
+**Nol butir menu baru.** Daftar kunjungan IGD sudah ada di menu IGD beserta hak aksesnya
+(`EmergencyVisit : Read`); saringan baru muncul di dalam layar itu.
+
+### 14.2 Perubahan pada layar daftar kunjungan IGD
+
+| Wilayah | Isi | Sumber data | Hak akses | Keadaan kosong / gagal |
+| --- | --- | --- | --- | --- |
+| Saringan | Satu pilihan baru "Menunggu penutupan" pada panel saringan yang sudah ada | `GET /emergency-visits?awaitingClosure=true` | `EmergencyVisit : Read` | Kosong: *"Tidak ada kunjungan yang menunggu penutupan."* Gagal: pesan galat umum daftar, saringan tidak mengubah keadaan lain |
+| Baris daftar | Penanda pada baris yang menunggu penutupan, beserta alasan penahannya | Ruas `isAwaitingClosure` dan `awaitingClosureReason` pada response yang sama | `EmergencyVisit : Read` | Alasan kosong: penanda tetap tampil tanpa keterangan tambahan |
+| Jumlah | Jumlah kunjungan yang menunggu penutupan terbaca dari `totalData` saat saringan aktif | Response yang sama | `EmergencyVisit : Read` | — |
+
+**Rupa penanda dan letak saringan `DEV_DISCRETION`** — warna, ikon, bentuk lencana, dan posisi kolom mengikuti
+design system yang sudah dipakai layar itu. Yang **tidak** boleh berubah: alasan penahan wajib terbaca petugas
+tanpa membuka detail, karena gunanya justru memberitahu apa yang harus dibereskan.
+
+### 14.3 Yang sengaja tidak dibuat di frontend
+
+| Tidak dibuat | Sebab |
+| --- | --- |
+| Layar khusus "menunggu penutupan" | `IGD-DEC-168` memilih saringan pada layar yang sudah ada |
+| Tombol "tutup sekarang" pada daftar | Penutupan bukan tindakan terpisah; ia mengikuti pembereskan penahan. Tombol semacam itu akan menabrak penjaga penutupan dan membingungkan petugas |
+| Pemberitahuan otomatis saat kunjungan tertutup sendiri | Belum ada keputusan pemiliknya; kunjungan yang tertutup cukup hilang dari saringan |

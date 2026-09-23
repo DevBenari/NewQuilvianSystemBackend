@@ -585,3 +585,110 @@ Suplemen menjadi tidak sahih bila `PatientEncounterController.cs`, `PatientEncou
 `EmergencyVisitController.cs`, `EmergencyVisitService.cs`, `EmergencyDoctorAssignmentService.cs`,
 `use-emergency-registration.js`, atau `emergency-management-triage-slice.jsx` berubah sesudah
 `0d13f3a8`/`c941012ac`. Pemeriksaan cukup dengan `git diff --stat` atas berkas-berkas itu.
+
+---
+
+# Suplemen revision 3.3 — impact scan untuk `IGD-DEC-163`…`168` pada `dce1f138`
+
+Scan terbatas, bukan audit ulang seluruh modul. Tujuannya satu: memastikan keputusan baru — **disposisi yang
+dilaksanakan menutup kunjungan IGD**, dan penutupan menyusul otomatis saat penahan terakhir dibereskan — berdiri di
+atas kemampuan yang benar-benar ada hari ini, bukan di atas peta yang dibuat 78 commit yang lalu.
+
+| Butir | Isi |
+| --- | --- |
+| Baseline lama | Backend `0d13f3a8` / frontend `c941012ac` (revisi 3 + suplemen 3.2) |
+| Baseline baru | Backend `rizkiG` **`dce1f138`** — 78 commit sesudahnya, termasuk merge `62c8360a` dari `QuilvianIntegrationBackend` |
+| Frontend | `RizkiV2` `c941012ac` — **nol commit** sejak suplemen 3.2, jadi tidak di-scan ulang |
+| Keputusan yang dilayani | `IGD-DEC-163`…`168` (amendment pass 23 September 2026) |
+| Batas | Read-only terhadap source kedua repository; nol kueri basis data; nol perubahan source |
+
+## 0. Di mana source benar-benar bergeser
+
+| Area | Berkas berubah | Relevansi terhadap keputusan baru |
+| --- | ---: | --- |
+| `LaboratoryManagement` | 91 | **Ya** — pembaca status encounter baru (lihat `IGD-CAP-70`) |
+| `Repositories` | 71 | Tidak langsung — `DbSet` dan configuration modul lain |
+| `ClinicalManagement` | 69 | Tidak — nol sentuhan ke kunjungan IGD |
+| `PharmacyManagement` | 54 | Tidak — nol pembaca status encounter yang menahan |
+| `InPatientManagement` | 43 | **Ya** — jalur disposisi rawat inap (lihat `IGD-CAP-68`) |
+| `BillingManagement` | 31 | Tidak berubah perilakunya terhadap IGD |
+| `BloodBankManagement` | 17 | **Ya** — pembaca status encounter baru (lihat `IGD-CAP-69`) |
+| `EmergencyInstallationManagement` | 14 | Seluruhnya pekerjaan `BE-IGD-051` dan `BE-IGD-055` |
+| `RegistrationManagement` | 8 | Tidak mengubah jalur penutupan encounter |
+
+**Temuan paling melegakan:** `EmergencyObservationService.cs`, `EmergencyDepartureService.cs`, dan
+`EmergencyDispositionService.cs` — ketiga service yang akan menjadi pemicu penutupan susulan — **tidak berubah
+satu baris pun** sejak `0d13f3a8`. Peta lama masih berlaku penuh untuk ketiganya. Yang berubah di modul IGD hanya
+`EmergencyVisitService.cs` (+408/-2), dan itu pekerjaan kita sendiri.
+
+## 1. Kemampuan yang dipakai ulang keputusan baru
+
+| ID | Capability | Status | Bukti | Catatan untuk desain |
+| --- | --- | --- | --- | --- |
+| `IGD-CAP-66` | Penjaga "pesanan penahan" pada penutupan kunjungan | `READY TO REUSE` | `EmergencyDepartureService.AmbilPesananPenahanPenutupanAsync:574-585`; dipanggil `ValidateVisitClosureAsync:144` | Kueri hanya menyentuh `EmgHandoverOrderItem` milik IGD sendiri — `IsEffective`, `AcceptanceStatus = Rejected`, tertaut kepergian kunjungan itu. **Nol ketergantungan pada Lab atau Farmasi**, sehingga perubahan 91 + 54 berkas di kedua modul itu tidak memindahkan pemicunya |
+| `IGD-CAP-67` | Penetapan sikap pesanan dan status serah terima | `READY TO REUSE` | Seluruh penulis `AcceptanceStatus =` dan `HandoverStatus =` berada di `EmergencyDepartureService` (`:204`, `:212`, `:300`, `:582`, `:682`, `:703`, `:807`, `:822`) dan `EmergencyDepartureController` (`:57`, `:167`, `:177`) | Semua pemicu "penahan terakhir dibereskan" tinggal di **satu service milik IGD**. `PendingHandoverStatus` pada `BillingManagement/Cashier/Services/CashierShiftService.cs:1040` adalah kemiripan nama untuk serah terima kasir, **bukan** serah terima pasien |
+| `IGD-CAP-68` | Admisi rawat inap sebagai tujuan disposisi | `READY TO REUSE` | `InPatientManagement` memuat **nol** rujukan ke `EmgVisit`, `EmergencyVisit`, `EncounterType.Emergency`, maupun `EmgDeparture` | `IGD-FACT-025` tetap benar sesudah 43 berkas berubah: admisi membuat encounter `Inpatient` baru dan tidak pernah menyentuh encounter IGD. Serah terima ke ranap tetap dicatat dan diterima di sisi IGD, sehingga pemicu penutupan tidak berpindah modul |
+
+## 2. Kemampuan baru yang muncul sejak baseline — dan konsekuensinya
+
+| ID | Capability | Status | Bukti | Akibat bagi keputusan baru |
+| --- | --- | --- | --- | --- |
+| `IGD-CAP-69` | Bank Darah membaca "kunjungan sudah berakhir" | `CONFLICT` (konsekuensi, bukan cacat) | `BbkEncounterStatusReader.cs:50-147` — `Completed`, `Cancelled`, `NoShow` dibaca sebagai tertutup; dipakai `BbkBloodOrderService:502`, penolakan pada `:629-632`, dan `BbkBloodUnitService:2768-2776` | Begitu encounter tertutup, Bank Darah **menolak order darah baru** dan **menolak alokasi kantong** ke baris kebutuhan order itu |
+| `IGD-CAP-70` | Laboratorium menolak pemesanan pada kunjungan yang sudah selesai | `CONFLICT` (konsekuensi, bukan cacat) | `LabOrderService.CreateByExaminationsAsync:741`, penjaga `VAL-67` pada `:773-780` | Begitu encounter tertutup, **pemeriksaan laboratorium baru tidak dapat dipesankan**. Hanya satu titik penjagaan di service itu, dan letaknya pada pembuatan order — **pencatatan hasil order yang sudah ada tidak ikut tertahan** |
+
+### `IGD-CONF-09` — penutupan yang lebih rajin mematikan pemesanan susulan
+
+Sampai `BE-IGD-051`, encounter IGD **tidak pernah** tertutup. Akibatnya kedua penjaga di atas praktis tidak pernah
+menyala untuk pasien IGD: order darah dan pemeriksaan laboratorium selalu diterima, berapa lama pun sesudah pasien
+pulang.
+
+`IGD-DEC-163` dan `IGD-DEC-165` mengubah itu secara mendasar — bukan karena artinya berubah, melainkan karena
+**waktunya** berubah. Encounter kini tertutup pada saat disposisi dilaksanakan, atau menyusul otomatis begitu
+penahan terakhir dibereskan. Sejak detik itu, untuk encounter tersebut:
+
+- order darah baru ditolak, dan kantong tidak dapat dialokasikan ke order lamanya;
+- pemeriksaan laboratorium baru ditolak.
+
+*Contoh.* Pasien pulang pukul 14.00 dan disposisinya dilaksanakan saat itu juga. Pukul 16.10 perawat menutup
+observasi terakhir, dan kunjungan ikut tertutup otomatis (`IGD-DEC-165`). Pukul 16.30 dokter ingin menambahkan satu
+pemeriksaan laboratorium susulan atas spesimen yang sudah diambil tadi siang — permintaan itu **ditolak** dengan
+pesan *"Kunjungan ini sudah selesai, pemeriksaan baru tidak dapat dipesankan."*
+
+Ini bukan cacat: justru itulah arti episode yang berakhir, dan pasien yang benar-benar butuh layanan baru
+seharusnya didaftarkan ulang. Tetapi konsekuensinya **harus disadari dan diterima pemilik**, bukan ditemukan
+petugas di lapangan. Pencatatan hasil untuk order yang sudah terlanjur dibuat tidak terdampak.
+
+**Status:** `open` — bukan blocker teknis, tetapi wajib dijawab sebelum kontrak susulan dikunci.
+
+## 3. Jawaban sisi source untuk `IGD-OQ-110`
+
+Pertanyaannya: adakah jalur yang menulis `RegPatientEncounter.IsActive = false` **tanpa** mengisi satu pun dari lima
+tanda berakhir? Seluruh penulisnya ditelusuri:
+
+| Jalur | Bukti | Mengisi tanda berakhir? |
+| --- | --- | --- |
+| Penutupan encounter oleh IGD | `EmergencyVisitService.cs:627` | **Ya** — `EncounterStatus = Cancelled`, `IsCancel`, `CancelledAt` |
+| Rollback encounter jangkar admisi | `InpEpisodeService.cs:956-965` | **Ya** — `Cancelled`, `IsCancel`, `CancelledAt` |
+| Pembatalan encounter oleh Registrasi | `PatientEncounterController.cs:1070-1075` | **Ya** — `IsCancel = true` |
+| Penutup otomatis pendaftaran kiosk | `KioskEncounterClosureService.cs:246-250` | **Ya** — `NoShow`, `NoShowAt` |
+| **Hapus lunak encounter** | `PatientEncounterController.DeleteEncounter:1096-1117` | **Tidak** — tetapi baris itu juga diberi `IsDelete = true`, dan **seluruh** kueri IGD menyaring `!IsDelete`, sehingga baris itu tidak pernah terbaca sebagai "masih terbuka" |
+
+**Kesimpulan sisi source:** tidak ada jalur yang meninggalkan encounter dalam keadaan "nonaktif, belum berakhir, dan
+belum terhapus". `IGD-OQ-110` karena itu dipersempit: yang tersisa hanya kemungkinan **data lama** yang ditulis jalur
+yang sudah tidak ada lagi, atau lewat SQL langsung. Kuerinya tetap milik pemilik; agent tidak menjalankannya.
+
+## 4. Pertanyaan untuk pemilik
+
+| ID | Pertanyaan | Mengapa penting | Pemilik |
+| --- | --- | --- | --- |
+| ~~`IGD-TRQ-12`~~ **dijawab `IGD-DEC-169`** (23 September 2026: diterima apa adanya, nol perubahan modul lain, nol tenggang waktu) | Apakah konsekuensi `IGD-CONF-09` diterima apa adanya — sesudah kunjungan tertutup, order darah dan pemeriksaan laboratorium baru untuk encounter itu ditolak? | Menentukan apakah desain cukup menutup kunjungan begitu saja, atau perlu tenggang waktu, atau perlu pesan yang mengarahkan petugas mendaftarkan episode baru | Product/Domain Owner IGD, dengan tinjauan pemilik Bank Darah dan Laboratorium |
+
+## 5. Kesimpulan scan
+
+1. **Peta lama masih dapat dipercaya untuk inti keputusan ini.** Ketiga service pemicu tidak berubah, dan seluruh
+   pemicu penutupan susulan berada di dalam modul IGD sendiri — satu service, bukan tersebar lintas modul seperti
+   yang sempat saya duga sebelum pengukuran.
+2. **Yang benar-benar baru ada di hilir**, bukan di hulu: dua pembaca status encounter (`IGD-CAP-69`, `IGD-CAP-70`)
+   yang akan mulai menyala untuk pasien IGD justru karena encounter kini benar-benar ditutup.
+3. **Satu keputusan pemilik dibutuhkan sebelum desain dikunci** (`IGD-TRQ-12`). Selain itu, desain boleh berjalan.
+4. Frontend tidak perlu di-scan ulang: nol commit sejak suplemen 3.2.

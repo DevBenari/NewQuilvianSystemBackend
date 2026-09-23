@@ -54,7 +54,7 @@ supersedes: "roadmap/archive/revision-1/frontend-roadmap.md"
 
 ## Grafik Urutan Dependency
 
-Roadmap ini memuat **30 task** menurut *Register status task* (22 September 2026 penutup: 27 baris + `FE-IGD-038`…`040`; sebelumnya 24 baris + `FE-IGD-035`…`037`;
+Roadmap ini memuat **31 task** menurut *Register status task* (23 September 2026: 30 baris + `FE-IGD-041` gelombang R3.13.1; sebelumnya 22 September 2026 penutup: 27 baris + `FE-IGD-038`…`040`; sebelumnya 24 baris + `FE-IGD-035`…`037`;
 angka `22` di bawah tertinggal sejak `FE-IGD-033`/`034`), dan bersama prasyarat backend dan revision `1` jumlah node
 melewati 25. Grafik dipecah: satu **grafik ringkasan** di bawah ini, lalu grafik per bagian di
 bawah judulnya masing-masing — bagian 1 (`MVP-0` dan warisan revision `1`), R3.2 (pendaftaran,
@@ -162,6 +162,7 @@ flowchart LR
 | `FE-IGD-038` | Loket mengirim alasan pendaftaran ganda ke pintu encounter; pra-cek mengenali encounter *Menunggu Triage* — `IGD-DEC-145` — **baru** | tanpa tanda — menunggu `BE-IGD-053`; dirilis bersama `BE-IGD-053` | [R3.12](#r312-gelombang-22-september-2026--encounter-first-dan-dokter-jaga-sisi-layar) |
 | `FE-IGD-039` | Aksi *Pergi sebelum ditriage* pada daftar Menunggu Triage — `IGD-DEC-142` — **baru** | tanpa tanda — menunggu `BE-IGD-057`, `FE-IGD-035` | [R3.12](#r312-gelombang-22-september-2026--encounter-first-dan-dokter-jaga-sisi-layar) |
 | `FE-IGD-040` | Panel waktu tiba pada Detail triage — `IGD-DEC-147`, `152`, `159`, `160` — **baru** | tanpa tanda — menunggu `BE-IGD-058` | [R3.12](#r312-gelombang-22-september-2026--encounter-first-dan-dokter-jaga-sisi-layar) |
+| `FE-IGD-041` | Saringan dan penanda "menunggu penutupan" pada daftar kunjungan IGD — `IGD-DEC-164`, `168` — **baru** | R3.13.1 | tanpa tanda — menunggu `BE-IGD-063` | — |
 
 `FE-IGD-019` sebelumnya belum punya kartu. Kartunya ditambahkan 15 September 2026 pada bagian
 R3.5, tepat sebelum `FE-IGD-022`.
@@ -1278,6 +1279,7 @@ flowchart LR
     FEIGD035["FE-IGD-035<br/>Daftar triage membaca satu sumber"]:::belum
     FEIGD038["FE-IGD-038<br/>Loket kirim alasan ke pintu encounter"]:::belum
     FEIGD040["FE-IGD-040<br/>Panel waktu tiba Detail triage"]:::belum
+    FEIGD041["FE-IGD-041<br/>Saringan menunggu penutupan"]:::belum
     FEIGD039["FE-IGD-039<br/>Aksi pergi sebelum ditriage"]:::belum
     FEIGD036["FE-IGD-036<br/>Mulai Triage; loket berhenti membuat kunjungan"]:::belum
     FEIGD037["⛔ FE-IGD-037<br/>Pemilih dokter jaga dan override"]:::terblokir
@@ -1582,3 +1584,43 @@ kasus **dilengkapi saat triage susulan** sesudah Tangani Segera. `03-frontend-ar
 tempat layar untuk melengkapinya — panel D hanya memuat waktu tiba. Backend sudah mendukung lewat `PUT
 /emergency-visits/{id}` (ruas selain tiga ruas terkunci). Celah ini dicatat pada traceability R3.13 dan menunggu
 amendment desain layar; tidak menahan `FE-IGD-036` maupun `FE-IGD-040`.
+
+---
+
+## R3.13.1 — `EPIC IGD-13`: saringan menunggu penutupan (`MVP-8`)
+
+Satu task frontend untuk gelombang backend R3.14. Approval `IGD-DEC-170` (23 September 2026); kontrak API
+**`0.12.0`** §9.2, desain layar `03-frontend-architecture.md` §14.
+
+**Nol butir menu baru dan nol layar baru** (`IGD-DEC-168`) — seluruhnya menumpang layar daftar kunjungan IGD
+yang sudah ada.
+
+### `FE-IGD-041` — Saringan dan penanda "menunggu penutupan" pada daftar kunjungan IGD
+
+| Field | Isi |
+| --- | --- |
+| **Status** | Tanpa tanda — menunggu `BE-IGD-063` |
+| **Outcome** | Petugas dapat menyaring daftar kunjungan untuk melihat pasien yang tindak lanjutnya sudah dilaksanakan tetapi kunjungannya belum tertutup, langsung dengan alasan apa yang masih menahan |
+| **Slice** | `S5` · `EPIC IGD-13` · `MVP-8` |
+| **Requirement** | `FR-IGD-091` |
+| **Keputusan** | `IGD-DEC-164`, `168`; `IGD-DEC-170` (approval) |
+| **Kontrak** | API `0.12.0` §9.2 — query `awaitingClosure`, ruas `isAwaitingClosure` dan `awaitingClosureReason` |
+| **Wewenang UI** | Rupa penanda, letak saringan, warna, dan ikon **`DEV_DISCRETION`** mengikuti design system layar itu. Yang **tidak** boleh berubah: alasan penahan wajib terbaca tanpa membuka detail |
+| **Reuse** | Panel saringan, tabel daftar, dan hook data layar daftar kunjungan IGD yang sudah ada; nol komponen baru bila yang ada sudah cukup |
+| **Dependency** | `BE-IGD-063` |
+| **Owner** | Frontend IGD |
+| **Risiko** | Rendah — baca-saja, nol tulisan |
+
+#### Acceptance
+
+| # | Kriteria | Bukti yang diminta | `AT-IGD-*` |
+| ---: | --- | --- | --- |
+| 1 | Saringan "Menunggu penutupan" tersedia pada panel saringan yang sudah ada | Uji layar | `191` |
+| 2 | Saat aktif, hanya kunjungan menunggu penutupan yang tampil, masing-masing dengan alasan penahannya | Uji layar | `191` |
+| 3 | Jumlahnya terbaca petugas tanpa menghitung manual | Uji layar | — |
+| 4 | Saat saringan mati, daftar kembali seperti semula | Uji layar | — |
+| 5 | Keadaan kosong memakai kalimat yang menjelaskan, bukan tabel kosong | Uji layar | — |
+| 6 | Nol butir menu baru, nol route baru | `git diff --stat` | — |
+| 7 | `npm run lint` dan `npm run build` bersih | Keluaran perintah | — |
+
+**DoD.** Acceptance 1–7; laporan tracked.

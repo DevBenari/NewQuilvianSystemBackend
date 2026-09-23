@@ -78,7 +78,7 @@ Revision `1` **tidak dihapus**. Seluruh isinya ada di `roadmap/archive/revision-
 
 ## Grafik Urutan Dependency
 
-Roadmap ini memuat **43 task** menurut *Register status task* (22 September 2026 penutup: 40 baris + `BE-IGD-057`…`059`; sebelumnya 22 September 2026: 34 baris + `BE-IGD-051`…`056`. Angka `35` yang tertulis sebelumnya selisih satu dari register dan dikoreksi hari ini; sebelumnya dikoreksi 21 September 2026 — angka `23` tertinggal sejak `BE-IGD-040`
+Roadmap ini memuat **47 task** menurut *Register status task* (23 September 2026: 43 baris + `BE-IGD-060`…`063` gelombang R3.14; sebelumnya 22 September 2026 penutup: 40 baris + `BE-IGD-057`…`059`; sebelumnya 22 September 2026: 34 baris + `BE-IGD-051`…`056`. Angka `35` yang tertulis sebelumnya selisih satu dari register dan dikoreksi hari ini; sebelumnya dikoreksi 21 September 2026 — angka `23` tertinggal sejak `BE-IGD-040`
 ditambahkan), melewati batas 15 node untuk satu grafik. Karena itu grafik dipecah:
 satu **grafik ringkasan antar-gelombang** di bawah ini, lalu satu grafik per gelombang yang
 diletakkan di bawah judul gelombangnya — bagian 4 (`MVP-0`), R3.2 (`MVP-1`/`MVP-2`), R3.3
@@ -99,6 +99,7 @@ melintasi gelombang terwakili di sana:
 | `BE-IGD-055` menunggu `BE-IGD-025` (`MVP-2`) | `MVP2 --> R313` |
 | `BE-IGD-053` menunggu `BE-IGD-050` (R3.12) | `R312 --> R313` |
 | `BE-IGD-056` menunggu `BE-IGD-045` (`EPIC IGD-04` pada `MVP-5`) | `MVP5 --> R313S7` |
+| `BE-IGD-060` menunggu `BE-IGD-051` dan `BE-IGD-055` (R3.13) | `R313 --> R314` |
 
 *Diselaraskan 22 September 2026 (penutup):* R3.13 dipecah menjadi dua node ringkasan — `R313` (`EPIC IGD-11`,
 delapan task, tidak tertahan keputusan) dan `R313S7` (`EPIC IGD-12`, `BE-IGD-056`, ditahan `IGD-OQ-102`/`103`).
@@ -126,6 +127,7 @@ flowchart LR
     R312["✅ R3.12<br/>Dua task korektif 21 September"]:::selesai
     R313["🟡 R3.13 EPIC IGD-11<br/>Encounter-first, 8 task<br/>BE-IGD-051 siap"]:::sebagian
     R313S7["⛔ R3.13 EPIC IGD-12<br/>BE-IGD-056 dokter jaga<br/>menunggu IGD-OQ-102, 103"]:::terblokir
+    R314["R3.14 EPIC IGD-13<br/>Penutupan lewat disposisi, 4 task"]:::belum
     MVP6["⛔ MVP-6<br/>Kewenangan unit"]:::terblokir
     SEC{{"⛔ Security/Privacy owner<br/>BE-IGD-039, IGD-DEC-092"}}:::terblokir
     MAP{{"⛔ Pemetaan unit terisi<br/>0 dari 18 unit"}}:::terblokir
@@ -143,6 +145,7 @@ flowchart LR
     MVP2 --> R313
     MVP5 --> R313S7
     R312 --> R313
+    R313 --> R314
     SEC --> MVP6
     MAP --> MVP6
     R38 --> R39
@@ -213,6 +216,10 @@ flowchart LR
 | `BE-IGD-057` | Pasien pergi sebelum ditriage ditandai perawat (`POST no-show`, `IGD-DEC-142`) — **baru** | R3.13 | tanpa tanda — **siap**, prasyarat `BE-IGD-055` ✅ 23 September 2026 | — |
 | `BE-IGD-058` | Waktu tiba satu jalur; identitas kunjungan terkunci pada `PUT` (`IGD-DEC-152`, `154`, `159`) — **baru** | R3.13 | tanpa tanda — **siap**, prasyarat `BE-IGD-055` ✅ 23 September 2026 (kolom sumber waktu tiba sudah ada di basis data) | — |
 | `BE-IGD-059` | Jalur umum Registrasi dibatasi untuk encounter `Emergency` (`IGD-DEC-153`) — **baru** | R3.13 | tanpa tanda — menunggu `BE-IGD-051`, `BE-IGD-057` | — |
+| `BE-IGD-060` | Kunjungan tertutup saat disposisi dilaksanakan (`IGD-DEC-163`…`165`) — **baru** | R3.14 | tanpa tanda — **siap**, prasyarat `BE-IGD-051` ✅ dan `BE-IGD-055` ✅; membawa satu migration | — |
+| `BE-IGD-061` | Penutupan menyusul dari tiga titik pemicu (`IGD-DEC-165`) — **baru** | R3.14 | tanpa tanda — menunggu `BE-IGD-060` | — |
+| `BE-IGD-062` | Pembatalan disposisi ditolak pada kunjungan yang sudah selesai (`IGD-DEC-166`) — **baru** | R3.14 | tanpa tanda — menunggu `BE-IGD-060` | — |
+| `BE-IGD-063` | Saringan "menunggu penutupan" pada daftar kunjungan (`IGD-DEC-168`) — **baru** | R3.14 | tanpa tanda — menunggu `BE-IGD-060` | — |
 
 
 **Tindak lanjut `BE-IGD-017`** (task yang sama, ID tidak diganti): laporan tracked susulan.
@@ -2710,3 +2717,236 @@ kontrak, frontend.
 | 7 | Build 0 error, warning sama dengan baseline | Keluaran build **milik Rizki** | — |
 
 **DoD.** Acceptance 1–7; laporan tracked; `FE-IGD-036` boleh dirilis sesudah task ini aktif.
+
+---
+
+## R3.14 — `EPIC IGD-13`: penutupan kunjungan lewat disposisi yang dilaksanakan (`MVP-8`)
+
+Gelombang ini menutup celah yang ditemukan pemilik saat meninjau rekonsiliasi: pasien IGD yang dipulangkan atau
+naik rawat inap **tidak** menutup encounter-nya sendiri, karena penutupan kunjungan bergantung pada ingatan
+petugas menekan tombol selesaikan.
+
+| Butir | Isi |
+| --- | --- |
+| Approval | `IGD-DEC-170` — Rizki Gunawan, 23 September 2026. Kontrak terkunci |
+| Kontrak | API **`0.12.0`** §9; validation **`0.9.0`** §11; state **`0.6.0`** §9; permission/audit **`0.6.0`** §8; integration **`0.5.0`** §6 |
+| Keputusan | `IGD-DEC-163`…`169` (amendment pass 23 September 2026) |
+| Desain | `02-backend-architecture.md` §14; `erd/data-dictionary.md` §7; `flowcharts/penutupan-lewat-disposisi.md` |
+| PRD | `04-prd-to-mvp.md` §9 — `EPIC IGD-13`, `FR-IGD-086`…`091`, `AT-IGD-186`…`191` |
+| Snapshot source | Backend `rizkiG` `dce1f138`; frontend `RizkiV2` `c941012ac` |
+| Manifest | Revisi **8**, bagian 0i, hash tercatat |
+
+### R3.14.1 Mengapa urutannya begini
+
+1. **`BE-IGD-060` lebih dulu** karena ia melahirkan dua hal yang dipakai seluruh task sesudahnya: kolom penanda
+   asal penutupan, dan method penutupan susulan. Ia juga membawa satu-satunya migration gelombang ini.
+2. **`BE-IGD-061`, `062`, dan `063` boleh paralel** sesudahnya. Ketiganya menyentuh berkas yang berbeda dan tidak
+   ada yang membawa migration.
+3. **`FE-IGD-041` paling akhir**, karena saringannya baru ada sesudah `BE-IGD-063` aktif.
+
+### R3.14.2 Grafik urutan — `EPIC IGD-13` (`MVP-8`)
+
+```mermaid
+flowchart LR
+    classDef selesai fill:#DCFCE7,stroke:#16A34A,color:#14532D
+    classDef sebagian fill:#FEF9C3,stroke:#CA8A04,color:#713F12
+    classDef terblokir fill:#FEE2E2,stroke:#DC2626,color:#7F1D1D
+    classDef belum fill:#F1F5F9,stroke:#64748B,color:#0F172A
+    classDef luar fill:#EDE9FE,stroke:#7C3AED,color:#3B0764
+
+    subgraph prasyarat14["Prasyarat — gelombang lain yang sudah selesai"]
+        BEIGD051X["✅ BE-IGD-051<br/>Kunjungan berakhir menutup encounter"]:::luar
+        BEIGD055X["✅ BE-IGD-055<br/>Kunjungan lahir lewat Mulai Triage"]:::luar
+    end
+
+    BEIGD060["BE-IGD-060<br/>Disposisi dilaksanakan menutup kunjungan"]:::belum
+    BEIGD061["BE-IGD-061<br/>Penutupan menyusul tiga titik pemicu"]:::belum
+    BEIGD062["BE-IGD-062<br/>Pembatalan disposisi ditolak"]:::belum
+    BEIGD063["BE-IGD-063<br/>Saringan menunggu penutupan"]:::belum
+
+    BEIGD051X --> BEIGD060
+    BEIGD055X --> BEIGD060
+    BEIGD060 --> BEIGD061
+    BEIGD060 --> BEIGD062
+    BEIGD060 --> BEIGD063
+```
+
+Jumlah panah: **5**, sama dengan isi kolom `Dependency` keempat kartu (2 + 1 + 1 + 1).
+
+### R3.14.3 Gelombang eksekusi
+
+| Gelombang | Boleh mulai setelah | Task |
+| ---: | --- | --- |
+| 1 | `BE-IGD-051` ✅ dan `BE-IGD-055` ✅ | `BE-IGD-060` |
+| 2 | `BE-IGD-060` | `BE-IGD-061`, `BE-IGD-062`, `BE-IGD-063` — boleh paralel, nol migration |
+| 3 | `BE-IGD-063` | `FE-IGD-041` (roadmap frontend R3.13) |
+
+### R3.14.4 Migration
+
+| Task | Migration | Isi | Urutan |
+| --- | --- | --- | --- |
+| `BE-IGD-060` | `AddEmergencyVisitClosureSource` | 1 kolom `ClosedByDispositionId` pada `EmgVisit` + FK + index | Dibuat **sesudah** `AddEmergencyEncounterReconciliation` milik `BE-IGD-052` |
+
+Dibuat **Rizki sendiri**, satu per satu di branch yang sama supaya snapshot EF tidak bentrok. `Down()` berpenjaga
+menolak bila ada baris `ClosedByDispositionId IS NOT NULL`.
+
+---
+
+### `BE-IGD-060` — Kunjungan tertutup saat disposisi dilaksanakan
+
+| Field | Isi |
+| --- | --- |
+| **Status** | Tanpa tanda — **siap**, prasyarat `BE-IGD-051` ✅ dan `BE-IGD-055` ✅ |
+| **Outcome** | Perawat menandai tindak lanjut pasien sudah dilaksanakan, dan kunjungan IGD-nya tertutup saat itu juga beserta encounter-nya — kecuali masih ada kewajiban klinis yang belum tuntas, yang membuatnya tercatat menunggu penutupan |
+| **Slice** | `S5` · `EPIC IGD-13` · `MVP-8` |
+| **Requirement** | `FR-IGD-086`, `FR-IGD-087`, `FR-IGD-089` |
+| **Keputusan** | `IGD-DEC-163`, `164`, `165` (penanda asal), `167`; `IGD-DEC-170` (approval) |
+| **Kontrak** | validation `0.9.0` §11 aturan 1–7; state `0.6.0` §9; integration `0.5.0` §6; permission `0.6.0` §8 |
+| **Reuse** | Penjaga `EmergencyDispositionService.ValidateVisitClosureAsync` (tidak diubah); `TryApplyVisitStatus` dan `ApplyEncounterClosureAsync` dari `BE-IGD-051`; perpindahan kunjungan ke `Disposed` yang sudah ada di `EmergencyDispositionController` (`BE-IGD-021`) |
+| **Dependency** | `BE-IGD-051` ✅, `BE-IGD-055` ✅ |
+| **Owner** | Backend IGD; migration **dibuat Rizki** |
+| **Risiko** | Menengah — menutup kunjungan berarti menutup encounter dan mengunci catatan klinis. Dijaga penjaga penutupan yang sudah ada dan tidak diubah |
+
+#### Aturan
+
+| # | Aturan | Contoh |
+| ---: | --- | --- |
+| 1 | Disposisi berpindah ke `Executed` → sistem mencoba menutup kunjungan, untuk **semua** jenis disposisi | Pasien pulang, rujuk, meninggal, atau naik ranap — perlakuannya sama |
+| 2 | Percobaan memakai penjaga yang sudah ada **tanpa diubah**: `Disposed`, nol observasi aktif, nol kepergian menggantung, nol pesanan belum disikapi | — |
+| 3 | Penjaga menolak → perpindahan disposisi **tetap berhasil**; kunjungan tidak ditutup | Pasien sudah pulang pukul 14.00 walaupun observasinya lupa ditutup |
+| 4 | Berhasil → `VisitStatus = Completed`, `VisitCompletedAt` waktu server, `ClosedByDispositionId` diisi disposisi pemicunya, dan encounter ikut tertutup pada `SaveChanges` yang sama | — |
+| 5 | Kunjungan yang sudah `Completed`/`Cancelled` dilewati tanpa galat; status tidak pernah mundur | — |
+| 6 | Method penutupan **tidak** membuka transaksi dan **tidak** menyimpan sendiri — mengikuti pola `ApplyEncounterClosureAsync` | Bila aksi disposisi gagal disimpan, penutupan ikut batal |
+
+#### File yang akan disentuh
+
+| Berkas | Perubahan |
+| --- | --- |
+| `…/Models/EmgVisit.cs` | + `ClosedByDispositionId`, navigasi `ClosedByDisposition` |
+| `Repositories/Configurations/…/EmgVisitConfiguration.cs` | FK → `EmgDisposition`, `Restrict` |
+| `…/Services/EmergencyVisitService.cs` | + `TryCloseAfterDispositionAsync`; constructor + `EmergencyDispositionService` |
+| `…/Controllers/EmergencyDispositionController.cs` | Pemicu sesudah disposisi berpindah ke `Executed` (`:300`), sebelum `SaveChanges` |
+| `Migrations/` | `AddEmergencyVisitClosureSource` — **dibuat Rizki**, sesudah migration `BE-IGD-052` |
+
+**Tidak disentuh:** `Program.cs` (nol service baru — keduanya sudah terdaftar), berkas Registrasi, berkas kontrak, frontend, modul Bank Darah dan Laboratorium.
+
+#### Acceptance
+
+| # | Kriteria | Bukti yang diminta | `AT-IGD-*` |
+| ---: | --- | --- | --- |
+| 1 | Pasien tanpa penahan, disposisi ditandai dilaksanakan → kunjungan `Completed`, encounter tertutup, `ClosedByDispositionId` menunjuk disposisi itu | Uji API + baca baris | `186` |
+| 2 | Ada observasi aktif → disposisi tetap `Executed`, kunjungan **tidak** tertutup | Uji API | `187` langkah 1 |
+| 3 | Kunjungan yang ditutup manual tetap punya `ClosedByDispositionId` kosong | Uji API + baca baris | — |
+| 4 | Kunjungan yang sudah selesai dilewati tanpa galat saat disposisi disentuh lagi | Uji API | — |
+| 5 | Nol perubahan `Program.cs`; nol siklus dependency saat aplikasi dijalankan | `git diff --stat` + aplikasi hidup | — |
+| 6 | Migration: baris lama `null`; `Down()` berpenjaga diuji di basis data terpisah; snapshot hanya bertambah satu kolom, satu FK, satu index | Catatan uji + `git diff` snapshot | PRD §8.6 |
+| 7 | Build 0 error, warning sama dengan baseline | Keluaran build **milik Rizki** | — |
+
+**DoD.** Acceptance 1–7; laporan tracked; `BE-IGD-061`, `062`, `063` boleh mulai sesudahnya.
+
+---
+
+### `BE-IGD-061` — Penutupan menyusul dari tiga titik pemicu
+
+| Field | Isi |
+| --- | --- |
+| **Status** | Tanpa tanda — menunggu `BE-IGD-060` |
+| **Outcome** | Kunjungan yang tertahan karena satu kewajiban belum tuntas tertutup sendiri begitu petugas membereskan kewajiban terakhir itu, atas nama petugas tersebut |
+| **Slice** | `S5` · `EPIC IGD-13` · `MVP-8` |
+| **Requirement** | `FR-IGD-088` |
+| **Keputusan** | `IGD-DEC-165`; `IGD-DEC-136` (pelaku tidak dikarang) |
+| **Kontrak** | validation `0.9.0` §11 aturan 4–6; state `0.6.0` §9.2; API `0.12.0` §9.4 |
+| **Reuse** | `TryCloseAfterDispositionAsync` dari `BE-IGD-060` |
+| **Dependency** | `BE-IGD-060` |
+| **Owner** | Backend IGD |
+| **Risiko** | Menengah — penutupan terjadi sebagai efek samping aksi lain; kartu ini wajib menyentuh **ketiga** controller, karena satu yang tertinggal membuat celahnya tetap terbuka diam-diam |
+
+#### Titik pemicu yang wajib dipasang
+
+| # | Aksi | Berkas dan titik |
+| ---: | --- | --- |
+| 1 | Observasi berpindah keluar dari status aktif | `EmergencyObservationController.UpdateObservationStatus` (`:261`) |
+| 2 | Serah terima diterima, ditolak, atau dibatalkan | `EmergencyDepartureController` — `accept-handover` (`:162`), `reject-handover` (`:172`), `cancel` (`:206`) |
+| 3 | Sikap atas pesanan ditetapkan | `EmergencyDepartureController` — `order-items/{itemId}/action` (`:118`), `accept` (`:129`), `reject` (`:135`) |
+
+#### Acceptance
+
+| # | Kriteria | Bukti yang diminta | `AT-IGD-*` |
+| ---: | --- | --- | --- |
+| 1 | Kunjungan menunggu penutupan karena observasi; observasi ditutup → kunjungan tertutup, pelakunya petugas yang menutup observasi | Uji API + baca baris | `187` |
+| 2 | Kunjungan menunggu penutupan karena serah terima; serah terima diterima → kunjungan tertutup | Uji API | `188` |
+| 3 | Kunjungan menunggu penutupan karena pesanan; sikap pesanan ditetapkan → kunjungan tertutup | Uji API | — |
+| 4 | Aksi yang sama pada kunjungan yang **tidak** menunggu penutupan tidak berefek apa-apa | Uji API | — |
+| 5 | Masih ada penahan lain → kunjungan tetap menunggu, alasannya berganti | Uji API | — |
+| 6 | Ketiga controller benar-benar dipasang — nol titik tertinggal | Baca source + `git diff --stat` | — |
+| 7 | Build 0 error | Keluaran build **milik Rizki** | — |
+
+**DoD.** Acceptance 1–7; laporan tracked.
+
+---
+
+### `BE-IGD-062` — Pembatalan disposisi ditolak pada kunjungan yang sudah selesai
+
+| Field | Isi |
+| --- | --- |
+| **Status** | Tanpa tanda — menunggu `BE-IGD-060` |
+| **Outcome** | Petugas tidak dapat membatalkan tindak lanjut pasien yang kunjungannya sudah ditutup; pesannya menyuruh mendaftarkan episode baru |
+| **Slice** | `S5` · `EPIC IGD-13` · `MVP-8` |
+| **Requirement** | `FR-IGD-090` |
+| **Keputusan** | `IGD-DEC-166` |
+| **Kontrak** | validation `0.9.0` §11 aturan 8–9; API `0.12.0` §9.3 |
+| **Reuse** | `CanTransition` disposisi yang sudah ada; invariant `Completed` final dari `BE-IGD-018` |
+| **Dependency** | `BE-IGD-060` |
+| **Owner** | Backend IGD |
+| **Risiko** | Rendah |
+
+#### Acceptance
+
+| # | Kriteria | Bukti yang diminta | `AT-IGD-*` |
+| ---: | --- | --- | --- |
+| 1 | Batalkan disposisi pada kunjungan yang sudah selesai → `409` dengan kalimat validation §11 aturan 8 | Uji API | `189` |
+| 2 | Batalkan disposisi pada kunjungan yang **belum** selesai → tetap berhasil seperti sekarang | Uji API | — |
+| 3 | Nol jalur lain yang membuka kembali kunjungan yang sudah selesai | Baca source | — |
+| 4 | Build 0 error | Keluaran build **milik Rizki** | — |
+
+**DoD.** Acceptance 1–4; laporan tracked.
+
+---
+
+### `BE-IGD-063` — Saringan "menunggu penutupan" pada daftar kunjungan
+
+| Field | Isi |
+| --- | --- |
+| **Status** | Tanpa tanda — menunggu `BE-IGD-060` |
+| **Outcome** | Petugas dapat melihat daftar kunjungan yang tindak lanjutnya sudah dilaksanakan tetapi belum tertutup, beserta alasan penahannya dan jumlahnya |
+| **Slice** | `S5` · `EPIC IGD-13` · `MVP-8` |
+| **Requirement** | `FR-IGD-091` |
+| **Keputusan** | `IGD-DEC-164`, `168` |
+| **Kontrak** | API `0.12.0` §9.2; validation `0.9.0` §11 aturan 10 |
+| **Reuse** | Daftar kunjungan `EmergencyVisitController.GetAll` beserta `PagedResult<T>`; kalimat penahan dari penjaga penutupan yang sudah ada |
+| **Dependency** | `BE-IGD-060` |
+| **Owner** | Backend IGD |
+| **Risiko** | Rendah — baca-saja. Perhatian pada kinerja: alasan penahan dihitung **hanya** untuk baris halaman yang ditampilkan, bukan seluruh hasil |
+
+#### Endpoint yang berubah
+
+#### Health Services / Emergency Installation Management / Emergency Visit
+
+Base URL: `api/v1/health-services/emergency-installation-management/emergency-visits`
+
+| Method | Path | Perubahan | Hak akses |
+| --- | --- | --- | --- |
+| `GET` | `/` | + query `awaitingClosure` (`bool?`); response + `isAwaitingClosure`, `awaitingClosureReason` | `EmergencyVisit : Read` (tidak berubah) |
+
+#### Acceptance
+
+| # | Kriteria | Bukti yang diminta | `AT-IGD-*` |
+| ---: | --- | --- | --- |
+| 1 | `awaitingClosure=true` hanya menampilkan kunjungan berdisposisi dilaksanakan yang belum selesai | Uji API + hitungan | `191` |
+| 2 | Tiap baris memuat alasan penahannya memakai kalimat penjaga yang sudah ada | Uji API | `191` |
+| 3 | Tanpa parameter itu, hasil daftar sama persis seperti sebelumnya | Uji API pembanding | — |
+| 4 | `totalData` memberi jumlah kunjungan yang menunggu penutupan | Uji API | — |
+| 5 | Alasan dihitung hanya untuk baris halaman — nol `N+1` atas seluruh hasil | Baca source | — |
+| 6 | Build 0 error | Keluaran build **milik Rizki** | — |
+
+**DoD.** Acceptance 1–6; laporan tracked; `FE-IGD-041` boleh mulai sesudahnya.

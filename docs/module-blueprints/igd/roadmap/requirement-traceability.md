@@ -631,3 +631,58 @@ Seluruh `FR-IGD-069`…`085` dan `AT-IGD-166`…`185` terpetakan ke minimal satu
 **Gap versi pagi yang tertutup:** requirement tanpa FR/AT (kini `FR-IGD-069`…`085`, `AT-IGD-166`…`185`); kontrak belum
 diselaraskan (kini disetujui `IGD-DEC-157`); rumusan K1–K4 wajib dikonfirmasi (disahkan `IGD-DEC-148`); penautan
 identitas U1 (dibatalkan `IGD-DEC-151`).
+
+---
+
+## R3.14 — `EPIC IGD-13`: penutupan kunjungan lewat disposisi (`MVP-8`)
+
+| Butir | Isi |
+| --- | --- |
+| Snapshot source | Backend `rizkiG` `dce1f138`; frontend `RizkiV2` `c941012ac` |
+| Kontrak terkunci | API `0.12.0` §9; validation `0.9.0` §11; state `0.6.0` §9; permission/audit `0.6.0` §8; integration `0.5.0` §6 |
+| Approval | `IGD-DEC-170` — Rizki Gunawan, 23 September 2026 |
+| Desain turunan | `02-backend-architecture.md` §14; `03-frontend-architecture.md` §14; `erd/data-dictionary.md` §7; `flowcharts/penutupan-lewat-disposisi.md`; `04-prd-to-mvp.md` §9 |
+| Task | Backend R3.14: `BE-IGD-060`…`063` (4); frontend R3.13.1: `FE-IGD-041` (1) |
+
+### R3.14.1 Task
+
+| Task | Requirement / keputusan | Target implementasi | Kontrak | Dependency | Requirement approved | Delivery planned | Implementation complete | Runtime verified |
+| --- | --- | --- | --- | --- | :-: | :-: | :-: | :-: |
+| `BE-IGD-060` | `FR-IGD-086`, `087`, `089`; `IGD-DEC-163`…`165`, `167` | Kolom `EmgVisit.ClosedByDispositionId` + `TryCloseAfterDispositionAsync` + pemicu disposisi `Executed`; 1 migration | val §11 a.1–7; state §9; int §6 | `BE-IGD-051` ✅, `BE-IGD-055` ✅ | Ya | Ya | Tidak | Tidak |
+| `BE-IGD-061` | `FR-IGD-088`; `IGD-DEC-165`, `136` | Tiga titik pemicu susulan: observasi, serah terima, sikap pesanan | val §11 a.4–6; state §9.2; API §9.4 | `BE-IGD-060` | Ya | Ya | Tidak | Tidak |
+| `BE-IGD-062` | `FR-IGD-090`; `IGD-DEC-166` | Penolakan `409` pembatalan disposisi atas kunjungan selesai | val §11 a.8–9; API §9.3 | `BE-IGD-060` | Ya | Ya | Tidak | Tidak |
+| `BE-IGD-063` | `FR-IGD-091`; `IGD-DEC-164`, `168` | Saringan `awaitingClosure` + dua ruas response | API §9.2; val §11 a.10 | `BE-IGD-060` | Ya | Ya | Tidak | Tidak |
+| `FE-IGD-041` | `FR-IGD-091`; `IGD-DEC-164`, `168` | Saringan dan penanda pada daftar kunjungan IGD; nol menu baru | API §9.2 | `BE-IGD-063` | Ya | Ya | Tidak | Tidak |
+
+### R3.14.2 Requirement ke task dan uji
+
+| Requirement | Task backend | Task frontend | Skenario uji | Cakupan |
+| --- | --- | --- | --- | --- |
+| `FR-IGD-086` disposisi dilaksanakan menutup kunjungan | `BE-IGD-060` | — | `AT-IGD-186` | Lengkap |
+| `FR-IGD-087` penjaga menolak → menunggu penutupan | `BE-IGD-060` | `FE-IGD-041` (menampilkan) | `AT-IGD-187` langkah 1 | Lengkap |
+| `FR-IGD-088` penutupan menyusul saat penahan terakhir beres | `BE-IGD-061` | — | `AT-IGD-187`, `188` | Lengkap |
+| `FR-IGD-089` asal penutupan terbaca | `BE-IGD-060` | — | `AT-IGD-186` (baca baris) | Lengkap |
+| `FR-IGD-090` pembatalan disposisi ditolak | `BE-IGD-062` | — | `AT-IGD-189` | Lengkap |
+| `FR-IGD-091` saringan menunggu penutupan | `BE-IGD-063` | `FE-IGD-041` | `AT-IGD-191` | Lengkap |
+| — (konsekuensi hilir, bukan requirement IGD) | — | — | `AT-IGD-190` | Diuji sebagai perilaku modul Bank Darah dan Laboratorium; **nol** perubahan pada keduanya (`IGD-DEC-169`) |
+
+**Coverage gap:** nihil untuk slice ini. Keenam requirement punya task dan skenario uji.
+
+### R3.14.3 Keputusan ke task
+
+| Keputusan | Status | Direalisasikan |
+| --- | --- | --- |
+| `IGD-DEC-163` disposisi dilaksanakan menutup kunjungan, semua jenis | `approved` | `BE-IGD-060` |
+| `IGD-DEC-164` penjaga menolak → menunggu penutupan | `approved` | `BE-IGD-060`, `BE-IGD-063`, `FE-IGD-041` |
+| `IGD-DEC-165` penutupan menyusul otomatis, pelaku manusia, asal terbaca | `approved` | `BE-IGD-060` (penanda), `BE-IGD-061` (pemicu) |
+| `IGD-DEC-166` kunjungan selesai tidak dibuka kembali | `approved` | `BE-IGD-062` |
+| `IGD-DEC-167` berlaku ke depan; `BE-IGD-052` tidak diubah | `approved` | Ditegakkan dengan **tidak** mengubah kartu `BE-IGD-052` |
+| `IGD-DEC-168` saringan, bukan endpoint atau menu baru | `approved` | `BE-IGD-063`, `FE-IGD-041` |
+| `IGD-DEC-169` konsekuensi hilir diterima apa adanya | `approved` | Nol task — dicatat sebagai perilaku yang diterima; diuji `AT-IGD-190` |
+| `IGD-DEC-170` approval kontrak slice ini | `approved` | Gerbang gelombang R3.14 |
+
+### R3.14.4 Pertanyaan terbuka
+
+| ID | Isi | Menahan? |
+| --- | --- | --- |
+| `IGD-OQ-110` | Jumlah encounter `IsActive = false` tanpa tanda berakhir pada data lama; sisi source sudah dijawab (nol jalur), sisi data milik pemilik | Tidak — memengaruhi angka, bukan bentuk aturan |

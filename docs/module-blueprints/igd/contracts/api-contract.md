@@ -2,8 +2,8 @@
 
 | Field | Nilai |
 | --- | --- |
-| `contract_version` | `0.11.0` — encounter-first, 22 September 2026, **Rencana (belum tersedia)**. **Bukan aditif murni**: lima perilaku lama berubah (bagian 8.1 nomor 1–5, 7) — penjaga episode dan tanpa-antrean pada `POST /patient-encounters` bertipe Emergency, penolakan `PATCH …/status` dan `…/cancel` Registrasi untuk Emergency, penguncian `PUT /emergency-visits/{id}`; ditambah efek samping penutupan encounter, perluasan `active-episode`, empat endpoint baru pada `Emergency Visit`, dan grup baru `Emergency Encounter Reconciliation` (`IGD-DEC-139`, `142`…`148`, `150`…`154`). Kelayakan dokter jaga **tidak** dikontrakkan (`IGD-OQ-102`/`103`). Sebelumnya `0.10.0` — pra-cek episode IGD berjalan, 21 September 2026. **Aditif** (`BE-IGD-050`, `IGD-DEC-138`): satu endpoint baca-saja `GET emergency-visits/active-episode?patientId=` pada grup `Emergency Visit`, bagian 1.3. Hak akses `EmergencyVisit : Create` (aksi `Create` yang sudah ada — nol permission baru). `POST /` **tidak berubah**: penolakan `409` episode ganda tetap sebagai jaring pengaman. Nol ruas lama berubah, nol perubahan bentuk request, nol schema. **Tidak menutup** dua celah `IGD-OQ-093` (pendaftaran serentak; klien tanpa pra-cek). Sebelumnya `0.9.0` — nama pelaku pada event kepergian, 21 September 2026. **Aditif** (`BE-IGD-049`, `IGD-DEC-137`): `EmergencyDepartureEventResponse` bertambah `recordedByName` dan `approvedByName` (`string?`), bagian 2.4; `recordedByUserId` dan `approvedByUserId` tetap dikirim. Nol route baru, nol bentuk request berubah, nol perubahan hak akses, nol schema. Sebelumnya `0.8.0` — pengisian data lama penugasan dokter, 21 September 2026. **Relaxed nullability change for legacy response**, bukan aditif murni: `assignedByUserId` pada response §3.2 (`GET /`, `GET /active`) dapat bernilai `null` khusus baris riwayat hasil pengisian data lama `BE-IGD-048` yang pelaku historisnya tidak dapat dibuktikan (`IGD-DEC-136`). **Bukan** perubahan semantics penetapan atau pengalihan baru: pelaku tetap wajib dari token dan request tidak menerimanya. Nol route baru, nol ruas dihapus, nol bentuk request berubah. **Dampak konsumen**: kode yang mengasumsikan `assignedByUserId` selalu berupa GUID (misalnya tipe non-nullable di frontend) harus direvisi sebelum menampilkan baris legacy — lihat bagian 3.2. Sebelumnya `0.7.0` — kesiapan `EPIC IGD-04`, 16 September 2026 (ketiga). **Aditif**: response §3 bertambah proyeksi `doctorName` dan `assignedByName` (`IGD-DEC-129`, bagian 3.2), dan nama tabel Registrasi diselaraskan menjadi `RegPatientEncounter` (`IGD-DEC-132`). Nol route baru, nol bentuk request berubah, nol penolakan baru. *Sebelumnya `0.6.0` — pemantauan observasi bertanda vital, 16 September 2026, **aditif**: bagian 7 baru untuk `Emergency Observation Detail` — bentuk request tidak bertambah, response bertambah proyeksi `vitalSign` dan `recordedByName`, dan dua penolakan baru ditegakkan (`IGD-DEC-122`, `IGD-DEC-126`). Ruas `recordedByUserId` pada request menjadi **usang tetapi tetap diterima**. Lihat manifest bagian 0d. Sebelumnya `0.5.0` — penyelarasan teks 15 September 2026: query `at` pada §3 dan penolakan catatan observasi lebih dari 1000 karakter* |
-| Status | `draft`, **kecuali bagian 8 (encounter-first) yang `approved`** (`IGD-DEC-157`, 22 September 2026). Bagian 8 tetap **Rencana (belum tersedia)** sampai task-nya selesai |
+| `contract_version` | `0.12.0` — penutupan kunjungan lewat disposisi, 23 September 2026, **Rencana (belum tersedia)**, status `draft`: bagian 9 baru (penutupan kunjungan lewat disposisi, `IGD-DEC-163`…`169`). **Aditif** terhadap `0.11.0` kecuali satu penolakan baru pada pembatalan disposisi (bagian 9.1 nomor 3). Sebelumnya `0.11.0` — encounter-first, 22 September 2026, **Rencana (belum tersedia)**. **Bukan aditif murni**: lima perilaku lama berubah (bagian 8.1 nomor 1–5, 7) — penjaga episode dan tanpa-antrean pada `POST /patient-encounters` bertipe Emergency, penolakan `PATCH …/status` dan `…/cancel` Registrasi untuk Emergency, penguncian `PUT /emergency-visits/{id}`; ditambah efek samping penutupan encounter, perluasan `active-episode`, empat endpoint baru pada `Emergency Visit`, dan grup baru `Emergency Encounter Reconciliation` (`IGD-DEC-139`, `142`…`148`, `150`…`154`). Kelayakan dokter jaga **tidak** dikontrakkan (`IGD-OQ-102`/`103`). Sebelumnya `0.10.0` — pra-cek episode IGD berjalan, 21 September 2026. **Aditif** (`BE-IGD-050`, `IGD-DEC-138`): satu endpoint baca-saja `GET emergency-visits/active-episode?patientId=` pada grup `Emergency Visit`, bagian 1.3. Hak akses `EmergencyVisit : Create` (aksi `Create` yang sudah ada — nol permission baru). `POST /` **tidak berubah**: penolakan `409` episode ganda tetap sebagai jaring pengaman. Nol ruas lama berubah, nol perubahan bentuk request, nol schema. **Tidak menutup** dua celah `IGD-OQ-093` (pendaftaran serentak; klien tanpa pra-cek). Sebelumnya `0.9.0` — nama pelaku pada event kepergian, 21 September 2026. **Aditif** (`BE-IGD-049`, `IGD-DEC-137`): `EmergencyDepartureEventResponse` bertambah `recordedByName` dan `approvedByName` (`string?`), bagian 2.4; `recordedByUserId` dan `approvedByUserId` tetap dikirim. Nol route baru, nol bentuk request berubah, nol perubahan hak akses, nol schema. Sebelumnya `0.8.0` — pengisian data lama penugasan dokter, 21 September 2026. **Relaxed nullability change for legacy response**, bukan aditif murni: `assignedByUserId` pada response §3.2 (`GET /`, `GET /active`) dapat bernilai `null` khusus baris riwayat hasil pengisian data lama `BE-IGD-048` yang pelaku historisnya tidak dapat dibuktikan (`IGD-DEC-136`). **Bukan** perubahan semantics penetapan atau pengalihan baru: pelaku tetap wajib dari token dan request tidak menerimanya. Nol route baru, nol ruas dihapus, nol bentuk request berubah. **Dampak konsumen**: kode yang mengasumsikan `assignedByUserId` selalu berupa GUID (misalnya tipe non-nullable di frontend) harus direvisi sebelum menampilkan baris legacy — lihat bagian 3.2. Sebelumnya `0.7.0` — kesiapan `EPIC IGD-04`, 16 September 2026 (ketiga). **Aditif**: response §3 bertambah proyeksi `doctorName` dan `assignedByName` (`IGD-DEC-129`, bagian 3.2), dan nama tabel Registrasi diselaraskan menjadi `RegPatientEncounter` (`IGD-DEC-132`). Nol route baru, nol bentuk request berubah, nol penolakan baru. *Sebelumnya `0.6.0` — pemantauan observasi bertanda vital, 16 September 2026, **aditif**: bagian 7 baru untuk `Emergency Observation Detail` — bentuk request tidak bertambah, response bertambah proyeksi `vitalSign` dan `recordedByName`, dan dua penolakan baru ditegakkan (`IGD-DEC-122`, `IGD-DEC-126`). Ruas `recordedByUserId` pada request menjadi **usang tetapi tetap diterima**. Lihat manifest bagian 0d. Sebelumnya `0.5.0` — penyelarasan teks 15 September 2026: query `at` pada §3 dan penolakan catatan observasi lebih dari 1000 karakter* |
+| Status | `draft`, **kecuali bagian 8 (encounter-first) yang `approved`** (`IGD-DEC-157`, 22 September 2026). Bagian 8 tetap **Rencana (belum tersedia)** sampai task-nya selesai. Bagian 9 **`approved`** (`IGD-DEC-170`, 23 September 2026) |
 | Owner | Product/Domain Owner IGD: **Rizki Gunawan** (`IGD-DEC-089`) |
 | `approved_by` / `approved_at` | **Rizki Gunawan / 2026-09-22** — bagian 8 (encounter-first) lewat `IGD-DEC-157`. Bagian lain tetap `draft`; versi `approved` penuh terakhir `0.2.0` |
 | `input_revision` | `00-interview-decisions.md` **154 keputusan**, terakhir `IGD-DEC-154`; `01-existing-capability-map.md` revision `3` + suplemen `3.1` + suplemen `3.2`; `evidence/02-requirement-completeness-gate.md` `0.1` (slice encounter-first). *Sebelumnya 126 keputusan sampai `IGD-DEC-126`* |
@@ -867,3 +867,68 @@ K2/K3/K4 hanya muncul di preview.
 
 Endpoint kelayakan dokter dan ruas override **belum dikontrakkan** (`IGD-OQ-102`, `IGD-OQ-103`). Perilaku
 bagian 3 tetap berlaku.
+
+## 9. Penutupan lewat disposisi — **Rencana (belum tersedia)**, baru pada `0.12.0`
+
+Disusun dari `IGD-DEC-163`…`169`. **Aditif murni**: nol endpoint baru, nol ruas request berubah, nol penolakan
+baru pada endpoint kunjungan. Yang bertambah hanya satu saringan dan dua ruas response, plus satu penolakan baru
+pada pembatalan disposisi.
+
+**Status bagian ini: `draft`** — menunggu approval pemilik.
+
+### 9.1 Dampak kompatibilitas terhadap `0.11.0`
+
+| # | Perubahan | Sifat | Akibat bagi pemanggil |
+| ---: | --- | --- | --- |
+| 1 | `GET /emergency-visits` bertambah query `awaitingClosure` | Aditif | Tanpa parameter itu, perilakunya sama persis seperti sebelumnya |
+| 2 | `EmergencyVisitResponse` bertambah `isAwaitingClosure` dan `awaitingClosureReason` | Aditif | Ruas lama tidak berubah |
+| 3 | `PATCH /emergency-dispositions/{id}/disposition-status` menolak pembatalan atas kunjungan yang sudah selesai | **Memutus perilaku** | Pembatalan disposisi yang dulu diterima kini `409` bila kunjungannya sudah ditutup |
+| 4 | Penyelesaian kunjungan dapat terjadi sebagai akibat aksi disposisi, observasi, kepergian, atau sikap pesanan | Perilaku berubah | Pemanggil keempat endpoint itu bisa mendapati kunjungan berubah menjadi `Completed` pada respons berikutnya |
+
+### 9.2 `Emergency Visit` — saringan dan ruas baru
+
+`[Tags("Health Services / Emergency Installation Management / Emergency Visit")]` · Base URL
+`api/v1/health-services/emergency-installation-management/emergency-visits`
+
+| Method | Path | Perubahan | Hak akses | Keadaan |
+| --- | --- | --- | --- | --- |
+| `GET` | `/` | + query `awaitingClosure`; response + dua ruas | `EmergencyVisit : Read` (tidak berubah) | **Rencana** |
+
+**Query baru.**
+
+| Parameter | Tipe | Wajib | Bawaan | Aturan |
+| --- | --- | :-: | --- | --- |
+| `awaitingClosure` | `bool?` | Tidak | — | `true` hanya menampilkan kunjungan yang punya disposisi `Executed` dan belum selesai; `false` kebalikannya; kosong berarti tidak menyaring |
+
+**Ruas baru pada `EmergencyVisitResponse`.**
+
+| Ruas | Tipe | Isi |
+| --- | --- | --- |
+| `isAwaitingClosure` | `bool` | Benar bila kunjungan punya disposisi `Executed` tetapi belum selesai |
+| `awaitingClosureReason` | `string?` | Alasan penahannya, memakai kalimat penjaga penutupan yang sudah ada — misalnya *"Masih ada observasi yang belum diselesaikan."* Diisi hanya untuk baris yang memang menunggu penutupan |
+
+### 9.3 `Emergency Disposition` — satu penolakan baru
+
+`[Tags("Health Services / Emergency Installation Management / Emergency Disposition")]` · Base URL
+`api/v1/health-services/emergency-installation-management/emergency-dispositions`
+
+| Method | Path | Perubahan | Hak akses | Kode status |
+| --- | --- | --- | --- | --- |
+| `PATCH` | `/{id}/disposition-status` | Ke `Executed`: memicu percobaan penutupan kunjungan. Ke `Cancelled` pada kunjungan yang sudah selesai: **ditolak** | `EmergencyDisposition : Update` (tidak berubah) | + **`409` baru** |
+
+Pesan `409` mengikuti validation §11 aturan 8. Perpindahan ke `Executed` **tidak pernah** gagal hanya karena
+penjaga penutupan menolak (validation §11 aturan 3).
+
+### 9.4 Efek samping pada tiga endpoint yang sudah ada
+
+Ketiganya tidak berubah bentuk request maupun response-nya; yang bertambah hanya kemungkinan kunjungan ikut
+tertutup pada penyimpanan yang sama.
+
+| Endpoint | Efek samping baru |
+| --- | --- |
+| `PATCH /emergency-observations/{id}/observation-status` | Bila observasi itu penahan terakhir, kunjungan ikut tertutup |
+| `POST /emergency-departures/{id}/accept-handover`, `…/reject-handover`, `PATCH …/cancel` | Sama |
+| `PATCH /emergency-departures/{id}/order-items/{itemId}/action`, `POST …/accept`, `POST …/reject` | Sama |
+
+**Nol hak akses baru** pada keempat jalur pemicu: petugas menutup kunjungan sebagai akibat aksi yang memang sudah
+menjadi wewenangnya (permission §8).

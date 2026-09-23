@@ -374,3 +374,24 @@ Unique `(RunId, EncounterId)`.
 `Confirmed = 2`); `EmergencyReconciliationClass` (`K1 = 1`, `K1Outpatient = 2`, `K2 = 3`, `K3 = 4`, `K4 = 5`);
 `EmergencyReconciliationRunStatus` (`Executed = 1`, `Reversed = 2`). `EmergencyVisitStartMode` hanya untuk request,
 tidak disimpan.
+
+## 7. Penutupan lewat disposisi — 23 September 2026
+
+Slice `IGD-DEC-163`…`169` menambah **satu kolom** dan tidak membuat tabel baru. Sepuluh kolom warisan
+`IdentityModel` tidak diulang di sini; lihat kepala dokumen.
+
+### `EmgVisit` — Diperbarui (pemilik: IGD)
+
+| Kolom | Tipe | Wajib | Bawaan | Aturan | Sensitif |
+| --- | --- | :-: | --- | --- | :-: |
+| `ClosedByDispositionId` | `uuid?` | Tidak | `null` | FK `EmgDisposition.Id`, `DeleteBehavior.Restrict`, index FK bawaan konvensi. Terisi hanya bila penutupan berasal dari disposisi yang dilaksanakan; kosong berarti kunjungan ditutup petugas lewat aksi selesaikan kunjungan, atau belum ditutup | Tidak |
+
+**Cara membacanya.** `VisitCompletedAt` terisi **dan** `ClosedByDispositionId` kosong berarti penutupan manual.
+Keduanya terisi berarti penutupan berasal dari disposisi, dan kolom itu menunjuk disposisi mana. `VisitCompletedAt`
+kosong berarti kunjungan belum selesai — apa pun isi kolom lain.
+
+### Tabel yang **tidak** berubah pada slice ini
+
+`EmgDisposition`, `EmgObservation`, `EmgDeparture`, `EmgHandoverOrderItem`, `EmgDispositionType`, dan
+`RegPatientEncounter` seluruhnya dibaca apa adanya. Nol kolom baru, nol index baru, nol perubahan perilaku hapus.
+`RegPatientEncounter` tetap ditulis hanya lewat daftar kolom tertutup integration §5.2.

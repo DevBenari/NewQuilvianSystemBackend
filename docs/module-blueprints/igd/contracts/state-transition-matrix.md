@@ -2,8 +2,8 @@
 
 | Field | Nilai |
 | --- | --- |
-| `contract_version` | `0.5.0` — encounter-first, 22 September 2026, **Rencana (belum tersedia)**. **Aditif**: bagian 8 baru (titik lahir kunjungan, pengakhiran encounter Emergency oleh IGD, enum `EmergencyArrivalTimeSource` dan `EmergencyReconciliationRunStatus`); bagian 1–7 **tidak** diubah. Sebelumnya `0.4.0` — revisi 6. **Aditif**: bagian 6a murni baru, nol bagian lama diubah |
-| Status | `draft`, **kecuali bagian 1, 1.1, 1.2, dan bagian 8 (encounter-first) yang `approved`** |
+| `contract_version` | `0.6.0` — penutupan kunjungan lewat disposisi, 23 September 2026, **Rencana (belum tersedia)**, status `draft`: bagian 9 baru (pemicu penutupan kunjungan, `IGD-DEC-163`…`167`). **Aditif** — nol status baru, nol transisi baru. Sebelumnya `0.5.0` — encounter-first, 22 September 2026, **Rencana (belum tersedia)**. **Aditif**: bagian 8 baru (titik lahir kunjungan, pengakhiran encounter Emergency oleh IGD, enum `EmergencyArrivalTimeSource` dan `EmergencyReconciliationRunStatus`); bagian 1–7 **tidak** diubah. Sebelumnya `0.4.0` — revisi 6. **Aditif**: bagian 6a murni baru, nol bagian lama diubah |
+| Status | `draft`, **kecuali bagian 1, 1.1, 1.2, dan bagian 8 (encounter-first) yang `approved`**. Bagian 9 **`approved`** (`IGD-DEC-170`, 23 September 2026) |
 | Owner | Product/Domain Owner IGD: **Rizki Gunawan** (`IGD-DEC-089`) |
 | `approved_by` / `approved_at` | **Rizki Gunawan / 2026-08-24** — terbatas pada bagian 1, 1.1, 1.2 (`EmergencyVisitStatus`) lewat `IGD-DEC-093`. **Rizki Gunawan / 2026-09-22** — bagian 8 (encounter-first) lewat `IGD-DEC-157`. Bagian 2 sampai 7 tetap `draft` |
 | Versi sebelumnya | `0.4.0`, `0.3.0`, sebelumnya `0.2.0` |
@@ -260,3 +260,47 @@ Preview **tidak** membuat run.
 | Status "Menunggu Triage" sebagai nilai baru di `EncounterStatus` | Keadaan itu sudah terbaca dari "encounter belum berakhir dan belum punya kunjungan"; menambah nilai enum di tabel global menyentuh seluruh modul pembaca status |
 | Status `LeftWithoutBeingSeen` tersendiri | `IGD-DEC-142` memilih `NoShow` yang sudah ada |
 | Pembatalan NoShow | `IGD-DEC-142` — final |
+
+## 9. Pemicu penutupan kunjungan — baru pada `0.6.0`, **Rencana (belum tersedia)**
+
+Bagian 1 dan 8 **tidak** diubah: nol status baru, nol transisi baru. Yang baru hanya **siapa yang memicu**
+perpindahan `Disposed` → `Completed` yang sudah sah. Keputusan: `IGD-DEC-163`…`167`.
+
+**Status bagian ini: `draft`** — menunggu approval pemilik.
+
+### 9.1 Dua jalan menuju `Completed`
+
+| Jalan | Pemicu | Pelaku | Penjaga | Penanda asal |
+| --- | --- | --- | --- | --- |
+| Manual (sudah ada) | Petugas menekan selesaikan kunjungan (`PATCH /emergency-visits/{id}/complete`) | Petugas itu | Penjaga penutupan §6 | `ClosedByDispositionId` **kosong** |
+| Susulan disposisi (**baru**) | Disposisi berpindah ke `Executed`, atau penahan terakhir dibereskan sesudahnya | Petugas yang melakukan aksi pemicu | Penjaga penutupan §6 yang **sama** | `ClosedByDispositionId` **terisi** |
+
+Kedua jalan memakai penjaga transisi `BE-IGD-018` yang sama, sehingga `Completed` tetap satu-satunya titik akhir
+dan tetap final.
+
+### 9.2 Empat titik pemicu
+
+| # | Aksi petugas | Kapan penutupan dicoba |
+| ---: | --- | --- |
+| 1 | Disposisi berpindah ke `Executed` | Segera sesudah kunjungan dipindahkan ke `Disposed` pada aksi yang sama |
+| 2 | Observasi berpindah keluar dari status aktif | Sesudah status observasi disimpan |
+| 3 | Serah terima diterima, ditolak, atau dibatalkan | Sesudah status serah terima disimpan |
+| 4 | Sikap atas pesanan yang ditolak unit penerima ditetapkan | Sesudah sikap pesanan disimpan |
+
+Titik 2, 3, dan 4 hanya berbuat sesuatu bila kunjungan itu memang **menunggu penutupan** — yaitu punya disposisi
+`Executed` dan belum selesai. Bila tidak, aksinya berjalan seperti biasa tanpa efek samping.
+
+### 9.3 Keadaan "menunggu penutupan"
+
+Bukan status baru pada `EmergencyVisitStatus`, melainkan **keadaan yang terbaca** dari data yang sudah ada:
+kunjungan `Disposed`, punya disposisi `Executed`, dan penjaga penutupan masih menolak. Status enum tidak ditambah
+karena keadaan ini sementara dan sudah dapat dihitung — menambah nilai enum akan menyentuh seluruh modul pembaca
+status kunjungan.
+
+### 9.4 Transisi yang ditolak
+
+| Upaya | Ditolak karena |
+| --- | --- |
+| Membatalkan disposisi `Executed` pada kunjungan yang sudah `Completed` | `IGD-DEC-166` — penyelesaian kunjungan final (validation §11 aturan 8) |
+| Penutupan susulan atas kunjungan `Completed`/`Cancelled` | Penjaga transisi `BE-IGD-018`; dilewati diam-diam, bukan galat |
+| Membuka kembali kunjungan yang sudah selesai | Tidak ada jalur mana pun yang menyediakannya |

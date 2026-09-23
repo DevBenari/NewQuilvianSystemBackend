@@ -1292,3 +1292,142 @@ Bukan keputusan bisnis baru — pilihan realisasi yang agent ambil dan perlu dil
 | `IGD-OQ-104` | Waktu tiba hanya dapat diubah lewat `PATCH /{id}/arrival-time`; `PUT` menolak perubahannya | Satu jalur yang menegakkan `IGD-DEC-152` dan menulis penanda; nol layar memakai `PUT` | `PUT` menjalankan validasi yang sama dan ikut menandai `Confirmed` |
 | `IGD-OQ-105` | Konfirmasi waktu tiba sesudah Tangani Segera diwajibkan **di layar** triage susulan, tetapi backend **tidak** menolak penyimpanan triage bila waktu tiba masih `Fallback` | Backend yang menahan catatan klinis karena urusan waktu tiba berisiko menunda dokumentasi pasien gawat | Backend menolak triage selama `Fallback` |
 | `IGD-OQ-106` | Ruas kedatangan non-waktu (cara datang, jenis kasus, keluhan, penanda pasien tanpa identitas) diisi opsional pada Mulai Triage; keluhan diisi awal dari `RegPatientEncounter.ChiefComplaint` | Loket tidak lagi melahirkan kunjungan, sehingga ruas milik kunjungan tidak punya tempat di loket | Loket tetap mengisi, disimpan sementara di tempat lain (butuh keputusan penyimpanan) |
+
+## 14. Penutupan kunjungan lewat disposisi yang dilaksanakan — 23 September 2026
+
+Desain target untuk `IGD-DEC-163`…`169` (amendment pass 23 September 2026). Slice ini **sempit**: satu aturan baru,
+satu kolom baru, nol tabel baru, nol endpoint baru. Status seluruh isi bagian ini: `draft`, **Rencana (belum tersedia)**.
+
+Masukan: decision log bagian "Amendment pass 23 September 2026"; capability map suplemen revision 3.3
+(`dce1f138`); gerbang requirement `S5` `READY_FOR_DOMAIN_DESIGN`. Keberlakuan QBE: `TOUCHED LEGACY` untuk
+`EmgVisit`, `EmergencyVisitService`, dan empat controller pemicu; `NEW CODE` untuk method penutupan susulan.
+
+### 14.1 Tabel kepemilikan data
+
+| Kelompok data | Pemilik | Dipakai slice ini | Dibuat ulang? |
+| --- | --- | --- | --- |
+| Kunjungan IGD (`EmgVisit`) | IGD | Ya — **Diperbarui**, satu kolom penanda asal penutupan | — |
+| Disposisi IGD (`EmgDisposition`) | IGD | Ya — dibaca sebagai pemicu; **nol kolom baru** | Tidak |
+| Observasi, kepergian, pesanan serah terima | IGD | Ya — dibaca sebagai penahan; **nol kolom baru** | Tidak |
+| Encounter pasien (`RegPatientEncounter`) | Registration Management | Ya — ditutup lewat jalur `BE-IGD-051` yang sudah ada, daftar kolom tertutup integration §5.2 | **Tidak**. Nol kolom baru |
+| Order darah (`BbkBloodOrder`), order laboratorium (`LabOrder`) | Bank Darah, Laboratorium | **Tidak disentuh** — hanya menjadi pembaca hilir (`IGD-DEC-169`) | Tidak |
+
+### 14.2 Class diagram — pemicu penutupan
+
+```mermaid
+classDiagram
+    class EmgVisit {
+        <<Diperbarui · IGD>>
+        +Guid Id
+        +EmergencyVisitStatus VisitStatus
+        +DateTime? VisitCompletedAt
+        +Guid? ClosedByDispositionId
+    }
+    class EmgDisposition {
+        <<Sudah ada · IGD>>
+        +Guid Id
+        +Guid EmergencyVisitId
+        +EmergencyDispositionStatus Status
+        +DateTime? ExecutedAt
+    }
+    class EmergencyVisitService {
+        <<Diperbarui · IGD>>
+        +TryApplyVisitStatus(...) bool
+        +ApplyEncounterClosureAsync(...) bool
+        +TryCloseAfterDispositionAsync(visitId, actor, now, ct) HasilPenutupanSusulan
+    }
+    class EmergencyDispositionService {
+        <<Sudah ada · IGD>>
+        +ValidateVisitClosureAsync(visit, ct) string?
+    }
+    class EmergencyDepartureService {
+        <<Sudah ada · IGD>>
+        +AmbilPesananPenahanPenutupanAsync(visitId, ct) string[]
+    }
+    EmergencyVisitService ..> EmergencyDispositionService : memanggil penjaga
+    EmergencyDispositionService ..> EmergencyDepartureService : pesanan penahan
+    EmergencyVisitService ..> EmgVisit : menutup
+    EmergencyVisitService ..> EmgDisposition : membaca pemicu
+```
+
+**Nol siklus dependency.** `EmergencyDispositionService` hanya bergantung pada `ApplicationDbContext` dan
+`EmergencyDepartureService`; ia **tidak** memanggil `EmergencyVisitService`. Karena itu `EmergencyVisitService`
+boleh memanggilnya. Keduanya sudah terdaftar di `Program.cs` (`:515`, `:520`), sehingga slice ini **nol perubahan
+`Program.cs`**.
+
+### 14.3 Penjelasan class
+
+| Class | Jenis | Status | Lokasi file | Tanggung jawab |
+| --- | --- | --- | --- | --- |
+| `EmgVisit` | Model | **Diperbarui** | `Areas/HealthServices/EmergencyInstallationManagement/Models/EmgVisit.cs` | + `ClosedByDispositionId` beserta navigasi `ClosedByDisposition` |
+| `EmergencyVisitService` | Service | **Diperbarui** | `…/Services/EmergencyVisitService.cs` | + `TryCloseAfterDispositionAsync` dan record hasilnya; constructor + `EmergencyDispositionService`. **Tidak** menyimpan sendiri — penyimpanan tetap milik pemanggil, sama seperti `ApplyEncounterClosureAsync` |
+| `EmergencyDispositionController` | Controller | **Diperbarui** | `…/Controllers/EmergencyDispositionController.cs` | Sesudah disposisi berpindah ke `Executed` (`:300` `UpdateDispositionStatus`), panggil penutupan susulan sebelum `SaveChanges`. Tambah penolakan pembatalan atas kunjungan yang sudah selesai |
+| `EmergencyObservationController` | Controller | **Diperbarui** | `…/Controllers/EmergencyObservationController.cs` | Sesudah observasi tidak lagi aktif (`:261` `UpdateObservationStatus`), panggil penutupan susulan |
+| `EmergencyDepartureController` | Controller | **Diperbarui** | `…/Controllers/EmergencyDepartureController.cs` | Sesudah serah terima diterima/ditolak/dibatalkan (`:162`, `:172`, `:206`) dan sesudah sikap pesanan ditetapkan (`:118`, `:129`, `:135`), panggil penutupan susulan |
+| `EmergencyVisitController` | Controller | **Diperbarui** | `…/Controllers/EmergencyVisitController.cs` | `GET /` bertambah saringan `awaitingClosure`; `EmergencyVisitResponse` bertambah dua ruas penahan |
+| `EmergencyVisitDtos.cs` | DTO | **Diperbarui** | `…/DTOs/EmergencyVisitDtos.cs` | + `IsAwaitingClosure`, `AwaitingClosureReason` pada response |
+| `EmgVisitConfiguration` | Configuration | **Diperbarui** | `Repositories/Configurations/HealthServices/EmergencyInstallationManagement/EmgVisitConfiguration.cs` | FK `ClosedByDispositionId` → `EmgDisposition`, `Restrict` |
+
+### 14.4 Arsitektur folder
+
+```text
+Areas/HealthServices/EmergencyInstallationManagement/
+├── Controllers/
+│   ├── EmergencyDispositionController.cs     Diperbarui  (pemicu 1 + penolakan pembatalan)
+│   ├── EmergencyObservationController.cs     Diperbarui  (pemicu 2)
+│   ├── EmergencyDepartureController.cs       Diperbarui  (pemicu 3 dan 4)
+│   └── EmergencyVisitController.cs           Diperbarui  (saringan + ruas response)
+├── DTOs/EmergencyVisitDtos.cs                Diperbarui
+├── Models/EmgVisit.cs                        Diperbarui  (+1 kolom)
+└── Services/EmergencyVisitService.cs         Diperbarui  (+1 method)
+
+Repositories/Configurations/…/EmgVisitConfiguration.cs   Diperbarui  (+1 FK)
+Migrations/                                              1 migration — dibuat Rizki
+Program.cs                                               TIDAK disentuh
+```
+
+### 14.5 Status model dan kolom
+
+**`EmgVisit` — Diperbarui** (`public."EmgVisit"`)
+
+| Kolom | Tipe | Wajib | Bawaan | Validasi | Sensitif |
+| --- | --- | :-: | --- | --- | :-: |
+| `ClosedByDispositionId` | `uuid?` | Tidak | `null` | FK `EmgDisposition`, `Restrict`. Terisi **hanya** bila penutupan berasal dari disposisi yang dilaksanakan; kosong berarti ditutup petugas lewat aksi selesaikan kunjungan | Tidak |
+
+Index: satu index FK bawaan konvensi EF. Perilaku hapus: tidak berubah. Nol kolom baru pada tabel lain.
+
+Kolom ini yang memenuhi `IGD-DEC-165`: riwayat kunjungan dapat menunjukkan bahwa penutupan berasal dari disposisi,
+dan disposisi mana. Tanpanya, penutupan otomatis tidak dapat dibedakan dari penutupan manual.
+
+### 14.6 Rencana migration
+
+| Urutan | Nama | Isi | Tanpa downtime | Data lama | Cara mundur | Task |
+| ---: | --- | --- | :-: | --- | --- | --- |
+| 1 | `AddEmergencyVisitClosureSource` | 1 kolom `ClosedByDispositionId` pada `EmgVisit` + FK + index | Ya — kolom nullable tanpa bawaan | Seluruh baris lama `null` (artinya: ditutup manual atau belum ditutup) | `Down()` **berpenjaga**: menolak bila ada baris `ClosedByDispositionId IS NOT NULL`, supaya jejak asal penutupan tidak hilang diam-diam | Kartu baru R3.14 |
+
+Dibuat **Rizki sendiri**, di atas migration terakhir yang berlaku. Agent berhenti sebelum `dotnet ef migrations add`.
+
+### 14.7 Rencana data master awal
+
+**Tidak ada master baru.** `IGD-DEC-163` sengaja tidak menambah kolom penanda pada `EmgDispositionType`: aturan
+berlaku untuk semua jenis disposisi, sehingga jenis yang ditambahkan rumah sakit kelak ikut berlaku tanpa
+pengisian master apa pun.
+
+### 14.8 Konkurensi
+
+| Risiko | Penjaga |
+| --- | --- |
+| Dua petugas membereskan dua penahan terakhir bersamaan, keduanya mencoba menutup | `TryApplyVisitStatus` menolak perpindahan dari `Completed`, sehingga percobaan kedua tidak berbuat apa-apa dan tidak menimpa `VisitCompletedAt` |
+| Penutupan susulan berbarengan dengan aksi selesaikan kunjungan manual | Sama — satu-satunya penulis `VisitStatus` tetap penjaga transisi `BE-IGD-018` |
+| Penahan dibereskan lalu segera muncul penahan baru | Penutupan dievaluasi pada saat aksi disimpan; bila penahan baru muncul sesudahnya, kunjungan sudah tertutup dan penahan itu ditolak jalur masing-masing |
+
+### 14.9 Yang sengaja tidak dibuat
+
+| Tidak dibuat | Sebab |
+| --- | --- |
+| Proses latar penutup terjadwal | `IGD-DEC-165` menolak penutupan tanpa pelaku manusia; pelaku selalu petugas yang membereskan penahan terakhir |
+| Kolom penanda "menutup kunjungan" pada `EmgDispositionType` | `IGD-DEC-163` berlaku untuk semua jenis; kolom itu justru membuka celah "jenis yang lupa ditandai" |
+| Endpoint atau layar khusus daftar "menunggu penutupan" | `IGD-DEC-168` memilih saringan pada daftar kunjungan yang sudah ada |
+| Kolom `VisitClosureSource` bertipe enum | Satu kolom FK `ClosedByDispositionId` sudah menjawab dua hal sekaligus: dari mana penutupan berasal, dan disposisi mana |
+| Pembukaan kembali kunjungan yang sudah selesai | `IGD-DEC-166`; invariant `Completed` final sudah berlaku di source hari ini |
+| Perubahan pada modul Bank Darah dan Laboratorium | `IGD-DEC-169` menerima konsekuensi hilir apa adanya |

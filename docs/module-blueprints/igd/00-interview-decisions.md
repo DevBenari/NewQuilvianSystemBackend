@@ -4942,3 +4942,88 @@ sudah disetujui sudah menetapkan perilakunya, dan perilaku itu berlaku sampai pe
 | ID | Jenis | Isi | Pembacaan yang berlaku sekarang | Bila ditolak | Pemilik | Status |
 | --- | --- | --- | --- | --- | --- | --- |
 | `IGD-OQ-108` | Open Question | Pendaftaran ganda beralasan (`IGD-DEC-145`) melahirkan **encounter** kedua. Tetapi Mulai Triage/Tangani Segera untuk encounter itu ditolak `409` selama kunjungan lama pasien belum berakhir (validation §10.2 aturan 7). Jadi sesudah `FE-IGD-036`, jalan keluar `IGD-DEC-084` hanya melahirkan encounter, tidak lagi kunjungan kedua. Jalur lama `POST /emergency-visits` masih mengizinkan kunjungan kedua beralasan | Kontrak berlaku: **satu kunjungan berjalan per pasien**. Perawat menutup atau membatalkan kunjungan lama dulu, baru Mulai Triage pada encounter kedua | `start-triage` menerima bila ada `EmgDuplicateEpisodeOverride` untuk encounter ini yang menunjuk kunjungan penghalang — amendment validation §10.2 aturan 7 dan `BE-IGD-055` | Product/Domain Owner IGD | `open` — sebaiknya dijawab sebelum `FE-IGD-036` dirilis |
+
+## Amendment pass 23 September 2026 — penutupan kunjungan IGD lewat disposisi yang dilaksanakan
+
+Pass ini menjawab **satu celah** yang ditemukan saat pemilik mempertanyakan rekonsiliasi `BE-IGD-052`:
+kalau pasien IGD dipulangkan atau naik rawat inap, bukankah encounter-nya semestinya ikut berubah sendiri?
+Pemeriksaan source hari ini menunjukkan jawabannya **tidak** — dan itulah sebabnya encounter lama menumpuk terbuka.
+
+| Butir | Isi |
+| --- | --- |
+| Mode | `Amendment pass` — blueprint sudah disetujui (revisi 7); keputusan lama tidak ditimpa |
+| Snapshot source | Backend `rizkiG` `dce1f138` (sesudah merge `62c8360a` dari `QuilvianIntegrationBackend`); frontend `RizkiV2` `c941012ac` |
+| Capability map | **Berpotensi basi** — impact scan terakhir pada `0d13f3a8`. Wawancara tetap dijalankan; `trace-existing-capabilities` mode impact scan disarankan sebelum desain final |
+| Di dalam scope | Kapan kunjungan IGD dianggap selesai lewat disposisi; pelaku penutupan; perilaku saat penjaga penutupan menolak; pembatalan disposisi sesudah dilaksanakan; keberlakuan atas data lama |
+| Di luar scope | Aturan internal modul Rawat Inap dan Registrasi (hanya titik sentuhnya); isi penjaga penutupan kunjungan (observasi, kepergian, pesanan penahan) tetap seperti sekarang |
+
+### Fakta source yang diverifikasi pada pass ini
+
+| ID | Fakta | Bukti |
+| --- | --- | --- |
+| `IGD-FACT-024` | Disposisi IGD **tidak pernah** menyentuh encounter. `EmergencyDispositionService` nol tulisan ke `RegPatientEncounter` | Pencarian pada berkas service: nol kecocokan |
+| `IGD-FACT-025` | Admisi rawat inap membuat encounter **baru** bertipe `Inpatient` dan membiarkan encounter IGD apa adanya. Satu-satunya pembatalan encounter di modul itu, `CancelAnchorEncounterAsync`, menurut catatannya sendiri hanya berlaku untuk encounter yang dibuat proses admisi (rollback) | `InpEpisodeService.cs:1158`, `:940-965` |
+| `IGD-FACT-026` | Penutup otomatis milik Registrasi hanya menyentuh pendaftaran kiosk (`KioskScanSessionId != null`) dan menutupnya sebagai `NoShow`. Encounter IGD tidak termasuk | `KioskEncounterClosureService.cs:188-250` |
+| `IGD-FACT-027` | Penjaga penutupan kunjungan IGD hari ini menuntut empat syarat: status kunjungan `Disposed`, nol observasi aktif, nol kepergian yang belum tuntas, nol pesanan penahan | `EmergencyDispositionService.ValidateVisitClosureAsync:112-147` |
+| `IGD-FACT-028` | `IsActive` pada encounter **bukan** bagian dari lima tanda "encounter berakhir" (`IGD-DEC-139`, validation §10.1 aturan 1). Ketiga jalur yang menonaktifkan encounter selalu mengisi tanda sungguhan (`Cancelled`/`NoShow`), sehingga sejauh ini tidak ada informasi yang hilang | Rumus `EmergencyEpisodeRule.EncounterEnded`; ketiga jalur pada `IGD-FACT-025`, `026`, dan `PatientEncounterController.cs:1075`, `:1114` |
+
+### Keputusan
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-163` | Decision | **Disposisi yang dilaksanakan menutup kunjungan IGD.** Ketika sebuah disposisi berpindah ke status `Executed` — artinya tindak lanjutnya benar-benar sudah terjadi — kunjungan IGD diselesaikan, dan encounter ikut tertutup lewat jalur `BE-IGD-051` yang sudah ada. Berlaku untuk **semua jenis** disposisi tanpa kecuali: pulang, rawat inap, rujuk, meninggal, maupun pulang paksa. Tidak ada kolom penanda baru pada master jenis disposisi, sehingga jenis yang ditambahkan rumah sakit kelak ikut berlaku dengan sendirinya. **Wajib ditinjau ulang** bila kelak ada jenis disposisi yang pasiennya justru tetap berada di IGD | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-09-23** | Pertanyaan pemilik atas `BE-IGD-052`; opsi "semua jenis" |
+| `IGD-DEC-164` | Decision | **Penjaga penutupan tidak pernah menahan pencatatan kenyataan.** Bila saat disposisi dilaksanakan ternyata masih ada observasi aktif, kepergian yang menggantung, atau pesanan penahan, disposisi **tetap** tercatat `Executed` — pasiennya memang sudah pergi. Kunjungan belum ditutup, dan masuk daftar **"menunggu penutupan"** beserta alasan penahannya. Celahnya karena itu tidak dihilangkan dengan memaksa, melainkan dibuat **terlihat, bernama, dan terhitung** | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-09-23** | Opsi "Executed tetap jalan, penutupan menyusul" |
+| `IGD-DEC-165` | Decision | **Penutupan menyusul terjadi otomatis saat penahan terakhir dibereskan.** Begitu observasi terakhir ditutup, kepergian diterima unit tujuan, atau pesanan terakhir disikapi, sistem mencoba lagi dan kunjungan tertutup saat itu juga. **Pelakunya adalah petugas yang membereskan penahan terakhir** — manusia nyata, bukan proses latar — sehingga prinsip `IGD-DEC-136` (pelaku tidak pernah dikarang) tetap utuh. Karena penutupan dapat terjadi sebagai akibat dari aksi lain, riwayat kunjungan **wajib** menunjukkan bahwa penutupan itu berasal dari disposisi yang sudah dilaksanakan. *Contoh:* pasien pulang pukul 14.00 dan disposisinya dilaksanakan saat itu, tetapi observasi terakhir baru ditutup perawat pukul 16.10 — kunjungan tertutup pukul 16.10 atas nama perawat tersebut | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-09-23** | Opsi "otomatis saat penahan terakhir beres" |
+| `IGD-DEC-166` | Decision | **Kunjungan yang sudah selesai tidak pernah dibuka kembali.** Bila disposisi dibatalkan padahal kunjungannya sudah tertutup, pembatalan itu **ditolak** beserta pesan yang menyebut alasannya. Ini mempertahankan invariant yang sudah berlaku di source hari ini: penjaga transisi menolak perpindahan apa pun dari `Completed`. Pasien yang ternyata kembali didaftarkan sebagai episode baru, bukan dengan membuka kunjungan lama | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-09-23** | Opsi "kunjungan tetap tertutup, pembatalan ditolak" |
+| `IGD-DEC-167` | Decision | **Aturan ini berlaku ke depan saja.** `BE-IGD-052` **tidak** diubah: kelas K2 — kunjungan yang masih berjalan — tetap tidak disentuh rekonsiliasi, walaupun disposisinya sudah dilaksanakan sejak lama. Alasannya, K2 berarti kunjungannya sendiri belum selesai; menutupnya massal berarti menyimpulkan keadaan klinis dari data yang tidak lengkap. Data lama semacam itu diselesaikan petugas satu per satu | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-09-23** | Opsi "berlaku ke depan" |
+
+### Pertanyaan terbuka
+
+| ID | Jenis | Isi | Pembacaan yang berlaku sekarang | Pemilik | Status |
+| --- | --- | --- | --- | --- | --- |
+| `IGD-OQ-109` | Open Question | Daftar **"menunggu penutupan"** (`IGD-DEC-164`) muncul di mana: endpoint baca-saja pada grup `Emergency Visit`, saringan tambahan pada daftar kunjungan yang sudah ada, atau kolom penanda pada kunjungan | Belum ditetapkan. Yang sudah pasti: alasan penahan harus terbaca, dan daftarnya harus dapat dihitung supaya celahnya terukur | Product/Domain Owner IGD | ~~`open`~~ **`superseded` oleh `IGD-DEC-168`** (23 September 2026) |
+| `IGD-OQ-110` | Open Question | Berapa banyak encounter bernilai `IsActive = false` tetapi **tanpa** satu pun dari lima tanda berakhir (`IGD-FACT-028`). Bila ada, berarti ada jalur yang menonaktifkan encounter tanpa menandainya berakhir, dan encounter itu akan terbaca "masih terbuka" oleh rekonsiliasi, daftar Menunggu Triage (`BE-IGD-054`), dan penjaga pendaftaran (`BE-IGD-053`) | Diasumsikan nol sampai angkanya ada. Kueri milik pemilik; agent dilarang menjalankannya | Rizki | `open` — tidak menahan; **sebaiknya dijawab sebelum `BE-IGD-053` dirilis** |
+
+### Yang harus dikerjakan skill berikutnya
+
+Keputusan di atas **belum** berbentuk kontrak. Yang masih kosong dan menjadi pekerjaan `design-business-module`
+lalu `plan-module-delivery`:
+
+1. **Validation matrix** — aturan baru: disposisi `Executed` memicu percobaan penutupan; pembatalan disposisi atas
+   kunjungan tertutup ditolak beserta kalimat pesannya.
+2. **State-transition matrix** — perpindahan `Disposed` → `Completed` yang dipicu disposisi, dan pemicu susulan saat
+   penahan terakhir dibereskan.
+3. **API contract** — bentuk daftar "menunggu penutupan" sesudah `IGD-OQ-109` dijawab; kemungkinan aditif pada grup
+   `Emergency Visit`.
+4. **Permission** — nol izin baru: penutupan menumpang aksi yang sudah dimiliki petugas (disposisi, observasi,
+   kepergian, pesanan).
+5. **Kartu task** — tiga titik sentuh susulan (observasi selesai, kepergian diterima, pesanan disikapi) berada di
+   service yang berbeda-beda, jadi kartunya perlu menyebut ketiganya secara eksplisit agar tidak ada yang tertinggal.
+
+Kontrak yang berlaku hari ini (`IGD-DEC-157`) **tidak** diubah oleh pass ini. Sampai kontrak susulan disetujui,
+perilaku yang berlaku tetap seperti sekarang: kunjungan hanya tertutup bila petugas menekan selesaikan kunjungan.
+
+### Keputusan penutup pass — bentuk daftar "menunggu penutupan"
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-168` | Decision | **Daftar "menunggu penutupan" berupa saringan pada daftar kunjungan yang sudah ada**, bukan endpoint atau layar baru. `GET /emergency-visits` bertambah saringan untuk kunjungan yang disposisinya sudah dilaksanakan tetapi belum tertutup, dan response-nya menyebutkan **apa** penahannya — observasi aktif, kepergian yang menggantung, atau pesanan penahan. Nol menu baru, nol endpoint baru, dan perawat melihatnya pada layar yang sudah dipakai sehari-hari. Jumlahnya tetap terhitung lewat `totalData`, sehingga celah `IGD-DEC-164` terukur. Bentuk tepatnya — nama parameter dan ruas response — diputuskan `design-business-module` sebagai perubahan **aditif** pada API contract | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-09-23** | Menjawab `IGD-OQ-109` |
+
+Dengan `IGD-DEC-168`, **nol blocker desain tersisa** pada slice ini. `IGD-OQ-110` (encounter `IsActive = false`
+tanpa tanda berakhir) tetap terbuka dan **tidak** menahan: ia memengaruhi angka, bukan bentuk aturan.
+
+### Keputusan susulan dari impact scan — 23 September 2026
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-169` | Decision | **Konsekuensi hilir penutupan kunjungan diterima apa adanya.** Sesudah kunjungan IGD tertutup, Bank Darah menolak order darah baru serta alokasi kantong pada order lamanya (`BbkEncounterStatusReader`, `DEC-BD-014`), dan Laboratorium menolak pemesanan pemeriksaan baru (`VAL-67`). Itu memang arti episode yang berakhir: layanan baru ditempuh lewat episode baru, dan pesan penolakan kedua modul sudah mengarahkan petugas ke sana. **Nol perubahan** pada modul Bank Darah maupun Laboratorium, dan **tidak** ada tenggang waktu. Pencatatan hasil untuk order yang sudah terlanjur dibuat tidak terdampak — penjaga Laboratorium hanya berlaku pada pembuatan order (`LabOrderService.CreateByExaminationsAsync`). Konsekuensi yang diterima: permintaan susulan tepat sesudah pasien pulang akan tertolak dan menuntut pendaftaran episode baru | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-09-23** | Menjawab `IGD-TRQ-12` (capability map suplemen 3.3) |
+
+### Approval kontrak slice penutupan lewat disposisi — 23 September 2026
+
+| ID | Jenis | Isi | Pemilik | Status | Approver | Asal |
+| --- | --- | --- | --- | --- | --- | --- |
+| `IGD-DEC-170` | Decision | **Kontrak slice "penutupan kunjungan lewat disposisi" disetujui.** Lima kontrak naik versi dan bagian barunya berstatus `approved`: API **`0.12.0`** bagian 9, validation **`0.9.0`** bagian 11, state **`0.6.0`** bagian 9, permission/audit **`0.6.0`** bagian 8, integration **`0.5.0`** bagian 6. Disetujui pula arsitektur `02-backend-architecture.md` bagian 14 beserta **satu migration** `AddEmergencyVisitClosureSource` (kolom `EmgVisit.ClosedByDispositionId`), dan `04-prd-to-mvp.md` bagian 9 (`EPIC IGD-13`, gelombang `MVP-8`). Revisi blueprint **8**. Konsekuensinya kartu task boleh disusun; isi kontrak terkunci dan task yang menemukan selisih wajib berhenti serta melapor, bukan menambal | Product/Domain Owner IGD | `approved` | **Rizki Gunawan / 2026-09-23** | Gerbang `plan-module-delivery` |
+
+Catatan: satu migration **tidak dapat dihindari** pada slice ini. `IGD-DEC-165` menuntut riwayat kunjungan
+menunjukkan bahwa penutupan berasal dari disposisi yang dilaksanakan; tanpa kolom penanda, asal penutupan tidak
+dapat dibedakan dari penutupan manual. Pemilik menerima konsekuensi itu saat menyetujui desain.

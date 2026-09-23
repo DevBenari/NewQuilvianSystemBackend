@@ -2,8 +2,8 @@
 
 | Field | Nilai |
 | --- | --- |
-| `contract_version` | `0.4.0` — encounter-first, 22 September 2026, **Rencana (belum tersedia)**. **Aditif pada dokumen**: bagian 5 baru; bagian 1–4 tidak diubah. Secara perilaku **memutus** untuk Registrasi (penolakan Emergency pada jalur umum, pintu encounter memanggil aturan IGD). Sebelumnya `0.3.0` |
-| Status | `draft`, **kecuali bagian 5 (encounter-first) yang `approved`** (`IGD-DEC-157`, 22 September 2026) |
+| `contract_version` | `0.5.0` — penutupan kunjungan lewat disposisi, 23 September 2026, **Rencana (belum tersedia)**, status `draft`: bagian 6 baru (penutupan lewat disposisi, `IGD-DEC-163`…`169`). **Aditif** — nol modul baru yang disentuh. Sebelumnya `0.4.0` — encounter-first, 22 September 2026, **Rencana (belum tersedia)**. **Aditif pada dokumen**: bagian 5 baru; bagian 1–4 tidak diubah. Secara perilaku **memutus** untuk Registrasi (penolakan Emergency pada jalur umum, pintu encounter memanggil aturan IGD). Sebelumnya `0.3.0` |
+| Status | `draft`, **kecuali bagian 5 (encounter-first) yang `approved`** (`IGD-DEC-157`, 22 September 2026). Bagian 6 **`approved`** (`IGD-DEC-170`, 23 September 2026) |
 | Owner | Product/Domain Owner IGD: **Rizki Gunawan** (`IGD-DEC-089`) |
 | `approved_by` / `approved_at` | **Rizki Gunawan / 2026-09-22** — bagian 5 (encounter-first) lewat `IGD-DEC-157` — termasuk koreksi B1 pada §5.2. Bagian 1–4 tetap `draft` |
 | Versi sebelumnya | `0.2.0` |
@@ -166,3 +166,42 @@ menimbulkan *deadlock*.
 | Penulisan catatan override gagal | Encounter tidak dibuat |
 | Kunci per pasien menunggu lama (pendaftaran serentak) | Permintaan kedua menunggu sampai yang pertama selesai, lalu membaca hasilnya — bukan galat |
 | Registrasi mengubah pintu encounter tanpa memanggil aturan IGD | Penjaga episode hilang diam-diam — karena itu acceptance `BE-IGD-053` memuat uji paralel dan uji "klien tanpa pra-cek" |
+
+## 6. Penutupan lewat disposisi — baru pada `0.5.0`, **Rencana (belum tersedia)**
+
+Slice `IGD-DEC-163`…`169`. Seluruhnya integrasi **di dalam satu proses** dan **di dalam satu modul**: nol modul
+baru yang disentuh, nol antrean pesan, nol integrasi eksternal.
+
+**Status bagian ini: `draft`** — menunggu approval pemilik.
+
+### 6.1 Modul yang disentuh
+
+| Modul | Arah | Sifat | Menahan rilis |
+| --- | --- | --- | :-: |
+| IGD (internal) | Di dalam modul | Empat titik pemicu memanggil satu method penutupan di `EmergencyVisitService` | — |
+| Registration Management | IGD menulis | Encounter ikut tertutup lewat jalur `BE-IGD-051` yang sudah ada; daftar kolom tertutup §5.2 **tidak berubah** | Tidak |
+| Medical Record Management | IGD memanggil | Penguncian catatan klinis ikut jalur `BE-IGD-051`; tidak dipanggil terpisah | Tidak |
+| Bank Darah, Laboratorium | **Membaca** | Keduanya membaca status encounter dan menolak transaksi baru sesudah tertutup. **Nol perubahan** pada kedua modul (`IGD-DEC-169`) | Tidak |
+| Rawat Inap | Tidak disentuh | Admisi membuat encounter `Inpatient` sendiri dan nol rujukan ke entitas IGD (capability map suplemen 3.3) | Tidak |
+
+### 6.2 Titik sentuh yang mengikat
+
+| Kejadian | Siapa memanggil siapa | Transaksi |
+| --- | --- | --- |
+| Disposisi berpindah ke `Executed` | `EmergencyDispositionController` → `EmergencyVisitService.TryCloseAfterDispositionAsync` → penjaga `EmergencyDispositionService.ValidateVisitClosureAsync` | Satu `SaveChanges` milik aksi disposisi |
+| Observasi ditutup | `EmergencyObservationController` → method yang sama | Satu `SaveChanges` milik aksi observasi |
+| Serah terima diterima/ditolak/dibatalkan | `EmergencyDepartureController` → method yang sama | Satu `SaveChanges` milik aksi kepergian |
+| Sikap pesanan ditetapkan | `EmergencyDepartureController` → method yang sama | Satu `SaveChanges` milik aksi pesanan |
+| Kunjungan tertutup | `EmergencyVisitService.ApplyEncounterClosureAsync` (sudah ada) menulis kolom status akhir encounter dan mengunci catatan klinis | Ikut `SaveChanges` yang sama |
+
+Method penutupan **tidak** membuka transaksi sendiri dan **tidak** menyimpan sendiri — persis pola
+`ApplyEncounterClosureAsync`. Akibatnya bila aksi pemicunya gagal disimpan, penutupan ikut batal, dan sebaliknya.
+
+### 6.3 Perilaku saat gagal
+
+| Kegagalan | Perilaku |
+| --- | --- |
+| Penjaga penutupan menolak saat disposisi dilaksanakan | Disposisi tetap `Executed`; kunjungan menunggu penutupan; **bukan** galat (`IGD-DEC-164`) |
+| Penguncian catatan klinis gagal saat kunjungan ikut tertutup | Seluruh penyimpanan batal — aksi pemicunya ikut gagal dan petugas mengulang |
+| Kunjungan sudah tertutup lebih dulu oleh jalur lain | Percobaan dilewati diam-diam; nol galat, nol penulisan ulang |
+| Order darah atau pemeriksaan laboratorium ditolak sesudah kunjungan tertutup | Perilaku yang diterima (`IGD-DEC-169`); petugas mendaftarkan episode baru |

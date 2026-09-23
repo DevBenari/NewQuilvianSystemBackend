@@ -2,8 +2,8 @@
 
 | Field | Nilai |
 | --- | --- |
-| `contract_version` | `0.8.0` — encounter-first, 22 September 2026, **Rencana (belum tersedia)**. Bagian 10 baru (enam sub-bagian); **bukan aditif murni**: sumber aturan §1.2 aturan 5 (dan §1 aturan 4) berganti dari `CariEpisodeAktifAsync` ke rumus §10.1 aturan 2 (klausa A+B). Kalimat aturan lama **tidak** diubah; teks penggantian dicatat di §10.1. Sebelumnya `0.7.0` — pra-cek episode IGD berjalan, 21 September 2026. **Aditif**: bagian 1.2 baru (`BE-IGD-050`, `IGD-DEC-138`); nol aturan lama diubah teksnya — aturan 4 bagian 1 dan penolakan `409`-nya tetap sebagai jaring pengaman. Sebelumnya `0.6.0` — pemantauan observasi bertanda vital, 16 September 2026. **Aditif**: bagian 9 baru; nol aturan lama diubah teksnya. Empat penolakan baru pada `POST .../emergency-observation-details` (`IGD-DEC-122`, `IGD-DEC-126`). *Sebelumnya `0.5.0` — penyelarasan teks 15 September 2026: pesan bagian 1 aturan 2 (`IGD-DEC-120`), pesan bagian 6 aturan 4 (`IGD-DEC-118`), dan bagian 8 baru (`IGD-DEC-119`, `IGD-DEC-121`)* |
-| Status | `draft`, **kecuali bagian 2 aturan 4 dan 5, dan bagian 10 (encounter-first), yang `approved`** |
+| `contract_version` | `0.9.0` — penutupan kunjungan lewat disposisi, 23 September 2026, **Rencana (belum tersedia)**, status `draft`: bagian 11 baru (penutupan kunjungan lewat disposisi, `IGD-DEC-163`…`169`). **Aditif** — nol aturan lama berubah. Sebelumnya `0.8.0` — encounter-first, 22 September 2026, **Rencana (belum tersedia)**. Bagian 10 baru (enam sub-bagian); **bukan aditif murni**: sumber aturan §1.2 aturan 5 (dan §1 aturan 4) berganti dari `CariEpisodeAktifAsync` ke rumus §10.1 aturan 2 (klausa A+B). Kalimat aturan lama **tidak** diubah; teks penggantian dicatat di §10.1. Sebelumnya `0.7.0` — pra-cek episode IGD berjalan, 21 September 2026. **Aditif**: bagian 1.2 baru (`BE-IGD-050`, `IGD-DEC-138`); nol aturan lama diubah teksnya — aturan 4 bagian 1 dan penolakan `409`-nya tetap sebagai jaring pengaman. Sebelumnya `0.6.0` — pemantauan observasi bertanda vital, 16 September 2026. **Aditif**: bagian 9 baru; nol aturan lama diubah teksnya. Empat penolakan baru pada `POST .../emergency-observation-details` (`IGD-DEC-122`, `IGD-DEC-126`). *Sebelumnya `0.5.0` — penyelarasan teks 15 September 2026: pesan bagian 1 aturan 2 (`IGD-DEC-120`), pesan bagian 6 aturan 4 (`IGD-DEC-118`), dan bagian 8 baru (`IGD-DEC-119`, `IGD-DEC-121`)* |
+| Status | `draft`, **kecuali bagian 2 aturan 4 dan 5, dan bagian 10 (encounter-first), yang `approved`**. Bagian 11 **`approved`** (`IGD-DEC-170`, 23 September 2026) |
 | Owner | Product/Domain Owner IGD: **Rizki Gunawan** (`IGD-DEC-089`) |
 | `approved_by` / `approved_at` | **Rizki Gunawan / 2026-08-24** — terbatas pada bagian 2 aturan 4 dan 5 lewat `IGD-DEC-093`. **Rizki Gunawan / 2026-09-22** — bagian 10 (encounter-first) lewat `IGD-DEC-157` — termasuk koreksi pesan §10.4 aturan 4 (B2). Seluruh aturan lain tetap `draft` |
 | Versi sebelumnya | `0.6.0`, sebelumnya `0.5.0`, `0.4.0`, `0.3.0`, dan `0.2.0` |
@@ -383,3 +383,33 @@ kunjungan dan pesan aturan 3 bagian "belum lahir" bila berupa encounter.
 | 5 | Alasan pembalikan wajib | `400` | *"Alasan pembalikan wajib diisi (maksimal 500 karakter)."* | `IGD-DEC-148` |
 | 6 | Run yang sudah dibalik tidak dapat dibalik lagi | `409` | *"Run ini sudah dibalik."* | `IGD-DEC-148` |
 | 7 | Pembalikan hanya menyentuh baris yang encounter-nya masih bernilai hasil run; sisanya dilewati dan dilaporkan | — | — | `IGD-DEC-148` |
+
+## 11. Penutupan kunjungan lewat disposisi — baru pada `0.9.0`, **Rencana (belum tersedia)**
+
+Aturan untuk `IGD-DEC-163`…`169` (amendment pass 23 September 2026). Kalimat pesan di bawah **mengikat**.
+
+**Status bagian ini: `draft`** — menunggu approval pemilik.
+
+| No | Aturan | Kode | Pesan | Keputusan |
+| ---: | --- | :-: | --- | --- |
+| 1 | Disposisi yang berpindah ke `Executed` **memicu** percobaan penutupan kunjungan. Berlaku untuk **semua** jenis disposisi | — | — | `IGD-DEC-163` |
+| 2 | Percobaan penutupan memakai penjaga yang sudah ada tanpa perubahan: status kunjungan `Disposed`, nol observasi aktif, nol kepergian belum tuntas, nol pesanan yang belum ditentukan sikapnya | — | — | `IGD-DEC-163`, §6 aturan 1–4 |
+| 3 | Bila penjaga menolak, perpindahan disposisi ke `Executed` **tetap berhasil**. Kunjungan tidak ditutup dan ditandai **menunggu penutupan** beserta alasan penahannya | — | — (bukan penolakan) | `IGD-DEC-164` |
+| 4 | Kunjungan yang menunggu penutupan ditutup **otomatis** pada aksi pertama yang membereskan penahan terakhir: observasi ditutup, serah terima diterima/ditolak/dibatalkan, atau sikap pesanan ditetapkan | — | — | `IGD-DEC-165` |
+| 5 | Pelaku penutupan susulan adalah **petugas yang membereskan penahan terakhir**; waktunya waktu server saat aksi itu disimpan. Nol pelaku dikarang, nol proses latar | — | — | `IGD-DEC-165`, `IGD-DEC-136` |
+| 6 | Penutupan susulan menulis `ClosedByDispositionId` dengan disposisi yang memicunya, sehingga asal penutupan terbaca pada riwayat | — | — | `IGD-DEC-165` |
+| 7 | Penutupan susulan **tidak pernah** memundurkan status. Kunjungan yang sudah `Completed` atau `Cancelled` dilewati tanpa galat | — | — | `IGD-DEC-165` |
+| 8 | Pembatalan disposisi (`Executed` → `Cancelled`) pada kunjungan yang **sudah** selesai ditolak | `409` | *"Kunjungan IGD ini sudah selesai, sehingga disposisinya tidak dapat dibatalkan. Daftarkan pasien sebagai episode baru bila ia kembali."* | `IGD-DEC-166` |
+| 9 | Kunjungan yang sudah selesai **tidak pernah** dibuka kembali oleh jalur mana pun pada slice ini | — | — | `IGD-DEC-166` |
+| 10 | Saringan `awaitingClosure` pada daftar kunjungan hanya memuat kunjungan yang punya disposisi `Executed` dan belum selesai; alasan penahan dihitung untuk baris yang ditampilkan | — | — | `IGD-DEC-168` |
+| 11 | Aturan ini **tidak** berlaku surut. Kunjungan lama yang disposisinya sudah `Executed` sebelum aturan ini aktif tidak ditutup massal; ia hanya ikut tertutup bila salah satu penahannya dibereskan sesudah aturan aktif | — | — | `IGD-DEC-167` |
+
+**Konsekuensi hilir yang diterima** (`IGD-DEC-169`, bukan aturan IGD): sesudah kunjungan tertutup, Bank Darah
+menolak order darah baru dan alokasi kantong pada order lamanya, dan Laboratorium menolak pemesanan pemeriksaan
+baru. Pencatatan hasil untuk order yang sudah dibuat **tidak** terdampak. Kedua modul itu tidak diubah.
+
+*Contoh berangka.* Pasien pulang pukul 14.00; perawat menandai disposisi `Executed` saat itu. Ternyata masih ada
+satu observasi aktif, sehingga kunjungan **belum** tertutup dan muncul pada saringan menunggu penutupan dengan
+alasan *"Masih ada observasi yang belum diselesaikan."* Pukul 16.10 perawat menutup observasi itu — pada
+penyimpanan yang sama, kunjungan tertutup, encounter ikut tertutup, `ClosedByDispositionId` terisi disposisi
+pukul 14.00, dan pelakunya tercatat perawat pukul 16.10.
