@@ -1390,17 +1390,6 @@ try
     // disahkan oleh seeder. Batas yang bertabrakan pada V1 ditandai untuk ditinjau pemilik klinis.
     await RunStartupSeederAsync("ClinicalInstrumentDraftSeeder", () => ClinicalInstrumentDraftSeeder.SeedAsync(app.Services));
 
-    // Data induk contoh Laboratorium. Mati secara bawaan dan menolak berjalan di produksi:
-    // katalog pemeriksaan, tarif, kelompok umur, dan sumber rujukan produksi ditetapkan pemilik
-    // proses bisnis lewat layar admin, bukan lewat seeder.
-    var runLabDummySeed = builder.Configuration.GetValue<bool>("Seeders:RunLabDummySeed");
-
-    if (runLabDummySeed)
-    {
-        await RunStartupSeederAsync(
-            "LabDummyDataSeeder",
-            () => LabDummyDataSeeder.SeedAsync(app.Services, app.Environment.EnvironmentName));
-    }
 
     var runOperatingRoomDemoSeed =
         builder.Configuration.GetValue<bool>("Seeders:RunOperatingRoomDemoSeed");

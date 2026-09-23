@@ -6,7 +6,9 @@ using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Se
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.BillingIntake.Services;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.MasterData.Services;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Payable.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.PettyCash.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.CashManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Services;
@@ -83,10 +85,17 @@ public static class BillingManagementServiceCollectionExtensions
         services.AddScoped<FinanceAccountingEventService>();
         // BE-FIN-008: satu-satunya penulis OutstandingAmount piutang — aging, koreksi, write-off.
         services.AddScoped<FinanceReceivableService>();
+        // BE-FIN-017, 02-backend-architecture.md §4.22: pemilik logika penerimaan (pembuatan dari
+        // tender + pembuktian FR-FIN-035). Dipakai FinanceBillingIntakeService lewat DI.
+        services.AddScoped<FinanceReceiptService>();
         // BE-FIN-009: konsumen fakta AR dari Billing (gap FinanceBillingIntakeService ditutup di sini).
         services.AddScoped<FinanceBillingIntakeService>();
         // BE-FIN-014 / MVP-4: layanan perhitungan kas tersedia, setoran bank, dan penutupan harian.
         services.AddScoped<FinanceCashManagementService>();
+        // BE-FIN-019, 02-backend-architecture.md §4.22: input manual utang supplier dan koreksinya.
+        services.AddScoped<FinanceSupplierPayableService>();
+        // BE-FIN-020, 02-backend-architecture.md §4.22: layanan pembayaran keluar dan potongan.
+        services.AddScoped<FinancePaymentService>();
         // BE-BKC-036 / PC-DES-004: kolam anggaran dan saldo berjalan kas kecil.
         services.AddScoped<PettyCashBudgetService>();
         // BE-BKC-037 / PC-DES-001: siklus hidup voucher kas kecil penuh.

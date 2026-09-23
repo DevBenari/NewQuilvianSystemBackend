@@ -6,7 +6,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.MasterData.Mod
 
 /// <summary>
 /// Kategori pengeluaran kas kecil yang dikelola Finance (PC-DES-002, PC-DEC-012).
-/// Dipindahkan ke Corporate/FinanceManagement/MasterData (Clean Architecture & DDD).
+/// Dipindahkan ke Corporate/FinanceManagement/MasterData (Clean Architecture &amp; DDD).
 /// Bukan pengganti dan bukan turunan MstExpenseCategory milik Corporate/HumanResource.
 /// </summary>
 [Table("MstPettyCashCategory", Schema = "public")]
