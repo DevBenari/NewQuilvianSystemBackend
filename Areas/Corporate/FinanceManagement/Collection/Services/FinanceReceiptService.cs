@@ -333,7 +333,8 @@ public sealed class FinanceReceiptService
         return new PagedResult<FinReceiptResponse>
         {
             Items = items,
-            TotalCount = total,
+            TotalData = total,
+            TotalPage = (int)Math.Ceiling(total / (double)pageSize),
             PageNumber = pageNumber,
             PageSize = pageSize
         };

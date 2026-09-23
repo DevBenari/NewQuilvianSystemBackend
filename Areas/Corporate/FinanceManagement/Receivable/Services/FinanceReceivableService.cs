@@ -676,7 +676,7 @@ public sealed class FinanceReceivableService
                 WriteOffNumber = GenerateNumber("WO"),
                 Amount = amount,
                 Reason = reasonText,
-                Status = FinReceivableWriteOffStatuses.Approved,
+                Status = FinReceivableApprovalStatuses.Approved,
                 ApprovedBy = actorUserId,
                 ApprovedAt = DateTimeOffset.UtcNow,
                 CreateDateTime = DateTime.UtcNow,

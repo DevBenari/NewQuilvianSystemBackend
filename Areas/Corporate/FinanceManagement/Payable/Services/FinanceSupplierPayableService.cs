@@ -176,7 +176,8 @@ public sealed class FinanceSupplierPayableService
             Items = items,
             PageNumber = query.PageNumber,
             PageSize = query.PageSize,
-            TotalCount = totalCount
+            TotalData = totalCount,
+            TotalPage = (int)Math.Ceiling(totalCount / (double)query.PageSize)
         };
     }
 

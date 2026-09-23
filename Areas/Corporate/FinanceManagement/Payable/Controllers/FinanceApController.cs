@@ -37,7 +37,8 @@ public sealed class FinanceApController : ControllerBase
             Items = result.Items.Select(FinanceSupplierPayablesController.MapPayable).ToList(),
             PageNumber = result.PageNumber,
             PageSize = result.PageSize,
-            TotalCount = result.TotalCount
+            TotalData = result.TotalData,
+            TotalPage = result.TotalPage
         };
         return Ok(ApiResponse<PagedResult<SupplierPayableResponse>>.Ok(mapped, "Daftar utang supplier berhasil diambil."));
     }
