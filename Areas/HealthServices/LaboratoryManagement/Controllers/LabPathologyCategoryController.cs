@@ -49,7 +49,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         // ruas menghasilkan formulir kosong bagi patolog.
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<LabPathologyCategoryResponse>>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Lab Pathology Category", Description = "Melihat daftar golongan Patologi Anatomi", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction("Read", "Read Lab Pathology Category", Description = "Melihat daftar, ringkasan, pilihan, detail, dan keberlakuan ruas golongan Patologi Anatomi", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("LabPathologyCategory", "Read")]
         public async Task<IActionResult> GetList(
             [FromQuery] LabPathologyCategoryPagedQuery query,
@@ -66,7 +66,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         // baru tidak dapat menunjuk golongan yang sudah ditarik dari peredaran.
         [HttpGet("options")]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<LabPathologyCategoryOptionResponse>>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Lab Pathology Category", Description = "Melihat daftar pilihan golongan Patologi Anatomi", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction("Read", "Read Lab Pathology Category", Description = "Melihat daftar, ringkasan, pilihan, detail, dan keberlakuan ruas golongan Patologi Anatomi", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("LabPathologyCategory", "Read")]
         public async Task<IActionResult> GetOptions(
             [FromQuery] LabPathologyCategoryOptionQuery query,
@@ -87,7 +87,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         [HttpGet("{id:guid}/parameters")]
         [ProducesResponseType(typeof(ApiResponse<List<LabPathologyCategoryParameterResponse>>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Read", "Read Lab Pathology Category", Description = "Melihat ruas isian yang berlaku bagi satu golongan", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction("Read", "Read Lab Pathology Category", Description = "Melihat daftar, ringkasan, pilihan, detail, dan keberlakuan ruas golongan Patologi Anatomi", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("LabPathologyCategory", "Read")]
         public async Task<IActionResult> GetCategoryParameters(
             Guid id,
@@ -121,7 +121,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         [ProducesResponseType(typeof(ApiResponse<List<LabPathologyCategoryParameterResponse>>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
-        [AccessAction("Update", "Update Lab Pathology Category", Description = "Menyusun ruas isian yang berlaku bagi satu golongan", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessAction("Update", "Update Lab Pathology Category", Description = "Mengubah golongan Patologi Anatomi beserta keberlakuan ruas dan status aktifnya", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("LabPathologyCategory", "Update")]
         public async Task<IActionResult> ReplaceCategoryParameters(
             Guid id,
@@ -171,7 +171,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
-        [AccessAction("Update", "Update Lab Pathology Category", Description = "Mengubah golongan Patologi Anatomi", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessAction("Update", "Update Lab Pathology Category", Description = "Mengubah golongan Patologi Anatomi beserta keberlakuan ruas dan status aktifnya", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("LabPathologyCategory", "Update")]
         public Task<IActionResult> Update(
             Guid id,
@@ -180,6 +180,91 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             ExecuteAsync(
                 () => _labPathologyCategoryService.UpdateAsync(id, request, cancellationToken),
                 "Golongan Patologi Anatomi berhasil diubah.");
+
+        // =============================================================
+        // Baseline data induk yang dilengkapi 2026-09-23 — `LAB-API-v1` r32.
+        // =============================================================
+
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<LabPathologyCategoryFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Lab Pathology Category", Description = "Melihat daftar, ringkasan, pilihan, detail, dan keberlakuan ruas golongan Patologi Anatomi", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabPathologyCategory", "Read")]
+        public IActionResult GetFilterMetadata()
+        {
+            var result = LabFilterMetadataFactory.LabPathologyCategory();
+
+            return Ok(ApiResponse<LabPathologyCategoryFilterMetadataResponse>.Ok(
+                result, "Metadata penyaring golongan Patologi Anatomi berhasil diambil."));
+        }
+
+        // Ringkasan. `withParameter` yang paling berarti di sini: selisihnya terhadap total
+        // adalah golongan yang menghasilkan formulir laporan KOSONG.
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<LabPathologyCategorySummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Lab Pathology Category", Description = "Melihat daftar, ringkasan, pilihan, detail, dan keberlakuan ruas golongan Patologi Anatomi", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabPathologyCategory", "Read")]
+        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
+        {
+            var result = await _labPathologyCategoryService.GetSummaryAsync(cancellationToken);
+
+            return Ok(ApiResponse<LabPathologyCategorySummaryResponse>.Ok(
+                result, "Ringkasan golongan Patologi Anatomi berhasil diambil."));
+        }
+
+        // Jalur detail. Tanpa ini, formulir ubah yang dibuka lewat tautan langsung atau sesudah
+        // halaman disegarkan nol punya cara memuat barisnya — dan gagalnya DIAM.
+        [HttpGet("{id:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<LabPathologyCategoryResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Lab Pathology Category", Description = "Melihat daftar, ringkasan, pilihan, detail, dan keberlakuan ruas golongan Patologi Anatomi", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabPathologyCategory", "Read")]
+        public async Task<IActionResult> GetById(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var result = await _labPathologyCategoryService.GetByIdAsync(id, cancellationToken);
+
+                return Ok(ApiResponse<LabPathologyCategoryResponse>.Ok(
+                    result, "Detail golongan Patologi Anatomi berhasil diambil."));
+            }
+            catch (KeyNotFoundException exception)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound, exception.Message));
+            }
+        }
+
+        // Penonaktifan, BUKAN penghapusan. Pesanan lama menunjuk golongannya, dan menghapusnya
+        // membuat laporan yang sedang berjalan nol punya bentuk formulir (AC-143).
+        [HttpPatch("{id:guid}/status")]
+        [ProducesResponseType(typeof(ApiResponse<LabPathologyCategoryResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Update", "Update Lab Pathology Category", Description = "Mengubah golongan Patologi Anatomi beserta keberlakuan ruas dan status aktifnya", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("LabPathologyCategory", "Update")]
+        public async Task<IActionResult> SetStatus(
+            Guid id,
+            [FromBody] LabPathologyMasterDataStatusRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var result = await _labPathologyCategoryService.SetStatusAsync(
+                    id, request.IsActive, cancellationToken);
+
+                return Ok(ApiResponse<LabPathologyCategoryResponse>.Ok(
+                    result,
+                    request.IsActive
+                        ? "Golongan diaktifkan."
+                        : "Golongan dinonaktifkan."));
+            }
+            catch (KeyNotFoundException exception)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound, exception.Message));
+            }
+        }
 
         /// <summary>
         /// Menjalankan satu perubahan dan menerjemahkan kegagalannya menjadi status HTTP yang

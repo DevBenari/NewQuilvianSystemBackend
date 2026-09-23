@@ -516,5 +516,124 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 SupportsServerSidePaging = true,
                 IsDeletable = false
             };
+
+        // =================================================================
+        // Tiga data induk Patologi Anatomi — `r32`, `BE-LAB-66`, dipakai `FE-LAB-27`.
+        //
+        // KETIGANYA MENGIRIM `SortOptions` KOSONG, DAN ITU DISENGAJA. Ketiga jalur daftarnya
+        // mengurutkan secara TETAP di dalam service — parameter dan golongan pada
+        // `SortOrder` lalu nama, pemetaan pada nama golongan lalu nama pemeriksaan — dan
+        // ketiga query DTO-nya nol punya ruas `SortBy` maupun `SortDirection`. Mengirim
+        // daftar pilihan urutan di sini berarti layar merender pemilih yang nol mengubah satu
+        // baris pun: kelas "terlihat bekerja padahal tidak" yang justru paling mahal pada
+        // layar data induk, sebab kepala instalasi akan menyimpulkan urutannya sudah diatur.
+        //
+        // `LabOrganism` dan `LabAntibiotic` di atas MENGIRIMNYA padahal keadaannya sama —
+        // `LabOrganismPagedQuery` dan kembarannya juga nol punya ruas sort. Itu selisih yang
+        // DILAPORKAN, bukan ditambal di sini: memperbaikinya berarti menyentuh cakupan
+        // `BE-LAB-65`, dan menambah ruas sort pada endpoint daftar yang sudah berjalan
+        // bertentangan dengan `r32` bagian 27.6 yang menyatakan kesepuluh endpoint lama nol
+        // berubah bentuk.
+        // =================================================================
+
+        /// <summary>Bentuk layar data induk parameter Patologi Anatomi (<c>FE-LAB-27</c>).</summary>
+        public static LabPathologyParameterFilterMetadataResponse LabPathologyParameter() =>
+            new()
+            {
+                SortOptions = new(),
+                SortDirections = new(),
+                PageSizeOptions = new(UkuranHalaman),
+                QueryParameters = new()
+                {
+                    new()
+                    {
+                        Name = "isActive",
+                        Type = "boolean",
+                        Description = "Menyaring aktif atau tidak. Kosong berarti keduanya ditampilkan.",
+                        Example = "true"
+                    },
+                    new()
+                    {
+                        Name = "search",
+                        Type = "string",
+                        Description = "Pencarian bebas pada kode dan label parameter.",
+                        Example = "makroskopik"
+                    },
+                    new() { Name = "pageNumber", Type = "integer", Description = "Halaman ke berapa, dimulai dari 1.", Example = "1" },
+                    new() { Name = "pageSize", Type = "integer", Description = "Jumlah baris per halaman, paling banyak 100.", Example = "20" }
+                },
+                SupportsServerSideFiltering = true,
+                SupportsServerSidePaging = true,
+                IsDeletable = false
+            };
+
+        /// <summary>Bentuk layar data induk golongan Patologi Anatomi (<c>FE-LAB-27</c>).</summary>
+        public static LabPathologyCategoryFilterMetadataResponse LabPathologyCategory() =>
+            new()
+            {
+                SortOptions = new(),
+                SortDirections = new(),
+                PageSizeOptions = new(UkuranHalaman),
+                QueryParameters = new()
+                {
+                    new()
+                    {
+                        Name = "isActive",
+                        Type = "boolean",
+                        Description = "Menyaring aktif atau tidak. Kosong berarti keduanya ditampilkan.",
+                        Example = "true"
+                    },
+                    new()
+                    {
+                        Name = "search",
+                        Type = "string",
+                        Description = "Pencarian bebas pada kode dan nama golongan.",
+                        Example = "sitologi"
+                    },
+                    new() { Name = "pageNumber", Type = "integer", Description = "Halaman ke berapa, dimulai dari 1.", Example = "1" },
+                    new() { Name = "pageSize", Type = "integer", Description = "Jumlah baris per halaman, paling banyak 100.", Example = "20" }
+                },
+                SupportsServerSideFiltering = true,
+                SupportsServerSidePaging = true,
+                IsDeletable = false
+            };
+
+        /// <summary>
+        /// Bentuk layar penggolongan jenis pemeriksaan Patologi Anatomi (<c>FE-LAB-27</c>).
+        ///
+        /// Dua penanda terakhir menyatakan ketiadaan yang disengaja, supaya layar membacanya
+        /// alih-alih menyimpulkannya dari endpoint yang menjawab <c>404</c>.
+        /// </summary>
+        public static LabProcedurePathologyCategoryFilterMetadataResponse LabProcedurePathologyCategory() =>
+            new()
+            {
+                SortOptions = new(),
+                SortDirections = new(),
+                PageSizeOptions = new(UkuranHalaman),
+                QueryParameters = new()
+                {
+                    new()
+                    {
+                        Name = "labPathologyCategoryId",
+                        Type = "uuid",
+                        Description = "Menyaring pada satu golongan. Kosong berarti seluruh golongan.",
+                        Example = "0f1d2c3b-4a59-6878-9706-b5c4d3e2f1a0"
+                    },
+                    new()
+                    {
+                        Name = "search",
+                        Type = "string",
+                        Description = "Pencarian bebas pada kode dan nama jenis pemeriksaan.",
+                        Example = "biopsi"
+                    },
+                    new() { Name = "pageNumber", Type = "integer", Description = "Halaman ke berapa, dimulai dari 1.", Example = "1" },
+                    new() { Name = "pageSize", Type = "integer", Description = "Jumlah baris per halaman, paling banyak 100.", Example = "20" }
+                },
+                SupportsServerSideFiltering = true,
+                SupportsServerSidePaging = true,
+                IsDeletable = false,
+                SupportsStatusToggle = false,
+                HasOptionsEndpoint = false
+            };
     }
 }
