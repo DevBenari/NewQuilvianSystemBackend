@@ -370,7 +370,7 @@ namespace QuilvianSystemBackend.Services.Security
 
                 foreach (var permission in endpoint.Permissions)
                 {
-                    if (permission.Arguments is not { Length: 2 } ||
+                    if (permission.Arguments is not { Length: >= 2 } ||
                         permission.Arguments[0] is not string resourceName ||
                         permission.Arguments[1] is not string actionName ||
                         string.IsNullOrWhiteSpace(resourceName) ||
