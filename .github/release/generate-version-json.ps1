@@ -82,22 +82,17 @@ $migrationCount
 # Generate Release Name
 # ======================================
 
-if ($modules.Count -eq 0)
+if ($modules.Count -gt 3)
 {
-    $releaseName =
-        "Quilvian $Version Maintenance Release"
+    $releaseName = "Quilvian $Version - Enterprise Platform Enhancement"
 }
-elseif ($modules.Count -eq 1)
+elseif ($modules.Count -gt 0)
 {
-    $releaseName =
-        "Quilvian $Version - $($modules[0]) Enhancement"
+    $releaseName = "Quilvian $Version - " + ($modules -join " and ") + " Enhancement"
 }
 else
 {
-    $releaseName =
-        "Quilvian $Version - " +
-        ($modules -join " and ") +
-        " Enhancement"
+    $releaseName = "Quilvian $Version Maintenance Release"
 }
 
 
