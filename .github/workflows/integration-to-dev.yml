@@ -126,7 +126,10 @@ jobs:
       - name: Generate release metadata
         shell: pwsh
         run: |
-          ./.github/release/generate-release-metadata.ps1
+          git fetch origin QuilvianDevDeploy
+
+          ./.github/release/generate-release-metadata.ps1 `
+            -BaseCommit origin/QuilvianDevDeploy
 
       - name: Generate version json
         shell: pwsh
