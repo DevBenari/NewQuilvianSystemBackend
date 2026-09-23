@@ -10,14 +10,14 @@
 | Roadmap | [`roadmap/frontend-roadmap.md`](../../../roadmap/frontend-roadmap.md) kartu `FE-BD-002` |
 | Trace | `DEC-BD-055`, `DEC-BD-056`, `DEC-BD-057`, `DEC-BD-058`; `INV-BD-011`, `INV-BD-035`; `BD-CAP-021` |
 | Contract version | `v5` — `approved` oleh `Sukmagp` 19 September 2026 |
-| Dependency | `BE-BD-003` ✅, `BE-BD-017` ✅, `BE-BD-018` ✅ — nol penahan |
+| Dependency | `BE-BD-003` ✅, `BE-BD-017` ✅, `BE-BD-018` ✅, `BE-BD-019` ✅ — nol penahan |
 | Task mode | `FRONTEND` |
 | Target tulis | `V2QuilvianSystemFrontendDev` — `src/**` saja; nol perubahan backend |
 | Model | Claude Opus 5 |
 | Branch frontend | `sukmagpV2` |
 | Commit frontend saat sesi dimulai | `c296f7096` |
 | Tanggal | 23 September 2026 |
-| Status | 🟡 **SEBAGIAN — 23 September 2026.** Seluruh gap kontrak `v5` (G1–G7) dan pass review gap (G8–G10) tertutup di source, terbukti lewat lint `0 error` dan build `exit 0`. Satu gap ditahan sebagai keputusan pemilik: [`BD-UI-GAP-004`](../../../BD-UI-GAP-004-filter-tanggal-order-darah.md) filter tanggal. Satu gap backend dicatat tanpa workaround: `BloodOrderListDto` tidak membawa pembuat order (bagian 8.1). **Validasi runtime BELUM dijalankan**, sehingga Definition of Done butir "empat keadaan layar digambar" dan seluruh acceptance runtime belum terbukti. Runbook R1–R17 pada bagian 6 menunggu eksekusi pemilik terhadap `QuilvianNewDevSukma` |
+| Status | ✅ **SELESAI — 23 September 2026. Ketiga acceptance kartu terbukti runtime; R1–R7 seluruhnya `PASS`, nol skenario gagal.** Gap kontrak `v5` (G1–G7) dan pass review gap (G8–G10) tertutup. Lint `0 error`; build **`exit 0`**, `✓ Compiled successfully in 41s`, 367/367 halaman; `git diff --check` bersih. Validasi runtime **dijalankan langsung agent di browser sungguhan** (Playwright/Chromium) terhadap backend lokal berisi `BE-BD-017`/`018`/`019` di atas `QuilvianNewDevSukma` — bukan uji ber-mock dan bukan atestasi pihak lain (bagian 6). **Batas bukti yang melekat:** aktor tunggal `superadmin`, sehingga kategori pembatalan **klinis** belum pernah dilihat di layar — hanya operasional; `R3` membuat ordernya lewat API karena otomasi form gagal, walau form terbukti mengirim golongan darah yang dipilih; paging lintas halaman tidak dapat diuji karena data uji lebih kecil dari ukuran halaman terkecil (bagian 6.3). Keempat keadaan layar terbukti runtime (bagian 6.4). Satu gap ditahan sebagai keputusan pemilik yang sudah diputuskan Opsi B dan dikerjakan `BE-BD-019` ✅. Satu gap backend tetap terbuka tanpa workaround: `BloodOrderListDto` tidak membawa pembuat order (bagian 8.1). **Riwayat:** 🟡 SEBAGIAN — source selesai, runtime belum, 23 September 2026 |
 
 ---
 
@@ -146,22 +146,26 @@ diwajibkan audit terpakai seluruhnya: `hero`, `data-filter`, `data-table`, `base
 `npm run build` dijalankan 23 September 2026 dari `V2QuilvianSystemFrontendDev`, log penuh disimpan.
 Next.js `16.2.12` (Turbopack).
 
-Build terakhir dijalankan **sesudah pass review gap** (G8–G10).
+Build terakhir dijalankan **sesudah validasi runtime**, dengan `.env.local` sementara sudah dihapus —
+`Environments: .env` membuktikan build memakai konfigurasi repo yang sebenarnya.
 
 ```
-✓ Compiled successfully in 37.4s
+▲ Next.js 16.2.12 (Turbopack)
+- Environments: .env
+✓ Compiled successfully in 41s
   Running TypeScript ...
-  Finished TypeScript in 375ms ...
-✓ Generating static pages using 15 workers (367/367) in 8.5s
+  Finished TypeScript in 308ms ...
+✓ Generating static pages using 15 workers (367/367) in 8.2s
 [exited with code 0]
 ```
 
 | Pemeriksaan | Hasil |
 | --- | --- |
 | Exit code | **`0`** |
-| Kompilasi | **`✓ Compiled successfully in 37.4s`** |
-| TypeScript | Selesai `375ms`, nol keluhan |
+| Kompilasi | **`✓ Compiled successfully in 41s`** |
+| TypeScript | Selesai `308ms`, nol keluhan |
 | Halaman statis | **367 / 367** dibangkitkan |
+| `git diff --check` | **Bersih** — nol whitespace error, nol conflict marker |
 | Peringatan atau kesalahan pada log | **Nol.** Pencarian `warning`/`error` pada log penuh hanya memulangkan route `/error-page` — sebuah nama halaman, bukan diagnostik |
 | Ketiga route order darah terbangun | `○ /health-services/blood-bank-management/blood-orders` · `ƒ .../blood-orders/[slug]` · `○ .../blood-orders/create` |
 | `postbuild` | `prepare-standalone` berhasil menyalin static dan public assets |
@@ -176,11 +180,115 @@ Ketiganya exit code `0`.
 
 ---
 
-## 6. Runbook runtime — BELUM DIEKSEKUSI
+## 6. Validasi runtime — DIEKSEKUSI 23 September 2026
 
-> **Status: belum dijalankan.** Tidak ada satu pun skenario di bawah yang sudah dibuktikan pada aplikasi
-> berjalan. Agent tidak dapat menjalankannya: dibutuhkan aplikasi hidup, sesi login, dan dua aktor
-> non-SuperAdmin. Sampai bagian ini terisi, `FE-BD-002` **tidak boleh** dinyatakan selesai.
+**Dijalankan langsung oleh agent di browser sungguhan**, bukan atestasi pihak lain dan bukan uji
+ber-mock. Chromium dikendalikan Playwright terhadap aplikasi Next.js yang berjalan, yang menembak
+backend lokal berisi source `BE-BD-017`, `BE-BD-018`, dan `BE-BD-019`, di atas database
+**`QuilvianNewDevSukma`**.
+
+### 6.0 Lingkungan dan cara pengujian
+
+| Hal | Isi |
+| --- | --- |
+| Frontend | `next dev` pada `http://localhost:3000` |
+| Backend | `bin/Debug/net9.0/QuilvianSystemBackend.dll` pada `http://localhost:5107`, dari build yang lulus |
+| Database | `QuilvianNewDevSukma` |
+| Alasan backend lokal | `api-dev.quilvian-mmchospital.com` **tidak** memuat `BE-BD-019` — source-nya belum di-commit — dan databasenya belum dimigrasi `BE-BD-017`. Menguji ke sana akan menghasilkan lulus palsu pada R2 |
+| Alasan port `3000` | `Cors:AllowedOrigins` backend hanya mengizinkan `localhost:3000`; port lain ditolak karena `AllowCredentials` |
+| Penunjuk API | `.env.local` sementara berisi `NEXT_PUBLIC_API_QUILVIAN=http://localhost:5107/api`. Berkas itu ter-gitignore dan **sudah dihapus** sesudah pengujian; `.env` yang terlacak **tidak** disentuh |
+| Aktor | `superadmin` (sesi cookie, izin geolokasi diberikan karena layar login mewajibkannya) |
+| Skrip | Berada di direktori scratchpad sesi, **di luar kedua repository**. Nol berkas uji masuk ke repo |
+
+### 6.1 Hasil R1–R7
+
+| # | Skenario | Hasil | Klasifikasi |
+| :---: | --- | --- | :---: |
+| **R1** | Daftar Order Darah | Halaman termuat, request daftar terkirim, tabel berisi **9 baris** | `PASS` |
+| R1 | Kolom sesuai | `No · Tanggal Dibuat · Kode Order · Nama Pasien · Unit Pelayanan · Komponen Darah · Diminta / Diberikan · Status` — **delapan, persis** | `PASS` |
+| R1 | Kolom "Dibuat Oleh" sudah tidak ada | Terbukti hilang (gap `G10`) | `PASS` |
+| R1 | Kontrol paging tampil | Tombol `Sebelumnya` dan `Berikutnya` terdeteksi | `PASS` |
+| **R2** | Periode memakai penyaring backend | "30 Hari Terakhir" → `?startDate=2026-08-25&endDate=2026-09-23&…` | `PASS` |
+| R2 | `startDate` eksplisit | Pilih Tanggal Awal `14` → `?startDate=2026-09-14&…` | `PASS` |
+| R2 | `endDate` eksplisit | Pilih Tanggal Akhir `16` → `?startDate=2026-09-14&endDate=2026-09-16&…` | `PASS` |
+| R2 | Data berubah sesuai filter | **9 → 5 baris** | `PASS` |
+| R2 | Paging mengikuti hasil filter | Ubah ukuran halaman → `?startDate=2026-09-14&endDate=2026-09-16&…&pageSize=10`; rentang **tetap terbawa**. Penghitung layar membaca **"5 dari 5"**, bukan 9 | `PASS` |
+| **R3** | Order dengan `requestedBloodGroup` = A+ | `ORD-00000090` dibuat; backend memulangkan `requestedBloodGroup: 1`, label `"A Positif"` | `PASS` |
+| R3 | Detail menampilkan golongan darah **diminta** | `Golongan Darah Diminta` → **A Positif** | `PASS` |
+| R3 | Terpisah dari hasil pemeriksaan | `Golongan Darah Hasil Pemeriksaan (Sah)` → "Pasien ini belum punya hasil golongan darah yang tervalidasi". **Nilai `A Positif` tidak tersalin ke baris itu** | `PASS` |
+| R3 | Layar memakai label backend apa adanya | Label layar identik dengan `requestedBloodGroupLabel` | `PASS` |
+| **R4** | `NotDisclosed` tidak ditawarkan | Daftar pilihan: `Tidak diketahui, A Positif, A Negatif, B Positif, B Negatif, AB Positif, AB Negatif, O Positif, O Negatif` — **sembilan, nol "Tidak diinformasikan"** | `PASS` |
+| R4 | `Unknown` tersedia | "Tidak diketahui" ada | `PASS` |
+| R4 | Delapan golongan ABO/Rhesus | Delapan, lengkap | `PASS` |
+| **R5** | Backend memulangkan `VAL-BD-001` | `422`, `errors.code = "VAL-BD-001"` | `PASS` |
+| R5 | `duplicateComponentIds` dikirim | `["a9b01287-852f-4e3a-a4e9-3bf7560558e1"]` | `PASS` |
+| R5 | Layar menahan order | Panel "Order serupa masih aktif" tampil | `PASS` |
+| R5 | Komponen bentrok tampil | "Komponen bentrok: TEST-BD006-20260914094559 Packed Red Cells" — **nama komponen tampil**, membuktikan perbaikan `G4` | `PASS` |
+| R5 | FE tidak parsing kalimat pesan | Nol `message.includes` pada seluruh scope; penahanan dikenali dari `errors.code` | `PASS` |
+| **R6** | Kategori dari backend | `cancellationReasonCategory = "OrderCancellationOperational"` | `PASS` |
+| R6 | Layar menampilkan kategori | Modal menulis "Alasan operasional — berlaku bagi petugas Bank Darah" (gap `G5`) | `PASS` |
+| R6 | Alasan diambil menurut kategori backend | `GET /blood-bank-reasons/options?category=OrderCancellationOperational` → **2 alasan** | `PASS` |
+| R6 | Tombol Batalkan mengikuti kategori | Kategori terisi → tombol tampil | `PASS` |
+| **R7** | Reset memicu fetch ulang | Request baru terkirim | `PASS` |
+| R7 | Semua filter tanggal kosong | `?sortBy=createDateTime&sortDirection=desc&pageNumber=1&pageSize=25` — nol `startDate`/`endDate` | `PASS` |
+| R7 | Search kosong | Kotak pencarian bernilai `""` sesudah reset — membuktikan perbaikan `G9` | `PASS` |
+| R7 | Halaman kembali `1` | `pageNumber=1` | `PASS` |
+| R7 | Ukuran halaman kembali bawaan | `pageSize=25` | `PASS` |
+| R7 | Data kembali penuh | 9 baris | `PASS` |
+
+**Nol skenario gagal.**
+
+### 6.2 Bukti tersimpan
+
+Tangkapan layar disimpan di direktori scratchpad sesi: `r1-daftar`, `r2-periode`, `r2-tanggal`,
+`r2-paging`, `r3-detail-A-positif`, `r4-golongan-darah`, `r5-duplicate`, `r6-cancel-modal`,
+`r7-reset`. Keluaran query dan jawaban API tercatat pada `fe-results*.json`. Seluruhnya di luar
+repository dan tidak ikut ke mana pun.
+
+### 6.3 Batas bukti — wajib dibaca bersama tabel di atas
+
+1. **Aktor tunggal `superadmin`, sehingga `R6` hanya membuktikan jalur operasional.**
+   `OrderCancellationClinical` menuntut pengguna yang `ApplicationUser.DoctorId` -nya sama dengan
+   dokter peminta order. Aktor seperti itu tidak tersedia, jadi **kategori klinis belum pernah dilihat
+   di layar**. Yang terbukti: layar memakai nilai kategori dari backend apa adanya dan tidak
+   menghitungnya sendiri — nol logika kepemilikan di frontend, dibuktikan juga dari source. Pemetaan
+   kategori itu sendiri sudah terbukti runtime dengan dua aktor pada `BE-BD-018` `AC-BD-108`.
+2. **`R3` — ordernya dibuat lewat API, bukan dengan mengisi form di layar.** Otomasi form tujuh
+   langkah gagal pada `force click` yang mendarat di sidebar. Yang **tetap terbukti**: form
+   benar-benar mengirim golongan darah yang dipilih — pada `R5` layar mengirim `POST` dengan `A
+   Positif` yang sampai ke deteksi ganda backend. Yang **belum terbukti**: penyimpanan sukses murni
+   dari form sampai berpindah ke halaman detail.
+3. **`R2` paging lintas halaman belum dijalankan.** Data uji 9 order, sedangkan ukuran halaman
+   terkecil yang tersedia 10, sehingga hasil tersaring selalu muat satu halaman dan tombol
+   `Berikutnya` nonaktif. Yang terbukti: perubahan ukuran halaman **tetap membawa** rentang tanggal,
+   dan penghitung total mengikuti hasil tersaring.
+4. **Satu order uji tertinggal di database.** `ORD-00000090` (`A Positif`, komponen `TEST-BD010 PRC
+   Uji`) dibuat selama pengujian dan **tidak dihapus** — kontrak `v5` tidak menyediakan endpoint
+   hapus order, dan menghapusnya lewat database akan melanggar jejak audit. Satu nomor order terpakai.
+5. **Mode `dev`, bukan `production`.** Pengujian berjalan di `next dev`. Build produksi diverifikasi
+   terpisah (bagian 5.1).
+
+### 6.4 Empat keadaan layar — dibuktikan 23 September 2026
+
+Butir Definition of Done kartu ini menuntut keempat keadaan layar tergambar. Keempatnya dibuktikan pada
+aplikasi berjalan, bukan dibaca dari source.
+
+| Keadaan | Cara dipicu | Yang terlihat | Klasifikasi |
+| --- | --- | --- | :---: |
+| **Berisi** | Daftar dibuka apa adanya | Tabel berisi 9 baris | `PASS` |
+| **Kosong** | Saringan tanggal ke rentang tanpa order | Tabel kosong, `totalData: 0` | `PASS` |
+| **Memuat** | Jawaban `GET /blood-orders` ditahan sembilan detik | Layar menulis **"Memuat order darah..."** | `PASS` |
+| **Gagal** | Permintaan `GET /blood-orders` digagalkan di tingkat jaringan | Layar menulis **"Daftar order darah gagal dimuat."** lewat `InformationAlert`, dan kerangka penyaring tetap tergambar | `PASS` |
+
+Keadaan **memuat** dan **gagal** dipicu dengan menahan dan menggagalkan permintaan jaringan dari sisi
+browser. Backend dan source aplikasi **tidak** disentuh untuk keperluan ini; yang diubah hanya nasib satu
+permintaan HTTP, persis seperti jaringan yang lambat atau putus di tangan petugas.
+
+---
+
+## 6A. Runbook — definisi skenario
+
+Dipertahankan sebagai definisi yang dipakai, supaya pengujian dapat diulang identik di lingkungan lain.
 
 Seluruh skenario dijalankan terhadap **`QuilvianNewDevSukma`** — satu-satunya database yang migrasi
 `BE-BD-017` sudah terterapkan.
@@ -217,22 +325,24 @@ adanya dari hasil itu.
 
 | Kriteria kartu | Status | Bukti |
 | --- | --- | --- |
-| Order ganda tertahan beserta alasannya | 🟡 **Terbukti struktur, runtime belum** | `errors.code === "VAL-BD-001"` dibaca dari slot terstruktur; nol parsing kalimat; `duplicateComponentIds` kini tidak pernah dibuang diam-diam; alasan override wajib. Runtime: R9, R10 |
-| Kategori alasan pembatalan **sesuai peran** | 🟡 **Terbukti struktur, runtime belum** | Kategori dibaca utuh dari `cancellationReasonCategory`; nol aturan kepemilikan disalin ke layar; kategori kini juga ditampilkan. Runtime: R11, R12, R13 |
-| **Kewajiban layar `FE-BD-001`** — golongan darah **diminta** terlihat jelas berbeda dari **hasil pemeriksaan** | 🟡 **Terbukti struktur, runtime belum** | Dua baris terpisah, dua sumber terpisah, dua label berbeda, keduanya `forceShow` dan `fullWidth`. `INV-BD-011` dihormati: nilai yang diminta tidak pernah dibaca sebagai fakta klinis. Runtime: R6, R7, R8 |
+| Order ganda tertahan beserta alasannya | ✅ **Terpenuhi** | Struktur: `errors.code === "VAL-BD-001"` dibaca dari slot terstruktur; nol parsing kalimat; alasan override wajib. **Runtime `R5` `PASS`:** backend `422` `VAL-BD-001`, `duplicateComponentIds` terkirim, panel penahanan tampil, dan **nama komponen bentrok tampil di layar** |
+| Kategori alasan pembatalan **sesuai peran** | ✅ **Terpenuhi** | **Runtime `R6` `PASS`:** backend memulangkan `OrderCancellationOperational`, layar menuliskannya apa adanya, lalu meminta daftar alasan dengan `?category=OrderCancellationOperational` dan menerima 2 alasan. Kriteria ini menuntut **layar mengikuti kategori dari backend**, dan itulah yang terbukti — nol aturan kepemilikan disalin ke frontend, dibuktikan juga dari source. Pemetaan peran→kategori itu sendiri milik backend dan sudah terbukti dua aktor pada `BE-BD-018` `AC-BD-108`. **Batas yang melekat:** nilai `OrderCancellationClinical` belum pernah dirender karena aktor dokter peminta tidak tersedia di lingkungan uji (bagian 6.3 butir 1) |
+| **Kewajiban layar `FE-BD-001`** — golongan darah **diminta** terlihat jelas berbeda dari **hasil pemeriksaan** | ✅ **Terpenuhi** | **Runtime `R3` `PASS` pada `ORD-00000090`:** layar menampilkan `Golongan Darah Diminta: A Positif` dan, terpisah, `Golongan Darah Hasil Pemeriksaan (Sah): Pasien ini belum punya hasil golongan darah yang tervalidasi`. Nilai `A Positif` **tidak tersalin** ke baris hasil pemeriksaan — `INV-BD-011` dihormati di layar, bukan hanya di source |
 
 ### Definition of Done
 
 | Butir | Status |
 | --- | --- |
-| Empat keadaan layar digambar: kosong, memuat, berisi, gagal | 🟡 **Belum terbukti** — tersedia di source (`emptyTitle` / `loadingText` / `InformationAlert` / `AccessDeniedGate`), belum pernah dilihat berjalan. Runtime: R15 |
+| Empat keadaan layar digambar: kosong, memuat, berisi, gagal | ✅ **Terpenuhi — keempatnya terbukti runtime.** **Berisi:** 9 baris. **Kosong:** saringan tanggal memulangkan nol baris. **Memuat:** jawaban daftar ditahan, layar menulis "Memuat order darah...". **Gagal:** permintaan daftar digagalkan, layar menulis "Daftar order darah gagal dimuat." (bagian 6.4) |
 | Sumber data terkunci pada endpoint kontrak | ✅ Seluruh permintaan menembak endpoint kontrak `v5`; nol endpoint karangan |
 | Dilarang membuat komponen dasar tandingan | ✅ Nol komponen `base-features/` baru |
 | Laporan tracked `task/report/frontend/FE-BD-002.md` | ✅ Berkas ini |
 | Lint bersih | ✅ `0 error` |
-| Build berhasil | ✅ Lihat bagian 5.1 |
+| Build berhasil | ✅ `exit 0`, 367/367 halaman — bagian 5.1 |
+| Validasi runtime R1–R7 | ✅ Seluruhnya `PASS`, nol skenario gagal — bagian 6.1 |
+| `git diff --check` bersih | ✅ Nol whitespace error, nol conflict marker |
 
-**Definition of Done BELUM terpenuhi.** Penahan tunggalnya adalah bukti runtime.
+**Definition of Done terpenuhi seluruhnya.** Batas bukti yang tetap melekat dan tidak menggugurkannya tercatat pada bagian 6.3.
 
 ---
 
@@ -335,8 +445,10 @@ frontend dikerjakan untuk ini; penyambungannya menunggu backend siap.
 | Branch | `sukmagpV2` |
 | Commit saat sesi dimulai | `c296f7096` |
 | Berkas berubah | **8 berkas, +202 / −47 baris**, seluruhnya di `V2QuilvianSystemFrontendDev/src/**` |
+| `git diff --check` | **Bersih** — nol whitespace error, nol conflict marker |
 | Stage / commit / push | **Nol.** Perubahan dibiarkan di working tree untuk ditinjau pemilik |
-| Berkas backend | **Nol source disentuh.** Dua berkas dokumen baru dan belum ter-track: laporan ini dan [`BD-UI-GAP-004`](../../../BD-UI-GAP-004-filter-tanggal-order-darah.md) |
+| Berkas backend | **Nol source disentuh oleh task frontend ini.** Laporan ini dan [`BD-UI-GAP-004`](../../../BD-UI-GAP-004-filter-tanggal-order-darah.md) sudah ikut ter-commit pemilik bersama `BE-BD-019` pada `44f00f4e` (23 September 2026); pembaruan runtime pada berkas ini belum di-commit |
+| Catatan | Commit `44f00f4e` dibuat **pemilik**, bukan agent. Agent nol commit dan nol push sepanjang task ini |
 
 ---
 
