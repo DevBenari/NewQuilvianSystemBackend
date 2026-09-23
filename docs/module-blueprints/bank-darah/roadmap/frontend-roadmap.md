@@ -221,7 +221,7 @@ BE-BD-018 ✅ [BE] ─┘
 
 BE-BD-004 ✅ [BE] ─> FE-BD-003
 
-BE-BD-012 ✅ [BE] ─┬─> FE-BD-010
+BE-BD-012 ✅ [BE] ─┬─> FE-BD-010 ✅
                    │
 BE-BD-013 ✅ [BE] ─┘
 ```
@@ -289,7 +289,7 @@ Dengan begitu, setiap layar dapat diuji memakai data yang dihasilkan layar sebel
 | 8 | `FE-BD-009` | Menambah penyelesaian konflik ke layar pemeriksaan yang sama |
 | 9 | `FE-BD-007` | Tiga tombol penyelesaian `PendingReview` |
 | 10 | `FE-BD-008` | Koreksi dua langkah dan tunggakan bukti darurat |
-| 11 | `FE-BD-010` | Tindakan dan penampilan hasil penyerahan biaya. Cakupannya **terkunci** sejak `BD-UI-GAP-001` ditutup Opsi A, 18 September 2026 |
+| 11 | `FE-BD-010` ✅ | Tindakan dan penampilan hasil penyerahan biaya. Cakupannya **terkunci** sejak `BD-UI-GAP-001` ditutup Opsi A, 18 September 2026. **Dikerjakan lebih awal dan selesai 23 September 2026** atas keputusan pemilik, sesudah `FE-BD-012` ditahan menunggu `BE-BD-020` ([laporan](../task/report/frontend/FE-BD-010.md)) |
 | — | `FE-BD-006` kriteria kedua | ✅ **Selesai 18 September 2026** — dikerjakan ulang atas keputusan pemilik, terbukti otomatis dan lewat uji runtime pemilik R1–R8 `PASS` ([laporan](../task/report/frontend/FE-BD-006.md)). **Riwayat:** terimplementasi dan terbukti otomatis, menunggu bukti runtime; sebelumnya: Menyusul sesudah pembaca hak akses frontend (`BD-UI-GAP-002`) berdiri. Pembaca itu diputuskan dan dibangun pada task disetujui **pertama** yang benar-benar membutuhkannya, mengikuti `base-component-decision-gate`. Ini gap implementasi, bukan penahan approval |
 
 ---
@@ -303,7 +303,7 @@ Dengan begitu, setiap layar dapat diuji memakai data yang dihasilkan layar sebel
 | `FE-BD-006` | Seluruh layar Bank Darah terjangkau dari menu | 1 | — | ✅ 2 dari 2 — 18 September 2026, uji runtime pemilik R1–R8 `PASS`. **Riwayat:** 🟡 1 dari 2 terbukti penuh, kriteria kedua terbukti otomatis dan menunggu bukti runtime; 🟡 1 dari 2 kriteria | [FE-BD-006](../task/report/frontend/FE-BD-006.md) |
 | `FE-BD-002` | Order darah, pemenuhan, dan pembatalan | 2 | `BE-BD-003` ✅ [BE], `BE-BD-017` ✅ [BE], `BE-BD-018` ✅ [BE], `BE-BD-019` ✅ [BE] | ✅ **selesai 23 September 2026** — validasi runtime R1–R7 seluruhnya `PASS` di browser sungguhan | [laporan](../task/report/frontend/FE-BD-002.md) |
 | `FE-BD-003` | Permintaan PMI dan penerimaan | 2 | `BE-BD-004` ✅ [BE] | ✅ **selesai 23 September 2026** — empat acceptance layar `PASS` runtime; `AC-BD-014` backend-only | [laporan](../task/report/frontend/FE-BD-003.md) |
-| `FE-BD-010` | Daftar, pencatatan, dan penyelesaian tindakan | 2 | `BE-BD-012` ✅ [BE], `BE-BD-013` ✅ [BE] | belum dikerjakan | — |
+| `FE-BD-010` | Daftar, pencatatan, dan penyelesaian tindakan | 2 | `BE-BD-012` ✅ [BE], `BE-BD-013` ✅ [BE] | ✅ **selesai 23 September 2026** — validasi runtime 16 dari 16 `PASS` di browser sungguhan; `lint`/`build` `PASS`; keempat acceptance dan DoD terbukti | [laporan](../task/report/frontend/FE-BD-010.md) |
 | `FE-BD-012` | Penyimpanan dan perpindahan lokasi kantong | 3 | `BE-BD-015` ✅ [BE] | belum dikerjakan | — |
 | `FE-BD-004` | Alokasi dan pembatalan alokasi | 3 | `BE-BD-006` ✅ [BE] | belum dikerjakan | — |
 | `FE-BD-005` | Golongan darah, bukti, pemberian, jalur darurat | 3 | `BE-BD-005` ✅ [BE], `BE-BD-007` ✅ [BE], `BE-BD-008` ✅ [BE] | belum dikerjakan | — |
@@ -428,11 +428,11 @@ Sebelumnya ⛔ 1 (`FE-BD-008`, menunggu `BE-BD-010` sampai ✅ 17 September 2026
 
 ---
 
-### `FE-BD-010` — Daftar dan pencatatan tindakan Bank Darah
+### ✅ `FE-BD-010` — Daftar dan pencatatan tindakan Bank Darah
 
 | Field | Isi |
 | --- | --- |
-| **Status** | **Belum dikerjakan — siap dijadwalkan** (revisi 8 disetujui 18 September 2026). Nol source tindakan di frontend `6640a5e7`. Laporan `BE-BD-013` bagian 3 mencatat hal yang sama: frontend tidak punya pemakai endpoint tindakan. `BE-BD-012` ✅ dan `BE-BD-013` ✅. **Cakupan terkunci:** pemilik menutup `BD-UI-GAP-001` dengan Opsi A, sehingga task ini tidak memuat tombol kirim ulang biaya. **Riwayat (18 September 2026, sebelum approval):** disarankan dijalankan sesudah `BD-UI-GAP-001` diputuskan, karena bila pemilik memilih menambah tombol kirim ulang, cakupan task ini ikut bertambah. **Riwayat:** 🟡 PENDING (refresh dependency 17 September 2026); ⛔ BLOCKED — `BE-BD-012` menunggu `BE-BD-003`; tertahan `G4` sampai 10 September 2026 |
+| **Status** | ✅ **Selesai 23 September 2026** ([laporan](../task/report/frontend/FE-BD-010.md)). Source lengkap di frontend `1bdaf6bd6`: 14 berkas baru dan 1 diubah, mencakup layar daftar, layar detail, pencatatan, dan penyelesaian. **Validasi runtime `PASS` 16 dari 16** di browser Chromium sungguhan atas hasil `next build` standalone (`npx playwright test tests/e2e/blood-bank-procedure-screen.spec.mjs`, 24,7 detik): `R1`/`R1b` pencatatan mengirim tepat tiga isian dan nol harga/tarif/unit/kelas; `R2` `Emitted` dan `Replayed` dinyatakan berhasil; `R3` `RejectedByBilling`, `OutcomeUnknown`, dan `ReconciliationRequired` tetap **Selesai** dengan nol klaim keberhasilan; `R3d` `BillingHandoff` kosong hanya menyatakan tindakan selesai; `R3e` muat ulang tidak memunculkan status Billing dari `GET`; `R4a`/`R4b`/`R4c` kelima butir hak akses menahan tombolnya; `R5a` `complete` tanpa badan permintaan; `R5b` nol `resend-cost-fact` dan nol kirim ulang otomatis. Validasi lain: `npm run lint:errors` `PASS`, `npm run build` `PASS` (kode keluar `0`, kedua route terdaftar di `routes-manifest.json`), `npm run test:unit` 1561 dari 1568 lulus — kedelapan test baru milik task ini lulus, dan ketujuh kegagalan lain terbukti sudah ada sebelum task ini. **Keempat acceptance criteria dan DoD terbukti**, nol butir tersisa. **Riwayat:** 🟡 selesai sebagian 23 September 2026 — source lengkap, runtime belum terbukti. **Riwayat:** Belum dikerjakan — siap dijadwalkan (revisi 8 disetujui 18 September 2026); nol source tindakan di frontend `6640a5e7`. **Riwayat (18 September 2026, sebelum approval):** disarankan dijalankan sesudah `BD-UI-GAP-001` diputuskan, karena bila pemilik memilih menambah tombol kirim ulang, cakupan task ini ikut bertambah. **Riwayat:** 🟡 PENDING (refresh dependency 17 September 2026); ⛔ BLOCKED — `BE-BD-012` menunggu `BE-BD-003`; tertahan `G4` sampai 10 September 2026 |
 | **Outcome** | Petugas Bank Darah melihat daftar tindakan, mencatat tindakan atas satu order, lalu menyatakannya selesai. Hasil penyerahan biaya ke Billing pada saat itu terbaca jujur |
 | **Layar** | `FE-BD-07` |
 | **Trace** | `DEC-BD-021`, `DEC-BD-034`, `DEC-BD-048`, `DEC-BD-049`, **`DEC-BD-016`** (approved 17 September 2026) |
@@ -546,7 +546,7 @@ Sebelumnya ⛔ 1 (`FE-BD-008`, menunggu `BE-BD-010` sampai ✅ 17 September 2026
 | Slice | Outcome | Task | Keadaan |
 | --- | --- | --- | --- |
 | **1 — Setup master dan menu** | Master Bank Darah dapat disiapkan, dan layar terjangkau dari menu | `FE-BD-001`, `FE-BD-011`, `FE-BD-006` | ✅ **Selesai 18 September 2026** — `FE-BD-001`, `FE-BD-011`, dan `FE-BD-006` ✅; `FE-BD-006` ditutup sesudah uji runtime pemilik R1–R8 `PASS` ([laporan](../task/report/frontend/FE-BD-006.md)). **Riwayat:** `FE-BD-001` dan `FE-BD-011` ✅, `FE-BD-006` sebagian — kriteria keduanya terbukti otomatis, menunggu bukti runtime; kriteria kedua `FE-BD-006` menunggu pembaca hak akses frontend (`BD-UI-GAP-002`); `FE-BD-001` ✅, `FE-BD-011` dan `FE-BD-006` sebagian; sebelumnya ketiganya sebagian, nol selesai |
-| **2 — Order darah, permintaan PMI, dan tindakan** | Pintu masuk permintaan darah dan penutup biaya berjalan dari layar | `FE-BD-002`, `FE-BD-003`, `FE-BD-010` | Belum dikerjakan |
+| **2 — Order darah, permintaan PMI, dan tindakan** | Pintu masuk permintaan darah dan penutup biaya berjalan dari layar | `FE-BD-002`, `FE-BD-003`, `FE-BD-010` | ✅ **Selesai 23 September 2026** — ketiganya ✅ dan terbukti runtime; `FE-BD-010` ditutup dengan 16 dari 16 pemeriksaan runtime `PASS` ([laporan](../task/report/frontend/FE-BD-010.md)). **Riwayat:** 🟡 hampir selesai — `FE-BD-010` menunggu bukti runtime. **Riwayat:** Belum dikerjakan |
 | **3 — Kantong darah, pemberian, dan penyelesaiannya** | Kantong disimpan, dialokasikan, diberikan, diselesaikan, dan dikoreksi dari layar | `FE-BD-012`, `FE-BD-004`, `FE-BD-005`, `FE-BD-009`, `FE-BD-007`, `FE-BD-008` | Belum dikerjakan |
 
 ---
