@@ -488,4 +488,96 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         /// <summary><b>Salah, dan disengaja.</b> Sama seperti organisme — baris lama tetap dirujuk hasil.</summary>
         public bool IsDeletable { get; set; }
     }
+
+    // =====================================================================
+    // Bentuk layar tiga data induk Patologi Anatomi — `r32`, `BE-LAB-66`, dipakai `FE-LAB-27`
+    // =====================================================================
+
+    /// <summary>
+    /// Bentuk layar data induk parameter Patologi Anatomi (<c>FE-LAB-27</c>).
+    ///
+    /// <c>IsDeletable</c> bernilai <b><c>false</c></b>: parameter yang dihapus menarik ruas dari
+    /// laporan pasien yang sudah tersimpan (<c>r32</c> bagian 27.5, <c>AC-143</c>).
+    /// </summary>
+    public class LabPathologyParameterFilterMetadataResponse
+    {
+        public string DateFormat { get; set; } = "yyyy-MM-dd";
+
+        public List<LabSortOptionResponse> SortOptions { get; set; } = new();
+
+        public List<string> SortDirections { get; set; } = new();
+
+        public List<int> PageSizeOptions { get; set; } = new();
+
+        public List<LabQueryParameterInfoResponse> QueryParameters { get; set; } = new();
+
+        public bool SupportsServerSideFiltering { get; set; } = true;
+
+        public bool SupportsServerSidePaging { get; set; } = true;
+
+        /// <summary><b>Salah, dan disengaja.</b> Ruas yang ditarik akan mengosongkan laporan lama.</summary>
+        public bool IsDeletable { get; set; }
+    }
+
+    /// <summary>
+    /// Bentuk layar data induk golongan Patologi Anatomi (<c>FE-LAB-27</c>).
+    ///
+    /// <c>IsDeletable</c> bernilai <b><c>false</c></b>: golongan yang dihapus membuat pesanan
+    /// lama nol punya bentuk formulir.
+    /// </summary>
+    public class LabPathologyCategoryFilterMetadataResponse
+    {
+        public string DateFormat { get; set; } = "yyyy-MM-dd";
+
+        public List<LabSortOptionResponse> SortOptions { get; set; } = new();
+
+        public List<string> SortDirections { get; set; } = new();
+
+        public List<int> PageSizeOptions { get; set; } = new();
+
+        public List<LabQueryParameterInfoResponse> QueryParameters { get; set; } = new();
+
+        public bool SupportsServerSideFiltering { get; set; } = true;
+
+        public bool SupportsServerSidePaging { get; set; } = true;
+
+        /// <summary><b>Salah, dan disengaja.</b> Pesanan lama menunjuk golongannya.</summary>
+        public bool IsDeletable { get; set; }
+    }
+
+    /// <summary>
+    /// Bentuk layar penggolongan jenis pemeriksaan Patologi Anatomi (<c>FE-LAB-27</c>).
+    ///
+    /// <b>Dua penanda di sini berbeda dari kedua kembarannya, dan keduanya disengaja.</b>
+    /// <see cref="SupportsStatusToggle"/> bernilai <c>false</c> sebab baris pemetaan nol punya
+    /// status untuk dibalik, dan <see cref="HasOptionsEndpoint"/> bernilai <c>false</c> sebab nol
+    /// satu pun layar memilih sebuah pemetaan dari kotak pilihan (<c>r32</c> bagian 27.4).
+    /// Keduanya dinyatakan di sini supaya layar <b>membacanya</b> alih-alih menyimpulkan dari
+    /// endpoint yang menjawab <c>404</c>.
+    /// </summary>
+    public class LabProcedurePathologyCategoryFilterMetadataResponse
+    {
+        public string DateFormat { get; set; } = "yyyy-MM-dd";
+
+        public List<LabSortOptionResponse> SortOptions { get; set; } = new();
+
+        public List<string> SortDirections { get; set; } = new();
+
+        public List<int> PageSizeOptions { get; set; } = new();
+
+        public List<LabQueryParameterInfoResponse> QueryParameters { get; set; } = new();
+
+        public bool SupportsServerSideFiltering { get; set; } = true;
+
+        public bool SupportsServerSidePaging { get; set; } = true;
+
+        /// <summary><b>Salah, dan disengaja.</b> Pencabutan penggolongan lewat <c>PUT /{id}</c>.</summary>
+        public bool IsDeletable { get; set; }
+
+        /// <summary><b>Salah, dan disengaja.</b> Baris pemetaan nol punya <c>IsActive</c>.</summary>
+        public bool SupportsStatusToggle { get; set; }
+
+        /// <summary><b>Salah, dan disengaja.</b> Yang dipilih layar adalah pemeriksaan dan golongannya, bukan pemetaannya.</summary>
+        public bool HasOptionsEndpoint { get; set; }
+    }
 }

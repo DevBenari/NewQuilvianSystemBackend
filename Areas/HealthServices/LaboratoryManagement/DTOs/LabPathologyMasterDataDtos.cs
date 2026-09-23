@@ -343,4 +343,81 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         /// </summary>
         public string? MatchedKeyword { get; set; }
     }
+
+    // =====================================================================
+    // Permukaan baseline yang dilengkapi 2026-09-23 — `LAB-API-v1` r32, `BE-LAB-66`
+    // =====================================================================
+
+    /// <summary>
+    /// Membalik penanda aktif satu baris data induk Patologi Anatomi
+    /// (<c>PATCH /{id}/status</c>).
+    ///
+    /// <b>Dipakai bersama parameter dan golongan, dan sengaja tidak dipakai pemetaan.</b>
+    /// <c>LabProcedurePathologyCategory</c> nol punya <c>IsActive</c> — ia baris pemetaan, bukan
+    /// data induk berstatus (<c>r32</c> bagian 27.4).
+    /// </summary>
+    public class LabPathologyMasterDataStatusRequest
+    {
+        public bool IsActive { get; set; }
+    }
+
+    /// <summary>
+    /// Ringkasan data induk parameter (<c>GET /summary</c>).
+    ///
+    /// <see cref="UsedInCategory"/> menghitung parameter yang <b>dipakai sedikitnya satu
+    /// golongan</b>. Selisihnya terhadap <see cref="TotalParameter"/> adalah parameter yang nol
+    /// pernah dipakai di mana pun — ruas yang terdaftar tetapi nol akan pernah muncul pada satu
+    /// formulir pun, dan itu keadaan yang nol terlihat dari daftar mana pun.
+    /// </summary>
+    public class LabPathologyParameterSummaryResponse
+    {
+        public int TotalParameter { get; set; }
+
+        public int ActiveParameter { get; set; }
+
+        public int InactiveParameter { get; set; }
+
+        public int UsedInCategory { get; set; }
+    }
+
+    /// <summary>
+    /// Ringkasan data induk golongan (<c>GET /summary</c>).
+    ///
+    /// <see cref="WithParameter"/> menghitung golongan yang punya sedikitnya satu keberlakuan.
+    /// <b>Selisihnya terhadap <see cref="TotalCategory"/> adalah golongan yang menghasilkan
+    /// formulir kosong</b>, dan <c>VAL-100</c> baru menyebutnya ketika patolog sudah membuka
+    /// layar hasil — angka ini yang membuatnya terlihat lebih awal.
+    /// </summary>
+    public class LabPathologyCategorySummaryResponse
+    {
+        public int TotalCategory { get; set; }
+
+        public int ActiveCategory { get; set; }
+
+        public int InactiveCategory { get; set; }
+
+        public int WithParameter { get; set; }
+    }
+
+    /// <summary>
+    /// Ringkasan penggolongan jenis pemeriksaan (<c>GET /summary</c>).
+    ///
+    /// <b><see cref="UnmappedProcedure"/> adalah alasan ringkasan ini ada.</b> Ia angka
+    /// pekerjaan yang tersisa bagi kepala instalasi, dan penahan yang <c>FE-LAB-28</c> tunggu:
+    /// pesanan Patologi Anatomi yang jenis pemeriksaannya belum digolongkan nol punya bentuk
+    /// formulir sama sekali (<c>INV-39</c>).
+    ///
+    /// Ketiganya memakai definisi jenis pemeriksaan Patologi Anatomi yang <b>sama persis</b>
+    /// dengan <c>GET /suggestions</c> — <c>IsLaboratory</c> benar dan <c>LabDiscipline</c>
+    /// bernilai <c>AnatomicalPathology</c>. Definisi yang berbeda akan membuat ringkasan dan
+    /// daftar usulan saling membantah.
+    /// </summary>
+    public class LabProcedurePathologyCategorySummaryResponse
+    {
+        public int TotalProcedure { get; set; }
+
+        public int MappedProcedure { get; set; }
+
+        public int UnmappedProcedure { get; set; }
+    }
 }
