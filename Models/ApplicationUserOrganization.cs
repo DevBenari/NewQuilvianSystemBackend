@@ -18,6 +18,20 @@ namespace QuilvianSystemBackend.Models
         [Required]
         public Guid PositionId { get; set; }
 
+        /// <summary>
+        /// Penempatan organisasi otoritatif (<c>WfpOrganizationAssignment.Id</c>) yang menghasilkan
+        /// baris proyeksi ini.
+        ///
+        /// Nullable karena baris warisan yang dibuat sebelum Phase A0 tidak selalu dapat
+        /// dibuktikan sumbernya. Baris seperti itu dibiarkan bernilai <c>null</c> dan dilaporkan
+        /// sebagai <i>legacy-unresolved</i>; menebak sumbernya berarti mengarang sejarah.
+        /// </summary>
+        public Guid? SourceAssignmentId { get; set; }
+
+        /// <summary>
+        /// Penanda penempatan utama. <b>Bukan</b> syarat kelayakan otorisasi: penempatan sekunder
+        /// yang aktif dan masih berlaku tetap ikut menyumbang izin.
+        /// </summary>
         public bool IsPrimary { get; set; } = false;
 
         public bool IsActive { get; set; } = true;

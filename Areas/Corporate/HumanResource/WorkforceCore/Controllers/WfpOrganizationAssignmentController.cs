@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
@@ -11,6 +11,7 @@ using QuilvianSystemBackend.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
+using QuilvianSystemBackend.Services.Security;
 using System.Security.Claims;
 
 using OrganizationAssignmentPagedResult = QuilvianSystemBackend.Responses.PagedResult<QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.DTOs.WfpOrganizationAssignmentResponse>;
@@ -35,12 +36,31 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
         private static readonly string[] AssignmentTypes = { "Primary", "Secondary", "Acting", "Temporary", "Project", "Functional" };
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
+        private readonly OrganizationAuthorizationProjectionService _authorizationProjection;
 
-        public WfpOrganizationAssignmentController(ApplicationDbContext dbContext, LoggerService loggerService)
+        public WfpOrganizationAssignmentController(
+            ApplicationDbContext dbContext,
+            LoggerService loggerService,
+            OrganizationAuthorizationProjectionService authorizationProjection)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
+            _authorizationProjection = authorizationProjection;
         }
+
+        /// <summary>
+        /// Menyelaraskan proyeksi otorisasi setelah penempatan berubah.
+        ///
+        /// Sebelum Phase A0, seluruh endpoint pada controller ini mengubah penempatan tanpa
+        /// menyentuh <c>AspNetUserOrganization</c> sama sekali, sehingga menambah penempatan tidak
+        /// pernah melahirkan izin dan menonaktifkannya tidak pernah mencabut izin.
+        /// </summary>
+        private Task SyncAuthorizationProjectionAsync(Guid workforceProfileId, CancellationToken cancellationToken) =>
+            _authorizationProjection.ReconcileWorkforceProfileAsync(
+                workforceProfileId,
+                GetCurrentUserId(),
+                dryRun: false,
+                cancellationToken);
 
         [HttpGet("filters/metadata")]
         [AccessAction("Read", "Read Workforce Organization Assignment", Description = "Melihat metadata organization assignment", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -224,6 +244,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
                 await _dbContext.SaveChangesAsync(ct);
                 await transaction.CommitAsync(ct);
                 await _loggerService.InfoAsync(LogCategory, "WfpOrganizationAssignment.Create", "Organization assignment berhasil dibuat.", new { entity.Id, entity.WorkforceProfileId, entity.DepartmentId, entity.PositionId, entity.IsPrimary });
+                await SyncAuthorizationProjectionAsync(workforceProfileId, ct);
                 return Ok(ApiResponse<object>.Ok(new { entity.Id }, "Organization assignment berhasil dibuat."));
             }
             catch
@@ -269,6 +290,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
                 entity.UpdateBy = actor;
                 await _dbContext.SaveChangesAsync(ct);
                 await transaction.CommitAsync(ct);
+                await SyncAuthorizationProjectionAsync(workforceProfileId, ct);
                 return Ok(ApiResponse<object>.Ok(null, "Organization assignment berhasil diperbarui."));
             }
             catch
@@ -290,6 +312,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             entity.UpdateDateTime = DateTime.UtcNow;
             entity.UpdateBy = GetCurrentUserId();
             await _dbContext.SaveChangesAsync(ct);
+            await SyncAuthorizationProjectionAsync(workforceProfileId, ct);
             return Ok(ApiResponse<object>.Ok(null, "Status organization assignment berhasil diperbarui."));
         }
 
@@ -312,6 +335,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
                 entity.UpdateBy = actor;
                 await _dbContext.SaveChangesAsync(ct);
                 await transaction.CommitAsync(ct);
+                await SyncAuthorizationProjectionAsync(workforceProfileId, ct);
                 return Ok(ApiResponse<object>.Ok(null, "Primary organization assignment berhasil diperbarui."));
             }
             catch
@@ -340,6 +364,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Cont
             entity.UpdateDateTime = now;
             entity.UpdateBy = actor;
             await _dbContext.SaveChangesAsync(ct);
+            await SyncAuthorizationProjectionAsync(workforceProfileId, ct);
             return Ok(ApiResponse<object>.Ok(null, "Organization assignment berhasil dihapus."));
         }
 

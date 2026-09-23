@@ -18,7 +18,9 @@ using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.BillingIntake.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.CashManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Payable.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.PettyCash.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Models;
@@ -636,14 +638,17 @@ namespace QuilvianSystemBackend.Repositories
         // (FinanceBillingIntakeService) belum ada task pemilik eksplisit.
         public DbSet<FinBillingHandoffIntake> FinBillingHandoffIntakes { get; set; }
         // BE-FIN-006, FIN-DES-010..013: buku piutang. Migration AddFinanceReceivableAndCollection
-        // (BE-FIN-007) dibuat tangan untuk 5 tabel ini saja — 2 tabel Collection (FinReceipt,
-        // FinReceiptAllocation) belum punya entity/task pemilik, lihat laporan BE-FIN-007.
-        // FinanceReceivableService (BE-FIN-008) belum dikerjakan.
+        // (BE-FIN-007) dibuat tangan untuk 5 tabel ini saja.
         public DbSet<FinReceivable> FinReceivables { get; set; }
         public DbSet<FinReceivableItem> FinReceivableItems { get; set; }
         public DbSet<FinReceivableDocument> FinReceivableDocuments { get; set; }
         public DbSet<FinReceivableAdjustment> FinReceivableAdjustments { get; set; }
         public DbSet<FinReceivableWriteOff> FinReceivableWriteOffs { get; set; }
+        // BE-FIN-016, FIN-DES-010..012: buku penerimaan. Migration AddFinanceCollection dibuat
+        // tangan, belum dijalankan. FinReceiptAllocation belum punya penulis — pembagian
+        // bayar-vs-piutang adalah tanggung jawab FinanceReceiptService (BE-FIN-017, BLOCKED).
+        public DbSet<FinReceipt> FinReceipts { get; set; }
+        public DbSet<FinReceiptAllocation> FinReceiptAllocations { get; set; }
         // BE-FIN-010, FIN-DES-017..019: kotak keluar kejadian Finance -> Accounting (transactional
         // outbox). Migration AddFinanceAccountingOutbox dibuat tangan, belum dijalankan. Worker
         // pengiriman (FIN-DES-020) dan endpoint penerima Accounting belum ada (FIN-CAP-018) — di
@@ -653,6 +658,21 @@ namespace QuilvianSystemBackend.Repositories
         // BE-FIN-013, FIN-DES-018..020: Kas dan setoran bank. Migration AddFinanceCashManagement.
         public DbSet<FinBankDeposit> FinBankDeposits { get; set; }
         public DbSet<FinDailyCashSnapshot> FinDailyCashSnapshots { get; set; }
+        // BE-FIN-019, FIN-DES-015 (bagian supplier): utang supplier input manual. Migration
+        // AddFinanceSupplierPayable dibuat tangan, belum dijalankan.
+        public DbSet<FinSupplierPayable> FinSupplierPayables { get; set; }
+        public DbSet<FinSupplierPayableItem> FinSupplierPayableItems { get; set; }
+        public DbSet<FinPayableAdjustment> FinPayableAdjustments { get; set; }
+        // BE-FIN-020, FIN-DES-015, FIN-DES-026, FIN-DES-027: pembayaran keluar, alokasi utang,
+        // serta potongan dan tambahan transfer (FR-FIN-050, FR-FIN-051). Migration AddFinancePayment
+        // dibuat tangan, belum dijalankan.
+        public DbSet<FinPayment> FinPayments { get; set; }
+        public DbSet<FinPaymentAllocation> FinPaymentAllocations { get; set; }
+        public DbSet<FinPaymentDeduction> FinPaymentDeductions { get; set; }
+        // BE-FIN-021, FIN-DES-025, FIN-CAP-021: utang jasa tenaga medis (dokter, perawat, praktisi lain).
+        // Migration AddFinanceMedicalServicePayable dibuat tangan, belum dijalankan.
+        public DbSet<FinMedicalServicePayable> FinMedicalServicePayables { get; set; }
+        public DbSet<FinMedicalServicePayableItem> FinMedicalServicePayableItems { get; set; }
         public DbSet<FinPettyCashBudget> FinPettyCashBudgets { get; set; }
         public DbSet<FinPettyCashBudgetMovement> FinPettyCashBudgetMovements { get; set; }
         public DbSet<BilPettyCashVoucher> BilPettyCashVouchers { get; set; }

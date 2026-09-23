@@ -262,8 +262,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         }
 
         [HttpPost("{id:guid}/call")]
-        [AccessAction("Update", "Call Doctor Queue", Description = "Memanggil pasien ke dokter", AccessType = AccessTypes.Update, SortOrder = 2)]
-        [AccessPermission("DoctorQueue", "Update")]
+        [AccessAction("Call", "Call Doctor Queue", Description = "Memanggil pasien ke dokter", AccessType = AccessTypes.Update, SortOrder = 2)]
+        [AccessPermission("DoctorQueue", "Call")]
         public async Task<IActionResult> Call(Guid id, CancellationToken ct)
         {
             var queue = await GetAllowedQueueWithEncounterAsync(id);
@@ -369,8 +369,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         }
 
         [HttpPost("{id:guid}/start-consultation")]
-        [AccessAction("Update", "Start Doctor Consultation", Description = "Memulai konsultasi dokter", AccessType = AccessTypes.Update, SortOrder = 3)]
-        [AccessPermission("DoctorQueue", "Update")]
+        [AccessAction("StartConsultation", "Start Doctor Consultation", Description = "Memulai konsultasi dokter", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("DoctorQueue", "StartConsultation")]
         public async Task<IActionResult> StartConsultation(Guid id, CancellationToken ct)
         {
             var queue = await GetAllowedQueueWithEncounterAsync(id);
@@ -445,34 +445,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         }
 
         [HttpPost("{id:guid}/finish-consultation")]
-        [AccessAction("Update", "Finish Doctor Consultation", Description = "Menyelesaikan konsultasi dokter", AccessType = AccessTypes.Update, SortOrder = 4)]
-        [AccessPermission("DoctorQueue", "Update")]
-        /// <summary>
-        /// Jalur kompatibilitas penyelesaian konsultasi dari antrean.
-        ///
-        /// <c>RJ-DOC-BE-001</c>. Route ini <b>tidak lagi</b> memiliki logika finalisasi klinis
-        /// sendiri. Sebelumnya ia menutup antrean dan kunjungan tanpa pernah menyentuh
-        /// <c>TrxDoctorConsultation</c>, sehingga konsultasi tertinggal di <c>InProgress</c>,
-        /// resep tidak pernah difinalkan, dan tidak satu pun fakta klinis diserahkan.
-        ///
-        /// Sekarang ia mendelegasikan finalisasi ke <see cref="ConsultationFinalizationService"/>
-        /// — implementasi domain yang sama dengan
-        /// <c>PATCH /doctor-consultations/{id}/complete</c> — lalu menambahkan efek operasional
-        /// yang memang milik antrean. Kontrak: <c>RJ-DOC-COMPLETION-001@1.0.0</c> bagian 1.10.
-        /// </summary>
+        [AccessAction("FinishConsultation", "Finish Doctor Consultation", Description = "Menyelesaikan konsultasi dokter", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("DoctorQueue", "FinishConsultation")]
         public async Task<IActionResult> FinishConsultation(
-            Guid id,
-            [FromBody] DoctorQueueActionRequest? request = null,
-            CancellationToken cancellationToken = default)
+            Guid id, [FromBody] DoctorQueueActionRequest? request = null, CancellationToken cancellationToken = default)
         {
             var queue = await GetAllowedQueueWithEncounterAsync(id);
             if (queue == null) return QueueNotFound();
 
             if (queue.QueueStatus != QueueStatus.InConsultation)
-                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, "Konsultasi dokter belum dimulai."));
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Konsultasi dokter belum dimulai."));
+            }
 
-            // Identitas konsultasi diresolusi server dari antrean. Client tidak pernah mengirim
-            // consultationId ke route ini, sehingga tidak ada ID relasi yang perlu dipercaya.
             var consultation = await _doctorConsultationLifecycleService
                 .ResolveFinalizableForQueueAsync(queue.Id, queue.EncounterId, cancellationToken);
 
@@ -486,34 +473,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
-            // Catatan antrean adalah efek milik antrean, bukan milik konsultasi. Ia ditulis pada
-            // entity yang sudah dilacak, lalu ikut commit transaksi finalisasi di bawah — atau
-            // ikut batal bila finalisasi ditolak.
             queue.Notes = MergeNotes(queue.Notes, request?.Notes);
 
             if (queue.Encounter != null)
             {
-                // RM-DEC-003 lapis kedua — catatan klinis yang belum ditandatangani terkunci
-                // otomatis saat konsultasi dokter diselesaikan. Ini jalur penyelesaian yang
-                // paling sering dipakai, sehingga pemicunya tidak boleh hanya dipasang pada
-                // endpoint perubahan status umum.
-                //
-                // Service ini tidak menyimpan sendiri; penguncian ikut transaksi finalisasi,
-                // sehingga bila finalisasi gagal, penguncian ikut dibatalkan.
                 await _integrityService.LockOpenDocumentsForEncounterAsync(
-                    queue.Encounter.Id, actorUserId, now, now, cancellationToken: cancellationToken);
+                    queue.Encounter.Id,
+                    actorUserId,
+                    now,
+                    now,
+                    cancellationToken: cancellationToken);
             }
 
-            // Status konsultasi, CompletedAt, CompletedByUserId, finalisasi resep, penyerahan
-            // fakta klinis, status antrean, dan EncounterStatus = ConsultationCompleted
-            // seluruhnya milik service canonical. Jangan menduplikasinya di sini.
             var result = await _consultationFinalizationService.FinalizeAsync(
                 consultation.Id,
                 new FinalizeDoctorConsultationRequest
                 {
-                    // Warning tidak pernah di-acknowledge otomatis dari jalur antrean.
-                    // Kontrak RJ-DOC-COMPLETION-001@1.0.0 bagian 1.5: konfirmasi warning adalah
-                    // tindakan sadar dokter, dan route ini belum memiliki permukaan untuk itu.
                     AcknowledgedWarningKeys = new List<string>(),
                     FinalizationNote = NormalizeNullableText(request?.Notes)
                 },
@@ -529,42 +504,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
             if (!result.IsSuccess)
             {
-                if (result.Validation != null)
-                {
-                    return BadRequest(ApiResponse<ConsultationFinalizationValidationResponse>.Ok(
-                        result.Validation,
-                        result.ErrorMessage ?? "Konsultasi belum dapat diselesaikan."));
-                }
-
                 return BadRequest(ApiResponse<object>.Fail(
                     StatusCodes.Status400BadRequest,
                     result.ErrorMessage ?? "Konsultasi belum dapat diselesaikan."));
             }
 
-            await _queueRealtimeService.NotifyQueueConsultationFinishedAsync(queue, actorUserId, "Konsultasi dokter selesai.");
+            await _queueRealtimeService.NotifyQueueConsultationFinishedAsync(
+                queue,
+                actorUserId,
+                "Konsultasi dokter selesai.");
 
-            await _loggerService.InfoAsync(
-                LogCategory,
-                "DoctorQueue.FinishConsultation",
-                "Menyelesaikan konsultasi dokter melalui jalur antrean.",
-                new
-                {
-                    QueueId = queue.Id,
-                    ConsultationId = consultation.Id,
-                    queue.EncounterId,
-                    UserId = actorUserId,
-                    result.Data!.CompletedAt,
-                    result.Data.FinalizedPrescriptionCount,
-                    result.Data.FinalizedProcedureCount,
-                    BillingHandoffIssueCount = result.Data.BillingHandoffIssues.Count
-                });
-
-            return Ok(ApiResponse<DoctorQueueActionResponse>.Ok(BuildActionResponse(queue, "Konsultasi dokter selesai."), "Konsultasi dokter selesai."));
+            return Ok(ApiResponse<DoctorQueueActionResponse>.Ok(
+                BuildActionResponse(queue, "Konsultasi dokter selesai."),
+                "Konsultasi dokter selesai."));
         }
 
         [HttpPost("{id:guid}/skip")]
-        [AccessAction("Update", "Skip Doctor Queue", Description = "Melewati pasien yang tidak hadir saat dipanggil dokter", AccessType = AccessTypes.Update, SortOrder = 5)]
-        [AccessPermission("DoctorQueue", "Update")]
+        [AccessAction("Skip", "Skip Doctor Queue", Description = "Melewati pasien yang tidak hadir saat dipanggil dokter", AccessType = AccessTypes.Update, SortOrder = 5)]
+        [AccessPermission("DoctorQueue", "Skip")]
         public async Task<IActionResult> Skip(Guid id, CancellationToken ct, [FromBody] DoctorQueueActionRequest? request = null)
         {
             var queue = await GetAllowedQueueWithEncounterAsync(id);
@@ -619,8 +576,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         }
 
         [HttpPost("{id:guid}/no-show")]
-        [AccessAction("Update", "No Show Doctor Queue", Description = "Menandai pasien tidak hadir di antrean dokter", AccessType = AccessTypes.Update, SortOrder = 6)]
-        [AccessPermission("DoctorQueue", "Update")]
+        [AccessAction("NoShow", "No Show Doctor Queue", Description = "Menandai pasien tidak hadir di antrean dokter", AccessType = AccessTypes.Update, SortOrder = 6)]
+        [AccessPermission("DoctorQueue", "NoShow")]
         public async Task<IActionResult> NoShow(Guid id, CancellationToken ct, [FromBody] DoctorQueueActionRequest? request = null)
         {
             var queue = await GetAllowedQueueWithEncounterAsync(id);
@@ -687,8 +644,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         }
 
         [HttpPost("{id:guid}/requeue")]
-        [AccessAction("Update", "Requeue Doctor Queue", Description = "Mengembalikan pasien ke antrean dokter", AccessType = AccessTypes.Update, SortOrder = 7)]
-        [AccessPermission("DoctorQueue", "Update")]
+        [AccessAction("Requeue", "Requeue Doctor Queue", Description = "Mengembalikan pasien ke antrean dokter", AccessType = AccessTypes.Update, SortOrder = 7)]
+        [AccessPermission("DoctorQueue", "Requeue")]
         public async Task<IActionResult> Requeue(Guid id, [FromBody] DoctorQueueActionRequest request)
         {
             var queue = await GetAllowedQueueWithEncounterAsync(id);

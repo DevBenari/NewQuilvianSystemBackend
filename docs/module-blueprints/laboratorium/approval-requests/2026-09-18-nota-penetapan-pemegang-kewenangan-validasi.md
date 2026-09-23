@@ -5,7 +5,8 @@
 | `request_id` | `LAB-REQ-013` |
 | `tanggal` | 2026-09-18 |
 | `pengaju` | Yoga Aji Pratama — Product/Domain Owner Laboratorium (`yogaaji452@gmail.com`) |
-| `ditujukan kepada` | **dr. Arya Wicaksana, Sp.Rad** — Kepala Instalasi |
+| `ditujukan kepada` | **dr. Bima Prasetya, Sp.PK** — Kepala Instalasi Laboratorium |
+| `koreksi alamat` | **2026-09-23.** Nota ini semula ditujukan kepada **dr. Arya Wicaksana, Sp.Rad**, dan itu **keliru** — beliau bukan Kepala Instalasi Laboratorium. Nama yang benar dinyatakan pemilik modul pada 2026-09-23. **Akibatnya nyata dan menjelaskan kenapa nota ini tak berjawab selama lima hari: ia berada di tangan yang bukan pemiliknya.** Tanggal pengajuan **tidak** diubah, supaya umur penahannya tetap terbaca apa adanya |
 | `menutup` | `DEC-LAB-011` |
 | `rujukan` | `LAB-DEC-022`; `LAB-REQ-004` bagian 5.1, diajukan 2026-09-09 dan belum dijawab; `02-requirement-completeness-assessment.md` bagian 0B.4 |
 | `status` | `menunggu jawaban` |
@@ -121,6 +122,25 @@ singkat pada halaman 7:
 Bila jawabannya "berlapis" — misalnya kepala instalasi mengusulkan dan pemegang wewenang klinis
 disiplin terkait menyetujui — itu pun jawaban yang lengkap, dan sistem dapat menjalankannya.
 
+> ### Pembaruan 2026-09-23 — alamat nota dikoreksi, dan satu dari dua hal di atas ikut terjawab
+>
+> Kepala Instalasi Laboratorium adalah **dr. Bima Prasetya, Sp.PK**, dinyatakan pemilik modul pada
+> 2026-09-23. Nota ini semula ditujukan kepada dr. Arya Wicaksana, Sp.Rad — **keliru orang**.
+>
+> **Hal pertama pada tabel di atas dengan sendirinya terjawab:** yang dipimpin adalah **Instalasi
+> Laboratorium**, bukan Instalasi Penunjang Medis yang menaungi beberapa unit. Baris itu nol perlu
+> diisi lagi.
+>
+> **Hal kedua tetap terbuka, dan koreksi ini justru menajamkannya.** `Sp.PK` adalah spesialisasi
+> **Patologi Klinik** — satu dari tiga disiplin yang dilayani modul ini, dan spesialisasi yang sama
+> dengan `DR-LAB-001`. Menetapkan pemegang kewenangan validasi bagi **Mikrobiologi Klinik** dan
+> **Patologi Anatomi** karena itu berarti menetapkan di luar disiplin beliau sendiri. Itu **bukan**
+> alasan untuk menolak kewenangannya — banyak rumah sakit memang menempatkan penetapan pada
+> jabatan, bukan pada disiplin — melainkan alasan kenapa pertanyaan kedua **tetap perlu dijawab
+> eksplisit** alih-alih dianggap sudah jelas.
+>
+> Bentuk jawaban yang dibutuhkan nol berubah: cukup satu pilihan pada bagian 7.3.
+
 ---
 
 ## 6. Yang **tidak** dimohonkan
@@ -170,7 +190,7 @@ Agar tidak salah baca:
 
 | Field | Isian |
 |---|---|
-| Nama | dr. Arya Wicaksana, Sp.Rad |
+| Nama | dr. Bima Prasetya, Sp.PK |
 | Jabatan | |
 | Tanggal | |
 | Tanda tangan | |

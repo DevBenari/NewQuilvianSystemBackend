@@ -240,7 +240,7 @@ walaupun ia ruas yang sama dengan milik Sitologi Ginekologi.
 | --- | --- |
 | Tabel laporan, nilai, dan konteks klinis | `BE-LAB-51` — gelombang `MVP-6b2` |
 | Enam endpoint laporan dan konteks klinis | `BE-LAB-52` |
-| Validasi dan rilis laporan | `S4e`, tertahan `DEC-LAB-011` (`LAB-REQ-013`, dr. Arya Wicaksana) |
+| Validasi dan rilis laporan | `S4e`, tertahan `DEC-LAB-011` (`LAB-REQ-013`, dr. Bima Prasetya) |
 | Penyimpanan gambar Patologi Anatomi | `DEC-LAB-016` |
 | Ruas sumber HL7 | `LAB-COORD-012` — nol kemunculan HL7 di seluruh backend |
 | Cetak laporan bahasa Inggris | `LAB-COORD-013` |
