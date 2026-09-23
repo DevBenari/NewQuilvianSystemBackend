@@ -136,6 +136,11 @@ jobs:
         run: |
           ./.github/release/generate-version-json.ps1
 
+      - name: Prepare runtime version manifest
+        shell: bash
+        run: |
+          cp .github/release/version.json ./version.json
+
       - name: Show generated release version
         shell: pwsh
         run: |
@@ -148,6 +153,7 @@ jobs:
           path: |
             .github/release/release-metadata.json
             .github/release/version.json
+            version.json
 
   migration-hold:
     name: Migration Review Required
