@@ -152,7 +152,17 @@ Berikut adalah spesifikasi endpoint backend ASP.NET Core yang relevan dengan met
 
 ## 6. Kesimpulan
 
-Pengujian terhadap seluruh 6 tipe pasien rawat inap pada antarmuka sistem telah selesai dilaksanakan dengan hasil yang memuaskan:
-1. **Desain Komponen Reaktif**: Seluruh 6 tipe pasien dapat dipilih dan merespons interaksi pengguna secara presisi.
-2. **Validasi Bisnis Kokoh**: Penjagaan ketat pada kategori *Bayi Baru Lahir* berhasil membuktikan bahwa sistem mencegah kesalahan operasional staf admisi (mencegah pendaftaran bayi tanpa tautan episode ibu).
-3. **Dokumentasi Visual Lengkap**: Seluruh kondisi tampilan untuk setiap tipe pasien telah diabadikan dalam bentuk tangkapan layar beresolusi tinggi di direktori pengujian.
+> ### ⚠️ Pemutakhiran Kesimpulan (Koreksi 23 September 2026)
+> 
+> Berdasarkan temuan audit source code dan pelacakan issue `ISSUE-002`:
+> - Kesimpulan awal yang menyatakan *"100% SUKSES"* dan merayakan *"Validasi Penjagaan Kokoh"* pada Bayi Baru Lahir dikoreksi menjadi **5 dari 6 tipe LULUS, 1 tipe BLOCKED**.
+> - Penonaktifan tombol lanjut pada tipe Bayi Baru Lahir bukan merupakan bukti bekerjanya aturan validasi fungsional, melainkan jalan buntu (*deadlock*) karena sumber data episode ibu belum tersedia dan endpoint backend belum diimplementasikan.
+> - Telah disepakati bahwa pendaftaran bayi baru lahir ditangguhkan dari rilis ini dan kartunya dinonaktifkan melalui `FE-RWI-096` agar tidak menimbulkan kebingungan bagi staf admisi.
+
+Pengujian terhadap 6 tipe pasien rawat inap pada antarmuka sistem menghasilkan kesimpulan operasional sebagai berikut:
+
+1. **Kategori Mandiri Lulus Penuh (5 Tipe Pasien)**: Kelima tipe pasien mandiri (**Umum**, **Ibu**, **Anak**, **Pegawai**, dan **Korporat**) terbukti 100% berfungsi normal, merender kartu dengan tepat, mengaktifkan tombol *"Lanjut ke Pembayaran"*, dan mempertahankan integritas data pendaftaran saat navigasi bolak-balik antar langkah.
+2. **Kategori Bayi Baru Lahir Tertahan (*Blocked / Deadlock*)**: Tipe **Bayi Baru Lahir** memicu panel Episode Ibu, tetapi dropdown tidak memiliki opsi data (`EMPTY_MOTHER_EPISODE_SELECT`) dan tombol lanjut dinonaktifkan secara permanen. Statusnya ditetapkan **`BLOCKED`** dan ditindaklanjuti pada issue `ISSUE-002` serta penonaktifan kartu via `FE-RWI-096`.
+3. **Klarifikasi Arsitektur**: Langkah 3 (Pilih Jenis Pasien) murni beroperasi di lapisan antarmuka pengguna menggunakan konstanta frontend (`INPATIENT_PATIENT_TYPE_OPTIONS`) dan tidak memanggil API backend (`GET /episodes/patient-types` maupun `GET /episodes/active-mothers` belum ada di backend).
+4. **Dokumentasi Visual Lengkap**: Seluruh kondisi tampilan untuk setiap tipe pasien (baik yang berhasil maupun yang tertahan) telah diabadikan dalam bentuk tangkapan layar beresolusi tinggi di direktori `QuilvianSystemFrontendDev/test-with-agy/screenshots/patient-types/`.
+

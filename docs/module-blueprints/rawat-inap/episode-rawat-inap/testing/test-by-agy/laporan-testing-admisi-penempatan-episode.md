@@ -55,7 +55,7 @@ flowchart TD
         T --> V[Status Episode Naik Menjadi Admitted / Sedang Dirawat]
     end
 
-    subgraph Verifikasi["FASE 3: Verifikasi Sistem & Layanan"]
+    subgraph Verifikasi["Tahap Verifikasi: Layanan & Sensus Pasca-Penempatan"]
         V --> W[Verifikasi Daftar Kerja Episode /episodes]
         V --> X[Verifikasi Sensus Harian Rawat Inap /census]
     end

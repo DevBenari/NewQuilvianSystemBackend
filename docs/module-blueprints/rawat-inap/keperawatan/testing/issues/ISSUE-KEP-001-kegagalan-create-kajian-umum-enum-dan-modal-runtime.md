@@ -6,7 +6,7 @@
 **Tingkat Keparahan:** 🔴 **Tinggi / Critical Blocker** (Menghentikan alur pencatatan rekam medis rawat inap)  
 **Tanggal Temuan:** 23 September 2026  
 **Ditemukan Oleh:** Pengujian Otomatis Live In-Browser Antigravity (Playwright)  
-**Status Isu:** Open / Menunggu Perbaikan Kode  
+**Status Isu:** 🟢 **Resolved / Selesai Diperbaiki** (23 September 2026)  
 
 ---
 
@@ -257,3 +257,26 @@ Ubah baris 302 pada file `assessment-section.jsx`:
 
     const validation = validateForComplete();
 ```
+
+---
+
+## 8. Catatan Resolusi & Verifikasi (23 September 2026)
+
+Tindakan perbaikan telah diterapkan secara menyeluruh:
+
+1. **Frontend Hook (`use-clinical-instrument-form.js`):**
+   * Kamus pemetaan enum telah ditambahkan untuk `CONSCIOUSNESS_MAP`, `OXYGEN_TYPE_MAP`, `APPETITE_MAP`, `NUTRITION_RISK_MAP`, `FUNCTIONAL_MAP`, `FALL_RISK_MAP`, dan `PAIN_ASSESSMENT_STATE_MAP`.
+   * Fungsi defensif `resolveEnumValue`, `resolveNumericValue`, dan `resolveBooleanValue` telah diimplementasikan untuk mencegah nilai `NaN` atau `null` pada kolom enum non-nullable backend ASP.NET Core.
+   * `buildSavePayload` kini memetakan seluruh enum instrumen dinamis menjadi angka integer valid sesuai kontrak backend.
+   * Inisialisasi `boundColumns` dan `painAssessmentState` pada `loadDefinition` diperbarui agar menyelaraskan nilai tersimpan dari instrumen versi sebelumnya.
+
+2. **Frontend UI Component (`assessment-section.jsx` & `complete-assessment-modal.jsx`):**
+   * Setter state modal telah diverifikasi menggunakan `setModalError` pada seluruh fungsi penanganan modal.
+   * Tombol tindakan "Lengkapi Isian" pada modal telah diamankan untuk menangani `missingItems` bertipe string maupun objek.
+
+3. **Verifikasi Otomatis (Node.js Test Runner):**
+   * Unit test baru ditambahkan pada `tests/unit/inpatient-clinical-instrument-renderer.test.mjs` untuk menguji pemetaan enum, parsing angka 0, penanganan boolean, serta keutuhan payload simpan.
+   * Hasil eksekusi test suite:
+     * `inpatient-clinical-instrument-renderer.test.mjs`: **8/8 PASS** (100% lolos).
+     * Regression test 5 file asesmen keperawatan (`inpatient-nursing-assessment*.test.mjs`): **37/37 PASS** (100% lolos).
+
