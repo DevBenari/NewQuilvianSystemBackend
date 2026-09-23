@@ -33,7 +33,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
     public class PrescriptionFinalCheckService
     {
         private readonly ApplicationDbContext _dbContext;
-        public PrescriptionFinalCheckService(ApplicationDbContext dbContext) => _dbContext = dbContext;
+        private readonly PrescriptionFinancialClearanceService _financialClearanceService;
+
+        public PrescriptionFinalCheckService(
+            ApplicationDbContext dbContext,
+            PrescriptionFinancialClearanceService financialClearanceService)
+        {
+            _dbContext = dbContext;
+            _financialClearanceService = financialClearanceService;
+        }
 
         public async Task<PrescriptionFinalCheckResponse> CompleteAsync(Guid prescriptionId, CompletePrescriptionFinalCheckRequest request, Guid actorUserId, CancellationToken ct = default)
         {
@@ -47,6 +55,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
 
             if (request.Items.Count == 0)
                 throw new InvalidOperationException("Kriteria telaah obat akhir wajib diisi.");
+
+            // Gerbang finansial ketiga dari empat (PHA-BE-005). Telaah akhir yang lolos akan
+            // menetapkan ReadyToDispense, sehingga izin yang sudah dicabut harus menghentikannya
+            // di sini — bukan nanti di meja penyerahan.
+            await _financialClearanceService.EnsureGateAllowedAsync(
+                prescriptionId, PrescriptionClearanceGate.FinalCheck, ct);
 
             var now = DateTime.UtcNow;
 

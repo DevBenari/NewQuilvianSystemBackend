@@ -9,7 +9,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
     public class PrescriptionPreparationService
     {
         private readonly ApplicationDbContext _dbContext;
-        public PrescriptionPreparationService(ApplicationDbContext dbContext) => _dbContext = dbContext;
+        private readonly PrescriptionFinancialClearanceService _financialClearanceService;
+
+        public PrescriptionPreparationService(
+            ApplicationDbContext dbContext,
+            PrescriptionFinancialClearanceService financialClearanceService)
+        {
+            _dbContext = dbContext;
+            _financialClearanceService = financialClearanceService;
+        }
 
         public async Task<PrescriptionPreparationResponse> StartAsync(Guid prescriptionId, Guid actorUserId, string? note, CancellationToken ct = default)
         {
@@ -18,6 +26,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
                 ?? throw new InvalidOperationException("Resep tidak ditemukan.");
             if (prescription.FulfillmentStatus != PrescriptionFulfillmentStatus.VerifiedByPharmacy)
                 throw new InvalidOperationException("Penyiapan hanya dapat dimulai setelah telaah farmasi disetujui.");
+
+            // Gerbang finansial kedua dari empat (PHA-BE-005).
+            await _financialClearanceService.EnsureGateAllowedAsync(
+                prescriptionId, PrescriptionClearanceGate.Preparation, ct);
 
             var current = await _dbContext.Set<TrxPrescriptionPreparation>()
                 .Include(x => x.Items.Where(i => !i.IsDelete && i.IsActive))
@@ -62,6 +74,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
                 ?? throw new InvalidOperationException("Proses penyiapan belum dimulai.");
             if (preparation.Status != PrescriptionPreparationStatus.InPreparation)
                 throw new InvalidOperationException("Status penyiapan tidak valid.");
+
+            // Penyiapan yang izinnya dicabut di tengah jalan berhenti di sini: ia TIDAK naik ke
+            // menunggu telaah akhir. Keadaan pemenuhannya sengaja dibiarkan pada InPreparation
+            // dan racikan yang sudah dibuat tidak dikembalikan menjadi bahan — obat yang sudah
+            // diracik memang tidak dapat dibatalkan secara fisik (PHA-DEC-069).
+            await _financialClearanceService.EnsureGateAllowedAsync(
+                prescriptionId, PrescriptionClearanceGate.Preparation, ct);
 
             var now = DateTime.UtcNow;
             foreach (var old in preparation.Items.Where(x => !x.IsDelete))

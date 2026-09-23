@@ -759,6 +759,9 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<PhmStockRequestItem> PhmStockRequestItems { get; set; }
         public DbSet<PhmStockRequestHistory> PhmStockRequestHistories { get; set; }
 
+        // Salinan keadaan finansial resep menurut Billing (PHA-DES-001). Bukan sumber kebenaran.
+        public DbSet<PhmPrescriptionFinancialProjection> PhmPrescriptionFinancialProjections { get; set; }
+
         public DbSet<PhmDrugBatch> PhmDrugBatches { get; set; }
         public DbSet<PhmDrugStockBalance> PhmDrugStockBalances { get; set; }
         public DbSet<PhmDrugStockMutation> PhmDrugStockMutations { get; set; }

@@ -469,6 +469,7 @@ try
     builder.Services.AddScoped<PrescriptionReviewService>();
     builder.Services.AddScoped<PrescriptionPreparationService>();
     builder.Services.AddScoped<PrescriptionFinalCheckService>();
+    builder.Services.AddScoped<PrescriptionFinancialClearanceService>();
     builder.Services.AddScoped<PharmacyDepotRoutingService>();
     builder.Services.AddScoped<StockRequestService>();
     builder.Services.AddScoped<DrugStockService>();
@@ -761,6 +762,12 @@ try
     builder.Services.AddScoped<BillingModuleService>();
 
     builder.Services.AddScoped<BillingNumberSeriesService>();
+
+    // Registrasi ini tertinggal ketika BilConsumerHandoffService dibuat: sembilan service
+    // Billing menuntutnya lewat konstruktor, sehingga validasi service provider menolak
+    // membangun aplikasi dan backend TIDAK DAPAT START sama sekali — bukan hanya modul
+    // Billing. Satu baris ini mengembalikan keadaannya, tanpa menyentuh aturan bisnis.
+    builder.Services.AddScoped<BilConsumerHandoffService>();
 
     builder.Services.AddScoped<BillingAllocationService>();
 
@@ -1390,17 +1397,11 @@ try
     // disahkan oleh seeder. Batas yang bertabrakan pada V1 ditandai untuk ditinjau pemilik klinis.
     await RunStartupSeederAsync("ClinicalInstrumentDraftSeeder", () => ClinicalInstrumentDraftSeeder.SeedAsync(app.Services));
 
-    // Data induk contoh Laboratorium. Mati secara bawaan dan menolak berjalan di produksi:
-    // katalog pemeriksaan, tarif, kelompok umur, dan sumber rujukan produksi ditetapkan pemilik
-    // proses bisnis lewat layar admin, bukan lewat seeder.
-    var runLabDummySeed = builder.Configuration.GetValue<bool>("Seeders:RunLabDummySeed");
-
-    if (runLabDummySeed)
-    {
-        await RunStartupSeederAsync(
-            "LabDummyDataSeeder",
-            () => LabDummyDataSeeder.SeedAsync(app.Services, app.Environment.EnvironmentName));
-    }
+    // Pemanggilan LabDummyDataSeeder DIHAPUS di sini, menyusul pencabutan seedernya pada
+    // 17 September 2026 atas instruksi pemilik modul Lab (lihat catatan di atas). Berkas
+    // seedernya ikut terhapus pada commit itu sementara pemanggilannya tertinggal, sehingga
+    // seluruh solusi gagal dikompilasi — bukan hanya modul Lab. Konfigurasi
+    // `Seeders:RunLabDummySeed` dengan sendirinya tidak lagi dibaca siapa pun.
 
     var runOperatingRoomDemoSeed =
         builder.Configuration.GetValue<bool>("Seeders:RunOperatingRoomDemoSeed");
