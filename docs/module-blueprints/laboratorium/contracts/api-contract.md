@@ -2839,3 +2839,130 @@ kolom status.
 | Selisih baseline `19.4` | Delapan endpoint | `BE-LAB-65` | Bagian 26.6 |
 | `missingDiscContent` nol punya jalan diisi | `discContentUg` | `BE-LAB-65` | 1 → 0 pada **kedua** ringkasan |
 | Status `19.4` yang tertinggal | — | Koreksi dokumen | Kedelapannya dipanggil dan menjawab `200` |
+
+---
+
+## 27. Amandemen `r32` — Permukaan baseline tiga data induk Patologi Anatomi, 2026-09-23
+
+> ### ✅ STATUS: `approved` — 2026-09-23
+>
+> | Butir | Isi |
+> |---|---|
+> | Status | **`approved`** |
+> | `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-23 |
+> | Dasar persetujuan | Instruksi pemilik modul pada sesi 2026-09-23, memilih **"Setujui penuh — 11 endpoint"** atas usul `BE-LAB-66` bagian 6ae.6 |
+> | Menutup | Selisih bagian `20` terhadap `rules/backend/master-data-endpoint-standard.md` pada ketiga grup Patologi Anatomi |
+> | Sifat | **ADITIF.** Sebelas endpoint ditambahkan; nol endpoint berubah route, verb, bentuk, atau hak akses |
+> | Migration | **Nol.** Keempat tabel berdiri sejak `BE-LAB-50`; yang kurang hanya jalan keluarnya |
+> | Permission baru | **Nol.** Kesebelasnya menumpang `Read` dan `Update` yang sudah ada |
+
+### 27.1 Kenapa amandemen ini ada
+
+Ini **pengulangan `r30` dan `r31` pada tiga grup terakhir**, dan sebabnya sama persis: `r25`
+menyebut sepuluh endpoint data induk, sepuluh itulah yang dibangun `BE-LAB-50`, dan
+`master-data-endpoint-standard.md` nol dibaca saat itu.
+
+Bedanya dengan dua pendahulunya: **selisih ini sudah diketahui sejak 2026-09-22 dan sengaja
+dicatat.** `BE-LAB-65` bagian 6ad.1 menyapu kedua puluh dua controller Laboratorium, menemukan
+ketiga grup ini kurang, lalu meninggalkannya — mengerjakannya di sana berarti dua task dalam satu
+pemanggilan. Amandemen ini menutup catatan itu.
+
+| Grup | Dikontrakkan `r25` | Dibangun | Kurang |
+|---|---|---|---|
+| `lab-pathology-parameters` | empat | empat | `filters/metadata`, `summary`, `GET /{id}`, `PATCH {id}/status` |
+| `lab-pathology-categories` | enam | enam | keempat yang sama |
+| `lab-procedure-pathology-categories` | empat | empat | `filters/metadata`, `summary`, `GET /{id}` — **tiga**, lihat 27.4 |
+
+### 27.2 Sebelas endpoint yang ditambahkan
+
+**`api/v1/health-services/laboratory-management/lab-pathology-parameters`**
+
+| Method | Path | Kegunaan | Hak akses |
+|---|---|---|---|
+| `GET` | `/filters/metadata` | Bentuk penyaring, pengurutan, dan ukuran halaman | `LabPathologyParameter : Read` |
+| `GET` | `/summary` | Empat angka ringkasan | `LabPathologyParameter : Read` |
+| `GET` | `/{id}` | Satu baris beserta seluruh ruasnya | `LabPathologyParameter : Read` |
+| `PATCH` | `/{id}/status` | Mengaktifkan atau menonaktifkan satu baris | `LabPathologyParameter : Update` |
+
+**`api/v1/health-services/laboratory-management/lab-pathology-categories`**
+
+| Method | Path | Kegunaan | Hak akses |
+|---|---|---|---|
+| `GET` | `/filters/metadata` | Bentuk penyaring, pengurutan, dan ukuran halaman | `LabPathologyCategory : Read` |
+| `GET` | `/summary` | Empat angka ringkasan | `LabPathologyCategory : Read` |
+| `GET` | `/{id}` | Satu baris beserta jumlah keberlakuannya | `LabPathologyCategory : Read` |
+| `PATCH` | `/{id}/status` | Mengaktifkan atau menonaktifkan satu baris | `LabPathologyCategory : Update` |
+
+**`api/v1/health-services/laboratory-management/lab-procedure-pathology-categories`**
+
+| Method | Path | Kegunaan | Hak akses |
+|---|---|---|---|
+| `GET` | `/filters/metadata` | Bentuk penyaring, pengurutan, dan ukuran halaman | `LabPathologyCategory : Read` |
+| `GET` | `/summary` | Tiga angka ringkasan, termasuk `unmappedProcedure` | `LabPathologyCategory : Read` |
+| `GET` | `/{id}` | Satu pemetaan beserta pemeriksaan dan golongannya | `LabPathologyCategory : Read` |
+
+### 27.3 Bentuk `summary`
+
+| Grup | Ruas |
+|---|---|
+| Parameter | `totalParameter`, `activeParameter`, `inactiveParameter`, `usedInCategory` |
+| Golongan | `totalCategory`, `activeCategory`, `inactiveCategory`, `withParameter` |
+| Pemetaan | `totalProcedure`, `mappedProcedure`, `unmappedProcedure` |
+
+**`usedInCategory` dan `withParameter` dihitung dari keberlakuan yang hidup** — baris
+`LabPathologyParameterCategory` yang belum ditandai terhapus. Keduanya menjawab pertanyaan yang
+sama dari dua arah: parameter yang nol pernah dipakai golongan mana pun, dan golongan yang nol
+punya satu pun ruas. **Golongan tanpa ruas menghasilkan formulir kosong**, dan tanpa angka ini
+keadaannya baru ketahuan ketika patolog sudah membuka layar hasil.
+
+**`unmappedProcedure` bukan hiasan.** Ia angka yang menjawab penahan `FE-LAB-28`: berapa jenis
+pemeriksaan Patologi Anatomi yang belum digolongkan. Ketiganya memakai definisi yang **sama
+persis** dengan `GET /suggestions` yang sudah berjalan — `IsLaboratory` benar dan `LabDiscipline`
+bernilai `AnatomicalPathology`. Memakai definisi lain akan membuat ringkasan dan daftar usulan
+saling membantah.
+
+### 27.4 `PATCH /{id}/status` dan `GET /options` NOL berlaku bagi grup pemetaan
+
+**`LabProcedurePathologyCategory` nol punya `IsActive`.** Ia memuat `Id`, `ProcedureId`,
+`LabPathologyCategoryId`, dan dua navigasi di atas `IdentityModel` — baris pemetaan, bukan data
+induk berstatus. Menambahkan kolom status di atasnya berarti **migration**, dan itu keluar dari
+sifat aditif amandemen ini. Memindahkan penggolongan satu pemeriksaan dilakukan lewat `PUT /{id}`
+yang sudah ada sejak `r25`.
+
+**`GET /options` nol dibangun bagi grup itu.** Nol satu pun layar memilih sebuah *pemetaan* dari
+kotak pilihan — yang dipilih adalah jenis pemeriksaan dan golongannya, dan keduanya sudah punya
+`/options` sendiri. `QBE-OPT-001` menetapkan options disediakan **hanya bila dikonsumsi**;
+membangunnya di sini berarti mengulang pola `BE-LAB-26`, yaitu sesuatu yang berdiri tanpa pembaca
+lalu nol menghasilkan galat apa pun sampai seseorang membutuhkannya.
+
+> Bagian 6ad.1 pada roadmap backend sempat mencatat grup ini *"kurang kelimanya"*. Angka itu
+> diturunkan dari baseline sembilan tanpa memeriksa entity-nya. **Tiga** yang benar-benar
+> berlaku, dan ini koreksinya — bukan pengurangan cakupan.
+
+### 27.5 `DELETE` tetap NOL disediakan pada ketiganya
+
+Alasannya sama dengan `r24` 19.4 dan `r31` 26.2, dan di sini lebih tajam: **parameter yang
+dihapus menarik ruas dari laporan pasien yang sudah tersimpan**, dan **golongan yang dihapus
+membuat pesanan lama nol punya bentuk formulir**. `AC-143` menuntut layarnya nol menampilkan
+tombol Hapus.
+
+Ketiga `filters/metadata` menyatakannya lewat `isDeletable: false`, supaya layar membacanya
+alih-alih menyimpulkan dari ada-tidaknya endpoint.
+
+### 27.6 Yang NOL berubah
+
+| Butir | Alasan |
+|---|---|
+| Kesepuluh endpoint lama pada ketiga grup | Nol berubah route, verb, bentuk, maupun hak akses |
+| `{id}/parameters` dan `suggestions` | Endpoint tambahan di luar baseline, sah menurut standar bagian 3, dan sudah dipakai rancangan `FE-LAB-27` |
+| `DELETE` | Bagian 27.5 |
+| Hak akses | Nol permission baru; grup pemetaan tetap menumpang `LabPathologyCategory` |
+| Skema database | **Nol migration** |
+
+### 27.7 Traceability `r32`
+
+| Yang ditutup | Endpoint | Dilaksanakan | Terbukti |
+|---|---|---|---|
+| Selisih baseline ketiga grup PA | Sebelas endpoint | `BE-LAB-66` | `AC-192`..`AC-194`, roadmap bagian 6af |
+| Penahan `FE-LAB-27` | Keseluruhan | `BE-LAB-66` | Ketiga layar dapat dibangun sesuai `master-data-feature-standard` |
+| Catatan `BE-LAB-65` 6ad.1 | — | `BE-LAB-66` | Ketiga grup nol lagi tercatat kurang |
