@@ -1453,7 +1453,7 @@ Badge `Lunas`/`Cicilan` pada Riwayat Pembayaran dan Kwitansi **bukan** status in
 ## Grafik Urutan Dependency
 
 ```text
-[BE] BE-BKC-069 ─> FE-BKC-040
+[BE] BE-BKC-069 ─> 🟡 FE-BKC-040
 ```
 
 Legenda: `[BE]` adalah cermin baca-saja milik `backend-roadmap.md`. Task itu dihitung dan
@@ -1461,13 +1461,13 @@ dijadwalkan di roadmap backend, bukan di sini.
 
 | Gelombang eksekusi | Task | Dapat berjalan paralel? |
 | --- | --- | --- |
-| 1 | `FE-BKC-040` | Tunggal pada gelombang ini |
+| 1 | 🟡 `FE-BKC-040` | Tunggal pada gelombang ini |
 
 Jumlah pasangan prasyarat→task: **satu**, sama persis dengan isi kolom `Dependency` di bawah.
 
 ## Task
 
-### `FE-BKC-040` — Layar Surat ke Modul Konsumen
+### 🟡 `FE-BKC-040` — Layar Surat ke Modul Konsumen
 
 | Field | Isi |
 | --- | --- |
@@ -1482,6 +1482,7 @@ Jumlah pasangan prasyarat→task: **satu**, sama persis dengan isi kolom `Depend
 | Risiko | Keadaan kosong yang berbunyi seperti kegagalan akan membuat petugas menyangka layarnya rusak, padahal tidak adanya surat menggantung justru keadaan yang diinginkan |
 | Pemilik | Frontend + Billing |
 | Definition of Done | Layar terjangkau dari butir menu; kedua endpoint terpakai sesuai kontrak; peran tak berwenang tidak melihat tombol akui; nol tombol menerbitkan maupun menghapus surat |
+| Status | 🟡 **SEBAGIAN 22 September 2026.** Seluruh source (route, view, hook, constants, Redux slice, item menu) ditemukan sudah lengkap dan sesuai `BIL-SCR-41` — nol gap pada acceptance criteria maupun DoD. Satu perbaikan kualitas kode (pola `setState`-dalam-`useEffect`) diterapkan pada hook. `npx eslint` pada berkas fitur PASS 0 error/warning; `npm run lint:errors` (repo penuh) PASS untuk fitur ini (4 error pre-existing tidak terkait pada domain lain); `npm run test:unit` PASS untuk fitur ini (9 gagal pre-existing tidak terkait pada domain `FE-RWI-*`/`accounting-reconciliation`); `npm run build` PASS, exit code 0. **Yang MASIH menahan `✅`:** verifikasi manual ter-autentikasi (klik tombol Akui, dua peran berbeda, konflik `409`) — `NOT FEASIBLE`, menunggu migration backend `AddBillCollectionPrescriptionHandoff` (`BE-BKC-062`/`067`) diterapkan dan akun uji dua peran. Bukti: [laporan](../task/report/frontend/FE-BKC-040.md) |
 
 ## Kewenangan UI
 
