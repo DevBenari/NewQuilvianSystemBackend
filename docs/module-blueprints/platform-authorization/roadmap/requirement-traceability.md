@@ -1,0 +1,116 @@
+# Requirement Traceability — Platform Authorization & Access Control
+
+`blueprint_id`: `SEC-BP-001`
+
+Requirement di bawah diturunkan dari audit Phase 1 dan keputusan owner pada penetapan Phase A0.
+Kolom bukti menunjuk artefak yang benar-benar dapat ditelusuri di repository.
+
+| Requirement | Keputusan owner | Backend | Frontend | Bukti target | Status coverage |
+|---|---|---|---|---|---|
+| `SEC-REQ-001` — Setiap endpoint terproteksi harus punya identitas permission yang dapat didaftarkan dan diberikan admin | `D1` | `BE-SEC-001` | `NOT APPLICABLE` | `PermissionRegistryDescriptor`; `PermissionRegistryInvariantTests`; `CanonicalSecurityContractTests`; source mismatch `89 → 0` | Covered |
+| `SEC-REQ-002` — Identitas yang didaftarkan seeder harus identik dengan yang dicari runtime | `D1` | `BE-SEC-001` | `NOT APPLICABLE` | `PermissionRegistryDescriptor.BuildCore`; `SeederIdentityMatchesRuntimeIdentity`; `AuthorizationIdentityAlwaysComesFromAccessPermission` | Covered |
+| `SEC-REQ-003` — Registry yang tidak lagi dideklarasikan source harus ditutup tanpa hard delete dan tanpa memindahkan policy | `D4` | `BE-SEC-001` | `NOT APPLICABLE` | `AccessMenuSeeder.CloseRowsAbsentFromSourceAsync`; `ReconcileClosesStaleRegistryRowsWithoutHardDelete`; registry usang `59 → 0` | Covered |
+| `SEC-REQ-004` — Izin efektif adalah gabungan seluruh penempatan organisasi yang sah, tanpa DENY precedence | `N3` | `BE-SEC-001` | `NOT APPLICABLE` | `AccessPermissionService.HasAccessAsync`; `OrganizationAuthorizationProjectionTests`; `EffectivePermissionsAreUnionOfActiveAssignments`; smoke test D | Covered |
+| `SEC-REQ-005` — Penempatan yang dihapus, dibatalkan, nonaktif, belum berlaku, atau sudah berakhir tidak boleh memberi izin | `N3` | `BE-SEC-001` | `NOT APPLICABLE` | `OrganizationAuthorizationProjectionService.IsAssignmentValid`; `InvalidAssignmentNeverProjects`; `CancelledOrganizationAssignmentDeniesAccess`; smoke test F | Covered |
+| `SEC-REQ-006` — Perubahan penempatan lewat jalur resmi HR harus tercermin pada otorisasi, termasuk pencabutannya | `N3` | `BE-SEC-001` | `NOT APPLICABLE` | `WfpOrganizationAssignmentController` (5 mutasi); `DepartmentTransferRevokesStaleProjection`; `DeactivatingAssignmentRevokesProjection`; smoke test E | Covered |
+| `SEC-REQ-007` — Skema harus mendukung penempatan berulang, effective dating, riwayat, dan rehire | Persetujuan index | `BE-SEC-001` | `NOT APPLICABLE` | Migration `A0AuthorizationIntegrityProjection`; index terverifikasi pada database development | Covered |
+| `SEC-REQ-008` — Satu proyeksi otorisasi harus dapat ditelusuri ke penempatan otoritatif yang menghasilkannya | Persetujuan `SourceAssignmentId` | `BE-SEC-001` | `NOT APPLICABLE` | Kolom `SourceAssignmentId`; index unik terfilter; 47 ter-backfill, 2 legacy-unresolved, 0 ambigu | Partial: 2 baris warisan sengaja dibiarkan `null` |
+| `SEC-REQ-009` — Registry tidak boleh membuat pemberian hak otomatis | `D2`, `N2` | `BE-SEC-001` | `NOT APPLICABLE` | `ReconcileNeverCreatesAccessPolicy`; `SysAccessPolicy` 498 → 498, Departemen × Posisi 11 → 11 | Covered |
+| `SEC-REQ-010` — Policy yang menunjuk registry tertutup tidak boleh tetap mengotorisasi | `D4` | `BE-SEC-001` | `NOT APPLICABLE` | `StaleRegistryAuthorizationTests` (4 test); smoke test C | Covered |
+| `SEC-REQ-011` — Pemulihan grant inert hanya boleh untuk padanan yang terbukti identik, tanpa perluasan hak | Instruksi safe rebind | `BE-SEC-001` | `NOT APPLICABLE` | Klasifikasi 51 `EXACT_EQUIVALENT` / 5 `SEMANTIC_CHANGED` / 12 `REMOVED_CAPABILITY` / 0 `AMBIGUOUS`; 28 rebind, 23 dedupe; bukti CSV per baris | Covered |
+| `SEC-REQ-012` — Perilaku SuperAdmin tidak boleh berubah | `N2` | `BE-SEC-001` | `NOT APPLICABLE` | Tiga test SuperAdmin existing tetap hijau; smoke test G | Covered |
+
+---
+
+## Requirement Business Permission dan Access Profile
+
+Diturunkan dari audit `BE-SEC-002` dan keputusan pemilik sistem `D-ARCH-1` sampai `D-ARCH-9`
+tertanggal 2 September 2026. Kolom bukti menunjuk artefak yang benar-benar dapat ditelusuri.
+
+| Requirement | Keputusan owner | Backend | Frontend | Bukti target | Status coverage |
+|---|---|---|---|---|---|
+| `SEC-REQ-013` — Identitas technical permission harus cukup granular sehingga satu izin tidak membuka endpoint bermakna bisnis berbeda | `D-ARCH-3`, `D-ARCH-6`, `D-ARCH-7` | `BE-SEC-003` | `NOT APPLICABLE` | `evidence/02` bagian C–F; `evidence/03` matriks pemecahan 7 → 28; **`evidence/04` bagian C** — split matrix lengkap per endpoint beserta reason, sensitivity, dan migration mapping | 🟡 **Sebagian** — pemecahan source selesai (Fase A `85fcc3fd` + Fase A′ `WriteSoap`, 23 identitas); `evidence/05` bagian G–M, `evidence/06` bagian A. **Pemberian hak (Fase B) SELESAI pada development 17 September 2026** — 35 pelestarian + 1 `Amend` = 36 ([`BE-SEC-018.md`](../task/report/backend/BE-SEC-018.md) bagian 6). Fase C belum |
+| `SEC-REQ-014` — Pemecahan identitas tidak boleh mengubah kemampuan efektif satu pun Departemen × Posisi | `D-ARCH-2` | `BE-SEC-003` | `NOT APPLICABLE` | `evidence/03` legacy parity matrix; **`evidence/04` bagian D** (strategi parity), **bagian H.2** (test parity), **bagian J.3** (dampak pengguna) | 🟡 **Sebagian** — Fase B dijalankan dan database kini terukur (`BE-SEC-018`): 35 pelestarian historis terbentuk, 4 policy warisan dinonaktifkan, nol duplikat. **Matriks parity per Departemen × Posisi belum dilaporkan**, sehingga kesetaraan kemampuan belum terbukti penuh; `evidence/06` bagian F.1 dan G |
+| `SEC-REQ-015` — Setiap kemampuan bisnis harus punya kode stabil yang tidak terikat nama class, route, maupun identifier teknis | `D-ARCH-1` | `BE-SEC-004`, `BE-SEC-005` | `NOT APPLICABLE` | `evidence/01` bagian I; `evidence/02` bagian B | Planned |
+| `SEC-REQ-016` — Satu Business Permission memetakan ke satu atau lebih technical permission, dan pemetaan itu satu-satunya tempat nama teknis muncul | `D-ARCH-1` | `BE-SEC-005` | `NOT APPLICABLE` | `SecBusinessPermissionMapping`; test pemetaan yatim | Planned |
+| `SEC-REQ-017` — Access Profile adalah bundel yang dapat dipakai ulang; satu Departemen + Posisi boleh punya lebih dari satu, dan izin efektifnya adalah UNION | `D-ARCH-5` | `BE-SEC-006` | `NOT APPLICABLE` | `SecAccessProfile`; `SecOrganizationAccessProfile`; test UNION | Planned |
+| `SEC-REQ-018` — Override langsung hanya bersifat ADDITIVE GRANT; tidak ada subtractive DENY dan tidak ada DENY precedence | `D-ARCH-5` | `BE-SEC-006`, `BE-SEC-008` | `FE-SEC-002` | `SecOrganizationPermissionGrant` tanpa kolom DENY; test anti-DENY | Planned |
+| `SEC-REQ-019` — Izin efektif adalah gabungan sumber legacy dan sumber Business Permission, dan sumber baru dapat dimatikan sehingga hasilnya kembali persis ke baseline `BE-SEC-001` | `D-ARCH-1`, `D-ARCH-2` | `BE-SEC-007`, `BE-SEC-008` | `NOT APPLICABLE` | `BusinessPermissionResolutionService`; test `DisablingProfileSourceReproducesA0Baseline` | Planned |
+| `SEC-REQ-020` — Frontend memperoleh kode Business Permission stabil dan tidak pernah membaca `ControllerName`, `ActionName`, `SysControllerAccessId`, maupun `SysActionAccessId` | `D-ARCH-1` | `BE-SEC-010` | `FE-SEC-001`, `FE-SEC-002`, `FE-SEC-003` | `GET /api/v1/access/me`; test kontrak response | Planned |
+| `SEC-REQ-021` — Endpoint audio panggilan antrean harus terlindungi tanpa `AllowAnonymous`, dan mengizinkan actor manusia maupun perangkat display lewat semantik OR yang benar-benar OR | `D-ARCH-8`, `D-ARCH-10`, `O-1` | `BE-SEC-003` | `NOT APPLICABLE` | `evidence/02` bagian J; `evidence/03` bagian 8 dan 14.1; **`evidence/04` bagian C.8** (identitas, otorisasi OR, cara pendaftaran tanpa mengubah descriptor) dan **bagian H.5** (test OR) | **Belum dikerjakan** — Fase C; `QueueVoiceController` tidak disentuh, `evidence/05` bagian N |
+| `SEC-REQ-024` — Pemecahan identitas tidak boleh menimbulkan window ketika identitas lama sudah ditutup tetapi identitas baru belum diberikan | `D-ARCH-2` | `BE-SEC-003` | `NOT APPLICABLE` | **`evidence/04` bagian E** — audit lifecycle `AccessMenuSeeder` sampai urutan `SaveChanges`, dua jebakan (pre-seeding dan deployment tumpang tindih), rancangan `PermissionSplitExpansion` sebagai langkah startup terpisah; **bagian F** deployment order 20 langkah | ✅ **Window DITUTUP `BE-SEC-018`** 17 September 2026 — Fase A sempat masuk tanpa Fase B (`evidence/05` bagian O, `evidence/06` bagian H), dan celah itu ditutup dengan menjalankan Fase B pada development di dalam satu jendela pemeliharaan tertutup |
+| `SEC-REQ-022` — Kemampuan yang endpoint-nya tidak ada tidak boleh dipetakan ke technical permission apa pun | `D-ARCH-9` | `BE-SEC-005` | Task frontend terpisah | BP-19 terdaftar `BLOCKED` dengan nol pemetaan; fail closed secara konstruksi | Planned |
+| `SEC-REQ-023` — Kemampuan sensitif tidak diberikan otomatis kepada profil mana pun sebelum Departemen × Posisi penerimanya ditetapkan | `D-ARCH-6` | `BE-SEC-006` | `NOT APPLICABLE` | Test: `procedure.approve` tidak ada di `DOCTOR_OUTPATIENT_BASE` | Planned |
+
+---
+
+## Coverage Gap
+
+### Phase A0 (`BE-SEC-001`)
+
+Tidak ada gap requirement internal. Yang tersisa adalah keputusan pemilik sistem, bukan pekerjaan
+teknis yang belum selesai:
+
+| Butir | Sifat | Status setelah `BE-SEC-002` |
+|---|---|---|
+| Pemberian kemampuan sensitif kepada Departemen × Posisi | Keputusan owner | Masih terbuka; kini dipandu `SEC-REQ-023` |
+| 17 policy inert (`SEMANTIC_CHANGED` dan `REMOVED_CAPABILITY`) | Sengaja fail closed | Masih terbuka |
+| Dua baris proyeksi legacy-unresolved | Sengaja dipertahankan | Masih terbuka |
+| Klasifikasi dua endpoint audio antrean | Di luar cakupan A0 | **Tertutup** — `D-ARCH-8` dan `O-1`; desain selesai, dikerjakan `BE-SEC-003` |
+| Penerapan ke lingkungan selain development | Operasional | Masih terbuka |
+
+### Business Permission dan Access Profile
+
+`SEC-REQ-015` sampai `SEC-REQ-020`, `SEC-REQ-022`, dan `SEC-REQ-023` **belum ada satu pun yang
+diimplementasikan**. `SEC-REQ-013` sudah diimplementasikan **sebagian** — pemecahan identitas di
+source selesai (Fase A dan A′), sementara pemberian haknya belum. `SEC-REQ-014`, `SEC-REQ-021`, dan
+`SEC-REQ-024` menunggu Fase B dan Fase C:
+
+| Requirement | Desain | Keputusan owner | Planning | Implementasi |
+| --- | --- | --- | --- | --- |
+| `SEC-REQ-013`, `SEC-REQ-014`, `SEC-REQ-021`, `SEC-REQ-024` | Selesai | Tertutup | **Selesai — `evidence/04`**, direvalidasi `evidence/05`, dikoreksi `evidence/06` | 🟡 `BE-SEC-003` **sebagian** — Fase A+A′ selesai di source; Fase B dan C belum |
+| `SEC-REQ-015` … `SEC-REQ-020`, `SEC-REQ-022`, `SEC-REQ-023` | Selesai — `evidence/01`, `evidence/02` | Tertutup | Belum | `BE-SEC-004` dan sesudahnya, belum dimulai |
+
+### Implementation readiness — `BE-SEC-003`
+
+| Aspek | Status |
+| --- | --- |
+| Dependency `BE-SEC-002` | **`CLOSED`** — arsitektur, klasifikasi 19 Business Permission, dan keputusan `D-ARCH-1`…`D-ARCH-10` berasal dari sana |
+| Impact evidence | **Selesai** — `evidence/03`, query read-only database development |
+| Planning evidence | **Selesai** — `evidence/04`, tracked sebagai checkpoint sebelum implementasi |
+| Keputusan owner yang menahan development | **Nol** |
+| Keputusan owner yang menahan lingkungan lain | **Satu** — `P-1`, topologi deployment |
+| Wewenang migrasi data development | `CONDITIONALLY APPROVED` |
+| Status | 🟡 **`PARTIAL`** — Fase A dan A′ selesai di source. **Fase B (perluasan `SysAccessPolicy`) SELESAI pada database development 17 September 2026** (`BE-SEC-018`): 35 pelestarian + 1 `Amend` = 36, dan 4 policy warisan dinonaktifkan. **Fase C (audio) belum.** Dari dua hal yang dulu menahan: keadaan database **kini terukur** dan sejajar dengan source pada 1.300/340/48; gerbang test tidak berlaku apa adanya karena backend test project dihapus merge Integration — sebagian invariannya dijaga authorization verifier, tetapi pemetaan lengkap kriteria 7/8/10 belum ditinjau ulang. Kriteria 6 (rollback teruji) masih terbuka. Lihat `evidence/06` bagian G dan [`BE-SEC-018.md`](../task/report/backend/BE-SEC-018.md) |
+
+### Penegakan otorisasi endpoint — `BE-SEC-012`
+
+Bukti ini menjawab pertanyaan yang berbeda dari tabel di atas. Tabel di atas menelusuri *apakah
+kemampuannya sudah dipecah dan diberikan*; bagian ini menelusuri *apakah endpoint-nya benar-benar
+bertanya sebelum menjalankan perintah*.
+
+| Aspek | Status | Bukti |
+| --- | --- | --- |
+| Endpoint HR master data yang hanya dilindungi `[Authorize]` | ✅ **Nol** — 20 endpoint diperbaiki | [`BE-SEC-012.md`](../task/report/backend/BE-SEC-012.md) bagian 5.3 |
+| Invarian yang mencegah terulangnya | ✅ **Ada** — invarian `[5]` authorization verifier, memakai `BuildCore` yang sama | [`BE-SEC-012.md`](../task/report/backend/BE-SEC-012.md) bagian 5.1 |
+| Titik buta `PermissionRegistryValidator` | ✅ **Tertutup** | [`evidence/12`](../evidence/12-authorization-orphan-audit.md) bagian E |
+| Identitas orphan `KioskScanSession.Cancel`, `Queue.*` | ✅ **Terjelaskan** — pensiun/normalisasi, nol jangkauan hilang | [`evidence/12`](../evidence/12-authorization-orphan-audit.md) bagian C.1, C.2 |
+| Identitas orphan `WorkSchedule.Update` / `Delete` | ✅ **DITERAPKAN `BE-SEC-018`** 17 September 2026 — Finance × Manajer Finance dicabut pada database (efektif 0, 2 baris nonaktif dipertahankan); Manajer HR dipertahankan dan kini 24/24 efektif | [`evidence/14`](../evidence/14-owner-policy-matrix-and-deployment-preparation.md) bagian C.2, [`BE-SEC-018.md`](../task/report/backend/BE-SEC-018.md) bagian 3 |
+| Matriks hak akses master data HR | ✅ **Disetujui pemilik** — manajer CRUD, staff Read/Create | [`evidence/14`](../evidence/14-owner-policy-matrix-and-deployment-preparation.md) bagian B |
+| Baseline pemeliharaan registry | ✅ **TERCAPAI di database `BE-SEC-018`** — source dan `QuilvianNewDevAndryZain` kini sama-sama **1.300/340/48**; baseline lama 1.286/339/48 dicabut | [`evidence/14`](../evidence/14-owner-policy-matrix-and-deployment-preparation.md) bagian F, [`BE-SEC-018.md`](../task/report/backend/BE-SEC-018.md) bagian 4 |
+| Urutan penerapan aman sebelum `BE-SEC-003B` | ✅ **DIJALANKAN SAMPAI SELESAI `BE-SEC-018`** — backup, cabut Finance, seeder lewat runner eksternal, pemberian hak HR, Tahap 1, Tahap 2. **Tidak boleh dijalankan ulang secara buta** | [`evidence/14`](../evidence/14-owner-policy-matrix-and-deployment-preparation.md) bagian E, [`BE-SEC-018.md`](../task/report/backend/BE-SEC-018.md) bagian 10 |
+| Daftar posisi staff HR | ✅ **Ditutup `BE-SEC-016`** 17 September 2026 — pemilik menetapkan `Staff HR` (Read/Create saja). Matriks final 24 manajer + 12 staff = 36 kunci | [`evidence/14`](../evidence/14-owner-policy-matrix-and-deployment-preparation.md) bagian H, [`BE-SEC-016.md`](../task/report/backend/BE-SEC-016.md) |
+| 8 endpoint `WfpWorkScheduleAssignmentController` | ✅ **Ditutup `BE-SEC-013`** — 8 endpoint ditegakkan, baseline naked kosong | [`BE-SEC-013.md`](../task/report/backend/BE-SEC-013.md) bagian 6 |
+| Baseline naked endpoint yang diakui | ✅ **Kosong** — invarian sepenuhnya *fail closed* | [`BE-SEC-013.md`](../task/report/backend/BE-SEC-013.md) bagian 4.3 |
+
+Requirement yang **belum** didefinisikan dan **tidak** dianggap tercakup:
+
+| Area | Alasan belum didefinisikan |
+|---|---|
+| Baseline Self Service otomatis | Definisi "pegawai aktif" adalah keputusan HR; `BE-SEC-011` belum didekomposisi |
+| Penegakan data-scope (`OWN`, `SUBORDINATES`, `ORGANIZATION_SCOPE`) | Lapisan terpisah; hanya dicatat, belum ditegakkan |
+| Clinical privilege per jenis tindakan | Lapisan terpisah di atas izin, bukan pengganti izin |
+| Tenancy per rumah sakit pada otorisasi | Rantai otorisasi saat ini hospital-agnostic; perubahannya blueprint tersendiri |
+| Otorisasi SignalR hub `/hubs/queues` | Belum diaudit |
+| Penegakan data-scope pada `WorkScheduleAssignment` | Izin sudah ditegakkan `BE-SEC-013`, tetapi pemegangnya masih dapat membaca dan mengubah penugasan milik profil pegawai mana pun. Pembatasan `OWN`/`SUBORDINATES` adalah lapisan data-scope yang memang belum ditegakkan |
+| `GET /options` pada `WorkScheduleAssignment` | Termasuk sembilan endpoint baseline master data tetapi tidak ada. Dilaporkan `BE-SEC-013`; pembuatannya di luar remediasi otorisasi |
