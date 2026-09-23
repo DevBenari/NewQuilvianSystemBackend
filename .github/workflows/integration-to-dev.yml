@@ -281,7 +281,8 @@ jobs:
         run: |
           set -euo pipefail
           echo "Preparing runtime version manifest"
-          cp quilvian-release-metadata/version.json version.json
+          ls -la
+          cat version.json
           git add version.json
           git commit -m "chore: update runtime version manifest" || echo "No version change"
           git push origin HEAD:QuilvianDevDeploy
