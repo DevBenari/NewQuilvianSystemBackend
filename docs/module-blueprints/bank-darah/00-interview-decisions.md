@@ -5,7 +5,7 @@
 | Blueprint ID | `BD-BP-001` |
 | Revision | `13` — 18 September 2026, Blood Order contract gap pass (bagian 8.32). **Riwayat:** `12` |
 | Decision revision | `13`. **Riwayat:** `12` |
-| Status | `draft` — kecuali `DEC-BD-048` dan `DEC-BD-049` yang dinyatakan langsung pemilik (`Sukmagp`, 2026-09-11), `DEC-BD-016` (`Sukmagp`, 2026-09-17), `DEC-BD-055` sampai `DEC-BD-058` (`Sukmagp`, arah 2026-09-18, naskah dan persetujuan proses klinis `DEC-BD-055` 2026-09-19 — bagian 8.32 dan 8.33), serta `DEC-BD-059` dan `DEC-BD-060` (`Sukmagp`, 2026-09-23 — bagian 8.34) |
+| Status | `draft` — kecuali `DEC-BD-048` dan `DEC-BD-049` yang dinyatakan langsung pemilik (`Sukmagp`, 2026-09-11), `DEC-BD-016` (`Sukmagp`, 2026-09-17), `DEC-BD-055` sampai `DEC-BD-058` (`Sukmagp`, arah 2026-09-18, naskah dan persetujuan proses klinis `DEC-BD-055` 2026-09-19 — bagian 8.32 dan 8.33), `DEC-BD-059` dan `DEC-BD-060` (`Sukmagp`, 2026-09-23 — bagian 8.34), serta `DEC-BD-061` dan `DEC-BD-062` (`Sukmagp`, 2026-09-23 — bagian 8.35) |
 | Pass yang sudah dijalankan | Scope pass (2026-09-02), Closure pass (2026-09-02), Architecture gap closure pass (2026-09-02), Architecture gap final closure pass (2026-09-02), Storage Location closure pass (2026-09-02), Storage Location decision closure pass (2026-09-02), Gerbang pemberian closure pass (2026-09-02), Role & authority closure pass (2026-09-02), Role residue closure pass (2026-09-03), OQ residue closure pass (2026-09-03), Permission conflict closure pass (2026-09-03), Procedure tariff decision pass (2026-09-11), Billing handoff approval (2026-09-17), **Blood Order contract gap pass (2026-09-18)** |
 | Product/domain owner | Pemilik proses Bank Darah / BDRS — nama pejabat berwenang belum disebutkan |
 | Backend SHA | `ab39b63edd912e7a825e186be75537fc319a36ce` cabang `sukmagp` |
@@ -1762,6 +1762,40 @@ Read` tetap satu-satunya yang menjaga daftar kerja.
 [laporan task](task/report/backend/BE-BD-019.md) dan kartu pada
 [`roadmap/backend-roadmap.md`](roadmap/backend-roadmap.md). `FE-BD-002` memperoleh dependency baru pada
 task itu untuk bagian penyaring tanggal saja.
+
+---
+
+### 8.35 Alasan pembatalan permintaan PMI dan sumber pilihan order — `FE-BD-003` (23 September 2026)
+
+**Asal.** Audit kesiapan `FE-BD-003` menemukan dua hal yang tidak dapat diputuskan pelaksana, dan
+keduanya menentukan bentuk dua dari tiga aksi utama layar `FE-BD-03`.
+
+**Pertama, pembatalan permintaan PMI tidak punya kategori alasan.** `BbkProviderRequestService.CancelAsync`
+menerima **kode alasan aktif apa pun** dari `MstBloodBankReason`, tanpa penyaring kategori dan tanpa
+padanan `VAL-BD-083`. `ProviderRequestDetailDto` juga **tidak** membawa `CancellationReasonCategory`.
+Nol kategori bernama permintaan PMI ada pada `BloodBankReasonCategories`. Akibatnya layar tidak punya
+nilai apa pun untuk dikirim sebagai `?category=`.
+
+**Kedua, layar tidak tahu order darah mana yang layak dimintakan ke PMI.** `POST /provider-requests`
+hanya menerima `bloodOrderId`, sedangkan nol endpoint options menyediakan daftar order yang layak.
+
+| ID | Menutup | Jenis | Isi | Pemilik | Status | Approved |
+| --- | --- | --- | --- | --- | --- | --- |
+| `DEC-BD-061` | Gap `G-A` — alasan pembatalan permintaan PMI | `Decision` | **Nol kategori baru dibuat.** Pembatalan permintaan PMI memakai alasan terkendali dari `MstBloodBankReason` yang **aktif**, tanpa penyaring kategori — layar memanggil `GET /blood-bank-reasons/options` **tanpa** `category`. Kategori `OrderCancellationClinical` dan `OrderCancellationOperational` **tidak** dipakai di sini: keduanya milik pembatalan order darah dan maknanya berbeda. Konteks pemakaian ditulis di layar sebagai "Pembatalan Permintaan PMI" supaya petugas tahu alasan mana yang sedang dipilih. Backend tetap penentu: kode yang tidak terkendali ditolak `400` | Pemilik proses BDRS | `approved` | `Sukmagp` 2026-09-23 |
+| `DEC-BD-062` | Gap `G-C` — sumber pilihan order darah | `Decision` | **Nol endpoint baru, nol task backend baru.** Layar memakai `GET /blood-orders` yang sudah ada, disaring `orderStatus` ke status yang memang layak — `Active` (`0`) dan `PartiallyFulfilled` (`1`), sesuai penjaga `IsOrderOpen` pada `BbkProviderRequestService`. Kelayakan akhir tetap dijaga backend; layar hanya mempersempit pilihan | Pemilik proses BDRS · pemilik arsitektur backend | `approved` | `Sukmagp` 2026-09-23 |
+
+**Batas yang melekat pada `DEC-BD-062`.** `GET /blood-orders` menerima **satu** nilai `orderStatus`,
+bukan daftar. Untuk memuat kedua status yang layak, layar memanggilnya **dua kali** lalu menggabungkan
+hasilnya. Konsekuensinya pemilih order menampilkan sejumlah order terbaru per status, bukan seluruh
+order yang pernah ada — memadai untuk memilih, tetapi **bukan** daftar lengkap. Bila kelak terbukti
+mengganggu, penyaring `orderStatus` bernilai jamak adalah perubahan aditif yang kecil di backend, dan
+itu keputusan tersendiri yang belum diambil.
+
+**Yang tidak berubah.** Nol kolom database, nol migration, nol butir hak akses, nol endpoint.
+Set kontrak Provider Request tetap `v4` apa adanya.
+
+**Pelaksanaan.** `FE-BD-003`. Acceptance kartunya diperluas pada pass yang sama — lihat
+[`roadmap/frontend-roadmap.md`](roadmap/frontend-roadmap.md).
 
 ---
 

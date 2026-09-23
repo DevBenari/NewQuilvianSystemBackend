@@ -302,7 +302,7 @@ Dengan begitu, setiap layar dapat diuji memakai data yang dihasilkan layar sebel
 | `FE-BD-011` | Lokasi penyimpanan dikelola, akibat penonaktifan terbaca | 1 | `BE-BD-014` ✅ [BE], `BE-BD-015` ✅ [BE] | ✅ 2 dari 2 — 18 September 2026. **Riwayat:** 🟡 1 dari 2 kriteria | [FE-BD-011](../task/report/frontend/FE-BD-011.md) |
 | `FE-BD-006` | Seluruh layar Bank Darah terjangkau dari menu | 1 | — | ✅ 2 dari 2 — 18 September 2026, uji runtime pemilik R1–R8 `PASS`. **Riwayat:** 🟡 1 dari 2 terbukti penuh, kriteria kedua terbukti otomatis dan menunggu bukti runtime; 🟡 1 dari 2 kriteria | [FE-BD-006](../task/report/frontend/FE-BD-006.md) |
 | `FE-BD-002` | Order darah, pemenuhan, dan pembatalan | 2 | `BE-BD-003` ✅ [BE], `BE-BD-017` ✅ [BE], `BE-BD-018` ✅ [BE], `BE-BD-019` ✅ [BE] | ✅ **selesai 23 September 2026** — validasi runtime R1–R7 seluruhnya `PASS` di browser sungguhan | [laporan](../task/report/frontend/FE-BD-002.md) |
-| `FE-BD-003` | Permintaan PMI dan penerimaan | 2 | `BE-BD-004` ✅ [BE] | belum dikerjakan | — |
+| `FE-BD-003` | Permintaan PMI dan penerimaan | 2 | `BE-BD-004` ✅ [BE] | ✅ **selesai 23 September 2026** — empat acceptance layar `PASS` runtime; `AC-BD-014` backend-only | [laporan](../task/report/frontend/FE-BD-003.md) |
 | `FE-BD-010` | Daftar, pencatatan, dan penyelesaian tindakan | 2 | `BE-BD-012` ✅ [BE], `BE-BD-013` ✅ [BE] | belum dikerjakan | — |
 | `FE-BD-012` | Penyimpanan dan perpindahan lokasi kantong | 3 | `BE-BD-015` ✅ [BE] | belum dikerjakan | — |
 | `FE-BD-004` | Alokasi dan pembatalan alokasi | 3 | `BE-BD-006` ✅ [BE] | belum dikerjakan | — |
@@ -311,8 +311,9 @@ Dengan begitu, setiap layar dapat diuji memakai data yang dihasilkan layar sebel
 | `FE-BD-007` | Penyelesaian `PendingReview`, tiga tombol tiga penjaga | 3 | `BE-BD-009` ✅ [BE] | belum dikerjakan | — |
 | `FE-BD-008` | Koreksi dua langkah dan tunggakan bukti darurat | 3 | `BE-BD-010` ✅ [BE] | belum dikerjakan | — |
 
-**Hitungan per 23 September 2026, sesudah `FE-BD-002` ✅:** 12 task = **4 selesai** (`FE-BD-001`,
-`FE-BD-011`, `FE-BD-006`, **`FE-BD-002`**) + **0 sebagian** + **8 belum dikerjakan** + **0 terblokir**.
+**Hitungan per 23 September 2026, sesudah `FE-BD-003` ✅:** 12 task = **5 selesai** (`FE-BD-001`,
+`FE-BD-011`, `FE-BD-006`, `FE-BD-002`, **`FE-BD-003`**) + **0 sebagian** + **7 belum dikerjakan** +
+**0 terblokir**.
 `FE-BD-002` ditutup dengan validasi runtime R1–R7 seluruhnya `PASS`, dijalankan di browser sungguhan
 terhadap backend berisi `BE-BD-017`/`018`/`019`.
 
@@ -412,17 +413,17 @@ Sebelumnya ⛔ 1 (`FE-BD-008`, menunggu `BE-BD-010` sampai ✅ 17 September 2026
 
 ---
 
-### `FE-BD-003` — Petugas mengelola permintaan PMI dan penerimaan
+### ✅ `FE-BD-003` — Petugas mengelola permintaan PMI dan penerimaan
 
 | Field | Isi |
 | --- | --- |
-| **Status** | **Belum dikerjakan — siap dijadwalkan** (revisi 8 disetujui 18 September 2026). Nol source di frontend `6640a5e7`. `BE-BD-004` ✅. **Riwayat:** 🟡 PENDING (refresh dependency 17 September 2026); ⛔ BLOCKED — `BE-BD-004` menunggu `BE-BD-003`; tertahan `G4` sampai 10 September 2026 |
+| **Status** | ✅ **SELESAI — 23 September 2026. Empat acceptance layar terbukti runtime, `PASS` seluruhnya, nol skenario gagal.** Dijalankan langsung agent di browser sungguhan (Playwright/Chromium) terhadap backend lokal di atas `QuilvianNewDevSukma`; aksi buat permintaan dan catat penerimaan dilakukan **lewat layar**, bukan lewat API. Bukti: `AC-BD-005` minta 3 terima 2 → `Diterima sebagian`, sisa 1; `AC-BD-006` permintaan kedua ditolak `422` dan kalimat backend tampil utuh — backend nol `errors` terstruktur sehingga nol yang diparsing layar; `AC-BD-009` diterima 0, status `Diminta`, riwayat penerimaan kosong; `AC-BD-031` minta 2 datang 3 → `Terpenuhi`, sisa **0 bukan −1**, berlebih 1, peringatan diturunkan dari `totalExcessQuantity` bukan dari kalimat. **`AC-BD-014` dicatat BACKEND-ONLY** — terbukti tidak terjangkau dari UI: order darah tanpa baris ditolak `400` oleh model validation `[MinLength(1)]`, sehingga penjaga `VAL-BD-007` pada jalur PMI tidak punya jalan menyala dari layar; **nol workaround dibuat**. Lint `0 error`; build `exit 0`, `✓ Compiled successfully in 36.1s`, **368/368** halaman (naik dari 367); `git diff --check` bersih. 9 berkas frontend baru + 1 diubah; **nol komponen `base-features/` baru**. Keputusan `DEC-BD-061` dan `DEC-BD-062` menutup dua gap bentuk layar sebelum satu baris kode ditulis. ([laporan](../task/report/frontend/FE-BD-003.md)). **Riwayat:** belum dikerjakan — siap dijadwalkan (revisi 8 disetujui 18 September 2026). |
 | **Outcome** | Petugas membuat permintaan ke PMI dan mencatat penerimaan, termasuk penerimaan berlebih |
 | **Layar** | `FE-BD-03` |
 | **Kontrak** | api-contract `v4` — Provider Request |
 | **Gerbang** | `G1` ✅ |
-| **Dependency** | `BE-BD-004` ✅ [BE] — selesai 11 September 2026, roadmap backend revisi 9 |
-| **Acceptance** | Penerimaan termasuk kelebihan tercatat dan tidak membuat sisa negatif |
+| **Dependency** | `BE-BD-004` ✅ [BE] — selesai 11 September 2026, roadmap backend revisi 9. `BE-BD-015` ✅ [BE] — pemilik `AC-BD-023`/`032` sejak revisi 9, jalur `PendingReview` yang ditampilkan layar. Keputusan `DEC-BD-061` dan `DEC-BD-062` ✅ (`Sukmagp` 23 September 2026) menutup dua gap bentuk layar |
+| **Acceptance** | **Diperluas 23 September 2026 (`Sukmagp`).** Layar wajib menutup: **`AC-BD-005`** minta 3 PRC diterima 2 → `Diterima sebagian`, sisa 1; **`AC-BD-006`** permintaan baru untuk kebutuhan yang sama ditolak `422` `VAL-BD-006` beserta alasannya; **`AC-BD-009`** permintaan terkirim tetapi belum diterima fisik → stok tidak bertambah dan layar tidak menyatakannya diterima; **`AC-BD-014`** permintaan tanpa jumlah kantong ditolak `VAL-BD-007`; **`AC-BD-031`** minta 2 datang 3 → `Terpenuhi`, sisa **0 bukan −1**, ketiga kantong tercatat. **`AC-BD-022`/`AC-BD-023` dicatat sebagai integrasi**, bukan kriteria layar: efek `ClosedEncounter` dan `PendingReview` diturunkan backend (`BE-BD-015`), dan layar hanya wajib menampilkannya apa adanya. **Riwayat:** "Penerimaan termasuk kelebihan tercatat dan tidak membuat sisa negatif" |
 | **Risk/owner** | Sedang / BDRS |
 
 ---
