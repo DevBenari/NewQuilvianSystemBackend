@@ -484,3 +484,45 @@ Amendment ini **tidak** menambah, menghapus, maupun mengubah satu pun status pad
 - Seluruh gerbang yang sudah memperlakukan `FINAL` dan `CLOSED` sama (ganti payer, ubah penanggung item, ubah disposisi obat pada amendment 11 September 2026) **tetap** berlaku apa adanya.
 
 Trace **`BKC-DEC-100`–`102`**, `BKC-DES-028`–`035`. Tests `BIL-AT-121`–`BIL-AT-134`.
+
+---
+
+## Amendment 21 September 2026 — Status surat ke modul konsumen
+
+`last_changed_in: BIL-STATE-1.2` · status **draft** · input `BKC-DEC-106`–`109`.
+
+### Status surat, berlaku bagi kedua jenis
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| — | Penerbitan oleh sistem | `CREATED` | Sistem, di dalam transaksi peristiwa finansial | Peristiwanya memenuhi syarat penerbitan | Surat tidak terbit; transaksi pemanggil ikut batal |
+| `CREATED` | Pengakuan penerimaan | `ACKNOWLEDGED` | Modul konsumen, atau petugas berwenang lewat permukaan operasional | Surat ada dan belum diakui | Ditolak `409`; pengakuan kedua tidak mengubah apa pun |
+
+### Transisi yang tidak sah — disebutkan supaya tidak coba dibangun
+
+| Transisi | Mengapa dilarang |
+| --- | --- |
+| `ACKNOWLEDGED` → `CREATED` | Pengakuan tidak dapat ditarik. Bila konsumen perlu memproses ulang, ia membaca ulang lewat permukaan pemeriksaan, bukan memundurkan status |
+| `CREATED` → dihapus | Baris bersifat tetap (`BKC-DEC-109`). Jejak audit lintas modul tidak boleh hilang |
+| Pembaruan isi surat yang sudah terbit | Koreksi berupa **baris baru**. Untuk tender, baris baru berstatus dibalik; untuk clearance, baris baru bernomor versi lebih tinggi |
+
+### Keadaan clearance resep — dimiliki Billing, dikonsumsi Farmasi
+
+| Dari | Tindakan | Ke | Sebab yang sah | Syarat |
+| --- | --- | --- | --- | --- |
+| Belum pernah clear | Tagihan kunjungan lunas | `CLEARED` | `INVOICE_SETTLED`, `INVOICE_WRITTEN_OFF` | Seluruh tagihan kunjungan mencapai keadaan lunas (`PHA-DEC-064`) |
+| `CLEARED` | Harga atau jumlah obat dikoreksi naik | `REVOKED` | `PRESCRIPTION_CHARGE_INCREASED` | Perubahan terjadi pada baris berdomain farmasi milik resep itu |
+| `CLEARED` | Uang ditarik kembali | `REVOKED` | `PAYMENT_REVERSED`, `WRITE_OFF_REVERSED`, `PAYER_COVERAGE_REVERSED` | Fail-closed; berlaku bagi **seluruh** resep pada tagihan itu (`PHA-DEC-068-A`) |
+| `REVOKED` | Tagihan lunas kembali | `CLEARED` | `INVOICE_SETTLED`, `INVOICE_WRITTEN_OFF` | Nomor versi finansial naik |
+
+### Transisi yang sengaja **tidak** terjadi
+
+| Peristiwa | Yang tidak terjadi | Dasar |
+| --- | --- | --- |
+| Biaya tindakan, laboratorium, radiologi, atau kamar ditambahkan pada tagihan yang sudah lunas | Clearance **tidak** dicabut, walau tagihan kembali bersisa | `PHA-DEC-068` |
+| Tender berhasil tetapi tagihan belum lunas | Keadaan clearance **tidak** berubah; hanya surat ke Finance yang terbit | `PHA-DEC-064` |
+
+Baris pertama adalah perilaku yang paling mudah dirancang keliru. Tagihan kembali ke keadaan
+bersisa, tetapi obat yang sudah dibayar tetap boleh diserahkan.
+
+Trace `BKC-DEC-106`–`109`, `PHA-DEC-064`, `PHA-DEC-068`, `PHA-DEC-068-A`. Tests `BIL-AT-135`–`BIL-AT-140`.

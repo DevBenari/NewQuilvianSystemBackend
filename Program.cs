@@ -26,13 +26,16 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Ser
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Services;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Workers;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Services;
@@ -338,6 +341,17 @@ try
     builder.Services.AddScoped<LabPathologyReportService>();
     builder.Services.AddScoped<LabOrganismService>();
     builder.Services.AddScoped<LabAntibioticService>();
+    builder.Services.AddScoped<LabSusceptibilityBreakpointService>();
+    builder.Services.AddScoped<LabSusceptibilityInterpreter>();
+    builder.Services.AddScoped<LabProcedureMicrobiologyProfileService>();
+    builder.Services.AddScoped<LabSpecimenDetailTypeService>();
+    builder.Services.AddScoped<LabMicrobiologyCriticalRuleService>();
+    builder.Services.AddScoped<LabFieldChangeRecorder>();
+    builder.Services.AddScoped<LabSpecimenCorrectionService>();
+    builder.Services.AddScoped<LabReportNumberService>();
+    builder.Services.AddScoped<LabDisciplineSettingService>();
+    builder.Services.AddScoped<LabConfirmingDoctorResolver>();
+    builder.Services.AddScoped<LabMicrobiologyResultService>();
     builder.Services.AddScoped<LabExaminationService>();
     builder.Services.AddScoped<LabWorklistService>();
     builder.Services.AddScoped<LabMonitoringService>();
@@ -352,6 +366,10 @@ try
     builder.Services.AddScoped<RadReportNumberService>();
     builder.Services.AddScoped<RadOrderNumberService>();
     builder.Services.AddScoped<BillingFolioService>();
+
+    // BE-RWI-126 / FR-KEP-082 / RWI-DEC-154. Ringkasan tagihan pasien rawat inap baca-saja tanpa
+    // harga per item, dibaca ruang kerja keperawatan lewat hak PatientBillingSummary : Read.
+    builder.Services.AddScoped<PatientBillingSummaryService>();
     builder.Services.AddScoped<ClinicalMilestoneFactProducer>();
 
     builder.Services.AddScoped<EncounterIntakeService>();
@@ -391,6 +409,23 @@ try
     builder.Services.AddScoped<InpatientDocumentCorrectionAuthorityService>();
     builder.Services.AddScoped<CpptVerificationService>();
 
+    // BE-RWI-097 / R7. Service pesanan tindakan rawat inap oleh dokter atau perawat atas instruksi,
+    // aturan penginput (INV-DOK-17), dan pembatalan otomatis saat penutupan episode (Langkah 5).
+    builder.Services.AddScoped<PatientProcedureOrderService>();
+
+    // BE-RWI-099 / R4. Resep Harian: saring periode pada zona waktu rumah sakit, butir beserta
+    // penghentiannya, dan racikan beserta bahannya. Hanya membaca.
+    builder.Services.AddScoped<InpatientPrescriptionService>();
+
+    // BE-RWI-101 / R5. Rekonsiliasi obat bawaan: pencatatan perawat, keputusan dokter berriwayat,
+    // dan pengisian butir draft resep untuk keputusan "Lanjut".
+    builder.Services.AddScoped<MedicationReconciliationService>();
+
+    // BE-RWI-102 dan BE-RWI-103 / R6. Protokol sliding scale berversi yang disahkan, dan order per
+    // pasien yang menyalin rentang versi sah. Nomor order dari NumberSeriesAllocator.
+    builder.Services.AddScoped<SlidingScaleTemplateService>();
+    builder.Services.AddScoped<SlidingScaleOrderService>();
+
     // BE-RWI-058 / BE-RWI-064. Pembacaan lini masa pengkajian, keadaan tenggat, dan daftar
     // pantau kepatuhan pengkajian awal. Seluruhnya hanya membaca; nol tabel baru.
     builder.Services.AddScoped<NursingAssessmentMonitoringService>();
@@ -405,6 +440,28 @@ try
     // BE-RWI-061 / BE-RWI-062 / CAP-014. Pencatatan tindakan keperawatan, finalisasi, koreksi,
     // dan mesin keadaan pengiriman tagihan yang terpisah dari keadaan klinisnya.
     builder.Services.AddScoped<NursingInterventionService>();
+
+    // BE-RWI-107 s.d. BE-RWI-113, BE-RWI-121 — keperawatan rawat inap revision 7 (KEP-V2-1).
+    // Penjaga tulis episode bersama, instrumen klinis berversi beserta pengesahannya, dokumen
+    // Pengkajian Pasien V2, progres lima bagian, Evaluasi Awal MPP, dan deret tanda vital per episode.
+    builder.Services.AddScoped<NursingEpisodeWriteGuard>();
+    builder.Services.AddScoped<ClinicalInstrumentService>();
+    builder.Services.AddScoped<NursingAssessmentDocumentService>();
+    builder.Services.AddScoped<NursingAssessmentProgressService>();
+    builder.Services.AddScoped<CaseManagementEvaluationService>();
+    builder.Services.AddScoped<InpatientVitalSignService>();
+
+    // BE-RWI-114 s.d. BE-RWI-123 — keperawatan rawat inap revision 7 (KEP-V2-2). Pengawasan Harian
+    // (cairan, GDS bangsal, observasi, shift, balance), dugaan reaksi obat, MAR milik PharmacyManagement
+    // beserta pembentukan dosis terjadwal, dan pelaksanaan sliding scale satu transaksi. Pembentukan
+    // dosis terjadwal menyala bawaan; MAR yang dibuka tetap membentuk dosisnya sendiri bila dimatikan.
+    builder.Services.AddScoped<DailyMonitoringService>();
+    builder.Services.AddScoped<AdverseDrugReactionService>();
+    builder.Services.AddScoped<MedicationAdministrationService>();
+    builder.Services.AddScoped<SlidingScaleExecutionService>();
+    builder.Services.Configure<MedicationDoseSchedulerOptions>(
+        builder.Configuration.GetSection("HealthServices:MedicationDoseScheduler"));
+    builder.Services.AddHostedService<MedicationDoseSchedulerHostedService>();
 
     // BE-RWI-041 / CAP-025. Kejadian visite dokter beserta penyedia nomor bisnisnya. Nomor
     // dialokasikan service, tidak pernah oleh controller - QBE-CODE-002.
@@ -480,11 +537,35 @@ try
     builder.Services.AddScoped<InpDischargeService>();
     builder.Services.AddScoped<InpCensusQueryService>();
 
+    // BE-RWI-071 & BE-RWI-072 — Adapter posisi deposit dan tagihan episode dari Billing
+    builder.Services.AddScoped<IInpBillingDepositAdapter, InpBillingDepositAdapter>();
+    builder.Services.AddScoped<InpBillingDepositAdapter>();
+
+    // BE-RWI-086 — penyusun usulan isian resume pulang. Hanya membaca, tidak pernah
+    // menyimpan, dan tidak dipakai service Rawat Inap lain; ia dipanggil langsung controller.
+    builder.Services.AddScoped<InpDischargeSummaryPrefillService>();
+
+    // BE-RWI-127 s.d. BE-RWI-134 (INP-S22) — Integrasi Rawat Inap ↔ Kasir / Billing.
+    // Layanan outbox transaksional, background worker polling outbox, kueri status kasir bangsal,
+    // dan gerbang clearance pemulangan / auto-reblock / supervisor override.
+    builder.Services.AddScoped<IInpIntegrationOutboxService, InpIntegrationOutboxService>();
+    builder.Services.AddScoped<InpIntegrationOutboxService>();
+    builder.Services.AddScoped<IInpatientBillingQueryService, InpatientBillingQueryService>();
+    builder.Services.AddScoped<InpatientBillingQueryService>();
+    builder.Services.AddScoped<IInpatientClearanceGateService, InpatientClearanceGateService>();
+    builder.Services.AddScoped<InpatientClearanceGateService>();
+    builder.Services.AddHostedService<InpatientIntegrationOutboxWorker>();
+
     // Master data Rawat Inap. Dipakai dua controller pada layar admin, bukan oleh service
     // Rawat Inap. Keduanya memegang seluruh pembacaan dan perubahan tabel masternya supaya
     // controller tidak menyentuh ApplicationDbContext langsung.
     builder.Services.AddScoped<InpatientSettingService>();
     builder.Services.AddScoped<InpatientClearanceItemService>();
+
+    // Pembuatan data induk obat, termasuk pendaftaran obat bawaan pasien. Service ini menjaga
+    // validasi dan persistence tetap di luar controller serta memakai NumberSeriesAllocator
+    // untuk kode DRG-RSMMC yang atomik dan durabel.
+    builder.Services.AddScoped<DrugRegistrationService>();
 
     // Master keperluan akses rekam medis. Selama tabelnya kosong, pembukaan berkas pasien di
     // luar rawatan pengguna selalu ditolak — service ini yang memberi unit rekam medis cara
@@ -710,6 +791,23 @@ try
     builder.Services.AddScoped<BillingRefundService>();
 
     builder.Services.AddScoped<BillingFinalizationService>();
+
+    // Empat layanan di bawah masuk lewat merge 4ba789b2 dari QuilvianIntegrationBackend
+    // bersama BillingManagementServiceCollectionExtensions.AddBillingManagement(), TETAPI
+    // extension itu nol pernah dipanggil dari mana pun — sedangkan Program.cs cabang ini
+    // mendaftarkan Billing satu per satu. Akibatnya BillingAllocationService,
+    // BillingFinalizationService, dan BillingFinancialExceptionService menuntut
+    // BilConsumerHandoffService yang tidak terdaftar, dan APLIKASI GAGAL MENYALA pada
+    // validasi DI — bukan pada saat dibuild.
+    //
+    // Mendaftarkannya satu per satu dicoba lebih dulu dan TERBUKTI KELIRU: kekurangannya
+    // berantai — BilConsumerHandoffService, lalu FinanceAccountingOutboxService, dan
+    // seterusnya. Extension itulah daftar lengkapnya, jadi ia yang dipanggil.
+    //
+    // Sebagian layanan menjadi terdaftar dua kali, dan itu aman: keduanya Scoped atas tipe
+    // implementasi yang sama. Pemilik modul Billing tetap perlu memutuskan satu tempat
+    // pendaftaran dan mencabut yang lain.
+    builder.Services.AddBillingManagement();
 
     builder.Services.AddScoped<BillingArApHandoffService>();
 
@@ -1310,12 +1408,28 @@ try
     // kosong, formulir hasil Patologi Anatomi kosong sama sekali (INV-39), dan seeder ini
     // menuliskan peringatan penyalaan untuk keadaan itu.
     await RunStartupSeederAsync("LabPathologyMasterDataSeeder", () => LabPathologyMasterDataSeeder.SeedAsync(app.Services));
+    await RunStartupSeederAsync("LabSpecimenDetailTypeSeeder", () => LabSpecimenDetailTypeSeeder.SeedAsync(app.Services));
+
+    await RunStartupSeederAsync("LabDisciplineSettingSeeder", () => LabDisciplineSettingSeeder.SeedAsync(app.Services));
 
     // Data master Radiologi. Mengisi alat pencitraan dan butir keselamatan, lalu menyusun
     // usulan aturan keselamatan sebagai DRAF — tidak pernah Active. Aturan yang menentukan
     // kapan pasien boleh disinari hanya berlaku setelah disahkan penanggung jawab klinis
     // (RJ-BIL-DEC-014, DEC-RAD-005).
     await RunStartupSeederAsync("RadiologyMasterDataSeeder", () => RadiologyMasterDataSeeder.SeedAsync(app.Services));
+
+    // BE-RWI-107 / RWI-DEC-124 butir 4. Instrumen dan formulir klinis awal sebagai DRAFT — tidak pernah
+    // disahkan oleh seeder. Batas yang bertabrakan pada V1 ditandai untuk ditinjau pemilik klinis.
+    await RunStartupSeederAsync("ClinicalInstrumentDraftSeeder", () => ClinicalInstrumentDraftSeeder.SeedAsync(app.Services));
+
+    // LabDummyDataSeeder DICABUT 2026-09-17 atas instruksi pemilik modul, dan berkasnya
+    // dihapus pada commit 0bc921b0. Pemanggilnya sempat hidup kembali lewat merge
+    // 4ba789b2 dari QuilvianIntegrationBackend — cabang itu belum menerima pencabutannya —
+    // sehingga HEAD memanggil kelas yang tidak ada pada kedua sisi merge dan GAGAL DIBUILD.
+    // Dicabut ulang 2026-09-22 supaya instruksi pemilik modul kembali berlaku.
+    //
+    // Pengaturan `Seeders:RunLabDummySeed` dibiarkan ada pada appsettings dan nol dibaca.
+    // Mencabutnya adalah perubahan konfigurasi milik pemilik modul, bukan perbaikan build.
 
     var runOperatingRoomDemoSeed =
         builder.Configuration.GetValue<bool>("Seeders:RunOperatingRoomDemoSeed");

@@ -65,12 +65,13 @@ Billing**; Finance hanya menetapkan isi minimumnya (`FIN-DES-023`).
 | Kegagalan | Bila Finance gagal mengolah, baris tetap `CREATED` dan dicoba ulang. Billing **MUST NOT** menghapusnya |
 | Billing → Accounting | **Dilarang.** Billing tidak pernah mengirim kejadian ke Accounting langsung |
 
-### 2.3 Yang belum disepakati
+### 2.3 Riwayat kesepakatan
 
 | Hal | Status |
 |---|---|
-| Mekanisme transport (tabel handoff atau outbox) | Finance meminta tabel handoff (`FIN-DEC-005`); **menunggu konfirmasi owner Billing** |
-| Nama tabel dan kolom persisnya | Wewenang Billing |
+| Mekanisme transport (tabel handoff atau outbox) | **Disepakati** 21 September 2026 — tabel handoff persisted (`BilCollectionHandoff`), sesuai usulan Finance (`FIN-DEC-005`, `BKC-DEC-106`) |
+| Nama tabel dan kolom persisnya | Wewenang Billing — `BilCollectionHandoff` (`BKC-DES-037`), field persis sesuai bagian 2.1 di atas |
+| Eksekusi task Billing | **Selesai** 22 September 2026 — `BilConsumerHandoffService.PublishForTenderAsync` (`BE-BKC-069`) menerbitkan baris sesuai kontrak ini, dipasang di `BillingSettlementService.ReconcileTenderAsync`. Konsumsi sisi Finance dibangun `BE-FIN-016` |
 
 ---
 

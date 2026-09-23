@@ -2465,3 +2465,106 @@ Nol gelombang frontend. Verifikasi frontend (`FR` tidak bernomor karena tidak me
 | `BKC-CQ-01` | Apakah owner menerima `BKC-DES-033` (catatan handoff tidak disentuh) sebagai pemenuhan konsekuensi `BKC-DEC-102`, atau tetap menghendaki penandaan eksplisit pada catatan handoff? | **Tidak memblokir `MVP-24`**; bila jawabannya "tetap menghendaki", satu kolom/nilai status baru beserta migration-nya masuk scope | Product/Domain Owner + pemilik arsitektur backend |
 
 Keduanya **bukan** `OPEN DECISION` pada tingkat epic: `EPIC BKC-22` dapat dirancang dan dikerjakan penuh tanpa menunggu jawabannya. Gelombang `MVP-24` siap diteruskan ke `plan-module-delivery` begitu desain ini disetujui; `MVP-25` menunggu `BKC-OQ-100` terjawab dan otorisasi migration diberikan.
+
+---
+
+# Amendment 21 September 2026 — Penerbitan fakta finansial ke dua modul konsumen
+
+Masukan `BKC-DEC-106`–`109`, `BKC-DES-036`–`041`. Status **draft**.
+
+## Masalah produk
+
+Dua kerugian nyata sedang berjalan hari ini, dan keduanya berakar pada satu sebab: Billing
+mengetahui fakta finansial tetapi tidak punya cara menyampaikannya.
+
+| Yang terjadi | Kerugiannya | Siapa yang menanggung |
+| --- | --- | --- |
+| Bagian keuangan tidak tahu pasien sudah membayar | Uang yang sudah diterima kasir berisiko ditagihkan ulang sebagai piutang — satu tagihan terhitung dua kali | Rumah sakit dan pasien |
+| Apoteker tidak pernah dapat kabar resep sudah dibayar | Seluruh resep rawat jalan macet permanen di keadaan menunggu pembayaran; telaah apoteker tidak dapat dimulai sama sekali | Pasien di loket obat |
+
+Baris kedua bukan risiko yang mungkin terjadi — ia keadaan berjalan sejak jalur lama ditutup
+pada 24 Agustus 2026.
+
+## Batas rilis
+
+| Batas | Isi |
+| --- | --- |
+| Titik mulai | Sebuah peristiwa finansial terjadi di Billing: pembayaran berhasil, dibalik, tagihan lunas, atau biaya dikoreksi |
+| Titik akhir | Dua modul konsumen memiliki fakta itu dalam bentuk yang dapat mereka proses, dan dapat memeriksa ulang bila suratnya tidak sampai |
+| Di luar batas | Apa yang konsumen lakukan dengan fakta itu. Buku penerimaan Finance dan antrean resep Farmasi dirancang pada blueprint masing-masing |
+
+## `EPIC BKC-23` — Penerbitan fakta finansial ke modul konsumen
+
+| FR | Kemampuan | Disposisi |
+| --- | --- | --- |
+| `FR-BKC-230` | Menerbitkan surat penerimaan uang setiap kali sebuah tender mencapai keadaan akhirnya, tanpa menunggu tagihan difinalisasi | `MISSING / NEW` |
+| `FR-BKC-231` | Menerbitkan surat clearance resep setiap kali keadaan clearance sebuah resep berubah | `MISSING / NEW` |
+| `FR-BKC-232` | Menerbitkan keduanya dari satu titik deteksi, di dalam transaksi yang sama dengan peristiwanya | `MISSING / NEW` |
+| `FR-BKC-233` | Tidak mencabut clearance ketika tagihan kembali bersisa semata karena biaya di luar resep | `MISSING / NEW` |
+| `FR-BKC-234` | Mencabut clearance seluruh resep pada tagihan ketika uang ditarik kembali | `MISSING / NEW` |
+| `FR-BKC-235` | Menentukan hasil finansial dari penanda cara bayar, bukan dari nilai yang ditulis tetap | `EXTEND` — master `MstPaymentMethod` sudah punya penandanya |
+| `FR-BKC-236` | Menyediakan pembacaan keadaan clearance terkini sebuah resep, dapat dipanggil kapan saja | `MISSING / NEW` |
+| `FR-BKC-237` | Mencatat pengakuan penerimaan dan menampilkan surat yang belum diambil | `MISSING / NEW` |
+
+### Kemampuan yang ditunda
+
+| Ditunda | Alasan bersebab | Pengganti selama MVP |
+| --- | --- | --- |
+| Peringatan aktif atas surat yang menggantung | Ambang waktu dan penerimanya belum diputuskan (`BKC-OQ-101`). Menebaknya berarti memasang alarm yang tidak ada yang tahu harus menanggapinya | Layar pemeriksaan manual (`BIL-SCR-41`) |
+| Pemulihan resep yang sudah terlanjur macet | Pemutakhiran data yang menuntut otorisasi terpisah, bukan bagian migration penambahan tabel | Permukaan pemeriksaan ulang sudah dapat melepaskannya satu per satu tanpa skrip khusus |
+| Penerbitan ke konsumen utang dokter | `BilApHandoff` tidak disentuh amendment ini; konsumennya belum berdiri | Tidak ada — memang belum dibutuhkan |
+
+## Skenario UAT
+
+### Jalur berhasil
+
+| ID | Skenario | Hasil yang diharapkan |
+| --- | --- | --- |
+| `UAT-BKC-64` | Pasien melunasi tagihan kunjungan yang memuat resep | Bagian keuangan menerima fakta penerimaan uangnya, dan resep menjadi boleh dikerjakan apoteker |
+| `UAT-BKC-65` | Pasien membayar sebagian; tagihan masih bersisa | Bagian keuangan tetap menerima fakta uang yang masuk; resep belum bergerak |
+| `UAT-BKC-66` | Tagihan lunas lewat penghapusan tagihan, tanpa uang masuk | Resep menjadi boleh dikerjakan dengan hasil finansial pembayaran ditiadakan |
+| `UAT-BKC-67` | Pasien membayar dengan asuransi ditambah kekurangan tunai | Hasil finansial tercatat sebagai disetujui asuransi, bukan lunas tunai |
+| `UAT-BKC-68` | Biaya tindakan yang terlewat dicatat setelah pasien melunasi | Obat **tetap** boleh diserahkan; pasien punya kewajiban baru atas tindakan itu saja |
+
+### Jalur gagal
+
+| ID | Skenario | Hasil yang diharapkan |
+| --- | --- | --- |
+| `UAT-BKC-69` | Pembayaran dibalik pada kunjungan dengan tiga resep | Ketiga resep ditahan; bagian keuangan menerima koreksi sebagai catatan baru, bukan perubahan catatan lama |
+| `UAT-BKC-70` | Surat gagal diproses Farmasi karena gangguan | Petugas dapat menanyakan keadaan resep dan memperoleh jawaban yang benar, tanpa menunggu perubahan berikutnya |
+| `UAT-BKC-71` | Resep yang belum pernah punya surat ditanyakan | Dijawab belum diketahui; obat **tidak** boleh diserahkan atas dasar itu |
+| `UAT-BKC-72` | Pembayaran tunai dicatat tanpa shift kasir aktif | Penerbitan ditolak beserta pembayarannya; pesan menyebut shift kasir dengan bahasa yang dipahami petugas |
+| `UAT-BKC-73` | Petugas menekan tombol akui dua kali | Pengakuan kedua ditolak ramah; tidak ada data yang berubah maupun hilang |
+
+## Definition of Done
+
+| Butir | Dapat dijawab | Bukti |
+| --- | --- | --- |
+| Dua tabel berdiri beserta index uniknya | Ya / Belum | Migration diterapkan pada basis data pengembang |
+| Surat dan pergerakan uang tidak pernah terpisah nasib | Ya / Belum | `BIL-AT-135-F` |
+| Satu peristiwa tidak melahirkan surat ganda | Ya / Belum | `BIL-AT-136-F` |
+| Biaya di luar resep tidak mencabut clearance | Ya / Belum | `BIL-AT-137` |
+| Penarikan uang mencabut seluruh resep pada tagihan | Ya / Belum | `BIL-AT-139` |
+| Tender bercampur menghasilkan hasil penjaminan | Ya / Belum | `BIL-AT-140` |
+| Pemeriksaan ulang menjawab benar walau surat belum diambil | Ya / Belum | `BIL-AT-141` |
+| Layar pemeriksaan dapat dipakai peran berwenang, tertutup bagi yang tidak | Ya / Belum | `BIL-AT-142` beserta uji hak akses |
+| Kolom sensitif tidak muncul di catatan log | Ya / Belum | Tinjauan payload log |
+
+## Urutan pengiriman
+
+| Gelombang | Isi | Prasyarat |
+| --- | --- | --- |
+| `MVP-26` | `FR-BKC-230`–`236` — dua tabel, service penerbit, pembacaan keadaan clearance | Approval desain ini; otorisasi migration terpisah |
+| `MVP-27` | `FR-BKC-237` — layar pemeriksaan dan pengakuan penerimaan | `MVP-26` selesai |
+| `POST-MVP` | Peringatan aktif surat menggantung; pemulihan resep yang terlanjur macet | `BKC-OQ-101` terjawab; otorisasi pemutakhiran data |
+
+## Pertanyaan terbuka sebelum development lock
+
+| ID | Pertanyaan | Memblokir? | Penjawab |
+| --- | --- | --- | --- |
+| `BKC-OQ-101` | Berapa lama surat boleh menggantung, dan siapa yang diberi tahu | **Tidak** — `MVP-26` dan `MVP-27` berjalan penuh tanpanya | Operasional Billing + Finance + Farmasi |
+| Pemulihan resep macet | Masuk gelombang yang sama atau menyusul | **Tidak memblokir `MVP-26`**; hanya menentukan letaknya di roadmap | Product/Domain Owner |
+
+Keduanya **bukan** `OPEN DECISION` pada tingkat epic. `EPIC BKC-23` dapat dirancang dan
+dikerjakan penuh tanpa menunggu jawaban keduanya, sehingga `MVP-26` siap diteruskan ke
+`plan-module-delivery` begitu desain ini disetujui.

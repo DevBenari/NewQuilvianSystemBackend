@@ -22,6 +22,13 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.InPat
             builder.Property(x => x.ReferralDestination).HasMaxLength(250);
             builder.Property(x => x.ClinicalSummary).HasMaxLength(4000);
 
+            // BE-RWI-085 / RWI-DEC-112 — tiga bagian resume yang selama ini tidak ada.
+            // Seluruhnya nullable: resume lama tetap terbaca dan tetap dapat ditandatangani,
+            // dan isi minimal resume masih di bawah gerbang pemilik klinis (RWI-RULE-032).
+            builder.Property(x => x.ImportantFindingsSummary).HasMaxLength(4000);
+            builder.Property(x => x.DischargeConditionNote).HasMaxLength(2000);
+            builder.Property(x => x.EducationSummary).HasMaxLength(2000);
+
             builder.HasIndex(x => x.DischargeSummaryId);
             builder.HasIndex(x => x.CorrectionSessionId);
             builder.HasIndex(x => x.PreviousSignedByDoctorId);

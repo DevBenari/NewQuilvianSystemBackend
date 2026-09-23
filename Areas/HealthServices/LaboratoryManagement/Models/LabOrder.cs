@@ -37,6 +37,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models
         [MaxLength(32)]
         public string OrderNumber { get; set; } = string.Empty;
 
+        /// <summary>
+        /// Nomor yang tercetak pada lembar hasil — <c>26-1129</c> — dialokasikan
+        /// <b>per disiplin per tahun</b> (<c>LAB-DEC-117</c>).
+        ///
+        /// <b>Ia BUKAN pengganti <see cref="OrderNumber"/>, dan keduanya hidup berdampingan.</b>
+        /// <c>OrderNumber</c> tetap identitas internal serta sumber barcode Label Lab
+        /// (<c>LAB-DEC-072</c> utuh); nomor ini dipegang pasien dan disebut lisan antarpetugas.
+        /// Mengubah <c>OrderNumber</c> menjadi format cetak berarti membongkar layanan alokasi,
+        /// index unik, dan sumber barcode yang sudah berjalan — serta meninggalkan pesanan lama
+        /// berformat berbeda selamanya.
+        ///
+        /// <b>Boleh kosong, berbeda dari <see cref="OrderNumber"/>.</b> Seluruh pesanan yang
+        /// sudah ada sebelum kolom ini lahir nol punya nomor cetak, dan membubuhkannya
+        /// belakangan akan memberi nomor tahun ini kepada pesanan tahun lalu.
+        /// </summary>
+        [MaxLength(32)]
+        public string? LabReportNumber { get; set; }
+
         [Required]
         public Guid EncounterId { get; set; }
 
@@ -119,6 +137,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models
         /// bersamaan tidak boleh sama-sama berhasil.
         /// </summary>
         public int Version { get; set; }
+
+        // =====================================================================
+        // BE-RWI-104 / migration R8 — kamus data 0.5 bagian 13.11, RWI-DEC-153.
+        //
+        // Pesanan rawat inap yang dimasukkan perawat membawa dokter pemberi instruksi dan status
+        // verifikasinya. Penginput tetap RequestedByUserId yang sudah ada; nol kolom penginput baru.
+        // Pesanan poliklinik, IGD, dan pesanan lama bernilai NotRequired tanpa diisi.
+        // =====================================================================
+
+        /// <summary>Dokter pemberi instruksi pada pesanan rawat inap yang dibuat perawat.</summary>
+        public Guid? InstructingDoctorId { get; set; }
+
+        public LabOrderInstructionVerificationStatus InstructionVerificationStatus { get; set; } = LabOrderInstructionVerificationStatus.NotRequired;
+
+        public DateTime? InstructionVerifiedAt { get; set; }
+
+        /// <summary>Wajib akun dokter pemberi instruksi.</summary>
+        public Guid? InstructionVerifiedByUserId { get; set; }
 
         public RegPatientEncounter? Encounter { get; set; }
 

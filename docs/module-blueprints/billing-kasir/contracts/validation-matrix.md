@@ -408,3 +408,35 @@ Sebaliknya, bila penyelarasan berhenti karena statusnya memang bukan urusannya (
 **Tagihan tertutup yang terbuka kembali.** Tagihan yang sama, tiga hari kemudian, pembayarannya dibalik karena kesalahan mesin EDC. Sisa tagihan terhitung Rp 1.500.000 lagi, status kembali ke `FINAL`, `closedAt` dikosongkan. Tagihan itu muncul lagi pada daftar tagihan yang masih punya sisa — yang memang seharusnya terjadi, karena uangnya memang tidak jadi diterima.
 
 Trace **`BKC-DEC-100`–`102`**, `BKC-DES-028`–`035`. Tests `BIL-AT-121`–`BIL-AT-134`.
+
+---
+
+## Amendment 21 September 2026 — Aturan penerbitan fakta ke modul konsumen
+
+`last_changed_in: BIL-VALIDATION-1.2` · status **draft** · input `BKC-DEC-106`–`109`, `BKC-DES-036`–`041`.
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | --- |
+| Satu tender satu surat per keadaan | Penerbitan surat penerimaan | Sudah ada surat untuk pasangan tender dan status yang sama | *Tidak tampil ke pengguna* — penerbitan kedua diabaikan tanpa membuat baris baru | `BIL-VAL-110` |
+| Shift kasir wajib untuk tunai | Penerbitan surat penerimaan | Tender memakai cara bayar tunai tetapi tidak membawa identitas shift | Pembayaran tunai tidak dapat diteruskan ke pembukuan karena shift kasirnya tidak diketahui. Tutup dan buka kembali shift, lalu ulangi | `BIL-VAL-111` |
+| Nomor versi clearance wajib naik | Penerbitan surat clearance | Nomor versi yang hendak dipakai sudah pernah terbit untuk resep itu | *Tidak tampil ke pengguna* — transaksi diulang dengan nomor berikutnya | `BIL-VAL-112` |
+| Sebab wajib sesuai arah | Penerbitan surat clearance | Sebab bertanda pencabutan dipakai untuk menyatakan resep menjadi boleh diambil, atau sebaliknya | *Kesalahan internal* — penerbitan dibatalkan beserta transaksinya | `BIL-VAL-113` |
+| Hasil finansial wajib ada saat menyatakan boleh diambil | Penerbitan surat clearance | Keadaan `CLEARED` tanpa hasil finansial | *Kesalahan internal* — penerbitan dibatalkan | `BIL-VAL-114` |
+| Biaya bukan obat tidak mencabut clearance | Penerbitan surat clearance | Tagihan kembali bersisa semata karena biaya tindakan, laboratorium, radiologi, atau kamar | *Tidak ada surat yang terbit* — ini perilaku yang benar, bukan penolakan | `BIL-VAL-115` |
+| Pengakuan hanya sekali | Pengakuan penerimaan surat | Surat sudah berstatus diakui | Surat ini sudah diakui sebelumnya. Tidak ada yang perlu dilakukan lagi | `BIL-VAL-116` |
+| Resep tidak dikenal bukan berarti lunas | Pembacaan keadaan clearance | Resep yang ditanyakan belum pernah punya surat | Keadaan pembayaran resep ini belum diketahui. Obat belum boleh diserahkan | `BIL-VAL-117` |
+
+### Dua aturan yang paling mudah salah dipahami
+
+**`BIL-VAL-115` bukan penolakan.** Ketiadaan surat pada kasus itu adalah hasil yang benar.
+Contoh: pasien lunas pukul 09.00, resepnya boleh dikerjakan. Pukul 09.30 kasir mencatat biaya
+tindakan yang terlewat, tagihan kembali bersisa Rp 350.000. Tidak ada surat pencabutan yang
+terbit, dan apoteker tetap boleh menyerahkan obat yang sudah dibayar. Pasien punya kewajiban
+baru atas tindakan itu — bukan atas obatnya.
+
+**`BIL-VAL-117` fail-closed.** Resep yang tidak dikenal **MUST NOT** diperlakukan sebagai lunas,
+dan **MUST NOT** melempar galat teknis yang membuat layar Farmasi gagal dimuat. Ia menjawab
+dengan keadaan "belum diketahui", yang menurut `PHA-DEC-067` sama sekali bukan izin menyerahkan
+obat.
+
+Trace `BKC-DEC-106`–`109`, `PHA-DEC-067`, `PHA-DEC-068`. Tests `BIL-AT-135`–`BIL-AT-142`.

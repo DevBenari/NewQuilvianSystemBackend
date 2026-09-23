@@ -1142,3 +1142,102 @@ Nihil yang baru. Amendment ini tidak menambah menu, route, tab, modal, maupun ko
 > **Catatan bagi pembaca yang mencari kata "Lunas".** Badge `Lunas`/`Cicilan` yang sudah ada pada Riwayat Pembayaran dan Kwitansi **bukan** status invoice — ia dihitung dari akumulasi pembayaran, dan sudah bekerja sejak sebelum amendment ini. Keduanya hidup berdampingan dan menjawab pertanyaan berbeda: badge `Lunas` menjawab "berapa yang sudah dibayar", status `Closed` menjawab "apakah tagihan ini masih berjalan". Amendment ini **tidak** menggabungkan keduanya dan **tidak** mengubah badge yang sudah ada.
 
 Trace **`BKC-DEC-100`–`102`**, `BKC-DES-028`–`035`.
+
+---
+
+## Amendment 21 September 2026 — Layar pemeriksaan surat ke modul konsumen
+
+Masukan `BKC-DEC-106`–`109`. Status **draft**.
+
+### Mengapa layar ini ada
+
+`BKC-DEC-108` memutuskan Billing mencatat surat yang belum diambil konsumen dan membuatnya dapat
+diperiksa — tetapi tidak menggantungkan perilakunya pada itu. Keterlihatan hanya berguna bila
+ada permukaannya. Tanpa layar ini, keputusan itu berhenti sebagai kolom di tabel yang tidak
+pernah dilihat siapa pun.
+
+### Kebutuhan layar
+
+| ID | Layar | Kegunaan |
+| --- | --- | --- |
+| `BIL-SCR-41` | Surat ke Modul Konsumen | Melihat surat yang belum diambil Finance maupun Farmasi, dan mencatat pengakuan penerimaan bila diperlukan pemulihan |
+
+Satu layar, tanpa layar anak. Tidak ada layar baru bagi petugas Farmasi maupun kasir — keduanya
+tidak memakai permukaan ini sama sekali.
+
+### Peta butir menu
+
+| Butir menu | Tingkat | Induk | Route | Layar | Butir hak akses |
+| --- | --- | --- | --- | --- | --- |
+| Surat ke Modul Konsumen | 2 | Billing dan Kasir | `/billing/consumer-handoffs` | `BIL-SCR-41` | `BillingConsumerHandoff : Read` |
+
+Penempatan butir di bawah induk yang sudah ada mengikuti pola modul ini; urutan persisnya dan
+penamaan yang tampil di layar adalah `DEV_DISCRETION` selama butir hak aksesnya tepat.
+
+### Skema fitur layar `BIL-SCR-41`
+
+```text
+┌──────────────────────────────────────────────────────────────┐
+│  Surat ke Modul Konsumen                                     │
+├──────────────────────────────────────────────────────────────┤
+│  [ Jenis: Semua ▾ ]  [ Dari tanggal ]  [ Sampai tanggal ]    │  ← A
+├──────────────────────────────────────────────────────────────┤
+│  Jenis   │ Tujuan   │ Terbit        │ Rujukan   │ Tindakan   │  ← B
+│  ────────┼──────────┼───────────────┼───────────┼─────────── │
+│  Terima  │ Keuangan │ 21 Sep 09:12  │ INV-00123 │ [ Akui ]   │
+│  Resep   │ Farmasi  │ 21 Sep 09:12  │ INV-00123 │ [ Akui ]   │
+├──────────────────────────────────────────────────────────────┤
+│  Menampilkan 2 dari 2 surat yang belum diambil               │  ← C
+└──────────────────────────────────────────────────────────────┘
+```
+
+| Wilayah | Isi | Sumber data | Hak akses tombol | Keadaan kosong | Keadaan gagal |
+| --- | --- | --- | --- | --- | --- |
+| A — Penyaring | Jenis surat, rentang tanggal terbit | Dipilih pengguna; tidak ada endpoint tersendiri | — | — | Rentang terbalik ditolak sebelum dikirim |
+| B — Daftar | Jenis, modul tujuan, waktu terbit, rujukan tagihan, tombol akui | `GET /consumer-handoffs/pending` | Tombol akui: `BillingConsumerHandoff : Acknowledge` | "Tidak ada surat yang menggantung. Seluruh fakta sudah diambil kedua modul." | "Daftar surat tidak dapat dimuat. Coba muat ulang." |
+| C — Ringkasan | Jumlah surat yang belum diambil | Dihitung dari hasil yang sama | — | Menampilkan nol | Disembunyikan bila daftar gagal dimuat |
+
+Keadaan kosong di sini adalah **kabar baik**, bukan kegagalan. Kalimatnya sengaja menyatakan itu
+supaya petugas tidak menyangka layarnya rusak.
+
+### Aksi per peran
+
+Diturunkan dari `contracts/permission-audit-matrix.md`, tidak dikarang ulang.
+
+| Peran | Melihat daftar | Mengakui surat |
+| --- | :---: | :---: |
+| Petugas Billing / Kepala Kasir | Ya | Tidak |
+| Finance Operations | Ya | Ya |
+| Administrator sistem | Ya | Ya |
+| Petugas Farmasi | Tidak | Tidak |
+
+Tombol akui **MUST** disembunyikan, bukan sekadar dinonaktifkan, bagi peran yang tidak berwenang.
+
+### Penanganan keadaan
+
+| Keadaan | Perilaku |
+| --- | --- |
+| Memuat | Kerangka daftar; penyaring tetap dapat diubah |
+| Kosong | Kalimat pada tabel di atas, tanpa nada kegagalan |
+| Gagal | Pesan beserta tombol muat ulang; penyaring tidak hilang |
+| Data basi | Daftar dimuat ulang setelah pengakuan berhasil, karena baris yang diakui hilang dari daftar |
+| Pengiriman ganda | Tombol akui dikunci sampai jawabannya kembali. Pengakuan kedua atas surat yang sama dijawab penolakan yang ramah, bukan galat merah |
+
+### Yang sengaja tidak dibuat di frontend
+
+| Yang wajar diharapkan | Alasan tidak dibuat |
+| --- | --- |
+| Tombol menerbitkan ulang surat | Penerbitan **MUST NOT** dapat dipicu manusia. Surat yang dapat diterbitkan manual adalah surat yang dapat dipalsukan |
+| Tombol menghapus surat | Baris bersifat tetap (`BKC-DEC-109`) |
+| Layar keadaan clearance resep bagi petugas Farmasi | Keadaan itu tampil di layar kerja Farmasi sendiri, dirancang pada blueprint Farmasi. Billing tidak membuat layar untuk modul lain |
+| Peringatan otomatis surat menggantung | Ambang waktu dan penerimanya belum diputuskan (`BKC-OQ-101`) |
+
+### Kewenangan UI
+
+| Hal | Kewenangan |
+| --- | --- |
+| Keberadaan layar, isi wilayah, sumber data, hak akses tombol | Terkunci dokumen ini |
+| Bunyi keadaan kosong dan gagal | Terkunci dokumen ini — keduanya menyangkut kejelasan bagi petugas |
+| Urutan butir menu, penamaan tampilan, warna, jarak, ikon, component library | `DEV_DISCRETION` |
+
+Trace `BKC-DEC-106`–`109`, `BKC-DES-036`–`041`.

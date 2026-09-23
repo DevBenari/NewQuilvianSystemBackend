@@ -1438,3 +1438,61 @@ Yang tetap dibutuhkan adalah **verifikasi**, karena satu hal berubah diam-diam: 
 Nihil yang baru. Amendment ini tidak menambah menu, route, tab, modal, maupun kontrol, sehingga tidak ada ruang `DEV_DISCRETION` yang dibuka. Kosakata label (`Open`, `Final`, `Closed`, `Settled by Write-off`) **MUST** tetap memakai peta label yang sudah ada — **MUST NOT** diterjemahkan ulang menjadi "Lunas" di satu layar saja.
 
 Badge `Lunas`/`Cicilan` pada Riwayat Pembayaran dan Kwitansi **bukan** status invoice dan **tidak disentuh** amendment ini. Keduanya menjawab pertanyaan yang berbeda: badge `Lunas` menjawab "berapa yang sudah dibayar", status `Closed` menjawab "apakah tagihan ini masih berjalan".
+
+---
+
+# Gelombang `MVP-27` — Layar pemeriksaan surat ke modul konsumen
+
+| Field | Nilai |
+| --- | --- |
+| Blueprint | `BIL-CASH-001` revisi `1.4` · status `approved` |
+| Masukan | `BKC-DEC-108`, `BKC-DEC-109` — `approved` 21 September 2026 |
+| Contract version berlaku | `BIL-API-1.3`, `BIL-PERMISSION-1.1` — keduanya `approved` |
+| Frontend SHA | `1b138b9aac7a50524fd751a47c9a76e0a55f8803` |
+
+## Grafik Urutan Dependency
+
+```text
+[BE] BE-BKC-069 ─> 🟡 FE-BKC-040
+```
+
+Legenda: `[BE]` adalah cermin baca-saja milik `backend-roadmap.md`. Task itu dihitung dan
+dijadwalkan di roadmap backend, bukan di sini.
+
+| Gelombang eksekusi | Task | Dapat berjalan paralel? |
+| --- | --- | --- |
+| 1 | 🟡 `FE-BKC-040` | Tunggal pada gelombang ini |
+
+Jumlah pasangan prasyarat→task: **satu**, sama persis dengan isi kolom `Dependency` di bawah.
+
+## Task
+
+### 🟡 `FE-BKC-040` — Layar Surat ke Modul Konsumen
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Petugas berwenang dapat melihat surat yang belum diambil Finance maupun Farmasi, dan mencatat pengakuan penerimaan bila diperlukan pemulihan |
+| Jejak | `BKC-DEC-108`, `BKC-DEC-109`; skema layar `BIL-SCR-41` pada `03-frontend-architecture.md` |
+| Contract | `BIL-API-1.3` — `GET /consumer-handoffs/pending` dan `PATCH /{id}/acknowledge` |
+| Kemampuan existing yang dipakai | Pola daftar bersaring, komponen tabel, penanganan keadaan memuat/kosong/gagal yang sudah berjalan di modul ini |
+| Cakupan yang diharapkan | Satu layar, satu butir menu tingkat dua di bawah induk yang sudah ada, tanpa layar anak |
+| Dependency | `[BE] BE-BKC-069` |
+| Acceptance criteria | Daftar menampilkan jenis, modul tujuan, waktu terbit, dan rujukan tagihan; penyaring jenis dan rentang tanggal bekerja; tombol akui **disembunyikan** bagi peran tak berwenang, bukan sekadar dinonaktifkan; keadaan kosong berbunyi sebagai kabar baik, bukan kegagalan; tombol akui terkunci sampai jawaban kembali |
+| Bukti verifikasi | Verifikasi terhadap kontrak `BIL-API-1.3`; verifikasi hak akses dengan akun non-superadmin untuk kedua peran; verifikasi keadaan memuat, kosong, gagal, dan pengiriman ganda; bukti mengikuti kebijakan test frontend yang berlaku di repository ini |
+| Risiko | Keadaan kosong yang berbunyi seperti kegagalan akan membuat petugas menyangka layarnya rusak, padahal tidak adanya surat menggantung justru keadaan yang diinginkan |
+| Pemilik | Frontend + Billing |
+| Definition of Done | Layar terjangkau dari butir menu; kedua endpoint terpakai sesuai kontrak; peran tak berwenang tidak melihat tombol akui; nol tombol menerbitkan maupun menghapus surat |
+| Status | 🟡 **SEBAGIAN 22 September 2026.** Seluruh source (route, view, hook, constants, Redux slice, item menu) ditemukan sudah lengkap dan sesuai `BIL-SCR-41` — nol gap pada acceptance criteria maupun DoD. Satu perbaikan kualitas kode (pola `setState`-dalam-`useEffect`) diterapkan pada hook. `npx eslint` pada berkas fitur PASS 0 error/warning; `npm run lint:errors` (repo penuh) PASS untuk fitur ini (4 error pre-existing tidak terkait pada domain lain); `npm run test:unit` PASS untuk fitur ini (9 gagal pre-existing tidak terkait pada domain `FE-RWI-*`/`accounting-reconciliation`); `npm run build` PASS, exit code 0. **Yang MASIH menahan `✅`:** verifikasi manual ter-autentikasi (klik tombol Akui, dua peran berbeda, konflik `409`) — `NOT FEASIBLE`, menunggu migration backend `AddBillCollectionPrescriptionHandoff` (`BE-BKC-062`/`067`) diterapkan dan akun uji dua peran. Bukti: [laporan](../task/report/frontend/FE-BKC-040.md) |
+
+## Kewenangan UI
+
+| Hal | Kewenangan |
+| --- | --- |
+| Keberadaan layar, isi wilayah, sumber data per bagian, hak akses tiap tombol | Terkunci `03-frontend-architecture.md` |
+| Bunyi keadaan kosong dan gagal | Terkunci — keduanya menyangkut kejelasan bagi petugas |
+| Urutan butir menu, penamaan tampilan, warna, jarak, ikon, component library | **`DEV_DISCRETION`** |
+
+## Yang sengaja tidak dibuat
+
+Tombol menerbitkan ulang surat dan tombol menghapus surat **MUST NOT** dibuat. Penerbitan hanya
+terjadi di dalam transaksi peristiwa finansial, dan baris surat bersifat tetap (`BKC-DEC-109`).

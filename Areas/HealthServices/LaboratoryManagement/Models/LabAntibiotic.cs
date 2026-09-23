@@ -48,5 +48,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models
 
         /// <summary>Keterangan bagi analis.</summary>
         public string? Description { get; set; }
+
+        /// <summary>
+        /// Kandungan cakram dalam mikrogram pada metode difusi — Ampicillin <c>10</c>,
+        /// Cefoperazone <c>75</c>, Fosfomycin <c>200</c> (<c>LAB-DEC-122</c>, bukti
+        /// <c>LAB-EVD-006</c> kolom <c>UG</c>).
+        ///
+        /// <b>Ini sifat CAKRAM, bukan nilai hasil.</b> Ia disalin menjadi snapshot pada baris
+        /// kepekaan saat baris dibuat, sehingga cetak ulang tahun depan tetap menampilkan
+        /// angka yang dipakai saat pengujian.
+        ///
+        /// Boleh kosong: antibiotik yang hanya diuji dengan metode dilusi nol punya cakram.
+        /// </summary>
+        public int? DiscContentUg { get; set; }
     }
 }

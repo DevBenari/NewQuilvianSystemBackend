@@ -427,3 +427,132 @@ belum pernah dijalankan sekalipun.
 | 11 | 2026-09-03 | **Pembaruan bukti pelaksanaan, ditulis `build-module-backend`.** `FR-02.1` berpindah dari `Direncanakan` menjadi **`SELESAI SEBAGIAN`**: entity `LabExamination` tuntas pada `BE-LAB-09` berikut pembuatan dan eksekusi migration dua arah, sementara endpoint beserta penolakannya menunggu `BE-LAB-16`. `AC-35` dan `AC-40` terbukti pada tingkat struktur. Satu risiko dicatat: keenam kolom yang harus pindah dari `TrxLabSpecimen` belum dipindahkan karena `BE-LAB-11` masih `BLOCKED` oleh `LAB-OPEN-012`, sehingga salinan tarif untuk sementara ada di dua tempat. Satu pertentangan dokumen dicatat: kamus data bagian 4 menuntut kolom baru pada `TrxLabTransitionHistory`, sedangkan roadmap bagian 8.3 menyatakan tabel itu tanpa pekerjaan struktur | `DRAFT` |
 | 10 | 2026-09-03 | **Pembaruan bukti pelaksanaan, ditulis `build-module-backend`.** Ketiga baris `EPIC-LAB-06` berpindah dari `Direncanakan` menjadi **`SELESAI`**: `BE-LAB-06` tuntas pada tingkat source dan test, tanpa menyentuh schema sehingga tanpa migration. `AC-26` terbukti seluruh jalur — menambah, menonaktifkan, penolakan `VAL-37` dua arah, dan penyetelan sah oleh administrator sistem. `FR-06.3` terbukti lewat `LabRejectionReasonSeeder` yang mengisi sepuluh alasan baseline tanpa menimpa keputusan pengguna. Satu risiko organisasi dicatat pada `FR-06.2`: pemegang `LabRejectionReason : SystemFlag` belum ditetapkan, sehingga alasan baru selalu bernilai "bukan kesalahan internal" dan pengambilan ulangnya dapat ditagihkan kepada pasien sampai peran itu ada | `DRAFT` |
 | 9 | 2026-09-02 | **Pembaruan bukti pelaksanaan, ditulis `build-module-backend`.** `FR-10.3` berpindah dari `Direncanakan` menjadi **`SELESAI`**: `BE-LAB-01` tuntas pada tingkat source, test, pembuatan migration, dan eksekusi migration ke `QuilvianNewDevYoga` beserta pembuktian jalur `Down`. `AC-11` terbukti lewat tiga skenario kunjungan; `AC-41` terbukti separuh karena daftar pantau per disiplin adalah cakupan `BE-LAB-15`. Satu temuan lintas modul dibuka sebagai `LAB-REQ-003` — penyimpangan status `FINAL`/`CLOSED` pada Billing yang mematikan koreksi AR. Catatan pembukuan: revision 6 sampai 8 tidak pernah tercatat pada tabel ini walaupun kepala dokumen sudah menyebut revision 8 — selisih itu peninggalan sebelum task ini dan menjadi utang pemilik blueprint | `DRAFT` |
+
+---
+
+## Traceability gelombang `MVP-7` — `S4b` (2026-09-21)
+
+| Field | Nilai |
+|---|---|
+| Masukan | decisions **rev 50**; capability map **rev 4** |
+| Kontrak | `LAB-API-v1` `r26`, `LAB-VAL-v1` `r9`, `LAB-PERM-v1` rev 8 — ketiganya `approved` 2026-09-21 |
+| Source | backend `981e002c`, frontend `ebef7ebe5` |
+
+### Keputusan → task → kontrak → AC
+
+| Keputusan | Task backend | Task frontend | Kontrak | AC |
+|---|---|---|---|---|
+| `LAB-DEC-095` hasil per pemeriksaan | — (bentuknya sudah benar sejak `r24`) | `FE-LAB-30` | `r24` 19.2 | `AC-156` |
+| `LAB-DEC-096` waktu turunan | `BE-LAB-58` ✅ | `FE-LAB-33` | `r26` 21.3 | `AC-157` ✅ |
+| `LAB-DEC-097` Final bukan rilis | `BE-LAB-53`, `BE-LAB-54` | `FE-LAB-33` | `r26` 21.2 | `AC-158`, `AC-159` |
+| `LAB-DEC-098` Spesifik Specimen | `BE-LAB-55` | `FE-LAB-32` | `r26` 21.5 | `AC-160`, `AC-161` |
+| `LAB-DEC-099` isi awal disaring | `BE-LAB-55` (tabel saja) | — | `r26` 21.5 | `AC-161` |
+| `LAB-DEC-100` satuan volume | `BE-LAB-55` (seed `MstMeasurement`) | `FE-LAB-32` | — | `AC-162` |
+| `LAB-DEC-101` MIC dan zona opsional | — (sudah benar sejak `r24`) | `FE-LAB-31` | `r24` 19.2 | `AC-163` |
+| `LAB-DEC-102` nol subbakteri | — (sudah benar sejak `r24`) | `FE-LAB-31` | `r24` 19.2 | — |
+| `LAB-DEC-103` aturan kritis | `BE-LAB-56`, `BE-LAB-58` | `FE-LAB-31` | `r26` 21.6 | `AC-166`, `AC-167` |
+| `LAB-DEC-104` wajib bersyarat | `BE-LAB-54`, `BE-LAB-56` | `FE-LAB-31` | `LAB-VAL-v1` `r9` | `AC-163`, `AC-164`, `AC-165` |
+| `LAB-DEC-105` Analis turunan | `BE-LAB-58` ✅ | `FE-LAB-33` | `r26` 21.3 | `AC-168` ✅ |
+| `LAB-DEC-106` `Definitif` fakta | `BE-LAB-53`, `BE-LAB-54` | `FE-LAB-33` | `r26` 21.2 | `AC-169` |
+| `LAB-DEC-107` koreksi specimen | `BE-LAB-57` ✅ | `FE-LAB-32` | `r27` 21.4 | `AC-170` ✅ |
+| `LAB-DEC-109` nol HL7 | — (ketiadaan) | `FE-LAB-33` (ketiadaan) | `r26` 21.8 | `AC-172` |
+| `LAB-DEC-111` dokter konfirmator | `BE-LAB-59` ✅ | `FE-LAB-33` | `r26` 21.7 | `AC-173` ✅, `AC-174` ✅; `AC-171` milik layar |
+| `LAB-DEC-112` jejak ruas | `BE-LAB-57` ✅ | `FE-LAB-32` | `r27` 21.4 | `AC-175` ✅ |
+| `LAB-DEC-113` status temuan | `BE-LAB-53` | `FE-LAB-31` | `r24` 19.2 | `AC-176` |
+
+### AC → task yang membuktikannya
+
+| AC | Task pembukti | Lapis |
+|---|---|---|
+| `AC-156` | `FE-LAB-30` | Integrasi + UI |
+| `AC-157` | `BE-LAB-58`, `FE-LAB-33` | Kontrak + UI |
+| `AC-158`, `AC-159` | `BE-LAB-54`, `FE-LAB-33` | Integrasi |
+| `AC-160`, `AC-161` | `BE-LAB-55`, `FE-LAB-32` | Integrasi |
+| `AC-162` | `FE-LAB-32` | Unit + UI |
+| `AC-163`, `AC-164`, `AC-165` | `FE-LAB-31` | Integrasi |
+| `AC-166`, `AC-167` | `BE-LAB-56`, `FE-LAB-31` | Integrasi + UI |
+| `AC-168` | `BE-LAB-58`, `FE-LAB-33` | Kontrak + UI |
+| `AC-169` | `BE-LAB-54`, `FE-LAB-33` | Integrasi + UI |
+| `AC-170` | `BE-LAB-57`, `FE-LAB-32` | Integrasi |
+| `AC-171`, `AC-173`, `AC-174` | `BE-LAB-59`, `FE-LAB-33` | Integrasi |
+| `AC-172` | `FE-LAB-33` | Kontrak + UI |
+| `AC-175` | `BE-LAB-57` | Integrasi |
+| `AC-176` | `BE-LAB-53`, `FE-LAB-31` | Kontrak + UI |
+
+### Keputusan yang TIDAK melahirkan task, dan alasannya
+
+| Keputusan | Kenapa nol task |
+|---|---|
+| `LAB-DEC-095`, `101`, `102` | Bentuknya sudah benar sejak rancangan 2026-09-18. Putaran 9 **menegakkan**, bukan mengubah |
+| `LAB-DEC-108` | Butir 2 digantikan `LAB-DEC-111`; butir 1 (DPJP) sudah tercakup `BE-LAB-59` |
+| `LAB-DEC-110` | Bentuk cetak menunggu `LAB-OPEN-039` |
+
+### Penahan yang melekat pada gelombang ini
+
+| Penahan | Menahan apa | Tidak menahan apa |
+|---|---|---|
+| `DEC-LAB-011` | Seluruh `S4d` — nol task validasi/rilis | Seluruh `S4b` |
+| `LAB-OPEN-040` | Pengisian `LabSpecimenDetailType` | `BE-LAB-55` membangun tabelnya |
+| `LAB-OPEN-041` | Pengisian `LabMicrobiologyCriticalRule` | `BE-LAB-56` membangun tabel dan evaluatornya |
+| `LAB-OPEN-039` | Bentuk akhir cetak | Seluruh pengisian hasil |
+| `LAB-COORD-011/012/013` | Pengiriman, HL7, cetak dwibahasa | Seluruh `S4b` |
+| `LAB-COORD-014` | Ketepatan daftar dokter jaga | `BE-LAB-59` — jalur jatuhnya dibangun lebih dulu |
+| `LAB-OPEN-042` | Aturan isolat pada temuan `Negatif` | Nol — aturan itu tidak dibangun |
+| `LAB-RDY-C04` | — | Verifikasi wajib pemeriksaan database sungguhan |
+
+### Catatan penomoran AC
+
+Penomoran `AC-156`..`AC-176` melompat dari `AC-99`. Roadmap sudah terlanjur mengalokasikan
+`AC-100`..`AC-155` secara lokal tanpa mendaftarkannya di tabel acceptance criteria — `BE-LAB-44`
+misalnya mencatat `AC-98`..`AC-100` **terbukti pada database**. Penomoran gelombang ini digeser
+`+56` supaya tidak menimpa nomor yang sudah dipakai pekerjaan selesai. **Nol nomor roadmap lama
+diubah.**
+
+---
+
+## Traceability gelombang `MVP-7b` — `S4b` sesudah bukti cetak (2026-09-21)
+
+| Field | Nilai |
+|---|---|
+| Masukan | decisions **rev 52**; `LAB-EVD-005`, `LAB-EVD-006` |
+| Kontrak | `LAB-API-v1` `r27`, `LAB-VAL-v1` `r10`, `LAB-PERM-v1` rev 9 — `approved` 2026-09-21 |
+
+### Keputusan → task → AC
+
+| Keputusan | Backend | Frontend | AC |
+|---|---|---|---|
+| `LAB-DEC-114` kualifikasi hasil | `BE-LAB-53` *(cakupan bertambah)* | `FE-LAB-33` | `AC-177` |
+| `LAB-DEC-115` satuan MIC | `BE-LAB-61` | `FE-LAB-31` | `AC-178` |
+| `LAB-DEC-116`+`124` dua penanda | `BE-LAB-53` *(cakupan bertambah)* | `FE-LAB-31`, `FE-LAB-33` | `AC-179`, `AC-188` |
+| `LAB-DEC-117` nomor cetak | `BE-LAB-63` ✅ | — | `AC-180` ✅ |
+| `LAB-DEC-118` tanggal cetak | `BE-LAB-58` *(dikoreksi 2026-09-22 — ia ruas TURUNAN pada jalur baca `r27` 22.3, bukan milik `BE-LAB-63`)* | — | `AC-181` ✅ |
+| `LAB-DEC-119`+`127` pengaturan disiplin | `BE-LAB-63` ✅ | `FE-LAB-34` ⚠ | `AC-182` ✅ |
+| `LAB-DEC-120` petugas otorisasi | `BE-LAB-58` *(dikoreksi 2026-09-22)* — **dan nilainya tetap kosong sampai `S4d` dibuka `DEC-LAB-011`** | `FE-LAB-33` | `AC-183` ⚠ **terbuka** — sisi positifnya nol dapat diuji sampai `S4d` dibuka |
+| `LAB-DEC-121` permintaan klinis | — *(dokumen)* | — | `AC-184` |
+| `LAB-DEC-122` breakpoint + UG | `BE-LAB-60` ✅ + **`BE-LAB-64`** ✅ *(permukaan baseline)* | `FE-LAB-34` ⚠ | `AC-185` |
+| `LAB-DEC-123` interpretasi terhitung | `BE-LAB-61` | `FE-LAB-31` | `AC-186`, `AC-187` |
+| `LAB-DEC-125` profil katalog | `BE-LAB-62` ✅ + **`BE-LAB-64`** ✅ *(permukaan baseline)* | `FE-LAB-34` ⚠ | `AC-189` |
+| `LAB-DEC-126` isolat tanpa uji | `BE-LAB-61` | `FE-LAB-31` | `AC-190` |
+| `LAB-DEC-128` zona nol | `BE-LAB-61` | `FE-LAB-31` | `AC-191` |
+
+### Task yang berubah cakupan, bukan bertambah
+
+| Task | Semula | Sesudah |
+|---|---|---|
+| `BE-LAB-53` | 6 kolom + 1 enum | **9 kolom + 4 enum** |
+| `FE-LAB-31` | Satu bentuk tabel antibiogram | **Dua bentuk**, kolom hasil terhitung |
+| `FE-LAB-33` | Tombol aksi dan Diagnostic Report | **+ tiga pemilih baru** |
+
+### Penahan gelombang ini
+
+| Penahan | Menahan | Tidak menahan |
+|---|---|---|
+| `DEC-LAB-011` | Seluruh `S4d`; ruas `Petugas Otorisasi` **tampil kosong** | Pembangunan ruasnya |
+| `LAB-OPEN-039` | Empat bentuk cetak yang belum terlihat | Seluruh task di atas |
+| `LAB-OPEN-041` sekerabat | **Pengisian** breakpoint | `BE-LAB-60` membangun tabelnya |
+| Daftar panel antibiotik resmi | Pengisian `DiscContentUg` | `BE-LAB-60` membangun kolomnya |
+
+### Catatan penomoran
+
+Gelombang ini memakai `AC-177`..`AC-191`, melanjutkan `AC-156`..`AC-176` milik `MVP-7`.
+Penjelasan lompatan dari `AC-99` ada pada traceability `MVP-7` dan tabel AC decision log.

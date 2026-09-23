@@ -11,7 +11,7 @@ sub-modul itu sendiri.
 | `revision` | **`7`** — naik 2026-09-15 menyerap penyelarasan `PRD-RWI-V2-001` fase `RLN-PH-06`: `dokter-rawat-inap` kontrak `0.6.0`, `keperawatan` kontrak `0.5.0`, `episode-rawat-inap` amandemen terbatas kontrak `0.9.0`, `02-module-map.md` revision `2`. **Revisi material:** tabel baru di `ClinicalManagement` dan `PharmacyManagement`, perubahan perilaku penutupan episode, pesanan tindakan, dan template resep. Sebelumnya: `6` — naik 2026-09-11 menyerap `Gelombang 1A`, keputusan `RWI-DEC-097` s.d. `RWI-DEC-104`. **Revisi material:** `RWI-DEC-101` mencabut sebagian aturan keras `RWI-RULE-012`, dan `RWI-DEC-099` menambah satu kolom beserta perubahan filter index unik. Lihat bagian 0-A |
 | `blueprint_shape` | **`COMPOSITE`** — ditetapkan `RWI-DEC-082` 2026-09-02 |
 | `shape_decided_by` | **`USER_CONFIRMED`** — Muhammad Hamzah; agent menyarankan, pemilik memutuskan |
-| `status` | **`approved`** — **diturunkan, bukan ditulis tangan.** Ketiga sub-modul `approved` pada revision `7`, disetujui **Muhammad Hamzah** 2026-09-16 lewat `RWI-DEC-150` (bagian 1). Sebelumnya: **`draft`** selama revision `7` menunggu approval; sebelum itu **`approved`** pada revision `6` lewat `RWI-DEC-105` 2026-09-11, dan `partial` selama amandemen `Gelombang 1A` berstatus `draft`. Lihat bagian 1.1, 0-A, dan 0-B.6 |
+| `status` | **`approved`** — **diturunkan, bukan ditulis tangan.** Seluruh empat sub-modul berstatus `approved`: tiga sub-modul `approved` pada revision `7` (2026-09-16 lewat `RWI-DEC-150`), dan sub-modul ke-4 `integrasi-billing` `approved` pada 2026-09-17 lewat `RWI-DEC-162` |
 | `module` | `rawat-inap` / `InPatientManagement`, prefix entity `Inp` |
 | `registry_lifecycle` | `ACTIVE` — dinaikkan dari `PLANNED` 2026-08-24 lewat `RWI-DEC-068`. Wewenang eksekusi database dan deployment tetap terpisah |
 | `design_snapshot_at` | `2026-09-15` untuk revision `7`; `2026-09-11` untuk revision `6`; `2026-09-02` untuk revision `5`; `2026-08-24` untuk revision `4`; `2026-08-21` untuk revision `3` |
@@ -19,7 +19,7 @@ sub-modul itu sendiri.
 | `frontend_commit_sha` | **`1ce219b40f8e411f3c4e66975626ab33ae81616a`** untuk revision `7`. Sebelumnya `dec4fdeff07c3c96ad9f07f41f184c54cf771371` (branch `HamzahV2`) |
 | `last_focused_impact_scan` | `2026-09-02`, hanya slice `dokter-rawat-inap`; backend `93b3227c431401d8f586dec4e1fb25fbf41766e3`, frontend `863f24b0d1617069310c04e5770b47fd1b518b5b` |
 | `focused_scan_result` | Capability map `CURRENT` untuk slice dokter. `02-module-map.md` bagian dokter dan seluruh artefak `dokter-rawat-inap/` sudah **diamendemen 2026-09-02** dan kini `CURRENT` terhadap `BE@93b3227` serta `FE@863f24b` |
-| `last_focused_requirement_gate` | `2026-09-02`, revision `1.3`; seluruh tujuh capability Dokter Rawat Inap `READY_FOR_DOMAIN_DESIGN`. `DEC-INP-008` ditutup oleh `RWI-DEC-084` dan `RWI-DEC-085`. Overall modul tetap `PARTIALLY_READY` karena slice lain tidak dinilai ulang |
+| `last_focused_requirement_gate` | `2026-09-17`, revision `1.7` (Bagian 16); slice integrasi Rawat Inap ↔ Billing `INP-S22` `READY_FOR_DOMAIN_DESIGN`. Sebelumnya: `2026-09-15` revision `1.6` untuk `INP-S17` s.d. `INP-S21`; `2026-09-02` revision `1.3`. Overall modul tetap `PARTIALLY_READY` karena slice lain (`INP-S09`) menunggu konfirmasi luar |
 | `baseline_requirement` | **`PRD-RWI-FINAL-001` v1.0.0** — `docs/Modul-RS/Rawat-Inap/PRD_Final_Rawat_Inap_100_Persen.md`. **Menggantikan batas scope revision `4`** lewat `RWI-DEC-080`. Scope modul menjadi **28 kemampuan** `CAP-001` s.d. `CAP-028`. **Peringatan 2026-09-14:** berkas ini **terhapus dari working tree** dan penghapusannya belum di-commit; isinya masih terbaca dari `HEAD` `4f79e998`. Temuan `RLN-01` bagian 0-B |
 | `upstream_input_v2` | **`PRD-to-MVP-Rawat-Inap-V2` v`1.0.0`** — **berkas terhapus dari working tree per 2026-09-14, belum di-commit; temuan `RLN-01`.** `docs/Modul-RS/Rawat-Inap/PRD-to-MVP-Rawat-Inap-V2.md`, **diterima sebagai masukan hulu 2026-09-11** lewat `RWI-DEC-097`. Ia **belum** menggantikan `baseline_requirement`; penguncian itu menunggu amandemen `design-business-module`. Menuntut empat koreksi P0, mencabut `RWI-DEC-066`, menjawab `RWI-OQ-047`, dan membalikkan status MAR dari luar-MVP menjadi P0/P1 |
 | `upstream_input_v2_final` | **`PRD-RWI-V2-001` v`2.0` FINAL** — `docs/Modul-RS/Rawat-Inap/04-prd-to-mvp-final.md`, tanggal dokumen 14 September 2026, SHA-256 `2b3b2f29c9e547f448f186d7ac990e33dc3bdede8043a9b4bebfad6fbe0a679f`. **Didaftarkan sebagai masukan hulu 2026-09-14** oleh `manage-module-blueprint` atas instruksi pengguna, untuk **penyelarasan ulang** sub-modul `dokter-rawat-inap` dan `keperawatan`, dengan `episode-rawat-inap` sebagai jangkar konteks. **Pendaftaran ini bukan approval desain dan belum mengganti `baseline_requirement`**; keputusan formalnya milik `grill-me`. Berkasnya masih `untracked` di Git. Rincian, temuan, dan rencana fase: bagian 0-B |
@@ -27,7 +27,7 @@ sub-modul itu sendiri.
 | `last_focused_impact_scan_v2` | **`2026-09-11`** — scan terfokus Rawat Inap V2, `01-existing-capability-map.md` bagian 16. Terikat `BE@201de753` dan `FE@7f6b9356`. Menilai **14** kemampuan: 1 `Conflict`, 3 `Repair`, 3 `Extend`, 1 `Reuse with adapter`, dan 6 `Missing` |
 | `focused_scan_v2_result` | Keempat temuan `P0` PRD V2 **terbukti**, tetapi **tiga lebih luas** dari yang tertulis: jalur delete ada pada **10** controller bukan 2; penulis klinis tidak ditegakkan pada **8 dari 9** titik panggil resolver bukan 1 controller; aturan gender kamar menyentuh **dua** aturan bukan satu. **Dua kemampuan ternyata sudah tersedia sebagian** dan berstatus `Extend`, bukan `Missing`: bukti consent sudah punya hash, path, nama, ukuran berkas, hubungan penanda tangan, dan riwayat pencabutan; mesin keutuhan dokumen sudah ada dan sudah terpasang pada controller CPPT, hanya tidak dipanggil pada jalur delete. Tiga `Unknown` tercatat sebagai `V2-UNK-01` s.d. `V2-UNK-03` |
 | `evidence_staleness` | **Diperbarui 2026-09-14 — `STALE` lagi.** `HEAD` backend kini `4f79e9985940f2e333a9e6ea6e159f1076a18844` (**119** commit sejak `201de753`; **3** menyentuh `Areas/HealthServices/InPatientManagement`, **7** menyentuh `Areas/HealthServices/ClinicalManagement`) dan frontend `147355f505e875148b8416866ada6cf8b2f1ad99` (**1** commit sejak `7f6b9356`). Selain itu artefak `dokter-rawat-inap` dan `keperawatan` kini `STALE_AGAINST_UPSTREAM` terhadap `PRD-RWI-V2-001`, bagian 0-B. Catatan sebelumnya: **`STALE` sejak 2026-09-11**, **sebagian terjawab hari itu juga** oleh scan terfokus V2 di atas untuk scope empat koreksi `P0` dan sembilan kemampuan baru. Scope di luar itu tetap `STALE`. `HEAD` backend kini `201de7535d4ca00fa9ede2395d4fb769f023b9e6` dan frontend `7f6b9356f6349d516570d6d603ca026f2c7f4ec2`, keduanya sama dengan snapshot audit PRD V2. Jarak dari `backend_commit_sha` adalah **517 commit**, dari `impact_scan_source_sha` slice dokter **243 commit**. **Cakupan nyatanya sempit:** hanya **8** commit menyentuh `Areas/HealthServices/InPatientManagement` dan **26** menyentuh `Areas/HealthServices/ClinicalManagement` sejak `5afb54bd`. Karena itu yang dibutuhkan adalah **impact assessment terbatas** lewat `trace-existing-capabilities`, **bukan** perancangan ulang arsitektur |
-| `task_id_integrity` | **`RESOLVED` 2026-09-11.** ~~`CONFLICT` — sebelas task ID dipakai dua pekerjaan berbeda~~. `RWI-DEC-103` dieksekusi `plan-module-delivery` pada tanggal itu: sisi `episode-rawat-inap` dinomori ulang menjadi `BE-RWI-070` s.d. `BE-RWI-072` dan `FE-RWI-058` s.d. `FE-RWI-061`; tiga berkas laporan diganti nama; **108 rujukan** diperbarui tanpa satu pun hilang. Empat nomor `BE-RWI-037` s.d. `BE-RWI-040` **tidak** dinomori ulang karena task episode-nya sudah dibatalkan atau dipindah ke Billing; barisnya kini bertanda coretan dan menyebut nomornya milik `dokter-rawat-inap`. Pemeriksaan judul kartu enam roadmap mengembalikan **nol** tabrakan. **Nomor lama dipensiunkan permanen.** ~~ID bebas berikutnya: `BE-RWI-073` dan `FE-RWI-062`~~ — **basi.** Keduanya sudah dipakai `Gelombang 1A` beserta laporannya. ~~ID bebas berikutnya per 2026-09-14: `BE-RWI-079` dan `FE-RWI-063`~~ — **basi sejak 2026-09-16**, keduanya dipakai `RLN-PH-07`. **ID bebas berikutnya per 2026-09-16: `BE-RWI-127` dan `FE-RWI-095`**, dibaca dari enam roadmap dan pohon `task/report/` |
+| `task_id_integrity` | **`RESOLVED` 2026-09-17.** ~~`CONFLICT` — sebelas task ID dipakai dua pekerjaan berbeda~~. Deret task ID bebas berlanjut mulus: `BE-RWI-079` s.d. `BE-RWI-126` dan `FE-RWI-063` s.d. `FE-RWI-094` untuk amandemen revision `7`. Sub-modul baru `integrasi-billing` (Slice `INP-S22`) menggunakan `BE-RWI-127` s.d. `BE-RWI-134` (8 task) dan `FE-RWI-095` s.d. `FE-RWI-100` (6 task). **ID bebas berikutnya per 2026-09-17: `BE-RWI-135` dan `FE-RWI-101`.** Pemeriksaan judul kartu seluruh roadmap mengembalikan **nol** tabrakan |
 | `owners` | Product/Domain: **Muhammad Hamzah**, ditunjuk `RWI-DEC-061`; jabatan formal belum diisi. Clinical governance: **sebagian terisi** — keputusan isolasi dan jenis kelamin diambil pemilik yang sama lewat `RWI-DEC-064`, cakupan peran selebihnya belum dinyatakan. Security/Privacy: `OPEN`. API dan Frontend authority: sesuai decision log |
 | `approved_by` | **Per sub-modul, seluruhnya Muhammad Hamzah.** Revision `7`: **ketiganya disetujui 2026-09-16** lewat `RWI-DEC-150`. Sebelumnya revision `6` 2026-09-11 lewat `RWI-DEC-105`; approval awal `episode-rawat-inap` 2026-08-24, `dokter-rawat-inap` 2026-09-03, `keperawatan` 2026-09-03 |
 | `approved_at` | **`2026-09-16`** untuk revision `7` pada ketiga sub-modul — lihat registry bagian 1 |
@@ -478,6 +478,27 @@ dikoreksi. Dua hal yang sebaiknya diperiksa pemilik:
 
 ---
 
+### 0-B.11 Sub-modul Baru: Integrasi Rawat Inap ↔ Kasir / Billing (`integrasi-billing`) ★ 17 September 2026
+
+Berdasarkan dokumen bersama `docs/Modul-RS/Rawat-Inap-To-Billing/PRD Integrasi-Rawat-Inap-dengan-Billing.md` (2.282 baris), keputusan wawancara `RWI-DEC-156` s.d. `161`, dan kriteria penerimaan kanonik `RWI-AC-236` s.d. `241`, telah dibentuk sub-modul ke-4 di bawah modul composite Rawat Inap:
+📁 [`integrasi-billing/`](./integrasi-billing/) (Slice `INP-S22`).
+
+#### Rencana Delivery & Isolasi Roadmap
+
+Atas persetujuan pemilik modul (Muhammad Hamzah), seluruh perencanaan pengiriman modul (`plan-module-delivery`) ditempatkan pada folder roadmap mandiri (`integrasi-billing/roadmap/`) agar **tidak bertabrakan** dengan pekerjaan developer yang sedang aktif di `backend-roadmap-v2.md` (`BE-RWI-091` s.d. `BE-RWI-126`):
+
+1. [`backend-roadmap.md`](./integrasi-billing/roadmap/backend-roadmap.md) — 8 task vertical slice (`BE-RWI-127` s.d. `BE-RWI-134`) dalam 4 gelombang eksekusi backend (`INT-BE-1` s.d. `INT-BE-4`).
+2. [`frontend-roadmap.md`](./integrasi-billing/roadmap/frontend-roadmap.md) — 6 task antarmuka bangsal (`FE-RWI-095` s.d. `FE-RWI-100`) dalam 3 gelombang eksekusi frontend (`INT-FE-1` s.d. `INT-FE-3`).
+3. [`requirement-traceability.md`](./integrasi-billing/roadmap/requirement-traceability.md) — Matriks keterlacakan lengkap yang menghubungkan 18 Functional Requirements (`FR-INT-001` s.d. `018`), 6 Kriteria Penerimaan (`RWI-AC-236` s.d. `241`), 6 NFR, dan 13 Skenario UAT (`UAT-INT-001` s.d. `013`) ke masing-masing task penanggung tanpa celah (**Zero Coverage Gap**).
+
+#### Rentang Task ID & Status Integritas
+- Backend: `BE-RWI-127` s.d. `BE-RWI-134` (8 task)
+- Frontend: `FE-RWI-095` s.d. `FE-RWI-100` (6 task)
+- **ID Bebas Berikutnya:** **`BE-RWI-135`** dan **`FE-RWI-101`**
+- Tabrakan Task ID: **0 (Nol Tabrakan)**.
+
+---
+
 ## 0-A. Yang diserap revision `6` — Gelombang 1A Rawat Inap Safety Corrections
 
 Revision `6` adalah **revisi material isi desain**, berbeda dari revision `5` yang hanya memindahkan
@@ -630,6 +651,17 @@ submodules:
     catatan: disetujui 2026-09-03 untuk 13 artefak revision 0.3 / kontrak 0.3.0; domain architecture READY; nol pertanyaan memblokir; approval desain BUKAN izin implementasi, migration, maupun deployment.
       Amendment 0.4.0 pada 2026-09-09 menaikkan tujuh artefak untuk membuka BE-RWI-068 (grup Patient Diagnosis, INT-DOK-10) dan DISETUJUI Muhammad Hamzah hari itu juga.
       Status sub-modul tidak pernah diturunkan: baseline 0.3.0 tidak tersentuh, dan amendment hanya menahan BE-RWI-068 sampai disetujui
+  - slug: integrasi-billing
+    prefix: BE-RWI / FE-RWI
+    kemampuan: 6
+    uji_pemecahan: 5/5
+    status: approved         # kontrak 1.0.0; disetujui Muhammad Hamzah 2026-09-17 lewat RWI-DEC-162
+    approved_by: Muhammad Hamzah
+    approved_at: 2026-09-17
+    approval_decision: RWI-DEC-162
+    contract_versions: 1.0.0
+    designed_at: 2026-09-17
+    catatan: Sub-modul integrasi Rawat Inap ↔ Kasir / Billing berbasis PRD Integrasi-Rawat-Inap-dengan-Billing.md, keputusan RWI-DEC-156 s.d. 162, kriteria RWI-AC-236 s.d. 241. Menangani Transactional Outbox InpIntegrationOutbox, room charge sejak bed occupied fisik, mutasi saat OPEN, UI bangsal steril rupiah, dan auto-reblock clearance dengan supervisor override. 8 task backend (BE-RWI-127 s.d. 134) dan 6 task frontend (FE-RWI-095 s.d. 100) siap eksekusi.
 ```
 
 | Sub-modul | Rumpun kemampuan | Kemampuan | Status | Manifest sub-modul |
@@ -637,6 +669,7 @@ submodules:
 | [`episode-rawat-inap/`](./episode-rawat-inap/) | Episode, tempat tidur, penanggung jawab, pemulangan, penutupan | 16 | **`approved`** — revision `7`, kontrak **`0.9.0`** amandemen terbatas, disetujui Muhammad Hamzah 2026-09-16 lewat `RWI-DEC-150`; kontrak `0.8.0` 2026-09-11 | [manifest](./episode-rawat-inap/blueprint-manifest.md) |
 | [`keperawatan/`](./keperawatan/) | Pengkajian, asuhan, tindakan keperawatan, gizi, pemakaian alat | 5 | **`approved`** — revision `7`, kontrak **`0.5.0`**, disetujui Muhammad Hamzah 2026-09-16 lewat `RWI-DEC-150`; revision `5` 2026-09-03 lewat `RWI-DEC-092`. `CAP-016` `DEFERRED`; roadmap wajib ditulis ulang `plan-module-delivery` | [manifest](./keperawatan/blueprint-manifest.md) |
 | [`dokter-rawat-inap/`](./dokter-rawat-inap/) | SOAP, CPPT, kajian medis, resep, tindakan, visite, penunjang | 7 | **`approved`** — revision `7`, kontrak **`0.6.0`**, disetujui Muhammad Hamzah 2026-09-16 lewat `RWI-DEC-150`; kontrak `0.5.0` 2026-09-11, `0.4.0` 2026-09-09, `0.3.0` 2026-09-03. Siap `plan-module-delivery` | [manifest](./dokter-rawat-inap/blueprint-manifest.md) |
+| **[`integrasi-billing/`](./integrasi-billing/)** | **Integrasi Rawat Inap ↔ Kasir / Billing, Outbox, Room Charge, Clearance & Auto-Reblock (Slice `INP-S22`)** | 6 (`INT-CAP-01` s.d. `06`) | **`approved`** — kontrak **`1.0.0`**, disetujui Muhammad Hamzah 2026-09-17 lewat `RWI-DEC-162` | [manifest](./integrasi-billing/blueprint-manifest.md) |
 
 ### 1.1 Cara `status` modul diturunkan
 

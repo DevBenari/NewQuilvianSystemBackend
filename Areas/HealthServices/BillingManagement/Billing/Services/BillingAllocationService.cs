@@ -17,15 +17,18 @@ public sealed class BillingAllocationService
     private const decimal MaxMoneyAmount = 9999999999999999.99m;
     private readonly ApplicationDbContext _dbContext;
     private readonly BillingInvoiceClosureService _closureService;
+    private readonly BilConsumerHandoffService _consumerHandoffService;
     private readonly LoggerService _loggerService;
 
     public BillingAllocationService(
         ApplicationDbContext dbContext,
         BillingInvoiceClosureService closureService,
+        BilConsumerHandoffService consumerHandoffService,
         LoggerService loggerService)
     {
         _dbContext = dbContext;
         _closureService = closureService;
+        _consumerHandoffService = consumerHandoffService;
         _loggerService = loggerService;
     }
 
@@ -206,6 +209,18 @@ public sealed class BillingAllocationService
             // KNOWN ISSUES pada laporan task BE-BKC-062.
             var closureChange = await SyncClosureInsideTransactionAsync(
                 invoice.Id, actorUserId, now, cancellationToken);
+            if (closureChange.Changed && closureChange.StatusAfter == BillingInvoiceStatuses.Closed)
+            {
+                await _consumerHandoffService.PublishForClearanceChangeAsync(
+                    invoice.Id,
+                    PrescriptionClearanceReasonCodes.InvoiceSettled,
+                    actorUserId,
+                    now,
+                    request.CorrelationId,
+                    request.CorrelationId,
+                    cancellationToken);
+                await _dbContext.SaveChangesAsync(cancellationToken);
+            }
             if (transaction is not null) await transaction.CommitAsync(cancellationToken);
             await AuditAllocationAsync(
                 allocation, account, invoice, positionAfter,

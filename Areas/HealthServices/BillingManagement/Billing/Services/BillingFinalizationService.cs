@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
@@ -17,6 +17,7 @@ public sealed class BillingFinalizationService
     private readonly IBillingChargeSourceAdapter _chargeSourceAdapter;
     private readonly BillingArApHandoffService _arApHandoffService;
     private readonly BillingInvoiceClosureService _closureService;
+    private readonly BilConsumerHandoffService _consumerHandoffService;
     private readonly LoggerService _loggerService;
 
     public BillingFinalizationService(
@@ -24,12 +25,14 @@ public sealed class BillingFinalizationService
         IBillingChargeSourceAdapter chargeSourceAdapter,
         BillingArApHandoffService arApHandoffService,
         BillingInvoiceClosureService closureService,
+        BilConsumerHandoffService consumerHandoffService,
         LoggerService loggerService)
     {
         _dbContext = dbContext;
         _chargeSourceAdapter = chargeSourceAdapter;
         _arApHandoffService = arApHandoffService;
         _closureService = closureService;
+        _consumerHandoffService = consumerHandoffService;
         _loggerService = loggerService;
     }
 
@@ -160,6 +163,18 @@ public sealed class BillingFinalizationService
             }
             if (closureChange.Changed)
                 await _dbContext.SaveChangesAsync(cancellationToken);
+            if (closureChange.Changed && closureChange.StatusAfter == BillingInvoiceStatuses.Closed)
+            {
+                await _consumerHandoffService.PublishForClearanceChangeAsync(
+                    invoice.Id,
+                    PrescriptionClearanceReasonCodes.InvoiceSettled,
+                    actorUserId,
+                    now,
+                    record.CorrelationId,
+                    record.CausationId,
+                    cancellationToken);
+                await _dbContext.SaveChangesAsync(cancellationToken);
+            }
             if (transaction is not null) await transaction.CommitAsync(cancellationToken);
             await AuditFinalizationAsync(record, actorUserId, false);
             if (closureChange.Changed)
