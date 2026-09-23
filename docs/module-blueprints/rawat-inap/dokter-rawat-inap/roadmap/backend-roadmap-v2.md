@@ -38,15 +38,16 @@ approval_decision: RWI-DEC-150
 gate_closure_decision: RWI-DEC-151   # {GATE-YOGA} tertutup 2026-09-16
 upstream_input: "PRD-RWI-V2-001 v2.0 — docs/Modul-RS/Rawat-Inap/04-prd-to-mvp-final.md"
 input_revision_hash: sha256:2b3b2f29c9e547f448f186d7ac990e33dc3bdede8043a9b4bebfad6fbe0a679f
-contract_version: 0.6.0
+contract_version: 0.6.1
 decision_source: "00-interview-decisions.md revision 23; RWI-DEC terakhir 151"
 backend_source_sha: df3679c0d5b2f08106702153eb242d3a6cb2929b
 frontend_source_sha: 1ce219b40f8e411f3c4e66975626ab33ae81616a
-task_id_range: BE-RWI-088..BE-RWI-105
-task_id_next_free: BE-RWI-127
+task_id_range: BE-RWI-088..BE-RWI-105, BE-RWI-127
+task_id_next_free: BE-RWI-128
 completed_tasks: [BE-RWI-088, BE-RWI-089, BE-RWI-090, BE-RWI-091, BE-RWI-092, BE-RWI-093, BE-RWI-094, BE-RWI-095, BE-RWI-096, BE-RWI-097, BE-RWI-098, BE-RWI-099, BE-RWI-100, BE-RWI-101, BE-RWI-102, BE-RWI-103, BE-RWI-104, BE-RWI-105]
+partial_tasks: [BE-RWI-127]
 blocked_tasks: []
-last_updated: "2026-09-17 — BE-RWI-088 s.d. BE-RWI-105 SELESAI SELURUHNYA (18 task / 100% backend dokter-rawat-inap tuntas); BE-RWI-100 selesai; dotnet build mandiri oleh pemilik"
+last_updated: "2026-09-23 — BE-RWI-127 ditambahkan sebagai task perbaikan dari ISSUE-DOK-001; source selesai, verifikasi runtime NOT RUN karena bin dikunci proses backend yang berjalan; contract_version naik 0.6.0 → 0.6.1"
 waves: [DOK-V2-0, DOK-V2-1, DOK-V2-2, DOK-V2-3]
 migration_steps: [R1, R2, R3, R4, R5, R6, R7, R8, R9]
 owned_tables_note: "Sub-modul ini TIDAK memiliki satu tabel pun — RWI-DEC-081. Seluruh tabel milik ClinicalManagement, PharmacyManagement, LaboratoryManagement, RadiologyManagement"
@@ -221,6 +222,7 @@ Pemetaan gelombang PRD:
 | `BE-RWI-103` | Order sliding scale per pasien lahir dari versi yang sah | `FR-DOK-096`, `097`, `098`, `099`; `RWI-DEC-146` | `0.6.0` API + state | Tabel dari `BE-RWI-102` | Order hanya dari versi `Approved`; rentang **tersalin**; penyesuaian wajib beralasan dan membuat versi order baru | `BE-RWI-102` | AC-1 s.d. AC-6 | Validasi source/QBE; `dotnet build` **PASS** 17-09-2026 | Versi template baru tidak boleh mengubah order berjalan / Muhammad Hamzah | ✅ [Laporan](../task/report/backend/BE-RWI-103.md) |
 | `BE-RWI-104` | Pesanan Lab dan Radiologi membawa pemberi instruksi | `FR-DOK-106` | `0.6.0` integrasi | `LabOrder`, `RadOrder` | `R8` — empat kolom instruksi pada dua tabel milik modul lain | `BE-RWI-097` | AC-1 s.d. AC-4 | Validasi source/skema; build **PASS**; migration R8 diterapkan ke DB dev pribadi 17-09-2026; **regresi Lab/Rad NOT RUN** | ~~menunggu pemilik Lab/Rad~~ **disetujui 2026-09-16 `RWI-DEC-153`**; regresi Lab/Rad tetap wajib / Yoga Aji | ✅ [Laporan](../task/report/backend/BE-RWI-104.md) |
 | `BE-RWI-105` | Template resep benar-benar milik dokter yang membuatnya | `FR-DOK-088`, `089`, `090`, `091` | `0.6.0` permission + validation | `PrescriptionTemplateService` | `R9` — pemilik dari **akun login**; hanya template milik sendiri; template kosong ditolak; butir bentrok ditandai | `BE-RWI-099` | AC-1 s.d. AC-6 | Validasi source/QBE; `dotnet build` **PASS** 17-09-2026; **regresi poliklinik NOT RUN** | **Mengubah perilaku poliklinik** — pemberitahuan pemilik `rawat-jalan` wajib / pemilik `rawat-jalan` | ✅ [Laporan](../task/report/backend/BE-RWI-105.md) |
+| `BE-RWI-127` | Resep tersimpan utuh beserta obatnya, dan penyimpanan tidak lagi gagal karena format angka regional | `ISSUE-DOK-001` `ISS-01`, `ISS-03`, `ISS-04`, `ISS-06`; `BE-RWI-050`; `RWI-DEC-046` | `0.6.1` — `CreatePrescriptionRequest` bertambah `Items` dan `Compounds`, disetujui pemilik 23-09-2026 | `PrescriptionWorkspaceService` — jalur penyimpanan isi resep yang sudah ada | Culture invariant global; isi resep sekali transaksi bersama kepalanya; `201` seragam untuk tiga endpoint create | — | AC-1 s.d. AC-7 | `dotnet build` **PASS** 23-09-2026 (dijalankan pemilik); **verifikasi runtime NOT RUN** | Penguncian culture berlaku seluruh aplikasi; penilaian source menunjukkan aman / Muhammad Hamzah | 🟡 [Laporan](../task/report/backend/BE-RWI-127.md) |
 
 ---
 
@@ -851,6 +853,48 @@ dengan hasilnya ditempel apa adanya.
 
 **Definition of Done.** Laporan tracked merujuk `RWI-DEC-152`; regresi poliklinik hijau; roadmap dan
 traceability diperbarui.
+
+---
+
+### `BE-RWI-127` — Perbaikan temuan pengujian: culture invariant, isi resep, dan status code create
+
+| Field | Isi |
+| --- | --- |
+| **Status** | 🟡 **Sebagian 23 September 2026** — [laporan](../task/report/backend/BE-RWI-127.md); source seluruh lingkup selesai; **`dotnet build` PASS 23 September 2026** (`Build succeeded in 3,5s`, dijalankan pemilik sesudah proses backend dihentikan); **verifikasi runtime ketiga endpoint NOT RUN**; merujuk `ISSUE-DOK-001` |
+| **Gelombang** | Di luar gelombang — task perbaikan pasca-pengujian |
+| **Migration** | `NOT APPLICABLE` — tidak ada perubahan schema maupun entity |
+
+**Bisnis prosesnya.** Pengujian 22 September 2026 menemukan fitur resep dokter rawat inap tidak
+dapat dipakai. Penyimpanan obat selalu gagal dengan galat server karena batas nilai pecahan dibaca
+memakai bahasa Indonesia, tempat titik berarti pemisah ribuan. Lalu obat yang sudah dipilih dokter
+dibuang diam-diam karena formulir penerima di backend tidak mengenalnya, sehingga dokter melihat
+pesan "berhasil" untuk resep yang isinya kosong. Task ini menutup keduanya, dan sekaligus
+menyeragamkan jawaban operasi pembuatan data.
+
+**Acceptance criteria.**
+
+1. `POST /prescription-items` dan `PATCH /prescription-workspaces/{id}/autosave` membalas 2xx pada mesin ber-locale `id-ID`, tidak lagi `500` — `ISS-01`.
+2. Tidak tersisa `FormatException` dari `RangeAttribute.SetupConversion` pada log — `ISS-01`.
+3. Dampak penguncian culture terhadap keluaran berformat diperiksa dan aman — `ISS-01`.
+4. Resep yang dibuat beserta dua obat menghasilkan `TotalItemCount = 2` — `ISS-03`.
+5. Kegagalan penyimpanan isi resep memunculkan galat, bukan notifikasi sukses; kepala dan isi berada pada satu transaksi — `ISS-03`.
+6. Nama properti kontrak `PrescriptionOrderType` dipertahankan sebagai kontrak sah — `ISS-04`.
+7. `POST` pada `prescriptions`, `rad-orders`, dan `patient-assessments` menjawab `201 Created` — `ISS-06`.
+
+**Bukti verifikasi.** Kompilasi; penilaian cakupan atribut berisiko; penilaian risiko culture;
+penilaian konsumen atas perpindahan status code; verifikasi runtime ketiga endpoint.
+
+**Yang belum terpenuhi.** Kriteria 1, 2, 4, dan 7 belum terbukti pada tingkat runtime. Seluruhnya
+bertumpu pada satu sebab yang sama: backend lama masih berjalan dan mengunci `bin`, sehingga biner
+hasil perbaikan belum dapat dijalankan. Tidak satu pun dinyatakan lulus tanpa bukti.
+
+**Risiko dan kewajiban koordinasi.** Penguncian culture berlaku seluruh aplikasi, bukan hanya modul
+resep. Penilaian source menunjukkan tidak ada yang bergantung pada format `id-ID` bawaan, tetapi
+pemantauan pertama sesudah rilis tetap dianjurkan. Perubahan kontrak `0.6.0` → `0.6.1` disetujui
+pemilik pada 23 September 2026.
+
+**Definition of Done.** Laporan tracked ada; roadmap dan traceability diperbarui; verifikasi runtime
+dijalankan pemilik lalu status dinaikkan ke ✅.
 
 ---
 

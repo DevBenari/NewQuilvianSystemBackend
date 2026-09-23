@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -85,6 +86,15 @@ Log.Logger = new LoggerConfiguration()
 
 try
 {
+    // ISSUE-DOK-001 ISS-01. Culture aplikasi dikunci ke invariant sebelum apa pun dibangun.
+    // RangeAttribute(Type, string, string) mem-parsing batasnya memakai CurrentCulture, sehingga
+    // pada server ber-locale id-ID batas pecahan seperti "0.0001" melempar FormatException saat
+    // validasi model - sebelum controller action sempat jalan, dan untuk request apa pun yang
+    // menyentuh DTO tersebut. Mengunci di sini menutup seluruh titik sekaligus dan mencegah
+    // atribut baru mengulang cacat yang sama.
+    CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
+    CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
+
     var builder = WebApplication.CreateBuilder(args);
 
     var backendVersionManifest = BackendVersionManifest.Load(builder.Environment.ContentRootPath);

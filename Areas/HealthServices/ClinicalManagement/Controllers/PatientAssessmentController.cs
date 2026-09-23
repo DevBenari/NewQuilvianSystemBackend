@@ -603,7 +603,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         }
 
         [HttpPost]
-        [ProducesResponseType(typeof(ApiResponse<PatientAssessmentCreateResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<PatientAssessmentCreateResponse>), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
         [AccessAction("Create", "Create Patient Assessment", Description = "Membuat assessment pasien", AccessType = AccessTypes.Create, SortOrder = 2)]
@@ -926,7 +926,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 response
             );
 
-            return Ok(ApiResponse<PatientAssessmentCreateResponse>.Ok(
+            // ISSUE-DOK-001 ISS-06. Operasi create menjawab 201 seperti keluarga endpoint create
+            // lain pada repository ini - physician-visits, lab-orders, dan patient-procedures.
+            return StatusCode(StatusCodes.Status201Created, ApiResponse<PatientAssessmentCreateResponse>.Ok(
                 response,
                 "Assessment pasien berhasil dibuat."
             ));

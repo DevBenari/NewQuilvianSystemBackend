@@ -49,6 +49,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
         private readonly PrescriptionWorkflowService _prescriptionWorkflowService;
         private readonly ClinicalMilestoneFactProducer _clinicalMilestoneFactProducer;
         private readonly InpatientPrescriptionService _inpatientPrescriptionService;
+        private readonly PrescriptionWorkspaceService _prescriptionWorkspaceService;
         private readonly LoggerService _loggerService;
 
         public PrescriptionController(
@@ -59,6 +60,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
             PrescriptionWorkflowService prescriptionWorkflowService,
             ClinicalMilestoneFactProducer clinicalMilestoneFactProducer,
             InpatientPrescriptionService inpatientPrescriptionService,
+            PrescriptionWorkspaceService prescriptionWorkspaceService,
             LoggerService loggerService)
         {
             _dbContext = dbContext;
@@ -68,6 +70,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
             _prescriptionWorkflowService = prescriptionWorkflowService;
             _clinicalMilestoneFactProducer = clinicalMilestoneFactProducer;
             _inpatientPrescriptionService = inpatientPrescriptionService;
+            _prescriptionWorkspaceService = prescriptionWorkspaceService;
             _loggerService = loggerService;
         }
 
@@ -268,6 +271,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
         }
 
         [HttpPost]
+        [ProducesResponseType(typeof(ApiResponse<PrescriptionCreateResponse>), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ApiResponse<PrescriptionCreateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction("Create", "Create Prescription", Description = "Membuat header resep", AccessType = AccessTypes.Create, SortOrder = 2)]
@@ -363,6 +367,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
             _dbContext.Set<PhmPrescription>().Add(entity);
             await _dbContext.SaveChangesAsync(cancellationToken);
 
+            // ISSUE-DOK-001 ISS-03. Obat dan racikan yang ikut dikirim disimpan pada transaksi yang
+            // sama dengan headernya. Sebelumnya keduanya diabaikan model binder tanpa satu pun
+            // galat, sehingga dokter menerima notifikasi "berhasil" untuk resep yang isinya kosong -
+            // kegagalan yang senyap dan berbahaya secara klinis. Ketika keduanya kosong, resep
+            // tetap sah terbit sebagai header saja dan isinya disusun bertahap lewat workspace.
+            if (request.Items.Count > 0 || request.Compounds.Count > 0)
+            {
+                await _prescriptionWorkspaceService.ApplyDraftContentAsync(
+                    entity,
+                    request.Items,
+                    request.Compounds,
+                    actorUserId,
+                    now,
+                    cancellationToken);
+            }
+
             var summary = await _prescriptionSummaryService.RebuildConsultationSummaryAsync(
                 entity.ConsultationId,
                 actorUserId,
@@ -373,7 +393,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
             var response = ToCreateResponse(entity, summary);
 
             await _loggerService.InfoAsync(LogCategory, "Prescription.CreatePrescription", "Membuat header resep dokter.", response);
-            return Ok(ApiResponse<PrescriptionCreateResponse>.Ok(response, "Header resep berhasil dibuat."));
+
+            // ISSUE-DOK-001 ISS-06. Operasi create menjawab 201 seperti keluarga endpoint create
+            // lain pada repository ini - physician-visits, lab-orders, dan patient-procedures.
+            return StatusCode(StatusCodes.Status201Created, ApiResponse<PrescriptionCreateResponse>.Ok(
+                response,
+                "Header resep berhasil dibuat."));
         }
 
         /// <summary>

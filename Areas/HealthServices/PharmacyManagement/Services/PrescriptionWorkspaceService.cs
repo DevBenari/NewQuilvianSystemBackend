@@ -72,6 +72,76 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
             var now = DateTime.UtcNow;
             await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
 
+            var hasil = await ApplyWorkspaceChangesAsync(
+                prescription,
+                request,
+                actorUserId,
+                now,
+                cancellationToken);
+
+            await transaction.CommitAsync(cancellationToken);
+
+            return hasil;
+        }
+
+        /// <summary>
+        /// Menyimpan isi resep pada transaksi yang <b>sudah berjalan</b> milik pemanggil -
+        /// <c>ISSUE-DOK-001</c> <c>ISS-03</c>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Dipakai saat resep baru lahir bersama obatnya lewat <c>POST /prescriptions</c>. Pembuatan
+        /// header sudah berjalan di dalam transaksinya sendiri, sehingga jalur ini sengaja tidak
+        /// membuka transaksi baru: membukanya akan bentrok dengan transaksi yang sedang aktif.
+        /// </para>
+        /// <para>
+        /// Pemeriksaan kelayakan sunting dan pemeriksaan konkurensi tidak diulang di sini karena
+        /// resepnya baru saja dibuat pada transaksi yang sama - belum ada sesi lain yang mungkin
+        /// menyentuhnya. Keduanya tetap berlaku pada jalur autosave.
+        /// </para>
+        /// </remarks>
+        public Task<AutosavePrescriptionWorkspaceResponse> ApplyDraftContentAsync(
+            PhmPrescription prescription,
+            IReadOnlyCollection<AutosavePrescriptionItemRequest> items,
+            IReadOnlyCollection<AutosavePrescriptionCompoundRequest> compounds,
+            Guid actorUserId,
+            DateTime now,
+            CancellationToken cancellationToken = default)
+        {
+            var request = new AutosavePrescriptionWorkspaceRequest
+            {
+                PrescriptionDateTime = prescription.PrescriptionDateTime,
+                ClinicalNote = prescription.ClinicalNote,
+                DoctorInstruction = prescription.DoctorInstruction,
+                Items = items.ToList(),
+                Compounds = compounds.ToList()
+            };
+
+            return ApplyWorkspaceChangesAsync(
+                prescription,
+                request,
+                actorUserId,
+                now,
+                cancellationToken);
+        }
+
+        /// <summary>
+        /// Badan penyimpanan isi resep tanpa mengelola transaksi - <c>ISSUE-DOK-001</c> <c>ISS-03</c>.
+        /// </summary>
+        /// <remarks>
+        /// Pemanggilnya yang memegang transaksi. Jalur autosave dan jalur pembuatan resep memakai
+        /// method yang sama persis supaya hanya ada satu tempat yang tahu cara menuliskan obat,
+        /// racikan, dan agregatnya.
+        /// </remarks>
+        private async Task<AutosavePrescriptionWorkspaceResponse> ApplyWorkspaceChangesAsync(
+            PhmPrescription prescription,
+            AutosavePrescriptionWorkspaceRequest request,
+            Guid actorUserId,
+            DateTime now,
+            CancellationToken cancellationToken)
+        {
+            var prescriptionId = prescription.Id;
+
             prescription.PrescriptionDateTime = request.PrescriptionDateTime ?? prescription.PrescriptionDateTime;
             prescription.ClinicalNote = NormalizeText(request.ClinicalNote);
             prescription.DoctorInstruction = NormalizeText(request.DoctorInstruction);
@@ -140,8 +210,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
                 actorUserId,
                 now,
                 cancellationToken);
-
-            await transaction.CommitAsync(cancellationToken);
 
             return new AutosavePrescriptionWorkspaceResponse
             {

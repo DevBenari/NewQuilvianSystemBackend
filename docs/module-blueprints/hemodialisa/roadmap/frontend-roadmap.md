@@ -64,7 +64,7 @@
 | `MVP-1` | `FE-HMD-05` | `FE-HMD-11` | Pengaturan kebijakan unit hemodialisa | `COMPLETED` ([Laporan](../task/report/frontend/FE-HMD-05.md)) |
 | `MVP-1` | `FE-HMD-06` | `FE-HMD-05` | Lembar kerja kesiapan unit shift dan pengolahan air | `COMPLETED` ([Laporan](../task/report/frontend/FE-HMD-06.md)) |
 
-| `MVP-2` | `FE-HMD-07` s/d `FE-HMD-11` | `FE-HMD-12`, `02`, `03`, `06` | Permintaan HD dari rawat inap, penerimaan order, daftar pasien, dan ruang kerja episode klinis | `IN_PROGRESS` (`FE-HMD-07` Selesai) |
+| `MVP-2` | `FE-HMD-07` s/d `FE-HMD-11` | `FE-HMD-12`, `02`, `03`, `06` | Permintaan HD dari rawat inap, penerimaan order, daftar pasien, dan ruang kerja episode klinis | `IN_PROGRESS` (`FE-HMD-07` s/d `FE-HMD-10` Selesai) |
 | `MVP-3` | `FE-HMD-12` s/d `FE-HMD-13` | `FE-HMD-04` | Tampilan jadwal kerja harian, alokasi mesin/station, dan penugasan perawat | `BLOCKED` (`MVP-2`, `BE-HMD-10..11`) |
 | `MVP-4` | `FE-HMD-14` s/d `FE-HMD-15` | `FE-HMD-07` (Pra & Intra) | Checklist Pra-HD, mulai sesi idempoten, garis waktu observasi, obat Farmasi, dan komplikasi | `BLOCKED` (`MVP-3`, `BE-HMD-12..15`) |
 | `MVP-5` | `FE-HMD-16` s/d `FE-HMD-18` | `FE-HMD-07` (Pasca & Final), `FE-HMD-01` | Penilaian pasca-HD, submit perawat, pengesahan DPJP, addendum koreksi, dan dashboard unit | `BLOCKED` (`MVP-4`, `BE-HMD-16..18`) |
@@ -242,10 +242,11 @@
 
 #### `FE-HMD-08` — Layar Daftar Kerja Permintaan HD Masuk (`FE-HMD-02`)
 
+* **Status**: `COMPLETED` ✅ — [Laporan Perubahan](../task/report/frontend/FE-HMD-08.md) (23 September 2026)
 * **Outcome**: Koordinator unit HD memiliki antrean khusus untuk memilah permintaan cuci darah yang masuk dari seluruh rumah sakit, menerima, menahan, atau meneruskannya ke dokter dialisis untuk penolakan.
 * **Requirement / Decision**: `FR-HMD-001`, `FR-HMD-002`, `FR-HMD-003`, `FR-HMD-004`, `FE-HMD-02`, `EPIC HMD-01`.
 * **Kontrak**: `contracts/api-contract.md` Grup Hemodialysis Order; `contracts/state-transition-matrix.md` Bagian 1.
-* **Reuse Kemampuan**: `ClinicalStateBoundary`, badge cito merah berkedip/kontras, dialog konfirmasi alasan hold/reject.
+* **Reuse Kemampuan**: `ClinicalStateBoundary`, `SummaryGrid`, `DataFilter`, `DataTable`, `Pagination`, `ConfirmModal`, `ClinicalSafetyAlert`, `InformationAlert`, badge cito merah mencolok, dialog konfirmasi alasan hold/reject.
 * **Cakupan yang Diharapkan**:
   - Halaman `src/app/health-services/hemodialysis-management/orders/page.jsx`.
   - Tabel antrean order: Waktu Permintaan, Asal Unit (Bangsal/IGD/Poli), Nama Pasien, Nomor RM, Indikasi Klinis, Penanda Cito, Status Order (`Requested`, `Accepted`, `OnHold`, `Rejected`), dan Tombol Aksi.
@@ -257,18 +258,19 @@
   1. *Contoh Hak Akses Tombol Tolak*: Koordinator (non-dokter) melihat permintaan masuk; tombol yang muncul adalah "Terima" dan "Tahan", tombol "Tolak" **disembunyikan**. Dokter yang login di unit melihat ketiga tombol.
   2. Permintaan cito tampil di urutan teratas daftar dengan badge merah mencolok.
   3. Setelah tombol "Terima" ditekan, baris order diperbarui tanpa reload halaman dan muncul opsi cepat "Buka Penjadwalan".
-* **Bukti Verifikasi / Test**: Component test `OrderWorklistViewTests` menguji filtering cito, visibilitas tombol berdasarkan role, dan eksekusi aksi terima/tahan/tolak.
+* **Bukti Verifikasi / Test**: Component test `hemodialysis-order-worklist.test.mjs` (7 PASS) memverifikasi integritas berkas, 8 kolom tabel, AC-1 batasan tombol tolak dokter, AC-2 Cito sorting ke baris teratas, AC-3 in-place update & prompt jadwal, validasi form hold/reject, dan 4-state boundary. Pengujian regresi lintas modul `hemodialysis-*.test.mjs` (52 PASS). ESLint 0 error 0 warning, `next build` kompilasi 100% sukses. [Laporan](../task/report/frontend/FE-HMD-08.md).
 * **Risiko & Pemilik**: Risiko: Koordinator mengira menerima order otomatis menjadwalkan pasien. Mitigasi: Tampilkan dialog konfirmasi edukatif "Order diterima ke antrean. Silakan jadwalkan sesi pada menu Jadwal & Daftar Kerja." Pemilik: Frontend Engineer.
-* **Definition of Done**: Halaman daftar order masuk selesai, penegakan visibilitas tombol berbasis wewenang terbukti, integrasi aksi API lancar.
+* **Definition of Done**: Halaman daftar order masuk selesai, penegakan visibilitas tombol berbasis wewenang terbukti, integrasi aksi API lancar. Status: ✅ Selesai (23 September 2026).
 
 ---
 
 #### `FE-HMD-09` — Layar Daftar Pasien Hemodialisa Aktif (`FE-HMD-03`)
 
+* **Status**: `COMPLETED` ✅ — [Laporan Perubahan](../task/report/frontend/FE-HMD-09.md) (23 September 2026)
 * **Outcome**: Pengguna dapat melihat daftar seluruh pasien yang memiliki program HD aktif di rumah sakit, menyaring berdasarkan dokter penanggung jawab, status jadwal, dan membuka berkas rekam medis episode pasien.
 * **Requirement / Decision**: `FR-HMD-010`, `FE-HMD-03`, `EPIC HMD-02`.
 * **Kontrak**: `contracts/api-contract.md` Grup Hemodialysis Episode (`GET /`).
-* **Reuse Kemampuan**: `ClinicalStateBoundary`, input pencarian pasien standar Quilvian, pagination component.
+* **Reuse Kemampuan**: `ClinicalStateBoundary`, `SummaryGrid`, `DataFilter`, `DataTable`, `Pagination`, `BaseModal`, `InformationAlert`, `Button`.
 * **Cakupan yang Diharapkan**:
   - Halaman `src/app/health-services/hemodialysis-management/patients/page.jsx`.
   - Bilah pencarian cepat: Nama pasien, No RM, NIK.
@@ -276,11 +278,11 @@
   - Tombol "Buka Program HD Baru": Membuka modal pendaftaran episode untuk pasien yang belum memiliki program aktif.
 * **Dependency & Blocker**: `FE-HMD-02`, `BE-HMD-08`.
 * **Acceptance Criteria**:
-  1. *Contoh Navigasi ke Berkas Episode*: Pengguna mengklik tombol "Buka Berkas Pasien" pada baris Ibu Sinta; browser berpindah ke rute `.../patients/{patientId}/episodes/{episodeId}` (`FE-HMD-06`).
+  1. *Contoh Navigasi ke Berkas Episode*: Pengguna mengklik tombol "Buka Berkas Pasien" pada baris Ibu Sinta; browser berpindah ke rute `.../patients/{patientId}/episodes/{episodeId}` (`FE-HMD-06` / `FE-HMD-10`).
   2. Kolom isolasi hanya menampilkan badge netral tanpa detail serologi sensitif.
-* **Bukti Verifikasi / Test**: Component test `PatientListViewTests` memverifikasi pencarian, navigasi, dan pagination.
+* **Bukti Verifikasi / Test**: Component test `hemodialysis-patient-list.test.mjs` (6 PASS) memverifikasi integritas 9 berkas, 9 kolom tabel, AC-1 router push link ke ruang kerja episode, AC-2 penanda isolasi netral tanpa bocor serologi, validasi form HMD-VAL-010, dan transisi Redux slice. Pengujian anti-regresi `hemodialysis-*.test.mjs` (58 PASS). ESLint 0 error 0 warning, `next build` lolos kompilasi 100%. [Laporan](../task/report/frontend/FE-HMD-09.md).
 * **Risiko & Pemilik**: Risiko: Daftar memuat terlalu lambat. Mitigasi: Server-side pagination dan debounce pada input pencarian. Pemilik: Frontend Engineer.
-* **Definition of Done**: Halaman daftar pasien terhubung ke API backend, pagination dan pencarian berfungsi responsif.
+* **Definition of Done**: Halaman daftar pasien terhubung ke API backend, pagination dan pencarian berfungsi responsif. Status: ✅ Selesai (23 September 2026).
 
 ---
 
@@ -303,7 +305,7 @@
   2. *Contoh Pencegahan Data Basi*: Pengguna berpindah cepat dari berkas Pasien A ke Pasien B; layar menampilkan skeleton bersih, data Pasien A tidak pernah terlihat sekejap pun pada layar Pasien B.
 * **Bukti Verifikasi / Test**: Component integration test `EpisodeWorkspaceClinicalTests` memverifikasi siklus pembersihan state saat ganti ID dan proteksi otorisasi tab serologi.
 * **Risiko & Pemilik**: **Risiko Privasi & Integritas Medis**: Data pasien sebelumnya tertimpa atau data serologi bocor. Pemilik: Frontend Engineer.
-* **Definition of Done**: Ruang kerja episode klinis berfungsi dengan kerangka baku, aturan anti-data basi terbukti aktif.
+* **Definition of Done**: Ruang kerja episode klinis berfungsi dengan kerangka baku, aturan anti-data basi terbukti aktif. Status: `COMPLETED` ✅ — [Laporan Perubahan](../task/report/frontend/FE-HMD-10.md) (23 September 2026).
 
 ---
 

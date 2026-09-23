@@ -115,8 +115,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Control
                 "Pesanan radiologi perawatan rawat inap berhasil diambil."));
         }
 
+        // ISSUE-DOK-001 ISS-06. Operasi create menjawab 201 seperti keluarga endpoint create lain
+        // pada repository ini - physician-visits, lab-orders, dan patient-procedures.
         [HttpPost]
-        [ProducesResponseType(typeof(ApiResponse<RadOrderDetailResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<RadOrderDetailResponse>), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [AccessAction("Create", "Create Rad Order", Description = "Membuat order radiologi", AccessType = AccessTypes.Create, SortOrder = 2)]
@@ -125,7 +127,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Control
             [FromBody] CreateRadOrderRequest request,
             CancellationToken cancellationToken = default) =>
             Execute(() => _radOrderService.CreateAsync(request, cancellationToken),
-                "Order radiologi berhasil dibuat.");
+                "Order radiologi berhasil dibuat.",
+                StatusCodes.Status201Created);
 
         /// <summary>
         /// Dokter pemberi instruksi memverifikasi pesanan radiologi rawat inap yang dibuat perawat —
@@ -287,7 +290,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Control
         /// </summary>
         private async Task<IActionResult> Execute<T>(
             Func<Task<RadOperationResult<T>>> action,
-            string successMessage)
+            string successMessage,
+            int successStatusCode = StatusCodes.Status200OK)
         {
             try
             {
@@ -296,7 +300,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Control
                 return result.Kind switch
                 {
                     RadOperationResultKind.Success =>
-                        Ok(ApiResponse<T>.Ok(result.Value, successMessage)),
+                        StatusCode(successStatusCode, ApiResponse<T>.Ok(result.Value, successMessage)),
 
                     RadOperationResultKind.NotFound =>
                         NotFound(ApiResponse<object>.Fail(
