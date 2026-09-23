@@ -13,14 +13,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Ser
 
 /// <summary>
 /// Satu-satunya penulis FinReceivable.OutstandingAmount (FIN-DES-011, konsekuensi kolom di
-/// erd/data-dictionary.md §2.1). Mengurus tiga hal sesuai roadmap BE-FIN-008: umur piutang
-/// (aging, FR-FIN-022), pengajuan/keputusan koreksi (FinReceivableAdjustment), dan
-/// pengajuan/keputusan penghapusan buku (FinReceivableWriteOff).
+/// erd/data-dictionary.md §2.1) — TERMASUK saat dipanggil dari service lain. Mengurus empat hal:
+/// umur piutang (aging, FR-FIN-022), pengajuan/keputusan koreksi (FinReceivableAdjustment),
+/// pengajuan/keputusan penghapusan buku (FinReceivableWriteOff), dan sejak BE-FIN-018 —
+/// ApplyAllocationAsync/ReverseAllocationAsync yang dipanggil FinanceReceiptService.AllocateAsync/
+/// ReverseAllocationAsync (Collection/Services). Orkestrasi alokasi (validasi FR-FIN-041,
+/// pembuatan baris FinReceiptAllocation, mutasi FinReceipt) tetap milik FinanceReceiptService —
+/// tetapi mutasi FinReceivable itu sendiri MUST selalu lewat dua method di bagian bawah kelas
+/// ini, tidak pernah ditulis langsung oleh service lain.
 ///
 /// MUST NOT dipakai untuk membuat FinReceivable baru dari fakta Billing — itu tanggung jawab
 /// FinanceBillingIntakeService (02-backend-architecture.md, belum ada task pemilik eksplisit,
-/// lihat laporan BE-FIN-005 bagian 1). MUST NOT dipakai untuk alokasi penerimaan — itu
-/// FinanceReceiptService (BE-FIN-017/018, BLOCKED menunggu owner Billing).
+/// lihat laporan BE-FIN-005 bagian 1).
 ///
 /// BE-FIN-011: koreksi/penghapusan yang DISETUJUI menulis kejadian ke FinAccountingEventOutbox
 /// lewat FinanceAccountingOutboxService, di dalam transaksi Decide*Async yang sama (FIN-DES-017).
@@ -490,6 +494,67 @@ public sealed class FinanceReceivableService
         {
             if (transaction is not null) await transaction.DisposeAsync();
         }
+    }
+
+    // ------------------------------------------------------------------------------------
+    // Alokasi penerimaan (BE-FIN-018, FR-FIN-040..042/045, state-transition-matrix.md §2) —
+    // dipanggil OLEH FinanceReceiptService.AllocateAsync/ReverseAllocationAsync, BUKAN lewat
+    // controller sendiri. Kedua method ini MUST NOT membuka/commit/rollback transaksi sendiri —
+    // pemanggil sudah berada di dalam transaksi Serializable miliknya sendiri (pola yang sama
+    // dengan FinanceAccountingOutboxService.StageEventAsync). Ini SATU-SATUNYA titik selain
+    // Decide*Async di atas yang menulis FinReceivable.OutstandingAmount — menjaga invariant
+    // "satu-satunya penulis" tetap benar meski dipanggil dari service lain (Collection), karena
+    // pemanggil TIDAK PERNAH menulis kolom FinReceivable secara langsung, hanya lewat sini.
+    // ------------------------------------------------------------------------------------
+
+    /// <summary>FR-FIN-042: alokasi tidak boleh melebihi sisa piutang.</summary>
+    public async Task<FinReceivable> ApplyAllocationAsync(Guid receivableId, decimal amount, Guid actorUserId, CancellationToken cancellationToken)
+    {
+        var receivable = await _dbContext.FinReceivables
+            .SingleOrDefaultAsync(x => x.Id == receivableId && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Piutang tidak ditemukan.");
+
+        // state-transition-matrix.md §2: WRITTEN_OFF/CANCELLED adalah status akhir bagi alokasi.
+        if (receivable.Status is FinReceivableStatuses.WrittenOff or FinReceivableStatuses.Cancelled)
+            throw new ReceivableValidationException(
+                $"Piutang berstatus {receivable.Status} tidak dapat menerima alokasi penerimaan.");
+        if (amount > receivable.OutstandingAmount)
+            throw new ReceivableValidationException(
+                $"Alokasi melebihi sisa piutang. Sisa saat ini Rp {receivable.OutstandingAmount:N0}.");
+
+        receivable.OutstandingAmount -= amount;
+        receivable.AllocatedAmount += amount;
+        receivable.Status = receivable.OutstandingAmount == 0m ? FinReceivableStatuses.Settled : FinReceivableStatuses.Partial;
+        receivable.UpdateDateTime = DateTime.UtcNow;
+        receivable.UpdateBy = actorUserId;
+        receivable.RowVersion = Guid.NewGuid();
+
+        return receivable;
+    }
+
+    /// <summary>
+    /// FR-FIN-045: pembalikan tidak menghapus riwayat — dipanggil setelah pemanggil membuat baris
+    /// FinReceiptAllocation pembalik sendiri (Collection tidak dikenal di sini). Method ini murni
+    /// mengembalikan nilai piutang, persis kebalikan ApplyAllocationAsync.
+    /// </summary>
+    public async Task<FinReceivable> ReverseAllocationAsync(Guid receivableId, decimal amount, Guid actorUserId, CancellationToken cancellationToken)
+    {
+        var receivable = await _dbContext.FinReceivables
+            .SingleOrDefaultAsync(x => x.Id == receivableId && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Piutang tidak ditemukan.");
+
+        receivable.OutstandingAmount += amount;
+        receivable.AllocatedAmount -= amount;
+        // state-transition-matrix.md §2 baris 39/40: PARTIAL/SETTLED -> OUTSTANDING bila seluruh
+        // alokasi sudah dibalik (AllocatedAmount kembali nol); selain itu tetap PARTIAL.
+        receivable.Status = receivable.AllocatedAmount <= 0m
+            ? FinReceivableStatuses.Outstanding
+            : (receivable.OutstandingAmount <= 0m ? FinReceivableStatuses.Settled : FinReceivableStatuses.Partial);
+        receivable.UpdateDateTime = DateTime.UtcNow;
+        receivable.UpdateBy = actorUserId;
+        receivable.RowVersion = Guid.NewGuid();
+
+        return receivable;
     }
 
     // ------------------------------------------------------------------------------------

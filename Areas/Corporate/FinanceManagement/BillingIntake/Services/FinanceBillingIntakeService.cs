@@ -4,6 +4,7 @@ using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegrat
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.BillingIntake.Dtos;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.BillingIntake.Models;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
 using QuilvianSystemBackend.Repositories;
@@ -14,18 +15,23 @@ using System.Data;
 namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.BillingIntake.Services;
 
 /// <summary>
-/// Membaca handoff Billing, membuat piutang yang sesuai, lalu menandai ACK (FIN-DES-008,
-/// 02-backend-architecture.md). Dibangun pada BE-FIN-009 karena tidak ada task roadmap
-/// eksplisit yang memilikinya — gap ini dilaporkan pertama kali di BE-FIN-005, ditutup di sini
-/// atas keputusan eksplisit pemilik repository (21 September 2026), bukan diselipkan sepihak.
+/// Membaca handoff Billing, membuat piutang/penerimaan yang sesuai, lalu menandai ACK
+/// (FIN-DES-008, 02-backend-architecture.md). Dibangun pada BE-FIN-009 karena tidak ada task
+/// roadmap eksplisit yang memilikinya — gap ini dilaporkan pertama kali di BE-FIN-005, ditutup
+/// di sini atas keputusan eksplisit pemilik repository (21 September 2026), bukan diselipkan
+/// sepihak.
 ///
-/// Cakupan HANYA HandoffType AR (BilArHandoff → FinReceivable). AP/COLLECTION/ADJUSTMENT
-/// TIDAK diproses — FinPayable dan FinReceipt/FinReceiptAllocation belum ada task pemilik
-/// (BE-FIN-007 bagian 1). Baris intake dengan tipe itu akan tetap NEW tanpa penangan.
+/// Cakupan: HandoffType AR (BilArHandoff → FinReceivable, dibuat langsung di sini) dan COLLECTION
+/// (BilCollectionHandoff → FinReceipt, BE-FIN-016, otorisasi eksplisit 22 September 2026 —
+/// pembuatannya didelegasikan ke FinanceReceiptService sejak BE-FIN-017, 02-backend-architecture.md
+/// §4.22, bukan ditulis inline di sini). AP/ADJUSTMENT TIDAK diproses — FinPayable belum ada task
+/// pemilik. Baris intake dengan tipe itu akan tetap NEW tanpa penangan.
 ///
 /// BE-FIN-011: setiap piutang yang berhasil diakui menulis kejadian PENGAKUAN-PIUTANG ke
 /// FinAccountingEventOutbox lewat FinanceAccountingOutboxService, di dalam transaksi
-/// ProcessArIntakeAsync yang sama (FIN-DES-017, FR-FIN-070).
+/// ProcessArIntakeAsync yang sama (FIN-DES-017, FR-FIN-070). Kejadian penerimaan
+/// (PENERIMAAN-KASIR/PEMBALIKAN-PENERIMAAN-KASIR) ditulis dengan cara yang sama oleh
+/// FinanceReceiptService, tetap di dalam transaksi ProcessCollectionIntakeAsync yang sama.
 /// </summary>
 public sealed class FinanceBillingIntakeService
 {
@@ -33,12 +39,18 @@ public sealed class FinanceBillingIntakeService
     private readonly ApplicationDbContext _dbContext;
     private readonly LoggerService _loggerService;
     private readonly FinanceAccountingOutboxService _accountingOutboxService;
+    private readonly FinanceReceiptService _receiptService;
 
-    public FinanceBillingIntakeService(ApplicationDbContext dbContext, LoggerService loggerService, FinanceAccountingOutboxService accountingOutboxService)
+    public FinanceBillingIntakeService(
+        ApplicationDbContext dbContext,
+        LoggerService loggerService,
+        FinanceAccountingOutboxService accountingOutboxService,
+        FinanceReceiptService receiptService)
     {
         _dbContext = dbContext;
         _loggerService = loggerService;
         _accountingOutboxService = accountingOutboxService;
+        _receiptService = receiptService;
     }
 
     // ------------------------------------------------------------------------------------
@@ -112,19 +124,28 @@ public sealed class FinanceBillingIntakeService
 
     public async Task<int> SyncNewFactsAsync(Guid actorUserId, CancellationToken cancellationToken)
     {
-        var existingKeys = (await _dbContext.FinBillingHandoffIntakes.AsNoTracking()
-            .Where(x => !x.IsDelete && x.HandoffType == FinBillingHandoffTypes.Ar)
-            .Select(x => x.SourceHandoffKey)
-            .ToListAsync(cancellationToken)).ToHashSet();
+        var existingKeysByType = (await _dbContext.FinBillingHandoffIntakes.AsNoTracking()
+            .Where(x => !x.IsDelete && (x.HandoffType == FinBillingHandoffTypes.Ar || x.HandoffType == FinBillingHandoffTypes.Collection))
+            .Select(x => new { x.HandoffType, x.SourceHandoffKey })
+            .ToListAsync(cancellationToken))
+            .ToLookup(x => x.HandoffType, x => x.SourceHandoffKey);
 
-        var candidates = await _dbContext.BilArHandoffs.AsNoTracking()
+        var arCandidates = await _dbContext.BilArHandoffs.AsNoTracking()
             .Where(x => !x.IsDelete && x.Status == BillingHandoffStatuses.Created)
             .ToListAsync(cancellationToken);
-        var toCreate = candidates.Where(x => !existingKeys.Contains(x.HandoffKey)).ToList();
-        if (toCreate.Count == 0) return 0;
+        var arToCreate = arCandidates.Where(x => !existingKeysByType[FinBillingHandoffTypes.Ar].Contains(x.HandoffKey)).ToList();
+
+        // BE-FIN-016: BilCollectionHandoff dibuat dengan Status = CREATED untuk kedua keadaan
+        // terminal tender (SUCCEEDED maupun REVERSED) — keduanya disinkron, dibedakan saat proses.
+        var collectionCandidates = await _dbContext.BilCollectionHandoffs.AsNoTracking()
+            .Where(x => !x.IsDelete && x.Status == BillingHandoffStatuses.Created)
+            .ToListAsync(cancellationToken);
+        var collectionToCreate = collectionCandidates.Where(x => !existingKeysByType[FinBillingHandoffTypes.Collection].Contains(x.HandoffKey)).ToList();
+
+        if (arToCreate.Count == 0 && collectionToCreate.Count == 0) return 0;
 
         var now = DateTime.UtcNow;
-        foreach (var handoff in toCreate)
+        foreach (var handoff in arToCreate)
         {
             _dbContext.FinBillingHandoffIntakes.Add(new FinBillingHandoffIntake
             {
@@ -137,7 +158,21 @@ public sealed class FinanceBillingIntakeService
                 CreateBy = actorUserId
             });
         }
+        foreach (var handoff in collectionToCreate)
+        {
+            _dbContext.FinBillingHandoffIntakes.Add(new FinBillingHandoffIntake
+            {
+                HandoffType = FinBillingHandoffTypes.Collection,
+                SourceHandoffId = handoff.Id,
+                SourceHandoffKey = handoff.HandoffKey,
+                Status = FinBillingHandoffIntakeStatuses.New,
+                CorrelationId = handoff.CorrelationId,
+                CreateDateTime = now,
+                CreateBy = actorUserId
+            });
+        }
 
+        var totalToCreate = arToCreate.Count + collectionToCreate.Count;
         try
         {
             await _dbContext.SaveChangesAsync(cancellationToken);
@@ -151,7 +186,7 @@ public sealed class FinanceBillingIntakeService
                 entry.State = EntityState.Detached;
             return 0;
         }
-        return toCreate.Count;
+        return totalToCreate;
     }
 
     // ------------------------------------------------------------------------------------
@@ -169,7 +204,10 @@ public sealed class FinanceBillingIntakeService
 
         try
         {
-            await ProcessArIntakeAsync(intakeId, actorUserId, cancellationToken);
+            if (current.HandoffType == FinBillingHandoffTypes.Collection)
+                await ProcessCollectionIntakeAsync(intakeId, actorUserId, cancellationToken);
+            else
+                await ProcessArIntakeAsync(intakeId, actorUserId, cancellationToken);
         }
         catch (Exception exception) when (exception is not (KeyNotFoundException or BillingIntakeValidationException))
         {
@@ -291,6 +329,66 @@ public sealed class FinanceBillingIntakeService
             await _dbContext.SaveChangesAsync(cancellationToken);
             await CommitAsync(transaction, cancellationToken);
             await AuditAsync("Intake.Acknowledged", intake.Id, actorUserId, receivable.Id);
+        }
+        catch
+        {
+            await RollbackAsync(transaction);
+            throw;
+        }
+        finally
+        {
+            if (transaction is not null) await transaction.DisposeAsync();
+        }
+    }
+
+    // ------------------------------------------------------------------------------------
+    // Pengolahan (BE-FIN-016, FR-FIN-030..034) — satu-satunya jalur yang memicu pembuatan
+    // FinReceipt dari fakta BilCollectionHandoff. Pembuatan sesungguhnya didelegasikan ke
+    // FinanceReceiptService (BE-FIN-017, 02-backend-architecture.md §4.22) — method itu MUST NOT
+    // membuka transaksi sendiri, ikut transaksi Serializable milik method ini.
+    // ------------------------------------------------------------------------------------
+
+    private async Task ProcessCollectionIntakeAsync(Guid intakeId, Guid actorUserId, CancellationToken cancellationToken)
+    {
+        IDbContextTransaction? transaction = null;
+        try
+        {
+            transaction = await BeginTransactionAsync(cancellationToken);
+            await AcquireLockAsync($"FIN_BILLING_INTAKE_{intakeId:N}", cancellationToken);
+
+            var intake = await _dbContext.FinBillingHandoffIntakes
+                .SingleOrDefaultAsync(x => x.Id == intakeId && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Fakta masuk tidak ditemukan.");
+            if (intake.Status is FinBillingHandoffIntakeStatuses.Consumed or FinBillingHandoffIntakeStatuses.Acknowledged)
+                throw new BillingIntakeValidationException("Fakta ini sudah berhasil diolah dan tidak dapat diulang.");
+            if (intake.HandoffType != FinBillingHandoffTypes.Collection)
+                throw new InvalidOperationException(
+                    $"Konsumen untuk HandoffType '{intake.HandoffType}' belum dibangun (lihat laporan task BE-FIN-016 bagian 1).");
+
+            var handoff = await _dbContext.BilCollectionHandoffs
+                .SingleOrDefaultAsync(x => x.Id == intake.SourceHandoffId && !x.IsDelete, cancellationToken)
+                ?? throw new InvalidOperationException("Fakta penerimaan sumber tidak ditemukan di Billing.");
+
+            var now = DateTimeOffset.UtcNow;
+            var receipt = await _receiptService.CreateFromTenderIntakeAsync(handoff, actorUserId, cancellationToken);
+
+            // FIN-BIL-005: Finance wajib mengirim ACK balik ke Billing setelah berhasil.
+            handoff.Status = BillingHandoffStatuses.Acknowledged;
+            handoff.AcknowledgedAt = now;
+            handoff.RowVersion = Guid.NewGuid();
+
+            intake.Status = FinBillingHandoffIntakeStatuses.Acknowledged;
+            intake.TargetEntityId = receipt.Id;
+            intake.ConsumedAt = now;
+            intake.AcknowledgedAt = now;
+            intake.ErrorMessage = null;
+            intake.UpdateDateTime = DateTime.UtcNow;
+            intake.UpdateBy = actorUserId;
+            intake.RowVersion = Guid.NewGuid();
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            await CommitAsync(transaction, cancellationToken);
+            await AuditAsync("Intake.Acknowledged", intake.Id, actorUserId, receipt.Id);
         }
         catch
         {

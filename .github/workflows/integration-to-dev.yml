@@ -105,11 +105,52 @@ jobs:
             echo "- Migration changed: ${{ steps.migrations.outputs.changed }}"
           } >> "$GITHUB_STEP_SUMMARY"
 
+  generate-release-metadata:
+    name: Generate Release Metadata
+    needs:
+      - integration-gate
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup PowerShell
+        shell: pwsh
+        run: |
+          pwsh --version
+
+      - name: Generate release metadata
+        shell: pwsh
+        run: |
+          ./.github/release/generate-release-metadata.ps1
+
+      - name: Generate version json
+        shell: pwsh
+        run: |
+          ./.github/release/generate-version-json.ps1
+
+      - name: Show generated release version
+        shell: pwsh
+        run: |
+          Get-Content .github/release/version.json
+
+      - name: Upload release metadata artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: quilvian-release-metadata
+          path: |
+            .github/release/release-metadata.json
+            .github/release/version.json
 
   migration-hold:
     name: Migration Review Required
     needs:
       - integration-gate
+      - generate-release-metadata
 
     if: >
       needs.integration-gate.result == 'success' &&
@@ -140,6 +181,7 @@ jobs:
     name: Promote Integration to DEV
     needs:
       - integration-gate
+      - generate-release-metadata
 
     if: >
       needs.integration-gate.result == 'success' &&

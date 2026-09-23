@@ -238,9 +238,15 @@ Bagi Finance, isi dan pemicu yang diminta pada bagian 2.2 dan 2.3 **diterima apa
 termasuk terbit saat tender `SUCCEEDED` tanpa menunggu finalisasi, dan pembalikan tender sebagai
 baris baru sesuai bagian 2.5.
 
-**Yang belum selesai.** Task roadmap Billing untuk membangunnya belum dibuat. Sampai task itu
-dikerjakan, `BE-FIN-016` dan `BE-FIN-017` tetap tertahan — tetapi sebabnya kini berpindah dari
-"menunggu jawaban owner Billing" menjadi "menunggu eksekusi task Billing yang sudah disetujui".
+**Pembaruan 22 September 2026 — task Billing selesai dieksekusi.** `BilConsumerHandoffService.
+PublishForTenderAsync` (`BE-BKC-069`) menerbitkan `BilCollectionHandoff` persis sesuai bagian 2.2
+di atas, dipasang di `BillingSettlementService.ReconcileTenderAsync` saat tender mencapai
+`SUCCEEDED`/`REVERSED`. `BE-FIN-016` dibangun di atasnya hari yang sama (entity `FinReceipt`/
+`FinReceiptAllocation`, migration `AddFinanceCollection`, konsumsi lewat `FinanceBillingIntakeService`
+diperluas untuk `HandoffType = COLLECTION`) — lihat
+`docs/module-blueprints/finance-management/task/report/backend/BE-FIN-016.md`. `BE-FIN-017`
+(pembagian bayar-vs-piutang) tetap `BLOCKED` menunggu task pemiliknya sendiri, bukan lagi
+menunggu Billing.
 
 **Satu butir terbuka yang tidak memblokir.** Berapa lama sebuah surat boleh menggantung sebelum
 dianggap tidak wajar, dan siapa yang menerima peringatannya, dicatat sebagai `BKC-OQ-101` dan

@@ -611,7 +611,7 @@ Masukan `BKC-DEC-106`–`111`, `BKC-DES-036`–`041`, seluruhnya `approved` 21 S
 | `FR-BKC-234` — penarikan uang mencabut seluruh resep pada tagihan | `PHA-DEC-068-A` | 🟡 `BE-BKC-067` | `BIL-AT-139` |
 | `FR-BKC-235` — hasil finansial ditentukan penanda cara bayar | `PHA-DEC-065` | 🟡 `BE-BKC-067` | `BIL-AT-140` |
 | `FR-BKC-236` — pembacaan keadaan clearance terkini | `BKC-DEC-107` | 🟡 `BE-BKC-068` | `BIL-AT-141`, `BIL-AT-141-F` · [Laporan](../task/report/backend/BE-BKC-068.md) |
-| `FR-BKC-237` — pengakuan penerimaan dan daftar surat menggantung | `BKC-DEC-108` | 🟡 `BE-BKC-069`, `FE-BKC-040` | `BIL-AT-142` · [Laporan](../task/report/backend/BE-BKC-069.md) |
+| `FR-BKC-237` — pengakuan penerimaan dan daftar surat menggantung | `BKC-DEC-108` | 🟡 `BE-BKC-069`, 🟡 `FE-BKC-040` | `BIL-AT-142` · [Laporan BE](../task/report/backend/BE-BKC-069.md) · [Laporan FE](../task/report/frontend/FE-BKC-040.md) |
 | Pemulihan resep yang terlanjur tertahan | **`BKC-DEC-111`** | 🟡 `BE-BKC-070` | Hitungan sebelum dan sesudah pada basis data pengembang · [Laporan](../task/report/backend/BE-BKC-070.md) |
 
 **Nol requirement tanpa bukti verifikasi.** Kedelapan functional requirement pada
