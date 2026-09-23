@@ -418,6 +418,126 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         }
 
         // =================================================================
+        // Permukaan baseline yang dilengkapi 2026-09-23 — `r32`, `BE-LAB-66`
+        // =================================================================
+
+        /// <summary>
+        /// Detail satu golongan beserta jumlah keberlakuannya (<c>GET /{id}</c>).
+        ///
+        /// <b>Ketiadaannya adalah kelas kesalahan yang sudah pernah dibayar modul ini</b> —
+        /// formulir ubah yang dibuka lewat tautan langsung nol punya jalur memuat barisnya, dan
+        /// kegagalannya diam. <c>r6</c> menutupnya untuk alasan penolakan; ini menutupnya untuk
+        /// golongan Patologi Anatomi.
+        ///
+        /// <c>ParameterCount</c> ikut dihitung di sini, bukan dibiarkan <c>0</c>: nilai <c>0</c>
+        /// pada halaman detail berarti golongan ini menghasilkan formulir kosong, dan itu justru
+        /// keterangan yang paling perlu terlihat saat seseorang membuka golongannya.
+        /// </summary>
+        public async Task<LabPathologyCategoryResponse> GetByIdAsync(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            var entity = await _dbContext.LabPathologyCategories
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Golongan Patologi Anatomi tidak ditemukan.");
+
+            var parameterCount = await _dbContext.LabPathologyParameterCategories
+                .AsNoTracking()
+                .CountAsync(x => !x.IsDelete && x.LabPathologyCategoryId == id, cancellationToken);
+
+            return Map(entity, parameterCount);
+        }
+
+        /// <summary>
+        /// Ringkasan data induk golongan (<c>GET /summary</c>).
+        ///
+        /// <b><c>WithParameter</c> yang membuat ringkasan ini berguna.</b> Selisihnya terhadap
+        /// total adalah golongan yang nol punya satu pun ruas — dan golongan seperti itu
+        /// menghasilkan formulir laporan yang kosong sama sekali. Tanpa angka ini, keadaannya
+        /// baru ketahuan ketika patolog sudah membuka layar hasil dan <c>VAL-100</c> menolaknya.
+        /// </summary>
+        public async Task<LabPathologyCategorySummaryResponse> GetSummaryAsync(
+            CancellationToken cancellationToken = default)
+        {
+            var source = _dbContext.LabPathologyCategories.AsNoTracking().Where(x => !x.IsDelete);
+
+            var total = await source.CountAsync(cancellationToken);
+            var aktif = await source.CountAsync(x => x.IsActive, cancellationToken);
+
+            // Penyaring pada golongannya sendiri BUKAN hiasan. Tanpa itu, keberlakuan yang
+            // menunjuk golongan terhapus tetap terhitung "berruas", dan ringkasannya dapat
+            // melaporkan angka berruas yang LEBIH BESAR daripada totalnya. Bentuk kesalahan yang
+            // sama sudah pernah ditemukan pada `withBreakpoint` (`BE-LAB-65` bagian 6ad.5).
+            var idHidup = source.Select(x => x.Id);
+
+            var berruas = await _dbContext.LabPathologyParameterCategories
+                .AsNoTracking()
+                .Where(x => !x.IsDelete && idHidup.Contains(x.LabPathologyCategoryId))
+                .Select(x => x.LabPathologyCategoryId)
+                .Distinct()
+                .CountAsync(cancellationToken);
+
+            return new LabPathologyCategorySummaryResponse
+            {
+                TotalCategory = total,
+                ActiveCategory = aktif,
+                InactiveCategory = total - aktif,
+                WithParameter = berruas
+            };
+        }
+
+        /// <summary>
+        /// Membalik penanda aktif satu golongan (<c>PATCH /{id}/status</c>).
+        ///
+        /// <b>Ini bukan penghapusan, dan bukan pula jalan pintas <c>PUT</c>.</b> <c>PUT</c>
+        /// menuntut seluruh ruas dikirim; menonaktifkan satu baris dari halaman daftar lewat
+        /// <c>PUT</c> memaksa layar memuat detailnya lebih dulu hanya untuk mengirim balik ruas
+        /// yang nol berubah.
+        ///
+        /// <b>Pemetaan jenis pemeriksaan yang menunjuk golongan ini nol ikut dicabut.</b>
+        /// Golongan nonaktif berhenti ditawarkan saat menggolongkan pemeriksaan baru, tetapi
+        /// pesanan yang terlanjur memakainya tetap punya bentuk formulir — mencabutnya diam-diam
+        /// akan mengosongkan laporan yang sedang berjalan.
+        /// </summary>
+        public async Task<LabPathologyCategoryResponse> SetStatusAsync(
+            Guid id,
+            bool isActive,
+            CancellationToken cancellationToken = default)
+        {
+            var entity = await FindAsync(id, cancellationToken);
+
+            var actorUserId = GetCurrentUserId();
+
+            entity.IsActive = isActive;
+            entity.UpdateDateTime = DateTime.UtcNow;
+            entity.UpdateBy = actorUserId;
+
+            await SaveAsync(cancellationToken);
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "LabPathologyCategory.SetStatus",
+                isActive
+                    ? "Mengaktifkan golongan Patologi Anatomi."
+                    : "Menonaktifkan golongan Patologi Anatomi.",
+                new
+                {
+                    entity.Id,
+                    entity.CategoryCode,
+                    entity.CategoryName,
+                    entity.IsActive,
+                    ActorUserId = actorUserId
+                });
+
+            var parameterCount = await _dbContext.LabPathologyParameterCategories
+                .AsNoTracking()
+                .CountAsync(x => !x.IsDelete && x.LabPathologyCategoryId == id, cancellationToken);
+
+            return Map(entity, parameterCount);
+        }
+
+        // =================================================================
         // Pembantu
         // =================================================================
 
