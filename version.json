@@ -1,5 +1,25 @@
 {
-  "backendVersion": "0.5.0",
-  "releaseName": "Quilvian Integration Release 0.5.0",
-  "description": "Integration release for Blood Bank Management and the shared Number Series platform capability, with Radiology Management reporting, order urgency and numbering, Billing deposit policy and payment account master data, plus Laboratory, Clinical, Pharmacy and Registration stabilization. Includes canonical Reg/Phm table-prefix normalization and EF migration metadata repairs."
+  "releaseName": "Quilvian 0.6.0 - Enterprise Platform Enhancement",
+  "backendVersion": "0.6.0",
+  "releaseMetadata": {
+    "migrationCount": 1,
+    "generatedAt": "2026-09-23T09:36:18",
+    "migrations": [
+      "20260901073655_A0AuthorizationIntegrityProjection.cs"
+    ],
+    "generatedBy": "Quilvian Release Generator",
+    "modules": [
+      "Clinical Management",
+      "Human Resource Management",
+      "Radiology Management",
+      "Registration Management"
+    ],
+    "features": [
+      "Billing Workflow",
+      "Finance Workflow",
+      "Radiology Workflow",
+      "Blood Bank Workflow"
+    ]
+  },
+  "description": "Release 0.6.0 enhances Clinical Management, Human Resource Management, Radiology Management, Registration Management capabilities. Includes improvements across Billing Workflow, Finance Workflow, Radiology Workflow, Blood Bank Workflow. Includes 1 database migration update(s)."
 }
