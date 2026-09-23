@@ -223,6 +223,11 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Download release metadata artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: quilvian-release-metadata
+
       - name: Validate candidate and prepare promotion
         id: promotion
         shell: bash
@@ -276,7 +281,7 @@ jobs:
         run: |
           set -euo pipefail
           echo "Preparing runtime version manifest"
-          cp .github/release/version.json version.json
+          cp quilvian-release-metadata/version.json version.json
           git add version.json
           git commit -m "chore: update runtime version manifest" || echo "No version change"
           git push origin HEAD:QuilvianDevDeploy
