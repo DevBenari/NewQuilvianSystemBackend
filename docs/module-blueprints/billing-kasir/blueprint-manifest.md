@@ -4,7 +4,7 @@
 blueprint_id: BIL-CASH-001
 module_name: Billing dan Kasir
 module_slug: billing-kasir
-revision: 1.0
+revision: 1.4
 revision_note_field_vs_prose: >
   KETIDAKSESUAIAN YANG SUDAH DIKETAHUI DAN KINI DITUTUP. Sebelum revisi 1.0, field `revision`
   bernilai 0.8 sementara badan dokumen ini beserta seluruh berkas kontrak sudah menyebut revisi
@@ -15,17 +15,74 @@ revision_note_field_vs_prose: >
   DILEWATI sebagai nilai field — bukan karena isinya batal, melainkan karena isinya sudah
   approved dan sudah tercermin pada contract_versions. Tidak ada isi yang hilang.
 status: approved
+status_derivation_revision_1_3: >
+  Revisi 1.3 (Penutupan gap FINAL->CLOSED) kini `approved` SEPENUHNYA. Keputusan BISNIS
+  (BKC-DEC-100-105) dan keputusan ARSITEKTUR (BKC-DES-028-035) seluruhnya disetujui Product/Domain
+  Owner 18 September 2026; keenam sumbu kontrak revisi ini ikut naik menjadi `approved`. Nilai field `status` di atas menggambarkan revisi
+  TERATAS, bukan mencabut apa pun: baseline 0.5 beserta seluruh amendment sampai revisi 1.2 TETAP
+  `approved` apa adanya, dan setiap berkas kontrak memuat amendment revisi ini sebagai bagian
+  TERPISAH di ujungnya.
+  DUA butir yang menyimpang dari bunyi harfiah keputusan bisnis diangkat eksplisit ke Owner dan
+  disetujui TERPISAH lebih dulu, justru supaya tidak lolos diam-diam:
+    BKC-DES-033 MEMPERSEMPIT konsekuensi BKC-DEC-102 - BilArHandoff tidak disentuh sama sekali,
+      sebagai ganti penandaan "selesai/collected" yang diminta teks keputusan itu (BKC-DEC-103);
+    BKC-DES-029 MEMPERLUAS cakupan harfiah BKC-DEC-100 - penyelarasan dipasang di ENAM peristiwa
+      yang menggerakkan sisa tagihan, bukan hanya pada tender SUCCEEDED (BKC-DEC-104).
+  Approval menyeluruh menyusul lewat BKC-DEC-105. Approval itu BUKAN otorisasi membuat maupun
+  menjalankan migration backfill BackfillClosedInvoicesFromFullySettledFinal - gerbang terpisah.
 status_derivation: >
+  Revisi 1.2 (Revisi rumpun Petty Cash) kini `approved` SEPENUHNYA: keputusan bisnis
+  PC-DEC-016-026 dan keputusan arsitektur PC-DES-015-025 seluruhnya disetujui Product/Domain
+  Owner 15 September 2026 lewat PC-DEC-026. Dengan ini seluruh rumpun di dalam blueprint ini
+  sama-sama `approved`.
+  Yang TIDAK ikut disetujui oleh PC-DEC-026, dan MUST tetap diminta terpisah saat implementasi:
+  pembuatan dan eksekusi migration RevisePettyCashDirectDisbursementAndBudgetPeriod, serta
+  penghapusan butir hak akses Approve/Reject sebelum PC-OQ-007 diperiksa.
   Baseline 0.5 beserta seluruh amendment sampai revisi 0.9 tetap `approved`. Rumpun BARU Petty
   Cash (revisi 1.0) DISETUJUI 7 September 2026 lewat `PC-DEC-014`–`015` (00-interview-decisions.md)
   — `PC-OQ-001` (penamaan MstPettyCashCategory vs BilPettyCashCategory) ditutup memilih
   `MstPettyCashCategory`, dan `PC-DES-001`–`014` disetujui penuh. Kedua kelompok kini sama-sama
   `approved` di dalam satu blueprint SINGLE.
+readiness_revision_1_3: >
+  REVISI 1.3 (Penutupan gap FINAL->CLOSED) kini DESIGN_APPROVED. Keputusan bisnis BKC-DEC-100-105
+  dan keputusan arsitektur BKC-DES-028-035 seluruhnya `approved` 18 September 2026; impact scan
+  tercatat di 01-existing-capability-map.md section 21 (diaudit pada backend SHA 21b47331, working
+  tree bersih).
+  Tidak ada pertanyaan yang memblokir. Gelombang MVP-24 (service penyelarasan penutupan,
+  konsolidasi perhitungan sisa tagihan, perluasan penjaga koreksi AR) SUDAH diteruskan ke
+  /plan-module-delivery dan menjadi task BE-BKC-060 sampai BE-BKC-063 beserta FE-BKC-039.
+  Gelombang MVP-25 (dry-run lalu migration backfill data) TIDAK siap dan sengaja dipisah: ia
+  menunggu BKC-OQ-100 terjawab oleh keluaran dry-run, DAN otorisasi eksplisit terpisah untuk
+  membuat serta menjalankan migration sesuai AGENTS.md bagian Keselamatan Database.
+  Prasyarat lain: NIHIL. Amendment ini tidak menambah tabel, kolom, index, endpoint, butir hak
+  akses, master data, maupun dependency lintas modul.
 readiness: >
-  DESIGN_APPROVED untuk seluruh rumpun termasuk Petty Cash (revisi 1.0) — kontrak terkunci;
+  REVISI 1.2 (Revisi rumpun Petty Cash: pencairan langsung, anggaran per periode) kini
+  DESIGN_APPROVED — keputusan bisnis PC-DEC-016-026 dan keputusan arsitektur PC-DES-015-025
+  seluruhnya `approved` 15 September 2026. Tidak ada pertanyaan memblokir; keempat gelombang
+  MVP-20-MVP-23 SIAP diteruskan ke /plan-module-delivery.
+  Prasyarat implementasi revisi 1.2 yang TERSISA (BUKAN blocker perencanaan): otorisasi terpisah
+  untuk membuat dan menjalankan satu migration yang memuat pemutakhiran data status; pemeriksaan
+  PC-OQ-007 (peran yang hanya memegang hak akses Approve/Reject) sebelum butir hak akses itu
+  dihapus; dan pengisian periode anggaran pertama oleh Finance sebelum fitur diaktifkan.
+  PC-OQ-008 (siapa/kapan/berapa plafon periode pertama) DITUTUP 15 September 2026 lewat
+  PC-DEC-027 (00-interview-decisions.md): tidak ada aktor/tanggal/plafon yang dipatok di depan
+  dan tidak ada tenggat wajib — Finance memakai endpoint self-service BE-BKC-054 kapan pun
+  mereka siap, sistem tetap berjalan memakai periode warisan migrasi sampai saat itu. Yang
+  TERSISA murni eksekusi nyata (BE-BKC-059, bukan task source) dan verifikasi manual database
+  dengan wewenang eksplisit terpisah — bukan lagi blocker keputusan bisnis.
+  DESIGN_APPROVED untuk seluruh rumpun sampai Petty Cash (revisi 1.0) — kontrak terkunci;
   wewenang tulis backend/frontend tetap terpisah (`BKC-GATE-09`/`BKC-OQ-092`). Satu prasyarat
   implementasi TERSISA sebelum file model Petty Cash pertama ditulis (BUKAN blocker perencanaan):
   `PC-OQ-003`, baris registry kepemilikan modul untuk folder `PettyCash/` (`QBE-MOD-003`).
+  RUMPUN BARU revisi 1.1 (Edit Tagihan & Multi-Payer Coverage) kini DESIGN_APPROVED:
+  keputusan bisnis `MPY-DEC-001`–`012` dan keputusan arsitektur `MPY-DES-001`–`017` SELURUHNYA
+  `approved` 11 September 2026. Pertanyaan memblokir `MPY-OQ-004` DITUTUP oleh `MPY-DEC-011`.
+  Keempat gelombang `MVP-16`–`MVP-19` siap diteruskan ke /plan-module-delivery.
+  Prasyarat implementasi yang TERSISA (BUKAN blocker perencanaan): otorisasi terpisah untuk
+  membuat dan menjalankan migration lima tabel baru; pemeriksaan `MPY-OQ-005` sebelum `MVP-18`;
+  pengisian master aturan tanggungan `MPY-OQ-006` sebelum fitur diaktifkan; dan koordinasi urutan
+  commit `MPY-CQ-03` dengan pekerjaan "Payment Reminder".
 approved_by_revision_0_8: Product/Domain Owner (wewenang ganda Finance/AR, `BKC-DEC-085`) — mengunci seluruh dokumen kontrak, 4 September 2026
 approved_at_revision_0_8: 2026-09-04
 baseline_revision: 0.5
@@ -47,12 +104,88 @@ owners:
   api: Backend/API Owner
   security: Security Owner
   frontend_authority: Frontend Owner
-approved_by: null
-approved_at: null
+approved_by: Product/Domain Owner (wewenang ganda Finance/AR, BKC-DEC-085) — PC-DEC-026 mengunci revisi 1.2, 15 September 2026
+approved_at: 2026-09-15
+approved_by_revision_1_3: Product/Domain Owner (wewenang ganda Finance/AR, BKC-DEC-085) — BKC-DEC-105 mengunci revisi 1.3, 18 September 2026
+approved_at_revision_1_3: 2026-09-18
+approved_note_revision_1_3: >
+  Approval revisi 1.3 turun BERTAHAP dan itu disengaja: keputusan bisnis lebih dulu
+  (BKC-DEC-100-102), lalu DUA keputusan arsitektur yang menyimpang dari bunyi harfiahnya diangkat
+  terpisah (BKC-DEC-103 dan BKC-DEC-104), baru approval menyeluruh (BKC-DEC-105). Tidak ada tahap
+  yang disimpulkan dari tahap sebelumnya.
+  Approval ini BUKAN otorisasi membuat maupun menjalankan migration backfill.
 baseline_approved_by: Product/Domain Owner (user approval in conversation) — BKC-DEC-062 tanpa konfirmasi terpisah Payer/Insurance+Finance/AR, lihat caveat 00-interview-decisions.md
 baseline_approved_at: 2026-09-02T13:53:34+07:00
 created_at: 2026-08-20T11:22:42+07:00
-updated_at: 2026-09-07T00:00:00+07:00
+updated_at: 2026-09-18T00:00:00+07:00
+last_revision_note_revision_1_3: >
+  Revisi 1.3 (18 September 2026) adalah amendment PERBAIKAN atas rumpun INTI modul ini - status
+  siklus hidup BilInvoice - dan yang pertama sejak revisi 0.9 yang menyentuh rumpun inti itu.
+  Seluruh revisi di antaranya (1.0-1.2) merancang rumpun lain: Petty Cash dan Edit Tagihan/
+  Multi-Payer.
+  Isinya: syarat transisi FINAL->CLOSED diganti dari "AR/AP posting sukses" - peristiwa yang tidak
+  pernah terjadi karena konsumen AR/AP-nya belum ada - menjadi "sisa tagihan pasien mencapai nol"
+  (BKC-DEC-100); penjaga pencatatan koreksi AR diperluas menerima CLOSED (BKC-DEC-101); invoice
+  departure exception tidak dikecualikan (BKC-DEC-102).
+  Turunannya: NOL tabel baru, NOL kolom baru, NOL index baru, NOL endpoint baru, NOL butir hak
+  akses baru, NOL master data baru, NOL dependency lintas modul, NOL perubahan frontend. Satu file
+  service baru (BillingInvoiceClosureService), enam titik pemanggilan pada service yang sudah ada,
+  satu penjaga diperluas, dua salinan CalculateOutstandingAsync dikonsolidasi menjadi satu, satu
+  migration yang isinya HANYA pemutakhiran data, BKC-DES-028-035, BIL-VAL-107-109, BIL-AT-121-134,
+  EPIC BKC-22, FR-BKC-109-117, UAT-65-70, gelombang MVP-24 dan MVP-25.
+  YANG PALING PENTING DIBACA: amendment ini memperbaiki cacat yang SUDAH BERJALAN DI PRODUKSI,
+  bukan merancang kemampuan baru. Cacatnya berlapis dua - status yang macet (terlihat pengguna)
+  dan koreksi piutang yang gagal tercatat tanpa galat maupun log (TIDAK terlihat siapa pun sampai
+  ada yang merekonsiliasi manual). Lapis kedua itulah yang mahal, dan BKC-OQ-100 dibuka untuk
+  mengukur berapa banyak yang sudah terlanjur.
+  Satu perubahan NILAI yang MUST disosialisasikan: field closedAt pada response invoice yang
+  selama ini SELALU kosong kini benar-benar terisi, dan status CLOSED yang praktis tidak pernah
+  muncul kini menjadi keadaan normal bagi tagihan lunas. Nol konsumen yang rusak bentuknya.
+  Bentuk blueprint TIDAK berubah: tetap SINGLE.
+last_revision_note_revision_1_2: >
+  Revisi 1.2 (15 September 2026) adalah pass desain penuh untuk sebuah REVISI atas rumpun yang
+  SUDAH DIBANGUN — yang pertama kali terjadi di modul ini. Seluruh revisi sebelumnya (0.6-1.1)
+  merancang kapabilitas yang belum ada satu barisnya pun di source.
+  Isinya: gerbang persetujuan Petty Cash dicabut sehingga kasir mencairkan langsung (PC-DEC-016),
+  kolam anggaran tunggal berganti menjadi anggaran per periode beserta pemindahan sisa saldo saat
+  periode ditutup (PC-DEC-017/018), dua halaman digabung menjadi satu halaman kerja, serta dua cara
+  baru mengembalikan uang ke kolam - pengembalian sisa dan pembalikan pencairan (PC-DEC-022).
+  Turunannya: NOL tabel baru, 8 kolom baru pada 2 tabel, 4 nilai MovementType baru, 1 migration
+  yang memuat pemutakhiran data, 2 endpoint DIHAPUS, 5 endpoint baru, 2 butir hak akses DIHAPUS,
+  5 butir hak akses baru, 1 butir menu DIHAPUS, PC-DES-015-025, BIL-VAL-098-106, BIL-AT-101-120,
+  EPIC BKC-18-21, FR-BKC-087-108, UAT-55-64, gelombang MVP-20-MVP-23.
+  YANG PALING PENTING DIBACA: revisi ini BUKAN aditif. Ia menghapus endpoint, menghapus butir hak
+  akses, menghapus field response, dan mengganti nama nilai enum status. Konsumen yang tidak ikut
+  diperbarui AKAN rusak - daftar lengkapnya pada contracts/api-contract.md bagian "Perubahan yang
+  merusak konsumen". Empat keputusan desain rumpun ini sendiri dicabut atau dipersempit
+  (PC-DES-003/005/013/014).
+  Yang TIDAK berubah, dan itu disengaja: bukti tetap nomor referensi teks tanpa unggahan berkas
+  (PC-DEC-021), kategori tetap wajib (PC-DEC-020), penerima tetap teks bebas tanpa akun sistem
+  (PC-DEC-019), dan Petty Cash tetap NOL titik integrasi keluar - termasuk ke Accounting, yang
+  sengaja ditunda (PC-DEC-023) justru supaya persetujuan yang baru dicabut tidak muncul kembali
+  lewat siklus jurnal manual di modul sebelah.
+  Bentuk blueprint TIDAK berubah: tetap SINGLE.
+last_revision_note_revision_1_1: >
+  Revisi 1.1 (11 September 2026) adalah pass desain PENUH untuk satu RUMPUN BARU: Edit Tagihan &
+  Multi-Payer Coverage. Isinya: koreksi penanggung kunjungan sebelum pembayaran (`MPY-DEC-003`),
+  penanggung per baris biaya (`MPY-DEC-004`), penebusan obat rawat jalan/IGD/OTC (`MPY-DEC-009`),
+  aturan tanggungan dan rute reimbursement perusahaan penjamin (`MPY-DEC-008`), serta lembar
+  tagihan perusahaan (`MPY-DEC-006`).
+  Turunannya: 5 tabel baru, 1 migration, 10 endpoint baru, 2 Resource hak akses baru, 2 butir
+  menu baru, 3 flowchart baru, `MPY-DES-001`–`017`, `BIL-VAL-059`–`097`, `BIL-AT-081`–`100`,
+  `EPIC BKC-13`–`17`, `FR-BKC-064`–`086`, `UAT-43`–`54`, gelombang `MVP-16`–`MVP-19`.
+  BERBEDA dari Petty Cash: rumpun ini MENYENTUH mesin kalkulasi (sumbu `BIL-CALCULATION` naik ke
+  0.9) dan punya permukaan lintas modul terlebar di modul ini — satu layanan baru WAJIB dibangun
+  di `RegistrationManagement` (`MPY-DES-004`), menunggu persetujuan Muhammad Hamzah
+  (`MPY-DEC-010`, `MPY-OQ-004`).
+  Yang TIDAK berubah: nol kolom pada tabel yang sudah ada, nol endpoint existing berubah bentuk,
+  nol status invoice baru, dan `ExcessAmount`/`ExcessStatus` TETAP terkunci nol (`BKC-DES-014`)
+  karena `MPY-DEC-001` mempertahankan satu payer aktif per kunjungan.
+  Satu perubahan NILAI yang MUST disosialisasikan: kunjungan berpenjamin perusahaan yang selama
+  ini menghasilkan anomali `INSURANCE_PROVIDER_MISSING` dan membebankan seluruh biaya ke pasien
+  kini menghasilkan perhitungan tanggungan yang sebenarnya — angka tagihan kunjungan seperti itu
+  AKAN berubah, dan itulah perbaikannya.
+  Bentuk blueprint TIDAK berubah: tetap SINGLE, mengikuti preseden Petty Cash (`MPY-DEC-002`).
 last_revision_note: >
   Revisi 1.0 (7 September 2026) adalah pass desain PENUH untuk satu RUMPUN BARU: Petty Cash
   (Voucher Kas Kecil). Ini berbeda dari revisi 0.6-0.9 yang seluruhnya amendment atas rumpun
@@ -69,10 +202,78 @@ last_revision_note: >
   menaruh Petty Cash sebagai rumpun di dalam struktur SINGLE yang sudah ada sudah diambil pada
   00-interview-decisions.md amendment 7 September 2026, mengikuti preseden Shift Kasir, Diskon,
   Deposit, Refund, dan Pengecualian Finansial.
-backend_commit_sha: dd31bc91818566c0b53e1b68c0129f5a6cf01a2b
-frontend_commit_sha: 12f9242ce62e4d80dbdb719f80bb0e7a2848474c
-previous_backend_commit_sha: ffeb45a83a6282982214668acc57e15ac0652f04
-previous_frontend_commit_sha: 00210f9a5fb2f4f69e57b8c90c57c63c788da792
+backend_commit_sha: 6782ae652ca53299f7469c49b2edb64d23e77b60
+frontend_commit_sha: 1b138b9aac7a50524fd751a47c9a76e0a55f8803
+previous_backend_commit_sha: 21b4733154e91962cbd7094a102615b1d9eb2bf2
+previous_frontend_commit_sha: 1f2f2c93c9e4369db6c60246776de4c3bd52b3af
+commit_sha_note_revision_1_4: >
+  SHA dimutakhirkan pada revisi 1.4 (21 September 2026). Working tree backend saat desain ini
+  disusun memuat perubahan yang BELUM di-commit, terutama area Corporate/FinanceManagement
+  (BillingIntake, Receivable, MasterData) beserta tiga migration bertanggal 20260921. Bukti
+  FinBillingHandoffIntake yang dipakai amendment ini berasal dari working tree itu, bukan dari
+  commit 6782ae65 — dicatat apa adanya supaya pembaca berikutnya tidak bingung mencarinya di
+  riwayat commit.
+sha_move_note_revision_1_3: >
+  Backend SHA naik pada revisi 1.3 (0ca85ba4 -> 21b47331, 18 September 2026 15:13 WIB, working
+  tree BERSIH). Frontend SHA TIDAK bergerak dan memang tidak diaudit ulang: amendment ini tidak
+  menuntut satu pun perubahan frontend, dan bukti bahwa status CLOSED sudah didukung frontend
+  diambil dari audit yang sudah ada (section 21 memverifikasinya ulang lewat pembacaan langsung
+  billing-invoice-constants.js).
+  Impact scan untuk pergerakan backend SHA ini SUDAH dijalankan dan hasilnya ada di
+  01-existing-capability-map.md section 21 - tetapi scan itu DIBATASI pada permukaan gap
+  FINAL->CLOSED (jalur settlement/alokasi/finalisasi/handoff dan model BilInvoice/BilArHandoff),
+  BUKAN audit ulang section 1-20.
+  TIGA temuan pergerakan SHA yang MUST dibaca sebelum implementasi, seluruhnya BARU pada scan ini:
+    (1) BilSettlement bersifat satu-ke-banyak terhadap BilInvoice, bukan 1:1 - perhitungan sisa
+        tagihan MUST kumulatif lintas seluruh settlement, bukan per settlement;
+    (2) CalculateOutstandingAsync terduplikasi PERSIS di BillingFinalizationService dan
+        BillingFinancialExceptionService - konsolidasi WAJIB sebelum pemanggil ketiga ditambahkan;
+    (3) BillingHandoffStatuses hanya mengenal CREATED dan ACKNOWLEDGED - tidak ada kosakata
+        "piutang tertagih", sehingga konsekuensi BKC-DEC-102 tidak dapat dipenuhi dengan nilai yang
+        sudah ada. Inilah yang melahirkan BKC-CQ-01 dan jawabannya BKC-DES-033.
+sha_move_note_revision_1_2: >
+  Kedua SHA naik pada revisi 1.2. Impact scan untuk pergerakan ini SUDAH dijalankan dan hasilnya
+  ada di 01-existing-capability-map.md § 20, diaudit persis pada 0ca85ba4/1f2f2c93c — tetapi scan
+  itu DIBATASI pada permukaan rumpun Petty Cash beserta satu temuan lintas modul yang relevan
+  (modul Accounting), BUKAN audit ulang section 1-19.
+  Temuan pergerakan SHA yang MUST dibaca sebelum implementasi: implementasi Petty Cash yang
+  diaudit § 18 sebagai `Missing` KINI SUDAH DIBANGUN PENUH dan stabil sejak commit fea81edf.
+  Seluruh label `Rencana (belum tersedia)` pada amendment 7 September 2026 di contracts/api-contract.md
+  karena itu SUDAH TIDAK BERLAKU; amendment 15 September 2026 pada berkas yang sama memakai label
+  `Tersedia` untuk kesebelas endpoint tersebut.
+  Temuan kedua: modul Accounting (AccJournal, AccChartOfAccount, AccJournalType, AccJournalService)
+  kini ADA — tidak ada sama sekali saat § 18 ditulis. Ia hanya melayani jurnal manual berjenjang
+  persetujuan dan belum pernah dipanggil modul domain mana pun.
+sha_move_note_revision_1_1: >
+  Kedua SHA naik pada revisi 1.1. Impact scan untuk pergerakan ini SUDAH dijalankan dan hasilnya
+  ada di 01-existing-capability-map.md § 19, diaudit persis pada d295c4d5/0eafa76b — tetapi scan
+  itu DIBATASI pada sembilan klaster yang relevan bagi rumpun Edit Tagihan & Multi-Payer
+  (`CAP-33`–`CAP-41`), BUKAN audit ulang section 1-18.
+  Satu temuan pergerakan SHA yang MUST dibaca sebelum implementasi: dokumentasi internal modul
+  ini (`erd/00-context-erd.md` dan sebagian prosa lama) masih memakai nama `Trx*` untuk entity
+  yang di source sudah di-rename menjadi `Reg*` — khususnya `RegPatientEncounterGuarantor`.
+  Selisih itu ditemukan saat wawancara rumpun ini, dikoreksi pada 00-interview-decisions.md, dan
+  dicatat sebagai temuan pemeliharaan dokumen yang perapiannya milik /manage-module-blueprint.
+working_tree_uncommitted_revision_1_1:
+  backend:
+    - Areas/HealthServices/BillingManagement/Billing/BillingManagementServiceCollectionExtensions.cs
+    - Areas/HealthServices/BillingManagement/Billing/Controllers/BillingInvoicesController.cs
+    - Areas/HealthServices/BillingManagement/Billing/Dtos/BillingInvoiceDtos.cs
+    - Areas/HealthServices/BillingManagement/Billing/Services/BillingInvoiceService.cs
+    - Repositories/ApplicationDbContext.cs
+    - Services/Logging/LoggerService.cs
+    - Areas/HealthServices/BillingManagement/Billing/Dtos/CashierBillingInvoiceDtos.cs (baru, belum ter-track)
+    - Areas/HealthServices/BillingManagement/Billing/Models/BilPaymentReminder.cs (baru, belum ter-track)
+    - Areas/HealthServices/BillingManagement/Billing/Services/BillingReminderService.cs (baru, belum ter-track)
+    - Repositories/Configurations/HealthServices/BillingManagement/Billing/BilPaymentReminderConfiguration.cs (baru, belum ter-track)
+  keterangan: >
+    Berdasarkan penamaan, kesepuluh berkas ini adalah pekerjaan "Payment Reminder" yang sedang
+    berjalan TERPISAH dari rumpun Edit Tagihan & Multi-Payer, dan isinya TIDAK diverifikasi pada
+    pass ini karena di luar scope. Yang MUST diperhitungkan: tiga di antaranya
+    (`BillingInvoicesController.cs`, `BillingInvoiceDtos.cs`, `BillingInvoiceService.cs`) adalah
+    berkas yang rumpun ini juga akan sentuh. Risiko konflik merge NYATA, bukan hipotetis.
+    Koordinasikan urutan commit dengan pemilik pekerjaan itu sebelum build-module-backend menulis
+    ke ketiga berkas tersebut (`MPY-CQ-03`). JANGAN membuang atau menimpa perubahan itu.
 sha_move_note: >
   Kedua SHA naik pada revisi 1.0. Impact scan untuk pergerakan ini SUDAH dijalankan dan
   hasilnya ada di 01-existing-capability-map.md § 18, yang diaudit persis pada dd31bc9 dan
@@ -100,11 +301,32 @@ working_tree_uncommitted:
     keadaan as-is. Bila perubahan itu dibuang, sebagian besar amendment 4 September 2026
     berubah dari "menyempurnakan yang sudah ada" menjadi "membangun dari nol" — lihat
     BKC-OQ-090.
-roadmap_revision: 1
+roadmap_revision: 3
 roadmap_status: DRAFT_FORWARD_TEST
+roadmap_note_revision_1_3: >
+  Roadmap revisi 3 (18 September 2026) menambah TUJUH task untuk penutupan gap FINAL->CLOSED:
+  BE-BKC-060-065 (enam) dan FE-BKC-039 (satu), memetakan gelombang MVP-24 dan MVP-25.
+  Dua task backend berstatus ⛔ dan sengaja TIDAK masuk MVP-24: BE-BKC-064 tertahan wewenang baca
+  database (dry-run yang menjawab BKC-OQ-100) dan BE-BKC-065 tertahan otorisasi migration beserta
+  hasil BE-BKC-064. Keduanya bukan blocker teknis dan tidak menahan satu pun task MVP-24.
+  BE-BKC-060 WAJIB mendahului 061 dan 062 - ia satu-satunya yang memindahkan rumus sisa tagihan ke
+  satu tempat, dan keduanya memanggil hasilnya. BE-BKC-063 boleh paralel sejak awal (berkasnya
+  tidak disentuh task lain), tetapi PENGUJIANNYA baru bermakna sesudah BE-BKC-061 melahirkan
+  tagihan CLOSED yang normal.
+  FE-BKC-039 adalah task VERIFIKASI, bukan task fitur: amendment ini nol perubahan frontend yang
+  diwajibkan, dan source hanya ditulis bila verifikasi menemukan gap.
+roadmap_note_revision_1_2: >
+  Roadmap revisi 2 (15 September 2026) menambah sebelas task untuk revisi rumpun Petty Cash:
+  BE-BKC-053-059 (tujuh) dan FE-BKC-035-038 (empat), memetakan gelombang MVP-20 sampai MVP-23.
+  Dua task backend berstatus ⛔ dan sengaja TIDAK diberi nomor gelombang: BE-BKC-056 tertahan
+  PC-OQ-007 (pemeriksaan peran sebelum butir hak akses Approve/Reject dihapus) dan BE-BKC-059
+  tertahan PC-OQ-008 (plafon anggaran pertama dari Finance). Keduanya bukan blocker teknis dan
+  tidak menahan task lain.
+  Urutan backend-lalu-frontend WAJIB pada gelombang ini, bukan preferensi: layar Petty Cash yang
+  berjalan hari ini memanggil endpoint yang akan dihapus.
 input_revisions:
-  decisions: 0.2 (baseline) + amendment BKC-DEC-059-062 (2 Sep 2026, approved) + amendment BKC-DEC-063-069 (3 Sep 2026, approved) + amendment BKC-DEC-070-079 (4 Sep 2026, approved) + amendment BKC-DEC-080-084 (4 Sep 2026, approved) + amendment BKC-DEC-085-087 (4 Sep 2026, approved) + amendment BKC-DEC-088-092 (4-5 Sep 2026, approved) + amendment PC-DEC-001-013 (7 Sep 2026, approved — rumpun Petty Cash)
-  capability_map: 0.2 (baseline) + impact scan section 16 (2 Sep 2026) + impact scan section 17 (4 Sep 2026) + audit kapabilitas baru section 18 (7 Sep 2026, Petty Cash, CAP-29-CAP-32, diaudit pada dd31bc9/12f9242c)
+  decisions: 0.2 (baseline) + amendment BKC-DEC-100-102 (18 Sep 2026, approved — gap FINAL->CLOSED, rumpun inti) + amendment BKC-DEC-098-099 (16 Sep 2026, approved — penghapusan kolom TaxableCategory) + amendment BKC-DEC-059-062 (2 Sep 2026, approved) + amendment BKC-DEC-063-069 (3 Sep 2026, approved) + amendment BKC-DEC-070-079 (4 Sep 2026, approved) + amendment BKC-DEC-080-084 (4 Sep 2026, approved) + amendment BKC-DEC-085-087 (4 Sep 2026, approved) + amendment BKC-DEC-088-092 (4-5 Sep 2026, approved) + amendment PC-DEC-001-013 (7 Sep 2026, approved — rumpun Petty Cash) + amendment PC-DEC-014-015 (7 Sep 2026, approved) + amendment MPY-DEC-001-010 (11 Sep 2026, approved — rumpun Edit Tagihan & Multi-Payer, tiga sub-amendment bertanggal sama)
+  capability_map: 0.2 (baseline) + impact scan section 16 (2 Sep 2026) + impact scan section 17 (4 Sep 2026) + audit kapabilitas baru section 18 (7 Sep 2026, Petty Cash, CAP-29-CAP-32, diaudit pada dd31bc9/12f9242c) + audit kapabilitas baru section 19 (11 Sep 2026, Edit Tagihan & Multi-Payer, CAP-33-CAP-41, diaudit pada d295c4d5/0eafa76b) + impact scan section 20 (15 Sep 2026, revisi Petty Cash, diaudit pada 0ca85ba4/1f2f2c93) + impact scan section 21 (18 Sep 2026, gap FINAL->CLOSED, diaudit pada 21b47331, backend saja)
   requirement_gate: 0.3
   hospital_domain_architecture: 0.3
 domain_architecture_readiness: DOMAIN_ARCHITECTURE_READY
@@ -118,8 +340,8 @@ domain_architecture_readiness_petty_cash: >
   tersisa untuk diselesaikan hospital-domain-architect. Nilai DOMAIN_ARCHITECTURE_READY di atas
   tetap berlaku untuk rumpun-rumpun sebelumnya.
 input_hashes:
-  00-interview-decisions.md: 3d04c381b786cc262e03e724e8ce69bc19d534cd81b6062c63f3f501b61c99d2
-  01-existing-capability-map.md: 9df0626e9ff2f7cafffdcca5cbb6170248489c2dd336328f145a721898352206
+  00-interview-decisions.md: b4c0b064c21a8befbeb817a5f6f52422a13d7df21525fa26e1fdb76e2df46aaf
+  01-existing-capability-map.md: 1bb94ef9ffd03fa3684a380c9861082b16d79cf2f54b99882c35866b147702f6
   evidence/02-requirement-completeness-gate.md: ede9101e57dea4615880094ee0e5b3ef6c4755992da68bbfe968eac45a5006ec
   evidence/03-hospital-domain-architecture.md: 5879248de943c18d50e7a955cc23b8e151c3289d01113f109350c37b76de2b06
 input_hashes_note: >
@@ -130,8 +352,62 @@ input_hashes_note: >
   baseline sehingga selisihnya tidak dapat dijelaskan pass ini; nilainya diperbarui apa adanya
   dan dilaporkan sebagai temuan pemeliharaan manifest, bukan sebagai perubahan isi yang
   disengaja pass ini.
-design_decision_ids: [BKC-DES-001, BKC-DES-002, BKC-DES-003, BKC-DES-004, BKC-DES-005, BKC-DES-006, BKC-DES-007, BKC-DES-008, BKC-DES-009, BKC-DES-010, BKC-DES-011, BKC-DES-012, BKC-DES-013, BKC-DES-014, BKC-DES-015, BKC-DES-016, BKC-DES-017, BKC-DES-018, BKC-DES-019, BKC-DES-020, BKC-DES-021, BKC-DES-022, BKC-DES-023, BKC-DES-024, BKC-DES-025, BKC-DES-026, BKC-DES-027]
-design_decision_ids_petty_cash: [PC-DES-001, PC-DES-002, PC-DES-003, PC-DES-004, PC-DES-005, PC-DES-006, PC-DES-007, PC-DES-008, PC-DES-009, PC-DES-010, PC-DES-011, PC-DES-012, PC-DES-013, PC-DES-014]
+design_decision_ids: [BKC-DES-001, BKC-DES-002, BKC-DES-003, BKC-DES-004, BKC-DES-005, BKC-DES-006, BKC-DES-007, BKC-DES-008, BKC-DES-009, BKC-DES-010, BKC-DES-011, BKC-DES-012, BKC-DES-013, BKC-DES-014, BKC-DES-015, BKC-DES-016, BKC-DES-017, BKC-DES-018, BKC-DES-019, BKC-DES-020, BKC-DES-021, BKC-DES-022, BKC-DES-023, BKC-DES-024, BKC-DES-025, BKC-DES-026, BKC-DES-027, BKC-DES-028, BKC-DES-029, BKC-DES-030, BKC-DES-031, BKC-DES-032, BKC-DES-033, BKC-DES-034, BKC-DES-035]
+design_decision_status_revision_1_3: >
+  BKC-DES-028-035 (BARU pada revisi 1.3, 18 September 2026). Sekuens BKC-DES-* dilanjutkan - TIDAK
+  memakai prefix rumpun sendiri - karena topik ini adalah rumpun INTI modul (status siklus hidup
+  BilInvoice), bukan rumpun baru berkosakata sendiri seperti Petty Cash (PC-DES-*) atau Edit
+  Tagihan/Multi-Payer (MPY-DES-*). Ini konsisten dengan design_decision_prefix_convention di bawah.
+  NOL keputusan arsitektur lama yang dicabut, dipersempit, atau digantikan revisi ini.
+  DUA sudah `approved` 18 September 2026, keduanya karena memang menyimpang dari bunyi harfiah
+  keputusan bisnisnya dan karena itu diangkat eksplisit ke Owner alih-alih diputuskan pass desain:
+    BKC-DES-033 `approved` lewat BKC-DEC-103 - BilArHandoff tidak disentuh sama sekali,
+      MEMPERSEMPIT konsekuensi BKC-DEC-102;
+    BKC-DES-029 `approved` lewat BKC-DEC-104 - penyelarasan dipasang di ENAM peristiwa,
+      MEMPERLUAS cakupan harfiah BKC-DEC-100.
+  ENAM sisanya (BKC-DES-028, 030, 031, 032, 034, 035) `approved` lewat BKC-DEC-105 pada hari yang
+  sama - seluruhnya keputusan teknis turunan langsung dari keputusan bisnis, NOL di antaranya
+  menyimpang dari bunyi keputusan mana pun. Statusnya sengaja TIDAK dinaikkan otomatis bersama
+  BKC-DEC-103/104: approval adalah tindakan manusia dan tidak boleh disimpulkan dari jawaban atas
+  dua pertanyaan yang berbeda.
+design_decision_ids_petty_cash: [PC-DES-001, PC-DES-002, PC-DES-003, PC-DES-004, PC-DES-005, PC-DES-006, PC-DES-007, PC-DES-008, PC-DES-009, PC-DES-010, PC-DES-011, PC-DES-012, PC-DES-013, PC-DES-014, PC-DES-015, PC-DES-016, PC-DES-017, PC-DES-018, PC-DES-019, PC-DES-020, PC-DES-021, PC-DES-022, PC-DES-023, PC-DES-024, PC-DES-025]
+design_decision_status_petty_cash_revision_1_2: >
+  PC-DES-001-014: approved 7 September 2026 lewat PC-DEC-015.
+  PC-DES-015-025 (BARU pada revisi 1.2): seluruhnya `approved` 15 September 2026 lewat PC-DEC-026
+  (Product/Domain Owner, "Saya menyetujui PC-DES-015-025", wewenang ganda Finance/AR BKC-DEC-085).
+  Approval itu BUKAN otorisasi membuat/menjalankan migration dan BUKAN otorisasi menghapus butir
+  hak akses Approve/Reject sebelum PC-OQ-007 diperiksa.
+  EMPAT keputusan lama berubah keadaan pada revisi ini, dan ini pertama kalinya rumpun Petty Cash
+  mencabut keputusannya sendiri:
+    PC-DES-003 DIPERSEMPIT oleh PC-DES-015 (kosakata status lima nilai menjadi empat nilai hidup
+      ditambah satu warisan);
+    PC-DES-005 SUPERSEDED oleh PC-DES-016 (mekanisme komitmen ReservedAmount dicabut utuh);
+    PC-DES-013 MENJADI WARISAN lewat PC-DES-015 (status REJECTED tidak dapat dimasuki voucher baru,
+      barisnya tetap dilindungi);
+    PC-DES-014 SUPERSEDED oleh PC-DES-017 (kolam statis HOSPITAL_MAIN menjadi baris periode).
+  PC-DES-001, 002, 004, 006, 007, 008, 009, 010, 011, 012 TETAP BERLAKU apa adanya.
+design_decision_ids_multi_payer: [MPY-DES-001, MPY-DES-002, MPY-DES-003, MPY-DES-004, MPY-DES-005, MPY-DES-006, MPY-DES-007, MPY-DES-008, MPY-DES-009, MPY-DES-010, MPY-DES-011, MPY-DES-012, MPY-DES-013, MPY-DES-014, MPY-DES-015, MPY-DES-016, MPY-DES-017]
+design_decision_status_multi_payer: >
+  MPY-DES-001-017: seluruhnya `approved` 11 September 2026 lewat MPY-DEC-012 (Product/Domain
+  Owner, wewenang ganda Finance/AR BKC-DEC-085, "Sayapun setuju"). Persetujuan pemilik
+  RegistrationManagement atas MPY-DES-004 ditutup terpisah lewat MPY-DEC-011 (Muhammad Hamzah,
+  "Muhammad Hamzah dah setuju", disampaikan melalui Product/Domain Owner — lihat catatan
+  provenance pada 00-interview-decisions.md).
+  Approval ini BUKAN otorisasi membuat maupun menjalankan migration; keduanya tetap memerlukan
+  konfirmasi terpisah saat implementasi.
+requirement_completeness_gate_multi_payer: >
+  NOT_RUN untuk rumpun Edit Tagihan & Multi-Payer, dan itu DEVIASI YANG DICATAT, bukan langkah
+  yang terlewat. Sebagai gantinya dipakai: 00-interview-decisions.md (MPY-DEC-001-010, sepuluh
+  keputusan `approved` beserta owner dan evidence, termasuk penutupan satu konflik lintas modul
+  nyata RWI-ENC-PAYER-001 dan tiga open question sampai tuntas) serta 01-existing-capability-map.md
+  § 19 (sembilan kemampuan berbukti source langsung). Pola pencatatan mengikuti
+  domain_architecture_readiness_petty_cash di bawah.
+domain_architecture_readiness_multi_payer: >
+  DOMAIN_ARCHITECTURE_NOT_RUN untuk rumpun ini. Alasannya: seluruh batas lintas konteks yang
+  relevan sudah diputus EKSPLISIT oleh keputusan bisnis — kepemilikan payer kunjungan tetap di
+  RegistrationManagement (MPY-DEC-007), penempatan kedua master data baru (MPY-DEC-008), dan batas
+  terhadap PharmacyManagement (MPY-DEC-009) — sehingga tidak ada batas domain tersisa untuk
+  diselesaikan hospital-domain-architect.
 design_decision_prefix_convention: >
   Rumpun Petty Cash memakai prefix PC-DES-* , BUKAN melanjutkan sekuens BKC-DES-* tingkat modul.
   Ini mengikuti konvensi per-rumpun yang sudah ditetapkan 00-interview-decisions.md sendiri saat
@@ -161,13 +437,81 @@ superseded_design_decisions:
 narrowed_design_decisions:
   BKC-DES-013: dipersempit dua kali (BUKAN digugurkan). Revisi 0.8 (BKC-DES-021): makna UnresolvedAmount menyisakan jalur rule NotCovered + IsAllowExcessPaymentByPatient=false saja; residual perhitungan pindah ke NonBillableResidualAmount. Revisi 0.9 (BKC-DES-026/027, approved 5 Sep 2026): dipersempit lagi menjadi NOL jalur — UnresolvedAmount selalu 0 pada versi kalkulasi baru; field/kolomnya tetap dipertahankan sebagai bukti perhitungan versi lama
 contract_versions:
-  api: BIL-API-0.9 (draft, revisi 1.0 — rumpun Petty Cash) atas BIL-API-0.8 approved dan baseline BIL-API-0.4 approved
-  state: BIL-STATE-0.8 (draft, revisi 1.0 — rumpun Petty Cash) atas BIL-STATE-0.7 approved dan baseline BIL-STATE-0.4 approved
-  validation: BIL-VALIDATION-0.8 (draft, revisi 1.0 — rumpun Petty Cash) atas BIL-VALIDATION-0.7 approved dan baseline BIL-VALIDATION-0.4 approved
-  integration: BIL-INTEGRATION-0.7 (draft, revisi 1.0 — rumpun Petty Cash) atas BIL-INTEGRATION-0.6 approved dan baseline BIL-INTEGRATION-0.4 approved
-  permission: BIL-PERMISSION-0.7 (draft, revisi 1.0 — rumpun Petty Cash; TIGA Resource baru) atas BIL-PERMISSION-0.6 approved dan baseline BIL-PERMISSION-0.4 approved. Catatan: pemakaian ulang `BillingInvoice : Read` untuk lembar Invoice Asuransi sudah DITUTUP oleh BKC-DEC-092 (Security Owner, 5 Sep 2026)
-  testing: BIL-TEST-0.9 (draft, revisi 1.0 — rumpun Petty Cash) atas BIL-TEST-0.8 approved dan baseline BIL-TEST-0.4 approved
-  calculation: BIL-CALCULATION-0.8 (approved 5 Sep 2026, revisi 0.9) atas BIL-CALCULATION-0.7 approved dan BIL-CALCULATION-0.4 yang berlaku di source — TIDAK bergerak pada revisi 1.0. Petty Cash tidak menyentuh mesin kalkulasi sama sekali
+  api: BIL-API-1.3 (**approved**, revisi 1.4 — dua endpoint operasional baru pada Resource baru BillingConsumerHandoff; NOL endpoint lama yang berubah bentuk maupun arti) atas BIL-API-1.2
+  state: BIL-STATE-1.2 (**approved**, revisi 1.4 — sumbu status surat ke konsumen CREATED/ACKNOWLEDGED, dan keadaan clearance resep CLEARED/REVOKED yang dimiliki Billing) atas BIL-STATE-1.1
+  validation: BIL-VALIDATION-1.2 (**approved**, revisi 1.4 — BIL-VAL-110-117; dua di antaranya fail-closed yang MUST NOT diperlakukan sebagai izin) atas BIL-VALIDATION-1.1
+  integration: BIL-INTEGRATION-1.1 (**approved**, revisi 1.4 — BIL-INT-013 dan BIL-INT-014; dua konsumen nyata pertama modul ini. Menutup sebagian BKC-BLK-INT-001 untuk sisi AR) atas BIL-INTEGRATION-1.0
+  permission: BIL-PERMISSION-1.1 (**approved**, revisi 1.4 — satu Resource baru dengan dua Action; dua kolom sensitif baru yang MUST NOT masuk payload log) atas BIL-PERMISSION-1.0
+  testing: BIL-TEST-1.3 (**approved**, revisi 1.4 — BIL-AT-135-142 beserta lima jalur gagal bernama) atas BIL-TEST-1.2
+contract_versions_approval_revision_1_4: >
+  Keenam sumbu di atas naik dari `draft` menjadi `approved` pada 21 September 2026 lewat
+  BKC-DEC-110, disetujui Product/Domain Owner dengan wewenang ganda Billing/Payer dan Clinical
+  Governance (PHA-DEC-066). Approval ini BUKAN wewenang menulis source, membuat migration,
+  maupun menjalankannya — ketiganya tetap diminta terpisah per task saat eksekusi.
+  calculation: BIL-CALCULATION-0.9 — TIDAK BERGERAK pada revisi 1.4. Amendment ini menerbitkan fakta yang sudah dihitung; ia tidak menyentuh satu suku pun rumus mana pun
+contract_versions_note_revision_1_4: >
+  Enam dari tujuh sumbu naik pada revisi 1.4; sumbu calculation TIDAK bergerak dan berkasnya
+  TIDAK disunting, sesuai aturan bahwa file contract yang isinya tidak bergerak MUST NOT disunting
+  hanya untuk menaikkan angka. Seluruh kenaikan berstatus `draft` — menunggu approval
+  Product/Domain Owner atas BKC-DES-036-041.
+  Yang membedakan revisi ini dari seluruh revisi sebelumnya: ini revisi pertama yang membangun
+  KONSUMEN NYATA. Revisi 1.3 bahkan sengaja MEMUTUS ketergantungan status invoice dari AR/AP
+  justru karena konsumennya belum ada. Kini Finance berdiri dengan intake yang sudah dibangun,
+  dan Farmasi menunggu dengan keputusan PHA-DEC-063-070 yang sudah approved.
+contract_versions_note_revision_1_3: >
+  Enam dari tujuh sumbu naik pada revisi 1.3; sumbu calculation TIDAK bergerak. Seluruh kenaikan
+  itu kini `approved` sejak 18 September 2026 lewat BKC-DEC-105. Label `(draft, revisi 1.3 ...)`
+  pada keenam baris di atas dibaca sebagai keadaan SAAT DITULIS; status yang berlaku sekarang
+  adalah `approved` menurut baris ini.
+  Ini TIDAK mencabut status approved isi sebelumnya: setiap berkas kontrak memuat amendment revisi
+  ini sebagai bagian TERPISAH di ujungnya, sementara seluruh bagian di atasnya tetap approved apa
+  adanya.
+  YANG MEMBEDAKAN revisi ini dari revisi 1.2: revisi 1.2 adalah revisi pertama yang BUKAN aditif
+  (menghapus endpoint, hak akses, dan field). Revisi 1.3 kembali sepenuhnya aditif pada tingkat
+  bentuk - NOL konsumen yang rusak. Yang berubah hanya NILAI, dan justru karena itu sulit
+  ditemukan konsumen: kode yang mengandaikan closedAt selalu kosong, atau memperlakukan FINAL
+  sebagai satu-satunya keadaan akhir tagihan terbayar, akan tetap berjalan tanpa galat sambil
+  berperilaku salah.
+contract_versions_superseded_by_1_3: >
+  api: BIL-API-1.1 · state: BIL-STATE-1.0 · validation: BIL-VALIDATION-1.0 ·
+  integration: BIL-INTEGRATION-0.9 · permission: BIL-PERMISSION-0.9 · testing: BIL-TEST-1.1
+  (seluruhnya revisi 1.2, approved 15 September 2026 lewat PC-DEC-026)
+contract_versions_revision_1_2:
+  api: BIL-API-1.1 (draft, revisi 1.2 — revisi rumpun Petty Cash; DUA endpoint DIHAPUS, satu gerbang status berubah, satu field response dihapus, LIMA endpoint baru) atas BIL-API-1.0
+  state: BIL-STATE-1.0 (draft, revisi 1.2 — kosakata status voucher disusun ulang, status periode anggaran baru) atas BIL-STATE-0.9
+  validation: BIL-VALIDATION-1.0 (draft, revisi 1.2 — BIL-VAL-098-106; tiga aturan lama tidak berlaku lagi) atas BIL-VALIDATION-0.9
+  integration: BIL-INTEGRATION-0.9 (draft, revisi 1.2 — mencatat ketiadaan sambungan Accounting sebagai keputusan) atas BIL-INTEGRATION-0.8
+  permission: BIL-PERMISSION-0.9 (draft, revisi 1.2 — DUA butir hak akses DIHAPUS, LIMA ditambah) atas BIL-PERMISSION-0.8
+  testing: BIL-TEST-1.1 (draft, revisi 1.2 — BIL-AT-101-120, lima di antaranya regresi) atas BIL-TEST-1.0
+  calculation: BIL-CALCULATION-0.9 — TIDAK BERGERAK pada revisi 1.2. Petty Cash tidak menyentuh satu pun jalur kalkulasi tagihan pasien
+contract_versions_note_revision_1_2: >
+  Enam dari tujuh sumbu naik pada revisi 1.2; sumbu calculation TIDAK bergerak. Seluruh kenaikan
+  itu kini berstatus `approved` sejak 15 September 2026 lewat PC-DEC-026. Label `(draft, revisi 1.2 ...)`
+  pada keenam baris di atas dibaca sebagai keadaan SAAT DITULIS; status yang berlaku sekarang
+  adalah `approved` menurut baris ini.
+  YANG MEMBEDAKAN revisi ini dari seluruh revisi sebelumnya: ini revisi pertama yang BUKAN aditif.
+  Dua endpoint dihapus (POST /vouchers/{id}/approve dan /reject), dua butir hak akses dihapus,
+  dua field response dihapus (reservedAmount, availableAmount), satu gerbang status berubah, dan
+  nilai enum status berubah nama. Konsumen yang tidak diperbarui AKAN rusak. Daftar lengkapnya
+  ada pada contracts/api-contract.md bagian "Perubahan yang merusak konsumen".
+contract_versions_superseded_by_1_2: >
+  api: BIL-API-1.0 (draft, revisi 1.1 — rumpun Edit Tagihan & Multi-Payer; ENAM endpoint invoice baru + DUA grup CRUD master baru) atas BIL-API-0.9 draft dan BIL-API-0.8 approved
+  state: BIL-STATE-0.9 (draft, revisi 1.1 — perpindahan jenis payer, penanggung item, disposisi penebusan; NOL status invoice baru) atas BIL-STATE-0.8 draft dan BIL-STATE-0.7 approved
+  validation: BIL-VALIDATION-0.9 (draft, revisi 1.1 — BIL-VAL-059-097) atas BIL-VALIDATION-0.8 draft dan BIL-VALIDATION-0.7 approved
+  integration: BIL-INTEGRATION-0.8 (draft, revisi 1.1 — permukaan lintas modul TERLEBAR di modul ini: satu titik TULIS ke RegistrationManagement, tiga titik baca) atas BIL-INTEGRATION-0.7 draft dan BIL-INTEGRATION-0.6 approved
+  permission: BIL-PERMISSION-0.8 (draft, revisi 1.1 — DUA Resource baru; NOL permission baru pada BillingInvoice) atas BIL-PERMISSION-0.7 draft dan BIL-PERMISSION-0.6 approved
+  testing: BIL-TEST-1.0 (draft, revisi 1.1 — BIL-AT-081-100, tiga di antaranya regresi) atas BIL-TEST-0.9 draft dan BIL-TEST-0.8 approved
+  calculation: BIL-CALCULATION-0.9 (draft, revisi 1.1) atas BIL-CALCULATION-0.8 approved. BERGERAK pada revisi ini — BERBEDA dari Petty Cash. Sebabnya: adapter tanggungan menjadi dispatcher per jenis payer, menghormati penanggung per item dan disposisi penebusan, membawa penanda jenis payer pada hasil, dan BERHENTI mengeluarkan anomali INSURANCE_PROVIDER_MISSING untuk kunjungan berpenjamin perusahaan
+contract_versions_note_revision_1_1: >
+  KETUJUH sumbu naik pada revisi 1.1. Seluruh amendment rumpun Edit Tagihan & Multi-Payer pada
+  ketujuh sumbu itu berstatus `approved` sejak 11 September 2026 lewat MPY-DEC-012, mengikuti
+  approval MPY-DES-001-017 yang menurunkannya. Ini TIDAK mencabut status approved isi sebelumnya:
+  setiap berkas kontrak memuat amendment rumpun ini sebagai bagian TERPISAH di ujungnya,
+  sementara seluruh bagian di atasnya tetap approved apa adanya.
+  Sumbu `calculation` ikut naik — inilah pembeda utama dari revisi 1.0, dan alasannya perilaku
+  perhitungan memang berubah untuk kunjungan berpenjamin perusahaan.
+  Label `(draft, revisi 1.1 ...)` pada ketujuh baris di atas dibaca sebagai keadaan SAAT DITULIS;
+  status yang berlaku sekarang adalah `approved` menurut baris ini.
 contract_versions_note_revision_1_0: >
   Enam dari tujuh sumbu naik satu tingkat pada revisi 1.0, dan seluruh kenaikan itu berstatus
   `draft`. Ini TIDAK mencabut status approved isi sebelumnya: setiap berkas kontrak memuat
@@ -210,6 +554,19 @@ compatibility_impact: >
   Total Tagihan, Subtotal Mandiri, Subtotal Asuransi, dan outstanding pasien identik sebelum
   dan sesudah; yang berpindah hanya nama ember.
 active_dependency_ids: [BKC-BLK-FE-001, BKC-BLK-INT-001, BKC-BLK-PROV-001, BKC-BLK-DATA-001, BKC-BLK-SEC-001, BKC-BLK-MASTER-001, BKC-BLK-TAX-001, BKC-BLK-GIT-001]
+dependency_note_revision_1_3: >
+  BKC-BLK-INT-001 (consumer contract AR/AP belum dibuktikan) TETAP TERBUKA, tetapi cakupan
+  dampaknya MENYEMPIT tajam pada revisi 1.3. Sebelumnya dependency ini diam-diam menahan jalur
+  PALING UMUM di modul ini - setiap invoice lunas ikut menggantung di FINAL karena syarat
+  transisinya menunggu peristiwa milik konsumen yang belum ada. BKC-DEC-100 memutus ketergantungan
+  itu: status invoice kini ditentukan fakta milik Billing sendiri.
+  Yang MASIH ditahan BKC-BLK-INT-001 sesudah revisi ini, dan memang seharusnya ditahan: penyerahan
+  nyata ke sistem AR/AP, pengakuan ACKNOWLEDGED oleh sistem itu, dan sumbu status penagihan
+  piutang (lihat BKC-DES-033/BKC-CQ-01).
+blocking_questions_revision_1_3:
+  - BKC-OQ-100 — TERBUKA. Berapa banyak penyesuaian dan write-off yang sudah diposting atas invoice yang tidak pernah menerima koreksi AR, dan apakah dibutuhkan koreksi susulan selain pemindahan status. TIDAK memblokir desain maupun gelombang MVP-24; MEMBLOKIR penutupan MVP-25 (backfill). Dijawab keluaran dry-run baca-saja, bukan perkiraan. Penjawab: pemilik Billing/Finance
+  - BKC-CQ-01 — DITUTUP PENUH 18 September 2026 lewat BKC-DEC-103. Owner memilih opsi (c): BilArHandoff tidak disentuh sama sekali. Opsi status COLLECTED dan opsi kolom CollectedAt tidak dipilih. BKC-DES-033 naik menjadi approved
+  - Approval menyeluruh BKC-DES-028, 030, 031, 032, 034, 035 — DITUTUP 18 September 2026 lewat BKC-DEC-105. Tidak ada lagi keputusan yang memblokir /plan-module-delivery
 blocking_questions:
   - BKC-OQ-082 — DITUTUP PENUH 4 Sep 2026. BKC-DEC-084 (approval Product/Domain Owner) lalu BKC-DEC-085 (caveat wewenang Finance/AR ditutup — pengguna mengonfirmasi wewenang ganda).
   - BKC-OQ-085 — SEBAGIAN. Mitigasi risiko salah kategori DITUTUP oleh BKC-DEC-082 (validasi/warning saat ServiceType RANAP diubah setelah item obat/alkes ditambahkan). Pertanyaan ASLI (hitungan dampak penurunan total tagihan/PPN rawat inap) TETAP TERBUKA — butuh analisis Finance, bukan keputusan bisnis wawancara.
@@ -220,6 +577,20 @@ blocking_questions:
   - (revision 0.8) Approval BKC-DES-021–025 — DITUTUP PENUH 4 Sep 2026 oleh BKC-DEC-088 (Product/Domain Owner + Finance/AR, "saya approve"). Catatan: approval ini BUKAN otorisasi membuat/menjalankan migration BKC-DES-024 — itu tetap butuh konfirmasi terpisah saat implementasi.
 blocking_questions_revision_1_0:
   - TIDAK ADA. Rumpun Petty Cash tidak melahirkan satu pun pertanyaan terbuka bertanda memblokir. Yang tersisa sebelum /plan-module-delivery untuk rumpun ini HANYA approval manusia atas PC-DES-001-014.
+blocking_questions_revision_1_2:
+  - TIDAK ADA. Seluruh closure question rumpun Petty Cash tertutup: PC-OQ-004/PC-CQ-03 (pola integrasi Accounting) lewat PC-DEC-023, dan PC-CQ-04 (nasib hak akses Approve/Reject) lewat PC-DEC-024. Keempat gelombang MVP-20 sampai MVP-23 siap diteruskan ke /plan-module-delivery.
+non_blocking_questions_revision_1_2:
+  - PC-OQ-005 — Migrasi kolam HOSPITAL_MAIN ke model periode. DITUTUP oleh PC-DES-024 dan Rencana migration pada 02-backend-architecture.md; baris warisan menjadi periode pertama dengan PeriodStart dari CreateDateTime-nya sendiri dan PeriodEnd dikosongkan.
+  - PC-OQ-006 — Taksonomi RETURN versus ADJUSTMENT. DITUTUP oleh PC-DES-019; keduanya menjadi nilai MovementType terpisah karena menjawab pertanyaan bisnis yang berbeda, walau arah aritmetikanya sama.
+  - PC-OQ-007 — Apakah ada Departemen x Posisi yang HANYA memegang hak akses Approve/Reject Petty Cash dan akan kehilangan seluruh aksesnya saat butir itu dihapus. TIDAK memblokir desain; MEMBLOKIR langkah penghapusan permission saat implementasi. Penjawab, pemilik arsitektur backend lewat pemeriksaan data peran sebelum migration.
+  - PC-OQ-008 — Siapa membuat periode anggaran pertama setelah rilis dan berapa plafonnya. MEMBLOKIR AKTIVASI fitur, bukan pembangunannya. Penjawab, Finance.
+blocking_questions_revision_1_1:
+  - MPY-OQ-004 — DITUTUP PENUH 11 September 2026 oleh MPY-DEC-011 (Muhammad Hamzah, pemilik RegistrationManagement). Bentuk yang disetujui, satu layanan generik yang memperbarui baris di tempat dan ikut transaksi pemanggil. Gelombang MVP-17 TIDAK lagi terblokir.
+  - TIDAK ADA pertanyaan bertanda memblokir yang tersisa untuk rumpun ini. Keempat gelombang MVP-16 sampai MVP-19 siap diteruskan ke /plan-module-delivery.
+non_blocking_questions_revision_1_1:
+  - MPY-OQ-005 — Kolom penanda "sudah ditagih" pada catatan penyerahan obat milik PharmacyManagement sudah ada tetapi belum diketahui dipakai proses apa. MUST dicek lewat pembacaan source sebelum MVP-18 dimulai, supaya rumpun ini tidak membuat mekanisme paralel yang bertentangan. Penjawab, pemilik arsitektur backend bersama pemilik Pharmacy.
+  - MPY-OQ-006 — Siapa mengisi aturan tanggungan untuk setiap perusahaan penjamin yang sudah terdaftar, dan kapan. Memblokir AKTIVASI fitur, bukan pembangunannya, karena tanpa isi master seluruh tanggungan perusahaan terhitung nol. Penjawab, Product/Domain Owner bersama Admin Master Data.
+  - MPY-CQ-03 — Koordinasi urutan commit dengan pekerjaan "Payment Reminder" yang working tree-nya sudah menyentuh tiga berkas yang juga akan disentuh rumpun ini. Murni koordinasi tim, bukan keputusan arsitektur. Penjawab, pemilik modul billing-kasir.
 non_blocking_questions_revision_1_0:
   - PC-OQ-001 — Nama entity data induk kategori, MstPettyCashCategory (dirancang) versus BilPettyCashCategory (tanda kurung pada 01-existing-capability-map.md § 18.8). Desain memilih Mst karena registry menetapkan prefix Mst untuk MASTER/REFERENCE dan enam dari enam data induk modul ini memakainya; § 18.8 sendiri menunjuk MstPaymentMethod/MstTaxRule sebagai pola yang tepat ditiru pada kalimat yang sama. Perubahan nama, bila diputuskan, adalah satu paket sebelum berkas model pertama dibuat sehingga tidak menimbulkan rename tabel. Penjawab: pemilik arsitektur backend.
   - PC-OQ-002 — Apakah koreksi nomor nota pada voucher Selesai perlu wewenang lebih tinggi. Bawaan desain: petugas yang sama, setiap koreksi tercatat. Penjawab: Kepala Kasir/Finance Operations.
@@ -234,23 +605,47 @@ blocked_by_external_action_not_business_decision:
   - Review Security atas BillingInvoice:Read untuk dokumen berisi nomor polis.
   - Kelengkapan MstInsuranceProvider/MstInsuranceCoverageRule untuk verifikasi UAT — perlu pengecekan data langsung.
 artifact_hashes:
-  02-backend-architecture.md: cf08e225686220b63c8f3c659221cbc11af5265cfc3c7f7d662c4432ad56185e
-  03-frontend-architecture.md: 554c5891d3f14ee2b526be03d93b63b0801dfa1cd15f6329c21a7e7688de9b18
-  04-prd-to-mvp.md: 8162f46ec686a96c9bc9cbfedc92db71b8099bf279bf27985f601d48e4389133
-  contracts/api-contract.md: a751daed47561370ec4f707d4a46aa3195c3cfa45422525029dae06bab9e2b0c
-  contracts/state-transition-matrix.md: f527193d72ce15b99e2c5347c9f0262bf57eaabd0d113d09af122d7808cc3be6
-  contracts/validation-matrix.md: b5839d57944a8fc362682c67e014419fe3ccfc1b4be19cf6a6545d7e1b9d7584
-  contracts/integration-contract.md: ce9d1480bfc6aab7f8e0e47e39f6c82a2f0559632aaa3f009aa2e20894d1cb4c
-  contracts/permission-audit-matrix.md: 442824b8fe99f36f819c812653ccb0e6cb810d8dd849447521a6db4e7d944721
-  data/data-dictionary.md: b4846e353e0f4196878c6a3dee913ac1a57d2e7bd39447733df250e72fd5b498
-  flowcharts/00-alur-utama.md: 73ffc4bc3b710f055686311aed8dc7015d48201116a37a0a41933762e9443aff
+  02-backend-architecture.md: 21c5b9f44c6d5068f63e011857145f9c3ea9fe75916ca1801b68ad35ad9d9920
+  03-frontend-architecture.md: 26913a4cf6a5bb9a52817e16012e524c22d2905b41fb5df5db974fcec0f4451e
+  04-prd-to-mvp.md: d1abc5a104121cfe57339b26c557f9a5b3039fd0ebcabff5f42ff71fb03f928b
+  contracts/api-contract.md: 39e85a2f6d6f0ea598a420b76e1fe4219f96c2731363821d820d1ac1e6ac170d
+  contracts/state-transition-matrix.md: af0d53b3abfa68e4c584921c461cec09be90925316c9311471d1952c81564134
+  contracts/validation-matrix.md: b19880f87936000a6d4dfc58e36c444a6dcad3c5cf02e92caa0ac3d783cafa36
+  contracts/integration-contract.md: aeb049e115351ca6a2e67d6d4b3f54a4c4ea60b9a21cca9eb25a70dbf2bbd2ba
+  contracts/permission-audit-matrix.md: 2130aabaacaaecd4bc3c86632a7e2694762c3b9b56d067790170c564bdf94a89
+  data/data-dictionary.md: 38238d0481b385c04db105c684ba6419170d640ecdbf435e2ecc4717d71cae84
+  testing/acceptance-test-matrix.md: 45222b5b6217aff219f2f2952993e262bd57f5df75d54589ab9e9c1de5b25eeb
+  flowcharts/penerbitan-fakta-ke-modul-konsumen.md: 2f1dc45371e051cc357727faece98c8ac672cce836943245cdfa67b46fac4870
+artifact_hashes_note_revision_1_4: >
+  Sebelas berkas dimutakhirkan pada revisi 1.4, satu di antaranya berkas baru
+  (flowcharts/penerbitan-fakta-ke-modul-konsumen.md). Hash dihitung sha256 atas isi berkas
+  sesudah amendment 21 September 2026 ditulis.
+  Berkas yang TIDAK disunting dan karena itu hashnya TIDAK berubah: seluruh flowchart lama,
+  erd/, dan 01-existing-capability-map.md. Sumbu calculation juga tidak punya berkas yang
+  bergerak. Hash yang tertinggal di belakang bukan ketidakrapian — ia keterangan bahwa berkas
+  itu memang tidak tersentuh.
+  flowcharts/00-alur-utama.md: 4efffec07b85ff73b852491ed9266a5717c76529777e1908f967cb200cdb38f7
+  flowcharts/ganti-payer-kunjungan.md: f177c0850754d074a713165b7db02c6cc242ed9a8892aa913e92188e08e119b2
+  flowcharts/penanggung-per-item-tagihan.md: 6565c1773f01494dc19b721c87a51809fb2fa12bcf44db0b3c937866bf440e3a
+  flowcharts/penebusan-obat-rawat-jalan.md: b278ed0cb0feaad67d83fe8611075761211aaca5ae2e6311b586b7befaa8c840
   flowcharts/pembagian-tanggungan-penjamin.md: 5017a2dde74e944062813cff1cca055ac0e71190b55034051feec51d9199eb86
   flowcharts/ppn-obat-alkes.md: 87393bbd87a297551f601695cc6630f111a9877c6a37a011a4ea8e6a376c5c9e
   flowcharts/dokumen-invoice-asuransi.md: 2db82496543972720b7dfdccd560e3d05db0e074b23d4ebc8a0c48f31e2de32c
-  flowcharts/voucher-petty-cash.md: 6e4e3eaa828022175c9756686efeab7780f7440ca885f4396149dd6478eb2028
-  flowcharts/anggaran-petty-cash.md: 886c9ef3bba9a5dc73350092c134022e8ab34b396da6e8362a87a637a6209d4d
+  flowcharts/voucher-petty-cash.md: dd9f0c40a4318ad68d912c96438e93c9b4ac89d9045ac50b4eb292bbb71be349
+  flowcharts/anggaran-petty-cash.md: 18dfa3ea62210774d9161503b32a2f8f2064e314f88a22e319552d8bb82aefab
   erd/data-dictionary.md: e65acb8276f9d3a603d6a27f7da54e5fdca95297554ff25a04d04d0b6d2aed7a
-  testing/acceptance-test-matrix.md: ad38c3d529bdad40f8f55309ae92d4957cdf73541df237681a277cc2072d244d
+artifact_hashes_note_revision_1_1: >
+  Dihitung ulang pada revisi 1.1 (SHA256, isi berkas apa adanya), benar-benar dihitung dari
+  berkasnya, bukan ditulis tangan.
+  SEBELAS berkas berubah pada revisi 1.1: 02-backend-architecture.md, 03-frontend-architecture.md,
+  04-prd-to-mvp.md, kelima berkas contracts/, data/data-dictionary.md,
+  testing/acceptance-test-matrix.md, dan flowcharts/00-alur-utama.md.
+  TIGA berkas BARU ditambahkan ke daftar: flowcharts/ganti-payer-kunjungan.md,
+  flowcharts/penanggung-per-item-tagihan.md, dan flowcharts/penebusan-obat-rawat-jalan.md.
+  Satu baris ganda testing/acceptance-test-matrix.md yang tertinggal dari revisi 1.0 DIHAPUS pada
+  pass ini; nilai yang berlaku adalah yang dihitung revisi 1.1.
+  Lima berkas TIDAK disentuh dan hash-nya tetap sebagaimana revisi 1.0: keempat flowchart rumpun
+  sebelumnya dan erd/data-dictionary.md.
 artifact_hashes_note: >
   Dihitung ulang pada revisi 1.0 (SHA256, isi berkas apa adanya), dan kali ini BENAR-BENAR
   dihitung, bukan ditulis tangan. Ini menutup keadaan STALE yang dicatat revisi 0.8, ketika

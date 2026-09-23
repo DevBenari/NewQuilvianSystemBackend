@@ -36,7 +36,7 @@ Eksekusi migration-nya sendiri tetap wewenang terpisah yang diminta per tindakan
 | `MstBloodStorageLocation` | **Baru pada `v2`** | Bank Darah (master) | Master ketiga Setup MVP (`BD-DOM-24`, `DEC-BD-035`). Prasyarat go-live |
 | `MstDrugStorageLocation` | Sudah ada | HealthServices Master Data (Farmasi) | **Tidak dipakai dan tidak disentuh.** Ditolak sebagai kandidat pakai-ulang oleh `DEC-BD-035` |
 | `MstServiceUnit` | **Diperbarui** | HealthServices Master Data | +1 kolom `IsAvailableForBloodOrder` |
-| `MstPatient`, `TrxPatientEncounter`, `InpEpisode`, `MstDoctor`, `MstClinic`, `MstRoom`, `MstPatientClass`, `MstProcedure`/tarif | Sudah ada | modul masing-masing | Direferensikan, **MUST NOT** disalin |
+| `MstPatient`, `RegPatientEncounter`, `InpEpisode`, `MstDoctor`, `MstClinic`, `MstRoom`, `MstPatientClass`, `MstProcedure`/tarif | Sudah ada | modul masing-masing | Direferensikan, **MUST NOT** disalin |
 
 Enum disimpan sebagai `integer` (`HasConversion<int>`). `BloodType` dipakai ulang (`BD-CAP-016`).
 
@@ -51,7 +51,7 @@ Enum disimpan sebagai `integer` (`HasConversion<int>`). `BloodType` dipakai ulan
 | `Id` | `Guid` | Ya | `NewGuid()` | PK | — | — | Tidak | Kunci utama |
 | `OrderNumber` | `string(30)` | Ya | — | Unique | — | — | Tidak | Dari number-series |
 | `PatientId` | `Guid` | Ya | — | Index | FK `MstPatient` | `Restrict` | Tidak | Pasien |
-| `EncounterId` | `Guid` | Ya | — | Index | FK `TrxPatientEncounter` | `Restrict` | Tidak | Kunjungan asal |
+| `EncounterId` | `Guid` | Ya | — | Index | FK `RegPatientEncounter` | `Restrict` | Tidak | Kunjungan asal |
 | `ServiceUnitId` | `Guid` | Ya | — | Index | FK `MstServiceUnit` | `Restrict` | Tidak | Unit pemesan |
 | `RequestingDoctorId` | `Guid` | Ya | — | Index | FK `MstDoctor` | `Restrict` | Tidak | Dokter peminta |
 | `OrderSource` | `int` (`BbkOrderSource`) | Ya | `Electronic` | — | — | — | Tidak | Elektronik/manual |
@@ -223,7 +223,13 @@ baru.
 > dan pemutus tidak sependapat justru bagian riwayat yang berguna saat ditinjau kemudian.
 
 > **Angka pemenuhan order menyaring `CorrectionStatus = Approved`.** Menyertakan yang `Requested` akan
-> membuat angka bergerak sebelum keputusan turun (`INV-BD-033`).
+> membuat angka bergerak sebelum keputusan turun (`INV-BD-033`). Dipertajam `DEC-BD-054`: kantong ber-koreksi
+> `Approved` dikeluarkan dari jumlah diberikan; `Requested`/`Rejected` tetap dihitung.
+
+> **`AnnulIssuance` dan `IssuedToPatientId` sengaja tidak ada pada tabel ini** (`DEC-BD-053`). Keduanya
+> isian penjaga pada DTO request `RequestIssuanceCorrectionRequest` — dipakai hanya untuk menolak
+> `VAL-BD-025`/`VAL-BD-049` — dan **tidak pernah disimpan**. Skema persisten `BbkIssuanceCorrection` tetap
+> persis kolom di atas, sama dengan migration `20260917055332_AddBbkIssuanceCorrection`.
 
 ### `BbkBloodGroupExam`
 

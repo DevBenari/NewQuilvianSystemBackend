@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
@@ -30,13 +32,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
     {
         private readonly ApplicationDbContext _dbContext;
         private readonly InpSettingService _settingService;
+        private readonly IInpBillingDepositAdapter? _billingDepositAdapter;
+
+        /// <summary>
+        /// Kalimat yang dibaca pengguna ketika akunnya tidak terhubung dengan data dokter.
+        /// Dikunci kontrak <c>0.9.0</c> bagian 10.1.
+        /// </summary>
+        public const string AkunTanpaDataDokter =
+            "Akun Anda tidak terhubung dengan data dokter.";
 
         public InpCensusQueryService(
             ApplicationDbContext dbContext,
-            InpSettingService settingService)
+            InpSettingService settingService,
+            IInpBillingDepositAdapter? billingDepositAdapter = null)
         {
             _dbContext = dbContext;
             _settingService = settingService;
+            _billingDepositAdapter = billingDepositAdapter;
         }
 
         // =====================================================================
@@ -55,6 +67,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// </remarks>
         public async Task<CensusPagedResult> GetCensusAsync(
             CensusQuery query,
+            Guid? currentDoctorId = null,
             CancellationToken cancellationToken = default)
         {
             query ??= new CensusQuery();
@@ -63,7 +76,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 query.PageNumber,
                 query.PageSize);
 
-            var filtered = BuildCensusQuery(query);
+            // FR-RI-192 - akun yang tidak terhubung dengan data dokter menerima daftar kosong
+            // BESERTA ALASANNYA, bukan 403. Hak baca census-nya sah; yang tidak ada adalah
+            // kaitan akunnya dengan seorang dokter, dan itu masalah data induk.
+            if (query.AssignedToMe && (!currentDoctorId.HasValue || currentDoctorId.Value == Guid.Empty))
+            {
+                return new CensusPagedResult
+                {
+                    PageNumber = pageNumber,
+                    PageSize = pageSize,
+                    TotalData = 0,
+                    TotalPage = 0,
+                    Items = new List<CensusItemResponse>(),
+                    EmptyReason = AkunTanpaDataDokter
+                };
+            }
+
+            var evaluatedAt = DateTime.UtcNow;
+            var filtered = BuildCensusQuery(query, currentDoctorId, evaluatedAt);
 
             var descending = string.Equals(
                 query.SortDirection,
@@ -110,13 +140,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     ServiceUnitName = x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : null,
                     PatientClassId = x.PatientClassId,
                     PatientClassName = x.PatientClass != null ? x.PatientClass.PatientClassName : null,
+                    // Kolom ini berarti DPJP, bukan "dokter mana pun yang sedang terlibat".
+                    // Sejak BE-RWI-074 saringan perannya wajib, kalau tidak konsulen dengan
+                    // nomor urut terbesar akan tampil sebagai penanggung jawab pasien.
                     DoctorId = x.Episode.DoctorAssignments
-                        .Where(d => d.EndDateTime == null && !d.IsDelete)
+                        .Where(d =>
+                            d.AssignmentRole == InpDoctorAssignmentRole.Dpjp &&
+                            d.EndDateTime == null &&
+                            !d.IsDelete)
                         .OrderByDescending(d => d.SequenceNumber)
                         .Select(d => (Guid?)d.DoctorId)
                         .FirstOrDefault(),
                     DoctorName = x.Episode.DoctorAssignments
-                        .Where(d => d.EndDateTime == null && !d.IsDelete)
+                        .Where(d =>
+                            d.AssignmentRole == InpDoctorAssignmentRole.Dpjp &&
+                            d.EndDateTime == null &&
+                            !d.IsDelete)
                         .OrderByDescending(d => d.SequenceNumber)
                         .Select(d => d.Doctor != null ? d.Doctor.FullName : null)
                         .FirstOrDefault(),
@@ -131,6 +170,35 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                         .Select(n => n.Employee != null ? n.Employee.FullName : null)
                         .FirstOrDefault(),
                     RequiresIsolation = x.Episode.RequiresIsolation,
+                    // BE-RWI-081 - peran dan tujuan penugasan PEMANGGIL atas pasien ini,
+                    // bukan peran DPJP episode. Keduanya sengaja hanya terisi pada jalur
+                    // assignedToMe: pada census unit, "penugasan saya" tidak punya arti.
+                    //
+                    // Urut menaik menurut peran, sehingga dokter yang sekaligus DPJP dan
+                    // konsulen pada episode yang sama terbaca sebagai DPJP - peran dengan
+                    // kewenangan terbesarlah yang menentukan apa yang boleh ia lakukan.
+                    MyAssignmentRole = !query.AssignedToMe
+                        ? null
+                        : x.Episode.DoctorAssignments
+                            .Where(d =>
+                                d.DoctorId == currentDoctorId!.Value &&
+                                !d.IsDelete &&
+                                d.StartDateTime <= evaluatedAt &&
+                                (d.EndDateTime == null || d.EndDateTime > evaluatedAt))
+                            .OrderBy(d => d.AssignmentRole)
+                            .Select(d => (int?)d.AssignmentRole)
+                            .FirstOrDefault(),
+                    MyAssignmentPurpose = !query.AssignedToMe
+                        ? null
+                        : x.Episode.DoctorAssignments
+                            .Where(d =>
+                                d.DoctorId == currentDoctorId!.Value &&
+                                !d.IsDelete &&
+                                d.StartDateTime <= evaluatedAt &&
+                                (d.EndDateTime == null || d.EndDateTime > evaluatedAt))
+                            .OrderBy(d => d.AssignmentRole)
+                            .Select(d => (int?)d.AssignmentPurpose)
+                            .FirstOrDefault(),
                     // BE-RWI-031 — ibu dan bayi tampil sebagai dua baris; rujukan ke episode
                     // ibu ikut supaya layar dapat menjawab "bayi siapa", bukan sekadar
                     // "bayi mana".
@@ -171,11 +239,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// <summary>Menghitung jumlah pasien dirawat per unit layanan dan per kelas perawatan.</summary>
         public async Task<CensusSummaryResponse> GetCensusSummaryAsync(
             CensusQuery query,
+            Guid? currentDoctorId = null,
             CancellationToken cancellationToken = default)
         {
             query ??= new CensusQuery();
 
-            var filtered = BuildCensusQuery(query);
+            // Ringkasan akun tanpa data dokter mengikuti daftarnya: kosong, bukan 403.
+            if (query.AssignedToMe && (!currentDoctorId.HasValue || currentDoctorId.Value == Guid.Empty))
+            {
+                return new CensusSummaryResponse { NeedsReviewCount = 0 };
+            }
+
+            var evaluatedAt = DateTime.UtcNow;
+            var filtered = BuildCensusQuery(query, currentDoctorId, evaluatedAt);
 
             var byServiceUnit = await filtered
                 .GroupBy(x => new
@@ -210,12 +286,34 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             var totalIsolation = await filtered
                 .CountAsync(x => x.Episode!.RequiresIsolation, cancellationToken);
 
+            // Acceptance criteria 3 - angka ringkasan dihitung dari DAFTAR YANG SAMA, bukan
+            // dari query terpisah yang penyaringnya disalin ulang. Salinan penyaring akan
+            // berselisih dengan daftarnya pada perubahan berikutnya, dan layar menampilkan dua
+            // jawaban yang sama-sama meyakinkan.
+            int? needsReviewCount = null;
+
+            if (query.AssignedToMe)
+            {
+                var episodeIds = filtered.Select(x => x.EpisodeId);
+
+                needsReviewCount = await _dbContext.Set<TrxPatientIntegratedProgressNote>()
+                    .AsNoTracking()
+                    .CountAsync(
+                        x => x.InpEpisodeId != null &&
+                             episodeIds.Contains(x.InpEpisodeId.Value) &&
+                             !x.IsDelete &&
+                             (x.VerificationStatus == CpptVerificationStatus.Pending ||
+                              x.VerificationStatus == CpptVerificationStatus.Overdue),
+                        cancellationToken);
+            }
+
             return new CensusSummaryResponse
             {
                 TotalPatient = totalPatient,
                 TotalRequiringIsolation = totalIsolation,
                 ByServiceUnit = byServiceUnit.OrderBy(x => x.Name).ToList(),
-                ByPatientClass = byPatientClass.OrderBy(x => x.Name).ToList()
+                ByPatientClass = byPatientClass.OrderBy(x => x.Name).ToList(),
+                NeedsReviewCount = needsReviewCount
             };
         }
 
@@ -833,7 +931,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// <c>PhysicallyLeftAt</c> ikut diperiksa sebagai penjaga kedua, supaya census tetap
         /// benar walaupun ada baris penempatan yang tertinggal terbuka karena kejadian lama.
         /// </remarks>
-        private IQueryable<InpBedPlacement> BuildCensusQuery(CensusQuery query)
+        private IQueryable<InpBedPlacement> BuildCensusQuery(
+            CensusQuery query,
+            Guid? currentDoctorId = null,
+            DateTime? evaluatedAtUtc = null)
         {
             IQueryable<InpBedPlacement> filtered = _dbContext.Set<InpBedPlacement>()
                 .AsNoTracking()
@@ -874,10 +975,40 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 filtered = filtered.Where(x => x.PatientClassId == query.PatientClassId.Value);
             }
 
-            if (query.DoctorId.HasValue && query.DoctorId.Value != Guid.Empty)
+            // BE-RWI-081 / INV-INP-13 - "pasien saya" berarti pasien yang boleh saya tulis
+            // SAAT INI. Keaktifan penugasan dinilai pada waktu query dijalankan, tanpa proses
+            // latar apa pun: dokter jaga 22.00-07.00 melihat pasiennya pada 06.59 dan tidak
+            // lagi melihatnya pada 07.01, tanpa ada yang perlu menjalankan apa pun di antaranya.
+            //
+            // SELURUH PERAN IKUT, bukan DPJP saja. Konsulen dan dokter jaga boleh menulis
+            // catatan klinis; daftar yang hanya memuat pasien DPJP akan menyembunyikan pasien
+            // yang justru sedang mereka tangani - permission-audit-matrix.md bagian 4-A.1.
+            if (query.AssignedToMe && currentDoctorId.HasValue && currentDoctorId.Value != Guid.Empty)
             {
+                var evaluatedAt = evaluatedAtUtc ?? DateTime.UtcNow;
+
                 filtered = filtered.Where(x =>
                     x.Episode!.DoctorAssignments.Any(d =>
+                        d.DoctorId == currentDoctorId.Value &&
+                        !d.IsDelete &&
+                        d.StartDateTime <= evaluatedAt &&
+                        (d.EndDateTime == null || d.EndDateTime > evaluatedAt)));
+            }
+            else if (query.DoctorId.HasValue && query.DoctorId.Value != Guid.Empty)
+            {
+                // Saringan ini disamakan dengan kolom DoctorId di atas: keduanya berarti DPJP.
+                // Membiarkannya membaca peran apa pun akan memunculkan baris yang kolom
+                // dokternya menyebut nama orang lain - BE-RWI-074.
+                //
+                // FR-DOK-070 / RWI-DEC-111 - cabang ini TIDAK PERNAH dijalankan bersamaan
+                // dengan assignedToMe. Itulah bentuk teknis dari "doctorId diabaikan": bukan
+                // ditolak, bukan diperiksa, melainkan tidak pernah sampai ke query. Menuliskan
+                // keduanya sebagai dua cabang sejajar akan membuat doctorId milik dokter lain
+                // ikut menyempitkan daftar, dan pada permintaan berikutnya yang tidak
+                // menyertakannya daftarnya berubah tanpa ada data apa pun yang berubah.
+                filtered = filtered.Where(x =>
+                    x.Episode!.DoctorAssignments.Any(d =>
+                        d.AssignmentRole == InpDoctorAssignmentRole.Dpjp &&
                         d.EndDateTime == null &&
                         !d.IsDelete &&
                         d.DoctorId == query.DoctorId.Value));
@@ -890,6 +1021,173 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             }
 
             return filtered;
+        }
+
+        // =====================================================================
+        // BE-RWI-071 — Daftar pantau kekurangan deposit
+        // =====================================================================
+
+        /// <summary>
+        /// Menyusun daftar pantau kekurangan deposit untuk episode rawat inap aktif.
+        /// (BE-RWI-071, RWI-DEC-096, FR-RI-177).
+        /// </summary>
+        /// <remarks>
+        /// Sesuai RWI-DEC-096, kekurangan minimum deposit ditagih secara berkala pada perawatan
+        /// yang melewati ambang hari (default 3 hari, dapat diatur admin via MstInpatientSetting).
+        /// Angka kekurangan dibaca dari ringkasan Billing (BE-BKC-040), bukan dihitung ulang di Rawat Inap.
+        /// Bila data Billing tidak dapat diakses, sistem menyatakan data tidak tersedia, bukan nol yang menyesatkan.
+        /// </remarks>
+        public async Task<DepositShortfallPagedResult> GetDepositShortfallAsync(
+            DepositShortfallQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            query ??= new DepositShortfallQuery();
+
+            var (pageNumber, pageSize) = InpEpisodeService.NormalizePaging(
+                query.PageNumber,
+                query.PageSize);
+
+            var setting = await _settingService.GetEffectiveSettingAsync(cancellationToken);
+            var thresholdDays = setting.DepositFollowUpIntervalDays < 1
+                ? InpatientSettingValues.Defaults.DepositFollowUpIntervalDays
+                : setting.DepositFollowUpIntervalDays;
+
+            var today = DateTime.UtcNow;
+
+            // Episode aktif: Admitted atau DischargePending
+            IQueryable<InpEpisode> baseQuery = _dbContext.Set<InpEpisode>()
+                .AsNoTracking()
+                .Include(x => x.Patient)
+                .Include(x => x.ServiceUnit)
+                .Include(x => x.BedPlacements.Where(p => p.EndDateTime == null && !p.IsDelete))
+                    .ThenInclude(p => p.Bed)
+                .Include(x => x.BedPlacements.Where(p => p.EndDateTime == null && !p.IsDelete))
+                    .ThenInclude(p => p.Room)
+                .Where(x =>
+                    !x.IsDelete &&
+                    (x.EpisodeStatus == InpEpisodeStatus.Admitted ||
+                     x.EpisodeStatus == InpEpisodeStatus.DischargePending));
+
+            if (query.ServiceUnitId.HasValue && query.ServiceUnitId.Value != Guid.Empty)
+            {
+                baseQuery = baseQuery.Where(x => x.ServiceUnitId == query.ServiceUnitId.Value);
+            }
+
+            var activeEpisodes = await baseQuery
+                .OrderBy(x => x.AdmittedAt ?? x.CreateDateTime)
+                .ToListAsync(cancellationToken);
+
+            var matchedItems = new List<DepositShortfallItemResponse>();
+
+            foreach (var ep in activeEpisodes)
+            {
+                var admittedDate = ep.AdmittedAt ?? ep.CreateDateTime;
+                var losDays = CalculateLengthOfStayDays(admittedDate, today);
+
+                // Kriteria 2: Episode yang lama rawatnya belum melewati ambang TIDAK muncul
+                if (losDays < thresholdDays)
+                {
+                    continue;
+                }
+
+                var bedPlacement = ep.BedPlacements.FirstOrDefault(p => p.EndDateTime == null && !p.IsDelete);
+
+                if (_billingDepositAdapter == null)
+                {
+                    // Kriteria 5: Bila ringkasan Billing tidak dapat dibaca, nyatakan tidak tersedia
+                    matchedItems.Add(new DepositShortfallItemResponse
+                    {
+                        EpisodeId = ep.Id,
+                        EpisodeNumber = ep.EpisodeNumber,
+                        PatientId = ep.PatientId,
+                        PatientName = ep.Patient?.FullName,
+                        MedicalRecordNumber = ep.Patient?.MedicalRecordNumber,
+                        ServiceUnitId = ep.ServiceUnitId,
+                        ServiceUnitName = ep.ServiceUnit?.ServiceUnitName,
+                        BedName = bedPlacement?.Bed?.BedName,
+                        RoomName = bedPlacement?.Room?.RoomName,
+                        AdmittedAt = ep.AdmittedAt,
+                        LengthOfStayDays = losDays,
+                        ThresholdDays = thresholdDays,
+                        BillingDataAvailable = false,
+                        BillingUnavailableReason = "Layanan integrasi Billing deposit tidak terpasang di sistem.",
+                        FollowUpDue = true
+                    });
+                    continue;
+                }
+
+                var depositSummary = await _billingDepositAdapter.GetDepositSummaryAsync(ep.Id, cancellationToken);
+
+                if (!depositSummary.IsDataAvailable)
+                {
+                    // Kriteria 5: Bila ringkasan Billing tidak dapat dibaca, daftar menyatakan datanya tidak tersedia
+                    matchedItems.Add(new DepositShortfallItemResponse
+                    {
+                        EpisodeId = ep.Id,
+                        EpisodeNumber = ep.EpisodeNumber,
+                        PatientId = ep.PatientId,
+                        PatientName = ep.Patient?.FullName,
+                        MedicalRecordNumber = ep.Patient?.MedicalRecordNumber,
+                        ServiceUnitId = ep.ServiceUnitId,
+                        ServiceUnitName = ep.ServiceUnit?.ServiceUnitName,
+                        BedName = bedPlacement?.Bed?.BedName,
+                        RoomName = bedPlacement?.Room?.RoomName,
+                        AdmittedAt = ep.AdmittedAt,
+                        LengthOfStayDays = losDays,
+                        ThresholdDays = thresholdDays,
+                        BillingDataAvailable = false,
+                        BillingUnavailableReason = depositSummary.UnavailableReason ?? "Ringkasan deposit Billing tidak dapat diakses.",
+                        FollowUpDue = true
+                    });
+                    continue;
+                }
+
+                // Kriteria 4: Angka kekurangan pada daftar sama persis dengan ringkasan Billing
+                var shortfall = depositSummary.PolicyShortfallAmount;
+
+                // Kriteria 1: Episode aktif yang kekurangannya di atas nol muncul pada daftar
+                // Kriteria 3: Episode yang kekurangannya sudah tertutup (<= 0) hilang dari daftar tanpa transaksi lama berubah
+                if (shortfall > 0)
+                {
+                    matchedItems.Add(new DepositShortfallItemResponse
+                    {
+                        EpisodeId = ep.Id,
+                        EpisodeNumber = ep.EpisodeNumber,
+                        PatientId = ep.PatientId,
+                        PatientName = ep.Patient?.FullName,
+                        MedicalRecordNumber = ep.Patient?.MedicalRecordNumber,
+                        ServiceUnitId = ep.ServiceUnitId,
+                        ServiceUnitName = ep.ServiceUnit?.ServiceUnitName,
+                        BedName = bedPlacement?.Bed?.BedName,
+                        RoomName = bedPlacement?.Room?.RoomName,
+                        AdmittedAt = ep.AdmittedAt,
+                        LengthOfStayDays = losDays,
+                        ThresholdDays = thresholdDays,
+                        MinimumPolicyAmount = depositSummary.MinimumPolicyAmount,
+                        TotalReceived = depositSummary.TotalReceived,
+                        ShortfallAmount = shortfall,
+                        BillingDataAvailable = true,
+                        FollowUpDue = true
+                    });
+                }
+            }
+
+            var totalData = matchedItems.Count;
+            var pagedItems = matchedItems
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            var totalPage = (int)Math.Ceiling((double)totalData / pageSize);
+
+            return new DepositShortfallPagedResult
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalData = totalData,
+                TotalPage = totalPage,
+                Items = pagedItems
+            };
         }
     }
 }

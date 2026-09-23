@@ -727,6 +727,28 @@ Menambah tabel atau kolom Phase 2 ke MVP dengan alasan future proofing — terma
 | Traceability | `ACC-DEC-044` sampai `ACC-DEC-057` |
 | Backend SHA | `02c3219` · Frontend SHA `e732424eb` |
 
+## 21b. Penegasan lingkup Phase 1 — 9 September 2026
+
+`ACC-DEC-066` menegaskan lingkup Phase 1 **tidak berubah** dan tetap lima hal: **COA, Jurnal,
+Posting, Buku Besar, dan Neraca Saldo**. Rekonsiliasi control account masuk Phase 2, bukan
+penghalang Phase 1.
+
+Satu-satunya yang menyentuh artefak Phase 1 adalah `ACC-DEC-064`:
+
+| Yang berubah | Berkas | Dikerjakan lewat |
+|---|---|---|
+| Kolom `IsControlAccount` | `AccChartOfAccount` | `BE-ACC-P2-011` |
+| Penolakan baris jurnal manual ke akun control | `AccJournalService` | `BE-ACC-P2-012` |
+| Bidang pada DTO akun | `ACC-API-0.8` | `BE-ACC-P2-011` |
+| Kotak centang dan kolom penanda | Layar COA dan Form Akun | `FE-ACC-P2-007` |
+
+**Ke-31 endpoint Phase 1 tidak bertambah maupun berkurang.** Yang bertambah hanya satu bidang
+pada DTO akun yang sudah ada, dan satu pemeriksaan pada jalur simpan jurnal.
+
+Kemampuan Phase 1 yang sudah berjalan — membuat akun, membuat jurnal manual, mengesahkannya, dan
+membaca buku besar serta neraca saldo — **tidak satu pun berhenti bekerja**. Yang berubah hanya:
+akun yang **sengaja ditandai** sebagai control account tidak lagi menerima jurnal manual.
+
 ## 22. Batas Phase 2 — titik mulai dan titik akhir
 
 **Titik mulai:** MVP sudah berjalan. Daftar akun terisi, periode dibangkitkan, jurnal manual dapat
@@ -773,7 +795,7 @@ sendiri** untuk pekerjaan yang berulang, dan itulah yang membuat kesalahannya me
 
 | ID | Functional requirement | Disposisi |
 |---|---|---|
-| `FR-P2-001` | Sistem menerima pesan kejadian berisi sepuluh bidang wajib dan menolak pesan yang kehilangan salah satunya | `MISSING / NEW` |
+| `FR-P2-001` | Sistem menerima pesan kejadian berisi **dua belas** bidang wajib dan menolak pesan yang kehilangan salah satunya | `MISSING / NEW` |
 | `FR-P2-002` | Kejadian dengan nomor yang sudah pernah diterima mengembalikan nomor jurnal yang sama tanpa membuat jurnal baru | `MISSING / NEW` |
 | `FR-P2-003` | Kejadian dengan gabungan modul asal, nomor transaksi, jenis, dan versi yang sudah pernah ada diperlakukan sama seperti `FR-P2-002` | `MISSING / NEW` |
 | `FR-P2-004` | Pesan bermata uang selain rupiah ditolak | `EXTEND` atas `ACC-DEC-020` |
@@ -912,10 +934,10 @@ tujuannya menunjukkan kemajuan Phase 2 tanpa menunggu Yasmin, ketiga gelombang i
 |---|---|:---:|---|
 | `ACC-XM-001` | Ratifikasi `ACC-DEC-044` dan `ACC-DEC-048` | **Ya**, untuk `POST-MVP` saja | Owner Billing, Yasmin |
 | `DEC-ACC-P2-002` | Daftar jenis kejadian keuangan | **Ya**, untuk pengisian data `P2-0` | Rizki, Yasmin |
-| `DEC-ACC-P2-005` | Isi template jurnal berulang: nominal tetap atau rumus | Tidak — usulan: nominal tetap dulu | Rizki |
-| `DEC-ACC-P2-006` | Koreksi sesudah jurnal penutup tahun sah | Tidak — usulan: pakai pembalikan jurnal yang ada | Rizki |
-| `DEC-ACC-P2-007` | Status `Diabaikan` pada kejadian gagal | Tidak — tetapi tanpanya kejadian gagal menahan tutup bulan selamanya | Rizki |
-| `DEC-ACC-P2-008` | Cara mendeteksi aturan posting yang ada tetapi salah | Tidak — usulan: laporan jurnal otomatis per aturan per periode | Rizki |
+| ~~`DEC-ACC-P2-005`~~ | ~~Isi template jurnal berulang: nominal tetap atau rumus~~ | **DITUTUP 14 September 2026 — `ACC-DEC-078`**: nominal tetap, sesuai yang sudah dibangun `BE-ACC-P2-007` | Rizki |
+| ~~`DEC-ACC-P2-006`~~ | ~~Koreksi sesudah jurnal penutup tahun sah~~ | **DITUTUP 10 September 2026 — `ACC-DEC-068`**: pakai pembalikan jurnal yang sudah ada, tanpa mekanisme buka-kembali-tahun-buku | Rizki |
+| ~~`DEC-ACC-P2-007`~~ | ~~Status `Diabaikan` pada kejadian gagal~~ | **DITUTUP 14 September 2026 — `ACC-DEC-078`**: `Diabaikan` dipakai untuk kejadian Gagal dengan alasan tertulis wajib, sesuai `ACC-STATE` Phase 2 | Rizki |
+| `DEC-ACC-P2-008` | Cara mendeteksi aturan posting yang ada tetapi salah | Tidak — usulan: laporan jurnal otomatis per aturan per periode. **Tetap terbuka** per `ACC-DEC-078`, dan tidak memblokir Wave A | Rizki |
 
 **Nol epic berstatus `OPEN DECISION`.** Keenam pertanyaan di atas menyangkut isi data dan
 penyempurnaan, bukan bentuk yang belum diputuskan, sehingga seluruh epic boleh masuk gelombang

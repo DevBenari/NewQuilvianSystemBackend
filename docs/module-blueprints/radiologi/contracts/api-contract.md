@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Contract version | `RAD-API-001` |
-| Revision | `10` |
+| Revision | `11` |
 | Status | `approved` |
 | Backend SHA | `50ccf615` |
 | Input | `RAD-ARCH-BE-001`, `RAD-DA-001-r1` |
@@ -161,6 +161,48 @@
 > belas endpoint beserta konsumennya sekaligus. Rinciannya di
 > `task/report/backend/BE-RAD-13.md` bagian 3.4.
 
+> **Amandemen revision 11 — 2026-09-14. Ditulis pelaksana `BE-RAD-16`, DISETUJUI pemilik modul
+> Yoga Aji Pratama, 2026-09-14.** Dua perubahan pada grup *Rad Report*, keduanya penyajian hasil
+> bacaan kepada dokter pengirim — `RAD-DEC-006`, `RAD-INT-001` bagian 2.
+>
+> **1. Endpoint baru `GET /by-patient/{patientId}`.** Mengembalikan bacaan seorang pasien yang
+> **sudah pernah dirilis**, lintas seluruh kunjungannya, terbaru lebih dulu. Hak aksesnya
+> `RadReport : Read` yang sudah ada — **tidak ada string hak akses baru**.
+>
+> Penyaringnya **sama persis** dengan `GET /by-encounter/{encounterId}`: statusnya menunjukkan
+> bacaan sudah melewati perilisan, **dan** `FirstReleasedAt` membuktikan perilisan itu benar-benar
+> pernah terjadi. Disalin apa adanya, bukan dilonggarkan — `FR-RAD-032`.
+>
+> **Mengapa endpoint tersendiri, bukan pemakaian ulang `by-encounter`.** Rekam medis bersifat
+> **per pasien lintas kunjungan**, sedangkan `by-encounter` per kunjungan. Menyusun tampilan
+> rekam medis dari `by-encounter` menuntut pemanggil mengumpulkan dulu seluruh kunjungan pasien
+> lalu memanggil satu per satu — pola N+1 yang hasilnya pun tidak lengkap bila ada kunjungan yang
+> terlewat, dan ketidaklengkapan itu tidak terlihat oleh pembacanya.
+>
+> **2. `RadReportListResponse` bertambah satu field: `Impression`.** Berisi kesimpulan versi yang
+> **sedang berlaku**, dan **hanya terisi pada `by-encounter` dan `by-patient`**.
+>
+> | Endpoint | `Impression` |
+> | --- | :---: |
+> | `GET /by-encounter/{encounterId}` | **Terisi** |
+> | `GET /by-patient/{patientId}` | **Terisi** |
+> | `GET /` (berhalaman) | **Kosong** |
+>
+> **Mengapa hanya dua dari tiga.** Pada kedua endpoint pertama pembacanya dokter yang sedang
+> menangani pasien itu, dan kesimpulan bacaan justru satu-satunya hal yang ia datangi; memaksanya
+> membuka satu per satu hanya untuk membacanya adalah langkah yang tidak menambah keamanan apa
+> pun. `GET /` sebaliknya adalah papan kerja radiologi — sering terbuka lebar di monitor bersama
+> dan hasil pencarian, dan pembacanya belum tentu sedang menangani pasien yang barisnya kebetulan
+> terlihat.
+>
+> **`Findings` dan `Recommendation` tetap tidak ikut** pada ketiganya. Keduanya dapat mencapai
+> 8.000 dan 2.000 huruf; membawanya berarti setiap pembukaan rekam medis mengirim seluruh isi
+> bacaan tanpa ada yang memintanya. Keduanya tetap dibuka lewat `GET /{id}`.
+>
+> **Kompatibilitas: aman.** Penambahan field pada response tidak merusak pemanggil lama, dan
+> endpoint baru tidak mengubah yang sudah ada. Frontend `FE-RAD-13` yang mengambil isi per bacaan
+> lewat `GET /{id}` tetap berjalan apa adanya; penyederhanaannya menjadi task tersendiri.
+
 Endpoint yang **belum ada di kode** diberi label `Rencana (belum tersedia)`. Yang tidak berlabel
 sudah dapat dipakai sekarang.
 
@@ -254,7 +296,8 @@ Contract version: `v1` — status `draft`
 | `GET` | `/{id}` | Melihat bacaan beserta versi yang sedang berlaku | `RadReport : Read` | — | `ApiResponse<RadReportDetailResponse>` | Tersedia sejak `BE-RAD-09` |
 | `GET` | `/{id}/versions` | Melihat seluruh versi bacaan, terbaru lebih dulu | `RadReport : Read` | — | `ApiResponse<List<RadReportVersionResponse>>` | Tersedia sejak `BE-RAD-10` |
 | `GET` | `/by-study/{radStudyId}` | Melihat bacaan atas satu study | `RadReport : Read` | — | `ApiResponse<RadReportDetailResponse>` | Tersedia sejak `BE-RAD-09` |
-| `GET` | `/by-encounter/{encounterId}` | Melihat bacaan satu kunjungan yang **sudah dirilis** — dipakai rekam medis | `RadReport : Read` | — | `ApiResponse<List<RadReportListResponse>>` | Tersedia sejak `BE-RAD-09`; **disaring sejak `BE-RAD-11`**, lihat revision 8 |
+| `GET` | `/by-encounter/{encounterId}` | Melihat bacaan satu kunjungan yang **sudah dirilis** — dipakai rekam medis | `RadReport : Read` | — | `ApiResponse<List<RadReportListResponse>>` | Tersedia sejak `BE-RAD-09`; **disaring sejak `BE-RAD-11`**, lihat revision 8; **memuat `Impression` sejak revision 11** |
+| `GET` | `/by-patient/{patientId}` | Melihat bacaan seorang pasien yang **sudah dirilis**, lintas kunjungan — dipakai rekam medis | `RadReport : Read` | — | `ApiResponse<List<RadReportListResponse>>` | **Berjalan sejak revision 11** |
 | `POST` | `/by-study/{radStudyId}/draft` | Menulis draf bacaan | `RadReport : Create` | `CreateRadReportDraftRequest` | `ApiResponse<RadReportDetailResponse>` | Tersedia sejak `BE-RAD-09` |
 | `PUT` | `/{id}/draft` | Mengubah draf yang belum disahkan | `RadReport : Update` | `UpdateRadReportDraftRequest` | `ApiResponse<RadReportDetailResponse>` | Tersedia sejak `BE-RAD-09` |
 | `POST` | `/{id}/validate` | Mengesahkan bacaan | `RadReport : Validate` | — *(lihat revision 6)* | `ApiResponse<RadReportDetailResponse>` | Tersedia sejak `BE-RAD-09` |

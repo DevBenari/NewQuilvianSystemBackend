@@ -150,6 +150,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.DTOs
         public Guid? DispenseUnitMeasurementId { get; set; }
 
         public int SortOrder { get; set; }
+
+        /// <summary>
+        /// Jenis dosis butir — BE-RWI-099/BE-RWI-103. Kosong berarti dosis tetap, sehingga pemanggil
+        /// lama tidak berubah perilakunya. <c>SlidingScale</c> dipakai butir insulin yang dosisnya
+        /// mengikuti protokol sliding scale per pasien.
+        /// </summary>
+        public QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Enums.PrescriptionDoseKind? DoseKind { get; set; }
     }
 
     public class UpdatePrescriptionItemRequest
@@ -194,6 +201,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.DTOs
         public Guid? DispenseUnitMeasurementId { get; set; }
 
         public int SortOrder { get; set; }
+
+        /// <summary>
+        /// Jenis dosis butir — BE-RWI-103. Kosong berarti jenis dosis tidak diubah.
+        /// </summary>
+        public QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Enums.PrescriptionDoseKind? DoseKind { get; set; }
     }
 
     public class ApprovePrescriptionItemRequest

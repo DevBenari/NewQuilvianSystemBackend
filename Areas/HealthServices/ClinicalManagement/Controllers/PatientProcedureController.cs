@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -7,6 +7,8 @@ using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
@@ -49,6 +51,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         private readonly ClinicalMilestoneFactProducer _clinicalMilestoneFactProducer;
         private readonly ClinicalDocumentIntegrityService _integrityService;
         private readonly InpatientClinicalContextService _inpatientClinicalContextService;
+        private readonly PatientProcedureOrderService _procedureOrderService;
         private readonly LoggerService _loggerService;
 
         public PatientProcedureController(
@@ -58,6 +61,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             ClinicalMilestoneFactProducer clinicalMilestoneFactProducer,
             ClinicalDocumentIntegrityService integrityService,
             InpatientClinicalContextService inpatientClinicalContextService,
+            PatientProcedureOrderService procedureOrderService,
             LoggerService loggerService)
         {
             _dbContext = dbContext;
@@ -66,6 +70,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             _clinicalMilestoneFactProducer = clinicalMilestoneFactProducer;
             _integrityService = integrityService;
             _inpatientClinicalContextService = inpatientClinicalContextService;
+            _procedureOrderService = procedureOrderService;
             _loggerService = loggerService;
         }
 
@@ -452,9 +457,116 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             return await CreateProcedure(createRequest);
         }
 
+        [HttpPost("inpatient-orders")]
+        [ProducesResponseType(typeof(ApiResponse<PatientProcedureResponse>), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ApiResponse<PatientProcedureResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [AccessAction("Create", "Create Inpatient Patient Procedure Order", Description = "Membuat pesanan tindakan rawat inap oleh dokter atau perawat atas instruksi", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessPermission("PatientProcedure", "Create")]
+        public async Task<IActionResult> CreateInpatientOrder(
+            [FromBody] CreateInpatientProcedureOrderRequest request,
+            CancellationToken cancellationToken)
+        {
+            var actorUserId = GetCurrentUserId();
+            var result = await _procedureOrderService.CreateInpatientOrderAsync(request, User, actorUserId, cancellationToken);
+
+            if (!result.IsSuccess)
+            {
+                return StatusCode(result.StatusCode, ApiResponse<object>.Fail(result.StatusCode, result.Message));
+            }
+
+            if (result.StatusCode == StatusCodes.Status200OK)
+            {
+                return Ok(ApiResponse<PatientProcedureResponse>.Ok(result.Data!, result.Message));
+            }
+
+            return StatusCode(StatusCodes.Status201Created, ApiResponse<PatientProcedureResponse>.Ok(result.Data!, result.Message));
+        }
+
+        /// <summary>
+        /// Dokter pemberi instruksi memverifikasi pesanan tindakan yang dibuat perawat —
+        /// <c>BE-RWI-098</c>, <c>FR-DOK-104</c>, <c>INV-DOK-17</c>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Hak akses baru <c>PatientProcedure : Verify</c></b> — permission-audit-matrix 0.6.0
+        /// bagian 6.1. Diberikan admin kepada dokter lewat layar Akses Role; pembatasan "hanya
+        /// pemberi instruksi pesanan ini" dijaga service dari data pesanan (<c>VAL-DOK-50</c>).
+        /// </para>
+        /// <para>
+        /// Verifikasi tidak mengubah penginput maupun isi pesanan. Jawaban: <c>200</c> terverifikasi;
+        /// <c>403</c> bukan pemberi instruksi; <c>404</c> pesanan tidak ada; <c>409</c> sudah
+        /// diverifikasi atau tidak memerlukan verifikasi.
+        /// </para>
+        /// </remarks>
+        [HttpPatch("{id:guid}/verify-instruction")]
+        [ProducesResponseType(typeof(ApiResponse<PatientProcedureResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [AccessAction("Verify", "Verify Patient Procedure Instruction", Description = "Dokter pemberi instruksi memverifikasi pesanan tindakan yang dibuat perawat", AccessType = AccessTypes.Update, SortOrder = 7)]
+        [AccessPermission("PatientProcedure", "Verify")]
+        public async Task<IActionResult> VerifyInstruction(
+            Guid id,
+            CancellationToken cancellationToken)
+        {
+            var result = await _procedureOrderService.VerifyInstructionAsync(
+                id, User, GetCurrentUserId(), cancellationToken);
+
+            if (!result.IsSuccess)
+            {
+                return StatusCode(result.StatusCode, ApiResponse<object>.Fail(result.StatusCode, result.Message));
+            }
+
+            return Ok(ApiResponse<PatientProcedureResponse>.Ok(result.Data!, result.Message));
+        }
+
+        /// <summary>
+        /// Daftar pesanan tindakan yang menunggu verifikasi dokter login — <c>BE-RWI-098</c>,
+        /// api-contract 0.6.0 bagian 12.5.
+        /// </summary>
+        /// <remarks>
+        /// Dokter diambil dari akun login, bukan dari query. Akun tanpa tautan dokter dijawab
+        /// <c>403</c> beserta arahannya, bukan daftar kosong yang tampak seperti tidak ada
+        /// pekerjaan tertinggal — pola yang sama dengan daftar tunggu verifikasi CPPT.
+        /// </remarks>
+        [HttpGet("instruction-verification-worklist")]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<InstructionVerificationItemResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [AccessAction("Read", "Read Patient Procedure", Description = "Melihat pesanan tindakan yang menunggu verifikasi dokter login", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("PatientProcedure", "Read")]
+        public async Task<IActionResult> GetInstructionVerificationWorklist(
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25,
+            CancellationToken cancellationToken = default)
+        {
+            (pageNumber, pageSize) = NormalizePaging(pageNumber, pageSize);
+
+            var doctorId = await _inpatientClinicalContextService.ResolveActorDoctorIdAsync(
+                User, GetCurrentUserId(), cancellationToken);
+
+            if (doctorId == null || doctorId.Value == Guid.Empty)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(
+                    StatusCodes.Status403Forbidden,
+                    InpatientClinicalContextService.PenolakanBukanDokter
+                ));
+            }
+
+            var hasil = await _procedureOrderService.GetInstructionVerificationWorklistAsync(
+                doctorId.Value, pageNumber, pageSize, cancellationToken);
+
+            return Ok(ApiResponse<PagedResult<InstructionVerificationItemResponse>>.Ok(
+                hasil, "Daftar tunggu verifikasi instruksi berhasil diambil."));
+        }
+
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse<PatientProcedureCreateResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [AccessAction("Create", "Create Patient Procedure", Description = "Membuat tindakan pasien", AccessType = AccessTypes.Create, SortOrder = 2)]
         [AccessPermission("PatientProcedure", "Create")]
@@ -478,6 +590,69 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                             sudahAda,
                             await ReadConsultationProcedureSummaryAsync(sudahAda.ConsultationId)),
                         "Tindakan sudah tercatat sebelumnya dengan kunci permintaan yang sama."
+                    ));
+                }
+            }
+
+            // BE-RWI-076 / GUARD-INP-05 dan GUARD-INP-06. Penjagaan penulis ditulis di sini,
+            // bukan di dalam rantai ValidateCreateRequestAsync, karena rantai itu hanya dapat
+            // membawa kalimat penolakan tanpa kode status dan seluruh isinya dijawab 400.
+            // Penolakan kewenangan wajib terbaca sebagai 403 supaya layar tidak menampilkannya
+            // sebagai kesalahan pengisian.
+            //
+            // Hanya tindakan yang menyebut perawatan rawat inap yang dijaga. Tindakan
+            // poliklinik dan IGD tidak membawa penanda perawatan sama sekali, dan perilakunya
+            // karena itu tidak bergeser satu langkah pun.
+            // BE-RWI-090 / FR-DOK-081, RLN3-CAP-35. Penjaga perawatan tertutup, dan ia berdiri
+            // SENDIRI di depan penjaga penulis.
+            //
+            // KENAPA TERPISAH. Penjaga penulis di bawah hanya menyala ketika permintaan
+            // menyebutkan penanda perawatan. Jalur "tindakan dari catatan dokter" tidak selalu
+            // menyebutkannya — penandanya diturunkan dari kunjungan — sehingga sampai sebelum
+            // task ini tindakan baru masih dapat lahir pada perawatan yang sudah ditutup, dan
+            // tindakan itu ikut tertagih. Karena itu keadaan perawatan diperiksa dari
+            // kunjungannya, bukan dari isi permintaan.
+            //
+            // POLIKLINIK DAN IGD TIDAK BERUBAH. Kunjungan tanpa perawatan rawat inap dijawab
+            // NoInpatientEpisode dan diteruskan apa adanya; hanya perawatan Closed dan
+            // Cancelled yang ditolak, dan hanya dengan 422 beserta sebabnya — bukan galat umum.
+            var penjagaPerawatanTertutup = await _inpatientClinicalContextService.ResolveAsync(
+                request.EncounterId,
+                expectedEpisodeId: request.InpEpisodeId,
+                forNewDocument: true);
+
+            if (penjagaPerawatanTertutup.Outcome == InpatientClinicalContextOutcome.EpisodeClosed)
+            {
+                return UnprocessableEntity(ApiResponse<object>.Fail(
+                    StatusCodes.Status422UnprocessableEntity,
+                    "Perawatan rawat inap pasien ini sudah ditutup, sehingga tindakan baru " +
+                    "tidak dapat dicatat lagi. Bila tindakannya benar-benar terjadi sebelum " +
+                    "penutupan, mintakan sesi koreksi kepada supervisor."
+                ));
+            }
+
+            if (request.InpEpisodeId.HasValue && request.InpEpisodeId.Value != Guid.Empty)
+            {
+                var penjagaPenulis = await _inpatientClinicalContextService
+                    .ResolveForDoctorWriteAsync(
+                        User,
+                        GetCurrentUserId(),
+                        request.EncounterId,
+                        expectedPatientId: request.PatientId,
+                        expectedEpisodeId: request.InpEpisodeId,
+                        // BE-RWI-090. Sebelumnya bernilai false, dan itulah lubang RLN3-CAP-35:
+                        // jalur ini menyatakan dirinya bukan dokumen baru, padahal ia justru
+                        // satu-satunya jalur yang melahirkan tindakan baru.
+                        forNewDocument: true,
+                        atUtc: request.ProcedureDateTime);
+
+                if (!penjagaPenulis.IsResolved &&
+                    penjagaPenulis.StatusCode == StatusCodes.Status403Forbidden)
+                {
+                    return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(
+                        StatusCodes.Status403Forbidden,
+                        penjagaPenulis.ErrorMessage ??
+                        "Anda tidak berwenang mencatat tindakan untuk pasien ini."
                     ));
                 }
             }
@@ -646,6 +821,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 FollowUpInstruction = NormalizeNullableText(request.FollowUpInstruction),
 
                 IsBillingGenerated = false,
+                OrderedByUserId = actorUserId,
                 IsActive = true,
                 CreateDateTime = now,
                 CreateBy = actorUserId,
@@ -713,6 +889,32 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                     StatusCodes.Status404NotFound,
                     "Tindakan pasien tidak ditemukan."
                 ));
+            }
+
+            var actorUserId = GetCurrentUserId();
+
+            // INV-DOK-17 / BE-RWI-097: Pesanan tindakan yang belum dilaksanakan hanya diubah penginputnya.
+            if (entity.OrderedByUserId.HasValue && entity.OrderedByUserId.Value != actorUserId)
+            {
+                return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(
+                    StatusCodes.Status403Forbidden,
+                    "Hanya penginput pesanan ini yang dapat mengubah pesanan."
+                ));
+            }
+
+            if (entity.InpEpisodeId.HasValue)
+            {
+                var episode = await _dbContext.Set<InpEpisode>()
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.Id == entity.InpEpisodeId.Value && !x.IsDelete);
+
+                if (episode != null && (episode.EpisodeStatus == InpEpisodeStatus.Closed || episode.EpisodeStatus == InpEpisodeStatus.Cancelled))
+                {
+                    return UnprocessableEntity(ApiResponse<object>.Fail(
+                        StatusCodes.Status422UnprocessableEntity,
+                        "Perawatan rawat inap sudah ditutup; tindakan tidak dapat diubah."
+                    ));
+                }
             }
 
             if (entity.Consultation?.ConsultationStatus == DoctorConsultationStatus.Completed)
@@ -832,13 +1034,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 entity.ProcedureDateTime != serviceDate;
 
             var now = DateTime.UtcNow;
-            var actorUserId = GetCurrentUserId();
 
             await using var transaction = await _dbContext.Database.BeginTransactionAsync();
 
-            if (request.IsPrimaryProcedure)
+            if (request.IsPrimaryProcedure && entity.ConsultationId.HasValue)
             {
-                await ClearPrimaryProcedureAsync(entity.ConsultationId, actorUserId, now, entity.Id);
+                await ClearPrimaryProcedureAsync(entity.ConsultationId.Value, actorUserId, now, entity.Id);
             }
 
             entity.TariffId = pricing.TariffId;
@@ -1048,6 +1249,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
+            // BE-RWI-098 kriteria 4 / FR-DOK-103, state matrix 0.6.0 bagian 8.3. Pada tindakan rawat
+            // inap, pelaksana dari akun login menjadi penulis dan penanda tangan catatan
+            // pelaksanaan, sehingga ia wajib berwenang: dokter lewat penugasan aktif, perawat lewat
+            // penempatan pada unit episode. Perawatan yang sudah ditutup ditolak 422. Tindakan
+            // poliklinik, medical check-up, dan IGD tidak membawa episode dan tidak tersentuh.
+            var penjagaPelaksana = await _procedureOrderService.EnsureInpatientExecutorAsync(
+                entity, User, actorUserId);
+
+            if (penjagaPelaksana != null)
+            {
+                return StatusCode(penjagaPelaksana.StatusCode, ApiResponse<object>.Fail(
+                    penjagaPelaksana.StatusCode,
+                    penjagaPelaksana.Message
+                ));
+            }
+
             entity.ProcedureStatus = PatientProcedureStatus.Completed;
             entity.IsExecuted = true;
             entity.ExecutedAt = now;
@@ -1206,6 +1423,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 ));
             }
 
+            var actorUserId = GetCurrentUserId();
+
+            // FR-DOK-102: Pesanan hanya dibatalkan oleh penginput atau DPJP aktif.
+            if (entity.InpEpisodeId.HasValue && entity.OrderedByUserId.HasValue)
+            {
+                var isSubmitter = entity.OrderedByUserId.Value == actorUserId;
+                var isDpjp = false;
+
+                var doctorId = await _inpatientClinicalContextService.ResolveActorDoctorIdAsync(User, actorUserId);
+                if (doctorId.HasValue)
+                {
+                    isDpjp = await _inpatientClinicalContextService.IsDpjpAssignedAsync(
+                        entity.InpEpisodeId.Value, doctorId.Value, DateTime.UtcNow);
+                }
+
+                if (!isSubmitter && !isDpjp)
+                {
+                    return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(
+                        StatusCodes.Status403Forbidden,
+                        "Hanya penginput pesanan atau DPJP yang sedang bertugas yang dapat membatalkan pesanan ini."
+                    ));
+                }
+            }
+
             if (entity.IsBillingGenerated)
             {
                 return BadRequest(ApiResponse<object>.Fail(
@@ -1215,7 +1456,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             }
 
             var now = DateTime.UtcNow;
-            var actorUserId = GetCurrentUserId();
 
             await using var transaction = await _dbContext.Database.BeginTransactionAsync();
 
@@ -1325,6 +1565,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 .Include(x => x.ExecutedByUser)
                 .Include(x => x.PerformedByUser)
                 .Include(x => x.CancelledByUser)
+                .Include(x => x.OrderedByUser)
+                .Include(x => x.InstructingDoctor)
+                .Include(x => x.InstructionVerifiedByUser)
                 .Where(x => !x.IsDelete);
         }
 
@@ -1662,12 +1905,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         /// percobaan ulang yang seharusnya tidak berdampak apa-apa justru meninggalkan jejak.
         /// </remarks>
         private async Task<ProcedureSummaryResult> ReadConsultationProcedureSummaryAsync(
-            Guid consultationId)
+            Guid? consultationId)
         {
+            if (!consultationId.HasValue)
+            {
+                return new ProcedureSummaryResult
+                {
+                    ProcedureText = null,
+                    ProcedureCount = 0,
+                    HasProcedure = false
+                };
+            }
+
             var procedures = await _dbContext.Set<TrxPatientProcedure>()
                 .AsNoTracking()
                 .Where(x =>
-                    x.ConsultationId == consultationId &&
+                    x.ConsultationId == consultationId.Value &&
                     x.IsActive &&
                     !x.IsDelete &&
                     x.ProcedureStatus != PatientProcedureStatus.Cancelled)
@@ -1691,18 +1944,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             };
         }
 
-        private async Task<ProcedureSummaryResult> UpdateConsultationProcedureSummaryAsync(
-            Guid consultationId,
+        private async Task<ProcedureSummaryResult?> UpdateConsultationProcedureSummaryAsync(
+            Guid? consultationId,
             Guid actorUserId,
             DateTime now)
         {
+            if (!consultationId.HasValue)
+            {
+                return null;
+            }
+
             var consultation = await _dbContext.Set<TrxDoctorConsultation>()
-                .FirstAsync(x => x.Id == consultationId && !x.IsDelete);
+                .FirstOrDefaultAsync(x => x.Id == consultationId.Value && !x.IsDelete);
+
+            if (consultation == null)
+            {
+                return null;
+            }
 
             var procedures = await _dbContext.Set<TrxPatientProcedure>()
                 .AsNoTracking()
                 .Where(x =>
-                    x.ConsultationId == consultationId &&
+                    x.ConsultationId == consultationId.Value &&
                     x.IsActive &&
                     !x.IsDelete &&
                     x.ProcedureStatus != PatientProcedureStatus.Cancelled)
@@ -1771,7 +2034,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                    !entity.IsExecuted &&
                    !entity.IsBillingGenerated &&
                    entity.ProcedureStatus != PatientProcedureStatus.Cancelled &&
-                   !IsConsultationLocked(entity.Consultation);
+                   (entity.ConsultationId == null || !IsConsultationLocked(entity.Consultation));
         }
 
         private static bool CanRemoveProcedureFromDraft(TrxPatientProcedure entity)
@@ -1898,6 +2161,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 IsActive = x.IsActive,
                 CreateDateTime = x.CreateDateTime,
                 UpdateDateTime = x.UpdateDateTime,
+                OrderedByUserId = x.OrderedByUserId,
+                OrderedByUserName = x.OrderedByUser != null ? x.OrderedByUser.DisplayName : null,
+                InstructingDoctorId = x.InstructingDoctorId,
+                InstructingDoctorName = x.InstructingDoctor != null ? x.InstructingDoctor.FullName : null,
+                InstructionVerificationStatus = x.InstructionVerificationStatus,
+                InstructionVerifiedAt = x.InstructionVerifiedAt,
+                InstructionVerifiedByUserId = x.InstructionVerifiedByUserId,
+                InstructionVerifiedByUserName = x.InstructionVerifiedByUser != null ? x.InstructionVerifiedByUser.DisplayName : null,
+                CancelledByEpisodeClosure = x.CancelledByEpisodeClosure,
                 CanEdit = CanEditProcedure(x),
                 CanRemoveFromDraft = CanRemoveProcedureFromDraft(x)
             };
@@ -2002,13 +2274,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             response.IsActive = x.IsActive;
             response.CreateDateTime = x.CreateDateTime;
             response.UpdateDateTime = x.UpdateDateTime;
+            response.OrderedByUserId = x.OrderedByUserId;
+            response.OrderedByUserName = x.OrderedByUser != null ? x.OrderedByUser.DisplayName : null;
+            response.InstructingDoctorId = x.InstructingDoctorId;
+            response.InstructingDoctorName = x.InstructingDoctor != null ? x.InstructingDoctor.FullName : null;
+            response.InstructionVerificationStatus = x.InstructionVerificationStatus;
+            response.InstructionVerifiedAt = x.InstructionVerifiedAt;
+            response.InstructionVerifiedByUserId = x.InstructionVerifiedByUserId;
+            response.InstructionVerifiedByUserName = x.InstructionVerifiedByUser != null ? x.InstructionVerifiedByUser.DisplayName : null;
+            response.CancelledByEpisodeClosure = x.CancelledByEpisodeClosure;
             response.CanEdit = CanEditProcedure(x);
             response.CanRemoveFromDraft = CanRemoveProcedureFromDraft(x);
         }
 
         private static PatientProcedureCreateResponse ToCreateResponse(
             TrxPatientProcedure x,
-            ProcedureSummaryResult summary)
+            ProcedureSummaryResult? summary)
         {
             return new PatientProcedureCreateResponse
             {
@@ -2038,10 +2319,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 CoverageStatus = x.CoverageStatus,
                 IsNeedApproval = x.IsNeedApproval,
                 IsExecuted = x.IsExecuted,
-                ProcedureCount = summary.ProcedureCount,
-                HasProcedure = summary.HasProcedure,
-                ProcedureText = summary.ProcedureText,
+                ProcedureCount = summary?.ProcedureCount ?? 0,
+                HasProcedure = summary?.HasProcedure ?? false,
+                ProcedureText = summary?.ProcedureText,
                 UpdateDateTime = x.UpdateDateTime,
+                OrderedByUserId = x.OrderedByUserId,
+                InstructingDoctorId = x.InstructingDoctorId,
+                InstructionVerificationStatus = x.InstructionVerificationStatus,
+                CancelledByEpisodeClosure = x.CancelledByEpisodeClosure,
                 CanEdit = CanEditProcedure(x),
                 CanRemoveFromDraft = CanRemoveProcedureFromDraft(x)
             };
@@ -2049,7 +2334,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
         private static PatientProcedureUpdateResponse ToUpdateResponse(
             TrxPatientProcedure x,
-            ProcedureSummaryResult summary)
+            ProcedureSummaryResult? summary)
         {
             return new PatientProcedureUpdateResponse
             {
@@ -2079,10 +2364,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 CoverageStatus = x.CoverageStatus,
                 IsNeedApproval = x.IsNeedApproval,
                 IsExecuted = x.IsExecuted,
-                ProcedureCount = summary.ProcedureCount,
-                HasProcedure = summary.HasProcedure,
-                ProcedureText = summary.ProcedureText,
+                ProcedureCount = summary?.ProcedureCount ?? 0,
+                HasProcedure = summary?.HasProcedure ?? false,
+                ProcedureText = summary?.ProcedureText,
                 UpdateDateTime = x.UpdateDateTime,
+                OrderedByUserId = x.OrderedByUserId,
+                InstructingDoctorId = x.InstructingDoctorId,
+                InstructionVerificationStatus = x.InstructionVerificationStatus,
+                CancelledByEpisodeClosure = x.CancelledByEpisodeClosure,
                 CanEdit = CanEditProcedure(x),
                 CanRemoveFromDraft = CanRemoveProcedureFromDraft(x)
             };

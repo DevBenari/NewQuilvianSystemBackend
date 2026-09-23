@@ -3,12 +3,12 @@
 | Field | Nilai |
 | --- | --- |
 | Sub-modul | `dokter-rawat-inap` |
-| Revision | `0.2` |
-| Status | `approved` — disetujui Muhammad Hamzah, 2026-09-03 |
+| Revision | **`0.3`** — bagian 4 lahir, menggantikan bagian 1 dan 2 untuk ruang kerja V2 |
+| Status | **`draft`** untuk `0.3`. `0.2` `approved` — disetujui Muhammad Hamzah, 2026-09-03 |
 | `approved_by` / `approved_at` | **Muhammad Hamzah** / **2026-09-03** |
 | Isi | **Jalur normal saja.** Jalur pengecualian ada pada berkas per proses |
 | Sumber | `PRD-RWI-FINAL-001` bagian 18 dan 19; arsitektur domain `0.2` bagian U |
-| Berkas per proses | [`01-catatan-harian-dan-cppt.md`](./01-catatan-harian-dan-cppt.md), [`02-visite-dokter.md`](./02-visite-dokter.md) |
+| Berkas per proses | [`01-catatan-harian-dan-cppt.md`](./01-catatan-harian-dan-cppt.md), [`02-visite-dokter.md`](./02-visite-dokter.md), [`03-penulisan-penguncian-dan-catatan-saya.md`](./03-penulisan-penguncian-dan-catatan-saya.md), [`04-resep-rekonsiliasi-dan-sliding-scale.md`](./04-resep-rekonsiliasi-dan-sliding-scale.md), [`05-pesanan-tindakan-dan-verifikasi-instruksi.md`](./05-pesanan-tindakan-dan-verifikasi-instruksi.md) |
 
 ---
 
@@ -101,3 +101,52 @@ visitenya, menulis perkembangan, dan bila perlu memesan, meresepkan, atau bertin
 | Mengisi hasil laboratorium atau radiologi | `RUL-DOK-02`. Itu pekerjaan modul pemiliknya |
 | Menulis resume pulang | `CAP-026` milik `episode-rawat-inap` |
 | Menggabungkan dua visite menjadi satu demi tagihan | `RWI-DEC-085`. Agregasi milik Billing dan tidak menyentuh riwayat klinis |
+
+---
+
+## 4. Alur utama revision `0.3` — penyelarasan `PRD-RWI-V2-001` ★ 15 September 2026
+
+**Status `draft`.** Diagram dan tabel di bawah **menggantikan** bagian 1 dan 2 untuk ruang kerja rawat inap. Bagian 3
+tetap berlaku, kecuali baris "Menulis resume pulang": dokter kini menulis resume dari tab Resume Medis, sedangkan
+datanya tetap milik `episode-rawat-inap`. Jalur normal saja; pengecualian ada pada berkas proses
+[`03-penulisan-penguncian-dan-catatan-saya.md`](./03-penulisan-penguncian-dan-catatan-saya.md),
+[`04-resep-rekonsiliasi-dan-sliding-scale.md`](./04-resep-rekonsiliasi-dan-sliding-scale.md), dan
+[`05-pesanan-tindakan-dan-verifikasi-instruksi.md`](./05-pesanan-tindakan-dan-verifikasi-instruksi.md).
+
+```mermaid
+flowchart TD
+    subgraph ruangan[Kepala ruangan atau admisi]
+        A([Pasien masuk dan DPJP ditetapkan]) --> B[Menetapkan konsulen atau dokter jaga bila perlu]
+    end
+    subgraph dokter[Dokter]
+        B --> C[Membuka Dokter lalu Rawat Inap]
+        C --> D[Memilih pasien dari daftar miliknya]
+        D --> E[Menulis kajian medis]
+        E --> F[(Kajian Signed)]
+        F --> G[Mencatat visit]
+        G --> H[Menulis SOAP harian]
+        H --> I[(SOAP Signed)]
+        I --> J[Memutuskan rekonsiliasi obat bawaan]
+        J --> K[Membuat resep dan protokol sliding scale bila perlu]
+        K --> L[Memesan tindakan dan penunjang]
+        L --> M[Membaca hasil final penunjang]
+        M --> N[Memverifikasi CPPT dan pesanan perawat pada Perlu Review]
+        N --> O[Menulis dan menandatangani resume dari tab Resume Medis]
+    end
+    O --> Z([Episode siap diproses pulang oleh episode-rawat-inap])
+```
+
+| No | Langkah | Pelaku | Masukan yang dibutuhkan | Keluaran | Bila gagal, petugas melakukan |
+| ---: | --- | --- | --- | --- | --- |
+| 1 | Menetapkan penugasan dokter | Admisi, kepala ruangan, atau supervisor | Dokter, peran, waktu mulai | DPJP, konsulen, atau dokter jaga tercatat | Dokter tanpa penugasan tidak melihat pasien; kepala ruangan membuat penugasan |
+| 2 | Membuka Dokter → Rawat Inap | Dokter | Akun tertaut dokter | Daftar pasien miliknya dan metrik | Daftar gagal → Coba Lagi; **jangan** memakai antrean poliklinik |
+| 3 | Memilih pasien | Dokter | Kartu pasien | Konteks pasien, alergi, alert, delapan tab | Alergi gagal dimuat tampil sebagai peringatan, bukan "tidak ada alergi" |
+| 4 | Menulis dan menyelesaikan kajian medis | Dokter | Tujuh bagian kajian | Kajian `Signed` | Konsep tersimpan; penyelesaian ditolak bila isian belum lengkap |
+| 5 | Mencatat visit | Dokter | Kunjungan nyata | Event visit | Tombol tertekan dua kali tetap satu event |
+| 6 | Menulis SOAP harian | Dokter | Keadaan hari itu | SOAP `Signed` | Penugasan sudah berakhir → penugasan singkat |
+| 7 | Memutuskan rekonsiliasi | Dokter | Obat bawaan dicatat perawat | Keputusan per obat; butir draft resep | Perawat belum mencatat → dokter menunggu atau meminta perawat mencatat |
+| 8 | Membuat resep dan protokol | Dokter | Obat; versi protokol sah untuk insulin | Resep aktif; protokol pasien `Active` | Belum ada protokol sah → sliding scale tidak dapat dipesan |
+| 9 | Memesan tindakan dan penunjang | Dokter | Indikasi | Pesanan `Ordered` | Pesanan dapat diulang tanpa ganda |
+| 10 | Membaca hasil | Dokter | Hasil final | Hasil terbaca pada tab Penunjang | Hasil belum final ditandai berbeda |
+| 11 | Memverifikasi | DPJP dan dokter pemberi instruksi | Perlu Review | CPPT dan pesanan perawat `Verified` | Bukan DPJP → entri tetap menunggu DPJP |
+| 12 | Resume | DPJP | Delapan bagian resume | Resume bertanda tangan; episode **belum** tertutup | Bukan DPJP aktif → DPJP yang menandatangani |

@@ -34,7 +34,7 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Blood
             builder.HasIndex(x => x.IsValidResult);
             builder.HasIndex(x => x.IsConflictHeld);
 
-            // FK sungguhan ke MstPatient, mengikuti kamus data dan pola TrxPatientEncounter.
+            // FK sungguhan ke MstPatient, mengikuti kamus data dan pola RegPatientEncounter.
             // Restrict: pemeriksaan golongan darah adalah rekam klinis yang wajib tetap terbaca
             // walaupun baris pasiennya kelak dirapikan.
             builder.HasOne(x => x.Patient)

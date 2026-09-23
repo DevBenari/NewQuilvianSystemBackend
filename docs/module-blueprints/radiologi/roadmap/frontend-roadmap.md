@@ -172,13 +172,14 @@ bagian 5. Setiap task di bawah menyebut ketentuan mana yang berlaku padanya.
 | Decision | `RAD-DEC-012`, `RAD-DEC-013` |
 | Contract | `RAD-API-001` endpoint `GET /worklist` |
 | Yang dikerjakan | Layar radiografer memilih alat lalu melihat pekerjaan hari itu |
-| Acceptance criteria | AC-36, AC-38, AC-40 |
+| Acceptance criteria | AC-36, **AC-39**, AC-40 — **diperbaiki 2026-09-14**. Tertulis `AC-38` sejak revision 1, padahal `testing/acceptance-test-matrix.md` tidak pernah memuat nomor itu; yang dimaksud `AC-39` (pesanan cito di urutan pertama), yang isinya persis `UAT-13` |
 | Test | `UAT-13` — pesanan cito di urutan pertama; `UAT-14` — daftar kerja tanpa memilih alat ditolak |
 | Dependency | `FE-RAD-01`, `BE-RAD-13` |
 | **Ketentuan mengikat** | Bagian 5 butir 9 — penanda cito wajib terlihat tanpa membuka rincian, dan pesanan cito wajib di urutan atas |
 | Risiko | Sedang. Cito yang tenggelam di tengah daftar sama saja dengan tidak ditandai |
 | Owner | Frontend |
 | Definition of Done | Petugas dapat berpindah antar daftar alat tanpa berganti halaman |
+| **Keadaan** | **Selesai 2026-09-14** — laporan `task/report/frontend/FE-RAD-07.md`. 6 berkas baru, 2 diubah; 9 test baru lulus, 829 test repository lulus, lint 0 error. Ketentuan mengikat bagian 5 butir 9 dipenuhi dengan **tidak mengurutkan** — urutan cito berasal dari server, dan layar hanya memeriksa bahwa urutan itu masih utuh lalu memperingatkan bila rusak. **Temuan:** balasan daftar kerja tidak memuat identitas pasien, sehingga layar ini belum cukup untuk memanggil pasien — perlu keputusan pemilik modul |
 
 ### `FE-RAD-08` — Verifikasi pasien dan gerbang keselamatan
 
@@ -196,6 +197,7 @@ bagian 5. Setiap task di bawah menyebut ketentuan mana yang berlaku padanya.
 | Risiko | **Menyentuh keselamatan pasien.** Butir yang ditampilkan wajib berasal dari master, **jangan** ditanam di frontend |
 | Owner | Frontend |
 | Definition of Done | Butir mengikuti alat; pesan penolakan menyebut butir yang menahan |
+| **Keadaan** | **Selesai 2026-09-14** — laporan `task/report/frontend/FE-RAD-08.md`. 6 berkas baru, 4 diubah; 14 test baru lulus, 843 test repository lulus, lint 0 error. Definition of Done dipenuhi dengan membaca butir dari **`study.safetyChecks`**, bukan dari katalog `GET /safety-requirements` — katalog memuat butir seluruh rumah sakit dan akan menampilkan butir MRI pada CT-Scan. **Dua temuan:** kontrak `RAD-VAL-001` bagian 4 menyebut `409` sedangkan jalur API menjawab `422`; dan study dapat **terkunci permanen** ketika aturan keselamatan berubah setelah study dibuat — keduanya perlu keputusan pemilik modul |
 
 ### `FE-RAD-09` — Pengambilan citra, mutu, dan bahan terpakai
 
@@ -212,6 +214,7 @@ bagian 5. Setiap task di bawah menyebut ketentuan mana yang berlaku padanya.
 | Risiko | Sedang. Petugas perlu tahu pasien sudah pernah disinari sebelumnya |
 | Owner | Frontend |
 | Definition of Done | Seluruh transisi study dapat dijalankan; penilaian mutu tidak dapat dikirim ganda |
+| **Keadaan** | **Selesai sebagian 2026-09-14** — laporan `task/report/frontend/FE-RAD-09.md`. 4 berkas baru, 4 diubah; 16 test baru lulus, 859 test repository lulus, lint 0 error. Ketentuan mengikat bagian 5 butir 7 dipenuhi dengan penanda yang **tidak pernah disembunyikan** — muncul selama `repeatOfStudyId` terisi, walaupun nomor urut study asalnya tidak dapat disebut. Layar tumbuh di route `FE-RAD-08`, bukan route baru. **Definition of Done tertahan:** empat transisi pada `RAD-STATE-001` bagian 2 — Tahan, Lanjutkan, Batalkan, dan Tandai Perlu Diulang — **tidak punya endpoint**, dan `RepeatRequired` tidak pernah ditulis di mana pun. **Temuan kedua:** `GET /rad-studies/filters/metadata` tidak menerbitkan `RadAbortCause`, `RadRepeatCause`, maupun `RadConsumptionItemType`, sehingga ketiganya terpaksa disalin ke frontend. Keduanya perlu keputusan pemilik modul |
 
 ### `FE-RAD-10` — Daftar bacaan menunggu dan penulisan draf
 
@@ -228,6 +231,7 @@ bagian 5. Setiap task di bawah menyebut ketentuan mana yang berlaku padanya.
 | Risiko | Sedang. Data medis |
 | Owner | Frontend |
 | Definition of Done | Tidak ada isi bacaan tersisa di penyimpanan browser setelah halaman ditutup |
+| **Keadaan** | **Selesai sebagian 2026-09-14** — laporan `task/report/frontend/FE-RAD-10.md`. 11 berkas baru, 4 diubah; 17 test baru lulus, 876 test repository lulus, lint 0 error. Ketentuan mengikat bagian 5 butir 6 dipenuhi dan **dibuktikan lewat lima uji penjaga yang membaca source**, dan penjaganya sendiri diuji dengan melanggarnya lalu dikembalikan. Ditemukan pula **dua** `BaseTextField` di repository — yang di `base-text-field.jsx` punya prop `persist` yang menulis ke `sessionStorage`; layar bacaan dijaga agar tidak memakainya. **Separuh deliverable tertahan:** `EnsurePendingReportAsync` **tidak punya satu pun pemanggil**, sehingga bacaan berstatus `Pending` tidak pernah ada, `GET /rad-reports?reportStatus=Pending` selalu kosong, rekap `MenungguDraf` selalu nol, dan "daftar study layak yang **belum** dibaca" tidak punya sumber data. Ini penghalang `BE-RAD-08` yang masih terbuka. Layar menyatakan keterbatasannya apa adanya; jalan menulis bacaan disediakan dari konsol study. Perlu keputusan pemilik modul |
 
 ### `FE-RAD-11` — Pengesahan dan perilisan bacaan
 
@@ -245,6 +249,7 @@ bagian 5. Setiap task di bawah menyebut ketentuan mana yang berlaku padanya.
 | Risiko | **Inti keselamatan.** Penyembunyian tombol hanya membantu; penolakan sebenarnya tetap di backend |
 | Owner | Frontend |
 | Definition of Done | Tombol tersembunyi bagi yang tidak berwenang; pesan `409` konkurensi ditangani |
+| **Keadaan** | **Selesai 2026-09-14** — laporan `task/report/frontend/FE-RAD-11.md`. 1 berkas baru, 5 diubah; 14 test baru lulus, 890 test repository lulus, lint 0 error tanpa warning baru. Ketentuan mengikat bagian 5 butir 1 dipenuhi **tanpa menyentuh daftar kewenangan** — `usePermission` sengaja mengembalikan `allowed` benar selama daftarnya belum diketahui, sehingga menggantungkan aturan pengesahan sendiri padanya akan membuat tombol Sahkan sempat tampil justru saat dilarang; yang dipakai adalah `authorUserId` dan `authorRoleSnapshot` yang sudah terbawa balasan. `UAT-11` ternyata diselesaikan kunci penasihat Postgres `pg_advisory_xact_lock`, bukan galat konkurensi: permintaan kedua menunggu lalu ditolak `409 RAD_INVALID_TRANSITION`. **Temuan yang menentukan:** `RadReport : ActAsRadiologist` **tidak dapat diberikan kepada peran mana pun** karena `AccessMenuSeeder` hanya menyemai pasangan yang menempel pada endpoint sedangkan penanda ini sengaja tanpa endpoint — akibatnya Sahkan, Rilis, dan penulisan draf sebagai radiolog **pasti ditolak untuk setiap akun**. Layar menyatakannya sebagai persoalan konfigurasi, bukan menyembunyikannya. Penghalang `BE-RAD-08`/`BE-RAD-09` yang masih terbuka; perlu keputusan pemilik modul |
 
 ### `FE-RAD-12` — Koreksi berversi dan riwayat versi
 
@@ -261,6 +266,7 @@ bagian 5. Setiap task di bawah menyebut ketentuan mana yang berlaku padanya.
 | Risiko | Sedang. Pembaca harus tahu mengapa hasilnya berubah |
 | Owner | Frontend |
 | Definition of Done | Riwayat versi terbaca; cara menampilkannya `DEV_DISCRETION` |
+| **Keadaan** | **Selesai 2026-09-14** — laporan `task/report/frontend/FE-RAD-12.md`. 2 berkas baru, 6 diubah; 14 test baru lulus, 904 test repository lulus, lint 0 error tanpa warning baru. Ketentuan mengikat bagian 5 butir 8 dipenuhi dengan alasan koreksi yang **diberi ruang sendiri** tepat di bawah nomor versinya, dan koreksi yang tidak membawa alasan **dinyatakan sebagai kejanggalan** alih-alih ruang kosong. `UAT-06` dipenuhi dengan membaca `currentVersionNumber`, **bukan nomor versi tertinggi** — `CreateAmendmentAsync` sengaja tidak menaikkannya, sehingga selama koreksi disusun versi berlaku dan versi kerja berbeda, dan layar yang menandai "terbaru" sebagai "berlaku" akan menampilkan draf yang belum diperiksa siapa pun. Isi tiap versi disembunyikan lebih dulu karena `GET /{id}/versions` mengirim isi lengkap seluruh versi sekaligus; berkasnya ditambahkan ke penjaga penyimpanan sehingga kini delapan berkas bacaan dijaga. **Satu jebakan ditemukan dan diperbaiki:** `authorRole` koreksi perlu ruas tersendiri — memakai ulang milik draf pertama membuat setiap koreksi ditolak `RAD_AUTHOR_ROLE_REQUIRED`. **Tidak dapat dicapai siapa pun** selama `ActAsRadiologist` belum dapat diberikan: tanpa pengesahan tidak ada perilisan, dan tanpa perilisan tidak ada yang dapat dikoreksi |
 
 ---
 
@@ -282,6 +288,7 @@ bagian 5. Setiap task di bawah menyebut ketentuan mana yang berlaku padanya.
 | Risiko | **Tertinggi di roadmap frontend.** Daftar kosong terbaca "pasien tidak punya pemeriksaan" — kesimpulan salah yang berbahaya |
 | Owner | Frontend |
 | Definition of Done | Dua keadaan dibedakan dengan pesan berbeda; tidak ada penyimpanan sementara isi bacaan |
+| **Keadaan** | **Selesai 2026-09-14** — laporan `task/report/frontend/FE-RAD-13.md`. 4 berkas baru, 4 diubah; 16 test baru lulus, 920 test repository lulus, lint 0 error tanpa warning baru. Ketentuan mengikat butir 4 dipenuhi dengan **empat** keadaan yang urutan pemeriksaannya dibuat eksplisit — kegagalan diperiksa **sebelum** kekosongan, dan pesan gangguannya menyatakan apa yang tidak boleh disimpulkan, bukan sekadar "coba lagi". Butir 2 dan 3 dipenuhi dengan menampilkan **hanya `currentVersion`** plus lapis kedua yang menolak versi bukan-`Released`: `GET /{id}` **tidak menyaring apa pun** dan membawa draf koreksi beserta isinya, sementara `currentVersionNumber` sengaja tidak dinaikkan — sehingga versi bernomor tertinggi bisa jadi draf yang belum diperiksa siapa pun. **Dua temuan:** `GET /by-encounter` tidak membawa isi bacaan sama sekali sehingga isinya diambil per bacaan saat dibuka; dan layar `medical-record-management` **tidak punya `encounterId`** sehingga penyajian di sana belum dikerjakan — yang ada baru tab pada workspace dokter. Keduanya perlu keputusan pemilik modul. **Task terakhir roadmap frontend Radiologi** |
 
 ---
 

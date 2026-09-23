@@ -1,10 +1,12 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Models;
 using QuilvianSystemBackend.Enums;
 using QuilvianSystemBackend.Repositories;
 
@@ -41,6 +43,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         private readonly ApplicationDbContext _dbContext;
         private readonly InpSettingService _settingService;
         private readonly InpEpisodeService _episodeService;
+        private readonly IInpIntegrationOutboxService _outboxService;
 
         /// <remarks>
         /// Arah dependency ke <see cref="InpEpisodeService"/> ditetapkan `BE-RWI-011`:
@@ -51,11 +54,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         public InpBedOccupancyService(
             ApplicationDbContext dbContext,
             InpSettingService settingService,
-            InpEpisodeService episodeService)
+            InpEpisodeService episodeService,
+            IInpIntegrationOutboxService outboxService)
         {
             _dbContext = dbContext;
             _settingService = settingService;
             _episodeService = episodeService;
+            _outboxService = outboxService;
         }
 
         // =====================================================================
@@ -151,6 +156,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
 
             var eligible = new List<MstBed>();
 
+            // BE-RWI-069. Alasan penolakan sudah dihitung untuk setiap bed kandidat di bawah,
+            // lalu selama ini dibuang. Menyimpannya tidak menambah satu pun query: daftar ini
+            // diisi dari hasil pemeriksaan yang sama, bukan dari pemeriksaan kedua.
+            var ineligible = new List<IneligibleBedResponse>();
+
+            // Tanpa episode, empat dari sembilan aturan tidak dapat dinilai sama sekali,
+            // sehingga alasan yang terkirim akan menyesatkan. Daftar penolakan karena itu
+            // hanya disusun ketika episodenya benar-benar ada.
+            var collectIneligible = query.IncludeIneligible && episode != null;
+
             foreach (var candidate in candidates)
             {
                 if (candidate.Room == null || candidate.Room.IsDelete || !candidate.Room.IsActive)
@@ -169,6 +184,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 if (evaluation.IsEligible)
                 {
                     eligible.Add(candidate);
+                    continue;
+                }
+
+                if (collectIneligible)
+                {
+                    ineligible.Add(new IneligibleBedResponse
+                    {
+                        BedId = candidate.Id,
+                        BedCode = candidate.BedCode,
+                        BedName = candidate.BedName,
+                        BedNumber = candidate.BedNumber,
+                        RoomId = candidate.RoomId,
+                        RoomCode = candidate.Room.RoomCode,
+                        RoomName = candidate.Room.RoomName,
+                        Failures = evaluation.Failures
+                    });
                 }
             }
 
@@ -206,7 +237,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 PageSize = pageSize,
                 TotalData = totalData,
                 TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
-                Items = items
+                Items = items,
+                Ineligible = ineligible
             };
         }
 
@@ -833,6 +865,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     touchEpisode: true,
                     cancellationToken: cancellationToken);
 
+                // BE-RWI-130 / RWI-DEC-156 — Event BED_OCCUPIED saat bed fisik ditempati
+                var bedOccupiedPayload = new
+                {
+                    encounterId = episode.EncounterId,
+                    episodeId = episode.Id,
+                    patientId = episode.PatientId,
+                    roomId = context.Room.Id,
+                    roomName = context.Room.RoomName,
+                    bedId = context.Bed.Id,
+                    bedCode = context.Bed.BedCode,
+                    roomClassId = placement.PatientClassId,
+                    occupancyStartAt = placement.StartDateTime
+                };
+
+                await _outboxService.EnqueueEventAsync(
+                    eventType: "BED_OCCUPIED",
+                    idempotencyKey: $"INPATIENT:ROOM_STAY:{placement.Id}:{placement.Version}",
+                    sourceDomain: "INPATIENT",
+                    sourceType: "ROOM_STAY",
+                    sourceDetailId: placement.Id.ToString(),
+                    payload: bedOccupiedPayload,
+                    cancellationToken: cancellationToken);
+
                 await _dbContext.SaveChangesAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
 
@@ -900,10 +955,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     "Episode dan tempat tidur tujuan wajib dipilih.");
             }
 
+            // VAL-INT-003 / RWI-DEC-157 — Alasan perubahan kamar wajib minimal 10 karakter
             if (string.IsNullOrWhiteSpace(request.TransferReason) ||
-                !request.TransferReason.Any(char.IsLetterOrDigit))
+                request.TransferReason.Trim().Length < 10)
             {
-                return InpBedOccupancyOperationResult.Invalid("Alasan perpindahan wajib diisi.");
+                return InpBedOccupancyOperationResult.Invalid(
+                    "Alasan perubahan kamar wajib diisi minimal 10 karakter untuk keperluan jejak rekam audit.");
             }
 
             await ExpireDueReservationsAsync(cancellationToken);
@@ -918,6 +975,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             {
                 return InpBedOccupancyOperationResult.NotFound(
                     "Episode rawat inap tidak ditemukan.");
+            }
+
+            // VAL-INT-002 / RWI-DEC-157 — Validasi status billing kasir: tolak jika CLOSED
+            var isBillingClosed = await _dbContext.BilFolios
+                .AsNoTracking()
+                .AnyAsync(
+                    x => x.EncounterId == episode.EncounterId &&
+                         x.Status == BillingFolioStatus.Closed &&
+                         !x.IsDelete,
+                    cancellationToken);
+
+            if (isBillingClosed)
+            {
+                return InpBedOccupancyOperationResult.BusinessRuleRejected(
+                    "Mutasi kamar ditolak: Tagihan kasir pasien sudah berstatus CLOSED. Data hunian kamar tidak dapat diubah kembali. Hubungi bagian Kasir/Keuangan bila diperlukan pembukaan kembali tagihan.");
             }
 
             if (episode.EpisodeStatus == InpEpisodeStatus.DischargePending)
@@ -1024,6 +1096,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 currentPlacement.EndReason = InpBedPlacementEndReason.Transfer;
                 currentPlacement.EndedByUserId = actorUserId;
                 currentPlacement.TransferReason = reason;
+                currentPlacement.ChangeReason = reason;
+                currentPlacement.IsSuperseded = true;
+                currentPlacement.SupersededAtUtc = now;
                 currentPlacement.IsActive = false;
                 currentPlacement.UpdateDateTime = now;
                 currentPlacement.UpdateBy = actorUserId;
@@ -1042,9 +1117,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     ServiceUnitId = context.Room.ServiceUnitId,
                     PatientClassId = ResolveBilledPatientClassId(context.Room, episode),
                     SequenceNumber = lastSequence + 1,
+                    Version = currentPlacement.Version + 1,
                     StartDateTime = now,
                     EndDateTime = null,
                     TransferReason = reason,
+                    ChangeReason = reason,
+                    IsSuperseded = false,
                     PlacedByUserId = actorUserId,
                     IsActive = true,
                     CreateDateTime = now,
@@ -1074,6 +1152,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 // "2 hari kelas 2 lalu 2 hari kelas 1" tidak lagi dapat dibaca.
                 episode.UpdateDateTime = now;
                 episode.UpdateBy = actorUserId;
+
+                // BE-RWI-131 / RWI-DEC-157 — Event OCCUPANCY_CORRECTED saat mutasi / koreksi kamar
+                var occupancyCorrectedPayload = new
+                {
+                    encounterId = episode.EncounterId,
+                    episodeId = episode.Id,
+                    oldRoomId = currentPlacement.RoomId,
+                    newRoomId = context.Room.Id,
+                    oldRoomClassId = currentPlacement.PatientClassId,
+                    newRoomClassId = placement.PatientClassId,
+                    effectiveAtUtc = now,
+                    reason = reason,
+                    version = placement.Version
+                };
+
+                await _outboxService.EnqueueEventAsync(
+                    eventType: "OCCUPANCY_CORRECTED",
+                    idempotencyKey: $"INPATIENT:ROOM_STAY:{placement.Id}:{placement.Version}",
+                    sourceDomain: "INPATIENT",
+                    sourceType: "ROOM_STAY",
+                    sourceDetailId: placement.Id.ToString(),
+                    payload: occupancyCorrectedPayload,
+                    cancellationToken: cancellationToken);
 
                 await _dbContext.SaveChangesAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
@@ -1213,18 +1314,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// perintah bisnisnya berubah.
         ///
         /// <para>
-        /// <b>Dua pengecualian boks bayi, keduanya berlaku dua arah.</b> Menempatkan <b>ke</b>
-        /// boks bayi melewati aturan 4, 5, dan 6 — bayi laki-laki boleh menempati boks di
-        /// kamar ibunya. Penghuni yang <b>berada di</b> boks bayi tidak dihitung saat aturan 5
-        /// dan 6 memeriksa penghuni kamar — bayi tidak menutup kamar bagi pasien lain.
+        /// <b>Pengecualian boks bayi.</b> Menempatkan <b>ke</b> boks bayi melewati aturan 4
+        /// dan 5 — bayi laki-laki boleh menempati boks di kamar ibunya.
         /// </para>
         ///
         /// <para>
-        /// <b>Aturan 6 diperiksa dari penghuni yang sedang ada</b>, bukan dari penanda pada
-        /// <c>MstRoom</c>. Penanda <c>IsForMale</c> dan <c>IsForFemale</c> bernilai benar
-        /// secara bawaan untuk setiap kamar, sehingga tidak dapat membedakan kamar yang boleh
-        /// campur. Kolom "boleh campur" ditolak tegas oleh <c>RWI-DEC-066</c> dan dikunci
-        /// `blueprint-manifest.md` bagian 8 butir 7; menambahkannya bukan keputusan pelaksana.
+        /// <b>Aturan 6 dipensiunkan sejak kontrak <c>0.8.0</c>.</b> Dahulu ia menolak dengan
+        /// kode <c>ROOM_GENDER_MIXED</c> bila kamar sedang dihuni pasien berjenis kelamin lain.
+        /// <c>RWI-DEC-101</c> mencabutnya seluruhnya: kelayakan tempat tidur tidak lagi menilai
+        /// penghuni kamar lain dalam bentuk apa pun, dan privasi jenis kelamin sepenuhnya
+        /// bersandar pada penanda <c>IsForMale</c> serta <c>IsForFemale</c> milik tempat tidur
+        /// yang ditetapkan Admin Master Data. Nomor 6 <b>dibiarkan kosong</b> dan tidak dipakai
+        /// ulang, supaya nomor aturan 7 dan 8 pada <c>failures[]</c> tidak bergeser bagi
+        /// pemanggil yang sudah terbit. Kolom "boleh campur" pada <c>MstRoom</c> tetap ditolak
+        /// tegas oleh <c>RWI-DEC-066</c>; pencabutan ini justru membuatnya tidak dibutuhkan.
         /// </para>
         ///
         /// <para>
@@ -1330,16 +1433,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                 return result;
             }
 
-            // --- Aturan 4, 5, dan 6: privasi jenis kelamin --------------------------------
-            // Pengecualian pertama: menempatkan KE boks bayi melewati ketiganya.
+            // --- Aturan 4 dan 5: privasi jenis kelamin ------------------------------------
+            // Nomor 6 dipensiunkan RWI-DEC-101 dan sengaja dibiarkan kosong, supaya nomor
+            // aturan 7 dan 8 tidak bergeser. Penghuni kamar lain tidak diperiksa lagi.
+            // Pengecualian boks bayi: menempatkan KE boks bayi melewati keduanya.
             if (!bed.IsForNewborn)
             {
                 var patientGender = NormalizeGender(patient?.Gender);
-
-                var occupants = await LoadRoomOccupantsAsync(room.Id, episodeId, cancellationToken);
-
-                // Pengecualian kedua: penghuni yang BERADA DI boks bayi tidak dihitung.
-                var countedOccupants = occupants.Where(x => !x.BedIsForNewborn).ToList();
 
                 if (patientGender.HasValue)
                 {
@@ -1352,33 +1452,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
                     {
                         result.Add(4, "BED_GENDER_MISMATCH", BedGenderMessage(bed), 422);
                     }
-
-                    // Aturan 6.
-                    var conflicting = countedOccupants
-                        .FirstOrDefault(x => NormalizeGender(x.Gender) != patientGender.Value);
-
-                    if (conflicting != null)
-                    {
-                        result.Add(
-                            6,
-                            "ROOM_GENDER_MIXED",
-                            $"Kamar {room.RoomName} sedang dihuni pasien " +
-                            $"{GenderLabel(NormalizeGender(conflicting.Gender))}, sehingga tidak " +
-                            $"dapat menerima pasien {GenderLabel(patientGender.Value)}.",
-                            422);
-                    }
                 }
                 else
                 {
-                    // Aturan 5. Gagal salah satu saja sudah menolak.
-                    if (!bed.IsForMale || !bed.IsForFemale || countedOccupants.Count > 0)
+                    // Aturan 5. Sejak RWI-DEC-101 syaratnya hanya penanda tempat tidur;
+                    // syarat "kamar belum ada penghuninya" dicabut.
+                    if (!bed.IsForMale || !bed.IsForFemale)
                     {
                         result.Add(
                             5,
                             "PATIENT_GENDER_UNKNOWN",
                             "Jenis kelamin pasien belum tercatat. Pilih tempat tidur yang " +
-                            "menerima laki-laki dan perempuan, di kamar yang belum ada " +
-                            "penghuninya.",
+                            "menerima laki-laki dan perempuan.",
                             422);
                     }
                 }
@@ -1609,28 +1694,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             return new BedWithRoom { Bed = bed, Room = room };
         }
 
-        private async Task<List<RoomOccupant>> LoadRoomOccupantsAsync(
-            Guid roomId,
-            Guid excludeEpisodeId,
-            CancellationToken cancellationToken)
-        {
-            return await _dbContext.Set<InpBedPlacement>()
-                .AsNoTracking()
-                .Where(x =>
-                    x.RoomId == roomId &&
-                    x.EpisodeId != excludeEpisodeId &&
-                    x.EndDateTime == null &&
-                    !x.IsDelete)
-                .Select(x => new RoomOccupant
-                {
-                    BedIsForNewborn = x.Bed != null && x.Bed.IsForNewborn,
-                    Gender = x.Episode != null && x.Episode.Patient != null
-                        ? x.Episode.Patient.Gender
-                        : null
-                })
-                .ToListAsync(cancellationToken);
-        }
-
         private async Task FillServiceUnitAndClassNamesAsync(
             List<AvailableBedResponse> items,
             CancellationToken cancellationToken)
@@ -1744,22 +1807,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
         /// <remarks>
         /// <c>Unknown</c> dan <c>NotDisclosed</c> keduanya diperlakukan sebagai belum tercatat.
         /// Yang kedua sering dikira "sudah diisi" karena pasien memang menolak menyebutkan;
-        /// untuk aturan privasi kamar keduanya sama saja, karena sistem tetap tidak dapat
-        /// membuktikan kamarnya tidak menjadi campur.
+        /// untuk aturan 5 keduanya sama saja, karena sistem tetap tidak dapat membuktikan
+        /// tempat tidur satu jenis kelamin memang cocok bagi pasien itu.
         /// </remarks>
         private static Gender? NormalizeGender(Gender? gender)
         {
             return gender is Gender.Male or Gender.Female ? gender : null;
-        }
-
-        private static string GenderLabel(Gender? gender)
-        {
-            return gender switch
-            {
-                Gender.Male => "laki-laki",
-                Gender.Female => "perempuan",
-                _ => "yang jenis kelaminnya belum tercatat"
-            };
         }
 
         private sealed class BedWithRoom
@@ -1767,13 +1820,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             public MstBed Bed { get; set; } = null!;
 
             public MstRoom? Room { get; set; }
-        }
-
-        private sealed class RoomOccupant
-        {
-            public bool BedIsForNewborn { get; set; }
-
-            public Gender? Gender { get; set; }
         }
     }
 

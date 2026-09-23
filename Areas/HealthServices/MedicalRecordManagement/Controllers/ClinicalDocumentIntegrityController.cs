@@ -1,12 +1,10 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
-using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
-using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Models;
@@ -18,6 +16,11 @@ using System.Security.Claims;
 using ResponseUnsignedDocumentPagedResult =
     QuilvianSystemBackend.Responses.PagedResult<
         QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.DTOs.UnsignedDocumentResponse>;
+
+// BE-RWI-092. Daftar "Catatan Saya": catatan terkunci milik penulis yang sedang masuk.
+using ResponseAuthoredDocumentPagedResult =
+    QuilvianSystemBackend.Responses.PagedResult<
+        QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.DTOs.AuthoredDocumentItem>;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Controllers
 {
@@ -242,49 +245,76 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
         [AccessAction("Read", "Read Clinical Document Integrity", Description = "Melihat catatan sendiri yang belum ditandatangani", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("ClinicalDocumentIntegrity", "Read")]
         public async Task<IActionResult> GetMyUnsigned(
+            [FromQuery] ClinicalDocumentServiceContext serviceContext = ClinicalDocumentServiceContext.All,
             [FromQuery] int pageNumber = 1,
-            [FromQuery] int pageSize = 25)
+            [FromQuery] int pageSize = 25,
+            CancellationToken cancellationToken = default)
         {
+            if (!Enum.IsDefined(serviceContext))
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Konteks layanan tidak dikenal."));
+            }
+
             var actorUserId = GetCurrentUserId();
             (pageNumber, pageSize) = NormalizePaging(pageNumber, pageSize);
 
-            var query = _dbContext.Set<MrcClinicalDocumentIntegrity>()
-                .AsNoTracking()
-                .Where(x => x.AuthorUserId == actorUserId
-                            && x.IntegrityStatus == ClinicalDocumentIntegrityStatus.Draft
-                            && !x.IsDelete);
-
-            var totalData = await query.CountAsync();
-
-            var items = await query
-                .OrderByDescending(x => x.CreateDateTime)
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
-                .Select(x => new UnsignedDocumentResponse
-                {
-                    IntegrityId = x.Id,
-                    DocumentKind = x.DocumentKind,
-                    DocumentKindName = x.DocumentKind.ToString(),
-                    DocumentId = x.DocumentId,
-                    PatientId = x.PatientId,
-                    EncounterId = x.EncounterId,
-                    CreatedAt = x.CreateDateTime
-                })
-                .ToListAsync();
-
-            await LengkapiIdentitasAsync(items);
-
-            var hasil = new ResponseUnsignedDocumentPagedResult
-            {
-                PageNumber = pageNumber,
-                PageSize = pageSize,
-                TotalData = totalData,
-                TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
-                Items = items
-            };
+            var hasil = await _integrityService.GetAuthoredDraftsAsync(
+                actorUserId,
+                serviceContext,
+                pageNumber,
+                pageSize,
+                cancellationToken);
 
             return Ok(ApiResponse<ResponseUnsignedDocumentPagedResult>.Ok(
                 hasil, "Daftar catatan yang belum ditandatangani berhasil diambil."));
+        }
+
+        [HttpGet("my-authored")]
+        [ProducesResponseType(typeof(ApiResponse<ResponseAuthoredDocumentPagedResult>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [AccessAction("Read", "Read Clinical Document Integrity", Description = "Melihat catatan terkunci milik penulis yang sedang masuk", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("ClinicalDocumentIntegrity", "Read")]
+        public async Task<IActionResult> GetMyAuthored(
+            [FromQuery] ClinicalDocumentIntegrityStatus? status = null,
+            [FromQuery] ClinicalDocumentServiceContext serviceContext = ClinicalDocumentServiceContext.All,
+            [FromQuery] DateTime? from = null,
+            [FromQuery] DateTime? to = null,
+            [FromQuery] int pageNumber = 1,
+            [FromQuery] int pageSize = 25,
+            CancellationToken cancellationToken = default)
+        {
+            if ((status.HasValue && !Enum.IsDefined(status.Value)) ||
+                !Enum.IsDefined(serviceContext))
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Status catatan atau konteks layanan tidak dikenal."));
+            }
+
+            if (from.HasValue && to.HasValue && from.Value > to.Value)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "Tanggal awal tidak boleh sesudah tanggal akhir."));
+            }
+
+            var actorUserId = GetCurrentUserId();
+            (pageNumber, pageSize) = NormalizePaging(pageNumber, pageSize);
+
+            var hasil = await _integrityService.GetAuthoredDocumentsAsync(
+                actorUserId,
+                status,
+                serviceContext,
+                from,
+                to,
+                pageNumber,
+                pageSize,
+                cancellationToken);
+
+            return Ok(ApiResponse<ResponseAuthoredDocumentPagedResult>.Ok(
+                hasil, "Daftar catatan milik penulis berhasil diambil."));
         }
 
         [HttpGet("by-encounter/{encounterId:guid}")]
@@ -341,40 +371,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Con
                 AddendumCount = keutuhan.AddendumCount,
                 IsMutable = keutuhan.IntegrityStatus == ClinicalDocumentIntegrityStatus.Draft
             };
-        }
-
-        /// <summary>
-        /// Melengkapi nama pasien dan nomor kunjungan pada daftar.
-        ///
-        /// Diambil terpisah, bukan lewat join, supaya query utama tetap sederhana dan daftar
-        /// tetap terbaca walaupun salah satu rujukan tidak ditemukan.
-        /// </summary>
-        private async Task LengkapiIdentitasAsync(List<UnsignedDocumentResponse> items)
-        {
-            if (items.Count == 0) return;
-
-            var patientIds = items.Select(x => x.PatientId).Distinct().ToList();
-            var encounterIds = items.Select(x => x.EncounterId).Distinct().ToList();
-
-            var pasien = await _dbContext.Set<MstPatient>()
-                .AsNoTracking()
-                .Where(x => patientIds.Contains(x.Id))
-                .Select(x => new { x.Id, x.FullName, x.MedicalRecordNumber })
-                .ToListAsync();
-
-            var kunjungan = await _dbContext.Set<RegPatientEncounter>()
-                .AsNoTracking()
-                .Where(x => encounterIds.Contains(x.Id))
-                .Select(x => new { x.Id, x.EncounterNumber })
-                .ToListAsync();
-
-            foreach (var item in items)
-            {
-                var p = pasien.FirstOrDefault(x => x.Id == item.PatientId);
-                item.PatientName = p?.FullName;
-                item.MedicalRecordNumber = p?.MedicalRecordNumber;
-                item.EncounterNumber = kunjungan.FirstOrDefault(x => x.Id == item.EncounterId)?.EncounterNumber;
-            }
         }
 
         private static string NamaStatus(ClinicalDocumentIntegrityStatus status) => status switch

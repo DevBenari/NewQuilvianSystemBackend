@@ -1,4 +1,4 @@
-using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Enums;
+﻿using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Enums;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.DTOs
 {
@@ -101,11 +101,62 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.DTOs
         public List<BloodBankTransitionDto> Transitions { get; set; } = new();
 
         /// <summary>
+        /// Seluruh riwayat alokasi kantong ini, terlama lebih dulu — <b>termasuk</b> alokasi yang
+        /// sudah dibatalkan (<c>BE-BD-006</c>, <c>ARCH-BD-POS-03</c>).
+        /// </summary>
+        /// <remarks>
+        /// Kosong berarti kantong belum pernah dialokasikan. Baris berstatus <c>Cancelled</c>
+        /// sengaja tetap tampil: pertanyaan "kantong ini pernah disiapkan untuk siapa saja" hanya
+        /// dapat dijawab bila percobaan yang dibatalkan pun terbaca.
+        /// </remarks>
+        public List<BloodUnitAllocationDto> Allocations { get; set; } = new();
+
+        /// <summary>
+        /// Alokasi yang sedang berlaku. Kosong bila kantong tidak sedang dialokasikan. Paling
+        /// banyak satu, dijaga index unik terfilter database (<c>INV-BD-019</c>).
+        /// </summary>
+        public BloodUnitAllocationDto? CurrentAllocation { get; set; }
+
+        /// <summary>
+        /// Seluruh bukti pemeriksaan kecocokan kantong ini, terbaru lebih dulu.
+        /// Bukti Incompatible, expired, maupun superseded tetap tampil sebagai
+        /// bagian rekam klinis dan tidak dihapus.
+        /// </summary>
+        public List<CompatibilityEvidenceDto> CompatibilityEvidences { get; set; } = new();
+
+        /// <summary>
+        /// Bukti yang benar-benar digunakan saat pemberian jalur normal.
+        /// Kosong sebelum pemberian dan kosong untuk pemberian jalur darurat yang melewati
+        /// gerbang bukti kecocokan.
+        /// </summary>
+        public Guid? CompatibilityEvidenceIdUsed { get; set; }
+
+        /// <summary>
+        /// Otorisasi darurat yang melekat pada kantong ini, terbaru lebih dulu (BE-BD-008).
+        /// Penanda melekat permanen dan menyebutkan gerbang mana yang dilewati, peran penerbit,
+        /// serta keterangan kondisi kedaruratannya (INV-BD-030, INV-BD-032).
+        /// </summary>
+        public List<EmergencyAuthorizationDto> EmergencyAuthorizations { get; set; } = new();
+
+        /// <summary>
+        /// Koreksi pencatatan pemberian beserta keadaannya (<c>BE-BD-010</c>). Koreksi
+        /// <c>Requested</c> dan <c>Rejected</c> tetap terbaca; pemberian asal di atas tidak berubah.
+        /// </summary>
+        public List<IssuanceCorrectionDto> IssuanceCorrections { get; set; } = new();
+
+        /// <summary>
         /// Aksi yang layak dicoba. <c>AssignStorageLocation</c> selama kantong <c>Received</c>;
         /// <c>MoveStorageLocation</c> sesudah kantong punya lokasi dan belum keluar dari stok —
-        /// termasuk ketika lokasinya dinonaktifkan. Aksi alokasi belum ditawarkan karena endpoint-nya
-        /// lahir pada <c>BE-BD-006</c>.
+        /// termasuk ketika lokasinya dinonaktifkan; <c>Allocate</c> pada kantong <c>Available</c>
+        /// yang bukan kantong berlebih; dan <c>CancelAllocation</c> pada kantong <c>Allocated</c>
+        /// (keduanya sejak <c>BE-BD-006</c>).
         /// </summary>
+        /// <remarks>
+        /// <b>Daftar ini kelayakan, bukan izin.</b> Hak akses tetap ditegakkan backend pada setiap
+        /// panggilan, dan setiap aksi menilai ulang syaratnya sendiri saat dijalankan — termasuk
+        /// gerbang lokasi <c>VAL-BD-064</c>, yang sengaja <b>tidak</b> menyembunyikan tombol
+        /// alokasi supaya petugas melihat sebab penolakannya.
+        /// </remarks>
         public List<string> AvailableActions { get; set; } = new();
 
         public DateTime CreateDateTime { get; set; }

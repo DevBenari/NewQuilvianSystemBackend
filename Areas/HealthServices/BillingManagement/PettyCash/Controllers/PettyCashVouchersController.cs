@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.PettyCash.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.PettyCash.Services;
 using QuilvianSystemBackend.Attributes;
@@ -77,30 +78,6 @@ public sealed class PettyCashVouchersController : ControllerBase
         catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
     }
 
-    [HttpPost("{id:guid}/approve")]
-    [AccessAction("Approve", "Approve Petty Cash Voucher", AccessType = AccessTypes.Update, SortOrder = 3)]
-    [AccessPermission("PettyCashVoucher", "Approve")]
-    public Task<IActionResult> Approve(
-        Guid id,
-        [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
-        [FromBody] ApprovePettyCashVoucherRequest request,
-        CancellationToken cancellationToken) =>
-        ExecuteAsync(
-            () => _service.ApproveAsync(id, request, idempotencyKey, CurrentUserId(), CurrentRole(), cancellationToken),
-            "Voucher sudah disetujui; hasil sebelumnya dikembalikan.", "Voucher kas kecil berhasil disetujui.");
-
-    [HttpPost("{id:guid}/reject")]
-    [AccessAction("Reject", "Reject Petty Cash Voucher", AccessType = AccessTypes.Update, SortOrder = 4)]
-    [AccessPermission("PettyCashVoucher", "Reject")]
-    public Task<IActionResult> Reject(
-        Guid id,
-        [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
-        [FromBody] RejectPettyCashVoucherRequest request,
-        CancellationToken cancellationToken) =>
-        ExecuteAsync(
-            () => _service.RejectAsync(id, request, idempotencyKey, CurrentUserId(), CurrentRole(), cancellationToken),
-            "Voucher sudah ditolak; hasil sebelumnya dikembalikan.", "Voucher kas kecil berhasil ditolak.");
-
     [HttpPost("{id:guid}/cancel")]
     [AccessAction("Cancel", "Cancel Petty Cash Voucher", AccessType = AccessTypes.Update, SortOrder = 5)]
     [AccessPermission("PettyCashVoucher", "Cancel")]
@@ -137,6 +114,30 @@ public sealed class PettyCashVouchersController : ControllerBase
             () => _service.AttachProofAsync(id, request, idempotencyKey, CurrentUserId(), CurrentRole(), cancellationToken),
             "Bukti nota sudah dimasukkan; hasil sebelumnya dikembalikan.", "Bukti nota voucher kas kecil berhasil disimpan.");
 
+    [HttpPost("{id:guid}/returns")]
+    [AccessAction("Return", "Return Petty Cash Voucher Cash", AccessType = AccessTypes.Update, SortOrder = 8)]
+    [AccessPermission("PettyCashVoucher", "Return")]
+    public Task<IActionResult> Return(
+        Guid id,
+        [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
+        [FromBody] PettyCashVoucherReturnRequest request,
+        CancellationToken cancellationToken) =>
+        ExecuteAsync(
+            () => _service.ReturnAsync(id, request, idempotencyKey, CurrentUserId(), CurrentRole(), cancellationToken),
+            "Pengembalian ini sudah pernah dicatat; hasil sebelumnya dikembalikan.", "Sisa uang berhasil dicatat sebagai pengembalian.");
+
+    [HttpPost("{id:guid}/reversals")]
+    [AccessAction("Reverse", "Reverse Petty Cash Voucher Disbursement", AccessType = AccessTypes.Update, SortOrder = 9)]
+    [AccessPermission("PettyCashVoucher", "Reverse")]
+    public Task<IActionResult> Reverse(
+        Guid id,
+        [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
+        [FromBody] PettyCashVoucherReversalRequest request,
+        CancellationToken cancellationToken) =>
+        ExecuteAsync(
+            () => _service.ReverseAsync(id, request, idempotencyKey, CurrentUserId(), CurrentRole(), cancellationToken),
+            "Pencairan ini sudah pernah dibalik; hasil sebelumnya dikembalikan.", "Pencairan voucher kas kecil berhasil dibalik.");
+
     private async Task<IActionResult> ExecuteAsync(
         Func<Task<PettyCashVoucherResponse>> command, string replayMessage, string successMessage)
     {
@@ -157,6 +158,12 @@ public sealed class PettyCashVouchersController : ControllerBase
         PettyCashBudgetConflictException => Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, exception.Message)),
         PettyCashBudgetInsufficientBalanceException => UnprocessableEntity(
             ApiResponse<object>.Fail(StatusCodes.Status422UnprocessableEntity, exception.Message)),
+        // BE-BKC-057, BIL-VAL-099/BIL-VAL-106: ApplyReturnAsync/ApplyReversalAsync melempar ini
+        // untuk kegagalan validasi sisi anggaran (mis. tidak ada periode ACTIVE) — dipetakan 422
+        // di sini agar sesuai amendment 15 September 2026, berbeda dari PettyCashBudgetController
+        // yang memetakan exception ini ke 400 untuk endpoint miliknya sendiri (di luar scope task ini).
+        PettyCashBudgetValidationException => UnprocessableEntity(
+            ApiResponse<object>.Fail(StatusCodes.Status422UnprocessableEntity, exception.Message)),
         PettyCashVoucherValidationException => UnprocessableEntity(
             ApiResponse<object>.Fail(StatusCodes.Status422UnprocessableEntity, exception.Message)),
         PettyCashVoucherBadRequestException => BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, exception.Message)),
@@ -169,6 +176,7 @@ public sealed class PettyCashVouchersController : ControllerBase
         PettyCashVoucherConflictException or
         PettyCashBudgetConflictException or
         PettyCashBudgetInsufficientBalanceException or
+        PettyCashBudgetValidationException or
         PettyCashVoucherValidationException or
         PettyCashVoucherBadRequestException;
 

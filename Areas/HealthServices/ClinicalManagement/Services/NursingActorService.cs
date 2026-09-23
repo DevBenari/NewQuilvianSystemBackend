@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Repositories;
 using System.Security.Claims;
@@ -44,6 +44,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             "Akun Anda belum tertaut ke data pegawai, sehingga catatan keperawatan tidak dapat " +
             "menyebut siapa perawatnya. Hubungi bagian kepegawaian untuk menautkannya.";
 
+        /// <summary>
+        /// Kalimat penolakan <c>GUARD-INP-07</c>: permintaan menyebut perawat lain sebagai
+        /// penulis atau pelaksana - <c>BE-RWI-078</c>, <c>AC-KEP-047</c>.
+        /// </summary>
+        /// <remarks>
+        /// Penolakan ini soal kewenangan, bukan soal kelengkapan data, sehingga jawabannya
+        /// <c>403</c> dan kalimatnya menyebut siapa yang seharusnya menulis.
+        /// </remarks>
+        public const string PenolakanPegawaiPihakLain =
+            "Dokumentasi keperawatan dicatat atas nama perawat yang sedang masuk. Catatan atas " +
+            "nama perawat lain tidak dapat disimpan.";
+
         private readonly ApplicationDbContext _dbContext;
 
         public NursingActorService(ApplicationDbContext dbContext)
@@ -87,8 +99,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 : await _dbContext.Users
                     .AsNoTracking()
                     .Where(x => x.Id == actorUserId)
-                    .Select(x => new { x.WorkforceProfileId, x.Email })
+                    .Select(x => new { x.EmployeeId, x.WorkforceProfileId, x.Email })
                     .FirstOrDefaultAsync(cancellationToken);
+
+            // GUARD-INP-07, BE-RWI-078, RWI-DEC-100. Penautan langsung pada baris pengguna
+            // dibaca sebelum penautan lewat profil tenaga kerja dan sebelum surel: ia adalah
+            // rantai identitas yang disebut kontrak 0.4.0 bagian 0.A.2 secara bernama, dan ia
+            // satu-satunya yang tidak bergantung pada kesamaan alamat surel.
+            if (pengguna?.EmployeeId is Guid dariPengguna && dariPengguna != Guid.Empty)
+            {
+                var adaPegawai = await _dbContext.Set<MstEmployee>()
+                    .AsNoTracking()
+                    .AnyAsync(x => x.Id == dariPengguna && !x.IsDelete && x.IsActive, cancellationToken);
+
+                if (adaPegawai)
+                    return dariPengguna;
+            }
 
             workforceProfileId ??= pengguna?.WorkforceProfileId;
 

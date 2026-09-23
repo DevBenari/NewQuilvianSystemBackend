@@ -104,10 +104,26 @@ namespace QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services
             var now = DateTime.UtcNow;
             long nextValue;
 
+            try
+            {
+                // MinimumValue hanya menjembatani deret legacy pada alokasi pertama. Nilainya
+                // tidak pernah dikembalikan langsung: provider tetap menaikkan pencacah di bawah
+                // advisory lock dan menyimpan hasilnya pada baris durabel.
+                checked
+                {
+                    nextValue = Math.Max(series?.CurrentValue ?? 0, request.MinimumValue) + 1;
+                }
+            }
+            catch (OverflowException ex)
+            {
+                throw new NumberSeriesAllocationException(
+                    "Deret nomor ini sudah mencapai batas dan tidak dapat dinaikkan lagi.",
+                    ex)
+                { ValidationCode = "VAL-PLT-006" };
+            }
+
             if (series is null)
             {
-                nextValue = 1;
-
                 context.NumNumberSeries.Add(new NumNumberSeries
                 {
                     Id = Guid.NewGuid(),
@@ -122,19 +138,6 @@ namespace QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services
             }
             else
             {
-                // checked: melampaui batas long dilempar, bukan berputar diam-diam ke negatif.
-                try
-                {
-                    checked { nextValue = series.CurrentValue + 1; }
-                }
-                catch (OverflowException ex)
-                {
-                    throw new NumberSeriesAllocationException(
-                        "Deret nomor ini sudah mencapai batas dan tidak dapat dinaikkan lagi.",
-                        ex)
-                    { ValidationCode = "VAL-PLT-006" };
-                }
-
                 series.CurrentValue = nextValue;
                 series.LastAllocatedAt = request.Instant;
                 series.UpdateDateTime = now;
@@ -289,6 +292,13 @@ namespace QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services
             {
                 throw new NumberSeriesAllocationException("Petugas pelaku tidak dikenali.")
                 { ValidationCode = "VAL-PLT-005" };
+            }
+
+            if (request.MinimumValue < 0)
+            {
+                throw new NumberSeriesAllocationException(
+                    "Batas bawah deret nomor tidak boleh negatif.")
+                { ValidationCode = "VAL-PLT-008" };
             }
 
             return prefix;

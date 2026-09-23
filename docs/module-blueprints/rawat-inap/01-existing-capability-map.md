@@ -3,14 +3,14 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| Capability-map revision | `1.3` — revision `1.2` ditambah **impact scan terfokus Dokter Rawat Inap** pada bagian 15. Bagian 1–14 tetap menjadi baseline historis; hanya temuan slice `CAP-015`, `CAP-020` s.d. `CAP-025`, `INT-DOK-01`, dan `INT-DOK-02` yang diperbarui |
-| Status | `source-audited / focused-impact-scan`. **Bagian 15 current untuk slice Dokter Rawat Inap; bagian lain stale terhadap SHA terbaru.** Dokumen ini belum menyatakan sub-modul siap dibangun, siap dirilis, atau siap produksi |
-| Tanggal audit | Baseline 21 Agustus 2026; impact scan Dokter Rawat Inap 2 September 2026 (`Asia/Jakarta`) |
-| Masukan bisnis | [`00-interview-decisions.md`](./00-interview-decisions.md), revision `1`, status `draft`, SHA-256 `19a64b418f4004cf5ae1376db1961fcf4e56a3ce9ed8d506c662a0da42ae6692` |
+| Capability-map revision | **`1.5`** — ditambah **bagian 18: Audit Kemampuan Integrasi Rawat Inap ↔ Billing (Pass A — Muhammad Hamzah, 17 September 2026)**. Sebelumnya `1.4` — ditambah bagian 16 dan bagian 17 (penyelarasan `PRD-RWI-V2-001` fase `RLN-PH-03` 15 September 2026). Bagian 1–14 baseline historis; bagian 15, 16, 17 historis untuk ruang kerja dokter dan keperawatan |
+| Status | `source-audited / focused-integration-audit`. **Per 17 September 2026, bagian 18 current untuk integrasi Rawat Inap ↔ Billing terhadap `BE@fe7e60d4` (branch `MHamzah`) dan `FE@2c007588` (branch `HamzahV2`).** Bagian 17 current untuk ruang kerja dokter dan keperawatan terhadap `BE@df3679c0` dan `FE@147355f5`; bagian 1–16 historis. Dokumen ini belum menyatakan sub-modul siap dibangun, siap dirilis, atau siap produksi |
+| Tanggal audit | Audit integrasi Rawat Inap ↔ Billing 17 September 2026; impact scan penyelarasan V2 15 September 2026; impact scan V2 11 September 2026; baseline 21 Agustus 2026; impact scan Dokter Rawat Inap 2 September 2026 (`Asia/Jakarta`) |
+| Masukan bisnis | [`00-interview-decisions.md`](./00-interview-decisions.md), revision `25`, status `draft`, SHA snapshot `fe7e60d4` |
 | Daftar periksa audit | `RWI-TRC-001` sampai `RWI-TRC-009` pada dokumen keputusan |
-| Decision ID yang dirujuk | `RWI-DEC-001`, `RWI-DEC-002`, `RWI-DEC-003`, `RWI-DEC-007` s.d. `RWI-DEC-035` |
-| Backend snapshot | Baseline `5afb54bd75281648010e50ef14f43ca1f80d8efd`; impact scan slice dokter `93b3227c431401d8f586dec4e1fb25fbf41766e3` (branch `MHamzah`) |
-| Frontend snapshot | Baseline `dec4fdeff07c3c96ad9f07f41f184c54cf771371`; impact scan slice dokter `863f24b0d1617069310c04e5770b47fd1b518b5b` (branch `HamzahV2`). Working tree memiliki perubahan lain pada admisi yang tidak masuk batas audit |
+| Decision ID yang dirujuk | `RWI-DEC-001` s.d. `RWI-DEC-035`, `RWI-DEC-075` s.d. `RWI-DEC-079`, `RWI-DEC-093` s.d. `RWI-DEC-096`, `RWI-DEC-106` s.d. `RWI-DEC-149`, serta **`RWI-DEC-156` s.d. `RWI-DEC-161`** |
+| Backend snapshot | **Bagian 18: `fe7e60d4b2ef1eecffa72cef4f4fd33f9dbe0344`** (branch `MHamzah`); bagian 17: `df3679c0d5b2f08106702153eb242d3a6cb2929b` (branch `MHamzah`); bagian 16: `201de753`; baseline `5afb54bd75281648010e50ef14f43ca1f80d8efd`; impact scan slice dokter `93b3227c431401d8f586dec4e1fb25fbf41766e3` (branch `MHamzah`) |
+| Frontend snapshot | **Bagian 18: `2c00758832f834cff0288bef4f0d2fcf1161fb52`** (branch `HamzahV2`); bagian 17: `147355f505e875148b8416866ada6cf8b2f1ad99` (branch `HamzahV2`), ditambah pembanding V1 `13c3a96b`; bagian 16: `7f6b9356`; baseline `dec4fdeff07c3c96ad9f07f41f184c54cf771371`; impact scan slice dokter `863f24b0d1617069310c04e5770b47fd1b518b5b` (branch `HamzahV2`) |
 | Contract version | Target sub-modul `dokter-rawat-inap`: API, integration, state, validation, permission, dan acceptance test `0.1.0`, seluruhnya `draft`. Kontrak as-is aktual dicatat pada bagian 15 |
 | Cara audit | Pembacaan statis: model/entity, konfigurasi Entity Framework, migration, `DbSet`, route controller, atribut hak akses, registrasi *dependency injection* (DI), seeder, service/state frontend, menu, dan inventaris test |
 | Batas tulis | Hanya dokumen ini. Tidak ada satu baris source aplikasi yang diubah, tidak ada build, tidak ada migration, tidak ada eksekusi database |
@@ -1446,3 +1446,578 @@ membuat bagian ini stale. Impact scan berikutnya minimal wajib memeriksa:
 - route/menu Dokter Rawat Inap, `useDoctorQueue`, `useDoctorConsultationWorkspace`, service klinis,
   komponen `doctor-clinical-base`, serta test terkait di frontend;
 - perubahan kontrak `dokter-rawat-inap` atau keputusan `RWI-DEC-038`, `062`, `070`, `080`–`083`.
+
+---
+
+## 16. Impact scan terfokus — Rawat Inap V2 — 11 September 2026
+
+### 16.1 Batas audit
+
+| Atribut | Nilai |
+|---|---|
+| Pemicu | `RWI-DEC-097` — `PRD-to-MVP-Rawat-Inap-V2` v`1.0.0` diterima sebagai masukan hulu |
+| `blueprint_id` / `revision` | `RWI-BP-001` / `5` |
+| `backend_source_sha` | `201de7535d4ca00fa9ede2395d4fb769f023b9e6`, branch `MHamzah`, 10 September 2026 |
+| `frontend_source_sha` | `7f6b9356f6349d516570d6d603ca026f2c7f4ec2`, branch `HamzahV2`, 10 September 2026 |
+| `contract_versions` saat audit | `episode-rawat-inap` `0.6.1`, `keperawatan` `0.3.0`, `dokter-rawat-inap` `0.4.0` |
+| Cakupan | Empat penyimpangan `P0` PRD V2, ditambah pemeriksaan keberadaan sembilan kemampuan baru |
+| Yang **tidak** dinilai | Kinerja, migration yang sudah terpasang di environment, dan hasil test. Test **tidak dijalankan** |
+| Sifat | **Read-only** terhadap source kedua repository. Nol baris source disentuh |
+
+Kedua SHA di atas sama persis dengan snapshot audit PRD V2, sehingga temuan dokumen itu dapat
+diperiksa ulang baris demi baris. Hasilnya: **keempat temuan `P0` terbukti**, tetapi **tiga di
+antaranya lebih luas** daripada yang tertulis, dan **dua kemampuan yang dikira belum ada ternyata
+sudah tersedia sebagian**.
+
+### 16.2 Capability evidence map
+
+| ID | Kebutuhan | Pemilik | Bukti | Status | Gap/adapter | Risiko |
+|---|---|---|---|---|---|---|
+| `V2-CAP-01` | Kelayakan bed tidak dipengaruhi jenis kelamin penghuni kamar lain | `InPatientManagement` | `InpBedOccupancyService.cs#EvaluatePlacementEligibilityAsync@201de753` baris 1359 s.d. 1410 | **Conflict** | Aturan 6 `ROOM_GENDER_MIXED` baris 1386 s.d. 1397 **wajib dihapus**. Aturan 5 `PATIENT_GENDER_UNKNOWN` baris 1401 memuat klausa `countedOccupants.Count > 0` yang **juga** membaca penghuni, sehingga ikut dicabut. `LoadRoomOccupantsAsync` baris 1639 menjadi kode mati bila keduanya lepas | Aturan 4 `BED_GENDER_MISMATCH`, aturan 7 `ISOLATION_REQUIRED`, dan aturan 8 `ISOLATION_BED_RESERVED` **tidak boleh ikut tercabut** |
+| `V2-CAP-02` | Catatan klinis final tidak dapat disembunyikan | `ClinicalManagement` dan `MedicalRecordManagement` | `ClinicalDocumentIntegrityService.cs#JenisYangDitegakkan@201de753` baris 75 s.d. 81; `PatientIntegratedProgressNoteController.cs@201de753` baris 586 dan 865 | **Repair** | Mesin keutuhan **sudah ada dan sudah terpasang pada controller yang sama**, tetapi `EnsureMutableAsync` hanya dipanggil pada `Update`, **tidak** pada `Delete`. Hanya **4 dari 13** `ClinicalDocumentKind` ditegakkan | **Sepuluh** controller punya `HttpDelete` tanpa satu pun state guard, bukan dua seperti tertulis pada PRD |
+| `V2-CAP-03` | Penulis klinis berasal dari identitas terautentikasi | `ClinicalManagement` | `InpatientClinicalContextService.cs#ResolveAsync@201de753` baris 304 s.d. 319; `DoctorConsultationController.cs@201de753` baris 452 | **Repair** | `isDoctorAuthorized` bernilai `true` secara bawaan dan hanya diuji bila `doctorId` dikirim. Dari sembilan titik panggil, **hanya `PhysicianVisitController` baris 298** yang mengirimnya | `ApplicationUser.DoctorId` **sudah ada**, tetapi dipakai **satu** service saja di seluruh repository, yaitu `BillingDiscountService` |
+| `V2-CAP-04` | Kelayakan keuangan berasal dari fakta Billing | `BillingManagement` dan `InPatientManagement` | `InpFinancialClearance.cs@201de753`; `InpDischargeService.Closure.cs@201de753` baris 277 s.d. 312 dan 641 s.d. 687 | **Extend** | Closure **nol** membaca Billing. `IsManualMarking` bernilai `true` bawaan dan `ClearanceStatus` hanya bertiga nilai. Butuh read model ringkasan finansial per episode | Keterangan baris 284 yang menyatakan Billing belum punya kemampuan transaksi **sudah basi**; enam belas service Billing tersedia, termasuk settlement, refund, dan finalisasi |
+| `V2-CAP-05` | Bukti consent tersimpan per episode | `ClinicalManagement` | `TrxPatientConsent.cs@201de753` baris 28, 200 s.d. 212, 261 s.d. 268 | **Extend** | **Lebih lengkap dari dugaan PRD.** `ConsentFileHash`, `ConsentFilePath`, `ConsentFileName`, `ConsentFileSizeBytes`, `SignerRelationship`, `ConsentMethod`, dan riwayat pencabutan **sudah ada**. Yang kurang: versi template, dan penegakan keutuhan karena `Consent` termasuk sembilan jenis yang belum ditegakkan | `PatientConsentController` baris 822 dapat menghapus consent tanpa guard apa pun |
+| `V2-CAP-06` | Lima cara keluar | `InPatientManagement` | `InpDischargeType.cs@201de753` | **Extend** | Hanya **tiga** nilai tersedia, yaitu `DoctorApproved`, `AgainstMedicalAdvice`, dan `Referred`. `Death` dan `Absconded` belum ada | Menunggu `MVP-RWI-D-011`, yang **tidak** dibuka `RWI-DEC-097` |
+| `V2-CAP-07` | Selector episode ibu operasional | `InPatientManagement` dan frontend | `InpEpisode.cs@201de753` baris 44 dan 86; `use-inpatient-admission-flow.jsx@7f6b9356` baris 23, 257, 266 | **Repair** | Backend `MotherEpisodeId` **sudah ada**. Frontend menyimpan `motherEpisodeId` sebagai state teks dan **mengunci langkah** dengannya, tetapi **nol** endpoint pencarian episode ibu dan **nol** komponen selector | Langkah admisi bayi baru lahir tidak dapat diselesaikan pengguna hari ini |
+| `V2-CAP-08` | Medication Administration Record | `ClinicalManagement` dan `PharmacyManagement` | Penelusuran `MedicationAdministration`, `MedicationDose`, `DoseEvent` pada seluruh `Areas/**` `@201de753` | **Missing** | Nol model, nol service, nol endpoint | `RWI-DEC-097` membalikkan statusnya dari luar-MVP menjadi `P0` dan `P1`; belum ada satu pun fondasi |
+| `V2-CAP-09` | Observasi transfusi dan reaksi | `ClinicalManagement` | Penelusuran `Transfusion` `@201de753` | **Missing** | Yang ada hanya `PatientConsentType` dan `MstBloodBankReason`, keduanya bukan workflow | — |
+| `V2-CAP-10` | Sliding scale | `ClinicalManagement` | Penelusuran `SlidingScale` `@201de753` | **Missing** | Nol jejak | Menuntut protokol berversi yang juga belum ada |
+| `V2-CAP-11` | Intake/output, drain, dan WSD | `ClinicalManagement` | `EmgObservationDetail.cs@201de753` | **Reuse with adapter** | Tidak ada di Rawat Inap, tetapi **pola yang sama sudah berjalan di IGD** lewat `EmergencyObservationDetailController`. Layak menjadi rujukan bentuk, bukan disalin | Menyalin tabel IGD ke Rawat Inap melanggar `RWI-DEC-081` |
+| `V2-CAP-12` | Handover antar shift keperawatan | `ClinicalManagement` | `BilCashierShiftHandover.cs@201de753` | **Missing** | Serah terima shift **hanya ada untuk kasir**, bukan klinis. Polanya dapat menjadi rujukan | — |
+| `V2-CAP-13` | Clinical handover transfer antarunit | `InPatientManagement` dan `ClinicalManagement` | Penelusuran `ClinicalHandover` dan `TransferHandover` `@201de753` | **Missing** | Transfer bed atomik sudah ada; artefak serah terima klinisnya belum | — |
+| `V2-CAP-14` | Adverse drug reaction dari MAR | `ClinicalManagement` | Penelusuran `AdverseDrugReaction` `@201de753` | **Missing** | Bergantung pada `V2-CAP-08` | — |
+
+### 16.3 Fakta, inferensi, dan rekomendasi
+
+**Fakta.** Seluruh baris pada bagian 16.2 dibaca langsung dari source pada kedua SHA yang
+tercatat. Tidak satu pun berasal dari ingatan sesi sebelumnya atau dari klaim dokumen.
+
+**Inferensi.** `LoadRoomOccupantsAsync` menjadi kode mati setelah aturan 5 dan 6 dicabut. Ini
+kesimpulan dari pembacaan pemakaian, bukan fakta yang diuji compiler; pemeriksaannya diserahkan
+ke task implementasi.
+
+**Rekomendasi.** Tiga koreksi `P0` berstatus `Repair` dan satu berstatus `Conflict`. Keempatnya
+dapat dikerjakan **tanpa keputusan bisnis baru**, karena mesinnya sudah ada dan `RWI-DEC-097`
+sudah membuka arah perbaikannya. Sembilan kemampuan `Missing` dan `Extend` **tidak** boleh masuk
+gelombang yang sama.
+
+### 16.4 Ketidakcocokan frontend dan backend
+
+| Temuan | Backend `@201de753` | Frontend `@7f6b9356` |
+|---|---|---|
+| Kode `ROOM_GENDER_MIXED` | Diterbitkan `InpBedOccupancyService` aturan 6 | Dipetakan `inpatient-placement-utils.jsx` baris 12, dan dikunci **tiga** berkas test, yaitu `inpatient-placement.test.mjs` baris 57, 82, dan 129, serta `inpatient-episode-detail.spec.mjs` baris 605 |
+| Selector episode ibu | `MotherEpisodeId` tersedia | State ada, pencarian dan komponen selector **tidak ada** |
+
+Mencabut aturan 6 di backend **akan** menggagalkan test frontend yang mengunci kodenya. Keduanya
+wajib berada pada satu gelombang, dan itu menjadikan koreksi ini pekerjaan lintas repository.
+
+### 16.5 Unknown dan pertanyaan penutup
+
+| ID | Pertanyaan | Kenapa tidak dapat dijawab source |
+|---|---|---|
+| `V2-UNK-01` | Apakah sembilan `ClinicalDocumentKind` yang belum ditegakkan memang disengaja, dan mana yang wajib naik untuk MVP V2? | Keterangan source menyebut keadaan itu wajib dinyatakan terbuka di layar lewat `RM-FE-009`, tetapi tidak menyebut rencana kenaikannya. Pemilik `MedicalRecordManagement` |
+| `V2-UNK-02` | Bentuk ringkasan finansial episode yang disediakan Billing, dan apakah dibaca langsung atau lewat snapshot bertanda `calculatedAt` | `OPEN-MVP-006`, pemilik `BillingManagement` |
+| `V2-UNK-03` | Apakah sepuluh jalur `HttpDelete` ditutup seluruhnya, atau hanya yang menyentuh dokumen klinis final | Keputusan pemilik `ClinicalManagement`; berdampak ke Rawat Jalan |
+
+### 16.6 Staleness dan pemicu impact scan
+
+Peta bagian 16 ini menjadi `STALE` ketika salah satu berikut berubah:
+
+- `Areas/HealthServices/InPatientManagement/Services/InpBedOccupancyService.cs`;
+- `Areas/HealthServices/ClinicalManagement/Controllers/` mana pun yang memuat `HttpDelete`;
+- `Areas/HealthServices/ClinicalManagement/Services/InpatientClinicalContextService.cs`;
+- `Areas/HealthServices/MedicalRecordManagement/Services/ClinicalDocumentIntegrityService.cs`;
+- `Areas/HealthServices/InPatientManagement/Enums/InpDischargeType.cs`;
+- `src/utils/health-services/inpatient-management/inpatient-placement-utils.jsx` pada frontend;
+- keputusan `RWI-DEC-097`, `RWI-OQ-047`, atau `RWI-OQ-054`.
+
+---
+
+## 17. Impact scan terfokus — Penyelarasan `PRD-RWI-V2-001`, fase `RLN-PH-03` — 15 September 2026
+
+### 17.1 Batas audit
+
+| Atribut | Nilai |
+|---|---|
+| Pemicu | Fase `RLN-PH-03` pada `blueprint-manifest.md` bagian 0-B.4, ditambah tiga pemeriksaan titipan Amendment Pass `PRD-RWI-V2-001` yang tuntas 15 September 2026 |
+| `blueprint_id` / `revision` | `RWI-BP-001` / `6` |
+| Masukan hulu | `PRD-RWI-V2-001` v`2.0`, `docs/Modul-RS/Rawat-Inap/04-prd-to-mvp-final.md`, SHA-256 `2b3b2f29c9e547f448f186d7ac990e33dc3bdede8043a9b4bebfad6fbe0a679f` — **diperiksa ulang, tidak berubah** |
+| Decision log | `00-interview-decisions.md` revision `19`, SHA-256 `c5c5105cb0fc2585edc5168916d613918a30820ee5cd59c1e62c9ed47c565696`, keputusan terakhir `RWI-DEC-137` |
+| `backend_source_sha` | `df3679c0d5b2f08106702153eb242d3a6cb2929b`, branch `MHamzah`, 14 September 2026 |
+| `frontend_source_sha` | `147355f505e875148b8416866ada6cf8b2f1ad99`, branch `HamzahV2`, 12 September 2026, working tree bersih |
+| Pembanding V1 | Frontend `QuilvianSystemFrontendDev@13c3a96b`, commit lokal. Backend V1 `QuilvianSystemBackendDev@QuilvianSta` **tidak tersedia** di workspace |
+| `contract_versions` saat audit | `episode-rawat-inap` `0.8.0`, `dokter-rawat-inap` `0.5.0`, `keperawatan` `0.4.0`, sesuai `RWI-DEC-105` |
+| Cakupan | (a) selisih SHA, `RLN-14`; (b) kesamaan layout dokter dengan Dokter Rawat Jalan, `RLN-10`; (c) tujuh isi Pengkajian Pasien dan enam sub-isi Asuhan Keperawatan V1 terhadap V2, bagian V1 dari `RLN-07`; (d) tujuh belas butir MVP-0 PRD bagian 56, `RLN-09`; (e) jalur ubah dan penyelesaian kajian medis, tindakan dokter, dan catatan terpadu, titipan `RWI-DEC-128`; (f) jalur pakai template resep terhadap `RWI-DEC-122` butir (3) s.d. (6), titipan `RWI-DEC-135` |
+| Yang **tidak** dinilai | Kinerja, data di database, migration yang terpasang, dan perilaku saat aplikasi berjalan. Aplikasi, build, dan test **tidak dijalankan** |
+| Sifat | **Read-only** terhadap source kedua repository. Satu-satunya berkas yang ditulis adalah dokumen ini |
+
+**Singkatan bukti bagian ini:** `BE@df3679c0` untuk backend, `FE@147355f5` untuk frontend V2, dan
+`FE-V1@13c3a96b` untuk frontend V1. Semua path backend relatif terhadap `Areas/HealthServices/`
+kecuali disebut lain.
+
+### 17.2 Ringkasan untuk pembaca umum
+
+Audit ini menjawab satu pertanyaan: **seberapa jauh sistem V2 hari ini sudah memenuhi ruang kerja
+dokter dan keperawatan versi PRD baru, dan di mana jalurnya justru bertentangan dengan keputusan
+yang sudah disetujui.**
+
+Tiga temuan paling penting:
+
+1. **Layar pengkajian keperawatan V2 dapat mencatat risiko klinis secara terbalik.** Contoh:
+   perawat memilih "Risiko Tinggi (Skor ≥ 45 Morse)", mengetik skor 55, dan tidak mencentang
+   ataksia maupun instabilitas postur. Backend menyimpan **tidak berisiko** dengan skor kosong, lalu
+   saat dibuka ulang layar menampilkan **"Risiko Rendah"**. Penyebabnya tiga sekaligus: angka enum di
+   frontend bergeser satu dari backend, layar tidak punya kontrol `hasFallRisk`, dan backend
+   menghitung ulang kategori dari dua centang saja. Pola geser satu yang sama terjadi pada status
+   gizi dan nafsu makan, sedangkan status fungsional mengirim angka yang tidak dikenal backend.
+   Rinciannya pada 17.4.
+2. **Jalur ubah dan penyelesaian catatan dokter belum dijaga penulis maupun penugasan** untuk SOAP,
+   kajian medis, dan konsep catatan terpadu. Tindakan dokter bahkan menerima pembuatan baru pada
+   episode yang sudah ditutup. Verifikasi CPPT menerima dokter dengan **peran apa pun**, padahal
+   `RWI-DEC-125` hanya mengizinkan DPJP.
+3. **Ruang kerja dokter rawat inap V2 tersusun dua halaman**, yaitu daftar pasien lalu pindah ke
+   halaman ruang kerja, memakai pustaka komponen yang **berbeda** dari Dokter Rawat Jalan. PRD
+   menuntut susunan satu halaman terbelah yang identik dengan Rawat Jalan.
+
+Satu temuan **mengoreksi** pencatatan pass sebelumnya: daftar "catatan saya yang belum
+ditandatangani" **sudah ada** di modul Rekam Medis, sehingga `RWI-FACT-028` butir (2) terlalu luas.
+Lihat `RLN3-CAP-37`.
+
+### 17.3 Capability evidence map
+
+#### 17.3.1 Selisih SHA dan ketersediaan pembanding — `RLN-14`
+
+| ID | Kebutuhan | Pemilik | Bukti | Status | Gap/adapter | Risiko |
+|---|---|---|---|---|---|---|
+| `RLN3-CAP-01` | Bukti source penyelarasan V2 masih sama dengan snapshot handoff | Semua modul | `git rev-list --count 4f79e998..df3679c0` = **2** commit, keduanya hanya berkas `docs/` (`34f368d4`, `df3679c0`). `FE` `HEAD` = `147355f5`, sama dengan handoff, working tree bersih | **Ready to reuse** | Fakta `RWI-FACT-028` s.d. `RWI-FACT-036` dibaca pada SHA yang sama, sehingga berlaku utuh | Sejak scan V2 `201de753` ada 121 commit dan 85 berkas berubah di `ClinicalManagement`, `InPatientManagement`, `PharmacyManagement`, dan `MedicalRecordManagement`; baris 16.2 diperlakukan basi |
+| `RLN3-CAP-02` | Pembanding backend V1 | — | `QuilvianSystemBackendDev@QuilvianSta` tidak ada di workspace | **Unknown** | Isi V1 hanya dapat dibuktikan dari frontend `FE-V1@13c3a96b` | Klaim PRD tentang isi V1 yang tidak tampak di frontend V1 tidak dapat dibuktikan maupun dibantah |
+
+#### 17.3.2 Kesamaan layout Dokter Rawat Inap dengan Dokter Rawat Jalan — `RLN-10`
+
+| ID | Kebutuhan | Pemilik | Bukti | Status | Gap/adapter | Risiko |
+|---|---|---|---|---|---|---|
+| `RLN3-CAP-03` | Kerangka halaman Dokter Rawat Jalan sebagai acuan layout | Frontend `registration-management` | `FE@147355f5 src/components/view/health-services/registration-management/doctor-queues/doctor-queue-view.jsx#DoctorQueueView` baris 196–292: `topBar` + `SummaryBar`, `workspaceGrid` berisi `leftPanel` (daftar `QueuePatientCard`) dan `rightPanel` (`ConsultationTabs`, `DoctorPatientContext`, isi, `FinalizeConsultationPanel`). `src/style/health-services/registration-management/doctor-queues/doctor-queue-view.module.css` baris 169–174: `grid-template-columns: minmax(280px, 340px) minmax(0, 1fr)` | **Reuse with adapter** | Yang umum dan dapat dipakai langsung: kelas tata letak pada berkas CSS dan `EmptyState` (hanya `title`, `description`, `icon`). Yang **terikat data antrean**: `SummaryBar` (menghitung Total Antrean, Menunggu, Dipanggil lewat `buildDoctorQueueVisibleSummary`), `QueuePatientCard` (`QUEUE_STATUS`, `getQueueCode`), `ConsultationTabs` (daftar tab tetap `DOCTOR_QUEUE_TABS`), dan `DoctorPatientContext` (util antrean). Keempatnya butuh versi berbasis props atau adapter data episode | Komponen itu milik Rawat Jalan. Mengubahnya menjadi komponen bersama berada di luar scope blueprint ini dan butuh pemilik `rawat-jalan`; menyalinnya melahirkan dua salinan yang dapat menyimpang |
+| `RLN3-CAP-04` | Permukaan Dokter Rawat Inap V2 hari ini | Frontend `inpatient-management` | `FE@147355f5 src/app/health-services/inpatient-management/doctor-inpatient/page.jsx` → `doctor-inpatient-view.jsx` baris 45–115: `ClinicalPageHeader`, `ClinicalSummaryBar`, filter, daftar berpaginasi yang **menautkan ke rute lain**. `src/app/health-services/inpatient-management/episodes/[id]/physician/page.jsx` → `physician-workspace-view.jsx` baris 125–211. Tab pada `src/lib/constants/health-services/inpatient-management/inpatient-physician-constants.jsx` baris 21–50 | **Conflict** | Susunan dua halaman, bukan satu halaman terbelah. Komponen dasar dari `src/components/ui/doctor-clinical-base`, yang **tidak dipakai** Rawat Jalan sama sekali. Tab yang ada: Kajian Medis, Catatan Perkembangan, Catatan Terpadu, Visite, **Resep & Tindakan dalam satu tab**, dan Penunjang yang tidak punya folder isi | Bertentangan dengan PRD bagian 8, 9, dan 61 (`UI-AC-DOK-001` s.d. `012`) yang diikuti `RWI-DEC-107`. Ruang kerja keperawatan memakai pustaka ketiga, `src/components/ui/clinical-workspace`, sehingga ada **tiga** keluarga komponen klinis paralel |
+
+#### 17.3.3 Pengkajian Pasien dan Asuhan Keperawatan V1 terhadap V2 — bagian V1 dari `RLN-07`
+
+| ID | Kebutuhan | Pemilik | Bukti | Status | Gap/adapter | Risiko |
+|---|---|---|---|---|---|---|
+| `RLN3-CAP-05` | Kajian Umum | `ClinicalManagement` | V1: `FE-V1@13c3a96b src/components/view/Rawat-Inap/perawat/perawatan-pasien/pengkajian-pasien/form-kajian-umum/kajian-pasien-umum.jsx` memuat **7** bagian: Sumber Data Pasien, Pernapasan, Integritas Kulit, Skrining Nutrisi, Eliminasi, Ketergantungan, Status Fungsional. V2: `BE@df3679c0 ClinicalManagement/Models/TrxPatientAssessment.cs` baris 117–326, satu tabel datar; frontend `nursing-workspace/sections/assessment/groups/*` | **Extend** | V2 sudah punya keluhan, tanda vital, oksigen, kesadaran, skrining gizi MST, status fungsional, dan catatan psikososial/edukasi/perawat. V2 **belum** punya sumber data pasien, pernapasan rinci, integritas kulit, eliminasi, dan ketergantungan ADL terstruktur | **PRD bagian 28 tidak cocok dengan V1.** PRD menyebut sepuluh bagian V1 termasuk Psikososial, Alat Bantu, dan Catatan Relevan. Frontend V1 hanya punya tujuh; "Alat Bantu" hanya berupa isian di Eliminasi dan Ketergantungan; "Psikososial" dan "Catatan Relevan" tidak ditemukan |
+| `RLN3-CAP-06` | Resiko Jatuh | `ClinicalManagement` | V1: `pengkajian-pasien/resiko-jatuh/{Anak-Anak,Dewasa,Lansia}` (`RWI-FACT-027`). V2: `FE@147355f5 .../groups/fall-risk-group.jsx` baris 13–15; `BE@df3679c0 ClinicalManagement/Controllers/PatientAssessmentController.cs#CalculateFallRiskScore` baris 2321 dan `#CalculateFallRiskStatus` baris 2363 | **Conflict** | Lihat `RLN3-CON-01`. Konfigurasi berversi `RWI-DEC-124` dan `RWI-DEC-136` belum ada sama sekali | **Keselamatan klinis:** pasien berisiko tinggi dapat tersimpan tidak berisiko |
+| `RLN3-CAP-07` | Monitoring Nyeri sebagai rangkaian | `ClinicalManagement` | V1: `pengkajian-pasien/assement-nyeri/add-assesment-nyeri.jsx` — skor nyeri, skor sedasi, pola napas, tanda vital, intervensi farmakologi (obat dari resep atau master, dosis, rute, waktu), intervensi non-farmakologi, waktu kajian ulang, perawat monitoring dan intervensi, tanda tangan. V2: `TrxPatientAssessment` baris 222–242 | **Missing** | V2 hanya punya **satu** penilaian nyeri per dokumen pengkajian. Rangkaian monitoring beserta kajian ulang setelah intervensi tidak ada | — |
+| `RLN3-CAP-08` | Assesment Edukasi | `ClinicalManagement` | V1: `pengkajian-pasien/assestmen-edukasi/add-assesment-edukasi.jsx` — kebutuhan, hambatan, bahasa, penerjemah, pendidikan, nilai kepercayaan, tipe pembelajaran, topik, metode, durasi, evaluasi Baik/Cukup/Kurang, nama dan tanda tangan wali, cetak. V2: `TrxPatientAssessment.EducationNote` baris 323 teks bebas; `education-group.jsx` dua isian teks | **Missing** | Hanya teks bebas | `MasterData/Models/MstDiagnosisEducationRecommendation.cs` dapat menjadi sumber topik, perlu dibuktikan saat desain |
+| `RLN3-CAP-09` | Pengawasan Harian Pasien, termasuk intake, output, dan balance cairan | `ClinicalManagement` | V1: `pengkajian-pasien/pengawasan-harian/section/*` — tanda vital, kesadaran AVPU dan agitasi, nyeri dan non-farmakologi, intake infus/oral/NGT, output urin/feses/NGT/WL, gula darah, lingkar perut, asupan makanan, diet, mobilisasi, resep. V2: nol model; pola IGD `EmgObservationDetail` (`V2-CAP-11`) | **Missing** | — | `RWI-DEC-081` melarang menyalin tabel IGD |
+| `RLN3-CAP-10` | Evaluasi Awal MPP | `ClinicalManagement` | V1: `pengkajian-pasien/evaluasi-awal/form/page.jsx` memanggil `createEvaluasiAwal` dengan isian dinamis dari master `/ChecklistItem`, plus halaman cetak. V2: nol model; nol penanda MPP (`RWI-FACT-031`) | **Missing** | Arah sudah diputuskan `RWI-DEC-118` dan `RWI-DEC-131` | — |
+| `RLN3-CAP-11` | Perencanaan Pulang | `ClinicalManagement` | V1: `pengkajian-pasien/rencana-pulang/*` — formulir, riwayat, tanda tangan, cetak. V2: `PatientAssessmentType.DischargePlanning = 3`; `discharge-planning-group.jsx` hanya satu isian teks "Catatan Rencana Pemulangan (Discharge Planning) & Catatan Perawat" | **Extend** | Jenis dokumen ada, isi terstruktur tidak. `InpDischargeSummary` adalah resume pulang milik episode, **bukan** perencanaan pulang | `BR-RWI-016` |
+| `RLN3-CAP-12` | Tanda vital keperawatan sebagai rangkaian | `ClinicalManagement` | `BE@df3679c0 ClinicalManagement/Models/TrxPatientVitalSign.cs` baris 26–38 tanpa `InpEpisodeId`; `PatientVitalSignController.cs` endpoint `active-by-encounter` dan `active-by-queue`; konsumen frontend hanya antrean dokter, nurse station, dan IGD | **Extend** | Polanya satu tanda vital aktif per kunjungan atau antrean, bukan rangkaian per episode | — |
+| `RLN3-CAP-13` | SOAP Keperawatan dan Catatan Terintegrasi | `ClinicalManagement` | `RWI-DEC-115`; `BE@df3679c0 ClinicalManagement/Controllers/PatientIntegratedProgressNoteController.cs` penjaga unit perawat `EnsureNursingUnitAuthorityAsync` baris 91; frontend keperawatan hanya punya seksi Pengkajian, Rencana Asuhan, Tindakan Keperawatan, dan Lini Masa (`inpatient-nursing-constants.js` baris 15–34) | **Reuse with adapter** | Backend CPPT berprofesi Perawat sudah ada; ruang kerja keperawatan V2 belum punya bagian CPPT/SOAP | — |
+| `RLN3-CAP-14` | Tindakan Harian keperawatan | `ClinicalManagement` | `NursingInterventionController.cs`, `CliNursingIntervention.cs`, seksi frontend Tindakan Keperawatan; kunci idempotency ada | **Ready to reuse** | — | — |
+| `RLN3-CAP-15` | Obat & Alkes: MAR dan rekonsiliasi obat | `PharmacyManagement` | `V2-CAP-08`; `RWI-FACT-032` | **Missing** | Nol model | `P0` sesuai `RWI-DEC-116` dan `RWI-DEC-133` |
+| `RLN3-CAP-16` | Catatan Keperawatan | `ClinicalManagement` | V1: `asuhan-keperawatan/catatan-keperawatan/*` berisi catatan pra/intra/pasca-operatif, diet medis, observasi cairan, observasi cairan WSD, pemberian obat, dan sliding scale. PRD bagian 41 hanya menggambar **catatan kartu per waktu dan perawat**. V2: `TrxPatientAssessment.NurseNote` baris 326 saja | **Unknown** | Belum jelas apakah Catatan Keperawatan PRD adalah CPPT berprofesi Perawat `RWI-DEC-115` atau dokumen tersendiri; isi V1-nya juga jauh lebih luas dari PRD | Lihat `RLN3-UNK-02` |
+
+#### 17.3.4 Butir MVP-0 PRD bagian 56 — `RLN-09`
+
+| ID | Butir | Pemilik | Bukti | Status | Gap/adapter | Risiko |
+|---|---|---|---|---|---|---|
+| `RLN3-CAP-17` | Keperawatan — assessment pagination | FE + `ClinicalManagement` | `BE@df3679c0 PatientAssessmentController.cs#GetByEpisode` baris 350–407 menjawab objek berpaginasi `{ pageNumber, pageSize, totalData, totalPage, items }`. `FE@147355f5 .../nursing-workspace/sections/assessment/assessment-section.jsx` baris 229–233 dan `src/lib/hooks/health-services/inpatient-management/use-inpatient-nursing-workspace.jsx` baris 238–245 memakai `Array.isArray(payload) ? payload : []` | **Conflict** | Objek berpaginasi bukan array, sehingga menurut pembacaan statis daftar pengkajian keperawatan **selalu kosong** dan layar selalu memulai pengkajian baru. Hook dokter `use-inpatient-medical-assessment.jsx` sudah menormalkan lewat `toAssessmentList` | Konsep yang sudah tersimpan tidak termuat; berpotensi ditolak sebagai pengkajian awal kedua. **Belum dibuktikan saat berjalan** |
+| `RLN3-CAP-18` | Keperawatan — assessment status | FE + `ClinicalManagement` | `BE@df3679c0 ClinicalManagement/Enums/PatientAssessmentStatus.cs` `Draft = 0`, `InProgress = 1`, `Completed = 2`, `Cancelled = 3`. `FE@147355f5 assessment-section.jsx` baris 245, 286, 314, dan 643 menganggap `assessmentStatus === 1` sebagai selesai | **Conflict** | Frontend memuat addendum untuk dokumen `InProgress` dan tidak mengenali `Completed` | — |
+| `RLN3-CAP-19` | Keperawatan — fall-risk enum | FE + `ClinicalManagement` | `RLN3-CON-01` | **Conflict** | — | Keselamatan klinis |
+| `RLN3-CAP-20` | Keperawatan — fall-risk scoring | FE + `ClinicalManagement` | `RLN3-CON-01`; `RWI-FACT-036` | **Conflict** | Skor dan batas tertanam di backend, label batas Morse tertanam di frontend; keduanya melanggar `RWI-DEC-136` | Keselamatan klinis |
+| `RLN3-CAP-21` | Keperawatan — detail-before-edit | FE | `FE@147355f5 assessment-section.jsx` baris 239–242 mengisi form dari **baris daftar**; `patient-assessment.service.js#getPatientAssessmentById` tersedia tetapi tidak dipakai keperawatan | **Repair** | Ambil detail sebelum form diisi | Isian yang tidak ada di tanggapan daftar dapat tertimpa kosong saat disimpan |
+| `RLN3-CAP-22` | Keperawatan — unknown vs false | FE + `ClinicalManagement` | Backend menolak penyelesaian bila risiko jatuh atau gizi masih `Unknown`, `PatientAssessmentController.cs` baris 2083–2086. Frontend `assessment-section.jsx` baris 104, 121, dan 127 mengirim `consciousnessStatus \|\| 1`, `appetiteStatus \|\| 1`, dan `functionalStatus \|\| 1`. Pada backend nilai `1` berarti `ComposMentis`, `Normal`, dan `Independent` | **Repair** | Isian yang belum dikaji terkirim sebagai keadaan normal | Melanggar `BR-RWI-007` |
+| `RLN3-CAP-23` | Keperawatan — permission fallback | FE | Penanganan `401`/`403` khusus hanya ada di `use-inpatient-financial-clearance.jsx` baris 111; nol di ruang kerja dokter dan keperawatan | **Missing** | Layar menampilkan galat umum saat hak ditolak | — |
+| `RLN3-CAP-24` | Dokter — SOAP finalization semantics | `ClinicalManagement` + `PharmacyManagement` | Finalisasi mendaftar tanda tangan pada mesin keutuhan (`BE-RWI-038`), tetapi tanpa pemeriksaan penulis (`RWI-FACT-029`, dibaca ulang pada SHA yang sama) | **Repair** | Lihat `RLN3-CAP-30` | — |
+| `RLN3-CAP-25` | Dokter — CPPT DPJP verification | `ClinicalManagement` | `BE@df3679c0 ClinicalManagement/Services/CpptVerificationService.cs` baris 221 memanggil `InpatientClinicalContextService.IsDoctorAssignedAsync`, yang menerima penugasan **peran apa pun** yang aktif saat ini. Verifikasi catatan sendiri ditolak baris 231–235 | **Conflict** | Konsulen dan dokter jaga dapat memverifikasi, bertentangan dengan `RWI-DEC-125` dan `AC-RWI-011`; pesan penolakan tetap berbunyi "hanya DPJP". Pengecualian DPJP terakhir pada episode tertutup `RWI-DEC-126` **belum ada**: setelah penutupan tidak ada penugasan aktif, sehingga tidak ada yang dapat memverifikasi | — |
+| `RLN3-CAP-26` | Dokter — idempotency per command | Beberapa modul | Kunci permintaan ada pada `NursingInterventionController`, `PatientProcedureController` (buat), `PhysicianVisitController`, dan `PharmacyManagement/Controllers/PrescriptionController`. **Tidak ada** pada `DoctorConsultationController`, `PatientAssessmentController`, dan `PatientIntegratedProgressNoteController` | **Repair** | Tiga perintah tulis utama belum tahan kiriman ulang | `BR-RWI-011` |
+| `RLN3-CAP-27` | Dokter — prescription header-item workflow | `PharmacyManagement` | `BE@df3679c0 PharmacyManagement/Services/PrescriptionWorkflowService.cs` baris 32–33 menolak finalisasi klinis resep tanpa item; `CanDelete` baris 112–117 hanya untuk draft kosong | **Ready to reuse** | — | Jalur pakai template dapat mengisi item tanpa pemeriksaan lengkap, lihat 17.3.6 |
+| `RLN3-CAP-28` | Dokter — unsaved draft guard | FE | `src/lib/hooks/health-services/inpatient-management/use-inpatient-admission-exit-guard.jsx` baris 48–56 (`beforeunload`) hanya dipakai admisi; nol di ruang kerja dokter dan keperawatan | **Reuse with adapter** | Pola sudah ada, belum dipasang | `AC-RWI-017` |
+| `RLN3-CAP-29` | Shared — enum contract | FE + `ClinicalManagement` | Selain `RLN3-CAP-18` dan `RLN3-CON-01`: status gizi frontend 1/2/3 terhadap backend `NoRisk`/`LowRisk`/`MediumRisk`/`HighRisk` (`nutrition-group.jsx` baris 13–15); nafsu makan frontend 3 "Sangat Buruk" terhadap backend `3 = Increased`, `4 = Poor` (baris 19–21); status fungsional frontend 1–5 terhadap backend `Independent`, `NeedPartialAssistance`, `FullyDependent` (`functional-group.jsx` baris 11–15). DTO `PatientAssessmentDtos.cs` tidak memvalidasi nilai enum | **Conflict** | Pilihan "Ketergantungan Berat" dan "Total" tersimpan sebagai angka 4 dan 5 yang tidak dikenal backend | Data klinis tersimpan dengan arti berbeda dari yang dipilih perawat |
+| `RLN3-CAP-30` | Shared — episode guard dan actor resolution pada jalur ubah/selesai | `ClinicalManagement` | Jalur **buat** dijaga `InpatientClinicalContextService.ResolveForDoctorWriteAsync` (`BE-RWI-076`). Jalur ubah dan selesai lihat 17.3.5 | **Repair** | — | — |
+| `RLN3-CAP-31` | Shared — error state | FE | `ClinicalStateBoundary` dipakai `doctor-inpatient-view.jsx` baris 76, `physician-workspace-view.jsx` baris 156, dan seksi keperawatan (`src/components/ui/clinical-workspace`) | **Ready to reuse** | — | Dua implementasi `ClinicalStateBoundary` pada dua pustaka berbeda |
+| `RLN3-CAP-32` | Shared — permission contract | `ClinicalManagement` | `AccessPermission` terpasang pada seluruh endpoint yang diperiksa; hubungan klinis ditegakkan pada jalur buat dan pada unit perawat, tetapi tidak pada jalur ubah dokter maupun peran verifikasi | **Repair** | — | `BR-RWI-009` |
+
+#### 17.3.5 Jalur ubah dan penyelesaian catatan dokter — titipan `RWI-DEC-128`
+
+| ID | Kebutuhan | Pemilik | Bukti | Status | Gap/adapter | Risiko |
+|---|---|---|---|---|---|---|
+| `RLN3-CAP-33` | SOAP: ubah, simpan otomatis, selesai hanya oleh penulis | `ClinicalManagement` + `PharmacyManagement` | `RWI-FACT-029`, dibaca ulang pada `BE@df3679c0`: `DoctorConsultationController.cs` baris 584–700 dan 769; `PharmacyManagement/Services/ConsultationFinalizationService.cs` baris 55–94 dan 178 | **Repair** | Tanpa pemeriksaan penulis, penugasan, maupun status episode | Konsep dapat diselesaikan orang lain dan tercatat bertanda tangan atas nama penulis |
+| `RLN3-CAP-34` | Kajian medis: ubah dan selesai hanya oleh penulis | `ClinicalManagement` | `BE@df3679c0 PatientAssessmentController.cs#UpdateAssessment` baris 706–760 dan `#CompleteAssessment` baris 850–1000: penjaga `EnsureNursingUnitAuthorityAsync` **langsung meloloskan** jenis kajian medis. Tanda tangan memakai `AssessmentByUserId ?? CreateBy`, bukan penekan tombol | **Repair** | Tanpa pemeriksaan penulis, penugasan dokter, maupun status episode | Sama dengan SOAP |
+| `RLN3-CAP-35` | Tindakan dokter: buat, ubah, laksanakan | `ClinicalManagement` | `BE@df3679c0 PatientProcedureController.cs#CreateProcedure` baris 462–520 memanggil `ResolveForDoctorWriteAsync` dengan **`forNewDocument: false`**, sehingga episode tertutup **tidak** ditolak untuk tindakan baru. `#UpdateProcedure` baris 737 dst. hanya memeriksa hak `PatientProcedure : Update` dan status konsultasi. `#ExecuteProcedure` baris 1037–1120 menulis pelaksana dari akun login dan mendaftar tanda tangan atas nama pelaksana | **Repair** | Tindakan baru pada episode tertutup bertentangan dengan `RWI-DEC-086` dan `RWI-DEC-129` jalur tidak normal (b). Jalur ubah tanpa penulis dan penugasan | Siapa "penulis" tindakan untuk `RWI-DEC-128` belum jelas, `RLN3-UNK-01` |
+| `RLN3-CAP-36` | Catatan terpadu: ubah dan tanda tangan konsep hanya oleh penulis | `ClinicalManagement` + `MedicalRecordManagement` | `BE@df3679c0 PatientIntegratedProgressNoteController.cs#UpdateProgressNote` baris 698–790: pemeriksaan unit hanya untuk profesi Perawat; profesi Dokter tanpa pemeriksaan penulis; `EnsureMutableAsync` meloloskan `Draft`. Tanda tangan lewat `MedicalRecordManagement/Services/ClinicalDocumentIntegrityService.cs#SignAsync` baris 260–292 **mewajibkan** penulis sama dengan penandatangan | **Repair** | Konsep CPPT dokter lain dapat diubah, tetapi tidak dapat ditandatangani orang lain | — |
+| `RLN3-CAP-37` | Daftar konsep milik sendiri untuk "Catatan Saya" `RWI-DEC-127` dan `RWI-DEC-129` | `MedicalRecordManagement` | `BE@df3679c0 MedicalRecordManagement/Controllers/ClinicalDocumentIntegrityController.cs#GetMyUnsigned` baris 240–290: menyaring `AuthorUserId` = pengguna login dan status `Draft`, lintas jenis dokumen dan lintas layanan, berpaginasi. Frontend `FE@147355f5 src/app/health-services/medical-record-management/my-unsigned-notes/page.jsx` | **Reuse with adapter** | Hanya konsep. Catatan **final** milik sendiri untuk addendum belum punya daftar. Tidak menyaring rawat inap | **Mengoreksi `RWI-FACT-028` butir (2)**, yang menyatakan belum ada daftar catatan berdasarkan penulis. Pernyataan itu hanya benar untuk catatan final |
+| `RLN3-CAP-38` | Penguncian otomatis konsep saat kunjungan selesai | `MedicalRecordManagement` | `BE@df3679c0 ClinicalDocumentIntegrityService.cs#LockOpenDocumentsForEncounterAsync` baris 325–360 mengubah semua konsep satu kunjungan menjadi `LockedUnsigned`. Dipanggil `RegistrationManagement/Controllers/DoctorQueueController.cs` baris 503, `NurseStationQueueController.cs` baris 343, dan `PatientEncounterController.cs` baris 955 saat status menjadi `Completed`. `InPatientManagement` **tidak** memanggilnya | **Conflict** | Kebijakan `RM-DEC-003` mengunci konsep saat kunjungan selesai, sedangkan `RWI-DEC-129` membiarkan konsep diselesaikan setelah episode ditutup. Hari ini penutupan episode tidak memicu penguncian | Bila status kunjungan rawat inap diubah menjadi `Completed` lewat `PatientEncounterController`, seluruh konsep terkunci dan `RWI-DEC-129` tidak dapat dijalankan |
+
+#### 17.3.6 Jalur pakai template resep — titipan `RWI-DEC-135`
+
+| ID | Kebutuhan `RWI-DEC-122` | Pemilik | Bukti | Status | Gap/adapter | Risiko |
+|---|---|---|---|---|---|---|
+| `RLN3-CAP-39` | Hanya pemilik yang memakai templatenya | `PharmacyManagement` | `BE@df3679c0 PharmacyManagement/Services/PrescriptionTemplateService.cs#ApplyAsync` baris 172–186 tidak memeriksa `OwnerDoctorId`; endpoint `POST {id}/apply` memakai hak `PrescriptionTemplate : Create` (`PrescriptionTemplateController.cs` baris 178–182) | **Repair** | — | Template pribadi dokter lain dapat dipakai lewat permintaan langsung |
+| `RLN3-CAP-40` | Butir (3): perawat tidak memakai template | `PharmacyManagement` | Sama; tidak ada pemeriksaan bahwa pemakai adalah dokter | **Repair** | Hanya bergantung pada pembagian hak akses | — |
+| `RLN3-CAP-41` | Butir (4): hanya mengisi draft | `PharmacyManagement` | `ApplyAsync` baris 178 `EnsureEditableAsync(request.PrescriptionId)` | **Ready to reuse** | — | — |
+| `RLN3-CAP-42` | Butir (4): pemeriksaan ulang alergi saat dipakai | `PharmacyManagement` | Nol pemeriksaan alergi otomatis di `PharmacyManagement`; satu-satunya jejak adalah butir telaah manual apoteker `CLI_ALLERGY` pada `PharmacyManagement/Seeders/PrescriptionReviewCriterionSeeder.cs` baris 23 | **Missing** | Belum ada sumber alergi yang dibaca saat meresepkan | Keselamatan obat |
+| `RLN3-CAP-43` | Butir (4) dan (5): ketersediaan diperiksa, obat tidak tersedia ditandai dan tidak tersimpan tanpa diganti | `PharmacyManagement` | `ApplyAsync` menyalin obat tanpa memeriksa `IsActive` atau `IsPrescribable` saat dipakai; kegagalan coverage satu obat melempar galat sehingga **seluruh** pemakaian batal | **Repair** | Butuh penandaan per butir, bukan gagal total | — |
+| `RLN3-CAP-44` | Butir (6): template kosong ditolak | `PharmacyManagement` | `ValidateTemplateContentAsync` baris 277–282 hanya menolak racikan tanpa bahan; template tanpa obat **dan** tanpa racikan lolos | **Repair** | — | `BR-RWI-015` |
+
+### 17.4 Contoh perjalanan yang benar-benar ditelusuri: risiko jatuh keperawatan — `RLN3-CON-01`
+
+**Tujuan proses:** perawat menilai risiko jatuh pasien rawat inap supaya pencegahan jatuh dapat
+dimulai. **Pelaku:** perawat unit tempat pasien dirawat. **Pemicu:** perawat membuka Pengkajian pada
+ruang kerja keperawatan. **Prasyarat:** perawat bertugas di unit itu (`RWI-DEC-100`).
+
+**Langkah as-is menurut source:**
+
+1. Frontend menampilkan tiga pilihan kategori dengan nilai tetap, `fall-risk-group.jsx` baris 13–15:
+   `1` "Risiko Rendah (Skor 0 - 24 Morse)", `2` "Risiko Sedang (Skor 25 - 44 Morse)", `3` "Risiko
+   Tinggi (Skor ≥ 45 Morse)".
+2. Perawat memilih kategori, mengetik skor, dan boleh mencentang "Gaya Berjalan / Ataksia" serta
+   "Ketidakstabilan Postur". Layar **tidak** punya kontrol untuk `hasFallRisk`, sehingga nilainya
+   selalu `false` (`assessment-section.jsx` baris 68 dan 115).
+3. Frontend mengirim `hasFallRisk`, `fallRiskStatus`, `fallRiskScore`, `hasAtaxia`, dan
+   `hasPosturalInstability` (baris 115–119).
+4. Backend menetapkan `hasFallRisk = HasFallRisk || HasAtaxia || HasPosturalInstability`, lalu
+   **membuang** skor ketikan dan menghitung skor sendiri: ataksia +1, instabilitas +1
+   (`PatientAssessmentController.cs` baris 2119–2120 dan 2321–2331).
+5. Backend menetapkan kategori (`CalculateFallRiskStatus`, baris 2363–2383): bila `hasFallRisk`
+   salah dan kategori yang dikirim bukan `Unknown`, hasilnya `NoRisk`; bila benar, skor ≥ 2 `HighRisk`,
+   skor 1 `MediumRisk`, skor 0 `LowRisk`.
+6. Enum backend `FallRiskStatus`: `Unknown = 0`, `NoRisk = 1`, `LowRisk = 2`, `MediumRisk = 3`,
+   `HighRisk = 4`. Saat dibuka ulang, frontend membaca angka itu memakai tabel langkah 1.
+
+**Hasil untuk tiga kasus nyata** (data samaran):
+
+| Kasus | Yang dipilih perawat | Yang tersimpan backend | Yang tampil saat dibuka ulang |
+|---|---|---|---|
+| Tn. A tanpa centang | Tinggi (`3`), skor 55 | `NoRisk` (`1`), skor kosong | "Risiko Rendah" |
+| Ny. B mencentang ataksia | Tinggi (`3`), skor 55 | `MediumRisk` (`3`), skor 1 | "Risiko Tinggi" — kebetulan sama labelnya, beda artinya |
+| An. C mencentang keduanya | Sedang (`2`), skor 30 | `HighRisk` (`4`), skor 2 | Tidak ada label untuk nilai `4` |
+
+**Aturan yang dilanggar:** `RWI-DEC-124` (skor dan kategori dari konfigurasi berversi yang disahkan),
+`RWI-DEC-136` (angka batas dilarang ditanam di source backend maupun frontend), dan `BR-RWI-007`.
+**Hasil akhir hari ini:** data risiko jatuh keperawatan rawat inap tidak dapat dipercaya sebagai dasar
+pencegahan jatuh. Perbaikannya **tidak** memerlukan keputusan bisnis baru, karena arahnya sudah
+dikunci `RWI-DEC-124` dan `RWI-DEC-136`; isi klinisnya tetap menunggu `RWI-OQ-056`.
+
+### 17.5 Kontrak as-is yang ditelusuri
+
+Tabel berikut hanya memuat endpoint yang diperiksa pada audit ini. Semua berada di dalam
+`ApiResponse<T>`. Tidak ada endpoint baru yang diusulkan.
+
+#### Health Services / Clinical Management / Patient Assessment
+
+Base URL: `api/v1/health-services/clinical-management/patient-assessments`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+|---|---|---|---|---|---|
+| `GET` | `/episodes/{episodeId}` | Daftar pengkajian satu episode, berpaginasi | `PatientAssessment : Read` | Query `assessmentType`, `pageNumber` (bawaan 1), `pageSize` (bawaan 25) | `ResponsePatientAssessmentPagedResult` |
+| `GET` | `/{id}` | Detail satu pengkajian | `PatientAssessment : Read` | - | `PatientAssessmentDetailResponse` |
+| `PUT` | `/{id}` | Mengubah pengkajian yang belum selesai | `PatientAssessment : Update` | Body `UpdatePatientAssessmentRequest` | `object` |
+| `PATCH` | `/{id}/complete` | Menyelesaikan pengkajian dan mendaftarkan tanda tangan | `PatientAssessment : Update` | Body `CompletePatientAssessmentRequest` | `PatientAssessmentCompleteResponse` |
+
+Kode status: `400` isian wajib kosong atau dokumen sudah selesai; `403` perawat tidak bertugas di unit
+pasien (tidak berlaku untuk kajian medis); `404` pengkajian tidak ditemukan.
+
+#### Health Services / Clinical Management / Patient Integrated Progress Note
+
+Base URL: `api/v1/health-services/clinical-management/patient-integrated-progress-notes`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+|---|---|---|---|---|---|
+| `PUT` | `/{id}` | Mengubah konsep catatan terpadu | `PatientIntegratedProgressNote : Update` | Body `UpdatePatientIntegratedProgressNoteRequest` | `PatientIntegratedProgressNoteUpdateResponse` |
+| `PATCH` | `/{id}/verify` | Verifikasi catatan oleh dokter | `PatientIntegratedProgressNote : Verify` | Body permintaan verifikasi | `PatientIntegratedProgressNoteResponse` |
+
+Kode status: `400` catatan dibatalkan, catatan hasil generate, atau sudah terkunci; `403` perawat unit
+lain, dokter tanpa penugasan aktif, atau memverifikasi catatan sendiri; `409` sudah diverifikasi;
+`422` catatan tidak berada di bawah perawatan rawat inap.
+
+#### Health Services / Clinical Management / Doctor Consultation
+
+Base URL: `api/v1/health-services/clinical-management/doctor-consultations`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+|---|---|---|---|---|---|
+| `PUT` | `/{id}` | Mengubah konsep SOAP | `DoctorConsultation : Update` | Body `UpdateDoctorConsultationRequest` | `DoctorConsultationUpdateResponse` |
+| `PATCH` | `/{id}/soap` | Simpan otomatis bagian SOAP | `DoctorConsultation : Update` | Body `UpdateDoctorConsultationSoapRequest` | `DoctorConsultationSoapUpdateResponse` |
+| `PATCH` | `/{id}/complete` | Menyelesaikan konsultasi, sama dengan tanda tangan penulis | `DoctorConsultation : Update` | Body permintaan finalisasi | `ConsultationFinalizationResponse` |
+
+Kode status: `400` konsultasi sudah selesai atau dibatalkan; `404` tidak ditemukan; `409` data sudah
+berubah sejak dimuat.
+
+#### Health Services / Clinical Management / Patient Procedure
+
+Base URL: `api/v1/health-services/clinical-management/patient-procedures`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+|---|---|---|---|---|---|
+| `POST` | `/` | Mencatat tindakan baru, tahan kiriman ulang | `PatientProcedure : Create` | Body `CreatePatientProcedureRequest` | `PatientProcedureCreateResponse` |
+| `PUT` | `/{id}` | Mengubah tindakan | `PatientProcedure : Update` | Body `UpdatePatientProcedureRequest` | `PatientProcedureUpdateResponse` |
+| `PATCH` | `/{id}/execute` | Menandai tindakan sudah dilaksanakan | `PatientProcedure : Update` | Body `ExecutePatientProcedureRequest` | `object` |
+
+Kode status: `400` isian tidak valid, butuh persetujuan, atau sudah dibatalkan; `403` dokter tanpa
+penugasan pada waktu tindakan. Kiriman ulang dengan kunci permintaan yang sama dijawab `200` beserta
+tindakan yang sudah tercatat, bukan membuat tindakan kedua.
+
+#### Health Services / Pharmacy Management / Prescription Template
+
+Base URL: `api/v1/health-services/pharmacy-management/prescription-templates`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+|---|---|---|---|---|---|
+| `POST` | `/{id}/apply` | Menyalin isi template ke draft resep | `PrescriptionTemplate : Create` | Body `ApplyPrescriptionTemplateRequest` | `ApplyPrescriptionTemplateResponse` |
+
+Kode status: `400` resep bukan draft, template tidak aktif, atau coverage salah satu obat gagal.
+
+#### Health Services / Medical Record Management / Clinical Document Integrity
+
+Base URL: `api/v1/health-services/medical-record-management/clinical-document-integrities`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+|---|---|---|---|---|---|
+| `POST` | `/by-document/{documentKind}/{documentId}/sign` | Penulis menandatangani konsepnya | `ClinicalDocumentIntegrity : Update` | - | `ClinicalDocumentIntegrityResponse` |
+| `GET` | `/my-unsigned` | Daftar konsep milik pengguna login yang belum ditandatangani | `ClinicalDocumentIntegrity : Read` | Query `pageNumber`, `pageSize` | `ResponseUnsignedDocumentPagedResult` |
+
+Kode status: `403` bukan penulis catatan; `404` catatan tidak terdaftar pada mesin keutuhan; `400`
+catatan sudah terkunci.
+
+### 17.6 Ketidakcocokan frontend dan backend
+
+| ID | Temuan | Backend `@df3679c0` | Frontend `@147355f5` |
+|---|---|---|---|
+| `RLN3-CON-01` | Risiko jatuh keperawatan | Enum 0–4, skor dari dua centang, kategori dihitung ulang | Nilai 1–3 berlabel Morse, skor diketik, tanpa kontrol `hasFallRisk` |
+| `RLN3-CON-02` | Daftar pengkajian per episode | Objek berpaginasi | Mengharapkan array pada jalur keperawatan |
+| `RLN3-CON-03` | Status pengkajian | `Completed = 2` | Menganggap `1` selesai |
+| `RLN3-CON-04` | Status gizi, nafsu makan, status fungsional | Lihat `RLN3-CAP-29` | Lihat `RLN3-CAP-29` |
+| `RLN3-CON-05` | Susunan ruang kerja dokter | — | Dua halaman, bukan susunan Rawat Jalan |
+| `RLN3-CON-06` | Kebijakan konsep saat kunjungan selesai | `RM-DEC-003` mengunci konsep | — (konflik kebijakan dengan `RWI-DEC-129`) |
+
+### 17.7 Fakta, inferensi, dan rekomendasi
+
+**Fakta.** Seluruh baris 17.3 dan langkah 17.4 dibaca langsung dari source pada SHA yang tercatat.
+
+**Inferensi, belum dibuktikan saat berjalan:**
+
+- `RLN3-CAP-17`: daftar pengkajian keperawatan selalu kosong di layar. Kesimpulan ini diambil dari
+  bentuk tanggapan dan pembacaan kode, bukan dari aplikasi yang dijalankan.
+- `RLN3-CAP-29`: angka enum 4 dan 5 tersimpan di database. Serializer bawaan menerima angka enum yang
+  tidak terdefinisi, tetapi hal ini tidak diuji pada audit ini.
+
+**Rekomendasi, untuk dipertimbangkan dan bukan untuk dijalankan tanpa persetujuan:**
+
+1. `RLN3-CON-01`, `RLN3-CAP-17`, `RLN3-CAP-18`, `RLN3-CAP-22`, dan `RLN3-CAP-29` layak menjadi satu
+   gelombang perbaikan keselamatan lintas repository **sebelum** redesign keperawatan. Arahnya sudah
+   dikunci keputusan yang ada, sehingga tidak butuh wawancara baru.
+2. `RLN3-CAP-25` dan `RLN3-CAP-33` s.d. `RLN3-CAP-36` layak disatukan dengan perbaikan `BE-RWI-076`
+   yang sudah diwajibkan `RWI-DEC-128`.
+3. `RLN3-CAP-37` dipakai sebagai titik awal "Catatan Saya" untuk bagian konsep, bukan dibangun ulang.
+4. `RLN3-CAP-03` dan `RLN3-CAP-04` diteruskan ke `requirement-completeness-gate` dan desain, karena
+   menyamakan layout menyentuh komponen milik Rawat Jalan.
+
+### 17.8 Unknown dan pertanyaan penutup
+
+| ID | Pertanyaan | Kenapa tidak dapat dijawab source | Pemilik |
+|---|---|---|---|
+| `RLN3-UNK-01` | Untuk `RWI-DEC-128`, siapa "penulis" tindakan dokter: pemesan tindakan atau pelaksananya? Source menandatangani atas nama **pelaksana** saat dilaksanakan | `BR-RWI-013` memisahkan pesanan dari pelaksanaan, dan keputusan tidak menyebutnya | Muhammad Hamzah |
+| `RLN3-UNK-02` | Apakah menu Catatan Keperawatan PRD bagian 41 sama dengan CPPT berprofesi Perawat `RWI-DEC-115`, dan apakah isi V1 (perioperatif, diet, observasi cairan/WSD, sliding scale) ikut dipertahankan | PRD hanya menggambar kartu catatan | Muhammad Hamzah |
+| `RLN3-UNK-03` | Apakah `RM-DEC-003` berlaku untuk episode rawat inap, sehingga bertabrakan dengan `RWI-DEC-129` | Keputusan modul Rekam Medis | Pemilik `MedicalRecordManagement` |
+| `RLN3-UNK-04` | Tiga bagian Kajian Umum yang disebut PRD tetapi tidak ada di frontend V1: Psikososial (sebagai bagian), Alat Bantu (sebagai bagian), Catatan Relevan — tetap diminta atau PRD keliru | Backend V1 tidak tersedia | Muhammad Hamzah |
+| `RLN3-UNK-05` | Apakah daftar "Catatan Saya" boleh memakai ulang `my-unsigned` milik `MedicalRecordManagement`, mengingat `RWI-DEC-127` menempatkannya di ruang kerja dokter | Kepemilikan endpoint lintas modul | Muhammad Hamzah bersama pemilik `MedicalRecordManagement` |
+
+**Koreksi yang wajib dibawa ke decision log:** `RWI-FACT-028` butir (2) terlalu luas; lihat
+`RLN3-CAP-37`. Dokumen ini **tidak** mengubah decision log karena di luar batas tulis skill ini.
+
+### 17.9 Keterbatasan audit
+
+- Aplikasi, build, test, dan database tidak dijalankan.
+- Backend V1 tidak tersedia, sehingga isi V1 hanya dari frontend.
+- Jalur pemanggilan frontend untuk tiap endpoint tidak ditelusuri seluruhnya; hanya jalur yang disebut
+  pada bukti.
+- Butir MVP-0 ditafsirkan dari judul pada PRD bagian 56 dan aturan `BR-RWI-*`, karena PRD tidak
+  memberi definisi per butir.
+
+### 17.10 Handoff dan staleness
+
+**Temuan manifest yang ditutup bagian ini:** `RLN-07` bagian V1, `RLN-09`, `RLN-10`, dan `RLN-14`.
+Penandaan status fase pada `blueprint-manifest.md` dikerjakan `manage-module-blueprint`.
+
+Bagian 17 menjadi `STALE` bila salah satu berikut berubah:
+
+- `Areas/HealthServices/ClinicalManagement/Controllers/PatientAssessmentController.cs`,
+  `DoctorConsultationController.cs`, `PatientProcedureController.cs`, atau
+  `PatientIntegratedProgressNoteController.cs`;
+- `Areas/HealthServices/ClinicalManagement/Services/CpptVerificationService.cs` atau
+  `InpatientClinicalContextService.cs`;
+- `Areas/HealthServices/PharmacyManagement/Services/PrescriptionTemplateService.cs` atau
+  `ConsultationFinalizationService.cs`;
+- `Areas/HealthServices/MedicalRecordManagement/Services/ClinicalDocumentIntegrityService.cs`;
+- enum `FallRiskStatus`, `NutritionRiskStatus`, `AppetiteStatus`, `FunctionalStatus`,
+  `PatientAssessmentStatus`;
+- frontend `src/components/view/health-services/inpatient-management/nursing-workspace/**`,
+  `physician-workspace/**`, `doctor-inpatient/**`, atau
+  `src/components/view/health-services/registration-management/doctor-queues/**`;
+- `docs/Modul-RS/Rawat-Inap/04-prd-to-mvp-final.md` dengan SHA-256 berbeda;
+- keputusan `RWI-DEC-107`, `RWI-DEC-115`, `RWI-DEC-122`, `RWI-DEC-124`, `RWI-DEC-125`,
+  `RWI-DEC-128`, `RWI-DEC-129`, `RWI-DEC-135`, atau `RWI-DEC-136`.
+
+---
+
+## 18. Audit Kemampuan Integrasi Rawat Inap ↔ Billing (Pass A — Muhammad Hamzah, 17 September 2026)
+
+### 18.1 Konteks, Batas Audit, dan Metodologi
+
+Bagian ini disusun untuk menindaklanjuti kesepakatan **Amendment Pass Integrasi Rawat Inap ↔ Billing (Pass A — Muhammad Hamzah)** tertanggal 17 September 2026. Sesi tersebut telah menetapkan enam keputusan arsitektur kritis (`RWI-DEC-156` sampai `RWI-DEC-161`) dan sepuluh kriteria penerimaan (`RWI-AC-232` sampai `RWI-AC-241`) yang bersumber dari berkas masukan [PRD Integrasi-Rawat-Inap-dengan-Billing.md](../../Modul-RS/Rawat-Inap-To-Billing/PRD%20Integrasi-Rawat-Inap-dengan-Billing.md).
+
+Tujuan audit ini adalah membuktikan perilaku nyata (*as-is*) pada kode program dan skema basis data di kedua repositori, mengidentifikasi komponen yang dapat langsung dipakai ulang (*ready to reuse*), komponen yang membutuhkan adaptasi (*adapter*), komponen yang harus diperluas (*extend*), komponen yang memerlukan perbaikan (*repair*), serta komponen yang masih belum terwujud (*missing*).
+
+**Batas pemeriksaan kode (Snapshot SHA):**
+- **Backend:** `NewQuilvianSystemBackend` pada commit `fe7e60d4b2ef1eecffa72cef4f4fd33f9dbe0344` (cabang `MHamzah`).
+- **Frontend:** `QuilvianSystemFrontendDev` pada commit `2c00758832f834cff0288bef4f0d2fcf1161fb52` (cabang `HamzahV2`).
+
+**Area fungsional yang diaudit:**
+1. Modul Rawat Inap (`Areas/HealthServices/InPatientManagement`): model penempatan tempat tidur (`InpBedPlacement`), episode (`InpEpisode`), penanda kelayakan keuangan sementara (`InpFinancialClearance`), pengontrol operasional kamar (`InpatientBedOccupancyController`), dan pengontrol pemulangan (`InpatientDischargeController`).
+2. Modul Billing / Kasir (`Areas/HealthServices/BillingManagement`): layanan penerimaan beban tagihan dari modul lain (`ContractBillingChargeSourceAdapter`, `BillingInvoiceService`), kebijakan tarif kamar (`RoomChargePolicyService`, `MstRoomChargePolicy`), pengelolaan deposit pasien (`BillingDepositService`, `BillingPatientFundsController`), dan pratinjau kesiapan penutupan tagihan (`BillingFinalizationService`, `BillingFinalizationsController`).
+3. Antarmuka Pengguna Rawat Inap (Frontend): langkah pembayaran deposit pada formulir admisi berlangkah (`inpatient-admission-deposit-step.jsx`, `use-inpatient-admission-deposit.jsx`), alur pemulangan pasien (`inpatient-discharge-view.jsx`), pemeriksaan syarat penutupan (`inpatient-closure-view.jsx`), dan layar kelayakan keuangan (`inpatient-financial-clearance-view.jsx`).
+
+---
+
+### 18.2 Matriks Kontrak Bukti Kemampuan Integrasi
+
+Sesuai dengan kontrak audit rekayasa Quilvian, setiap kemampuan dievaluasi secara ketat dan diklasifikasikan ke dalam tepat satu status kanonik:
+
+| ID | Kebutuhan & Keputusan | Pemilik Domain | Bukti Lapangan (`repo/path#symbol@SHA`) | Status | Analisis Gap & Kebutuhan Adapter | Risiko Operasional & Klinis |
+|---|---|---|---|---|---|---|
+| `INT-CAP-01` | **Sinkronisasi Awal Episode & Akun Billing saat Admisi Disahkan** (`RANAP-INT-001`, `RWI-DEC-156`, `RWI-AC-232`) | `InPatientManagement` (M. Hamzah) & `BillingManagement` (Yasmina) | `BE@fe7e60d Areas/HealthServices/InPatientManagement/Services/InpBedOccupancyService.cs:854 #PlacePatientAsync`<br>`BE@fe7e60d Areas/HealthServices/BillingManagement/Billing/Controllers/BillingPatientFundsController.cs:93,134`<br>`FE@2c00758 src/lib/hooks/health-services/inpatient-management/use-inpatient-admission-deposit.jsx:24`<br>`FE@2c00758 src/components/view/health-services/inpatient-management/inpatient-admission-deposit-step.jsx:21` | **Extend** | **Backend:** Status `Admitted` diaktifkan saat penempatan awal, tetapi belum ada pemanggilan event outbox sinkronisasi akun episode ke Billing. Endpoint kebijakan deposit (`GET /deposit-policies`) dan top-up deposit (`POST /top-ups`) di Billing sudah berwujud.<br>**Frontend:** Formulir deposit admisi (`FE-RWI-058`) hanya mencatat nominal angka di browser tanpa menangkap `PaymentMethodId`, dan belum memanggil `GET /deposit-policies` (sebelumnya dianggap belum ada di backend). | Keluarga pasien yang telah berada di loket admisi tidak dapat langsung membayar uang muka/deposit di kasir bila data kunjungan belum dikenal oleh modul Billing. |
+| `INT-CAP-02` | **Standardisasi Pemicu Room Charge & Waktu Akhir Hunian Kamar** (`RANAP-INT-002`, `RWI-DEC-156`, `RWI-DEC-159`, `RWI-AC-233`, `RWI-AC-237`) | `InPatientManagement` & `BillingManagement` | `BE@fe7e60d Areas/HealthServices/InPatientManagement/Services/InpBedOccupancyService.cs:840 #PlacePatientAsync`<br>`BE@fe7e60d Areas/HealthServices/InPatientManagement/Services/InpDischargeService.Closure.cs:587 #RecordPatientDepartureAsync`<br>`BE@fe7e60d Areas/HealthServices/BillingManagement/Billing/Services/BillingChargeSourceAdapter.cs:23 #SourcePolicies`<br>`BE@fe7e60d Areas/HealthServices/BillingManagement/MasterData/Services/RoomChargePolicyService.cs:10` | **Extend** | **Billing:** `ContractBillingChargeSourceAdapter` belum mendaftarkan domain `ROOM_STAY` atau `INPATIENT` ke dalam `SourcePolicies` (masih melempar galat validasi 422 jika dikirim). Billing sudah memiliki `MstRoomChargePolicy` dan formula potongan jam.<br>**Rawat Inap:** Penempatan fisik (`PlacePatientAsync`) dan pencatatan kepergian fisik (`RecordPatientDepartureAsync`, `episode.PhysicallyLeftAt`) sudah ada, tetapi belum mengirimkan event `ROOM_ASSIGNED` dan `BED_RELEASED` (dengan durasi `OccupancyEndAt = PhysicallyLeftAt`) ke Billing. | Tagihan sewa kamar dapat salah hitung jika dihitung sejak pendaftaran loket (pasien belum tiba di ranjang) atau dihentikan terlalu dini saat DPJP memberi izin pulang (padahal pasien masih berbaring menunggu jemputan ambulans/keluarga). |
+| `INT-CAP-03` | **Mutasi Kamar & Koreksi Fakta Hunian saat Tagihan Terbuka** (`RANAP-INT-003`, `RWI-DEC-157`, `RWI-AC-234`, `RWI-AC-235`) | `InPatientManagement` & `BillingManagement` | `BE@fe7e60d Areas/HealthServices/InPatientManagement/Services/InpBedOccupancyService.cs:1080 #TransferAsync`<br>`BE@fe7e60d Areas/HealthServices/InPatientManagement/Services/InpEpisodeService.Corrections.cs:37 #OpenCorrectionSessionAsync`<br>`BE@fe7e60d Areas/HealthServices/InPatientManagement/Models/InpBedPlacement.cs:8` | **Missing** | **Rawat Inap:** Pemindahan ranjang biasa (`TransferAsync`) sudah berfungsi menutup penempatan lama dan membuka yang baru, tetapi belum ada antarmuka maupun layanan untuk **koreksi salah input** (koreksi bed, kelas kamar, atau waktu masuk yang salah ketik). `InpCorrectionSession` yang ada hanya untuk episode berstatus `Closed`.<br>**Billing:** Belum tersedia penerima event `OCCUPANCY_CORRECTED` untuk memicu penghitungan ulang (*repricing/reversal*) tagihan kamar berjalan saat status tagihan `BillingStatus == OPEN`. | Kesalahan input kelas atau kamar oleh petugas admisi di awal perawatan tidak dapat dikoreksi di sistem, memicu sengketa selisih tagihan (*dispute billing*) atau keharusan manipulasi database langsung. |
+| `INT-CAP-04` | **Konsumsi Ringkasan Tagihan (Billing Summary) & Hak Akses Tanpa Rupiah** (`RANAP-INT-004`, `RWI-DEC-160`, `RWI-AC-238`, `RWI-AC-239`) | `InPatientManagement` & `BillingManagement` | `BE@fe7e60d Areas/HealthServices/BillingManagement/Billing/Controllers/BillingPatientFundsController.cs:112 #GetEpisodeDepositSummary`<br>`BE@fe7e60d Areas/HealthServices/BillingManagement/Billing/Controllers/BillingFinalizationsController.cs:35 #Preview`<br>`FE@2c00758 src/components/view/health-services/inpatient-management/inpatient-financial-clearance-view.jsx:64` | **Extend** | **Backend:** Billing memiliki data ringkasan deposit (`EpisodeDepositSummaryResponse`) dan status kesiapan tagihan beserta kendala (`FinalizationPreviewResponse.BlockingReasons`), namun belum ada endpoint gabungan di Rawat Inap.<br>**Frontend & Hak Akses:** Rawat Inap belum memiliki klaim izin `InpatientBilling:View`. Layar perawat belum menampilkan lencana status operasional (Lunas / Tertahan), dan belum ada mekanisme penyembunyian angka rupiah bagi staf keperawatan. | Staf keperawatan bangsal terganggu fokus klinisnya jika dibebani melihat nominal uang tagihan pasien, atau sebaliknya perawat tidak mengetahui bahwa kepulangan pasien sedang tertahan karena masalah administrasi kasir. |
+| `INT-CAP-05` | **Gerbang Kelayakan Keuangan & Penguncian Ulang Otomatis (Auto-Reblock)** (`RANAP-INT-005`, `RWI-DEC-158`, `RWI-AC-236`) | `InPatientManagement` & `BillingManagement` | `BE@fe7e60d Areas/HealthServices/InPatientManagement/Models/InpFinancialClearance.cs:19 #ClearanceStatus`<br>`BE@fe7e60d Areas/HealthServices/InPatientManagement/Enums/InpFinancialClearanceStatus.cs:3`<br>`BE@fe7e60d Areas/HealthServices/InPatientManagement/Services/InpDischargeService.Closure.cs:226,538,878`<br>`FE@2c00758 src/components/view/health-services/inpatient-management/inpatient-closure-view.jsx:340` | **Repair & Extend** | **Backend:** Enum `InpFinancialClearanceStatus` baru memuat `Pending`, `Cleared`, dan `Blocked`, **belum memuat nilai `Revoked`**. Layanan pencatatan kepergian fisik (`RecordPatientDepartureAsync`) sama sekali belum memeriksa kelayakan keuangan (pemeriksaan baru ada pada `CloseEpisodeAsync`).<br>**Frontend:** Antarmuka kelayakan keuangan masih berupa formulir penandaan manual lokal (`IsManualMarking = true`) tanpa membaca status faktual dari Billing, dan belum memiliki reaksi otomatis (*Auto-Reblock*) bila clearance dicabut oleh kasir. | Pasien diperbolehkan keluar kamar dan meninggalkan rumah sakit secara fisik padahal status keuangan yang sebelumnya disetujui telah ditarik kembali oleh kasir akibat adanya tagihan farmasi atau tindakan dokter susulan. |
+| `INT-CAP-06` | **Ketahanan Integrasi Transaksional Outbox & Kunci Idempotensi** (`RANAP-INT-006`, `RWI-DEC-161`, `RWI-AC-240`, `RWI-AC-241`) | `InPatientManagement` & `BillingManagement` | `BE@fe7e60d Areas/HealthServices/BillingManagement/Billing/Models/BilChargeReceipt.cs:11 #IdempotencyKey`<br>`BE@fe7e60d Areas/HealthServices/BillingManagement/Billing/Controllers/BillingInvoicesController.cs:140 #FromSource`<br>`BE@fe7e60d Areas/HealthServices/OperatingRoomManagement/Services/OperatingRoomIntegrationService.cs:12` (Referensi Pola Outbox) | **Missing (Outbox Ranap) & Reuse with Adapter (Billing)** | **Rawat Inap:** Modul `InPatientManagement` belum memiliki entitas outbox (`InpIntegrationOutbox`), tabel database, maupun background worker pengirim event ke Billing.<br>**Billing:** Billing memiliki tabel penerima idempoten `BilChargeReceipt`, namun kolom `IdempotencyKey` dan parameter header HTTP bertipe data `Guid`. Diperlukan adapter konversi deterministik (misalnya hashing UUIDv5) dari format string bisnis `SourceDomain:SourceType:SourceDetailId:Version` yang ditetapkan `RWI-DEC-161`. | Gangguan jaringan atau downtime sementara pada modul Billing dapat menggagalkan proses penempatan tempat tidur atau pemulangan pasien di bangsal jika integrasi dilakukan secara panggilan langsung tanpa antrean outbox. |
+
+---
+
+### 18.3 Analisis Detail Proses Bisnis dan Contoh Kasus Rumah Sakit
+
+Integrasi antara modul Rawat Inap dan Billing menjembatani dua dunia yang berbeda: **dunia fisik-klinis perawatan pasien di bangsal** dan **dunia transaksi keuangan di kasir/akuntansi**. Berikut adalah alur proses bisnis ujung-ke-ujung beserta contoh skenario konkret rumah sakit:
+
+#### Skenario 1: Pendaftaran Admisi Pasien & Pemungutan Deposit di Muka
+1. **Pemicu:** Pasien "Tn. Budi Santoso" diputuskan rawat inap dari Poli Penyakit Dalam. Petugas admisi membuka berkas admisi dan memilih paket kamar Kelas 1 (`InpEpisodeStatus.Draft`).
+2. **Pengesahan Admisi (`Admitted`):** Begitu admisi disahkan dan diverifikasi, sistem Rawat Inap menerbitkan event `ADMISSION_CONFIRMED` ke tabel `InpIntegrationOutbox`.
+3. **Akun Tagihan di Billing:** Worker integrasi mengirim data ke Billing. Billing membentuk akun tagihan (`BilInvoice`) berstatus `Open` yang terikat pada `EncounterId`.
+4. **Pembayaran Uang Muka:** Keluarga Tn. Budi mendatangi kasir pendaftaran. Kasir membuka menu penerimaan deposit, membaca kebijakan minimal deposit Kelas 1 sebesar Rp 3.000.000 (`GET /deposit-policies`), dan mencatat pembayaran top-up via transfer bank sebesar Rp 5.000.000 (`POST /deposits/{encounterId}/top-ups`).
+5. **Keadaan Arloji Kamar:** Meskipun deposit sudah diterima kasir, **arloji tagihan kamar harian BELUM berdetak**, karena Tn. Budi secara fisik masih berada di ruang tunggu admisi dan belum diantar ke ranjang perawatan.
+
+#### Skenario 2: Pasien Tiba di Bangsal dan Timer Sewa Kamar Aktif
+1. **Pemicu:** Tn. Budi diantar perawat ke Bangsal Melati Kamar 201 Bed A. Perawat bangsal menekan tombol **Konfirmasi Pasien Tiba (Check-in Bed)** pada pukul 10.30 WIB.
+2. **Pencatatan Penempatan:** Rawat Inap menyimpan baris `InpBedPlacement` baru dengan status aktif, waktu mulai `StartDateTime = 10:30`, dan mengubah status bed master menjadi `Occupied`.
+3. **Pemicu Room Charge:** Transaksi lokal menyimpan event `ROOM_ASSIGNED` ke `InpIntegrationOutbox`. Dispatcher mengirimkan data hunian ke Billing (`POST /invoices/from-source`).
+4. **Perhitungan Billing:** Billing mencatat bahwa Tn. Budi menempati Bed A Kamar 201 sejak 10.30 WIB. Sesuai `MstRoomChargePolicy`, penghitungan tarif harian kamar mulai diperhitungkan secara berkala sejak detik tersebut.
+
+#### Skenario 3: Koreksi Salah Catat Kamar oleh Supervisor Ruangan
+1. **Masalah di Lapangan:** Pada pukul 14.00 WIB, Kepala Ruangan menyadari bahwa petugas admisi salah memilih kamar pada sistem: Tn. Budi tertulis di Kamar VIP, padahal fisiknya berada di Kamar Kelas 1.
+2. **Pemeriksaan Syarat Koreksi (`RWI-DEC-157`):**
+   - Pelaku adalah Kepala Ruangan (Supervisor) yang memiliki wewenang.
+   - Sistem memeriksa status tagihan Tn. Budi di Billing masih terbuka (`BillingStatus == OPEN`).
+3. **Eksekusi Koreksi:** Kepala Ruangan mengisi formulir koreksi: memilih Kamar Kelas 1, memasukkan alasan wajib: *"Koreksi salah penetapan tipe kamar oleh petugas admisi saat pendaftaran"*.
+4. **Penyimpanan Audit & Reversi Tagihan:**
+   - Data penempatan lama versi 1 dinonaktifkan dengan jejak audit lengkap (*tanpa hard delete*).
+   - Data penempatan baru versi 2 diaktifkan dengan waktu efektif yang disesuaikan.
+   - Rawat Inap menyimpan event `OCCUPANCY_CORRECTED` ke outbox dengan kunci `INPATIENT:ROOM_STAY:PLC-TnBudi:2`.
+   - Modul Billing menerima event tersebut, membatalkan (*reversal*) kalkulasi biaya kamar VIP sebelumnya, dan menerapkan tarif baru untuk Kelas 1.
+
+#### Skenario 4: Alur Pemulangan, Penarikan Clearance, dan Auto-Reblock
+1. **Izin Pulang Dokter (DPJP):** Dokter Spesialis Penyakit Dalam memeriksa Tn. Budi pada pukul 09.00 WIB dan menerbitkan izin pulang klinis (`DischargeRequested` / `DischargePending`). Tempat tidur fisik **belum dilepas** karena pasien masih berkemas.
+2. **Kesiapan Tagihan Kasir:** Kasir memeriksa kelengkapan tagihan melalui menu finalisasi (`GET /invoices/{invoiceId}/preview`). Pada pukul 10.00 WIB, keluarga Tn. Budi melunasi sisa tagihan obat dan kamar. Kasir menerbitkan status **Lunas** (`Financial Clearance: CLEARED`).
+3. **Kasus Penarikan Clearance (Revocation):**
+   - Pada pukul 10.15 WIB, instalasi farmasi menemukan resep obat pulang kronis susulan senilai Rp 750.000 yang belum masuk ke kalkulasi tagihan.
+   - Petugas kasir mencabut persetujuan kepulangan dan mengubah status menjadi **Tertahan / Ditarik** (`Financial Clearance: REVOKED` / `BLOCKED`) dengan alasan: *"Ada transaksi obat kronis susulan belum diselesaikan"*.
+4. **Penguncian Otomatis di Bangsal (*Auto-Reblock* - `RWI-DEC-158`):**
+   - Pada pukul 10.20 WIB, perawat bangsal bersiap memulangkan Tn. Budi dan membuka menu pelepasan fisik pasien.
+   - Sistem Rawat Inap mendeteksi status clearance telah berubah menjadi `REVOKED`. Tombol pelepasan tempat tidur **otomatis terkunci kembali**.
+   - Di layar perawat bangsal muncul peringatan: *"Pasien belum dapat dipulangkan. Kendala Kasir: Ada transaksi obat kronis susulan belum diselesaikan."* **Tidak ada nominal rupiah yang ditampilkan ke perawat**, menjaga kerahasiaan finansial pasien.
+   - Perawat mengarahkan keluarga pasien untuk kembali ke kasir menyelesaikan tagihan susulan tersebut.
+5. **Pelepasan Fisik Pasien & Penghentian Sewa Kamar (`RWI-DEC-159`):**
+   - Pukul 11.00 WIB, kasir memperbarui status menjadi `CLEARED` setelah pelunasan obat susulan.
+   - Gerbang pelepasan di bangsal kembali terbuka. Tn. Budi meninggalkan ruangan bersama keluarga pada pukul 11.15 WIB.
+   - Perawat menekan tombol **Catat Kepergian Fisik (Patient Departed)** pada pukul 11.15 WIB.
+   - Rawat Inap mencatat `episode.PhysicallyLeftAt = 11:15` dan `placement.EndDateTime = 11:15`.
+   - Event `BED_RELEASED` dikirim ke Billing dengan parameter `OccupancyEndAt = 11:15`. Billing mengunci durasi sewa kamar Tn. Budi berakhir tepat pada pukul 11.15 WIB, bukan pukul 09.00 WIB saat dokter visit.
+   - Tempat tidur Bed A Kamar 201 resmi kembali berstatus kosong (*Available*) dan siap dibersihkan untuk pasien berikutnya.
+
+---
+
+### 18.4 Spesifikasi Teknis Endpoint Bergaya Swagger
+
+Berikut adalah pemetaan spesifikasi endpoint integrasi yang relevan antara kedua modul:
+
+#### A. Endpoint Modul Billing yang Dikonsumsi atau Diadaptasi
+```csharp
+[Tags("Health Services / Billing Management / Billing / Patient Funds")]
+```
+| Metode | Rute Endpoint | Deskripsi Bisnis | Hak Akses (*Permission*) | Payload Permintaan / Respons |
+|---|---|---|---|---|
+| `GET` | `/api/v1/health-services/billing-management/billing/patient-funds/deposit-policies` | Membaca kebijakan deposit minimal berdasarkan penjamin dan kelas kamar | `BillingDeposit:Read` | **Query:** `guarantorId`, `patientClassId`<br>**Response 200:** `DepositPolicyResponse` (Status wajib, nominal minimal, toleransi hari) |
+| `POST` | `/api/v1/health-services/billing-management/billing/patient-funds/deposits/{encounterId}/top-ups` | Mencatat setoran deposit pasien rawat inap di kasir loket admisi | `BillingDeposit:Create` | **Header:** `Idempotency-Key: Guid`<br>**Body:** `DepositTopUpRequest` (`PaymentMethodId`, `Amount`, `Reason`, `CorrelationId`)<br>**Response 200:** `SettlementResponse` |
+| `GET` | `/api/v1/health-services/billing-management/billing/patient-funds/deposits/episodes/{episodeId}` | Membaca ringkasan saldo, total pemakaian, dan sisa deposit per episode | `BillingDeposit:Read` | **Response 200:** `EpisodeDepositSummaryResponse` (`TotalReceived`, `TotalAllocated`, `AvailableBalance`) |
+
+```csharp
+[Tags("Health Services / Billing Management / Billing / Invoices")]
+```
+| Metode | Rute Endpoint | Deskripsi Bisnis | Hak Akses (*Permission*) | Payload Permintaan / Respons |
+|---|---|---|---|---|
+| `POST` | `/api/v1/health-services/billing-management/billing/invoices/from-source` | Penerimaan beban tagihan kamar (*room charge*) dan tindakan dari producer | `BillingInvoice:Create` | **Header:** `Idempotency-Key: Guid`<br>**Body:** `UpsertChargeRequest` (`SourceDomain="ROOM_STAY"`, `SourceDetailId`, `SourceVersion`, `Quantity`, `UnitPrice`, `ContractVersion="BIL-INTEGRATION-0.4"`)<br>**Response 200:** `InvoiceDetailResponse` |
+
+```csharp
+[Tags("Health Services / Billing Management / Billing / Finalizations")]
+```
+| Metode | Rute Endpoint | Deskripsi Bisnis | Hak Akses (*Permission*) | Payload Permintaan / Respons |
+|---|---|---|---|---|
+| `GET` | `/api/v1/health-services/billing-management/billing/finalizations/invoices/{invoiceId}/preview` | Membaca checklist kesiapan penutupan tagihan beserta daftar kendala (*blocking reasons*) | `BillingFinalization:Read` | **Response 200:** `FinalizationPreviewResponse` (`AllOrdersComplete`, `Outstanding`, `IsReadyForNormalFinalization`, `BlockingReasons[]`) |
+
+#### B. Endpoint Modul Rawat Inap yang Perlu Diperluas (*Target To-Be*)
+```csharp
+[Tags("Health Services / Inpatient Management / Bed Occupancy")]
+```
+| Metode | Rute Endpoint | Deskripsi Bisnis | Hak Akses (*Permission*) | Status As-Is & Rencana Penyesuaian |
+|---|---|---|---|---|
+| `POST` | `/api/v1/health-services/inpatient-management/bed-occupancies/placements` | Menempatkan pasien ke ranjang kamar rawat inap (`Bed Occupied`) | `InpatientBedOccupancy:Create` | **As-Is:** Menyimpan `InpBedPlacement` lokal.<br>**To-Be:** Tambahkan penulisan event `ROOM_ASSIGNED` ke `InpIntegrationOutbox` dalam satu transaksi lokal. |
+| `POST` | `/api/v1/health-services/inpatient-management/bed-occupancies/placements/transfer` | Memindahkan pasien ke tempat tidur atau kamar lain (mutasi) | `InpatientBedOccupancy:Transfer` | **As-Is:** Menutup penempatan lama dan membuka penempatan baru.<br>**To-Be:** Tambahkan penulisan event `ROOM_TRANSFERRED` ke `InpIntegrationOutbox`. |
+| `POST` | `/api/v1/health-services/inpatient-management/bed-occupancies/placements/{placementId}/correct` | Mengoreksi salah catat kamar/bed/kelas/waktu hunian (`RWI-DEC-157`) | `InpatientBedOccupancy:Correct` *(Baru)* | **As-Is:** Belum ada (`Missing`).<br>**To-Be:** Buat endpoint khusus Supervisor/Admisi, validasi `BillingStatus == OPEN`, catat versi baru, dan tulis event `OCCUPANCY_CORRECTED` ke outbox. |
+
+```csharp
+[Tags("Health Services / Inpatient Management / Inpatient Discharge")]
+```
+| Metode | Rute Endpoint | Deskripsi Bisnis | Hak Akses (*Permission*) | Status As-Is & Rencana Penyesuaian |
+|---|---|---|---|---|
+| `POST` | `/api/v1/health-services/inpatient-management/discharges/{episodeId}/record-departure` | Mencatat waktu kepulangan fisik pasien dari tempat tidur | `InpatientDischarge:RecordDeparture` | **As-Is:** Mencatat `episode.PhysicallyLeftAt` dan melepas bed lokal.<br>**To-Be:** Tambahkan validasi kelayakan keuangan (*Auto-Reblock*), serta tulis event `BED_RELEASED` dengan `OccupancyEndAt = PhysicallyLeftAt` ke outbox. |
+| `GET` | `/api/v1/health-services/inpatient-management/discharges/{episodeId}/billing-summary` | Mengambil ringkasan billing untuk bangsal dengan filter hak akses nominal rupiah (`RWI-DEC-160`) | `InpatientDischarge:Read` / `InpatientBilling:View` *(Baru)* | **As-Is:** Belum ada endpoint terpadu.<br>**To-Be:** Mengonsumsi data Billing; kembalikan status dan blocker untuk perawat, sertakan nominal rupiah hanya jika pemohon memiliki izin `InpatientBilling:View`. |
+
+---
+
+### 18.5 Fakta Baru, Pertanyaan Penutup, dan Penandaan Staleness
+
+#### A. Fakta Baru dari Audit Lapangan (`INT-FACT`)
+- **`INT-FACT-01` (Kesiapan Endpoint Deposit di Billing):** Endpoint kebijakan deposit `GET /deposit-policies` dan ringkasan episode `GET deposits/episodes/{episodeId}` pada `BillingPatientFundsController` di modul Billing **sudah berwujud dan aktif** di backend `fe7e60d4`. Hal ini membuktikan bahwa task frontend `FE-RWI-059` yang selama ini tertahan karena disangka endpoint-nya belum ada di backend, kini **resmi dapat dibuka dan dikerjakan**.
+- **`INT-FACT-02` (Keterbatasan Domain Adapter di Billing):** Berkas `ContractBillingChargeSourceAdapter.cs` pada repositori backend baris 23–53 saat ini **hanya** menerima domain: `PROCEDURE`, `LABORATORY`, `RADIOLOGY`, `PHARMACY`, `CONSUMABLE`, `ADHOC`, dan `ADHOC_CATALOG`. Domain `ROOM_STAY` atau `INPATIENT` belum terdaftar. Jika modul Rawat Inap mengirim tagihan kamar hari ini, sistem Billing akan menolaknya dengan galat validasi 422. Penambahan `ROOM_STAY` menjadi prasyarat mutlak pada sisi Billing.
+- **`INT-FACT-03` (Beda Tipe Kunci Idempotensi):** Tabel `BilChargeReceipt` dan parameter header `[FromHeader(Name = "Idempotency-Key")]` pada endpoint Billing mewajibkan tipe data `Guid`, sedangkan keputusan bisnis `RWI-DEC-161` menetapkan format string semantik: `SourceDomain:SourceType:SourceDetailId:Version`. Diperlukan adapter konversi deterministik (misalnya UUIDv5 berbasis namespace) pada dispatcher outbox Rawat Inap agar integritas kunci idempoten tetap terjaga.
+- **`INT-FACT-04` (Absensi Status `Revoked` & Celah Pelepasan Pasien):** Enum `InpFinancialClearanceStatus` saat ini hanya mengenal nilai `Pending = 0`, `Cleared = 1`, dan `Blocked = 2`. Nilai `Revoked = 3` belum tersedia. Selain itu, fungsi `RecordPatientDepartureAsync` di `InpDischargeService.Closure.cs` hanya mengecek apakah status episode `DischargePending`, tanpa memverifikasi kelayakan keuangan sama sekali. Ini merupakan celah keselamatan administrasi yang harus ditutup pada perancangan integrasi.
+- **`INT-FACT-05` (Formulir Frontend Deposit Belum Lengkap):** Komponen `inpatient-admission-deposit-step.jsx` dan hook `use-inpatient-admission-deposit.jsx` saat ini baru mengelola satu kolom input teks untuk nominal uang (`amount`), tanpa dropdown pemilihan metode pembayaran (`PaymentMethodId`). Padahal endpoint `POST /patient-funds/deposits/{encounterId}/top-ups` mewajibkannya sebagai kolom validasi utama.
+
+#### B. Pertanyaan Penutup (Unknowns)
+| ID | Pertanyaan | Mengapa Tidak Dapat Dijawab dari Kode Sumber Saja | Pemilik Kewenangan |
+|---|---|---|---|
+| `INT-UNK-01` | Apakah modul Billing Management (Yasmina) bersedia membuka endpoint penerimaan `POST /invoices/from-source` untuk menerima `SourceDomain = "ROOM_STAY"` dengan tipe payload occupancy harian, ataukah Billing lebih memilih memanggil service internal Inpatient secara in-process? | Menyangkut kontrak integrasi lintas modul antara tim Rawat Inap dan tim Billing. | Yasmina (Billing) & M. Hamzah (Rawat Inap) |
+| `INT-UNK-02` | Apakah penarikan clearance (`REVOKED`) di Billing akan dipublikasikan sebagai event asinkron (misal webhook/message) ke Rawat Inap, ataukah Rawat Inap melakukan pemeriksaan live-check (*synchronous query*) sesaat sebelum perawat menekan tombol pelepasan fisik pasien? | Menyangkut pola arsitektur runtime dan latensi komunikasi antar-service. | Arsitek Sistem bersama Yasmina & M. Hamzah |
+
+#### C. Penandaan Ketinggalan Dokumen (*Staleness Trigger*)
+Bagian 18 ini menjadi **basi (*STALE*)** dan wajib diaudit ulang apabila salah satu kondisi berikut terpenuhi:
+1. Perubahan pada repositori backend `NewQuilvianSystemBackend`:
+   - `Areas/HealthServices/InPatientManagement/Models/InpBedPlacement.cs` atau `InpEpisode.cs`;
+   - `Areas/HealthServices/InPatientManagement/Controllers/InpatientBedOccupancyController.cs` atau `InpatientDischargeController.cs`;
+   - `Areas/HealthServices/BillingManagement/Billing/Services/BillingChargeSourceAdapter.cs` atau `BillingInvoiceService.cs`;
+   - `Areas/HealthServices/BillingManagement/Billing/Controllers/BillingPatientFundsController.cs` atau `BillingFinalizationsController.cs`.
+2. Perubahan pada repositori frontend `QuilvianSystemFrontendDev`:
+   - `src/components/view/health-services/inpatient-management/inpatient-admission-deposit-step.jsx`;
+   - `src/components/view/health-services/inpatient-management/inpatient-discharge-view.jsx`;
+   - `src/components/view/health-services/inpatient-management/inpatient-financial-clearance-view.jsx`.
+3. Terjadinya perubahan keputusan bisnis atau persetujuan wawancara pada Pass B bersama pemilik modul Billing (`BillingManagement`).
+

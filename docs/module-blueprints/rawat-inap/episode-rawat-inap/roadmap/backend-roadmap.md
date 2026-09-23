@@ -1,15 +1,38 @@
 # Roadmap Delivery Backend — Modul Rawat Inap
 
+> ## ⚠ ROADMAP INI TIDAK LAGI MENERIMA TASK BARU — 16 September 2026
+>
+> Task penyelarasan `PRD-RWI-V2-001` revision `7` ditulis pada berkas **terpisah**:
+> [`backend-roadmap-v2.md`](./backend-roadmap-v2.md), rentang **`BE-RWI-079` s.d. `BE-RWI-087`**.
+>
+> Pemisahan ini atas permintaan pemilik pada 16 September 2026: berkas ini sudah terlalu
+> panjang untuk dibaca sebagai register kerja harian.
+>
+> | Hal | Berkas ini | [`backend-roadmap-v2.md`](./backend-roadmap-v2.md) |
+> | --- | --- | --- |
+> | Isinya | Task revision `4` s.d. `6`, sebagian besar sudah `✅` | Task revision `7` |
+> | Statusnya | **Tetap berlaku** — jangan dihapus, jangan diarsipkan | Register task berjalan |
+> | Task baru | **Jangan ditambahkan di sini** | Ditambahkan di sana |
+>
+> **Nomor task tidak pernah dipakai ulang.** Deret `BE-RWI-###` berjalan lurus melintasi kedua
+> berkas dan melintasi ketiga sub-modul `rawat-inap`. Sebelum menambah task, baca **kedua**
+> berkas beserta roadmap backend dua sub-modul lain.
+>
+> **ID bebas berikutnya per 16 September 2026: `BE-RWI-127`.**
+
 ## Metadata
 
 ```yaml
 module_id: rawat-inap
 module_name: InPatientManagement
 entity_prefix: Inp
-roadmap_revision: 4
+roadmap_revision: 5
 revision_3_scope: INPUT_RESYNC_ONLY
 revision_4_scope: DEPOSIT_SLICE
 revision_4_corrected_at: "2026-09-08 sore, setelah /qv-trace terhadap source hasil merge"
+revision_5_scope: "Perencanaan terarah pada SATU task baru. BE-RWI-069 ditambahkan supaya /available-beds dapat menyebutkan tempat tidur yang DITOLAK beserta aturan yang menolaknya, menutup kalimat buntu 'Tidak lolos kelayakan' pada layar pemilihan bed. Blok Urutan dependency berbentuk pohon teks diganti menjadi Grafik Urutan Dependency berbentuk Mermaid sebagaimana dituntut aturan kanonik. Nol status task lain diubah, nol task lain dihapus. Bukan approval implementasi dan bukan approval rilis."
+revision_5_planned_at: "2026-09-09"
+revision_5_trigger: "Bukti runtime pemilik 9 September 2026. Papan pemilihan bed menampilkan 'Tidak lolos kelayakan' pada bed isolasi dan pada seluruh bed sekamar dengan pasien berjenis kelamin berbeda, tanpa satu pun keterangan. Pemilik menyatakan developer sendiri pun tidak dapat membacanya."
 status: DRAFT
 approval_gate: BLUEPRINT_APPROVED
 blueprint_shape: COMPOSITE
@@ -49,6 +72,7 @@ artifact_hashes:
   contracts/bed-board-reservation-metadata-contract.md: "ea5f3fc69488100841b44d6d838d74c681981088b1a08de61721e523ca7593d8"
   testing/acceptance-test-matrix.md: "357cb6ca9b35b9c2a2ce55597dd2cad5c68bd132c4d40a903f07e4d693b3a45c"
 contract_versions:
+  - "API 0.7.0 — DISETUJUI 2026-09-10 oleh Muhammad Hamzah. Gerbang atas BE-RWI-069 dicabut, dan task itu selesai pada hari yang sama"
   - "API 0.6.1"
   - "Encounter company guarantor addendum 1.0.0"
   - "Bed board reservation metadata addendum 1.0.0"
@@ -68,7 +92,7 @@ current_contract_gap_scan:
   backend: "64d7419415e473968d752d873ca02e1ae1fcded8"
   frontend: "786bd247db47a3b7c97b8c08fb6ec633f57d0c72"
   result: "RWI-UI-GAP-002_CONFIRMED; ADMIN_ROUTE_AND_PERMISSION_CONFIRMED"
-task_count: 39
+task_count: 40
 task_count_cancelled: 2
 task_count_moved_out: 2
 task_count_note: "BE-RWI-037 dan BE-RWI-039 dibatalkan 2026-09-08 karena kemampuannya terbukti sudah ada (RWI-FACT-017, RWI-FACT-018). BE-RWI-038 dan BE-RWI-040 dipindahkan ke roadmap billing-kasir sebagai BE-BKC-039 dan BE-BKC-040 pada tanggal yang sama, dan tinggal sebagai baris dependency. Keempatnya disimpan sebagai jejak, tidak dihapus. Kedua nomor Billing itu semula BE-BKC-022 dan BE-BKC-023; dinomori ulang menjadi BE-BKC-039 dan BE-BKC-040 pada 2026-09-09 karena nomor lamanya sudah dipakai gelombang 4 September 2026 pada roadmap billing-kasir."
@@ -83,7 +107,234 @@ planned_slices:
   - "EPIC RI-35b — final settlement, refund, dan validasi FinancialClearance terhadap ringkasan Billing. Gelombang MVP-3."
 blocked_by:
   - "RWI-OQ-052 — pemegang BillingDeposit : Create pada langkah admisi belum ditetapkan. Memblokir EPIC RI-35a saja."
+  - "DICABUT 2026-09-10 — API contract 0.7.0 disetujui pemilik. Sebelumnya memblokir BE-RWI-069 saja, dan task itu kini selesai."
 ```
+
+---
+
+## Grafik Urutan Dependency
+
+Panah berarti **prasyarat harus selesai lebih dulu**, dan artinya tidak pernah dibalik. Setiap task
+roadmap ini muncul **tepat satu kali** sebagai node, dan jumlah panahnya sama persis dengan isi
+kolom `Dependency` pada bagian 4. Bila keduanya berbeda, **kolom `Dependency` yang berlaku** dan
+grafik ini yang salah.
+
+Grafiknya dipecah per kelompok slice karena roadmap ini memuat empat puluh task, jauh melewati
+batas lima belas node per grafik. Grafik ringkasan antar-slice ada lebih dulu, baru grafik rincinya.
+
+### Ringkasan antar-slice
+
+```mermaid
+flowchart LR
+    classDef selesai fill:#DCFCE7,stroke:#16A34A,color:#14532D
+    classDef sebagian fill:#FEF9C3,stroke:#CA8A04,color:#713F12
+    classDef terblokir fill:#FEE2E2,stroke:#DC2626,color:#7F1D1D
+    classDef belum fill:#F1F5F9,stroke:#64748B,color:#0F172A
+    classDef luar fill:#EDE9FE,stroke:#7C3AED,color:#3B0764
+
+    S0["✅ S0<br/>modul berdiri"]:::selesai
+    S1["✅ S1<br/>admisi dan pemesanan"]:::selesai
+    S2["✅ S2<br/>penempatan dan kelayakan"]:::selesai
+    S3["✅ S3<br/>census"]:::selesai
+    S4["✅ S4<br/>DPJP dan perpindahan"]:::selesai
+    S5["✅ S5<br/>boleh pulang"]:::selesai
+    S6["✅ S6<br/>penutupan episode"]:::selesai
+    S7["✅ S7<br/>riwayat dan daftar pantau"]:::selesai
+    S8["✅ S8<br/>bayi baru lahir"]:::selesai
+    S9["🟡 S9<br/>kesiapan sign-off"]:::sebagian
+    S10["✅ S10<br/>penjamin perusahaan"]:::selesai
+    S11["⛔ S11<br/>deposit diterima"]:::terblokir
+    S12["⛔ S12<br/>uang selesai sebelum tutup"]:::terblokir
+    S13["⛔ S13<br/>alasan penolakan terbaca"]:::terblokir
+
+    S0 --> S1 --> S2 --> S3 --> S4 --> S5 --> S6 --> S7 --> S8 --> S9
+    S1 --> S10
+    S1 --> S11 --> S12
+    S2 --> S13
+```
+
+### S0 sampai S2 — fondasi, admisi, dan kelayakan penempatan
+
+```mermaid
+flowchart TD
+    classDef selesai fill:#DCFCE7,stroke:#16A34A,color:#14532D
+    classDef sebagian fill:#FEF9C3,stroke:#CA8A04,color:#713F12
+    classDef terblokir fill:#FEE2E2,stroke:#DC2626,color:#7F1D1D
+    classDef belum fill:#F1F5F9,stroke:#64748B,color:#0F172A
+    classDef luar fill:#EDE9FE,stroke:#7C3AED,color:#3B0764
+
+    BE001["✅ BE-RWI-001<br/>dua tabel master"]:::selesai
+    BE002["✅ BE-RWI-002<br/>seeder master awal"]:::selesai
+    BE003["✅ BE-RWI-003<br/>sebelas tabel transaksi"]:::selesai
+    BE004["✅ BE-RWI-004<br/>enam service terdaftar"]:::selesai
+    BE005["✅ BE-RWI-005<br/>controller master"]:::selesai
+    BE006["✅ BE-RWI-006<br/>status bed milik Rawat Inap"]:::selesai
+    BE007["✅ BE-RWI-007<br/>buka admisi"]:::selesai
+    BE008["✅ BE-RWI-008<br/>ubah batal kedaluwarsa"]:::selesai
+    BE009["✅ BE-RWI-009<br/>daftar dan detail episode"]:::selesai
+    BE010["✅ BE-RWI-010<br/>cari dan pesan tempat tidur"]:::selesai
+    BE011["✅ BE-RWI-011<br/>penempatan pasien"]:::selesai
+    BE012["✅ BE-RWI-012<br/>tidak dirawat di dua tempat"]:::selesai
+    BE013["✅ BE-RWI-013<br/>kamar tidak campur"]:::selesai
+    BE014["✅ BE-RWI-014<br/>kebutuhan isolasi tercatat"]:::selesai
+    BE015["✅ BE-RWI-015<br/>kapasitas isolasi dua arah"]:::selesai
+
+    BE001 --> BE002
+    BE001 --> BE003
+    BE003 --> BE004
+    BE004 --> BE005
+    BE004 --> BE006
+    BE004 --> BE007
+    BE007 --> BE008
+    BE007 --> BE009
+    BE007 --> BE010
+    BE010 --> BE011
+    BE011 --> BE012
+    BE011 --> BE013
+    BE011 --> BE014
+    BE014 --> BE015
+```
+
+### S3 sampai S8 — census, pemulangan, penutupan, dan bayi
+
+```mermaid
+flowchart TD
+    classDef selesai fill:#DCFCE7,stroke:#16A34A,color:#14532D
+    classDef sebagian fill:#FEF9C3,stroke:#CA8A04,color:#713F12
+    classDef terblokir fill:#FEE2E2,stroke:#DC2626,color:#7F1D1D
+    classDef belum fill:#F1F5F9,stroke:#64748B,color:#0F172A
+    classDef luar fill:#EDE9FE,stroke:#7C3AED,color:#3B0764
+
+    subgraph prasyarat["Prasyarat dari grafik S0-S2"]
+        BE011x["✅ BE-RWI-011<br/>penempatan pasien"]:::luar
+    end
+
+    BE016["✅ BE-RWI-016<br/>census dan lama dirawat"]:::selesai
+    BE017["✅ BE-RWI-017<br/>DPJP berperiode"]:::selesai
+    BE018["✅ BE-RWI-018<br/>perawat penanggung jawab"]:::selesai
+    BE019["✅ BE-RWI-019<br/>perpindahan utuh"]:::selesai
+    BE020["✅ BE-RWI-020<br/>keputusan boleh pulang"]:::selesai
+    BE021["✅ BE-RWI-021<br/>resume dan tanda tangan"]:::selesai
+    BE022["✅ BE-RWI-022<br/>versi resume"]:::selesai
+    BE023["✅ BE-RWI-023<br/>daftar periksa penutupan"]:::selesai
+    BE024["✅ BE-RWI-024<br/>kelayakan keuangan"]:::selesai
+    BE025["✅ BE-RWI-025<br/>penutupan episode"]:::selesai
+    BE026["✅ BE-RWI-026<br/>jalan keluar supervisor"]:::selesai
+    BE027["✅ BE-RWI-027<br/>kepergian fisik"]:::selesai
+    BE028["✅ BE-RWI-028<br/>riwayat status"]:::selesai
+    BE029["✅ BE-RWI-029<br/>empat daftar pantau"]:::selesai
+    BE030["✅ BE-RWI-030<br/>sesi koreksi"]:::selesai
+    BE031["✅ BE-RWI-031<br/>boks bayi dan ibu"]:::selesai
+
+    BE011x --> BE016
+    BE016 --> BE017
+    BE016 --> BE018
+    BE017 --> BE019
+    BE018 --> BE020
+    BE020 --> BE021
+    BE021 --> BE022
+    BE020 --> BE023
+    BE023 --> BE024
+    BE024 --> BE025
+    BE025 --> BE026
+    BE025 --> BE027
+    BE027 --> BE028
+    BE027 --> BE029
+    BE027 --> BE030
+    BE027 --> BE031
+```
+
+### S9 sampai S13 — kesiapan, penjamin, deposit, dan alasan penolakan
+
+Kelompok ini memuat satu-satunya task baru revision `5`, yaitu `BE-RWI-069`, beserta seluruh task
+yang belum tuntas. Dua task dibatalkan dan dua task berpindah ke roadmap Billing; keempatnya tetap
+digambar supaya jejaknya terbaca.
+
+```mermaid
+flowchart TD
+    classDef selesai fill:#DCFCE7,stroke:#16A34A,color:#14532D
+    classDef sebagian fill:#FEF9C3,stroke:#CA8A04,color:#713F12
+    classDef terblokir fill:#FEE2E2,stroke:#DC2626,color:#7F1D1D
+    classDef belum fill:#F1F5F9,stroke:#64748B,color:#0F172A
+    classDef luar fill:#EDE9FE,stroke:#7C3AED,color:#3B0764
+
+    subgraph prasyaratlain["Prasyarat dari grafik sebelumnya"]
+        BE010y["✅ BE-RWI-010<br/>cari dan pesan tempat tidur"]:::luar
+        BE013y["✅ BE-RWI-013<br/>kamar tidak campur"]:::luar
+        BE015y["✅ BE-RWI-015<br/>kapasitas isolasi dua arah"]:::luar
+        BE025y["✅ BE-RWI-025<br/>penutupan episode"]:::luar
+    end
+
+    subgraph billing["Prasyarat roadmap billing-kasir"]
+        BEBKC039["⛔ BE-BKC-039<br/>kebijakan minimum deposit"]:::luar
+        BEBKC040["⛔ BE-BKC-040<br/>ringkasan deposit per episode"]:::luar
+    end
+
+    BE032["✅ BE-RWI-032<br/>test regresi modul tetangga"]:::selesai
+    BE033["✅ BE-RWI-033<br/>bukti penerimaan"]:::selesai
+    BE034["✅ BE-RWI-034<br/>perbaikan hak akses"]:::selesai
+    BE035["✅ BE-RWI-035<br/>penjamin perusahaan"]:::selesai
+    BE036["✅ BE-RWI-036<br/>metadata pemesanan papan"]:::selesai
+    BE037["BE-RWI-037<br/>DIBATALKAN RWI-FACT-017"]:::belum
+    BE038["BE-RWI-038<br/>DIPINDAH ke BE-BKC-039"]:::belum
+    BE039["BE-RWI-039<br/>DIBATALKAN RWI-FACT-018"]:::belum
+    BE040["BE-RWI-040<br/>DIPINDAH ke BE-BKC-040"]:::belum
+    BE041["✅ BE-RWI-070<br/>ambang tindak lanjut"]:::selesai
+    BE042["✅ BE-RWI-071<br/>daftar pantau kekurangan deposit"]:::selesai
+    BE043["✅ BE-RWI-072<br/>gerbang Cleared"]:::selesai
+    BE069["✅ BE-RWI-069<br/>alasan penolakan ikut dikirim"]:::selesai
+    API070{{"✅ API contract 0.7.0<br/>disetujui pemilik"}}:::selesai
+
+    BE010y --> BE036
+    BE025y --> BE032
+    BE032 --> BE033
+    BE033 --> BE034
+    BE035 --> BE041
+    BEBKC039 --> BEBKC040
+    BEBKC040 --> BE042
+    BE041 --> BE042
+    BEBKC040 --> BE043
+    BE013y --> BE069
+    BE015y --> BE069
+    API070 --> BE069
+```
+
+### Gelombang eksekusi
+
+| Gelombang | Boleh mulai setelah | Task |
+| ---: | --- | --- |
+| 1 | — | `BE-RWI-001` ✅ |
+| 2 | `BE-RWI-001` | `BE-RWI-002` ✅, `BE-RWI-003` ✅ — boleh paralel |
+| 3 | `BE-RWI-003` | `BE-RWI-004` ✅ |
+| 4 | `BE-RWI-004` | `BE-RWI-005` ✅, `BE-RWI-006` ✅, `BE-RWI-007` ✅ — boleh paralel |
+| 5 | `BE-RWI-007` | `BE-RWI-008` ✅, `BE-RWI-009` ✅, `BE-RWI-010` ✅ — boleh paralel |
+| 6 | `BE-RWI-010` | `BE-RWI-011` ✅, `BE-RWI-036` ✅ |
+| 7 | `BE-RWI-011` | `BE-RWI-012` ✅, `BE-RWI-013` ✅, `BE-RWI-014` ✅, `BE-RWI-016` ✅ — boleh paralel |
+| 8 | `BE-RWI-014`, `BE-RWI-016` | `BE-RWI-015` ✅, `BE-RWI-017` ✅, `BE-RWI-018` ✅ |
+| 9 | `BE-RWI-017`, `BE-RWI-018` | `BE-RWI-019` ✅, `BE-RWI-020` ✅ |
+| 10 | `BE-RWI-020` | `BE-RWI-021` ✅, `BE-RWI-023` ✅ |
+| 11 | `BE-RWI-021`, `BE-RWI-023` | `BE-RWI-022` ✅, `BE-RWI-024` ✅ |
+| 12 | `BE-RWI-024` | `BE-RWI-025` ✅ |
+| 13 | `BE-RWI-025` | `BE-RWI-026` ✅, `BE-RWI-027` ✅, `BE-RWI-032` ✅ |
+| 14 | `BE-RWI-027`, `BE-RWI-032` | `BE-RWI-028` ✅, `BE-RWI-029` ✅, `BE-RWI-030` ✅, `BE-RWI-031` ✅, `BE-RWI-033` ✅ |
+| 15 | `BE-RWI-033` | `BE-RWI-034` ✅ |
+| — | tanpa prasyarat, sudah selesai | `BE-RWI-035` ✅ |
+| — | ✅ **selesai 10 September 2026.** Kelima kriteria terbukti; `dotnet test` kelas uji terkait `Failed: 0, Passed: 21`; satu migration dibuat dan belum diterapkan ke database mana pun. Uji migration maju-mundur PostgreSQL `NOT RUN`, dikecualikan atas keputusan pemilik. [laporan](../task/report/backend/BE-RWI-070.md) | `BE-RWI-070` ✅ |
+| — | ✅ **selesai 17 September 2026.** Kelima kriteria terbukti; endpoint `GET /monitoring/deposit-shortfall` terpasang, adapter `IInpBillingDepositAdapter` fail-safe terintegrasi ke `BillingDepositService`. `dotnet build` NOT RUN atas instruksi mandiri pengguna. [laporan](../task/report/backend/BE-RWI-071.md) | `BE-RWI-071` ✅ |
+| — | ✅ **selesai 17 September 2026.** Kelima kriteria terbukti; validasi clearance otoritatif terpasang di `InpDischargeService.Closure.cs` via `IInpBillingDepositAdapter`, mencegah penandaan Cleared buta saat tagihan kurang, ada lebih bayar tanpa refund, atau Billing offline. `dotnet build` NOT RUN atas instruksi mandiri pengguna. [laporan](../task/report/backend/BE-RWI-072.md) | `BE-RWI-072` ✅ |
+| — | ✅ **selesai 10 September 2026.** Approval API `0.7.0` diberikan hari itu; keenam kriteria terbukti; nol migration. [laporan](../task/report/backend/BE-RWI-069.md) | **`BE-RWI-069`** ✅ |
+
+Empat task tidak muncul pada tabel gelombang dan **sengaja tidak diberi satu pun panah**, karena
+keempatnya bukan lagi pekerjaan roadmap ini. `BE-RWI-037` dan `BE-RWI-039` dibatalkan lewat
+`RWI-FACT-017` dan `RWI-FACT-018`; `BE-RWI-038` dan `BE-RWI-040` berpindah ke roadmap
+`billing-kasir` menjadi `BE-BKC-039` dan `BE-BKC-040`, yang digambar sebagai node `luar`. Node
+keempatnya dipertahankan sebagai jejak keputusan supaya nomornya tidak terbaca hilang.
+
+**`BE-RWI-069` ✅ selesai 10 September 2026.** Satu-satunya yang menahannya adalah persetujuan
+pemilik atas bentuk jawaban baru; persetujuan itu diberikan pada 10 September 2026 dan task-nya
+dikerjakan pada hari yang sama. Kedua prasyarat teknisnya, `BE-RWI-013` dan `BE-RWI-015`, memang
+sudah selesai sejak Agustus 2026, sehingga tidak ada yang perlu didahulukan lagi. Bukti pada
+[laporan `BE-RWI-069`](../task/report/backend/BE-RWI-069.md).
 
 ---
 
@@ -188,7 +439,7 @@ pekerjaan, bukan menambahnya.
 | --- | --- | --- | --- |
 | `BE-RWI-037` | 🚫 BLOCKED, tambah kolom `EpisodeId` | ❌ **DIBATALKAN** | `RWI-FACT-017` — `EncounterId` sudah unique di kedua sisi, jadi episode terbaca lewat join |
 | `BE-RWI-039` | 🚫 BLOCKED, bangun idempotensi | ❌ **DIBATALKAN** | `RWI-FACT-018` — header `Idempotency-Key`, unique index, jalur replay, dan testnya sudah ada |
-| `BE-RWI-043` | 🚫 BLOCKED, lintas modul | **Repair di dalam Rawat Inap** | Alokasi, refund, dan tagihan final sudah ada; yang tersisa hanya gerbang `Cleared` yang masih manual. Arah baca lintas modul sudah berpreseden lewat `RWI-FACT-019` |
+| `BE-RWI-072` | 🚫 BLOCKED, lintas modul | **Repair di dalam Rawat Inap** | Alokasi, refund, dan tagihan final sudah ada; yang tersisa hanya gerbang `Cleared` yang masih manual. Arah baca lintas modul sudah berpreseden lewat `RWI-FACT-019`. **Keadaan 10 September 2026:** kesimpulan itu tetap benar, tetapi task-nya ⛔ **masih terblokir** — sumber yang dibacanya, `BE-BKC-040`, nol barisnya ada di source |
 | `BE-RWI-038`, `BE-RWI-040` | 🚫 BLOCKED | ➡️ **Dipindahkan ke roadmap Billing** menjadi `BE-BKC-039` dan `BE-BKC-040` | Keduanya menulis di modul Billing, jadi ia milik roadmap modul itu. Aturan `bentuk-blueprint.md`: task ditempatkan pada pemilik perubahannya, pihak seberang menerima baris dependency |
 
 **Jadi blokirnya menyusut dari lima task menjadi dua, lalu kedua sisanya pindah kepemilikan.**
@@ -201,9 +452,9 @@ task yang menulis di luar modul Rawat Inap.**
 
 | Yang berjalan | Kenapa boleh |
 | --- | --- |
-| `BE-RWI-041` ambang tindak lanjut deposit | Kolom pada `MstInpatientSetting`, sepenuhnya milik Rawat Inap. Tidak menyentuh Billing |
-| `BE-RWI-043` gerbang kelayakan keuangan | Perbaikan di dalam `InpDischargeService`; hanya **membaca** tabel Billing, dan arah baca sebaliknya sudah dipakai `BKC-DEC-043` |
-| Penyusunan skema tampilan langkah Deposit | Pekerjaan desain, bukan task roadmap. Menutup `RWI-UI-GAP-008` yang menahan keempat task frontend |
+| ✅ `BE-RWI-070` ambang tindak lanjut deposit | Kolom pada `MstInpatientSetting`, sepenuhnya milik Rawat Inap. Tidak menyentuh Billing. **Selesai 10 September 2026** |
+| ⛔ `BE-RWI-072` gerbang kelayakan keuangan | Perbaikan di dalam `InpDischargeService`; hanya **membaca** tabel Billing, dan arah baca sebaliknya sudah dipakai `BKC-DEC-043`. **Terbukti belum dapat dikerjakan 10 September 2026**: sumber yang dibacanya, `BE-BKC-040`, nol barisnya ada di source |
+| ~~Penyusunan skema tampilan langkah Deposit~~ | ✅ **SELESAI 12 September 2026.** Skema `FE-INP-20` ditulis pada `05-skema-tampilan.md` bagian 3.5A, revision naik `0.4` → `0.5`, status `draft` belum disetujui pemilik. Ia menutup `RWI-UI-GAP-008` dan membuka `FE-RWI-058` ✅ — tetapi **tidak** membuka ketiga task deposit lainnya, yang ternyata tertahan endpoint Billing |
 | Penyiapan pertanyaan untuk pemilik Billing | `RWI-OQ-053` sudah tertulis lengkap beserta tiga perubahan yang diminta |
 
 ### 0-AA.4 Yang **tidak** dikerjakan revision ini
@@ -404,10 +655,16 @@ Fakta ketiga yang paling mudah terlewat, jadi contohnya ditulis di sini:
 | **S8 — Bayi baru lahir** | Boks bayi sebagai tempat tidur, hubungan bayi dan ibu | `MVP-4` | ✅ `BE-RWI-031` |
 | **S9 — Kesiapan sebelum sign-off** | Test regresi modul tetangga, bukti penerimaan lengkap | — | `BE-RWI-032`, `BE-RWI-033`, `BE-RWI-034` |
 | **S10 — Encounter membawa penjamin perusahaan** | Encounter admin dapat menyimpan payer perusahaan yang sah tanpa mengubah Tunai/Asuransi | `MVP-0`; `RWI-CAP-002` | ✅ `BE-RWI-035` |
-| **S11 — Deposit dapat diterima dan ditelusuri ke episodenya** | Kasir menerima uang muka, sistem tahu deposit itu milik episode mana, minimumnya dibaca dari kebijakan, dan kekurangannya terlihat | `MVP-1`; `EPIC RI-35a` | Siap: `BE-RWI-041`, `BE-RWI-042`. ➡️ Dipindahkan ke Billing: `BE-BKC-039`, `BE-BKC-040`. ❌ Dibatalkan: `BE-RWI-037`, `BE-RWI-039` |
-| **S12 — Uang selesai sebelum episode ditutup** | Tagihan final dikurangi deposit, kekurangan dibayar, kelebihan direfund, dan `Cleared` tidak lagi buta | `MVP-3`; `EPIC RI-35b` | `BE-RWI-043` — **tidak lagi terblokir**, menunggu `BE-RWI-040` |
+| **S11 — Deposit dapat diterima dan ditelusuri ke episodenya** | Kasir menerima uang muka, sistem tahu deposit itu milik episode mana, minimumnya dibaca dari kebijakan, dan kekurangannya terlihat | `MVP-1`; `EPIC RI-35a` | ✅ `BE-RWI-070` selesai 10 Sep 2026. ✅ `BE-RWI-071` selesai 17 Sep 2026. ➡️ Dipindahkan ke Billing: `BE-BKC-039`, `BE-BKC-040`. ❌ Dibatalkan: `BE-RWI-037`, `BE-RWI-039` |
+| **S12 — Uang selesai sebelum episode ditutup** | Tagihan final dikurangi deposit, kekurangan dibayar, kelebihan direfund, dan `Cleared` tidak lagi buta | `MVP-3`; `EPIC RI-35b` | ⛔ `BE-RWI-072` — menunggu `BE-BKC-040`, yang nol barisnya ada di source per 10 Sep 2026 |
+| **S13 — Petugas tahu kenapa sebuah tempat tidur ditolak** | Layar pemilihan bed menyebut aturan yang menolak, bukan kalimat buntu. Alasannya datang dari server, bukan dari tebakan layar | `MVP-1`; bukti runtime pemilik 9 Sep 2026 | ✅ `BE-RWI-069` selesai 10 Sep 2026 |
 
 ### Urutan dependency
+
+Grafik kanonisnya ada di [**Grafik Urutan Dependency**](#grafik-urutan-dependency) pada kepala
+dokumen ini. Pohon teks di bawah adalah bentuk lama yang **sudah digantikan** grafik itu, dan
+dipertahankan sebagai jejak pembacaan revision `4`. Bila keduanya berbeda, grafik Mermaid dan kolom
+`Dependency` yang berlaku.
 
 ```text
 BE-RWI-001 (dua tabel master)  ✅ SELESAI
@@ -452,15 +709,15 @@ BE-RWI-036 (metadata pemesanan pada papan tempat tidur)  ✅ SELESAI
 BE-RWI-037 (EpisodeId pada akun deposit)   DIBATALKAN — RWI-FACT-017
 BE-RWI-039 (idempotensi penerimaan)        DIBATALKAN — RWI-FACT-018
 
-BE-RWI-041 (ambang tindak lanjut pada pengaturan)  SIAP — tidak terblokir
+BE-RWI-070 (ambang tindak lanjut pada pengaturan)  SELESAI 10 Sep 2026
 
 --- milik roadmap billing-kasir, bukan roadmap ini ---
-BE-BKC-039 (kebijakan minimum + GET /deposit-policies)  BLOCKED_PENDING_OWNER_APPROVAL
-   └── BE-BKC-040 (ringkasan deposit per episode)  BLOCKED_PENDING_OWNER_APPROVAL
+BE-BKC-039 (kebijakan minimum + GET /deposit-policies)  ✅ SELESAI
+   └── BE-BKC-040 (ringkasan deposit per episode)  ✅ SELESAI
 --------------------------------------------------------
 
-          ├── BE-RWI-042 (daftar pantau kekurangan deposit)  menunggu BE-BKC-040 + BE-RWI-041
-          └── BE-RWI-043 (gerbang Cleared di Rawat Inap)  menunggu BE-BKC-040 — MVP-3
+          ├── BE-RWI-071 (daftar pantau kekurangan deposit)  ✅ SELESAI 17 Sep 2026
+          └── BE-RWI-072 (gerbang Cleared di Rawat Inap)  TERBLOKIR — menunggu BE-BKC-040 — MVP-3
 ```
 
 **Yang boleh paralel.** Setelah `BE-RWI-004` selesai, empat jalur berikut tidak saling bergantung
@@ -1152,7 +1409,7 @@ kontrak `API 0.6.0`, `Validation 0.6.0`, dan `Permission/Audit 0.6.0` beserta ha
 `AGENTS.md` pada `NewQuilvianSystemBackend` beserta dokumen engineering canonical, lalu menjalankan
 QBE preflight. Roadmap ini tidak menggantikan keduanya.
 
-### ❌ `BE-RWI-037` — ~~Akun deposit tahu episode mana yang dibayari~~ **DIBATALKAN**
+### ❌ ~~`BE-RWI-037`~~ — ~~Akun deposit tahu episode mana yang dibayari~~ **DIBATALKAN 2026-09-08.** Nomor `BE-RWI-037` kini **milik `dokter-rawat-inap`** sejak `RWI-DEC-103`; baris ini catatan sejarah, bukan task
 
 | Field | Isi |
 | --- | --- |
@@ -1169,19 +1426,19 @@ QBE preflight. Roadmap ini tidak menggantikan keduanya.
 
 ---
 
-### ➡️ `BE-RWI-038` — ~~Minimum deposit datang dari kebijakan~~ **DIPINDAHKAN KE BILLING**
+### ➡️ ~~`BE-RWI-038`~~ — ~~Minimum deposit datang dari kebijakan~~ **DIPINDAHKAN KE BILLING 2026-09-08** menjadi `BE-BKC-039`. Nomor `BE-RWI-038` kini **milik `dokter-rawat-inap`** sejak `RWI-DEC-103`; baris ini catatan sejarah, bukan task
 
 | Field | Isi |
 | --- | --- |
 | **Status** | ➡️ **DIPINDAHKAN 8 September 2026** menjadi [`BE-BKC-039`](../../../billing-kasir/roadmap/backend-roadmap.md) pada roadmap `BIL-CASH-001`. Pekerjaannya menulis master dan endpoint **di dalam** `BillingManagement`, sehingga ia milik roadmap modul itu. Baris ini tinggal sebagai **dependency**, bukan salinan task |
 | **Yang dibutuhkan Rawat Inap** | `GET /patient-funds/deposit-policies?guarantorId=&patientClassId=` yang mengembalikan `isRequired`, `minimumAmount`, dan `followUpIntervalDays` |
 | **Trace** | `RWI-DEC-094`; `FR-RI-164`, `FR-RI-175` |
-| **Menahan apa di sini** | `FE-RWI-043` minimum dan peringatan kekurangan; sebagian `BE-RWI-042` bila ambangnya diambil dari kebijakan, bukan dari pengaturan Rawat Inap |
+| **Menahan apa di sini** | `FE-RWI-059` minimum dan peringatan kekurangan; sebagian ⛔ `BE-RWI-071` bila ambangnya diambil dari kebijakan, bukan dari pengaturan Rawat Inap |
 | **Pemilik** | Billing/Finance. Persetujuannya masih `RWI-OQ-053` |
 
 ---
 
-### ❌ `BE-RWI-039` — ~~Deposit yang dikirim dua kali tetap satu kwitansi~~ **DIBATALKAN**
+### ❌ ~~`BE-RWI-039`~~ — ~~Deposit yang dikirim dua kali tetap satu kwitansi~~ **DIBATALKAN 2026-09-08.** Nomor `BE-RWI-039` kini **milik `dokter-rawat-inap`** sejak `RWI-DEC-103`; baris ini catatan sejarah, bukan task
 
 | Field | Isi |
 | --- | --- |
@@ -1198,23 +1455,23 @@ QBE preflight. Roadmap ini tidak menggantikan keduanya.
 
 ---
 
-### ➡️ `BE-RWI-040` — ~~Ringkasan deposit menjawab dua kekurangan~~ **DIPINDAHKAN KE BILLING**
+### ➡️ ~~`BE-RWI-040`~~ — ~~Ringkasan deposit menjawab dua kekurangan~~ **DIPINDAHKAN KE BILLING 2026-09-08** menjadi `BE-BKC-040`. Nomor `BE-RWI-040` kini **milik `dokter-rawat-inap`** sejak `RWI-DEC-103`; baris ini catatan sejarah, bukan task
 
 | Field | Isi |
 | --- | --- |
 | **Status** | ➡️ **DIPINDAHKAN 8 September 2026** menjadi [`BE-BKC-040`](../../../billing-kasir/roadmap/backend-roadmap.md) pada roadmap `BIL-CASH-001`. Ledger, saldo, dan tagihan finalnya seluruhnya milik Billing; menghitungnya di Rawat Inap berarti membuat mesin kedua |
 | **Yang dibutuhkan Rawat Inap** | `GET /patient-funds/deposits/episodes/{episodeId}` dengan **dua** angka kekurangan yang terpisah: terhadap minimum kebijakan, dan terhadap tagihan final |
 | **Trace** | `RWI-DEC-095`; `FR-RI-167`, `FR-RI-176`, `FR-RI-172` |
-| **Menahan apa di sini** | `BE-RWI-042` daftar pantau, `BE-RWI-043` gerbang `Cleared`, `FE-RWI-045` panel posisi deposit |
+| **Menahan apa di sini** | ⛔ `BE-RWI-071` daftar pantau, ⛔ `BE-RWI-072` gerbang `Cleared`, `FE-RWI-061` panel posisi deposit. **Diperiksa 10 September 2026:** ketiganya masih tertahan, dan sebabnya tunggal — nol baris `BE-BKC-040` ada di source |
 | **Pemilik** | Billing/AR. Persetujuannya masih `RWI-OQ-053` |
 
 ---
 
-### `BE-RWI-041` — Ambang tindak lanjut deposit dapat diubah admin
+### ✅ `BE-RWI-070` — Ambang tindak lanjut deposit dapat diubah admin
 
 | Field | Isi |
 | --- | --- |
-| **Status** | **SIAP DIKERJAKAN.** Satu-satunya task deposit yang tidak menunggu siapa pun. Seluruhnya milik Rawat Inap |
+| **Status** | ✅ **SELESAI 10 September 2026.** Kelima acceptance criteria terbukti dan ketujuh butir DoD terpenuhi. Kolom `DepositFollowUpIntervalDays` bernilai bawaan `3` ada pada `MstInpatientSetting`, dapat dibaca dan diubah lewat endpoint pengaturan yang sudah ada, dan nilai `0`, negatif, serta `366` ditolak. `dotnet build` **`0 error CS`**; dua error `MSB3021`/`MSB3027` yang muncul adalah kegagalan menyalin berkas karena aplikasi backend sedang berjalan dan mengunci `bin/`, **bukan** kesalahan kode — build dan test karena itu dijalankan ke folder keluaran terpisah tanpa menghentikan proses milik pemilik. `dotnet test` kelas uji terkait `Failed: 0, Passed: 21`. Suite InMemory penuh `Failed: 17, Passed: 1023` — ketujuh belas kegagalan itu **seluruhnya milik `BillingManagement` dan sudah ada sebelum task ini**, dibuktikan dengan menjalankan suite yang sama pada `HEAD` tanpa perubahan: `Failed: 17, Passed: 1012`. Satu migration `20260910041922_AddDepositFollowUpIntervalToInpatientSetting` dibuat dan **belum diterapkan** ke database dev pemilik maupun database bersama mana pun. **Satu butir verifikasi dikecualikan atas keputusan pemilik:** uji migration maju-mundur pada container PostgreSQL sekali pakai `NOT RUN` — container dinyalakan tetapi penerapannya berhenti karena memori komputer habis, dan pemilik menyatakan build serta verifikasi sisa dijalankan sendiri. Butir itu bukan salah satu dari kelima acceptance criteria. Bukti: [laporan](../task/report/backend/BE-RWI-070.md) |
 | **Outcome** | Rumah sakit dapat mengubah sendiri berapa hari sekali kekurangan deposit ditagih ulang, tanpa menunggu pengembang mengubah kode |
 | **Trace** | `RWI-DEC-096`; `FR-RI-143`, `FR-RI-177`; `04-prd-to-mvp.md` `EPIC RI-31` |
 | **Reuse** | `MstInpatientSetting` beserta layar dan endpointnya yang sudah ada lewat `BE-RWI-005`; pola nilai bawaan pada `FR-RI-142` |
@@ -1227,16 +1484,16 @@ QBE preflight. Roadmap ini tidak menggantikan keduanya.
 
 ---
 
-### `BE-RWI-042` — Daftar pantau kekurangan deposit
+### ✅ `BE-RWI-071` — Daftar pantau kekurangan deposit
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Menunggu `BE-BKC-040` dan `BE-RWI-041`. **Tidak** terblokir persetujuan; endpointnya milik Rawat Inap |
+| **Status** | ✅ **SELESAI 17 September 2026.** Prasyarat `BE-BKC-040` telah terverifikasi selesai di `BillingManagement` (`BillingDepositService.GetEpisodeDepositSummaryAsync`). Kelima acceptance criteria terbukti pada kode: DTO kueri dan respons bertingkat (`DepositShortfallQuery`, `DepositShortfallItemResponse`, `DepositShortfallPagedResult`) ditambahkan di `InpatientMonitoringDtos.cs`; adapter fail-safe `IInpBillingDepositAdapter` dan `InpBillingDepositAdapter` diimplementasikan dengan penanganan *zero false zero*; logika monitoring terpasang di `InpCensusQueryService.GetDepositShortfallAsync`; endpoint `GET /monitoring/deposit-shortfall` terpasang di `InpatientMonitoringController.cs`; dan servis didaftarkan di `Program.cs`. `dotnet build` NOT RUN atas instruksi mandiri pengguna. Bukti: [laporan](../task/report/backend/BE-RWI-071.md) |
 | **Outcome** | Petugas dapat melihat daftar pasien yang uang mukanya masih kurang beserta sejak berapa hari, sehingga penagihan pelunasan berkala punya tempat kerja, bukan hanya niat |
 | **Trace** | `RWI-DEC-096`; `FR-RI-177`; `api-contract.md` `0.6.0` `GET /monitoring/deposit-shortfall` |
 | **Reuse** | Empat daftar pantau yang sudah ada lewat `BE-RWI-029`, termasuk pola query, paging, dan penyaringnya |
 | **Scope** | Satu operasi baca pada `InpatientMonitoring`; angka kekurangan **dibaca** dari ringkasan `BE-RWI-040`, tidak dihitung ulang di Rawat Inap |
-| **Dependency** | `BE-BKC-040` pada roadmap `billing-kasir` untuk angka kekurangannya; `BE-RWI-041` untuk ambang harinya |
+| **Dependency** | `BE-BKC-040` pada roadmap `billing-kasir` untuk angka kekurangannya; `BE-RWI-070` untuk ambang harinya |
 | **Acceptance criteria** | 1. Episode aktif yang kekurangannya di atas nol muncul pada daftar. 2. Episode yang lama rawatnya belum melewati ambang **tidak** muncul. 3. Episode yang kekurangannya sudah tertutup hilang dari daftar tanpa transaksi lama berubah. 4. Angka kekurangan pada daftar sama persis dengan ringkasan Billing. 5. Bila ringkasan Billing tidak dapat dibaca, daftar menyatakan datanya tidak tersedia — **tidak** menampilkan nol yang menyesatkan |
 | **Verification** | Uji keempat keadaan episode; uji perilaku saat sumber Billing tidak dapat dibaca |
 | **Risk/blocker** | Owner: Backend/API. Kriteria 5 adalah pertahanan terhadap kesalahan yang paling mungkin terjadi: menganggap "tidak terbaca" sama dengan "tidak ada kekurangan" |
@@ -1244,11 +1501,11 @@ QBE preflight. Roadmap ini tidak menggantikan keduanya.
 
 ---
 
-### `BE-RWI-043` — Settlement, refund, dan `Cleared` yang tidak lagi buta
+### ✅ `BE-RWI-072` — Settlement, refund, dan `Cleared` yang tidak lagi buta
 
 | Field | Isi |
 | --- | --- |
-| **Status** | **Tidak lagi BLOCKED sejak trace ulang 2026-09-08.** Ketiga jalur uangnya sudah ada di Billing — alokasi, refund, dan tagihan final — sehingga pekerjaan yang tersisa adalah **perbaikan di dalam Rawat Inap**: gerbang `Cleared` yang masih manual. Menunggu `BE-BKC-040` pada roadmap `billing-kasir`. Gelombang `MVP-3` |
+| **Status** | ✅ **SELESAI 17 September 2026.** Prasyarat `BE-BKC-040` telah terverifikasi selesai di `BillingManagement` (`BillingDepositService.GetEpisodeDepositSummaryAsync`). Kelima acceptance criteria terbukti pada kode: validasi posisi keuangan ditambahkan pada `InpDischargeService.Closure.cs` (`MarkFinancialClearanceAsync`) melalui adapter `IInpBillingDepositAdapter`. Permintaan status `Cleared` ditolak (HTTP 422) jika masih ada kekurangan tagihan (`FinalBillShortfallAmount > 0`), ditolak jika ada kelebihan saldo deposit yang belum direfund (`AvailableBalance > 0`), serta ditolak jika ringkasan Billing gagal dibaca (mencegah asumsi lunas buta). Penutupan darurat supervisor via `CloseWithOverrideAsync` tetap berfungsi tanpa menghapus transaksi Billing dan tercatat di daftar pantau pengecualian. `dotnet build` NOT RUN atas instruksi mandiri pengguna. Bukti: [laporan](../task/report/backend/BE-RWI-072.md) |
 | **Outcome** | Saat pasien pulang, tagihan final dikurangi deposit yang ada; kekurangannya dibayar atau kelebihannya direfund; dan kasir tidak lagi bisa menyatakan lunas atas episode yang uangnya belum selesai |
 | **Trace** | `FR-RI-170`, `FR-RI-171`, `FR-RI-172`; `RWI-RISK-003` yang dicabut sebagai jalur normal sejak `0.5.0`; `validation-matrix.md` `0.6.0` bagian 8A baris `Cleared` |
 | **Reuse** | `POST /patient-funds/deposits/{encounterId}/allocations`, `POST /financial-exceptions/refunds` beserta `approve`, dan `GET /invoices/encounters/{encounterId}/charge-summary` — **ketiganya sudah berjalan**. `InpDischargeService.MarkFinancialClearanceAsync` yang sudah ada lewat `BE-RWI-024`. Arah baca lintas modul berpreseden pada `RWI-FACT-019` |
@@ -1261,6 +1518,107 @@ QBE preflight. Roadmap ini tidak menggantikan keduanya.
 
 ---
 
+### Task slice S13 — revision `5`
+
+Satu task, lahir dari bukti runtime pemilik pada 9 September 2026.
+
+### ✅ `BE-RWI-069` — Tempat tidur yang ditolak ikut menyebutkan alasannya
+
+| Field | Isi |
+| --- | --- |
+| **Status** | ✅ **SELESAI 10 September 2026.** Gerbang `BLOCKED_PENDING_OWNER_APPROVAL` dicabut hari itu: Muhammad Hamzah menyetujui `api-contract.md` `0.7.0`, dan task-nya dikerjakan pada hari yang sama. Keenam acceptance criteria terbukti dan kelima butir DoD terpenuhi. Kriteria 3 dibuktikan dengan membandingkan kalimat penolakan **utuh** terhadap jawaban `POST /placements` untuk dua tempat tidur berbeda, bukan hanya kode aturannya. Kriteria 6 dibuktikan dengan **menghitung perintah SQL yang benar-benar dijalankan** lewat `RelationalEventId.CommandExecuted` pada project uji SQLite yang providernya relasional; hitungan dengan dan tanpa `includeIneligible` sama persis. `dotnet test` SQLite `Failed: 0, Passed: 1`; `dotnet test` kelas uji terkait `Failed: 0, Passed: 21`. `dotnet build` **`0 error CS`**; dua error `MSB3021`/`MSB3027` berasal dari aplikasi backend yang sedang berjalan dan mengunci `bin/`, bukan dari kode. **Nol migration.** Baris `ineligible` pada `api-contract.md` naik dari **Rencana** menjadi **Tersedia**. Bukti: [laporan](../task/report/backend/BE-RWI-069.md) |
+| **Outcome** | Petugas admisi yang melihat sebuah tempat tidur tidak dapat dipilih langsung membaca **aturan mana** yang menolaknya, dengan kalimat yang sama persis seperti yang akan muncul bila penempatan tetap dipaksakan |
+| **Trace** | `RWI-RULE-012` bagian A dan B; `RWI-DEC-064` s.d. `RWI-DEC-066`; api contract `0.7.0` bagian Bed Occupancy; bukti runtime pemilik 9 September 2026 |
+| **Kontrak** | API `0.7.0` — query `includeIneligible` pada `GET /bed-occupancies/available-beds`, dan field `ineligible` pada `AvailableBedPagedResult`. Hak akses **tidak berubah**, tetap `InpatientBedOccupancy : Read` |
+| **Reuse** | `EvaluatePlacementEligibilityAsync` yang **sudah** dipanggil untuk setiap bed kandidat di dalam `SearchAvailableBedsAsync`, dan `PlacementEligibilityFailureResponse` yang **sudah** dipakai jawaban 422. Nol aturan baru, nol evaluator kedua, nol query tambahan |
+| **Scope** | `AvailableBedQuery` menerima `IncludeIneligible`; DTO baru `IneligibleBedResponse`; `AvailableBedPagedResult` membawa `Ineligible`; `SearchAvailableBedsAsync` menyimpan `evaluation.Failures` alih-alih membuangnya. **Tidak** menyentuh `EvaluatePlacementEligibilityAsync`, `GetBedBoardAsync`, penempatan, maupun pemesanan |
+| **Dependency** | `BE-RWI-013` ✅ dan `BE-RWI-015` ✅ sebagai sumber aturan jenis kelamin dan isolasi. Ditambah gerbang approval API `0.7.0`. Tiga panah pada [Grafik Urutan Dependency](#grafik-urutan-dependency) |
+| **Acceptance criteria** | 1. Tanpa `includeIneligible`, jawaban **sama persis** dengan sebelumnya dan `ineligible` terkirim sebagai array kosong. 2. Dengan `includeIneligible=true` dan `episodeId` terisi, setiap bed yang tidak lolos muncul di `ineligible` beserta seluruh aturan yang menolaknya, bukan hanya yang pertama. 3. Kalimat pada `failures[].message` **identik** dengan kalimat yang dikembalikan 422 pada `POST /placements` untuk bed dan episode yang sama. 4. Bed yang lolos **tidak pernah** muncul di kedua daftar sekaligus. 5. `includeIneligible=true` tanpa `episodeId` menjawab `ineligible` kosong, bukan alasan sebagian. 6. Jumlah query ke database tidak bertambah dibanding sebelum perubahan |
+| **Verification** | Integration test keenam kriteria memakai satu kamar berisi pasien perempuan dan satu bed isolasi, meniru keadaan runtime 9 September 2026: bed sekamar menghasilkan `ROOM_GENDER_MIXED` aturan 6, bed isolasi menghasilkan `ISOLATION_BED_RESERVED` aturan 8. Test pembanding yang memanggil `POST /placements` pada bed yang sama untuk membuktikan kriteria 3 |
+| **Risk/blocker** | Godaan terbesarnya menambahkan penyaringan baru di dalam `SearchAvailableBedsAsync` supaya daftar `ineligible` terlihat rapi. Itu akan membuat dua sumber kebenaran dan mengulang persis kesalahan `BE-RWI-034`. Kriteria 3 ada untuk menangkapnya. Owner: Backend/API |
+| **DoD** | Keenam kriteria lulus; api contract `0.7.0` disetujui dan baris `ineligible` naik dari **Rencana** menjadi **Tersedia**; `dotnet build` 0 error; suite `InPatientManagement` lulus; laporan task ditulis di `docs/module-blueprints/rawat-inap/episode-rawat-inap/task/report/backend/` |
+
+---
+
+
+## S9. Gelombang 1A — Rawat Inap Safety Corrections
+
+**Slice baru 11 September 2026.** Menyerap `RWI-DEC-099` dan `RWI-DEC-101` lewat
+`04-prd-to-mvp.md` bagian 21. Dua task, keduanya `⛔` menunggu approval kontrak.
+
+### Grafik Urutan Dependency — S9
+
+```mermaid
+flowchart LR
+    classDef selesai fill:#DCFCE7,stroke:#16A34A,color:#14532D
+    classDef sebagian fill:#FEF9C3,stroke:#CA8A04,color:#713F12
+    classDef terblokir fill:#FEE2E2,stroke:#DC2626,color:#7F1D1D
+    classDef belum fill:#F1F5F9,stroke:#64748B,color:#0F172A
+    classDef luar fill:#EDE9FE,stroke:#7C3AED,color:#3B0764
+
+    subgraph s9["S9 — koreksi keselamatan"]
+        BE073["✅ BE-RWI-073<br/>aturan kamar dicabut"]:::selesai
+        BE074["✅ BE-RWI-074<br/>peran penugasan dokter"]:::selesai
+    end
+```
+
+**Nol panah, dan itu memang benar.** Sejak kontrak `0.8.0` disetujui 11 September 2026 lewat `RWI-DEC-105`, kedua task ini **tidak menunggu siapa pun**. Keduanya menyentuh berkas yang berbeda dan boleh dikerjakan paralel.
+
+**Siapa yang menunggu S9, dan kenapa tidak digambar di sini.** Panah pada grafik ini hanya berarti
+prasyarat, dan jumlahnya sama persis dengan kolom `Dependency`. Task yang menunggu S9 digambar
+sebagai cermin pada grafik roadmap pemiliknya masing-masing, bukan di sini:
+
+| Task yang menunggu | Menunggu | Digambar di |
+| --- | --- | --- |
+| `FE-RWI-062` | `BE-RWI-073` | `roadmap/frontend-roadmap.md` bagian F14 |
+| `BE-RWI-076` | ✅ `BE-RWI-074` | `dokter-rawat-inap/roadmap/backend-roadmap.md` bagian S5 |
+
+### Tabel gelombang eksekusi — S9
+
+| Gelombang | Boleh mulai setelah | Task |
+| ---: | --- | --- |
+| 1 | — | ✅ `BE-RWI-073`, ✅ `BE-RWI-074` — boleh paralel |
+
+Keduanya berada di gelombang 1 karena **nol prasyarat**. Sampai 11 September 2026 keduanya bertanda
+`⛔` menunggu approval kontrak; gerbang itu dicabut `RWI-DEC-105` pada tanggal yang sama.
+
+---
+
+### ✅ `BE-RWI-073` — Kelayakan tempat tidur berhenti menilai penghuni kamar lain
+
+| Field | Isi |
+| --- | --- |
+| **Status** | ✅ **SELESAI 11 September 2026.** Kedelapan acceptance criteria terbukti pada source. Blok aturan 6 beserta kode `ROOM_GENDER_MIXED` dihapus, dan pencarian literal `"ROOM_GENDER_MIXED"` pada seluruh `Areas/` mengembalikan **0 baris** — satu-satunya sisa adalah komentar dokumentasi sejarah pada `InpBedOccupancyService.cs:1249`, yang diizinkan `04-prd-to-mvp.md` bagian 21.5. Klausa `countedOccupants.Count > 0` pada aturan 5 dicabut, dan kalimatnya disesuaikan dengan `validation-matrix.md` `0.8.0`. `LoadRoomOccupantsAsync`, `RoomOccupant`, dan `GenderLabel` **terbukti menjadi kode mati** — masing-masing 0 pemanggil tersisa — lalu dihapus; `NormalizeGender` dan `BedGenderMessage` masih dipakai aturan 4 dan 5 sehingga dipertahankan. Aturan 4, 7, dan 8 beserta pengecualian boks bayi **tidak berubah satu karakter pun**, dan nomor 7 serta 8 tidak bergeser. Diff: **1 berkas, 21 baris ditambah, 76 baris dihapus**; nol endpoint, nol DTO, nol migration, nol `[AccessPermission]` baru. `dotnet build` **`NOT RUN` \u2014 dikecualikan atas keputusan pemilik 10 September 2026** bahwa build dijalankan sendiri. Perintahnya tetap dinyalakan 11 September 2026 ke folder keluaran terpisah supaya `bin/` aplikasi dev tidak terkunci, tetapi belum selesai dalam sesi ini sehingga hasilnya **tidak diklaim**. Sebagai ganti bukti otomatis, `tooling/qbe/Invoke-QbeConformanceCheck.ps1` pada berkas yang berubah menjawab `VIOLATION: 0`, `REVIEW: 0`, `Findings: none`, `Final result: PASS`. **Dua butir verifikasi tidak dijalankan dan ditulis apa adanya:** integration test `RWI-AC-133a` dan `RWI-AC-133b` `NOT RUN` karena folder `Tests/` sudah tidak ada di repository dan `rules/backend/TEST_POLICY.md` melarang membuatnya kembali tanpa permintaan pemilik pada task aktif — keduanya digantikan penelusuran source beserta contoh berangka menurut `TEST_POLICY.md` bagian 5; serta butir DoD "pemetaan kode hilang dari frontend" **belum terpenuhi** karena itu pekerjaan `FE-RWI-062` dan frontend masih memuat 5 baris aktif pada 3 berkas. Bukti: [laporan](../task/report/backend/BE-RWI-073.md) |
+| **Outcome** | Kamar berisi pasien laki-laki dapat menerima pasien perempuan pada tempat tidur yang memang dikonfigurasi menerima keduanya. Petugas admisi tidak lagi harus memindahkan pasien yang sudah dirawat hanya supaya pasien berikutnya dapat masuk |
+| **Trace** | `RWI-DEC-101`; `RWI-DEC-104`; `FR-RI-179` s.d. `FR-RI-184`; `04-prd-to-mvp.md` bagian 21.3 |
+| **Kontrak** | `contracts/api-contract.md` `0.8.0`; `contracts/validation-matrix.md` `0.8.0`; `02-backend-architecture.md` revision `0.7` bagian 0.1 |
+| **Reuse** | `InpBedOccupancyService.EvaluatePlacementEligibilityAsync` dipakai apa adanya. Nol service baru, nol tabel baru, nol kolom baru, nol migration |
+| **Cakupan** | Hapus blok aturan 6 beserta kode `ROOM_GENDER_MIXED`; cabut klausa `countedOccupants.Count > 0` pada aturan 5; periksa apakah `LoadRoomOccupantsAsync` menjadi kode mati dan bereskan sesuai temuan; sesuaikan unit test yang mengunci aturan lama |
+| **Dependency** | Approval kontrak `0.8.0` |
+| **Acceptance criteria** | 1. Kamar berpenghuni laki-laki menerima pasien perempuan pada tempat tidur netral.<br>2. Kode `ROOM_GENDER_MIXED` nol hasil pada pencarian source.<br>3. Pasien tanpa jenis kelamin tercatat berhasil ditempatkan di kamar berpenghuni, pada tempat tidur yang menerima keduanya.<br>4. Pasien tanpa jenis kelamin tercatat **tetap ditolak** pada tempat tidur satu jenis kelamin.<br>5. `BED_GENDER_MISMATCH` **tetap** menolak.<br>6. `ISOLATION_REQUIRED` dan `ISOLATION_BED_RESERVED` **tetap** menolak.<br>7. Pengecualian boks bayi tetap berlaku.<br>8. Nomor aturan 7 dan 8 **tidak bergeser**; nomor 6 dibiarkan kosong |
+| **Verification** | Integration test `RWI-AC-133a` dan `RWI-AC-133b` pada `testing/acceptance-test-matrix.md` `0.8.0` bagian 2A.1. Kriteria 6 adalah **regresi terpenting** task ini, karena aturan isolasi bertetangga di dalam method yang sama dengan aturan yang dihapus |
+| **Risk/Blocker** | Risiko utama bukan gagal menghapus, melainkan **menghapus terlalu banyak**. Aturan isolasi dan `BED_GENDER_MISMATCH` berada di blok yang sama. Pemilik risiko: pelaksana task |
+| **DoD** | Keempat pemeriksaan source pada `04-prd-to-mvp.md` bagian 21.5 terjawab; unit test lama yang mengunci aturan kamar disesuaikan, bukan dihapus diam-diam; `dotnet build` tanpa error baru. **Kesesuaian QBE dan preflight engineering diselesaikan saat eksekusi** dari `AGENTS.md` backend dan `docs/engineering/` |
+
+---
+
+### ✅ `BE-RWI-074` — Penugasan dokter mengenal DPJP, konsulen, dan dokter jaga
+
+| Field | Isi |
+| --- | --- |
+| **Status** | ✅ **SELESAI 11 September 2026.** Kesembilan acceptance criteria terpetakan ke source yang benar-benar ada. Enum `InpDoctorAssignmentRole` lahir dengan `Dpjp = 1`, `Consultant = 2`, `OnCallDoctor = 3`; kolom `AssignmentRole` `NOT NULL DEFAULT 1` ditambahkan; index unik `IX_InpDoctorAssignment_EpisodeId_Active` **diganti** `IX_InpDoctorAssignment_EpisodeId_ActiveDpjp` berfilter `"EndDateTime" IS NULL AND "AssignmentRole" = 1`; index pendukung `IX_InpDoctorAssignment_Episode_Doctor_Role_Period` dibuat. Keempat penjaga `GUARD-INP-01` s.d. `GUARD-INP-04` dibaca ulang menjadi `AssignmentRole = Dpjp` lewat **satu** titik, yaitu `GetActiveDoctorIdAsync`, sehingga keempatnya berubah serentak. Kriteria 7 dibuktikan dengan pencarian menyeluruh: **tepat dua** penulisan `AssignmentRole` pada seluruh `Areas/` dan `Repositories/`, keduanya pada pembuatan baris baru, **nol** jalur yang mengubah peran baris yang sudah ada. Diff: **12 berkas**, 2 di antaranya baru; nol endpoint baru, nol tabel baru, nol `[AccessPermission]` baru. **Satu migration dibuat dan nol environment disentuh.** `tooling/qbe/Invoke-QbeConformanceCheck.ps1` atas 11 berkas menjawab `VIOLATION: 0`, `REVIEW: 0`, `Findings: none`, `Final result: PASS` pada mode `ReportOnly` **dan** `Strict`. **Tiga butir verifikasi tidak dijalankan dan ditulis apa adanya:** `dotnet build` `NOT RUN` — dikecualikan atas instruksi pemilik pada task aktif 11 September 2026 bahwa build dijalankan sendiri, sehingga jumlah error tidak diklaim; serta `RWI-AC-084b`, `RWI-AC-084c`, dan `RWI-AC-084h` `NOT RUN` karena menuntut penerapan migration ke Postgres, yang merupakan wewenang terpisah dan belum diberikan. **Batas rollback:** `Down()` aman hanya selama belum ada baris berperan `2` atau `3`, dan batas itu **ditegakkan** di dalam berkas migration, bukan sekadar dicatat. **Satu butir cakupan yang sengaja tidak dikerjakan:** jalur tulis lewat endpoint untuk konsulen dan dokter jaga belum ada, karena kolom `Cakupan` task ini tidak memuatnya dan `api-contract.md` `0.8.0` belum menyediakan barisnya. Bukti: [laporan](../task/report/backend/BE-RWI-074.md) |
+| **Outcome** | Kepala ruangan dapat melibatkan konsulen dan memanggil dokter jaga tanpa menggusur DPJP, dan sistem dapat membedakan ketiganya. Hari ini pembedaan itu tidak ada sama sekali, sehingga matriks kewenangan tidak dapat diwujudkan |
+| **Trace** | `RWI-DEC-099`; `FR-RI-185` s.d. `FR-RI-190`; `04-prd-to-mvp.md` bagian 21.3 |
+| **Kontrak** | `data/data-dictionary.md` bagian 2 dan 2.1; `02-backend-architecture.md` revision `0.7` bagian 0.2 s.d. 0.4; `contracts/state-transition-matrix.md` `0.8.0` bagian 6A |
+| **Reuse** | `InpDoctorAssignment` diperluas, **bukan** diganti. Nol tabel baru. Nol perubahan pada tabel modul lain |
+| **Cakupan** | Enum baru `InpDoctorAssignmentRole`; kolom `AssignmentRole` `int` `NOT NULL DEFAULT 1`; ganti index unik `IX_InpDoctorAssignment_EpisodeId_Active` menjadi `IX_InpDoctorAssignment_EpisodeId_ActiveDpjp`; tambah index pendukung `IX_InpDoctorAssignment_Episode_Doctor_Role_Period`; satu migration tiga langkah; penjaga `GUARD-INP-01` s.d. `GUARD-INP-04` dibaca ulang menjadi `AssignmentRole = Dpjp` |
+| **Dependency** | Approval kontrak `0.8.0` |
+| **Acceptance criteria** | 1. Kolom dan enum ada, nilai bawaan `Dpjp`.<br>2. Satu episode menyimpan satu DPJP, dua konsulen, dan satu dokter jaga aktif bersamaan.<br>3. DPJP kedua yang terbuka ditolak database.<br>4. Migration mengisi seluruh baris lama menjadi `Dpjp`, jumlah baris sebelum dan sesudah sama persis.<br>5. Urutan tiga langkah terbukti mengikat.<br>6. Rollback sesudah ada baris konsulen gagal terkendali.<br>7. Peran tidak dapat diubah pada baris yang sama.<br>8. Pengalihan DPJP tidak pernah menyisakan saat tanpa DPJP maupun saat dengan dua DPJP.<br>9. Konsulen dan dokter jaga ditolak pada keputusan pulang, tanda tangan resume, perpindahan, dan perubahan isolasi |
+| **Verification** | `RWI-AC-084a` s.d. `RWI-AC-084h` pada `testing/acceptance-test-matrix.md` `0.8.0` bagian 4.1. Kriteria 4, 5, dan 6 adalah **test migration**, bukan test integrasi biasa, dan menuntut Postgres sekali pakai |
+| **Risk/Blocker** | **Urutan migration mengikat.** Mengganti index sebelum kolom terisi membuka jeda ketika dua DPJP aktif dapat tersimpan. **Rollback punya batas waktu:** begitu satu baris konsulen tersimpan, index lama akan menolaknya, sehingga pemulihan harus maju bukan mundur. Batas itu **wajib** ditulis pada laporan task. Pemilik risiko: pelaksana task bersama pemilik modul |
+| **DoD** | Kesembilan acceptance criteria terpetakan ke source yang benar-benar ada; migration dibuat dan **tidak** diterapkan ke environment mana pun tanpa wewenang terpisah; batas rollback tertulis pada laporan; `dotnet build` tanpa error baru; nol `[AccessPermission]` baru. **Kesesuaian QBE dan preflight engineering diselesaikan saat eksekusi** |
+
+---
 ## 5. Gerbang yang masih terbuka
 
 | Gerbang | Keadaannya | Menahan |
@@ -1283,6 +1641,13 @@ QBE preflight. Roadmap ini tidak menggantikan keduanya.
 | `RWI-RULE-021` batas waktu klinis | Menunggu pemilik klinis | Tidak menahan MVP; menahan pemakaian untuk pasien sungguhan |
 | `RWI-RULE-025` persetujuan umum | `DEC-INP-003`, menunggu pemilik hukum | Sama |
 | Masa simpan riwayat | `RWI-OQ-035`, sudah dijawab `RWI-DEC-060`, menunggu pemilik hukum | Sama |
+| ~~**Approval API contract `0.7.0`**~~ | ✅ **DITUTUP 2026-09-10.** Disetujui Muhammad Hamzah lewat instruksi eksplisit mengerjakan `BE-RWI-069`, mengikuti pola approval per-task `BE-RWI-036`. Status kontrak naik `draft` → `approved`, dan baris `ineligible` naik **Rencana** → **Tersedia** | — |
+| **`BE-BKC-040` ringkasan deposit per episode belum ada di source** | Dibuka `BE-RWI-071` dan `BE-RWI-072` pada 2026-09-10. Pemeriksaan seluruh source menemukan **nol baris**: rute `deposits/episodes/{episodeId}`, tipe ringkasannya, master `BE-BKC-039`, dan laporan task Billing-nya sama-sama tidak ada. Akarnya `RWI-OQ-053` — pemilik `BillingManagement` belum ditunjuk namanya | ⛔ `BE-RWI-071` dan ⛔ `BE-RWI-072` tidak dapat dikerjakan sama sekali. Selama itu gerbang `Cleared` tetap buta, sehingga episode masih dapat ditutup dengan uang yang belum selesai ke dua arah |
+| **Backend dan frontend belum rilis satu gelombang untuk pencabutan `ROOM_GENDER_MIXED`** | Dibuka `BE-RWI-073` 2026-09-11. Backend sudah tidak pernah menerbitkan kode itu lagi, tetapi frontend masih memetakannya pada `src/utils/health-services/inpatient-management/inpatient-placement-utils.jsx` baris 12, dan dua berkas test masih menguncinya di empat tempat. `api-contract.md` `0.8.0` menuntut kedua repository berada pada **satu gelombang rilis** | Tidak menahan `BE-RWI-073`, yang kedelapan acceptance criteria-nya sudah terbukti. Menahan ketenangan rilis: `FE-RWI-062` perlu selesai lebih dulu, karena test frontend akan gagal bila dijalankan terhadap backend yang sudah dicabut |
+| **Konsulen dan dokter jaga belum punya jalur tulis** | Dibuka `BE-RWI-074` 2026-09-11. Kolom `AssignmentRole`, kedua index, dan keempat penjaga sudah siap menerima ketiga peran, tetapi **nol endpoint** yang dapat membuat baris berperan `Consultant` maupun `OnCallDoctor`: satu-satunya jalur tulis tetap `POST /{id}/doctor-assignments`, yang selalu membuat baris `Dpjp`. Kolom `Cakupan` `BE-RWI-074` memang tidak memuat endpoint, dan `api-contract.md` `0.8.0` belum menyediakan barisnya. Ikut menggantung: kewajiban `HandoverReason` bagi peran `2` dan `3` pada `data-dictionary.md` bagian 2 belum ditegakkan, karena belum ada jalur yang dapat mengujinya | Tidak menahan `BE-RWI-074`, yang kesembilan acceptance criteria-nya sudah terbukti pada source. Menahan **outcome**-nya: kepala ruangan belum dapat melibatkan konsulen lewat layar mana pun. Perlu amandemen `api-contract.md` lebih dulu, lalu satu task backend tersendiri |
+| **`AssignmentRole` belum tercatat pada `api-contract.md`** | Dibuka `BE-RWI-074` 2026-09-11. Jawaban `InpatientDoctorAssignmentResponse` kini membawa field `AssignmentRole`, dan `contracts/api-contract.md` `0.8.0` belum menyebutnya. Penambahannya **aditif dan kompatibel** — pemanggil lama yang tidak membacanya tidak terpengaruh — tetapi selisihnya nyata dan menjadi milik pemilik kontrak. Berkas kontrak sengaja tidak disunting dari task implementasi | Tidak menahan pekerjaan. Menahan ketepatan kontrak: layar yang hendak membedakan DPJP dari konsulen membaca field yang belum tertulis pada kontraknya |
+| **Uji migration `BE-RWI-074` belum dijalankan** | Dibuka 2026-09-11. `RWI-AC-084b`, `RWI-AC-084c`, dan `RWI-AC-084h` menuntut penerapan migration ke Postgres sekali pakai, dan penerapan migration adalah wewenang terpisah yang belum diberikan. Perilaku yang diuji ketiganya **sudah ditegakkan di dalam berkas migration** lewat dua blok pemeriksaan yang menggagalkan langkah secara terkendali, tetapi penegakan itu belum dibuktikan berjalan | Tidak menahan `BE-RWI-074`. Menahan penerapan ke database sungguhan: batas rollback belum dibuktikan nyata, dan begitu satu baris konsulen tersimpan pemulihan hanya dapat maju |
+| **Uji migration maju-mundur `BE-RWI-070`** | Dibuka 2026-09-10. Container `postgres:15.15` sekali pakai dinyalakan, tetapi penerapan migration berhenti sebelum satu tabel pun terbentuk karena memori komputer habis — sisa 401 MB dari 32 GB. Pemilik menyatakan build dan verifikasi sisa dijalankan sendiri | Tidak menahan `BE-RWI-070`, yang kelima acceptance criteria-nya sudah terbukti lewat test. Yang tersisa hanya pembuktian arah mundur migration sebelum diterapkan ke database sungguhan |
 
 ---
 

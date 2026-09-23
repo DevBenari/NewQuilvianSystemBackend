@@ -252,3 +252,277 @@ Amendment ini **tidak** menambah, menghapus, maupun mengubah satu pun status pad
 - Kasir **tidak** perlu punya shift aktif untuk menyerahkan uang kas kecil. `BIL-VAL-019` ("Buka shift kasir sebelum menerima uang tunai") berlaku untuk **penerimaan** uang dari pasien, bukan untuk pengeluaran kas kecil.
 
 Trace **`PC-DEC-001`–`013`**, `PC-DES-001`–`014`. Tests `BIL-AT-064`–`080`.
+
+---
+
+# Amendment 11 September 2026 — Rumpun Edit Tagihan & Multi-Payer Coverage
+
+> `last_changed_in`: `BIL-STATE-0.9` / revisi blueprint `1.1`, status **draft**. Masukan: `MPY-DEC-001`–`010`, `MPY-DES-001`–`017`.
+
+## Tidak ada status invoice baru
+
+Rumpun ini **tidak menambah satu pun status** pada `BilInvoice` maupun `BilInvoiceItem`. Kosakata yang sudah ada tetap utuh: invoice `OPEN`/`FINAL`/`CLOSED`/`SETTLED_BY_WRITE_OFF`, dan baris biaya `ACTIVE`/`VOIDED`. Yang ditambahkan adalah **perpindahan pada tiga hal di luar status invoice**: jenis payer kunjungan, penanggung per baris biaya, dan disposisi penebusan obat.
+
+## Perpindahan jenis payer kunjungan
+
+Berlaku pada baris sumber pembayaran milik kunjungan. Seluruh perpindahan hanya sah lewat perintah ganti payer dari layar Edit Tagihan.
+
+| Dari | Tindakan | Ke | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| `Cash` | Ganti payer | `Insurance` | Kasir berwenang | Tagihan `OPEN`, belum ada pembayaran berhasil, kartu asuransi milik pasien yang sama, masih berlaku pada tanggal layanan, dan berstatus layak | `409` bila tagihan tidak lagi `OPEN` atau versi baris basi; `422` bila kartu tidak sah |
+| `Cash` | Ganti payer | `CompanyGuarantor` | Kasir berwenang | Sama, memakai kartu penjamin perusahaan | Sama |
+| `Insurance` | Ganti payer | `Cash` | Kasir berwenang | Tagihan `OPEN`, belum ada pembayaran berhasil | `409` |
+| `Insurance` | Ganti payer | `Insurance` lain | Kasir berwenang | Kartu asuransi kandidat sah dan berbeda dari yang berlaku | `422` bila kandidat sama dengan yang berlaku |
+| `Insurance` | Ganti payer | `CompanyGuarantor` | Kasir berwenang | Sama | Sama |
+| `CompanyGuarantor` | Ganti payer | `Cash` / `Insurance` / `CompanyGuarantor` lain | Kasir berwenang | Sama | Sama |
+| **Apa pun** | Ganti payer | **Apa pun** | — | **Tagihan sudah `FINAL`, `CLOSED`, `SETTLED_BY_WRITE_OFF`, atau sudah ada pembayaran berhasil** | **Ditolak `409`.** Perubahan payer sesudah pembayaran adalah pekerjaan pembalikan, bukan pengeditan |
+
+**Perpindahan yang tidak sah dan sengaja tidak disediakan:**
+
+| Yang tidak sah | Sebabnya |
+| --- | --- |
+| Menambah payer kedua tanpa menghapus yang pertama | `MPY-DEC-001`. Kunjungan tetap tepat satu sumber pembayaran, dijaga index unik pada tingkat basis data |
+| Mengganti payer menjadi kartu milik pasien lain | Kartu **MUST** milik pasien pada kunjungan yang sama |
+| Mengganti payer tanpa alasan tertulis | Alasan wajib; ia yang dibaca auditor |
+| Mengganti payer dari modul mana pun selain lewat layanan milik Registrasi | `MPY-DEC-007`, `MPY-DES-004` |
+
+### Akibat ikutan yang wajib terjadi bersamaan
+
+Setiap perpindahan payer yang berhasil **MUST** menghasilkan keempat akibat berikut di dalam satu transaksi yang sama. Bila salah satu gagal, seluruhnya dibatalkan.
+
+1. Seluruh kolom salinan pada baris sumber pembayaran dibangun ulang dari kartu penjamin yang baru.
+2. Penanggung baris biaya yang jenisnya tidak lagi tersedia **direset** menjadi Pribadi bertanda `AUTO` (`MPY-DES-009`).
+3. Tagihan dihitung ulang dan menghasilkan versi perhitungan baru.
+4. Satu baris jejak perintah dicatat beserta nilai payer sebelum dan sesudah.
+
+## Perpindahan penanggung per baris biaya
+
+| Dari | Tindakan | Ke | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| `CASH` | Ubah penanggung | `INSURANCE` | Kasir berwenang | Kunjungan berpayer `Insurance` yang layak | `422` bila kunjungan tidak berpayer asuransi |
+| `CASH` | Ubah penanggung | `COMPANY_GUARANTOR` | Kasir berwenang | Kunjungan berpayer `CompanyGuarantor` yang layak | `422` bila kunjungan tidak berpenjamin perusahaan |
+| `INSURANCE` / `COMPANY_GUARANTOR` | Ubah penanggung | `CASH` | Kasir berwenang | Tagihan `OPEN` | `409` |
+| Apa pun | **Reset otomatis** | `CASH` | **Sistem** | Terjadi sesudah ganti payer membuat jenis penanggung lama tidak lagi tersedia | — (ini akibat, bukan perintah) |
+| Apa pun | Ubah penanggung | Apa pun | — | Baris biaya berstatus `VOIDED` | Ditolak `422`; baris yang dibatalkan tidak punya penanggung |
+
+Penanggung baris biaya **tidak digerbang** oleh hasil perhitungan tanggungan (`MPY-DEC-004`): baris yang menurut aturan tidak tertanggung tetap boleh ditandai `INSURANCE`, dan hasilnya nol tertanggung dengan pasien membayar penuh. Ini disengaja — kasir menentukan **kepada siapa ditagihkan**, mesin menentukan **berapa yang ditanggung**.
+
+## Perpindahan disposisi penebusan obat
+
+| Dari | Tindakan | Ke | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| `INCLUDED` | Tandai tidak ditebus | `EXCLUDED` | Kasir berwenang | Baris adalah item obat yang layak diedit, pada kunjungan rawat jalan, IGD, atau OTC | `422` bila baris bukan obat atau kunjungan rawat inap |
+| `EXCLUDED` | Tandai ditebus | `INCLUDED` | Kasir berwenang | Sama | Sama |
+| Apa pun | Apa pun | Apa pun | — | **Kunjungan rawat inap** | **Ditolak `422`** — penebusan obat rawat inap di luar cakupan rumpun ini |
+
+Disposisi **MUST NOT** mengubah jumlah pada baris obat, dan **MUST NOT** menyentuh satu baris pun data penyerahan obat milik Farmasi (`MPY-DEC-009`). Baris ber-disposisi `EXCLUDED` dikeluarkan dari nominal yang layak dihitung **sebelum** mesin tanggungan dipanggil, sehingga ia tidak pernah muncul sebagai porsi penjamin maupun porsi pasien.
+
+## Hubungan dengan status invoice yang sudah ada
+
+| Status invoice | Ganti payer | Ubah penanggung item | Ubah disposisi obat |
+| --- | :---: | :---: | :---: |
+| `OPEN`, belum ada pembayaran berhasil | Boleh | Boleh | Boleh bila layak |
+| `OPEN`, sudah ada pembayaran berhasil | **Tidak** | **Tidak** | **Tidak** |
+| `FINAL` | **Tidak** | **Tidak** | **Tidak** |
+| `CLOSED` | **Tidak** | **Tidak** | **Tidak** |
+| `SETTLED_BY_WRITE_OFF` | **Tidak** | **Tidak** | **Tidak** |
+
+Gerbang ini identik dengan gerbang yang sudah berlaku bagi perubahan finansial lain di modul ini, dan sengaja tidak dilonggarkan.
+
+Trace **`MPY-DEC-001`–`010`**, `MPY-DES-001`–`017`. Tests `BIL-AT-081`–`100`.
+
+---
+
+## Amendment 15 September 2026 — Revisi Petty Cash: pencairan langsung dan anggaran per periode
+
+`last_changed_in: BIL-STATE-1.0` · status **approved** · owner Kepala Kasir/Finance Operations · `approved_by`: Product/Domain Owner (`PC-DEC-026`) · `approved_at`: 2026-09-15 · input: **`PC-DEC-016`–`PC-DEC-025`** (`approved` 15 September 2026); keputusan arsitektur `PC-DES-015`–`PC-DES-025`.
+
+Amendment ini **menggantikan** bagian "Kosakata status", "Transisi yang sah", "Transisi yang tidak sah", "Di mana saldo anggaran bergerak", dan "Status kolam anggaran" pada amendment 7 September 2026. Bagian lama tetap terbaca sebagai jejak alasan; yang berlaku adalah bagian ini.
+
+### Kosakata status voucher — empat nilai hidup, satu warisan
+
+| Kode persisted | Label | Kapan muncul | Terminal? |
+| --- | --- | --- | :---: |
+| `REQUESTED` | **`Menunggu Pencairan`** | Sejak permintaan dibuat sampai uang diserahkan | Tidak |
+| `CASH_RECEIVED` | **`Menunggu Bukti`** | Kasir menyerahkan uang; nota belum masuk | Tidak |
+| `COMPLETED` | **`Selesai`** | Nomor nota sudah dimasukkan | **Ya** |
+| `REVERSED` | **`Dibatalkan (Uang Dikembalikan)`** | Pencairan dibalik karena seharusnya tidak terjadi | **Ya** |
+| `REJECTED` | **`Ditolak (arsip)`** | **Hanya pada baris sebelum 15 September 2026.** Tidak ada voucher baru yang dapat memasukinya | **Ya, dan immutable** |
+
+Tiga perubahan terhadap kosakata lama, masing-masing dengan perlakuan berbeda (`PC-DES-015`):
+
+1. `WAITING_APPROVAL` **diganti nama** menjadi `REQUESTED` — artinya berubah total, jadi namanya wajib ikut berubah.
+2. `CASH_RECEIVED` **dipertahankan kodenya**, hanya labelnya menjadi `Menunggu Bukti` — artinya sama persis, jadi tidak ada pemutakhiran data.
+3. `APPROVED` **dipensiunkan**; baris lama yang memegangnya dipetakan ke `REQUESTED` oleh migration.
+
+**Pembatalan tetap bukan status.** `PC-DES-007` tetap berlaku: permintaan yang dibatalkan tetap ber-`Status = REQUESTED` dengan penandaan `IsCancel = true`, dan layar menampilkannya sebagai `Dibatalkan`. Ini **berbeda** dari `REVERSED`: `IsCancel` berarti uangnya tidak pernah keluar, `REVERSED` berarti uangnya keluar lalu kembali.
+
+### Transisi yang sah
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| Tidak ada | Buat permintaan | `Menunggu Pencairan` | Kasir/petugas administrasi (`PettyCashVoucher : Create`) | Nama penerima, kategori aktif, nominal lebih besar dari nol, dan tujuan terisi | `400`/`422`; permintaan tidak terbentuk dan nomor tidak terpakai |
+| `Menunggu Pencairan` | **Uang Diberikan** | `Menunggu Bukti` | Kasir (`PettyCashVoucher : Disburse`) | Ada periode anggaran `ACTIVE`; saldo periode itu **saat itu juga** masih mencukupi (`PC-DES-006`); belum pernah ada baris pencairan untuk voucher ini | `422` `BIL-VAL-048`; voucher **tetap** `Menunggu Pencairan` dan dapat dicairkan lagi setelah saldo ditambah |
+| `Menunggu Pencairan` | Batalkan | `Menunggu Pencairan` + `IsCancel = true` | Kasir/petugas mana pun yang punya akses (`PettyCashVoucher : Cancel`) | Belum pernah dicairkan | `422` `BIL-VAL-050` bila sudah dicairkan |
+| `Menunggu Bukti` | Input Nota | `Selesai` | Kasir/petugas administrasi (`PettyCashVoucher : AttachProof`) | Nomor nota/kwitansi terisi | `422` `BIL-VAL-051`; voucher tetap `Menunggu Bukti` |
+| `Selesai` | Koreksi nomor nota | `Selesai` (tidak berpindah) | Kasir/petugas administrasi (`PettyCashVoucher : AttachProof`) | Nomor nota baru terisi | `422`; nomor lama dipertahankan |
+| `Menunggu Bukti` **atau** `Selesai` | **Kembalikan sisa** | **Tidak berpindah** | Kasir (`PettyCashVoucher : Return`) | Nominal lebih besar dari nol; total seluruh pengembalian **MUST NOT** melampaui nominal voucher; ada periode `ACTIVE` | `422` `BIL-VAL-098` |
+| `Menunggu Bukti` **atau** `Selesai` | **Balikkan pencairan** | `Dibatalkan (Uang Dikembalikan)` | Kasir (`PettyCashVoucher : Reverse`) | Alasan terisi; belum pernah dibalik; ada periode `ACTIVE` | `422` `BIL-VAL-099` |
+
+### Transisi yang **tidak sah** dan tetap tidak sah
+
+| Dari status | Tindakan | Siapa pun | Kenapa tidak sah | Yang terjadi |
+| --- | --- | --- | --- | --- |
+| `Ditolak (arsip)` | Apa pun | Siapa pun | Baris warisan adalah catatan audit permanen (`PC-DEC-003`) | Tidak ada endpoint yang menerimanya |
+| `Dibatalkan (Uang Dikembalikan)` | Input nota, kembalikan sisa, balikkan lagi, atau apa pun | Siapa pun | Pencairannya sudah dinyatakan batal dan uangnya sudah kembali penuh | `422` `BIL-VAL-100`. Bila pengeluarannya ternyata memang perlu, buat permintaan baru |
+| `Menunggu Pencairan` | Input nota | Siapa pun | Nota hanya ada setelah uang benar-benar keluar | `422` `BIL-VAL-051` |
+| `Menunggu Pencairan` | Kembalikan sisa atau balikkan pencairan | Siapa pun | Tidak ada uang yang keluar untuk dikembalikan maupun dibalik | `422` `BIL-VAL-101` |
+| `Menunggu Bukti` atau `Selesai` | Batalkan | Siapa pun | Uangnya sudah keluar. Pembatalan berarti mengaku uang itu tidak pernah keluar | `422` `BIL-VAL-050`. Yang tersedia adalah pembalikan, yang mencatat kedua arah pergerakan uangnya |
+| `Selesai` | Kembalikan ke `Menunggu Bukti` | Siapa pun | Bukti yang sudah masuk tidak dapat "belum masuk" | `422`. Salah nomor nota dikoreksi lewat aksi koreksi yang tetap `Selesai` |
+| Status apa pun | Menyetujui atau menolak | Siapa pun | Gerbang persetujuan dicabut (`PC-DEC-016`) | **Endpointnya tidak ada lagi** — `404` |
+| Status apa pun | Menyunting nama penerima, kategori, nominal, atau tujuan | Siapa pun | Tidak ada endpoint penyuntingan sama sekali | Permintaan yang salah dibatalkan lalu dibuat ulang |
+| Status apa pun | Menghapus voucher | Siapa pun | Voucher mencatat uang yang benar-benar keluar | Tidak ada endpoint `DELETE` |
+
+### Di mana saldo anggaran bergerak
+
+Tabel ini **menggantikan** tabel yang sama pada amendment 7 September. Kolom `ReservedAmount` dihapus seluruhnya (`PC-DES-016`).
+
+| Peristiwa | `CurrentBalance` periode aktif | Baris ledger yang lahir |
+| --- | --- | --- |
+| Buat permintaan | **Tidak bergerak** | Tidak ada |
+| Batalkan permintaan | Tidak bergerak | Tidak ada |
+| **Uang Diberikan** | **Berkurang** sebesar nominal voucher | **Satu** baris `DISBURSEMENT` |
+| Input nota / koreksi nota | **Tidak bergerak** | Tidak ada |
+| **Kembalikan sisa** | **Bertambah** sebesar nominal yang dikembalikan | **Satu** baris `RETURN`, boleh berkali-kali |
+| **Balikkan pencairan** | **Bertambah** sebesar `nominal − yang sudah dikembalikan` | **Satu** baris `REVERSAL`, paling banyak sekali per voucher |
+| Finance menambah saldo | **Bertambah** | **Satu** baris `TOP_UP` |
+| Finance mengoreksi saldo | Bertambah atau berkurang | **Satu** baris `ADJUSTMENT` |
+| **Tutup periode** | Periode lama menjadi **nol**; periode penerus **bertambah** sebesar sisa itu | **Dua** baris: `CARRY_FORWARD_OUT` dan `CARRY_FORWARD_IN` |
+
+> **Kenapa komitmen tidak ada lagi.** Amendment 7 September memperkenalkan `ReservedAmount` untuk menjembatani jeda antara persetujuan dan pencairan. Setelah `PC-DEC-016` mencabut persetujuan, kedua titik itu menjadi satu peristiwa dan jedanya nol — tidak ada lagi yang perlu dijembatani. Mempertahankannya justru berbahaya: permintaan kini dapat dibuat siapa saja tanpa persetujuan siapa pun, sehingga saldo akan terkunci oleh permintaan yang belum tentu dicairkan.
+
+**Penjaga saldo tunggal** berada di titik pencairan, di dalam kunci penasihat `pg_advisory_xact_lock` yang sudah ada (`PC-DES-011`), memeriksa `CurrentBalance >= Amount` pada saat itu juga (`PC-DES-006`, tetap berlaku).
+
+### Status periode anggaran
+
+| Dari | Tindakan | Ke | Pelaku | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| Tidak ada | Buat periode | `DRAFT` | Finance (`PettyCashBudget : Create`) | Tanggal mulai tidak tumpang tindih dengan periode lain pada kolam yang sama; plafon lebih besar dari nol | `422` `BIL-VAL-102` |
+| `DRAFT` | Aktifkan | `ACTIVE` | Finance (`PettyCashBudget : Activate`) | **Tidak ada** periode `ACTIVE` lain pada kolam yang sama | `422` `BIL-VAL-103`; unique index parsial juga menolaknya di lapis database |
+| `ACTIVE` | Tambah saldo | `ACTIVE` | Kasir (`PettyCashBudget : TopUp`) | Nominal lebih besar dari nol, alasan terisi | `422` |
+| `ACTIVE` | Koreksi saldo | `ACTIVE` | Finance (`PettyCashBudget : Adjust`) | Hasilnya **tidak** negatif | `422` `BIL-VAL-054` |
+| `ACTIVE` | **Tutup periode** | `CLOSED` | Finance (`PettyCashBudget : Close`) | **Tidak ada** voucher `Menunggu Pencairan` yang belum dicairkan pada periode itu; bila sisa saldo lebih besar dari nol, periode penerus **MUST** disebutkan dan berstatus `DRAFT` atau `ACTIVE` | `422` `BIL-VAL-104` |
+| `CLOSED` | Apa pun yang menyentuh saldo | — | Siapa pun | Periode tertutup adalah catatan yang sudah selesai | `422` `BIL-VAL-105` |
+| `DRAFT` | Tutup | — | Siapa pun | Periode yang belum pernah aktif tidak punya apa pun untuk ditutup | `422`. Periode `DRAFT` yang salah dihapus lewat penandaan `IsDelete` |
+
+> **Kenapa penutupan menolak voucher `Menunggu Pencairan` yang menggantung.** Permintaan yang belum dicairkan menunjuk ke periode yang sedang berjalan. Menutup periode itu tanpa menyelesaikannya akan meninggalkan permintaan yang tidak dapat dicairkan dari periode mana pun — bukan karena saldonya kurang, melainkan karena periodenya sudah tidak menerima pergerakan. Finance **MUST** memilih: mencairkannya, atau membatalkannya.
+
+### Kesetaraan dengan flowchart
+
+Nama status pada `flowcharts/voucher-petty-cash.md` dan `flowcharts/anggaran-petty-cash.md` **MUST** sama persis dengan kolom **Label** pada tabel kosakata di atas. Keduanya diperbarui pada revisi yang sama.
+
+---
+
+# Amendment 18 September 2026 — Syarat `FINAL`→`CLOSED` diganti, dan transisi baliknya
+
+`last_changed_in: BIL-STATE-1.1` · status **approved** · owner Billing/Finance/Cashier · `approved_by`: Product/Domain Owner (wewenang ganda Finance/AR, `BKC-DEC-085`) lewat `BKC-DEC-105` · `approved_at`: 2026-09-18 · input: **`BKC-DEC-100`–`BKC-DEC-102`** (`approved` 18 September 2026); keputusan arsitektur `BKC-DES-028`–`BKC-DES-035` (`draft`).
+
+## Apa yang berubah pada tabel Invoice di kepala dokumen
+
+Baris ke-12 pada tabel Invoice (`FINAL` → `CLOSED`) **DIGANTI**. Baris lamanya dipertahankan terbaca di atas sebagai jejak alasan; yang berlaku adalah baris pada tabel di bawah.
+
+| Keadaan | Baris lama (`BIL-STATE-0.4`) | Baris baru (`BIL-STATE-1.1`) |
+| --- | --- | --- |
+| Syarat | "AR/AP posting sukses" dengan handoff idempotent tercatat | "sisa tagihan pasien mencapai nol" |
+| Pelaku | Sistem | Sistem — **tidak berubah** |
+| Bila dilanggar | Tetap `FINAL` dan retry | Tetap `FINAL`; tidak ada retry karena tidak ada pihak luar yang ditunggu |
+
+**Kenapa diganti.** Syarat lama menunggu peristiwa yang tidak pernah terjadi: belum ada konsumen AR/AP nyata di sistem ini, sehingga tidak ada "posting" yang bisa sukses. Akibatnya seluruh invoice yang difinalisasi berhenti di `FINAL` selamanya, termasuk yang pasiennya sudah membayar lunas. Lihat `00-interview-decisions.md` amendment 18 September 2026 dan `01-existing-capability-map.md` § 21.
+
+## Tabel transisi Invoice — bagian yang berlaku sesudah amendment ini
+
+| Dari | Tindakan | Ke | Pelaku | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| `OPEN` | finalisasi | `FINAL` | Billing | Tidak berubah dari `BIL-STATE-0.4` baris 11 | `422`, tampilkan checklist |
+| `FINAL` | sisa tagihan pasien mencapai nol | `CLOSED` | **Sistem** | Sisa tagihan pasien `<= 0` dihitung dari versi kalkulasi berjalan, dikurangi alokasi pembayaran bersih, ditambah kelebihan alokasi, dikurangi write-off `PATIENT_AR` yang diposting, dikurangi penyesuaian bersih. `ClosedAt` diisi waktu peristiwa yang membuatnya nol | Tetap `FINAL`. Tidak ada galat yang ditampilkan — ini akibat, bukan perintah |
+| `CLOSED` | sisa tagihan pasien naik kembali di atas nol | `FINAL` | **Sistem** | Pembalikan tender yang pernah berhasil, atau penyesuaian arah `Debit` yang diposting. `ClosedAt` dikosongkan kembali | Tetap `CLOSED` — dan itu **cacat**, bukan keadaan sah; lihat kotak di bawah |
+| `OPEN` | full write-off | `SETTLED_BY_WRITE_OFF` | Finance | Tidak berubah (`BKC-DEC-036`) | Tidak boleh menjadi PAID |
+| `FINAL/CLOSED` | edit/delete item | tidak sah | siapa pun | — | Tolak; gunakan adjustment |
+
+> **Kenapa transisi balik `CLOSED` → `FINAL` ada, dan kenapa ia bukan `OPEN`.** Pembayaran yang sudah berhasil dapat dibalik secara sah (`SUCCEEDED` → `REVERSED`, baris 24 tabel Tender), dan penyesuaian arah `Debit` dapat menaikkan tagihan sesudah invoice ditutup. Tanpa transisi balik, akan ada invoice bertanda selesai yang pasiennya masih berutang — tagihan seperti itu tidak akan muncul di daftar tagihan berjalan siapa pun dan tidak akan ditagih. Tujuannya `FINAL`, **bukan** `OPEN`, karena yang dibatalkan adalah pembayarannya, bukan finalisasinya: catatan finalisasi tetap ada dan versi kalkulasi tetap terkunci. Mengembalikannya ke `OPEN` justru akan membuka kembali penyuntingan item yang sudah sah ditutup.
+
+## Peristiwa mana saja yang memicu pemeriksaan
+
+Pemeriksaan sisa tagihan dijalankan pada **enam** peristiwa, bukan hanya pembayaran (`BKC-DES-029`):
+
+| Peristiwa | Arah gerak sisa tagihan |
+| --- | --- |
+| Tender menjadi `SUCCEEDED` | Turun |
+| Tender `SUCCEEDED` menjadi `REVERSED` | Naik |
+| Deposit pasien dialokasikan ke invoice | Turun |
+| Penyesuaian arah `Credit` diposting | Turun |
+| Penyesuaian arah `Debit` diposting | Naik |
+| Write-off diposting, dan kedua jalur pembalikannya | Dua arah |
+
+Pemeriksaan **MUST** berjalan di dalam transaksi peristiwa yang memicunya, sehingga perpindahan status dan peristiwanya tersimpan atau gagal bersama-sama.
+
+## Transisi yang tidak sah dan tetap tidak sah
+
+| Dari | Tindakan | Siapa pun | Kenapa tidak sah | Yang terjadi |
+| --- | --- | --- | --- | --- |
+| `OPEN` | pindah langsung ke `CLOSED` karena kebetulan sudah lunas | Sistem maupun manusia | Tagihan yang belum difinalisasi belum tentu lengkap; melunasi tagihan yang masih berjalan bukan alasan menutupnya | Penyelarasan berhenti tanpa menulis apa pun |
+| `SETTLED_BY_WRITE_OFF` | pindah ke `CLOSED` | Siapa pun | Piutangnya dihapusbukukan, bukan dibayar. Kedua keadaan itu berbeda maknanya bagi Finance | Penyelarasan berhenti tanpa menulis apa pun |
+| `FINAL` atau `CLOSED` | dipindahkan manual lewat endpoint atau layar | Kasir, Finance, siapa pun | `BKC-DEC-100` menetapkan pelakunya Sistem. Perpindahan manual membuka jalan menutup tagihan yang belum lunas | Tidak ada endpointnya sama sekali |
+| `CLOSED` | tetap `CLOSED` padahal sisa tagihan sudah di atas nol | — | Bukan transisi, melainkan **kegagalan** menjalankan transisi balik | Cacat; `BIL-AT-126` menjaganya |
+
+## Yang tidak berubah pada rumpun lain
+
+Amendment ini **tidak** menambah, menghapus, maupun mengubah satu pun status pada `BilInvoiceItem`, `BilSettlement`, `BilTender`, `BilCashierShift`, `BilWriteOffCase`, `BilRefundCase`, `BilAdjustment`, `BilArHandoff`, `BilApHandoff`, maupun seluruh rumpun Petty Cash. Secara khusus:
+
+- Kosakata status `BilArHandoff` **tetap** `CREATED`/`ACKNOWLEDGED` (`BKC-DES-033`). Tidak ada nilai "tertagih" yang ditambahkan.
+- Finalisasi **tetap** selalu menghasilkan `FINAL`, tidak pernah langsung `CLOSED`. Itu perilaku yang sudah benar dan sengaja tidak disentuh.
+- Seluruh gerbang yang sudah memperlakukan `FINAL` dan `CLOSED` sama (ganti payer, ubah penanggung item, ubah disposisi obat pada amendment 11 September 2026) **tetap** berlaku apa adanya.
+
+Trace **`BKC-DEC-100`–`102`**, `BKC-DES-028`–`035`. Tests `BIL-AT-121`–`BIL-AT-134`.
+
+---
+
+## Amendment 21 September 2026 — Status surat ke modul konsumen
+
+`last_changed_in: BIL-STATE-1.2` · status **draft** · input `BKC-DEC-106`–`109`.
+
+### Status surat, berlaku bagi kedua jenis
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| — | Penerbitan oleh sistem | `CREATED` | Sistem, di dalam transaksi peristiwa finansial | Peristiwanya memenuhi syarat penerbitan | Surat tidak terbit; transaksi pemanggil ikut batal |
+| `CREATED` | Pengakuan penerimaan | `ACKNOWLEDGED` | Modul konsumen, atau petugas berwenang lewat permukaan operasional | Surat ada dan belum diakui | Ditolak `409`; pengakuan kedua tidak mengubah apa pun |
+
+### Transisi yang tidak sah — disebutkan supaya tidak coba dibangun
+
+| Transisi | Mengapa dilarang |
+| --- | --- |
+| `ACKNOWLEDGED` → `CREATED` | Pengakuan tidak dapat ditarik. Bila konsumen perlu memproses ulang, ia membaca ulang lewat permukaan pemeriksaan, bukan memundurkan status |
+| `CREATED` → dihapus | Baris bersifat tetap (`BKC-DEC-109`). Jejak audit lintas modul tidak boleh hilang |
+| Pembaruan isi surat yang sudah terbit | Koreksi berupa **baris baru**. Untuk tender, baris baru berstatus dibalik; untuk clearance, baris baru bernomor versi lebih tinggi |
+
+### Keadaan clearance resep — dimiliki Billing, dikonsumsi Farmasi
+
+| Dari | Tindakan | Ke | Sebab yang sah | Syarat |
+| --- | --- | --- | --- | --- |
+| Belum pernah clear | Tagihan kunjungan lunas | `CLEARED` | `INVOICE_SETTLED`, `INVOICE_WRITTEN_OFF` | Seluruh tagihan kunjungan mencapai keadaan lunas (`PHA-DEC-064`) |
+| `CLEARED` | Harga atau jumlah obat dikoreksi naik | `REVOKED` | `PRESCRIPTION_CHARGE_INCREASED` | Perubahan terjadi pada baris berdomain farmasi milik resep itu |
+| `CLEARED` | Uang ditarik kembali | `REVOKED` | `PAYMENT_REVERSED`, `WRITE_OFF_REVERSED`, `PAYER_COVERAGE_REVERSED` | Fail-closed; berlaku bagi **seluruh** resep pada tagihan itu (`PHA-DEC-068-A`) |
+| `REVOKED` | Tagihan lunas kembali | `CLEARED` | `INVOICE_SETTLED`, `INVOICE_WRITTEN_OFF` | Nomor versi finansial naik |
+
+### Transisi yang sengaja **tidak** terjadi
+
+| Peristiwa | Yang tidak terjadi | Dasar |
+| --- | --- | --- |
+| Biaya tindakan, laboratorium, radiologi, atau kamar ditambahkan pada tagihan yang sudah lunas | Clearance **tidak** dicabut, walau tagihan kembali bersisa | `PHA-DEC-068` |
+| Tender berhasil tetapi tagihan belum lunas | Keadaan clearance **tidak** berubah; hanya surat ke Finance yang terbit | `PHA-DEC-064` |
+
+Baris pertama adalah perilaku yang paling mudah dirancang keliru. Tagihan kembali ke keadaan
+bersisa, tetapi obat yang sudah dibayar tetap boleh diserahkan.
+
+Trace `BKC-DEC-106`–`109`, `PHA-DEC-064`, `PHA-DEC-068`, `PHA-DEC-068-A`. Tests `BIL-AT-135`–`BIL-AT-140`.

@@ -1,6 +1,9 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Repositories;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
@@ -10,12 +13,32 @@ public interface IBillingCoverageAdapter
     Task<BillingCoverageDecision> ResolveAsync(BillingCoverageContext context, CancellationToken cancellationToken);
 }
 
+// BE-BKC-046/MPY-DES-005/CAP-34: Konteks payer kandidat untuk pratinjau evaluasi coverage tanpa menyentuh penjamin kunjungan.
+public sealed record CandidatePayerContext(
+    EncounterPaymentType PaymentType,
+    Guid? PaymentMethodId = null,
+    Guid? PatientInsuranceId = null,
+    Guid? PatientCompanyGuarantorId = null);
+
 public sealed record BillingCoverageContext(
     Guid InvoiceId,
     Guid EncounterId,
     DateTimeOffset CalculatedAt,
     decimal EligibleAmount,
-    IReadOnlyList<BillingCoverageComponent> Components);
+    IReadOnlyList<BillingCoverageComponent> Components,
+    CandidatePayerContext? CandidatePayer = null)
+{
+    // Konstruktor kompatibilitas penuh untuk pemanggil existing
+    public BillingCoverageContext(
+        Guid invoiceId,
+        Guid encounterId,
+        DateTimeOffset calculatedAt,
+        decimal eligibleAmount,
+        IReadOnlyList<BillingCoverageComponent> components)
+        : this(invoiceId, encounterId, calculatedAt, eligibleAmount, components, null)
+    {
+    }
+}
 
 // TariffId/ProcedureId/DrugId/DrugCategoryId/TariffCategoryId: field terpisah per dimensi rujukan
 // rule asuransi (MstInsuranceCoverageRule) - BUKAN satu SourceReferenceId gabungan seperti
@@ -59,12 +82,14 @@ public sealed record BillingCoverageDecision(
     // NON_BILLABLE_RESIDUAL (BKC-DEC-080). Satu-satunya titik pengisi: cabang residual jalur (5)
     // di ResolveAsync ketika rule.IsAllowExcessPaymentByPatient == false.
     decimal NonBillableResidualAmount,
-    IReadOnlyList<BillingCoverageAnomaly> Anomalies);
+    IReadOnlyList<BillingCoverageAnomaly> Anomalies,
+    // BE-BKC-044/MPY-DES-017: penanda jenis payer pada breakdown tagihan ("CASH", "INSURANCE", "COMPANY_GUARANTOR").
+    string PayerKind = "CASH");
 
 // BE-BKC-025/BKC-DES-010: satu masalah data pendaftaran yang membuat penilaian penjamin tidak
 // dapat dilakukan dengan benar. Code MUST NOT diterjemahkan (kunci program); Message MUST berupa
 // kalimat siap dibaca kasir, bukan nama kolom. Daftar Code yang berlaku: PAYER_NOT_ELIGIBLE,
-// POLICY_INACTIVE, INSURANCE_PROVIDER_MISSING, ENCOUNTER_NOT_FOUND.
+// POLICY_INACTIVE, INSURANCE_PROVIDER_MISSING, COMPANY_GUARANTOR_MISSING, ENCOUNTER_NOT_FOUND.
 public sealed record BillingCoverageAnomaly(string Code, string Message);
 
 // Bug fix (di luar roadmap, laporan pengguna): sebelumnya waterfall hanya mengembalikan TOTAL
@@ -91,46 +116,239 @@ public sealed record BillingCoverageComponentOutcome(
 
 public sealed class RegistrationBillingCoverageAdapter : IBillingCoverageAdapter
 {
-    public const string ContractVersion = "REGISTRATION-COVERAGE-ADAPTER-1";
+    public const string ContractVersion = "REGISTRATION-COVERAGE-ADAPTER-2";
     private readonly ApplicationDbContext _dbContext;
+    private readonly CompanyGuarantorCoverageService _companyCoverageService;
+    private readonly EncounterInsuranceService _encounterInsuranceService;
 
-    public RegistrationBillingCoverageAdapter(ApplicationDbContext dbContext) => _dbContext = dbContext;
+    public RegistrationBillingCoverageAdapter(
+        ApplicationDbContext dbContext,
+        CompanyGuarantorCoverageService companyCoverageService,
+        EncounterInsuranceService encounterInsuranceService)
+    {
+        _dbContext = dbContext;
+        _companyCoverageService = companyCoverageService;
+        _encounterInsuranceService = encounterInsuranceService;
+    }
 
     public async Task<BillingCoverageDecision> ResolveAsync(
         BillingCoverageContext context,
         CancellationToken cancellationToken)
     {
+        // BE-BKC-046/MPY-DES-005/CAP-34: Jika CandidatePayer disediakan eksplisit,
+        // evaluasi payer kandidat secara murni tanpa membaca maupun menyentuh penjamin
+        // persistent pada kunjungan (100% read-only, AsNoTracking, zero-side-effect).
+        if (context.CandidatePayer != null)
+        {
+            return await ResolveCandidatePayerAsync(context, context.CandidatePayer, cancellationToken);
+        }
+
         var paymentSource = await _dbContext.RegPatientEncounterGuarantors.AsNoTracking()
             .FirstOrDefaultAsync(x => x.EncounterId == context.EncounterId && x.IsActive && !x.IsDelete, cancellationToken);
 
         if (paymentSource is null || paymentSource.PaymentType == EncounterPaymentType.Cash)
             return SelfPay();
 
-        // BE-BKC-025/BKC-DEC-073/BKC-DES-010/011: keempat precondition ini dulu sama-sama berujung
-        // ke Unresolved(...) (nominal menggantung, tidak berakhir pada penjamin maupun pasien).
-        // Kini masing-masing punya kode anomalinya sendiri lewat Anomaly(...): kalkulasi tetap
-        // BERHASIL, seluruh komponen coverable jatuh ke pasien (Subtotal Mandiri), dan kode
-        // anomalinya tampil sebagai peringatan yang dibaca petugas pendaftaran - bukan tagihan yang
-        // tidak dapat dialokasikan ke siapa pun. Diperiksa satu-per-satu (bukan disatukan dengan
-        // ||) supaya kodenya tepat menyebut penyebabnya, bukan "REJECTED" generik.
-        if (!paymentSource.IsEligible)
-            return Anomaly(context.Components, "PAYER_NOT_ELIGIBLE",
-                "Penjamin kunjungan ini belum dinyatakan layak (eligible). Seluruh biaya untuk sementara dibebankan ke pasien. Periksa data penjamin di Registrasi sebelum menagih.");
-        if (!paymentSource.IsPolicyActive)
-            return Anomaly(context.Components, "POLICY_INACTIVE",
-                "Polis asuransi kunjungan ini tercatat tidak aktif. Seluruh biaya untuk sementara dibebankan ke pasien. Periksa data penjamin di Registrasi sebelum menagih.");
-        if (!paymentSource.InsuranceProviderId.HasValue)
+        // BE-BKC-044/MPY-DES-007: RegistrationBillingCoverageAdapter menjadi dispatcher per jenis payer.
+        // Kunjungan CompanyGuarantor diserahkan ke CompanyGuarantorCoverageService dan TIDAK PERNAH
+        // mengevaluasi InsuranceProviderId.HasValue (menghapus anomali palsu INSURANCE_PROVIDER_MISSING).
+        return paymentSource.PaymentType switch
+        {
+            EncounterPaymentType.CompanyGuarantor => await ResolveCompanyGuarantorAsync(context, paymentSource, cancellationToken),
+            EncounterPaymentType.Insurance => await ResolveInsuranceAsync(context, paymentSource, cancellationToken),
+            _ => SelfPay()
+        };
+    }
+
+    private async Task<BillingCoverageDecision> ResolveCandidatePayerAsync(
+        BillingCoverageContext context,
+        CandidatePayerContext candidate,
+        CancellationToken cancellationToken)
+    {
+        return candidate.PaymentType switch
+        {
+            EncounterPaymentType.Cash => SelfPay(),
+            EncounterPaymentType.Insurance => await ResolveCandidateInsuranceAsync(context, candidate, cancellationToken),
+            EncounterPaymentType.CompanyGuarantor => await ResolveCandidateCompanyGuarantorAsync(context, candidate, cancellationToken),
+            _ => SelfPay()
+        };
+    }
+
+    private async Task<BillingCoverageDecision> ResolveCandidateInsuranceAsync(
+        BillingCoverageContext context,
+        CandidatePayerContext candidate,
+        CancellationToken cancellationToken)
+    {
+        if (!candidate.PatientInsuranceId.HasValue)
             return Anomaly(context.Components, "INSURANCE_PROVIDER_MISSING",
-                "Perusahaan asuransi kunjungan ini belum dipilih. Seluruh biaya untuk sementara dibebankan ke pasien. Lengkapi data penjamin di Registrasi.");
+                "Kartu asuransi pasien kandidat belum dipilih. Seluruh biaya untuk sementara dibebankan ke pasien.",
+                payerKind: "INSURANCE");
+
+        var effectiveDate = context.CalculatedAt.UtcDateTime.Date;
+        var insuranceContext = await _encounterInsuranceService.GetCandidateContextAsync(
+            context.EncounterId,
+            candidate.PatientInsuranceId.Value,
+            effectiveDate,
+            cancellationToken);
+
+        if (!insuranceContext.IsValid)
+        {
+            var code = insuranceContext.ErrorMessage?.Contains("belum mulai berlaku", StringComparison.OrdinalIgnoreCase) == true
+                || insuranceContext.ErrorMessage?.Contains("sudah berakhir", StringComparison.OrdinalIgnoreCase) == true
+                || insuranceContext.ErrorMessage?.Contains("tidak aktif", StringComparison.OrdinalIgnoreCase) == true
+                ? "POLICY_INACTIVE"
+                : "PAYER_NOT_ELIGIBLE";
+
+            return Anomaly(context.Components, code,
+                insuranceContext.ErrorMessage ?? "Kartu asuransi kandidat tidak valid atau belum layak (eligible).",
+                payerKind: "INSURANCE");
+        }
 
         var encounter = await _dbContext.RegPatientEncounters.AsNoTracking()
             .FirstOrDefaultAsync(x => x.Id == context.EncounterId && !x.IsDelete, cancellationToken);
         if (encounter is null)
-            // Seharusnya tidak mungkin terjadi karena CalculateAsync sudah memuat encounter lebih
-            // dulu sebelum memanggil adapter ini; bila muncul, ia menandakan data terhapus di
-            // tengah perhitungan.
             return Anomaly(context.Components, "ENCOUNTER_NOT_FOUND",
-                "Data kunjungan tidak ditemukan saat memeriksa penjamin. Hubungi tim teknis sebelum menagih.");
+                "Data kunjungan tidak ditemukan saat memeriksa penjamin. Hubungi tim teknis sebelum menagih.",
+                payerKind: "INSURANCE");
+
+        var providerId = insuranceContext.InsuranceProviderId!.Value;
+        var benefitPlanCode = insuranceContext.BenefitPlanCode;
+        var rules = await _dbContext.MstInsuranceCoverageRules.AsNoTracking()
+            .Where(x => !x.IsDelete && x.IsActive && x.InsuranceProviderId == providerId
+                && (x.BenefitPlanCode == null || x.BenefitPlanCode == benefitPlanCode)
+                && (x.PatientClassId == null || x.PatientClassId == encounter.PatientClassId)
+                && (x.EffectiveStartDate == null || x.EffectiveStartDate <= effectiveDate)
+                && (x.EffectiveEndDate == null || effectiveDate <= x.EffectiveEndDate))
+            .OrderByDescending(x => x.Priority)
+            .ThenBy(x => x.RuleCode)
+            .ToListAsync(cancellationToken);
+
+        return CalculateInsuranceCoverageDecision(context, rules);
+    }
+
+    private async Task<BillingCoverageDecision> ResolveCandidateCompanyGuarantorAsync(
+        BillingCoverageContext context,
+        CandidatePayerContext candidate,
+        CancellationToken cancellationToken)
+    {
+        if (!candidate.PatientCompanyGuarantorId.HasValue)
+            return Anomaly(context.Components, "COMPANY_GUARANTOR_MISSING",
+                "Kartu penjamin perusahaan kandidat belum dipilih. Seluruh biaya untuk sementara dibebankan ke pasien.",
+                payerKind: "COMPANY_GUARANTOR");
+
+        var candidateCard = await _dbContext.Set<MstPatientCompanyGuarantor>().AsNoTracking()
+            .Include(x => x.CompanyGuarantor)
+            .FirstOrDefaultAsync(x => x.Id == candidate.PatientCompanyGuarantorId.Value && !x.IsDelete, cancellationToken);
+
+        if (candidateCard is null)
+            return Anomaly(context.Components, "COMPANY_GUARANTOR_MISSING",
+                "Kartu penjamin perusahaan kandidat tidak ditemukan. Seluruh biaya untuk sementara dibebankan ke pasien.",
+                payerKind: "COMPANY_GUARANTOR");
+
+        var effectiveDate = context.CalculatedAt.UtcDateTime.Date;
+        if (candidateCard.EffectiveStartDate.HasValue && candidateCard.EffectiveStartDate.Value.Date > effectiveDate)
+            return Anomaly(context.Components, "POLICY_INACTIVE",
+                "Kartu penjamin perusahaan kandidat belum mulai berlaku pada tanggal pelayanan. Seluruh biaya untuk sementara dibebankan ke pasien.",
+                payerKind: "COMPANY_GUARANTOR");
+
+        if (candidateCard.EffectiveEndDate.HasValue && candidateCard.EffectiveEndDate.Value.Date < effectiveDate)
+            return Anomaly(context.Components, "POLICY_INACTIVE",
+                "Kartu penjamin perusahaan kandidat sudah berakhir pada tanggal pelayanan. Seluruh biaya untuk sementara dibebankan ke pasien.",
+                payerKind: "COMPANY_GUARANTOR");
+
+        var guarantor = candidateCard.CompanyGuarantor;
+        if (guarantor is null || guarantor.IsDelete || !guarantor.IsActive)
+            return Anomaly(context.Components, "COMPANY_GUARANTOR_MISSING",
+                "Perusahaan penjamin pada kartu kandidat tidak ditemukan atau tidak aktif. Seluruh biaya untuk sementara dibebankan ke pasien.",
+                payerKind: "COMPANY_GUARANTOR");
+
+        if (guarantor.ContractStartDate.HasValue && guarantor.ContractStartDate.Value.Date > effectiveDate)
+            return Anomaly(context.Components, "POLICY_INACTIVE",
+                "Kontrak perusahaan penjamin kandidat belum mulai berlaku pada tanggal pelayanan. Seluruh biaya untuk sementara dibebankan ke pasien.",
+                payerKind: "COMPANY_GUARANTOR");
+
+        if (guarantor.ContractEndDate.HasValue && guarantor.ContractEndDate.Value.Date < effectiveDate)
+            return Anomaly(context.Components, "POLICY_INACTIVE",
+                "Kontrak perusahaan penjamin kandidat sudah berakhir pada tanggal pelayanan. Seluruh biaya untuk sementara dibebankan ke pasien.",
+                payerKind: "COMPANY_GUARANTOR");
+
+        if (!candidateCard.IsActive)
+            return Anomaly(context.Components, "POLICY_INACTIVE",
+                "Polis atau kartu penjamin perusahaan kandidat tercatat tidak aktif. Seluruh biaya untuk sementara dibebankan ke pasien.",
+                payerKind: "COMPANY_GUARANTOR");
+
+        if (!candidateCard.IsEligible)
+            return Anomaly(context.Components, "PAYER_NOT_ELIGIBLE",
+                "Penjamin perusahaan kandidat belum dinyatakan layak (eligible). Seluruh biaya untuk sementara dibebankan ke pasien.",
+                payerKind: "COMPANY_GUARANTOR");
+
+        var encounter = await _dbContext.RegPatientEncounters.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == context.EncounterId && !x.IsDelete, cancellationToken);
+        if (encounter is null)
+            return Anomaly(context.Components, "ENCOUNTER_NOT_FOUND",
+                "Data kunjungan tidak ditemukan saat memeriksa penjamin. Hubungi tim teknis sebelum menagih.",
+                payerKind: "COMPANY_GUARANTOR");
+
+        if (candidateCard.PatientId != encounter.PatientId)
+            return Anomaly(context.Components, "PAYER_NOT_ELIGIBLE",
+                "Kartu penjamin perusahaan kandidat bukan milik pasien pada kunjungan ini.",
+                payerKind: "COMPANY_GUARANTOR");
+
+        return await _companyCoverageService.ResolveCandidateCoverageAsync(context, candidateCard, encounter, cancellationToken);
+    }
+
+    private async Task<BillingCoverageDecision> ResolveCompanyGuarantorAsync(
+        BillingCoverageContext context,
+        RegPatientEncounterGuarantor paymentSource,
+        CancellationToken cancellationToken)
+    {
+        if (!paymentSource.IsEligible)
+            return Anomaly(context.Components, "PAYER_NOT_ELIGIBLE",
+                "Penjamin kunjungan ini belum dinyatakan layak (eligible). Seluruh biaya untuk sementara dibebankan ke pasien. Periksa data penjamin di Registrasi sebelum menagih.",
+                payerKind: "COMPANY_GUARANTOR");
+        if (!paymentSource.IsPolicyActive)
+            return Anomaly(context.Components, "POLICY_INACTIVE",
+                "Polis atau kartu penjamin perusahaan kunjungan ini tercatat tidak aktif. Seluruh biaya untuk sementara dibebankan ke pasien. Periksa data penjamin di Registrasi sebelum menagih.",
+                payerKind: "COMPANY_GUARANTOR");
+        if (!paymentSource.CompanyGuarantorId.HasValue)
+            return Anomaly(context.Components, "COMPANY_GUARANTOR_MISSING",
+                "Perusahaan penjamin kunjungan ini belum dipilih. Seluruh biaya untuk sementara dibebankan ke pasien. Lengkapi data penjamin di Registrasi.",
+                payerKind: "COMPANY_GUARANTOR");
+
+        var encounter = await _dbContext.RegPatientEncounters.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == context.EncounterId && !x.IsDelete, cancellationToken);
+        if (encounter is null)
+            return Anomaly(context.Components, "ENCOUNTER_NOT_FOUND",
+                "Data kunjungan tidak ditemukan saat memeriksa penjamin. Hubungi tim teknis sebelum menagih.",
+                payerKind: "COMPANY_GUARANTOR");
+
+        return await _companyCoverageService.ResolveCoverageAsync(context, paymentSource, encounter, cancellationToken);
+    }
+
+    private async Task<BillingCoverageDecision> ResolveInsuranceAsync(
+        BillingCoverageContext context,
+        RegPatientEncounterGuarantor paymentSource,
+        CancellationToken cancellationToken)
+    {
+        if (!paymentSource.IsEligible)
+            return Anomaly(context.Components, "PAYER_NOT_ELIGIBLE",
+                "Penjamin kunjungan ini belum dinyatakan layak (eligible). Seluruh biaya untuk sementara dibebankan ke pasien. Periksa data penjamin di Registrasi sebelum menagih.",
+                payerKind: "INSURANCE");
+        if (!paymentSource.IsPolicyActive)
+            return Anomaly(context.Components, "POLICY_INACTIVE",
+                "Polis asuransi kunjungan ini tercatat tidak aktif. Seluruh biaya untuk sementara dibebankan ke pasien. Periksa data penjamin di Registrasi sebelum menagih.",
+                payerKind: "INSURANCE");
+        if (!paymentSource.InsuranceProviderId.HasValue)
+            return Anomaly(context.Components, "INSURANCE_PROVIDER_MISSING",
+                "Perusahaan asuransi kunjungan ini belum dipilih. Seluruh biaya untuk sementara dibebankan ke pasien. Lengkapi data penjamin di Registrasi.",
+                payerKind: "INSURANCE");
+
+        var encounter = await _dbContext.RegPatientEncounters.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == context.EncounterId && !x.IsDelete, cancellationToken);
+        if (encounter is null)
+            return Anomaly(context.Components, "ENCOUNTER_NOT_FOUND",
+                "Data kunjungan tidak ditemukan saat memeriksa penjamin. Hubungi tim teknis sebelum menagih.",
+                payerKind: "INSURANCE");
 
         var effectiveDate = context.CalculatedAt.UtcDateTime.Date;
         var providerId = paymentSource.InsuranceProviderId.Value;
@@ -145,6 +363,13 @@ public sealed class RegistrationBillingCoverageAdapter : IBillingCoverageAdapter
             .ThenBy(x => x.RuleCode)
             .ToListAsync(cancellationToken);
 
+        return CalculateInsuranceCoverageDecision(context, rules);
+    }
+
+    private static BillingCoverageDecision CalculateInsuranceCoverageDecision(
+        BillingCoverageContext context,
+        List<MstInsuranceCoverageRule> rules)
+    {
         decimal primary = 0;
         // BE-BKC-030/BKC-DES-027: TIDAK ADA satu jalur pun lagi di bawah yang mengisi variabel ini
         // - selalu bernilai 0 sesudah amendment ini. TETAP DIPERTAHANKAN (bukan dihapus): masih
@@ -239,7 +464,8 @@ public sealed class RegistrationBillingCoverageAdapter : IBillingCoverageAdapter
             outcomes,
             0,
             nonBillableResidual,
-            []);
+            [],
+            PayerKind: "INSURANCE");
     }
 
     private static bool Matches(MstInsuranceCoverageRule rule, BillingCoverageComponent component)
@@ -297,7 +523,7 @@ public sealed class RegistrationBillingCoverageAdapter : IBillingCoverageAdapter
     // Tanpa outcome eksplisit sama sekali - SETIAP komponen dianggap seluruhnya Patient oleh
     // pemanggil (lihat komentar BillingCoverageComponentOutcome), sesuai semantik SELF_PAY.
     private static BillingCoverageDecision SelfPay() =>
-        new(ContractVersion, "SELF_PAY", "NOT_APPLICABLE", 0, 0, 0, [], [], 0, 0, []);
+        new(ContractVersion, "SELF_PAY", "NOT_APPLICABLE", 0, 0, 0, [], [], 0, 0, [], PayerKind: "CASH");
 
     // BE-BKC-025/BKC-DEC-073/BKC-DES-010/011: menggantikan Unresolved(...) untuk jalur (4).
     // Precondition penjamin/encounter bermasalah TIDAK LAGI membuat komponen menggantung
@@ -310,7 +536,7 @@ public sealed class RegistrationBillingCoverageAdapter : IBillingCoverageAdapter
     // bukan lewat status baru, supaya konsumen lama yang hanya membaca PrimaryStatus tidak keliru
     // membacanya sebagai penolakan klaim.
     private static BillingCoverageDecision Anomaly(
-        IReadOnlyList<BillingCoverageComponent> components, string code, string message)
+        IReadOnlyList<BillingCoverageComponent> components, string code, string message, string payerKind = "CASH")
     {
         var coverable = components.Where(x => x.Coverable && x.Amount > 0).ToList();
         var outcomes = coverable
@@ -320,6 +546,6 @@ public sealed class RegistrationBillingCoverageAdapter : IBillingCoverageAdapter
 
         return new(
             ContractVersion, "NO_COVERAGE", "NOT_CONFIGURED", 0, 0, 0, [], outcomes,
-            amount, 0, [new BillingCoverageAnomaly(code, message)]);
+            amount, 0, [new BillingCoverageAnomaly(code, message)], PayerKind: payerKind);
     }
 }

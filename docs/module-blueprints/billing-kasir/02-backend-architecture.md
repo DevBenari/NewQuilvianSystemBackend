@@ -2286,3 +2286,1334 @@ Rincian skenarionya di [`testing/acceptance-test-matrix.md`](./testing/acceptanc
 | Backend SHA diaudit | `dd31bc91818566c0b53e1b68c0129f5a6cf01a2b` (branch `Yasmina`) |
 | Frontend SHA diaudit | `12f9242ce62e4d80dbdb719f80bb0e7a2848474c` (branch `QuilvianIntegrationFrontend`) |
 | Status | **draft** — approval `PC-DES-001`–`014` adalah tindakan manusia dan belum diberikan. Approval itu, ketika kelak diberikan, **bukan** otorisasi membuat maupun menjalankan migration |
+
+---
+
+# Amendment 11 September 2026 — Rumpun baru: Edit Tagihan & Multi-Payer Coverage
+
+> Revisi blueprint `1.1`, status **draft**. Masukan keputusan bisnis: **`MPY-DEC-001`–`MPY-DEC-010`**, seluruhnya `approved` Product/Domain Owner 11 September 2026 (`00-interview-decisions.md`, tiga amendment bertanggal sama). Masukan audit kemampuan: `01-existing-capability-map.md` § 19 (`CAP-33`–`CAP-41`), dibaca pada backend SHA `d295c4d5`.
+>
+> Keputusan arsitektur amendment ini diberi ID **`MPY-DES-001`–`MPY-DES-017`**. Seluruhnya keputusan **teknis** dalam wewenang desain; tidak ada keputusan bisnis baru di dalamnya. Statusnya **draft** — approval tetap tindakan manusia.
+>
+> **Bentuk blueprint tidak berubah.** `billing-kasir` tetap `SINGLE`. Rumpun ini masuk sebagai rumpun baru di dalam blueprint yang sama, mengikuti preseden Petty Cash (`MPY-DEC-002`).
+>
+> **Kelengkapan requirement.** `requirement-completeness-gate` **tidak** dijalankan terpisah untuk rumpun ini. Sebagai gantinya, `00-interview-decisions.md` (`MPY-DEC-001`–`010`, sepuluh keputusan berstatus `approved` beserta owner dan evidence) dan `01-existing-capability-map.md` § 19 (sembilan kemampuan berbukti source langsung) dipakai sebagai bukti kelengkapan. Ini **deviasi yang dicatat**, bukan langkah yang terlewat — mengikuti pola pencatatan yang sama seperti `domain_architecture_readiness_petty_cash` pada `blueprint-manifest.md`. Dasarnya: wawancara rumpun ini menutup satu konflik lintas modul nyata (`RWI-ENC-PAYER-001`) dan tiga open question sampai tuntas, sehingga tidak ada keputusan bisnis yang masih menggantung saat desain ini ditulis.
+
+## Tujuan dan batas amendment ini
+
+Kasir menerima tagihan yang payer-nya sudah ditetapkan saat pendaftaran. Kenyataan di loket tidak selalu serapi itu: pasien lupa membawa kartu asuransi lalu didaftarkan tunai, kartu penjamin perusahaan baru ditunjukkan saat hendak membayar, atau sebagian item memang disepakati dibayar sendiri walaupun kunjungannya berpenjamin. Hari ini tidak ada satu pun jalan memperbaiki itu dari layar kasir — `RegistrationManagement` **create-only** untuk payer (`CAP-33`, dikonfirmasi nihil endpoint ubah payer pada seluruh controller/service-nya), sehingga satu-satunya jalan adalah membatalkan kunjungan dan mendaftar ulang.
+
+Amendment ini merancang tiga kemampuan koreksi sebelum pembayaran — mengganti payer kunjungan, menentukan penanggung per item, dan menentukan item obat mana yang masuk tagihan — beserta dua master data dan satu dokumen tagihan untuk penjamin perusahaan.
+
+**Yang ada di dalam amendment ini**: dua tabel master baru, tiga tabel operasional baru, satu service baru milik `RegistrationManagement`, tiga service baru milik `billing-kasir`, satu service coverage baru, perluasan pada dua service coverage yang sudah ada, dan sepuluh endpoint baru.
+
+**Di luar scope, dan sengaja tidak disentuh**:
+
+| Yang tidak disentuh | Alasan |
+| --- | --- |
+| Skema satu-payer-per-encounter (`RegPatientEncounterGuarantor`, unique index `EncounterId`) | `MPY-DEC-001` menolak premis multi-payer dari dokumen sumber. Kontrak `RWI-ENC-PAYER-001` milik `RegistrationManagement` (approved, migration sudah live) **MUST NOT** diubah oleh rumpun ini |
+| Data dispensing Pharmacy (`PhmDrugUsage`, `PhmDrugUsageItem`, `PrescriptionDispensingService`) | `MPY-DEC-009`. Pharmacy adalah pemilik otoritatif fakta penyerahan obat; source-nya sendiri menyatakan *"Keputusan menagih beserta aturannya milik Billing"*. Edit Billing hanya menentukan inklusi finansial, **MUST NOT** membuat atau mengubah satu baris pun milik Pharmacy |
+| `ExcessAmount` / `ExcessStatus` pada kontrak kalkulasi | Tetap terkunci nol sesuai `BKC-DES-014`. Dukungan Company Guarantor **tidak** membukanya kembali: dengan satu payer aktif (`MPY-DEC-001`), tidak pernah ada payer kedua yang menerima excess |
+| Data penjamin pasien (`MstPatientInsurance`, `MstPatientCompanyGuarantor`) | `MPY-DEC-003` — Edit Asuransi hanya **memilih** dari yang sudah terdaftar, tidak pernah membuat atau mengubah kartu penjamin. Perubahan kartu tetap lewat Data Pasien/Registrasi |
+| Perutean AR dan debitur | `MPY-DES-014`. Reimbursement route hanya metadata; rumah sakit tetap menagih Company Guarantor |
+
+## Bukti as-is — dibaca langsung pada HEAD `d295c4d5`
+
+Seluruh baris di bawah dibaca dari source `.cs`, bukan dari prosa blueprint. Disiplin ini ditegakkan setelah dokumentasi internal modul ini terbukti tertinggal pada rename `Trx*`→`Reg*` (lihat catatan koreksi pada `00-interview-decisions.md`).
+
+| Fakta | Bukti |
+| --- | --- |
+| Relasi encounter→payer adalah satu-ke-satu, ditegakkan database | `RegPatientEncounterGuarantorConfiguration.cs` — `HasOne(x => x.Encounter).WithOne(x => x.PaymentSource)`, dan `HasIndex(x => x.EncounterId).IsUnique()` dengan komentar source *"Menjamin satu encounter hanya mempunyai satu sumber pembayaran."* Index ini **tidak difilter** — baris ber-`IsDelete=true` pun tetap menabrak |
+| `RegPatientEncounter.PaymentSource` adalah properti tunggal | `RegPatientEncounter.cs` — `public RegPatientEncounterGuarantor? PaymentSource { get; set; }`, bukan koleksi |
+| `Priority` dan `IsPrimary` sudah ada tetapi selalu bernilai tetap | `RegPatientEncounterGuarantor.cs` — `Priority = 1`, `IsPrimary = true` sebagai nilai bawaan; kode aplikasi hanya pernah menyisipkan satu baris |
+| Payer hanya dapat dibuat, tidak dapat diubah | `PatientEncounterController.cs` — `RegPatientEncounterGuarantor` hanya disentuh pada `CreateEncounterCoreAsync` (insert) dan `DeleteEncounter` (soft-delete ikutan). Nol `[HttpPut]`/`[HttpPatch]` menyasar payer |
+| Mesin coverage terikat pada payer aktif encounter | `InsuranceCoverageService.Resolve*Async(encounterId, …)` dan `RegistrationBillingCoverageAdapter.ResolveAsync` — keduanya mencari payer murni lewat `EncounterId`, tanpa parameter payer |
+| **Encounter Company Guarantor hari ini menghasilkan anomali yang menyesatkan** | `BillingCoverageAdapter.cs` baris 106 hanya bercabang `Cash` vs selain-Cash; baris 122 kemudian menolak karena `InsuranceProviderId` kosong dengan kode `INSURANCE_PROVIDER_MISSING` dan pesan *"Perusahaan asuransi kunjungan ini belum dipilih… Lengkapi data penjamin di Registrasi."* Padahal untuk Company Guarantor kolom itu memang **wajib kosong**. Akibatnya seluruh biaya jatuh ke pasien sambil menyuruh petugas melengkapi data yang sebenarnya sudah lengkap |
+| Dokumen Invoice Asuransi menolak Company Guarantor secara eksplisit | `BillingInsuranceInvoiceDocumentService.cs` baris 92-93 — cabang `CompanyGuarantor` hanya menambah peringatan *"Dokumen ini belum mendukung penjamin perusahaan"*, `Payer` tidak diisi, `IsPrintable` selalu `false` |
+| Jenis layanan sudah membedakan IGD dari rawat jalan | `BilInvoice.ServiceType` bertipe `string(30)`; nilainya dari `AdministrationFeeServiceTypes` — `Rajal`, `Igd`, `Otc`, `Ranap`. `BillingRefundService.cs:18` memakai `"RANAP"` apa adanya |
+| `BilInvoiceItem` tidak mengenal payer | `BilInvoiceItem.cs` — `Status` hanya `ACTIVE`/`VOIDED`; nol kolom payer/guarantor/payment-source |
+
+**Konsekuensi terpenting**: baris keenam bukan sekadar "belum didukung", melainkan **cacat yang sudah aktif hari ini**. Setiap kunjungan berpenjamin perusahaan yang tagihannya dihitung sekarang menghasilkan anomali palsu. Menutupnya adalah bagian wajib rumpun ini, bukan efek samping.
+
+## Bounded context, aggregate, dan transaction boundary
+
+| Konteks | Pemilik | Yang dipegang | Yang **MUST NOT** dilakukan konteks lain |
+| --- | --- | --- | --- |
+| Sumber pembayaran kunjungan | `RegistrationManagement` | `RegPatientEncounterGuarantor` beserta invariant satu baris per encounter dan seluruh kolom snapshot-nya | `billing-kasir` **MUST NOT** menulis ke `DbSet<RegPatientEncounterGuarantor>`. Satu-satunya jalan tulis adalah service milik `RegistrationManagement` (`MPY-DES-004`) |
+| Master pihak penjamin | `Administrator / MasterData` | `MstCompanyGuarantor`, `MstInsuranceProvider`, dan rute reimbursement perusahaan | `billing-kasir` membaca; pembuatan/perubahan lewat CRUD master milik `Administrator` |
+| Master aturan tanggungan | `HealthServices / MasterData` | `MstInsuranceCoverageRule` dan aturan tanggungan perusahaan | Mesin coverage membaca; tidak menulis |
+| Kartu penjamin pasien | `PatientManagement / MasterData` | `MstPatientInsurance`, `MstPatientCompanyGuarantor` | Rumpun ini **hanya membaca** untuk memvalidasi kandidat payer |
+| Fakta penyerahan obat | `PharmacyManagement` | `PhmDrugUsage`, `PhmDrugUsageItem` | Rumpun ini **hanya membaca**; inklusi finansial dicatat di tabel milik Billing sendiri |
+| Tagihan dan keputusan menagih | `billing-kasir` | `BilInvoice`, `BilInvoiceItem`, penanggung per item, disposisi penebusan, jejak perubahan payer, dokumen tagihan | — |
+
+**Transaction boundary.** Ketiga perintah edit membuka **satu** transaksi database yang mencakup seluruh langkah, termasuk pemanggilan lintas konteks:
+
+```text
+BEGIN
+  1. kunci baris invoice, periksa ExpectedRowVersion
+  2. periksa gerbang kelayakan edit (status OPEN, belum ada pembayaran berhasil)
+  3. panggil EncounterPaymentSourceService (Registration) bila perintahnya ganti payer
+  4. tulis/nonaktifkan penanggung per item dan disposisi penebusan
+  5. reset penanggung item yang payer-kind-nya tidak lagi tersedia (MPY-DES-009)
+  6. jalankan kalkulasi ulang otoritatif, hasilkan versi kalkulasi baru
+  7. catat jejak perintah beserta nilai sebelum/sesudah
+COMMIT   -- gagal di langkah mana pun => ROLLBACK penuh, nol perubahan tersimpan
+```
+
+Kedua konteks berbagi `ApplicationDbContext` yang sama, sehingga satu `IDbContextTransaction` cukup — tidak diperlukan distributed transaction maupun outbox. Ini alasan teknis mengapa orkestrasi ditempatkan di Billing dan bukan sebaliknya: Billing yang memegang invoice, row version, dan kalkulasi, sehingga ia pemegang transaksi yang wajar.
+
+## Kepemilikan data — baris baru
+
+| Kelompok data | Modul pemilik | Dipakai modul ini | Dibuat ulang di modul ini |
+| --- | --- | :---: | --- |
+| Sumber pembayaran kunjungan | Registration Management | Ya | **Tidak** — dibaca, dan ditulis hanya lewat service pemiliknya |
+| Kartu asuransi pasien | Patient Management | Ya | Tidak |
+| Kartu penjamin perusahaan pasien | Patient Management | Ya | Tidak |
+| Master perusahaan penjamin | Administrator / Master Data | Ya | Tidak |
+| Master perusahaan asuransi | Administrator / Master Data | Ya | Tidak |
+| **Rute reimbursement perusahaan penjamin** | Administrator / Master Data | Ya | **Ya — tabel baru**, karena menerangkan hubungan kontraktual antar dua master pihak dan belum ada tempatnya (`MPY-DEC-008`) |
+| Aturan tanggungan asuransi | Health Services / Master Data | Ya | Tidak |
+| **Aturan tanggungan perusahaan penjamin** | Health Services / Master Data | Ya | **Ya — tabel baru**, sejajar aturan tanggungan asuransi (`MPY-DEC-008`, `CAP-36`) |
+| Fakta penyerahan obat | Pharmacy Management | Ya | **Tidak** (`MPY-DEC-009`) |
+| **Penanggung per item tagihan** | Billing dan Kasir | Ya | **Ya — tabel baru** (`CAP-37`) |
+| **Disposisi penebusan item obat** | Billing dan Kasir | Ya | **Ya — tabel baru** (`CAP-37`) |
+| **Jejak perintah perubahan payer** | Billing dan Kasir | Ya | **Ya — tabel baru** (`MPY-DES-003`) |
+
+## Class diagram — perubahan payer kunjungan dan orkestrasinya
+
+```mermaid
+classDiagram
+    class RegPatientEncounter {
+        +Guid Id
+        +EncounterPaymentType PaymentType
+        +Guid PatientId
+    }
+    class RegPatientEncounterGuarantor {
+        +Guid Id
+        +Guid EncounterId
+        +EncounterPaymentType PaymentType
+        +Guid? PatientInsuranceId
+        +Guid? PatientCompanyGuarantorId
+        +bool IsEligible
+        +bool IsPolicyActive
+    }
+    class EncounterPaymentSourceService {
+        +SwitchAsync(command, ct)
+    }
+    class BillingPayerEditService {
+        +SwitchPaymentSourceAsync(...)
+        +ApplyItemPayerAssignmentsAsync(...)
+        +ApplyDrugDispositionAsync(...)
+    }
+    class BilInvoicePayerChangeCommand {
+        +Guid Id
+        +Guid InvoiceId
+        +string PreviousPayerKind
+        +string NewPayerKind
+        +Guid? PreviousCalculationVersionId
+        +Guid NewCalculationVersionId
+        +string Reason
+    }
+    class BilInvoice {
+        +Guid Id
+        +Guid EncounterId
+        +string Status
+        +string ServiceType
+    }
+    RegPatientEncounter "1" --> "1" RegPatientEncounterGuarantor : satu sumber pembayaran
+    EncounterPaymentSourceService --> RegPatientEncounterGuarantor : satu-satunya penulis
+    BillingPayerEditService --> EncounterPaymentSourceService : memanggil
+    BillingPayerEditService --> BilInvoicePayerChangeCommand : mencatat
+    BilInvoice "1" --> "0..*" BilInvoicePayerChangeCommand : riwayat perubahan payer
+```
+
+## Class diagram — penanggung per item dan penebusan obat
+
+```mermaid
+classDiagram
+    class BilInvoiceItem {
+        +Guid Id
+        +Guid InvoiceId
+        +Guid CategoryId
+        +string SourceDomain
+        +string Status
+    }
+    class BilInvoiceItemPayerAssignment {
+        +Guid Id
+        +Guid InvoiceItemId
+        +Guid? EncounterGuarantorId
+        +string PayerKind
+        +string AssignmentSource
+        +string? Reason
+        +bool IsActive
+    }
+    class BilInvoiceItemBillingDisposition {
+        +Guid Id
+        +Guid InvoiceItemId
+        +string Disposition
+        +string DecisionSource
+        +string? Reason
+        +bool IsActive
+    }
+    class BilCalculationVersion {
+        +Guid Id
+        +Guid InvoiceId
+        +int VersionNo
+    }
+    BilInvoiceItem "1" --> "0..*" BilInvoiceItemPayerAssignment : tepat satu aktif
+    BilInvoiceItem "1" --> "0..*" BilInvoiceItemBillingDisposition : tepat satu aktif
+    BilInvoiceItem "1" --> "0..*" BilCalculationVersion : hasil perhitungan
+```
+
+## Class diagram — master data penjamin perusahaan
+
+```mermaid
+classDiagram
+    class MstCompanyGuarantor {
+        +Guid Id
+        +string CompanyGuarantorCode
+        +string CompanyGuarantorName
+        +bool IsUsingHospitalTariff
+    }
+    class MstInsuranceProvider {
+        +Guid Id
+        +string InsuranceProviderName
+    }
+    class MstCompanyGuarantorReimbursementRoute {
+        +Guid Id
+        +Guid CompanyGuarantorId
+        +string RouteType
+        +Guid? InsuranceProviderId
+        +bool IsDefault
+        +int Priority
+    }
+    class MstCompanyGuarantorCoverageRule {
+        +Guid Id
+        +Guid CompanyGuarantorId
+        +string ItemType
+        +string CoverageStatus
+        +decimal CoveragePercent
+        +string? EmployeeGrade
+        +int Priority
+    }
+    class MstPatientCompanyGuarantor {
+        +Guid Id
+        +Guid PatientId
+        +Guid CompanyGuarantorId
+        +string? GradeLevel
+        +bool IsEligible
+    }
+    MstCompanyGuarantor "1" --> "0..*" MstCompanyGuarantorReimbursementRoute : rute penggantian biaya
+    MstCompanyGuarantorReimbursementRoute "0..*" --> "0..1" MstInsuranceProvider : mitra, boleh kosong
+    MstCompanyGuarantor "1" --> "0..*" MstCompanyGuarantorCoverageRule : aturan tanggungan
+    MstCompanyGuarantor "1" --> "0..*" MstPatientCompanyGuarantor : kartu karyawan
+```
+
+## Keputusan arsitektur amendment ini
+
+| ID | Keputusan | Dasar dan alasan |
+| --- | --- | --- |
+| `MPY-DES-001` | **Satu endpoint generik** untuk ganti payer, bukan tiga endpoint per tipe target. Request membawa `PaymentType` beserta id target yang sesuai | Menutup `MPY-CQ-01`. Modelnya memang satu baris dengan satu `PaymentType` dan tiga himpunan FK yang saling eksklusif; `BuildPaymentSourceAsync` yang sudah ada pun satu method bercabang per tipe. Tiga endpoint akan menggandakan tiga kali orkestrasi validasi, snapshot, dan kalkulasi ulang yang isinya identik |
+| `MPY-DES-002` | Ganti payer **memperbarui baris yang ada di tempat**, bukan menyisipkan baris baru lalu menonaktifkan yang lama | Unique index `EncounterId` **tidak difilter**, sehingga baris lama yang di-soft-delete pun tetap menabrak. Menyisipkan baris baru mustahil tanpa mengubah index itu — dan mengubahnya berarti menyentuh `RWI-ENC-PAYER-001` yang `MPY-DEC-001` larang |
+| `MPY-DES-003` | Jejak perubahan payer disimpan pada tabel **milik Billing** (`BilInvoicePayerChangeCommand`), bukan sebagai kolom riwayat di tabel Registration | Konsekuensi langsung `MPY-DES-002`: baris diperbarui di tempat, sehingga nilai lama hilang tanpa tabel terpisah. Ditaruh di Billing karena perintahnya lahir dari konteks Billing beserta row version dan idempotency-nya, mencatat sekaligus akibat kalkulasinya, dan menjaga permukaan lintas modul tetap **satu service saja** |
+| `MPY-DES-004` | Penulisan `RegPatientEncounterGuarantor` hanya lewat `EncounterPaymentSourceService` **milik `RegistrationManagement`** | `MPY-DEC-007`. `CAP-33` mengonfirmasi service ini belum ada sama sekali, sehingga ini kapabilitas baru di modul orang lain — **wajib approval Muhammad Hamzah (`MPY-DEC-010`) sebelum file pertamanya ditulis** |
+| `MPY-DES-005` | Mesin coverage diberi **parameter konteks payer opsional**, bukan service baru yang menyalin logikanya | `CAP-34`. Menambah parameter opsional bersifat backward-compatible: seluruh pemanggil yang ada tidak berubah. Menyalin logika matching rule akan melahirkan dua mesin yang pasti menyimpang setelah revisi pertama — persis `Conflict` yang sudah tercatat di `CAP-05` |
+| `MPY-DES-006` | `CompanyGuarantorCoverageService` baru, **sejajar dan setempat** dengan `InsuranceCoverageService` | Dua mesin coverage sebaiknya berada di satu folder supaya adapter punya satu tempat mencari, dan supaya pembaca berikutnya menemukan keduanya bersamaan |
+| `MPY-DES-007` | `RegistrationBillingCoverageAdapter` menjadi **dispatcher per jenis payer**; anomali `INSURANCE_PROVIDER_MISSING` **tidak lagi** dikenakan pada encounter berpenjamin perusahaan | Menutup cacat as-is yang sudah aktif hari ini (lihat Bukti as-is baris keenam). Tanpa ini, dukungan Company Guarantor tidak akan pernah terlihat oleh kalkulasi |
+| `MPY-DES-008` | `BilInvoiceItemPayerAssignment`: tepat satu baris aktif per item, dijaga **filtered unique index** (`WHERE IsActive AND NOT IsDelete`); perubahan menonaktifkan baris lama dan menyisipkan baris baru | Berbeda dari `MPY-DES-002` karena index ini milik kita sendiri, sehingga boleh difilter. Bentuk append-only membuat riwayat penanggung per item terbaca tanpa tabel audit tambahan |
+| `MPY-DES-009` | Ganti payer **mereset** penanggung item yang jenisnya tidak lagi tersedia menjadi Pribadi, bertanda `AUTO`, beserta alasan otomatis; jumlahnya dikembalikan sebagai peringatan pada response | Jalur pengecualian yang paling mudah terlewat. Tanpa aturan ini, kunjungan yang payer-nya berubah dari Asuransi ke Penjamin akan menyisakan item bertanda "Asuransi" yang menunjuk payer yang sudah tidak ada — angka tagihan benar, tetapi keterangannya berbohong |
+| `MPY-DES-010` | `BilInvoiceItemBillingDisposition` terpisah dari penanggung item, dengan filtered unique index yang sama bentuknya | `MPY-DEC-009` dan `DEC-06` dokumen sumber. "Siapa yang menanggung item ini" dan "apakah item ini masuk tagihan" adalah dua pertanyaan berbeda; menyatukannya membuat keadaan ambigu ketika obat sah secara klinis tetapi tidak ditebus |
+| `MPY-DES-011` | Kelayakan Edit Billing memakai **`BilInvoice.ServiceType` yang sudah ada**, dan `IGD` diperlakukan sebagai nilai tersendiri — bukan digabung ke `RAJAL` | `MPY-DEC-009` mewajibkan pemisahan IGD. Sinyalnya sudah tersedia dan sudah terbukti dipakai (`AdministrationFeeServiceTypes.Rajal/Igd/Otc/Ranap`), sehingga tidak perlu sinyal baru |
+| `MPY-DES-012` | Item obat dikenali lewat **flag kategori** pada master kategori item billing, bukan pencocokan teks deskripsi | Pencocokan teks akan salah pada nama obat yang mengandung kata lain, dan diam-diam berubah perilakunya setiap kali nama item diubah |
+| `MPY-DES-013` | Dokumen penjamin perusahaan dibuat sebagai **DTO, service, dan endpoint tersendiri**, meniru pola Invoice Asuransi — bukan menambah cabang pada service yang sudah ada | `MPY-DEC-006`, `CAP-38`. Menambah cabang akan membuat satu service melayani dua dokumen dengan dua pemilik debitur berbeda, dan setiap perubahan salah satunya berisiko merusak yang lain |
+| `MPY-DES-014` | Rute reimbursement hanya **metadata pada dokumen**; debitur rumah sakit tetap perusahaan penjamin, dan perutean AR tidak berubah sama sekali | Mitra reimbursement adalah urusan perusahaan dengan asuransinya, bukan piutang rumah sakit. Menjadikannya debitur akan memindahkan AR ke pihak yang tidak punya kontrak dengan rumah sakit |
+| `MPY-DES-015` | Satu endpoint **read model gabungan** (`edit-context`) menyajikan invoice, kalkulasi, pilihan payer, penanggung item, disposisi, dan kapabilitas dalam satu panggilan | Tanpa ini layar edit membutuhkan enam panggilan terpisah dan berisiko menampilkan potongan data dari dua waktu berbeda |
+| `MPY-DES-016` | Seluruh mutasi rumpun ini melewati **satu service orkestrator** (`BillingPayerEditService`) yang memegang batas transaksi; controller tetap tipis | Konvensi repository (`QBE-SVC-001`): controller **MUST NOT** mengakses `ApplicationDbContext` langsung |
+| `MPY-DES-017` | **Tidak ada ember rupiah baru.** Porsi penjamin tetap satu ember; yang ditambahkan adalah **penanda jenis payer** pada breakdown sehingga antarmuka dapat melabelinya "Penjamin" atau "Asuransi" dengan benar | Dokumen sumber meminta Company Guarantor tidak disamarkan sebagai "Asuransi". Dengan satu payer aktif (`MPY-DEC-001`), dua ember terpisah akan selalu membuat salah satunya nol pada setiap kunjungan — itu kolom kosong yang menyesatkan, bukan informasi. Melabeli ember yang sudah ada menyelesaikan kebutuhan yang sama tanpa mengubah arity kontrak kalkulasi |
+
+## Penjelasan setiap class yang baru atau berubah
+
+### `MstCompanyGuarantorReimbursementRoute`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/Administrator/MasterData/Models/MstCompanyGuarantorReimbursementRoute.cs` |
+| Kategori | Master / Reference |
+| Tanggung jawab utama | Mencatat bagaimana sebuah perusahaan penjamin mendapatkan penggantian biaya: menanggung sendiri, atau lewat perusahaan asuransi mitra. Keterangan ini muncul pada dokumen tagihan perusahaan, dan tidak mengubah siapa yang ditagih |
+| Field penting | `CompanyGuarantorId`, `RouteType`, `InsuranceProviderId?`, `Priority`, `IsDefault`, `EffectiveStartDate?`, `EffectiveEndDate?` |
+| Navigation dan relasi | Milik `MstCompanyGuarantor`; menunjuk `MstInsuranceProvider` secara opsional |
+| Pemakaian dalam alur bisnis | Dibaca saat dokumen tagihan perusahaan dicetak; dikelola admin master data |
+| Catatan desain | `RouteType = SELF` **MUST** berpasangan dengan `InsuranceProviderId` kosong, dan `INSURANCE_PROVIDER` **MUST** berpasangan dengan provider aktif. Maksimal satu rute bawaan aktif per perusahaan. **MUST NOT** dipakai sebagai dasar memindahkan piutang ke asuransi mitra (`MPY-DES-014`) |
+| Ekuivalen model lama | — |
+
+### `MstCompanyGuarantorCoverageRule`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/HealthServices/MasterData/Models/MstCompanyGuarantorCoverageRule.cs` |
+| Kategori | Master / Reference |
+| Tanggung jawab utama | Menentukan berapa bagian biaya yang ditanggung perusahaan penjamin untuk satu jenis item, kelas perawatan, paket manfaat, atau golongan karyawan tertentu |
+| Field penting | `CompanyGuarantorId`, `RuleCode`, `ItemType`, `TariffId?`, `DrugId?`, `DrugCategoryId?`, `ProcedureId?`, `TariffCategoryId?`, `PatientClassId?`, `BenefitPlanCode?`, `EmployeeGrade?`, `CoverageStatus`, `CoveragePercent`, `MaxCoverageAmount?`, `CoPaymentPercent?`, `MaxQuantityPerVisit?`, `MaxAmountPerVisit?`, `Priority`, `EffectiveStartDate?`, `EffectiveEndDate?` |
+| Navigation dan relasi | Milik `MstCompanyGuarantor`; menunjuk master tarif/obat/tindakan/kategori/kelas secara opsional |
+| Pemakaian dalam alur bisnis | Dibaca mesin tanggungan perusahaan setiap kali tagihan dihitung ulang |
+| Catatan desain | Strukturnya **cetakan 1:1** dari `MstInsuranceCoverageRule` dengan kunci `CompanyGuarantorId` (`CAP-36`). `CoPaymentPercent` **MUST** diturunkan server dari `CoveragePercent` seperti pola aslinya — masukan klien untuk field itu diabaikan. `EmployeeGrade` adalah satu-satunya dimensi tambahan, karena master perusahaan memang mengenal tanggungan per golongan |
+| Ekuivalen model lama | — |
+
+### `BilInvoiceItemPayerAssignment`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/HealthServices/BillingManagement/Billing/Models/BilInvoiceItemPayerAssignment.cs` |
+| Kategori | Transaksi Billing |
+| Tanggung jawab utama | Menyimpan siapa yang menanggung satu baris biaya: pasien sendiri, asuransi, atau penjamin perusahaan |
+| Field penting | `InvoiceItemId`, `EncounterGuarantorId?`, `PayerKind`, `AssignmentSource`, `Reason?`, `IsActive` |
+| Navigation dan relasi | Milik `BilInvoiceItem`; menunjuk baris sumber pembayaran kunjungan secara opsional |
+| Pemakaian dalam alur bisnis | Dibuat otomatis saat item lahir, diubah kasir lewat Edit Status Tagihan, dibaca mesin kalkulasi |
+| Catatan desain | Tepat satu baris aktif per item, dijaga filtered unique index. `EncounterGuarantorId` **MUST** kosong untuk `CASH`. Baris lama **MUST NOT** ditimpa — dinonaktifkan, lalu baris baru disisipkan, sehingga riwayatnya terbaca |
+| Ekuivalen model lama | — |
+
+### `BilInvoiceItemBillingDisposition`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/HealthServices/BillingManagement/Billing/Models/BilInvoiceItemBillingDisposition.cs` |
+| Kategori | Transaksi Billing |
+| Tanggung jawab utama | Menyimpan keputusan apakah satu baris obat masuk tagihan atau tidak, tanpa menyentuh catatan penyerahan obat milik Farmasi |
+| Field penting | `InvoiceItemId`, `Disposition`, `DecisionSource`, `Reason?`, `IsActive` |
+| Navigation dan relasi | Milik `BilInvoiceItem` |
+| Pemakaian dalam alur bisnis | Diubah kasir lewat Edit Billing; dibaca mesin kalkulasi untuk menentukan nominal yang layak dihitung |
+| Catatan desain | Item ber-`Disposition = EXCLUDED` dikeluarkan dari nominal yang layak **sebelum** mesin tanggungan dipanggil, sehingga tidak pernah muncul sebagai porsi penjamin maupun porsi pasien. **MUST NOT** dipakai untuk item non-obat |
+| Ekuivalen model lama | — |
+
+### `BilInvoicePayerChangeCommand`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/HealthServices/BillingManagement/Billing/Models/BilInvoicePayerChangeCommand.cs` |
+| Kategori | Transaksi Billing / jejak perintah |
+| Tanggung jawab utama | Mencatat setiap perubahan payer kunjungan yang dilakukan dari layar kasir beserta nilai sebelum dan sesudahnya |
+| Field penting | `InvoiceId`, `EncounterId`, `PreviousPayerKind`, `NewPayerKind`, `PreviousPayerNameSnapshot`, `NewPayerNameSnapshot`, `PreviousCalculationVersionId?`, `NewCalculationVersionId`, `ResetAssignmentCount`, `Reason`, `IdempotencyKey`, `CorrelationId`, `CausationId` |
+| Navigation dan relasi | Milik `BilInvoice` |
+| Pemakaian dalam alur bisnis | Ditulis satu baris setiap perintah ganti payer berhasil; dibaca auditor dan layar riwayat |
+| Catatan desain | Append-only. **MUST NOT** diperbarui maupun dihapus. Mengikuti pola `BilCashierShiftCommand` yang sudah ada di modul ini |
+| Ekuivalen model lama | — |
+
+### `EncounterPaymentSourceService`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/HealthServices/RegistrationManagement/Services/EncounterPaymentSourceService.cs` |
+| Kategori | Service — **milik `RegistrationManagement`, bukan `billing-kasir`** |
+| Tanggung jawab utama | Satu-satunya penulis sumber pembayaran kunjungan sesudah kunjungan dibuat. Memvalidasi kandidat payer, membangun ulang seluruh kolom snapshot, dan menjaga invariant satu payer per kunjungan |
+| Dipanggil oleh | `BillingPayerEditService` |
+| Membuka transaksi database | **Tidak** — ikut transaksi pemanggil, supaya perubahan payer dan kalkulasi ulang menjadi satu kesatuan |
+| Catatan desain | Memakai ulang logika snapshot yang sudah ada pada `BuildPaymentSourceAsync` alih-alih menyalinnya. **Pembuatan file ini menunggu approval pemilik `RegistrationManagement` (`MPY-DEC-010`)** |
+| Ekuivalen model lama | — |
+
+### `CompanyGuarantorCoverageService`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/HealthServices/ClinicalManagement/Services/CompanyGuarantorCoverageService.cs` |
+| Kategori | Service — mesin tanggungan |
+| Tanggung jawab utama | Menghitung berapa bagian satu item yang ditanggung perusahaan penjamin, memakai aturan tanggungan perusahaan |
+| Dipanggil oleh | `RegistrationBillingCoverageAdapter` |
+| Membuka transaksi database | Tidak — hanya membaca |
+| Catatan desain | Aturan otoritatifnya **MUST** berasal dari aturan tanggungan perusahaan. Rute reimbursement ke asuransi mitra **MUST NOT** dipakai sebagai alasan memakai aturan tanggungan milik asuransi itu (`MPY-DES-014`). Bila perusahaan tidak punya buku tarif sendiri, dipakai tarif rumah sakit |
+| Ekuivalen model lama | — |
+
+### `BillingPayerEditService`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/HealthServices/BillingManagement/Billing/Services/BillingPayerEditService.cs` |
+| Kategori | Service — orkestrator |
+| Tanggung jawab utama | Menjalankan ketiga perintah edit sebagai satu kesatuan: gerbang kelayakan, perubahan data, reset penanggung yang tidak lagi sah, kalkulasi ulang, dan pencatatan jejak |
+| Dipanggil oleh | `BillingInvoicesController` |
+| Membuka transaksi database | **Ya** — satu transaksi untuk seluruh langkah |
+| Catatan desain | Pemegang gerbang `MPY-DEC-005` (satu kasir, tanpa persetujuan kedua) dan gerbang keamanan edit (invoice `OPEN`, belum ada pembayaran berhasil). **MUST NOT** menulis `RegPatientEncounterGuarantor` langsung |
+| Ekuivalen model lama | — |
+
+### `BillingCompanyGuarantorInvoiceDocumentService`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Baru` |
+| **Lokasi file** | `Areas/HealthServices/BillingManagement/Billing/Services/BillingCompanyGuarantorInvoiceDocumentService.cs` |
+| Kategori | Service — dokumen baca-saja |
+| Tanggung jawab utama | Menyusun lembar tagihan yang ditujukan kepada perusahaan penjamin, beserta identitas karyawan dan keterangan rute reimbursement |
+| Dipanggil oleh | `BillingInvoicesController` |
+| Membuka transaksi database | Tidak |
+| Catatan desain | Meniru pola dokumen Invoice Asuransi: baca-saja, mengambil dari versi kalkulasi terkunci bila invoice tidak lagi `OPEN`. **MUST NOT** menghitung ulang tanggungan sendiri |
+| Ekuivalen model lama | — |
+
+### `RegistrationBillingCoverageAdapter`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Diperbarui` |
+| **Lokasi file** | `Areas/HealthServices/BillingManagement/Billing/Services/BillingCoverageAdapter.cs` |
+| Kategori | Service — adapter tanggungan |
+| Yang berubah | Menjadi dispatcher per jenis payer; menghormati penanggung per item dan disposisi penebusan; membawa penanda jenis payer pada hasil; **berhenti** mengeluarkan anomali `INSURANCE_PROVIDER_MISSING` untuk kunjungan berpenjamin perusahaan |
+| Catatan desain | Nilai `ContractVersion` **MUST** dinaikkan karena perilaku perhitungannya berubah. Kunjungan tunai dan kunjungan berasuransi **MUST** menghasilkan angka yang identik dengan sebelum amendment ini — diuji sebagai regresi |
+| Ekuivalen model lama | — |
+
+### `InsuranceCoverageService` dan `EncounterInsuranceService`
+
+| Aspek | Penjelasan |
+| --- | --- |
+| **Status** | `Diperbarui` |
+| **Lokasi file** | `Areas/HealthServices/ClinicalManagement/Services/InsuranceCoverageService.cs`, `.../EncounterInsuranceService.cs` |
+| Yang berubah | Menerima konteks payer eksplisit sebagai parameter **opsional**; `EncounterInsuranceService` mendapat cara membangun konteks dari kartu asuransi kandidat tanpa menyentuh kunjungan |
+| Catatan desain | Backward-compatible: seluruh pemanggil yang ada tidak berubah sama sekali. Membangun konteks kandidat **MUST NOT** menulis apa pun — ia melayani pratinjau perbandingan |
+| Ekuivalen model lama | — |
+
+### Controller
+
+| Controller | Status | Lokasi file | Endpoint yang diurus | Service yang dipakai |
+| --- | --- | --- | --- | --- |
+| `BillingInvoicesController` | `Diperbarui` | `Areas/HealthServices/BillingManagement/Billing/Controllers/BillingInvoicesController.cs` | `edit-context`, pratinjau perbandingan, ganti payer, penanggung item, disposisi obat, dokumen penjamin perusahaan | `BillingPayerEditService`, `BillingCompanyGuarantorInvoiceDocumentService` |
+| `CompanyGuarantorReimbursementRouteController` | `Baru` | `Areas/Administrator/MasterData/Controllers/CompanyGuarantorReimbursementRouteController.cs` | CRUD rute reimbursement | `CompanyGuarantorReimbursementRouteService` |
+| `CompanyGuarantorCoverageRuleController` | `Baru` | `Areas/HealthServices/MasterData/Controllers/CompanyGuarantorCoverageRuleController.cs` | CRUD aturan tanggungan perusahaan | `CompanyGuarantorCoverageRuleService` |
+
+> **Peringatan koordinasi.** `BillingInvoicesController.cs` beserta `BillingInvoiceDtos.cs` dan `BillingInvoiceService.cs` **sudah memiliki perubahan yang belum di-commit** dari pekerjaan lain (lihat `01-existing-capability-map.md` § 19.0). Implementer **MUST** menyelaraskan urutan commit dengan pemilik pekerjaan itu lebih dulu, dan **MUST NOT** membuang atau menimpa perubahan tersebut.
+
+## Arsitektur folder target
+
+```text
+Areas/Administrator/MasterData/
+├── Models/
+│   └── MstCompanyGuarantorReimbursementRoute.cs          # baru
+├── Controllers/
+│   └── CompanyGuarantorReimbursementRouteController.cs   # baru
+├── DTOs/
+│   └── CompanyGuarantorReimbursementRouteDtos.cs         # baru
+└── Services/
+    └── CompanyGuarantorReimbursementRouteService.cs      # baru
+
+Areas/HealthServices/MasterData/
+├── Models/
+│   └── MstCompanyGuarantorCoverageRule.cs                # baru
+├── Controllers/
+│   └── CompanyGuarantorCoverageRuleController.cs         # baru
+├── DTOs/
+│   └── CompanyGuarantorCoverageRuleDtos.cs               # baru
+└── Services/
+    └── CompanyGuarantorCoverageRuleService.cs            # baru
+
+Areas/HealthServices/RegistrationManagement/Services/
+└── EncounterPaymentSourceService.cs                      # baru — MILIK MODUL LAIN, tunggu approval
+
+Areas/HealthServices/ClinicalManagement/Services/
+├── CompanyGuarantorCoverageService.cs                    # baru
+├── InsuranceCoverageService.cs                           # diperbarui
+└── EncounterInsuranceService.cs                          # diperbarui
+
+Areas/HealthServices/BillingManagement/Billing/
+├── Models/
+│   ├── BilInvoiceItemPayerAssignment.cs                  # baru
+│   ├── BilInvoiceItemBillingDisposition.cs               # baru
+│   └── BilInvoicePayerChangeCommand.cs                   # baru
+├── Dtos/
+│   ├── BillingPayerEditDtos.cs                           # baru
+│   └── BillingCompanyGuarantorInvoiceDtos.cs             # baru
+├── Services/
+│   ├── BillingPayerEditService.cs                        # baru
+│   ├── BillingCompanyGuarantorInvoiceDocumentService.cs  # baru
+│   └── BillingCoverageAdapter.cs                         # diperbarui
+└── Controllers/
+    └── BillingInvoicesController.cs                      # diperbarui — ADA PERUBAHAN BELUM COMMIT
+
+Repositories/Configurations/
+├── Administrator/MasterData/
+│   └── MstCompanyGuarantorReimbursementRouteConfiguration.cs   # baru
+├── HealthServices/MasterData/
+│   └── MstCompanyGuarantorCoverageRuleConfiguration.cs         # baru
+└── HealthServices/BillingManagement/Billing/
+    ├── BilInvoiceItemPayerAssignmentConfiguration.cs           # baru
+    ├── BilInvoiceItemBillingDispositionConfiguration.cs        # baru
+    └── BilInvoicePayerChangeCommandConfiguration.cs            # baru
+```
+
+File configuration **tidak** berada di dalam `Areas/`; ia terpisah di bawah `Repositories/Configurations/<Domain>/<SubDomain>/` sesuai aturan struktur backend.
+
+## Status model dan dampak migration
+
+| Model | Status | Kolom yang berubah | Dampak migration |
+| --- | --- | --- | --- |
+| `MstCompanyGuarantorReimbursementRoute` | `Baru` | seluruh kolom | Tabel baru |
+| `MstCompanyGuarantorCoverageRule` | `Baru` | seluruh kolom | Tabel baru |
+| `BilInvoiceItemPayerAssignment` | `Baru` | seluruh kolom | Tabel baru |
+| `BilInvoiceItemBillingDisposition` | `Baru` | seluruh kolom | Tabel baru |
+| `BilInvoicePayerChangeCommand` | `Baru` | seluruh kolom | Tabel baru |
+| `RegPatientEncounterGuarantor` | `Sudah ada` | **nol kolom berubah** | **Nol** — hanya cara menulisnya yang berubah, bukan bentuknya |
+| `BilInvoice`, `BilInvoiceItem` | `Sudah ada` | **nol kolom berubah** | **Nol** — penanggung dan disposisi tinggal di tabel terpisah |
+| `BilCalculationVersion` | `Sudah ada` | **nol kolom berubah** | **Nol** — penanda jenis payer dibawa pada response dan snapshot, bukan kolom baru (`MPY-DES-017`) |
+
+**Lima tabel baru, satu migration, nol perubahan pada tabel yang sudah ada.** Ini konsekuensi langsung `MPY-DEC-001`: karena skema satu-payer tidak diubah, tidak ada satu pun kolom existing yang perlu bergerak.
+
+## Rencana migration, backfill, dan rollback
+
+| Aspek | Rencana |
+| --- | --- |
+| Urutan | Satu migration tunggal berisi kelima tabel. Tidak ada ketergantungan urutan di dalamnya karena kelimanya hanya menunjuk tabel yang sudah ada |
+| Tanpa mematikan layanan | **Ya.** Seluruhnya `CREATE TABLE` baru; nol `ALTER` pada tabel yang sedang dipakai |
+| Pengisian data lama | **Tidak ada backfill saat migration.** Penanggung item dan disposisi diisi malas: item tanpa baris aktif diperlakukan mesin kalkulasi sebagai `AUTO` mengikuti payer kunjungan — persis perilaku hari ini. Ini membuat seluruh invoice lama tetap menghasilkan angka yang sama tanpa disentuh |
+| Langkah mundur | `DROP TABLE` kelimanya. Karena tidak ada kolom existing yang berubah dan tidak ada backfill, mundur tidak menghilangkan data mana pun yang sudah ada sebelum amendment ini |
+| Perilaku hapus relasi | Seluruh FK memakai `Restrict`, mengikuti konvensi repository untuk relasi finansial |
+
+Pembuatan dan eksekusi migration tetap memerlukan otorisasi terpisah dan **tidak** diberikan oleh approval desain ini.
+
+## Rencana data master awal
+
+| Master | Isi minimum | Sumber nilai |
+| --- | --- | --- |
+| `MstCompanyGuarantorReimbursementRoute` | Satu rute bawaan per perusahaan penjamin yang sudah terdaftar. Perusahaan yang menanggung sendiri diisi `SELF` dengan mitra kosong | Kontrak kerja sama perusahaan, diisi admin master data |
+| `MstCompanyGuarantorCoverageRule` | Sekurang-kurangnya satu aturan berlaku umum per perusahaan penjamin aktif — misalnya seluruh jenis item ditanggung 100% dengan batas per kunjungan sesuai kontrak | Kontrak kerja sama perusahaan |
+
+**Tanpa isi minimum ini, kunjungan berpenjamin perusahaan akan dihitung nol tertanggung** — seluruh biaya jatuh ke pasien. Pengisian master **MUST** menjadi prasyarat aktivasi fitur, bukan pekerjaan menyusul.
+
+## Yang sengaja tidak dibuat
+
+| Yang ditolak | Alasan |
+| --- | --- |
+| Kolom `PayerKind` pada `BilInvoiceItem` | Penanggung item perlu riwayat, alasan, dan penanda sumber keputusan. Satu kolom tidak dapat menyimpan keempatnya, dan menambahkannya mengubah tabel inti yang dipakai banyak konsumen |
+| Tabel riwayat payer di sisi `RegistrationManagement` | Menambah tabel ke modul yang bukan milik kita memperlebar permukaan lintas modul dari satu service menjadi satu service ditambah satu tabel. Jejaknya dicatat di Billing (`MPY-DES-003`) |
+| Ember rupiah `CompanyGuarantorAmount` tersendiri | Dengan satu payer aktif, ember itu selalu nol pada kunjungan berasuransi dan sebaliknya (`MPY-DES-017`) |
+| `MstCompanyTariff` (buku tarif perusahaan) | Belum ada requirement yang menuntutnya, dan `MstCompanyGuarantor` sudah punya `IsUsingHospitalTariff`. Membuat buku tarif baru tanpa kebutuhan berarti mengarang master |
+| Endpoint ganti penjamin perusahaan pasien dari layar kasir | `MPY-DEC-003` dan dokumen sumber: perubahan kartu penjamin tetap di Data Pasien/Registrasi. Kasir hanya memilih dari yang sudah terdaftar |
+| Persetujuan berjenjang untuk perubahan payer | `MPY-DEC-005` memutuskan satu kasir cukup. Menambahkannya berarti mengarang aturan bisnis |
+| Nomor seri tersendiri untuk dokumen penjamin perusahaan | `CAP-41` — dokumen Invoice Asuransi pun memakai ulang nomor invoice, dan komentar source-nya menyatakan dokumen ini bukan surat klaim formal |
+
+## Security, privacy, exception, dan concurrency
+
+| Aspek | Rancangan |
+| --- | --- |
+| Hak akses baca dokumen | `BillingInvoice : Read` dipakai ulang untuk dokumen penjamin perusahaan (`MPY-DEC-006`), mengikuti preseden `BKC-DEC-092` |
+| Hak akses mutasi | Ketiga perintah edit memakai butir hak akses tulis pada `BillingInvoice`; kedua master baru mendapat Resource sendiri. Pendaftaran Resource bersifat otomatis lewat pemindaian atribut (`CAP-39`) — tidak ada berkas seed yang perlu disunting |
+| Kolom sensitif | Nomor polis, nomor kartu, nomor karyawan, dan nama karyawan bertanda sensitif. **MUST NOT** masuk payload logger, dan nama berkas dokumen memakai nomor tagihan, bukan nama pasien atau nama perusahaan |
+| Gerbang kelayakan edit | Invoice berstatus `OPEN`, belum ada pembayaran berhasil, tidak sedang finalisasi. Di luar itu, perintah ditolak — bukan dikerjakan sebagian |
+| Concurrency | `ExpectedRowVersion` wajib pada ketiga perintah. Versi basi menghasilkan penolakan konflik **tanpa satu pun perubahan tersimpan**, karena seluruh langkah berada dalam satu transaksi |
+| Idempotency | `Idempotency-Key` wajib pada ketiga perintah, mengikuti pola perintah finansial yang sudah ada di modul ini |
+| Jejak audit | Perubahan payer dicatat pada tabel jejak perintah beserta nilai sebelum/sesudah dan versi kalkulasi. Perubahan penanggung item dan disposisi terbaca dari baris nonaktif yang tidak pernah dihapus |
+| Jalur pengecualian yang dirancang | Kandidat payer tidak terdaftar milik pasien; kartu penjamin kedaluwarsa pada tanggal layanan; perusahaan penjamin belum punya aturan tanggungan; penanggung item menunjuk jenis payer yang tidak lagi tersedia sesudah ganti payer; item obat pada kunjungan rawat inap |
+
+## Strategi test
+
+| Lapis | Yang diuji |
+| --- | --- |
+| Unit | Aturan pasangan `RouteType`/mitra asuransi; derivasi `CoPaymentPercent` server-side; pemilihan aturan tanggungan perusahaan menurut prioritas; reset penanggung item sesudah ganti payer (`MPY-DES-009`); kelayakan Edit Billing per `ServiceType` termasuk penolakan `RANAP` dan pemisahan `IGD` dari `RAJAL` |
+| Integration | Ganti payer tunai→asuransi→penjamin→tunai berurutan pada satu kunjungan, masing-masing diikuti kalkulasi ulang; penolakan ganti payer pada invoice yang sudah dibayar; versi baris basi menghasilkan penolakan tanpa perubahan tersimpan; perintah berulang dengan kunci idempotensi sama hanya berpengaruh sekali |
+| Kontrak | Bentuk response kesepuluh endpoint baru; label jenis payer pada breakdown (`MPY-DES-017`) |
+| **Regresi** | **Kunjungan tunai dan kunjungan berasuransi menghasilkan angka yang identik dengan sebelum amendment ini**; kunjungan berpenjamin perusahaan **tidak lagi** menghasilkan anomali `INSURANCE_PROVIDER_MISSING`; nol baris `PhmDrugUsage`/`PhmDrugUsageItem` tersentuh oleh seluruh alur Edit Billing |
+
+Rincian skenarionya di [`testing/acceptance-test-matrix.md`](./testing/acceptance-test-matrix.md), `BIL-AT-081`–`BIL-AT-100`.
+
+## Trace dan approval
+
+| Aspek | Nilai |
+| --- | --- |
+| Keputusan bisnis dasar | **`MPY-DEC-001`–`MPY-DEC-010`** — seluruhnya `approved` Product/Domain Owner, 11 September 2026 |
+| Masukan audit kemampuan | `01-existing-capability-map.md` § 19, `CAP-33` (Missing), `CAP-34` (Reuse with adapter), `CAP-35` (Ready to reuse), `CAP-36` (Ready to reuse as template; entity-nya sendiri Missing), `CAP-37` (Missing), `CAP-38` (Reuse with adapter), `CAP-39` (Ready to reuse), `CAP-40` (Reuse with adapter), `CAP-41` (pola saja) |
+| Keputusan arsitektur amendment ini | `MPY-DES-001`–`MPY-DES-017`, seluruhnya **draft** |
+| Prefix keputusan desain | `MPY-DES-*`, mengikuti `MPY-DEC-002`. Sekuens `BKC-DES-*` tetap berhenti di `BKC-DES-027`; sekuens `PC-DES-*` tetap berhenti di `PC-DES-014` |
+| Kontrak terdampak | `BIL-API-1.0`, `BIL-STATE-0.9`, `BIL-VALIDATION-0.9`, `BIL-INTEGRATION-0.8`, `BIL-PERMISSION-0.8`, `BIL-TEST-1.0`, **`BIL-CALCULATION-0.9`** — sumbu kalkulasi **bergerak** pada amendment ini, berbeda dari Petty Cash |
+| Acceptance test | `BIL-AT-081`–`BIL-AT-100` |
+| Dampak skema | **Lima tabel baru, satu migration.** Nol perubahan pada tabel yang sudah ada |
+| Ketergantungan lintas modul | Satu service baru milik `RegistrationManagement` (`MPY-DES-004`) — **memblokir implementasi**, bukan desain. Penjawab: Muhammad Hamzah (`MPY-DEC-010`) |
+| Kelengkapan requirement | `requirement-completeness-gate` **tidak dijalankan**; bukti kelengkapan diambil dari `MPY-DEC-001`–`010` dan `01-existing-capability-map.md` § 19. Deviasi tercatat, lihat blockquote pembuka amendment ini |
+| Kesiapan arsitektur domain | `DOMAIN_ARCHITECTURE_NOT_RUN` untuk slice ini. Alasannya: seluruh batas lintas konteks yang relevan sudah diputus eksplisit oleh keputusan bisnis — kepemilikan payer kunjungan (`MPY-DEC-007`), penempatan master data (`MPY-DEC-008`), dan batas terhadap Farmasi (`MPY-DEC-009`) — sehingga tidak ada batas domain tersisa untuk diselesaikan `hospital-domain-architect` |
+| Backend SHA diaudit | `d295c4d59b68d223edc597c8b165b7ef4282b49f` (branch `Yasmina`), beserta working tree yang belum di-commit — lihat `01-existing-capability-map.md` § 19.0 |
+| Frontend SHA diaudit | `0eafa76bf397a47ceb9d44a6f69006ee25f8ba51` (branch `yasmina`) |
+| Status | ~~draft~~ **approved** — `MPY-DES-001`–`017` disetujui Product/Domain Owner 11 September 2026 (`MPY-DEC-012`, wewenang ganda Finance/AR `BKC-DEC-085`). Persetujuan pemilik `RegistrationManagement` atas `MPY-DES-004` ditutup terpisah lewat `MPY-DEC-011` (Muhammad Hamzah). Approval ini **bukan** otorisasi membuat maupun menjalankan migration — itu tetap memerlukan konfirmasi terpisah saat implementasi |
+
+---
+
+# Amendment 15 September 2026 — Revisi rumpun Petty Cash: pencairan langsung, anggaran per periode
+
+> Revisi blueprint `1.2`, status **approved**. Masukan keputusan bisnis: **`PC-DEC-016`–`PC-DEC-025`**, seluruhnya `approved` Product/Domain Owner 15 September 2026 (`00-interview-decisions.md`, amendment "Revisi Petty Cash"). Masukan audit kemampuan: `01-existing-capability-map.md` § 20, diaudit pada backend SHA `0ca85ba4` dan frontend SHA `1f2f2c93c`.
+>
+> Keputusan arsitektur amendment ini diberi ID **`PC-DES-015`–`PC-DES-025`**, melanjutkan sekuens `PC-DES-*` yang berhenti di `PC-DES-014`. Seluruhnya keputusan **teknis** dalam wewenang desain. Statusnya ~~draft~~ **`approved`** — disetujui Product/Domain Owner 15 September 2026 lewat `PC-DEC-026`.
+>
+> **Ini amendment pertama pada rumpun Petty Cash yang MEREVISI desain yang sudah dibangun**, bukan merancang kapabilitas baru. Seluruh tabel, service, controller, dan layar yang dirancang revisi `1.0` sudah berdiri dan berjalan di source (terverifikasi § 20.1, stabil sejak commit `fea81edf`). Karena itu setiap keputusan di bawah menyatakan secara eksplisit apa yang **digantikan**, bukan hanya apa yang ditambahkan.
+>
+> **Bentuk blueprint tidak berubah.** `billing-kasir` tetap `SINGLE`.
+
+## Keputusan lama yang digantikan
+
+Empat keputusan arsitektur revisi `1.0` berstatus **superseded** oleh amendment ini. Keempatnya tidak dihapus dari dokumen — bagian aslinya tetap terbaca sebagai jejak alasan, dan baris di bawah inilah yang berlaku.
+
+| Keputusan lama | Keadaan | Penggantinya | Sebab |
+| --- | --- | --- | --- |
+| `PC-DES-003` (kosakata status lima nilai) | **Dipersempit** | `PC-DES-015` | Dua dari lima status (`APPROVED`, `REJECTED`) lahir dari gerbang persetujuan yang dicabut `PC-DEC-016` |
+| `PC-DES-005` (komitmen `ReservedAmount`) | **Superseded — dicabut utuh** | `PC-DES-016` | Satu-satunya fungsinya menjembatani jeda antara persetujuan dan pencairan. Jeda itu tidak ada lagi |
+| `PC-DES-013` (voucher `REJECTED` immutable tanpa endpoint) | **Menjadi warisan** | `PC-DES-015` | Tidak ada voucher baru yang dapat masuk `REJECTED`; baris lama tetap dilindungi |
+| `PC-DES-014` (satu kolam `HOSPITAL_MAIN`, tanpa periode) | **Superseded** | `PC-DES-017` | `PC-DEC-017` mengganti kolam statis dengan anggaran per periode |
+
+`PC-DES-001`, `002`, `004`, `006`, `007`, `008`, `009`, `010`, `011`, `012` **tetap berlaku apa adanya**. Secara khusus: Petty Cash tetap tidak tersambung ke `BilInvoice`/`BilCashierShift`/`BilSettlement` (`PC-DES-001`), `RecipientName` tetap teks bebas tanpa foreign key (`PC-DES-010`, ditegaskan ulang `PC-DEC-019`), kategori tetap `MstPettyCashCategory` wajib (`PC-DES-002`, ditegaskan ulang `PC-DEC-020`), dan kunci penasihat pada operasi saldo tetap dipakai (`PC-DES-011`).
+
+## Tabel kepemilikan data — delta amendment ini
+
+| Kelompok data | Modul pemilik | Dipakai modul ini | Dibuat ulang di modul ini |
+| --- | --- | :---: | --- |
+| Voucher kas kecil | `billing-kasir` (`BIL-CTX-06`) | Ya | Tidak — tabel yang sudah ada diperbarui |
+| Anggaran/periode kas kecil | `billing-kasir` (`BIL-CTX-06`) | Ya | Tidak — tabel yang sudah ada diperbarui |
+| Ledger pergerakan anggaran | `billing-kasir` (`BIL-CTX-06`) | Ya | Tidak — tabel yang sudah ada diperbarui |
+| Kategori kas kecil | `billing-kasir` (master data) | Ya | Tidak — tidak disentuh sama sekali |
+| **Jurnal dan bagan akun** | **`AccountingManagement`** (modul lain) | **Tidak** | **Tidak** — lihat `PC-DES-023` |
+| Kas fisik shift kasir | `billing-kasir` (`BIL-CTX-04`) | Tidak | Tidak — `PC-DEC-001` tetap berlaku |
+| Master pegawai | `HumanResource` (modul lain) | Tidak | Tidak — `PC-DEC-019` menegaskan ulang `PC-DEC-011` |
+
+Amendment ini **tidak menambah satu pun tabel baru**. Seluruh perubahan skema berupa kolom tambahan dan nilai enum tambahan pada tiga tabel yang sudah ada.
+
+## Keputusan arsitektur `PC-DES-015`–`PC-DES-025`
+
+| ID | Keputusan | Turunan dari | Alasan |
+| --- | --- | --- | --- |
+| `PC-DES-015` | **Kosakata status disusun ulang menjadi empat nilai hidup** — `REQUESTED`, `CASH_RECEIVED`, `COMPLETED`, `REVERSED` — ditambah `REJECTED` sebagai **status warisan yang tidak dapat dimasuki voucher baru**. Kode `WAITING_APPROVAL` **diganti nama** menjadi `REQUESTED` (perlu pemutakhiran data); kode `CASH_RECEIVED` **dipertahankan apa adanya** dan hanya labelnya berubah menjadi `Menunggu Bukti`; `APPROVED` dipensiunkan | `PC-DEC-016`, `PC-DEC-025`, `PC-DES-003` | Tiga perlakuan berbeda karena tiga keadaan yang berbeda. `WAITING_APPROVAL` **wajib** diganti nama: artinya berubah total dari "menunggu diputuskan atasan" menjadi "sudah dibuat, belum dicairkan" — membiarkan namanya berarti setiap pembaca database akan salah membacanya selamanya. `CASH_RECEIVED` **tidak boleh** diganti nama: artinya persis sama seperti dulu (uang sudah keluar), dan `PC-DES-003` sudah memisahkan kode mesin dari label tampilan justru supaya perubahan kata di layar tidak menuntut pemutakhiran data. `REJECTED` **tidak boleh** dihapus: barisnya adalah catatan audit permanen menurut `PC-DEC-003`, dan menghapus nilainya berarti membuang alasan penolakan yang pernah ditulis manusia |
+| `PC-DES-016` | **Mekanisme komitmen `ReservedAmount` dicabut seluruhnya.** Tidak ada lagi perhitungan "sisa yang benar-benar bebas"; penjaga saldo tunggal berada di titik pencairan (`PC-DES-006`, tetap berlaku) | `PC-DEC-016`, mencabut `PC-DES-005` | `PC-DES-005` menyatakan sendiri alasan keberadaannya: menjembatani jeda antara pemeriksaan saat persetujuan (`PC-DEC-008`) dan pengurangan saat pencairan (`PC-DEC-009`). Dengan gerbang persetujuan dicabut, kedua titik itu menyatu menjadi satu peristiwa dan jedanya nol. Mempertahankan komitmen berarti memesan saldo untuk voucher yang siapa pun boleh membuatnya tanpa persetujuan siapa pun — sepuluh permintaan iseng akan mengunci kolam dan memblokir pencairan yang sah |
+| `PC-DES-017` | **`BilPettyCashBudget` berubah makna dari kolam statis menjadi baris periode.** Ditambahkan `PeriodStart` (wajib), `PeriodEnd` (opsional), `BudgetAmount`, dan status `DRAFT`/`ACTIVE`/`CLOSED` menggantikan `ACTIVE`/`INACTIVE`. `PoolCode` **dipertahankan** sebagai pengelompokan, dan unique index parsial diubah menjadi "paling banyak satu baris `ACTIVE` per `PoolCode`" | `PC-DEC-017`, mencabut `PC-DES-014` | Membuat tabel periode yang **baru** dan terpisah dari kolam akan memaksa setiap baris ledger memilih menunjuk ke kolam atau ke periode, dan memaksa saldo hidup di dua tempat. Menjadikan baris yang sudah ada sebagai baris periode membuat `BudgetId` pada ledger tetap bermakna tanpa satu pun perubahan relasi. `PoolCode` sengaja tidak dihapus: `PC-DEC-010` menunda multi-kolam, tidak menolaknya, dan kolomnya sudah ada — membuangnya sekarang berarti membangunnya lagi nanti. `PeriodEnd` dibuat opsional supaya periode berjalan yang belum ditentukan akhirnya, termasuk baris warisan, tidak memaksa siapa pun mengarang tanggal |
+| `PC-DES-018` | **Carry-forward saldo ditulis sebagai dua baris ledger dalam satu transaction**: `CARRY_FORWARD_OUT` pada periode yang ditutup (saldonya menjadi nol) dan `CARRY_FORWARD_IN` pada periode penerus (saldonya naik sebesar itu) | `PC-DEC-018` | Satu baris saja tidak cukup karena dua periode yang berbeda sama-sama harus dapat dijumlahkan sendiri dan hasilnya cocok dengan saldo tercatatnya. Bila saldo hanya "berpindah" tanpa baris keluar, periode lama akan selamanya terlihat memiliki sisa yang sebenarnya sudah tidak ada, dan laporan periode itu tidak akan pernah balance |
+| `PC-DES-019` | **Empat nilai `MovementType` baru**: `RETURN`, `REVERSAL`, `CARRY_FORWARD_IN`, `CARRY_FORWARD_OUT`. `TOP_UP`, `DISBURSEMENT`, dan `ADJUSTMENT` tetap | `PC-DEC-018`, `PC-DEC-022`, `PC-OQ-006` | `ADJUSTMENT` sengaja **tidak** dipakai ulang untuk pengembalian maupun pembalikan walaupun secara aritmetika ketiganya menambah saldo. `ADJUSTMENT` adalah koreksi Finance yang tidak menunjuk voucher mana pun; `RETURN` adalah sisa uang yang benar-benar dikembalikan penerima; `REVERSAL` adalah pengakuan bahwa pencairannya seharusnya tidak terjadi. Menyatukan ketiganya membuat pertanyaan "berapa uang yang kembali karena salah cair bulan ini" hanya terjawab dengan membaca kalimat alasan satu per satu |
+| `PC-DES-020` | **`REVERSAL` memindahkan voucher ke status terminal `REVERSED`; `RETURN` tidak mengubah status voucher sama sekali** dan boleh terjadi lebih dari sekali selama total seluruh `RETURN` tidak melampaui nominal voucher | `PC-DEC-022` | Keduanya beda peristiwa. Pembalikan menyatakan pencairannya batal, sehingga voucher tidak boleh lagi terlihat sebagai pengeluaran berjalan — ia butuh status sendiri, dan **tidak boleh** memakai penandaan `IsCancel` yang menurut `PC-DES-007` berarti "dibatalkan sebelum apa pun terjadi". Pengembalian sisa adalah kejadian normal pada kas kecil: penerima diberi Rp 500.000, terpakai Rp 420.000, sisanya kembali. Voucher itu tetap sah, tetap butuh nota, dan tetap harus selesai |
+| `PC-DES-021` | **Endpoint dan hak akses `Approve`/`Reject` dihapus**; ditambahkan hak akses `PettyCashVoucher : Return`, `PettyCashVoucher : Reverse`, `PettyCashBudget : Create`, `PettyCashBudget : Activate`, dan `PettyCashBudget : Close` | `PC-DEC-024`, `PC-DEC-022`, `PC-DEC-017` | Penghapusan mengikuti `PC-DEC-024` apa adanya. Butir hak akses baru tetap dipisah per kemampuan walaupun `PC-DEC-022` memberikan `Return`/`Reverse` kepada kasir biasa: butir hak akses menyatakan **kemampuan**, bukan tingkatan jabatan, dan menggabungkannya ke `Disburse` akan membuat pemberian wewenang mencairkan sekaligus memberikan wewenang membatalkan pencairan orang lain — selamanya, tanpa cara memisahkannya bila kelak dibutuhkan |
+| `PC-DES-022` | **Pembuatan dan pencairan tetap dua endpoint terpisah** (`POST /vouchers` lalu `POST /vouchers/{id}/disburse`), bukan satu aksi gabungan. Layar boleh memanggil keduanya berurutan | `PC-DEC-016`, alur `Flow C` dokumen revisi | Menggabungkannya menjadi satu endpoint atomik terdengar lebih rapi, tetapi menghapus keadaan istirahat yang dokumen revisi sendiri butuhkan: permintaan yang sudah dibuat tetapi **belum** bisa dicairkan karena saldo kurang. Dengan dua endpoint, kegagalan pencairan meninggalkan voucher `REQUESTED` yang sah dan dapat dicairkan lagi setelah Finance menambah saldo. Dengan satu endpoint, kegagalan yang sama membuang seluruh permintaan beserta nomornya |
+| `PC-DES-023` | **Tidak ada satu pun pemanggilan ke `AccountingManagement`.** Ketiadaan ini dicatat sebagai keputusan, bukan sebagai pekerjaan yang belum sempat | `PC-DEC-023` | `AccJournalService` yang ada hari ini membuat setiap jurnal berstatus `Draft` dan mewajibkan siklus `Submit` lalu `Approve` lalu `Post` oleh manusia (terverifikasi § 20.2). Memanggilnya dari Petty Cash berarti gerbang persetujuan yang baru saja dicabut `PC-DEC-016` muncul kembali satu lapis di belakang, di modul yang pemiliknya berbeda. `BilPettyCashBudgetMovement` sudah memenuhi syarat subledger: append-only, ber-`BalanceBefore`/`BalanceAfter`, ber-pelaku, dan ber-waktu |
+| `PC-DES-024` | **Pemutakhiran data lama dikerjakan di dalam migration yang sama**, dengan pemetaan status dan pengisian periode pertama yang disebutkan satu per satu pada Rencana migration di bawah | `PC-DEC-017`, `PC-DEC-016`, `PC-OQ-005` | Memisahkan pemutakhiran data ke langkah manual setelah migration berarti ada jeda ketika kolom `Status` memuat nilai yang tidak dikenal kode baru, dan ketika baris anggaran tidak punya periode sama sekali. Pada jeda itu seluruh layar Petty Cash gagal memuat |
+| `PC-DES-025` | **Satu halaman kanonik** pada route induk yang sudah ada, dengan kedua route lama diarahkan ke sana. Rinciannya di `03-frontend-architecture.md` | `PC-DEC-016`, FE-PC-001/FE-PC-012 dokumen revisi | Dicatat di sini karena berdampak pada backend: halaman gabungan membutuhkan satu endpoint ringkasan yang menyajikan anggaran periode aktif, saldo, pemakaian, sisa, dan jumlah voucher menunggu bukti dalam satu panggilan — bukan empat panggilan terpisah yang dijumlahkan layar |
+
+## Class diagram — `BIL-CTX-06` setelah revisi
+
+```mermaid
+classDiagram
+    class BilPettyCashBudget {
+        +Guid Id
+        +string PoolCode
+        +string PoolName
+        +DateOnly PeriodStart
+        +DateOnly PeriodEnd_nullable
+        +decimal BudgetAmount
+        +decimal CurrentBalance
+        +decimal TotalTopUpAmount
+        +decimal TotalDisbursedAmount
+        +string Status
+        +Guid SupersededByBudgetId_nullable
+        +DateTimeOffset LastMovementAt_nullable
+        +Guid RowVersion
+    }
+    class BilPettyCashBudgetMovement {
+        +Guid Id
+        +Guid BudgetId
+        +string MovementType
+        +decimal Amount
+        +decimal BalanceBefore
+        +decimal BalanceAfter
+        +Guid VoucherId_nullable
+        +string Reason_nullable
+        +Guid ActorUserId
+        +Guid IdempotencyKey_nullable
+        +Guid CorrelationId
+        +DateTimeOffset OccurredAt
+    }
+    class BilPettyCashVoucher {
+        +Guid Id
+        +string VoucherNumber
+        +string RecipientName
+        +Guid CategoryId
+        +decimal Amount
+        +decimal ReturnedAmount
+        +string Purpose
+        +string Status
+        +Guid RequestedBy
+        +DateTimeOffset SubmittedAt
+        +Guid DisbursedBy_nullable
+        +DateTimeOffset DisbursedAt_nullable
+        +Guid ReversedBy_nullable
+        +DateTimeOffset ReversedAt_nullable
+        +string ReversalReason_nullable
+        +string ProofReferenceNumber_nullable
+        +DateTimeOffset CompletedAt_nullable
+        +Guid RowVersion
+    }
+    class BilPettyCashVoucherCommand {
+        +Guid Id
+        +Guid VoucherId
+        +string CommandType
+        +Guid ActorUserId
+        +string ResponseJson_nullable
+    }
+    class MstPettyCashCategory {
+        +Guid Id
+        +string CategoryCode
+        +string CategoryName
+        +bool IsActive
+    }
+    BilPettyCashBudget "1" --> "0..*" BilPettyCashBudgetMovement : ledger
+    BilPettyCashBudget "0..1" --> "0..1" BilPettyCashBudget : diteruskan ke
+    BilPettyCashVoucher "1" --> "0..*" BilPettyCashVoucherCommand : jejak perintah
+    BilPettyCashBudgetMovement "0..*" --> "0..1" BilPettyCashVoucher : pergerakan bervoucher
+    BilPettyCashVoucher "0..*" --> "1" MstPettyCashCategory : kategori
+```
+
+Kolom `PeriodStart`, `PeriodEnd`, `BudgetAmount`, `SupersededByBudgetId`, `ReturnedAmount`, `ReversedBy`, `ReversedAt`, dan `ReversalReason` adalah tambahan amendment ini; akhiran `_nullable` pada diagram menandai kolom opsional. Kolom `DecidedBy`, `DecidedAt`, dan `RejectionReason` **tetap ada** di tabel dan tidak dihapus — ketiganya memuat jejak keputusan persetujuan yang pernah terjadi sebelum `PC-DEC-016`, dan pada voucher baru ketiganya selalu kosong.
+
+## Penjelasan class
+
+| Class | Status | Lokasi file | Perubahan |
+| --- | --- | --- | --- |
+| `BilPettyCashBudget` | **Diperbarui** | `Areas/HealthServices/BillingManagement/PettyCash/Models/BilPettyCashBudget.cs` | Tambah `PeriodStart`, `PeriodEnd`, `BudgetAmount`, `SupersededByBudgetId`. Nilai `Status` berubah dari `ACTIVE`/`INACTIVE` menjadi `DRAFT`/`ACTIVE`/`CLOSED` |
+| `BilPettyCashBudgetMovement` | **Diperbarui** | `.../PettyCash/Models/BilPettyCashBudgetMovement.cs` | Tambah empat nilai `MovementType`. Nol kolom baru |
+| `BilPettyCashVoucher` | **Diperbarui** | `.../PettyCash/Models/BilPettyCashVoucher.cs` | Tambah `ReturnedAmount`, `ReversedBy`, `ReversedAt`, `ReversalReason`. Nilai `Status` disusun ulang (`PC-DES-015`) |
+| `BilPettyCashVoucherCommand` | **Sudah ada** | `.../PettyCash/Models/BilPettyCashVoucherCommand.cs` | Tidak berubah bentuk; bertambah nilai `CommandType` `RETURNED` dan `REVERSED`, sedangkan `APPROVED`/`REJECTED` tidak lagi dipakai perintah baru |
+| `MstPettyCashCategory` | **Sudah ada** | `Areas/HealthServices/BillingManagement/MasterData/Models/MstPettyCashCategory.cs` | **Tidak disentuh sama sekali** (`PC-DEC-020`) |
+| `PettyCashVoucherService` | **Diperbarui** | `.../PettyCash/Services/PettyCashVoucherService.cs` | Hapus `ApproveAsync`/`RejectAsync`; `DisburseAsync` digerbangi `REQUESTED` (bukan `APPROVED`); tambah `ReturnAsync`/`ReverseAsync`; `GetSummaryAsync` dan `AllowedActions` ditulis ulang mengikuti kosakata baru |
+| `PettyCashBudgetService` | **Diperbarui** | `.../PettyCash/Services/PettyCashBudgetService.cs` | Hapus seluruh perhitungan `ReservedAmount` (`PC-DES-016`); tambah `CreatePeriodAsync`, `ActivatePeriodAsync`, `ClosePeriodAsync` beserta carry-forward (`PC-DES-018`); tambah `ApplyReturnAsync`/`ApplyReversalAsync` |
+| `PettyCashVouchersController` | **Diperbarui** | `.../PettyCash/Controllers/PettyCashVouchersController.cs` | Hapus dua action beserta atribut hak aksesnya; tambah dua action |
+| `PettyCashBudgetController` | **Diperbarui** | `.../PettyCash/Controllers/PettyCashBudgetController.cs` | Tambah tiga action daur hidup periode dan satu endpoint ringkasan halaman gabungan |
+| `PettyCashCategoriesController` | **Sudah ada** | `.../MasterData/Controllers/PettyCashCategoriesController.cs` | Tidak disentuh |
+| `BilPettyCashBudgetConfiguration` | **Diperbarui** | `Repositories/Configurations/HealthServices/BillingManagement/PettyCash/BilPettyCashBudgetConfiguration.cs` | Unique index parsial diubah menjadi satu `ACTIVE` per `PoolCode`; index baru pada `(PoolCode, PeriodStart)` |
+| `BilPettyCashBudgetMovementConfiguration` | **Diperbarui** | `.../PettyCash/BilPettyCashBudgetMovementConfiguration.cs` | Tambah unique index parsial kedua untuk `REVERSAL` |
+| `BilPettyCashVoucherConfiguration` | **Diperbarui** | `.../PettyCash/BilPettyCashVoucherConfiguration.cs` | Penyesuaian panjang kolom baru |
+
+## Arsitektur folder
+
+```text
+Areas/HealthServices/BillingManagement/PettyCash/
+├── Models/
+│   ├── BilPettyCashBudget.cs             # diperbarui — 4 kolom, status baru
+│   ├── BilPettyCashBudgetMovement.cs     # diperbarui — 4 nilai MovementType
+│   ├── BilPettyCashVoucher.cs            # diperbarui — 4 kolom, kosakata status
+│   └── BilPettyCashVoucherCommand.cs     # sudah ada — nilai CommandType saja
+├── Dtos/
+│   ├── PettyCashBudgetDtos.cs            # diperbarui — DTO periode + ringkasan gabungan
+│   └── PettyCashVoucherDtos.cs           # diperbarui — DTO return/reversal
+├── Services/
+│   ├── PettyCashBudgetService.cs         # diperbarui
+│   ├── PettyCashVoucherService.cs        # diperbarui
+│   └── PettyCashVoucherValidationException.cs  # sudah ada
+└── Controllers/
+    ├── PettyCashBudgetController.cs      # diperbarui
+    └── PettyCashVouchersController.cs    # diperbarui
+
+Repositories/Configurations/HealthServices/BillingManagement/PettyCash/
+├── BilPettyCashBudgetConfiguration.cs           # diperbarui
+├── BilPettyCashBudgetMovementConfiguration.cs   # diperbarui
+├── BilPettyCashVoucherCommandConfiguration.cs   # sudah ada
+└── BilPettyCashVoucherConfiguration.cs          # diperbarui
+```
+
+Nol file baru. Nol folder baru. `PC-OQ-003` (baris registry kepemilikan untuk folder `PettyCash/`) sudah tidak relevan bagi amendment ini karena tidak ada berkas model pertama yang dibuat — folder dan seluruh isinya sudah berdiri.
+
+## Status model dan dampak migration
+
+| Tabel | Status | Kolom yang berubah | Dampak |
+| --- | --- | --- | --- |
+| `BilPettyCashBudget` | **Diperbarui** | `+PeriodStart` (`date`, NOT NULL), `+PeriodEnd` (`date`, NULL), `+BudgetAmount` (`numeric(18,2)`, NOT NULL default `0`), `+SupersededByBudgetId` (`uuid`, NULL, FK ke tabel sendiri, `Restrict`); nilai `Status` dipetakan ulang | Butuh pengisian data lama |
+| `BilPettyCashBudgetMovement` | **Diperbarui** | Nol kolom. Hanya nilai `MovementType` bertambah (kolom teks, tidak ada constraint enum di database) | Tidak butuh pengisian data lama |
+| `BilPettyCashVoucher` | **Diperbarui** | `+ReturnedAmount` (`numeric(18,2)`, NOT NULL default `0`), `+ReversedBy` (`uuid`, NULL), `+ReversedAt` (`timestamptz`, NULL), `+ReversalReason` (`varchar(500)`, NULL); nilai `Status` dipetakan ulang | Butuh pengisian data lama |
+| `BilPettyCashVoucherCommand` | **Sudah ada** | Nol | Tidak ada |
+| `MstPettyCashCategory` | **Sudah ada** | Nol | Tidak ada |
+
+## Rencana migration
+
+Satu migration, nama usulan `RevisePettyCashDirectDisbursementAndBudgetPeriod`.
+
+| Urutan | Langkah | Tanpa mematikan layanan? | Langkah mundur |
+| --- | --- | :---: | --- |
+| 1 | Tambah keempat kolom `BilPettyCashBudget` sebagai NULL dulu, kecuali `BudgetAmount` yang langsung NOT NULL berdefault `0` | Ya | `DropColumn` keempatnya |
+| 2 | Isi `PeriodStart` baris warisan dari tanggal `CreateDateTime` baris itu sendiri; `PeriodEnd` dibiarkan NULL (periode berjalan, `PC-DES-017`); `BudgetAmount` diisi dari `TotalTopUpAmount` baris itu | Ya | Tidak perlu — kolomnya ikut terbuang langkah 1 |
+| 3 | Naikkan `PeriodStart` menjadi NOT NULL | Ya | Turunkan kembali menjadi NULL |
+| 4 | Petakan `BilPettyCashBudget.Status`: `ACTIVE` menjadi `ACTIVE`, `INACTIVE` menjadi `CLOSED` | Ya | Petakan balik `CLOSED` menjadi `INACTIVE` |
+| 5 | Tambah keempat kolom `BilPettyCashVoucher` | Ya | `DropColumn` keempatnya |
+| 6 | Petakan `BilPettyCashVoucher.Status`: `WAITING_APPROVAL` menjadi `REQUESTED`; **`APPROVED` menjadi `REQUESTED`**; `CASH_RECEIVED`, `COMPLETED`, `REJECTED` tetap | Ya | Petakan balik `REQUESTED` menjadi `WAITING_APPROVAL` — **tidak sempurna**, lihat catatan |
+| 7 | Ganti unique index parsial kolam menjadi satu `ACTIVE` per `PoolCode`; tambah index `(PoolCode, PeriodStart)` | Ya | Kembalikan index lama |
+| 8 | Tambah unique index parsial `(VoucherId)` untuk `MovementType = 'REVERSAL'` | Ya | Buang index itu |
+
+> **Langkah 6 tidak dapat dimundurkan secara sempurna, dan itu disengaja.** Voucher yang sebelumnya `APPROVED` dan yang sebelumnya `WAITING_APPROVAL` sama-sama menjadi `REQUESTED`, sehingga perbedaan keduanya tidak dapat dipulihkan dari kolom `Status` saja. Pemulihannya tetap mungkin lewat `BilPettyCashVoucherCommand` (setiap persetujuan meninggalkan barisnya sendiri, `PC-DES-009`) dan lewat kolom `DecidedBy`/`DecidedAt` yang sengaja **tidak** dihapus (`PC-DES-015`). Keduanya cukup untuk merekonstruksi, tetapi rekonstruksinya bukan satu perintah SQL.
+
+> **Pembuatan dan eksekusi migration adalah wewenang terpisah.** Approval atas `PC-DES-015`–`025` **bukan** otorisasi membuat maupun menjalankan migration ini.
+
+## Rencana data master awal
+
+| Master | Isi minimum | Sumber nilai |
+| --- | --- | --- |
+| `MstPettyCashCategory` | Tidak berubah — isi yang sudah ada tetap dipakai | Finance (`PC-DEC-012`) |
+| `BilPettyCashBudget` | Baris warisan `HOSPITAL_MAIN` menjadi **periode pertama** lewat langkah 2–4 migration. Tidak ada baris baru yang di-seed | `PC-DES-024` |
+
+Periode kedua dan seterusnya **tidak** di-seed: pembuatannya adalah pekerjaan Finance lewat layar, dan mengarang periode berikutnya di migration berarti menebak tanggal yang hanya Finance yang tahu.
+
+## Yang sengaja tidak dibuat
+
+| Yang ditolak | Alasan |
+| --- | --- |
+| Tabel periode anggaran yang terpisah dari kolam | `PC-DES-017`. Saldo akan hidup di dua tempat dan setiap baris ledger harus memilih menunjuk ke mana |
+| Status `EVIDENCE_SUBMITTED` terpisah dari `SETTLED` | `PC-DEC-025`. Tidak ada peristiwa yang dapat memindahkan voucher di antara keduanya setelah `PC-DEC-021` menetapkan bukti hanya berupa nomor referensi |
+| Entity `BilPettyCashEvidence` tersendiri beserta unggahan berkas | `PC-DEC-021`. Bukti tetap berupa nomor referensi pada baris voucher; tidak ada integrasi storage service pada revisi ini |
+| Pemanggilan `AccJournalService` dari Petty Cash | `PC-DES-023`, `PC-DEC-023` |
+| Memakai `ADJUSTMENT` untuk pengembalian dan pembalikan | `PC-DES-019`. Tiga peristiwa bisnis berbeda yang kebetulan sama arah aritmetikanya |
+| Menghapus nilai status `REJECTED` beserta kolom `DecidedBy`/`DecidedAt`/`RejectionReason` | `PC-DES-015`. Baris lama adalah catatan audit permanen (`PC-DEC-003`), dan alasan penolakan yang pernah ditulis manusia tidak boleh hilang karena alur berubah |
+| Endpoint gabungan "buat sekaligus cairkan" | `PC-DES-022`. Menghapus keadaan istirahat yang dibutuhkan saat saldo kurang |
+| Mengganti nama kode `CASH_RECEIVED` | `PC-DES-015`. Artinya tidak berubah; hanya labelnya |
+
+## Keamanan dan privasi
+
+Tidak berubah dari revisi `1.0`. `RecipientName`, `Purpose`, `Reason`, dan `ReversalReason` bertanda **Sensitif** dan **MUST NOT** masuk payload custom logger. Kolom baru `ReversalReason` mengikuti perlakuan `Reason` yang sudah ada. Petty Cash tetap tidak menyentuh satu pun data pasien.
+
+## Ringkasan amendment
+
+| Aspek | Nilai |
+| --- | --- |
+| Keputusan bisnis dasar | `PC-DEC-016`–`PC-DEC-025`, seluruhnya `approved` 15 September 2026 |
+| Masukan audit kemampuan | `01-existing-capability-map.md` § 20 |
+| Keputusan arsitektur | `PC-DES-015`–`PC-DES-025`, seluruhnya **approved** (`PC-DEC-026`) |
+| Keputusan lama yang digantikan | `PC-DES-003` (dipersempit), `PC-DES-005` (dicabut), `PC-DES-013` (menjadi warisan), `PC-DES-014` (superseded) |
+| Dampak skema | **Nol tabel baru.** Delapan kolom baru pada dua tabel, empat nilai `MovementType` baru, dua index diubah/ditambah, **satu migration** yang memuat pemutakhiran data |
+| Ketergantungan lintas modul | **Nol.** `PC-DES-023` mencatat ketiadaan sambungan ke Accounting sebagai keputusan |
+| Backend SHA diaudit | `0ca85ba4610f2745b761d5e092b495bfc35396b0` (branch `Yasmina`) |
+| Frontend SHA diaudit | `1f2f2c93c9e4369db6c60246776de4c3bd52b3af` (branch `yasmina`) |
+| Status | ~~draft~~ **approved** — `PC-DES-015`–`025` disetujui Product/Domain Owner 15 September 2026 (`PC-DEC-026`, wewenang ganda Finance/AR `BKC-DEC-085`). Approval ini **bukan** otorisasi membuat maupun menjalankan migration, dan **bukan** otorisasi menghapus butir hak akses sebelum `PC-OQ-007` diperiksa |
+
+---
+
+# Amendment 18 September 2026 — Penutupan gap `FINAL`→`CLOSED` (invoice lunas macet permanen)
+
+`revisi blueprint 1.3` · status **draft** · owner Billing/Finance/Cashier · `approved_by`: — · `approved_at`: — · input: **`BKC-DEC-100`–`BKC-DEC-102`** (`approved` 18 September 2026); masukan audit `01-existing-capability-map.md` § 21; keputusan arsitektur **`BKC-DES-028`–`BKC-DES-035`** (baru, `draft`).
+
+Amendment ini **tidak** menambah tabel, **tidak** menambah kolom, **tidak** menambah endpoint, dan **tidak** menambah butir hak akses. Yang ditambahkan adalah satu service kecil beserta pemanggilannya di enam titik yang sudah ada, satu perluasan penjaga, dan satu migration yang murni memperbaiki data.
+
+## Masalah yang diperbaiki, dalam satu paragraf
+
+Kontrak `BIL-STATE-0.4` menempatkan syarat transisi `FINAL`→`CLOSED` pada peristiwa "AR/AP posting sukses". Peristiwa itu tidak pernah terjadi karena belum ada konsumen AR/AP nyata di repository ini — doc-comment `BillingArApHandoffService` menyatakannya sendiri. Akibatnya **setiap** invoice yang difinalisasi berhenti di `FINAL` selamanya, termasuk yang pasiennya sudah membayar lunas, dan kolom `BilInvoice.ClosedAt` tidak pernah terisi satu baris pun. `BKC-DEC-100` mengganti syarat itu menjadi "sisa tagihan pasien mencapai nol". Amendment ini menerjemahkan keputusan itu menjadi arsitektur.
+
+## Keputusan arsitektur
+
+| ID | Keputusan | Alasan | Status |
+| --- | --- | --- | --- |
+| `BKC-DES-028` | Satu service baru `BillingInvoiceClosureService` memegang **dua** tanggung jawab sekaligus: menghitung sisa tagihan pasien, dan menyelaraskan status penutupan invoice. **Bukan** dua service terpisah | Perhitungan sisa tagihan saat ini **terduplikasi persis** di `BillingFinalizationService` dan `BillingFinancialExceptionService` (§ 21 capability map; komentar source `BillingFinalizationService.cs:265` sudah mengakuinya). Menambahkan pemanggil ketiga tanpa konsolidasi berarti tiga salinan yang harus disinkronkan manual setiap kali aturan sisa tagihan berubah. Dua tanggung jawab ini selalu berubah bersama — "berapa sisanya" dan "apa akibatnya pada status" adalah satu pertanyaan bisnis | `draft` |
+| `BKC-DES-029` | Penyelarasan status dipanggil dari **enam** titik peristiwa yang benar-benar menggerakkan sisa tagihan, bukan hanya dari jalur pembayaran tender | `BKC-DEC-100` menyebut "tender `SUCCEEDED`" karena itu jalur yang paling umum, tetapi sisa tagihan juga bergerak karena alokasi deposit, penyesuaian (`BilAdjustment`), dan pembalikannya. Memasang penyelarasan hanya di jalur tender akan meninggalkan lubang yang **jenisnya sama persis** dengan gap yang sedang ditutup: tagihan yang lunas lewat deposit tidak akan pernah berpindah ke `CLOSED`. **Ini memperluas cakupan harfiah `BKC-DEC-100` demi memenuhi maksudnya** — MUST dikonfirmasi owner saat approval | `draft` |
+| `BKC-DES-030` | Urutan wajib di setiap titik pemanggilan: `SaveChangesAsync` → penyelarasan status → `SaveChangesAsync`, **seluruhnya di dalam satu transaction yang sudah dibuka pemanggil**. Service ini **tidak pernah** membuka transaction sendiri dan **tidak pernah** memanggil `SaveChangesAsync` sendiri | Perhitungan sisa tagihan membaca database dengan `AsNoTracking()`. Bila dipanggil sebelum `SaveChangesAsync` yang pertama, ia **tidak akan melihat** baris alokasi/penyesuaian yang baru dibuat dan masih berada di ChangeTracker — hasilnya sisa tagihan yang salah dan status yang salah. Mengikuti pola `BillingArApHandoffService.StageHandoffsForFinalizationAsync` yang doc-comment-nya sudah menetapkan "pemanggil yang memegang batas transaksi dan `SaveChanges`" | `draft` |
+| `BKC-DES-031` | Transisi **balik** `CLOSED` → `FINAL` bila sisa tagihan naik kembali di atas nol (pembalikan tender, penyesuaian arah `Debit`). `ClosedAt` dikosongkan kembali | Simetri yang tidak bisa dihindari: `ReconcileTenderAsync` memang mengizinkan tender `SUCCEEDED` menjadi `REVERSED` (baris 435–436), dan penyesuaian `Debit` memang menaikkan sisa tagihan. Tanpa transisi balik, akan ada invoice berstatus `CLOSED` yang pasiennya masih berutang — cacat yang **lebih berbahaya** daripada gap aslinya, karena tagihan yang tampak selesai tidak akan ditagih siapa pun. Mengikuti preseden yang sudah disetujui: pembalikan write-off penuh mengembalikan `SETTLED_BY_WRITE_OFF` ke `OPEN` (`BKC-DEC-036`). Tujuan baliknya `FINAL`, **bukan** `OPEN`, karena finalisasi tidak dibatalkan oleh pembalikan pembayaran — `BilFinalizationRecord` tetap ada dan versi kalkulasi tetap terkunci | `draft` |
+| `BKC-DES-032` | Memakai ulang kunci penasihat yang sudah ada, `BIL_INVOICE_LEDGER_{invoiceId:N}` — **tidak** membuat kunci baru. Invariant urutan pengambilan yang MUST dijaga: kunci spesifik peristiwa (`BIL_TENDER_*`, `BIL_ADJUSTMENT_*`, `BIL_WRITEOFF_*`) diambil **lebih dulu**, `BIL_INVOICE_LEDGER_*` menyusul | Kunci itu sudah menjadi kunci kanonik "buku besar satu invoice" pada `BillingFinalizationService.FinalizeAsync:60`, `CreateAdjustmentAsync:48`, dan `CreateWriteOffAsync:264`. `ReconcileTenderAsync` memegang kunci per-**tender**, sehingga dua tender berbeda pada invoice yang sama dapat berjalan bersamaan dan sama-sama menyimpulkan "lunas". Isolation `Serializable` memang akan menolak salah satunya, tetapi penolakan itu muncul ke kasir sebagai galat "Data telah berubah" padahal pembayarannya sah; dengan kunci penasihat, yang kedua menunggu sebentar lalu melihat invoice sudah `CLOSED` dan tidak menulis apa pun. Tidak ada jalur existing yang mengambil `BIL_INVOICE_LEDGER_*` lebih dulu lalu kunci peristiwa — urutan di atas karena itu bebas deadlock terhadap source saat ini | `draft` |
+| `BKC-DES-033` | **Menjawab `BKC-CQ-01` dengan opsi (c)**: `BilArHandoff` **tidak disentuh sama sekali**. Tidak ada nilai status `COLLECTED` baru, tidak ada kolom `CollectedAt` baru. Sumber kebenaran "tagihan ini sudah lunas" adalah `BilInvoice.Status`/`ClosedAt` | `BillingHandoffStatuses` (`CREATED`/`ACKNOWLEDGED`) menggambarkan **keadaan penyerahan fakta ke AR**, bukan keadaan tertagihnya piutang. "Sudah tertagih" adalah peristiwa pembayaran yang sudah punya catatannya sendiri (tender, alokasi, dan kini `ClosedAt`). Menambah `COLLECTED` akan menaruh dua sumbu makna yang berbeda pada satu kolom, dan melakukannya untuk konsumen AR/AP yang **belum ada** (`BKC-BLK-INT-001`) berarti menebak bentuk kontrak pihak yang belum pernah bicara. Saat konsumen itu benar-benar dibangun, sumbu status penagihan dirancang bersama pemiliknya. **Ini mempersempit konsekuensi yang tertulis pada `BKC-DEC-102`** — lihat peringatan di bawah tabel | `draft` |
+| `BKC-DES-034` | Satu migration `BackfillClosedInvoicesFromFullySettledFinal` yang **murni memperbaiki data**, nol perubahan skema. Wajib didahului langkah **dry-run baca-saja** yang memakai kriteria identik | Dry-run menjawab `BKC-OQ-100` (berapa banyak invoice terdampak, dan berapa di antaranya sudah terlanjur menerima penyesuaian/write-off tanpa koreksi AR) memakai kriteria yang persis sama dengan yang akan menulis — bukan perkiraan terpisah yang bisa meleset. `ClosedAt` baris warisan diturunkan dari waktu peristiwa pelunasan yang sebenarnya, **bukan** waktu migration dijalankan | `draft` |
+| `BKC-DES-035` | Penjaga `RecordCorrectionIfLinkedAsync` menerima `FINAL` **dan** `CLOSED`, dan **tetap menolak** `OPEN` serta `SETTLED_BY_WRITE_OFF` | Turunan langsung `BKC-DEC-101`. Penolakan `SETTLED_BY_WRITE_OFF` dipertahankan dengan sengaja: invoice yang lunas lewat write-off penuh piutangnya sudah dihapusbukukan, sehingga koreksi AR atasnya adalah pertanyaan yang berbeda dan belum diputuskan. `OPEN` ditolak karena belum pernah ada handoff AR yang dapat dikoreksi | `draft` |
+
+> **Peringatan approval — satu titik di mana desain ini mempersempit keputusan yang sudah disetujui.** `BKC-DEC-102` menuliskan konsekuensi "`BilArHandoff` MUST ikut ditandai selesai/collected pada transaksi yang sama". `BKC-DES-033` memenuhi **maksud** konsekuensi itu (tidak boleh ada piutang yang tampak closed di invoice tetapi masih open di catatan AR) dengan cara yang berbeda: dengan tidak pernah membuat catatan AR mengklaim "masih berjalan" sejak awal. Bila owner tetap menghendaki penandaan eksplisit pada `BilArHandoff`, `BKC-DES-033` gugur dan digantikan opsi (a) atau (b) pada `BKC-CQ-01` — konsekuensinya satu kolom/nilai status baru beserta migration-nya sendiri. **Butir ini MUST dijawab owner saat approval desain, bukan diasumsikan.**
+
+## Tabel kepemilikan data
+
+| Kelompok data | Modul pemilik | Dipakai modul ini | Dibuat ulang di modul ini |
+| --- | --- | :---: | --- |
+| Invoice pasien (`BilInvoice`) | Billing dan Kasir (modul ini) | Ya | Tidak — kolom `Status`/`ClosedAt` yang sudah ada kini benar-benar dipakai |
+| Versi kalkulasi (`BilCalculationVersion`) | Billing dan Kasir | Ya, dibaca | Tidak |
+| Alokasi pembayaran (`BilPaymentAllocation`) | Billing dan Kasir | Ya, dibaca | Tidak |
+| Tender dan settlement (`BilTender`, `BilSettlement`) | Billing dan Kasir | Ya, dibaca | Tidak |
+| Penyesuaian dan write-off (`BilAdjustment`, `BilWriteOffCase`) | Billing dan Kasir | Ya, dibaca | Tidak |
+| Kredit yang dapat dikembalikan (`BilRefundableCredit`) | Billing dan Kasir | Ya, dibaca | Tidak |
+| Handoff AR/AP (`BilArHandoff`, `BilApHandoff`) | Billing dan Kasir | Ya, dibaca penjaga koreksi | **Tidak disentuh** (`BKC-DES-033`) |
+| Buku besar Accounting (`AccJournal`) | Accounting Management | Tidak | Tidak — amendment ini tidak menyentuh Accounting sama sekali |
+
+Nol kelompok data milik modul lain yang dibaca maupun ditulis. Amendment ini sepenuhnya berada di dalam batas `billing-kasir`.
+
+## Class diagram
+
+```mermaid
+classDiagram
+    class BillingInvoiceClosureService {
+        <<Baru>>
+        +CalculateOutstandingAsync(invoice, ct) decimal
+        +CalculateOutstandingAsync(invoice, calculation, ct) decimal
+        +SyncClosureAsync(invoiceId, actorUserId, occurredAt, ct) InvoiceClosureChange
+        -AcquireInvoiceLedgerLockAsync(invoiceId, ct)
+    }
+    class BillingSettlementService {
+        <<Diperbarui>>
+        +ReconcileTenderAsync(...)
+    }
+    class BillingAllocationService {
+        <<Diperbarui>>
+        +AllocateDepositAsync(...)
+    }
+    class BillingFinancialExceptionService {
+        <<Diperbarui>>
+        +ApproveAdjustmentAsync(...)
+        +ApproveWriteOffAsync(...)
+        +ReverseAdjustmentAsync(...)
+        +ReverseWriteOffAsync(...)
+    }
+    class BillingFinalizationService {
+        <<Diperbarui>>
+        +FinalizeAsync(...)
+    }
+    class BillingArApHandoffService {
+        <<Diperbarui>>
+        +RecordCorrectionIfLinkedAsync(...)
+    }
+    class BilInvoice {
+        <<Sudah ada>>
+        Status
+        ClosedAt_nullable
+        RowVersion
+    }
+    BillingSettlementService --> BillingInvoiceClosureService : selaraskan sesudah tender
+    BillingAllocationService --> BillingInvoiceClosureService : selaraskan sesudah alokasi deposit
+    BillingFinancialExceptionService --> BillingInvoiceClosureService : selaraskan sesudah 4 peristiwa
+    BillingFinalizationService --> BillingInvoiceClosureService : pakai perhitungan sisa tagihan
+    BillingInvoiceClosureService --> BilInvoice : ubah Status dan ClosedAt
+    BillingArApHandoffService --> BilInvoice : baca Status pada penjaga koreksi
+```
+
+Tidak ada model baru pada diagram ini — `BilInvoice` digambar hanya untuk menunjukkan kolom mana yang disentuh. `InvoiceClosureChange` adalah record hasil kecil (bukan entity, tidak dipersist) yang memberi tahu pemanggil apakah status berpindah, supaya pemanggil dapat menulis audit sesudah commit.
+
+## Penjelasan class
+
+| Class | Status | Lokasi file | Perubahan |
+| --- | --- | --- | --- |
+| `BillingInvoiceClosureService` | **Baru** | `Areas/HealthServices/BillingManagement/Billing/Services/BillingInvoiceClosureService.cs` | Service baru. Dua overload perhitungan sisa tagihan (dipindahkan dari dua salinan privat yang sudah ada) dan satu `SyncClosureAsync`. **Tidak** membuka transaction, **tidak** memanggil `SaveChangesAsync` (`BKC-DES-030`) |
+| `BillingSettlementService` | **Diperbarui** | `.../Billing/Services/BillingSettlementService.cs` | `ReconcileTenderAsync`: sisipkan `SaveChangesAsync` → `SyncClosureAsync` → `SaveChangesAsync` menggantikan `SaveChangesAsync` tunggal di baris 522, sebelum `CommitAsync` baris 523. Ambil `BIL_INVOICE_LEDGER_*` sesudah `BIL_TENDER_*` |
+| `BillingAllocationService` | **Diperbarui** | `.../Billing/Services/BillingAllocationService.cs` | `AllocateDepositAsync`: pola tiga langkah yang sama sesudah alokasi deposit dibuat |
+| `BillingFinancialExceptionService` | **Diperbarui** | `.../Billing/Services/BillingFinancialExceptionService.cs` | Empat titik (penyesuaian diposting, write-off diposting, pembalikan penyesuaian, pembalikan write-off — pasangan dari keempat pemanggilan `RecordCorrectionIfLinkedAsync` yang sudah ada di baris 215, 431, 545, 641) memakai pola tiga langkah. Salinan privat `CalculateOutstandingAsync` (baris 669–722) **dihapus**, diganti pemanggilan ke service baru |
+| `BillingFinalizationService` | **Diperbarui** | `.../Billing/Services/BillingFinalizationService.cs` | Salinan privat `CalculateOutstandingAsync` (baris 247–285) **dihapus**, diganti pemanggilan ke service baru. Baris 127 (`invoice.Status = Final`) **tidak berubah** — finalisasi tetap selalu menghasilkan `FINAL` |
+| `BillingArApHandoffService` | **Diperbarui** | `.../Billing/Services/BillingArApHandoffService.cs` | Penjaga baris 150 diperluas menerima `FINAL` dan `CLOSED` (`BKC-DES-035`). Nol perubahan lain |
+| `BillingManagementServiceCollectionExtensions` | **Diperbarui** | `.../Billing/BillingManagementServiceCollectionExtensions.cs` | Satu baris `AddScoped<BillingInvoiceClosureService>()` |
+| `BilInvoice` | **Sudah ada** | `.../Billing/Models/BilInvoice.cs` | **Nol perubahan bentuk.** `ClosedAt` sudah ada sejak awal dan baru sekarang benar-benar diisi |
+| `BilArHandoff` | **Sudah ada** | `.../Billing/Models/BilArHandoff.cs` | **Tidak disentuh** (`BKC-DES-033`) |
+
+### Pesan galat yang MUST NOT berubah
+
+Salinan `CalculateOutstandingAsync` milik `BillingFinancialExceptionService` melempar `BillingFinancialExceptionValidationException` berpesan **"Invoice belum memiliki hasil perhitungan terkini."** ketika versi kalkulasi tidak ditemukan. Pesan itu sudah terlihat pengguna. Service bersama melempar exception netral, dan `BillingFinancialExceptionService` **MUST** menangkap lalu membungkusnya kembali sehingga pesan yang sampai ke layar **identik** dengan hari ini.
+
+## Bentuk `SyncClosureAsync`
+
+Alur di dalamnya, berurutan:
+
+| Urutan | Langkah | Bila tidak terpenuhi |
+| --- | --- | --- |
+| 1 | Muat `BilInvoice` dalam keadaan tracked | Lempar `KeyNotFoundException` — memanggil penyelarasan untuk invoice yang tidak ada adalah kesalahan pemrograman, bukan keadaan bisnis |
+| 2 | Bila `Status` bukan `FINAL` dan bukan `CLOSED` → berhenti, kembalikan "tidak ada perubahan" | `OPEN` belum difinalisasi; `SETTLED_BY_WRITE_OFF` punya jalurnya sendiri (`BKC-DEC-036`) dan **MUST NOT** disentuh penyelarasan ini |
+| 3 | Ambil kunci penasihat `BIL_INVOICE_LEDGER_{invoiceId:N}` | — (kunci penasihat transaksi bersifat dapat diambil ulang oleh transaksi yang sama) |
+| 4 | Hitung sisa tagihan pasien memakai perhitungan terkonsolidasi | Versi kalkulasi tidak ada → exception netral (lihat di atas) |
+| 5 | `FINAL` dan sisa tagihan `<= 0` → `Status = CLOSED`, `ClosedAt = occurredAt`, `RowVersion` baru, `UpdateBy`/`UpdateDateTime` diisi | — |
+| 6 | `CLOSED` dan sisa tagihan `> 0` → `Status = FINAL`, `ClosedAt = null`, `RowVersion` baru (`BKC-DES-031`) | — |
+| 7 | Keadaan lain → tidak menulis apa pun | Inilah yang membuat pemanggilan berulang aman |
+
+Langkah 7 adalah sumber sifat idempotent-nya: memanggil `SyncClosureAsync` dua kali untuk keadaan yang sama tidak menghasilkan perubahan kedua, tidak menaikkan `RowVersion` dua kali, dan tidak menerbitkan audit kedua.
+
+`occurredAt` **MUST** berasal dari waktu peristiwa yang diberikan pemanggil (misalnya `result.OccurredAt` pada jalur tender), **bukan** `DateTimeOffset.UtcNow` di dalam service — supaya `ClosedAt` menyatakan kapan tagihan benar-benar lunas, bukan kapan baris kode itu kebetulan dieksekusi.
+
+## Enam titik pemanggilan
+
+| # | Service dan method | Peristiwa | Arah gerak sisa tagihan | Hasil yang mungkin |
+| --- | --- | --- | --- | --- |
+| 1 | `BillingSettlementService.ReconcileTenderAsync` | Tender menjadi `SUCCEEDED` | Turun | `FINAL` → `CLOSED` |
+| 2 | `BillingSettlementService.ReconcileTenderAsync` | Tender `SUCCEEDED` menjadi `REVERSED` | Naik | `CLOSED` → `FINAL` |
+| 3 | `BillingAllocationService.AllocateDepositAsync` | Deposit dialokasikan ke invoice | Turun | `FINAL` → `CLOSED` |
+| 4 | `BillingFinancialExceptionService` — penyesuaian diposting | `BilAdjustment` `Credit` | Turun | `FINAL` → `CLOSED` |
+| 5 | `BillingFinancialExceptionService` — penyesuaian diposting | `BilAdjustment` `Debit` | Naik | `CLOSED` → `FINAL` |
+| 6 | `BillingFinancialExceptionService` — write-off diposting dan kedua jalur pembalikan | Bergantung arah | Dua arah | Umumnya tidak ada perubahan; lihat catatan |
+
+Titik 1 dan 2 adalah satu pemanggilan yang sama pada satu method — arah geraknya ditentukan hasil perhitungan, bukan cabang kode terpisah. Hal yang sama berlaku pada titik 4 dan 5.
+
+> **Catatan titik 6.** Write-off `PATIENT_AR` yang melunasi penuh memindahkan invoice ke `SETTLED_BY_WRITE_OFF` (`BKC-DEC-036`), sehingga langkah 2 pada `SyncClosureAsync` akan berhenti lebih dulu dan tidak menulis apa pun — perilaku yang memang diinginkan. Penyelarasan tetap dipasang di titik ini karena pembalikan write-off dapat mengembalikan invoice ke `OPEN`, dan write-off parsial pada invoice `CLOSED` dapat menggerakkan sisa tagihan tanpa memindahkan status.
+
+## Arsitektur folder
+
+```text
+Areas/HealthServices/BillingManagement/Billing/
+├── Models/
+│   ├── BilInvoice.cs                        # sudah ada — nol perubahan bentuk
+│   └── BilArHandoff.cs                      # sudah ada — tidak disentuh (BKC-DES-033)
+├── Services/
+│   ├── BillingInvoiceClosureService.cs      # BARU — satu-satunya file baru amendment ini
+│   ├── BillingSettlementService.cs          # diperbarui — titik 1 dan 2
+│   ├── BillingAllocationService.cs          # diperbarui — titik 3
+│   ├── BillingFinancialExceptionService.cs  # diperbarui — titik 4-6, hapus salinan perhitungan
+│   ├── BillingFinalizationService.cs        # diperbarui — hapus salinan perhitungan
+│   └── BillingArApHandoffService.cs         # diperbarui — penjaga baris 150
+└── BillingManagementServiceCollectionExtensions.cs   # diperbarui — satu baris AddScoped
+
+Migrations/
+└── <timestamp>_BackfillClosedInvoicesFromFullySettledFinal.cs   # BARU — data saja, nol skema
+```
+
+Satu file source baru. Nol folder baru. Nol berkas configuration EF yang disentuh, karena tidak ada kolom maupun index yang berubah.
+
+## Status model dan dampak migration
+
+| Tabel | Status | Kolom yang berubah | Dampak |
+| --- | --- | --- | --- |
+| `BilInvoice` | **Sudah ada** | **Nol.** `Status` dan `ClosedAt` sudah ada; yang berubah adalah nilai yang benar-benar tersimpan di dalamnya | Butuh pemutakhiran data (backfill), **tanpa** perubahan skema |
+| `BilArHandoff` | **Sudah ada** | Nol (`BKC-DES-033`) | Tidak ada |
+| Seluruh tabel lain modul ini | **Sudah ada** | Nol | Tidak ada |
+
+## Rencana migration
+
+Satu migration, nama usulan `BackfillClosedInvoicesFromFullySettledFinal`. **Nol perubahan skema** — isinya hanya `UPDATE`.
+
+### Langkah nol — dry-run baca-saja, wajib, di luar migration
+
+Dijalankan lebih dulu sebagai query `SELECT` biasa memakai kriteria yang **identik** dengan langkah 1. Keluarannya menjawab `BKC-OQ-100`:
+
+| Yang dihitung | Kenapa dibutuhkan |
+| --- | --- |
+| Jumlah invoice `FINAL` yang sisa tagihannya sudah nol | Ukuran sebenarnya dari backfill |
+| Berapa di antaranya yang sudah menerima penyesuaian atau write-off diposting **tanpa** baris koreksi AR (`BilHandoffAdjustment`) | Inilah jawaban `BKC-OQ-100`; menentukan apakah dibutuhkan koreksi AR susulan, bukan sekadar pemindahan status |
+| Berapa invoice berstatus `CLOSED` warisan yang `ClosedAt`-nya masih NULL | Ukuran langkah 3 |
+
+### Langkah migration
+
+| Urutan | Langkah | Tanpa mematikan layanan? | Langkah mundur |
+| --- | --- | :---: | --- |
+| 1 | `UPDATE BilInvoice SET Status='CLOSED' ...` untuk baris `Status='FINAL'`, `IsDelete=false`, yang sisa tagihannya `<= 0` menurut rumus yang sama persis dengan `CalculateOutstandingAsync` (versi kalkulasi current → dikurangi alokasi bersih → ditambah kelebihan alokasi → dikurangi write-off `PATIENT_AR` diposting → dikurangi penyesuaian bersih) | Ya | Lihat peringatan di bawah |
+| 2 | Isi `ClosedAt` baris yang baru dipindah, dari `MAX` waktu peristiwa pelunasan invoice itu: `BilTender.SettledAt` tender `SUCCEEDED`, atau `BilPaymentAllocation.CreateDateTime` bila tidak ada tender. Bila keduanya tidak ada, biarkan **NULL** | Ya | `SET ClosedAt = NULL` untuk baris yang sama |
+| 3 | Isi `ClosedAt` baris yang **sudah** `CLOSED` sejak sebelum amendment ini dan `ClosedAt`-nya NULL, dari sumber waktu yang sama | Ya | `SET ClosedAt = NULL` untuk baris yang sama |
+
+> **`ClosedAt` MUST NOT diisi dengan waktu migration dijalankan.** Kolom itu akan dibaca laporan sebagai "kapan tagihan ini lunas". Mengisinya dengan waktu eksekusi migration berarti menyatakan seluruh tagihan lama lunas pada detik yang sama — angka yang salah, dan salahnya tidak akan pernah terlihat sebagai galat.
+
+> **Langkah 1 tidak dapat dimundurkan secara selektif.** Sesudah aplikasi berjalan, invoice `CLOSED` hasil backfill tidak dapat dibedakan dari invoice `CLOSED` yang lahir normal lewat `SyncClosureAsync`, karena keduanya identik bentuknya — dan memang seharusnya identik. Pemulihan menuntut snapshot database sebelum migration. Karena itu migration ini **MUST** dijalankan setelah backup, dengan otorisasi eksplisit terpisah sesuai `AGENTS.md` bagian Keselamatan Database.
+
+> **Langkah 3 memperbaiki inkonsistensi warisan yang berbeda sebabnya.** Baris `CLOSED` yang sudah ada berasal dari era sebelum kontrak `BIL-STATE-0.4` diadopsi source, ketika finalisasi invoice lunas langsung menulis `CLOSED`. Baris-baris itu benar statusnya tetapi kosong `ClosedAt`-nya, karena kolom itu memang tidak pernah diisi siapa pun.
+
+## Rencana data master awal
+
+Nihil. Amendment ini tidak memperkenalkan satu pun tabel master dan tidak menuntut satu baris data master baru. Seluruh nilai yang dipakainya (`FINAL`, `CLOSED`) adalah konstanta pada `BillingInvoiceStatuses` yang sudah ada.
+
+## Yang sengaja tidak dibuat
+
+| Yang ditolak | Alasan |
+| --- | --- |
+| Nilai status `COLLECTED` pada `BillingHandoffStatuses` | `BKC-DES-033`. Mencampur sumbu "penyerahan fakta ke AR" dengan sumbu "piutang tertagih" pada satu kolom, untuk konsumen AR/AP yang belum ada |
+| Kolom `BilArHandoff.CollectedAt` | `BKC-DES-033`. Alasan yang sama, ditambah satu migration skema untuk kebutuhan yang belum terbukti |
+| Status invoice baru bernama `PAID`/`LUNAS` | `CLOSED` sudah berarti itu sesudah amendment ini, dan frontend sudah memetakan `CLOSED` ke badge yang ada. Menambah status kelima berarti dua status bermakna sama dan semua penjaga status di modul ini harus diperiksa ulang satu per satu |
+| Pekerjaan latar (background job) yang memindai invoice lunas secara berkala | Sisa tagihan hanya berubah karena peristiwa, dan keenam peristiwanya sudah dipasangi penyelarasan. Pemindaian berkala hanya akan menemukan yang sudah dipindahkan, sambil menambah satu sumber perubahan status yang berjalan di luar transaksi peristiwanya |
+| Endpoint manual "tutup invoice ini" untuk kasir | `BKC-DEC-100` menetapkan pelakunya **Sistem**. Endpoint manual membuka jalan menutup tagihan yang belum lunas, persis hal yang dijaga seluruh modul ini |
+| Dua service terpisah untuk perhitungan dan penyelarasan | `BKC-DES-028`. Keduanya selalu berubah bersama |
+| Mengubah `BillingFinalizationService` agar kembali menutup invoice saat finalisasi | Itu mengulang penyimpangan yang sudah diperbaiki "Pilihan A" pada temuan 2 September 2026, dan akan mematikan kembali jalur koreksi AR |
+
+## Keamanan dan privasi
+
+Nol permission baru, nol endpoint baru, nol perubahan pada pemeriksaan hak akses mana pun. Transisi dijalankan Sistem di dalam transaksi peristiwa yang **sudah** memeriksa hak akses pelakunya di pintu masuknya masing-masing (pembayaran, alokasi deposit, penyesuaian, write-off).
+
+Audit perpindahan status dicatat mengikuti pola yang sudah ada di modul ini: kategori `HealthServices.BillingManagement.Billing`, memuat `InvoiceId`, status sebelum dan sesudah, sisa tagihan yang terhitung, `occurredAt`, dan `ActorUserId`. **MUST NOT** memuat identitas pasien maupun payload provider — konsisten dengan `contracts/permission-audit-matrix.md` yang sudah berlaku.
+
+## Ringkasan amendment
+
+| Aspek | Nilai |
+| --- | --- |
+| Keputusan bisnis dasar | `BKC-DEC-100`–`BKC-DEC-102`, `approved` 18 September 2026 |
+| Masukan audit kemampuan | `01-existing-capability-map.md` § 21 (diaudit pada `21b47331`) |
+| Keputusan arsitektur | `BKC-DES-028`–`BKC-DES-035`, seluruhnya **`approved`** 18 September 2026. Approval turun bertahap dan sengaja tidak disimpulkan: `BKC-DES-033` lewat `BKC-DEC-103` dan `BKC-DES-029` lewat `BKC-DEC-104` — keduanya karena menyimpang dari bunyi harfiah keputusan bisnisnya — lalu enam sisanya lewat `BKC-DEC-105` |
+| Keputusan lama yang digantikan | **Nol.** Tidak ada `BKC-DES-*` sebelumnya yang dicabut maupun dipersempit |
+| Dampak skema | **Nol tabel baru, nol kolom baru, nol index baru.** Satu migration yang isinya hanya pemutakhiran data |
+| Dampak kontrak API | **Nol endpoint baru, nol field baru.** Satu perubahan **nilai**: `status` kini dapat bernilai `CLOSED` pada alur normal, dan `closedAt` kini benar-benar terisi |
+| Dampak frontend | **Nol.** Badge dan opsi filter `CLOSED` sudah ada (§ 21 capability map) |
+| Ketergantungan lintas modul | **Nol** |
+| Backend SHA diaudit | `21b4733154e91962cbd7094a102615b1d9eb2bf2` |
+| Butir yang MUST dijawab owner saat approval | ~~`BKC-DES-033` dan `BKC-DES-029`~~ — **keduanya sudah dijawab dan `approved`** 18 September 2026 (`BKC-DEC-103`, `BKC-DEC-104`). Tidak ada butir menyimpang yang tersisa |
+| Status | ~~draft~~ **approved** — `BKC-DES-028`–`035` disetujui Product/Domain Owner 18 September 2026 (`BKC-DEC-105`, wewenang ganda Finance/AR `BKC-DEC-085`). Approval ini **bukan** otorisasi membuat maupun menjalankan migration backfill; gerbang itu terpisah dan tetap menuntut konfirmasi eksplisit sesudah backup |
+
+---
+
+# Amendment 21 September 2026 — Penerbitan fakta finansial ke dua modul konsumen
+
+> `revisi blueprint`: `1.4`, status **draft**. Masukan: `BKC-DEC-106`–`109` (approved
+> 21 September 2026), `PHA-DEC-063`–`070`, `FIN-DEC-005`–`006`.
+> Backend SHA diaudit: `6782ae652ca53299f7469c49b2edb64d23e77b60`.
+>
+> **Ini amendment pertama yang membangun konsumen nyata.** Seluruh amendment sebelumnya bekerja
+> di dalam Billing sendiri; `BIL-INTEGRATION-1.0` bahkan sengaja *memutus* ketergantungan status
+> invoice dari AR/AP karena konsumennya belum ada. Kini dua konsumen berdiri dan menunggu.
+
+## 1. Perubahan pada bounded context
+
+Tidak ada konteks baru. Yang berubah adalah **invariant** `BIL-CTX-05`.
+
+| Konteks | Aggregate root | Invariant sesudah amendment ini | Owner |
+| --- | --- | --- | --- |
+| `BIL-CTX-05` Billing Finalization & Handoff | `BilFinalizationRecord`, **`BilCollectionHandoff`** (baru), **`BilPrescriptionClearanceHandoff`** (baru) | Finalisasi sekali per versi; AR per debtor dan AP dokter idempotent; koreksi memakai handoff adjustment. **Baru:** surat penerimaan uang dan surat clearance resep adalah aggregate root tersendiri yang **MUST NOT** bergantung pada finalisasi | Billing/Finance Integration |
+
+### Invariant baru yang paling mudah dilanggar
+
+| Invariant | Sebabnya |
+| --- | --- |
+| `BilCollectionHandoff` **MUST NOT** memiliki foreign key ke `BilFinalizationRecord` | Pasien dapat membayar sementara tagihan masih terbuka, dan finalisasi menyusul belakangan. Menjadikannya anak finalisasi berarti uang yang masuk lebih dulu tidak akan pernah sampai ke buku Finance — persis yang diminta dicegah |
+| Surat **MUST** terbit di dalam transaksi yang sama dengan pergerakan uang atau perubahan keadaan yang melahirkannya | Surat yang terbit belakangan di luar transaksi membuka kemungkinan uang bergerak tanpa suratnya. Itu tepat yang tidak boleh terjadi pada angka |
+| Nomor versi finansial **MUST** naik monoton per resep | Konsumen menolak versi yang lebih tua (`PHA-DEC-063`). Nomor yang melompat mundur membuat resep tertahan selamanya |
+| Satu peristiwa **MUST NOT** diasumsikan melahirkan dua surat | Syarat keduanya berbeda. Lihat tabel peristiwa pada `contracts/integration-contract.md` |
+
+## 2. Tabel kepemilikan data
+
+| Kelompok data | Modul pemilik | Dipakai modul ini | Dibuat ulang di modul ini |
+| --- | --- | :---: | --- |
+| Tagihan pasien dan barisnya | `billing-kasir` (`BIL-CTX-01`) | Ya | Tidak — tabel yang sudah ada dibaca |
+| Tender, penyelesaian, alokasi pembayaran | `billing-kasir` (`BIL-CTX-02`) | Ya | Tidak — tabel yang sudah ada dibaca |
+| Cara bayar beserta penanda asuransi/penjamin | Billing Master Data (`MstPaymentMethod`) | Ya | Tidak — dibaca untuk menentukan hasil finansial |
+| Shift kasir | `billing-kasir` (`BIL-CTX-04`) | Ya | Tidak — hanya identitasnya yang disalin ke surat |
+| **Surat penerimaan uang** | `billing-kasir` (`BIL-CTX-05`) | Ya | **Ya — tabel baru** |
+| **Surat clearance resep** | `billing-kasir` (`BIL-CTX-05`) | Ya | **Ya — tabel baru** |
+| Resep, baris resep, penyerahan obat | Pharmacy Management | Ya, **baca saja** | Tidak — **MUST NOT** ditulis dalam keadaan apa pun |
+| Buku piutang dan penerimaan Finance | `finance-management` | Tidak | Tidak — Finance membacanya sendiri dari surat |
+| Proyeksi finansial di sisi Farmasi | `pharmacy` | Tidak | Tidak — milik konsumen, dirancang pada blueprint Farmasi |
+| Jurnal akuntansi | `AccountingManagement` | Tidak | Tidak — Billing **MUST NOT** mengirim apa pun langsung ke Accounting |
+
+Dua baris terakhir adalah batas yang paling mudah dilanggar tanpa sengaja. Billing menerbitkan
+fakta; ia **tidak** ikut memutuskan apa yang konsumen lakukan dengan fakta itu.
+
+## 3. Class diagram — tambahan pada `BIL-CTX-05`
+
+```mermaid
+classDiagram
+  direction LR
+
+  class BilInvoice {
+    +Guid Id
+    +Guid EncounterId
+    +string Status
+    +DateTimeOffset ClosedAt
+  }
+
+  class BilTender {
+    +Guid Id
+    +Guid SettlementId
+    +Guid PaymentMethodId
+    +decimal Amount
+    +string Status
+    +string KwitansiNumber
+    +Guid CashierShiftId
+  }
+
+  class BilCollectionHandoff {
+    +Guid Id
+    +Guid TenderId
+    +Guid SettlementId
+    +Guid InvoiceId
+    +string TenderStatus
+    +string SourceInvoiceStatus
+    +decimal Amount
+    +Guid HandoffKey
+    +string Status
+    +DateTimeOffset AcknowledgedAt
+  }
+
+  class BilPrescriptionClearanceHandoff {
+    +Guid Id
+    +Guid PrescriptionId
+    +Guid InvoiceId
+    +string ClearanceStatus
+    +string FinancialOutcome
+    +string ReasonCode
+    +long FinancialVersion
+    +DateTimeOffset EffectiveAt
+    +string Status
+    +DateTimeOffset AcknowledgedAt
+  }
+
+  class BilConsumerHandoffService {
+    +PublishForTenderAsync()
+    +PublishForClearanceChangeAsync()
+    +ReadPrescriptionClearanceAsync()
+  }
+
+  BilInvoice "1" --> "many" BilCollectionHandoff : menjadi rujukan
+  BilTender "1" --> "many" BilCollectionHandoff : satu per status
+  BilInvoice "1" --> "many" BilPrescriptionClearanceHandoff : menjadi rujukan
+  BilConsumerHandoffService ..> BilCollectionHandoff : menerbitkan
+  BilConsumerHandoffService ..> BilPrescriptionClearanceHandoff : menerbitkan
+```
+
+Perhatikan yang **tidak** ada pada diagram: tidak ada garis dari `BilFinalizationRecord` ke
+kedua tabel baru. Itu disengaja, sesuai invariant pada bagian 1.
+
+## 4. Penjelasan setiap class
+
+### `BilCollectionHandoff`
+
+| Aspek | Isi |
+| --- | --- |
+| **Status** | **Baru** |
+| **Lokasi file** | `Areas/HealthServices/BillingManagement/Billing/Models/BilCollectionHandoff.cs` |
+| Konteks | `BIL-CTX-05` |
+| Peran | Menyatakan kepada Finance bahwa satu tender mencapai keadaan akhirnya, beserta seluruh rincian yang dibutuhkan buku penerimaan |
+| Kunci alami | Pasangan identitas tender dan status tender |
+| Relasi | Menunjuk tagihan, penyelesaian, dan tender lewat identitas. **Tanpa** foreign key ke finalisasi |
+| Perilaku hapus | `DeleteBehavior.Restrict` — jejak audit lintas modul tidak boleh ikut terhapus berantai |
+| Sifat | Tetap setelah dibuat. Pembalikan tender melahirkan **baris baru**, bukan pembaruan baris lama |
+
+### `BilPrescriptionClearanceHandoff`
+
+| Aspek | Isi |
+| --- | --- |
+| **Status** | **Baru** |
+| **Lokasi file** | `Areas/HealthServices/BillingManagement/Billing/Models/BilPrescriptionClearanceHandoff.cs` |
+| Konteks | `BIL-CTX-05` |
+| Peran | Menyatakan kepada Farmasi bahwa keadaan clearance sebuah resep berubah, beserta sebab dan nomor versinya |
+| Kunci alami | Pasangan identitas resep dan nomor versi finansial |
+| Relasi | Menunjuk tagihan lewat identitas; menunjuk resep lewat identitas **tanpa** foreign key ke tabel Farmasi |
+| Perilaku hapus | `DeleteBehavior.Restrict` |
+| Sifat | Tetap setelah dibuat. Perubahan berikutnya melahirkan baris baru bernomor versi lebih tinggi |
+
+Alasan identitas resep sengaja **bukan** foreign key: pola yang sama sudah dipakai
+`FinBillingHandoffIntake` di sisi konsumen, dan alasannya identik — tidak mengunci tabel milik
+modul lain. Foreign key ke tabel Farmasi akan membuat penghapusan atau perubahan skema di
+Farmasi menyeret Billing ikut gagal.
+
+### `BilConsumerHandoffService`
+
+| Aspek | Isi |
+| --- | --- |
+| **Status** | **Baru** |
+| **Lokasi file** | `Areas/HealthServices/BillingManagement/Billing/Services/BilConsumerHandoffService.cs` |
+| Fungsi utama | Satu-satunya tempat yang menerbitkan surat ke konsumen hilir, dan satu-satunya tempat yang menjawab pemeriksaan ulang keadaan clearance |
+| Dipanggil siapa | `BillingSettlementService`, `BillingAllocationService`, `BillingFinalizationService`, `BillingFinancialExceptionService` — empat pemanggil yang sama dengan `BillingInvoiceClosureService` |
+| Membuka transaksi sendiri | **Tidak.** Ia selalu ikut transaksi pemanggil, supaya surat dan pergerakan uangnya tidak pernah terpisah nasib |
+| Kunci penasihat | Memakai ulang kunci penasihat tagihan yang sudah ada (`BKC-DES-032`), tidak membuat kunci baru |
+
+### `BillingInvoiceClosureService`
+
+| Aspek | Isi |
+| --- | --- |
+| **Status** | **Diperbarui** |
+| **Lokasi file** | `Areas/HealthServices/BillingManagement/Billing/Services/BillingInvoiceClosureService.cs` |
+| Yang berubah | Hasil penyelarasan (`InvoiceClosureChange`) kini ikut membawa keterangan **sebab** perubahan, supaya penerbit dapat menentukan kode sebab tanpa menebak dari selisih angka |
+| Yang **tidak** berubah | Perhitungan sisa tagihan dan aturan transisi status. `BKC-DEC-100` dan `BKC-DES-031` tidak diusik sama sekali |
+
+### Configuration EF Core
+
+| Class | Status | Lokasi file |
+| --- | --- | --- |
+| `BilCollectionHandoffConfiguration` | **Baru** | `Repositories/Configurations/HealthServices/BillingManagement/Billing/BilCollectionHandoffConfiguration.cs` |
+| `BilPrescriptionClearanceHandoffConfiguration` | **Baru** | `Repositories/Configurations/HealthServices/BillingManagement/Billing/BilPrescriptionClearanceHandoffConfiguration.cs` |
+
+Configuration **tidak** berada di dalam `Areas/`. Ia terpisah di bawah
+`Repositories/Configurations/`, mengikuti aturan struktur backend.
+
+### Controller
+
+| Class | Status | Lokasi file | Service yang dipakai |
+| --- | --- | --- | --- |
+| `BillingConsumerHandoffController` | **Baru** | `Areas/HealthServices/BillingManagement/Billing/Controllers/BillingConsumerHandoffController.cs` | `BilConsumerHandoffService` |
+
+Controller ini **hanya** melayani kebutuhan operasional manusia — melihat surat yang menggantung
+dan mencatat pengakuan penerimaan. Pembacaan keadaan clearance oleh Farmasi **tidak** lewat
+controller ini, melainkan pemanggilan langsung di dalam proses yang sama.
+
+## 5. Arsitektur folder
+
+```text
+Areas/HealthServices/BillingManagement/Billing/
+├── Models/
+│   ├── BilCollectionHandoff.cs                      # BARU
+│   ├── BilPrescriptionClearanceHandoff.cs           # BARU
+│   ├── BilArHandoff.cs                              # sudah ada — tidak disentuh (BKC-DES-033)
+│   └── BilInvoice.cs                                # sudah ada — tidak disentuh
+├── Services/
+│   ├── BilConsumerHandoffService.cs                 # BARU
+│   └── BillingInvoiceClosureService.cs              # DIPERBARUI — sebab perubahan ikut dibawa
+├── Controllers/
+│   └── BillingConsumerHandoffController.cs          # BARU
+└── Dtos/
+    └── BillingConsumerHandoffDtos.cs                # BARU
+
+Repositories/Configurations/HealthServices/BillingManagement/Billing/
+├── BilCollectionHandoffConfiguration.cs             # BARU
+└── BilPrescriptionClearanceHandoffConfiguration.cs  # BARU
+```
+
+Tidak ada penyimpangan struktur pada amendment ini. Seluruh berkas mengikuti pola standar.
+
+## 6. Status model dan dampak migration
+
+| Tabel | Status | Kolom yang berubah | Dampak migration |
+| --- | --- | --- | --- |
+| `BilCollectionHandoff` | **Baru** | Seluruhnya | Satu tabel baru beserta index |
+| `BilPrescriptionClearanceHandoff` | **Baru** | Seluruhnya | Satu tabel baru beserta index |
+| `BilInvoice` | Sudah ada | **Nol** | Tidak tersentuh |
+| `BilTender` | Sudah ada | **Nol** | Tidak tersentuh |
+| `BilArHandoff` | Sudah ada | **Nol** | Tidak tersentuh — `BKC-DES-033` tetap berlaku |
+
+**Nol kolom ditambahkan pada tabel yang sudah ada.** Ini konsekuensi langsung dari verifikasi
+Finance bahwa seluruh bidang yang dibutuhkannya sudah tersedia di `BilTender` dan
+`BilSettlement` — penerbitan hanya meneruskan, tidak menyimpan yang baru.
+
+## 7. Rencana migration
+
+| Urutan | Nama | Tanpa mematikan layanan | Pengisian data lama | Langkah mundur |
+| --- | --- | --- | --- | --- |
+| 1 | `AddBillingConsumerHandoff` | **Ya** — hanya menambah dua tabel baru, tidak menyentuh tabel yang sedang dipakai | **Tidak ada.** Surat hanya terbit untuk peristiwa sejak tabel berdiri | `Down` menghapus kedua tabel; aman karena belum ada konsumen yang bergantung |
+
+### Yang sengaja tidak di-backfill, dan akibatnya
+
+Tender yang sudah berhasil **sebelum** tabel ini berdiri tidak akan punya surat. Begitu pula
+resep yang tagihannya sudah lunas sebelum itu.
+
+Akibatnya nyata dan **MUST** diketahui pemilik proses: resep yang sudah terlanjur macet di
+keadaan menunggu pembayaran **tidak** akan otomatis terlepas begitu jalur ini dibangun. Keduanya
+memerlukan satu pekerjaan pemulihan tersendiri — memeriksa resep yang tagihannya sudah lunas
+lalu menerbitkan surat pertamanya.
+
+Pekerjaan itu **bukan** bagian migration ini, karena ia pemutakhiran data yang menuntut
+otorisasi terpisah. Ia dicatat sebagai pekerjaan susulan pada roadmap, dan permukaan pemeriksaan
+ulang (`BKC-DEC-107`) sudah menyediakan jalannya tanpa skrip khusus.
+
+## 8. Rencana data master awal
+
+**Tidak ada tabel master baru.** Amendment ini tidak menambah satu pun master, dan tidak
+memerlukan isi awal apa pun agar dapat dipakai.
+
+Satu master yang sudah ada menjadi **penentu perilaku** dan karena itu isinya wajib benar:
+
+| Master | Isi minimum | Sumber nilai | Akibat bila salah |
+| --- | --- | --- | --- |
+| `MstPaymentMethod` | Setiap cara bayar yang mewakili penjaminan **MUST** bertanda asuransi atau penjamin perusahaan | Kebijakan Finance | Pembayaran lewat asuransi akan tercatat sebagai `Paid`, bukan `InsuranceApproved`, dan hasil finansial pada resep menjadi keliru |
+
+Penanda itu **MUST NOT** ditulis tetap di service maupun controller; ia dibaca dari master.
+
+## 9. Yang sengaja tidak dibuat
+
+| Yang ditolak | Alasan |
+| --- | --- |
+| Satu tabel handoff serba-guna bermuatan bebas | Ditolak `BKC-DEC-106`. Muatan bebas menghilangkan penjagaan bentuk; kesalahan isi baru ketahuan saat dibaca konsumen |
+| Kolom nominal terbayar per baris tagihan | Ditolak dua kali — `PHA-DEC-064` dan `PHA-DEC-068-A`. Bila kelak dibutuhkan, itu keputusan pemilik Billing tersendiri |
+| Sasaran alokasi pembayaran selain tagihan utuh | Sama seperti di atas. `BilPaymentAllocation` tetap hanya mengenal `INVOICE` |
+| Tabel proyeksi finansial di sisi Billing | Proyeksi adalah milik konsumen. Billing memegang kebenaran, bukan salinannya |
+| Foreign key ke tabel Farmasi | Akan membuat perubahan skema di Farmasi menyeret Billing ikut gagal. Pola `FinBillingHandoffIntake` sudah memutuskan hal yang sama untuk alasan yang sama |
+| Anak `BilFinalizationRecord` untuk surat penerimaan | Akan membuat uang yang masuk sebelum finalisasi tidak pernah sampai ke Finance |
+| Pekerjaan latar penyapu surat menggantung | `BKC-DEC-108` memilih keterlihatan pasif; ambang waktunya belum diputuskan (`BKC-OQ-101`) |
+| Jenis surat ketiga untuk pemberitahuan finalisasi | Finance menerima `BilArHandoff` yang menyusul sebagai penanda yang sudah cukup |
+
+## 10. Keputusan arsitektur
+
+| ID | Keputusan | Dasar | Alasan |
+| --- | --- | --- | --- |
+| `BKC-DES-036` | Dua tabel handoff berkolom tegas, bukan satu tabel serba-guna | `BKC-DEC-106` | Isi keduanya memang berbeda; kolom tegas menjaga bentuk pada saat penulisan, bukan saat pembacaan |
+| `BKC-DES-037` | `BilCollectionHandoff` aggregate root tersendiri, tanpa foreign key ke finalisasi | `BKC-DEC-106`, `FIN-DEC-005` | Pembayaran dapat mendahului finalisasi |
+| `BKC-DES-038` | Satu service penerbit dipanggil dari empat titik yang sama dengan penyelaras status | `BKC-DEC-106` | Satu titik deteksi; mustahil satu konsumen tahu sementara yang lain tidak |
+| `BKC-DES-039` | Nomor versi finansial naik monoton per resep, dilindungi kunci penasihat yang sudah ada | `PHA-DEC-063` | Konsumen menolak versi lebih tua; kunci penasihat mencegah dua surat berversi sama |
+| `BKC-DES-040` | Pembacaan keadaan clearance berbentuk pemanggilan dalam proses, bukan HTTP | `BKC-DEC-107` | Konsisten `BIL-INT-010`–`012`; satu assembly |
+| `BKC-DES-041` | `InvoiceClosureChange` membawa keterangan sebab | `BKC-DEC-106`, `PHA-DEC-068` | Kode sebab **MUST NOT** ditebak dari selisih angka; membedakan biaya non-farmasi dari koreksi harga obat menuntut sebab yang eksplisit |
+
+## 11. Yang MUST dijawab owner saat approval
+
+| Butir | Pertanyaan |
+| --- | --- |
+| Pekerjaan pemulihan | Resep yang sudah terlanjur macet tidak terlepas sendiri oleh migration ini. Apakah pekerjaan pemulihannya masuk gelombang yang sama, atau menyusul? |
+| `BKC-OQ-101` | Ambang waktu surat menggantung dan penerimanya — dapat ditunda, tetapi **MUST** diakui terbuka |
+
+## 12. Status amendment
+
+| Field | Nilai |
+| --- | --- |
+| Keputusan lama yang digantikan | **Nol.** Tidak ada `BKC-DES-*` sebelumnya yang dicabut maupun dipersempit. `BKC-DES-031` dan `BKC-DES-033` tetap berlaku utuh |
+| Dampak skema | **Dua tabel baru**, nol kolom baru pada tabel yang sudah ada |
+| Dampak kontrak API | Dua endpoint operasional baru; nol endpoint lama yang berubah |
+| Dampak frontend | Satu layar operasional baru untuk memeriksa surat menggantung |
+| Ketergantungan lintas modul | Finance dan Farmasi sebagai konsumen; keduanya sudah menyetujui kontraknya |
+| Status | **draft** — menunggu approval Product/Domain Owner |

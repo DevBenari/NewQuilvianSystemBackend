@@ -217,4 +217,69 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
     public class BedDriftPagedResult : PagedResult<BedDriftItemResponse>
     {
     }
+
+    /// <summary>Penyaring daftar pantau kekurangan deposit rawat inap (BE-RWI-071).</summary>
+    public class DepositShortfallQuery
+    {
+        public Guid? ServiceUnitId { get; set; }
+
+        public int PageNumber { get; set; } = 1;
+
+        public int PageSize { get; set; } = 25;
+    }
+
+    /// <summary>
+    /// Satu episode rawat inap aktif yang uang mukanya masih kurang dan telah melewati ambang tindak lanjut.
+    /// Sesuai RWI-DEC-096, FR-RI-177, dan BE-RWI-071.
+    /// </summary>
+    public class DepositShortfallItemResponse
+    {
+        public Guid EpisodeId { get; set; }
+
+        public string EpisodeNumber { get; set; } = string.Empty;
+
+        public Guid PatientId { get; set; }
+
+        public string? PatientName { get; set; }
+
+        public string? MedicalRecordNumber { get; set; }
+
+        public Guid ServiceUnitId { get; set; }
+
+        public string? ServiceUnitName { get; set; }
+
+        public string? BedName { get; set; }
+
+        public string? RoomName { get; set; }
+
+        public DateTime? AdmittedAt { get; set; }
+
+        /// <summary>Lama dirawat dalam hari (selisih tanggal).</summary>
+        public int LengthOfStayDays { get; set; }
+
+        /// <summary>Ambang tindak lanjut hari penagihan yang berlaku.</summary>
+        public int ThresholdDays { get; set; }
+
+        public decimal? MinimumPolicyAmount { get; set; }
+
+        public decimal? TotalReceived { get; set; }
+
+        public decimal? ShortfallAmount { get; set; }
+
+        /// <summary>
+        /// Menunjukkan apakah data posisi deposit dari Billing berhasil dibaca.
+        /// Kriteria 5 BE-RWI-071: Bila tidak dapat dibaca, sistem menyatakan datanya tidak tersedia,
+        /// bukan mengasumsikan nol atau lunas.
+        /// </summary>
+        public bool BillingDataAvailable { get; set; } = true;
+
+        public string? BillingUnavailableReason { get; set; }
+
+        public bool FollowUpDue { get; set; }
+    }
+
+    /// <summary>Daftar pantau kekurangan deposit bertingkat (paged).</summary>
+    public class DepositShortfallPagedResult : PagedResult<DepositShortfallItemResponse>
+    {
+    }
 }

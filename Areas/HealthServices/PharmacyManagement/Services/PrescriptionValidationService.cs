@@ -47,9 +47,68 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
                 ValidateHeader(prescription, issues);
                 ValidateRegularItems(prescription, issues);
                 ValidateCompounds(prescription, issues);
+                await ValidateInpatientSafetyFlagsAsync(prescription, issues, cancellationToken);
             }
 
             return issues;
+        }
+
+        /// <summary>
+        /// <c>VAL-DOK-57</c>, <c>BE-RWI-105</c> kriteria 5: draft resep rawat inap yang masih membawa
+        /// butir bentrok alergi atau obat tidak tersedia ditolak saat disimpan.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Hanya resep <b>draft berkonteks rawat inap</b>; resep poliklinik dan IGD tidak tersentuh aturan
+        /// ini (validation matrix 0.6.0 bagian 10 — aturan hanya menyala untuk kunjungan rawat inap).
+        /// </para>
+        /// <para>
+        /// Penanda dihitung ulang dari alergi aktif pasien dan status master obat saat disimpan, karena
+        /// kamus data 0.5 tidak menyimpan penanda per butir. Akibatnya jujur: aturan ini berlaku bagi
+        /// seluruh butir draft rawat inap, bukan hanya butir yang lahir dari template — butir bentrok
+        /// alergi yang diketik manual juga tertahan.
+        /// </para>
+        /// <para>
+        /// <b>Contoh.</b> Budi alergi Paracetamol. Draft resepnya masih berisi Paracetamol 500 mg dari
+        /// template "Pneumonia dewasa" → penyelesaian catatan dokter ditolak: "Masih ada obat yang bentrok
+        /// alergi atau tidak tersedia: Paracetamol 500 mg. Hapus atau ganti sebelum menyimpan."
+        /// </para>
+        /// </remarks>
+        private async Task ValidateInpatientSafetyFlagsAsync(
+            PhmPrescription prescription,
+            List<ConsultationFinalizationIssueResponse> issues,
+            CancellationToken cancellationToken)
+        {
+            if (!prescription.InpEpisodeId.HasValue || prescription.PrescriptionStatus != PrescriptionStatus.Draft)
+                return;
+
+            var butir = prescription.Items
+                .Select(x => (x.DrugId, x.DrugNameSnapshot))
+                .Concat(prescription.Compounds.SelectMany(c => c.Items.Select(i => (i.DrugId, i.DrugNameSnapshot))))
+                .ToList();
+
+            if (butir.Count == 0)
+                return;
+
+            var penanda = await PrescriptionSafetyFlagEvaluator.EvaluateAsync(
+                _dbContext,
+                prescription.PatientId,
+                butir.Select(x => x.DrugId).ToList(),
+                cancellationToken);
+
+            var bermasalah = butir
+                .Where(x => penanda.TryGetValue(x.DrugId, out var flags) && flags.Count > 0)
+                .Select(x => x.DrugNameSnapshot)
+                .Distinct()
+                .ToList();
+
+            if (bermasalah.Count == 0)
+                return;
+
+            issues.Add(Issue("INPATIENT_PRESCRIPTION_FLAGGED_ITEMS", ConsultationValidationSeverity.Error,
+                $"Masih ada obat yang bentrok alergi atau tidak tersedia: {string.Join(", ", bermasalah)}. " +
+                "Hapus atau ganti sebelum menyimpan.",
+                "Prescription", "prescription", null, "Prescription", prescription.Id));
         }
 
         /// <summary>

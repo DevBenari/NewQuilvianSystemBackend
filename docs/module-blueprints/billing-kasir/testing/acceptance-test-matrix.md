@@ -220,3 +220,191 @@ Slice ini **MUST** menyertakan:
 Approval blueprint bukan bukti test.
 
 Trace **`PC-DEC-001`–`013`**, `PC-DES-001`–`014`.
+
+---
+
+# Amendment 11 September 2026 — Rumpun Edit Tagihan & Multi-Payer Coverage
+
+> `last_changed_in`: `BIL-TEST-1.0` / revisi blueprint `1.1`, status **draft**. Masukan: `MPY-DEC-001`–`010`, `MPY-DES-001`–`017`.
+>
+> Seluruh contoh memakai data samaran.
+
+## Mengganti penanggung kunjungan
+
+| ID | Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- | --- |
+| `BIL-AT-081` | `MPY-DEC-003`, `MPY-DES-001` | Kunjungan rawat jalan didaftarkan tunai. Kasir mengganti penanggung menjadi kartu asuransi milik pasien yang masih berlaku | Integration | Penanggung kunjungan berubah menjadi asuransi; tagihan punya versi perhitungan baru; porsi penjamin naik dari nol; jejak perubahan tercatat satu baris |
+| `BIL-AT-082` | `MPY-DEC-003` | Kunjungan berasuransi diganti menjadi penjamin perusahaan, lalu diganti lagi menjadi tunai | Integration | Ketiga perubahan berhasil berurutan; kunjungan tetap punya **tepat satu** baris sumber pembayaran sepanjang seluruh rangkaian |
+| `BIL-AT-083` | `BIL-VAL-068` | Kasir memilih kartu asuransi milik pasien lain | Integration | Ditolak `422` beserta pesan yang dapat dibaca pengguna; penanggung kunjungan tidak berubah |
+| `BIL-AT-084` | `BIL-VAL-070` | Kartu penjamin berlaku sampai 31 Agustus 2026; tanggal pelayanan 11 September 2026 | Integration | Ditolak `422`; tidak ada versi perhitungan baru yang lahir |
+| `BIL-AT-085` | `BIL-VAL-060` | Tagihan sudah menerima satu pembayaran berhasil, lalu kasir mencoba mengganti penanggung | Integration | Ditolak `409`; angka tagihan dan pembayaran yang sudah masuk tidak bergeser sama sekali |
+| `BIL-AT-086` | `BIL-VAL-061` | Dua kasir membuka tagihan yang sama. Kasir A menyimpan lebih dulu, lalu Kasir B menyimpan dengan versi lama | Integration | Perintah Kasir B ditolak `409`; **nol perubahan tersimpan sebagian** — penanggung, penanggung baris, dan versi perhitungan seluruhnya tetap seperti hasil Kasir A |
+| `BIL-AT-087` | `MPY-DES-005`, `MPY-DES-015` | Kasir meminta pratinjau perbandingan lima kali berturut-turut | Integration | Nol versi perhitungan baru lahir; nol baris jejak perubahan lahir; penanggung kunjungan tidak bergerak. Angka pratinjau konsisten pada kelima pemanggilan |
+| `BIL-AT-088` | `MPY-DES-003`, NFR idempotency | Perintah ganti penanggung dikirim dua kali dengan kunci idempotensi yang sama | Integration | Hanya satu baris jejak perubahan tercatat; hanya satu versi perhitungan baru lahir; permintaan kedua mengembalikan hasil yang sama tanpa efek tambahan |
+
+## Menentukan penanggung per baris biaya
+
+| ID | Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- | --- |
+| `BIL-AT-089` | `MPY-DEC-004` | Kunjungan berpenjamin perusahaan. Kasir menandai satu baris vitamin seharga Rp 80.000 menjadi tanggungan pasien | Integration | Porsi pasien bertambah Rp 80.000; porsi penjamin berkurang sebesar porsi yang tadinya ditanggung; **Subtotal Mandiri + Subtotal Penjamin + pajak = Total Tagihan**, tanpa selisih |
+| `BIL-AT-090` | `MPY-DEC-004` | Satu baris obat yang menurut aturan tanggungan berstatus tidak tertanggung ditandai ditanggung asuransi | Integration | Perintah **berhasil**, bukan ditolak; hasil perhitungan menunjukkan nol tertanggung dan pasien membayar penuh; keterangan penanggung baris tetap tercatat asuransi |
+| `BIL-AT-091` | `BIL-VAL-077`, `BIL-VAL-078` | Kunjungan tunai; kasir menandai satu baris ditanggung penjamin perusahaan | Integration | Ditolak `422` beserta pesan yang menyebut kunjungan tidak memakai penjamin |
+| `BIL-AT-092` | **`MPY-DES-009`** | Kunjungan berpenjamin perusahaan dengan tiga baris bertanda penjamin. Kasir mengganti penanggung kunjungan menjadi tunai | Integration | Ketiga baris **otomatis** kembali menjadi tanggungan pasien bertanda sumber otomatis beserta alasan bawaan; response menyebut angka tiga; nol baris tertinggal menunjuk penanggung yang sudah tidak ada |
+
+## Menentukan obat yang masuk tagihan
+
+| ID | Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- | --- |
+| `BIL-AT-093` | `MPY-DEC-009` | Tagihan rawat jalan dengan empat baris obat; kasir memilih Ditebus | Integration | Keempat baris masuk tagihan; subtotal obat sama dengan sebelum perintah dijalankan |
+| `BIL-AT-094` | `BIL-VAL-083`, `MPY-DES-010` | Dari empat baris obat, kasir mencentang dua lalu memilih Tebus Sebagian | Integration | Dua baris masuk tagihan, dua tidak; **jumlah pada keempat baris tidak berubah sedikit pun**; baris yang tidak ditebus tidak muncul sebagai porsi pasien maupun porsi penjamin |
+| `BIL-AT-095` | `BIL-VAL-081`, `MPY-DES-011` | (a) Kunjungan rawat inap, kasir mencoba mengatur penebusan. (b) Kunjungan IGD, kasir mengatur penebusan | Integration | (a) Ditolak `422`. (b) **Berhasil** — membuktikan IGD diperlakukan terpisah dari rawat inap dan tidak ikut tertolak |
+| `BIL-AT-096` | **`MPY-DEC-009`** | Seluruh alur Edit Billing dijalankan pada tagihan dengan resep yang sudah diserahkan sebagian oleh Farmasi | **Regresi lintas modul** | **Nol baris data penyerahan obat milik Farmasi tersentuh** — jumlah diserahkan, jumlah tersisa, status penyerahan, dan riwayatnya identik sebelum dan sesudah perintah |
+
+## Hak akses, privasi, dan master data
+
+| ID | Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- | --- |
+| `BIL-AT-097` | `MPY-DEC-006`, `CAP-39` | Pengguna tanpa kewenangan ubah tagihan membuka layar Edit Tagihan; pengguna tanpa kewenangan master data membuka kedua layar master baru | Integration | Pembacaan diizinkan bagi pemegang kewenangan baca; ketiga perintah ubah ditolak `403`; kedua butir kewenangan master baru muncul pada pengaturan peran tanpa berkas seed disunting |
+| `BIL-AT-098` | Privasi | Ketiga perintah dijalankan, lalu lembar tagihan perusahaan diunduh | Integration | Catatan log **tidak memuat** nomor polis, nomor kartu, nomor karyawan, maupun nama karyawan; nama berkas lembar tagihan memakai nomor tagihan, bukan nama pasien maupun nama perusahaan |
+| `BIL-AT-099` | `BIL-VAL-087`–`092` | Admin membuat rute menanggung sendiri sambil mengisi asuransi mitra; lalu menandai rute kedua sebagai bawaan; lalu membuat aturan tanggungan dengan persentase 80 | Integration | Dua yang pertama ditolak beserta pesan yang dapat dibaca; yang ketiga tersimpan dengan urun biaya **20 yang diturunkan server**, bukan nilai yang dikirim klien |
+| `BIL-AT-100` | **Regresi menyeluruh** | Hitung ulang tiga tagihan lama: satu tunai, satu berasuransi, satu berpenjamin perusahaan | **Regresi** | Tagihan tunai dan tagihan berasuransi menghasilkan angka **identik** dengan sebelum amendment ini. Tagihan berpenjamin perusahaan **tidak lagi** menghasilkan anomali "perusahaan asuransi belum dipilih", dan porsi penjaminnya kini terhitung sesuai aturan tanggungan perusahaan |
+
+## Dokumen lembar tagihan perusahaan
+
+Pengujian lembar tagihan perusahaan penjamin mengikuti pola pengujian lembar Invoice Asuransi yang sudah ada (`BIL-AT-031`–`035`), dengan satu tambahan yang mengikat: lembar itu **MUST NOT** dapat dicetak untuk kunjungan tunai maupun kunjungan berasuransi pribadi, dan **MUST** memuat keterangan rute penggantian biaya bila perusahaannya memilikinya.
+
+## Catatan cakupan
+
+Setiap kemampuan wajib pada rumpun ini memiliki **sekurang-kurangnya satu skenario berhasil dan satu skenario gagal**. Tiga pengujian ditandai regresi karena keduanya menjaga hal yang paling mudah rusak tanpa disadari: angka tagihan kunjungan yang tidak disentuh rumpun ini (`BIL-AT-100`), data milik modul lain (`BIL-AT-096`), dan perilaku konsumen lama komponen yang dipakai ulang (acceptance frontend nomor 70).
+
+Approval blueprint bukan bukti test.
+
+Trace **`MPY-DEC-001`–`010`**, `MPY-DES-001`–`017`.
+
+---
+
+## Amendment 15 September 2026 — Revisi Petty Cash: pencairan langsung dan anggaran per periode
+
+`last_changed_in: BIL-TEST-1.1` · status **approved** (`PC-DEC-026`, 15 September 2026) · input: **`PC-DEC-016`–`PC-DEC-025`**; keputusan arsitektur `PC-DES-015`–`PC-DES-025`.
+
+Dua puluh acceptance test, `BIL-AT-101`–`BIL-AT-120`. **Lima di antaranya regresi** — menguji bahwa yang seharusnya tidak berubah memang tidak berubah, dan bahwa yang dihapus benar-benar tidak dapat dipanggil lagi.
+
+| ID | Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- | --- |
+| `BIL-AT-101` | `PC-DEC-016` | Kasir membuat permintaan lalu langsung mencairkannya tanpa persetujuan siapa pun | Integrasi | Status berpindah `Menunggu Pencairan` lalu `Menunggu Bukti` dalam dua panggilan; saldo berkurang tepat sekali; satu baris `DISBURSEMENT` lahir |
+| `BIL-AT-102` | `PC-DEC-016`, `PC-DEC-024` | Memanggil `POST /vouchers/{id}/approve` setelah rilis | Integrasi | `404` — endpointnya tidak ada lagi. **Regresi** |
+| `BIL-AT-103` | `PC-DEC-024` | Memanggil `POST /vouchers/{id}/reject` setelah rilis | Integrasi | `404`. **Regresi** |
+| `BIL-AT-104` | `PC-DES-015` | Membaca voucher warisan yang sebelumnya `WAITING_APPROVAL` | Integrasi | `status` bernilai `REQUESTED`, `statusLabel` bernilai `Menunggu Pencairan`; nomor voucher, nominal, dan penerimanya tidak berubah |
+| `BIL-AT-105` | `PC-DES-015`, `PC-DES-024` | Membaca voucher warisan yang sebelumnya `APPROVED` dan belum dicairkan | Integrasi | `status` bernilai `REQUESTED` dan **dapat langsung dicairkan**; `decidedAt`/`decidedByName` tetap terbaca sebagai jejak lama |
+| `BIL-AT-106` | `PC-DES-015`, `PC-DEC-003` | Membaca voucher warisan berstatus `REJECTED` | Integrasi | Tetap `REJECTED` dengan label `Ditolak (arsip)`; `rejectionReason` utuh; seluruh aksi atasnya ditolak. **Regresi** |
+| `BIL-AT-107` | `PC-DES-016` | Membaca `GET /budget/current` | Integrasi | Response **tidak** lagi memuat `reservedAmount` maupun `availableAmount` |
+| `BIL-AT-108` | `PC-DES-016` | Sepuluh permintaan Rp 500.000 dibuat berturut-turut di atas saldo Rp 1.000.000 | Integrasi | Seluruh permintaan **berhasil dibuat** (tidak ada saldo yang terkunci); pencairan ketiga **ditolak** `BIL-VAL-048` karena saldo benar-benar habis |
+| `BIL-AT-109` | `PC-DES-006` | Dua kasir mencairkan bersamaan dari saldo yang hanya cukup untuk satu | Integrasi/konkurensi | Tepat satu berhasil; yang lain `422` `BIL-VAL-048`; saldo akhir **tidak** negatif. **Regresi** |
+| `BIL-AT-110` | `PC-DEC-017` | Finance membuat periode anggaran baru lalu mengaktifkannya sementara periode lain masih `ACTIVE` | Integrasi | Pembuatan berhasil (`DRAFT`); pengaktifan **ditolak** `BIL-VAL-103` |
+| `BIL-AT-111` | `PC-DEC-018`, `PC-DES-018` | Finance menutup periode bersisa Rp 1.250.000 dengan penerus yang sah | Integrasi | Periode lama bersaldo `0` dengan satu baris `CARRY_FORWARD_OUT`; periode penerus bertambah Rp 1.250.000 dengan satu baris `CARRY_FORWARD_IN`; keduanya dalam satu transaction |
+| `BIL-AT-112` | `BIL-VAL-104` | Finance menutup periode yang masih punya permintaan `Menunggu Pencairan` | Integrasi | `422` `BIL-VAL-104`; periode tetap `ACTIVE`; tidak ada baris carry-forward yang lahir |
+| `BIL-AT-113` | `BIL-VAL-104` | Finance menutup periode bersisa saldo tanpa menyebutkan periode penerus | Integrasi | `422`; saldo tidak berpindah ke mana pun |
+| `BIL-AT-114` | `BIL-VAL-105` | Penambahan saldo dijalankan pada periode `CLOSED` | Integrasi | `422` `BIL-VAL-105` |
+| `BIL-AT-115` | `BIL-VAL-106` | Pencairan dijalankan ketika tidak ada periode `ACTIVE` sama sekali | Integrasi | `422` `BIL-VAL-106` dengan pesan yang mengarahkan Finance membuat periode, **bukan** pesan saldo tidak mencukupi |
+| `BIL-AT-116` | `PC-DES-020` | Penerima mengembalikan sisa Rp 50.000 lalu Rp 60.000 dari voucher Rp 500.000 | Integrasi | Dua baris `RETURN`; `returnedAmount` menjadi Rp 110.000; **status voucher tidak berubah**; saldo bertambah Rp 110.000 |
+| `BIL-AT-117` | `BIL-VAL-098` | Pengembalian Rp 400.000 diajukan saat sisa di tangan hanya Rp 390.000 | Integrasi | `422` `BIL-VAL-098`; `returnedAmount` tidak berubah |
+| `BIL-AT-118` | `PC-DES-020` | Kasir membalik pencairan voucher Rp 500.000 yang `returnedAmount`-nya Rp 110.000 | Integrasi | Satu baris `REVERSAL` sebesar Rp 390.000; status menjadi `Dibatalkan (Uang Dikembalikan)`; total yang kembali ke kolam Rp 500.000 terbaca dari dua jenis baris yang terpisah |
+| `BIL-AT-119` | `BIL-VAL-099` | Pembalikan kedua diajukan atas voucher yang sudah dibalik | Integrasi | `422` `BIL-VAL-099`; unique index parsial juga menolaknya di lapis database |
+| `BIL-AT-120` | `PC-DEC-023`, `PC-DES-023` | Seluruh alur pencairan, pengembalian, pembalikan, dan penutupan periode dijalankan | Integrasi | **Nol** baris `AccJournal` lahir; **nol** pemanggilan ke `AccountingManagement`. **Regresi** terhadap keputusan menunda integrasi |
+
+### Yang sengaja tidak diuji
+
+| Yang tidak diuji | Alasan |
+| --- | --- |
+| Unggah berkas bukti | Tidak dibangun (`PC-DEC-021`) |
+| Perpindahan `EVIDENCE_SUBMITTED` ke `SETTLED` | Status itu tidak ada (`PC-DEC-025`) |
+| Posting jurnal otomatis ke Kas Kecil | Ditunda (`PC-DEC-023`); `BIL-AT-120` justru menguji ketiadaannya |
+| Approval berjenjang berdasarkan nominal | Tidak pernah masuk scope revisi ini |
+
+---
+
+## Amendment 18 September 2026 — Penutupan gap `FINAL`→`CLOSED`
+
+`last_changed_in: BIL-TEST-1.2` · status **approved** (`BKC-DEC-105`, 18 September 2026) · input: **`BKC-DEC-100`–`BKC-DEC-102`**; keputusan arsitektur `BKC-DES-028`–`BKC-DES-035`.
+
+Empat belas acceptance test, `BIL-AT-121`–`BIL-AT-134`. **Lima di antaranya regresi** — menjaga hal-hal yang paling mudah rusak tanpa disadari ketika status invoice mulai berpindah sendiri.
+
+### Jalur utama — tagihan lunas menjadi tertutup
+
+| ID | Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- | --- |
+| `BIL-AT-121` | `BKC-DEC-100` | Tagihan `FINAL` senilai Rp 2.000.000 dibayar lunas sekali bayar | Integrasi | Status berpindah ke `CLOSED` pada transaksi yang sama dengan pembayarannya; `closedAt` terisi **waktu pembayaran itu**, bukan waktu baris kode dieksekusi; `rowVersion` berubah tepat sekali |
+| `BIL-AT-122` | `BKC-DEC-100`, § 21 capability map | Tagihan `FINAL` Rp 2.000.000 dicicil dua kali (Rp 1.200.000 lalu Rp 800.000) lewat **dua settlement terpisah** | Integrasi | Sesudah cicilan pertama status **tetap** `FINAL`; sesudah cicilan kedua berpindah ke `CLOSED`. Membuktikan perhitungan kumulatif lintas settlement, bukan per settlement |
+| `BIL-AT-123` | `BKC-DES-029` | Tagihan `FINAL` dilunasi **seluruhnya dari alokasi deposit pasien**, tanpa satu pun tender baru | Integrasi | Status berpindah ke `CLOSED`. Membuktikan penyelarasan tidak hanya terpasang di jalur tender |
+| `BIL-AT-124` | **`BKC-DEC-102`** | Tagihan departure exception (DAMA) difinalisasi dengan sisa tagihan, lalu piutangnya dilunasi beberapa hari kemudian | Integrasi | Saat finalisasi status `FINAL` (**tidak** langsung `CLOSED`); sesudah pelunasan berpindah ke `CLOSED`. Membuktikan invoice departure exception tidak dikecualikan |
+| `BIL-AT-125` | `BKC-DEC-100` | Tagihan `FINAL` yang sisa tagihannya dinolkan oleh **penyesuaian arah `Credit`** yang diposting | Integrasi | Status berpindah ke `CLOSED` tanpa satu rupiah pembayaran baru |
+
+### Jalur balik — tagihan tertutup yang terbuka kembali
+
+| ID | Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- | --- |
+| `BIL-AT-126` | **`BKC-DES-031`** | Tagihan yang sudah `CLOSED` pembayarannya dibalik (`SUCCEEDED` → `REVERSED`) | Integrasi | Status kembali ke `FINAL`; `closedAt` kembali **kosong**; tagihan muncul lagi sebagai punya sisa tagihan |
+| `BIL-AT-127` | `BKC-DES-031` | Tagihan yang sudah `CLOSED` menerima penyesuaian arah `Debit` yang diposting | Integrasi | Status kembali ke `FINAL`; sisa tagihan sama dengan nominal penyesuaian itu |
+| `BIL-AT-128` | `BKC-DES-031` | Tagihan yang kembali `FINAL` pada `BIL-AT-126` dibayar lunas lagi | Integrasi | Status berpindah ke `CLOSED` lagi; `closedAt` terisi waktu pembayaran **yang kedua**, bukan yang pertama |
+
+### Lubang koreksi AR — inti perbaikan `BKC-DEC-101`
+
+| ID | Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- | --- |
+| `BIL-AT-129` | **`BKC-DEC-101`**, `BKC-DES-035` | Tagihan lunas berstatus `CLOSED`; tiga hari kemudian ketahuan salah tagih Rp 300.000 dan petugas memposting penyesuaian atasnya | Integrasi | **Satu baris koreksi AR (`BilHandoffAdjustment`) benar-benar lahir.** Inilah skenario Tn. Budi pada temuan 2 September 2026 yang selama ini gagal diam-diam |
+| `BIL-AT-130` | `BKC-DES-035` | Write-off diposting atas tagihan berstatus `SETTLED_BY_WRITE_OFF` | Integrasi | **Nol** baris koreksi AR lahir — penjaga tetap menolak status ini dengan sengaja. **Regresi** |
+| `BIL-AT-131` | `BKC-DES-035` | Penyesuaian diposting atas tagihan yang masih `OPEN` | Integrasi | **Nol** baris koreksi AR lahir; belum ada handoff yang dapat dikoreksi. **Regresi** |
+
+### Idempotency, konkurensi, dan regresi
+
+| ID | Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- | --- |
+| `BIL-AT-132` | `BKC-DES-030` | Event provider yang sama dikirim **dua kali** untuk tender pelunasan yang sama | Integrasi | Status berpindah **tepat sekali**; `rowVersion` invoice naik tepat sekali; tepat satu baris audit perpindahan status; `closedAt` tidak bergeser pada pengiriman kedua |
+| `BIL-AT-133` | **`BKC-DES-032`** | Dua tender berbeda pada **satu invoice yang sama** direkonsiliasi bersamaan, dan bersama-sama melunasinya | Integrasi/konkurensi | Tepat satu perpindahan status; **tidak ada** galat "Data telah berubah" yang sampai ke kasir; saldo dan status akhir benar |
+| `BIL-AT-134` | `BKC-DES-028`, `BKC-DES-034` | (a) Finalisasi tagihan lunas dijalankan. (b) Sisa tagihan sepuluh invoice lama dihitung sebelum dan sesudah konsolidasi perhitungan. (c) Dry-run backfill dijalankan, lalu migration-nya | Regresi | (a) Status hasil finalisasi **tetap `FINAL`**, tidak pernah langsung `CLOSED`. (b) Kesepuluh angka **identik** sebelum dan sesudah konsolidasi. (c) Jumlah baris yang benar-benar berpindah **sama persis** dengan jumlah yang dilaporkan dry-run; `closedAt` hasil backfill berasal dari waktu pelunasan, dan **tidak ada** dua baris hasil backfill yang `closedAt`-nya sama dengan waktu migration dijalankan |
+
+### Yang sengaja tidak diuji
+
+| Yang tidak diuji | Alasan |
+| --- | --- |
+| Penyerahan nyata ke sistem AR/AP | Konsumennya belum ada (`BKC-BLK-INT-001`); justru ketiadaannya yang memicu amendment ini |
+| Perpindahan status `BilArHandoff` menjadi "tertagih" | Status itu tidak ada dan sengaja tidak dibuat (`BKC-DES-033`) |
+| Endpoint manual untuk menutup invoice | Tidak ada endpointnya; `BIL-AT-134`(a) menguji bahwa satu-satunya jalur ke `CLOSED` adalah penyelarasan otomatis |
+| Layar frontend baru | Nol perubahan frontend (§ 21 capability map) |
+
+Approval blueprint bukan bukti test.
+
+Trace **`BKC-DEC-100`–`102`**, `BKC-DES-028`–`035`.
+
+---
+
+## Amendment 21 September 2026 — Penerbitan fakta ke modul konsumen
+
+`last_changed_in: BIL-TEST-1.3` · status **draft** · input `BKC-DEC-106`–`109`, `BKC-DES-036`–`041`.
+
+| ID | Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+| --- | --- | --- | --- | --- |
+| `BIL-AT-135` | `BKC-DEC-106` | Satu pembayaran berhasil melunasi tagihan yang memuat resep | Integrasi | Tepat satu surat penerimaan **dan** tepat satu surat clearance, keduanya membawa korelasi yang sama, keduanya tercipta dalam satu transaksi |
+| `BIL-AT-136` | `BKC-DEC-106`, `FIN-DEC-005` | Pembayaran berhasil tetapi tagihan belum lunas | Integrasi | Surat penerimaan terbit; **nol** surat clearance. Membuktikan surat Finance tidak menunggu pelunasan maupun finalisasi |
+| `BIL-AT-137` | `PHA-DEC-068` | Biaya tindakan ditambahkan pada tagihan yang sudah lunas | Integrasi | **Nol** surat clearance pencabutan. Keadaan clearance resep tetap boleh diambil walau tagihan kembali bersisa |
+| `BIL-AT-138` | `PHA-DEC-068` | Harga obat pada resep dikoreksi naik | Integrasi | Satu surat pencabutan bersebab kenaikan biaya resep, bernomor versi lebih tinggi dari surat sebelumnya |
+| `BIL-AT-139` | `PHA-DEC-068-A` | Pembayaran dibalik pada tagihan yang memuat tiga resep | Integrasi | Tiga surat pencabutan — satu per resep — seluruhnya bersebab pembalikan pembayaran. Membuktikan perilaku fail-closed berlaku menyeluruh, bukan selektif |
+| `BIL-AT-140` | `PHA-DEC-065` | Tagihan lunas dengan tender bercampur: sebagian asuransi, sebagian tunai | Integrasi | Surat clearance berhasil finansial penjaminan, bukan pembayaran tunai, terlepas dari proporsi nominalnya |
+| `BIL-AT-141` | `BKC-DEC-107` | Surat clearance terbit tetapi tidak pernah diproses konsumen, lalu keadaan resep ditanyakan lewat permukaan pemeriksaan | Integrasi | Jawaban pemeriksaan sama persis dengan isi surat terakhir yang sah, walau suratnya belum pernah diakui |
+| `BIL-AT-142` | `BKC-DEC-108`, `BKC-DEC-109` | Surat diakui dua kali berturut-turut | API | Pengakuan pertama berhasil; pengakuan kedua ditolak tanpa mengubah apa pun, dan baris tetap ada |
+
+### Jalur gagal yang wajib dibuktikan
+
+| ID | Skenario gagal | Bukti yang diharapkan |
+| --- | --- | --- |
+| `BIL-AT-135-F` | Penerbitan surat gagal di tengah transaksi pembayaran | **Pembayarannya ikut batal.** Tidak ada keadaan uang tercatat masuk tanpa suratnya |
+| `BIL-AT-136-F` | Peristiwa yang sama diproses dua kali karena percobaan ulang | Tepat satu baris efektif per tender per keadaan; percobaan kedua tidak menambah baris |
+| `BIL-AT-139-F` | Dua perubahan clearance pada resep yang sama terjadi bersamaan | Tepat satu yang berhasil per nomor versi; yang kalah diulang dengan nomor berikutnya, bukan menimpa |
+| `BIL-AT-141-F` | Keadaan clearance ditanyakan untuk resep yang belum pernah punya surat | Dijawab "belum diketahui". **Bukan** galat, dan **bukan** boleh diambil |
+| `BIL-AT-142-F` | Tender tunai tanpa identitas shift kasir | Penerbitan ditolak beserta transaksinya; pesan menyebut shift kasir, bukan istilah teknis |
+
+Empat dari lima jalur gagal di atas menguji hal yang sama dari sudut berbeda: **uang dan
+suratnya tidak pernah boleh terpisah nasib.** Itu invariant paling mahal bila dilanggar, karena
+kerusakannya baru terlihat saat rekonsiliasi bulanan.
+
+Trace `BKC-DEC-106`–`109`, `BKC-DES-036`–`041`, `PHA-DEC-065`, `PHA-DEC-068`, `PHA-DEC-068-A`.

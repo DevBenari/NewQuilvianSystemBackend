@@ -247,3 +247,196 @@ Validasi tetap **wajib server-side**; layar hanya membantu pengguna mengisi lebi
 Pesan galat **MUST NOT** memuat `RecipientName`, `Purpose`, maupun `RejectionReason`; nominal dan sisa anggaran boleh disebut karena keduanya justru yang dibutuhkan pengguna untuk bertindak.
 
 Trace **`PC-DEC-001`–`013`**, `PC-DES-001`–`014`. Test mapping: `BIL-AT-064`–`BIL-AT-080`.
+
+---
+
+# Amendment 11 September 2026 — Rumpun Edit Tagihan & Multi-Payer Coverage
+
+> `last_changed_in`: `BIL-VALIDATION-0.9` / revisi blueprint `1.1`, status **draft**. Masukan: `MPY-DEC-001`–`010`, `MPY-DES-001`–`017`.
+>
+> Seluruh pesan ditulis sebagaimana dibaca kasir atau admin, bukan sebagai istilah teknis.
+
+## Gerbang kelayakan edit — berlaku untuk ketiga perintah
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | --- |
+| `BIL-VAL-059` | Ganti payer, penanggung item, disposisi obat | Tagihan tidak berstatus `OPEN` | "Tagihan ini sudah difinalisasi sehingga tidak dapat diubah lagi." | `409` |
+| `BIL-VAL-060` | Ketiganya | Sudah ada pembayaran berhasil pada tagihan ini | "Tagihan ini sudah menerima pembayaran. Perubahan penjamin atau penanggung memerlukan proses pembalikan, bukan pengeditan." | `409` |
+| `BIL-VAL-061` | Ketiganya | Versi baris tagihan yang dikirim berbeda dari yang tersimpan | "Data tagihan telah berubah sejak layar ini dibuka. Muat ulang data sebelum menyimpan kembali." | `409` |
+| `BIL-VAL-062` | Ketiganya | Alasan kosong | "Alasan perubahan wajib diisi." | `400` |
+| `BIL-VAL-063` | Ketiganya | `Idempotency-Key` tidak dikirim | "Permintaan tidak lengkap. Muat ulang halaman lalu coba lagi." | `400` |
+
+Ketika salah satu gerbang ini menolak, **tidak ada satu pun perubahan yang tersimpan** — termasuk perubahan yang secara terpisah sebenarnya sah.
+
+## Ganti payer kunjungan
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | --- |
+| `BIL-VAL-064` | Ganti payer | `paymentType` bernilai di luar `CASH`/`INSURANCE`/`COMPANY_GUARANTOR` | "Jenis pembayaran tidak dikenali." | `400` |
+| `BIL-VAL-065` | Ganti payer | `paymentType = CASH` tetapi ada id kartu asuransi atau kartu perusahaan yang ikut dikirim | "Pembayaran tunai tidak boleh disertai kartu penjamin." | `400` |
+| `BIL-VAL-066` | Ganti payer | `paymentType = INSURANCE` tetapi kartu asuransi tidak dikirim, atau justru kartu perusahaan yang dikirim | "Pilih kartu asuransi yang akan dipakai." | `400` |
+| `BIL-VAL-067` | Ganti payer | `paymentType = COMPANY_GUARANTOR` tetapi kartu penjamin perusahaan tidak dikirim, atau justru kartu asuransi yang dikirim | "Pilih kartu penjamin perusahaan yang akan dipakai." | `400` |
+| `BIL-VAL-068` | Ganti payer | Kartu yang dipilih bukan milik pasien pada kunjungan ini | "Kartu penjamin yang dipilih bukan milik pasien ini." | `422` |
+| `BIL-VAL-069` | Ganti payer | Kartu yang dipilih sudah tidak aktif atau sudah ditandai terhapus | "Kartu penjamin yang dipilih sudah tidak berlaku. Perbarui data penjamin pasien di Registrasi." | `422` |
+| `BIL-VAL-070` | Ganti payer | Tanggal layanan berada di luar masa berlaku kartu | "Kartu penjamin ini tidak berlaku pada tanggal pelayanan. Pilih kartu lain atau perbarui masa berlakunya di Registrasi." | `422` |
+| `BIL-VAL-071` | Ganti payer | Kartu belum dinyatakan layak dipakai | "Kartu penjamin ini belum dinyatakan layak. Periksa kelayakannya di Registrasi sebelum dipakai." | `422` |
+| `BIL-VAL-072` | Ganti payer | Perusahaan asuransi pada kartu sudah tidak aktif atau kontraknya sudah berakhir | "Kerja sama dengan perusahaan asuransi ini sudah berakhir pada tanggal pelayanan." | `422` |
+| `BIL-VAL-073` | Ganti payer | Payer kandidat sama persis dengan payer yang sedang berlaku | "Penjamin yang dipilih sama dengan yang sedang dipakai. Tidak ada yang perlu diubah." | `422` |
+| `BIL-VAL-074` | Ganti payer | Kunjungan tidak memiliki baris sumber pembayaran sama sekali | "Data penjamin kunjungan ini belum lengkap. Hubungi Registrasi sebelum mengubah tagihan." | `422` |
+
+**Contoh `BIL-VAL-070`.** Kartu penjamin PT Sejahtera milik Ny. S berlaku 1 Januari 2026 sampai 31 Agustus 2026. Kunjungan yang sedang ditagih terjadi 11 September 2026. Kasir memilih kartu itu, lalu permintaannya ditolak dengan kode `422` dan pesan di atas. Tidak ada perubahan payer yang tersimpan, dan tagihan tetap memakai payer sebelumnya.
+
+## Penanggung per baris biaya
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | --- |
+| `BIL-VAL-075` | Penanggung item | Baris biaya yang dikirim bukan milik tagihan ini | "Ada baris biaya yang tidak terdaftar pada tagihan ini." | `422` |
+| `BIL-VAL-076` | Penanggung item | Baris biaya berstatus dibatalkan | "Baris biaya yang sudah dibatalkan tidak dapat diubah penanggungnya." | `422` |
+| `BIL-VAL-077` | Penanggung item | Penanggung `INSURANCE` dipilih padahal kunjungan tidak berpayer asuransi | "Kunjungan ini tidak memakai asuransi, sehingga baris biaya tidak dapat ditanggung asuransi." | `422` |
+| `BIL-VAL-078` | Penanggung item | Penanggung `COMPANY_GUARANTOR` dipilih padahal kunjungan tidak berpenjamin perusahaan | "Kunjungan ini tidak memakai penjamin perusahaan, sehingga baris biaya tidak dapat ditanggung penjamin." | `422` |
+| `BIL-VAL-079` | Penanggung item | Daftar penanggung yang dikirim kosong | "Tidak ada perubahan penanggung yang dikirim." | `400` |
+| `BIL-VAL-080` | Penanggung item | Satu baris biaya muncul lebih dari sekali pada permintaan yang sama | "Ada baris biaya yang dikirim lebih dari satu kali." | `400` |
+
+`BIL-VAL-077` dan `BIL-VAL-078` adalah **satu-satunya** gerbang pada penanggung item. Hasil perhitungan tanggungan **bukan** gerbang: baris yang menurut aturan tidak tertanggung tetap boleh ditandai `INSURANCE` atau `COMPANY_GUARANTOR`, dan hasilnya nol tertanggung (`MPY-DEC-004`).
+
+## Disposisi penebusan obat
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | --- |
+| `BIL-VAL-081` | Disposisi obat | Kunjungan berjenis rawat inap | "Penebusan obat tidak dapat diubah untuk kunjungan rawat inap." | `422` |
+| `BIL-VAL-082` | Disposisi obat | Baris yang dikirim bukan item obat | "Hanya baris obat yang dapat diatur penebusannya." | `422` |
+| `BIL-VAL-083` | Disposisi obat | Mode `PARTIAL_REDEEMED` tetapi daftar baris yang ditebus kosong | "Pilih baris obat yang ditebus, atau pilih Tidak Ditebus untuk seluruhnya." | `400` |
+| `BIL-VAL-084` | Disposisi obat | Mode `ALL_REDEEMED` atau `NOT_REDEEMED` tetapi daftar baris tetap dikirim | "Daftar baris hanya dipakai pada penebusan sebagian." | `400` |
+| `BIL-VAL-085` | Disposisi obat | Baris yang dikirim tidak termasuk baris obat yang layak diedit pada tagihan ini | "Ada baris obat yang tidak dapat diatur penebusannya pada tagihan ini." | `422` |
+| `BIL-VAL-086` | Disposisi obat | Tagihan tidak memiliki satu pun baris obat yang layak | "Tagihan ini tidak memiliki item obat yang dapat diatur penebusannya." | `422` |
+
+**Contoh `BIL-VAL-081`.** Kunjungan rawat inap Tn. B memiliki sembilan baris obat. Kasir membuka Edit Billing dan menekan Tidak Ditebus. Permintaan ditolak `422` dengan pesan di atas; kesembilan baris tetap masuk tagihan apa adanya. Pada layar, tombol itu memang sudah dinonaktifkan lebih dulu — penolakan server adalah lapis kedua, bukan satu-satunya penjaga.
+
+## Master rute reimbursement perusahaan penjamin
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | --- |
+| `BIL-VAL-087` | Rute reimbursement | `RouteType = SELF` tetapi perusahaan asuransi mitra ikut diisi | "Perusahaan yang menanggung sendiri tidak memerlukan asuransi mitra." | `400` |
+| `BIL-VAL-088` | Rute reimbursement | `RouteType = INSURANCE_PROVIDER` tetapi perusahaan asuransi mitra kosong | "Pilih perusahaan asuransi mitra untuk rute ini." | `400` |
+| `BIL-VAL-089` | Rute reimbursement | Perusahaan asuransi mitra yang dipilih sudah tidak aktif | "Perusahaan asuransi yang dipilih sudah tidak aktif." | `422` |
+| `BIL-VAL-090` | Rute reimbursement | Menandai rute sebagai bawaan padahal perusahaan itu sudah punya rute bawaan aktif lain | "Perusahaan ini sudah memiliki rute bawaan. Nonaktifkan yang lama lebih dulu." | `422` |
+| `BIL-VAL-091` | Rute reimbursement | Tanggal akhir masa berlaku lebih awal dari tanggal mulai | "Tanggal akhir masa berlaku tidak boleh mendahului tanggal mulai." | `400` |
+
+## Master aturan tanggungan perusahaan penjamin
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | --- |
+| `BIL-VAL-092` | Aturan tanggungan | Persentase tanggungan di luar rentang 0 sampai 100 | "Persentase tanggungan harus berada di antara 0 dan 100." | `400` |
+| `BIL-VAL-093` | Aturan tanggungan | Kode aturan sudah dipakai aturan lain pada perusahaan yang sama | "Kode aturan ini sudah dipakai pada perusahaan penjamin tersebut." | `422` |
+| `BIL-VAL-094` | Aturan tanggungan | Jenis item menuntut rujukan tertentu tetapi rujukannya kosong — misalnya jenis `Drug` tanpa obat yang dipilih | "Lengkapi item yang menjadi sasaran aturan ini." | `400` |
+| `BIL-VAL-095` | Aturan tanggungan | Lebih dari satu rujukan item diisi sekaligus sehingga sasarannya ambigu | "Aturan hanya boleh menyasar satu jenis item." | `400` |
+| `BIL-VAL-096` | Aturan tanggungan | Tanggal akhir masa berlaku lebih awal dari tanggal mulai | "Tanggal akhir masa berlaku tidak boleh mendahului tanggal mulai." | `400` |
+| `BIL-VAL-097` | Aturan tanggungan | Menghapus aturan yang sedang dipakai versi perhitungan yang tersimpan | "Aturan ini sudah dipakai pada tagihan yang tersimpan. Nonaktifkan saja, jangan dihapus." | `422` |
+
+**Contoh `BIL-VAL-092`.** Admin mengisi persentase tanggungan `120`. Permintaan ditolak `400`. Bila ia mengisi `80`, sistem menyimpan `CoveragePercent = 80` dan **menurunkan sendiri** `CoPaymentPercent = 20` — nilai yang dikirim klien untuk urun biaya diabaikan, mengikuti pola yang sudah berlaku pada aturan tanggungan asuransi.
+
+## Batas isi pesan galat
+
+Pesan galat pada rumpun ini **MUST NOT** memuat nomor polis, nomor kartu, nomor karyawan, maupun nama karyawan. Nama perusahaan penjamin dan nama perusahaan asuransi boleh disebut karena keduanya justru yang dibutuhkan pengguna untuk bertindak. Nominal dan tanggal masa berlaku boleh disebut dengan alasan yang sama.
+
+Trace **`MPY-DEC-001`–`010`**, `MPY-DES-001`–`017`. Test mapping: `BIL-AT-081`–`BIL-AT-100`.
+
+---
+
+## Amendment 15 September 2026 — Revisi Petty Cash: pencairan langsung dan anggaran per periode
+
+`last_changed_in: BIL-VALIDATION-1.0` · status **approved** · owner Finance Operations/Billing · `approved_by`: Product/Domain Owner (`PC-DEC-026`) · `approved_at`: 2026-09-15 · input: **`PC-DEC-016`–`PC-DEC-025`**; keputusan arsitektur `PC-DES-015`–`PC-DES-025`.
+
+### Aturan lama yang berubah atau tidak berlaku lagi
+
+| Aturan | Keadaan | Sebab |
+| --- | --- | --- |
+| `BIL-VAL-046` (uang tidak boleh keluar sebelum disetujui) | **Tidak berlaku** | Gerbang persetujuan dicabut (`PC-DEC-016`) |
+| `BIL-VAL-047` (nominal melebihi sisa anggaran bebas saat persetujuan) | **Tidak berlaku** | Tidak ada peristiwa persetujuan lagi; penjaga saldo pindah seluruhnya ke `BIL-VAL-048` |
+| `BIL-VAL-049` (alasan penolakan wajib) | **Tidak berlaku** | Tidak ada peristiwa penolakan lagi |
+| `BIL-VAL-048` (saldo tidak mencukupi saat pencairan) | **Berlaku, cakupan diperluas** | Kini juga memeriksa keberadaan periode `ACTIVE`, bukan hanya nominal saldo |
+| `BIL-VAL-050` (pembatalan hanya selagi belum diputuskan) | **Berlaku, syarat berubah** | Syaratnya kini "belum dicairkan", bukan "belum diputuskan" |
+| `BIL-VAL-051` (nota hanya setelah uang keluar) | **Berlaku apa adanya** | Tidak tersentuh revisi ini |
+| `BIL-VAL-054` (koreksi saldo tidak boleh negatif) | **Berlaku, disederhanakan** | Klausa "tidak di bawah komitmen berjalan" dihapus bersama `ReservedAmount` (`PC-DES-016`) |
+
+### Aturan baru
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | --- |
+| `BIL-VAL-098` | Kembalikan sisa uang | Nominal pengembalian kurang dari atau sama dengan nol, atau total seluruh pengembalian pada voucher itu melampaui nominal voucher | "Nominal pengembalian tidak boleh melebihi sisa uang yang masih ada di tangan penerima. Sisa saat ini Rp {outstanding}." | `422` |
+| `BIL-VAL-099` | Balikkan pencairan | Voucher sudah pernah dibalik, atau alasan pembalikan kosong | "Pencairan ini sudah pernah dibatalkan, atau alasan pembatalan belum diisi." | `422` |
+| `BIL-VAL-100` | Voucher berstatus `Dibatalkan (Uang Dikembalikan)` | Aksi apa pun dijalankan atasnya | "Pencairan ini sudah dibatalkan dan uangnya sudah kembali. Buat permintaan baru bila pengeluaran ini masih diperlukan." | `422` |
+| `BIL-VAL-101` | Kembalikan sisa atau balikkan pencairan | Voucher masih berstatus `Menunggu Pencairan` | "Uang untuk permintaan ini belum diserahkan, jadi tidak ada yang bisa dikembalikan atau dibatalkan." | `422` |
+| `BIL-VAL-102` | Buat periode anggaran | Tanggal mulai tumpang tindih dengan periode lain pada kolam yang sama, atau plafon kurang dari atau sama dengan nol, atau tanggal selesai lebih awal dari tanggal mulai | "Periode anggaran ini bertabrakan dengan periode yang sudah ada, atau tanggal dan plafonnya belum benar." | `422` |
+| `BIL-VAL-103` | Aktifkan periode anggaran | Sudah ada periode berstatus `ACTIVE` pada kolam yang sama | "Masih ada periode anggaran yang aktif. Tutup periode itu lebih dulu sebelum mengaktifkan yang baru." | `422` |
+| `BIL-VAL-104` | Tutup periode anggaran | Masih ada voucher `Menunggu Pencairan` pada periode itu, atau sisa saldo lebih besar dari nol tetapi periode penerus tidak disebutkan/tidak sah | "Periode ini belum bisa ditutup: masih ada permintaan yang belum dicairkan, atau periode penerus untuk sisa saldo belum dipilih." | `422` |
+| `BIL-VAL-105` | Periode anggaran berstatus `CLOSED` | Penambahan saldo, koreksi, pencairan, pengembalian, atau pembalikan dijalankan pada periode itu | "Periode anggaran ini sudah ditutup dan tidak menerima pergerakan lagi." | `422` |
+| `BIL-VAL-106` | Pencairan, pengembalian, pembalikan, penambahan saldo | Tidak ada satu pun periode anggaran berstatus `ACTIVE` | "Belum ada periode anggaran yang aktif. Finance perlu membuat dan mengaktifkan periode anggaran lebih dulu." | `422` |
+
+> **Kenapa `BIL-VAL-106` berdiri sendiri, bukan digabung ke `BIL-VAL-048`.** Keduanya sama-sama menghalangi pencairan, tetapi yang harus dikerjakan petugas berbeda sama sekali. `BIL-VAL-048` berarti uangnya kurang — kasir menunggu Finance menambah saldo. `BIL-VAL-106` berarti belum ada wadah anggarannya sama sekali — Finance harus membuat periode lebih dulu. Menggabungkan keduanya menjadi satu pesan "saldo tidak mencukupi" akan mengirim kasir menunggu penambahan saldo yang tidak akan menyelesaikan apa pun.
+
+### Contoh berangka
+
+**Pengembalian sisa bertahap.** Voucher Rp 500.000 sudah dicairkan. Penerima mengembalikan Rp 50.000 — sah, `returnedAmount` menjadi Rp 50.000, sisa di tangan Rp 450.000. Ia mengembalikan Rp 60.000 lagi — sah, `returnedAmount` Rp 110.000. Ia mencoba mengembalikan Rp 400.000 — **ditolak** `BIL-VAL-098`, karena sisa yang masih di tangan hanya Rp 390.000.
+
+**Pembalikan setelah pengembalian sebagian.** Voucher yang sama, `returnedAmount` Rp 110.000. Kasir membalik pencairannya: saldo bertambah Rp 390.000 (bukan Rp 500.000 — Rp 110.000 sudah kembali lebih dulu lewat baris `RETURN`). Total yang kembali ke kolam tetap Rp 500.000, dan ledger memperlihatkan keduanya secara terpisah.
+
+---
+
+## Amendment 18 September 2026 — Penutupan gap `FINAL`→`CLOSED`
+
+`last_changed_in: BIL-VALIDATION-1.1` · status **approved** (`BKC-DEC-105`, 18 September 2026) · input: **`BKC-DEC-100`–`BKC-DEC-102`**; keputusan arsitektur `BKC-DES-028`–`BKC-DES-035`.
+
+Amendment ini menambah **tiga** aturan dan sengaja menambah **nol** pesan galat baru bagi pengguna. Perpindahan status `FINAL`↔`CLOSED` adalah akibat, bukan perintah — tidak ada layar yang memintanya, sehingga tidak ada layar yang perlu diberi tahu bila ia tidak terjadi.
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | --- |
+| `BIL-VAL-107` | Perhitungan sisa tagihan pasien | Invoice tidak memiliki versi kalkulasi berjalan | "Invoice belum memiliki hasil perhitungan terkini." — **pesan yang sudah ada hari ini, MUST NOT berubah** walaupun perhitungannya dipindahkan ke service bersama (`BKC-DES-028`) | `422` |
+| `BIL-VAL-108` | Penyelarasan status penutupan | Status invoice `OPEN` atau `SETTLED_BY_WRITE_OFF` | — (tidak ada pesan; penyelarasan berhenti tanpa menulis apa pun dan tanpa menggagalkan peristiwa pemicunya) | — |
+| `BIL-VAL-109` | Perpindahan `FINAL`↔`CLOSED` | Pihak mana pun mencoba memindahkannya lewat endpoint atau layar | — (tidak ada endpointnya sama sekali; permintaan semacam itu berakhir `404` pada lapis routing) | `404` |
+
+### Kenapa tidak ada pesan galat baru
+
+Bila perhitungan sisa tagihan gagal di tengah sebuah pembayaran, yang gagal adalah **pembayarannya** — seluruh transaksi dibatalkan dan kasir menerima pesan galat milik pembayaran itu, bukan pesan baru tentang status invoice. Menambahkan pesan tersendiri hanya akan memberi tahu kasir tentang mekanisme internal yang tidak dapat ia perbaiki.
+
+Sebaliknya, bila penyelarasan berhenti karena statusnya memang bukan urusannya (`BIL-VAL-108`), itu **bukan** kegagalan: peristiwa pemicunya tetap berhasil dan tetap tersimpan.
+
+### Contoh berangka
+
+**Tagihan lunas menjadi tertutup.** Tagihan Ny. Sari Rp 1.500.000 berstatus `FINAL`. Kasir menerima pembayaran tunai Rp 1.500.000. Pada transaksi yang sama, sisa tagihan terhitung Rp 0, status berpindah ke `CLOSED`, dan `closedAt` diisi waktu pembayaran itu. Kasir tidak melihat pesan tambahan apa pun — ia hanya melihat pembayarannya berhasil.
+
+**Tagihan tertutup yang terbuka kembali.** Tagihan yang sama, tiga hari kemudian, pembayarannya dibalik karena kesalahan mesin EDC. Sisa tagihan terhitung Rp 1.500.000 lagi, status kembali ke `FINAL`, `closedAt` dikosongkan. Tagihan itu muncul lagi pada daftar tagihan yang masih punya sisa — yang memang seharusnya terjadi, karena uangnya memang tidak jadi diterima.
+
+Trace **`BKC-DEC-100`–`102`**, `BKC-DES-028`–`035`. Tests `BIL-AT-121`–`BIL-AT-134`.
+
+---
+
+## Amendment 21 September 2026 — Aturan penerbitan fakta ke modul konsumen
+
+`last_changed_in: BIL-VALIDATION-1.2` · status **draft** · input `BKC-DEC-106`–`109`, `BKC-DES-036`–`041`.
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | --- |
+| Satu tender satu surat per keadaan | Penerbitan surat penerimaan | Sudah ada surat untuk pasangan tender dan status yang sama | *Tidak tampil ke pengguna* — penerbitan kedua diabaikan tanpa membuat baris baru | `BIL-VAL-110` |
+| Shift kasir wajib untuk tunai | Penerbitan surat penerimaan | Tender memakai cara bayar tunai tetapi tidak membawa identitas shift | Pembayaran tunai tidak dapat diteruskan ke pembukuan karena shift kasirnya tidak diketahui. Tutup dan buka kembali shift, lalu ulangi | `BIL-VAL-111` |
+| Nomor versi clearance wajib naik | Penerbitan surat clearance | Nomor versi yang hendak dipakai sudah pernah terbit untuk resep itu | *Tidak tampil ke pengguna* — transaksi diulang dengan nomor berikutnya | `BIL-VAL-112` |
+| Sebab wajib sesuai arah | Penerbitan surat clearance | Sebab bertanda pencabutan dipakai untuk menyatakan resep menjadi boleh diambil, atau sebaliknya | *Kesalahan internal* — penerbitan dibatalkan beserta transaksinya | `BIL-VAL-113` |
+| Hasil finansial wajib ada saat menyatakan boleh diambil | Penerbitan surat clearance | Keadaan `CLEARED` tanpa hasil finansial | *Kesalahan internal* — penerbitan dibatalkan | `BIL-VAL-114` |
+| Biaya bukan obat tidak mencabut clearance | Penerbitan surat clearance | Tagihan kembali bersisa semata karena biaya tindakan, laboratorium, radiologi, atau kamar | *Tidak ada surat yang terbit* — ini perilaku yang benar, bukan penolakan | `BIL-VAL-115` |
+| Pengakuan hanya sekali | Pengakuan penerimaan surat | Surat sudah berstatus diakui | Surat ini sudah diakui sebelumnya. Tidak ada yang perlu dilakukan lagi | `BIL-VAL-116` |
+| Resep tidak dikenal bukan berarti lunas | Pembacaan keadaan clearance | Resep yang ditanyakan belum pernah punya surat | Keadaan pembayaran resep ini belum diketahui. Obat belum boleh diserahkan | `BIL-VAL-117` |
+
+### Dua aturan yang paling mudah salah dipahami
+
+**`BIL-VAL-115` bukan penolakan.** Ketiadaan surat pada kasus itu adalah hasil yang benar.
+Contoh: pasien lunas pukul 09.00, resepnya boleh dikerjakan. Pukul 09.30 kasir mencatat biaya
+tindakan yang terlewat, tagihan kembali bersisa Rp 350.000. Tidak ada surat pencabutan yang
+terbit, dan apoteker tetap boleh menyerahkan obat yang sudah dibayar. Pasien punya kewajiban
+baru atas tindakan itu — bukan atas obatnya.
+
+**`BIL-VAL-117` fail-closed.** Resep yang tidak dikenal **MUST NOT** diperlakukan sebagai lunas,
+dan **MUST NOT** melempar galat teknis yang membuat layar Farmasi gagal dimuat. Ia menjawab
+dengan keadaan "belum diketahui", yang menurut `PHA-DEC-067` sama sekali bukan izin menyerahkan
+obat.
+
+Trace `BKC-DEC-106`–`109`, `PHA-DEC-067`, `PHA-DEC-068`. Tests `BIL-AT-135`–`BIL-AT-142`.

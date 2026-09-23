@@ -6,6 +6,7 @@
 | Status | `draft` |
 | Commit diaudit | backend `f69e9e48`, frontend `96a91201` |
 | Masukan | `00-interview-decisions.md` 88 keputusan; `01-existing-capability-map.md` revision `3` |
+| Diselaraskan | 15 September 2026 — `TrxEmergencyDoctorAssignment` menjadi `EmgDoctorAssignment` (`IGD-DEC-116`). Nama entity lain pada dokumen ini masih nama rancangan sebelum prefix `Emg` 27 Agustus 2026 |
 
 Dokumen ini menunjukkan **batas kepemilikan** antar modul, bukan seluruh kolom. Rincian kolom
 ada di [`data-dictionary.md`](./data-dictionary.md), dan ERD per konteks ada di
@@ -37,7 +38,7 @@ erDiagram
     TrxEmergencyVisit ||--o{ TrxEmergencyTriage : "dinilai lewat"
     TrxEmergencyVisit ||--o{ TrxEmergencyDisposition : "diputuskan lewat"
     TrxEmergencyVisit ||--o{ TrxEmergencyDeparture : "diakhiri lewat"
-    TrxEmergencyVisit ||--o{ TrxEmergencyDoctorAssignment : "ditangani"
+    TrxEmergencyVisit ||--o{ EmgDoctorAssignment : "ditangani"
     MstServiceUnit ||--o{ TrxEmergencyVisit : "tempat"
     MstServiceUnit ||--o| MstOrganizationUnit : "OrganizationUnitId"
 ```
@@ -53,7 +54,7 @@ erDiagram
 | `MstOrganizationUnit` | `External` | Corporate/HR |
 | `TrxEmergencyVisit`, `TrxEmergencyTriage`, `TrxEmergencyDisposition` | `Existing` | Emergency Installation |
 | `TrxEmergencyDeparture` | `Extend` | Emergency Installation |
-| `TrxEmergencyDoctorAssignment` | `New` | Emergency Installation |
+| `EmgDoctorAssignment` | `New` | Emergency Installation |
 
 Empat entity bertanda `Extend` **bukan milik IGD**. Perubahannya diusulkan, bukan
 diberlakukan sepihak — lihat `02-backend-architecture.md` bagian 1.1.

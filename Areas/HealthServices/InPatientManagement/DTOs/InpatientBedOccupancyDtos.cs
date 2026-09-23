@@ -35,6 +35,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
 
         public bool? IsForNewborn { get; set; }
 
+        /// <summary>
+        /// Bila benar, jawaban ikut memuat tempat tidur yang <b>ditolak</b> beserta aturan
+        /// yang menolaknya. Bawaannya mati, sehingga setiap pemanggil lama menerima jawaban
+        /// yang sama persis seperti sebelumnya.
+        /// </summary>
+        /// <remarks>
+        /// Daftar itu hanya terisi ketika <see cref="EpisodeId"/> ikut dikirim. Tanpa
+        /// episode, empat dari sembilan aturan kelayakan tidak dapat dinilai sama sekali,
+        /// sehingga alasan yang dikirim akan menyesatkan petugas. Permintaan tanpa episode
+        /// karena itu dijawab dengan daftar kosong, bukan dengan alasan sebagian.
+        /// </remarks>
+        public bool IncludeIneligible { get; set; }
+
         public int PageNumber { get; set; } = 1;
 
         public int PageSize { get; set; } = 25;
@@ -83,6 +96,46 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
     /// <summary>Daftar tempat tidur yang dapat ditempati, bertingkat.</summary>
     public class AvailableBedPagedResult : PagedResult<AvailableBedResponse>
     {
+        /// <summary>
+        /// Tempat tidur yang <b>tidak</b> lolos kelayakan, beserta seluruh aturan yang
+        /// menolak masing-masing. Kosong kecuali <c>includeIneligible=true</c> dikirim
+        /// bersama <c>episodeId</c>.
+        /// </summary>
+        /// <remarks>
+        /// Sebuah tempat tidur tidak pernah muncul di sini dan di <c>Items</c> sekaligus:
+        /// keduanya diisi dari satu pemeriksaan kelayakan yang sama, bukan dari dua
+        /// penyaringan yang berdiri sendiri.
+        /// </remarks>
+        public List<IneligibleBedResponse> Ineligible { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Satu tempat tidur yang ditolak, beserta seluruh aturan yang menolaknya.
+    /// </summary>
+    /// <remarks>
+    /// Kalimat pada <see cref="Failures"/> adalah kalimat yang sama persis dengan yang
+    /// dikembalikan <c>POST /placements</c> ketika penempatan tetap dipaksakan pada tempat
+    /// tidur dan episode yang sama. Kesamaan itu disengaja: petugas yang membaca alasan di
+    /// papan pemilihan tidak boleh menemukan kalimat yang berbeda saat mencoba menyimpan.
+    /// </remarks>
+    public class IneligibleBedResponse
+    {
+        public Guid BedId { get; set; }
+
+        public string BedCode { get; set; } = string.Empty;
+
+        public string BedName { get; set; } = string.Empty;
+
+        public string? BedNumber { get; set; }
+
+        public Guid RoomId { get; set; }
+
+        public string? RoomCode { get; set; }
+
+        public string? RoomName { get; set; }
+
+        /// <summary>Seluruh aturan yang menolak, bukan hanya yang pertama.</summary>
+        public List<PlacementEligibilityFailureResponse> Failures { get; set; } = new();
     }
 
     /// <summary>

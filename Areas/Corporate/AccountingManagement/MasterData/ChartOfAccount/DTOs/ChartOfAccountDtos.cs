@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Enums;
 
 namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.DTOs
@@ -51,6 +51,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
         public bool IsPostable { get; set; }
 
         public bool IsActive { get; set; }
+
+        /// <summary>
+        /// Akun terkunci dari jurnal manual (<c>ACC-DEC-064</c>). Diwarisi
+        /// <see cref="ChartOfAccountDetailResponse"/>.
+        /// </summary>
+        public bool IsControlAccount { get; set; }
     }
 
     public class ChartOfAccountDetailResponse : ChartOfAccountListResponse
@@ -120,6 +126,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
 
         /// <summary>Diturunkan dari jenis akun, tidak disimpan (`ACC-DEC-019`).</summary>
         public bool RequiresCostCenter { get; set; }
+
+        /// <summary>
+        /// Penanda control account (<c>ACC-DEC-064</c>, usulan <c>ACC-API-0.11</c>). Dikirim
+        /// supaya tiap layar menyaring menurut kebutuhannya sendiri — Form Jurnal menyembunyikan
+        /// akun control, sedangkan Buku Besar tetap harus dapat memilih Kas Kasir.
+        /// </summary>
+        public bool IsControlAccount { get; set; }
     }
 
     public class CreateChartOfAccountRequest
@@ -151,6 +164,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
 
         public bool IsPostable { get; set; }
 
+        /// <summary>
+        /// Menandai akun sebagai control account (<c>ACC-DEC-064</c>). Bawaannya <c>false</c>,
+        /// sehingga permintaan lama yang tidak mengirim bidang ini tetap menghasilkan akun biasa.
+        /// </summary>
+        public bool IsControlAccount { get; set; }
+
         [MaxLength(500)]
         public string? Description { get; set; }
 
@@ -176,6 +195,27 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
         public int AccountLevel { get; set; } = 1;
 
         public bool IsPostable { get; set; }
+
+        /// <summary>
+        /// Penanda control account (<c>ACC-DEC-064</c>). <b>Boleh kosong</b>, dan bila kosong
+        /// nilai yang tersimpan <b>dipertahankan</b>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Sengaja <c>bool?</c>, berbeda dari <see cref="IsPostable"/> pada permintaan yang sama.
+        /// Alasannya bukan kerapian melainkan akibatnya: permintaan lama yang tidak mengenal
+        /// bidang ini akan mengirimkan <c>false</c> secara diam-diam bila tipenya <c>bool</c>,
+        /// sehingga <b>membuka kembali akun kas ke jurnal manual</b> hanya karena seseorang
+        /// mengubah nama akunnya.
+        /// </para>
+        /// <para>
+        /// Kegagalan seperti itu tidak menimbulkan error apa pun — penandanya hilang, jurnal
+        /// manual ke Kas Kasir kembali diterima, dan selisihnya baru ketahuan saat rekonsiliasi.
+        /// Karena itu melepas penanda kini menuntut pernyataan tegas <c>false</c>, bukan sekadar
+        /// tidak menyebutkannya.
+        /// </para>
+        /// </remarks>
+        public bool? IsControlAccount { get; set; }
 
         [MaxLength(500)]
         public string? Description { get; set; }

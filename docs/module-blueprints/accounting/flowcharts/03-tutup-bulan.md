@@ -54,7 +54,7 @@ flowchart TD
 | Jurnal belum seimbang | Tidak | Jurnal timpang memang sudah tidak dapat diajukan maupun disahkan (`ACC-DEC-025`) |
 | Kejadian **Tertahan** | Tidak, peringatan | Menunggu petugas melengkapi kamus akun |
 | Penyusutan belum dijalankan | Tidak, peringatan | Dapat ditindaklanjuti tanpa menahan penutupan |
-| Saldo di akun sementara | Tidak, peringatan | Accounting tidak memakai akun sementara (`ACC-DEC-046`) |
+| ~~Saldo di akun sementara~~ | **Dicabut** | Dicabut dari requirement `ACC-DEC-077` (14 September 2026): Accounting tidak memakai akun sementara (`ACC-DEC-046`), jadi tidak ada saldo yang dapat tertinggal di sana |
 | Selisih saldo awal dan akhir | Tidak, peringatan | Perlu diperiksa, tetapi bukan penghalang |
 
 ## Kenapa penyetujunya harus orang lain

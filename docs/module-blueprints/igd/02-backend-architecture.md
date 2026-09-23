@@ -8,6 +8,7 @@
 | Masukan | `00-interview-decisions.md` (88 keputusan), `01-existing-capability-map.md` revision `3` |
 | Keputusan yang mengikat | `IGD-DEC-067` sampai `IGD-DEC-088`; keputusan lama `IGD-DEC-001` sampai `IGD-DEC-066` tetap berlaku kecuali dinyatakan `superseded` |
 | Gerbang kemampuan rumah sakit | **BELUM TERPENUHI** — lihat bagian 0 |
+| Diselaraskan | 15 September 2026 — model `TrxEmergencyDoctorAssignment` beserta configuration-nya menjadi `EmgDoctorAssignment` (`IGD-DEC-116`). Nama service, controller, DTO, dan kolom tidak berubah. Nama entity IGD lain pada dokumen ini masih nama rancangan sebelum prefix `Emg` 27 Agustus 2026 |
 
 Modul IGD menyimpan proses yang benar-benar khusus kegawatdaruratan. Data klinis yang dipakai
 lintas pelayanan tetap dimiliki modul pusat agar tidak terjadi duplikasi antara Rawat Jalan,
@@ -127,7 +128,7 @@ classDiagram
         +Guid EmergencyTriageId
         +string IndicatorCodeSnapshot
     }
-    class TrxEmergencyDoctorAssignment {
+    class EmgDoctorAssignment {
         +Guid Id «new»
         +Guid EmergencyVisitId
         +Guid DoctorId
@@ -149,7 +150,7 @@ classDiagram
     TrxEmergencyTriage "1" --> "0..*" TrxEmergencyTriageDetail
     TrxEmergencyTriage "0..1" --> "0..1" TrxEmergencyTriage : PreviousTriageId
     TrxEmergencyTriage "*" --> "1" MstEmergencyTriageLevel
-    TrxEmergencyVisit "1" --> "0..*" TrxEmergencyDoctorAssignment
+    TrxEmergencyVisit "1" --> "0..*" EmgDoctorAssignment
 ```
 
 ### 2.2 Resusitasi, observasi, dan tindakan
@@ -323,7 +324,7 @@ dapat dijalankan dan ketiganya harus ditinjau ulang. Dicatat sebagai `IGD-OQ-068
 | `TrxEmergencyDeparture` | **Diperbarui** | `.../Models/TrxEmergencyDeparture.cs` | Catatan kepergian pasien dari IGD. Berganti nama dari `TrxEmergencyTransfer` |
 | `TrxEmergencyDepartureEvent` | **Baru** | `.../Models/TrxEmergencyDepartureEvent.cs` | Riwayat kejadian kepergian, bersifat tambah-saja |
 | `TrxEmergencyHandoverOrderItem` | **Baru** | `.../Models/TrxEmergencyHandoverOrderItem.cs` | Sikap atas setiap pesanan yang belum selesai saat pasien pergi |
-| `TrxEmergencyDoctorAssignment` | **Baru** | `.../Models/TrxEmergencyDoctorAssignment.cs` | Riwayat penugasan dokter pemeriksa pada satu kunjungan IGD |
+| `EmgDoctorAssignment` | **Baru** | `.../Models/EmgDoctorAssignment.cs` | Riwayat penugasan dokter pemeriksa pada satu kunjungan IGD. `[Table("EmgDoctorAssignment")]` (`IGD-DEC-116`) |
 
 ### 3.2 Model master
 
@@ -452,7 +453,7 @@ Configuration **tidak** berada di dalam `Areas/`. Seluruhnya di bawah
 | `TrxEmergencyDepartureConfiguration` | **Diperbarui** | Nama tabel berubah; empat index tempat tidur dan ruangan dihapus; index baru `(EmergencyVisitId, PhysicalStatus)` dan `(ToServiceUnitId, HandoverStatus)` |
 | `TrxEmergencyDepartureEventConfiguration` | **Baru** | `HasOne(EmergencyDeparture)` `DeleteBehavior.Restrict`; index `(EmergencyDepartureId, OccurredAt)`; index `(EmergencyDepartureId, IsEffective)` |
 | `TrxEmergencyHandoverOrderItemConfiguration` | **Baru** | `HasOne(EmergencyDeparture)` `DeleteBehavior.Restrict`; unique `(EmergencyDepartureId, OrderKind, OrderReferenceId)` |
-| `TrxEmergencyDoctorAssignmentConfiguration` | **Baru** | `HasOne(EmergencyVisit)` `DeleteBehavior.Restrict`; index `(EmergencyVisitId, EffectiveFrom)`; **unique filtered** `(EmergencyVisitId)` untuk baris dengan `EffectiveTo IS NULL` agar tidak pernah ada dua dokter aktif |
+| `EmgDoctorAssignmentConfiguration` | **Baru** | `HasOne(EmergencyVisit)` `DeleteBehavior.Restrict`; index `(EmergencyVisitId, EffectiveFrom)`; **unique filtered** `(EmergencyVisitId)` untuk baris dengan `EffectiveTo IS NULL` agar tidak pernah ada dua dokter aktif |
 | Tujuh configuration IGD lain | Sudah ada | Tidak berubah |
 
 `DeleteBehavior.Restrict` dipilih di seluruh relasi baru karena tidak satu pun catatan klinis
@@ -515,7 +516,7 @@ Areas/HealthServices/EmergencyInstallationManagement/
 │   ├── TrxEmergencyDeparture.cs                       Diperbarui (dari TrxEmergencyTransfer)
 │   ├── TrxEmergencyDepartureEvent.cs                  Baru
 │   ├── TrxEmergencyHandoverOrderItem.cs               Baru
-│   └── TrxEmergencyDoctorAssignment.cs                Baru
+│   └── EmgDoctorAssignment.cs                         Baru
 └── Services/
     ├── EmergencyDocumentNumberService.cs              Sudah ada
     ├── EmergencyVisitService.cs                       Diperbarui
@@ -544,7 +545,7 @@ Repositories/Configurations/HealthServices/EmergencyInstallationManagement/
 ├── TrxEmergencyDepartureConfiguration.cs              Diperbarui
 ├── TrxEmergencyDepartureEventConfiguration.cs         Baru
 ├── TrxEmergencyHandoverOrderItemConfiguration.cs      Baru
-└── TrxEmergencyDoctorAssignmentConfiguration.cs       Baru
+└── EmgDoctorAssignmentConfiguration.cs                Baru
 ```
 
 ### 4.1 Utang teknis
@@ -569,7 +570,7 @@ Utang yang dibiarkan **jangan ditiru** untuk berkas baru.
 | `TrxEmergencyDeparture` | **Diperbarui** | **Dihapus:** `FromRoomId`, `ToRoomId`, `FromBedId`, `ToBedId`, `TransferStatus`, `AcceptedAt`, `AcceptedByUserId`, `RejectionReason`. **Ditambah:** `PhysicalStatus` (`EmergencyPhysicalStatus`, bawaan `Prepared`), `HandoverStatus` (`EmergencyHandoverStatus`, bawaan `Submitted`), `SituationSummary` (`string?`, 2000), `BackgroundSummary` (`string?`, 2000), `AssessmentSummary` (`string?`, 2000), `RecommendationSummary` (`string?`, 2000), `AllergySnapshot` (`string?`, 1000), `LastVitalSignId` (`Guid?`), `TriageLevelSnapshot` (`string?`, 150). **Diganti nama:** tabel dan kelas dari `TrxEmergencyTransfer` | Ganti nama tabel, hapus delapan kolom, tambah sembilan kolom, ganti dua index. **Tidak dapat dijalankan tanpa memeriksa data lama** — lihat bagian 6 |
 | `TrxEmergencyDepartureEvent` | **Baru** | Seluruh kolom baru | Tabel baru |
 | `TrxEmergencyHandoverOrderItem` | **Baru** | Seluruh kolom baru | Tabel baru |
-| `TrxEmergencyDoctorAssignment` | **Baru** | Seluruh kolom baru | Tabel baru beserta unique index bersyarat |
+| `EmgDoctorAssignment` | **Baru** | Seluruh kolom baru | Tabel baru beserta unique index bersyarat |
 | `MstEmergencySetting` | **Diperbarui** | **Dihapus:** `AutoCreateProvisionalEncounter`, `RequireTriageBeforeStandardRegistration`. **Dipertahankan dan mulai dibaca:** `ImmediateCareLevelThreshold`, `RequireRegistrationBeforeTreatmentFromLevel` | Hapus dua kolom. Lihat catatan di bawah |
 | `MstServiceUnit` | **Diperbarui** | Tambah `OrganizationUnitId` (`Guid?`) beserta index | Satu kolom, boleh kosong. **Milik Master Data** |
 | `TrxPatientEncounter` | **Diperbarui** | Tambah `OriginEncounterId` (`Guid?`) beserta index | Satu kolom, boleh kosong. **Milik Registration Management** |
@@ -832,7 +833,7 @@ riwayat sepanjang apa pun tidak pernah melanggarnya — dan urutan penulisannya 
 diatur khusus.
 
 Ini pola yang sama dengan `TrxEmergencyDepartureEvent` (`IGD-DEC-090`) dan dengan unique index
-bersyarat pada `TrxEmergencyDoctorAssignment`. Konsisten, bukan mekanisme baru.
+bersyarat pada `EmgDoctorAssignment`. Konsisten, bukan mekanisme baru.
 
 > **Catatan PostgreSQL.** `NULL` tidak dianggap sama dengan `NULL` pada unique index. Tanpa
 > syarat `OrderSource` pada tiap index, baris `External` yang `OrderReferenceId`-nya sama-sama
