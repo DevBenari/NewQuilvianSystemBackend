@@ -1,5 +1,5 @@
 param(
-    [string]$BaseCommit = "HEAD~1"
+    [string]$BaseCommit = ""
 )
 
 $ModuleMapPath = ".github/release/module-map.json"
@@ -10,6 +10,11 @@ $Output = ".github/release/release-metadata.json"
 
 
 Write-Host "=== Quilvian Release Analyzer ==="
+
+if ([string]::IsNullOrWhiteSpace($BaseCommit))
+{
+    $BaseCommit = git rev-parse HEAD^1
+}
 
 
 $moduleMap = Get-Content $ModuleMapPath -Raw | ConvertFrom-Json
@@ -24,7 +29,13 @@ $featureMap = Get-Content $FeatureMapPath -Raw | ConvertFrom-Json
 $changedFiles = git diff `
     --name-only `
     $BaseCommit `
-    HEAD
+    HEAD |
+    Where-Object {
+        $_ -notlike ".github/release/*" -and
+        $_ -notlike ".github/workflows/*" -and
+        $_ -notlike ".gitignore" -and
+        $_ -ne "version.json"
+    }
 
 
 Write-Host ""
