@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Blueprint ID | `BD-BP-001` · Contract version **`v5` — `approved`** (`Sukmagp` 2026-09-19; `v4` kini `superseded`). **Riwayat:** `v5` `draft` 18 September 2026. Arah disetujui `Sukmagp` 2026-09-18 (`DEC-BD-055`..`058`). **Riwayat:** `v4` — `approved` `Sukmagp` 2026-09-03 |
-| `last_changed_in` | **`v5`** — grup Blood Order saja (bagian "Amendment `v5`" di bawah tabel grup itu). Grup lain tidak berubah. **Riwayat:** `v4` |
+| `last_changed_in` | **`v5`** — grup Blood Order saja (bagian "Amendment `v5`" di bawah tabel grup itu). Grup lain tidak berubah. **23 September 2026:** bagian `D5` ditambahkan ke amandemen yang sama — penyaring rentang tanggal `startDate`/`endDate` pada `GET /` (`DEC-BD-059`, `DEC-BD-060`, task `BE-BD-019`). Aditif penuh; **nomor set kontrak tidak dinaikkan**, karena tidak ada satu pun klien lama yang rusak. **Riwayat:** `v4` |
 | Owner | Pemilik arsitektur backend (bentuk kontrak) · pemilik proses BDRS (perilaku) |
 | `approved_by` / `approved_at` | `Sukmagp` / `2026-09-19` (`v5`). **Riwayat:** `Sukmagp` / `2026-09-03` (`v4`) |
 | Sumber | `02-backend-architecture.md` (controller) · `contracts/state-transition-matrix.md` · `contracts/validation-matrix.md` |
@@ -126,6 +126,64 @@ pemenuhan yang disimpan.
 **Kompatibilitas.** Seluruh isian respons baru bersifat aditif. Satu-satunya perubahan yang menolak klien lama
 adalah `requestedBloodGroup` yang **wajib** pada tiga endpoint pembuatan. Klien lama yang tidak mengirimnya
 akan ditolak `400 VAL-BD-085`; pada 18 September 2026 belum ada klien frontend order darah.
+
+#### Amendment `v5` D5 — penyaring rentang tanggal daftar kerja (23 September 2026)
+
+Ditambahkan atas `DEC-BD-059` dan `DEC-BD-060`, `approved` `Sukmagp` 23 September 2026, menutup
+`BD-UI-GAP-004` dengan Opsi B. **Aditif penuh**: dua parameter query opsional, nol perubahan bentuk
+respons, nol endpoint baru, nol butir hak akses baru. Dikerjakan task `BE-BD-019`.
+
+| Method | Path | Yang berubah | Hak akses |
+| --- | --- | --- | --- |
+| `GET` | `/` | Query baru `startDate` dan `endDate`; isian bawaan keduanya pada `BloodOrderDefaultFilterResponse` | `BloodOrder : Read` |
+
+| Tempat | Isian | Tipe | Wajib | Aturan |
+| --- | --- | --- | :---: | --- |
+| `GET /` query | `startDate` | `DateTime?` | Tidak | **Tanggal operasional waktu aplikasi** (`Asia/Jakarta`), bukan saat UTC. Bentuk yang dikontrakkan `YYYY-MM-DD`. Bagian waktu **dan** penanda zona yang ikut terkirim **diabaikan** — yang dibaca hanya harinya |
+| `GET /` query | `endDate` | `DateTime?` | Tidak | Sama, dan **inklusif sampai akhir hari** |
+| `BloodOrderDefaultFilterResponse` | `startDate`, `endDate` | `DateTime?` | — | Bawaan `null` — daftar kerja tidak dibatasi waktu sampai petugas memilih rentang |
+
+**Kolom yang disaring.** `BbkBloodOrder.CreateDateTime`, dan hanya itu. Penyaringan dikerjakan
+**server-side**; layar tidak pernah menyaring tanggal secara lokal, karena daftarnya berhalaman di server
+dan menyaring satu halaman akan membuat nomor halaman serta `totalData` tidak lagi berarti.
+
+**Penerjemahan rentang ke UTC (`DEC-BD-060`).** `CreateDateTime` **tersimpan dalam UTC**, sedangkan kedua
+parameter di atas adalah tanggal waktu Jakarta. Karena itu batasnya **dikonversi**, bukan distempel:
+
+| Batas | Nilai |
+| --- | --- |
+| Bawah, **inklusif** | Pukul `00:00` waktu aplikasi pada `startDate`, dikonversi ke UTC |
+| Atas, **eksklusif** | Pukul `00:00` waktu aplikasi pada `endDate + 1 hari`, dikonversi ke UTC |
+
+Batas atas eksklusif pada hari berikutnya itulah yang mewujudkan "inklusif sampai akhir hari" tanpa
+kehilangan pecahan detik terakhir — yang akan terbuang bila batasnya ditulis `<= 23:59:59`.
+
+**Contoh mengikat.** `startDate = endDate = 2026-09-23` menghasilkan rentang efektif:
+
+```
+CreateDateTime >= 2026-09-22T17:00:00Z
+CreateDateTime <  2026-09-23T17:00:00Z
+```
+
+Order yang dibuat pukul `02:00` WIB tanggal 23 September tersimpan `2026-09-22T19:00:00Z`, dan **masuk**
+ke rentang itu. Menstempel `DateTimeKind.Utc` apa adanya akan membuangnya — pola keliru yang ada pada
+beberapa controller master data dan **tidak boleh** ditiru di sini.
+
+**Penggabungan.** Rentang digabung "dan" dengan `search`, `patientId`, `encounterId`, `serviceUnitId`,
+`bloodComponentId`, `orderStatus`, dan `orderSource`. Paging berlaku atas hasil yang sudah tersaring:
+`totalData` dan `totalPage` menghitung hasil akhir.
+
+**Jalur tidak normal.**
+
+| Keadaan | Yang terjadi | Kode |
+| --- | --- | --- |
+| `startDate` melewati `endDate` | Ditolak sebelum menyentuh database | `400` `VAL-BD-086` |
+| `startDate` sama dengan `endDate` | **Sah** — menyaring satu hari penuh | `200` |
+| Hanya salah satu dikirim | **Sah** — rentangnya terbuka di sisi yang tidak dikirim | `200` |
+| Keduanya kosong | Perilaku **sama persis** dengan sebelum `D5` | `200` |
+
+Rentang terbalik **tidak** diserahkan ke database. Query yang mustahil memulangkan nol baris, dan nol
+baris terbaca petugas sebagai "tidak ada order" — bukan sebagai "filternya salah".
 
 ---
 

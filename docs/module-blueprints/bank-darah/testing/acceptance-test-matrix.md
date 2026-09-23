@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Blueprint ID | `BD-BP-001` · Contract version **`v5` — `approved`** (`Sukmagp` 2026-09-19; `v4` kini `superseded`). **Riwayat:** `v5` `draft` 18 September 2026 (arah disetujui `Sukmagp` 2026-09-18). **Riwayat:** `v4` — `approved` |
-| `last_changed_in` | **`v5`** — bagian 11 (`AC-BD-103` sampai `AC-BD-112`). Bagian 1–10 tidak berubah |
+| `last_changed_in` | **`v5`** — bagian 11 (`AC-BD-103` sampai `AC-BD-112`). **23 September 2026:** bagian 12 baru (`AC-BD-113` sampai `AC-BD-117`, `v5` `D5`, task `BE-BD-019`). Bagian 1–10 tidak berubah |
 | `approved_by` / `approved_at` | `Sukmagp` / `2026-09-03` (`v4`) · **`Sukmagp` / `2026-09-19` (`v5`)** |
 | Sumber | `00-interview-decisions.md` revisi 9 (`AC-BD-001`..`097`) · `contracts/state-transition-matrix.md` · `contracts/validation-matrix.md` |
 
@@ -244,6 +244,32 @@ skenario, bukan perintah membuat project test.
 | `AC-BD-110` | Order PRC 2 kantong, satu kantong `Issued`, lalu satu koreksi pemberian `Approved` | Integ | `components[].issuedQuantity` dan `totalIssuedQuantity` pada daftar sama persis dengan `GET /{id}/fulfillment`, sebelum dan sesudah koreksi (`DEC-BD-054`) |
 | `AC-BD-111` | Satu halaman daftar berukuran maksimum yang berlaku berisi order multi-baris | Integ | Proyeksi komponen dan jumlah diberikan dihitung dengan kueri berkelompok untuk seluruh halaman — jumlah kueri **tidak** tumbuh mengikuti jumlah baris; nol kolom penghitung tersimpan |
 | `AC-BD-112` — hak akses | Kebijakan akses pengembangan yang memberi `BloodOrder : Cancel` | Manual | Setiap kebijakan itu juga memberi `BloodBankReason : Read`; kebijakan yang tidak memenuhinya dicatat sebagai temuan, **tanpa** membuat butir hak akses baru (`DEC-BD-057`) |
+
+---
+
+## 12. Penyaring rentang tanggal daftar kerja order darah — tambahan 23 September 2026
+
+Menutup `AC-BD-113` sampai `AC-BD-117`, lahir dari `DEC-BD-059` dan `DEC-BD-060`
+(`00-interview-decisions.md` §8.34), dikerjakan task `BE-BD-019`.
+
+> **Status: kelimanya ✅ TERBUKTI RUNTIME, 23 September 2026.** Dijalankan langsung agent terhadap
+> `QuilvianNewDevSukma` dengan keluaran HTTP sungguhan; rinciannya pada
+> [`BE-BD-019`](../task/report/backend/BE-BD-019.md) bagian 7. `AC-BD-115` terbukti sampai ke detik
+> batasnya — rentang efektif `>= 2026-09-22T17:00:00Z` dan `< 2026-09-23T17:00:00Z`. Database
+> dikembalikan ke keadaan semula sesudah pengujian dan diverifikasi.
+
+**Data yang wajib disiapkan lebih dulu, dan paling mudah terlewat:** sekurang-kurangnya satu order yang
+`CreateDateTime`-nya jatuh antara `00:00` dan `07:00` **WIB**. Tanpa order seperti itu, `AC-BD-115` tidak
+dapat dibuktikan dan cacat zona waktu lolos tanpa terlihat — seluruh pengujian siang hari akan lulus
+walaupun konversinya salah.
+
+| Requirement | Skenario | Jenis | Bukti yang diharapkan |
+| --- | --- | --- | --- |
+| `AC-BD-113` — `startDate` | Tiga order dibuat pada 21, 22, dan 23 September waktu aplikasi. Daftar disaring `startDate = 2026-09-22`, tanpa `endDate` | Integ | Order 22 dan 23 muncul; order 21 **tidak**. Tanpa parameter apa pun, ketiganya muncul |
+| `AC-BD-114` — `endDate` inklusif | Daftar disaring `endDate = 2026-09-22`, tanpa `startDate`. Salah satu order dibuat pukul `23:59` waktu aplikasi tanggal 22 | Integ | Order 21 dan 22 muncul — **termasuk yang pukul `23:59`**; order 23 **tidak**. Membuktikan batas atas eksklusif pada hari berikutnya, bukan `<= 23:59:59` |
+| `AC-BD-115` — batas hari WIB | Order dibuat pukul `02:00` WIB tanggal 23 September, tersimpan `2026-09-22T19:00:00Z`. Disaring `startDate = endDate = 2026-09-23`, lalu disaring `startDate = endDate = 2026-09-22` | Integ | **Muncul** pada saringan 23 September; **tidak muncul** pada saringan 22 September. Rentang efektifnya `>= 2026-09-22T17:00:00Z` dan `< 2026-09-23T17:00:00Z` (`DEC-BD-060`) |
+| `AC-BD-116` — kombinasi | Rentang tanggal digabung `bloodComponentId`, `orderStatus`, dan `search`, pada halaman kedua dengan `pageSize` kecil | Integ | Hasilnya irisan seluruh penyaring; paging berlaku atas hasil yang **sudah** tersaring — `totalData` dan `totalPage` menghitung hasil akhir, bukan seluruh order |
+| `AC-BD-117` — rentang tidak sah | `startDate = 2026-09-30`, `endDate = 2026-09-23` | Integ | **Ditolak** `400 VAL-BD-086` dengan kalimat persis `validation-matrix.md`; **bukan** daftar kosong. `startDate` sama dengan `endDate` tetap **diterima** dan menyaring satu hari penuh |
 
 ---
 

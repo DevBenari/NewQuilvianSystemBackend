@@ -8,6 +8,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.M
 using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Constants;
 using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 using QuilvianSystemBackend.Enums;
+using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 
@@ -124,6 +125,86 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
         }
 
         // =================================================================
+        // Penyaring rentang tanggal (DEC-BD-059, DEC-BD-060)
+        // =================================================================
+
+        /// <summary>Kalimat kanonik <c>VAL-BD-086</c>.</summary>
+        public const string InvalidDateRangeMessage =
+            "Tanggal awal filter tidak boleh melewati tanggal akhir filter.";
+
+        /// <summary>
+        /// Batas rentang <c>CreateDateTime</c> yang sudah dikonversi ke UTC, atau alasan
+        /// penolakannya.
+        /// </summary>
+        public sealed class BloodOrderDateRange
+        {
+            public bool IsValid { get; private init; }
+            public string? ErrorMessage { get; private init; }
+
+            /// <summary>Batas bawah <b>inklusif</b>, dalam UTC.</summary>
+            public DateTime? StartUtc { get; private init; }
+
+            /// <summary>Batas atas <b>eksklusif</b>, dalam UTC.</summary>
+            public DateTime? EndExclusiveUtc { get; private init; }
+
+            public static BloodOrderDateRange Valid(DateTime? startUtc, DateTime? endExclusiveUtc)
+                => new() { IsValid = true, StartUtc = startUtc, EndExclusiveUtc = endExclusiveUtc };
+
+            public static BloodOrderDateRange Invalid(string errorMessage)
+                => new() { IsValid = false, ErrorMessage = errorMessage };
+        }
+
+        /// <summary>
+        /// Menerjemahkan <c>startDate</c> dan <c>endDate</c> menjadi batas UTC untuk disaringkan
+        /// pada <c>BbkBloodOrder.CreateDateTime</c> (<c>DEC-BD-059</c>, <c>DEC-BD-060</c>).
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Keduanya tanggal operasional waktu aplikasi, bukan saat UTC.</b> Bagian waktu dan
+        /// penanda zona yang ikut terkirim diabaikan lewat <c>.Date</c>: yang bermakna hanya
+        /// harinya. Bentuk yang dikontrakkan <c>YYYY-MM-DD</c>.
+        /// </para>
+        /// <para>
+        /// Batas bawah adalah pukul <c>00:00</c> waktu aplikasi pada <c>startDate</c>. Batas atas
+        /// adalah pukul <c>00:00</c> waktu aplikasi pada <b>hari sesudah</b> <c>endDate</c>, dan
+        /// dibandingkan <b>eksklusif</b> — bentuk itulah yang mewujudkan "inklusif sampai akhir
+        /// hari" tanpa kehilangan pecahan detik terakhir, yang akan terbuang bila batasnya
+        /// ditulis <c>&lt;= 23:59:59</c>.
+        /// </para>
+        /// <para>
+        /// <b>Kolom yang disaring tersimpan dalam UTC</b>, sehingga kedua batas dikonversi lebih
+        /// dulu lewat <see cref="AppDateTimeHelper.OperationalDateToUtc"/>. Menstempel
+        /// <c>DateTimeKind.Utc</c> apa adanya — pola yang ada pada beberapa controller master
+        /// data — menggeser batasnya tujuh jam dan membuang order yang lahir dini hari.
+        /// </para>
+        /// <para>
+        /// Contoh: <c>startDate = endDate = 2026-09-23</c> menghasilkan
+        /// <c>&gt;= 2026-09-22T17:00:00Z</c> dan <c>&lt; 2026-09-23T17:00:00Z</c>.
+        /// </para>
+        /// </remarks>
+        public static BloodOrderDateRange ResolveCreateDateRange(
+            DateTime? startDate,
+            DateTime? endDate)
+        {
+            var startDay = startDate?.Date;
+            var endDay = endDate?.Date;
+
+            // VAL-BD-086. Rentang terbalik ditolak di sini, bukan diserahkan ke database:
+            // sebuah query yang mustahil memulangkan nol baris, dan nol baris terbaca petugas
+            // sebagai "tidak ada order", bukan sebagai "filternya salah".
+            if (startDay.HasValue && endDay.HasValue && startDay.Value > endDay.Value)
+                return BloodOrderDateRange.Invalid(InvalidDateRangeMessage);
+
+            return BloodOrderDateRange.Valid(
+                startDay.HasValue
+                    ? AppDateTimeHelper.OperationalDateToUtc(startDay.Value)
+                    : null,
+                endDay.HasValue
+                    ? AppDateTimeHelper.OperationalDateToUtc(endDay.Value.AddDays(1))
+                    : null);
+        }
+
+        // =================================================================
         // Pembacaan
         // =================================================================
 
@@ -135,6 +216,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
             Guid? bloodComponentId,
             BbkBloodOrderStatus? orderStatus,
             BbkOrderSource? orderSource,
+            DateTime? createdFromUtc,
+            DateTime? createdToUtcExclusive,
             string? sortBy,
             string? sortDirection,
             int pageNumber,
@@ -165,6 +248,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
 
             if (orderSource.HasValue)
                 query = query.Where(x => x.OrderSource == orderSource.Value);
+
+            // DEC-BD-059: rentang tanggal disaring pada CreateDateTime, digabung "dan" dengan
+            // seluruh penyaring lain. Kedua batas sudah dalam UTC ketika sampai di sini —
+            // konversinya dikerjakan ResolveCreateDateRange, bukan di dalam query.
+            if (createdFromUtc.HasValue)
+                query = query.Where(x => x.CreateDateTime >= createdFromUtc.Value);
+
+            if (createdToUtcExclusive.HasValue)
+                query = query.Where(x => x.CreateDateTime < createdToUtcExclusive.Value);
 
             // Pencarian menyasar nomor order, nomor rekam medis, dan nama pasien: ketiganya
             // yang benar-benar dipegang petugas ketika mencari satu order.

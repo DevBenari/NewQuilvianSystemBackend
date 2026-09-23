@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Blueprint ID | `BD-BP-001` · Contract version **`v5` — `approved`** (`Sukmagp` 2026-09-19; `v4` kini `superseded`). **Riwayat:** `v5` `draft` 18 September 2026 (arah disetujui `Sukmagp` 2026-09-18). **Riwayat:** `v4` — `approved` |
-| `last_changed_in` | **`v5`** — bagian 1: `VAL-BD-085` baru dan bentuk `errors` `VAL-BD-001`. **Riwayat:** `v4` |
+| `last_changed_in` | **`v5`** — bagian 1: `VAL-BD-085` baru dan bentuk `errors` `VAL-BD-001`. **23 September 2026:** `VAL-BD-086` baru pada bagian yang sama (`v5` `D5`, `DEC-BD-059`, task `BE-BD-019`). **Riwayat:** `v4` |
 | Owner | Pemilik proses BDRS · pemilik proses klinis |
 | `approved_by` / `approved_at` | `Sukmagp` / `2026-09-19` (`v5`). **Riwayat:** `Sukmagp` / `2026-09-03` (`v4`) |
 | Sumber | `00-interview-decisions.md` revisi 4 (INV/AC) · `03-domain-architecture.md` revisi 3 |
@@ -31,6 +31,20 @@ ditemukan · `409` bentrok konkurensi atau status sudah berubah · `422` melangg
 | `VAL-BD-012` | Keputusan klinis | `MstPatient.BloodType` dipakai untuk menilai kesesuaian darah | "Golongan darah pada data pendaftaran tidak boleh dipakai untuk menilai kesesuaian darah. Gunakan hasil pemeriksaan Bank Darah." | `422` |
 | `VAL-BD-013` | Buat order | Unit pelayanan `IsAvailableForBloodOrder=false` | "Unit pelayanan ini belum diberi kewenangan memesan darah." | `403` |
 | `VAL-BD-085` | Buat order — elektronik, manual, dan lanjutan order ganda (`v5`, `DEC-BD-055`) | Golongan darah diminta tidak dikirim, bernilai "Tidak diinformasikan" (`NotDisclosed`), atau bukan salah satu nilai golongan darah yang dikenal | "Golongan darah yang diminta wajib dipilih: golongan darah beserta Rhesus-nya, atau 'Tidak diketahui' bila memang belum diketahui." | `400` |
+| `VAL-BD-086` | Daftar kerja order darah — `GET /blood-orders` (`v5` `D5`, `DEC-BD-059`) | Penyaring rentang tanggal terbalik: `startDate` melewati `endDate` | "Tanggal awal filter tidak boleh melewati tanggal akhir filter." | `400` |
+
+**Tambahan `v5` `D5` — 23 September 2026.**
+
+- **`VAL-BD-086`** baru, nomor berikutnya sesudah `VAL-BD-085`. Diperiksa **sebelum** query menyentuh
+  database. Rentang terbalik tidak diserahkan ke database karena query yang mustahil memulangkan nol
+  baris, dan **nol baris terbaca petugas sebagai "tidak ada order", bukan sebagai "filternya salah"** —
+  persis salah baca yang berbahaya pada daftar kerja klinis.
+  **Contoh:** petugas keliru mengisi 30 September sampai 23 September → ditolak `400 VAL-BD-086`, bukan
+  daftar kosong yang menyesatkan.
+- `startDate` **sama dengan** `endDate` adalah rentang yang sah: menyaring satu hari penuh. Hanya
+  `startDate` melewati `endDate` yang ditolak.
+- Pesan ini **tidak** membawa slot `errors` terstruktur. Pada grup ini hanya `VAL-BD-001` yang
+  membawanya (`DEC-BD-056`); seluruh kode lain tetap message-only, dan `D5` tidak mengubah kebiasaan itu.
 
 **Tambahan `v5` — 18 September 2026.**
 

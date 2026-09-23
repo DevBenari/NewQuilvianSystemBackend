@@ -5,7 +5,7 @@
 | Blueprint ID | `BD-BP-001` |
 | Revision | `13` — 18 September 2026, Blood Order contract gap pass (bagian 8.32). **Riwayat:** `12` |
 | Decision revision | `13`. **Riwayat:** `12` |
-| Status | `draft` — kecuali `DEC-BD-048` dan `DEC-BD-049` yang dinyatakan langsung pemilik (`Sukmagp`, 2026-09-11), `DEC-BD-016` (`Sukmagp`, 2026-09-17), serta `DEC-BD-055` sampai `DEC-BD-058` (`Sukmagp`, arah 2026-09-18, naskah dan persetujuan proses klinis `DEC-BD-055` 2026-09-19 — bagian 8.32 dan 8.33) |
+| Status | `draft` — kecuali `DEC-BD-048` dan `DEC-BD-049` yang dinyatakan langsung pemilik (`Sukmagp`, 2026-09-11), `DEC-BD-016` (`Sukmagp`, 2026-09-17), `DEC-BD-055` sampai `DEC-BD-058` (`Sukmagp`, arah 2026-09-18, naskah dan persetujuan proses klinis `DEC-BD-055` 2026-09-19 — bagian 8.32 dan 8.33), serta `DEC-BD-059` dan `DEC-BD-060` (`Sukmagp`, 2026-09-23 — bagian 8.34) |
 | Pass yang sudah dijalankan | Scope pass (2026-09-02), Closure pass (2026-09-02), Architecture gap closure pass (2026-09-02), Architecture gap final closure pass (2026-09-02), Storage Location closure pass (2026-09-02), Storage Location decision closure pass (2026-09-02), Gerbang pemberian closure pass (2026-09-02), Role & authority closure pass (2026-09-02), Role residue closure pass (2026-09-03), OQ residue closure pass (2026-09-03), Permission conflict closure pass (2026-09-03), Procedure tariff decision pass (2026-09-11), Billing handoff approval (2026-09-17), **Blood Order contract gap pass (2026-09-18)** |
 | Product/domain owner | Pemilik proses Bank Darah / BDRS — nama pejabat berwenang belum disebutkan |
 | Backend SHA | `ab39b63edd912e7a825e186be75537fc319a36ce` cabang `sukmagp` |
@@ -1711,6 +1711,57 @@ pemiliknya pemilik proses klinis (`DEC-BD-039` sampai `DEC-BD-041`) **tidak** ik
 **Urutan pelaksanaan kanonik yang ditetapkan pemilik:** (1) `BE-BD-017`; (2) penerapan migration-nya ke
 database pengembangan yang diberi wewenang; (3) `BE-BD-018`; (4) `FE-BD-002`. `BE-BD-017` dan `BE-BD-018`
 tetap dua task terpisah dan tidak digabung.
+
+---
+
+### 8.34 Penyaring rentang tanggal daftar kerja order darah — `BD-UI-GAP-004` ditutup Opsi B (23 September 2026)
+
+**Asal.** Review gap `FE-BD-002` sesudah implementasi kontrak `v5` menemukan layar daftar kerja order
+darah merender dua pemilih tanggal dan satu dropdown periode, sementara `GET /blood-orders` **tidak
+pernah** menerima parameter tanggal apa pun. Parameternya dibuang diam-diam oleh model binder: petugas
+memilih "Hari Ini", daftarnya tidak berubah, dan tidak ada satu pun pesan. Gap itu dicatat sebagai
+[`BD-UI-GAP-004`](BD-UI-GAP-004-filter-tanggal-order-darah.md) dengan dua pilihan — buang kontrolnya,
+atau tambahkan penyaringnya di backend.
+
+Pemilik, **`Sukmagp`**, memilih **Opsi B** pada **23 September 2026**: penyaring tanggal
+**dipertahankan**, dan backend yang menyesuaikan diri.
+
+| ID | Menutup | Jenis | Isi | Pemilik | Status | Approved |
+| --- | --- | --- | --- | --- | --- | --- |
+| `DEC-BD-059` | `BD-UI-GAP-004` — penyaring tanggal daftar kerja order darah | `Decision` | `GET /blood-orders` menerima `startDate` dan `endDate`. Penyaringan dikerjakan **server-side**; frontend **tidak pernah** menyaring tanggal secara lokal. Kolom yang disaring adalah **`BbkBloodOrder.CreateDateTime`** — bukan kolom waktu lain. `endDate` bersifat **inklusif sampai akhir hari**. Zona waktu pembanding mengikuti **zona waktu aplikasi**, yaitu `Asia/Jakarta` sebagaimana `AppDateTimeHelper`. Keduanya opsional dan digabung dengan penyaring lain secara "dan". Perubahan bersifat **aditif**; nol klien lama rusak | Pemilik proses BDRS · pemilik arsitektur backend | `approved` | `Sukmagp` 2026-09-23 |
+| `DEC-BD-060` | Turunan `DEC-BD-059` — perbandingan zona waktu terhadap kolom UTC | `Decision` | `BbkBloodOrder.CreateDateTime` **disimpan dalam UTC** (`DateTime.UtcNow`). Karena itu batas rentang wajib **dikonversi dari `Asia/Jakarta` ke UTC sebelum dibandingkan**, bukan distempel `DateTimeKind.Utc` apa adanya. Batas bawah = pukul `00:00` waktu Jakarta pada `startDate`, dikonversi ke UTC. Batas atas = pukul `00:00` waktu Jakarta pada `endDate + 1 hari`, dikonversi ke UTC, dan dibandingkan **eksklusif** — bentuk itulah yang mewujudkan "inklusif sampai akhir hari" tanpa kehilangan detik terakhir | Pemilik arsitektur backend | `approved` | `Sukmagp` 2026-09-23 |
+
+**Kenapa `DEC-BD-060` perlu ditulis terpisah, dan bukan dianggap rincian pelaksanaan.**
+
+Pola penyaring tanggal yang sudah mapan di repository ini **salah untuk kolom UTC**, dan menyalinnya akan
+diam-diam melanggar `DEC-BD-059`. `BankController.ResolveDateRange` — yang juga dipakai
+`CompanyGuarantorController` dan beberapa controller master data lain — mengambil tanggal operasional
+waktu Jakarta lewat `AppDateTimeHelper.OperationalDate()`, lalu **menstempelnya** `DateTimeKind.Utc`
+tanpa konversi. Selisihnya tujuh jam.
+
+**Contoh berangka.** Order darah dibuat pukul `02:00` WIB tanggal 23 September. Nilai tersimpan
+`2026-09-22T19:00:00Z`. Petugas menyaring "Hari Ini" = 23 September. Dengan pola yang disalin apa adanya,
+batas bawahnya menjadi `2026-09-23T00:00:00Z`, dan order itu **tidak muncul** — padahal secara waktu
+Jakarta ia memang dibuat hari ini. Setiap order yang lahir antara tengah malam dan pukul tujuh pagi WIB
+akan jatuh ke hari yang keliru. Pada bank darah, jam-jam itu bukan jam sepi.
+
+Dengan `DEC-BD-060`, batas bawahnya menjadi `2026-09-22T17:00:00Z` dan ordernya muncul sebagaimana
+mestinya.
+
+**Yang tidak diputuskan di sini, dan sengaja dibiarkan terbuka.** Dropdown periode pada layar ("Hari
+Ini", "7 Hari Terakhir", "30 Hari Terakhir", "Bulan Ini") hari ini dihitung **di browser** memakai zona
+waktu perangkat petugas, lalu dikirim sebagai `startDate`/`endDate` biasa. Pada perangkat yang zona
+waktunya bukan `Asia/Jakarta`, rentang yang terkirim akan bergeser. Keadaan itu **tidak** menjadi bagian
+`DEC-BD-059`; ia dicatat sebagai risiko pada task `BE-BD-019` dan menunggu keputusan tersendiri bila
+kelak terbukti mengganggu.
+
+**Yang tidak berubah.** Nol kolom database baru, nol migration, nol butir hak akses baru. `BloodOrder :
+Read` tetap satu-satunya yang menjaga daftar kerja.
+
+**Pelaksanaan.** Diturunkan menjadi task **`BE-BD-019`** — lihat
+[laporan task](task/report/backend/BE-BD-019.md) dan kartu pada
+[`roadmap/backend-roadmap.md`](roadmap/backend-roadmap.md). `FE-BD-002` memperoleh dependency baru pada
+task itu untuk bagian penyaring tanggal saja.
 
 ---
 

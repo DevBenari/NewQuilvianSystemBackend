@@ -66,8 +66,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Control
                 "Ringkasan order darah berhasil diambil."));
         }
 
+        /// <summary>Daftar kerja order darah.</summary>
+        /// <remarks>
+        /// <para>
+        /// <c>startDate</c> dan <c>endDate</c> menyaring <c>BbkBloodOrder.CreateDateTime</c>
+        /// (<c>DEC-BD-059</c>). Keduanya <b>tanggal operasional waktu aplikasi</b>, bukan saat
+        /// UTC: bagian waktu yang ikut terkirim diabaikan, dan <c>endDate</c> bersifat
+        /// <b>inklusif sampai akhir hari</b>.
+        /// </para>
+        /// <para>
+        /// Rentang terbalik — <c>startDate</c> melewati <c>endDate</c> — ditolak
+        /// <c>400</c> <c>VAL-BD-086</c>, bukan diserahkan ke database.
+        /// </para>
+        /// </remarks>
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<BloodOrderPagedResult>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [AccessAction("Read", "Read Blood Order", Description = "Melihat daftar order darah", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("BloodOrder", "Read")]
         public async Task<IActionResult> GetAll(
@@ -78,12 +92,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Control
             [FromQuery] Guid? bloodComponentId,
             [FromQuery] BbkBloodOrderStatus? orderStatus,
             [FromQuery] BbkOrderSource? orderSource,
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
             [FromQuery] string? sortBy,
             [FromQuery] string? sortDirection,
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 25,
             CancellationToken cancellationToken = default)
         {
+            var dateRange = BbkBloodOrderService.ResolveCreateDateRange(startDate, endDate);
+
+            if (!dateRange.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    dateRange.ErrorMessage ?? BbkBloodOrderService.InvalidDateRangeMessage));
+            }
+
             var result = await _bloodOrderService.GetPagedAsync(
                 search,
                 patientId,
@@ -92,6 +117,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Control
                 bloodComponentId,
                 orderStatus,
                 orderSource,
+                dateRange.StartUtc,
+                dateRange.EndExclusiveUtc,
                 sortBy,
                 sortDirection,
                 pageNumber,

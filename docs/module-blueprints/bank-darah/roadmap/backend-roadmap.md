@@ -681,6 +681,27 @@ tidak dapat diberikan sebelum dialokasikan.
 
 ---
 
+### ✅ `BE-BD-019` — Blood Order Date Range Filter
+
+| Field | Isi |
+| --- | --- |
+| **Status** | ✅ **SELESAI — 23 September 2026. Kelima acceptance `AC-BD-113`..`AC-BD-117` terbukti dan Definition of Done terpenuhi.** Build **`0 Error(s)` / `214 Warning(s)`** (`00:57:47`) dengan **nol peringatan** pada keempat berkas task ini; baseline peringatan **tidak bertambah**. `has-pending-model-changes` **bersih**, **nol migration** sesuai DoD. `api-contract.md` memperoleh Amendment `v5` `D5`; `VAL-BD-086` baru pada matriks validasi; `AC-BD-113`..`AC-BD-117` pada bagian 12 matriks acceptance. **Validasi runtime R1–R12 `PASS`, dijalankan langsung agent** terhadap `QuilvianNewDevSukma` dengan keluaran HTTP sungguhan — bukan atestasi pihak lain ([laporan](../task/report/backend/BE-BD-019.md) bagian 7). `AC-BD-115` terbukti sampai ke detik batasnya: rentang efektif **`>= 2026-09-22T17:00:00Z`** dan **`< 2026-09-23T17:00:00Z`**, sama persis dengan contoh mengikat pada kontrak; hasilnya kebalikan persis dari apa yang akan terjadi bila pola `ResolveDateRange` yang keliru disalin. Database dikembalikan ke keadaan semula dan diverifikasi: 9 order, `min`/`max` sama, nol order baru. **Batas bukti:** aktor tunggal `superadmin` — `D5` tidak membedakan pelaku dan tidak menambah butir hak akses; `AC-BD-115` memakai `CreateDateTime` yang disetel, bukan order yang lahir alami pada jam itu (bagian 7.9). **Catatan build:** percobaan pertama gagal `MSB6006 csc.dll exited with code -1073741571` (`STATUS_STACK_OVERFLOW`) sesudah 42 menit — crash compiler, bukan kesalahan kode; build yang lulus dijalankan sesudah `dotnet build-server shutdown` dengan `-p:UseSharedCompilation=false`, sehingga kondisinya **tidak identik** dengan baseline `BE-BD-017`/`BE-BD-018` (bagian 6.1). **Riwayat:** 🟡 SEBAGIAN — source dan kontrak selesai, runtime belum, 23 September 2026. **Riwayat:** 🟡 siap dijadwalkan, belum dikerjakan, dibuka 23 September 2026 |
+| **Yang memblokir** | **Nihil** |
+| **Outcome** | Petugas BDRS dapat mempersempit daftar kerja order darah ke rentang tanggal tertentu, dan penyaring tanggal yang sudah tayang di layar `FE-BD-01` akhirnya berfungsi |
+| **Asal** | `BD-UI-GAP-004` — layar merender pemilih tanggal dan dropdown periode, sementara `GET /blood-orders` tidak pernah menerima parameter tanggal apa pun. Pemilik memilih **Opsi B**: penyaringnya dipertahankan, backend yang menyesuaikan diri |
+| **Trace** | `DEC-BD-059`, `DEC-BD-060`; `BD-UI-GAP-004`; `FE-BD-002` |
+| **Kontrak** | api-contract — grup Blood Order. Amandemen **aditif** pada `GET /`; nol endpoint baru, nol butir hak akses baru, nol perubahan bentuk respons |
+| **Reuse** | Pola `ResolveDateRange` pada `BankController` sebagai **acuan bentuk, bukan acuan perilaku** — perbandingan zona waktunya keliru untuk kolom UTC dan **tidak boleh disalin** (`DEC-BD-060`). `AppDateTimeHelper` untuk zona waktu aplikasi |
+| **Scope** | **(1) Kontrak** — `api-contract.md` grup Blood Order memperoleh `startDate` dan `endDate` pada `GET /`, beserta aturan inklusivitas dan zona waktunya. **(2) Query DTO** — kedua parameter ditambahkan ke tanda tangan `GetAll` dan ke `BloodOrderDefaultFilterResponse` pada `GET /filters/metadata`. **(3) Penyaring service** — `GetPagedAsync` menyaring `BbkBloodOrder.CreateDateTime` dengan batas yang **dikonversi dari `Asia/Jakarta` ke UTC**, batas atas eksklusif pada `endDate + 1 hari`. **(4) Acceptance criteria** — `AC-BD-113`..`AC-BD-117` ditulis ke `testing/acceptance-test-matrix.md`. **(5) Validasi runtime** — dijalankan terhadap `QuilvianNewDevSukma` |
+| **Di luar scope** | Migration, kolom, atau index baru — kecuali bukti eksekusi membuktikan index memang dibutuhkan; bila begitu, **berhenti dan minta keputusan pemilik**. Parameter `customPeriod` di backend — periode tetap dihitung layar dan dikirim sebagai rentang biasa. Penyaring tanggal pada endpoint Bank Darah lain. Perubahan apa pun pada frontend. Perbaikan pola `ResolveDateRange` milik modul lain |
+| **Dependency** | `BE-BD-003` ✅, `DEC-BD-059` ✅, `DEC-BD-060` ✅ |
+| **Acceptance** | `AC-BD-113`, `AC-BD-114`, `AC-BD-115`, `AC-BD-116`, `AC-BD-117` — rumusannya pada [laporan task](../task/report/backend/BE-BD-019.md) bagian 4 |
+| **Verifikasi** | QBE preflight dan kesesuaian engineering dari `AGENTS.md` backend. Build aplikasi; review diff/scope; `has-pending-model-changes` bersih tanpa migration; verifikasi lewat panggilan sungguhan dengan aktor non-SuperAdmin, termasuk **order yang dibuat antara 00:00–07:00 WIB** sebagai pembuktian `DEC-BD-060` |
+| **Risk/owner** | Sedang — salah zona waktu menyembunyikan order dari daftar kerja klinis tanpa jejak / pemilik proses BDRS + pemilik arsitektur backend |
+| **DoD** | Kelima acceptance terbukti; `api-contract.md` diamandemen; `AC-BD-113`..`AC-BD-117` tertulis di matriks acceptance; nol migration; bukti runtime lintas batas hari WIB ada; laporan tracked `task/report/backend/BE-BD-019.md` |
+
+---
+
 ## 6. Gerbang yang masih terbuka
 
 | Gate | Pemilik | Menahan |

@@ -357,6 +357,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.DTOs
 
     public class BloodOrderDefaultFilterResponse
     {
+        /// <summary>
+        /// Tanggal awal penyaring, sebagai <b>tanggal operasional waktu aplikasi</b>
+        /// (<c>DEC-BD-059</c>). Bawaan kosong: daftar kerja tidak dibatasi waktu sampai
+        /// petugas memilih rentang.
+        /// </summary>
+        public DateTime? StartDate { get; set; }
+
+        /// <summary>
+        /// Tanggal akhir penyaring, <b>inklusif sampai akhir hari</b> pada waktu aplikasi.
+        /// </summary>
+        public DateTime? EndDate { get; set; }
+
         public string? Search { get; set; }
         public Guid? PatientId { get; set; }
         public Guid? EncounterId { get; set; }
