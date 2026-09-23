@@ -15,9 +15,9 @@
 | Task mode | `BACKEND` — go-ahead pemilik 22 September 2026 lewat `build-module-backend`. Target tulis: source IGD (`EmergencyInstallationManagement`, konfigurasi EF `EmgVisit`) dan `docs/module-blueprints/igd/` (laporan, roadmap, traceability). **Tidak** ada wewenang `dotnet build`, membuat/menjalankan migration, menulis basis data, commit, push, merge, pindah branch; **tidak** menyentuh `Program.cs`, berkas Registrasi, berkas kontrak, frontend, dan `DataProtectionKeys/key-*.xml` |
 | Target tulis | `NewQuilvianSystemBackend` |
 | Model | Claude Opus 5 |
-| Commit backend saat dikerjakan | `48a78703` pada branch `rizkiG`, sejajar `origin/rizkiG` (commit pemilik yang memuat `BE-IGD-051`). **Perubahan task ini belum di-commit.** Baseline task = `48a78703`; satu-satunya perubahan terbuka sebelum task dimulai adalah satu baris `BE-IGD-051.md` dari sesi lalu, yang tidak disentuh |
-| Tanggal | 22 September 2026 |
-| Status | 🟡 **SEBAGIAN — 22 September 2026.** Implementation Complete: kesepuluh kriteria terpetakan ke source. Terbukti oleh agent: sebagian kriteria 6 (pembacaan source: nol jalur yang mengisi waktu tiba dari jam klien untuk `ImmediateCare`) dan kriteria 8 dari sisi source (hanya `POST start-triage` yang membuat kunjungan). **Belum:** migration `AddEmergencyArrivalTimeSource` (kriteria 9, milik pemilik), `dotnet build` (kriteria 10, milik pemilik — `NOT RUN`), uji API dan uji paralel (kriteria 1–8). **Aplikasi tidak boleh dijalankan terhadap basis data sebelum migration diterapkan** — bagian 7 |
+| Commit backend saat dikerjakan | Baseline task `48a78703` pada branch `rizkiG`. Source task ini di-commit pemilik sebagai `3bd999ef`; lalu merge `62c8360a` dari `QuilvianIntegrationBackend`; lalu migration dan snapshot sebagai `dce1f138`. Seluruhnya sudah di-push ke `origin/rizkiG` |
+| Tanggal | 22 September 2026 (implementasi); 23 September 2026 (merge, migration, uji, penandaan) |
+| Status | ✅ **SELESAI atas penilaian pemilik — 23 September 2026.** Implementation Complete; **Build Verified** dari artefak (DLL 10.23, memuat literal penjaga `Down()`; jumlah warning tidak dilaporkan); **migration `20260923021224_AddEmergencyArrivalTimeSource` dibuat dan diterapkan pemilik** ke dev, `Up()` diperiksa agent dan bersih; **uji `Down()` berpenjaga dijalankan agent** pada basis data terpisah dan lulus empat tahap; **uji API S1–S15 dinyatakan lulus semua oleh pemilik** (lingkungan Development, dengan tangkapan layar S13 sebagai lampiran; skenario lain tanpa badan respons, agent tidak mengamati). Kriteria 10 terpenuhi sebagian: 0 error terbukti dari artefak, tetapi jumlah warning tidak dilaporkan sehingga kesamaannya dengan baseline tidak dapat dinyatakan. Sebelumnya 🟡 pada 22 September 2026 |
 
 ### Backend Governance Preflight
 
@@ -165,7 +165,7 @@ dan frontend. Kode baru ditulis **tanpa baris komentar**, atas permintaan pemili
 | Aspek | Dampak |
 | --- | --- |
 | Kontrak API | **Aditif.** Satu endpoint baru `POST /start-triage`; tiga ruas baru pada `EmergencyVisitResponse` (semua endpoint yang mengembalikannya). Nol ruas lama berubah, nol route lama berubah. `POST /emergency-visits` jalur lama **tidak** diubah (milik `BE-IGD-053`) — kunjungan dari jalur itu bersumber `Unverified` |
-| Database | **Schema berubah, migration BELUM dibuat.** Tiga kolom pada `public."EmgVisit"` + FK + index FK. Migration `AddEmergencyArrivalTimeSource` **dibuat dan diterapkan pemilik** (bagian 5.2). Nol eksekusi basis data oleh agent |
+| Database | Tiga kolom pada `public."EmgVisit"` + FK + index FK. Migration `20260923021224_AddEmergencyArrivalTimeSource` **dibuat dan diterapkan pemilik** ke dev pada 23 September 2026; `Up()` dan snapshot diperiksa agent (bagian 5). Penjaga `Down()` disisipkan agent atas izin pemilik dan diuji pada basis data terpisah. Nol eksekusi terhadap basis data dev oleh agent |
 | Keamanan/Auth | Izin yang sudah ada `EmergencyVisit : Create` — nol izin baru. Pasangan atribut identik huruf demi huruf dengan pemakai lain. Pelaku dan waktu konfirmasi diambil dari token dan jam server, tidak dari body. Keterbatasan `IGD-DEC-158` tetap berlaku |
 
 ---
@@ -226,14 +226,20 @@ Base URL: `api/v1/health-services/emergency-installation-management/emergency-vi
 | Pemeriksaan rahasia | Nol credential, token, connection string, atau isi kunci pada diff dan laporan | `PASS` | Pembacaan diff |
 | Pembacaan source kriteria 6 | Waktu tiba hanya dihitung pada cabang `mode == Triage` (`EmergencyVisitService.cs:654-663`); `ImmediateCare` memakai `encounter.RegisteredAt` (`:784`) | `PASS` (bagian source saja) | Pembacaan source |
 | Pembacaan source kriteria 8 | Satu-satunya `new EmgVisit` baru ada di `MulaiKunjunganDalamKunciAsync` (`:775`); `GET /`, `GET /{id}`, `GET /active-episode` hanya membaca (`AsNoTracking`) | `PASS` (bagian source saja) | `grep "new EmgVisit"` + pembacaan source |
-| `dotnet build` | Belum — milik pemilik | `NOT RUN` | Larangan task |
-| Migration `AddEmergencyArrivalTimeSource` | Belum dibuat — milik pemilik | `NOT RUN` | Larangan task |
-| Uji API S1–S10, uji paralel, kueri hitungan | Belum — butuh migration dan build | `NOT RUN` | — |
+| `dotnet build` (pemilik) | Berhasil — `bin/Debug/net9.0/QuilvianSystemBackend.dll` bertanggal 23 September 2026 10.23, **sesudah** seluruh edit source dan sesudah penjaga `Down()` disisipkan (09.55). Pemeriksaan byte pada DLL menemukan literal pesan penjaga, jadi build memang memuat perubahan terakhir. Jumlah warning tidak dilaporkan | `PASS` (0 error, dari artefak) | Pemeriksaan stempel waktu + pencarian literal UTF-16 pada DLL oleh agent |
+| Migration `AddEmergencyArrivalTimeSource` dibuat pemilik | `20260923021224`. Isi `Up()` **persis** 3 `AddColumn` + 1 `CreateIndex` + 1 `AddForeignKey` (`Restrict`); `ArrivalTimeSource` `integer NOT NULL DEFAULT 0`; nol operasi milik modul lain | `PASS` | Pembacaan berkas migration oleh agent |
+| Snapshot EF sesudah migration | **+20 baris, 0 penghapusan**, seluruhnya di blok `EmgVisit` (3 properti, 1 index, 1 relasi, 1 navigasi) | `PASS` | `git diff --numstat` atas `ApplicationDbContextModelSnapshot.cs` |
+| Snapshot EF sesudah merge `QuilvianIntegrationBackend` | 1491 entity (integration 1489 + 2 dari `rizkiG`); **nol** blok modul lain hilang. Tiga entity PettyCash yang tampak hilang ternyata dipindah dan dinamai ulang tim Finance (`Bil*` → `Fin*`) dan ada di snapshot dengan nama barunya | `PASS` | Perbandingan daftar `modelBuilder.Entity` antara `3bd999ef`, `62c8360a^2`, dan `HEAD` |
+| Penerapan ke basis data dev (pemilik) | Seluruh migration tertunda dari integration + migration BE-055 diterapkan; daftar `dotnet ef migrations list` tidak menyisakan `(Pending)` | `PASS` — atas laporan pemilik | Tangkapan layar daftar migration milik pemilik |
+| **Uji `Down()` berpenjaga di basis data terpisah** (agent, atas perintah pemilik 23 September 2026) | Empat tahap pada kontainer `postgres:16` sementara (port 55432, `max_locks_per_transaction=4096`), 238 migration diterapkan bersih. **(A)** `Down` tanpa data → **berhasil**, ketiga kolom terhapus. **(B)** `Up` lagi → kolom kembali. **(C)** disisipkan satu kunjungan `ArrivalTimeSource = 2`, lalu `Down` → **ditolak** `Npgsql.PostgresException P0001` dengan pesan penjaga; ketiga kolom tetap ada, baris utuh, dan migration tetap tercatat terpasang. **(D)** baris dinolkan menjadi `Unverified`, `Down` → berhasil lagi | `PASS` | Keluaran `dotnet ef database update` dan `psql` pada kontainer uji; kontainer dihapus sesudahnya |
+| Uji API S1–S15 | **Dinyatakan lulus semua oleh pemilik**, 23 September 2026, lingkungan Development. Pemilik menegaskan S6 (Mulai Triage dan Tangani Segera) benar-benar **dikirim bersamaan**, bukan berurutan | `PASS` — atas penilaian pemilik | Pernyataan pemilik pada percakapan, **ditambah tangkapan layar laporan uji** yang memperlihatkan S13 apa adanya: tanpa alias `HTTP 400`, dengan alias `HTTP 201`. Untuk skenario lain kode status dan badan respons **tidak dilampirkan**, dan agent **tidak mengamati** jalannya uji |
 
-Uji manual: `REQUIRED` — skenario 5.3, sesudah migration diterapkan dan build berhasil.
+Uji manual: `PASS` — atas penilaian pemilik untuk S1–S15; `PASS` teramati agent untuk uji `Down()` berpenjaga.
 
-**Tidak dijalankan:** `dotnet build`, `dotnet ef`, kueri basis data, dan aplikasi — seluruhnya di luar wewenang
-task. Tidak ada proyek test backend (dihapus 11 September 2026), jadi tidak ada `dotnet test`.
+**Tidak dijalankan:** kueri invarian pasca-rilis; `dotnet test` (nol proyek test sejak 11 September 2026); skrip uji otomatis
+`uji-be-igd-055.ps1` yang disiapkan agent (pemilik memilih menguji dengan caranya sendiri, sehingga badan respons per skenario
+tidak terlampir). Agent tidak menjalankan `dotnet build`, tidak membuat migration, dan tidak menulis basis data dev — satu-satunya
+eksekusi basis data oleh agent adalah kontainer uji sementara di atas, atas perintah eksplisit pemilik.
 
 ### 5.1 Perintah build untuk pemilik
 
@@ -244,10 +250,17 @@ dotnet build ./QuilvianSystemBackend.sln -p:RunAnalyzers=false
 Hasil yang diharapkan: 0 error; jumlah warning sama dengan baseline Anda. Galat kompilasi pada delapan berkas di
 bagian 3.2 adalah `NEW ERROR` task ini dan dikembalikan ke agent.
 
-### 5.2 Migration untuk pemilik (`AddEmergencyArrivalTimeSource`)
+### 5.2 Migration (`20260923021224_AddEmergencyArrivalTimeSource`) — **sudah dikerjakan**
 
-Urutan: build (5.1) → buat migration → periksa → tambahkan penjaga `Down()` → (opsional) uji Down/Up di
-Docker lokal → terapkan.
+Dibuat dan diterapkan pemilik 23 September 2026. Urutan yang benar-benar ditempuh: merge `QuilvianIntegrationBackend`
+→ build → buat migration → periksa `Up()` → sisipkan penjaga `Down()` → terapkan seluruh migration tertunda
+(milik modul lain lebih dulu, milik task ini paling akhir) → uji `Down()` di Docker lokal.
+
+Catatan urutan yang berubah di tengah jalan: rencana semula adalah menerapkan migration modul lain **sebelum**
+membuat migration ini. EF Core 9 menolaknya — `database update` berhenti dengan `PendingModelChangesWarning`
+selama model di kode berbeda dari snapshot terakhir, dan perbedaan itu justru tiga kolom task ini. Pembuatan
+migration tidak pernah melihat basis data, hanya membandingkan model dengan snapshot, sehingga membuatnya lebih
+dulu tetap benar dan menghasilkan `Up()` yang bersih.
 
 ```bash
 dotnet ef migrations add AddEmergencyArrivalTimeSource --no-build
@@ -319,20 +332,20 @@ WHERE "EncounterId" = '<encounterId>';
 
 | No | Kriteria | Status | Bukti |
 | ---: | --- | --- | --- |
-| 1 | Mulai Triage dengan waktu tiba 10 menit sebelum waktu terdaftar → `201`, `WaitingForTriage`, sumber `Confirmed` | Belum terpenuhi — source ada | `EmergencyVisitService.cs:775-800`; uji S1 `NOT RUN` |
-| 2 | Tangani Segera pada baris tanpa kunjungan → `201`, `InTreatment` dalam satu permintaan tanpa isian, tiba = waktu terdaftar, sumber `Fallback` | Belum terpenuhi — source ada | `:784-795`; uji S2 `NOT RUN` |
-| 3 | Mulai Triage dan Tangani Segera paralel → tepat satu kunjungan, status akhir `InTreatment` | Belum terpenuhi — source ada | Kunci `EmergencyEpisodeRule.cs:125-148`, penerusan `EmergencyVisitService.cs:751-758`, pengulangan `:695-702`; uji S5/S6 `NOT RUN` |
-| 4 | Panggilan kedua `Triage` → `200`, kunjungan sama, status tidak mundur | Belum terpenuhi — source ada | `:741-761`; uji S4/S5 `NOT RUN` |
-| 5 | Encounter berakhir → `409`; bukan Emergency → `400`; tidak ada → `404`; K4 → `409`; kunjungan lain berjalan → `409` | Belum terpenuhi — source ada | `:721-749`, `:763-770`; uji S7/S8 `NOT RUN` |
-| 6 | Waktu tiba di masa depan → `400`; nol jalur yang mengisi waktu tiba dari jam klien untuk mode `ImmediateCare` | **Sebagian** — bagian "baca source" terpenuhi | Pembacaan source bagian 5 `PASS`; uji S3/S9 `NOT RUN` |
-| 7 | Pasien rekam pengganti: `isUnknownPatient` + alias tersimpan; tanpa alias → `400` | Belum terpenuhi — source ada | `:665-669`, `:789-790`; uji S10 `NOT RUN` |
-| 8 | Membuka detail atau daftar tidak melahirkan kunjungan | **Sebagian** — bagian source terpenuhi | Pembacaan source bagian 5 `PASS`; hitungan S11 `NOT RUN` |
-| 9 | Migration: baris lama `Unverified`; `Down()` berpenjaga diuji di basis data terpisah; snapshot hanya bertambah tiga kolom | Belum terpenuhi — **milik pemilik** | Bagian 5.2. Catatan: snapshot juga akan memuat index + relasi FK (selisih 9) |
-| 10 | Build 0 error, warning sama dengan baseline | Belum terpenuhi — **milik pemilik** | Bagian 5.1 |
+| 1 | Mulai Triage dengan waktu tiba 10 menit sebelum waktu terdaftar → `201`, `WaitingForTriage`, sumber `Confirmed` | Terpenuhi — **atas penilaian pemilik** | Source `EmergencyVisitService.cs:775-800`; uji S1 lulus menurut pemilik (tanpa lampiran badan respons) |
+| 2 | Tangani Segera pada baris tanpa kunjungan → `201`, `InTreatment` dalam satu permintaan tanpa isian, tiba = waktu terdaftar, sumber `Fallback` | Terpenuhi — **atas penilaian pemilik** | Source `:784-795`; uji S2 lulus menurut pemilik |
+| 3 | Mulai Triage dan Tangani Segera paralel → tepat satu kunjungan, status akhir `InTreatment` | Terpenuhi — **atas penilaian pemilik** | Kunci `EmergencyEpisodeRule.cs:125-148`, penerusan `EmergencyVisitService.cs:751-758`, pengulangan `:695-702`; uji S6 lulus menurut pemilik, yang menegaskan kedua permintaan **benar-benar dikirim bersamaan** |
+| 4 | Panggilan kedua `Triage` → `200`, kunjungan sama, status tidak mundur | Terpenuhi — **atas penilaian pemilik** | Source `:741-761`; uji S4 dan S5 lulus menurut pemilik |
+| 5 | Encounter berakhir → `409`; bukan Emergency → `400`; tidak ada → `404`; K4 → `409`; kunjungan lain berjalan → `409` | Terpenuhi — **atas penilaian pemilik** | Source `:721-749`, `:763-770`; uji S7–S11 lulus menurut pemilik |
+| 6 | Waktu tiba di masa depan → `400`; nol jalur yang mengisi waktu tiba dari jam klien untuk mode `ImmediateCare` | Terpenuhi | Bagian source **terbukti agent** (bagian 5); uji S3 dan S12 lulus menurut pemilik |
+| 7 | Pasien rekam pengganti: `isUnknownPatient` + alias tersimpan; tanpa alias → `400` | Terpenuhi | Source `:665-669`, `:789-790`; uji S13 **berlampir**: tangkapan layar memperlihatkan `HTTP 400` tanpa alias dan `HTTP 201` dengan alias |
+| 8 | Membuka detail atau daftar tidak melahirkan kunjungan | Terpenuhi | Bagian source **terbukti agent** (bagian 5); uji S15 lulus menurut pemilik |
+| 9 | Migration: baris lama `Unverified`; `Down()` berpenjaga diuji di basis data terpisah; snapshot hanya bertambah tiga kolom | **Terpenuhi — terbukti agent** | `Up()` `DEFAULT 0` untuk seluruh baris lama; snapshot +20 baris tanpa penghapusan; uji `Down()` empat tahap pada `postgres:16` sementara (bagian 5). Catatan: snapshot juga memuat index dan relasi FK bawaan konvensi EF (selisih 9) |
+| 10 | Build 0 error, warning sama dengan baseline | **Sebagian** | Build pemilik berhasil — DLL 23 September 2026 10.23 memuat literal penjaga `Down()`. **Jumlah warning tidak dilaporkan**, jadi kesamaannya dengan baseline tidak dapat dinyatakan |
 
-**DoD.** Acceptance 1–10 belum terbukti penuh; laporan tracked ada (berkas ini). `BE-IGD-053`, `057`, `058`
-**belum** boleh dianggap terbuka sampai migration diterapkan dan build berhasil — ketiganya memakai kolom dan
-method dari task ini.
+**DoD.** Kriteria 1–9 terpenuhi; kriteria 10 terpenuhi sebagian (0 error dari artefak; jumlah warning tidak
+dilaporkan pemilik). Laporan tracked ada (berkas ini). `BE-IGD-053`, `057`, dan `058` kini **boleh dimulai** —
+kolom dan method yang mereka pakai sudah ada di source dan sudah diterapkan ke basis data dev.
 
 ---
 
@@ -340,26 +353,22 @@ method dari task ini.
 
 | Hal | Isi |
 | --- | --- |
-| Peringatan | **Model sudah memuat tiga kolom baru.** Sampai migration diterapkan, setiap kueri ke `EmgVisit` (daftar kunjungan, triage, penugasan dokter, dst.) akan gagal "column does not exist" pada basis data yang belum dimigrasi. Jangan menjalankan aplikasi hasil build ini terhadap basis data mana pun sebelum `database update` |
+| Peringatan | Pada basis data yang **belum** menerima migration `20260923021224`, setiap kueri ke `EmgVisit` gagal "column does not exist". Dev pemilik sudah diterapkan 23 September 2026; lingkungan lain wajib menyusul sebelum rilis. Catatan teknis dari uji `Down()`: menerapkan seluruh rantai (238 migration) dalam satu transaksi menembus `max_locks_per_transaction` bawaan PostgreSQL (64) — basis data uji perlu dinaikkan ke `4096`. Ini batas perkakas uji, bukan cacat migration |
 | Masalah yang diketahui | (1) Jalur lama `POST /emergency-visits` belum mengambil kunci per pasien — tabrakannya dengan `start-triage` hanya dijaga unique index + pengulangan sekali; ditutup `BE-IGD-053`. (2) `PUT /emergency-visits/{id}` masih dapat mengubah `ArrivalDateTime` tanpa mengubah sumbernya — ditutup `BE-IGD-058`. (3) Respons `PUT`/`PATCH` lama menampilkan `arrivalConfirmedByName` `null` karena navigasinya tidak dimuat di jalur itu; `GET` menampilkannya benar. (4) `IGD-OQ-108`: encounter kedua hasil override belum dapat `start-triage` selama kunjungan lama berjalan (disengaja, klausa B) |
 | Risiko tersisa | `HasDefaultValue(Unverified)` bernilai sama dengan bawaan CLR (`0`): EF tidak mengirim kolom itu saat nilainya `Unverified` dan basis data mengisi `0` — hasilnya identik. Keterbatasan izin bersama `IGD-DEC-158` tetap ada. Layar belum memakai endpoint ini (`FE-IGD-036`) |
-| Temuan di luar scope | **Kunci DataProtection sudah terdorong ke remote.** `origin/rizkiG` = `48a78703`: commit `69953e98` memuat `DataProtectionKeys/key-6f6691ec-….xml`, dan `48a78703` menamainya ulang menjadi `key-2c83ad0f-….xml` (kunci baru hasil app). `key-d92e412f-….xml` juga masih ter-track. Karena sudah di-push, `git commit --amend` tidak lagi cukup — perlu keputusan pemilik (misalnya mencabut kunci dari tracking + `.gitignore`, dan menganggap kunci yang terdorong bocor). Agent tidak menyentuh git maupun berkas kunci. Selain itu `MODULE-STATUS.md` (artefak akar) **tidak** diperbarui — di luar wewenang build skill; angka progres di sana perlu diselaraskan lewat `manage-module-blueprint` |
+| Temuan di luar scope | **Kunci DataProtection.** Folder `DataProtectionKeys/` ditulis aplikasi ke dalam repo (`appsettings.json` → `"KeysPath": "DataProtectionKeys"`, jalur relatif) dan ter-track, sehingga kunci milik siapa pun yang menjalankan backend ikut ter-commit. Ditemukan tiga: `key-d92e412f` (andryzainhome, Juni), `key-2c83ad0f` (aplikasi pemilik, 22 September), dan `key-fa1816aa` (Rivenjxv, menyeberang lewat merge integration). **Ditangani pemilik 23 September 2026**: pola `DataProtectionKeys/key-*.xml` ditambahkan ke `.gitignore` dan `key-2c83ad0f` dikeluarkan dari pelacakan; dua kunci milik rekan sengaja dibiarkan apa adanya. **Tetap terbuka dan milik lead:** kunci yang sudah terlanjur ter-push harus dianggap bocor (berdampak pada token reset password/konfirmasi email Identity dan antiforgery; JWT login memakai kunci `Jwt` terpisah), dan folder kunci pada deployment perlu dipastikan persisten. Selain itu `MODULE-STATUS.md` (artefak akar) **tidak** diperbarui — di luar wewenang build skill; angka progres di sana perlu diselaraskan lewat `manage-module-blueprint` |
 | Perubahan sampingan | `NONE` |
 | Interupsi | Pesan pemilik di tengah task: "jangan ada baris line comment" — diterapkan pada seluruh kode baru (nol `//` dan `///`); dicatat sebagai preferensi tetap |
 | Status Git | Lihat blok di bawah |
-| Langkah berikutnya | (1) Pemilik: build 5.1 → migration 5.2 → uji 5.3, lalu kabari hasilnya untuk penandaan ulang. (2) Sesudah migration diterapkan: `BE-IGD-052` (migration berikutnya dibuat di atas milik task ini), lalu `BE-IGD-054` (tanpa migration). (3) `BE-IGD-053`, `057`, `058` sesudah task ini ✅ |
+| Langkah berikutnya | (1) `BE-IGD-052` — rekonsiliasi; migration `AddEmergencyEncounterReconciliation` dibuat **di atas** `20260923021224`. Acceptance 1-nya masih menunggu angka kueri D. (2) `BE-IGD-054` — daftar terpadu, tanpa migration. (3) `BE-IGD-053`, `057`, `058` sudah terbuka. (4) Di luar task: keputusan lead atas kunci DataProtection yang terlanjur ter-push, dan penyelarasan angka progres `MODULE-STATUS.md` |
+
+Source, migration, dan snapshot task ini **sudah di-commit dan di-push pemilik** sebagai `3bd999ef` (source) dan
+`dce1f138` (migration + snapshot + `.gitignore` + pengeluaran `key-2c83ad0f`), di antaranya merge
+`62c8360a` dari `QuilvianIntegrationBackend`. Yang masih terbuka di working tree pada saat laporan ini ditulis:
 
 ```text
- M Areas/HealthServices/EmergencyInstallationManagement/Controllers/EmergencyVisitController.cs
- M Areas/HealthServices/EmergencyInstallationManagement/DTOs/EmergencyVisitDtos.cs
- M Areas/HealthServices/EmergencyInstallationManagement/Models/EmgVisit.cs
- M Areas/HealthServices/EmergencyInstallationManagement/Services/EmergencyEpisodeRule.cs
- M Areas/HealthServices/EmergencyInstallationManagement/Services/EmergencyVisitService.cs
- M Repositories/Configurations/HealthServices/EmergencyInstallationManagement/EmgVisitConfiguration.cs
- M docs/module-blueprints/igd/roadmap/backend-roadmap.md
- M docs/module-blueprints/igd/roadmap/requirement-traceability.md
- M docs/module-blueprints/igd/task/report/backend/BE-IGD-051.md        (sebelum task; tidak disentuh)
-?? Areas/HealthServices/EmergencyInstallationManagement/Enums/EmergencyArrivalTimeSource.cs
-?? Areas/HealthServices/EmergencyInstallationManagement/Enums/EmergencyVisitStartMode.cs
-?? docs/module-blueprints/igd/task/report/backend/BE-IGD-055.md
+ M Migrations/20260923021224_AddEmergencyArrivalTimeSource.cs        (penjaga Down() disisipkan agent, belum di-commit)
+ M docs/module-blueprints/igd/roadmap/backend-roadmap.md             (penandaan status)
+ M docs/module-blueprints/igd/roadmap/requirement-traceability.md    (penandaan status)
+ M docs/module-blueprints/igd/task/report/backend/BE-IGD-055.md      (laporan ini)
 ```

@@ -931,6 +931,8 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<EmgDeparture> EmgDepartures { get; set; }
         public DbSet<EmgDepartureEvent> EmgDepartureEvents { get; set; }
         public DbSet<EmgHandoverOrderItem> EmgHandoverOrderItems { get; set; }
+        public DbSet<EmgEncounterReconciliationRun> EmgEncounterReconciliationRuns { get; set; }
+        public DbSet<EmgEncounterReconciliationItem> EmgEncounterReconciliationItems { get; set; }
         #endregion
 
         #endregion

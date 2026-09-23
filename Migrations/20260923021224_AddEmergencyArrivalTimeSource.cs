@@ -52,6 +52,15 @@ namespace QuilvianSystemBackend.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.Sql("""
+                DO $$
+                BEGIN
+                    IF EXISTS (SELECT 1 FROM public."EmgVisit" WHERE "ArrivalTimeSource" <> 0) THEN
+                        RAISE EXCEPTION 'Down BE-IGD-055 dihentikan: ada kunjungan IGD dengan sumber waktu tiba Fallback atau Confirmed (ArrivalTimeSource <> 0). Menghapus kolom ini menghilangkan konfirmasi perawat beserta pelaku dan waktunya tanpa jejak.';
+                    END IF;
+                END $$;
+                """);
+
             migrationBuilder.DropForeignKey(
                 name: "FK_EmgVisit_AspNetUsers_ArrivalConfirmedByUserId",
                 schema: "public",
