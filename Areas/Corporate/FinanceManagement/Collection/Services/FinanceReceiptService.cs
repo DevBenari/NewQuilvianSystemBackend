@@ -3,10 +3,12 @@ using Microsoft.EntityFrameworkCore.Storage;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.BillingIntake.Services;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Dtos;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
 using QuilvianSystemBackend.Repositories;
+using QuilvianSystemBackend.Responses;
 using System.Data;
 
 namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Services;
@@ -139,32 +141,72 @@ public sealed class FinanceReceiptService
     }
 
     // FR-FIN-034 area (evidence/02-permintaan-kontrak-untuk-owner-billing.md §2.5): tender yang
-    // dibalik seharusnya menerbitkan BARIS BARU, bukan pembaruan baris lama. TIDAK DIIMPLEMENTASIKAN
-    // pada task ini — ditemukan konflik nyata pada dua constraint terkunci data-dictionary.md §9.2
-    // yang keduanya tidak boleh dilanggar:
-    //   1. IX_FinReceipt_SourceTenderId — unik pada SourceTenderId (WHERE IS NOT NULL AND
-    //      IsDelete=false), TANPA syarat TenderStatus. Baris asli (SUCCEEDED) sudah memegang
-    //      slot itu untuk TenderId yang sama.
-    //   2. CK_FinReceipt_TenderRequired — SourceType='BILLING_TENDER' MEWAJIBKAN SourceTenderId
-    //      terisi (tidak boleh null).
-    // Baris pembalik berasal dari tender yang sama (SourceType tetap BILLING_TENDER secara
-    // semantik) sehingga wajib mengisi SourceTenderId (aturan 2) — tetapi TenderId itu sudah
-    // dipakai baris asli yang TIDAK dihapus (aturan 1). Kedua aturan bersama-sama membuat baris
-    // kedua untuk tender yang sama TIDAK MUNGKIN dibuat tanpa melanggar salah satunya. Ini
-    // kesenjangan pada DDL terkunci, bukan sesuatu yang boleh diputuskan sepihak di sini (mis.
-    // mengosongkan SourceTenderId melanggar aturan 2; menghapus baris asli bertentangan dengan
-    // "baris lama tetap utuh" yang dituntut evidence/02-permintaan-kontrak-untuk-owner-billing.md
-    // §2.5). Ditahan sebagai ERROR yang terlihat sampai ada keputusan pemilik repository — lihat
-    // laporan task BE-FIN-016 bagian 1.5.
-    // InvalidOperationException (bukan BillingIntakeValidationException) supaya kegagalan ini
-    // tersimpan dan terlihat sebagai baris ERROR (FR-FIN-011) lewat MarkErrorAsync di
-    // FinanceBillingIntakeService.ProcessAsync, bukan hanya 400 sesaat yang hilang tanpa jejak.
-    private static Task<FinReceipt> CreateReversalReceiptAsync(BilCollectionHandoff handoff, Guid actorUserId, CancellationToken cancellationToken) =>
-        throw new InvalidOperationException(
-            $"Pembalikan penerimaan untuk tender {handoff.TenderId:N} belum dapat diproses: " +
-            "IX_FinReceipt_SourceTenderId (unik) dan CK_FinReceipt_TenderRequired bersama-sama " +
-            "tidak mengizinkan baris kedua untuk tender yang sama tanpa mengubah skema terkunci. " +
-            "Menunggu keputusan pemilik repository (lihat laporan BE-FIN-016 bagian 1.5).");
+    // dibalik menerbitkan BARIS BARU (Status = REVERSED), baris asli TIDAK PERNAH diubah/dihapus
+    // ("riwayatnya hilang di kedua sisi" bila diubah). Diperbaiki 23 September 2026 — versi
+    // sebelumnya memblokir jalur ini karena CK_FinReceipt_TenderRequired belum mengizinkan
+    // SourceTenderId kosong pada baris pembalik (lihat FinReceiptConfiguration.cs, dan laporan
+    // BE-FIN-016 bagian 1.5 untuk riwayat lengkap konflik constraint-nya). Baris pembalik
+    // mengosongkan SourceTenderId dan menunjuk baris asli lewat ReversalOfReceiptId — persis
+    // seperti sudah didokumentasikan FinReceipt.cs sejak awal — supaya identitas idempotensi
+    // tender asli (IX_FinReceipt_SourceTenderId) tidak pernah dipakai ulang.
+    private async Task<FinReceipt> CreateReversalReceiptAsync(BilCollectionHandoff handoff, Guid actorUserId, CancellationToken cancellationToken)
+    {
+        var original = await _dbContext.FinReceipts
+            .SingleOrDefaultAsync(x => !x.IsDelete && x.SourceTenderId == handoff.TenderId && x.Status != FinReceiptStatuses.Reversed, cancellationToken)
+            ?? throw new InvalidOperationException(
+                $"Penerimaan asli untuk tender {handoff.TenderId:N} tidak ditemukan — pembalikan tidak dapat diproses sebelum penerimaannya sendiri tercatat.");
+
+        // Idempotensi: satu penerimaan asli hanya boleh dibalik sekali (baris ERROR tersimpan bila
+        // fakta pembalikan yang sama disinkron ulang, bukan membuat baris pembalik kedua).
+        if (await _dbContext.FinReceipts.AnyAsync(x => !x.IsDelete && x.ReversalOfReceiptId == original.Id, cancellationToken))
+            throw new InvalidOperationException("Penerimaan ini sudah pernah dibalik.");
+
+        var reversal = new FinReceipt
+        {
+            ReceiptNumber = GenerateReceiptNumber(),
+            SourceType = FinReceiptSourceTypes.BillingTender,
+            SourceTenderId = null,
+            ReversalOfReceiptId = original.Id,
+            SourceCollectionHandoffId = handoff.Id,
+            SettlementId = handoff.SettlementId,
+            InvoiceId = handoff.InvoiceId,
+            PaymentMethodId = handoff.PaymentMethodId,
+            PaymentMethodAccountId = handoff.PaymentMethodAccountId,
+            Amount = handoff.Amount,
+            AllocatedAmount = 0m,
+            UnallocatedAmount = handoff.Amount,
+            KwitansiNumber = handoff.KwitansiNumber,
+            CashierShiftId = handoff.CashierShiftId,
+            ProviderReference = handoff.ProviderReference,
+            ProviderEventId = handoff.ProviderEventId,
+            OccurredAt = handoff.OccurredAt,
+            SourceInvoiceStatus = handoff.SourceInvoiceStatus,
+            Status = FinReceiptStatuses.Reversed,
+            CorrelationId = handoff.CorrelationId,
+            CausationId = handoff.CausationId,
+            CreateDateTime = DateTime.UtcNow,
+            CreateBy = actorUserId
+        };
+        _dbContext.Set<FinReceipt>().Add(reversal);
+
+        // Kejadian pembalikan mengikuti kebijakan pra-finalisasi yang sama dengan penerimaan asli
+        // (FR-FIN-034) — bila tagihan sumber belum final saat pembalikan terjadi, kejadian ditahan.
+        var requiresFinalization = string.Equals(handoff.SourceInvoiceStatus, BillingInvoiceStatuses.Open, StringComparison.OrdinalIgnoreCase);
+        await _accountingOutboxService.StageEventAsync(new AccountingOutboxEventRequest
+        {
+            EventTypeCode = FinAccountingEventTypeCodes.PembalikanPenerimaanKasir,
+            SourceTransactionId = reversal.ReceiptNumber,
+            EventOccurredAt = handoff.OccurredAt,
+            AccountingDate = DateOnly.FromDateTime(handoff.OccurredAt.UtcDateTime),
+            Amount = reversal.Amount,
+            CorrelationId = reversal.CorrelationId,
+            CausationId = reversal.CausationId,
+            RequiresFinalization = requiresFinalization,
+            ActorUserId = actorUserId
+        }, cancellationToken);
+
+        return reversal;
+    }
 
     // ------------------------------------------------------------------------------------
     // Pembuktian tidak dobel-hitung (BE-FIN-017, FR-FIN-035) — baca saja, nol tulisan.
@@ -210,6 +252,91 @@ public sealed class FinanceReceiptService
     {
         var candidate = $"RCP-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid():N}";
         return candidate.Length <= 50 ? candidate : candidate[..50];
+    }
+
+    // ------------------------------------------------------------------------------------
+    // Pembacaan (BE-FIN-018) — nol tulisan. Belum mencakup daftar berpaging/register/rekonsiliasi
+    // shift dari FIN-PERM-1.0 (permission-audit-matrix.md baris 77-78) — service-nya belum ada,
+    // di luar cakupan literal roadmap task ini ("Alokasi, koreksi, penghapusan"). Dicatat sebagai
+    // gap terbuka, bukan diam-diam dilewatkan; lihat laporan task BE-FIN-018 pembaruan 23 September 2026.
+    // ------------------------------------------------------------------------------------
+
+    public async Task<FinReceipt> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
+        await _dbContext.FinReceipts.AsNoTracking()
+            .Include(x => x.Allocations)
+            .SingleOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Penerimaan tidak ditemukan.");
+
+    public async Task<PagedResult<FinReceiptResponse>> GetPagedAsync(FinReceiptQuery request, CancellationToken cancellationToken)
+    {
+        var query = _dbContext.FinReceipts.AsNoTracking().Where(x => !x.IsDelete);
+
+        if (!string.IsNullOrWhiteSpace(request.Status))
+            query = query.Where(x => x.Status == request.Status);
+
+        if (!string.IsNullOrWhiteSpace(request.SourceType))
+            query = query.Where(x => x.SourceType == request.SourceType);
+
+        if (request.PaymentMethodId.HasValue)
+            query = query.Where(x => x.PaymentMethodId == request.PaymentMethodId.Value);
+
+        if (request.StartDate.HasValue)
+            query = query.Where(x => x.OccurredAt >= request.StartDate.Value);
+
+        if (request.EndDate.HasValue)
+            query = query.Where(x => x.OccurredAt <= request.EndDate.Value);
+
+        if (!string.IsNullOrWhiteSpace(request.Search))
+        {
+            var search = request.Search.Trim().ToUpper();
+            query = query.Where(x =>
+                x.ReceiptNumber.ToUpper().Contains(search) ||
+                (x.KwitansiNumber != null && x.KwitansiNumber.ToUpper().Contains(search)));
+        }
+
+        var descending = !string.Equals(request.SortDirection, "asc", StringComparison.OrdinalIgnoreCase);
+        query = request.SortBy.Trim().ToLowerInvariant() switch
+        {
+            "receiptnumber" => descending ? query.OrderByDescending(x => x.ReceiptNumber) : query.OrderBy(x => x.ReceiptNumber),
+            "amount" => descending ? query.OrderByDescending(x => x.Amount) : query.OrderBy(x => x.Amount),
+            "status" => descending ? query.OrderByDescending(x => x.Status) : query.OrderBy(x => x.Status),
+            "unallocatedamount" => descending ? query.OrderByDescending(x => x.UnallocatedAmount) : query.OrderBy(x => x.UnallocatedAmount),
+            _ => descending ? query.OrderByDescending(x => x.OccurredAt) : query.OrderBy(x => x.OccurredAt)
+        };
+
+        var pageNumber = Math.Max(1, request.PageNumber);
+        var pageSize = Math.Clamp(request.PageSize, 1, 100);
+
+        var total = await query.CountAsync(cancellationToken);
+        var items = await query
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .Select(x => new FinReceiptResponse
+            {
+                Id = x.Id,
+                ReceiptNumber = x.ReceiptNumber,
+                SourceType = x.SourceType,
+                SourceTenderId = x.SourceTenderId,
+                InvoiceId = x.InvoiceId,
+                PaymentMethodId = x.PaymentMethodId,
+                CashierShiftId = x.CashierShiftId,
+                Amount = x.Amount,
+                AllocatedAmount = x.AllocatedAmount,
+                UnallocatedAmount = x.UnallocatedAmount,
+                OccurredAt = x.OccurredAt,
+                Status = x.Status,
+                ReversalOfReceiptId = x.ReversalOfReceiptId,
+                RowVersion = x.RowVersion
+            })
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<FinReceiptResponse>
+        {
+            Items = items,
+            TotalCount = total,
+            PageNumber = pageNumber,
+            PageSize = pageSize
+        };
     }
 
     // ------------------------------------------------------------------------------------

@@ -28,30 +28,33 @@ public sealed class BankAccountService
     public async Task<PagedResult<BankAccountResponse>> GetPagedAsync(BankAccountQuery request, CancellationToken cancellationToken)
     {
         var query = BaseQuery();
-        if (request.BankId.HasValue) query = query.Where(x => x.Entity.BankId == request.BankId.Value);
-        if (!string.IsNullOrWhiteSpace(request.AccountType)) query = query.Where(x => x.Entity.AccountType == request.AccountType);
-        if (request.IsActive.HasValue) query = query.Where(x => x.Entity.IsActive == request.IsActive.Value);
+        if (request.BankId.HasValue) query = query.Where(x => x.BankId == request.BankId.Value);
+        if (!string.IsNullOrWhiteSpace(request.AccountType)) query = query.Where(x => x.AccountType == request.AccountType);
+        if (request.IsActive.HasValue) query = query.Where(x => x.IsActive == request.IsActive.Value);
         if (!string.IsNullOrWhiteSpace(request.Search))
         {
             var search = request.Search.Trim().ToUpper();
-            query = query.Where(x => x.Entity.AccountName.ToUpper().Contains(search)
-                || x.Entity.AccountNumber.ToUpper().Contains(search)
-                || x.Bank.BankName.ToUpper().Contains(search));
+            query = query.Where(x => x.AccountName.ToUpper().Contains(search)
+                || x.AccountNumber.ToUpper().Contains(search)
+                || (x.Bank != null && x.Bank.BankName.ToUpper().Contains(search)));
         }
 
         var descending = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
         query = request.SortBy.Trim().ToLowerInvariant() switch
         {
-            "accountnumber" => descending ? query.OrderByDescending(x => x.Entity.AccountNumber) : query.OrderBy(x => x.Entity.AccountNumber),
-            "bankname" => descending ? query.OrderByDescending(x => x.Bank.BankName) : query.OrderBy(x => x.Bank.BankName),
-            "isactive" => descending ? query.OrderByDescending(x => x.Entity.IsActive) : query.OrderBy(x => x.Entity.IsActive),
-            _ => descending ? query.OrderByDescending(x => x.Entity.AccountName) : query.OrderBy(x => x.Entity.AccountName)
+            "accountnumber" => descending ? query.OrderByDescending(x => x.AccountNumber) : query.OrderBy(x => x.AccountNumber),
+            "bankname" => descending ? query.OrderByDescending(x => x.Bank!.BankName) : query.OrderBy(x => x.Bank!.BankName),
+            "isactive" => descending ? query.OrderByDescending(x => x.IsActive) : query.OrderBy(x => x.IsActive),
+            _ => descending ? query.OrderByDescending(x => x.AccountName) : query.OrderBy(x => x.AccountName)
         };
 
         var total = await query.CountAsync(cancellationToken);
-        var items = await query
+        var entities = await query
             .Skip((request.PageNumber - 1) * request.PageSize).Take(request.PageSize)
-            .Select(x => Map(x.Entity, x.Bank)).ToListAsync(cancellationToken);
+            .ToListAsync(cancellationToken);
+
+        var items = entities.Select(x => Map(x, x.Bank)).ToList();
+
         return new PagedResult<BankAccountResponse>
         {
             PageNumber = request.PageNumber, PageSize = request.PageSize, TotalData = total,
@@ -61,27 +64,29 @@ public sealed class BankAccountService
 
     public async Task<BankAccountResponse> GetByIdAsync(Guid id, CancellationToken cancellationToken)
     {
-        var (entity, bank) = await FindAsync(id, cancellationToken);
-        return Map(entity, bank);
+        var entity = await BaseQuery().FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (entity is null) throw new KeyNotFoundException("Rekening bank tidak ditemukan.");
+        return Map(entity, entity.Bank);
     }
 
     public async Task<List<BankAccountOptionResponse>> GetOptionsAsync(bool onlyActive, string? accountType, CancellationToken cancellationToken)
     {
         var query = BaseQuery();
-        if (onlyActive) query = query.Where(x => x.Entity.IsActive);
-        if (!string.IsNullOrWhiteSpace(accountType)) query = query.Where(x => x.Entity.AccountType == accountType);
+        if (onlyActive) query = query.Where(x => x.IsActive);
+        if (!string.IsNullOrWhiteSpace(accountType)) query = query.Where(x => x.AccountType == accountType);
 
-        return await query
-            .OrderBy(x => x.Bank.BankName).ThenBy(x => x.Entity.AccountName)
-            .Select(x => new BankAccountOptionResponse
-            {
-                Id = x.Entity.Id,
-                BankName = x.Bank.BankName,
-                AccountNumber = x.Entity.AccountNumber,
-                AccountName = x.Entity.AccountName,
-                AccountType = x.Entity.AccountType
-            })
+        var entities = await query
+            .OrderBy(x => x.Bank!.BankName).ThenBy(x => x.AccountName)
             .ToListAsync(cancellationToken);
+
+        return entities.Select(x => new BankAccountOptionResponse
+        {
+            Id = x.Id,
+            BankName = x.Bank?.BankName ?? string.Empty,
+            AccountNumber = x.AccountNumber,
+            AccountName = x.AccountName,
+            AccountType = x.AccountType
+        }).ToList();
     }
 
     public async Task<BankAccountSummaryResponse> GetSummaryAsync(CancellationToken cancellationToken)
@@ -126,7 +131,7 @@ public sealed class BankAccountService
 
     public async Task<BankAccountResponse> UpdateAsync(Guid id, UpdateBankAccountRequest request, Guid actorUserId, CancellationToken cancellationToken)
     {
-        var (entity, _) = await FindAsync(id, cancellationToken);
+        var entity = await FindTrackedAsync(id, cancellationToken);
         var values = await ValidateAsync(request, id, cancellationToken);
         entity.BankId = values.BankId;
         entity.AccountNumber = values.AccountNumber;
@@ -143,18 +148,18 @@ public sealed class BankAccountService
 
     public async Task<BankAccountResponse> UpdateStatusAsync(Guid id, UpdateBankAccountStatusRequest request, Guid actorUserId, CancellationToken cancellationToken)
     {
-        var (entity, bank) = await FindAsync(id, cancellationToken);
+        var entity = await FindTrackedAsync(id, cancellationToken);
         entity.IsActive = request.IsActive;
         entity.UpdateDateTime = DateTime.UtcNow;
         entity.UpdateBy = actorUserId;
         await _dbContext.SaveChangesAsync(cancellationToken);
         await AuditAsync(request.IsActive ? "BankAccount.Activate" : "BankAccount.Deactivate", entity, actorUserId);
-        return Map(entity, bank);
+        return Map(entity, entity.Bank);
     }
 
     public async Task<BankAccountDeleteResponse> DeleteAsync(Guid id, Guid actorUserId, CancellationToken cancellationToken)
     {
-        var (entity, _) = await FindAsync(id, cancellationToken);
+        var entity = await FindTrackedAsync(id, cancellationToken);
         entity.IsDelete = true;
         entity.DeleteDateTime = DateTime.UtcNow;
         entity.DeleteBy = actorUserId;
@@ -170,11 +175,11 @@ public sealed class BankAccountService
         };
     }
 
-    private IQueryable<(MstBankAccount Entity, MstBank Bank)> BaseQuery() =>
-        from entity in _dbContext.MstBankAccounts.AsNoTracking()
-        join bank in _dbContext.MstBanks.AsNoTracking() on entity.BankId equals bank.Id
-        where !entity.IsDelete
-        select new ValueTuple<MstBankAccount, MstBank>(entity, bank);
+    private IQueryable<MstBankAccount> BaseQuery() =>
+        _dbContext.MstBankAccounts
+            .Include(x => x.Bank)
+            .AsNoTracking()
+            .Where(x => !x.IsDelete);
 
     private async Task<(Guid BankId, string AccountNumber, string AccountName, string AccountType, string CurrencyCode, MstBank Bank)> ValidateAsync(
         CreateBankAccountRequest request, Guid? excludedId, CancellationToken cancellationToken)
@@ -200,11 +205,13 @@ public sealed class BankAccountService
         return (request.BankId, accountNumber, accountName, accountType, currencyCode, bank);
     }
 
-    private async Task<(MstBankAccount Entity, MstBank Bank)> FindAsync(Guid id, CancellationToken cancellationToken)
+    private async Task<MstBankAccount> FindTrackedAsync(Guid id, CancellationToken cancellationToken)
     {
-        var result = await BaseQuery().FirstOrDefaultAsync(x => x.Entity.Id == id, cancellationToken);
-        if (result.Entity is null) throw new KeyNotFoundException("Rekening bank tidak ditemukan.");
-        return result;
+        var entity = await _dbContext.MstBankAccounts
+            .Include(x => x.Bank)
+            .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+        if (entity is null) throw new KeyNotFoundException("Rekening bank tidak ditemukan.");
+        return entity;
     }
 
     // Sensitif: AccountNumber MUST NOT masuk custom logger (data-dictionary.md §Sensitif).
@@ -224,12 +231,12 @@ public sealed class BankAccountService
         return value.Trim();
     }
 
-    private static BankAccountResponse Map(MstBankAccount entity, MstBank bank) => new()
+    private static BankAccountResponse Map(MstBankAccount entity, MstBank? bank) => new()
     {
         Id = entity.Id,
         BankId = entity.BankId,
-        BankCode = bank.BankCode,
-        BankName = bank.BankName,
+        BankCode = bank?.BankCode ?? string.Empty,
+        BankName = bank?.BankName ?? string.Empty,
         AccountNumber = entity.AccountNumber,
         AccountName = entity.AccountName,
         AccountType = entity.AccountType,

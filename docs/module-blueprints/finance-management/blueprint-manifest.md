@@ -37,10 +37,12 @@ shape_evidence: >
   integrasi ke Accounting — memecahnya akan menduplikasi ketiganya. Mengikuti preseden
   billing-kasir (BIL-CASH-001) yang juga SINGLE dengan empat rumpun.
 created_at: 2026-09-20T00:00:00+07:00
-updated_at: 2026-09-20T00:00:00+07:00
+updated_at: 2026-09-23T00:00:00+07:00
 last_owner_action: >
-  20 September 2026 — approval FIN-DES-025..028, penguncian tujuh kontrak turunan ke 1.0, dan
-  penegasan kepemilikan modul oleh Yasmin.
+  23 September 2026 — UI brief frontend FE-FIN-* dijawab lengkap (FIN-DEC-024..029, /grill-me
+  Amendment pass), menutup roadmap_status ACTIVE_BLOCKED_ON_UI_BRIEF di 02-frontend-roadmap.md.
+  Sebelumnya, 20 September 2026 — approval FIN-DES-025..028, penguncian tujuh kontrak turunan
+  ke 1.0, dan penegasan kepemilikan modul oleh Yasmin.
 owners:
   product_domain: >
     Yasmin — Product/Domain Owner modul Finance Management (AR/AP). Yasmin juga owner modul
@@ -49,7 +51,11 @@ owners:
     pernah menulis ke tabel Medical Fee, sebagaimana FIN-DES-025 menetapkannya.
   api: Backend/API Owner
   security: Security Owner
-  frontend_authority: Product Owner — belum ada UI brief yang disetujui, lihat 03-frontend-architecture.md
+  frontend_authority: >
+    Product Owner (Yasmin) — UI brief closed 23 September 2026 lewat /grill-me, tercatat
+    FIN-DEC-024..029 di 00-interview-decisions.md bagian Frontend Decision Authority. Lihat
+    juga 02-frontend-roadmap.md bagian 5 dan 03-frontend-architecture.md untuk kontrak
+    fungsional yang tidak berubah oleh amendment ini.
   cross_module_billing: Billing Owner (FIN-DEC-005, FIN-DEC-006 menunggu konfirmasi)
   cross_module_accounting: Rizki (owner Accounting)
   cross_module_hr: HR Owner (FIN-DEC-016 menunggu konfirmasi)

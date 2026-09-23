@@ -113,6 +113,19 @@ public sealed class FinanceSupplierPayableService
     }
 
     // ------------------------------------------------------------------------------------
+    // Pembacaan (BE-FIN-019, pembaruan 23 September 2026) — nol tulisan. Belum mencakup daftar
+    // berpaging/umur utang dari FIN-PERM-1.0 (permission-audit-matrix.md baris 88, 90) — service-nya
+    // belum ada, di luar cakupan literal roadmap task ini. Dicatat sebagai gap terbuka.
+    // ------------------------------------------------------------------------------------
+
+    public async Task<FinSupplierPayable> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
+        await _dbContext.FinSupplierPayables.AsNoTracking()
+            .Include(x => x.Items)
+            .Include(x => x.Adjustments)
+            .SingleOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Utang supplier tidak ditemukan.");
+
+    // ------------------------------------------------------------------------------------
     // Koreksi (FinPayableAdjustment) — FIN-DES-014, FIN-DES-016. PayableType SELALU SUPPLIER
     // dari service ini (lihat ringkasan kelas).
     // ------------------------------------------------------------------------------------

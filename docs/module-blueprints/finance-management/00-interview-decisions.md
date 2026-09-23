@@ -4,8 +4,8 @@
 |---|---|
 | Blueprint ID | `FIN-BP-001` |
 | Revision | `1` |
-| Status | `approved` untuk 23 keputusan (`FIN-DEC-001`..`023`) — seluruh blocker Phase 0 dan aturan inti AR/AP/Cash Management tertutup. Dua item non-blocking tetap `open`: `FIN-OQ-010` (ambang nominal AP) dan `FIN-OQ-011` (konfirmasi Accounting atas draf field subledger). Lihat `FIN-CQ-02` untuk satu closure question yang didelegasikan ke `/design-business-module`. |
-| Pass | `Scope pass` — selesai 20 September 2026 · `Closure pass` — selesai 20 September 2026 |
+| Status | `approved` untuk 29 keputusan (`FIN-DEC-001`..`029`) — seluruh blocker Phase 0, aturan inti AR/AP/Cash Management, dan UI brief frontend `FE-FIN-*` (`FIN-DEC-024`..`029`, Amendment pass 23 September 2026) tertutup. Tiga item non-blocking tetap `open`: `FIN-OQ-010` (ambang nominal AP), `FIN-OQ-011` (konfirmasi Accounting atas draf field subledger), `FIN-OQ-015` (lingkup detail cetak/unduh Finance — tidak memblokir, ditunda dari MVP). Lihat `FIN-CQ-02` untuk satu closure question yang didelegasikan ke `/design-business-module`. |
+| Pass | `Scope pass` — selesai 20 September 2026 · `Closure pass` — selesai 20 September 2026 · `Amendment pass` (UI brief `FE-FIN-*`) — selesai 23 September 2026 |
 | Product/domain owner | Yasmin (owner/penggarap modul Finance AR/AP, sesuai `docs/module-blueprints/accounting/evidence/12-paket-kontrak-kejadian-untuk-finance.md`) |
 | Backend SHA | `09101d05` (branch `Yasmina`, `NewQuilvianSystemBackend`) |
 | Frontend SHA | `abed49b03` (branch, `QuilvianSystemFrontendDev`) |
@@ -120,8 +120,19 @@ AR, AP, dan Cash Management secara rinci ada di `FIN-OQ-004`.
 
 ## Frontend Decision Authority
 
-Belum digali pada pass ini — menunggu klaster AR/AP/Cash Management dan
-`/design-business-module`.
+Ditutup pada Amendment pass 23 September 2026, menjawab enam keputusan yang diwajibkan
+`docs/module-blueprints/finance-management/roadmap/02-frontend-roadmap.md` bagian 5 sebelum
+task `FE-FIN-*` mana pun boleh dimulai. Owner menjawab sebagai Product Owner Finance (Yasmin)
+pada sesi wawancara ini — lihat `FIN-DEC-024`..`029` untuk detail dan bukti tiap keputusan.
+
+| Decision ID | Area | Owner | Status | Allowed range | Evidence |
+|---|---|---|---|---|---|
+| `FIN-DEC-024` | Struktur rute `/finance/...` | Yasmin (Product Owner Finance) | `approved` | Master data baru mengikuti `/finance/master-data/<entity>` (mis. `bank-account`, `currency`); kapabilitas lain masing-masing slug flat langsung di bawah `/finance/` (mis. `/finance/receivable`, `/finance/cash-management`, `/finance/monitoring`) | Pola existing `/finance/master-data/petty-cash-category` dan `/finance/petty-cash-budget`, `QuilvianSystemFrontendDev` |
+| `FIN-DEC-025` | Penamaan & pengelompokan menu `corporateFinance` | Yasmin (Product Owner Finance) | `approved` | Master data baru ("Rekening Bank", "Mata Uang & Kurs") masuk submenu Master Data yang sudah ada; kapabilitas lain jadi butir flat sejajar Anggaran Petty Cash ("Piutang", "Setoran & Kas Harian", "Pemantauan Finance"). Penerimaan (`FE-FIN-004`) belum ditambahkan — masih `BLOCKED`. Urutan butir di dalam group tetap `DEV_DISCRETION` (roadmap bagian 6) | `src/utils/menu-sidebar/menu-items.jsx` baris 664-687, `QuilvianSystemFrontendDev` |
+| `FIN-DEC-026` | Bentuk penyajian umur piutang (`FE-FIN-002`) | Yasmin (Product Owner Finance) | `approved` | Summary card berisi 4 angka kelompok umur (0-30, 31-60, 61-90, >90 hari — dikunci `FIN-DEC-010`) di atas satu tabel daftar piutang; klik baris untuk menelusuri ke tagihan asal. Bukan empat tab terpisah | Pola summary card + table pada halaman Petty Cash Budget/Category |
+| `FIN-DEC-027` | Layout rekonsiliasi shift kasir (bagian `FE-FIN-004`, saat ini `BLOCKED` menunggu Owner Billing — hanya tata letaknya yang diputuskan di sini) | Yasmin (Product Owner Finance) | `approved` | Halaman penuh terpisah, bukan tab di dalam halaman Penerimaan | Preseden `/finance/petty-cash-budget` dan `FE-FIN-003` (Setoran Bank & Kas Harian) sebagai halaman berdiri sendiri |
+| `FIN-DEC-028` | Bentuk koreksi & penghapusan piutang/utang (write-off, adjustment, reversal) | Yasmin (Product Owner Finance) | `approved` | Modal, bukan halaman penuh terpisah | `create-adjustment-modal.jsx`, `reverse-exception-modal.jsx` (Billing Invoices), `journal-reversal-dialog.jsx` (Accounting), `adjust-budget-modal.jsx` (Petty Cash) — seluruhnya `QuilvianSystemFrontendDev` |
+| `FIN-DEC-029` | Cetak dan unduh | Yasmin (Product Owner Finance) | `approved` (ditunda dari MVP) | Tidak termasuk scope `FE-FIN-001`/`002`/`003`/`006`. Layar dibangun tanpa tombol cetak/unduh. Lingkup detail (dokumen apa, format apa) menunggu keputusan terpisah — dicatat `FIN-OQ-015` | Tidak ada UAT/acceptance criteria `FE-FIN-*` yang menyebut cetak/ekspor; hampir tidak ada preseden export di modul Finance/Billing manapun saat ini |
 
 ## Decision Log
 
@@ -151,6 +162,12 @@ Belum digali pada pass ini — menunggu klaster AR/AP/Cash Management dan
 | `FIN-DEC-021` | Decision | Bila `FinReceipt` yang sudah dialokasikan ke AR kemudian tender aslinya di-reverse Billing, sistem WAJIB membuat baris alokasi pembalik (reversal allocation, bukan menghapus histori) dan AR yang tadinya terbayar otomatis kembali berstatus `OUTSTANDING`. Menutup `FIN-OQ-008`. **PERINGATAN: sebagian keputusan ini adalah desain baru, bukan meniru pola yang sudah terbukti** — lihat kolom Evidence. | Yasmin (Finance) | `approved` | Yasmin, 20 September 2026 | Jawaban langsung owner, 20 September 2026; konsisten aturan bisnis #8. **Bukti lapangan bersifat SEBAGIAN** (`evidence/03-referensi-meeting-rs-mmc.md`): transcript "Keuangan AP Zoom Meeting" 10 Juni 2026 memang menunjukkan pola reversal-bukan-delete dan tagihan otomatis dapat di-settle ulang — TETAPI hanya untuk skenario **full** cancel/settlement. Skenario **partial** (bayar sebagian + sisa jadi piutang) belum pernah ada di sistem lama, dan fitur Batal Settlement sendiri diakui tim RS MMC belum matang. Penanganan partial karena itu MUST diuji khusus, tidak boleh diasumsikan aman karena "sudah begitu di sistem lama" |
 | `FIN-DEC-022` | Decision | Approval pembayaran AP (Supplier dan Doctor) TIDAK memakai pola maker-checker sederhana yang sama seperti AR (`FIN-DEC-012`). AP memakai approval berjenjang berdasarkan total nominal rekap pembayaran. Ambang nominal pastinya BELUM ditentukan — dicatat sebagai `FIN-OQ-010`, bukan diputuskan sekarang. Menutup `FIN-OQ-009` (bentuk aturan), membuka `FIN-OQ-010` (nilai ambang). | Yasmin (Finance) | `approved` (bentuk aturan); ambang nominal `open` | Yasmin, 20 September 2026 | Jawaban langsung owner, 20 September 2026. **Diperkuat bukti lapangan** (`evidence/03-referensi-meeting-rs-mmc.md`): di sistem lama TIDAK ADA pemisahan pengaju/penyetuju sama sekali untuk fee dokter — tiga orang tim akuntansi sama-sama membuat dan menyetujui, dan tim mengakui sendiri risikonya ("bisa saling membantu tanpa sadar dobel kerjakan dokter yang sama"). Pembayaran supplier bahkan tidak punya langkah approval terpisah. Jadi keputusan ini **menutup gap kontrol yang nyata**, bukan sekadar memilih pola berbeda |
 | `FIN-DEC-023` | Decision | Finance mengajukan draft nama field pesan saldo subledger per periode — `LegalEntityId`, `AccountingPeriodCode`, `ControlAccountCode`, `SubledgerBalance`, `AsOfDate` — mengikuti pola penamaan 12-field `ACC-XMOD-0.2` yang sudah diratifikasi (`FIN-DEC-001`), lalu dikirim ke Accounting (Rizki) untuk dikonfirmasi/diubah. Bukan keputusan final sepihak. Menutup `FIN-OQ-001` (sisi Finance); menunggu konfirmasi Accounting. | Yasmin (Finance) — draft, **butuh konfirmasi Accounting** | `draft` (diajukan, belum dikonfirmasi Accounting) | Yasmin, 20 September 2026 | Jawaban langsung owner, 20 September 2026; `FIN-ACC-XMOD-V2-0.3` bagian 12 |
+| `FIN-DEC-024` | Decision | Struktur rute `/finance/...` untuk kapabilitas baru: master data mengikuti `/finance/master-data/<entity>` (mis. `bank-account`, `currency`), kapabilitas lain masing-masing slug flat langsung di bawah `/finance/` (mis. `receivable`, `cash-management`, `monitoring`), mengikuti pola existing apa adanya. Menjawab keputusan #1 UI brief `02-frontend-roadmap.md` bagian 5. | Yasmin (Product Owner Finance) | `approved` | Yasmin, 23 September 2026 | Pola existing `/finance/master-data/petty-cash-category`, `/finance/petty-cash-budget` — `QuilvianSystemFrontendDev` |
+| `FIN-DEC-025` | Decision | Penamaan & pengelompokan menu `corporateFinance`: master data baru ("Rekening Bank", "Mata Uang & Kurs") masuk submenu Master Data yang sudah ada; kapabilitas lain jadi butir flat sejajar Anggaran Petty Cash ("Piutang", "Setoran & Kas Harian", "Pemantauan Finance"). Penerimaan (`FE-FIN-004`) belum ditambahkan karena masih `BLOCKED`. Urutan butir di dalam group tetap `DEV_DISCRETION`. Menjawab keputusan #2 UI brief. | Yasmin (Product Owner Finance) | `approved` | Yasmin, 23 September 2026 | `src/utils/menu-sidebar/menu-items.jsx` baris 664-687, `QuilvianSystemFrontendDev` |
+| `FIN-DEC-026` | Decision | Bentuk penyajian umur piutang (`FE-FIN-002`): summary card berisi 4 angka kelompok umur (bucket dikunci `FIN-DEC-010`) di atas satu tabel daftar piutang, klik baris untuk menelusuri ke tagihan asal — bukan empat tab terpisah. Menjawab keputusan #3 UI brief. | Yasmin (Product Owner Finance) | `approved` | Yasmin, 23 September 2026 | Pola summary card + table pada halaman Petty Cash Budget/Category |
+| `FIN-DEC-027` | Decision | Layout rekonsiliasi shift kasir (bagian `FE-FIN-004`): halaman penuh terpisah, bukan tab di dalam halaman Penerimaan. Hanya tata letak yang diputuskan di sini; aturan bisnis penerimaan/alokasi `FE-FIN-004` sendiri tetap `BLOCKED` menunggu Owner Billing. Menjawab keputusan #4 UI brief. | Yasmin (Product Owner Finance) | `approved` | Yasmin, 23 September 2026 | Preseden `/finance/petty-cash-budget` dan `FE-FIN-003` (Setoran Bank & Kas Harian) sebagai halaman berdiri sendiri |
+| `FIN-DEC-028` | Decision | Bentuk koreksi & penghapusan piutang/utang (write-off, adjustment, reversal): modal, bukan halaman penuh terpisah. Menjawab keputusan #5 UI brief. | Yasmin (Product Owner Finance) | `approved` | Yasmin, 23 September 2026 | `create-adjustment-modal.jsx`, `reverse-exception-modal.jsx` (Billing Invoices), `journal-reversal-dialog.jsx` (Accounting), `adjust-budget-modal.jsx` (Petty Cash) — `QuilvianSystemFrontendDev` |
+| `FIN-DEC-029` | Decision | Cetak dan unduh TIDAK termasuk scope MVP `FE-FIN-001`/`002`/`003`/`006` — tidak ada UAT/acceptance criteria yang mensyaratkannya dan hampir tidak ada preseden export di modul Finance/Billing manapun. Layar dibangun tanpa tombol cetak/unduh. Lingkup detail (dokumen apa, format apa) dicatat `FIN-OQ-015` untuk task terpisah kelak. Menjawab keputusan #6 UI brief. | Yasmin (Product Owner Finance) | `approved` (ditunda dari MVP) | Yasmin, 23 September 2026 | Roadmap `02-frontend-roadmap.md` bagian 5 poin 6 menyatakan "belum ada keputusan bisnisnya sama sekali"; grep `QuilvianSystemFrontendDev` menunjukkan nol preseden export di modul Finance dan hampir nol di Billing |
 
 ## Acceptance Criteria
 
@@ -189,6 +206,7 @@ Sisa yang masih genuinely terbuka:
 | `FIN-OQ-014` | **Amendment yang dituntut pass Medical Fee, 20 September 2026.** `MF-DEC-002` memperluas penerima jasa menjadi dokter **dan** tenaga kesehatan lain, dan `MF-DEC-008` memutuskan `FinDoctorPayable` **digantikan** satu entity utang jasa tenaga medis yang membedakan jenis penerima lewat kolom — mengikuti pola `FinPayment` yang sudah melayani supplier dan dokter sekaligus. Berkas `FIN-BP-001` yang terdampak: `02-backend-architecture.md`, `erd/payable.md`, `erd/data-dictionary.md`, `contracts/api-contract.md`, `contracts/permission-audit-matrix.md`, `contracts/state-transition-matrix.md`, `04-prd-to-mvp.md` (`EPIC FIN-08`). | Yasmin (owner Finance) | `DESIGN` untuk `EPIC FIN-08` — sudah `POST-MVP` dan **nol baris kode**, sehingga tidak membongkar apa pun. Lihat `MF-CQ-02` pada blueprint `medical-fee` |
 | `FIN-OQ-013` | **Gap yang dibuka pass Medical Fee, 20 September 2026.** `MF-DEC-005` memutuskan Medical Fee menyerahkan jasa **kotor**, dan seluruh potongan per penerima per periode — PPh 21, kasbon, potongan hutang pasien yang dijamin potong honor, sitting fee, KSO, iuran kerohanian — diterapkan **Finance** saat menyusun rekap pembayaran. `FinPayment` hasil rancangan `FIN-DES-015` **tidak punya tempat sama sekali** untuk itu: ia hanya memiliki `TotalAmount` dan alokasi ke utang. Konsekuensi yang MUST diselesaikan: (a) Finance perlu entity potongan/tambahan per pembayaran; (b) invariant `FinPayment.TotalAmount = Σ alokasi` pada `FIN-DES-015` **tidak lagi berlaku apa adanya** — nilai transfer bersih berbeda dari jumlah utang yang dilunasi. | Yasmin (owner Finance + Medical Fee) | `DESIGN` untuk `EPIC FIN-09` — sudah `POST-MVP` sehingga **tidak menahan MVP**, tetapi MUST ditutup sebelum rumpun pembayaran dibangun. Lihat `MF-CQ-01` pada blueprint `medical-fee` |
 | `FIN-OQ-012` | Pembayaran honor dokter di RS MMC dipisah dua tahap — tanggal 5 untuk pasien pribadi dan asuransi yang sudah membayar ke rumah sakit, tanggal 10 untuk sisanya termasuk kasus rumah sakit menalangi dulu. Apakah pola itu dipertahankan di V2? Bila ya, Finance perlu cara mengetahui status bayar tagihan sumber untuk setiap utang dokter, dan jalur datanya belum dirancang sama sekali. | Yasmin (Finance) + Billing | `DESIGN` untuk `EPIC FIN-09` — sudah `POST-MVP`, tidak menahan MVP. Dibuka 20 September 2026 dari bukti meeting (`evidence/03-referensi-meeting-rs-mmc.md`) |
+| `FIN-OQ-015` | Lingkup detail cetak/unduh pada layar Finance — dokumen apa yang boleh dicetak/diunduh (mis. daftar piutang, slip setoran, rekap pembayaran) dan format apa (PDF/Excel). Bentuk keputusannya sudah ditutup `FIN-DEC-029` (ditunda dari MVP, layar dibangun tanpa tombol cetak/unduh); yang masih terbuka hanya lingkup detailnya untuk task terpisah kelak. | Yasmin (Product Owner Finance) | `LATER SLICE` — tidak memblokir `FE-FIN-001`/`002`/`003`/`006`. Dibuka 23 September 2026, Amendment pass UI brief |
 
 ## Langkah berikutnya
 
@@ -234,3 +252,30 @@ Temuan yang mengubah urutan Closure pass berikutnya:
   asumsi dokumen.
 
 Detail lengkap ada di `01-existing-capability-map.md`.
+
+**Amendment pass 23 September 2026 — UI brief frontend `FE-FIN-*`.** `02-frontend-roadmap.md`
+bagian 5 mendaftar enam keputusan wajib Product Owner yang menahan **seluruh** task `FE-FIN-*`
+(`roadmap_status: ACTIVE_BLOCKED_ON_UI_BRIEF`). Owner menjawab sebagai Product Owner Finance
+(Yasmin) pada sesi wawancara ini, dicatat `FIN-DEC-024`..`029` (lihat bagian `Frontend Decision
+Authority` untuk ringkasan per keputusan, dan `Decision Log` untuk detail lengkap beserta
+evidence). Ringkas:
+
+1. Struktur rute `/finance/...` — ikuti pola existing (`FIN-DEC-024`).
+2. Penamaan & pengelompokan menu `corporateFinance` — ikuti pola existing (`FIN-DEC-025`).
+3. Bentuk penyajian umur piutang — summary card + tabel (`FIN-DEC-026`).
+4. Layout rekonsiliasi shift — halaman penuh (`FIN-DEC-027`).
+5. Bentuk koreksi & penghapusan — modal (`FIN-DEC-028`).
+6. Cetak & unduh — ditunda dari MVP, lingkup detail dibuka sebagai `FIN-OQ-015` (`FIN-DEC-029`).
+
+**Tidak ada Conflict.** Keenam keputusan konsisten dengan pola `QuilvianSystemFrontendDev` yang
+sudah berjalan nyata (dikutip per keputusan pada kolom Evidence), bukan preferensi baru.
+
+**Yang TIDAK ditutup pass ini, sengaja:** status dependency backend `BE-FIN-004` pada
+`01-backend-roadmap.md` (masih tercatat `SEBAGIAN` per laporan
+`task/report/backend/BE-FIN-004.md` tertanggal 21 September 2026 — pengguna menyatakan pada
+sesi lain migration dan update database sudah dijalankan, tetapi klaim itu **belum diverifikasi**
+lewat laporan task yang diperbarui). Pass ini murni menutup blocker UI brief; status roadmap
+frontend (`ACTIVE_BLOCKED_ON_UI_BRIEF`) dan dependency `BE-FIN-004` pada
+`02-frontend-roadmap.md`/`01-backend-roadmap.md` **belum diperbarui** oleh skill ini — `grill-me`
+tidak membuat/mengubah roadmap. Pembaruan roadmap dan verifikasi `BE-FIN-004` adalah langkah
+terpisah.

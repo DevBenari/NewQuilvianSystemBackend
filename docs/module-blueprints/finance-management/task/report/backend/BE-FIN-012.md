@@ -17,7 +17,7 @@
 | Model | Claude Sonnet 5 |
 | Commit backend saat dikerjakan | Working tree pada branch `Yasmina`; commit dasar `09101d0581695e20345a9efa8af3fce7c38b1ae4` |
 | Tanggal | 21 September 2026 |
-| Status | 🟡 **SEBAGIAN — kode selesai, QBE `PASS` (50 berkas, 0 pelanggaran).** `dotnet build` pengguna (22 September 2026) sempat gagal 1 error (`AccountingEventResponse` tidak boleh `sealed` agar bisa diwarisi `AccountingEventDetailResponse`) — sudah diperbaiki (bagian 5), menunggu konfirmasi build ulang dari pengguna serta migration `BE-FIN-010` sebelum dapat diuji terhadap database sungguhan. Seluruh empat endpoint baca (`filters/metadata`, `summary`, daftar, detail) selesai sesuai arketipe monitoring/read-only. |
+| Status | ✅ **SELESAI 23 September 2026.** Seluruh empat endpoint baca (`filters/metadata`, `summary`, daftar, detail) selesai sesuai arketipe monitoring/read-only. `dotnet build` pengguna (22 September 2026) sempat gagal 1 error (`AccountingEventResponse` tidak boleh `sealed` agar bisa diwarisi `AccountingEventDetailResponse`) — sudah diperbaiki (bagian 5), build ulang PASS dan migration `BE-FIN-010` diterapkan — dikonfirmasi pengguna 23 September 2026, lihat Pembaruan bagian 7 |
 
 ---
 
@@ -219,7 +219,8 @@ Final result: PASS
 
 | Hal | Isi |
 | --- | --- |
-| Peringatan | Belum dapat diuji terhadap database sungguhan — migration `BE-FIN-010` belum dijalankan |
+| **Pembaruan 23 September 2026** | Pengguna mengonfirmasi `dotnet build` PASS (termasuk perbaikan error `sealed` yang sempat dilaporkan 22 September), migration `BE-FIN-010` diterapkan, dan endpoint diuji langsung. Status task dinaikkan menjadi ✅ SELESAI |
+| Peringatan | Sebelum pembaruan di atas: belum dapat diuji terhadap database sungguhan — migration `BE-FIN-010` belum dijalankan |
 | Masalah yang diketahui | Tidak ada yang baru di luar yang sudah dicatat `BE-FIN-005`..`011` |
 | Risiko tersisa | **Rendah** — permukaan baca murni, tidak menyentuh alur transaksi yang sudah ada; risiko utama tetap sama seperti `BE-FIN-010`/`011` (migration belum jalan) |
 | Perubahan sampingan | `NONE` |
