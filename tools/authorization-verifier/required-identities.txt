@@ -1,0 +1,46 @@
+# Identitas technical permission yang WAJIB ada di source.
+# Satu baris = <Resource>.<Action>.
+#
+# Hilangnya salah satu berarti endpoint yang menegakkannya tidak akan pernah
+# terdaftar di registry, sehingga kemampuannya tidak dapat diberikan admin dan
+# ditolak 403 untuk semua orang kecuali SuperAdmin.
+#
+# Daftar ini adalah prasyarat BE-SEC-003 Fase B Tahap 1: seluruh kunci di bawah
+# wajib terdaftar di SysActionAccess sebelum satu baris SysAccessPolicy pun
+# dibuat. Menghapus baris di sini adalah keputusan pemilik sistem.
+#
+# Rincian 24 kunci:
+#   22  split set asli Fase A          (commit 85fcc3fd, 4 September 2026)
+#  + 1  DoctorConsultation.WriteSoap   (Fase A', menutup D-ARCH-7)
+#  + 1  PatientAssessment.Amend        (ditambahkan tim lain, di luar split set)
+#  = 24
+
+PatientProcedure.Select
+PatientProcedure.Edit
+PatientProcedure.Approve
+PatientProcedure.Execute
+PatientProcedure.RemoveDraft
+PatientProcedure.Cancel
+
+DoctorQueue.Call
+DoctorQueue.StartConsultation
+DoctorQueue.FinishConsultation
+DoctorQueue.Skip
+DoctorQueue.NoShow
+DoctorQueue.Requeue
+
+DoctorConsultation.WriteSoap
+DoctorConsultation.Complete
+DoctorConsultation.Cancel
+
+PatientAssessment.Complete
+PatientAssessment.Cancel
+PatientAssessment.Amend
+
+PatientDiagnosis.SetPrimary
+PatientDiagnosis.Resolve
+PatientDiagnosis.Cancel
+
+PatientVitalSign.Verify
+PatientVitalSign.NotifyDoctor
+PatientVitalSign.Cancel

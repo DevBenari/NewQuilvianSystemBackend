@@ -343,12 +343,74 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         }
 
         // =================================================================
+        // Permukaan baseline yang dilengkapi 2026-09-23 — `r32`, `BE-LAB-66`
+        // =================================================================
+
+        /// <summary>
+        /// Ringkasan penggolongan jenis pemeriksaan (<c>GET /summary</c>).
+        ///
+        /// <b><c>UnmappedProcedure</c> adalah alasan jalur ini ada.</b> Ia angka pekerjaan yang
+        /// tersisa bagi kepala instalasi, dan penahan yang <c>FE-LAB-28</c> tunggu: pesanan
+        /// Patologi Anatomi yang jenis pemeriksaannya belum digolongkan nol menyumbang satu pun
+        /// parameter, sehingga formulir laporannya kosong sama sekali (<c>INV-39</c>). Sampai
+        /// angka ini ada, satu-satunya cara mengetahui sisanya adalah membuka daftar usulan dan
+        /// menghitungnya sendiri.
+        ///
+        /// <b>Definisi jenis pemeriksaan Patologi Anatomi di sini sama persis dengan
+        /// <see cref="GetSuggestionsAsync"/></b> — <c>IsLaboratory</c> benar dan
+        /// <c>LabDiscipline</c> bernilai <c>AnatomicalPathology</c>. Memakai definisi lain akan
+        /// membuat ringkasan dan daftar usulan saling membantah: satu menyebut nol tersisa,
+        /// satunya masih memunculkan baris.
+        ///
+        /// <c>MappedProcedure</c> dihitung dari <b>pemeriksaan</b> yang punya pemetaan hidup,
+        /// bukan dari jumlah baris pemetaan. Keduanya berbeda bila suatu saat satu pemeriksaan
+        /// punya lebih dari satu baris — keadaan yang <c>VAL</c> tolak, tetapi ringkasan yang
+        /// menghitung baris akan melaporkan lebih banyak yang selesai daripada yang sebenarnya.
+        /// </summary>
+        public async Task<LabProcedurePathologyCategorySummaryResponse> GetSummaryAsync(
+            CancellationToken cancellationToken = default)
+        {
+            var procedures = _dbContext.MstProcedures
+                .AsNoTracking()
+                .Where(x =>
+                    !x.IsDelete &&
+                    x.IsLaboratory &&
+                    x.LabDiscipline == LabDiscipline.AnatomicalPathology);
+
+            var total = await procedures.CountAsync(cancellationToken);
+
+            var mappedProcedureIds = _dbContext.LabProcedurePathologyCategories
+                .AsNoTracking()
+                .Where(x => !x.IsDelete)
+                .Select(x => x.ProcedureId);
+
+            var mapped = await procedures
+                .Where(x => mappedProcedureIds.Contains(x.Id))
+                .CountAsync(cancellationToken);
+
+            return new LabProcedurePathologyCategorySummaryResponse
+            {
+                TotalProcedure = total,
+                MappedProcedure = mapped,
+                UnmappedProcedure = total - mapped
+            };
+        }
+
+        // =================================================================
         // Pembantu
         // =================================================================
 
-        private async Task<LabProcedurePathologyCategoryResponse> GetByIdAsync(
+        /// <summary>
+        /// Detail satu pemetaan beserta pemeriksaan dan golongannya (<c>GET /{id}</c>).
+        ///
+        /// <b>Jalur ini sudah ada sejak <c>BE-LAB-50</c> sebagai pembantu internal</b> — ia yang
+        /// menyusun jawaban <c>CreateAsync</c> dan <c>UpdateAsync</c>. <c>r32</c> membukanya
+        /// menjadi endpoint tanpa mengubah satu baris perilakunya, sebab bentuk dan penolakan
+        /// <c>404</c>-nya sudah persis yang dituntut baseline.
+        /// </summary>
+        public async Task<LabProcedurePathologyCategoryResponse> GetByIdAsync(
             Guid id,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken = default)
         {
             var result = await (
                 from pemetaan in _dbContext.LabProcedurePathologyCategories.AsNoTracking()
