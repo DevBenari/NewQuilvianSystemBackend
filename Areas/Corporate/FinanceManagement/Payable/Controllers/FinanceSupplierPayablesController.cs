@@ -114,7 +114,7 @@ public sealed class FinanceSupplierPayablesController : ControllerBase
         catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
     }
 
-    private static SupplierPayableResponse MapPayable(FinSupplierPayable payable) => new()
+    internal static SupplierPayableResponse MapPayable(FinSupplierPayable payable) => new()
     {
         Id = payable.Id,
         PayableNumber = payable.PayableNumber,
@@ -132,7 +132,7 @@ public sealed class FinanceSupplierPayablesController : ControllerBase
         RowVersion = payable.RowVersion
     };
 
-    private static SupplierPayableDetailResponse Map(FinSupplierPayable payable)
+    internal static SupplierPayableDetailResponse Map(FinSupplierPayable payable)
     {
         var mapped = MapPayable(payable);
         return new SupplierPayableDetailResponse

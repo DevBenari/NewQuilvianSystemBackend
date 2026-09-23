@@ -90,14 +90,14 @@ atau dihapus.
 |---|---|---|---|
 | `MVP-0` | `FIN-01` | `BE-FIN-001`..`004` · `FE-FIN-001` | 🟡 Backend selesai 23 September 2026 (4 dari 4 task); `FE-FIN-001` source lengkap 23 September 2026, `npm run lint:errors`/`npm run build` belum dijalankan — [laporan](../task/report/frontend/FE-FIN-001.md) |
 | `MVP-1` | `FIN-02`, `FIN-03` | `BE-FIN-005`..`009` · `FE-FIN-002` | ✅ Selesai 23 September 2026 — Backend (5 dari 5 task) & Frontend FE-FIN-002 selesai (lint & build PASS) |
-| `MVP-5` | `FIN-11` | `BE-FIN-010`..`012` · `FE-FIN-006` | ✅ Backend selesai 23 September 2026 (3 dari 3 task) |
-| `MVP-4` | `FIN-10` | `BE-FIN-013`..`015` · `FE-FIN-003` | ✅ Backend selesai 23 September 2026 (3 dari 3 task) — lihat catatan 3.1 |
+| `MVP-5` | `FIN-11` | `BE-FIN-010`..`012` · `FE-FIN-006` | ✅ Selesai 23 September 2026 — Backend (3 dari 3 task) & Frontend FE-FIN-006 selesai (lint & build PASS) |
+| `MVP-4` | `FIN-10` | `BE-FIN-013`..`015` · `FE-FIN-003` | ✅ Selesai 23 September 2026 — Backend (3 dari 3 task) & Frontend FE-FIN-003 selesai (lint & build PASS) |
 | `MVP-2` | `FIN-05` | `BE-FIN-016`..`017` · `FE-FIN-004` | ✅ Backend selesai 23 September 2026 — owner Billing sudah menjawab, reversal diperbaiki |
 | `MVP-3` | `FIN-06` | `BE-FIN-018` | ✅ Selesai 23 September 2026 — alokasi/pembalikan dan controller selesai |
 | `POST-MVP` | `FIN-07` | `BE-FIN-019` | ✅ Selesai 23 September 2026 — entity, service, dan controller selesai |
 | `POST-MVP` | `FIN-09` | `BE-FIN-020` | ✅ Selesai 23 September 2026 — entity, service, dan controller selesai; `FIN-OQ-010` (ambang nominal) tetap terbuka |
 | `POST-MVP` | `FIN-08` | `BE-FIN-021` | 🟡 Sebagian 22 September 2026 — entity+configuration+migration selesai, intake BLOCKED `BE-MDF-014` |
-| `POST-MVP` | `FIN-13` | `FE-FIN-005` | Tidak mengunci apa pun |
+| `POST-MVP` | `FIN-13` | `FE-FIN-005` | ✅ Selesai 23 September 2026 — Rute /finance/petty-cash-voucher, menu sidebar, & re-export bridges (lint & build PASS) |
 | **Di luar gelombang** | `FIN-04`, `FIN-12` | — | `OPEN DECISION`, tidak diturunkan menjadi task |
 
 ### 3.1 Catatan urutan `MVP-4`
@@ -150,7 +150,7 @@ Rincian lengkap 11 kolom ada di berkas anak. Tabel ini hanya indeks.
 | ✅ `FE-FIN-003` | Setoran bank dan kas harian | `BE-FIN-015` ✅ | ✅ Selesai 23 September 2026 — daftar setoran bank, draf saldo kasir tersedia dari backend, detail siklus hidup setoran (posting/verifikasi/batal), riwayat kas harian, breakdown modal, penutupan kas beku; `npm run lint:errors` PASS, `npm run build` PASS ([laporan](../task/report/frontend/FE-FIN-003.md)) |
 | `FE-FIN-006` | Pemantauan fakta Billing dan kejadian Accounting | `BE-FIN-009` ✅, `BE-FIN-012` ✅ | UI brief closed 23 September 2026 (`FIN-DEC-024`..`029`); kedua dependency selesai — siap menunggu wewenang tulis frontend |
 | `FE-FIN-004` | Penerimaan dan alokasi | `BE-FIN-018` ✅ | Owner Billing sudah menjawab 21 September 2026; `BE-FIN-016`..`018` selesai 23 September 2026. UI brief closed (`FIN-DEC-024`..`029`) — tidak lagi `BLOCKED`, siap menunggu wewenang tulis frontend |
-| `FE-FIN-005` | Merapikan Petty Cash ke rute Finance | — | `POST-MVP` |
+| ✅ `FE-FIN-005` | Merapikan Petty Cash ke rute Finance | — | ✅ Selesai 23 September 2026 — slices/hooks/constants dipindahkan ke finance dengan jembatan re-export tanpa regresi, halaman voucher `/finance/petty-cash-voucher` dibangun, menu sidebar terdaftar; `npm run lint:errors` PASS, `npm run build` PASS ([laporan](../task/report/frontend/FE-FIN-005.md)) |
 
 `FE-FIN-006` ditambahkan saat roadmap dipecah: `03-frontend-architecture.md` bagian 3.5
 menuntut dua layar pemantauan, dan keduanya sebelumnya tidak punya task frontend sama sekali.
