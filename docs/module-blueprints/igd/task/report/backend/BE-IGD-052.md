@@ -17,7 +17,7 @@
 | Model | Claude Opus 5 |
 | Commit backend saat dikerjakan | `dce1f138` pada branch `rizkiG` (sesudah merge `62c8360a` dari `QuilvianIntegrationBackend`). Working tree sudah memuat penandaan `BE-IGD-055` yang belum di-commit; perubahan task ini ditambahkan di atasnya |
 | Tanggal | 23 September 2026 |
-| Status | 🟡 **SEBAGIAN — 23 September 2026.** Implementation Complete: sembilan berkas baru + dua `DbSet`. **Belum:** migration `AddEmergencyEncounterReconciliation` (kriteria 7, milik pemilik — belum dibuat), `dotnet build` (kriteria 9, milik pemilik — `NOT RUN`), uji API pembalikan (kriteria 5), dan **angka kueri D** yang dibutuhkan kriteria 1. **Endpoint belum dapat dipanggil sebelum migration diterapkan** |
+| Status | ✅ **SELESAI atas penilaian pemilik — 23 September 2026.** Implementation Complete; migration `20260923061124_AddEmergencyEncounterReconciliation` **dibuat pemilik dan isinya diperiksa agent** (dua `CreateTable` + tujuh `CreateIndex`, nol operasi modul lain, snapshot +223/−0); penerapan ke dev, `dotnet build`, dan **sepuluh skenario uji dinyatakan lulus semua oleh pemilik** (tabel bagian 5.4) — agent **tidak** mengamati satu pun panggilan API. Kriteria 1 ditutup atas pernyataan pemilik bahwa kelima angka pratinjau **cocok** dengan kueri D; angkanya tidak dilampirkan. Kriteria 9 terpenuhi sebagian: jumlah warning tidak dilaporkan. **UAT belum dijalankan** — diserahkan ke tim UAT. *Sebelumnya: 🟡 SEBAGIAN — 23 September 2026; Implementation Complete, menunggu migration, build, uji API, dan angka kueri D* |
 
 ### Backend Governance Preflight
 
@@ -194,15 +194,19 @@ Base URL: `api/v1/health-services/emergency-installation-management/emergency-en
 | Pemetaan kontrak | Kelima endpoint, lima kelas, empat pesan penolakan §10.6, dan enum status run dipetakan satu per satu ke source | `PASS` | Pembacaan silang kontrak dan source |
 | Pemeriksaan izin | `[AccessController(ControllerName = "EmergencyEncounterReconciliation")]`; argumen pertama `[AccessPermission]` sama persis; argumen kedua sama persis dengan `[AccessAction]` pada method yang sama (`Read`, `Process`, `Reverse`) | `PASS` | Pembacaan source |
 | Pemeriksaan rahasia | Nol credential, token, atau connection string pada source dan laporan | `PASS` | Pembacaan diff |
-| `dotnet build` | Belum — milik pemilik | `NOT RUN` | Larangan task |
-| Migration `AddEmergencyEncounterReconciliation` | Belum dibuat — milik pemilik | `NOT RUN` | Larangan task |
-| Uji API pratinjau, eksekusi, pembalikan | Belum — butuh migration dan build | `NOT RUN` | — |
-| Angka kueri D | Belum ada dari pemilik | `NOT RUN` | Kriteria 1 |
+| Migration `AddEmergencyEncounterReconciliation` | Dibuat pemilik sebagai `20260923061124`, di atas `20260923021224`. **Diperiksa agent:** `Up()` = dua `CreateTable` (`EmgEncounterReconciliationRun`, `…Item`) + tujuh `CreateIndex`; nol `AddColumn`/`AlterColumn`/`DropColumn`/`RenameColumn`/`RenameTable`; nol operasi milik modul lain. `Down()` = satu `migrationBuilder.Sql` penjaga + dua `DropTable`. Snapshot **+223 baris, 0 baris dihapus**; kelima blok `modelBuilder.Entity` yang bertambah seluruhnya milik dua entity baru; jumlah entity 1491 → 1496 | `PASS` — isi berkas **teramati agent** | `grep` pada `Migrations/20260923061124_AddEmergencyEncounterReconciliation.cs`; `git show --numstat d86d5aab -- Migrations/ApplicationDbContextModelSnapshot.cs`. *Sebelumnya `NOT RUN`* |
+| Penerapan `dotnet ef database update` ke `QuilvianNewDevRizki` | **Dinyatakan pemilik.** Yang diamati agent hanya tangkapan layar terminal pemilik: baris `20260923061124_AddEmergencyEncounterReconciliation (Pending)` pada `migrations list`, lalu perintah `dotnet ef database update --no-build` dijalankan. Keluaran akhirnya tidak diamati agent | `PASS` — atas penilaian pemilik | Tangkapan layar terminal pemilik + pernyataan 23 September 2026 |
+| `dotnet build` | **Dinyatakan berhasil oleh pemilik** (tabel 5.4, baris pemilik R10 "Build & regression check"). Jumlah warning **tidak** dilaporkan | `PASS` — atas penilaian pemilik | Pernyataan pemilik. *Sebelumnya `NOT RUN`* |
+| Uji API pratinjau, eksekusi, pembalikan | **Dinyatakan lulus semua oleh pemilik** — sepuluh skenario, tabel bagian 5.4, lingkungan Development. Agent **tidak** mengamati satu pun panggilan: skrip `uji-be-igd-052.ps1` yang disiapkan tidak pernah dijalankan (nol berkas hasil, nol berkas token), dan backend sudah berhenti saat laporan ini diperbarui | `PASS` — atas penilaian pemilik | Tabel 5.4. *Sebelumnya `NOT RUN`* |
+| Angka kueri D | Pemilik menyatakan kelima angka pratinjau **cocok** dengan hasil kueri D. Angka pratinjau maupun angka kueri D **tidak** dilampirkan ke laporan | `PASS` — atas penilaian pemilik | Pernyataan pemilik 23 September 2026. *Sebelumnya `NOT RUN`* |
 
-Uji manual: `REQUIRED` — skenario 5.3, sesudah migration diterapkan dan build berhasil.
+Uji manual: `PASS` — **atas penilaian pemilik** untuk sepuluh skenario bagian 5.4; nol skenario diamati agent. *Sebelumnya: `REQUIRED` — skenario 5.3, sesudah migration diterapkan dan build berhasil.*
 
 **Tidak dijalankan:** `dotnet build`, `dotnet ef`, kueri basis data, dan aplikasi — seluruhnya di luar wewenang
 task ini. Nol proyek test backend sejak 11 September 2026.
+
+*Masih berlaku pada pembaruan 23 September 2026:* agent tetap **tidak** menjalankan build, `dotnet ef`, kueri basis
+data, maupun aplikasi. Seluruh angka dan hasil uji pada bagian 5.4 berasal dari pemilik.
 
 ### 5.1 Perintah build untuk pemilik
 
@@ -254,25 +258,65 @@ dulu lewat layar Pengaturan → Manajemen Role → Akses Role sesudah aplikasi d
 | R9 | `POST /runs/{id}/reverse` sekali lagi | `409` *"Run ini sudah dibalik."* | 5 |
 | R10 | Token tanpa `Process` | `403` | — |
 
+### 5.4 Hasil uji yang dinyatakan pemilik — 23 September 2026
+
+Pemilik menjalankan ujinya sendiri di lingkungan Development dan menyerahkan tabel di bawah apa adanya.
+**Penomorannya tidak sama** dengan daftar 5.3, jadi tabel ini disalin tanpa dipetakan diam-diam; kolom
+terakhir hanya menunjukkan padanan terdekatnya. Agent **tidak** mengamati satu pun panggilan, dan tidak
+ada kode status, badan respons, atau tangkapan layar yang dilampirkan untuk kesepuluh baris ini.
+
+| # pemilik | Skenario menurut pemilik | Hasil | Padanan terdekat di 5.3 |
+| --- | --- | --- | --- |
+| R1 | Preview Rekonsiliasi | `PASS` | R1 |
+| R2 | Preview tidak mengubah data | `PASS` | R2 |
+| R3 | Execute rekonsiliasi dengan `expectedCount` valid | `PASS` | **R4** (bukan R3) |
+| R4 | Execute dengan `expectedCount` tidak sesuai | `PASS` | **R3** (bukan R4) |
+| R5 | Hanya kelas K1 yang berubah | `PASS` | bagian kedua R4 — kriteria 2 |
+| R6 | Audit before-after tersimpan | `PASS` | R6 |
+| R7 | Reverse reconciliation | `PASS` | bagian pertama R8 |
+| R8 | Tidak menimpa perubahan setelah reconciliation | `PASS` | bagian kedua R8 (`reverseSkipReason`) |
+| R9 | Migration `Down` guard | `PASS` | kriteria 7 — **bukan** R9 bagian 5.3 |
+| R10 | Build & regression check | `PASS` | kriteria 9 — **bukan** R10 bagian 5.3 |
+
+Empat butir 5.3 yang tidak terlihat pada tabel pemilik ditanyakan terpisah pada percakapan yang sama:
+
+| Butir 5.3 | Jawaban pemilik |
+| --- | --- |
+| R5 — `CompletedAt` tiap baris sama dengan `VisitCompletedAt` kunjungannya, dan tetap kosong bila kunjungan tidak menyimpannya | **Tidak dilaporkan terpisah.** Tidak dinyatakan lulus dan tidak dinyatakan gagal; yang dinyatakan pemilik adalah "hanya kelas K1 yang berubah" dan "audit before-after tersimpan" |
+| R7 — pembalikan tanpa `reason` → `400` | **Sudah diuji, lulus** |
+| R9 — pembalikan kedua atas run yang sama → `409` | **Sudah diuji, lulus** |
+| R10 — token tanpa `Process` → `403` | **Sudah diuji, lulus** — dinyatakan pemilik sebelum uji lain dimulai |
+
+Skrip uji otomatis `uji-be-igd-052.ps1` beserta pengambil token `ambil-token.ps1` tetap tersedia di
+scratchpad sesi 23 September 2026 bila suatu saat dibutuhkan bukti yang dijalankan agent; keduanya
+**tidak pernah dijalankan** untuk laporan ini.
+
 ---
 
 ## 6. Acceptance criteria dan Definition of Done
 
 | No | Kriteria | Status | Bukti |
 | ---: | --- | --- | --- |
-| 1 | Pratinjau menghasilkan jumlah per kelas yang sama dengan kueri D; nol baris berubah | Belum terpenuhi — source ada | `EmergencyEncounterReconciliation.HitungKelasAsync` (lima `CountAsync` terpisah, nol penulisan); **menunggu angka kueri D** dan uji R1/R2 |
-| 2 | Eksekusi dengan `expectedCount` basi → `409`; eksekusi benar → hanya K1/K1-Outpatient berubah sejumlah `expectedCount` | Belum terpenuhi — source ada | Pemeriksaan di dalam transaksi pada `ExecuteAsync`; uji R3/R4 `NOT RUN` |
+| 1 | Pratinjau menghasilkan jumlah per kelas yang sama dengan kueri D; nol baris berubah | **Terpenuhi — atas penilaian pemilik** | Source `EmergencyEncounterReconciliation.HitungKelasAsync` (lima `CountAsync` terpisah, nol penulisan) — teramati agent. Pemilik menyatakan kelima angka pratinjau **cocok** dengan kueri D, dan uji pemilik R1/R2 lulus (5.4). Angkanya tidak dilampirkan, jadi kecocokannya tidak dapat diperiksa ulang dari laporan |
+| 2 | Eksekusi dengan `expectedCount` basi → `409`; eksekusi benar → hanya K1/K1-Outpatient berubah sejumlah `expectedCount` | **Terpenuhi — atas penilaian pemilik** | Pemeriksaan di dalam transaksi pada `ExecuteAsync` — teramati agent. Uji pemilik R3 (`expectedCount` valid), R4 (`expectedCount` tidak sesuai ditolak), dan R5 (hanya kelas K1 berubah) lulus (5.4); kode status dan teks pesan penolakan tidak dilampirkan |
 | 3 | Nol pernyataan update massal; setiap baris dievaluasi ulang di dalam transaksi run | **Terpenuhi — terbukti agent** | `ExecuteAsync` memuat tiap encounter satu per satu dan memeriksa ulang `IsEncounterEnded` sebelum menulis; nol `ExecuteUpdate`/`ExecuteDelete`/SQL massal pada berkas baru |
 | 4 | `CompletedAt` hanya dari `EmgVisit.VisitCompletedAt`; bila kosong tetap kosong; nol pelaku dikarang | **Terpenuhi — terbukti agent** (bagian source) | Nilai diambil dari `baris.VisitCompletedAt`; untuk kunjungan `Cancelled` kolom tidak disentuh; pelaku selalu dari token dan permintaan ditolak bila tidak terbaca. Contoh baris menunggu uji R5 |
-| 5 | Pembalikan mengembalikan nilai sebelum; baris yang sudah berubah dilewati dan dilaporkan; run yang sudah dibalik → `409` | Belum terpenuhi — source ada | `ReverseAsync`; uji R7–R9 `NOT RUN` |
+| 5 | Pembalikan mengembalikan nilai sebelum; baris yang sudah berubah dilewati dan dilaporkan; run yang sudah dibalik → `409` | **Terpenuhi — atas penilaian pemilik** | `ReverseAsync` — teramati agent. Uji pemilik R7 (pembalikan) dan R8 (perubahan sesudah run tidak ditimpa) lulus; pemilik juga menyatakan pembalikan tanpa `reason` → `400` dan pembalikan kedua → `409` sudah diuji dan lulus (5.4) |
 | 6 | Nilai sebelum/sesudah tercatat per baris; alasan tidak masuk custom logger | **Terpenuhi — terbukti agent** | `EmgEncounterReconciliationItem` menyimpan empat nilai; payload `LoggerService` hanya memuat nomor run dan jumlah — nol `Reason` |
-| 7 | `Down()` berpenjaga diuji di basis data terpisah; snapshot hanya bertambah blok dua tabel ini | Belum terpenuhi — **milik pemilik** | Bagian 5.2 |
+| 7 | `Down()` berpenjaga diuji di basis data terpisah; snapshot hanya bertambah blok dua tabel ini | **Terpenuhi** — sisi snapshot **terbukti agent**, uji penjaga **atas penilaian pemilik** | Snapshot: +223 baris / 0 dihapus, kelima blok `modelBuilder.Entity` baru milik dua entity ini, 1491 → 1496 entity (`git show --numstat d86d5aab`). Penjaga ada pada baris pertama `Down()` berkas migration. Ujinya dinyatakan lulus pemilik (5.4 baris R9); **agent tidak menjalankannya** — berbeda dari `BE-IGD-055` yang penjaganya diuji agent di Docker |
 | 8 | Nol baris `Program.cs`; nol kolom baru `RegPatientEncounter` | **Terpenuhi — terbukti agent** | `git status --short`: `Program.cs` tidak tersentuh; nol perubahan model Registrasi |
-| 9 | Build 0 error, warning sama dengan baseline | Belum terpenuhi — **milik pemilik** | Bagian 5.1 |
+| 9 | Build 0 error, warning sama dengan baseline | **Terpenuhi sebagian — atas penilaian pemilik** | Pemilik menyatakan build dan regression check lulus (5.4 baris R10). **Jumlah warning tidak dilaporkan**, jadi kesamaannya dengan baseline tidak dapat dinyatakan — sama seperti kriteria 10 `BE-IGD-055` |
 
-**DoD.** Kriteria 3, 4 (sisi source), 6, dan 8 terbukti; kriteria 1, 2, 5, 7, 9 menunggu migration, build, uji, dan
-angka kueri D. Laporan tracked ada (berkas ini). Daftar kerja K3/K4 diserahkan lewat `GET /preview` — angkanya baru
-dapat dibacakan sesudah endpoint hidup.
+**DoD.** Kriteria 3, 4 (sisi source), 6, dan 8 terbukti agent. Kriteria 1, 2, 5, dan sisi uji kriteria 7 terpenuhi
+**atas penilaian pemilik**; sisi snapshot kriteria 7 terbukti agent. Kriteria 9 terpenuhi **sebagian** — jumlah warning
+tidak dilaporkan. Laporan tracked ada (berkas ini). Daftar kerja K3/K4 diserahkan lewat `GET /preview`.
+
+**Status terpisah.** `IMPLEMENTATION STATUS` = **COMPLETE**. `DEVELOPER VERIFICATION STATUS` = **PASS atas penilaian
+pemilik** (sepuluh skenario 5.4 + build; nol skenario diamati agent). `UAT STATUS` = **BELUM DIJALANKAN** — diserahkan
+ke tim UAT, bukan penghalang task berikutnya.
+
+*Sebelumnya: kriteria 3, 4 (sisi source), 6, dan 8 terbukti; kriteria 1, 2, 5, 7, 9 menunggu migration, build, uji, dan
+angka kueri D.*
 
 ---
 
@@ -285,5 +329,5 @@ dapat dibacakan sesudah endpoint hidup.
 | Risiko tersisa | Rekonsiliasi mengubah data historis milik tabel Registrasi. Penjaganya: `expectedCount`, evaluasi ulang per baris di dalam transaksi, kunci advisory, dan run yang dapat dibalik. **Urutan rilis wajib** (roadmap R3.13.5): jalankan rekonsiliasi di sebuah lingkungan **sebelum** `BE-IGD-053` dirilis di sana, kalau tidak pasien lama ikut tertolak saat mendaftar |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
-| Status Git | 9 berkas baru belum terlacak, `ApplicationDbContext.cs` berubah 2 baris; ditambah berkas `BE-IGD-055` yang masih terbuka (penjaga `Down()`, laporan, roadmap, traceability). Belum di-commit |
-| Langkah berikutnya | (1) Pemilik: build → migration 5.2 (di atas `20260923021224`) → beri hak akses → uji 5.3, dan sampaikan angka kueri D untuk kriteria 1. (2) `BE-IGD-054` (daftar Menunggu Triage terpadu) tidak bergantung migration ini dan dapat dikerjakan paralel. (3) `BE-IGD-053` baru boleh **dirilis** sesudah rekonsiliasi K1 benar-benar dijalankan di lingkungan itu |
+| Status Git | **Di-commit pemilik 23 September 2026:** `d36fc6c3` (sembilan berkas source + `ApplicationDbContext` + laporan + roadmap + traceability) dan `d86d5aab` (migration `20260923061124`, Designer, snapshot, dokumen R3.14). Working tree bersih saat laporan ini diperbarui; pembaruan hasil uji ini sendiri belum di-commit. *Sebelumnya: 9 berkas baru belum terlacak, `ApplicationDbContext.cs` berubah 2 baris; ditambah berkas `BE-IGD-055` yang masih terbuka. Belum di-commit* |
+| Langkah berikutnya | (1) **Terbuka — keadaan akhir Development belum diketahui:** uji pemilik memuat eksekusi (R3) **dan** pembalikan (R7), jadi belum jelas apakah encounter K1 di `QuilvianNewDevRizki` kini tertutup atau sudah dikembalikan. Sebelum `BE-IGD-053` **dirilis** di lingkungan mana pun, jalankan `GET /preview` sekali lagi di lingkungan itu dan pastikan `expectedCount` = 0; kalau belum, jalankan satu run yang **tidak** dibalik (urutan rilis wajib R3.13.5). (2) `BE-IGD-054` (daftar Menunggu Triage terpadu) — antrean berikutnya. (3) Kartu R3.14 (`BE-IGD-060`…`063`, lalu `FE-IGD-041`). (4) Angka kueri D dan angka pratinjau tidak tercatat di laporan; bila dibutuhkan untuk audit, minta pemilik melampirkannya. *Sebelumnya: pemilik build → migration 5.2 → beri hak akses → uji 5.3 + angka kueri D* |

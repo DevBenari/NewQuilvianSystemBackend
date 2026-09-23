@@ -167,6 +167,35 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             return Ok(ApiResponse<PagedResult<EmergencyVisitResponse>>.Ok(result, "Data kunjungan IGD berhasil diambil."));
         }
 
+        /// <summary>
+        /// Daftar <i>Menunggu Triage</i> terpadu — <c>BE-IGD-054</c>, <c>FR-IGD-070</c>,
+        /// API <c>0.11.0</c> §8.3.1.
+        /// </summary>
+        /// <remarks>
+        /// Satu daftar berisi dua asal baris: encounter IGD yang belum berakhir dan belum punya
+        /// kunjungan, serta kunjungan yang episodenya masih terbuka. Layar tidak lagi
+        /// menggabungkan dua sumber sendiri, dan <c>GET /emergency-visits</c> tidak berubah
+        /// karena masih dipakai layar lain.
+        /// </remarks>
+        [HttpGet("triage-queue")]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<EmergencyTriageQueueRowResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [AccessAction("Read", "Read Emergency Visit", Description = "Melihat daftar Menunggu Triage terpadu", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyVisit", "Read")]
+        public async Task<IActionResult> TriageQueue(
+            [FromQuery] EmergencyTriageQueueQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            var hasil = await _emergencyVisitService.GetTriageQueueAsync(query, cancellationToken);
+
+            if (!hasil.Berhasil)
+                return StatusCode(hasil.StatusCode, ApiResponse<object>.Fail(hasil.StatusCode, hasil.Penolakan!));
+
+            return Ok(ApiResponse<PagedResult<EmergencyTriageQueueRowResponse>>.Ok(
+                hasil.Data!,
+                "Daftar Menunggu Triage berhasil diambil."));
+        }
+
         [HttpGet("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<EmergencyVisitResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]

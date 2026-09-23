@@ -528,15 +528,15 @@ Dua keputusan pemilik atas temuan gerbang backlog frontend. **`BE-IGD-049` dan `
 | Task | Requirement / keputusan | Target implementasi | Kontrak | Dependency | Requirement approved | Delivery planned | Implementation complete | Runtime verified |
 | --- | --- | --- | --- | --- | :-: | :-: | :-: | :-: |
 | ✅ `BE-IGD-051` | `FR-IGD-080`, `081`; `IGD-DEC-139` b.5, `148` | Kunjungan `Completed`/`Cancelled` menutup encounter pada satu `SaveChanges`; lahir `EmergencyEpisodeRule.IsEncounterEnded` | API §8.3.7; val §10.1 a.1, §10.5; state §8.2; int §5.2 | `BE-IGD-022` ✅, `BE-IGD-024` ✅ | Ya | Ya | **Ya — 22 September 2026**; build terverifikasi dari artefak ([laporan](../task/report/backend/BE-IGD-051.md)) | **Ya — atas penilaian pemilik** (S1–S9, tanpa lampiran); kueri invarian dikecualikan sampai sesudah rilis |
-| 🟡 `BE-IGD-052` | `FR-IGD-084`; `IGD-DEC-148`, `162` | Endpoint admin preview/runs/reverse; hanya K1 ditulis; 2 tabel + migration Rizki | API §8.4; val §10.6; state §8.4; perm §7.1 | `BE-IGD-051` ✅, `BE-IGD-055` ✅ | Ya | Ya | **Source ya — 23 September 2026**; migration dan build belum (milik pemilik) ([laporan](../task/report/backend/BE-IGD-052.md)) | Tidak — uji API dan angka kueri D belum ada |
+| ✅ `BE-IGD-052` | `FR-IGD-084`; `IGD-DEC-148`, `162` | Endpoint admin preview/runs/reverse; hanya K1 ditulis; 2 tabel + migration Rizki | API §8.4; val §10.6; state §8.4; perm §7.1 | `BE-IGD-051` ✅, `BE-IGD-055` ✅ | Ya | Ya | **Ya — 23 September 2026.** Source + migration `20260923061124` (isi diperiksa agent) diterapkan pemilik; build dan sepuluh skenario uji dinyatakan lulus pemilik ([laporan](../task/report/backend/BE-IGD-052.md) §5.4) | **Ya — atas penilaian pemilik**; nol skenario diamati agent, jumlah warning build tidak dilaporkan. *Sebelumnya: tidak — uji API dan angka kueri D belum ada* |
 | `BE-IGD-053` | `FR-IGD-069`, `071`…`074`; `IGD-DEC-139`, `144`…`146`; realisasi `IGD-OQ-093` | Penjaga di `CreateEncounterCoreAsync` (Emergency saja), kunci per pasien, override tercatat, tanpa antrean; `POST /emergency-visits` bertransaksi; `active-episode` + `encounter`; 1 tabel + migration Rizki | API §8.1, §8.2, §8.3.6; val §10.1 a.2–7; int §5.2–5.4 | `BE-IGD-050` ✅, `BE-IGD-052`, `BE-IGD-055` | Ya | Ya | Tidak | Tidak |
-| `BE-IGD-054` | `FR-IGD-070`; `IGD-DEC-139` b.2, `142`, `143`, `144` | `GET triage-queue` terpadu, halaman di basis data | API §8.3.1 | `BE-IGD-051` | Ya | Ya | Tidak | Tidak |
+| 🟡 `BE-IGD-054` | `FR-IGD-070`; `IGD-DEC-139` b.2, `142`, `143`, `144` | `GET triage-queue` terpadu, halaman di basis data | API §8.3.1 | `BE-IGD-051` ✅ | Ya | Ya | **Ya — 23 September 2026** ([laporan](../task/report/backend/BE-IGD-054.md)) | Tidak — build dan uji API belum (milik pemilik) |
 | ✅ `BE-IGD-055` | `FR-IGD-075`…`077`, `085`; `IGD-DEC-143`, `147`, `151`, `161` | `POST start-triage` (Triage/ImmediateCare), idempoten; lahir `FindOpenEpisodeAsync`, `LockPatientEpisodeAsync`; 3 kolom + migration `20260923021224` | API §8.3.2, §8.3.4; val §10.2; state §8.1, §8.3 | `BE-IGD-025` ✅, `BE-IGD-051` ✅ | Ya | Ya | **Ya — 23 September 2026**; build dari artefak, migration diterapkan ke dev, penjaga `Down()` diuji agent di basis data terpisah ([laporan](../task/report/backend/BE-IGD-055.md)) | **Ya — atas penilaian pemilik** (S1–S15, Development; S6 ditegaskan serentak; lampiran hanya S13) |
 | `BE-IGD-056` | `FR-IGD-016`…`021`; `IGD-DEC-141` | Dibekukan | **Belum ada** | `BE-IGD-045` ✅; ⛔ `IGD-OQ-102`; ⛔ `IGD-OQ-103` | **Tidak** — `S7` | Sebagian (dibekukan) | Tidak | Tidak |
 | `BE-IGD-057` | `FR-IGD-079`; `IGD-DEC-142` | `POST no-show`, aksi `EmergencyVisit : NoShow` | API §8.3.3; val §10.3; perm §7.1 | `BE-IGD-055` | Ya | Ya | Tidak | Tidak |
 | `BE-IGD-058` | `FR-IGD-078`, `083`; `IGD-DEC-152`, `154`, `159` | `PATCH {id}/arrival-time`; `PUT` mengunci tiga ruas | API §8.3.4, §8.3.5; val §10.4 | `BE-IGD-055` | Ya | Ya | Tidak | Tidak |
 | `BE-IGD-059` | `FR-IGD-082`; `IGD-DEC-153` | `PATCH …/status` menolak Emergency; `…/cancel` hanya sebelum kunjungan lahir | API §8.1 no.3–4; val §10.1 a.8–9 | `BE-IGD-051`, `BE-IGD-057` | Ya | Ya | Tidak | Tidak |
-| `FE-IGD-035` | `FR-IGD-070` sisi layar | Daftar triage membaca `triage-queue`; label "Terdaftar"/"Tiba" | API §8.3.1; 03 §13.3 B | `BE-IGD-054` | Ya | Ya | Tidak | Tidak |
+| `FE-IGD-035` | `FR-IGD-070` sisi layar | Daftar triage membaca `triage-queue`; label "Terdaftar"/"Tiba" | API §8.3.1; 03 §13.3 B | `BE-IGD-054` 🟡 (source siap; build pemilik belum) | Ya | Ya | Tidak | Tidak |
 | `FE-IGD-036` | `FR-IGD-069`, `075`…`077`, `085` sisi layar | Loket berhenti `POST /emergency-visits`; Mulai Triage dan Tangani Segera pada baris tanpa kunjungan | API §8.3.2; 03 §13.3 A–C | `BE-IGD-053`, `055`, `059`, `FE-IGD-035`, `FE-IGD-038` | Ya | Ya | Tidak | Tidak |
 | `FE-IGD-037` | `FR-IGD-016`…`021` sisi layar; `IGD-DEC-141` | Dibekukan | **Belum ada** | `BE-IGD-056` ⛔ | **Tidak** — `S7` | Sebagian (dibekukan) | Tidak | Tidak |
 | `FE-IGD-038` | `FR-IGD-071`, `073` sisi layar; `IGD-DEC-145` | Alasan pendaftaran ganda ke `POST /patient-encounters`; pra-cek membaca `encounter` | API §8.2, §8.3.6; 03 §13.3 A | `BE-IGD-053`, `FE-IGD-034` ✅ | Ya | Ya | Tidak | Tidak |
@@ -548,7 +548,7 @@ Dua keputusan pemilik atas temuan gerbang backlog frontend. **`BE-IGD-049` dan `
 | Requirement | Task backend | Task frontend | Skenario uji | Cakupan |
 | --- | --- | --- | --- | --- |
 | `FR-IGD-069` pendaftaran tanpa kunjungan | `BE-IGD-053` (pintu tanpa antrean) | `FE-IGD-036` | `AT-IGD-166` | Lengkap |
-| `FR-IGD-070` daftar terpadu | `BE-IGD-054` | `FE-IGD-035` | `AT-IGD-167` | Lengkap |
+| `FR-IGD-070` daftar terpadu | `BE-IGD-054` 🟡 | `FE-IGD-035` | `AT-IGD-167` (skenario S1, S2 laporan `BE-IGD-054` §5.2 — belum dijalankan) | Lengkap |
 | `FR-IGD-071` tolak pendaftaran kedua | `BE-IGD-053` | `FE-IGD-038` | `AT-IGD-168`, `185` | Lengkap |
 | `FR-IGD-072` serentak satu episode | `BE-IGD-053` | — | `AT-IGD-169` | Lengkap |
 | `FR-IGD-073` override tercatat | `BE-IGD-053` | `FE-IGD-038` | `AT-IGD-170` | Lengkap |
@@ -562,7 +562,7 @@ Dua keputusan pemilik atas temuan gerbang backlog frontend. **`BE-IGD-049` dan `
 | `FR-IGD-081` hapus lunak / `Outpatient` tertaut | `BE-IGD-051` ✅ | — | `AT-IGD-179` (skenario S6, S7 — lulus menurut pemilik) | Lengkap |
 | `FR-IGD-082` jalur umum Registrasi dibatasi | `BE-IGD-059` | — | `AT-IGD-180` | Lengkap |
 | `FR-IGD-083` identitas kunjungan terkunci | `BE-IGD-058` | — | `AT-IGD-181` | Lengkap |
-| `FR-IGD-084` rekonsiliasi | `BE-IGD-052` 🟡 | — (tanpa layar, `IGD-DEC-162`) | `AT-IGD-182`, `183` (skenario R1–R9 laporan `BE-IGD-052` — belum dijalankan) | Lengkap; acceptance 1 menunggu angka kueri D |
+| `FR-IGD-084` rekonsiliasi | `BE-IGD-052` ✅ | — (tanpa layar, `IGD-DEC-162`) | `AT-IGD-182`, `183` (sepuluh skenario laporan `BE-IGD-052` §5.4 — **lulus menurut pemilik**, penomoran pemilik berbeda dari §5.3; butir §5.3 R5 tidak dilaporkan terpisah) | Lengkap; acceptance 1 ditutup atas pernyataan pemilik bahwa angka pratinjau cocok dengan kueri D |
 | `FR-IGD-085` pasien tanpa identitas | `BE-IGD-055` ✅ (ruas) | `FE-IGD-036` | `AT-IGD-184` (skenario S13 laporan `BE-IGD-055` — **berlampir**: `400` tanpa alias, `201` dengan alias) | Lengkap; praktik lapangan `IGD-UNK-10` belum diketahui |
 | Kelayakan dokter jaga (`EPIC IGD-12`) | `BE-IGD-056` ⛔ | `FE-IGD-037` ⛔ | — | **Gap** — tanpa FR/AT sampai `IGD-OQ-102`/`103` dijawab |
 
@@ -618,7 +618,7 @@ Seluruh `FR-IGD-069`…`085` dan `AT-IGD-166`…`185` terpetakan ke minimal satu
 | Kelayakan dokter jaga | Tanpa FR/AT/kontrak sampai `IGD-OQ-102`/`103` dijawab (`EPIC IGD-12`) |
 | Ruas kunjungan sesudah Tangani Segera | `IGD-DEC-143`: keluhan, cara datang, jenis kasus dilengkapi saat triage susulan — `03-frontend-architecture.md` §13.3 belum menetapkan tempat layarnya. Backend mendukung lewat `PUT` (ruas tak terkunci). Menunggu amendment desain layar; tidak menahan task mana pun |
 | Uji otomatis backend | Proyek test dihapus (`IGD-CAP-43`); seluruh `AT-IGD-166`…`185` sisi backend dibuktikan lewat uji API dan kueri baca-saja pemilik |
-| Angka kueri D | Dibutuhkan acceptance 1 `BE-IGD-052` dan eksekusi rekonsiliasi di tiap lingkungan |
+| Angka kueri D | Acceptance 1 `BE-IGD-052` **ditutup** 23 September 2026 atas pernyataan pemilik bahwa angka pratinjau cocok; angkanya tidak tercatat di repo. Masih dibutuhkan untuk **eksekusi rekonsiliasi di tiap lingkungan** — termasuk memastikan `expectedCount` = 0 sebelum `BE-IGD-053` dirilis di lingkungan itu |
 | Angka kueri A/B `BE-IGD-050` | Masih tanpa angka sejak 21 September 2026 |
 | `IGD-UNK-06` | Jumlah `TrxQueue` lama yang tertaut encounter Emergency — tidak dibersihkan `BE-IGD-053` |
 | `IGD-UNK-10` | Praktik lapangan pendaftaran pasien tanpa identitas — memengaruhi `AT-IGD-184` |
