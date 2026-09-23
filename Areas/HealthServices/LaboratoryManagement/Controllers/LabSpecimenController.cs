@@ -37,10 +37,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
     public class LabSpecimenController : ControllerBase
     {
         private readonly LabSpecimenService _labSpecimenService;
+        private readonly LabSpecimenCorrectionService _correctionService;
 
-        public LabSpecimenController(LabSpecimenService labSpecimenService)
+        public LabSpecimenController(
+            LabSpecimenService labSpecimenService,
+            LabSpecimenCorrectionService correctionService)
         {
             _labSpecimenService = labSpecimenService;
+            _correctionService = correctionService;
         }
 
         // Keterangan bentuk layar wadah: pilihan status, sebab ambil ulang, urutan, dan ukuran
@@ -70,8 +74,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             [FromQuery] DateTime? endDate = null,
             CancellationToken cancellationToken = default)
         {
-            var akhir = endDate ?? DateTime.UtcNow;
-            var awal = startDate ?? akhir.AddDays(-30);
+            // Rentang disiapkan sebelum bawaannya dihitung — lihat LabQueryDateRange.
+            var akhir = LabQueryDateRange.NormalizeEnd(endDate) ?? DateTime.UtcNow;
+            var awal = LabQueryDateRange.NormalizeStart(startDate) ?? akhir.AddDays(-30);
 
             if (awal > akhir)
             {
@@ -98,6 +103,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             return Ok(ApiResponse<List<LabRejectionReasonResponse>>.Ok(
                 result,
                 "Katalog alasan penolakan sampel berhasil diambil."));
+        }
+
+        // Daftar penerimaan LINTAS PESANAN (LAB-API-v1 r17, FR-11.5, AC-67).
+        //
+        // Rentangnya disaring pada waktu kedatangan SEBENARNYA — PhysicallyReceivedAt bila
+        // dicatat, CreateDateTime bila tidak — sehingga wadah yang tiba Senin malam dan baru
+        // diregistrasi Selasa pagi tetap muncul pada hari Senin (LAB-DEC-042).
+        [HttpGet]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<LabSpecimenListResponse>>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Lab Specimen", Description = "Melihat daftar penerimaan wadah lintas pesanan", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabSpecimen", "Read")]
+        public async Task<IActionResult> GetList(
+            [FromQuery] LabSpecimenPagedQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            (query.StartDate, query.EndDate) =
+                LabQueryDateRange.Normalize(query.StartDate, query.EndDate);
+
+            var result = await _labSpecimenService.GetListAsync(query, cancellationToken);
+
+            return Ok(ApiResponse<PagedResult<LabSpecimenListResponse>>.Ok(
+                result,
+                "Daftar penerimaan wadah berhasil diambil."));
         }
 
         [HttpGet("by-order/{labOrderId:guid}")]
@@ -348,9 +376,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
                 SpecimenBarcode = specimen.SpecimenBarcode,
                 SpecimenSequence = specimen.SpecimenSequence,
                 SpecimenDescription = specimen.SpecimenDescription,
+                SpecimenTypeId = specimen.SpecimenTypeId,
+                SpecimenTypeName = specimen.SpecimenType?.SpecimenTypeName,
+                SpecimenTypeOtherNote = specimen.SpecimenTypeOtherNote,
+                VolumeAmount = specimen.VolumeAmount,
+                VolumeUnitId = specimen.VolumeUnitId,
+                VolumeUnitSymbol = specimen.VolumeUnit?.MeasurementSymbol,
                 SpecimenStatus = specimen.SpecimenStatus.ToString(),
                 CollectedAt = specimen.CollectedAt,
                 ReceivedAt = specimen.ReceivedAt,
+                PhysicallyReceivedAt = specimen.PhysicallyReceivedAt,
                 DecidedAt = specimen.DecidedAt,
                 RejectionReasonCode = specimen.RejectionReasonCode,
                 RejectionNote = specimen.RejectionNote,
@@ -361,6 +396,75 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
                     ? null
                     : LabOrderService.MapHandoff(result.Handoff)
             };
+        }
+
+        // =============================================================
+        // Koreksi Informasi Specimen dari halaman hasil — BE-LAB-57, slice S4b
+        //
+        // PATCH, bukan PUT: halaman hasil mengoreksi SEBAGIAN — biasanya satu ruas yang
+        // keliru. PUT menuntut pemanggil mengirim seluruh isi specimen, dan ruas yang lupa
+        // disertakan akan terhapus diam-diam.
+        //
+        // Endpoint tersendiri, bukan menambah PUT pada daftar aksi di atas: controller ini
+        // murni berisi aksi SIKLUS HIDUP — collect, receive, accept, reject, hold, resume,
+        // cancel. Koreksi ruas bersumbu berbeda, dan /correction membuat perbedaannya
+        // terbaca dari path-nya sendiri.
+        // =============================================================
+
+        [HttpPatch("{id:guid}/correction")]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [AccessAction("Update", "Correct Lab Specimen", Description = "Mengoreksi Informasi Specimen dari halaman hasil", AccessType = AccessTypes.Update, SortOrder = 20)]
+        [AccessPermission("LabSpecimen", "Update")]
+        public async Task<IActionResult> ApplyCorrection(
+            Guid id,
+            [FromBody] LabSpecimenCorrectionRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var jumlah = await _correctionService.ApplyCorrectionAsync(id, request, cancellationToken);
+
+                return Ok(ApiResponse<object>.Ok(
+                    new { RuasBerubah = jumlah },
+                    jumlah == 0
+                        ? "Nol ruas yang berubah."
+                        : $"Informasi Specimen berhasil dikoreksi; {jumlah} ruas tercatat."));
+            }
+            catch (KeyNotFoundException exception)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound, exception.Message));
+            }
+            catch (LabSpecimenCorrectionValidationException exception)
+            {
+                return UnprocessableEntity(ApiResponse<object>.Fail(
+                    StatusCodes.Status422UnprocessableEntity, exception.Message));
+            }
+        }
+
+        [HttpGet("{id:guid}/field-changes")]
+        [ProducesResponseType(typeof(ApiResponse<List<LabFieldChangeResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Lab Specimen Field Changes", Description = "Membaca jejak perubahan ruas specimen", AccessType = AccessTypes.Read, SortOrder = 21)]
+        [AccessPermission("LabSpecimen", "Read")]
+        public async Task<IActionResult> GetFieldChanges(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var result = await _correctionService.GetFieldChangesAsync(id, cancellationToken);
+
+                return Ok(ApiResponse<List<LabFieldChangeResponse>>.Ok(
+                    result, "Jejak perubahan ruas specimen berhasil diambil."));
+            }
+            catch (KeyNotFoundException exception)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound, exception.Message));
+            }
         }
     }
 }

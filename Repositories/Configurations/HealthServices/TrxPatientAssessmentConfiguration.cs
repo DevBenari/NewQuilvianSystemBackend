@@ -479,6 +479,36 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices
                     x => new { x.InpEpisodeId, x.AssessmentType },
                     "IX_TrxPatientAssessment_Episode_Type_Active")
                 .HasFilter("\"AssessmentType\" = 0 AND \"IsDelete\" = false");
+
+            // =========================================================================
+            // BE-RWI-110 / migration K3 - keadaan nyeri, kajian ulang nyeri, rujukan tanda vital
+            // =========================================================================
+            // Kajian Umum MENUNJUK satu baris tanda vital, tidak menyalin angkanya (INV-KEP-04).
+            // SetNull: bila baris tanda vital suatu hari benar-benar dihapus secara fisik, kajian
+            // tetap utuh dan hanya kehilangan rujukannya.
+            entity.Property(x => x.PainAssessmentState)
+                .HasConversion<int>()
+                .IsRequired();
+
+            entity.Property(x => x.PainReassessmentDueAt)
+                .HasColumnType("timestamp with time zone")
+                .IsRequired(false);
+
+            entity.Property(x => x.VitalSignId)
+                .IsRequired(false);
+
+            entity.HasOne<TrxPatientVitalSign>()
+                .WithMany()
+                .HasForeignKey(x => x.VitalSignId)
+                .HasConstraintName("FK_TrxPatientAssessment_VitalSignId")
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasIndex(x => x.VitalSignId, "IX_TrxPatientAssessment_VitalSignId");
+
+            entity.HasIndex(
+                    x => new { x.InpEpisodeId, x.PainReassessmentDueAt },
+                    "IX_TrxPatientAssessment_Episode_PainDue")
+                .HasFilter("\"PainReassessmentDueAt\" IS NOT NULL AND \"IsDelete\" = false");
         }
     }
 }

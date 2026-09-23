@@ -3,8 +3,9 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-STATE-v1` |
-| Revision | `2` |
-| Status | `approved` — dikunci 2026-09-02 |
+| Revision | `3` |
+| Status | `approved` — `r2` dikunci 2026-09-02; **amandemen `r3` disetujui pemilik modul 2026-09-15** lewat `LAB-DEC-061` dan `LAB-DEC-063` |
+| Isi amandemen `r3` | **Status `Confirmed` masuk sebagai status pesanan antara `Requested` dan `Accepted`**, beserta konfirmator, waktu konfirmasi, dan dokter pemeriksa. Konfirmasi hanya sah sekali. **Pembatalan dipersempit** menjadi hanya sah pada `Requested` dan `Confirmed`, dan wajib beralasan. Jalur `Requested` → `Accepted` **tidak dicabut** — lihat bagian 1a |
 | Batas penguncian | **Terkunci penuh sejak 2026-09-02.** `LAB-OPEN-021` dijawab: penamaan memakai prefix `Lab`, sehingga tidak ada lagi bagian yang dikecualikan |
 | Owner | Yoga Aji Pratama |
 | `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-02 |
@@ -59,6 +60,59 @@ pemeriksaan, serta menghasilkan satu baris riwayat berlingkup `LabExamination`.
 **Yang belum diputuskan:** apakah penanda cito dan duplo berdampak pada tarif. Dicatat sebagai
 `LAB-OPEN-013`. Selama belum diputuskan, keduanya **tidak** mengubah salinan tarif pada baris
 pemeriksaan.
+
+---
+
+
+## 1a. Amandemen `r3` — Status `Confirmed`, 2026-09-15
+
+**Disetujui pemilik modul 2026-09-15** lewat `LAB-DEC-061`, menutup bagian `LAB-P0-002` yang
+paling sering ditanyakan: di mana `Confirmed` berdiri.
+
+### Transisi yang sah — tambahan
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| `Requested` | Mengonfirmasi pesanan | `Confirmed` | Petugas laboratorium berwenang mengonfirmasi | Dokter pemeriksa sudah dipilih | `409` bila status bukan `Requested` |
+| `Confirmed` | Wadah pertama dinyatakan layak | `Accepted` | Turunan otomatis sistem | Ada wadah berstatus layak | — |
+
+### Transisi yang **tidak sah** dan wajib ditolak — tambahan
+
+| Dari status | Tindakan | Alasan penolakan | Kode |
+|---|---|---|---|
+| `Confirmed` | Mengonfirmasi lagi | Konfirmasi hanya sah sekali | `409` |
+| `Accepted`, `InProcess`, `Completed`, `Cancelled` | Mengonfirmasi | Pesanan sudah melewati tahap konfirmasi | `409` |
+| `InProcess`, `Completed`, `Cancelled` | Membatalkan | Pembatalan hanya sah pada `Requested` dan `Confirmed` (`LAB-DEC-063`) | `409` |
+
+### `Requested` → `Accepted` **tetap sah**, dan itu keputusan sadar
+
+Jalur lama tidak dicabut. Pesanan yang tidak pernah dikonfirmasi tetap dapat mencapai `Accepted`
+ketika wadah pertamanya dinyatakan layak.
+
+**Alasannya bukan kemalasan.** Menjadikan `Confirmed` wajib berarti mengetatkan jalur yang sedang
+dipakai: seluruh pesanan yang hari ini berstatus `Requested` — dan seluruh wadah yang sedang
+berjalan di atasnya — akan berhenti dapat diproses sampai seseorang mengonfirmasinya satu per
+satu. `BE-LAB-21` sudah menunjukkan berapa mahal harga pengetatan diam-diam pada endpoint yang
+sedang dipakai.
+
+**Apakah konfirmasi kelak menjadi wajib adalah keputusan tersendiri**, dan ia menuntut dua hal
+yang belum ada: perlakuan atas pesanan yang sedang berjalan, dan kepastian bahwa setiap jalur
+pembuat pesanan melewati layar yang punya tombol Konfirmasi. Dicatat sebagai `LAB-OPEN-027`.
+
+### Pembatalan — batas barunya
+
+| Dari status | Tindakan | Ke status | Syarat |
+|---|---|---|---|
+| `Requested`, `Confirmed` | Membatalkan | `Cancelled` | **Alasan pembatalan wajib terisi** (`LAB-DEC-063`) |
+
+Baris "Selain `Cancelled`, `Completed` → Membatalkan" pada bagian 1 **dipersempit** oleh baris
+ini. Pembatalan dari `Accepted`, `InProcess`, atau `OnHold` **tidak lagi sah**.
+
+> **Ini satu-satunya pengetatan pada amandemen `r3`, dan ia disengaja.** Pesanan yang wadahnya
+> sudah dinyatakan layak berarti bahan pasien sudah diambil dan pekerjaan sudah dimulai;
+> membatalkannya bukan lagi pembatalan melainkan koreksi — dan aturan koreksi belum diputuskan
+> (`LAB-P0-003` tetap terbuka untuk bagian itu). Dampaknya pada data berjalan wajib diperiksa
+> sebelum ditegakkan.
 
 ---
 

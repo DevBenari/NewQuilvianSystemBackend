@@ -829,3 +829,71 @@ Base URL: `api/v1/health-services/billing-management/petty-cash/budget`
 **Bentuk `PettyCashOverviewResponse`** memuat `activeBudget` (satu `PettyCashBudgetResponse`), `pendingEvidenceCount` (jumlah voucher `CASH_RECEIVED`), `pendingDisbursementCount` (jumlah voucher `REQUESTED`), dan `totalDisbursedThisPeriod`. Layar **MUST NOT** menjumlahkan kelima angka ini sendiri dari daftar voucher.
 
 **Kode status:** sama dengan amendment 7 September, ditambah `422` untuk `BIL-VAL-098`–`BIL-VAL-105`.
+
+---
+
+## Amendment 18 September 2026 — Penutupan gap `FINAL`→`CLOSED`
+
+`last_changed_in: BIL-API-1.2` · status **approved** (`BKC-DEC-105`, 18 September 2026) · input: **`BKC-DEC-100`–`BKC-DEC-102`**; keputusan arsitektur `BKC-DES-028`–`BKC-DES-035`.
+
+### Nol endpoint baru, nol endpoint berubah bentuk, nol endpoint dihapus
+
+Amendment ini **tidak menyentuh satu pun tanda tangan API**. Tidak ada rute baru, tidak ada method baru, tidak ada field request maupun response yang ditambah, diganti nama, atau dihapus. Sumbu `api` tetap dinaikkan karena **nilai** yang mengalir lewat kontrak yang sudah ada berubah, dan perubahan nilai justru jenis perubahan yang paling sulit ditemukan konsumen.
+
+### Perubahan nilai yang MUST disosialisasikan
+
+| Field | Endpoint yang mengembalikannya | Hari ini | Sesudah amendment ini |
+| --- | --- | --- | --- |
+| `status` | Seluruh endpoint yang mengembalikan invoice (daftar tagihan berjalan, detail tagihan, ringkasan kasir, riwayat pembayaran) | Praktis tidak pernah bernilai `CLOSED` pada alur normal — invoice lunas berhenti di `FINAL` | Bernilai `CLOSED` segera sesudah sisa tagihan pasien mencapai nol, dan dapat **kembali** ke `FINAL` bila sisa tagihan naik lagi |
+| `closedAt` | Sama seperti di atas | **Selalu kosong** — tidak ada satu pun baris kode yang pernah mengisinya | Terisi waktu peristiwa pelunasan; kosong kembali bila invoice terbuka lagi |
+
+Kedua field sudah ada pada `BillingInvoiceDtos` sejak sebelum amendment ini. Konsumen yang **tidak** diperbarui tetap berjalan — tidak ada yang rusak bentuknya. Yang perlu diperiksa konsumen adalah **asumsinya**: setiap tempat yang memperlakukan `FINAL` sebagai "keadaan akhir tagihan yang sudah dibayar" perlu membaca `CLOSED` juga, dan setiap tempat yang mengandaikan `closedAt` selalu kosong perlu berhenti mengandaikannya.
+
+### Konsumen frontend — nol perubahan yang dibutuhkan
+
+Pemeriksaan langsung pada `billing-invoice-constants.js` (§ 21 capability map) menemukan `CLOSED` **sudah** terdaftar pada opsi filter status maupun pada peta badge, sehingga daftar tagihan, filter, dan badge bekerja apa adanya tanpa satu baris perubahan. Satu butir yang **MUST** diverifikasi ulang saat implementasi: perbaikan `isFinal`/`CLOSED` pada `FE-BKC-009` (dicatat selesai 30 Agustus 2026) memang mencakup invoice yang **baru** berpindah ke `CLOSED`, bukan hanya yang sudah `CLOSED` sejak awal.
+
+### Perubahan yang merusak konsumen
+
+**Tidak ada.** Berbeda dari amendment 15 September 2026 (revisi Petty Cash) yang menghapus endpoint, butir hak akses, dan field response, amendment ini sepenuhnya aditif pada tingkat bentuk.
+
+Trace **`BKC-DEC-100`–`102`**, `BKC-DES-028`–`035`. Tests `BIL-AT-121`–`BIL-AT-134`.
+
+---
+
+## Amendment 21 September 2026 — Permukaan operasional penerbitan fakta
+
+`last_changed_in: BIL-API-1.3` · status **draft** · input `BKC-DEC-106`–`109`, `BKC-DES-036`–`041`.
+
+### Health Services / Billing Management / Consumer Handoff
+
+Base URL: `api/v1/health-services/billing-management/consumer-handoffs`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `GET` | `/pending` | Melihat surat yang belum diambil konsumen, disaring jenis dan rentang waktu | `BillingConsumerHandoff : Read` | `PendingHandoffQuery` (query string) | `ApiResponse<PagedResult<PendingHandoffResponse>>` | **Rencana (belum tersedia)** |
+| `PATCH` | `/{id}/acknowledge` | Mencatat bahwa konsumen sudah mengambil suratnya | `BillingConsumerHandoff : Acknowledge` | `AcknowledgeHandoffRequest` | `ApiResponse<HandoffResponse>` | **Rencana (belum tersedia)** |
+
+Kode status:
+
+| Kode | Arti bagi pengguna |
+| --- | --- |
+| `200` | Berhasil |
+| `400` | Penyaring tidak sah, misalnya rentang waktu terbalik |
+| `403` | Pengguna tidak berwenang melihat atau mengakui surat |
+| `404` | Surat dengan identitas itu tidak ada |
+| `409` | Surat sudah pernah diakui sebelumnya; pengakuan kedua tidak mengubah apa pun |
+
+### Yang sengaja tidak menjadi endpoint
+
+| Kemampuan | Bentuknya | Alasan |
+| --- | --- | --- |
+| Pembacaan keadaan clearance resep oleh Farmasi | Pemanggilan langsung di dalam proses yang sama | `BKC-DES-040`. Konsisten `BIL-INT-010`–`012`; modul ini satu assembly. HTTP antar modul akan menambah mode gagal tanpa menambah kemampuan |
+| Penerbitan surat | Tidak ada permukaan sama sekali | Penerbitan dipicu peristiwa finansial di dalam transaksi, **MUST NOT** dapat dipanggil manusia. Surat yang dapat diterbitkan manual adalah surat yang dapat dipalsukan |
+| Penarikan atau penghapusan surat | Tidak ada | Baris bersifat tetap (`BKC-DEC-109`). Koreksi berupa baris baru |
+
+### Dampak pada endpoint yang sudah ada
+
+**Nol.** Tidak ada endpoint lama yang berubah bentuk, bertambah field, maupun berubah arti.
+
+Trace `BKC-DEC-106`–`109`, `BKC-DES-036`–`041`. Tests `BIL-AT-141`–`BIL-AT-142`.

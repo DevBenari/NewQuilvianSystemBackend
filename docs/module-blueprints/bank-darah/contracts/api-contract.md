@@ -61,6 +61,7 @@ Master lokasi penyimpanan darah milik BDRS (`DEC-BD-035`). **Bukan** cold storag
 | `POST` | `/` | Tambah lokasi penyimpanan darah | `BloodStorageLocation : Create` | `CreateBloodStorageLocationRequest` | `ApiResponse<BloodStorageLocationDto>` | Rencana · `422 VAL-BD-067` |
 | `PUT` | `/{id}` | Ubah kode, nama, keterangan | `BloodStorageLocation : Update` | `UpdateBloodStorageLocationRequest` | `ApiResponse<BloodStorageLocationDto>` | Rencana · `422 VAL-BD-067` |
 | `PATCH` | `/{id}/status` | **Aktifkan atau nonaktifkan lokasi** (`DEC-BD-037`) | `BloodStorageLocation : Update` | `SetActiveStatusRequest` | `ApiResponse<BloodStorageLocationDto>` | Rencana · `200 VAL-BD-068` |
+| `DELETE` | `/{id}` | Tandai lokasi terhapus (soft delete) — untuk keadaan sehari-hari **menonaktifkan tetap lebih tepat** | `BloodStorageLocation : Delete` | — | `ApiResponse<bool>` | **Terimplementasi `BE-BD-014`** — baris disinkronkan `BE-BD-016` 17 September 2026 |
 
 `GET /options` sengaja menyaring hanya lokasi aktif, sehingga frontend tidak perlu menyaring sendiri dan
 tidak mungkin menawarkan lokasi nonaktif sebagai tujuan penyimpanan (`INV-BD-027`).
@@ -105,18 +106,32 @@ Base URL: `api/v1/health-services/blood-bank-management/blood-units`
 | `POST` | `/{id}/allocate` | Alokasikan kantong ke satu baris kebutuhan | `BloodUnit : Allocate` | `AllocateUnitRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana · `409 VAL-BD-018c` · `422 VAL-BD-033/063/064` |
 | `POST` | `/{id}/cancel-allocation` | Batalkan alokasi keliru sebelum pemberian (`DEC-BD-029`) | `BloodUnit : Allocate` | `CancelWithReasonRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana · `422 VAL-BD-023` |
 | `POST` | `/{id}/compatibility-evidence` | Catat bukti kecocokan terhadap pasien tujuan, **beserta hasil keputusannya** (`DEC-BD-042`) | `BloodUnit : Compatibility` | `RecordEvidenceRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana · `403 VAL-BD-078` · `422 VAL-BD-079` |
-| `POST` | `/{id}/issue` | Berikan kantong kepada pasien | `BloodUnit : Issue` | `IssueUnitRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana · `422 VAL-BD-017/018/019/020/065/079` |
+| `POST` | `/{id}/issue` | Berikan kantong kepada pasien | `BloodUnit : Issue` | `IssueUnitRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana · `422 VAL-BD-017/018/019/020/020b/065/079` |
 | `POST` | `/{id}/emergency-issue` | Berikan lewat jalur darurat, melewati gerbang bukti dan/atau lokasi nonaktif (`DEC-BD-017`, `DEC-BD-038`). Penerbit **Dokter BDRS atau DPJP** (`DEC-BD-040`) | `BloodUnit : EmergencyIssue` | `EmergencyIssueRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana · `403 VAL-BD-021/072` · `422 VAL-BD-066/070/071` |
-| `POST` | `/{id}/corrections` | **Ajukan** koreksi pencatatan pemberian; koreksi belum berlaku (`DEC-BD-041`) | `BloodUnit : Correct` | `RequestIssuanceCorrectionRequest` | `ApiResponse<IssuanceCorrectionDto>` | Rencana · `403 VAL-BD-024` · `422 VAL-BD-025/049/076` |
-| `POST` | `/{id}/corrections/{correctionId}/approve` | **Setujui** koreksi; sejak saat ini koreksi berlaku dan pemenuhan dihitung ulang | `BloodUnit : ApproveCorrection` | `DecideCorrectionRequest` | `ApiResponse<IssuanceCorrectionDto>` | Rencana · `403 VAL-BD-074` · `422 VAL-BD-073/075` |
-| `POST` | `/{id}/corrections/{correctionId}/reject` | **Tolak** koreksi; rekam tidak berubah sama sekali | `BloodUnit : ApproveCorrection` | `DecideCorrectionRequest` | `ApiResponse<IssuanceCorrectionDto>` | Rencana · `403 VAL-BD-074` · `422 VAL-BD-073/075/077` |
-| `GET` | `/{id}/corrections` | Daftar koreksi pada kantong ini beserta keadaannya | `BloodUnit : Read` | — | `ApiResponse<List<IssuanceCorrectionDto>>` | Rencana |
-| `POST` | `/{id}/reallocate` | Alihkan kantong `PendingReview` ke pasien lain | **`BloodUnit : ResolveReallocate`** | `ReallocateUnitRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana · `403 VAL-BD-080` · `422 VAL-BD-016/064` |
-| `POST` | `/{id}/return-to-provider` | Kembalikan kantong ke PMI | **`BloodUnit : ResolveReturn`** | `ResolveWithReasonRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana · `403 VAL-BD-081` |
-| `POST` | `/{id}/mark-not-usable` | Nyatakan kantong tidak layak | **`BloodUnit : ResolveNotUsable`** | `ResolveWithReasonRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana · `403 VAL-BD-082` |
+| `POST` | `/{id}/corrections` | **Ajukan** koreksi pencatatan pemberian; koreksi belum berlaku (`DEC-BD-041`) | `BloodUnit : Correct` | `RequestIssuanceCorrectionRequest` | `ApiResponse<IssuanceCorrectionDto>` | **Terimplementasi `BE-BD-010`** · `400 VAL-BD-016` · `403 VAL-BD-024` · `422 VAL-BD-025/049/076` |
+| `POST` | `/{id}/corrections/{correctionId}/approve` | **Setujui** koreksi; sejak saat ini koreksi berlaku dan pemenuhan dihitung ulang | `BloodUnit : ApproveCorrection` | `DecideCorrectionRequest` | `ApiResponse<IssuanceCorrectionDto>` | **Terimplementasi `BE-BD-010`** · `403 VAL-BD-074` · `422 VAL-BD-073/075` |
+| `POST` | `/{id}/corrections/{correctionId}/reject` | **Tolak** koreksi; rekam tidak berubah sama sekali | `BloodUnit : ApproveCorrection` | `DecideCorrectionRequest` | `ApiResponse<IssuanceCorrectionDto>` | **Terimplementasi `BE-BD-010`** · `403 VAL-BD-074` · `422 VAL-BD-073/075/077` |
+| `GET` | `/{id}/corrections` | Daftar koreksi pada kantong ini beserta keadaannya | `BloodUnit : Read` | — | `ApiResponse<List<IssuanceCorrectionDto>>` | **Terimplementasi `BE-BD-010`** |
+| `POST` | `/{id}/reallocate` | Alihkan kantong `PendingReview` ke pasien lain | **`BloodUnit : ResolveReallocate`** | `ReallocateUnitRequest` | `ApiResponse<BloodUnitDetailDto>` | **Terimplementasi `BE-BD-009`** · `400 VAL-BD-016` · `403 VAL-BD-080` · `422 VAL-BD-064` |
+| `POST` | `/{id}/return-to-provider` | Kembalikan kantong ke PMI | **`BloodUnit : ResolveReturn`** | `ResolveWithReasonRequest` | `ApiResponse<BloodUnitDetailDto>` | **Terimplementasi `BE-BD-009`** · `400 VAL-BD-016` · `403 VAL-BD-081` |
+| `POST` | `/{id}/mark-not-usable` | Nyatakan kantong tidak layak | **`BloodUnit : ResolveNotUsable`** | `ResolveWithReasonRequest` | `ApiResponse<BloodUnitDetailDto>` | **Terimplementasi `BE-BD-009`** · `400 VAL-BD-016` · `403 VAL-BD-082` |
 
 Pemberian (`issue`/`emergency-issue`) tidak dapat dibatalkan — status terminal. Koreksi tidak
-memindahkan kantong keluar dari `Issued` (`VAL-BD-049`).
+memindahkan kantong keluar dari `Issued` dan tidak dapat dipakai memindahkan pemberian ke pasien lain
+(`422 VAL-BD-049`, `DEC-BD-052`). Sesudah koreksi disetujui kantong **tetap `Issued`**; penanganan fisik
+kantong yang ternyata masih ada berada di luar jalur koreksi (`DEC-BD-051`).
+
+**Isian penjaga request-only pada `RequestIssuanceCorrectionRequest` (`DEC-BD-053`).** Selain isian yang
+disimpan — `WhatWasWrong`, `WhatIsCorrect`, `ReasonCode`, `SupportingEvidenceNote` — body boleh membawa dua
+isian penjaga: `AnnulIssuance` (`bool?`) dan `IssuedToPatientId` (`Guid?`). Keduanya **penjaga transport/request
+saja**: **tidak pernah disimpan** dan **bukan** kolom `BbkIssuanceCorrection`. `AnnulIssuance: true` →
+`422 VAL-BD-025`; `IssuedToPatientId` diisi dan berbeda dari penerima pemberian asal → `422 VAL-BD-049`.
+Pelaku, waktu, status koreksi, dan pemutus tidak pernah diterima dari body.
+
+**Efek koreksi terhadap pemenuhan (`DEC-BD-054`).** Ringkasan pemenuhan `BD-DOM-17`
+(`GET /blood-orders/{id}/fulfillment`) menghitung kantong `Issued` nyata. Kantong dengan koreksi `Approved`
+**dikeluarkan** dari jumlah diberikan; koreksi `Requested` dan `Rejected` **tidak** memengaruhinya. Pemberian
+asal, status `Issued`, dan penerima tidak berubah.
 
 **Tiga endpoint penyelesaian, tiga butir hak akses berbeda (`DEC-BD-043`).** Ketiganya berangkat dari
 `PendingReview` tetapi arah risikonya berlawanan: pengalihan **memasukkan** darah ke tubuh pasien baru,
@@ -124,6 +139,14 @@ sedangkan pengembalian dan penetapan tidak layak **mengeluarkan** darah dari per
 `Resolve` untuk ketiganya berarti siapa pun yang boleh membuang kantong rusak otomatis boleh
 mengalihkan darah ke pasien lain — dan itu justru tindakan paling berisiko di antara ketiganya.
 Endpoint-nya sendiri **tidak berubah**; yang berubah hanya penjaganya.
+
+**Sinkronisasi HTTP penolakan penyelesaian — `BE-BD-009`, 17 September 2026.** Baris `reallocate`
+semula mengelompokkan `422 VAL-BD-016/064`. Kode HTTP per kode validasi dimiliki
+[validation-matrix](validation-matrix.md), yang menetapkan **`VAL-BD-016` = `400`** dan
+**`VAL-BD-064` = `422`**; runtime `BE-BD-009` membuktikan keduanya persis demikian pada endpoint ini.
+`VAL-BD-016` juga berlaku pada `return-to-provider` dan `mark-not-usable` — matriks perpindahan
+status §3 sudah mencantumkannya sejak semula, dan runtime membuktikannya. Ini penyelarasan penulisan,
+bukan perubahan aturan.
 
 **Bukti kecocokan kini menyimpan hasil keputusan.** `RecordEvidenceRequest` bertambah satu isian wajib:
 hasilnya cocok atau tidak cocok. Bukti bertanda tidak cocok **tetap tersimpan** dan **tidak** membuka

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Attributes;
@@ -40,12 +41,38 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
 
+        /// <summary>Konteks episode dan deret tanda vital rawat inap — <c>BE-RWI-110</c>, <c>BE-RWI-121</c>.</summary>
+        private readonly InpatientVitalSignService _inpatientVitalSignService;
+
         public PatientVitalSignController(
             ApplicationDbContext dbContext,
-            LoggerService loggerService)
+            LoggerService loggerService,
+            InpatientVitalSignService inpatientVitalSignService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
+            _inpatientVitalSignService = inpatientVitalSignService;
+        }
+
+        /// <summary>Deret tanda vital satu episode rawat inap untuk tabel dan grafik.</summary>
+        /// <remarks>
+        /// <c>BE-RWI-121</c>, <c>FR-KEP-056</c>, api-contract 0.5.0 bagian 7.4. Tanpa rentang → 24 jam
+        /// terakhir; rentang paling panjang 7 hari; terurut waktu observasi.
+        /// </remarks>
+        [HttpGet("episodes/{episodeId:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<List<PatientVitalSignSeriesItem>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Patient Vital Sign", Description = "Melihat deret tanda vital satu perawatan rawat inap", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("PatientVitalSign", "Read")]
+        public async Task<IActionResult> GetEpisodeSeries(
+            Guid episodeId,
+            [FromQuery] DateTime? from = null,
+            [FromQuery] DateTime? to = null,
+            CancellationToken cancellationToken = default)
+        {
+            var hasil = await _inpatientVitalSignService.GetSeriesAsync(episodeId, from, to, cancellationToken);
+            return this.ToActionResult(hasil);
         }
 
         [HttpGet("filters/metadata")]
@@ -461,6 +488,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 ));
             }
 
+            // BE-RWI-110 kriteria 5 / BE-RWI-121 kriteria 1 — VAL-KEP-22c, INV-KEP-04. Episode rawat
+            // inap diisi server dari kunjungannya; isian nyeri ditolak karena tempatnya Monitoring Nyeri.
+            var inpEpisodeId = await _inpatientVitalSignService.FindInpatientEpisodeIdAsync(context.EncounterId);
+
+            if (inpEpisodeId.HasValue &&
+                InpatientVitalSignService.HasPainFields(request.HasPain, request.PainScale, request.PainLocation, request.PainNote))
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    InpatientVitalSignService.PenolakanNyeriPadaTandaVital,
+                    new { code = "PAIN_NOT_ALLOWED_ON_VITAL_SIGN" }));
+            }
+
             var calculated = CalculateVitalSignValues(request);
 
             var entity = new TrxPatientVitalSign
@@ -536,6 +576,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             NormalizeVitalSignData(entity);
 
+            if (inpEpisodeId.HasValue)
+            {
+                entity.InpEpisodeId = inpEpisodeId.Value;
+                entity.VitalSignSource = PatientVitalSignSource.InpatientObservation;
+            }
+
             _dbContext.Set<TrxPatientVitalSign>().Add(entity);
             await _dbContext.SaveChangesAsync();
 
@@ -590,6 +636,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                     StatusCodes.Status400BadRequest,
                     validation.ErrorMessage ?? "Data tanda vital pasien tidak valid."
                 ));
+            }
+
+            // BE-RWI-110 kriteria 5 — VAL-KEP-22c berlaku juga saat tanda vital rawat inap diubah.
+            if (entity.InpEpisodeId.HasValue &&
+                InpatientVitalSignService.HasPainFields(request.HasPain, request.PainScale, request.PainLocation, request.PainNote))
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    InpatientVitalSignService.PenolakanNyeriPadaTandaVital,
+                    new { code = "PAIN_NOT_ALLOWED_ON_VITAL_SIGN" }));
             }
 
             var now = DateTime.UtcNow;
@@ -651,6 +707,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             entity.UpdateBy = actorUserId;
 
             NormalizeVitalSignData(entity);
+
+            if (entity.InpEpisodeId.HasValue)
+                entity.VitalSignSource = PatientVitalSignSource.InpatientObservation;
 
             await _dbContext.SaveChangesAsync();
 

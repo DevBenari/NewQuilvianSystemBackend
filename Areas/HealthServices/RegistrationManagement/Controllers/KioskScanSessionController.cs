@@ -263,19 +263,25 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             [FromQuery] Guid? patientId = null,
             [FromQuery] KioskScanSessionStatus? scanStatus = null,
             [FromQuery] bool? isPatientFound = null,
+            [FromQuery] KioskServiceTarget? targetService = null,
             [FromQuery] string? search = null,
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 25)
         {
+            // Argumen bernama, bukan posisional. Penyisipan satu parameter di tengah pada
+            // LAB-REQ-006 sempat memutus pemanggilan ini tanpa mengubah satu baris pun di sini —
+            // kesalahan yang hanya ketahuan karena compiler kebetulan menangkap ketidakcocokan
+            // tipe. Bila tipenya kebetulan cocok, ia akan lolos dan salah diam-diam.
             return await GetSessionOptionsForKiosk(
-                onlyUsableForRegistration,
-                kioskDeviceId,
-                patientId,
-                scanStatus,
-                isPatientFound,
-                search,
-                pageNumber,
-                pageSize);
+                onlyUsableForRegistration: onlyUsableForRegistration,
+                kioskDeviceId: kioskDeviceId,
+                patientId: patientId,
+                scanStatus: scanStatus,
+                isPatientFound: isPatientFound,
+                targetService: targetService,
+                search: search,
+                pageNumber: pageNumber,
+                pageSize: pageSize);
         }
 
         [HttpGet("options")]
@@ -295,6 +301,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             [FromQuery] Guid? patientId = null,
             [FromQuery] KioskScanSessionStatus? scanStatus = null,
             [FromQuery] bool? isPatientFound = null,
+            [FromQuery] KioskServiceTarget? targetService = null,
             [FromQuery] string? search = null,
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 25)
@@ -322,6 +329,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     x.ScanStatus == KioskScanSessionStatus.Success &&
                     !x.IsCancel);
             }
+
+            // LAB-REQ-006. Penyaring tujuan layanan, supaya petugas setiap unit melihat sesi yang
+            // menunggunya saja. Dibiarkan kosong berarti seluruh tujuan ikut — sehingga pemanggil
+            // yang sudah ada tidak berubah perilakunya sama sekali.
+            //
+            // Jalur baca terpisah SENGAJA tidak dibuat: endpoint ini sudah mengembalikan sesi
+            // yang berhasil dipindai, tidak dibatalkan, dan belum dipakai registrasi — persis
+            // yang dibutuhkan. Menambah endpoint kedua hanya akan melahirkan dua definisi
+            // "belum diproses" yang dapat menyimpang diam-diam.
+            if (targetService.HasValue)
+                query = query.Where(x => x.TargetService == targetService.Value);
 
             var totalData = await query.CountAsync();
 
@@ -462,6 +480,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     IsPatientFound = isPatientFound,
                     IsManualInput = request.IsManualInput,
                     IsUsedForRegistration = false,
+                    // LAB-REQ-006 §1.1. Disalin apa adanya, termasuk null: belum ditanyakan
+                    // bukan sama dengan tidak membawa permintaan dokter.
+                    TargetService = request.TargetService,
+                    HasPhysicianRequest = request.HasPhysicianRequest,
                     CreateDateTime = now,
                     CreateBy = actorUserId,
                     IsDelete = false,
@@ -1049,6 +1071,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 return (false, "Sumber scan tidak valid. Gunakan nilai dari endpoint filters/metadata.");
             }
 
+            // LAB-REQ-006 §1.1. Keduanya boleh kosong — kiosk yang belum menanyakan tujuan
+            // layanan tetap berperilaku persis seperti sebelumnya. Yang diperiksa hanya nilai
+            // yang benar-benar dikirim, supaya angka di luar daftar tidak masuk sebagai enum
+            // yang tidak dikenal siapa pun.
+            if (request.TargetService.HasValue &&
+                !Enum.IsDefined(typeof(KioskServiceTarget), request.TargetService.Value))
+            {
+                return (false, "Tujuan layanan tidak valid. Gunakan nilai dari endpoint filters/metadata.");
+            }
+
             if (request.KioskDeviceId.HasValue && request.KioskDeviceId.Value != Guid.Empty)
             {
                 var deviceExists = await _dbContext.Set<MstKioskDevice>()
@@ -1280,6 +1312,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 MemberNumber = entity.MemberNumber,
                 IsPatientFound = entity.IsPatientFound,
                 IsUsedForRegistration = entity.IsUsedForRegistration,
+                TargetService = entity.TargetService,
+                HasPhysicianRequest = entity.HasPhysicianRequest,
                 StartedAt = entity.StartedAt
             };
         }

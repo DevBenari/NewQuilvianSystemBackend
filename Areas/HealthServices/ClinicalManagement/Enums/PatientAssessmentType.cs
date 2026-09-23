@@ -43,6 +43,21 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums
         MedicalInitial = 4,
 
         /// <summary>Kajian medis ulang oleh dokter.</summary>
-        MedicalReassessment = 5
+        MedicalReassessment = 5,
+
+        /// <summary>
+        /// Resiko Jatuh sebagai dokumen tersendiri — <c>BE-RWI-111</c>, <c>FR-KEP-047</c>. Skor dan
+        /// kategorinya dihitung server dari instrumen berversi (<c>BE-RWI-109</c>).
+        /// </summary>
+        FallRisk = 6,
+
+        /// <summary>
+        /// Monitoring Nyeri sebagai dokumen tersendiri — <c>BE-RWI-111</c>. Keadaan nyeri wajib dinilai
+        /// sebelum selesai (<c>VAL-KEP-22a</c>).
+        /// </summary>
+        PainMonitoring = 7,
+
+        /// <summary>Assesment Edukasi sebagai dokumen tersendiri — <c>BE-RWI-111</c>.</summary>
+        EducationAssessment = 8
     }
 }

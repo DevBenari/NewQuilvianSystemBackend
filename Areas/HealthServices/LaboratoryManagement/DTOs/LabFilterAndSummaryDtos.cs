@@ -290,6 +290,47 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         public List<string> SystemFlagFields { get; set; } = new();
     }
 
+    public class LabSpecimenTypeFilterMetadataResponse
+    {
+        public string DateFormat { get; set; } = "yyyy-MM-dd";
+
+        public List<LabSortOptionResponse> SortOptions { get; set; } = new();
+        public List<string> SortDirections { get; set; } = new();
+        public List<int> PageSizeOptions { get; set; } = new();
+        public List<LabQueryParameterInfoResponse> QueryParameters { get; set; } = new();
+
+        public bool SupportsServerSideFiltering { get; set; } = true;
+        public bool SupportsServerSidePaging { get; set; } = true;
+
+        /// <summary>
+        /// Jenis specimen tidak pernah dihapus; ia dinonaktifkan lewat
+        /// <c>PUT /{id}/activation</c>. Jenis yang pernah dipakai menempel pada wadah yang
+        /// sudah tersimpan, dan baris <c>Lainnya</c> yang aktif tidak dapat dinonaktifkan
+        /// selama ia satu-satunya (<c>VAL-63</c>).
+        /// </summary>
+        public bool IsDeletable { get; set; } = false;
+
+        /// <summary>
+        /// Penanda <c>Lainnya</c> tidak dapat disetel dari layar mana pun. Ia lahir dari data
+        /// awal, dan hanya satu baris aktif yang boleh memilikinya (<c>VAL-62</c>).
+        /// </summary>
+        public bool IsOtherBucketEditable { get; set; } = false;
+    }
+
+    public class LabSpecimenTypeSummaryResponse
+    {
+        public int TotalJenis { get; set; }
+        public int Aktif { get; set; }
+        public int Nonaktif { get; set; }
+
+        /// <summary>
+        /// Berapa banyak baris berpenanda <c>Lainnya</c> yang aktif. Nilai sehatnya selalu
+        /// <c>1</c>; <c>0</c> berarti jalan keluar bagi jenis yang belum terdaftar sedang
+        /// tertutup, dan penerimaan sampel aneh akan tertahan.
+        /// </summary>
+        public int JalanKeluarLainnyaAktif { get; set; }
+    }
+
     public class LabRejectionReasonSummaryResponse
     {
         public int TotalAlasan { get; set; }
@@ -303,5 +344,148 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         public int KesalahanInternalRumahSakit { get; set; }
 
         public int WajibDisertaiCatatan { get; set; }
+    }
+
+    /// <summary>
+    /// Bentuk layar data induk breakpoint (<c>LAB-API-v1</c> <c>r30</c>, baseline master data).
+    ///
+    /// <b>Dibuat karena layarnya memang dikonsumsi</b> — <c>FE-LAB-34</c>. <c>QBE-OPT-001</c>
+    /// menyediakan metadata hanya bila ada yang membacanya, dan di sini ada.
+    /// </summary>
+    public class LabSusceptibilityBreakpointFilterMetadataResponse
+    {
+        public string DateFormat { get; set; } = "yyyy-MM-dd";
+
+        public List<LabSortOptionResponse> SortOptions { get; set; } = new();
+
+        public List<string> SortDirections { get; set; } = new();
+
+        public List<int> PageSizeOptions { get; set; } = new();
+
+        public List<LabQueryParameterInfoResponse> QueryParameters { get; set; } = new();
+
+        public bool SupportsServerSideFiltering { get; set; } = true;
+
+        public bool SupportsServerSidePaging { get; set; } = true;
+
+        /// <summary>
+        /// <b>Benar.</b> Rentang breakpoint boleh dinonaktifkan ketika versi pedoman berganti —
+        /// dan menonaktifkan, bukan menghapus, supaya hasil lama tetap dapat dibaca beserta
+        /// rentang yang berlaku saat ia dibuat (<c>LAB-DEC-122</c>).
+        /// </summary>
+        public bool IsDeletable { get; set; } = true;
+    }
+
+    /// <summary>Bentuk layar pemetaan profil Mikrobiologi katalog.</summary>
+    public class LabProcedureMicrobiologyProfileFilterMetadataResponse
+    {
+        public string DateFormat { get; set; } = "yyyy-MM-dd";
+
+        public List<LabSortOptionResponse> SortOptions { get; set; } = new();
+
+        public List<string> SortDirections { get; set; } = new();
+
+        public List<int> PageSizeOptions { get; set; } = new();
+
+        public List<LabQueryParameterInfoResponse> QueryParameters { get; set; } = new();
+
+        public List<LabEnumOptionResponse> CultureTypeOptions { get; set; } = new();
+
+        public List<LabEnumOptionResponse> SusceptibilityMethodOptions { get; set; } = new();
+
+        public bool SupportsServerSideFiltering { get; set; } = true;
+
+        public bool SupportsServerSidePaging { get; set; } = true;
+
+        public bool IsDeletable { get; set; } = true;
+    }
+
+    /// <summary>Ringkasan pemetaan profil Mikrobiologi katalog.</summary>
+    public class LabProcedureMicrobiologyProfileSummaryResponse
+    {
+        public int TotalProfile { get; set; }
+
+        public int ActiveProfile { get; set; }
+
+        public int InactiveProfile { get; set; }
+
+        /// <summary>Pemeriksaan yang tegas ditandai MEMAKAI set bakteri.</summary>
+        public int UsesSusceptibilitySet { get; set; }
+
+        /// <summary>
+        /// Pemeriksaan yang tegas ditandai TIDAK memakai set bakteri.
+        ///
+        /// Angka inilah yang benar-benar menegakkan <c>VAL-118</c>: pemeriksaan yang belum
+        /// diprofilkan tetap menerima isolat, sehingga yang membatasi hanya baris bertanda
+        /// tegas.
+        /// </summary>
+        public int WithoutSusceptibilitySet { get; set; }
+    }
+
+    /// <summary>Baris ringan untuk dropdown profil Mikrobiologi katalog.</summary>
+    public class LabProcedureMicrobiologyProfileOptionResponse
+    {
+        public Guid Id { get; set; }
+
+        public Guid ProcedureId { get; set; }
+
+        public string Label { get; set; } = string.Empty;
+
+        public bool UsesSusceptibilitySet { get; set; }
+    }
+
+    /// <summary>Mengubah status aktif profil saja.</summary>
+    public class LabProcedureMicrobiologyProfileStatusRequest
+    {
+        public bool IsActive { get; set; }
+    }
+
+    /// <summary>
+    /// Bentuk layar data induk organisme Mikrobiologi (<c>FE-LAB-24</c>).
+    ///
+    /// <c>IsDeletable</c> bernilai <b><c>false</c></b>, dan itu satu-satunya hal yang membuat
+    /// metadata ini berbeda dari kembarannya. <c>r24</c> bagian 19.4 menolak <c>DELETE</c> atas
+    /// alasan klinis, dan <c>AC-117</c> menuntut layarnya nol menampilkan tombol Hapus. Layar
+    /// membaca penanda ini alih-alih menebak dari ada-tidaknya endpoint.
+    /// </summary>
+    public class LabOrganismFilterMetadataResponse
+    {
+        public string DateFormat { get; set; } = "yyyy-MM-dd";
+
+        public List<LabSortOptionResponse> SortOptions { get; set; } = new();
+
+        public List<string> SortDirections { get; set; } = new();
+
+        public List<int> PageSizeOptions { get; set; } = new();
+
+        public List<LabQueryParameterInfoResponse> QueryParameters { get; set; } = new();
+
+        public bool SupportsServerSideFiltering { get; set; } = true;
+
+        public bool SupportsServerSidePaging { get; set; } = true;
+
+        /// <summary><b>Salah, dan disengaja.</b> Menghapus organisme berarti menghapus temuan pasien.</summary>
+        public bool IsDeletable { get; set; }
+    }
+
+    /// <summary>Bentuk layar panel uji antibiotik (<c>FE-LAB-24</c>).</summary>
+    public class LabAntibioticFilterMetadataResponse
+    {
+        public string DateFormat { get; set; } = "yyyy-MM-dd";
+
+        public List<LabSortOptionResponse> SortOptions { get; set; } = new();
+
+        public List<string> SortDirections { get; set; } = new();
+
+        public List<int> PageSizeOptions { get; set; } = new();
+
+        public List<LabQueryParameterInfoResponse> QueryParameters { get; set; } = new();
+
+        public bool SupportsServerSideFiltering { get; set; } = true;
+
+        public bool SupportsServerSidePaging { get; set; } = true;
+
+        /// <summary><b>Salah, dan disengaja.</b> Sama seperti organisme — baris lama tetap dirujuk hasil.</summary>
+        public bool IsDeletable { get; set; }
     }
 }

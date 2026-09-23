@@ -379,3 +379,94 @@ Tidak berubah bentuknya. Yang bertambah: perintah `RETURNED` dan `REVERSED` pada
 ### Kolom sensitif
 
 Bertambah satu: `BilPettyCashVoucher.ReversalReason` bertanda **Sensitif** dan **MUST NOT** masuk payload custom logger, mengikuti perlakuan `Reason` pada ledger dan `Purpose` pada voucher.
+
+---
+
+## Amendment 18 September 2026 — Penutupan gap `FINAL`→`CLOSED`
+
+`last_changed_in: BIL-PERMISSION-1.0` · status **approved** (`BKC-DEC-105`, 18 September 2026) · input: **`BKC-DEC-100`–`BKC-DEC-102`**; keputusan arsitektur `BKC-DES-028`–`BKC-DES-035`.
+
+### Hak akses — nol butir baru, nol butir dihapus
+
+Amendment ini tidak menambah satu pun butir `[AccessPermission(...)]`, tidak menghapus satu pun, dan tidak mengubah satu pun atribut hak akses yang sudah terpasang. Sebabnya lurus: perpindahan `FINAL`↔`CLOSED` dijalankan **Sistem** (`BKC-DEC-100`), bukan oleh perintah pengguna, sehingga tidak ada endpoint baru yang perlu dijaga.
+
+Hak akses tetap diperiksa di pintu masuk peristiwa yang memicunya, dan seluruh pemeriksaan itu sudah ada hari ini:
+
+| Peristiwa pemicu | Pemeriksaan hak akses yang sudah berlaku di pintu masuknya |
+| --- | --- |
+| Rekonsiliasi tender (pembayaran) | Butir hak akses pada endpoint rekonsiliasi settlement yang sudah tercatat di tabel dokumen ini |
+| Alokasi deposit pasien ke invoice | Butir hak akses pada endpoint alokasi dana pasien yang sudah tercatat |
+| Penyesuaian dan write-off beserta kedua jalur pembalikannya | Butir `BillingFinancialException`/write-off yang sudah tercatat |
+
+Tidak ada peran yang perlu diberi butir baru, dan tidak ada peran yang kehilangan kemampuan. Implementer **MUST** memakai butir yang sudah ada apa adanya, **MUST NOT** menambahkan pemeriksaan hak akses baru di dalam service penyelarasan — service itu tidak pernah menjadi pintu masuk permintaan pengguna.
+
+### Audit
+
+Satu jenis catatan audit baru, mengikuti pola yang sudah dipakai modul ini:
+
+| Peristiwa | Kategori | Isi payload | Dicatat logger |
+| --- | --- | --- | :---: |
+| Invoice berpindah `FINAL` → `CLOSED` atau `CLOSED` → `FINAL` | `HealthServices.BillingManagement.Billing` | `InvoiceId`, status sebelum, status sesudah, sisa tagihan yang terhitung, waktu peristiwa, `ActorUserId` | Ya |
+
+Catatan itu ditulis **sesudah** transaksi peristiwanya berhasil di-commit, mengikuti pola `AuditTenderResultAsync` dan `AuditCorrectionAsync` yang sudah ada — sehingga tidak pernah ada baris audit untuk perpindahan yang ternyata dibatalkan.
+
+`ActorUserId` diisi pengguna yang menjalankan peristiwa pemicunya (kasir yang menerima pembayaran, petugas yang memposting penyesuaian), **bukan** identitas sistem — karena memang tindakan merekalah yang menyebabkan perpindahan itu. Ini juga yang membuat catatan audit dapat menjawab "siapa yang menyebabkan tagihan ini tertutup", pertanyaan yang tidak terjawab bila pelakunya ditulis sebagai sistem.
+
+### Kolom sensitif
+
+Tidak bertambah. Payload audit di atas **MUST NOT** memuat identitas pasien, nomor polis, nomor kartu, maupun payload provider — konsisten dengan aturan yang sudah berlaku pada dokumen ini.
+
+Trace **`BKC-DEC-100`–`102`**, `BKC-DES-028`–`035`.
+
+---
+
+## Amendment 21 September 2026 — Kewenangan atas penerbitan fakta ke modul konsumen
+
+`last_changed_in: BIL-PERMISSION-1.1` · status **draft** · input `BKC-DEC-106`–`109`.
+
+### Butir hak akses baru
+
+Satu Resource baru, `BillingConsumerHandoff`, dengan dua Action. Pemetaan endpoint ke hak
+aksesnya dipegang kolom `Hak akses` pada `api-contract.md` dan **tidak** didaftar ulang di sini.
+
+| Peran rumah sakit | `Read` | `Acknowledge` | Alasan |
+| --- | :---: | :---: | --- |
+| Petugas Billing / Kepala Kasir | Ya | Tidak | Perlu melihat apakah ada surat menggantung; tidak perlu mengakui atas nama konsumen |
+| Finance Operations | Ya | Ya | Konsumen sah surat penerimaan uang |
+| Petugas Farmasi | Tidak | Tidak | Farmasi tidak memakai permukaan ini sama sekali; ia membaca lewat pemanggilan dalam proses |
+| Administrator sistem | Ya | Ya | Pemulihan saat konsumen bermasalah |
+
+### Kewenangan yang **tidak** dapat dijaga mesin hak akses
+
+| Yang tidak dijaga | Risikonya | Penjaga penggantinya |
+| --- | --- | --- |
+| Penerbitan surat | Tidak ada permukaan yang dapat dipanggil manusia, sehingga tidak ada yang perlu dijaga hak akses. Ini justru penjaganya | Penerbitan hanya terjadi di dalam transaksi peristiwa finansial. Surat yang dapat diterbitkan manual adalah surat yang dapat dipalsukan |
+| Kebenaran isi surat | Mesin hak akses tidak dapat menilai apakah nominal yang disalin benar | Nominal disalin apa adanya dari tender; Billing **MUST NOT** menghitung ulang, dan konsumen **MUST NOT** menghitung ulang |
+| Pengakuan yang diberikan terlalu dini | Konsumen dapat mengakui surat sebelum benar-benar memprosesnya, lalu kehilangan isinya | Tidak dijaga mesin. Karena itu `BKC-DEC-108` sengaja **tidak** menggantungkan perilaku Billing pada pengakuan — pengakuan hanya keterangan, bukan gerbang |
+
+Baris ketiga penting: pengakuan yang salah tidak merusak apa pun di Billing, justru karena
+Billing tidak mempercayainya untuk hal yang penting.
+
+### Audit
+
+| Kejadian | Dicatat | Isi payload |
+| --- | :---: | --- |
+| Penerbitan surat | Ya | Identitas surat, jenis, identitas tagihan, korelasi. **MUST NOT** memuat nominal maupun identitas pasien |
+| Pengakuan penerimaan | Ya | Identitas surat, pelaku, waktu |
+| Pembacaan daftar surat menggantung | Tidak | Konvensi project: `GET` tidak dicatat |
+| Pembacaan keadaan clearance oleh Farmasi | Tidak | Baca murni dalam proses, bukan endpoint |
+
+### Kolom sensitif dan masa simpan
+
+| Kolom | Tabel | Ketentuan |
+| --- | --- | --- |
+| `ProviderReference` | `BilCollectionHandoff` | **Sensitif.** **MUST NOT** masuk payload log |
+| `ProviderEventId` | `BilCollectionHandoff` | **Sensitif.** **MUST NOT** masuk payload log |
+
+Masa simpan kedua tabel: **selamanya** (`BKC-DEC-109`). Keduanya jejak audit lintas modul yang
+membuktikan Billing pernah memberi tahu, dan kapan.
+
+Surat clearance resep **tidak** memuat satu pun kolom klinis — tidak ada nama obat, dosis,
+maupun aturan pakai. Batas ini ditegakkan pada bentuk tabelnya, bukan pada aturan logging saja.
+
+Trace `BKC-DEC-106`–`109`, `BKC-DES-036`–`041`.

@@ -1,7 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
+using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Models;
+using QuilvianSystemBackend.Models;
 
 namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.RadiologyManagement
 {
@@ -77,6 +80,37 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Radio
                 x.InpEpisodeId,
                 x.CreateDateTime
             });
+
+            // =========================================================================
+            // BE-RWI-104 / migration R8 — pemberi instruksi dan verifikasinya, RWI-DEC-153
+            // =========================================================================
+            builder.Property(x => x.InstructingDoctorId)
+                .IsRequired(false);
+
+            builder.Property(x => x.InstructionVerificationStatus)
+                .HasConversion<int>()
+                .HasDefaultValue(RadOrderInstructionVerificationStatus.NotRequired)
+                .IsRequired();
+
+            builder.Property(x => x.InstructionVerifiedAt)
+                .HasColumnType("timestamp with time zone");
+
+            builder.Property(x => x.InstructionVerifiedByUserId)
+                .IsRequired(false);
+
+            builder.HasOne<MstDoctor>()
+                .WithMany()
+                .HasForeignKey(x => x.InstructingDoctorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasOne<ApplicationUser>()
+                .WithMany()
+                .HasForeignKey(x => x.InstructionVerifiedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Daftar tunggu verifikasi membaca "pesanan Pending milik dokter ini".
+            builder.HasIndex(x => new { x.InstructingDoctorId, x.InstructionVerificationStatus });
+            builder.HasIndex(x => x.InstructionVerifiedByUserId);
         }
     }
 }

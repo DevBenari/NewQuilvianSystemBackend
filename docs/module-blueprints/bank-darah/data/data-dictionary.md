@@ -223,7 +223,13 @@ baru.
 > dan pemutus tidak sependapat justru bagian riwayat yang berguna saat ditinjau kemudian.
 
 > **Angka pemenuhan order menyaring `CorrectionStatus = Approved`.** Menyertakan yang `Requested` akan
-> membuat angka bergerak sebelum keputusan turun (`INV-BD-033`).
+> membuat angka bergerak sebelum keputusan turun (`INV-BD-033`). Dipertajam `DEC-BD-054`: kantong ber-koreksi
+> `Approved` dikeluarkan dari jumlah diberikan; `Requested`/`Rejected` tetap dihitung.
+
+> **`AnnulIssuance` dan `IssuedToPatientId` sengaja tidak ada pada tabel ini** (`DEC-BD-053`). Keduanya
+> isian penjaga pada DTO request `RequestIssuanceCorrectionRequest` — dipakai hanya untuk menolak
+> `VAL-BD-025`/`VAL-BD-049` — dan **tidak pernah disimpan**. Skema persisten `BbkIssuanceCorrection` tetap
+> persis kolom di atas, sama dengan migration `20260917055332_AddBbkIssuanceCorrection`.
 
 ### `BbkBloodGroupExam`
 

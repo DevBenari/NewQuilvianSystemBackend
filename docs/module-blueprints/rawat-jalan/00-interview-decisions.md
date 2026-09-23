@@ -447,7 +447,7 @@ Core financial capability, approval, maker-checker, threshold-policy, close/reop
 | Item | Pharmacy clinical ownership, read-only financial projection, dispensing prerequisite, outage, dan compatibility migration |
 | Status | `locked-draft` |
 | Approval evidence | User response berlabel `APPROVED WITH OWNERSHIP AND INTEGRATION CLARIFICATIONS`, SHA-256 `d86aba5b592790a1ba592a6136b8aa2fec7bd190c8d8b7d818fac9a46cf8885b` |
-| Formal governance status | `OPEN` - Pharmacy, Billing/Payer, dan Clinical Governance sign-off belum dilampirkan |
+| Formal governance status | **`CLOSED`** 21 September 2026 — user menyatakan eksplisit mewakili ketiga pihak sekaligus (Product/Domain Owner, Billing/Payer owner, dan Clinical Governance) pada closure amendment `pharmacy/00-interview-decisions.md` (`PHA-DEC-063`–`065`); lihat bagian itu untuk detail adopsi mekanisme dan evidence pendukung |
 
 Ownership requirement:
 

@@ -50,10 +50,11 @@ ditemukan · `409` bentrok konkurensi atau status sudah berubah · `422` melangg
 | `VAL-BD-020` | Berikan | Bukti kecocokan sudah lewat masa berlaku | "Bukti kecocokan sudah lewat masa berlaku. Diperlukan bukti kecocokan yang baru." | `422` |
 | `VAL-BD-020b` | Berikan | Masa berlaku komponen belum dikonfigurasi | "Masa berlaku bukti kecocokan untuk komponen ini belum ditetapkan. Pemberian ditahan sampai dikonfigurasi." | `422` |
 | `VAL-BD-018c` | Alokasi | Ada alokasi aktif lain pada kantong (konkurensi) | "Kantong ini baru saja dialokasikan petugas lain. Muat ulang dan pilih kantong lain." | `409` |
-| `VAL-BD-021` | Jalur darurat | Bukan peran berwenang, atau alasan kosong | "Jalur darurat hanya untuk peran berwenang dan wajib mengisi alasan." | `403` |
+| `VAL-BD-021` | Jalur darurat | Alasan darurat wajib tetapi kosong atau tidak sah | "Jalur darurat hanya untuk peran berwenang dan wajib mengisi alasan." | `403` |
 | `VAL-BD-023` | Batalkan alokasi | Kantong sudah `Issued` | "Kantong sudah diberikan. Pembatalan tidak dapat dilakukan; gunakan catatan koreksi bila pencatatannya keliru." | `422` |
 | `VAL-BD-024` | Catat koreksi | Bukan peran berwenang | "Pencatatan koreksi hanya untuk peran berwenang." | `403` |
 | `VAL-BD-025` | Hapus/anulir pemberian | Percobaan menghapus atau membalik pemberian | "Pemberian darah tidak dapat dihapus atau dibatalkan. Satu-satunya jalur perbaikan adalah catatan koreksi." | `422` |
+| `VAL-BD-049` | Koreksi pencatatan pemberian | Koreksi dicoba dipakai memindahkan pemberian/kantong ke pasien lain | "Koreksi pencatatan tidak dapat digunakan untuk memindahkan pemberian darah ke pasien lain." | `422` |
 | `VAL-BD-033` | Alokasi | Kantong `Excess`/`PendingReview` dialokasikan langsung | "Kantong ini menunggu keputusan dan tidak dapat langsung dialokasikan. Selesaikan statusnya lebih dulu." | `422` |
 | `VAL-BD-016` | Pembatalan / penyelesaian | Alasan tidak dipilih dari daftar terkendali | "Alasan wajib dipilih dari daftar, tidak boleh diketik bebas." | `400` |
 
@@ -123,6 +124,23 @@ tidak berwenang — ia justru **berwenang**, dan mungkin sah memegang kedua buti
 Yang dilanggar adalah aturan bisnisnya: gerbang dua tahap kehilangan seluruh gunanya bila satu orang
 menempati kedua sisi. Karena itu penjaganya ada di lapisan aturan bisnis, bukan di mesin hak akses —
 `403` akan menyesatkan pembaca log seolah hak aksesnya kurang.
+
+**Pembagian `VAL-BD-021` dan `VAL-BD-072` pada jalur darurat.** Sebelum `DEC-BD-050` pemicu
+`VAL-BD-021` berbunyi "bukan peran berwenang, **atau** alasan kosong", sehingga beririsan dengan
+`VAL-BD-072` yang pemicunya juga kewenangan penerbit. Runtime `BE-BD-008` membuktikan keduanya
+menyala pada kejadian yang sama, dan `AC-BD-021` dengan `AC-BD-083` menuntut kode berbeda untuk
+skenario itu. Pemilik kontrak menutupnya lewat `DEC-BD-050` dengan pembagian berikut, yang sudah
+lebih dulu dipakai `state-transition-matrix.md` §3 baris jalur darurat:
+
+| Pemicu | Kode | Lapisan penjaga |
+| --- | --- | --- |
+| Pelaku tidak memegang `BloodUnit : EmergencyIssue` | `VAL-BD-072` | Hak akses, sebelum action dijalankan |
+| Alasan darurat kosong atau tidak sah | `VAL-BD-021` | Aturan bisnis di service |
+
+> **Kalimat `VAL-BD-021` sengaja tidak diubah.** Teksnya masih menyebut "hanya untuk peran berwenang"
+> karena kalimat itu sudah terkirim apa adanya oleh runtime `BE-BD-008` yang terbukti. Menyempitkan
+> kalimatnya menuntut perubahan source dan build ulang, dan itu pekerjaan tersendiri di luar
+> `DEC-BD-050` yang hanya membagi **pemicu**, bukan menulis ulang pesan.
 
 **Kenapa `VAL-BD-070` dan `VAL-BD-071` terpisah dari `VAL-BD-066`.** Ketiganya sama-sama tentang
 kelengkapan otorisasi darurat, tetapi menahan hal yang berbeda: `VAL-BD-066` gerbang mana yang dilewati,

@@ -7,7 +7,13 @@ using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Services.Logging;
+using QuilvianSystemBackend.Responses;
 using System.Security.Claims;
+
+using InpatientClinicalContextService =
+    QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services.InpatientClinicalContextService;
+using MstDoctorForInstruction =
+    QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstDoctor;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Services
 {
@@ -30,16 +36,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
         private readonly LoggerService _loggerService;
         private readonly RadOrderNumberService _orderNumberService;
 
+        /// <summary>
+        /// Pembaca penugasan dokter pada episode — <c>BE-RWI-104</c>, <c>INT-DOK-19</c>. Radiologi
+        /// <b>membaca</b> penugasan lewat service bersama, bukan menyalinnya.
+        /// </summary>
+        private readonly InpatientClinicalContextService _clinicalContextService;
+
         public RadOrderService(
             ApplicationDbContext dbContext,
             IHttpContextAccessor httpContextAccessor,
             LoggerService loggerService,
-            RadOrderNumberService orderNumberService)
+            RadOrderNumberService orderNumberService,
+            InpatientClinicalContextService clinicalContextService)
         {
             _dbContext = dbContext;
             _httpContextAccessor = httpContextAccessor;
             _loggerService = loggerService;
             _orderNumberService = orderNumberService;
+            _clinicalContextService = clinicalContextService;
         }
 
         /* ================================================================ *
@@ -751,7 +765,158 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
                 detail.ConfirmedAt = konfirmasi.OccurredAt;
             }
 
+            // BE-RWI-104. Nama pemberi instruksi untuk layar; penunjuknya sendiri tidak ditampilkan.
+            if (entity.InstructingDoctorId.HasValue)
+            {
+                detail.InstructingDoctorName = await _dbContext.Set<MstDoctorForInstruction>()
+                    .AsNoTracking()
+                    .Where(x => x.Id == entity.InstructingDoctorId.Value)
+                    .Select(x => x.FullName)
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
+
             return detail;
+        }
+
+        /* ================================================================ *
+         * BE-RWI-104 — verifikasi instruksi pesanan rawat inap
+         * ================================================================ */
+
+        /// <summary>
+        /// Dokter pemberi instruksi memverifikasi pesanan radiologi yang dibuat perawat —
+        /// <c>BE-RWI-104</c>, <c>VAL-DOK-50</c>, <c>VAL-DOK-50a</c>.
+        /// </summary>
+        /// <remarks>
+        /// Hanya kolom verifikasi dan token konkurensi yang berubah; penginput, pemeriksaan, dan status
+        /// pesanan tidak disentuh. Tidak bergantung status pesanan.
+        /// </remarks>
+        public async Task<RadOperationResult<RadOrderDetailResponse>> VerifyInstructionAsync(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            var entity = await _dbContext.RadOrders
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+
+            if (entity == null)
+            {
+                return RadOperationResult<RadOrderDetailResponse>.NotFound(
+                    RadErrorCodes.OrderNotFound, "Order radiologi tidak ditemukan.");
+            }
+
+            if (!entity.InstructingDoctorId.HasValue)
+            {
+                return RadOperationResult<RadOrderDetailResponse>.Conflict(
+                    RadErrorCodes.InstructionNotPending,
+                    "Pesanan ini sudah diverifikasi atau tidak memerlukan verifikasi.");
+            }
+
+            var actorUserId = GetCurrentUserId();
+            var actorDoctorId = await _clinicalContextService.ResolveActorDoctorIdAsync(
+                _httpContextAccessor.HttpContext?.User, actorUserId, cancellationToken);
+
+            if (!actorDoctorId.HasValue || actorDoctorId.Value != entity.InstructingDoctorId.Value)
+            {
+                return RadOperationResult<RadOrderDetailResponse>.Forbidden(
+                    RadErrorCodes.NotInstructingDoctor,
+                    "Hanya dokter pemberi instruksi yang dapat memverifikasi pesanan ini.");
+            }
+
+            if (entity.InstructionVerificationStatus != RadOrderInstructionVerificationStatus.Pending)
+            {
+                return RadOperationResult<RadOrderDetailResponse>.Conflict(
+                    RadErrorCodes.InstructionNotPending,
+                    "Pesanan ini sudah diverifikasi atau tidak memerlukan verifikasi.");
+            }
+
+            var now = DateTime.UtcNow;
+            entity.InstructionVerificationStatus = RadOrderInstructionVerificationStatus.Verified;
+            entity.InstructionVerifiedAt = now;
+            entity.InstructionVerifiedByUserId = actorUserId;
+            entity.Version++;
+            entity.UpdateDateTime = now;
+            entity.UpdateBy = actorUserId;
+
+            await SaveWithConcurrencyGuardAsync(cancellationToken);
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "RadOrder.VerifyInstruction",
+                "Dokter pemberi instruksi memverifikasi order radiologi.",
+                new { entity.Id, entity.InpEpisodeId, entity.InstructingDoctorId, entity.RequestedByUserId, VerifiedBy = actorUserId });
+
+            var detail = await GetDetailAsync(entity.Id, cancellationToken);
+            return RadOperationResult<RadOrderDetailResponse>.Success(detail!);
+        }
+
+        /// <summary>
+        /// Pesanan radiologi yang menunggu verifikasi dokter login — <c>BE-RWI-104</c>.
+        /// </summary>
+        public async Task<RadOperationResult<PagedResult<RadOrderInstructionVerificationItemResponse>>> GetInstructionVerificationWorklistAsync(
+            int pageNumber,
+            int pageSize,
+            CancellationToken cancellationToken = default)
+        {
+            var doctorId = await _clinicalContextService.ResolveActorDoctorIdAsync(
+                _httpContextAccessor.HttpContext?.User, GetCurrentUserId(), cancellationToken);
+
+            if (!doctorId.HasValue)
+            {
+                return RadOperationResult<PagedResult<RadOrderInstructionVerificationItemResponse>>.Forbidden(
+                    RadErrorCodes.DoctorNotIdentified,
+                    InpatientClinicalContextService.PenolakanBukanDokter);
+            }
+
+            if (pageNumber <= 0) pageNumber = 1;
+            if (pageSize <= 0) pageSize = 25;
+            if (pageSize > 100) pageSize = 100;
+
+            var query = _dbContext.RadOrders
+                .AsNoTracking()
+                .Where(x => !x.IsDelete &&
+                            x.InstructingDoctorId == doctorId.Value &&
+                            x.InstructionVerificationStatus == RadOrderInstructionVerificationStatus.Pending);
+
+            var totalData = await query.CountAsync(cancellationToken);
+
+            var items = await query
+                .OrderBy(x => x.RequestedAt)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(x => new RadOrderInstructionVerificationItemResponse
+                {
+                    OrderId = x.Id,
+                    EncounterId = x.EncounterId,
+                    InpEpisodeId = x.InpEpisodeId,
+                    EpisodeNumber = _dbContext.Set<InpEpisode>()
+                        .Where(e => e.Id == x.InpEpisodeId)
+                        .Select(e => e.EpisodeNumber)
+                        .FirstOrDefault(),
+                    PatientName = x.Encounter != null && x.Encounter.Patient != null ? x.Encounter.Patient.FullName : string.Empty,
+                    MedicalRecordNumber = x.Encounter != null && x.Encounter.Patient != null ? x.Encounter.Patient.MedicalRecordNumber : string.Empty,
+                    ProcedureId = x.ProcedureId,
+                    ProcedureName = x.Procedure != null ? x.Procedure.ProcedureName : string.Empty,
+                    OrderStatus = x.OrderStatus.ToString(),
+                    RequestedAt = x.RequestedAt,
+                    RequestedByUserId = x.RequestedByUserId,
+                    RequestedByName = x.RequestedByUserId == null
+                        ? null
+                        : _dbContext.Users
+                            .Where(u => u.Id == x.RequestedByUserId)
+                            .Select(u => u.DisplayName ?? u.UserName ?? u.Email ?? u.UserCode)
+                            .FirstOrDefault(),
+                    InstructionVerificationStatus = x.InstructionVerificationStatus.ToString()
+                })
+                .ToListAsync(cancellationToken);
+
+            return RadOperationResult<PagedResult<RadOrderInstructionVerificationItemResponse>>.Success(
+                new PagedResult<RadOrderInstructionVerificationItemResponse>
+                {
+                    PageNumber = pageNumber,
+                    PageSize = pageSize,
+                    TotalData = totalData,
+                    TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
+                    Items = items
+                });
         }
 
         /// <summary>
@@ -1101,8 +1266,45 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
                 }
             }
 
+            // BE-RWI-104 / FR-DOK-106, VAL-DOK-46, VAL-DOK-47. Hanya pesanan rawat inap yang dibaca;
+            // pesanan poliklinik dan IGD melewati blok ini tanpa perubahan perilaku apa pun.
+            Guid? instructingDoctorId = null;
+            var instructionStatus = RadOrderInstructionVerificationStatus.NotRequired;
+
+            if (request.InpEpisodeId.HasValue && request.InpEpisodeId.Value != Guid.Empty)
+            {
+                var actorDoctorId = await _clinicalContextService.ResolveActorDoctorIdAsync(
+                    _httpContextAccessor.HttpContext?.User, actorUserId, cancellationToken);
+
+                if (!actorDoctorId.HasValue)
+                {
+                    if (!request.InstructingDoctorId.HasValue || request.InstructingDoctorId.Value == Guid.Empty)
+                    {
+                        return RadOperationResult<RadOrderDetailResponse>.Validation(
+                            RadErrorCodes.InstructingDoctorRequired,
+                            "Pilih dokter yang memberi instruksi.");
+                    }
+
+                    var bertugas = await _clinicalContextService.IsDoctorAssignedAsync(
+                        request.InpEpisodeId.Value, request.InstructingDoctorId.Value, now, cancellationToken);
+
+                    if (!bertugas)
+                    {
+                        return RadOperationResult<RadOrderDetailResponse>.Forbidden(
+                            RadErrorCodes.InstructingDoctorNotAssigned,
+                            "Dokter yang dipilih tidak sedang bertugas atas pasien ini.");
+                    }
+
+                    instructingDoctorId = request.InstructingDoctorId.Value;
+                    instructionStatus = RadOrderInstructionVerificationStatus.Pending;
+                }
+            }
+
             var entity = new RadOrder
             {
+                InstructingDoctorId = instructingDoctorId,
+                InstructionVerificationStatus = instructionStatus,
+
                 // RAD-CONF-001 bagian 8 butir 2. Nomor dibentuk dari waktu dan enam karakter
                 // acak, bukan dari hitungan baris — QBE-CODE-003. Index unik pada database
                 // menjadi penjaga terakhirnya.
@@ -1452,6 +1654,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Service
                 StatusBeforeHold = entity.StatusBeforeHold?.ToString(),
                 ClosureReason = entity.ClosureReason,
                 Version = entity.Version,
+                InstructingDoctorId = entity.InstructingDoctorId,
+                InstructionVerificationStatus = entity.InstructionVerificationStatus.ToString(),
+                InstructionVerifiedAt = entity.InstructionVerifiedAt,
+                InstructionVerifiedByUserId = entity.InstructionVerifiedByUserId,
                 Studies = entity.Studies
                     .Where(x => !x.IsDelete)
                     .OrderBy(x => x.StudySequence)
