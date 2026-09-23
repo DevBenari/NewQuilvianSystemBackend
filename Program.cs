@@ -26,6 +26,7 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.OvertimeManagement.Ser
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Services;
@@ -340,6 +341,17 @@ try
     builder.Services.AddScoped<LabPathologyReportService>();
     builder.Services.AddScoped<LabOrganismService>();
     builder.Services.AddScoped<LabAntibioticService>();
+    builder.Services.AddScoped<LabSusceptibilityBreakpointService>();
+    builder.Services.AddScoped<LabSusceptibilityInterpreter>();
+    builder.Services.AddScoped<LabProcedureMicrobiologyProfileService>();
+    builder.Services.AddScoped<LabSpecimenDetailTypeService>();
+    builder.Services.AddScoped<LabMicrobiologyCriticalRuleService>();
+    builder.Services.AddScoped<LabFieldChangeRecorder>();
+    builder.Services.AddScoped<LabSpecimenCorrectionService>();
+    builder.Services.AddScoped<LabReportNumberService>();
+    builder.Services.AddScoped<LabDisciplineSettingService>();
+    builder.Services.AddScoped<LabConfirmingDoctorResolver>();
+    builder.Services.AddScoped<LabMicrobiologyResultService>();
     builder.Services.AddScoped<LabExaminationService>();
     builder.Services.AddScoped<LabWorklistService>();
     builder.Services.AddScoped<LabMonitoringService>();
@@ -786,6 +798,23 @@ try
     builder.Services.AddScoped<BillingRefundService>();
 
     builder.Services.AddScoped<BillingFinalizationService>();
+
+    // Empat layanan di bawah masuk lewat merge 4ba789b2 dari QuilvianIntegrationBackend
+    // bersama BillingManagementServiceCollectionExtensions.AddBillingManagement(), TETAPI
+    // extension itu nol pernah dipanggil dari mana pun — sedangkan Program.cs cabang ini
+    // mendaftarkan Billing satu per satu. Akibatnya BillingAllocationService,
+    // BillingFinalizationService, dan BillingFinancialExceptionService menuntut
+    // BilConsumerHandoffService yang tidak terdaftar, dan APLIKASI GAGAL MENYALA pada
+    // validasi DI — bukan pada saat dibuild.
+    //
+    // Mendaftarkannya satu per satu dicoba lebih dulu dan TERBUKTI KELIRU: kekurangannya
+    // berantai — BilConsumerHandoffService, lalu FinanceAccountingOutboxService, dan
+    // seterusnya. Extension itulah daftar lengkapnya, jadi ia yang dipanggil.
+    //
+    // Sebagian layanan menjadi terdaftar dua kali, dan itu aman: keduanya Scoped atas tipe
+    // implementasi yang sama. Pemilik modul Billing tetap perlu memutuskan satu tempat
+    // pendaftaran dan mencabut yang lain.
+    builder.Services.AddBillingManagement();
 
     builder.Services.AddScoped<BillingArApHandoffService>();
 
@@ -1386,6 +1415,9 @@ try
     // kosong, formulir hasil Patologi Anatomi kosong sama sekali (INV-39), dan seeder ini
     // menuliskan peringatan penyalaan untuk keadaan itu.
     await RunStartupSeederAsync("LabPathologyMasterDataSeeder", () => LabPathologyMasterDataSeeder.SeedAsync(app.Services));
+    await RunStartupSeederAsync("LabSpecimenDetailTypeSeeder", () => LabSpecimenDetailTypeSeeder.SeedAsync(app.Services));
+
+    await RunStartupSeederAsync("LabDisciplineSettingSeeder", () => LabDisciplineSettingSeeder.SeedAsync(app.Services));
 
     // Data master Radiologi. Mengisi alat pencitraan dan butir keselamatan, lalu menyusun
     // usulan aturan keselamatan sebagai DRAF — tidak pernah Active. Aturan yang menentukan
@@ -1397,11 +1429,14 @@ try
     // disahkan oleh seeder. Batas yang bertabrakan pada V1 ditandai untuk ditinjau pemilik klinis.
     await RunStartupSeederAsync("ClinicalInstrumentDraftSeeder", () => ClinicalInstrumentDraftSeeder.SeedAsync(app.Services));
 
-    // Pemanggilan LabDummyDataSeeder DIHAPUS di sini, menyusul pencabutan seedernya pada
-    // 17 September 2026 atas instruksi pemilik modul Lab (lihat catatan di atas). Berkas
-    // seedernya ikut terhapus pada commit itu sementara pemanggilannya tertinggal, sehingga
-    // seluruh solusi gagal dikompilasi — bukan hanya modul Lab. Konfigurasi
-    // `Seeders:RunLabDummySeed` dengan sendirinya tidak lagi dibaca siapa pun.
+    // LabDummyDataSeeder DICABUT 2026-09-17 atas instruksi pemilik modul, dan berkasnya
+    // dihapus pada commit 0bc921b0. Pemanggilnya sempat hidup kembali lewat merge
+    // 4ba789b2 dari QuilvianIntegrationBackend — cabang itu belum menerima pencabutannya —
+    // sehingga HEAD memanggil kelas yang tidak ada pada kedua sisi merge dan GAGAL DIBUILD.
+    // Dicabut ulang 2026-09-22 supaya instruksi pemilik modul kembali berlaku.
+    //
+    // Pengaturan `Seeders:RunLabDummySeed` dibiarkan ada pada appsettings dan nol dibaca.
+    // Mencabutnya adalah perubahan konfigurasi milik pemilik modul, bukan perbaikan build.
 
     var runOperatingRoomDemoSeed =
         builder.Configuration.GetValue<bool>("Seeders:RunOperatingRoomDemoSeed");

@@ -35,6 +35,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         private readonly ApplicationDbContext _dbContext;
         private readonly LabSpecimenService _labSpecimenService;
         private readonly LabOrderNumberService _labOrderNumberService;
+        private readonly LabReportNumberService _labReportNumberService;
         private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly LoggerService _loggerService;
 
@@ -48,6 +49,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             ApplicationDbContext dbContext,
             LabSpecimenService labSpecimenService,
             LabOrderNumberService labOrderNumberService,
+            LabReportNumberService labReportNumberService,
             IHttpContextAccessor httpContextAccessor,
             LoggerService loggerService,
             InpatientClinicalContextService clinicalContextService)
@@ -55,6 +57,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             _dbContext = dbContext;
             _labSpecimenService = labSpecimenService;
             _labOrderNumberService = labOrderNumberService;
+            _labReportNumberService = labReportNumberService;
             _httpContextAccessor = httpContextAccessor;
             _loggerService = loggerService;
             _clinicalContextService = clinicalContextService;
@@ -266,6 +269,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 {
                     x.Id,
                     x.OrderNumber,
+                    x.LabReportNumber,
                     x.EncounterId,
                     x.InpEpisodeId,
                     x.ProcedureId,
@@ -308,6 +312,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     Id = x.Id,
 
                     OrderNumber = x.OrderNumber,
+                    LabReportNumber = x.LabReportNumber,
                     EncounterId = x.EncounterId,
                     InpEpisodeId = x.InpEpisodeId,
                     ProcedureId = x.ProcedureId,
@@ -343,6 +348,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     Id = x.Id,
 
                     OrderNumber = x.OrderNumber,
+                    LabReportNumber = x.LabReportNumber,
                     EncounterId = x.EncounterId,
                     ProcedureId = x.ProcedureId,
                     ProcedureCode = x.Procedure != null ? x.Procedure.ProcedureCode : string.Empty,
@@ -661,6 +667,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 CreateBy = actorUserId
             };
 
+            // LAB-DEC-117. Nomor cetak dialokasikan SESUDAH disiplinnya diketahui — ia per
+            // disiplin per tahun, sehingga urutannya mustahil ditentukan sebelum itu.
+            //
+            // Pesanan berdisiplin KOSONG nol memperoleh nomor cetak, dan itu sah (AC-85):
+            // lembar hasilnya pun belum dapat dicetak sebelum disiplinnya diketahui.
+            if (entity.Discipline.HasValue)
+            {
+                entity.LabReportNumber = await _labReportNumberService.AllocateOneAsync(
+                    entity.Discipline.Value, now.Year, cancellationToken);
+            }
+
             _dbContext.LabOrders.Add(entity);
 
             _labSpecimenService.AppendHistory(
@@ -849,6 +866,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     CreateDateTime = now,
                     CreateBy = actorUserId
                 };
+
+                // LAB-DEC-117. Satu panggilan per kelompok sudah cukup DAN aman, berbeda dari
+                // nomor order di atas: kelompoknya dibentuk PER DISIPLIN, sehingga setiap
+                // iterasi menyentuh penghitung yang berbeda. Yang menjebak pada nomor order
+                // adalah penghitung tunggal yang dibaca berulang di dalam satu transaksi.
+                if (entity.Discipline.HasValue)
+                {
+                    entity.LabReportNumber = await _labReportNumberService.AllocateOneAsync(
+                        entity.Discipline.Value, now.Year, cancellationToken);
+                }
 
                 _dbContext.LabOrders.Add(entity);
 
@@ -1392,6 +1419,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 Id = entity.Id,
 
                 OrderNumber = entity.OrderNumber,
+                LabReportNumber = entity.LabReportNumber,
                 EncounterId = entity.EncounterId,
                 ProcedureId = entity.ProcedureId,
                 ProcedureCode = procedure?.ProcedureCode ?? string.Empty,

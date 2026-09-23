@@ -728,3 +728,136 @@ parameter mana milik kategori mana.
 | Pilihan bahasa dan preview Inggris | `LAB-COORD-013`, beserta izin privasinya |
 | Bagian Informasi Specimen — lokasi, pola, metode | `S2b` belum siap |
 | Tombol Konfirmasi DPJP/Dokter Lantai | `S5` |
+
+---
+
+## Amandemen 2026-09-21 — Halaman Hasil Mikrobiologi (`S4b`)
+
+| Field | Nilai |
+|---|---|
+| Slice | `S4b` pengisian hasil Mikrobiologi |
+| Masukan | decisions rev 50; `LAB-API-v1` `r26` |
+| Frontend SHA | `ebef7ebe5` |
+| Sifat | Halaman **baru**; route daftar pantau Mikrobiologi sudah ada dan tidak diubah |
+
+### Keadaan frontend saat dirancang
+
+Peta kemampuan revision 4 mencabut `F5`: frontend **sudah** punya modul Laboratorium — 17 route
+dan 159 berkas. Yang relevan bagi slice ini:
+
+| Sudah ada | Berkas | Dipakai bagaimana |
+|---|---|---|
+| Daftar pantau Mikrobiologi | `src/app/health-services/laboratory-management/lab-monitoring/microbiology/page.jsx` | Menjadi **titik masuk**; barisnya memperoleh tautan ke halaman hasil |
+| Komponen daftar pantau | `components/view/health-services/laboratory-management/lab-monitoring/lab-monitoring-view` | Dipakai ulang apa adanya |
+| Halaman hasil disiplin mana pun | — | **Nol.** Belum ada satu pun halaman pengisian hasil di frontend |
+
+### Route yang ditambahkan
+
+| Route | Kegunaan |
+|---|---|
+| `/health-services/laboratory-management/lab-monitoring/microbiology/[slug]` | Halaman Hasil Pemeriksaan Mikrobiologi untuk satu No. Order |
+
+Mengikuti pola `[slug]` yang sudah dipakai `lab-orders/[slug]` dan `lab-reception-reports/[slug]`.
+
+### Susunan halaman
+
+Halaman **bertingkat dua**, dan itu konsekuensi langsung `LAB-DEC-095`.
+
+| Bagian | Isi | Sifat |
+|---|---|---|
+| Informasi pasien | NIK, nama, No. RM, umur, jenis kelamin, tipe kunjungan, unit layanan, penjamin | Baca-saja |
+| Informasi pemeriksaan | No. registrasi, No. order, DPJP, dokter lab, Penanggung Jawab Analis, tanggal mulai | Baca-saja |
+| Diagnosa pemeriksaan | Empat ruas konteks klinis | Baca-saja; sumbernya `LAB-OPEN-035` |
+| **Informasi Specimen** | Jenis, Spesifik Specimen, volume + satuan, keterangan, waktu terima fisik | **Dapat disunting** sampai Final; tombol riwayat perubahan |
+| **Daftar pemeriksaan** | Satu baris per pemeriksaan Mikrobiologi dalam order itu | Pemilih — ini tingkat pertama |
+| **Form hasil** | Status temuan, isolat, antibiogram, Cito, Duplo | Tingkat kedua, mengikuti baris yang dipilih |
+| Diagnostic Report | Waktu Efektif, Waktu Issued, catatan | Kedua waktu **baca-saja** |
+| Konsultasi | Penanda `Definitif`, kepada siapa, kapan | Dapat diisi |
+| Tombol aksi | Simpan Draft, Simpan Final, Reopen, Preview, Print | — |
+
+> **Kenapa daftar pemeriksaan menjadi pemilih, bukan pengulangan form.** Satu order dapat
+> memuat Kultur Darah dan Kultur Urin. Menampilkan dua form utuh sekaligus membuat layar
+> sangat panjang dan membuat petugas mudah mengisi antibiogram pada baris yang salah.
+> Pemilih membuat **satu hasil terlihat penuh pada satu waktu**, dan baris mana yang sedang
+> diisi selalu terbaca.
+
+### Perilaku yang wajib, dan alasannya
+
+| Perilaku | Dasar |
+|---|---|
+| Ruas `Analis` tampil **baca-saja**, terisi nama pengguna yang sedang bekerja | `LAB-DEC-105` |
+| `Waktu Efektif` dan `Waktu Issued` tampil **baca-saja** | `LAB-DEC-096` |
+| Tombol `Simpan Final` **tidak** berlabel "kirim" maupun "sahkan", dan sesudah ditekan layar menyatakan hasil **belum dirilis** | `LAB-DEC-097` |
+| Ketika `criticalRuleAvailable` bernilai salah, layar menampilkan keterangan bahwa aturan kritis belum disetel — **bukan** diam | `LAB-DEC-103` butir 5 |
+| Ketika `onDutyScheduleAvailable` bernilai salah, pemilih dokter menampilkan pencarian dokter aktif beserta keterangan bahwa jadwal jaga belum tersedia | `LAB-DEC-111` |
+| Menyimpan hasil **tanpa satu pun isolat** diizinkan dan tidak memunculkan peringatan | `LAB-DEC-104` |
+| Volume specimen selalu berpasangan: satu kotak angka, satu pemilih satuan | `LAB-DEC-100` |
+| Tombol riwayat perubahan pada Informasi Specimen menampilkan nilai lama | `LAB-DEC-112` |
+| Sesudah Final, seluruh Informasi Specimen menjadi baca-saja | `LAB-DEC-107` butir 3 |
+
+> **Butir "bukan diam" perlu ditekankan.** Penanda kritis yang tidak menyala terlihat **persis
+> sama** dengan penanda yang belum punya aturan. Petugas yang melihat layar bersih akan
+> menyimpulkan hasilnya aman — padahal yang terjadi adalah `DR-LAB-002` belum mengisi satu pun
+> baris aturan. `AC-166` menguji tepat ini.
+
+### Yang TIDAK dibangun pada slice ini
+
+| Yang ditolak | Alasan |
+|---|---|
+| Tombol validasi dan rilis | `S4d`, tertahan `DEC-LAB-011` |
+| Tombol kirim hasil ke pasien | `LAB-COORD-011`; dan `LAB-DEC-097` menegaskan Final bukan rilis |
+| Preview dan cetak Bahasa Inggris | `LAB-COORD-013` |
+| Pilihan `HL7` | `LAB-DEC-109` |
+| Tombol menambah Spesifik Specimen baru dari halaman hasil | `LAB-DEC-098` butir 5 — hanya kepala instalasi yang menaikkan nilai tetap |
+| Tata letak cetak yang pasti | `LAB-OPEN-039` — kedua screenshot belum diserahkan |
+
+### Kewenangan keputusan UI
+
+Mengikuti hierarki `LAB-DEC-010`. Yang **bukan** kewenangan developer karena ia menyangkut
+keselamatan atau invariant:
+
+- label tombol `Simpan Final` dan pernyataan "belum dirilis" sesudahnya;
+- keterangan ketika aturan kritis belum disetel;
+- keterangan ketika jadwal jaga belum tersedia;
+- sifat baca-saja pada `Analis`, `Waktu Efektif`, dan `Waktu Issued`.
+
+Selebihnya — susunan kolom, jenis kontrol, penempatan tombol riwayat, gaya tabel antibiogram —
+**`DEV_DISCRETION`**, mengikuti `page-composition-patterns` dan `base-component-catalog`.
+
+---
+
+## Amandemen 2026-09-21 (kedua) — layar `S4b` sesudah bukti cetak
+
+Menurunkan decision log **rev 52** dan `LAB-API-v1` `r27`.
+
+### Yang bertambah pada layar hasil
+
+| Bagian | Perilaku | Dasar |
+|---|---|---|
+| Kualifikasi hasil | Pemilih `Definitif` / `Sementara`, tampil dekat judul karena ia yang dicetak paling menonjol | `LAB-DEC-114` |
+| Jenis biakan | Pemilih Bakteri / Jamur — **mengubah kata pada pratinjau label**, bukan bentuk tabel | `LAB-DEC-124` |
+| Metode uji | Pemilih Difusi cakram / Dilusi — **mengubah kolom mana yang tampil** | `LAB-DEC-124` |
+| Tabel antibiogram | Difusi: `Antibiotik`, `UG`, `R-S`, `Zona/mm`, `Hasil`. Dilusi: `Antibiotik`, `Kadar`, `Satuan`, `Hasil` | `LAB-DEC-122`, `124` |
+| Kolom `UG` dan `R-S` | **Baca-saja**, terisi dari data induk | `LAB-DEC-122` |
+| Kolom `Hasil` | **Terisi sendiri** begitu zona diketik; dapat ditimpa, dan penimpaan **membuka kotak alasan yang wajib** | `LAB-DEC-123` |
+| Isolat tanpa uji | Penanda pada baris isolat; mencentangnya **menyembunyikan tabel antibiogram** baris itu | `LAB-DEC-126` |
+| Bagian set bakteri | **Tidak tampil sama sekali** bila profil pemeriksaan menyatakan tidak memakainya | `LAB-DEC-125` |
+
+### Perilaku yang wajib, dan alasannya
+
+| Perilaku | Dasar |
+|---|---|
+| Ketika `breakpointAvailable` bernilai salah, kolom `Hasil` kembali dapat diketik **disertai keterangan** bahwa breakpoint belum disetel | `LAB-DEC-123` |
+| Zona `0` dapat diketik dan **berbeda tampilannya** dari kolom yang dikosongkan | `LAB-DEC-128` |
+| Kolom `Hasil` yang ditimpa **ditandai terlihat**, beserta nilai hitungan aslinya | `LAB-DEC-123` |
+| `Petugas Otorisasi` pada pratinjau cetak tampil **kosong** selama hasil belum dirilis | `LAB-DEC-120` |
+
+> **Dua keterangan "bukan diam" kini ada dua, dan keduanya bukan `DEV_DISCRETION`:** aturan
+> kritis belum disetel (`r26`), dan breakpoint belum disetel (`r27`). Keduanya membuat layar
+> terlihat bersih padahal sesuatu belum siap.
+
+### Yang TIDAK dibangun
+
+Susunan dua isolat berantibiogram, tampilan hasil nol pertumbuhan, dan pengulangan kop pada
+halaman kedua — **ketiganya belum pernah terlihat** (`LAB-OPEN-039`), dan menebaknya berarti
+mengulang kesalahan `LAB-DEC-116`.

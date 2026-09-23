@@ -490,3 +490,83 @@ dijaga service akan bocor lewat seeder, skrip perbaikan data, atau migration ber
 | `AC-72` sampai `AC-74` — metode pembayaran | Terblokir `LAB-COORD-007`; sumber datanya belum ditetapkan |
 | `AC-78` sampai `AC-82` — perlakuan `PaymentType` per jalur dan nilai enum baru | Menunggu jawaban pemilik `registration-management` |
 | Pengisian lima baris `MstMeasurement` | Pekerjaan Master Data. Laboratorium menguji bahwa satuan non-laboratorium ditolak (`T-62c`), bukan bahwa barisnya ada |
+
+---
+
+## Amandemen 2026-09-21 — Strategi pengujian `S4b`
+
+Menurunkan decision log rev 50 dan `LAB-API-v1` `r26`. Mencakup `AC-156` sampai `AC-176`.
+
+### Pemetaan acceptance criteria ke lapis pengujian
+
+| AC | Yang diuji | Lapis | Catatan |
+|---|---|---|---|
+| `AC-156` | Dua pemeriksaan dalam satu order punya dua tempat hasil terpisah | Integrasi | Isi hasil A, baca hasil B, pastikan nol ruas B berubah |
+| `AC-157` | `effectiveAt` dan `issuedAt` tidak dapat diketik | Kontrak + integrasi | Kirim keduanya pada request; pastikan **diabaikan**, bukan diterima |
+| `AC-158` | `finalize` mengisi `FinalizedAt`, dan hasil Final tetap ditolak untuk dikirim | Integrasi | Uji penolakan pengirimannya, bukan hanya pengisian kolomnya |
+| `AC-159` | `reopen` mengosongkan `FinalizedAt` dan bukan koreksi hasil terrilis | Integrasi | Pastikan nol baris `S6` tercipta |
+| `AC-160` | Satu specimen menunjuk lebih dari satu Spesifik Specimen | Integrasi | Termasuk penolakan nilai yang diketik bebas |
+| `AC-161` | `Lainnya` tidak membuat nilai tetap baru | Integrasi | Pastikan nol baris `LabSpecimenDetailType` bertambah |
+| `AC-162` | `2 swab` tersimpan sebagai angka dan satuan | Unit + integrasi | Uji penjumlahan lintas baris bersatuan sama |
+| `AC-163` | Baris kepekaan tanpa MIC dan tanpa zona tetap tersimpan | Integrasi | `VAL-101` tidak boleh menolaknya |
+| `AC-164` | Kultur tanpa isolat tersimpan tanpa penolakan | Integrasi | **Kasus uji terpenting slice ini** |
+| `AC-165` | Baris kepekaan tanpa interpretasi ditolak beserta sebabnya | Integrasi | `VAL-103` |
+| `AC-166` | Penanda kritis tidak menyala ketika aturan kosong, **dan layar menyatakannya** | Integrasi + UI | Uji `criticalRuleAvailable`, bukan hanya ketiadaan penanda |
+| `AC-167` | `R` yang tidak cocok aturan tidak menyalakan penanda | Integrasi | Lawan dari `AC-166` |
+| `AC-168` | `Analis` tidak dapat dipilih dan sama dengan penyimpan | Kontrak + UI | Kirim `analystUserId` palsu; pastikan diabaikan |
+| `AC-169` | `Definitif` menyimpan tiga fakta dan tidak membuka tombol apa pun | Integrasi + UI | Pastikan nol tombol pengiriman berubah keadaan |
+| `AC-170` | Koreksi specimen berjejak; sesudah Final menjadi baca-saja | Integrasi | `VAL-109` |
+| `AC-171` | Dokter Konfirmator menawarkan DPJP dan dokter bertugas, nol peran baru | Integrasi | Periksa matriks permission tidak bertambah peran |
+| `AC-172` | Nol ruas HL7 dalam bentuk apa pun | Kontrak + UI | Termasuk memastikan tiada pilihan kosong yang tak dapat dipilih |
+| `AC-173` | Ketika jadwal jaga terisi, hanya dokter itu yang ditawarkan | Integrasi | Butuh data uji `TrxOnCallAssignment` |
+| `AC-174` | Ketika jadwal jaga kosong, pemilih tetap dapat dipakai | Integrasi | **Keadaan yang pasti terjadi lebih dulu** — `LAB-COORD-014` |
+| `AC-175` | Koreksi menambah satu baris jejak ruas dan **nol** baris jejak status | Integrasi | Menguji pemisahan `LAB-DEC-112` secara langsung |
+| `AC-176` | Status temuan menawarkan tepat tiga nilai | Kontrak + UI | Pastikan `NeedsAttention` dan `Critical` **tidak** muncul |
+
+### Tiga kasus uji yang paling mudah terlewat
+
+| Kasus | Kenapa mudah terlewat | Kenapa penting |
+|---|---|---|
+| `AC-164` kultur steril | Pengujian cenderung memakai data yang "lengkap" | Hasil negatif adalah hasil yang **paling sering** keluar dari kultur, dan `VAL-88` pernah dicabut justru karena kesalahan kelas ini |
+| `AC-166` aturan kritis kosong | Layar bersih terlihat seperti lulus | Layar bersih justru **keadaan berbahaya**: petugas menyimpulkan hasil aman padahal aturannya belum ada |
+| `AC-174` jadwal jaga kosong | Dianggap keadaan sementara | Ia keadaan **awal** dan mungkin bertahan lama — `TrxOnCallAssignment` nol punya endpoint pengisi |
+
+### Data uji yang harus disiapkan
+
+| Data | Kenapa |
+|---|---|
+| Satu order berisi **dua** pemeriksaan Mikrobiologi | `AC-156` tidak dapat diuji dengan satu pemeriksaan |
+| Satu `LabMicrobiologyCriticalRule` beserta keadaan **nol baris** | `AC-166` dan `AC-167` menguji dua keadaan berlawanan |
+| Satu `TrxOnCallAssignment` aktif beserta keadaan **nol baris** | `AC-173` dan `AC-174` |
+| Satu `LabSpecimenType` bertanda `IsOtherBucket` | `VAL-104` |
+
+### Yang tidak diuji pada slice ini
+
+Validasi dan rilis (`S4d`), pengiriman hasil (`LAB-COORD-011`), cetak dwibahasa
+(`LAB-COORD-013`), dan tata letak cetak (`LAB-OPEN-039`). Keempatnya di luar `S4b`.
+
+---
+
+## Amandemen 2026-09-21 (kedua) — `AC-177`..`AC-191`
+
+| AC | Lapis | Catatan pengujian |
+|---|---|---|
+| `AC-177` | Integrasi | Kualifikasi tersimpan sebagai nilai; **bukan** disimpulkan dari catatan konsultasi |
+| `AC-178` | Integrasi | Kirim kadar tanpa satuan → `422` (`VAL-112`) |
+| `AC-179`, `AC-188` | Kontrak + UI | Uji **empat kombinasi** jenis biakan × metode uji, termasuk **jamur + difusi cakram** |
+| `AC-180` | Integrasi | Dua nomor berbeda pada satu pesanan, keduanya terbaca |
+| `AC-181` | Integrasi | Ambil bahan hari Senin, terima hari Rabu → cetakan menulis Rabu, layar menulis Senin |
+| `AC-182` | Integrasi | Ubah nama konsultan → footer berubah, pemegang wewenang klinis **tidak** |
+| `AC-183` | Integrasi + UI | Sebelum rilis, ruas kosong — **bukan** nama pencetak maupun penulis hasil |
+| `AC-185` | Integrasi | Ubah breakpoint di data induk → baris hasil lama **tetap** memakai snapshot lamanya |
+| `AC-186` | Unit + integrasi | **Kasus uji terpenting.** Ketiga batas: zona 11 pada 12-16 → `R`; 13 pada 12-15 → `I`; 32 pada 13-16 → `S` |
+| `AC-187` | Integrasi | Timpa tanpa alasan → `422` (`VAL-113`); dengan alasan → tersimpan beserta `ComputedResult` aslinya |
+| `AC-189` | Integrasi + UI | Pemeriksaan tanpa profil set bakteri → bagian isolat **nol tampil**, dan mengirimnya → `422` (`VAL-118`) |
+| `AC-190` | Integrasi | Isolat tanpa baris kepekaan tersimpan; bertanda tidak diuji **tetapi** punya baris → `422` (`VAL-117`) |
+| `AC-191` | Integrasi | Zona `0` → `R`; zona dikosongkan → **nol** interpretasi dihitung dan `result` menjadi wajib |
+
+### Data uji tambahan
+
+Satu `LabSusceptibilityBreakpoint` **beserta keadaan nol baris** — `AC-186` dan jalur manual
+`VAL-114` menguji dua keadaan berlawanan, dan keadaan **nol baris** adalah yang pasti terjadi
+lebih dulu.

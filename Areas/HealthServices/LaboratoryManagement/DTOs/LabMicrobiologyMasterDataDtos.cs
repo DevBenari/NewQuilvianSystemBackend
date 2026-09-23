@@ -153,6 +153,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         public bool IsActive { get; set; }
 
         public string? Description { get; set; }
+
+        /// <summary>
+        /// Kandungan cakram dalam mikrogram, misalnya <c>10</c> pada cakram Ampicillin 10 UG.
+        ///
+        /// <b>Boleh kosong, dan kosongnya berarti pekerjaan yang tersisa</b> — bukan nilai yang
+        /// tidak berlaku. Lembar antibiogram mencetaknya sebagai kolom <c>UG</c>, dan baris yang
+        /// nol punya angka ini tercetak dengan kolom kosong.
+        /// </summary>
+        public int? DiscContentUg { get; set; }
     }
 
     /// <summary>Bentuk ringan untuk kotak pilihan panel uji kepekaan.</summary>
@@ -183,6 +192,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         public string? Description { get; set; }
 
         public int SortOrder { get; set; }
+
+        /// <summary>
+        /// Kandungan cakram dalam mikrogram, misalnya <c>10</c> pada cakram Ampicillin 10 UG.
+        ///
+        /// <b>Boleh kosong, dan kosongnya berarti pekerjaan yang tersisa</b> — bukan nilai yang
+        /// tidak berlaku. Lembar antibiogram mencetaknya sebagai kolom <c>UG</c>, dan baris yang
+        /// nol punya angka ini tercetak dengan kolom kosong.
+        /// </summary>
+        public int? DiscContentUg { get; set; }
     }
 
     /// <summary>
@@ -201,5 +219,73 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
         public int SortOrder { get; set; }
 
         public bool IsActive { get; set; } = true;
+        /// <summary>
+        /// Kandungan cakram dalam mikrogram, misalnya <c>10</c> pada cakram Ampicillin 10 UG.
+        ///
+        /// <b>Boleh kosong, dan kosongnya berarti pekerjaan yang tersisa</b> — bukan nilai yang
+        /// tidak berlaku. Lembar antibiogram mencetaknya sebagai kolom <c>UG</c>, dan baris yang
+        /// nol punya angka ini tercetak dengan kolom kosong.
+        /// </summary>
+        public int? DiscContentUg { get; set; }
+    }
+
+    // =====================================================================
+    // Permukaan baseline data induk yang dilengkapi 2026-09-22 — `LAB-API-v1` r31.
+    // =====================================================================
+
+    /// <summary>
+    /// Ringkasan data induk organisme (<c>GET /summary</c>).
+    ///
+    /// <c>WithBreakpoint</c> menjawab pertanyaan yang benar-benar ditanyakan kepala instalasi:
+    /// berapa kuman yang interpretasi kepekaannya sudah dapat dihitung. Kuman tanpa satu pun
+    /// rentang breakpoint tetap dapat dicatat sebagai isolat, tetapi antibiogramnya nol dapat
+    /// diinterpretasi sistem.
+    /// </summary>
+    public class LabOrganismSummaryResponse
+    {
+        public int TotalOrganism { get; set; }
+
+        public int ActiveOrganism { get; set; }
+
+        public int InactiveOrganism { get; set; }
+
+        /// <summary>Organisme aktif yang sudah punya sedikitnya satu rentang breakpoint aktif.</summary>
+        public int WithBreakpoint { get; set; }
+    }
+
+    /// <summary>
+    /// Ringkasan panel uji antibiotik (<c>GET /summary</c>).
+    ///
+    /// <c>MissingDiscContent</c> adalah pasangan langsung dari angka bernama sama pada ringkasan
+    /// breakpoint. Ia dihitung di sini supaya kepala instalasi melihat pekerjaan yang tersisa
+    /// <b>pada layar tempat kolom itu diisi</b>, bukan hanya pada layar breakpoint yang nol
+    /// punya jalan memperbaikinya.
+    /// </summary>
+    public class LabAntibioticSummaryResponse
+    {
+        public int TotalAntibiotic { get; set; }
+
+        public int ActiveAntibiotic { get; set; }
+
+        public int InactiveAntibiotic { get; set; }
+
+        /// <summary>Antibiotik aktif yang sudah punya sedikitnya satu rentang breakpoint aktif.</summary>
+        public int WithBreakpoint { get; set; }
+
+        /// <summary>Antibiotik aktif yang kandungan cakramnya belum diisi — kolom <c>UG</c> pada cetakan.</summary>
+        public int MissingDiscContent { get; set; }
+    }
+
+    /// <summary>
+    /// Mengaktifkan atau menonaktifkan satu baris data induk Mikrobiologi.
+    ///
+    /// <b>Ini BUKAN penghapusan.</b> <c>r24</c> bagian 19.4 menolak <c>DELETE</c> pada kedua
+    /// kelompok ini atas alasan klinis: isolat yang sudah tercatat menunjuk ke baris ini, dan
+    /// menghapusnya berarti menghapus temuan pasien. Barisnya tetap terlihat pada daftar
+    /// beserta penandanya (<c>AC-118</c>).
+    /// </summary>
+    public class LabMicrobiologyMasterDataStatusRequest
+    {
+        public bool IsActive { get; set; }
     }
 }

@@ -1868,6 +1868,387 @@ sudah berisi data — **konteks klinis pun tabel tersendiri**, bukan kolom pada 
 | Penanggung jawab analis | `LAB-DEC-093` | `LAB-DC-050` | `AnalystUserId` | — |
 | Status temuan sebagai nilai | `LAB-DEC-094` | — | `FindingStatus` | — |
 
+
+---
+
+## 16. Rancangan 2026-09-21 — `S4b` sesudah amendment pass putaran 9 dan 10
+
+| Field | Nilai |
+|---|---|
+| Slice | **`S4b` pengisian hasil Mikrobiologi saja.** `S4d` dikecualikan — tertahan `DEC-LAB-011` |
+| Masukan | decisions **rev 50**; capability map **rev 4**; `LAB-DA-001` rev 6 bagian A3 |
+| Kontrak | `LAB-API-v1` `r26`, `LAB-VAL-v1` `r9`, `LAB-PERM-v1` revision 8 — ketiganya `draft` |
+| Sifat | **Aditif terhadap bagian 14.** Nol yang sudah dirancang di sana dibongkar |
+| Source saat dirancang | backend `981e002c`, frontend `ebef7ebe5` |
+
+### 16.1 Apa yang sebenarnya berubah dari bagian 14
+
+Bagian 14 sudah merancang `S4b` pada 2026-09-18. Putaran 9 dan 10 **menegakkan empat hal yang
+sudah benar di sana** dan **menambah enam hal baru**. Tabel ini yang menentukan besar pekerjaan
+sisanya.
+
+| Hal | Bagian 14 | Sesudah putaran 9-10 |
+|---|---|---|
+| Hasil melekat pada pemeriksaan | Sudah begitu | ✅ ditegakkan `LAB-DEC-095` — nol perubahan |
+| MIC dan zona keduanya opsional | Sudah begitu | ✅ ditegakkan `LAB-DEC-101` — nol perubahan |
+| Nol subbakteri | Sudah begitu | ✅ ditegakkan `LAB-DEC-102` — nol perubahan |
+| Status temuan berdaftar sendiri | Sudah begitu | ✅ ditegakkan `LAB-DEC-113` — nol perubahan |
+| Kelengkapan hasil | **Gap terbuka** `ARCH-GAP-LAB-04` | ✅ **DITUTUP** `LAB-DEC-097` |
+| Penanda `Definitif` | Dikeluarkan `LAB-DEC-081` | ⬅ **MASUK KEMBALI** `LAB-DEC-106` |
+| Penilaian kritis | Dilarang `INV-28` | ⬅ **DIIZINKAN lewat data induk** `LAB-DEC-103` |
+| Spesifik Specimen | Belum ada | ⬅ **BARU** `LAB-DEC-098`/`099` |
+| Koreksi specimen + jejaknya | Belum ada | ⬅ **BARU** `LAB-DEC-107`/`112` |
+| Dokter konfirmator | Belum ada | ⬅ **BARU** `LAB-DEC-111` |
+
+### 16.2 Model yang ditambahkan
+
+Seluruhnya di `Areas/HealthServices/LaboratoryManagement/Models/`, berprefix `Lab` sesuai baris
+registry 2026-09-02 yang sama dengan `LabOrganism` dan `LabSpecimenType`.
+
+| Model | Status | Isi pokok |
+|---|---|---|
+| `LabExamination` | **`Extend`** | `FinalizedAt`, `FinalizedByUserId`, `ReopenCount`, `ConsultedByUserId`, `ConsultedToName`, `ConsultedAt` |
+| `LabMicrobiologyCriticalRule` | **`New`** | `LabOrganismId?`, `LabAntibioticId?`, `SusceptibilityResult?`, `RuleNote?`, `IsActive` |
+| `LabSpecimenDetailType` | **`New`** | `LabSpecimenTypeId`, `DetailTypeCode`, `DetailTypeNameId`, `DetailTypeNameEn?`, `SortOrder`, `IsActive` |
+| `LabSpecimenDetail` | **`New`** | `LabSpecimenId`, `LabSpecimenDetailTypeId`, `DetailNameSnapshot` |
+| `LabFieldChangeLog` | **`New`** | `EntityName`, `EntityId`, `FieldName`, `OldValue?`, `NewValue?`, `ChangedByUserId`, `ChangedAt` |
+
+**Enum yang ditambahkan** pada `Enums/LaboratoryEnums.cs`:
+
+| Enum | Nilai | Dasar |
+|---|---|---|
+| `LabMicrobiologyFinding` | `Normal = 1`, `Positive = 2`, `Negative = 3` | `LAB-DEC-113`. **Terpisah** dari `LabPathologyFindingStatus` |
+| `LabSusceptibilityResult` | `Resistant = 1`, `Intermediate = 2`, `Sensitive = 3` | BR-23, sudah dirancang `r24` |
+
+> **`LabResultForm` sengaja TIDAK ditambah nilai.** Bagian 14 sudah memilih jalan itu, dan
+> Patologi Anatomi membuktikannya benar: bentuk hasil yang berstruktur diselesaikan dengan
+> **tabel**, bukan dengan menambah nilai enum yang kemudian menuntut percabangan di setiap
+> tempat enum itu dibaca.
+
+### 16.3 Layanan yang ditambahkan dan diperluas
+
+| Layanan | Status | Tanggung jawab |
+|---|---|---|
+| `LabExaminationService` | **Perluas** | `FinalizeMicrobiologyAsync`, `ReopenMicrobiologyAsync`, `RecordConsultationAsync` |
+| `LabMicrobiologyCriticalRuleService` | **Baru** | CRUD data induk aturan; **dan** `EvaluateAsync` yang dipakai jalur baca |
+| `LabSpecimenDetailTypeService` | **Baru** | CRUD data induk, mengikuti `master-data-endpoint-standard` seperti `LabSpecimenTypeService` |
+| `LabSpecimenService` | **Perluas** | `ApplyCorrectionAsync` beserta penulisan `LabFieldChangeLog` |
+| `LabFieldChangeRecorder` | **Baru** | Membandingkan nilai lama dan baru, lalu menulis satu baris per ruas yang benar-benar berubah |
+| `LabConfirmingDoctorResolver` | **Baru** | Membaca `TrxOnCallAssignment` → `MstDoctor`; menentukan `onDutyScheduleAvailable` dan mengisi `fallbackDoctors` |
+
+**`LabFieldChangeRecorder` dipisahkan justru supaya ia dapat dipakai ulang.** `LAB-DEC-112`
+memilih `LabFieldChangeLog` berbentuk umum (`EntityName` + `EntityId`), dan pemisahan layanan
+ini menjaga bentuk umum itu tetap berguna ketika ruas lain kelak perlu dijejaki.
+
+**`LabConfirmingDoctorResolver` hanya membaca.** Ia melakukan join lintas area di dalam
+`ApplicationDbContext` yang sama — nol panggilan HTTP, nol salinan tabel, nol sinkronisasi.
+`MstDoctor` dan `TrxOnCallAssignment` tetap milik modulnya masing-masing.
+
+### 16.4 Penilaian kritis dihitung, bukan disimpan
+
+Ini keputusan arsitektur yang perlu ditulis alasannya, sebab ia tampak lebih mahal.
+
+| Pilihan | Yang terjadi |
+|---|---|
+| **Dihitung saat dibaca** (dipilih) | `EvaluateAsync` mencocokkan setiap baris kepekaan terhadap aturan aktif, lalu mengisi `isCritical` pada response |
+| Disimpan saat hasil diisi (ditolak) | Kolom `IsCritical` pada baris kepekaan, diisi sekali |
+
+> **Kenapa yang kedua ditolak.** Aturan kritis **akan** berubah — `DR-LAB-002` menambah dan
+> mencabut baris seiring pola resistensi rumah sakit bergeser. Nilai yang tersimpan membekukan
+> penilaian lama, dan enam bulan kemudian layar menampilkan dua hasil dengan kombinasi yang
+> **persis sama** tetapi penanda berbeda, tanpa satu pun cara pembacanya tahu kenapa.
+>
+> Sejalan dengan `LAB-DEC-080`: kolom mencatat **apa yang terjadi**, bukan **menyimpulkan**.
+> `FinalizedAt` disimpan karena ia fakta — seseorang menekan tombol. `IsCritical` bukan fakta;
+> ia kesimpulan atas aturan yang berlaku saat dibaca.
+
+**Biaya yang diterima.** Setiap pembacaan hasil ikut membaca tabel aturan. Tabelnya kecil —
+puluhan baris, bukan ribuan — dan dapat di-cache pada tingkat permintaan.
+
+### 16.5 Rencana migration
+
+Satu migration, `AddLabMicrobiologyResultCompletion`:
+
+1. Enam kolom pada `LabExamination`, **seluruhnya nullable** kecuali `ReopenCount` yang
+   berdefault `0`. Tabel itu sudah berisi data, sehingga kolom wajib tanpa default akan menolak
+   migration.
+2. Tabel `LabMicrobiologyCriticalRule` beserta index atas
+   `(LabOrganismId, LabAntibioticId, SusceptibilityResult)` di antara baris `IsActive`.
+3. Tabel `LabSpecimenDetailType` beserta index unik **parsial** atas `DetailTypeCode` di antara
+   baris yang belum `IsDelete` — pola `VAL-91`.
+4. Tabel `LabSpecimenDetail` beserta index unik parsial atas
+   `(LabSpecimenId, LabSpecimenDetailTypeId)`.
+5. Tabel `LabFieldChangeLog` beserta index atas `(EntityName, EntityId, ChangedAt)`.
+
+**Seluruh index unik wajib parsial.** Ini pelajaran `AC-128` pada `BE-LAB-50`: index unik penuh
+atas tabel ber-soft-delete menolak baris baru yang kodenya sama dengan baris yang sudah dihapus.
+
+### 16.6 Rencana data induk awal
+
+| Data induk | Isi awal | Pengisi |
+|---|---|---|
+| `LabSpecimenDetailType` | **Nol baris di-seed.** `LAB-DEC-099` menyerahkan penyaringannya kepada kepala instalasi, dan datasetnya sendiri belum pernah dibaca blueprint (`LAB-OPEN-040`) | Kepala instalasi |
+| `LabMicrobiologyCriticalRule` | **Nol baris di-seed.** `LAB-DEC-103` butir 4 menyerahkan isinya kepada `DR-LAB-002` (`LAB-OPEN-041`) | `DR-LAB-002` |
+| `MstMeasurement` | **Enam baris baru** bertanda `IsForLaboratory`: `swab`, `preparat`, `potong`, `item`, `isolat`, `vial` | Seeder Laboratorium, lewat data induk `master-data` |
+
+> **Dua dari tiga sengaja kosong, dan itu bukan pekerjaan yang terlupa.** Kedua tabel itu
+> memuat **penilaian** — rincian specimen mana yang dipakai, dan kombinasi mana yang
+> membahayakan pasien. Mengisinya dengan tebakan implementer berarti menaruh keputusan klinis
+> di dalam seeder. `criticalRuleAvailable` pada `r26` ada justru supaya layar dapat menyatakan
+> keadaan kosong itu dengan jujur, bukan menyembunyikannya.
+
+> **Satuan `MstMeasurement` boleh di-seed** karena ia bukan penilaian, melainkan satuan ukur
+> yang sudah dipakai laboratorium sehari-hari. Dan berbeda dari `LAB-COORD-006`, tabel itu
+> **punya endpoint tulis lengkap**, sehingga kepala instalasi tetap dapat memperbaikinya
+> sendiri tanpa SQL langsung.
+
+### 16.7 Yang sengaja tidak dibuat
+
+| Yang ditolak | Alasan |
+|---|---|
+| Tabel `LabMicrobiologyReport` per order | `LAB-DEC-095`. Bentuk per order adalah milik Patologi Anatomi karena `LAB-DEC-085` memutuskan begitu untuk disiplin itu, bukan karena ia lebih rapi |
+| Kolom `IsCritical` tersimpan | Bagian 16.4 |
+| Kolom `HL7Status` | `LAB-DEC-109` |
+| Tabel penugasan jaga milik Laboratorium | `LAB-DEC-111` membaca milik Human Resource. Mendirikan sendiri berarti dua daftar dokter jaga yang dapat saling berbeda, dan yang salah akan dipakai pada pukul dua pagi |
+| Layanan pengiriman WhatsApp dan pembangkit PDF | `LAB-COORD-011`. Bukan wewenang Laboratorium |
+| Kolom `IsDefinitive` berbentuk boolean | `LAB-DEC-106` menetapkannya **fakta**, bukan penanda. Boolean menyimpan *bahwa* ia dikonsultasikan tanpa *kepada siapa* dan *kapan* — dan ketiganya yang membuat catatan itu berguna |
+
+### 16.8 Traceability bagian 16
+
+| Yang dirancang | Keputusan | Kontrak | AC |
+|---|---|---|---|
+| Kelengkapan hasil | `LAB-DEC-097` | `r26` 21.2 | `AC-158`, `AC-159` |
+| Waktu turunan | `LAB-DEC-096` | `r26` 21.3 | `AC-157` |
+| Penanda `Definitif` | `LAB-DEC-106` | `r26` 21.2 | `AC-169` |
+| Aturan kritis | `LAB-DEC-103` | `r26` 21.6 | `AC-166`, `AC-167` |
+| Spesifik Specimen | `LAB-DEC-098`, `099` | `r26` 21.5 | `AC-160`, `AC-161` |
+| Satuan volume | `LAB-DEC-100` | — | `AC-162` |
+| Koreksi specimen dan jejaknya | `LAB-DEC-107`, `112` | `r26` 21.4 | `AC-170`, `AC-175` |
+| Ruas wajib bersyarat | `LAB-DEC-104` | `LAB-VAL-v1` `r9` | `AC-163`, `AC-164`, `AC-165` |
+| Analis turunan | `LAB-DEC-105` | `r26` 21.3 | `AC-168` |
+| Dokter konfirmator | `LAB-DEC-111` | `r26` 21.7 | `AC-173`, `AC-174` |
+| Status temuan | `LAB-DEC-113` | `r24` 19.2 | `AC-176` |
+
+---
+
+## 17. Rancangan 2026-09-21 (kedua) — `S4b` sesudah bukti cetak
+
+| Field | Nilai |
+|---|---|
+| Masukan | decisions **rev 52** (`LAB-DEC-114`..`128`); `LAB-EVD-005`, `LAB-EVD-006` |
+| Kontrak | `LAB-API-v1` `r27`, `LAB-VAL-v1` `r10`, `LAB-PERM-v1` rev 9 — ketiganya `draft` |
+| Sifat | **Aditif terhadap bagian 16.** Nol yang dirancang di sana dibongkar |
+
+### 17.1 Kenapa bagian ini ada, padahal bagian 16 baru ditulis hari ini
+
+Bukti cetak `LAB-EVD-005` dan `LAB-EVD-006` datang **sesudah** bagian 16 selesai dan `r26`
+disetujui. Keduanya membawa dua belas keputusan baru, dan **satu di antaranya mengoreksi
+keputusan yang berumur kurang dari satu jam**.
+
+> **Pelajarannya disimpan, bukan disembunyikan.** `LAB-DEC-116` menduga perbedaan bakteri dan
+> jamur hanya label, dan dugaan itu disimpulkan dari **satu** contoh cetak. Contoh kedua
+> membatalkannya. `LAB-OPEN-039` masih menyisakan **enam varian yang belum pernah dilihat**,
+> sehingga bagian ini dirancang **menahan perubahan**, bukan mengunci bentuk.
+
+### 17.2 Model yang ditambahkan dan diperluas
+
+| Model | Status | Isi |
+|---|---|---|
+| `LabExamination` | **`Extend`** — 3 kolom lagi | `ResultQualifier`, `CultureType`, `SusceptibilityMethod` — **seluruhnya nullable** |
+| `LabMicrobiologyIsolate` | **`Extend`** | `IsSusceptibilityTested` |
+| `LabIsolateSusceptibility` | **`Extend`** — 7 kolom | `ConcentrationUnitId`, `DiscContentUgSnapshot`, `BreakpointLowerMmSnapshot`, `BreakpointUpperMmSnapshot`, `ComputedResult`, `IsResultOverridden`, `ResultOverrideReason` |
+| `LabAntibiotic` | **`Extend`** | `DiscContentUg` |
+| `LabOrder` | **`Extend`** | `LabReportNumber` |
+| `LabSusceptibilityBreakpoint` | **`New`** | Rentang per kombinasi organisme dan antibiotik |
+| `LabProcedureMicrobiologyProfile` | **`New`** | Penanda set bakteri per pemeriksaan katalog |
+| `LabDisciplineSetting` | **`New`** | Label dan nama konsultan, kalimat baku, awalan nomor cetak |
+
+**Enum yang ditambahkan:** `LabResultQualifier` (`Definitif`/`Sementara`), `LabCultureType`
+(`Bacterial`/`Fungal`), `LabSusceptibilityMethod` (`DiscDiffusion`/`Dilution`).
+
+### 17.3 Layanan yang ditambahkan
+
+| Layanan | Tanggung jawab |
+|---|---|
+| `LabSusceptibilityInterpreter` | Menghitung `ComputedResult` dari zona terhadap breakpoint; menetapkan `IsResultOverridden` |
+| `LabSusceptibilityBreakpointService` | CRUD data induk breakpoint |
+| `LabProcedureMicrobiologyProfileService` | CRUD pemetaan katalog |
+| `LabDisciplineSettingService` | Baca dan ubah pengaturan tiga disiplin |
+| `LabReportNumberService` | Alokasi nomor cetak **per disiplin per tahun**, pola `LabOrderNumberService` |
+
+**`LabReportNumberService` menyalin pola `LabOrderNumberService` yang sudah berjalan**, dengan
+satu perbedaan: penghitungnya **per disiplin per tahun**, bukan global. Nomor `26-1246` berarti
+tahun 26 urutan 1246 pada disiplin itu.
+
+### 17.4 Dua nilai yang disimpan, dan satu yang tidak — beserta alasannya
+
+Bagian 16.4 memutuskan `IsCritical` **tidak** disimpan. Bagian ini memutuskan sebaliknya untuk
+`ComputedResult`, dan perbedaannya perlu dijelaskan supaya tidak terbaca sebagai inkonsistensi.
+
+| Nilai | Disimpan? | Alasan |
+|---|---|---|
+| `IsCritical` | **Tidak** | Ia **kesimpulan** atas aturan yang boleh berubah. Menyimpannya membekukan penilaian lama sebagai kalau-kalau fakta |
+| `ComputedResult` | **Ya** | Ia **fakta apa yang sistem katakan pada saat analis memutuskan menimpanya**. Tanpa disimpan, pertanyaan *"ditimpa dari apa"* kehilangan jawabannya begitu breakpoint diperbarui |
+| Snapshot breakpoint | **Ya** | Supaya cetak ulang tahun depan menghasilkan lembar yang sama persis |
+
+> Bedanya bukan teknis. `IsCritical` menjawab *"apakah ini berbahaya menurut aturan hari ini"*
+> — pertanyaan masa kini. `ComputedResult` menjawab *"apa yang terjadi saat itu"* — pertanyaan
+> masa lalu, dan pertanyaan masa lalu **selalu** disimpan. Prinsip yang sama dipakai
+> `LAB-DEC-080` membedakan fakta dari status.
+
+### 17.5 Rencana migration
+
+Satu migration lagi, `AddLabMicrobiologyPrintAndBreakpoint`, **terpisah** dari
+`AddLabMicrobiologyResultCompletion` milik `BE-LAB-53`:
+
+1. Tiga kolom `LabExamination`, satu `LabMicrobiologyIsolate`, tujuh
+   `LabIsolateSusceptibility`, satu `LabAntibiotic`, satu `LabOrder` — **seluruhnya nullable**
+   kecuali dua bool berdefault.
+2. Tiga tabel baru beserta index unik **parsial**.
+
+**Kenapa dipisah dari migration `BE-LAB-53`.** Bila digabung, satu kegagalan menyeret keduanya
+— dan kolom yang satu sudah punya task yang siap dikerjakan sementara yang lain masih menunggu
+varian cetak. Pola yang sama dipakai 16.5 memisahkan `BE-LAB-53` dari task lain.
+
+### 17.6 Rencana data induk awal
+
+| Data induk | Isi awal | Pengisi | Penahan |
+|---|---|---|---|
+| `LabDisciplineSetting` | **Tiga baris**, label dan nama konsultan dari `LAB-EVD-005` | Seeder, lalu kepala instalasi | Nol |
+| `MstMeasurement` | Dua baris lagi: `ug/mL`, `mg/L` | Seeder | Nol |
+| `LabAntibiotic.DiscContentUg` | **Nol diisi** — nilai pada `LAB-EVD-006` adalah contoh, bukan daftar resmi | Kepala instalasi | Butuh daftar panel resmi |
+| `LabSusceptibilityBreakpoint` | **Nol baris** | `DR-LAB-002` | `LAB-OPEN-041` sekerabat |
+| `LabProcedureMicrobiologyProfile` | **Nol baris** | Kepala instalasi | Butuh daftar pemeriksaan ber-set-bakteri |
+
+> **`LabDisciplineSetting` boleh di-seed** karena ketiga nilainya **terbaca langsung** dari
+> bukti cetak — bukan tebakan. Tiga data induk lain tetap kosong karena isinya penilaian, dan
+> `breakpointAvailable` pada `r27` ada justru supaya layar menyatakan kekosongan itu.
+
+### 17.7 ⚠ Bagian yang dirancang menahan perubahan
+
+| Bagian | Bentuk yang dipilih | Kenapa |
+|---|---|---|
+| `ResultQualifier`, `CultureType`, `SusceptibilityMethod` | **Nullable, enum** | Bila ada bentuk kelima, menambah nilai enum jauh lebih murah daripada membongkar kolom wajib |
+| Susunan isolat pada cetakan | **Tidak dirancang** | Cetakan dua isolat berantibiogram belum pernah terlihat |
+| Kalimat hasil nol pertumbuhan | **Tidak dirancang** | Belum pernah terlihat |
+| Pengulangan kop per lembar | **Tidak dirancang** | Ketiga contoh satu halaman |
+
+**Keempatnya sengaja dibiarkan kosong, bukan ditebak.** Menebaknya berarti mengulang persis
+kesalahan `LAB-DEC-116`.
+
+### 17.8 Traceability bagian 17
+
+| Yang dirancang | Keputusan | Kontrak | AC |
+|---|---|---|---|
+| `ResultQualifier` | `LAB-DEC-114` | `r27` 22.2 | `AC-177` |
+| Satuan MIC | `LAB-DEC-115` | `r27` 22.2 | `AC-178` |
+| Dua penanda | `LAB-DEC-116`, `124` | `r27` 22.2 | `AC-179`, `AC-188` |
+| `LabReportNumberService` | `LAB-DEC-117` | `r27` 22.3 | `AC-180` |
+| Pemetaan tanggal cetak | `LAB-DEC-118` | `r27` 22.3 | `AC-181` |
+| `LabDisciplineSetting` | `LAB-DEC-119`, `127` | `r27` 22.7 | `AC-182` |
+| Asal `Petugas Otorisasi` | `LAB-DEC-120` | `r27` 22.3 | `AC-183` |
+| Breakpoint + `DiscContentUg` | `LAB-DEC-122` | `r27` 22.5 | `AC-185` |
+| `LabSusceptibilityInterpreter` | `LAB-DEC-123` | `r27` 22.4 | `AC-186`, `AC-187` |
+| Profil katalog | `LAB-DEC-125` | `r27` 22.6 | `AC-189` |
+| `IsSusceptibilityTested` | `LAB-DEC-126` | `r27` 22.2 | `AC-190` |
+| Zona `0` | `LAB-DEC-128` | `LAB-VAL-v1` `r10` | `AC-191` |
+
+---
+
+## 18. Rancangan 2026-09-21 (ketiga) — Data induk specimen dari `LAB-EVD-007`
+
+| Field | Nilai |
+|---|---|
+| Masukan | decisions **rev 53** (`LAB-DEC-129`..`132`); `LAB-EVD-007` |
+| Kontrak | `LAB-API-v1` `r28` — `draft` |
+| Sifat | **Aditif.** Tiga kolom dan satu seeder |
+
+### 18.1 Perubahan model
+
+| Model | Status | Isi |
+|---|---|---|
+| `LabSpecimenType` | **`Existing`** — nol kolom berubah | Hanya **isinya** bertambah dari 7 menjadi 31 baris |
+| `LabSpecimenDetailType` | **`Extend`** | `SubTypeName`, `SnomedCode`; `DetailTypeNameId` menjadi **nullable**, `DetailTypeNameEn` **wajib** |
+
+> **`LabSpecimenType` tidak disentuh strukturnya, dan itu yang membuat perubahan ini murah.**
+> Ketujuh baris ter-seed tetap memakai GUID-nya semula — yang berubah hanya
+> `SpecimenTypeName`-nya, plus 24 baris baru. `LabSpecimen.SpecimenTypeId` yang sudah menunjuk
+> ketujuhnya **nol perlu dipetakan ulang**.
+
+### 18.2 Seeder 1.767 baris — dan kenapa ia memakai pola BARU
+
+`LabSpecimenTypeSeeder` menulis tujuh barisnya **langsung di dalam kode** sebagai daftar
+`new(...)`. Pola itu **tidak dapat dipakai** untuk 1.767 baris: berkas C# sepanjang 1.767 baris
+data adalah berkas yang nol dapat ditinjau siapa pun, dan setiap pembaruan dataset menjadi
+*diff* raksasa.
+
+**Yang dipilih: berkas data tertanam (*embedded resource*).**
+
+| Bagian | Bentuk |
+|---|---|
+| Berkas data | `Areas/HealthServices/LaboratoryManagement/Seeders/Data/lab-specimen-detail-types.csv` |
+| Pendaftaran | `<EmbeddedResource Include="..." />` pada `.csproj` |
+| Pembacanya | `LabSpecimenDetailTypeSeeder`, memakai `Assembly.GetManifestResourceStream` |
+| Pemanggilan | `RunStartupSeederAsync` pada `Program.cs`, **sesudah** `LabSpecimenTypeSeeder` |
+| Gerbang | `SeedDefaultData:Enabled`, sama seperti seeder lain |
+
+**Kolom CSV:** `snomed_code`, `name_en`, `specimen_type_code`, `sub_type_name`, `is_active`.
+
+> **Ini pola pertama di repository yang men-seed dari berkas, dan itu dinyatakan terbuka
+> di sini — bukan diselundupkan.** Backend Engineering Contract mewajibkan mengikuti pola yang
+> sudah ada; pola yang ada tidak menjangkau ukuran ini, dan **menyimpangnya diam-diam jauh
+> lebih buruk daripada menyatakannya**. Bila pemilik modul menolak, jalan keluarnya
+> `InsertData` pada migration — lebih buruk, sebab 1.767 baris masuk ke berkas migration yang
+> nol boleh disunting lagi sesudah diterapkan.
+
+**Kenapa tertanam, bukan berkas di samping aplikasi.** Berkas tertanam ikut di dalam DLL.
+Ia **tidak dapat hilang saat deployment**, dan tidak ada satu pun langkah "jangan lupa salin
+berkasnya" yang dapat terlewat.
+
+### 18.3 Kenapa seeder, bukan penyisipan langsung ke database
+
+Pertanyaan pemilik modul 2026-09-21, dan jawabannya menentukan bentuk bagian ini.
+
+| Yang berpindah saat `commit` dan `push` | Isinya |
+|---|---|
+| Kode | **Ya** |
+| Struktur tabel, lewat migration | **Ya** |
+| **Baris data** | **TIDAK** |
+
+Baris yang disisipkan langsung ke satu database hidup **hanya di database itu**. Migrasi ke
+database bersama menghasilkan tabel kosong.
+
+Seeder berpindah karena ia **kode**. Ia berjalan saat aplikasi menyala, terhadap database mana
+pun yang sedang dipakai — dev, bersama, maupun produksi.
+
+### 18.4 Sifat idempoten seeder
+
+Mengikuti `LabSpecimenTypeSeeder` apa adanya:
+
+1. Membaca kode yang **sudah ada** di tabel lebih dulu.
+2. Menyisipkan **hanya** baris yang kodenya belum ada.
+3. **Nol memperbarui** baris yang sudah ada — nama Indonesia yang sudah diisi kepala instalasi
+   tidak boleh tertimpa kembali menjadi kosong saat aplikasi menyala ulang.
+4. Mencatat jumlah baris yang disisipkan ke log.
+
+> **Butir 3 adalah yang paling mudah keliru.** Seeder yang "menyegarkan" isinya setiap kali
+> menyala akan menghapus seluruh pekerjaan penerjemahan setiap kali aplikasi di-restart.
+
+### 18.5 Rencana migration
+
+`AddLabSpecimenDetailTypeSnomedColumns`: dua kolom pada `LabSpecimenDetailType`
+(`SubTypeName`, `SnomedCode`), dan `DetailTypeNameId` dilonggarkan menjadi nullable.
+
+**Nol migration bagi 31 nilai `LabSpecimenType`** — itu data, dan data ditangani seeder.
+
+### 18.6 Traceability bagian 18
+
+| Yang dirancang | Keputusan | Kontrak | AC |
+|---|---|---|---|
+| 31 nilai + `SubTypeName` | `LAB-DEC-129` | `r28` 23.2 | `AC-192` |
+| Seeder 1.601 aktif + 166 nonaktif | `LAB-DEC-130` | `r28` 23.1 | `AC-193` |
+| Dua nama + `untranslatedOnly` | `LAB-DEC-131` | `r28` 23.3 | `AC-194` |
+| `SnomedCode` | `LAB-DEC-132` | `r28` 23.2 | `AC-195` |
 ## Riwayat Revisi
 
 | Revision | Tanggal | Perubahan | Status |

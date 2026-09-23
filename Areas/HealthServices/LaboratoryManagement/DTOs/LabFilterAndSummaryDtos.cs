@@ -345,4 +345,239 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.DTOs
 
         public int WajibDisertaiCatatan { get; set; }
     }
+
+    /// <summary>
+    /// Bentuk layar data induk breakpoint (<c>LAB-API-v1</c> <c>r30</c>, baseline master data).
+    ///
+    /// <b>Dibuat karena layarnya memang dikonsumsi</b> — <c>FE-LAB-34</c>. <c>QBE-OPT-001</c>
+    /// menyediakan metadata hanya bila ada yang membacanya, dan di sini ada.
+    /// </summary>
+    public class LabSusceptibilityBreakpointFilterMetadataResponse
+    {
+        public string DateFormat { get; set; } = "yyyy-MM-dd";
+
+        public List<LabSortOptionResponse> SortOptions { get; set; } = new();
+
+        public List<string> SortDirections { get; set; } = new();
+
+        public List<int> PageSizeOptions { get; set; } = new();
+
+        public List<LabQueryParameterInfoResponse> QueryParameters { get; set; } = new();
+
+        public bool SupportsServerSideFiltering { get; set; } = true;
+
+        public bool SupportsServerSidePaging { get; set; } = true;
+
+        /// <summary>
+        /// <b>Benar.</b> Rentang breakpoint boleh dinonaktifkan ketika versi pedoman berganti —
+        /// dan menonaktifkan, bukan menghapus, supaya hasil lama tetap dapat dibaca beserta
+        /// rentang yang berlaku saat ia dibuat (<c>LAB-DEC-122</c>).
+        /// </summary>
+        public bool IsDeletable { get; set; } = true;
+    }
+
+    /// <summary>Bentuk layar pemetaan profil Mikrobiologi katalog.</summary>
+    public class LabProcedureMicrobiologyProfileFilterMetadataResponse
+    {
+        public string DateFormat { get; set; } = "yyyy-MM-dd";
+
+        public List<LabSortOptionResponse> SortOptions { get; set; } = new();
+
+        public List<string> SortDirections { get; set; } = new();
+
+        public List<int> PageSizeOptions { get; set; } = new();
+
+        public List<LabQueryParameterInfoResponse> QueryParameters { get; set; } = new();
+
+        public List<LabEnumOptionResponse> CultureTypeOptions { get; set; } = new();
+
+        public List<LabEnumOptionResponse> SusceptibilityMethodOptions { get; set; } = new();
+
+        public bool SupportsServerSideFiltering { get; set; } = true;
+
+        public bool SupportsServerSidePaging { get; set; } = true;
+
+        public bool IsDeletable { get; set; } = true;
+    }
+
+    /// <summary>Ringkasan pemetaan profil Mikrobiologi katalog.</summary>
+    public class LabProcedureMicrobiologyProfileSummaryResponse
+    {
+        public int TotalProfile { get; set; }
+
+        public int ActiveProfile { get; set; }
+
+        public int InactiveProfile { get; set; }
+
+        /// <summary>Pemeriksaan yang tegas ditandai MEMAKAI set bakteri.</summary>
+        public int UsesSusceptibilitySet { get; set; }
+
+        /// <summary>
+        /// Pemeriksaan yang tegas ditandai TIDAK memakai set bakteri.
+        ///
+        /// Angka inilah yang benar-benar menegakkan <c>VAL-118</c>: pemeriksaan yang belum
+        /// diprofilkan tetap menerima isolat, sehingga yang membatasi hanya baris bertanda
+        /// tegas.
+        /// </summary>
+        public int WithoutSusceptibilitySet { get; set; }
+    }
+
+    /// <summary>Baris ringan untuk dropdown profil Mikrobiologi katalog.</summary>
+    public class LabProcedureMicrobiologyProfileOptionResponse
+    {
+        public Guid Id { get; set; }
+
+        public Guid ProcedureId { get; set; }
+
+        public string Label { get; set; } = string.Empty;
+
+        public bool UsesSusceptibilitySet { get; set; }
+    }
+
+    /// <summary>Mengubah status aktif profil saja.</summary>
+    public class LabProcedureMicrobiologyProfileStatusRequest
+    {
+        public bool IsActive { get; set; }
+    }
+
+    /// <summary>
+    /// Bentuk layar data induk organisme Mikrobiologi (<c>FE-LAB-24</c>).
+    ///
+    /// <c>IsDeletable</c> bernilai <b><c>false</c></b>, dan itu satu-satunya hal yang membuat
+    /// metadata ini berbeda dari kembarannya. <c>r24</c> bagian 19.4 menolak <c>DELETE</c> atas
+    /// alasan klinis, dan <c>AC-117</c> menuntut layarnya nol menampilkan tombol Hapus. Layar
+    /// membaca penanda ini alih-alih menebak dari ada-tidaknya endpoint.
+    /// </summary>
+    public class LabOrganismFilterMetadataResponse
+    {
+        public string DateFormat { get; set; } = "yyyy-MM-dd";
+
+        public List<LabSortOptionResponse> SortOptions { get; set; } = new();
+
+        public List<string> SortDirections { get; set; } = new();
+
+        public List<int> PageSizeOptions { get; set; } = new();
+
+        public List<LabQueryParameterInfoResponse> QueryParameters { get; set; } = new();
+
+        public bool SupportsServerSideFiltering { get; set; } = true;
+
+        public bool SupportsServerSidePaging { get; set; } = true;
+
+        /// <summary><b>Salah, dan disengaja.</b> Menghapus organisme berarti menghapus temuan pasien.</summary>
+        public bool IsDeletable { get; set; }
+    }
+
+    /// <summary>Bentuk layar panel uji antibiotik (<c>FE-LAB-24</c>).</summary>
+    public class LabAntibioticFilterMetadataResponse
+    {
+        public string DateFormat { get; set; } = "yyyy-MM-dd";
+
+        public List<LabSortOptionResponse> SortOptions { get; set; } = new();
+
+        public List<string> SortDirections { get; set; } = new();
+
+        public List<int> PageSizeOptions { get; set; } = new();
+
+        public List<LabQueryParameterInfoResponse> QueryParameters { get; set; } = new();
+
+        public bool SupportsServerSideFiltering { get; set; } = true;
+
+        public bool SupportsServerSidePaging { get; set; } = true;
+
+        /// <summary><b>Salah, dan disengaja.</b> Sama seperti organisme — baris lama tetap dirujuk hasil.</summary>
+        public bool IsDeletable { get; set; }
+    }
+
+    // =====================================================================
+    // Bentuk layar tiga data induk Patologi Anatomi — `r32`, `BE-LAB-66`, dipakai `FE-LAB-27`
+    // =====================================================================
+
+    /// <summary>
+    /// Bentuk layar data induk parameter Patologi Anatomi (<c>FE-LAB-27</c>).
+    ///
+    /// <c>IsDeletable</c> bernilai <b><c>false</c></b>: parameter yang dihapus menarik ruas dari
+    /// laporan pasien yang sudah tersimpan (<c>r32</c> bagian 27.5, <c>AC-143</c>).
+    /// </summary>
+    public class LabPathologyParameterFilterMetadataResponse
+    {
+        public string DateFormat { get; set; } = "yyyy-MM-dd";
+
+        public List<LabSortOptionResponse> SortOptions { get; set; } = new();
+
+        public List<string> SortDirections { get; set; } = new();
+
+        public List<int> PageSizeOptions { get; set; } = new();
+
+        public List<LabQueryParameterInfoResponse> QueryParameters { get; set; } = new();
+
+        public bool SupportsServerSideFiltering { get; set; } = true;
+
+        public bool SupportsServerSidePaging { get; set; } = true;
+
+        /// <summary><b>Salah, dan disengaja.</b> Ruas yang ditarik akan mengosongkan laporan lama.</summary>
+        public bool IsDeletable { get; set; }
+    }
+
+    /// <summary>
+    /// Bentuk layar data induk golongan Patologi Anatomi (<c>FE-LAB-27</c>).
+    ///
+    /// <c>IsDeletable</c> bernilai <b><c>false</c></b>: golongan yang dihapus membuat pesanan
+    /// lama nol punya bentuk formulir.
+    /// </summary>
+    public class LabPathologyCategoryFilterMetadataResponse
+    {
+        public string DateFormat { get; set; } = "yyyy-MM-dd";
+
+        public List<LabSortOptionResponse> SortOptions { get; set; } = new();
+
+        public List<string> SortDirections { get; set; } = new();
+
+        public List<int> PageSizeOptions { get; set; } = new();
+
+        public List<LabQueryParameterInfoResponse> QueryParameters { get; set; } = new();
+
+        public bool SupportsServerSideFiltering { get; set; } = true;
+
+        public bool SupportsServerSidePaging { get; set; } = true;
+
+        /// <summary><b>Salah, dan disengaja.</b> Pesanan lama menunjuk golongannya.</summary>
+        public bool IsDeletable { get; set; }
+    }
+
+    /// <summary>
+    /// Bentuk layar penggolongan jenis pemeriksaan Patologi Anatomi (<c>FE-LAB-27</c>).
+    ///
+    /// <b>Dua penanda di sini berbeda dari kedua kembarannya, dan keduanya disengaja.</b>
+    /// <see cref="SupportsStatusToggle"/> bernilai <c>false</c> sebab baris pemetaan nol punya
+    /// status untuk dibalik, dan <see cref="HasOptionsEndpoint"/> bernilai <c>false</c> sebab nol
+    /// satu pun layar memilih sebuah pemetaan dari kotak pilihan (<c>r32</c> bagian 27.4).
+    /// Keduanya dinyatakan di sini supaya layar <b>membacanya</b> alih-alih menyimpulkan dari
+    /// endpoint yang menjawab <c>404</c>.
+    /// </summary>
+    public class LabProcedurePathologyCategoryFilterMetadataResponse
+    {
+        public string DateFormat { get; set; } = "yyyy-MM-dd";
+
+        public List<LabSortOptionResponse> SortOptions { get; set; } = new();
+
+        public List<string> SortDirections { get; set; } = new();
+
+        public List<int> PageSizeOptions { get; set; } = new();
+
+        public List<LabQueryParameterInfoResponse> QueryParameters { get; set; } = new();
+
+        public bool SupportsServerSideFiltering { get; set; } = true;
+
+        public bool SupportsServerSidePaging { get; set; } = true;
+
+        /// <summary><b>Salah, dan disengaja.</b> Pencabutan penggolongan lewat <c>PUT /{id}</c>.</summary>
+        public bool IsDeletable { get; set; }
+
+        /// <summary><b>Salah, dan disengaja.</b> Baris pemetaan nol punya <c>IsActive</c>.</summary>
+        public bool SupportsStatusToggle { get; set; }
+
+        /// <summary><b>Salah, dan disengaja.</b> Yang dipilih layar adalah pemeriksaan dan golongannya, bukan pemetaannya.</summary>
+        public bool HasOptionsEndpoint { get; set; }
+    }
 }

@@ -252,6 +252,117 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 IsOtherBucketEditable = false
             };
 
+        /// <summary>
+        /// Bentuk layar data induk breakpoint (<c>FE-LAB-34</c>).
+        ///
+        /// Seluruh penyaring yang diumumkan di sini <b>benar-benar diproses</b>
+        /// <c>GetListAsync</c>. Metadata yang menjanjikan penyaring yang tidak diproses adalah
+        /// cacat kontrak, bukan dokumentasi yang usang.
+        /// </summary>
+        public static LabSusceptibilityBreakpointFilterMetadataResponse LabSusceptibilityBreakpoint() =>
+            new()
+            {
+                SortOptions = new()
+                {
+                    new() { Value = "organismName", Label = "Nama kuman" },
+                    new() { Value = "antibioticName", Label = "Nama antibiotik" },
+                    new() { Value = "guidelineVersion", Label = "Versi pedoman" }
+                },
+                SortDirections = new(ArahUrut),
+                PageSizeOptions = new(UkuranHalaman),
+                QueryParameters = new()
+                {
+                    new()
+                    {
+                        Name = "isActive",
+                        Type = "boolean",
+                        Description = "Menyaring aktif atau tidak. Kosong berarti keduanya ditampilkan.",
+                        Example = "true"
+                    },
+                    new()
+                    {
+                        Name = "labOrganismId",
+                        Type = "uuid",
+                        Description = "Menyaring satu kuman.",
+                        Example = "db086f41-bbef-4e06-bd86-00dffa95f058"
+                    },
+                    new()
+                    {
+                        Name = "labAntibioticId",
+                        Type = "uuid",
+                        Description = "Menyaring satu antibiotik.",
+                        Example = "e66c2432-9fab-42d8-b1e7-348576b77183"
+                    },
+                    new()
+                    {
+                        Name = "search",
+                        Type = "string",
+                        Description = "Pencarian bebas pada nama kuman, nama antibiotik, dan versi pedoman.",
+                        Example = "catarrhalis"
+                    },
+                    new() { Name = "pageNumber", Type = "integer", Description = "Halaman ke berapa, dimulai dari 1.", Example = "1" },
+                    new() { Name = "pageSize", Type = "integer", Description = "Jumlah baris per halaman, paling banyak 100.", Example = "20" }
+                },
+                SupportsServerSideFiltering = true,
+                SupportsServerSidePaging = true,
+                IsDeletable = true
+            };
+
+        /// <summary>Bentuk layar pemetaan profil Mikrobiologi katalog (<c>FE-LAB-34</c>).</summary>
+        public static LabProcedureMicrobiologyProfileFilterMetadataResponse LabProcedureMicrobiologyProfile() =>
+            new()
+            {
+                SortOptions = new()
+                {
+                    new() { Value = "procedureName", Label = "Nama pemeriksaan" },
+                    new() { Value = "procedureCode", Label = "Kode pemeriksaan" }
+                },
+                SortDirections = new(ArahUrut),
+                PageSizeOptions = new(UkuranHalaman),
+                QueryParameters = new()
+                {
+                    new()
+                    {
+                        Name = "isActive",
+                        Type = "boolean",
+                        Description = "Menyaring aktif atau tidak. Kosong berarti keduanya ditampilkan.",
+                        Example = "true"
+                    },
+                    new()
+                    {
+                        Name = "usesSusceptibilitySet",
+                        Type = "boolean",
+                        Description = "Menyaring pemeriksaan yang memakai set bakteri atau tidak.",
+                        Example = "true"
+                    },
+                    new()
+                    {
+                        Name = "search",
+                        Type = "string",
+                        Description = "Pencarian bebas pada kode dan nama pemeriksaan katalog.",
+                        Example = "MO KUL"
+                    },
+                    new() { Name = "pageNumber", Type = "integer", Description = "Halaman ke berapa, dimulai dari 1.", Example = "1" },
+                    new() { Name = "pageSize", Type = "integer", Description = "Jumlah baris per halaman, paling banyak 100.", Example = "20" }
+                },
+                CultureTypeOptions = Opsi<LabCultureType>(x => x switch
+                {
+                    LabCultureType.Bacterial => "Bakteri",
+                    LabCultureType.Fungal => "Jamur",
+                    _ => x.ToString()
+                }),
+                SusceptibilityMethodOptions = Opsi<LabSusceptibilityMethod>(x => x switch
+                {
+                    LabSusceptibilityMethod.DiscDiffusion => "Difusi Cakram",
+                    LabSusceptibilityMethod.Dilution => "Dilusi",
+                    _ => x.ToString()
+                }),
+                SupportsServerSideFiltering = true,
+                SupportsServerSidePaging = true,
+                IsDeletable = true
+            };
+
+        // =================================================================
         // =================================================================
         // Pembantu
         // =================================================================
@@ -333,5 +444,196 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             LabBoundChangeStatus.Withdrawn => "Ditarik",
             _ => x.ToString()
         };
+
+        /// <summary>Bentuk layar data induk organisme Mikrobiologi (<c>FE-LAB-24</c>).</summary>
+        public static LabOrganismFilterMetadataResponse LabOrganism() =>
+            new()
+            {
+                SortOptions = new()
+                {
+                    new() { Value = "sortOrder", Label = "Urutan tampil" },
+                    new() { Value = "organismName", Label = "Nama organisme" },
+                    new() { Value = "organismCode", Label = "Kode organisme" }
+                },
+                SortDirections = new(ArahUrut),
+                PageSizeOptions = new(UkuranHalaman),
+                QueryParameters = new()
+                {
+                    new()
+                    {
+                        Name = "isActive",
+                        Type = "boolean",
+                        Description = "Menyaring aktif atau tidak. Kosong berarti keduanya ditampilkan.",
+                        Example = "true"
+                    },
+                    new()
+                    {
+                        Name = "search",
+                        Type = "string",
+                        Description = "Pencarian bebas pada kode dan nama organisme.",
+                        Example = "catarrhalis"
+                    },
+                    new() { Name = "pageNumber", Type = "integer", Description = "Halaman ke berapa, dimulai dari 1.", Example = "1" },
+                    new() { Name = "pageSize", Type = "integer", Description = "Jumlah baris per halaman, paling banyak 100.", Example = "20" }
+                },
+                SupportsServerSideFiltering = true,
+                SupportsServerSidePaging = true,
+                IsDeletable = false
+            };
+
+        /// <summary>Bentuk layar panel uji antibiotik (<c>FE-LAB-24</c>).</summary>
+        public static LabAntibioticFilterMetadataResponse LabAntibiotic() =>
+            new()
+            {
+                SortOptions = new()
+                {
+                    new() { Value = "sortOrder", Label = "Urutan tampil" },
+                    new() { Value = "antibioticName", Label = "Nama antibiotik" },
+                    new() { Value = "antibioticCode", Label = "Kode antibiotik" }
+                },
+                SortDirections = new(ArahUrut),
+                PageSizeOptions = new(UkuranHalaman),
+                QueryParameters = new()
+                {
+                    new()
+                    {
+                        Name = "isActive",
+                        Type = "boolean",
+                        Description = "Menyaring aktif atau tidak. Kosong berarti keduanya ditampilkan.",
+                        Example = "true"
+                    },
+                    new()
+                    {
+                        Name = "search",
+                        Type = "string",
+                        Description = "Pencarian bebas pada kode dan nama antibiotik.",
+                        Example = "ampicillin"
+                    },
+                    new() { Name = "pageNumber", Type = "integer", Description = "Halaman ke berapa, dimulai dari 1.", Example = "1" },
+                    new() { Name = "pageSize", Type = "integer", Description = "Jumlah baris per halaman, paling banyak 100.", Example = "20" }
+                },
+                SupportsServerSideFiltering = true,
+                SupportsServerSidePaging = true,
+                IsDeletable = false
+            };
+
+        // =================================================================
+        // Tiga data induk Patologi Anatomi — `r32`, `BE-LAB-66`, dipakai `FE-LAB-27`.
+        //
+        // KETIGANYA MENGIRIM `SortOptions` KOSONG, DAN ITU DISENGAJA. Ketiga jalur daftarnya
+        // mengurutkan secara TETAP di dalam service — parameter dan golongan pada
+        // `SortOrder` lalu nama, pemetaan pada nama golongan lalu nama pemeriksaan — dan
+        // ketiga query DTO-nya nol punya ruas `SortBy` maupun `SortDirection`. Mengirim
+        // daftar pilihan urutan di sini berarti layar merender pemilih yang nol mengubah satu
+        // baris pun: kelas "terlihat bekerja padahal tidak" yang justru paling mahal pada
+        // layar data induk, sebab kepala instalasi akan menyimpulkan urutannya sudah diatur.
+        //
+        // `LabOrganism` dan `LabAntibiotic` di atas MENGIRIMNYA padahal keadaannya sama —
+        // `LabOrganismPagedQuery` dan kembarannya juga nol punya ruas sort. Itu selisih yang
+        // DILAPORKAN, bukan ditambal di sini: memperbaikinya berarti menyentuh cakupan
+        // `BE-LAB-65`, dan menambah ruas sort pada endpoint daftar yang sudah berjalan
+        // bertentangan dengan `r32` bagian 27.6 yang menyatakan kesepuluh endpoint lama nol
+        // berubah bentuk.
+        // =================================================================
+
+        /// <summary>Bentuk layar data induk parameter Patologi Anatomi (<c>FE-LAB-27</c>).</summary>
+        public static LabPathologyParameterFilterMetadataResponse LabPathologyParameter() =>
+            new()
+            {
+                SortOptions = new(),
+                SortDirections = new(),
+                PageSizeOptions = new(UkuranHalaman),
+                QueryParameters = new()
+                {
+                    new()
+                    {
+                        Name = "isActive",
+                        Type = "boolean",
+                        Description = "Menyaring aktif atau tidak. Kosong berarti keduanya ditampilkan.",
+                        Example = "true"
+                    },
+                    new()
+                    {
+                        Name = "search",
+                        Type = "string",
+                        Description = "Pencarian bebas pada kode dan label parameter.",
+                        Example = "makroskopik"
+                    },
+                    new() { Name = "pageNumber", Type = "integer", Description = "Halaman ke berapa, dimulai dari 1.", Example = "1" },
+                    new() { Name = "pageSize", Type = "integer", Description = "Jumlah baris per halaman, paling banyak 100.", Example = "20" }
+                },
+                SupportsServerSideFiltering = true,
+                SupportsServerSidePaging = true,
+                IsDeletable = false
+            };
+
+        /// <summary>Bentuk layar data induk golongan Patologi Anatomi (<c>FE-LAB-27</c>).</summary>
+        public static LabPathologyCategoryFilterMetadataResponse LabPathologyCategory() =>
+            new()
+            {
+                SortOptions = new(),
+                SortDirections = new(),
+                PageSizeOptions = new(UkuranHalaman),
+                QueryParameters = new()
+                {
+                    new()
+                    {
+                        Name = "isActive",
+                        Type = "boolean",
+                        Description = "Menyaring aktif atau tidak. Kosong berarti keduanya ditampilkan.",
+                        Example = "true"
+                    },
+                    new()
+                    {
+                        Name = "search",
+                        Type = "string",
+                        Description = "Pencarian bebas pada kode dan nama golongan.",
+                        Example = "sitologi"
+                    },
+                    new() { Name = "pageNumber", Type = "integer", Description = "Halaman ke berapa, dimulai dari 1.", Example = "1" },
+                    new() { Name = "pageSize", Type = "integer", Description = "Jumlah baris per halaman, paling banyak 100.", Example = "20" }
+                },
+                SupportsServerSideFiltering = true,
+                SupportsServerSidePaging = true,
+                IsDeletable = false
+            };
+
+        /// <summary>
+        /// Bentuk layar penggolongan jenis pemeriksaan Patologi Anatomi (<c>FE-LAB-27</c>).
+        ///
+        /// Dua penanda terakhir menyatakan ketiadaan yang disengaja, supaya layar membacanya
+        /// alih-alih menyimpulkannya dari endpoint yang menjawab <c>404</c>.
+        /// </summary>
+        public static LabProcedurePathologyCategoryFilterMetadataResponse LabProcedurePathologyCategory() =>
+            new()
+            {
+                SortOptions = new(),
+                SortDirections = new(),
+                PageSizeOptions = new(UkuranHalaman),
+                QueryParameters = new()
+                {
+                    new()
+                    {
+                        Name = "labPathologyCategoryId",
+                        Type = "uuid",
+                        Description = "Menyaring pada satu golongan. Kosong berarti seluruh golongan.",
+                        Example = "0f1d2c3b-4a59-6878-9706-b5c4d3e2f1a0"
+                    },
+                    new()
+                    {
+                        Name = "search",
+                        Type = "string",
+                        Description = "Pencarian bebas pada kode dan nama jenis pemeriksaan.",
+                        Example = "biopsi"
+                    },
+                    new() { Name = "pageNumber", Type = "integer", Description = "Halaman ke berapa, dimulai dari 1.", Example = "1" },
+                    new() { Name = "pageSize", Type = "integer", Description = "Jumlah baris per halaman, paling banyak 100.", Example = "20" }
+                },
+                SupportsServerSideFiltering = true,
+                SupportsServerSidePaging = true,
+                IsDeletable = false,
+                SupportsStatusToggle = false,
+                HasOptionsEndpoint = false
+            };
     }
 }

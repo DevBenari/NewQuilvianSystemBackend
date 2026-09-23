@@ -1,3 +1,4 @@
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models;
 using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -61,6 +62,10 @@ public sealed class FinReceivable : IdentityModel
     public ICollection<FinReceivableDocument> Documents { get; set; } = new List<FinReceivableDocument>();
     public ICollection<FinReceivableAdjustment> Adjustments { get; set; } = new List<FinReceivableAdjustment>();
     public ICollection<FinReceivableWriteOff> WriteOffs { get; set; } = new List<FinReceivableWriteOff>();
+
+    /// <summary>BE-FIN-016: sisi lain jembatan FinReceiptAllocation.ReceivableId — boleh kosong bila
+    /// piutang ini belum pernah dialokasikan penerimaan apa pun (BE-FIN-017, BLOCKED).</summary>
+    public ICollection<FinReceiptAllocation> ReceiptAllocations { get; set; } = new List<FinReceiptAllocation>();
 }
 
 public static class FinReceivableStatuses
