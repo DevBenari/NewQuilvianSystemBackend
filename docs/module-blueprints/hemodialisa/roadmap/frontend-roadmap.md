@@ -16,9 +16,9 @@
 > [!WARNING]
 > **Batas Dokumen dan Status Kelayakan Eksekusi**
 > 1. Dokumen ini memecah rancangan antarmuka pengguna modul Hemodialisa menjadi task frontend berukuran kecil berbasis irisan vertikal (*vertical slice*). Dokumen ini **bukan** izin menulis kode UI.
-> 2. Status saat ini adalah **FORWARD-TEST / DRAFT**. Seluruh task implementasi berstatus **`BLOCKED`** sampai:
->    - Pemilik modul menyetujui blueprint dan mengunci kontrak masukan (`HMD-CONTRACT-v1`).
->    - Backend kontrak terkait selesai atau stub API terverifikasi tersedia.
+> 2. **Status per 23 September 2026**: kedua gerbang di bawah sudah terpenuhi, dan seluruh task implementasi `FE-HMD-01` s/d `FE-HMD-18` berstatus ✅ selesai. Satu-satunya yang tersisa adalah `FE-HMD-19` berstatus 🟡 sebagian — eksekusi 22 skenario UAT di antarmuka belum dijalankan. Gerbang yang sudah terpenuhi:
+>    - Pemilik modul menyetujui blueprint dan mengunci kontrak masukan (`HMD-CONTRACT-v1`) — terpenuhi 18 September 2026.
+>    - Backend kontrak terkait selesai atau stub API terverifikasi tersedia — `BE-HMD-01` s/d `BE-HMD-18` selesai 22 September 2026.
 > 3. **Kerja Paralel**: Pengerjaan frontend paralel dengan backend hanya diizinkan setelah kontrak masukan berstatus `approved` dan memiliki hash yang terkunci pada `blueprint-manifest.md`.
 > 4. Seluruh kode frontend wajib mematuhi arsitektur Next.js App Router, JavaScript/JSX, Redux Toolkit, Axios client standar, Tailwind CSS / CSS Modules dengan Quilvian Design Tokens, dan memakai ulang (*reuse*) base components yang sudah ada.
 
@@ -64,11 +64,11 @@
 | `MVP-1` | `FE-HMD-05` | `FE-HMD-11` | Pengaturan kebijakan unit hemodialisa | `COMPLETED` ([Laporan](../task/report/frontend/FE-HMD-05.md)) |
 | `MVP-1` | `FE-HMD-06` | `FE-HMD-05` | Lembar kerja kesiapan unit shift dan pengolahan air | `COMPLETED` ([Laporan](../task/report/frontend/FE-HMD-06.md)) |
 
-| `MVP-2` | `FE-HMD-07` s/d `FE-HMD-11` | `FE-HMD-12`, `02`, `03`, `06` | Permintaan HD dari rawat inap, penerimaan order, daftar pasien, dan ruang kerja episode klinis | `IN_PROGRESS` (`FE-HMD-07` s/d `FE-HMD-10` Selesai) |
-| `MVP-3` | `FE-HMD-12` s/d `FE-HMD-13` | `FE-HMD-04` | Tampilan jadwal kerja harian, alokasi mesin/station, dan penugasan perawat | `BLOCKED` (`MVP-2`, `BE-HMD-10..11`) |
-| `MVP-4` | `FE-HMD-14` s/d `FE-HMD-15` | `FE-HMD-07` (Pra & Intra) | Checklist Pra-HD, mulai sesi idempoten, garis waktu observasi, obat Farmasi, dan komplikasi | `BLOCKED` (`MVP-3`, `BE-HMD-12..15`) |
-| `MVP-5` | `FE-HMD-16` s/d `FE-HMD-18` | `FE-HMD-07` (Pasca & Final), `FE-HMD-01` | Penilaian pasca-HD, submit perawat, pengesahan DPJP, addendum koreksi, dan dashboard unit | `BLOCKED` (`MVP-4`, `BE-HMD-16..18`) |
-| Lintas | `FE-HMD-19` | Seluruh Layar | Uji keterjangkauan menu, validasi 4 state UI, pengujian proteksi privasi, dan skenario UAT | `BLOCKED` (`MVP-5`, `BE-HMD-19`) |
+| `MVP-2` | `FE-HMD-07` s/d `FE-HMD-11` | `FE-HMD-12`, `02`, `03`, `06` | Permintaan HD dari rawat inap, penerimaan order, daftar pasien, dan ruang kerja episode klinis | `COMPLETED` (`FE-HMD-07` s/d `FE-HMD-11` Selesai) |
+| `MVP-3` | `FE-HMD-12` ✅ s/d `FE-HMD-13` ✅ | `FE-HMD-04` | Tampilan jadwal kerja harian, alokasi mesin/station, dan penugasan perawat | `COMPLETED` (keduanya selesai 23 September 2026 — [FE-HMD-12](../task/report/frontend/FE-HMD-12.md), [FE-HMD-13](../task/report/frontend/FE-HMD-13.md)) |
+| `MVP-4` | `FE-HMD-14` ✅ s/d `FE-HMD-15` ✅ | `FE-HMD-07` (Pra & Intra) | Checklist Pra-HD, mulai sesi idempoten, garis waktu observasi, obat Farmasi, dan komplikasi | `COMPLETED` (keduanya selesai 23 September 2026 — [FE-HMD-14](../task/report/frontend/FE-HMD-14.md), [FE-HMD-15](../task/report/frontend/FE-HMD-15.md)) |
+| `MVP-5` | `FE-HMD-16` ✅ s/d `FE-HMD-18` ✅ | `FE-HMD-07` (Pasca & Final), `FE-HMD-01` | Penilaian pasca-HD, submit perawat, pengesahan DPJP, addendum koreksi, dan dashboard unit | `COMPLETED` (ketiganya selesai 23 September 2026 — [FE-HMD-16](../task/report/frontend/FE-HMD-16.md), [FE-HMD-17](../task/report/frontend/FE-HMD-17.md), [FE-HMD-18](../task/report/frontend/FE-HMD-18.md)) |
+| Lintas | `FE-HMD-19` 🟡 | Seluruh Layar | Uji keterjangkauan menu, validasi 4 state UI, pengujian proteksi privasi, dan skenario UAT | `PARTIAL` (audit keterjangkauan, 4 state, dan privasi selesai 23 September 2026 dengan bukti otomatis; eksekusi 22 skenario UAT belum dijalankan — [Laporan](../task/report/frontend/FE-HMD-19.md)) |
 
 ---
 
@@ -327,14 +327,15 @@
   2. Resep berstatus `Active` tidak menampilkan tombol edit, hanya tombol revisi atau batalkan.
 * **Bukti Verifikasi / Test**: Component test `PrescriptionHistoryViewTests` memverifikasi alur pembuatan draf revisi dan render garis waktu riwayat resep.
 * **Risiko & Pemilik**: Risiko: Dokter salah mengisi target penarikan cairan ekstrem. Mitigasi: Validasi rentang angka aman di UI (misal: UF goal > 4000 ml memunculkan peringatan konfirmasi ekstra). Pemilik: Frontend Engineer.
-* **Definition of Done**: Tab resep selesai, alur aktivasi dan riwayat revisi teruji dengan komponen `ClinicalRevisionHistory`.
+* **Definition of Done**: Tab resep selesai, alur aktivasi dan riwayat revisi teruji dengan komponen `ClinicalRevisionHistory`. Status: `COMPLETED` ✅ — [Laporan Perubahan](../task/report/frontend/FE-HMD-11.md) (23 September 2026).
 
 ---
 
 ### 4.4 Gelombang `MVP-3` — Penjadwalan Sesi dan Daftar Kerja Harian Unit HD
 
-#### `FE-HMD-12` — Layar Jadwal dan Daftar Kerja Harian Unit Hemodialisa (`FE-HMD-04`)
+#### `FE-HMD-12` ✅ — Layar Jadwal dan Daftar Kerja Harian Unit Hemodialisa (`FE-HMD-04`)
 
+* **Status**: ✅ **SELESAI 23 September 2026.** Kedua acceptance criteria terpetakan ke source: baris daftar kerja lengkap sembilan kolom dengan penanda isolasi yang hanya berbunyi "Perlu Isolasi" atau "—", tombol "Buka Sesi" menuju `/sessions/{sessionId}` yang routenya kini ada sehingga tidak berakhir 404, dan penyegaran otomatis tiap 60 detik yang berhenti saat tab tidak terlihat ditambah tombol segarkan manual. `npx eslint src --quiet` exit code 0 — 0 error; berkas task ini 0 error 0 warning. Unit test baru `tests/unit/hemodialysis-worklist.test.mjs` 20 lolos 0 gagal; suite penuh 1617 test, 1610 lolos, 7 gagal yang seluruhnya berada di berkas accounting dan inpatient yang tidak disentuh task ini. Delapan grep anti-regresi konsistensi UI seluruhnya kosong. `UI GATE: 11 elemen — REUSE 9, EXTEND 0, COMPOSE 2, WRAP 0, NEW 0`. Butir DoD component test `WorklistDailyViewTests` **tidak dipenuhi dalam bentuk yang disebut roadmap** karena repository tidak memakai Jest maupun `@testing-library`; digantikan unit test `node:test` dan dilepas menurut keputusan pemilik 1 September 2026. Butir cakupan tombol "Jadwalkan Sesi Baru" terpenuhi sebatas batas slice — tombol, hak akses, dan kerangka dialognya terpasang, sedangkan isi formulirnya adalah cakupan `FE-HMD-13`. `npm run build` dan uji interaktif di peramban `NOT RUN` / `NOT FEASIBLE` — dikecualikan menurut keputusan tetap pemilik 10 September 2026. Bukti: [Laporan Perubahan](../task/report/frontend/FE-HMD-12.md)
 * **Outcome**: Layar operasional utama unit HD menyajikan visualisasi daftar kerja harian per shift, status kesiapan unit, alokasi pasien di station/mesin, dan status sesi yang sedang berlangsung.
 * **Requirement / Decision**: `FR-HMD-030`, `FR-HMD-032`, `FE-HMD-04`, `03-frontend-architecture.md` Bagian 4.1.
 * **Kontrak**: `contracts/api-contract.md` Grup Hemodialysis Schedule (`GET /worklist`); `03-frontend-architecture.md` Wireframe `FE-HMD-04`.
@@ -355,8 +356,9 @@
 
 ---
 
-#### `FE-HMD-13` — Dialog Penjadwalan Sesi HD dan Penugasan Staf Berperingatan Rasio/Kompetensi
+#### `FE-HMD-13` ✅ — Dialog Penjadwalan Sesi HD dan Penugasan Staf Berperingatan Rasio/Kompetensi
 
+* **Status**: ✅ **SELESAI 23 September 2026.** Kedua acceptance criteria terpetakan ke source: kode benturan `HMD-VAL-031/032/033/034/035` dipetakan ke field sumbernya dan disorot di layar, serta peringatan rasio perawat memakai batas `maxPatientsPerNurse` dari pengaturan unit tanpa mengunci tombol simpan. Pencegahan di hulu: daftar pasien hanya memuat episode aktif yang sudah punya resep aktif, mesin hanya yang berstatus siap dan cocok kebutuhan isolasi, station hanya yang berstatus tersedia. ESLint 0 error 0 warning; unit test baru `tests/unit/hemodialysis-schedule-dialog.test.mjs` 24 lolos 0 gagal; 8 grep anti-regresi UI kosong. `UI GATE: 12 elemen — REUSE 10, EXTEND 0, COMPOSE 1, WRAP 1, NEW 0`. Butir DoD component test `ScheduleDialogTests` **tidak dipenuhi dalam bentuk yang disebut roadmap** karena repository tidak memakai Jest; digantikan unit test `node:test` menurut keputusan pemilik 1 September 2026. Keterbatasan yang dilaporkan apa adanya: penyaringan station belum memeriksa ketersediaan per jam karena backend belum menyediakan endpoint-nya — benturannya tetap tertangkap `409 HMD-VAL-033`. `npm run build` dan uji peramban `NOT RUN` / `NOT FEASIBLE` menurut keputusan tetap pemilik 10 September 2026. Bukti: [Laporan Perubahan](../task/report/frontend/FE-HMD-13.md)
 * **Outcome**: Koordinator dapat menjadwalkan pasien ke mesin dan station tertentu, menugaskan perawat dan dokter, serta menerima peringatan dini interaktif bila terjadi benturan jadwal atau kelebihan rasio perawat.
 * **Requirement / Decision**: `FR-HMD-030`, `FR-HMD-031`, `FR-HMD-032`, `FR-HMD-034`, `FE-HMD-04`, `HMD-DEP-002`.
 * **Kontrak**: `contracts/api-contract.md` Grup Hemodialysis Schedule (`POST /`, `PUT /{id}/staff-assignments`); `contracts/validation-matrix.md` Bagian 2.
@@ -382,8 +384,9 @@
 
 ### 4.5 Gelombang `MVP-4` — Pelaksanaan Sesi, Checklist Pra-HD, Pemantauan, dan Komplikasi
 
-#### `FE-HMD-14` — Ruang Kerja Sesi HD — Header Konteks Pasien, Checklist Pra-HD, dan Status Sesi Siap (`FE-HMD-07` Pra-HD)
+#### `FE-HMD-14` ✅ — Ruang Kerja Sesi HD — Header Konteks Pasien, Checklist Pra-HD, dan Status Sesi Siap (`FE-HMD-07` Pra-HD)
 
+* **Status**: ✅ **SELESAI 23 September 2026.** Kedua acceptance criteria terpetakan ke source: tombol "Nyatakan Sesi Siap" hanya aktif bila backend mengizinkan aksinya, seluruh butir wajib terpenuhi, dan dokter penanggung jawab sudah ditetapkan; selama tertahan, `ClinicalValidationSummary` menyebut persis butir penahannya. Prinsip gagal tertutup `NFR-007` diterapkan sebagai gerbang layar penuh — konteks sesi yang tidak terverifikasi mengganti seluruh layar dengan `ClinicalSafetyAlert` tanpa merender satu pun data klinis atau tombol input. Kesembilan komponen klinis baku dipakai apa adanya dari `@/components/ui/clinical-workspace` tanpa duplikat. ESLint 0 error 0 warning; unit test baru `tests/unit/hemodialysis-session-pre-hd.test.mjs` 24 lolos 0 gagal; 9 grep anti-regresi UI kosong. `UI GATE: 11 elemen — REUSE 11, selebihnya 0`. Butir DoD component test `SessionPreCheckViewTests` **tidak dipenuhi dalam bentuk yang disebut roadmap** karena repository tidak memakai Jest; digantikan unit test `node:test` menurut keputusan pemilik 1 September 2026. `npm run build` dan uji peramban `NOT RUN` / `NOT FEASIBLE` menurut keputusan tetap pemilik 10 September 2026. Bukti: [Laporan Perubahan](../task/report/frontend/FE-HMD-14.md)
 * **Outcome**: Perawat di samping pasien dapat memverifikasi identitas dan kunjungan, memeriksa 12 butir keselamatan persiapan Pra-HD dengan indikator progres visual, dan menyatakan sesi siap untuk cuci darah.
 * **Requirement / Decision**: `FR-HMD-050`, `FR-HMD-051`, `FR-HMD-052`, `FE-HMD-07`, `CAP-30`, `NFR-007`.
 * **Kontrak**: `contracts/api-contract.md` Grup Hemodialysis Session Checklist (`PUT /{id}/checklist`, `POST /{id}/ready`); `contracts/validation-matrix.md` Bagian 3.
@@ -407,8 +410,9 @@
 
 ---
 
-#### `FE-HMD-15` — Ruang Kerja Sesi HD — Eksekusi Mulai Sesi Idempoten, Garis Waktu Pemantauan, Obat, dan Komplikasi (`FE-HMD-07` Intra-HD)
+#### `FE-HMD-15` ✅ — Ruang Kerja Sesi HD — Eksekusi Mulai Sesi Idempoten, Garis Waktu Pemantauan, Obat, dan Komplikasi (`FE-HMD-07` Intra-HD)
 
+* **Status**: ✅ **SELESAI 23 September 2026.** Ketiga acceptance criteria terpetakan ke source: tombol Mulai terkunci seketika lewat penanda yang berlaku sebelum render berikutnya dan membawa kunci idempotensi UUIDv4 yang **dipakai ulang** pada percobaan setelah gagal; garis waktu `ClinicalTimeline` mengurutkan pemantauan kronologis beserta tensi, nadi, dan UF terkumpul; komplikasi tersimpan dirender sebagai `ClinicalSafetyAlert`. Payload observasi sengaja tidak mengirim `observedAt` supaya waktu server yang dipakai, bukan jam perangkat ruang dialisis. Tiga celah lapisan service ditutup: `GET /medications`, `GET /complications`, dan `POST /medications/{id}/pharmacy-handoff/retry` sebelumnya belum punya pemanggil. Mitigasi risiko roadmap berupa peringatan `beforeunload` atas form pemantauan yang belum disimpan ikut diimplementasikan. ESLint 0 error 0 warning; unit test baru `tests/unit/hemodialysis-session-intra-hd.test.mjs` 20 lolos 0 gagal; 10 grep anti-regresi UI kosong. `UI GATE: 12 elemen — REUSE 12, selebihnya 0`. Butir DoD component test `SessionIntraDialysisViewTests` **tidak dipenuhi dalam bentuk yang disebut roadmap** karena repository tidak memakai Jest; digantikan unit test `node:test` menurut keputusan pemilik 1 September 2026. Keterbatasan yang dilaporkan apa adanya: pemilihan lokasi dan satuan stok Farmasi pada form obat belum disediakan, sehingga penerusan dapat berstatus `Pending` dan dikirim ulang lewat tombol yang tersedia. `npm run build` dan uji peramban `NOT RUN` / `NOT FEASIBLE` menurut keputusan tetap pemilik 10 September 2026. Bukti: [Laporan Perubahan](../task/report/frontend/FE-HMD-15.md)
 * **Outcome**: Perawat dapat memulai cuci darah dengan perlindungan penekanan ganda, mencatat observasi berkala pada garis waktu interaktif, mendokumentasikan pemberian obat farmasi, dan mencatat komplikasi intradialisis.
 * **Requirement / Decision**: `FR-HMD-054`, `FR-HMD-055`, `FR-HMD-060`, `FR-HMD-061`, `FR-HMD-063`, `FE-HMD-07`, `CAP-32`, `CAP-33`, `CAP-34`, `NFR-003`.
 * **Kontrak**: `contracts/api-contract.md` Grup Hemodialysis Session (`POST /{id}/start`, `/observations`, `/medications`, `/complications`).
@@ -435,8 +439,9 @@
 
 ### 4.6 Gelombang `MVP-5` — Pasca-HD, Dokumentasi Perawat, Pengesahan DPJP, dan Penagihan
 
-#### `FE-HMD-16` — Ruang Kerja Sesi HD — Penilaian Pasca-HD, Alur Penghentian Darurat, dan Submit Dokumentasi Perawat (`FE-HMD-07` Pasca-HD)
+#### `FE-HMD-16` ✅ — Ruang Kerja Sesi HD — Penilaian Pasca-HD, Alur Penghentian Darurat, dan Submit Dokumentasi Perawat (`FE-HMD-07` Pasca-HD)
 
+* **Status**: ✅ **SELESAI 23 September 2026.** Kedua acceptance criteria terpetakan ke source: dialog penghentian darurat menegaskan konsekuensi tidak ditagih lewat `ClinicalSafetyAlert` dan menolak simpan tanpa sebab maupun alasan, lalu sesi `Stopped` menampilkan lencana "Tidak Ditagih (Non-Billable)"; pengajuan dokumentasi menyimpan evaluasi lebih dulu, mengunci form perawat, dan memunculkan banner penyelesai dokumentasi. Mitigasi risiko roadmap berupa kolom kondisi akses vaskular pasca-HD sebagai field wajib ikut diimplementasikan dan diuji. ESLint 0 error 0 warning; unit test baru `tests/unit/hemodialysis-session-post-hd.test.mjs` 16 lolos 0 gagal; grep anti-regresi UI kosong. `UI GATE: 9 elemen — REUSE 9, selebihnya 0`. Butir DoD component test `SessionPostDialysisViewTests` **tidak dipenuhi dalam bentuk yang disebut roadmap** karena repository tidak memakai Jest; digantikan unit test `node:test` menurut keputusan pemilik 1 September 2026. `npm run build` dan uji peramban `NOT RUN` / `NOT FEASIBLE` menurut keputusan tetap pemilik 10 September 2026. Bukti: [Laporan Perubahan](../task/report/frontend/FE-HMD-16.md)
 * **Outcome**: Perawat dapat menghentikan sesi secara normal atau darurat dengan alasan terdokumentasi, mengisi evaluasi akhir pasien, dan menyelesaikan dokumentasi keperawatan untuk diajukan ke dokter.
 * **Requirement / Decision**: `FR-HMD-070`, `FR-HMD-071`, `FR-HMD-081`, `FE-HMD-07`, `CAP-35`, `HMD-DEC-012`.
 * **Kontrak**: `contracts/api-contract.md` Grup Hemodialysis Session (`POST /{id}/complete`, `POST /{id}/stop`, `POST /{id}/submit-documentation`).
@@ -461,8 +466,9 @@
 
 ---
 
-#### `FE-HMD-17` — Ruang Kerja Sesi HD — Pengesahan Dokter DPJP, Penguncian Catatan, dan Daftar Koreksi Addendum (`FE-HMD-07` Pengesahan)
+#### `FE-HMD-17` ✅ — Ruang Kerja Sesi HD — Pengesahan Dokter DPJP, Penguncian Catatan, dan Daftar Koreksi Addendum (`FE-HMD-07` Pengesahan)
 
+* **Status**: ✅ **SELESAI 23 September 2026.** Ketiga acceptance criteria terpetakan ke source: tombol Sahkan **hanya dirender** bagi dokter penanggung jawab sesi itu sendiri — perawat dan dokter lain melihat penjelasan wewenang, bukan tombol yang ditolak saat ditekan, sesuai tuntutan `permission-audit-matrix.md`; sesi berstatus `Finalized` mengunci keempat bagian ruang kerja menjadi baca saja; koreksi memakai `ClinicalAddendumList` lewat endpoint addendum rekam medis terpisah tanpa pernah menimpa nilai asli. Tombol Sahkan memakai penjaga penekanan ganda dan kunci idempotensi yang dipakai ulang, sama seperti tombol Mulai. ESLint 0 error 0 warning; unit test baru `tests/unit/hemodialysis-session-finalization.test.mjs` 16 lolos 0 gagal; grep anti-regresi UI kosong. `UI GATE: 8 elemen — REUSE 8, selebihnya 0`. Butir DoD component integration test `SessionFinalizeAndAddendumViewTests` **tidak dipenuhi dalam bentuk yang disebut roadmap** karena repository tidak memakai Jest; digantikan unit test `node:test` menurut keputusan pemilik 1 September 2026. `npm run build` dan uji peramban `NOT RUN` / `NOT FEASIBLE` menurut keputusan tetap pemilik 10 September 2026. Bukti: [Laporan Perubahan](../task/report/frontend/FE-HMD-17.md)
 * **Outcome**: Dokter penanggung jawab sesi dapat memeriksa ringkasan catatan cuci darah, mengesahkan secara digital, mengunci catatan rekam medis secara permanen, dan mengelola koreksi data melalui addendum resmi.
 * **Requirement / Decision**: `FR-HMD-071`, `FR-HMD-072`, `FR-HMD-073`, `FR-HMD-074`, `FE-HMD-07`, `CAP-07`, `CAP-08`, `NFR-008`, **Temuan Kritis 1**.
 * **Kontrak**: `contracts/api-contract.md` Grup Hemodialysis Session (`POST /{id}/finalize`); `contracts/permission-audit-matrix.md` Bagian 4 dan 5.
@@ -489,8 +495,9 @@
 
 ---
 
-#### `FE-HMD-18` — Layar Beranda Eksekutif Hemodialisa dan Panel Pemantauan Status Penagihan (`FE-HMD-01`)
+#### `FE-HMD-18` ✅ — Layar Beranda Eksekutif Hemodialisa dan Panel Pemantauan Status Penagihan (`FE-HMD-01`)
 
+* **Status**: ✅ **SELESAI 23 September 2026.** Kedua acceptance criteria terpetakan ke source: panel pemantauan menyusun sesi yang sudah disahkan beserta status penyerahan tagihannya, membuka tombol Kirim Ulang hanya pada status yang memang dapat diulang, dan mengunci tombol itu per sesi lewat penanda yang berlaku seketika; seluruh angka ringkasan dibaca dari agregat server, dan ketiadaan data menghasilkan nol alih-alih angka karangan. Okupansi mesin dihitung sebagai jumlah mesin berbeda yang terpakai, bukan jumlah sesi. Mitigasi risiko roadmap berupa pencacah merah saat ada tagihan gagal ikut diimplementasikan. ESLint 0 error 0 warning; unit test baru `tests/unit/hemodialysis-dashboard.test.mjs` 10 lolos 0 gagal; 8 grep anti-regresi UI kosong. `UI GATE: 8 elemen — REUSE 8, selebihnya 0`. Butir DoD component test `DashboardAndBillingHandoffViewTests` **tidak dipenuhi dalam bentuk yang disebut roadmap** karena repository tidak memakai Jest; digantikan unit test `node:test` menurut keputusan pemilik 1 September 2026. Keterbatasan yang dilaporkan apa adanya: backend belum menyediakan endpoint daftar serah terima tagihan, sehingga statusnya dibaca per sesi dan dibatasi 25 sesi disahkan per tanggal — usulan endpoint daftarnya dicatat pada laporan. `npm run build` dan uji peramban `NOT RUN` / `NOT FEASIBLE` menurut keputusan tetap pemilik 10 September 2026. Bukti: [Laporan Perubahan](../task/report/frontend/FE-HMD-18.md)
 * **Outcome**: Koordinator dan manajemen unit HD memiliki dashboard ringkasan eksekutif yang menampilkan statistik sesi harian, status kesiapan operasional shift, dan panel pemantauan status penyerahan tagihan ke Billing (lengkap dengan tombol coba ulang penagihan yang gagal).
 * **Requirement / Decision**: `FR-HMD-082`, `FE-HMD-01`, `CAP-11`.
 * **Kontrak**: `contracts/api-contract.md` Grup Hemodialysis Session Billing Handoff (`POST /{id}/billing-handoff/retry`).
@@ -514,8 +521,9 @@
 
 ### 4.7 Task Lintas Potong Frontend
 
-#### `FE-HMD-19` — Uji Keterjangkauan Navigasi, Validasi 4 State Layar, Perlindungan Privasi, dan UAT Layar End-to-End
+#### `FE-HMD-19` 🟡 — Uji Keterjangkauan Navigasi, Validasi 4 State Layar, Perlindungan Privasi, dan UAT Layar End-to-End
 
+* **Status**: 🟡 **SEBAGIAN 23 September 2026.** `AC-1` **terpenuhi**: audit otomatis `tests/unit/hemodialysis-navigation-and-privacy-audit.test.mjs` (12 lolos, 0 gagal) membuktikan sebelas rute modul seluruhnya terjangkau — sembilan rute statis terdaftar pada menu sidebar dan kedua rute dinamis punya jalan masuk dari layar induknya. Audit empat keadaan layar dan audit privasi juga **terpenuhi**: keenam layar memakai `ClinicalStateBoundary`, ketiga layar baru memasang tombol coba lagi, dan kelima berkas layar bersama bersih dari enam istilah serologi terlarang. `AC-3` **terpenuhi sebagian** — pemasangan `retryAction` terbukti secara statis, pemanggilan ulang API-nya belum terbukti secara runtime. `AC-2` **belum terpenuhi**: 22 skenario UAT tidak dieksekusi karena menuntut aplikasi berjalan beserta beberapa akun berperan berbeda; suite E2E `HemodialysisFrontendUatE2ETests` tidak dibuat karena repository tidak memiliki `playwright.config.*` dan penambahannya adalah perubahan konfigurasi yang menunggu persetujuan pemilik. Pengecualian pemilik 1 September 2026 sengaja **tidak** dipakai untuk menaikkan status, karena pada task ini pengujiannya adalah deliverable-nya sendiri, bukan sekadar bukti. Suite penuh 1746 test, 1739 lolos, 7 gagal yang seluruhnya di berkas accounting dan inpatient di luar modul ini; `npx eslint src --quiet` exit code 0. `UI GATE: N/A` — task ini tidak menyentuh tampilan. Bukti: [Laporan Perubahan](../task/report/frontend/FE-HMD-19.md)
 * **Outcome**: Seluruh 12 layar Hemodialisa terbukti dapat dijangkau dari menu atau layar induknya; mematuhi 4 kondisi layar (`ClinicalStateBoundary`); bebas dari kebocoran data serologi di ruang terbuka; dan lulus seluruh 22 skenario UAT di sisi pengguna.
 * **Requirement / Decision**: `NFR-006`, `NFR-009`, `NFR-010`, `03-frontend-architecture.md` Bagian 1, 2, 3, 6, dan 8; Skenario `UAT-01` s/d `UAT-22`.
 * **Kontrak**: `contracts/permission-audit-matrix.md` Bagian 7; `04-prd-to-mvp.md` Bagian 18.
@@ -555,14 +563,14 @@ flowchart TD
     FE09 --> FE10["FE-HMD-10: Ruang Kerja Episode - Klinis (FE-HMD-06)"]
     FE10 --> FE11["FE-HMD-11: Ruang Kerja Episode - Resep HD (FE-HMD-06)"]
 
-    FE06 & FE08 & FE11 --> FE12["FE-HMD-12: Jadwal & Daftar Kerja (FE-HMD-04)"]
-    FE12 --> FE13["FE-HMD-13: Dialog Penjadwalan & Staf"]
+    FE06 & FE08 & FE11 --> FE12["✅ FE-HMD-12: Jadwal & Daftar Kerja (FE-HMD-04)"]
+    FE12 --> FE13["✅ FE-HMD-13: Dialog Penjadwalan & Staf"]
 
-    FE12 & FE13 --> FE14["FE-HMD-14: Ruang Kerja Sesi - Pra-HD (FE-HMD-07)"]
-    FE14 --> FE15["FE-HMD-15: Ruang Kerja Sesi - Intra-HD & Timeline (FE-HMD-07)"]
-    FE15 --> FE16["FE-HMD-16: Ruang Kerja Sesi - Pasca-HD & Submit (FE-HMD-07)"]
-    FE16 --> FE17["FE-HMD-17: Ruang Kerja Sesi - Pengesahan DPJP & Addendum (FE-HMD-07)"]
+    FE12 & FE13 --> FE14["✅ FE-HMD-14: Ruang Kerja Sesi - Pra-HD (FE-HMD-07)"]
+    FE14 --> FE15["✅ FE-HMD-15: Ruang Kerja Sesi - Intra-HD & Timeline (FE-HMD-07)"]
+    FE15 --> FE16["✅ FE-HMD-16: Ruang Kerja Sesi - Pasca-HD & Submit (FE-HMD-07)"]
+    FE16 --> FE17["✅ FE-HMD-17: Ruang Kerja Sesi - Pengesahan DPJP & Addendum (FE-HMD-07)"]
 
-    FE17 --> FE18["FE-HMD-18: Beranda Eksekutif & Panel Tagihan (FE-HMD-01)"]
-    FE18 --> FE19["FE-HMD-19: Uji Navigasi, Privasi & UAT E2E"]
+    FE17 --> FE18["✅ FE-HMD-18: Beranda Eksekutif & Panel Tagihan (FE-HMD-01)"]
+    FE18 --> FE19["🟡 FE-HMD-19: Uji Navigasi, Privasi & UAT E2E"]
 ```

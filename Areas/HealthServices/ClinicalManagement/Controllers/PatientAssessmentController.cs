@@ -378,7 +378,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 .Take(pageSize)
                 .ToListAsync();
 
-            var items = entities.Select(ToResponse).ToList();
+            var doctorNames = await ResolveDoctorNamesAsync(entities);
+            var items = entities.Select(x => ToResponse(x, doctorNames)).ToList();
 
             var result = new ResponsePatientAssessmentPagedResult
             {
@@ -406,7 +407,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.Id == id);
 
-            var result = entity != null ? ToDetailResponse(entity) : null;
+            PatientAssessmentDetailResponse? result = null;
+
+            if (entity != null)
+                result = ToDetailResponse(entity, await ResolveDoctorNamesAsync(entity));
 
             // BE-RWI-109 / BE-RWI-110 — hasil instrumen dan tanda vital yang ditunjuk, dibaca langsung.
             if (result != null)
@@ -452,7 +456,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 .ThenByDescending(x => x.AssessmentDateTime)
                 .FirstOrDefaultAsync();
 
-            var result = entity != null ? ToDetailResponse(entity) : null;
+            PatientAssessmentDetailResponse? result = null;
+
+            if (entity != null)
+                result = ToDetailResponse(entity, await ResolveDoctorNamesAsync(entity));
 
             // BE-RWI-109 / BE-RWI-110 — hasil instrumen dan tanda vital yang ditunjuk, dibaca langsung.
             if (result != null)
@@ -548,13 +555,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 .Take(pageSize)
                 .ToListAsync(cancellationToken);
 
+            var doctorNames = await ResolveDoctorNamesAsync(entities, cancellationToken);
+
             var result = new ResponsePatientAssessmentPagedResult
             {
                 PageNumber = pageNumber,
                 PageSize = pageSize,
                 TotalData = totalData,
                 TotalPage = (int)Math.Ceiling(totalData / (double)pageSize),
-                Items = entities.Select(ToResponse).ToList()
+                Items = entities.Select(x => ToResponse(x, doctorNames)).ToList()
             };
 
             return Ok(ApiResponse<ResponsePatientAssessmentPagedResult>.Ok(
@@ -582,7 +591,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 .ThenByDescending(x => x.AssessmentDateTime)
                 .FirstOrDefaultAsync();
 
-            var result = entity != null ? ToDetailResponse(entity) : null;
+            PatientAssessmentDetailResponse? result = null;
+
+            if (entity != null)
+                result = ToDetailResponse(entity, await ResolveDoctorNamesAsync(entity));
 
             // BE-RWI-109 / BE-RWI-110 — hasil instrumen dan tanda vital yang ditunjuk, dibaca langsung.
             if (result != null)
@@ -2883,6 +2895,76 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             }
         }
 
+        /// <summary>
+        /// Nama dokter pengkaji yang tampil pada kolom <b>Dokter / Penulis</b>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <c>BE-RWI-128</c>, <c>ISS-08</c>. Sebelum ini nama dibaca semata-mata dari antrean
+        /// poliklinik (<c>Queue.Doctor</c>). Pasien rawat inap tidak pernah berantre -
+        /// <c>QueueId</c> mereka kosong sejak <c>BE-IGD-028</c> - sehingga seluruh kajian medis
+        /// rawat inap mengembalikan <c>doctorName</c> kosong walaupun <c>DoctorId</c>-nya terisi,
+        /// dan layar menampilkannya sebagai tanda hubung.
+        /// </para>
+        /// <para>
+        /// <b>Yang dipakai lebih dulu adalah dokter yang tertulis pada kajian.</b> Dengan begitu
+        /// <c>doctorId</c> dan <c>doctorName</c> pada satu respons selalu menyebut orang yang
+        /// sama. Antrean tetap menjadi cadangan bagi baris lama yang hanya punya antrean tanpa
+        /// <c>DoctorId</c>; jalur rawat jalan karena itu tidak berubah nilainya.
+        /// </para>
+        /// </remarks>
+        private static string? ResolveDoctorName(
+            TrxPatientAssessment x,
+            IReadOnlyDictionary<Guid, string>? doctorNames)
+        {
+            if (x.DoctorId.HasValue &&
+                x.DoctorId.Value != Guid.Empty &&
+                doctorNames != null &&
+                doctorNames.TryGetValue(x.DoctorId.Value, out var namaDokter))
+            {
+                return namaDokter;
+            }
+
+            return x.Queue != null && x.Queue.Doctor != null ? x.Queue.Doctor.FullName : null;
+        }
+
+        /// <summary>
+        /// Membaca nama dokter dari master untuk sekumpulan kajian sekaligus.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-RWI-128</c>, <c>ISS-08</c>. Dibaca sekali untuk seluruh halaman, bukan sekali
+        /// per baris - daftar kajian satu perawatan dapat berisi seratus baris, dan pembacaan
+        /// per baris akan menukar satu kolom kosong dengan seratus perjalanan ke database.
+        /// Dokter yang sudah dihapus tidak disaring: nama pada dokumen rekam medis harus tetap
+        /// terbaca setelah dokternya tidak lagi aktif.
+        /// </remarks>
+        private Task<IReadOnlyDictionary<Guid, string>> ResolveDoctorNamesAsync(
+            TrxPatientAssessment entity,
+            CancellationToken cancellationToken = default)
+            => ResolveDoctorNamesAsync(new[] { entity }, cancellationToken);
+
+        private async Task<IReadOnlyDictionary<Guid, string>> ResolveDoctorNamesAsync(
+            IEnumerable<TrxPatientAssessment> entities,
+            CancellationToken cancellationToken = default)
+        {
+            var doctorIds = entities
+                .Where(x => x.DoctorId.HasValue && x.DoctorId.Value != Guid.Empty)
+                .Select(x => x.DoctorId!.Value)
+                .Distinct()
+                .ToList();
+
+            if (doctorIds.Count == 0)
+                return new Dictionary<Guid, string>();
+
+            var rows = await _dbContext.Set<MstDoctor>()
+                .AsNoTracking()
+                .Where(x => doctorIds.Contains(x.Id))
+                .Select(x => new { x.Id, x.FullName })
+                .ToListAsync(cancellationToken);
+
+            return rows.ToDictionary(x => x.Id, x => x.FullName);
+        }
+
         private IQueryable<TrxPatientAssessment> BuildBaseQuery()
         {
             return _dbContext.Set<TrxPatientAssessment>()
@@ -2914,7 +2996,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             };
         }
 
-        private static PatientAssessmentResponse ToResponse(TrxPatientAssessment x)
+        private static PatientAssessmentResponse ToResponse(
+            TrxPatientAssessment x,
+            IReadOnlyDictionary<Guid, string>? doctorNames = null)
         {
             return new PatientAssessmentResponse
             {
@@ -2932,7 +3016,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 ClinicId = x.ClinicId,
                 ClinicName = x.Clinic != null ? x.Clinic.ClinicName : null,
                 DoctorId = x.DoctorId,
-                DoctorName = x.Queue != null && x.Queue.Doctor != null ? x.Queue.Doctor.FullName : null,
+                DoctorName = ResolveDoctorName(x, doctorNames),
                 InpEpisodeId = x.InpEpisodeId,
                 AssessmentType = x.AssessmentType,
                 DueAt = x.DueAt,
@@ -2996,7 +3080,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             };
         }
 
-        private static PatientAssessmentDetailResponse ToDetailResponse(TrxPatientAssessment x)
+        private static PatientAssessmentDetailResponse ToDetailResponse(
+            TrxPatientAssessment x,
+            IReadOnlyDictionary<Guid, string>? doctorNames = null)
         {
             return new PatientAssessmentDetailResponse
             {
@@ -3014,7 +3100,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 ClinicId = x.ClinicId,
                 ClinicName = x.Clinic != null ? x.Clinic.ClinicName : null,
                 DoctorId = x.DoctorId,
-                DoctorName = x.Queue != null && x.Queue.Doctor != null ? x.Queue.Doctor.FullName : null,
+                DoctorName = ResolveDoctorName(x, doctorNames),
                 InpEpisodeId = x.InpEpisodeId,
                 AssessmentType = x.AssessmentType,
                 DueAt = x.DueAt,

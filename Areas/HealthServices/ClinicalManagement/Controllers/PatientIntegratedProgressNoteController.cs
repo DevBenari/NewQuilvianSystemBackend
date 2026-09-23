@@ -688,6 +688,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             draft.ProfessionName = authorProfession.ProfessionName;
             draft.ProviderUserId = actorUserId;
             draft.VitalSignId = await ResolveVitalSignIdForConsultationAsync(consultation);
+            draft.InpEpisodeId = await ResolveInpEpisodeIdForConsultationAsync(consultation);
 
             var entity = new TrxPatientIntegratedProgressNote
             {
@@ -695,6 +696,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 ProgressNoteNumber = await GenerateProgressNoteNumberAsync(now),
                 PatientId = draft.PatientId,
                 EncounterId = draft.EncounterId,
+
+                // BE-RWI-128 / ISS-07. Konteks perawatan rawat inap disalin ke catatan, sama
+                // seperti yang sudah dilakukan CreateProgressNote lewat ResolveClinicalContextAsync.
+                // Sebelum ini jalur from-consultation melewatkannya, sehingga CPPT dari SOAP
+                // dokter tersimpan dengan InpEpisodeId kosong dan tersaring keluar dari
+                // GET /episodes/{episodeId} - catatan terbit, tetapi tidak pernah terbaca PPA lain.
+                InpEpisodeId = draft.InpEpisodeId,
+
                 QueueId = draft.QueueId,
                 ConsultationId = draft.ConsultationId,
                 AssessmentId = draft.AssessmentId,
@@ -779,6 +788,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 DateTime.UtcNow
             );
             result.VitalSignId = await ResolveVitalSignIdForConsultationAsync(consultation);
+            result.InpEpisodeId = await ResolveInpEpisodeIdForConsultationAsync(consultation);
 
             return Ok(ApiResponse<CreatePatientIntegratedProgressNoteRequest>.Ok(
                 result,
@@ -1647,6 +1657,41 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             return result.Ok();
         }
 
+        /// <summary>
+        /// Menentukan perawatan rawat inap yang menaungi sebuah konsultasi dokter.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <c>BE-RWI-128</c>, <c>ISS-07</c>. Jalur <c>from-consultation</c> membentuk entitasnya
+        /// sendiri dan karena itu tidak melewati <see cref="ResolveClinicalContextAsync"/>.
+        /// Penurunan perawatan diulang di sini supaya kedua jalur pembuatan CPPT menyimpan
+        /// konteks yang sama; mencabangkannya akan melahirkan dua perilaku pada satu tabel.
+        /// </para>
+        /// <para>
+        /// <b>Stempel pada konsultasi didahulukan.</b> Konsultasi rawat inap distempel
+        /// perawatannya sejak <c>BE-RWI-043</c>, dan stempel itu tetap terbaca setelah
+        /// perawatannya ditutup. Penurunan dari kunjungan hanya dipakai sebagai cadangan bagi
+        /// konsultasi lama yang lahir sebelum stempel itu ada - dan cadangan itu, karena hanya
+        /// mengenali perawatan yang masih berjalan, memang mengembalikan kosong untuk perawatan
+        /// yang sudah ditutup. Catatan rawat jalan, IGD, dan medical check-up tetap kosong
+        /// perawatannya, persis seperti sebelumnya.
+        /// </para>
+        /// </remarks>
+        private async Task<Guid?> ResolveInpEpisodeIdForConsultationAsync(TrxDoctorConsultation consultation)
+        {
+            if (consultation == null)
+                return null;
+
+            if (consultation.InpEpisodeId.HasValue && consultation.InpEpisodeId.Value != Guid.Empty)
+                return consultation.InpEpisodeId;
+
+            if (consultation.EncounterId == Guid.Empty)
+                return null;
+
+            return await _inpatientClinicalContextService
+                .FindOpenEpisodeIdAsync(consultation.EncounterId, HttpContext.RequestAborted);
+        }
+
         private async Task<Guid?> ResolveVitalSignIdForConsultationAsync(TrxDoctorConsultation consultation)
         {
             if (consultation == null || consultation.PatientId == Guid.Empty)
@@ -1728,6 +1773,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 QueueId = consultation.QueueId,
                 ConsultationId = consultation.Id,
                 AssessmentId = consultation.AssessmentId,
+
+                // BE-RWI-128 / ISS-07. Perawatan rawat inap ikut disalin dari konsultasi asal.
+                // Tanpa baris ini draft yang dikirim balik klien selalu kosong perawatannya,
+                // dan CPPT yang lahir darinya tidak pernah sampai ke lini masa satu perawatan.
+                // Konsultasi yang tidak punya stempel perawatan dilengkapi pemanggil lewat
+                // ResolveInpEpisodeIdForConsultationAsync.
+                InpEpisodeId = consultation.InpEpisodeId,
+
                 DoctorId = consultation.DoctorId,
                 ServiceUnitId = consultation.ServiceUnitId,
                 ClinicId = consultation.ClinicId,

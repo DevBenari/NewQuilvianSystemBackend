@@ -6,10 +6,11 @@ module_id: rawat-inap
 submodule: episode-rawat-inap
 sumber_temuan: testing/laporan-testing-semua-tipe-pasien.md
 tanggal_issue: "2026-09-23"
-status: OPEN
-write_authority: BELUM DIBERIKAN
-task_id_backend: BELUM DIALOKASIKAN   # deret bebas sebenarnya: BE-RWI-128
-task_id_frontend: BELUM DIALOKASIKAN  # deret bebas sebenarnya: FE-RWI-096
+status: SELESAI UNTUK RILIS INI   # ISS-EPS-01 ditutup versi rilis ini; ISS-EPS-02..05 selesai; kemampuan penuh ditunda
+write_authority: DIBERIKAN 23-09-2026 oleh pemilik
+task_id_backend: BE-RWI-128 — DITUNDA ke rilis berikutnya
+task_id_frontend: FE-RWI-096 — ✅ selesai, laporan: ../../task/report/frontend/FE-RWI-096.md
+keputusan_pemilik: "23-09-2026 — pendaftaran bayi baru lahir belum masuk rilis ini; Pilihan 1 (kartu dinonaktifkan beserta badge)"
 verifikasi_source: "2026-09-23 — seluruh butir dicek langsung ke source backend dan frontend"
 ```
 

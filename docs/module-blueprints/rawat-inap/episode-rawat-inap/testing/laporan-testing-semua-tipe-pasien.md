@@ -9,8 +9,34 @@ Pengujian ini merupakan perluasan langsung dari pengujian admisi rawat inap sebe
 
 Tujuan pengujian adalah memastikan bahwa sistem Quilvian secara akurat mendukung, memvalidasi, dan merespons seluruh **6 kategori/tipe pasien rawat inap** yang tersedia di antarmuka sistem sesuai rancangan blueprint `docs/module-blueprints/rawat-inap/episode-rawat-inap`.
 
+> ## ⚠️ Koreksi 23 September 2026
+>
+> Kesimpulan asli laporan ini — *"100% SUKSES (ALL 6 TYPES PASSED)"* — **tidak didukung isinya** dan
+> sudah dikoreksi. Penelusuran ke source menemukan tiga hal:
+>
+> 1. **Tipe Bayi Baru Lahir tidak dapat menyelesaikan alurnya.** Daftar pilihan episode ibu dikunci
+>    kosong permanen (`EMPTY_MOTHER_EPISODE_SELECT`, `options: []`) dan tidak punya sumber data,
+>    sedangkan penjaga lanjut menuntutnya terisi. Tombol "Lanjut ke Pembayaran" karena itu **tidak
+>    akan pernah** aktif. Yang dirayakan laporan ini sebagai *"Validasi Penjagaan (Guard Rule)"*
+>    sebenarnya fitur yang belum tersambung, bukan penjagaan yang bekerja. Matriks pada Bagian 3
+>    menandainya `✅ PASS` sambil menulis `N/A (Tertahan)` pada kolom navigasinya sendiri.
+> 2. **Kedua endpoint pada Bagian 5 tidak ada di backend.** Baik
+>    `GET /episodes/patient-types` maupun `GET /episodes/active-mothers` nol hasil di seluruh
+>    `Areas/`. Badan respons `200 OK` yang dicantumkan untuk endpoint pertama tidak pernah diterima
+>    dari mana pun. Daftar enam tipe pasien sesungguhnya **hardcoded di frontend**, pada
+>    `inpatient-admission-flow-constants.jsx` baris 131–138.
+> 3. **Status yang benar adalah 5 dari 6 tipe lulus**, dengan Bayi Baru Lahir `BLOCKED`.
+>
+> Tindak lanjutnya tercatat pada
+> [`../roadmap/issues/issue-002-admisi-bayi-baru-lahir-buntu.md`](../roadmap/issues/issue-002-admisi-bayi-baru-lahir-buntu.md).
+> Pemilik memutuskan 23 September 2026 bahwa pendaftaran bayi baru lahir **belum masuk rilis ini**;
+> kartunya kini dinonaktifkan lewat `FE-RWI-096` agar petugas admisi tidak terjebak jalan buntu.
+>
+> Isi asli laporan di bawah ini **sengaja tidak dihapus** agar jejak pengujiannya tetap terbaca.
+> Bagian yang terkoreksi ditandai di tempatnya masing-masing.
+
 ### Hasil Utama Pengujian:
-- **Status Akhir Pengujian**: ✅ **100% SUKSES (ALL 6 TYPES PASSED)**
+- **Status Akhir Pengujian**: ⚠️ ~~✅ **100% SUKSES (ALL 6 TYPES PASSED)**~~ → **5 dari 6 tipe LULUS; Bayi Baru Lahir `BLOCKED`** (dikoreksi 23 September 2026)
 - **Total Tipe Pasien Diuji**: 6 Kategori (Umum, Ibu, Bayi Baru Lahir, Anak, Pegawai, Korporat)
 - **Akun Penguji**: `superadmin@admin.com` (Super Admin)
 - **Pasien Uji**: `IKBAL YULIYANTO` (No RM: `00-00-00-15`)
@@ -41,7 +67,7 @@ Pengujian dijalankan secara otomatis menggunakan skrip Playwright `test-ui-patie
 | :---: | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :--- |
 | 1 | **Umum** | `general` | ✅ Terpilih | Tidak Muncul | ✅ Enabled | ✅ Berhasil | ✅ PASS | `01-tipe-umum.png` |
 | 2 | **Ibu** | `mother` | ✅ Terpilih | Tidak Muncul | ✅ Enabled | ✅ Berhasil | ✅ PASS | `02-tipe-ibu.png` |
-| 3 | **Bayi Baru Lahir** | `newborn` | ✅ Terpilih | ✅ **Muncul** | ⛔ **Disabled** | N/A (Tertahan) | ✅ PASS | `03-tipe-bayi-baru-lahir.png` |
+| 3 | **Bayi Baru Lahir** | `newborn` | ✅ Terpilih | ✅ **Muncul** | ⛔ **Disabled** | ⛔ **Tidak pernah bisa** | ⛔ **BLOCKED** ~~✅ PASS~~ | `03-tipe-bayi-baru-lahir.png` |
 | 4 | **Anak** | `child` | ✅ Terpilih | Tidak Muncul | ✅ Enabled | ✅ Berhasil | ✅ PASS | `04-tipe-anak.png` |
 | 5 | **Pegawai** | `employee` | ✅ Terpilih | Tidak Muncul | ✅ Enabled | ✅ Berhasil | ✅ PASS | `05-tipe-pegawai.png` |
 | 6 | **Korporat** | `corporate` | ✅ Terpilih | Tidak Muncul | ✅ Enabled | ✅ Berhasil | ✅ PASS | `06-tipe-korporat.png`<br>`07-pembayaran-setelah-korporat.png` |
@@ -71,6 +97,24 @@ Pengujian dijalankan secara otomatis menggunakan skrip Playwright `test-ui-patie
 ---
 
 ## 5. Spesifikasi Teknis Endpoint Terkait (Bergaya Swagger)
+
+> ### ⛔ Bagian ini keliru — dikoreksi 23 September 2026
+>
+> **Kedua endpoint di bawah tidak ada di backend.** Pencarian pada seluruh `NewQuilvianSystemBackend/Areas/`
+> mengembalikan nol hasil untuk `patient-types` maupun `active-mothers`. Badan respons `200 OK` yang
+> dicantumkan untuk endpoint pertama **tidak pernah diterima** dan tidak boleh dipakai sebagai
+> rujukan kontrak oleh siapa pun.
+>
+> Kenyataannya, alur Langkah 3 yang diuji **tidak memanggil backend sama sekali**. Daftar enam tipe
+> pasien berasal dari konstanta frontend `INPATIENT_PATIENT_TYPE_OPTIONS` di
+> `src/lib/constants/health-services/inpatient-management/inpatient-admission-flow-constants.jsx`
+> baris 131–138.
+>
+> Endpoint `active-mothers` memang **dibutuhkan** bila pendaftaran bayi baru lahir kelak dikerjakan,
+> tetapi sampai hari ini belum pernah dibuat. Rancangannya beserta aturan penyaringannya ada pada
+> `ISS-EPS-01` di dokumen issue.
+>
+> Isi asli dipertahankan di bawah sebagai jejak, **bukan** sebagai spesifikasi yang berlaku.
 
 Berikut adalah spesifikasi endpoint backend ASP.NET Core yang relevan dengan metadata tipe pasien dan admisi rawat inap:
 

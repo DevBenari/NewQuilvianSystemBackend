@@ -22,7 +22,7 @@ frontend_source_sha: 1ce219b40f8e411f3c4e66975626ab33ae81616a
 backend_roadmap: roadmap/backend-roadmap-v2.md
 frontend_roadmap: roadmap/frontend-roadmap-v2.md
 fr_range: FR-DOK-069..FR-DOK-111
-last_updated: "2026-09-17 — BE-RWI-088 s.d. 105 SELESAI SELURUHNYA (100% backend dokter-rawat-inap); FE-RWI-067 s.d. FE-RWI-072 selesai; BE-RWI-100 selesai"
+last_updated: "2026-09-23 — BE-RWI-128 ditambahkan dari ISSUE-DOK-002; ANM-01 dan ANM-02 dari ISSUE-DOK-001 terbukti dan tertutup sebagai ISS-07 dan ISS-08"
 ```
 
 Label `[BE-INP]`, `[FE-INP]`, `[FE-KEP]` menandai task milik sub-modul lain.
@@ -179,6 +179,7 @@ task yang menanggungnya dikerjakan.
 | Revision | Tanggal | Isi |
 | ---: | --- | --- |
 | `1` | 2026-09-16 | Dibuat `plan-module-delivery` fase `RLN-PH-07` sesudah `RWI-DEC-150`. Empat puluh tiga FR dipetakan ke 18 task backend dan 14 task frontend, ditambah enam task milik sub-modul lain. Ditulis sebagai berkas terpisah atas permintaan pemilik |
+| `3` | 2026-09-23 | `BE-RWI-128` ditambahkan sebagai task perbaikan dari `ISSUE-DOK-002`, hasil verifikasi 23 September 2026. Menutup `ISS-07` (`InpEpisodeId` pada CPPT dari konsultasi) dan `ISS-08` (`DoctorName` kajian medis). `ISS-09` **tidak dikerjakan** — di luar kepemilikan sub-modul ini. `ANM-01` dan `ANM-02` dari `ISSUE-DOK-001` ikut tertutup karena keduanya ternyata cacat yang sama. `contract_version` **tetap** `0.6.1` — tidak ada properti, endpoint, maupun status code yang berubah. Status 🟡 sebagian — kompilasi `PASS` (`0 error`, `224 warning`, tanpa warning baru); `dotnet build` penuh `EXISTING / ENVIRONMENT ISSUE` karena `bin` dikunci proses backend `PID 6608`; verifikasi runtime `NOT RUN` |
 | `2` | 2026-09-23 | `BE-RWI-127` ditambahkan sebagai task perbaikan dari `ISSUE-DOK-001`, hasil pengujian 22 September 2026. Menutup `ISS-01` (culture invariant), `ISS-03` (isi resep tersimpan sekali transaksi), `ISS-04` (nama kontrak `PrescriptionOrderType` dipertahankan), dan `ISS-06` (`201` seragam). `contract_version` naik `0.6.0` → `0.6.1`. Status 🟡 sebagian — verifikasi runtime `NOT RUN` |
 
 ---
@@ -197,6 +198,33 @@ Sumber temuan: tujuh laporan pengujian pada
 | `ISS-04` — `orderType` tidak terikat, jenis resep jatuh ke `Routine` | High | `BE-RWI-127` (kontrak) + `FE-RWI-095` (penyesuaian) | 🟡 kedua sisi selesai di source, runtime `NOT RUN` | [Backend](../task/report/backend/BE-RWI-127.md), [Frontend](../task/report/frontend/FE-RWI-095.md) |
 | `ISS-05` — berkas service prescription workspace **bukan duplikat** | Low | `FE-RWI-095` | Tidak dikerjakan — analisis awal keliru, penyatuan akan merusak keadaan kosong pada layar resep poliklinik; menunggu keputusan pemilik | [Laporan](../task/report/frontend/FE-RWI-095.md) bagian 7 |
 | `ISS-06` — status code create tidak seragam | Low | `BE-RWI-127` | 🟡 source selesai, runtime `NOT RUN` | [Laporan](../task/report/backend/BE-RWI-127.md) |
-| `ANM-01` — CPPT kedua tidak muncul di lini masa | Perlu reproduksi | — | Belum ditelusuri | Bagian 4 dokumen issue |
-| `ANM-02` — kolom penulis kosong pada riwayat kajian | Perlu reproduksi | — | Belum ditelusuri | Bagian 4 dokumen issue |
+| `ANM-01` — CPPT kedua tidak muncul di lini masa | Perlu reproduksi | `BE-RWI-128` | **Terbukti dan ditangani** — direproduksi 23-09-2026 lalu dilanjutkan sebagai `ISS-07` pada `ISSUE-DOK-002`; 🟡 source selesai, runtime `NOT RUN` | [Laporan](../task/report/backend/BE-RWI-128.md) |
+| `ANM-02` — kolom penulis kosong pada riwayat kajian | Perlu reproduksi | `BE-RWI-128` | **Terbukti dan ditangani** — direproduksi 23-09-2026 lalu dilanjutkan sebagai `ISS-08` pada `ISSUE-DOK-002`; 🟡 source selesai, runtime `NOT RUN` | [Laporan](../task/report/backend/BE-RWI-128.md) |
 | `ANM-03` — konteks pasien bertabrakan antar laporan | Perlu reproduksi | — | Belum ditelusuri | Bagian 4 dokumen issue |
+---
+
+## 15. Traceability perbaikan `ISSUE-DOK-002`
+
+Sumber temuan:
+[`testing/test-by-agy/laporan-verifikasi-issue-001.md`](../testing/test-by-agy/laporan-verifikasi-issue-001.md),
+dijalankan 23 September 2026. Dokumen issue:
+[`roadmap/issues/issue-002-perbaikan-anomali-cppt-dan-kajian-medis.md`](./issues/issue-002-perbaikan-anomali-cppt-dan-kajian-medis.md).
+
+Ketiga butirnya adalah tindak lanjut anomali `ANM-01`, `ANM-02`, dan investigasi `C3` pada
+`ISSUE-DOK-001` yang saat itu belum sempat direproduksi.
+
+| Butir issue | Keparahan | Task | Status | Bukti |
+| --- | --- | --- | --- | --- |
+| `ISS-07` — `InpEpisodeId` kosong pada CPPT dari `from-consultation`, sehingga catatan tidak pernah sampai ke lembar terpadu | Major | `BE-RWI-128` | 🟡 source selesai, kompilasi `PASS`; runtime dan skrip perbaikan data `NOT RUN` | [Laporan](../task/report/backend/BE-RWI-128.md) |
+| `ISS-08` — `DoctorName` kajian medis rawat inap selalu `null` karena diturunkan dari antrean poliklinik | Minor | `BE-RWI-128` | 🟡 source selesai, kompilasi `PASS`; runtime `NOT RUN` | [Laporan](../task/report/backend/BE-RWI-128.md) |
+| `ISS-09` — master kelas pasien bernama `"UNIQUE"`, dan kelas hak penjamin belum dibedakan namanya dari kelas bed | Trivial | — | **Tidak dikerjakan** — butir 1 pembersihan data induk milik modul Administrator; butir 2 kontrak DTO milik sub-modul `episode-rawat-inap`; isu tidak mengalokasikan task maupun acceptance criteria. Temuan: kontrak episode **sudah** memisahkan keduanya secara struktur, yang belum ada hanya pembedaan nama ruasnya | [Laporan](../task/report/backend/BE-RWI-128.md) bagian 5 |
+
+**Dua koreksi pada dokumen issue.** Pertama, tabel database yang disebut `CliPatientIntegratedProgressNote`
+sebenarnya bernama `TrxPatientIntegratedProgressNote`. Kedua, `FE-RWI-096` yang dialokasikan untuk
+pasangan frontend-nya **sudah dipakai** sub-modul `episode-rawat-inap` pada tanggal yang sama; ID
+frontend yang benar untuk isu ini adalah `FE-RWI-097`.
+
+**Pasangan frontend.** Tidak ada perubahan source frontend yang diperlukan. Layar riwayat kajian
+sudah merender `doctorName` dengan fallback tanda hubung, dan lembar kerja dokter sudah memanggil
+lini masa CPPT satu perawatan. Task frontend-nya karena itu murni verifikasi tampilan sesudah
+backend dijalankan.
