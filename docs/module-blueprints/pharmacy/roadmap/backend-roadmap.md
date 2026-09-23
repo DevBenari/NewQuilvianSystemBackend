@@ -70,6 +70,7 @@ pada tabel task di bawah.
 | Risiko | Bila penolakan versi basi salah arah, resep yang sudah dicabut akan kembali terbaca boleh dikerjakan — dan obat keluar tanpa dasar |
 | Pemilik | Pharmacy Backend |
 | Definition of Done | Tabel berdiri beserta index uniknya; resep terlepas dari kemacetan; **nol** jalur yang memungkinkan Farmasi menyimpulkan keadaan finansial sendiri; **nol** baris tabel Billing tersentuh |
+| Status | 🟡 **Source selesai 22 September 2026.** Tabel salinan `PhmPrescriptionFinancialProjection` beserta configuration dan index uniknya, service konsumsi `PrescriptionFinancialClearanceService` (penjagaan nomor versi, pemindahan `WaitingForPayment` → `QueuedAtPharmacy`, salinan kenyamanan kolom pembayaran, fail-closed atas hasil yang tidak dikenali), registrasi `DbSet` dan DI. `PHA-AT-CLR-01`, `02`, `03`, `11` terpenuhi pada source. Migration `AddPrescriptionFinancialProjection` ditulis atas izin pemilik 22 September 2026 beserta pemutakhiran snapshot, **belum dijalankan** ke database mana pun. Pemicu sapuan dipasang `PHA-BE-006` pada jalur baca. Build `0 error` setelah pemanggilan yatim `LabDummyDataSeeder` dihapus. **Belum**: QBE Conformance (mode `GitRange` menuntut commit yang belum diizinkan), verifikasi runtime, protokol pengakuan surat, dan keputusan nilai kolom pembayaran saat `REVOKED`. Bukti: [laporan](../task/report/backend/PHA-BE-004.md) |
 
 > **Wewenang terpisah.** Pembuatan dan eksekusi migration `AddPrescriptionFinancialProjection`
 > **MUST** diminta tersendiri saat eksekusi. `PHA-DEC-071` menyetujui desainnya, bukan
@@ -90,6 +91,7 @@ pada tabel task di bawah.
 | Risiko | Menarik keadaan pemenuhan mundur akan membuat catatan berbohong tentang keadaan fisik obat, dan apoteker berisiko meracik untuk kedua kalinya saat izin pulih |
 | Pemilik | Pharmacy Backend |
 | Definition of Done | Keempat gerbang menolak pada keadaan yang benar; racikan tidak pernah direstock; **nol** kolom penanda baru ditambahkan pada tabel resep |
+| Status | 🟡 **Source selesai 22 September 2026.** Empat gerbang terpasang: mulai telaah, mulai dan selesai penyiapan, selesai telaah akhir, serta penyiapan dan eksekusi penyerahan. Penanda tahan dihitung dari salinan — nol kolom penanda baru. Build `0 error`. **Belum**: verifikasi runtime (menunggu migration diterapkan) dan penetapan ambang percobaan ulang untuk `PENDING_VERIFICATION`/`STALE`. Bukti: [laporan](../task/report/backend/PHA-BE-005.md) |
 
 ### `PHA-BE-006` — Keadaan finansial terbaca pada layar kerja
 
@@ -106,6 +108,7 @@ pada tabel task di bawah.
 | Risiko | Menambah endpoint baru untuk keperluan ini akan memecah tempat petugas mencari keterangan |
 | Pemilik | Pharmacy Backend |
 | Definition of Done | Field tersedia pada kedua response; nol endpoint baru; nol butir hak akses baru |
+| Status | 🟡 **Source selesai 22 September 2026.** `FinancialClearance` tersedia pada response detail resep dan layar kerja; resep tanpa salinan dijawab `200` dengan penanda `UNKNOWN`. Pemicu konsumsi surat dipasang pada ketiga jalur baca itu. Nol endpoint dan nol hak akses baru. Build `0 error`. **Belum**: verifikasi runtime. Bukti: [laporan](../task/report/backend/PHA-BE-006.md) |
 
 ## Catatan kebijakan verifikasi
 
