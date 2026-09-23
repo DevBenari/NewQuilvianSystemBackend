@@ -376,3 +376,5 @@ agency-local/
 
 
 /Tests/
+
+DataProtectionKeys/key-*.xml
