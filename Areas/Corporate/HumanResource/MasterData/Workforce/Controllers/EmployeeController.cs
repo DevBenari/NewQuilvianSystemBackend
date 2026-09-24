@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -19,6 +19,7 @@ using QuilvianSystemBackend.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
+using QuilvianSystemBackend.Services.Security;
 using System.Globalization;
 using System.Security.Claims;
 
@@ -51,17 +52,20 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
         private readonly LoggerService _loggerService;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IConfiguration _configuration;
+        private readonly OrganizationAuthorizationProjectionService _authorizationProjection;
 
         public EmployeeController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
             UserManager<ApplicationUser> userManager,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            OrganizationAuthorizationProjectionService authorizationProjection)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
             _userManager = userManager;
             _configuration = configuration;
+            _authorizationProjection = authorizationProjection;
         }
 
         private static List<EmployeeDetailTabMetadataResponse> BuildEmployeeDetailTabs()
@@ -1180,13 +1184,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
 
                     if (loginAccount?.UserId.HasValue == true)
                     {
-                        await SyncUserPrimaryOrganizationAsync(
-                            userId: loginAccount.UserId.Value,
-                            departmentId: entity.PrimaryDepartmentId,
-                            positionId: entity.PrimaryPositionId,
-                            effectiveStartDate: entity.JoinDate,
-                            actorUserId: userId
-                        );
+                        await SyncUserOrganizationProjectionAsync(entity.WorkforceProfileId, userId);
 
                         await _dbContext.SaveChangesAsync();
                     }
@@ -1419,13 +1417,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
 
             if (linkedUser != null)
             {
-                await SyncUserPrimaryOrganizationAsync(
-                    userId: linkedUser.Id,
-                    departmentId: entity.PrimaryDepartmentId,
-                    positionId: entity.PrimaryPositionId,
-                    effectiveStartDate: entity.JoinDate,
-                    actorUserId: userId
-                );
+                await SyncUserOrganizationProjectionAsync(entity.WorkforceProfileId, userId);
             }
 
             await _dbContext.SaveChangesAsync();
@@ -1526,6 +1518,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
             }
 
             await _dbContext.SaveChangesAsync();
+
+            // Penempatan otoritatif sudah ditutup di atas; proyeksi otorisasi diselaraskan
+            // lewat service kanonik, bukan ditulis langsung dari controller.
+            await SyncUserOrganizationProjectionAsync(entity.WorkforceProfileId, userId);
 
             return Ok(ApiResponse<object>.Ok(
                 null,
@@ -1715,18 +1711,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
             {
                 linkedUser.IsActive = false;
                 linkedUser.UpdateDateTime = now;
-
-                var userOrganizations = await _dbContext.ApplicationUserOrganizations
-                    .Where(x => x.UserId == linkedUser.Id && !x.IsDelete)
-                    .ToListAsync();
-
-                foreach (var item in userOrganizations)
-                {
-                    item.IsActive = false;
-                    item.IsDelete = true;
-                    item.DeleteDateTime = now;
-                    item.DeleteBy = userId;
-                }
             }
 
             await _dbContext.SaveChangesAsync();
@@ -2200,7 +2184,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                 .FirstOrDefaultAsync(x =>
                     x.WorkforceProfileId == workforceProfileId &&
                     x.DepartmentId == employee.PrimaryDepartmentId &&
-                    x.PositionId == employee.PrimaryPositionId);
+                    x.PositionId == employee.PrimaryPositionId &&
+                    !x.IsDelete);
 
             if (existing == null)
             {
@@ -2230,9 +2215,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                 existing.EffectiveStartDate = employee.JoinDate.Date;
                 existing.EffectiveEndDate = null;
                 existing.Description = "Primary organization assignment synced from employee update";
-                existing.IsDelete = false;
-                existing.DeleteDateTime = null;
-                existing.DeleteBy = Guid.Empty;
                 existing.IsCancel = false;
                 existing.CancelDateTime = null;
                 existing.CancelBy = Guid.Empty;
@@ -3670,75 +3652,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
             return (true, null, response);
         }
 
-        private async Task SyncUserPrimaryOrganizationAsync(
-            Guid userId,
-            Guid departmentId,
-            Guid positionId,
-            DateTime effectiveStartDate,
-            Guid actorUserId)
-        {
-            var now = DateTime.UtcNow;
-            var effectiveStartUtc = DateTime.SpecifyKind(effectiveStartDate.Date, DateTimeKind.Utc);
-
-            var currentPrimaryItems = await _dbContext.ApplicationUserOrganizations
-                .Where(x =>
-                    x.UserId == userId &&
-                    x.IsPrimary &&
-                    !x.IsDelete)
-                .ToListAsync();
-
-            foreach (var item in currentPrimaryItems)
-            {
-                item.IsPrimary = false;
-                item.UpdateDateTime = now;
-                item.UpdateBy = actorUserId;
-            }
-
-            var existing = await _dbContext.ApplicationUserOrganizations
-                .FirstOrDefaultAsync(x =>
-                    x.UserId == userId &&
-                    x.DepartmentId == departmentId &&
-                    x.PositionId == positionId);
-
-            if (existing == null)
-            {
-                existing = new ApplicationUserOrganization
-                {
-                    Id = Guid.NewGuid(),
-                    UserId = userId,
-                    DepartmentId = departmentId,
-                    PositionId = positionId,
-                    IsPrimary = true,
-                    IsActive = true,
-                    EffectiveStartDate = effectiveStartUtc,
-                    EffectiveEndDate = null,
-                    Description = "Synced from employee primary organization assignment",
-                    CreateDateTime = now,
-                    CreateBy = actorUserId,
-                    IsDelete = false,
-                    IsCancel = false
-                };
-
-                _dbContext.ApplicationUserOrganizations.Add(existing);
-            }
-            else
-            {
-                existing.IsPrimary = true;
-                existing.IsActive = true;
-                existing.EffectiveStartDate = effectiveStartUtc;
-                existing.EffectiveEndDate = null;
-                existing.Description = "Synced from employee primary organization assignment";
-                existing.IsDelete = false;
-                existing.DeleteDateTime = null;
-                existing.DeleteBy = Guid.Empty;
-                existing.IsCancel = false;
-                existing.CancelDateTime = null;
-                existing.CancelBy = Guid.Empty;
-                existing.UpdateDateTime = now;
-                existing.UpdateBy = actorUserId;
-            }
-        }
-
+        /// <summary>
+        /// Menyelaraskan proyeksi otorisasi dari penempatan organisasi yang otoritatif.
+        ///
+        /// Sebelum Phase A0 method ini menulis langsung ke AspNetUserOrganization dan hanya untuk
+        /// penempatan primary. Akibatnya penempatan sekunder tidak pernah memberi izin, penempatan
+        /// lama tidak pernah ditutup saat pegawai pindah, dan baris yang sudah dihapus dihidupkan
+        /// kembali begitu data pegawai disunting.
+        /// </summary>
+        private Task SyncUserOrganizationProjectionAsync(Guid workforceProfileId, Guid actorUserId) =>
+            workforceProfileId == Guid.Empty
+                ? Task.CompletedTask
+                : _authorizationProjection.ReconcileWorkforceProfileAsync(workforceProfileId, actorUserId);
         private async Task<string> GenerateUserCodeAsync()
         {
             const string prefix = $"USR-{HospitalCode}-";

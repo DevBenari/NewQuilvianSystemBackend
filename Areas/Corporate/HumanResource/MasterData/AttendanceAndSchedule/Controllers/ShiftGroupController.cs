@@ -111,7 +111,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Attenda
             ,"Pilihan berhasil diambil."));
         }
 
-        [HttpGet("{id:guid}")] public async Task<IActionResult> GetShiftGroupById(Guid id,CancellationToken ct)
+        [HttpGet("{id:guid}")]
+    [AccessAction("Read","Read ShiftGroup",AccessType=AccessTypes.Read,SortOrder=1)]
+    [AccessPermission("ShiftGroup","Read")]
+        public async Task<IActionResult> GetShiftGroupById(Guid id,CancellationToken ct)
         {
             var x=await BuildBaseQuery().FirstOrDefaultAsync(x=>x.Id==id,ct);
             if(x==null)return NotFound(ApiResponse<object>.Fail(404,"Data tidak ditemukan."));
@@ -141,7 +144,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Attenda
             return await GetShiftGroupById(e.Id,ct);
         }
 
-        [HttpPut("{id:guid}")] public async Task<IActionResult> UpdateShiftGroup(Guid id,[FromBody]UpdateShiftGroupRequest request,CancellationToken ct)
+        [HttpPut("{id:guid}")]
+    [AccessAction("Update","Update ShiftGroup",AccessType=AccessTypes.Update,SortOrder=3)]
+    [AccessPermission("ShiftGroup","Update")]
+        public async Task<IActionResult> UpdateShiftGroup(Guid id,[FromBody]UpdateShiftGroupRequest request,CancellationToken ct)
         {
             var e=await _dbContext.MstShiftGroups.FirstOrDefaultAsync(x=>x.Id==id&&!x.IsDelete,ct);
             if(e==null)return NotFound(ApiResponse<object>.Fail(404,"Data tidak ditemukan."));
@@ -157,7 +163,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Attenda
             return await GetShiftGroupById(id,ct);
         }
 
-        [HttpPatch("{id:guid}/status")] public async Task<IActionResult> UpdateShiftGroupStatus(Guid id,[FromBody]UpdateShiftGroupStatusRequest request,CancellationToken ct)
+        [HttpPatch("{id:guid}/status")]
+    [AccessAction("Update","Update ShiftGroup",AccessType=AccessTypes.Update,SortOrder=3)]
+    [AccessPermission("ShiftGroup","Update")]
+        public async Task<IActionResult> UpdateShiftGroupStatus(Guid id,[FromBody]UpdateShiftGroupStatusRequest request,CancellationToken ct)
         {
             var e=await _dbContext.MstShiftGroups.FirstOrDefaultAsync(x=>x.Id==id&&!x.IsDelete,ct);
             if(e==null)return NotFound(ApiResponse<object>.Fail(404,"Data tidak ditemukan."));
@@ -168,7 +177,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Attenda
             return Ok(ApiResponse<object>.Ok(null,"Status berhasil diperbarui."));
         }
 
-        [HttpDelete("{id:guid}")] public async Task<IActionResult> DeleteShiftGroup(Guid id,CancellationToken ct)
+        [HttpDelete("{id:guid}")]
+    [AccessAction("Delete","Delete ShiftGroup",AccessType=AccessTypes.Delete,SortOrder=4)]
+    [AccessPermission("ShiftGroup","Delete")]
+        public async Task<IActionResult> DeleteShiftGroup(Guid id,CancellationToken ct)
         {
             var e=await _dbContext.MstShiftGroups.FirstOrDefaultAsync(x=>x.Id==id&&!x.IsDelete,ct);
             if(e==null)return NotFound(ApiResponse<object>.Fail(404,"Data tidak ditemukan."));

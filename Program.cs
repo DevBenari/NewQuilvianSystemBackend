@@ -1,3 +1,4 @@
+using QuilvianSystemBackend.Constants;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -326,6 +327,8 @@ try
     builder.Services.AddScoped<WfpCertificationFileStorageService>();
     builder.Services.AddScoped<ApplicationVersionService>();
     builder.Services.AddScoped<AccessPermissionService>();
+    builder.Services.AddScoped<PermissionRegistryValidator>();
+    builder.Services.AddScoped<OrganizationAuthorizationProjectionService>();
     builder.Services.AddScoped<QueueVoiceService>();
     builder.Services.AddScoped<QueueRealtimeService>();
     builder.Services.AddScoped<LabOrderService>();
@@ -521,6 +524,7 @@ try
     builder.Services.AddScoped<EmergencyDispositionService>();
     builder.Services.AddScoped<EmergencyDepartureService>();
     builder.Services.AddScoped<EmergencyUnitAuthorityService>();
+    builder.Services.AddScoped<EmergencyDoctorAssignmentService>();
     builder.Services.AddScoped<EmergencySettingService>();
 
     // Rawat Inap. Tanpa pendaftaran ini seluruh controller Rawat Inap gagal dibuat oleh
@@ -841,7 +845,7 @@ try
 
     builder.Services.AddAuthorization(options =>
     {
-        options.AddPolicy("KioskRead", policy =>
+        options.AddPolicy(AuthorizationPolicies.KioskRead, policy =>
         {
             policy.RequireAuthenticatedUser();
 
@@ -868,7 +872,7 @@ try
         // Policy khusus akun display antrian.
         // Dipakai untuk endpoint runtime display supaya akun QueueDisplayDevice
         // tidak perlu lewat AccessPermission role/menu aplikasi umum.
-        options.AddPolicy("QueueDisplayRuntimeRead", policy =>
+        options.AddPolicy(AuthorizationPolicies.QueueDisplayRuntimeRead, policy =>
         {
             policy.RequireAuthenticatedUser();
 
@@ -899,7 +903,7 @@ try
         });
 
         // Alias jika nanti ada controller lain yang ingin memakai nama policy lebih umum.
-        options.AddPolicy("QueueDisplayRead", policy =>
+        options.AddPolicy(AuthorizationPolicies.QueueDisplayRead, policy =>
         {
             policy.RequireAuthenticatedUser();
 
@@ -1425,9 +1429,39 @@ try
     // (RJ-BIL-DEC-014, DEC-RAD-005).
     await RunStartupSeederAsync("RadiologyMasterDataSeeder", () => RadiologyMasterDataSeeder.SeedAsync(app.Services));
 
-    // BE-RWI-107 / RWI-DEC-124 butir 4. Instrumen dan formulir klinis awal sebagai DRAFT — tidak pernah
-    // disahkan oleh seeder. Batas yang bertabrakan pada V1 ditandai untuk ditinjau pemilik klinis.
-    await RunStartupSeederAsync("ClinicalInstrumentDraftSeeder", () => ClinicalInstrumentDraftSeeder.SeedAsync(app.Services));
+    // Gerbang integritas permission (Phase A0).
+    //
+    // Menyandingkan setiap [AccessPermission] dengan baris registry yang benar-benar dibuat
+    // seeder. Selisih di antara keduanya menghasilkan 403 permanen yang tidak dapat diperbaiki
+    // admin, dan tidak terlihat saat diuji dengan SuperAdmin karena SuperAdmin melewati seluruh
+    // pemeriksaan.
+    //
+    // Sengaja dijalankan SESUDAH seluruh seeder registry, termasuk RadiologyMasterDataSeeder,
+    // supaya yang diperiksa adalah keadaan akhir registry — bukan keadaan setengah jadi.
+    //
+    // Di luar Production kegagalan menghentikan startup supaya ketahuan sebelum rilis. Di
+    // Production ia hanya mencatat Critical: rumah sakit tidak boleh gagal boot karena satu
+    // anotasi yang salah.
+    using (var permissionValidationScope = app.Services.CreateScope())
+    {
+        var permissionRegistryValidator = permissionValidationScope.ServiceProvider
+            .GetRequiredService<PermissionRegistryValidator>();
+
+        permissionRegistryValidator.ValidateAndReport(
+            throwOnFailure: !app.Environment.IsProduction());
+    }
+
+
+    // Data induk contoh Laboratorium. Mati secara bawaan dan menolak berjalan di produksi.
+    var runLabDummySeed = builder.Configuration.GetValue<bool>("Seeders:RunLabDummySeed");
+
+
+    // BE-RWI-107 / RWI-DEC-124 butir 4.
+    // Instrumen dan formulir klinis awal sebagai DRAFT — tidak pernah
+    // disahkan oleh seeder.
+    await RunStartupSeederAsync(
+        "ClinicalInstrumentDraftSeeder",
+        () => ClinicalInstrumentDraftSeeder.SeedAsync(app.Services));
 
     // LabDummyDataSeeder DICABUT 2026-09-17 atas instruksi pemilik modul, dan berkasnya
     // dihapus pada commit 0bc921b0. Pemanggilnya sempat hidup kembali lewat merge
@@ -1445,7 +1479,10 @@ try
     {
         await RunStartupSeederAsync(
             "OperatingRoomDemoSeeder",
-            () => SeedOperatingRoomDemoAsync(app.Services, app.Environment, builder.Configuration));
+            () => SeedOperatingRoomDemoAsync(
+                app.Services,
+                app.Environment,
+                builder.Configuration));
     }
 
     var runPrescriptionReviewCriterionSeed =

@@ -150,6 +150,29 @@ Status awal: **`Diterima`**. Status akhir: `Terjurnal` dan `Diabaikan`.
 | `Gagal` | `Terjurnal` | Coba ulang manual berhasil | `AccountingEvent : Retry` | — |
 | `Gagal` | `Diabaikan` | Akuntansi menyatakan kejadian tidak perlu dijurnal | `AccountingEvent : Ignore` | **Alasan tertulis wajib** |
 
+#### Tambahan usulan `ACC-STATE-0.4` — 24 September 2026 (`ACC-DEC-084`, `087`)
+
+Status baru **`Tercatat`** untuk pesan saldo subledger (`EventKind = SaldoSubledger`): pesan sudah
+disimpan sebagai saldo rekonsiliasi dan **tidak pernah** menghasilkan jurnal. `Tercatat` adalah
+status akhir. Status akhir menjadi `Terjurnal`, `Tercatat`, dan `Diabaikan`.
+
+| Dari | Ke | Pemicu | Wewenang | Prasyarat |
+|---|---|---|---|---|
+| `Diterima` | `Tercatat` | Pesan saldo diproses | Sistem | Jenis terdaftar berjenis `SaldoSubledger`; rincian saldo sah |
+| `Tertahan` | `Tercatat` | Jenis saldo didaftarkan belakangan, lalu kejadian diproses ulang | Sistem atau `AccountingEvent : Retry` | Rincian saldo di `RawPayload` sah |
+| `Tertahan` | `Gagal` | Pesan saldo yang diproses ulang ternyata rinciannya tidak sah | Sistem | — |
+| `Diterima` | `Diterima` | Gangguan teknis pada percobaan di dalam request | Sistem | Status tidak berubah; percobaan gagal dicatat, penjadwal mengambil alih sesudah masa tenggang (`02-backend-architecture.md` bagian 22.5) |
+| `Gagal` | `Tercatat` | Coba ulang manual pesan saldo berhasil | `AccountingEvent : Retry` | — |
+
+Setiap perpindahan **dari `Diterima`** dikerjakan bersyarat — hanya berhasil bila statusnya masih
+`Diterima` saat disimpan — supaya request dan penjadwal tidak memproses kejadian yang sama dua kali.
+
+| Dari | Ke | Kenapa dilarang |
+|---|---|---|
+| `Tercatat` | mana pun | Saldo sudah tercatat. Koreksi saldo datang sebagai pesan baru dengan `SourceVersion` lebih tinggi, bukan dengan mengubah status |
+| kejadian `Transaksi` | `Tercatat` | `Tercatat` hanya untuk pesan saldo |
+| pesan saldo | `Terjurnal` | Pesan saldo tidak pernah dijurnal |
+
 ### Perpindahan yang DILARANG
 
 | Dari | Ke | Kenapa dilarang |

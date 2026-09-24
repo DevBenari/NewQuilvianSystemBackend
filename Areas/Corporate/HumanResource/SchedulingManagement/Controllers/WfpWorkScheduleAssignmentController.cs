@@ -28,7 +28,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
             _loggerService = loggerService;
         }
 
-        [HttpGet("filters/metadata")] public IActionResult GetFilterMetadata()=>Ok(ApiResponse<WfpWorkScheduleAssignmentFilterMetadataResponse>.Ok(new()
+        [HttpGet("filters/metadata")]
+    [AccessAction("Read","Read Work Schedule Assignment",AccessType=AccessTypes.Read,SortOrder=1)]
+    [AccessPermission("WorkScheduleAssignment","Read")]
+        public IActionResult GetFilterMetadata()=>Ok(ApiResponse<WfpWorkScheduleAssignmentFilterMetadataResponse>.Ok(new()
         {
             AssignmentTypeOptions=new()
             {
@@ -45,7 +48,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
         }
         ,"Metadata berhasil diambil."));
 
-        [HttpGet("summary")] public async Task<IActionResult> GetSummary(Guid workforceProfileId,CancellationToken ct)
+        [HttpGet("summary")]
+    [AccessAction("Read","Read Work Schedule Assignment",AccessType=AccessTypes.Read,SortOrder=1)]
+    [AccessPermission("WorkScheduleAssignment","Read")]
+        public async Task<IActionResult> GetSummary(Guid workforceProfileId,CancellationToken ct)
         {
             if(!await Exists(workforceProfileId,ct))return NF();
             var q=_dbContext.WfpWorkScheduleAssignments.AsNoTracking().Where(x=>x.WorkforceProfileId==workforceProfileId&&!x.IsDelete);
@@ -56,7 +62,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
             ,"Ringkasan berhasil diambil."));
         }
 
-        [HttpGet] public async Task<IActionResult> GetWorkScheduleAssignments(Guid workforceProfileId,[FromQuery]bool? isActive,[FromQuery]int pageNumber=1,[FromQuery]int pageSize=25,CancellationToken ct=default)
+        [HttpGet]
+    [AccessAction("Read","Read Work Schedule Assignment",AccessType=AccessTypes.Read,SortOrder=1)]
+    [AccessPermission("WorkScheduleAssignment","Read")]
+        public async Task<IActionResult> GetWorkScheduleAssignments(Guid workforceProfileId,[FromQuery]bool? isActive,[FromQuery]int pageNumber=1,[FromQuery]int pageSize=25,CancellationToken ct=default)
         {
             if(!await Exists(workforceProfileId,ct))return NF();
             pageNumber=Math.Max(1,pageNumber);
@@ -73,7 +82,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
             ,"Data berhasil diambil."));
         }
 
-        [HttpGet("{id:guid}")] public async Task<IActionResult> GetWorkScheduleAssignmentById(Guid workforceProfileId,Guid id,CancellationToken ct)
+        [HttpGet("{id:guid}")]
+    [AccessAction("Read","Read Work Schedule Assignment",AccessType=AccessTypes.Read,SortOrder=1)]
+    [AccessPermission("WorkScheduleAssignment","Read")]
+        public async Task<IActionResult> GetWorkScheduleAssignmentById(Guid workforceProfileId,Guid id,CancellationToken ct)
         {
             var e=await BuildBaseQuery(workforceProfileId).FirstOrDefaultAsync(x=>x.Id==id,ct);
             if(e==null)return NotFound(ApiResponse<object>.Fail(404,"Assignment tidak ditemukan."));
@@ -85,7 +97,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
             return Ok(ApiResponse<WfpWorkScheduleAssignmentDetailResponse>.Ok(d,"Detail berhasil diambil."));
         }
 
-        [HttpPost] public async Task<IActionResult> CreateWorkScheduleAssignment(Guid workforceProfileId,[FromBody]CreateWfpWorkScheduleAssignmentRequest r,CancellationToken ct)
+        [HttpPost]
+    [AccessAction("Create","Create Work Schedule Assignment",AccessType=AccessTypes.Create,SortOrder=2)]
+    [AccessPermission("WorkScheduleAssignment","Create")]
+        public async Task<IActionResult> CreateWorkScheduleAssignment(Guid workforceProfileId,[FromBody]CreateWfpWorkScheduleAssignmentRequest r,CancellationToken ct)
         {
             if(!await Exists(workforceProfileId,ct))return NF();
             var err=await Validate(workforceProfileId,r,null,ct);
@@ -101,7 +116,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
             return await GetWorkScheduleAssignmentById(workforceProfileId,e.Id,ct);
         }
 
-        [HttpPut("{id:guid}")] public async Task<IActionResult> UpdateWorkScheduleAssignment(Guid workforceProfileId,Guid id,[FromBody]UpdateWfpWorkScheduleAssignmentRequest r,CancellationToken ct)
+        [HttpPut("{id:guid}")]
+    [AccessAction("Update","Update Work Schedule Assignment",AccessType=AccessTypes.Update,SortOrder=3)]
+    [AccessPermission("WorkScheduleAssignment","Update")]
+        public async Task<IActionResult> UpdateWorkScheduleAssignment(Guid workforceProfileId,Guid id,[FromBody]UpdateWfpWorkScheduleAssignmentRequest r,CancellationToken ct)
         {
             var e=await _dbContext.WfpWorkScheduleAssignments.FirstOrDefaultAsync(x=>x.Id==id&&x.WorkforceProfileId==workforceProfileId&&!x.IsDelete,ct);
             if(e==null)return NotFound(ApiResponse<object>.Fail(404,"Assignment tidak ditemukan."));
@@ -133,7 +151,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
             return await GetWorkScheduleAssignmentById(workforceProfileId,id,ct);
         }
 
-        [HttpPatch("{id:guid}/status")] public async Task<IActionResult> UpdateWorkScheduleAssignmentStatus(Guid workforceProfileId,Guid id,[FromBody]UpdateWfpWorkScheduleAssignmentStatusRequest r,CancellationToken ct)
+        [HttpPatch("{id:guid}/status")]
+    [AccessAction("Update","Update Work Schedule Assignment",AccessType=AccessTypes.Update,SortOrder=3)]
+    [AccessPermission("WorkScheduleAssignment","Update")]
+        public async Task<IActionResult> UpdateWorkScheduleAssignmentStatus(Guid workforceProfileId,Guid id,[FromBody]UpdateWfpWorkScheduleAssignmentStatusRequest r,CancellationToken ct)
         {
             var e=await _dbContext.WfpWorkScheduleAssignments.FirstOrDefaultAsync(x=>x.Id==id&&x.WorkforceProfileId==workforceProfileId&&!x.IsDelete,ct);
             if(e==null)return NotFound(ApiResponse<object>.Fail(404,"Assignment tidak ditemukan."));
@@ -144,7 +165,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.SchedulingManageme
             return await GetWorkScheduleAssignmentById(workforceProfileId,id,ct);
         }
 
-        [HttpDelete("{id:guid}")] public async Task<IActionResult> DeleteWorkScheduleAssignment(Guid workforceProfileId,Guid id,CancellationToken ct)
+        [HttpDelete("{id:guid}")]
+    [AccessAction("Delete","Delete Work Schedule Assignment",AccessType=AccessTypes.Delete,SortOrder=4)]
+    [AccessPermission("WorkScheduleAssignment","Delete")]
+        public async Task<IActionResult> DeleteWorkScheduleAssignment(Guid workforceProfileId,Guid id,CancellationToken ct)
         {
             var e=await _dbContext.WfpWorkScheduleAssignments.FirstOrDefaultAsync(x=>x.Id==id&&x.WorkforceProfileId==workforceProfileId&&!x.IsDelete,ct);
             if(e==null)return NotFound(ApiResponse<object>.Fail(404,"Assignment tidak ditemukan."));

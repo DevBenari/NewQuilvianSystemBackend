@@ -2,11 +2,11 @@
 
 | Field | Nilai |
 | --- | --- |
-| `contract_version` | `0.5.0` — penyelarasan teks 15 September 2026. **Bukan aditif**: pesan bagian 1 aturan 2 berubah (`IGD-DEC-120`) dan pesan bagian 6 aturan 4 berubah (`IGD-DEC-118`); bagian 8 baru (`IGD-DEC-119`, `IGD-DEC-121`). Kode status dan kondisi penolakan tidak berubah. Bagian 2 aturan 4-5 isinya utuh. Lihat manifest bagian 0c. *Sebelumnya `0.4.0` — revisi 6, bukan aditif: bagian 5 aturan 2 dan 4 berubah teksnya; lihat manifest 0a.2* |
-| Status | `draft`, **kecuali bagian 2 aturan 4 dan 5 yang `approved`** |
+| `contract_version` | `0.9.0` — penutupan kunjungan lewat disposisi, 23 September 2026, **Rencana (belum tersedia)**, status `draft`: bagian 11 baru (penutupan kunjungan lewat disposisi, `IGD-DEC-163`…`169`). **Aditif** — nol aturan lama berubah. Sebelumnya `0.8.0` — encounter-first, 22 September 2026, **Rencana (belum tersedia)**. Bagian 10 baru (enam sub-bagian); **bukan aditif murni**: sumber aturan §1.2 aturan 5 (dan §1 aturan 4) berganti dari `CariEpisodeAktifAsync` ke rumus §10.1 aturan 2 (klausa A+B). Kalimat aturan lama **tidak** diubah; teks penggantian dicatat di §10.1. Sebelumnya `0.7.0` — pra-cek episode IGD berjalan, 21 September 2026. **Aditif**: bagian 1.2 baru (`BE-IGD-050`, `IGD-DEC-138`); nol aturan lama diubah teksnya — aturan 4 bagian 1 dan penolakan `409`-nya tetap sebagai jaring pengaman. Sebelumnya `0.6.0` — pemantauan observasi bertanda vital, 16 September 2026. **Aditif**: bagian 9 baru; nol aturan lama diubah teksnya. Empat penolakan baru pada `POST .../emergency-observation-details` (`IGD-DEC-122`, `IGD-DEC-126`). *Sebelumnya `0.5.0` — penyelarasan teks 15 September 2026: pesan bagian 1 aturan 2 (`IGD-DEC-120`), pesan bagian 6 aturan 4 (`IGD-DEC-118`), dan bagian 8 baru (`IGD-DEC-119`, `IGD-DEC-121`)* |
+| Status | `draft`, **kecuali bagian 2 aturan 4 dan 5, dan bagian 10 (encounter-first), yang `approved`**. Bagian 11 **`approved`** (`IGD-DEC-170`, 23 September 2026) |
 | Owner | Product/Domain Owner IGD: **Rizki Gunawan** (`IGD-DEC-089`) |
-| `approved_by` / `approved_at` | **Rizki Gunawan / 2026-08-24** — terbatas pada bagian 2 aturan 4 dan 5 lewat `IGD-DEC-093`. Seluruh aturan lain tetap `draft` |
-| Versi sebelumnya | `0.4.0`, sebelumnya `0.3.0` dan `0.2.0` |
+| `approved_by` / `approved_at` | **Rizki Gunawan / 2026-08-24** — terbatas pada bagian 2 aturan 4 dan 5 lewat `IGD-DEC-093`. **Rizki Gunawan / 2026-09-22** — bagian 10 (encounter-first) lewat `IGD-DEC-157` — termasuk koreksi pesan §10.4 aturan 4 (B2). Seluruh aturan lain tetap `draft` |
+| Versi sebelumnya | `0.6.0`, sebelumnya `0.5.0`, `0.4.0`, `0.3.0`, dan `0.2.0` |
 
 Aturan penulisan pesan: pesan penolakan **wajib** menyebut apa yang salah dan apa yang harus
 dilakukan petugas. Pesan yang hanya menyebut nama kolom teknis dianggap belum selesai.
@@ -38,6 +38,26 @@ server. Pemakaian jalan keluar **wajib** muncul pada daftar pantau.
 
 Aturan 4 **tidak pernah** menahan penanganan klinis; yang tertahan hanya pembuatan kunjungan
 kedua.
+
+### 1.2 Pra-cek aturan 4 sebelum encounter dibuat — baru pada `0.7.0` (`BE-IGD-050`, `IGD-DEC-138`)
+
+Aturan 4 ditegakkan pada `POST /`, yaitu **sesudah** `POST patient-encounters` (modul Registrasi) commit. Penolakannya
+karena itu selalu meninggalkan encounter tanpa kunjungan IGD. Pra-cek `GET emergency-visits/active-episode` (API §1.3)
+memeriksa keadaan yang sama **sebelum** encounter dibuat. Aturan 4 sendiri dan `409`-nya **tidak berubah**.
+
+| No | Aturan | Kode | Pesan | Keputusan |
+| ---: | --- | :-: | --- | --- |
+| 1 | `patientId` pada pra-cek wajib berupa identitas pasien yang valid (bukan kosong, bukan `Guid.Empty`) | `400` | "patientId wajib diisi. Pilih pasien lebih dulu sebelum memeriksa kunjungan IGD yang masih berjalan." | `IGD-DEC-138` |
+| 2 | Pasien dengan kunjungan IGD berjalan **bukan** penolakan pada pra-cek: jawabannya `200`, `hasActiveEpisode` `true`, beserta kunjungannya | `200` | — (tidak ada pesan galat) | `IGD-DEC-138` |
+| 3 | Pasien tanpa kunjungan IGD berjalan: `200`, `hasActiveEpisode` `false`, `visit` `null` — bukan `404` | `200` | — | `IGD-DEC-138` |
+| 4 | Pra-cek **baca-saja**: tidak boleh membuat, mengubah, atau menghapus baris apa pun | — | — | `IGD-DEC-138` |
+| 5 | Definisi "berjalan" **satu sumber** dengan aturan 4: `EmergencyVisitService.CariEpisodeAktifAsync`. Pra-cek tidak boleh memakai definisi sendiri | — | — | `IGD-DEC-084`, `IGD-DEC-138` |
+
+**Yang tidak ditegakkan pra-cek, dan sebabnya.** Pra-cek dipanggil dan ditegakkan oleh **klien**, bukan server. Ia
+tidak menutup dua keadaan: pendaftaran serentak untuk pasien yang sama, dan klien yang tidak memanggilnya
+(`IGD-OQ-093`, `open`). Untuk keduanya aturan 4 pada `POST /` tetap menolak `409`, tetapi encounter dari
+`POST patient-encounters` sudah terlanjur tersimpan. Encounter yatim yang sudah ada dilarang dihapus atau dibersihkan
+tanpa audit seluruh referensi.
 
 ---
 
@@ -228,3 +248,168 @@ sudah ada; **tidak ada migration** untuk memperpanjangnya. Catatan untuk target 
 
 *Contoh:* perawat menempelkan catatan 1.250 karakter lalu menekan Selesaikan. Sistem menolak
 `400` dan tidak mengubah apa pun; perawat meringkas catatannya lalu mengirim ulang.
+
+---
+
+## 9. Pemantauan observasi (detail) — baru pada `0.6.0`
+
+Berlaku untuk `POST` dan `PUT`
+`api/v1/health-services/emergency-installation-management/emergency-observation-details`.
+Dasar: `IGD-DEC-122`, `IGD-DEC-126`, `IGD-DEC-123`, `IGD-DEC-124`, dan `IGD-DEC-057` butir
+identitas pencatat.
+
+| No | Aturan | Kode | Pesan | Keputusan |
+| ---: | --- | :-: | --- | --- |
+| 1 | Periode observasi harus ada | `400` | "Periode observasi tidak ditemukan." | Sudah ada |
+| 2 | Periode berstatus `Completed` atau `Cancelled` **menolak** pemantauan baru | `409` | "Periode observasi ini sudah ditutup, pemantauan baru tidak dapat ditambahkan. Buka periode observasi baru bila pasien masih perlu dipantau." | **`IGD-DEC-126`** |
+| 3 | Periode berstatus `Active` dan `Escalated` menerima pemantauan | — | Tidak menolak. Perilaku lama, tidak berubah | **`IGD-DEC-126`** |
+| 4 | Tanda vital yang ditautkan harus ada | `400` | "Tanda vital yang dipilih tidak ditemukan. Pilih tanda vital lain atau catat tanda vital baru." | **`IGD-DEC-122`** |
+| 5 | Tanda vital yang ditautkan harus **milik pasien yang sama** dengan kunjungan IGD periode itu | `400` | "Tanda vital yang dipilih bukan milik pasien pada kunjungan ini." | **`IGD-DEC-122`** |
+| 6 | Tanda vital yang ditautkan harus berada pada **encounter yang sama** | `400` | "Tanda vital yang dipilih berasal dari kunjungan lain. Pilih tanda vital dari kunjungan IGD yang sedang dibuka." | **`IGD-DEC-122`** |
+| 7 | Tanda vital yang sudah dibatalkan, dihapus, atau tidak aktif **tidak boleh** ditautkan | `400` | "Tanda vital yang dipilih sudah tidak berlaku. Pilih tanda vital lain atau catat tanda vital baru." | **`IGD-DEC-122`** |
+| 8 | Catatan perkembangan yang ditautkan mengikuti aturan lingkup yang sama dengan aturan 4–7 | `400` | "Catatan perkembangan yang dipilih bukan milik kunjungan pasien ini." | **`IGD-DEC-122`** (konsistensi lingkup) |
+| 9 | Pelaku pencatat **selalu** berasal dari pengguna yang terautentikasi | — | Tidak menolak. Nilai `recordedByUserId` dari pemanggil **diabaikan** | `IGD-DEC-057` butir identitas |
+| 10 | Angka keluaran dan cairan yang dikosongkan berarti **tidak diukur** | — | Tidak menolak; **dilarang** disimpan sebagai nol | `IGD-DEC-056` |
+| 11 | Pemantauan **tanpa** tanda vital tertaut tetap sah | — | Tidak menolak. Tautan bersifat opsional | **`IGD-DEC-122`** |
+| 12 | Baris pemantauan lama yang `patientVitalSignId`-nya kosong tetap terbaca | — | Tidak menolak. Tidak ada pengisian mundur | **`IGD-DEC-122`** |
+
+### 9.1 Urutan pemeriksaan yang mengikat
+
+Urutan ini bagian dari kontrak, bukan pilihan implementasi — penolakan yang lebih menentukan
+harus dijawab lebih dulu, dan **tidak boleh** ada data yang berubah sebelum seluruhnya lulus:
+
+1. periode ada (aturan 1) → `400`;
+2. periode belum ditutup (aturan 2) → `409`;
+3. tautan tanda vital dan catatan perkembangan (aturan 4–8) → `400`;
+4. baru data disimpan, dengan pelaku dari token (aturan 9).
+
+*Contoh:* perawat menautkan tanda vital milik pasien lain pada periode yang **sudah** ditutup.
+Yang dijawab lebih dulu adalah `409` periode tertutup, karena walaupun tanda vitalnya diganti
+benar, permintaan itu tetap ditolak.
+
+### 9.2 Yang **tidak** divalidasi di sini, dan sebabnya
+
+| Hal | Sebab |
+| --- | --- |
+| Isi angka tanda vital (batas wajar, nilai kritis) | Milik `ClinicalManagement`; IGD hanya menautkan (`IGD-DEC-122`) |
+| ABCDE | Tidak menjadi bagian payload pemantauan (`IGD-DEC-123`) |
+| Alat bantu jalan napas | Belum berbentuk terstruktur (`IGD-DEC-124`, `IGD-OQ-089`) |
+| Waktu `recordedAt` yang mundur | Sah selama periodenya masih berjalan; entri susulan **sesudah** periode ditutup menunggu `IGD-OQ-090` |
+| Obat, gambaran EKG, DC Shock | Milik Farmasi, Tindakan, dan Resusitasi |
+
+---
+
+## 10. Encounter-first — baru pada `0.8.0`, **Rencana (belum tersedia)**
+
+Aturan untuk API bagian 8 (`0.11.0`). Diturunkan dari `IGD-DEC-139`, `142`…`148`, `150`…`154`. Kalimat
+pesan di bawah **mengikat**: layar menampilkannya apa adanya, dan flowchart tidak menyalinnya.
+
+**Status bagian ini: `approved`** — `IGD-DEC-157`, 22 September 2026; terkunci hash (manifest bagian 2).
+
+### 10.1 Episode terbuka dan pendaftaran Emergency
+
+| No | Aturan | Kode | Pesan | Keputusan |
+| ---: | --- | :-: | --- | --- |
+| 1 | **Encounter berakhir** bila salah satu: `EncounterStatus` ∈ {`Completed`, `Cancelled`, `NoShow`}; `IsCancel = true`; `CancelledAt`, `CompletedAt`, atau `NoShowAt` terisi. Selain itu **belum berakhir** | — | — | `IGD-DEC-139` + koreksi amendment |
+| 2 | **Episode terbuka** pasien P = klausa A (encounter Emergency milik P, tidak dihapus, belum berakhir) **atau** klausa B (kunjungan milik P, tidak dihapus, `VisitStatus` bukan `Completed`/`Cancelled`). **Satu** method dipakai `POST /patient-encounters`, `POST /emergency-visits`, `POST /start-triage`, dan `GET /active-episode`. **Dilarang** heuristik waktu | — | — | `IGD-DEC-139` |
+| 3 | `POST /patient-encounters` bertipe Emergency ditolak bila episode terbuka dan `duplicateEpisodeOverrideReason` kosong | `409` | Kunjungan sudah lahir: *"Pasien ini masih memiliki kunjungan IGD {nomor kunjungan}, tiba pukul {jam}. Buka kunjungan tersebut, jangan mendaftar ulang. Bila pendaftaran kedua memang sah, isi alasan pendaftaran ganda."* — Belum lahir: *"Pasien ini sudah terdaftar di IGD dengan encounter {nomor encounter} dan sedang Menunggu Triage sejak {jam}. Jangan mendaftar ulang. Bila pendaftaran kedua memang sah, isi alasan pendaftaran ganda."* | `IGD-DEC-084`, `139` |
+| 4 | Alasan pendaftaran ganda maksimal 500 karakter | `400` | *"Alasan pendaftaran ganda maksimal 500 karakter."* | `IGD-DEC-145` |
+| 5 | Alasan terisi → encounter dibuat dan catatan override ditulis **dalam transaksi yang sama**; gagal salah satu = keduanya batal | — | — | `IGD-DEC-145` |
+| 6 | Kunci per pasien diambil **sebelum** rumus aturan 2 dijalankan dan **sebelum** kunci penomoran encounter, pada setiap jalur pembuka episode pasien beridentitas | — | — | `IGD-DEC-146` |
+| 7 | Encounter Emergency **tidak pernah** membuat antrean, apa pun `IsQueueRequired` klinik/unit | — | — | `IGD-DEC-144` |
+| 8 | `PATCH /patient-encounters/{id}/status` pada encounter Emergency ditolak | `409` | *"Status kunjungan gawat darurat tidak dapat diubah dari sini. Tutup lewat layar IGD: tandai pasien pergi sebelum ditriage, atau selesaikan/batalkan kunjungan IGD-nya."* | `IGD-DEC-153` |
+| 9 | `PATCH /patient-encounters/{id}/cancel` pada encounter Emergency yang sudah punya kunjungan ditolak | `409` | *"Encounter ini sudah memiliki kunjungan IGD {nomor kunjungan}. Batalkan lewat kunjungan IGD tersebut; encounter akan ikut dibatalkan."* | `IGD-DEC-153` |
+
+**Rujukan yang digantikan.** Validation §1.2 aturan 5 menyebut `CariEpisodeAktifAsync` sebagai satu-satunya
+definisi "berjalan". Mulai `0.8.0` sumbernya adalah aturan 2 di atas (klausa A+B); §1 aturan 4 untuk jalur
+lama `POST /emergency-visits` memakai aturan yang sama, dengan pesan §1 aturan 4 bila episodenya berupa
+kunjungan dan pesan aturan 3 bagian "belum lahir" bila berupa encounter.
+
+### 10.2 Kelahiran kunjungan — `POST /start-triage`
+
+| No | Aturan | Kode | Pesan | Keputusan |
+| ---: | --- | :-: | --- | --- |
+| 1 | `encounterId` wajib | `400` | *"encounterId wajib diisi."* | `IGD-DEC-139` |
+| 2 | `mode` wajib `Triage` atau `ImmediateCare` | `400` | *"Pilih Mulai Triage atau Tangani Segera."* | `IGD-DEC-143` |
+| 3 | Encounter harus ada | `404` | *"Encounter tidak ditemukan."* | — |
+| 4 | Encounter harus bertipe Emergency | `400` | *"Encounter ini bukan kunjungan gawat darurat."* | `IGD-DEC-139` |
+| 5 | Encounter harus belum berakhir (§10.1 aturan 1) | `409` | *"Encounter ini sudah berakhir ({status}). Daftarkan ulang pasien bila ia kembali."* | `IGD-DEC-142` |
+| 6 | Encounter yang satu-satunya kunjungannya pernah dihapus lunak tidak dapat dimulai | `409` | *"Kunjungan IGD untuk encounter ini pernah dihapus, sehingga encounter ini tidak dapat dimulai lagi. Daftarkan ulang pasien."* | `IGD-DEC-148` (K4) |
+| 7 | Pasien tidak boleh punya kunjungan lain yang belum berakhir pada encounter berbeda | `409` | Pesan §1 aturan 4 | `IGD-DEC-084`, `139` |
+| 8 | `mode = Triage` wajib membawa waktu tiba | `400` | *"Waktu tiba wajib diisi untuk memulai triage."* | `IGD-DEC-147` |
+| 9 | Waktu tiba tidak boleh di masa depan (waktu server) | `400` | *"Waktu tiba tidak boleh melewati waktu sekarang."* | `IGD-DEC-147` |
+| 10 | `mode = ImmediateCare` tidak meminta isian apa pun; waktu tiba = `RegisteredAt`, penanda **fallback** | — | — | `IGD-DEC-143`, `147` |
+| 11 | Pasien tanpa identitas wajib punya nama sementara | `400` | Pesan §1 aturan 3 | `IGD-DEC-151` |
+| 12 | Kunjungan yang sudah ada **tidak pernah** mundur statusnya; `ImmediateCare` hanya meneruskan `Arrived`/`WaitingForTriage` → `InTreatment` lewat penjaga transisi | — | — | `IGD-DEC-143` |
+| 13 | Dua panggilan serentak → tepat satu kunjungan (unique index + tangkap bentrokan) | — | — | `IGD-DEC-143` |
+
+### 10.3 Pasien pergi sebelum ditriage — `POST /no-show`
+
+| No | Aturan | Kode | Pesan | Keputusan |
+| ---: | --- | :-: | --- | --- |
+| 1 | Alasan wajib | `400` | *"Alasan pasien dinyatakan pergi sebelum ditriage wajib diisi."* | `IGD-DEC-142` |
+| 2 | Alasan maksimal 500 karakter | `400` | *"Alasan maksimal 500 karakter."* | `IGD-DEC-142` |
+| 3 | Encounter harus bertipe Emergency | `400` | Pesan §10.2 aturan 4 | `IGD-DEC-142` |
+| 4 | Encounter yang sudah punya kunjungan ditolak | `409` | *"Pasien ini sudah memiliki kunjungan IGD {nomor kunjungan}. Tutup lewat kunjungan tersebut."* | `IGD-DEC-142` |
+| 5 | Encounter yang sudah berakhir ditolak | `409` | *"Encounter ini sudah berakhir ({status})."* | `IGD-DEC-142` |
+| 6 | NoShow **final**; tidak ada jalur pembatalan | — | — | `IGD-DEC-142` |
+
+### 10.4 Waktu tiba
+
+| No | Aturan | Kode | Pesan | Keputusan |
+| ---: | --- | :-: | --- | --- |
+| 1 | Tidak boleh di masa depan | `400` | Pesan §10.2 aturan 9 | `IGD-DEC-152` |
+| 2 | Tidak boleh lebih lambat dari peristiwa klinis pertama yang sudah tercatat: mulai triage paling awal (`EmgTriage.StartedAt`), `TreatmentStartedAt`, atau `EffectiveFrom` penugasan dokter paling awal | `409` | *"Waktu tiba tidak boleh lebih lambat dari {mulai triage / mulai penanganan / penugasan dokter pertama} pukul {jam}."* | `IGD-DEC-152` |
+| 3 | Batasnya peristiwa klinis, **bukan** `RegisteredAt` — pasien yang didaftarkan sebelum tiba tetap dapat dicatat | — | — | `IGD-DEC-152` |
+| 4 | `PUT /emergency-visits/{id}` yang mengubah `patientId`, `encounterId`, atau `arrivalDateTime` ditolak | `409` | *"Pasien, encounter, dan waktu tiba kunjungan IGD tidak dapat diubah dari sini. Waktu tiba diubah lewat konfirmasi waktu tiba. Perubahan identitas pasien belum dapat dilakukan dari layar IGD; hubungi petugas rekam medis."* — **dikoreksi 22 September 2026 (B2, `IGD-DEC-157`)**: teks lama menyuruh petugas memakai penggabungan rekam pasien yang belum ada (`IGD-DEC-151`, `IGD-OQ-098`). Teks ini usulan agent; pemilik menjawab dengan placeholder dan boleh menggantinya | `IGD-DEC-154`, `147`, `157` |
+
+### 10.5 Penutupan encounter mengikuti kunjungan
+
+| No | Aturan | Kode | Keputusan |
+| ---: | --- | :-: | --- |
+| 1 | Perubahan encounter dan penguncian catatan klinis ikut `SaveChanges` yang sama dengan perubahan kunjungan; gagal = keduanya batal | — | `IGD-DEC-139` |
+| 2 | Encounter yang sudah berakhir tidak ditimpa — waktu, pelaku, alasan lama tetap | — | `IGD-DEC-139` |
+| 3 | Hapus lunak kunjungan **tidak** menutup encounter | — | `IGD-DEC-148` (TK-1) |
+| 4 | Encounter `Outpatient` yang tertaut kunjungan IGD ikut ditutup | — | `IGD-DEC-148` (TK-2) |
+
+### 10.6 Rekonsiliasi encounter historis
+
+| No | Aturan | Kode | Pesan | Keputusan |
+| ---: | --- | :-: | --- | --- |
+| 1 | Alasan run wajib, maksimal 500 karakter | `400` | *"Alasan rekonsiliasi wajib diisi (maksimal 500 karakter)."* | `IGD-DEC-148` |
+| 2 | `expectedCount` wajib sama dengan jumlah K1 + K1-Outpatient saat eksekusi | `409` | *"Data berubah sejak pratinjau; muat ulang pratinjau."* | `IGD-DEC-148` |
+| 3 | Hanya K1 dan K1-Outpatient yang ditulis; setiap baris dievaluasi sendiri — **dilarang** satu pernyataan update massal | — | — | `IGD-DEC-148` |
+| 4 | `CompletedAt` hanya dari `EmgVisit.VisitCompletedAt`; bila kosong dibiarkan kosong | — | — | `IGD-DEC-148` |
+| 5 | Alasan pembalikan wajib | `400` | *"Alasan pembalikan wajib diisi (maksimal 500 karakter)."* | `IGD-DEC-148` |
+| 6 | Run yang sudah dibalik tidak dapat dibalik lagi | `409` | *"Run ini sudah dibalik."* | `IGD-DEC-148` |
+| 7 | Pembalikan hanya menyentuh baris yang encounter-nya masih bernilai hasil run; sisanya dilewati dan dilaporkan | — | — | `IGD-DEC-148` |
+
+## 11. Penutupan kunjungan lewat disposisi — baru pada `0.9.0`, **Rencana (belum tersedia)**
+
+Aturan untuk `IGD-DEC-163`…`169` (amendment pass 23 September 2026). Kalimat pesan di bawah **mengikat**.
+
+**Status bagian ini: `draft`** — menunggu approval pemilik.
+
+| No | Aturan | Kode | Pesan | Keputusan |
+| ---: | --- | :-: | --- | --- |
+| 1 | Disposisi yang berpindah ke `Executed` **memicu** percobaan penutupan kunjungan. Berlaku untuk **semua** jenis disposisi | — | — | `IGD-DEC-163` |
+| 2 | Percobaan penutupan memakai penjaga yang sudah ada tanpa perubahan: status kunjungan `Disposed`, nol observasi aktif, nol kepergian belum tuntas, nol pesanan yang belum ditentukan sikapnya | — | — | `IGD-DEC-163`, §6 aturan 1–4 |
+| 3 | Bila penjaga menolak, perpindahan disposisi ke `Executed` **tetap berhasil**. Kunjungan tidak ditutup dan ditandai **menunggu penutupan** beserta alasan penahannya | — | — (bukan penolakan) | `IGD-DEC-164` |
+| 4 | Kunjungan yang menunggu penutupan ditutup **otomatis** pada aksi pertama yang membereskan penahan terakhir: observasi ditutup, serah terima diterima/ditolak/dibatalkan, atau sikap pesanan ditetapkan | — | — | `IGD-DEC-165` |
+| 5 | Pelaku penutupan susulan adalah **petugas yang membereskan penahan terakhir**; waktunya waktu server saat aksi itu disimpan. Nol pelaku dikarang, nol proses latar | — | — | `IGD-DEC-165`, `IGD-DEC-136` |
+| 6 | Penutupan susulan menulis `ClosedByDispositionId` dengan disposisi yang memicunya, sehingga asal penutupan terbaca pada riwayat | — | — | `IGD-DEC-165` |
+| 7 | Penutupan susulan **tidak pernah** memundurkan status. Kunjungan yang sudah `Completed` atau `Cancelled` dilewati tanpa galat | — | — | `IGD-DEC-165` |
+| 8 | Pembatalan disposisi (`Executed` → `Cancelled`) pada kunjungan yang **sudah** selesai ditolak | `409` | *"Kunjungan IGD ini sudah selesai, sehingga disposisinya tidak dapat dibatalkan. Daftarkan pasien sebagai episode baru bila ia kembali."* | `IGD-DEC-166` |
+| 9 | Kunjungan yang sudah selesai **tidak pernah** dibuka kembali oleh jalur mana pun pada slice ini | — | — | `IGD-DEC-166` |
+| 10 | Saringan `awaitingClosure` pada daftar kunjungan hanya memuat kunjungan yang punya disposisi `Executed` dan belum selesai; alasan penahan dihitung untuk baris yang ditampilkan | — | — | `IGD-DEC-168` |
+| 11 | Aturan ini **tidak** berlaku surut. Kunjungan lama yang disposisinya sudah `Executed` sebelum aturan ini aktif tidak ditutup massal; ia hanya ikut tertutup bila salah satu penahannya dibereskan sesudah aturan aktif | — | — | `IGD-DEC-167` |
+
+**Konsekuensi hilir yang diterima** (`IGD-DEC-169`, bukan aturan IGD): sesudah kunjungan tertutup, Bank Darah
+menolak order darah baru dan alokasi kantong pada order lamanya, dan Laboratorium menolak pemesanan pemeriksaan
+baru. Pencatatan hasil untuk order yang sudah dibuat **tidak** terdampak. Kedua modul itu tidak diubah.
+
+*Contoh berangka.* Pasien pulang pukul 14.00; perawat menandai disposisi `Executed` saat itu. Ternyata masih ada
+satu observasi aktif, sehingga kunjungan **belum** tertutup dan muncul pada saringan menunggu penutupan dengan
+alasan *"Masih ada observasi yang belum diselesaikan."* Pukul 16.10 perawat menutup observasi itu — pada
+penyimpanan yang sama, kunjungan tertutup, encounter ikut tertutup, `ClosedByDispositionId` terisi disposisi
+pukul 14.00, dan pelakunya tercatat perawat pukul 16.10.

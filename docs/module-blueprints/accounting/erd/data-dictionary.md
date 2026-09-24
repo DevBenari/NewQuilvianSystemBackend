@@ -431,9 +431,10 @@ Satu baris untuk setiap kejadian keuangan yang pernah diterima, berhasil maupun 
 | `EventOccurredAt` | `timestamptz` | Ya | — | — | — | — | Tidak | Waktu kejadian di modul asal (`ACC-DEC-040`) |
 | `AccountingDate` | `date` | Ya | — | Index | — | — | Tidak | Tanggal akuntansi yang menentukan periode |
 | `DocumentDate` | `date` | Ya | — | — | — | — | Tidak | Tanggal dokumen asli. **Berbeda dari `AccountingDate` bila kejadian datang terlambat** (`ACC-DEC-047`) |
-| `Amount` | `numeric(18,2)` | Ya | — | — | — | — | **Ya** | Nilai kejadian. Wajib lebih besar dari nol |
+| `Amount` | `numeric(18,2)` | Ya | — | — | — | — | **Ya** | Nilai kejadian. Wajib lebih besar dari nol, **kecuali** pesan saldo subledger yang boleh nol atau negatif (`ACC-DEC-087`) |
 | `CurrencyCode` | `string(3)` | Ya | `"IDR"` | — | — | — | Tidak | Hanya `IDR` diterima (`ACC-DEC-020`) |
-| `EventStatus` | `int` | Ya | `1` | Index bersama `LegalEntityId` | — | — | Tidak | Enum `AccountingEventStatus`, `HasConversion<int>` |
+| `EventStatus` | `int` | Ya | `1` | Index bersama `LegalEntityId` | — | — | Tidak | Enum `AccountingEventStatus`, `HasConversion<int>`. Bertambah `Tercatat = 6` untuk pesan saldo (`ACC-DEC-087`, usulan 24 September 2026) |
+| `HoldReasonCode` | `string(50)?` | Tidak | — | — | — | — | Tidak | **Baru, usulan 24 September 2026** (`ACC-DEC-085`). Terisi hanya saat `Tertahan`: `EVENT_TYPE_NOT_REGISTERED`, `POSTING_RULE_MISSING`, `COMPONENT_UNMAPPED`, `COMPONENT_MISSING`. Disimpan supaya kiriman ulang menjawab alasan yang sama |
 | `JournalId` | `Guid?` | Tidak | — | Index | FK ke `AccJournal` | `Restrict` | Tidak | Jurnal yang dihasilkan. **Kosong** untuk kejadian Tertahan, Gagal, dan Diabaikan |
 | `RawPayload` | `text` | Ya | — | — | — | — | **Ya** | Isi pesan asli apa adanya. Disimpan untuk menyelesaikan selisih angka di kemudian hari |
 | `AttemptCount` | `int` | Ya | `0` | — | — | — | Tidak | Jumlah percobaan otomatis. Berhenti di 3 (`ACC-DEC-049`) |
@@ -480,9 +481,13 @@ Daftar jenis kejadian keuangan yang dikenal Accounting.
 | `EventTypeName` | `string(200)` | Ya | — | Index | — | — | Tidak | Nama yang dibaca petugas |
 | `SourceModule` | `string(50)` | Ya | — | — | — | — | Tidak | Modul yang diharapkan menerbitkannya |
 | `IsActive` | `bool` | Ya | `true` | — | — | — | Tidak | Tidak boleh dimatikan bila masih ada aturan posting aktif |
+| `EventKind` | `int` | Ya | `1` | — | — | — | Tidak | **Diperbarui, usulan 24 September 2026** (`ACC-DEC-087`). Enum `EventTypeKind`: `Transaksi = 1`, `SaldoSubledger = 2`, `HasConversion<int>`. Menentukan apakah kejadian dijurnal atau dicatat sebagai saldo. **Tidak boleh diubah** setelah jenis itu punya kejadian (`409`). Tabel sudah berdiri (`BE-ACC-P2-017`), sehingga kolom ini butuh migration tersendiri `AddEventKindToAccEventType` |
 
-**Isinya belum dapat ditetapkan** — `DEC-ACC-P2-002` masih `OPEN` dan menunggu owner Finance.
-Bentuk tabelnya tidak menunggu.
+~~Isinya belum dapat ditetapkan — `DEC-ACC-P2-002` masih `OPEN`.~~ **Isinya ditetapkan
+24 September 2026** (`ACC-DEC-083`): 17 kode Finance berjenis `Transaksi`, ditambah kode saldo
+(usulan `SALDO-SUBLEDGER`) berjenis `SaldoSubledger` begitu Finance menyetujuinya. Diisi lewat
+layar master jenis kejadian, bukan skrip. Daftar lengkapnya di `cross-module-contract.md`
+bagian 3a.
 
 ## 12. `AccPostingRule` — status `Baru`
 
@@ -531,7 +536,12 @@ Satu baris aturan posting. Meniru bentuk `AccJournalLine` yang sudah terbukti.
 | `Side` | `int` | Ya | — | — | — | — | Tidak | Enum `PostingSide`: `Debit = 1`, `Kredit = 2` |
 | `Description` | `string(500)?` | Tidak | — | — | — | — | Tidak | Keterangan yang disalin ke baris jurnal |
 
-### Contoh isi — pendapatan rawat jalan dengan jasa medis dokter
+### Contoh isi — pengakuan piutang rawat jalan, lalu jasa medis dokter
+
+Diganti 24 September 2026 (`ACC-DEC-086`). Sampai tanggal itu contoh ini menaruh `JASA_MEDIS` di
+dalam aturan `PENGAKUAN-PIUTANG`, padahal Finance memisahkan jasa medis ke kejadian tersendiri
+(`FIN-DEC-003`). Aturan piutang yang memuat baris `JASA_MEDIS` akan menahan **setiap** kejadian
+piutang, karena komponen itu tidak pernah dikirim.
 
 Aturan untuk jenis kejadian `PENGAKUAN-PIUTANG`, badan hukum `LE-MMC-001`:
 
@@ -539,11 +549,17 @@ Aturan untuk jenis kejadian `PENGAKUAN-PIUTANG`, badan hukum `LE-MMC-001`:
 |---:|---|---|---|
 | 1 | `TOTAL` | `1-1201 Piutang Penjamin` | Debit |
 | 2 | `TOTAL` | `4-1001 Pendapatan Rawat Jalan` | Kredit |
-| 3 | `JASA_MEDIS` | `5-3001 Beban Jasa Medis` | Debit |
-| 4 | `JASA_MEDIS` | `2-1301 Utang Jasa Medis Dokter` | Kredit |
 
-Kejadian bernilai total Rp 10.000.000 dengan komponen `JASA_MEDIS` Rp 3.000.000 menghasilkan
-jurnal empat baris: debit Rp 13.000.000, kredit Rp 13.000.000, seimbang.
+Aturan untuk jenis kejadian `PENGAKUAN-HUTANG-DOKTER`, badan hukum yang sama:
+
+| Baris | Komponen | Akun | Sisi |
+|---:|---|---|---|
+| 1 | `TOTAL` | `5-3001 Beban Jasa Medis` | Debit |
+| 2 | `TOTAL` | `2-1301 Utang Jasa Medis Dokter` | Kredit |
+
+Tagihan rawat jalan Rp 10.000.000 menghasilkan jurnal dua baris Rp 10.000.000. Ketika fee dokter
+Rp 3.000.000 disetujui di Finance, kejadian kedua menghasilkan jurnal dua baris Rp 3.000.000.
+Akun di atas adalah **data pengembangan** (`ACC-TD-022`), bukan bagan akun rumah sakit yang sah.
 
 ### Contoh isi — pendapatan dengan potongan
 
@@ -584,6 +600,36 @@ Rincian nilai yang dibawa sebuah kejadian, di samping nilai totalnya.
 berbentuk teks dan tidak dapat ditanya. Ketika enam bulan kemudian muncul pertanyaan "berapa total
 jasa medis yang dibukukan September lalu", pertanyaan itu hanya terjawab bila komponennya berupa
 kolom, bukan teks. Ini juga bahan bagi `DEC-ACC-P2-008`, deteksi aturan posting yang salah.
+
+## 12d. `AccSubledgerBalance` — status `Baru`, usulan 24 September 2026
+
+Saldo subledger terakhir yang **dinyatakan Finance** untuk satu akun kontrol pada satu periode.
+Diisi hanya oleh pesan saldo (`ACC-DEC-087`); dibaca penghalang rekonsiliasi `ACC-DEC-076`
+(Wave D, `BE-ACC-P2-014`). Pemilik angkanya Finance; tabel ini salinan pesan, bukan hasil
+perhitungan Accounting. Model: `Areas/Corporate/AccountingManagement/Reconciliation/Models/AccSubledgerBalance.cs`.
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `LegalEntityId` | `Guid` | Ya | — | Unique bersama `AccountingPeriodId`, `ChartOfAccountId` | FK ke `MstLegalEntity` | `Restrict` | Tidak | Badan hukum |
+| `AccountingPeriodId` | `Guid` | Ya | — | Unique bersama dua kolom lain | FK ke `AccAccountingPeriod` | `Restrict` | Tidak | Dari `SubledgerBalance.AccountingPeriodCode` pesan |
+| `ChartOfAccountId` | `Guid` | Ya | — | Unique bersama dua kolom lain | FK ke `AccChartOfAccount` | `Restrict` | Tidak | Dari `SubledgerBalance.ControlAccountCode`; wajib akun ber-`IsControlAccount = true` |
+| `Balance` | `numeric(18,2)` | Ya | — | — | — | — | **Ya** | Dari `Amount` pesan. **Boleh nol atau negatif** |
+| `AsOfDate` | `date` | Ya | — | — | — | — | Tidak | Dari `AccountingDate` pesan — tanggal cut-off |
+| `SourceVersionNumber` | `int` | Ya | — | — | — | — | Tidak | `SourceVersion` pesan sebagai bilangan bulat. Pesan berversi lebih rendah atau sama **tidak** mengganti baris |
+| `AccountingEventId` | `Guid` | Ya | — | Index | FK ke `AccAccountingEvent` | `Restrict` | Tidak | Kejadian yang terakhir mengisi baris ini. Kejadian lama tetap tersimpan sebagai jejak |
+
+**Satu baris per (badan hukum, periode, akun kontrol).** Koreksi dari Finance **mengganti** baris
+yang sama, bukan menambah baris, supaya rekonsiliasi selalu membaca satu angka yang berlaku.
+Riwayatnya tidak hilang: setiap pesan tetap tersimpan di `AccAccountingEvent`.
+
+**Contoh.** Finance menyatakan saldo piutang penjamin November Rp 425.000.000 (`SourceVersion`
+`1`), lalu mengoreksinya menjadi Rp 424.500.000 (`SourceVersion` `2`). Baris ini berisi
+Rp 424.500.000 dan menunjuk kejadian versi 2. Bila pesan versi 1 terkirim ulang sesudahnya, baris
+tidak berubah.
+
+**Periode `Closed`.** Pesan saldo untuk periode yang sudah ditutup disimpan sebagai kejadian
+`Tercatat`, tetapi baris ini **tidak** diubah.
 
 ## 13. `AccRecurringJournalTemplate` — status `Baru`
 

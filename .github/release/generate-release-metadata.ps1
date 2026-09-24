@@ -2,6 +2,15 @@ param(
     [string]$BaseCommit = ""
 )
 
+if ([string]::IsNullOrWhiteSpace($BaseCommit))
+{
+    $BaseCommit = git rev-parse HEAD^1
+}
+
+Write-Host ""
+Write-Host "Base Commit:"
+Write-Host $BaseCommit
+
 $ModuleMapPath = ".github/release/module-map.json"
 $MigrationMapPath = ".github/release/migration-map.json"
 $FeatureMapPath = ".github/release/feature-map.json"
@@ -16,6 +25,17 @@ if ([string]::IsNullOrWhiteSpace($BaseCommit))
     $BaseCommit = git rev-parse HEAD^1
 }
 
+foreach($file in @(
+    $ModuleMapPath,
+    $MigrationMapPath,
+    $FeatureMapPath
+))
+{
+    if(!(Test-Path $file))
+    {
+        throw "Missing release configuration file: $file"
+    }
+}
 
 $moduleMap = Get-Content $ModuleMapPath -Raw | ConvertFrom-Json
 $migrationMap = Get-Content $MigrationMapPath -Raw | ConvertFrom-Json

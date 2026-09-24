@@ -943,6 +943,7 @@ namespace QuilvianSystemBackend.Repositories
 
         #region transaction
         public DbSet<EmgVisit> EmgVisits { get; set; }
+        public DbSet<EmgDoctorAssignment> EmgDoctorAssignments { get; set; }
         public DbSet<EmgTriage> EmgTriages { get; set; }
         public DbSet<EmgTriageDetail> EmgTriageDetails { get; set; }
         public DbSet<EmgResuscitation> EmgResuscitations { get; set; }
@@ -953,6 +954,8 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<EmgDeparture> EmgDepartures { get; set; }
         public DbSet<EmgDepartureEvent> EmgDepartureEvents { get; set; }
         public DbSet<EmgHandoverOrderItem> EmgHandoverOrderItems { get; set; }
+        public DbSet<EmgEncounterReconciliationRun> EmgEncounterReconciliationRuns { get; set; }
+        public DbSet<EmgEncounterReconciliationItem> EmgEncounterReconciliationItems { get; set; }
         #endregion
 
         #endregion

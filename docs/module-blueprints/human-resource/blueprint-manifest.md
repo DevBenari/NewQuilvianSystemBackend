@@ -5,23 +5,40 @@ blueprint_id: HRD-BP-001
 module_name: Human Resource
 module_slug: human-resource
 module_prefix: HRD
-revision: 4
+revision: 10
 status: DRAFT
 design_readiness: PARTIAL
-current_phase: HRD-PH-001
+current_phase: HRD-PH-SECURITY-CLOSED
 created_at: 2026-08-27T07:02:01Z
-updated_at: 2026-08-27T07:58:00Z
-last_verified_at: 2026-08-27T07:58:00Z
+updated_at: 2026-08-31T06:00:00Z
+last_verified_at: 2026-08-31T06:00:00Z
 backend_source_sha_audited: ecdc135444f0110482c9702212bcea30043983c8
 backend_source_sha_verified: 16b8b71f4cd61e083213cf90722f4d768d339739
-frontend_source_sha: 2a1cea7841a4433f8637d486204e60314c09d131
+backend_source_sha_current: e0ee42c752a5f92c5b1663ff88bef07a5859f79f
+frontend_source_sha: fff76a1b394d4b247c70a04f106c8ec098c9696e
+frontend_source_sha_previous: 2a1cea7841a4433f8637d486204e60314c09d131
 skill_suite_version: 1.0.0-rc2
-input_revision_hash: 67c182c936c9d3c1dcd44f55537cd967f3dcb3824d8ff2dd1b66bf6533e89b5d
-decision_revision: 5
+input_revision_hash: da1d74f2e417fd31815cf69b401f390277c361e404d38579bcfa75e0f125f083
+decision_revision: 15
 backend_baseline_branch: QuilvianIntegrationBackend
 capability_map_revision: 1.1
-capability_map_hash: 0bcad6fb727b9bccd50abe053e23924e49962bd915083cb50f8bcdefa2171c1f
-contract_versions: []
+capability_map_hash: f66edd1514d28ce338130d9aaebfd40ee5678a0037667a3b07fdfbd1326cc510
+contract_versions: v5
+domain_architecture_readiness: DOMAIN_ARCHITECTURE_NOT_RUN
+artifact_hashes:
+  00-interview-decisions.md: da1d74f2e417fd31815cf69b401f390277c361e404d38579bcfa75e0f125f083
+  01-existing-capability-map.md: f66edd1514d28ce338130d9aaebfd40ee5678a0037667a3b07fdfbd1326cc510
+  02-backend-architecture.md: 0de9837052ca4b227973c6c0eddb21ce60e96a428ce81422f6d9df7898fd2c36
+  03-frontend-architecture.md: aba2582d8618c96e095d1a9450d7cbf5a06230a97d218564e826378fe73f9fff
+  04-prd-to-mvp.md: 09350c8ce125bc60cb93e524669818d56e46af6a1df063ad779ee0a23c919719
+  data/data-dictionary.md: d565692c9f39118263bcfd9d12ff1f07bf45523da301cc2958f1ec036a3c09a9
+  contracts/api-contract.md: b9c9327a5a49e0c51dec7e7719beac50f1ad032ca8d77608f17be864c47bfb6a
+  contracts/state-transition-matrix.md: 14c8c8b832e953d57015043d803d27c4338b63c7c9d46fb2123a2d207d7736e5
+  contracts/validation-matrix.md: 383d5b51a8b26492a1b48ccb3afa0fab2389db2e3731cab49cd8c9f25703e621
+  contracts/integration-contract.md: bd5ff823143d6a8df25ddbc01a96a437fb9f499539ce69cf4822120b7bf92530
+  contracts/permission-audit-matrix.md: 581bdc331e4ab275e01f8bf5b00d9408958682521172f6b85931730e49afc11c
+  testing/acceptance-test-matrix.md: 092cae68125abd4710e3e9361912a9535eba03f7f7a10c7fdfe34548e566f3c1
+  flowcharts/00-alur-utama.md: ef9b4d06e170d56963b72c398c197e1dd91cb184ba8bfea636ac5f2e189be485
 active_dependency_ids:
   - HRD-DEP-001
   - HRD-DEP-002
@@ -30,7 +47,7 @@ active_dependency_ids:
   - HRD-DEP-005
   - HRD-DEP-006
   - HRD-DEP-007
-active_roadmap_revision: 2
+active_roadmap_revision: 3
 supersedes: null
 ```
 
@@ -46,7 +63,9 @@ supersedes: null
 | `design_readiness` | Keadaan modul dilihat dari boleh tidaknya dirancang. `PARTIAL` karena sebagian siap dan sebagian terblokir |
 | `input_revision_hash` | Sidik jari `00-interview-decisions.md` yang menjadi dasar revision ini |
 | `capability_map_hash` | Sidik jari `01-existing-capability-map.md` yang menjadi dasar revision ini |
-| `contract_versions` | Masih kosong karena kontrak API, integrasi, dan state belum ditulis. Diisi pada fase berikutnya |
+| `contract_versions` | `v1`. Berlaku bagi **satu set** kontrak sekaligus, bukan per berkas. Yang menjaga kelimanya tetap satu himpunan adalah `artifact_hashes`, bukan angka yang disamakan tangan |
+| `artifact_hashes` | Sidik jari ketiga belas artefak canonical. Dipakai mendeteksi drift dokumen, bukan drift source |
+| `backend_source_sha_current` | Commit tempat arsitektur target dan seluruh kontrak ditulis. Berbeda dari `backend_source_sha_audited`, yang tetap dipertahankan sebagai provenance audit lama |
 
 `status: DRAFT` dan `design_readiness: PARTIAL` menjawab dua pertanyaan berbeda. Yang pertama:
 apakah dokumen ini sudah disetujui. Yang kedua: apakah isinya boleh dipakai untuk merancang.
@@ -124,6 +143,21 @@ per artefak.
 | `HRD-DEC-016` | Kebab-case sebagai route canonical, route lama tetap hidup sebagai compatibility alias. **Bukan** hard breaking rename | `approved` |
 | `HRD-DEC-017` | ~~`Hrd` sebagai target naming; migrasi legacy bertahap per domain sebagai campaign~~ | `superseded` oleh `HRD-DEC-019` |
 | `HRD-DEC-018` | Satu UX kotak masuk; workflow, policy, permission, validasi, SLA, dan eskalasi tetap per jenis transaksi | `approved` |
+| `HRD-DEC-031` | **Persetujuan wajib dan pemisahan peran** untuk penetapan gaji, penempatan organisasi, penempatan jabatan, dan penetapan atasan. Penyetuju **MUST** berbeda dari pembuat; unit dengan satu petugas dieskalasi, **tidak pernah** swa-setuju | `approved` |
+| `HRD-DEC-036` | **Empat definisi alur terpisah** untuk penetapan gaji, penempatan organisasi, penempatan jabatan, dan penetapan atasan. Pola persetujuan awal boleh sama; **satu definisi bersama MUST NOT dibuat** | `approved` |
+| `HRD-DEC-041` | **Jenjang Pendidikan sebagai dimensi kebijakan gaji.** Hanya jenjang **terverifikasi** yang dipakai; kenaikan jenjang **MUST NOT** mengubah gaji secara langsung | `approved` — kontrak sasaran |
+| ~~`HRD-DEC-042`~~ | ~~**Masa Kerja sebagai dimensi yang berdiri sendiri**~~ | **`SUPERSEDED FOR CURRENT MVP`** oleh `HRD-DEC-045`. Dipertahankan sebagai sejarah, tidak dihapus |
+| `HRD-DEC-045` | **Masa kerja BUKAN faktor kebijakan gaji pada MVP saat ini.** Tidak ada pita masa kerja, ambang, pemicu, maupun perhitungan gaji berbasis masa kerja. Kebijakan masa kerja di masa depan memerlukan keputusan bisnis dan tinjauan kontrak baru | `approved` |
+| `HRD-DEC-043` | **Kebijakan gaji berversi, bertanggal berlaku, dapat dikonfigurasi, dan dapat diperluas.** Aturan **MUST NOT** ditulis sebagai percabangan di source. Evaluasi kebijakan **bukan** perhitungan payroll | `approved` — kontrak sasaran |
+| `HRD-DEC-044` | **Payroll Officer TIDAK memperoleh `WfpSalaryAssignment : ViewAmount`** pada MVP administratif | `approved` |
+| `HRD-DEC-037` | **Kewenangan konfigurasi kebijakan gaji hanya `HR Manager`**; berversi, bertanggal berlaku, dapat diaudit, riwayat tidak dihapus. Faktor gaji **MUST NOT** ditambah tanpa keputusan bisnis | `approved` — kontrak sasaran |
+| `HRD-DEC-038` | **Kepemilikan slip gaji diturunkan backend** dan **otentikasi bertingkat** memakai Identity canonical; `SALARY_SENSITIVE_SESSION` bawaan 5 menit | `approved` — kontrak sasaran |
+| `HRD-DEC-039` | **`SENSITIVE_GET_MUST_BE_AUDITED`** — pembacaan gaji dicatat; **nominalnya MUST NOT** masuk catatan | `approved` — kontrak sasaran |
+| `HRD-DEC-040` | **`Cache-Control: no-store`**, larangan persistensi di sisi klien, unduhan slip gaji lewat endpoint terautentikasi | `approved` — kontrak sasaran |
+| `HRD-DEC-032` | **Baseline peran fungsional.** Usulan peta peran menjadi baseline; nama peran fungsional **MUST NOT** disamakan dengan peran Identity. Hanya `SuperAdmin` dan `User` yang di-seed hari ini; seluruh peran HR berstatus `MAPPING_REQUIRED` | **`SECURITY_APPROVED`** |
+| `HRD-DEC-033` | **Nominal gaji tersembunyi secara bawaan** pada daftar lintas pegawai. Butir `: ViewAmount` terpisah dari `: Read`. Keterlihatan massal tidak diberikan pada MVP | **`SECURITY_APPROVED`** |
+| `HRD-DEC-034` | **Alur persetujuan bawaan per jenis transaksi**, bukan satu alur untuk semua. Override per unit lewat konfigurasi, tanpa pengembangan ulang | `approved` **seluruhnya** — prinsip dan isi rantai `T1` s.d. `T8` |
+| `HRD-DEC-035` | **Batas payroll MVP:** HR menghasilkan masukan yang siap payroll, **bukan** membuat, membayar, atau memfinalkan putaran payroll. Orkestrasi putaran payroll `POST-MVP` | `approved` |
 | `HRD-DEC-019` | **Kebijakan penamaan canonical HR.** `Mst` tetap master/reference. `Wfp` prefix yang sah untuk keluarga workforce, **bukan** legacy. `Hrd` canonical dan default untuk entity operasional HR baru. `Trx` legacy generik dengan **ratchet hanya saat materially touched** | `approved` |
 
 `HRD-DEC-016` menggantikan `HRD-DEC-014`. `HRD-DEC-017` menggantikan `HRD-DEC-008`, lalu
@@ -175,7 +209,61 @@ persistence **tidak** memicu ratchet.
 
 ---
 
-## 7. Riwayat revision
+## 7. Struktur artefak canonical
+
+Struktur di bawah mengikuti `design-business-module/references/blueprint-output-contract.md`
+versi canonical pada plugin `quilvian-engineering-skills`. Ketiga belas berkas berikut **MUST**
+ada, dan daftarnya pasti.
+
+```text
+docs/module-blueprints/human-resource/
+├── blueprint-manifest.md
+├── 00-interview-decisions.md
+├── 01-existing-capability-map.md
+├── 02-backend-architecture.md
+├── 03-frontend-architecture.md
+├── 04-prd-to-mvp.md
+├── flowcharts/
+│   ├── 00-alur-utama.md
+│   └── <proses>.md
+├── data/
+│   └── data-dictionary.md
+├── contracts/
+│   ├── api-contract.md
+│   ├── state-transition-matrix.md
+│   ├── validation-matrix.md
+│   ├── integration-contract.md
+│   └── permission-audit-matrix.md
+└── testing/
+    └── acceptance-test-matrix.md
+```
+
+**Folder `erd/` tidak dipakai, tidak ada, dan tidak boleh dibuat.** Kontrak keluaran terbaru
+menghapusnya sebagai artefak. Penggantinya:
+
+| Kebutuhan yang dulu dijawab `erd/` | Tempatnya sekarang |
+| --- | --- |
+| Relasi antar entity per bounded context | `02-backend-architecture.md` — Mermaid `classDiagram`, tujuh diagram per konteks |
+| Struktur tabel, kolom, nullability, index, unique, perilaku hapus, kolom sensitif | `data/data-dictionary.md` |
+| Alur kerja pengguna dan percabangan proses bisnis | `flowcharts/**` |
+| Lifecycle dan perpindahan status | `contracts/state-transition-matrix.md` |
+
+### 7.1 Berkas di folder ini yang BUKAN bagian ketiga belas artefak
+
+Kehadirannya bukan penyimpangan struktur, dan ketiadaannya bukan blueprint yang belum lengkap.
+
+| Berkas atau folder | Pemilik | Kedudukan |
+| --- | --- | --- |
+| `MODULE-STATUS.md`, `01-prerequisite-readiness.md`, `README.md` | `manage-module-blueprint` | Artefak siklus hidup |
+| `00-business-overview.md`, `02-existing-capability-map.md` | Pass sebelumnya | `02-existing-capability-map.md` hanya penunjuk, bukan salinan |
+| `evidence/**` | `grill-me` | Masukan produk historis, tidak mengikat apa pun |
+| `flows/**` | Pass `PHASE 2A` s.d. `PHASE 2C` | **Bukti dan penalaran** di balik aturan bisnis beserta penanda provenance per aturan. Berbeda isi dan tujuan dari `flowcharts/**`; keduanya bukan salinan satu sama lain |
+| `roadmap/**` | `plan-module-delivery` | Menyusul saat delivery direncanakan |
+| `task/report/**` | Kedua build skill | Menyusul saat task dikerjakan |
+
+---
+
+## 8. Riwayat revision
 
 | Revision | Tanggal | Isi | Dasar |
 | --- | --- | --- | --- |
@@ -183,6 +271,12 @@ persistence **tidak** memicu ratchet.
 | `2` | 2026-08-27 | Amendment Pass 1.1. Menyerap `HRD-DEC-019` kebijakan penamaan canonical yang menggantikan `HRD-DEC-017`. Memperbaiki hitungan slice dan definisi angka 68/67 | `HRD-DEC-019` |
 | `3` | 2026-08-27 | Baseline Impact Gate. Baseline backend berpindah ke `origin/QuilvianIntegrationBackend` dengan hasil `NO_IMPACT`; capability map tetap `CURRENT`. Koreksi kelas QBE `S-C4` per entity, revision decision log, dan jumlah flow | `HRD-Q-16`, `HRD-Q-17` |
 | `4` | 2026-08-27 | PHASE 2A. Lima flow inti administratif ditulis. `HRD-DEC-020` provenance masukan produk dan `HRD-DEC-021` baseline implementasi canonical. Enam belas pertanyaan baru `HRD-Q-18` s.d. `HRD-Q-33` |
+| `10` | 2026-08-31 | **PHASE 3.4 — Final Salary Scope Correction.** `HRD-DEC-045` menetapkan **masa kerja bukan faktor kebijakan gaji pada MVP saat ini** dan menggantikan `HRD-DEC-042`, yang dipertahankan sebagai sejarah. `HRD-Q-56` menjadi `DEFERRED / NOT_APPLICABLE_TO_CURRENT_MVP`. Faktor aktif menjadi **empat**: Golongan, Level, Status Kerja, Jenjang Pendidikan. `contract_versions` naik ke `v5` karena kriteria kontrak berkurang | `HRD-DEC-045` |
+| `9` | 2026-08-31 | **PHASE 3.3 — Salary Policy Clarification.** `HRD-Q-55` ditutup `HRD-DEC-041` dan `HRD-DEC-042`: istilah "masa studi" ditarik menjadi **Jenjang Pendidikan**, dan **Masa Kerja** menjadi dimensi tersendiri. `HRD-DEC-043` menetapkan kebijakan gaji berversi dan dapat dikonfigurasi. `HRD-DEC-044` mencabut `: ViewAmount` dari Payroll Officer. `HRD-Q-56` mencatat tanggal mulai bekerja yang otoritatif belum dapat dicapai dari `MstWorkforceProfile`. `contract_versions` naik ke `v4` | `HRD-DEC-041` s.d. `HRD-DEC-044` |
+| `8` | 2026-08-30 | **PHASE 3.2 — Security Decision Ingestion.** `HRD-DEC-032` dan `HRD-DEC-033` menjadi `SECURITY_APPROVED` oleh project final decision authority. Audit pembacaan gaji sensitif disetujui sebagai `APPROVED — AUDIT REQUIRED`. Empat keputusan sasaran baru `HRD-DEC-037` s.d. `HRD-DEC-040` mengatur kewenangan kebijakan gaji, kepemilikan slip gaji, otentikasi bertingkat, audit `GET` sensitif, dan perlindungan sisi klien. `HRD-Q-55` mencatat ketidaksesuaian istilah "masa studi". `contract_versions` naik ke `v3` karena semantik kontrak berubah | `HRD-DEC-037` s.d. `HRD-DEC-040` |
+| `7` | 2026-08-30 | **PHASE 3.1 — Workflow Chain Approval.** Isi rantai `T1` s.d. `T8` disetujui pemilik; `HRD-DEC-034` tidak lagi berstatus usulan. `HRD-DEC-036` menutup `HRD-Q-54` dengan **empat definisi alur terpisah**. Paket tinjauan keamanan disiapkan untuk `HRD-DEC-032` dan `HRD-DEC-033`. `contract_versions` **tetap** `v2` — semantik kontrak tidak berubah, hanya dipertegas | `HRD-DEC-036` |
+| `6` | 2026-08-30 | **PHASE 3 — Owner Decision Closure.** `HRD-DEC-031` s.d. `HRD-DEC-035` menutup `HRD-Q-19`, `HRD-Q-33`, `HRD-Q-20`, isi konfigurasi workflow, dan `HRD-Q-49` untuk cakupan MVP. `HRD-Q-54` dicatat. `contract_versions` naik ke `v2` karena semantik kontrak berubah — pemisahan peran, butir hak akses sensitif nominal, dan batas payroll. Empat entity penempatan dan remunerasi naik menjadi `Diperbarui`. `FR-HRD-012` yang sebelumnya over-asserted diperbaiki | `HRD-DEC-031` s.d. `HRD-DEC-035` |
+| `5` | 2026-08-30 | **PHASE 3 — Design Completion.** Empat artefak canonical yang belum ada ditulis: `data/data-dictionary.md`, `flowcharts/**`, `testing/acceptance-test-matrix.md`, dan `04-prd-to-mvp.md`. `contract_versions` diisi `v1`; `artifact_hashes` diisi. Snapshot SHA disegarkan ke BE `e0ee42c` dan FE `fff76a1b39` dengan hasil `NO_CAPABILITY_IMPACT`. Satu koreksi berbasis bukti pada bagian 7.1 `02-backend-architecture.md`. Cleanup governance referensi `erd/` mengikuti `blueprint-output-contract` terbaru |
 
 Perubahan setelah approval membuat revision baru dan memicu impact scan pada kedua repository.
 Blueprint ini tidak pernah ditandai `approved` oleh skill; approval tetap tindakan manusia.
