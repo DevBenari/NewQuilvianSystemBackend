@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
@@ -546,7 +546,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 HeadCircumference = request.HeadCircumference,
                 BMI = calculated.BMI,
                 WeightMeasurementNote = NormalizeNullableText(request.WeightMeasurementNote),
-                ConsciousnessStatus = request.ConsciousnessStatus,
+                ConsciousnessStatus = request.ConsciousnessStatus ?? ConsciousnessStatus.Unknown,
                 GcsEye = request.GcsEye,
                 GcsVerbal = request.GcsVerbal,
                 GcsMotor = request.GcsMotor,
@@ -684,7 +684,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             entity.HeadCircumference = request.HeadCircumference;
             entity.BMI = calculated.BMI;
             entity.WeightMeasurementNote = NormalizeNullableText(request.WeightMeasurementNote);
-            entity.ConsciousnessStatus = request.ConsciousnessStatus;
+            entity.ConsciousnessStatus = request.ConsciousnessStatus ?? entity.ConsciousnessStatus;
             entity.GcsEye = request.GcsEye;
             entity.GcsVerbal = request.GcsVerbal;
             entity.GcsMotor = request.GcsMotor;
@@ -1211,7 +1211,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 request.OxygenSaturation,
                 request.Temperature,
                 request.PulseRate,
-                request.ConsciousnessStatus,
+                request.ConsciousnessStatus ?? ConsciousnessStatus.Unknown,
                 request.GcsEye,
                 request.GcsVerbal,
                 request.GcsMotor);
@@ -1228,7 +1228,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 request.OxygenSaturation,
                 request.Temperature,
                 request.PulseRate,
-                request.ConsciousnessStatus,
+                request.ConsciousnessStatus ?? ConsciousnessStatus.Unknown,
                 request.GcsEye,
                 request.GcsVerbal,
                 request.GcsMotor);

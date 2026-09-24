@@ -6,7 +6,7 @@
 **Tingkat Keparahan:** 🟡 **Sedang / Cacat Konsistensi Navigasi & Pemetaan Instrumen (UX & Routing Gap)**  
 **Tanggal Temuan:** 23 September 2026  
 **Ditemukan Oleh:** Pengujian Otomatis Antigravity (Playwright End-to-End Analysis)  
-**Status Isu:** 📋 **TERCATAT & TEREKOMENDASI (Identified & Proposed Fix)**  
+**Status Isu:** 🟢 **TERATASI (Resolved & Verified)**  
 
 ---
 
@@ -124,3 +124,18 @@ const V2_ASSESSMENT_TABS = Object.freeze([
    TAB_TO_ASSESSMENT_TYPES["initial-eval"] = [9]; // CaseManagement
    ```
 2. Definisikan instrumen atau komponen khusus untuk `daily-monitoring` (misal: lembar observasi harian).
+
+---
+
+## 6. Realisasi Solusi & Hasil Verifikasi (*Resolution & Evidence*)
+
+Perbaikan telah diterapkan secara terintegrasi:
+1. **Penjaga Defensif Tab Non-Instrumen (`assessment-section.jsx`):**  
+   Menambahkan verifikasi `const isInstrumentTab = Boolean(TAB_TO_INSTRUMENT_KIND[currentTab]);` dan elemen visual khusus dengan atribut `data-testid="assessment-non-instrument-tab"` jika sub-tab yang dibuka bukan merupakan instrumen formulir langsung. Mencegah terjadinya fallback keliru ke formulir Kajian Umum.
+2. **Penyelarasan Rute Ruang Kerja (`nursing-workspace-sections.jsx`):**  
+   Pengalihan navigasi telah mengarahkan `daily-monitoring` ke komponen khusus [`DailyMonitoringSection`](file:///c:/Users/Admin/Documents/Quilvian/Source%20Code/QuilvianFinal/QuilvianSystemFrontendDev/src/components/view/health-services/inpatient-management/nursing-workspace/sections/daily-monitoring/daily-monitoring-section.jsx) dan `initial-eval` ke [`InitialEvaluationSection`](file:///c:/Users/Admin/Documents/Quilvian/Source%20Code/QuilvianFinal/QuilvianSystemFrontendDev/src/components/view/health-services/inpatient-management/nursing-workspace/sections/initial-evaluation/initial-evaluation-section.jsx).
+3. **Koreksi Typo Label Edukasi:**  
+   Label `"Assement Edukasi"` telah diperbaiki menjadi `"Asesmen Edukasi"` pada konstanta [`inpatient-nursing-constants.js`](file:///c:/Users/Admin/Documents/Quilvian/Source%20Code/QuilvianFinal/QuilvianSystemFrontendDev/src/lib/constants/health-services/inpatient-management/inpatient-nursing-constants.js) dan [`assessment-form-nav.jsx`](file:///c:/Users/Admin/Documents/Quilvian/Source%20Code/QuilvianFinal/QuilvianSystemFrontendDev/src/components/view/health-services/inpatient-management/nursing-workspace/sections/assessment/assessment-form-nav.jsx).
+4. **Verifikasi Pengujian Unit:**  
+   Pengujian unit pada `tests/unit/inpatient-clinical-instrument-renderer.test.mjs` (`ISSUE-KEP-005: Konsistensi label Asesmen Edukasi dan penjaga defensif isInstrumentTab`) dinyatakan **PASS (100% Lulus)**.
+
