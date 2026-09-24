@@ -702,6 +702,27 @@ tidak dapat diberikan sebelum dialokasikan.
 
 ---
 
+### ✅ `BE-BD-020` — Blood Unit Inactive Location Filter
+
+| Field | Isi |
+| --- | --- |
+| **Status** | ✅ **SELESAI — 24 September 2026. Ketujuh acceptance `AC-BD-118`..`AC-BD-124` terpenuhi dan Definition of Done terpenuhi.** Build **`0 Error(s)` / `214 Warning(s)`** (`01:10:28`), baseline peringatan tidak bertambah dan nol peringatan dari baris task. `has-pending-model-changes` **bersih**, **nol migration**. QBE Strict **`PASS`** (3 berkas, `VIOLATION 0`). `api-contract.md` memperoleh Amendment `v5` **`D6`**; `AC-BD-118`..`AC-BD-124` pada bagian 13 matriks acceptance. **Validasi runtime R1–R14 `PASS`, dijalankan langsung agent** terhadap `QuilvianNewDevSukma` lewat HTTP sungguhan, dengan ekspektasi dihitung independen lewat SQL ([laporan](../task/report/backend/BE-BD-020.md) bagian 5.2): kulkas `TBD006-LOC2` dinonaktifkan → peringatan `VAL-BD-068` menyebut **6** dan saringan memulangkan tepat keenam kantong itu, kantong `Diberikan` di lokasi yang sama tidak ikut; partisi `true`/`false` tanpa irisan dan utuh `42`. Database dipulihkan dan diverifikasi. **Batas bukti:** aktor tunggal `superadmin` — `AC-BD-124` terbukti pada tingkat atribut hak akses (`401` tanpa login, diff nol baris hak akses), jalur `403` dengan aktor tanpa hak baca belum ditembakkan; `AC-BD-122` memakai `IsDelete` yang disetel lewat SQL lalu dipulihkan (bagian 5.4). **Riwayat:** 🟡 SEBAGIAN — source dan kontrak selesai, build dan runtime belum, 24 September 2026. **Riwayat:** dibuka 24 September 2026 atas keputusan pemilik `Sukmagp` (`D1`), sesudah audit menemukan kartu task ini belum pernah ada walaupun `FE-BD-012` sudah tercatat menunggunya |
+| **Yang memblokir** | **Nihil** |
+| **Outcome** | Petugas BDRS dapat menyaring daftar kantong ke kantong yang tertahan di lokasi nonaktif, sehingga pekerjaan pemindahan yang ditinggalkan penonaktifan lokasi (`DEC-BD-037`, peringatan `VAL-BD-068`) terlihat dan dapat dikerjakan satu per satu |
+| **Asal** | Saringan `inactiveLocation` dijanjikan `03-frontend-architecture.md` untuk `FE-BD-04`, dan acceptance `FE-BD-012` mewajibkannya, tetapi `GET /blood-units` tidak pernah menerima parameter itu. Tercatat sebagai penahan `FE-BD-012` sejak `FE-BD-010` ✅, 23 September 2026 |
+| **Trace** | `DEC-BD-037`; `INV-BD-028`; `VAL-BD-064`, `VAL-BD-068`; `FE-BD-012`; keputusan pemilik `D1`–`D4` 24 September 2026 ([laporan](../task/report/backend/BE-BD-020.md) bagian 2) |
+| **Kontrak** | api-contract — grup Blood Unit, Amendment `v5` **`D6`**. Aditif pada `GET /` dan `GET /filters/metadata`; nol endpoint baru, nol butir hak akses baru, nol perubahan bentuk respons |
+| **Reuse** | Pola `emergencyPendingEvidence` pada `GetPagedAsync` (`bool?`, `false` = kebalikan); `StillInStockStatuses` milik `BE-BD-015`; definisi lokasi aktif `IsActive && !IsDelete` milik gerbang `VAL-BD-064` |
+| **Scope** | **(1) Kontrak** — `D6`. **(2) Query** — `inactiveLocation` pada tanda tangan `GetAll` dan `BloodUnitDefaultFilterResponse`. **(3) Penyaring service** — sebelum `CountAsync`, supaya paging menghitung hasil akhir. **(4) Acceptance** — `AC-BD-118`..`AC-BD-124` pada matriks acceptance bagian 13. **(5) Validasi runtime** terhadap `QuilvianNewDevSukma` |
+| **Di luar scope** | Migration, kolom, atau index baru. Hitungan kantong tertahan pada `GET /summary`. Perubahan gerbang alokasi/pemberian. Pengosongan `CurrentPlacementId` pada status akhir — **dicatat sebagai technical debt** atas keputusan pemilik 24 September 2026 ([laporan](../task/report/backend/BE-BD-020.md) bagian 8). Penyelarasan nama `status`/`unitStatus` pada dokumen. Perubahan apa pun pada frontend |
+| **Dependency** | `BE-BD-014` ✅, `BE-BD-015` ✅, `BE-BD-016` ✅, keputusan pemilik `D1`–`D4` ✅ 24 September 2026 |
+| **Acceptance** | `AC-BD-118`, `AC-BD-119`, `AC-BD-120`, `AC-BD-121`, `AC-BD-122`, `AC-BD-123`, `AC-BD-124` — rumusannya pada [matriks acceptance](../testing/acceptance-test-matrix.md) bagian 13 |
+| **Verifikasi** | QBE preflight; build aplikasi; review diff/scope; `has-pending-model-changes` bersih tanpa migration; verifikasi lewat panggilan HTTP sungguhan, termasuk **kantong berstatus akhir di lokasi nonaktif** sebagai pembuktian `D2` |
+| **Risk/owner** | Rendah–sedang — definisi "nonaktif" yang menyimpang dari gerbang `VAL-BD-064` membuat layar dan gerbang tidak sejalan / pemilik proses BDRS + pemilik arsitektur backend |
+| **DoD** | Ketujuh acceptance terbukti; `api-contract.md` diamandemen `D6`; `AC-BD-118`..`AC-BD-124` tertulis di matriks acceptance; nol migration; laporan tracked `task/report/backend/BE-BD-020.md` |
+
+---
+
 ## 6. Gerbang yang masih terbuka
 
 | Gate | Pemilik | Menahan |

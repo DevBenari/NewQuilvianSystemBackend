@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Blueprint ID | `BD-BP-001` · Contract version **`v5` — `approved`** (`Sukmagp` 2026-09-19; `v4` kini `superseded`). **Riwayat:** `v5` `draft` 18 September 2026 (arah disetujui `Sukmagp` 2026-09-18). **Riwayat:** `v4` — `approved` |
-| `last_changed_in` | **`v5`** — bagian 11 (`AC-BD-103` sampai `AC-BD-112`). **23 September 2026:** bagian 12 baru (`AC-BD-113` sampai `AC-BD-117`, `v5` `D5`, task `BE-BD-019`). Bagian 1–10 tidak berubah |
+| `last_changed_in` | **`v5`** — bagian 11 (`AC-BD-103` sampai `AC-BD-112`). **23 September 2026:** bagian 12 baru (`AC-BD-113` sampai `AC-BD-117`, `v5` `D5`, task `BE-BD-019`). **24 September 2026:** bagian 13 baru (`AC-BD-118` sampai `AC-BD-124`, `v5` `D6`, task `BE-BD-020`). Bagian 1–10 tidak berubah |
 | `approved_by` / `approved_at` | `Sukmagp` / `2026-09-03` (`v4`) · **`Sukmagp` / `2026-09-19` (`v5`)** |
 | Sumber | `00-interview-decisions.md` revisi 9 (`AC-BD-001`..`097`) · `contracts/state-transition-matrix.md` · `contracts/validation-matrix.md` |
 
@@ -270,6 +270,37 @@ walaupun konversinya salah.
 | `AC-BD-115` — batas hari WIB | Order dibuat pukul `02:00` WIB tanggal 23 September, tersimpan `2026-09-22T19:00:00Z`. Disaring `startDate = endDate = 2026-09-23`, lalu disaring `startDate = endDate = 2026-09-22` | Integ | **Muncul** pada saringan 23 September; **tidak muncul** pada saringan 22 September. Rentang efektifnya `>= 2026-09-22T17:00:00Z` dan `< 2026-09-23T17:00:00Z` (`DEC-BD-060`) |
 | `AC-BD-116` — kombinasi | Rentang tanggal digabung `bloodComponentId`, `orderStatus`, dan `search`, pada halaman kedua dengan `pageSize` kecil | Integ | Hasilnya irisan seluruh penyaring; paging berlaku atas hasil yang **sudah** tersaring — `totalData` dan `totalPage` menghitung hasil akhir, bukan seluruh order |
 | `AC-BD-117` — rentang tidak sah | `startDate = 2026-09-30`, `endDate = 2026-09-23` | Integ | **Ditolak** `400 VAL-BD-086` dengan kalimat persis `validation-matrix.md`; **bukan** daftar kosong. `startDate` sama dengan `endDate` tetap **diterima** dan menyaring satu hari penuh |
+
+---
+
+## 13. Penyaring kantong tertahan di lokasi nonaktif — tambahan 24 September 2026
+
+Menutup `AC-BD-118` sampai `AC-BD-124`, lahir dari keputusan pemilik `Sukmagp` 24 September 2026
+(`D2`–`D4`, api-contract `v5` `D6`), dikerjakan task `BE-BD-020`. Menjadi prasyarat backend saringan
+`inactiveLocation` pada `FE-BD-012`.
+
+> **Status: ketujuhnya ✅ TERPENUHI, 24 September 2026.** Dijalankan langsung agent terhadap
+> `QuilvianNewDevSukma` dengan keluaran HTTP sungguhan; rinciannya pada
+> [`BE-BD-020`](../task/report/backend/BE-BD-020.md) bagian 5.2 (R1–R14 `PASS`). `AC-BD-121` terbukti
+> dengan data alami (dua kantong `Diberikan` di `TBD008-LOCB`) dan terkendali (kulkas `TBD006-LOC2`
+> dinonaktifkan: 6 kantong di stok muncul = angka `VAL-BD-068`, kantong `Diberikan` tidak). **Batas:**
+> `AC-BD-124` terbukti pada tingkat atribut hak akses — aktor tunggal `superadmin`, jalur `403` belum
+> ditembakkan dengan aktor tanpa hak baca. Database dipulihkan sesudah pengujian.
+
+**Data yang wajib disiapkan lebih dulu:** satu lokasi yang **dinonaktifkan** dan berisi sekurang-kurangnya
+satu kantong di stok, satu kantong di lokasi aktif, satu kantong `Received` tanpa lokasi, dan satu kantong
+berstatus akhir yang lokasi terakhirnya nonaktif. Tanpa kantong berstatus akhir itu, `AC-BD-121` tidak
+dapat dibuktikan dan kebocoran status akhir lolos tanpa terlihat.
+
+| Requirement | Skenario | Jenis | Bukti yang diharapkan |
+| --- | --- | --- | --- |
+| `AC-BD-118` — lokasi nonaktif muncul | Kantong `Available` tersimpan di lokasi A; lokasi A dinonaktifkan. Daftar disaring `inactiveLocation=true` | Integ | Kantong itu **muncul**, `isCurrentStorageLocationActive = false`, statusnya tetap `Available` |
+| `AC-BD-119` — lokasi aktif tidak muncul | Kantong tersimpan di lokasi B yang aktif | Integ | **Tidak muncul** pada `inactiveLocation=true`; **muncul** pada `inactiveLocation=false` |
+| `AC-BD-120` — tanpa lokasi tidak dianggap nonaktif | Kantong `Received` yang belum pernah ditempatkan | Integ | **Tidak muncul** pada `inactiveLocation=true`; **muncul** pada `inactiveLocation=false` |
+| `AC-BD-121` — status akhir tidak muncul (`D2`) | Kantong `Issued`, `ReturnedToProvider`, atau `NotUsable` yang penempatan terakhirnya menunjuk lokasi nonaktif | Integ | **Tidak muncul** pada `inactiveLocation=true`. Himpunan yang muncul sama dengan hitungan peringatan `VAL-BD-068` untuk lokasi itu |
+| `AC-BD-122` — lokasi terhapus dianggap nonaktif (`D3`) | Lokasi berisi kantong di stok ditandai terhapus (`IsDelete = true`) walaupun `IsActive` masih `true` | Integ | Kantongnya **muncul** pada `inactiveLocation=true` — sejalan dengan gerbang `VAL-BD-064` yang juga menolak alokasinya |
+| `AC-BD-123` — kebalikan dan paging (`D4`) | `inactiveLocation=true` dan `false` masing-masing, lalu `true` digabung `unitStatus`/`search` dengan `pageSize` kecil pada halaman kedua | Integ | `totalData(true) + totalData(false) = totalData(tanpa penyaring)`, tanpa irisan. Paging berlaku atas hasil yang **sudah** tersaring — `totalData` dan `totalPage` menghitung hasil akhir |
+| `AC-BD-124` — hak akses tetap | Pemanggil tanpa `BloodUnit : Read` | Integ | Ditolak `403` seperti sebelum `D6`. Nol butir `[AccessAction]` baru; `[AccessPermission("BloodUnit", "Read")]` tidak berubah |
 
 ---
 

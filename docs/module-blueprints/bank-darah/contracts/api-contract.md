@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Blueprint ID | `BD-BP-001` · Contract version **`v5` — `approved`** (`Sukmagp` 2026-09-19; `v4` kini `superseded`). **Riwayat:** `v5` `draft` 18 September 2026. Arah disetujui `Sukmagp` 2026-09-18 (`DEC-BD-055`..`058`). **Riwayat:** `v4` — `approved` `Sukmagp` 2026-09-03 |
-| `last_changed_in` | **`v5`** — grup Blood Order saja (bagian "Amendment `v5`" di bawah tabel grup itu). Grup lain tidak berubah. **23 September 2026:** bagian `D5` ditambahkan ke amandemen yang sama — penyaring rentang tanggal `startDate`/`endDate` pada `GET /` (`DEC-BD-059`, `DEC-BD-060`, task `BE-BD-019`). Aditif penuh; **nomor set kontrak tidak dinaikkan**, karena tidak ada satu pun klien lama yang rusak. **Riwayat:** `v4` |
+| `last_changed_in` | **`v5`** — grup Blood Order saja (bagian "Amendment `v5`" di bawah tabel grup itu). Grup lain tidak berubah. **23 September 2026:** bagian `D5` ditambahkan ke amandemen yang sama — penyaring rentang tanggal `startDate`/`endDate` pada `GET /` (`DEC-BD-059`, `DEC-BD-060`, task `BE-BD-019`). Aditif penuh; **nomor set kontrak tidak dinaikkan**, karena tidak ada satu pun klien lama yang rusak. **24 September 2026:** bagian `D6` ditambahkan pada grup Blood Unit — penyaring `inactiveLocation` pada `GET /` (keputusan pemilik `Sukmagp`, task `BE-BD-020`). Aditif penuh; nomor set kontrak tidak dinaikkan. **Riwayat:** `v4` |
 | Owner | Pemilik arsitektur backend (bentuk kontrak) · pemilik proses BDRS (perilaku) |
 | `approved_by` / `approved_at` | `Sukmagp` / `2026-09-19` (`v5`). **Riwayat:** `Sukmagp` / `2026-09-03` (`v4`) |
 | Sumber | `02-backend-architecture.md` (controller) · `contracts/state-transition-matrix.md` · `contracts/validation-matrix.md` |
@@ -239,7 +239,7 @@ Base URL: `api/v1/health-services/blood-bank-management/blood-units`
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| `GET` | `/` | Daftar kantong; filter `status=PendingReview` = daftar kerja #2; filter `emergencyPendingEvidence=true` = daftar kerja #3 | `BloodUnit : Read` | `BloodUnitPagedQuery` | `ApiResponse<PagedResult<BloodUnitListDto>>` | Rencana |
+| `GET` | `/` | Daftar kantong; filter `status=PendingReview` = daftar kerja #2; filter `emergencyPendingEvidence=true` = daftar kerja #3; filter `inactiveLocation=true` = kantong tertahan di lokasi nonaktif (**`D6`**, 24 September 2026) | `BloodUnit : Read` | `BloodUnitPagedQuery` | `ApiResponse<PagedResult<BloodUnitListDto>>` | Rencana · `inactiveLocation` **terimplementasi `BE-BD-020`** |
 | `GET` | `/{id}` | Detail kantong + riwayat alokasi/bukti/koreksi | `BloodUnit : Read` | — | `ApiResponse<BloodUnitDetailDto>` | Rencana |
 | `GET` | `/{id}/placements` | Riwayat penempatan kantong: di kulkas mana, sejak kapan, oleh siapa | `BloodUnit : Read` | — | `ApiResponse<List<BloodUnitPlacementDto>>` | Rencana |
 | `POST` | `/{id}/storage-location` | **Tetapkan lokasi penyimpanan pertama** — membawa kantong `Received`→`Stored`→`Available` (`DEC-BD-036`) | `BloodUnit : Store` | `AssignStorageLocationRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana · `422 VAL-BD-060/061` |
@@ -256,6 +256,54 @@ Base URL: `api/v1/health-services/blood-bank-management/blood-units`
 | `POST` | `/{id}/reallocate` | Alihkan kantong `PendingReview` ke pasien lain | **`BloodUnit : ResolveReallocate`** | `ReallocateUnitRequest` | `ApiResponse<BloodUnitDetailDto>` | **Terimplementasi `BE-BD-009`** · `400 VAL-BD-016` · `403 VAL-BD-080` · `422 VAL-BD-064` |
 | `POST` | `/{id}/return-to-provider` | Kembalikan kantong ke PMI | **`BloodUnit : ResolveReturn`** | `ResolveWithReasonRequest` | `ApiResponse<BloodUnitDetailDto>` | **Terimplementasi `BE-BD-009`** · `400 VAL-BD-016` · `403 VAL-BD-081` |
 | `POST` | `/{id}/mark-not-usable` | Nyatakan kantong tidak layak | **`BloodUnit : ResolveNotUsable`** | `ResolveWithReasonRequest` | `ApiResponse<BloodUnitDetailDto>` | **Terimplementasi `BE-BD-009`** · `400 VAL-BD-016` · `403 VAL-BD-082` |
+
+#### Amendment `v5` D6 — penyaring kantong tertahan di lokasi nonaktif (24 September 2026)
+
+Ditambahkan atas keputusan pemilik `Sukmagp` 24 September 2026 (butir `D2`–`D4` pada audit
+[`BE-BD-020`](../task/report/backend/BE-BD-020.md) bagian 2), menutup saringan `inactiveLocation` yang sudah
+dijanjikan `03-frontend-architecture.md` untuk `FE-BD-012` tetapi belum pernah ada di kontrak ini.
+**Aditif penuh**: satu parameter query opsional, satu isian bawaan pada metadata penyaring, nol perubahan
+bentuk respons, nol endpoint baru, nol butir hak akses baru. Dikerjakan task `BE-BD-020`.
+
+| Method | Path | Yang berubah | Hak akses |
+| --- | --- | --- | --- |
+| `GET` | `/` | Query baru `inactiveLocation` | `BloodUnit : Read` |
+| `GET` | `/filters/metadata` | Isian bawaan `inactiveLocation` pada `BloodUnitDefaultFilterResponse` | `BloodUnit : Read` |
+
+| Tempat | Isian | Tipe | Wajib | Aturan |
+| --- | --- | --- | :---: | --- |
+| `GET /` query | `inactiveLocation` | `bool?` | Tidak | `true` = hanya kantong tertahan; `false` = kebalikan persisnya; kosong = tidak menyaring |
+| `BloodUnitDefaultFilterResponse` | `inactiveLocation` | `bool?` | — | Bawaan `null` |
+
+**Definisi "tertahan di lokasi nonaktif".** Sebuah kantong tertahan bila **ketiga** syarat ini terpenuhi
+sekaligus:
+
+| Syarat | Isi | Keputusan |
+| --- | --- | --- |
+| Masih di stok | Status `Stored`, `Available`, `Allocated`, `PendingReview`, atau `Reallocated` — himpunan yang sama dengan hitungan peringatan `VAL-BD-068` | `D2` |
+| Punya lokasi berlaku | `CurrentPlacementId` terisi. Kantong **tanpa lokasi** (`Received`) **tidak** dianggap tertahan | — |
+| Lokasinya nonaktif | Lokasi berlakunya `IsActive = false` **atau** terhapus (`IsDelete = true`) — definisi yang sama dengan gerbang alokasi `VAL-BD-064` dan penanda `isCurrentStorageLocationActive` | `D3` |
+
+Kantong berstatus akhir — `Issued`, `ReturnedToProvider`, `NotUsable` — **tidak pernah** muncul pada
+`inactiveLocation=true` walaupun `CurrentPlacementId`-nya masih menunjuk lokasi terakhir yang kini
+nonaktif: kantongnya sudah keluar dari stok, sehingga tidak ada lagi yang perlu dipindahkan.
+
+**`inactiveLocation=false` adalah kebalikan persisnya (`D4`)**, mengikuti pola `emergencyPendingEvidence`:
+seluruh kantong yang **tidak** memenuhi ketiga syarat di atas — kantong di lokasi aktif, kantong tanpa
+lokasi, dan kantong berstatus akhir. Untuk setiap kantong berlaku: muncul di `true` **atau** di `false`,
+tidak pernah keduanya dan tidak pernah tidak sama sekali.
+
+**Penggabungan.** Digabung "dan" dengan `search`, `unitStatus`, `isExcess`, `providerRequestId`,
+`bloodComponentId`, dan `emergencyPendingEvidence`. Paging berlaku atas hasil yang sudah tersaring:
+`totalData` dan `totalPage` menghitung hasil akhir. Penyaringan dikerjakan **server-side**.
+
+**Yang tidak berubah.** `GET /summary` tidak memperoleh hitungan kantong tertahan. Gerbang alokasi dan
+pemberian (`VAL-BD-064`/`065`) tidak disentuh — penyaring ini hanya membaca. Kantong tidak dipindahkan
+dan statusnya tidak diubah (`DEC-BD-037`).
+
+**Catatan nama parameter status.** Baris `GET /` di atas dan `03-frontend-architecture.md` menulis
+`status=`; nama parameter sebenarnya di source adalah **`unitStatus`**. Selisih penulisan ini sudah ada
+sebelum `D6` dan **tidak** diubah amandemen ini — klien memakai `unitStatus`.
 
 Pemberian (`issue`/`emergency-issue`) tidak dapat dibatalkan — status terminal. Koreksi tidak
 memindahkan kantong keluar dari `Issued` dan tidak dapat dipakai memindahkan pemberian ke pasien lain

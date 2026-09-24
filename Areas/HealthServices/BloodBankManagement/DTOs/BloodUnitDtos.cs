@@ -200,6 +200,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.DTOs
         public bool? IsExcess { get; set; }
         public Guid? ProviderRequestId { get; set; }
         public Guid? BloodComponentId { get; set; }
+        public bool? InactiveLocation { get; set; }
         public string SortBy { get; set; } = "createDateTime";
         public string SortDirection { get; set; } = "desc";
         public int PageNumber { get; set; } = 1;

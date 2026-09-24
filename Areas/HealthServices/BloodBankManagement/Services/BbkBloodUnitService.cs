@@ -339,7 +339,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
             int pageNumber,
             int pageSize,
             CancellationToken cancellationToken = default,
-            bool? emergencyPendingEvidence = null)
+            bool? emergencyPendingEvidence = null,
+            bool? inactiveLocation = null)
         {
             (pageNumber, pageSize) = NormalizePaging(pageNumber, pageSize);
 
@@ -359,6 +360,27 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
                         x.IssuedViaEmergency && x.CompatibilityEvidenceIdUsed == null)
                     : query.Where(x =>
                         !x.IssuedViaEmergency || x.CompatibilityEvidenceIdUsed != null);
+            }
+
+            // Kantong tertahan di lokasi nonaktif (BE-BD-020): masih di stok dan penempatan
+            // berlakunya menunjuk lokasi yang nonaktif atau terhapus — definisi yang sama dengan
+            // gerbang VAL-BD-064 dan hitungan VAL-BD-068. Kantong tanpa lokasi tidak dianggap
+            // tertahan, dan kantong berstatus akhir sudah keluar dari stok. false = kebalikannya.
+            if (inactiveLocation.HasValue)
+            {
+                query = inactiveLocation.Value
+                    ? query.Where(x =>
+                        StillInStockStatuses.Contains(x.UnitStatus) &&
+                        x.CurrentPlacement != null &&
+                        x.CurrentPlacement.StorageLocation != null &&
+                        (!x.CurrentPlacement.StorageLocation.IsActive ||
+                         x.CurrentPlacement.StorageLocation.IsDelete))
+                    : query.Where(x =>
+                        !StillInStockStatuses.Contains(x.UnitStatus) ||
+                        x.CurrentPlacement == null ||
+                        x.CurrentPlacement.StorageLocation == null ||
+                        (x.CurrentPlacement.StorageLocation.IsActive &&
+                         !x.CurrentPlacement.StorageLocation.IsDelete));
             }
 
             if (isExcess.HasValue)
