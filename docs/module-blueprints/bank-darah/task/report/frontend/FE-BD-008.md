@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `de955fcd1eaccadff041b19419a3105d58f0ff72` (perubahan task ini belum di-commit) |
 | Commit backend yang dijadikan rujukan | `74f5f9e5e41ff745217ea3f9d603aacf11e4dcb6` cabang `sukmagp` |
 | Tanggal | 24 September 2026 |
-| Status | 🟡 **Sebagian.** Source lengkap. `lint:errors` `PASS`; `test:unit` 1619 test (1612 lulus, 8 test baru lulus, 7 kegagalan lama sama dengan baseline); `build` `PASS` (371 halaman). Runtime: **6 dari 6 skenario akun A `PASS`** (`R0`, `R1`, `R2`, `R3`, `R5`, `R9`) terhadap backend sungguhan. **Belum dijalankan:** 4 skenario tahap kedua (`R4`, `R6`, `R7`, `R8`), karena akun B belum diberikan. Keputusan pemilik `E6` menuntut dua akun berbeda |
+| Status | ✅ **Selesai.** `lint:errors` `PASS`; `test:unit` 1619 test (1612 lulus, 8 test baru lulus, 7 kegagalan lama sama dengan baseline); `build` `PASS` (371 halaman). Runtime **10 dari 10 skenario `PASS`** (`R0`–`R9`, run 4) terhadap backend sungguhan dengan dua akun berbeda (keputusan `E6`): akun A `superadmin` mengajukan, akun B `arif@admin.com` (bukan SuperAdmin) menolak dan menyetujui. Kartu tidak punya baris DoD (`NOT APPLICABLE`). **Riwayat:** 🟡 sebagian — 6 dari 6 skenario akun A `PASS`, tahap kedua menunggu akun B
 
 ---
 
@@ -213,15 +213,14 @@ Nol base component diubah; tidak ada elemen berstatus `NEW` atau `EXTEND`.
 | `npm run test:unit` | 1619 test — **1612 lulus, 7 gagal**; ke-8 test baru lulus | `PASS` untuk cakupan task | Ketujuh kegagalan sama persis dengan baseline `FE-BD-007`: `route, menu, dan store terdaftar`, empat `FE-RWI-042`, `FE-RWI-043`, `M0` menu Setup Bank Darah |
 | `npm run build` | Kode keluar `0`, `Compiled successfully in 110s`, **371 halaman**, standalone siap | `PASS` | `/blood-units` dan `/blood-units/[slug]` terdaftar |
 | Grep anti-regresi UI | Nol tombol mentah, nol `<table>`, nol utility typography Bootstrap, nol inline style, nol pemanggilan Axios di view, nol CSS baru | `PASS` | Keluaran grep pada berkas diubah |
-| Runtime akun A (`R0`–`R3`, `R5`, `R9`) | **6 dari 6 `PASS`** (dari 3 run; dua kegagalan di tengah adalah cacat spec) | `PASS` | Bagian 6.1–6.2 |
-| Runtime tahap kedua (`R4`, `R6`, `R7`, `R8`) | Tidak dijalankan (`SKIPPED`) | `NOT RUN` | Akun B belum diberikan (`E6`) |
+| Runtime `R0`–`R9` dua akun | **10 dari 10 `PASS`** (run 4). Run 1–3 memakai akun A saja; dua kegagalan di run itu adalah cacat spec | `PASS` | Bagian 6.1–6.2 |
+| Bukti tambahan lewat API | `POST …/approve` oleh pengaju sendiri → `422 VAL-BD-073`, koreksi tidak berubah | `PASS` | Bagian 6.2 |
 
 `AUTOMATED TEST: npm run test:unit — PASS` (8 test baru lulus; 7 kegagalan lain sudah ada sebelumnya).
 
-Uji manual: **sebagian.** Tombol **Ajukan Koreksi**, dialog pengajuan, pemilih alasan, konfirmasi,
-peringatan menunggu, penanda **Anda**, dan preset tunggakan (nyala, ganti preset, matikan) dijalankan di
-peramban sungguhan lewat Playwright. Dialog **Setujui/Tolak** belum dijalankan di layar
-(`MANUAL TEST: NOT FEASIBLE` untuk akun B — identitas kedua belum tersedia).
+Uji manual: `PASS` — tombol **Ajukan Koreksi**, ketiga dialog (Ajukan, Setujui, Tolak), pemilih alasan,
+konfirmasi, penanda **Anda**, peringatan menunggu, tombol keputusan per baris, dan preset tunggakan (nyala,
+ganti preset, matikan) dijalankan di peramban sungguhan lewat Playwright dengan dua akun (bagian 6.2).
 
 ### 6.1 Cara uji
 
@@ -230,6 +229,11 @@ peramban sungguhan lewat Playwright. Dialog **Setujui/Tolak** belum dijalankan d
   `https://localhost:7184`, dijalankan pemilik dari `sukmagp` terbaru, database `QuilvianNewDevSukma`.
 - **Akun A** adalah sesi `superadmin` yang diberikan pemilik. Identitas ini sungguhan, dan ia memegang
   **seluruh** butir hak akses, termasuk `Correct` sekaligus `ApproveCorrection`.
+- **Akun B** adalah sesi `arif@admin.com` (Arif, tipe `PermanentDoctor`) yang diberikan pemilik. Sebelum run,
+  `GET /api/v1/Auth/permissions` dengan sesinya menunjukkan: `isSuperAdmin: false`, memegang
+  `BloodUnit : Read`, `BloodUnit : ApproveCorrection`, dan `BloodOrder : Read`, **tidak** memegang
+  `BloodUnit : Correct` maupun `BloodBankReason : Read`.
+- Fixture dan angka pemenuhan dibaca spec langsung dari backend dengan sesi akun A.
 - Satu-satunya jawaban yang dipasang adalah daftar kewenangan pada `R5`. Di sana akun A tetap dirinya
   sendiri, hanya daftar kewenangannya dibatasi ke `Read`, `Correct`, `ApproveCorrection`, dan
   `BloodBankReason : Read`.
@@ -239,7 +243,7 @@ peramban sungguhan lewat Playwright. Dialog **Setujui/Tolak** belum dijalankan d
 
 | Unsur | Nilai |
 | --- | --- |
-| Kantong | `TEST-BD013-20260917193327-01` (`0991186d-f51d-4133-a665-8b29bcc37048`), berstatus Diberikan tanpa koreksi yang masih menunggu |
+| Kantong | Run 4: `TEST-BD013-20260917193327-02` (`d64cc129-c138-43d3-a7bf-e6afe4d550d6`), berstatus Diberikan tanpa koreksi yang masih menunggu. Run 2: `TEST-BD013-20260917193327-01` (`0991186d-f51d-4133-a665-8b29bcc37048`) |
 | Order alokasi aktif | `4fb9cf3b-df46-4319-bc33-73266c0ddc39` |
 | Alasan | `TBD010-KOREKSI` (kategori `IssuanceCorrection`) |
 | Angka pemenuhan awal | Diberikan **1** |
@@ -248,16 +252,16 @@ peramban sungguhan lewat Playwright. Dialog **Setujui/Tolak** belum dijalankan d
 
 | Kode | Skenario | Hasil |
 | --- | --- | --- |
-| `R0` | Fixture: kantong Diberikan yang menawarkan `RequestIssuanceCorrection`, order alokasinya, alasan `IssuanceCorrection`, angka pemenuhan awal | `PASS` |
+| `R0` | Fixture: kantong Diberikan yang menawarkan `RequestIssuanceCorrection`, order alokasinya, alasan `IssuanceCorrection`, angka pemenuhan awal **1** | `PASS` |
 | `R1` | Akun A membuka kantong: **Ajukan Koreksi** tampil; bagian koreksi tampil; nol tombol Setujui/Tolak; nol GUID di bagian koreksi | `PASS` |
-| `R2` | Akun A mengajukan. Pemilih alasan meminta `category=IssuanceCorrection`, dan tombol konfirmasi nonaktif sebelum isian lengkap. Hasil kiriman: `200` dengan isi **tepat** 5 kunci, `correctionStatus` `0`, `requestedByUserId` = akun A. Pemberitahuan **Koreksi diajukan** tampil. Baris berstatus **Menunggu persetujuan** dengan penanda **Anda**, dan peringatan **Koreksi menunggu persetujuan** tampil. **Nol tombol keputusan pada baris sendiri, walaupun akun A sungguh memegang `ApproveCorrection`** (`FE-BD-017`). Koreksi `3d57f1f0-d2b2-47b5-875c-63a5e7a562b1` | `PASS` (run 2) |
-| `R3` | `FE-BD-016`: `TotalIssuedQuantity` backend tetap **1** sesudah pengajuan | `PASS` (run 2) |
-| `R4` | Akun B melihat **Setujui/Tolak** pada koreksi akun A, tanpa **Ajukan Koreksi** dan tanpa penanda **Anda** | `NOT RUN` — akun B belum ada |
-| `R5` | `FE-BD-017` dengan daftar kewenangan minimal (`Correct` + `ApproveCorrection`): baris sendiri berpenanda **Anda** dan tanpa tombol keputusan; **Ajukan Koreksi** tetap tampil | `PASS` (run 2) |
-| `R6` | Akun B menolak: alasan wajib, isi tepat `decisionNote`, status **Ditolak**, pemenuhan tetap | `NOT RUN` — akun B belum ada |
-| `R7` | Akun A mengajukan koreksi kedua, akun B menyetujui: status **Disetujui**, peringatan menunggu hilang, pemenuhan dihitung ulang backend | `NOT RUN` — akun B belum ada |
-| `R8` | Daftar koreksi backend: status dan pelaku sesuai `R6`/`R7` | `NOT RUN` — akun B belum ada |
-| `R9` | Preset **Tunggakan Bukti Darurat**. Query membawa `emergencyPendingEvidence=true` tanpa `unitStatus`/`inactiveLocation`. Tombol `aria-pressed=true` dan keterangan backlog tampil. `totalData` layar sama dengan backend, **5 kantong**. Beralih ke **Menunggu Keputusan** mengosongkan saringan tunggakan, dan menekan tombolnya dua kali mematikannya | `PASS` (run 3) |
+| `R2` | Akun A mengajukan. Pemilih alasan meminta `category=IssuanceCorrection`, dan tombol konfirmasi nonaktif sebelum isian lengkap. Hasil kiriman: `200` dengan isi **tepat** 5 kunci, `correctionStatus` `0`, `requestedByUserId` = akun A. Pemberitahuan **Koreksi diajukan** tampil. Baris berstatus **Menunggu persetujuan** dengan penanda **Anda**, dan peringatan **Koreksi menunggu persetujuan** tampil. **Nol tombol keputusan pada baris sendiri, walaupun akun A sungguh memegang `ApproveCorrection`** (`FE-BD-017`). Koreksi run 4: `3fd56ede-1027-4e7a-9bfd-998e6c9693d4` | `PASS` |
+| `R3` | `FE-BD-016`: `TotalIssuedQuantity` backend tetap **1** sesudah pengajuan | `PASS` |
+| `R4` | Akun B membuka kantong yang sama: **Setujui** dan **Tolak** tampil pada koreksi akun A; baris tanpa penanda **Anda**; tombol **Ajukan Koreksi** tidak tampil (B tidak memegang `Correct`) | `PASS` |
+| `R5` | `FE-BD-017` dengan daftar kewenangan minimal (`Correct` + `ApproveCorrection`): baris sendiri berpenanda **Anda** dan tanpa tombol keputusan; **Ajukan Koreksi** tetap tampil | `PASS` |
+| `R6` | Akun B menolak koreksi `3fd56ede…`: tombol **Ya, Tolak** nonaktif sebelum alasan diisi; `200` dengan isi **tepat** `{ decisionNote }`; `correctionStatus` `2`, `decidedByUserId` = akun B; pemberitahuan **Koreksi ditolak**; baris berstatus **Ditolak** beserta keterangan keputusan, tanpa tombol; pemenuhan backend tetap **1** | `PASS` |
+| `R7` | Akun A mengajukan koreksi kedua `dc717d62-ee2c-400b-ada0-52a94b3be401`; akun B menyetujuinya. Dialog menyebut biaya tindakan tidak ikut dibatalkan; `200` dengan isi **tepat** `{ decisionNote: null }`; `correctionStatus` `1`; pemberitahuan **Koreksi disetujui**; baris berstatus **Disetujui**; peringatan menunggu hilang. Pemenuhan dihitung ulang **oleh backend**: 1 → **0** | `PASS` |
+| `R8` | `GET /{id}/corrections` backend: `3fd56ede…` Ditolak dan `dc717d62…` Disetujui; pengaju akun A, pemutus akun B | `PASS` |
+| `R9` | Preset **Tunggakan Bukti Darurat** dengan akun B. Query membawa `emergencyPendingEvidence=true` tanpa `unitStatus`/`inactiveLocation`. Tombol `aria-pressed=true` dan keterangan backlog tampil. `totalData` layar sama dengan backend, **5 kantong**. Beralih ke **Menunggu Keputusan** mengosongkan saringan tunggakan, dan menekan tombolnya dua kali mematikannya | `PASS` |
 
 **Bukti tambahan lewat API, tanpa mengubah data.** `POST …/3d57f1f0…/approve` oleh akun A sendiri
 menghasilkan **`422`, `errors.code` `VAL-BD-073`**, dengan pesan "Koreksi tidak dapat disetujui oleh
@@ -274,6 +278,9 @@ orang yang mengajukannya. Mintakan keputusan kepada Dokter Bank Darah lain." Kor
    sesi akun B yang kosong, sehingga layar terlempar ke halaman login. Diagnosa dengan spec sementara
    membuktikan halaman daftar normal dengan sesi akun A; spec sementara itu sudah dihapus.
 3. **Run 3** — `R9` memakai akun B bila ada, akun A bila tidak. `R0` dan `R9` lulus.
+4. **Run 4** — dua akun (akun A `superadmin` dengan sesi baru, akun B `arif@admin.com`). **10 dari 10 lulus**
+   dalam 60 detik. Angka pemenuhan backend sepanjang run: awal 1 → sesudah pengajuan 1 → sesudah
+   ditolak 1 → sesudah disetujui 0.
 
 Source produk tidak berubah di antara run.
 
@@ -281,8 +288,10 @@ Source produk tidak berubah di antara run.
 
 | Data | Keadaan |
 | --- | --- |
-| Koreksi `3d57f1f0-d2b2-47b5-875c-63a5e7a562b1` pada `TEST-BD013-20260917193327-01` | **Menunggu persetujuan**, diajukan akun A (`superadmin`). Dibiarkan; koreksi bersifat append-only |
-| Kantong `TEST-BD013-20260917193327-01` | Tetap Diberikan, pemenuhan order tetap 1 |
+| Koreksi `3d57f1f0-d2b2-47b5-875c-63a5e7a562b1` pada `TEST-BD013-20260917193327-01` (run 2) | **Menunggu persetujuan**, diajukan akun A. Dibiarkan; koreksi bersifat append-only |
+| Koreksi `3fd56ede-1027-4e7a-9bfd-998e6c9693d4` pada `TEST-BD013-20260917193327-02` (run 4) | **Ditolak** oleh akun B |
+| Koreksi `dc717d62-ee2c-400b-ada0-52a94b3be401` pada `TEST-BD013-20260917193327-02` (run 4) | **Disetujui** oleh akun B |
+| Kantong `TEST-BD013-20260917193327-02` | Tetap Diberikan (`DEC-BD-051`); order `4fb9cf3b…` kini terhitung diberikan **0** oleh backend karena koreksi disetujui |
 
 **Kebersihan sesudah run:**
 - Server standalone uji dihentikan.
@@ -297,13 +306,13 @@ Source produk tidak berubah di antara run.
 
 | Kriteria | Status | Bukti |
 | --- | --- | --- |
-| Koreksi menuntut **dua langkah** | **Sebagian** | Tahap 1 (ajukan → Menunggu persetujuan, belum berlaku) terbukti runtime (`R2`). Tahap 2 (Setujui/Tolak oleh orang lain) sudah ada di source dan tercakup test unit, tetapi belum dijalankan di layar (`R4`, `R6`, `R7`, `R8` menunggu akun B) |
+| Koreksi menuntut **dua langkah** | **Terpenuhi** | Tahap 1 oleh akun A (`R2`), tahap 2 oleh akun B yang berbeda: tolak (`R6`) dan setujui (`R7`); `R8` mencocokkan pelaku di backend |
 | Daftar tunggakan bukti darurat tersedia (worklist #3, `FE-BD-004`) | **Terpenuhi** | `R9`; keputusan `E1`/`E2` |
-| `FE-BD-016` — koreksi menunggu tampil sebagai **menunggu**; angka pemenuhan **tidak berubah** sampai keputusan turun | **Terpenuhi** | `R2` (status dan peringatan), `R3` (pemenuhan backend tetap 1). Bagian "berubah sesudah disetujui" menunggu `R7` |
-| `FE-BD-017` — Setujui/Tolak **tersembunyi** pada koreksi pengguna sendiri, ditentukan perbandingan pelaku | **Sebagian** | Sisi "tersembunyi" terbukti: `R2` dengan identitas yang sungguh memegang `ApproveCorrection`, `R5`, `422 VAL-BD-073` lewat API, dan 4 test unit. Sisi "tampil bagi pemutus lain" belum terbukti runtime (`R4`) |
+| `FE-BD-016` — koreksi menunggu tampil sebagai **menunggu**; angka pemenuhan **tidak berubah** sampai keputusan turun | **Terpenuhi** | `R2` (status dan peringatan), `R3` dan `R6` (pemenuhan tetap 1), `R7` (baru berubah ke 0 sesudah disetujui, dihitung backend) |
+| `FE-BD-017` — Setujui/Tolak **tersembunyi** pada koreksi pengguna sendiri, ditentukan perbandingan pelaku | **Terpenuhi** | Tersembunyi: `R2` (identitas yang sungguh memegang `ApproveCorrection`), `R5`, `422 VAL-BD-073` lewat API. Tampil bagi pemutus lain: `R4`. Ditambah 4 test unit |
 | Catatan biaya — layar tidak menjanjikan pembatalan tagihan | **Terpenuhi** | Deskripsi bagian koreksi (terlihat di `R1`/`R2`) dan ketiga dialog menyatakan biaya tindakan tidak ikut dibatalkan; nol kode biaya |
 | Keputusan pemilik `E1`, `E2`, `E3` | **Terpenuhi** | `R9`; tidak ada pengambilan detail per baris; `R1`/`R2` (status, waktu, **Anda**, nol GUID) |
-| Keputusan pemilik `E6` — dua akun | **Belum terpenuhi** | Akun B belum diberikan |
+| Keputusan pemilik `E6` — dua akun | **Terpenuhi** | Run 4: akun A `superadmin`, akun B `arif@admin.com` |
 | Definition of Done | `NOT APPLICABLE` | Kartu tidak memuat baris DoD |
 
 ---
@@ -312,10 +321,10 @@ Source produk tidak berubah di antara run.
 
 | Hal | Isi |
 | --- | --- |
-| Peringatan | Token sesi `superadmin` backend lokal diberikan pemilik **di chat** untuk runtime task ini. Token disimpan sementara di scratchpad, tidak pernah dicetak ke log atau laporan, dan berkasnya sudah dihapus. Karena sudah tertulis di riwayat percakapan, **disarankan logout atau rotasi sesi `superadmin` lokal** |
+| Peringatan | Tiga token sesi backend lokal — dua `superadmin` dan satu `arif@admin.com` — diberikan pemilik **di chat** untuk runtime task ini. Token disimpan sementara di scratchpad, tidak pernah dicetak ke log atau laporan, dan berkasnya sudah dihapus. Karena sudah tertulis di riwayat percakapan, **disarankan logout atau rotasi sesi kedua akun itu** |
 | Masalah yang diketahui | **Backlog `E1` (backend):** belum ada endpoint untuk mencatat bukti kecocokan susulan pada kantong yang sudah Diberikan lewat jalur darurat. `RecordCompatibilityEvidenceAsync` hanya menerima kantong `Allocated`, sehingga daftar tunggakan tidak pernah berkurang. **Backlog `E2` (backend):** `BloodUnitListDto` tanpa penanda darurat, dan ringkasan daftar tanpa hitungan tunggakan. **Backlog `E3` (backend):** `IssuanceCorrectionDto` tanpa `requestedByName`/`decidedByName`. **Catatan kontrak:** backend mengizinkan lebih dari satu koreksi Menunggu persetujuan pada satu kantong; layar tidak membatasinya |
-| Dependency backend | Nihil yang menahan source. Yang menahan status ✅ adalah akun B untuk runtime `E6` |
+| Dependency backend | Nihil yang menahan task. Tiga backlog backend di atas tidak dibuka sebagai task |
 | Perubahan sampingan | Dua berkas tracked `test-results/` yang diubah Playwright dipulihkan dengan `git restore` pada kedua path itu saja. Spec diagnosa sementara dibuat lalu dihapus |
 | Interupsi | Dua kegagalan cacat spec (bagian 6.2), keduanya diperbaiki tanpa mengubah source produk |
-| Status Git | Frontend: ` M blood-unit-list-view.jsx`, ` M blood-unit-detail-view.jsx`, ` M blood-unit-constants.jsx`, ` M use-blood-unit-detail.jsx`, ` M use-blood-unit-list.jsx`, ` M blood-unit.service.js`, ` M blood-unit-utils.js`; baru `blood-unit-correction-dialogs.jsx`, `use-blood-unit-correction.jsx`, `tests/e2e/blood-unit-correction-screen.spec.mjs`, `tests/unit/blood-unit-correction.test.mjs`. Belum di-stage atau di-commit. Backend: hanya laporan ini dan tautan bukti pada roadmap serta `requirement-traceability.md` |
-| Langkah berikutnya | Berikan sesi akun B (`BloodUnit : Read, ApproveCorrection` + `BloodOrder : Read`) beserta ID penggunanya, lalu jalankan `R4`, `R6`, `R7`, `R8` dengan spec yang sama. Akun A boleh tetap `superadmin`; spec membuat koreksinya sendiri. Bila keempatnya `PASS`, task ini naik ke ✅. Koreksi `3d57f1f0…` yang masih menunggu dapat diputuskan akun B secara manual |
+| Status Git | Frontend: ` M blood-unit-list-view.jsx`, ` M blood-unit-detail-view.jsx`, ` M blood-unit-constants.jsx`, ` M use-blood-unit-detail.jsx`, ` M use-blood-unit-list.jsx`, ` M blood-unit.service.js`, ` M blood-unit-utils.js`; baru `blood-unit-correction-dialogs.jsx`, `use-blood-unit-correction.jsx`, `tests/e2e/blood-unit-correction-screen.spec.mjs`, `tests/unit/blood-unit-correction.test.mjs`. Belum di-stage atau di-commit. Di luar task ini ada ` M src/lib/hooks/hr/master-data/doctor/use-master-data-doctor-editor.jsx` yang muncul selama sesi; **bukan** perubahan task ini dan tidak disentuh. Backend: hanya laporan ini dan tautan bukti pada roadmap serta `requirement-traceability.md` |
+| Langkah berikutnya | Seluruh task frontend Bank Darah kini selesai atau sebagian (`FE-BD-005` 🟡). Satu langkah langsung: pemilik meninjau diff `FE-BD-008`, lalu meminta commit bila disetujui. Backlog backend `E1`/`E2`/`E3` diputuskan terpisah |
