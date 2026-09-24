@@ -962,16 +962,16 @@ namespace QuilvianSystemBackend.Repositories
 
         #region HEALTH SERVICE - Nutrition Management
 
-        public DbSet<GzNutritionOrder> GzNutritionOrders { get; set; }
-        public DbSet<GzNutritionCareRecord> GzNutritionCareRecords { get; set; }
-        public DbSet<GzNutritionOrderHistory> GzNutritionOrderHistories { get; set; }
-        public DbSet<GzDietType> GzDietTypes { get; set; }
-        public DbSet<GzFoodForm> GzFoodForms { get; set; }
-        public DbSet<GzMealSchedule> GzMealSchedules { get; set; }
-        public DbSet<GzPatientDiet> GzPatientDiets { get; set; }
-        public DbSet<GzProductionBatch> GzProductionBatches { get; set; }
-        public DbSet<GzProductionBatchDetail> GzProductionBatchDetails { get; set; }
-        public DbSet<GzMealDelivery> GzMealDeliveries { get; set; }
+        public DbSet<GziNutritionOrder> GziNutritionOrders { get; set; }
+        public DbSet<GziNutritionCareRecord> GziNutritionCareRecords { get; set; }
+        public DbSet<GziNutritionOrderHistory> GziNutritionOrderHistories { get; set; }
+        public DbSet<GziDietType> GziDietTypes { get; set; }
+        public DbSet<GziFoodForm> GziFoodForms { get; set; }
+        public DbSet<GziMealSchedule> GziMealSchedules { get; set; }
+        public DbSet<GziPatientDiet> GziPatientDiets { get; set; }
+        public DbSet<GziProductionBatch> GziProductionBatches { get; set; }
+        public DbSet<GziProductionBatchDetail> GziProductionBatchDetails { get; set; }
+        public DbSet<GziMealDelivery> GziMealDeliveries { get; set; }
 
         #endregion
 

@@ -23,8 +23,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models;
 /// pasien yang sama.
 /// </para>
 /// </remarks>
-[Table("GzPatientDiet", Schema = "public")]
-public class GzPatientDiet : IdentityModel
+[Table("GziPatientDiet", Schema = "public")]
+public class GziPatientDiet : IdentityModel
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -54,7 +54,7 @@ public class GzPatientDiet : IdentityModel
 
     [MaxLength(1000)] public string? Instruction { get; set; }
 
-    public GzPatientDietStatus Status { get; set; } = GzPatientDietStatus.Active;
+    public GziPatientDietStatus Status { get; set; } = GziPatientDietStatus.Active;
 
     public DateTime StartAt { get; set; }
     public DateTime? EndAt { get; set; }
@@ -66,11 +66,11 @@ public class GzPatientDiet : IdentityModel
 
     public int Version { get; set; }
 
-    public GzNutritionOrder? NutritionOrder { get; set; }
+    public GziNutritionOrder? NutritionOrder { get; set; }
     public RegPatientEncounter? Encounter { get; set; }
     public MstPatient? Patient { get; set; }
-    public GzDietType? DietType { get; set; }
-    public GzFoodForm? FoodForm { get; set; }
+    public GziDietType? DietType { get; set; }
+    public GziFoodForm? FoodForm { get; set; }
     public MstWorkforceProfile? PrescribedByWorkforce { get; set; }
 }
 
@@ -78,19 +78,19 @@ public class GzPatientDiet : IdentityModel
 /// Penyerahan makanan kepada satu pasien, berasal dari satu porsi pada batch produksi.
 /// </summary>
 /// <remarks>
-/// Menggantung pada <c>GzProductionBatchDetail</c>, bukan langsung pada diet, sehingga
+/// Menggantung pada <c>GziProductionBatchDetail</c>, bukan langsung pada diet, sehingga
 /// jejaknya utuh: produksi menghasilkan porsi, porsi diserahkan kepada pasien, dan porsi itu
 /// tahu diet mana serta kunjungan mana yang melatarinya. Bila digantungkan pada diet, makanan
 /// yang sudah terlanjur diproduksi kehilangan kaitannya begitu diet pasien berubah.
 /// </remarks>
-[Table("GzMealDelivery", Schema = "public")]
-public class GzMealDelivery : IdentityModel
+[Table("GziMealDelivery", Schema = "public")]
+public class GziMealDelivery : IdentityModel
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
     [Required] public Guid ProductionBatchDetailId { get; set; }
 
-    public GzMealDeliveryStatus Status { get; set; } = GzMealDeliveryStatus.Delivered;
+    public GziMealDeliveryStatus Status { get; set; } = GziMealDeliveryStatus.Delivered;
 
     public DateTime? DeliveredAt { get; set; }
     [Required] public Guid DeliveredByWorkforceId { get; set; }
@@ -103,6 +103,6 @@ public class GzMealDelivery : IdentityModel
 
     [MaxLength(1000)] public string? Note { get; set; }
 
-    public GzProductionBatchDetail? ProductionBatchDetail { get; set; }
+    public GziProductionBatchDetail? ProductionBatchDetail { get; set; }
     public MstWorkforceProfile? DeliveredByWorkforce { get; set; }
 }

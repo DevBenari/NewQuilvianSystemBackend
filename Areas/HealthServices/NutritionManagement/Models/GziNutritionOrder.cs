@@ -18,8 +18,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models;
 /// berjalan berhari-hari — sementara konsultasi dokter membawa tanda vital dan poli yang
 /// tidak relevan bagi gizi.
 /// </remarks>
-[Table("GzNutritionOrder", Schema = "public")]
-public class GzNutritionOrder : IdentityModel
+[Table("GziNutritionOrder", Schema = "public")]
+public class GziNutritionOrder : IdentityModel
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -33,8 +33,8 @@ public class GzNutritionOrder : IdentityModel
     /// <summary>Ahli gizi yang menangani. Boleh kosong saat order baru dibuat.</summary>
     public Guid? AssignedWorkforceId { get; set; }
 
-    public GzOrderStatus Status { get; set; } = GzOrderStatus.Requested;
-    public GzOrderPriority Priority { get; set; } = GzOrderPriority.Routine;
+    public GziOrderStatus Status { get; set; } = GziOrderStatus.Requested;
+    public GziOrderPriority Priority { get; set; } = GziOrderPriority.Routine;
 
     [Required, MaxLength(1000)]
     public string ReasonForReferral { get; set; } = string.Empty;
@@ -64,6 +64,6 @@ public class GzNutritionOrder : IdentityModel
     public RegPatientEncounter? Encounter { get; set; }
     public MstDoctor? RequesterDoctor { get; set; }
     public MstWorkforceProfile? AssignedWorkforce { get; set; }
-    public ICollection<GzNutritionCareRecord> CareRecords { get; set; } = [];
-    public ICollection<GzNutritionOrderHistory> Histories { get; set; } = [];
+    public ICollection<GziNutritionCareRecord> CareRecords { get; set; } = [];
+    public ICollection<GziNutritionOrderHistory> Histories { get; set; } = [];
 }

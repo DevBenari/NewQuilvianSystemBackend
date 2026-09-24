@@ -14,15 +14,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models;
 /// tombol dua kali tidak menghasilkan dua tindakan, dan permintaan yang berbeda tidak
 /// diam-diam dianggap sebagai pengulangan.
 /// </remarks>
-[Table("GzNutritionOrderHistory", Schema = "public")]
-public class GzNutritionOrderHistory : IdentityModel
+[Table("GziNutritionOrderHistory", Schema = "public")]
+public class GziNutritionOrderHistory : IdentityModel
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
     [Required] public Guid NutritionOrderId { get; set; }
 
-    public GzOrderStatus? FromStatus { get; set; }
-    public GzOrderStatus ToStatus { get; set; }
+    public GziOrderStatus? FromStatus { get; set; }
+    public GziOrderStatus ToStatus { get; set; }
 
     [Required, MaxLength(50)]
     public string Action { get; set; } = string.Empty;
@@ -37,5 +37,5 @@ public class GzNutritionOrderHistory : IdentityModel
 
     [MaxLength(100)] public string? CorrelationId { get; set; }
 
-    public GzNutritionOrder? NutritionOrder { get; set; }
+    public GziNutritionOrder? NutritionOrder { get; set; }
 }
