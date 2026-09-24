@@ -239,7 +239,7 @@ BE-BD-007 ✅ [BE] ─┴─┬─> FE-BD-005 🟡
                      │
 BE-BD-008 ✅ [BE] ───┘
 
-BE-BD-011 ✅ [BE] ─> FE-BD-009
+BE-BD-011 ✅ [BE] ─> FE-BD-009 ✅
 
 BE-BD-009 ✅ [BE] ─> FE-BD-007
 
@@ -286,7 +286,7 @@ Dengan begitu, setiap layar dapat diuji memakai data yang dihasilkan layar sebel
 | 5 | `FE-BD-012` ✅ | Kantong disimpan sebelum dapat dialokasikan. **Selesai 24 September 2026**, sesudah `BE-BD-020` ✅ membuka saringan `inactiveLocation` ([laporan](../task/report/frontend/FE-BD-012.md)) |
 | 6 | `FE-BD-004` ✅ | Alokasi dan daftar `PendingReview`. **Selesai 24 September 2026**, dikerjakan sebelum `FE-BD-012` karena `FE-BD-012` ditahan menunggu `BE-BD-020`; layar daftar kantong minimal dibangun di sini atas keputusan pemilik `G1` ([laporan](../task/report/frontend/FE-BD-004.md)) |
 | 7 | `FE-BD-005` 🟡 | Golongan darah, bukti kecocokan, pemberian, dan jalur darurat. Juga membangun kerangka layar pemeriksaan `FE-BD-06`. **Sebagian per 24 September 2026**: bukti, pemberian, dan jalur darurat pada detail kantong; runtime `R0`–`R9` **14 dari 14 `PASS`** di Chromium terhadap backend sungguhan; layar `FE-BD-06` tidak dibangun atas keputusan pemilik ([laporan](../task/report/frontend/FE-BD-005.md)) |
-| 8 | `FE-BD-009` | Menambah penyelesaian konflik ke layar pemeriksaan yang sama |
+| 8 | `FE-BD-009` ✅ | Menambah penyelesaian konflik ke layar pemeriksaan yang sama. **Selesai 24 September 2026**: karena `FE-BD-005` tidak membangun layar `FE-BD-06`, task ini membangun kerangka minimalnya sendiri (menu, route, daftar, detail) atas keputusan pemilik `B1`; runtime 11 dari 11 `PASS` ([laporan](../task/report/frontend/FE-BD-009.md)) |
 | 9 | `FE-BD-007` | Tiga tombol penyelesaian `PendingReview` |
 | 10 | `FE-BD-008` | Koreksi dua langkah dan tunggakan bukti darurat |
 | 11 | `FE-BD-010` ✅ | Tindakan dan penampilan hasil penyerahan biaya. Cakupannya **terkunci** sejak `BD-UI-GAP-001` ditutup Opsi A, 18 September 2026. **Dikerjakan lebih awal dan selesai 23 September 2026** atas keputusan pemilik, sesudah `FE-BD-012` ditahan menunggu `BE-BD-020` ([laporan](../task/report/frontend/FE-BD-010.md)) |
@@ -307,11 +307,15 @@ Dengan begitu, setiap layar dapat diuji memakai data yang dihasilkan layar sebel
 | `FE-BD-012` | Penyimpanan dan perpindahan lokasi kantong | 3 | `BE-BD-015` ✅ [BE] | ✅ **selesai 24 September 2026** — validasi ulang runtime **13 dari 13** `PASS` di browser sungguhan **terhadap backend sungguhan** (validasi pertama 9 dari 9); regresi `FE-BD-004` 16 dari 16; `lint:errors`/`build` `PASS`; acceptance `A1`–`A9` dan DoD terbukti | [laporan](../task/report/frontend/FE-BD-012.md) |
 | `FE-BD-004` | Alokasi dan pembatalan alokasi | 3 | `BE-BD-006` ✅ [BE] | ✅ **selesai 24 September 2026** — validasi runtime 16 dari 16 `PASS` di browser sungguhan (validasi ulang 24 September 2026); `lint:errors`/`build` `PASS`; kedelapan acceptance `G5` dan DoD terbukti | [laporan](../task/report/frontend/FE-BD-004.md) |
 | `FE-BD-005` | Golongan darah, bukti, pemberian, jalur darurat | 3 | `BE-BD-005` ✅ [BE], `BE-BD-007` ✅ [BE], `BE-BD-008` ✅ [BE] | 🟡 **sebagian, 24 September 2026** — `lint:errors`/`build` `PASS`, `test:unit` 1595 test 1588 lulus (12 baru lulus, 7 gagal lama), runtime `R0`–`R9` **14 dari 14 `PASS`** di Chromium terhadap backend sungguhan. 4 butir terpenuhi (outcome bukti dan pemberian, `FE-BD-018`, `FE-BD-012`, `FE-BD-005`), 1 sebagian (`FE-BD-021`), 4 belum terpenuhi (golongan darah `FE-BD-06`, `FE-BD-013`, `FE-BD-007`, `FE-BD-008` — keputusan pemilik: frontend tidak menghitung gerbang, backend tidak memulangkannya). Cacat UX pemilih dialog yang ditemukan runtime sudah diperbaiki dan dibuktikan ulang (`R3`, `R9` `PASS`); gap backend dicatat sebagai backlog atas keputusan pemilik. **Riwayat:** cacat UX pemilih dialog belum diperbaiki; runtime `NOT RUN` karena cookie sesi belum tersedia; belum dikerjakan | [laporan](../task/report/frontend/FE-BD-005.md) |
-| `FE-BD-009` | Penyelesaian konflik di layar pemeriksaan | 3 | `BE-BD-011` ✅ [BE] | belum dikerjakan | — |
+| `FE-BD-009` | Penyelesaian konflik di layar pemeriksaan | 3 | `BE-BD-011` ✅ [BE] | ✅ **selesai 24 September 2026** — runtime **11 dari 11** `PASS` di Chromium terhadap backend sungguhan; `lint:errors`/`build` `PASS` (371 halaman); `test:unit` 1605 test, 1598 lulus (10 baru lulus, 7 gagal lama); kedua acceptance dan DoD terbukti. **Riwayat:** belum dikerjakan | [laporan](../task/report/frontend/FE-BD-009.md) |
 | `FE-BD-007` | Penyelesaian `PendingReview`, tiga tombol tiga penjaga | 3 | `BE-BD-009` ✅ [BE] | belum dikerjakan | — |
 | `FE-BD-008` | Koreksi dua langkah dan tunggakan bukti darurat | 3 | `BE-BD-010` ✅ [BE] | belum dikerjakan | — |
 
-**Hitungan per 24 September 2026, sesudah `FE-BD-005` 🟡:** 12 task = **8 selesai** (`FE-BD-001`,
+**Hitungan per 24 September 2026, sesudah `FE-BD-009` ✅:** 12 task = **9 selesai** (`FE-BD-001`,
+`FE-BD-011`, `FE-BD-006`, `FE-BD-002`, `FE-BD-003`, `FE-BD-010`, `FE-BD-004`, `FE-BD-012`, **`FE-BD-009`**) + **1 sebagian**
+(`FE-BD-005`) + **2 belum dikerjakan** (`FE-BD-007`, `FE-BD-008`) + **0 terblokir** pada register ini.
+
+**Riwayat — hitungan per 24 September 2026, sesudah `FE-BD-005` 🟡:** 12 task = **8 selesai** (`FE-BD-001`,
 `FE-BD-011`, `FE-BD-006`, `FE-BD-002`, `FE-BD-003`, `FE-BD-010`, `FE-BD-004`, `FE-BD-012`) + **1 sebagian**
 (**`FE-BD-005`**) + **3 belum dikerjakan** (`FE-BD-009`, `FE-BD-007`, `FE-BD-008`) + **0 terblokir** pada register ini.
 
@@ -507,11 +511,11 @@ Sebelumnya ⛔ 1 (`FE-BD-008`, menunggu `BE-BD-010` sampai ✅ 17 September 2026
 
 ---
 
-### `FE-BD-009` — Penyelesaian konflik di dalam layar pemeriksaan
+### ✅ `FE-BD-009` — Penyelesaian konflik di dalam layar pemeriksaan
 
 | Field | Isi |
 | --- | --- |
-| **Status** | **Belum dikerjakan — siap dijadwalkan** (revisi 8 disetujui 18 September 2026). Nol source di frontend `6640a5e7`. Blocker backend-nya hilang sejak 9 September 2026: `BE-BD-011` selesai ([laporan](../task/report/backend/BE-BD-011.md)), termasuk endpoint `POST /conflict-resolution` dan butir hak akses `BloodGroupExam : ResolveConflict` yang terpisah dari `Validate`. **Riwayat:** 🟡 PENDING — SIAP DIJADWALKAN sejak 9 September 2026 |
+| **Status** | ✅ **SELESAI 24 September 2026** ([laporan](../task/report/frontend/FE-BD-009.md)). Keputusan pemilik `Sukmagp` 24 September 2026: `B0` cakupan = konflik golongan darah (bukan penyelesaian kantong, milik `FE-BD-007`); `B1` task ini membangun kerangka minimal `FE-BD-06` — butir menu **Pemeriksaan Golongan Darah**, route, daftar, detail; `B2` hanya Validasi dan Penyelesaian konflik, pencatatan sampel/hasil tidak termasuk; `B3` seluruh alasan aktif tanpa kategori, kategori alasan konflik jadi **backlog**; `B4` pemeriksaan ulang ditunjuk validator dari seluruh pemeriksaan pasien tanpa saringan frontend; `B5` nama pasien untuk tampilan dari `GET /patients/{id}`. Kedua acceptance dan DoD terbukti: tindakan hanya di detail `FE-BD-06`; `FE-BD-019` lewat dua pemeriksaan hak akses terpisah. `npm run lint:errors` `PASS` (0 error; 4 warning `set-state-in-effect` berpola sama dengan hook referensi); `npm run build` `PASS`, 371 halaman; `npm run test:unit` 1605 test — 1598 lulus termasuk 10 test baru, 7 kegagalan lama sama dengan baseline. **Validasi runtime `R0`–`R8`: 11 dari 11 `PASS`** di Chromium terhadap backend sungguhan (`QuilvianNewDevSukma`), termasuk `422` saat menunjuk pihak konflik, isi permintaan tepat tiga isian, dan `R4a`–`R4c` pemisahan tombol. Data uji permanen pada pasien IKBAL YULIYANTO dibiarkan atas keputusan pemilik. **Riwayat:** Belum dikerjakan — siap dijadwalkan (revisi 8 disetujui 18 September 2026). Nol source di frontend `6640a5e7`. Blocker backend-nya hilang sejak 9 September 2026: `BE-BD-011` selesai ([laporan](../task/report/backend/BE-BD-011.md)), termasuk endpoint `POST /conflict-resolution` dan butir hak akses `BloodGroupExam : ResolveConflict` yang terpisah dari `Validate`. **Riwayat:** 🟡 PENDING — SIAP DIJADWALKAN sejak 9 September 2026 |
 | **Kenapa dibedakan (riwayat)** | Dulu ini satu-satunya task frontend terblokir yang **tidak** menunggu provider number-series. `BE-BD-005` lalu `BE-BD-011` sudah dikerjakan, dan task ini terbuka persis seperti yang diperkirakan |
 | **Outcome** | Validator klinis menyelesaikan konflik golongan darah **di dalam layar pemeriksaan**, bukan lewat daftar kerja tersendiri |
 | **Layar** | `FE-BD-06` |
@@ -560,7 +564,7 @@ Sebelumnya ⛔ 1 (`FE-BD-008`, menunggu `BE-BD-010` sampai ✅ 17 September 2026
 | --- | --- | --- | --- |
 | **1 — Setup master dan menu** | Master Bank Darah dapat disiapkan, dan layar terjangkau dari menu | `FE-BD-001`, `FE-BD-011`, `FE-BD-006` | ✅ **Selesai 18 September 2026** — `FE-BD-001`, `FE-BD-011`, dan `FE-BD-006` ✅; `FE-BD-006` ditutup sesudah uji runtime pemilik R1–R8 `PASS` ([laporan](../task/report/frontend/FE-BD-006.md)). **Riwayat:** `FE-BD-001` dan `FE-BD-011` ✅, `FE-BD-006` sebagian — kriteria keduanya terbukti otomatis, menunggu bukti runtime; kriteria kedua `FE-BD-006` menunggu pembaca hak akses frontend (`BD-UI-GAP-002`); `FE-BD-001` ✅, `FE-BD-011` dan `FE-BD-006` sebagian; sebelumnya ketiganya sebagian, nol selesai |
 | **2 — Order darah, permintaan PMI, dan tindakan** | Pintu masuk permintaan darah dan penutup biaya berjalan dari layar | `FE-BD-002`, `FE-BD-003`, `FE-BD-010` | ✅ **Selesai 23 September 2026** — ketiganya ✅ dan terbukti runtime; `FE-BD-010` ditutup dengan 16 dari 16 pemeriksaan runtime `PASS` ([laporan](../task/report/frontend/FE-BD-010.md)). **Riwayat:** 🟡 hampir selesai — `FE-BD-010` menunggu bukti runtime. **Riwayat:** Belum dikerjakan |
-| **3 — Kantong darah, pemberian, dan penyelesaiannya** | Kantong disimpan, dialokasikan, diberikan, diselesaikan, dan dikoreksi dari layar | `FE-BD-012`, `FE-BD-004`, `FE-BD-005`, `FE-BD-009`, `FE-BD-007`, `FE-BD-008` | 🟡 **Berjalan per 24 September 2026** — 2 dari 6 selesai: `FE-BD-004` ✅ ([laporan](../task/report/frontend/FE-BD-004.md)) dan `FE-BD-012` ✅ ([laporan](../task/report/frontend/FE-BD-012.md)). Sebagian: `FE-BD-005` 🟡 ([laporan](../task/report/frontend/FE-BD-005.md), runtime 14 dari 14 `PASS`; 4 butir kartu tertahan data backend). Belum dikerjakan: `FE-BD-009`, `FE-BD-007`, `FE-BD-008`. **Riwayat:** Belum dikerjakan: `FE-BD-005`, `FE-BD-009`, `FE-BD-007`, `FE-BD-008`; 1 dari 6 — `FE-BD-012` tertahan menunggu `BE-BD-020`; Belum dikerjakan |
+| **3 — Kantong darah, pemberian, dan penyelesaiannya** | Kantong disimpan, dialokasikan, diberikan, diselesaikan, dan dikoreksi dari layar | `FE-BD-012`, `FE-BD-004`, `FE-BD-005`, `FE-BD-009`, `FE-BD-007`, `FE-BD-008` | 🟡 **Berjalan per 24 September 2026** — 3 dari 6 selesai: `FE-BD-004` ✅ ([laporan](../task/report/frontend/FE-BD-004.md)), `FE-BD-012` ✅ ([laporan](../task/report/frontend/FE-BD-012.md)), dan `FE-BD-009` ✅ ([laporan](../task/report/frontend/FE-BD-009.md), runtime 11 dari 11 `PASS`). Sebagian: `FE-BD-005` 🟡 ([laporan](../task/report/frontend/FE-BD-005.md), runtime 14 dari 14 `PASS`; 4 butir kartu tertahan data backend). Belum dikerjakan: `FE-BD-007`, `FE-BD-008`. **Riwayat:** 2 dari 6 selesai; belum dikerjakan `FE-BD-009`, `FE-BD-007`, `FE-BD-008`. **Riwayat:** Belum dikerjakan: `FE-BD-005`, `FE-BD-009`, `FE-BD-007`, `FE-BD-008`; 1 dari 6 — `FE-BD-012` tertahan menunggu `BE-BD-020`; Belum dikerjakan |
 
 ---
 
