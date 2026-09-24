@@ -96,52 +96,7 @@ public sealed class BillingInvoiceService
             ? request.PeriodPreset
             : request.Period;
 
-        var fromDate = request.VisitDateFrom ?? request.StartDate;
-        var toDate = request.VisitDateTo ?? request.EndDate;
-
-        if (!string.IsNullOrWhiteSpace(period))
-        {
-            var p = period.Trim().ToLowerInvariant();
-            var utcNow = DateTime.UtcNow;
-            var today = new DateTime(utcNow.Year, utcNow.Month, utcNow.Day, 0, 0, 0, DateTimeKind.Utc);
-
-            if (p is "all" or "semua" or "semua_periode" or "semuaperiode")
-            {
-                fromDate = null;
-                toDate = null;
-            }
-            else if (p is "today" or "hari_ini" or "hariini")
-            {
-                fromDate = today;
-                toDate = today.AddDays(1).AddTicks(-1);
-            }
-            else if (p is "yesterday" or "kemaren" or "kemarin")
-            {
-                var y = today.AddDays(-1);
-                fromDate = y;
-                toDate = y.AddDays(1).AddTicks(-1);
-            }
-            else if (p is "thisweek" or "this_week" or "minggu_ini" or "mingguini")
-            {
-                var diff = (7 + (int)today.DayOfWeek - (int)DayOfWeek.Monday) % 7;
-                var weekStart = today.AddDays(-diff);
-                fromDate = weekStart;
-                toDate = today.AddDays(1).AddTicks(-1);
-            }
-            else if (p is "thismonth" or "this_month" or "bulan_ini" or "bulanini")
-            {
-                var monthStart = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
-                fromDate = monthStart;
-                toDate = monthStart.AddMonths(1).AddTicks(-1);
-            }
-            else if (p is "lastmonth" or "last_month" or "bulan_lalu" or "bulanlalu")
-            {
-                var prevMonthDate = today.AddMonths(-1);
-                var lastMonthStart = new DateTime(prevMonthDate.Year, prevMonthDate.Month, 1, 0, 0, 0, DateTimeKind.Utc);
-                fromDate = lastMonthStart;
-                toDate = lastMonthStart.AddMonths(1).AddTicks(-1);
-            }
-        }
+        var (utcFrom, utcTo) = ResolveDateRangeUtc(request.StartDate, request.EndDate, request.VisitDateFrom, request.VisitDateTo, period);
 
         // Identitas pasien di-join dari encounter. Left join dipertahankan lewat DefaultIfEmpty
         // supaya invoice dengan encounter yang tidak terbaca tetap muncul di daftar - hilang dari
@@ -165,20 +120,14 @@ public sealed class BillingInvoiceService
                 (x.patient != null && x.patient.MedicalRecordNumber.ToUpper().Contains(search)));
         }
 
-        if (fromDate.HasValue)
+        if (utcFrom.HasValue)
         {
-            var utcFrom = fromDate.Value.Kind == DateTimeKind.Unspecified
-                ? DateTime.SpecifyKind(fromDate.Value, DateTimeKind.Utc)
-                : fromDate.Value.ToUniversalTime();
-            joined = joined.Where(x => x.encounter != null && x.encounter.EncounterDate >= utcFrom);
+            joined = joined.Where(x => (x.encounter != null && x.encounter.EncounterDate != null ? x.encounter.EncounterDate : (x.invoice.InvoiceDate ?? x.invoice.CreateDateTime)) >= utcFrom.Value);
         }
 
-        if (toDate.HasValue)
+        if (utcTo.HasValue)
         {
-            var utcTo = toDate.Value.Kind == DateTimeKind.Unspecified
-                ? DateTime.SpecifyKind(toDate.Value, DateTimeKind.Utc)
-                : toDate.Value.ToUniversalTime();
-            joined = joined.Where(x => x.encounter != null && x.encounter.EncounterDate <= utcTo);
+            joined = joined.Where(x => (x.encounter != null && x.encounter.EncounterDate != null ? x.encounter.EncounterDate : (x.invoice.InvoiceDate ?? x.invoice.CreateDateTime)) <= utcTo.Value);
         }
 
         var total = await joined.CountAsync(cancellationToken);
@@ -379,10 +328,11 @@ public sealed class BillingInvoiceService
                 (x.patient != null && x.patient.MedicalRecordNumber.ToUpper().Contains(search)));
         }
 
-        if (request.VisitDateFrom.HasValue)
-            joined = joined.Where(x => x.encounter != null && x.encounter.EncounterDate >= request.VisitDateFrom.Value);
-        if (request.VisitDateTo.HasValue)
-            joined = joined.Where(x => x.encounter != null && x.encounter.EncounterDate <= request.VisitDateTo.Value);
+        var (historyFrom, historyTo) = ResolveDateRangeUtc(request.StartDate, request.EndDate, request.VisitDateFrom, request.VisitDateTo, null);
+        if (historyFrom.HasValue)
+            joined = joined.Where(x => (x.encounter != null && x.encounter.EncounterDate != null ? x.encounter.EncounterDate : (x.invoice.InvoiceDate ?? x.invoice.CreateDateTime)) >= historyFrom.Value);
+        if (historyTo.HasValue)
+            joined = joined.Where(x => (x.encounter != null && x.encounter.EncounterDate != null ? x.encounter.EncounterDate : (x.invoice.InvoiceDate ?? x.invoice.CreateDateTime)) <= historyTo.Value);
 
         var total = await joined.CountAsync(cancellationToken);
         var page = await joined
@@ -518,45 +468,42 @@ public sealed class BillingInvoiceService
     public async Task<PagedResult<CashierBillingInvoiceListItemResponse>> GetCashierOverviewAsync(
         CashierBillingInvoiceQuery request, CancellationToken cancellationToken)
     {
-        // 1. Evaluasi PeriodPreset jika ada
-        if (!string.IsNullOrWhiteSpace(request.PeriodPreset))
+        // 1. Evaluasi Status Default: Jika kosong, default ke OPEN (hanya invoice aktif, belum final/closed)
+        var query = _dbContext.BilInvoices.AsNoTracking().Where(x => !x.IsDelete);
+
+        string? statusFilter = request.Status;
+        if (string.IsNullOrWhiteSpace(statusFilter))
         {
-            var preset = request.PeriodPreset.Trim().ToUpperInvariant();
-            var utcNow = DateTime.UtcNow;
-            if (preset == CashierBillingPeriodPresets.All)
-            {
-                request.VisitDateFrom = null;
-                request.VisitDateTo = null;
-            }
-            else if (preset == CashierBillingPeriodPresets.Today)
-            {
-                var todayStart = new DateTime(utcNow.Year, utcNow.Month, utcNow.Day, 0, 0, 0, DateTimeKind.Utc);
-                request.VisitDateFrom = todayStart;
-                request.VisitDateTo = todayStart.AddDays(1).AddTicks(-1);
-            }
-            else if (preset == CashierBillingPeriodPresets.Last7Days)
-            {
-                var end = new DateTime(utcNow.Year, utcNow.Month, utcNow.Day, 23, 59, 59, 999, DateTimeKind.Utc);
-                request.VisitDateFrom = end.Date.AddDays(-7);
-                request.VisitDateTo = end;
-            }
-            else if (preset == CashierBillingPeriodPresets.Last30Days)
-            {
-                var end = new DateTime(utcNow.Year, utcNow.Month, utcNow.Day, 23, 59, 59, 999, DateTimeKind.Utc);
-                request.VisitDateFrom = end.Date.AddDays(-30);
-                request.VisitDateTo = end;
-            }
+            statusFilter = BillingInvoiceStatuses.Open;
+        }
+        else if (statusFilter.Equals("ALL", StringComparison.OrdinalIgnoreCase) || statusFilter.Equals("SEMUA", StringComparison.OrdinalIgnoreCase))
+        {
+            statusFilter = null;
+        }
+        else
+        {
+            statusFilter = statusFilter.Trim().ToUpperInvariant();
         }
 
-        // 2. Validasi Tanggal
+        if (!string.IsNullOrWhiteSpace(statusFilter))
+        {
+            query = query.Where(x => x.Status == statusFilter);
+        }
+
+        // 2. Evaluasi Tanggal & Timezone Aplikasi (WIB UTC+7): Default Hari Ini jika filter tanggal kosong
+        var hasExplicitDates = request.StartDate.HasValue || request.EndDate.HasValue
+            || request.VisitDateFrom.HasValue || request.VisitDateTo.HasValue
+            || !string.IsNullOrWhiteSpace(request.PeriodPreset);
+
+        var (cashierFrom, cashierTo) = ResolveDateRangeUtc(
+            request.StartDate, request.EndDate, request.VisitDateFrom, request.VisitDateTo,
+            hasExplicitDates ? request.PeriodPreset : "today");
+
         if (request.VisitDateFrom.HasValue && request.VisitDateTo.HasValue
             && request.VisitDateFrom.Value > request.VisitDateTo.Value)
         {
             throw new BillingInvoiceValidationException("Tanggal Mulai tidak boleh lebih besar dari Tanggal Akhir.");
         }
-
-        // 3. Base Query
-        var query = _dbContext.BilInvoices.AsNoTracking().Where(x => !x.IsDelete);
 
         if (!string.IsNullOrWhiteSpace(request.ServiceType))
         {
@@ -587,10 +534,10 @@ public sealed class BillingInvoiceService
                     EF.Functions.Like(g.PaymentSourceNameSnapshot, $"%{search}%")));
         }
 
-        if (request.VisitDateFrom.HasValue)
-            joined = joined.Where(x => x.encounter != null && x.encounter.EncounterDate >= request.VisitDateFrom.Value);
-        if (request.VisitDateTo.HasValue)
-            joined = joined.Where(x => x.encounter != null && x.encounter.EncounterDate <= request.VisitDateTo.Value);
+        if (cashierFrom.HasValue)
+            joined = joined.Where(x => (x.encounter != null && x.encounter.EncounterDate != null ? x.encounter.EncounterDate : (x.invoice.InvoiceDate ?? x.invoice.CreateDateTime)) >= cashierFrom.Value);
+        if (cashierTo.HasValue)
+            joined = joined.Where(x => (x.encounter != null && x.encounter.EncounterDate != null ? x.encounter.EncounterDate : (x.invoice.InvoiceDate ?? x.invoice.CreateDateTime)) <= cashierTo.Value);
 
         var total = await joined.CountAsync(cancellationToken);
         var page = await joined
@@ -2162,6 +2109,175 @@ public sealed class BillingInvoiceService
                 .Select(x => BillingCalculationService.MapResponse(x, invoice.RowVersion))
                 .ToList()
         };
+    }
+
+    public static readonly TimeSpan AppTimezoneOffset = TimeSpan.FromHours(7); // WIB (UTC+7)
+
+    public static (DateTime? UtcFrom, DateTime? UtcTo) ResolveDateRangeUtc(
+        DateTime? startDate, DateTime? endDate, DateTime? visitDateFrom, DateTime? visitDateTo, string? period)
+    {
+        var fromDate = startDate ?? visitDateFrom;
+        var toDate = endDate ?? visitDateTo;
+
+        if (!string.IsNullOrWhiteSpace(period))
+        {
+            var p = period.Trim().ToLowerInvariant();
+            var nowWib = DateTimeOffset.UtcNow.ToOffset(AppTimezoneOffset);
+            var todayWib = new DateTime(nowWib.Year, nowWib.Month, nowWib.Day, 0, 0, 0, DateTimeKind.Unspecified);
+
+            if (p is "all" or "semua" or "semua_periode" or "semuaperiode")
+            {
+                return (null, null);
+            }
+            if (p is "today" or "hari_ini" or "hariini")
+            {
+                var fromWib = todayWib;
+                var toWib = todayWib.AddDays(1).AddTicks(-1);
+                return (new DateTimeOffset(fromWib, AppTimezoneOffset).UtcDateTime, new DateTimeOffset(toWib, AppTimezoneOffset).UtcDateTime);
+            }
+            if (p is "yesterday" or "kemaren" or "kemarin")
+            {
+                var yWib = todayWib.AddDays(-1);
+                var toWib = todayWib.AddTicks(-1);
+                return (new DateTimeOffset(yWib, AppTimezoneOffset).UtcDateTime, new DateTimeOffset(toWib, AppTimezoneOffset).UtcDateTime);
+            }
+            if (p is "last7days" or "7_days" or "7hari" or "thisweek" or "this_week" or "minggu_ini" or "mingguini")
+            {
+                var fromWib = todayWib.AddDays(-7);
+                var toWib = todayWib.AddDays(1).AddTicks(-1);
+                return (new DateTimeOffset(fromWib, AppTimezoneOffset).UtcDateTime, new DateTimeOffset(toWib, AppTimezoneOffset).UtcDateTime);
+            }
+            if (p is "last30days" or "30_days" or "30hari" or "thismonth" or "this_month" or "bulan_ini" or "bulanini")
+            {
+                var fromWib = todayWib.AddDays(-30);
+                var toWib = todayWib.AddDays(1).AddTicks(-1);
+                return (new DateTimeOffset(fromWib, AppTimezoneOffset).UtcDateTime, new DateTimeOffset(toWib, AppTimezoneOffset).UtcDateTime);
+            }
+        }
+
+        DateTime? resolvedUtcFrom = null;
+        DateTime? resolvedUtcTo = null;
+
+        if (fromDate.HasValue)
+        {
+            var dt = fromDate.Value;
+            var wibDate = dt.Kind == DateTimeKind.Utc
+                ? DateTimeOffset.UtcNow.ToOffset(AppTimezoneOffset).Date
+                : new DateTime(dt.Year, dt.Month, dt.Day, 0, 0, 0, DateTimeKind.Unspecified);
+            resolvedUtcFrom = new DateTimeOffset(wibDate, AppTimezoneOffset).UtcDateTime;
+        }
+
+        if (toDate.HasValue)
+        {
+            var dt = toDate.Value;
+            var wibDate = dt.Kind == DateTimeKind.Utc
+                ? DateTimeOffset.UtcNow.ToOffset(AppTimezoneOffset).Date.AddDays(1).AddTicks(-1)
+                : new DateTime(dt.Year, dt.Month, dt.Day, 23, 59, 59, 999, DateTimeKind.Unspecified);
+            resolvedUtcTo = new DateTimeOffset(wibDate, AppTimezoneOffset).UtcDateTime;
+        }
+
+        return (resolvedUtcFrom, resolvedUtcTo);
+    }
+
+    public async Task<List<PatientJourneyNoteResponse>> GetPatientJourneyNotesAsync(
+        Guid invoiceId, CancellationToken cancellationToken)
+    {
+        var invoice = await _dbContext.BilInvoices.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == invoiceId && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Invoice Billing tidak ditemukan.");
+
+        var encounter = await _dbContext.RegPatientEncounters.AsNoTracking()
+            .Include(x => x.ServiceUnit)
+            .Include(x => x.Clinic)
+            .FirstOrDefaultAsync(x => x.Id == invoice.EncounterId && !x.IsDelete, cancellationToken);
+
+        var timeline = new List<PatientJourneyNoteResponse>();
+
+        if (encounter == null)
+        {
+            timeline.Add(new PatientJourneyNoteResponse
+            {
+                Source = "Billing",
+                Note = "Tagihan dibuat tanpa data kunjungan terhubung.",
+                Timestamp = invoice.CreateDateTime
+            });
+            return timeline;
+        }
+
+        // 1. Kiosk
+        if (encounter.IsFromKiosk || encounter.KioskScanSessionId.HasValue || encounter.RegistrationSource == EncounterRegistrationSource.Kiosk)
+        {
+            timeline.Add(new PatientJourneyNoteResponse
+            {
+                Source = "Kiosk",
+                Note = !string.IsNullOrWhiteSpace(encounter.Notes) && encounter.Notes.Contains("Kiosk", StringComparison.OrdinalIgnoreCase)
+                    ? encounter.Notes
+                    : "Pasien melakukan check-in mandiri di Anjungan Kiosk.",
+                Timestamp = encounter.RegisteredAt.AddMinutes(-5)
+            });
+        }
+
+        // 2. Admisi
+        timeline.Add(new PatientJourneyNoteResponse
+        {
+            Source = "Admisi",
+            Note = !string.IsNullOrWhiteSpace(encounter.Notes) && !encounter.Notes.Contains("Kiosk", StringComparison.OrdinalIgnoreCase)
+                ? encounter.Notes
+                : (!string.IsNullOrWhiteSpace(encounter.ChiefComplaint)
+                    ? $"Pendaftaran kunjungan terkonfirmasi. Keluhan utama: {encounter.ChiefComplaint}"
+                    : "Pasien menyelesaikan proses pendaftaran dan verifikasi berkas di Admisi."),
+            Timestamp = encounter.RegisteredAt
+        });
+
+        // 3. Unit Layanan (IGD / Poliklinik / Service Unit)
+        var serviceUnitName = encounter.ServiceUnit?.ServiceUnitName
+            ?? (encounter.Clinic?.ClinicName
+                ?? (encounter.EncounterType == EncounterType.Emergency ? "IGD" : (encounter.EncounterType == EncounterType.Inpatient ? "Rawat Inap" : "Poliklinik")));
+
+        timeline.Add(new PatientJourneyNoteResponse
+        {
+            Source = serviceUnitName,
+            Note = !string.IsNullOrWhiteSpace(encounter.ChiefComplaint)
+                ? $"Pemeriksaan dan tindakan medis di unit {serviceUnitName}. Keluhan: {encounter.ChiefComplaint}"
+                : $"Pelayanan medis dan konsultasi di unit {serviceUnitName}.",
+            Timestamp = encounter.CheckedInAt ?? encounter.RegisteredAt.AddMinutes(15)
+        });
+
+        // 4. Unit Terakhir / Pelepasan / Pemulangan
+        var clearance = await _dbContext.BilInpatientClearanceHandoffs.AsNoTracking()
+            .Where(x => x.InvoiceId == invoice.Id && !x.IsDelete)
+            .OrderByDescending(x => x.FinancialVersion)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (clearance != null)
+        {
+            timeline.Add(new PatientJourneyNoteResponse
+            {
+                Source = "Unit Terakhir",
+                Note = $"Evaluasi kelayakan pemulangan rawat inap: Status {clearance.ClearanceStatus}, Alasan: {clearance.ReasonCode}.",
+                Timestamp = clearance.EffectiveAt.UtcDateTime
+            });
+        }
+        else if (encounter.CompletedAt.HasValue)
+        {
+            timeline.Add(new PatientJourneyNoteResponse
+            {
+                Source = "Unit Terakhir",
+                Note = $"Pelayanan selesai di unit {serviceUnitName}. Pasien diarahkan ke kasir untuk penyelesaian administrasi.",
+                Timestamp = encounter.CompletedAt.Value
+            });
+        }
+        else
+        {
+            timeline.Add(new PatientJourneyNoteResponse
+            {
+                Source = "Unit Terakhir",
+                Note = "Pelayanan selesai. Tagihan diteruskan ke Kasir untuk validasi dan pembayaran.",
+                Timestamp = invoice.CreateDateTime
+            });
+        }
+
+        return timeline.OrderBy(x => x.Timestamp).ToList();
     }
 }
 

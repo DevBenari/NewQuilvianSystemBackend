@@ -29,7 +29,7 @@ Roadmap ini berada pada **revision `2`** (4 September 2026) dan berstatus `DRAFT
 | `BKC-PH-019` | **Rumpun baru — Petty Cash.** Layar monitoring, Buat Voucher, Bukti Nota, detail voucher, Anggaran Kas Kecil, dan Kategori Petty Cash (`MVP-15`) | — | `FE-BKC-023`–`027` | `BKC-PH-018` selesai dan terverifikasi (sequencing, bukan gerbang) | **`READY_FOR_TASK_APPROVAL`** |
 | `BKC-PH-020` | Deposit rawat inap terikat episode — permintaan `RWI-BP-001` lewat `RWI-DEC-093`–`096`. Semula `BKC-PH-009`/`BE-BKC-022`,`023`, dinomori ulang 9 September 2026 karena bentrok dengan gelombang 4 September | `BE-BKC-039` (✅ Selesai), `BE-BKC-040` (✅ Selesai) | — (layar ada di Rawat Inap) | `BKC-PH-004` | ✅ `Selesai` (`BE-BKC-039` dan `BE-BKC-040` selesai 2026-09-09) |
 | `BKC-PH-021` | Integrasi Rawat Inap ↔ Billing Management Core (`MVP-28`) | `BE-BKC-071`–`076` | — | Blueprint 1.5 approved (24 Sep 2026) | `READY_FOR_TASK_APPROVAL` |
-| `BKC-PH-022` | Antarmuka Kasir & Handoff Rawat Inap (`MVP-29`) | — | `FE-BKC-041`–`042` | `BKC-PH-021` selesai | `PLANNED` |
+| `BKC-PH-022` | Antarmuka Kasir & Handoff Rawat Inap (`MVP-29`) | — | `FE-BKC-041`–`042` | `BKC-PH-021` selesai | `IN_PROGRESS` (`FE-BKC-041`, `FE-BKC-042` 🟡 SEBAGIAN) |
 
 ## Amendment 7 September 2026 — Koreksi revisi blueprint, verifikasi ulang FE-BKC-018, dan cakupan Struk Pasien
 
@@ -197,7 +197,7 @@ Enam task backend (`BE-BKC-071`–`BE-BKC-076`) dan dua task frontend (`FE-BKC-0
 | Gelombang MVP | Task | Keadaan |
 | --- | --- | --- |
 | `MVP-28` | `BE-BKC-071`, `BE-BKC-072`, `BE-BKC-073`, `BE-BKC-074`, `BE-BKC-075`, `BE-BKC-076` | Siap approval task — terbagi 4 gelombang eksekusi berurutan bebas siklus |
-| `MVP-29` | `FE-BKC-041`, `FE-BKC-042` | Menunggu ketersediaan endpoint backend `BE-BKC-076`, kedua task frontend dapat berjalan paralel |
+| `MVP-29` | `FE-BKC-041`, `FE-BKC-042` | `FE-BKC-041` 🟡 SEBAGIAN (kode, unit test, build PASS); `FE-BKC-042` 🟡 SEBAGIAN (kode, unit test, build PASS) |
 
 **Aturan Eksekusi Khusus:**
 1. Eksekusi migration EF Core `AddInpatientBillingIntegrationAndClearanceHandoff` pada `BE-BKC-071` membutuhkan otorisasi terpisah sesuai aturan keselamatan basis data.

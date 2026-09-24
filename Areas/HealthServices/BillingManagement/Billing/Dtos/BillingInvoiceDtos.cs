@@ -639,3 +639,10 @@ public static class BillingCalculationContract
 {
     public const string Version = "BIL-CALCULATION-0.9";
 }
+
+public sealed class PatientJourneyNoteResponse
+{
+    public string Source { get; set; } = string.Empty;
+    public string Note { get; set; } = string.Empty;
+    public DateTime? Timestamp { get; set; }
+}

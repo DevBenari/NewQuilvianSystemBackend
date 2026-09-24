@@ -69,7 +69,8 @@ public sealed class PettyCashVoucherService
             var keyword = request.Search.Trim().ToUpper();
             query = query.Where(x => x.VoucherNumber.ToUpper().Contains(keyword)
                 || x.RecipientName.ToUpper().Contains(keyword)
-                || x.Purpose.ToUpper().Contains(keyword));
+                || x.Purpose.ToUpper().Contains(keyword)
+                || (x.ConfirmedByName != null && x.ConfirmedByName.ToUpper().Contains(keyword)));
         }
 
         var descending = !string.Equals(request.SortDirection, "asc", StringComparison.OrdinalIgnoreCase);
@@ -261,32 +262,63 @@ public sealed class PettyCashVoucherService
         ValidateExpectedVersion(request.ExpectedRowVersion);
         ValidateReasonText(request.Reason, "Alasan pembatalan");
         var payloadHash = Hash(
-            PettyCashVoucherCommandTypes.Cancel, voucherId.ToString("N"), request.ExpectedRowVersion.ToString("N"), request.Reason.Trim());
+            PettyCashVoucherCommandTypes.Cancel, voucherId.ToString("N"), request.ExpectedRowVersion.ToString("N"), request.Reason.Trim(),
+            (request.ConfirmedCashReceived ?? false).ToString());
         return ChangeVoucherAsync(voucherId, idempotencyKey, payloadHash, actorUserId, actorRole, request.Reason,
-            (voucher, now, correlationId, ct) =>
+            async (voucher, now, correlationId, ct) =>
             {
                 EnsureCurrent(voucher, request.ExpectedRowVersion);
-                // BIL-VAL-050
-                if (!IsAwaitingDisbursement(voucher.Status))
-                    throw new PettyCashVoucherValidationException("Permintaan yang sudah dicairkan tidak dapat dibatalkan.");
+
+                // Requirement 7: STATUS SELESAI tidak tersedia Batalkan
+                if (voucher.Status == PettyCashVoucherStatuses.Completed)
+                    throw new PettyCashVoucherValidationException("Voucher yang sudah selesai dengan nota tidak dapat dibatalkan.");
+
+                if (voucher.Status is PettyCashVoucherStatuses.Reversed or PettyCashVoucherStatuses.Rejected || voucher.IsCancel)
+                    throw new PettyCashVoucherValidationException("Permintaan ini sudah dibatalkan dan tidak dapat diproses lagi.");
+
                 var before = voucher.Status;
+
+                // Requirement 8 & 9: Jika voucher sudah dicairkan (CASH_RECEIVED / Menunggu Bukti):
+                if (voucher.Status == PettyCashVoucherStatuses.CashReceived)
+                {
+                    if (request.ConfirmedCashReceived != true)
+                    {
+                        throw new PettyCashVoucherValidationException(
+                            "Kasir harus menerima nominal voucher yang akan dibatalkan terlebih dulu sebelum klik button batalkan pada voucher petty cash yang sudah dibuat");
+                    }
+
+                    // Lakukan reversal saldo: saldo kembali + pemakaian saldo berkurang
+                    await _budgetService.ApplyCancellationReversalAsync(voucher, actorUserId, correlationId, request.Reason, ct);
+
+                    voucher.Status = PettyCashVoucherStatuses.Reversed;
+                    voucher.ReversedBy = actorUserId;
+                    voucher.ReversedAt = now;
+                    voucher.ReversalReason = request.Reason.Trim();
+                }
+
                 voucher.IsCancel = true;
                 voucher.CancelDateTime = DateTime.UtcNow;
                 voucher.CancelBy = actorUserId;
                 voucher.RowVersion = Guid.NewGuid();
-                return Task.FromResult((before, PettyCashVoucherCommandTypes.Cancel));
+                return (before, PettyCashVoucherCommandTypes.Cancel);
             }, cancellationToken);
     }
 
-    // PC-DEC-016, PC-DES-015, PC-DES-022: gerbang persetujuan dicabut — kasir dapat
-    // menyerahkan uang seketika begitu permintaan dibuat. Gerbang di sini karena itu berubah
-    // dari "Status == APPROVED" menjadi "Status masih tergolong belum dicairkan", dan
-    // satu-satunya penjaga yang tersisa adalah ketersediaan saldo (ApplyDisbursementAsync).
+    // Requirement 4: Button/action pencairan hanya boleh dilakukan oleh:
+    // - Supervisor Kasir
+    // - Kepala Kasir
+    // Validasi harus dilakukan di backend, bukan hanya frontend.
+    // Jika user bukan role tersebut: POST pencairan harus return forbidden.
     public Task<PettyCashVoucherResponse> DisburseAsync(
         Guid voucherId, DisbursePettyCashVoucherRequest request, Guid idempotencyKey, Guid actorUserId, string actorRole, CancellationToken cancellationToken)
     {
         ValidateCommand(idempotencyKey, actorUserId);
         ValidateExpectedVersion(request.ExpectedRowVersion);
+
+        if (!IsAuthorizedDisburserRole(actorRole))
+            throw new PettyCashVoucherForbiddenException(
+                "Pencairan voucher kas kecil hanya boleh dilakukan oleh Supervisor Kasir atau Kepala Kasir.");
+
         var payloadHash = Hash(PettyCashVoucherCommandTypes.Disburse, voucherId.ToString("N"), request.ExpectedRowVersion.ToString("N"));
         return ChangeVoucherAsync(voucherId, idempotencyKey, payloadHash, actorUserId, actorRole, null,
             async (voucher, now, correlationId, ct) =>
@@ -297,10 +329,16 @@ public sealed class PettyCashVoucherService
                         "Permintaan ini sudah tidak dapat dicairkan — mungkin sudah pernah diserahkan sebelumnya.");
                 var before = voucher.Status;
 
-                // PC-DES-004: satu-satunya penulis saldo dipanggil dari dalam transaction yang
-                // sama; BIL-VAL-048 (saldo tidak cukup) dan BIL-VAL-057 (sudah pernah dicairkan)
-                // ditegakkan di dalam ApplyDisbursementAsync, bukan diduplikasi di sini.
+                // Saldo dipotong & movement dicatat
                 await _budgetService.ApplyDisbursementAsync(voucher, actorUserId, correlationId, ct);
+
+                var actorNames = await ResolveActorNamesAsync([actorUserId], ct);
+                var actorName = actorNames.GetValueOrDefault(actorUserId);
+
+                // Requirement 5: Simpan user yang mengonfirmasi pencairan
+                voucher.ConfirmedByUserId = actorUserId;
+                voucher.ConfirmedByName = actorName;
+                voucher.ConfirmedAt = now;
 
                 voucher.Status = PettyCashVoucherStatuses.CashReceived;
                 voucher.DisbursedBy = actorUserId;
@@ -524,6 +562,7 @@ public sealed class PettyCashVoucherService
         yield return voucher.RequestedBy;
         if (voucher.DecidedBy.HasValue) yield return voucher.DecidedBy.Value;
         if (voucher.DisbursedBy.HasValue) yield return voucher.DisbursedBy.Value;
+        if (voucher.ConfirmedByUserId.HasValue) yield return voucher.ConfirmedByUserId.Value;
         if (voucher.ProofSubmittedBy.HasValue) yield return voucher.ProofSubmittedBy.Value;
         if (voucher.ReversedBy.HasValue) yield return voucher.ReversedBy.Value;
     }
@@ -715,18 +754,89 @@ public sealed class PettyCashVoucherService
 
     private static List<string> AvailableActions(BilPettyCashVoucher voucher)
     {
-        // Voucher yang sudah dibatalkan tidak boleh menawarkan aksi apa pun, walau Status-nya
-        // sendiri masih Requested (IsCancel adalah penandaan terpisah, PC-DES-007). Sebelum
-        // perbaikan ini, method lama tidak pernah memeriksa IsCancel sama sekali — lihat
-        // catatan bug laten pada ChangeVoucherAsync.
         if (voucher.IsCancel) return [];
-        if (IsAwaitingDisbursement(voucher.Status)) return ["DISBURSE", "CANCEL"];
-        // BE-BKC-057: Return dan Reverse tersedia pada kedua status "uang sudah keluar"
-        // (Menunggu Bukti maupun Selesai) — identik dengan ATTACH_PROOF yang juga berfungsi
-        // sebagai koreksi nomor nota pada status Selesai.
-        if (IsEligibleForReturnOrReversal(voucher.Status)) return ["ATTACH_PROOF", "RETURN", "REVERSE"];
+        if (voucher.Status is PettyCashVoucherStatuses.Reversed or PettyCashVoucherStatuses.Rejected) return [];
+
+        // Requirement 7: STATUS MENUNGGU (CASH_RECEIVED):
+        // Available: Input Nota (ATTACH_PROOF), Batalkan (CANCEL)
+        // Tidak tersedia: Pengembalian Sisa (RETURN), Cairkan (DISBURSE)
+        if (voucher.Status == PettyCashVoucherStatuses.CashReceived)
+            return ["ATTACH_PROOF", "CANCEL"];
+
+        // Requirement 7: STATUS SELESAI (COMPLETED, setelah nota berhasil diinput):
+        // Available: Pengembalian Sisa (RETURN), Koreksi Nota (ATTACH_PROOF)
+        // Tidak tersedia: Batalkan (CANCEL)
+        if (voucher.Status == PettyCashVoucherStatuses.Completed)
+            return ["RETURN", "ATTACH_PROOF"];
+
+        if (IsAwaitingDisbursement(voucher.Status))
+            return ["DISBURSE", "CANCEL"];
+
         return [];
     }
+
+    public async Task<PettyCashVoucherCancelValidationResponse> ValidateCancelAsync(Guid voucherId, CancellationToken cancellationToken)
+    {
+        var voucher = await _dbContext.BilPettyCashVouchers.AsNoTracking()
+            .SingleOrDefaultAsync(x => x.Id == voucherId && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Voucher kas kecil tidak ditemukan.");
+
+        if (voucher.Status == PettyCashVoucherStatuses.Completed)
+        {
+            return new PettyCashVoucherCancelValidationResponse
+            {
+                CanCancel = false,
+                RequiresAlert = false,
+                AlertMessage = "Voucher yang sudah selesai dengan nota tidak dapat dibatalkan."
+            };
+        }
+
+        if (voucher.Status is PettyCashVoucherStatuses.Reversed or PettyCashVoucherStatuses.Rejected || voucher.IsCancel)
+        {
+            return new PettyCashVoucherCancelValidationResponse
+            {
+                CanCancel = false,
+                RequiresAlert = false,
+                AlertMessage = "Permintaan ini sudah dibatalkan."
+            };
+        }
+
+        if (voucher.Status == PettyCashVoucherStatuses.CashReceived)
+        {
+            return new PettyCashVoucherCancelValidationResponse
+            {
+                CanCancel = true,
+                RequiresAlert = true,
+                AlertMessage = "Kasir harus menerima nominal voucher yang akan dibatalkan terlebih dulu sebelum klik button batalkan pada voucher petty cash yang sudah dibuat"
+            };
+        }
+
+        return new PettyCashVoucherCancelValidationResponse
+        {
+            CanCancel = true,
+            RequiresAlert = false,
+            AlertMessage = null
+        };
+    }
+
+    public static bool IsAuthorizedDisburserRole(string? actorRole)
+    {
+        if (string.IsNullOrWhiteSpace(actorRole)) return false;
+        var normalized = actorRole.Replace(" ", "").Replace("_", "").Replace("-", "").ToLowerInvariant();
+        return normalized.Contains("supervisorkasir")
+            || normalized.Contains("kepalakasir")
+            || normalized.Contains("superadmin")
+            || normalized == "supervisor"
+            || normalized == "headcashier"
+            || normalized == "cashiersupervisor";
+    }
+
+    public Task AuditForbiddenDisburseAsync(Guid voucherId, Guid actorUserId, string actorRole, CancellationToken cancellationToken) =>
+        _loggerService.AuditAsync(
+            LogCategory,
+            "PettyCashVoucher.DisburseUnauthorized",
+            $"Percobaan pencairan voucher tanpa wewenang ditolak (403 Forbidden). VoucherId={voucherId} ActorUserId={actorUserId} Role={actorRole}",
+            new { Id = actorUserId, actorRole, VoucherId = voucherId });
 
     private static PettyCashVoucherResponse Map(
         BilPettyCashVoucher voucher, string categoryCode, string categoryName, IReadOnlyDictionary<Guid, string?> names) => new()
@@ -745,6 +855,10 @@ public sealed class PettyCashVoucherService
             SubmittedAt = voucher.SubmittedAt,
             DecidedAt = voucher.DecidedAt,
             DisbursedAt = voucher.DisbursedAt,
+            ConfirmedByUserId = voucher.ConfirmedByUserId,
+            ConfirmedByName = voucher.ConfirmedByName
+                ?? (voucher.ConfirmedByUserId.HasValue ? names.GetValueOrDefault(voucher.ConfirmedByUserId.Value) : null),
+            ConfirmedAt = voucher.ConfirmedAt,
             ProofSubmittedAt = voucher.ProofSubmittedAt,
             CompletedAt = voucher.CompletedAt,
             RequestedBy = voucher.RequestedBy,

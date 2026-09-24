@@ -31,6 +31,79 @@ public sealed class BillingRefundService
         _loggerService = loggerService;
     }
 
+    public async Task<List<BillingRefundableItemResponse>> GetBillingRefundableItemsAsync(
+        Guid invoiceId,
+        CancellationToken cancellationToken)
+    {
+        var invoice = await _dbContext.BilInvoices.AsNoTracking()
+            .Include(x => x.Items)
+            .FirstOrDefaultAsync(x => x.Id == invoiceId && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Invoice tidak ditemukan.");
+
+        var activeItems = invoice.Items
+            .Where(x => !x.IsDelete && x.Status != BillingInvoiceItemStatuses.Voided)
+            .ToList();
+
+        // Cari item yang sudah pernah diajukan refund
+        var existingCases = await _dbContext.BilRefundCases.AsNoTracking()
+            .Where(x => x.InvoiceId == invoiceId && !x.IsDelete && x.Status != BillingRefundCaseStatuses.Rejected)
+            .ToListAsync(cancellationToken);
+
+        var refundedItemIds = new HashSet<Guid>();
+        foreach (var c in existingCases)
+        {
+            if (!string.IsNullOrWhiteSpace(c.SelectedBillingItemIdsJson))
+            {
+                try
+                {
+                    var ids = System.Text.Json.JsonSerializer.Deserialize<List<Guid>>(c.SelectedBillingItemIdsJson);
+                    if (ids != null)
+                    {
+                        foreach (var id in ids) refundedItemIds.Add(id);
+                    }
+                }
+                catch { }
+            }
+        }
+
+        var result = activeItems.Select(item =>
+        {
+            var itemTotal = Money(item.Quantity * item.UnitPrice);
+            var refundable = refundedItemIds.Contains(item.Id) ? 0m : itemTotal;
+
+            return new BillingRefundableItemResponse
+            {
+                BillingItemId = item.Id,
+                ItemName = item.DescriptionSnapshot,
+                Qty = item.Quantity,
+                Amount = itemTotal,
+                RefundableAmount = refundable
+            };
+        }).ToList();
+
+        return result;
+    }
+
+    public async Task<RemainingDepositResponse> GetRemainingDepositAsync(
+        Guid invoiceId,
+        CancellationToken cancellationToken)
+    {
+        var invoice = await _dbContext.BilInvoices.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == invoiceId && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Invoice tidak ditemukan.");
+
+        var depositAccount = await _dbContext.BilDepositAccounts.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.EncounterId == invoice.EncounterId
+                && x.Status == BillingDepositAccountStatuses.Active
+                && !x.IsDelete, cancellationToken);
+
+        return new RemainingDepositResponse
+        {
+            EncounterId = invoice.EncounterId,
+            RemainingDepositAmount = depositAccount?.AvailableBalance ?? 0m
+        };
+    }
+
     public async Task<RefundResponse> CreateAsync(
         CreateRefundRequest request,
         Guid idempotencyKey,
@@ -43,11 +116,16 @@ public sealed class BillingRefundService
 
         try
         {
+            var invoice = await _dbContext.BilInvoices.AsNoTracking()
+                .Include(x => x.Items)
+                .SingleOrDefaultAsync(x => x.Id == request.InvoiceId && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Invoice tidak ditemukan.");
+
             if (_dbContext.Database.IsRelational())
             {
                 transaction = await _dbContext.Database.BeginTransactionAsync(
                     IsolationLevel.Serializable, cancellationToken);
-                await AcquireLockAsync($"BIL_REFUND_CREDIT_{request.RefundableCreditId:N}", cancellationToken);
+                await AcquireLockAsync($"BIL_REFUND_INVOICE_{invoice.Id:N}", cancellationToken);
             }
 
             var prior = await _dbContext.BilRefundCases
@@ -68,50 +146,85 @@ public sealed class BillingRefundService
                 throw new BillingRefundConflictException(
                     "CorrelationId sudah diproses; gunakan correlation baru.");
 
-            var invoice = await _dbContext.BilInvoices.AsNoTracking()
-                .SingleOrDefaultAsync(x => x.Id == request.InvoiceId && !x.IsDelete, cancellationToken)
-                ?? throw new KeyNotFoundException("Invoice tidak ditemukan.");
-            if (invoice.ServiceType == InpatientServiceType)
-                throw new BillingRefundValidationException(
-                    "Refund normal tidak berlaku untuk invoice rawat inap.");
+            var category = string.IsNullOrWhiteSpace(request.RefundCategory)
+                ? "BILLING"
+                : request.RefundCategory.Trim().ToUpperInvariant();
 
-            var credit = await _dbContext.BilRefundableCredits
-                .SingleOrDefaultAsync(
-                    x => x.Id == request.RefundableCreditId && !x.IsDelete, cancellationToken)
-                ?? throw new KeyNotFoundException("Refundable credit tidak ditemukan.");
-            if (credit.InvoiceId != invoice.Id)
-                throw new BillingRefundValidationException(
-                    "Refundable credit tidak terkait dengan invoice yang diajukan.");
-            if (credit.Status != BillingRefundableCreditStatuses.Available || credit.AvailableAmount <= 0)
-                throw new BillingRefundValidationException(
-                    "Refundable credit tidak lagi tersedia untuk direfund.");
-            if (request.RequestedAmount > credit.AvailableAmount)
-                throw new BillingRefundValidationException(
-                    "Nominal refund melebihi saldo dana yang dapat dikembalikan.");
+            decimal calculatedAmount = 0m;
+            List<Guid>? selectedItemIds = null;
+
+            if (category == "BILLING")
+            {
+                selectedItemIds = request.SelectedBillingItemIds?.Distinct().ToList();
+                if (selectedItemIds == null || selectedItemIds.Count == 0)
+                    throw new BillingRefundValidationException("Pilih minimal satu item billing yang akan direfund.");
+
+                var selectedItems = invoice.Items
+                    .Where(x => selectedItemIds.Contains(x.Id) && !x.IsDelete && x.Status != BillingInvoiceItemStatuses.Voided)
+                    .ToList();
+
+                if (selectedItems.Count != selectedItemIds.Count)
+                    throw new BillingRefundValidationException("Beberapa item billing yang dipilih tidak ditemukan pada invoice ini.");
+
+                // Nominal refund otomatis dari: SUM(selected item refundable amount)
+                calculatedAmount = selectedItems.Sum(x => Money(x.Quantity * x.UnitPrice));
+            }
+            else if (category == "DEPOSITO")
+            {
+                var depositAccount = await _dbContext.BilDepositAccounts.AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.EncounterId == invoice.EncounterId
+                        && x.Status == BillingDepositAccountStatuses.Active
+                        && !x.IsDelete, cancellationToken);
+
+                if (depositAccount == null || depositAccount.AvailableBalance <= 0)
+                    throw new BillingRefundValidationException("Pasien tidak memiliki sisa saldo deposito yang dapat direfund.");
+
+                // Nominal refund otomatis dari: sisa deposito pasien
+                calculatedAmount = depositAccount.AvailableBalance;
+            }
+            else
+            {
+                throw new BillingRefundValidationException("Kategori refund tidak valid. Pilih 'Billing' atau 'Deposito'.");
+            }
 
             var activeExists = await _dbContext.BilRefundCases.AsNoTracking()
-                .AnyAsync(x => !x.IsDelete && x.RefundableCreditId == credit.Id
+                .AnyAsync(x => !x.IsDelete && x.InvoiceId == invoice.Id
+                    && x.RefundCategory == category
                     && x.Status != BillingRefundCaseStatuses.Rejected
                     && x.Status != BillingRefundCaseStatuses.Executed,
                     cancellationToken);
             if (activeExists)
                 throw new BillingRefundConflictException(
-                    "Refundable credit ini masih memiliki refund case aktif; lanjutkan case yang sudah ada.");
+                    "Invoice ini masih memiliki refund case aktif; selesaikan case yang sudah ada terlebih dahulu.");
 
             var eligibleTenders = await LoadEligibleFundingTendersAsync(invoice.Id, cancellationToken);
             if (eligibleTenders.Count == 0)
-                throw new BillingRefundValidationException(
-                    "Tidak ada tender berhasil pada invoice ini yang dapat dijadikan dasar proporsi refund.");
-            if (eligibleTenders.Sum(x => x.Amount) < request.RequestedAmount)
-                throw new BillingRefundValidationException(
-                    "Metode pembayaran asal tidak cukup mendukung refund untuk nominal ini; ajukan penggantian metode melalui Finance.");
+            {
+                // Fallback payment method cash bila belum ada baris tender
+                var defaultCashMethod = await _dbContext.MstPaymentMethods.AsNoTracking()
+                    .FirstOrDefaultAsync(x => (x.PaymentMethodCode == "CASH" || x.PaymentMethodName.Contains("Tunai")) && !x.IsDelete, cancellationToken);
+
+                var fallbackMethodId = defaultCashMethod?.Id ?? Guid.NewGuid();
+                eligibleTenders = new List<BilTender>
+                {
+                    new BilTender
+                    {
+                        Id = Guid.NewGuid(),
+                        PaymentMethodId = fallbackMethodId,
+                        Amount = calculatedAmount,
+                        Status = BillingTenderStatuses.Succeeded
+                    }
+                };
+            }
 
             var now = DateTimeOffset.UtcNow;
             var refundCase = new BilRefundCase
             {
                 InvoiceId = invoice.Id,
-                RefundableCreditId = credit.Id,
-                RequestedAmount = request.RequestedAmount,
+                RefundCategory = category,
+                SelectedBillingItemIdsJson = selectedItemIds != null ? System.Text.Json.JsonSerializer.Serialize(selectedItemIds) : null,
+                RefundableCreditId = request.RefundableCreditId,
+                RequestedAmount = calculatedAmount,
                 Status = BillingRefundCaseStatuses.Submitted,
                 RequestedBy = actorUserId,
                 Reason = request.Reason.Trim(),
@@ -124,7 +237,8 @@ public sealed class BillingRefundService
                 CreateDateTime = DateTime.UtcNow,
                 CreateBy = actorUserId
             };
-            foreach (var line in BuildProportionalLines(eligibleTenders, request.RequestedAmount, actorUserId))
+
+            foreach (var line in BuildProportionalLines(eligibleTenders, calculatedAmount, actorUserId))
             {
                 line.RefundCaseId = refundCase.Id;
                 refundCase.Lines.Add(line);
@@ -316,7 +430,7 @@ public sealed class BillingRefundService
 
     private async Task ExecuteLineAsync(
         Guid lineId,
-        Guid creditId,
+        Guid? creditId,
         Guid actorUserId,
         CancellationToken cancellationToken)
     {
@@ -376,7 +490,7 @@ public sealed class BillingRefundService
 
     private async Task PersistLineResultAsync(
         Guid lineId,
-        Guid creditId,
+        Guid? creditId,
         BillingPaymentProviderResult result,
         Guid actorUserId,
         CancellationToken cancellationToken)
@@ -389,7 +503,10 @@ public sealed class BillingRefundService
                 transaction = await _dbContext.Database.BeginTransactionAsync(
                     IsolationLevel.Serializable, cancellationToken);
                 await AcquireLockAsync($"BIL_REFUND_LINE_{lineId:N}", cancellationToken);
-                await AcquireLockAsync($"BIL_REFUND_CREDIT_{creditId:N}", cancellationToken);
+                if (creditId.HasValue)
+                {
+                    await AcquireLockAsync($"BIL_REFUND_CREDIT_{creditId.Value:N}", cancellationToken);
+                }
             }
 
             var line = await _dbContext.BilRefundLines.SingleOrDefaultAsync(
@@ -417,19 +534,22 @@ public sealed class BillingRefundService
             line.UpdateDateTime = DateTime.UtcNow;
             line.UpdateBy = actorUserId;
 
-            if (line.Status == BillingRefundLineStatuses.Succeeded)
+            if (line.Status == BillingRefundLineStatuses.Succeeded && creditId.HasValue)
             {
-                var credit = await _dbContext.BilRefundableCredits.SingleAsync(
-                    x => x.Id == creditId, cancellationToken);
-                if (line.Amount > credit.AvailableAmount)
-                    throw new BillingRefundConflictException(
-                        "Saldo refundable credit tidak lagi mencukupi untuk baris refund ini.");
-                credit.AvailableAmount -= line.Amount;
-                credit.Status = credit.AvailableAmount == 0
-                    ? BillingRefundableCreditStatuses.Exhausted
-                    : BillingRefundableCreditStatuses.Available;
-                credit.UpdateDateTime = DateTime.UtcNow;
-                credit.UpdateBy = actorUserId;
+                var credit = await _dbContext.BilRefundableCredits.SingleOrDefaultAsync(
+                    x => x.Id == creditId.Value, cancellationToken);
+                if (credit != null)
+                {
+                    if (line.Amount > credit.AvailableAmount)
+                        throw new BillingRefundConflictException(
+                            "Saldo refundable credit tidak lagi mencukupi untuk baris refund ini.");
+                    credit.AvailableAmount -= line.Amount;
+                    credit.Status = credit.AvailableAmount == 0
+                        ? BillingRefundableCreditStatuses.Exhausted
+                        : BillingRefundableCreditStatuses.Available;
+                    credit.UpdateDateTime = DateTime.UtcNow;
+                    credit.UpdateBy = actorUserId;
+                }
             }
 
             await _dbContext.SaveChangesAsync(cancellationToken);
@@ -559,13 +679,27 @@ public sealed class BillingRefundService
         Guid actorUserId)
     {
         ArgumentNullException.ThrowIfNull(request);
-        if (request.InvoiceId == Guid.Empty || request.RefundableCreditId == Guid.Empty)
-            throw new BillingRefundValidationException("InvoiceId dan RefundableCreditId wajib diisi.");
+        if (request.InvoiceId == Guid.Empty)
+            throw new BillingRefundValidationException("InvoiceId wajib diisi.");
         if (idempotencyKey == Guid.Empty)
             throw new BillingRefundValidationException("Idempotency-Key wajib diisi.");
         if (actorUserId == Guid.Empty)
             throw new BillingRefundForbiddenException("Identitas pengguna tidak valid.");
-        ValidateMoney(request.RequestedAmount, "Nominal refund");
+
+        var category = string.IsNullOrWhiteSpace(request.RefundCategory)
+            ? "BILLING"
+            : request.RefundCategory.Trim().ToUpperInvariant();
+
+        if (category == "BILLING")
+        {
+            if (request.SelectedBillingItemIds == null || request.SelectedBillingItemIds.Count == 0)
+                throw new BillingRefundValidationException("Pilih minimal satu item billing yang akan direfund.");
+        }
+        else if (category != "DEPOSITO")
+        {
+            throw new BillingRefundValidationException("Kategori refund tidak valid. Pilih 'Billing' atau 'Deposito'.");
+        }
+
         if (string.IsNullOrWhiteSpace(request.Reason) || request.Reason.Trim().Length > 500)
             throw new BillingRefundValidationException(
                 "Alasan refund wajib diisi dan maksimal 500 karakter.");
@@ -594,10 +728,12 @@ public sealed class BillingRefundService
 
     private static string ComputeCreatePayloadHash(CreateRefundRequest request)
     {
+        var category = string.IsNullOrWhiteSpace(request.RefundCategory) ? "BILLING" : request.RefundCategory.Trim().ToUpperInvariant();
+        var itemIds = request.SelectedBillingItemIds != null ? string.Join(',', request.SelectedBillingItemIds.OrderBy(x => x)) : string.Empty;
         var canonical = string.Join('|',
             request.InvoiceId.ToString("N"),
-            request.RefundableCreditId.ToString("N"),
-            request.RequestedAmount.ToString(CultureInfo.InvariantCulture),
+            category,
+            itemIds,
             request.Reason.Trim(),
             request.CorrelationId.ToString("N"),
             request.CausationId.ToString("N"));
@@ -684,6 +820,10 @@ public sealed class BillingRefundService
     {
         Id = refundCase.Id,
         InvoiceId = refundCase.InvoiceId,
+        RefundCategory = refundCase.RefundCategory ?? "BILLING",
+        SelectedBillingItemIds = !string.IsNullOrWhiteSpace(refundCase.SelectedBillingItemIdsJson)
+            ? System.Text.Json.JsonSerializer.Deserialize<List<Guid>>(refundCase.SelectedBillingItemIdsJson)
+            : null,
         RefundableCreditId = refundCase.RefundableCreditId,
         RequestedAmount = refundCase.RequestedAmount,
         ExecutedAmount = refundCase.Lines

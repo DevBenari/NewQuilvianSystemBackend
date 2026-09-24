@@ -1516,8 +1516,8 @@ flowchart TD
         BE-BKC-076["[BE] BE-BKC-076<br/>API Controller Integrasi Ranap"]
     end
 
-    FE-BKC-041["FE-BKC-041<br/>Consumer Handoffs Tab Rawat Inap"]
-    FE-BKC-042["FE-BKC-042<br/>Panel Ringkasan Ranap Menu Pembayaran"]
+    FE-BKC-041["🟡 FE-BKC-041<br/>Consumer Handoffs Tab Rawat Inap"]
+    FE-BKC-042["🟡 FE-BKC-042<br/>Panel Ringkasan Ranap Menu Pembayaran"]
 
     BE-BKC-076 --> FE-BKC-041
     BE-BKC-076 --> FE-BKC-042
@@ -1527,7 +1527,7 @@ flowchart TD
 
 | Gelombang Eksekusi | Task | Dapat Berjalan Paralel? |
 | :---: | --- | --- |
-| 1 | `FE-BKC-041`, `FE-BKC-042` | **Ya** — keduanya dapat dikerjakan secara paralel setelah endpoint backend `BE-BKC-076` tersedia |
+| 1 | 🟡 `FE-BKC-041`, 🟡 `FE-BKC-042` | **Ya** — keduanya dapat dikerjakan secara paralel setelah endpoint backend `BE-BKC-076` tersedia |
 
 Jumlah pasangan prasyarat→task: **2**, sama persis dengan isi kolom `Dependency` pada tabel task dan rincian task di bawah ini. Bebas siklus.
 
@@ -1537,14 +1537,14 @@ Jumlah pasangan prasyarat→task: **2**, sama persis dengan isi kolom `Dependenc
 
 | Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `FE-BKC-041` | Tab "Rawat Inap" pada Consumer Handoffs untuk memantau status clearance, rincian sisa tagihan, & aksi pengakuan handoff | `BKC-DEC-115`, `BKC-DEC-116`, `BKC-DES-045`, `FR-BKC-250`, `03-frontend-architecture.md` Bagian 2 | `BIL-API-1.4`, `BIL-PERMISSION-1.2` | Komponen tabel, tab bersaring `consumer-handoffs-view.jsx`, Redux slice | Tab baru "Rawat Inap", badge status (`CLEARED`, `BLOCKED`, `REVOKED`), tombol Akui & Evaluasi Ulang, hook query | `[BE] BE-BKC-076` | Tab tampilkan surat kelayakan belum diakui; badge status sesuai; tombol Akui memanggil PATCH acknowledge; tombol Evaluasi Ulang memanggil POST reevaluate; tolak aksi peran tanpa izin | `npm run lint` berkas fitur; `npm run test:unit`; `npm run build`; uji manual filter & tombol | Pengakuan ganda dicegah dengan lock tombol saat submit. Owner Frontend | Tab Rawat Inap aktif; seluruh aksi terhubung API; loading/empty/error state sesuai standar; `npm run build` lulus |
-| `FE-BKC-042` | Panel Ringkasan Rawat Inap & Clearance pada Menu Pembayaran Kasir untuk tagihan bertipe `RANAP` | `BKC-DEC-112`, `BKC-DEC-113`, `BKC-DEC-114`, `BKC-DEC-117`, `BKC-DEC-119`, `BKC-DEC-120`, `BKC-DES-043`, `BKC-DES-047`, `BKC-DES-049`, `FR-BKC-250`, `03-frontend-architecture.md` Bagian 3 | `BIL-API-1.4`, `BIL-STATE-1.3` | Komponen banner notifikasi `InformationAlert`, tabel item tagihan, format mata uang | Banner status clearance; rincian sewa kamar jam malam & transfer menit; admin fee 7% cap 6jt; kredit admin rajal; badge `[IGD]` | `[BE] BE-BKC-076` | Banner clearance tampil mencolok di atas ringkasan; peringatan auto-reblock (`REVOKED`) muncul jika ada tagihan susulan; rincian kamar tampilkan jam:menit riil; kredit admin rajal memotong tagihan; item IGD bertanda `[IGD]` | `npm run lint` berkas fitur; `npm run test:unit`; `npm run build`; uji visual desktop/tablet | Ekses deposit jangan tertukar dengan uang muka bruto. Owner Frontend | Seluruh komponen panel tampil akurat; sinkron saat invoice berubah; `npm run build` lulus |
+| 🟡 `FE-BKC-041` | Tab "Rawat Inap" pada Consumer Handoffs untuk memantau status clearance, rincian sisa tagihan, & aksi pengakuan handoff | `BKC-DEC-115`, `BKC-DEC-116`, `BKC-DES-045`, `FR-BKC-250`, `03-frontend-architecture.md` Bagian 2 | `BIL-API-1.4`, `BIL-PERMISSION-1.2` | Komponen tabel, tab bersaring `consumer-handoffs-view.jsx`, Redux slice | Tab baru "Rawat Inap", badge status (`CLEARED`, `BLOCKED`, `REVOKED`), tombol Akui & Evaluasi Ulang, hook query | `[BE] BE-BKC-076` | Tab tampilkan surat kelayakan belum diakui; badge status sesuai; tombol Akui memanggil PATCH acknowledge; tombol Evaluasi Ulang memanggil POST reevaluate; tolak aksi peran tanpa izin | `npm run lint` berkas fitur; `npm run test:unit`; `npm run build`; uji manual filter & tombol | Pengakuan ganda dicegah dengan lock tombol saat submit. Owner Frontend | Tab Rawat Inap aktif; seluruh aksi terhubung API; loading/empty/error state sesuai standar; `npm run build` lulus. Laporan: [FE-BKC-041.md](../task/report/frontend/FE-BKC-041.md) |
+| 🟡 `FE-BKC-042` | Panel Ringkasan Rawat Inap & Clearance pada Menu Pembayaran Kasir untuk tagihan bertipe `RANAP` | `BKC-DEC-112`, `BKC-DEC-113`, `BKC-DEC-114`, `BKC-DEC-117`, `BKC-DEC-119`, `BKC-DEC-120`, `BKC-DES-043`, `BKC-DES-047`, `BKC-DES-049`, `FR-BKC-250`, `03-frontend-architecture.md` Bagian 3 | `BIL-API-1.4`, `BIL-STATE-1.3` | Komponen banner notifikasi `InformationAlert`, tabel item tagihan, format mata uang | Banner status clearance; rincian sewa kamar jam malam & transfer menit; admin fee 7% cap 6jt; kredit admin rajal; badge `[IGD]` | `[BE] BE-BKC-076` | Banner clearance tampil mencolok di atas ringkasan; peringatan auto-reblock (`REVOKED`) muncul jika ada tagihan susulan; rincian kamar tampilkan jam:menit riil; kredit admin rajal memotong tagihan; item IGD bertanda `[IGD]` | `npm run lint` berkas fitur; `npm run test:unit`; `npm run build`; uji visual desktop/tablet | Ekses deposit jangan tertukar dengan uang muka bruto. Owner Frontend | Seluruh komponen panel tampil akurat; sinkron saat invoice berubah; `npm run build` lulus. Laporan: [FE-BKC-042.md](../task/report/frontend/FE-BKC-042.md) |
 
 ---
 
 ## Rincian Task
 
-### `FE-BKC-041` — Layar Consumer Handoffs Tab "Rawat Inap"
+### 🟡 `FE-BKC-041` — Layar Consumer Handoffs Tab "Rawat Inap"
 
 | Field | Isi |
 | --- | --- |
@@ -1560,11 +1560,11 @@ Jumlah pasangan prasyarat→task: **2**, sama persis dengan isi kolom `Dependenc
 | Kewenangan UI | Label status, warna badge, dan ketersediaan tombol **dikunci**. Tata letak detail baris `DEV_DISCRETION` |
 | Risiko/pemilik | Pengakuan ganda: tombol wajib dinonaktifkan saat mutasi berlangsung untuk mencegah duplicate submission. Owner Frontend |
 | Definition of Done | Tab Rawat Inap aktif; seluruh aksi terhubung ke backend; penanganan loading, empty, dan error state sesuai standar; `npm run build` lulus; `git status --short` dilaporkan |
-| Status | ⚪ **Belum dimulai** |
+| Status | 🟡 **SEBAGIAN 24 September 2026.** Seluruh source kode (tab navigasi, lencana status clearance, format sisa tagihan, Redux thunk evaluasi ulang, modal konfirmasi, dan proteksi otorisasi RBAC) selesai terpasang dan sesuai kontrak `BIL-API-1.4`. `npx eslint` pada berkas fitur PASS (0 error/warning); unit test komprehensif `tests/unit/billing-consumer-handoffs-inpatient.test.mjs` PASS (6/6 subtest lulus); `npm run build` Next.js PASS (exit code 0). **Yang MASIH menahan `✅`:** verifikasi manual ter-autentikasi (klik tombol Akui, tombol Evaluasi Ulang, multi-peran kasir vs perawat bangsal) — `NOT FEASIBLE` pada sesi ini karena membutuhkan backend runtime server dan database migrasi aktif. Bukti: [laporan](../task/report/frontend/FE-BKC-041.md) |
 
 ---
 
-### `FE-BKC-042` — Panel Ringkasan Rawat Inap & Clearance pada Menu Pembayaran Kasir
+### 🟡 `FE-BKC-042` — Panel Ringkasan Rawat Inap & Clearance pada Menu Pembayaran Kasir
 
 | Field | Isi |
 | --- | --- |
@@ -1580,7 +1580,7 @@ Jumlah pasangan prasyarat→task: **2**, sama persis dengan isi kolom `Dependenc
 | Kewenangan UI | Kosakata status dan warna indikator **dikunci**. Tipografi, padding kartu, dan ikon penanda `DEV_DISCRETION` |
 | Risiko/pemilik | Pasien asuransi: ekses deposit tidak boleh disalahartikan sebagai uang muka bruto tindakan. Teks label wajib jelas. Owner Frontend |
 | Definition of Done | Seluruh komponen panel rawat inap tampil akurat; state synchronizer bekerja saat invoice berubah; `npm run build` lulus; `git status --short` dilaporkan |
-| Status | ⚪ **Belum dimulai** |
+| Status | 🟡 **SEBAGIAN 24 September 2026.** Seluruh source kode (`BillingInpatientSummaryPanel`, hook `useInpatientBillingSummary`, Redux thunk `getInpatientBillingSummary`, integrasi pada `menu-pembayaran-view.jsx` dan `detail-invoice-billing-view.jsx`, penanda visual `[IGD]`, kalkulasi sewa kamar pro-rata menit, biaya administrasi 7% plafon Rp6jt, kredit admin rajal, serta lencana clearance 4-state dengan animasi peringatan `REVOKED`) selesai terpasang dan sesuai kontrak `BIL-API-1.4`. `npx eslint` pada seluruh berkas fitur PASS (0 error/warning); unit test `tests/unit/billing-inpatient-summary-panel.test.mjs` PASS (6/6 subtest lulus); `npm run build` Next.js PASS (exit code 0). **Yang MASIH menahan `✅`:** verifikasi visual interaktif ter-autentikasi (simulasi perubahan status clearance dinamis di browser) — `NOT FEASIBLE` pada sesi ini karena membutuhkan backend runtime server dan database migrasi aktif. Bukti: [laporan](../task/report/frontend/FE-BKC-042.md) |
 
 ---
 

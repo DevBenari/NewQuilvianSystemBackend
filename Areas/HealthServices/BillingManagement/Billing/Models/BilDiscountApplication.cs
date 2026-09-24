@@ -19,6 +19,7 @@ public sealed class BilDiscountApplication : IdentityModel
     public Guid RequestedBy { get; set; }
     public Guid? ApprovedBy { get; set; }
     [Required, MaxLength(500)] public string Reason { get; set; } = string.Empty;
+    [MaxLength(500)] public string? DoctorDiscountMemoFile { get; set; }
 
     public BilInvoice Invoice { get; set; } = null!;
     public BilInvoiceItem? InvoiceItem { get; set; }
