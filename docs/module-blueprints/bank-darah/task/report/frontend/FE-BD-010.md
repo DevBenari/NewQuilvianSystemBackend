@@ -16,7 +16,8 @@
 | Task mode | `FRONTEND` — backend strict read-only |
 | Target tulis | `QuilvianSystemFrontendDev` (source) + berkas laporan ini beserta tautan buktinya pada roadmap dan `requirement-traceability.md` |
 | Model | Claude Opus 5 |
-| Commit frontend saat dikerjakan | `1bdaf6bd6` (branch `sukmagpV2`) |
+| Commit frontend saat dikerjakan | `1bdaf6bd6` (branch `sukmagpV2`) — dasar kerja |
+| Commit source frontend | `a5f4be551` (branch `sukmagpV2`) — `feat(bank-darah): complete FE-BD-010 blood bank procedure workflow` |
 | Commit backend yang dijadikan rujukan | `3eb37c6c` (branch `sukmagp`) |
 | Tanggal | 23 September 2026 |
 | Status | ✅ **Selesai** — source lengkap, `lint`/`test:unit`/`build` PASS, dan **16 dari 16 pemeriksaan runtime di browser sungguhan PASS** |
@@ -390,3 +391,24 @@ Repository backend (laporan dan bukti roadmap):
  M docs/module-blueprints/bank-darah/roadmap/requirement-traceability.md
 ?? docs/module-blueprints/bank-darah/task/report/frontend/FE-BD-010.md
 ```
+
+---
+
+## 9. Closing audit — 24 September 2026
+
+| Acceptance | Status | Bukti |
+| --- | --- | --- |
+| Create tindakan | `PASS` | `R1` — `POST /blood-bank-procedures` dari kotak dialog, hasil berstatus **Dicatat** |
+| Complete tindakan | `PASS` | `R2`, `R3`, `R5a` — `POST /{id}/complete` tanpa badan permintaan, status menjadi **Selesai** |
+| BillingHandoff | `PASS` | `R2`, `R3`, `R3d`, `R3e`, `R5b` — hanya `Emitted`/`Replayed` dinyatakan berhasil, nol status dari `GET`, nol kirim ulang |
+| Permission gating | `PASS` | `R4a`, `R4b`, `R4c` — kelima butir hak akses menyembunyikan tombolnya |
+| Validation rule | `PASS` | `R1`, `R1b` — pencatatan mengirim tepat tiga isian, nol harga/tarif/unit/kelas; ID divalidasi UUID sebelum masuk URL (bagian 3.2) |
+
+| Pemeriksaan | Hasil |
+| --- | --- |
+| Commit source frontend | `a5f4be551` pada `sukmagpV2` — 15 berkas, sama dengan bagian 3.2 |
+| Build terakhir frontend | `npm run build` pada `a5f4be551` — `PASS`, kode keluar `0`; kedua route `blood-bank-procedures` terdaftar |
+| Build backend | Tidak dijalankan ulang — nol perubahan source backend, hanya dokumentasi |
+| `git status` / `git diff --check` | Frontend bersih; backend hanya koreksi dokumentasi ini |
+| Koreksi | Roadmap dan `requirement-traceability.md` sebelumnya menyebut source di `1bdaf6bd6`; itu commit dasar kerja (`FE-BD-003`). Source sebenarnya di `a5f4be551` |
+| Status roadmap | `FE-BD-010` ✅ — source selesai, runtime `PASS`, build `PASS`, laporan tersedia |
