@@ -210,7 +210,7 @@ flowchart LR
 | `BE-IGD-051` | Kunjungan IGD yang berakhir ikut menutup encounter-nya (`IGD-DEC-139`, `148`) | R3.13 | ✅ **22 September 2026 — atas penilaian pemilik.** Implementation Complete, Build Verified (artefak), uji API S1–S9 lulus menurut pemilik (tanpa lampiran). Kriteria 8 (kueri invarian) dikecualikan sampai sesudah rilis. Tanpa UAT | [BE-IGD-051](../task/report/backend/BE-IGD-051.md) |
 | `BE-IGD-052` | Rekonsiliasi encounter `Emergency` historis — endpoint admin (`IGD-DEC-148`) | R3.13 | ✅ **23 September 2026 — SELESAI atas penilaian pemilik.** Migration `20260923061124` dibuat pemilik (isi diperiksa agent) dan diterapkan; build serta sepuluh skenario uji dinyatakan lulus pemilik; angka pratinjau dinyatakan cocok dengan kueri D. Acceptance 9 sebagian (jumlah warning tidak dilaporkan). UAT belum dijalankan. *Sebelumnya: 🟡 Implementation Complete, menunggu migration, build, uji API, dan angka kueri D* | [BE-IGD-052](../task/report/backend/BE-IGD-052.md) |
 | `BE-IGD-053` | Penjaga episode terbuka pada pintu encounter `Emergency` — **realisasi** `IGD-OQ-093` (`superseded` sebagian) | R3.13 | tanpa tanda — **kedua dependency kini ✅** (`BE-IGD-052` dan `BE-IGD-055`, 23 September 2026), jadi boleh **dikerjakan**; dirilis bersama `FE-IGD-038` sesudah rekonsiliasi K1 dijalankan, dan rilisnya menuntut `GET /preview` → `expectedCount` = 0 di lingkungan itu (urutan rilis R3.13.5 langkah 2). *Sebelumnya: menunggu `BE-IGD-052`* | — |
-| `BE-IGD-054` | Daftar Menunggu Triage terpadu (`GET triage-queue`) | R3.13 | 🟡 **23 September 2026 — Implementation Complete.** Belum: `dotnet build` (acceptance 8, milik pemilik) dan uji API S1–S11 (acceptance 1–6). Nol schema, nol migration. *Sebelumnya: tanpa tanda — menunggu `BE-IGD-051`* | [BE-IGD-054](../task/report/backend/BE-IGD-054.md) |
+| `BE-IGD-054` | Daftar Menunggu Triage terpadu (`GET triage-queue`) | R3.13 | ✅ **24 September 2026 — SELESAI atas penilaian pemilik.** Build dan sebelas skenario uji dinyatakan lulus pemilik; acceptance 8 sebagian (jumlah warning tidak dilaporkan). Nol schema, nol migration. `FE-IGD-035` tidak lagi tertahan. UAT belum dijalankan. *Sebelumnya: 🟡 Implementation Complete 23 September, menunggu build dan uji API* | [BE-IGD-054](../task/report/backend/BE-IGD-054.md) |
 | `BE-IGD-055` | Kunjungan IGD lahir lewat Mulai Triage atau Tangani Segera (`POST start-triage`) | R3.13 | ✅ **23 September 2026 — atas penilaian pemilik.** Migration `20260923021224` diterapkan; penjaga `Down()` diuji agent di basis data terpisah (lulus 4 tahap); uji API S1–S15 lulus menurut pemilik. Jumlah warning build tidak dilaporkan | [BE-IGD-055](../task/report/backend/BE-IGD-055.md) |
 | `BE-IGD-056` | Dokter layak IGD, validasi ulang, dan override beralasan (`IGD-DEC-141`) | R3.13 | ⛔ `IGD-OQ-102`, `IGD-OQ-103` (`S7`, tidak dikontrakkan); isi kartu dibekukan | — |
 | `BE-IGD-057` | Pasien pergi sebelum ditriage ditandai perawat (`POST no-show`, `IGD-DEC-142`) — **baru** | R3.13 | tanpa tanda — **siap**, prasyarat `BE-IGD-055` ✅ 23 September 2026 | — |
@@ -2000,7 +2000,7 @@ flowchart LR
 
     BEIGD051["✅ BE-IGD-051<br/>Kunjungan berakhir menutup encounter"]:::selesai
     BEIGD052["✅ BE-IGD-052<br/>Rekonsiliasi encounter historis"]:::selesai
-    BEIGD054["🟡 BE-IGD-054<br/>Daftar Menunggu Triage terpadu"]:::sebagian
+    BEIGD054["✅ BE-IGD-054<br/>Daftar Menunggu Triage terpadu"]:::selesai
     BEIGD055["✅ BE-IGD-055<br/>Kunjungan lahir lewat Mulai Triage"]:::selesai
     BEIGD053["BE-IGD-053<br/>Penjaga episode di pintu encounter"]:::belum
     BEIGD057["BE-IGD-057<br/>Pasien pergi sebelum ditriage"]:::belum
@@ -2364,7 +2364,7 @@ menjalankan kuerinya.
 **DoD.** Acceptance 1–14; laporan tracked; `IGD-OQ-093` dicatat realisasinya pada decision log oleh pass
 penyelarasan; `FE-IGD-038` dirilis pada waktu yang sama.
 
-### 🟡 `BE-IGD-054` — Daftar Menunggu Triage terpadu (`GET triage-queue`)
+### ✅ `BE-IGD-054` — Daftar Menunggu Triage terpadu (`GET triage-queue`)
 
 | Field | Isi |
 | --- | --- |
