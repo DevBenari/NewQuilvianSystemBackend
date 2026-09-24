@@ -11,10 +11,10 @@
 | Trace | `FR-P2-006`, `FR-P2-015`; `ACC-DEC-057`; `03-frontend-architecture.md` bagian 9 butir 1, bagian 10 butir 13, bagian 11.1 |
 | Kontrak | `BE-ACC-P2-024` — `GET /accounting-events`, `GET /accounting-events/summary` (isi DTO pada [laporan `BE-ACC-P2-024`](../backend/BE-ACC-P2-024.md)) |
 | Dependency | `BE-ACC-P2-024` ✅ |
-| Branch / commit | `RizkiV2` `c941012ac`, perubahan belum di-commit |
+| Branch / commit | `RizkiV2` — di-commit Rizki `70bb05446` (24 September 2026), di atas `c941012ac` |
 | Model | Claude Opus 5.5 |
 | Tanggal | 24 September 2026 |
-| Status | **🟡 SEBAGIAN** — uji layar Rizki 24 September 2026 lulus **8 dari 8** skenario (bagian 8). Angka di butir menu **ditunda atas keputusan Rizki** 24 September 2026 (bagian 3) — dikecualikan dari acceptance (3). **Satu-satunya yang belum:** `npm run build` owner (DoD) |
+| Status | **✅ SELESAI** — 24 September 2026. Uji layar Rizki lulus **8 dari 8** skenario (bagian 8); `npm run build` Rizki berhasil; eslint 0/0; di-commit `70bb05446`. Angka di butir menu **ditunda atas keputusan Rizki** (bagian 3) — dikecualikan dari acceptance (3), `ACC-DEC-057` tetap terbuka. UAT belum dijalankan — diserahkan ke tim UAT. Riwayat: 🟡 pada hari yang sama |
 
 ## 1. Yang dibangun
 
@@ -98,7 +98,7 @@ tidak menimpa daftar di layar Periode Akuntansi.
 | --- | --- |
 | `npx eslint` delapan berkas | **0 error, 0 warning** |
 | Warna / nilai visual literal baru | Nol — tidak ada CSS baru |
-| `npm run build` | **Belum dilaporkan** — Rizki. Uji layar berjalan di dev server, yang bukan bukti build produksi |
+| `npm run build` | **Berhasil** — Rizki, 24 September 2026: tabel rute tercetak lalu `postbuild` (`prepare-standalone`) selesai "Standalone runtime siap dijalankan" — npm hanya menjalankan `postbuild` bila `next build` keluar dengan kode 0. Jumlah halaman tidak terlihat di tangkapan layar |
 | `MANUAL TEST` | **PASS 8 dari 8** — Rizki, 24 September 2026, bagian 8 |
 | `AUTOMATED TEST` | `SKIPPED (opsional)` — kebijakan test repository |
 

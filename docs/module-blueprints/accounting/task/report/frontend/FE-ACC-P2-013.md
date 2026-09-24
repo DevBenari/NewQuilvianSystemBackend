@@ -12,10 +12,10 @@
 | Dependency | `BE-ACC-P2-022` ✅ — dikerjakan berurutan hari yang sama atas permintaan Rizki supaya backend dan layar diuji bersama |
 | Task mode | `FRONTEND`; backend dibaca saja |
 | Modul referensi visual | Layar Jenis Kejadian itu sendiri (`FE-ACC-P2-009`) — diperbarui, bukan dibuat ulang; isian pilihan enum meniru isian Perlakuan pada form Aturan Posting (`FE-ACC-P2-010`) |
-| Branch | `RizkiV2` `c941012ac`, belum di-commit |
+| Branch / commit | `RizkiV2` — di-commit Rizki `70bb05446` (24 September 2026), di atas `c941012ac` |
 | Model | Claude Opus 5.5 |
 | Tanggal | 24 September 2026 |
-| Status | **🟡 SEBAGIAN** — 3 dari 3 acceptance di source; eslint 4 berkas **0 error, 0 warning**; uji layar Rizki 24 September 2026 lulus **7 dari 7** + 3 Swagger (bagian 9). **Satu-satunya yang belum:** `npm run build` owner (DoD) |
+| Status | **✅ SELESAI** — 24 September 2026. 3 dari 3 acceptance; eslint 4 berkas **0 error, 0 warning**; uji layar Rizki lulus **7 dari 7** + 3 Swagger (bagian 9); `npm run build` Rizki berhasil; di-commit `70bb05446`. UAT belum dijalankan. Riwayat: 🟡 pada hari yang sama |
 
 ## 1. Yang dibangun
 
@@ -81,7 +81,7 @@ Nol baris komentar ditambahkan.
 | --- | --- |
 | `npx eslint` keempat berkas | **0 error, 0 warning** (exit 0) |
 | Grep anti-regresi (`<button`, `<table`, `fw-`/`fs-`, warna literal, `style={{`) pada keempat berkas | Kosong semua |
-| `npm run build` | **Belum dilaporkan** — Rizki. Uji layar berjalan di dev server, yang bukan bukti build produksi |
+| `npm run build` | **Berhasil** — Rizki, 24 September 2026: tabel rute tercetak lalu `postbuild` (`prepare-standalone`) selesai "Standalone runtime siap dijalankan" — npm hanya menjalankan `postbuild` bila `next build` keluar dengan kode 0. Jumlah halaman tidak terlihat di tangkapan layar |
 | `MANUAL TEST` | **PASS 7 dari 7** — Rizki, 24 September 2026, bagian 9 |
 | `AUTOMATED TEST` | `SKIPPED (opsional)` — `test-policy.md`; `ACC-DEC-081` |
 
@@ -117,9 +117,9 @@ biarkan Jenis Perlakuan **Transaksi**. Bila dipilih Saldo Subledger, pesan berko
 | Risiko tersisa | Form Aturan Posting masih menawarkan jenis Saldo Subledger pada pilihan jenis kejadian — keputusan penyaringan terbuka, pemilik Rizki (laporan `BE-ACC-P2-022` bagian 7) |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
-| Status Git frontend | Berkas task ini: 4 `M` di atas. Sisanya sudah ada sebelum task: `use-chart-of-account-editor.jsx`, `store.jsx`, `menu-items.jsx` (`M`) dan folder `accounting-event*` (`??`) milik `FE-ACC-P2-011`/`012` + perbaikan COA |
-| Status Git backend | Berkas `BE-ACC-P2-022`: `EventTypeDtos.cs`, `AccEventTypeService.cs` (`M`), laporan `BE-ACC-P2-022.md` dan laporan ini (`??`), plus baris status di dua roadmap dan traceability. Sisanya milik `021`/`024`/`025` yang belum di-commit |
-| Langkah berikutnya | Rizki: `npm run build` — satu build menutup `FE-ACC-P2-011`, `012`, dan `013` |
+| Status Git frontend | Di-commit Rizki `70bb05446` "membuat kotak masuk kejadian" bersama `FE-ACC-P2-011`/`012` dan perbaikan COA; working tree bersih sesudahnya |
+| Status Git backend | Source `BE-ACC-P2-022` dan laporan ini di-commit Rizki `d62a084e` "membuat event box accounting" |
+| Langkah berikutnya | Tidak ada untuk task ini. Uji UAT oleh tim UAT |
 
 ## 9. Hasil uji layar — Rizki, 24 September 2026
 

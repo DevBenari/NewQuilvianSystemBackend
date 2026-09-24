@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingEvent.Enums;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingEvent.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Enums;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Models;
@@ -107,10 +109,11 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingP
 
             var jurnalBelumDisahkan = await HitungJurnalBelumDisahkanAsync(accountingPeriodId, ct);
             var jurnalBelumSeimbang = await HitungJurnalBelumSeimbangAsync(accountingPeriodId, ct);
+            var kejadianGagal = await HitungKejadianAsync(_db, periode, AccountingEventStatus.Gagal, ct);
+            var kejadianTertahan = await HitungKejadianAsync(_db, periode, AccountingEventStatus.Tertahan, ct);
 
             var penghalang = new List<PeriodClosingBlockerResponse>
             {
-                // Penghalang 1 — satu-satunya yang sudah dapat diperiksa sepenuhnya.
                 Butir(
                     KodeJurnalBelumDisahkan,
                     "Jurnal belum disahkan",
@@ -121,10 +124,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingP
                     menahan: true),
 
                 // Penghalang 2 — ACC-DEC-051.
-                ButirBelumTersedia(
+                Butir(
                     KodeKejadianGagal,
                     "Kejadian keuangan gagal",
-                    "Belum dapat diperiksa: kotak masuk kejadian keuangan belum berdiri.",
+                    kejadianGagal > 0
+                        ? PesanKejadianGagal(kejadianGagal)
+                        : "Tidak ada kejadian keuangan yang gagal diproses pada periode ini.",
+                    kejadianGagal,
                     menahan: true),
 
                 // Penghalang 3 — ACC-DEC-065. Tempatnya disediakan sekarang supaya bentuk
@@ -133,7 +139,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingP
                     KodeShiftKasirBelumTutup,
                     "Shift kasir belum ditutup",
                     "Belum dapat diperiksa: kejadian CASH_SHIFT_CLOSED belum mengalir.",
-                    menahan: true)
+                    menahan: true,
+                    alasan: "Finance belum mengirim kejadian CASH_SHIFT_CLOSED; pemeriksaan ini menyusul saat pengirimannya aktif.")
             };
 
             var peringatan = new List<PeriodClosingBlockerResponse>
@@ -147,17 +154,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingP
                     jurnalBelumSeimbang,
                     menahan: false),
 
-                ButirBelumTersedia(
+                Butir(
                     KodeKejadianTertahan,
                     "Kejadian keuangan tertahan",
-                    "Belum dapat diperiksa: kotak masuk kejadian keuangan belum berdiri.",
+                    kejadianTertahan > 0
+                        ? $"Ada {kejadianTertahan} kejadian keuangan tertahan yang belum menjadi jurnal. "
+                          + "Angka laporan periode ini dapat kurang sampai aturan posting-nya dilengkapi."
+                        : "Tidak ada kejadian keuangan yang tertahan pada periode ini.",
+                    kejadianTertahan,
                     menahan: false),
 
                 ButirBelumTersedia(
                     KodeIntegrasiBelumCocok,
                     "Integrasi belum cocok",
                     "Belum dapat diperiksa: penyambungan ke modul lain belum berdiri.",
-                    menahan: false),
+                    menahan: false,
+                    alasan: "Pembandingan catatan Accounting dengan modul pengirim belum dirancang."),
 
                 ButirBelumTersedia(
                     KodePenyusutanBelumJalan,
@@ -263,6 +275,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingP
                 return Gagal(
                     StatusCodes.Status409Conflict,
                     $"Masih ada {jurnalBelumDisahkan} jurnal yang belum disahkan.");
+            }
+
+            var kejadianGagal = await HitungKejadianAsync(_db, periode, AccountingEventStatus.Gagal, ct);
+            if (kejadianGagal > 0)
+            {
+                return Gagal(StatusCodes.Status409Conflict, PesanKejadianGagal(kejadianGagal));
             }
 
             var riwayat = await CatatTindakanAsync(
@@ -523,6 +541,29 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingP
                 .CountAsync(x => !x.IsDelete
                                  && x.AccountingPeriodId == accountingPeriodId
                                  && StatusBelumDisahkan.Contains(x.JournalStatus), ct);
+
+        public static Task<int> HitungKejadianAsync(
+            ApplicationDbContext db,
+            AccAccountingPeriod periode,
+            AccountingEventStatus status,
+            CancellationToken ct = default)
+        {
+            var awal = periode.StartDate.Date;
+            var akhir = periode.EndDate.Date;
+            var badanHukum = periode.LegalEntityId;
+
+            return db.Set<AccAccountingEvent>()
+                .AsNoTracking()
+                .CountAsync(x => !x.IsDelete
+                                 && x.LegalEntityId == badanHukum
+                                 && x.EventStatus == status
+                                 && x.AccountingDate >= awal
+                                 && x.AccountingDate <= akhir, ct);
+        }
+
+        private static string PesanKejadianGagal(int jumlah)
+            => $"Masih ada {jumlah} kejadian keuangan yang gagal diproses. "
+               + "Coba ulang atau abaikan dengan alasan dari Kotak Masuk Kejadian.";
 
         // ------------------------------------------------------------------
         // Pembantu

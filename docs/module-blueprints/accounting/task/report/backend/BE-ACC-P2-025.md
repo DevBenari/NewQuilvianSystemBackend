@@ -99,3 +99,15 @@ Kedua jalur ini diuji ulang lewat layar begitu `BE-ACC-P2-023` menghasilkan keja
 sungguhan. UAT belum dijalankan — diserahkan ke tim UAT.
 
 **Perubahan data uji.** `EVT-UJI-001` kini `Terjurnal`; kotak masuk tidak lagi punya kejadian `Tertahan`.
+
+### 6.3 Pembaruan — jalur Gagal diuji di layar, 24 September 2026
+
+Sesudah `BE-ACC-P2-023` menghasilkan kejadian Gagal sungguhan (`EVT-UJI-023A`, `023B`, tanggal 2030-01-15),
+Rizki menguji kedua jalur yang di bagian 6.2 baru dibuktikan lewat source:
+
+| Jalur | Hasil |
+| --- | :---: |
+| Abaikan `EVT-UJI-023A` tanpa alasan → ditolak; dengan alasan "Testing ignore event" → Diabaikan | ✅ |
+| Coba Ulang `EVT-UJI-023B` saat periode 2030 belum ada → tetap Gagal; sesudah periode 2030 dibangkitkan → Terjurnal | ✅ |
+
+Bukti source di bagian 6.2 kini diperkuat bukti layar. Rincian di [laporan `BE-ACC-P2-023`](BE-ACC-P2-023.md) bagian 8.

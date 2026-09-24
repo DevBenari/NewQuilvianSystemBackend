@@ -191,4 +191,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingE
 
         public DateTimeOffset ReceivedAt { get; set; }
     }
+
+    public class AccountingEventRetryCycleResult
+    {
+        public int Considered { get; set; }
+
+        public int Journaled { get; set; }
+
+        public int Held { get; set; }
+
+        public int StillPending { get; set; }
+
+        public int MarkedFailed { get; set; }
+
+        public int Skipped { get; set; }
+
+        public List<string> Errors { get; set; } = new();
+    }
 }

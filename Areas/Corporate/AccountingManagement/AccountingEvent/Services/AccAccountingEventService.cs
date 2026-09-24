@@ -30,6 +30,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingE
         public const string AlasanKomponenTidakDipakai = "COMPONENT_UNMAPPED";
         public const string AlasanKomponenKurang = "COMPONENT_MISSING";
 
+        public const int BatasCobaUlangTerjadwal = 3;
+
+        private const int UkuranGelombangPenjadwal = 100;
+
+        private static readonly TimeSpan[] JedaCobaUlangTerjadwal =
+        {
+            TimeSpan.FromMinutes(1),
+            TimeSpan.FromMinutes(5),
+            TimeSpan.FromMinutes(15)
+        };
+
         private const int PanjangNomorMaksimum = 50;
         private const int PanjangKodeJenisMaksimum = 50;
         private const int PanjangModulMaksimum = 50;
@@ -602,6 +613,121 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingE
 
             _db.ChangeTracker.Clear();
             return await PetakanTandaTerimaAsync(kejadian.Id, ct);
+        }
+
+        public async Task<AccountingEventRetryCycleResult> CobaUlangTerjadwalAsync(
+            DateTime sekarangUtc,
+            CancellationToken ct = default)
+        {
+            var hasil = new AccountingEventRetryCycleResult();
+            var tenggang = TimeSpan.FromSeconds(Math.Max(0, _options.GracePeriodSeconds));
+            var pelaku = _options.SystemActorUserId ?? Guid.Empty;
+            var sekarang = new DateTimeOffset(DateTime.SpecifyKind(sekarangUtc, DateTimeKind.Utc));
+
+            _db.ChangeTracker.Clear();
+
+            var kandidat = await _db.Set<AccAccountingEvent>()
+                .AsNoTracking()
+                .Where(x => !x.IsDelete && x.EventStatus == AccountingEventStatus.Diterima)
+                .OrderBy(x => x.CreateDateTime)
+                .Take(UkuranGelombangPenjadwal)
+                .Select(x => new
+                {
+                    x.Id,
+                    x.EventNumber,
+                    x.AttemptCount,
+                    x.CreateDateTime,
+                    TerakhirDicoba = x.Attempts.Max(a => (DateTimeOffset?)a.AttemptedAt),
+                    NomorTerakhir = x.Attempts.Max(a => (int?)a.AttemptNumber)
+                })
+                .ToListAsync(ct);
+
+            foreach (var k in kandidat)
+            {
+                var dasar = k.TerakhirDicoba
+                            ?? new DateTimeOffset(DateTime.SpecifyKind(k.CreateDateTime, DateTimeKind.Utc));
+                var jeda = k.AttemptCount < JedaCobaUlangTerjadwal.Length
+                    ? JedaCobaUlangTerjadwal[k.AttemptCount]
+                    : TimeSpan.Zero;
+
+                if (dasar + (jeda > tenggang ? jeda : tenggang) > sekarang) continue;
+
+                hasil.Considered++;
+
+                try
+                {
+                    if (k.AttemptCount >= BatasCobaUlangTerjadwal)
+                    {
+                        if (await TandaiGagalTerjadwalAsync(k.Id, pelaku, ct)) hasil.MarkedFailed++;
+                        else hasil.Skipped++;
+                        continue;
+                    }
+
+                    var hitunganBaru = k.AttemptCount + 1;
+                    var waktuKlaim = DateTime.UtcNow;
+
+                    var diklaim = await _db.Set<AccAccountingEvent>()
+                        .Where(x => x.Id == k.Id
+                                    && x.EventStatus == AccountingEventStatus.Diterima
+                                    && x.AttemptCount == k.AttemptCount)
+                        .ExecuteUpdateAsync(setters => setters
+                            .SetProperty(x => x.AttemptCount, hitunganBaru)
+                            .SetProperty(x => x.UpdateDateTime, waktuKlaim)
+                            .SetProperty(x => x.UpdateBy, pelaku), ct);
+
+                    if (diklaim == 0)
+                    {
+                        hasil.Skipped++;
+                        continue;
+                    }
+
+                    var tanda = await ProsesKejadianAsync(
+                        k.Id, AccountingEventStatus.Diterima, (k.NomorTerakhir ?? 0) + 1, pelaku, ct);
+
+                    if (tanda.EventStatus == nameof(AccountingEventStatus.Terjurnal))
+                    {
+                        hasil.Journaled++;
+                    }
+                    else if (tanda.EventStatus == nameof(AccountingEventStatus.Tertahan))
+                    {
+                        hasil.Held++;
+                    }
+                    else if (tanda.EventStatus != nameof(AccountingEventStatus.Diterima))
+                    {
+                        hasil.Skipped++;
+                    }
+                    else if (hitunganBaru >= BatasCobaUlangTerjadwal
+                             && await TandaiGagalTerjadwalAsync(k.Id, pelaku, ct))
+                    {
+                        hasil.MarkedFailed++;
+                    }
+                    else
+                    {
+                        hasil.StillPending++;
+                    }
+                }
+                catch (Exception exception) when (exception is not OperationCanceledException)
+                {
+                    _db.ChangeTracker.Clear();
+                    hasil.Errors.Add($"{k.EventNumber}: {exception.Message}");
+                }
+            }
+
+            return hasil;
+        }
+
+        private async Task<bool> TandaiGagalTerjadwalAsync(Guid accountingEventId, Guid actorUserId, CancellationToken ct)
+        {
+            var sekarang = DateTime.UtcNow;
+
+            var berubah = await _db.Set<AccAccountingEvent>()
+                .Where(x => x.Id == accountingEventId && x.EventStatus == AccountingEventStatus.Diterima)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(x => x.EventStatus, AccountingEventStatus.Gagal)
+                    .SetProperty(x => x.UpdateDateTime, sekarang)
+                    .SetProperty(x => x.UpdateBy, actorUserId), ct);
+
+            return berubah > 0;
         }
 
         private async Task<AccountingEventReceiptDto> TahanAsync(

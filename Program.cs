@@ -681,6 +681,7 @@ try
     builder.Services.Configure<AccAccountingEventSchedulerOptions>(
         builder.Configuration.GetSection("Accounting:AccountingEventScheduler"));
     builder.Services.AddScoped<AccAccountingEventService>();
+    builder.Services.AddHostedService<AccAccountingEventSchedulerHostedService>();
 
     builder.Services.AddScoped<LeaveEntitlementBalanceQueryService>();
     builder.Services.AddScoped<LeaveAdjustmentPostingService>();

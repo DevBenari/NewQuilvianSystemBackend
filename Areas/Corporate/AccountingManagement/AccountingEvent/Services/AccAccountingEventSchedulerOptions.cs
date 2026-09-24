@@ -5,5 +5,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingE
         public Guid? SystemActorUserId { get; set; }
 
         public int GracePeriodSeconds { get; set; } = 120;
+
+        public bool Enabled { get; set; } = true;
+
+        public int PollIntervalSeconds { get; set; } = 30;
     }
 }

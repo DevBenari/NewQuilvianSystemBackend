@@ -462,9 +462,9 @@ flowchart LR
         BBEACCP2025["✅ BE-ACC-P2-025<br/>Coba ulang manual dan abaikan"]:::luar
     end
 
-    FEACCP2011["🟡 FE-ACC-P2-011<br/>Layar Kotak Masuk Kejadian"]:::sebagian
+    FEACCP2011["✅ FE-ACC-P2-011<br/>Layar Kotak Masuk Kejadian"]:::selesai
     FEACCP2012["🟡 FE-ACC-P2-012<br/>Rincian kejadian dan aksinya"]:::sebagian
-    FEACCP2013["🟡 FE-ACC-P2-013<br/>Isian jenis perlakuan"]:::sebagian
+    FEACCP2013["✅ FE-ACC-P2-013<br/>Isian jenis perlakuan"]:::selesai
 
     BBEACCP2024 --> FEACCP2011
     BBEACCP2024 --> FEACCP2012
@@ -481,11 +481,11 @@ flowchart LR
 
 | ID | Judul | Gelombang | Dependency | Status |
 |---|---|---|---|---|
-| `FE-ACC-P2-011` | Layar Kotak Masuk Kejadian beserta penanda angka menu | `P2-6` | `BE-ACC-P2-024` | 🟡 `SEBAGIAN` 24 Sep 2026 — uji layar 8/8 lulus; angka menu ditunda atas keputusan Rizki; tinggal `npm run build`. [Laporan](../task/report/frontend/FE-ACC-P2-011.md) |
-| `FE-ACC-P2-012` | Rincian kejadian: coba ulang dan abaikan | `P2-6` | `BE-ACC-P2-024`, `BE-ACC-P2-025`, `FE-ACC-P2-011` | 🟡 `SEBAGIAN` 24 Sep 2026 — uji layar 7/7 lulus; tinggal `npm run build`. [Laporan](../task/report/frontend/FE-ACC-P2-012.md) |
-| `FE-ACC-P2-013` | Isian Jenis perlakuan pada form jenis kejadian | `P2-6` | `BE-ACC-P2-022` | 🟡 `SEBAGIAN` 24 Sep 2026 — uji layar 7/7 + Swagger 3/3 lulus; tinggal `npm run build`. [Laporan](../task/report/frontend/FE-ACC-P2-013.md) |
+| `FE-ACC-P2-011` | Layar Kotak Masuk Kejadian beserta penanda angka menu | `P2-6` | `BE-ACC-P2-024` | ✅ `SELESAI` 24 Sep 2026 — uji layar 8/8, `npm run build` berhasil, commit `70bb05446`; angka menu ditunda atas keputusan Rizki. [Laporan](../task/report/frontend/FE-ACC-P2-011.md) |
+| `FE-ACC-P2-012` | Rincian kejadian: coba ulang dan abaikan | `P2-6` | `BE-ACC-P2-024`, `BE-ACC-P2-025`, `FE-ACC-P2-011` | 🟡 `SEBAGIAN` 24 Sep 2026 — dikerjakan ulang atas permintaan Rizki (rincian ringkas, pesan asli terbaca); tinggal `npm run build` dan uji layar ulang. [Laporan](../task/report/frontend/FE-ACC-P2-012.md) |
+| `FE-ACC-P2-013` | Isian Jenis perlakuan pada form jenis kejadian | `P2-6` | `BE-ACC-P2-022` | ✅ `SELESAI` 24 Sep 2026 — uji layar 7/7 + Swagger 3/3, `npm run build` berhasil, commit `70bb05446`. [Laporan](../task/report/frontend/FE-ACC-P2-013.md) |
 
-## 🟡 `FE-ACC-P2-011` — Layar Kotak Masuk Kejadian beserta penanda angka menu
+## ✅ `FE-ACC-P2-011` — Layar Kotak Masuk Kejadian beserta penanda angka menu
 
 | Field | Isi |
 |---|---|
@@ -499,7 +499,7 @@ flowchart LR
 | Verifikasi | `npm run lint`; `npm run build` oleh owner; kolom layar lawan DTO backend |
 | Risiko/pemilik | Layar kosong sampai `BE-ACC-P2-020` diterapkan dan ada pesan tiruan. Owner Frontend |
 | DoD | Lint hijau, laporan task tertulis. Build dijalankan owner |
-| **Status** | 🟡 **SEBAGIAN — 24 September 2026.** Dibangun; eslint 8 berkas 0/0; uji layar Rizki lulus **8 dari 8** (menu, angka tab, tab Tertahan + alasan, jenis, periode, cari, tab Semua dengan nomor jurnal, galat + Coba Lagi). Angka penanda di **menu ditunda atas keputusan Rizki** 24 September 2026 — bagian "di menu" acceptance (3) dikecualikan, sidebar bersama tidak disentuh, `ACC-DEC-057` tetap terbuka untuk task kelak. **Satu-satunya yang belum:** `npm run build` owner (DoD). UAT belum dijalankan. Bukti: [laporan](../task/report/frontend/FE-ACC-P2-011.md) |
+| **Status** | ✅ **SELESAI — 24 September 2026.** Dibangun; eslint 8 berkas 0/0; uji layar Rizki lulus **8 dari 8** (menu, angka tab, tab Tertahan + alasan, jenis, periode, cari, tab Semua dengan nomor jurnal, galat + Coba Lagi). Angka penanda di **menu ditunda atas keputusan Rizki** 24 September 2026 — bagian "di menu" acceptance (3) dikecualikan, sidebar bersama tidak disentuh, `ACC-DEC-057` tetap terbuka untuk task kelak. `npm run build` Rizki berhasil; di-commit `70bb05446`. Riwayat: 🟡 pada hari yang sama. UAT belum dijalankan. Bukti: [laporan](../task/report/frontend/FE-ACC-P2-011.md) |
 
 ## 🟡 `FE-ACC-P2-012` — Rincian kejadian: coba ulang dan abaikan
 
@@ -515,9 +515,9 @@ flowchart LR
 | Verifikasi | `npm run lint`; `npm run build` oleh owner |
 | Risiko/pemilik | Pertentangan desain layar lawan state matrix **selesai** — `ACC-DEC-092`; `03-frontend-architecture.md` bagian 11.2 sudah diselaraskan. Owner Frontend |
 | DoD | Lint hijau, laporan task tertulis. Build dijalankan owner |
-| **Status** | 🟡 **SEBAGIAN — 24 September 2026.** Halaman rincian (slug, bukan Id), kartu jurnal/komponen/percobaan/pesan asli, Coba Ulang (Gagal+Tertahan) dan Abaikan (Gagal, alasan wajib) dengan `usePermission`; eslint **0/0**; uji layar Rizki lulus **7 dari 7**. Tombol untuk status `Gagal` dibuktikan lewat source **atas keputusan Rizki** — belum ada kode yang menghasilkan `Gagal` sebelum `BE-ACC-P2-023`. **Satu-satunya yang belum:** `npm run build` owner (DoD). UAT belum dijalankan. Bukti: [laporan](../task/report/frontend/FE-ACC-P2-012.md) |
+| **Status** | 🟡 **SEBAGIAN — pengerjaan ulang 24 September 2026** atas permintaan Rizki: Informasi Utama diringkas dari 13 kotak + kartu Jurnal/Komponen/Informasi Tambahan menjadi 7 kotak, dan Isi Pesan Asli tampil sebagai tabel berlabel Indonesia, bukan kode JSON (FR-P2-006 tetap terpenuhi). eslint 3 berkas **0/0**. **Belum:** `npm run build` Rizki dan uji layar ulang 6 skenario. Versi sebelumnya ✅ (uji 7/7, build berhasil, commit `70bb05446`); jalur Gagal kini juga teruji di layar sesudah `BE-ACC-P2-023`. UAT belum dijalankan. Bukti: [laporan](../task/report/frontend/FE-ACC-P2-012.md) |
 
-## 🟡 `FE-ACC-P2-013` — Isian Jenis perlakuan pada form jenis kejadian
+## ✅ `FE-ACC-P2-013` — Isian Jenis perlakuan pada form jenis kejadian
 
 | Field | Isi |
 |---|---|
@@ -531,7 +531,7 @@ flowchart LR
 | Verifikasi | `npm run lint`; `npm run build` oleh owner |
 | Risiko/pemilik | Owner Frontend |
 | DoD | Lint hijau, laporan task tertulis. Build dijalankan owner |
-| **Status** | 🟡 **SEBAGIAN — 24 September 2026.** Isian Jenis Perlakuan (bawaan Transaksi) di form Tambah/Perbarui, kolom di daftar, penguncian dua lapis (`accountingEventCount` dari rincian dan jawaban `409`); 3 dari 3 acceptance di source; eslint 4 berkas **0/0**; nol CSS baru; uji layar Rizki lulus **7 dari 7** + 3 Swagger. **Satu-satunya yang belum:** `npm run build` owner (DoD). UAT belum dijalankan. Bukti: [laporan](../task/report/frontend/FE-ACC-P2-013.md) |
+| **Status** | ✅ **SELESAI — 24 September 2026.** Isian Jenis Perlakuan (bawaan Transaksi) di form Tambah/Perbarui, kolom di daftar, penguncian dua lapis (`accountingEventCount` dari rincian dan jawaban `409`); 3 dari 3 acceptance di source; eslint 4 berkas **0/0**; nol CSS baru; uji layar Rizki lulus **7 dari 7** + 3 Swagger. `npm run build` Rizki berhasil; di-commit `70bb05446`. Riwayat: 🟡 pada hari yang sama. UAT belum dijalankan. Bukti: [laporan](../task/report/frontend/FE-ACC-P2-013.md) |
 
 ### Peta butir menu — tambahan
 
