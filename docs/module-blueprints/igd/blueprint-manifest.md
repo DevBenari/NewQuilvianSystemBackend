@@ -3,8 +3,8 @@
 | Field | Value |
 |---|---|
 | `blueprint_id` | `IGD-BP-001` |
-| `revision` | `6` |
-| `status` | `draft` — **tidak disetujui siapa pun**. Revision `4` yang berstatus `approved sebagian` tetap berlaku sebagai baseline sampai revisi ini disetujui |
+| `revision` | **`8`** — naik 23 September 2026 lewat amendment penutupan kunjungan lewat disposisi (`IGD-DEC-163`…`169`, bagian 0i); seluruh isinya `draft`. *Sebelumnya* **`7`** — naik 22 September 2026 (penutup) lewat `IGD-DEC-157`: bagian encounter-first kelima kontrak `approved`. *Sebelumnya `6`* |
+| `status` | `draft` — blueprint secara keseluruhan **belum** disetujui; irisan tertentu disetujui (lihat `approved_by`; terbaru `IGD-DEC-157`, 22 September 2026). *Tulisan lama: "tidak disetujui siapa pun".* Revision `4` yang berstatus `approved sebagian` tetap berlaku sebagai baseline sampai revisi ini disetujui |
 | `module` | `igd` / `EmergencyInstallationManagement`, prefix entity **`Emg`** sejak 27 Agustus 2026 (17 tabel `Emg*`; nol `Trx*`/`Mst*` milik IGD tersisa). Prefix lama `TrxEmergency`/`MstEmergency` hanya berlaku pada artefak desain yang disusun sebelum tanggal itu |
 | `registry_lifecycle` | `ACTIVE` |
 | `design_snapshot_at` | `2026-08-26` (revisi 6); revisi 5 pada `2026-08-24` |
@@ -12,19 +12,116 @@
 | `frontend_commit_sha` | `96a9120111f6acc6b7c0f37973ea0c717ba41f17` (branch `RizkiV2`) |
 | `status_check_sha` | **15 September 2026** — backend `e89907c5` (`rizkiG`), frontend `43adae648` (`RizkiV2`). SHA desain di atas **tidak diganti**; ini hanya tempat pemeriksaan status terakhir dijalankan. Lihat [evidence/2026-09-15-pemeriksaan-status.md](evidence/2026-09-15-pemeriksaan-status.md) |
 | `owners` | Product/Domain: **Rizki Gunawan**, ditetapkan `IGD-DEC-089` 2026-08-24. Clinical Governance, Nursing authority, Security/Privacy: `OPEN`. Pemilik `ClinicalManagement` dan `PharmacyManagement`: **belum ditunjuk** — digantikan sementara Product/Domain Owner IGD (`IGD-DEC-107`). Pemilik `LaboratoryManagement` dan `RadiologyManagement`: **Yoga Aji Pratama** (tercatat pada blueprint masing-masing; Radiologi lewat `RAD-DEC-014`, 10 September 2026) |
-| `approved_by` | Sebagian: **Rizki Gunawan** menyetujui `IGD-DEC-067`, `IGD-DEC-088`, `IGD-DEC-089`, dan `IGD-DEC-093` pada 24 Agustus 2026. Blueprint secara keseluruhan **belum** disetujui |
-| `approved_at` | Sebagian: `2026-08-24` |
-| `requirement_readiness` | **`UNCLASSIFIED`** — lihat bagian 0 |
+| `approved_by` | Sebagian: **Rizki Gunawan** menyetujui `IGD-DEC-067`, `IGD-DEC-088`, `IGD-DEC-089`, dan `IGD-DEC-093` pada 24 Agustus 2026; dan **`IGD-DEC-157`**…**`162`** pada 22 September 2026 (bagian encounter-first API §8, validation §10, state §8, integration §5, permission/audit §7; koreksi B1/B2/B4; keterbatasan B3; `IGD-OQ-104`…`107`). Blueprint secara keseluruhan **belum** disetujui |
+| `approved_at` | Sebagian: `2026-08-24`; `2026-09-22` (encounter-first); `2026-09-23` (penutupan lewat disposisi, `IGD-DEC-170`) |
+| `blueprint_shape` | **`SINGLE`** — `shape_decided_by: USER_CONFIRMED` (Rizki Gunawan, 22 September 2026, sesudah uji pemecahan: hanya rumpun Kepergian yang lolos 3/5; rumpun Pendaftaran & episode 2/5, Triage & penanganan 2/5, Dokter penanggung jawab 1/5). Rincian di bagian 0g |
+| `struktur_berkas` | **Utang struktur dicatat**: kamus data tetap di `erd/data-dictionary.md` dan ERD lama tetap di `erd/` (kontrak output terbaru meminta `data/` dan `flowcharts/`). `flowcharts/` **ditambahkan** 22 September 2026 untuk alur encounter-first. Migrasi `erd/` → `data/` adalah pekerjaan terpisah (keputusan pemilik 22 September 2026) |
+| `requirement_readiness` | **Slice encounter-first: `PARTIALLY_READY`** — sub-slice `S1`…`S6`, `S8` `READY_FOR_DOMAIN_DESIGN`; `S7` (kelayakan dokter jaga) `BUSINESS_DECISION_REQUIRED` (`IGD-OQ-102`, `103`) — [evidence/02-requirement-completeness-gate.md](evidence/02-requirement-completeness-gate.md) `0.1`, 22 September 2026. **Area IGD lain: `UNCLASSIFIED`** — lihat bagian 0 |
 | `domain_architecture_revision` | **Tidak ada** — lihat bagian 0 |
-| `domain_architecture_readiness` | **`NOT_ASSESSED`** |
-| `input_revisions` | `00-interview-decisions.md` **121 keputusan**, terakhir `IGD-DEC-121` (15 September 2026, perencanaan delivery); sebelumnya 115 sampai `IGD-DEC-115` pada pemeriksaan status hari yang sama, dan 105 sampai `IGD-DEC-105` saat revisi 6 disusun; `01-existing-capability-map.md` revision `3` + **suplemen `3.1`** (audit terarah `EmergencyTransfer` pada `300922c`) |
-| `delivery_state` | **Per 15 September 2026, dipetakan ulang ke source:** `MVP-1`, `MVP-2`, dan R3.7 ✅; `MVP-0` 🟡 (`BE-IGD-017` tanpa laporan tracked); `MVP-3` 🟡 (`BE-IGD-026`); `MVP-4` 🟡 (`BE-IGD-031`); `MVP-5` 🟡 (`BE-IGD-035`, `EPIC IGD-04` tanpa task); `MVP-6` ⛔ (`BE-IGD-039`). Backend 18 task ✅, 4 🟡, 1 ⛔; frontend 5 ✅, 5 🟡, 1 belum dikerjakan. Seluruhnya sudah di-commit. **Sesudah perencanaan 15 September 2026 (kedua):** backend ditambah 6 task direncanakan (`BE-IGD-040`…`045`, satu ⛔ `BE-IGD-042`); frontend ditambah kartu susulan `FE-IGD-019` ✅ dan 5 task direncanakan (`FE-IGD-023`…`027`) — lihat bagian 0b.5. Rincian di [MODULE-STATUS.md](MODULE-STATUS.md). *Keadaan lama (26 Agustus): "`MVP-0` berjalan, `BE-IGD-017`…`020` selesai, belum di-commit"* |
-| `amendment` | **2026-08-24 (kedua)** — `IGD-OQ-068`/`070`/`071` ditutup. **2026-08-26 (correction pass revisi 6)** — enam butir, lihat 0a.2 sampai 0a.4. **2026-09-15 (pemeriksaan status)** — `IGD-DEC-110`…`115`, `IGD-DEC-099` digantikan `IGD-DEC-111`; lihat bagian 0b |
-| `contract_versions` | **Per 15 September 2026 (penyelarasan teks, bagian 0c):** API **`0.5.0`** bukan aditif murni (query `at` aditif + satu penolakan `400` baru); validation **`0.5.0`** bukan aditif (dua teks pesan berubah + bagian 8 baru); state, permission/audit, integration **tidak berubah**. *Keadaan revisi 6:* API `0.4.0` **bukan aditif**; validation `0.4.0` **bukan aditif**; state `0.4.0` aditif; permission/audit `0.4.0` aditif; integration `0.3.0` tidak berubah. Rinciannya di 0a.2. Seluruhnya `draft`. `IGD-DEC-093` **tidak diperluas**: yang `approved` tetap hanya state §1/§1.1/§1.2 dan validation §2 aturan 4–5. **Dikoreksi 15 September 2026:** kalimat ini tertinggal dari `IGD-DEC-108` (27 Agustus 2026), yang menaikkan irisan kontrak `MVP-1`…`MVP-6` menjadi `approved` — state §2, 3, 4, 6, 6a; validation §1, 1.1, 3, 4, 4.1, 5, 5.1, 6, 7; API §1.1, §2, bagian pengkajian; permission/audit §3.1; integration bagian encounter IGD — dengan wewenang sementara `IGD-DEC-107` |
+| `domain_architecture_readiness` | Slice encounter-first: **`DOMAIN_ARCHITECTURE_NOT_RUN`** — slice di dalam bounded context IGD yang sudah ada; kepemilikan lintas modul sudah diputuskan pemilik (`IGD-DEC-144`, `145`, `151`, `153`); alasan lengkap di gate §10. Area lain: **`NOT_ASSESSED`** |
+| `input_revisions` | `00-interview-decisions.md` **169 keputusan**, terakhir `IGD-DEC-169` (23 September 2026 — penutupan kunjungan lewat disposisi); capability map suplemen **3.3** @ `dce1f138`. *Sebelumnya* **162 keputusan**, terakhir `IGD-DEC-162` (22 September 2026 penutup — approval kontrak encounter-first `IGD-DEC-157`, keterbatasan izin bersama `IGD-DEC-158`, jawaban `IGD-OQ-104`…`107` `IGD-DEC-159`…`162`; pertanyaan baru `IGD-OQ-108`); sebelumnya 156 sampai `IGD-DEC-156` (22 September 2026 — bentuk `SINGLE` dan susunan `erd/` dipertahankan, gerbang `design-business-module`); sebelumnya 154 sampai `IGD-DEC-154` (22 September 2026 larut — penutup impact scan `IGD-TRQ-08`…`11`: `IGD-DEC-151`…`154` `approved`; `IGD-DEC-140` U1 dan `IGD-DEC-149` `superseded`; fakta `IGD-FACT-021`…`023`); sebelumnya 150 sampai `IGD-DEC-150` (22 September 2026 sore — amendment pass `grill-me` kasus tepi: `IGD-DEC-142`…`150` `approved`; fakta `IGD-FACT-011`…`020`; asumsi `IGD-ASM-001`/`002`; `IGD-OQ-093` `superseded` sebagian; `IGD-OQ-094`/`095`/`096`/`097`/`100`/`101` `superseded`); sebelumnya 141 sampai `IGD-DEC-141` (22 September 2026 — encounter-first `IGD-DEC-139`, pasien tanpa identitas `IGD-DEC-140`, kelayakan dokter jaga `IGD-DEC-141`; ketiganya `approved` **prinsip**; `IGD-OQ-093` ditutup; `IGD-OQ-094`…`101` dibuka; bukti `IGD-EV-140`…`144`); sebelumnya 138 sampai `IGD-DEC-138` (21 September 2026); sebelumnya 134 sampai `IGD-DEC-134` (16 September 2026 keempat, tata letak riwayat pada ruang kerja pemeriksaan — murni tampilan, nol dampak kontrak); sebelumnya 132 sampai `IGD-DEC-132` (16 September 2026 ketiga, kesiapan `EPIC IGD-04`); sebelumnya 128 sampai `IGD-DEC-128` (16 September 2026 kedua, kunjungan keluar dari `Arrived`); sebelumnya 126 sampai `IGD-DEC-126` (16 September 2026, pemantauan observasi); sebelumnya 121 sampai `IGD-DEC-121` (15 September 2026, perencanaan delivery), 115 sampai `IGD-DEC-115` pada pemeriksaan status hari yang sama, dan 105 sampai `IGD-DEC-105` saat revisi 6 disusun; `01-existing-capability-map.md` revision `3` + **suplemen `3.1`** (audit terarah `EmergencyTransfer` pada `300922c`) + **suplemen `3.2`** (impact scan encounter-first pada `0d13f3a8`/`c941012ac`, 22 September 2026; area lain revisi 3 tetap stale) |
+| `delivery_state` | **Per 15 September 2026, dipetakan ulang ke source:** `MVP-1`, `MVP-2`, dan R3.7 ✅; `MVP-0` 🟡 (`BE-IGD-017` tanpa laporan tracked); `MVP-3` 🟡 (`BE-IGD-026`); `MVP-4` 🟡 (`BE-IGD-031`); `MVP-5` 🟡 (`BE-IGD-035`, `EPIC IGD-04` tanpa task); `MVP-6` ⛔ (`BE-IGD-039`). Backend 18 task ✅, 4 🟡, 1 ⛔; frontend 5 ✅, 5 🟡, 1 belum dikerjakan. Seluruhnya sudah di-commit. **Sesudah perencanaan 15 September 2026 (kedua):** backend ditambah 6 task direncanakan (`BE-IGD-040`…`045`, satu ⛔ `BE-IGD-042`); frontend ditambah kartu susulan `FE-IGD-019` ✅ dan 5 task direncanakan (`FE-IGD-023`…`027`) — lihat bagian 0b.5. **Sesudah perencanaan 16 September 2026 (kedua):** frontend ditambah 2 task direncanakan, `FE-IGD-029` dan `FE-IGD-030`, yang memulihkan jalan keluar kunjungan dari `Arrived` — tanpanya modul IGD tidak dapat dipakai untuk pasien baru (`IGD-EV-131`…`IGD-EV-136`, `IGD-DEC-127`, `IGD-DEC-128`). Nol perubahan kontrak, nol task backend. Rincian di [MODULE-STATUS.md](MODULE-STATUS.md). *Keadaan lama (26 Agustus): "`MVP-0` berjalan, `BE-IGD-017`…`020` selesai, belum di-commit"* |
+| `amendment` | **2026-09-23 — penutupan kunjungan lewat disposisi** (`design-business-module`) — revisi naik ke `8`; lihat bagian 0i. **2026-09-22 (penutup) — approval + `plan-module-delivery` final** — revisi naik ke `7`; lihat bagian 0h. **2026-09-22 (encounter-first)** — `IGD-DEC-139`…`141` dan task R3.13/R3.12 ditulis sebagai **rencana**; revisi blueprint **tetap `6`** karena arsitektur target baru disetujui prinsip dan kontrak belum diselaraskan (lihat `koreksi_desain_tertunda`). Bila penyelarasan kontrak dikerjakan, perubahan titik lahir `EmgVisit` dan penulisan status encounter oleh IGD adalah perubahan material yang layak menaikkan revisi. **2026-08-24 (kedua)** — `IGD-OQ-068`/`070`/`071` ditutup. **2026-08-26 (correction pass revisi 6)** — enam butir, lihat 0a.2 sampai 0a.4. **2026-09-15 (pemeriksaan status)** — `IGD-DEC-110`…`115`, `IGD-DEC-099` digantikan `IGD-DEC-111`; lihat bagian 0b |
+| `contract_versions` | **Per 23 September 2026 (penutupan lewat disposisi, seluruhnya `draft` dan Rencana):** API **`0.12.0`**, validation **`0.9.0`**, state **`0.6.0`**, permission/audit **`0.6.0`**, integration **`0.5.0`** — seluruhnya aditif kecuali satu penolakan baru pada pembatalan disposisi (API bagian 9.1 nomor 3). *Sebelumnya* **Per 22 September 2026 (encounter-first, `design-business-module`, seluruhnya `draft` dan Rencana):** API **`0.11.0`** — **bukan aditif murni** (penjaga + tanpa-antrean pada `POST /patient-encounters` Emergency, penolakan `PATCH …/status`/`…/cancel` Registrasi untuk Emergency, penguncian `PUT /emergency-visits/{id}`, efek samping penutupan encounter; endpoint baru `triage-queue`, `start-triage`, `no-show`, `{id}/arrival-time`, grup `Emergency Encounter Reconciliation`); validation **`0.8.0`** — bukan aditif murni (sumber aturan episode berganti ke klausa A+B; bagian 10 baru); state **`0.5.0`** aditif (bagian 8); integration **`0.4.0`** (bagian 5; memutus perilaku bagi Registrasi); permission/audit **`0.5.0`** aditif (bagian 7: `EmergencyVisit : NoShow`, resource `EmergencyEncounterReconciliation`). Rincian di bagian 0g. *Sebelumnya — per 21 September 2026 (`BE-IGD-048`):* API **`0.8.0`** — *relaxed nullability change for legacy response*, bukan aditif murni: `assignedByUserId` pada §3.2 boleh `null` hanya untuk baris hasil pengisian data lama (`IGD-DEC-136`); **bukan** perubahan semantics penetapan/pengalihan baru. Validation, state, permission/audit, integration **tidak berubah**. *Sebelumnya — per 16 September 2026 (ketiga, kesiapan `EPIC IGD-04`):* API **`0.7.0`** aditif — bagian 3.2 baru untuk proyeksi `doctorName`/`assignedByName` (`IGD-DEC-129`) dan nama canonical `RegPatientEncounter` (`IGD-DEC-132`); validation, state, permission/audit **tidak berubah**; integration contract hanya nama tabel. *Sebelumnya (pemantauan observasi, bagian 0d):* API `0.6.0` aditif (bagian 7 baru); validation **`0.6.0`** aditif (bagian 9 baru); state, permission/audit, integration **tidak berubah**. *Per 15 September 2026 (penyelarasan teks, bagian 0c):* API `0.5.0` bukan aditif murni; validation `0.5.0` bukan aditif. *Keadaan revisi 6:* API `0.4.0` **bukan aditif**; validation `0.4.0` **bukan aditif**; state `0.4.0` aditif; permission/audit `0.4.0` aditif; integration `0.3.0` tidak berubah. Rinciannya di 0a.2. Seluruhnya `draft`. `IGD-DEC-093` **tidak diperluas**: yang `approved` tetap hanya state §1/§1.1/§1.2 dan validation §2 aturan 4–5. **Dikoreksi 15 September 2026:** kalimat ini tertinggal dari `IGD-DEC-108` (27 Agustus 2026), yang menaikkan irisan kontrak `MVP-1`…`MVP-6` menjadi `approved` — state §2, 3, 4, 6, 6a; validation §1, 1.1, 3, 4, 4.1, 5, 5.1, 6, 7; API §1.1, §2, bagian pengkajian; permission/audit §3.1; integration bagian encounter IGD — dengan wewenang sementara `IGD-DEC-107` |
 | `roadmap_revision` | `3` — 2026-08-26, diperluas ke perjalanan pasien penuh: pendaftaran & triase, pengkajian, kepergian. Revision `2` (`MVP-0`) tetap di berkas yang sama; revision `1` diarsipkan ke `roadmap/archive/revision-1/`. **Penomoran gelombang bergeser**: pengkajian masuk `MVP-3`, kepergian ke `MVP-4`, serah terima `MVP-5`, kewenangan unit `MVP-6` |
 | `belum_direncanakan` | **Penunjang medis, pemakaian alat, billing IGD.** Batas lingkup ditutup `IGD-DEC-095`…`105`; masih nol epic, nol FR, nol kontrak. **Ditahan atas instruksi Product/Domain Owner** sampai correction pass revisi 6 tuntas dan `MVP-0` selesai |
-| `koreksi_desain_tertunda` | **Nihil — 15 September 2026 (ketiga).** Kelima penyelarasan di bawah sudah dikerjakan pass `design-business-module`; rinciannya di bagian 0c. *Keadaan sebelumnya (15 September 2026, kedua) — lima penyelarasan teks berkas kontrak tertunda*, keputusannya sudah `approved` dan berlaku lebih dulu: (1) `contracts/api-contract.md` §3 — query `at` pada `GET /active` (`IGD-DEC-117`); (2) `erd/data-dictionary.md` §4, `erd/00-context-erd.md`, `erd/emergency-episode.md`, `02-backend-architecture.md` — nama `TrxEmergencyDoctorAssignment` → `EmgDoctorAssignment` (`IGD-DEC-116`); (3) `contracts/validation-matrix.md` §6 aturan 4 — pesan menyebut pesanan (`IGD-DEC-118`); (4) validation §1 aturan 2 — teks penolakan jenis kunjungan (`IGD-DEC-120`); (5) aturan baru batas 1000 karakter catatan status observasi (`IGD-DEC-119`). Dikerjakan pass `design-business-module` berikutnya beserta kenaikan versi dan hash. *Keadaan sebelumnya:* **Nihil.** Empat koreksi selesai pada revisi 6; enam butir correction pass 26 Agustus selesai — audit `EmergencyTransfer`, koreksi klaim aditif, penyelarasan metadata, pembentukan pesanan internal, unique constraint, kewenangan pesanan |
+| `koreksi_desain_tertunda` | **Nihil untuk slice encounter-first — diselesaikan 22 September 2026 (bagian 0g)**: (1) API §8, (2) state §8, (3) validation §10, (4) integration §5, (5) permission/audit §7, (6) `02-backend-architecture.md` §13, `03-frontend-architecture.md` §13, `flowcharts/` baru, catatan rujukan di `erd/emergency-episode.md`, (7) `04-prd-to-mvp.md` §8 (`FR-IGD-069`…`085`, `AT-IGD-166`…`185`). **Tersisa di luar slice:** `S7` kelayakan dokter jaga (ditahan `IGD-OQ-102`/`103`). *Keadaan sebelumnya:* **Ada lagi — 22 September 2026.** Keputusan `IGD-DEC-139`…`141` berlaku lebih dulu sebagai prinsip, tetapi berkas desain belum mengikutinya: (1) `contracts/api-contract.md` — `triage-queue`, `start-triage`, `eligible-doctors`, ruas `encounter` pada `active-episode` (§1.3), `eligibilityOverrideReason`, efek samping `complete`/`visit-status`; (2) `contracts/state-transition-matrix.md` — titik lahir `EmgVisit` dan encounter mengikuti status akhir kunjungan; (3) `contracts/validation-matrix.md` — rumus episode terbuka klausa A+B dan empat tanda "berakhir"; (4) `contracts/integration-contract.md` — **IGD menulis status `RegPatientEncounter`** dan Registrasi memanggil aturan IGD; (5) `contracts/permission-audit-matrix.md` — aksi baru dan jejak override; (6) `02-backend-architecture.md`, `03-frontend-architecture.md`, `erd/emergency-episode.md` — alur encounter-first; (7) `04-prd-to-mvp.md` — FR/AT untuk kebutuhan baru. Setiap task R3.13 menyelaraskan bagian yang disentuhnya (satu minor per task); sisanya pass `design-business-module`. *Keadaan sebelumnya:* **Nihil — 15 September 2026 (ketiga).** Kelima penyelarasan di bawah sudah dikerjakan pass `design-business-module`; rinciannya di bagian 0c. *Keadaan sebelumnya (15 September 2026, kedua) — lima penyelarasan teks berkas kontrak tertunda*, keputusannya sudah `approved` dan berlaku lebih dulu: (1) `contracts/api-contract.md` §3 — query `at` pada `GET /active` (`IGD-DEC-117`); (2) `erd/data-dictionary.md` §4, `erd/00-context-erd.md`, `erd/emergency-episode.md`, `02-backend-architecture.md` — nama `TrxEmergencyDoctorAssignment` → `EmgDoctorAssignment` (`IGD-DEC-116`); (3) `contracts/validation-matrix.md` §6 aturan 4 — pesan menyebut pesanan (`IGD-DEC-118`); (4) validation §1 aturan 2 — teks penolakan jenis kunjungan (`IGD-DEC-120`); (5) aturan baru batas 1000 karakter catatan status observasi (`IGD-DEC-119`). Dikerjakan pass `design-business-module` berikutnya beserta kenaikan versi dan hash. *Keadaan sebelumnya:* **Nihil.** Empat koreksi selesai pada revisi 6; enam butir correction pass 26 Agustus selesai — audit `EmergencyTransfer`, koreksi klaim aditif, penyelarasan metadata, pembentukan pesanan internal, unique constraint, kewenangan pesanan |
 | `compatibility_impact` | **Empat perubahan memutus.** Lihat bagian 3 |
+
+---
+
+## 0i. Amendment 23 September 2026 — penutupan kunjungan lewat disposisi (`design-business-module`)
+
+Revisi naik ke **`8`**. Slice sempit: satu aturan baru, satu kolom baru, nol tabel baru, nol endpoint baru.
+Masukan `IGD-DEC-163`…`169` (`00-interview-decisions.md`, amendment pass 23 September 2026, seluruhnya `approved`
+oleh Rizki Gunawan) dan capability map suplemen revision **3.3** @ backend `dce1f138` / frontend `c941012ac`.
+
+| Butir | Isi |
+| --- | --- |
+| Masalah yang ditutup | Encounter IGD tertinggal terbuka karena penutupan kunjungan bergantung pada ingatan petugas. Diverifikasi dari source: disposisi nol menyentuh encounter, admisi ranap membuat encounter `Inpatient` sendiri, penutup kiosk tidak menyentuh IGD |
+| Aturan baru | Disposisi berstatus dilaksanakan menutup kunjungan; bila penjaga menolak, kunjungan menunggu penutupan dan tertutup otomatis saat penahan terakhir dibereskan, atas nama petugas yang membereskannya |
+| Schema | **Satu kolom** `EmgVisit.ClosedByDispositionId` (`uuid?`, FK `EmgDisposition`, `Restrict`). Satu migration `AddEmergencyVisitClosureSource`, aditif, `Down()` berpenjaga |
+| Endpoint | **Nol endpoint baru.** Satu saringan dan dua ruas response pada `GET /emergency-visits`; satu penolakan baru pada `PATCH /emergency-dispositions/{id}/disposition-status` |
+| Hak akses | **Nol resource dan nol aksi baru** — penutupan menumpang izin aksi pemicunya |
+| Gelombang | `MVP-8`, `EPIC IGD-13`, `FR-IGD-086`…`091`, `AT-IGD-186`…`191` |
+| Keterbatasan yang diterima | `IGD-DEC-169` — sesudah kunjungan tertutup, Bank Darah menolak order darah baru dan alokasi kantong, Laboratorium menolak pemesanan baru. Nol perubahan pada kedua modul itu |
+| Tidak berlaku surut | `IGD-DEC-167` — `BE-IGD-052` tidak diubah; kelas K2 lama tetap ditangani petugas |
+| Pertanyaan terbuka | `IGD-OQ-110` (jumlah encounter nonaktif tanpa tanda berakhir pada data lama) — **tidak memblokir** |
+| Status | **`approved`** — `IGD-DEC-170`, Rizki Gunawan, 23 September 2026. Kontrak terkunci; `plan-module-delivery` boleh menyusun kartu |
+
+**Versi kontrak sesudah pass ini** (seluruhnya `draft`, Rencana): API **`0.12.0`** (bagian 9), validation
+**`0.9.0`** (bagian 11), state **`0.6.0`** (bagian 9), permission/audit **`0.6.0`** (bagian 8), integration
+**`0.5.0`** (bagian 6). Bagian encounter-first yang `approved` lewat `IGD-DEC-157` **tidak disentuh**, sehingga
+kunci hash lima kontrak pada bagian 2 tetap berlaku untuk bagian-bagian itu — yang berubah adalah berkasnya secara
+keseluruhan, jadi hash berkas di bawah menggantikan hash lama.
+
+**Hash sesudah pass ini** — SHA-256 atas byte working tree backend, belum di-commit (HEAD lokal `dce1f138`,
+`core.autocrlf = true`).
+
+| Artifact | SHA-256 |
+|---|---|
+| `00-interview-decisions.md` | `00e06680bdccb93b4f86f45b63be3e073b4d035566073e2e0051c076e2b8f287` |
+| `01-existing-capability-map.md` | `c1097d63363407dd79658dba09ebacf20241d1da0fb56cd7058b4440803189ec` |
+| `02-backend-architecture.md` | `7a1a079cf330b1b1cb3d4d4d2e92e323c8cf12d118152106dd7d1e5deb5150e2` |
+| `03-frontend-architecture.md` | `d3bfbe8af698fbfea4525c678a9470b969759b8e45d5ec873f65ea9d88da4960` |
+| `04-prd-to-mvp.md` | `e576f3e9d9741993686078a5e7a1dcce9f78b28ac7ff6f5cc6788dfcf9bbbfad` |
+| `contracts/api-contract.md` | `6ec241785c9cdbcce1810d20185fad0d236a3744c2a5b1672fa40cfd9f40c236` |
+| `contracts/validation-matrix.md` | `de9f11bf1942fa729efaa694a246d9ac457b0f09d533bc3fb22b1522e83ad16b` |
+| `contracts/state-transition-matrix.md` | `c26282fd577eb415ca7172a9e17042a9311284c7d7af768e2e271654d29bacdd` |
+| `contracts/permission-audit-matrix.md` | `314d5448c18078c871c7ffcac05182e3293156a93ddb690b0735798c951069c6` |
+| `contracts/integration-contract.md` | `ceb595a8c968af028b78d2a4bfd5cadeaf8ffbcccc9d3beb10b6b71895a9a4f9` |
+| `erd/data-dictionary.md` | `6edcedb0642bda2b20127da19029b868e7698707ba478137a2174982a0cb5552` |
+| `flowcharts/penutupan-lewat-disposisi.md` (**baru**) | `ad27f0705efdb0509d52eb5ccd4adbc7ef5ce36ec6a272148d7600a1a9846db8` |
+
+---
+
+## 0h. Approval dan `plan-module-delivery` final — 22 September 2026 (penutup)
+
+**Revisi blueprint naik menjadi `7`.** Pemilik menyetujui ringkasan persetujuan yang diajukan agent — jawabannya
+dikutip apa adanya di `00-interview-decisions.md` bagian *Approval desain encounter-first*.
+
+| Hal | Isi |
+| --- | --- |
+| Disetujui | Bagian encounter-first: API `0.11.0` §8, validation `0.8.0` §10, state `0.5.0` §8, integration `0.4.0` §5, permission/audit `0.5.0` §7 (`IGD-DEC-157`) |
+| Koreksi yang ikut disetujui | **B1** integration §5.2 menyebut `EmergencyEpisodeRule`; **B2** pesan validation §10.4 aturan 4 (teks usulan agent — pemilik menjawab dengan placeholder `"..."`); **B4** kalimat Swagger (hanya Development, `Program.cs:1330`) di decision log dan PRD §8.3 |
+| Keterbatasan yang diterima | **B3** — izin `EmergencyVisit : Create` dipakai bersama pra-cek loket dan Mulai Triage (`IGD-DEC-158`) |
+| Butir tinjauan desain | `IGD-OQ-104`…`107` → `IGD-DEC-159`…`162`, disahkan apa adanya |
+| Tidak diajukan, tetap `draft` | `02` §13, `03` §13, kamus data §6, `flowcharts/`, PRD §8, `AT-IGD-166`…`185` — turunan kontrak; catatan OQ di dalamnya diperbarui |
+| Delivery | Backend R3.13 `BE-IGD-051`…`059` (baru `057`, `058`, `059`); frontend R3.12 `FE-IGD-035`…`040` (baru `038`, `039`, `040`); kandidat tautkan U1 dibatalkan; `BE-IGD-056`/`FE-IGD-037` ⛔ `S7`, isi kartu dibekukan |
+| Pertanyaan baru | `IGD-OQ-108` — encounter kedua hasil override dan Mulai Triage (tidak menahan) |
+| Snapshot | Source backend `0d13f3a8`; dokumen sebelumnya di-commit pemilik sebagai `69953e98` (lokal, belum di-push); frontend `c941012ac`. Perubahan pass ini **belum** di-commit |
+| `koreksi_desain_tertunda` | Nihil untuk slice encounter-first. Celah desain layar dicatat di traceability R3.13.5 (tempat melengkapi ruas kunjungan sesudah Tangani Segera) |
+
+---
+
+## 0g. Amendment 22 September 2026 — desain encounter-first (`design-business-module`)
+
+**Revisi blueprint tetap `6` (`draft`).** Pass ini menyelaraskan desain dan kontrak dengan keputusan
+`IGD-DEC-139`…`154` (`IGD-DEC-140` U1 dan `IGD-DEC-149` `superseded`). Perubahannya material — titik lahir
+kunjungan pindah, IGD menulis status encounter Registrasi, tiga tabel baru — sehingga **layak menaikkan revisi
+menjadi `7` saat pemilik menyetujuinya**; agent tidak menaikkan revisi sendiri karena revisi mengikat approval.
+
+| Hal | Isi |
+| --- | --- |
+| Gerbang masuk | `requirement-completeness-gate` slice encounter-first → `PARTIALLY_READY` ([evidence](evidence/02-requirement-completeness-gate.md)); `hospital-domain-architect` tidak dipakai (`DOMAIN_ARCHITECTURE_NOT_RUN`, alasan gate §10) |
+| Bentuk blueprint | `SINGLE`, `USER_CONFIRMED` |
+| Snapshot | backend `0d13f3a8`, frontend `c941012ac` — capability map suplemen 3.2 |
+| Kontrak | API `0.11.0` §8, validation `0.8.0` §10, state `0.5.0` §8, integration `0.4.0` §5, permission/audit `0.5.0` §7 — semuanya `draft`, **Rencana (belum tersedia)** |
+| Arsitektur | `02-backend-architecture.md` §13 (3 tabel baru `EmgDuplicateEpisodeOverride`, `EmgEncounterReconciliationRun`, `EmgEncounterReconciliationItem`; `EmgVisit` +3 kolom; nol kolom baru `RegPatientEncounter`; nol baris `Program.cs`; 3 migration dijalankan Rizki); `03-frontend-architecture.md` §13 (nol butir menu baru) |
+| Kamus data | `erd/data-dictionary.md` §6 |
+| Flowchart | `flowcharts/` baru — alur utama + 5 proses |
+| PRD | `04-prd-to-mvp.md` §8 — `EPIC IGD-11` (`FR-IGD-069`…`085`, gelombang `MVP-7`), `EPIC IGD-12` `OPEN DECISION` |
+| Uji | `testing/acceptance-test-matrix.md` — `AT-IGD-166`…`185` |
+| Ditahan | `S7` kelayakan dokter jaga — `IGD-OQ-102`, `IGD-OQ-103` |
+| Butir tinjauan desain | `IGD-OQ-104`…`107` — tidak memblokir desain |
+| **Tidak** disentuh | Kartu roadmap R3.13/R3.12 (milik `plan-module-delivery` final), laporan task, source aplikasi |
+
+### 0g.1 Kompatibilitas
+
+Empat perilaku yang **memutus** bila dirilis: penolakan pendaftaran Emergency ganda di pintu encounter;
+penolakan `PATCH /patient-encounters/{id}/status` untuk Emergency; penolakan `PATCH …/cancel` Emergency yang sudah
+punya kunjungan; penguncian `PUT /emergency-visits/{id}`. Urutan rilis wajib: penjaga backend sebelum loket berhenti
+membuat kunjungan (API §8.1).
 
 ---
 
@@ -129,6 +226,42 @@ pass ini.
 | Nama rancangan lama `TrxEmergency*` untuk entity IGD lain pada ERD dan arsitektur backend | Berlaku aturan kolom `module`: prefix lama hanya berlaku pada artefak yang disusun sebelum 27 Agustus 2026. Bukan bagian keputusan mana pun |
 | Sebutan nama lama pada `roadmap/backend-roadmap.md` dan `roadmap/requirement-traceability.md` | Keluaran `plan-module-delivery`; teksnya menjelaskan penggantian nama, bukan memakai nama lama sebagai target |
 
+
+### 0d. Pemantauan observasi bertanda vital — 16 September 2026
+
+Pass `design-business-module` menutup audit Observasi
+([evidence](evidence/2026-09-15-audit-observasi-v1-v2.md)) menjadi keputusan, kontrak, dan dua
+kartu task. **Revisi blueprint tetap `6`**: tidak ada tabel baru, tidak ada kolom baru, dan
+tidak ada migration. Status seluruh berkas tetap `draft`.
+
+| Keputusan | Isi singkat |
+| --- | --- |
+| `IGD-DEC-122` | Tanda vital ditautkan lewat `PatientVitalSignId`, tidak disalin; pilihan terbatas pada pasien dan encounter yang sama |
+| `IGD-DEC-123` | ABCDE terakhir dibaca saja; evaluasi ditulis pada `ClinicalConditionSummary`; tanpa kolom ABCDE baru |
+| `IGD-DEC-124` | Alat bantu jalan napas belum terstruktur; ditulis pada `InterventionSummary`; kepemilikan tetap terbuka |
+| `IGD-DEC-125` | Jenis oksigen memakai enum `ClinicalManagement` apa adanya; `Other` + catatan untuk yang belum ada |
+| `IGD-DEC-126` | Periode `Completed`/`Cancelled` menolak pemantauan baru dengan `409`; bukan larangan permanen atas dokumentasi susulan |
+
+| Artefak | Perubahan |
+| --- | --- |
+| `contracts/api-contract.md` | `0.5.0` → **`0.6.0`**, aditif. Bagian 7 baru; bagian 5 tidak lagi memuat `Emergency Observation Detail` |
+| `contracts/validation-matrix.md` | `0.5.0` → **`0.6.0`**, aditif. Bagian 9 baru beserta urutan pemeriksaan 9.1 |
+| `02-backend-architecture.md` | Bagian 12 baru |
+| `03-frontend-architecture.md` | Bagian 12 baru |
+| `roadmap/backend-roadmap.md` | Gelombang R3.9 dan kartu `BE-IGD-046` |
+| `roadmap/frontend-roadmap.md` | Gelombang R3.7 dan kartu `FE-IGD-028` |
+| `roadmap/requirement-traceability.md` | Bagian R3.5 |
+
+**Pertanyaan yang tetap terbuka:** `IGD-OQ-089` (bentuk terstruktur alat jalan napas) dan
+`IGD-OQ-090` (entri susulan setelah periode observasi ditutup). Keduanya **tidak** menahan
+`BE-IGD-046` maupun `FE-IGD-028`.
+
+**Yang sengaja tidak disentuh pass ini:** `04-prd-to-mvp.md` — pemantauan observasi memakai
+kapabilitas `IGD-CAP-26` dan `IGD-CAP-21` yang sudah tercatat `EXISTING / REUSE`, dan tidak ada
+epic maupun functional requirement baru yang lahir; coverage gap-nya dicatat pada
+`requirement-traceability.md` bagian R3.5.3. `erd/` juga tidak berubah karena tidak ada kolom
+baru.
+
 ---
 
 ## 0. Gerbang kemampuan rumah sakit — BELUM TERPENUHI
@@ -143,6 +276,8 @@ sakit:
 
 Akibatnya modul IGD tidak punya klasifikasi kesiapan requirement per slice. Substansinya
 tersebar pada 88 keputusan, bukan pada berkas hulu tersendiri.
+
+**Diperbarui 22 September 2026:** gate dijalankan **untuk slice encounter-first saja** — hasil `PARTIALLY_READY` ([evidence/02-requirement-completeness-gate.md](evidence/02-requirement-completeness-gate.md)). Area IGD lain tetap tanpa klasifikasi.
 
 Gerbang ini **tidak** ditandai terpenuhi. Bila Product/Domain Owner menghendaki kesetaraan
 dengan Rawat Inap, `/requirement-completeness-gate` dan `hospital-domain-architect` perlu
@@ -270,27 +405,40 @@ gelombang mana pun yang memakai bagian di atas. Ini dicatat terbuka, bukan dilew
 
 ## 2. Artifact hashes
 
-Dihitung ulang **15 September 2026** pada keadaan akhir seluruh berkas sesudah penyelarasan teks
-(bagian 0c), SHA-256 atas byte berkas di working tree. Hitungan sebelumnya 24 Agustus 2026;
-kolom terakhir menandai berkas yang hash-nya berubah sejak itu.
+Dihitung ulang **22 September 2026 (penutup)** sesudah approval kontrak dan `plan-module-delivery` final (bagian 0h),
+SHA-256 atas byte berkas di working tree backend (belum di-commit; HEAD lokal `69953e98`). Hitungan sebelumnya pada
+pass `design-business-module` hari yang sama (tersimpan di commit `69953e98`). *Catatan:* repository memakai
+`core.autocrlf = true`; hash dapat berbeda bila berkas di-checkout ulang dengan akhir baris lain — hitung ulang dari
+working tree yang sama sebelum membandingkan. **Lima hash kontrak adalah kunci `IGD-DEC-157`**: task R3.13/R3.12 yang
+menemukan hash berbeda wajib berhenti dan melaporkan.
 
-| Artifact | SHA-256 | Berubah sejak 24 Agt |
+| Artifact | SHA-256 | Berubah pada pass penutup |
 |---|---|:---:|
-| `00-interview-decisions.md` | `5d0cd3c76dec529148f917eb16abe6f3fc5eb76ff566b793dd133a752dce23fe` | Ya |
-| `01-existing-capability-map.md` | `a7a88266a4d931e3f9b6196d6990242e46602f1449128ab4662b4525426420bb` | Ya |
-| `02-backend-architecture.md` | `4e750d79fc6ea3d70e203ce5bed85de3028f74ddabc863336e2a2b4c66fc3474` | Ya |
-| `03-frontend-architecture.md` | `2b4339f9587ed1daff8444ccb68cb5415df578d76a2157dd3ec168f9a2a1fd95` | Tidak |
-| `04-prd-to-mvp.md` | `7061525001d9a7e6b311424b8e3a8d85de13e35f59e545a78dcefedd600b79db` | Tidak |
-| `erd/00-context-erd.md` | `361e47b20b73d25293cc0ce0d2779b86ac3f9a49d0e768d28e0f3470e48da5b1` | Ya |
-| `erd/emergency-episode.md` | `c463d6dba31dab6b278463ab9b26b1679eac7d4b6ee022d52f611d744bb72f2e` | Ya |
+| `00-interview-decisions.md` | `d6d4ca32972967046a7267b521cab9de42f9ae0e32ccb75087dfcfb2c478c040` | Ya |
+| `01-existing-capability-map.md` | `89322e353daf7dece993006b43e7f688fb5888f23deec839729831635b48aa13` | Tidak |
+| `02-backend-architecture.md` | `267a5ec8037c8fe0eeab31d63cba23fad76999b5abc8c2cb0defb361e905a111` | Ya |
+| `03-frontend-architecture.md` | `92d8ddc1505b378f3cc5f53aef5a88217a7b4c01c4b9743147d8d02367f2afe3` | Ya |
+| `04-prd-to-mvp.md` | `56b54ef133ced76d925fbcbad80c790b6099b7a5b63c9b68c805c54697a70d25` | Ya |
+| `erd/00-context-erd.md` | `361e47b20b73d25293cc0ce0d2779b86ac3f9a49d0e768d28e0f3470e48da5b1` | Tidak |
+| `erd/emergency-episode.md` | `53c9df51c18bd37014ce8c44f6da4b965d197185e6402e99446dfcef1cd6867b` | Tidak |
 | `erd/emergency-departure.md` | `0f5445e06cc9bbd60ed15942cb9aeae34d109baee142af76995f0664909a8097` | Tidak |
-| `erd/data-dictionary.md` | `3ccbe071ca1456338789dc4f41461a6ee01ffae11bc5b80c024f66a0ca193e75` | Ya |
-| `contracts/api-contract.md` | `bbd781d47cfa90f1d550bd1aa079a8493498a4d0cecf7ec5dc6cfc62c2784260` | Ya |
-| `contracts/state-transition-matrix.md` | `ca6f3e8b8cfee84cdcf94a56ce306bea84df0db5372ce638059650a7859ccea8` | Tidak |
-| `contracts/validation-matrix.md` | `6a15ed13509125204458538ea7c034f5ff5281acb9d6aea231815c7d7aab272f` | Ya |
-| `contracts/integration-contract.md` | `98590b1b5e587fe10f0338f4f7da3aba3a0a448231ffef02b06592f2f7633bdb` | Tidak |
-| `contracts/permission-audit-matrix.md` | `cb2cc6a102726f523098a56317b92a1dd8f4b9d5b88a243b4e3ac42e9cc6b993` | Tidak |
-| `testing/acceptance-test-matrix.md` | `c3c37e0b38f9fcaf8b6cfc5ebdd5809cddfaff7992554bed47e807f1bc701de2` | Tidak |
+| `erd/data-dictionary.md` | `54bea887bf42315e80942ae6e495ca7f1d4e2701c994c9132150f88ad11e0c59` | Tidak |
+| `contracts/api-contract.md` | `c0bcea54125879e328a1b4f28cfcc6adaa5356a7272316cb4dd56a6a8b9fcedd` | Ya — **kunci** |
+| `contracts/state-transition-matrix.md` | `0661fdf4326f927425828afa42ce71c69ed8a030c599d17eb9063d44d2e6a793` | Ya — **kunci** |
+| `contracts/validation-matrix.md` | `580832c37db3f3a1b73b03b6a366d5d5108ee745e4c408ece53b01034d98b504` | Ya — **kunci** |
+| `contracts/integration-contract.md` | `46c869830a078bc2288005cae9b16b44970ccd9bfa6b38c80b01ced249683d53` | Ya — **kunci** |
+| `contracts/permission-audit-matrix.md` | `597b8f5ef0e8cbed6963c98374508a80726d652ac4dfa3c2bb99eccef4dec662` | Ya — **kunci** |
+| `testing/acceptance-test-matrix.md` | `b8646e60e2cdb248fb1c219d6b4d8babe0503c6f56ed6a12b5213979505acefa` | Tidak |
+| `roadmap/backend-roadmap.md` | `d60df773d659290e4bbfa8e78d923fb0ecb243a353344e96ac4287cacac3bc5b` | Ya |
+| `roadmap/frontend-roadmap.md` | `6052b3127f5d1feb03fef6efd1de60338e343a14e5542ab9ecb179505bc60dbf` | Ya |
+| `roadmap/requirement-traceability.md` | `96fd8d44f91e93a903396637b5b8bc985b73a61e1bdd6952a259c37da3e4d155` | Ya |
+| `flowcharts/00-alur-utama.md` | `b85d4376321523c2ce1e59a35b29c3fbb39bf9306fed9de3c2e33958b0278427` | Tidak |
+| `flowcharts/pendaftaran-dan-penjaga-episode.md` | `4dd3173545fb5dcc441189f20167772fb9f03ddccf00be9fed3438d46f21badc` | Tidak |
+| `flowcharts/kelahiran-kunjungan.md` | `66f4962ab392f628b178f117f937e31c6d95a2401e71e2e75335001f9611f11c` | Tidak |
+| `flowcharts/pergi-sebelum-triage.md` | `58607cb74cdf79847ec98b11664f6611a67a3a55f40d9a5dc43e76bd07cd061e` | Tidak |
+| `flowcharts/penutupan-encounter.md` | `320f382b58a276b1d50007b77f6fb366918c435f00c2494b989ec1fcb53c7db3` | Tidak |
+| `flowcharts/rekonsiliasi-encounter-historis.md` | `f9cc98de4a612877559fbd6091e2f54d9a7f49ecc5647ce204fff96a78e2e52c` | Tidak |
+| `evidence/02-requirement-completeness-gate.md` | `3394ea85db85e5d564d4c5898808ec0901f421d533b8a9d98e17f3c1a07bdf48` | Tidak |
 
 Manifest tidak menghitung hash dirinya sendiri.
 

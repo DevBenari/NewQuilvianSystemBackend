@@ -523,6 +523,7 @@ try
     builder.Services.AddScoped<EmergencyDispositionService>();
     builder.Services.AddScoped<EmergencyDepartureService>();
     builder.Services.AddScoped<EmergencyUnitAuthorityService>();
+    builder.Services.AddScoped<EmergencyDoctorAssignmentService>();
     builder.Services.AddScoped<EmergencySettingService>();
 
     // Rawat Inap. Tanpa pendaftaran ini seluruh controller Rawat Inap gagal dibuat oleh
