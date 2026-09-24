@@ -80,6 +80,14 @@ mengikuti konvensi frontend yang sudah berjalan. **`LAB-DEC-034` tidak berlaku d
 Yang tetap di folder `laboratory-management` hanya layar **operasional**: pesanan, wadah dan
 pemeriksaan, daftar kerja, dan monitoring per disiplin.
 
+> **Diamandemen 2026-09-24 — decision log revisi 54.** Data induk yang **khusus Laboratorium**
+> kini berada di `…/health-services/laboratory-management/master-data/` dan tampil sebagai
+> sub-grup **Master Data** di menu Laboratorium: batas nilai, alasan penolakan, jenis specimen,
+> organisme, antibiotik, breakpoint, profil Mikrobiologi katalog, parameter dan golongan PA,
+> serta pengaturan disiplin. **Jenis pemeriksaan (`procedure`) dan tarif tetap di
+> `health-services/master-data/`** karena dipakai modul lain. Tabel di atas mencatat letak
+> semula; alamat lama diarahkan ke alamat baru lewat `redirects()` di `next.config.js`.
+
 ### 2.3 Enam invariant keselamatan yang tidak boleh diserahkan pada selera
 
 | ID | Yang wajib | Kenapa |

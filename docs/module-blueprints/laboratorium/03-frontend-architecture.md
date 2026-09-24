@@ -226,7 +226,7 @@ petugas ragu apakah tindakannya berhasil.
 | `LAB-FE-011` | Isian batas kritis ditampilkan sebagai **pengajuan**, bukan penyimpanan langsung | **Invariant keselamatan** | **Wajib.** Tidak boleh ada jalur simpan langsung untuk batas kritis |
 | `LAB-FE-012` | Penanda terkunci pada kolom kesalahan internal dan kolom wajib catatan | **Invariant keselamatan** | **Wajib terlihat**, bukan sekadar gagal saat disimpan |
 | `LAB-FE-013` | Bentuk isian batas nilai mengikuti bentuk hasil | Konvensi project | Wajib mengikuti; bentuk visualnya `DEV_DISCRETION` |
-| `LAB-FE-014` | Penempatan menu data induk | Konvensi project | **Wajib** mengikuti konvensi frontend yang sudah ada: seluruh menu data induk berada di `health-services/master-data/`. `LAB-DEC-034` **tidak berlaku** di frontend |
+| `LAB-FE-014` | Penempatan menu data induk | Konvensi project — **diamandemen 2026-09-24** (decision log revisi 54) | Data induk yang **khusus Laboratorium** berada di `health-services/laboratory-management/master-data/` dan tampil sebagai sub-grup **Master Data** pada menu Laboratorium, mengikuti pola `billing-management/master-data/`. Data induk **global** yang juga dipakai Laboratorium — Prosedur, Tarif, Satuan Ukur — tetap di `health-services/master-data/`. *(Bunyi semula: seluruh menu data induk di `health-services/master-data/`, dan `LAB-DEC-034` tidak berlaku di frontend.)* |
 
 ### Yang **tidak** ditetapkan di sini dan sengaja dibiarkan terbuka
 
@@ -510,6 +510,10 @@ domain `LAB-DA-001` revision 6. Menyertai usulan `LAB-API-v1` `r24` yang **belum
 
 **Kedua menu data induk berada di `master-data/`**, mengikuti `LAB-FE-014` dan konvensi yang
 sudah dipakai `Jenis Specimen`. Modelnya tetap di folder Laboratorium; menunya tidak.
+
+> **Diamandemen 2026-09-24 (decision log revisi 54).** Kedua layar — beserta seluruh data induk
+> yang khusus Laboratorium — kini berada di `health-services/laboratory-management/master-data/`
+> dan tampil pada sub-grup Master Data menu Laboratorium. Alamat lama diarahkan ke alamat baru.
 
 ### 12.3 Skema layar — Pengisian hasil Mikrobiologi
 
