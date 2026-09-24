@@ -1,6 +1,9 @@
 # PHA-BE-005 & PHA-BE-006 — Validasi Runtime
 
-Status: **PASS** · 23 September 2026 · Pharmacy Backend
+Status: **PASS** · 23 September 2026, diperluas 24 September 2026 · Pharmacy Backend
+
+Seluruh gerbang `PHA-BE-005` — telaah, penyiapan, telaah obat akhir, dan penyerahan —
+**runtime verified**. Empat skenario terakhir ditambahkan 24 September 2026.
 
 ## Ringkasan untuk Pembaca Umum
 
@@ -182,9 +185,9 @@ non-ASCII pada perintah SQL (`invalid byte sequence 0x97`); suratnya tidak perna
 sehingga "tidak ada perubahan" saat itu tidak membuktikan apa pun. Dicatat di sini supaya hasil
 yang dilaporkan hanya yang benar-benar teruji.
 
-**Belum diuji runtime:** gerbang penyiapan, telaah obat akhir, dan penyerahan. Ketiganya terpasang
-dan terverifikasi pada source, tetapi skenario runtime-nya menuntut resep yang berjalan sampai
-tahap tersebut.
+~~**Belum diuji runtime:** gerbang penyiapan, telaah obat akhir, dan penyerahan.~~ **Sudah diuji
+24 September 2026** — lihat bagian "Skenario 8–11" di bawah. Seluruh gerbang `PHA-BE-005` kini
+**runtime verified**.
 
 ## Keputusan pemilik tentang `REVOKED`
 
@@ -199,3 +202,93 @@ pada `PaymentStatus`: seluruh gerbang membaca salinan finansial.
 
 Trace: `PHA-DEC-063`–`069`, `PHA-STATE-CLEARANCE-v1`, `PHA-VAL-CLEARANCE-v1`,
 `PHA-API-CLEARANCE-v1`, `PHA-AT-CLR-01`, `02`, `03`, `10`, `11`.
+
+---
+
+## Skenario 8–11 — Tiga gerbang sisa, diuji 24 September 2026
+
+Melengkapi bagian "Batas pengujian" di atas, yang sebelumnya mencatat gerbang penyiapan, telaah
+obat akhir, dan penyerahan **belum** diuji runtime. Ketiganya kini sudah.
+
+### Data uji
+
+Resep **`RX-20260924-00002`** (`3e7c2091-…`), satu baris obat Paracetamol 500 mg qty 8, dibuat
+lewat API. Surat clearance diterbitkan sebagai baris sungguhan pada `BilPrescriptionClearanceHandoff`
+dan dikonsumsi Farmasi sendiri lewat jalur baca — bukan disalin langsung ke proyeksi.
+
+Tujuh surat berurutan dipakai untuk menahan dan memulihkan izin pada tiap tahap:
+
+| Versi | Keadaan | Dipakai untuk |
+| :---: | --- | --- |
+| 1 | `CLEARED / PAID` | melepas resep ke antrean |
+| 2 | `REVOKED / PAYMENT_REVERSED` | menahan **mulai penyiapan** |
+| 3 | `CLEARED / PAID` | memulihkan penyiapan |
+| 4 | `REVOKED / PAYMENT_REVERSED` | menahan **telaah obat akhir** |
+| 5 | `CLEARED / PAID` | memulihkan telaah obat akhir |
+| 6 | `REVOKED / PAYMENT_REVERSED` | menahan **penyiapan penyerahan** |
+| 7 | `CLEARED / PAID` | memulihkan penyerahan |
+
+### Skenario 8 — Gerbang mulai penyiapan
+
+`POST /prescription-preparations/by-prescription/{id}/start`, resep pada `VerifiedByPharmacy` (5).
+
+* **Expected:** ditahan `400` ketika izin dicabut; lolos ketika izin pulih.
+* **Actual:** dicabut → **`400`**, *"Resep ini ditahan karena ada perubahan tagihan. Pekerjaan
+  dilanjutkan setelah kasir menyelesaikannya."* · `FulfillmentStatus` **tetap 5**.
+  Dipulihkan → **`200`**, 5 → 6 `InPreparation`.
+* **Status: PASS**
+
+### Skenario 9 — Gerbang telaah obat akhir
+
+`POST /prescription-final-checks/by-prescription/{id}/complete`, resep pada `AwaitingFinalCheck` (12).
+
+* **Expected:** ditahan `400` ketika izin dicabut; lolos ketika izin pulih.
+* **Actual:** dicabut → **`400`** dengan kalimat yang sama · `FulfillmentStatus` **tetap 12**.
+  Dipulihkan → **`200`**, 12 → 7 `ReadyToDispense`.
+* **Status: PASS**
+
+### Skenario 10 — Gerbang penyiapan penyerahan
+
+`POST /prescriptions/{id}/dispensing/prepare`, resep pada `ReadyToDispense` (7).
+
+* **Expected:** ditahan dengan konflik `409` beserta kode kontrak, bukan `500`; lolos ketika izin
+  pulih; **nol** baris stok bergerak selama ditahan.
+* **Actual:** dicabut → **`409`**, kode **`PHA_CLR_ON_HOLD`**, kalimat sesuai
+  `PHA-VAL-CLEARANCE-v1`. Reservasi pada batch Paracetamol diperiksa langsung ke database:
+  **`0.000`** — penolakan terjadi sebelum stok disentuh, bukan sesudah lalu dikembalikan.
+  Dipulihkan → **`200`**.
+* **Status: PASS**
+
+### Skenario 11 — Penyerahan sesudah pemulihan
+
+`PATCH /prescriptions/{id}/dispensing/{drugUsageId}/dispense`.
+
+* **Expected:** penyerahan berhasil, `DispensedAt` terisi, stok berkurang menurut FEFO.
+* **Actual:** **`200`** · `FulfillmentStatus` **9 `Dispensed`** · `DispensedAt`
+  `2026-09-24 15:01:06+07` · stok `UJI-PCM500-B1` **100 → 92** (batch kedaluwarsa terdekat),
+  `UJI-PCM500-B2` tetap 400.
+* **Status: PASS**
+
+### Tiga hal yang dibuktikan skenario ini
+
+**Keadaan pemenuhan tidak pernah ditarik mundur.** Saat ditahan pada penyiapan resep tetap 5, dan
+saat ditahan pada telaah akhir tetap 12. Pekerjaan berhenti di tempat, bukan dibatalkan —
+`PHA-DEC-069` berlaku sebagaimana dirancang.
+
+**Stok tidak bergerak selama gerbang menahan.** Reservasi batch Paracetamol tetap `0.000` ketika
+penyiapan penyerahan ditolak. Ini yang membedakan gerbang yang benar dari gerbang yang menolak
+terlambat: tidak ada yang perlu dikembalikan karena tidak ada yang pernah diambil.
+
+**FEFO berjalan setelah clearance sah.** Pengurangan jatuh pada `UJI-PCM500-B1` yang kedaluwarsa
+2027-03-31, bukan pada `-B2` yang stoknya empat kali lebih banyak tetapi kedaluwarsa 2028-09-30.
+
+### Pemetaan galat, terverifikasi runtime
+
+| Gerbang | Kode | Bukti |
+| --- | :---: | --- |
+| Mulai telaah | `400` | Skenario 6 |
+| Mulai penyiapan | `400` | Skenario 8 |
+| Telaah obat akhir | `400` | Skenario 9 |
+| Penyiapan & eksekusi penyerahan | `409` + `PHA_CLR_ON_HOLD` | Skenario 10 |
+
+Nol gerbang yang bocor menjadi `500`.
