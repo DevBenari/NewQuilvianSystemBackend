@@ -12,7 +12,7 @@ public class CreateGzOrderRequest
     [Required] public Guid EncounterId { get; set; }
     [Required] public Guid RequesterDoctorId { get; set; }
     public Guid? AssignedWorkforceId { get; set; }
-    [Required] public GzOrderPriority Priority { get; set; } = GzOrderPriority.Routine;
+    [Required] public GziOrderPriority Priority { get; set; } = GziOrderPriority.Routine;
     [Required, MaxLength(1000)] public string ReasonForReferral { get; set; } = string.Empty;
     [Required, MaxLength(100)] public string IdempotencyKey { get; set; } = string.Empty;
 }
@@ -20,7 +20,7 @@ public class CreateGzOrderRequest
 public class UpdateGzOrderRequest
 {
     public Guid? AssignedWorkforceId { get; set; }
-    [Required] public GzOrderPriority Priority { get; set; }
+    [Required] public GziOrderPriority Priority { get; set; }
     [Required, MaxLength(1000)] public string ReasonForReferral { get; set; } = string.Empty;
     [Required] public int ExpectedVersion { get; set; }
     [Required, MaxLength(100)] public string IdempotencyKey { get; set; } = string.Empty;
@@ -65,9 +65,9 @@ public class SaveGzCareRecordRequest
     [Required, MaxLength(100)] public string IdempotencyKey { get; set; } = string.Empty;
 }
 
-public class GzOrderPagedQuery
+public class GziOrderPagedQuery
 {
-    public GzOrderStatus? Status { get; set; }
+    public GziOrderStatus? Status { get; set; }
     public Guid? PatientId { get; set; }
     public Guid? AssignedWorkforceId { get; set; }
     public string? Search { get; set; }
@@ -77,7 +77,7 @@ public class GzOrderPagedQuery
 
 // ===================================================================== tanggapan
 
-public class GzOrderSummaryResponse
+public class GziOrderSummaryResponse
 {
     public Guid Id { get; set; }
     public string OrderNumber { get; set; } = string.Empty;
@@ -87,8 +87,8 @@ public class GzOrderSummaryResponse
     public Guid EncounterId { get; set; }
     public string RequesterDoctorName { get; set; } = string.Empty;
     public string? AssignedWorkforceName { get; set; }
-    public GzOrderStatus Status { get; set; }
-    public GzOrderPriority Priority { get; set; }
+    public GziOrderStatus Status { get; set; }
+    public GziOrderPriority Priority { get; set; }
     public NutritionRiskStatus? ScreeningRiskStatus { get; set; }
     public DateTime RequestedAt { get; set; }
     public int VisitCount { get; set; }
@@ -96,7 +96,7 @@ public class GzOrderSummaryResponse
     public int Version { get; set; }
 }
 
-public class GzOrderDetailResponse : GzOrderSummaryResponse
+public class GziOrderDetailResponse : GziOrderSummaryResponse
 {
     public Guid RequesterDoctorId { get; set; }
     public Guid? AssignedWorkforceId { get; set; }
@@ -104,11 +104,11 @@ public class GzOrderDetailResponse : GzOrderSummaryResponse
     public int? ScreeningScore { get; set; }
     public DateTime? ClosedAt { get; set; }
     public string? ClosingNote { get; set; }
-    public List<GzCareRecordResponse> CareRecords { get; set; } = [];
-    public List<GzOrderHistoryResponse> Histories { get; set; } = [];
+    public List<GziCareRecordResponse> CareRecords { get; set; } = [];
+    public List<GziOrderHistoryResponse> Histories { get; set; } = [];
 }
 
-public class GzCareRecordResponse
+public class GziCareRecordResponse
 {
     public Guid Id { get; set; }
     public Guid NutritionOrderId { get; set; }
@@ -116,7 +116,7 @@ public class GzCareRecordResponse
     public DateTime VisitAt { get; set; }
     public Guid RecordedByWorkforceId { get; set; }
     public string RecordedByName { get; set; } = string.Empty;
-    public GzCareRecordType RecordType { get; set; }
+    public GziCareRecordType RecordType { get; set; }
 
     public decimal? Weight { get; set; }
     public decimal? Height { get; set; }
@@ -139,11 +139,11 @@ public class GzCareRecordResponse
     public int Version { get; set; }
 }
 
-public class GzOrderHistoryResponse
+public class GziOrderHistoryResponse
 {
     public Guid Id { get; set; }
-    public GzOrderStatus? FromStatus { get; set; }
-    public GzOrderStatus ToStatus { get; set; }
+    public GziOrderStatus? FromStatus { get; set; }
+    public GziOrderStatus ToStatus { get; set; }
     public string Action { get; set; } = string.Empty;
     public string? Reason { get; set; }
     public DateTime OccurredAt { get; set; }
@@ -152,7 +152,7 @@ public class GzOrderHistoryResponse
 /// <summary>
 /// Pasien rawat inap yang skrining gizinya menunjukkan risiko tetapi belum punya order.
 /// </summary>
-public class GzScreeningCandidateResponse
+public class GziScreeningCandidateResponse
 {
     public Guid PatientId { get; set; }
     public string PatientName { get; set; } = string.Empty;

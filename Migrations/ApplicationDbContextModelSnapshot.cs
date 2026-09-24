@@ -81001,7 +81001,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("MrcClinicalNoteAuthorDelegation", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GzDietType", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziDietType", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -81065,10 +81065,10 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("DietTypeCode")
                         .IsUnique();
 
-                    b.ToTable("GzDietType", "public");
+                    b.ToTable("GziDietType", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GzFoodForm", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziFoodForm", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -81129,10 +81129,10 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("FoodFormCode")
                         .IsUnique();
 
-                    b.ToTable("GzFoodForm", "public");
+                    b.ToTable("GziFoodForm", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GzMealDelivery", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziMealDelivery", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -81195,10 +81195,10 @@ namespace QuilvianSystemBackend.Migrations
                         .IsUnique()
                         .HasFilter("\"IsDelete\" = false");
 
-                    b.ToTable("GzMealDelivery", "public");
+                    b.ToTable("GziMealDelivery", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GzMealSchedule", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziMealSchedule", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -81261,10 +81261,10 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("MealScheduleCode")
                         .IsUnique();
 
-                    b.ToTable("GzMealSchedule", "public");
+                    b.ToTable("GziMealSchedule", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GzNutritionCareRecord", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziNutritionCareRecord", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -81377,10 +81377,10 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("NutritionOrderId", "VisitSequence")
                         .IsUnique();
 
-                    b.ToTable("GzNutritionCareRecord", "public");
+                    b.ToTable("GziNutritionCareRecord", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GzNutritionOrder", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziNutritionOrder", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -81481,10 +81481,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("PatientId", "RequestedAt");
 
-                    b.ToTable("GzNutritionOrder", "public");
+                    b.ToTable("GziNutritionOrder", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GzNutritionOrderHistory", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziNutritionOrderHistory", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -81561,10 +81561,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("NutritionOrderId", "OccurredAt");
 
-                    b.ToTable("GzNutritionOrderHistory", "public");
+                    b.ToTable("GziNutritionOrderHistory", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GzPatientDiet", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziPatientDiet", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -81660,10 +81660,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("EncounterId", "StartAt");
 
-                    b.ToTable("GzPatientDiet", "public");
+                    b.ToTable("GziPatientDiet", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GzProductionBatch", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziProductionBatch", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -81750,10 +81750,10 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("ServiceDate", "Status");
 
-                    b.ToTable("GzProductionBatch", "public");
+                    b.ToTable("GziProductionBatch", "public");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GzProductionBatchDetail", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziProductionBatchDetail", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -81854,7 +81854,7 @@ namespace QuilvianSystemBackend.Migrations
                         .IsUnique()
                         .HasFilter("\"IsDelete\" = false");
 
-                    b.ToTable("GzProductionBatchDetail", "public");
+                    b.ToTable("GziProductionBatchDetail", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.OperatingRoomManagement.Models.OprAnesthesiaRecord", b =>
@@ -114313,7 +114313,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("Integrity");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GzMealDelivery", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziMealDelivery", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "DeliveredByWorkforce")
                         .WithMany()
@@ -114321,7 +114321,7 @@ namespace QuilvianSystemBackend.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GzProductionBatchDetail", "ProductionBatchDetail")
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziProductionBatchDetail", "ProductionBatchDetail")
                         .WithMany("Deliveries")
                         .HasForeignKey("ProductionBatchDetailId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -114332,14 +114332,14 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("ProductionBatchDetail");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GzNutritionCareRecord", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziNutritionCareRecord", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDiagnosis", "NutritionDiagnosis")
                         .WithMany()
                         .HasForeignKey("NutritionDiagnosisId")
                         .OnDelete(DeleteBehavior.Restrict);
 
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GzNutritionOrder", "NutritionOrder")
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziNutritionOrder", "NutritionOrder")
                         .WithMany("CareRecords")
                         .HasForeignKey("NutritionOrderId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -114365,7 +114365,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("RecordedByWorkforce");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GzNutritionOrder", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziNutritionOrder", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "AssignedWorkforce")
                         .WithMany()
@@ -114399,9 +114399,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("RequesterDoctor");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GzNutritionOrderHistory", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziNutritionOrderHistory", b =>
                 {
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GzNutritionOrder", "NutritionOrder")
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziNutritionOrder", "NutritionOrder")
                         .WithMany("Histories")
                         .HasForeignKey("NutritionOrderId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -114410,9 +114410,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("NutritionOrder");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GzPatientDiet", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziPatientDiet", b =>
                 {
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GzDietType", "DietType")
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziDietType", "DietType")
                         .WithMany()
                         .HasForeignKey("DietTypeId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -114424,13 +114424,13 @@ namespace QuilvianSystemBackend.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GzFoodForm", "FoodForm")
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziFoodForm", "FoodForm")
                         .WithMany()
                         .HasForeignKey("FoodFormId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GzNutritionOrder", "NutritionOrder")
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziNutritionOrder", "NutritionOrder")
                         .WithMany()
                         .HasForeignKey("NutritionOrderId")
                         .OnDelete(DeleteBehavior.Restrict);
@@ -114460,9 +114460,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("PrescribedByWorkforce");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GzProductionBatch", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziProductionBatch", b =>
                 {
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GzMealSchedule", "MealSchedule")
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziMealSchedule", "MealSchedule")
                         .WithMany()
                         .HasForeignKey("MealScheduleId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -114471,7 +114471,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("MealSchedule");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GzProductionBatchDetail", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziProductionBatchDetail", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models.RegPatientEncounter", "Encounter")
                         .WithMany()
@@ -114479,7 +114479,7 @@ namespace QuilvianSystemBackend.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GzPatientDiet", "PatientDiet")
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziPatientDiet", "PatientDiet")
                         .WithMany()
                         .HasForeignKey("PatientDietId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -114491,7 +114491,7 @@ namespace QuilvianSystemBackend.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GzProductionBatch", "ProductionBatch")
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziProductionBatch", "ProductionBatch")
                         .WithMany("Details")
                         .HasForeignKey("ProductionBatchId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -118345,19 +118345,19 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("Addendums");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GzNutritionOrder", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziNutritionOrder", b =>
                 {
                     b.Navigation("CareRecords");
 
                     b.Navigation("Histories");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GzProductionBatch", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziProductionBatch", b =>
                 {
                     b.Navigation("Details");
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GzProductionBatchDetail", b =>
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziProductionBatchDetail", b =>
                 {
                     b.Navigation("Deliveries");
                 });

@@ -12,8 +12,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models;
 /// sakit; mengisinya dengan daftar karangan menghasilkan master yang terlihat resmi padahal
 /// tidak pernah disahkan siapa pun, dan diet yang salah menempel pada rekam medis pasien.
 /// </remarks>
-[Table("GzDietType", Schema = "public")]
-public class GzDietType : IdentityModel
+[Table("GziDietType", Schema = "public")]
+public class GziDietType : IdentityModel
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -31,8 +31,8 @@ public class GzDietType : IdentityModel
 /// <summary>
 /// Bentuk makanan yang disajikan, misalnya biasa, lunak, saring, atau cair.
 /// </summary>
-[Table("GzFoodForm", Schema = "public")]
-public class GzFoodForm : IdentityModel
+[Table("GziFoodForm", Schema = "public")]
+public class GziFoodForm : IdentityModel
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -51,8 +51,8 @@ public class GzFoodForm : IdentityModel
 /// Jam makan berbeda antar rumah sakit, karena itu master ini juga dibuat kosong.
 /// <c>ServingTime</c> dipakai mengurutkan tampilan dan merekap kebutuhan produksi.
 /// </remarks>
-[Table("GzMealSchedule", Schema = "public")]
-public class GzMealSchedule : IdentityModel
+[Table("GziMealSchedule", Schema = "public")]
+public class GziMealSchedule : IdentityModel
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
