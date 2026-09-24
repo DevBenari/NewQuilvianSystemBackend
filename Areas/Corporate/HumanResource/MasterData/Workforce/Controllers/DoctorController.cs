@@ -3237,7 +3237,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workfor
                     Section = "Doctor Profile",
                     InputType = "select",
                     IsRequiredOnCreate = true,
-                    IsRequiredOnUpdate = false,
+                    IsRequiredOnUpdate = true,
                     RequiredType = "Required",
                     OptionsSource = "workforceTypeOptions",
                     SortOrder = 401
