@@ -91753,6 +91753,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<Guid>("PositionId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("SourceAssignmentId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("UpdateBy")
                         .HasColumnType("uuid");
 
@@ -91766,16 +91769,19 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("PositionId");
 
+                    b.HasIndex("SourceAssignmentId")
+                        .IsUnique()
+                        .HasFilter("\"SourceAssignmentId\" IS NOT NULL AND \"IsDelete\" = false");
+
                     b.HasIndex("UserId");
 
                     b.HasIndex("DepartmentId", "PositionId");
 
-                    b.HasIndex("UserId", "DepartmentId", "PositionId")
-                        .IsUnique();
-
                     b.HasIndex("UserId", "DepartmentId", "PositionId", "EffectiveStartDate")
                         .IsUnique()
                         .HasFilter("\"IsDelete\" = false");
+
+                    NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("UserId", "DepartmentId", "PositionId", "EffectiveStartDate"), false);
 
                     b.ToTable("AspNetUserOrganization", "public");
                 });

@@ -1,0 +1,30 @@
+{
+  "Acc": "Accounting Management",
+  "Accounting": "Accounting Management",
+
+  "Fin": "Finance Management",
+  "Finance": "Finance Management",
+
+  "Bil": "Billing Management",
+
+  "Lab": "Laboratory Management",
+
+  "Inp": "Inpatient Management",
+
+  "Rad": "Radiology Management",
+
+  "Phm": "Pharmacy Management",
+
+  "Bbk": "Blood Bank Management",
+
+  "Emg": "Emergency Management",
+
+  "Cli": "Clinical Management",
+
+  "Mrc": "Medical Record Management",
+
+  "Opr": "Operating Room Management",
+
+  "Wfp": "Human Resource Management",
+  "Hrd": "Human Resource Management"
+}

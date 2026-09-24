@@ -19,8 +19,18 @@ mono_crash.*
 # Build results
 [Dd]ebug/
 [Dd]ebugPublic/
-[Rr]elease/
-[Rr]eleases/
+/[Rr]elease/
+/[Rr]eleases/
+
+# Keep GitHub release automation tooling tracked
+!.github/
+!.github/release/
+!.github/release/**
+
+# Generated Quilvian release metadata
+.github/release/release-metadata.json
+.github/release/version.json
+
 x64/
 x86/
 [Ww][Ii][Nn]32/

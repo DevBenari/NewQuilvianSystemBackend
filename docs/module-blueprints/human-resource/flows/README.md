@@ -10,6 +10,26 @@
 Folder ini memuat alur bisnis modul HR. Satu berkas untuk satu alur. Diagram memakai Mermaid dan
 disimpan sebagai teks, bukan gambar.
 
+## 0. Kedudukan folder ini setelah `flowcharts/` ada
+
+Folder ini **bukan** artefak kontrak `design-business-module`. Artefak kontraknya adalah
+[`../flowcharts/`](../flowcharts/).
+
+| Folder | Isi | Pembaca |
+| --- | --- | --- |
+| [`../flowcharts/`](../flowcharts/) | **Artefak kontrak.** Langkah yang dikerjakan orang, digambar sebagai flowchart beserta tabel langkah. Tidak memuat nama tabel, kolom, endpoint, maupun nama class | Petugas, analis, penguji UAT |
+| `flows/` — folder ini | **Bukti dan penalaran** di balik aturan bisnis: purpose, actor, trigger, precondition, aturan yang terbukti dari source, beserta penanda provenance per aturan | Perancang dan implementer yang perlu tahu **dari mana** sebuah aturan berasal |
+
+Folder ini **dipertahankan** karena memuat jejak asal-usul yang tidak ada di tempat lain —
+termasuk aturan mana yang masih `[OPEN]` dan karena itu tidak boleh dijadikan dasar
+implementasi. Ia adalah keluaran pass `PHASE 2A` sampai `PHASE 2C` yang tercatat pada decision
+log revision `6` sampai `10`.
+
+**Bila keduanya bertentangan**, `../flowcharts/` yang berlaku untuk **urutan langkah**, dan
+folder ini yang berlaku untuk **asal-usul aturan**. Pertentangan yang sebenarnya — bukan sekadar
+beda kata — **MUST** dicatat sebagai Open Question baru pada decision log, bukan diselesaikan
+dengan menyunting salah satunya diam-diam.
+
 ---
 
 ## 1. Aturan provenance
