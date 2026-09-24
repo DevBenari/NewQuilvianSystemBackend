@@ -295,6 +295,8 @@ perpindahan ini fast-forward murni — tidak ada pekerjaan yang hilang.
 
 ### TITIK LANJUT — 24 September 2026, sesudah ratifikasi Finance
 
+**Pembaruan: `GATE-DESAIN-0924` dibuka Rizki 24 September 2026** — bagian 22 arsitektur dan keempat amandemen kontrak `approved`, ditambah `ACC-DEC-092`/`093`. Wave B (`BE-ACC-P2-019`..`026`, `FE-ACC-P2-011`..`013`) siap dikerjakan; mulai dari `BE-ACC-P2-019`.
+
 Amendment pass `grill-me` pasca-ratifikasi Finance **selesai**: `ACC-DEC-082` sampai `ACC-DEC-090`
 tercatat pada `00-interview-decisions.md` revision 10. `ACC-XM-001` `CLOSED`, sehingga kotak masuk
 kejadian **boleh** dibangun. Kontrak diselaraskan hari yang sama: `ACC-XMOD-0.3` (`approved`),

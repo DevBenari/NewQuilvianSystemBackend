@@ -293,6 +293,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
                 }
             }
 
+            var tingkat = PeriksaTingkatTerhadapInduk<ChartOfAccountDetailResponse>(
+                induk.Akun, request.AccountLevel, kedalamanTurunan: 0);
+            if (tingkat is not null) return tingkat;
+
+            if (induk.Akun is not null)
+                JadikanIndukTanpaTransaksi(induk.Akun, actorUserId);
+
             var akun = new AccChartOfAccount
             {
                 Id = Guid.NewGuid(),
@@ -370,6 +377,23 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
                 request.ParentAccountId, akun.LegalEntityId, akun.Id, ct);
             if (induk.Gagal is not null) return induk.Gagal;
 
+            var indukBerubah = request.ParentAccountId != akun.ParentAccountId;
+
+            if (indukBerubah && induk.Akun is not null
+                && await PunyaBarisJurnalDisahkanAsync(induk.Akun.Id, ct))
+            {
+                return AccountingServiceResult<ChartOfAccountDetailResponse>.Fail(
+                    StatusCodes.Status409Conflict,
+                    $"Akun {induk.Akun.AccountCode} sudah memiliki transaksi, sehingga tidak dapat diberi akun turunan.");
+            }
+
+            var turunan = await AmbilTurunanAsync(akun, ct);
+            var kedalamanTurunan = turunan.Count == 0 ? 0 : turunan.Max(x => x.Kedalaman);
+
+            var tingkat = PeriksaTingkatTerhadapInduk<ChartOfAccountDetailResponse>(
+                induk.Akun, request.AccountLevel, kedalamanTurunan);
+            if (tingkat is not null) return tingkat;
+
             // Acceptance (2). Diperiksa dari keadaan tersimpan, bukan dari isian, karena
             // turunannya dapat dibuat orang lain sesudah layar ini dibuka.
             if (request.IsPostable)
@@ -383,6 +407,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
                         StatusCodes.Status409Conflict,
                         "Akun induk tidak dapat menerima transaksi. Gunakan akun turunannya.");
                 }
+            }
+
+            var selisihTingkat = request.AccountLevel - akun.AccountLevel;
+
+            if (selisihTingkat != 0)
+            {
+                foreach (var (turunanAkun, _) in turunan)
+                {
+                    turunanAkun.AccountLevel += selisihTingkat;
+                    turunanAkun.UpdateDateTime = DateTime.UtcNow;
+                    turunanAkun.UpdateBy = actorUserId;
+                }
+            }
+
+            if (induk.Akun is { IsPostable: true }
+                && (indukBerubah || !await PunyaBarisJurnalDisahkanAsync(induk.Akun.Id, ct)))
+            {
+                JadikanIndukTanpaTransaksi(induk.Akun, actorUserId);
             }
 
             akun.AccountCode = kode;
@@ -613,6 +655,75 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
             }
 
             return (null, induk);
+        }
+
+        private static AccountingServiceResult<T>? PeriksaTingkatTerhadapInduk<T>(
+            AccChartOfAccount? induk,
+            int tingkatDiminta,
+            int kedalamanTurunan)
+        {
+            var tingkatSeharusnya = induk is null ? TingkatMinimum : induk.AccountLevel + 1;
+
+            if (tingkatSeharusnya + kedalamanTurunan > TingkatMaksimum)
+            {
+                var sebab = kedalamanTurunan == 0
+                    ? $"Akun {induk?.AccountCode} sudah berada di tingkat {induk?.AccountLevel} sehingga tidak dapat diberi akun turunan."
+                    : $"Memindahkan akun ini ke bawah {induk?.AccountCode} membuat turunannya melewati tingkat {TingkatMaksimum}.";
+
+                return AccountingServiceResult<T>.Fail(StatusCodes.Status400BadRequest, sebab);
+            }
+
+            if (tingkatDiminta != tingkatSeharusnya)
+            {
+                return AccountingServiceResult<T>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    induk is null
+                        ? $"Akun tanpa induk harus berada di tingkat {TingkatMinimum}."
+                        : $"Tingkat akun harus {tingkatSeharusnya}, satu tingkat di bawah akun induk {induk.AccountCode}.");
+            }
+
+            return null;
+        }
+
+        private static void JadikanIndukTanpaTransaksi(AccChartOfAccount induk, Guid actorUserId)
+        {
+            if (!induk.IsPostable) return;
+
+            induk.IsPostable = false;
+            induk.UpdateDateTime = DateTime.UtcNow;
+            induk.UpdateBy = actorUserId;
+        }
+
+        private async Task<List<(AccChartOfAccount Akun, int Kedalaman)>> AmbilTurunanAsync(
+            AccChartOfAccount akun,
+            CancellationToken ct)
+        {
+            var sebadanHukum = await _db.Set<AccChartOfAccount>()
+                .Where(x => !x.IsDelete && x.LegalEntityId == akun.LegalEntityId && x.ParentAccountId != null)
+                .ToListAsync(ct);
+
+            var anakPerInduk = sebadanHukum
+                .GroupBy(x => x.ParentAccountId!.Value)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            var hasil = new List<(AccChartOfAccount Akun, int Kedalaman)>();
+            var dikunjungi = new HashSet<Guid> { akun.Id };
+            var antrean = new Queue<(Guid Id, int Kedalaman)>();
+            antrean.Enqueue((akun.Id, 0));
+
+            while (antrean.Count > 0)
+            {
+                var (indukId, kedalaman) = antrean.Dequeue();
+                if (!anakPerInduk.TryGetValue(indukId, out var anak)) continue;
+
+                foreach (var baris in anak.Where(x => dikunjungi.Add(x.Id)))
+                {
+                    hasil.Add((baris, kedalaman + 1));
+                    antrean.Enqueue((baris.Id, kedalaman + 1));
+                }
+            }
+
+            return hasil;
         }
 
         private async Task<ChartOfAccountDetailResponse> PetakanRincianAsync(

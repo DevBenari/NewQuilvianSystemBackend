@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `ACC-BP-001` |
-| Revision | `5` — 24 September 2026, bagian 22 (amendment sesudah ratifikasi Finance, **`draft`**) ditambahkan. Sebelumnya `4` — dinaikkan 8 September 2026, bagian 14 sampai 21 (Phase 2) ditambahkan |
+| Revision | `5` — 24 September 2026, bagian 22 (amendment sesudah ratifikasi Finance) ditambahkan, approved Rizki, 24 September 2026 (`GATE-DESAIN-0924`). Sebelumnya `4` — dinaikkan 8 September 2026, bagian 14 sampai 21 (Phase 2) ditambahkan |
 | Status | Bagian 1–13 (MVP): mengikuti approval `ACC-BP-001` revisi 5, 1 September 2026. Bagian 14–21 (Phase 2): **`approved`** — Rizki, 8 September 2026 |
 | Cakupan | MVP tulang punggung akuntansi (`ACC-DEC-009`) **dan** Phase 2 (`ACC-PH-006`, bagian 14–21) |
 | Bentuk blueprint | `SINGLE` — melanjutkan bentuk yang sudah melekat sejak approval, tidak dinilai ulang |
@@ -1126,7 +1126,7 @@ memang tidak ada di `QuilvianSystemBackend.sln`. Jangan membaca "build hijau" se
 
 | Field | Nilai |
 |---|---|
-| Status | **`draft`** — approval adalah tindakan manusia. Bagian 14–21 tetap `approved`; bagian ini **mengubah** tiga hal di dalamnya dan menandainya di tempat |
+| Status | **`approved`** — Rizki, 24 September 2026 (`GATE-DESAIN-0924`). Bagian ini **mengubah** tiga hal di bagian 14–21 dan menandainya di tempat |
 | Pass | `design-business-module` amendment, 24 September 2026 |
 | Masukan | `00-interview-decisions.md@10` (`ACC-DEC-082`..`091`); `ACC-XMOD-0.3`; `finance-management/evidence/01` |
 | Source SHA | `rizkiG` `b2b265af`, `RizkiV2` `c941012ac` — diperiksa hari itu; nol kode kotak masuk, `AccEventType` dan `AccControlAccountReconciliationService` sudah berdiri |
@@ -1279,7 +1279,7 @@ lengkap = penutupan ditahan.
 | Berhak atas badan hukum tujuan | **Sementara** penjaga badan hukum `IsDefault` yang sudah ada (`ACC-DEC-043`): `LegalEntityId` pesan wajib sama dengan badan hukum utama, selain itu `403`. Otorisasi badan hukum per pengguna menunggu `ACC-DEP-008` | Penjaga sudah berdiri |
 | `[AccessPermission("AccountingEvent", "Receive")]` pada `POST /` | `AccountingEventController` | Rencana |
 
-`AccountingEvent : Receive` **dicabut dari peran Administrator** (usulan `ACC-PERMISSION-0.7`).
+`AccountingEvent : Receive` **dicabut dari peran Administrator** (`ACC-PERMISSION-0.7`).
 
 ### 22.9 Status model dan dampak migration
 

@@ -410,7 +410,7 @@ memeriksa ulang saat tindakannya benar-benar dijalankan.
 | `last_changed_in` | `ACC-API-0.10` — 11 September 2026, penyelarasan grup Recurring Journal dengan `RecurringJournalController`: hak akses `activate`/`deactivate` menjadi `RecurringJournal : Activate`, empat bidang ringkasan, dan label ketersediaan. Sebelumnya `0.9` — 10 September 2026, penyelarasan grup Accounting Period dengan `AccountingPeriodController` yang sudah berdiri: base URL `periods` (bukan `accounting-periods`), hak akses `AccountingPeriod` (bukan `Period`), endpoint `GET /{id}/closing-history`, dan empat bidang keadaan daftar periksa. Ditambah `ACC-DEC-070`, peringatan keenam. Sebelumnya `0.8` (`ACC-DEC-060`, `CorrelationId` dan `CausationId` sebagai bidang wajib ke-11 dan ke-12), `0.7` (`ACC-DEC-058`, aturan posting daftar baris), dan `0.6` (33 endpoint Phase 2) |
 | Amandemen menunggu ratifikasi | **`ACC-API-0.11` (usulan) — 11 September 2026.** Lima perubahan: (1) grup **Reconciliation** dicatat untuk pertama kali — `GET /reconciliation/gl-balances`; (2) `ChartOfAccountOptionResponse` bertambah `IsControlAccount`, dan `UpdateChartOfAccountRequest.IsControlAccount` dicatat sebagai `bool?`; (3) `422` control account pada grup Journal — Simpan, Ubah, Ajukan, dan penyesuaian `JP` (`ACC-DEC-064`, `ACC-DEC-072`); (4) `422` control account pada grup Recurring Journal — Tambah, Ubah, Aktifkan (`ACC-DEC-073`); (5) penegasan bahwa `POST /journals/{id}/reverse` yang berhasil menjawab **`200`**, bukan `201` — perilaku sejak `BE-ACC-013`, dituliskan eksplisit atas keputusan Rizki 11 September 2026 (Skenario 6 `BE-ACC-P2-012`); kode tidak diubah. **Status `approved` di bawah belum diubah** — menunggu ratifikasi Rizki |
 | Status | **`approved`** — Rizki, 11 September 2026 |
-| Penyesuaian atas keputusan owner | **`ACC-API-0.12` (usulan) — 24 September 2026.** Empat perubahan, seluruhnya menuliskan keputusan owner yang sudah `approved` sehingga — mengikuti preseden `ACC-DEC-074` — **tidak menunggu ratifikasi `0.11`**: (1) isi `AccountingEventReceiptDto` dan bentuknya yang sama pada `201`/`200`/`422` (`ACC-DEC-085`); (2) penjurnalan seketika dengan `201` tanpa nomor jurnal saat gangguan teknis (`ACC-DEC-084`); (3) contoh `JASA_MEDIS` dipindah dari `PENGAKUAN-PIUTANG` ke `PENGAKUAN-HUTANG-DOKTER` (`ACC-DEC-086`); (4) bidang opsional `SubledgerBalance` untuk pesan saldo subledger (`ACC-DEC-087`). Label ketersediaan grup Accounting Event tetap **Rencana (belum tersedia)** |
+| Penyesuaian atas keputusan owner | **`ACC-API-0.12` — approved Rizki, 24 September 2026 (`GATE-DESAIN-0924`).** Empat perubahan, seluruhnya menuliskan keputusan owner yang sudah `approved` sehingga — mengikuti preseden `ACC-DEC-074` — **tidak menunggu ratifikasi `0.11`**: (1) isi `AccountingEventReceiptDto` dan bentuknya yang sama pada `201`/`200`/`422` (`ACC-DEC-085`); (2) penjurnalan seketika dengan `201` tanpa nomor jurnal saat gangguan teknis (`ACC-DEC-084`); (3) contoh `JASA_MEDIS` dipindah dari `PENGAKUAN-PIUTANG` ke `PENGAKUAN-HUTANG-DOKTER` (`ACC-DEC-086`); (4) bidang opsional `SubledgerBalance` untuk pesan saldo subledger (`ACC-DEC-087`). Label ketersediaan grup Accounting Event tetap **Rencana (belum tersedia)** |
 | `approved_by` / `approved_at` | Rizki / 11 September 2026 (ratifikasi `ACC-API-0.10`); sebelumnya Rizki / 10 September 2026 (`ACC-API-0.9`) dan Rizki / 8 September 2026 (`ACC-API-0.8`) |
 | `input_revision` | `00-interview-decisions.md@6`, `02-backend-architecture.md@4`, `evidence/09` `ACC-DOMAIN-P2-0.1` |
 | Traceability | `ACC-DEC-044` sampai `ACC-DEC-057`, ditambah `ACC-DEC-065` dan `ACC-DEC-070` |
@@ -470,7 +470,7 @@ beserta nomor jurnal yang sama membuat Finance tahu pesannya **sudah diterima da
 `JU/2026/09/00042`. Kiriman kedua dan ketiga menjawab `200` dengan nomor jurnal yang sama persis.
 Buku besar tetap berisi satu catatan.
 
-### Kapan jurnal dibuat — `ACC-DEC-084` *(usulan `ACC-API-0.12`)*
+### Kapan jurnal dibuat — `ACC-DEC-084` *(`ACC-API-0.12`)*
 
 Seketika di dalam request `POST /`, dengan penjadwal sebagai cadangan:
 
@@ -488,7 +488,7 @@ Kiriman ulang dijawab `200` dengan **keadaan terkini**. Jadi bila penjadwal suda
 ulang membawa nomor jurnalnya; bila belum, `JournalNumber` tetap kosong dan statusnya tetap
 `Diterima`.
 
-### Isi `AccountingEventReceiptDto` — `ACC-DEC-085` *(usulan `ACC-API-0.12`)*
+### Isi `AccountingEventReceiptDto` — `ACC-DEC-085` *(`ACC-API-0.12`)*
 
 Dipakai pada `201`, `200`, dan `422`. Balasan `400`, `403`, `409`, dan `422` karena badan hukum tidak ditemukan
 **tidak** membawanya, karena kejadiannya tidak tersimpan.
@@ -902,7 +902,7 @@ oleh kode. Komponen yang dikirim Finance per jenis kejadian belum ditetapkan.
 berstatus **Tertahan**, karena mengabaikan komponen yang tidak dikenal berarti membuang angka
 diam-diam.
 
-### Bidang opsional untuk pesan saldo subledger: `SubledgerBalance` *(usulan `ACC-API-0.12`)*
+### Bidang opsional untuk pesan saldo subledger: `SubledgerBalance` *(`ACC-API-0.12`)*
 
 Ditambahkan `ACC-DEC-087`. Pesan saldo subledger per periode (`ACC-DEC-071`) memakai amplop dua
 belas bidang yang sama, ditambah satu objek rincian.

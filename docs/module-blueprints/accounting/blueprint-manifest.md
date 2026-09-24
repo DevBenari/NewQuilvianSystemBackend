@@ -127,12 +127,13 @@ contract_versions:
   api: ACC-API-0.10
   state: ACC-STATE-0.3
   validation: ACC-VALIDATION-0.6
-  integration: ACC-INTEGRATION-0.5   # 0.3 approved 8 Sep 2026; teks 0.4 dan 0.5 menuliskan keputusan approved, approval teksnya menunggu Rizki
+  integration: ACC-INTEGRATION-0.5   # approved Rizki 24 Sep 2026 (teks 0.4 dan 0.5, GATE-DESAIN-0924)
   permission: ACC-PERMISSION-0.5
   testing: ACC-TEST-0.1
   mvp: ACC-MVP-0.1
   cross_module: ACC-XMOD-0.3   # approved 24 Sep 2026 (ACC-DEC-082); Finance meratifikasi 0.2 lewat FIN-DEC-001
-contracts_proposed: [ACC-API-0.11, ACC-VALIDATION-0.7, ACC-PERMISSION-0.6, ACC-API-0.12, ACC-VALIDATION-0.8, ACC-PERMISSION-0.7, ACC-STATE-0.4]   # 0.11/0.7/0.6 usulan 11 Sep; 0.12/0.8/0.7/0.4 usulan 24 Sep (ACC-DEC-084..088) - GATE-DESAIN-0924
+contracts_proposed: [ACC-API-0.11, ACC-VALIDATION-0.7, ACC-PERMISSION-0.6]   # usulan 11 Sep 2026, belum diratifikasi
+contracts_approved_amendments: [ACC-API-0.12, ACC-VALIDATION-0.8, ACC-PERMISSION-0.7, ACC-STATE-0.4]   # approved Rizki 24 Sep 2026 lewat GATE-DESAIN-0924; ditulis di atas 0.10/0.6/0.5/0.3 karena 0.11/0.7/0.6 masih usulan
 shared_engineering_rules:
   proposed: [QBE-MIG-001, QBE-MIG-002]
   canonical_home: docs/engineering/BACKEND_ENGINEERING_CONTRACT.md@origin/QuilvianIntegrationBackend
@@ -826,3 +827,13 @@ Delapan keputusan `ACC-DEC-074` sampai `ACC-DEC-081` dicatat pada
 | Saldo untuk periode `Closed` | Perlu peringatan tersendiri atau tidak | Tidak menahan |
 | FR saldo subledger | Belum ada di `04-prd-to-mvp.md` | Coverage gap |
 | `UAT-P2-08` | Skenario perlu ditinjau terhadap `ACC-DEC-084` | Coverage gap |
+
+## Approval 24 September 2026 — `GATE-DESAIN-0924` dibuka
+
+| Field | Nilai |
+|---|---|
+| Diputuskan | Rizki, 24 September 2026, lewat pertanyaan approval eksplisit |
+| Yang di-approve | `02-backend-architecture.md` bagian 22; `ACC-API-0.12`, `ACC-VALIDATION-0.8`, `ACC-PERMISSION-0.7`, `ACC-STATE-0.4`; teks `ACC-INTEGRATION-0.4` dan `0.5`; roadmap backend revisi 4 dan frontend revisi 5 |
+| Keputusan tambahan | `ACC-DEC-092` (Coba Ulang untuk `Gagal` dan `Tertahan`), `ACC-DEC-093` (tanpa peringatan khusus untuk saldo periode `Closed`); `00-interview-decisions.md` revision 11 |
+| Akibat | `BE-ACC-P2-019`..`026` dan `FE-ACC-P2-011`..`013` lepas dari ⛔. `BE-ACC-P2-027`, `028`, dan `014` tetap ⛔ menunggu `GATE-FIN-087` |
+| Yang tetap `OPEN` | `GATE-FIN-087`; gerbang cutover G1–G6; FR saldo subledger di PRD; tinjauan `UAT-P2-08` |

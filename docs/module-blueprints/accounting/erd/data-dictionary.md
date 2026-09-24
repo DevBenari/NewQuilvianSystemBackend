@@ -433,8 +433,8 @@ Satu baris untuk setiap kejadian keuangan yang pernah diterima, berhasil maupun 
 | `DocumentDate` | `date` | Ya | — | — | — | — | Tidak | Tanggal dokumen asli. **Berbeda dari `AccountingDate` bila kejadian datang terlambat** (`ACC-DEC-047`) |
 | `Amount` | `numeric(18,2)` | Ya | — | — | — | — | **Ya** | Nilai kejadian. Wajib lebih besar dari nol, **kecuali** pesan saldo subledger yang boleh nol atau negatif (`ACC-DEC-087`) |
 | `CurrencyCode` | `string(3)` | Ya | `"IDR"` | — | — | — | Tidak | Hanya `IDR` diterima (`ACC-DEC-020`) |
-| `EventStatus` | `int` | Ya | `1` | Index bersama `LegalEntityId` | — | — | Tidak | Enum `AccountingEventStatus`, `HasConversion<int>`. Bertambah `Tercatat = 6` untuk pesan saldo (`ACC-DEC-087`, usulan 24 September 2026) |
-| `HoldReasonCode` | `string(50)?` | Tidak | — | — | — | — | Tidak | **Baru, usulan 24 September 2026** (`ACC-DEC-085`). Terisi hanya saat `Tertahan`: `EVENT_TYPE_NOT_REGISTERED`, `POSTING_RULE_MISSING`, `COMPONENT_UNMAPPED`, `COMPONENT_MISSING`. Disimpan supaya kiriman ulang menjawab alasan yang sama |
+| `EventStatus` | `int` | Ya | `1` | Index bersama `LegalEntityId` | — | — | Tidak | Enum `AccountingEventStatus`, `HasConversion<int>`. Bertambah `Tercatat = 6` untuk pesan saldo (`ACC-DEC-087`, approved 24 September 2026) |
+| `HoldReasonCode` | `string(50)?` | Tidak | — | — | — | — | Tidak | **Baru, approved 24 September 2026** (`ACC-DEC-085`). Terisi hanya saat `Tertahan`: `EVENT_TYPE_NOT_REGISTERED`, `POSTING_RULE_MISSING`, `COMPONENT_UNMAPPED`, `COMPONENT_MISSING`. Disimpan supaya kiriman ulang menjawab alasan yang sama |
 | `JournalId` | `Guid?` | Tidak | — | Index | FK ke `AccJournal` | `Restrict` | Tidak | Jurnal yang dihasilkan. **Kosong** untuk kejadian Tertahan, Gagal, dan Diabaikan |
 | `RawPayload` | `text` | Ya | — | — | — | — | **Ya** | Isi pesan asli apa adanya. Disimpan untuk menyelesaikan selisih angka di kemudian hari |
 | `AttemptCount` | `int` | Ya | `0` | — | — | — | Tidak | Jumlah percobaan otomatis. Berhenti di 3 (`ACC-DEC-049`) |
@@ -481,7 +481,7 @@ Daftar jenis kejadian keuangan yang dikenal Accounting.
 | `EventTypeName` | `string(200)` | Ya | — | Index | — | — | Tidak | Nama yang dibaca petugas |
 | `SourceModule` | `string(50)` | Ya | — | — | — | — | Tidak | Modul yang diharapkan menerbitkannya |
 | `IsActive` | `bool` | Ya | `true` | — | — | — | Tidak | Tidak boleh dimatikan bila masih ada aturan posting aktif |
-| `EventKind` | `int` | Ya | `1` | — | — | — | Tidak | **Diperbarui, usulan 24 September 2026** (`ACC-DEC-087`). Enum `EventTypeKind`: `Transaksi = 1`, `SaldoSubledger = 2`, `HasConversion<int>`. Menentukan apakah kejadian dijurnal atau dicatat sebagai saldo. **Tidak boleh diubah** setelah jenis itu punya kejadian (`409`). Tabel sudah berdiri (`BE-ACC-P2-017`), sehingga kolom ini butuh migration tersendiri `AddEventKindToAccEventType` |
+| `EventKind` | `int` | Ya | `1` | — | — | — | Tidak | **Diperbarui, approved 24 September 2026** (`ACC-DEC-087`). Enum `EventTypeKind`: `Transaksi = 1`, `SaldoSubledger = 2`, `HasConversion<int>`. Menentukan apakah kejadian dijurnal atau dicatat sebagai saldo. **Tidak boleh diubah** setelah jenis itu punya kejadian (`409`). Tabel sudah berdiri (`BE-ACC-P2-017`), sehingga kolom ini butuh migration tersendiri `AddEventKindToAccEventType` |
 
 ~~Isinya belum dapat ditetapkan — `DEC-ACC-P2-002` masih `OPEN`.~~ **Isinya ditetapkan
 24 September 2026** (`ACC-DEC-083`): 17 kode Finance berjenis `Transaksi`, ditambah kode saldo
@@ -601,7 +601,7 @@ berbentuk teks dan tidak dapat ditanya. Ketika enam bulan kemudian muncul pertan
 jasa medis yang dibukukan September lalu", pertanyaan itu hanya terjawab bila komponennya berupa
 kolom, bukan teks. Ini juga bahan bagi `DEC-ACC-P2-008`, deteksi aturan posting yang salah.
 
-## 12d. `AccSubledgerBalance` — status `Baru`, usulan 24 September 2026
+## 12d. `AccSubledgerBalance` — status `Baru`, approved 24 September 2026
 
 Saldo subledger terakhir yang **dinyatakan Finance** untuk satu akun kontrol pada satu periode.
 Diisi hanya oleh pesan saldo (`ACC-DEC-087`); dibaca penghalang rekonsiliasi `ACC-DEC-076`

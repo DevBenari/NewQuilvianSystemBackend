@@ -7,7 +7,7 @@ blueprint_id: ACC-BP-001
 blueprint_revision: 11
 blueprint_status: approved            # Phase 2 disetujui Rizki, 8 September 2026
 roadmap_revision: 4                   # DRAFT 24 Sep 2026 - ACC-DEC-082..091: Wave B (019-026) + Wave D (027-028); revisi 3 APPROVED 14 Sep 2026
-roadmap_status: APPROVED              # revisi 3; amandemen revisi 4 masih DRAFT, menunggu approval Rizki
+roadmap_status: APPROVED              # revisi 4 approved Rizki 24 Sep 2026 lewat GATE-DESAIN-0924; Wave D tetap menunggu GATE-FIN-087
 approved_by: [Rizki]
 approved_at: 2026-09-14               # revisi 3; revisi 2 disetujui 2026-09-09
 source_backend: b3ab542e              # revisi 3; revisi 1-2 disusun di atas 02c3219
@@ -51,7 +51,7 @@ flowchart LR
     SMANDIRI["🟡 Gelombang mandiri<br/>P2-0a, P2-3, P2-4, P2-5, P2-CTRL, P2-RECON<br/>13 dari 14 task"]:::sebagian
     SHARD["✅ Hardening<br/>BE-ACC-P2-031, 032, 033"]:::selesai
     SP20B["✅ P2-0b Wave A<br/>Master aturan posting"]:::selesai
-    GP21{{"⛔ Wave B dan Wave D — 10 task baru<br/>menunggu GATE-DESAIN-0924 dan GATE-FIN-087"}}:::terblokir
+    GP21{{"Wave B siap dikerjakan — 019 sampai 026<br/>Wave D menunggu GATE-FIN-087"}}:::belum
 
     SMANDIRI --> SHARD
     SP20B --> GP21
@@ -676,11 +676,11 @@ QBE preflight dan kesesuaian engineering tetap diselesaikan **pada waktu eksekus
 
 | Field | Isi |
 |---|---|
-| `roadmap_revision` | `4` — **`DRAFT`**. Revisi 3 (kartu `001`..`018`, `031`..`033`) tetap `APPROVED`; amandemen ini hanya **menambah** kartu `019`..`028` |
+| `roadmap_revision` | `4` — **`APPROVED`** Rizki, 24 September 2026 (`GATE-DESAIN-0924`); sebelumnya `DRAFT`. Revisi 3 (kartu `001`..`018`, `031`..`033`) tetap `APPROVED`; amandemen ini hanya **menambah** kartu `019`..`028` |
 | Dasar | `ACC-DEC-082`..`091` (`00-interview-decisions.md@10`); `02-backend-architecture.md` bagian 22 (**`draft`**); `ACC-XMOD-0.3` (`approved`); `ACC-INTEGRATION-0.5`; usulan `ACC-API-0.12`, `ACC-VALIDATION-0.8`, `ACC-PERMISSION-0.7`, `ACC-STATE-0.4` |
 | Source | `rizkiG` `b2b265af`, `RizkiV2` `c941012ac` |
 | Kunci yang dicabut | `OD-ACC-01` gugur dan `ACC-XM-001` `CLOSED` (`ACC-DEC-082`) — kotak masuk **boleh** direncanakan. Kalimat "nomor `019` sampai `030` belum boleh direncanakan" pada bagian *Ringkasan task* tidak berlaku lagi |
-| **Kunci yang masih ada** | **`GATE-DESAIN-0924`** — bagian 22 arsitektur dan keempat usulan kontrak masih `draft`. Menurut aturan perencanaan, task yang bergantung pada kontrak `draft` **tidak boleh dimulai**. Seluruh kartu di bawah bertanda ⛔ sampai Rizki meng-approve teks itu. Approval ini tindakan satu orang, bukan menunggu pihak luar |
+| ~~Kunci yang masih ada~~ | **`GATE-DESAIN-0924` DIBUKA** — Rizki meng-approve bagian 22 arsitektur dan usulan `ACC-API-0.12`, `ACC-VALIDATION-0.8`, `ACC-PERMISSION-0.7`, `ACC-STATE-0.4`, serta teks `ACC-INTEGRATION-0.4`/`0.5` pada 24 September 2026. Kartu `019`–`026` siap dikerjakan sesuai urutan gelombang |
 | Kunci tambahan Wave D | **`GATE-FIN-087`** — persetujuan Finance atas bentuk pesan saldo (`evidence/13` bagian 5 butir 1). Wave D dapat dibangun tanpa kode `SALDO-SUBLEDGER` (berkat `EventKind`), tetapi membangunnya sebelum Finance setuju bentuknya berisiko kerja ulang |
 | Yang **tidak** menahan | Mekanisme autentikasi (G3), bagan akun sah (G2), pengirim Finance (G4). Ketiganya menahan **cutover**, bukan pembangunan. Kotak masuk diuji dengan pesan tiruan lewat Swagger, sesuai gelombang `P2-1` pada `04-prd-to-mvp.md` bagian 28 |
 | Catatan engineering | Setiap task backend menjalankan QBE preflight dan pemeriksaan kesesuaian engineering pada waktu eksekusi, dari `AGENTS.md` backend dan `docs/engineering/` — bukan dari kartu ini |
@@ -701,17 +701,17 @@ flowchart LR
         MBEACCP2018["✅ BE-ACC-P2-018<br/>API aturan posting"]:::luar
     end
 
-    GDES{{"⛔ GATE-DESAIN-0924<br/>approval bagian 22 + usulan kontrak"}}:::terblokir
+    GDES{{"✅ GATE-DESAIN-0924<br/>approved Rizki 24 Sep 2026"}}:::selesai
     GFIN{{"⛔ GATE-FIN-087<br/>Finance setuju bentuk pesan saldo"}}:::terblokir
 
-    BEACCP2019["⛔ BE-ACC-P2-019<br/>Entity kotak masuk + EventKind"]:::terblokir
-    BEACCP2020["⛔ BE-ACC-P2-020<br/>Migration kotak masuk oleh Rizki"]:::terblokir
-    BEACCP2021["⛔ BE-ACC-P2-021<br/>POST terima kejadian"]:::terblokir
-    BEACCP2022["⛔ BE-ACC-P2-022<br/>EventKind di API jenis kejadian"]:::terblokir
-    BEACCP2023["⛔ BE-ACC-P2-023<br/>Penjadwal coba ulang"]:::terblokir
-    BEACCP2024["⛔ BE-ACC-P2-024<br/>Daftar rincian ringkasan"]:::terblokir
-    BEACCP2025["⛔ BE-ACC-P2-025<br/>Coba ulang manual dan abaikan"]:::terblokir
-    BEACCP2026["⛔ BE-ACC-P2-026<br/>Penghalang tutup bulan dari kejadian"]:::terblokir
+    BEACCP2019["🟡 BE-ACC-P2-019<br/>Entity kotak masuk + EventKind"]:::sebagian
+    BEACCP2020["BE-ACC-P2-020<br/>Migration kotak masuk oleh Rizki"]:::belum
+    BEACCP2021["BE-ACC-P2-021<br/>POST terima kejadian"]:::belum
+    BEACCP2022["BE-ACC-P2-022<br/>EventKind di API jenis kejadian"]:::belum
+    BEACCP2023["BE-ACC-P2-023<br/>Penjadwal coba ulang"]:::belum
+    BEACCP2024["BE-ACC-P2-024<br/>Daftar rincian ringkasan"]:::belum
+    BEACCP2025["BE-ACC-P2-025<br/>Coba ulang manual dan abaikan"]:::belum
+    BEACCP2026["BE-ACC-P2-026<br/>Penghalang tutup bulan dari kejadian"]:::belum
     BEACCP2027["⛔ BE-ACC-P2-027<br/>Entity saldo subledger + migration"]:::terblokir
     BEACCP2028["⛔ BE-ACC-P2-028<br/>Jalur pesan saldo"]:::terblokir
 
@@ -736,7 +736,7 @@ cermin baca-saja `BE-ACC-P2-028`, karena `014` kini menunggu `028`.
 
 | Gelombang | Boleh mulai setelah | Task |
 | ---: | --- | --- |
-| — | ⛔ `GATE-DESAIN-0924` | Seluruh kartu di bawah |
+| — | ✅ `GATE-DESAIN-0924` dibuka 24 September 2026 | — |
 | 1 | `GATE-DESAIN-0924` | `BE-ACC-P2-019` |
 | 2 | `019` | `BE-ACC-P2-020` (Rizki), `021`, `022`, `024` — boleh paralel |
 | 3 | `021` | `BE-ACC-P2-023`, `025`, `026` — boleh paralel |
@@ -757,20 +757,20 @@ berlaku untuk akun layanan produksi, bukan untuk uji pengembang.
 
 | ID | Judul | Gelombang | Dependency | Status |
 |---|---|---|---|---|
-| `BE-ACC-P2-019` | Entity kotak masuk kejadian dan `EventKind` | `P2-1` | `GATE-DESAIN-0924` | ⛔ `BLOCKED` |
-| `BE-ACC-P2-020` | Migration kotak masuk (**GATED**, dibuat Rizki) | `P2-1` | `019` | ⛔ `BLOCKED` |
-| `BE-ACC-P2-021` | `POST /accounting-events` — terima dan jurnal seketika | `P2-1` | `019`, `018` ✅ | ⛔ `BLOCKED` |
-| `BE-ACC-P2-022` | `EventKind` pada API jenis kejadian | `P2-1` | `019`, `017` ✅ | ⛔ `BLOCKED` |
-| `BE-ACC-P2-023` | Penjadwal coba ulang | `P2-2` | `021` | ⛔ `BLOCKED` |
-| `BE-ACC-P2-024` | Daftar, rincian, dan ringkasan kejadian | `P2-2` | `019` | ⛔ `BLOCKED` |
-| `BE-ACC-P2-025` | Coba ulang manual dan abaikan | `P2-2` | `021` | ⛔ `BLOCKED` |
-| `BE-ACC-P2-026` | Penghalang tutup bulan dari kejadian, dan penolakan penonaktifan aturan yang ditunggu | `P2-2` | `021` | ⛔ `BLOCKED` |
+| `BE-ACC-P2-019` | Entity kotak masuk kejadian dan `EventKind` | `P2-1` | `GATE-DESAIN-0924` ✅ | 🟡 `SEBAGIAN` 24 Sep 2026 — source lengkap, menunggu build owner. [Laporan](../task/report/backend/BE-ACC-P2-019.md) |
+| `BE-ACC-P2-020` | Migration kotak masuk (**GATED**, dibuat Rizki) | `P2-1` | `019` | `READY` |
+| `BE-ACC-P2-021` | `POST /accounting-events` — terima dan jurnal seketika | `P2-1` | `019`, `018` ✅ | `READY` |
+| `BE-ACC-P2-022` | `EventKind` pada API jenis kejadian | `P2-1` | `019`, `017` ✅ | `READY` |
+| `BE-ACC-P2-023` | Penjadwal coba ulang | `P2-2` | `021` | `READY` |
+| `BE-ACC-P2-024` | Daftar, rincian, dan ringkasan kejadian | `P2-2` | `019` | `READY` |
+| `BE-ACC-P2-025` | Coba ulang manual dan abaikan | `P2-2` | `021` | `READY` |
+| `BE-ACC-P2-026` | Penghalang tutup bulan dari kejadian, dan penolakan penonaktifan aturan yang ditunggu | `P2-2` | `021` | `READY` |
 | `BE-ACC-P2-027` | Entity dan migration saldo subledger | Wave D | `019`, `GATE-FIN-087` | ⛔ `BLOCKED` |
 | `BE-ACC-P2-028` | Jalur pesan saldo subledger | Wave D | `021`, `027` | ⛔ `BLOCKED` |
 
 Nomor `029` dan `030` tetap cadangan.
 
-## ⛔ `BE-ACC-P2-019` — Entity kotak masuk kejadian dan `EventKind`
+## 🟡 `BE-ACC-P2-019` — Entity kotak masuk kejadian dan `EventKind`
 
 | Field | Isi |
 |---|---|
@@ -779,13 +779,14 @@ Nomor `029` dan `030` tetap cadangan.
 | Kontrak | Kamus data bagian 9, 10, 11 (`EventKind`), 12c; `02-backend-architecture.md` bagian 15–18 dan 22.9 |
 | Reuse | Pola entity + configuration `BE-ACC-P2-015`; letak `Repositories/Configurations/Corporate/AccountingManagement/` |
 | Cakupan | `AccAccountingEvent` (termasuk `HoldReasonCode`), `AccAccountingEventAttempt`, `AccAccountingEventComponent`, enum `AccountingEventStatus` (enam nilai, termasuk `Tercatat = 6`), enum `EventTypeKind`, kolom `AccEventType.EventKind`, tiga configuration baru + satu diperbarui, `DbSet`. **Nol migration** |
-| Dependency | `GATE-DESAIN-0924` |
+| Dependency | `GATE-DESAIN-0924` ✅ |
 | Acceptance | (1) Kedua unique index anti-ganda terpisah: `(EventNumber)` dan `(SourceModule, SourceTransactionId, EventTypeCode, SourceVersion)`. (2) `EventTypeId` boleh kosong, `EventTypeCode` wajib. (3) `EventKind` wajib, bawaan `Transaksi`. (4) Kolom sensitif (`SourceTransactionId`, `Amount`, `RawPayload`) tidak disentuh logger. (5) Nol kolom identitas pasien |
 | Verifikasi | Pemeriksaan source; `dotnet build … -p:RunAnalyzers=false` oleh Rizki |
 | Risiko/pemilik | Salah bentuk index baru ketahuan saat migration. Owner Backend |
 | DoD | Source berubah, build owner 0 error, laporan task tertulis |
+| **Status** | 🟡 **SEBAGIAN — 24 September 2026.** 5 dari 5 acceptance terpetakan ke source: dua unique index anti-ganda terpisah, `EventTypeId` boleh kosong, `EventKind` wajib berbawaan `Transaksi`, nol logger, nol kolom pasien. 11 berkas (8 baru, 3 diperbarui); nol migration. **Belum:** `dotnet build … -p:RunAnalyzers=false` oleh Rizki — satu-satunya butir DoD tersisa. Bukti: [laporan](../task/report/backend/BE-ACC-P2-019.md) |
 
-## ⛔ `BE-ACC-P2-020` — Migration kotak masuk (**GATED**, dibuat Rizki)
+## `BE-ACC-P2-020` — Migration kotak masuk (**GATED**, dibuat Rizki)
 
 | Field | Isi |
 |---|---|
@@ -798,7 +799,7 @@ Nomor `029` dan `030` tetap cadangan.
 | Risiko/pemilik | Snapshot kehilangan blok modul lain (pernah terjadi). Rizki |
 | DoD | Migration diterapkan di `QuilvianNewDevRizki` |
 
-## ⛔ `BE-ACC-P2-021` — `POST /accounting-events`: terima dan jurnal seketika
+## `BE-ACC-P2-021` — `POST /accounting-events`: terima dan jurnal seketika
 
 | Field | Isi |
 |---|---|
@@ -813,7 +814,7 @@ Nomor `029` dan `030` tetap cadangan.
 | Risiko/pemilik | Acceptance (6) dan (8) sulit dipicu manual; dibuktikan lewat pembacaan source dan, bila owner meminta, uji terarah. Automated test bukan acceptance (`ACC-DEC-081`). Owner Backend |
 | DoD | Source berubah, build owner 0 error, uji panggil tercatat, laporan task tertulis |
 
-## ⛔ `BE-ACC-P2-022` — `EventKind` pada API jenis kejadian
+## `BE-ACC-P2-022` — `EventKind` pada API jenis kejadian
 
 | Field | Isi |
 |---|---|
@@ -828,7 +829,7 @@ Nomor `029` dan `030` tetap cadangan.
 | Risiko/pemilik | Frontend `FE-ACC-P2-013` menyusul. Owner Backend |
 | DoD | Source berubah, build owner 0 error, laporan task tertulis |
 
-## ⛔ `BE-ACC-P2-023` — Penjadwal coba ulang
+## `BE-ACC-P2-023` — Penjadwal coba ulang
 
 | Field | Isi |
 |---|---|
@@ -843,7 +844,7 @@ Nomor `029` dan `030` tetap cadangan.
 | Risiko/pemilik | Memicu gangguan teknis secara sengaja sulit tanpa mengubah kode; cara uji disepakati owner saat eksekusi. Owner Backend |
 | DoD | Source berubah, build owner 0 error, laporan task tertulis |
 
-## ⛔ `BE-ACC-P2-024` — Daftar, rincian, dan ringkasan kejadian
+## `BE-ACC-P2-024` — Daftar, rincian, dan ringkasan kejadian
 
 | Field | Isi |
 |---|---|
@@ -858,7 +859,7 @@ Nomor `029` dan `030` tetap cadangan.
 | Risiko/pemilik | `RawPayload` bertanda sensitif. Owner Backend |
 | DoD | Source berubah, build owner 0 error, laporan task tertulis |
 
-## ⛔ `BE-ACC-P2-025` — Coba ulang manual dan abaikan
+## `BE-ACC-P2-025` — Coba ulang manual dan abaikan
 
 | Field | Isi |
 |---|---|
@@ -869,10 +870,10 @@ Nomor `029` dan `030` tetap cadangan.
 | Dependency | `021` |
 | Acceptance | (1) Coba ulang `Gagal` atau `Tertahan` memakai aturan terkini. (2) Kejadian `Tertahan` berjenis belum terdaftar dipasangkan ke jenis yang kodenya sama (`ACC-DEC-075`). (3) Abaikan hanya untuk `Gagal`, alasan wajib; selain itu `409`/`400`. (4) `Tertahan` → `Diabaikan` ditolak |
 | Verifikasi | Source; build owner; uji panggil |
-| Risiko/pemilik | **Temuan untuk owner:** desain layar (`03-frontend-architecture.md` bagian 11) mematikan tombol Coba Ulang selain status Gagal, sedangkan state matrix mengizinkan `Tertahan` → `Terjurnal` lewat `Retry`. Diputuskan saat eksekusi `FE-ACC-P2-012`. Owner Backend |
+| Risiko/pemilik | Pertentangan layar lawan state matrix **selesai** — `ACC-DEC-092`: Coba Ulang berlaku untuk `Gagal` dan `Tertahan`. Owner Backend |
 | DoD | Source berubah, build owner 0 error, laporan task tertulis |
 
-## ⛔ `BE-ACC-P2-026` — Penghalang tutup bulan dari kejadian, dan penolakan penonaktifan aturan yang ditunggu
+## `BE-ACC-P2-026` — Penghalang tutup bulan dari kejadian, dan penolakan penonaktifan aturan yang ditunggu
 
 | Field | Isi |
 |---|---|

@@ -95,29 +95,29 @@ subledger). Seluruhnya menunggu keputusan lintas modul `OD-ACC-01`, `04`, `05`, 
 ## 3d. Kotak masuk kejadian (`P2-1`, `P2-2`) dan saldo subledger (Wave D) — amandemen 24 September 2026, **DRAFT**
 
 Ditambahkan bersama roadmap backend revisi 4 dan frontend revisi 5 (keduanya `DRAFT`), atas
-`ACC-DEC-082`..`091`. **Seluruh task ⛔** menunggu `GATE-DESAIN-0924`; Wave D juga menunggu
+`ACC-DEC-082`..`093`. `GATE-DESAIN-0924` **dibuka** 24 September 2026; Wave D tetap menunggu
 `GATE-FIN-087`. Belum satu pun baris ini punya bukti.
 
 | Requirement | Isi ringkas | Keputusan asal | Task backend | Task frontend | UAT | Keadaan |
 |---|---|---|---|---|---|---|
-| `FR-P2-001` | Dua belas bidang wajib | `ACC-DEC-048`, `060` | `BE-ACC-P2-019`, `021` | — | `UAT-P2-03` | ⛔ Direncanakan |
-| `FR-P2-002` | Nomor sama → jurnal sama | `ACC-DEC-035`, `085` | `BE-ACC-P2-019`, `021` | — | `UAT-P2-02` | ⛔ Direncanakan |
-| `FR-P2-003` | Kunci gabungan sama → sama seperti `002` | `ACC-DEC-035`, `075` | `BE-ACC-P2-019`, `021` | — | — | ⛔ Direncanakan. **Tanpa UAT** — coverage gap |
-| `FR-P2-004` | Mata uang selain rupiah ditolak | `ACC-DEC-020` | `BE-ACC-P2-021` | — | `UAT-P2-04` | ⛔ Direncanakan |
-| `FR-P2-005` | Pengenal pasien ditolak | `ACC-DEC-056` | `BE-ACC-P2-021` | — | — | ⛔ Direncanakan. **Tanpa UAT** — coverage gap |
-| `FR-P2-006` | Pesan asli disimpan dan dapat dilihat | `ACC-DEC-048` | `BE-ACC-P2-019`, `021`, `024` | `FE-ACC-P2-011`, `012` | — | ⛔ Direncanakan. **Tanpa UAT** — coverage gap |
-| `FR-P2-009` | Tanpa aturan → Tertahan, nol jurnal | `ACC-DEC-046`, `075` | `BE-ACC-P2-021` | — | `UAT-P2-05` | ⛔ Direncanakan |
-| `FR-P2-010` | Tertahan diproses ulang begitu aturan ada | `ACC-DEC-046` | `BE-ACC-P2-025` | `FE-ACC-P2-012` | `UAT-P2-06` | ⛔ Direncanakan. Tombol Coba Ulang untuk `Tertahan` masih pertentangan desain (kartu `FE-ACC-P2-012`) |
-| `FR-P2-011` | Tertahan tidak dapat diabaikan | `ACC-DEC-078` | `BE-ACC-P2-025` | `FE-ACC-P2-012` | `UAT-P2-07` | ⛔ Direncanakan |
-| `FR-P2-012` | Perlakuan aturan menentukan `Posted` atau `Draft` | `ACC-DEC-045` | `BE-ACC-P2-021` | — | `UAT-P2-01` | ⛔ Direncanakan |
-| `FR-P2-013` | Coba ulang 3 kali, jeda makin panjang | `ACC-DEC-049`, `084` | `BE-ACC-P2-023` | — | `UAT-P2-08` | ⛔ Direncanakan. **`UAT-P2-08` perlu ditinjau:** sejak `ACC-DEC-084`, database mati **sebelum** kejadian tersimpan menghasilkan galat tanpa kejadian (Finance mengirim ulang); hanya gangguan **sesudah** tersimpan yang masuk penjadwal |
-| `FR-P2-014` | Sesudah 3 kali → Gagal | `ACC-DEC-049` | `BE-ACC-P2-023` | — | `UAT-P2-08` | ⛔ Direncanakan |
-| `FR-P2-015` | Jumlah Gagal sebagai penanda menu | `ACC-DEC-057` | `BE-ACC-P2-024` | `FE-ACC-P2-011` | `UAT-P2-08` | ⛔ Direncanakan |
-| `FR-P2-016` | Gagal dicoba ulang manual | `ACC-DEC-049` | `BE-ACC-P2-025` | `FE-ACC-P2-012` | `UAT-P2-09` | ⛔ Direncanakan |
-| `FR-P2-017` | Gagal diabaikan dengan alasan wajib | `ACC-DEC-078` | `BE-ACC-P2-025` | `FE-ACC-P2-012` | `UAT-P2-10` | ⛔ Direncanakan |
+| `FR-P2-001` | Dua belas bidang wajib | `ACC-DEC-048`, `060` | [`BE-ACC-P2-019`](../task/report/backend/BE-ACC-P2-019.md) 🟡, `021` | — | `UAT-P2-03` | Direncanakan |
+| `FR-P2-002` | Nomor sama → jurnal sama | `ACC-DEC-035`, `085` | [`BE-ACC-P2-019`](../task/report/backend/BE-ACC-P2-019.md) 🟡, `021` | — | `UAT-P2-02` | Direncanakan |
+| `FR-P2-003` | Kunci gabungan sama → sama seperti `002` | `ACC-DEC-035`, `075` | [`BE-ACC-P2-019`](../task/report/backend/BE-ACC-P2-019.md) 🟡, `021` | — | — | Direncanakan. **Tanpa UAT** — coverage gap |
+| `FR-P2-004` | Mata uang selain rupiah ditolak | `ACC-DEC-020` | `BE-ACC-P2-021` | — | `UAT-P2-04` | Direncanakan |
+| `FR-P2-005` | Pengenal pasien ditolak | `ACC-DEC-056` | `BE-ACC-P2-021` | — | — | Direncanakan. **Tanpa UAT** — coverage gap |
+| `FR-P2-006` | Pesan asli disimpan dan dapat dilihat | `ACC-DEC-048` | [`BE-ACC-P2-019`](../task/report/backend/BE-ACC-P2-019.md) 🟡, `021`, `024` | `FE-ACC-P2-011`, `012` | — | Direncanakan. **Tanpa UAT** — coverage gap |
+| `FR-P2-009` | Tanpa aturan → Tertahan, nol jurnal | `ACC-DEC-046`, `075` | `BE-ACC-P2-021` | — | `UAT-P2-05` | Direncanakan |
+| `FR-P2-010` | Tertahan diproses ulang begitu aturan ada | `ACC-DEC-046` | `BE-ACC-P2-025` | `FE-ACC-P2-012` | `UAT-P2-06` | Direncanakan. Tombol Coba Ulang untuk `Tertahan` diputuskan `ACC-DEC-092` |
+| `FR-P2-011` | Tertahan tidak dapat diabaikan | `ACC-DEC-078` | `BE-ACC-P2-025` | `FE-ACC-P2-012` | `UAT-P2-07` | Direncanakan |
+| `FR-P2-012` | Perlakuan aturan menentukan `Posted` atau `Draft` | `ACC-DEC-045` | `BE-ACC-P2-021` | — | `UAT-P2-01` | Direncanakan |
+| `FR-P2-013` | Coba ulang 3 kali, jeda makin panjang | `ACC-DEC-049`, `084` | `BE-ACC-P2-023` | — | `UAT-P2-08` | Direncanakan. **`UAT-P2-08` perlu ditinjau:** sejak `ACC-DEC-084`, database mati **sebelum** kejadian tersimpan menghasilkan galat tanpa kejadian (Finance mengirim ulang); hanya gangguan **sesudah** tersimpan yang masuk penjadwal |
+| `FR-P2-014` | Sesudah 3 kali → Gagal | `ACC-DEC-049` | `BE-ACC-P2-023` | — | `UAT-P2-08` | Direncanakan |
+| `FR-P2-015` | Jumlah Gagal sebagai penanda menu | `ACC-DEC-057` | `BE-ACC-P2-024` | `FE-ACC-P2-011` | `UAT-P2-08` | Direncanakan |
+| `FR-P2-016` | Gagal dicoba ulang manual | `ACC-DEC-049` | `BE-ACC-P2-025` | `FE-ACC-P2-012` | `UAT-P2-09` | Direncanakan |
+| `FR-P2-017` | Gagal diabaikan dengan alasan wajib | `ACC-DEC-078` | `BE-ACC-P2-025` | `FE-ACC-P2-012` | `UAT-P2-10` | Direncanakan |
 | `FR-P2-040` *(baris utama di 3b)* | Perbandingan subledger dan laporan selisih | `ACC-DEC-071`, `076` | `BE-ACC-P2-014` — dependency kini `028` | — | — | ⛔ Hanya mencatat perubahan dependency; keadaan dicatat di baris 3b |
 | *(tanpa FR)* | Pesan saldo subledger disimpan tanpa jurnal | `ACC-DEC-087` | `BE-ACC-P2-022`, `027`, `028` | `FE-ACC-P2-013` | — | ⛔ **Coverage gap: belum ada FR maupun UAT** — perlu ditambahkan ke `04-prd-to-mvp.md` bagian 25 |
-| *(tanpa FR)* | Penghalang tutup bulan dari kejadian `Gagal`/`Tertahan` | `ACC-DEC-051` | `BE-ACC-P2-026` | — (`FE-ACC-P2-001` ✅ sudah menangani) | `UAT-P2-05` sebagian | ⛔ Direncanakan |
+| *(tanpa FR)* | Penghalang tutup bulan dari kejadian `Gagal`/`Tertahan` | `ACC-DEC-051` | `BE-ACC-P2-026` | — (`FE-ACC-P2-001` ✅ sudah menangani) | `UAT-P2-05` sebagian | Direncanakan |
 
 ## 4. Ringkasan cakupan
 

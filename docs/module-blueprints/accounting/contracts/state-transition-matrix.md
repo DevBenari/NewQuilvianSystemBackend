@@ -150,7 +150,7 @@ Status awal: **`Diterima`**. Status akhir: `Terjurnal` dan `Diabaikan`.
 | `Gagal` | `Terjurnal` | Coba ulang manual berhasil | `AccountingEvent : Retry` | — |
 | `Gagal` | `Diabaikan` | Akuntansi menyatakan kejadian tidak perlu dijurnal | `AccountingEvent : Ignore` | **Alasan tertulis wajib** |
 
-#### Tambahan usulan `ACC-STATE-0.4` — 24 September 2026 (`ACC-DEC-084`, `087`)
+#### Tambahan `ACC-STATE-0.4` — approved Rizki, 24 September 2026 (`GATE-DESAIN-0924`) (`ACC-DEC-084`, `087`, `092`)
 
 Status baru **`Tercatat`** untuk pesan saldo subledger (`EventKind = SaldoSubledger`): pesan sudah
 disimpan sebagai saldo rekonsiliasi dan **tidak pernah** menghasilkan jurnal. `Tercatat` adalah
