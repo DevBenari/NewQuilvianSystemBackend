@@ -3,9 +3,9 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `ACC-BP-001` |
-| Revision | `9` — dinaikkan 14 September 2026; `ACC-DEC-074` sampai `ACC-DEC-081` mencatat delapan keputusan owner hasil review "rencana sampai 100%" (`OD-ACC-02`, `03`, `09`, `10`, `11`, `13`, `14`, `15`). Sebelumnya `8` — dinaikkan 11 September 2026; `ACC-DEC-072` dan `ACC-DEC-073` menutup dua keputusan terbuka `BE-ACC-P2-012` (koreksi jurnal dan template berulang yang menyentuh control account). Sebelumnya `7`, 10 September 2026; `ACC-DEC-071` menutup `DEC-ACC-P2-011` dengan memilih saldo subledger per periode dari Finance, dan membuka `ACC-GAP-013`. Sebelumnya `6` (`ACC-DEC-070`, enam peringatan, menutup `ACC-GAP-012`), `5` (`ACC-DEC-067`, `068`, `069`), dan `4`, 8 September 2026 oleh Amendment pass Phase 2 |
-| Status | `approved` untuk scope MVP; `approved` untuk keputusan Phase 2 dengan satu ratifikasi lintas modul tertunda |
-| Pass | `Scope pass` — **selesai** 1 September 2026 · `Amendment pass — Phase 2` — **selesai** 8 September 2026 |
+| Revision | `10` — dinaikkan 24 September 2026; `ACC-DEC-082` sampai `ACC-DEC-091` mencatat keputusan pasca-ratifikasi Finance (`FIN-DEC-001`..`023`, 20 September 2026): `ACC-XM-001` ditutup, katalog 17 kode diratifikasi, mode pemrosesan, isi tanda terima, `JASA_MEDIS`, bentuk saldo subledger, syarat akun layanan, gerbang cutover, dan penerimaan sebelum tagihan final sebagai uang muka pasien. Sebelumnya `9` — dinaikkan 14 September 2026; `ACC-DEC-074` sampai `ACC-DEC-081` mencatat delapan keputusan owner hasil review "rencana sampai 100%" (`OD-ACC-02`, `03`, `09`, `10`, `11`, `13`, `14`, `15`). Sebelumnya `8` — dinaikkan 11 September 2026; `ACC-DEC-072` dan `ACC-DEC-073` menutup dua keputusan terbuka `BE-ACC-P2-012` (koreksi jurnal dan template berulang yang menyentuh control account). Sebelumnya `7`, 10 September 2026; `ACC-DEC-071` menutup `DEC-ACC-P2-011` dengan memilih saldo subledger per periode dari Finance, dan membuka `ACC-GAP-013`. Sebelumnya `6` (`ACC-DEC-070`, enam peringatan, menutup `ACC-GAP-012`), `5` (`ACC-DEC-067`, `068`, `069`), dan `4`, 8 September 2026 oleh Amendment pass Phase 2 |
+| Status | `approved` untuk scope MVP; `approved` untuk keputusan Phase 2. Ratifikasi lintas modul `ACC-XM-001` **tertutup 24 September 2026** (`ACC-DEC-082`); yang tersisa hanya butir lintas modul yang bukan wewenang Accounting, lihat bagian *Keputusan pasca-ratifikasi Finance* |
+| Pass | `Scope pass` — **selesai** 1 September 2026 · `Amendment pass — Phase 2` — **selesai** 8 September 2026 · `Amendment pass — pasca-ratifikasi Finance` — **selesai** 24 September 2026 (`rizkiG` `b2b265af`, `RizkiV2` `c941012ac`) |
 | Backend SHA — Amendment pass | `02c3219` (branch `rizkiG`) |
 | Frontend SHA — Amendment pass | `e732424eb` (branch `RizkiV2`) |
 | Product/domain owner | Rizki |
@@ -97,7 +97,7 @@ tertutup pada 8 September 2026** lewat Amendment pass Phase 2. Dari jumlah itu, 
 | Dijawab owner 1 September 2026, menjadi `ACC-DEC-*` | 28 | Ditandai ~~TERJAWAB~~ pada judul pertanyaannya |
 | ~~Ditunda ke Phase 2~~ **dijawab owner 8 September 2026** | 9 | Menjadi `ACC-DEC-045` sampai `ACC-DEC-053`. `ACC-DEC-036` berstatus `superseded` |
 | Masih menghalangi MVP | **0** | — |
-| Masih menghalangi Phase 2 | **0 keputusan bisnis**; tersisa **1 ratifikasi lintas modul** | `ACC-XM-001` diputuskan sisi Accounting lewat `ACC-DEC-044`, ratifikasi owner Billing dan owner Finance belum ada |
+| Masih menghalangi Phase 2 | **0 keputusan bisnis**; ~~tersisa 1 ratifikasi lintas modul~~ **0 sejak 24 September 2026** | `ACC-XM-001` ditutup `ACC-DEC-082` (Accounting `ACC-DEC-044`, Billing `ACC-DEC-059`, Finance `FIN-DEC-001`). Butir lintas modul yang masih terbuka — mekanisme autentikasi, kode saldo subledger, kode deposit/refund/selisih shift — hanya menahan **pengaktifan pengiriman dan cutover**, bukan perancangan maupun pembangunan kotak masuk |
 
 Sembilan yang ditunda seluruhnya menyangkut integrasi otomatis, jurnal berulang, dan tutup buku,
 yang sudah berada di luar MVP menurut `ACC-DEC-009`. Menundanya **tidak** membuat MVP menggantung:
@@ -767,6 +767,62 @@ peringatan `DEPRECIATION_NOT_RUN` dan `OPENING_CLOSING_MISMATCH`, serta ratifika
 
 Keputusan `ACC-DEC-001` sampai `ACC-DEC-008` **tidak dibuka kembali** sesuai PRD §36 aturan 3.
 
+### Keputusan pasca-ratifikasi Finance — 24 September 2026
+
+Modul Finance berdiri dan meratifikasi kontrak `ACC-XMOD-0.2` lewat `FIN-DEC-001`, 20 September
+2026. Jawabannya atas enam pertanyaan paket
+[`evidence/12`](evidence/12-paket-kontrak-kejadian-untuk-finance.md) ada di
+`docs/module-blueprints/finance-management/evidence/01-jawaban-untuk-owner-accounting.md`. Sepuluh
+keputusan berikut diambil Rizki dalam sesi `grill-me` 24 September 2026; setiap butir memilih opsi
+yang direkomendasikan setelah pilihan dan konsekuensinya disajikan.
+
+**Keadaan yang diverifikasi ke source hari itu** (`rizkiG` `b2b265af`): kode Finance berdiri di
+`Areas/Corporate/FinanceManagement/AccountingIntegration/`; `FinAccountingEventOutbox` memuat kedua
+belas bidang, dua unique index anti-ganda, dan status `HELD_FOR_FINALIZATION`; ke-17 kode kejadian di
+source sama persis dengan dokumen Finance; `AccountingReceiptNumber` dan `AccountingJournalNumber`
+disimpan sebagai `string?` maks 50; **pengirim ke Accounting belum dibangun**. Kotak masuk Accounting
+masih nol kode; `ACC-TD-022` (bagan akun sah) masih `OPEN`.
+
+**Pertentangan sumber yang dicatat, bukan diputuskan.** Tiga jawaban Finance yang sampai ke Rizki
+lewat percakapan berbeda dengan decision log Finance. Dokumen jawaban Finance sendiri menyatakan
+*"bila berbeda, decision log Finance yang berlaku"*, sehingga keputusan di bawah **tidak** bersandar
+pada versi percakapan:
+
+| Butir | Versi percakapan | Decision log Finance | Perlakuan di sini |
+|---|---|---|---|
+| Autentikasi | Akun layanan khusus + JWT Bearer berumur pendek, hanya `AccountingEvent : Receive` | `FIN-DEC-007` **`draft`**: service account/API key lewat mekanisme auth existing | Mekanisme tetap terbuka (`ACC-DEC-088`) |
+| Saldo subledger | Amplop yang sama + empat rincian | `FIN-DEC-023` **`draft`**: lima bidang berdiri sendiri | Diputuskan sisi Accounting (`ACC-DEC-087`), Finance menyesuaikan |
+| Cutover | 1 Oktober 2026 00.00 WIB | `FIN-DEC-008` **`approved`**: sejak go-live, tanggal "saat MVP-5 siap" | 1 Oktober dinyatakan tidak layak (`ACC-DEC-089`) |
+
+Yasmin diminta mengonfirmasi atau mengubah log-nya — lihat
+[`evidence/13`](evidence/13-balasan-accounting-untuk-finance.md).
+
+| ID | Type | Isi keputusan | Owner | Status | Approved by | Evidence |
+|---|---|---|---|---|---|---|
+| `ACC-DEC-082` | Decision | **`ACC-XM-001` ditutup penuh.** Ketiga pihak sudah setuju: Accounting (`ACC-DEC-044`, 8 Sep), Billing (`ACC-DEC-059`, 9 Sep), Finance (`FIN-DEC-001`, 20 Sep). `ACC-XMOD` naik menjadi **`approved`** dengan `approved_by` Rizki dan Yasmin (lewat `FIN-DEC-001`). **`OD-ACC-01` gugur**: kotak masuk kejadian boleh dirancang dan dibangun sekarang, dan larangan menulis kode integrasi pada `integration-contract.md` bagian 5 dan 6 dicabut. Butir yang **belum** ikut diratifikasi — mekanisme autentikasi, bentuk saldo subledger, kode tambahan — tidak menahan penutupan ini; masing-masing hanya menahan bagiannya sendiri (lihat `ACC-DEC-087`..`090`). **Contoh akibat:** task pintu masuk `POST api/v1/corporate/accounting/accounting-events` boleh direncanakan dan dikerjakan pada Wave B tanpa menunggu keputusan Platform | Rizki | `approved` | Rizki, 24 September 2026 | `FIN-DEC-001`; `finance-management/evidence/01` bagian 2 pertanyaan 1–2; `finance-management/contracts/integration-contract.md` bagian 5 |
+| `ACC-DEC-083` | Decision | **Ketujuh belas kode kejadian Finance diratifikasi** persis seperti `FIN-DEC-002`: `PENGAKUAN-PIUTANG`, `PENERIMAAN-PIUTANG`, `PENYESUAIAN-PIUTANG`, `PEMUTIHAN-PIUTANG`, `PENGAKUAN-HUTANG-SUPPLIER`, `PEMBAYARAN-HUTANG-SUPPLIER`, `PENGAKUAN-HUTANG-DOKTER`, `PEMBAYARAN-HUTANG-DOKTER`, `PENYESUAIAN-HUTANG`, `SETORAN-BANK`, `PETTY-CASH-TOP-UP`, `PETTY-CASH-DISBURSEMENT`, `PETTY-CASH-RETURN`, `PETTY-CASH-REVERSAL`, `PETTY-CASH-ADJUSTMENT`, `PENERIMAAN-KASIR`, `PEMBALIKAN-PENERIMAAN-KASIR`. `SourceModule` seluruhnya `Finance`. (1) Kode **tidak boleh** diubah atau ditambah sepihak; penambahan wajib lewat keputusan kedua pihak. (2) Ratifikasi kode **bukan** aturan posting: kejadian berkode sah tanpa aturan posting tetap **Tertahan** (`ACC-DEC-046`, `075`) sampai aturannya disusun di atas bagan akun yang sah (`ACC-TD-022`). (3) Data uji `PATIENT_PAYMENT` bersumber `CASHIER` di database pengembangan bertentangan dengan `ACC-DEC-044`; ia **dinonaktifkan** lewat layar master (`PATCH .../event-types/{id}/deactivate` setelah aturan posting ujinya dinonaktifkan), **bukan** dihapus lewat SQL, dan tidak boleh dipakai di lingkungan mana pun. Menutup `DEC-ACC-P2-002` / `OD-ACC-06` | Rizki | `approved` | Rizki, 24 September 2026 | `FIN-DEC-002`; `finance-management/contracts/integration-contract.md` bagian 5.4; konstanta `FinAccountingEventTypeCodes` di source Finance |
+| `ACC-DEC-084` | Decision | **Kejadian dijurnal seketika di dalam request penerimaan, dengan penjadwal sebagai cadangan.** Urutannya: validasi pesan → simpan kejadian (`Diterima`) dan **commit** → cocokkan aturan posting → buat jurnal. Hasil yang mungkin: (a) jurnal terbentuk → `Terjurnal`, balasan `201` beserta nomor jurnal; (b) kode belum terdaftar, aturan belum ada, atau komponen tidak dikenal → `Tertahan`, balasan `422`; (c) gangguan teknis **setelah** kejadian tersimpan → kejadian tetap `Diterima`, balasan tetap `201` **tanpa** nomor jurnal, lalu `AccAccountingEventSchedulerHostedService` mencoba ulang sampai 3 kali sebelum `Gagal` (`ACC-DEC-049`). Kiriman ulang dijawab `200` dengan keadaan terkini, termasuk nomor jurnal bila sudah terbentuk. **Contoh:** `EVT-300` datang saat database jurnal sibuk; kejadian tersimpan, balasan `201` dengan `JournalNumber` kosong. Dua menit kemudian penjadwal berhasil membuat `JU/2026/11/00017`. Bila Finance mengirim ulang `EVT-300`, balasannya `200` dengan nomor jurnal itu. Menolak dua alternatif: **selalu antre** membuat `422` mustahil dijawab saat itu sehingga kewajiban Finance "Tertahan = `HELD`" tidak pernah terpicu; **semua atau batal** membuat kejadian yang gagal tidak pernah tersimpan di Accounting sehingga daftar gagal (`ACC-DEC-049/051/057`) kehilangan makna | Rizki | `approved` | Rizki, 24 September 2026 | `api-contract.md` grup Accounting Event (`201`/`200`/`422`); `02-backend-architecture.md` baris `AccAccountingEventSchedulerHostedService`; `finance-management/contracts/integration-contract.md` 5.3 |
+| `ACC-DEC-085` | Decision | **Isi `AccountingEventReceiptDto`**, sama bentuknya pada balasan `201`, `200`, dan `422`: `AccountingEventId` (`Guid`) — rujukan tanda terima, disimpan Finance sebagai `AccountingReceiptNumber`; `EventNumber` — gema dari pesan; `EventStatus` — `Diterima`, `Terjurnal`, atau `Tertahan`; `JournalNumber?` (maks 30) — hanya bila `Terjurnal`, disimpan Finance sebagai `AccountingJournalNumber`; `AccountingPeriodCode?` (`YYYY-MM`) — periode tempat jurnal jatuh, penting bila periode asal sudah tertutup (`ACC-DEC-047`); `HoldReasonCode?` — `EVENT_TYPE_NOT_REGISTERED`, `POSTING_RULE_MISSING`, `COMPONENT_UNMAPPED` (kejadian membawa komponen yang tidak dipakai aturan), atau `COMPONENT_MISSING` (aturan menuntut komponen yang tidak dibawa kejadian), hanya bila `Tertahan`; `ReceivedAt` (`timestamptz`) — waktu pertama kali diterima. **Tidak ada kolom baru**: rujukan tanda terima adalah `AccAccountingEvent.Id`. **Contoh balasan `422`:** `{ "AccountingEventId": "…", "EventNumber": "EVT-210", "EventStatus": "Tertahan", "JournalNumber": null, "AccountingPeriodCode": null, "HoldReasonCode": "POSTING_RULE_MISSING", "ReceivedAt": "2026-11-03T09:12:44+07:00" }`. Balasan `400`, `403`, `409`, dan `422` karena badan hukum tidak ditemukan **tidak** membawa DTO ini karena kejadiannya tidak tersimpan | Rizki | `approved` | Rizki, 24 September 2026 | `FinAccountingEventOutbox.AccountingReceiptNumber`/`AccountingJournalNumber` (`string?`, maks 50); `erd/data-dictionary.md` bagian 9; `AccJournal.JournalNumber` `string(30)` |
+| `ACC-DEC-086` | Decision | **`JASA_MEDIS` tidak pernah menjadi komponen `PENGAKUAN-PIUTANG`**, mengikuti `FIN-DEC-003` (fee dokter diakui terpisah lewat `PENGAKUAN-HUTANG-DOKTER` setelah `DoctorServiceFee` disetujui). (1) Contoh di `api-contract.md`, `cross-module-contract.md`, `evidence/12`, dan kamus data diganti: contoh `PENGAKUAN-PIUTANG` memakai `TOTAL` saja (dua baris), contoh jasa medis dipindah ke `PENGAKUAN-HUTANG-DOKTER` (debit Beban Jasa Medis, kredit Utang Jasa Medis Dokter). (2) Aturan tertulis: aturan posting `PENGAKUAN-PIUTANG` **tidak boleh** memuat baris berkomponen `JASA_MEDIS`. (3) Aturan itu **tidak** ditegakkan kode — mengikat kode Accounting pada nama kode Finance ditolak. (4) Laporan task lama (`BE-ACC-P2-015`, `018`, `FE-ACC-P2-010`) adalah catatan sejarah dan tidak diubah. **Contoh bahaya yang dicegah:** petugas menyalin contoh lama dan menyusun aturan `PENGAKUAN-PIUTANG` empat baris, dua di antaranya berkomponen `JASA_MEDIS`. Karena Finance tidak pernah mengirim komponen itu, aturan validasi "komponen baris aturan harus tersedia" (`ACC-VALIDATION` Phase 2 bagian 2) menahan **setiap** kejadian pengakuan piutang (`422`, Tertahan) — tidak satu pun piutang terjurnal sampai aturannya dibetulkan. Buku besar tidak salah, tetapi berhenti bergerak tanpa ada yang menyadari sebabnya | Rizki | `approved` | Rizki, 24 September 2026 | `FIN-DEC-003`; `finance-management/evidence/01` bagian 2 pertanyaan 3 |
+| `ACC-DEC-087` | Decision | **Pesan saldo subledger per periode memakai amplop dua belas bidang yang sama, ditambah dua rincian.** Bentuknya: `EventTypeCode` = kode baru khusus saldo (**usulan `SALDO-SUBLEDGER`**, butuh persetujuan Finance); `Amount` = saldo subledger, **khusus jenis ini boleh nol atau negatif**; `AccountingDate` = tanggal cut-off (menggantikan `AsOfDate` usulan Finance); `SourceVersion` naik bila Finance menyatakan ulang saldo; rincian `AccountingPeriodCode` (`string`, **maks 7**, bentuk `YYYY-MM`, sama dengan `AccAccountingPeriod.PeriodCode`) dan `ControlAccountCode` (`string`, maks 50, wajib menunjuk akun yang ditandai control account). `SubledgerBalance` dan `AsOfDate` **tidak** diulang agar tidak mungkin bertentangan dengan `Amount` dan `AccountingDate`. Kejadian saldo **tidak pernah menghasilkan jurnal**; ia dipakai penghalang rekonsiliasi `ACC-DEC-076`. Rincian perlakuannya (status, tempat simpan) dirancang lewat `design-business-module`. **Contoh:** saldo piutang penjamin per 30 November 2026 Rp 425.000.000 → `Amount` `425000000.00`, `AccountingDate` `2026-11-30`, `AccountingPeriodCode` `2026-11`, `ControlAccountCode` `1-1201`. Menjawab `OD-ACC-08` dan `FIN-OQ-011`; Finance diminta menyesuaikan `FIN-DEC-023` | Rizki (sisi Accounting); Yasmin (kode jenis + penyesuaian `FIN-DEC-023`) | `approved` sisi Accounting | Rizki, 24 September 2026 | `ACC-DEC-071`, `076`; `FIN-DEC-023`; `erd/data-dictionary.md` bagian 1 (`PeriodCode` `string(7)`) dan bagian 9 (`Amount` wajib > 0) |
+| `ACC-DEC-088` | Decision | **Syarat Accounting atas akun layanan pengirim kejadian; mekanismenya tetap terbuka.** (1) Satu akun khusus untuk Finance — bukan akun manusia, **bukan SuperAdmin**. (2) Akun itu wajib punya **penugasan Departemen + Jabatan khusus** (misalnya "Integrasi Sistem") yang di `SysAccessPolicy` **hanya** diberi `AccountingEvent : Receive`; tanpa penugasan organisasi, setiap kiriman pasti `403` karena hak Accounting diberikan per Departemen + Jabatan. (3) Akun itu berhak atas badan hukum yang dikirimi kejadian; bila tidak, `403`. (4) Token berumur pendek dicatat sebagai **preferensi** Accounting, bukan syarat. Mekanismenya — "mekanisme auth existing" (`FIN-DEC-007`, `draft`) atau JWT Bearer — **tetap terbuka**, pemilik Platform + Yasmin + Rizki. Keterbukaan itu menahan **pengaktifan pengiriman**, bukan pembangunan kotak masuk. Menjawab sisi Accounting dari `OD-ACC-05` | Rizki (syarat); Platform + Yasmin + Rizki (mekanisme) | `approved` untuk syarat (1)–(4) | Rizki, 24 September 2026 | `permission-audit-matrix.md` baris `AccountingEvent : Receive`; memori uji `BE-ACC-P2-017` (departemen kosong di `QuilvianNewDevRizki` → hanya SuperAdmin yang lolos) |
+| `ACC-DEC-089` | Decision | **Cutover 1 Oktober 2026 dinyatakan tidak layak.** Cutover jatuh pada **tanggal 1 pukul 00.00 WIB di awal periode akuntansi pertama setelah seluruh gerbang lolos**: (G1) kotak masuk dibangun dan diuji ujung-ke-ujung; (G2) `ACC-TD-022` ditutup — bagan akun sah tersedia — beserta aturan posting untuk setiap kode yang akan aktif; (G3) akun layanan aktif sesuai `ACC-DEC-088` dan mekanismenya sudah diputuskan; (G4) pengirim Finance siap; (G5) saldo awal manual per tanggal cutover siap diinput; (G6) lihat `ACC-DEC-090`. Tanggal pastinya diputuskan Rizki bersama Yasmin saat gerbang terakhir lolos. Transaksi sebelum cutover tidak dikirim dan tidak direkonstruksi (`FIN-DEC-008`). **Kenapa 1 Oktober tidak layak** (diperiksa 24 September 2026): G1 nol kode, Wave B belum direncanakan, G2 `OPEN`, G3 menunggu Platform, G4 belum dibangun Finance | Rizki; tanggal bersama Yasmin | `approved` | Rizki, 24 September 2026 | `FIN-DEC-008`; `finance-management/contracts/integration-contract.md` 5.7; `UTANG-TEKNIS.md` `ACC-TD-022` |
+| `ACC-DEC-090` | Decision | **Deposit pasien, kelebihan bayar beserta pengembaliannya, dan selisih kas shift kasir menjadi gerbang ke-6 (G6) cutover.** Ketiganya adalah peristiwa kas di Billing yang tidak tercakup 17 kode Finance. Siklus dan penerbitannya milik Finance/Billing; Accounting hanya memutuskan bahwa cutover **tidak boleh** dilakukan sebelum salah satu terpenuhi: (a) kode kejadian untuk ketiganya disepakati, atau (b) Finance menyatakan tertulis bagaimana ketiganya tercermin pada 17 kode yang ada — termasuk jaminan bahwa top-up deposit **tidak** dikirim sebagai `PENERIMAAN-KASIR`. **Contoh bahaya yang dicegah:** top-up deposit Rp 5.000.000 terkirim sebagai `PENERIMAAN-KASIR` lalu terbukukan sebagai pendapatan, padahal uang itu kewajiban kepada pasien — buku besar tetap seimbang dan tidak ada pesan galat. Terkait `OD-ACC-07` (deteksi shift kasir terbuka) | Rizki (gerbang); Yasmin + owner Billing (kodenya) | `approved` | Rizki, 24 September 2026 | `evidence/11-pertanyaan-peristiwa-kas-untuk-billing.md`; katalog `FIN-DEC-002` |
+| `ACC-DEC-091` | Decision | **Penerimaan kasir sebelum tagihan final harus masuk buku besar pada tanggal diterima, sebagai uang muka pasien.** Posisi Accounting atas tawaran Finance di bagian 4 jawabannya (`FIN-DEC-004`): (1) uang yang sudah diterima kasir **tidak boleh** ditahan dari buku besar sampai tagihan final; (2) lawan akunnya **Uang Muka Pasien** (kewajiban), bukan pendapatan dan bukan piutang; (3) saat tagihan final dan piutang diakui, uang muka dipakai melunasi piutang lewat **kejadian pemakaian uang muka** — kode baru yang wajib disepakati Finance, digabung dengan pertanyaan deposit pada gerbang G6 (`ACC-DEC-090`); (4) bagan akun sah wajib memuat akun Uang Muka Pasien (gerbang G2). **Contoh:** pasien rawat inap membayar Rp 20.000.000 pada 25 November, pulang 5 Desember dengan tagihan Rp 32.000.000. November: debit Kas Rp 20.000.000, kredit Uang Muka Pasien Rp 20.000.000. 5 Desember: pengakuan piutang Rp 32.000.000, lalu pemakaian uang muka — debit Uang Muka Pasien Rp 20.000.000, kredit Piutang Rp 20.000.000 — sehingga sisa piutang Rp 12.000.000. **Kenapa tidak tetap ditahan:** pada tutup November kas di buku besar kurang Rp 20.000.000 dari kas fisik, dan bila saldo subledger kas Finance menghitung uang itu, toleransi nol `ACC-DEC-076` menahan penutupan. **Butuh Finance mengubah `FIN-DEC-004`**; sampai itu terjadi, butir ini masuk gerbang G6 | Rizki (posisi Accounting); Yasmin (perubahan `FIN-DEC-004` dan kode pemakaian uang muka) | `approved` sisi Accounting | Rizki, 24 September 2026 | `FIN-DEC-004`; `finance-management/evidence/01` bagian 4; `finance-management/contracts/integration-contract.md` 5.5 |
+
+**Yang sengaja TIDAK diputuskan dan tetap terbuka:**
+
+| Butir | Pemilik | Menahan |
+|---|---|---|
+| Mekanisme autentikasi akun layanan | Platform + Yasmin + Rizki | G3 — pengaktifan pengiriman |
+| Kode jenis kejadian saldo (usulan `SALDO-SUBLEDGER`) dan penyesuaian `FIN-DEC-023` | Yasmin | Wave D |
+| Daftar komponen yang dikirim Finance per jenis kejadian | Yasmin | Penyusunan aturan posting berbaris banyak |
+| Kode atau pernyataan tertulis deposit, refund, selisih shift, **dan kode pemakaian uang muka** (`ACC-DEC-091`) | Yasmin + owner Billing | G6 — cutover |
+| Perubahan `FIN-DEC-004` agar penerimaan sebelum tagihan final terbit segera (`ACC-DEC-091`) | Yasmin | G6 — cutover |
+| Konfirmasi atau perubahan decision log Finance atas tiga pertentangan sumber di atas | Yasmin | Tidak menahan; wajib didamaikan (`cross-module-contract.md` bagian 11) |
+| Tanggal cutover pasti | Rizki + Yasmin | — |
+| Status kejadian saldo tanpa jurnal, tempat simpan saldo, aturan tanda `Amount` di validasi | Rizki lewat `design-business-module` | Wave D |
+
 ### `ACC-DEC-041` — kenapa ditunda, bukan dibatalkan
 
 Perbedaan ini menentukan dan mudah tertukar. Ada **dua** hal yang selama ini menyatu di bawah satu
@@ -828,13 +884,13 @@ siapa yang menerbitkan kejadian itu, karena penerbitnya berada di modul lain.
 | Pihak yang harus setuju | Owner Billing, owner Finance, dan Rizki |
 | Bukti yang mengikat | `billing-kasir/contracts/integration-contract.md#BIL-INT-007..009@aa837d7`, status **approved** 20 Agustus 2026 |
 | Batasan | PRD §36 aturan 13 melarang mengubah kontrak Billing yang sudah disetujui. `ACC-DEC-011` **tidak** mengubah `BIL-INT-007` sampai `BIL-INT-009`; keduanya bisa berjalan berdampingan bila kejadian resmi diterbitkan sekali dan nomornya dipakai bersama |
-| Status | **`DIKONFIRMASI SISI BILLING`** — 9 September 2026 lewat `ACC-DEC-059`. Sisa: bentuk pesan Finance → Accounting menunggu owner Finance |
+| Status | **`CLOSED`** — 24 September 2026 lewat `ACC-DEC-082`. Sebelumnya `DIKONFIRMASI SISI BILLING` (9 September 2026, `ACC-DEC-059`) |
 | Jawaban yang dipilih | **Finance yang menerbitkan.** Billing → Finance (Piutang/Utang) → kejadian keuangan resmi → Accounting |
 | Yang sudah setuju | Rizki, 8 September 2026, selaku owner modul Accounting |
 | Yang sudah setuju | Rizki (8 Sep) · **Owner Billing (9 Sep)** — jawaban tertulis atas enam pertanyaan |
-| Yang belum setuju | **Owner Finance (Yasmin)** — hanya untuk **bentuk pesan** Finance → Accounting, bukan untuk arah rantainya |
+| Yang belum setuju | ~~Owner Finance (Yasmin)~~ — **sudah**, `FIN-DEC-001`, 20 September 2026: arah, penerbit, dan bentuk dua belas bidang diratifikasi apa adanya |
 | **Bukti baru 8 Sep 2026** | [`evidence/10-billing-arap-handoff-scan.md`](evidence/10-billing-arap-handoff-scan.md) — **penerbitnya ternyata sudah ada dan berjalan di Billing** (`BilArHandoff`, `BilApHandoff`, `BilHandoffAdjustment`, ditulis `BillingArApHandoffService` di dalam transaksi finalisasi faktur), tetapi **konsumennya nol**: tidak ada satu pun kode yang mengubah status `CREATED` menjadi `ACKNOWLEDGED`. Temuan ini **tidak membatalkan** `ACC-DEC-044`, tetapi mengubah ongkosnya dan memunculkan pilihan ketiga yang belum pernah dibahas. Enam pertanyaan untuk owner Billing ada di bagian 8 dokumen itu |
-| Memblokir | **Implementasi** jalur jurnal otomatis. **Tidak lagi** memblokir perancangan Phase 2 |
+| Memblokir | ~~Implementasi jalur jurnal otomatis~~ — **tidak lagi memblokir apa pun** sejak 24 September 2026. Yang masih menahan pengaktifan pengiriman adalah gerbang cutover `ACC-DEC-089`, bukan `ACC-XM-001` |
 | **Tidak** memblokir | Rilis pertama, karena `ACC-DEC-009` menempatkan integrasi otomatis di tahap berikutnya |
 
 ### Kenapa Finance yang dipilih
@@ -885,12 +941,15 @@ baru bagi modul lain. Karena itu:
 |---|---|---|
 | Accounting **tidak** berlangganan langsung ke Billing | Rizki, owner Accounting | **Ya**, berlaku penuh |
 | Accounting membaca kejadian dari Finance | Rizki, owner Accounting | **Ya** untuk sisi pembacaan |
-| Finance **wajib menerbitkan** kejadian keuangan resmi | Owner Finance (Yasmin) | **Belum** — menunggu ratifikasi |
-| Bentuk pesan dua belas bidang (`ACC-DEC-048` + `ACC-DEC-060`) | Rizki + owner Finance | **Belum** — menunggu ratifikasi owner Finance |
+| Finance **wajib menerbitkan** kejadian keuangan resmi | Owner Finance (Yasmin) | **Ya** — `FIN-DEC-001`, 20 September 2026 |
+| Bentuk pesan dua belas bidang (`ACC-DEC-048` + `ACC-DEC-060`) | Rizki + owner Finance | **Ya** — `FIN-DEC-001`, 20 September 2026 |
 
 Yang harus dilakukan sebelum implementasi Phase 2 dimulai: bawa `ACC-DEC-044` dan `ACC-DEC-048`
 ke owner Billing dan Yasmin untuk diratifikasi. Sampai itu terjadi, perancangan boleh berjalan
 dan penulisan kode integrasi tetap **dilarang** oleh `contracts/integration-contract.md` bagian 5.
+
+> **Pembaruan 24 September 2026.** Kedua ratifikasi di atas sudah ada (`ACC-DEC-059`, `FIN-DEC-001`).
+> `ACC-DEC-082` menutup `ACC-XM-001`, dan larangan menulis kode integrasi dicabut.
 
 ---
 
@@ -933,6 +992,21 @@ keputusan yang sudah disetujui.
 
 ### Belum — sebelum implementasi Phase 2
 
-9. Bawa `ACC-DEC-044` dan `ACC-DEC-048` ke owner Billing dan Yasmin untuk diratifikasi.
-10. Tunggu modul Finance berdiri (`ACC-DEP-004`, pemilik: Yasmin). Diperiksa 8 September 2026:
-    `Areas/Corporate/` masih hanya memuat `AccountingManagement` dan `HumanResource`.
+9. ~~Bawa `ACC-DEC-044` dan `ACC-DEC-048` ke owner Billing dan Yasmin untuk diratifikasi.~~
+   **Selesai** — `ACC-DEC-059` (9 Sep) dan `FIN-DEC-001` (20 Sep); ditutup `ACC-DEC-082`.
+10. ~~Tunggu modul Finance berdiri (`ACC-DEP-004`, pemilik: Yasmin).~~ **Selesai** — diperiksa
+    24 September 2026, `Areas/Corporate/FinanceManagement/` berdiri beserta kotak keluar kejadiannya.
+
+### Sudah selesai — Amendment pass pasca-ratifikasi Finance, 24 September 2026
+
+11. Sepuluh keputusan `ACC-DEC-082` sampai `ACC-DEC-091`; kontrak dan dokumen turunannya
+    diselaraskan pada hari yang sama. Balasan untuk Finance:
+    [`evidence/13`](evidence/13-balasan-accounting-untuk-finance.md).
+
+### Belum — sesudah 24 September 2026
+
+12. `design-business-module` (amendment): jalur kejadian saldo tanpa jurnal dan
+    `AccountingEventReceiptDto` pada arsitektur backend.
+13. `plan-module-delivery`: task Wave B — kotak masuk kejadian.
+14. Gerbang cutover G1–G6 (`ACC-DEC-089`, `090`) dipantau sampai lolos; `ACC-TD-022` ada di jalur
+    kritisnya dan bukan pekerjaan rekayasa.

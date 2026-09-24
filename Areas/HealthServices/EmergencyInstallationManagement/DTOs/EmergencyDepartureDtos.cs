@@ -69,6 +69,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         public bool IsEffective { get; set; }
         public Guid? SupersedesEventId { get; set; }
         public Guid? ApprovedByUserId { get; set; }
+
+        /// <summary>
+        /// Nama tampilan pencatat kejadian (<c>BE-IGD-049</c>, <c>IGD-DEC-137</c>). Tambahan atas
+        /// <see cref="RecordedByUserId"/>, bukan pengganti. <c>null</c> bila pengguna tidak
+        /// ditemukan; layar tidak boleh menampilkan GUID sebagai gantinya.
+        /// </summary>
+        public string? RecordedByName { get; set; }
+
+        /// <summary>
+        /// Nama tampilan penyetuju pembalikan. <c>null</c> bila kejadian tidak membutuhkan
+        /// persetujuan (<see cref="ApprovedByUserId"/> kosong) atau penggunanya tidak ditemukan.
+        /// </summary>
+        public string? ApprovedByName { get; set; }
     }
 
     public class EmergencyHandoverOrderItemResponse
