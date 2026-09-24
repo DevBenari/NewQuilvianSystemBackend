@@ -459,6 +459,17 @@ public sealed class AdministrationFeeCalculationResponse
     // BE-BKC-028/BKC-DES-021: porsi biaya administrasi yang tidak boleh ditagihkan ke pasien
     // menurut kontrak penjamin. Lihat CoverageCalculationResponse.NonBillableResidualAmount.
     public decimal NonBillableResidualAmount { get; set; }
+
+    // BE-BKC-074 / BKC-DEC-113: Dukungan biaya administrasi persentase ber-cap dan alihan rajal ke ranap
+    public string? CalculationType { get; set; }
+    public decimal? Percentage { get; set; }
+    public decimal? CapAmount { get; set; }
+    public decimal? EligibleBaseAmount { get; set; }
+    public decimal? RawCalculatedAmount { get; set; }
+    public bool IsCapApplied { get; set; }
+    public bool IsPackageGuaranteed { get; set; }
+    public bool ReferredOutpatientAdminVoided { get; set; }
+    public decimal ReferredOutpatientAdminCreditedAmount { get; set; }
 }
 
 // BKC-DEC-043: occupancy timeline (InpBedPlacement) adalah source of truth; komponen ini

@@ -28,6 +28,8 @@ Roadmap ini berada pada **revision `2`** (4 September 2026) dan berstatus `DRAFT
 | `BKC-PH-018` | **Rumpun baru — Petty Cash.** Kolam anggaran, siklus hidup voucher penuh, dan hardening lintas-slice (`MVP-14`) | `BE-BKC-036`–`038` | — | `BKC-PH-017` selesai dan terverifikasi | **`READY_FOR_TASK_APPROVAL`** |
 | `BKC-PH-019` | **Rumpun baru — Petty Cash.** Layar monitoring, Buat Voucher, Bukti Nota, detail voucher, Anggaran Kas Kecil, dan Kategori Petty Cash (`MVP-15`) | — | `FE-BKC-023`–`027` | `BKC-PH-018` selesai dan terverifikasi (sequencing, bukan gerbang) | **`READY_FOR_TASK_APPROVAL`** |
 | `BKC-PH-020` | Deposit rawat inap terikat episode — permintaan `RWI-BP-001` lewat `RWI-DEC-093`–`096`. Semula `BKC-PH-009`/`BE-BKC-022`,`023`, dinomori ulang 9 September 2026 karena bentrok dengan gelombang 4 September | `BE-BKC-039` (✅ Selesai), `BE-BKC-040` (✅ Selesai) | — (layar ada di Rawat Inap) | `BKC-PH-004` | ✅ `Selesai` (`BE-BKC-039` dan `BE-BKC-040` selesai 2026-09-09) |
+| `BKC-PH-021` | Integrasi Rawat Inap ↔ Billing Management Core (`MVP-28`) | `BE-BKC-071`–`076` | — | Blueprint 1.5 approved (24 Sep 2026) | `READY_FOR_TASK_APPROVAL` |
+| `BKC-PH-022` | Antarmuka Kasir & Handoff Rawat Inap (`MVP-29`) | — | `FE-BKC-041`–`042` | `BKC-PH-021` selesai | `PLANNED` |
 
 ## Amendment 7 September 2026 — Koreksi revisi blueprint, verifikasi ulang FE-BKC-018, dan cakupan Struk Pasien
 
@@ -183,4 +185,24 @@ Enam task backend (`BE-BKC-060`–`BE-BKC-065`) dan satu task frontend (`FE-BKC-
 **Satu peringatan yang berlaku lintas task.** Cacat yang diperbaiki berbentuk "tidak terjadi apa-apa". Verifikasi yang hanya membuktikan ketiadaan galat akan lulus bahkan bila tidak ada satu baris pun yang benar diperbaiki — setiap bukti karena itu **MUST** berbentuk positif: baris yang **ada**, status yang **berpindah**, kolom yang **terisi**.
 
 Rincian lengkap: [backend § Amendment 18 September 2026](./backend-roadmap.md), [frontend § Amendment 18 September 2026](./frontend-roadmap.md), dan [traceability § Amendment 18 September 2026](./requirement-traceability.md).
+
+---
+
+## Amendment 24 September 2026 — `roadmap_revision: 5`, gelombang `MVP-28`–`MVP-29`
+
+`status: DRAFT_FORWARD_TEST` · blueprint revisi `1.5` · backend baseline SHA `dcb9c88e` · frontend baseline SHA `fdebb9059`.
+
+Enam task backend (`BE-BKC-071`–`BE-BKC-076`) dan dua task frontend (`FE-BKC-041`–`FE-BKC-042`) untuk mengintegrasikan Modul Rawat Inap dengan Billing Management (Pass B), menyelesaikan gap arsitektur penentuan kelayakan pemulangan finansial (*Inpatient Financial Clearance*), perhitungan sewa kamar bertingkat & pro-rata menit, biaya administrasi rawat inap 7% cap Rp6.000.000, serta penegakan Auto-Reblock seketika saat tagihan susulan tiba.
+
+| Gelombang MVP | Task | Keadaan |
+| --- | --- | --- |
+| `MVP-28` | `BE-BKC-071`, `BE-BKC-072`, `BE-BKC-073`, `BE-BKC-074`, `BE-BKC-075`, `BE-BKC-076` | Siap approval task — terbagi 4 gelombang eksekusi berurutan bebas siklus |
+| `MVP-29` | `FE-BKC-041`, `FE-BKC-042` | Menunggu ketersediaan endpoint backend `BE-BKC-076`, kedua task frontend dapat berjalan paralel |
+
+**Aturan Eksekusi Khusus:**
+1. Eksekusi migration EF Core `AddInpatientBillingIntegrationAndClearanceHandoff` pada `BE-BKC-071` membutuhkan otorisasi terpisah sesuai aturan keselamatan basis data.
+2. `PatientBillingSummaryService` dibebaskan dari ketergantungan lama ke `InpFinancialClearance`. Billing menjadi *Single Source of Truth* kelayakan pemulangan melalui tabel baru `BilInpatientClearanceHandoff`.
+3. Auto-Reblock dijalankan atomik di dalam transaksi intake tagihan susulan; tagihan susulan setelah invoice `CLOSED` ditolak mutlak oleh sistem (`BIL-VAL-127`), kecuali dibuka melalui otorisasi Supervisor Kasir (`BKC-DEC-120`).
+
+Rincian lengkap: [backend § Gelombang MVP-28](./backend-roadmap.md), [frontend § Gelombang MVP-29](./frontend-roadmap.md), dan [traceability § Gelombang MVP-28 dan MVP-29](./requirement-traceability.md).
 

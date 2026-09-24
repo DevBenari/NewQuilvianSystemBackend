@@ -4,7 +4,7 @@
 blueprint_id: BIL-CASH-001
 module_name: Billing dan Kasir
 module_slug: billing-kasir
-revision: 1.4
+revision: 1.5
 revision_note_field_vs_prose: >
   KETIDAKSESUAIAN YANG SUDAH DIKETAHUI DAN KINI DITUTUP. Sebelum revisi 1.0, field `revision`
   bernilai 0.8 sementara badan dokumen ini beserta seluruh berkas kontrak sudah menyebut revisi
@@ -14,7 +14,13 @@ revision_note_field_vs_prose: >
   yang menaungi BAIK amendment 0.9 yang sudah approved MAUPUN rumpun baru Petty Cash. Angka 0.9
   DILEWATI sebagai nilai field — bukan karena isinya batal, melainkan karena isinya sudah
   approved dan sudah tercermin pada contract_versions. Tidak ada isi yang hilang.
-status: approved
+status: draft
+status_derivation_revision_1_5: >
+  Revisi 1.5 (Integrasi Rawat Inap ↔ Billing Management / Pass B) berstatus `draft`. Keputusan bisnis
+  BKC-DEC-112–122 dan kriteria penerimaan BKC-AC-080–090 telah disetujui Product/Domain Owner pada 24 September 2026.
+  Keputusan arsitektur BKC-DES-042–050 beserta seluruh kontrak target (BIL-API-1.4, BIL-STATE-1.3,
+  BIL-VALIDATION-1.3, BIL-INTEGRATION-1.2, BIL-PERMISSION-1.2, BIL-TEST-1.4) berstatus draft
+  menunggu approval Product/Domain Owner sebelum diteruskan ke /plan-module-delivery.
 status_derivation_revision_1_3: >
   Revisi 1.3 (Penutupan gap FINAL->CLOSED) kini `approved` SEPENUHNYA. Keputusan BISNIS
   (BKC-DEC-100-105) dan keputusan ARSITEKTUR (BKC-DES-028-035) seluruhnya disetujui Product/Domain
@@ -202,10 +208,10 @@ last_revision_note: >
   menaruh Petty Cash sebagai rumpun di dalam struktur SINGLE yang sudah ada sudah diambil pada
   00-interview-decisions.md amendment 7 September 2026, mengikuti preseden Shift Kasir, Diskon,
   Deposit, Refund, dan Pengecualian Finansial.
-backend_commit_sha: 6782ae652ca53299f7469c49b2edb64d23e77b60
-frontend_commit_sha: 1b138b9aac7a50524fd751a47c9a76e0a55f8803
-previous_backend_commit_sha: 21b4733154e91962cbd7094a102615b1d9eb2bf2
-previous_frontend_commit_sha: 1f2f2c93c9e4369db6c60246776de4c3bd52b3af
+backend_commit_sha: dcb9c88e
+frontend_commit_sha: fdebb9059
+previous_backend_commit_sha: 6782ae652ca53299f7469c49b2edb64d23e77b60
+previous_frontend_commit_sha: 1b138b9aac7a50524fd751a47c9a76e0a55f8803
 commit_sha_note_revision_1_4: >
   SHA dimutakhirkan pada revisi 1.4 (21 September 2026). Working tree backend saat desain ini
   disusun memuat perubahan yang BELUM di-commit, terutama area Corporate/FinanceManagement
@@ -352,7 +358,7 @@ input_hashes_note: >
   baseline sehingga selisihnya tidak dapat dijelaskan pass ini; nilainya diperbarui apa adanya
   dan dilaporkan sebagai temuan pemeliharaan manifest, bukan sebagai perubahan isi yang
   disengaja pass ini.
-design_decision_ids: [BKC-DES-001, BKC-DES-002, BKC-DES-003, BKC-DES-004, BKC-DES-005, BKC-DES-006, BKC-DES-007, BKC-DES-008, BKC-DES-009, BKC-DES-010, BKC-DES-011, BKC-DES-012, BKC-DES-013, BKC-DES-014, BKC-DES-015, BKC-DES-016, BKC-DES-017, BKC-DES-018, BKC-DES-019, BKC-DES-020, BKC-DES-021, BKC-DES-022, BKC-DES-023, BKC-DES-024, BKC-DES-025, BKC-DES-026, BKC-DES-027, BKC-DES-028, BKC-DES-029, BKC-DES-030, BKC-DES-031, BKC-DES-032, BKC-DES-033, BKC-DES-034, BKC-DES-035]
+design_decision_ids: [BKC-DES-001, BKC-DES-002, BKC-DES-003, BKC-DES-004, BKC-DES-005, BKC-DES-006, BKC-DES-007, BKC-DES-008, BKC-DES-009, BKC-DES-010, BKC-DES-011, BKC-DES-012, BKC-DES-013, BKC-DES-014, BKC-DES-015, BKC-DES-016, BKC-DES-017, BKC-DES-018, BKC-DES-019, BKC-DES-020, BKC-DES-021, BKC-DES-022, BKC-DES-023, BKC-DES-024, BKC-DES-025, BKC-DES-026, BKC-DES-027, BKC-DES-028, BKC-DES-029, BKC-DES-030, BKC-DES-031, BKC-DES-032, BKC-DES-033, BKC-DES-034, BKC-DES-035, BKC-DES-036, BKC-DES-037, BKC-DES-038, BKC-DES-039, BKC-DES-040, BKC-DES-041, BKC-DES-042, BKC-DES-043, BKC-DES-044, BKC-DES-045, BKC-DES-046, BKC-DES-047, BKC-DES-048, BKC-DES-049, BKC-DES-050]
 design_decision_status_revision_1_3: >
   BKC-DES-028-035 (BARU pada revisi 1.3, 18 September 2026). Sekuens BKC-DES-* dilanjutkan - TIDAK
   memakai prefix rumpun sendiri - karena topik ini adalah rumpun INTI modul (status siklus hidup
@@ -437,18 +443,13 @@ superseded_design_decisions:
 narrowed_design_decisions:
   BKC-DES-013: dipersempit dua kali (BUKAN digugurkan). Revisi 0.8 (BKC-DES-021): makna UnresolvedAmount menyisakan jalur rule NotCovered + IsAllowExcessPaymentByPatient=false saja; residual perhitungan pindah ke NonBillableResidualAmount. Revisi 0.9 (BKC-DES-026/027, approved 5 Sep 2026): dipersempit lagi menjadi NOL jalur — UnresolvedAmount selalu 0 pada versi kalkulasi baru; field/kolomnya tetap dipertahankan sebagai bukti perhitungan versi lama
 contract_versions:
-  api: BIL-API-1.3 (**approved**, revisi 1.4 — dua endpoint operasional baru pada Resource baru BillingConsumerHandoff; NOL endpoint lama yang berubah bentuk maupun arti) atas BIL-API-1.2
-  state: BIL-STATE-1.2 (**approved**, revisi 1.4 — sumbu status surat ke konsumen CREATED/ACKNOWLEDGED, dan keadaan clearance resep CLEARED/REVOKED yang dimiliki Billing) atas BIL-STATE-1.1
-  validation: BIL-VALIDATION-1.2 (**approved**, revisi 1.4 — BIL-VAL-110-117; dua di antaranya fail-closed yang MUST NOT diperlakukan sebagai izin) atas BIL-VALIDATION-1.1
-  integration: BIL-INTEGRATION-1.1 (**approved**, revisi 1.4 — BIL-INT-013 dan BIL-INT-014; dua konsumen nyata pertama modul ini. Menutup sebagian BKC-BLK-INT-001 untuk sisi AR) atas BIL-INTEGRATION-1.0
-  permission: BIL-PERMISSION-1.1 (**approved**, revisi 1.4 — satu Resource baru dengan dua Action; dua kolom sensitif baru yang MUST NOT masuk payload log) atas BIL-PERMISSION-1.0
-  testing: BIL-TEST-1.3 (**approved**, revisi 1.4 — BIL-AT-135-142 beserta lima jalur gagal bernama) atas BIL-TEST-1.2
-contract_versions_approval_revision_1_4: >
-  Keenam sumbu di atas naik dari `draft` menjadi `approved` pada 21 September 2026 lewat
-  BKC-DEC-110, disetujui Product/Domain Owner dengan wewenang ganda Billing/Payer dan Clinical
-  Governance (PHA-DEC-066). Approval ini BUKAN wewenang menulis source, membuat migration,
-  maupun menjalankannya — ketiganya tetap diminta terpisah per task saat eksekusi.
-  calculation: BIL-CALCULATION-0.9 — TIDAK BERGERAK pada revisi 1.4. Amendment ini menerbitkan fakta yang sudah dihitung; ia tidak menyentuh satu suku pun rumus mana pun
+  api: BIL-API-1.4 (draft, revisi 1.5 — tiga endpoint baru [Tags("BillingInpatientIntegration")] untuk sewa kamar, ringkasan ranap, dan evaluasi ulang clearance) atas BIL-API-1.3
+  state: BIL-STATE-1.3 (draft, revisi 1.5 — siklus hidup kelayakan pemulangan ranap PENDING/BLOCKED/CLEARED/REVOKED dan auto-reblock saat late charge) atas BIL-STATE-1.2
+  validation: BIL-VALIDATION-1.3 (draft, revisi 1.5 — BIL-VAL-118-126; jam masuk bertingkat, transfer kamar pro-rata, admin fee 7% cap Rp6jt, deposit 100% ekses) atas BIL-VALIDATION-1.2
+  integration: BIL-INTEGRATION-1.2 (draft, revisi 1.5 — BIL-INT-015 room stay event, BIL-INT-016 clearance handoff & auto-reblock, BIL-INT-017 konsolidasi alihan IGD) atas BIL-INTEGRATION-1.1
+  permission: BIL-PERMISSION-1.2 (draft, revisi 1.5 — Resource BillingInpatient: Read, Clearance) atas BIL-PERMISSION-1.1
+  testing: BIL-TEST-1.4 (draft, revisi 1.5 — BIL-AT-143-152 skenario integrasi rawat inap dan clearance handoff) atas BIL-TEST-1.3
+  calculation: BIL-CALCULATION-0.9 — TIDAK BERGERAK pada revisi 1.5 (perhitungan sewa kamar dan admin fee ditangani service spesifik)
 contract_versions_note_revision_1_4: >
   Enam dari tujuh sumbu naik pada revisi 1.4; sumbu calculation TIDAK bergerak dan berkasnya
   TIDAK disunting, sesuai aturan bahwa file contract yang isinya tidak bergerak MUST NOT disunting

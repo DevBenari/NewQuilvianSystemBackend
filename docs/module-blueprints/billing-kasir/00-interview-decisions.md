@@ -3,9 +3,9 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `BIL-CASH-001` |
-| Revision | Approved decision contract `0.2` |
-| Status | Keputusan `BKC-DEC-001`–`044` berstatus `approved` |
-| Interview mode | `Closure pass` untuk melengkapi capability Billing yang sudah ada |
+| Revision | Approved decision contract `0.3` (Pass B — Integrasi Rawat Inap ↔ Billing) |
+| Status | Keputusan `BKC-DEC-001`–`119` berstatus `approved` |
+| Interview mode | `Pass B: Integrasi Rawat Inap ↔ Billing (Yasmina / Billing Management)` disahkan 24 September 2026 |
 | Product/domain owner | Pemberi keputusan pada sesi wawancara; nama formal belum dicatat |
 | Backend SHA | Current branch `Yasmina`: `e6f6ecba1537783ea2eb379ac12cc97790707303`; cross-branch impact scan to `f63572a9...` found no Billing transaction change |
 | Frontend SHA | `e555bf2ad6848a1d6cc097ab8c6c5f5259edb151` |
@@ -2021,3 +2021,206 @@ perlu dibuat lewat `plan-module-delivery`, dan penyelesaiannya membuka `BE-FIN-0
 | Approval evidence | Pilihan eksplisit user "Gelombang yang sama" dari 2 opsi, 21 September 2026 |
 | Alasan | Menyalakan jalur baru sementara resep lama tetap macet akan membuat dua jenis resep berperilaku berbeda tanpa sebab yang terlihat petugas — dan petugas akan menyimpulkan fiturnya tidak bekerja |
 | Konsekuensi | Satu task tambahan pada gelombang yang sama. Karena pemulihan membaca dari Billing dan tidak menulis data secara langsung, ia **tidak** menuntut otorisasi pemutakhiran data terpisah — berbeda dari backfill `BE-BKC-065` |
+
+---
+
+## Pass B — Integrasi Rawat Inap ↔ Billing (Pass B — Yasmina / Billing Management)
+
+Disahkan 24 September 2026 melalui sesi `/grill-me`. Pass ini menutup seluruh celah integrasi (*gap*) dan keputusan bisnis terbuka (*Open Business Decisions*) yang tercantum pada dokumen `docs/Modul-RS/Rawat-Inap-To-Billing/PRD Integrasi-Rawat-Inap-dengan-Billing.md` Bagian 48 (`DEC-BILL-001`, `DEC-INT-001` s.d. `004`, `DEC-BILL-002`, dan arsitektur `Financial Clearance`).
+
+### Batas Scope Pass B
+1. **Di dalam scope:**
+   - Penerimaan fakta occupancy Rawat Inap (`SourceDomain = "INPATIENT"`, `SourceType = "ROOM_STAY"`) pada adapter Billing (`ContractBillingChargeSourceAdapter`).
+   - Mesin Perhitungan Tarif Kamar (*Room Charge Engine*) dengan formula jam masuk hari pertama, transfer kamar, dan mutasi kamar.
+   - Kebijakan deposit Rawat Inap (minimal 30% estimasi awal dan 100% dari porsi tanggung jawab pasien sebelum tindakan besar).
+   - Biaya Administrasi Rawat Inap 7% (cap Rp6.000.000).
+   - Penerbitan status *Financial Clearance* (`PENDING`, `BLOCKED`, `CLEARED`, `REVOKED`) sebagai *Source of Truth* di Billing dan penyaluran sinyal/webhook ke Rawat Inap.
+   - Konsolidasi non-destruktif tagihan pasien alihan IGD ke Rawat Inap pada final settlement.
+2. **Di luar scope:**
+   - Alur operasional klinis bangsal, tata kelola tempat tidur, dan pengkajian perawat/dokter (domain eksklusif `InPatientManagement`).
+   - Algoritme availability bed bangsal.
+
+---
+
+### `BKC-DEC-112` — Ratifikasi Batas Scope Pass B Integrasi Rawat Inap ↔ Billing
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Mengunci batas wewenang modul Billing/Kasir pada Pass B.** Billing bertindak sebagai *consumer* atas fakta pelayanan dan hunian fisik pasien dari Rawat Inap, serta menjadi *single source of truth* atas seluruh nominal finansial, tarif kamar, deposit, invoice, penjamin, biaya administrasi, dan status kelayakan keuangan (*Financial Clearance*). Billing tidak mengelola data tempat tidur atau rekam medis rawat inap |
+| Owner | Yasmina (Billing Owner) & Business Owner |
+| Status | `approved` |
+| Approval evidence | Pilihan eksplisit user pada grill-me 24 September 2026 |
+| Trace | `PRD Integrasi-Rawat-Inap-dengan-Billing.md` Bagian 3, 4, 8, 12, dan 13 |
+
+---
+
+### `BKC-DEC-113` — Kebijakan Biaya Administrasi Rawat Inap (`DEC-BILL-001`)
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Menyatakan aturan lama biaya administrasi nominal tetap (flat fee) di V2 sebagai `superseded` untuk pelayanan Rawat Inap.** Biaya Administrasi Rawat Inap dihitung dengan formula proporsional: **`AdminFee = MIN(EligibleBillAmount × 7%, Rp 6.000.000)`**. Komponen *eligible bill* mencakup sewa kamar, visite dokter, tindakan, dan penunjang medis non-farmasi tertentu sesuai master tarif. Tagihan rawat jalan/IGD murni tetap dapat menggunakan ketentuan tarifnya masing-masing |
+| Owner | Yasmina (Billing) & Finance Owner |
+| Status | `approved` |
+| Approval evidence | Pilihan eksplisit user "Supersede aturan lama: Tetapkan Biaya Administrasi Rawat Inap sebesar 7% dari tagihan eligible dengan batas maksimal (cap) Rp6.000.000", 24 September 2026 |
+| Alasan | Standar operasional rumah sakit modern menetapkan biaya administrasi rawat inap berbasis persentase untuk mencerminkan kompleksitas koordinasi berkas dan klaim, dengan perlindungan plafon (cap) agar tidak membebani pasien perawatan intensif |
+| Konsekuensi | Calculation engine Billing menambahkan formula `AdminFeeCalculation` dengan parameter persentase (7%) dan cap (Rp 6.000.000). Master data lama untuk biaya administrasi rawat inap berstatus nominal tetap dipensiunkan |
+| Trace | `PRD Integrasi-Rawat-Inap-dengan-Billing.md` Bagian 29 dan Bagian 48 `DEC-BILL-001` |
+
+---
+
+### `BKC-DEC-114` — Batas Waktu Masuk Kamar Hari Pertama (`DEC-INT-001`, `DEC-INT-002`, `DEC-INT-003`)
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Menetapkan aturan jam masuk hari pertama menggunakan operator inklusif batas bawah (`>=`):**<br>1. Masuk kamar pukul **`00:00:00` s.d. `< 18:00:00`**: Dikenakan **100%** tarif kamar hari pertama.<br>2. Masuk kamar pukul **`18:00:00` s.d. `< 22:00:00`**: Dikenakan potongan sehingga menjadi **50%** tarif kamar hari pertama.<br>3. Masuk kamar pukul **`22:00:00` s.d. `< 24:00:00` (sebelum tengah malam)**: Dikenakan potongan sehingga menjadi **20%** tarif kamar hari pertama.<br>4. Masuk kamar tepat pukul **`00:00:00`** dihitung sebagai awal tanggal kalender baru (beban sewa kamar untuk hari kalender sebelumnya adalah **0%**) |
+| Owner | Yasmina (Billing) & Muhammad Hamzah (Rawat Inap) |
+| Status | `approved` |
+| Approval evidence | Pilihan eksplisit user "Inklusif batas bawah (>=)", 24 September 2026 |
+| Alasan | Operator `>=` pada detik ke-00 memberikan kepastian fail-safe dan keuntungan administratif bagi pasien yang tiba di bangsal tepat pada pergantian jam batas kebijakan |
+| Konsekuensi | `RoomChargePolicyService` dan engine perhitungan room charge menerapkan evaluasi interval waktu lokal berbasis time range inklusif batas bawah |
+| Trace | `PRD Integrasi-Rawat-Inap-dengan-Billing.md` Bagian 17, 18, dan Bagian 48 `DEC-INT-001`, `002`, `003` |
+
+---
+
+### `BKC-DEC-115` — Formula Pembagian Tarif Perpindahan Kamar Multipel di Hari yang Sama (`DEC-INT-004`)
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Menetapkan skema pro-rata berbasis durasi jam hunian riil pasien untuk kasus perpindahan kamar lebih dari 1 kali dalam hari kalender yang sama:**<br>1. Jika perpindahan tepat 1 kali (2 kamar: A → B): Berlaku aturan standar split 50% Kamar A + 50% Kamar B.<br>2. Jika perpindahan > 1 kali (contoh 3 kamar: Kamar Reguler A → Kamar Observasi B → ICU C): Setiap segmen kamar dikenakan tarif secara proporsional sesuai perbandingan durasi jam hunian riil di kamar tersebut terhadap total jam rawat pada hari itu: **`ChargeKamar = (DurasiMenitSegmen / TotalMenitRawatHariItu) × TarifHarianKamar`** |
+| Owner | Yasmina (Billing) & Product Owner |
+| Status | `approved` |
+| Approval evidence | Pilihan eksplisit user "Pro-rata durasi jam riil", 24 September 2026 |
+| Alasan | Adil secara objektif bagi pasien/penjamin dan rumah sakit, serta mencegah pembebanan kamar transit bernilai tinggi secara berlebihan saat pasien hanya singgah dalam waktu singkat sebelum dipindahkan ke unit intensif |
+| Konsekuensi | Billing menghitung durasi per segmen hunian dari timestamp `StartAt` dan `EndAt` yang dikirimkan oleh event `ROOM_TRANSFERRED` Rawat Inap |
+| Trace | `PRD Integrasi-Rawat-Inap-dengan-Billing.md` Bagian 19, 20, dan Bagian 48 `DEC-INT-004` |
+
+---
+
+### `BKC-DEC-116` — Dasar Perhitungan Deposit 100% Sebelum Tindakan Besar (`DEC-BILL-002`)
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Menetapkan dasar perhitungan kewajiban deposit 100% sebelum tindakan besar adalah dari Porsi Tanggung Jawab Pasien (Patient Responsibility / Excess).**<br>1. Untuk pasien umum (mandiri / *self-pay*), porsi tanggung jawab pasien adalah 100% dari total estimasi bruto tindakan.<br>2. Untuk pasien dengan asuransi/perusahaan penjamin/BPJS, porsi tanggung jawab pasien adalah selisih estimasi biaya tindakan yang tidak ditanggung atau melebihi plafon penjamin (excess).<br>3. Pasien tidak dapat dijadwalkan/diberangkatkan ke ruang operasi/tindakan besar selama saldo deposit pasien belum menutup 100% dari porsi tanggung jawab pasien tersebut, kecuali ada *Emergency Financial Override* resmi dari Manajemen/Direksi |
+| Owner | Yasmina (Billing) & Finance Owner |
+| Status | `approved` |
+| Approval evidence | Pilihan eksplisit user "100% dari porsi tanggung jawab pasien (Patient Responsibility / Excess)", 24 September 2026 |
+| Alasan | Menghindarkan keluarga pasien asuransi dari keharusan menyetor uang muka tunai sebesar nilai bruto tindakan yang sebenarnya telah dijamin oleh surat jaminan (GL) penjamin |
+| Konsekuensi | Layanan deposit Billing menghitung `DepositShortfall` tindakan besar dengan rumus: `EstimasiTindakan - EstimasiCoveredPenjamin - SaldoDepositTersedia` |
+| Trace | `PRD Integrasi-Rawat-Inap-dengan-Billing.md` Bagian 26, 27, dan Bagian 48 `DEC-BILL-002` |
+
+---
+
+### `BKC-DEC-117` — Arsitektur Financial Clearance dan Integrasi Handoff ke Rawat Inap
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Billing Management adalah *Single Source of Truth* untuk kelayakan keuangan pemulangan pasien (*Financial Clearance*). Kode Billing yang sebelumnya membaca tabel Rawat Inap `InpFinancialClearance` dinyatakan keliru secara arsitektur dan diganti sepenuhnya.**<br>1. **Entitas Internal Billing:** Billing mencatat status kelayakan pada tabel internal (mengikuti pola `BilPrescriptionClearanceHandoff` yang sudah sukses di Farmasi).<br>2. **Status Resmi:** `PENDING` (menunggu penyelesaian tagihan), `BLOCKED` (tertahan karena ada blocker finansial), `CLEARED` (lunas / disetujui pulang), dan `REVOKED` (persetujuan dicabut karena tagihan susulan).<br>3. **Kueri Sinkron:** Billing menyediakan endpoint `GET /api/v1/health-services/billing-management/billing/invoices/encounter/{encounterId}/summary` yang menyajikan status clearance, daftar blocker operasional (tanpa privasi rupiah untuk perawat), saldo deposit, dan sisa tagihan.<br>4. **Sinyal Handoff / Webhook:** Saat kasir menyelesaikan transaksi pelunasan (`CLEARED`) atau mencabut kelayakan (`REVOKED`), Billing menerbitkan sinyal yang dikonsumsi Rawat Inap untuk membuka kunci pemulangan atau mengeksekusi *Auto-Reblock* seketika di bangsal |
+| Owner | Yasmina (Billing) & Muhammad Hamzah (Rawat Inap) |
+| Status | `approved` |
+| Approval evidence | Pilihan eksplisit user "Pola Handoff & Event Terpadu", 24 September 2026 |
+| Alasan | Menegakkan integritas data transaksi keuangan dan memastikan bangsal rawat inap tidak memulangkan pasien yang tagihannya belum beres atau mengalami tagihan susulan |
+| Konsekuensi | Menghilangkan pembacaan `InpFinancialClearance` dari `PatientBillingSummaryService.cs:88` dan membangun service penilai kelayakan di dalam modul Billing |
+| Trace | `PRD Integrasi-Rawat-Inap-dengan-Billing.md` Bagian 8.8, 10.4, 10.5, 34, 37; selaras `RWI-DEC-158` dan `RWI-DEC-160` |
+
+---
+
+### `BKC-DEC-118` — Konsolidasi Tagihan Alihan IGD ke Rawat Inap (`BILL-INT-007`)
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Menetapkan mekanisme konsolidasi tagihan IGD ke Rawat Inap menggunakan skema Multidomain Non-Destruktif pada satu settlement terpadu.**<br>1. Seluruh item tagihan selama di IGD dan di Bangsal Rawat Inap tetap mencatat `SourceDomain` aslinya (`EMERGENCY` vs `INPATIENT`) dan tidak digabungkan secara destruktif.<br>2. Pada saat pasien dinyatakan pulang dari rawat inap, kasir dapat menyelesaikan tagihan IGD dan Rawat Inap dalam satu transaksi *final settlement* terpadu dengan satu kwitansi resmi yang merinci beban per unit pelayanan |
+| Owner | Yasmina (Billing) & Finance Owner |
+| Status | `approved` |
+| Approval evidence | Pilihan eksplisit user "Konsolidasi Settlement Non-Destruktif", 24 September 2026 |
+| Alasan | Memudahkan keluarga pasien menyelesaikan administrasi di satu loket kasir saat kepulangan tanpa merusak audit penelusuran pendapatan unit IGD vs Rawat Inap |
+| Konsekuensi | Billing settlement service mendukung penutupan multi-folio/multi-invoice yang tertaut pada satu `EncounterId` pasien |
+| Trace | `PRD Integrasi-Rawat-Inap-dengan-Billing.md` Bagian 31 dan Bagian 43 `BILL-INT-007` |
+
+---
+
+### Acceptance Criteria Tambahan Pass B
+- `BKC-AC-080`: Panggilan kueri summary billing untuk encounter rawat inap mengembalikan status clearance dan blocker list yang dihitung dari status invoice Billing, bukan dari tabel rawat inap (`BKC-DEC-117`).
+- `BKC-AC-081`: Pasien rawat inap dengan tagihan eligible Rp 10.000.000 dikenakan admin fee Rp 700.000 (7%), dan tagihan Rp 100.000.000 dikenakan admin fee maksimal Rp 6.000.000 (`BKC-DEC-113`).
+- `BKC-AC-082`: Pasien masuk kamar pukul 18:00:00 tepat dikenakan room charge 50% hari pertama; masuk kamar pukul 22:00:00 tepat dikenakan 20%; masuk pukul 00:00:00 dihitung tanggal baru dengan beban hari sebelumnya 0% (`BKC-DEC-114`).
+- `BKC-AC-083`: Pasien pindah 3 kamar di hari yang sama ditagih pro-rata sebanding menit riil di tiap kamar terhadap total menit rawat hari itu (`BKC-DEC-115`).
+- `BKC-AC-084`: Pasien asuransi dengan tindakan besar Rp 20.000.000 yang dijamin Rp 15.000.000 hanya diwajibkan deposit tindakan sebesar Rp 5.000.000 (100% patient excess) (`BKC-DEC-116`).
+- `BKC-AC-085`: Tagihan susulan yang muncul setelah invoice lunas memicu pencabutan kelayakan (`REVOKED`) dan menerbitkan sinyal auto-reblock ke Rawat Inap (`BKC-DEC-117`).
+- `BKC-AC-086`: Tagihan IGD dan Rawat Inap pada satu encounter dapat diselesaikan dalam satu settlement terpadu dengan pelaporan per unit yang tetap terpisah (`BKC-DEC-118`).
+- `BKC-AC-087`: Pasien alihan rawat jalan ke rawat inap (Rajal → Ranap) tidak dikenakan biaya administrasi ganda. Biaya admin rajal otomatis gugur (batal/terkreditkan) dan digantikan oleh biaya admin ranap 7% cap Rp 6.000.000 (`BKC-DEC-119`).
+
+---
+
+### `BKC-DEC-119` — Aturan Penggantian Biaya Administrasi saat Alihan Rawat Jalan ke Rawat Inap (Rajal → Ranap)
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Menetapkan aturan penggantian (*replacement / offset*) biaya administrasi saat pasien rawat jalan dialihkan menjadi rawat inap:**<br>1. **Prinsip Beban Tunggal:** Pasien yang menjalani admisi rawat inap dari rujukan poliklinik rawat jalan pada hari/episode pelayanan yang sama **TIDAK BOLEH** dikenakan biaya administrasi ganda (rajal + ranap). Biaya administrasi rawat jalan dinyatakan **gugur** dan digantikan oleh Biaya Administrasi Rawat Inap (7% cap Rp6.000.000 sesuai `BKC-DEC-113`).<br>2. **Kasus Belum Dibayar (Tagihan Rajal Terbuka):** Item biaya administrasi rawat jalan pada invoice langsung dibatalkan (*voided / waived*) dengan alasan sistem `"SUPERSEDED_BY_INPATIENT_ADMISSION"`, lalu digantikan oleh komponen biaya administrasi rawat inap.<br>3. **Kasus Sudah Terlanjur Dibayar di Kasir Poliklinik:** Nominal biaya administrasi rawat jalan yang telah dibayarkan **wajib diperhitungkan sebagai kredit pembayaran berjalan (*credit offset / progress payment*)** terhadap total tagihan akhir rawat inap saat final settlement, sehingga pasien tidak dirugikan.<br>4. **Audit Trail Wajib:** Pembatalan atau pengkreditan biaya administrasi rajal wajib tercatat dalam audit log transaksi finansial tanpa *hard delete* |
+| Owner | Yasmina (Billing) & Finance Owner |
+| Status | `approved` |
+| Approval evidence | Penegasan langsung pemilik kebutuhan / user pada sesi 24 September 2026: *"jika sebelumnya ada biaya admin rajal, trus pasien pindah ke ranap. berarti biaya admin rajal menjadi gugur dan digantikan oleh biaya admin ranap"* |
+| Alasan | Mencegah tagihan ganda (*double administrative charging*) yang membebani pasien dan berpotensi memicu sengketa (*dispute*) verifikasi klaim BPJS/asuransi penjamin |
+| Konsekuensi | Billing invoice engine menambahkan event listener atau handler saat admisi ranap dikonfirmasi untuk mendeteksi apakah invoice encounter tersebut sebelumnya memuat item administrasi rajal, kemudian mengeksekusi pembatalan atau pengkreditan otomatis |
+| Trace | Konfirmasi user 24 September 2026; memperkuat `BKC-DEC-113` dan menutup catatan gap `CAP-10` pada `01-existing-capability-map.md` baris 88 & 136 |
+
+---
+
+### `BKC-DEC-120` — Batas Waktu dan Penanganan Tagihan Susulan Pasca-Izin Pulang (`BKC-OQ-102`)
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Menetapkan batas waktu penegakan *Auto-Reblock* dan aturan penerimaan tagihan susulan (*late charges*):**<br>1. **Jendela Auto-Reblock Aktif:** Selama invoice rawat inap masih berstatus `OPEN` (termasuk saat pasien telah dinyatakan `CLEARED` di kasir namun proses administratif/serah terima pemulangan di bangsal masih berlangsung di hari yang sama), setiap tagihan susulan yang masuk akan **secara otomatis membatalkan status clearance menjadi `REVOKED`**, mencatat `RevocationReason = "LATE_CHARGE_POSTED"`, menaikkan nomor versi finansial, dan mengirim sinyal pemblokiran seketika ke bangsal rawat inap.<br>2. **Penguncian Permanen saat CLOSED:** Setelah invoice resmi mencapai status `CLOSED` (seluruh pembayaran tuntas dan pasien resmi keluar secara administratif), invoice rawat inap berstatus terkunci tetap (*immutable*). Tagihan baru yang mencoba masuk setelah invoice `CLOSED` akan **ditolak secara otomatis oleh sistem** (`BIL-VAL-024` / `BIL-VAL-127`).<br>3. **Pengecualian / Reopen Terkendali:** Tagihan susulan pasca-`CLOSED` hanya dapat dimasukkan apabila ada otorisasi tertulis dan pembukaan kembali (*reopen override*) oleh Supervisor Kasir / Kepala Kasir dengan pencatatan audit alasan bisnis yang lengkap |
+| Owner | Yasmina (Billing) & Finance Owner |
+| Status | `approved` |
+| Approval evidence | Pilihan eksplisit user pada sesi `/grill-me` 24 September 2026: *"Auto-Reblock berlaku selama invoice masih OPEN / dalam masa pemulangan hari yang sama; jika invoice sudah resmi CLOSED/Finalized, tagihan susulan ditolak otomatis kecuali dibuka kembali lewat otorisasi Supervisor Kasir"* |
+| Alasan | Menjaga keseimbangan antara pencegahan kebocoran pendapatan (*revenue leakage*) saat pasien masih di RS dengan kepastian pembukuan kasir harian agar invoice lunas tidak terbuka kembali tanpa kendali |
+| Konsekuensi | Adapter intake biaya memvalidasi status invoice: jika `OPEN` dan sebelumnya `CLEARED`, picu auto-reblock; jika `CLOSED`, tolak permintaan dengan kode galat `422 Unprocessable Entity` kecuali disertai token otorisasi supervisor |
+| Trace | `04-prd-to-mvp.md` pertanyaan terbuka `BKC-OQ-102` (ditutup) |
+
+---
+
+### `BKC-DEC-121` — Ketentuan Pengecualian dan Variasi Biaya Administrasi Rawat Inap (`BKC-OQ-103`)
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Menetapkan pengelolaan variasi dan pengecualian biaya administrasi rawat inap secara deklaratif melalui Master Data Policy:**<br>1. **Aturan Default Ranap:** Nilai persentase 7% dengan pagu (cap) Rp6.000.000 adalah aturan dasar (*default*) untuk seluruh layanan rawat inap umum.<br>2. **Deklaratif via Master Data:** Kasus khusus seperti One Day Care (ODC), rawat inap singkat, atau kelas perawatan tertentu dikonfigurasi melalui baris aturan terpisah di tabel master `MstAdministrationFeePolicy` dengan filter kriteria (`ServiceType`, `PatientClass`) tanpa mengubah kode program sistem.<br>3. **Perlakuan Pasien BPJS / Paket Klaim:** Untuk pasien dengan penjaminan sistem paket (seperti BPJS Kesehatan / INA-CBGs), biaya administrasi tidak ditagihkan kepada pasien secara mandiri karena telah menjadi satu kesatuan inklusif dalam paket klaim penjaminan |
+| Owner | Yasmina (Billing) & Tarif/Finance Owner |
+| Status | `approved` |
+| Approval evidence | Pilihan eksplisit user pada sesi `/grill-me` 24 September 2026: *"Dikelola deklaratif lewat Master Data Policy: 7% cap Rp6 juta adalah aturan default ranap umum; kasus khusus (misal ODC atau kelas tertentu) diatur lewat baris aturan terpisah di tabel master tanpa ubah kode program; untuk pasien BPJS/paket klaim, admin fee tidak ditagihkan ke pasien (inklusif klaim)"* |
+| Alasan | Memberikan fleksibilitas penuh bagi manajemen rumah sakit untuk menyesuaikan tarif tanpa bergantung pada rilis kode teknis baru, serta mematuhi regulasi jaminan kesehatan nasional |
+| Konsekuensi | Service `AdministrationFeeCalculationService` mengevaluasi baris kebijakan `MstAdministrationFeePolicy` yang paling spesifik berdasarkan prioritas kecocokan dan memeriksa tipe penjaminan pasien sebelum membebankan biaya admin ke porsi pasien |
+| Trace | `04-prd-to-mvp.md` pertanyaan terbuka `BKC-OQ-103` (ditutup) |
+
+---
+
+### `BKC-DEC-122` — Tanggal Efektif Pemberlakuan Kebijakan Biaya Administrasi Baru
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Menetapkan bahwa kebijakan Biaya Administrasi Rawat Inap baru (7% cap Rp6.000.000) diberlakukan untuk semua pasien yang dipulangkan (*discharged*) pada atau setelah tanggal efektif aktivasi (`EffectiveFrom`), terlepas dari tanggal awal masuk admisi pasien.**<br>Pasien yang masuk sebelum tanggal aktivasi namun baru menyelesaikan administrasi pemulangan setelah tanggal aktivasi akan dikenakan perhitungan persentase 7% cap Rp6.000.000 pada saat perhitungan final billing |
+| Owner | Yasmina (Billing) & Finance Owner |
+| Status | `approved` |
+| Approval evidence | Pilihan eksplisit user pada sesi `/grill-me` 24 September 2026: *"Berlaku untuk semua pasien yang dipulangkan (discharge) pada atau setelah tanggal efektif aktivasi, terlepas dari tanggal awal masuknya"* |
+| Alasan | Standar operasional rumah sakit menetapkan bahwa tarif administrasi pemulangan dihitung pada saat penyelesaian tagihan akhir (*discharge calculation*), bukan pada saat admisi masuk |
+| Konsekuensi | Mesin kalkulasi membandingkan waktu evaluasi billing / discharge dengan `EffectiveFrom` pada master policy administrasi ranap |
+| Trace | Sesi wawancara aktivasi tanggal efektif 24 September 2026 |
+
+---
+
+### Acceptance Criteria Tambahan Penutupan Open Questions
+- `BKC-AC-088`: Tagihan susulan yang masuk pada invoice ranap `OPEN` yang sudah `CLEARED` memicu auto-reblock menjadi `REVOKED`. Tagihan susulan yang masuk pada invoice ranap berstatus `CLOSED` otomatis ditolak oleh adapter dengan pesan penolakan yang menyatakan tagihan telah dikunci (`BKC-DEC-120`).
+- `BKC-AC-089`: Evaluasi administrasi ranap mencocokkan baris kebijakan teraktif pada `MstAdministrationFeePolicy`; pasien BPJS mencatat nominal administrasi Rp 0 pada kewajiban pasien (*Patient Responsibility*) (`BKC-DEC-121`).
+- `BKC-AC-090`: Pasien dengan tanggal pemulangan setelah tanggal aktif kebijakan dikenakan skema 7% cap Rp6.000.000 secara otomatis saat final billing (`BKC-DEC-122`).
+
+
+

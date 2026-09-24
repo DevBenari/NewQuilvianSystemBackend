@@ -3,13 +3,13 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `BIL-CASH-001` |
-| Capability-map revision | `0.3` — bertambah section 17 (impact scan 4 September 2026); section 1–16 tidak diubah |
-| Status | `source-audited`; belum menyatakan siap implementasi atau siap produksi. **Section 1–16 `STALE` terhadap `HEAD` `fd4a605`** — lihat section 17 |
-| Tanggal audit | 20 Agustus 2026 (`Asia/Jakarta`) |
-| Business input | [`00-interview-decisions.md`](./00-interview-decisions.md), approved decision revision `0.2` |
+| Capability-map revision | `0.4` — bertambah section 22 (impact scan 24 September 2026 integrasi Rawat Inap ↔ Billing Pass B); section 1–21 tidak diubah |
+| Status | `source-audited`; belum menyatakan siap implementasi atau siap produksi |
+| Tanggal audit | 24 September 2026 (`Asia/Jakarta`) |
+| Business input | [`00-interview-decisions.md`](./00-interview-decisions.md), approved decision revision `0.3` (`BKC-DEC-112` s.d. `BKC-DEC-119`) |
 | Supplemental evidence | [`05-servicebilling-attachment-evidence.md`](./evidence/05-servicebilling-attachment-evidence.md), ZIP SHA-256 `2b948721cee4154eaecaf9ac57d7621fb34cb7b61fb31a5fd6dff04df7ad218d` |
-| Backend snapshot | `e6f6ecba1537783ea2eb379ac12cc97790707303` (current branch `Yasmina`) |
-| Frontend snapshot | `e555bf2ad6848a1d6cc097ab8c6c5f5259edb151` |
+| Backend snapshot | `dcb9c88e` |
+| Frontend snapshot | `fdebb9059` |
 | Audit method | Pembacaan statis source, konfigurasi EF, migration, route, DI, state/service frontend, dan test inventory |
 | Write boundary | Hanya dokumen blueprint ini; source aplikasi tidak diubah |
 
@@ -1066,3 +1066,63 @@ Seluruh klaim source pada `BKC-DEC-100`–`102` terverifikasi akurat pada HEAD s
 | ID | Pertanyaan | Siapa yang menjawab | Keadaan |
 | --- | --- | --- | --- |
 | `BKC-CQ-01` | Konsekuensi desain `BKC-DEC-102` (menandai `BilArHandoff` selesai saat piutang departure exception tertagih) — pakai yang mana: (a) status baru `COLLECTED` pada `BillingHandoffStatuses`, (b) field `CollectedAt` terpisah tanpa mengubah kosakata status, atau (c) tidak menyentuh `BilArHandoff` sama sekali dan cukup berpatokan ke `invoice.Status == Closed` (murah, tapi `BilArHandoff` bisa basi)? | Pemilik arsitektur backend (Billing/Finance/AR) | Terbuka untuk `/design-business-module`; tidak memblokir bagian desain lain |
+
+---
+
+## 22. Impact Scan 24 September 2026 — Verifikasi Source Kemampuan Integrasi Rawat Inap ↔ Billing (Pass B — `BKC-DEC-112` s.d. `BKC-DEC-119`)
+
+| Field | Nilai |
+|---|---|
+| Backend SHA diaudit | `dcb9c88e` |
+| Frontend SHA diaudit | `fdebb9059` |
+| Dasar Keputusan | [`00-interview-decisions.md`](./00-interview-decisions.md) revision `0.3` (`BKC-DEC-112` s.d. `BKC-DEC-119`) dan [`PRD Integrasi-Rawat-Inap-dengan-Billing.md`](../../Modul-RS/Rawat-Inap-To-Billing/PRD%20Integrasi-Rawat-Inap-dengan-Billing.md) |
+| Metode Audit | Pembacaan statis source backend ASP.NET Core (`BillingChargeSourceAdapter.cs`, `BillingCalculationService.cs`, `PatientBillingSummaryService.cs`, `BilConsumerHandoffService.cs`, model EF, configuration) dan frontend Next.js App Router (`consumer-handoffs-view.jsx`, hook, utils). Tidak ada modifikasi kode aplikasi |
+
+### 22.1 Ringkasan Satu Kalimat
+Backend `dcb9c88e` sudah memiliki pondasi kalkulasi sewa kamar dinamis in-process (`CalculateRoomChargeAsync`) dan mekanisme prioritas biaya administrasi, namun terbukti **menolak domain `ROOM_STAY` pada adapter charge**, belum mengimplementasikan formula diskon jam masuk (`BKC-DEC-114`) maupun pro-rata jam pindah kamar (`BKC-DEC-115`), masih menggunakan persentase administrasi dan deposit nominal flat tanpa parameter cap/persentase, mengalami anomali arsitektur **inverted source of truth** pada *financial clearance* (`PatientBillingSummaryService.cs:88`), serta belum memiliki jalur penerbitan handoff kelayakan pulang ke Rawat Inap di backend maupun frontend.
+
+### 22.2 Tabel Bukti Kemampuan (Capability Evidence Table)
+
+| ID | Kebutuhan Bisnis | Pemilik Modul | Bukti (`repo/path#symbol@SHA`) | Status | Gap / Kebutuhan Adapter | Risiko Operasional |
+|:---|:---|:---|:---|:---:|:---|:---|
+| `CAP-BIL-01` | **Penerimaan Beban Kamar (`ROOM_STAY` / `INPATIENT`)** (`BKC-DEC-112`) | Billing (`BillingManagement`) | `BE@dcb9c88e Areas/HealthServices/BillingManagement/Billing/Services/BillingChargeSourceAdapter.cs:20-53 #SourcePolicies` | **Extend** | `SourcePolicies` hanya mendukung `PROCEDURE`, `LABORATORY`, `RADIOLOGY`, `PHARMACY`, `CONSUMABLE`, `ADHOC`, `ADHOC_CATALOG`. `ROOM_STAY` belum terdaftar. | Event `BED_OCCUPIED` dari Rawat Inap akan langsung ditolak HTTP 422 jika dikirimkan ke endpoint `/from-source`. |
+| `CAP-BIL-02` | **Potongan Tarif Jam Masuk Hari Pertama** (`BKC-DEC-114`) | Billing (`BillingManagement`) | `BE@dcb9c88e Areas/HealthServices/BillingManagement/Billing/Services/BillingCalculationService.cs:575-680 #CalculateRoomChargeAsync`<br>`BE@dcb9c88e Areas/HealthServices/BillingManagement/MasterData/Services/RoomChargePolicyService.cs:189-204 #CalculateChargeUnits` | **Extend** | `CalculateRoomChargeAsync` membaca `InpBedPlacement` langsung in-process dan menghitung unit via `CalculateChargeUnits`, namun **belum** memiliki evaluasi potongan jam masuk (`>= 18:00` 50%, `>= 22:00` 20%, `00:00` 0%). | Pasien yang masuk malam hari ditagih 100% penuh, melanggar kebijakan rumah sakit dan memicu keluhan pasien. |
+| `CAP-BIL-03` | **Split Transfer Kamar Multipel Berbasis Durasi Jam Riil** (`BKC-DEC-115`) | Billing (`BillingManagement`) | `BE@dcb9c88e Areas/HealthServices/BillingManagement/Billing/Services/BillingCalculationService.cs:605-676` | **Extend** | Penghitungan unit saat ini memperlakukan setiap `InpBedPlacement` secara terpisah dengan pembulatan unit (`CalculateChargeUnits`) tanpa pembobotan pro-rata jam riil terhadap total jam harian jika terjadi >1 perpindahan pada tanggal yang sama. | Terjadi over-billing tarif kamar tinggi jika pasien hanya singgah sebentar di kamar transit sebelum pindah ke ICU. |
+| `CAP-BIL-04` | **Biaya Administrasi Rawat Inap 7% Cap Rp 6 Juta** (`BKC-DEC-113`) | Billing & Finance | `BE@dcb9c88e Areas/HealthServices/BillingManagement/MasterData/Models/MstAdministrationFeePolicy.cs:8-34`<br>`BE@dcb9c88e Areas/HealthServices/BillingManagement/Billing/Services/BillingCalculationService.cs:494-568 #CalculateAdministrationFeeAsync` | **Extend** | Model `MstAdministrationFeePolicy` hanya memiliki kolom `Amount` (flat nominal), belum ada kolom `Percentage` dan `CapAmount`. Formula kalkulasi belum menghitung persentase dari *eligible bill*. | Biaya administrasi ranap tertagih nominal flat lama, menghilangkan potensi pendapatan sah rumah sakit. |
+| `CAP-BIL-05` | **Penggantian Biaya Administrasi Rajal → Ranap** (`BKC-DEC-119`) | Billing & Finance | `BE@dcb9c88e Areas/HealthServices/BillingManagement/Billing/Services/BillingCalculationService.cs:546-555` | **Extend** | Logika `replacesEarlierFee` sudah ada (prioritas RANAP 100 > RAJAL 10), tetapi hanya melakukan pengurangan flat `policy.Amount - priorApplied`. Belum ada mekanisme void otomatis item invoice rajal atau pengkreditan nominal rajal yang telah dibayar kasir poliklinik ke settlement ranap. | Pasien rawat jalan yang dialihkan ke ranap berisiko terkena tagihan administrasi ganda. |
+| `CAP-BIL-06` | **Validasi Deposit 100% Porsi Pasien Sebelum Tindakan Besar** (`BKC-DEC-116`) | Billing (`BillingManagement`) | `BE@dcb9c88e Areas/HealthServices/BillingManagement/MasterData/Models/MstDepositPolicy.cs:8-22`<br>`BE@dcb9c88e Areas/HealthServices/BillingManagement/Billing/Services/BillingDepositService.cs:56-140` | **Extend** | `MstDepositPolicy` hanya memuat `MinimumAmount` flat. Belum ada formula penghitungan shortfall deposit berbasis *Patient Responsibility / Excess* tindakan besar (`EstimasiTindakan - JaminanAsuransi - SaldoDeposit`). | Operasi bedah besar berisiko berjalan tanpa proteksi deposit finansial memadai dari porsi bayar mandiri pasien. |
+| `CAP-BIL-07` | **Integritas *Financial Clearance* Inpatient** (`BKC-DEC-117`) | Billing (`BillingManagement`) | `BE@dcb9c88e Areas/HealthServices/BillingManagement/Operational/Services/PatientBillingSummaryService.cs:88-93` | **Repair** | `PatientBillingSummaryService` membaca kelayakan secara terbalik dari `_dbContext.Set<InpFinancialClearance>()` milik Rawat Inap. Billing belum mengevaluasi status lunas invoice-nya sendiri untuk menentukan clearance. | Terjadi inkonsistensi status pulang pasien jika status tagihan di kasir sudah lunas tetapi data rawat inap belum di-update manual. |
+| `CAP-BIL-08` | **Penerbitan Sinyal Handoff Clearance ke Rawat Inap** (`BKC-DEC-117`) | Billing & Rawat Inap | `BE@dcb9c88e Areas/HealthServices/BillingManagement/Billing/Services/BilConsumerHandoffService.cs:184-360`<br>`FE@fdebb9059 src/components/view/health-services/billing-management/consumer-handoffs/consumer-handoffs-view.jsx:45-60` | **Extend** | Handoff service dan tampilan antarmuka kasir saat ini hanya mengenal tipe handoff `collection` (Finance) dan `prescription` (Pharmacy). Belum ada tipe `inpatient` (Rawat Inap) untuk clearance dan auto-reblock. | Bangsal rawat inap tidak menerima pemberitahuan otomatis saat kasir membatalkan kelayakan (*revoked*) akibat tagihan susulan. |
+| `CAP-BIL-09` | **Konsolidasi Tagihan Alihan IGD ke Rawat Inap** (`BKC-DEC-118`) | Billing & Kasir | `BE@dcb9c88e Areas/HealthServices/BillingManagement/Billing/Services/BillingSettlementService.cs:500-600` | **Extend** | Settlement kasir saat ini beroperasi per invoice/folio tunggal. Belum ada alur checkout multi-folio non-destruktif untuk melunasi tagihan IGD dan Ranap sekaligus dalam satu kali pembayaran. | Pasien harus mengantre dua kali di loket kasir berbeda atau kasir kesulitan menutup billing encounter secara terpadu. |
+| `CAP-BIL-10` | **Antarmuka Kasir untuk Informasi Rawat Inap** | Frontend Billing | `FE@fdebb9059 src/utils/health-services/billing-management/patient-billing-summary-utils.js:109-115`<br>`FE@fdebb9059 src/components/view/health-services/billing-management/consumer-handoffs/consumer-handoffs-view.jsx` | **Extend** | Frontend kasir sudah siap merender status clearance pasif dari response summary, namun belum memiliki tab/filter consumer handoffs khusus rawat inap dan modal pemicu evaluasi ulang kelayakan. | Kasir tidak dapat melihat daftar pasien rawat inap yang menunggu persetujuan pemulangan secara terpusat. |
+
+---
+
+### 22.3 Fakta, Inferensi, dan Rekomendasi
+
+**Fakta (Facts):**
+1. **Dukungan In-Process vs Outbox Event:** Modul Billing di `BillingCalculationService.CalculateRoomChargeAsync` saat ini membaca tabel Rawat Inap (`InpEpisode` dan `InpBedPlacement`) secara langsung in-process melalui `DbContext`. Sementara itu, modul Rawat Inap telah membangun `InpIntegrationOutbox` yang memancarkan event `BED_OCCUPIED` dengan kunci `INPATIENT:ROOM_STAY:{placementId}:{version}`.
+2. **Keterbatasan Adapter:** `ContractBillingChargeSourceAdapter.cs` membatasi domain secara ketat melalui `SourcePolicies`. Jika Rawat Inap menembak endpoint `POST /invoices/from-source` dengan `SourceDomain = "INPATIENT"` atau `"ROOM_STAY"`, request akan ditolak dengan galat validasi 422.
+3. **Admin Fee Model:** `MstAdministrationFeePolicy` dan tabel database-nya saat ini belum memiliki kolom `Percentage` maupun `CapAmount`, sehingga penetapan 7% maksimal Rp 6.000.000 menuntut perluasan skema model EF dan migrasi database.
+4. **Inverted Source of Truth:** `PatientBillingSummaryService.cs` baris 88 mengekstrak kelayakan dari `InpFinancialClearance`. Ini membuktikan bahwa Billing saat ini belum menjadi pemilik mandiri atas status kelayakan keuangan pemulangan.
+5. **Pola Handoff Terbukti:** Billing sudah memiliki arsitektur handoff yang matang untuk Farmasi (`BilPrescriptionClearanceHandoff` dan `BilConsumerHandoffService`), sehingga penambahan handoff rawat inap dapat mereplikasi pola yang sama persis tanpa menciptakan paradigma baru.
+
+**Inferensi (Inferences):**
+1. Karena Billing sudah membaca `InpBedPlacement` secara in-process saat kalkulasi invoice berjalan, implementasi `Room Charge Engine` paling aman dan efisien adalah dengan **memperkaya method `CalculateRoomChargeAsync` yang sudah ada** dengan logika jam masuk (`BKC-DEC-114`) dan pro-rata transfer kamar (`BKC-DEC-115`), sekaligus mendaftarkan domain `ROOM_STAY` pada `ContractBillingChargeSourceAdapter` untuk mendukung rekonsiliasi berbasis event outbox.
+2. Anomali pembacaan `InpFinancialClearance` di `PatientBillingSummaryService` dapat diperbaiki dengan mengarahkan kalkulasi kelayakan langsung ke status outstanding invoice dan saldo deposit Billing itu sendiri (`outstanding == 0` dan tidak ada blocker aktif).
+
+**Rekomendasi (Recommendations):**
+1. **Lanjut ke `/design-business-module`:** Seluruh bukti teknis as-is dan kesenjangannya telah dipetakan secara tuntas. Tidak ada blocker investigasi yang tersisa.
+2. **Perluas Model EF `MstAdministrationFeePolicy`:** Tambahkan kolom nullable `Percentage` (decimal) dan `CapAmount` (decimal) pada konfigurasi EF dan DTO master data untuk mengakomodasi `BKC-DEC-113`.
+3. **Replikasi Pola Handoff Farmasi ke Rawat Inap:** Buat entitas `BilInpatientClearanceHandoff` dan integrasikan ke dalam `BilConsumerHandoffService` saat settlement lunas (`CLEARED`) atau saat timbul tagihan susulan (`REVOKED`).
+4. **Perbaiki `PatientBillingSummaryService`:** Hapus dependensi query ke `InpFinancialClearance` dan gantikan dengan evaluasi status pembayaran internal Billing.
+
+---
+
+### 22.4 Pertanyaan Penutup untuk `/design-business-module`
+
+| ID | Pertanyaan Penutup Desain | Pemilik Jawaban | Status |
+|:---|:---|:---|:---:|
+| `BKC-CQ-02` | Apakah penerimaan room charge dari Rawat Inap akan murni dihitung in-process melalui `CalculateRoomChargeAsync` saat kalkulasi invoice, ataukah outbox event `BED_OCCUPIED` dari Rawat Inap tetap harus dipersist sebagai `BilInvoiceItem` tersendiri di database Billing? | Tech Lead / Domain Architect | Terbuka untuk diputuskan saat desain arsitektur |
+| `BKC-CQ-03` | Untuk pengkreditan biaya administrasi rajal yang sudah dibayar di kasir poli (`BKC-DEC-119`), apakah nominal tersebut dicatat sebagai `BilPaymentAllocation` bertipe kredit ataukah mengurangi nilai dasar hitungan administrasi ranap secara langsung? | Billing / Finance Architect | Terbuka untuk diputuskan saat desain arsitektur |
+

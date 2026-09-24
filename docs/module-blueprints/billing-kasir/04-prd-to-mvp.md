@@ -2568,3 +2568,118 @@ pada 24 Agustus 2026.
 Keduanya **bukan** `OPEN DECISION` pada tingkat epic. `EPIC BKC-23` dapat dirancang dan
 dikerjakan penuh tanpa menunggu jawaban keduanya, sehingga `MVP-26` siap diteruskan ke
 `plan-module-delivery` begitu desain ini disetujui.
+
+---
+
+# Amendment 24 September 2026 — Integrasi Rawat Inap ↔ Billing Management (Pass B)
+
+> Status: **draft**. Masukan: `BKC-DEC-112`–`119`, `BKC-AC-080`–`087`, `BKC-DES-042`–`050`.
+> Backend baseline SHA: `dcb9c88e`, Frontend baseline SHA: `fdebb9059`.
+
+## 1. Masalah Produk & Latar Belakang
+
+Modul Rawat Inap (Pass A, `RWI-DEC-156`–`162`) telah menyetujui kontrak operasional bangsal, penempatan tempat tidur (*bed placement*), dan izin pemulangan medis. Namun, pada modul Billing Management (Pass B), ditemukan celah (*gap*) arsitektur penting:
+1. Hubungan penentuan kelayakan pemulangan finansial (*Financial Clearance*) sebelumnya terbalik (*inverted*), di mana Billing membaca status dari Rawat Inap padahal Billing adalah pemilik transaksi kasir dan mutasi pelunasan.
+2. Tidak adanya mesin hitung sewa kamar yang mendukung jam masuk malam hari secara bertingkat dan perhitungan pro-rata menit untuk pasien yang berpindah kamar multipel dalam 24 jam.
+3. Biaya administrasi rawat inap masih berupa nominal tetap (*flat*) dan belum mendukung aturan bisnis 7% dengan pagu Rp6.000.000.
+4. Belum adanya mekanisme otomatis untuk membatalkan izin pulang (*Auto-Reblock*) bila terjadi pencatatan tagihan susulan (*late charges*) pasca-pelunasan.
+5. Perlakuan biaya administrasi rawat jalan yang belum otomatis digugurkan/dikreditkan saat pasien dialihkan ke rawat inap.
+
+## 2. Batas MVP
+
+**Titik Mulai:**
+1. Pasien rawat inap terdaftar dan menempati tempat tidur (event `ROOM_STAY` aktif di Rawat Inap).
+2. Pasien memiliki invoice Billing aktif bertipe `RANAP`.
+
+**Titik Akhir:**
+1. Rincian sewa kamar terhitung otomatis sesuai jam masuk dan pro-rata transfer menit riil.
+2. Biaya administrasi 7% (cap Rp6.000.000) terhitung pada invoice ranap; biaya admin rajal digugurkan/dikreditkan bila ada alihan.
+3. Kasir memproses pelunasan dan menerbitkan surat fakta kelayakan `BilInpatientClearanceHandoff` dengan status `CLEARED`.
+4. Jika ada tagihan susulan, sistem secara otomatis mengubah status menjadi `REVOKED` (*Auto-Reblock*) dan memblokir pemulangan pasien di bangsal ranap.
+5. Kasir dapat memantau antrean surat handoff rawat inap pada tab khusus layar Consumer Handoffs.
+
+## 3. Pemilihan Kemampuan MVP
+
+| Kemampuan | ID Kemampuan Asal | Keputusan MVP |
+| --- | --- | --- |
+| Registrasi domain `ROOM_STAY` ke charge intake adapter | `CAP-BIL-01` | **Wajib (`MUST HAVE`)**; tanpa ini event penempatan kamar ditolak sistem Billing |
+| Perhitungan sewa kamar jam masuk bertingkat & late checkout | `CAP-BIL-02` | **Wajib (`MUST HAVE`)**; memenuhi `BKC-DEC-112` untuk mencegah sengketa jam masuk malam |
+| Perhitungan pro-rata sewa kamar transfer multipel menit riil | `CAP-BIL-03` | **Wajib (`MUST HAVE`)**; memenuhi `BKC-DEC-112` & `BKC-DES-050` |
+| Biaya administrasi ranap 7% dengan pagu Rp6.000.000 | `CAP-BIL-04` | **Wajib (`MUST HAVE`)**; memenuhi `BKC-DEC-113` & `BKC-DES-044` |
+| Verifikasi deposit tindakan besar 100% dari Patient Responsibility | `CAP-BIL-05` | **Wajib (`MUST HAVE`)**; memenuhi `BKC-DEC-114` |
+| Billing single source of truth kelayakan pemulangan ranap | `CAP-BIL-06` | **Wajib (`MUST HAVE`)**; memperbaiki ketergantungan terbalik (`BKC-DEC-115`) |
+| Auto-Reblock pencabutan izin pulang saat tagihan susulan | `CAP-BIL-07` | **Wajib (`MUST HAVE`)**; mencegah kebocoran pendapatan RS (`BKC-DEC-116`) |
+| Konsolidasi non-destruktif rincian tagihan alihan IGD ke Ranap | `CAP-BIL-08` | **Wajib (`MUST HAVE`)**; memenuhi `BKC-DEC-117` |
+| Pembatalan dan pengalihan kredit biaya admin rajal ke ranap | `CAP-BIL-09` | **Wajib (`MUST HAVE`)**; memenuhi `BKC-DEC-119` & `BKC-DES-049` |
+| Tab Rawat Inap pada layar Consumer Handoffs Kasir | `CAP-BIL-10` | **Wajib (`MUST HAVE`)**; antarmuka pemeriksaan surat menggantung bagi kasir |
+
+## 4. Epic dan Functional Requirement
+
+### `EPIC BKC-24` — Integrasi Rawat Inap ↔ Billing Management & Inpatient Financial Clearance
+
+| ID FR | Deskripsi Kebutuhan | Disposisi |
+| --- | --- | --- |
+| `FR-BKC-240` | Mendaftarkan source domain `INPATIENT`/`ROOM_STAY` pada `ContractBillingChargeSourceAdapter` dengan status billable: `OCCUPIED`, `TRANSFERRED`, `CORRECTED`, `RELEASED` | `EXTEND` |
+| `FR-BKC-241` | Menghitung sewa kamar hari pertama berdasarkan jam masuk bertingkat (`<18:00`: 100%, `18:00-<22:00`: 50%, `22:00-<00:00`: 20%, `>=00:00`: hari berikutnya) dan denda keterlambatan keluar (`>12:00`: 50%) | `EXTEND` |
+| `FR-BKC-242` | Menghitung pembagian tarif kamar pro-rata menit untuk kasus >1 transfer kamar dalam hari kalender yang sama | `MISSING / NEW` |
+| `FR-BKC-243` | Menghitung biaya administrasi rawat inap sebesar 7% dari eligible bill dengan batas atas maksimum Rp6.000.000 via konfigurasi `MstAdministrationFeePolicy` | `EXTEND` |
+| `FR-BKC-244` | Memvalidasi kecukupan saldo deposit pasien minimal 100% dari porsi tanggung jawab pasien (ekses) untuk tindakan besar | `MISSING / NEW` |
+| `FR-BKC-245` | Menyediakan tabel `BilInpatientClearanceHandoff` dan service evaluasi kelayakan pemulangan mandiri berbasis sisa tagihan pasien di Billing | `MISSING / NEW` |
+| `FR-BKC-246` | Menjalankan Auto-Reblock (transisi `REVOKED`) secara atomik bila terjadi intake tagihan susulan pada invoice ranap yang sudah `CLEARED` | `MISSING / NEW` |
+| `FR-BKC-247` | Menyatukan item tagihan alihan IGD ke invoice ranap secara non-destruktif dengan tetap mempertahankan `SourceDomain = "EMERGENCY"` | `EXTEND` |
+| `FR-BKC-248` | Membatalkan baris biaya admin rajal (jika belum dibayar) atau mengalihkannya sebagai kredit deposit ranap (jika sudah terbayar) | `MISSING / NEW` |
+| `FR-BKC-249` | Menyediakan endpoint `[Tags("BillingInpatientIntegration")]` untuk inquiry rincian ranap, kalkulasi sewa kamar, dan re-evaluasi clearance | `MISSING / NEW` |
+| `FR-BKC-250` | Memperluas layar `consumer-handoffs-view.jsx` dengan tab "Rawat Inap" untuk memantau status clearance dan memproses pengakuan handoff | `EXTEND` |
+
+## 5. Skenario UAT
+
+### Jalur Berhasil
+
+| ID | Skenario | Hasil yang Diharapkan |
+| --- | --- | --- |
+| `UAT-BKC-74` | Pasien masuk kamar rawat inap pukul 22:30 WIB | Hari pertama dikenakan tarif kamar sebesar 20%; tagihan kamar terakumulasi benar di invoice ranap |
+| `UAT-BKC-75` | Pasien pindah kamar Standar ke ICU pada hari yang sama | Sewa kamar hari itu dihitung pro-rata berdasarkan durasi menit riil tiap kamar |
+| `UAT-BKC-76` | Pasien alihan Rajal ke Ranap telah membayar admin poli Rp50.000 | Biaya admin poli digantikan admin ranap 7% (cap 6 juta), dan pembayaran Rp50.000 memotong tagihan ranap sebagai kredit |
+| `UAT-BKC-77` | Pasien melunasi seluruh sisa tagihan rawat inap di loket kasir | Status kelayakan terbit `CLEARED`, surat handoff tersimpan, dan modul rawat inap menerima status izin pulang |
+| `UAT-BKC-78` | Pasien asuransi dijadwalkan operasi besar dengan ekses Rp10.000.000 | Sistem memvalidasi saldo deposit minimal Rp10.000.000; verifikasi berhasil tanpa menuntut setoran bruto tindakan |
+
+### Jalur Gagal / Pengecualian
+
+| ID | Skenario | Hasil yang Diharapkan |
+| --- | --- | --- |
+| `UAT-BKC-79` | Tagihan obat susulan Rp300.000 masuk setelah pasien dinyatakan `CLEARED` | Sistem otomatis menjalankan Auto-Reblock: status clearance berubah menjadi `REVOKED`, pasien tertahan di bangsal hingga tagihan susulan dilunasi |
+| `UAT-BKC-80` | Pasien meminta izin pulang finansial saat masih ada sisa tagihan Rp1.500.000 | Evaluasi menghasilkan status `BLOCKED`; pesan `BIL-VAL-122` menolak penerbitan izin pulang |
+| `UAT-BKC-81` | Koreksi penempatan kamar (`ROOM_CORRECTION`) diterima dari bangsal | Tagihan kamar lama dibatalkan idempoten dan tagihan baru diterbitkan sesuai kamar yang benar |
+| `UAT-BKC-82` | Pasien operasi besar memiliki saldo deposit kurang dari nilai ekses | Sistem menolak izin tindakan dengan peringatan `BIL-VAL-121` kekurangan saldo deposit |
+
+## 6. Definition of Done
+
+| Butir | Dapat Dijawab | Bukti |
+| --- | --- | --- |
+| Tabel `BilInpatientClearanceHandoff` dan 3 kolom baru master berdiri dengan migration bersih | Ya / Belum | Migration `AddInpatientBillingIntegrationAndClearanceHandoff` diterapkan |
+| Sewa kamar menghitung diskon jam malam dan pro-rata transfer menit secara presisi | Ya / Belum | Uji unit kalkulasi sewa kamar (`BIL-AT-143`) |
+| Biaya admin ranap 7% berhenti bertambah saat mencapai pagu Rp6.000.000 | Ya / Belum | Uji batas administrasi ranap (`BIL-AT-145`) |
+| Ketergantungan lama ke `InpFinancialClearance` pada `PatientBillingSummaryService` telah dilepas | Ya / Belum | Source code inspection bebas dari rujukan entitas rawat inap tersebut |
+| Auto-Reblock otomatis mencabut izin pulang saat ada tagihan susulan | Ya / Belum | Uji integrasi intake susulan (`BIL-AT-148`) |
+| Tab Rawat Inap pada layar kasir berfungsi memuat dan mengakui surat clearance | Ya / Belum | Uji komponen frontend `consumer-handoffs-view.jsx` |
+| Seluruh nominal dan data sensitif terlindungi dari custom log | Ya / Belum | Tinjauan payload audit log |
+
+## 7. Urutan Pengiriman
+
+| Gelombang | Isi | Prasyarat |
+| --- | --- | --- |
+| `MVP-28` | `FR-BKC-240` s.d. `FR-BKC-249` — Skema database, adapter room stay, mesin hitung kamar bertingkat & pro-rata, admin fee 7% cap Rp6 jt, service clearance & auto-reblock, endpoint API integrasi | Approval blueprint ini; otorisasi migration terpisah |
+| `MVP-29` | `FR-BKC-250` — Frontend layar pemeriksaan Consumer Handoffs tab Rawat Inap & panel ringkasan ranap pada Menu Pembayaran | `MVP-28` selesai |
+| `POST-MVP` | Notifikasi otomatis WhatsApp/SMS kelayakan pulang ke keluarga pasien; alur otomatisasi jaminan perusahaan pulang dispensasi | Otorisasi bisnis tambahan |
+
+## 8. Pertanyaan Terbuka Sebelum Development Lock
+
+| ID | Pertanyaan | Status | Penutupan & Hasil |
+| --- | --- | :---: | --- |
+| `BKC-OQ-102` | Batas toleransi keterlambatan input tagihan susulan | **DITUTUP** | `BKC-DEC-120` menetapkan Auto-Reblock berlaku selama invoice masih `OPEN`. Setelah `CLOSED`, tagihan susulan otomatis ditolak kecuali dibuka kembali lewat otorisasi Supervisor Kasir. |
+| `BKC-OQ-103` | Pengecualian biaya admin 7% cap Rp6 juta untuk kasus khusus | **DITUTUP** | `BKC-DEC-121` menetapkan pengelolaan variasi/pengecualian secara deklaratif via tabel master `MstAdministrationFeePolicy`; pasien BPJS inklusif paket klaim. |
+| Aktivasi | Tanggal efektif pemberlakuan aturan admin ranap baru | **DITUTUP** | `BKC-DEC-122` menetapkan berlaku untuk seluruh pasien yang dipulangkan (*discharged*) pada atau setelah `EffectiveFrom`. |
+
+**Seluruh pertanyaan terbuka telah ditutup.** Dokumen ini siap diteruskan ke tahap perencanaan pengiriman modul (`plan-module-delivery`) setelah approval resmi.
+
+

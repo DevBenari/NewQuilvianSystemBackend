@@ -897,3 +897,124 @@ Kode status:
 **Nol.** Tidak ada endpoint lama yang berubah bentuk, bertambah field, maupun berubah arti.
 
 Trace `BKC-DEC-106`–`109`, `BKC-DES-036`–`041`. Tests `BIL-AT-141`–`BIL-AT-142`.
+
+---
+
+## Amendment 24 September 2026 — Integrasi Rawat Inap ↔ Billing Management
+
+`last_changed_in: BIL-API-1.4` · status **active** · input `BKC-DEC-112`–`119`, `BKC-DES-042`–`050`.
+
+### [Tags("BillingInpatientIntegration")]
+Kelompok endpoint integrasi sinkron dan asinkron antara modul Rawat Inap dan Billing Management. Digunakan untuk menerima beban sewa kamar, menyajikan ringkasan kelayakan keuangan untuk bangsal, serta mengevaluasi status perizinan pulang pasien rawat inap.
+
+Base URL: `api/v1/health-services/billing-management/billing`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `POST` | `/invoices/occupancy-charges` | Menerima beban sewa kamar harian dari outbox Rawat Inap (`ROOM_STAY`). Menerapkan potongan jam masuk & split transfer kamar harian. | `BillingInpatient : Create` | `OccupancyChargeRequest`<br>**Header wajib:** `Idempotency-Key` (Guid) | `ApiResponse<OccupancyChargeResponse>` | **Tersedia (BE-BKC-076)** |
+| `GET` | `/invoices/encounter/{encounterId}/inpatient-summary` | Menyajikan ringkasan kelayakan finansial rawat inap untuk bangsal (status clearance, daftar kendala blocker operasional, saldo deposit, tagihan berjalan, tanpa rincian nominal per item demi privasi perawat). | `BillingInpatient : Read` | Path: `encounterId` (Guid) | `ApiResponse<InpatientBillingSummaryResponse>` | **Tersedia (BE-BKC-076)** |
+| `POST` | `/inpatient-clearance/reevaluate` | Memeriksa ulang seluruh prasyarat finansial encounter rawat inap dan menerbitkan status kelayakan pulang (`CLEARED`, `BLOCKED`, atau `REVOKED`) ke tabel handoff internal Billing dan mengirim sinyal ke bangsal. | `BillingInpatient : Clearance` | `ReevaluateInpatientClearanceRequest` (`EncounterId`, `Reason`) | `ApiResponse<InpatientClearanceHandoffResponse>` | **Tersedia (BE-BKC-076)** |
+| `POST` | `/inpatient-clearance/validate-major-procedure-deposit` | Validasi kecukupan deposit 100% dari ekses/tanggung jawab pasien atas tindakan/operasi besar sebelum penjadwalan. | `BillingInpatient : ValidateDeposit` | `MajorProcedureDepositValidationRequest` | `ApiResponse<MajorProcedureDepositValidationResult>` | **Tersedia (BE-BKC-076)** |
+| `PATCH` | `/inpatient-clearance/{id}/acknowledge` | Mengakui penerimaan surat handoff kelayakan pulang oleh bangsal rawat inap secara idempoten. | `BillingInpatient : Acknowledge` | Path: `id` (Guid) | `ApiResponse<InpatientClearanceHandoffResponse>` | **Tersedia (BE-BKC-076)** |
+| `GET` | `/inpatient-clearance/encounter/{encounterId}/latest` | Mengambil status surat kelayakan rawat inap aktif terakhir untuk encounter. | `BillingInpatient : ReadLatest` | Path: `encounterId` (Guid) | `ApiResponse<InpatientClearanceHandoffResponse>` | **Tersedia (BE-BKC-076)** |
+
+#### Detail Spesifikasi Payload Request & Response
+
+##### 1. `POST /invoices/occupancy-charges`
+* **Request Body:**
+```json
+{
+  "encounterId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "placementId": "7e49ba03-b808-4cff-8e71-735ec8d8b801",
+  "roomId": "ROOM-MEL-02",
+  "roomName": "Melati Kamar 02",
+  "bedId": "BED-MEL-02A",
+  "bedCode": "Melati-02A",
+  "patientClassId": "CLASS-2",
+  "occupancyStartAt": "2026-09-24T18:30:00+07:00",
+  "occupancyEndAt": null,
+  "changeType": "BED_OCCUPIED",
+  "version": 1
+}
+```
+* **Response 200 OK:**
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Beban sewa kamar berhasil dicatat pada invoice berjalan.",
+  "data": {
+    "invoiceId": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+    "invoiceNumber": "INV-202609-0012",
+    "currentChargeAmount": 1500000.00,
+    "appliedPolicy": "POTONGAN_50_PERSEN_JAM_18_SD_22",
+    "roomChargeAmount": 750000.00,
+    "versionNo": 2
+  }
+}
+```
+
+##### 2. `GET /invoices/encounter/{encounterId}/inpatient-summary`
+* **Response 200 OK:**
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Ringkasan tagihan rawat inap berhasil diambil.",
+  "data": {
+    "encounterId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "invoiceId": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+    "billingStatus": "OPEN",
+    "financialClearanceStatus": "BLOCKED",
+    "canDischarge": false,
+    "blockerReasons": [
+      "Pasien masih memiliki sisa tanggung jawab mandiri (patient excess) sebesar Rp 250.000 yang belum dilunasi di kasir utama",
+      "Koreksi kelas kamar pada tanggal 23 September 2026 belum disetujui kasir"
+    ],
+    "depositRequired": 5000000.00,
+    "depositBalance": 4500000.00,
+    "depositShortfall": 500000.00,
+    "totalCharges": 12750000.00,
+    "outstanding": 250000.00
+  }
+}
+```
+*Catatan Keamanan & Hak Akses:* Jika pemanggil adalah perawat bangsal (tidak memiliki hak `InpatientBillingFinancial : View`), field `depositRequired`, `depositBalance`, `depositShortfall`, `totalCharges`, dan `outstanding` disembunyikan/dibersihkan (`null`), sehingga perawat hanya melihat `financialClearanceStatus`, `canDischarge`, dan `blockerReasons` demi kerahasiaan nominal finansial pasien.
+
+##### 3. `POST /inpatient-clearance/reevaluate`
+* **Request Body:**
+```json
+{
+  "encounterId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "reason": "Evaluasi kelayakan kepulangan setelah pelunasan kwitansi kasir utama."
+}
+```
+* **Response 200 OK:**
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Pemeriksaan kelayakan berhasil; status clearance diterbitkan.",
+  "data": {
+    "handoffId": "8f3e2d1c-4b5a-6789-0123-abcdef456789",
+    "encounterId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "clearanceStatus": "CLEARED",
+    "reason": "Seluruh tagihan pasien telah lunas (Settled) dan saldo deposit telah direkonsiliasi.",
+    "clearedAt": "2026-09-24T10:15:00+07:00",
+    "clearedByUserName": "Hendra Pratama (Kasir Utama)"
+  }
+}
+```
+
+---
+
+### [Tags("BillingMasterData")] — Pembaruan Master Biaya Administrasi
+Base URL: `api/v1/health-services/billing-management/master-data/administration-fee-policies`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| `POST` | `/` | Membuat kebijakan biaya administrasi baru dengan dukungan persentase dan batas plafon (cap) untuk Rawat Inap (`BKC-DEC-113`). | `AdministrationFeePolicy : Create` | `CreateAdministrationFeePolicyRequest` (`Code`, `Name`, `ServiceType`, `Amount`, `Percentage`, `CapAmount`, `ReplacementPriority`, `EffectiveFrom`, `EffectiveTo`) | `ApiResponse<AdministrationFeePolicyResponse>` | **Rencana (belum tersedia)** |
+| `PUT` | `/{id}` | Mengubah rancangan kebijakan biaya administrasi sebelum tanggal efektif berlaku. | `AdministrationFeePolicy : Update` | `UpdateAdministrationFeePolicyRequest` | `ApiResponse<AdministrationFeePolicyResponse>` | **Rencana (belum tersedia)** |
+
+Trace `BKC-DEC-112`–`119`, `BKC-DES-042`–`050`. Tests `BIL-AT-143`–`BIL-AT-152`.
+

@@ -13,6 +13,7 @@ public sealed class MstAdministrationFeePolicyConfiguration : IEntityTypeConfigu
             table.HasCheckConstraint("CK_MstAdministrationFeePolicy_Amount", "\"Amount\" >= 0");
             table.HasCheckConstraint("CK_MstAdministrationFeePolicy_EffectivePeriod", "\"EffectiveTo\" IS NULL OR \"EffectiveTo\" > \"EffectiveFrom\"");
             table.HasCheckConstraint("CK_MstAdministrationFeePolicy_NotDiscountable", "\"Discountable\" = false");
+            table.HasCheckConstraint("CK_MstAdministrationFeePolicy_CalculationType", "\"CalculationType\" IN ('FLAT', 'PERCENTAGE_WITH_CAP')");
         });
 
         entity.HasKey(x => x.Id);
@@ -20,6 +21,9 @@ public sealed class MstAdministrationFeePolicyConfiguration : IEntityTypeConfigu
         entity.Property(x => x.Name).HasMaxLength(100).IsRequired();
         entity.Property(x => x.ServiceType).HasMaxLength(30).IsRequired();
         entity.Property(x => x.Amount).HasPrecision(18, 2);
+        entity.Property(x => x.Percentage).HasPrecision(5, 2);
+        entity.Property(x => x.CapAmount).HasPrecision(18, 2);
+        entity.Property(x => x.CalculationType).HasMaxLength(30).IsRequired().HasDefaultValue(AdministrationFeeCalculationTypes.Flat);
         entity.Property(x => x.OncePerPatientLocalDay).IsRequired();
         entity.Property(x => x.Discountable).HasDefaultValue(false);
         entity.Property(x => x.IsActive).HasDefaultValue(false);
@@ -37,11 +41,39 @@ public sealed class MstAdministrationFeePolicyConfiguration : IEntityTypeConfigu
 
         var seedTime = new DateTime(2026, 8, 20, 0, 0, 0, DateTimeKind.Utc);
         var effectiveFrom = new DateTimeOffset(seedTime);
+        var activeRanapSeedTime = new DateTime(2026, 9, 24, 0, 0, 0, DateTimeKind.Utc);
+        var activeRanapEffectiveFrom = new DateTimeOffset(activeRanapSeedTime);
+
         entity.HasData(
             Draft(new Guid("7e49ba03-b808-4cff-8e71-735ec8d8b801"), "ADM-RAJAL-DRAFT", "Draft biaya administrasi rawat jalan", "RAJAL", 10, seedTime, effectiveFrom),
             Draft(new Guid("7e49ba03-b808-4cff-8e71-735ec8d8b802"), "ADM-IGD-DRAFT", "Draft biaya administrasi IGD", "IGD", 10, seedTime, effectiveFrom),
             Draft(new Guid("7e49ba03-b808-4cff-8e71-735ec8d8b803"), "ADM-OTC-DRAFT", "Draft biaya administrasi OTC", "OTC", 10, seedTime, effectiveFrom),
-            Draft(new Guid("7e49ba03-b808-4cff-8e71-735ec8d8b804"), "ADM-RANAP-DRAFT", "Draft biaya administrasi rawat inap", "RANAP", 100, seedTime, effectiveFrom));
+            Draft(new Guid("7e49ba03-b808-4cff-8e71-735ec8d8b804"), "ADM-RANAP-DRAFT", "Draft biaya administrasi rawat inap", "RANAP", 100, seedTime, effectiveFrom),
+            new MstAdministrationFeePolicy
+            {
+                Id = new Guid("7e49ba03-b808-4cff-8e71-735ec8d8b805"),
+                Code = "ADM-RANAP-01",
+                Name = "Biaya Administrasi Rawat Inap (7% Cap Rp6.000.000)",
+                ServiceType = "RANAP",
+                Amount = 0,
+                Percentage = 7.00m,
+                CapAmount = 6000000.00m,
+                CalculationType = AdministrationFeeCalculationTypes.PercentageWithCap,
+                OncePerPatientLocalDay = false,
+                ReplacementPriority = 100,
+                Coverable = false,
+                Discountable = false,
+                EffectiveFrom = activeRanapEffectiveFrom,
+                EffectiveTo = null,
+                IsActive = true,
+                CreateDateTime = activeRanapSeedTime,
+                CreateBy = Guid.Empty,
+                UpdateBy = Guid.Empty,
+                DeleteBy = Guid.Empty,
+                CancelBy = Guid.Empty,
+                IsDelete = false,
+                IsCancel = false
+            });
     }
 
     private static MstAdministrationFeePolicy Draft(Guid id, string code, string name, string serviceType, int priority, DateTime createdAt, DateTimeOffset effectiveFrom) => new()
@@ -51,6 +83,9 @@ public sealed class MstAdministrationFeePolicyConfiguration : IEntityTypeConfigu
         Name = name,
         ServiceType = serviceType,
         Amount = 0,
+        Percentage = null,
+        CapAmount = null,
+        CalculationType = AdministrationFeeCalculationTypes.Flat,
         OncePerPatientLocalDay = serviceType != "RANAP",
         ReplacementPriority = priority,
         Coverable = false,

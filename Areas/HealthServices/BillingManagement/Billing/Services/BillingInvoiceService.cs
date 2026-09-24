@@ -1567,8 +1567,16 @@ public sealed class BillingInvoiceService
                 };
                 _dbContext.BilInvoices.Add(invoice);
             }
+            // BKC-DEC-120, BIL-VAL-127: Penolakan mutlak tagihan susulan saat invoice CLOSED
+            if (invoice.Status == BillingInvoiceStatuses.Closed)
+            {
+                throw new BillingInvoiceValidationException(
+                    "Tagihan susulan ditolak karena invoice telah ditutup. Pembukaan kembali memerlukan persetujuan Supervisor Kasir.");
+            }
             if (invoice.Status != BillingInvoiceStatuses.Open)
+            {
                 throw new BillingInvoiceValidationException("Invoice final tidak dapat diedit; ajukan adjustment.");
+            }
 
             var existingItem = await _dbContext.BilInvoiceItems.FirstOrDefaultAsync(
                 x => x.SourceDomain == source.SourceDomain && x.SourceDetailId == source.SourceDetailId
@@ -1593,6 +1601,16 @@ public sealed class BillingInvoiceService
                     var oldCharge = existingItem.Quantity * existingItem.UnitPrice;
                     var newCharge = request.Quantity * request.UnitPrice;
                     var isPharmacyChargeIncrease = existingItem.SourceDomain == "PHARMACY" && newCharge > oldCharge;
+
+                    // BKC-DEC-118, BKC-DES-042, BIL-VAL-125: Koreksi penempatan kamar idempoten (ROOM_CORRECTION)
+                    // Jika event adalah koreksi kamar, batalkan baris tagihan lama secara idempoten
+                    if (_sourceAdapter.IsRoomCorrection(source.SourceDomain, source.SourceStatus))
+                    {
+                        existingItem.Status = BillingInvoiceItemStatuses.Voided;
+                        existingItem.VoidReason = string.IsNullOrWhiteSpace(request.DescriptionSnapshot)
+                            ? "Koreksi penempatan kamar (ROOM_CORRECTION)"
+                            : request.DescriptionSnapshot.Trim();
+                    }
 
                     ApplySource(existingItem, request, source, payloadHash, idempotencyKey, actorUserId);
                     invoice.RowVersion = Guid.NewGuid();
@@ -1621,22 +1639,72 @@ public sealed class BillingInvoiceService
                                 presId);
                         }
                     }
+
+                    // BE-BKC-075 / BKC-DEC-116 / BKC-DES-046 / BIL-VAL-123: Auto-Reblock jika invoice rawat inap sudah berstatus CLEARED
+                    if (newCharge > oldCharge && string.Equals(invoice.ServiceType, "INPATIENT", StringComparison.OrdinalIgnoreCase))
+                    {
+                        await _consumerHandoffService.TriggerInpatientAutoReblockIfApplicableAsync(
+                            invoice.Id,
+                            InpatientClearanceReasonCodes.LateChargePosted,
+                            actorUserId,
+                            DateTimeOffset.UtcNow,
+                            request.CorrelationId,
+                            request.CausationId,
+                            cancellationToken);
+                    }
                 }
                 item = existingItem;
             }
             else
             {
-                item = new BilInvoiceItem
+                // BKC-DEC-118, BIL-VAL-125: Jika item kamar sudah dibatalkan sebelumnya, pastikan replay idempoten
+                var priorVoidedItem = _sourceAdapter.IsRoomStayDomain(source.SourceDomain)
+                    ? await _dbContext.BilInvoiceItems.FirstOrDefaultAsync(
+                        x => x.SourceDomain == source.SourceDomain && x.SourceDetailId == source.SourceDetailId
+                            && x.Status == BillingInvoiceItemStatuses.Voided && !x.IsDelete,
+                        cancellationToken)
+                    : null;
+
+                if (priorVoidedItem is not null && (_sourceAdapter.IsRoomCorrection(source.SourceDomain, source.SourceStatus)
+                    || request.SourceVersion <= priorVoidedItem.SourceVersion))
                 {
-                    InvoiceId = invoice.Id,
-                    Invoice = invoice,
-                    Status = BillingInvoiceItemStatuses.Active,
-                    CreateDateTime = DateTime.UtcNow,
-                    CreateBy = actorUserId
-                };
-                ApplySource(item, request, source, payloadHash, idempotencyKey, actorUserId, false);
-                _dbContext.BilInvoiceItems.Add(item);
-                invoice.RowVersion = Guid.NewGuid();
+                    isReplay = true;
+                    item = priorVoidedItem;
+                }
+                else
+                {
+                    item = new BilInvoiceItem
+                    {
+                        InvoiceId = invoice.Id,
+                        Invoice = invoice,
+                        Status = _sourceAdapter.IsRoomCorrection(source.SourceDomain, source.SourceStatus)
+                            ? BillingInvoiceItemStatuses.Voided
+                            : BillingInvoiceItemStatuses.Active,
+                        VoidReason = _sourceAdapter.IsRoomCorrection(source.SourceDomain, source.SourceStatus)
+                            ? (string.IsNullOrWhiteSpace(request.DescriptionSnapshot)
+                                ? "Koreksi penempatan kamar (ROOM_CORRECTION)"
+                                : request.DescriptionSnapshot.Trim())
+                            : null,
+                        CreateDateTime = DateTime.UtcNow,
+                        CreateBy = actorUserId
+                    };
+                    ApplySource(item, request, source, payloadHash, idempotencyKey, actorUserId, false);
+                    _dbContext.BilInvoiceItems.Add(item);
+                    invoice.RowVersion = Guid.NewGuid();
+
+                    // BE-BKC-075 / BKC-DEC-116 / BKC-DES-046 / BIL-VAL-123: Auto-Reblock jika invoice rawat inap sudah berstatus CLEARED
+                    if (string.Equals(invoice.ServiceType, "INPATIENT", StringComparison.OrdinalIgnoreCase))
+                    {
+                        await _consumerHandoffService.TriggerInpatientAutoReblockIfApplicableAsync(
+                            invoice.Id,
+                            InpatientClearanceReasonCodes.LateChargePosted,
+                            actorUserId,
+                            DateTimeOffset.UtcNow,
+                            request.CorrelationId,
+                            request.CausationId,
+                            cancellationToken);
+                    }
+                }
             }
 
             _dbContext.BilChargeReceipts.Add(new BilChargeReceipt

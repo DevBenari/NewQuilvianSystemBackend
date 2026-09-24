@@ -1496,3 +1496,103 @@ Jumlah pasangan prasyarat→task: **satu**, sama persis dengan isi kolom `Depend
 
 Tombol menerbitkan ulang surat dan tombol menghapus surat **MUST NOT** dibuat. Penerbitan hanya
 terjadi di dalam transaksi peristiwa finansial, dan baris surat bersifat tetap (`BKC-DEC-109`).
+
+---
+
+# Gelombang `MVP-29` — Antarmuka Kasir & Handoff Rawat Inap
+
+| Field | Nilai |
+| --- | --- |
+| Blueprint | `BIL-CASH-001` revisi `1.5` · status `draft` |
+| Masukan | `BKC-DEC-112`–`122` (approved 24 September 2026), `BKC-AC-080`–`090`, `03-frontend-architecture.md` Amendment 24 September 2026 |
+| Contract version berlaku | `BIL-API-1.4`, `BIL-PERMISSION-1.2` |
+| Frontend baseline SHA | `fdebb9059` |
+
+## Grafik Urutan Dependency
+
+```mermaid
+flowchart TD
+    subgraph BE ["Backend (Cermin Baca-Saja)"]
+        BE-BKC-076["[BE] BE-BKC-076<br/>API Controller Integrasi Ranap"]
+    end
+
+    FE-BKC-041["FE-BKC-041<br/>Consumer Handoffs Tab Rawat Inap"]
+    FE-BKC-042["FE-BKC-042<br/>Panel Ringkasan Ranap Menu Pembayaran"]
+
+    BE-BKC-076 --> FE-BKC-041
+    BE-BKC-076 --> FE-BKC-042
+```
+
+### Tabel Gelombang Eksekusi
+
+| Gelombang Eksekusi | Task | Dapat Berjalan Paralel? |
+| :---: | --- | --- |
+| 1 | `FE-BKC-041`, `FE-BKC-042` | **Ya** — keduanya dapat dikerjakan secara paralel setelah endpoint backend `BE-BKC-076` tersedia |
+
+Jumlah pasangan prasyarat→task: **2**, sama persis dengan isi kolom `Dependency` pada tabel task dan rincian task di bawah ini. Bebas siklus.
+
+---
+
+## Tabel Task
+
+| Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `FE-BKC-041` | Tab "Rawat Inap" pada Consumer Handoffs untuk memantau status clearance, rincian sisa tagihan, & aksi pengakuan handoff | `BKC-DEC-115`, `BKC-DEC-116`, `BKC-DES-045`, `FR-BKC-250`, `03-frontend-architecture.md` Bagian 2 | `BIL-API-1.4`, `BIL-PERMISSION-1.2` | Komponen tabel, tab bersaring `consumer-handoffs-view.jsx`, Redux slice | Tab baru "Rawat Inap", badge status (`CLEARED`, `BLOCKED`, `REVOKED`), tombol Akui & Evaluasi Ulang, hook query | `[BE] BE-BKC-076` | Tab tampilkan surat kelayakan belum diakui; badge status sesuai; tombol Akui memanggil PATCH acknowledge; tombol Evaluasi Ulang memanggil POST reevaluate; tolak aksi peran tanpa izin | `npm run lint` berkas fitur; `npm run test:unit`; `npm run build`; uji manual filter & tombol | Pengakuan ganda dicegah dengan lock tombol saat submit. Owner Frontend | Tab Rawat Inap aktif; seluruh aksi terhubung API; loading/empty/error state sesuai standar; `npm run build` lulus |
+| `FE-BKC-042` | Panel Ringkasan Rawat Inap & Clearance pada Menu Pembayaran Kasir untuk tagihan bertipe `RANAP` | `BKC-DEC-112`, `BKC-DEC-113`, `BKC-DEC-114`, `BKC-DEC-117`, `BKC-DEC-119`, `BKC-DEC-120`, `BKC-DES-043`, `BKC-DES-047`, `BKC-DES-049`, `FR-BKC-250`, `03-frontend-architecture.md` Bagian 3 | `BIL-API-1.4`, `BIL-STATE-1.3` | Komponen banner notifikasi `InformationAlert`, tabel item tagihan, format mata uang | Banner status clearance; rincian sewa kamar jam malam & transfer menit; admin fee 7% cap 6jt; kredit admin rajal; badge `[IGD]` | `[BE] BE-BKC-076` | Banner clearance tampil mencolok di atas ringkasan; peringatan auto-reblock (`REVOKED`) muncul jika ada tagihan susulan; rincian kamar tampilkan jam:menit riil; kredit admin rajal memotong tagihan; item IGD bertanda `[IGD]` | `npm run lint` berkas fitur; `npm run test:unit`; `npm run build`; uji visual desktop/tablet | Ekses deposit jangan tertukar dengan uang muka bruto. Owner Frontend | Seluruh komponen panel tampil akurat; sinkron saat invoice berubah; `npm run build` lulus |
+
+---
+
+## Rincian Task
+
+### `FE-BKC-041` — Layar Consumer Handoffs Tab "Rawat Inap"
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Kasir dan petugas berwenang dapat memantau surat fakta kelayakan pemulangan rawat inap (`BilInpatientClearanceHandoff`), melihat sisa tagihan, dan mengeksekusi pengakuan surat handoff atau evaluasi ulang |
+| Jejak | `BKC-DEC-115`, `BKC-DEC-116`, `BKC-DES-045`, `FR-BKC-250`, `03-frontend-architecture.md` Bagian 2 |
+| Contract | `BIL-API-1.4` — `GET /consumer-handoffs/pending?targetModule=INPATIENT`, `POST /inpatient-clearance/reevaluate`, `PATCH /consumer-handoffs/{id}/acknowledge` |
+| Layar | `consumer-handoffs-view.jsx` |
+| Reuse | Pola tab dan tabel bersaring yang sudah ada di `consumer-handoffs-view.jsx` (tab Keuangan & Farmasi) |
+| Scope | Menambahkan tab "Rawat Inap" pada navigasi tab layar handoffs; kolom: Jenis Surat, Tujuan (`Rawat Inap`), Data Pasien/Encounter, Badge Status Kelayakan (`CLEARED`, `BLOCKED`, `REVOKED`), Sisa Tagihan Pasien, Aksi (`[Akui]` / `[Evaluasi Ulang]`); integrasi Redux slice dan hook data |
+| Dependency | `[BE] BE-BKC-076` |
+| Acceptance criteria | Tab Rawat Inap menampilkan daftar surat kelayakan yang belum diakui; badge status berwarna sesuai state (`CLEARED`: hijau, `BLOCKED`: merah, `REVOKED`: kuning/merah); tombol Akui memanggil endpoint patch pengakuan; tombol Evaluasi Ulang memicu re-evaluasi sisa tagihan; peran tidak berwenang tidak melihat tombol akui; keadaan kosong berbunyi ramah |
+| Bukti verifikasi | `npm run lint` pada berkas fitur; `npm run test:unit`; `npm run build`; verifikasi manual filter dan penekanan tombol |
+| Kewenangan UI | Label status, warna badge, dan ketersediaan tombol **dikunci**. Tata letak detail baris `DEV_DISCRETION` |
+| Risiko/pemilik | Pengakuan ganda: tombol wajib dinonaktifkan saat mutasi berlangsung untuk mencegah duplicate submission. Owner Frontend |
+| Definition of Done | Tab Rawat Inap aktif; seluruh aksi terhubung ke backend; penanganan loading, empty, dan error state sesuai standar; `npm run build` lulus; `git status --short` dilaporkan |
+| Status | ⚪ **Belum dimulai** |
+
+---
+
+### `FE-BKC-042` — Panel Ringkasan Rawat Inap & Clearance pada Menu Pembayaran Kasir
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Kasir melihat banner status kelayakan pemulangan (*Financial Clearance*), rincian sewa kamar bertingkat/pro-rata menit riil, biaya administrasi 7% cap Rp6jt, kredit admin rajal, dan pembeda item alihan IGD pada layar pembayaran |
+| Jejak | `BKC-DEC-112`, `BKC-DEC-113`, `BKC-DEC-114`, `BKC-DEC-117`, `BKC-DEC-119`, `BKC-DEC-120`, `BKC-DES-043`, `BKC-DES-047`, `BKC-DES-049`, `FR-BKC-250`, `03-frontend-architecture.md` Bagian 3 |
+| Contract | `BIL-API-1.4` — `GET /invoices/encounter/{encounterId}/inpatient-summary`, `GET /invoices/{id}` |
+| Layar | `menu-pembayaran-view.jsx`, `invoice-detail-view.jsx` |
+| Reuse | Komponen banner notifikasi `InformationAlert`, tabel item tagihan, format mata uang `id-ID` |
+| Scope | Menambahkan panel khusus rawat inap saat invoice bertipe `RANAP`: banner status clearance (Hijau: `CLEARED`, Merah: `BLOCKED`, Merah Berkedip: `REVOKED` - Tagihan Susulan Masuk); breakdown sewa kamar jam masuk malam & pro-rata menit; rincian admin fee 7% cap 6jt; baris kredit potongan admin rajal (jika ada); penanda `[IGD]` pada rincian item alihan gawat darurat |
+| Dependency | `[BE] BE-BKC-076` |
+| Acceptance criteria | Banner status clearance tampil mencolok di atas ringkasan pembayaran; peringatan auto-reblock (`REVOKED`) muncul jika ada tagihan susulan; rincian kamar menampilkan durasi jam:menit dan persentase tarif jam malam; biaya admin rajal terbayar tampil sebagai pengurang tagihan; item IGD memiliki penanda visual `[IGD]` |
+| Bukti verifikasi | `npm run lint` pada berkas fitur; `npm run test:unit`; `npm run build`; verifikasi visual responsif pada resolusi desktop dan tablet |
+| Kewenangan UI | Kosakata status dan warna indikator **dikunci**. Tipografi, padding kartu, dan ikon penanda `DEV_DISCRETION` |
+| Risiko/pemilik | Pasien asuransi: ekses deposit tidak boleh disalahartikan sebagai uang muka bruto tindakan. Teks label wajib jelas. Owner Frontend |
+| Definition of Done | Seluruh komponen panel rawat inap tampil akurat; state synchronizer bekerja saat invoice berubah; `npm run build` lulus; `git status --short` dilaporkan |
+| Status | ⚪ **Belum dimulai** |
+
+---
+
+## Kewenangan UI
+
+| Hal | Kewenangan |
+| --- | --- |
+| Keberadaan tab Rawat Inap, rincian panel kamar, banner status clearance, hak akses tombol | Terkunci `03-frontend-architecture.md` |
+| Kosakata badge status (`CLEARED`, `BLOCKED`, `REVOKED`) dan warna penanda | Terkunci dokumen ini |
+| Jarak, padding kartu, transisi animasi, ikon visual | **`DEV_DISCRETION`** |
+
+## Yang Sengaja Tidak Dibuat di Frontend
+
+Tombol manual untuk mengubah status kelayakan menjadi `CLEARED` **MUST NOT** dibuat di layar kasir maupun bangsal. Status `CLEARED` murni dihitung dan diterbitkan oleh Sistem Billing ketika sisa tagihan pasien telah diselesaikan secara sah.
+

@@ -18,12 +18,14 @@ public static class BillingHandoffTypes
 {
     public const string Collection = "COLLECTION";
     public const string Prescription = "PRESCRIPTION";
+    public const string Inpatient = "INPATIENT";
 }
 
 public static class BillingHandoffTargetModules
 {
     public const string Finance = "FINANCE";
     public const string Pharmacy = "PHARMACY";
+    public const string Inpatient = "INPATIENT";
 }
 
 /// <summary>

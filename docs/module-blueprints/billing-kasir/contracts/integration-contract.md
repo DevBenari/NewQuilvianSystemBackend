@@ -380,3 +380,27 @@ dengan tiga jalur handoff yang sudah ada, yang memang tidak punya mekanisme pemb
 
 Trace **`BKC-DEC-106`–`109`**, `BKC-DES-036`–`041`, `PHA-DEC-063`–`070`, `FIN-DEC-005`–`006`.
 Tests `BIL-AT-135`–`BIL-AT-142`.
+
+---
+
+## Amendment 24 September 2026 — Integrasi Rawat Inap ↔ Billing Management
+
+`last_changed_in: BIL-INTEGRATION-1.2` · status **draft** · owner Produsen/Konsumen: Rawat Inap (Muhammad Hamzah) & Billing (Yasmina) · input `BKC-DEC-112`–`119`, `BKC-DES-042`–`050`, `RWI-DEC-156`–`161`.
+
+| ID | Producer → Consumer | Trigger / Payload Minimum | Idempotency | Failure / Retry | Security / Privacy |
+| --- | --- | --- | --- | --- | --- |
+| `BIL-INT-015` | Inpatient Bed Occupancy → Billing (`ContractBillingChargeSourceAdapter`) | Event `BED_OCCUPIED`, `OCCUPANCY_CORRECTED`, `BED_RELEASED`; `EncounterId`, `PlacementId`, `RoomId`, `BedId`, `PatientClassId`, `StartAtUtc`, `EndAtUtc`, `Version` | `{SourceDomain}:{SourceType}:{PlacementId}:{Version}` (contoh: `INPATIENT:ROOM_STAY:PLC-08891:1`) | Unique index mencegah duplikasi room charge; retry aman (*no-op return existing*) | Hanya menyangkut waktu hunian dan kelas kamar fisik tanpa narasi klinis/diagnosa medis |
+| `BIL-INT-016` | Billing (`BilConsumerHandoffService`) → Rawat Inap (`InpatientDischargeService`) | Sinyal perubahan kelayakan `ClearanceApproved` (`CLEARED`) atau `ClearanceRevoked` (`REVOKED`); `EncounterId`, `ClearanceStatus`, `Reason`, `ClearedAtUtc`, `CashierUserId` | `EncounterId` + `HandoffVersion` | Retry dengan exponential backoff; UI bangsal terkunci (*Fail-Safe Locked*) jika timeout kueri | Rawat Inap hanya menerima status kelayakan dan daftar blocker operasional; rincian nominal per item disembunyikan dari perawat |
+| `BIL-INT-017` | Billing (`BillingSettlementService`) → Multi-Unit Cashier | Konsolidasi transaksi pelunasan alihan IGD → Rawat Inap; `EncounterId`, `IgdInvoiceId`, `RanapInvoiceId`, `SettlementAmount`, `TenderAllocations[]` | `EncounterId` + `SettlementId` | Transaksi atomik dalam satu `SaveChanges` database; rollback jika gagal separuh jalan | Satu kuitansi settlement gabungan merinci pendapatan per unit secara terpisah |
+
+### 1. Kontrak Penanganan Kegagalan (Failure & Resilience Contract)
+
+| Skenario Kegagalan | Perilaku Modul Rawat Inap | Perilaku Modul Billing |
+|---|---|---|
+| **Koneksi database/worker terputus saat pengiriman event hunian** | Event tersimpan di `InpIntegrationOutbox` dengan status `Failed`. Operasional fisik bangsal (penempatan bed/mutasi) tetap berjalan normal tanpa terhenti. | Saat dispatcher pulih, event diproses berurutan. Duplikasi event ditolak oleh unique index `IdempotencyKey`. |
+| **Kueri sinkron ringkasan tagihan timeout (> 5 detik)** | UI bangsal menampilkan status fallback: *"Status Kasir Sementara Tidak Dapat Diperiksa"*; tombol pemulangan fisik tetap terkunci secara aman (*Fail-Safe Locked*). | Staf kasir dapat dihubungi melalui interkom/telepon internal rumah sakit. |
+| **Pencabutan kelayakan pulang akibat tagihan susulan (`REVOKED`)** | Seketika mengeksekusi **Auto-Reblock**: status clearance di bangsal berubah menjadi `Revoked`, tombol pemulangan terkunci merah, dan nama blocker ditampilkan. | Billing menerbitkan surat pencabutan kelayakan (`REVOKED`) beralasan wajib saat charge baru masuk pada invoice yang sudah sempat disetujui. |
+| **Pemulangan darurat klinis saat Billing sedang maintenance** | Supervisor bangsal dapat menggunakan **Supervisor Override** beralasan wajib untuk memulangkan pasien secara fisik demi keselamatan medis. | Billing menerima event `BED_RELEASED` dengan `isSupervisorOverridden = true` dan memproses penagihan piutang susulan melalui bagian Keuangan/AR. |
+
+Trace `BKC-DEC-112`–`119`, `BKC-DES-042`–`050`, `RWI-DEC-156`–`161`. Tests `BIL-AT-143`–`BIL-AT-152`.
+

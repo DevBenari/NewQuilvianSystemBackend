@@ -2462,3 +2462,186 @@ backend target beserta dokumen engineering canonical — bukan dari roadmap ini.
 | Membuat migration | Diminta terpisah | Berlaku untuk `BE-BKC-066` dan `BE-BKC-067` |
 | Menjalankan migration | Diminta terpisah, sesudah backup | Sama seperti gelombang sebelumnya |
 | Eksekusi database langsung | **Tidak dibutuhkan** gelombang ini | `BE-BKC-070` membaca lewat permukaan resmi, tidak menulis data langsung |
+
+---
+
+# Gelombang `MVP-28` — Integrasi Rawat Inap ↔ Billing Management Core
+
+| Field | Nilai |
+| --- | --- |
+| Blueprint | `BIL-CASH-001` revisi `1.5` · status `draft` |
+| Masukan | `BKC-DEC-112`–`122` (approved 24 September 2026), `BKC-AC-080`–`090`, `BKC-DES-042`–`050` |
+| Contract version berlaku | `BIL-API-1.4`, `BIL-STATE-1.3`, `BIL-VALIDATION-1.3`, `BIL-INTEGRATION-1.2`, `BIL-PERMISSION-1.2`, `BIL-TEST-1.4` |
+| Backend baseline SHA | `dcb9c88e` |
+
+## Grafik Urutan Dependency
+
+```mermaid
+flowchart TD
+    BE-BKC-071["🟡 BE-BKC-071<br/>Skema Database & Policy Master"]
+    BE-BKC-072["🟡 BE-BKC-072<br/>Adapter Room Stay & IGD Non-Destruktif"]
+    BE-BKC-073["BE-BKC-073<br/>Kalkulasi Kamar Bertingkat & Pro-rata"]
+    BE-BKC-074["BE-BKC-074<br/>Admin Fee 7% Cap Rp6jt & Offset Rajal"]
+    BE-BKC-075["BE-BKC-075<br/>Inpatient Clearance & Auto-Reblock Engine"]
+    BE-BKC-076["BE-BKC-076<br/>API Controller Integrasi Ranap"]
+
+    BE-BKC-071 --> BE-BKC-072
+    BE-BKC-071 --> BE-BKC-073
+    BE-BKC-071 --> BE-BKC-074
+    BE-BKC-072 --> BE-BKC-075
+    BE-BKC-073 --> BE-BKC-075
+    BE-BKC-074 --> BE-BKC-075
+    BE-BKC-075 --> BE-BKC-076
+```
+
+### Tabel Gelombang Eksekusi
+
+| Gelombang Eksekusi | Task | Dapat Berjalan Paralel? |
+| :---: | --- | --- |
+| 1 | 🟡 `BE-BKC-071` | Tunggal (Fondasi skema database dan master policy) |
+| 2 | 🟡 `BE-BKC-072`, 🟡 `BE-BKC-073`, 🟡 `BE-BKC-074` | **Ya** — ketiganya bekerja paralel pada adapter, room calculation, dan admin fee |
+| 3 | 🟡 `BE-BKC-075` | Tunggal (Mengonsumsi hasil kalkulasi kamar, admin fee, dan adapter untuk engine clearance) |
+| 4 | `BE-BKC-076` | Tunggal (Eksposur endpoint API integrasi dan controller operasional) |
+
+Jumlah panah dependency: **7**, sama persis dengan isi kolom `Dependency` pada tabel task dan rincian task di bawah ini. Bebas siklus.
+
+---
+
+## Tabel Task
+
+| Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 🟡 `BE-BKC-071` | Berdirinya tabel `BilInpatientClearanceHandoff`, 3 kolom master `MstAdministrationFeePolicy`, & migrasi EF Core | `BKC-DEC-113`, `BKC-DEC-115`, `BKC-DEC-121`, `BKC-DEC-122`, `BKC-DES-044`, `BKC-DES-045` | `BIL-STATE-1.3`, `data/data-dictionary.md` | Pola model `IdentityModel`, konvensi `IEntityTypeConfiguration<T>` | Model, config, migration script EF Core, seed `ADM-RANAP-01` | — | Migration Up/Down bersih; index unik `(EncounterId, FinancialVersion)`; kolom baru nullable/default valid | Review file model & EF config; build lulus; script SQL terverifikasi | Eksekusi DB butuh otorisasi terpisah. Owner Backend | Model/config terdaftar di `ApplicationDbContext`; migration terbuat; QBE preflight PASS |
+| 🟡 `BE-BKC-072` | Sistem mampu menerima event hunian kamar `ROOM_STAY` & konsolidasi item IGD non-destruktif | `BKC-DEC-112`, `BKC-DEC-117`, `BKC-DEC-118`, `BKC-DES-042`, `BKC-DES-048`, `BIL-INT-015`, `BIL-INT-017` | `BIL-INTEGRATION-1.2`, `BIL-VALIDATION-1.3` | `ContractBillingChargeSourceAdapter.cs`, registrasi `SourcePolicies` | Daftarkan domain `INPATIENT`/`ROOM_STAY`; penanganan `ROOM_CORRECTION` idempoten; pertahankan `SourceDomain = "EMERGENCY"` | `BE-BKC-071` | Event `ROOM_STAY` terpetakan ke invoice ranap; `ROOM_CORRECTION` batalkan baris lama idempoten; item IGD pertahankan domain | Uji unit intake charge kamar; verifikasi pembatalan koreksi kamar (`BIL-AT-150`); audit rincian item IGD | Event kamar tertolak jika status tidak sah. Owner Billing Backend | Adapter kenali `ROOM_STAY`; koreksi idempoten teruji; konsolidasi IGD terverifikasi; QBE PASS |
+| 🟡 `BE-BKC-073` | Perhitungan sewa kamar rawat inap otomatis dengan jam masuk bertingkat, late checkout, & pro-rata menit transfer | `BKC-DEC-112`, `BKC-DES-043`, `BKC-DES-050`, `BIL-VAL-118`, `BIL-VAL-119` | `BIL-VALIDATION-1.3`, `BIL-INTEGRATION-1.2` | `PatientBillingSummaryService.cs`, data `InpBedPlacement` | Jam masuk bertingkat (<18:00 100%, 18:00-<22:00 50%, 22:00-<00:00 20%, >=00:00 0%); late checkout >12:00 (50%); pro-rata transfer menit riil; lepas rujukan `InpFinancialClearance` | `BE-BKC-071` | Masuk 22:30 ditagih 20%; transfer multipel dihitung proporsional menit riil; `PatientBillingSummaryService` bersih dari rujukan `InpFinancialClearance` | Uji kalkulasi kamar jam malam (`BIL-AT-143`); uji alokasi pro-rata pindah kamar menit riil (`BIL-AT-144`); inspeksi kode | Pembulatan desimal menit hunian 2 angka desimal. Owner Billing Backend | Seluruh cabang jam masuk & pro-rata teruji; dependensi lama terlepas; QBE PASS |
+| 🟡 `BE-BKC-074` | Biaya admin rawat inap 7% cap Rp6jt aktif secara deklaratif & penggantian/pengkreditan admin rajal otomatis | `BKC-DEC-113`, `BKC-DEC-119`, `BKC-DEC-121`, `BKC-DEC-122`, `BKC-DES-044`, `BKC-DES-049`, `BIL-VAL-120`, `BIL-VAL-126` | `BIL-VALIDATION-1.3`, `BIL-INTEGRATION-1.2` | `AdministrationFeeCalculationService.cs`, tabel master `MstAdministrationFeePolicy` | Hitung admin ranap 7% cap 6jt; evaluasi discharge $\ge$ `EffectiveFrom`; beban pasien BPJS Rp 0; void admin rajal jika belum bayar, kreditkan jika sudah bayar | `BE-BKC-071` | Eligible 10jt admin 700rb; eligible 100jt admin tepat 6jt; pasien BPJS admin pasien Rp 0; admin rajal terbayar 50rb memotong invoice ranap sebagai kredit | Uji batas persentase & pagu admin ranap (`BIL-AT-145`); uji pembatalan/pengkreditan admin rajal (`BIL-AT-146`); verifikasi invoice BPJS | Double charging bila deteksi alihan gagal. Owner Billing Backend | Biaya admin 7% cap 6jt aktif; penggantian admin rajal terbukti adil tanpa double charging; QBE PASS |
+| 🟡 `BE-BKC-075` | Billing jadi Single Source of Truth kelayakan pemulangan ranap, terbitkan clearance handoff, & Auto-Reblock | `BKC-DEC-114`, `BKC-DEC-115`, `BKC-DEC-116`, `BKC-DEC-120`, `BKC-DES-045`, `BKC-DES-046`, `BKC-DES-047`, `BIL-VAL-121`–`123`, `BIL-INT-016` | `BIL-STATE-1.3`, `BIL-VALIDATION-1.3`, `BIL-INTEGRATION-1.2` | `BillingConsumerHandoffService.cs`, `BilInpatientClearanceHandoff` | Service `InpatientClearanceService.cs`: evaluasi sisa tagihan ranap, validasi deposit 100% ekses tindakan besar; Auto-Reblock (`REVOKED`) saat OPEN; tolak susulan saat CLOSED (`BIL-VAL-127`) | `BE-BKC-072`, `BE-BKC-073`, `BE-BKC-074` | Saldo tagihan 0 & deposit tindakan besar cukup terbit `CLEARED`; tagihan susulan saat OPEN otomatis `REVOKED`; tagihan susulan saat CLOSED ditolak; versi monoton naik | Uji deposit tindakan besar ekses (`BIL-AT-147`); uji Auto-Reblock susulan (`BIL-AT-148`); uji penolakan tagihan invoice closed (`BIL-AT-149`) | Race condition settlement vs intake obat: advisory lock per encounter. Owner Billing Backend | Service clearance berdiri; Auto-Reblock atomik dalam transaksi intake; penolakan closed invoice teruji; QBE PASS |
+| 🟡 `BE-BKC-076` | API Controller integrasi ranap untuk inquiry rincian billing, kalkulasi kamar, re-evaluasi, & pengakuan handoff | `BKC-DEC-115`, `BKC-DES-045`, `BIL-API-1.4`, `BIL-PERMISSION-1.2` | `BIL-API-1.4`, `BIL-PERMISSION-1.2` | `BillingConsumerHandoffController.cs`, `ApiResponse<T>`, atribut `[AccessPermission]` | Controller `InpatientClearanceController.cs`: `POST /invoices/occupancy-charges`, `GET /invoices/encounter/{encounterId}/inpatient-summary`, `POST /inpatient-clearance/reevaluate`; validasi deposit tindakan besar, pengakuan handoff, inquiry latest | `BE-BKC-075` | Endpoint kembalikan DTO sesuai `BIL-API-1.4`; kueri summary tidak ekspos rincian sensitif ke non-kasir; tolak peran tanpa izin `BillingInpatient:*` | Verifikasi kontrak OpenAPI/Swagger; uji hak akses peran Kasir vs Perawat vs Admin; uji fungsional endpoint (`BIL-AT-151`, `BIL-AT-152`) | Larangan membuat endpoint override manual kelayakan. Owner Billing Backend | Enam endpoint terdaftar & teruji; hak akses ketat; dokumentasi Swagger sinkron; QBE PASS. Laporan: [BE-BKC-076.md](../task/report/backend/BE-BKC-076.md) |
+
+---
+
+## Rincian Task
+
+### 🟡 `BE-BKC-071` — Skema Database & Master Policy Administrasi Ranap
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Berdirinya tabel baru `BilInpatientClearanceHandoff`, 3 kolom master `MstAdministrationFeePolicy`, dan konfigurasi EF Core yang siap dieksekusi tanpa downtime |
+| Jejak | `BKC-DEC-113`, `BKC-DEC-115`, `BKC-DEC-121`, `BKC-DEC-122`, `BKC-DES-044`, `BKC-DES-045` |
+| Contract | `BIL-STATE-1.3`, `data/data-dictionary.md` Amendment 24 September 2026 |
+| Kemampuan existing yang dipakai | Pola model `IdentityModel`, konvensi `IEntityTypeConfiguration<T>`, skema publik PostgreSQL |
+| Cakupan yang diharapkan | Model `BilInpatientClearanceHandoff.cs`, konfigurasi `BilInpatientClearanceHandoffConfiguration.cs`, penambahan properti `Percentage`, `CapAmount`, `CalculationType` pada `MstAdministrationFeePolicy.cs`, migration EF Core `AddInpatientBillingIntegrationAndClearanceHandoff`, dan seed record awal `ADM-RANAP-01` |
+| Dependency | Tidak ada (fondasi pertama gelombang ini) |
+| Acceptance criteria | Migration dapat diterapkan bersih (`Up`) dan dibatalkan (`Down`); tabel baru memiliki indeks unik gabungan `(EncounterId, FinancialVersion)`; kolom `Percentage` dan `CapAmount` bernilai nullable; kolom `CalculationType` bernilai bawaan `'FLAT'` untuk record lama; record master `ADM-RANAP-01` terdaftar dengan 7% dan cap Rp6.000.000 |
+| Bukti verifikasi | Review file model dan konfigurasi EF; kompilasi proyek lulus; migration script terverifikasi; tinjauan skema basis data |
+| Risiko | Pelanggaran aturan database safety: migration **MUST NOT** dieksekusi sebelum ada otorisasi tertulis terpisah |
+| Pemilik | Backend Engineering |
+| Definition of Done | Model dan konfigurasi terdaftar di `ApplicationDbContext`; migration terbuat; script idempotency diverifikasi; QBE preflight conformance PASS |
+| Status | 🟡 **SEBAGIAN 24 September 2026.** Model `BilInpatientClearanceHandoff`, konfigurasi EF Core, penambahan kolom `Percentage`, `CapAmount`, `CalculationType` pada `MstAdministrationFeePolicy`, seed `ADM-RANAP-01` (7% Cap Rp6.000.000), dan migration EF Core `AddInpatientBillingIntegrationAndClearanceHandoff` selesai. QBE Conformance `PASS` (Strict mode, 4 berkas dievaluasi, 0 violation). Verifikasi kompilasi build mandiri pengguna dan otorisasi eksekusi database terpisah. Bukti: [laporan](../task/report/backend/BE-BKC-071.md) |
+
+---
+
+### 🟡 `BE-BKC-072` — Adapter Room Stay & Konsolidasi Alihan IGD Non-Destruktif
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Sistem Billing mampu menerima event hunian tempat tidur (`ROOM_STAY`) secara aman dan mengonsolidasi item tagihan alihan IGD tanpa menghilangkan penanda `EMERGENCY` |
+| Jejak | `BKC-DEC-112`, `BKC-DEC-117`, `BKC-DEC-118`, `BKC-DES-042`, `BKC-DES-048`, `BIL-INT-015`, `BIL-INT-017` |
+| Contract | `BIL-INTEGRATION-1.2`, `BIL-VALIDATION-1.3` (`BIL-VAL-124`, `BIL-VAL-125`) |
+| Kemampuan existing yang dipakai | `ContractBillingChargeSourceAdapter.cs`, mekanisme pendaftaran domain kebijakan `SourcePolicies` |
+| Cakupan yang diharapkan | Mendaftarkan source domain `INPATIENT`/`ROOM_STAY` ke `SourcePolicies` dengan status billable: `OCCUPIED`, `TRANSFERRED`, `CORRECTED`, `RELEASED`; penanganan event `ROOM_CORRECTION` untuk pembatalan idempoten charge lama; pemeliharaan `SourceDomain = "EMERGENCY"` pada konsolidasi item IGD ke invoice ranap |
+| Dependency | `BE-BKC-071` |
+| Acceptance criteria | Event `ROOM_STAY` yang masuk dipetakan ke invoice rawat inap aktif tanpa galat domain tidak dikenal; event `ROOM_CORRECTION` membatalkan baris tagihan lama secara otomatis; item alihan IGD tetap mempertahankan `SourceDomain = "EMERGENCY"` dalam invoice ranap gabungan |
+| Bukti verifikasi | Uji unit pemrosesan intake charge kamar; verifikasi pembatalan idempoten koreksi kamar (`BIL-AT-150`); audit rincian item invoice alihan IGD |
+| Risiko | Event kamar tertolak jika status selain empat yang sah dikirim modul rawat inap; pemetaan status wajib ketat |
+| Pemilik | Billing Backend |
+| Definition of Done | Adapter mengenali domain `ROOM_STAY`; penanganan koreksi kamar terbukti idempoten; konsolidasi IGD non-destruktif terverifikasi; QBE conformance PASS |
+| Status | 🟡 **SEBAGIAN 24 September 2026.** Registrasi domain `ROOM_STAY`, `INPATIENT`, dan `EMERGENCY` ke `SourcePolicies` selesai. Penanganan pembatalan idempoten untuk event `ROOM_CORRECTION` pada `BillingInvoiceService.UpsertChargeAsync` selesai. Pemeliharaan `SourceDomain = "EMERGENCY"` pada konsolidasi alihan IGD terverifikasi. QBE Conformance `PASS` (Strict mode, 2 berkas dievaluasi, 0 violation). Verifikasi kompilasi build mandiri pengguna. Bukti: [laporan](../task/report/backend/BE-BKC-072.md) |
+
+---
+
+### 🟡 `BE-BKC-073` — Mesin Kalkulasi Sewa Kamar Bertingkat & Pro-Rata Transfer Menit Riil
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Perhitungan sewa kamar rawat inap berjalan otomatis dengan aturan jam masuk malam bertingkat, penalti late checkout, dan alokasi pro-rata menit riil untuk transfer multipel |
+| Jejak | `BKC-DEC-112`, `BKC-DES-043`, `BKC-DES-050`, `BIL-VAL-118`, `BIL-VAL-119` |
+| Contract | `BIL-VALIDATION-1.3`, `BIL-INTEGRATION-1.2` (`BIL-INT-015`) |
+| Kemampuan existing yang dipakai | `PatientBillingSummaryService.cs`, pembacaan data `InpBedPlacement` |
+| Cakupan yang diharapkan | Implementasi mesin hitung sewa kamar: jam masuk `<18:00` (100%), `18:00-<22:00` (50%), `22:00-<00:00` (20%), `>=00:00` (0% hari baru); checkout `>12:00` (50% late fee); pembagian tarif kamar pro-rata menit riil untuk transfer kamar >1 kali di hari yang sama; melepaskan ketergantungan lama ke `InpFinancialClearance` |
+| Dependency | `BE-BKC-071` |
+| Acceptance criteria | Pasien masuk 22:30 ditagih 20% hari pertama; pasien pindah 2 kamar di hari yang sama ditagih proporsional terhadap durasi menit riil; kode `PatientBillingSummaryService` bersih dari rujukan `InpFinancialClearance` |
+| Bukti verifikasi | Uji kalkulasi kamar jam malam (`BIL-AT-143`); uji alokasi pro-rata pindah kamar menit riil (`BIL-AT-144`); inspeksi kode pelepasan dependensi |
+| Risiko | Pembulatan desimal menit hunian: wajib konsisten menggunakan pembagian menit `(MenitKamar / TotalMenitHariItu) * TarifKamar` dua desimal |
+| Pemilik | Billing Backend |
+| Definition of Done | Seluruh cabang jam masuk dan pro-rata teruji akurat; dependensi lama terlepas; QBE preflight PASS |
+| Status | 🟡 **SEBAGIAN** (Implementasi service & DTO kalkulasi kamar bertingkat, late checkout, pro-rata transfer menit selesai; pelepasan dependensi InpFinancialClearance selesai; lolos QBE Strict; menunggu build mandiri pengguna & eksekusi integrasi live DB) |
+
+---
+
+### 🟡 `BE-BKC-074` — Layanan Biaya Administrasi Ranap (7% Cap Rp6jt) & Penggantian Admin Rajal
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Perhitungan biaya administrasi rawat inap sebesar 7% dengan pagu Rp6.000.000 berjalan deklaratif dan otomatis menggugurkan/mengkreditkan biaya admin rajal saat terjadi alihan |
+| Jejak | `BKC-DEC-113`, `BKC-DEC-119`, `BKC-DEC-121`, `BKC-DEC-122`, `BKC-DES-044`, `BKC-DES-049`, `BIL-VAL-120`, `BIL-VAL-126` |
+| Contract | `BIL-VALIDATION-1.3`, `BIL-INTEGRATION-1.2` |
+| Kemampuan existing yang dipakai | `AdministrationFeeCalculationService.cs`, tabel master `MstAdministrationFeePolicy` |
+| Cakupan yang diharapkan | Penambahan metode hitung biaya admin ranap persentase ber-cap; evaluasi tanggal discharge $\ge$ `EffectiveFrom`; pengecualian beban pasien untuk penjamin sistem paket (BPJS); deteksi alihan Rajal ke Ranap: void item admin rajal jika belum bayar, atau alihkan sebagai kredit pembayaran (`BilRefundableCredit` / progress payment) jika sudah terlanjur bayar di poli |
+| Dependency | `BE-BKC-071` |
+| Acceptance criteria | Tagihan eligible Rp10jt menghasilkan admin fee Rp700rb; tagihan eligible Rp100jt menghasilkan admin fee tepat Rp6.000.000; pasien BPJS mencatat porsi pasien admin fee Rp 0; biaya admin rajal terbayar Rp50.000 memotong tagihan ranap sebagai kredit |
+| Bukti verifikasi | Uji batas persentase dan pagu admin ranap (`BIL-AT-145`); uji pembatalan/pengkreditan admin rajal (`BIL-AT-146`); verifikasi invoice BPJS |
+| Risiko | Double charging jika deteksi alihan gagal; pengecekan encounter rujukan wajib dilakukan sebelum final billing |
+| Pemilik | Billing Backend |
+| Definition of Done | Biaya admin 7% cap Rp6jt aktif; penggantian admin rajal terbukti adil tanpa double charging; QBE conformance PASS |
+| Status | 🟡 **SEBAGIAN 24 September 2026.** Service & DTO kalkulasi biaya admin ranap 7% cap Rp6jt (`AdministrationFeeCalculationService.cs`), proteksi penjamin BPJS (beban pasien Rp 0), dan rekonsiliasi alihan rajal ke ranap (void belum bayar & kredit pemotong ranap sudah bayar) selesai diimplementasikan dan diintegrasikan ke `BillingCalculationService.cs`. QBE Conformance `PASS` (Strict mode, 19 berkas dievaluasi, 0 violation). Verifikasi kompilasi build mandiri pengguna. Bukti: [laporan](../task/report/backend/BE-BKC-074.md) |
+
+---
+
+### 🟡 `BE-BKC-075` — Service Evaluasi Kelayakan Finansial Rawat Inap & Auto-Reblock
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Modul Billing menjadi *Single Source of Truth* kelayakan pemulangan ranap, menerbitkan surat handoff resmi, dan menegakkan Auto-Reblock seketika saat tagihan susulan tiba |
+| Jejak | `BKC-DEC-114`, `BKC-DEC-115`, `BKC-DEC-116`, `BKC-DEC-120`, `BKC-DES-045`, `BKC-DES-046`, `BKC-DES-047`, `BIL-VAL-121`, `BIL-VAL-122`, `BIL-VAL-123`, `BIL-INT-016` |
+| Contract | `BIL-STATE-1.3`, `BIL-VALIDATION-1.3`, `BIL-INTEGRATION-1.2` |
+| Kemampuan existing yang dipakai | `BillingConsumerHandoffService.cs`, `BilInpatientClearanceHandoff`, pola event clearance Farmasi |
+| Cakupan yang diharapkan | Pembuatan `InpatientClearanceService.cs` & `IInpatientClearanceService.cs`: evaluasi sisa tagihan pasien ranap, validasi deposit 100% ekses tindakan besar (`BIL-VAL-121`), penerbitan status `CLEARED` / `BLOCKED`, mekanisme Auto-Reblock (`REVOKED`) saat invoice masih `OPEN` dan ada tagihan susulan, penolakan mutlak tagihan susulan saat invoice `CLOSED` (`BIL-VAL-127`), hook integrasi saat settlement di `BillingConsumerHandoffService` |
+| Dependency | `BE-BKC-072`, `BE-BKC-073`, `BE-BKC-074` |
+| Acceptance criteria | Pasien bersaldo tagihan 0 dan deposit tindakan besar terpenuhi memperoleh status `CLEARED`; tagihan susulan yang masuk saat `OPEN` otomatis membatalkan clearance menjadi `REVOKED` dan memancarkan sinyal pemblokiran ulang; tagihan susulan saat `CLOSED` ditolak otomatis sistem; nomor `FinancialVersion` naik monoton |
+| Bukti verifikasi | Uji verifikasi deposit tindakan besar atas ekses (`BIL-AT-147`); uji Auto-Reblock tagihan susulan (`BIL-AT-148`); uji penolakan tagihan pasca-closed (`BIL-AT-149`) |
+| Risiko | Race condition saat kasir klik lunas bersamaan dengan perawat input obat: dilindungi oleh kunci transaksi penasihat (*advisory lock*) per encounter |
+| Pemilik | Billing Backend |
+| Definition of Done | Service clearance berdiri; Auto-Reblock terbukti atomik dalam transaksi intake; penolakan closed invoice teruji; QBE preflight PASS |
+| Status | 🟡 **SEBAGIAN 24 September 2026.** Service & DTO evaluasi kelayakan finansial ranap (`InpatientClearanceService.cs`, `IInpatientClearanceService.cs`, `InpatientClearanceDtos.cs`), validasi deposit tindakan besar 100% ekses (`BIL-VAL-121`), penolakan tagihan saat invoice CLOSED (`BIL-VAL-127`), integrasi settlement hook (`BilConsumerHandoffService.cs`, `BillingSettlementService.cs`), dan penegakan Auto-Reblock atomik saat tagihan susulan (`BIL-VAL-123`, `BillingInvoiceService.cs`) selesai diimplementasikan. QBE Conformance `PASS` (Strict mode, 25 berkas dievaluasi, 0 violation). Verifikasi kompilasi build mandiri pengguna. Bukti: [laporan](../task/report/backend/BE-BKC-075.md) |
+
+---
+
+### 🟡 `BE-BKC-076` — API Controller Integrasi Rawat Inap
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Tersedianya endpoint HTTP resmi untuk inquiry rincian billing rawat inap, perhitungan sewa kamar, evaluasi ulang clearance, validasi deposit tindakan besar, dan pengakuan surat handoff oleh petugas |
+| Jejak | `BKC-DEC-115`, `BKC-DES-045`, `BIL-API-1.4`, `BIL-PERMISSION-1.2` |
+| Contract | `BIL-API-1.4`, `BIL-PERMISSION-1.2` (`[Tags("BillingInpatientIntegration")]`) |
+| Kemampuan existing yang dipakai | `BillingConsumerHandoffController.cs`, `ApiResponse<T>`, atribut `[AccessPermission]` |
+| Cakupan yang diharapkan | Controller `InpatientClearanceController.cs` dengan endpoint: `POST /invoices/occupancy-charges`, `GET /invoices/encounter/{encounterId}/inpatient-summary`, `POST /inpatient-clearance/reevaluate`, `POST /inpatient-clearance/validate-major-procedure-deposit`, `PATCH /inpatient-clearance/{id}/acknowledge`, `GET /inpatient-clearance/encounter/{encounterId}/latest`; pendaftaran hak akses `BillingInpatient:*` |
+| Dependency | `BE-BKC-075` |
+| Acceptance criteria | Endpoint mengembalikan payload DTO sesuai kontrak `BIL-API-1.4`; kueri summary tidak mengekspos rincian rupiah sensitif kepada peran non-kasir; akses ditolak bagi peran tanpa hak akses; label `Rencana (belum tersedia)` dicabut setelah implementasi |
+| Bukti verifikasi | Verifikasi kontrak OpenAPI/Swagger; uji hak akses peran Kasir vs Perawat vs Administrator; uji fungsional endpoint (`BIL-AT-151`, `BIL-AT-152`); QBE strict mode PASS |
+| Risiko | Endpoint penerbitan manual kelayakan **MUST NOT** dibuat; evaluasi hanya membaca kebenaran dari invoice |
+| Pemilik | Billing Backend |
+| Definition of Done | Enam endpoint integrasi terdaftar dan teruji; hak akses terpasang ketat; dokumentasi Swagger sinkron; QBE conformance PASS |
+| Status | 🟡 **Source selesai 24 September 2026.** Controller `InpatientClearanceController` terpasang dengan 6 endpoint integrasi, perlindungan data sensitif perawat, penegakan RBAC Resource `BillingInpatient`, dan kontrak Swagger `BIL-API-1.4`. QBE Conformance `PASS` (0 violations). Menunggu kompilasi dan build mandiri pengguna. Bukti: [laporan](../task/report/backend/BE-BKC-076.md) |
+
+---
+
+## Wewenang yang Tetap Terpisah
+
+| Wewenang | Pemilik | Catatan |
+| --- | --- | --- |
+| Menulis source code | Diminta per task saat eksekusi handoff | Approval blueprint dan roadmap bukan izin menulis source langsung |
+| Membuat migration EF Core | Diminta terpisah | Berlaku untuk `BE-BKC-071` |
+| Menjalankan migration ke basis data | Diminta terpisah sesudah backup | Wajib konfirmasi eksplisit dari pengguna sesuai aturan keselamatan database |
+| Override tagihan invoice CLOSED | Supervisor Kasir / Kepala Kasir | Wajib otorisasi bisnis khusus dengan pencatatan audit log lengkap |
+

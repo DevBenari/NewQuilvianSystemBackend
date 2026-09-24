@@ -1241,3 +1241,105 @@ Tombol akui **MUST** disembunyikan, bukan sekadar dinonaktifkan, bagi peran yang
 | Urutan butir menu, penamaan tampilan, warna, jarak, ikon, component library | `DEV_DISCRETION` |
 
 Trace `BKC-DEC-106`–`109`, `BKC-DES-036`–`041`.
+
+---
+
+# Amendment 24 September 2026 — Integrasi Rawat Inap: Layar Clearance Handoffs & Rincian Tagihan Ranap
+
+> Revision `1.5`, status **draft**. Input: `BKC-DEC-112`–`119`, `BKC-AC-080`–`087`, `BKC-DES-042`–`050`. Layar terdampak: `consumer-handoffs-view.jsx` (perluasan tab Rawat Inap) dan `menu-pembayaran-view.jsx` / `invoice-detail-view.jsx` (rincian sewa kamar & badge financial clearance).
+
+## 1. Peta Butir Menu
+
+| Tingkat | Induk | Butir menu | Route target | Layar yang dituju | Hak akses yang menjaga |
+| :---: | --- | --- | --- | --- | --- |
+| 2 | Billing Management | Surat ke Modul Konsumen | `/health-services/billing-management/consumer-handoffs` | `consumer-handoffs-view.jsx` | `[AccessPermission("BillingConsumerHandoff", "Read")]` |
+| 2 | Billing Management | Kasir & Pembayaran | `/health-services/billing-management/cashier/payment` | `menu-pembayaran-view.jsx` | `[AccessPermission("BillingPayment", "Read")]` |
+| 2 | Billing Management | Detail Tagihan Pasien | `/health-services/billing-management/invoices/[id]` | `invoice-detail-view.jsx` | `[AccessPermission("BillingInvoice", "Read")]` |
+
+*Catatan: Seluruh menu di atas sudah ada; amendment ini memperkaya fitur pada layar tersebut tanpa menambah butir menu baru pada sidebar.*
+
+## 2. Skema Fitur Layar — Tab Rawat Inap pada Surat ke Modul Konsumen
+
+Layar ini (`consumer-handoffs-view.jsx`) diperluas untuk menampilkan surat fakta kelayakan pemulangan rawat inap (`BilInpatientClearanceHandoff`) yang menggantung atau berstatus pembatalan (`REVOKED`).
+
+```text
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│  Surat ke Modul Konsumen                                                               │
+├────────────────────────────────────────────────────────────────────────────────────────┤
+│  [ Tab: Semua | Keuangan | Farmasi | Rawat Inap (2) ]                                  │  ← A
+│  Penyaring: [ Status: Semua ▾ ] [ Tanggal: Hari Ini ▾ ]                                │
+├────────────────────────────────────────────────────────────────────────────────────────┤
+│  Jenis        │ Tujuan     │ Pasien / Encounter │ Status Kelayakan │ Sisa Tagihan │ Aksi   │  ← B
+│  ─────────────┼────────────┼────────────────────┼──────────────────┼──────────────┼─────── │
+│  Izin Pulang  │ Rawat Inap │ Ny. Dewi / ENC-091 │ [ CLEARED ]      │ Rp 0         │ [Akui] │
+│  Izin Pulang  │ Rawat Inap │ Tn. Agus / ENC-084 │ [ REVOKED ]      │ Rp 450.000   │ [Detail│
+│               │            │ (Tagihan Susulan)  │                  │              │ /Cek]  │
+├────────────────────────────────────────────────────────────────────────────────────────┤
+│  Menampilkan 2 surat kelayakan rawat inap aktif                                        │  ← C
+└────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Tabel Wilayah Layar
+
+| Wilayah | Isi | Sumber data | Hak akses tombol | Keadaan kosong | Keadaan gagal |
+| --- | --- | --- | --- | --- | --- |
+| A — Tab & Filter | Tab penyaring target modul (tambah tab "Rawat Inap"), filter status (`ALL`, `CLEARED`, `BLOCKED`, `REVOKED`) | State lokal komponen | — | — | — |
+| B — Tabel Daftar Surat | Kolom: Jenis Surat, Tujuan (`Rawat Inap`), Data Pasien/Encounter, Status Kelayakan dengan Badge Berwarna, Sisa Tagihan Pasien, Tombol Aksi | `GET /consumer-handoffs/pending?targetModule=INPATIENT` dan `GET /invoices/encounter/{encounterId}/inpatient-summary` | Tombol Akui: `BillingConsumerHandoff:Acknowledge`; Tombol Evaluasi Ulang: `BillingInpatient:Clearance` | "Tidak ada surat kelayakan rawat inap yang menggantung. Seluruh izin pulang telah diakui bangsal." | "Gagal memuat daftar surat rawat inap. Periksa koneksi jaringan." |
+| C — Ringkasan Footer | Total antrean surat dan status sinkronisasi | Kalkulasi lokal | — | Menampilkan nol | Disembunyikan bila gagal |
+
+## 3. Skema Fitur Layar — Panel Ringkasan Rawat Inap pada Detail Tagihan
+
+Pada layar rincian pembayaran rawat inap (`menu-pembayaran-view.jsx`), ditambahkan panel informasi khusus rawat inap:
+
+```text
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│  STATUS KELAYAKAN PEMULANGAN (FINANCIAL CLEARANCE): [ CLEARED / LAYAK PULANG ]        │  ← D
+├────────────────────────────────────────────────────────────────────────────────────────┤
+│  Rincian Sewa Kamar:                                                                   │  ← E
+│  - Kamar Kelas 1 (Bed 102) | 10 Okt 22:30 s/d 11 Okt 08:00 (Masuk Malam: 20%)  Rp200rb│
+│  - ICU (Bed ICU-02)        | 11 Okt 08:00 s/d 12 Okt 10:00 (Pro-rata)         Rp2.400rb│
+│  Biaya Administrasi Rawat Inap (7% - Maksimal Rp6.000.000):                Rp1.820.000 │
+│  Kredit Biaya Administrasi Rajal (Pengurang):                             - Rp  50.000 │
+├────────────────────────────────────────────────────────────────────────────────────────┤
+│  Konsolidasi Pelayanan Gawat Darurat (IGD):                                            │  ← F
+│  - [IGD] Tindakan Resusitasi & Oksigenasi                                  Rp  650.000 │
+│  - [IGD] Infus RL & Obat Emergensi                                         Rp  280.000 │
+└────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Tabel Wilayah Panel Rawat Inap
+
+| Wilayah | Isi | Sumber Data | Hak Akses | Keterangan & Perilaku |
+| --- | --- | --- | --- | --- |
+| D — Banner Clearance | Status kelayakan: Hijau (`CLEARED`), Merah (`BLOCKED`), Merah Kuning (`REVOKED` - Tagihan Susulan Masuk) | `GET /invoices/encounter/{encounterId}/inpatient-summary` | Read: Kasir & Petugas Ranap | Memperingatkan kasir jika pasien tertahan karena sisa tagihan atau tagihan susulan |
+| E — Rincian Kamar & Admin | Durasi sewa kamar bertingkat (diskon jam malam, pro-rata menit), biaya admin 7% (cap Rp6 jt), dan kredit admin rajal | DTO `InpatientBillingSummaryResponse` | Read: Kasir | Memberikan transparansi perhitungan biaya kamar yang adil bagi keluarga pasien |
+| F — Rincian Alihan IGD | Daftar tindakan/obat yang diberikan di IGD sebelum rawat inap dengan penanda khusus `[IGD]` | `BilInvoiceItem` dengan `SourceDomain = "EMERGENCY"` | Read: Kasir | Non-destruktif; kwitansi memisahkan pos biaya gawat darurat dan rawat inap |
+
+## 4. Aksi per Peran
+
+| Peran | Melihat Status Clearance | Menjalankan Evaluasi Ulang | Menerima Pembayaran Ranap | Mengakui Surat Handoff |
+| --- | :---: | :---: | :---: | :---: |
+| Kasir Rawat Inap | Ya | Ya | Ya | Tidak |
+| Perawat Bangsal Ranap | Ya (di bangsal) | Ya (permintaan) | Tidak | Ya (konfirmasi pulang) |
+| Kepala Kasir / Supervisor | Ya | Ya | Ya | Ya |
+| Pasien / Keluarga | Melihat di kwitansi | Tidak | Tidak | Tidak |
+
+## 5. Penanganan Keadaan Khusus (Exception Handling)
+
+| Keadaan | Penanganan pada Antarmuka Frontend |
+| --- | --- |
+| Tagihan Susulan Masuk (`REVOKED`) | Banner status otomatis berganti merah berkedip dengan teks: *"PERINGATAN: Tagihan susulan baru saja tercatat setelah pasien dinyatakan lunas. Izin pulang dicabut otomatis. Minta pasien menyelesaikan sisa tagihan."* |
+| Deposit Tindakan Besar Kurang (`BIL-VAL-121`) | Modal peringatan kuning muncul saat kasir/dokter memeriksa verifikasi deposit: *"Deposit tindakan besar belum terpenuhi. Pasien memiliki kekurangan setoran porsi tanggung jawab sebesar Rp X.XXX.XXX."* |
+| Perpindahan Kamar >1 Kali di Hari yang Sama | Tabel rincian kamar menampilkan durasi jam:menit riil masing-masing kamar beserta label *"Perhitungan Pro-Rata Durasi Hunian"*. |
+| Alihan Rajal ke Ranap | Biaya admin rajal ditampilkan tercoret (Rp 0) dengan keterangan *"Digantikan Biaya Admin Ranap"*, dan jika sudah dibayar muncul baris kredit hijau pengurang total tagihan. |
+
+## 6. Kewenangan UI (UI Authority)
+
+| Komponen | Status Kewenangan |
+| --- | --- |
+| Badge warna status clearance (Hijau: `CLEARED`, Merah: `BLOCKED`, Kuning: `REVOKED`) | Terkunci dokumen ini |
+| Penampilan breakdown sewa kamar jam masuk dan pro-rata | Terkunci dokumen ini |
+| Penempatan layout kartu rincian, animasi transisi, dan typography | `DEV_DISCRETION` |
+
+Trace `BKC-DEC-112`–`119`, `BKC-AC-080`–`087`, `BKC-DES-042`–`050`.
+
