@@ -4,14 +4,41 @@
 |---|---|
 | Blueprint ID | `gizi` |
 | Revision | `1` |
-| Status | `approved` |
-| Prefix entity | `Gz` |
+| Status | **`BLOCKED / WAITING BUSINESS DECISION`** (sebelumnya `approved`) — 24 September 2026 |
+| Prefix entity | `Gzi` (naik dari `Gz`; lihat catatan prefix di bawah) |
 | Base URL | `api/v1/health-services/nutrition-management/...` |
 | Grup Swagger | `Health Services / Nutrition Management / ...` |
 | Dasar | `GIZ-DEC-001` sampai `GIZ-DEC-012` |
 
+> ## ⛔ BLOCKED — menunggu keputusan pemilik proses
+>
+> Status dokumen ini diturunkan dari `approved` menjadi **`BLOCKED / WAITING BUSINESS DECISION`**
+> pada 24 September 2026 atas instruksi pemilik modul.
+>
+> **Sampai `GIZ-OQ-002`, `GIZ-OQ-004`, dan `GIZ-OQ-006` mendapat keputusan resmi, TIDAK BOLEH
+> ada:** entity Gizi baru, migration Gizi baru, maupun struktur tabel yang diturunkan dari
+> tebakan atau dari standar yang dikarang sendiri.
+>
+> Isi blueprint yang sudah ada **dipertahankan apa adanya** — tidak dihapus, tidak ditimpa, dan
+> tidak "dilengkapi" dengan asumsi. Yang ditambahkan hanya penanda status ini.
+>
+> Pertanyaannya ada di [`02-pertanyaan-pemilik-proses.md`](02-pertanyaan-pemilik-proses.md):
+> isi master diagnosis gizi (`GIZ-OQ-002`), bentuk kebutuhan nutrisi (`GIZ-OQ-004`), dan siapa
+> yang berwenang menyetujui (`GIZ-OQ-006`).
+>
+> **Sesudah jawaban tersedia**, urutannya: terbitkan `GIZ-DEC-011` dan `GIZ-DEC-012` → perbarui
+> blueprint ini → desain entity → buat migration. Bukan sebaliknya.
+>
+> Keadaan teknis yang sudah berjalan dan dependency-nya tercatat di
+> [`04-kesiapan-teknis.md`](04-kesiapan-teknis.md).
+
 Prefix `Gz` dan base URL di atas belum dipakai entity maupun controller mana pun; diperiksa
 terhadap berkas kavling registry sebelum ditetapkan.
+
+**Catatan prefix.** Teks di bawah masih menulis `Gz` pada beberapa tempat. Prefix yang berlaku
+sekarang adalah **`Gzi`**, dinaikkan lewat migration `20260911000000_RenameNutritionGzPrefixToGzi`
+dan sudah diterapkan pada source, snapshot, maupun database uji. Teks lama sengaja tidak disunting
+massal selama dokumen ini BLOCKED; perapiannya ikut pemutakhiran blueprint sesudah keputusan turun.
 
 ## Bentuk keseluruhan
 
