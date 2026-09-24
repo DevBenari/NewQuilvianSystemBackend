@@ -1126,3 +1126,95 @@ Backend `dcb9c88e` sudah memiliki pondasi kalkulasi sewa kamar dinamis in-proces
 | `BKC-CQ-02` | Apakah penerimaan room charge dari Rawat Inap akan murni dihitung in-process melalui `CalculateRoomChargeAsync` saat kalkulasi invoice, ataukah outbox event `BED_OCCUPIED` dari Rawat Inap tetap harus dipersist sebagai `BilInvoiceItem` tersendiri di database Billing? | Tech Lead / Domain Architect | Terbuka untuk diputuskan saat desain arsitektur |
 | `BKC-CQ-03` | Untuk pengkreditan biaya administrasi rajal yang sudah dibayar di kasir poli (`BKC-DEC-119`), apakah nominal tersebut dicatat sebagai `BilPaymentAllocation` bertipe kredit ataukah mengurangi nilai dasar hitungan administrasi ranap secara langsung? | Billing / Finance Architect | Terbuka untuk diputuskan saat desain arsitektur |
 
+
+## 23. Impact Scan 24 September 2026 — Verifikasi Source Revisi UI Billing (`BUI-DEC-001`–`013`)
+
+| Field | Nilai |
+|---|---|
+| Backend SHA diaudit | `505d8d78` (branch `Yasmina`) |
+| Frontend SHA diaudit | `b3f45db7b` (branch `yasmina`) |
+| Dasar Keputusan | [`00-interview-decisions.md`](./00-interview-decisions.md) — Amendment 24 September 2026, `BUI-DEC-001`–`013` |
+| Metode Audit | `rg`/`grep` terarah lalu pembacaan langsung file backend (ASP.NET Core: DTO, service, controller) dan frontend (Next.js App Router: view, hook, komponen bersama). Tidak ada modifikasi kode aplikasi |
+
+### 23.1 Ringkasan Satu Kalimat
+
+Temuan paling penting pass ini: rumpun **Edit Tagihan & Perbandingan Penjamin** (`MPY-DES-*`, dibangun sebelumnya) sudah menyediakan hampir seluruh data yang dibutuhkan 5 dari 13 keputusan (`BUI-DEC-004`/`005`/`006`/`007`, dan rumpun **Refund** sudah menyediakan **seluruhnya** untuk `BUI-DEC-011`/`012`) — tetapi frontend belum memakainya sama sekali di beberapa titik, dan pada satu titik (`BUI-DEC-007`) backend **sudah berjalan dengan aturan yang berbeda** dari yang baru saja dikunci owner.
+
+### 23.2 Tabel Bukti Kemampuan
+
+| ID | Kebutuhan | Pemilik | Bukti (`repo/path#symbol@SHA`) | Status | Gap/adapter | Risiko |
+|---|---|---|---|:---:|---|---|
+| `CAP-BUI-01` | Filter Tanggal Awal/Akhir (`BUI-DEC-001`) | Billing FE | `BE@505d8d78 Areas/HealthServices/BillingManagement/Billing/Dtos/BillingInvoiceDtos.cs#BillingInvoiceQuery` — sudah punya `StartDate`, `EndDate` (juga `VisitDateFrom/To`, `Period`, `PeriodPreset`) | **Ready to reuse** | Backend nol perubahan. Frontend (`billing-invoices-view.jsx` via `billing-invoices-client.jsx`) tinggal menambah dua input tanggal dan mengirim sebagai query param yang sudah diterima endpoint `GET /invoices` | Rendah |
+| `CAP-BUI-02` | Default invoice hari ini status `OPEN` (`BUI-DEC-002`) | Billing FE | Sama seperti `CAP-BUI-01` — `Status` dan `StartDate`/`EndDate` di query yang sama | **Ready to reuse** | Murni nilai state awal (`StartDate=EndDate=hari ini, Status="OPEN"`) sebelum filter pertama diterapkan pengguna | Rendah |
+| `CAP-BUI-03` | Label "Drug" → "Obat / Medicine" (`BUI-DEC-003`) | Billing FE | `FE@b3f45db7b src/components/view/health-services/billing-management/billing-invoices/edit-tagihan/edit-tagihan-view.jsx` — 1 kemunculan kata "Drug" berdiri sendiri ditemukan pada pencarian bertarget `view/`+`app/` | **Extend** | Pencarian ini **hanya mencakup** folder `components/view` dan `app` dengan word-boundary `\bDrug\b` (tidak menangkap identifier seperti `DrugName` yang memang bukan teks tampilan). Sebelum implementasi, MUST disisir ulang menyeluruh (termasuk `hooks/`, `utils/`, konstanta label) supaya tidak ada yang terlewat | Rendah — murni string, tapi cakupan pencarian pass ini belum menyeluruh |
+| `CAP-BUI-04` | Perbandingan hanya tampilkan Insurance provider (`BUI-DEC-004`) | Billing BE+FE | `BE@505d8d78 .../Billing/Services/BillingPayerEditService.cs#BuildAvailablePayerOptionsAsync` (baris ~1355-1460) — `AvailablePayerOptions` (dari `GET /{id}/edit-context`) mengembalikan **CASH + seluruh kartu INSURANCE + seluruh kartu COMPANY_GUARANTOR** tercampur, ditandai `PayerType` per baris | **Extend** | Backend TIDAK memfilter menurut jenis. Frontend (`edit-asuransi-panel.jsx` → `BasePayerCategorySelector`, `panel.optionsForSelectedCategory`) MUST menyaring daftar kandidat ke `PayerType == "INSURANCE"` saja sebelum dirender pada langkah perbandingan | Rendah — penyaringan sisi klien atas data yang sudah lengkap |
+| `CAP-BUI-05` | Asuransi aktif dikecualikan dari pembanding (`BUI-DEC-005`) | Billing BE | `BE@505d8d78 .../BillingPayerEditService.cs` baris 1374-1382, komentar eksplisit `// Requirement 5: Jika pasien sudah menggunakan asuransi (misal Allianz), maka Allianz tidak boleh muncul sebagai pilihan pembanding.` | **Ready to reuse** | **SUDAH DIBANGUN SEBELUMNYA**, identik dengan `BUI-DEC-005`. Backend mem-`continue` (skip) kartu asuransi yang `InsuranceProviderId`-nya sama dengan payer aktif kunjungan. Nol pekerjaan backend maupun frontend tambahan — frontend otomatis benar begitu memakai `AvailablePayerOptions` apa adanya | Nihil |
+| `CAP-BUI-06` | Payment method satu baris horizontal (`BUI-DEC-006`) | Billing FE | `FE@b3f45db7b .../base-payer-workspace.jsx#BasePayerCategorySelector` + `.../base-payer-workspace.module.css` baris 13-20 — `.categorySelector { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }` | **Extend** | Layout SEKARANG adalah grid **2 kolom** (3 kategori akan pecah jadi 2+1, bukan vertikal bertumpuk seperti dugaan awal, dan juga bukan satu baris). Perbaikan: ubah `grid-template-columns` jadi `repeat(3, minmax(0, 1fr))` — **hanya 1 konsumen** komponen ini di seluruh frontend (`edit-asuransi-panel.jsx`), jadi perubahan CSS aman tanpa merusak layar lain | Rendah, tapi verifikasi 1-konsumen ini MUST dicek ulang saat implementasi bila ada penambahan pemakai baru |
+| `CAP-BUI-06b` | Field `PaymentMethodRow` — kandidat lain untuk kebutuhan yang sama | Billing BE | `BE@505d8d78 .../Dtos/BillingPayerEditDtos.cs#PaymentMethodRow` + komentar service persis `// Payment Method satu struktur row: [ Tunai ] [ Asuransi ] [ Penjamin Perusahaan ]` (baris ~223) | **Unknown — perlu keputusan desain** | Field `PaymentMethodRow` (3 baris: `Code`, `Label` Indonesia yang sudah pas, `IsSelected`, `IsEnabled`) ADA di response `GET /{id}/edit-context` tapi **frontend TIDAK PERNAH memakainya** (dicek: nol kemunculan `paymentMethodRow` di `edit-tagihan-view.jsx` maupun `edit-asuransi-panel.jsx`). Komentarnya secara harfiah menyebut format satu baris yang diminta `BUI-DEC-006` — sangat mungkin field inilah yang **dimaksudkan** sebagai sumber data untuk kebutuhan ini, BUKAN `BasePayerCategorySelector`/`categories` yang dipakai sekarang | Sedang — dua sumber data (`categories` dari hook vs `PaymentMethodRow` dari server) yang tumpang tindih secara konsep; MUST dipilih SATU saat desain, jangan render dari keduanya sekaligus |
+| `CAP-BUI-07` | Default status tagihan ikut coverage (`BUI-DEC-007`) | Billing BE | `BE@505d8d78 .../BillingPayerEditService.cs` baris 118-147, `suggestedBillingStatus` — `(anyItemCoveredByInsurance ? "INSURANCE" : "CASH")` | **Conflict** | Lihat 23.4 — aturan yang SUDAH BERJALAN adalah "cukup SATU item tercover → default Asuransi", **bukan** "SELURUH item harus tercover" yang baru dikunci `BUI-DEC-007`. Contoh tunggal yang diberikan owner (nol item tercover → Pribadi) konsisten dengan KEDUA aturan sehingga tidak pernah membedakan keduanya sampai kode ini dibaca langsung | **Tinggi** — salah pilih berarti piutang salah klasifikasi; MUST diputuskan owner sebelum desain mengunci perilaku ini |
+| `CAP-BUI-08` | Card Billing/Status Tagihan compact (`BUI-DEC-008`) | Billing FE | Tidak dicari mendalam — murni tata letak komponen existing, tidak membutuhkan data baru | **Ready to reuse** | Nol dependency data; murni CSS/markup penataan ulang komponen yang sudah ada | Rendah |
+| `CAP-BUI-09` | Catatan Penting timeline lintas modul (`BUI-DEC-009`) | Lintas modul (Kiosk/Admisi/IGD/Rawat Inap) | Pencarian `PatientNote`/`ConsolidatedNote`/`PatientTimeline` di seluruh `Areas/HealthServices/**/*.cs` — nol hasil | **Missing** | Tidak ditemukan satu pun endpoint yang mengonsolidasikan note pasien lintas tahap kunjungan. Mewujudkan poin 9 **persis seperti dispesifikasikan** (note dari Kiosk→Admisi→IGD→Rawat Inap dalam satu timeline) menuntut **kemampuan backend baru** — ini KELUAR dari batas scope frontend murni yang dikunci di `00-interview-decisions.md` bagian "Di luar scope" pass ini | Sedang — berisiko scope creep bila dipaksakan tanpa mengubah batas pass |
+| `CAP-BUI-10` | Upload Memo Dokter TTD (`BUI-DEC-010`) | Billing BE+FE | `BE@505d8d78 .../Dtos/BillingDiscountDtos.cs#ApplyDiscountRequest.DoctorDiscountMemoFile` (`string?`, `MaxLength(500)`, **bukan** `[Required]`) — field SUDAH ADA juga di `ApproveDiscountRequest`, `DiscountResponse`, `DoctorDiscountApprovalResponse` | **Extend** | Field string sudah ada di kontrak, tapi (a) TIDAK ada `[Required]` di backend — validasi wajib murni tanggung jawab frontend sesuai `BUI-DEC-010`, dan backend **bisa dilewati** lewat panggilan API langsung; (b) **tidak ditemukan endpoint upload file apa pun di `BillingManagement`** (dicari `Attachment`/`Upload`/`MemoFile`, nol hasil) — tidak jelas bagaimana `File` menjadi `string` ini. Frontend sekarang (`menu-pembayaran-view.jsx`, form Apply Discount) TIDAK memakai field ini sama sekali | **Tinggi untuk mekanisme upload** — lihat 23.4, ini `BUI-CQ-01` |
+| `CAP-BUI-11` | Refundable credit hilang dari UI (`BUI-DEC-011`) | Billing FE | `FE@b3f45db7b .../detail/create-refund-modal.jsx` — modal SEKARANG memang menampilkan dropdown "Refundable Credit" tunggal (`refundableCredits`, `refundableCreditId`) sebagai **satu-satunya** cara memilih sumber refund | **Ready to reuse** (tidak perlu perubahan backend) | Modal ini akan digantikan bentuknya oleh `CAP-BUI-12` (dua sumber Billing/Deposito) — sehingga UI dropdown "Refundable Credit" lama otomatis tidak terpakai lagi begitu modal baru dipasang, bukan sesuatu yang perlu "disembunyikan" terpisah | Rendah |
+| `CAP-BUI-12` | Modal refund dua sumber: Billing (multi-select item) / Deposito (`BUI-DEC-012`) | Billing BE | `BE@505d8d78`: `Dtos/BillingRefundDtos.cs#CreateRefundRequest` (`RefundCategory: "BILLING"|"DEPOSITO"`, `SelectedBillingItemIds`), `#BillingRefundableItemResponse` (`BillingItemId`,`ItemName`,`Qty`,`Amount`,`RefundableAmount`), `#RemainingDepositResponse` (`RemainingDepositAmount`); `Controllers/BillingInvoicesController.cs:788` `GET {id}/refundable-items`, `:805` `GET {id}/remaining-deposit`, `:822` `POST {id}/refunds` | **Extend** | **Backend SUDAH mendukung SELURUH kebutuhan bisnis poin 12** — dua sumber, multi-select item, sisa deposito otomatis. Frontend (`create-refund-modal.jsx`) sekarang sama sekali TIDAK memakai `RefundCategory`, `SelectedBillingItemIds`, endpoint `refundable-items`, maupun `remaining-deposit` — modal ini murni dropdown "Refundable Credit" tunggal + input nominal manual, model interaksi yang berbeda dari yang diminta. **Satu gap nyata**: `BillingRefundableItemResponse` **tidak punya kolom Tanggal** yang diminta datatable poin 12 (hanya `BillingItemId`,`ItemName`,`Qty`,`Amount`,`RefundableAmount`) — perlu ditambahkan (kemungkinan `item.CreateDateTime` atau tanggal layanan dari `BilInvoiceItem`, service sudah meng-`Include` item ini jadi datanya ada, tinggal diproyeksikan) | Rendah — ini murni "frontend belum mengejar backend", risiko implementasi kecil |
+| `CAP-BUI-13` | Pindah tombol Refund/Adjustment/Write-off ke Riwayat Pembayaran (`BUI-DEC-013`) | Billing FE | Sumber: `FE@b3f45db7b .../billing-invoices/menu-pembayaran/menu-pembayaran-view.jsx` (satu-satunya pemakai `BillingFinancialExceptionPanel` beserta `openRefund`/`openAdjustment`/`openWriteOff` dari `use-billing-financial-exception.js`). Target: `.../billing-invoices/payment-history-view.jsx` — SUDAH punya kolom `key: "actions"` tapi **untuk keperluan berbeda** (header "Kwitansi" — cetak struk, baris ~197-216), bukan refund/adjustment/write-off | **Extend** | "Halaman detail lama" yang dimaksud owner = **Menu Pembayaran** (bukan halaman "detail invoice" generik). Modal-modal (`create-refund-modal.jsx`, `create-adjustment-modal.jsx`, dan padanan write-off) SUDAH ADA dan bisa dipakai ulang; yang perlu dipindah adalah pemicu (tombol) dan pengambilalihan hook `use-billing-financial-exception.js` oleh halaman Riwayat Pembayaran, TANPA mengganggu kolom "Kwitansi" yang sudah ada di sana | Rendah — relokasi UI murni, logika tidak berubah |
+
+### 23.3 Fakta, Inferensi, Rekomendasi
+
+**Fakta:**
+1. Rumpun "Edit Tagihan & Multi-Payer Coverage" (`MPY-DES-001`–`017`, dibangun atas amendment 11 September 2026) sudah membangun **hampir seluruh** data yang dibutuhkan `BUI-DEC-004`–`007`, termasuk satu baris komentar kode yang secara harfiah menyebut "Requirement 5" (persis nomor urut permintaan owner hari ini) — kuat mengindikasikan kebutuhan poin 4-7 sebagian **sudah pernah diminta dan sebagian sudah dikerjakan** pada rumpun itu, bukan sepenuhnya kebutuhan baru.
+2. Rumpun Refund (`BillingRefundService`, kontrak `CreateRefundRequest.RefundCategory`) sudah 100% mendukung model dua-sumber yang diminta `BUI-DEC-012` — frontend-nya yang tertinggal, bukan backend-nya.
+3. `PaymentMethodRow` (DTO) dan `BasePayerCategorySelector` (komponen) adalah **dua jalur berbeda** yang sama-sama bisa dipakai untuk kebutuhan `BUI-DEC-006`, dan keduanya BELUM disatukan.
+4. `suggestedBillingStatus` pada `BillingPayerEditService.cs:145` menghitung "ANY item tercover → Asuransi", bukan "ALL item tercover → Asuransi" yang baru dikunci `BUI-DEC-007`.
+
+**Inferensi:**
+1. Karena `AvailablePayerOptions` sudah mengembalikan `PayerType` per baris dan sudah mengecualikan asuransi aktif, `BUI-DEC-004` dan `BUI-DEC-005` paling aman diimplementasikan sebagai **filter sisi klien murni** atas data yang sudah benar — tidak perlu menyentuh backend sama sekali.
+2. Karena `PaymentMethodRow` sudah dihitung server dengan `IsSelected` yang mengikuti `effectivePaymentType` (turunan `suggestedBillingStatus`), memakai field ini untuk `BUI-DEC-006` akan **otomatis mewarisi** konflik `BUI-DEC-007` — dua keputusan ini SALING TERKAIT dan MUST diputuskan bersamaan, bukan terpisah.
+3. Karena modal refund lama (`create-refund-modal.jsx`) dan modal baru yang dibutuhkan (`BUI-DEC-012`) punya model interaksi yang sepenuhnya berbeda (dropdown tunggal vs radio dua-sumber + datatable), ini kemungkinan besar adalah **penggantian isi modal**, bukan penambahan kecil pada modal yang ada.
+
+**Rekomendasi:**
+1. **Lanjut ke `/design-business-module`** untuk seluruh keputusan yang berstatus `Ready to reuse`/`Extend` (`BUI-DEC-001`,`002`,`003`,`004`,`005`,`008`,`009` dengan catatan pengecilan scope,`011`,`012`,`013`). Tidak ada yang memblokirnya.
+2. **`BUI-DEC-006` dan `BUI-DEC-007` MUST ditahan** dari desain sampai closure question 23.4 dijawab — keduanya berbagi satu sumber data (`PaymentMethodRow`/`suggestedBillingStatus`) yang perilakunya sedang disengketakan.
+3. **`BUI-DEC-009`** (Catatan Penting) direkomendasikan **dipersempit** pada pass desain: tampilkan timeline dari sumber data yang **sudah ada** per modul (bila ada) tanpa menjanjikan agregasi lintas Kiosk/Admisi/IGD/Rawat Inap yang menuntut endpoint baru — atau eksplisit ditandai sebagai dependency backend terpisah, bukan dikerjakan diam-diam di luar batas scope frontend.
+4. **`BUI-DEC-010`** (memo dokter): validasi wajib sisi frontend AMAN dilanjutkan ke desain sekarang. Mekanisme upload file sesungguhnya (`BUI-CQ-01`) TIDAK memblokir desain — desain boleh menetapkan kontraknya sebagai `TBD: endpoint upload`, dengan implementasi menunggu jawabannya.
+
+### 23.4 Conflict — Wajib Diputuskan Owner Sebelum Desain
+
+> **Ini BUKAN keluhan tentang keputusan Anda di `/grill-me`.** Contoh yang Anda berikan (pasien
+> Allianz, semua item tidak tercover → default Pribadi) benar dan konsisten dengan pilihan yang
+> Anda pilih. Yang baru terlihat SEKARANG, dari membaca kode langsung, adalah bahwa contoh itu
+> **tidak cukup membedakan** dua aturan yang berbeda — dan backend yang SUDAH BERJALAN
+> ternyata memakai yang berbeda dari yang Anda kunci.
+
+**Dua aturan yang bersaing:**
+
+| | Aturan yang Anda kunci (`BUI-DEC-007`) | Aturan yang SUDAH BERJALAN di backend |
+|---|---|---|
+| Bunyi | Default Asuransi **hanya jika SELURUH** item tercover | Default Asuransi **jika SATU SAJA** item tercover |
+| Kode | — | `BillingPayerEditService.cs:145`, `anyItemCoveredByInsurance` |
+| Skenario nol item tercover | → Pribadi | → Pribadi (**sama**) |
+| Skenario seluruh item tercover | → Asuransi | → Asuransi (**sama**) |
+| Skenario SEBAGIAN tercover (mis. 2 dari 5 item) | → **Pribadi** | → **Asuransi** (**BEDA**) |
+
+Contoh konkret: tagihan 5 item, Allianz menanggung 2 item (obat), 3 item (tindakan) tidak
+ditanggung. Aturan Anda → default **Pribadi**. Aturan yang sudah berjalan → default
+**Asuransi**. Selisihnya bukan nol — inilah kasus yang paling sering terjadi pada asuransi
+swasta (coverage per kategori layanan), bukan kasus tepi.
+
+**Pertanyaan penutup:**
+
+| ID | Pertanyaan | Pemilik jawaban | Memblokir |
+|---|---|---|:---:|
+| `BUI-CQ-02` | Kasus coverage SEBAGIAN (bukan nol, bukan semua): default status yang benar Pribadi atau Asuransi? | Yasmin | `BUI-DEC-006`, `BUI-DEC-007` |
+| `BUI-CQ-03` | Bila jawabannya "Pribadi" (aturan yang baru Anda kunci): backend `BillingPayerEditService.cs:145` MUST diubah — apakah ini diotorisasi sebagai bagian pass ini (menambah backend murni-logika, TANPA skema/endpoint baru), atau ditunda sebagai dependency backend terpisah dan frontend sementara mengikuti perilaku backend yang ADA (aturan "any")? | Yasmin + Backend Owner | `BUI-DEC-007` |
+| `BUI-CQ-04` | `PaymentMethodRow` (server, sudah dihitung, label Indonesia sudah pas) atau `BasePayerCategorySelector`/`categories` (client, sedang dipakai) — mana yang jadi sumber data untuk 3 tombol horizontal `BUI-DEC-006`? | Backend/Frontend Owner (keputusan teknis, bukan bisnis) | `BUI-DEC-006` |
+| `BUI-CQ-05` (dahulu `BUI-OQ-02`) | Catatan Penting: lanjut dengan cakupan dipersempit (sumber yang sudah ada saja), atau tetap minta agregasi lintas modul sebagai dependency backend terpisah? | Yasmin | `BUI-DEC-009` — tidak memblokir keputusan lain |
+| `BUI-CQ-06` (dahulu `BUI-OQ-01`) | Endpoint upload untuk Memo Dokter TTD: pakai mekanisme baru khusus Billing, atau ada mekanisme umum yang belum ditemukan pass ini? | Backend Owner | Implementasi `BUI-DEC-010`, bukan desainnya |
+
+`BUI-OQ-03`, `BUI-OQ-04`, `BUI-OQ-05` (dari amendment interview) dinyatakan **tertutup** oleh
+pass ini: `BUI-OQ-03` dijawab `CAP-BUI-07` (coverage per-item memang sudah dikirim server,
+tapi aturan pemakaiannya yang disengketakan — jadi ditutup sebagai fakta, dibuka lagi sebagai
+`BUI-CQ-02`), `BUI-OQ-04` dijawab `CAP-BUI-04` (daftar berisi seluruh provider di master data
+pasien, bukan hanya yang berkontrak — filter yang diminta murni soal `PayerType`, tidak
+menyentuh soal kontrak aktif provider), `BUI-OQ-05` dijawab `CAP-BUI-12` (kontrak refund sudah
+sepenuhnya kompatibel, nol penyesuaian backend diperlukan).

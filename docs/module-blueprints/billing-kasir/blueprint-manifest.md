@@ -4,7 +4,7 @@
 blueprint_id: BIL-CASH-001
 module_name: Billing dan Kasir
 module_slug: billing-kasir
-revision: 1.5
+revision: 1.6
 revision_note_field_vs_prose: >
   KETIDAKSESUAIAN YANG SUDAH DIKETAHUI DAN KINI DITUTUP. Sebelum revisi 1.0, field `revision`
   bernilai 0.8 sementara badan dokumen ini beserta seluruh berkas kontrak sudah menyebut revisi
@@ -21,6 +21,29 @@ status_derivation_revision_1_5: >
   Keputusan arsitektur BKC-DES-042–050 beserta seluruh kontrak target (BIL-API-1.4, BIL-STATE-1.3,
   BIL-VALIDATION-1.3, BIL-INTEGRATION-1.2, BIL-PERMISSION-1.2, BIL-TEST-1.4) berstatus draft
   menunggu approval Product/Domain Owner sebelum diteruskan ke /plan-module-delivery.
+status_derivation_revision_1_6: >
+  Revisi 1.6 (Revisi UI Billing: Filter, Default, Asuransi, Diskon Dokter, Refund) berstatus
+  `draft`. Business decisions BUI-DEC-001..013 approved 24 September 2026 (00-interview-decisions.md).
+  /trace-existing-capabilities dijalankan hari yang sama (01-existing-capability-map.md bagian 23,
+  CAP-BUI-01..13 pada backend SHA 505d8d78 / frontend SHA b3f45db7b).
+  TEMUAN PALING PENTING: CAP-BUI-05 dan CAP-BUI-12 ternyata SUDAH SEPENUHNYA DIBANGUN backend
+  (rumpun MPY-DES-* dan rumpun Refund) - frontend yang tertinggal, bukan backend yang kurang.
+  SATU CONFLICT NYATA ditemukan dan BELUM tertutup: BUI-DEC-007 (default status tagihan
+  "SELURUH item harus tercover") berbeda dari aturan yang SUDAH BERJALAN di
+  BillingPayerEditService.cs:145 ("SATU item tercover" sudah cukup) pada kasus coverage
+  SEBAGIAN. Empat closure question tercatat (BUI-CQ-02..06 pada capability map bagian 23.4),
+  dua di antaranya (BUI-CQ-02, BUI-CQ-03) MEMBLOKIR BUI-DEC-006 dan BUI-DEC-007 secara spesifik
+  - SEMBILAN keputusan lain (BUI-DEC-001..005, 008, 009 dengan scope dipersempit, 010 desainnya
+  saja, 011..013) TIDAK tertahan dan siap /design-business-module.
+  SUSULAN 24 September 2026: BUI-CQ-02 dan BUI-CQ-03 ditutup BUI-DEC-014 (aturan "seluruh item
+  tercover" DIPERTAHANKAN; perbaikan logika BillingPayerEditService.cs:145 DIOTORISASI sebagai
+  bagian pass ini - satu-satunya titik sentuh backend, murni kondisi, TANPA skema/endpoint
+  baru). BUI-CQ-04 ditutup BUI-DEC-015 (sumber data 3 tombol payment method = PaymentMethodRow
+  server, BUKAN BasePayerCategorySelector/categories).
+  TIDAK ADA LAGI closure question yang memblokir /design-business-module. BUI-CQ-05 (cakupan
+  Catatan Penting) dan BUI-CQ-06 (mekanisme upload memo dokter) tetap terbuka tapi TIDAK
+  memblokir - keduanya didesain dengan scope dipersempit/kontrak TBD.
+  Keputusan ARSITEKTUR (BUI-DES-*) BELUM ada; menyusul dari /design-business-module.
 status_derivation_revision_1_3: >
   Revisi 1.3 (Penutupan gap FINAL->CLOSED) kini `approved` SEPENUHNYA. Keputusan BISNIS
   (BKC-DEC-100-105) dan keputusan ARSITEKTUR (BKC-DES-028-035) seluruhnya disetujui Product/Domain
