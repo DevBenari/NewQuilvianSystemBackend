@@ -726,3 +726,78 @@ Masukan: `BKC-DEC-112`–`122` (approved 24 September 2026), `BKC-AC-080`–`090
 | Wewenang menulis source code | Terpisah | Wajib konfirmasi approval task per task sebelum implementasi dimulai. |
 | Otorisasi pembuatan & eksekusi migration EF Core | Terpisah | Berlaku untuk `BE-BKC-071` (`AddInpatientBillingIntegrationAndClearanceHandoff`); eksekusi ke database pengembang membutuhkan izin eksplisit pengguna. |
 | Override tagihan invoice `CLOSED` | Terpisah | Wewenang Supervisor Kasir / Kepala Kasir dengan pencatatan audit log lengkap. |
+
+---
+
+
+# Gelombang `MVP-30` s.d. `MVP-33` — Revisi UI Billing: Filter, Default, Asuransi, Diskon Dokter, Refund
+
+Masukan: `BUI-DEC-001`–`015` (approved 24 September 2026), `BUI-DES-001`–`002` (draft, menunggu
+approval arsitektur). Baseline Backend SHA: `505d8d78`, Baseline Frontend SHA: `b3f45db7b`.
+Kontrak version: `BIL-API-1.5` (draft), `BIL-STATE-1.4` (draft), `BIL-VALIDATION-1.4` (draft),
+`BIL-INTEGRATION-1.2` (tidak bergerak), `BIL-PERMISSION-1.2` (tidak bergerak), `BIL-TEST-1.5` (draft).
+
+## 1. Requirement ke Task ke Bukti Verifikasi
+
+| Requirement | Keputusan Asal | Task BE | Task FE | Bukti Verifikasi |
+| --- | --- | --- | --- | --- |
+| `FR-BUI-001` — Filter Tanggal Awal/Akhir pada layar Billing | `BUI-DEC-001` | — | `FE-BUI-001` | `UAT-BUI-02` |
+| `FR-BUI-002` — Default invoice hari ini status `OPEN` | `BUI-DEC-002` | — | `FE-BUI-001` | `UAT-BUI-01` |
+| `FR-BUI-003` — Label Drug → Obat / Medicine | `BUI-DEC-003` | — | `FE-BUI-002` | Regresi visual/snapshot, pencarian menyeluruh `src/` |
+| `FR-BUI-004` — Perbandingan hanya tampilkan Insurance provider | `BUI-DEC-004` | — | `FE-BUI-005` | `UAT-BUI-03` |
+| `FR-BUI-005` — Asuransi aktif dikecualikan dari pembanding | `BUI-DEC-005` | — | `FE-BUI-005` (regresi, sudah berjalan `CAP-BUI-05`) | `UAT-BUI-03` |
+| `FR-BUI-006` — Payment method satu baris horizontal, sumber `PaymentMethodRow` | `BUI-DEC-006`, `BUI-DEC-015` | ⛔ `BE-BUI-001` | ⛔ `FE-BUI-006` | `UAT-BUI-05` |
+| `FR-BUI-007` — Default status tagihan "seluruh item tercover" | `BUI-DEC-007`, `BUI-DEC-014` | ⛔ `BE-BUI-001` | ⛔ `FE-BUI-006` | `UAT-BUI-04`, `UAT-BUI-09` (**kasus penentu**) |
+| `FR-BUI-008` — Card Billing/Status Tagihan compact | `BUI-DEC-008` | — | `FE-BUI-003` | Regresi visual tiga breakpoint |
+| `FR-BUI-009` — Catatan Penting timeline | — | **`OPEN DECISION`** — `BUI-CQ-05` | **`OPEN DECISION`** | Tidak berlaku — di luar gelombang ini |
+| `FR-BUI-010` — Upload Memo Dokter TTD (endpoint) | — | **`OPEN DECISION`** — `BUI-CQ-06` | **`OPEN DECISION`** | Tidak berlaku — di luar gelombang ini |
+| `FR-BUI-011` — Refundable credit lama tergantikan | `BUI-DEC-011` | — | ⛔ `FE-BUI-007` | `UAT-BUI-06`, `07` (regresi: nol tampilan lama) |
+| `FR-BUI-012` — Modal refund dua sumber | `BUI-DEC-012` | ⛔ `BE-BUI-002` | ⛔ `FE-BUI-007` | `UAT-BUI-06`, `07`, `11`, `12` |
+| `FR-BUI-013` — Tombol aksi dipindah ke Riwayat Pembayaran | `BUI-DEC-013` | — | `FE-BUI-004` | `UAT-BUI-08`, `13`, `14` |
+
+**Coverage gap: NOL untuk sebelas FR yang masuk gelombang ini** (`FR-BUI-001`–`008`, `011`–`013`)
+— seluruhnya memiliki task dan bukti verifikasi. `FR-BUI-009` dan `FR-BUI-010` **sengaja**
+TIDAK memiliki task pada roadmap ini — keduanya `OPEN DECISION` per `04-prd-to-mvp.md` amendment
+revisi 1.6, dan MUST NOT dipaksakan menjadi task sampai `BUI-CQ-05`/`06` terjawab.
+
+## 2. Jalur Gagal & Pengecualian yang Terpetakan
+
+| Skenario Jalur Gagal | Skenario UAT | Aturan Validasi | Task Penjaga | Bukti Verifikasi |
+| --- | --- | --- | --- | --- |
+| Coverage sebagian (2 dari 5 item tercover) — kasus yang membedakan aturan lama dari baru | `UAT-BUI-09` | `BUI-VAL-07` | ⛔ `BE-BUI-001` | Uji unit tiga kasus `BillingPayerEditServiceTests` |
+| Filter tanggal akhir sebelum tanggal awal | `UAT-BUI-10` | `BUI-VAL-06` | `FE-BUI-001` | Ditolak sebelum request terkirim |
+| Modal refund sumber Billing, submit tanpa item dicentang | `UAT-BUI-11` | `BUI-VAL-03` | ⛔ `FE-BUI-007` | Ditolak sebelum request terkirim |
+| Modal refund sumber Deposito, sisa deposito Rp 0 | `UAT-BUI-12` | `BUI-VAL-04`, `BUI-VAL-05` | ⛔ `FE-BUI-007` | Nominal Rp 0, submit ditolak backend (existing `[Range]`) |
+| Kolom "Kwitansi" existing pada Riwayat Pembayaran setelah kolom Aksi ditambahkan | `UAT-BUI-14` | — | `FE-BUI-004` | Regresi — perilaku cetak struk tidak berubah |
+| Peran tanpa butir akses refund mencoba mengklik tombol di lokasi baru | — | `permission-audit-matrix.md` amendment 1.6 | `FE-BUI-004` | Ditolak — butir akses identik lokasi lama |
+| Menyalakan validasi memo wajib sebelum endpoint upload ada | — | Dicegah di tingkat desain, bukan runtime | Tidak ada task — `FR-BUI-010` sengaja `OPEN DECISION` | `04-prd-to-mvp.md` amendment revisi 1.6, peringatan eksplisit "akan MENGUNCI alur yang berjalan" |
+
+## 3. Keputusan Bisnis → Keputusan Arsitektur → Artefak & Task
+
+| Keputusan Bisnis | Keputusan Arsitektur | Artefak Turunan | Task Terkait |
+| --- | --- | --- | --- |
+| `BUI-DEC-001`, `BUI-DEC-002` (filter & default Billing) | — (murni frontend, nol keputusan arsitektur diperlukan) | `03-frontend-architecture.md` bagian 4 | `FE-BUI-001` |
+| `BUI-DEC-003` (label Drug/Obat) | — | `03-frontend-architecture.md` bagian 5 | `FE-BUI-002` |
+| `BUI-DEC-004`, `BUI-DEC-005` (filter & exclude perbandingan) | — | `03-frontend-architecture.md` bagian 3 | `FE-BUI-005` |
+| `BUI-DEC-006`, `BUI-DEC-007`, `BUI-DEC-014`, `BUI-DEC-015` (payment method & default status) | `BUI-DES-001` | `02-backend-architecture.md` bagian 9, `03-frontend-architecture.md` bagian 2 | ⛔ `BE-BUI-001`, ⛔ `FE-BUI-006` |
+| `BUI-DEC-008` (card compact) | — | `03-frontend-architecture.md` bagian 6 | `FE-BUI-003` |
+| `BUI-DEC-009` (Catatan Penting) | — (`OPEN DECISION`) | `02-backend-architecture.md` bagian 8, `03-frontend-architecture.md` bagian 7 | Tidak ada — di luar gelombang |
+| `BUI-DEC-010` (memo dokter) | — (`OPEN DECISION` untuk endpoint; validasi frontend didesain) | `03-frontend-architecture.md` bagian 8 | Tidak ada — di luar gelombang |
+| `BUI-DEC-011`, `BUI-DEC-012` (refund dua sumber) | `BUI-DES-002` | `02-backend-architecture.md` bagian 9, `03-frontend-architecture.md` bagian 9 | ⛔ `BE-BUI-002`, ⛔ `FE-BUI-007` |
+| `BUI-DEC-013` (pindah tombol aksi) | — | `03-frontend-architecture.md` bagian 10 | `FE-BUI-004` |
+
+## 4. Yang Dibuka Gelombang Ini untuk Modul Lain
+
+Tidak ada. Revisi 1.6 murni internal Billing/Kasir — tidak membuka kemampuan baru untuk modul
+lain, berbeda dari `MVP-28`/`29` (Pass B) yang membuka kemampuan untuk `inpatient-management`.
+
+## 5. Status Gap, Pertanyaan, dan Wewenang Terpisah
+
+| Butir | Status | Penjelasan & Pemilik |
+| --- | :---: | --- |
+| Approval arsitektur `BUI-DES-001`, `BUI-DES-002` | **Terbuka** | Terpisah dari approval `BUI-DEC-001`–`015`. Menahan `MVP-30` penuh dan sebagian `MVP-32`/`33`. Pemilik: Yasmin |
+| `BUI-CQ-05` (cakupan Catatan Penting) | **Terbuka, tidak memblokir** | `FR-BUI-009` sengaja di luar seluruh gelombang. Pemilik: Yasmin |
+| `BUI-CQ-06` (mekanisme upload memo dokter) | **Terbuka, tidak memblokir** | `FR-BUI-010` sengaja di luar seluruh gelombang — menyalakan validasi tanpa endpoint akan mengunci alur diskon dokter yang berjalan. Pemilik: Backend Owner |
+| Wewenang menulis source code | Terpisah | Wajib konfirmasi approval task per task sebelum implementasi dimulai |
+| Otorisasi migration | Tidak berlaku | Nol migration pada seluruh revisi 1.6 |
+| Cakupan pencarian label "Drug" | Terpisah, dicatat di `FE-BUI-002` | Pencarian trace sebelumnya (`CAP-BUI-03`) hanya menyisir `components/view`+`app` — task MUST menyisir ulang menyeluruh sebelum dianggap selesai |

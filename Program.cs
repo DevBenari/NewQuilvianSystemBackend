@@ -717,7 +717,6 @@ try
     builder.Services.AddScoped<LeaveCancellationService>();
     builder.Services.AddScoped<LeaveRecallService>();
     builder.Services.AddScoped<LeaveFinalReconciliationService>();
-
     builder.Services.AddScoped<OvertimePolicyResolverService>();
     builder.Services.AddScoped<OvertimeRateResolverService>();
     builder.Services.AddScoped<OvertimePlanQueryService>();

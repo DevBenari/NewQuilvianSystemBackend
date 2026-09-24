@@ -469,3 +469,21 @@ Trace `BKC-DEC-106`–`109`, `PHA-DEC-067`, `PHA-DEC-068`. Tests `BIL-AT-135`–
 
 Trace `BKC-DEC-112`–`119`, `BKC-AC-080`–`087`, `BKC-DES-042`–`050`. Tests `BIL-AT-143`–`BIL-AT-152`.
 
+
+
+# Amendment 24 September 2026 — Revisi UI Billing (Revisi 1.6, `BIL-VALIDATION-1.4`)
+
+Status: `draft`. Basis: `00-interview-decisions.md` `BUI-DEC-001`–`015`.
+
+| ID | Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Lapis |
+|---|---|---|---|---|---|
+| `BUI-VAL-01` | Memo Dokter TTD wajib sebelum submit | Form Apply Discount (`BUI-DES-009`) | `DoctorDiscountMemoFile` kosong/null | "Memo Dokter TTD wajib diunggah sebelum pengajuan diskon dapat dikirim." | Frontend saja — backend TIDAK menegakkan `[Required]` (`CAP-BUI-10`). Dicatat sebagai risiko residual, bukan diperbaiki amendment ini |
+| `BUI-VAL-02` | Sumber refund wajib dipilih | Modal Ajukan Refund (`BUI-DES-011`) | `RefundCategory` belum dipilih (belum ada radio tersorot) | "Pilih sumber refund: Billing atau Deposito." | Frontend |
+| `BUI-VAL-03` | Refund sumber Billing wajib sekurang-kurangnya satu item tercentang | Modal Ajukan Refund | `RefundCategory === "BILLING"` dan `SelectedBillingItemIds` kosong | "Pilih sekurang-kurangnya satu item yang akan direfund." | Frontend |
+| `BUI-VAL-04` | Refund sumber Deposito tidak boleh melebihi sisa deposito | Modal Ajukan Refund | `RequestedAmount > RemainingDepositAmount` | "Nominal refund tidak boleh melebihi sisa deposito pasien." | Frontend (tampilan nominal terkunci ke sisa deposito) **dan** backend — `CreateRefundRequest.RequestedAmount` divalidasi service (existing, tidak berubah amendment ini) |
+| `BUI-VAL-05` | Nominal refund harus positif | Modal Ajukan Refund | `RequestedAmount <= 0` | Sudah ditegakkan `[Range("0.01", ...)]` pada `CreateRefundRequest` — existing, tidak berubah | Backend (existing) |
+| `BUI-VAL-06` | Filter tanggal Billing: tanggal akhir tidak boleh sebelum tanggal awal | Layar Daftar Billing (`BUI-DES-005`) | `EndDate < StartDate` | "Tanggal akhir tidak boleh sebelum tanggal awal." | Frontend |
+| `BUI-VAL-07` | Default status tagihan mengikuti coverage seluruh item | Edit Status Tagihan / Payment Method (`BUI-DES-001`, `003`) | Backend: seluruh item aktif `isCovered == true` → `"INSURANCE"`; selain itu → `"CASH"` | Tidak ada pesan pengguna — ini nilai saran, bukan penolakan | Backend (`BUI-DES-001`) |
+
+Trace `BUI-DEC-001`–`015`, `BUI-DES-001`–`012`. Tests: lihat
+`testing/acceptance-test-matrix.md` amendment revisi 1.6.

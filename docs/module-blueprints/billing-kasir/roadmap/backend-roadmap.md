@@ -2645,3 +2645,100 @@ Jumlah panah dependency: **7**, sama persis dengan isi kolom `Dependency` pada t
 | Menjalankan migration ke basis data | Diminta terpisah sesudah backup | Wajib konfirmasi eksplisit dari pengguna sesuai aturan keselamatan database |
 | Override tagihan invoice CLOSED | Supervisor Kasir / Kepala Kasir | Wajib otorisasi bisnis khusus dengan pencatatan audit log lengkap |
 
+
+---
+
+
+# Gelombang `MVP-30` — Revisi UI Billing: Perbaikan Logika Backend
+
+| Field | Nilai |
+| --- | --- |
+| Blueprint | `BIL-CASH-001` revisi `1.6` · status `draft` |
+| Masukan | `BUI-DEC-001`–`015` (approved 24 September 2026), `BUI-DES-001`–`002` (**`draft`, menunggu approval arsitektur owner terpisah dari approval bisnis**) |
+| Contract version berlaku | `BIL-API-1.5` (draft), `BIL-VALIDATION-1.4` (draft) — lihat catatan gerbang di bawah |
+| Backend baseline SHA | `505d8d78` |
+
+**Gerbang wajib sebelum task di gelombang ini dapat disetujui:** `BUI-DES-001` dan `BUI-DES-002`
+berstatus `draft` pada `blueprint-manifest.md` — approval arsitektur **belum** diberikan owner,
+terpisah dari 15 keputusan bisnis `BUI-DEC-*` yang sudah `approved`. Kedua task di bawah
+`BLOCKED` sampai approval itu turun. Ini **satu-satunya** gelombang backend pada revisi 1.6 —
+sebelas dari tiga belas keputusan bisnis murni frontend, nol dependency backend baru.
+
+## Grafik Urutan Dependency
+
+```mermaid
+flowchart TD
+    BE-BUI-001["⛔ BE-BUI-001<br/>Perbaikan Logika suggestedBillingStatus"]
+    BE-BUI-002["⛔ BE-BUI-002<br/>Field TransactionDate pada Refundable Items"]
+```
+
+Tidak ada panah — kedua task **independen satu sama lain**, menyentuh file berbeda
+(`BillingPayerEditService.cs` vs `BillingRefundService.cs`/`BillingRefundDtos.cs`), dapat
+dikerjakan paralel begitu keduanya disetujui.
+
+### Tabel Gelombang Eksekusi
+
+| Gelombang Eksekusi | Task | Dapat Berjalan Paralel? |
+| :---: | --- | --- |
+| 1 | ⛔ `BE-BUI-001`, ⛔ `BE-BUI-002` | **Ya** — nol dependency antar keduanya |
+
+Jumlah panah dependency: **0**. Bebas siklus.
+
+---
+
+## Tabel Task
+
+| Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| ⛔ `BE-BUI-001` | `suggestedBillingStatus` berubah aturan dari "satu item cukup" menjadi "seluruh item harus tercover" | `BUI-DEC-007`, `BUI-DEC-014`, `BUI-DES-001` | `BIL-API-1.5` (draft) — bentuk response TIDAK berubah, hanya nilainya | `BillingPayerEditService.cs` baris 118-147, seluruh struktur method dipertahankan | Ganti kondisi `anyItemCoveredByInsurance` (OR) menjadi `allItemsCoveredByInsurance` (AND) atas seluruh item aktif sebelum menentukan `suggestedBillingStatus`; `effectivePaymentType`/`PaymentMethodRow.IsSelected` mewarisi otomatis, tidak disentuh terpisah | — | Kasus 2 dari 5 item tercover → `suggestedBillingStatus == "CASH"` (**kasus penentu**, bukan kasus nol/seluruh yang sama di aturan lama); kasus nol item tercover tetap `"CASH"`; kasus seluruh item tercover tetap `"INSURANCE"` | Uji unit `BillingPayerEditServiceTests` tiga kasus (nol/sebagian/seluruh); regresi `GET /{id}/edit-context` bentuk response tidak berubah | **Bukan perubahan skema.** Satu-satunya risiko: lupa bahwa `effectivePaymentType` bergantung nilai ini — verifikasi eksplisit `PaymentMethodRow.IsSelected` ikut benar. Owner Backend | Kondisi baru teruji tiga kasus; nol perubahan bentuk DTO; QBE preflight PASS; **otorisasi arsitektur `BUI-DES-001` diberikan owner sebelum task disetujui** |
+| ⛔ `BE-BUI-002` | `BillingRefundableItemResponse` mendapat field `TransactionDate`, diisi dari data yang sudah dimuat | `BUI-DEC-012`, `BUI-DES-002` | `BIL-API-1.5` (draft) — perubahan **aditif, non-breaking** | `BillingRefundService.GetBillingRefundableItemsAsync` — `Include(x => x.Items)` yang sudah ada | Tambah properti `DateTime TransactionDate` pada `BillingRefundableItemResponse`; proyeksi diisi `item.CreateDateTime` (kolom `IdentityModel` yang sudah ada, nol migration) | — | Response `GET /{id}/refundable-items` memuat `TransactionDate` terisi untuk setiap baris; konsumen lama yang mengabaikan field ini tidak terpengaruh | Uji unit proyeksi; regresi bentuk response lama (field lama tidak hilang/berubah tipe) | **Nol migration.** Risiko satu-satunya: salah memetakan tanggal (memakai tanggal invoice, bukan tanggal item) — verifikasi eksplisit sumbernya `item.CreateDateTime`, bukan `invoice.CreateDateTime`. Owner Backend | Field baru teruji; nol migration dijalankan; QBE preflight PASS; **otorisasi arsitektur `BUI-DES-002` diberikan owner sebelum task disetujui** |
+
+---
+
+## Rincian Task
+
+### ⛔ `BE-BUI-001` — Perbaikan Logika `suggestedBillingStatus`
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Default status tagihan yang disarankan backend mengikuti aturan "seluruh item aktif harus tercover asuransi", bukan "satu item cukup" — menutup konflik yang ditemukan `/trace-existing-capabilities` (`01-existing-capability-map.md` bagian 23.4) |
+| Jejak | `BUI-DEC-007`, `BUI-DEC-014`, `BUI-DES-001` |
+| Contract | `BIL-API-1.5` (draft) — bentuk `InvoiceEditContextResponse` tidak berubah, hanya nilai `SuggestedBillingStatus` dan turunannya |
+| Kemampuan existing yang dipakai | `BillingPayerEditService.GetEditContextAsync`, `calculation.Breakdown.Items` (sumber `isCovered` per item, sudah ada) |
+| Cakupan yang diharapkan | Baris ~118-147 `BillingPayerEditService.cs`: variabel `anyItemCoveredByInsurance` diganti logika `allItemsCoveredByInsurance` yang mensyaratkan SELURUH `activeItems` bernilai `isCovered == true` sebelum `suggestedBillingStatus = "INSURANCE"`. Tidak ada perubahan pada `itemAssignments` per baris (nilai `PayerKind` per item tetap dihitung individual seperti sekarang) — HANYA nilai ringkasan `suggestedBillingStatus` yang berubah aturannya |
+| Dependency | Tidak ada |
+| Acceptance criteria | Tagihan 5 item, 2 tercover asuransi 3 tidak → `suggestedBillingStatus == "CASH"`; tagihan 5 item seluruhnya tercover → `"INSURANCE"`; tagihan 5 item nol tercover → `"CASH"`; pasien bukan payer `INSURANCE` (mis. `CASH` atau `COMPANY_GUARANTOR`) → nilai `currentPayer.PaymentType` apa adanya, tidak tersentuh perubahan ini |
+| Bukti verifikasi | Uji unit tiga kasus (sebagian/seluruh/nol) pada `BillingPayerEditServiceTests`; regresi manual `GET /{id}/edit-context` memastikan bentuk JSON response identik, hanya nilai yang berbeda pada kasus coverage sebagian |
+| Risiko | **Bukan perubahan skema/endpoint** — risiko murni logika. `PaymentMethodRow.IsSelected` dan `effectivePaymentType` KEDUANYA bergantung pada `suggestedBillingStatus` — verifikasi eksplisit keduanya ikut berubah benar, jangan hanya menguji variabel `suggestedBillingStatus` secara terisolasi |
+| Pemilik | Backend Engineering |
+| Definition of Done | Kondisi baru teruji tiga kasus; `PaymentMethodRow.IsSelected` diverifikasi ikut benar; nol perubahan bentuk DTO; QBE preflight PASS |
+| Status | Belum dimulai — `BLOCKED` menunggu approval arsitektur `BUI-DES-001` dari owner |
+
+---
+
+### ⛔ `BE-BUI-002` — Field `TransactionDate` pada Refundable Items
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Datatable pemilihan item refund pada frontend (`BUI-DES-011`) dapat menampilkan kolom "Tanggal" dari data yang sudah tersedia di backend, tanpa query tambahan |
+| Jejak | `BUI-DEC-012`, `BUI-DES-002` |
+| Contract | `BIL-API-1.5` (draft) — penambahan field aditif pada `BillingRefundableItemResponse` |
+| Kemampuan existing yang dipakai | `BillingRefundService.GetBillingRefundableItemsAsync`, `Include(x => x.Items)` yang sudah memuat `BilInvoiceItem` lengkap |
+| Cakupan yang diharapkan | Tambah properti `public DateTime TransactionDate { get; set; }` pada `BillingRefundableItemResponse` (`BillingRefundDtos.cs`); pada proyeksi `activeItems.Select(item => ...)` di `GetBillingRefundableItemsAsync`, isi `TransactionDate = item.CreateDateTime` |
+| Dependency | Tidak ada |
+| Acceptance criteria | `GET /{id}/refundable-items` mengembalikan `TransactionDate` terisi (bukan default/null) untuk setiap baris; nilainya sama dengan `CreateDateTime` baris `BilInvoiceItem` yang bersangkutan; field lama (`BillingItemId`, `ItemName`, `Qty`, `Amount`, `RefundableAmount`) tidak berubah bentuk maupun nilai |
+| Bukti verifikasi | Uji unit proyeksi; regresi memastikan konsumen lama (bila ada) tidak menerima error deserialisasi atas field baru |
+| Risiko | **Nol migration** — `CreateDateTime` sudah ada di database sejak tabel `BilInvoiceItem` dibuat lewat `IdentityModel`. Risiko murni salah pilih sumber tanggal — MUST `item.CreateDateTime`, bukan `invoice.CreateDateTime` (tanggal invoice dibuat berbeda dari tanggal item ditambahkan pada kasus entri manual belakangan) |
+| Pemilik | Backend Engineering |
+| Definition of Done | Field baru teruji; nol migration dijalankan; QBE preflight PASS |
+| Status | Belum dimulai — `BLOCKED` menunggu approval arsitektur `BUI-DES-002` dari owner |
+
+---
+
+## Wewenang yang Tetap Terpisah
+
+| Wewenang | Keterangan |
+| --- | --- |
+| Approval arsitektur `BUI-DES-001`/`002` | **BUKAN** bagian dari approval `BUI-DEC-001`–`015`. Owner MUST menyetujui keduanya secara eksplisit sebelum task `BE-BUI-001`/`002` boleh dimulai |
+| Migration | Tidak berlaku pada gelombang ini — nol migration di kedua task |
+| QBE preflight | Diselesaikan pada waktu eksekusi masing-masing task, dari `AGENTS.md` backend target — bukan dari roadmap ini |

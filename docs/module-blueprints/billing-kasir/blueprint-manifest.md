@@ -23,27 +23,29 @@ status_derivation_revision_1_5: >
   menunggu approval Product/Domain Owner sebelum diteruskan ke /plan-module-delivery.
 status_derivation_revision_1_6: >
   Revisi 1.6 (Revisi UI Billing: Filter, Default, Asuransi, Diskon Dokter, Refund) berstatus
-  `draft`. Business decisions BUI-DEC-001..013 approved 24 September 2026 (00-interview-decisions.md).
-  /trace-existing-capabilities dijalankan hari yang sama (01-existing-capability-map.md bagian 23,
-  CAP-BUI-01..13 pada backend SHA 505d8d78 / frontend SHA b3f45db7b).
-  TEMUAN PALING PENTING: CAP-BUI-05 dan CAP-BUI-12 ternyata SUDAH SEPENUHNYA DIBANGUN backend
-  (rumpun MPY-DES-* dan rumpun Refund) - frontend yang tertinggal, bukan backend yang kurang.
-  SATU CONFLICT NYATA ditemukan dan BELUM tertutup: BUI-DEC-007 (default status tagihan
-  "SELURUH item harus tercover") berbeda dari aturan yang SUDAH BERJALAN di
-  BillingPayerEditService.cs:145 ("SATU item tercover" sudah cukup) pada kasus coverage
-  SEBAGIAN. Empat closure question tercatat (BUI-CQ-02..06 pada capability map bagian 23.4),
-  dua di antaranya (BUI-CQ-02, BUI-CQ-03) MEMBLOKIR BUI-DEC-006 dan BUI-DEC-007 secara spesifik
-  - SEMBILAN keputusan lain (BUI-DEC-001..005, 008, 009 dengan scope dipersempit, 010 desainnya
-  saja, 011..013) TIDAK tertahan dan siap /design-business-module.
-  SUSULAN 24 September 2026: BUI-CQ-02 dan BUI-CQ-03 ditutup BUI-DEC-014 (aturan "seluruh item
-  tercover" DIPERTAHANKAN; perbaikan logika BillingPayerEditService.cs:145 DIOTORISASI sebagai
-  bagian pass ini - satu-satunya titik sentuh backend, murni kondisi, TANPA skema/endpoint
-  baru). BUI-CQ-04 ditutup BUI-DEC-015 (sumber data 3 tombol payment method = PaymentMethodRow
-  server, BUKAN BasePayerCategorySelector/categories).
-  TIDAK ADA LAGI closure question yang memblokir /design-business-module. BUI-CQ-05 (cakupan
-  Catatan Penting) dan BUI-CQ-06 (mekanisme upload memo dokter) tetap terbuka tapi TIDAK
-  memblokir - keduanya didesain dengan scope dipersempit/kontrak TBD.
-  Keputusan ARSITEKTUR (BUI-DES-*) BELUM ada; menyusul dari /design-business-module.
+  `draft`. Business decisions BUI-DEC-001..015 approved 24 September 2026
+  (00-interview-decisions.md). /trace-existing-capabilities dijalankan hari yang sama
+  (01-existing-capability-map.md bagian 23, CAP-BUI-01..13 pada backend SHA 505d8d78 /
+  frontend SHA b3f45db7b). TEMUAN PALING PENTING: CAP-BUI-05 dan CAP-BUI-12 ternyata SUDAH
+  SEPENUHNYA DIBANGUN backend (rumpun MPY-DES-* dan rumpun Refund) - frontend yang tertinggal,
+  bukan backend yang kurang. Satu conflict nyata ditemukan (BUI-DEC-007 vs logika
+  BillingPayerEditService.cs:145 yang berjalan) dan DITUTUP hari yang sama lewat BUI-DEC-014
+  (aturan "seluruh item tercover" DIPERTAHANKAN, perbaikan logika DIOTORISASI) dan BUI-DEC-015
+  (sumber data payment method = PaymentMethodRow server).
+  /design-business-module DISELESAIKAN hari yang sama. Keputusan ARSITEKTUR BUI-DES-001..012
+  approved (draft menunggu approval owner terpisah dari approval bisnis, lihat design_decision_status
+  di bawah). Seluruh 13 berkas kanonik ada: 02-backend-architecture.md,
+  03-frontend-architecture.md, kelima contracts/*.md, erd/data-dictionary.md,
+  testing/acceptance-test-matrix.md, dan 04-prd-to-mvp.md (EPIC BUI-01, FR-BUI-001..013)
+  masing-masing mendapat amendment revisi 1.6.
+  NOL MIGRATION pada seluruh revisi ini. Satu-satunya titik sentuh backend: BUI-DES-001
+  (perbaikan kondisi, bukan skema) dan BUI-DES-002 (satu field response aditif). Dua belas dari
+  tiga belas keputusan bisnis murni frontend.
+  DUA FR ditandai OPEN DECISION dan TIDAK boleh masuk gelombang pengiriman: FR-BUI-009 (Catatan
+  Penting, BUI-CQ-05) dan FR-BUI-010 (upload memo dokter, BUI-CQ-06 - menyalakan validasi wajib
+  tanpa endpoint upload akan MENGUNCI alur diskon dokter yang sedang berjalan, dicatat eksplisit
+  di 04-prd-to-mvp.md amendment revisi 1.6). Sebelas FR lain (FR-BUI-001..008, 011..013) SIAP
+  /plan-module-delivery, dibagi 4 gelombang (MVP-30..33) pada 04-prd-to-mvp.md.
 status_derivation_revision_1_3: >
   Revisi 1.3 (Penutupan gap FINAL->CLOSED) kini `approved` SEPENUHNYA. Keputusan BISNIS
   (BKC-DEC-100-105) dan keputusan ARSITEKTUR (BKC-DES-028-035) seluruhnya disetujui Product/Domain
@@ -416,6 +418,15 @@ design_decision_status_petty_cash_revision_1_2: >
     PC-DES-014 SUPERSEDED oleh PC-DES-017 (kolam statis HOSPITAL_MAIN menjadi baris periode).
   PC-DES-001, 002, 004, 006, 007, 008, 009, 010, 011, 012 TETAP BERLAKU apa adanya.
 design_decision_ids_multi_payer: [MPY-DES-001, MPY-DES-002, MPY-DES-003, MPY-DES-004, MPY-DES-005, MPY-DES-006, MPY-DES-007, MPY-DES-008, MPY-DES-009, MPY-DES-010, MPY-DES-011, MPY-DES-012, MPY-DES-013, MPY-DES-014, MPY-DES-015, MPY-DES-016, MPY-DES-017]
+design_decision_ids_billing_ui: [BUI-DES-001, BUI-DES-002]
+design_decision_status_billing_ui: >
+  BUI-DES-001 (perbaikan logika suggestedBillingStatus) dan BUI-DES-002 (field TransactionDate
+  aditif) berstatus `draft`, menunggu approval owner TERPISAH dari approval BUI-DEC-001..015 —
+  lapisan bisnis dan lapisan arsitektur, sebagaimana pola yang berlaku di seluruh blueprint ini.
+  BUI-DES-001 adalah SATU-SATUNYA titik sentuh backend pada revisi 1.6 dan menjadi gerbang bagi
+  MVP-32 (04-prd-to-mvp.md) - FR-BUI-006/007 menampilkan default yang salah tanpa ini.
+  Sebelas keputusan bisnis lain (BUI-DEC-001..005, 008, 011..013) TIDAK memerlukan keputusan
+  arsitektur tersendiri - desainnya murni pemetaan ke kontrak backend yang sudah ada apa adanya.
 design_decision_status_multi_payer: >
   MPY-DES-001-017: seluruhnya `approved` 11 September 2026 lewat MPY-DEC-012 (Product/Domain
   Owner, wewenang ganda Finance/AR BKC-DEC-085, "Sayapun setuju"). Persetujuan pemilik
@@ -466,13 +477,23 @@ superseded_design_decisions:
 narrowed_design_decisions:
   BKC-DES-013: dipersempit dua kali (BUKAN digugurkan). Revisi 0.8 (BKC-DES-021): makna UnresolvedAmount menyisakan jalur rule NotCovered + IsAllowExcessPaymentByPatient=false saja; residual perhitungan pindah ke NonBillableResidualAmount. Revisi 0.9 (BKC-DES-026/027, approved 5 Sep 2026): dipersempit lagi menjadi NOL jalur — UnresolvedAmount selalu 0 pada versi kalkulasi baru; field/kolomnya tetap dipertahankan sebagai bukti perhitungan versi lama
 contract_versions:
-  api: BIL-API-1.4 (draft, revisi 1.5 — tiga endpoint baru [Tags("BillingInpatientIntegration")] untuk sewa kamar, ringkasan ranap, dan evaluasi ulang clearance) atas BIL-API-1.3
-  state: BIL-STATE-1.3 (draft, revisi 1.5 — siklus hidup kelayakan pemulangan ranap PENDING/BLOCKED/CLEARED/REVOKED dan auto-reblock saat late charge) atas BIL-STATE-1.2
-  validation: BIL-VALIDATION-1.3 (draft, revisi 1.5 — BIL-VAL-118-126; jam masuk bertingkat, transfer kamar pro-rata, admin fee 7% cap Rp6jt, deposit 100% ekses) atas BIL-VALIDATION-1.2
-  integration: BIL-INTEGRATION-1.2 (draft, revisi 1.5 — BIL-INT-015 room stay event, BIL-INT-016 clearance handoff & auto-reblock, BIL-INT-017 konsolidasi alihan IGD) atas BIL-INTEGRATION-1.1
-  permission: BIL-PERMISSION-1.2 (draft, revisi 1.5 — Resource BillingInpatient: Read, Clearance) atas BIL-PERMISSION-1.1
-  testing: BIL-TEST-1.4 (draft, revisi 1.5 — BIL-AT-143-152 skenario integrasi rawat inap dan clearance handoff) atas BIL-TEST-1.3
-  calculation: BIL-CALCULATION-0.9 — TIDAK BERGERAK pada revisi 1.5 (perhitungan sewa kamar dan admin fee ditangani service spesifik)
+  api: BIL-API-1.5 (draft, revisi 1.6 — nol endpoint baru; satu field response BillingRefundableItemResponse.TransactionDate ditambahkan, aditif non-breaking) atas BIL-API-1.4
+  state: BIL-STATE-1.4 (draft, revisi 1.6 — nol mesin status baru, nol transisi baru; RefundCategory adalah atribut pemilihan sumber, bukan status) atas BIL-STATE-1.3
+  validation: BIL-VALIDATION-1.4 (draft, revisi 1.6 — BUI-VAL-01-07: memo dokter wajib, sumber refund, batas sisa deposito, filter tanggal, default status coverage) atas BIL-VALIDATION-1.3
+  integration: BIL-INTEGRATION-1.2 — TIDAK BERGERAK pada revisi 1.6 (nol integrasi sistem luar atau lintas bounded context baru; Catatan Penting lintas modul sengaja TIDAK didesain, BUI-CQ-05)
+  permission: BIL-PERMISSION-1.2 — TIDAK BERGERAK pada revisi 1.6 (nol Resource baru, nol Action baru; tombol yang berpindah lokasi memakai butir akses yang sama persis dengan lokasi lama)
+  testing: BIL-TEST-1.5 (draft, revisi 1.6 — UAT-BUI-01-14 skenario revisi UI Billing, termasuk kasus penentu coverage sebagian) atas BIL-TEST-1.4
+  calculation: BIL-CALCULATION-0.9 — TIDAK BERGERAK pada revisi 1.6 (tidak tersentuh amendment ini)
+contract_versions_note_revision_1_6: >
+  Revisi 1.6 (24 September 2026, Revisi UI Billing) menaikkan TIGA dari tujuh sumbu (api, state,
+  validation, testing — empat sebenarnya, lihat di bawah), DUA sumbu TIDAK bergerak (integration,
+  permission) dengan alasan tercatat eksplisit di masing-masing berkas kontrak, dan SATU sumbu
+  (calculation) tetap tidak tersentuh seperti revisi-revisi sebelumnya.
+  Nol migration pada seluruh revisi ini — satu-satunya perubahan backend adalah perbaikan LOGIKA
+  (BUI-DES-001, kondisi suggestedBillingStatus) dan SATU field response aditif (BUI-DES-002).
+  Nilai revisi 1.5 (Pass B Integrasi Rawat Inap) di atas TETAP `draft`, TIDAK ikut naik oleh
+  amendment ini — keduanya berjalan paralel dan independen, sebagaimana dicatat
+  00-interview-decisions.md status_derivation_revision_1_6.
 contract_versions_note_revision_1_4: >
   Enam dari tujuh sumbu naik pada revisi 1.4; sumbu calculation TIDAK bergerak dan berkasnya
   TIDAK disunting, sesuai aturan bahwa file contract yang isinya tidak bergerak MUST NOT disunting

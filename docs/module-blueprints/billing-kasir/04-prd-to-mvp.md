@@ -2683,3 +2683,123 @@ Modul Rawat Inap (Pass A, `RWI-DEC-156`–`162`) telah menyetujui kontrak operas
 **Seluruh pertanyaan terbuka telah ditutup.** Dokumen ini siap diteruskan ke tahap perencanaan pengiriman modul (`plan-module-delivery`) setelah approval resmi.
 
 
+
+---
+
+# Amendment 24 September 2026 — Revisi UI Billing: Filter, Default, Asuransi, Diskon Dokter, Refund
+
+Masukan `BUI-DEC-001`–`015`, `BUI-DES-001`–`012`. Status **draft**.
+
+## Masalah produk
+
+Modul Billing sudah berjalan, tetapi tiga kelompok masalah nyata teridentifikasi dari
+permintaan owner dan diverifikasi langsung ke kode:
+
+| Yang terjadi | Bukti | Kerugiannya |
+|---|---|---|
+| Kasir membuka layar Billing dan melihat seluruh riwayat invoice, bukan pekerjaan hari ini | `BillingInvoiceQuery` sudah mendukung filter, tapi frontend tidak memakainya sebagai default | Waktu terbuang menyaring manual tiap kali layar dibuka |
+| Status tagihan pasien Allianz dengan coverage sebagian salah tersorot sebagai default | `BillingPayerEditService.cs:145` memakai aturan "satu item cukup", bukan "seluruh item" yang dikehendaki owner | Risiko piutang salah klasifikasi — sudah berjalan di produksi sebelum amendment ini, bukan risiko baru yang diciptakan |
+| Modal Ajukan Refund tidak bisa memilih item atau sumber dana secara eksplisit | Backend (`CreateRefundRequest.RefundCategory`, `SelectedBillingItemIds`) sudah mendukung sejak sebelumnya, frontend belum pernah memakainya | Kasir mengetik nominal manual tanpa jejak item yang direfund |
+
+## Batas rilis
+
+| Batas | Isi |
+|---|---|
+| Titik mulai | `BUI-DES-001` (backend, perbaikan logika `suggestedBillingStatus`) diterapkan sebagai gerbang; sisanya murni frontend, dapat dimulai begitu desain ini disetujui |
+| Titik akhir | `FR-BUI-001`–`008`, `011`–`013` berfungsi penuh dan lulus UAT masing-masing |
+| Di luar batas | `FR-BUI-009` (Catatan Penting) dan mekanisme upload sesungguhnya pada `FR-BUI-010` — keduanya `OPEN DECISION`, lihat bagian Kemampuan yang Ditunda |
+
+## `EPIC BUI-01` — Revisi UI Billing: Filter, Default, Asuransi, Diskon Dokter, Refund
+
+| FR | Kemampuan | Disposisi |
+|---|---|---|
+| `FR-BUI-001` | Filter Tanggal Awal/Akhir pada layar Billing | `EXTEND` |
+| `FR-BUI-002` | Default invoice hari ini status `OPEN` saat layar dibuka | `EXTEND` |
+| `FR-BUI-003` | Label "Drug" diganti "Obat / Medicine" pada seluruh tampilan | `EXTEND` |
+| `FR-BUI-004` | Daftar perbandingan penjamin hanya menampilkan penyedia asuransi | `EXTEND` |
+| `FR-BUI-005` | Asuransi aktif pasien dikecualikan dari daftar pembanding | `EXISTING / REUSE` — sudah berjalan, `CAP-BUI-05` |
+| `FR-BUI-006` | Payment method tiga tombol satu baris horizontal, sumber `PaymentMethodRow` | `EXTEND` |
+| `FR-BUI-007` | Default status tagihan "Asuransi" hanya bila SELURUH item tercover | `EXTEND` — bergantung `BUI-DES-001` (backend) |
+| `FR-BUI-008` | Card Billing dan Card Status Tagihan dirapikan (compact, datatable naik) | `EXTEND` |
+| `FR-BUI-009` | Catatan Penting berbentuk timeline lintas tahap kunjungan | `OPEN DECISION` — `BUI-CQ-05` |
+| `FR-BUI-010` | Upload Memo Dokter TTD wajib sebelum submit diskon dokter | `OPEN DECISION` — lihat catatan di bawah |
+| `FR-BUI-011` | Field/card/kalkulasi refundable credit dihilangkan dari tampilan | `EXTEND` |
+| `FR-BUI-012` | Modal Ajukan Refund dua sumber (Billing multi-select / Deposito otomatis) | `EXTEND` |
+| `FR-BUI-013` | Tombol Refund/Adjustment/Write-Off dipindah ke Riwayat Pembayaran | `EXTEND` |
+
+**Catatan penting soal `FR-BUI-010`:** validasi "memo wajib" (`BUI-VAL-01`) sendiri SUDAH bisa
+dibangun (`EXTEND`, komponen upload siap per `03-frontend-architecture.md` bagian 8). Yang
+membuat FR ini berstatus `OPEN DECISION` secara keseluruhan adalah **endpoint upload
+sesungguhnya belum ada** (`BUI-CQ-06`). Ini bukan sekadar "belum lengkap" — **menyalakan
+validasi wajib tanpa endpoint upload akan MENGUNCI seluruh alur pengajuan diskon dokter yang
+SUDAH BERJALAN**, karena dokter tidak akan pernah bisa mengunggah memo apa pun. `FR-BUI-010`
+MUST NOT masuk gelombang pengiriman sampai `BUI-CQ-06` terjawab dan endpoint upload berdiri.
+
+### Kemampuan yang Ditunda
+
+| Ditunda | Alasan bersebab | Pengganti selama MVP |
+|---|---|---|
+| `FR-BUI-009` — Catatan Penting | Tidak ada satu pun endpoint yang mengonsolidasikan note pasien lintas tahap kunjungan (Kiosk/Admisi/IGD/Rawat Inap); mewujudkannya menuntut kemampuan backend baru lintas bounded context, di luar wewenang desain Billing murni (`BUI-CQ-05`) | **Tidak ada yang hilang** — kemampuan ini belum pernah ada sebelumnya, bukan pengurangan dari yang sudah berjalan |
+| `FR-BUI-010` — Upload Memo Dokter TTD (endpoint) | Mekanisme upload belum diputuskan (`BUI-CQ-06`); menyalakannya tanpa endpoint akan mengunci alur yang sedang berjalan | Alur pengajuan diskon dokter **tetap berjalan seperti sekarang** (tanpa memo wajib) sampai endpoint ada — validasi wajib baru dinyalakan bersamaan dengan endpoint-nya, bukan lebih dulu |
+
+## Skenario UAT
+
+### Jalur berhasil
+
+| ID | Skenario | Hasil yang diharapkan |
+|---|---|---|
+| `UAT-BUI-01` | Layar Billing dibuka tanpa filter | Invoice hari ini, status `OPEN`, tampil sebagai default |
+| `UAT-BUI-02` | Filter tanggal diterapkan | Data tergantikan sesuai rentang, default hari ini tidak lagi berlaku |
+| `UAT-BUI-03` | Modal perbandingan asuransi dibuka | Hanya penyedia asuransi yang tampil sebagai kandidat |
+| `UAT-BUI-04` | Pasien Allianz, seluruh item tercover, buka Edit Status Tagihan | Default "Asuransi" tersorot |
+| `UAT-BUI-05` | Tiga tombol payment method dirender | Tersusun satu baris horizontal, label dan status terpilih dari `PaymentMethodRow` |
+| `UAT-BUI-06` | Modal refund, sumber "Billing", dua item dicentang | Total otomatis terhitung, kolom Tanggal terisi |
+| `UAT-BUI-07` | Modal refund, sumber "Deposito" dipilih | Nominal otomatis terisi sisa deposito |
+| `UAT-BUI-08` | Tombol aksi pada Riwayat Pembayaran diklik | Modal yang sama seperti sebelumnya terbuka, alur persetujuan tidak berubah |
+
+### Jalur gagal
+
+| ID | Skenario | Hasil yang diharapkan |
+|---|---|---|
+| `UAT-BUI-09` | Pasien Allianz, coverage SEBAGIAN (2 dari 5 item), buka Edit Status Tagihan | Default "Pribadi" tersorot — **ini kasus penentu yang membuktikan `BUI-DES-001` benar**, bukan kasus nol/seluruh yang sama di kedua aturan lama-baru |
+| `UAT-BUI-10` | Filter tanggal akhir sebelum tanggal awal | Ditolak sebelum request terkirim, pesan `BUI-VAL-06` |
+| `UAT-BUI-11` | Modal refund sumber "Billing", submit tanpa item dicentang | Ditolak `BUI-VAL-03` |
+| `UAT-BUI-12` | Modal refund sumber "Deposito", sisa deposito Rp 0 | Nominal Rp 0, submit ditolak (`BUI-VAL-05`, nominal harus > 0) |
+| `UAT-BUI-13` | Halaman Menu Pembayaran diperiksa setelah amendment | Tombol Refund/Adjustment/Write-Off **tidak lagi tampil** di sana |
+| `UAT-BUI-14` | Kolom "Kwitansi" existing pada Riwayat Pembayaran diperiksa | Perilaku cetak struk tidak berubah setelah kolom Aksi ditambahkan |
+
+## Definition of Done
+
+| Butir | Dapat dijawab | Bukti |
+|---|---|---|
+| `BUI-DES-001` (backend) diterapkan dan teruji dengan kasus coverage sebagian | Ya / Belum | `UAT-BUI-09` |
+| Filter dan default Billing berfungsi | Ya / Belum | `UAT-BUI-01`, `UAT-BUI-02` |
+| Label Drug/Obat tersisir menyeluruh, termasuk di luar `components/view` dan `app` | Ya / Belum | Regresi visual/snapshot penuh |
+| Payment method horizontal memakai `PaymentMethodRow`, bukan `BasePayerCategorySelector` | Ya / Belum | `UAT-BUI-05` |
+| Refundable credit lama tidak tampil di layar mana pun | Ya / Belum | Regresi visual |
+| Modal refund dua sumber berfungsi penuh, termasuk jalur gagal | Ya / Belum | `UAT-BUI-06`, `07`, `11`, `12` |
+| Tombol aksi berpindah tanpa mengubah wewenang | Ya / Belum | `UAT-BUI-08`, `13`; uji hak akses `permission-audit-matrix.md` |
+| Kolom Kwitansi existing tidak rusak | Ya / Belum | `UAT-BUI-14` |
+| Nol migration dijalankan | Ya / Belum | Diff migration kosong |
+
+## Urutan pengiriman
+
+| Gelombang | Isi | Prasyarat |
+|---|---|---|
+| `MVP-30` | `BUI-DES-001` — perbaikan logika backend `suggestedBillingStatus` | Approval desain ini; **gerbang untuk `MVP-32`** |
+| `MVP-31` | `FR-BUI-001`, `002`, `003`, `008`, `013` — filter/default Billing, label, card compact, pindah tombol aksi | `MVP-30` tidak diperlukan untuk gelombang ini — dapat paralel |
+| `MVP-32` | `FR-BUI-004`, `005`, `006`, `007` — perbandingan asuransi, payment method, default status | `MVP-30` **selesai lebih dulu** — tanpa ini `FR-BUI-006`/`007` menampilkan default yang salah |
+| `MVP-33` | `FR-BUI-011`, `012` — modal refund dua sumber (memakai `BUI-DES-002`, field `TransactionDate`); refundable credit lama tergantikan sebagai bagian PENGGANTIAN modal ini, bukan task tersendiri (`03-frontend-architecture.md` bagian 9.1) | `BUI-DES-002` (backend, aditif nol migration) diterapkan |
+| **Tertahan** | `FR-BUI-009` (Catatan Penting) | `BUI-CQ-05` terjawab |
+| **Tertahan** | `FR-BUI-010` (upload memo dokter) | `BUI-CQ-06` terjawab **dan** endpoint upload berdiri |
+
+## Pertanyaan terbuka sebelum development lock
+
+| ID | Pertanyaan | Memblokir? | Penjawab |
+|---|---|---|---|
+| `BUI-CQ-05` | Cakupan sumber data Catatan Penting — dipersempit atau tetap lintas modul penuh | **Tidak** — `MVP-30`..`33` berjalan penuh tanpanya | Yasmin |
+| `BUI-CQ-06` | Mekanisme upload memo dokter — baru khusus Billing atau reuse mekanisme umum | **Tidak** untuk `MVP-30`..`33`; **Ya** untuk `FR-BUI-010` secara spesifik | Backend Owner |
+
+Keduanya **bukan** `OPEN DECISION` pada tingkat epic secara keseluruhan. `EPIC BUI-01` — kecuali
+dua FR yang eksplisit ditandai `OPEN DECISION` di atas — siap diteruskan ke
+`/plan-module-delivery` begitu desain ini disetujui.

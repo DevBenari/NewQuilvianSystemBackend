@@ -504,3 +504,20 @@ Kolom Sensitif: Payload audit log **MUST NOT** memuat nama lengkap pasien, NIK, 
 
 Trace `BKC-DEC-112`–`122`, `BKC-DES-042`–`050`, `BIL-API-1.4`, `BIL-PERMISSION-1.2`.
 
+
+
+# Amendment 24 September 2026 — Revisi UI Billing (Revisi 1.6, `BIL-PERMISSION-1.3`)
+
+Status: `draft`. **Nol butir `[AccessPermission]` baru.** Seluruh endpoint yang dipakai
+(`BUI-DEC-001`–`015`) sudah ada beserta hak aksesnya masing-masing — lihat
+`contracts/api-contract.md` amendment revisi 1.6, kolom "Hak akses". Amendment ini tidak
+menambah resource baru maupun action baru.
+
+Satu klarifikasi yang MUST ditegaskan saat implementasi: tombol Refund/Adjustment/Write-Off
+yang berpindah lokasi tampilan (`BUI-DEC-013`, dari Menu Pembayaran ke Riwayat Pembayaran)
+**tetap memakai butir akses yang sama persis** yang sudah melekat pada aksi itu di lokasi lama
+— perpindahan lokasi tampilan **bukan** perpindahan wewenang. Peran yang sebelumnya bisa
+mengajukan refund di Menu Pembayaran MUST tetap bisa (dan hanya bisa, tidak lebih) mengajukan
+refund di Riwayat Pembayaran.
+
+Trace `BUI-DEC-013`.

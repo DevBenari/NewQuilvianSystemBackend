@@ -1343,3 +1343,328 @@ Pada layar rincian pembayaran rawat inap (`menu-pembayaran-view.jsx`), ditambahk
 
 Trace `BKC-DEC-112`–`119`, `BKC-AC-080`–`087`, `BKC-DES-042`–`050`.
 
+
+
+# Amendment 24 September 2026 — Revisi UI Billing: Filter, Default, Asuransi, Diskon Dokter, Refund (Revisi 1.6)
+
+| Field | Nilai |
+|---|---|
+| Basis keputusan | `00-interview-decisions.md` — `BUI-DEC-001`–`015` |
+| Basis bukti | `01-existing-capability-map.md` bagian 23 |
+| Backend yang dipakai | `02-backend-architecture.md` — amendment revisi 1.6 (`BUI-DES-001`, `002`) |
+| Sifat | **Pertahankan component existing, ubah hanya bagian yang diperlukan** — instruksi eksplisit owner |
+
+Hierarki wewenang yang dipakai di seluruh amendment ini:
+`security/privacy/invariant → keputusan bisnis owner (BUI-DEC-*) → konvensi project → DEV_DISCRETION`.
+
+## 1. Peta Layar yang Disentuh
+
+| Layar | File | Keputusan yang berlaku |
+|---|---|---|
+| Daftar Billing | `billing-invoices-view.jsx` (via `billing-invoices-client.jsx`) | `BUI-DES-005` |
+| Edit Asuransi | `edit-asuransi-panel.jsx` (di dalam `edit-tagihan-view.jsx`) | `BUI-DES-003`, `BUI-DES-004` |
+| Edit Status Tagihan | `edit-tagihan-view.jsx` (blok `payerKindChoices`) | `BUI-DES-003` (nilai default ikut `BUI-DES-001` backend) |
+| Card Billing & Status Tagihan | Komponen kartu ringkasan pada `edit-tagihan-view.jsx`/layar invoice | `BUI-DES-007` |
+| Catatan Penting | Baru — lokasi ditentukan `DEV_DISCRETION` saat implementasi | `BUI-DES-008` (`OPEN DECISION` sumber data) |
+| Form Diskon Dokter (Apply Discount) | `menu-pembayaran-view.jsx` | `BUI-DES-009` |
+| Terminologi Drug/Obat | `edit-tagihan-view.jsx` + penyisiran ulang menyeluruh | `BUI-DES-006` |
+| Modal Ajukan Refund | `create-refund-modal.jsx` | `BUI-DES-010`, `BUI-DES-011` |
+| Menu Pembayaran (sumber tombol aksi) | `menu-pembayaran-view.jsx`, `billing-financial-exception-panel.jsx` | `BUI-DES-012` |
+| Riwayat Pembayaran (target tombol aksi) | `payment-history-view.jsx` | `BUI-DES-012` |
+
+## 2. `BUI-DES-003` — Payment Method: Sumber Data dan Layout
+
+**Sumber data (`BUI-CQ-04` tertutup `BUI-DEC-015`):** `PaymentMethodRow[]` dari response
+`GET /{id}/edit-context`, **bukan** `panel.categories` (hook `useEditAsuransiPanel`).
+
+**Kontrak data yang dipakai:**
+
+| Field | Tipe | Kegunaan |
+|---|---|---|
+| `Code` | `"CASH" \| "INSURANCE" \| "COMPANY_GUARANTOR"` | Kunci tombol |
+| `Label` | `string` | Teks tombol — sudah Indonesia ("Tunai", "Asuransi", "Penjamin Perusahaan") |
+| `IsSelected` | `bool` | Menentukan tombol mana yang tersorot — mengikuti `BUI-DES-001` otomatis |
+| `IsEnabled` | `bool` | Menentukan tombol dapat diklik atau tidak |
+
+**Layout (`BUI-DEC-006`):** Komponen baru `EditAsuransiPaymentMethodRow` (nama sementara,
+`DEV_DISCRETION`) merender ketiga baris `PaymentMethodRow` sebagai grid/flex **3 kolom** dalam
+satu baris. **Bukan** memodifikasi `.categorySelector` pada `base-payer-workspace.module.css`
+(grid 2 kolom yang sudah ada) — komponen itu tetap dipakai apa adanya untuk keperluan aslinya
+(memilih kandidat perbandingan, lihat bagian 3), sesuai batas `BUI-DEC-015`.
+
+**Yang MUST NOT terjadi:**
+- Frontend MUST NOT menghitung ulang "item mana yang tercover" sendiri untuk menentukan tombol
+  terpilih. `IsSelected` dibaca apa adanya.
+- Klik tombol MUST tetap memicu alur simpan yang sudah ada (`PUT /{id}/payment-source`) —
+  amendment ini tidak mengubah cara penyimpanan, hanya cara tampil dan sumber nilai default.
+
+## 3. `BUI-DES-004` — Filter Perbandingan Asuransi
+
+**Target:** blok `optionsForSelectedCategory` pada `edit-asuransi-panel.jsx`, saat
+`selectedCategory === "INSURANCE"`.
+
+**Aturan filter (`BUI-DEC-004`):** dari `AvailablePayerOptions` (sudah dikembalikan lengkap oleh
+backend, sudah mengecualikan asuransi aktif pasien per `BUI-DEC-005`/`CAP-BUI-05`), tampilkan
+**hanya** baris dengan `PayerType === "INSURANCE"`.
+
+```text
+Sebelum filter: [CASH, INSURANCE(Prudential), INSURANCE(AXA), COMPANY_GUARANTOR(PT Maju)]
+Sesudah filter (kategori "Asuransi" dipilih): [Prudential, AXA]
+```
+
+**Catatan penting:** filter ini HANYA berlaku pada tampilan **daftar kandidat perbandingan**.
+Kategori `CASH` dan `COMPANY_GUARANTOR` **tetap ada** sebagai pilihan `selectedCategory` itu
+sendiri pada `BasePayerCategorySelector` (mengganti penjamin ke Tunai atau ke Penjamin
+Perusahaan tetap mungkin) — yang disaring hanya isi daftar KETIKA kategori Asuransi yang
+sedang aktif dipilih, sesuai batas yang dicatat `BUI-DEC-004`.
+
+`BUI-DEC-005` **tidak butuh perubahan kode apa pun** — backend sudah mengecualikan asuransi
+aktif sebelum data sampai ke frontend (`CAP-BUI-05`).
+
+## 4. `BUI-DES-005` — Filter Tanggal dan Default Data Billing
+
+**Endpoint:** `GET /invoices` (sudah ada), parameter `StartDate`, `EndDate`, `Status` (sudah ada
+pada `BillingInvoiceQuery`).
+
+**State awal (`BUI-DEC-002`):**
+
+```js
+{ startDate: today(), endDate: today(), status: "OPEN" }
+```
+
+Nilai ini MUST menjadi query pertama yang dikirim saat layar dibuka — **bukan** query kosong
+yang lalu difilter di klien.
+
+**Komponen filter (`BUI-DEC-001`):** dua input tanggal ditambahkan pada baris filter yang sudah
+ada di `billing-invoices-view.jsx`, mengikuti pola komponen filter tanggal yang sudah dipakai
+layar Billing lain di modul ini (`DEV_DISCRETION` untuk komponen tanggal persisnya — date picker
+yang sudah dipakai project, bukan komponen baru).
+
+**Perilaku:** mengubah filter tanggal MUST menggantikan default hari ini (bukan menambahkannya),
+sesuai `BUI-DEC-002`.
+
+## 5. `BUI-DES-006` — Penggantian Label Drug → Obat / Medicine
+
+Cakupan (`BUI-DEC-003`, dengan `Assumption` yang dicatat di sana): label UI saja.
+
+| Lokasi ditemukan pass ini | Tindakan |
+|---|---|
+| `edit-tagihan-view.jsx` | Ganti string "Drug" → "Obat / Medicine" |
+
+**MUST disisir ulang saat implementasi** (di luar cakupan pencarian pass trace yang hanya
+menyisir `components/view` dan `app` dengan word-boundary): `hooks/`, `utils/`, konstanta
+label lain, placeholder form, judul kolom tabel yang mungkin memakai string "Drug" dalam bentuk
+lain (mis. dalam template literal atau i18n key) yang tidak tertangkap pencarian kata utuh.
+
+**Yang MUST NOT berubah:** nilai data master obat (`DrugName`/nama obat pada
+`MstDrug`/`DrugBillingDispositionItemResponse`) — field-field itu adalah IDENTIFIER kode, bukan
+teks tampilan, dan tetap dipetakan apa adanya dari backend (`DrugName`, `MedicineName`, `Obat`
+tiga alias yang sudah tersedia di `DrugBillingDispositionItemResponse` — frontend bebas memilih
+alias mana yang dipakai untuk merender, ketiganya bernilai sama).
+
+## 6. `BUI-DES-007` — Card Billing dan Card Status Tagihan Compact
+
+Murni tata letak. Tidak ada perubahan data, endpoint, atau state. Kebutuhan:
+
+| Kebutuhan | Detail |
+|---|---|
+| Kurangi whitespace | `DEV_DISCRETION` — padding/margin komponen kartu existing |
+| Datatable naik ke atas | Urutan render dalam kartu diubah; komponen tabel itu sendiri (`BillingInvoiceItemsTable`) **dipakai ulang apa adanya**, tidak dibuat ulang |
+| Responsive dipertahankan | MUST diuji pada breakpoint mobile/tablet/desktop yang sudah jadi standar project |
+
+## 7. `BUI-DES-008` — Catatan Penting: Container Siap, Sumber Data `OPEN DECISION`
+
+**Status: sebagian desain, `BUI-CQ-05` belum tertutup.** Bagian ini TIDAK memblokir sisa
+amendment — `BUI-DEC-009` boleh masuk gelombang implementasi belakangan setelah `BUI-CQ-05`
+dijawab, gelombang lain berjalan tanpa menunggunya.
+
+**Yang DIDESAIN sekarang:** kontrak komponen presentasi (bentuk data yang diterimanya), bukan
+sumber datanya.
+
+```js
+// Kontrak komponen — bentuk data yang DIHARAPKAN, sumber pengisinya belum diputuskan
+{
+  timelineEntries: [
+    { stage: "KIOSK", label: "Kiosk", timestamp, note },
+    { stage: "ADMISI", label: "Admisi", timestamp, note },
+    { stage: "IGD", label: "IGD", timestamp, note },
+    { stage: "RAWAT_INAP", label: "Rawat Inap", timestamp, note },
+  ]
+}
+```
+
+**Yang TIDAK didesain sekarang, dan sebabnya (lihat `02-backend-architecture.md` bagian 8):**
+tidak ditemukan satu pun endpoint yang mengonsolidasikan note pasien lintas tahap kunjungan.
+Mewujudkannya sesuai spesifikasi literal (Kiosk→Admisi→IGD→Rawat Inap dalam satu timeline)
+menuntut kemampuan backend baru yang melintasi bounded context di luar Billing — di luar batas
+scope yang dikunci `00-interview-decisions.md` untuk pass ini.
+
+**Rekomendasi untuk `BUI-CQ-05`:** desain lanjutan (di luar amendment ini) sebaiknya menunggu
+`hospital-domain-architect` bila cakupan penuh (lintas modul) yang dikehendaki, ATAU
+dipersempit ke sumber yang sudah ada per modul (mis. hanya note dari encounter Billing sendiri
+bila ada) sebagai langkah pertama yang lebih kecil.
+
+## 8. `BUI-DES-009` — Upload Memo Dokter TTD
+
+**Field yang dipakai:** `ApplyDiscountRequest.DoctorDiscountMemoFile` (`string?`, sudah ada,
+belum pernah dikonsumsi frontend).
+
+**Validasi wajib (`BUI-DEC-010`):**
+
+| Aturan | Lapis |
+|---|---|
+| Tombol submit form Apply Discount MUST nonaktif/tertolak selama `DoctorDiscountMemoFile` kosong | Frontend, `BUI-VAL-01` (lihat `contracts/validation-matrix.md`) |
+| Pesan yang ditampilkan: "Memo Dokter TTD wajib diunggah sebelum pengajuan diskon dapat dikirim." | Frontend |
+
+**Komponen upload:** adaptasi dari pola `UploadPhotoField.jsx`
+(`src/components/features/UplodFoto/`) — **dipakai ulang strukturnya** (file input + preview +
+tombol hapus + integrasi `react-hook-form`), **bukan** dipakai langsung (komponen sumber
+khusus gambar JPG/PNG dengan fitur webcam yang tidak relevan di sini). Komponen baru
+`DoctorDiscountMemoUpload` (nama sementara) MUST:
+
+- Menerima tipe file dokumen memo (PDF dan/atau gambar hasil pindai — `DEV_DISCRETION` tipe
+  MIME persis, mengikuti konvensi upload dokumen lain di project bila ada preseden)
+- Preview: nama file + ikon/thumbnail, bukan wajib render gambar penuh
+- Tombol Hapus: mengosongkan nilai field, mengembalikan form ke keadaan tervalidasi wajib
+
+**Status: `BUI-CQ-06` belum tertutup — mekanisme UPLOAD SESUNGGUHNYA (bagaimana `File` menjadi
+`string` yang dikirim) `OPEN DECISION`.** Endpoint upload ditandai `Rencana (belum tersedia)`
+pada `contracts/api-contract.md`. Komponen frontend MUST dibangun dengan titik integrasi upload
+sebagai **fungsi yang disuntikkan** (prop `onUpload`), bukan hardcode ke satu endpoint tertentu
+— sehingga saat `BUI-CQ-06` terjawab, penyambungannya adalah pengisian satu fungsi, bukan
+menulis ulang komponen.
+
+**Risiko yang dicatat (dari `01-existing-capability-map.md` `CAP-BUI-10`):** validasi wajib ini
+MURNI di frontend. Backend TIDAK menegakkan `[Required]` pada `DoctorDiscountMemoFile` — jalur
+API langsung (di luar UI) tetap bisa mengirim pengajuan tanpa memo. Ini **bukan** cacat yang
+diperbaiki amendment ini (di luar scope `BUI-DEC-010` yang eksplisit membatasi diri ke UI), tapi
+MUST dicatat sebagai rekomendasi terbuka untuk pass keamanan/backend terpisah.
+
+## 9. `BUI-DES-010` dan `BUI-DES-011` — Modal Ajukan Refund
+
+### 9.1 `BUI-DES-010` — Refundable Credit Lama Digantikan, Bukan Disembunyikan Terpisah
+
+Dropdown "Refundable Credit" tunggal pada `create-refund-modal.jsx` **dihapus sebagai bagian
+dari penggantian seluruh isi modal** oleh `BUI-DES-011`, bukan pekerjaan tersendiri. `props`
+`refundableCredits`/`refundableCreditsLoading`/`refundableCreditsError`/`refundableCreditId`
+pada modal lama **tidak dipakai lagi** oleh bentuk baru.
+
+### 9.2 `BUI-DES-011` — Bentuk Baru Modal
+
+**Kontrak data yang dipakai (seluruhnya sudah ada di backend, `CAP-BUI-12`):**
+
+| Kebutuhan | Endpoint | Dipanggil kapan |
+|---|---|---|
+| Daftar item billing yang bisa direfund | `GET /{id}/refundable-items` → `BillingRefundableItemResponse[]` (kini + `TransactionDate`, `BUI-DES-002`) | Saat radio "Billing" dipilih |
+| Sisa deposito | `GET /{id}/remaining-deposit` → `RemainingDepositResponse` | Saat radio "Deposito" dipilih |
+| Kirim pengajuan | `POST /{id}/refunds` dengan `CreateRefundRequest` | Saat submit |
+
+**Struktur form baru:**
+
+```text
+( ) Billing          ( ) Deposito
+────────────────────────────────
+[Jika Billing dipilih]
+☐ | Nama Item        | Tanggal     | Nominal
+☐ | Konsultasi Dokter | 20 Sep 2026 | Rp 350.000
+☑ | Obat Amoxicillin  | 20 Sep 2026 | Rp 75.000
+────────────────────────────────
+Total Refund: Rp 75.000   ← otomatis, jumlah baris tercentang
+
+[Jika Deposito dipilih]
+Sisa Deposito: Rp 2.500.000
+Nominal Refund: Rp 2.500.000   ← otomatis, tidak dapat diketik manual melebihi ini
+
+Alasan: [textarea, tetap seperti sekarang]
+```
+
+**Pemetaan ke `CreateRefundRequest`:**
+
+| Field form | Field request |
+|---|---|
+| Radio "Billing" dipilih | `RefundCategory = "BILLING"` |
+| Radio "Deposito" dipilih | `RefundCategory = "DEPOSITO"` |
+| Checkbox item tercentang | `SelectedBillingItemIds = [...]` |
+| Total refund (dihitung otomatis) | `RequestedAmount` |
+| Alasan | `Reason` |
+
+**Yang MUST NOT terjadi:**
+- Frontend MUST NOT mengetik ulang total secara manual saat sumber "Billing" — nilai `Total
+  Refund` adalah HASIL penjumlahan baris tercentang, bukan input bebas (mengunci
+  `BillingRefundableItemResponse.RefundableAmount` per baris sebagai satu-satunya sumber
+  nominal, `BUI-DEC-012`).
+- Frontend MUST NOT mengizinkan nominal refund Deposito melebihi
+  `RemainingDepositResponse.RemainingDepositAmount`.
+- Frontend MUST NOT membuat gate persetujuan baru berbeda antar sumber — keduanya memakai jalur
+  persetujuan `POST /{id}/refunds` yang sama persis (`BUI-DEC-012`).
+
+## 10. `BUI-DES-012` — Pemindahan Tombol Aksi ke Riwayat Pembayaran
+
+**Sumber (dihapus):** blok pemicu `openRefund`/`openAdjustment`/`openWriteOff` pada
+`menu-pembayaran-view.jsx` yang merender `BillingFinancialExceptionPanel`.
+
+**Target (ditambahkan):** kolom/section baru **"Aksi"** pada `payment-history-view.jsx`,
+**terpisah** dari kolom `"Kwitansi"` yang sudah ada di sana (baris ~197, cetak struk — konsep
+berbeda, TIDAK disentuh).
+
+**Yang dipakai ulang tanpa perubahan:**
+
+| Aset | Dipakai ulang untuk |
+|---|---|
+| `create-refund-modal.jsx` (bentuk baru per `BUI-DES-011`) | Trigger "Ajukan Refund" |
+| `create-adjustment-modal.jsx` | Trigger "Ajukan Adjustment" |
+| Modal write-off yang sudah ada (referensi: `WRITE_OFF_*` konstanta pada `billing-financial-exception-constants.js`) | Trigger "Ajukan Write-Off" |
+| `use-billing-financial-exception.js` (hook) | Seluruh state/handler `openRefund`/`openAdjustment`/`openWriteOff`, `refreshCases`, dsb — dipindah pemanggilannya ke `payment-history-view.jsx`, isi hook TIDAK diubah |
+
+**Yang MUST diverifikasi saat implementasi:** hook `use-billing-financial-exception.js`
+kemungkinan menerima `invoiceId`/context dari scope `menu-pembayaran-view.jsx` — MUST dipastikan
+`payment-history-view.jsx` punya akses context yang sama (invoice/encounter yang sedang dilihat)
+sebelum hook dipindah, supaya pemanggilannya tidak pincang.
+
+**Yang MUST NOT terjadi:** kolom "Kwitansi" yang sudah ada MUST tidak berubah perilakunya sama
+sekali — ini murni penambahan kolom/section baru di sebelahnya.
+
+## 11. Aksi per Peran (Ringkasan)
+
+| Peran | Aksi baru yang terlihat |
+|---|---|
+| Kasir | Filter tanggal Billing; default hari ini status OPEN; payment method horizontal; perbandingan hanya asuransi; upload memo saat mengajukan diskon dokter; modal refund dua sumber; tombol refund/adjustment/write-off kini di Riwayat Pembayaran (bukan lagi di Menu Pembayaran) |
+| Dokter (pengaju diskon) | Wajib mengunggah memo sebelum mengajukan diskon |
+| Supervisor/Finance (penyetuju refund/adjustment/write-off) | Tidak berubah — alur persetujuan sama, hanya lokasi tombol pemicu yang berpindah |
+
+## 12. Penanganan Keadaan Layar
+
+| Keadaan | Perilaku |
+|---|---|
+| Daftar item refundable kosong (semua sudah pernah diajukan) | Tampilkan pesan eksplisit, bukan tabel kosong tanpa keterangan — pola `InformationAlert` yang sudah dipakai modal lama |
+| Sisa deposito Rp 0 | Radio "Deposito" tetap dapat dipilih, nominal tampil Rp 0, submit MUST ditolak (nominal harus > 0, aturan existing `CreateRefundRequest.RequestedAmount` `Range("0.01", ...)`) |
+| Memo diunggah lalu dihapus sebelum submit | Tombol submit kembali nonaktif (`BUI-DEC-010` butir "remove") |
+| Filter tanggal Billing menghasilkan nol invoice | Tampilkan pesan kosong yang jelas, bukan tabel kosong polos |
+| Kartu penjamin pasien belum ada (Edit Asuransi kategori Asuransi/Penjamin dipilih tanpa kartu terdaftar) | **Sudah ditangani** — `InformationAlert` "Pasien ini belum memiliki kartu penjamin terdaftar" (existing, tidak berubah) |
+
+## 13. Angka yang MUST NOT Dihitung Frontend
+
+| Angka | Sumber wajib |
+|---|---|
+| Status default payment method (`IsSelected`) | `PaymentMethodRow` dari server (`BUI-DES-003`) |
+| Total Refund sumber Billing | Jumlah `RefundableAmount` baris tercentang, bukan hitungan ulang manual |
+| Nominal Refund sumber Deposito | `RemainingDepositResponse.RemainingDepositAmount` apa adanya |
+| Status coverage per item ("tercover"/"tidak") | `calculation.Breakdown.Items` / `ItemPayerAssignments` dari server — sudah berlaku sebelumnya, tidak berubah amendment ini |
+
+## 14. Matriks `DEV_DISCRETION`
+
+| Keputusan | Wewenang | Catatan |
+|---|---|---|
+| Komponen date picker untuk filter tanggal Billing | `DEV_DISCRETION` | Ikuti pola yang sudah dipakai layar Billing lain |
+| Tipe MIME persis yang diterima upload memo (PDF saja / PDF+gambar) | `DEV_DISCRETION` | Sampai ada preseden project yang lebih spesifik |
+| Nama komponen baru (`EditAsuransiPaymentMethodRow`, `DoctorDiscountMemoUpload`, dst) | `DEV_DISCRETION` | Nama sementara pada dokumen ini bukan penetapan final |
+| Bentuk kartu compact (susunan elemen persis) | `DEV_DISCRETION` | `BUI-DEC-008` — pertahankan component existing |
+| Lokasi visual "Catatan Penting" pada layar | `DEV_DISCRETION` | Menunggu `BUI-CQ-05` untuk isinya; penempatan visual tidak menunggu |
+
+## 15. Ketergantungan pada Backend
+
+| Kebutuhan frontend | Menunggu |
+|---|---|
+| `BUI-DES-003` (default tombol benar) | `BUI-DES-001` (backend) — **MUST selesai lebih dulu**, kalau tidak tombol akan menampilkan default yang salah walau UI sudah benar |
+| `BUI-DES-011` (kolom Tanggal pada datatable refund) | `BUI-DES-002` (backend) |
+| Sisanya (`BUI-DES-004`–`007`, `009` bagian validasi, `010`, `012`) | Nol dependency backend baru — seluruhnya memakai endpoint yang sudah ada |

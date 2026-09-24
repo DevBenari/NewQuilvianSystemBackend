@@ -3934,3 +3934,147 @@ Tabel master `MstAdministrationFeePolicy` perlu ditambahkan/dikonfigurasi record
 | Ketergantungan lintas modul | Rawat Inap (`InpatientManagement`) sebagai produsen event kamar & konsumen handoff clearance |
 | Status | **draft** — menunggu approval Product/Domain Owner |
 
+
+
+# Amendment 24 September 2026 — Revisi UI Billing: Filter, Default, Asuransi, Diskon Dokter, Refund (Revisi 1.6)
+
+| Field | Nilai |
+|---|---|
+| Basis keputusan | `00-interview-decisions.md` — `BUI-DEC-001`–`015` (seluruhnya `approved`) |
+| Basis bukti | `01-existing-capability-map.md` bagian 23 — `CAP-BUI-01`..`13` |
+| Backend SHA didesain di atas | `505d8d78` |
+| Frontend SHA didesain di atas | `b3f45db7b` |
+| Sifat amendment | **Bukan kapabilitas baru.** Seluruhnya beroperasi di dalam bounded context Billing/Kasir yang sudah ada (rumpun Edit Tagihan/Multi-Payer, rumpun Refund, rumpun Diskon Dokter, rumpun Daftar Invoice). Nol aggregate root baru, nol bounded context baru |
+
+## 1. Perubahan pada Bounded Context dan Invariant
+
+Tidak ada perubahan bounded context. Amendment ini beroperasi di dalam **empat** sub-area yang
+sudah dimiliki Billing/Kasir, tanpa memindahkan satu pun tanggung jawab lintas modul:
+
+| Sub-area | Aggregate root pemilik | Yang disentuh amendment ini |
+|---|---|---|
+| Edit Tagihan & Perbandingan Penjamin | `BilInvoice` (via `BillingPayerEditService`) | Satu invariant perhitungan diperbaiki (`BUI-DES-001`); nol perubahan struktur |
+| Refund | `BilRefundCase` (via `BillingRefundService`) | Nol perubahan backend selain satu field response baru (`BUI-DES-002`) |
+| Diskon Dokter | `BilDiscountApplication` (via `BillingDiscountService`) | Nol perubahan backend — field `DoctorDiscountMemoFile` sudah ada, hanya belum dipakai frontend |
+| Daftar Invoice | `BilInvoice` (via `BillingInvoiceService`) | Nol perubahan backend — `BillingInvoiceQuery` sudah punya `StartDate`/`EndDate`/`Status` |
+
+**Satu invariant yang berubah, dan hanya satu:**
+
+> Sebelum: hasil hitung `suggestedBillingStatus` bernilai `"INSURANCE"` bila **sekurang-kurangnya
+> satu** item aktif tagihan tercover asuransi.
+> Sesudah (`BUI-DES-001`): `suggestedBillingStatus` bernilai `"INSURANCE"` **hanya bila seluruh**
+> item aktif tagihan tercover asuransi; satu item saja tidak tercover membuat nilainya `"CASH"`.
+
+Perubahan ini murni pada **kondisi di dalam satu method** (`BillingPayerEditService.cs:145`),
+bukan pada bentuk data, bukan pada tabel, bukan pada endpoint. Transaction boundary, rollback,
+dan seluruh invariant lain pada `BillingPayerEditService` **tidak tersentuh**.
+
+## 2. Tabel Kepemilikan Data
+
+| Kelompok data | Modul pemilik | Dipakai amendment ini | Dibuat ulang |
+|---|---|:---:|---|
+| Invoice, baris tagihan, status | Billing/Kasir (`BilInvoice`, `BilInvoiceItem`) | Ya | Tidak |
+| Kartu asuransi & penjamin perusahaan pasien | Billing/Kasir (`MstPatientInsurance`, `MstPatientCompanyGuarantor`) | Ya, baca saja | Tidak |
+| Hasil evaluasi coverage per item | Clinical (`InsuranceCoverageService`) via `BillingCalculationService.PreviewCalculationAsync` | Ya, baca saja | Tidak |
+| Kasus refund, kredit refundable | Billing/Kasir (`BilRefundCase`, `BilRefundableCredit`) | Ya | Tidak |
+| Deposito pasien | Billing/Kasir (`BillingDepositService`) | Ya, baca saja | Tidak |
+| Pengajuan diskon dokter | Billing/Kasir (`BilDiscountApplication`) | Ya | Tidak |
+| Catatan/note lintas tahap kunjungan (Kiosk/Admisi/IGD/Rawat Inap) | **Belum ada pemilik** — tersebar per modul, belum terkonsolidasi | Tidak — `OPEN DECISION`, lihat bagian 8 | Tidak |
+
+Baris terakhir sengaja ditulis eksplisit **kosong pemiliknya**: `BUI-DEC-009` (Catatan Penting)
+TIDAK didesain penuh pada amendment ini karena datanya tidak dimiliki satu modul mana pun —
+lihat bagian 8.
+
+## 3. Class Diagram
+
+Amandemen ini **tidak menambah satu pun class baru**. Diagram berikut hanya menandai class
+yang **isinya berubah** (`Diperbarui`), diletakkan dalam konteks yang sudah ada.
+
+```mermaid
+classDiagram
+    class BillingPayerEditService {
+        +GetEditContextAsync() InvoiceEditContextResponse
+        -suggestedBillingStatus : computed "ALL covered" [Diperbarui]
+    }
+    class BillingRefundableItemResponse {
+        +Guid BillingItemId
+        +string ItemName
+        +decimal Qty
+        +decimal Amount
+        +decimal RefundableAmount
+        +DateTime TransactionDate [Baru]
+    }
+    class BillingRefundService {
+        +GetBillingRefundableItemsAsync() List~BillingRefundableItemResponse~
+    }
+    BillingRefundService --> BillingRefundableItemResponse : mengisi
+```
+
+## 4. Penjelasan Setiap Class
+
+| Class | Status | Lokasi file | Perubahan |
+|---|---|---|---|
+| `BillingPayerEditService` | Diperbarui | `Areas/HealthServices/BillingManagement/Billing/Services/BillingPayerEditService.cs` | Baris ~118-147: variabel `anyItemCoveredByInsurance` diganti `allItemsCoveredByInsurance`; logika `isCovered` dikumpulkan dengan AND (bukan OR) ke seluruh item aktif sebelum menentukan `suggestedBillingStatus`. Lihat `BUI-DES-001` |
+| `BillingRefundableItemResponse` | Diperbarui | `Areas/HealthServices/BillingManagement/Billing/Dtos/BillingRefundDtos.cs` | Tambah properti `DateTime TransactionDate`. Lihat `BUI-DES-002` |
+| `BillingRefundService` | Diperbarui | `Areas/HealthServices/BillingManagement/Billing/Services/BillingRefundService.cs` | Method `GetBillingRefundableItemsAsync`: proyeksi ditambah `TransactionDate = item.CreateDateTime`. Nol query baru — `item` sudah dimuat lewat `Include(x => x.Items)` yang sudah ada |
+| `BillingInvoiceQuery` | Sudah ada | `Areas/HealthServices/BillingManagement/Billing/Dtos/BillingInvoiceDtos.cs` | Nol perubahan. `StartDate`, `EndDate`, `Status` sudah cukup untuk `BUI-DES-005` |
+| `ApplyDiscountRequest`, `ApproveDiscountRequest` | Sudah ada | `Areas/HealthServices/BillingManagement/Billing/Dtos/BillingDiscountDtos.cs` | Nol perubahan. `DoctorDiscountMemoFile` sudah ada; validasi wajib murni frontend (`BUI-DES-009`) |
+| `AvailablePayerOptionResponse`, `PaymentMethodRow` | Sudah ada | `Areas/HealthServices/BillingManagement/Billing/Dtos/BillingPayerEditDtos.cs` | Nol perubahan. Dipakai apa adanya oleh `BUI-DES-003`/`004` |
+| `CreateRefundRequest`, `RemainingDepositResponse` | Sudah ada | `Areas/HealthServices/BillingManagement/Billing/Dtos/BillingRefundDtos.cs` | Nol perubahan. Dipakai apa adanya oleh `BUI-DES-011` |
+
+## 5. Arsitektur Folder
+
+```text
+Areas/HealthServices/BillingManagement/Billing/
+├── Services/
+│   ├── BillingPayerEditService.cs        # Diperbarui — baris 118-147 (BUI-DES-001)
+│   └── BillingRefundService.cs           # Diperbarui — GetBillingRefundableItemsAsync (BUI-DES-002)
+└── Dtos/
+    └── BillingRefundDtos.cs              # Diperbarui — +TransactionDate (BUI-DES-002)
+```
+
+Tidak ada file baru. Tidak ada folder baru. Tidak ada file di
+`Repositories/Configurations/**` yang tersentuh — konsisten dengan nol perubahan skema.
+
+## 6. Status Model dan Rencana Migration
+
+| Perubahan | Status | Dampak migration |
+|---|---|---|
+| `suggestedBillingStatus` logic fix | Perubahan kode, bukan skema | **Nol migration** |
+| `BillingRefundableItemResponse.TransactionDate` | Field response baru | **Nol migration** — nilainya diambil dari `BilInvoiceItem.CreateDateTime`, kolom yang **sudah ada** lewat `IdentityModel` sejak tabel ini dibuat |
+
+**Seluruh amendment ini nol migration.** Ini deklarasi eksplisit, bukan kelalaian melaporkan:
+revisi 1.6 tidak menyentuh database sama sekali.
+
+## 7. Rencana Data Master Awal
+
+Tidak berlaku. Amendment ini tidak menambah tabel master apa pun.
+
+## 8. Yang Sengaja Tidak Dibuat
+
+| Yang dipertimbangkan | Alasan tidak dibuat sekarang |
+|---|---|
+| Endpoint upload khusus Billing untuk Memo Dokter TTD | `BUI-CQ-06` belum dijawab (mekanisme mana yang dipakai — baru atau reuse existing). Desain frontend (`BUI-DES-009`) disusun agar SIAP menerima endpoint ini begitu diputuskan, tanpa menciptakannya sepihak sekarang |
+| Layanan konsolidasi note lintas modul (Kiosk/Admisi/IGD/Rawat Inap) untuk Catatan Penting | `BUI-CQ-05` belum dijawab, dan ini **melintasi bounded context** (Registration, IGD, Rawat Inap) — keluar dari wewenang desain Billing murni. Mengarang agregasi ini tanpa `hospital-domain-architect` berisiko salah menetapkan ownership data lintas modul. `BUI-DES-008` (frontend) dirancang sebagai container kosong yang siap diisi, bukan mengarang sumber data |
+| Endpoint filter `AvailablePayerOptions` berdasarkan `PayerType` di sisi server | Data yang ada sudah cukup untuk difilter di klien (3 jenis payer, jumlah baris kecil per pasien). Menambah parameter server untuk kasus sesederhana ini menambah permukaan API tanpa manfaat sepadan |
+| Kolom `Status`/gate baru pada `BilRefundCase` untuk membedakan alur persetujuan Billing vs Deposito | `BUI-DEC-012` eksplisit menyatakan alur persetujuan TIDAK berbeda antar sumber — menambah gate akan bertentangan langsung dengan keputusan itu |
+
+## 9. Keputusan Arsitektur
+
+| ID | Keputusan | Dasar | Konsekuensi |
+|---|---|---|---|
+| `BUI-DES-001` | `suggestedBillingStatus` diubah dari "ANY item tercover" menjadi "ALL item tercover" | `BUI-DEC-007`, `BUI-DEC-014` | Turunan otomatis: `effectivePaymentType` dan `PaymentMethodRow.IsSelected` (dihitung dari `suggestedBillingStatus`) ikut benar tanpa perubahan tambahan |
+| `BUI-DES-002` | `BillingRefundableItemResponse` mendapat field `TransactionDate`, diisi dari `item.CreateDateTime` yang sudah dimuat | `BUI-DEC-012` (kolom "Tanggal" pada datatable refund) | Nol query tambahan — data sudah ada di memori saat method berjalan |
+
+## 10. Yang MUST Dijawab Owner Saat Approval
+
+| # | Pertanyaan | Dampak bila belum dijawab |
+|---:|---|---|
+| 1 | Apakah `BUI-DES-001` (satu-satunya perubahan backend pada amendment ini) disetujui untuk masuk task `plan-module-delivery`? | Tanpa ini, `BUI-DEC-006`/`007` tidak dapat dianggap selesai — frontend akan menampilkan default yang salah |
+| 2 | `BUI-CQ-05` dan `BUI-CQ-06` — lihat `03-frontend-architecture.md` bagian yang relevan, tidak memblokir desain ini tapi memblokir implementasi penuh dua fitur (`BUI-DEC-009`, `BUI-DEC-010`) |
+
+## 11. Status Amendment
+
+`DRAFT`. `BUI-DES-001` dan `BUI-DES-002` menunggu persetujuan owner secara terpisah dari
+persetujuan keputusan bisnis `BUI-DEC-*` — keduanya lapisan yang berbeda, sebagaimana pola yang
+sudah berlaku di seluruh revisi blueprint ini sebelumnya.

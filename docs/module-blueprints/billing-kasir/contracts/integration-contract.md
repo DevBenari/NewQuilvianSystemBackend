@@ -404,3 +404,15 @@ Tests `BIL-AT-135`–`BIL-AT-142`.
 
 Trace `BKC-DEC-112`–`119`, `BKC-DES-042`–`050`, `RWI-DEC-156`–`161`. Tests `BIL-AT-143`–`BIL-AT-152`.
 
+
+
+# Amendment 24 September 2026 — Revisi UI Billing (Revisi 1.6)
+
+Tidak berlaku untuk amendment ini. Seluruh `BUI-DEC-001`–`015` beroperasi di dalam Billing/Kasir
+memakai data yang sudah tersedia lewat endpoint yang sudah ada; tidak ada integrasi sistem luar
+maupun antar bounded context baru yang dibuka amendment ini. Satu kebutuhan yang SEMPAT
+disinggung (`BUI-DEC-009`, Catatan Penting lintas modul) sengaja TIDAK didesain sebagai
+integrasi pada amendment ini — lihat `02-backend-architecture.md` bagian 8 dan
+`03-frontend-architecture.md` bagian 7 (`BUI-CQ-05` belum tertutup, di luar batas scope).
+
+Ditinjau ulang bila `BUI-CQ-05` terjawab dan menuntut agregasi data lintas modul yang sesungguhnya.

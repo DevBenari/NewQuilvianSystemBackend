@@ -1018,3 +1018,43 @@ Base URL: `api/v1/health-services/billing-management/master-data/administration-
 
 Trace `BKC-DEC-112`–`119`, `BKC-DES-042`–`050`. Tests `BIL-AT-143`–`BIL-AT-152`.
 
+
+
+# Amendment 24 September 2026 — Revisi UI Billing (Revisi 1.6, `BIL-API-1.5`)
+
+Status: `draft`. Basis: `00-interview-decisions.md` `BUI-DEC-001`–`015`;
+`02-backend-architecture.md` amendment revisi 1.6 (`BUI-DES-001`, `002`).
+
+**Ringkasan: nol endpoint baru.** Amendment ini mengubah **satu** field response yang sudah ada
+dan **satu** logika internal yang tidak mengubah bentuk response. Sembilan dari sepuluh
+endpoint yang dipakai keputusan `BUI-DEC-*` sudah ada persis seperti dibutuhkan.
+
+### Health Services / Billing Management / Billing — Endpoint yang Dipakai Ulang Apa Adanya
+
+Base URL: `api/v1/health-services/billing-management/invoices`
+
+| Method | Path | Kegunaan bagi amendment ini | Hak akses | Status |
+|---|---|---|---|---|
+| `GET` | `/` | `BUI-DES-005` — filter `StartDate`/`EndDate`/`Status` sudah ada pada `BillingInvoiceQuery` | `BillingInvoice : Read` | Sudah ada, nol perubahan |
+| `GET` | `/{id}/edit-context` | `BUI-DES-003`, `BUI-DES-004` — `PaymentMethodRow`, `AvailablePayerOptions` sudah ada | `BillingInvoiceEdit : Read` | Sudah ada, nol perubahan bentuk (nilai `suggestedBillingStatus` berubah per `BUI-DES-001`, bentuk field tidak) |
+| `POST` | `/{id}/payer-comparison-preview` | Perbandingan penjamin, sudah ada | `BillingInvoiceEdit : Read` | Sudah ada, nol perubahan |
+| `PUT` | `/{id}/payment-source` | Simpan hasil pilihan payment method, sudah ada | `BillingInvoiceEdit : Update` | Sudah ada, nol perubahan |
+| `POST` | `/{id}/discounts` (Apply Discount) | `BUI-DES-009` — `DoctorDiscountMemoFile` sudah ada di `ApplyDiscountRequest` | `BillingDiscount : Create` | Sudah ada, nol perubahan bentuk |
+| `GET` | `/{id}/refundable-items` | `BUI-DES-011` — kini + `TransactionDate` | `BillingRefund : Read` | **Diperbarui** — lihat baris di bawah |
+| `GET` | `/{id}/remaining-deposit` | `BUI-DES-011` | `BillingRefund : Read` | Sudah ada, nol perubahan |
+| `POST` | `/{id}/refunds` | `BUI-DES-011` — `RefundCategory`, `SelectedBillingItemIds` sudah ada di `CreateRefundRequest` | `BillingRefund : Create` | Sudah ada, nol perubahan bentuk request |
+
+### Perubahan Satu Baris Response
+
+| Method | Path | Perubahan | Dampak kompatibilitas |
+|---|---|---|---|
+| `GET` | `/{id}/refundable-items` | `BillingRefundableItemResponse` mendapat field baru `TransactionDate` (`DateTime`) | **Aditif, non-breaking.** Konsumen lama yang mengabaikan field baru tidak terpengaruh |
+
+### Endpoint yang Belum Ada — Menunggu Closure Question
+
+| Method | Path | Kegunaan | Hak akses | Status |
+|---|---|---|---|---|
+| `POST` | `/discounts/memo-upload` *(nama sementara)* | `BUI-DES-009` — upload berkas Memo Dokter TTD, mengembalikan nilai yang diisikan ke `DoctorDiscountMemoFile` | `TBD` — menunggu `BUI-CQ-06` | **Rencana (belum tersedia)** — bentuk request/response belum dirancang, MUST NOT diimplementasikan sebelum `BUI-CQ-06` terjawab |
+
+Trace `BUI-DEC-001`–`015`, `BUI-DES-001`–`012`. Tests: lihat
+`testing/acceptance-test-matrix.md` amendment revisi 1.6.

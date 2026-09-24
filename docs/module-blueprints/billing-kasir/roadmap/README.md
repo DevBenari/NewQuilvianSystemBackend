@@ -30,6 +30,10 @@ Roadmap ini berada pada **revision `2`** (4 September 2026) dan berstatus `DRAFT
 | `BKC-PH-020` | Deposit rawat inap terikat episode — permintaan `RWI-BP-001` lewat `RWI-DEC-093`–`096`. Semula `BKC-PH-009`/`BE-BKC-022`,`023`, dinomori ulang 9 September 2026 karena bentrok dengan gelombang 4 September | `BE-BKC-039` (✅ Selesai), `BE-BKC-040` (✅ Selesai) | — (layar ada di Rawat Inap) | `BKC-PH-004` | ✅ `Selesai` (`BE-BKC-039` dan `BE-BKC-040` selesai 2026-09-09) |
 | `BKC-PH-021` | Integrasi Rawat Inap ↔ Billing Management Core (`MVP-28`) | `BE-BKC-071`–`076` | — | Blueprint 1.5 approved (24 Sep 2026) | `READY_FOR_TASK_APPROVAL` |
 | `BKC-PH-022` | Antarmuka Kasir & Handoff Rawat Inap (`MVP-29`) | — | `FE-BKC-041`–`042` | `BKC-PH-021` selesai | `IN_PROGRESS` (`FE-BKC-041`, `FE-BKC-042` 🟡 SEBAGIAN) |
+| `BKC-PH-023` | **Revisi UI Billing.** Perbaikan logika backend `suggestedBillingStatus` & field `TransactionDate` (`MVP-30`) | `BE-BUI-001`, `BE-BUI-002` | — | Approval arsitektur `BUI-DES-001`/`002` — terpisah dari approval bisnis `BUI-DEC-*` | ⛔ `BLOCKED` |
+| `BKC-PH-024` | **Revisi UI Billing.** Filter/default Billing, label Obat, card compact, pindah tombol aksi (`MVP-31`) | — | `FE-BUI-001`–`004` | Tidak ada | **`READY_FOR_TASK_APPROVAL`** |
+| `BKC-PH-025` | **Revisi UI Billing.** Perbandingan asuransi & payment method (`MVP-32`) | — | `FE-BUI-005`, `FE-BUI-006` | `FE-BUI-005` tidak ada; `FE-BUI-006` menunggu `BKC-PH-023` | `FE-BUI-005` **`READY_FOR_TASK_APPROVAL`**; `FE-BUI-006` ⛔ `BLOCKED` |
+| `BKC-PH-026` | **Revisi UI Billing.** Modal Ajukan Refund dua sumber (`MVP-33`) | — | `FE-BUI-007` | `BKC-PH-023` (khusus `BE-BUI-002`) | ⛔ `BLOCKED` |
 
 ## Amendment 7 September 2026 — Koreksi revisi blueprint, verifikasi ulang FE-BKC-018, dan cakupan Struk Pasien
 
@@ -205,4 +209,55 @@ Enam task backend (`BE-BKC-071`–`BE-BKC-076`) dan dua task frontend (`FE-BKC-0
 3. Auto-Reblock dijalankan atomik di dalam transaksi intake tagihan susulan; tagihan susulan setelah invoice `CLOSED` ditolak mutlak oleh sistem (`BIL-VAL-127`), kecuali dibuka melalui otorisasi Supervisor Kasir (`BKC-DEC-120`).
 
 Rincian lengkap: [backend § Gelombang MVP-28](./backend-roadmap.md), [frontend § Gelombang MVP-29](./frontend-roadmap.md), dan [traceability § Gelombang MVP-28 dan MVP-29](./requirement-traceability.md).
+
+---
+
+## Amendment 24 September 2026 (kedua) — `roadmap_revision: 6`, gelombang `MVP-30`–`MVP-33`
+
+`status: DRAFT_FORWARD_TEST` · blueprint revisi `1.6` · backend baseline SHA `505d8d78` ·
+frontend baseline SHA `b3f45db7b`.
+
+Dua task backend (`BE-BUI-001`, `BE-BUI-002`) dan tujuh task frontend (`FE-BUI-001`–`007`) untuk
+revisi UI Billing yang diminta langsung Product/Domain Owner: filter/default layar Billing,
+penggantian label "Drug" → "Obat / Medicine", penyaringan perbandingan asuransi, payment method
+satu baris horizontal, perbaikan default status tagihan, card compact, upload memo dokter
+(validasi saja), penghapusan refundable credit lama, modal Ajukan Refund dua sumber, dan
+pemindahan tombol aksi ke Riwayat Pembayaran.
+
+| Gelombang MVP | Task | Keadaan |
+| --- | --- | --- |
+| `MVP-30` | `BE-BUI-001`, `BE-BUI-002` | ⛔ `BLOCKED` — menunggu approval arsitektur `BUI-DES-001`/`002`, terpisah dari approval bisnis `BUI-DEC-001`–`015` yang sudah `approved` |
+| `MVP-31` | `FE-BUI-001`, `FE-BUI-002`, `FE-BUI-003`, `FE-BUI-004` | Siap approval task — nol dependency ke `MVP-30`, dapat paralel |
+| `MVP-32` | `FE-BUI-005`, `FE-BUI-006` | `FE-BUI-005` siap; `FE-BUI-006` ⛔ `BLOCKED` menunggu `BE-BUI-001` |
+| `MVP-33` | `FE-BUI-007` | ⛔ `BLOCKED` menunggu `BE-BUI-002` |
+
+**Temuan paling penting pass ini, dari `/trace-existing-capabilities`:** dua dari tiga belas
+keputusan bisnis (`BUI-DEC-005` exclude asuransi aktif, `BUI-DEC-012` refund dua sumber) ternyata
+**sudah sepenuhnya dibangun backend** sebelum permintaan ini diajukan — frontend yang belum
+mengejar, bukan backend yang kurang. Satu conflict nyata ditemukan dan ditutup pada hari yang
+sama: aturan default status tagihan yang **sedang berjalan** di `BillingPayerEditService.cs:145`
+("satu item cukup") berbeda dari yang dikehendaki owner ("seluruh item harus tercover") pada
+kasus coverage sebagian — ditutup `BUI-DEC-014`, menghasilkan `BE-BUI-001`.
+
+**Nol migration pada seluruh revisi ini.** Satu-satunya perubahan backend: perbaikan kondisi
+(`BE-BUI-001`) dan satu field response aditif bersumber kolom yang sudah ada
+(`BE-BUI-002`, `item.CreateDateTime`).
+
+**Dua functional requirement sengaja di luar seluruh gelombang, bukan coverage gap:**
+`FR-BUI-009` (Catatan Penting — `BUI-CQ-05`, lintas bounded context, di luar wewenang desain
+Billing) dan `FR-BUI-010` (endpoint upload memo dokter — `BUI-CQ-06`; menyalakan validasi wajib
+tanpa endpoint akan **mengunci alur pengajuan diskon dokter yang sedang berjalan**). Keduanya
+`OPEN DECISION` pada `04-prd-to-mvp.md` amendment revisi 1.6 dan **MUST NOT** dipaksakan menjadi
+task sampai closure question-nya terjawab.
+
+**Satu koreksi dibuat saat penyusunan roadmap ini**, dicatat apa adanya: pass desain sebelumnya
+sempat menempatkan `FR-BUI-011` (hapus refundable credit lama) pada gelombang yang independen
+dari backend, padahal `03-frontend-architecture.md` bagian 9.1 eksplisit menyatakan penghapusan
+itu **bagian dari** penggantian modal refund oleh `FR-BUI-012` (yang bergantung `BE-BUI-002`).
+`04-prd-to-mvp.md` diperbaiki memindahkan `FR-BUI-011` ke `MVP-33` bersama `FR-BUI-012` sebelum
+roadmap ini ditulis, supaya keduanya tidak dikerjakan terpisah lalu ditemukan bentrok belakangan.
+
+Rincian lengkap: [backend § Gelombang MVP-30](./backend-roadmap.md), [frontend § Gelombang
+MVP-31–33](./frontend-roadmap.md), dan [traceability § Gelombang MVP-30 s.d.
+MVP-33](./requirement-traceability.md).
 

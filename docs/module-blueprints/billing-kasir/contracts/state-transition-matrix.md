@@ -560,3 +560,20 @@ Trace `BKC-DEC-106`–`109`, `PHA-DEC-064`, `PHA-DEC-068`, `PHA-DEC-068-A`. Test
 
 Trace `BKC-DEC-115`, `BKC-DEC-116`, `BKC-AC-083`, `BKC-AC-084`, `BKC-DES-045`, `BKC-DES-046`. Tests `BIL-AT-143`–`BIL-AT-148`.
 
+
+
+# Amendment 24 September 2026 — Revisi UI Billing (Revisi 1.6, `BIL-STATE-1.4`)
+
+Status: `draft`. **Nol mesin status baru, nol transisi baru.** Amendment ini tidak menambah
+maupun mengubah state machine `BilInvoice`, `BilRefundCase`, `BilDiscountApplication`, atau
+lainnya. `RefundCategory` (`BILLING`/`DEPOSITO`) pada `BUI-DEC-012` adalah **atribut pemilihan
+sumber**, bukan status — kedua nilai memakai persis siklus status `BilRefundCase` yang sudah
+terdokumentasi (`Pending` → `Approved`/`Rejected` → ...) tanpa cabang baru, sesuai `BUI-DEC-012`
+yang eksplisit menyatakan alur persetujuan tidak berbeda antar sumber.
+
+Satu-satunya perubahan **nilai** (bukan status) pada amendment ini: `suggestedBillingStatus`
+yang dihitung `BillingPayerEditService` berubah aturan komputasinya (`BUI-DES-001`) — ini bukan
+transisi status pada aggregate manapun, melainkan nilai SARAN pada response GET, dan pasien
+masih bisa memilih payment method apa pun terlepas dari nilai saran ini.
+
+Trace `BUI-DEC-007`, `BUI-DEC-012`, `BUI-DEC-014`, `BUI-DES-001`.
