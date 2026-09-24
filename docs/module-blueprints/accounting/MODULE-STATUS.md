@@ -101,9 +101,10 @@ Ketiga penahan yang dicatat 8 September pagi sudah tidak berlaku lagi.
 
 | Penahan | Pemilik | Menahan apa |
 |---|---|---|
-| Ratifikasi `ACC-XM-001` | ~~Owner Billing~~ **selesai 9 Sep** · Yasmin **belum** | **Hanya gelombang `POST-MVP`**. Owner Billing sudah menjawab keenam pertanyaan (`ACC-DEC-059`): rantainya Billing → Finance → Accounting, Finance menerbitkan kejadian **tersendiri**, dan Accounting **dilarang** membaca `BilArHandoff` langsung. Sisa: bentuk pesan Finance → Accounting |
-| `DEC-ACC-P2-002` daftar jenis kejadian | Rizki, Yasmin | Pengisian data `P2-0` |
-| Modul Finance belum ada (`ACC-DEP-004`) | Yasmin | `POST-MVP` |
+| ~~Ratifikasi `ACC-XM-001`~~ **`CLOSED` 24 Sep** (`ACC-DEC-082`) | ~~Owner Billing~~ **selesai 9 Sep** · ~~Yasmin~~ **selesai 20 Sep** (`FIN-DEC-001`) | **Hanya gelombang `POST-MVP`**. Owner Billing sudah menjawab keenam pertanyaan (`ACC-DEC-059`): rantainya Billing → Finance → Accounting, Finance menerbitkan kejadian **tersendiri**, dan Accounting **dilarang** membaca `BilArHandoff` langsung. Sisa: bentuk pesan Finance → Accounting |
+| ~~`DEC-ACC-P2-002` daftar jenis kejadian~~ **selesai 24 Sep** — 17 kode (`ACC-DEC-083`) | Rizki, Yasmin | — |
+| ~~Modul Finance belum ada (`ACC-DEP-004`)~~ **berdiri**, diperiksa 24 Sep | Yasmin | — |
+| Gerbang cutover G1–G6 (`ACC-DEC-089`, `090`) | Rizki, Yasmin, Platform, pemilik proses akuntansi | **Pengaktifan pengiriman** dari Finance, bukan pembangunan kotak masuk |
 
 **Gelombang `P2-3`, `P2-4`, dan `P2-5` — jurnal berulang, tutup bulan, tutup tahun — tidak
 menyentuh Finance sama sekali dan dapat dikerjakan tanpa menunggu siapa pun.**
@@ -291,6 +292,24 @@ anchor reuse tidak berubah dan dua sisanya hanya bertambah. Nol artefak perlu di
 perpindahan ini fast-forward murni — tidak ada pekerjaan yang hilang.
 
 ## Next recommended task
+
+### TITIK LANJUT — 24 September 2026, sesudah ratifikasi Finance
+
+Amendment pass `grill-me` pasca-ratifikasi Finance **selesai**: `ACC-DEC-082` sampai `ACC-DEC-090`
+tercatat pada `00-interview-decisions.md` revision 10. `ACC-XM-001` `CLOSED`, sehingga kotak masuk
+kejadian **boleh** dibangun. Kontrak diselaraskan hari yang sama: `ACC-XMOD-0.3` (`approved`),
+`ACC-INTEGRATION-0.5`, serta usulan `ACC-API-0.12`, `ACC-VALIDATION-0.8`, `ACC-PERMISSION-0.7`.
+Balasan untuk Finance: [`evidence/13`](evidence/13-balasan-accounting-untuk-finance.md). Nol kode,
+nol migration, nol commit.
+
+| Urutan | Langkah | Pemilik |
+|---:|---|---|
+| 1 | Keputusan lanjutan: perlakuan penerimaan sebelum tagihan final (`FIN-DEC-004`) | Rizki |
+| 2 | `design-business-module` amendment — jalur kejadian saldo tanpa jurnal, `AccountingEventReceiptDto` | Rizki |
+| 3 | `plan-module-delivery` — kartu task Wave B (kotak masuk kejadian) | Rizki |
+| 4 | Kirim `evidence/13` ke Yasmin; tunggu kode `SALDO-SUBLEDGER`, daftar komponen, dan jawaban G6 | Rizki → Yasmin |
+| 5 | Nonaktifkan data uji `PATIENT_PAYMENT`/`CASHIER` lewat layar master (bukan SQL) | Rizki |
+| 6 | `ACC-TD-022` — bagan akun sah; kini di jalur kritis cutover (G2) | Pemilik proses akuntansi |
 
 ### TITIK LANJUT — batch 14 September 2026 (belum selesai, dilanjutkan di sesi baru)
 
