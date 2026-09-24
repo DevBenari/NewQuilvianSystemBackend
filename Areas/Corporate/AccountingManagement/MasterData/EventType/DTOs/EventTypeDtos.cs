@@ -1,3 +1,4 @@
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.EventType.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.EventType.DTOs
@@ -40,6 +41,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
 
         public bool IsActive { get; set; }
 
+        public EventTypeKind EventKind { get; set; }
+
         /// <summary>
         /// Jumlah aturan posting aktif yang memakai jenis ini, dari seluruh badan hukum. Dipakai
         /// layar untuk menjelaskan kenapa jenis ini tidak dapat dinonaktifkan: selama angkanya
@@ -61,6 +64,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
 
         /// <summary><c>Guid.Empty</c> bila belum pernah diubah.</summary>
         public Guid UpdateBy { get; set; }
+
+        public int AccountingEventCount { get; set; }
     }
 
     /// <summary>
@@ -98,6 +103,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
         [Required]
         [MaxLength(50)]
         public string SourceModule { get; set; } = string.Empty;
+
+        public EventTypeKind? EventKind { get; set; }
     }
 
     /// <summary>
@@ -115,5 +122,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
         [Required]
         [MaxLength(50)]
         public string SourceModule { get; set; } = string.Empty;
+
+        public EventTypeKind? EventKind { get; set; }
     }
 }

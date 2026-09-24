@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `6818789d` (branch `rizkiG`), perubahan belum di-commit |
 | Tanggal | 24 September 2026 |
-| Status | **🟡 SEBAGIAN** — 5 dari 5 acceptance terpetakan ke source; **build owner belum dijalankan** (butir Verifikasi dan DoD) |
+| Status | **✅ SELESAI** — 24 September 2026. 5 dari 5 acceptance terpetakan ke source; build owner berhasil, dibuktikan migration `20260924042630_AddAccountingEventInbox` yang dibangkitkan `--no-build` dari assembly berisi entity task ini (lihat `BE-ACC-P2-020`). Commit `70ac4240`. Riwayat: 🟡 pada hari yang sama, menunggu build |
 
 ### Backend Governance Preflight
 
@@ -96,8 +96,8 @@ memisahkan kejadian yang dijurnal dari pesan saldo subledger yang tidak pernah d
 | --- | --- |
 | Tinjauan diff dan cakupan | Hanya berkas pada tabel bagian 4; nol berkas di luar modul Accounting selain `ApplicationDbContext.cs` |
 | Kesesuaian nama (`QBE-NAM`) | Entity, file, configuration, `DbSet` jamak, dan tabel tunggal PascalCase satu paket |
-| `dotnet build` | **Belum** — dijalankan owner: `dotnet build ./QuilvianSystemBackend.sln -p:RunAnalyzers=false` |
-| Migration | **Tidak dibuat** — `BE-ACC-P2-020`, oleh Rizki |
+| `dotnet build` | **Berhasil** — dijalankan Rizki 24 September 2026. Jumlah warning tidak dilaporkan; bukti keberhasilan: `migrations add --no-build` membaca model baru |
+| Migration | Dibuat dan diterapkan Rizki — [`BE-ACC-P2-020`](BE-ACC-P2-020.md) |
 | Automated test | Tidak dijalankan (`ACC-DEC-081`) |
 
 ## 7. Risiko dan langkah berikutnya

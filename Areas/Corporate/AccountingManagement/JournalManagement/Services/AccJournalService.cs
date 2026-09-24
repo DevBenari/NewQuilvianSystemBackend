@@ -722,6 +722,39 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalMana
             return await MuatDanPetakanAsync(jurnal.Id, "Jurnal berhasil disahkan.", actorUserId, izin, ct);
         }
 
+        public async Task<AccountingServiceResult<JournalDetailResponse>> SahkanDariKejadianAsync(
+            Guid id,
+            Guid actorUserId,
+            CancellationToken ct = default)
+        {
+            var jurnal = await MuatLengkapAsync(id, lacak: true, ct);
+            if (jurnal is null) return TidakDitemukan<JournalDetailResponse>();
+
+            if (jurnal.JournalStatus != JournalStatus.Draft)
+            {
+                return AccountingServiceResult<JournalDetailResponse>.Fail(
+                    StatusCodes.Status409Conflict,
+                    $"Jurnal {jurnal.JournalNumber} bukan draft dan tidak dapat disahkan otomatis.");
+            }
+
+            var syarat = await PeriksaSembilanSyaratAsync<JournalDetailResponse>(jurnal, ct);
+            if (syarat is not null) return syarat;
+
+            var sekarang = DateTime.UtcNow;
+
+            jurnal.JournalStatus = JournalStatus.Posted;
+            jurnal.PostedBy = actorUserId;
+            jurnal.PostedAt = sekarang;
+            jurnal.UpdateDateTime = sekarang;
+            jurnal.UpdateBy = actorUserId;
+
+            CatatRiwayat(jurnal, JournalApprovalAction.Posted, actorUserId, null, sekarang);
+
+            await _db.SaveChangesAsync(ct);
+
+            return await MuatDanPetakanAsync(jurnal.Id, "Jurnal kejadian berhasil disahkan.", actorUserId, null, ct);
+        }
+
         // ------------------------------------------------------------------
         // Pembalikan dan penyesuaian — BE-ACC-013
         // ------------------------------------------------------------------

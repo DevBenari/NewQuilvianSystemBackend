@@ -704,13 +704,13 @@ flowchart LR
     GDES{{"✅ GATE-DESAIN-0924<br/>approved Rizki 24 Sep 2026"}}:::selesai
     GFIN{{"⛔ GATE-FIN-087<br/>Finance setuju bentuk pesan saldo"}}:::terblokir
 
-    BEACCP2019["🟡 BE-ACC-P2-019<br/>Entity kotak masuk + EventKind"]:::sebagian
-    BEACCP2020["BE-ACC-P2-020<br/>Migration kotak masuk oleh Rizki"]:::belum
-    BEACCP2021["BE-ACC-P2-021<br/>POST terima kejadian"]:::belum
-    BEACCP2022["BE-ACC-P2-022<br/>EventKind di API jenis kejadian"]:::belum
+    BEACCP2019["✅ BE-ACC-P2-019<br/>Entity kotak masuk + EventKind"]:::selesai
+    BEACCP2020["✅ BE-ACC-P2-020<br/>Migration kotak masuk oleh Rizki"]:::selesai
+    BEACCP2021["✅ BE-ACC-P2-021<br/>POST terima kejadian"]:::selesai
+    BEACCP2022["✅ BE-ACC-P2-022<br/>EventKind di API jenis kejadian"]:::selesai
     BEACCP2023["BE-ACC-P2-023<br/>Penjadwal coba ulang"]:::belum
-    BEACCP2024["BE-ACC-P2-024<br/>Daftar rincian ringkasan"]:::belum
-    BEACCP2025["BE-ACC-P2-025<br/>Coba ulang manual dan abaikan"]:::belum
+    BEACCP2024["✅ BE-ACC-P2-024<br/>Daftar rincian ringkasan"]:::selesai
+    BEACCP2025["✅ BE-ACC-P2-025<br/>Coba ulang manual dan abaikan"]:::selesai
     BEACCP2026["BE-ACC-P2-026<br/>Penghalang tutup bulan dari kejadian"]:::belum
     BEACCP2027["⛔ BE-ACC-P2-027<br/>Entity saldo subledger + migration"]:::terblokir
     BEACCP2028["⛔ BE-ACC-P2-028<br/>Jalur pesan saldo"]:::terblokir
@@ -757,20 +757,20 @@ berlaku untuk akun layanan produksi, bukan untuk uji pengembang.
 
 | ID | Judul | Gelombang | Dependency | Status |
 |---|---|---|---|---|
-| `BE-ACC-P2-019` | Entity kotak masuk kejadian dan `EventKind` | `P2-1` | `GATE-DESAIN-0924` ✅ | 🟡 `SEBAGIAN` 24 Sep 2026 — source lengkap, menunggu build owner. [Laporan](../task/report/backend/BE-ACC-P2-019.md) |
-| `BE-ACC-P2-020` | Migration kotak masuk (**GATED**, dibuat Rizki) | `P2-1` | `019` | `READY` |
-| `BE-ACC-P2-021` | `POST /accounting-events` — terima dan jurnal seketika | `P2-1` | `019`, `018` ✅ | `READY` |
-| `BE-ACC-P2-022` | `EventKind` pada API jenis kejadian | `P2-1` | `019`, `017` ✅ | `READY` |
+| `BE-ACC-P2-019` | Entity kotak masuk kejadian dan `EventKind` | `P2-1` | `GATE-DESAIN-0924` ✅ | ✅ `SELESAI` 24 Sep 2026 — commit `70ac4240`. [Laporan](../task/report/backend/BE-ACC-P2-019.md) |
+| `BE-ACC-P2-020` | Migration kotak masuk (**GATED**, dibuat Rizki) | `P2-1` | `019` | ✅ `SELESAI` 24 Sep 2026 — `20260924042630_AddAccountingEventInbox` diterapkan. [Laporan](../task/report/backend/BE-ACC-P2-020.md) |
+| `BE-ACC-P2-021` | `POST /accounting-events` — terima dan jurnal seketika | `P2-1` | `019`, `018` ✅ | ✅ `SELESAI` 24 Sep 2026 — uji Swagger Rizki lulus. [Laporan](../task/report/backend/BE-ACC-P2-021.md) |
+| `BE-ACC-P2-022` | `EventKind` pada API jenis kejadian | `P2-1` | `019`, `017` ✅ | ✅ `SELESAI` 24 Sep 2026 — uji layar + Swagger lulus 10/10; build terbukti tidak langsung. [Laporan](../task/report/backend/BE-ACC-P2-022.md) |
 | `BE-ACC-P2-023` | Penjadwal coba ulang | `P2-2` | `021` | `READY` |
-| `BE-ACC-P2-024` | Daftar, rincian, dan ringkasan kejadian | `P2-2` | `019` | `READY` |
-| `BE-ACC-P2-025` | Coba ulang manual dan abaikan | `P2-2` | `021` | `READY` |
+| `BE-ACC-P2-024` | Daftar, rincian, dan ringkasan kejadian | `P2-2` | `019` | ✅ `SELESAI` 24 Sep 2026 — build 0 error, uji layar lulus. [Laporan](../task/report/backend/BE-ACC-P2-024.md) |
+| `BE-ACC-P2-025` | Coba ulang manual dan abaikan | `P2-2` | `021` | ✅ `SELESAI` 24 Sep 2026 — build 0 error, uji Swagger + layar Rincian lulus; jalur `Gagal` lewat source atas keputusan Rizki. [Laporan](../task/report/backend/BE-ACC-P2-025.md) |
 | `BE-ACC-P2-026` | Penghalang tutup bulan dari kejadian, dan penolakan penonaktifan aturan yang ditunggu | `P2-2` | `021` | `READY` |
 | `BE-ACC-P2-027` | Entity dan migration saldo subledger | Wave D | `019`, `GATE-FIN-087` | ⛔ `BLOCKED` |
 | `BE-ACC-P2-028` | Jalur pesan saldo subledger | Wave D | `021`, `027` | ⛔ `BLOCKED` |
 
 Nomor `029` dan `030` tetap cadangan.
 
-## 🟡 `BE-ACC-P2-019` — Entity kotak masuk kejadian dan `EventKind`
+## ✅ `BE-ACC-P2-019` — Entity kotak masuk kejadian dan `EventKind`
 
 | Field | Isi |
 |---|---|
@@ -784,9 +784,9 @@ Nomor `029` dan `030` tetap cadangan.
 | Verifikasi | Pemeriksaan source; `dotnet build … -p:RunAnalyzers=false` oleh Rizki |
 | Risiko/pemilik | Salah bentuk index baru ketahuan saat migration. Owner Backend |
 | DoD | Source berubah, build owner 0 error, laporan task tertulis |
-| **Status** | 🟡 **SEBAGIAN — 24 September 2026.** 5 dari 5 acceptance terpetakan ke source: dua unique index anti-ganda terpisah, `EventTypeId` boleh kosong, `EventKind` wajib berbawaan `Transaksi`, nol logger, nol kolom pasien. 11 berkas (8 baru, 3 diperbarui); nol migration. **Belum:** `dotnet build … -p:RunAnalyzers=false` oleh Rizki — satu-satunya butir DoD tersisa. Bukti: [laporan](../task/report/backend/BE-ACC-P2-019.md) |
+| **Status** | ✅ **SELESAI — 24 September 2026.** 5 dari 5 acceptance terpetakan ke source; 11 berkas (8 baru, 3 diperbarui). Build Rizki berhasil — dibuktikan `migrations add --no-build` membaca ketiga entity baru dan `EventKind`. Commit `70ac4240`. Automated test tidak dijalankan (`ACC-DEC-081`). Riwayat: 🟡 pada hari yang sama, menunggu build. Bukti: [laporan](../task/report/backend/BE-ACC-P2-019.md) |
 
-## `BE-ACC-P2-020` — Migration kotak masuk (**GATED**, dibuat Rizki)
+## ✅ `BE-ACC-P2-020` — Migration kotak masuk (**GATED**, dibuat Rizki)
 
 | Field | Isi |
 |---|---|
@@ -798,8 +798,9 @@ Nomor `029` dan `030` tetap cadangan.
 | Verifikasi | Output `dotnet ef` Rizki; resep uji Down/Up di Docker lokal bila diminta |
 | Risiko/pemilik | Snapshot kehilangan blok modul lain (pernah terjadi). Rizki |
 | DoD | Migration diterapkan di `QuilvianNewDevRizki` |
+| **Status** | ✅ **SELESAI — 24 September 2026.** `20260924042630_AddAccountingEventInbox` dibuat dan diterapkan Rizki (`Done.`; `migrations list` tanpa `(Pending)`). Diperiksa agent: `CreateTable` 3, `CreateIndex` 9, `AddColumn` 1, nol `Sql`, hanya objek `Acc*`; snapshot `b.ToTable(` 700 → 703, +336/−0 baris. Commit `70ac4240`. Acceptance (2) `has-pending-model-changes` tidak dilaporkan terpisah. Bukti: [laporan](../task/report/backend/BE-ACC-P2-020.md) |
 
-## `BE-ACC-P2-021` — `POST /accounting-events`: terima dan jurnal seketika
+## ✅ `BE-ACC-P2-021` — `POST /accounting-events`: terima dan jurnal seketika
 
 | Field | Isi |
 |---|---|
@@ -813,8 +814,9 @@ Nomor `029` dan `030` tetap cadangan.
 | Verifikasi | Pemeriksaan source; build owner; uji panggil Swagger dengan pesan tiruan sesudah `020`: satu `201`, satu `200` kirim ulang, satu `422`, satu `409`, satu `400` |
 | Risiko/pemilik | Acceptance (6) dan (8) sulit dipicu manual; dibuktikan lewat pembacaan source dan, bila owner meminta, uji terarah. Automated test bukan acceptance (`ACC-DEC-081`). Owner Backend |
 | DoD | Source berubah, build owner 0 error, uji panggil tercatat, laporan task tertulis |
+| **Status** | ✅ **SELESAI — 24 September 2026.** 11 dari 11 acceptance terpetakan ke source; build Rizki berhasil; uji Swagger oleh Rizki lulus 9 butir (terima `201`, bidang wajib `400`, jenis tak terdaftar `422`, tahan, jurnal terbentuk, idempotensi `200`, mata uang `409`, tanpa jurnal ganda, bentuk galat). Skenario data pasien belum dilaporkan. Riwayat: 🟡 pada hari yang sama. Bukti: [laporan](../task/report/backend/BE-ACC-P2-021.md) |
 
-## `BE-ACC-P2-022` — `EventKind` pada API jenis kejadian
+## ✅ `BE-ACC-P2-022` — `EventKind` pada API jenis kejadian
 
 | Field | Isi |
 |---|---|
@@ -828,6 +830,7 @@ Nomor `029` dan `030` tetap cadangan.
 | Verifikasi | Source; build owner; `GET /event-types` menampilkan `EventKind` |
 | Risiko/pemilik | Frontend `FE-ACC-P2-013` menyusul. Owner Backend |
 | DoD | Source berubah, build owner 0 error, laporan task tertulis |
+| **Status** | ✅ **SELESAI — 24 September 2026.** 4 dari 4 acceptance terpetakan ke source (2 berkas di `MasterData/EventType/`, nol migration — kolom sudah ada sejak `020`). Delta kontrak: `AccountingEventCount` pada rincian. Uji Rizki lulus: `GET /event-types` menampilkan `EventKind`, isian terkunci untuk jenis yang sudah dipakai, `PUT` ganti perlakuan → `409`, `eventKind = 3` → `400`, tanpa `eventKind` → `1`. Build owner terbukti **tidak langsung** (kode task ini berjalan di backend yang diuji); jumlah warning tidak dilaporkan. UAT belum dijalankan — diserahkan ke tim UAT. Riwayat: 🟡 pada hari yang sama. Bukti: [laporan](../task/report/backend/BE-ACC-P2-022.md) |
 
 ## `BE-ACC-P2-023` — Penjadwal coba ulang
 
@@ -844,7 +847,7 @@ Nomor `029` dan `030` tetap cadangan.
 | Risiko/pemilik | Memicu gangguan teknis secara sengaja sulit tanpa mengubah kode; cara uji disepakati owner saat eksekusi. Owner Backend |
 | DoD | Source berubah, build owner 0 error, laporan task tertulis |
 
-## `BE-ACC-P2-024` — Daftar, rincian, dan ringkasan kejadian
+## ✅ `BE-ACC-P2-024` — Daftar, rincian, dan ringkasan kejadian
 
 | Field | Isi |
 |---|---|
@@ -858,8 +861,9 @@ Nomor `029` dan `030` tetap cadangan.
 | Verifikasi | Source; build owner; uji panggil sesudah `020` |
 | Risiko/pemilik | `RawPayload` bertanda sensitif. Owner Backend |
 | DoD | Source berubah, build owner 0 error, laporan task tertulis |
+| **Status** | ✅ **SELESAI — 24 September 2026.** 4 dari 4 acceptance di source; build Rizki 0 error, 222 warning; uji lewat layar Kotak Masuk membuktikan `GET /` (penyaring status dan periode) dan `GET /summary`. `GET /{id}` diuji bersama `FE-ACC-P2-012`. Riwayat: 🟡 pada hari yang sama. Bukti: [laporan](../task/report/backend/BE-ACC-P2-024.md) |
 
-## `BE-ACC-P2-025` — Coba ulang manual dan abaikan
+## ✅ `BE-ACC-P2-025` — Coba ulang manual dan abaikan
 
 | Field | Isi |
 |---|---|
@@ -872,6 +876,7 @@ Nomor `029` dan `030` tetap cadangan.
 | Verifikasi | Source; build owner; uji panggil |
 | Risiko/pemilik | Pertentangan layar lawan state matrix **selesai** — `ACC-DEC-092`: Coba Ulang berlaku untuk `Gagal` dan `Tertahan`. Owner Backend |
 | DoD | Source berubah, build owner 0 error, laporan task tertulis |
+| **Status** | ✅ **SELESAI — 24 September 2026.** Dimajukan atas permintaan Rizki supaya rincian dapat diuji lewat layar. 4 dari 4 acceptance di source (`POST /{id}/retry`, `PATCH /{id}/ignore`); build Rizki 0 error, 222 warning. Uji Rizki lulus: `ignore` ditolak `409` untuk `Tertahan` dan `Terjurnal` (Swagger), Coba Ulang `Tertahan` → `Terjurnal` beserta pemasangan jenis berkode sama (layar Rincian). **Jalur `Gagal`** — Abaikan berhasil dan Coba Ulang `Gagal` — dibuktikan lewat pembacaan source **atas keputusan Rizki**, karena belum ada kode yang menghasilkan `Gagal` sebelum `023`; diuji ulang lewat layar sesudah `023`. UAT belum dijalankan. Riwayat: 🟡 pada hari yang sama. Bukti: [laporan](../task/report/backend/BE-ACC-P2-025.md) |
 
 ## `BE-ACC-P2-026` — Penghalang tutup bulan dari kejadian, dan penolakan penonaktifan aturan yang ditunggu
 
