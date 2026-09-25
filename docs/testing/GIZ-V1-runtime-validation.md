@@ -6,7 +6,7 @@
 | Cakupan | Keputusan V1 `GIZ-DEC-011`, `GIZ-DEC-012`, `GIZ-DEC-014` |
 | Tanggal | 25 September 2026 |
 | Database uji | `localhost` / `QuilvianNewDevIkbalFr` |
-| Verdict | **LULUS pada lapisan basis data. Lapisan API BELUM divalidasi** |
+| Verdict | **LULUS pada lapisan basis data dan lapisan API.** Satu keterbatasan tersisa: penegakan `403` per-permission |
 
 ## Ringkasan
 
@@ -15,8 +15,9 @@ migration, skema, foreign key, constraint, dan histori revisi kebutuhan nutrisi.
 pengujian transaksional dijalankan di dalam satu transaksi lalu di-rollback, sehingga nol baris
 tertinggal.
 
-Yang **belum** divalidasi adalah alur lewat API. Sebabnya tercatat di bagian keterbatasan, dan
-itu bukan temuan cacat melainkan akses yang belum tersedia.
+Alur lewat API kemudian ikut divalidasi memakai akun demo bawaan aplikasi: lima langkah alur,
+sembilan aturan validasi service, dan penolakan `401` bagi permintaan tanpa token. Satu
+keterbatasan tersisa, yaitu penegakan `403` bagi pengguna yang login tanpa hak terkait.
 
 ## Yang diverifikasi
 
@@ -101,37 +102,95 @@ Nol baris transaksi tertinggal; yang tersisa hanya isi master dari migration.
 Snapshot ditulis tangan, dan bahwa ia benar-benar ikut dikompilasi dibuktikan dengan menyisipkan
 baris yang sengaja salah lalu memastikan compiler menolaknya.
 
-## Keterbatasan yang diakui
+## Validasi lewat API
 
-**Alur lewat API belum divalidasi, karena akses akun uji belum tersedia.**
+Dijalankan 25 September 2026 terhadap aplikasi yang berjalan di `http://localhost:5000`,
+memakai akun demo `opr.anestesi` yang kata sandinya diselaraskan oleh seeder bawaan aplikasi
+(`OperatingRoomDemoSeeder.EnsureDemoUsersAsync`, lewat `UserManager.ResetPasswordAsync`). Tidak
+ada kredensial yang disusun sendiri dan tidak ada akun non-demo yang tersentuh.
 
-Kata sandi akun pada database uji berbeda dari `SeedSuperAdmin:Password` di
-`appsettings.Development.json`, dan ketiga akun yang ada menolak login. Upaya membuat akun uji
-baru lewat seeder gagal karena `UserCode` SuperAdmin bersifat unik sehingga akun SuperAdmin kedua
-tidak dapat dibuat. Tidak ada kredensial yang diubah, dan tidak ada akun yang tersisa.
+### Permukaan API
 
-### Yang karenanya belum terbukti berjalan
+Delapan jalur baru terdaftar pada dokumen OpenAPI aplikasi yang sedang berjalan, yang sekaligus
+membuktikan controller terdaftar dan seluruh dependency injection-nya resolve:
 
-Aturan berikut ada di kode dan lolos kompilasi, tetapi belum diuji saat berjalan:
+```text
+/masters/nutrition-diagnosis-domains      /orders/{orderId}/requirements
+/masters/nutrition-diagnoses              /orders/{orderId}/requirements/current
+/masters/nutrition-parameters             /orders/{orderId}/requirements/calculate
+/masters/nutrition-formulas               /orders/{orderId}/records/{recordId}/diagnoses
+```
 
-| Kode | Aturan |
+### Alur lima langkah
+
+| Langkah | Permintaan | Hasil |
+|---|---|---|
+| Master dapat dibaca | `GET /masters/nutrition-parameters`, `/nutrition-diagnosis-domains` | `200`; 5 parameter dan 3 domain terbaca |
+| Master dapat diisi | `POST /masters/nutrition-diagnoses` ×2 | `200`; `NI-1.4` dan `NC-1.1` tersimpan |
+| 1. Diagnosis gizi pasien | `POST /orders/{id}/records` dengan 2 diagnosis | `200`; keduanya tersimpan, satu primer, IMT terhitung 20,51 |
+| 2. Simpan kebutuhan nutrisi | `POST /orders/{id}/requirements` | `200`; revisi 1 berlaku, 5 parameter |
+| 3. Ubah kebutuhan nutrisi | `POST /orders/{id}/requirements` | `200`; revisi 2 berlaku, energi 1800 → 2100 |
+| 4. Histori tersimpan | `GET /orders/{id}/requirements` | `200`; revisi 2 `isCurrent=true`, revisi 1 `isCurrent=false` **tetap terbaca** beserta alasan perubahannya |
+| 5. Yang berlaku | `GET /orders/{id}/requirements/current` | `200`; revisi 2 |
+
+### Aturan validasi service
+
+Seluruhnya dipicu lewat API dan seluruhnya ditolak dengan kode yang benar.
+
+| Kode | Perlakuan | Hasil |
+|---|---|---|
+| `GIZ015` | Revisi tanpa parameter `FLUID` | `422 GIZ015` — "Belum terisi: Cairan." |
+| `GIZ014` | Parameter `ENERGY` dikirim dua kali | `422 GIZ014` |
+| `GIZ016` | Nilai final 2000 berbeda dari kalkulasi 1800, tanpa alasan | `422 GIZ016` |
+| `GIZ017` | Revisi kedua tanpa alasan perubahan | `422 GIZ017` |
+| `GIZ019` | Rumus yang tidak terdaftar | `422 GIZ019` |
+| `GIZ006` | Energi 12000 kkal, di atas batas master | `422 GIZ006` |
+| `GIZ018` | Dua diagnosis primer pada satu kunjungan | `422 GIZ018` |
+| `GIZ013` | Idempotency key sama, isi **sama** | `200`, revisi tetap 2 — tidak melahirkan revisi baru |
+| `GIZ013` | Idempotency key sama, isi **berbeda** | `409 GIZ013` |
+
+**Keutuhan data sesudah penolakan.** Diperiksa sesudah tujuh permintaan ditolak berturut-turut:
+riwayat tetap berisi persis 2 revisi. Tidak ada revisi separuh jadi yang tertinggal.
+
+### Perilaku tanpa rumus (`GIZ-OQ-007` deferred)
+
+`POST /orders/{id}/requirements/calculate` menjawab `200` dengan `calculated: false` dan pesan
+"Belum ada rumus terdaftar, sehingga nilai kebutuhan diisi ahli gizi." Seluruh `calculatedValue`
+kosong. Ini yang diharapkan: ketiadaan rumus diterangkan, bukan disembunyikan, dan bukan diisi
+angka bawaan yang akan tampak seperti hasil hitungan.
+
+### Otorisasi
+
+| Pemeriksaan | Hasil |
 |---|---|
-| `GIZ015` | Seluruh parameter aktif wajib punya nilai final pada satu revisi |
-| `GIZ016` | Alasan wajib bila nilai final berbeda dari nilai kalkulasi |
-| `GIZ017` | Alasan revisi wajib mulai revisi kedua |
-| `GIZ014` | Parameter yang dikirim harus aktif pada master |
-| `GIZ019` | Rumus yang dirujuk harus terdaftar dan aktif |
-| `GIZ013` | Idempotency key dipakai dengan isi permintaan berbeda |
-| — | Penegakan hak akses `NutritionMaster` dan `NutritionRequirement` |
+| 10 kombinasi metode+jalur dipanggil **tanpa token** | seluruhnya `401` |
+| Pendaftaran permission | `NutritionRequirement` muncul pada registry akses dengan aksi `Read` dan `Update`, `canAssign: true`; `NutritionMaster` juga terdaftar |
 
-Yang **sudah** terbukti adalah bahwa dua aturan terpenting — `GIZ018` dan `GIZ020` — tetap
-ditegakkan basis data walaupun service dilewati sama sekali.
+## Keterbatasan yang masih diakui
 
-### Cara menutup keterbatasan ini
+**Penegakan per-permission (`403`) belum terbukti.** Yang terbukti adalah penolakan `401` bagi
+permintaan tanpa token, dan bahwa permission-nya terdaftar serta dapat diberikan lewat layar
+hak akses. Yang belum diuji adalah pengguna yang **sudah login tetapi tidak memiliki**
+`NutritionRequirement : Update` — ia seharusnya menerima `403`.
 
-Sediakan kredensial akun uji yang berlaku pada `QuilvianNewDevIkbalFr`, lalu jalankan alur lima
-langkah di atas lewat endpoint `POST /orders/{id}/requirements`,
-`PUT /orders/{id}/records/{recordId}/diagnoses`, dan `GET /orders/{id}/requirements`.
+Sebabnya: kedua akun demo yang tersedia bertipe SuperAdmin, dan membuat akun berhak terbatas
+menuntut pembuatan akun baru yang berada di luar wewenang pengujian ini. Menutupnya memerlukan
+satu akun uji tanpa hak `NutritionRequirement`, lalu memanggil ulang kesembilan endpoint di atas.
+
+**Layar frontend belum ditelusuri seorang pengguna.** `next build` lolos dan kedua rute master
+terdaftar, tetapi klik demi klik pada layar belum dijalankan.
+
+## Temuan yang diperbaiki saat validasi
+
+Respons `POST /orders/{id}/records` mengembalikan `diagnosisCode`, `diagnosisName`, dan
+`domainCode` **kosong**, sedangkan `GET` atas data yang sama menampilkannya dengan benar.
+Sebabnya: baris diagnosis ditambahkan lewat `DbSet`-nya sendiri agar berstatus `Added`, sehingga
+navigasi `NutritionDiagnosis` belum terisi saat entity dipetakan. Akibatnya layar menampilkan
+diagnosis tanpa keterangan sampai halaman dimuat ulang.
+
+Diperbaiki dengan membaca ulang catatan kunjungan beserta `Include`-nya sesudah disimpan, lalu
+diverifikasi: kunjungan berikutnya mengembalikan `NI-1.4 Asupan energi tidak adekuat` dan
+`NC-1.1 Kesulitan menelan` lengkap dengan domainnya.
 
 ## Yang tidak dikerjakan dan alasannya
 

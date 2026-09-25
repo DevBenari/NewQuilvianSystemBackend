@@ -432,7 +432,18 @@ public sealed class NutritionOrderService
             "Mencatat kunjungan ahli gizi.",
             new { entity.Id, entity.OrderNumber, record.VisitSequence, ActorUserId = actorUserId });
 
-        return MapRecord(record);
+        // Dibaca ulang, bukan dipetakan dari entity yang baru ditulis. Baris diagnosis
+        // ditambahkan lewat DbSet-nya sendiri sehingga navigasi `NutritionDiagnosis` belum
+        // terisi; memetakannya langsung menghasilkan kode dan nama diagnosis yang kosong pada
+        // respons — layar lalu menampilkan baris tanpa keterangan sampai halaman dimuat ulang.
+        var saved = await _dbContext.GziNutritionCareRecords.AsNoTracking()
+            .Include(x => x.RecordedByWorkforce)
+            .Include(x => x.Diagnoses.Where(d => !d.IsDelete))
+                .ThenInclude(d => d.NutritionDiagnosis)
+                    .ThenInclude(d => d!.DiagnosisDomain)
+            .FirstAsync(x => x.Id == record.Id, cancellationToken);
+
+        return MapRecord(saved);
     }
 
     // ================================================================== penolong
