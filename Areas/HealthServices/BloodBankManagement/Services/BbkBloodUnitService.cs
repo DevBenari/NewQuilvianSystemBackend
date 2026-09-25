@@ -135,6 +135,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
         private const string Val018Message =
             "Bukti pemeriksaan kecocokan belum tercatat. Darah tidak dapat diberikan.";
 
+        // Gerbang klinis golongan darah — BE-BD-022. Rumusan persis validation-matrix.
+        private const string Val034Message =
+            "Golongan darah pasien ini sedang bertentangan dan ditahan. " +
+            "Selesaikan perbedaannya lebih dulu.";
+
         private const string Val019Message =
             "Bukti kecocokan yang ada bukan untuk pasien ini. " +
             "Catat bukti kecocokan terhadap pasien tujuan.";
@@ -315,13 +320,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
 
         private readonly ApplicationDbContext _dbContext;
         private readonly BbkEncounterStatusReader _encounterStatusReader;
+        private readonly BbkBloodGroupExamService _bloodGroupExamService;
 
         public BbkBloodUnitService(
             ApplicationDbContext dbContext,
-            BbkEncounterStatusReader encounterStatusReader)
+            BbkEncounterStatusReader encounterStatusReader,
+            BbkBloodGroupExamService bloodGroupExamService)
         {
             _dbContext = dbContext;
             _encounterStatusReader = encounterStatusReader;
+            _bloodGroupExamService = bloodGroupExamService;
         }
 
         // =================================================================
@@ -551,7 +559,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
                         EvidenceGateClosed = bypass.EvidenceGateClosed,
                         LocationGateClosed = bypass.LocationGateClosed,
                         PatientId = bypass.PatientId,
-                        ValidCompatibilityEvidenceId = bypass.ValidCompatibilityEvidenceId
+                        ValidCompatibilityEvidenceId = bypass.ValidCompatibilityEvidenceId,
+                        BloodGroupGateClosed = bypass.BloodGroupGateClosed
                     };
             }
 
@@ -1475,11 +1484,43 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
 
             var patientId = activeAllocation.PatientId.Value;
 
+            // VAL-BD-034 (BE-BD-022): golongan darah pasien tujuan yang sedang bertentangan
+            // menahan pemberian sebelum bukti kecocokan dinilai. Hanya konflik yang menahan;
+            // pasien yang belum punya golongan darah tervalidasi tidak ditahan di sini.
+            if (await IsBloodGroupConflictHeldAsync(patientId, cancellationToken))
+            {
+                return new BloodUnitIssuanceGateResult(
+                    false,
+                    "VAL-BD-034",
+                    Val034Message,
+                    patientId);
+            }
+
             return await EvaluateCompatibilityEvidenceGateAsync(
                 unitId,
                 patientId,
                 unit.ValidityHours,
                 cancellationToken);
+        }
+
+        /// <summary>
+        /// Gerbang klinis golongan darah (<c>VAL-BD-034</c>, <c>BE-BD-022</c>): benar bila pasien
+        /// sedang menahan perbedaan hasil golongan darah.
+        /// </summary>
+        /// <remarks>
+        /// Dibaca dari <see cref="BbkBloodGroupExamService.GetValidBloodGroupAsync"/>, pintu yang
+        /// sama dengan <c>GET /blood-group-exams/patient/{patientId}/valid</c>, supaya layar dan
+        /// gerbang tidak pernah berbeda pendapat. <c>MstPatient.BloodType</c> tidak dibaca.
+        /// </remarks>
+        private async Task<bool> IsBloodGroupConflictHeldAsync(
+            Guid patientId,
+            CancellationToken cancellationToken)
+        {
+            var validBloodGroup = await _bloodGroupExamService.GetValidBloodGroupAsync(
+                patientId,
+                cancellationToken);
+
+            return validBloodGroup.IsConflictHeld;
         }
 
         /// <summary>
@@ -1752,7 +1793,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
                     EvidenceGateClosed: true,
                     LocationGateClosed: locationGateClosed,
                     PatientId: null,
-                    ValidCompatibilityEvidenceId: null);
+                    ValidCompatibilityEvidenceId: null,
+                    BloodGroupGateClosed: false);
             }
 
             var patientId = activeAllocation.PatientId.Value;
@@ -1768,7 +1810,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
                 LocationGateClosed: locationGateClosed,
                 PatientId: patientId,
                 ValidCompatibilityEvidenceId:
-                    evidenceGate.IsOpen ? evidenceGate.CompatibilityEvidenceId : null);
+                    evidenceGate.IsOpen ? evidenceGate.CompatibilityEvidenceId : null,
+                BloodGroupGateClosed:
+                    await IsBloodGroupConflictHeldAsync(patientId, cancellationToken));
         }
 
         /// <summary>
@@ -1889,6 +1933,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
                     BloodUnitOutcome.NotAllowedByState,
                     Val017Message,
                     "VAL-BD-017");
+            }
+
+            // VAL-BD-034 (BE-BD-022): konflik golongan darah tidak dapat dilewati jalur darurat,
+            // apa pun cakupan yang dinyatakan. Ia bukan cakupan bypass (INV-BD-030 tetap hanya
+            // bukti kecocokan dan lokasi), jadi diperiksa sebelum kecocokan cakupan.
+            if (bypass.BloodGroupGateClosed)
+            {
+                return Failed(
+                    BloodUnitOutcome.NotAllowedByState,
+                    Val034Message,
+                    "VAL-BD-034");
             }
 
             // VAL-BD-066 bagian "tidak sesuai keadaan kantong". Penanda darurat yang menyebut

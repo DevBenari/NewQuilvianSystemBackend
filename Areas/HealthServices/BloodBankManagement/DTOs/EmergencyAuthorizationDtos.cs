@@ -89,11 +89,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.DTOs
     /// Bukti kecocokan yang berlaku bila gerbang bukti tidak sedang menahan. Dipakai supaya
     /// pemberian darurat yang hanya melewati gerbang lokasi tetap menunjuk bukti yang sah.
     /// </param>
+    /// <param name="BloodGroupGateClosed">
+    /// Golongan darah pasien tujuan sedang bertentangan (<c>VAL-BD-034</c>, <c>BE-BD-022</c>).
+    /// Bukan cakupan bypass: selama benar, jalur darurat ditolak apa pun cakupannya.
+    /// </param>
     public sealed record BloodUnitEmergencyBypassState(
         bool EvidenceGateClosed,
         bool LocationGateClosed,
         Guid? PatientId,
-        Guid? ValidCompatibilityEvidenceId);
+        Guid? ValidCompatibilityEvidenceId,
+        bool BloodGroupGateClosed);
 
     /// <summary>
     /// Proyeksi keadaan kedua gerbang yang dapat dilewati jalur darurat pada detail kantong
@@ -118,5 +123,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.DTOs
 
         /// <summary>Bukti kecocokan yang berlaku, hanya bila gerbang bukti tidak menahan.</summary>
         public Guid? ValidCompatibilityEvidenceId { get; set; }
+
+        /// <summary>
+        /// Golongan darah pasien tujuan sedang bertentangan (<c>VAL-BD-034</c>, <c>BE-BD-022</c>).
+        /// Bukan cakupan bypass: selama benar, <c>emergency-issue</c> ditolak apa pun cakupannya.
+        /// </summary>
+        public bool BloodGroupGateClosed { get; set; }
     }
 }

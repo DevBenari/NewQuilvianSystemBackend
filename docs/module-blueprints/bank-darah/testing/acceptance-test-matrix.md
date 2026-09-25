@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Blueprint ID | `BD-BP-001` · Contract version **`v5` — `approved`** (`Sukmagp` 2026-09-19; `v4` kini `superseded`). **Riwayat:** `v5` `draft` 18 September 2026 (arah disetujui `Sukmagp` 2026-09-18). **Riwayat:** `v4` — `approved` |
-| `last_changed_in` | **`v5`** — bagian 11 (`AC-BD-103` sampai `AC-BD-112`). **23 September 2026:** bagian 12 baru (`AC-BD-113` sampai `AC-BD-117`, `v5` `D5`, task `BE-BD-019`). **24 September 2026:** bagian 13 baru (`AC-BD-118` sampai `AC-BD-124`, `v5` `D6`, task `BE-BD-020`). **25 September 2026:** bagian 14 baru (`AC-BD-125` sampai `AC-BD-131`, `v5` `D7`, task `BE-BD-021`). Bagian 1–10 tidak berubah |
+| `last_changed_in` | **`v5`** — bagian 11 (`AC-BD-103` sampai `AC-BD-112`). **23 September 2026:** bagian 12 baru (`AC-BD-113` sampai `AC-BD-117`, `v5` `D5`, task `BE-BD-019`). **24 September 2026:** bagian 13 baru (`AC-BD-118` sampai `AC-BD-124`, `v5` `D6`, task `BE-BD-020`). **25 September 2026:** bagian 14 baru (`AC-BD-125` sampai `AC-BD-131`, `v5` `D7`, task `BE-BD-021`) dan bagian 15 baru (`AC-BD-132` sampai `AC-BD-137`, `v5` `D8`, task `BE-BD-022`). Bagian 1–10 tidak berubah |
 | `approved_by` / `approved_at` | `Sukmagp` / `2026-09-03` (`v4`) · **`Sukmagp` / `2026-09-19` (`v5`)** |
 | Sumber | `00-interview-decisions.md` revisi 9 (`AC-BD-001`..`097`) · `contracts/state-transition-matrix.md` · `contracts/validation-matrix.md` |
 
@@ -326,6 +326,30 @@ lalu dipulihkan, dan satu kantong berstatus bukan `Allocated`.
 | `AC-BD-129` — sejalan dengan `issue` | Dari keadaan yang sama, tekan `POST /{id}/issue` | Integ | Proyeksi tertutup ⇒ `422` dengan kode dan pesan yang sama. Proyeksi terbuka ⇒ `200` |
 | `AC-BD-130` — sejalan dengan `emergency-issue` (`R5`) | `bypassScope` dari pemetaan kedua boolean, lalu satu cakupan lain | Integ | Cakupan hasil pemetaan **tidak** ditolak `VAL-BD-066`; cakupan lain ditolak `VAL-BD-066` |
 | `AC-BD-131` — tanpa regresi | Diff dan perilaku tindakan | Review + Integ | Nol migration, nol `VAL-BD-*` baru, nol perubahan `AvailableActions`, `[AccessAction]`/`[AccessPermission]`, maupun kode dan pesan `issue`/`emergency-issue` |
+
+## 15. Gerbang konflik golongan darah pada pemberian — tambahan 25 September 2026
+
+Menutup `AC-BD-132` sampai `AC-BD-137`, lahir dari keputusan pemilik `Sukmagp` 25 September 2026
+(api-contract `v5` `D8`), dikerjakan task `BE-BD-022`. Menegakkan `VAL-BD-034`; menjadi prasyarat backend
+butir "menahan" pada kewajiban layar `FE-BD-007` (`FE-BD-005`).
+
+> **Status: keenamnya ✅ TERPENUHI, 25 September 2026.** Dijalankan langsung agent terhadap
+> `QuilvianNewDevSukma` lewat HTTP sungguhan dengan konflik golongan darah **sungguhan** yang dibentuk lalu
+> diselesaikan lewat endpoint pemeriksaan; rinciannya pada [`BE-BD-022`](../task/report/backend/BE-BD-022.md)
+> bagian 5.1 (R0–R7, 8/8 `PASS`). **Batas:** aktor tunggal `superadmin`.
+
+**Data yang wajib disiapkan lebih dulu:** satu kantong `Allocated` untuk pasien yang dapat dibawa ke keadaan
+konflik lewat dua pemeriksaan tervalidasi berbeda hasil, satu kantong `Allocated` untuk pasien **tanpa**
+golongan darah tervalidasi, dan jalur penyelesaian konflik lewat pemeriksaan ulang.
+
+| Requirement | Skenario | Jenis | Bukti yang diharapkan |
+| --- | --- | --- | --- |
+| `AC-BD-132` — konflik menahan pemberian normal | Pasien tujuan `IsConflictHeld`; `POST /{id}/issue` | Integ | `422 VAL-BD-034` dengan pesan persis `validation-matrix`; kantong tidak berubah |
+| `AC-BD-133` — konflik menahan jalur darurat | Keadaan yang sama; `POST /{id}/emergency-issue` dengan cakupan hasil pemetaan `D7` dan dengan `Both` | Integ | Keduanya `422 VAL-BD-034`, **bukan** `066`; nol otorisasi darurat tersimpan |
+| `AC-BD-134` — urutan dan proyeksi | `GET /{id}` pada keadaan yang sama, buktinya juga tertutup | Integ | `issuanceGate.validationCode = VAL-BD-034` (bukan kode bukti), `validUntil` kosong; `emergencyBypass.bloodGroupGateClosed = true` |
+| `AC-BD-135` — hanya konflik yang menahan | Pasien tanpa golongan darah tervalidasi, bukti berlaku | Integ | Gerbang terbuka; `bloodGroupGateClosed = false` |
+| `AC-BD-136` — sumber yang sama dan pelepasan | Pesan dan penanda dibandingkan dengan `GET /blood-group-exams/patient/{id}/valid`; konflik lalu diselesaikan lewat pemeriksaan ulang | Integ | Pesan identik; sesudah penyelesaian gerbang kembali ke penilaian berikutnya dan `bloodGroupGateClosed = false`. Pasien lain tidak terdampak |
+| `AC-BD-137` — tanpa regresi | Diff dan perilaku | Review + Integ | Nol migration, nol `VAL-BD` baru, nol perubahan `AvailableActions` dan atribut hak akses; kantong bukan `Allocated` tetap tanpa proyeksi |
 
 ---
 

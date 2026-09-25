@@ -744,6 +744,27 @@ tidak dapat diberikan sebelum dialokasikan.
 
 ---
 
+### ✅ `BE-BD-022` — Blood Group Conflict Issuance Gate
+
+| Field | Isi |
+| --- | --- |
+| **Status** | ✅ **SELESAI — 25 September 2026. Keenam acceptance `AC-BD-132`..`AC-BD-137` terpenuhi dan Definition of Done terpenuhi.** Build **`0 Error(s)` / `214 Warning(s)`** (`01:07:57`), baseline tidak bertambah. `has-pending-model-changes` **bersih**, **nol migration**. QBE Strict **`PASS`** (2 berkas, `VIOLATION 0`). `api-contract.md` memperoleh Amendment `v5` **`D8`**; `AC-BD-132`..`AC-BD-137` pada bagian 15 matriks acceptance. **Validasi runtime R0–R7 8/8 `PASS` pada percobaan pertama**, dijalankan langsung agent terhadap `QuilvianNewDevSukma` ([laporan](../task/report/backend/BE-BD-022.md) bagian 5.1): konflik golongan darah **sungguhan** dibentuk (A Positif lalu B Positif tervalidasi) → proyeksi `VAL-BD-034` menggantikan `020`, `bloodGroupGateClosed = true`; `issue` dan `emergency-issue` (cakupan `0` dan `2`) ditolak `422 VAL-BD-034` tanpa perubahan data; pasien tanpa golongan darah sah tidak diblokir; pasien lain tidak terdampak; konflik diselesaikan lewat pemeriksaan ulang dan gerbang kembali ke `020`. **Batas bukti:** aktor tunggal `superadmin`. **Belum di-commit.** **Riwayat:** dibuka 25 September 2026 atas keputusan pemilik `Sukmagp` (konflik wajib memblokir kedua jalur pemberian, hanya konflik yang memblokir), sesudah lanjutan `FE-BD-005` mencatat butir `FE-BD-007` "menahan" tertahan backend |
+| **Yang memblokir** | **Nihil** |
+| **Outcome** | Darah tidak dapat diberikan — lewat jalur normal maupun darurat — kepada pasien yang hasil golongan darahnya sedang bertentangan, dan layar mengetahuinya sebelum tombol ditekan |
+| **Asal** | `VAL-BD-034` tertulis di `validation-matrix.md` sejak blueprint disetujui, tetapi tidak pernah ditegakkan pada kantong; tercatat sebagai gap pada laporan `FE-BD-005` |
+| **Trace** | `DEC-BD-026`; `VAL-BD-034`; `INV-BD-014`, `INV-BD-030`; `FE-BD-005` (`FE-BD-007`); keputusan pemilik 25 September 2026 ([laporan](../task/report/backend/BE-BD-022.md) bagian 2.1) |
+| **Kontrak** | api-contract — grup Blood Unit, Amendment `v5` **`D8`**. Menegakkan kode yang sudah ada; `bloodGroupGateClosed` aditif pada `BloodUnitEmergencyBypassDto`; nol endpoint dan butir hak akses baru |
+| **Reuse** | `BbkBloodGroupExamService.GetValidBloodGroupAsync` (`BE-BD-005`/`BE-BD-011`) — pintu yang sama dengan `GET /blood-group-exams/patient/{patientId}/valid`; proyeksi `BE-BD-021` |
+| **Scope** | **(1) Kontrak** — `D8`. **(2) Gerbang normal** — `034` sesudah alokasi aktif, sebelum gerbang bukti. **(3) Jalur darurat** — `034` sebelum kecocokan cakupan. **(4) Proyeksi** — `bloodGroupGateClosed`. **(5) Acceptance** — `AC-BD-132`..`AC-BD-137` bagian 15. **(6) Validasi runtime** terhadap `QuilvianNewDevSukma` |
+| **Di luar scope** | Migration. `VAL-BD` baru. Memblokir pasien tanpa golongan darah tervalidasi (keputusan pemilik). Gerbang golongan darah pada alokasi dan pencatatan bukti kecocokan. Perubahan `AvailableActions`. Perubahan apa pun pada frontend |
+| **Dependency** | `BE-BD-005` ✅, `BE-BD-011` ✅, `BE-BD-007` ✅, `BE-BD-008` ✅, `BE-BD-021` ✅, keputusan pemilik ✅ 25 September 2026 |
+| **Acceptance** | `AC-BD-132`, `AC-BD-133`, `AC-BD-134`, `AC-BD-135`, `AC-BD-136`, `AC-BD-137` — rumusannya pada [matriks acceptance](../testing/acceptance-test-matrix.md) bagian 15 |
+| **Verifikasi** | QBE preflight; build; review diff/scope; `has-pending-model-changes` bersih; HTTP sungguhan dengan konflik yang dibentuk dan diselesaikan lewat endpoint pemeriksaan |
+| **Risk/owner** | **Tinggi / klinis & BDRS** — jalur darurat tertutup total selama konflik atas keputusan pemilik; salah baca konflik berarti darah diberikan atas golongan darah yang bertentangan |
+| **DoD** | Keenam acceptance terbukti; `api-contract.md` diamandemen `D8`; `AC-BD-132`..`AC-BD-137` tertulis; nol migration; laporan tracked `task/report/backend/BE-BD-022.md`; tidak di-commit sebelum validasi final |
+
+---
+
 ## 6. Gerbang yang masih terbuka
 
 | Gate | Pemilik | Menahan |

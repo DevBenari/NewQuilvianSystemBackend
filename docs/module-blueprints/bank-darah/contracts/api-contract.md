@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Blueprint ID | `BD-BP-001` · Contract version **`v5` — `approved`** (`Sukmagp` 2026-09-19; `v4` kini `superseded`). **Riwayat:** `v5` `draft` 18 September 2026. Arah disetujui `Sukmagp` 2026-09-18 (`DEC-BD-055`..`058`). **Riwayat:** `v4` — `approved` `Sukmagp` 2026-09-03 |
-| `last_changed_in` | **`v5`** — grup Blood Order saja (bagian "Amendment `v5`" di bawah tabel grup itu). Grup lain tidak berubah. **23 September 2026:** bagian `D5` ditambahkan ke amandemen yang sama — penyaring rentang tanggal `startDate`/`endDate` pada `GET /` (`DEC-BD-059`, `DEC-BD-060`, task `BE-BD-019`). Aditif penuh; **nomor set kontrak tidak dinaikkan**, karena tidak ada satu pun klien lama yang rusak. **24 September 2026:** bagian `D6` ditambahkan pada grup Blood Unit — penyaring `inactiveLocation` pada `GET /` (keputusan pemilik `Sukmagp`, task `BE-BD-020`). Aditif penuh; nomor set kontrak tidak dinaikkan. **25 September 2026:** bagian `D7` ditambahkan pada grup Blood Unit — proyeksi `issuanceGate` dan `emergencyBypass` pada `BloodUnitDetailDto` (keputusan pemilik `Sukmagp` `R1`–`R5`, task `BE-BD-021`). Aditif penuh; nomor set kontrak tidak dinaikkan. **Riwayat:** `v4` |
+| `last_changed_in` | **`v5`** — grup Blood Order saja (bagian "Amendment `v5`" di bawah tabel grup itu). Grup lain tidak berubah. **23 September 2026:** bagian `D5` ditambahkan ke amandemen yang sama — penyaring rentang tanggal `startDate`/`endDate` pada `GET /` (`DEC-BD-059`, `DEC-BD-060`, task `BE-BD-019`). Aditif penuh; **nomor set kontrak tidak dinaikkan**, karena tidak ada satu pun klien lama yang rusak. **24 September 2026:** bagian `D6` ditambahkan pada grup Blood Unit — penyaring `inactiveLocation` pada `GET /` (keputusan pemilik `Sukmagp`, task `BE-BD-020`). Aditif penuh; nomor set kontrak tidak dinaikkan. **25 September 2026:** bagian `D7` ditambahkan pada grup Blood Unit — proyeksi `issuanceGate` dan `emergencyBypass` pada `BloodUnitDetailDto` (keputusan pemilik `Sukmagp` `R1`–`R5`, task `BE-BD-021`). Aditif penuh; nomor set kontrak tidak dinaikkan. **25 September 2026:** bagian `D8` ditambahkan pada grup Blood Unit — gerbang `VAL-BD-034` pada `issue` dan `emergency-issue`, isian `bloodGroupGateClosed` pada `emergencyBypass` (keputusan pemilik `Sukmagp`, task `BE-BD-022`). Menegakkan kode yang sudah ada; nomor set kontrak tidak dinaikkan. **Riwayat:** `v4` |
 | Owner | Pemilik arsitektur backend (bentuk kontrak) · pemilik proses BDRS (perilaku) |
 | `approved_by` / `approved_at` | `Sukmagp` / `2026-09-19` (`v5`). **Riwayat:** `Sukmagp` / `2026-09-03` (`v4`) |
 | Sumber | `02-backend-architecture.md` (controller) · `contracts/state-transition-matrix.md` · `contracts/validation-matrix.md` |
@@ -362,6 +362,45 @@ kantong `GET /`, dan penanda `isCurrentStorageLocationActive`. Penanda itu memak
 `IsActive && !IsDelete`, sedangkan gerbang lokasi juga memeriksa `IsCancel`. Selisih ini sudah ada sebelum
 `D7`, **tidak** diubah amandemen ini, dan dicatat sebagai technical debt (`R4`). Bila keduanya berbeda,
 `emergencyBypass.locationGateClosed` yang menjadi acuan gerbang.
+
+#### Amendment `v5` D8 — gerbang konflik golongan darah pada pemberian (25 September 2026)
+
+Ditambahkan atas keputusan pemilik `Sukmagp` 25 September 2026: konflik golongan darah **wajib memblokir
+pemberian**, ditegakkan backend, pada **kedua** jalur; hanya konflik (`IsConflictHeld`) yang memblokir —
+pasien yang belum punya golongan darah tervalidasi **tidak** diblokir. Menegakkan `VAL-BD-034` yang sudah
+ada di `validation-matrix.md` (`state-transition-matrix.md` §"Memakai golongan darah saat pasien
+`IsConflictHeld`"). Nol endpoint baru, nol butir hak akses baru, nol kode `VAL-BD` baru, nol migration.
+Dikerjakan task `BE-BD-022`.
+
+| Method | Path | Yang berubah | Hak akses |
+| --- | --- | --- | --- |
+| `POST` | `/{id}/issue` | Dapat ditolak `422 VAL-BD-034` | Tidak berubah |
+| `POST` | `/{id}/emergency-issue` | Dapat ditolak `422 VAL-BD-034`, **apa pun** `bypassScope`-nya | Tidak berubah |
+| `GET` | `/{id}` (dan respons aksi yang memulangkan detail) | `issuanceGate.validationCode` dapat bernilai `VAL-BD-034`; `emergencyBypass` memperoleh `bloodGroupGateClosed` | `BloodUnit : Read` |
+
+| Tempat | Isian | Tipe | Aturan |
+| --- | --- | --- | --- |
+| `BloodUnitEmergencyBypassDto` | `bloodGroupGateClosed` | `bool` | `true` bila pasien tujuan sedang `IsConflictHeld`. **Bukan** cakupan bypass: selama `true`, `emergency-issue` ditolak |
+
+**Sumber kebenaran.** `BbkBloodGroupExamService.GetValidBloodGroupAsync` — pintu yang sama dengan
+`GET /blood-group-exams/patient/{patientId}/valid`, sehingga penanda layar dan gerbang tidak pernah
+berbeda. `MstPatient.BloodType` tidak dibaca (`INV-BD-014`). Pesan penolakan persis rumusan
+`validation-matrix.md`: "Golongan darah pasien ini sedang bertentangan dan ditahan. Selesaikan perbedaannya
+lebih dulu."
+
+**Urutan gerbang pemberian normal sesudah `D8`:** status (`017`) → lokasi (`065`) → alokasi aktif (`017`) →
+**golongan darah (`034`)** → `018` → `019` → `020b` → `079` → `020`. Contoh: kantong di kulkas aktif untuk
+pasien yang sedang menahan konflik dan buktinya kedaluwarsa memulangkan `VAL-BD-034`, bukan `020`.
+
+**Jalur darurat.** Konflik golongan darah bukan gerbang yang dapat dilewati: cakupan bypass tetap hanya
+bukti kecocokan dan lokasi (`INV-BD-030`). Penolakannya diperiksa sesudah pasien tujuan diketahui dan
+**sebelum** kecocokan cakupan, sehingga penerbit yang menyatakan cakupan hasil pemetaan `D7` tetap ditolak
+`VAL-BD-034`, bukan `VAL-BD-066`. Tabel pemetaan `D7` tidak berubah; klien membaca `bloodGroupGateClosed`
+lebih dulu.
+
+**Yang tidak berubah.** `AvailableActions` (tombol tetap ditawarkan; penolakannya terbaca pada proyeksi),
+alokasi dan pencatatan bukti kecocokan (tidak diblokir konflik pada amandemen ini), serta kode dan pesan
+penolakan lain.
 
 Pemberian (`issue`/`emergency-issue`) tidak dapat dibatalkan — status terminal. Koreksi tidak
 memindahkan kantong keluar dari `Issued` dan tidak dapat dipakai memindahkan pemberian ke pasien lain
