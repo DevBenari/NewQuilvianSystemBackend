@@ -11,15 +11,15 @@
 | Trace | `DEC-BD-013/017/027/028/038/040/042` · `03-frontend-architecture.md` §3 `FE-BD-05` · kewajiban layar `FE-BD-005`, `FE-BD-007`, `FE-BD-008`, `FE-BD-012`, `FE-BD-013`, `FE-BD-018`, `FE-BD-021` · `validation-matrix.md` `VAL-BD-017/018/019/020/020b/021/065/066/070/071/072/078/079` |
 | Contract version | api-contract `v5` (`approved`, `Sukmagp` 19 September 2026). Endpoint yang dipakai tidak berubah sejak `v4`; kartu roadmap masih menulis `v4` |
 | Wewenang UI | Layar `FE-BD-05` (detail kantong) sebatas bukti kecocokan, pemberian jalur normal, dan jalur darurat. Rupa layar `DEV_DISCRETION`. **Tidak** mencakup layar `FE-BD-06` Pemeriksaan Golongan Darah, koreksi (`FE-BD-008`), maupun penyelesaian `PendingReview` (`FE-BD-007`) — keputusan pemilik bagian 1.1 |
-| Dependency | `BE-BD-005` ✅, `BE-BD-007` ✅, `BE-BD-008` ✅, **`BE-BD-021` ✅** (proyeksi gerbang, api-contract `v5` `D7`; ter-commit `49c8af97` dan di-push — dependency lanjutan 25 September 2026) |
+| Dependency | `BE-BD-005` ✅, `BE-BD-007` ✅, `BE-BD-008` ✅, `BE-BD-011` ✅, **`BE-BD-022` ✅** (gerbang `VAL-BD-034`, `D8`; `5ffb3a2f`, di-push), **`BE-BD-021` ✅** (proyeksi gerbang, api-contract `v5` `D7`; ter-commit `49c8af97` dan di-push — dependency lanjutan 25 September 2026) |
 | Klasifikasi | `MEDIUM` — satu layar existing diperluas; tiga endpoint tulis; satu hook dan satu komponen dialog baru; nol route, nol menu, nol Redux |
 | Task mode | `FRONTEND` — backend strict read-only |
 | Target tulis | `V2QuilvianSystemFrontendDev` (source dan test); laporan ini beserta tautan roadmap dan traceability pada repository backend |
 | Model | Claude Opus 5.5 (`claude-opus-5-5`) |
-| Commit frontend saat dikerjakan | **Lanjutan 25 September 2026:** basis `c803b9beb` di `sukmagpV2`; source lanjutan **belum di-commit**. **Riwayat:** basis `b8ea49a1fe4511afd17057ff7c6b8c3c75f75c25`. **Source task ini ter-commit sebagai `88bd2b1c7a8ce8e03889c0352f66d048c82cc1f0`** di `sukmagpV2` (`feat(bank-darah): complete FE-BD-005 compatibility evidence and issuance workflow`, 10 berkas), atas persetujuan pemilik sesudah validasi final. Belum di-push |
+| Commit frontend saat dikerjakan | **Final 25 September 2026:** basis `3618c091c` di `sukmagpV2`; source final **belum di-commit**. **Lanjutan 25 September 2026:** basis `c803b9beb` di `sukmagpV2`; source lanjutan **belum di-commit**. **Riwayat:** basis `b8ea49a1fe4511afd17057ff7c6b8c3c75f75c25`. **Source task ini ter-commit sebagai `88bd2b1c7a8ce8e03889c0352f66d048c82cc1f0`** di `sukmagpV2` (`feat(bank-darah): complete FE-BD-005 compatibility evidence and issuance workflow`, 10 berkas), atas persetujuan pemilik sesudah validasi final. Belum di-push |
 | Commit backend yang dijadikan rujukan | `b39c6cc4901a40c9ba772332b82575045ba0dbfd` (`sukmagp`) |
 | Tanggal | 24 September 2026 |
-| Status | 🟡 **Sebagian — diperbarui 25 September 2026 (lanjutan sesudah `BE-BD-021`, bagian 6.4).** `FE-BD-008`, `FE-BD-013`, dan `FE-BD-021` kini **terpenuhi**: gerbang pemberian terbaca dan tombol Berikan tertahan **sebelum** ditekan, masa berlaku bukti tampil, dan gerbang jalur darurat ditetapkan dari proyeksi backend. `lint:errors` `PASS`, `build` `PASS` (371 halaman), `test:unit` 1624 test — 1617 lulus termasuk 5 test baru, 7 kegagalan lama sama dengan baseline; **runtime `G0`–`G9` 10 dari 10 `PASS`** di Chromium terhadap backend sungguhan. **Tetap 🟡** karena dua butir: outcome **mencatat golongan darah** (di luar cakupan keputusan pemilik no. 1–2; layar `FE-BD-06` hanya validasi/penyelesaian konflik lewat `FE-BD-009`), dan `FE-BD-007` **menahan tombol** — penanda konflik kini terlihat, tetapi backend tidak menjadikan konflik golongan darah gerbang pemberian (`VAL-BD-034`) dan layar dilarang membuat aturan sendiri; bukti penanda positif memakai jawaban tersimulasi karena database tidak punya pasien yang menahan konflik. **Riwayat (24 September 2026):** 🟡 **Sebagian** — cakupan yang diputuskan pemilik terbukti. `lint:errors` `PASS`, `build` `PASS`, `test:unit` `PASS` untuk cakupan task, dan **validasi runtime `R0`–`R9` seluruhnya `PASS`** (14 skenario) di Chromium terhadap backend sungguhan, 24 September 2026 (bagian 6.2). Cacat UX pemilih dialog yang ditemukan runtime **sudah diperbaiki** dan dibuktikan ulang pada `R3` dan `R9` (bagian 6.3). Tetap 🟡 karena empat butir kartu tidak dapat dipenuhi tanpa data backend yang belum ada (golongan darah `FE-BD-06`, `FE-BD-013`, `FE-BD-007`, `FE-BD-008`). Gap itu dicatat sebagai backlog atas keputusan pemilik, bukan dibuka sebagai task (bagian 8). **Riwayat:** 🟡 dengan cacat UX pemilih dialog belum diperbaiki;  🟡 dengan runtime `NOT RUN` karena cookie sesi belum tersedia |
+| Status | ✅ **SELESAI — 25 September 2026 (final, bagian 6.5).** Kesembilan butir outcome dan acceptance kartu terpenuhi. Input golongan darah dari konteks pasien (detail kantong dan detail order: catat sampel → catat hasil → validasi) terbukti; konflik golongan darah **sungguhan** dari layar membuat detail kantong menampilkan penanda, **menahan Berikan** (`VAL-BD-034` lewat proyeksi `BE-BD-022`), dan menahan konfirmasi Jalur Darurat. `lint:errors` `PASS` (warning per berkas sama dengan `HEAD`), `build` `PASS` (371 halaman), `test:unit` 1630 test — 1623 lulus termasuk 6 test baru, 7 kegagalan lama sama dengan baseline; **runtime `E0`–`E8` 8 dari 8 `PASS`** di Chromium terhadap backend sungguhan, konflik dipulihkan. Belum di-commit. **Riwayat:** 🟡 **Sebagian — diperbarui 25 September 2026 (lanjutan sesudah `BE-BD-021`, bagian 6.4).** `FE-BD-008`, `FE-BD-013`, dan `FE-BD-021` kini **terpenuhi**: gerbang pemberian terbaca dan tombol Berikan tertahan **sebelum** ditekan, masa berlaku bukti tampil, dan gerbang jalur darurat ditetapkan dari proyeksi backend. `lint:errors` `PASS`, `build` `PASS` (371 halaman), `test:unit` 1624 test — 1617 lulus termasuk 5 test baru, 7 kegagalan lama sama dengan baseline; **runtime `G0`–`G9` 10 dari 10 `PASS`** di Chromium terhadap backend sungguhan. **Tetap 🟡** karena dua butir: outcome **mencatat golongan darah** (di luar cakupan keputusan pemilik no. 1–2; layar `FE-BD-06` hanya validasi/penyelesaian konflik lewat `FE-BD-009`), dan `FE-BD-007` **menahan tombol** — penanda konflik kini terlihat, tetapi backend tidak menjadikan konflik golongan darah gerbang pemberian (`VAL-BD-034`) dan layar dilarang membuat aturan sendiri; bukti penanda positif memakai jawaban tersimulasi karena database tidak punya pasien yang menahan konflik. **Riwayat (24 September 2026):** 🟡 **Sebagian** — cakupan yang diputuskan pemilik terbukti. `lint:errors` `PASS`, `build` `PASS`, `test:unit` `PASS` untuk cakupan task, dan **validasi runtime `R0`–`R9` seluruhnya `PASS`** (14 skenario) di Chromium terhadap backend sungguhan, 24 September 2026 (bagian 6.2). Cacat UX pemilih dialog yang ditemukan runtime **sudah diperbaiki** dan dibuktikan ulang pada `R3` dan `R9` (bagian 6.3). Tetap 🟡 karena empat butir kartu tidak dapat dipenuhi tanpa data backend yang belum ada (golongan darah `FE-BD-06`, `FE-BD-013`, `FE-BD-007`, `FE-BD-008`). Gap itu dicatat sebagai backlog atas keputusan pemilik, bukan dibuka sebagai task (bagian 8). **Riwayat:** 🟡 dengan cacat UX pemilih dialog belum diperbaiki;  🟡 dengan runtime `NOT RUN` karena cookie sesi belum tersedia |
 
 ---
 
@@ -487,18 +487,151 @@ Data uji dibiarkan dan dicatat, sama dengan perlakuan data uji sebelumnya.
 `test-results/` dan `playwright-report/`. Dua berkas tracked di `test-results/` yang diubah Playwright
 dipulihkan dengan `git restore`, hanya pada kedua path itu.
 
+### 6.5 Final — input pemeriksaan golongan darah dari konteks pasien, 25 September 2026
+
+**Keputusan dan perintah pemilik `Sukmagp`, 25 September 2026.**
+
+- Input golongan darah (`FE-BD-06`) masuk cakupan task ini.
+- Konflik golongan darah wajib memblokir pemberian di **backend**. Ini sudah dikerjakan `BE-BD-022` ✅ dan di-push `5ffb3a2f`.
+- Pencatatan sampel dimulai **dari konteks pasien**, tanpa pemilih pasien manual.
+- Larangan: endpoint baru, aturan konflik di frontend, menilai golongan darah di frontend, dan mengubah `BE-BD-022`.
+
+#### 6.5.1 Alur bagi petugas
+
+1. **Detail kantong** (pasien tujuan alokasi aktif) atau **detail order** (pasien order) menampilkan
+   tombol **Periksa Golongan Darah**. Tombol ini hanya tampil untuk pemegang `BloodGroupExam : Create`
+   **dan** `Read`, karena `Read` diperlukan untuk membuka detail pemeriksaan yang baru dibuat.
+2. Dialog **Catat sampel golongan darah** menampilkan nama pasien dari konteks sebagai keterangan, bukan
+   pilihan. Petugas mengisi **Identifier Sampel** (wajib, paling banyak 50 karakter) dan **Waktu
+   Pengambilan**, yang terisi waktu sekarang dan boleh diubah. **Simpan Sampel** nonaktif sampai
+   identifier diisi.
+3. Backend menerima sampel (`200`), lalu layar pindah ke **detail pemeriksaan** baru.
+   - Identifier yang sudah dipakai → `409` "Identifier sampel itu sudah dipakai. Gunakan identifier
+     lain."
+   - Waktu ambil yang melewati sekarang → `400` "Waktu pengambilan sampel tidak boleh melewati waktu
+     sekarang."
+   - Pada kedua penolakan itu pesan backend tampil di dialog, dan dialog tetap terbuka supaya isian
+     dapat dibetulkan.
+4. Di detail pemeriksaan, tombol **Catat Hasil** tampil bila backend menawarkan `RecordResult` dan
+   petugas memegang `BloodGroupExam : Update`. Dialog berisi pilihan **delapan** golongan darah (A+
+   sampai O-), tanpa "Tidak diketahui". Pemeriksa dan waktu pemeriksaan ditentukan backend.
+   - Tanpa hak `Update`, tombol tidak tampil dan keadaan "Hasil belum dicatat" tetap terbaca.
+5. Sesudah hasil tercatat, backend menawarkan `Validate`, dan tombol **Validasi** yang sudah ada
+   (`FE-BD-009`) dipakai. Akibat validasi ditentukan backend: hasil menjadi golongan darah sah, **atau**
+   berbeda dari hasil sah sebelumnya sehingga konflik terbentuk.
+6. Selama pasien tujuan menahan konflik, detail kantong menampilkan:
+   - **Golongan darah pasien tujuan bertentangan** (dari `/valid`);
+   - **Pemberian ditahan** berisi pesan `VAL-BD-034` (dari proyeksi `issuanceGate`), dengan tombol
+     **Berikan nonaktif**;
+   - dialog **Jalur Darurat** yang menampilkan peringatan dari `emergencyBypass.bloodGroupGateClosed`,
+     dengan tombol konfirmasi tertahan.
+
+   Seluruh keputusan itu milik backend. Layar tidak membandingkan golongan darah.
+
+#### 6.5.2 Berkas yang berubah
+
+| Berkas | Perubahan |
+| --- | --- |
+| `src/lib/constants/.../blood-group-exam-constants.jsx` | Aksi `RecordResult`; batas identifier 50; `BLOOD_GROUP_EXAM_RESULT_OPTIONS`, yaitu 8 golongan darah (1–8) tanpa `0`/`99` |
+| `src/lib/services/.../blood-group-exam.service.js` | `recordBloodGroupSample` (`POST /`) dan `recordBloodGroupResult` (`POST /{id}/result`) |
+| `src/utils/.../blood-group-exam-utils.js` | `buildSamplePayload` (tepat tiga isian; waktu setempat → UTC) dan `buildResultPayload` (hanya nilai opsi baku) |
+| `src/utils/.../blood-unit-utils.js` | `normalizeEmergencyBypass` membaca `bloodGroupGateClosed` (`BE-BD-022`) |
+| **Baru** `src/lib/hooks/.../use-blood-group-sample.jsx` | Hook bersama Catat Sampel: hak akses, form, kirim, penanganan `409`/`400`, dan navigasi ke detail pemeriksaan lewat token route yang sama dengan daftar |
+| **Baru** `src/components/view/.../blood-group-exams/blood-group-sample-dialog.jsx` | Dialog sampel yang dipakai kedua konteks |
+| `src/lib/hooks/.../use-blood-group-exam-detail.jsx` | Alur Catat Hasil; `RecordResult` kini dipakai (menggantikan keputusan `B2` `FE-BD-009` yang mengabaikannya) |
+| `src/components/view/.../blood-group-exam-detail-view.jsx`, `…-dialogs.jsx` | Tombol dan dialog Catat Hasil. Peringatan "belum tersedia" diganti keadaan "menunggu hasil" untuk pengguna tanpa `Update` |
+| `src/lib/hooks/.../use-blood-unit-detail.jsx`, `…/blood-unit-detail-view.jsx` | Tombol Periksa Golongan Darah untuk pasien alokasi aktif |
+| `src/lib/hooks/.../use-blood-order-detail.jsx`, `…/blood-order-detail-view.jsx` | Tombol Periksa Golongan Darah untuk pasien order |
+| `src/lib/hooks/.../use-blood-unit-issuance.jsx`, `…/blood-unit-issuance-dialogs.jsx` | Dialog darurat membaca `bloodGroupGateClosed`: peringatan dan konfirmasi tertahan (`D8`) |
+| `src/style/.../blood-group-exam.module.css` | `.dateTimeRow`, `.formHint`, dan judul isian `span`; token saja |
+| `tests/unit/blood-group-exam-input.test.mjs` | **Baru.** 6 test |
+| `tests/e2e/blood-group-exam-input-screen.spec.mjs` | **Baru.** Runtime `E0`–`E8` + pemulihan `afterAll` |
+
+Nol route, nol Redux, nol endpoint baru, nol perubahan base component.
+
+`UI GATE: 8 elemen — REUSE 7, EXTEND 0, COMPOSE 1, WRAP 0, NEW 0`
+
+| Kebutuhan UI | Kandidat base | Bukti | Status | Rekomendasi |
+| --- | --- | --- | --- | --- |
+| Tombol Periksa Golongan Darah, Catat Hasil | `BaseButton` | Dipakai kedua layar detail | REUSE | `secondary` / `primary` |
+| Dialog sampel dan hasil | `ConfirmModal` | Pola dialog modul ini | REUSE | — |
+| Identifier sampel | `BaseTextField` dari `base-form-control` (`BaseFormControl` + input) | Dipakai modul Accounting | REUSE | `maxLength` 50, `required`, `description` |
+| Waktu pengambilan | `FilterDatePicker` + `FilterTimePicker` | Keputusan COMPOSE `FE-BD-005` bagian 3.3 | COMPOSE | Rujuk keputusan yang sama |
+| Hasil ABO/Rhesus | `FilterSelect` | Pola `<label htmlFor>` modul ini | REUSE | 8 opsi |
+| Pasien dari konteks | `InformationAlert` | Pola `TargetSummary` | REUSE | — |
+| Peringatan konflik/darurat | `InformationAlert` | Sudah dipakai layar kantong | REUSE | — |
+| Status pemeriksaan | `StatusBadge` | Detail `FE-BD-06` yang ada | REUSE | Tidak diubah |
+
+#### 6.5.3 Verifikasi
+
+| Skenario atau perintah | Hasil | Klasifikasi | Bukti |
+| --- | --- | --- | --- |
+| `npm run lint:errors` | Kode keluar `0` | `PASS` | Warning per berkas dibandingkan dengan `HEAD` lewat ESLint JSON: **sama persis** di ke-13 berkas yang diubah; kedua berkas baru nol warning |
+| `npx eslint --quiet tests/e2e/blood-group-exam-input-screen.spec.mjs` | Kode keluar `0` | `PASS` | Log perintah |
+| `npm run test:unit` | 1630 test — **1623 lulus, 7 gagal**; ke-6 test baru lulus | `PASS` untuk cakupan task | Ketujuh kegagalan sama dengan baseline (`route, menu, dan store terdaftar`, empat `FE-RWI-042`, `FE-RWI-043`, `M0`) |
+| `npm run build` | Kode keluar `0`, `Compiled successfully in 42s`, 371 halaman, standalone siap | `PASS` | Log perintah |
+| Grep anti-regresi §G | Nol temuan pada baris tambahan; CSS hanya token | `PASS` | — |
+| Runtime `E0`–`E8` (run 2) | **8 dari 8 `PASS`** (40,5 detik) + pemulihan `afterAll` berhasil | `PASS` | Bagian 6.5.4 |
+
+`AUTOMATED TEST: npm run test:unit — PASS` (6 test baru lulus; 7 kegagalan lain sudah ada sebelumnya).
+
+`MANUAL TEST: PASS` — skenario `E0`–`E8` dijalankan di Chromium sungguhan terhadap backend sungguhan.
+
+**Tidak dijalankan ulang:** spec `blood-unit-gate-projection-screen.spec.mjs` (`G0`–`G9`). Fixture-nya
+sudah terpakai (kantong `…BD006-…-04` Diberikan pada `G5`). Perubahan dialog darurat pada task ini
+dibuktikan `E6`, dan fungsi murninya oleh test unit.
+
+#### 6.5.4 Hasil validasi runtime — 25 September 2026
+
+Build standalone dijalankan pada `http://127.0.0.1:3710`. Setiap `/v1/**` diteruskan ke backend hasil
+build `BE-BD-022` pada `http://localhost:5217`, database `QuilvianNewDevSukma`, sesi `superadmin`. Cookie
+disimpan sementara di scratchpad, tidak dicetak, lalu dihapus. Satu-satunya jawaban yang dipasang adalah
+daftar kewenangan pada `E1` dan `E8`. **Konflik pada `E6` sungguhan**, dibentuk dari layar.
+
+| Kode | Skenario | Hasil | Klasifikasi |
+| --- | --- | --- | --- |
+| `E0` | Fixture dari backend: kantong `TEST-BD010-20260917135556-04` Dialokasikan (pasien AGNES YULIANI RAJA GUK GUK), order `ORD-00000093` (pasien Indra Gunawan). Keduanya belum punya pemeriksaan dan tanpa konflik | Sesuai | `PASS` |
+| `E1` | Tanpa `BloodGroupExam : Create` | Tombol **tidak** tampil di detail kantong maupun detail order. Dengan `Create` ditambahkan, tombol tampil | `PASS` |
+| `E2` | Dari detail kantong | Dialog menampilkan pasien alokasi aktif; Simpan nonaktif sampai identifier diisi. `POST /blood-group-exams` **`200`**; isi **tepat** `patientId` (= pasien alokasi aktif), `sampleIdentifier`, `takenAt` (berakhiran `Z`). Layar pindah ke detail pemeriksaan dengan tombol **Catat Hasil** | `PASS` |
+| `E3` | Dari detail order, identifier yang sama dengan `E2` | **`409`** "Identifier sampel itu sudah dipakai. Gunakan identifier lain." tampil di dialog yang tetap terbuka; `patientId` = pasien order. Identifier baru → `200`, pindah ke detail | `PASS` |
+| `E4` | Jam pengambilan dimajukan dua jam lewat pemilih jam | `takenAt 2026-09-25T08:19:00.000Z` → **`400`** "Waktu pengambilan sampel tidak boleh melewati waktu sekarang." tampil di dialog yang tetap terbuka | `PASS` |
+| `E8` | Detail pemeriksaan `SampleTaken`, tanpa `BloodGroupExam : Update` | **Catat Hasil** tidak tampil; "Hasil belum dicatat" terbaca | `PASS` |
+| `E5` | Catat Hasil → Validasi | Pemilih berisi **tepat 8** opsi, **tanpa** "Tidak diketahui". `POST /{id}/result` `200` dengan isi tepat `{ aboRhesusResult: 1 }`. Catat Hasil hilang dan **Validasi** tampil → `200`. `/valid`: golongan darah sah A Positif, tanpa konflik | `PASS` |
+| `E6` | Pemeriksaan kedua dari detail kantong: sampel → hasil **B Positif** → validasi | `/valid` `isConflictHeld = true`. Detail kantong: **Golongan darah pasien tujuan bertentangan**, **Pemberian ditahan** dengan pesan `VAL-BD-034`, **Berikan nonaktif**. Dialog Jalur Darurat: peringatan konflik tampil dan **Berikan Lewat Jalur Darurat nonaktif**. Nol `POST` tindakan kantong | `PASS` |
+| `E9` (`afterAll`) | Pemulihan | Pemeriksaan ulang A Positif `200/200/200`, `conflict-resolution` `200`, sisa konflik `false` | Dijalankan |
+
+**Riwayat percobaan, apa adanya.** Run 1: `E0`–`E1` lulus, lalu `E2` gagal karena **cacat locator spec**.
+`getByText(nomorKantong).first()` mengenai elemen tersembunyi yang memuat nomor kantong yang sama,
+padahal snapshot halaman menunjukkan detail kantong termuat lengkap beserta tombol **Periksa Golongan
+Darah**. Tidak ada data yang ditulis sebelum gagal. Locator diubah menjadi `visible=true`, lalu run 2
+lulus 8 dari 8. Source produk tidak berubah di antara kedua run.
+
+**Keadaan database sesudah run:**
+
+| Data | Keadaan akhir |
+| --- | --- |
+| Pasien AGNES YULIANI RAJA GUK GUK (`1967de99…`) | Tiga pemeriksaan tervalidasi: A+ (`E5`), B+ (`E6`), dan pemeriksaan ulang A+ (`E9`) yang kini **sah**. Konflik **sudah diselesaikan** (`TBD009-ALIH`). Riwayat konflik tetap terbaca |
+| Pasien Indra Gunawan (`334bc3d3…`) | Satu pemeriksaan `SampleTaken` (`E3`), menunggu hasil |
+| `TEST-BD010-20260917135556-04` | Tidak berubah (Dialokasikan, versi `5`) |
+
+Data dibiarkan dan dicatat, sama dengan perlakuan data uji sebelumnya.
+
+**Kebersihan:** kedua server uji dihentikan dan berkas cookie dihapus. Nol kemunculan token di
+artefak. Dua berkas tracked di `test-results/` dipulihkan dengan `git restore`, dan folder artefak run 1
+dihapus.
+
 ---
 
 ## 7. Acceptance criteria dan Definition of Done
 
 | Kriteria | Status | Bukti |
 | --- | --- | --- |
-| Outcome: petugas mencatat **golongan darah** | **Belum terpenuhi** — di luar cakupan keputusan pemilik no. 1–2 | Layar `FE-BD-06` tidak dibangun; butir menu Pemeriksaan Golongan Darah belum terdaftar |
+| Outcome: petugas mencatat **golongan darah** | **Terpenuhi (25 September 2026, final)** | `E2`/`E3` catat sampel dari detail kantong dan detail order (pasien dari konteks), `E5` catat hasil 8 opsi lalu validasi → golongan darah sah; `E6` pemeriksaan kedua memicu konflik. Penanganan `409`/`400` (`E3`, `E4`); hak akses `E1`, `E8`. **Riwayat:** **Belum terpenuhi** — di luar cakupan keputusan pemilik no. 1–2 |
 | Outcome: petugas mencatat bukti kecocokan beserta hasilnya, lalu memberikan kantong | **Terpenuhi** | `R3`, `R6` |
 | `FE-BD-021` hasil tidak cocok **menutup tombol Berikan** dengan pesan yang benar | **Terpenuhi (25 September 2026)** | Sejak `BE-BD-021`: tombol tertutup **sebelum** ditekan untuk setiap `isOpen = false`, dengan pesan backend (`G1`, `G2`, `G4`). Kode `VAL-BD-079` sendiri tidak ditembakkan di layar pada run ini; jalurnya identik (penahan membaca `isOpen`, bukan kode), dan proyeksi `079` terbukti di backend (`BE-BD-021` R4). **Riwayat (24 September 2026):** **Sebagian** — `R4`: tombol tertutup dengan pesan `VAL-BD-079` backend **sesudah** percobaan pertama ditolak. Sebelum itu tombol tetap terbuka, karena gerbang tidak diekspos backend dan frontend dilarang menilainya (keputusan no. 3) |
 | `FE-BD-018` peran penerbit dipilih sendiri | **Terpenuhi** | `R9`: tanpa nilai bawaan dan tidak disimpulkan dari akun; isi permintaan membawa peran yang dipilih. Unit test "gerbang dan peran penerbit yang tidak dipilih dikirim null" |
 | `FE-BD-013` gerbang yang dilewati mencerminkan keadaan kantong, bukan pilihan bebas | **Terpenuhi (25 September 2026)** | `G4` (lokasi saja) dan `G5` (bukti saja, diterima backend `200` dengan `bypassScope = 0`): pemilih terisi dari proyeksi dan nonaktif. **Riwayat (24 September 2026):** **Belum terpenuhi** — Pilihan tidak diisi otomatis: keadaan gerbang tidak ada di `GET /{id}`, dan keputusan no. 3 melarang menghitungnya. Backend menolak pilihan yang salah (`R9`, `422 VAL-BD-066`), dan penolakan itu tampil di dialog |
-| `FE-BD-007` penanda konflik golongan darah terlihat dan menahan | **Sebagian (25 September 2026)** | **Terlihat:** penanda dan pesan backend tampil bila `isConflictHeld` (`G7`, jawaban **tersimulasi**; data sungguhan tanpa konflik `G6`; tanpa hak baca `G8`). **Menahan: belum** — backend tidak menahan pemberian karena konflik golongan darah (`VAL-BD-034`), dan layar dilarang membuat aturan sendiri. **Riwayat (24 September 2026):** **Belum terpenuhi** — Tidak dibangun (keputusan no. 3). Backend juga tidak punya gerbang golongan darah pada kantong |
+| `FE-BD-007` penanda konflik golongan darah terlihat dan menahan | **Terpenuhi (25 September 2026, final)** | `E6` dengan konflik **sungguhan**: penanda dan pesan backend tampil; Berikan **nonaktif** lewat proyeksi `VAL-BD-034` (`BE-BD-022`); konfirmasi Jalur Darurat tertahan lewat `bloodGroupGateClosed`. Penahanan milik backend, bukan aturan layar. **Riwayat:** **Sebagian (25 September 2026)** |
 | `FE-BD-008` penanda bukti kedaluwarsa terlihat **sebelum** Berikan ditekan | **Terpenuhi (25 September 2026)** | `G2`: pesan `VAL-BD-020` dan batas berlaku dari `validUntil` tampil saat halaman dibuka; Berikan nonaktif. **Riwayat (24 September 2026):** **Belum terpenuhi** — Backend tidak memulangkan masa berlaku. Sesudah ditekan, pesan `VAL-BD-020` tampil dan tombol tertahan (`R7`) |
 | `FE-BD-012` penolakan lokasi nonaktif menyebut lokasi | **Terpenuhi** | `R8`: `422 VAL-BD-065`, pesan memuat "lokasi" dan tidak memuat "bukti", tampil apa adanya |
 | `FE-BD-005` jalur darurat tampil jelas sebagai jalur tidak normal | **Terpenuhi** | `R1`: tombol `warning` terpisah dari Berikan. `R9`: dialog `warning`, peringatan **Jalur tidak normal**, penanda **Jalur darurat**, bagian Otorisasi |
@@ -510,7 +643,9 @@ dipulihkan dengan `git restore`, hanya pada kedua path itu.
 | DoD pemilik: validasi runtime | **Terpenuhi** | Bagian 6.2 — 14 dari 14 skenario `PASS` |
 | DoD pemilik: laporan + roadmap | **Terpenuhi** | Laporan ini; roadmap dan traceability ditandai 🟡 |
 
-**Ringkasan — 25 September 2026:** dari 9 butir, **7 terpenuhi** (outcome bukti dan pemberian, `FE-BD-021`, `FE-BD-018`, `FE-BD-013`, `FE-BD-008`, `FE-BD-012`, `FE-BD-005`), **1 sebagian** (`FE-BD-007`: terlihat, belum menahan), dan **1 belum terpenuhi** (outcome mencatat golongan darah, di luar cakupan keputusan pemilik). Task tetap **🟡**.
+**Ringkasan final — 25 September 2026:** dari 9 butir outcome dan acceptance kartu, **9 terpenuhi**. DoD pemilik (lint, build, unit test, runtime, laporan, roadmap) terpenuhi. Task **✅**.
+
+**Riwayat ringkasan (lanjutan 6.4):** dari 9 butir, **7 terpenuhi** (outcome bukti dan pemberian, `FE-BD-021`, `FE-BD-018`, `FE-BD-013`, `FE-BD-008`, `FE-BD-012`, `FE-BD-005`), **1 sebagian** (`FE-BD-007`: terlihat, belum menahan), dan **1 belum terpenuhi** (outcome mencatat golongan darah, di luar cakupan keputusan pemilik). Task tetap **🟡**.
 
 **Riwayat ringkasan (24 September 2026):** dari 9 butir outcome dan acceptance kartu, **4 terpenuhi** (outcome bukti dan
 pemberian, `FE-BD-018`, `FE-BD-012`, `FE-BD-005`), **1 sebagian** (`FE-BD-021`), dan **4 belum
@@ -525,9 +660,9 @@ ini tetap **🟡**, walaupun seluruh DoD pemilik terpenuhi dan runtime `PASS`.
 | Hal | Isi |
 | --- | --- |
 | Peringatan | **25 September 2026:** `git fetch --dry-run` sempat dijalankan untuk memeriksa upstream frontend — tidak mengubah ref lokal, tetapi di luar izin `AGENTS.md`; tidak diulang. **Riwayat:** **Token sesi `superadmin` backend lokal ditempel pemilik di percakapan agent.** Token itu disimpan sementara di berkas scratchpad, tidak pernah dicetak ke log atau berkas lain (nol kemunculan di artefak Playwright), dan berkasnya sudah dihapus. Token tetap berlaku sampai kedaluwarsa bawaannya, jadi disarankan logout atau rotasi sesi `superadmin` lokal. Pemberian bersifat akhir: dua kantong `TEST-` kini Diberikan di `QuilvianNewDevSukma` (keputusan pemilik; bagian 6.2) |
-| Masalah yang diketahui | **25 September 2026:** backlog proyeksi gerbang pemberian **ditutup** oleh `BE-BD-021` ✅ dan dipakai layar (bagian 6.4). Tersisa: (a) gerbang golongan darah `VAL-BD-034` tidak ditegakkan backend pada kantong, sehingga penanda konflik hanya terlihat dan tidak menahan; (b) penanda konflik positif baru dibuktikan dengan jawaban tersimulasi, karena `QuilvianNewDevSukma` tidak punya pasien yang menahan konflik. **Riwayat (24 September 2026):** **Diperbaiki — pemilih dialog terbuka lagi sesudah dipilih.** Ditemukan runtime run 2 dan diperbaiki atas keputusan pemilik (bagian 6.3). **Di luar cakupan:** dialog alokasi, pembatalan alokasi, dan penyimpanan lokasi milik `FE-BD-004`/`FE-BD-012` di `blood-unit-detail-view.jsx` masih memakai pola `<label>` + `FilterSelect` yang sama, sehingga besar kemungkinan cacat yang sama ada di sana. Tidak disentuh task ini. **BACKLOG (keputusan pemilik 24 September 2026: dicatat, tidak dibuka sebagai task) — proyeksi gerbang pemberian.** Untuk memenuhi `FE-BD-008`, `FE-BD-013`, dan `FE-BD-021` sebelum tombol ditekan, `GET /blood-units/{id}` perlu memulangkan hasil fungsi service yang sudah ada, misalnya `issuanceGate { isOpen, validationCode, message, validUntil }` dan `emergencyBypass { evidenceGateClosed, locationGateClosed }`. Aditif, tanpa aturan baru. **GAP BACKEND — gerbang golongan darah.** `VAL-BD-034` tidak ditegakkan pada kantong; butuh keputusan klinis sebelum `FE-BD-007` dapat menahan tombol. **Data uji:** komponen `TBD006-PRC` dan `TBD007-N` belum punya masa berlaku bukti, sehingga kantongnya selalu ditolak `VAL-BD-020b`. **Nama pelaku** pada bukti dan otorisasi hanya GUID, jadi tidak ditampilkan (sama dengan `placedByName` pada `FE-BD-012`). **Dokumen:** kartu masih menulis kontrak `v4` dan tidak punya baris DoD — di luar wewenang tulis roadmap task ini |
-| Dependency backend | **25 September 2026:** `BE-BD-021` ✅ terpakai. Yang tersisa untuk ✅ penuh: keputusan klinis dan task backend gerbang golongan darah (`VAL-BD-034`), serta keputusan cakupan pencatatan golongan darah pada layar `FE-BD-06`. **Riwayat:** Nihil yang tertunda untuk cakupan yang diputuskan. Proyeksi gerbang pemberian dan gerbang golongan darah tercatat sebagai **backlog**; tidak dibuka sebagai task atas keputusan pemilik 24 September 2026 |
+| Masalah yang diketahui | **Final 25 September 2026:** gap golongan darah **ditutup** — input dari konteks pasien tersedia dan `VAL-BD-034` ditegakkan backend (`BE-BD-022`). Tersisa di luar kartu: tombol **Kembali** pada detail pemeriksaan menuju daftar pemeriksaan, bukan konteks asal; alokasi dan pencatatan bukti kecocokan tidak diblokir konflik (keputusan cakupan `BE-BD-022`); pola `<label>` + `FilterSelect` pada dialog `FE-BD-004`/`FE-BD-012` belum diperiksa. **Riwayat:** **25 September 2026:** backlog proyeksi gerbang pemberian **ditutup** oleh `BE-BD-021` ✅ dan dipakai layar (bagian 6.4). Tersisa: (a) gerbang golongan darah `VAL-BD-034` tidak ditegakkan backend pada kantong, sehingga penanda konflik hanya terlihat dan tidak menahan; (b) penanda konflik positif baru dibuktikan dengan jawaban tersimulasi, karena `QuilvianNewDevSukma` tidak punya pasien yang menahan konflik. **Riwayat (24 September 2026):** **Diperbaiki — pemilih dialog terbuka lagi sesudah dipilih.** Ditemukan runtime run 2 dan diperbaiki atas keputusan pemilik (bagian 6.3). **Di luar cakupan:** dialog alokasi, pembatalan alokasi, dan penyimpanan lokasi milik `FE-BD-004`/`FE-BD-012` di `blood-unit-detail-view.jsx` masih memakai pola `<label>` + `FilterSelect` yang sama, sehingga besar kemungkinan cacat yang sama ada di sana. Tidak disentuh task ini. **BACKLOG (keputusan pemilik 24 September 2026: dicatat, tidak dibuka sebagai task) — proyeksi gerbang pemberian.** Untuk memenuhi `FE-BD-008`, `FE-BD-013`, dan `FE-BD-021` sebelum tombol ditekan, `GET /blood-units/{id}` perlu memulangkan hasil fungsi service yang sudah ada, misalnya `issuanceGate { isOpen, validationCode, message, validUntil }` dan `emergencyBypass { evidenceGateClosed, locationGateClosed }`. Aditif, tanpa aturan baru. **GAP BACKEND — gerbang golongan darah.** `VAL-BD-034` tidak ditegakkan pada kantong; butuh keputusan klinis sebelum `FE-BD-007` dapat menahan tombol. **Data uji:** komponen `TBD006-PRC` dan `TBD007-N` belum punya masa berlaku bukti, sehingga kantongnya selalu ditolak `VAL-BD-020b`. **Nama pelaku** pada bukti dan otorisasi hanya GUID, jadi tidak ditampilkan (sama dengan `placedByName` pada `FE-BD-012`). **Dokumen:** kartu masih menulis kontrak `v4` dan tidak punya baris DoD — di luar wewenang tulis roadmap task ini |
+| Dependency backend | **Final 25 September 2026:** nihil yang tertunda — `BE-BD-021` ✅ dan `BE-BD-022` ✅ terpakai. **Riwayat:** **25 September 2026:** `BE-BD-021` ✅ terpakai. Yang tersisa untuk ✅ penuh: keputusan klinis dan task backend gerbang golongan darah (`VAL-BD-034`), serta keputusan cakupan pencatatan golongan darah pada layar `FE-BD-06`. **Riwayat:** Nihil yang tertunda untuk cakupan yang diputuskan. Proyeksi gerbang pemberian dan gerbang golongan darah tercatat sebagai **backlog**; tidak dibuka sebagai task atas keputusan pemilik 24 September 2026 |
 | Perubahan sampingan | Dua berkas tracked di `test-results/` berubah pada setiap run Playwright (`.last-run.json` dimodifikasi; `…inpatient-admiss-…/error-context.md` terhapus). Keduanya bersih saat task dimulai dan dipulihkan dengan `git restore` sesudah setiap run. Spec debug sementara `tests/e2e/zz-debug-fe-bd-005.spec.mjs` dibuat lalu dihapus |
 | Interupsi | Validasi runtime tertunda dua kali karena cookie sesi belum tersedia, lalu dilanjutkan sesudah pemilik memberikannya. Satu run berakhir timeout dan meninggalkan lokasi uji nonaktif; lokasi itu dipulihkan dan diverifikasi sebelum run berikutnya |
-| Status Git | **25 September 2026:** frontend `sukmagpV2` — 6 berkas diubah + 1 spec baru, **belum di-commit**; backend — laporan ini, `frontend-roadmap.md`, dan `requirement-traceability.md` berubah, belum di-commit. **Riwayat:** Frontend: ter-commit `88bd2b1c7` di `sukmagpV2`; working tree bersih; belum di-push. Backend: laporan ini, `frontend-roadmap.md`, dan `requirement-traceability.md` berubah dan **belum** di-commit |
-| Langkah berikutnya | **25 September 2026:** pemilik meninjau diff lanjutan lalu memberi instruksi commit. Untuk ✅ penuh diperlukan dua keputusan pemilik: gerbang golongan darah di backend (`VAL-BD-034`), dan apakah outcome "mencatat golongan darah" tetap bagian kartu ini atau dipindahkan. **Riwayat:** Task frontend berikutnya: `FE-BD-009`, `FE-BD-007`, `FE-BD-008`. Opsional: perbaikan pola `<label>` + `FilterSelect` yang sama pada dialog `FE-BD-004`/`FE-BD-012`. `FE-BD-005` dapat naik ke ✅ bila backlog proyeksi gerbang pemberian dikerjakan, atau bila pemilik mengubah acceptance kartu |
+| Status Git | **Final 25 September 2026:** frontend `sukmagpV2` — 14 berkas diubah, 4 berkas baru (hook, dialog, test unit, spec e2e), **belum di-commit**; backend — laporan ini, `frontend-roadmap.md`, `requirement-traceability.md`, belum di-commit. **Riwayat:** **25 September 2026:** frontend `sukmagpV2` — 6 berkas diubah + 1 spec baru, **belum di-commit**; backend — laporan ini, `frontend-roadmap.md`, dan `requirement-traceability.md` berubah, belum di-commit. **Riwayat:** Frontend: ter-commit `88bd2b1c7` di `sukmagpV2`; working tree bersih; belum di-push. Backend: laporan ini, `frontend-roadmap.md`, dan `requirement-traceability.md` berubah dan **belum** di-commit |
+| Langkah berikutnya | **Final 25 September 2026:** pemilik meninjau diff lalu memberi instruksi commit dan push kedua repository. **Riwayat:** **25 September 2026:** pemilik meninjau diff lanjutan lalu memberi instruksi commit. Untuk ✅ penuh diperlukan dua keputusan pemilik: gerbang golongan darah di backend (`VAL-BD-034`), dan apakah outcome "mencatat golongan darah" tetap bagian kartu ini atau dipindahkan. **Riwayat:** Task frontend berikutnya: `FE-BD-009`, `FE-BD-007`, `FE-BD-008`. Opsional: perbaikan pola `<label>` + `FilterSelect` yang sama pada dialog `FE-BD-004`/`FE-BD-012`. `FE-BD-005` dapat naik ke ✅ bila backlog proyeksi gerbang pemberian dikerjakan, atau bila pemilik mengubah acceptance kartu |
