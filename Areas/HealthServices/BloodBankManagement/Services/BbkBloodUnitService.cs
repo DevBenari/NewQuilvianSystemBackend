@@ -521,6 +521,40 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
                 correctionId: null,
                 cancellationToken);
 
+            // Proyeksi gerbang hanya pada kantong Allocated (BE-BD-021 R1): hanya di status itu
+            // issue dan emergency-issue ditawarkan. Penilaian bypass tidak memeriksa status, jadi
+            // pada status lain ia menyatakan "gerbang bukti tertutup" yang menyesatkan. Keduanya
+            // memanggil evaluator yang sama dengan tindakannya, bukan salinan aturannya.
+            BloodUnitIssuanceGateDto? issuanceGate = null;
+            BloodUnitEmergencyBypassDto? emergencyBypass = null;
+
+            if (entity.UnitStatus == BbkBloodUnitStatus.Allocated)
+            {
+                var gate = await EvaluateIssuanceGateAsync(entity.Id, cancellationToken);
+                var bypass = await EvaluateEmergencyBypassAsync(entity.Id, cancellationToken);
+
+                issuanceGate = gate == null
+                    ? null
+                    : new BloodUnitIssuanceGateDto
+                    {
+                        IsOpen = gate.IsOpen,
+                        ValidationCode = gate.ValidationCode,
+                        Message = gate.Message,
+                        CompatibilityEvidenceId = gate.CompatibilityEvidenceId,
+                        ValidUntil = gate.ValidUntil
+                    };
+
+                emergencyBypass = bypass == null
+                    ? null
+                    : new BloodUnitEmergencyBypassDto
+                    {
+                        EvidenceGateClosed = bypass.EvidenceGateClosed,
+                        LocationGateClosed = bypass.LocationGateClosed,
+                        PatientId = bypass.PatientId,
+                        ValidCompatibilityEvidenceId = bypass.ValidCompatibilityEvidenceId
+                    };
+            }
+
             return new BloodUnitDetailDto
             {
                 Id = entity.Id,
@@ -565,6 +599,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
                 CompatibilityEvidenceIdUsed = entity.CompatibilityEvidenceIdUsed,
                 EmergencyAuthorizations = emergencyAuthorizations,
                 IssuanceCorrections = issuanceCorrections,
+                IssuanceGate = issuanceGate,
+                EmergencyBypass = emergencyBypass,
                 AvailableActions = AvailableActionsFor(
                     entity.UnitStatus,
                     entity.CurrentPlacementId,
@@ -1550,7 +1586,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
                     "VAL-BD-020",
                     Val020Message,
                     patientId,
-                    latestPatientEvidence.Id);
+                    latestPatientEvidence.Id,
+                    validUntil);
             }
 
             return new BloodUnitIssuanceGateResult(
@@ -1558,7 +1595,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
                 null,
                 "Gerbang pemberian terbuka.",
                 patientId,
-                latestPatientEvidence.Id);
+                latestPatientEvidence.Id,
+                validUntil);
         }
 
         /// <summary>

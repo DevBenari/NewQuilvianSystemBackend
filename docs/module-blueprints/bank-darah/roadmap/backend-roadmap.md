@@ -723,6 +723,27 @@ tidak dapat diberikan sebelum dialokasikan.
 
 ---
 
+### ✅ `BE-BD-021` — Blood Unit Gate Projection
+
+| Field | Isi |
+| --- | --- |
+| **Status** | ✅ **SELESAI — 25 September 2026. Ketujuh acceptance `AC-BD-125`..`AC-BD-131` terpenuhi dan Definition of Done terpenuhi.** Build **`0 Error(s)` / `214 Warning(s)`** (`01:16:54`), baseline peringatan tidak bertambah dan nol peringatan dari baris task. `has-pending-model-changes` **bersih**, **nol migration**. QBE Strict **`PASS`** (4 berkas, `VIOLATION 0`). `api-contract.md` memperoleh Amendment `v5` **`D7`**; `AC-BD-125`..`AC-BD-131` pada bagian 14 matriks acceptance. **Validasi runtime R0–R13 15/15 `PASS`, dijalankan langsung agent** terhadap `QuilvianNewDevSukma` lewat HTTP sungguhan dengan ekspektasi SQL independen ([laporan](../task/report/backend/BE-BD-021.md) bagian 5.2): ketujuh kode gerbang (`018`, `019`, `020b`, `079`, `020`, `065`, terbuka) terproyeksi; `validUntil` tepat `checkedAt + masa berlaku` hanya pada `020` dan terbuka; setiap proyeksi tertutup berujung `422` dengan kode dan pesan identik pada `issue`; pemetaan `emergencyBypass` diterima `emergency-issue` dan cakupan lain ditolak `VAL-BD-066`; status bukan `Allocated` → `null`. Lokasi uji dipulihkan dan diverifikasi. **Batas bukti:** aktor tunggal `superadmin`; `VAL-BD-017` di dalam proyeksi tidak dibentuk; dua asersi skrip dibetulkan sesudah run tanpa mengulang aksi akhir (bagian 5.2). **Belum di-commit.** **Riwayat:** dibuka 25 September 2026 atas keputusan pemilik `Sukmagp` (`R1`–`R5`), sesudah audit backlog "proyeksi gerbang pemberian" pada laporan `FE-BD-005` bagian 8 |
+| **Yang memblokir** | **Nihil** |
+| **Outcome** | Detail kantong Dialokasikan memberi tahu layar, **sebelum** Berikan ditekan, apakah gerbang pemberian terbuka, apa penahannya, sampai kapan bukti berlaku, dan gerbang mana yang tertutup untuk jalur darurat — tanpa frontend menghitung aturan apa pun |
+| **Asal** | Backlog "proyeksi gerbang pemberian" pada laporan `FE-BD-005` bagian 8. Menahan butir `FE-BD-008`, `FE-BD-013`, dan `FE-BD-021` pada acceptance `FE-BD-005` |
+| **Trace** | `DEC-BD-013/027/028/038/042`; `INV-BD-030`; `VAL-BD-017/018/019/020/020b/065/066/079`; `FE-BD-005`; keputusan pemilik `R1`–`R5` 25 September 2026 ([laporan](../task/report/backend/BE-BD-021.md) bagian 2) |
+| **Kontrak** | api-contract — grup Blood Unit, Amendment `v5` **`D7`**. Aditif pada `BloodUnitDetailDto` (`issuanceGate`, `emergencyBypass`); nol endpoint baru, nol butir hak akses baru, nol kode `VAL-BD` baru |
+| **Reuse** | `EvaluateIssuanceGateAsync` (`BE-BD-007`) dan `EvaluateEmergencyBypassAsync` (`BE-BD-008`) apa adanya; `validUntil` yang sudah dihitung `EvaluateCompatibilityEvidenceGateAsync` |
+| **Scope** | **(1) Kontrak** — `D7`. **(2) DTO** — `BloodUnitIssuanceGateDto`, `BloodUnitEmergencyBypassDto` publik terpisah (`R2`). **(3) Service** — proyeksi di `GetDetailAsync` hanya untuk `Allocated` (`R1`); `validUntil` diteruskan pada dua `return` yang menghitungnya (`R3`). **(4) Acceptance** — `AC-BD-125`..`AC-BD-131` pada matriks acceptance bagian 14. **(5) Validasi runtime** terhadap `QuilvianNewDevSukma` |
+| **Di luar scope** | Migration, kolom, atau index baru. `VAL-BD` baru. Perubahan `AvailableActions` maupun perilaku `issue`/`emergency-issue`. `requiredBypassScope` (`R5`). Penyelarasan `isCurrentStorageLocationActive` dengan pemeriksaan `IsCancel` gerbang lokasi — **dicatat sebagai technical debt** atas keputusan pemilik 25 September 2026 (`R4`), tidak dibuka sebagai task. Gerbang golongan darah (`VAL-BD-034`). Perubahan apa pun pada frontend |
+| **Dependency** | `BE-BD-007` ✅, `BE-BD-008` ✅, keputusan pemilik `R1`–`R5` ✅ 25 September 2026 |
+| **Acceptance** | `AC-BD-125`, `AC-BD-126`, `AC-BD-127`, `AC-BD-128`, `AC-BD-129`, `AC-BD-130`, `AC-BD-131` — rumusannya pada [matriks acceptance](../testing/acceptance-test-matrix.md) bagian 14 |
+| **Verifikasi** | QBE preflight; build aplikasi; review diff/scope; `has-pending-model-changes` bersih tanpa migration; verifikasi lewat panggilan HTTP sungguhan, termasuk **kesejajaran proyeksi dengan penolakan `issue`/`emergency-issue`** |
+| **Risk/owner** | Rendah — proyeksi yang menyimpang dari tindakan membuat layar menjanjikan pemberian yang lalu ditolak; dicegah dengan memanggil evaluator yang sama / pemilik proses BDRS + pemilik arsitektur backend |
+| **DoD** | Ketujuh acceptance terbukti; `api-contract.md` diamandemen `D7`; `AC-BD-125`..`AC-BD-131` tertulis di matriks acceptance; nol migration; laporan tracked `task/report/backend/BE-BD-021.md`; tidak di-commit sebelum validasi final |
+
+---
+
 ## 6. Gerbang yang masih terbuka
 
 | Gate | Pemilik | Menahan |

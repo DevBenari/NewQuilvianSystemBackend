@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Blueprint ID | `BD-BP-001` · Contract version **`v5` — `approved`** (`Sukmagp` 2026-09-19; `v4` kini `superseded`). **Riwayat:** `v5` `draft` 18 September 2026. Arah disetujui `Sukmagp` 2026-09-18 (`DEC-BD-055`..`058`). **Riwayat:** `v4` — `approved` `Sukmagp` 2026-09-03 |
-| `last_changed_in` | **`v5`** — grup Blood Order saja (bagian "Amendment `v5`" di bawah tabel grup itu). Grup lain tidak berubah. **23 September 2026:** bagian `D5` ditambahkan ke amandemen yang sama — penyaring rentang tanggal `startDate`/`endDate` pada `GET /` (`DEC-BD-059`, `DEC-BD-060`, task `BE-BD-019`). Aditif penuh; **nomor set kontrak tidak dinaikkan**, karena tidak ada satu pun klien lama yang rusak. **24 September 2026:** bagian `D6` ditambahkan pada grup Blood Unit — penyaring `inactiveLocation` pada `GET /` (keputusan pemilik `Sukmagp`, task `BE-BD-020`). Aditif penuh; nomor set kontrak tidak dinaikkan. **Riwayat:** `v4` |
+| `last_changed_in` | **`v5`** — grup Blood Order saja (bagian "Amendment `v5`" di bawah tabel grup itu). Grup lain tidak berubah. **23 September 2026:** bagian `D5` ditambahkan ke amandemen yang sama — penyaring rentang tanggal `startDate`/`endDate` pada `GET /` (`DEC-BD-059`, `DEC-BD-060`, task `BE-BD-019`). Aditif penuh; **nomor set kontrak tidak dinaikkan**, karena tidak ada satu pun klien lama yang rusak. **24 September 2026:** bagian `D6` ditambahkan pada grup Blood Unit — penyaring `inactiveLocation` pada `GET /` (keputusan pemilik `Sukmagp`, task `BE-BD-020`). Aditif penuh; nomor set kontrak tidak dinaikkan. **25 September 2026:** bagian `D7` ditambahkan pada grup Blood Unit — proyeksi `issuanceGate` dan `emergencyBypass` pada `BloodUnitDetailDto` (keputusan pemilik `Sukmagp` `R1`–`R5`, task `BE-BD-021`). Aditif penuh; nomor set kontrak tidak dinaikkan. **Riwayat:** `v4` |
 | Owner | Pemilik arsitektur backend (bentuk kontrak) · pemilik proses BDRS (perilaku) |
 | `approved_by` / `approved_at` | `Sukmagp` / `2026-09-19` (`v5`). **Riwayat:** `Sukmagp` / `2026-09-03` (`v4`) |
 | Sumber | `02-backend-architecture.md` (controller) · `contracts/state-transition-matrix.md` · `contracts/validation-matrix.md` |
@@ -304,6 +304,64 @@ dan statusnya tidak diubah (`DEC-BD-037`).
 **Catatan nama parameter status.** Baris `GET /` di atas dan `03-frontend-architecture.md` menulis
 `status=`; nama parameter sebenarnya di source adalah **`unitStatus`**. Selisih penulisan ini sudah ada
 sebelum `D6` dan **tidak** diubah amandemen ini — klien memakai `unitStatus`.
+
+#### Amendment `v5` D7 — proyeksi gerbang pemberian pada detail kantong (25 September 2026)
+
+Ditambahkan atas keputusan pemilik `Sukmagp` 25 September 2026 (butir `R1`–`R5` pada audit
+[`BE-BD-021`](../task/report/backend/BE-BD-021.md) bagian 2). Menutup backlog "proyeksi gerbang pemberian"
+yang dicatat laporan `FE-BD-005` bagian 8: layar kantong baru tahu gerbang pemberian tertutup **sesudah**
+tombol Berikan ditekan dan ditolak. **Aditif penuh**: dua isian nullable baru pada `BloodUnitDetailDto`,
+nol endpoint baru, nol butir hak akses baru, nol kode `VAL-BD-*` baru, nol perubahan aturan gerbang.
+Dikerjakan task `BE-BD-021`.
+
+| Method | Path | Yang berubah | Hak akses |
+| --- | --- | --- | --- |
+| `GET` | `/{id}` | Respons membawa `issuanceGate` dan `emergencyBypass` | `BloodUnit : Read` |
+| `POST` | Seluruh aksi kantong yang memulangkan `ApiResponse<BloodUnitDetailDto>` | Respons suksesnya ikut membawa kedua isian, karena detailnya dibangun fungsi yang sama | Tidak berubah |
+
+| Tempat | Isian | Tipe | Aturan |
+| --- | --- | --- | --- |
+| `BloodUnitDetailDto` | `issuanceGate` | `BloodUnitIssuanceGateDto?` | Terisi **hanya** bila `unitStatus = Allocated` (`R1`); `null` pada status lain |
+| `BloodUnitDetailDto` | `emergencyBypass` | `BloodUnitEmergencyBypassDto?` | Sama dengan `issuanceGate` |
+| `BloodUnitIssuanceGateDto` | `isOpen` | `bool` | `true` = `POST /{id}/issue` tidak ditahan gerbang pada keadaan saat detail dibaca |
+| `BloodUnitIssuanceGateDto` | `validationCode` | `string?` | Kode penahan pertama: `VAL-BD-017`, `065`, `018`, `019`, `020b`, `079`, atau `020`. `null` bila terbuka |
+| `BloodUnitIssuanceGateDto` | `message` | `string` | Pesan yang sama persis dengan penolakan `issue` untuk kode itu |
+| `BloodUnitIssuanceGateDto` | `compatibilityEvidenceId` | `Guid?` | Bukti pasien tujuan yang dinilai, bila penilaian sampai ke sana (`079`, `020`, atau terbuka) |
+| `BloodUnitIssuanceGateDto` | `validUntil` | `DateTime?` (UTC) | Terisi **hanya** bila terbuka atau `020` (`R3`). `null` berarti **tidak dihitung**, bukan berlaku tanpa batas |
+| `BloodUnitEmergencyBypassDto` | `evidenceGateClosed` | `bool` | Gerbang bukti menahan, dinilai terlepas dari lokasi |
+| `BloodUnitEmergencyBypassDto` | `locationGateClosed` | `bool` | Kantong tanpa penempatan atau lokasinya tidak aktif |
+| `BloodUnitEmergencyBypassDto` | `patientId` | `Guid?` | Pasien tujuan dari alokasi aktif |
+| `BloodUnitEmergencyBypassDto` | `validCompatibilityEvidenceId` | `Guid?` | Bukti yang berlaku, hanya bila `evidenceGateClosed = false` |
+
+**Sumber nilainya.** Kedua isian adalah hasil evaluator yang sama yang dipakai tindakannya,
+`EvaluateIssuanceGateAsync` untuk `issue` dan `EvaluateEmergencyBypassAsync` untuk `emergency-issue`.
+Keduanya dibaca apa adanya, bukan dihitung ulang dan bukan disalin.
+
+**Urutan penilaian gerbang normal tidak berubah** dan berhenti pada penahan pertama:
+status → lokasi (`065`) → alokasi aktif (`017`) → `018` → `019` → `020b` → `079` → `020`. Contoh: kantong di
+kulkas nonaktif yang buktinya juga kedaluwarsa memulangkan `issuanceGate.validationCode = "VAL-BD-065"`
+tanpa `validUntil`. Keadaan buktinya tetap terbaca di `emergencyBypass.evidenceGateClosed = true`.
+
+**Cara membaca `emergencyBypass` untuk jalur darurat (`R5`).** Klien memetakan kedua boolean ke
+`bypassScope` tanpa isian turunan dari backend:
+
+| `evidenceGateClosed` | `locationGateClosed` | `bypassScope` yang diterima `emergency-issue` |
+| :---: | :---: | --- |
+| `true` | `false` | `CompatibilityEvidence` (`0`) |
+| `false` | `true` | `InactiveStorageLocation` (`1`) |
+| `true` | `true` | `Both` (`2`) |
+| `false` | `false` | Tidak ada. Jalur normal terbuka, dan setiap cakupan ditolak `VAL-BD-066` |
+
+**Petunjuk, bukan izin.** Nilainya potret saat detail dibaca. `issue` dan `emergency-issue` tetap menilai
+ulang gerbang saat ditekan, jadi keadaan yang berubah di antaranya (misalnya bukti lewat `validUntil`
+selagi layar terbuka) tetap ditolak dengan kode dan pesan yang sama seperti sebelum `D7`. Klien tetap wajib
+menangani `422`.
+
+**Yang tidak berubah.** `AvailableActions`, request dan kode galat `issue`/`emergency-issue`, daftar
+kantong `GET /`, dan penanda `isCurrentStorageLocationActive`. Penanda itu memakai definisi aktif
+`IsActive && !IsDelete`, sedangkan gerbang lokasi juga memeriksa `IsCancel`. Selisih ini sudah ada sebelum
+`D7`, **tidak** diubah amandemen ini, dan dicatat sebagai technical debt (`R4`). Bila keduanya berbeda,
+`emergencyBypass.locationGateClosed` yang menjadi acuan gerbang.
 
 Pemberian (`issue`/`emergency-issue`) tidak dapat dibatalkan — status terminal. Koreksi tidak
 memindahkan kantong keluar dari `Issued` dan tidak dapat dipakai memindahkan pemberian ke pasien lain

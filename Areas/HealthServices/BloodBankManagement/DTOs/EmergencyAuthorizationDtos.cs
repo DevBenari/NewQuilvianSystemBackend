@@ -94,4 +94,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.DTOs
         bool LocationGateClosed,
         Guid? PatientId,
         Guid? ValidCompatibilityEvidenceId);
+
+    /// <summary>
+    /// Proyeksi keadaan kedua gerbang yang dapat dilewati jalur darurat pada detail kantong
+    /// (<c>BE-BD-021</c>).
+    /// </summary>
+    /// <remarks>
+    /// Hasil <c>EvaluateEmergencyBypassAsync</c> apa adanya saat detail dibaca. Kedua gerbang dinilai
+    /// terpisah, sehingga pasangan nilainya adalah cakupan yang diterima <c>emergency-issue</c>
+    /// tanpa <c>VAL-BD-066</c> pada keadaan yang sama. <c>emergency-issue</c> tetap menilai ulang
+    /// saat tindakan dilakukan.
+    /// </remarks>
+    public sealed class BloodUnitEmergencyBypassDto
+    {
+        /// <summary>Gerbang bukti kecocokan sedang menahan pemberian normal.</summary>
+        public bool EvidenceGateClosed { get; set; }
+
+        /// <summary>Kantong belum pernah disimpan atau lokasinya sedang tidak aktif.</summary>
+        public bool LocationGateClosed { get; set; }
+
+        /// <summary>Pasien tujuan dari alokasi aktif.</summary>
+        public Guid? PatientId { get; set; }
+
+        /// <summary>Bukti kecocokan yang berlaku, hanya bila gerbang bukti tidak menahan.</summary>
+        public Guid? ValidCompatibilityEvidenceId { get; set; }
+    }
 }

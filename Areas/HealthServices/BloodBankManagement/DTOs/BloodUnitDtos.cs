@@ -145,6 +145,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.DTOs
         public List<IssuanceCorrectionDto> IssuanceCorrections { get; set; } = new();
 
         /// <summary>
+        /// Hasil gerbang pemberian normal saat detail dibaca (<c>BE-BD-021</c>). Hanya terisi pada
+        /// kantong <c>Allocated</c>; kosong pada status lain.
+        /// </summary>
+        public BloodUnitIssuanceGateDto? IssuanceGate { get; set; }
+
+        /// <summary>
+        /// Keadaan kedua gerbang yang dapat dilewati jalur darurat saat detail dibaca
+        /// (<c>BE-BD-021</c>). Hanya terisi pada kantong <c>Allocated</c>; kosong pada status lain.
+        /// </summary>
+        public BloodUnitEmergencyBypassDto? EmergencyBypass { get; set; }
+
+        /// <summary>
         /// Aksi yang layak dicoba. <c>AssignStorageLocation</c> selama kantong <c>Received</c>;
         /// <c>MoveStorageLocation</c> sesudah kantong punya lokasi dan belum keluar dari stok —
         /// termasuk ketika lokasinya dinonaktifkan; <c>Allocate</c> pada kantong <c>Available</c>

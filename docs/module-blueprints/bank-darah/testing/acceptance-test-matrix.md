@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Blueprint ID | `BD-BP-001` · Contract version **`v5` — `approved`** (`Sukmagp` 2026-09-19; `v4` kini `superseded`). **Riwayat:** `v5` `draft` 18 September 2026 (arah disetujui `Sukmagp` 2026-09-18). **Riwayat:** `v4` — `approved` |
-| `last_changed_in` | **`v5`** — bagian 11 (`AC-BD-103` sampai `AC-BD-112`). **23 September 2026:** bagian 12 baru (`AC-BD-113` sampai `AC-BD-117`, `v5` `D5`, task `BE-BD-019`). **24 September 2026:** bagian 13 baru (`AC-BD-118` sampai `AC-BD-124`, `v5` `D6`, task `BE-BD-020`). Bagian 1–10 tidak berubah |
+| `last_changed_in` | **`v5`** — bagian 11 (`AC-BD-103` sampai `AC-BD-112`). **23 September 2026:** bagian 12 baru (`AC-BD-113` sampai `AC-BD-117`, `v5` `D5`, task `BE-BD-019`). **24 September 2026:** bagian 13 baru (`AC-BD-118` sampai `AC-BD-124`, `v5` `D6`, task `BE-BD-020`). **25 September 2026:** bagian 14 baru (`AC-BD-125` sampai `AC-BD-131`, `v5` `D7`, task `BE-BD-021`). Bagian 1–10 tidak berubah |
 | `approved_by` / `approved_at` | `Sukmagp` / `2026-09-03` (`v4`) · **`Sukmagp` / `2026-09-19` (`v5`)** |
 | Sumber | `00-interview-decisions.md` revisi 9 (`AC-BD-001`..`097`) · `contracts/state-transition-matrix.md` · `contracts/validation-matrix.md` |
 
@@ -301,6 +301,31 @@ dapat dibuktikan dan kebocoran status akhir lolos tanpa terlihat.
 | `AC-BD-122` — lokasi terhapus dianggap nonaktif (`D3`) | Lokasi berisi kantong di stok ditandai terhapus (`IsDelete = true`) walaupun `IsActive` masih `true` | Integ | Kantongnya **muncul** pada `inactiveLocation=true` — sejalan dengan gerbang `VAL-BD-064` yang juga menolak alokasinya |
 | `AC-BD-123` — kebalikan dan paging (`D4`) | `inactiveLocation=true` dan `false` masing-masing, lalu `true` digabung `unitStatus`/`search` dengan `pageSize` kecil pada halaman kedua | Integ | `totalData(true) + totalData(false) = totalData(tanpa penyaring)`, tanpa irisan. Paging berlaku atas hasil yang **sudah** tersaring — `totalData` dan `totalPage` menghitung hasil akhir |
 | `AC-BD-124` — hak akses tetap | Pemanggil tanpa `BloodUnit : Read` | Integ | Ditolak `403` seperti sebelum `D6`. Nol butir `[AccessAction]` baru; `[AccessPermission("BloodUnit", "Read")]` tidak berubah |
+
+## 14. Proyeksi gerbang pemberian pada detail kantong — tambahan 25 September 2026
+
+Menutup `AC-BD-125` sampai `AC-BD-131`, lahir dari keputusan pemilik `Sukmagp` 25 September 2026
+(`R1`–`R5`, api-contract `v5` `D7`), dikerjakan task `BE-BD-021`. Menjadi prasyarat backend butir
+`FE-BD-008`, `FE-BD-013`, dan `FE-BD-021` pada acceptance `FE-BD-005`.
+
+> **Status: ketujuhnya ✅ TERPENUHI, 25 September 2026.** Dijalankan langsung agent terhadap
+> `QuilvianNewDevSukma` dengan keluaran HTTP sungguhan dan ekspektasi SQL independen; rinciannya pada
+> [`BE-BD-021`](../task/report/backend/BE-BD-021.md) bagian 5.2 (R0–R13, 15/15 `PASS`). **Batas:** aktor
+> tunggal `superadmin`; `VAL-BD-017` di dalam proyeksi tidak dibentuk.
+
+**Data yang wajib disiapkan lebih dulu:** satu kantong `Allocated` yang komponennya punya masa berlaku bukti,
+satu kantong `Allocated` yang komponennya **tidak** punya masa berlaku, satu lokasi yang dapat dinonaktifkan
+lalu dipulihkan, dan satu kantong berstatus bukan `Allocated`.
+
+| Requirement | Skenario | Jenis | Bukti yang diharapkan |
+| --- | --- | --- | --- |
+| `AC-BD-125` — proyeksi pada kantong `Allocated` | `GET /{id}` pada kantong `Allocated` | Integ | `issuanceGate` dan `emergencyBypass` terisi. Nilainya sama dengan penilaian gerbang pada keadaan yang sama |
+| `AC-BD-126` — `null` di luar `Allocated` (`R1`) | `GET /{id}` pada kantong `Received`, `Available`, `Issued`, dan `PendingReview` | Integ | Kedua isian `null`, termasuk pada kantong `Issued` yang alokasinya sudah tidak aktif |
+| `AC-BD-127` — kode gerbang bukti dan `validUntil` (`R3`) | Kantong tanpa bukti; tanpa masa berlaku; bukti Tidak cocok; bukti kedaluwarsa; bukti Cocok berlaku | Integ | Berurutan `VAL-BD-018`, `020b`, `079`, `020`, terbuka. `validUntil` terisi **hanya** pada `020` (di masa lalu) dan terbuka (di masa depan) = `checkedAt` + masa berlaku komponen. `null` pada kode lain |
+| `AC-BD-128` — lokasi nonaktif | Lokasi kantong dinonaktifkan | Integ | `issuanceGate.validationCode = VAL-BD-065`, `validUntil = null`. `emergencyBypass.locationGateClosed = true`, dan `evidenceGateClosed` tetap mencerminkan buktinya sendiri |
+| `AC-BD-129` — sejalan dengan `issue` | Dari keadaan yang sama, tekan `POST /{id}/issue` | Integ | Proyeksi tertutup ⇒ `422` dengan kode dan pesan yang sama. Proyeksi terbuka ⇒ `200` |
+| `AC-BD-130` — sejalan dengan `emergency-issue` (`R5`) | `bypassScope` dari pemetaan kedua boolean, lalu satu cakupan lain | Integ | Cakupan hasil pemetaan **tidak** ditolak `VAL-BD-066`; cakupan lain ditolak `VAL-BD-066` |
+| `AC-BD-131` — tanpa regresi | Diff dan perilaku tindakan | Review + Integ | Nol migration, nol `VAL-BD-*` baru, nol perubahan `AvailableActions`, `[AccessAction]`/`[AccessPermission]`, maupun kode dan pesan `issue`/`emergency-issue` |
 
 ---
 
