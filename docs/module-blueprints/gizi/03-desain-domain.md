@@ -3,212 +3,275 @@
 | Field | Nilai |
 |---|---|
 | Blueprint ID | `gizi` |
-| Revision | `1` |
-| Status | **`BLOCKED / WAITING BUSINESS DECISION`** (sebelumnya `approved`) — 24 September 2026 |
-| Prefix entity | `Gzi` (naik dari `Gz`; lihat catatan prefix di bawah) |
+| Revision | `2` — keputusan V1 |
+| Status | **`READY`** — 25 September 2026 (sebelumnya `BLOCKED / WAITING BUSINESS DECISION`) |
+| Prefix entity | `Gzi` |
 | Base URL | `api/v1/health-services/nutrition-management/...` |
 | Grup Swagger | `Health Services / Nutrition Management / ...` |
-| Dasar | `GIZ-DEC-001` sampai `GIZ-DEC-012` |
+| Dasar | `GIZ-DEC-001` sampai `GIZ-DEC-014` |
+| Pemilik proses | Kepala Instalasi Gizi / Kepala Unit Gizi (`GIZ-DEC-014`) |
 
-> ## ⛔ BLOCKED — menunggu keputusan pemilik proses
+> ## ✅ READY — blocker desain tertutup
 >
-> Status dokumen ini diturunkan dari `approved` menjadi **`BLOCKED / WAITING BUSINESS DECISION`**
-> pada 24 September 2026 atas instruksi pemilik modul.
+> `GIZ-OQ-002`, `GIZ-OQ-004`, dan `GIZ-OQ-006` dijawab pemilik proses pada 25 September 2026 dan
+> dicatat sebagai `GIZ-DEC-011`, `GIZ-DEC-012`, serta `GIZ-DEC-014`. Desain entity dan migration
+> boleh berjalan.
 >
-> **Sampai `GIZ-OQ-002`, `GIZ-OQ-004`, dan `GIZ-OQ-006` mendapat keputusan resmi, TIDAK BOLEH
-> ada:** entity Gizi baru, migration Gizi baru, maupun struktur tabel yang diturunkan dari
-> tebakan atau dari standar yang dikarang sendiri.
->
-> Isi blueprint yang sudah ada **dipertahankan apa adanya** — tidak dihapus, tidak ditimpa, dan
-> tidak "dilengkapi" dengan asumsi. Yang ditambahkan hanya penanda status ini.
->
-> Pertanyaannya ada di [`02-pertanyaan-pemilik-proses.md`](02-pertanyaan-pemilik-proses.md):
-> isi master diagnosis gizi (`GIZ-OQ-002`), bentuk kebutuhan nutrisi (`GIZ-OQ-004`), dan siapa
-> yang berwenang menyetujui (`GIZ-OQ-006`).
->
-> **Sesudah jawaban tersedia**, urutannya: terbitkan `GIZ-DEC-011` dan `GIZ-DEC-012` → perbarui
-> blueprint ini → desain entity → buat migration. Bukan sebaliknya.
->
-> Keadaan teknis yang sudah berjalan dan dependency-nya tercatat di
-> [`04-kesiapan-teknis.md`](04-kesiapan-teknis.md).
+> **Rumus kalkulasi ditunda (`GIZ-OQ-007` DEFERRED).** Pemilik proses memutuskan rumus tidak
+> dibuat pada V1. Nilai kebutuhan nutrisi diinput dan difinalisasi ahli gizi. Registry rumus
+> tetap dibangun dalam keadaan kosong, supaya penambahan rumus kelak cukup berupa satu baris
+> master dan satu kelas perhitungan — bukan pembongkaran tabel.
 
-Prefix `Gz` dan base URL di atas belum dipakai entity maupun controller mana pun; diperiksa
-terhadap berkas kavling registry sebelum ditetapkan.
+## Prinsip yang mengikat desain ini
 
-**Catatan prefix.** Teks di bawah masih menulis `Gz` pada beberapa tempat. Prefix yang berlaku
-sekarang adalah **`Gzi`**, dinaikkan lewat migration `20260911000000_RenameNutritionGzPrefixToGzi`
-dan sudah diterapkan pada source, snapshot, maupun database uji. Teks lama sengaja tidak disunting
-massal selama dokumen ini BLOCKED; perapiannya ikut pemutakhiran blueprint sesudah keputusan turun.
+Pemilik proses meminta satu hal secara khusus: **jangan terlalu terikat pada satu rumus atau satu
+daftar diet.** Permintaan itu diterjemahkan menjadi tiga aturan yang berlaku di seluruh dokumen.
+
+| Aturan | Wujudnya pada tabel |
+|---|---|
+| Yang berubah menurut kebijakan rumah sakit disimpan sebagai **baris master**, bukan kolom | Parameter nutrisi, domain diagnosis, jenis diet, rumus — semuanya master |
+| Yang berubah menurut waktu disimpan sebagai **revisi**, bukan menimpa | Kebutuhan nutrisi berrevisi; revisi lama tetap terbaca |
+| Yang dipakai merawat pasien disimpan **berikut asal-usulnya** | Nilai kalkulasi, nilai final, rumus yang dipakai, masukan rumus, pengubah, dan waktunya |
+
+Akibat praktisnya: menambah serat atau natrium ke daftar parameter kelak adalah **satu baris
+master**, bukan kolom baru dan bukan migration. Mengganti rumus adalah **satu baris registry**,
+dan nilai lama tetap dapat dijelaskan karena rumus yang dipakainya ikut tercatat.
 
 ## Bentuk keseluruhan
 
 ```text
-TrxPatientEncounter  (milik Registration, dibaca saja)
+RegPatientEncounter  (milik Registration, dibaca saja)
         |
         v
-GzNutritionOrder                        satu per episode rawat inap
-  status: Requested -> InProgress -> Closed | Cancelled
+GziNutritionOrder                     satu order aktif per episode rawat inap
+  Requested -> InProgress -> Closed | Cancelled
         |
-        +-- GzNutritionCareRecord       satu per kunjungan ahli gizi
-        |     asesmen, diagnosis, intervensi, evaluasi
-        |     diet dan kebutuhan energi
-        |     recall asupan
-        |     -> menunjuk balik ke baris CPPT
+        +-- GziNutritionCareRecord            satu per kunjungan ahli gizi
+        |     |
+        |     +-- GziNutritionCareRecordDiagnosis  diagnosis IDNT, boleh lebih dari satu
+        |     +-- menunjuk revisi kebutuhan yang berlaku
+        |     +-- menunjuk baris CPPT
         |
-        +-- GzNutritionOrderHistory     jejak perubahan status
+        +-- GziNutritionRequirement           satu revisi kebutuhan nutrisi
+        |     +-- GziNutritionRequirementItem   satu baris per parameter
+        |
+        +-- GziNutritionOrderHistory          jejak perubahan status
+        |
+        +-- GziPatientDiet                    diet aktif dan riwayatnya
+              |
+              v
+        GziProductionBatch -> GziProductionBatchDetail -> GziMealDelivery
+
+MASTER
+  GziNutritionDiagnosisDomain   NI, NC, NB
+  GziNutritionDiagnosis         daftar IDNT, diisi admin
+  GziNutritionParameter         energi, protein, lemak, karbohidrat, cairan
+  GziNutritionFormula           registry rumus, dibangun kosong (GIZ-OQ-007 deferred)
+  GziDietType, GziFoodForm, GziMealSchedule
 ```
 
-Dua entity utama, satu entity riwayat. Tidak lebih, karena setiap entity tambahan menambah
-tempat data bisa menjadi tidak sinkron.
+## Master diagnosis gizi (`GIZ-DEC-011`)
 
-## Entity
+### GziNutritionDiagnosisDomain
 
-### GzNutritionOrder
-
-Permintaan konsultasi gizi untuk satu episode rawat inap. Dibuat dokter penanggung jawab
-(`GIZ-DEC-007`), memakai entity sendiri dan bukan `TrxDoctorConsultation` (`GIZ-DEC-001`).
+Kelompok besar diagnosis. Dibuat sebagai tabel, bukan enum, supaya domain keempat kelak cukup
+ditambahkan sebagai baris — tanpa rilis ulang aplikasi.
 
 | Kolom | Tipe | Keterangan |
 |---|---|---|
 | `Id` | `Guid` | |
-| `OrderNumber` | `varchar(50)` | Nomor order, unik |
-| `PatientId` | `Guid` | Menunjuk `MstPatient` |
-| `EncounterId` | `Guid` | Menunjuk `TrxPatientEncounter` |
-| `RequesterDoctorId` | `Guid` | Menunjuk `MstDoctor` |
-| `AssignedWorkforceId` | `Guid?` | Ahli gizi yang menangani, boleh kosong saat dibuat |
-| `Status` | enum | `Requested`, `InProgress`, `Closed`, `Cancelled` |
-| `Priority` | enum | `Routine`, `Urgent` |
-| `ReasonForReferral` | `varchar(1000)` | Alasan rujukan dari dokter |
-| `ScreeningRiskStatus` | enum? | Disalin dari `TrxPatientAssessment` saat order dibuat |
-| `ScreeningScore` | `int?` | Disalin bersamaan |
-| `RequestedAt` | `timestamptz` | |
-| `ClosedAt` | `timestamptz?` | |
-| `ClosingNote` | `varchar(2000)?` | Catatan penutup ahli gizi (`GIZ-DEC-008`) |
-| `Version` | `int` | Token konkurensi |
+| `DomainCode` | `varchar(20)` | Unik. V1: `NI`, `NC`, `NB` |
+| `DomainName` | `varchar(200)` | |
+| `Description` | `varchar(1000)?` | |
+| `SortOrder` | `int` | |
+| `IsActive` | `bool` | |
 
-**Kenapa hasil skrining disalin, bukan dibaca ulang.** Skrining adalah alasan order ini
-lahir. Bila dibaca ulang setiap kali, angkanya berubah ketika perawat memperbarui asesmen,
-dan alasan order menjadi tidak lagi cocok dengan apa yang dilihat dokter saat memesannya.
-Penyalinan pada saat transaksi seperti ini adalah pengecualian yang sah menurut aturan data
-bersama pada registry.
+Tiga barisnya **diisi migration**, karena ketiganya disebut langsung oleh keputusan pemilik
+proses — ini menjalankan keputusan, bukan menebak.
 
-### GzNutritionCareRecord
-
-Satu kunjungan ahli gizi. Berulang selama pasien dirawat (`GIZ-DEC-005`).
+### GziNutritionDiagnosis
 
 | Kolom | Tipe | Keterangan |
 |---|---|---|
 | `Id` | `Guid` | |
-| `NutritionOrderId` | `Guid` | Induknya |
-| `VisitSequence` | `int` | Kunjungan ke berapa, mulai dari 1 |
-| `VisitAt` | `timestamptz` | |
-| `RecordedByWorkforceId` | `Guid` | Ahli gizi yang mencatat |
-| `RecordType` | enum | `Initial`, `FollowUp` |
-| **Asesmen** | | |
-| `Weight` / `Height` / `Bmi` | `decimal?` | Boleh diisi ulang bila diukur saat kunjungan |
-| `AssessmentNote` | `varchar(2000)?` | |
-| **Diagnosis gizi** | | |
-| `NutritionDiagnosisId` | `Guid?` | Menunjuk `MstDiagnosis` bertipe `NUTRITION` (`GIZ-DEC-009`, `GIZ-DEC-011`) |
-| `DiagnosisNote` | `varchar(1000)?` | |
-| **Intervensi** | | |
-| `InterventionNote` | `varchar(2000)?` | |
-| `DietPrescription` | `varchar(500)?` | Diet yang ditetapkan |
-| `EnergyRequirementKcal` | `int?` | **Diketik ahli gizi, tanpa rumus** (`GIZ-DEC-012`) |
-| **Recall asupan** | | |
-| `IntakeRecallNote` | `varchar(2000)?` | |
-| `IntakePercent` | `int?` | Perkiraan persentase asupan terhadap kebutuhan |
-| **Monitoring dan evaluasi** | | |
-| `EvaluationNote` | `varchar(2000)?` | |
-| **Tautan CPPT** | | |
-| `ProgressNoteId` | `Guid?` | Baris CPPT yang dibuat untuk kunjungan ini (`GIZ-DEC-010`) |
-| `Version` | `int` | Token konkurensi |
+| `DiagnosisDomainId` | `Guid` | Menunjuk domain |
+| `ParentDiagnosisId` | `Guid?` | Kode IDNT berjenjang, misalnya `NI-5.2` di bawah `NI-5` |
+| `DiagnosisCode` | `varchar(30)` | Unik |
+| `DiagnosisName` | `varchar(300)` | |
+| `Description` | `varchar(1000)?` | |
+| `Standard` | `varchar(50)` | Asal baris. V1 `IDNT` |
+| `StandardVersion` | `varchar(30)?` | |
+| `IsSelectable` | `bool` | Baris induk yang hanya berfungsi sebagai kelompok dimatikan pilihannya |
+| `SortOrder`, `IsActive` | | |
 
-**Kenapa satu entity, bukan lima.** Asesmen, diagnosis, intervensi, recall, dan evaluasi
-selalu dicatat bersama dalam satu kunjungan dan tidak pernah berdiri sendiri. Memecahnya
-menjadi lima tabel berarti lima baris yang harus dijaga tetap sinkron tanpa manfaat apa pun.
+**Masternya dibuat kosong.** Baseline IDNT menyebut standar yang dipakai, bukan membebaskan
+sistem mengarang isinya. Daftarnya diimpor admin gizi.
 
-**Kenapa hampir semuanya boleh kosong.** Ahli gizi mengisi bertahap selama kunjungan.
-Memaksa semua terisi sekaligus membuat catatan tidak bisa disimpan di tengah pekerjaan, dan
-petugas akan mengakalinya dengan mengisi sembarang nilai.
+**Kenapa bukan menumpang `MstDiagnosis`.** Alasannya ada tiga dan seluruhnya dapat diperiksa pada
+source: `MstDiagnosis` berbentuk ICD dan memuat `IcdVersion`, `DiagnosisChapterId`, serta
+`IsPrimaryDiagnosisAllowed` yang tak satu pun berlaku bagi diagnosis gizi; menambah kolom `Domain`
+di sana berarti mengubah master milik modul MasterData demi satu modul lain; dan baris IDNT yang
+tercampur akan ikut muncul di layar modul lain yang membaca `MstDiagnosis` tanpa menyaring tipe.
+Perpindahan ini menggantikan `GIZ-DEC-009` dan berbiaya nol karena kedua tabel masih kosong.
 
-### GzNutritionOrderHistory
+### GziNutritionCareRecordDiagnosis
 
-Jejak perubahan status order. Mengikuti pola `OprStatusHistory` yang sudah ada.
+Diagnosis yang ditegakkan pada satu kunjungan. Tabel anak, bukan satu kolom.
 
-| Kolom | Tipe |
-|---|---|
-| `Id`, `NutritionOrderId` | `Guid` |
-| `FromStatus`, `ToStatus` | enum |
-| `Action` | `varchar(50)` |
-| `Reason` | `varchar(1000)?` |
-| `ActorUserId` | `Guid` |
-| `OccurredAt` | `timestamptz` |
-| `Source` | `varchar(100)` — `API:{fingerprint}` untuk idempotensi |
-| `CorrelationId` | `varchar(100)` |
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `Id` | `Guid` | |
+| `CareRecordId` | `Guid` | |
+| `NutritionDiagnosisId` | `Guid` | |
+| `IsPrimary` | `bool` | Paling banyak satu per kunjungan, ditegakkan indeks tersaring |
+| `Note` | `varchar(1000)?` | |
+| `SortOrder` | `int` | |
 
-## Transisi status
+**Kenapa tabel anak.** Praktik IDNT lazim menegakkan lebih dari satu diagnosis dalam satu
+kunjungan. Menyimpannya sebagai satu kolom berarti perpindahan ke banyak diagnosis kelak menuntut
+pemindahan data historis. Sekarang tabelnya masih kosong, jadi ongkos memilih bentuk yang benar
+adalah nol.
 
-```text
-            buat order
-                v
-          [ Requested ] ---- batal ----> [ Cancelled ]
-                |
-      kunjungan pertama dicatat
-                v
-         [ InProgress ] ---- batal ----> [ Cancelled ]
-                |
-        tutup asuhan gizi
-                v
-           [ Closed ]
-```
+## Kebutuhan nutrisi (`GIZ-DEC-012`)
 
-| Dari | Ke | Pemicu | Aturan |
+### GziNutritionParameter
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `Id` | `Guid` | |
+| `ParameterCode` | `varchar(30)` | Unik |
+| `ParameterName` | `varchar(200)` | |
+| `UnitCode` | `varchar(30)` | Satuan yang ditampilkan dan disimpan |
+| `ValueScale` | `int` | Jumlah angka di belakang koma saat ditampilkan |
+| `MinValue`, `MaxValue` | `numeric(12,3)?` | Batas wajar. Kosong berarti belum ditetapkan siapa pun |
+| `SortOrder`, `IsActive` | | |
+
+Lima barisnya diisi migration sesuai keputusan:
+
+| Kode | Nama | Satuan | Batas |
 |---|---|---|---|
-| — | `Requested` | Dokter membuat order | Pasien harus punya encounter yang cocok |
-| `Requested` | `InProgress` | Kunjungan pertama disimpan | Otomatis, bukan tombol tersendiri |
-| `Requested`, `InProgress` | `Closed` | Ahli gizi menutup asuhan | Wajib ada catatan penutup |
-| `Requested`, `InProgress` | `Cancelled` | Dibatalkan | Wajib ada alasan |
-| `Closed`, `Cancelled` | — | — | Tidak ada transisi keluar |
+| `ENERGY` | Energi | `kkal/hari` | 1 – 10000, dari aturan `GIZ006` yang sudah ada |
+| `PROTEIN` | Protein | `gram/hari` | belum ditetapkan |
+| `FAT` | Lemak | `gram/hari` | belum ditetapkan |
+| `CARBOHYDRATE` | Karbohidrat | `gram/hari` | belum ditetapkan |
+| `FLUID` | Cairan | `ml/hari` | belum ditetapkan |
 
-Status naik ke `InProgress` **otomatis** saat kunjungan pertama disimpan, bukan lewat tombol
-terpisah. Tombol yang tidak menandai kejadian nyata hanya menambah langkah yang gampang lupa
-ditekan, dan status pun menjadi berbohong.
+Batas empat parameter terakhir **sengaja dikosongkan**. Batas energi berasal dari aturan yang
+memang sudah disepakati; batas yang lain belum ditetapkan siapa pun, dan mengarangnya berarti
+sistem menolak angka yang barangkali benar secara klinis.
+
+### GziNutritionFormula
+
+Registry rumus. **Dibangun kosong; pengisiannya ditunda (`GIZ-OQ-007` DEFERRED).**
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `Id` | `Guid` | |
+| `FormulaCode` | `varchar(50)` | Unik |
+| `FormulaName` | `varchar(200)` | |
+| `FormulaVersion` | `varchar(30)` | Rumus yang direvisi menjadi baris baru, bukan menimpa |
+| `Description` | `varchar(2000)?` | |
+| `SourceReference` | `varchar(500)?` | Sumber resmi rumus, diisi admin saat mendaftarkan |
+| `ImplementationKey` | `varchar(100)` | Kunci yang menghubungkan baris ini ke kelas perhitungan terdaftar di kode |
+| `IsActive` | `bool` | |
+
+**Kenapa registry, bukan rumus di dalam kode perhitungan.** Rumus kebutuhan gizi berbeda antar
+rumah sakit dan antar kondisi pasien. Menanamkan satu rumus berarti satu kekeliruan berdampak
+pada seluruh pasien sekaligus, dan kekeliruan itu sulit terlihat karena hasilnya tetap tampak
+masuk akal. Dengan registry, rumus yang dipakai tercatat pada setiap nilai yang dihasilkannya.
+
+**Kode tidak memuat satu pun rumus pada V1**, sesuai keputusan menunda `GIZ-OQ-007`. Yang ada
+hanyalah antarmuka dan pencari implementasi. Bila tidak ada baris rumus aktif, kalkulasi tidak
+dijalankan dan nilai kalkulasi dibiarkan kosong — bukan diisi angka asal, dan ahli gizi mengisi
+nilai final sendiri.
+
+### GziNutritionRequirement
+
+Satu **revisi** kebutuhan nutrisi untuk satu order.
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `Id` | `Guid` | |
+| `NutritionOrderId` | `Guid` | |
+| `CareRecordId` | `Guid?` | Kunjungan yang melahirkan revisi ini |
+| `RevisionNumber` | `int` | Mulai dari 1 |
+| `IsCurrent` | `bool` | Paling banyak satu yang berlaku per order |
+| `EffectiveFrom` | `timestamptz` | |
+| `CalculationFormulaId` | `Guid?` | Rumus yang dipakai. Kosong berarti tanpa kalkulasi |
+| `CalculationInput` | `jsonb?` | Salinan masukan rumus: berat, tinggi, umur, faktor |
+| `CalculationPerformedAt` | `timestamptz?` | |
+| `DeterminedByWorkforceId` | `Guid` | Ahli gizi yang menetapkan revisi |
+| `ChangeReason` | `varchar(1000)?` | Wajib mulai revisi kedua |
+| `Version` | `int` | Token konkurensi |
+
+**Kenapa masukan rumus disalin.** Berat dan tinggi pasien berubah selama perawatan. Bila masukan
+tidak disalin, angka kebutuhan lama tidak lagi dapat dijelaskan — hasilnya ada, tetapi tidak ada
+yang tahu dari mana. Penyalinan saat transaksi seperti ini sah menurut aturan data bersama.
+
+### GziNutritionRequirementItem
+
+| Kolom | Tipe | Keterangan |
+|---|---|---|
+| `Id` | `Guid` | |
+| `NutritionRequirementId` | `Guid` | |
+| `NutritionParameterId` | `Guid` | Unik berpasangan dengan induknya |
+| `CalculatedValue` | `numeric(12,3)?` | Hasil rumus. Kosong bila tidak ada rumus terdaftar |
+| `FinalValue` | `numeric(12,3)` | Nilai yang dipakai merawat pasien |
+| `AdjustmentReason` | `varchar(1000)?` | Wajib bila final berbeda dari kalkulasi |
+| `AdjustedByWorkforceId` | `Guid?` | |
+| `AdjustedAt` | `timestamptz?` | |
+
+Kelima hal yang diminta pemilik proses — nilai kalkulasi, nilai final, alasan, pelaku, waktu —
+disimpan **per parameter**, bukan per revisi. Ahli gizi lazimnya mengoreksi satu atau dua
+parameter saja, dan alasan yang menempel pada revisi tidak dapat menerangkan parameter mana yang
+dimaksud.
+
+## Perubahan pada entity yang sudah ada
+
+| Entity | Perubahan | Alasan |
+|---|---|---|
+| `GziNutritionCareRecord` | `NutritionDiagnosisId` **dicabut**, diganti tabel anak `GziNutritionCareRecordDiagnosis` | `GIZ-DEC-011`: diagnosis pindah master dan boleh lebih dari satu |
+| `GziNutritionCareRecord` | `DietPrescription varchar(500)` **dicabut**, diganti `PatientDietId Guid?` | `GIZ-DEC-012`: diet dari master, bukan teks bebas |
+| `GziNutritionCareRecord` | `EnergyRequirementKcal` **dicabut**, diganti `NutritionRequirementId Guid?` | Kebutuhan tidak lagi satu angka, dan pemiliknya tabel kebutuhan |
+| `GziPatientDiet` | ditambah `NutritionRequirementId Guid?` | Menautkan diet ke revisi kebutuhan yang mendasarinya |
+| `GziPatientDiet` | `EnergyRequirementKcal` **dipertahankan** sebagai salinan | Dapur memasak dari angka saat pesanan dibuat. Ini salinan yang sengaja, sejalan dengan `EnergyRequirementKcalSnapshot` pada `GziProductionBatchDetail` |
+
+Seluruh pencabutan aman karena seluruh tabel Gizi berisi **0 baris** pada database uji. Tidak ada
+data yang hilang.
 
 ## Aturan validasi
 
+Yang sudah ada dipertahankan; `GIZ005` berubah rujukan masternya.
+
 | Kode | Aturan |
 |---|---|
-| `GIZ001` | Encounter harus milik pasien yang sama dan belum dihapus |
-| `GIZ002` | Satu episode rawat inap hanya boleh punya satu order aktif |
-| `GIZ003` | Alasan rujukan wajib diisi |
-| `GIZ004` | Kunjungan hanya boleh dicatat pada order `Requested` atau `InProgress` |
-| `GIZ005` | Diagnosis gizi harus bertipe `NUTRITION` bila diisi |
-| `GIZ006` | Kebutuhan energi antara 1 sampai 10000 kkal bila diisi |
-| `GIZ007` | Persentase asupan antara 0 sampai 100 bila diisi |
-| `GIZ008` | Catatan penutup wajib diisi saat menutup asuhan |
-| `GIZ009` | Alasan wajib diisi saat membatalkan |
-| `GIZ012` | Versi tidak cocok, data sudah diubah pengguna lain |
-| `GIZ013` | Idempotency key dipakai dengan isi permintaan berbeda |
+| `GIZ005` | Diagnosis harus baris `GziNutritionDiagnosis` yang aktif dan dapat dipilih |
+| `GIZ006` | Nilai final harus berada di dalam batas master parameter, bila batasnya ada |
+| `GIZ014` | Parameter yang dikirim harus aktif pada master |
+| `GIZ015` | Seluruh parameter aktif wajib punya nilai final pada satu revisi |
+| `GIZ016` | Alasan perubahan wajib bila nilai final berbeda dari nilai kalkulasi |
+| `GIZ017` | Alasan revisi wajib mulai revisi kedua |
+| `GIZ018` | Paling banyak satu diagnosis primer per kunjungan |
+| `GIZ019` | Rumus yang dirujuk harus terdaftar dan aktif |
+| `GIZ020` | Satu order hanya boleh punya satu revisi kebutuhan yang berlaku |
 
-## Kontrak API
+## Kontrak API tambahan
 
 Base: `api/v1/health-services/nutrition-management`
 
 | Metode | Alamat | Guna |
 |---|---|---|
-| `GET` | `/orders` | Daftar pemesanan, dengan saring status dan pencarian |
-| `GET` | `/orders/{id}` | Detail satu order beserta kunjungannya |
-| `POST` | `/orders` | Membuat order konsultasi gizi |
-| `PUT` | `/orders/{id}` | Mengubah order yang belum ditutup |
-| `POST` | `/orders/{id}/close` | Menutup asuhan gizi |
-| `POST` | `/orders/{id}/cancel` | Membatalkan order |
-| `GET` | `/orders/{id}/records` | Daftar kunjungan pada satu order |
-| `POST` | `/orders/{id}/records` | Mencatat kunjungan baru |
-| `PUT` | `/orders/{id}/records/{recordId}` | Mengubah catatan kunjungan |
-| `GET` | `/orders/screening-candidates` | Pasien rawat inap berisiko gizi yang belum punya order |
+| `GET`/`POST` | `/masters/nutrition-diagnosis-domains` | Master domain diagnosis |
+| `GET`/`POST` | `/masters/nutrition-diagnoses` | Master diagnosis IDNT, dengan saring domain dan pencarian kode |
+| `GET`/`POST` | `/masters/nutrition-parameters` | Master parameter nutrisi |
+| `GET`/`POST` | `/masters/nutrition-formulas` | Registry rumus |
+| `GET` | `/orders/{id}/requirements` | Seluruh revisi kebutuhan, terbaru di atas |
+| `GET` | `/orders/{id}/requirements/current` | Revisi yang berlaku |
+| `POST` | `/orders/{id}/requirements` | Menetapkan revisi baru |
+| `POST` | `/orders/{id}/requirements/calculate` | Pratinjau kalkulasi tanpa menyimpan |
 
-Seluruh perintah yang mengubah data membawa `idempotencyKey` dan `expectedVersion`,
-mengikuti pola modul Operasi.
+Seluruh perintah yang mengubah data membawa `idempotencyKey` dan `expectedVersion`, mengikuti pola
+yang sudah berjalan.
 
 ## Hak akses
 
@@ -216,15 +279,21 @@ mengikuti pola modul Operasi.
 |---|---|
 | `NutritionOrder` | `Read`, `Create`, `Update`, `Cancel` |
 | `NutritionCareRecord` | `Read`, `Update` |
+| `NutritionRequirement` | `Read`, `Update` |
+| `NutritionMaster` | `Read`, `Update` |
 
-Izin diberikan lewat `SysAccessPolicy` per Departemen dan Jabatan, bukan per orang.
+Izin diberikan lewat `SysAccessPolicy` per Departemen dan Jabatan, bukan per orang. `GIZ-DEC-014`
+menetapkan pemilik prosesnya, **bukan** permission baru: baris jabatan "Kepala Instalasi Gizi"
+adalah data master yang keberadaannya tidak dapat dipastikan dari source, sehingga tidak
+diterjemahkan menjadi kode.
 
 ## Yang sengaja tidak dibuat
 
 | Yang ditolak | Alasan |
 |---|---|
 | Entity skrining gizi | Sudah ada di `TrxPatientAssessment` |
-| Entity kunjungan tersendiri di luar CPPT | `GIZ-DEC-010`: memakai CPPT yang sudah ada |
-| Master diagnosis gizi tersendiri | `GIZ-DEC-009`: menumpang `MstDiagnosis` |
-| Rumus kebutuhan gizi | `GIZ-DEC-012`: diketik ahli gizi |
-| Pemesanan makanan ke dapur | `GIZ-DEC-004`: di luar scope |
+| Rumus kebutuhan gizi di dalam kode | `GIZ-OQ-007` ditunda atas keputusan pemilik proses. Tempatnya disiapkan, isinya tidak dikarang |
+| Enum diagnosis gizi | Isi master adalah data; enum menjadikannya ketetapan kode |
+| Batas wajar protein, lemak, karbohidrat, cairan | Belum ditetapkan siapa pun |
+| Kolom tetap per zat gizi | Melanggar permintaan agar penambahan parameter cukup lewat master |
+| Menu, siklus menu, standar porsi, resep, stok bahan | Di luar scope `GIZ-DEC-013` |
