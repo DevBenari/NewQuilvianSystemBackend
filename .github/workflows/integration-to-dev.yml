@@ -234,6 +234,10 @@ jobs:
         run: |
           set -euo pipefail
 
+          # Remove generated runtime manifest from workspace
+          # before switching branches.
+          rm -f version.json
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
