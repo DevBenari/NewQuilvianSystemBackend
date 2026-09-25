@@ -1,3 +1,4 @@
+using System.Globalization;
 using QuilvianSystemBackend.Constants;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
@@ -46,6 +47,8 @@ using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Seeders;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Services;
+using QuilvianSystemBackend.Areas.HealthServices.HemodialysisManagement.Seeders;
+using QuilvianSystemBackend.Areas.HealthServices.HemodialysisManagement.Services;
 using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Services;
@@ -84,6 +87,15 @@ Log.Logger = new LoggerConfiguration()
 
 try
 {
+    // ISSUE-DOK-001 ISS-01. Culture aplikasi dikunci ke invariant sebelum apa pun dibangun.
+    // RangeAttribute(Type, string, string) mem-parsing batasnya memakai CurrentCulture, sehingga
+    // pada server ber-locale id-ID batas pecahan seperti "0.0001" melempar FormatException saat
+    // validasi model - sebelum controller action sempat jalan, dan untuk request apa pun yang
+    // menyentuh DTO tersebut. Mengunci di sini menutup seluruh titik sekaligus dan mencegah
+    // atribut baru mengulang cacat yang sama.
+    CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
+    CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
+
     var builder = WebApplication.CreateBuilder(args);
 
     var backendVersionManifest = BackendVersionManifest.Load(builder.Environment.ContentRootPath);
@@ -606,6 +618,21 @@ try
     builder.Services.AddScoped<BloodStorageLocationService>();
     builder.Services.AddScoped<BloodBankReasonService>();
 
+    // HMD-BP-001, BE-HMD-03. Sepuluh service modul Hemodialisa, tanpa interface mengikuti pola
+    // modul terdekat. Seluruh controller Hemodialisa menyerahkan CRUD dan orkestrasinya ke sini
+    // dan tidak pernah menyentuh ApplicationDbContext langsung (QBE-SVC-001). Penyerahan ke Billing
+    // sengaja service tersendiri karena ia dijalankan di luar transaksi pengesahan.
+    builder.Services.AddScoped<HmdOrderService>();
+    builder.Services.AddScoped<HmdEpisodeService>();
+    builder.Services.AddScoped<HmdPrescriptionService>();
+    builder.Services.AddScoped<HmdScheduleService>();
+    builder.Services.AddScoped<HmdSessionService>();
+    builder.Services.AddScoped<HmdSessionFinalizationService>();
+    builder.Services.AddScoped<HmdBillingHandoffService>();
+    builder.Services.AddScoped<HmdUnitReadinessService>();
+    builder.Services.AddScoped<HmdResourceService>();
+    builder.Services.AddScoped<HmdCompetencyGateService>();
+
     // Alokator nomor bisnis bersama milik Platform. Satu-satunya cara sah menerbitkan nomor
     // bisnis pada kode baru (QBE-CODE-006). Ia membuka koneksi sendiri lewat IDbContextFactory,
     // sehingga pencacahnya bertahan walau transaksi bisnis pemanggil dibatalkan (DEC-PLT-008).
@@ -842,6 +869,12 @@ try
     builder.Services.AddScoped<PettyCashCategoryService>();
     builder.Services.AddScoped<PettyCashVoucherService>();
     builder.Services.AddScoped<PettyCashBudgetService>();
+
+    // Registrasi kanonik Billing/Kasir/Petty Cash/Finance. Wajib dipanggil: hanya di sini
+    // BilConsumerHandoffService, service Finance, dan options penomoran didaftarkan. Diletakkan
+    // setelah registrasi manual di atas supaya adapter payment provider berbasis konfigurasi
+    // (Billing:PaymentProvider:AutoAcceptWithoutProvider) yang berlaku.
+    builder.Services.AddBillingManagement();
 
     builder.Services.AddAuthorization(options =>
     {
@@ -1428,6 +1461,11 @@ try
     // kapan pasien boleh disinari hanya berlaku setelah disahkan penanggung jawab klinis
     // (RJ-BIL-DEC-014, DEC-RAD-005).
     await RunStartupSeederAsync("RadiologyMasterDataSeeder", () => RadiologyMasterDataSeeder.SeedAsync(app.Services));
+
+    // HMD-BP-001, BE-HMD-03. Data master awal Hemodialisa: unit HD, tindakan hemodialisis, dua belas
+    // butir checklist Pra-HD yang SELURUHNYA tidak boleh dilewati (HMD-ASM-001), lima butir kesiapan
+    // unit, dan satu baris pengaturan unit. Idempoten — baris yang sudah ada tidak diisi ulang.
+    await RunStartupSeederAsync("HemodialysisMasterDataSeeder", () => HemodialysisMasterDataSeeder.SeedAsync(app.Services));
 
     // Gerbang integritas permission (Phase A0).
     //

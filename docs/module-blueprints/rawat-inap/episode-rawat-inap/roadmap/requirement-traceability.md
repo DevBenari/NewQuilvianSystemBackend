@@ -229,7 +229,7 @@ kontrak.
 | `EPIC RI-30` | Sesi koreksi episode | `MVP-4` | `BE-RWI-030` | `FE-RWI-018` |
 | `EPIC RI-31` | Pengaturan yang dapat diubah admin | `MVP-0` | `BE-RWI-005`, ✅ `BE-RWI-070` | `FE-RWI-003`, `FE-RWI-004`, `FE-RWI-040`, `FE-RWI-041` |
 | `EPIC RI-32` | Perbaikan tempat tidur dan pembatasan wewenang status | `MVP-0` | `BE-RWI-006`, `BE-RWI-032` | `FE-RWI-001` |
-| `EPIC RI-33` | Bayi baru lahir dan boks bayi | `MVP-4` | `BE-RWI-031` | `FE-RWI-022` untuk memilih episode ibu; census dan penempatan tetap dipakai sesudah episode terbentuk |
+| `EPIC RI-33` | Bayi baru lahir dan boks bayi | `MVP-4` | `BE-RWI-031` | 🟡 **Belum utuh — dikoreksi 23 September 2026.** `BE-RWI-031` ✅ menyediakan sisi datanya (`InpEpisode.MotherEpisodeId`, boks `IsForNewborn`, census dua baris), tetapi **pemilihan episode ibu tidak pernah dapat dilakukan**: daftar pilihannya kosong permanen dan tidak ada endpoint yang mendaftar episode ibu aktif. `FE-RWI-022` karena itu turun ke 🟡. Pemilik memutuskan pendaftaran bayi baru lahir **belum masuk rilis ini**; kategorinya dinonaktifkan lewat `FE-RWI-096` ✅ agar petugas tidak terjebak jalan buntu. Kemampuan penuh menunggu `BE-RWI-128` — lihat [issue](./issues/issue-002-admisi-bayi-baru-lahir-buntu.md) |
 | `EPIC RI-34` | Kelayakan penempatan menurut jenis kelamin dan isolasi | `MVP-1` | `BE-RWI-013`, `BE-RWI-014`, `BE-RWI-015` | `FE-RWI-006`, `FE-RWI-007`, `FE-RWI-009`, `FE-RWI-016`, `FE-RWI-025`, `FE-RWI-026`, `FE-RWI-030`, `FE-RWI-036`, `FE-RWI-038` |
 | `EPIC RI-36` | Alasan penolakan kelayakan terbaca petugas | `MVP-1` | ✅ `BE-RWI-069` | ✅ `FE-RWI-057` — selesai 12 September 2026 |
 
