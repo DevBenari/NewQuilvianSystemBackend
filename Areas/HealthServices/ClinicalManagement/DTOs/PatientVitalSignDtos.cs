@@ -26,6 +26,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public bool IsUsingOxygen { get; set; }
         public ConsciousnessStatus ConsciousnessStatus { get; set; }
         public int? GcsTotal { get; set; }
+        public decimal? Weight { get; set; }
+        public decimal? Height { get; set; }
+        public decimal? BMI { get; set; }
         public int? EarlyWarningScore { get; set; }
         public EwsRiskLevel EwsRiskLevel { get; set; }
         public bool IsAbnormal { get; set; }
