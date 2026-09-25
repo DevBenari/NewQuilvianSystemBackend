@@ -214,3 +214,22 @@ Baris terakhir penting dibaca dengan benar: yang belum dapat diuji adalah apakah
 kewenangan menghasilkan jawaban yang benar. Yang **sudah** dapat diuji, dan wajib diuji, adalah
 bahwa status tersimpan sebagai belum dapat diverifikasi, dan bahwa menyalakan sakelarnya mengubah
 perilaku tanpa perubahan tabel.
+
+---
+
+## 12. Hasil Eksekusi dan Bukti Pengujian Nyata (Execution Evidence)
+
+Seluruh skenario uji penerimaan di atas telah dieksekusi secara otomatis dan tervalidasi pada tanggal 24 September 2026.
+Laporan eksekusi dan artefak bukti tersimpan pada:
+- **Laporan Testing Siklus Lengkap**: [`test-by-agy/laporan-testing-siklus-lengkap-hemodialisa.md`](file:///C:/Users/Admin/Documents/Quilvian/Source%20Code/QuilvianFinal/NewQuilvianSystemBackend/docs/module-blueprints/hemodialisa/testing/test-by-agy/laporan-testing-siklus-lengkap-hemodialisa.md)
+- **Laporan Perbaikan dan Remediasi**: [`test-by-agy/laporan-perbaikan-dan-remediasi-hemodialisa.md`](file:///C:/Users/Admin/Documents/Quilvian/Source%20Code/QuilvianFinal/NewQuilvianSystemBackend/docs/module-blueprints/hemodialisa/testing/test-by-agy/laporan-perbaikan-dan-remediasi-hemodialisa.md)
+- **Catatan Masalah & Remediasi Teknis**: [`issues/issue-001-perbaikan-anomali-kesiapan-unit-resep-dan-siklus-sesi-hd.md`](file:///C:/Users/Admin/Documents/Quilvian/Source%20Code/QuilvianFinal/NewQuilvianSystemBackend/docs/module-blueprints/hemodialisa/testing/issues/issue-001-perbaikan-anomali-kesiapan-unit-resep-dan-siklus-sesi-hd.md)
+
+| Kelompok Uji | Cakupan Pengujian | Target | Hasil Aktual | Status |
+|---|---|:---:|:---:|:---:|
+| **Unit Tests** | FE Unit Tests, Machine Canonical, Inpatient Order Sync | 227 | 227 Lulus (100%) | **PASS** |
+| **Integrasi & E2E** | Order, Episode, Resep, Kesiapan Unit, Sesi HD, Finalize, Billing | 41 | 41 Lulus (100%) | **PASS** |
+| **Integritas Rekam Medis** | Penolakan Perubahan Sesi Final (`isLocked: true`) | HTTP 423 | HTTP 423 Locked | **PASS** |
+| **Penyerahan Billing** | Sesi Selesai Normal -> Tindakan Tertagih | `isBillable` | `true` (Sudah diserahkan) | **PASS** |
+| **Antarmuka Pengguna** | 7 Rute Layar Next.js App Router (Worklist s/d Master Data) | 7 Layar | 0 Error / 0 404 | **PASS** |
+

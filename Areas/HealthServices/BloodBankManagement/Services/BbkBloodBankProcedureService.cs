@@ -1,14 +1,19 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Constants;
 using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Constants;
 using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
+using QuilvianSystemBackend.Services.Logging;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Services
 {
@@ -35,15 +40,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
     /// </para>
     ///
     /// <para>
-    /// <b>4. Tidak ada penyaluran biaya</b> (<c>DEC-BD-016</c>, <c>AC-BD-102</c>). Berkas ini tidak
-    /// bergantung pada satu pun service, entity, maupun producer Billing. Penyaluran milik
-    /// <c>BE-BD-013</c>.
+    /// <b>4. Satu fakta biaya per tindakan selesai</b> (<c>DEC-BD-016</c>, <c>BE-BD-013</c>). Sesudah
+    /// <c>Recorded</c> → <c>Completed</c> tersimpan, fakta <c>BloodBank</c>/<c>BloodBankCharge</c>
+    /// diserahkan lewat <c>ClinicalMilestoneFactProducer</c> — satu-satunya jalur resmi ke Billing.
+    /// Tidak ada kolom penagihan pada tindakan; status penyerahan tinggal di ledger
+    /// <c>CliClinicalMilestoneFact</c>. Riwayat: sampai <c>BE-BD-012</c> berkas ini sengaja tanpa
+    /// dependensi Billing (<c>AC-BD-102</c>), batas yang gugur ketika <c>DEC-BD-016</c> disetujui.
     /// </para>
     /// </remarks>
     public class BbkBloodBankProcedureService
     {
         private const int DefaultPageSize = 25;
         private const int MaxPageSize = 100;
+
+        /// <summary>
+        /// Satuan fakta biaya. Menyebut <b>tindakan</b>, bukan kantong: <c>Quantity</c> selalu 1 per
+        /// tindakan, berapa pun kantong yang diberikan (<c>DEC-BD-021</c>, <c>AC-BD-026</c>).
+        /// </summary>
+        private const string CostFactUnit = "Tindakan";
+
+        /// <summary>Kode hasil penyerahan milik Bank Darah, bila fakta tidak sampai ke producer.</summary>
+        private const string CostFactSourceIncompleteCode = "BBK_COST_FACT_SOURCE_INCOMPLETE";
+        private const string CostFactUnconfirmedCode = "BBK_COST_FACT_HANDOFF_UNCONFIRMED";
+
+        private const string LogCategory = "HealthServices.BloodBankManagement.BloodBankProcedure";
 
         /// <summary>Penanda deret nomor tindakan Bank Darah pada provider bersama.</summary>
         /// <remarks>
@@ -78,13 +98,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
 
         private readonly ApplicationDbContext _dbContext;
         private readonly NumberSeriesAllocator _numberSeriesAllocator;
+        private readonly ClinicalMilestoneFactProducer _clinicalMilestoneFactProducer;
+        private readonly LoggerService _loggerService;
 
         public BbkBloodBankProcedureService(
             ApplicationDbContext dbContext,
-            NumberSeriesAllocator numberSeriesAllocator)
+            NumberSeriesAllocator numberSeriesAllocator,
+            ClinicalMilestoneFactProducer clinicalMilestoneFactProducer,
+            LoggerService loggerService)
         {
             _dbContext = dbContext;
             _numberSeriesAllocator = numberSeriesAllocator;
+            _clinicalMilestoneFactProducer = clinicalMilestoneFactProducer;
+            _loggerService = loggerService;
         }
 
         // =================================================================
@@ -390,9 +416,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
 
         /// <summary>Menyatakan tindakan selesai: <c>Recorded</c> → <c>Completed</c> (<c>AC-BD-101</c>).</summary>
         /// <remarks>
-        /// Penyelesaian <b>tidak</b> memicu apa pun di luar Bank Darah. Fakta biaya tindakan selesai
-        /// memang dirancang sebagai kejadian domain, tetapi penyalurannya tertahan
-        /// <c>DEC-BD-016</c> dan milik <c>BE-BD-013</c> (<c>AC-BD-102</c>).
+        /// <para>
+        /// <b>Urutannya mengikat</b> (<c>BE-BD-013</c>): perpindahan status dan riwayat <c>Complete</c>
+        /// disimpan lebih dulu, baru fakta biaya diserahkan ke Billing. Tidak ada transaksi yang
+        /// masih terbuka ketika producer dipanggil, dan kegagalan Billing — ditolak, tak terjangkau,
+        /// atau hasilnya tak pasti — <b>tidak</b> mengembalikan tindakan ke <c>Recorded</c>.
+        /// </para>
+        /// <para>
+        /// Tindakan yang sudah <c>Completed</c> tetap ditolak bila diselesaikan lagi
+        /// (<c>AC-BD-101</c> jalur gagal). Kirim ulang fakta biaya memakai
+        /// <see cref="ResendCostFactAsync"/>, bukan penyelesaian kedua.
+        /// </para>
         /// </remarks>
         public async Task<BloodBankProcedureResult> CompleteAsync(
             Guid id,
@@ -442,7 +476,223 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
                 return Failed(BloodBankProcedureOutcome.VersionConflict, ConcurrencyMessage);
             }
 
-            return Succeeded(entity, "Tindakan Bank Darah dinyatakan selesai.");
+            // Kebenaran klinis sudah tersimpan. Baru sekarang fakta biaya diserahkan.
+            var handoff = await HandOffCostFactAsync(entity.Id, actorUserId, cancellationToken);
+
+            return Succeeded(entity, "Tindakan Bank Darah dinyatakan selesai.", handoff);
+        }
+
+        /// <summary>
+        /// Mengirim ulang fakta biaya tindakan yang sudah <c>Completed</c> (<c>AC-BD-027</c>).
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Ini pengiriman ulang, bukan penyelesaian kedua.</b> Tidak ada perpindahan status, tidak
+        /// ada baris riwayat baru, tidak ada salinan tarif baru. Fakta disusun ulang seluruhnya dari
+        /// kolom yang tersimpan — termasuk waktu penyelesaian dari riwayat <c>Complete</c> — sehingga
+        /// sidik jarinya sama persis dengan kiriman pertama. Producer lalu memutuskan: fakta yang
+        /// sudah diterima Billing dikembalikan sebagai <c>Replayed</c>; fakta yang tertahan
+        /// <c>Pending</c> dikirim ulang dengan kunci idempotency yang sama; fakta yang ditolak
+        /// mendapat revisi baru atas identitas yang sama; fakta <c>OutcomeUnknown</c> menuntut
+        /// rekonsiliasi lebih dulu. Tidak satu pun jalur itu membuat charge kedua.
+        /// </para>
+        /// <para>
+        /// Pola ini setara <c>LabSpecimenService.AcceptAsync</c> yang mengirim ulang fakta tanpa
+        /// menyentuh keadaan. Bedanya, di sini jalurnya dipisah dari <c>complete</c> karena
+        /// <c>AC-BD-101</c> menuntut penyelesaian ulang tetap ditolak.
+        /// </para>
+        /// </remarks>
+        public async Task<BloodBankProcedureResult> ResendCostFactAsync(
+            Guid id,
+            Guid actorUserId,
+            CancellationToken cancellationToken = default)
+        {
+            if (actorUserId == Guid.Empty)
+                return Failed(BloodBankProcedureOutcome.Invalid, ActorUnknownMessage);
+
+            var entity = await BaseQuery().FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+
+            if (entity == null)
+                return Failed(BloodBankProcedureOutcome.NotFound, NotFoundMessage);
+
+            if (entity.ProcedureStatus != BbkProcedureStatus.Completed)
+            {
+                return Failed(
+                    BloodBankProcedureOutcome.NotAllowedByState,
+                    $"Fakta biaya hanya terbit untuk tindakan yang sudah selesai; tindakan ini berstatus " +
+                    $"{BbkDisplayLabels.Of(entity.ProcedureStatus)}.");
+            }
+
+            var handoff = await HandOffCostFactAsync(entity.Id, actorUserId, cancellationToken);
+
+            return Succeeded(entity, "Fakta biaya tindakan Bank Darah dikirim ulang.", handoff);
+        }
+
+        // =================================================================
+        // Penyerahan fakta biaya — DEC-BD-016
+        // =================================================================
+
+        /// <summary>
+        /// Menyerahkan fakta biaya satu tindakan selesai ke Billing lewat producer resmi.
+        /// </summary>
+        /// <remarks>
+        /// Dipanggil hanya sesudah perubahan klinis tersimpan. Galat tak terduga dari jalur
+        /// penyerahan tidak dibiarkan menjalar menjadi <c>500</c>: tindakannya sudah sah
+        /// <c>Completed</c>, dan galat itu dilaporkan sebagai hasil yang belum terkonfirmasi supaya
+        /// petugas tahu fakta biayanya perlu dikirim ulang atau ditinjau.
+        /// </remarks>
+        private async Task<ClinicalFactEmissionResult> HandOffCostFactAsync(
+            Guid procedureId,
+            Guid actorUserId,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                var request = await BuildCostFactRequestAsync(procedureId, cancellationToken);
+
+                if (request == null)
+                {
+                    return ClinicalFactEmissionResult.Failure(
+                        ClinicalFactEmissionKind.Invalid,
+                        CostFactSourceIncompleteCode,
+                        "Fakta biaya tidak dapat disusun karena data penyelesaian tindakan atau kunjungan " +
+                        "ordernya tidak lengkap.");
+                }
+
+                return await _clinicalMilestoneFactProducer.EmitChargeEligibilityAsync(
+                    request,
+                    actorUserId,
+                    cancellationToken);
+            }
+            catch (Exception exception) when (exception is not OperationCanceledException)
+            {
+                // Perubahan klinis sudah ter-commit; yang dibuang hanya sisa pelacakan penyerahan
+                // yang gagal supaya tidak ikut tersimpan oleh operasi berikutnya.
+                _dbContext.ChangeTracker.Clear();
+
+                await _loggerService.WarningAsync(
+                    LogCategory,
+                    "BloodBankProcedure.CostFactHandoffUnconfirmed",
+                    "Penyerahan fakta biaya tindakan Bank Darah tidak dapat dipastikan.",
+                    new
+                    {
+                        ProcedureId = procedureId,
+                        ActorUserId = actorUserId,
+                        ExceptionType = exception.GetType().Name
+                    });
+
+                return ClinicalFactEmissionResult.Failure(
+                    ClinicalFactEmissionKind.OutcomeUnknown,
+                    CostFactUnconfirmedCode,
+                    "Tindakan sudah tersimpan, tetapi penyerahan fakta biaya ke Billing belum dapat " +
+                    "dipastikan. Kirim ulang fakta biaya atau minta peninjauan Billing.");
+            }
+        }
+
+        /// <summary>
+        /// Menyusun fakta biaya dari kolom yang <b>tersimpan</b> saja.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Identitas.</b> <c>SourceAggregateId</c> = order darah, <c>SourceItemId</c> = tindakan,
+        /// <c>EncounterId</c> dari order. Kantong, alokasi, pemberian, dan pasien tidak pernah menjadi
+        /// identitas fakta, sehingga jumlah kantong tidak dapat melipatgandakan charge
+        /// (<c>AC-BD-026</c>).
+        /// </para>
+        /// <para>
+        /// <b>Kenapa dibaca ulang dari database, bukan dari entity di memori.</b> Sidik jari producer
+        /// dan Billing memuat waktu dan nominal. Waktu di memori berketelitian 100 nanodetik dan
+        /// nominal di memori membawa skala data induk tarif; nilai yang dibaca dari kolom
+        /// <c>timestamp with time zone</c> dan <c>numeric(18,2)</c> tidak. Membaca dari sumber yang
+        /// sama pada kiriman pertama maupun kiriman ulang menjamin sidik jari identik
+        /// (<c>AC-BD-027</c>).
+        /// </para>
+        /// <para>
+        /// <b>Tarif.</b> Nominal adalah <c>TariffAmountSnapshot</c> yang dibekukan <c>BE-BD-012</c>;
+        /// <c>MstTariff</c> tidak dibaca ulang dan tidak ada nominal dari client. Salinan tarif
+        /// dibawa sebagai rujukan — keputusan jumlah tagihan tetap milik Billing.
+        /// </para>
+        /// <para>
+        /// <b>Tidak ada isi yang dapat berubah oleh koreksi.</b> Jumlah atau identitas kantong sengaja
+        /// tidak dimuat, sehingga koreksi pemberian sesudahnya tidak mengubah sidik jari dan tidak
+        /// memicu revisi biaya (<c>DEC-BD-034</c>, <c>AC-BD-058</c>).
+        /// </para>
+        /// </remarks>
+        private async Task<ClinicalMilestoneFactRequest?> BuildCostFactRequestAsync(
+            Guid procedureId,
+            CancellationToken cancellationToken)
+        {
+            var source = await _dbContext.Set<BbkBloodBankProcedure>()
+                .AsNoTracking()
+                .Where(x =>
+                    x.Id == procedureId &&
+                    !x.IsDelete &&
+                    !x.IsCancel &&
+                    x.ProcedureStatus == BbkProcedureStatus.Completed)
+                .Select(x => new
+                {
+                    x.Id,
+                    x.ProcedureNumber,
+                    x.BloodOrderId,
+                    EncounterId = x.BloodOrder != null ? x.BloodOrder.EncounterId : Guid.Empty,
+                    x.ServiceUnitId,
+                    x.PatientClassId,
+                    x.ProcedureRefId,
+                    x.TariffId,
+                    x.ProcedureCodeSnapshot,
+                    x.ProcedureNameSnapshot,
+                    x.TariffAmountSnapshot
+                })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (source == null || source.EncounterId == Guid.Empty)
+                return null;
+
+            // Waktu kejadian adalah waktu penyelesaian yang tersimpan, bukan waktu kiriman.
+            var completedAt = await _dbContext.Set<BbkTransitionHistory>()
+                .AsNoTracking()
+                .Where(x =>
+                    x.Scope == BbkTransitionScopes.BloodBankProcedure &&
+                    x.EntityId == procedureId &&
+                    x.Action == CompleteAction &&
+                    !x.IsDelete)
+                .OrderBy(x => x.CreateDateTime)
+                .ThenBy(x => x.OccurredAt)
+                .Select(x => (DateTime?)x.OccurredAt)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (!completedAt.HasValue)
+                return null;
+
+            return new ClinicalMilestoneFactRequest
+            {
+                SourceContext = BillingSourceContract.BloodBankSourceContext,
+                SourceAggregateId = source.BloodOrderId,
+                SourceItemId = source.Id,
+                EffectType = BillingSourceContract.BloodBankChargeEffectType,
+                EncounterId = source.EncounterId,
+                OccurredAt = completedAt.Value,
+                Quantity = 1m,
+                Unit = CostFactUnit,
+                TariffSnapshot = JsonSerializer.Serialize(new
+                {
+                    source = "BloodBankProcedureSnapshot",
+                    procedureRefId = source.ProcedureRefId,
+                    procedureCode = source.ProcedureCodeSnapshot,
+                    procedureName = source.ProcedureNameSnapshot,
+                    tariffId = source.TariffId,
+                    patientClassId = source.PatientClassId,
+                    serviceUnitId = source.ServiceUnitId,
+                    unitPrice = source.TariffAmountSnapshot
+                }),
+                RuleSnapshot = JsonSerializer.Serialize(new
+                {
+                    milestone = "BloodBankProcedureCompleted",
+                    procedureNumber = source.ProcedureNumber,
+                    chargeBasis = "PerProcedure"
+                }),
+                CorrelationId = source.BloodOrderId
+            };
         }
 
         // =================================================================
@@ -599,18 +849,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
             };
         }
 
-        private static BloodBankProcedureResult Succeeded(BbkBloodBankProcedure entity, string message)
-            => new(BloodBankProcedureOutcome.Success, entity, message);
+        private static BloodBankProcedureResult Succeeded(
+            BbkBloodBankProcedure entity,
+            string message,
+            ClinicalFactEmissionResult? billingHandoff = null)
+            => new(BloodBankProcedureOutcome.Success, entity, message, billingHandoff);
 
         private static BloodBankProcedureResult Failed(BloodBankProcedureOutcome outcome, string message)
             => new(outcome, null, message);
     }
 
     /// <summary>Hasil satu tindakan pada tindakan Bank Darah. Dipetakan ke HTTP status oleh controller.</summary>
+    /// <remarks>
+    /// <c>BillingHandoff</c> adalah hasil penyerahan fakta biaya ke Billing (<c>BE-BD-013</c>). Diisi
+    /// hanya oleh aksi yang memang menyerahkan fakta; <c>null</c> pada aksi lain.
+    /// </remarks>
     public sealed record BloodBankProcedureResult(
         BloodBankProcedureOutcome Outcome,
         BbkBloodBankProcedure? Entity,
-        string Message);
+        string Message,
+        ClinicalFactEmissionResult? BillingHandoff = null);
 
     /// <summary>Jenis hasil satu tindakan pada tindakan Bank Darah.</summary>
     public enum BloodBankProcedureOutcome

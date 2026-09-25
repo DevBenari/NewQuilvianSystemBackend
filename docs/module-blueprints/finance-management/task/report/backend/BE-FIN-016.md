@@ -17,7 +17,7 @@
 | Model | Claude Sonnet 5 |
 | Commit backend saat dikerjakan | Working tree pada branch `Yasmina`; commit dasar `a743388b57da91e6a0d7a42813604dc94563e38d` |
 | Tanggal | 22 September 2026 |
-| Status | 🟡 **SEBAGIAN — entity, configuration, migration, dan konsumsi `COLLECTION` selesai; QBE `PASS` (10 berkas); menunggu `dotnet build` dan eksekusi migration.** Jalur `TenderStatus = SUCCEEDED` terpetakan penuh ke `FR-FIN-030`..`034`. Jalur `REVERSED` **BLOCKED** — `CK_FinReceipt_TenderRequired` dan `IX_FinReceipt_SourceTenderId` (keduanya terkunci) berkonflik untuk kasus ini, ditemukan saat review, menunggu keputusan pemilik repository (bagian 1.5) |
+| Status | ✅ **SELESAI 23 September 2026.** Entity, configuration, migration, dan konsumsi `COLLECTION` selesai. Jalur `TenderStatus = SUCCEEDED` terpetakan penuh ke `FR-FIN-030`..`034`. Jalur `REVERSED` — sebelumnya `BLOCKED` oleh konflik `CK_FinReceipt_TenderRequired`/`IX_FinReceipt_SourceTenderId` (bagian 1.5) — **diperbaiki**: `CK_FinReceipt_TenderRequired` diberi klausa pengecualian untuk baris pembalik (`ReversalOfReceiptId IS NOT NULL`), persis desain yang sudah didokumentasikan `FinReceipt.cs` sejak awal (SourceTenderId kosong pada baris pembalik). Lihat Pembaruan bagian 7 dan [laporan BE-FIN-017](BE-FIN-017.md) untuk implementasi `CreateReversalReceiptAsync` (lokasinya sejak refactor `BE-FIN-017`). Migration baru `20260923060000_FixFinReceiptTenderRequiredForReversal` ditulis, **belum dieksekusi** — menunggu otorisasi eksekusi terpisah seperti migration lain |
 
 **Addendum 22 September 2026 (`BE-FIN-017`)**: `CreateSucceededReceiptAsync`, `CreateReversalReceiptAsync`,
 dan `GenerateReceiptNumber` yang semula ditulis di `FinanceBillingIntakeService` (bagian 2.3 di
@@ -138,6 +138,21 @@ sebagai `BillingIntakeValidationException` (yang tidak pernah tersimpan sebagai 
 `SourceTenderId` sendirian, atau (b) menambah kolom terpisah (mis. `OriginalTenderId`) untuk baris
 pembalik yang tidak ikut diikat index idempotensi utama. Keduanya mengubah skema terkunci
 `data-dictionary.md`, di luar wewenang task ini.
+
+**Diperbaiki 23 September 2026 — opsi ketiga yang ditemukan, bukan (a)/(b) di atas.**
+`FinReceipt.cs` (model, ditulis task ini sendiri) sudah mendokumentasikan sejak awal bahwa "baris
+pembalik memakai `SourceTenderId` kosong dan menunjuk baris asli lewat `ReversalOfReceiptId`,
+supaya identitas idempotensi tender asli tidak pernah dipakai ulang" — desain itu **tidak
+konsisten** dengan `CK_FinReceipt_TenderRequired` versi awal yang mewajibkan `SourceTenderId`
+terisi tanpa kecuali untuk `SourceType = BILLING_TENDER`. Perbaikannya: tambah klausa
+`OR "ReversalOfReceiptId" IS NOT NULL` pada `CK_FinReceipt_TenderRequired`
+(`FinReceiptConfiguration.cs`), tanpa menyentuh `IX_FinReceipt_SourceTenderId` sama sekali — baris
+pembalik tetap mengosongkan `SourceTenderId` seperti didesain, sehingga otomatis tidak pernah
+bertabrakan dengan index unik parsial itu (yang memfilter `WHERE SourceTenderId IS NOT NULL`).
+Ini lebih kecil dari opsi (a)/(b): satu klausa pada satu check constraint, nol perubahan pada
+index atau kolom. Migration `20260923060000_FixFinReceiptTenderRequiredForReversal` menerapkan
+`ALTER TABLE ... DROP/ADD CONSTRAINT`. Implementasi `CreateReversalReceiptAsync` sendiri ada di
+[laporan BE-FIN-017](BE-FIN-017.md) (lokasinya sejak refactor task itu).
 
 ### 1.6 `HELD_FOR_FINALIZATION` mendapat pemanggil nyata pertama
 
@@ -291,7 +306,7 @@ Final result: PASS
 | Nominal disalin apa adanya | **Terpenuhi** — `Amount = handoff.Amount`, nol perhitungan ulang | `CreateSucceededReceiptAsync` |
 | `FR-FIN-033` — tunai wajib menyebut shift kasirnya | **Terpenuhi** — lapis kedua di sisi Finance (bagian 1.4) | Bagian 1.4 |
 | `FR-FIN-034` — penerimaan sebelum final tetap tercatat, kejadian tertahan | **Terpenuhi** — `RequiresFinalization` dihitung dari `SourceInvoiceStatus` | Bagian 1.6 |
-| Pembalikan tender (`TenderStatus = REVERSED`) | **Belum terpenuhi — BLOCKED** oleh konflik constraint terkunci, bukan oleh kekurangan implementasi (bagian 1.5) | Bagian 1.5 |
+| Pembalikan tender (`TenderStatus = REVERSED`) | **Terpenuhi 23 September 2026** — konflik constraint diperbaiki, `CreateReversalReceiptAsync` terimplementasi (bagian 1.5; kode di [BE-FIN-017](BE-FIN-017.md)) | Bagian 1.5 |
 | Cakupan `FinReceipt`, `FinReceiptAllocation` | **Terpenuhi** untuk jalur `SUCCEEDED`, diperluas ke konsumsi nyata atas otorisasi eksplisit (bagian 0) | Bagian 2 |
 
 **Belum terpenuhi**: pembalikan tender (`BLOCKED`, bagian 1.5 — perlu keputusan pemilik repository
@@ -305,7 +320,8 @@ kelak final (bagian 1.6, di luar cakupan task ini).
 
 | Hal | Isi |
 | --- | --- |
-| Peringatan | (1) Pembalikan tender (`TenderStatus = REVERSED`) **sengaja diblokir** — `CK_FinReceipt_TenderRequired` dan `IX_FinReceipt_SourceTenderId` (keduanya terkunci `data-dictionary.md`) berkonflik untuk kasus ini, **MUST** diputuskan pemilik repository sebelum dibangun (bagian 1.5). Setiap tender yang dibalik akan tersimpan sebagai baris `ERROR` yang terlihat, bukan silent failure — tetapi tetap butuh penyelesaian sebelum jalur ini benar-benar dipakai produksi. (2) `FinReceiptAllocation` tidak punya penulis apa pun sampai `BE-FIN-017` dikerjakan — piutang tidak akan pernah berkurang dari penerimaan sampai saat itu |
+| **Pembaruan 23 September 2026** | Konflik constraint pada bagian 1.5 diperbaiki (`CK_FinReceipt_TenderRequired` diberi klausa pengecualian baris pembalik). Jalur `REVERSED` kini terimplementasi penuh — lihat [laporan BE-FIN-017](BE-FIN-017.md) bagian 1 untuk `CreateReversalReceiptAsync` (lokasinya sejak refactor task itu). Migration baru ditulis, belum dieksekusi. Status task dinaikkan menjadi ✅ SELESAI. Baris Peringatan/Masalah di bawah (ditulis 22 September 2026) dipertahankan sebagai riwayat |
+| Peringatan (riwayat, sudah ditutup — lihat Pembaruan di atas) | (1) Pembalikan tender (`TenderStatus = REVERSED`) **sengaja diblokir** — `CK_FinReceipt_TenderRequired` dan `IX_FinReceipt_SourceTenderId` (keduanya terkunci `data-dictionary.md`) berkonflik untuk kasus ini, **MUST** diputuskan pemilik repository sebelum dibangun (bagian 1.5). Setiap tender yang dibalik akan tersimpan sebagai baris `ERROR` yang terlihat, bukan silent failure — tetapi tetap butuh penyelesaian sebelum jalur ini benar-benar dipakai produksi. (2) `FinReceiptAllocation` tidak punya penulis apa pun sampai `BE-FIN-017` dikerjakan — piutang tidak akan pernah berkurang dari penerimaan sampai saat itu |
 | Masalah yang diketahui | (1) Reversal `FinReceipt` `BLOCKED` (bagian 1.5). (2) Mekanisme pelepasan kejadian `HELD_FOR_FINALIZATION` saat tagihan kelak final belum ada task pemilik (bagian 1.6) — sama seperti keterbatasan yang sudah dicatat `BE-FIN-010`/`011` |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` pada task ini |

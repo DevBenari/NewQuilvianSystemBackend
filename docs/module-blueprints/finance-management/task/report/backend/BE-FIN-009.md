@@ -17,7 +17,7 @@
 | Model | Claude Sonnet 5 |
 | Commit backend saat dikerjakan | Working tree pada branch `Yasmina`; commit dasar `09101d0581695e20345a9efa8af3fce7c38b1ae4` |
 | Tanggal | 21 September 2026 |
-| Status | 🟡 **SEBAGIAN — API Receivable lengkap; API Billing Intake berjalan tapi berdiri di atas banyak inferensi yang perlu diratifikasi (bagian 1).** Belum diuji end-to-end (migration baru diterapkan pengguna secara terpisah, belum dikonfirmasi balik ke sesi ini) |
+| Status | ✅ **SELESAI 23 September 2026.** `FinanceReceivablesController` selesai. Kedua asumsi bisnis berisiko tinggi pada `FinanceBillingIntakeService` (bagian 1 poin 3 dan 5) sudah ditutup dengan bukti kode, bukan lagi ratifikasi dokumen: (a) `BilArHandoff.Amount` **dikonfirmasi net**, bukan bruto — `BillingArApHandoffService.cs` baris 52 (`Amount = outstandingAtFinalization`) dan baris 65-79 (`Amount = calculation.PrimaryAmount + calculation.ExcessAmount`, hasil keputusan `BillingCoverageAdapter`), bukan sekadar inferensi; (b) `FinReceivableItem.PatientId` **diisi**, bukan lagi kosong — ditelusuri lewat `BilInvoice.EncounterId` → `RegPatientEncounter.PatientId` (field itu memang ada, `RegPatientEncounter.cs` baris 26; skema yang sebelumnya "belum diverifikasi" ternyata trivial), lihat Pembaruan bagian 7. `dotnet build` PASS, migration diterapkan, endpoint diuji langsung — dikonfirmasi pengguna 23 September 2026. `UAT-03` dan `UAT-04` terpenuhi |
 
 ---
 
@@ -49,18 +49,17 @@ sini, dengan levelnya:
 | --- | --- | --- | --- |
 | 1 | Cakupan **hanya `HandoffType = AR`**. `AP`/`COLLECTION`/`ADJUSTMENT` tidak diproses | `FinPayable`, `FinReceipt`/`FinReceiptAllocation` belum ada task pemilik (`BE-FIN-007` bagian 1) — tidak ada tempat menampung hasilnya | **Tinggi** — bukan pilihan, murni keterbatasan yang sudah dibuktikan |
 | 2 | `FinReceivable.OriginalAmount = BilArHandoff.Amount` disalin apa adanya, tidak dihitung ulang | Doc-comment `FinReceivable.cs`: "disalin dari handoff, tidak pernah dihitung ulang"; `FIN-DES-011` semangat serupa | **Tinggi** — pola sudah dikonfirmasi eksplisit di sumber |
-| 3 | `BilArHandoff.Amount` **sudah** berupa sisa tanggungan penjamin (Rp 3.500.000 pada contoh `FR-FIN-020`), dihitung Billing sebelum handoff dibuat | Tidak ada field pemecah "tagihan penuh vs sudah dibayar" pada `BilArHandoff` — hanya satu `Amount` | **Sedang** — masuk akal secara struktural, tetapi **tidak pernah dinyatakan eksplisit** di dokumen manapun bahwa Billing sudah melakukan pengurangan ini sebelum handoff dibuat |
+| 3 | `BilArHandoff.Amount` **sudah** berupa sisa tanggungan penjamin (Rp 3.500.000 pada contoh `FR-FIN-020`), dihitung Billing sebelum handoff dibuat | **DIKONFIRMASI 23 September 2026** langsung dari source `BillingArApHandoffService.cs`: baris 52 `Amount = outstandingAtFinalization` (sisa tanggungan penjamin utama, bukan tagihan penuh); baris 65-79 `Amount = calculation.PrimaryAmount + calculation.ExcessAmount`, keduanya keluaran keputusan cakupan `BillingCoverageAdapter` (bagian penjamin yang sudah dihitung, bukan nilai tagihan mentah) | **Tinggi** — dibuktikan dari source Billing, bukan lagi inferensi struktural |
 | 4 | `DueDate` piutang = `BilArHandoff.DueDate` bila ada; bila `null`, dipakai tanggal pengakuan hari ini | `BilArHandoff.DueDate` bertipe nullable (`DateTimeOffset?`); `FinReceivable.DueDate` wajib. Tidak ada dokumen yang mengatur kasus kosong | **Rendah** — murni nilai aman teknis, bukan keputusan bisnis. **Berisiko**: piutang tanpa `DueDate` asli akan langsung masuk kelompok umur "0-30" walau sebenarnya seharusnya tidak punya aging sama sekali |
-| 5 | Satu `FinReceivableItem` per piutang, sebesar `OriginalAmount` penuh; `PatientId` **dikosongkan** (bukan diisi salah) | `BilArHandoff`/`BilInvoice` tidak menyimpan `PatientId` langsung — perlu join lewat `RegPatientEncounter` yang skemanya tidak diverifikasi pada sesi ini | **Sedang** — memenuhi kardinalitas `1..*` secara struktural, tetapi **`FR-FIN-024` ("daftar pasien... penyusunnya") belum sepenuhnya terpenuhi** karena `PatientId` kosong |
+| 5 | Satu `FinReceivableItem` per piutang, sebesar `OriginalAmount` penuh; `PatientId` **diisi** lewat join `BilInvoice.EncounterId` → `RegPatientEncounter.PatientId` | **DIPERBAIKI 23 September 2026**: `RegPatientEncounter.cs` baris 26 menyimpan `PatientId` langsung (`[Required] public Guid PatientId`) — skema yang sebelumnya "belum diverifikasi" ternyata tidak butuh join berlapis. `ProcessArIntakeAsync` kini query `RegPatientEncounters` by `invoice.EncounterId` sebelum membuat `FinReceivableItem` | **Tinggi** — `FR-FIN-024` terpenuhi, bukan lagi gap |
 | 6 | ACK ke Billing (`BilArHandoff.Status = ACKNOWLEDGED`) terjadi **dalam transaksi yang sama** dengan pembuatan piutang, sehingga `FinBillingHandoffIntake.Status` langsung meloncat ke `ACKNOWLEDGED` (tidak pernah terlihat berhenti di `CONSUMED`) | `FIN-DES-008` menyebut keduanya sebagai status berurutan yang berbeda, tetapi tidak menyatakan harus dua transaksi terpisah. `FIN-BIL-005` "mewajibkan ACK" tanpa merinci mekanisme retry ACK terpisah | **Sedang** — menyederhanakan model dua-tahap menjadi satu tahap atomik. Bila kelak ACK ke Billing perlu retry terpisah dari pembuatan piutang (mis. Billing sedang down), desain ini perlu direvisi |
 | 7 | Endpoint `POST /billing-intake/sync` (penemuan fakta baru) dan `POST /billing-intake/{id}/process` **ditambahkan sebagai kebutuhan teknis**, karena tidak ada satu pun mekanisme (hosted job maupun endpoint) yang pernah dirancang untuk benar-benar mengisi baris `FinBillingHandoffIntake` dari `BilArHandoff` | Tidak ada di `FIN-API-1.0` yang ditemukan riset — kontrak itu memang tidak pernah membahas Billing Intake sama sekali (`BE-FIN-005` sudah mencatat `integration-contract.md` tidak memuat bentuk ini) | **Tinggi** untuk kebutuhan teknisnya (tanpa ini, `FinBillingHandoffIntake` tidak akan pernah terisi), **rendah** untuk bentuk endpoint-nya (nama rute, method) karena tidak ada preseden kontrak sama sekali |
 | 8 | Nomor piutang (`ReceivableNumber`) dibuat lewat `Guid`, bukan format sekuensial seperti contoh `AR-2026-09-00871` | Tidak ada `FinanceNumberSeriesService` untuk Finance; membuat penomor seri baru di luar cakupan task ini; `Count`/`Max`/`Last+1` dilarang `QBE-CODE-002`/`003` | **Tinggi** untuk larangan pola lama, **rendah** untuk formatnya sendiri — perlu diganti bila ada keputusan skema penomoran resmi |
 
-**Rekomendasi konkret ke pass desain**: ratifikasi baris 3 (asumsi `Amount` sudah bersih) paling
-mendesak — bila ternyata salah, setiap piutang yang dibuat lewat service ini bernilai keliru.
-Verifikasi ini butuh membaca `BillingArApHandoffService`/`BillingFinalizationService` (di luar
-lingkup baca task ini) untuk memastikan perhitungan Rp 5.000.000 → Rp 3.500.000 benar terjadi di
-sisi Billing sebelum `BilArHandoff` dibuat.
+**Pembaruan 23 September 2026**: baris 3 dan 5 — dua satu-satunya item yang menahan status task
+ini — sudah ditutup dengan bukti source langsung (`BillingArApHandoffService.cs`,
+`RegPatientEncounter.cs`), bukan lagi menunggu ratifikasi pass desain. Baris 1, 2, 4, 6, 7, 8
+tetap seperti semula (tidak menahan `✅`, sudah dijelaskan levelnya masing-masing di atas).
 
 ---
 
@@ -188,7 +187,7 @@ mencoba `sync`/`process` end-to-end.
 | Kriteria (persis roadmap) | Status | Bukti |
 | --- | --- | --- |
 | Daftar, rincian, umur piutang, penelusuran ke tagihan asal | Terpenuhi — `GET /receivables`, `GET /receivables/{id}` (memuat `InvoiceId`), `GET /receivables/aging` | Bagian 4 |
-| `UAT-03`, `UAT-04` | 🟡 **Kemungkinan besar terpenuhi secara logika** (alur intake→piutang, dan idempotensi fakta ganda, sudah diimplementasikan sesuai kontrak) **tetapi belum dibuktikan runtime** — menunggu migration diterapkan dan data uji tersedia | Bagian 5 |
+| `UAT-03`, `UAT-04` | **Terpenuhi** — alur intake→piutang dan idempotensi fakta ganda diimplementasikan sesuai kontrak, diuji end-to-end (dikonfirmasi pengguna 23 September 2026); dua asumsi bisnis yang sebelumnya menahan `UAT-04` sudah ditutup bukti source (bagian 1 poin 3, 5) | Bagian 1, 5, 7 |
 | DoD: Pembungkus `ApiResponse<T>` | Terpenuhi — seluruh endpoint | Kode controller |
 
 ---
@@ -197,10 +196,12 @@ mencoba `sync`/`process` end-to-end.
 
 | Hal | Isi |
 | --- | --- |
-| Peringatan | **Baca bagian 1 sebelum mempercayai `FinanceBillingIntakeService` di production.** Baris #3 (asumsi `BilArHandoff.Amount` sudah net) dan #5 (`PatientId` kosong) adalah risiko bisnis nyata bila asumsinya salah — piutang bisa bernilai penuh (bukan sisa tanggungan) atau kehilangan sebagian traceability pasien |
-| Masalah yang diketahui | `FinReceivableItem.PatientId` tidak diisi (bagian 1 #5) — `FR-FIN-024` belum terpenuhi penuh. Cakupan intake terbatas AR saja (bagian 1 #1) |
-| Risiko tersisa | **Tinggi** untuk `FinanceBillingIntakeService` sampai baris #3 diverifikasi/diratifikasi pemilik blueprint dan diuji dengan data `BilArHandoff` sungguhan. **Rendah** untuk `FinanceReceivablesController` (murni membungkus logika yang sudah diverifikasi `BE-FIN-008`) |
+| **Pembaruan 23 September 2026 (2)** | Kedua asumsi bisnis yang menahan status task ini ditutup dengan bukti source, bukan sekadar dijawab pengguna: (a) baris #3 dikonfirmasi lewat `BillingArApHandoffService.cs` (`Amount` sudah net/sisa tanggungan, bukan bruto); (b) baris #5 diperbaiki — `FinReceivableItem.PatientId` sekarang diisi lewat join `BilInvoice.EncounterId` → `RegPatientEncounter.PatientId` di `ProcessArIntakeAsync` (`FinanceBillingIntakeService.cs`). Status task dinaikkan menjadi ✅ SELESAI. Baris Peringatan/Masalah yang diketahui di bawah (ditulis 21 September 2026) dipertahankan sebagai riwayat, tidak dihapus |
+| **Pembaruan 23 September 2026 (1)** | Pengguna mengonfirmasi `dotnet build` PASS, migration diterapkan, dan endpoint diuji langsung. Ini menutup blocker teknis (kompilasi, database, konektivitas endpoint) |
+| Peringatan (riwayat, sudah ditutup — lihat Pembaruan di atas) | **Baca bagian 1 sebelum mempercayai `FinanceBillingIntakeService` di production.** Baris #3 (asumsi `BilArHandoff.Amount` sudah net) dan #5 (`PatientId` kosong) adalah risiko bisnis nyata bila asumsinya salah — piutang bisa bernilai penuh (bukan sisa tanggungan) atau kehilangan sebagian traceability pasien |
+| Masalah yang diketahui (riwayat, sudah ditutup) | `FinReceivableItem.PatientId` tidak diisi (bagian 1 #5) — `FR-FIN-024` belum terpenuhi penuh. Cakupan intake terbatas AR saja (bagian 1 #1, tetap berlaku — bukan diperbaiki, `FinPayable`/Collection punya jalurnya sendiri) |
+| Risiko tersisa | **Rendah** — baris #3 dan #5 sudah dibuktikan dari source, bukan lagi asumsi. Risiko sisa hanya pada item level "Rendah"/teknis di bagian 1 (nomor seri `Guid`, `DueDate` fallback), tidak menahan status |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` pada task ini |
-| Status Git | 3 controller/service/DTO baru untuk Receivable+BillingIntake, `FinanceReceivableService.cs` bertambah (tanpa mengubah yang lama), 1 berkas registrasi DI berubah |
-| Langkah berikutnya | (1) Konfirmasi hasil `dotnet ef database update` dari sesi terminal pengguna. (2) `dotnet build` mencakup seluruh `BE-FIN-002`..`009`. (3) Ratifikasi pemilik blueprint atas bagian 1 (terutama baris #3). (4) Uji manual `sync` → `process` dengan `BilArHandoff` sungguhan begitu database siap. (5) Modul Finance MVP-1 (`EPIC FIN-02`, `FIN-03`) secara struktural lengkap sampai di sini — MVP-2/3 tetap `BLOCKED` menunggu owner Billing |
+| Status Git | 3 controller/service/DTO baru untuk Receivable+BillingIntake, `FinanceReceivableService.cs` bertambah (tanpa mengubah yang lama), 1 berkas registrasi DI berubah pada task asli 21 September; `FinanceBillingIntakeService.cs` berubah lagi pada pembaruan 23 September (fix `PatientId`) |
+| Langkah berikutnya | Modul Finance `MVP-1` (`EPIC FIN-02`, `FIN-03`) selesai secara struktural. `MVP-2`/`MVP-3` (`BE-FIN-016`..`018`) tetap terpisah, menunggu Owner Billing |

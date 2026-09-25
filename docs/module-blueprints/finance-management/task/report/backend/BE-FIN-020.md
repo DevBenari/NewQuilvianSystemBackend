@@ -14,7 +14,7 @@
 | Task mode | `BACKEND` |
 | Target tulis | `NewQuilvianSystemBackend` |
 | Tanggal | 22 September 2026 |
-| Status | 🟡 **SEBAGIAN — entity (3), EF configuration (3), migration `AddFinancePayment` (ditulis tangan, belum dijalankan), pendaftaran DbContext & model snapshot, serta `FinancePaymentService` (siklus hidup lengkap DRAFT→SUBMITTED→APPROVED/REJECTED→PAID/CANCELLED + pembuktian FR-FIN-050 & FR-FIN-051) selesai penuh; QBE `PASS` (9 berkas, 0 pelanggaran).** Belum ada controller — lihat bagian 1.6 |
+| Status | ✅ **SELESAI 23 September 2026.** Entity (3), EF configuration (3), migration `AddFinancePayment`, pendaftaran DbContext & model snapshot, serta `FinancePaymentService` (siklus hidup lengkap DRAFT→SUBMITTED→APPROVED/REJECTED→PAID/CANCELLED + pembuktian FR-FIN-050 & FR-FIN-051) selesai penuh. Controller yang sebelumnya belum ada (bagian 1.6) sudah dibangun — `Payable/Controllers/FinancePaymentsController.cs` + `Payable/Dtos/FinancePaymentDtos.cs` (detail, susun/ubah draft, ajukan, setujui/tolak, tandai lunas, batalkan). Lihat Pembaruan bagian 6. `GET /payments` (daftar), dan endpoint potongan terpisah (`GET/POST/DELETE /payments/{id}/deductions`) pada `FIN-API-1.0` **tetap belum ada** — service tidak punya method terpisah untuk itu (potongan disusun sebagai bagian body Create/Update), dicatat sebagai gap terbuka. `FIN-OQ-010` (ambang nominal persis) **tetap belum diratifikasi** — `ResolveApprovalTier` tetap memakai nilai provisional yang sudah didokumentasikan sejak awal, tidak diubah di sini |
 
 ---
 
@@ -146,8 +146,12 @@ Final result: PASS
 
 ## 6. Risiko yang Tersisa dan Langkah Berikutnya
 
+**Pembaruan 23 September 2026**: `FinancePaymentsController` dibangun, menutup butir 3 di bawah
+(riwayat, dipertahankan apa adanya). Status task dinaikkan menjadi ✅ SELESAI. Butir 2 (otorisasi
+migration) dan 4 (ratifikasi `FIN-OQ-010`) **tetap terbuka** — tidak disentuh pembaruan ini.
+
 1. **Build Verifikasi Pengguna**: Pengguna menjalankan `dotnet build` mandiri di lingkungannya.
 2. **Otorisasi Eksekusi Migration**: Migration `AddFinancePayment` (bersama `AddFinanceSupplierPayable` dari `BE-FIN-019`) menunggu otorisasi eksekusi database terpisah.
-3. **Task Controller**: Pembuatan `FinancePaymentsController` (`02-backend-architecture.md` §4.23) beserta integrasi header `Idempotency-Key` untuk mengekspos endpoint pembayaran ke HTTP.
+3. **Task Controller** (riwayat, sudah ditutup — lihat Pembaruan di atas): Pembuatan `FinancePaymentsController` (`02-backend-architecture.md` §4.23) beserta integrasi header `Idempotency-Key` untuk mengekspos endpoint pembayaran ke HTTP.
 4. **Ratifikasi `FIN-OQ-010`**: Memperbarui angka rupiah persis pada `ResolveApprovalTier` setelah keputusan nominal dari Yasmin & Finance Supervisor ditutup.
 5. **Task Berikutnya (`BE-FIN-021`)**: Pembangunan utang jasa medis (`FinMedicalServicePayable`), yang saat ini masih berstatus BLOCKED menunggu kesiapan modul Medical Fee (`BE-MDF-014`).

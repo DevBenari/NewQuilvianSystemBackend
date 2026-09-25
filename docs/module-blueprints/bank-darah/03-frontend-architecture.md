@@ -2,10 +2,10 @@
 
 | Field | Value |
 | --- | --- |
-| Blueprint ID | `BD-BP-001` · Contract version `v4` — **`approved`** |
-| `last_changed_in` | `v4` |
+| Blueprint ID | `BD-BP-001` · Contract version **`v5` — `approved`** (`Sukmagp` 2026-09-19; `v4` kini `superseded`). **Riwayat:** `v5` `draft` 18 September 2026 (arah disetujui `Sukmagp` 2026-09-18). **Riwayat:** `v4` — `approved` |
+| `last_changed_in` | **`v5`** — bagian 3, `FE-BD-01` dan `FE-BD-02` (sumber data `v5`). Peta menu, aksi per peran, dan penanganan keadaan tidak berubah. **Riwayat:** `v4` |
 | Owner | Pemilik proses BDRS · pemilik proses klinis (pembeda golongan darah) |
-| `approved_by` / `approved_at` | `Sukmagp` / `2026-09-03` |
+| `approved_by` / `approved_at` | `Sukmagp` / `2026-09-19` (`v5`). **Riwayat:** `Sukmagp` / `2026-09-03` (`v4`) |
 | Sumber | `contracts/api-contract.md` · `contracts/permission-audit-matrix.md` · `00-interview-decisions.md` §7 (`FE-BD-001`..`009`) |
 | Frontend SHA | `afbb8ab47a6a309f24cdaf6d72024f0dc1b2c254` cabang `sukmagpV2` |
 
@@ -117,6 +117,11 @@ memuat field yang tidak ada pada response `contracts/api-contract.md`.
 | Tabel | No. order, pasien, unit, komponen, pemenuhan, status | `GET /blood-orders` | `BloodOrder : Read` | Kosong/gagal seperti skema |
 | Tombol "Buat Order" | Buka `FE-BD-02` mode buat | — | `BloodOrder : Create` | Disembunyikan bila tak berhak |
 
+**Sumber data `v5` untuk `FE-BD-01`** (`DEC-BD-058`). Skema di atas tidak berubah; yang berubah adalah
+bahwa `GET /blood-orders` kini sanggup mengisinya dalam **satu** request: saringan Komponen memakai query
+`bloodComponentId`; kolom Komponen dan Diminta/Diberikan membaca `components[]` beserta `totalRequestedQuantity`
+dan `totalIssuedQuantity`. Layar **tidak** menghitung pemenuhan sendiri dan **tidak** meminta detail per baris.
+
 ### `FE-BD-02` Kerja Order Darah
 
 | Wilayah | Isi | Sumber data | Hak akses | Bila kosong/gagal |
@@ -128,6 +133,22 @@ memuat field yang tidak ada pada response `contracts/api-contract.md`.
 
 **`FE-BD-001` (mengikat):** golongan darah **diminta** wajib terlihat jelas berbeda dari golongan darah
 **hasil pemeriksaan**. Bukan kebebasan pengembang.
+
+**Wilayah tambahan `v5` untuk `FE-BD-02`** (`DEC-BD-055` sampai `DEC-BD-057`):
+
+| Wilayah | Isi | Sumber data | Hak akses | Bila kosong/gagal |
+| --- | --- | --- | --- | --- |
+| Form buat — golongan darah diminta | Pilihan wajib: delapan golongan darah + Rhesus, atau "Tidak diketahui". "Tidak diinformasikan" **tidak** ditawarkan | `POST /` · `POST /manual` · `POST /confirm-duplicate` isian `requestedBloodGroup` | `BloodOrder : Create` | Belum dipilih → tombol simpan ditahan; server tetap menjaga `400 VAL-BD-085` |
+| Penahanan order ganda | Pesan server + komponen yang bentrok + alasan tertulis wajib (maks. 500) | `422` `errors.code = "VAL-BD-001"`, `errors.duplicateComponentIds` | `BloodOrder : Create` | Dikenali dari `errors.code`, **bukan** dari kalimat pesan. Lanjutan mengirim ulang isian percobaan yang tertahan **apa adanya**, termasuk golongan darah diminta, tanpa dapat disunting |
+| Golongan darah **diminta** | Nilai dari order | `GET /{id}` → `requestedBloodGroup` / `requestedBloodGroupLabel` | `BloodOrder : Read` | `null` → "Golongan darah diminta tidak tercatat pada order lama." |
+| Golongan darah **hasil pemeriksaan (sah)** | Golongan darah sah pasien, atau penanda hasil bertentangan | `GET /api/v1/health-services/blood-bank-management/blood-group-exams/patient/{patientId}/valid` → `bloodType`, `isConflictHeld`, `isUsableForClinicalDecision`, `message` | `BloodGroupExam : Read` | Tak berhak / gagal → "Hasil pemeriksaan tidak dapat ditampilkan." Belum ada hasil sah → pesan server. Bertentangan → penanda `FE-BD-007`. **Tidak pernah** diisi dari golongan darah diminta, dan sebaliknya |
+| Pilihan alasan pembatalan | Alasan aktif satu kategori | `GET /{id}` → `cancellationReasonCategory`, lalu `GET /master-data/blood-bank-reasons/options?category=<nilai>` | `BloodOrder : Cancel` + `BloodBankReason : Read` | `cancellationReasonCategory` `null` → tombol Batalkan tidak tampil. Daftar kosong → pembatalan tidak dapat dikirim, disertai pesan server |
+
+Kedua blok golongan darah memakai **label berbeda dan nilai terpisah**; tidak ada satu kolom "Golongan
+darah" gabungan. Contoh: order meminta PRC golongan A Positif, sedangkan hasil pemeriksaan sah pasien
+B Positif — layar menulis "Golongan darah diminta: A Positif" dan "Golongan darah hasil pemeriksaan (sah):
+B Positif". Kategori alasan pembatalan **tidak** ditentukan layar dari data dokter atau peran; layar hanya
+memakai nilai dari backend.
 
 ### `FE-BD-04` Daftar Kantong Darah (+ dua daftar kerja)
 

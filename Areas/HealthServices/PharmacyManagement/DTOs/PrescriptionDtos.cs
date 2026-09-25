@@ -60,6 +60,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.DTOs
 
     public class PrescriptionDetailResponse : PrescriptionResponse
     {
+        /// <summary>
+        /// Keadaan finansial resep menurut Billing (PHA-BE-006). Penambahan yang aditif: tidak
+        /// ada field lain yang dihapus maupun berubah arti. Isinya keterangan, bukan kewenangan.
+        /// </summary>
+        public PrescriptionFinancialClearanceResponse? FinancialClearance { get; set; }
+
         public Guid? PaymentSourceId { get; set; }
         public Guid? PatientInsuranceId { get; set; }
         public Guid? InsuranceProviderId { get; set; }
@@ -183,6 +189,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.DTOs
         public string? ClinicalNote { get; set; }
         [MaxLength(1000)]
         public string? DoctorInstruction { get; set; }
+
+        /// <summary>
+        /// Obat non-racikan yang ikut lahir bersama resepnya - <c>ISSUE-DOK-001</c> <c>ISS-03</c>.
+        /// </summary>
+        /// <remarks>
+        /// Opsional dan boleh kosong: resep yang isinya disusun bertahap lewat workspace tetap sah
+        /// dibuat sebagai header saja. Ketika diisi, isinya tersimpan pada transaksi yang sama
+        /// dengan headernya, sehingga tidak pernah ada resep yang headernya terbit tetapi obatnya
+        /// hilang tanpa kabar. Bentuknya sengaja sama persis dengan autosave workspace supaya
+        /// hanya ada satu jalur persistensi isi resep.
+        /// </remarks>
+        public List<AutosavePrescriptionItemRequest> Items { get; set; } = new();
+
+        /// <summary>
+        /// Racikan beserta bahannya yang ikut lahir bersama resepnya - <c>ISSUE-DOK-001</c> <c>ISS-03</c>.
+        /// </summary>
+        public List<AutosavePrescriptionCompoundRequest> Compounds { get; set; } = new();
     }
 
     public class UpdatePrescriptionRequest

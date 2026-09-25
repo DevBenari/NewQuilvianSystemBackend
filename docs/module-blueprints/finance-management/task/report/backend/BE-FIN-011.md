@@ -17,7 +17,7 @@
 | Model | Claude Sonnet 5 |
 | Commit backend saat dikerjakan | Working tree pada branch `Yasmina`; commit dasar `09101d0581695e20345a9efa8af3fce7c38b1ae4` |
 | Tanggal | 21 September 2026 |
-| Status | 🟡 **SEBAGIAN — service dan tiga titik pemanggilan selesai, QBE `PASS` (47 berkas).** `dotnet build` pengguna (22 September 2026) sempat gagal 2 error milik berkas ini (`legalEntityId.Value` pada `Guid` non-nullable) — sudah diperbaiki, menunggu konfirmasi build ulang. `FinanceAccountingOutboxService` selesai penuh sesuai Cakupan literal roadmap. Tiga pemanggil nyata ditambahkan atas otorisasi eksplisit (bagian 0): `FinanceBillingIntakeService.ProcessArIntakeAsync` (`PENGAKUAN-PIUTANG`), `FinanceReceivableService.DecideAdjustmentAsync` approve (`PENYESUAIAN-PIUTANG`), `DecideWriteOffAsync` approve (`PEMUTIHAN-PIUTANG`). Beberapa keterbatasan desain dicatat eksplisit (bagian 1) |
+| Status | ✅ **SELESAI 23 September 2026.** `FinanceAccountingOutboxService` selesai penuh sesuai Cakupan literal roadmap. Tiga pemanggil nyata ditambahkan atas otorisasi eksplisit (bagian 0): `FinanceBillingIntakeService.ProcessArIntakeAsync` (`PENGAKUAN-PIUTANG`), `FinanceReceivableService.DecideAdjustmentAsync` approve (`PENYESUAIAN-PIUTANG`), `DecideWriteOffAsync` approve (`PEMUTIHAN-PIUTANG`). `dotnet build` pengguna (22 September 2026) sempat gagal 2 error milik berkas ini (`legalEntityId.Value` pada `Guid` non-nullable) — sudah diperbaiki, dan build ulang PASS dikonfirmasi pengguna 23 September 2026 (lihat Pembaruan bagian 7). Beberapa keterbatasan desain tetap dicatat eksplisit (bagian 1), tidak menahan status |
 
 ---
 
@@ -238,6 +238,7 @@ Final result: PASS
 
 | Hal | Isi |
 | --- | --- |
+| **Pembaruan 23 September 2026** | Pengguna mengonfirmasi `dotnet build` PASS (termasuk 2 error yang sempat dilaporkan 22 September, sudah diperbaiki dan lulus build ulang), migration `BE-FIN-010` diterapkan, dan endpoint diuji langsung. Status task dinaikkan menjadi ✅ SELESAI |
 | Peringatan | (1) Arah DEBIT/CREDIT koreksi tidak terbawa ke kejadian Accounting (bagian 1.4) — perlu keputusan bersama Accounting. (2) `AccountingOutboxException` jatuh ke `500` generik di `FinanceReceivablesController` (bagian 1.6) |
 | Masalah yang diketahui | Tidak ada yang baru di luar yang sudah dicatat `BE-FIN-005`..`010`. Build pengguna 22 September 2026 juga melaporkan 3 error **di luar cakupan task ini**, milik modul `billing-kasir` (task `BE-BKC-062`/`067` dari sesi lain, belum pernah dikompilasi sebelumnya): `BilConsumerHandoffService.cs(249)` dan `BillingFinancialExceptionService.cs(465, 720)`. Diperbaiki atas otorisasi eksplisit pemilik repository meski di luar wewenang `BE-FIN-*` — didokumentasikan di laporan pemilik aslinya masing-masing ([BE-BKC-067](../../../../billing-kasir/task/report/backend/BE-BKC-067.md), [BE-BKC-062](../../../../billing-kasir/task/report/backend/be-bkc-062-penyelarasan-jalur-deposit-dan-pengecualian-finansial.md)), bukan di sini |
 | Risiko tersisa | **Sedang** — belum bisa diverifikasi end-to-end (menunggu migration `BE-FIN-010` dijalankan); logika transaksi sudah direview manual tapi belum diuji terhadap database sungguhan |

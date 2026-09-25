@@ -43,7 +43,7 @@ decision_source: "00-interview-decisions.md revision 23; RWI-DEC terakhir 151"
 backend_source_sha: df3679c0d5b2f08106702153eb242d3a6cb2929b
 frontend_source_sha: 1ce219b40f8e411f3c4e66975626ab33ae81616a
 task_id_range: BE-RWI-079..BE-RWI-087
-task_id_next_free: BE-RWI-127
+task_id_next_free: BE-RWI-128   # BE-RWI-127 dipakai dokter-rawat-inap 23-09-2026; dikoreksi lewat ISSUE-EPS-002 ISS-EPS-05
 waves: [RI-V2-1, RI-V2-2, RI-V2-3]
 migration_steps: [E1, E2, E3]
 test_policy: "rules/backend/TEST_POLICY.md — backend tidak memelihara project automated test"

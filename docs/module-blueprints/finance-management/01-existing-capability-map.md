@@ -12,6 +12,10 @@ backend_source_sha: 09101d05
 backend_repo: NewQuilvianSystemBackend
 backend_branch: Yasmina
 backend_working_tree: bersih (git status --short kosong saat audit)
+last_impact_scan_sha: d6cdfaf9 (25 September 2026) — lihat bagian 9.3. Bagian 1-9.2 di bawah
+  TIDAK diaudit ulang menyeluruh; hanya klaster yang disebut eksplisit di 9.3 yang diverifikasi
+  ulang pada SHA ini. Field backend_source_sha di atas TETAP baseline audit penuh 20 September
+  2026, tidak diubah.
 frontend_source_sha: abed49b03
 frontend_repo: QuilvianSystemFrontendDev
 input_decisions: docs/module-blueprints/finance-management/00-interview-decisions.md revisi 1
@@ -89,9 +93,9 @@ stale. **Tidak ada build, tidak ada eksekusi test, tidak ada perubahan source ma
 | `FIN-CAP-004` | Sumber tender/pembayaran kasir (`FIN-BIL-007`) | Billing | `Areas/HealthServices/BillingManagement/Billing/Models/BilTender.cs#BilTender@09101d05` — `SettlementId`, `PaymentMethodId`/`PaymentMethodAccountId`, `Amount`, `Status` (5 nilai termasuk `REVERSED`), `KwitansiNumber`, `CashierShiftId`, `ProviderReference`, korelasi, `IdempotencyKey` | `Ready to reuse` | — | Cocok persis dengan seluruh field yang diminta kontrak `FIN-PRD-V2-0.3` bagian 5.1 |
 | `FIN-CAP-005` | Sumber settlement/alokasi (`FIN-COL-02`) | Billing | `Areas/HealthServices/BillingManagement/Billing/Models/BilSettlement.cs`, `BilPaymentAllocation.cs@09101d05`; dikutip dari `docs/module-blueprints/billing-kasir/01-existing-capability-map.md` §1, §21 (approved) | `Ready to reuse` | `BilSettlement` bersifat satu-ke-banyak terhadap invoice (temuan billing-kasir §21) — Finance harus akumulasi lintas settlement, bukan per-settlement | Dikutip dari blueprint lain; tidak diaudit ulang field-per-field pada pass ini |
 | `FIN-CAP-006` | Sumber shift kasir untuk rekonsiliasi (`FIN-CASH-010`) | Billing | `Areas/HealthServices/BillingManagement/Cashier/Models/BilCashierShift.cs@09101d05`; dikutip billing-kasir §1 (`Missing` di sana per 27 Agustus 2026, sudah `Ready to reuse` di §17 dan seterusnya) | `Ready to reuse` (read-only) | Finance hanya boleh baca — larangan ini sudah eksplisit di `FIN-BRD-V2-0.3` aturan #12 | — |
-| `FIN-CAP-007` | Kontrak `BilCollectionHandoff` (`FIN-DEC-005`) | Billing (titik sentuh Finance) | Grep `BilCollectionHandoff\|CollectionHandoff` di seluruh backend — **nol hasil** | `Missing` | Perlu dibangun bersama owner Billing sesuai `FIN-DEC-005` | Belum ada draft desain sama sekali, termasuk di blueprint billing-kasir |
-| `FIN-CAP-008` | Konsumen Finance untuk `BilArHandoff`/`BilApHandoff` (`FIN-SC-001`) | Finance | Grep `BilArHandoff\|BilApHandoff` di `Areas/Corporate` — **nol hasil** | `Missing` | Tidak ada satu pun service/controller Finance yang membaca handoff Billing | Sesuai ekspektasi — memang belum digarap |
-| `FIN-CAP-009` | `FinReceivable`/`FinPayable`/`FinReceipt`/`FinAccountingEventOutbox` (`FIN-SC-002..004`, `007`) | Finance | Grep `FinReceipt\|FinAccountingEventOutbox\|FinReceivable\|FinPayable\|AccountingEventOutbox` di seluruh backend — **nol hasil** | `Missing` | Seluruh entity ini harus dibangun dari nol | Cocok dengan status PROPOSED di `FIN-PRD-V2-0.3` bagian 11 |
+| `FIN-CAP-007` | Kontrak `BilCollectionHandoff` (`FIN-DEC-005`) | Billing (titik sentuh Finance) | ~~Grep `BilCollectionHandoff\|CollectionHandoff` di seluruh backend — nol hasil~~ **USANG, lihat 9.3.** `Areas/HealthServices/BillingManagement/Billing/Models/BilCollectionHandoff.cs#BilCollectionHandoff@d6cdfaf9` — SUDAH DIBANGUN | `Ready to reuse` (diperbarui 25 September 2026) | — | Menutup `blocking_questions.BILLING-COLLECTION-HANDOFF` pada `blueprint-manifest.md` — lihat 9.3 |
+| `FIN-CAP-008` | Konsumen Finance untuk `BilArHandoff`/`BilApHandoff`/`BilCollectionHandoff` (`FIN-SC-001`) | Finance | ~~Grep `BilArHandoff\|BilApHandoff` di `Areas/Corporate` — nol hasil~~ **USANG, lihat 9.3.** `FinanceBillingIntakeService.cs#SyncNewFactsAsync,ProcessAsync@d6cdfaf9` | `Ready to reuse` (diperbarui 25 September 2026) | — | — |
+| `FIN-CAP-009` | `FinReceivable`/`FinPayable`/`FinReceipt`/`FinAccountingEventOutbox` (`FIN-SC-002..004`, `007`) | Finance | ~~Grep — nol hasil~~ **USANG, lihat 9.3.** Seluruhnya ADA di `d6cdfaf9`: `Collection/Models/FinReceipt.cs`, `Receivable/Models/FinReceivable.cs`, `Payable/Models/FinSupplierPayable.cs`/`FinMedicalServicePayable.cs`, `AccountingIntegration/Models/FinAccountingEventOutbox.cs` | `Ready to reuse` (diperbarui 25 September 2026) | — | Cakupan mendalam per entity BELUM diaudit pass ini — lihat batas 9.3 |
 | `FIN-CAP-010` | Master kategori Petty Cash (`FIN-SC-006`, `FIN-CASH-004`) | Finance | `Areas/Corporate/FinanceManagement/MasterData/Models/MstPettyCashCategory.cs#MstPettyCashCategory@09101d05` (`CategoryCode`, `CategoryName`, `Description`, `IsActive`); controller `Areas/Corporate/FinanceManagement/MasterData/Controllers/PettyCashCategoriesController.cs` — route ganda `api/v1/corporate/finance-management/master-data/petty-cash-categories` (kanonik) dan `api/v1/health-services/billing-management/master-data/petty-cash-categories` (alias kompatibilitas), `[Tags("Corporate / Finance Management / Master Data / Petty Cash Category")]` | `Ready to reuse` | — | Base path kanonik memakai tanda hubung `finance-management`, BUKAN `financemanagement` seperti tertulis di `FIN-PRD-V2-0.3` §9.2 — dokumen owner perlu dikoreksi saat dipakai acuan desain |
 | `FIN-CAP-011` | Budget/anggaran Petty Cash per periode (`FIN-SC-005`, `FIN-CASH-005/006`) | Finance | `Areas/Corporate/FinanceManagement/PettyCash/Models/FinPettyCashBudget.cs#FinPettyCashBudget@09101d05` — `PoolCode`, `PeriodStart`/`PeriodEnd`, `BudgetAmount`, `CurrentBalance`, `Status` (`DRAFT`/`ACTIVE`/`CLOSED`, plus legacy `ACTIVE_OLD`/`INACTIVE`), `SupersededByBudgetId`, `RowVersion` | `Ready to reuse` | — | Keputusan bisnis di balik model ini (`PC-DEC-016..027`) ada di blueprint billing-kasir, bukan di sini — lihat `FIN-CQ-01` |
 | `FIN-CAP-012` | Ledger mutasi Petty Cash (`FIN-SC-005`, `FIN-CASH-007`) | Finance | `Areas/Corporate/FinanceManagement/PettyCash/Models/FinPettyCashBudgetMovement.cs#FinPettyCashBudgetMovement@09101d05` — `MovementType` (`TOP_UP`/`DISBURSEMENT`/`ADJUSTMENT`/`RETURN`/`REVERSAL`/`CARRY_FORWARD_OUT`/`CARRY_FORWARD_IN`), `BalanceBefore`/`BalanceAfter`, `VoucherId` opsional, `FundingSourceType` (`TRANSFER`/`CASH`, hanya untuk `TOP_UP`), `IdempotencyKey`, `CorrelationId` | `Ready to reuse` | `FundingSourceType`/`TransferReference` belum menunjuk akun bank/kas sumber spesifik — persis gap yang dicatat `FIN-ACC-XMOD-V2-0.3` §9.2 untuk auto-posting | Dasar langsung publikasi kejadian `PETTY-CASH-*` ke Accounting (`FIN-DEC-002`) |
@@ -104,6 +108,10 @@ stale. **Tidak ada build, tidak ada eksekusi test, tidak ada perubahan source ma
 | `FIN-CAP-019` | Master referensi Accounting (COA/EventType/PostingRule/Period/Journal) | Accounting | Dikutip dari `docs/module-blueprints/accounting/01-existing-capability-map.md` dan `blueprint-manifest.md` (approved, revisi 11) — TIDAK diaudit ulang field-per-field karena `FIN-OOS-002` | `Ready to reuse` (sebagai rujukan baca) | — | Audit internal Accounting adalah wewenang blueprint accounting, bukan blueprint ini |
 | `FIN-CAP-020` | Aturan **perhitungan** fee dokter | Medical Fee (belum ada) | `Areas/HealthServices/MasterData/Models/MstDoctorServiceRule.cs@09101d05` ADA, **tetapi isinya bukan aturan perhitungan fee** — 20+ field seluruhnya tentang kelayakan layanan (`IsAllowWalkIn`, `IsAllowAppointment`, `IsNeedReferral`, `DailyQuotaLimit`, `PriorityLevel`), dan enum `DoctorServiceRuleType` berisi jenis layanan (`GeneralService`, `Consultation`, `Procedure`, `Telemedicine`), bukan jenis perhitungan. **Nol field nominal, persentase, atau basis perhitungan** | `Conflict` | Nama entity di source sama persis dengan yang disebut `FIN-PRD-V2-0.3` bagian 8, tetapi maknanya berbeda total | **Dikoreksi 20 September 2026.** Pencatatan awal pass desain keliru menandainya `Ready to reuse` sebagai aturan fee. Lihat bagian 9.2 |
 | `FIN-CAP-021` | Hasil fee dokter yang sudah disetujui (`DoctorServiceFee`) dan modul MedicalFeeManagement | Medical Fee | Pencarian `class DoctorServiceFee` dan folder `*MedicalFee*` di seluruh `Areas` — **nol hasil** pada `09101d05` | `Missing` | Seluruh modul Medical Fee belum ada; hanya master aturannya yang ada (`FIN-CAP-020`) | **Ketergantungan eksternal keras.** `FinDoctorPayable` memakai `SourceDoctorServiceFeeId` sebagai kunci idempotensi, sehingga rumpun utang dokter TIDAK DAPAT dijalankan sampai Medical Fee dibangun modul lain. Ini temuan pass desain 20 September 2026 |
+| `FIN-CAP-022` | Deposit pasien — akun dan mutasinya (`FIN-DEC-040`/`041`, gerbang G6) | Billing (titik sentuh Finance) | `Areas/HealthServices/BillingManagement/Billing/Models/BilDepositAccount.cs#BilDepositAccount@d6cdfaf9` (`EncounterId`, `AvailableBalance`, status `ACTIVE`/`CLOSED`); `BilDepositMovement.cs#BilDepositMovement@d6cdfaf9` — `MovementType` (`TOP_UP`/`ALLOCATION`/`RELEASE`/`REVERSAL`), `IdempotencyKey`, `CorrelationId`/`CausationId`, `ReversesMovementId`, `CashierShiftId` | `Ready to reuse` (read-only) | — | Ditemukan lewat impact scan 25 September 2026, dipicu koreksi `FIN-DEC-032`/`033`. TIDAK ada di `Repositories/ApplicationDbContext.cs` sebelum baris 604-605 — sudah terdaftar (`DbSet<BilDepositAccount>`, `DbSet<BilDepositMovement>`) |
+| `FIN-CAP-023` | Kelebihan bayar pasien — pengakuan dan pengembalian (`FIN-DEC-042`/`041`, gerbang G6) | Billing (titik sentuh Finance) | `BilRefundableCredit.cs#BilRefundableCredit@d6cdfaf9` — `SourceType` (`ALLOCATION_EXCESS`/`SETTLEMENT`/`REFERRED_OUTPATIENT_ADMIN`), `OriginalAmount`/`AvailableAmount`, status `AVAILABLE`/`EXHAUSTED`; `BilRefundCase.cs#BilRefundCase@d6cdfaf9` — `RefundCategory` (`"BILLING"`/`"DEPOSITO"`), siklus `SUBMITTED→APPROVED→PARTIALLY_EXECUTED→EXECUTED`/`REJECTED`, `IdempotencyKey` | `Ready to reuse` (read-only) | `FIN-DEC-041` SENGAJA hanya memakai irisan `SourceType = ALLOCATION_EXCESS`; `SourceType SETTLEMENT`/`REFERRED_OUTPATIENT_ADMIN` belum digali lawan jurnalnya — `FIN-OQ-018` | Ditemukan lewat impact scan 25 September 2026 |
+| `FIN-CAP-024` | Selisih kas shift kasir yang sudah disahkan (`FIN-DEC-043`, gerbang G6) | Billing (titik sentuh Finance) | `Areas/HealthServices/BillingManagement/Cashier/Models/BilCashVarianceReview.cs#BilCashVarianceReview@d6cdfaf9` — `ShiftId`, `ReviewerId`, `Variance`, `Resolution`, `Reason`, `ReviewedAt`; dibuat `CashierShiftService.cs` baris 613 saat `BilCashierShift.Status` diset `REVIEWED` | `Ready to reuse` (read-only) | — | **Lebih presisi dari yang dicatat `FIN-DEC-043`:** `SourceTransactionId` kejadian `SELISIH-KAS-SHIFT` sebaiknya memakai `BilCashVarianceReview.Id`, BUKAN `BilCashierShift.Id` — baris inilah yang benar-benar merupakan fakta "selisih disahkan", lengkap dengan `Reason`/`Resolution`/`ReviewerId`. Perlu dikonfirmasi ulang saat `/design-business-module`, bukan mengubah keputusan bisnisnya |
+| `FIN-CAP-025` | Layanan intake Billing→Finance yang sudah berjalan (`FIN-SC-001`, dasar `FIN-DEC-030`..`044`) | Finance | `Areas/Corporate/FinanceManagement/BillingIntake/Services/FinanceBillingIntakeService.cs#SyncNewFactsAsync,ProcessAsync@d6cdfaf9` — menarik `BilCollectionHandoff` berstatus `CREATED` (baris 138-140), membuat `FinReceipt` per handoff (baris 359-381), diberi wewenang eksplisit 22 September 2026 (`BE-FIN-016`) | `Ready to reuse` | `RequiresFinalization`/kode `EventTypeCode` yang dipilih (`PENERIMAAN-KASIR` vs kode baru `PENERIMAAN-UANG-MUKA`) BELUM disesuaikan dengan `FIN-DEC-030` — ini pekerjaan `/design-business-module`, bukan gap kemampuan | Pola sync/poll ini adalah titik yang MUST diubah saat `FIN-DEC-030` diimplementasikan: `SourceInvoiceStatus` pada `BilCollectionHandoff` (field yang sudah ada) adalah sumber kebenaran untuk memilih kode kejadian yang benar |
 
 ## 4. Kontrak backend as-is — Petty Cash (satu-satunya rumpun Finance yang sudah dibangun)
 
@@ -274,12 +282,79 @@ Tiga akibat yang MUST diperhatikan:
 
 Temuan ini diteruskan ke owner sebagai bahan modul Medical Fee, bukan sebagai pekerjaan Finance.
 
+## 9.3 Impact scan lanjutan — 25 September 2026
+
+**Pemicu:** backend SHA bergerak `09101d05` → `d6cdfaf9` (branch `Yasmina` tetap sama). Pass
+`/design-business-module` yang mengikuti Amendment pass kejadian keuangan menemukan drift ini
+secara tidak sengaja saat memeriksa dasar `FIN-DEC-032`/`033`, lalu owner meminta verifikasi
+formal lewat `trace-existing-capabilities` sebelum blocker `BILLING-COLLECTION-HANDOFF` ditutup.
+
+**Batas audit pass ini** (BUKAN audit penuh ulang seluruh peta): klaster `External Integration`
+titik sentuh `BilCollectionHandoff`, dan tiga entity Billing baru yang jadi dasar `FIN-DEC-040`
+sampai `FIN-DEC-044` (deposit, kelebihan bayar, selisih kas shift). Rumpun AR/AP/Payable Finance
+yang lain (`FinReceivable`, `FinSupplierPayable`, `FinMedicalServicePayable`, `FinPayment`, dsb.)
+TERKONFIRMASI ADA (lihat `git diff --stat 09101d05..d6cdfaf9 -- Areas/Corporate/FinanceManagement/`
+— 59 berkas berubah, 9062 baris ditambahkan) tetapi TIDAK diaudit field-per-field pada pass ini,
+karena di luar scope amendment yang sedang berjalan. Butir ini dicatat sebagai audit yang masih
+harus dilakukan sebelum peta ini dipakai sebagai acuan lengkap AR/AP.
+
+### Temuan utama
+
+1. **`blocking_questions.BILLING-COLLECTION-HANDOFF` pada `blueprint-manifest.md` GUGUR.**
+   `BilCollectionHandoff` bukan sekadar ada di database — ia sudah **dikonsumsi penuh** oleh
+   `FinanceBillingIntakeService` (`SyncNewFactsAsync`/`ProcessAsync`, wewenang `BE-FIN-016`
+   22 September 2026) yang membuat `FinReceipt` dari setiap handoff berstatus `CREATED`.
+   Bentuknya PERSIS memenuhi permintaan `FIN-DEC-005`: tabel handoff persisted, pola sama dengan
+   `BilArHandoff`/`BilApHandoff`, dikunci `TenderId` (lewat `HandoffKey` deterministik). Field
+   `SourceInvoiceStatus` yang sudah ada di dalamnya adalah persis sumber kebenaran yang
+   dibutuhkan untuk memilih `PENERIMAAN-UANG-MUKA` vs `PENERIMAAN-KASIR` (`FIN-DEC-030`).
+2. **`FIN-CAP-007`, `008`, `009` yang dulu `Missing` sekarang `Ready to reuse`.** Rumpun intake
+   Billing→Finance sudah berjalan ujung ke ujung sampai `FinReceipt`, bukan lagi rencana kosong.
+   Diagram trace journey di bagian 6 dokumen ini (`BilCollectionHandoff MISSING → ...`) **sudah
+   usang** dan perlu digambar ulang saat `/design-business-module` berikutnya — tidak digambar
+   ulang di sini karena itu keluaran desain, bukan keluaran audit.
+3. **Tiga entity baru untuk gerbang G6 ditemukan dan diverifikasi** (`FIN-CAP-022`..`024`):
+   deposit pasien, kelebihan bayar, dan selisih kas shift — seluruhnya `Ready to reuse` sebagai
+   sumber baca, TIDAK PERLU handoff baru dari Billing. Satu koreksi presisi ditemukan:
+   `SELISIH-KAS-SHIFT` sebaiknya memakai `BilCashVarianceReview.Id` (bukan `BilCashierShift.Id`)
+   sebagai `SourceTransactionId`, karena baris itulah yang membawa `Reason`/`Resolution`/
+   `ReviewerId` — bukan perubahan keputusan bisnis `FIN-DEC-043`, hanya kejelasan bukti untuk
+   desain berikutnya.
+4. **`FIN-CAP-018` (endpoint penerima Accounting Event) TIDAK BERUBAH — tetap `Missing`.**
+   Diverifikasi ulang langsung: sepuluh controller `Areas/Corporate/AccountingManagement/**`
+   pada `d6cdfaf9` seluruhnya route `api/v1/corporate/accounting/...` yang sudah ada sebelumnya
+   (period, ledger, journal, COA, event-type, posting-rule, reconciliation, recurring-journal,
+   year-end-closing) — tidak satu pun cocok pola penerima kejadian. Konsisten dengan pengakuan
+   Rizki sendiri di gerbang G1 ("belum ada kodenya").
+
+### Fact tambahan (terverifikasi langsung, bukan dari dokumen)
+
+- `Repositories/ApplicationDbContext.cs` baris 604-611 mendaftarkan `DbSet<BilDepositAccount>`,
+  `DbSet<BilDepositMovement>`, `DbSet<BilRefundableCredit>`, `DbSet<BilRefundCase>`,
+  `DbSet<BilRefundLine>` — semuanya sudah bisa dibaca lewat `ApplicationDbContext` biasa.
+- `Repositories/ApplicationDbContext.cs` baris 623 mendaftarkan `DbSet<BilCashVarianceReview>`.
+- `git diff --stat 09101d05..d6cdfaf9` untuk `BilDepositAccount.cs`/`BilDepositMovement.cs`/
+  `BilCashierShift.cs` **kosong** — ketiganya sudah ada sejak SEBELUM `09101d05`, hanya belum
+  masuk boundary audit capability map yang pertama (di luar `FIN-SC-001`..`007` versi awal).
+  `BilCollectionHandoff.cs` (91 baris) dan penyesuaian kecil `BilRefundCase.cs`/
+  `BilRefundableCredit.cs` (7 baris) BENAR-BENAR baru sejak `09101d05`.
+
+### Yang TIDAK ditutup pass ini
+
+- Audit field-per-field rumpun AR/AP/Payable Finance yang sudah dibangun (`FinReceivable`,
+  `FinSupplierPayable`, dst.) — di luar boundary amendment saat ini, direkomendasikan sebagai
+  pass `trace-existing-capabilities` terpisah sebelum blueprint dipakai acuan penuh lagi.
+- Update diagram trace journey bagian 6 dan ringkasan eksekutif bagian 2 — keduanya masih
+  mencerminkan keadaan `09101d05` dan sengaja dibiarkan sebagai jejak sejarah; pembaca MUST
+  membaca 9.3 sebagai koreksi yang berlaku, bukan menganggap bagian 2/6 terkini.
+
 ## 10. Staleness dan impact-scan trigger
 
 Peta ini **stale** dan wajib impact-scan ulang (terbatas pada bagian yang relevan) bila salah
 satu terjadi:
 
-- Backend SHA `NewQuilvianSystemBackend`/`Yasmina` bergerak dari `09101d05`.
+- Backend SHA `NewQuilvianSystemBackend`/`Yasmina` bergerak dari `d6cdfaf9` (SHA impact scan
+  terakhir, bagian 9.3) — bukan lagi `09101d05`.
 - Frontend SHA `QuilvianSystemFrontendDev` bergerak dari `abed49b03`.
 - `docs/module-blueprints/billing-kasir/blueprint-manifest.md` menaikkan `backend_commit_sha`
   di atas titik yang sudah diverifikasi pass ini (audit ulang `git diff` terhadap folder
@@ -287,6 +362,8 @@ satu terjadi:
   diasumsikan tetap kosong).
 - `docs/module-blueprints/accounting/blueprint-manifest.md` mencatat endpoint Accounting Event
   baru dibangun (ubah status `FIN-CAP-018` dari `Missing`).
+- Rumpun AR/AP/Payable Finance (`FinReceivable`, `FinSupplierPayable`, dst.) dipakai sebagai
+  acuan desain — audit field-per-field belum dilakukan, lihat "Yang TIDAK ditutup" pada 9.3.
 
 ## 11. Handoff
 
