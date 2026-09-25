@@ -4566,7 +4566,7 @@ namespace QuilvianSystemBackend.Migrations
 
                             t.HasCheckConstraint("CK_FinReceipt_Status", "\"Status\" IN ('RECEIVED','ALLOCATED','RECONCILED','REVERSED')");
 
-                            t.HasCheckConstraint("CK_FinReceipt_TenderRequired", "\"SourceType\" <> 'BILLING_TENDER' OR \"SourceTenderId\" IS NOT NULL");
+                            t.HasCheckConstraint("CK_FinReceipt_TenderRequired", "\"SourceType\" <> 'BILLING_TENDER' OR \"SourceTenderId\" IS NOT NULL OR \"ReversalOfReceiptId\" IS NOT NULL");
 
                             t.HasCheckConstraint("CK_FinReceipt_Unallocated", "\"UnallocatedAmount\" >= 0");
                         });
@@ -58588,6 +58588,10 @@ namespace QuilvianSystemBackend.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
 
+                    b.Property<string>("DoctorDiscountMemoFile")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<Guid>("InvoiceId")
                         .HasColumnType("uuid");
 
@@ -58865,6 +58869,133 @@ namespace QuilvianSystemBackend.Migrations
                             t.HasCheckConstraint("CK_BilHandoffAdjustment_ExactlyOneSource", "NOT (\"SourceAdjustmentId\" IS NOT NULL AND \"SourceWriteOffCaseId\" IS NOT NULL)");
 
                             t.HasCheckConstraint("CK_BilHandoffAdjustment_ExactlyOneTarget", "((\"ArHandoffId\" IS NOT NULL AND \"ApHandoffId\" IS NULL) OR (\"ArHandoffId\" IS NULL AND \"ApHandoffId\" IS NOT NULL))");
+                        });
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models.BilInpatientClearanceHandoff", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("AcknowledgedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CausationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ClearanceStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("CorrelationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset>("EffectiveAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("EncounterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("FinancialOutcome")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<long>("FinancialVersion")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("InvoiceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal>("OutstandingBalance")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("ReasonCode")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("RevocationReason")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<Guid>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("CREATED");
+
+                    b.Property<decimal>("TotalPaidOrAllocated")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("TotalPatientResponsibility")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClearanceStatus")
+                        .HasDatabaseName("IX_BilInpatientClearanceHandoff_ClearanceStatus");
+
+                    b.HasIndex("InvoiceId")
+                        .HasDatabaseName("IX_BilInpatientClearanceHandoff_Invoice");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("IX_BilInpatientClearanceHandoff_Status");
+
+                    b.HasIndex("EncounterId", "FinancialVersion")
+                        .IsUnique()
+                        .HasDatabaseName("IX_BilInpatientClearanceHandoff_Encounter_Version");
+
+                    b.ToTable("BilInpatientClearanceHandoff", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_BilInpatientClearanceHandoff_ClearanceStatus", "\"ClearanceStatus\" IN ('PENDING', 'BLOCKED', 'CLEARED', 'REVOKED')");
+
+                            t.HasCheckConstraint("CK_BilInpatientClearanceHandoff_FinancialOutcome", "\"FinancialOutcome\" IS NULL OR \"FinancialOutcome\" IN ('FULLY_PAID', 'INSURANCE_GUARANTEED', 'SETTLED_WITH_DEPOSIT', 'DISCHARGED_WITH_AR')");
+
+                            t.HasCheckConstraint("CK_BilInpatientClearanceHandoff_FinancialVersion", "\"FinancialVersion\" > 0");
+
+                            t.HasCheckConstraint("CK_BilInpatientClearanceHandoff_ReasonCode", "\"ReasonCode\" IN ('INVOICE_SETTLED', 'GUARANTOR_APPROVED', 'DISCHARGE_ORDER_INITIATED', 'LATE_CHARGE_POSTED', 'PAYMENT_REVERSED', 'CORRECTION_APPLIED')");
+
+                            t.HasCheckConstraint("CK_BilInpatientClearanceHandoff_Status", "\"Status\" IN ('CREATED', 'ACKNOWLEDGED')");
                         });
                 });
 
@@ -59809,7 +59940,13 @@ namespace QuilvianSystemBackend.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
-                    b.Property<Guid>("RefundableCreditId")
+                    b.Property<string>("RefundCategory")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("BILLING");
+
+                    b.Property<Guid?>("RefundableCreditId")
                         .HasColumnType("uuid");
 
                     b.Property<decimal>("RequestedAmount")
@@ -59822,6 +59959,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<Guid>("RowVersion")
                         .IsConcurrencyToken()
                         .HasColumnType("uuid");
+
+                    b.Property<string>("SelectedBillingItemIdsJson")
+                        .HasColumnType("text");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -60876,11 +61016,22 @@ namespace QuilvianSystemBackend.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
+                    b.Property<string>("CalculationType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("FLAT");
+
                     b.Property<Guid>("CancelBy")
                         .HasColumnType("uuid");
 
                     b.Property<DateTime?>("CancelDateTime")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal?>("CapAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -60938,6 +61089,10 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<bool>("OncePerPatientLocalDay")
                         .HasColumnType("boolean");
 
+                    b.Property<decimal?>("Percentage")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
+
                     b.Property<int>("ReplacementPriority")
                         .HasColumnType("integer");
 
@@ -60964,6 +61119,8 @@ namespace QuilvianSystemBackend.Migrations
                         {
                             t.HasCheckConstraint("CK_MstAdministrationFeePolicy_Amount", "\"Amount\" >= 0");
 
+                            t.HasCheckConstraint("CK_MstAdministrationFeePolicy_CalculationType", "\"CalculationType\" IN ('FLAT', 'PERCENTAGE_WITH_CAP')");
+
                             t.HasCheckConstraint("CK_MstAdministrationFeePolicy_EffectivePeriod", "\"EffectiveTo\" IS NULL OR \"EffectiveTo\" > \"EffectiveFrom\"");
 
                             t.HasCheckConstraint("CK_MstAdministrationFeePolicy_NotDiscountable", "\"Discountable\" = false");
@@ -60974,6 +61131,7 @@ namespace QuilvianSystemBackend.Migrations
                         {
                             Id = new Guid("7e49ba03-b808-4cff-8e71-735ec8d8b801"),
                             Amount = 0m,
+                            CalculationType = "FLAT",
                             CancelBy = new Guid("00000000-0000-0000-0000-000000000000"),
                             Code = "ADM-RAJAL-DRAFT",
                             Coverable = false,
@@ -60996,6 +61154,7 @@ namespace QuilvianSystemBackend.Migrations
                         {
                             Id = new Guid("7e49ba03-b808-4cff-8e71-735ec8d8b802"),
                             Amount = 0m,
+                            CalculationType = "FLAT",
                             CancelBy = new Guid("00000000-0000-0000-0000-000000000000"),
                             Code = "ADM-IGD-DRAFT",
                             Coverable = false,
@@ -61018,6 +61177,7 @@ namespace QuilvianSystemBackend.Migrations
                         {
                             Id = new Guid("7e49ba03-b808-4cff-8e71-735ec8d8b803"),
                             Amount = 0m,
+                            CalculationType = "FLAT",
                             CancelBy = new Guid("00000000-0000-0000-0000-000000000000"),
                             Code = "ADM-OTC-DRAFT",
                             Coverable = false,
@@ -61040,6 +61200,7 @@ namespace QuilvianSystemBackend.Migrations
                         {
                             Id = new Guid("7e49ba03-b808-4cff-8e71-735ec8d8b804"),
                             Amount = 0m,
+                            CalculationType = "FLAT",
                             CancelBy = new Guid("00000000-0000-0000-0000-000000000000"),
                             Code = "ADM-RANAP-DRAFT",
                             Coverable = false,
@@ -61054,6 +61215,30 @@ namespace QuilvianSystemBackend.Migrations
                             IsDelete = false,
                             Name = "Draft biaya administrasi rawat inap",
                             OncePerPatientLocalDay = false,
+                            ReplacementPriority = 100,
+                            ServiceType = "RANAP",
+                            UpdateBy = new Guid("00000000-0000-0000-0000-000000000000")
+                        },
+                        new
+                        {
+                            Id = new Guid("7e49ba03-b808-4cff-8e71-735ec8d8b805"),
+                            Amount = 0m,
+                            CalculationType = "PERCENTAGE_WITH_CAP",
+                            CancelBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            CapAmount = 6000000.00m,
+                            Code = "ADM-RANAP-01",
+                            Coverable = false,
+                            CreateBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            CreateDateTime = new DateTime(2026, 9, 24, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DeleteBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            Discountable = false,
+                            EffectiveFrom = new DateTimeOffset(new DateTime(2026, 9, 24, 0, 0, 0, 0, DateTimeKind.Unspecified), new TimeSpan(0, 0, 0, 0, 0)),
+                            IsActive = true,
+                            IsCancel = false,
+                            IsDelete = false,
+                            Name = "Biaya Administrasi Rawat Inap (7% Cap Rp6.000.000)",
+                            OncePerPatientLocalDay = false,
+                            Percentage = 7.00m,
                             ReplacementPriority = 100,
                             ServiceType = "RANAP",
                             UpdateBy = new Guid("00000000-0000-0000-0000-000000000000")
@@ -62238,6 +62423,16 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.Property<DateTimeOffset?>("CompletedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("ConfirmedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ConfirmedByName")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<Guid?>("ConfirmedByUserId")
+                        .HasColumnType("uuid");
 
                     b.Property<Guid>("CreateBy")
                         .HasColumnType("uuid");
@@ -112029,6 +112224,17 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("ArHandoff");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models.BilInpatientClearanceHandoff", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models.BilInvoice", "Invoice")
+                        .WithMany()
+                        .HasForeignKey("InvoiceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Invoice");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models.BilInvoiceItem", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstTariffCategory", "Category")
@@ -112165,8 +112371,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models.BilRefundableCredit", "RefundableCredit")
                         .WithMany()
                         .HasForeignKey("RefundableCreditId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Invoice");
 

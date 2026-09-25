@@ -470,3 +470,54 @@ Surat clearance resep **tidak** memuat satu pun kolom klinis — tidak ada nama 
 maupun aturan pakai. Batas ini ditegakkan pada bentuk tabelnya, bukan pada aturan logging saja.
 
 Trace `BKC-DEC-106`–`109`, `BKC-DES-036`–`041`.
+
+---
+
+## Amendment 24 September 2026 — Kewenangan Integrasi Rawat Inap ↔ Billing Management
+
+`last_changed_in: BIL-PERMISSION-1.2` · status **active** · input `BKC-DEC-112`–`122`, `BKC-DES-042`–`050`.
+
+### Butir Hak Akses Baru
+
+Satu Resource baru, `BillingInpatient` (`HEALTH_SERVICE_BILLING_MANAGEMENT_INPATIENT`), untuk mengontrol integrasi data rawat inap dan otorisasi pemulangan finansial pasien.
+
+| Peran Rumah Sakit | `Create` | `Read` | `Clearance` | `ValidateDeposit` | `Acknowledge` | `ReadLatest` | Keterangan & Batas Kewenangan |
+| --- | :---: | :---: | :---: | :---: | :---: | :---: | --- |
+| Kasir Utama / Petugas Billing | Ya | Ya | Ya | Ya | Tidak | Ya | Memproses beban sewa kamar, evaluasi clearance, validasi deposit tindakan; tidak mengakui surat atas nama bangsal |
+| Perawat Bangsal / Nurse Station | Tidak | Ya* | Tidak | Ya | Ya | Ya | Melihat indikator kepulangan & kendala blocker (*field nominal finansial rupiah disembunyikan otomatis jika tanpa hak kasir); mengakui tanda terima surat clearance |
+| Finance Operations | Tidak | Ya | Tidak | Ya | Tidak | Ya | Rekonsiliasi piutang & deposit rawat inap |
+| Administrator Sistem | Ya | Ya | Ya | Ya | Ya | Ya | Pemulihan operasional dan audit kepatuhan |
+
+*Catatan Perlindungan Privasi Finansial:*
+Pada endpoint `GET /invoices/encounter/{encounterId}/inpatient-summary`, jika pemanggil tidak memiliki hak finansial kasir (`BillingInvoice:Read` / `BillingSettlement:Read` / `Financial`), sistem secara otomatis mengosongkan (`null`) rincian nominal `depositRequired`, `depositBalance`, `depositShortfall`, `totalCharges`, dan `outstanding`. Perawat bangsal hanya melihat `financialClearanceStatus`, `canDischarge`, dan `blockerReasons`.
+
+### Audit Log
+
+| Peristiwa | Kategori | Isi Payload | Dicatat Logger |
+| --- | --- | --- | :---: |
+| Evaluasi / Re-evaluasi Clearance Ranap | `HealthServices.BillingManagement.Billing.InpatientClearance` | `EncounterId`, `InvoiceId`, `ClearanceStatus`, `FinancialVersion`, `ReasonCode`, `ActorUserId` | Ya |
+| Pengakuan Surat Handoff Ranap | `HealthServices.BillingManagement.Billing.InpatientClearance` | `HandoffId`, `EncounterId`, `ClearanceStatus`, `ActorUserId`, `AcknowledgedAt` | Ya |
+| Validasi Deposit Tindakan Besar | `HealthServices.BillingManagement.Billing.InpatientClearance` | `EncounterId`, `EstimatedCost`, `PatientExcess`, `IsSufficient` | Ya (Info) |
+| Inquiry Summary Ranap | — | Konvensi: pembacaan GET tidak dicatat | Tidak |
+
+Kolom Sensitif: Payload audit log **MUST NOT** memuat nama lengkap pasien, NIK, nomor rekam medis, maupun rincian obat/tindakan klinis.
+
+Trace `BKC-DEC-112`–`122`, `BKC-DES-042`–`050`, `BIL-API-1.4`, `BIL-PERMISSION-1.2`.
+
+
+
+# Amendment 24 September 2026 — Revisi UI Billing (Revisi 1.6, `BIL-PERMISSION-1.3`)
+
+Status: `draft`. **Nol butir `[AccessPermission]` baru.** Seluruh endpoint yang dipakai
+(`BUI-DEC-001`–`015`) sudah ada beserta hak aksesnya masing-masing — lihat
+`contracts/api-contract.md` amendment revisi 1.6, kolom "Hak akses". Amendment ini tidak
+menambah resource baru maupun action baru.
+
+Satu klarifikasi yang MUST ditegaskan saat implementasi: tombol Refund/Adjustment/Write-Off
+yang berpindah lokasi tampilan (`BUI-DEC-013`, dari Menu Pembayaran ke Riwayat Pembayaran)
+**tetap memakai butir akses yang sama persis** yang sudah melekat pada aksi itu di lokasi lama
+— perpindahan lokasi tampilan **bukan** perpindahan wewenang. Peran yang sebelumnya bisa
+mengajukan refund di Menu Pembayaran MUST tetap bisa (dan hanya bisa, tidak lebih) mengajukan
+refund di Riwayat Pembayaran.
+
+Trace `BUI-DEC-013`.

@@ -19,6 +19,8 @@ public sealed class BilRefundCaseConfiguration : IEntityTypeConfiguration<BilRef
         });
         entity.HasKey(x => x.Id);
         entity.Property(x => x.Status).HasMaxLength(30).IsRequired();
+        entity.Property(x => x.RefundCategory).HasMaxLength(30).IsRequired().HasDefaultValue("BILLING");
+        entity.Property(x => x.SelectedBillingItemIdsJson).HasColumnType("text");
         entity.Property(x => x.Reason).HasMaxLength(500).IsRequired();
         entity.Property(x => x.PayloadHash).HasMaxLength(64).IsRequired();
         entity.Property(x => x.RequestedAmount).HasPrecision(18, 2);
@@ -38,6 +40,7 @@ public sealed class BilRefundCaseConfiguration : IEntityTypeConfiguration<BilRef
         entity.HasOne(x => x.Invoice).WithMany().HasForeignKey(x => x.InvoiceId)
             .OnDelete(DeleteBehavior.Restrict);
         entity.HasOne(x => x.RefundableCredit).WithMany().HasForeignKey(x => x.RefundableCreditId)
+            .IsRequired(false)
             .OnDelete(DeleteBehavior.Restrict);
         entity.HasMany(x => x.Lines).WithOne(x => x.RefundCase)
             .HasForeignKey(x => x.RefundCaseId).OnDelete(DeleteBehavior.Restrict);

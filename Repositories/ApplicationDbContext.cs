@@ -619,6 +619,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<BilHandoffAdjustment> BilHandoffAdjustments { get; set; }
         public DbSet<BilCollectionHandoff> BilCollectionHandoffs { get; set; }
         public DbSet<BilPrescriptionClearanceHandoff> BilPrescriptionClearanceHandoffs { get; set; }
+        public DbSet<BilInpatientClearanceHandoff> BilInpatientClearanceHandoffs { get; set; }
         public DbSet<BilCashierShift> BilCashierShifts { get; set; }
         public DbSet<BilCashVarianceReview> BilCashVarianceReviews { get; set; }
         public DbSet<BilCashierShiftHandover> BilCashierShiftHandovers { get; set; }

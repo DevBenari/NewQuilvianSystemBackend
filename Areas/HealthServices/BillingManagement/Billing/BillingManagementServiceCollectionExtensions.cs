@@ -43,6 +43,12 @@ public static class BillingManagementServiceCollectionExtensions
         services.AddScoped<CashierShiftService>();
         services.AddScoped<IBillingChargeSourceAdapter, ContractBillingChargeSourceAdapter>();
         services.AddScoped<IBillingCoverageAdapter, RegistrationBillingCoverageAdapter>();
+        services.AddScoped<IInpatientRoomChargeCalculationService, InpatientRoomChargeCalculationService>();
+        services.AddScoped<InpatientRoomChargeCalculationService>();
+        services.AddScoped<IAdministrationFeeCalculationService, AdministrationFeeCalculationService>();
+        services.AddScoped<AdministrationFeeCalculationService>();
+        services.AddScoped<IInpatientClearanceService, InpatientClearanceService>();
+        services.AddScoped<InpatientClearanceService>();
         services.AddOptions<BillingPaymentProviderOptions>()
             .BindConfiguration(BillingPaymentProviderOptions.SectionName);
 

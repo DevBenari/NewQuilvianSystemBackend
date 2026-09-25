@@ -18,11 +18,12 @@ frontend_source: e555bf2ad6848a1d6cc097ab8c6c5f5259edb151
 | --- | --- | --- | --- | --- | --- |
 | Satu invoice dan charge idempotent (`DEC-013`–`018`,`040`) | CTX-01, API/Integration | `BE-BKC-005`,`008` | `FE-BKC-001`,`003` | `AT-001`–`004`,`020` | Covered/planned — `FE-BKC-003` (recalculate + void) source selesai 25 Agustus 2026, menunggu verifikasi manual; lihat `task/report/frontend/fe-bkc-003-hitung-ulang-dan-pembatalan-item-invoice.md` |
 | Admin fee (`DEC-001`–`006`) | CPT-007, Validation | `BE-BKC-002`,`006` | `FE-BKC-002`,`012` | `AT-009`–`011` | Covered/planned — form create/update Administration Fee Policy dimigrasi ke `BaseEditorView` 28 Agustus 2026 (konsistensi UI, bukan perubahan bisnis); lihat `task/report/frontend/fe-bkc-012-konsistensi-base-component-form-master-data.md` |
-| Diskon (`DEC-007`–`012`) | CPT-008/009, Permission | `BE-BKC-003`,`007` | `FE-BKC-002`,`004`,`012` | `AT-012`,`022` | Covered/planned — `FE-BKC-004` (ajukan diskon promo/dokter + approve dokter) source selesai 25 Agustus 2026, menunggu verifikasi manual; lihat `task/report/frontend/fe-bkc-004-diskon-promo-dan-approval-dokter.md`. Form create/update Discount Policy dimigrasi ke `BaseEditorView` 28 Agustus 2026; lihat `task/report/frontend/fe-bkc-012-konsistensi-base-component-form-master-data.md` |
+| Diskon (`DEC-007`–`012`) | CPT-008/009, Permission | `BE-BKC-003`,`007` | `FE-BKC-002`,`004`,`012` | `AT-012`,`022` | Covered/planned — `FE-BKC-004` (ajukan diskon promo/dokter + approve dokter) source selesai 25 Agustus 2026, menunggu verifikasi manual; lihat `task/report/frontend/fe-bkc-004-diskon-promo-dan-approval-dokter.md`. Form create/update Discount Policy dimigrasi ke `BaseEditorView` 28 Agustus 2026; lihat `task/report/frontend/fe-bkc-012-konsistensi-base-component-form-master-data.md`. **Update 25 September 2026 (`BUI-DES-002`, ad-hoc di luar penomoran roadmap asli)**: kolom `DoctorDiscountMemoFile` pada `BilDiscountApplication` (migration `20260924083000`) sudah ada di source tanpa `Designer.cs` dan tanpa tercermin di `ApplicationDbContextModelSnapshot.cs` — diperbaiki, tidak ada perubahan endpoint/DTO; lihat `task/report/backend/BUI-DES-002.md` |
 | Tax/room/coverage (`DEC-019`–`023`,`041`,`043`) | CPT-021–024, Integration | `BE-BKC-004`,`006` | `FE-BKC-001`,`002`,`012` | `AT-010`,`011`,`013`,`021` | Covered/planned — form create/update Tax Rule dan Room Charge Policy dimigrasi ke `BaseEditorView` 28 Agustus 2026; lihat `task/report/frontend/fe-bkc-012-konsistensi-base-component-form-master-data.md` |
 | Deposit/progress (`DEC-025`–`030`) | CTX-02, Patient Funds | `BE-BKC-009`,`011` | `FE-BKC-005` | `AT-007`,`008`,`020` | Covered/planned — `FE-BKC-005` (top-up + allocation, panel deposit di halaman invoice RANAP) source selesai 25 Agustus 2026, menunggu verifikasi manual; lihat `task/report/frontend/fe-bkc-005-deposit-rawat-inap-dan-progress-allocation.md` |
 | Split tender (`DEC-028`–`030`,`036`) | Settlement State/API | `BE-BKC-010`,`012` | `FE-BKC-006`,`007` | `AT-005`,`006`,`017` | Covered/planned — `FE-BKC-006` (create settlement + tender rows, panel di halaman invoice) source selesai 25 Agustus 2026, menunggu `FE-BKC-007` untuk verifikasi tender tunai dan verifikasi manual; lihat `task/report/frontend/fe-bkc-006-split-tender-dan-reconciliation-status.md` |
-| Refund (`DEC-032`,`033`) | CTX-03 | `BE-BKC-013` | `FE-BKC-008` | `AT-008`,`014` | Covered/planned — `FE-BKC-008` source selesai 25 Agustus 2026, menunggu verifikasi manual. **Update 30 Agustus 2026**: `RefundableCreditId` kini bisa ditemukan lewat `GET .../invoices/{invoiceId}/refundable-credits` (backend commit `f5e2106`) — keterbatasan "tidak ada endpoint pencarian" pada laporan asli sudah closed; lihat `task/report/frontend/fe-bkc-010-accessibility-privacy-dan-regression-lintas-workspace.md` |
+| Refund (`DEC-032`,`033`) | CTX-03 | `BE-BKC-013` | `FE-BKC-008` | `AT-008`,`014` | Covered/planned — `FE-BKC-008` source selesai 25 Agustus 2026, menunggu verifikasi manual. **Update 30 Agustus 2026**: `RefundableCreditId` kini bisa ditemukan lewat `GET .../invoices/{invoiceId}/refundable-credits` (backend commit `f5e2106`) — keterbatasan "tidak ada endpoint pencarian" pada laporan asli sudah closed; lihat `task/report/frontend/fe-bkc-010-accessibility-privacy-dan-regression-lintas-workspace.md`. **Update 25 September 2026 (`BUI-DES-002`, ad-hoc di luar penomoran roadmap asli)**: `BilRefundCase` memperoleh `RefundableCreditId` nullable, `RefundCategory` (`BILLING`/`DEPOSITO`), dan `SelectedBillingItemIdsJson` lewat migration `20260924083000` yang sudah ada di source tanpa `Designer.cs` dan tanpa tercermin di snapshot, plus satu koreksi panjang kolom `RefundCategory` (20→30 karakter, menyamakan dengan model `[MaxLength(30)]`) — seluruhnya diperbaiki pada level artefak migration, tidak ada perubahan endpoint/DTO; lihat `task/report/backend/BUI-DES-002.md` |
+| Konfirmasi pencairan Petty Cash Voucher oleh Kepala Kasir/Supervisor Kasir (`PC-DEC-016`) | Amendment 15 September 2026 § Petty Cash | Tidak ada task roadmap resmi — migration `20260924080000` sudah ada di source sebelum tercatat di sini | `NOT APPLICABLE` — belum diperiksa dampak frontend pada task ini | Tidak terpetakan ke `BIL-AT-001`–`028` | **Update 25 September 2026 (`BUI-DES-001`, ad-hoc di luar penomoran roadmap asli)**: kolom `ConfirmedByUserId`/`ConfirmedByName`/`ConfirmedAt` pada `BilPettyCashVoucher` (migration `20260924080000`) sudah ada di source dengan `Designer.cs` berupa stub kosong dan tanpa tercermin di `ApplicationDbContextModelSnapshot.cs` — diperbaiki, tidak ada perubahan endpoint/DTO/service; lihat `task/report/backend/BUI-DES-001.md`. Belum diverifikasi apakah frontend Petty Cash sudah mengonsumsi kolom ini |
 | Write-off/adjustment (`DEC-034`,`035`,`042`) | CTX-03, Integration | `BE-BKC-014`,`016` | `FE-BKC-008` | `AT-014`,`015`,`021` | Covered/planned — `FE-BKC-008` (ajukan/setujui/reversal, panel di halaman invoice) source selesai 25 Agustus 2026, menunggu verifikasi manual. **Update 30 Agustus 2026**: `ISSUE-FE-008` (tanpa satu pun endpoint `GET`) sudah closed sejak backend commit `f5e2106` — `BillingFinancialExceptionsController` kini punya `GET invoices/{invoiceId}` dan `GET {type}/{id}`, frontend sudah memakainya sebagai source of truth; lihat `task/report/frontend/fe-bkc-010-accessibility-privacy-dan-regression-lintas-workspace.md` |
 | Shift kasir (`DEC-037`–`039`) | CTX-04 | `BE-BKC-012` | `FE-BKC-007`,`012` | `AT-016`,`017`,`022` | Covered/planned — `FE-BKC-007` (halaman baru, open/handover/close/review/reopen) source selesai 25 Agustus 2026, menunggu verifikasi manual; temuan gap `GET` by-id shift dan master data Register dicatat di laporan; lihat `task/report/frontend/fe-bkc-007-operasi-shift-kasir.md`. Form create/update Register dimigrasi ke `BaseEditorView` 28 Agustus 2026; lihat `task/report/frontend/fe-bkc-012-konsistensi-base-component-form-master-data.md` |
 | Finalisasi/departure (`DEC-031`,`036`,`044`) | CTX-05, State | `BE-BKC-015` | `FE-BKC-009` | `AT-018`,`019`,`023` | Covered/planned — `FE-BKC-009` source selesai (ter-commit `2dcea2f8f`, sebelumnya belum dilaporkan), diverifikasi ulang 30 Agustus 2026 (lint/test:unit/build lulus, satu gap `isFinal`/`CLOSED` diperbaiki); menunggu verifikasi manual; lihat `task/report/frontend/fe-bkc-009-preview-dan-finalisasi-invoice.md` |
@@ -655,3 +656,149 @@ salinan task.
 | Wewenang menulis source | Diminta per task saat handoff | `BKC-DEC-110` menyetujui desain, bukan eksekusi |
 | Pembuatan dan eksekusi migration | Diminta terpisah sesudah backup | Berlaku untuk `BE-BKC-066` dan `BE-BKC-067` |
 | Sumbu status penagihan piutang | Pemilik konsumen AR/AP | `BKC-DES-033` tetap berlaku: **MUST NOT** ditebak sekarang |
+
+---
+
+# Gelombang `MVP-28` dan `MVP-29` — Integrasi Rawat Inap ↔ Billing Management (Pass B)
+
+Masukan: `BKC-DEC-112`–`122` (approved 24 September 2026), `BKC-AC-080`–`090`, `BKC-DES-042`–`050`. Baseline Backend SHA: `dcb9c88e`, Baseline Frontend SHA: `fdebb9059`. Kontrak version: `BIL-API-1.4`, `BIL-STATE-1.3`, `BIL-VALIDATION-1.3`, `BIL-INTEGRATION-1.2`, `BIL-PERMISSION-1.2`, `BIL-TEST-1.4`.
+
+## 1. Requirement ke Task ke Bukti Verifikasi
+
+| Requirement | Keputusan Asal | Task BE | Task FE | Bukti Verifikasi |
+| --- | --- | --- | --- | --- |
+| `FR-BKC-240` — Registrasi source domain `ROOM_STAY` & status billable kamar | `BKC-DEC-112`, `BKC-DES-042` | 🟡 `BE-BKC-072` | — | `BIL-AT-150`, registrasi domain `ROOM_STAY`, `INPATIENT`, dan `EMERGENCY` di `ContractBillingChargeSourceAdapter.cs` · [Laporan BE-BKC-072](../task/report/backend/BE-BKC-072.md) |
+| `FR-BKC-241` — Sewa kamar jam masuk bertingkat & denda late checkout | `BKC-DEC-112`, `BKC-DES-043` | 🟡 `BE-BKC-073` | 🟡 `FE-BKC-042` | `BIL-AT-143`, boundary test jam malam (<18:00, 18:00-<22:00, 22:00-<00:00, >=00:00) & late checkout (>12:00) · [Laporan BE-BKC-073](../task/report/backend/BE-BKC-073.md) · [Laporan FE-BKC-042](../task/report/frontend/FE-BKC-042.md) |
+| `FR-BKC-242` — Sewa kamar pro-rata menit riil untuk transfer multipel | `BKC-DEC-112`, `BKC-DES-050` | 🟡 `BE-BKC-073` | 🟡 `FE-BKC-042` | `BIL-AT-144`, uji alokasi proporsional menit `(MenitKamar / TotalMenitHariItu) * TarifKamar` · [Laporan BE-BKC-073](../task/report/backend/BE-BKC-073.md) · [Laporan FE-BKC-042](../task/report/frontend/FE-BKC-042.md) |
+| `FR-BKC-243` — Biaya admin ranap 7% cap Rp6.000.000 deklaratif di master | `BKC-DEC-113`, `BKC-DEC-121`, `BKC-DEC-122`, `BKC-DES-044` | 🟡 `BE-BKC-071`, 🟡 `BE-BKC-074` | 🟡 `FE-BKC-042` | `BIL-AT-145`, uji batas 7% pada tagihan 10jt (700rb) dan 100jt (tepat 6jt), porsi pasien BPJS Rp 0 · [Laporan BE-BKC-071](../task/report/backend/BE-BKC-071.md) · [Laporan BE-BKC-074](../task/report/backend/BE-BKC-074.md) · [Laporan FE-BKC-042](../task/report/frontend/FE-BKC-042.md) |
+| `FR-BKC-244` — Validasi saldo deposit 100% dari ekses/tanggung jawab pasien tindakan besar | `BKC-DEC-114`, `BKC-DES-047` | 🟡 `BE-BKC-075` | 🟡 `FE-BKC-042` | `BIL-AT-147`, verifikasi deposit dihitung dari ekses pasien, bukan bruto tagihan · [Laporan BE-BKC-075](../task/report/backend/BE-BKC-075.md) · [Laporan FE-BKC-042](../task/report/frontend/FE-BKC-042.md) |
+| `FR-BKC-245` — Billing Single Source of Truth kelayakan pemulangan ranap | `BKC-DEC-115`, `BKC-DES-045` | 🟡 `BE-BKC-071`, 🟡 `BE-BKC-075` | 🟡 `FE-BKC-041` | `BIL-AT-151`, review penghapusan direct context `InpFinancialClearance` pada `PatientBillingSummaryService` & implementasi `InpatientClearanceService` · [Laporan BE-BKC-071](../task/report/backend/BE-BKC-071.md) · [Laporan BE-BKC-075](../task/report/backend/BE-BKC-075.md) · [Laporan FE-BKC-041](../task/report/frontend/FE-BKC-041.md) |
+| `FR-BKC-246` — Auto-Reblock (`REVOKED`) seketika saat tagihan susulan tiba | `BKC-DEC-116`, `BKC-DEC-120`, `BKC-DES-046` | 🟡 `BE-BKC-075` | 🟡 `FE-BKC-041`, 🟡 `FE-BKC-042` | `BIL-AT-148`, integrasi intake susulan saat invoice OPEN membatalkan clearance; `BIL-AT-149`, penolakan susulan saat CLOSED · [Laporan BE-BKC-075](../task/report/backend/BE-BKC-075.md) · [Laporan FE-BKC-041](../task/report/frontend/FE-BKC-041.md) · [Laporan FE-BKC-042](../task/report/frontend/FE-BKC-042.md) |
+| `FR-BKC-247` — Konsolidasi non-destruktif rincian tagihan alihan IGD ke ranap | `BKC-DEC-117`, `BKC-DES-048` | 🟡 `BE-BKC-072` | 🟡 `FE-BKC-042` | `BIL-AT-150`, verifikasi `SourceDomain = "EMERGENCY"` dipertahankan pada item invoice ranap · [Laporan BE-BKC-072](../task/report/backend/BE-BKC-072.md) · [Laporan FE-BKC-042](../task/report/frontend/FE-BKC-042.md) |
+| `FR-BKC-248` — Pembatalan / pengalihan kredit biaya admin rajal ke ranap | `BKC-DEC-119`, `BKC-DES-049` | 🟡 `BE-BKC-074` | 🟡 `FE-BKC-042` | `BIL-AT-146`, void admin rajal belum bayar, konversi kredit deposit/progress payment jika sudah bayar · [Laporan BE-BKC-074](../task/report/backend/BE-BKC-074.md) · [Laporan FE-BKC-042](../task/report/frontend/FE-BKC-042.md) |
+| `FR-BKC-249` — Endpoint API inquiry ranap, sewa kamar, & re-evaluasi clearance | `BKC-DEC-115`, `BKC-DES-045` | 🟡 `BE-BKC-076` | 🟡 `FE-BKC-041` | `BIL-AT-151`, `BIL-AT-152`, kontrak OpenAPI `[Tags("BillingInpatientIntegration")]` · [Laporan BE-BKC-076](../task/report/backend/BE-BKC-076.md) · [Laporan FE-BKC-041](../task/report/frontend/FE-BKC-041.md) |
+| `FR-BKC-250` — Tab Rawat Inap pada Consumer Handoffs & panel ranap Menu Pembayaran | `BKC-DEC-115`, `BKC-DEC-116`, `BKC-DES-045` | — | 🟡 `FE-BKC-041`, 🟡 `FE-BKC-042` | Uji komponen frontend, filter status, pengakuan handoff, responsivitas panel ranap · [Laporan FE-BKC-041](../task/report/frontend/FE-BKC-041.md) · [Laporan FE-BKC-042](../task/report/frontend/FE-BKC-042.md) |
+
+**Nol Coverage Gap.** Seluruh kesebelas functional requirement (`FR-BKC-240` s.d. `FR-BKC-250`) telah memiliki pemetaan ke task backend (`BE-BKC-071`–`076`), task frontend (`FE-BKC-041`–`042`), dan pengujian bukti verifikasi (`BIL-AT-143`–`152`).
+
+## 2. Jalur Gagal & Pengecualian yang Terpetakan
+
+| Skenario Jalur Gagal | Skenario UAT | Aturan Validasi | Task Penjaga | Bukti Verifikasi |
+| --- | --- | --- | --- | --- |
+| Tagihan susulan masuk saat invoice ranap sudah `CLEARED` | `UAT-BKC-79` | `BIL-VAL-123`, `BIL-STATE-1.3` | 🟡 `BE-BKC-075` | `BIL-AT-148` (Auto-Reblock mengubah state menjadi `REVOKED`) · [Laporan BE-BKC-075](../task/report/backend/BE-BKC-075.md) |
+| Tagihan susulan masuk saat invoice ranap sudah `CLOSED` | — | `BIL-VAL-127` | 🟡 `BE-BKC-075` | `BIL-AT-149` (Sistem menolak intake tagihan susulan, kecuali dibuka Supervisor Kasir) · [Laporan BE-BKC-075](../task/report/backend/BE-BKC-075.md) |
+| Permintaan clearance pulang saat pasien masih ada sisa tagihan | `UAT-BKC-80` | `BIL-VAL-122` | 🟡 `BE-BKC-075` | `BIL-AT-151` (Evaluasi mengembalikan `BLOCKED` dan rincian outstanding) · [Laporan BE-BKC-075](../task/report/backend/BE-BKC-075.md) |
+| Koreksi penempatan kamar (`ROOM_CORRECTION`) dari bangsal ranap | `UAT-BKC-81` | `BIL-VAL-124`, `BIL-VAL-125` | 🟡 `BE-BKC-072` | `BIL-AT-150` (Charge lama dibatalkan idempoten dan charge baru tercatat) · [Laporan BE-BKC-072](../task/report/backend/BE-BKC-072.md) |
+| Pasien operasi besar memiliki deposit kurang dari 100% porsi ekses | `UAT-BKC-82` | `BIL-VAL-121` | 🟡 `BE-BKC-075` | `BIL-AT-147` (Penolakan izin tindakan dengan peringatan kekurangan deposit ekses) · [Laporan BE-BKC-075](../task/report/backend/BE-BKC-075.md) |
+| Double charging biaya admin rajal dan ranap pada pasien alihan | `UAT-BKC-76` | `BIL-VAL-120`, `BIL-VAL-126` | 🟡 `BE-BKC-074` | `BIL-AT-146` (Admin rajal gugur dan dikreditkan ke ranap) · [Laporan BE-BKC-074](../task/report/backend/BE-BKC-074.md) |
+| Akses endpoint integrasi oleh peran tanpa izin `BillingInpatient:*` | — | `BIL-PERMISSION-1.2` | 🟡 `BE-BKC-076` | `BIL-AT-152` (Response 403 Forbidden) · [Laporan BE-BKC-076](../task/report/backend/BE-BKC-076.md) |
+| Pengakuan ganda atas surat handoff yang sama oleh kasir | — | `BIL-VAL-125` | 🟡 `BE-BKC-076`, 🟡 `FE-BKC-041` | Tombol disable saat submit; backend menolak 409 Conflict |
+
+## 3. Keputusan Bisnis → Keputusan Arsitektur → Artefak & Task
+
+| Keputusan Bisnis | Keputusan Arsitektur | Artefak Turunan | Task Terkait |
+| --- | --- | --- | --- |
+| `BKC-DEC-112` (Room charge bertingkat & pro-rata menit) | `BKC-DES-043`, `BKC-DES-050` | `flowcharts/06-integrasi-rawat-inap.md`, `BIL-VALIDATION-1.3` | 🟡 `BE-BKC-072`, 🟡 `BE-BKC-073`, 🟡 `FE-BKC-042` |
+| `BKC-DEC-113` (Admin fee ranap 7% cap Rp6jt) | `BKC-DES-044` | `data/data-dictionary.md`, `BIL-VALIDATION-1.3` | 🟡 `BE-BKC-071`, 🟡 `BE-BKC-074`, 🟡 `FE-BKC-042` |
+| `BKC-DEC-114` (Deposit tindakan besar 100% ekses) | `BKC-DES-047` | `02-backend-architecture.md`, `BIL-VALIDATION-1.3` | 🟡 `BE-BKC-075`, 🟡 `FE-BKC-042` |
+| `BKC-DEC-115` (Billing Single Source of Truth clearance) | `BKC-DES-045` | `data/data-dictionary.md`, `BIL-STATE-1.3`, `BIL-API-1.4` | 🟡 `BE-BKC-071`, 🟡 `BE-BKC-075`, 🟡 `BE-BKC-076`, 🟡 `FE-BKC-041` |
+| `BKC-DEC-116` (Auto-Reblock saat tagihan susulan) | `BKC-DES-046` | `BIL-STATE-1.3`, `BIL-INTEGRATION-1.2` | 🟡 `BE-BKC-075`, 🟡 `FE-BKC-041`, 🟡 `FE-BKC-042` |
+| `BKC-DEC-117` (Konsolidasi item IGD non-destruktif) | `BKC-DES-048` | `02-backend-architecture.md`, `BIL-INTEGRATION-1.2` | 🟡 `BE-BKC-072`, 🟡 `FE-BKC-042` |
+| `BKC-DEC-118` (Koreksi penempatan kamar idempoten) | `BKC-DES-042` | `02-backend-architecture.md`, `BIL-INTEGRATION-1.2` | 🟡 `BE-BKC-072` |
+| `BKC-DEC-119` (Admin rajal gugur & dikreditkan ke ranap) | `BKC-DES-049` | `flowcharts/06-integrasi-rawat-inap.md`, `BIL-VALIDATION-1.3` | 🟡 `BE-BKC-074`, 🟡 `FE-BKC-042` |
+| `BKC-DEC-120` (Batas Auto-Reblock vs CLOSED invoice) | `BKC-DES-046` | `BIL-VALIDATION-1.3` (`BIL-VAL-127`) | 🟡 `BE-BKC-075` |
+| `BKC-DEC-121` (Master deklaratif variasi & BPJS Rp 0) | `BKC-DES-044` | `data/data-dictionary.md` | 🟡 `BE-BKC-071`, 🟡 `BE-BKC-074` |
+| `BKC-DEC-122` (Tanggal efektif discharge) | `BKC-DES-044` | `02-backend-architecture.md` | 🟡 `BE-BKC-074` |
+
+## 4. Yang Dibuka Gelombang Ini untuk Modul Lain
+
+| Modul Konsumen | Kemampuan / Task yang Terbuka | Prasyarat Penyelesaian di Billing |
+| --- | --- | --- |
+| `inpatient-management` (Rawat Inap) | `RWI-BE-012` — Inquiry status izin pulang pasien ranap dari Billing (`BilInpatientClearanceHandoff`) | 🟡 `BE-BKC-075`, 🟡 `BE-BKC-076` |
+| `inpatient-management` (Rawat Inap) | `RWI-FE-008` — Indikator kelayakan pulang finansial pada nurse station / bed management bangsal | 🟡 `BE-BKC-076`, 🟡 `FE-BKC-041` |
+| `inpatient-management` (Rawat Inap) | `RWI-BE-014` — Penegakan blokir pemulangan pasien saat status clearance bergeser ke `REVOKED` | `BE-BKC-075` |
+
+## 5. Status Gap, Pertanyaan, dan Wewenang Terpisah
+
+| Butir | Status | Penjelasan & Pemilik |
+| --- | :---: | --- |
+| `BKC-OQ-102` (Batas toleransi tagihan susulan) | **DITUTUP** | `BKC-DEC-120`: Auto-Reblock berlaku selama invoice `OPEN`. Setelah `CLOSED`, tagihan susulan ditolak otomatis sistem (`BIL-VAL-127`). |
+| `BKC-OQ-103` (Pengecualian biaya admin ranap 7%) | **DITUTUP** | `BKC-DEC-121`: Dikelola secara deklaratif via `MstAdministrationFeePolicy`; kasus khusus & BPJS diatur per baris master. |
+| Wewenang menulis source code | Terpisah | Wajib konfirmasi approval task per task sebelum implementasi dimulai. |
+| Otorisasi pembuatan & eksekusi migration EF Core | Terpisah | Berlaku untuk `BE-BKC-071` (`AddInpatientBillingIntegrationAndClearanceHandoff`); eksekusi ke database pengembang membutuhkan izin eksplisit pengguna. |
+| Override tagihan invoice `CLOSED` | Terpisah | Wewenang Supervisor Kasir / Kepala Kasir dengan pencatatan audit log lengkap. |
+
+---
+
+
+# Gelombang `MVP-30` s.d. `MVP-33` — Revisi UI Billing: Filter, Default, Asuransi, Diskon Dokter, Refund
+
+Masukan: `BUI-DEC-001`–`015` (approved 24 September 2026), `BUI-DES-001`–`002` (draft, menunggu
+approval arsitektur). Baseline Backend SHA: `505d8d78`, Baseline Frontend SHA: `b3f45db7b`.
+Kontrak version: `BIL-API-1.5` (draft), `BIL-STATE-1.4` (draft), `BIL-VALIDATION-1.4` (draft),
+`BIL-INTEGRATION-1.2` (tidak bergerak), `BIL-PERMISSION-1.2` (tidak bergerak), `BIL-TEST-1.5` (draft).
+
+## 1. Requirement ke Task ke Bukti Verifikasi
+
+| Requirement | Keputusan Asal | Task BE | Task FE | Bukti Verifikasi |
+| --- | --- | --- | --- | --- |
+| `FR-BUI-001` — Filter Tanggal Awal/Akhir pada layar Billing | `BUI-DEC-001` | — | 🟡 `FE-BUI-001` | `UAT-BUI-02` |
+| `FR-BUI-002` — Default invoice hari ini status `OPEN` | `BUI-DEC-002` | — | 🟡 `FE-BUI-001` | `UAT-BUI-01` |
+| `FR-BUI-003` — Label Drug → Obat / Medicine | `BUI-DEC-003` | — | ✅ [`FE-BUI-002`](../task/report/frontend/FE-BUI-002.md) | Regresi visual/snapshot, pencarian menyeluruh `src/` terverifikasi 0 label Drug UI tersisa |
+| `FR-BUI-004` — Perbandingan hanya tampilkan Insurance provider | `BUI-DEC-004` | — | ✅ [`FE-BUI-005`](../task/report/frontend/FE-BUI-005.md) | `UAT-BUI-03` |
+| `FR-BUI-005` — Asuransi aktif dikecualikan dari pembanding | `BUI-DEC-005` | — | ✅ [`FE-BUI-005`](../task/report/frontend/FE-BUI-005.md) (regresi, sudah berjalan `CAP-BUI-05`) | `UAT-BUI-03` |
+| `FR-BUI-006` — Payment method satu baris horizontal, sumber `PaymentMethodRow` | `BUI-DEC-006`, `BUI-DEC-015` | 🟡 `BE-BUI-001` | ✅ [`FE-BUI-006`](../task/report/frontend/FE-BUI-006.md) | `UAT-BUI-05` |
+| `FR-BUI-007` — Default status tagihan "seluruh item tercover" | `BUI-DEC-007`, `BUI-DEC-014` | 🟡 `BE-BUI-001` | ✅ [`FE-BUI-006`](../task/report/frontend/FE-BUI-006.md) | `UAT-BUI-04`, `UAT-BUI-09` (**kasus penentu**) |
+| `FR-BUI-008` — Card Billing/Status Tagihan compact | `BUI-DEC-008` | — | ✅ [`FE-BUI-003`](../task/report/frontend/FE-BUI-003.md) | Regresi visual tiga breakpoint terverifikasi, datatable di posisi atas |
+| `FR-BUI-009` — Catatan Penting timeline | — | **`OPEN DECISION`** — `BUI-CQ-05` | **`OPEN DECISION`** | Tidak berlaku — di luar gelombang ini |
+| `FR-BUI-010` — Upload Memo Dokter TTD (endpoint) | — | **`OPEN DECISION`** — `BUI-CQ-06` | **`OPEN DECISION`** | Tidak berlaku — di luar gelombang ini |
+| `FR-BUI-011` — Refundable credit lama tergantikan | `BUI-DEC-011` | — | ✅ [`FE-BUI-007`](../task/report/frontend/FE-BUI-007.md) | `UAT-BUI-06`, `07` (regresi: nol tampilan lama) |
+| `FR-BUI-012` — Modal refund dua sumber | `BUI-DEC-012` | 🟡 `BE-BUI-002` | ✅ [`FE-BUI-007`](../task/report/frontend/FE-BUI-007.md) | `UAT-BUI-06`, `07`, `11`, `12` |
+| `FR-BUI-013` — Tombol aksi dipindah ke Riwayat Pembayaran | `BUI-DEC-013` | — | ✅ [`FE-BUI-004`](../task/report/frontend/FE-BUI-004.md) | `UAT-BUI-08`, `13`, `14` |
+
+**Coverage gap: NOL untuk sebelas FR yang masuk gelombang ini** (`FR-BUI-001`–`008`, `011`–`013`)
+— seluruhnya memiliki task dan bukti verifikasi. `FR-BUI-009` dan `FR-BUI-010` **sengaja**
+TIDAK memiliki task pada roadmap ini — keduanya `OPEN DECISION` per `04-prd-to-mvp.md` amendment
+revisi 1.6, dan MUST NOT dipaksakan menjadi task sampai `BUI-CQ-05`/`06` terjawab.
+
+## 2. Jalur Gagal & Pengecualian yang Terpetakan
+
+| Skenario Jalur Gagal | Skenario UAT | Aturan Validasi | Task Penjaga | Bukti Verifikasi |
+| --- | --- | --- | --- | --- |
+| Coverage sebagian (2 dari 5 item tercover) — kasus yang membedakan aturan lama dari baru | `UAT-BUI-09` | `BUI-VAL-07` | 🟡 `BE-BUI-001` / ✅ [`FE-BUI-006`](../task/report/frontend/FE-BUI-006.md) | Uji unit backend dan tes unit frontend `edit-asuransi-payment-method-row.test.mjs` |
+| Filter tanggal akhir sebelum tanggal awal | `UAT-BUI-10` | `BUI-VAL-06` | 🟡 `FE-BUI-001` | Ditolak sebelum request terkirim (terverifikasi lewat pembacaan kode 25 September 2026; belum diverifikasi manual di peramban) |
+| Modal refund sumber Billing, submit tanpa item dicentang | `UAT-BUI-11` | `BUI-VAL-03` | ✅ [`FE-BUI-007`](../task/report/frontend/FE-BUI-007.md) | Ditolak sebelum request terkirim (validasi klien `selectedBillingItemIds.length === 0` dan unit test `create-refund-modal.test.mjs`) |
+| Modal refund sumber Deposito, sisa deposito Rp 0 | `UAT-BUI-12` | `BUI-VAL-04`, `BUI-VAL-05` | ✅ [`FE-BUI-007`](../task/report/frontend/FE-BUI-007.md) | Ditolak sebelum request terkirim (validasi klien `depositBalance <= 0` dan unit test `create-refund-modal.test.mjs`) |
+| Kolom "Kwitansi" existing pada Riwayat Pembayaran setelah kolom Aksi ditambahkan | `UAT-BUI-14` | — | ✅ [`FE-BUI-004`](../task/report/frontend/FE-BUI-004.md) | Regresi — perilaku cetak struk tidak berubah |
+| Peran tanpa butir akses refund mencoba mengklik tombol di lokasi baru | — | `permission-audit-matrix.md` amendment 1.6 | ✅ [`FE-BUI-004`](../task/report/frontend/FE-BUI-004.md) | Ditolak — butir akses identik lokasi lama |
+| Menyalakan validasi memo wajib sebelum endpoint upload ada | — | Dicegah di tingkat desain, bukan runtime | Tidak ada task — `FR-BUI-010` sengaja `OPEN DECISION` | `04-prd-to-mvp.md` amendment revisi 1.6, peringatan eksplisit "akan MENGUNCI alur yang berjalan" |
+
+## 3. Keputusan Bisnis → Keputusan Arsitektur → Artefak & Task
+
+| Keputusan Bisnis | Keputusan Arsitektur | Artefak Turunan | Task Terkait |
+| --- | --- | --- | --- |
+| `BUI-DEC-001`, `BUI-DEC-002` (filter & default Billing) | — (murni frontend, nol keputusan arsitektur diperlukan) | `03-frontend-architecture.md` bagian 4 | `FE-BUI-001` |
+| `BUI-DEC-003` (label Drug/Obat) | — | `03-frontend-architecture.md` bagian 5 | ✅ [`FE-BUI-002`](../task/report/frontend/FE-BUI-002.md) |
+| `BUI-DEC-004`, `BUI-DEC-005` (filter & exclude perbandingan) | — | `03-frontend-architecture.md` bagian 3 | ✅ [`FE-BUI-005`](../task/report/frontend/FE-BUI-005.md) |
+| `BUI-DEC-006`, `BUI-DEC-007`, `BUI-DEC-014`, `BUI-DEC-015` (payment method & default status) | `BUI-DES-001` (**approved 25 September 2026**) | `02-backend-architecture.md` bagian 9, `03-frontend-architecture.md` bagian 2 | 🟡 `BE-BUI-001`, ✅ [`FE-BUI-006`](../task/report/frontend/FE-BUI-006.md) |
+| `BUI-DEC-008` (card compact) | — | `03-frontend-architecture.md` bagian 6 | ✅ [`FE-BUI-003`](../task/report/frontend/FE-BUI-003.md) |
+| `BUI-DEC-009` (Catatan Penting) | — (`OPEN DECISION`) | `02-backend-architecture.md` bagian 8, `03-frontend-architecture.md` bagian 7 | Tidak ada — di luar gelombang |
+| `BUI-DEC-010` (memo dokter) | — (`OPEN DECISION` untuk endpoint; validasi frontend didesain) | `03-frontend-architecture.md` bagian 8 | Tidak ada — di luar gelombang |
+| `BUI-DEC-011`, `BUI-DEC-012` (refund dua sumber) | `BUI-DES-002` (**approved 25 September 2026**) | `02-backend-architecture.md` bagian 9, `03-frontend-architecture.md` bagian 9 | 🟡 `BE-BUI-002`, ✅ [`FE-BUI-007`](../task/report/frontend/FE-BUI-007.md) |
+| `BUI-DEC-013` (pindah tombol aksi) | — | `03-frontend-architecture.md` bagian 10 | ✅ [`FE-BUI-004`](../task/report/frontend/FE-BUI-004.md) |
+
+## 4. Yang Dibuka Gelombang Ini untuk Modul Lain
+
+Tidak ada. Revisi 1.6 murni internal Billing/Kasir — tidak membuka kemampuan baru untuk modul
+lain, berbeda dari `MVP-28`/`29` (Pass B) yang membuka kemampuan untuk `inpatient-management`.
+
+## 5. Status Gap, Pertanyaan, dan Wewenang Terpisah
+
+| Butir | Status | Penjelasan & Pemilik |
+| --- | :---: | --- |
+| Approval arsitektur `BUI-DES-001`, `BUI-DES-002` | **DITUTUP 25 September 2026** | Terpisah dari approval `BUI-DEC-001`–`015`. Disetujui pemilik modul 25 September 2026 — membuka `BE-BUI-001` dan `BE-BUI-002`, keduanya dikerjakan sesi yang sama (🟡 source selesai, build belum diverifikasi). Pemilik keputusan: Yasmin |
+| `BUI-CQ-05` (cakupan Catatan Penting) | **Terbuka, tidak memblokir** | `FR-BUI-009` sengaja di luar seluruh gelombang. Pemilik: Yasmin |
+| `BUI-CQ-06` (mekanisme upload memo dokter) | **Terbuka, tidak memblokir** | `FR-BUI-010` sengaja di luar seluruh gelombang — menyalakan validasi tanpa endpoint akan mengunci alur diskon dokter yang berjalan. Pemilik: Backend Owner |
+| Wewenang menulis source code | Terpisah | Wajib konfirmasi approval task per task sebelum implementasi dimulai |
+| Otorisasi migration | Tidak berlaku | Nol migration pada seluruh revisi 1.6 |
+| Cakupan pencarian label "Drug" | **DITUTUP 25 September 2026** | Telah disisir ulang menyeluruh (`src/`) pada task `FE-BUI-002`. Nol label UI "Drug" tersisa. Nilai master data & enum API backend tetap utuh. Laporan: [`FE-BUI-002`](../task/report/frontend/FE-BUI-002.md). |

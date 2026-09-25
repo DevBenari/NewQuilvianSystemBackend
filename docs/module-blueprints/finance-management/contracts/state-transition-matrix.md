@@ -2,12 +2,13 @@
 
 | Field | Nilai |
 |---|---|
-| Contract version | `FIN-STATE-1.0` |
-| Status | `draft` |
+| Contract version | `FIN-STATE-1.1` |
+| `last_changed_in` | `FIN-STATE-1.1` — amendment 25 September 2026 (bagian 1 dan 9) |
+| Status | `approved` dan `locked` — revisi 1.1 disetujui dan dikunci owner 25 September 2026 |
 | Owner | Yasmin (Product/Domain Owner Finance) |
-| `approved_by` / `approved_at` | — / — |
-| Input revision | `00-interview-decisions.md` revisi 1 |
-| Dampak kompatibilitas | Nol — seluruh status di bawah milik entity baru |
+| `approved_by` / `approved_at` | Yasmin / 2026-09-25 |
+| Input revision | `00-interview-decisions.md` — `FIN-DEC-001`..`044` |
+| Dampak kompatibilitas | **Satu transisi dicabut** (`HELD_FOR_FINALIZATION` tidak lagi dihasilkan, bagian 9) dan **empat nilai `HandoffType` ditambahkan** (bagian 1). Tidak ada nilai status yang dihapus dari basis data |
 
 Transisi yang **tidak sah** ikut dicantumkan. Matriks yang hanya memuat jalur sah tidak dapat
 dipakai menguji apa pun.
@@ -25,6 +26,30 @@ dipakai menguji apa pun.
 | `CONSUMED` | Kirim ACK ke Billing | `ACKNOWLEDGED` | Sistem | Billing menerima ACK | Bila gagal, tetap `CONSUMED` dan dicoba lagi |
 | `ACKNOWLEDGED` | Apa pun | — | — | **Status akhir.** Tidak ada transisi keluar | Permintaan ditolak `422` |
 | `CONSUMED` | Ulangi pengolahan | — | — | **Tidak sah.** Fakta yang sudah diolah tidak boleh diolah ulang | `409` — akan melahirkan piutang kedua |
+
+**Empat jenis fakta ditambahkan revisi 1.1** (`FIN-DEC-040`..`044`). Siklus statusnya **sama
+persis** dengan tabel di atas — yang bertambah hanya nilai `HandoffType` yang sah, sehingga
+tidak ada transisi baru yang perlu diuji tersendiri:
+
+| `HandoffType` | Sumber fakta di Billing | `SourceHandoffKey` diambil dari | Melahirkan |
+|---|---|---|---|
+| `DEPOSIT_MOVEMENT` | `BilDepositMovement` (`TOP_UP`/`ALLOCATION`/`RELEASE`/`REVERSAL`) | `IdempotencyKey` | Baris kotak keluar; **tidak** melahirkan `FinReceipt` untuk tipe `ALLOCATION`/`RELEASE` |
+| `REFUNDABLE_CREDIT` | `BilRefundableCredit` `ALLOCATION_EXCESS` berstatus `AVAILABLE` | `Id` (sumber tidak punya kunci sendiri) | Baris kotak keluar `PENGAKUAN-KELEBIHAN-BAYAR` |
+| `REFUND_CASE` | `BilRefundCase` berstatus `EXECUTED`, sumber `ALLOCATION_EXCESS` | `IdempotencyKey` | Baris kotak keluar `PENGEMBALIAN-UANG-MUKA` |
+| `CASH_VARIANCE_REVIEW` | `BilCashVarianceReview` | `Id` (sumber tidak punya kunci sendiri) | Baris kotak keluar `SELISIH-KAS-SHIFT` |
+
+**`TargetEntityId` boleh kosong untuk keempat jenis ini** pada kasus yang tidak melahirkan entity
+Finance baru (mis. `ALLOCATION` hanya menerbitkan kejadian, tidak membuat penerimaan). Kolomnya
+sudah nullable, jadi tidak ada perubahan skema untuk itu.
+
+**ACK ke Billing tidak berlaku untuk keempat jenis ini.** `BilDepositMovement`,
+`BilRefundableCredit`, `BilRefundCase`, dan `BilCashVarianceReview` **tidak punya kolom status
+handoff** yang bisa ditandai, dan Finance dilarang menulis ke tabel Billing. Karena itu keempatnya
+berhenti di `CONSUMED` sebagai status akhir praktisnya:
+
+| Dari status | Tindakan | Ke status | Syarat | Bila dilanggar |
+|---|---|---|---|---|
+| `CONSUMED` | — | — | **Status akhir** untuk `DEPOSIT_MOVEMENT`, `REFUNDABLE_CREDIT`, `REFUND_CASE`, `CASH_VARIANCE_REVIEW` | Mencoba mengirim ACK ke Billing untuk keempat jenis ini melanggar larangan tulis lintas modul (`integration-contract.md` bagian 6) |
 
 ---
 
@@ -153,11 +178,11 @@ masih `APPROVED` belum mengurangi utang, karena uangnya memang belum keluar.
 
 | Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
 |---|---|---|---|---|---|
-| — | Fakta Finance tercatat, tagihan sudah `FINAL` | `PENDING` | Sistem | Ditulis di transaksi yang sama (`FIN-DES-017`) | Transaksi dibatalkan seluruhnya |
-| — | Fakta Finance tercatat, tagihan masih `OPEN` | `HELD_FOR_FINALIZATION` | Sistem | `FIN-DEC-004` | — |
-| `HELD_FOR_FINALIZATION` | Tagihan menjadi `FINAL` | `PENDING` | Sistem | Dipicu peristiwa finalisasi, **bukan** timer | Worker MUST melewati baris yang masih tertahan |
+| — | Fakta Finance tercatat, apa pun status tagihan sumbernya | `PENDING` | Sistem | Ditulis di transaksi yang sama (`FIN-DES-017`). **Kode kejadiannya** yang berbeda menurut status tagihan, bukan status pengirimannya — lihat `integration-contract.md` bagian 5.5 | Transaksi dibatalkan seluruhnya |
+| ~~—~~ | ~~Fakta Finance tercatat, tagihan masih `OPEN`~~ | ~~`HELD_FOR_FINALIZATION`~~ | ~~Sistem~~ | **DICABUT revisi 1.1** — `FIN-DEC-004` `superseded` oleh `FIN-DEC-030`. Penerimaan pra-finalisasi kini terbit segera sebagai `PENERIMAAN-UANG-MUKA` berstatus `PENDING` | Kode baru **MUST NOT** menghasilkan status ini lagi |
+| `HELD_FOR_FINALIZATION` | Baris warisan ditemukan | `PENDING` | Petugas Finance (satu kali, saat migrasi data) | Hanya untuk baris yang tersimpan **sebelum** `FIN-DEC-030` berlaku. Kode kejadiannya ikut diperiksa: bila tagihan sumbernya masih `OPEN`, baris itu MUST dibetulkan menjadi `PENERIMAAN-UANG-MUKA` | Bila dibiarkan, baris itu tidak akan pernah terkirim karena tidak ada lagi pemicu pelepasan |
 | `PENDING` | Kirim ke Accounting | `SENT` | Worker | Endpoint Accounting tersedia | Selama endpoint belum ada, worker dimatikan (`FIN-DES-020`) |
-| `SENT` | Terima balasan `201` atau `200` | `ACKNOWLEDGED` | Worker | Nomor jurnal disimpan | — |
+| `SENT` | Terima balasan `201` atau `200` | `ACKNOWLEDGED` | Worker | **Nomor jurnal disimpan bila ada** — `JournalNumber` kosong pada `201` bukan kegagalan (`FIN-DEC-039`) | Menandai `FAILED` hanya karena nomor jurnal kosong adalah kekeliruan; baris akan dikirim ulang tanpa perlu |
 | `SENT` | Terima balasan `422` | `HELD` | Worker | Accounting belum punya aturan posting | **MUST NOT** kirim ulang sebagai kejadian baru; Accounting yang melengkapi aturannya |
 | `SENT` | Terima balasan `400` | `FAILED` | Worker | Ada isian yang tidak sah | Perbaiki data sumber, lalu kirim ulang baris yang sama |
 | `SENT` | Terima balasan `403` atau `409` | `FAILED` | Worker | Masalah hak akses atau mata uang | **MUST NOT** dicoba ulang otomatis |
@@ -180,7 +205,7 @@ dengan **fakta baru**, bukan dengan mengubah yang lama.
 
 | Entity | Status akhir |
 |---|---|
-| `FinBillingHandoffIntake` | `ACKNOWLEDGED` |
+| `FinBillingHandoffIntake` | `ACKNOWLEDGED` untuk `AR`/`AP`/`COLLECTION`/`ADJUSTMENT`; **`CONSUMED`** untuk `DEPOSIT_MOVEMENT`/`REFUNDABLE_CREDIT`/`REFUND_CASE`/`CASH_VARIANCE_REVIEW` (revisi 1.1 — sumbernya tidak punya kolom ACK, lihat bagian 1) |
 | `FinReceivable` | `CANCELLED` |
 | `FinReceivableAdjustment`, `FinReceivableWriteOff`, `FinPayableAdjustment` | `APPROVED`, `REJECTED` |
 | `FinReceipt` | `REVERSED` |

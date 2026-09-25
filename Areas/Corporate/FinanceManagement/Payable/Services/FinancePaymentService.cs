@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Models;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Payable.Models;
 using QuilvianSystemBackend.Repositories;
@@ -10,26 +12,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Payable.Servic
 
 /// <summary>
 /// Layanan pembayaran keluar dan potongan AP (BE-FIN-020, FIN-DES-015, FIN-DES-026..028, 02-backend-architecture.md §4.22).
-///
-/// Tanggung jawab utama:
-/// 1. Menyusun pembayaran rekap, boleh melunasi banyak utang sekaligus (FIN-DEC-019).
-/// 2. Mengelola potongan (PPh 21, kasbon, iuran, dll.) dan tambahan transfer (sitting fee, dll.)
-///    sehingga uang keluar (NetTransferAmount) berbeda dari utang lunas (TotalAmount) (FR-FIN-050).
-/// 3. Menjadi SATU-SATUNYA penulis PaidAmount pada utang supplier (FinSupplierPayable) saat status
-///    menjadi PAID, mengurangi OutstandingAmount sebesar alokasi utang bukan sebesar uang transfer (FR-FIN-051).
-/// 4. Menegakkan persetujuan berjenjang (ApprovalTier) dan maker-checker (FIN-DEC-022, FIN-VAL-051).
-///    Ambang nominal persis masih FIN-OQ-010 (dikelola lewat resolver tier provisional).
 /// </summary>
 public sealed class FinancePaymentService
 {
     private const string LogCategory = "Corporate.FinanceManagement.Payable";
     private readonly ApplicationDbContext _dbContext;
     private readonly LoggerService _loggerService;
+    private readonly FinanceAccountingOutboxService _accountingOutboxService;
 
-    public FinancePaymentService(ApplicationDbContext dbContext, LoggerService loggerService)
+    public FinancePaymentService(
+        ApplicationDbContext dbContext,
+        LoggerService loggerService,
+        FinanceAccountingOutboxService accountingOutboxService)
     {
         _dbContext = dbContext;
         _loggerService = loggerService;
+        _accountingOutboxService = accountingOutboxService;
     }
 
     // ------------------------------------------------------------------------------------
@@ -549,6 +547,20 @@ public sealed class FinancePaymentService
             payment.UpdateDateTime = DateTime.UtcNow;
             payment.UpdateBy = actorUserId;
             payment.RowVersion = Guid.NewGuid();
+
+            // Stage event AP_PAYMENT ke Accounting Outbox
+            var eventOccurredAt = DateTimeOffset.UtcNow;
+            await _accountingOutboxService.StageEventAsync(new AccountingOutboxEventRequest
+            {
+                EventTypeCode = FinAccountingEventTypeCodes.ApPayment,
+                SourceTransactionId = payment.PaymentNumber,
+                EventOccurredAt = eventOccurredAt,
+                AccountingDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                Amount = payment.TotalAmount,
+                CorrelationId = payment.Id,
+                CausationId = payment.Id,
+                ActorUserId = actorUserId
+            }, cancellationToken);
 
             await _dbContext.SaveChangesAsync(cancellationToken);
             await CommitAsync(transaction, cancellationToken);
