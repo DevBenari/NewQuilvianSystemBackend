@@ -6,10 +6,10 @@
 |---|---|
 | Blueprint ID | `laboratorium` |
 | Architecture ID | `LAB-DA-001` |
-| Revision | `7` |
+| Revision | `8` — bagian **A5**, 2026-09-24: `S4` validasi dan rilis Patologi Klinik |
 | Status | `draft` |
-| **Kesiapan arsitektur** | **`DOMAIN_ARCHITECTURE_READY`** — **12 slice siap.** `S4c` **dirancang ulang revision 7** sesudah bukti `LAB-EVD-003`; bentuk lamanya pada A3 dicabut, bentuk barunya pada **A4**. Jumlah slice tidak berubah; yang berubah isinya. **12 slice siap.** Sepuluh slice revision 2-4 tetap `READY`; revision 5 menambahkan `S4b` dan `S4c` ke dalam scope, dan revision 6 menaikkan `S4b` menjadi `READY` sesudah `LAB-DEC-084` menutup `DEC-LAB-015`. **Satu bagian dikecualikan, bukan satu slice:** gambar hasil Patologi Anatomi menunggu `DEC-LAB-016`. Lihat A3.16 |
-| Scope yang dinilai | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11` (rev 2); `S13a`, `S13b`, `S14`, `S15` (rev 3); **`S4b` dan `S4c` (rev 5-6)** |
+| **Kesiapan arsitektur** | **Revision 8: `S4` ditambahkan `DOMAIN_ARCHITECTURE_READY` untuk desain saja — pemakaian nyatanya tertahan `DEC-LAB-011` sisa, `DEC-LAB-017`, `DEC-LAB-018`, `LAB-COORD-016`. Lihat A5.14.** Sebelumnya: **`DOMAIN_ARCHITECTURE_READY`** — **12 slice siap.** `S4c` **dirancang ulang revision 7** sesudah bukti `LAB-EVD-003`; bentuk lamanya pada A3 dicabut, bentuk barunya pada **A4**. Jumlah slice tidak berubah; yang berubah isinya. **12 slice siap.** Sepuluh slice revision 2-4 tetap `READY`; revision 5 menambahkan `S4b` dan `S4c` ke dalam scope, dan revision 6 menaikkan `S4b` menjadi `READY` sesudah `LAB-DEC-084` menutup `DEC-LAB-015`. **Satu bagian dikecualikan, bukan satu slice:** gambar hasil Patologi Anatomi menunggu `DEC-LAB-016`. Lihat A3.16 |
+| Scope yang dinilai | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11` (rev 2); `S13a`, `S13b`, `S14`, `S15` (rev 3); **`S4b` dan `S4c` (rev 5-6)**; **`S4` (rev 8)** |
 | Kesiapan requirement | `PARTIALLY_READY` dari `LAB-RCG-001` revision 4; seluruh slice dikirim sebagai slice siap yang berdiri sendiri |
 | Product/domain owner | Yoga Aji Pratama (`yogaaji452@gmail.com`) |
 | Backend SHA | `c87d9c0` |
@@ -879,6 +879,223 @@ bertahun kemudian; dan **kapan dikerjakan** tetap terpisah dari **kapan diketik*
 
 ---
 
+## A5. Revision 8 — Slice `S4` validasi dan rilis hasil Patologi Klinik (2026-09-24)
+
+### A5.1 Identitas dan gerbang masuk
+
+| Butir | Isi |
+|---|---|
+| Scope | **`S4`** — validasi dan rilis hasil **Patologi Klinik** saja, dipersempit `LAB-DEC-076`. `S4d`, `S4e`, `S5`, dan `S6` **tidak** dirancang |
+| Kesiapan requirement | `LAB-RCG-001-r8` bagian 0C: **`READY_FOR_DOMAIN_DESIGN` untuk desain saja** |
+| Penahan pemakaian yang dibawa serta | `DEC-LAB-011` sisa (pemvalidasi kedua per shift), `DEC-LAB-017` (pemakaian sebelum `S5`), `DEC-LAB-018` (pemegang rilis), `LAB-COORD-016` (kode kewenangan di katalog Human Resource) |
+| Bukti | Decisions rev 73; capability map rev 5; kontrak `LAB-API-v1` `r33`, `LAB-PERM-v1` rev 10, `LAB-STATE-v1` `r4` (approved 2026-09-24) |
+| Snapshot kode | BE `ddeb5ed8`, FE `72607a087` |
+| Baseline rujukan | **Tidak dipakai** — seluruh butir bersumber keputusan modul ini |
+
+**Decision ID yang mengikat:** `LAB-DEC-003` empat mata, `LAB-DEC-017` hasil terdaftar di rekam
+medis, `LAB-DEC-080` fakta bukan status, `LAB-DEC-120` perilis ≠ pemvalidasi, `LAB-DEC-135`
+Draft/Final, `LAB-DEC-138` Kembalikan ke analis, `LAB-DEC-142`/`143` dua lapis per disiplin,
+`LAB-DEC-146` izin hasil, `LAB-DEC-148` kredensial Human Resource, `LAB-DEC-150` hanya dokter.
+
+### A5.2 Ubiquitous language — istilah yang ditambahkan
+
+| Istilah | Arti |
+|---|---|
+| **Validasi** | Pernyataan dokter berkewenangan laboratorium bahwa angka hasil **benar** — sesudah diperiksa terhadap gambaran klinis dan data pasien |
+| **Rilis** (tercetak: *Otorisasi*) | Pernyataan orang kedua yang berwenang bahwa hasil yang sudah divalidasi **boleh dibaca** dokter pemesan dan menjadi dokumen klinis pasien |
+| **Pemvalidasi** / **Perilis** | Orang yang melakukan kedua tindakan di atas. Pada hasil yang sama, keduanya **tidak boleh** orang yang sama |
+| **Penunjukan kewenangan** | Kewenangan klinis per orang, per disiplin, per jenis tindakan, bermasa berlaku — **dicatat di Human Resource**, dibaca Laboratorium |
+| **Dasar kewenangan** | Penunjukan mana yang berlaku saat seseorang memvalidasi atau merilis |
+| **Snapshot peran** | Jabatan orang itu **pada saat** bertindak, disimpan bersama tindakannya supaya tidak ikut berubah kemudian |
+| **Kembalikan ke analis** | Membatalkan validasi atas hasil yang **belum dirilis** sehingga hasil kembali Draft — berbeda dari *koreksi*, yang hanya berlaku sesudah rilis |
+| **Antrean validasi** | **Cara menyajikan** hasil Final yang belum divalidasi — **bukan** konsep tersimpan |
+
+### A5.3 Peta bounded context — perubahan
+
+| ID | Nama | Tanggung jawab bagi `S4` | Hubungan |
+|---|---|---|---|
+| `BC-LAB` | Laboratorium | Pemilik tunggal fakta validasi, rilis, dan pengembalian | — |
+| `BC-HR` | Human Resource — Credentialing | **Pemilik** penunjukan kewenangan dan katalog kodenya (`WfpClinicalPrivilege`, `MstClinicalPrivilegeCatalog`) | **Upstream** bagi `BC-LAB`; `BC-LAB` **hanya membaca** (`LAB-DEC-148`) — sejalan preseden Kamar Operasi |
+| `BC-MRC` | Rekam Medis | **Pemilik** catatan keutuhan dokumen klinis (`MrcClinicalDocumentIntegrity`) | **Downstream** bagi `BC-LAB`: menerima pendaftaran dokumen hasil saat rilis (`LAB-DEC-017`, `LAB-COORD-002` disetujui) |
+| `BC-PLAT` | Platform | Hak akses per aksi | Sudah ada; tidak berubah |
+
+**Dua context baru disebut di dokumen ini, dan nol yang baru dibuat:** `BC-HR` dan `BC-MRC`
+sudah berdiri di aplikasi. Yang baru hanya **hubungannya** dengan `BC-LAB`.
+
+### A5.4 Katalog konsep domain — yang ditambahkan
+
+| ID | Nama bisnis | Klasifikasi | Pemilik | Ownership | Invariant penting | Bukti |
+|---|---|---|---|---|---|---|
+| `LAB-DC-051` | **Validasi Hasil** | `VALUE_OBJECT` pada `LAB-DC-002` Pemeriksaan | `BC-LAB` | `Extend` | Pelaku, waktu, snapshot peran, dan — bila pelaku juga pengisi — alasan dari `LAB-DC-058`; **paling banyak satu yang berlaku** pada satu saat | `LAB-DEC-080`, `LAB-DEC-150` |
+| `LAB-DC-052` | **Rilis Hasil** | `VALUE_OBJECT` pada `LAB-DC-002` | `BC-LAB` | `Extend` | Pelaku, waktu, snapshot peran; hanya sesudah validasi; pelaku ≠ pemvalidasi, **kecuali** pengecualian beralasan dari `LAB-DC-058` dengan penanda permanen | `LAB-DEC-080`, `LAB-DEC-120` |
+| `LAB-DC-053` | **Pengembalian ke Analis** | `DOMAIN_EVENT` yang tercatat di riwayat | `BC-LAB` | `Extend` riwayat perpindahan | Hanya sebelum rilis; wajib beralasan dari daftar terkendali; **validasi yang dibatalkan tetap terbaca** di riwayat | `LAB-DEC-138` |
+| `LAB-DC-054` | **Alasan Koreksi dan Pengembalian** | `REFERENCE_DATA` | `BC-LAB` | `New` | Daftar **satu** untuk pengembalian sebelum rilis dan koreksi sesudah rilis; kode unik; nonaktif tidak dipakai baris baru | `LAB-DEC-082`, `LAB-DEC-138`; pola `MstLabRejectionReason` |
+| `LAB-DC-055` | **Penunjukan Kewenangan Klinis** | `EXTERNAL_CONTRACT` | **`BC-HR`** | `Adapter/View` | Berlaku hanya bila kodenya sesuai, statusnya aktif, dan tanggalnya dalam masa berlaku | `LAB-DEC-148`; `CAP-P14-09` |
+| `LAB-DC-056` | **Kode Kewenangan Laboratorium** | `REFERENCE_DATA` | **`BC-HR`** | `Extend` pada katalog Human Resource — lewat `LAB-COORD-016` | Enam kode: validasi dan rilis × tiga disiplin. `S4` hanya memakai **dua** — validasi dan rilis Patologi Klinik | `LAB-DEC-143`, `LAB-DEC-148` |
+| `LAB-DC-057` | **Dokumen Hasil Laboratorium** di rekam medis | `EXTERNAL_CONTRACT` | **`BC-MRC`** | `Extend` jenis dokumen — sudah disepakati `LAB-COORD-002` | **Tepat satu** pendaftaran per rilis; angka hasil **tidak** disalin | `LAB-DEC-017` |
+| `LAB-DC-058` | **Alasan Pengecualian Empat Mata** | `REFERENCE_DATA` | `BC-LAB` | `New` | Daftar terkendali alasan ketika satu orang memegang dua peran pada hasil yang sama — misalnya *"Shift tunggal, tidak ada dokter lain bertugas"*. **Terpisah dari `LAB-DC-054`**: yang satu menjelaskan *kenapa kewenangan dirangkap*, yang lain *kenapa hasil diubah* — dua pertanyaan pelaporan yang berbeda | `LAB-DEC-003` butir 1; `LAB-DEC-120` butir 2 |
+| `LAB-EV-01` | **Hasil Divalidasi** | `DOMAIN_EVENT` | `BC-LAB` | `New` | Terbit sekali per validasi yang berlaku | — |
+| `LAB-EV-02` | **Hasil Dirilis** | `DOMAIN_EVENT` | `BC-LAB` | `New` | Memicu pendaftaran `LAB-DC-057` | — |
+| `LAB-EV-03` | **Hasil Dikembalikan** | `DOMAIN_EVENT` | `BC-LAB` | `New` | Sama dengan `LAB-DC-053` | — |
+
+#### Yang sengaja **tidak** dijadikan konsep
+
+| Yang ditolak | Alasan |
+|---|---|
+| Status `Validated` dan `Released` pada lifecycle pemeriksaan | `LAB-DEC-080` — fakta, bukan status |
+| Antrean validasi sebagai entity | Ia **penyajian** hasil Final yang belum divalidasi |
+| Daftar pantau pengecualian sebagai entity | Ia **penyajian** validasi atau rilis yang berpenanda pengecualian — contoh BR-01: kepala instalasi memeriksanya keesokan pagi. Penandanya sudah tersimpan pada tindakannya; daftar tersendiri hanya menjadi salinan kedua yang bisa berselisih |
+| Daftar penunjukan milik Laboratorium | `LAB-DEC-148` — dua sumber penunjukan pasti suatu hari berbeda |
+| Aggregate "Validasi" tersendiri | Validasi adalah **bagian dari perjalanan pemeriksaan**; memisahkannya menciptakan dua sumber kebenaran atas satu kejadian — alasan yang sama dengan A3.6 |
+
+### A5.5 Model aggregate — dan tinjauan ulang `ARCH-GAP-LAB-05`
+
+**Nol aggregate baru.** Validasi dan rilis masuk `AGG-LAB-01` lewat `LAB-DC-002` Pemeriksaan.
+
+`ARCH-GAP-LAB-05` meminta aggregate ini **ditinjau ulang saat validasi dan rilis dirancang**.
+Jawaban tinjauannya:
+
+| Pertanyaan | Jawaban |
+|---|---|
+| Apakah validasi satu pemeriksaan perlu mengunci seluruh pesanan? | **Tidak.** Setiap tindakan mengubah **satu** pemeriksaan, dan konsistensinya cukup dijaga per pemeriksaan |
+| Invariant lintas pesanan apa yang tetap ada? | **Satu:** pemeriksaan pada pesanan atau wadah yang **dibatalkan atau gugur** tidak dapat divalidasi maupun dirilis (`INV-51`). Ia cukup diperiksa pada saat tindakan, di dalam transaksi yang sama |
+| Apakah gap-nya ditutup? | **Menyempit, belum ditutup.** Pertumbuhan aggregate belum menimbulkan pertentangan invariant; tinjauan berikutnya saat `S6` dirancang, sebab koreksi sesudah rilis menyentuh versi hasil |
+
+**Invariant yang ditambahkan:**
+
+| ID | Invariant | Bukti |
+|---|---|---|
+| `INV-41` | Hanya hasil **Final** yang dapat divalidasi | `LAB-DEC-135` |
+| `INV-42` | Pemvalidasi **bukan** pengisi hasil, kecuali pengecualian tercatat beserta alasan dan penanda permanen | `LAB-DEC-003` |
+| `INV-43` | Perilis **bukan** pemvalidasi, kecuali pengecualian `LAB-DEC-003` tercatat beserta alasan dari `LAB-DC-058` dan penanda permanen yang **ikut tercetak**. **Inilah jalur pengecualian yang nyata pada Patologi Klinik** — pengisi (analis) dan pemvalidasi (dokter) tidak mungkin orang yang sama, tetapi pemvalidasi dan perilis mungkin: dokter tunggal pada malam hari | `LAB-DEC-120` butir 2, `LAB-DEC-003` |
+| `INV-44` | Hanya hasil **tervalidasi** yang dapat dirilis | `LAB-INH-007` |
+| `INV-45` | Pemvalidasi wajib **dokter berkewenangan laboratorium** (lapis jabatan) **dan** memegang penunjukan *validasi Patologi Klinik* yang aktif dalam masa berlakunya. Perilis wajib memegang penunjukan *rilis Patologi Klinik* | `LAB-DEC-142`, `143`, `148`, `150` |
+| `INV-46` | Setiap validasi dan rilis menyimpan **snapshot peran** pelakunya pada saat itu | `LAB-DEC-150` butir 4 — validator `CONFIRMED`; perilis **`PROPOSED`**, lihat `ARCH-GAP-LAB-08` |
+| `INV-47` | *Kembalikan ke analis* hanya sebelum rilis; hasil kembali Draft; validasi yang dibatalkan **tetap terbaca** di riwayat | `LAB-DEC-138` |
+| `INV-48` | Reopen oleh analis **ditolak** sesudah hasil divalidasi | `LAB-DEC-135` butir 3 |
+| `INV-49` | Hasil yang sudah **dirilis** tidak berubah kecuali lewat koreksi `S6` | `LAB-DEC-007` |
+| `INV-50` | Setiap rilis mendaftarkan **tepat satu** dokumen hasil ke rekam medis | `LAB-DEC-017` |
+| `INV-51` | Pemeriksaan pada pesanan atau wadah yang dibatalkan atau gugur tidak dapat divalidasi maupun dirilis | `INV-03` diperluas |
+
+**Tindakan bisnis yang ditambahkan:**
+
+| Tindakan | Wewenang | Menerbitkan |
+|---|---|---|
+| Memvalidasi | Pemegang penunjukan *validasi PK* yang lolos lapis jabatan | `LAB-EV-01` |
+| Merilis | Pemegang penunjukan *rilis PK* | `LAB-EV-02` → pendaftaran rekam medis |
+| Mengembalikan ke analis | Pemegang penunjukan validasi **atau** rilis PK | `LAB-EV-03` |
+
+### A5.6 Model relasi
+
+| Sumber | Tujuan | Makna | Kardinalitas | Lifecycle |
+|---|---|---|---|---|
+| `LAB-DC-002` Pemeriksaan | `LAB-DC-051` Validasi | Pemeriksaan divalidasi | 1 : 0..1 yang **berlaku**; validasi yang dibatalkan tinggal di riwayat | Hilang dari pemeriksaan saat dikembalikan, **tidak** dari riwayat |
+| `LAB-DC-002` Pemeriksaan | `LAB-DC-052` Rilis | Pemeriksaan dirilis | 1 : 0..1 | Tetap selamanya pada rilis ini; koreksi `S6` menambah versi, bukan menghapus |
+| `LAB-DC-051`/`052` | `LAB-DC-055` Penunjukan | Tindakan didasari satu penunjukan | n : 1 | **Snapshot** — penunjukan yang kemudian dicabut **tidak** mengubah validasi lama |
+| `LAB-DC-052` Rilis | `LAB-DC-057` Dokumen rekam medis | Rilis menjadi dokumen klinis | 1 : 1 | Dokumen dikunci aturan rekam medis; koreksi memakai addendum (`LAB-DEC-020`) |
+| `LAB-DC-053` Pengembalian | `LAB-DC-054` Alasan | Pengembalian beralasan | n : 1 | Alasan nonaktif tidak menghapus pengembalian lama |
+| `LAB-DC-051`/`052` | `LAB-DC-058` Alasan pengecualian | Tindakan yang merangkap peran beralasan | n : 0..1 — terisi **hanya** bila pelaku merangkap | Alasan nonaktif tidak menghapus tindakan lama; penandanya tetap tercetak |
+
+### A5.7 Model lifecycle — keadaan turunan, bukan status
+
+| Dari | Tindakan | Ke | Siapa | Syarat |
+|---|---|---|---|---|
+| Final | Validasi | **Tervalidasi** | Pemvalidasi | `INV-41`, `42`, `45`, `51` |
+| Tervalidasi | Rilis | **Dirilis** | Perilis | `INV-43`, `44`, `45`, `50`, `51` |
+| Tervalidasi | Kembalikan ke analis | Draft | Pemvalidasi atau perilis | Alasan dari `LAB-DC-054`; `INV-47` |
+| Final | Reopen | Draft | Analis | **Hanya sebelum validasi** — `INV-48` |
+| Dirilis | Koreksi | — | — | **`S6`**, di luar slice ini |
+
+**Tindakan tidak sah:** memvalidasi Draft; merilis tanpa validasi; memvalidasi hasil yang diisi
+sendiri tanpa pengecualian; merilis hasil yang divalidasi sendiri tanpa pengecualian; Reopen
+sesudah validasi; mengembalikan hasil yang sudah dirilis; bertindak atas pemeriksaan yang batal
+atau gugur; bertindak dengan penunjukan yang ditangguhkan, dicabut, atau kedaluwarsa.
+
+Label order *Dalam Pemeriksaan* dan *Selesai* (`LAB-DEC-135`) kini dapat diturunkan: *Selesai*
+bila seluruh pemeriksaan yang tidak batal berada pada keadaan **Dirilis**.
+
+### A5.8 Tanggung jawab authorization
+
+| Tanggung jawab | Pemegang | Status bukti |
+|---|---|---|
+| Mengisi dan menyelesaikan hasil | Jabatan analis | `CONFIRMED` — `LAB-DEC-134`, `146` |
+| Memvalidasi | Dokter berkewenangan laboratorium yang ditunjuk | `CONFIRMED` bentuknya; **isinya** dr. Bima sebagai pemegang pertama; pemegang kedua **`MISSING`** (`DEC-LAB-011`) |
+| Merilis | Pemegang penunjukan rilis | **`MISSING`** — `DEC-LAB-018`. Arsitektur **tidak** menetapkan apakah wajib dokter |
+| Menetapkan pemegang | dr. Bima, lewat kredensial Human Resource | `CONFIRMED` sebagai jawaban sebagian — `LAB-DEC-150` butir 2; konfirmasi tertulis diminta `LAB-REQ-014` |
+
+### A5.9 Model audit dan histori
+
+| Yang wajib terlacak | Alasan |
+|---|---|
+| Pemvalidasi, waktu, snapshot peran, alasan pengecualian bila ada | `LAB-DEC-150` butir 4, `LAB-DEC-003` |
+| Perilis, waktu, snapshot peran, dan — bila ia juga pemvalidasi — alasan dari `LAB-DC-058` beserta penanda permanen | Baris *Otorisasi oleh* pada cetakan (`LAB-DEC-120`); penanda ikut tercetak dan tersimpan di riwayat yang tidak bisa diubah (BR-01 butir 2–3) |
+| **Dasar kewenangan** — penunjukan mana yang berlaku saat bertindak | **`PROPOSED`.** Tanpanya, auditor yang bertanya *"atas dasar apa dr. X memvalidasi pada tanggal itu"* harus merangkai sendiri riwayat Human Resource yang bisa sudah berubah |
+| Pengembalian: pelaku, waktu, alasan, **dan validasi yang dibatalkan** | `LAB-DEC-138` |
+
+### A5.10 Model integrasi
+
+| Batas | Produsen → konsumen | Sumber kebenaran | Sifat | Saat gagal |
+|---|---|---|---|---|
+| Penunjukan kewenangan | `BC-HR` → `BC-LAB` | `BC-HR` | Dibaca **saat tindakan**, tanpa salinan tetap | **Fail-closed:** data kewenangan tidak terbaca atau kosong → tindakan **ditolak** dengan alasan terbaca. Nol jalur pintas |
+| Dokumen hasil | `BC-LAB` → `BC-MRC` | `BC-LAB` atas angka hasil; `BC-MRC` atas keutuhan dokumen | Keduanya pada basis data yang sama | **`PROPOSED`: atomik** — rilis dan pendaftarannya berhasil bersama atau gagal bersama. Lihat `ARCH-GAP-LAB-08` |
+| Hak akses per aksi | `BC-PLAT` → `BC-LAB` | `BC-PLAT` | Sudah berjalan | Sudah berjalan |
+
+**Idempotency.** Validasi atau rilis yang dikirim dua kali atas hasil yang sama ditolak pada
+kiriman kedua; pendaftaran rekam medis **tepat satu** per rilis (`INV-50`).
+
+### A5.11 Dampak billing
+
+**Tidak ada dampak charge yang diketahui.** Kelayakan tagih terbit saat wadah dinyatakan layak
+(`LAB-INH-009`), bukan saat validasi maupun rilis.
+
+### A5.12 Dampak keselamatan klinis
+
+**Relevan terhadap keselamatan.** Batas yang dibuat eksplisit:
+
+| Risiko | Penjaga dalam arsitektur | Yang tetap di luar arsitektur |
+|---|---|---|
+| Salah ketik lolos | Empat mata `INV-42`; perilis ketiga `INV-43` | — |
+| Orang tanpa kompetensi mengesahkan hasil | Dua lapis `INV-45`; fail-closed pada data kewenangan | Isi daftar pemegang — `DEC-LAB-011`, `DEC-LAB-018` |
+| Hasil kritis dirilis tanpa jaring pelaporan | — | **`DEC-LAB-017`** — keputusan klinis, bukan arsitektur |
+| Hasil kritis malam hari tanpa pemvalidasi | — | **`DEC-LAB-011` sisa** |
+
+### A5.13 Gap arsitektur
+
+| ID | Gap | Dampak | Pemilik |
+|---|---|---|---|
+| `ARCH-GAP-LAB-05` | Aggregate pesanan membesar — **ditinjau ulang** A5.5 | Menyempit; tinjau lagi saat `S6` | Tim pembangun sistem |
+| `ARCH-GAP-LAB-08` | **Lima** usulan arsitektur yang belum dikonfirmasi: (1) snapshot peran **perilis**; (2) penyimpanan **dasar kewenangan**; (3) rilis-plus-pendaftaran rekam medis yang **atomik**; (4) **pengelola** daftar `LAB-DC-058` — *usulan:* kepala instalasi lewat layar pengelolaan dan data awal disiapkan pada rilis, mengikuti pola `LAB-DEC-019` seperti yang **ditetapkan** `LAB-DEC-082` bagi `LAB-DC-054`; `LAB-DEC-003` sendiri hanya menyebut *"alasan terkendali"*; (5) **bunyi penanda** saat pemvalidasi juga merilis — `LAB-DEC-003` hanya merumuskan *"divalidasi oleh pengisi sendiri"*, yang menggambarkan pasangan pengisi–pemvalidasi; *usulan:* *"Dirilis oleh pemvalidasi sendiri"* | `NON_BLOCKING_STANDARD` — kelimanya dapat ditetapkan desain dan disetujui lewat kontrak. Butir 5 **tercetak pada dokumen klinis**, sehingga persetujuan kontraknya wajib menyebut bunyinya kata per kata. **✅ Ditutup 2026-09-25:** kelimanya ditetapkan `02-backend-architecture.md` 20.10 butir 1-5 dan **disetujui** Yoga Aji Pratama bersama kontrak `EPIC-LAB-15` — butir 5 kata per kata | Desain `S4` + persetujuan kontrak |
+| `ARCH-GAP-LAB-09` | **Pembatalan pemeriksaan sesudah rilis.** Arsitektur **menolaknya** — dan penolakan ini **diturunkan**, bukan dipilih: `LAB-DEC-138` menyatakan hasil yang sudah dirilis *"tetap hanya lewat koreksi"*, `LAB-DEC-007` menetapkan siapa yang mengoreksi, dan `LAB-DEC-063` sudah menolak pembatalan **pesanan** pada `InProcess` dan `Completed`. **Yang tetap terbuka dan wajib terlihat:** `LAB-DEC-049` membiarkan pembatalan **pemeriksaan** terbuka *"sesudah kelayakan ditetapkan"* tanpa menyebut batas atasnya — ditulis sebelum rilis dirancang. Contoh yang belum terjawab: pemeriksaan salah pasien yang **sudah dirilis** — ditarik sebagai koreksi `S6`, atau dibatalkan? *(Revision 8 semula merujuk `DEC-LAB-014`; rujukan itu keliru — `DEC-LAB-014` hanya memuat tiga pertanyaan klinis tentang koreksi)* | Tidak memblokir `S4`: arah yang aman sudah berlaku. Wajib dijawab **sebelum `S6` dirancang** — dicatat sebagai **`DEC-LAB-019`** (decisions rev 74) | Yoga Aji Pratama, lewat `grill-me` saat `S6` dibuka |
+
+### A5.14 Kesiapan arsitektur
+
+**`DOMAIN_ARCHITECTURE_READY` untuk `S4` — desain saja.** Ownership jelas (`BC-LAB` pemilik
+fakta, `BC-HR` dan `BC-MRC` dibaca dan diberi), lifecycle dan invariant terwakili, dampak billing
+nol, dampak keselamatan eksplisit, dan lima usulan yang tersisa (`ARCH-GAP-LAB-08`) tidak memblokir
+bentuk.
+
+**Pemakaian nyata tetap tertahan:** `DEC-LAB-011` sisa, `DEC-LAB-017`, `DEC-LAB-018`,
+`LAB-COORD-016`. Desain dan roadmap `S4` **wajib** membawanya ke Definition of Done dan menandai
+task rilisnya `BLOCKED`.
+
+### A5.15 Handoff
+
+**Ke `design-business-module`:**
+
+| Field | Nilai |
+|---|---|
+| Slice | `S4` validasi dan rilis hasil Patologi Klinik |
+| Kesiapan | `DOMAIN_ARCHITECTURE_READY` — desain saja |
+| Revision arsitektur | `LAB-DA-001` rev 8 |
+| Konsep | `LAB-DC-051`..`LAB-DC-058`, `LAB-EV-01`..`LAB-EV-03` |
+| Invariant | `INV-41`..`INV-51` |
+| Usulan yang wajib ditandai usulan | `ARCH-GAP-LAB-08` kelima butirnya — butir 5 (bunyi penanda) disetujui kata per kata |
+| Yang **wajib ditolak** tanpa diputuskan ulang | Pembatalan pemeriksaan sesudah rilis — `ARCH-GAP-LAB-09` |
+| Yang **tidak boleh** muncul | Status hasil baru; analis sebagai pemvalidasi; daftar penunjukan milik Laboratorium; jalur pintas saat data kewenangan kosong; formulir pelaporan kritis (`S5`); koreksi sesudah rilis (`S6`) |
+| Yang **wajib** ikut direncanakan | Data induk `LAB-DC-054` dan `LAB-DC-058` **beserta pengisiannya** — tanpa isi, *Kembalikan ke analis* dan jalur pengecualian malam hari tidak dapat dipakai sama sekali |
+
+---
+
 ## B. Ubiquitous Language
 
 Satu istilah, satu makna. Bila satu kata dipakai dua arti oleh bagian berbeda, perbedaannya
@@ -1399,6 +1616,7 @@ dijawab, yang berjalan di produksi tidak boleh disentuh.
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 8 | 2026-09-24 | **`S4` validasi dan rilis Patologi Klinik dirancang** (bagian A5), menurunkan `LAB-RCG-001-r8` bagian 0C. **Nol aggregate baru, nol status baru.** Delapan konsep (`LAB-DC-051`..`058`) dan tiga domain event — `LAB-DC-058` alasan pengecualian empat mata ditambahkan pada hari yang sama sesudah pemeriksaan ulang terhadap `LAB-DEC-003` menemukan jalur pengecualian **nyata** pada rilis malam hari; sebelas invariant (`INV-41`..`51`). **Dua context yang sudah ada disebut untuk pertama kali:** `BC-HR` sebagai upstream penunjukan kewenangan — Laboratorium hanya membaca, dan **fail-closed** bila datanya kosong — serta `BC-MRC` sebagai downstream dokumen hasil. **`ARCH-GAP-LAB-05` ditinjau ulang** seperti yang dimintanya sendiri: validasi dan rilis cukup dijaga per pemeriksaan, sehingga gap itu menyempit. **Dua gap baru:** `ARCH-GAP-LAB-08` lima usulan yang wajib ditandai usulan, dan `ARCH-GAP-LAB-09` pembatalan sesudah rilis yang ditolak. **Pemeriksaan kelengkapan 2026-09-25** — sesi 2026-09-24 terhenti sebelum A5 diperiksa terhadap kontrak — menyambungkan `LAB-DC-058` ke relasi dan audit, menambah dua usulan pada `ARCH-GAP-LAB-08` (pengelola daftar alasan pengecualian, bunyi penanda rangkap pemvalidasi–perilis), dan **membetulkan rujukan `ARCH-GAP-LAB-09`**: penolakannya diturunkan dari `LAB-DEC-138`/`007`/`063`, bukan `DEC-LAB-014`, dan ketegangannya dengan `LAB-DEC-049` kini tercatat. `DOMAIN_ARCHITECTURE_READY` **untuk desain saja** — pemakaian nyata tertahan `DEC-LAB-011` sisa, `DEC-LAB-017`, `DEC-LAB-018`, dan `LAB-COORD-016` | `draft` |
 | 7 | 2026-09-18 | **`S4c` dirancang ulang seluruhnya sesudah bukti `LAB-EVD-003`** — ditulis sebagai bagian **A4**, dan A3 dicabut sejauh menyangkut `S4c`. **Delapan konsep, sembilan invariant baru, nol aggregate baru.** **Satu penilaian revision 6 saya cabut sendiri, dan alasannya pantas disimpan:** laporan Patologi Anatomi dinilai `VALUE_OBJECT` atas tiga alasan — ketiga bagiannya selalu utuh, nol yang menunjuk kepadanya, dan ia berubah sebagai satu kesatuan. **Ketiganya gugur** oleh bukti baru: ruasnya bukan tiga melainkan sampai lima belas dan mana yang wajib bergantung kategori; nilai parameter kini menunjuk kepadanya dan ditambah-kurangi satu per satu; dan ia punya **lifecycle sendiri** — difinalkan, dibuka kembali, difinalkan lagi. **Sesuatu yang punya lifecycle dan punya yang menunjuk kepadanya adalah entity.** Penilaian revision 6 benar terhadap bukti saat itu; buktinya yang bertambah. **Yang paling dijaga pada revision ini satu kata:** `Final` **bukan** rilis. Ia dicatat sebagai fakta `FinalizedAt`/`FinalizedByUserId`, dan `INV-36` menegakkan nol status lifecycle. Bila `Final` diartikan rilis, `LAB-DEC-003` yang melarang pengisi merilis hasilnya sendiri akan bertabrakan dengan `LAB-DEC-090` yang menetapkan pengisi hasil PA adalah Dokter Lab — **pada orang yang sama**. **`INV-38` menolak dua kolom yang diminta artifact:** Waktu Issued dan Waktu Efektif **nol disimpan**, keduanya diturunkan dari `FinalizedAt` dan `LabSpecimen.CollectedAt`. **Dua gap baru dicatat apa adanya:** `ARCH-GAP-LAB-06`, `AGG-LAB-01` membesar lagi oleh empat konsep transaksional dan wajib ditinjau saat `S4d`/`S4e` dirancang; dan `ARCH-GAP-LAB-07`, konteks klinis menyentuh **alur pemesanan yang sudah berjalan** — bukan penahan, tetapi biayanya nyata dan tidak boleh ditemukan saat implementasi. **Empat pengecualian pada handoff seluruhnya BAGIAN, bukan slice:** gambar, HL7, cetak bilingual, dan Informasi Specimen. Laporan PA tetap utuh dan dapat dipakai patolog tanpa satu pun di antaranya | `draft` |
 | 6 | 2026-09-18 | **`S4b` naik `DOMAIN_ARCHITECTURE_READY` sesudah `LAB-DEC-084` menutup `DEC-LAB-015` pada hari yang sama.** Organisme dan antibiotik menjadi **dua data induk terkendali milik `BC-LAB`**, berprefix `Lab` mengikuti `LAB-OPEN-021`. `LAB-DC-041` dan `LAB-DC-042` memperoleh pemilik, identitas, dan invariant; relasi isolat→organisme dan kepekaan→antibiotik menjadi **wajib**, pengetikan bebas ditolak. Dua invariant ditambahkan: `INV-30` menolak teks bebas, dan `INV-31` menyatakan data induk yang dinonaktifkan tidak dapat dipakai pada baris **baru** tetapi **tidak mengubah** baris lama — pola yang sama dengan penunjuk batas nilai pada `S4a`, dan alasannya sama: hasil yang sudah terjadi tidak boleh berubah karena data induknya diperbarui. **Penempatan kedua data induk di dalam `BC-LAB` diberi pembelaan tersendiri** supaya tidak terbaca sebagai duplikasi data induk bersama: nol pemilik tandingan yang disaingi — sistem belum punya keduanya di mana pun — dan panel antibiotik uji kepekaan memang milik laboratorium secara domain, bukan formularium farmasi. **Satu pekerjaan diwajibkan ikut ke blueprint:** dua data induk baru **beserta cara mengisinya**, ditulis tegas karena `LAB-COORD-006` dan `MST-POS-WRITE` membuktikan data induk tanpa endpoint tulis adalah kegagalan yang sudah berulang dua kali di modul ini. **Verdict naik menjadi `DOMAIN_ARCHITECTURE_READY`**, dan kedua slice diserahkan ke `design-business-module`. Yang dikecualikan tinggal **satu bagian, bukan satu slice**: gambar hasil Patologi Anatomi, menunggu `DEC-LAB-016`. Riwayat penilaian `S4b` pada revision 5 **sengaja dipertahankan** di A3.16 — urutannya bermakna, dan menghapusnya akan menghilangkan pelajarannya | `draft` |
 | 5 | 2026-09-18 | **Perluasan untuk `S4b` dan `S4c`, dua slice pertama dari bagian hasil yang lolos gerbang** — ditulis sebagai bagian **A3**. Tujuh konsep ditambahkan, **nol bounded context baru**, **nol aggregate baru**, dan **nol status baru** — yang terakhir konsekuensi langsung `LAB-DEC-080`. **Keputusan pemodelan yang paling menentukan:** laporan Patologi Anatomi dimodelkan sebagai `VALUE_OBJECT`, bukan entity, sebab ketiga bagiannya wajib terisi, nol konsep lain menunjuk kepadanya, dan ia berubah sebagai satu kesatuan; sedangkan isolat mikrobiologi dan kepekaan antibiotik **memang** entity, sebab barisnya ditambah dan dikurangi satu per satu. **Satu kata diberi peringatan tersendiri:** BR-23 menyebut *"status `Normal`/`Positif`/`Negatif`"*, dan itu **bukan** status lifecycle melainkan **nilai hasil** — ia tidak bertentangan dengan `LAB-DEC-080`, dan dinamai ulang menjadi **status temuan** supaya tidak disalahartikan. **Verdict-nya `DOMAIN_ARCHITECTURE_PARTIAL`, dan itu koreksi ketiga atas gerbang `r7`:** `S4c` `READY` dan berdiri sendiri; **`S4b` `BLOCKED`** oleh `DEC-LAB-015` — BR-23 menyebut *"organisme per bakteri, antibiotik"* tanpa pernah menyatakan apakah keduanya **data induk terkendali**, dan tanpa itu identitas konsep intinya hanya dapat ditebak. Bila teks bebas, satu kuman akan tertulis empat cara dan **antibiogram rumah sakit mustahil disusun** — alasan yang sama persis dengan yang dipakai `LAB-DEC-082`. `S4c` tidak terkena hal itu karena **narasi tidak menunjuk data induk apa pun**. **Dua gap lain dicatat apa adanya:** `DEC-LAB-016` — gambar patologi adalah data klinis yang dapat mengidentifikasi pasien, sedangkan pola penyimpanan berkas yang ada di platform berupa `SaveFileAsync` privat per area di atas `IWebHostEnvironment`, nol layanan bersama; dan `ARCH-GAP-LAB-04` — hasil mikrobiologi **tidak punya cara menyatakan dirinya lengkap**, sebab biakan dibaca bertahap berhari-hari, dan itulah **biaya `LAB-DEC-081` yang baru terlihat di meja arsitektur**. Bagian gambar `S4c` dikecualikan dari handoff | `draft` |

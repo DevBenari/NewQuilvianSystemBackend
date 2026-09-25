@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `5` |
+| Revision | `7` — amandemen 2026-09-25 (`S4`). Sebelumnya `6` — amandemen 2026-09-24 |
 | Status | `draft` |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15`. **Revision 4 menambah amandemen Penerimaan Sampling/Specimen** — lihat bagian 11 |
 | Backend SHA | Revision 1-3: `c87d9c0`. **Revision 4: `466a7127`**, diverifikasi tidak berubah pada `9067fa73` |
@@ -570,3 +570,142 @@ Validasi dan rilis (`S4d`), pengiriman hasil (`LAB-COORD-011`), cetak dwibahasa
 Satu `LabSusceptibilityBreakpoint` **beserta keadaan nol baris** — `AC-186` dan jalur manual
 `VAL-114` menguji dua keadaan berlawanan, dan keadaan **nol baris** adalah yang pasti terjadi
 lebih dulu.
+
+---
+
+## Amandemen 2026-09-24 — Perluasan hasil Patologi Klinik dan perbaikan `S4b`
+
+| Field | Nilai |
+|---|---|
+| Status | **`draft`** |
+| Kontrak yang diuji | `LAB-API-v1` `r33`, `LAB-VAL-v1` `r11`, `LAB-PERM-v1` revision 10, `LAB-STATE-v1` `r4` — seluruhnya **`approved` 2026-09-24** |
+| Rancangan | `02-backend-architecture.md` bagian 19; `03-frontend-architecture.md` amandemen 2026-09-24 |
+
+### Matriks
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `AC-221` | Pengguna yang hanya memegang `LabExamination : Update` memanggil `PUT /result`, `PUT /result/microbiology`, `POST /result/finalize`, `POST /result/reopen`, `PUT /result/consultation` | Integrasi hak akses | **Kelimanya `403`**; `PUT /urgency` oleh pengguna yang sama tetap `200` |
+| `AC-222` | Pengguna yang hanya memegang `LabExaminationResult : Update` mengisi hasil, lalu mencoba batal, cito, duplo | Integrasi hak akses | Isi hasil `200`; batal, cito, duplo `403` |
+| `AC-223` | Sesudah deploy dan langkah 19.7, analis yang kemarin mengisi hasil mengisi lagi tanpa campur tangan admin tambahan | Uji rilis manual | Satu hasil tersimpan dalam jendela rilis |
+| `AC-224` | Laporan Patologi Anatomi diisi, Final, dan Reopen oleh pemegang izinnya sekarang | Regresi | Ketiganya berjalan seperti sebelum amandemen |
+| `AC-225` | Hasil Patologi Klinik dan Mikrobiologi yang sudah Final disimpan ulang | Integrasi | `409` `VAL-120`; isi di basis data **tidak berubah** |
+| `AC-225` — jalur gagal setengah jalan | Hasil Mikrobiologi Final dengan satu isolat dan dua belas baris antibiogram, lalu disimpan ulang dengan isolat pengganti | Integrasi | `409`; **tetap** satu isolat dan dua belas baris — nol penghapusan sempat terjadi |
+| `AC-226` | Konsultasi dicatat pada hasil Final | Integrasi | `409` `VAL-121` |
+| `AC-227` | Reopen beralasan, simpan, Final lagi | Integrasi | `ReopenCount` naik satu; satu baris `LabTransitionHistory` beralasan; `FinalizedAt` baru |
+| `AC-228` | Halaman Mikrobiologi menerima `409` | Unit test aturan + UI | Pesan terbaca; nilai yang diketik tetap di isian |
+| `AC-196` | Hasil Patologi Klinik Draft | Integrasi | Tidak dapat Reopen (`VAL-107`); belum masuk antrean validasi — **antrean diuji bersama `S4`** |
+| `AC-197` | Reopen hasil Patologi Klinik yang Final | Integrasi | `FinalizedAt` kosong, riwayat mencatat pelaku dan waktu |
+| `AC-214` | Hasil Patologi Klinik Final tanpa konsultasi; lalu hasil lain dengan konsultasi | Integrasi | Keduanya sah; ketiga fakta konsultasi terbaca; nol pilihan `Definitif` |
+| `AC-219` | Kalium 6,4 pada rujukan 3,5-5,1; Hemoglobin 9,4 pada 13,0-17,0; Protein urin `+2` di luar rujukan | Kontrak + UI | `High` → `H 6,4`; `Low` → `L 9,4`; `OutOfReference` → teks — **cetak hitam-putih tetap terbaca** |
+| `AC-234` | Buka order Patologi Klinik berisi 19 pemeriksaan, satu dibatalkan | Integrasi + UI | Satu panggilan `GET /by-order/{id}/results` mengembalikan **18** baris |
+| `AC-234` — jalur gagal | Buka order Mikrobiologi lewat jalur yang sama | Integrasi | `422` `VAL-123` |
+| `AC-235` | Buka Daftar Kerja | UI | Nol dialog isi hasil; aksi baris membuka halaman order |
+| `AC-236` | Final Kalium cito, Hemoglobin masih diisi | Integrasi + UI | Kalium Final; Hemoglobin tetap dapat disimpan |
+| `AC-237` | Isi dua baris, simpan satu | Unit test aturan | Isian baris kedua tetap ada |
+| `VAL-122` | Final atas baris pemeriksaan Patologi Anatomi | Integrasi | `422` dengan pesan yang mengarahkan ke laporan PA |
+
+### Yang tidak diuji pada amandemen ini
+
+| Yang tidak diuji | Alasan |
+|---|---|
+| Antrean validasi, rilis, *Kembalikan ke analis*, kewenangan dari kredensial Human Resource (`AC-229`..`AC-233`) | `S4` dihentikan — `DEC-LAB-011` |
+| Label order *Dalam Pemeriksaan*/*Selesai* (`AC-198`, `AC-199`) | Bergantung rilis |
+| Penanda `KRITIS` | `S5` |
+
+---
+
+## Amandemen 2026-09-25 — Validasi dan rilis hasil Patologi Klinik (`S4`)
+
+| Field | Nilai |
+|---|---|
+| Status | **`draft`** |
+| Kontrak yang diuji | `LAB-API-v1` `r34`, `LAB-VAL-v1` `r12`, `LAB-PERM-v1` revision 11, `LAB-STATE-v1` `r5`, `LAB-INT-v1` `r4` — **seluruhnya `approved` 2026-09-25** |
+| Rancangan | `02-backend-architecture.md` bagian 20; `03-frontend-architecture.md` amandemen 2026-09-25; kamus data bagian 17 |
+| Kesiapan | Desain saja — pemakaian nyata tertahan `DEC-LAB-011` sisa, `DEC-LAB-017`, `DEC-LAB-018`, `LAB-COORD-016` |
+
+### Matriks — tindakan dan keadaan hasil
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `AC-196` | Kalium Draft; tahap antrean `AwaitingValidation`; lalu validasi Kalium | Integrasi | Kalium **tidak** ada di antrean; validasi `422` `VAL-124` |
+| `AC-197` | Reopen Kalium Final yang belum divalidasi; ulangi sesudah divalidasi | Integrasi | Pertama `200`; kedua `409` `VAL-136`, `FinalizedAt` tetap terisi |
+| `AC-01` | Pengguna yang mengisi Kalium sekaligus memegang aksi dan kode validasi menekan Validasi tanpa alasan; lalu dengan alasan | Integrasi | Pertama `422` `VAL-129`; kedua `200`, `ValidationExceptionReasonId` dan salinan namanya terisi |
+| `AC-02` | Buka hasil dari `AC-01` | Integrasi + UI | `validationExceptionMarker` berbunyi persis usulan 20.10 butir 5; tampil di halaman hasil; baris riwayat `ValidateResult` membawa kode alasan. **Cetakan menyusul `S17`** |
+| `VAL-131` | Pemvalidasi yang memegang kode rilis merilis hasilnya sendiri tanpa alasan; lalu dengan alasan | Integrasi | Pertama `422`; kedua `200` dan `releaseExceptionMarker` berbunyi *"Dirilis oleh pemvalidasi sendiri — …"* |
+| `VAL-132` | (a) Alasan pengecualian dikirim padahal pelaku tidak merangkap; (b) alasan nonaktif; (c) alasan `requiresNote` tanpa catatan | Integrasi | Ketiganya `422`; **nol** kolom berubah |
+| `VAL-130` | Validasi hasil yang `ResultEnteredByUserId`-nya kosong | Integrasi | `422` dengan pesan yang menyuruh analis menyimpan ulang |
+| `VAL-126` | Validasi, rilis, dan *Kembalikan* atas pemeriksaan Mikrobiologi dan Patologi Anatomi | Integrasi | Keenamnya `422` |
+| `VAL-127` | Validasi pemeriksaan `Cancelled`, `Voided`, dan pemeriksaan pada order `Cancelled` | Integrasi | Ketiganya `422` |
+| `VAL-125`, `VAL-133` | Validasi dua kali; rilis dua kali | Integrasi | Kedua yang kedua `409`; **tetap satu** baris riwayat per tindakan |
+| `AC-205` | *Kembalikan* tanpa alasan; lalu dengan alasan *Sampel tertukar* | Integrasi | Pertama `422` `VAL-135`; kedua `200`, hasil **Draft**, `FinalizedAt` dan kolom validasi kosong, `ReopenCount` **tidak** naik |
+| `AC-206` | Baca riwayat hasil dari `AC-205` | Integrasi | Baris `ValidateResult` (pelaku, waktu) **masih ada dan tidak berubah**; baris `ReturnResultToAnalyst` berkode alasan; **nol** pemberitahuan, **nol** versi bernomor |
+| `AC-207` | *Kembalikan* hasil yang sudah dirilis | Integrasi | `409` `VAL-134` |
+| `VAL-143` | Batal pemeriksaan yang sudah dirilis; lalu batal pemeriksaan yang tervalidasi tetapi belum dirilis | Integrasi | Pertama `422`; kedua **tetap berjalan** seperti hari ini |
+| `AC-08`, `AC-198` | Order berisi Kalium cito dan Hemoglobin; Kalium dirilis, Hemoglobin masih Draft | Integrasi | Kalium `Released`; `resultProgress` order = `InProgress` |
+| `AC-199` | Semua pemeriksaan tidak batal dirilis; satu pemeriksaan lain dibatalkan | Integrasi | `resultProgress` = `AllReleased`; pemeriksaan batal tidak menahannya; **nol kolom** baru pada `LabOrder` — dibuktikan pada migration |
+
+### Matriks — kewenangan dua lapis
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `AC-229` | Dokter berjabatan calon dengan kode validasi PK aktif dalam masa berlaku | Integrasi | `200`; `ValidatedByPrivilegeId` menunjuk baris penunjukan itu |
+| `AC-215` | Jabatan calon, **nol** baris penunjukan | Integrasi | `403` *"Anda belum ditunjuk…"* |
+| `AC-216` | Punya baris penunjukan, jabatannya **tidak** memegang `Validate` | Integrasi hak akses | `403` dari filter, sebelum service |
+| `AC-217`, `AC-231` | Hanya kode validasi → rilis; hanya kode rilis → validasi | Integrasi | Keduanya `403` |
+| `AC-230` | Penunjukan `Suspended`, `Revoked`, `Expired`, dan di luar masa berlaku | Integrasi | Keempatnya `403`; `Version` dan seluruh kolom `LabExamination` **tidak berubah** |
+| `AC-233` | Delapan sebab `LabPrivilegeDenial`, termasuk akun tanpa `WorkforceProfileId` dan `IsClinicalServiceBlocked` | Integrasi | Delapan pesan berbeda, masing-masing menyebut sebabnya (`LAB-VAL-v1` `r12` 14.2) |
+| `VAL-128` — tanggal inklusif | Penunjukan berakhir 30 September; validasi 23.50 WIB tanggal 30, lalu 00.05 WIB tanggal 1 | Unit + integrasi | Pertama diterima; kedua ditolak *"sudah habis pada 30 September 2026"* |
+| `VAL-128` — pembacaan gagal | Resolver dipaksa gagal membaca | Unit | `503`; **nol** perubahan tersimpan |
+| `VAL-128` — kode belum ada di katalog | Katalog Human Resource belum memuat kode `LabClinicalPrivilegeCodes` | Integrasi | Setiap validasi `403` `NotAppointed` — **fail-closed** |
+| `AC-232` | Jalankan seluruh skenario di atas | Integrasi + tinjauan kode | Jumlah dan `UpdateDateTime` baris `WfpClinicalPrivilege` **sama** sebelum dan sesudah; nol `Add`/`Update` entity Human Resource di Laboratorium |
+| `AC-238` | Analis yang namanya pernah ditunjuk memvalidasi; dokter yang ditunjuk memvalidasi | Integrasi hak akses | Analis `403`; dokter `200` |
+| `AC-239` | Validasi; lalu jabatan dokter dinamai ulang dan ia dipindah jabatan | Integrasi | `validatedByPositionName` hasil lama **tidak berubah** |
+| `AC-239` — dua penempatan | Dokter punya dua penempatan aktif; hanya satu yang jabatannya memegang `Validate` | Unit | Snapshot menunjuk penempatan **yang memberi izin**, bukan penempatan utama yang tidak memegangnya |
+
+### Matriks — integrasi, konkurensi, antrean, data induk
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `INT-08` | Rilis satu hasil | Integrasi | **Tepat satu** baris `MrcClinicalDocumentIntegrity` berjenis `LaboratoryResult`, `DocumentId` = id pemeriksaan, `Signed`, `LockedAt` = waktu rilis |
+| `INT-08` — gagal | Rilis hasil yang kunjungannya tidak sah (data uji) | Integrasi | `422` `VAL-137`; **nol** `ReleasedAt`, **nol** baris riwayat `ReleaseResult`, **nol** baris rekam medis; hasil tetap `Validated` |
+| `INT-08` — kunjungan tertutup | Rilis hasil pasien rawat jalan yang kunjungannya sudah ditutup | Integrasi | `200`; dokumen tertanda tangan dan terkunci |
+| Konkurensi — Reopen lawan Validasi | Keduanya dikirim bersamaan pada Kalium Final | Integrasi berpasangan | Satu `200`, satu `409`. **Tidak pernah** ada baris dengan `ValidatedAt` terisi dan `FinalizedAt` kosong |
+| Konkurensi — dua validasi | Dua dokter memvalidasi Kalium yang sama bersamaan | Integrasi berpasangan | Satu `200`, satu `409`; satu baris riwayat `ValidateResult` |
+| Antrean | Tahap `AwaitingValidation` dan `AwaitingRelease`; tanpa `stage` | Integrasi | Isi tiap tahap sesuai 29.4; cito di atas; tanpa `stage` → `422` `VAL-139` |
+| `AC-17` | Kalium cito yang sudah terlambat lalu dirilis | Integrasi | Kalium **hilang** dari `GET /cito-overdue` dan `GET /pending` sesudah rilis |
+| `VAL-140`..`VAL-142` | Kode ganda; kode berhuruf kecil; mengubah kode lewat `PUT` | Integrasi | `409`; `422`; `422` |
+| Data induk — `requiresNote` | `POST` membawa `requiresNote = true`; lalu `PUT /system-flags` oleh pengguna tanpa `SystemFlag` | Integrasi hak akses | Ruas diabaikan pada `POST`; `403` pada `system-flags` |
+| Nol status baru | Bandingkan `LabExaminationStatus` sebelum dan sesudah | Regresi | Tetap empat nilai (`LAB-DEC-080`) |
+
+### Matriks — layar
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `LAB-FE-004` | Hasil berpengecualian dibuka di halaman hasil per order | UI | Penanda **terbaca sebagai teks**, bukan warna saja |
+| Peringatan pengisi | Pengisi hasil membuka barisnya sendiri dan menekan Validasi | Unit test aturan + UI | Pilihan alasan pengecualian muncul **sebelum** permintaan dikirim |
+| `403` lapis orang | Dokter yang belum ditunjuk menekan Validasi | UI | Pesan sebab dari backend tampil pada baris itu; tombol tidak hilang diam-diam |
+| Antrean | Buka `lab-worklists/validation-queue` | UI | Dua tahap; baris membuka halaman hasil ordernya |
+
+### Data uji tambahan
+
+| Data | Isi |
+|---|---|
+| Pengguna | Analis (`LabExaminationResult : Update`); dokter A (`Validate`, `Return`, kode validasi **dan** rilis PK); perilis B (`Release`, `Return`, kode rilis PK); pengguna tanpa `WorkforceProfileId` |
+| Penunjukan Human Resource | Satu baris per keadaan: `Active`, `Pending`, `Suspended`, `Revoked`, `Expired`, belum berlaku, berakhir hari ini, `IsClinicalServiceBlocked` |
+| Daftar alasan | Pada kedua daftar: satu aktif, satu nonaktif, satu `requiresNote` |
+| Order | Patologi Klinik berisi Kalium cito, Hemoglobin, dan satu pemeriksaan yang dibatalkan |
+
+**Kode kewenangan pada data uji** memakai nilai `LabClinicalPrivilegeCodes` yang sedang berlaku —
+jangan menulis `LAB-VAL-PK` langsung di test, sebab nilainya baru final lewat `LAB-COORD-016`.
+
+### Yang tidak diuji pada amandemen ini
+
+| Yang tidak diuji | Alasan |
+|---|---|
+| Baris *Validasi oleh* dan *Otorisasi oleh* pada cetakan | Cetakan Patologi Klinik milik `S17` |
+| `AC-218` — pesan menyebut disiplin yang belum ditunjuk | Baru dapat dibuktikan bersama `S4d` |
+| `AC-03`, `AC-04` — hasil kritis dan pelaporannya | `S5` |
+| Koreksi sesudah rilis | `S6` |
+| Peringatan satu pemegang per shift | Ditunda — `02-backend-architecture.md` 20.9 |
+| Simpan hasil, Final, dan konsultasi bersamaan | Milik `MVP-8` (`02-backend-architecture.md` 20.12) |

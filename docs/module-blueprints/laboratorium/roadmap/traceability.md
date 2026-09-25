@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | `blueprint_id` | `LAB-BP-001` |
-| Roadmap revision | `79` |
+| Roadmap revision | `84` — traceability `MVP-9` ditambahkan 2026-09-25. Sebelumnya `83` — traceability `MVP-8` ditambahkan 2026-09-24. *Baris ini sempat tertinggal di `79` sementara riwayat sudah sampai `82`; dirapikan 2026-09-24* |
 | Status | `DRAFT` |
 | Tanggal | 2026-09-02; **`EPIC-LAB-11` ditambahkan 2026-09-14** |
 | Manifest | `blueprint-manifest.md` revision `68` — disegarkan 2026-09-18 sore sesudah `r25`/`r8`/rev 7 disetujui; nilai lama `67` berlaku beberapa jam, dan `38` tertinggal sejak revision 23 |
@@ -339,6 +339,8 @@ belum pernah dijalankan sekalipun.
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 84 | 2026-09-25 | **Traceability gelombang `MVP-9` ditambahkan** (bagian akhir dokumen): delapan belas baris requirement-ke-task untuk `EPIC-LAB-15` — enam belas `FR-15.x`, fondasi skema, dan temuan `Version` yang memperluas `BE-LAB-68` — dua belas hash masukan, delapan coverage gap, dan sembilan penahan rilis `MVP-9d`. **Satu catatan pada traceability `MVP-8`:** keempat hash kontraknya berubah karena amandemen `EPIC-LAB-15` ditempel di berkas yang sama, sedangkan bagian yang dirujuk `MVP-8` tidak disunting — diverifikasi dari riwayat suntingan, bukan hash per bagian, sebab bagian itu belum pernah di-commit. **`FR-15.16` `BLOCKED`**, dan itu bukan kegagalan roadmap: kebijakan, kode katalog, dan penunjukan adalah langkah rilis yang menunggu empat pemilik di luar tim pembangun | `DRAFT` |
+| 83 | 2026-09-24 | **Traceability gelombang `MVP-8` ditambahkan** (bagian akhir dokumen): empat belas baris requirement-ke-task untuk `EPIC-LAB-14`, delapan hash masukan penuh, enam coverage gap, dan dua penahan rilis `MVP-8a`. Enam task — `BE-LAB-67`..`69`, `FE-LAB-35`..`37`. `FR-14.9` tercatat sebagai `OPEN DECISION` tanpa task; `FR-14.13` sebagai langkah rilis. **Pembukuan:** header tertinggal di `79` dan dirapikan | `DRAFT` |
 | 82 | 2026-09-23 | **`FE-LAB-28` selesai; `AC-146`..`AC-152` terbangun, dan `AC-194` milik `BE-LAB-66` terbukti.** Keenam jenis pemeriksaan PA yang tersisa digolongkan atas instruksi pemilik modul — **10/10** — sebagai **data uji menunggu tinjauan `DR-LAB-003`**; LBC dan FNAB diberi catatan khusus. `AC-146` dan `AC-150` **terbukti atas jawaban server sungguhan**, bukan fixture: 15 ruas dengan nol duplikat pada pesanan empat golongan, dan payload yang nol memuat waktu turunan. `AC-147` terpenuhi lewat ketiadaan; `AC-148`, `AC-149`, `AC-151`, `AC-152` terbangun, **belum diklik**. Satu cacat `FE-LAB-31` ditemukan dan diperbaiki — dialog `AC-126` yang hanya dapat ditutup dengan menghapus. Lihat [`FE-LAB-28.md`](../task/report/frontend/FE-LAB-28.md) | `DRAFT` |
 | 81 | 2026-09-23 | **`LAB-API-v1` `r32` disetujui dan `BE-LAB-66` dikerjakan pada hari yang sama — permukaan baseline tiga data induk Patologi Anatomi berdiri, dan penahan `FE-LAB-27` hilang.** Sebelas endpoint: parameter 4→8, golongan 6→10, penggolongan 4→7. Nol migration, nol entity, nol permission baru. **Ini menutup catatan yang `BE-LAB-65` bagian 6ad.1 sengaja tinggalkan**, dan sekaligus kali ketiga bentuk yang sama menahan task frontend — sesudah `FE-LAB-24`→`BE-LAB-65` dan `FE-LAB-34`→`BE-LAB-64`. **Satu koreksi terhadap catatan itu dibawa serta:** grup penggolongan tercatat "kurang kelimanya", padahal `LabProcedurePathologyCategory` **nol punya `IsActive`** — ia baris pemetaan, bukan data induk berstatus — sehingga `PATCH /{id}/status` nol berlaku, dan `GET /options` nol punya pembaca (`QBE-OPT-001`). **Tiga** yang benar-benar berlaku; keduanya **dinyatakan pada metadata** lewat `supportsStatusToggle: false` dan `hasOptionsEndpoint: false`, supaya layar membacanya alih-alih menyimpulkan dari endpoint yang menjawab `404`. **Satu ruas ringkasan menjawab penahan yang bukan kode:** `unmappedProcedure` memberi kepala instalasi angka jenis pemeriksaan PA yang belum digolongkan — pekerjaan yang `FE-LAB-28` tunggu, dan yang sampai kemarin nol punya cara dihitung selain membuka daftar usulan satu per satu; definisinya sama persis dengan `GET /suggestions` supaya ringkasan dan daftar nol saling membantah. **Satu selisih `BE-LAB-65` ditemukan dan sengaja nol ditambal:** metadata `LabOrganism`/`LabAntibiotic` mengiklankan `SortOptions` padahal query-nya nol punya ruas sort — ketiga grup PA karena itu mengirimnya kosong, dan keputusan atas kedua grup Mikrobiologi diserahkan pemilik modul. **Batas verifikasi disebut apa adanya:** kesebelas endpoint **nol pernah dipanggil**, `AC-192`..`AC-194` `NOT RUN`, sebab aplikasi gagal start karena `Jwt:Key` belum dikonfigurasi dan nilainya rahasia pemilik. Lihat [`BE-LAB-66.md`](../task/report/backend/BE-LAB-66.md) | `DRAFT` |
 | 80 | 2026-09-23 | **Kolom AC gelombang `MVP-7b` disinkronkan terhadap source, dan sinkronisasi itu menemukan tiga butir yang belum ada — bukan sekadar belum bertanda.** `AC-177`..`AC-191` sebelumnya seluruhnya tak bertanda, sehingga tabel nol membedakan yang berdiri dari yang belum; penyebabnya laporan `FE-LAB-31`/`32`/`33` menelusuri `AC-157`..`AC-170` saja dan **nol mengklaim** satu pun AC gelombang ini. Pembacaan source menandai lima sebagai terbangun-belum-diklik (`AC-177` sisi layar, `AC-185`, `AC-186`, `AC-189`, `AC-191`), **tiga sebagai belum ada** (`AC-178`, `AC-187`, `AC-188`), dan **satu terpenuhi sebagian** (`AC-190` — aturannya benar, penandanya nol punya kontrol). **Yang paling pantas dibaca dari entri ini adalah bentuk ketiga temuan pertama, bukan jumlahnya:** pada `AC-178`, `AC-187`, dan `AC-190` ruasnya **sudah sampai ke payload** dan aturannya **sudah ditulis dan lulus uji** — yang tidak ada adalah **permukaan untuk mengisinya**. `concentrationUnitId` nol muncul pada satu pun komponen tampilan Laboratorium sementara aturannya menolak kadar tanpa satuan, sehingga kolom `Kadar` **buntu**: analis memperoleh penolakan yang nol dapat dipenuhi dari mana pun. `resultOverrideReason` sama persis — dibaca, dikosongkan, dikirim, nol dirender. **Uji unit nol menangkap keduanya, dan itu bukan kelalaian pengujinya:** yang diuji adalah fungsi murni, bukan apakah ada jalan mengisi masukannya. Kelas ini sudah pernah dibayar `BE-LAB-65` bagian 6ad.3 — satu kolom yang nol punya jalan diisi. Temuan keempat, `AC-188`, berbeda bentuk: tabel antibiogram masih **satu bentuk** berisi keenam kolom sekaligus walau pemilih metodenya sudah berdiri. **Akibatnya bagi status:** `FE-LAB-31` tetap ⚠ `SELESAI DENGAN BATAS VERIFIKASI`, dan batasnya kini diketahui lebih besar daripada sekadar belum diklik; `FE-LAB-33` dan `FE-LAB-34` nol berubah. Nol baris kode disentuh pada revisi ini | `DRAFT` |
@@ -629,3 +631,163 @@ belum diklik**. `FE-LAB-33` dan `FE-LAB-34` nol berubah.
 
 Gelombang ini memakai `AC-177`..`AC-191`, melanjutkan `AC-156`..`AC-176` milik `MVP-7`.
 Penjelasan lompatan dari `AC-99` ada pada traceability `MVP-7` dan tabel AC decision log.
+
+---
+
+## Traceability gelombang `MVP-8` — `EPIC-LAB-14` (2026-09-24)
+
+| Field | Nilai |
+|---|---|
+| Epic | `EPIC-LAB-14` — `04-prd-to-mvp.md` bagian 20 |
+| Kontrak | `LAB-API-v1` `r33`, `LAB-VAL-v1` `r11`, `LAB-PERM-v1` rev 10, `LAB-STATE-v1` `r4` — **`approved` 2026-09-24** |
+| Approval | Yoga Aji Pratama (`yogaaji452@gmail.com`), pemilik modul, 2026-09-24 — termasuk pencabutan tiga route Mikrobiologi |
+| Backend SHA | `ddeb5ed8` (branch `yoga`) |
+| Frontend SHA | `72607a087` (branch `YogaV2`) |
+| Masukan | decisions rev 72; capability map rev 5; `02-backend-architecture.md` rev 9; `03-frontend-architecture.md` rev 9; `04-prd-to-mvp.md` rev 7 |
+
+### Hash masukan
+
+Dihitung saat roadmap ini ditulis dengan metode manifest — `tr -d '\r' < <berkas> | sha256sum`.
+Kerja paralel backend dan frontend sah **selama hash kontrak di bawah tidak berubah**; bila salah
+satu kontrak disunting, kedua pihak berhenti dan membaca ulang.
+
+| Berkas | sha256 |
+|---|---|
+| `00-interview-decisions.md` | `1f8a8bd8b86bd68921bbd1062247b23119c803787359f79a56e9ce209eb473b4` |
+| `02-backend-architecture.md` | `9a203e5187c9601a630a8c3faf7ca769b9be0da37f2a5ac6ba74ff5d2c7dcd03` |
+| `03-frontend-architecture.md` | `614f3446dfd808df9803212c7f01f4ebd1e00321506964bc27f2b486fb6ff3fd` |
+| `04-prd-to-mvp.md` | `b70253a063c0649b0216de1d6f14c9c894ff42dc2e16ed1a6285c275b85b2683` |
+| `contracts/api-contract.md` | `276093f1396451196a285f19867fb2d4d6cbc778b6fc53151c612c38ee7e7b4d` |
+| `contracts/validation-matrix.md` | `1ecfd7e66f4145713a320f6c124cd328ed79b2250ac7663764dd0f290b94265b` |
+| `contracts/permission-audit-matrix.md` | `73e262af8100a917f0a4ff6c5a0f35deaaf64c645dc1777529e5f4c17aad3abe` |
+| `contracts/state-transition-matrix.md` | `1a80f835cff3b2ce92bf3522ec4514886530bf14dfed8f055295ec24abadd820` |
+
+> **⚠ Keempat hash kontrak di atas berubah pada 2026-09-25 — dan itu bukan tanda berhenti bagi
+> `MVP-8`.** Amandemen `EPIC-LAB-15` ditempel pada berkas yang sama: `r34` bagian 29, `r12` bagian
+> 14, rev 11 bagian 13, `r5` bagian 7, ditambah baris *Revision* di kepala masing-masing. **Bagian
+> yang dirujuk `MVP-8` — 28, 13, 12, dan 6 — tidak disunting**; ini diverifikasi dari riwayat
+> suntingan sesi 2026-09-25, **bukan** dari hash per bagian, sebab bagian-bagian itu belum pernah
+> di-commit sehingga tidak ada pembanding di Git. Nilai hash yang berlaku sekarang ada pada
+> *Traceability gelombang `MVP-9`*. **Satu perubahan memang menyentuh `MVP-8`:** cakupan
+> `BE-LAB-68` diperluas dengan kenaikan `Version` (`backend-roadmap.md` 6aj.2), masih di dalam
+> janji `r33` 28.2.
+
+### Requirement ke task
+
+| Requirement | Decision | Desain | Kontrak | Task backend | Task frontend | AC | Status |
+|---|---|---|---|---|---|---|---|
+| `FR-14.1` izin hasil tersendiri | `LAB-DEC-146` | BE 19.4, 19.11 | PERM rev 10; `r33` 28.2 | `BE-LAB-67` | `FE-LAB-35` | `AC-221`, `AC-222` | Direncanakan |
+| `FR-14.2` cito, batal, duplo tidak berubah | `LAB-DEC-146` | BE 19.4 | PERM rev 10 12.3 | `BE-LAB-67` | — | `AC-221` | Direncanakan |
+| `FR-14.3` simpan hasil Final ditolak | `LAB-DEC-147` | BE 19.1, 19.4 | VAL `r11` `VAL-120` | `BE-LAB-68` | `FE-LAB-35`, `FE-LAB-36` | `AC-225`, `AC-227`, `AC-228` | Direncanakan |
+| `FR-14.4` konsultasi pada hasil Final ditolak | `LAB-DEC-147` | BE 19.4 | VAL `r11` `VAL-121` | `BE-LAB-68` | — | `AC-226` | Direncanakan |
+| `FR-14.5` Final, Reopen, konsultasi netral disiplin | `LAB-DEC-135`, `LAB-DEC-141` | BE 19.4 | `r33` 28.2; VAL `VAL-122`; STATE `r4` 6 | `BE-LAB-67`, `BE-LAB-69` | `FE-LAB-36` | `AC-196`, `AC-197`, `AC-214` | Direncanakan |
+| `FR-14.6` route Mikrobiologi lama dicabut | `LAB-DEC-146` | BE 19.10 butir 1 | `r33` 28.4 | `BE-LAB-67` | `FE-LAB-35` | — (DoD kedua task) | Direncanakan |
+| `FR-14.7` jalur baca per order | `LAB-DEC-149` | BE 19.4 | `r33` 28.2; VAL `VAL-123` | `BE-LAB-69` | `FE-LAB-36` | `AC-234` | Direncanakan |
+| `FR-14.8` penanda `L`/`H` | `LAB-FE-015` | BE 19.4; FE amandemen | `r33` 28.3 | `BE-LAB-69` | `FE-LAB-36` | `AC-219` | Direncanakan |
+| `FR-14.9` teks hasil pilihan di luar rujukan | `LAB-FE-015` | BE 19.10 butir 2 | — | — | — | — | **`OPEN DECISION`** — sengaja nol task |
+| `FR-14.10` halaman per order | `LAB-DEC-149`, `LAB-FE-017` | FE amandemen | `r33` | — | `FE-LAB-36` | `AC-234`, `AC-236`, `AC-237` | Direncanakan |
+| `FR-14.11` dialog Daftar Kerja dicabut | `LAB-DEC-149` | FE amandemen | — | — | `FE-LAB-37` | `AC-235` | Direncanakan |
+| `FR-14.12` halaman Mikrobiologi menangani `409`/`403` | `LAB-DEC-146`, `LAB-DEC-147` | FE amandemen | `r33` | — | `FE-LAB-35` | `AC-228` | Direncanakan |
+| `FR-14.13` kebijakan izin di jendela rilis | `LAB-DEC-146` butir 7 | BE 19.7 | PERM rev 10 12.5 | — | — | `AC-223` | **Langkah rilis**, bukan task — `backend-roadmap.md` 6aj.5 |
+| Laporan PA tidak terdampak | `LAB-DEC-146` butir 4 | BE 19.4 | PERM rev 10 12.3 | `BE-LAB-67` | — | `AC-224` | Direncanakan — regresi |
+
+### Coverage gap
+
+| Yang belum tercakup task | Sebab | Pemilik |
+|---|---|---|
+| `FR-14.9` | `OPEN DECISION` | Yoga Aji Pratama |
+| `AC-198`, `AC-199` label order *Dalam Pemeriksaan*/*Selesai* | Bergantung rilis — `S4` | `S4` belum lolos gerbang requirement dan arsitektur domain |
+| `AC-229`..`AC-233` kewenangan dari kredensial Human Resource | `S4`; `LAB-COORD-016` | Pemilik `human-resource`; `S4` |
+| `AC-238`, `AC-239` validasi hanya dokter dan snapshot peran | `S4` | `S4` |
+| `AC-240` balasan WhatsApp | `S5` | `LAB-P0-004` |
+| `AC-223` analis tidak terkunci | Langkah rilis, bukan kode | Admin sistem |
+
+### Penahan rilis `MVP-8a`
+
+| Penahan | Pemilik | Menahan |
+|---|---|---|
+| `UNK-P14-01` — jabatan mana yang analis | Admin sistem + kepala instalasi | **Rilis** `MVP-8a`, bukan pengembangannya |
+| Rilis bersama `BE-LAB-67`, `BE-LAB-68`, `FE-LAB-35` | Pemilik rilis | Satu tanpa yang lain memutus halaman Mikrobiologi |
+
+## Traceability gelombang `MVP-9` — `EPIC-LAB-15` (2026-09-25)
+
+| Field | Nilai |
+|---|---|
+| Epic | `EPIC-LAB-15` — `04-prd-to-mvp.md` bagian 21 |
+| Kontrak | `LAB-API-v1` `r34`, `LAB-VAL-v1` `r12`, `LAB-PERM-v1` rev 11, `LAB-STATE-v1` `r5`, `LAB-INT-v1` `r4` — **`approved` 2026-09-25** |
+| Approval | Yoga Aji Pratama (`yogaaji452@gmail.com`), pemilik modul, 2026-09-25 — termasuk kesepuluh butir `02-backend-architecture.md` 20.10; butir 5 kata per kata, butir 6 pilihan A (perilis) |
+| Arsitektur domain | `LAB-DA-001` rev 8 bagian A5 — `DOMAIN_ARCHITECTURE_READY` untuk desain; `ARCH-GAP-LAB-08` tertutup oleh persetujuan ini |
+| Backend SHA | `ddeb5ed8` (branch `yoga`) |
+| Frontend SHA | `72607a087` (branch `YogaV2`) |
+| Masukan | decisions rev 74; capability map rev 5; `02-backend-architecture.md` rev 10; `03-frontend-architecture.md` rev 10; `04-prd-to-mvp.md` rev 8; kamus data rev 6; matriks uji rev 7 |
+
+### Hash masukan
+
+Dihitung sesudah persetujuan dicatat, dengan metode manifest — `tr -d '\r' < <berkas> | sha256sum`.
+Kerja paralel backend dan frontend sah **selama hash kelima kontrak di bawah tidak berubah**; bila
+salah satunya disunting, kedua pihak berhenti dan membaca ulang.
+
+| Berkas | sha256 |
+|---|---|
+| `00-interview-decisions.md` | `07c58233697bd9432a6745764f226ec176b09e6c07a948df51278b2aba317ebc` |
+| `03-domain-architecture.md` | `59393924c0d2fe55533d496d50e567d6aea6ae396203e07118f48b7276feef6a` |
+| `02-backend-architecture.md` | `184eecd05fcd6cafb6b04226d5d32a578532099d2c8536529712606e3b643ccb` |
+| `03-frontend-architecture.md` | `ab880f9ce13b556bc366c6173a2dc349734efd7ea0f0b4417e6d7751bbe3433a` |
+| `04-prd-to-mvp.md` | `4d4980ce14e228b639a8745ecb49eba28c2ba8e0a4eb26074cff3c9336a198aa` |
+| `erd/data-dictionary.md` | `162dbc9ac4ca8f3091bd24cabf4dfcb1292a50b019ade6782be59ae5f91c4f46` |
+| `contracts/api-contract.md` | `33b4bbb74750d3700c5ab6b1374387917e5258b7672f718be4088f1a9cfceb0c` |
+| `contracts/validation-matrix.md` | `d2bcbe3d1fb5cb2b608caf533c719e3b33536aff30ad05d9e9a63080b864dc95` |
+| `contracts/permission-audit-matrix.md` | `39f1c1f92cf09a02e9794c0c3f4d5b737c0aee9a04d09c12f0e6e030a88a65db` |
+| `contracts/state-transition-matrix.md` | `8541a74f9d47609cf8ead194b2ed6ec738fced5c8a14d55e2de3e2032b0c1dbc` |
+| `contracts/integration-contract.md` | `e2f9fe471fe76246c68c1d772bc0f54be26e1b38ce128506f4af806797f0a8c1` |
+| `testing/acceptance-test-matrix.md` | `229d1e4b3693732033011ae70ddd93a8a70ace1e4edcd356d3edf3fce636d06a` |
+
+### Requirement ke task
+
+| Requirement | Decision | Desain | Kontrak | Task backend | Task frontend | AC / bukti | Status |
+|---|---|---|---|---|---|---|---|
+| Fondasi skema | `LAB-DEC-080`, `LAB-DEC-017` | BE 20.4-20.7; kamus 17 | — | `BE-LAB-70` | — | DDL 17.6; nol baris ditulis ulang | Direncanakan |
+| `FR-15.1` validasi hasil Final | `LAB-DEC-135`, `LAB-DEC-150` | BE 20.1, 20.4 | `r34` 29.2; VAL `VAL-124`, `VAL-128` | `BE-LAB-73` | `FE-LAB-39` | `AC-196`, `AC-229`, `AC-238` | Direncanakan |
+| `FR-15.2` rilis per pemeriksaan | `LAB-INH-007`, `LAB-DEC-008`, `LAB-DEC-120` | BE 20.1 | `r34` 29.2; VAL `VAL-133` | `BE-LAB-74` | `FE-LAB-39` | `AC-198`, `AC-217` | Direncanakan |
+| `FR-15.3` pengecualian empat mata | `LAB-DEC-003`, `LAB-DEC-120` | BE 20.10 butir 5 | VAL `VAL-129`..`VAL-132` | `BE-LAB-71`, `BE-LAB-73`, `BE-LAB-74` | `FE-LAB-39` | `AC-01`, `AC-02` | Direncanakan |
+| `FR-15.4` sebab penolakan; fail-closed; nol tulis HR | `LAB-DEC-148` | BE 20.4 resolver | `INT-07`; VAL `VAL-128` 14.2 | `BE-LAB-72` | `FE-LAB-39` | `AC-230`..`AC-233` | Direncanakan |
+| `FR-15.5` snapshot jabatan | `LAB-DEC-150` butir 4 | BE 20.10 butir 1 | `r34` 29.3 | `BE-LAB-72`, `BE-LAB-73`, `BE-LAB-74` | `FE-LAB-39` | `AC-239` | Direncanakan |
+| `FR-15.6` *Kembalikan ke analis* | `LAB-DEC-138` | BE 20.4 | VAL `VAL-134`, `VAL-135`, `VAL-138`; STATE `r5` 7.2 | `BE-LAB-75` | `FE-LAB-39` | `AC-205`..`AC-207` | Direncanakan |
+| `FR-15.7` Reopen ditolak sesudah validasi | `LAB-DEC-135` butir 3 | BE 20.1 | VAL `VAL-136` | `BE-LAB-73` | `FE-LAB-39` | `AC-197` | Direncanakan |
+| `FR-15.8` dokumen rekam medis atomik | `LAB-DEC-017` | BE 20.1, 20.10 butir 3 dan 6 | `INT-08`; VAL `VAL-137` | `BE-LAB-74` | — | Baris `INT-08` matriks uji | Direncanakan |
+| `FR-15.9` antrean validasi | `LAB-DEC-135` butir 2 | BE 20.4; FE amandemen | `r34` 29.4; VAL `VAL-139` | `BE-LAB-77` | `FE-LAB-40` | `AC-196` | Direncanakan |
+| `FR-15.10` label order | `LAB-DEC-135`, `LAB-DEC-008` | BE 20.4 | `r34` 29.5 | `BE-LAB-76` | `FE-LAB-39` | `AC-198`, `AC-199` | Direncanakan |
+| `FR-15.11` Daftar Kerja tanpa hasil dirilis | `AC-17` | BE 20.4 | `r34` 29.8 | `BE-LAB-77` | — | `AC-17` | Direncanakan |
+| `FR-15.12` dua daftar alasan | `LAB-DEC-082`, `LAB-DEC-019` | BE 20.4, 20.8 | `r34` 29.6; VAL `VAL-140`..`VAL-142` | `BE-LAB-71` | `FE-LAB-38` | Baris `VAL-140`..`VAL-142` matriks uji | Direncanakan |
+| `FR-15.13` batal ditolak sesudah rilis | `LAB-DEC-138`, `LAB-DEC-063`; arah sementara `DEC-LAB-019` | BE 20.10 butir 10 | VAL `VAL-143` | `BE-LAB-74` | — | Baris `VAL-143` matriks uji | Direncanakan |
+| `FR-15.14` pengesah dan penanda di layar | `LAB-FE-004` | BE 20.4; FE amandemen | `r34` 29.3 | `BE-LAB-76` | `FE-LAB-39` | `AC-02`; `LAB-FE-004` | Direncanakan |
+| `FR-15.15` dua tindakan bersamaan | — (desain 20.1) | BE 20.1 | `r34` 29.2 kode `409` | `BE-LAB-73`, `BE-LAB-74`, `BE-LAB-75` | — | Uji konkurensi matriks uji | Direncanakan |
+| `FR-15.16` kebijakan, kode, penunjukan | `LAB-DEC-148`, `LAB-DEC-150` | BE 20.7 | PERM rev 11 13.7 | — | — | Langkah rilis | **`BLOCKED`** — `backend-roadmap.md` 6ak.10 |
+| Temuan `Version` pada penulisan hasil `MVP-8` | `LAB-DEC-147` | BE 20.1, 20.12 | `r33` 28.2 kode `409` | `BE-LAB-68` — **cakupannya diperluas** | — | Dua Final bersamaan → satu `409` | Direncanakan |
+
+### Coverage gap
+
+| Yang belum tercakup task | Sebab | Pemilik |
+|---|---|---|
+| `INT-08` **belum punya AC** di decision log | Kebutuhan lahir dari `LAB-DEC-017` tanpa AC bernomor; diuji lewat baris `INT-08` matriks uji | Yoga Aji Pratama — AC dapat ditambahkan lewat `/grill-me` |
+| `AC-218` pesan menyebut disiplin yang belum ditunjuk | Baru dapat dibuktikan bersama `S4d` | `DEC-LAB-011` sisa |
+| `AC-02` bagian cetakan | Cetakan Patologi Klinik milik `S17` | `S17` |
+| Peringatan satu pemegang per shift (`LAB-DEC-022` butir 4) | Ditunda — sumber jadwal jaga belum ditetapkan | `DEC-LAB-011` sisa |
+| Koreksi sesudah rilis | `S6` — `DEC-LAB-014`, `DEC-LAB-019`; pertanyaan *pemakaian sebelum `S6`* **belum ber-Decision ID** | Yoga Aji Pratama + `DR-LAB-001` |
+| `LAB-CONFLICT-014` | Menunggu keputusan; nol task | Yoga Aji Pratama |
+| Kemampuan `RegisterSignedAsync` dan konsep `LAB-DC-058` | **Belum ber-CAP** pada capability map | Impact scan berikutnya |
+| Bukti uji backend dapat dijalankan ulang | `LAB-RDY-C04` — berkas uji dikecualikan `.gitignore` | Pemilik repository backend |
+
+### Penahan rilis `MVP-9d`
+
+| Penahan | Pemilik | Menahan |
+|---|---|---|
+| `DEC-LAB-011` sisa — pemvalidasi di luar jam kerja dr. Bima | dr. Bima Prasetya, Sp.PK — `LAB-REQ-014` | Langkah 3 |
+| `DEC-LAB-018` — pemegang rilis | dr. Bima Prasetya, Sp.PK — `LAB-REQ-014` | Langkah 3-4 |
+| `DEC-LAB-017` — pemakaian sebelum `S5` | Yoga Aji Pratama + `DR-LAB-001` | Langkah 4 |
+| `LAB-COORD-016` — dua kode katalog | Pemilik `human-resource` | Langkah 2 |
+| `UNK-P14-03` — jabatan pemvalidasi dan perilis | Admin sistem + kepala instalasi | Langkah 4 |
+| Isi awal kedua daftar alasan | Kepala instalasi | Langkah 1 |
+| `LAB-CONFLICT-014` | Yoga Aji Pratama | Sebelum langkah 4 |
+| *(usulan)* Pemakaian sebelum koreksi `S6` | Yoga Aji Pratama + `DR-LAB-001` | Sebelum langkah 4 |
+| `MVP-8` dirilis lebih dulu | Pemilik rilis | Seluruh `MVP-9` |

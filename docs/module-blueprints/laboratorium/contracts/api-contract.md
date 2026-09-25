@@ -3,7 +3,8 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-API-v1` |
-| Revision | `25` |
+| Revision | **`34` — `approved`** 2026-09-25, bagian 29 (`S4` validasi dan rilis Patologi Klinik) — disetujui Yoga Aji Pratama beserta kesepuluh butir `02-backend-architecture.md` 20.10. Terakhir `approved`: `33` — **`approved`** 2026-09-24, bagian 28. *Baris ini sempat tertinggal di `r25` sejak `r26`; dirapikan 2026-09-24* |
+| `r33` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-24** — termasuk pencabutan tiga route Mikrobiologi |
 | `r25` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-18** |
 | Isi amandemen `r25` | **`approved` — 2026-09-18.** Laporan Patologi Anatomi **per pesanan** (`S4c` sesudah dirancang ulang), menurunkan `LAB-DEC-085`..`LAB-DEC-088` dan `LAB-DEC-091`..`LAB-DEC-094` beserta `LAB-DA-001` rev 7. Enam endpoint laporan/konteks klinis dan empat data induk. **Menggantikan bagian 19.3** yang ditandai `superseded` — jalur `/lab-examinations/{id}/result/pathology` salah alamat karena laporan PA melekat pada **pesanan**, bukan pemeriksaan. **Aditif terhadap yang berjalan**: bagian 19.3 nol pernah dibangun, sehingga penggantiannya nol memutus pemakai. Bagian 19.2 Mikrobiologi dan 19.4 data induk Mikrobiologi **tidak tersentuh**. Disetujui bersama `LAB-VAL-v1` `r8` dan `LAB-PERM-v1` rev 7 pada hari yang sama. Lihat bagian 20 |
 | `r24` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-18** |
@@ -2966,3 +2967,355 @@ alih-alih menyimpulkan dari ada-tidaknya endpoint.
 | Selisih baseline ketiga grup PA | Sebelas endpoint | `BE-LAB-66` | `AC-192`..`AC-194`, roadmap bagian 6af |
 | Penahan `FE-LAB-27` | Keseluruhan | `BE-LAB-66` | Ketiga layar dapat dibangun sesuai `master-data-feature-standard` |
 | Catatan `BE-LAB-65` 6ad.1 | — | `BE-LAB-66` | Ketiga grup nol lagi tercatat kurang |
+
+---
+
+## 28. Amandemen `r33` — Perluasan hasil Patologi Klinik dan perbaikan `S4b`, 2026-09-24
+
+> ### ✅ STATUS: `approved` — 2026-09-24
+>
+> | Butir | Isi |
+> |---|---|
+> | Status | **`approved`** |
+> | `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-24 |
+> | Dasar persetujuan | Instruksi pemilik modul pada sesi 2026-09-24: *"kerjakan semua langkah"*, atas daftar langkah yang butir pertamanya berbunyi *"Setujui empat kontrak `EPIC-LAB-14`, termasuk perubahan route secara eksplisit"*. **Pencabutan tiga route `/result/microbiology/*` (28.4) termasuk yang disetujui.** Usulan teks penanda hasil pilihan (`02-backend-architecture.md` 19.10 butir 2) **tidak** termasuk dan tetap terbuka |
+> | `input_revision` | decisions rev 71; capability map rev 5; `02-backend-architecture.md` rev 9 bagian 19 |
+> | Keputusan | `LAB-DEC-135`, `LAB-DEC-141`, `LAB-DEC-146`, `LAB-DEC-147`, `LAB-DEC-149`, `LAB-FE-015` |
+> | Sifat | **Sebagian memecah kompatibilitas** — tiga route dicabut dan digantikan route netral (28.4). Selebihnya aditif |
+> | Migration | **Nol** |
+> | Permission | Satu resource baru `LabExaminationResult` — `LAB-PERM-v1` revision 10 |
+> | Header dokumen | Tertinggal sejak `r26` (tertulis `r25`); dirapikan bersama amandemen ini |
+
+### 28.1 Kenapa amandemen ini ada
+
+Putaran 14 dan 15 memutuskan tiga hal yang menyentuh jalur hasil yang sudah berdiri:
+
+1. **Siapa boleh menulis hasil** — tindakan atas hasil dipisah ke izin tersendiri (`LAB-DEC-146`),
+   sebab hari ini satu izin `LabExamination : Update` juga dipegang dokter pemesan untuk cito.
+2. **Final harus stabil** — hasil yang sudah Final ditolak bila disimpan ulang (`LAB-DEC-147`).
+3. **Patologi Klinik mendapat Draft/Final/Reopen/konsultasi** dan diisi di **halaman per order**
+   (`LAB-DEC-135`, `LAB-DEC-141`, `LAB-DEC-149`), dengan penanda `L`/`H` berupa teks
+   (`LAB-FE-015`).
+
+### 28.2 `[Tags("Health Services / Laboratory Management / Lab Examination")]`
+
+Base URL: `api/v1/health-services/laboratory-management/lab-examinations`
+Contract version: `LAB-API-v1` `r33` — status `draft`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/by-order/{labOrderId}/results` | Membaca **seluruh** pemeriksaan Patologi Klinik yang tidak batal pada satu order beserta bentuk hasil, nilai, penanda, Final, dan konsultasinya — satu panggilan untuk satu halaman | `LabExamination : Read` | - | `ApiResponse<List<LabExaminationResultFormResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}/result` | Membaca bentuk dan isi hasil satu pemeriksaan | `LabExamination : Read` | - | `ApiResponse<LabExaminationResultFormResponse>` — **ruas bertambah**, 28.3 | Sudah ada — **diperbarui** |
+| `PUT` | `/{id}/result` | Mengisi hasil Patologi Klinik | **`LabExaminationResult : Update`** — sebelumnya `LabExamination : Update` | `LabExaminationResultRequest` | `ApiResponse<LabExaminationResultResponse>` — tambah `referenceFlag` | Sudah ada — **hak akses dan penjaga berubah** |
+| `PUT` | `/{id}/result/microbiology` | Mengisi hasil Mikrobiologi | **`LabExaminationResult : Update`** | `LabMicrobiologyResultRequest` | `ApiResponse<LabMicrobiologyResultResponse>` | Sudah ada — **hak akses dan penjaga berubah** |
+| `POST` | `/{id}/result/finalize` | Menyatakan penulisan hasil selesai — **bukan rilis** — untuk Patologi Klinik dan Mikrobiologi | **`LabExaminationResult : Update`** | - | `ApiResponse<LabExaminationCompletionResponse>` | **Rencana (belum tersedia)** — menggantikan `/result/microbiology/finalize` |
+| `POST` | `/{id}/result/reopen` | Membuka kembali penulisan sebelum validasi; alasan wajib | **`LabExaminationResult : Update`** | `LabReopenRequest` | `ApiResponse<LabExaminationCompletionResponse>` | **Rencana (belum tersedia)** — menggantikan `/result/microbiology/reopen` |
+| `PUT` | `/{id}/result/consultation` | Mencatat siapa mengonsultasikan, kepada siapa, kapan | **`LabExaminationResult : Update`** | `LabConsultationRequest` | `ApiResponse<LabExaminationCompletionResponse>` | **Rencana (belum tersedia)** — menggantikan `/result/microbiology/consultation` |
+
+**Tidak berubah:** `POST /{id}/cancel`, `PUT /{id}/urgency`, dan `PUT /{id}/duplo` tetap
+`LabExamination : Update`; `GET /{id}/result/microbiology` dan
+`GET /{id}/confirming-doctor-options` tetap `LabExamination : Read`. Seluruh jalur laporan
+Patologi Anatomi tidak disentuh.
+
+**Kode status dan artinya bagi pengguna:**
+
+| Kode | Kapan | Yang dibaca petugas |
+|---|---|---|
+| `200` | Berhasil | — |
+| `403` | Pengguna tidak memegang `LabExaminationResult : Update` — misalnya dokter pemesan | Anda tidak punya hak mengisi atau menyelesaikan hasil laboratorium |
+| `404` | Pemeriksaan atau order tidak ditemukan | Data tidak ditemukan |
+| `409` | Hasil sudah Final ketika disimpan ulang atau dicatat konsultasinya (`VAL-120`, `VAL-121`); Final ditekan dua kali; atau baris baru saja diubah orang lain (token `Version`) | Hasil ini sudah dinyatakan selesai. Buka kembali lebih dulu bila perlu diubah |
+| `422` | Isian tidak sah — Reopen tanpa alasan (aturan yang sudah berjalan), Reopen atas hasil yang belum Final (`VAL-107`), tindakan atas pemeriksaan Patologi Anatomi (`VAL-122`), atau order bukan Patologi Klinik pada jalur baca per order (`VAL-123`) | Pesan per aturan pada `LAB-VAL-v1` `r11` |
+
+### 28.3 Ruas respons yang bertambah
+
+**`LabExaminationResultFormResponse`** — dipakai `GET /{id}/result` dan jalur baca per order:
+
+| Ruas | Tipe | Boleh kosong | Arti |
+|---|---|:---:|---|
+| `urgency` | string | Tidak | `Routine` atau `Cito` — supaya halaman dapat mendahulukan pemeriksaan cito |
+| `referenceFlag` | string | Ya | `Normal`, `Low`, `High`, atau `OutOfReference`. Kosong bila hasil belum diisi atau batas nilainya tidak punya rentang |
+| `isFinalized` | bool | Tidak | `finalizedAt` terisi |
+| `finalizedAt` | DateTime | Ya | Kapan penulis menyatakan selesai |
+| `finalizedByUserId` | Guid | Ya | Siapa yang menyatakan selesai |
+| `reopenCount` | int | Tidak | Berapa kali penulisan dibuka kembali |
+| `isConsulted` | bool | Tidak | `consultedAt` terisi |
+| `consultedToName` | string | Ya | Kepada siapa dikonsultasikan |
+| `consultedAt` | DateTime | Ya | Kapan dikonsultasikan |
+
+**`LabExaminationResultResponse`** — dipakai `PUT /{id}/result`: tambah `referenceFlag`.
+`isOutOfNormalRange` **tetap** dikirim demi konsumen lama.
+
+**Contoh `referenceFlag`:**
+
+| Hasil | Batas normal | `referenceFlag` | Tampil |
+|---|---|---|---|
+| Kalium 6,4 mmol/L | 3,5 – 5,1 | `High` | `H 6,4` |
+| Hemoglobin 9,4 g/dL | 13,0 – 17,0 | `Low` | `L 9,4` |
+| Natrium 140 mmol/L | 135 – 145 | `Normal` | `140` |
+| Protein urin `+2` | pilihan `+1`, `+2` ditandai di luar rujukan | `OutOfReference` | `+2 — Di luar rujukan` (usulan, 19.10 butir 2) |
+
+Penanda dihitung dari **batas nilai yang tersimpan bersama hasil** (`ResultValueBoundId`), bukan
+batas yang berlaku hari ini. **Nilai kritis tidak termasuk** — itu `S5`.
+
+### 28.4 Perubahan yang memecah kompatibilitas
+
+| Dicabut | Pengganti | Konsumen yang terdampak |
+|---|---|---|
+| `POST /{id}/result/microbiology/finalize` | `POST /{id}/result/finalize` | Frontend `lab-microbiology-result-constants.jsx:16` |
+| `POST /{id}/result/microbiology/reopen` | `POST /{id}/result/reopen` | Frontend `lab-microbiology-result-constants.jsx:19` |
+| `PUT /{id}/result/microbiology/consultation` | `PUT /{id}/result/consultation` | Frontend `lab-microbiology-result-constants.jsx:22` |
+
+**Penilaian konsumen:** nol konsumen lain di kedua repository; `S4b` belum masuk Rilis 1.
+Backend dan frontend **wajib dirilis bersama**. Alternatif bila pemilik menolak:
+`02-backend-architecture.md` 19.10 butir 1.
+
+### 28.5 Traceability
+
+| Yang dikontrakkan | Keputusan | AC |
+|---|---|---|
+| Izin hasil pada lima tindakan | `LAB-DEC-146` | `AC-221`..`AC-224` |
+| `409` sesudah Final | `LAB-DEC-147` | `AC-225`..`AC-228` |
+| Final, Reopen, konsultasi netral disiplin | `LAB-DEC-135`, `LAB-DEC-141` | `AC-196`, `AC-197`, `AC-214` |
+| Jalur baca per order | `LAB-DEC-149` | `AC-234`, `AC-236` |
+| `referenceFlag` | `LAB-FE-015` | `AC-219` |
+
+## 29. Amandemen `r34` — Validasi dan rilis hasil Patologi Klinik (`S4`), 2026-09-25
+
+> ### ✅ STATUS: `approved` — 2026-09-25
+>
+> | Butir | Isi |
+> |---|---|
+> | Status | **`approved`** |
+> | `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-25 |
+> | Dasar persetujuan | Instruksi pemilik modul pada sesi 2026-09-25, apa adanya: *"Setujui kelima kontrak beserta 10 butir itu dan lanjut ke /quilvian-engineering-skills:plan-module-delivery"*. **Kesepuluh butir `02-backend-architecture.md` 20.10 termasuk yang disetujui**, dalam bunyi usulan rancangannya — butir 5 (bunyi penanda) **kata per kata**, dan butir 6 (penanda tangan dokumen rekam medis) **pilihan A: perilis** |
+> | `input_revision` | decisions rev 74; capability map rev 5; `LAB-RCG-001-r8` bagian 0C; `LAB-DA-001` rev 8 bagian A5; `02-backend-architecture.md` rev 10 bagian 20 |
+> | Keputusan | `LAB-DEC-003`, `LAB-DEC-008`, `LAB-DEC-017`, `LAB-DEC-080`, `LAB-DEC-082`, `LAB-DEC-120`, `LAB-DEC-135`, `LAB-DEC-138`, `LAB-DEC-142`, `LAB-DEC-143`, `LAB-DEC-148`, `LAB-DEC-150` |
+> | Kesiapan arsitektur domain | `DOMAIN_ARCHITECTURE_READY` **untuk desain saja** — pemakaian nyata tertahan `DEC-LAB-011` sisa, `DEC-LAB-017`, `DEC-LAB-018`, `LAB-COORD-016` |
+> | Dibangun di atas | `r33` bagian 28 (**approved**, belum dibangun): resource `LabExaminationResult`, route netral Final/Reopen, jalur baca per order |
+> | Sifat | **Aditif**, dengan dua perubahan perilaku yang disengaja (29.8) |
+> | Migration | **Satu** — `AddLabResultValidationAndRelease` (`02-backend-architecture.md` 20.7) |
+> | Permission | Tiga aksi baru pada `LabExaminationResult` dan dua resource data induk — `LAB-PERM-v1` revision 11 |
+> | Yang wajib disetujui tersendiri | Sepuluh butir `02-backend-architecture.md` 20.10 — termasuk **bunyi penanda yang tercetak** dan **penanda tangan dokumen rekam medis** |
+
+### 29.1 Kenapa amandemen ini ada
+
+Sampai `r33`, hasil Patologi Klinik berhenti di Final: penulisnya selesai menulis, tetapi **tidak
+seorang pun dapat menyatakannya sah**. Amandemen ini menambah tiga tindakan yang sudah diputuskan
+— **Validasi** oleh dokter berkewenangan laboratorium (`LAB-DEC-150`), **Rilis** oleh orang kedua
+(`LAB-DEC-120`), dan ***Kembalikan ke analis*** sebelum rilis (`LAB-DEC-138`) — beserta antrean
+yang menyajikan hasil yang menunggu, dan dua daftar alasan terkendali yang dibutuhkan keduanya.
+
+### 29.2 `[Tags("Health Services / Laboratory Management / Lab Examination")]`
+
+Base URL: `api/v1/health-services/laboratory-management/lab-examinations`
+Contract version: `LAB-API-v1` `r34` — status `approved` 2026-09-25
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `POST` | `/{id}/result/validate` | Menyatakan angka hasil Patologi Klinik yang sudah Final **benar** | `LabExaminationResult : Validate` | `LabResultSignOffRequest` | `ApiResponse<LabExaminationCompletionResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/result/release` | Merilis hasil tervalidasi sehingga menjadi dokumen klinis pasien — **sekaligus** mendaftarkannya ke rekam medis | `LabExaminationResult : Release` | `LabResultSignOffRequest` | `ApiResponse<LabExaminationCompletionResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/result/return` | Mengembalikan hasil tervalidasi yang **belum** dirilis kepada analis; hasil kembali Draft | `LabExaminationResult : Return` | `LabResultReturnRequest` | `ApiResponse<LabExaminationCompletionResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id}/result/reopen` | Tetap — kini **ditolak** bila hasil sudah divalidasi (`VAL-136`) | `LabExaminationResult : Update` | `LabReopenRequest` | `ApiResponse<LabExaminationCompletionResponse>` | **Rencana (belum tersedia)** — lahir `r33`, penjaganya bertambah di sini |
+| `GET` | `/by-order/{labOrderId}/results` | Tetap — setiap baris bertambah ruas validasi dan rilis (29.3) | `LabExamination : Read` | - | `ApiResponse<List<LabExaminationResultFormResponse>>` | **Rencana (belum tersedia)** — lahir `r33` |
+| `GET` | `/{id}/result` | Tetap — ruas bertambah sama | `LabExamination : Read` | - | `ApiResponse<LabExaminationResultFormResponse>` | Sudah ada — **diperbarui** |
+| `POST` | `/{id}/cancel` | Tetap — kini **ditolak** bila hasil pemeriksaan sudah dirilis (`VAL-143`, arah sementara `DEC-LAB-019`) | `LabExamination : Update` | Tetap | Tetap | Sudah ada — **penjaga bertambah** |
+
+**Hanya Patologi Klinik.** Ketiga tindakan baru menolak pemeriksaan Mikrobiologi dan Patologi
+Anatomi dengan `422` `VAL-126`; validasi dan rilis keduanya adalah `S4d` dan `S4e`.
+
+**Kode status dan artinya bagi pengguna:**
+
+| Kode | Kapan | Yang dibaca petugas |
+|---|---|---|
+| `200` | Berhasil | — |
+| `403` | (a) Pengguna tidak memegang aksi `Validate`, `Release`, atau `Return` — lapis jabatan. (b) Pengguna memegangnya tetapi **tidak ditunjuk** pada kredensial Human Resource — lapis orang (`VAL-128`) | (a) *"Anda tidak punya hak memvalidasi hasil laboratorium."* (b) Pesan menyebut **sebabnya** — belum ditunjuk, masa berlaku habis, belum berlaku, ditangguhkan, dicabut, layanan klinis diblokir, atau akun belum terhubung data tenaga kerja (`AC-233`) |
+| `404` | Pemeriksaan, alasan, atau order tidak ditemukan | Data tidak ditemukan |
+| `409` | Sudah divalidasi (`VAL-125`); sudah dirilis (`VAL-133`); dikembalikan sesudah dirilis (`VAL-134`); Reopen sesudah validasi (`VAL-136`); baris baru saja diubah orang lain — token `Version` (`02-backend-architecture.md` 20.1) | Pesan per aturan pada `LAB-VAL-v1` `r12` |
+| `422` | Belum Final (`VAL-124`); bukan Patologi Klinik (`VAL-126`); batal atau gugur (`VAL-127`); merangkap peran tanpa alasan pengecualian (`VAL-129`, `VAL-131`); alasan tidak sah atau catatan wajib kosong (`VAL-132`, `VAL-135`); pengisi hasil tidak tercatat (`VAL-130`); belum divalidasi saat dirilis atau dikembalikan (`VAL-133`, `VAL-134`); pendaftaran rekam medis gagal (`VAL-137`) | Pesan per aturan |
+| `503` | Data kewenangan Human Resource **tidak dapat dibaca** saat itu | *"Data kewenangan klinis tidak dapat dibaca saat ini. Tindakan tidak dilakukan; coba lagi."* — **fail-closed**, tidak pernah diteruskan sebagai izin |
+
+### 29.3 Bentuk permintaan dan ruas respons
+
+**`LabResultSignOffRequest`** — dipakai Validasi **dan** Rilis:
+
+| Ruas | Tipe | Wajib | Batas | Arti |
+|---|---|:---:|---|---|
+| `exceptionReasonId` | Guid | Bila pelaku merangkap peran | Alasan **aktif** pada `lab-four-eyes-exception-reasons` | Validasi: pelaku juga pengisi hasil. Rilis: pelaku juga pemvalidasi. **Dikirim tanpa perlu → ditolak** `422`, supaya penanda pengecualian tidak pernah tercatat pada hasil yang tidak merangkap |
+| `exceptionNote` | string | Bila alasannya `requiresNote` | Maks. 500 karakter | Catatan bebas; disimpan pada riwayat, **tidak** tercetak |
+
+Contoh — dr. Bima merilis Kalium yang ia validasi sendiri pukul 02.14:
+
+```json
+{
+  "exceptionReasonId": "4f1c2e0a-6b1d-4c1e-9a55-0d3c2b7e8f10",
+  "exceptionNote": null
+}
+```
+
+**`LabResultReturnRequest`:**
+
+| Ruas | Tipe | Wajib | Batas | Arti |
+|---|---|:---:|---|---|
+| `correctionReasonId` | Guid | Ya | Alasan **aktif** pada `lab-result-correction-reasons` | Kenapa hasil dikembalikan |
+| `note` | string | Bila alasannya `requiresNote` | Maks. 500 karakter | Catatan bebas pada riwayat |
+
+**Ruas yang bertambah pada `LabExaminationCompletionResponse`, `LabExaminationResultFormResponse`,
+dan setiap baris jalur baca per order:**
+
+| Ruas | Tipe | Boleh kosong | Arti |
+|---|---|:---:|---|
+| `resultStatus` | string | Tidak | Keadaan **turunan**: `NotEntered`, `Draft`, `Final`, `Validated`, `Released` (`LAB-DEC-080`) — bukan kolom tersimpan |
+| `isValidated` | bool | Tidak | `validatedAt` terisi |
+| `validatedAt` | DateTime | Ya | Kapan divalidasi |
+| `validatedByUserId` | Guid | Ya | Pemvalidasi |
+| `validatedByName` | string | Ya | Nama pemvalidasi — baris *Validasi oleh* |
+| `validatedByPositionName` | string | Ya | Jabatan pemvalidasi **saat itu** |
+| `validationExceptionMarker` | string | Ya | Bunyi penanda bila pemvalidasi juga pengisi — usulan 20.10 butir 5. Kosong bila tidak merangkap |
+| `isReleased` | bool | Tidak | `releasedAt` terisi. **Kini bernilai sebenarnya** untuk Patologi Klinik; Mikrobiologi tetap `false` sampai `S4d` |
+| `releasedAt` | DateTime | Ya | Kapan dirilis |
+| `releasedByUserId` | Guid | Ya | Perilis |
+| `releasedByName` | string | Ya | Nama perilis — baris *Otorisasi oleh* (`LAB-DEC-120`) |
+| `releasedByPositionName` | string | Ya | Jabatan perilis saat itu — **usulan** 20.10 butir 1 |
+| `releaseExceptionMarker` | string | Ya | Bunyi penanda bila perilis juga pemvalidasi |
+| `deliveryBlockedReason` | string | Ya | Kosong bila sudah dirilis. Selebihnya tetap: *"Hasil ini belum dirilis, sehingga belum boleh dikirim kepada pasien."* |
+| `resultEnteredByUserId` | Guid | Ya | **Hanya pada `LabExaminationResultFormResponse`** — supaya layar dapat memperingatkan pengisi **sebelum** ia menekan Validasi |
+
+Contoh respons sesudah rilis berpengecualian:
+
+```json
+{
+  "labExaminationId": "0a7d2c1e-3f4b-4e55-8c21-9b6a0e4d7f33",
+  "procedureName": "Kalium",
+  "resultStatus": "Released",
+  "isFinalized": true,
+  "isValidated": true,
+  "validatedAt": "2026-09-26T19:12:00Z",
+  "validatedByName": "dr. Contoh Pemvalidasi, Sp.PK",
+  "validatedByPositionName": "Dokter Penanggung Jawab Laboratorium",
+  "validationExceptionMarker": null,
+  "isReleased": true,
+  "releasedAt": "2026-09-26T19:14:00Z",
+  "releasedByName": "dr. Contoh Pemvalidasi, Sp.PK",
+  "releasedByPositionName": "Dokter Penanggung Jawab Laboratorium",
+  "releaseExceptionMarker": "Dirilis oleh pemvalidasi sendiri — dr. Contoh Pemvalidasi, Sp.PK — Shift tunggal, tidak ada dokter lain bertugas",
+  "deliveryBlockedReason": null
+}
+```
+
+Nama pada contoh adalah **samaran**.
+
+### 29.4 `[Tags("Health Services / Laboratory Management / Lab Worklist")]`
+
+Base URL: `api/v1/health-services/laboratory-management/lab-worklists`
+Contract version: `LAB-API-v1` `r34` — status `approved` 2026-09-25
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/validation-queue` | Antrean hasil Patologi Klinik yang **menunggu validasi** atau **menunggu rilis** | `LabWorklist : Read` | `LabValidationQueueQuery` | `ApiResponse<PagedResult<LabValidationQueueItemResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/pending` | Tetap — pemeriksaan yang sudah **dirilis** kini tidak lagi termasuk | `LabWorklist : Read` | `LabWorklistPagedQuery` | Tetap | Sudah ada — **perilaku berubah** (29.8) |
+| `GET` | `/cito-overdue` | Tetap — keterlambatan berhenti dihitung saat pemeriksaan **dirilis** (`AC-17`) | `LabWorklist : Read` | `LabWorklistPagedQuery` | Tetap | Sudah ada — **perilaku berubah** (29.8) |
+
+**`LabValidationQueueQuery`** — mewarisi `LabWorklistPagedQuery` (`pageNumber`, `pageSize`,
+`onlyCito`, `search`), ditambah:
+
+| Ruas | Tipe | Wajib | Nilai |
+|---|---|:---:|---|
+| `stage` | string | Ya | `AwaitingValidation` — Final, belum divalidasi. `AwaitingRelease` — tervalidasi, belum dirilis |
+
+Disiplin **selalu Patologi Klinik** pada `r34`; ruas `discipline` diabaikan. Urutan: **cito lebih
+dulu**, lalu yang paling lama menunggu (`LAB-FE-006`).
+
+**`LabValidationQueueItemResponse`:** `examinationId`, `labOrderId`, `orderNumber`, `encounterId`,
+`patientName`, `medicalRecordNumber`, `procedureName`, `urgency`, `resultStatus`,
+`referenceFlag`, `finalizedAt`, `validatedAt`, `validatedByName`, `waitingSince` — `finalizedAt`
+untuk tahap validasi, `validatedAt` untuk tahap rilis.
+
+### 29.5 Ruas `resultProgress` — label order turunan
+
+| Endpoint | Tag | Perubahan |
+|---|---|---|
+| `GET /lab-monitoring/clinical-pathology` | `Health Services / Laboratory Management / Lab Monitoring` | Setiap item bertambah `resultProgress` |
+| `GET /lab-orders/{id}` | `Health Services / Laboratory Management / Lab Order` | Detail bertambah `resultProgress` |
+
+| Nilai | Tampil | Kapan |
+|---|---|---|
+| `InProgress` | *Dalam Pemeriksaan* | Masih ada pemeriksaan tidak batal yang belum dirilis |
+| `AllReleased` | *Selesai* | Seluruh pemeriksaan tidak batal sudah dirilis |
+| kosong | — | Order tanpa pemeriksaan tidak batal, atau bukan Patologi Klinik |
+
+**Nol kolom tersimpan** (`LAB-DEC-135`, `AC-199`). Namanya sengaja **bukan** `Completed`:
+`orderStatus` = `Completed` sudah ada dengan arti *ditandai selesai secara manual*, dan kedua arti
+itu belum diselaraskan — `LAB-CONFLICT-014`.
+
+### 29.6 Dua data induk alasan
+
+#### `[Tags("Health Services / Laboratory Management / Lab Result Correction Reason")]`
+
+Base URL: `api/v1/health-services/laboratory-management/lab-result-correction-reasons`
+Contract version: `LAB-API-v1` `r34` — status `approved` 2026-09-25
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/` | Daftar alasan, berhalaman | `LabResultCorrectionReason : Read` | `LabResultReasonPagedQuery` | `ApiResponse<PagedResult<LabResultReasonResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/options` | Pilihan alasan **aktif** untuk *Kembalikan ke analis* | `LabResultCorrectionReason : Read` | - | `ApiResponse<PagedResult<LabResultReasonOptionResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/filters/metadata` | Pilihan penyaring layar | `LabResultCorrectionReason : Read` | - | `ApiResponse<LabResultReasonFilterMetadataResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/summary` | Jumlah aktif, nonaktif, dan wajib catatan | `LabResultCorrectionReason : Read` | - | `ApiResponse<LabResultReasonSummaryResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id}` | Detail satu alasan | `LabResultCorrectionReason : Read` | - | `ApiResponse<LabResultReasonResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Menambah alasan | `LabResultCorrectionReason : Create` | `LabResultReasonCreateRequest` | `ApiResponse<LabResultReasonResponse>` | **Rencana (belum tersedia)** |
+| `PUT` | `/{id}` | Mengubah nama, keterangan, urutan. **Kode tidak dapat diubah** | `LabResultCorrectionReason : Update` | `LabResultReasonUpdateRequest` | `ApiResponse<LabResultReasonResponse>` | **Rencana (belum tersedia)** |
+| `PATCH` | `/{id}/status` | Mengaktifkan atau menonaktifkan | `LabResultCorrectionReason : Update` | `LabResultReasonStatusRequest` | `ApiResponse<LabResultReasonResponse>` | **Rencana (belum tersedia)** |
+| `PUT` | `/{id}/system-flags` | Menyetel `requiresNote` | `LabResultCorrectionReason : SystemFlag` | `LabResultReasonSystemFlagsRequest` | `ApiResponse<LabResultReasonResponse>` | **Rencana (belum tersedia)** |
+
+#### `[Tags("Health Services / Laboratory Management / Lab Four Eyes Exception Reason")]`
+
+Base URL: `api/v1/health-services/laboratory-management/lab-four-eyes-exception-reasons`
+Contract version: `LAB-API-v1` `r34` — status `approved` 2026-09-25
+
+Sembilan endpoint **berbentuk sama persis** dengan tabel di atas, dengan resource
+`LabFourEyesExceptionReason` pada setiap hak akses. `GET /options` dipakai layar Validasi dan Rilis
+ketika pelaku merangkap peran.
+
+**Nol endpoint hapus** pada kedua data induk — alasan yang pernah dipakai tidak boleh hilang dari
+riwayat; dinonaktifkan, bukan dihapus. Pola permukaan mengikuti `LabOrganism` (`r31` bagian 26),
+ditambah `system-flags` dari `LabRejectionReason`.
+
+**Bentuk `LabResultReasonCreateRequest`:** `reasonCode` (string, wajib, maks. 32, huruf besar,
+angka, dan tanda hubung), `reasonName` (string, wajib, maks. 200), `description` (string, maks.
+256), `sortOrder` (int, bawaan 0). `requiresNote` **tidak** diterima di sini — hanya lewat
+`system-flags`.
+
+| Kode | Kapan | Yang dibaca petugas |
+|---|---|---|
+| `409` | Kode alasan sudah dipakai baris yang belum dihapus (`VAL-140`) | *"Kode alasan ini sudah dipakai."* |
+| `422` | Kode atau nama kosong atau terlalu panjang; format kode tidak sah (`VAL-141`); mengubah kode (`VAL-142`) | Pesan per aturan |
+
+### 29.7 Akibat rilis di luar Laboratorium
+
+Rilis menambah **satu** baris `MrcClinicalDocumentIntegrity` berjenis `LaboratoryResult`, tertanda
+tangan dan terkunci — `LAB-INT-v1` `r4` `INT-08`. Isi hasil **tidak** disalin ke rekam medis
+(`LAB-DEC-017`). Rilis **tidak** mengirim pemberitahuan dan **tidak** menerbitkan fakta tagihan.
+
+### 29.8 Kompatibilitas
+
+| Perubahan | Sifat | Konsumen terdampak |
+|---|---|---|
+| Endpoint dan ruas baru | Aditif | Nol |
+| `isReleased` bernilai sebenarnya untuk Patologi Klinik | Perilaku berubah pada ruas yang sudah ada | Nol konsumen membacanya sebagai "selalu salah"; ruas itu justru dibuat untuk hari ini |
+| Reopen ditolak sesudah validasi | Aturan baru | Nol — validasi belum pernah ada |
+| Batal pemeriksaan ditolak sesudah rilis (`VAL-143`) | Aturan baru pada endpoint yang sudah ada | Nol hari ini — rilis belum pernah ada. **Arah sementara**: `DEC-LAB-019` dapat mengubahnya |
+| `GET /pending` dan `GET /cito-overdue` mengeluarkan pemeriksaan yang sudah dirilis | Perilaku berubah | Layar Daftar Kerja. Tidak ada yang hilang: pemeriksaan yang dirilis memang sudah selesai dikerjakan |
+
+### 29.9 Traceability
+
+| Yang dikontrakkan | Keputusan | Arsitektur domain | AC |
+|---|---|---|---|
+| Validasi | `LAB-DEC-135`, `LAB-DEC-150` | `INV-41`, `INV-45`, `INV-46` | `AC-196`, `AC-229`, `AC-238`, `AC-239` |
+| Rilis | `LAB-INH-007`, `LAB-DEC-120` | `INV-43`, `INV-44`, `INV-50` | `AC-217` |
+| Pengecualian empat mata | `LAB-DEC-003` | `INV-42`, `INV-43`, `LAB-DC-058` | `AC-01`, `AC-02` |
+| *Kembalikan ke analis* | `LAB-DEC-138` | `INV-47` | `AC-205`..`AC-207` |
+| Reopen sesudah validasi | `LAB-DEC-135` butir 3 | `INV-48` | `AC-197` |
+| Sebab penolakan terbaca | `LAB-DEC-148` | `LAB-DC-055` | `AC-230`, `AC-233` |
+| Antrean validasi | `LAB-DEC-135` butir 2 | A5.2 | `AC-196` |
+| `resultProgress` | `LAB-DEC-008`, `LAB-DEC-135` | A5.7 | `AC-198`, `AC-199` |
+| Dua data induk alasan | `LAB-DEC-082`, `LAB-DEC-138`, `LAB-DEC-003` | `LAB-DC-054`, `LAB-DC-058` | `AC-205` |

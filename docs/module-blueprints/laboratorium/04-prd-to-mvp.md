@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `6` |
+| Revision | `8` — bagian 21, `EPIC-LAB-15` validasi dan rilis Patologi Klinik, 2026-09-25 — **`draft`, kontraknya belum disetujui**. Sebelumnya `7` — bagian 20, `EPIC-LAB-14`, 2026-09-24 |
 | Status | `draft` |
 | Scope tambahan revision 4 | **`EPIC-LAB-11` Penerimaan Sampling/Specimen** dan gelombang `MVP-5` — lihat bagian 16 |
 | Scope tambahan revision 5 | **`EPIC-LAB-12` Konfirmasi Pesanan dan Pembatalan Beralasan** dan gelombang `MVP-5c` — lihat bagian 17. Ditambahkan 2026-09-15 dari rekonsiliasi bukti putaran 2 |
@@ -886,3 +886,316 @@ pemakaiannya pada nilai baru.
 | Persetujuan `r25`, `r8`, rev 7 | **Ya** — seluruh bagian PA | Yoga Aji Pratama |
 | Siapa mengisi pemetaan jenis pemeriksaan PA, dan kapan | **Ya** untuk `MVP-6b2` | Kepala instalasi + `DR-LAB-003` |
 | `DEC-LAB-016`, `LAB-COORD-012`, `LAB-COORD-013`, `S2b` | **Tidak** — masing-masing satu bagian | Platform / pemilik modul |
+
+---
+
+## 20. Amandemen 2026-09-24 — `EPIC-LAB-14` Perluasan hasil Patologi Klinik dan perbaikan `S4b`
+
+Menurunkan `02-backend-architecture.md` bagian 19, `03-frontend-architecture.md` amandemen
+2026-09-24, `erd/data-dictionary.md` bagian 16, dan usulan kontrak `LAB-API-v1` `r33`,
+`LAB-VAL-v1` `r11`, `LAB-PERM-v1` revision 10, `LAB-STATE-v1` `r4`. Keputusannya berasal dari
+amendment pass putaran 14 dan closure pass putaran 15 (decisions rev 71).
+
+**Seluruh entity, permission, dan endpoint yang disebut di bawah sudah tercatat pada dokumen
+itu.** Nol konsep lahir di sini. **Nol tabel dan nol kolom baru.**
+
+### 20.1 Batas epic ini — titik mulai dan titik akhir
+
+| Batas | Isi |
+|---|---|
+| **Titik mulai** | Order Patologi Klinik atau Mikrobiologi sudah berdiri dan wadahnya layak; analis membuka halaman hasil order itu |
+| **Titik akhir** | Setiap pemeriksaan tersimpan sebagai Draft atau Final, dengan penanda `L`/`H` dan catatan konsultasi bila ada. **Berhenti di situ** — nol validasi, nol rilis, nol pengiriman |
+
+**Yang dianggap selesai:** analis Patologi Klinik mengisi seluruh pemeriksaan satu order pada
+satu halaman dan menyatakannya selesai per pemeriksaan; hanya analis yang dapat menulis hasil;
+dan hasil yang sudah Final — Patologi Klinik maupun Mikrobiologi — tidak dapat berubah tanpa
+Reopen. **Yang tidak berubah:** hasil masih belum dapat dinyatakan sah oleh siapa pun.
+
+### 20.2 Kemampuan `MUST HAVE`
+
+| ID kemampuan asal | Kemampuan | Disposisi |
+|---|---|---|
+| `CAP-P14-01` | Analis mengisi hasil Patologi Klinik, pengisi tercatat otomatis | **`EXISTING / REUSE`** |
+| `CAP-P14-02` | Hanya pemegang izin hasil yang menulis hasil | **`EXTEND`** — resource turunan baru |
+| `CAP-P14-03` | Draft, Final, Reopen per pemeriksaan untuk Patologi Klinik | **`EXTEND`** — logika Mikrobiologi dipakai ulang |
+| `CAP-P14-04` | Hasil Final tidak dapat ditimpa | **`EXTEND`** — perbaikan atas yang sudah berdiri |
+| `CAP-P14-08` | Konsultasi Patologi Klinik | **`EXTEND`** — kolom sudah ada |
+| `CAP-P14-17` | Penanda `L`/`H` berhuruf | **`EXTEND`** |
+| `CAP-P14-18` | Halaman hasil Patologi Klinik per order tanpa modal | **`MISSING / NEW`** |
+
+**Yang ditunda, beserta penggantinya selama MVP:**
+
+| Ditunda | Sebab | Pengganti selama MVP |
+|---|---|---|
+| Validasi, rilis, antrean validasi, *Kembalikan ke analis* | `DEC-LAB-011` `BLOCKING`; `LAB-COORD-016` | Tidak ada pengganti di sistem: hasil belum sah dan **tidak dikirim** ke mana pun — keadaan yang sama dengan hari ini, tidak ada yang hilang |
+| Penanda `KRITIS` Patologi Klinik | `S5` — `LAB-P0-004` | Pelaporan nilai kritis tetap berjalan di luar sistem sesuai prosedur yang berlaku hari ini |
+| Label order *Selesai* | Bergantung rilis | Daftar pantau menampilkan keadaan per pemeriksaan |
+
+### 20.3 Functional requirement
+
+| ID | Kebutuhan | Dapat diuji lewat | Disposisi |
+|---|---|---|---|
+| `FR-14.1` | Mengisi hasil, Final, Reopen, dan mencatat konsultasi hanya dapat dilakukan pemegang `LabExaminationResult : Update` | `AC-221`, `AC-222` | `EXTEND` |
+| `FR-14.2` | Batal, cito, dan duplo tetap memakai `LabExamination : Update`; dokter pemesan tetap dapat menandai cito | `AC-221` | `EXISTING / REUSE` |
+| `FR-14.3` | Menyimpan hasil Patologi Klinik atau Mikrobiologi yang sudah Final ditolak `409`, tanpa perubahan setengah jalan | `VAL-120`, `AC-225` | `EXTEND` |
+| `FR-14.4` | Mencatat konsultasi pada hasil Final ditolak `409` | `VAL-121`, `AC-226` | `EXTEND` |
+| `FR-14.5` | Final, Reopen, dan konsultasi tersedia bagi Patologi Klinik lewat route netral disiplin; Patologi Anatomi ditolak | `r33` 28.2, `VAL-122`, `AC-196`, `AC-197`, `AC-214` | `EXTEND` |
+| `FR-14.6` | Route `/result/microbiology/finalize`, `/reopen`, `/consultation` dicabut; halaman Mikrobiologi beralih ke route netral **pada rilis yang sama** | `r33` 28.4 | `EXTEND` — memecah kompatibilitas, butuh persetujuan eksplisit |
+| `FR-14.7` | Seluruh pemeriksaan Patologi Klinik yang tidak batal pada satu order terbaca dalam satu panggilan | `GET /by-order/{labOrderId}/results`, `VAL-123`, `AC-234` | `MISSING / NEW` |
+| `FR-14.8` | Hasil angka di luar rujukan tampil dengan huruf `L` atau `H` di layar | `referenceFlag`, `AC-219` | `EXTEND` |
+| `FR-14.9` | Hasil pilihan di luar rujukan tampil sebagai teks | `referenceFlag = OutOfReference` | **`OPEN DECISION`** — teksnya menunggu persetujuan (19.10 butir 2) |
+| `FR-14.10` | Hasil Patologi Klinik diisi pada halaman per order; Final per pemeriksaan tidak mengunci baris lain; isian baris lain tidak hilang | `AC-234`..`AC-237` | `MISSING / NEW` |
+| `FR-14.11` | Dialog isi hasil pada Daftar Kerja dicabut; baris membuka halaman order | `AC-235` | `EXTEND` |
+| `FR-14.12` | Halaman Mikrobiologi menampilkan `409` dan `403` secara terbaca tanpa menghilangkan isian | `AC-228` | `EXTEND` |
+| `FR-14.13` | Kebijakan izin hasil bagi jabatan analis terpasang dalam jendela rilis yang sama | `AC-223`, `02-backend-architecture.md` 19.7 | `MISSING / NEW` — langkah rilis, bukan kode |
+
+### 20.4 Skenario UAT
+
+**Jalur berhasil — halaman Patologi Klinik.** Analis Sari membuka order Andi dari Daftar Kerja
+dan melihat 18 pemeriksaan pada satu tabel. Ia mengisi Kalium 6,4 — tampil `H 6,4` — dan
+menekan Final pada baris itu. Hemoglobin masih dapat ia isi. Ia mengisi 17 baris sisanya, dan
+menekan Final pada masing-masing.
+
+**Jalur gagal — hasil Final ditimpa.** Rekan Sari, dari tab yang terbuka sejak sebelum Final,
+mengirim Kalium 6,1. Sistem menjawab *"Hasil ini sudah dinyatakan selesai. Buka kembali lebih
+dulu bila perlu diubah."* Kalium tetap 6,4, dan angka 6,1 masih terlihat di isian rekannya
+untuk dibandingkan.
+
+**Jalur gagal — bukan analis.** dr. Rina menandai Kalium cito — berhasil. Dari akun yang sama,
+panggilan simpan hasil dijawab `403`, dan halaman order baginya tampil baca-saja.
+
+**Jalur gagal — Mikrobiologi setengah jalan.** Hasil kultur urin Final dengan satu isolat dan
+dua belas baris antibiogram. Simpan ulang dengan isolat pengganti ditolak `409`; basis data
+tetap memuat satu isolat dan dua belas baris.
+
+**Jalur gagal — disiplin keliru.** Petugas membuka order Mikrobiologi lewat halaman Patologi
+Klinik. Sistem menjawab `422` dan halaman menawarkan tautan ke halaman Mikrobiologi.
+
+**Jalur berhasil — Reopen.** Sari menekan Reopen pada Kalium dengan alasan *"Satuan salah
+ketik"*, membetulkan, dan Final lagi. `ReopenCount` = 1 dan riwayatnya memuat alasan itu.
+
+### 20.5 Definition of Done
+
+| # | Butir | Cara menjawabnya |
+|---:|---|---|
+| 1 | `LAB-API-v1` `r33`, `LAB-VAL-v1` `r11`, `LAB-PERM-v1` revision 10, `LAB-STATE-v1` `r4` **disetujui pemilik modul**, termasuk perubahan route yang memecah kompatibilitas | Ada `approved_by`/`approved_at` pada keempatnya |
+| 2 | Kelima tindakan hasil memakai `[AccessPermission("LabExaminationResult", "Update")]` berpasangan dengan `[AccessAction]` | Startup Development lolos `PermissionRegistryValidator` |
+| 3 | `VAL-120`..`VAL-123` ditegakkan | Setiap aturan punya bukti pemeriksaan |
+| 4 | Jalur baca per order memakai **satu** kueri untuk seluruh baris | Diperiksa pada log kueri, bukan niat |
+| 5 | Halaman Patologi Klinik per order berdiri; dialog Daftar Kerja **tidak ada lagi** | Diperiksa pada layar berjalan |
+| 6 | Kebijakan izin hasil terpasang bagi jabatan analis **saja** | Daftar pemegang pada layar Akses Role; dokter pemesan tidak ada di dalamnya |
+| 7 | **Nol kolom dan nol tabel baru**; **nol status hasil baru** | Dibuktikan **terbalik**: nol migration pada rilis ini |
+| 8 | **Nol penanda `KRITIS`** dan **nol tombol Validasi/Rilis** pada kedua halaman | Diperiksa pada layar berjalan |
+| 9 | **Nol route alias** `/result/microbiology/*` tersisa | Swagger tidak memuatnya |
+| 10 | Kebijakan **tidak** disalin otomatis dari `LabExamination : Update` | Nol seeder atau migration kebijakan pada rilis ini |
+
+> **Butir 7-10 sengaja berbentuk ketiadaan.** Keempatnya hal yang paling mungkin ditambahkan
+> dengan niat baik: status terasa rapi, tombol Validasi melengkapi layar, alias route terasa
+> aman, dan menyalin kebijakan terasa menghemat kerja admin. Yang terakhir **membuka kembali**
+> `LAB-CONFLICT-012`.
+
+### 20.6 Urutan pengiriman
+
+| Gelombang | Isi | Prasyarat |
+|---|---|---|
+| **`MVP-8a`** | **Perbaikan yang sudah berdiri:** izin hasil pada lima tindakan, penjaga Final Mikrobiologi, route netral, dan halaman Mikrobiologi beralih — **backend dan frontend dirilis bersama**, disusul langkah kebijakan 19.7 | Kontrak disetujui; `UNK-P14-01` dibaca admin sebelum rilis |
+| **`MVP-8b`** | Backend perluasan Patologi Klinik: penjaga Final `PUT /result`, penjaga disiplin, jalur baca per order, `referenceFlag` | `MVP-8a` |
+| **`MVP-8c`** | Frontend halaman Patologi Klinik per order; dialog Daftar Kerja dicabut | `MVP-8b` |
+| **`POST-MVP`** | Validasi dan rilis (`S4`/`S4d`), *Kembalikan ke analis*, kewenangan dari kredensial Human Resource; penanda `KRITIS` (`S5`) | `DEC-LAB-011`; `LAB-COORD-016`; `LAB-P0-004` |
+
+> **`MVP-8a` sengaja didahulukan, dan itu keputusan berbasis risiko.** Isinya menutup dua celah
+> pada kode yang **sudah berdiri** — dokter pemesan dapat menulis hasil, dan hasil Final dapat
+> ditimpa. Keduanya tetap terbuka selama `MVP-8a` belum rilis, sedangkan `MVP-8b` dan `MVP-8c`
+> hanya menambah kemampuan. `FR-14.9` **tidak masuk gelombang mana pun** sampai teksnya
+> disetujui.
+
+### 20.7 Pertanyaan terbuka sebelum development lock
+
+| Pertanyaan | Memblokir? | Pemilik |
+|---|---|---|
+| ~~Persetujuan `r33`, `r11`, revision 10, dan `r4`~~ | ✅ **Terjawab 2026-09-24** — keempatnya disetujui Yoga Aji Pratama. **Tidak lagi memblokir** | — |
+| ~~Persetujuan pencabutan tiga route Mikrobiologi (19.10 butir 1)~~ | ✅ **Terjawab 2026-09-24** — disetujui bersama `r33`. `FR-14.6` berlaku | — |
+| Teks penanda hasil pilihan di luar rujukan (19.10 butir 2) | **Ya** untuk `FR-14.9` saja | Yoga Aji Pratama |
+| Jabatan mana yang analis — `UNK-P14-01` | **Ya** untuk **rilis** `MVP-8a`, bukan pengembangannya | Admin sistem + kepala instalasi |
+| `DEC-LAB-011`, `LAB-COORD-016` | **Tidak** memblokir epic ini. *`DEC-LAB-011` dijawab sebagian 2026-09-24 (`LAB-DEC-150`); sisanya `LAB-REQ-014`* | dr. Bima Prasetya, Sp.PK; pemilik `human-resource` |
+
+> ### ✅ Gerbang perencanaan terbuka — 2026-09-24
+>
+> `LAB-API-v1` `r33`, `LAB-VAL-v1` `r11`, `LAB-PERM-v1` revision 10, dan `LAB-STATE-v1` `r4`
+> **disetujui** Yoga Aji Pratama pada 2026-09-24, **termasuk** pencabutan tiga route Mikrobiologi.
+> **`EPIC-LAB-14` boleh diteruskan ke `/plan-module-delivery`** untuk `MVP-8a`, `MVP-8b`, dan
+> `MVP-8c`.
+>
+> **Yang tetap di luar gelombang mana pun:** `FR-14.9` — teks penanda hasil pilihan — sampai
+> teksnya disetujui. **Yang menahan rilis, bukan pengembangan:** `UNK-P14-01`, jabatan mana yang
+> analis, wajib dibaca admin sebelum `MVP-8a` dirilis.
+
+---
+
+## 21. Amandemen 2026-09-25 — `EPIC-LAB-15` Validasi dan rilis hasil Patologi Klinik (`S4`)
+
+Menurunkan `02-backend-architecture.md` bagian 20, `03-frontend-architecture.md` amandemen
+2026-09-25, `erd/data-dictionary.md` bagian 17, dan usulan kontrak `LAB-API-v1` `r34`,
+`LAB-VAL-v1` `r12`, `LAB-PERM-v1` revision 11, `LAB-STATE-v1` `r5`, serta `LAB-INT-v1` `r4` —
+**kelimanya disetujui 2026-09-25** (21.7). Keputusannya berasal dari decisions rev 74; arsitektur domainnya
+`LAB-DA-001` rev 8 bagian A5, **`DOMAIN_ARCHITECTURE_READY` untuk desain saja**.
+
+**Seluruh entity, permission, dan endpoint yang disebut di bawah sudah tercatat pada dokumen
+itu.** Nol konsep lahir di sini.
+
+> **Ini desain, bukan izin pakai.** Pemakaian nyata `S4` tertahan `DEC-LAB-011` sisa (pemvalidasi
+> di luar jam kerja dr. Bima), `DEC-LAB-017` (bolehkah dipakai sebelum pelaporan kritis `S5`),
+> `DEC-LAB-018` (siapa perilis), dan `LAB-COORD-016` (dua kode di katalog Human Resource). Epic ini
+> dirancang supaya **kode boleh dibangun dan dideploy** tanpa membuka pemakaian: selama kebijakan
+> dan penunjukan belum diberikan, tidak seorang pun dapat memvalidasi (`02-backend-architecture.md`
+> 20.7).
+
+### 21.1 Batas epic ini — titik mulai dan titik akhir
+
+| Batas | Isi |
+|---|---|
+| **Titik mulai** | Hasil Patologi Klinik sudah **Final** di halaman hasil per order (`EPIC-LAB-14`) |
+| **Titik akhir** | Hasil **dirilis**, tercatat pemvalidasi dan perilisnya beserta jabatan saat itu, dan **terdaftar sebagai dokumen di rekam medis** pasien. Order berlabel *Selesai* bila seluruh pemeriksaannya yang tidak batal sudah dirilis. **Berhenti di situ** — nol cetakan, nol pengiriman ke pasien, nol pelaporan nilai kritis, nol koreksi sesudah rilis |
+
+**Yang dianggap selesai:** dokter berkewenangan laboratorium yang ditunjuk dapat memvalidasi hasil
+Final; orang kedua yang ditunjuk dapat merilisnya; hasil yang keliru sebelum rilis dapat
+dikembalikan beralasan; dan **tanpa penunjukan pada kredensial Human Resource, tidak seorang pun
+dapat mengesahkan hasil** — termasuk admin.
+
+### 21.2 Kemampuan `MUST HAVE`
+
+| ID kemampuan asal | Kemampuan | Disposisi | Kenapa wajib |
+|---|---|---|---|
+| `CAP-P14-06` | Validasi, rilis, antrean validasi, *Kembalikan ke analis* | **`MISSING / NEW`** | Tanpanya tidak satu pun hasil dapat dinyatakan sah |
+| `CAP-P14-09` | Penunjukan per orang, per jenis, per disiplin — dari kredensial Human Resource, **fail-closed** | **`EXISTING / REUSE`** — data Human Resource dipakai apa adanya lewat adapter baca baru | Tanpanya kewenangan hanya per jabatan, bertentangan `LAB-DEC-022` |
+| `CAP-P14-10` | Lapis jabatan calon pemvalidasi dan perilis | **`EXISTING / REUSE`** — tiga aksi baru lahir dari atribut | Tanpanya analis dapat memvalidasi (`LAB-DEC-150`) |
+| `CAP-P14-07` | Daftar alasan koreksi dan pengembalian | **`MISSING / NEW`** — polanya siap | Tanpa isi, hasil tervalidasi yang keliru **tidak dapat dikembalikan** — analis tidak boleh Reopen sesudah validasi |
+| Belum ber-ID di capability map — konsep `LAB-DC-058` (A5.4) | Daftar alasan pengecualian empat mata | **`MISSING / NEW`** | Tanpa isi, dokter tunggal pada malam hari **tidak dapat merilis** hasil yang ia validasi sendiri |
+| `UNK-01`, dijawab `LAB-DEC-017` | Pendaftaran dokumen hasil ke rekam medis saat rilis | **`EXTEND`** — satu nilai `ClinicalDocumentKind`; service Rekam Medis dipakai apa adanya | `LAB-DEC-017`. **Catatan jujur:** kemampuan `RegisterSignedAsync` ditelusuri bagian 20, **belum** tercatat sebagai CAP pada capability map — impact scan berikutnya wajib menambahkannya |
+| `CAP-P14-05` | Label order *Dalam Pemeriksaan*/*Selesai* | **`MISSING / NEW`** — ruas turunan | `AC-198`, `AC-199` |
+
+**Yang ditunda, beserta penggantinya selama MVP:**
+
+| Ditunda | Sebab | Pengganti selama MVP |
+|---|---|---|
+| Peringatan satu pemegang per shift (`LAB-DEC-022` butir 4) | Butuh data jadwal jaga yang sumbernya belum ditetapkan; bentuknya bergantung jawaban `DEC-LAB-011` sisa | Kepala instalasi memeriksa daftar pemegang kode pada layar kredensial Human Resource yang sudah ada, sebelum menyusun jadwal |
+| Cetakan Patologi Klinik dengan *Validasi oleh* dan *Otorisasi oleh* | `S17`; `PRD1-OPEN-01` masih terbuka | Halaman hasil per order menampilkan kedua pengesah beserta penanda pengecualian |
+| Validasi dan rilis Mikrobiologi dan Patologi Anatomi | `S4d`, `S4e` — pemegangnya belum ditetapkan (`DEC-LAB-011` sisa) | Hasil keduanya tetap berhenti di Final — keadaan yang sama dengan hari ini, tidak ada yang hilang |
+| Pelaporan nilai kritis | `S5` | **Ditentukan `DEC-LAB-017`** — prosedur manual tertulis yang disahkan pihak klinis |
+| **Koreksi sesudah rilis** | `S6` — `DEC-LAB-014`, `DEC-LAB-019` | **Belum ada.** Hasil yang sudah dirilis lalu ternyata keliru **tidak dapat diubah di sistem** sampai `S6`. Lihat pertanyaan terbuka 21.7 |
+
+### 21.3 Functional requirement
+
+| ID | Kebutuhan | Dapat diuji lewat | Disposisi |
+|---|---|---|---|
+| `FR-15.1` | Hasil Patologi Klinik **Final** dapat divalidasi oleh pemegang `LabExaminationResult : Validate` yang **ditunjuk** validasi Patologi Klinik; hasil Draft ditolak | `AC-196`, `AC-229`, `VAL-124`, `VAL-128` | `MISSING / NEW` |
+| `FR-15.2` | Hasil **tervalidasi** dapat dirilis oleh pemegang `: Release` yang ditunjuk rilis Patologi Klinik, **per pemeriksaan** | `AC-198`, `AC-217`, `VAL-133` | `MISSING / NEW` |
+| `FR-15.3` | Pengisi yang memvalidasi, atau pemvalidasi yang merilis, **wajib** memilih alasan pengecualian; hasil membawa penanda yang terlihat | `AC-01`, `AC-02`, `VAL-129`..`VAL-132` | `MISSING / NEW`. **Bunyi penandanya disetujui kata per kata 2026-09-25** (20.10 butir 5) |
+| `FR-15.4` | Penolakan kewenangan **menyebut sebabnya**; data kewenangan kosong atau tidak terbaca **selalu menolak**; Laboratorium nol menulis ke Human Resource | `AC-230`..`AC-233`, `INT-07` | `MISSING / NEW` |
+| `FR-15.5` | Setiap validasi menyimpan jabatan pemvalidasi saat itu; setiap rilis menyimpan jabatan perilis | `AC-239` | `MISSING / NEW` — jabatan perilis **usulan** 20.10 butir 1 |
+| `FR-15.6` | Hasil tervalidasi yang belum dirilis dapat dikembalikan beralasan; riwayat validasinya tetap; hasil dirilis tidak dapat dikembalikan | `AC-205`..`AC-207` | `MISSING / NEW` |
+| `FR-15.7` | Reopen ditolak sesudah validasi | `AC-197`, `VAL-136` | `EXTEND` |
+| `FR-15.8` | Setiap rilis mendaftarkan **tepat satu** dokumen ke rekam medis; bila pendaftaran gagal, rilis batal seluruhnya | `INT-08`, `VAL-137` | `EXTEND` |
+| `FR-15.9` | Antrean dua tahap — menunggu validasi dan menunggu rilis — dengan cito di atas; barisnya membuka halaman hasil order | `AC-196`, `VAL-139` | `MISSING / NEW` |
+| `FR-15.10` | Order berlabel *Dalam Pemeriksaan* atau *Selesai* menurut rilis pemeriksaannya | `AC-198`, `AC-199` | `MISSING / NEW` |
+| `FR-15.11` | Pemeriksaan yang sudah dirilis keluar dari Daftar Kerja dan dari daftar keterlambatan cito | `AC-17` | `EXTEND` |
+| `FR-15.12` | Dua daftar alasan dikelola kepala instalasi lewat layar; penanda wajib catatan hanya oleh admin sistem; nol hapus | `VAL-140`..`VAL-142` | `MISSING / NEW` |
+| `FR-15.13` | Pembatalan pemeriksaan yang hasilnya sudah dirilis ditolak | `VAL-143` | `EXTEND` — **arah sementara** sampai `DEC-LAB-019` |
+| `FR-15.14` | Halaman hasil per order menampilkan pengesah, jabatannya, dan penanda pengecualian; tiga aksi per baris; pengisi diminta alasan **sebelum** mengirim | `LAB-FE-004`, `AC-02` | `EXTEND` |
+| `FR-15.15` | Dua tindakan pada detik yang sama tidak dapat sama-sama berhasil | Uji konkurensi, `02-backend-architecture.md` 20.1 | `EXTEND` |
+| `FR-15.16` | Kebijakan `Validate`/`Release`/`Return`, dua kode katalog, dan penunjukan terpasang | `02-backend-architecture.md` 20.7 | `MISSING / NEW` — **langkah rilis, bukan kode**; tertahan keempat penahan pemakaian |
+
+### 21.4 Skenario UAT
+
+**Jalur berhasil — validasi dan rilis dua orang.** Kalium 4,6 pasien rawat jalan sudah Final pukul
+09.10. dr. Contoh membuka antrean *Menunggu Validasi*, membuka order itu, dan memvalidasi pukul
+09.20. Perilis pagi membuka antrean *Menunggu Rilis* dan merilis pukul 09.25. Halaman hasil
+menampilkan *Validasi oleh: dr. Contoh — Dokter Penanggung Jawab Laboratorium* dan *Otorisasi
+oleh: {perilis}*; satu dokumen hasil laboratorium tercatat di rekam medis pasien. **Nama pada
+skenario adalah samaran.**
+
+**Jalur berhasil — dokter tunggal malam hari.** Kalium 7,2 pasien IGD Final pukul 02.10. dr.
+Contoh — satu-satunya yang bertugas, memegang kode validasi **dan** rilis — memvalidasi pukul 02.12,
+lalu merilis dengan alasan *Shift tunggal, tidak ada dokter lain bertugas*. Hasil membawa penanda
+*"Dirilis oleh pemvalidasi sendiri"*.
+
+**Jalur gagal — analis memvalidasi.** Analis Sari, yang namanya pernah tercatat pada daftar
+lama, menekan Validasi lewat alamat endpoint. Sistem menjawab `403`. Kalium tetap Final.
+
+**Jalur gagal — penunjukan ditangguhkan.** Bagian SDM menangguhkan penunjukan dr. Contoh pukul
+10.00. Pukul 10.01 ia menekan Validasi dan membaca *"Penunjukan validasi Patologi Klinik Anda
+sedang ditangguhkan."* Hasil tetap menunggu; tidak ada jalur pintas.
+
+**Jalur gagal — sampel tertukar sesudah validasi.** Perilis menemukan tabung Hemoglobin tertukar
+sebelum merilis. Ia menekan *Kembalikan ke analis* tanpa memilih alasan — ditolak. Ia memilih
+*Sampel tertukar* — hasil kembali Draft, dan riwayat tetap menyebut siapa yang pernah
+memvalidasinya.
+
+**Jalur gagal — sudah dirilis.** Perilis mencoba mengembalikan Kalium yang sudah dirilis —
+*"Hasil yang sudah dirilis hanya dapat diubah lewat koreksi."* Petugas mencoba membatalkan
+pemeriksaan itu — juga ditolak.
+
+**Jalur gagal — rekam medis menolak.** Rilis atas hasil yang kunjungannya tidak sah ditolak
+dengan sebabnya; hasil tetap tervalidasi, dan **tidak ada** jejak rilis setengah jadi.
+
+### 21.5 Definition of Done
+
+| # | Butir | Cara menjawabnya |
+|---:|---|---|
+| 1 | `LAB-API-v1` `r34`, `LAB-VAL-v1` `r12`, `LAB-PERM-v1` revision 11, `LAB-STATE-v1` `r5`, dan `LAB-INT-v1` `r4` **disetujui pemilik modul**, termasuk kesepuluh butir `02-backend-architecture.md` 20.10 | Ada `approved_by`/`approved_at` pada kelimanya |
+| 2 | Ketiga aksi memakai `[AccessPermission("LabExaminationResult", "Validate")]`, `"Release"`, dan `"Return"`, masing-masing berpasangan `[AccessAction]` | Startup Development lolos `PermissionRegistryValidator` |
+| 3 | `VAL-124`..`VAL-143` ditegakkan | Setiap aturan punya bukti pemeriksaan pada `testing/acceptance-test-matrix.md` amandemen 2026-09-25 |
+| 4 | Rilis dan pendaftaran rekam medis tersimpan dalam **satu** penyimpanan | Uji gagal `INT-08`: nol `ReleasedAt` ketika pendaftaran ditolak |
+| 5 | Dua tindakan bersamaan menghasilkan satu `200` dan satu `409` | Uji konkurensi berpasangan |
+| 6 | Kedua daftar alasan berisi **sekurang-kurangnya satu baris aktif** | Diperiksa pada layar data induk sebelum jendela rilis ditutup |
+| 7 | **Nol status hasil baru**; **nol kolom** label order | Dibuktikan **terbalik** pada migration dan `LabExaminationStatus` |
+| 8 | **Nol tabel penunjukan milik Laboratorium** dan **nol tulisan** ke tabel Human Resource | Tinjauan kode + `AC-232` |
+| 9 | **Nol jalur pintas** saat data kewenangan kosong | Uji `VAL-128` kode belum ada di katalog: setiap validasi ditolak |
+| 10 | **Nol tombol Validasi/Rilis di antrean** | Diperiksa pada layar berjalan |
+| 11 | Kebijakan `Validate`, `Release`, `Return` **tidak** disalin dari `LabExaminationResult : Update` | Daftar pemegang pada layar Akses Role; nol analis di dalamnya |
+| 12 | **Penahan pemakaian terjawab sebelum kebijakan diberikan:** `DEC-LAB-011` sisa, `DEC-LAB-017`, `DEC-LAB-018`, `LAB-COORD-016` | Keempatnya berstatus tertutup pada decision log |
+
+> **Butir 7-11 sengaja berbentuk ketiadaan**, pola yang sama dengan `EPIC-LAB-14`. Kelimanya hal
+> yang paling mungkin ditambahkan dengan niat baik: status terasa rapi, salinan penunjukan terasa
+> lebih cepat, jalur pintas terasa menolong ketika data SDM belum lengkap, tombol di antrean
+> terasa menghemat klik, dan menyalin kebijakan terasa menghemat kerja admin. **Tiga yang tengah
+> membuat hasil pasien dapat disahkan orang yang tidak ditunjuk.**
+
+### 21.6 Urutan pengiriman
+
+| Gelombang | Isi | Prasyarat |
+|---|---|---|
+| **`MVP-9a`** | Backend fondasi: migration, kedua data induk alasan beserta endpoint-nya, `LabClinicalPrivilegeResolver` | `MVP-8` selesai; kontrak `EPIC-LAB-15` disetujui |
+| **`MVP-9b`** | Backend tindakan: validasi, rilis beserta pendaftaran rekam medis, pengembalian, penjaga Reopen dan batal, antrean, `resultProgress`, penyesuaian Daftar Kerja | `MVP-9a` |
+| **`MVP-9c`** | Frontend: kedua layar data induk, aksi dan pengesah pada halaman hasil per order, antrean validasi | `MVP-9b`; `MVP-8c` |
+| **`MVP-9d`** | **Langkah rilis:** isi daftar alasan, dua kode katalog, penunjukan, kebijakan aksi | **`BLOCKED`** — `DEC-LAB-011` sisa, `DEC-LAB-017`, `DEC-LAB-018`, `LAB-COORD-016`; lihat juga 21.7 butir koreksi |
+| **`POST-MVP`** | `S4d`, `S4e`, `S5`, `S6`, cetakan (`S17`), peringatan per shift | Penahan masing-masing |
+
+> **`MVP-9a`..`MVP-9c` sengaja dapat dikerjakan sebelum penahan terjawab.** Jawaban keempat
+> penahan menentukan **siapa** dan **kapan**, bukan **bentuk** (gerbang 0C.5). Yang tertahan
+> hanya `MVP-9d` — dan karena resolver fail-closed, deploy `MVP-9a`..`MVP-9c` **tidak membuka**
+> pemakaian sedikit pun.
+
+### 21.7 Pertanyaan terbuka sebelum development lock
+
+| Pertanyaan | Memblokir? | Pemilik |
+|---|---|---|
+| ~~Persetujuan kelima kontrak dan **kesepuluh butir** `02-backend-architecture.md` 20.10~~ | ✅ **Terjawab 2026-09-25** — disetujui Yoga Aji Pratama, termasuk butir 5 kata per kata dan butir 6 pilihan A (perilis). **Tidak lagi memblokir** | — |
+| **`LAB-CONFLICT-014`** — order `Completed` manual lewat `PUT /lab-orders/{id}/complete` versus label *Selesai* turunan | **Tidak** untuk pengembangan — label disajikan pada ruas terpisah. **Wajib** dijawab sebelum `MVP-9d`, supaya layar tidak menampilkan dua *Selesai* berbeda arti | Yoga Aji Pratama, lewat `/grill-me` |
+| **Bolehkah `S4` dipakai sebelum koreksi `S6` berdiri**, dan prosedur apa yang berlaku bagi hasil yang sudah dirilis lalu ternyata keliru? **Belum ber-Decision ID** — ditemukan saat menulis 21.2 | **Tidak** untuk pengembangan. **Diusulkan** menahan `MVP-9d` bersama `DEC-LAB-017`, sebab keduanya pertanyaan klinis yang sejenis | Yoga Aji Pratama + `DR-LAB-001`, lewat `/grill-me` |
+| `DEC-LAB-011` sisa, `DEC-LAB-017`, `DEC-LAB-018`, `LAB-COORD-016` | **Tidak** untuk pengembangan; **ya** untuk `MVP-9d` | dr. Bima Prasetya, Sp.PK; Yoga Aji Pratama + `DR-LAB-001`; pemilik `human-resource` |
+| `DEC-LAB-019` — batal sesudah rilis | **Tidak** — arah sementara `VAL-143` berlaku | Yoga Aji Pratama |
+| `UNK-P14-03` — jabatan mana yang dokter berkewenangan laboratorium dan mana yang calon perilis | **Ya** untuk `MVP-9d` saja | Admin sistem + kepala instalasi |
+| Isi awal kedua daftar alasan | **Ya** untuk `MVP-9d` saja | Kepala instalasi |
+
+> ### ✅ Gerbang perencanaan terbuka — 2026-09-25
+>
+> `LAB-API-v1` `r34`, `LAB-VAL-v1` `r12`, `LAB-PERM-v1` revision 11, `LAB-STATE-v1` `r5`, dan
+> `LAB-INT-v1` `r4` **disetujui** Yoga Aji Pratama pada 2026-09-25, beserta kesepuluh butir
+> `02-backend-architecture.md` 20.10. **`EPIC-LAB-15` boleh diteruskan ke
+> `/plan-module-delivery`** untuk `MVP-9a`..`MVP-9d`.
+>
+> **Yang tetap tertahan — rilis, bukan pengembangan:** `MVP-9d` menunggu `DEC-LAB-011` sisa,
+> `DEC-LAB-017`, `DEC-LAB-018`, `LAB-COORD-016`, `UNK-P14-03`, isi awal kedua daftar alasan, dan
+> — diusulkan — jawaban tentang pemakaian sebelum koreksi `S6`. `LAB-CONFLICT-014` wajib dijawab
+> sebelum `MVP-9d`.

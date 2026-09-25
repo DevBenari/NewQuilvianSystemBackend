@@ -3,14 +3,14 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `laboratorium` |
-| Revision | `53` |
+| Revision | `74` |
 | Status | `draft` |
-| Pass | `Scope pass` selesai; `Closure pass` selesai (tiga putaran); `Amendment pass` putaran 1 selesai; **putaran 2 selesai** (Penerimaan Sampling/Specimen, 2026-09-14); **putaran 3 selesai** (metode pembayaran, 2026-09-14); **putaran 4 selesai** (pendaftaran lewat kiosk dan pemecahan pesanan per disiplin, 2026-09-15); **putaran 5 selesai sebagian** (Menu Hasil, pencetakan, dan pengiriman hasil ke pasien, 2026-09-16 — sepuluh klarifikasi diadopsi `LAB-DEC-064`..`LAB-DEC-073`; **empat dari tujuh hal yang dibuka ditutup pada hari yang sama**; sisanya `LAB-OPEN-029`, `LAB-OPEN-030`, `LAB-OPEN-032`); **putaran 9 selesai** (halaman Hasil Pemeriksaan Mikrobiologi, 2026-09-21 — enam belas keputusan `LAB-DEC-095`..`LAB-DEC-110`; **enam pertentangan dengan keputusan terkunci diselesaikan seluruhnya ke arah blueprint**; `LAB-OPEN-017` dan `LAB-OPEN-030` ditutup); **putaran 10 selesai** (penutupan closure question impact scan capability map revision 4, 2026-09-21 — `LAB-DEC-111`..`LAB-DEC-113`; `LAB-CONFLICT-010` dan ketiga `LAB-CLOSE-010/011/012` ditutup; `LAB-COORD-014` dibuka dan **tidak memblokir**); **putaran 11 selesai** (bukti cetak tiga disiplin `LAB-EVD-005`, 2026-09-21 — `LAB-DEC-114`..`LAB-DEC-121`; **empat keputusan berumur beberapa jam diperbaiki**; `LAB-OPEN-039` sebagian ditutup; `LAB-OPEN-029` **sengaja tetap terbuka**); **putaran 12 selesai** (cetakan Mikrobiologi varian bakteri `LAB-EVD-006`, 2026-09-21 — `LAB-DEC-122`..`LAB-DEC-128`; **`LAB-DEC-116` yang berumur kurang dari satu jam dikoreksi**; interpretasi `S`/`I`/`R` menjadi terhitung); **putaran 13 selesai** (dataset specimen SNOMED CT `LAB-EVD-007`, 2026-09-21 — `LAB-DEC-129`..`LAB-DEC-132`; **`LAB-OPEN-040` DITUTUP**; `LAB-DEC-098` dikoreksi pada pilihan kolomnya) |
+| Pass | `Scope pass` selesai; `Closure pass` selesai (tiga putaran); `Amendment pass` putaran 1 selesai; **putaran 2 selesai** (Penerimaan Sampling/Specimen, 2026-09-14); **putaran 3 selesai** (metode pembayaran, 2026-09-14); **putaran 4 selesai** (pendaftaran lewat kiosk dan pemecahan pesanan per disiplin, 2026-09-15); **putaran 5 selesai sebagian** (Menu Hasil, pencetakan, dan pengiriman hasil ke pasien, 2026-09-16 — sepuluh klarifikasi diadopsi `LAB-DEC-064`..`LAB-DEC-073`; **empat dari tujuh hal yang dibuka ditutup pada hari yang sama**; sisanya `LAB-OPEN-029`, `LAB-OPEN-030`, `LAB-OPEN-032`); **putaran 9 selesai** (halaman Hasil Pemeriksaan Mikrobiologi, 2026-09-21 — enam belas keputusan `LAB-DEC-095`..`LAB-DEC-110`; **enam pertentangan dengan keputusan terkunci diselesaikan seluruhnya ke arah blueprint**; `LAB-OPEN-017` dan `LAB-OPEN-030` ditutup); **putaran 10 selesai** (penutupan closure question impact scan capability map revision 4, 2026-09-21 — `LAB-DEC-111`..`LAB-DEC-113`; `LAB-CONFLICT-010` dan ketiga `LAB-CLOSE-010/011/012` ditutup; `LAB-COORD-014` dibuka dan **tidak memblokir**); **putaran 11 selesai** (bukti cetak tiga disiplin `LAB-EVD-005`, 2026-09-21 — `LAB-DEC-114`..`LAB-DEC-121`; **empat keputusan berumur beberapa jam diperbaiki**; `LAB-OPEN-039` sebagian ditutup; `LAB-OPEN-029` **sengaja tetap terbuka**); **putaran 12 selesai** (cetakan Mikrobiologi varian bakteri `LAB-EVD-006`, 2026-09-21 — `LAB-DEC-122`..`LAB-DEC-128`; **`LAB-DEC-116` yang berumur kurang dari satu jam dikoreksi**; interpretasi `S`/`I`/`R` menjadi terhitung); **putaran 13 selesai** (dataset specimen SNOMED CT `LAB-EVD-007`, 2026-09-21 — `LAB-DEC-129`..`LAB-DEC-132`; **`LAB-OPEN-040` DITUTUP**; `LAB-DEC-098` dikoreksi pada pilihan kolomnya); **putaran 14 selesai** (PRD Hasil Pemeriksaan PK & Mikrobiologi `LAB-EVD-008`, 2026-09-24 — `LAB-DEC-133` menetapkan PRD sebagai bukti untuk direkonsiliasi; `LAB-DEC-134`..`LAB-DEC-145` beserta `LAB-FE-015`/`LAB-FE-016` menutup **keempat belas pertentangan dan keenam butir baru**, nol keputusan terkunci dicabut; 45 koreksi PRD dicatat; `PRD1-CLIN-01` terbuka bagi pihak klinis, `LAB-COORD-015` bagi pemilik keamanan/platform, `PRD1-OPEN-01` tidak memblokir); **closure pass putaran 15 selesai** (closure question capability map revision 5, 2026-09-24 — `LAB-DEC-146`..`LAB-DEC-149` serta `LAB-FE-017` menutup `LAB-CLOSE-013`..`LAB-CLOSE-016` dan `LAB-CONFLICT-012`/`LAB-CONFLICT-013`, nol keputusan terkunci dicabut; `LAB-COORD-016` dibuka); **putaran 16 selesai** (jawaban dr. Bima `LAB-EVD-009`, 2026-09-24 — `LAB-DEC-150` menjawab sebagian `DEC-LAB-011` dan **menggantikan butir 2 `LAB-DEC-022`**; `LAB-DEC-151` menutup `PRD1-CLIN-01`; sisa `DEC-LAB-011` diajukan `LAB-REQ-014`) |
 | Product/domain owner | **Yoga Aji Pratama** (`yogaaji452@gmail.com`), ditetapkan 2026-09-01 |
 | Backend SHA | Dipindai pada `466a7127` (298 commit sejak `c87d9c0`). **`HEAD` bergeser ke `9067fa73` pada 2026-09-14 saat sesi berjalan** — diperiksa: source Laboratorium dan seluruh berkas yang menjadi dasar temuan **tidak berubah**, sehingga scan tetap sahih. **Putaran 4 dipindai pada `9067fa73`; `HEAD` kembali bergeser ke `e2152709` pada 2026-09-15 saat sesi berjalan** karena pekerjaan `BE-LAB-20`..`BE-LAB-25` di-commit (`7cd82c26`) lalu di-merge dari `origin/QuilvianIntegrationBackend` — diperiksa: merge itu **tidak menyentuh satu pun berkas Laboratorium** di luar commit tersebut, dan seluruh perubahan `BE-LAB-21`, `BE-LAB-22`, serta `BE-LAB-25` terverifikasi utuh sesudahnya |
-| Frontend SHA | `9cd4cd03f`, dipindai 2026-09-14 (155 commit sejak `688daff90`) |
-| Tanggal sesi | 2026-09-01; dilanjutkan 2026-09-14 dan 2026-09-15 |
-| Capability map | `01-existing-capability-map.md` **revision 3**, impact scan pada BE `466a7127` + FE `9cd4cd03f`, 2026-09-14. Menutup `LAB-OPEN-022` dan membuka `CONF-02` |
+| Frontend SHA | `9cd4cd03f`, dipindai 2026-09-14 (155 commit sejak `688daff90`). **Putaran 14 dibaca pada BE `ddeb5ed8` (branch `yoga`) + FE `72607a087`, 2026-09-24** |
+| Tanggal sesi | 2026-09-01; dilanjutkan 2026-09-14, 2026-09-15, dan seterusnya; putaran 14 dibuka 2026-09-24 |
+| Capability map | `01-existing-capability-map.md` **revision 5**, impact scan pada BE `ddeb5ed8` + FE `72607a087`, 2026-09-24 — **segar**, dipakai closure pass putaran 15. *(Sebelumnya revision 4 pada BE `981e002c`, 2026-09-21; semula revision 3 pada BE `466a7127` + FE `9cd4cd03f`, 2026-09-14, yang menutup `LAB-OPEN-022` dan membuka `CONF-02`.)* |
 
 > **Catatan penting soal cara membaca dokumen ini.**
 > Dokumen ini adalah catatan wawancara, bukan desain dan bukan izin menulis kode.
@@ -380,6 +380,12 @@ sistem tetap mengizinkan dengan tiga syarat wajib:
 > Hasil dirilis pukul 23.42, dan pada lembar hasil tercetak keterangan
 > "Divalidasi oleh pengisi sendiri — Sari — Shift tunggal". Keesokan paginya kepala
 > instalasi melihat hasil ini di daftar pantau pengecualian.
+
+> **⚠ Catatan 2026-09-24 — aturan BR-01 tidak berubah, contohnya berubah.** Sejak `LAB-DEC-150`
+> hanya dokter berkewenangan laboratorium yang memvalidasi, sehingga analis Sari **tidak dapat**
+> memvalidasi hasil apa pun. Pada Patologi Klinik pengisi (analis) dan pemvalidasi (dokter)
+> selalu dua orang berbeda; jalur pengecualian ini tetap berlaku bagi disiplin yang pengisinya
+> dokter, misalnya Patologi Anatomi. Akibatnya bagi shift malam dibaca pada BR-101.
 
 **Konsekuensi bila dilanggar:** Kesalahan ketik satu digit pada Kalium — misalnya 3,5 diketik
 menjadi 7,5 — bisa membuat dokter memberikan terapi yang salah. Karena itu aturan ini
@@ -895,6 +901,10 @@ antar kewenangan**, tetapi tidak satu pun menyebut **siapa yang memegangnya**.
 > peringatan bahwa shift itu hanya punya satu pemegang kewenangan validasi. Sari tetap dapat
 > bekerja lewat jalur pengecualian `BR-01`, tetapi keadaannya sudah diketahui, bukan
 > tersembunyi.
+>
+> **⚠ Catatan 2026-09-24:** butir 2 aturan ini — analis senior boleh memegang kewenangan —
+> **superseded** oleh `LAB-DEC-150`. Baca Sari dan Budi sebagai **dokter** berkewenangan
+> laboratorium. Butir 3 dan 4 — minimal dua pemegang per shift dan peringatannya — tetap berlaku.
 
 **Yang tetap milik rumah sakit, bukan sistem.** Penetapan siapa saja yang layak memegang
 kewenangan validasi adalah keputusan kepegawaian dan kompetensi. Sistem tidak ikut menilainya.
@@ -3103,6 +3113,1047 @@ bertukar data dengan sistem luar, pemetaan 1.767 baris tidak perlu dikerjakan ul
 
 ---
 
+## Amendment Pass Putaran 14 — PRD Hasil Pemeriksaan Patologi Klinik & Mikrobiologi (dibuka dan selesai 2026-09-24)
+
+> **Hasil putaran:** keempat belas pertentangan dan keenam butir baru tertutup lewat
+> `LAB-DEC-133`..`LAB-DEC-145` serta `LAB-FE-015`/`LAB-FE-016`; `AC-196`..`AC-220` ditambahkan;
+> 45 koreksi PRD dicatat pada bagian *Koreksi yang wajib masuk revisi PRD*. **Nol keputusan
+> terkunci dicabut.** Yang tersisa di luar wewenang pemilik modul: `PRD1-CLIN-01` dan
+> `LAB-COORD-015`.
+
+**Sumber:** `LAB-EVD-008` — PRD *Modul Laboratorium - Hasil Pemeriksaan Patologi Klinik &
+Mikrobiologi* berstatus `Draft Requirement`, ditempel pemilik modul pada sesi 2026-09-24.
+**Disimpan verbatim** pada
+[`evidence/2026-09-24-prd-hasil-patologi-klinik-mikrobiologi.md`](evidence/2026-09-24-prd-hasil-patologi-klinik-mikrobiologi.md).
+Penulis PRD belum disebutkan.
+
+> **Baca lebih dulu.** PRD ini ditulis seolah blueprint belum ada. Empat belas klaimnya
+> bertentangan dengan keputusan yang sudah `approved`; empat di antaranya **sudah pernah
+> ditolak** tiga hari sebelumnya pada putaran 9, dan dua menyentuh prinsip empat mata
+> `LAB-DEC-003` yang **ditandatangani pihak klinis** 2026-09-17 (`LAB-DEC-079`). Bagian ini
+> **mencatat rekonsiliasi**, bukan membuka izin membangun.
+
+### Keadaan source saat putaran ini dibuka
+
+Dibaca langsung pada backend `ddeb5ed8` (branch `yoga`) dan frontend `72607a087`, 2026-09-24.
+
+| Hal | Keadaan hari ini |
+|---|---|
+| Pengisian hasil Patologi Klinik (`S4a`) | `LabExamination` mencatat `ResultEnteredAt` dan `ResultEnteredByUserId` — pengisi hasil adalah **pengguna yang menyimpan** |
+| Draft/Final pada Patologi Klinik | **Tidak ada.** `FinalizedAt`/`FinalizedByUserId` pada `LabExamination` dibangun untuk Mikrobiologi (`S4b`, `LAB-DEC-097`) |
+| `ValidatedAt` / `ReleasedAt` | **Belum dibangun.** `S4` dan `S4d` tertahan `DEC-LAB-011` |
+| Gerbang WhatsApp dan pembangkit PDF | **Nol pada platform**, diverifikasi ulang 2026-09-23 (`LAB-COORD-011`) |
+| Kode QR pada cetakan Patologi Klinik | Ada pada cetakan lapangan (`LAB-EVD-005` bagian 4); isi dan kegunaannya **nol diputuskan** |
+| Capability map | Revision 4 dipindai pada `981e002c`; `HEAD` kini `ddeb5ed8`. **Berpotensi basi** — tidak menahan wawancara, tetapi impact scan `/qv-trace` dianjurkan sebelum desain |
+
+### Kedudukan PRD (`LAB-DEC-133`)
+
+**PRD dicatat sebagai bukti `LAB-EVD-008` dan direkonsiliasi butir per butir. Keputusan yang
+sudah `approved` tetap berlaku kecuali pemilik modul membukanya ulang secara eksplisit per
+butir, dan PRD direvisi mengikuti hasilnya.**
+
+**Kenapa bukan baseline baru.**
+
+> Menjadikan PRD baseline berarti menandai `superseded` belasan keputusan sekaligus —
+> termasuk `LAB-DEC-003` yang hanya dapat diubah `DR-LAB-001` dan `DR-LAB-002`, bukan pemilik
+> modul. Pekerjaan `S4a` dan `S4b` yang sudah berdiri harus dibongkar, sementara `S4` dan `S4d`
+> tetap tertahan `DEC-LAB-011`. Pola butir per butir sudah dua kali dipakai (putaran 8 dan 9),
+> dan dua kali menyelesaikan seluruh pertentangan tanpa satu pun keputusan terkunci dicabut
+> diam-diam.
+
+**Contoh penerapan:**
+
+> PRD menulis *"Dokter Laboratorium merupakan satu-satunya role yang dapat melakukan Simpan
+> Final"*. Keputusan yang berlaku, `LAB-DEC-022`, memberi kewenangan **per orang**, bukan per
+> jabatan. Sampai pemilik modul membuka `LAB-DEC-022`, yang berlaku tetap per orang, dan
+> kalimat PRD itu masuk daftar koreksi PRD.
+
+### Batas scope putaran ini (dikonfirmasi pemilik modul 2026-09-24)
+
+Pemilik modul memilih kedudukan di atas tanpa mengoreksi daftar berikut.
+
+**Di dalam scope:**
+
+1. Pengisian hasil serta Draft/Final Patologi Klinik (`S4a`) dan Mikrobiologi (`S4b`).
+2. Titik sentuh ke validasi dan rilis (`S4`, `S4d`): siapa, dan kapan hasil terkunci.
+3. Penandaan dan konfirmasi nilai kritis Patologi Klinik dan Mikrobiologi — titik sentuhnya ke `S5`.
+4. Amendment hasil — titik sentuhnya ke `S6`.
+5. Cetak, unduh, dan pengiriman hasil ke pasien lewat WhatsApp beserta counter-nya (`S17`).
+6. QR Result Viewer.
+7. Informasi specimen, set bakteri, dan antibiogram pada halaman hasil Mikrobiologi.
+
+**Di luar scope — sudah punya rumahnya sendiri:**
+
+| Hal | Rumahnya |
+|---|---|
+| Gerbang WhatsApp dan pembangkit berkas PDF | `LAB-COORD-011`, pemilik platform |
+| Layanan terjemahan untuk preview bilingual | `LAB-COORD-013`, pemilik platform + pemilik modul |
+| HL7 / SATUSEHAT `DiagnosticReport` | `LAB-COORD-012`, pemilik platform; PRD sendiri menaruhnya di *Future Enhancement* |
+| Identitas, nomor telepon, dan email pasien; data dokter | `master-data`, **hanya dibaca** |
+| Jadwal jaga dokter | Human Resource, `LAB-COORD-014` |
+| Patologi Anatomi | Tidak disentuh PRD; keputusannya tetap |
+| Integrasi LIS / alat | `LAB-DEC-005` — Rilis 1 diketik manual |
+| Isi aturan klinis: angka batas kritis, kombinasi kritis Mikrobiologi, pemegang kewenangan validasi | `DR-LAB-001`, `DR-LAB-002`, kepala instalasi — `DEC-LAB-011`, `DEC-LAB-012`, `LAB-OPEN-041` |
+
+### Pertentangan dengan keputusan yang berlaku
+
+Arti status: `menunggu` belum ditanyakan; `ditanyakan` sedang menunggu jawaban;
+`tetap-blueprint` keputusan lama tetap dan PRD dikoreksi; `diadopsi` PRD diterima dan keputusan
+lama diamandemen; `bukan-wewenang-pemilik` hanya pihak klinis atau platform yang dapat
+mengubahnya.
+
+| ID | Bagian PRD | PRD menyatakan | Keputusan yang berlaku | Status |
+|---|---|---|---|---|
+| `PRD1-CONF-01` | 5.1, 5.2, FR-PK-002 | Dokter Lab mengisi hasil Patologi Klinik; Petugas Lab tidak dapat mengubahnya | `LAB-DEC-005`: hasil Patologi Klinik diketik **analis**. Dokter Lab menjadi pengisi hanya pada Patologi Anatomi (`LAB-DEC-090`) | `tetap-blueprint` — `LAB-DEC-134`, 2026-09-24 |
+| `PRD1-CONF-02` | 5.2, BP-001 | Dokter Lab mengisi **dan** menekan Simpan Final sendiri | `LAB-DEC-003` empat mata, ditandatangani `DR-LAB-001`/`DR-LAB-002` (`LAB-DEC-079`); cetakan Patologi Klinik memisahkan *Validasi oleh* dan *Otorisasi oleh* (`LAB-DEC-120`) | `tetap-blueprint` — `LAB-DEC-134`: Dokter Lab dibaca sebagai pemvalidasi/pengotorisasi, bukan pengisi. Aturan empat mata sendiri tetap `bukan-wewenang-pemilik` |
+| `PRD1-CONF-03` | 5.2, 12 | Hak final melekat pada role "Dokter Laboratorium"; *Role based access* | `LAB-DEC-022`: kewenangan validasi dan rilis **per orang**, bukan jabatan; pemegangnya `DEC-LAB-011` | `tetap-blueprint` — `LAB-DEC-142`: dua lapis, jabatan calon dan penunjukan per orang |
+| `PRD1-CONF-04` | 2, FR-PK-002, 8 | Simpan Final = Selesai = hasil terkunci | `LAB-DEC-088`/`LAB-DEC-097`: Final berarti penulis selesai menulis, **bukan rilis**; baca-saja berlaku sesudah rilis. Patologi Klinik hari ini **nol** konsep Draft/Final | `tetap-blueprint` — `LAB-DEC-135`: pola Final = selesai menulis diperluas ke Patologi Klinik |
+| `PRD1-CONF-05` | 8 | Lima status: Draft, Dalam Pemeriksaan, Definitif, Final/Selesai, Amendment | `LAB-DEC-080`: validasi dan rilis dicatat sebagai **fakta**, nol status baru; `LAB-DEC-106`/`LAB-DEC-114`: Definitif adalah fakta konsultasi dan kualifikasi cetak, bukan status | `tetap-blueprint` — `LAB-DEC-135`: kelima status menjadi label tampilan turunan; Definitif tidak berlaku bagi Patologi Klinik |
+| `PRD1-CONF-06` | 2, FR-PK-002 | Status dipegang pada tingkat order | `LAB-DEC-008`: status per pemeriksaan dan rilis sebagian boleh; yang berjumlah satu per order adalah dokumen final (`LAB-DEC-067`) | `tetap-blueprint` — `LAB-DEC-135`: Final per pemeriksaan; *Dalam Pemeriksaan*/*Selesai* menjadi label turunan pada order |
+| `PRD1-CONF-07` | 2, 6.2 | Satu hasil Mikrobiologi per No. Order | `LAB-DEC-095`: hasil per pemeriksaan | `tetap-blueprint` — `LAB-DEC-144`, penolakan 2026-09-21 ditegaskan ulang |
+| `PRD1-CONF-08` | FR-MB-003 | `Lainnya` → ketik nama → cek duplikasi → langsung menjadi pilihan tetap | `LAB-DEC-040`/`LAB-DEC-098`: `Lainnya` masuk daftar pantau, hanya kepala instalasi yang menaikkannya; 1.767 entri SNOMED sudah diimpor (`LAB-DEC-130`) | `tetap-blueprint` — `LAB-DEC-144`, penolakan 2026-09-21 ditegaskan ulang |
+| `PRD1-CONF-09` | FR-MB-004 | Ruas Analis diisi pada form | `LAB-DEC-105`: diturunkan dari pengguna yang menyimpan, baca-saja | `tetap-blueprint` — `LAB-DEC-144`, penolakan 2026-09-21 ditegaskan ulang |
+| `PRD1-CONF-10` | FR-MB-005 | Subbakteri | `LAB-DEC-102`: tidak dibangun | `tetap-blueprint` — `LAB-DEC-144`, penolakan 2026-09-21 ditegaskan ulang |
+| `PRD1-CONF-11` | BP-003 | Kritis → konfirmasi dokter → WhatsApp; sistem mencatat waktu kirim | `LAB-DEC-004`: wajib siapa, kepada siapa, kapan, lewat apa, **dan bukti pembacaan ulang**; `LAB-DEC-012`/`LAB-DEC-016`: pemberitahuan tersimpan pada kotak masuk platform; `LAB-P0-004` terbuka | `tetap-blueprint` — `LAB-DEC-136`: WhatsApp saluran pengantar; sah tidaknya balasan WA sebagai bukti baca ulang diajukan sebagai `PRD1-CLIN-01` |
+| `PRD1-CONF-12` | FR-PK-004 | Amendment: alasan, nilai sebelum dan sesudah, user dan waktu | `LAB-DEC-007`: dokter pemesan **otomatis diberi tahu**; `LAB-DEC-082`: alasan dari daftar terkendali, versi bernomor; `LAB-DEC-020`: addendum bila kunjungan sudah ditutup; `DEC-LAB-014` terbuka | `tetap-blueprint` — bawaan `LAB-DEC-133`, tidak dibuka ulang pemilik modul 2026-09-24; koreksi PRD 18..21. Sisa klinisnya tetap `DEC-LAB-014` |
+| `PRD1-CONF-13` | FR-PK-005 | Syarat kirim ke pasien cukup status Selesai | `LAB-DEC-067`: wajib persetujuan Profesor **dan** Dokter Lab; `LAB-OPEN-029` terbuka | `tetap-blueprint` — `LAB-DEC-139`: syarat `LAB-DEC-067` dipertahankan dan diperluas ke cetak serta unduh |
+| `PRD1-CONF-14` | 13 (AC Mikrobiologi) | "Critical ditemukan → Notifikasi dokter aktif" | `LAB-DEC-103`: isi aturan kritis milik `DR-LAB-002`; selama `LAB-OPEN-041` kosong penanda **tidak menyala** | `bukan-wewenang-pemilik` — ditutup 2026-09-24 sebagai koreksi PRD 35; isi aturannya tetap `LAB-OPEN-041` |
+
+**Contoh kenapa `PRD1-CONF-11` adalah celah keselamatan, bukan beda istilah.**
+
+> Pukul 02.10 Kalium seorang pasien keluar 7,2 mmol/L. Petugas menekan Konfirmasi, sistem
+> mengirim WhatsApp kepada dr. Bagas dan mencatat "terkirim 02.11". dr. Bagas sedang menangani
+> pasien lain dan ponselnya tertinggal di ruang jaga. Menurut PRD, kewajiban pelaporan sudah
+> tuntas pukul 02.11. Menurut `LAB-DEC-004`, belum: tidak ada bukti dr. Bagas menerima dan
+> membaca ulang angkanya, sehingga hasil itu tetap muncul di daftar pantau *nilai kritis belum
+> dilaporkan*.
+
+### Butir baru yang belum pernah diputuskan
+
+| ID | Bagian PRD | Hal | Status |
+|---|---|---|---|
+| `PRD1-NEW-01` | 4.1, 9 | **QR Result Viewer.** Cetakan Patologi Klinik lapangan memang berkode QR (`LAB-EVD-005`), tetapi isi QR dan siapa yang boleh membuka hasil lewat QR nol diputuskan. Menyangkut privasi data pasien | `diputuskan` — `LAB-DEC-140`: QR verifikasi keaslian dan status dokumen, bukan pembuka hasil |
+| `PRD1-NEW-02` | BP-001 langkah 7 | **Konsultasi eksternal pada Patologi Klinik.** Fakta konsultasi hari ini hanya ada untuk Mikrobiologi (`LAB-DEC-106`) | `diputuskan` — `LAB-DEC-141`: fakta opsional, pola Mikrobiologi, tanpa Definitif |
+| `PRD1-NEW-03` | 10 | **Email pasien** disebut pada integrasi Master Pasien, tanpa satu pun FR yang memakainya. Platform nol sarana surel (F7) | `diputuskan` — `LAB-DEC-145`: dihapus dari PRD |
+| `PRD1-NEW-04` | FR-PK-003 | **Warna flag** — L/H kuning, kritis merah. Hari ini `DEV_DISCRETION` (`LAB-FE-002`); kewajiban kritis tampil menonjol sudah dikunci `LAB-FE-005` | `diputuskan` — `LAB-DEC-145`, `LAB-FE-015`: makna dikunci, penanda wajib huruf/teks |
+| `PRD1-NEW-05` | 12 | **Larangan modal untuk input utama.** Hari ini `DEV_DISCRETION` (`LAB-FE-002`) | `diputuskan` — `LAB-DEC-145`, `LAB-FE-016`: diterima untuk isian hasil utama |
+| `PRD1-NEW-06` | FR-MB-002 | **Lokasi Specimen dan Metode Pengambilan.** Masih `S2b`, `BUSINESS_DECISION_REQUIRED` | `diputuskan` — `LAB-DEC-145`: tetap `S2b` |
+| `PRD1-OPEN-01` | FR-PK-001 | **Nomor Transaksi dan Nomor Mutasi.** Keduanya tercetak pada cetakan Patologi Klinik lapangan (`LAB-EVD-005` bagian 4) dan diminta PRD, tetapi arti dan sumber datanya belum pernah dipastikan. Ditemukan saat menyisir PRD, tidak ditanyakan pada putaran ini | `terbuka` — tidak memblokir |
+
+### Yang sudah selaras — nol keputusan baru
+
+Cito dan Diplo per pemeriksaan (`LAB-DEC-026`, `LAB-DEC-089`); counter `Terkirim ke Pasien`
+bertambah hanya bila pengiriman berhasil (`LAB-DEC-066`); nomor WhatsApp pasien dari data induk
+dan baca-saja (`LAB-DEC-067`); tombol cetak, unduh, dan kirim dipegang Petugas Lab
+(`LAB-DEC-068`); Informasi Specimen dapat disunting pada halaman hasil (`LAB-DEC-107`);
+breakpoint dapat diatur dan `S`/`I`/`R` dihitung sistem (`LAB-DEC-122`, `LAB-DEC-123`); Dokter
+Konfirmator dari DPJP atau dokter bertugas dengan nomor baca-saja (`LAB-DEC-108`,
+`LAB-DEC-111`); cetak multi halaman dengan kop berulang (`LAB-DEC-110`).
+
+### BR-87 — Analis mengisi hasil Patologi Klinik; Dokter Lab mengesahkan (`LAB-DEC-134`)
+
+**Menegakkan `LAB-DEC-005`. Menutup `PRD1-CONF-01` dan `PRD1-CONF-02` ke arah blueprint.**
+
+**Aturan:**
+
+1. Hasil Patologi Klinik tetap **diketik analis**, persis `LAB-DEC-005`. Pengisi tercatat
+   otomatis dari pengguna yang menyimpan (`ResultEnteredByUserId`), tidak dipilih.
+2. **Dokter Lab** pada PRD dibaca sebagai pihak yang **memvalidasi dan mengotorisasi** hasil
+   Patologi Klinik — dua baris *Validasi oleh* dan *Otorisasi oleh* pada cetakan
+   (`LAB-DEC-120`) — **bukan** sebagai pengisi hasil.
+3. **Petugas Lab** pada PRD dibaca sebagai petugas **administrasi** laboratorium — pemegang
+   tombol cetak, unduh, dan kirim sesuai `LAB-DEC-068` — dan **bukan** analis. Kalimat PRD
+   *"Petugas Laboratorium tidak dapat mengubah hasil Patologi Klinik"* karena itu **tetap
+   benar** dan dipertahankan.
+4. Prinsip empat mata `LAB-DEC-003` tetap berlaku apa adanya, termasuk jalur pengecualiannya.
+   Keputusan ini tidak mengubahnya dan memang tidak berwenang mengubahnya.
+5. Butir 2 menetapkan **peran pada alur**, bukan siapa pemegangnya. Kewenangan validasi dan
+   rilis tetap diberikan **per orang** (`LAB-DEC-022`), dan daftar pemegangnya tetap
+   `DEC-LAB-011`. Apakah setiap Dokter Lab otomatis memegangnya adalah pertanyaan Q9
+   (`PRD1-CONF-03`), bukan bagian keputusan ini.
+
+**Contoh:**
+
+> Analis Sari mengetik Kalium 7,5 mmol/L padahal alat menunjukkan 3,5. Ia menyimpan, dan
+> sistem mencatat Sari sebagai pengisi. dr. Aditya membuka hasil untuk divalidasi, melihat
+> angka yang tidak sesuai dengan gambaran klinis pasien, lalu mengembalikannya. Salah ketik itu
+> tertangkap **karena** pengisi dan pengesah dua orang berbeda.
+>
+> Bila PRD diikuti apa adanya — Dokter Lab mengisi sekaligus memfinalkan — orang yang salah
+> mengetik adalah orang yang sama yang mengesahkan, dan angka 7,5 keluar sebagai hasil pasien.
+
+**Kenapa tidak mengizinkan Dokter Lab ikut mengisi.** Setiap kali Dokter Lab mengisi lalu
+memvalidasi sendiri, hasil lewat jalur pengecualian `BR-01`. Bila itu sering, pengecualian
+menjadi kebiasaan — persis yang diperingatkan `BR-18`, dan semua pengujiannya tetap lulus.
+
+**Akibat pada source:** nol. Pengisian hasil Patologi Klinik yang sudah berdiri mencatat
+pengisi dari pengguna yang menyimpan, dan itu tetap benar.
+
+**Acceptance criteria:** tidak bertambah. `AC-01` dan `AC-02` sudah mengunci empat mata pada
+titik validasi.
+
+### BR-88 — Patologi Klinik memakai Draft dan Final seperti dua disiplin lain (`LAB-DEC-135`)
+
+**Menyalin pola `LAB-DEC-088` (Patologi Anatomi) dan `LAB-DEC-097` (Mikrobiologi) ke Patologi
+Klinik. Menutup `PRD1-CONF-04`, `PRD1-CONF-05`, dan `PRD1-CONF-06`.**
+
+**Aturan:**
+
+1. Analis menyimpan hasil Patologi Klinik sebagai **Draft** atau **Final**. Final dilakukan
+   **per pemeriksaan** dan berarti **penulis selesai menulis** — dicatat sebagai fakta
+   `FinalizedAt` dan `FinalizedByUserId`, dua kolom yang sudah ada pada `LabExamination`.
+2. Hanya hasil yang sudah **Final** yang masuk antrean validasi dan dapat divalidasi.
+3. Selama **belum divalidasi**, hasil yang sudah Final boleh dibuka kembali (**Reopen**):
+   `FinalizedAt` dikosongkan, dan jejak siapa serta kapan membukanya tetap tercatat.
+4. Hasil **terkunci sesudah dirilis**, bukan sesudah Final. Perubahan sesudah rilis hanya lewat
+   koreksi (`LAB-DEC-007`, `LAB-DEC-082`).
+5. **Nol status tersimpan baru** (`LAB-DEC-080`). Kelima status PRD menjadi **label tampilan
+   turunan**:
+
+| Label | Berlaku pada | Diturunkan dari |
+|---|---|---|
+| Draft | Pemeriksaan | Hasil sudah diisi, `FinalizedAt` kosong |
+| Final | Pemeriksaan | `FinalizedAt` terisi, belum dirilis |
+| Dalam Pemeriksaan | Order | Masih ada pemeriksaan yang tidak batal pada order itu yang belum dirilis |
+| Selesai | Order | Seluruh pemeriksaan yang tidak batal sudah dirilis — saat itulah dokumen final order `LAB-DEC-067` lengkap |
+| Amendment | Pemeriksaan | Sedang dikoreksi sesudah rilis — baru bermakna ketika `S6` berdiri |
+| Definitif | — | **Tidak berlaku bagi Patologi Klinik.** Tetap kualifikasi hasil Mikrobiologi (`LAB-DEC-114`) |
+
+PRD menggabungkan *Final/Selesai* menjadi satu baris. Keduanya dipisah di sini karena berlaku
+pada tingkat berbeda: **Final** milik satu pemeriksaan, **Selesai** milik seluruh order.
+
+**Contoh 1 — kenapa perlu Final:**
+
+> Pukul 09.05 analis Sari menyimpan Kalium 6,4 mmol/L sebagai **Draft**, lalu melihat
+> sampelnya agak hemolisis dan mengulang pemeriksaan. Selama itu Kalium **tidak** muncul di
+> antrean dr. Aditya. Pukul 09.30 hasil ulangnya 4,6; Sari menggantinya dan menekan **Final**.
+> Baru saat itu dr. Aditya dapat memvalidasinya. Tanpa tahap Final, angka 6,4 dapat
+> tervalidasi pukul 09.20.
+
+**Contoh 2 — kenapa per pemeriksaan, bukan per order:**
+
+> Order `LAB-RSMMC-000000123` berisi Kalium cito dan Hemoglobin. Kalium Final pukul 09.10,
+> divalidasi dan dirilis pukul 09.15 — dokter jaga langsung dapat membacanya. Hemoglobin baru
+> Final pukul 09.40 dan dirilis pukul 09.50. Order berlabel **Dalam Pemeriksaan** sampai 09.50,
+> lalu **Selesai**. Bila Final dilakukan per order seperti tulisan PRD, Kalium cito tertahan
+> 35 menit menunggu Hemoglobin, dan `LAB-DEC-008` dilanggar.
+
+**Akibat pada source:** perluasan kecil `S4a`. Kolomnya sudah ada; yang belum ada adalah
+tindakan Final dan Reopen untuk Patologi Klinik serta penyaring antrean validasi. Bentuk
+endpoint-nya diputuskan pada tahap desain, bukan di sini.
+
+**Yang dibuka keputusan ini — `PRD1-FOLLOW-01`.** Butir 3 membatasi Reopen sampai **sebelum
+validasi**. Maka perlu diputuskan: bila pemvalidasi menemukan salah pada hasil yang **sudah
+divalidasi tetapi belum dirilis**, bagaimana hasil dikembalikan kepada analis? Ditanyakan
+bersama Q5.
+
+### BR-89 — WhatsApp mengantar kabar hasil kritis, bukan membuktikan pelaporan (`LAB-DEC-136`)
+
+**Menegakkan `LAB-DEC-004`. Menutup `PRD1-CONF-11` ke arah blueprint.**
+
+**Aturan:**
+
+1. WhatsApp kepada Dokter Konfirmator adalah **saluran pengantar**: ia mempercepat kabar
+   sampai, tetapi **tidak menuntaskan** kewajiban pelaporan.
+2. **Waktu kirim WhatsApp** dan **waktu dilaporkan** disimpan sebagai **dua fakta terpisah**.
+   Pengiriman yang gagal tercatat sebagai gagal dan tidak mengubah kewajiban apa pun.
+3. Pelaporan hasil kritis **tuntas hanya bila** petugas mencatat kelima isian `LAB-DEC-004`:
+   siapa melapor, kepada siapa, kapan, lewat apa, dan **bukti pembacaan ulang**. Sampai itu
+   lengkap, hasil tetap di daftar pantau *nilai kritis belum dilaporkan*.
+4. Alur pelaporan kritis **tidak bergantung** pada gerbang WhatsApp. Selama `LAB-COORD-011`
+   belum ada, pelaporan tetap dapat dituntaskan lewat telepon.
+5. Berlaku untuk jalur kritis **Patologi Klinik dan Mikrobiologi**. Patologi Anatomi berada di
+   luar putaran ini, tetapi tunduk pada `LAB-DEC-004` yang sama.
+6. Apakah **balasan WhatsApp dokter yang menyebut ulang nilainya** boleh diterima sebagai bukti
+   pembacaan ulang **bukan wewenang pemilik modul**. Diajukan kepada `DR-LAB-001` (Patologi
+   Klinik) dan `DR-LAB-002` (Mikrobiologi) sebagai `PRD1-CLIN-01`, bertaut `LAB-P0-004`.
+   Sampai dijawab, bukti baca ulang harus datang dari percakapan langsung, misalnya telepon.
+
+**Contoh:**
+
+> Pukul 02.10 Kalium pasien di Bangsal Melati keluar 7,2 mmol/L. Petugas memilih dr. Bagas
+> sebagai Dokter Konfirmator; WhatsApp terkirim pukul 02.11 dan tercatat sebagai **waktu
+> kirim**. Hasil tetap di daftar pantau. Pukul 02.18 dr. Bagas menelepon balik, petugas
+> menyebut *"Kalium tujuh koma dua"*, dr. Bagas mengulanginya, dan petugas mencentang bukti
+> baca ulang. Pukul 02.18 tercatat sebagai **waktu dilaporkan**, dan hasil keluar dari daftar
+> pantau.
+>
+> Bila ponsel dr. Bagas tertinggal di ruang jaga dan ia tidak pernah menelepon balik, daftar
+> pantau tetap menampilkan hasil itu — dan kepala instalasi dapat bertindak sebelum menjadi
+> insiden. Menurut tulisan PRD, kasus yang sama sudah dianggap tuntas pukul 02.11.
+
+**Kenapa tidak menerima tanda terbaca WhatsApp.** Centang biru hanya membuktikan pesannya
+**dibuka**, bukan bahwa dokter **memahami angkanya**. Pembacaan ulang dimaksudkan persis untuk
+menangkap salah dengar *"tujuh koma dua"* menjadi *"satu koma dua"*.
+
+**Akibat pada source:** nol hari ini — alur kritis `S5` belum dibangun, dan gerbang WhatsApp
+nol di platform. Keputusan ini mengunci bentuknya sebelum keduanya dirancang.
+
+**Yang dibuka keputusan ini — `PRD1-FOLLOW-02`.** Isi pesan WhatsApp kepada dokter menentukan
+data pasien apa yang keluar ke layanan pihak ketiga. Ditanyakan sebagai Q4b.
+
+### BR-90 — Pesan WhatsApp hasil kritis tanpa data klinis (`LAB-DEC-137`)
+
+**Menutup `PRD1-FOLLOW-02`.**
+
+**Aturan:**
+
+1. Pesan WhatsApp hasil kritis kepada dokter **hanya** memuat: bahwa ada hasil kritis, unit
+   atau ruang perawatan pasien, waktu, dan nomor kontak Laboratorium.
+2. Pesan **tidak boleh** memuat nama pasien, No. RM, NIK, nama pemeriksaan, maupun nilai hasil.
+3. Larangan butir 2 ditegakkan pada **pembentuk pesan**, bukan pada disiplin petugas: tidak
+   ada ruas pengganti (*placeholder*) untuk data pasien maupun data klinis, sehingga mengubah
+   teks pesan pun tidak dapat memasukkannya.
+4. Dokter mendapatkan angkanya lewat telepon balik ke Laboratorium — tempat pembacaan ulang
+   `LAB-DEC-004` terjadi dengan sendirinya — atau lewat pemberitahuan tersimpan di aplikasi
+   (`LAB-DEC-012`).
+
+**Contoh pesan yang sah (data samaran):**
+
+> *Laboratorium RS: ada HASIL KRITIS untuk pasien Anda di Bangsal Melati, 02.11. Mohon segera
+> hubungi Laboratorium ext. 1234.*
+
+**Contoh yang ditolak:**
+
+> *Tn. A.S., RM 00-12-34-56 — Kalium 7,2 mmol/L (KRITIS).* — memuat nama, No. RM, pemeriksaan,
+> dan nilai.
+
+**Kenapa ini yang dipilih.** Pesan WhatsApp melewati layanan pihak ketiga dan tersimpan tanpa
+batas waktu di ponsel pribadi. Data kesehatan termasuk data pribadi yang dilindungi secara
+khusus, dan blueprint ini belum pernah memberi izin privasi untuk jalur itu. Pesan tanpa data
+klinis membuat jalur kritis **tidak menunggu** izin privasi siapa pun — yang masih ditunggu
+hanya gerbangnya sendiri (`LAB-COORD-011`). Isinya juga sejalan dengan `LAB-DEC-136`: pesan
+yang tidak memuat angka mendorong dokter menelepon balik, dan telepon itulah yang menghasilkan
+bukti baca ulang.
+
+**Akibat bagi `PRD1-CLIN-01`.** Karena pesan keluar tidak memuat nilai, balasan WhatsApp dokter
+yang menyebut ulang angkanya berarti **dokter sendiri** yang memasukkan data klinis ke
+WhatsApp. Pertimbangan ini ditambahkan pada butir tersebut untuk `DR-LAB-001`/`DR-LAB-002`.
+
+**Yang tetap terbuka bagi amandemen kelak.** Pesan berisi data klinis bukan dilarang
+selamanya. Bila pemilik platform kelak menyatakan izin privasi untuk jalur ini, keputusan ini
+dapat diamandemen — lewat keputusan baru, bukan lewat mengubah teks pesan.
+
+### BR-91 — Hasil tervalidasi yang belum dirilis dikembalikan kepada analis (`LAB-DEC-138`)
+
+**Menutup `PRD1-FOLLOW-01`. Mengisi celah antara Reopen (`LAB-DEC-135`, sebelum validasi)
+dan koreksi resmi (`LAB-DEC-007`, sesudah rilis).**
+
+**Aturan:**
+
+1. Pemegang kewenangan **validasi atau rilis** dapat menekan **Kembalikan ke analis** pada hasil
+   yang **sudah divalidasi tetapi belum dirilis**.
+2. Alasan **wajib** dipilih dari **daftar alasan terkendali yang sama** dengan koreksi hasil
+   (`LAB-DEC-082`).
+3. Validasinya dibatalkan dan hasil kembali menjadi **Draft**. Fakta bahwa hasil **pernah
+   divalidasi** — oleh siapa, kapan — **tetap tercatat** di riwayat beserta alasan
+   pengembaliannya; tidak ada yang terhapus.
+4. Analis membetulkan, menekan Final lagi, lalu hasil divalidasi ulang oleh orang yang **bukan**
+   pengisinya (`LAB-DEC-003`).
+5. **Tidak** menghasilkan versi bernomor dan **tidak** memberi tahu dokter pemesan, karena hasil
+   itu belum pernah keluar dari laboratorium.
+6. Hasil yang **sudah dirilis** tidak dapat dikembalikan dengan cara ini. Ia hanya dapat
+   dikoreksi lewat `LAB-DEC-007` dan `LAB-DEC-082`.
+
+**Contoh:**
+
+> Pukul 10.00 dr. Aditya memvalidasi Hemoglobin 9,4 g/dL. Pukul 10.05, sebelum dirilis, petugas
+> perilis menyadari tabungnya tertukar. Ia menekan **Kembalikan ke analis** dengan alasan
+> *"Sampel tertukar"*. Hemoglobin kembali Draft; riwayat mencatat *divalidasi dr. Aditya 10.00,
+> dikembalikan 10.05 — Sampel tertukar*. Analis Sari memeriksa tabung yang benar, mengisi 4,9,
+> dan menekan Final pukul 10.20; dr. Aditya memvalidasinya lagi dan hasil dirilis pukul 10.25.
+> dr. Rina hanya pernah melihat 4,9 — tidak ada kabar *"hasil berubah"* untuk angka yang tidak
+> pernah ia baca.
+
+**Kenapa memakai daftar alasan yang sama dengan koreksi.** Laporan mutu kelak dapat menjawab
+*"berapa kali sampel tertukar bulan ini"* dengan menjumlahkan yang tertangkap **sebelum** dan
+**sesudah** rilis dari satu daftar. Dua daftar berbeda membuat kejadian yang sama terhitung
+dengan dua nama.
+
+**Kenapa tidak memberi tahu dokter.** Kabar *"hasil pasien Anda berubah"* untuk hasil yang belum
+pernah dilihat melatih dokter mengabaikan kabar semacam itu — termasuk ketika koreksinya
+sungguhan.
+
+**Akibat pada source:** nol hari ini — validasi dan rilis (`S4`) belum dibangun. Keputusan ini
+mengunci bentuknya sebelum dirancang.
+
+### BR-92 — Satu gerbang untuk seluruh penyerahan hasil final kepada pasien (`LAB-DEC-139`)
+
+**Memperluas cakupan syarat `LAB-DEC-067` dari *kirim* menjadi seluruh penyerahan. Menutup
+`PRD1-CONF-13`.**
+
+**Aturan:**
+
+1. Tiga aksi berikut tunduk pada **satu gerbang yang sama**: **kirim WhatsApp**, **cetak
+   dokumen final untuk pasien**, dan **unduh** dokumen final.
+2. Gerbang terbuka hanya bila **kedua** syarat terpenuhi:
+   - order berlabel **Selesai** — seluruh pemeriksaan yang tidak batal sudah dirilis
+     (`LAB-DEC-135`); **dan**
+   - persetujuan **Profesor dan Dokter Lab** sesuai `LAB-DEC-067` sudah ada.
+3. Gerbang ditegakkan **backend** pada ketiga jalur. Tidak ada satu jalur pun yang dapat
+   menyerahkan dokumen final pasien tanpa melewatinya.
+4. Selama gerbang tertutup, layar **menyebut syarat mana yang belum terpenuhi**, bukan sekadar
+   menonaktifkan tombol tanpa penjelasan — sejalan dengan `LAB-DEC-069` yang melarang petugas
+   dibiarkan menebak.
+5. **Tidak terpengaruh gerbang ini:** Nota Lab, Label Lab, dan Label Golongan Darah
+   (`LAB-DEC-075`), serta lembar hasil untuk dokter yang boleh dirilis sebagian
+   (`LAB-DEC-008`).
+6. Berlaku untuk Patologi Klinik **dan** Mikrobiologi pada putaran ini.
+7. **Siapa Profesor yang dimaksud dan bagaimana bentuk persetujuannya bukan bagian keputusan
+   ini.** Itu tetap `LAB-OPEN-029`, sudah diajukan kepada pihak klinis lewat `LAB-DEC-121`.
+
+**Contoh:**
+
+> Hemoglobin pasien Andi dirilis pukul 10.30, sehingga ordernya **Selesai**. Persetujuan
+> Profesor belum ada. Pukul 11.00 Andi datang ke loket. Petugas membuka order: tombol Cetak,
+> Unduh, dan Kirim WhatsApp tidak aktif, disertai keterangan *"Menunggu persetujuan Profesor
+> dan Dokter Lab"*. Petugas tetap dapat mencetak **Nota Lab** untuk keperluan pembayaran.
+> Begitu persetujuan tercatat, ketiga tombol aktif bersamaan.
+
+**Kenapa satu gerbang, bukan satu per kanal.** Kertas di loket dan PDF di WhatsApp adalah
+dokumen yang sama. Gerbang yang hanya menjaga WhatsApp dapat dilewati lewat tombol Cetak lalu
+difoto — dan syarat `LAB-DEC-067` berubah menjadi formalitas pada satu kanal saja.
+
+**Akibat yang perlu disadari.** Sampai `LAB-OPEN-029` dijawab, dokumen final pasien tertahan
+di ketiga jalur. Dalam praktik ini **tidak menambah penundaan** dari keadaan hari ini: order
+baru dapat berlabel Selesai sesudah rilis berdiri, dan rilis sendiri masih tertahan
+`DEC-LAB-011`. Yang berubah adalah **urutan penahannya** — bila `DEC-LAB-011` terjawab lebih
+dulu, `LAB-OPEN-029` menjadi penahan berikutnya bagi `S17`.
+
+### BR-93 — Kode QR memeriksa keaslian dokumen, bukan membuka hasil (`LAB-DEC-140`)
+
+**Menutup `PRD1-NEW-01`. *QR Result Viewer* pada PRD menjadi *QR verifikasi dokumen*.**
+
+**Aturan:**
+
+1. Kode QR tercetak pada **dokumen final pasien** — kertas maupun PDF — Patologi Klinik dan
+   Mikrobiologi, yaitu dokumen yang melewati gerbang `LAB-DEC-139`.
+2. Memindai QR membuka **halaman verifikasi publik** yang hanya menampilkan: nama rumah sakit,
+   **nomor cetak** (`LAB-DEC-117`), tanggal rilis, dan **status dokumen**.
+3. Status dokumen salah satu dari tiga:
+   - **Asli dan berlaku**;
+   - **Sudah digantikan** — beserta nomor versi dan tanggal versi penggantinya
+     (`LAB-DEC-007`, `LAB-DEC-082`);
+   - **Tidak dikenal**.
+4. Halaman itu **tidak** menampilkan nilai hasil, nama pemeriksaan, nama pasien, No. RM,
+   maupun NIK.
+5. QR berisi **token acak** yang **tidak dapat diturunkan** dari nomor order, nomor cetak, atau
+   nomor apa pun yang tercetak — nomor urut dapat ditebak lalu dipindai satu per satu.
+6. Token melekat pada **satu versi dokumen**. Koreksi menerbitkan versi baru dengan token baru;
+   token lama tetap hidup dan berganti status menjadi *sudah digantikan*.
+7. Halaman publik tanpa login adalah **jalur baru bagi backend** dan memerlukan persetujuan
+   pemilik keamanan/platform sebelum dibangun — `LAB-COORD-015`. Ini menahan
+   **implementasi** halaman itu saja, bukan desainnya.
+
+**Contoh:**
+
+> 1 September, Hemoglobin pasien Andi 9,4 g/dL dicetak dengan nomor cetak `25039254` dan
+> diserahkan. Andi membawanya ke perusahaan asuransi. 4 September, hasil dikoreksi menjadi
+> 4,9 dan terbit versi 2. 10 September, petugas asuransi memindai QR pada kertas lama dan
+> membaca: *"RS — No. 25039254 — dirilis 1 September — **SUDAH DIGANTIKAN** oleh versi 2
+> tertanggal 4 September"*. Petugas asuransi tahu kertas di tangannya usang tanpa pernah
+> melihat satu pun angka hasil Andi.
+
+**Batas yang harus dinyatakan terus terang.** QR ini membuktikan bahwa **dokumen bernomor itu
+pernah diterbitkan** dan **apa statusnya**. Ia **tidak** membuktikan bahwa angka pada kertas
+tidak diubah — halaman verifikasi sengaja tidak menampilkan angka. Pembuktian keutuhan isi
+menuntut tanda tangan digital pada PDF, dan itu urusan pembangkit PDF platform
+(`LAB-COORD-011`), bukan kode QR.
+
+**Kenapa bukan membuka hasil.** Kertas hasil berpindah tangan — keluarga, kantor, asuransi.
+Siapa pun yang memotretnya dapat memindai QR. QR yang membuka hasil lengkap berarti setiap
+foto kertas adalah kebocoran seluruh hasil pasien.
+
+**Kenapa bukan hanya untuk pegawai.** QR yang hanya bekerja di dalam rumah sakit tidak berguna
+di tempat dokumen usang paling berbahaya — di luar rumah sakit, di tangan pihak yang tidak
+tahu hasilnya pernah dikoreksi.
+
+### BR-94 — Konsultasi Patologi Klinik adalah fakta opsional (`LAB-DEC-141`)
+
+**Memperluas pola `LAB-DEC-106` dari Mikrobiologi ke Patologi Klinik. Menutup `PRD1-NEW-02`.**
+
+**Aturan:**
+
+1. Konsultasi pada hasil Patologi Klinik dicatat sebagai **fakta**: siapa yang mengonsultasikan,
+   kepada siapa, dan kapan — `ConsultedByUserId`, `ConsultedToName`, `ConsultedAt`, tiga kolom
+   yang sudah ada pada `LabExamination`.
+2. Konsultasi **opsional**. Ia **bukan** syarat Final, **bukan** status, dan **bukan** izin apa
+   pun.
+3. Patologi Klinik **tidak** memperoleh kualifikasi `Definitif` (`LAB-DEC-114` tetap khas
+   Mikrobiologi).
+4. Mengikuti pola Mikrobiologi, fakta konsultasi dicatat selama hasil belum Final; sesudah
+   Final ia ikut baca-saja, dan dibuka lagi lewat Reopen bila perlu.
+5. *Kepada siapa* berupa **nama tertulis**, sehingga konsultan dari luar rumah sakit yang tidak
+   terdaftar pada data induk dokter tetap dapat dicatat.
+
+**Contoh:**
+
+> Analis menemukan sel blas pada hapusan darah tepi pasien Andi. Pukul 11.20 ia menelepon
+> konsultan Sp.PK(K), lalu mencatat: *dikonsultasikan oleh Sari, kepada konsultan Sp.PK(K),
+> 11.20*. Pukul 11.35 ia menekan Final. Enam bulan kemudian, ketika hasil itu ditinjau ulang,
+> pertanyaan *"dulu dikonsultasikan ke siapa?"* terjawab dari data, bukan dari ingatan.
+>
+> Hasil Hemoglobin rutin pasien lain yang tidak dikonsultasikan tetap dapat Final seperti
+> biasa — tidak ada kolom yang wajib diisi.
+
+**Kenapa tidak dijadikan syarat.** Menjadikannya syarat menuntut daftar *pemeriksaan mana yang
+wajib dikonsultasikan*, dan isi daftar itu keputusan klinis `DR-LAB-001`. Bila kelak dibutuhkan,
+ia dapat ditambahkan di atas fakta yang sama tanpa membongkar apa pun.
+
+**Akibat pada source:** nol kolom baru. Tindakan pencatatan konsultasi untuk Patologi Klinik
+belum ada; bentuknya diputuskan desain `S4a`.
+
+### BR-95 — Kewenangan validasi dan rilis berlapis dua: jabatan dan penunjukan (`LAB-DEC-142`)
+
+**Menegakkan `LAB-DEC-022` dan menetapkan cara menegakkannya. Menutup `PRD1-CONF-03`.**
+
+**Aturan:**
+
+1. **Lapis jabatan** — hak akses per departemen dan jabatan yang sudah dipakai aplikasi
+   menentukan **siapa yang boleh menjadi calon** pemvalidasi atau perilis. Jabatan calon dapat
+   diatur, dan boleh mencakup analis senior. **⚠ Diamandemen 2026-09-24 oleh `LAB-DEC-150`:**
+   jabatan calon **dibatasi pada dokter berkewenangan laboratorium**; analis, termasuk analis
+   senior, tidak lagi dapat menjadi calon.
+2. **Lapis orang** — **daftar penunjukan per orang** menentukan **siapa yang benar-benar
+   berwenang**, sesuai `LAB-DEC-022`.
+3. Validasi dan rilis hanya dapat dilakukan bila **kedua lapis lolos**.
+4. Penunjukan **validasi** dan penunjukan **rilis** adalah dua hal terpisah (`LAB-INH-007`).
+   Memegang satu tidak memberi yang lain.
+5. Lapis orang **ditegakkan di dalam service**, sama seperti ketiga pembatasan pada
+   `permission-audit-matrix` bagian 3 — sistem hak akses bekerja per aksi, bukan per orang.
+6. **Siapa yang berhak mengisi daftar penunjukan bukan bagian keputusan ini.** Itu tetap
+   `DEC-LAB-011`, diajukan kepada dr. Bima Prasetya, Sp.PK lewat `LAB-REQ-013`.
+
+**Contoh:**
+
+> Senin, rumah sakit menerima dr. Baru, Sp.PK, berjabatan Dokter Penanggung Jawab
+> Laboratorium. Pukul 08.00 ia membuka antrean validasi — lapis jabatan lolos — lalu menekan
+> Validasi pada hasil Kalium. Sistem menolak: *"Anda belum ditunjuk sebagai pemegang
+> kewenangan validasi."* Rabu, sesudah kompetensinya dinilai, namanya masuk daftar penunjukan,
+> dan validasinya diterima.
+>
+> Analis senior Budi berjabatan Analis Laboratorium Senior, jabatan yang diatur sebagai calon,
+> dan namanya ada pada daftar penunjukan validasi. Ia dapat memvalidasi hasil Sari. Analis
+> senior lain dengan jabatan yang sama tetapi tidak ditunjuk tetap tidak dapat.
+>
+> **⚠ Contoh paragraf ini tidak berlaku sejak 2026-09-24** (`LAB-DEC-150`): analis, termasuk
+> analis senior, tidak dapat menjadi pemvalidasi. Pola dua lapisnya tetap berlaku bagi dokter.
+
+**Kenapa dua lapis.** Lapis jabatan saja memberi kewenangan kepada setiap pemegang jabatan pada
+hari pertamanya, tanpa penilaian kompetensi. Lapis orang saja tidak menahan kesalahan
+pengisian daftar — staf administrasi yang keliru dimasukkan langsung dapat mengesahkan hasil
+pasien.
+
+**Yang dibuka keputusan ini — `PRD1-FOLLOW-03`.** Apakah penunjukan berlaku **per disiplin**?
+Ditanyakan sebagai Q9b.
+
+### BR-96 — Penunjukan dicatat per disiplin (`LAB-DEC-143`)
+
+**Melengkapi `LAB-DEC-142`. Menutup `PRD1-FOLLOW-03`.**
+
+**Aturan:**
+
+1. Setiap penunjukan menyebut **tiga hal**: orangnya, jenis kewenangannya (validasi atau rilis),
+   dan **disiplinnya** — Patologi Klinik, Mikrobiologi, atau Patologi Anatomi.
+2. Penunjukan pada satu disiplin **tidak** memberi kewenangan pada disiplin lain.
+3. Orang yang kompeten di lebih dari satu disiplin memperoleh penunjukan **terpisah** untuk
+   masing-masing.
+
+**Contoh:**
+
+> Analis senior Budi ditunjuk untuk **validasi Patologi Klinik**. Pukul 14.00 ia membuka hasil
+> antibiogram *Escherichia coli* ESBL di antrean Mikrobiologi dan menekan Validasi. Sistem
+> menolak: *"Anda belum ditunjuk sebagai pemegang kewenangan validasi Mikrobiologi."*
+> **⚠ Sejak 2026-09-24 (`LAB-DEC-150`) baca "Budi" sebagai dokter berkewenangan laboratorium;
+> analis tidak lagi dapat ditunjuk. Aturan per disiplinnya tidak berubah.**
+>
+> dr. Aditya ditunjuk untuk validasi dan rilis Patologi Klinik — dua baris. Bila rumah sakit
+> kelak menetapkan ia juga memegang Mikrobiologi, ditambahkan dua baris lagi. Tidak ada yang
+> perlu dibongkar.
+
+**Kenapa per disiplin.** Kewenangan klinis modul ini sudah dipegang per disiplin
+(`LAB-DEC-078`), dan validasi serta rilis tiap disiplin berdiri sebagai slice tersendiri
+(`LAB-DEC-083`). Yang paling menentukan: bentuk per disiplin **tetap dapat mewakili** kebijakan
+*satu orang untuk semua disiplin* — cukup tiga penunjukan — sedangkan bentuk lintas disiplin
+**tidak dapat** mewakili sebaliknya. Apa pun jawaban `DEC-LAB-011` kelak, data penunjukan tidak
+perlu dipecah ulang.
+
+### Penegasan ulang empat penolakan Mikrobiologi (`LAB-DEC-144`)
+
+**Menutup `PRD1-CONF-07`..`PRD1-CONF-10` ke arah blueprint.** PRD mengajukan kembali empat hal
+yang ditolak pada putaran 9 (2026-09-21), **tanpa satu pun alasan atau bukti baru**. Pemilik
+modul menegaskan keempat penolakan itu berlaku apa adanya.
+
+| Butir | Yang ditegaskan | Keputusan asal |
+|---|---|---|
+| `PRD1-CONF-07` | Hasil Mikrobiologi melekat **per pemeriksaan**; yang berjumlah satu per order adalah **dokumen cetaknya** | `LAB-DEC-095`, `LAB-DEC-067` |
+| `PRD1-CONF-08` | `Lainnya` beserta keterangannya masuk **daftar pantau**; hanya kepala instalasi yang menaikkannya menjadi pilihan tetap | `LAB-DEC-040`, `LAB-DEC-098`, `LAB-DEC-130` |
+| `PRD1-CONF-09` | Nama analis **diturunkan** dari pengguna yang menyimpan dan tampil baca-saja; `Penanggung Jawab Analis` tetap ruas tersendiri yang dipilih | `LAB-DEC-105`, `LAB-DEC-093` |
+| `PRD1-CONF-10` | **Subbakteri tidak dibangun**; varian seperti *E. coli ESBL* adalah baris organisme tersendiri | `LAB-DEC-102` |
+
+**Kenapa dicatat sebagai keputusan, bukan dibiarkan sebagai bawaan `LAB-DEC-133`.** Ini kali
+**kedua** keempat usulan yang sama datang lewat dokumen yang berbeda. Penegasan tertulis
+membuat kali ketiga dapat dijawab dengan menunjuk satu baris, bukan mengulang wawancara.
+
+**Akibat pada source:** nol. Keempatnya sudah dibangun sesuai keputusan asal pada `S4b`.
+
+### Paket empat butir kecil (`LAB-DEC-145`)
+
+**Menutup `PRD1-NEW-03`..`PRD1-NEW-06`.** Keempatnya diajukan sebagai satu paket karena
+berisiko rendah dan saling lepas; setiap butir tetap disertai pilihan dan rekomendasinya
+sendiri, dan pemilik modul menyetujui keempat rekomendasi.
+
+| No | Butir | Keputusan | Contoh atau alasan |
+|---:|---|---|---|
+| 1 | `PRD1-NEW-03` Email pasien | **Dihapus dari PRD.** Nol FR memakainya; platform nol sarana surel; surel adalah kanal data kesehatan baru yang butuh izin tersendiri. Bila kelak dibutuhkan, dibuka sebagai butir baru dan tetap tunduk `LAB-DEC-139` | — |
+| 2 | `PRD1-NEW-04` Warna flag | **Makna dikunci, kode warna tidak** — dicatat `LAB-FE-015`. Penanda wajib berupa huruf atau teks | Cetakan hitam-putih Kalium 5,3 tetap terbaca `H 5,3`, dan Kalium 7,2 terbaca `KRITIS 7,2` — tanpa huruf, keduanya abu-abu yang sama |
+| 3 | `PRD1-NEW-05` Larangan modal | **Diterima untuk isian hasil utama** pada halaman hasil PK dan Mikrobiologi — dicatat `LAB-FE-016` | Antibiogram dapat sampai 22 baris; modal yang tertutup tak sengaja pada baris ke-20 menghapus seluruh isian |
+| 4 | `PRD1-NEW-06` Lokasi dan metode pengambilan specimen | **Tetap `S2b`**, masih `BUSINESS_DECISION_REQUIRED`. PRD menandainya *menunggu keputusan `S2b`* | Daftar nilainya belum ada dari lapangan; memutuskan bentuk tanpa isi mengulang pola *daftarnya ada, cara mengisinya tidak* |
+
+### Koreksi yang wajib masuk revisi PRD
+
+Diperbarui setiap kali satu butir putaran ini diputuskan. Penulis PRD memakai daftar ini untuk
+merevisi dokumennya.
+
+| No | Bagian PRD | Tertulis sekarang | Seharusnya | Dasar |
+|---:|---|---|---|---|
+| 1 | 1 (Target User), 5 | Aktor Analis hanya disebut untuk Mikrobiologi | Tambahkan **Analis Laboratorium** sebagai pengisi hasil **Patologi Klinik** | `LAB-DEC-134` |
+| 2 | 5.2 | Dokter Laboratorium: *Mengisi hasil pemeriksaan*, *Mengubah hasil sebelum final* | Dokter Laboratorium: **memvalidasi dan mengotorisasi** hasil Patologi Klinik | `LAB-DEC-134` |
+| 3 | FR-PK-002 | *Dokter Laboratorium dapat: Mengisi hasil, Mengubah hasil, Menyimpan Draft* | **Analis** yang mengisi, mengubah, Simpan Draft, dan Simpan Final hasil — per pemeriksaan; Dokter Lab mengesahkannya | `LAB-DEC-134`, `LAB-DEC-135` |
+| 4 | BP-001 langkah 4 | *Dokter Lab mengisi hasil* | **Analis** mengisi hasil; langkah validasi dan otorisasi oleh Dokter Lab ditambahkan sesudahnya | `LAB-DEC-134` |
+| 5 | 13 (AC Patologi Klinik) | *Dokter Lab input hasil → Berhasil simpan draft* | **Analis** input hasil. Tambahkan skenario: *pengisi hasil menekan Validasi → ditolak kecuali alasan pengecualian diisi* | `LAB-DEC-134`, `AC-01` |
+| 6 | 5.1 | *Petugas Laboratorium tidak dapat mengubah hasil Patologi Klinik* | **Tetap**, dengan penegasan bahwa Petugas Laboratorium adalah petugas administrasi, bukan analis | `LAB-DEC-134` butir 3 |
+| 7 | 2 (Latar Belakang) | *... berubah menjadi Selesai setelah dilakukan Simpan Final oleh Dokter Laboratorium* | Order berlabel **Selesai** setelah **seluruh pemeriksaan yang tidak batal dirilis**. Simpan Final oleh analis berarti selesai menulis | `LAB-DEC-135` |
+| 8 | FR-PK-002 (diagram) | `Dalam Pemeriksaan → Simpan Final → Selesai` | Per pemeriksaan: `Draft → Final (analis) → Validasi → Rilis`, dengan Reopen dari Final ke Draft selama belum divalidasi. Per order: `Dalam Pemeriksaan → Selesai` sebagai label turunan | `LAB-DEC-135` |
+| 9 | 8 (Status Management) | Lima status sejajar: Draft, Dalam Pemeriksaan, Definitif, Final/Selesai, Amendment | Ganti dengan tabel label turunan BR-88: Draft dan Final pada pemeriksaan; Dalam Pemeriksaan dan Selesai pada order; Amendment sesudah rilis; **Definitif dihapus untuk Patologi Klinik** | `LAB-DEC-135`, `LAB-DEC-080` |
+| 10 | 12 (Security) | *Data final tidak dapat diedit* | Data yang sudah **dirilis** tidak dapat diedit; hasil Final yang belum divalidasi dapat dibuka kembali | `LAB-DEC-135` butir 3 dan 4 |
+| 11 | 13 (AC Patologi Klinik) | *Dokter Lab finalisasi → Status menjadi Selesai* | *Analis Simpan Final → hasil masuk antrean validasi*; *seluruh pemeriksaan order dirilis → order berlabel Selesai* | `LAB-DEC-135`, `AC-196`, `AC-199` |
+| 12 | 13 (AC Patologi Klinik) | *User edit hasil final → Ditolak* | *Edit hasil yang sudah dirilis → ditolak*; *Reopen hasil Final yang belum divalidasi → berhasil dan tercatat* | `LAB-DEC-135`, `AC-197` |
+| 13 | BP-003 (diagram) | `... → Konfirmasi Dokter → WhatsApp` sebagai akhir alur | Tambahkan langkah terakhir: **petugas mencatat pelaporan** — siapa, kepada siapa, kapan, lewat apa, bukti baca ulang — **baru tuntas**. WhatsApp menjadi langkah pengantar yang boleh dilewati | `LAB-DEC-136` |
+| 14 | BP-003 | *Sistem mencatat waktu pengiriman* | Sistem mencatat **waktu kirim WhatsApp** dan **waktu dilaporkan** secara terpisah; hasil tetap di daftar pantau sampai bukti baca ulang tercatat | `LAB-DEC-136` |
+| 15 | 10 (WhatsApp Gateway) | *Digunakan untuk: Notifikasi hasil kritis* | *Pengantar kabar hasil kritis — bukan bukti pelaporan*; tambahkan catatan ketergantungan pada gerbang WhatsApp platform (`LAB-COORD-011`) | `LAB-DEC-136` |
+| 16 | 13 (AC Patologi Klinik) | Nol skenario hasil kritis | Tambahkan: *WhatsApp kritis terkirim, baca ulang belum dicatat → hasil tetap di daftar pantau* | `LAB-DEC-136`, `AC-200` |
+| 17 | BP-003, 10 | Isi pesan WhatsApp kritis tidak diatur | Tambahkan ketentuan: pesan kritis **hanya** memuat adanya hasil kritis, unit/ruang, waktu, dan nomor kontak Laboratorium — **tanpa** nama pasien, No. RM, NIK, nama pemeriksaan, maupun nilai | `LAB-DEC-137` |
+| 18 | FR-PK-004 | *Jika hasil sudah Final: tidak boleh edit langsung, harus melalui Amendment* | *Jika hasil sudah **dirilis***: hanya lewat koreksi. Sebelum rilis: **Reopen** oleh analis bila belum divalidasi; **Kembalikan ke analis** oleh pemegang kewenangan validasi/rilis bila sudah divalidasi | `LAB-DEC-135`, `LAB-DEC-138` |
+| 19 | FR-PK-004 | *Wajib menyimpan alasan perubahan* | Alasan **dipilih dari daftar baku**; setiap koreksi menjadi **versi bernomor**, dan versi lama tetap terlihat bertanda *sudah diperbaiki* | `LAB-DEC-082`, `LAB-DEC-007` |
+| 20 | FR-PK-004 | Nol ketentuan pemberitahuan dan kunjungan tertutup | Tambahkan: **dokter pemesan otomatis diberi tahu** setiap koreksi dirilis ulang; bila kunjungan sudah ditutup, koreksi didaftarkan sebagai **addendum** pada dokumen rekam medis | `LAB-DEC-007`, `LAB-DEC-020` |
+| 21 | 5.2 | *Melakukan Amendment*, *Finalisasi hasil koreksi* pada peran yang sama | Hasil koreksi **divalidasi ulang oleh orang yang berbeda** dari pengoreksinya | `LAB-DEC-003` |
+| 22 | FR-PK-002 (diagram) | Nol jalur balik sesudah validasi | Tambahkan jalur `Validasi → Kembalikan ke analis (beralasan) → Draft`, berlaku hanya sebelum rilis | `LAB-DEC-138` |
+| 23 | FR-PK-005 (Prasyarat) | *Status hasil: Selesai* | Order **Selesai** (seluruh pemeriksaan yang tidak batal dirilis) **dan** persetujuan **Profesor dan Dokter Lab**. Berlaku sama untuk Print, Download, dan Kirim WhatsApp | `LAB-DEC-139`, `LAB-DEC-067` |
+| 24 | 4.2, 6.2 | *Print hasil mikrobiologi* tanpa prasyarat | Tunduk pada gerbang yang sama dengan FR-PK-005 | `LAB-DEC-139` butir 6 |
+| 25 | 13 (AC Patologi Klinik) | *Kirim hasil pasien → PDF terkirim* | Tambahkan: *order Selesai tanpa persetujuan → Cetak, Unduh, dan Kirim tidak aktif dan layar menyebut syarat yang kurang*; *Nota Lab tetap dapat dicetak* | `LAB-DEC-139`, `AC-208`, `AC-209` |
+| 26 | 4.1 | *QR Result Viewer* | **QR verifikasi dokumen**: memeriksa keaslian dan status dokumen — asli, sudah digantikan, atau tidak dikenal — **bukan** membuka hasil | `LAB-DEC-140` |
+| 27 | 9 (Header) | *QR Code* tanpa keterangan | QR melekat pada **dokumen final per versi**, berisi token acak menuju halaman verifikasi; tidak memuat data pasien | `LAB-DEC-140` butir 1, 5, 6 |
+| 28 | 10 (Integration) | Nol halaman publik | Tambahkan halaman verifikasi publik tanpa login beserta ketergantungannya pada persetujuan pemilik keamanan/platform (`LAB-COORD-015`) | `LAB-DEC-140` butir 7 |
+| 29 | 13 (AC Patologi Klinik) | Nol skenario QR | Tambahkan: *pindai QR dokumen yang sudah dikoreksi → tampil "sudah digantikan" beserta versi penggantinya, tanpa angka hasil* | `LAB-DEC-140`, `AC-212` |
+| 30 | BP-001 langkah 7 | *Konsultasi eksternal jika diperlukan* | *Bila dikonsultasikan, catat siapa, kepada siapa, dan kapan.* Opsional, **bukan** syarat Simpan Final, dan **tidak** menghasilkan status Definitif pada Patologi Klinik | `LAB-DEC-141` |
+| 31 | 5.2 | *Dokter Laboratorium merupakan satu-satunya role yang dapat melakukan Simpan Final* | Validasi dan rilis hanya oleh orang yang **berjabatan calon** dan **ditunjuk per orang**. Tidak setiap Dokter Lab otomatis berwenang. ~~Analis senior yang ditunjuk boleh~~ — **dicabut 2026-09-24**: validasi hanya oleh dokter berkewenangan laboratorium | `LAB-DEC-142`, `LAB-DEC-022`, `LAB-DEC-150` |
+| 32 | 12 (Security) | *Role based access* | Hak akses per **departemen dan jabatan** untuk setiap aksi, **ditambah** penunjukan per orang untuk validasi dan rilis | `LAB-DEC-142` |
+| 33 | BP-002 langkah 7; 13 (AC Mikrobiologi) | *Dokter Lab melakukan Final*; *Finalisasi → Hanya Dokter Lab* | **Simpan Final** oleh penulis hasil Mikrobiologi — berarti selesai menulis. **Validasi dan rilis** Mikrobiologi oleh pemegang penunjukan, pada `S4d` | `LAB-DEC-097`, `LAB-DEC-142` |
+| 34 | 5.2, 12 | Kewenangan tidak dibedakan per disiplin | Penunjukan validasi dan rilis dicatat **per disiplin**; penunjukan Patologi Klinik tidak berlaku untuk Mikrobiologi | `LAB-DEC-143` |
+| 35 | 13 (AC Mikrobiologi) | *Critical ditemukan → Notifikasi dokter aktif* | *Critical ditemukan **menurut aturan kritis Mikrobiologi yang diisi `DR-LAB-002`** → formulir pelaporan muncul*; *selama aturan itu kosong, layar menyatakan penanda kritis Mikrobiologi belum aktif* | `LAB-DEC-103`, `LAB-OPEN-041` |
+| 36 | 2 (Latar Belakang), 6.2 | *Satu order ... menghasilkan satu hasil pemeriksaan mikrobiologi pada level order* | Setiap **pemeriksaan** Mikrobiologi punya hasilnya sendiri; yang berjumlah satu per order adalah **dokumen cetaknya** | `LAB-DEC-144`, `LAB-DEC-095` |
+| 37 | FR-MB-003 | *Pilih Lainnya → input → validasi duplikasi → simpan → tampil sebagai checkbox → bisa digunakan kembali* | *Pilih Lainnya → isi keterangan → tersimpan pada specimen itu dan **masuk daftar pantau** → **kepala instalasi** yang menaikkannya menjadi pilihan tetap.* Pilihan tetap berasal dari data induk yang sudah memuat 1.767 entri SNOMED | `LAB-DEC-144`, `LAB-DEC-098` |
+| 38 | FR-MB-004 | Ruas *Analis* di antara ruas isian | *Analis* **tampil baca-saja** dari pengguna yang menyimpan; tambahkan ruas *Penanggung Jawab Analis* yang dipilih | `LAB-DEC-144`, `LAB-DEC-105` |
+| 39 | FR-MB-005, 5.3 | *Subbakteri*; Analis *mengelola organisme* | Hapus *Subbakteri*. *Mengelola organisme* diperjelas: analis **memilih** organisme pada hasil; **data induk** organisme dikelola lewat layar data induk | `LAB-DEC-144`, `LAB-DEC-102`, `LAB-DEC-084` |
+| 40 | 10 (Master Pasien) | *Digunakan untuk: ... Email* | **Hapus** *Email* | `LAB-DEC-145` butir 1 |
+| 41 | FR-PK-003 | Tabel *Low/High → Kuning, Critical → Merah* | Tiga tingkat dibedakan jelas, kritis paling menonjol, dan penanda **wajib berupa huruf atau teks** `L`, `H`, `KRITIS` di layar dan di cetakan. Warna mengikuti token desain | `LAB-DEC-145` butir 2, `LAB-FE-015` |
+| 42 | 12 (Usability) | *Form tidak menggunakan modal untuk input utama* | **Tetap**, diperjelas: berlaku untuk isian hasil utama — nilai, isolat, antibiogram — pada halaman hasil PK dan Mikrobiologi; modal boleh untuk konfirmasi dan isian pendek | `LAB-DEC-145` butir 3, `LAB-FE-016` |
+| 43 | FR-MB-002 | *Lokasi specimen*, *Metode pengambilan* sebagai ruas yang tersedia | Tandai **menunggu keputusan `S2b`** | `LAB-DEC-145` butir 4 |
+| 44 | 4.2 | *Preview bilingual* sebagai cakupan | Tandai **bergantung `LAB-COORD-013`** — layanan terjemahan dan izin privasinya milik platform. Cetak Bahasa Indonesia tidak tertahan | Batas scope putaran 14 |
+| 45 | 4.2 | *Diagnostic Report* sebagai cakupan | Perjelas maksudnya: bila **HL7/SATUSEHAT `DiagnosticReport`**, tidak dibangun sekarang (`LAB-DEC-109`, `LAB-COORD-012`) — PRD sendiri menaruhnya di *Future Enhancement*; bila **lembar hasil cetak**, sudah tercakup `LAB-DEC-110` | Batas scope putaran 14 |
+
+### Urutan pertanyaan putaran ini
+
+| Urutan | Butir | Pertanyaan | Keadaan |
+|---:|---|---|---|
+| Q1 | Kedudukan PRD | Baseline baru, bukti untuk direkonsiliasi, atau dokumen komunikasi saja? | ✅ Dijawab — `LAB-DEC-133` |
+| Q2 | `PRD1-CONF-01`, `PRD1-CONF-02` | Siapa yang mengisi hasil Patologi Klinik | ✅ Dijawab — `LAB-DEC-134` |
+| Q3 | `PRD1-CONF-04`..`PRD1-CONF-06` | Perlukah Patologi Klinik punya Draft/Final, dan bagaimana status PRD dipetakan | ✅ Dijawab — `LAB-DEC-135` |
+| Q4 | `PRD1-CONF-11` | Sahkah WhatsApp sebagai bukti pelaporan nilai kritis | ✅ Dijawab — `LAB-DEC-136` |
+| Q4b | `PRD1-FOLLOW-02` | Data pasien apa yang boleh dimuat pesan WhatsApp hasil kritis kepada dokter | ✅ Dijawab — `LAB-DEC-137` |
+| Q5 | `PRD1-CONF-12`, `PRD1-FOLLOW-01` | Rincian amendment, termasuk pengembalian hasil yang sudah divalidasi tetapi belum dirilis | ✅ Dijawab — `LAB-DEC-138`; `PRD1-CONF-12` tetap blueprint |
+| Q6 | `PRD1-CONF-13` | Apakah persetujuan `LAB-DEC-067` juga menjadi syarat cetak dan unduh hasil untuk pasien, bukan hanya kirim | ✅ Dijawab — `LAB-DEC-139` |
+| Q7 | `PRD1-NEW-01` | QR Result Viewer: apa yang dibuka kode QR, dan bagi siapa | ✅ Dijawab — `LAB-DEC-140`; `LAB-COORD-015` dibuka |
+| Q8 | `PRD1-NEW-02` | Konsultasi pada Patologi Klinik | ✅ Dijawab — `LAB-DEC-141` |
+| Q9 | `PRD1-CONF-03` | Apakah setiap Dokter Lab otomatis berwenang memvalidasi dan merilis, atau hanya yang ditunjuk | ✅ Dijawab — `LAB-DEC-142` |
+| Q9b | `PRD1-FOLLOW-03` | Apakah penunjukan validasi dan rilis berlaku per disiplin | ✅ Dijawab — `LAB-DEC-143` |
+| — | `PRD1-CONF-14` | AC Mikrobiologi nilai kritis | ✅ Ditutup tanpa pertanyaan — bukan wewenang pemilik modul; koreksi PRD 35 |
+| Q10 | `PRD1-CONF-07`..`PRD1-CONF-10` | Konfirmasi ulang empat butir Mikrobiologi yang pernah ditolak | ✅ Dijawab — `LAB-DEC-144`; **keempat belas pertentangan kini tertutup** |
+| Q11 | `PRD1-NEW-03`..`PRD1-NEW-06` | Email, warna, modal, lokasi dan metode specimen | ✅ Dijawab — `LAB-DEC-145`, `LAB-FE-015`, `LAB-FE-016`. **Putaran 14 selesai** |
+
+---
+
+## Closure Pass Putaran 15 — Closure question capability map revision 5 (dibuka 2026-09-24)
+
+**Sumber:** empat closure question `LAB-CLOSE-013`..`LAB-CLOSE-016` yang dibuka
+[`01-existing-capability-map.md`](01-existing-capability-map.md) **revision 5** pada hari yang
+sama, atas BE `ddeb5ed8` + FE `72607a087`. SHA kedua repository **tidak bergeser** sejak scan
+itu, sehingga peta dipakai apa adanya.
+
+### Batas scope putaran ini (dikonfirmasi pemilik modul 2026-09-24)
+
+Pemilik modul menjawab pertanyaan pertama tanpa mengoreksi daftar berikut.
+
+**Di dalam scope:** `LAB-CLOSE-013` penegakan `LAB-DEC-134`; `LAB-CLOSE-014` penolakan
+penyimpanan ulang hasil Final; `LAB-CLOSE-015` wadah penunjukan per orang; `LAB-CLOSE-016`
+letak isian hasil Patologi Klinik.
+
+**Di luar scope:**
+
+| Hal | Pemiliknya |
+|---|---|
+| Aturan internal kredensial Human Resource, misalnya siapa yang menyetujui grant | Pemilik `human-resource` — hanya titik sentuhnya yang dibahas |
+| Jawaban `DEC-LAB-011` | dr. Bima Prasetya, Sp.PK |
+| Isi data kebijakan hak akses di basis data (`UNK-P14-01`) | Admin sistem |
+| Header kontrak yang tertinggal | Pembukuan, bukan keputusan bisnis |
+| Tata letak halaman selain letak isian hasil | `DEV_DISCRETION` |
+
+### BR-97 — Tindakan atas hasil memakai izin tersendiri (`LAB-DEC-146`)
+
+**Menutup `LAB-CLOSE-013` dan `LAB-CONFLICT-012`. Menegakkan `LAB-DEC-134`.**
+
+**Aturan:**
+
+1. Tindakan **atas hasil** memakai **resource hak akses tersendiri**, terpisah dari
+   `LabExamination`. Nama pastinya ditetapkan pada amandemen `LAB-PERM-v1`; contoh kerjanya
+   `LabExaminationResult : Update`.
+2. Yang pindah ke izin hasil — lima tindakan yang sudah berdiri:
+
+   | Tindakan | Disiplin |
+   |---|---|
+   | Mengisi hasil | Patologi Klinik |
+   | Mengisi hasil | Mikrobiologi |
+   | Simpan Final | Keduanya |
+   | Reopen | Keduanya |
+   | Mencatat konsultasi | Keduanya |
+
+   Tindakan hasil yang kelak dibangun untuk Patologi Klinik (`LAB-DEC-135`, `LAB-DEC-141`)
+   ikut memakai izin yang sama.
+3. **Tetap** pada `LabExamination : Update`: membatalkan pemeriksaan, menandai cito, dan
+   menandai duplo.
+4. **Tidak disentuh:** tindakan laporan Patologi Anatomi tetap memakai izinnya sekarang,
+   sehingga `LAB-DEC-090` — Dokter Lab mengisi hasil Patologi Anatomi — utuh.
+5. **Tidak termasuk:** validasi dan rilis. Keduanya berlapis dua menurut `LAB-DEC-142` dan
+   memperoleh aksinya sendiri pada `S4`.
+6. Izin hasil diberikan kepada **jabatan analis**. Dokter pemesan dan Petugas Lab administrasi
+   **tidak** memperolehnya.
+7. **Nol hari terkunci:** data kebijakan izin hasil bagi jabatan analis **wajib terpasang
+   dalam rilis yang sama** dengan perubahan hak aksesnya.
+
+**Contoh:**
+
+> Sesudah perubahan ini, dr. Rina tetap memegang `LabExamination : Update` dan tetap dapat
+> menandai Kalium pasiennya sebagai cito. Bila akunnya mengirim `PUT .../result`, sistem
+> menjawab `403` — ia tidak memegang izin hasil.
+>
+> Analis Sari memegang izin hasil. Senin pagi sesudah rilis ia membuka Daftar Kerja dan
+> mengisi hasil seperti hari Jumat, tanpa satu pun perubahan yang ia rasakan — karena data
+> kebijakan jabatannya ikut terpasang bersama rilis itu.
+
+**Kenapa bukan pemeriksaan jabatan di dalam kode.** Nama jabatan tertanam di kode tidak dapat
+diatur admin, tidak terlihat pada layar pengelolaan hak akses, dan setiap jabatan baru —
+misalnya *Analis Senior* — menuntut rilis kode.
+
+**Kenapa bukan memindahkan cito saja.** Celah dokter pemesan memang tertutup, tetapi setiap
+pemegang izin batal atau duplo — termasuk Petugas Lab — tetap dapat mengisi hasil, dan butir 3
+`LAB-DEC-134` tetap tidak tertegakkan.
+
+**Akibat pada source dan kontrak:**
+
+| Yang terdampak | Akibatnya |
+|---|---|
+| `LAB-PERM-v1` | Amandemen: satu resource baru; bagian 10.1 dan baris 71-76 diperbarui |
+| Lima endpoint yang sudah berdiri (`S4a`, `S4b`) | Perbaikan atribut hak akses — **task perbaikan**, bukan fitur baru |
+| Data kebijakan | Satu langkah pemasangan izin hasil bagi jabatan analis, dirilis bersama |
+| `UNK-P14-01` | Tidak lagi menentukan keamanan, tetapi tetap berguna untuk memetakan jabatan mana yang kini memegang `LabExamination : Update` sebelum pemasangan |
+
+### BR-98 — Hasil yang sudah Final ditolak bila disimpan ulang (`LAB-DEC-147`)
+
+**Menutup `LAB-CLOSE-014`. Mengukuhkan yang sudah tersirat pada `LAB-DEC-097`, BR-60 butir 3,
+dan `LAB-DEC-135` butir 3, dengan pola `VAL-96` milik Patologi Anatomi.**
+
+**Aturan:**
+
+1. Selama hasil berstatus **Final**, seluruh penyimpanan atas **isi hasil** ditolak dengan kode
+   `409` dan pesan yang menyuruh membuka kembali lebih dulu. Yang dijaga:
+
+   | Isi | Disiplin |
+   |---|---|
+   | Nilai hasil | Patologi Klinik |
+   | Status temuan, isolat, baris antibiogram, kualifikasi, jenis biakan, metode uji | Mikrobiologi |
+   | Catatan konsultasi | Keduanya |
+
+2. **Reopen** — beralasan, menaikkan `ReopenCount`, tercatat di riwayat — adalah **satu-satunya
+   jalan** mengubah hasil yang sudah Final sebelum validasi.
+3. Penjaga koreksi specimen yang sudah ada (`VAL-109`) **tidak berubah**.
+4. Aturannya masuk `LAB-VAL-v1` sebagai amandemen; nomor `VAL`-nya ditetapkan saat amandemen.
+5. **Mikrobiologi diperbaiki sekarang**, sebelum `S4b` masuk rilis — backend menolak, frontend
+   menampilkan penolakannya secara terbaca tanpa menghilangkan isian yang sedang diketik.
+   Patologi Klinik memperoleh penjaga yang sama saat `LAB-DEC-135` dibangun.
+
+**Contoh:**
+
+> Analis menekan Final pada hasil kultur urin Senin pukul 14.40. Selasa pukul 09.00 ia ingin
+> mengganti *Escherichia coli* menjadi *Klebsiella pneumoniae*. Tombol Simpan menjawab: *"Hasil
+> ini sudah dinyatakan selesai. Buka kembali lebih dulu bila perlu diubah."* Ia menekan Reopen
+> dengan alasan *"Identifikasi ulang dari biakan hari kedua"*, mengganti organismenya, lalu
+> menekan Final lagi pukul 09.20.
+>
+> Hasilnya: `ReopenCount` = 1, riwayat memuat alasannya, dan cetakan menulis **Tanggal Selesai:
+> Selasa 09.20** — waktu isi yang benar-benar tercetak. Tanpa aturan ini, cetakan tetap menulis
+> Senin 14.40 untuk isi yang ditulis Selasa, dan nol jejak bahwa hasil pernah dibuka.
+
+**Kenapa diperbaiki sekarang, bukan menunggu `S4d`.** Waktu Final dipakai dua kali — dicetak
+sebagai **Tanggal Selesai** (`LAB-DEC-118`) dan tampil sebagai **Waktu Issued**
+(`LAB-DEC-096`) — sehingga Final yang dapat ditimpa langsung membuat dokumen menyebut waktu
+yang salah. Dan `S4b` belum masuk Rilis 1 menurut manifest, sehingga perbaikan ini belum
+menyentuh kebiasaan petugas mana pun.
+
+**Akibat pada source dan kontrak:**
+
+| Yang terdampak | Akibatnya |
+|---|---|
+| `LAB-VAL-v1` | Amandemen: satu aturan baru setara `VAL-96` |
+| `S4b` backend | **Task perbaikan** — penjaga Final pada penyimpanan hasil Mikrobiologi dan pencatatan konsultasi |
+| `S4b` frontend | **Task perbaikan** — penanganan `409` yang terbaca pada halaman hasil Mikrobiologi |
+| Perluasan `S4a` | Penjaga yang sama menjadi bagian desainnya sejak awal |
+
+### BR-99 — Penunjukan disimpan pada kredensial Human Resource; Laboratorium hanya membaca (`LAB-DEC-148`)
+
+**Menutup `LAB-CLOSE-015`. Menetapkan wadah lapis orang `LAB-DEC-142` dan pembagian per disiplin
+`LAB-DEC-143`.**
+
+**Aturan:**
+
+1. Penunjukan pemvalidasi dan perilis disimpan sebagai **kewenangan klinis per tenaga kerja**
+   pada modul Human Resource (`WfpClinicalPrivilege`), bukan pada tabel milik Laboratorium.
+2. Katalog kewenangan Human Resource (`MstClinicalPrivilegeCatalog`) memperoleh **enam kode**
+   Laboratorium:
+
+   | Disiplin | Validasi | Rilis |
+   |---|---|---|
+   | Patologi Klinik | ✔ | ✔ |
+   | Mikrobiologi | ✔ | ✔ |
+   | Patologi Anatomi | ✔ | ✔ |
+
+   Nama dan format kodenya disepakati bersama pemilik Human Resource (`LAB-COORD-016`).
+3. Laboratorium **hanya membaca**. Seseorang dianggap ditunjuk bila memegang kode yang sesuai
+   dengan status **aktif** dan tanggal hari itu berada **dalam masa berlakunya** — pola
+   `OperatingRoomCredentialResolver` milik Kamar Operasi, ditambah pencocokan **kode**.
+4. Laboratorium **tidak menulis** ke tabel kredensial Human Resource dalam bentuk apa pun.
+5. Status *suspended*, *revoked*, kedaluwarsa, atau di luar masa berlaku **seketika** menolak
+   validasi dan rilis, tanpa satu pun perubahan pada data Laboratorium.
+6. Pesan penolakan **menyebut sebabnya**: belum ditunjuk, masa berlaku habis, atau sedang
+   ditangguhkan.
+7. Lapis jabatan `LAB-DEC-142` butir 1 **tetap berlaku** di atasnya.
+8. **Siapa yang berwenang menetapkan** tetap `DEC-LAB-011`. Keputusan ini hanya menyediakan
+   wadah dan usulan untuk dr. Bima Prasetya, Sp.PK.
+
+**Contoh:**
+
+> Proses kredensial memberi dr. Baru, Sp.PK, kewenangan *Validasi Patologi Klinik* yang
+> berlaku 1 Oktober 2026 sampai 30 September 2029. Sejak 1 Oktober ia dapat memvalidasi hasil
+> Patologi Klinik — dan tetap **tidak** dapat memvalidasi Mikrobiologi maupun merilis apa pun.
+>
+> 12 Maret 2027 kewenangannya di-*suspend* karena sedang diinvestigasi. Pukul 12.01 ia menekan
+> Validasi dan membaca: *"Kewenangan validasi Patologi Klinik Anda sedang ditangguhkan."*
+> Kepala instalasi **tidak** perlu mengingat untuk menghapusnya dari daftar mana pun di
+> Laboratorium.
+
+**Kenapa bukan daftar milik Laboratorium.** Dua sumber penunjukan pasti suatu hari berbeda:
+tenaga yang di-*suspend* di Human Resource tetap dapat memvalidasi sampai seseorang ingat
+menghapusnya dari daftar Laboratorium. Masa berlaku dan status juga harus dibangun ulang,
+padahal keduanya sudah berdiri.
+
+**Kenapa ini tidak mengulang `LAB-COORD-006` dan `MST-POS-WRITE`.** Keduanya macet karena
+**daftarnya ada, cara mengisinya tidak**. Di sini **keduanya ada**: katalog punya `POST`,
+`PUT`, `PATCH status`, dan `DELETE`
+(`Areas/Corporate/HumanResource/MasterData/CompetencyAndCredential/Controllers/ClinicalPrivilegeCatalogController.cs@ddeb5ed8`),
+dan kewenangan punya `grant`, `reject`, `suspend`, serta `revoke`.
+
+**Akibat yang perlu disadari.** Validasi baru dapat berjalan setelah proses kredensial
+**sungguh mengisi** kewenangannya. Sampai itu terjadi, sistem menolak validasi — dan itu
+disengaja: jalan keluar yang melewati kredensial akan mengulang masalah `LAB-DEC-022` butir 3,
+yaitu pengecualian yang diam-diam menjadi jalur utama.
+
+### BR-100 — Hasil Patologi Klinik diisi pada halaman detail per order (`LAB-DEC-149`)
+
+**Menutup `LAB-CLOSE-016` dan `LAB-CONFLICT-013`. Melaksanakan `LAB-FE-016` dan PRD
+`FR-PK-001`.**
+
+**Aturan:**
+
+1. Hasil Patologi Klinik diisi pada **halaman detail per order**, satu halaman untuk satu order —
+   sejajar halaman Mikrobiologi yang juga satu halaman per order.
+2. Halaman itu menampilkan **seluruh pemeriksaan Patologi Klinik yang tidak batal** dalam **satu
+   tabel isian**: parameter, hasil, satuan, nilai rujukan, dan penanda `L`/`H` (`LAB-FE-015`).
+   Bedanya dari Mikrobiologi disengaja: pemeriksaan Patologi Klinik bernilai tunggal, sehingga
+   tidak perlu dipilih satu per satu.
+3. **Final tetap per pemeriksaan** (`LAB-DEC-135`). Menyimpan atau Final pada satu baris
+   **tidak** mengunci dan **tidak** menghapus isian baris lain.
+4. **Daftar Kerja tetap** sebagai antrean kerja dan **membuka** halaman ini. Dialog modal
+   pengisian hasil pada Daftar Kerja **dicabut**.
+5. Nama route mengikuti konvensi yang sudah ada (`LAB-FE-001`). Tata letak di dalam halaman
+   tetap `DEV_DISCRETION` dalam batas `LAB-FE-015` dan `LAB-FE-016` — dicatat sebagai
+   `LAB-FE-017`.
+
+**Contoh:**
+
+> Order `LAB-RSMMC-000000123` berisi 18 parameter Hematologi rutin dan Kalium cito. Analis Sari
+> membuka order itu dari Daftar Kerja dan melihat 19 baris dalam satu tabel. Ia mengisi Kalium
+> lebih dulu — 6,4 mmol/L, tampil dengan penanda `H` — dan menekan Final pada baris itu pukul
+> 09.10. Lalu ia mengisi 18 baris Hematologi sambil sesekali menyimpan, dan menekan Final pada
+> masing-masing hingga pukul 09.40.
+>
+> Dengan dialog lama, pekerjaan yang sama berarti membuka dan menutup dialog 19 kali, dan
+> isian yang sedang diketik hilang begitu dialog tertutup tak sengaja.
+
+**Kenapa bukan tetap di Daftar Kerja.** Satu order tidak pernah terlihat utuh di sana, sehingga
+`FR-PK-001` tidak terpenuhi, dan pemvalidasi kelak harus merangkai sendiri gambaran order dari
+baris-baris yang tercerai.
+
+**Kenapa bukan dua tempat.** Penjaga Final (`LAB-DEC-147`) dan izin hasil (`LAB-DEC-146`) harus
+diuji dan dijaga konsisten pada **dua** jalur selamanya — untuk kenyamanan yang dapat dicapai
+dengan satu klik dari Daftar Kerja.
+
+**Akibat pada source:** satu halaman frontend baru; dialog pengisian hasil pada
+`lab-worklist-view.jsx:253-370` dicabut. Apakah halaman ini membutuhkan jalur baca hasil
+tingkat order diputuskan pada tahap desain.
+
+### Urutan pertanyaan putaran ini
+
+| Urutan | Butir | Pertanyaan | Keadaan |
+|---:|---|---|---|
+| Q1 | `LAB-CLOSE-013` | Bagaimana `LAB-DEC-134` ditegakkan | ✅ Dijawab — `LAB-DEC-146` |
+| Q2 | `LAB-CLOSE-014` | Hasil Final ditolak bila disimpan ulang, dan kapan `S4b` diperbaiki | ✅ Dijawab — `LAB-DEC-147` |
+| Q3 | `LAB-CLOSE-015` | Penunjukan per orang: kredensial Human Resource atau daftar milik Laboratorium | ✅ Dijawab — `LAB-DEC-148`; `LAB-COORD-016` dibuka |
+| Q4 | `LAB-CLOSE-016` | Letak isian hasil Patologi Klinik | ✅ Dijawab — `LAB-DEC-149`, `LAB-FE-017`. **Putaran 15 selesai** |
+
+> **Hasil putaran:** keempat closure question dan kedua conflict capability map revision 5
+> tertutup lewat `LAB-DEC-146`..`LAB-DEC-149` serta `LAB-FE-017`; `AC-221`..`AC-237`
+> ditambahkan. **Nol keputusan terkunci dicabut.** Dibuka: `LAB-COORD-016` kepada pemilik
+> `human-resource`. Menuntut amandemen `LAB-PERM-v1` dan `LAB-VAL-v1`, serta task perbaikan
+> atas `S4a` dan `S4b` yang sudah berdiri.
+
+---
+
+## Amendment Pass Putaran 16 — Jawaban kepala instalasi atas butir terbuka (2026-09-24)
+
+**Sumber:** `LAB-EVD-009` — jawaban **dr. Bima Prasetya, Sp.PK**, Kepala Instalasi Laboratorium,
+disampaikan pemilik modul Yoga Aji Pratama pada sesi 2026-09-24. **Bukti tertulis dari dr. Bima
+belum dilampirkan**; yang dicatat adalah jawaban sebagaimana disampaikan. Isinya apa adanya:
+
+> **DEC-LAB-011:** Pemegang kewenangan validasi hasil laboratorium ditetapkan: dr. Bima Prasetya,
+> Sp.PK. Validasi dilakukan oleh dokter yang memiliki kewenangan laboratorium. Sistem akan
+> mencatat: nama validator, role validator, tanggal dan waktu validasi, audit trail perubahan.
+>
+> **LAB-OPEN-029:** Persetujuan Profesor menggunakan approval elektronik dengan audit trail.
+> Detail mekanisme menunggu keputusan pihak klinis.
+>
+> **LAB-COORD-011 dan LAB-COORD-015:** Menunggu keputusan pemilik platform/security terkait
+> implementasi gateway WA, PDF, dan QR verification.
+>
+> **PRD1-CLIN-01:** Balasan WA hanya sebagai konfirmasi komunikasi, bukan pengganti validasi
+> klinis.
+>
+> **PRD1-OPEN-01:** Mohon klarifikasi konteks Nomor Transaksi dan Nomor Mutasi apakah untuk
+> billing atau inventory.
+
+**Kedudukan jawaban `DEC-LAB-011`** ditetapkan pemilik modul lewat pilihan **A**: dicatat sebagai
+**jawaban sebagian**, bukan keputusan final, karena dibaca apa adanya ia bertentangan dengan
+`LAB-DEC-022` butir 3-4 dan dengan pembagian kewenangan per disiplin `LAB-DEC-078`/`LAB-DEC-143`.
+
+### BR-101 — Pemvalidasi pertama, penetapnya, dan kebijakan "hanya dokter" (`LAB-DEC-150`)
+
+**Menjawab sebagian `DEC-LAB-011`. Menggantikan butir 2 `LAB-DEC-022`. Mengamandemen butir 1
+`LAB-DEC-142`.**
+
+**Aturan:**
+
+1. **dr. Bima Prasetya, Sp.PK** adalah **pemegang pertama** kewenangan validasi hasil **Patologi
+   Klinik**.
+2. dr. Bima, selaku Kepala Instalasi Laboratorium, adalah **penetap** pemegang kewenangan
+   validasi lainnya. Penetapannya dicatat lewat kredensial Human Resource (`LAB-DEC-148`).
+3. **Kebijakan rumah sakit:** validasi hanya dilakukan **dokter yang memiliki kewenangan
+   laboratorium**. Analis — termasuk analis senior — **tidak** dapat menjadi pemegang
+   kewenangan validasi. Butir 2 `LAB-DEC-022` karena itu **superseded**, dan jabatan calon pada
+   lapis jabatan `LAB-DEC-142` dibatasi pada jabatan dokter berkewenangan laboratorium.
+4. Setiap validasi mencatat: **nama validator**, **peran/jabatan validator pada saat itu** —
+   sebagai snapshot yang tidak ikut berubah bila jabatannya kelak berubah — **waktu validasi**,
+   dan **jejak perubahan**. Nama dan waktu sudah dikunci `LAB-DEC-080`; yang **baru** adalah
+   snapshot peran.
+5. **Yang tetap terbuka** dan diajukan lewat `LAB-REQ-014`:
+   - siapa pemegang **kedua** per shift — `LAB-DEC-022` butir 3 **tetap berlaku**;
+   - siapa pemegang kewenangan validasi **Mikrobiologi** dan **Patologi Anatomi**.
+
+**Contoh:**
+
+> Pukul 10.00 analis Sari mengisi Kalium 6,4 dan menekan Final. dr. Bima membuka antrean validasi
+> dan memvalidasinya pukul 10.05. Yang tercatat: *dr. Bima Prasetya, Sp.PK — Kepala Instalasi
+> Laboratorium — 10.05*. Tahun depan dr. Bima berganti jabatan; catatan validasi pukul 10.05 itu
+> **tetap** menulis Kepala Instalasi Laboratorium, sebab itulah peran yang ia pegang saat itu.
+>
+> Analis senior Budi — yang pada contoh `BR-95` dan `BR-96` ditunjuk memvalidasi — **tidak lagi**
+> dapat menjadi pemvalidasi. Kedua contoh itu kini tidak berlaku.
+
+**Akibat pada empat mata `LAB-DEC-003`.** Pada Patologi Klinik, pengisi hasil adalah analis
+(`LAB-DEC-134`) dan pemvalidasi adalah dokter. Keduanya **tidak mungkin orang yang sama**, sehingga
+jalur pengecualian *"divalidasi oleh pengisi sendiri"* praktis tidak lagi terpakai pada Patologi
+Klinik. Jalur itu **tetap ada** pada disiplin yang pengisinya dokter, misalnya Patologi Anatomi
+(`LAB-DEC-090`).
+
+**Akibat yang harus dibaca bersama keputusan ini — jam malam.**
+
+> Hasil Kalium kritis keluar pukul 02.00. Bila hanya dr. Bima yang memegang kewenangan validasi
+> Patologi Klinik dan ia tidak bertugas, hasil itu **tidak dapat divalidasi maupun dirilis**
+> sampai ia datang — dan jalur pengecualian juga tidak menolong, sebab analis tidak boleh
+> memvalidasi. Itulah sebab `LAB-DEC-022` butir 3 tetap berlaku dan pemegang kedua ditanyakan
+> lewat `LAB-REQ-014`.
+
+**Akibat pada perencanaan.** `DEC-LAB-011` **tidak lagi memblokir desain `S4`** untuk Patologi
+Klinik: pemvalidasinya bernama, penetapnya jelas, dan bentuk datanya — kredensial per orang per
+disiplin — tidak bergantung pada berapa orang yang kelak ditetapkan. Yang **tetap tertahan**:
+**rilis** `S4` ke pemakaian nyata (pemegang kedua), serta desain `S4d` dan `S4e` (pemegang
+Mikrobiologi dan Patologi Anatomi).
+
+### BR-102 — Balasan WhatsApp adalah konfirmasi komunikasi, bukan bukti baca ulang (`LAB-DEC-151`)
+
+**Menutup `PRD1-CLIN-01`.**
+
+1. Balasan WhatsApp dokter **boleh dicatat** sebagai **konfirmasi bahwa komunikasi terjadi**.
+2. Balasan itu **tidak** diterima sebagai **bukti pembacaan ulang** `LAB-DEC-004`. Baca ulang tetap
+   wajib lewat percakapan langsung, misalnya telepon — aturan sementara `LAB-DEC-136` butir 6
+   menjadi aturan tetap.
+
+**Tafsiran yang dicatat.** Jawaban memakai kata *"validasi klinis"*, sedangkan yang ditanyakan
+adalah *"bukti baca ulang"*. Keduanya dibaca sebagai hal yang sama di sini karena jawabannya
+**mempertahankan aturan yang lebih ketat** — nol kewenangan klinis dilonggarkan, sehingga
+menutupnya tanpa konfirmasi `DR-LAB-001`/`DR-LAB-002` tidak mengambil wewenang siapa pun. Bila
+kelak pihak klinis ingin **melonggarkannya**, itu keputusan baru milik mereka.
+
+**Contoh:**
+
+> Pukul 02.11 WhatsApp kabar kritis terkirim. Pukul 02.14 dr. Bagas membalas *"Oke, saya cek."*
+> Petugas mencatatnya sebagai konfirmasi komunikasi. Hasil **tetap** di daftar pantau sampai
+> pukul 02.18, ketika dr. Bagas menelepon dan membaca ulang *"Kalium tujuh koma dua"*.
+
+### Butir lain dari `LAB-EVD-009`
+
+| Butir | Yang dicatat | Keadaan |
+|---|---|---|
+| `LAB-OPEN-029` | **Bentuk** persetujuan Profesor: **persetujuan elektronik dengan audit trail** — bukan tanda tangan di kertas. Siapa Profesor yang dimaksud, perannya pada `LAB-PERM-v1`, dan mekanismenya **menunggu pihak klinis** | **Menyempit**, tetap terbuka. Gerbang `LAB-DEC-139` tetap tertutup |
+| `LAB-COORD-011`, `LAB-COORD-015` | Masih menunggu pemilik platform/keamanan | **Tidak berubah** |
+| `PRD1-OPEN-01` | Pertanyaan balik: billing atau inventory? **Bukti belum cukup untuk keduanya.** Satu-satunya sumber adalah kop cetakan Patologi Klinik sistem lama (`LAB-EVD-005` bagian 4) yang hanya memuat **label**, tanpa nilai. Inventory kecil kemungkinannya — lembar hasil pasien tidak lazim memuat pergerakan stok. Di backend, *mutasi* hanya muncul sebagai **mutasi kamar rawat inap** (`InpBedOccupancyService.cs:992`). Penutupnya: satu contoh cetakan berisi nilai (disamarkan) dan konfirmasi admin sistem lama tentang ruas asalnya | **Tetap terbuka**, tidak memblokir |
+
+### Urutan pertanyaan putaran ini
+
+| Urutan | Butir | Pertanyaan | Keadaan |
+|---:|---|---|---|
+| Q1 | `DEC-LAB-011` | Bagaimana jawaban dr. Bima diperlakukan | ✅ Dijawab — pilihan A, `LAB-DEC-150`; sisanya diajukan `LAB-REQ-014` |
+
+---
+
 ## State dan Transition
 
 Kerangka mengikuti `LAB-INH-001`, `LAB-INH-002`, dan `LAB-INH-003`. Bagian yang ditambahkan
@@ -3183,6 +4234,9 @@ developer (`DEV_DISCRETION`).
 | `LAB-FE-013` | Tampilan disiplin pada formulir pesanan | Arahan produk | `decided` | **Wajib baca-saja** dan mengikuti pemeriksaan yang dipilih. Tidak boleh ada kotak pilihan disiplin. Wajib memberi tahu petugas menu Pemeriksaan mana yang akan memuat pasien ini | BR-43, `LAB-DEC-036` |
 | `LAB-FE-010` | Kedudukan daftar pemeriksaan terhadap wadah pada layar penerimaan | Invariant operasional | `decided` | **Wajib terlihat berdampingan** sebelum kelayakan ditetapkan, karena penguncian `LAB-DEC-039` jatuh di situ. Bentuk visualnya boleh dipilih developer | BR-40, BR-34 |
 | `LAB-FE-011` | Tampilan metode pembayaran pada layar penerimaan | Batas wewenang | `decided` | **Wajib baca-saja.** Tidak boleh ada kotak pilihan, dan tidak boleh ada cara menimpanya. Saat Billing tidak terjawab, wajib menulis *belum dapat ditentukan*, bukan mengosongkannya | BR-39, `LAB-DEC-044` |
+| `LAB-FE-015` | Penanda hasil rendah, tinggi, dan kritis — di layar dan di cetakan | Invariant keselamatan + arahan produk | `decided` — **mempersempit `LAB-FE-002`** untuk penanda ini | **Maknanya dikunci:** tiga tingkat dibedakan jelas, kritis paling menonjol (`LAB-FE-005`), dan penanda **wajib berupa huruf atau teks** — `L`, `H`, `KRITIS` — **tidak boleh hanya warna**. Warna persisnya mengikuti token desain (`--color-warning`, `--color-danger`) dan tetap `DEV_DISCRETION` | `LAB-DEC-145` butir 2; cetakan Patologi Klinik lapangan memakai huruf `H` (`LAB-EVD-005`) |
+| `LAB-FE-017` | Letak isian hasil Patologi Klinik | Arahan produk | `decided` — **mempersempit `LAB-FE-002`** untuk isian hasil Patologi Klinik | **Halaman detail per order** berisi seluruh pemeriksaan Patologi Klinik yang tidak batal dalam satu tabel isian; Daftar Kerja tetap sebagai antrean dan membuka halaman itu; **nol** dialog modal pengisian hasil. Nama route mengikuti `LAB-FE-001`; tata letak di dalam halaman `DEV_DISCRETION` dalam batas `LAB-FE-015` dan `LAB-FE-016` | `LAB-DEC-149`; PRD `FR-PK-001`; capability map revision 5 `CAP-P14-18` |
+| `LAB-FE-016` | Isian hasil utama pada halaman hasil Patologi Klinik dan Mikrobiologi | Arahan produk | `decided` — **mempersempit `LAB-FE-002`** untuk halaman ini | Nilai hasil, isolat, dan antibiogram diisi **di halaman**, **tidak** di jendela modal. Modal tetap boleh untuk konfirmasi dan isian pendek, misalnya alasan *Kembalikan ke analis*. Tata letak selebihnya tetap `DEV_DISCRETION` | `LAB-DEC-145` butir 3; PRD bagian 12 |
 
 Catatan: butir bertanda `DEV_DISCRETION` boleh diputuskan developer. Butir bertanda `decided`
 dengan alasan keselamatan **tidak boleh** dihapus atau diperlemah oleh keputusan tampilan.
@@ -3253,14 +4307,14 @@ dengan alasan keselamatan **tidak boleh** dihapus atau diperlemah oleh keputusan
 | `LAB-P0-001` | Open Question | Matriks kewenangan per peran: siapa boleh menerima wadah, memproses, membatalkan, mengisi hasil, memvalidasi, mengotorisasi, menghapus pesanan, dan mengoreksi hasil yang sudah diotorisasi | Yoga Aji Pratama + Clinical Governance | `open` | — | `Analisis_Konsolidasi` bagian 14 P0-1. Sebagian sudah dijawab `LAB-DEC-022`, sisanya terbuka |
 | `LAB-P0-002` | Open Question | Urutan status resmi lintas tiga aplikasi, termasuk posisi `Confirmed` yang belum punya padanan pada rancangan | Yoga Aji Pratama | `closed` | Ditutup 2026-09-18 oleh `LAB-DEC-080`; posisi `Confirmed` sudah lebih dulu ditutup `LAB-DEC-061` pada 2026-09-15. **Bagian *lintas tiga aplikasi* TIDAK ikut tertutup** — ia memang milik `LAB-P0-008` dan tetap terbuka di sana | `Analisis_Konsolidasi` bagian 7 dan 14 P0-2 **Terjawab sebagian 2026-09-15 oleh `LAB-DEC-061`:** posisi `Confirmed` ditetapkan — antara `Requested` dan `Accepted`. Yang **tetap terbuka**: penyelarasan urutan status lintas tiga aplikasi |
 | `LAB-P0-003` | Open Question | Aturan pembatalan dan koreksi: alasan wajib, jejak audit, dampak tagihan, dampak wadah, dampak hasil yang sudah masuk | Yoga Aji Pratama + Billing | `partially-closed` | **Sebagian ditutup 2026-09-18 oleh `LAB-DEC-082`** — alasan koreksi dari daftar terkendali dan versi bernomor. Pembatalan pesanan sudah lebih dulu ditutup `LAB-DEC-063` dan `LAB-DEC-049`. **Sisanya bersifat klinis dan dipindahkan ke `DEC-LAB-014`** | — | `Analisis_Konsolidasi` bagian 14 P0-3 **Terjawab sebagian 2026-09-15 oleh `LAB-DEC-063`:** alasan pembatalan wajib dan batas statusnya ditetapkan. Yang **tetap terbuka**: aturan **koreksi** hasil, jejak auditnya, dan dampak tagihan |
-| `LAB-P0-004` | Open Question | Alur nilai kritis: ambang, batas waktu tanggap, eskalasi, bukti penerimaan, dan tindakan bila penerima tidak dapat dihubungi | Yoga Aji Pratama + Clinical Governance | `open` | — | `Analisis_Konsolidasi` bagian 14 P0-4; memperluas `LAB-DEC-004` |
+| `LAB-P0-004` | Open Question | Alur nilai kritis: ambang, batas waktu tanggap, eskalasi, bukti penerimaan, dan tindakan bila penerima tidak dapat dihubungi | Yoga Aji Pratama + Clinical Governance | `open` | — | `Analisis_Konsolidasi` bagian 14 P0-4; memperluas `LAB-DEC-004`. **2026-09-24:** `LAB-DEC-136` mengunci WhatsApp sebagai saluran pengantar, dan `PRD1-CLIN-01` menambahkan satu pertanyaan bukti penerimaan — sahkah balasan WhatsApp sebagai bukti baca ulang |
 | `LAB-P0-005` | Open Question | Integrasi alat laboratorium: pemetaan kode pemeriksaan, pemetaan wadah, penerimaan hasil, pengulangan, pencegahan ganda, antrean kesalahan, dan arah penyelarasan | Yoga Aji Pratama + pemilik platform | `open` | — | `Analisis_Konsolidasi` bagian 14 P0-5. Bertentangan arah dengan `LAB-DEC-005` yang menunda integrasi alat |
 | `LAB-P0-006` | Open Question | Kebijakan jejak audit resmi laboratorium | Yoga Aji Pratama | `open` | — | `Analisis_Konsolidasi` bagian 15 |
 | `LAB-P0-007` | Open Question | Aturan tagihan dan cakupan penjamin, termasuk arti `Tidak Tercover` dan perubahan penjamin setelah pesanan dibuat | Billing | `open` | — | `Analisis_Konsolidasi` bagian 14 P1-9 dan P1-10 |
 | `LAB-P0-008` | Open Question | Mekanisme penyelarasan data antara aplikasi Laboratorium baru, HiSys, HCLAB, dan RS MMC App | Yoga Aji Pratama + pemilik platform | `open` | — | `Analisis_Konsolidasi` bagian 13.2 dan 18 |
 | `LAB-OPEN-012` | Open Question | Berapa banyak data laboratorium yang sudah terisi di basis data produksi? Menentukan biaya dan risiko pemindahan data akibat `LAB-DEC-024` | Pemilik repository backend + DBA | `open` | — | Frontend Laboratorium nol (`CAP-21`) menjadi dugaan kuat bahwa data sungguhan belum ada, tetapi belum diverifikasi |
 | `LAB-DEC-023` | Decision | **Batas normal bebas diubah kepala instalasi; batas kritis memerlukan persetujuan klinis.** Seluruh perubahan batas nilai disimpan sebagai riwayat lengkap. Mempersempit `LAB-DEC-018`, tidak membatalkannya | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-01 | Lihat BR-19. Menutup `DEC-LAB-003` dari `02-requirement-completeness-assessment.md` |
-| `LAB-DEC-022` | Decision | **Kewenangan validasi dan rilis tetap terpisah dan diberikan per orang, bukan per jabatan.** Setiap shift wajib punya minimal dua pemegang kewenangan validasi; sistem memperingatkan kepala instalasi bila hanya ada satu | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-01 | Lihat BR-18. Menutup `DEC-LAB-001` dari `02-requirement-completeness-assessment.md` |
+| `LAB-DEC-022` | Decision | **Kewenangan validasi dan rilis tetap terpisah dan diberikan per orang, bukan per jabatan.** Setiap shift wajib punya minimal dua pemegang kewenangan validasi; sistem memperingatkan kepala instalasi bila hanya ada satu | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-01 | Lihat BR-18. Menutup `DEC-LAB-001` dari `02-requirement-completeness-assessment.md`. **2026-09-24 — butir 2 SUPERSEDED oleh `LAB-DEC-150`:** kewenangan validasi hanya bagi dokter berkewenangan laboratorium, bukan analis senior. **Butir 3 dan 4 — minimal dua pemegang per shift dan peringatannya — TETAP BERLAKU** |
 | `LAB-DEC-021` | Decision | **Hasil punya dua bentuk: angka dan pilihan terbatas.** Pemeriksaan berhasil pilihan menyimpan daftar pilihan sah beserta penanda mana yang di luar rujukan dan mana yang kritis. Analis memilih, tidak mengetik bebas. `LAB-DEC-004` berlaku untuk kedua bentuk | Yoga Aji Pratama | `superseded` oleh `LAB-DEC-027` | Yoga Aji Pratama (pemilik modul), 2026-09-01 | Lihat BR-17. Menutup `DEC-LAB-002` dari `02-requirement-completeness-assessment.md` |
 | `LAB-DEC-020` | Decision | **Koreksi hasil setelah kunjungan ditutup memakai mekanisme addendum rekam medis yang sudah ada.** Dokumen asli tetap terkunci dan tidak diubah; hasil perbaikan menempel sebagai addendum bertanda tangan dengan alasan koreksi | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-01 | Lihat BR-16. Menutup `LAB-OPEN-011`. Dasar bukti: `MrcClinicalNoteAddendum.cs@c87d9c0` |
 | `LAB-DEC-019` | Decision | **Alasan penolakan sampel dikelola kepala instalasi lewat layar pengelolaan, kecuali penanda kesalahan internal dan penanda wajib catatan** yang hanya dapat disetel admin sistem. Data awal wajib disiapkan pada Rilis 1 | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-01 | Lihat BR-15. Menutup `Q-LAB-04` |
@@ -3309,6 +4363,29 @@ dengan alasan keselamatan **tidak boleh** dihapus atau diperlemah oleh keputusan
 | `LAB-DEC-071` | Decision | **Pembanding rentang tanggal inklusif: `Tgl Awal <= Tgl Akhir`.** Petugas dapat mencari satu hari saja dengan mengisi tanggal yang sama pada kedua ruas. **Mengamandemen `LAB-DEC-064`** dan mengoreksi `RULE-004` artifact, yang bila dibaca tegas justru menutup pencarian satu hari — padahal `RULE-003` di sebelahnya mengizinkan tanggal hari ini pada kedua ruas. Menutup `LAB-OPEN-028` | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-16 | **Nol perubahan perilaku pada source.** Penyaring yang berjalan hari ini sudah inklusif pada kedua ujung (`>= mulai`, `<= sampai`). Yang ditetapkan di sini aturan validasinya, supaya frontend tidak menolak apa yang backend terima |
 | `LAB-DEC-072` | Decision | **`LabOrder` memperoleh kolom nomor order baru berupa nomor urut yang terbaca manusia**, mengikuti pola `PatientEncounterNumberService` yang sudah berjalan: awalan tetap, nomor urut berpadding, dan `pg_advisory_xact_lock` sebagai penjaga konkurensi. Nomor ini menjadi isi kolom `No. Order` sekaligus sumber barcode Label Lab. **Pola `LSP-{Guid:N}` milik barcode wadah sengaja tidak dipakai** — nomor yang dicetak pada amplop pasien harus dapat disebut lewat telepon. Menutup `LAB-OPEN-033` | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-16 | Menuntut **satu kolom baru beserta migration**, satu layanan alokasi, dan satu index unik. **Satu peringatan dibawa serta dari pola acuannya:** `AllocateEncounterNumberAsync` memuat **seluruh** nomor terpakai ke memori lalu memindai celah pertama — biayanya tumbuh seiring jumlah baris. Meniru polanya **tanpa** meniru kelemahan itu adalah bagian dari perancangan, bukan detail implementasi |
 | `LAB-DEC-073` | Decision | **Menu Hasil hanya memuat pesanan Laboratorium.** Nilai Unit Layanan `Radiologi` pada `RULE-008` artifact terbawa dari tabel unit layanan yang dipakai bersama modul lain, dan **tidak akan pernah muncul** sebagai baris pada menu ini. Cakupan menu tidak melebar ke luar modul. Menutup `LAB-OPEN-031` | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-16 | Nol koordinasi dengan pemilik Radiologi yang perlu dibuka. Nilai `Laboratorium` pada aturan yang sama tetap sah dan tetap berlaku |
+| `LAB-EVD-008` | Fact | PRD **`Modul Laboratorium - Hasil Pemeriksaan Patologi Klinik & Mikrobiologi`** berstatus `Draft Requirement` ditempel pemilik modul pada sesi 2026-09-24. Memuat `FR-PK-001`..`FR-PK-005`, `FR-MB-001`..`FR-MB-005`, `BP-001`..`BP-003`, tabel lima status, dan acceptance criteria dua disiplin. **Disimpan verbatim** pada [`evidence/2026-09-24-prd-hasil-patologi-klinik-mikrobiologi.md`](evidence/2026-09-24-prd-hasil-patologi-klinik-mikrobiologi.md). Direkonsiliasi pada amendment pass putaran 14: **14 pertentangan** `PRD1-CONF-01`..`PRD1-CONF-14` dan **6 butir baru** `PRD1-NEW-01`..`PRD1-NEW-06` | Yoga Aji Pratama | `diterima sebagai bukti` | Diterima 2026-09-24; kedudukannya ditetapkan `LAB-DEC-133` | **Penulis PRD belum disebutkan.** Empat pertentangannya sudah pernah ditolak pada putaran 9 (`LAB-DEC-095`, `LAB-DEC-098`, `LAB-DEC-102`, `LAB-DEC-105`) |
+| `LAB-EVD-009` | Fact | Jawaban **dr. Bima Prasetya, Sp.PK**, Kepala Instalasi Laboratorium, atas `DEC-LAB-011`, `LAB-OPEN-029`, `LAB-COORD-011`/`015`, `PRD1-CLIN-01`, dan `PRD1-OPEN-01`, disampaikan pemilik modul pada sesi 2026-09-24. Isinya dicatat **verbatim** pada bagian *Amendment Pass Putaran 16* | Yoga Aji Pratama | `diterima sebagai bukti` | Diterima 2026-09-24 | **Bukti tertulis dari dr. Bima belum dilampirkan.** Jawaban `DEC-LAB-011` dicatat sebagai jawaban **sebagian** atas pilihan A pemilik modul |
+| `LAB-DEC-150` | Decision | **dr. Bima Prasetya, Sp.PK adalah PEMEGANG PERTAMA kewenangan validasi Patologi Klinik sekaligus PENETAP pemegang lain; validasi HANYA oleh DOKTER berkewenangan laboratorium.** Setiap validasi mencatat nama, **snapshot peran/jabatan** validator saat itu, waktu, dan jejak perubahan. Menjawab sebagian `DEC-LAB-011`; **menggantikan butir 2 `LAB-DEC-022`**; mengamandemen butir 1 `LAB-DEC-142` | dr. Bima Prasetya, Sp.PK | `approved` | dr. Bima Prasetya, Sp.PK — disampaikan Yoga Aji Pratama, 2026-09-24 | Lihat BR-101. **Butir 3-4 `LAB-DEC-022` tetap berlaku** — pemegang kedua per shift dan pemegang Mikrobiologi/Patologi Anatomi diajukan `LAB-REQ-014`. Akibat: desain `S4` Patologi Klinik terbuka; rilisnya dan desain `S4d`/`S4e` tetap tertahan. Snapshot peran adalah kebutuhan **baru** bagi desain `S4`. `AC-238`, `AC-239` |
+| `LAB-DEC-151` | Decision | **Balasan WhatsApp dokter hanya KONFIRMASI KOMUNIKASI, bukan bukti pembacaan ulang `LAB-DEC-004`.** Boleh dicatat, tetapi tidak menutup kewajiban pelaporan; baca ulang tetap lewat percakapan langsung. Menutup `PRD1-CLIN-01` | dr. Bima Prasetya, Sp.PK | `approved` | dr. Bima Prasetya, Sp.PK — disampaikan Yoga Aji Pratama, 2026-09-24 | Lihat BR-102. Menjadikan aturan sementara `LAB-DEC-136` butir 6 aturan tetap. **Mempertahankan aturan yang lebih ketat**, sehingga menutupnya tanpa `DR-LAB-001`/`DR-LAB-002` tidak melonggarkan wewenang klinis siapa pun. `AC-240` |
+| `LAB-DEC-149` | Decision | **Hasil Patologi Klinik diisi pada HALAMAN DETAIL PER ORDER**, seluruh pemeriksaan yang tidak batal dalam satu tabel isian — parameter, hasil, satuan, nilai rujukan, penanda `L`/`H`. Final tetap per pemeriksaan; Daftar Kerja tetap sebagai antrean dan membuka halaman ini; dialog modal pengisian hasil dicabut. Menutup `LAB-CLOSE-016` dan `LAB-CONFLICT-013` | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-24 | Lihat BR-100 dan `LAB-FE-017`. Sejajar halaman Mikrobiologi yang juga per order (`lab-monitoring/microbiology/[slug]` menerima `labOrderId`). Memenuhi PRD `FR-PK-001`. Bukti keadaan lama: capability map revision 5 `CAP-P14-18`. `AC-234`..`AC-237` |
+| `LAB-CONFLICT-013` | Conflict | **Isian hasil Patologi Klinik berada di dialog modal Daftar Kerja**, dan nol halaman detail hasil per order, bertentangan dengan `LAB-FE-016`. Ditemukan capability map revision 5 | Yoga Aji Pratama | `closed` | Ditutup 2026-09-24 oleh `LAB-DEC-149` | `01-existing-capability-map.md` revision 5 bagian C |
+| `LAB-DEC-148` | Decision | **Penunjukan pemvalidasi dan perilis disimpan pada KREDENSIAL HUMAN RESOURCE (`WfpClinicalPrivilege`); Laboratorium HANYA MEMBACA.** Enam kode kewenangan — validasi dan rilis untuk Patologi Klinik, Mikrobiologi, dan Patologi Anatomi — ditambahkan ke katalog Human Resource. Ditunjuk berarti memegang kode yang sesuai, berstatus aktif, dalam masa berlaku; suspend, revoke, atau kedaluwarsa menolak seketika. Lapis jabatan `LAB-DEC-142` tetap. Menutup `LAB-CLOSE-015` | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-24 | Lihat BR-99. Menetapkan wadah `LAB-DEC-142` butir 2 dan `LAB-DEC-143`. Bukti: capability map revision 5 `CAP-P14-09`; preseden `OperatingRoomCredentialResolver.cs:15-42`; katalog dan kewenangan sama-sama **punya jalan tulis**. Membuka `LAB-COORD-016`. **Tidak menjawab `DEC-LAB-011`** — hanya menyediakan usulan konkret. `AC-229`..`AC-233` |
+| `LAB-DEC-147` | Decision | **Hasil yang sudah FINAL DITOLAK (`409`) bila isinya disimpan ulang** — nilai Patologi Klinik; status temuan, isolat, antibiogram, kualifikasi, jenis biakan, dan metode uji Mikrobiologi; serta catatan konsultasi. Reopen beralasan adalah satu-satunya jalan. **Mikrobiologi diperbaiki sekarang**, sebelum `S4b` masuk rilis. Menutup `LAB-CLOSE-014` | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-24 | Lihat BR-98. Pola `VAL-96` Patologi Anatomi. Bukti celahnya: capability map revision 5 `CAP-P14-04`. Alasan kuncinya: `FinalizedAt` dicetak sebagai Tanggal Selesai (`LAB-DEC-118`) dan Waktu Issued (`LAB-DEC-096`). Menuntut amandemen `LAB-VAL-v1` dan **task perbaikan** `S4b` backend dan frontend. `AC-225`..`AC-228` |
+| `LAB-DEC-146` | Decision | **Tindakan atas hasil memakai RESOURCE HAK AKSES TERSENDIRI.** Mengisi hasil Patologi Klinik dan Mikrobiologi, Simpan Final, Reopen, dan mencatat konsultasi pindah dari `LabExamination : Update` ke izin hasil; batal, cito, dan duplo tetap. Izin hasil diberikan kepada jabatan analis, bukan dokter pemesan maupun Petugas Lab administrasi. Laporan Patologi Anatomi tidak disentuh; validasi dan rilis tidak termasuk. Data kebijakan analis wajib terpasang dalam rilis yang sama. Menutup `LAB-CLOSE-013` dan `LAB-CONFLICT-012` | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-24 | Lihat BR-97. Bukti pertentangannya: capability map revision 5 `CAP-P14-02` — `AccessPermissionService.cs:117-132` mencocokkan nama aksi, dan delapan endpoint berbagi `Update`. Menuntut amandemen `LAB-PERM-v1` dan **task perbaikan** atas lima endpoint `S4a`/`S4b`. `AC-221`..`AC-224` |
+| `LAB-CONFLICT-012` | Conflict | **Satu kode aksi `LabExamination : Update` membuka seluruh tindakan atas pemeriksaan**, sehingga dokter pemesan — yang memegangnya untuk menandai cito — secara teknis dapat mengisi hasil laboratorium. Ditemukan capability map revision 5 | Yoga Aji Pratama | `closed` | Ditutup 2026-09-24 oleh `LAB-DEC-146` | `01-existing-capability-map.md` revision 5 bagian C |
+| `LAB-DEC-145` | Decision | **Paket empat butir kecil PRD.** (1) Email pasien **dihapus** dari PRD. (2) Penanda rendah/tinggi/kritis: **makna dikunci**, penanda wajib huruf atau teks `L`/`H`/`KRITIS`, warna mengikuti token desain — `LAB-FE-015`. (3) Larangan modal **diterima** untuk isian hasil utama halaman hasil PK dan Mikrobiologi — `LAB-FE-016`. (4) Lokasi dan metode pengambilan specimen **tetap `S2b`**. Menutup `PRD1-NEW-03`..`PRD1-NEW-06` | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-24 | Diajukan sebagai satu paket karena berisiko rendah dan saling lepas; setiap butir tetap berpilihan dan berekomendasi sendiri. `LAB-FE-015` dan `LAB-FE-016` **mempersempit** `LAB-FE-002`. `AC-219`, `AC-220` |
+| `LAB-DEC-144` | Decision | **Empat penolakan Mikrobiologi putaran 9 DITEGASKAN ULANG:** hasil per pemeriksaan (`LAB-DEC-095`), `Lainnya` ke daftar pantau (`LAB-DEC-098`), nama analis diturunkan (`LAB-DEC-105`), dan subbakteri tidak dibangun (`LAB-DEC-102`). PRD mengajukannya kembali tanpa alasan atau bukti baru. Menutup `PRD1-CONF-07`..`PRD1-CONF-10` | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-24 | Dicatat sebagai keputusan karena ini **kali kedua** usulan yang sama datang lewat dokumen berbeda. Nol perubahan source — keempatnya sudah dibangun sesuai keputusan asal pada `S4b`. Koreksi PRD 36..39 |
+| `LAB-DEC-143` | Decision | **Penunjukan validasi dan rilis dicatat PER DISIPLIN.** Setiap penunjukan menyebut orang, jenis kewenangan (validasi atau rilis), dan disiplin; penunjukan pada satu disiplin tidak berlaku pada disiplin lain. Menutup `PRD1-FOLLOW-03` | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-24 | Lihat BR-96. Selaras dengan kewenangan klinis per disiplin (`LAB-DEC-078`) dan slice per disiplin (`LAB-DEC-083`). **Bentuk ini tetap dapat mewakili kebijakan satu orang untuk semua disiplin**, sehingga jawaban `DEC-LAB-011` apa pun tidak menuntut data dipecah ulang. `AC-218` |
+| `LAB-DEC-142` | Decision | **Kewenangan validasi dan rilis BERLAPIS DUA: lapis JABATAN menentukan siapa yang boleh menjadi calon, lapis ORANG — daftar penunjukan — menentukan siapa yang benar-benar berwenang. Keduanya wajib lolos.** Penunjukan validasi dan penunjukan rilis terpisah (`LAB-INH-007`); lapis orang ditegakkan di dalam service. "Dokter Lab" pada PRD bukan jaminan kewenangan. Menutup `PRD1-CONF-03` | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-24 | Lihat BR-95. Menegakkan `LAB-DEC-022` di atas model hak akses per departemen dan jabatan yang dipakai aplikasi, yang bekerja per aksi dan bukan per orang. **Pengisi daftar penunjukan tetap `DEC-LAB-011`** — keputusan ini tidak menjawabnya. Membuka `PRD1-FOLLOW-03`. `AC-215`..`AC-217`. **2026-09-24 — butir 1 diamandemen `LAB-DEC-150`:** jabatan calon dibatasi pada dokter berkewenangan laboratorium |
+| `LAB-DEC-141` | Decision | **Konsultasi pada hasil Patologi Klinik dicatat sebagai FAKTA OPSIONAL — siapa, kepada siapa, kapan — memakai pola Mikrobiologi `LAB-DEC-106`.** Bukan syarat Final, bukan status, bukan izin; Patologi Klinik tidak memperoleh kualifikasi `Definitif`. *Kepada siapa* berupa nama tertulis sehingga konsultan dari luar rumah sakit tetap dapat dicatat. Menutup `PRD1-NEW-02` | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-24 | Lihat BR-94. **Nol kolom baru** — ketiga kolom konsultasi sudah ada pada `LabExamination`. Konsultasi wajib per pemeriksaan tidak dibangun; bila kelak dibutuhkan, isi daftarnya milik `DR-LAB-001`. `AC-214` |
+| `LAB-DEC-140` | Decision | **Kode QR pada dokumen final MEMERIKSA KEASLIAN DAN STATUS DOKUMEN, bukan membuka hasil.** Halaman verifikasi publik hanya menampilkan nama rumah sakit, nomor cetak, tanggal rilis, dan status — *asli dan berlaku*, *sudah digantikan* beserta versi penggantinya, atau *tidak dikenal*. Nol nilai hasil, nama pemeriksaan, nama pasien, No. RM, maupun NIK. QR berisi token acak per versi dokumen yang tidak dapat diturunkan dari nomor tercetak mana pun. Menutup `PRD1-NEW-01` | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-24 | Lihat BR-93. **Batasnya dinyatakan:** QR membuktikan dokumen pernah terbit dan statusnya, **bukan** keutuhan angka di kertas — itu menuntut tanda tangan digital PDF (`LAB-COORD-011`). Halaman publik tanpa login menunggu `LAB-COORD-015`, dan hanya menahan implementasi halaman itu. `QRCoder` sudah ada di backend. `AC-211`..`AC-213` |
+| `LAB-DEC-139` | Decision | **SATU GERBANG untuk seluruh penyerahan dokumen final kepada pasien — kirim WhatsApp, cetak untuk pasien, dan unduh.** Gerbang terbuka hanya bila order berlabel Selesai **dan** persetujuan Profesor dan Dokter Lab `LAB-DEC-067` sudah ada; ditegakkan backend pada ketiga jalur; layar menyebut syarat yang belum terpenuhi. Nota Lab, Label Lab, Label Goldar, dan lembar hasil dokter tidak terpengaruh. Berlaku Patologi Klinik dan Mikrobiologi. Menutup `PRD1-CONF-13` | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-24 | Lihat BR-92. **Memperluas cakupan** `LAB-DEC-067`, tidak mengubah syaratnya. Bentuk persetujuan tetap `LAB-OPEN-029` (diajukan lewat `LAB-DEC-121`) — **bukan wewenang pemilik modul**. Nol penundaan tambahan hari ini karena rilis masih tertahan `DEC-LAB-011`. `AC-208`..`AC-210` |
+| `LAB-DEC-138` | Decision | **Hasil yang sudah DIVALIDASI tetapi BELUM DIRILIS dapat dikembalikan kepada analis** oleh pemegang kewenangan validasi atau rilis, dengan alasan wajib dari **daftar terkendali yang sama dengan `LAB-DEC-082`**. Validasi dibatalkan dan hasil kembali Draft; fakta pernah divalidasi tetap tercatat di riwayat. Validasi ulang tunduk `LAB-DEC-003`. **Tanpa** versi bernomor dan **tanpa** pemberitahuan dokter; hasil yang sudah dirilis tetap hanya lewat koreksi. Menutup `PRD1-FOLLOW-01`. Bersamaan, `PRD1-CONF-12` ditutup ke arah blueprint karena tidak dibuka ulang | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-24 | Lihat BR-91. Mengisi celah antara Reopen `LAB-DEC-135` dan koreksi `LAB-DEC-007`. Nol perubahan source hari ini — `S4` belum dibangun. `AC-205`..`AC-207` |
+| `LAB-DEC-137` | Decision | **Pesan WhatsApp hasil kritis kepada dokter TIDAK MEMUAT DATA KLINIS.** Isinya hanya: ada hasil kritis, unit/ruang perawatan, waktu, dan nomor kontak Laboratorium. Nama pasien, No. RM, NIK, nama pemeriksaan, dan nilai hasil dilarang, dan larangan itu ditegakkan pada pembentuk pesan — nol ruas pengganti untuk data pasien. Menutup `PRD1-FOLLOW-02` | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-24 | Lihat BR-90. Jalur kritis karena itu **tidak menunggu izin privasi** siapa pun; yang tetap ditunggu hanya gerbang WhatsApp (`LAB-COORD-011`). Menambah pertimbangan pada `PRD1-CLIN-01`. Dapat diamandemen bila pemilik platform kelak memberi izin privasi. `AC-203`, `AC-204` |
+| `LAB-DEC-136` | Decision | **WhatsApp kepada Dokter Konfirmator adalah SALURAN PENGANTAR hasil kritis, BUKAN bukti pelaporan.** Waktu kirim WhatsApp dan waktu dilaporkan disimpan terpisah; pelaporan tuntas hanya bila kelima isian `LAB-DEC-004` — termasuk bukti pembacaan ulang — tercatat; alur kritis tidak bergantung pada gerbang WhatsApp. Berlaku Patologi Klinik dan Mikrobiologi. Menutup `PRD1-CONF-11` | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-24 | Lihat BR-89. Menegakkan `LAB-DEC-004` yang diteken `DR-LAB-001`/`DR-LAB-002`; memakai `MstDoctor.WhatsAppNumber` yang sudah dibaca `LAB-DEC-111`. Sah tidaknya balasan WhatsApp sebagai bukti baca ulang **bukan wewenang pemilik modul** → `PRD1-CLIN-01`. Membuka `PRD1-FOLLOW-02` (isi pesan). `AC-200`..`AC-202` |
+| `LAB-DEC-135` | Decision | **Patologi Klinik memakai DRAFT dan FINAL per pemeriksaan, dengan arti yang sama seperti Mikrobiologi dan Patologi Anatomi: Final = penulis selesai menulis, BUKAN rilis.** Hanya hasil Final yang masuk antrean validasi; Reopen boleh selama belum divalidasi; hasil terkunci sesudah dirilis. Kelima status PRD menjadi **label tampilan turunan** tanpa status tersimpan baru; Definitif tidak berlaku bagi Patologi Klinik. Menutup `PRD1-CONF-04`, `PRD1-CONF-05`, `PRD1-CONF-06` | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-24 | Lihat BR-88. Menyalin `LAB-DEC-088`/`LAB-DEC-097`; menegakkan `LAB-DEC-080` dan `LAB-DEC-008`. **Perluasan kecil `S4a`**: `FinalizedAt`/`FinalizedByUserId` sudah ada pada `LabExamination`; tindakan Final/Reopen PK dan penyaring antrean validasi belum ada. Membuka `PRD1-FOLLOW-01`. `AC-196`..`AC-199` |
+| `LAB-DEC-134` | Decision | **Hasil Patologi Klinik tetap DIKETIK ANALIS; "Dokter Lab" pada PRD dibaca sebagai PEMVALIDASI/PENGOTORISASI, bukan pengisi.** Menegakkan `LAB-DEC-005`. "Petugas Lab" pada PRD dibaca sebagai petugas administrasi (`LAB-DEC-068`), bukan analis, sehingga larangan mengubah hasil PK tetap berlaku. Empat mata `LAB-DEC-003` tidak disentuh. Menutup `PRD1-CONF-01` dan `PRD1-CONF-02` ke arah blueprint | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-24 | Lihat BR-87. **Nol perubahan source** — pengisi sudah tercatat dari pengguna yang menyimpan. Menetapkan **peran pada alur**, bukan pemegangnya: kewenangan tetap per orang (`LAB-DEC-022`, `DEC-LAB-011`), dan apakah setiap Dokter Lab otomatis memegangnya tetap Q9 (`PRD1-CONF-03`). Enam koreksi PRD dicatat pada bagian *Koreksi yang wajib masuk revisi PRD* |
+| `LAB-DEC-133` | Decision | **PRD `LAB-EVD-008` adalah BUKTI UNTUK DIREKONSILIASI BUTIR PER BUTIR, bukan baseline baru.** Keputusan yang sudah `approved` tetap berlaku kecuali pemilik modul membukanya ulang secara eksplisit per butir, dan PRD direvisi mengikuti hasil rekonsiliasi. Batas scope amendment pass putaran 14 dikonfirmasi bersamaan | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-24 | Menjadikan PRD baseline akan menandai `superseded` belasan keputusan sekaligus, termasuk `LAB-DEC-003` yang **hanya dapat diubah `DR-LAB-001`/`DR-LAB-002`** (`LAB-DEC-079`), serta membongkar `S4a` dan `S4b` yang sudah berdiri. Pola yang sama dipakai putaran 8 dan 9 |
 | `LAB-DEC-132` | Decision | **`DetailTypeCode` tetap MILIK LABORATORIUM; kode SNOMED CT disimpan pada KOLOM TERSENDIRI yang boleh kosong.** Melengkapi `LAB-DEC-098` | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-21 | Lihat BR-86. Nilai yang kelak ditambahkan lewat jalan keluar `Lainnya` **nol punya kode SNOMED**; memaksakannya sebagai kode utama berarti baris lokal diberi **kode karangan di dalam kolom yang dianggap standar internasional** — kesalahan yang sangat sulit ditemukan kemudian. SNOMED tetap disimpan sebab datanya ada hari ini, dan pemetaan 1.767 baris tidak perlu diulang dari nol ketika rumah sakit bertukar data dengan sistem luar |
 | `LAB-DEC-131` | Decision | **Setiap baris punya nama Indonesia DAN nama Inggris; nama Indonesia BOLEH KOSONG dan layar menampilkan Inggris selama belum terisi.** Pencarian menerima keduanya; pemeriksaan duplikasi membandingkan keduanya (`RULE-007`). Harus ada cara melihat mana yang belum diterjemahkan. Melaksanakan `LAB-DEC-008` bertahap | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-21 | Lihat BR-85. **Seluruh 1.767 nilai `display` berbahasa Inggris SNOMED CT**, diverifikasi pada `LAB-EVD-007`. Menerjemahkan lebih dulu menahan `BE-LAB-55` dan `FE-LAB-32` berminggu-minggu; dan yang lebih memberatkan, **terjemahan anatomi yang keliru lebih berbahaya daripada istilah Inggris yang dibiarkan** — petugas yang ragu pada istilah asing akan bertanya, sedangkan terjemahan salah tampak meyakinkan |
 | `LAB-DEC-130` | Decision | **Seluruh 1.767 baris diimpor: 1.601 berkonfidensi `Tinggi`/`Sedang` AKTIF, dan 166 berkonfidensi `Rendah` NONAKTIF.** Kepala instalasi **mengaktifkan** yang dibutuhkan, bukan menambah dari nol. Menjalankan maksud `LAB-DEC-099` dengan dasar yang kini terlihat | Yoga Aji Pratama | `approved` | Yoga Aji Pratama (pemilik modul), 2026-09-21 | Lihat BR-84. Ke-166 baris `Rendah` seluruhnya menyebut **lokasi tanpa menyebut bahan** — 158 dari `Spesimen Anatomi - Material Tidak Disebutkan`, 8 dari `Lainnya`. Dibuang berarti kehilangan kode SNOMED-nya. Menunggu sesi penyaringan lebih dulu berarti `BE-LAB-55` membangun tabel yang **nol dapat diuji dengan data nyata** — pola yang sudah dua kali menahan modul ini lewat `LAB-COORD-006` dan `MST-POS-WRITE` |
@@ -3541,6 +4618,51 @@ pengujian.
 | AC-193 | Sesudah impor, **1.601** baris dapat dipilih dan **166** baris tidak — dan yang 166 itu **tetap ada** serta dapat diaktifkan kepala instalasi | BR-84 |
 | AC-194 | Baris yang nama Indonesianya kosong tampil dengan nama Inggrisnya, **dapat ditemukan lewat pencarian kedua bahasa**, dan muncul pada daftar yang belum diterjemahkan | BR-85 |
 | AC-195 | Baris hasil impor membawa kode SNOMED CT-nya; baris yang ditambahkan lewat `Lainnya` tersimpan dengan kode SNOMED **kosong** dan tetap sah | BR-86 |
+| AC-196 | Hasil Patologi Klinik yang masih Draft **tidak muncul** pada antrean validasi, dan percobaan memvalidasinya **ditolak** | BR-88 |
+| AC-197 | Analis dapat membuka kembali (Reopen) hasil Patologi Klinik yang sudah Final **selama belum divalidasi**; `FinalizedAt` kosong kembali, dan riwayat mencatat siapa serta kapan membukanya | BR-88 |
+| AC-198 | Pada satu order berisi Kalium cito dan Hemoglobin, Kalium dapat Final, divalidasi, dan dirilis **tanpa menunggu** Hemoglobin; order tetap berlabel *Dalam Pemeriksaan* sampai Hemoglobin juga dirilis | BR-88, BR-06 |
+| AC-199 | Order berlabel *Selesai* hanya bila seluruh pemeriksaan yang tidak batal sudah dirilis; pemeriksaan yang dibatalkan atau gugur **tidak menahan** label itu, dan **nol kolom status order baru** tersimpan | BR-88 |
+| AC-200 | Sesudah WhatsApp hasil kritis **berhasil terkirim**, hasil **tetap** berada pada daftar pantau *nilai kritis belum dilaporkan* sampai kelima isian `LAB-DEC-004`, termasuk bukti pembacaan ulang, tercatat | BR-89 |
+| AC-201 | Waktu kirim WhatsApp dan waktu dilaporkan tersimpan sebagai **dua nilai berbeda**; pengiriman WhatsApp yang **gagal** tercatat sebagai gagal dan tidak mengubah kewajiban pelaporan | BR-89 |
+| AC-202 | Pelaporan hasil kritis dapat **dituntaskan lewat telepon** tanpa satu pun pengiriman WhatsApp, termasuk ketika gerbang WhatsApp belum tersedia | BR-89 |
+| AC-203 | Isi pesan WhatsApp hasil kritis yang diserahkan ke gerbang **tidak memuat** nama pasien, No. RM, NIK, nama pemeriksaan, maupun nilai hasil — hanya penanda adanya hasil kritis, unit/ruang, waktu, dan nomor kontak Laboratorium | BR-90 |
+| AC-204 | Pembentuk pesan WhatsApp kritis **tidak menyediakan** ruas pengganti untuk data pasien atau data klinis, sehingga mengubah teks pesan pun tidak dapat memasukkannya | BR-90 |
+| AC-205 | Pemegang kewenangan validasi atau rilis dapat mengembalikan hasil yang **sudah divalidasi tetapi belum dirilis** menjadi Draft; tanpa alasan dari daftar terkendali, pengembalian **ditolak** | BR-91 |
+| AC-206 | Sesudah pengembalian, riwayat hasil **tetap memuat** siapa yang pernah memvalidasi, kapan, serta alasan pengembaliannya; **nol versi bernomor** terbit dan **nol pemberitahuan** dikirim ke dokter pemesan | BR-91 |
+| AC-207 | Tombol *Kembalikan ke analis* **ditolak** pada hasil yang sudah dirilis; hasil semacam itu hanya dapat diubah lewat koreksi | BR-91 |
+| AC-208 | Pada order berlabel Selesai **tanpa** persetujuan `LAB-DEC-067`, kirim WhatsApp, cetak dokumen final untuk pasien, dan unduh **ketiganya ditolak**, dan layar menyebut syarat yang belum terpenuhi | BR-92 |
+| AC-209 | Nota Lab, Label Lab, dan Label Golongan Darah **tetap dapat dicetak** pada order yang gerbangnya masih tertutup | BR-92 |
+| AC-210 | Memanggil langsung jalur backend cetak, unduh, atau kirim untuk order yang gerbangnya tertutup **ditolak** — gerbang tidak hanya ditegakkan dengan menonaktifkan tombol di layar | BR-92 |
+| AC-211 | Memindai QR dokumen final membuka halaman yang menampilkan nama rumah sakit, nomor cetak, tanggal rilis, dan status dokumen — **tanpa** nilai hasil, nama pemeriksaan, nama pasien, No. RM, maupun NIK | BR-93 |
+| AC-212 | QR dokumen yang kemudian dikoreksi menampilkan status **sudah digantikan** beserta nomor dan tanggal versi penggantinya; QR versi pengganti menampilkan **asli dan berlaku** | BR-93 |
+| AC-213 | Token QR **tidak sama dan tidak dapat diturunkan** dari nomor order maupun nomor cetak; token yang diubah satu karakter menghasilkan status **tidak dikenal** | BR-93 |
+| AC-214 | Hasil Patologi Klinik **dapat Final tanpa** catatan konsultasi; bila konsultasi dicatat, siapa, kepada siapa, dan kapan tersimpan dan tampil; pilihan kualifikasi `Definitif` **tidak tersedia** pada Patologi Klinik | BR-94 |
+| AC-215 | Pengguna berjabatan calon tetapi **belum ditunjuk** yang menekan Validasi **ditolak**, dengan pesan yang menyebut penunjukannya belum ada | BR-95 |
+| AC-216 | Pengguna yang tercantum pada daftar penunjukan tetapi jabatannya **bukan** jabatan calon juga **ditolak** — kedua lapis wajib lolos | BR-95 |
+| AC-217 | Penunjukan validasi **tidak** memberi kewenangan rilis, dan penunjukan rilis **tidak** memberi kewenangan validasi | BR-95 |
+| AC-218 | Pengguna yang ditunjuk memvalidasi **Patologi Klinik** **ditolak** saat memvalidasi hasil **Mikrobiologi**, dan pesan penolakannya menyebut disiplin yang belum ditunjuk | BR-96 |
+| AC-219 | Penanda hasil rendah, tinggi, dan kritis pada layar **dan** pada cetakan memuat huruf atau teks `L`, `H`, `KRITIS`; cetakan hitam-putih tetap membedakan ketiganya | `LAB-FE-015` |
+| AC-220 | Isian nilai hasil, isolat, dan antibiogram pada halaman hasil Patologi Klinik dan Mikrobiologi **tidak** berada di jendela modal | `LAB-FE-016` |
+| AC-221 | Pengguna yang hanya memegang `LabExamination : Update` — misalnya dokter pemesan untuk menandai cito — **ditolak `403`** saat mengisi hasil Patologi Klinik atau Mikrobiologi, menekan Final, Reopen, atau mencatat konsultasi | BR-97 |
+| AC-222 | Pengguna yang memegang izin hasil **tanpa** `LabExamination : Update` dapat mengisi hasil, tetapi **ditolak** saat membatalkan pemeriksaan atau menandai cito dan duplo | BR-97 |
+| AC-223 | Sesudah perubahan dirilis, analis yang sebelumnya dapat mengisi hasil **tetap dapat** mengisinya tanpa campur tangan admin — data kebijakan izin hasil bagi jabatan analis terpasang dalam rilis yang sama | BR-97 |
+| AC-224 | Tindakan laporan Patologi Anatomi — isi, Final, Reopen — **tetap berjalan** dengan izinnya sekarang dan tidak terdampak perubahan ini | BR-97 |
+| AC-225 | Menyimpan hasil Patologi Klinik atau Mikrobiologi yang sudah Final **ditolak `409`** dengan pesan yang menyuruh membuka kembali lebih dulu, dan isi yang tersimpan **tidak berubah** | BR-98 |
+| AC-226 | Mencatat konsultasi pada hasil yang sudah Final **ditolak `409`** | BR-98 |
+| AC-227 | Sesudah Reopen, penyimpanan **diterima kembali**; `ReopenCount` naik satu, riwayat memuat alasannya, dan Final berikutnya menggantikan Tanggal Selesai serta Waktu Issued | BR-98 |
+| AC-228 | Halaman hasil Mikrobiologi menampilkan penolakan `409` sebagai pesan yang terbaca, dan isian yang sedang diketik **tidak hilang** | BR-98 |
+| AC-229 | Pengguna yang memegang kode kewenangan *validasi Patologi Klinik* berstatus aktif dalam masa berlakunya — dan lolos lapis jabatan — **dapat** memvalidasi hasil Patologi Klinik | BR-99 |
+| AC-230 | Kewenangan berstatus *suspended*, *revoked*, kedaluwarsa, atau di luar masa berlaku **menolak** validasi dan rilis seketika, tanpa satu pun perubahan pada data Laboratorium | BR-99 |
+| AC-231 | Kode *validasi Patologi Klinik* **tidak** memberi validasi Mikrobiologi, dan kode *validasi* **tidak** memberi *rilis* | BR-99, BR-96 |
+| AC-232 | Laboratorium **nol menulis** ke tabel kredensial Human Resource; seluruh aksesnya baca-saja | BR-99 |
+| AC-233 | Pesan penolakan validasi atau rilis menyebut sebabnya — **belum ditunjuk**, **masa berlaku habis**, atau **sedang ditangguhkan** | BR-99 |
+| AC-234 | Membuka satu order Patologi Klinik menampilkan **seluruh** pemeriksaan yang tidak batal dalam **satu tabel isian** berkolom parameter, hasil, satuan, nilai rujukan, dan penanda `L`/`H` | BR-100 |
+| AC-235 | Daftar Kerja **membuka halaman detail order**; tidak ada satu pun dialog modal untuk mengisi hasil Patologi Klinik | BR-100, `LAB-FE-017` |
+| AC-236 | Final pada satu pemeriksaan di halaman itu **tidak mengunci** pemeriksaan lain pada order yang sama — Kalium cito dapat Final lebih dulu sementara Hematologi masih diisi | BR-100, BR-88 |
+| AC-237 | Menyimpan atau Final pada satu baris **tidak menghapus** isian baris lain yang belum disimpan | BR-100 |
+| AC-238 | Validasi hasil Patologi Klinik oleh pengguna berjabatan analis — termasuk analis senior — **ditolak**, walaupun namanya pernah ditunjuk; validasi oleh dokter berkewenangan laboratorium yang ditunjuk **diterima** | BR-101 |
+| AC-239 | Setiap validasi menyimpan nama validator, **snapshot peran/jabatannya saat itu**, dan waktu validasi; mengubah jabatan orang itu kemudian **tidak** mengubah snapshot pada validasi lama | BR-101 |
+| AC-240 | Balasan WhatsApp dokter dapat dicatat sebagai konfirmasi komunikasi, tetapi hasil **tetap** berada pada daftar pantau *nilai kritis belum dilaporkan* sampai bukti baca ulang dari percakapan langsung tercatat | BR-102 |
 
 ---
 
@@ -3564,7 +4686,7 @@ pengujian.
 |---|---|---|---|
 | `LAB-COORD-011` | **Gerbang pengiriman pesan (WhatsApp) dan pembangkit berkas PDF, keduanya nol pada platform.** `F7` diverifikasi ulang 2026-09-16 dan masih benar: nol `Twilio`, `Fonnte`, `SendMessageAsync`, `IWhatsAppService`, `SmtpClient`, maupun `MailKit` di seluruh backend; nol pustaka PDF pada `.csproj`. `QRCoder 1.8.0` sudah ada dan menutup kebutuhan barcode, tetapi tidak menutup kebutuhan PDF. Laboratorium tidak berwenang mengadakan keduanya sendiri. **Diverifikasi ulang 2026-09-23 dan masih benar seluruhnya** — nol `Twilio`, `Fonnte`, `IWhatsAppService`, `SendMessageAsync`, `SmtpClient`, maupun `MailKit` di seluruh backend; `QuilvianSystemBackend.csproj` memuat **satu** paket yang relevan, `QRCoder 1.8.0`, dan nol pustaka PDF. Tujuh hari sejak verifikasi 2026-09-16, **nol bergerak** | Pemilik platform + Yoga Aji Pratama | Seluruh `CAP-009`/`CAP-010` artifact — pengiriman dan pengiriman ulang hasil |
 | ~~`LAB-OPEN-028`~~ | **Ditutup 2026-09-16** oleh `LAB-DEC-071` — pembandingnya inklusif, `Tgl Awal <= Tgl Akhir` | — | — |
-| `LAB-OPEN-029` | **MENYEMPIT 2026-09-17 — satu dari tiga pertanyaannya terjawab.** ✅ *Siapa pemegang wewenang Clinical Governance-nya* dijawab `LAB-DEC-078`: tiga dokter, satu per disiplin. ❌ Masih terbuka: **apakah persetujuan Profesor dan Dokter Lab yang disebut artifact adalah tanda tangan klinis `LAB-DEC-011`**, dan bagaimana keduanya menjadi peran pada `LAB-PERM-v1`. Penetapan justru **menajamkan** pertanyaan pertamanya: nol di antara ketiga nama bergelar Profesor, sehingga `RULE-017` menyebut penyetuju yang tidak ada padanannya pada penetapan | Yoga Aji Pratama + wewenang klinis | Bertaut `LAB-SIGN-001`. Memblokir pengiriman hasil |
+| `LAB-OPEN-029` | **MENYEMPIT 2026-09-17 — satu dari tiga pertanyaannya terjawab.** ✅ *Siapa pemegang wewenang Clinical Governance-nya* dijawab `LAB-DEC-078`: tiga dokter, satu per disiplin. ❌ Masih terbuka: **apakah persetujuan Profesor dan Dokter Lab yang disebut artifact adalah tanda tangan klinis `LAB-DEC-011`**, dan bagaimana keduanya menjadi peran pada `LAB-PERM-v1`. Penetapan justru **menajamkan** pertanyaan pertamanya: nol di antara ketiga nama bergelar Profesor, sehingga `RULE-017` menyebut penyetuju yang tidak ada padanannya pada penetapan. **2026-09-24 — MENYEMPIT LAGI (`LAB-EVD-009`):** bentuk persetujuannya **elektronik dengan audit trail**, bukan tanda tangan kertas. Siapa Profesor yang dimaksud, perannya pada `LAB-PERM-v1`, dan mekanismenya tetap **menunggu pihak klinis** | Yoga Aji Pratama + wewenang klinis | Memblokir penyerahan hasil kepada pasien (`LAB-DEC-139`) |
 | `LAB-OPEN-030` | **Jabatan `Dokter Lantai` nol kemunculan** di seluruh blueprint, sedangkan artifact memakainya bersama `Dokter DPJP` pada kolom Dokter Konfirmator angka kritis | Yoga Aji Pratama | Bertaut `LAB-P0-004` dan `LAB-OPEN-014`. Memblokir kolom Dokter Konfirmator |
 | ~~`LAB-OPEN-031`~~ | **Ditutup 2026-09-16** oleh `LAB-DEC-073` — menu Hasil hanya memuat pesanan Laboratorium; nilai `Radiologi` terbawa dari tabel unit layanan bersama | — | — |
 | `LAB-OPEN-032` | **Ukuran cetak Nota Lab, Label Lab, dan Label Goldar.** Artifact menandainya sendiri `Confidence: Medium` dan menyebutnya default implementasi, bukan bukti — sehingga **tidak diadopsi** sebagai keputusan. Perlu profil printer dan media nyata | Yoga Aji Pratama + operasional laboratorium | Bentuk akhir ketiga dokumen cetak; tidak memblokir slice |
@@ -3588,7 +4710,7 @@ requirement.**
 
 | ID | Hal yang belum selesai | Pemilik | Memblokir |
 |---|---|---|---|
-| `DEC-LAB-011` | **DIAJUKAN 2026-09-18 lewat `LAB-REQ-013`** kepada **dr. Bima Prasetya, Sp.PK** *(alamat dikoreksi 2026-09-23; nota semula salah ditujukan kepada dr. Arya Wicaksana, Sp.Rad — itu sebabnya ia tak berjawab lima hari)* selaku kepala instalasi — lihat [`approval-requests/2026-09-18-nota-penetapan-pemegang-kewenangan-validasi.md`](approval-requests/2026-09-18-nota-penetapan-pemegang-kewenangan-validasi.md). **Penahan termahal seluruh modul**: ia menahan `S4`, `S4d`, dan `S4e` sekaligus. Nota itu juga menanyakan **terbuka** dua hal yang belum jelas — instalasi mana yang dipimpin, dan apakah wewenang menetapkan ada pada kepala instalasi sendiri, pada ketiga pemegang wewenang klinis per disiplin, atau berlapis — sebab `Sp.Rad` adalah spesialis radiologi sedangkan modul ini melayani tiga disiplin laboratorium, dan menetapkan siapa boleh menyatakan sebuah angka hasil benar adalah penilaian kompetensi atas pekerjaan laboratorium. Isi aslinya: **Siapa yang berwenang MENETAPKAN seseorang sebagai pemegang kewenangan validasi, dan dapatkah rumah sakit menjamin minimal dua pemegang per shift.** `LAB-DEC-022` menetapkan kewenangan diberikan **per orang, bukan per jabatan** — maka harus ada pemberinya, dan pemberinya belum ada. Bahayanya sudah ditulis `LAB-REQ-004` bagian 5.1 sendiri: bila sebuah shift hanya punya satu pemegang, jalur pengecualian empat mata berubah menjadi **jalur utama** — pengujian tetap lulus, nol aturan dilanggar, dan prinsipnya berhenti berarti apa pun. **Diperiksa 2026-09-23: masih belum dijawab, lima hari sejak diajukan.** Nol jawaban tercatat pada nota `LAB-REQ-013` maupun di mana pun pada decision log ini. **Ia nol dapat dijawab dari sisi rekayasa** — yang ditanyakan adalah siapa berwenang menilai kompetensi seseorang menyatakan sebuah angka hasil laboratorium benar, dan apakah rumah sakit sanggup menjamin dua pemegang per shift; keduanya kebijakan rumah sakit, bukan pilihan rancangan | Kepala instalasi laboratorium + manajemen rumah sakit | **`BLOCKING`** bagi `S4` validasi dan rilis |
+| `DEC-LAB-011` | **DIAJUKAN 2026-09-18 lewat `LAB-REQ-013`** kepada **dr. Bima Prasetya, Sp.PK** *(alamat dikoreksi 2026-09-23; nota semula salah ditujukan kepada dr. Arya Wicaksana, Sp.Rad — itu sebabnya ia tak berjawab lima hari)* selaku kepala instalasi — lihat [`approval-requests/2026-09-18-nota-penetapan-pemegang-kewenangan-validasi.md`](approval-requests/2026-09-18-nota-penetapan-pemegang-kewenangan-validasi.md). **Penahan termahal seluruh modul**: ia menahan `S4`, `S4d`, dan `S4e` sekaligus. Nota itu juga menanyakan **terbuka** dua hal yang belum jelas — instalasi mana yang dipimpin, dan apakah wewenang menetapkan ada pada kepala instalasi sendiri, pada ketiga pemegang wewenang klinis per disiplin, atau berlapis — sebab `Sp.Rad` adalah spesialis radiologi sedangkan modul ini melayani tiga disiplin laboratorium, dan menetapkan siapa boleh menyatakan sebuah angka hasil benar adalah penilaian kompetensi atas pekerjaan laboratorium. Isi aslinya: **Siapa yang berwenang MENETAPKAN seseorang sebagai pemegang kewenangan validasi, dan dapatkah rumah sakit menjamin minimal dua pemegang per shift.** `LAB-DEC-022` menetapkan kewenangan diberikan **per orang, bukan per jabatan** — maka harus ada pemberinya, dan pemberinya belum ada. Bahayanya sudah ditulis `LAB-REQ-004` bagian 5.1 sendiri: bila sebuah shift hanya punya satu pemegang, jalur pengecualian empat mata berubah menjadi **jalur utama** — pengujian tetap lulus, nol aturan dilanggar, dan prinsipnya berhenti berarti apa pun. **Diperiksa 2026-09-23: masih belum dijawab, lima hari sejak diajukan.** Nol jawaban tercatat pada nota `LAB-REQ-013` maupun di mana pun pada decision log ini. **Ia nol dapat dijawab dari sisi rekayasa** — yang ditanyakan adalah siapa berwenang menilai kompetensi seseorang menyatakan sebuah angka hasil laboratorium benar, dan apakah rumah sakit sanggup menjamin dua pemegang per shift; keduanya kebijakan rumah sakit, bukan pilihan rancangan. **2026-09-24 — wadahnya kini ditetapkan, jawabannya belum:** `LAB-DEC-148` menyimpan penunjukan pada kredensial Human Resource, sehingga dr. Bima kini dapat diberi **usulan konkret** — penetapan pemegang kewenangan lewat proses kredensial rumah sakit (grant, suspend, revoke, bermasa berlaku). Usulan itu **bukan jawaban**; butir ini tetap terbuka sampai dr. Bima menyatakannya. **2026-09-24 — DIJAWAB SEBAGIAN oleh dr. Bima (`LAB-EVD-009`, `LAB-DEC-150`):** ia pemegang pertama kewenangan validasi Patologi Klinik sekaligus penetap pemegang lain, dan validasi hanya oleh dokter berkewenangan laboratorium. **Sisa terbuka**, diajukan `LAB-REQ-014`: pemegang **kedua** per shift, dan pemegang Mikrobiologi serta Patologi Anatomi | Kepala instalasi laboratorium + manajemen rumah sakit | **Tidak lagi memblokir DESAIN `S4` Patologi Klinik.** Tetap **`BLOCKING`** bagi **rilis** `S4` ke pemakaian nyata, serta bagi desain `S4d` dan `S4e` |
 | `DEC-LAB-012` | **Siapa pemberi "persetujuan klinis" atas perubahan batas kritis** yang disyaratkan `LAB-DEC-023`, bolehkah didelegasikan, dan cukupkah satu orang atau perlu rapat. `LAB-DEC-078` kini menyediakan **kandidat yang sebelumnya tidak ada** — ketiga pemegang wewenang klinis — tetapi itu `PROPOSED`: menyetujui aturan keselamatan dan menyetujui perubahan **angka** batas adalah dua wewenang berbeda, dan nol orang menyatakan keduanya melekat pada orang yang sama | Pihak klinis; kemungkinan `DR-LAB-001`/`002`/`003`, **perlu dinyatakan** | **`BLOCKING`** bagi `AC-33` dan `S5` |
 | `DEC-LAB-014` | **Sisa klinis `LAB-P0-003` — tiga pertanyaan `LAB-REQ-004` bagian 4.5 yang tidak ikut dijawab saat penandatanganan.** (1) Apakah pemegang kewenangan validasi/rilis **cukup** untuk mengoreksi, atau koreksi menuntut wewenang lebih tinggi? (2) Apakah **hanya dokter pemesan** yang diberi tahu, atau juga DPJP dan unit perawatan? (3) Adakah **batas waktu** setelahnya hasil tidak boleh dikoreksi lagi? Dua di antaranya menyertakan usulan bertanda *(usulan)* pada dokumennya — *cukup*, dan *tidak ada batas* — tetapi **menganggap tanda tangan `apa adanya` ikut menyetujui usulan bagian 4.5 adalah lompatan**, sebab yang ditandatangani bagian 4.1 | `DR-LAB-001` + `DR-LAB-002` + `DR-LAB-003` | **`BLOCKING`** bagi `S6`. Bagian pemilik modul sudah ditutup `LAB-DEC-082` |
 | ~~`DEC-LAB-013`~~ | ✅ **Ditutup 2026-09-18** oleh `LAB-DEC-083` — tiga pasang sejajar; `S4d` validasi/rilis Mikrobiologi dan `S4e` validasi/rilis Patologi Anatomi didirikan. Catatan asal: **Validasi dan rilis untuk Mikrobiologi dan Patologi Anatomi tidak punya slice sama sekali.** `S4b` dan `S4c` bernama *pengisian hasil*; `LAB-DEC-076` memecah `S4` menjadi `S4a` + `S4` **hanya untuk Patologi Klinik**. Celah ini tidak terlihat selama `LAB-SIGN-001` menahan kelimanya sekaligus. **Tanda tangan per disiplin membuatnya terlihat sekaligus mendesak:** `DR-LAB-002` dan `DR-LAB-003` kini memegang wewenang klinis atas disiplin yang **tidak punya tempat menjalankan wewenang itu**. Kelas kesalahan yang sama dengan `BE-EXT-04` — satu sisi berdiri tanpa sisi lainnya — hanya terbalik arahnya | Yoga Aji Pratama + ketiga pemegang wewenang klinis | **Tidak** memblokir bagian **pengisian** `S4b`/`S4c`; memblokir bagian validasi dan rilis keduanya. Bertaut erat `LAB-OPEN-034` |
@@ -3702,6 +4824,61 @@ beserta status *delivered* yang diminta `CAP-020` artifact tetap `LAB-COORD-011`
 cetak dwibahasa `CAP-021` tetap `LAB-COORD-013`; ruas HL7 tetap `LAB-COORD-012` dan kini
 disertai keputusan tegas `LAB-DEC-109` untuk tidak membangunnya lebih dulu; serta Lokasi dan
 Metode Pengambilan Specimen yang diminta `CAP-010` tetap `S2b`.
+
+### Dibuka amendment pass putaran 14 — PRD Hasil Pemeriksaan PK & Mikrobiologi, 2026-09-24
+
+PRD `LAB-EVD-008` membuka **14 pertentangan dan 6 butir baru**. Tabel lengkapnya beserta status
+per butir ada pada bagian *Amendment Pass Putaran 14* di atas; di sini hanya yang memblokir.
+
+| ID | Hal yang belum selesai | Pemilik | Memblokir |
+|---|---|---|---|
+| ~~`PRD1-CONF-01`, `PRD1-CONF-02`~~ | ✅ **Ditutup 2026-09-24 oleh `LAB-DEC-134`** — analis tetap mengisi hasil Patologi Klinik; Dokter Lab dibaca sebagai pemvalidasi/pengotorisasi. Nol perubahan source | Yoga Aji Pratama | — |
+| ~~`PRD1-CONF-04`..`PRD1-CONF-06`~~ | ✅ **Ditutup 2026-09-24 oleh `LAB-DEC-135`** — Patologi Klinik memakai Draft/Final per pemeriksaan; status PRD menjadi label turunan | Yoga Aji Pratama | — |
+| ~~`PRD1-FOLLOW-01`~~ | ✅ **Ditutup 2026-09-24 oleh `LAB-DEC-138`** — *Kembalikan ke analis* beralasan dari daftar `LAB-DEC-082`, riwayat validasi tetap tercatat, tanpa versi bernomor dan tanpa pemberitahuan dokter | Yoga Aji Pratama | — |
+| ~~`PRD1-CONF-11`~~ | ✅ **Ditutup 2026-09-24 oleh `LAB-DEC-136`** — WhatsApp saluran pengantar; pelaporan tuntas hanya dengan kelima isian `LAB-DEC-004` | Yoga Aji Pratama | — |
+| `PRD1-CLIN-01` | **Bolehkah balasan WhatsApp dokter yang menyebut ulang nilai kritis diterima sebagai bukti pembacaan ulang `LAB-DEC-004`?** Sampai dijawab, bukti baca ulang harus dari percakapan langsung. **Pertimbangan tambahan sejak `LAB-DEC-137`:** pesan keluar tidak memuat nilai, sehingga balasan yang menyebut ulang angkanya berarti **dokter sendiri** memasukkan data klinis ke WhatsApp | `DR-LAB-001` (Patologi Klinik), `DR-LAB-002` (Mikrobiologi); bertaut `LAB-P0-004` | ✅ **Ditutup 2026-09-24 oleh `LAB-DEC-151`** — balasan WhatsApp hanya konfirmasi komunikasi, **bukan** bukti baca ulang. Jawaban dr. Bima mempertahankan aturan yang lebih ketat, sehingga nol wewenang klinis dilonggarkan |
+| ~~`PRD1-FOLLOW-02`~~ | ✅ **Ditutup 2026-09-24 oleh `LAB-DEC-137`** — pesan WhatsApp kritis tanpa data klinis; jalur kritis tidak menunggu izin privasi | Yoga Aji Pratama | — |
+| ~~`PRD1-CONF-12`~~ | ✅ **Ditutup 2026-09-24** — tetap blueprint (bawaan `LAB-DEC-133`); sisa klinisnya tetap `DEC-LAB-014` | Yoga Aji Pratama | — |
+| ~~`PRD1-CONF-13`~~ | ✅ **Ditutup 2026-09-24 oleh `LAB-DEC-139`** — satu gerbang untuk kirim, cetak, dan unduh dokumen final pasien. Bentuk persetujuannya tetap `LAB-OPEN-029`, dan kini menjadi penahan berikutnya bagi `S17` begitu `DEC-LAB-011` terjawab | Yoga Aji Pratama | — |
+| ~~`PRD1-NEW-01`~~ | ✅ **Ditutup 2026-09-24 oleh `LAB-DEC-140`** — QR verifikasi keaslian dan status dokumen; nol data kesehatan pada halaman publik | Yoga Aji Pratama | — |
+| `PRD1-OPEN-01` | **Arti dan sumber data Nomor Transaksi dan Nomor Mutasi** (PRD FR-PK-001). Keduanya tercetak pada cetakan Patologi Klinik lapangan, tetapi belum pernah dipastikan apa isinya dan dari mana datanya. **2026-09-24:** dr. Bima bertanya balik apakah keduanya billing atau inventory; **bukti belum cukup untuk keduanya** — lihat putaran 16. Penutupnya satu contoh cetakan berisi nilai (disamarkan) dan konfirmasi admin sistem lama tentang ruas asalnya | Yoga Aji Pratama | **Tidak memblokir** — hanya tampilan identitas pada halaman dan cetakan `S4a` |
+| `LAB-COORD-015` | **Halaman verifikasi dokumen publik tanpa login.** `LAB-DEC-140` menuntut satu jalur backend yang dapat dibuka tanpa autentikasi, memuat nol data kesehatan, dengan token acak yang tidak dapat ditebak. Jalur tanpa login adalah keputusan keamanan platform; `owners.security` pada manifest masih *belum ditetapkan* | Pemilik keamanan/platform — **belum ditetapkan** | `IMPLEMENTATION` — halaman verifikasi saja. Desain dan pencetakan QR **tidak** tertahan |
+| ~~`PRD1-NEW-02`~~ | ✅ **Ditutup 2026-09-24 oleh `LAB-DEC-141`** — konsultasi Patologi Klinik dicatat sebagai fakta opsional, nol kolom baru | Yoga Aji Pratama | — |
+| ~~`PRD1-CONF-03`~~ | ✅ **Ditutup 2026-09-24 oleh `LAB-DEC-142`** — kewenangan validasi dan rilis berlapis dua: jabatan calon dan penunjukan per orang. Pengisi daftar penunjukan tetap `DEC-LAB-011` | Yoga Aji Pratama | — |
+| ~~`PRD1-FOLLOW-03`~~ | ✅ **Ditutup 2026-09-24 oleh `LAB-DEC-143`** — penunjukan dicatat per orang, per jenis kewenangan, per disiplin | Yoga Aji Pratama | — |
+
+### Dibuka capability map revision 5 — closure pass putaran 15, 2026-09-24
+
+| ID | Hal yang belum selesai | Pemilik | Memblokir |
+|---|---|---|---|
+| ~~`LAB-CLOSE-013`~~ | ✅ **Ditutup 2026-09-24 oleh `LAB-DEC-146`** — tindakan atas hasil memakai izin tersendiri | Yoga Aji Pratama | — |
+| ~~`LAB-CLOSE-014`~~ | ✅ **Ditutup 2026-09-24 oleh `LAB-DEC-147`** — hasil Final ditolak bila disimpan ulang; `S4b` diperbaiki sekarang | Yoga Aji Pratama | — |
+| ~~`LAB-CLOSE-015`~~ | ✅ **Ditutup 2026-09-24 oleh `LAB-DEC-148`** — penunjukan disimpan pada kredensial Human Resource; Laboratorium hanya membaca | Yoga Aji Pratama | — |
+| `LAB-COORD-016` | **Kesepakatan dengan pemilik `human-resource`:** (1) enam kode kewenangan Laboratorium — validasi dan rilis untuk tiga disiplin — ditambahkan ke `MstClinicalPrivilegeCatalog`, beserta nama dan formatnya; (2) Laboratorium membaca `WfpClinicalPrivilege` lewat `ApplicationUser.WorkforceProfileId`, sejajar preseden Kamar Operasi, tanpa menulis. Katalog dan kewenangan **sudah punya jalan tulis**, sehingga yang diminta persetujuan, bukan pembangunan | Pemilik `human-resource` | `IMPLEMENTATION` — `S4`/`S4d`/`S4e`. **Tidak** menahan desain |
+| ~~`LAB-CLOSE-016`~~ | ✅ **Ditutup 2026-09-24 oleh `LAB-DEC-149`** — halaman detail hasil Patologi Klinik per order; dialog modal Daftar Kerja dicabut | Yoga Aji Pratama | — |
+| ~~`LAB-CONFLICT-013`~~ | ✅ **Ditutup 2026-09-24 oleh `LAB-DEC-149`** | Yoga Aji Pratama | — |
+
+### Dibuka arsitektur domain `LAB-DA-001` revision 8 — 2026-09-24, diperiksa 2026-09-25
+
+Satu butir. Ia muncul ketika perjalanan pemeriksaan sesudah rilis dimodelkan: arsitektur harus
+menjawab apa yang terjadi bila pemeriksaan yang sudah dirilis dibatalkan, dan ternyata dua
+keputusan lama memberi arah yang berbeda.
+
+| ID | Hal yang belum selesai | Pemilik | Memblokir |
+|---|---|---|---|
+| `DEC-LAB-019` | **Bolehkah pemeriksaan yang hasilnya SUDAH DIRILIS dibatalkan, atau penarikannya selalu lewat koreksi?** `LAB-DEC-138` menyatakan hasil yang sudah dirilis *"tetap hanya lewat koreksi"*, dan `LAB-DEC-063` menolak pembatalan **pesanan** pada `InProcess` dan `Completed`. Tetapi `LAB-DEC-049` membiarkan pembatalan **pemeriksaan** terbuka *"sesudah kelayakan ditetapkan"* tanpa batas atas, karena ditulis sebelum rilis dirancang. **Contoh:** Kalium pasien Andi dirilis pukul 10.00, lalu pukul 11.00 ketahuan tabungnya milik pasien lain. Apakah pemeriksaan itu dibatalkan (hasilnya hilang dari rekam medis Andi), atau dikoreksi `S6` (versi lama tetap terlihat bertanda *"sudah diperbaiki"*)? **Arah yang berlaku sampai dijawab:** pembatalan sesudah rilis **ditolak** (`ARCH-GAP-LAB-09`). Arah ini diturunkan dari `LAB-DEC-138`, bukan pilihan baru | Yoga Aji Pratama | **Desain `S6`.** Tidak memblokir `S4` karena arah yang aman sudah berlaku |
+
+### Dibuka gerbang kelengkapan requirement `LAB-RCG-001-r8` — 2026-09-24
+
+Gerbang menilai ulang `S4` sesudah `LAB-DEC-150` dan menaikkannya
+**`READY_FOR_DOMAIN_DESIGN` untuk desain saja**. Pemakaian nyatanya tertahan dua butir baru di
+bawah, ditambah sisa `DEC-LAB-011`. Rinciannya: `02-requirement-completeness-assessment.md`
+bagian 0C.
+
+| ID | Hal yang belum selesai | Pemilik | Memblokir |
+|---|---|---|---|
+| `DEC-LAB-017` | **Bolehkah `S4` dipakai sebelum `S5` pelaporan nilai kritis berdiri**, dan bila boleh, prosedur manual apa yang menggantikan formulir pelaporan serta daftar pantau selama itu? `LAB-DEC-004` — diteken pihak klinis — mengandaikan keduanya ada saat hasil kritis dirilis | Yoga Aji Pratama + `DR-LAB-001` | **Pemakaian nyata `S4`.** Tidak memblokir desainnya |
+| `DEC-LAB-018` | **Siapa pemegang kewenangan rilis (otorisasi) hasil Patologi Klinik, dan apakah wajib dokter?** `LAB-DEC-150` menjawab validasi saja, padahal `LAB-DEC-120` mewajibkan perilis berbeda dari pemvalidasi. Ditambahkan ke `LAB-REQ-014` | dr. Bima Prasetya, Sp.PK | **Pemakaian nyata `S4`.** Tidak memblokir desainnya |
 
 ### Dibuka arsitektur domain `LAB-DA-001` revision 5 — 2026-09-18
 
@@ -3842,6 +5019,26 @@ pada 2026-09-01. Yang perlu dicatat jujur tentang persetujuan ini:
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 74 | 2026-09-25 | **Satu decision ID baru dari arsitektur domain `LAB-DA-001` rev 8, dicatat tanpa keputusan baru.** `DEC-LAB-019` — bolehkah pemeriksaan yang sudah dirilis dibatalkan, atau penarikannya selalu lewat koreksi. Pertanyaan ini muncul dari ketegangan `LAB-DEC-049` dengan `LAB-DEC-138`/`LAB-DEC-063`. Arah yang berlaku sampai dijawab adalah **ditolak**, diturunkan dari `LAB-DEC-138`. Memblokir desain `S6`, tidak `S4` | `draft` |
+| 73 | 2026-09-24 | **Dua decision ID baru dari gerbang `LAB-RCG-001-r8`, dicatat di sini tanpa keputusan baru.** `DEC-LAB-017` — bolehkah `S4` dipakai sebelum `S5` pelaporan kritis berdiri — dan `DEC-LAB-018` — siapa pemegang kewenangan rilis Patologi Klinik. Keduanya menahan **pemakaian nyata** `S4`, bukan desainnya. `DEC-LAB-018` ditambahkan ke nota `LAB-REQ-014`. Juga pada hari yang sama: keempat kontrak `EPIC-LAB-14` disetujui pemilik modul dan roadmap `MVP-8` disusun (`BE-LAB-67`..`69`, `FE-LAB-35`..`37`) | `draft` |
+| 72 | 2026-09-24 | **Amendment pass putaran 16 — jawaban dr. Bima Prasetya, Sp.PK (`LAB-EVD-009`), disampaikan pemilik modul; bukti tertulis belum dilampirkan.** **`LAB-DEC-150`** mencatat jawaban `DEC-LAB-011` sebagai **jawaban sebagian** (pilihan A): dr. Bima pemegang pertama kewenangan validasi Patologi Klinik sekaligus penetap pemegang lain; **validasi hanya oleh dokter berkewenangan laboratorium**, sehingga **butir 2 `LAB-DEC-022` SUPERSEDED** dan butir 1 `LAB-DEC-142` diamandemen; setiap validasi menyimpan **snapshot peran** validator. **Butir 3-4 `LAB-DEC-022` tetap berlaku** — pemegang kedua per shift serta pemegang Mikrobiologi dan Patologi Anatomi diajukan lewat **`LAB-REQ-014`**. `DEC-LAB-011` **tidak lagi memblokir desain `S4` Patologi Klinik**, tetapi tetap memblokir rilisnya serta desain `S4d`/`S4e`. **`LAB-DEC-151`** menutup `PRD1-CLIN-01`: balasan WhatsApp hanya konfirmasi komunikasi, bukan bukti baca ulang. `LAB-OPEN-029` menyempit — persetujuan Profesor berbentuk elektronik beraudit, mekanismenya menunggu pihak klinis. `LAB-COORD-011`/`015` tidak berubah. `PRD1-OPEN-01` tetap terbuka; pertanyaan balik dr. Bima dijawab dari bukti. Lima contoh lama yang memakai analis sebagai pemvalidasi (BR-01, BR-18, BR-95, BR-96, koreksi PRD 31) **diberi catatan, tidak dihapus**. BR-101, BR-102, `AC-238`..`AC-240` ditulis | `draft` |
+| 71 | 2026-09-24 | **Closure pass putaran 15 SELESAI — Q4 dijawab, `LAB-DEC-149`.** Hasil Patologi Klinik diisi pada **halaman detail per order** — seluruh pemeriksaan dalam satu tabel isian, Final tetap per pemeriksaan, Daftar Kerja tetap sebagai antrean, dialog modal dicabut; `LAB-FE-017` dicatat. `LAB-CLOSE-016` dan `LAB-CONFLICT-013` ditutup; `AC-234`..`AC-237` ditulis. **Hasil putaran:** keempat closure question dan kedua conflict capability map revision 5 tertutup lewat `LAB-DEC-146`..`LAB-DEC-149` serta `LAB-FE-017`; `AC-221`..`AC-237`; **nol keputusan terkunci dicabut**. Menuntut amandemen `LAB-PERM-v1` dan `LAB-VAL-v1` serta task perbaikan atas `S4a`/`S4b`. Terbuka di luar wewenang pemilik modul: `LAB-COORD-016` (pemilik `human-resource`) dan `DEC-LAB-011` (dr. Bima, kini dengan usulan konkret) | `draft` |
+| 70 | 2026-09-24 | **Closure pass putaran 15, Q3 dijawab — `LAB-DEC-148`.** Penunjukan pemvalidasi dan perilis disimpan pada **kredensial Human Resource** (`WfpClinicalPrivilege`) dengan enam kode kewenangan Laboratorium; Laboratorium **hanya membaca** — status aktif dan masa berlaku menentukan, suspend dan revoke menolak seketika. `LAB-CLOSE-015` ditutup. **`LAB-COORD-016` dibuka** kepada pemilik `human-resource` — menahan implementasi, bukan desain. **`DEC-LAB-011` tetap terbuka**, tetapi kini dilengkapi usulan konkret: penetapan lewat proses kredensial rumah sakit. BR-99 dan `AC-229`..`AC-233` ditulis. Q4 (`LAB-CLOSE-016`) ditanyakan | `draft` |
+| 69 | 2026-09-24 | **Closure pass putaran 15, Q2 dijawab — `LAB-DEC-147`.** Hasil yang sudah Final **ditolak `409`** bila isinya disimpan ulang — Patologi Klinik, Mikrobiologi, dan catatan konsultasi — dengan Reopen beralasan sebagai satu-satunya jalan; **Mikrobiologi diperbaiki sekarang** sebelum `S4b` masuk rilis. `LAB-CLOSE-014` ditutup. BR-98 dan `AC-225`..`AC-228` ditulis. Menuntut amandemen `LAB-VAL-v1` dan task perbaikan `S4b` backend serta frontend. Q3 (`LAB-CLOSE-015`) ditanyakan | `draft` |
+| 68 | 2026-09-24 | **Closure pass putaran 15 dibuka atas capability map revision 5; Q1 dijawab — `LAB-DEC-146`.** Tindakan atas hasil — isi hasil Patologi Klinik dan Mikrobiologi, Final, Reopen, konsultasi — memakai **resource hak akses tersendiri**; batal, cito, dan duplo tetap pada `LabExamination : Update`; izin hasil hanya untuk jabatan analis; laporan Patologi Anatomi tidak disentuh; data kebijakan analis wajib terpasang dalam rilis yang sama. `LAB-CLOSE-013` dan `LAB-CONFLICT-012` ditutup. BR-97 dan `AC-221`..`AC-224` ditulis. Menuntut amandemen `LAB-PERM-v1` dan task perbaikan lima endpoint `S4a`/`S4b`. Header *Capability map* diperbarui ke revision 5. Q2 (`LAB-CLOSE-014`) ditanyakan | `draft` |
+| 67 | 2026-09-24 | **Amendment pass putaran 14 SELESAI — Q11 dijawab, `LAB-DEC-145`.** Email pasien dihapus dari PRD; penanda rendah/tinggi/kritis dikunci maknanya dan wajib berupa huruf atau teks (`LAB-FE-015`); larangan modal diterima untuk isian hasil utama (`LAB-FE-016`); lokasi dan metode pengambilan specimen tetap `S2b`. `AC-219`, `AC-220` ditulis; koreksi PRD menjadi **45**, termasuk dua tambahan penyisiran akhir (preview bilingual dan Diagnostic Report). Satu open question kecil dicatat: `PRD1-OPEN-01` — arti Nomor Transaksi dan Nomor Mutasi, tidak memblokir. **Hasil putaran:** keempat belas pertentangan dan keenam butir baru tertutup lewat `LAB-DEC-133`..`LAB-DEC-145` beserta `LAB-FE-015`/`LAB-FE-016`; `AC-196`..`AC-220` ditambahkan; **nol keputusan terkunci dicabut**. Yang tersisa di luar wewenang pemilik modul: `PRD1-CLIN-01` (`DR-LAB-001`/`DR-LAB-002`) dan `LAB-COORD-015` (pemilik keamanan/platform, belum ditetapkan) | `draft` |
+| 66 | 2026-09-24 | **Amendment pass putaran 14, Q10 dijawab — `LAB-DEC-144`.** Keempat penolakan Mikrobiologi putaran 9 ditegaskan ulang: hasil per pemeriksaan, `Lainnya` ke daftar pantau, nama analis diturunkan, subbakteri tidak dibangun. `PRD1-CONF-07`..`PRD1-CONF-10` ditutup — **keempat belas pertentangan PRD kini seluruhnya tertutup, dan nol keputusan terkunci dicabut**. Koreksi PRD menjadi 39. Q11 (empat butir kecil: email pasien, warna flag, larangan modal, lokasi dan metode specimen) ditanyakan sebagai satu paket rekomendasi | `draft` |
+| 65 | 2026-09-24 | **Amendment pass putaran 14, Q9b dijawab — `LAB-DEC-143`.** Penunjukan validasi dan rilis dicatat **per disiplin**; bentuk ini tetap dapat mewakili kebijakan satu orang untuk semua disiplin, sehingga jawaban `DEC-LAB-011` apa pun tidak menuntut data dipecah ulang. `PRD1-FOLLOW-03` ditutup. **`PRD1-CONF-14` ditutup tanpa pertanyaan** — AC Mikrobiologi nilai kritis bukan wewenang pemilik modul; dikoreksi mengikuti `LAB-DEC-103`. **Sepuluh dari empat belas pertentangan kini tertutup.** BR-96 dan `AC-218` ditulis; koreksi PRD menjadi 35. Q10 (empat butir Mikrobiologi yang pernah ditolak) ditanyakan | `draft` |
+| 64 | 2026-09-24 | **Amendment pass putaran 14, Q9 dijawab — `LAB-DEC-142`.** Kewenangan validasi dan rilis **berlapis dua**: jabatan menentukan calon, daftar penunjukan per orang menentukan yang berwenang; keduanya wajib lolos, dan validasi terpisah dari rilis. `LAB-DEC-022` ditegakkan, bukan diganti. `PRD1-CONF-03` ditutup — **sembilan dari empat belas pertentangan kini tertutup**. BR-95 dan `AC-215`..`AC-217` ditulis. Koreksi PRD menjadi 33, termasuk satu yang terlewat pada tabel pertentangan: BP-002 langkah 7 dan AC Mikrobiologi *"Finalisasi → Hanya Dokter Lab"* bertentangan dengan `LAB-DEC-097`. **Satu butir dibuka:** `PRD1-FOLLOW-03` — apakah penunjukan berlaku per disiplin, ditanyakan sebagai Q9b | `draft` |
+| 63 | 2026-09-24 | **Amendment pass putaran 14, Q8 dijawab — `LAB-DEC-141`.** Konsultasi pada hasil Patologi Klinik dicatat sebagai **fakta opsional** — siapa, kepada siapa, kapan — memakai pola Mikrobiologi; bukan syarat Final, dan tanpa kualifikasi `Definitif`. Nol kolom baru. `PRD1-NEW-02` ditutup. BR-94 dan `AC-214` ditulis; koreksi PRD menjadi 30. Q9 (kewenangan validasi per orang atau per jabatan) ditanyakan | `draft` |
+| 62 | 2026-09-24 | **Amendment pass putaran 14, Q7 dijawab — `LAB-DEC-140`.** *QR Result Viewer* PRD menjadi **QR verifikasi dokumen**: halaman publik hanya menampilkan nama rumah sakit, nomor cetak, tanggal rilis, dan status dokumen — asli, sudah digantikan, atau tidak dikenal — tanpa satu pun data kesehatan; token acak per versi dokumen. **Batasnya dinyatakan terus terang:** QR tidak membuktikan keutuhan angka di kertas. `PRD1-NEW-01` ditutup. **`LAB-COORD-015` dibuka** — halaman publik tanpa login menunggu pemilik keamanan/platform yang belum ditetapkan; menahan implementasi halaman itu saja. BR-93 dan `AC-211`..`AC-213` ditulis; koreksi PRD menjadi 29. Q8 (konsultasi pada Patologi Klinik) ditanyakan | `draft` |
+| 61 | 2026-09-24 | **Amendment pass putaran 14, Q6 dijawab — `LAB-DEC-139`.** Satu gerbang untuk seluruh penyerahan dokumen final kepada pasien — kirim WhatsApp, cetak, dan unduh — terbuka hanya bila order Selesai **dan** persetujuan `LAB-DEC-067` ada; ditegakkan backend, dan layar menyebut syarat yang kurang. Nota Lab, Label Lab, Label Goldar, dan lembar hasil dokter tidak terpengaruh. Berlaku Patologi Klinik dan Mikrobiologi. `PRD1-CONF-13` ditutup. BR-92 dan `AC-208`..`AC-210` ditulis; koreksi PRD menjadi 25. Dicatat bahwa `LAB-OPEN-029` menjadi penahan berikutnya bagi `S17` begitu `DEC-LAB-011` terjawab. Q7 (QR Result Viewer) ditanyakan | `draft` |
+| 60 | 2026-09-24 | **Amendment pass putaran 14, Q5 dijawab — `LAB-DEC-138`.** Hasil yang sudah divalidasi tetapi belum dirilis dapat **dikembalikan kepada analis** oleh pemegang kewenangan validasi atau rilis, beralasan dari daftar `LAB-DEC-082`; riwayat validasi tetap tercatat; tanpa versi bernomor dan tanpa pemberitahuan dokter. `PRD1-FOLLOW-01` ditutup. `PRD1-CONF-12` ditutup ke arah blueprint karena tidak dibuka ulang (bawaan `LAB-DEC-133`). BR-91 dan `AC-205`..`AC-207` ditulis; koreksi PRD menjadi 22. Q6 (cakupan gerbang persetujuan `LAB-DEC-067` atas cetak dan unduh) ditanyakan | `draft` |
+| 59 | 2026-09-24 | **Amendment pass putaran 14, Q4b dijawab — `LAB-DEC-137`.** Pesan WhatsApp hasil kritis kepada dokter **tidak memuat data klinis**: hanya adanya hasil kritis, unit/ruang, waktu, dan nomor kontak Laboratorium; larangannya ditegakkan pada pembentuk pesan. Jalur kritis karena itu **tidak menunggu izin privasi**. `PRD1-FOLLOW-02` ditutup. BR-90 dan `AC-203`, `AC-204` ditulis; koreksi PRD menjadi 17. `PRD1-CLIN-01` memperoleh pertimbangan tambahan. Q5 (amendment dan pengembalian hasil tervalidasi belum dirilis) ditanyakan | `draft` |
+| 58 | 2026-09-24 | **Amendment pass putaran 14, Q4 dijawab — `LAB-DEC-136`.** WhatsApp kepada Dokter Konfirmator menjadi **saluran pengantar** hasil kritis, bukan bukti pelaporan: waktu kirim dan waktu dilaporkan disimpan terpisah, dan pelaporan tuntas hanya bila kelima isian `LAB-DEC-004` termasuk bukti baca ulang tercatat. Alur kritis tidak bergantung pada gerbang WhatsApp. `PRD1-CONF-11` ditutup. BR-89 dan `AC-200`..`AC-202` ditulis; koreksi PRD menjadi 16. **Dua butir dibuka:** `PRD1-CLIN-01` — sahkah balasan WhatsApp sebagai bukti baca ulang, milik `DR-LAB-001`/`DR-LAB-002` dan ditautkan ke `LAB-P0-004`, tidak memblokir; `PRD1-FOLLOW-02` — isi pesan WhatsApp kritis, ditanyakan sebagai Q4b | `draft` |
+| 57 | 2026-09-24 | **Amendment pass putaran 14, Q3 dijawab — `LAB-DEC-135`.** Patologi Klinik memakai Draft dan Final **per pemeriksaan** dengan arti yang sama seperti Mikrobiologi dan Patologi Anatomi — Final = penulis selesai menulis, bukan rilis. Hanya hasil Final yang masuk antrean validasi; Reopen boleh selama belum divalidasi; hasil terkunci sesudah dirilis. Kelima status PRD menjadi **label tampilan turunan**, nol status tersimpan baru (`LAB-DEC-080`); Definitif tidak berlaku bagi Patologi Klinik. `PRD1-CONF-04`..`PRD1-CONF-06` ditutup. BR-88 dan `AC-196`..`AC-199` ditulis; koreksi PRD bertambah menjadi 12. **Satu butir turunan dibuka:** `PRD1-FOLLOW-01` — pengembalian hasil yang sudah divalidasi tetapi belum dirilis, digabung ke Q5. Q4 (WhatsApp sebagai bukti pelaporan nilai kritis) ditanyakan | `draft` |
+| 56 | 2026-09-24 | **Amendment pass putaran 14, Q2 dijawab — `LAB-DEC-134`.** Hasil Patologi Klinik tetap diketik analis (`LAB-DEC-005` utuh); "Dokter Lab" pada PRD dibaca sebagai pemvalidasi/pengotorisasi dan "Petugas Lab" sebagai petugas administrasi. `PRD1-CONF-01` dan `PRD1-CONF-02` ditutup ke arah blueprint, **nol perubahan source**. BR-87 ditulis. Bagian baru *Koreksi yang wajib masuk revisi PRD* dibuka dengan enam koreksi pertama. Q3 (Draft/Final pada Patologi Klinik dan pemetaan status PRD) ditanyakan | `draft` |
+| 55 | 2026-09-24 | **Amendment pass putaran 14 dibuka — PRD *Hasil Pemeriksaan Patologi Klinik & Mikrobiologi* `LAB-EVD-008`.** PRD disimpan verbatim pada `evidence/2026-09-24-prd-hasil-patologi-klinik-mikrobiologi.md`. **`LAB-DEC-133`**: PRD adalah bukti untuk direkonsiliasi butir per butir, bukan baseline baru; batas scope putaran dikonfirmasi pemilik modul tanpa koreksi. Rekonsiliasi menemukan **14 pertentangan** `PRD1-CONF-01`..`PRD1-CONF-14` — empat di antaranya sudah pernah ditolak pada putaran 9, dua menyentuh `LAB-DEC-003` yang diteken pihak klinis — dan **6 butir baru** `PRD1-NEW-01`..`PRD1-NEW-06`, termasuk QR Result Viewer yang nol pernah diputuskan. Q2 (pengisi hasil Patologi Klinik) ditanyakan. **Pembukuan dirapikan:** header dokumen masih tertulis revision `53` padahal revision 54 sudah tercatat; kini disamakan menjadi `55`, dan baris *Capability map* pada header yang masih menyebut revision 3 diperbarui | `draft` |
 | 54 | 2026-09-24 | **`LAB-FE-014` DIAMANDEMEN atas arahan pemilik modul: data induk yang KHUSUS Laboratorium pindah ke modul Laboratorium di frontend.** Keputusan revisi 17 (2026-09-01) menempatkan seluruh menu data induk di `health-services/master-data/`; kini sepuluh data induk yang terbukti hanya dipakai Laboratorium — batas nilai, alasan penolakan, jenis specimen, organisme, antibiotik, breakpoint, profil Mikrobiologi katalog, parameter dan golongan PA, pengaturan disiplin — berada di `health-services/laboratory-management/master-data/…` beserta route, view, hook, konstanta, util, dan CSS-nya, mengikuti pola `billing-management/master-data/`. Menunya menjadi sub-grup **Master Data** di menu Laboratorium. **Yang tetap global:** Prosedur, Tarif, Satuan Ukur, dan Konversi Satuan — dipakai modul lain. Slice Redux dan URL API backend tidak berubah. Alamat lama diarahkan ke alamat baru lewat `redirects()` di `next.config.js`. Bunyi `AC-49` dan `AC-116` ("berada di `master-data/`, bukan di folder Laboratorium") dengan ini **digantikan** oleh letak baru; yang tetap mengikat dari keduanya adalah isi layarnya, bukan foldernya. Dasar pemindahan: pemeriksaan pemakaian menunjukkan nol layar, hook, slice, maupun sumber pilihan di luar Laboratorium yang memakai kesepuluhnya | `approved` |
 | 53 | 2026-09-21 | **Amendment pass putaran 13 — dataset specimen SNOMED CT `LAB-EVD-007`. `LAB-DEC-129`..`LAB-DEC-132`. `LAB-OPEN-040` DITUTUP.** Berkas `snomedct_specimen_dikelompokan_berdasarkan_jenis.xlsx` diserahkan, dibaca langsung dari XML di dalamnya, dan diverifikasi. **JUMLAHNYA BENAR APA ADANYA: 1.767 baris**, persis seperti klaim artifact sejak awal. **YANG TIDAK BENAR ADALAH BENTUKNYA.** Datasetnya bertingkat **TIGA** — `jenis_specimen` 31, `subjenis_specimen` 85, `display` 1.767 — sedangkan `LAB-DEC-098` merancang dua. Dan tingkat yang dipilih artifact ternyata **yang paling sedikit gunanya**: **21 dari 31 kelompok hanya punya satu subjenis**, sehingga pada dua pertiga data memilihnya berarti melewati layar yang nol punya alternatif. `LAB-DEC-129` mempertahankan bentuk dua tingkat tetapi **mengganti kolom sumbernya** — `LabSpecimenType` diperluas dari 7 menjadi 31, dan `subjenis` turun menjadi atribut yang tetap disimpan demi pelaporan. **Perluasan itu aman**, dan itu diperiksa bukan diasumsikan: ketujuh nilai yang sudah ter-seed **seluruhnya punya padanan** di antara 31 kelompok. **`LAB-DEC-130` menjalankan maksud `LAB-DEC-099` dengan dasar yang kini terlihat:** ke-166 baris berkonfidensi `Rendah` ternyata terpusat pada dua kelompok yang menyebut **lokasi tanpa menyebut bahan**, sehingga ia diimpor **nonaktif** — kepala instalasi memangkas daftar yang sudah jalan alih-alih menghadapi halaman kosong, dan `BE-LAB-55` punya data nyata untuk diuji. **`LAB-DEC-131` menolak menerjemahkan 1.767 nama lebih dulu**, dengan alasan yang lebih berat daripada kecepatan: terjemahan anatomi yang keliru **lebih berbahaya** daripada istilah Inggris yang dibiarkan, sebab petugas yang ragu pada istilah asing akan bertanya sedangkan terjemahan salah tampak meyakinkan. **`LAB-DEC-132` menolak memakai kode SNOMED sebagai kode utama** sebab baris lokal yang ditambahkan lewat `Lainnya` nol punya kode SNOMED, dan kode karangan di dalam kolom yang dianggap standar internasional adalah kesalahan yang sangat sulit ditemukan kemudian. Empat AC baru `AC-192`..`AC-195` | `draft` |
 | 52 | 2026-09-21 | **Amendment pass putaran 12 — cetakan Mikrobiologi varian bakteri `LAB-EVD-006`. `LAB-DEC-122`..`LAB-DEC-128`. Putaran ini MENGOREKSI `LAB-DEC-116` YANG BERUMUR KURANG DARI SATU JAM**, dan pelajarannya perlu disimpan: putaran 11 menduga perbedaan bakteri dan jamur **hanya label**, dan dugaan itu diambil dari **satu** contoh cetak. Contoh kedua membatalkannya. **Bentuknya berbeda total:** bakteri memakai `IDENTITAS : <kuman>` plus tabel lima kolom `ANTIBIOTIK | UG | R-S | Zona/mm | RESULT`; jamur memakai `HASIL BIAKAN JAMUR` plus daftar butir ber-MIC. `LAB-DEC-124` menyelesaikannya dengan **dua penanda bebas** — jenis biakan menentukan label, metode uji menentukan bentuk — sebab satu penanda akan mengunci bakteri selalu difusi dan jamur selalu dilusi, dan bukti nol menyatakan itu. **TEMUAN TERBESAR PUTARAN INI:** dua kolom yang `r26` nol kenal sama sekali — `UG` kandungan cakram dan rentang `R-S` breakpoint — dan `LAB-DEC-122` menempatkan keduanya pada data induk lalu di-snapshot, breakpoint **per kombinasi organisme dan antibiotik** karena CLSI menetapkannya begitu dan `LAB-DEC-039` sudah mewajibkannya configurable. **YANG MENGUBAH CARA KERJA ANALIS:** pemeriksaan atas **seluruh 22 baris** menunjukkan interpretasi `S`/`I`/`R` konsisten dapat dihitung dari zona terhadap rentang — zona di bawah batas bawah `R`, di dalam rentang `I`, di atas batas atas `S` — sehingga `LAB-DEC-123` menjadikannya terhitung, dengan penimpaan beralasan tetap dibuka bagi **resistensi intrinsik**. Peringatan-saja ditolak sebab peringatan yang muncul 22 kali pada satu layar berhenti dibaca. **TIGA HAL YANG BELUM PERNAH DIMODELKAN kini punya tempat:** `LAB-DEC-125` penanda set bakteri pada pemetaan katalog — pemilik modul menyatakan tidak semua pemeriksaan memakainya; `LAB-DEC-126` isolat boleh berdiri tanpa baris kepekaan sebab cetakan menyebut dua kuman tetapi hanya satu bertabel; dan `LAB-DEC-127` kalimat baku `LEBAR ZONA ANTIBIOTIK TIDAK MEMPENGARUHI TINGKAT KEPEKAAN BAKTERI` sebagai pengaturan, bukan ketikan. `LAB-DEC-128` menetapkan zona `0` sebagai **pengukuran sah** — sebelas dari 22 baris bernilai `0` dan seluruhnya `R`. Tujuh AC baru `AC-185`..`AC-191` | `draft` |

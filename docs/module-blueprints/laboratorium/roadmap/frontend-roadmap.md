@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | `blueprint_id` | `LAB-BP-001` |
-| Roadmap revision | `35` |
+| Roadmap revision | `40` — gelombang `MVP-9` ditambahkan 2026-09-25. Sebelumnya `39` — gelombang `MVP-8` ditambahkan 2026-09-24. *Baris ini sempat tertinggal di `35` sementara riwayat sudah sampai `38`; dirapikan 2026-09-24* |
 | Status | `DRAFT` |
 | Bentuk blueprint | `SINGLE` |
 | Ditulis oleh | `plan-module-delivery` |
@@ -1430,6 +1430,8 @@ mengosongkan disiplin mencabut golongannya.
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 40 | 2026-09-25 | **Gelombang `MVP-9` diturunkan dari `EPIC-LAB-15` — tiga task frontend `FE-LAB-38`..`FE-LAB-40`** (bagian akhir dokumen), di atas kontrak `r34`, `r12`, rev 11, dan `r5` yang disetujui pemilik modul pada hari yang sama. `FE-LAB-38` dua layar data induk alasan; `FE-LAB-39` tiga tindakan dan pengesah pada Halaman Hasil Patologi Klinik — **menumpang `FE-LAB-36`**; `FE-LAB-40` antrean validasi, route **diturunkan dari konvensi** sebagai saudara `lab-worklists/cito-overdue`. **Nol tombol Validasi/Rilis di antrean**, sebab validasi adalah pernyataan sesudah hasil dilihat bersama hasil lain pasien itu. Wujud pertanyaan alasan, konfirmasi rilis, dan bentuk dua tahap antrean tetap `DEV_DISCRETION` | `DRAFT` |
+| 39 | 2026-09-24 | **Gelombang `MVP-8` diturunkan dari `EPIC-LAB-14` — tiga task frontend `FE-LAB-35`..`FE-LAB-37`** (bagian akhir dokumen). `FE-LAB-35` **SIAP DIKERJAKAN** dan boleh paralel dengan backend di atas kontrak `r33` yang approved, tetapi **wajib dirilis bersama `BE-LAB-67` dan `BE-LAB-68`** — route lama dicabut pada rilis yang sama. `FE-LAB-36` halaman hasil Patologi Klinik per order menunggu `BE-LAB-69`; `FE-LAB-37` mencabut dialog Daftar Kerja **sesudah** halaman penggantinya berdiri. `FR-14.9` sengaja nol task. **Pembukuan:** header tertinggal di `35` dan dirapikan | `DRAFT` |
 | 38 | 2026-09-23 | **`FE-LAB-28` selesai, dan dengan itu SELURUH task frontend Patologi Anatomi berdiri.** **Penahannya ditutup lebih dulu atas instruksi pemilik modul:** keenam jenis pemeriksaan yang tersisa digolongkan lewat akun superadmin — **10/10 terpetakan** — dan **setiap usulan ditinjau, bukan diterima begitu saja**: empat tepat, **LBC** diterima dengan catatan (lazimnya serviks, tetapi juga dipakai bahan non-ginekologi), dan **FNAB** yang nol punya usulan digolongkan `SITO_NONGIN` sejalan dengan *Sitologi Cairan Tubuh*. Keenamnya **data uji yang menunggu tinjauan `DR-LAB-003`**, bukan penggolongan resmi; `LAB-OPEN-039` bahkan mencatat FNAB sebagai varian cetak tersendiri, sehingga yang dibutuhkan kelak mungkin golongan kelima. **Pemetaan itu sekaligus menutup `AC-194` milik `BE-LAB-66`**: `unmappedProcedure` 6 → 0 pada enam penyimpanan. **Layar laporannya** membangkitkan formulir dari `fields` server, dan **aturan murninya dijalankan terhadap jawaban server sungguhan** — pesanan empat golongan menghasilkan 15 ruas dengan **nol duplikat**. Dua keputusan pantas dibaca: **`Selesaikan` dimatikan selama ada perubahan belum tersimpan**, sebab tanpanya patolog dapat melihat isi A sementara yang terkunci adalah isi B; dan **`analystUserId` dikirim ulang walau nol punya pemilih**, sebab `PUT` mengganti seluruh isi. **SATU CACAT `FE-LAB-31` DITEMUKAN DAN DIPERBAIKI:** dialog hapus isolat mengirim `onClose` yang nol dikenal `ConfirmModal`, sehingga **Batal dan Esc nol berbuat apa-apa dan satu-satunya jalan keluar adalah menekan "Ya, Hapus"** — dialog pencegah penghapusan justru memaksanya. Cacat yang sama ada di tiga layar rawat inap dan radiologi, **dilaporkan, nol disentuh**. `Simpan`/`Selesaikan`/`Buka Kembali` **sengaja nol dijalankan** terhadap pesanan pasien sungguhan. Suite 1659 → **1674 lulus**, gagal tetap 7 | `DRAFT` |
 | 37 | 2026-09-23 | **Tiga task frontend dikerjakan berurutan, dan dengan itu NOL task FE Laboratorium tersisa yang penahannya adalah kode.** **`FE-LAB-31` sisa `MVP-7b`** — keempat butir yang kurang ditutup, dan **kedua jalan buntu hilang**: kolom `Kadar` kini punya pemilih satuannya (`AC-178`) dan penimpaan `Hasil` kini punya tempat menulis alasannya (`AC-187`); tabel antibiogram menjadi **dua bentuk** mengikuti metode uji (`AC-188`), dan penanda isolat tidak diuji berdiri (`AC-190`). 7 uji baru. **`FE-LAB-29`** — bagian konteks klinis berdiri pada layar pesanan; **penjaganya di pemanggil, bukan di dalam komponennya**, sehingga bagi disiplin lain komponennya nol dirender, hook-nya nol berjalan, dan permintaannya nol terkirim — itulah yang membuat `AC-154` benar-benar "nol berubah". 9 uji, `AC-154` dibuktikan **terbalik**. **`FE-LAB-27`** — **37 berkas**: dua fitur data induk penuh diturunkan dari `lab-organisms`, ditambah keberlakuan ruas (`AC-145`) dan penggolongan jenis pemeriksaan (`AC-144`); 10 uji. **`AC-144` dijaga dengan ketiadaan:** nol tombol "terapkan semua", dan tiap baris punya tombol konfirmasi sendiri yang mati selama golongan belum dipilih — pencocokan kata kunci tidak tahu apa-apa soal patologi. **Validasi ketiganya:** lint **0 error**, build **hijau**, suite unit **1633 → 1659 lulus dengan gagal TETAP 7**; ketujuhnya diperiksa satu per satu dan **nol terkait** — satu di antaranya bahkan menuntut menu `/corporate/accounting/reconciliation` yang memang belum ada. **Ketiganya belum diklik di peramban**, dan itu disebut apa adanya. **Dua hal menunggu keputusan pemilik modul:** selisih `result` wajib/opsional antara `r27` dan `AC-165`, serta penempatan bagian konteks klinis pada layar detail pesanan alih-alih layar buat | `DRAFT` |
 | 36 | 2026-09-23 | **Dua koreksi status, keduanya lahir dari membaca source alih-alih membaca laporan task.** **Pertama, `FE-LAB-27` turun dari ✅ `SIAP DIKERJAKAN` menjadi ⛔ `TERTAHAN` oleh `BE-LAB-66`** yang dibuka hari ini. `BE-LAB-50` memang selesai, tetapi kesepuluh endpoint yang berdiri bukan permukaan yang dituntut `master-data-feature-standard`: ketiga grup Patologi Anatomi nol punya `filters/metadata`, `summary`, maupun `GET /{id}`. **Penahan ini sudah diketahui sejak 2026-09-22 dan sengaja dicatat** — `BE-LAB-65` bagian 6ad.1 menemukannya lalu meninggalkan ketiga grup PA justru supaya task ini nol tersandung diam-diam; yang belum terjadi adalah tasknya dibuka. Ini kali **ketiga** bentuk yang sama menahan task frontend, sesudah `FE-LAB-24`→`BE-LAB-65` dan `FE-LAB-34`→`BE-LAB-64`. **Kedua, cakupan tambahan `MVP-7b` ditandai belum tuntas.** Laporan `FE-LAB-31`/`32`/`33` menelusuri `AC-157`..`AC-170` saja dan **nol pernah mengklaim** kesembilan AC gelombang `MVP-7b`; pembacaan source menemukan **`FE-LAB-33` tuntas** sementara **`FE-LAB-31` kurang tiga hal**, dua di antaranya membuat layarnya **buntu pada jalur yang sungguh dipakai**: kolom `Kadar` menolak nilai tanpa satuan sementara pemilih satuannya nol ada (`AC-178`), dan penimpaan `Hasil` menuntut alasan yang nol punya kotak isian (`AC-187`). **Bentuknya yang pantas diingat, bukan jumlahnya** — pada keduanya ruasnya sudah sampai ke payload dan aturannya sudah lulus uji; yang tidak ada adalah permukaan untuk mengisinya, dan uji unit atas fungsi murni nol dapat menangkap itu. Rincian beserta berkas dan barisnya ada pada [`traceability.md`](traceability.md) bagian **Sinkronisasi bukti kode — 2026-09-23**. Nol baris kode disentuh pada revisi ini | `DRAFT` |
@@ -1632,3 +1634,168 @@ AC yang bertambah: `FE-LAB-31` memperoleh `AC-179`, `AC-186`, `AC-187`, `AC-188`
 
 Susunan dua isolat berantibiogram, tampilan hasil nol pertumbuhan, dan pengulangan kop halaman
 kedua — ketiganya belum pernah terlihat (`LAB-OPEN-039`).
+
+---
+
+## Gelombang `MVP-8` — `EPIC-LAB-14` halaman hasil Patologi Klinik dan perbaikan halaman Mikrobiologi, 2026-09-24
+
+Menurunkan [`03-frontend-architecture.md`](../03-frontend-architecture.md) **amandemen
+2026-09-24** dan [`04-prd-to-mvp.md`](../04-prd-to-mvp.md) **bagian 20**.
+
+| Field | Nilai |
+|---|---|
+| Kontrak | `LAB-API-v1` **`r33`**, `LAB-VAL-v1` **`r11`**, `LAB-PERM-v1` **rev 10** — `approved` 2026-09-24 |
+| Masukan | decisions **rev 72**; capability map **rev 5**; `03-frontend-architecture.md` rev 9 |
+| Frontend SHA | `72607a087` (branch `YogaV2`) |
+| Hash masukan | Pada [`traceability.md`](traceability.md) bagian *Traceability gelombang `MVP-8`* |
+| Nomor task | `FE-LAB-35`..`FE-LAB-37` |
+| Kerja paralel | `FE-LAB-35` **boleh** dikerjakan bersamaan dengan `BE-LAB-67`/`BE-LAB-68` karena kontraknya approved dan hash-nya tercatat — **tetapi wajib dirilis bersama** keduanya |
+
+**Wewenang tampilan.** Keberadaan halaman per order, larangan modal, dan penanda berhuruf
+sudah diputuskan (`LAB-FE-015`..`LAB-FE-017`). Urutan kolom, urutan baris, letak tombol, dan
+navigasi papan ketik tetap **`DEV_DISCRETION`** — roadmap ini tidak memutuskannya.
+
+### `FE-LAB-35` — Halaman Mikrobiologi mengikuti izin hasil, route netral, dan penjaga Final
+
+| Butir | Isi |
+|---|---|
+| **Status** | `SIAP DIKERJAKAN` — **dirilis bersama** `BE-LAB-67` dan `BE-LAB-68` |
+| **Gelombang** | `MVP-8a` |
+| **Outcome** | Halaman Mikrobiologi tetap berfungsi sesudah route lama dicabut; pengguna tanpa izin hasil melihat halaman baca-saja; penolakan `409` dan `403` tampil terbaca tanpa menghilangkan isian |
+| **Requirement/decision** | `FR-14.6`, `FR-14.12`; `LAB-DEC-146`, `LAB-DEC-147` |
+| **Kontrak** | `r33` bagian 28.2 dan 28.4; `LAB-PERM-v1` rev 10 |
+| **Reuse** | `usePermission` (`src/lib/hooks/auth/use-permission.jsx`); `use-lab-microbiology-result-editor.jsx` yang sudah berdiri |
+| **Cakupan** | `lab-microbiology-result-constants.jsx:16,19,22` beralih ke route netral; penanganan `409` dan `403` pada hook editor; kontrol tulis disembunyikan bagi yang tidak memegang `LabExaminationResult : Update` |
+| **Dependency** | Kontrak `r33` — tidak menunggu kode backend untuk mulai, tetapi **menunggu `BE-LAB-67` dan `BE-LAB-68` untuk diverifikasi dan dirilis** |
+| **Acceptance criteria** | `AC-228`; bagian antarmuka `AC-221` — akun tanpa izin hasil melihat halaman baca-saja |
+| **Verifikasi** | Unit test aturan: pemetaan `409` menjadi pesan dan pelestarian isian; lalu dijalankan terhadap backend `BE-LAB-68` — simpan hasil Final ditolak dan nilai yang diketik tetap di isian. Uji unit dijalankan dengan `node --import ./tests/helpers/register.mjs --test tests/unit/` |
+| **Risiko/pemilik** | **Tinggi pada rilis.** Dirilis tanpa backend → Final/Reopen/konsultasi memanggil route yang belum ada; backend dirilis tanpa ini → halaman memanggil route yang sudah dicabut. Pemilik: implementer frontend |
+| **DoD** | Nol rujukan tersisa ke `/result/microbiology/finalize\|reopen\|consultation`; `AC-228` terbukti; lint dan build hijau; laporan `task/report/frontend/FE-LAB-35.md` |
+
+### `FE-LAB-36` — Halaman Hasil Patologi Klinik per order
+
+| Butir | Isi |
+|---|---|
+| **Status** | `MENUNGGU PENDAHULU` — `BE-LAB-69` untuk diverifikasi; boleh mulai di atas kontrak `r33` |
+| **Gelombang** | `MVP-8c` |
+| **Outcome** | Analis mengisi seluruh pemeriksaan Patologi Klinik satu order pada satu halaman, menyatakan selesai per pemeriksaan, dan melihat penanda `L`/`H` berupa huruf |
+| **Requirement/decision** | `FR-14.5`, `FR-14.8`, `FR-14.10`; `LAB-DEC-135`, `LAB-DEC-141`, `LAB-DEC-149`, `LAB-FE-015`..`LAB-FE-017` |
+| **Kontrak** | `r33` bagian 28.2-28.3; `LAB-VAL-v1` `r11` `VAL-120`..`VAL-123` |
+| **Reuse** | Pola halaman Mikrobiologi per order (`use-lab-microbiology-workspace.jsx:78-79` — `fetchLabOrderDetail`); `usePermission`; pola loading/empty/error `LAB-DEC-069` yang sudah dipakai layar pantau |
+| **Cakupan** | Route `lab-monitoring/clinical-pathology/[slug]` beserta `route-token.js`; komposisi halaman; hook dan berkas aturan murni; fungsi service untuk jalur baca per order dan route netral. Lokasi mengikuti `rules/frontend/frontend-architecture.md`; **nama berkas `DEV_DISCRETION`** |
+| **Dependency** | `BE-LAB-69` |
+| **Acceptance criteria** | `AC-234`, `AC-236`, `AC-237`; bagian antarmuka `AC-219` dan `AC-214` |
+| **Verifikasi** | Unit test aturan: `referenceFlag` → `H 6,4` / `L 9,4`, pelestarian isian baris lain, penanganan `409` per baris; halaman dijalankan terhadap backend dengan order berisi pemeriksaan cito dan satu pemeriksaan batal |
+| **Risiko/pemilik** | **Sedang.** Tiga jebakan: memanggil `GET /{id}/result` per baris alih-alih jalur per order; menghapus isian baris lain saat satu baris disimpan; dan menurunkan `L`/`H` sendiri dari `normalLow`/`normalHigh` alih-alih memakai `referenceFlag`. Pemilik: implementer frontend |
+| **DoD** | Halaman hidup; **nol modal** untuk isian hasil; **nol penanda `KRITIS`**; **nol tombol Validasi/Rilis**; `OutOfReference` **belum** diberi teks final — `FR-14.9`; laporan `FE-LAB-36.md` |
+
+### `FE-LAB-37` — Daftar Kerja membuka halaman order; dialog isi hasil dicabut
+
+| Butir | Isi |
+|---|---|
+| **Status** | `MENUNGGU PENDAHULU` — `FE-LAB-36` |
+| **Gelombang** | `MVP-8c` |
+| **Outcome** | Petugas membuka hasil Patologi Klinik dari Daftar Kerja langsung ke halaman order, dan tidak ada lagi dua tempat mengisi hasil |
+| **Requirement/decision** | `FR-14.11`; `LAB-DEC-149`, `LAB-FE-017` |
+| **Kontrak** | — (tidak memanggil endpoint baru) |
+| **Reuse** | `lab-worklist-view.jsx` dan `use-lab-worklist.jsx` yang sudah berdiri |
+| **Cakupan** | Dialog `ConfirmModal` pengisian hasil (`lab-worklist-view.jsx:253-370`) beserta state pendukungnya di hook **dicabut**; setiap baris Patologi Klinik memperoleh aksi membuka halaman ordernya, dapat ditemukan tanpa petunjuk tersembunyi. Urutan cito tetap `LAB-FE-006` |
+| **Dependency** | `FE-LAB-36` — dialog dicabut **sesudah** halaman penggantinya berdiri, supaya nol hari tanpa tempat mengisi hasil |
+| **Acceptance criteria** | `AC-235` |
+| **Verifikasi** | Daftar Kerja dijalankan: nol dialog isi hasil, aksi baris membuka halaman yang benar; uji unit Daftar Kerja yang ada tetap lulus |
+| **Risiko/pemilik** | **Rendah.** Jebakannya mencabut dialog lebih dulu dari halaman pengganti. Pemilik: implementer frontend |
+| **DoD** | Nol `ConfirmModal` isi hasil di Daftar Kerja; `AC-235` terbukti; laporan `FE-LAB-37.md` |
+
+### Yang sengaja tidak menjadi task frontend
+
+| Yang tidak dijadikan task | Alasan |
+|---|---|
+| Teks penanda hasil pilihan di luar rujukan | `FR-14.9` masih `OPEN DECISION` |
+| Antrean validasi dan tombol Validasi/Rilis | `S4` belum lolos gerbang. **Sejak 2026-09-25 menjadi gelombang `MVP-9`** — `FE-LAB-39`, `FE-LAB-40` |
+| Penanda `KRITIS` Patologi Klinik | `S5` |
+| Tombol "Final semua" | Tidak diminta keputusan mana pun |
+
+## Gelombang `MVP-9` — `EPIC-LAB-15` validasi dan rilis hasil Patologi Klinik, 2026-09-25
+
+Menurunkan [`03-frontend-architecture.md`](../03-frontend-architecture.md) **amandemen
+2026-09-25** dan [`04-prd-to-mvp.md`](../04-prd-to-mvp.md) **bagian 21**.
+
+| Field | Nilai |
+|---|---|
+| Kontrak | `LAB-API-v1` **`r34`**, `LAB-VAL-v1` **`r12`**, `LAB-PERM-v1` **rev 11**, `LAB-STATE-v1` **`r5`** — `approved` 2026-09-25 |
+| Masukan | decisions **rev 74**; `03-frontend-architecture.md` **rev 10**; `04-prd-to-mvp.md` **rev 8** |
+| Frontend SHA | `72607a087` (branch `YogaV2`) |
+| Hash masukan | Pada [`traceability.md`](traceability.md) bagian *Traceability gelombang `MVP-9`* |
+| Nomor task | `FE-LAB-38`..`FE-LAB-40` |
+| Gelombang | `MVP-9c` |
+| Kerja paralel | Ketiganya **boleh** mulai di atas kontrak `r34` yang approved dan hash-nya tercatat, bersamaan dengan backend `MVP-9a`/`MVP-9b`. **Verifikasinya** tetap menunggu task backend pasangannya |
+
+**Wewenang tampilan.** Penanda pengecualian wajib terlihat sebagai teks (`LAB-FE-004`); tindakan
+di halaman hasil per order, bukan di antrean (diturunkan dari `LAB-DEC-149`); route diturunkan
+dari konvensi `LAB-FE-001`. **Wujud pertanyaan alasan, konfirmasi sebelum rilis, tab atau
+penyaring untuk dua tahap antrean, dan urutan kolom tetap `DEV_DISCRETION`** — roadmap ini tidak
+memutuskannya.
+
+**Uji unit** dijalankan dengan `node --import ./tests/helpers/register.mjs --test tests/unit/` —
+`npm run test:unit` gagal di Node 20.
+
+### `FE-LAB-38` — Dua layar data induk alasan
+
+| Butir | Isi |
+|---|---|
+| **Status** | `MENUNGGU PENDAHULU` — `BE-LAB-71` untuk diverifikasi; boleh mulai di atas kontrak `r34` 29.6 |
+| **Gelombang** | `MVP-9c` |
+| **Outcome** | Kepala instalasi mengisi dan mengelola daftar alasan pengembalian dan daftar alasan pengecualian dari aplikasi — bukan lewat SQL |
+| **Requirement/decision** | `FR-15.12`; `LAB-DEC-082`, `LAB-DEC-138`, `LAB-DEC-003`, `LAB-DEC-019` |
+| **Kontrak** | `r34` 29.6; `LAB-VAL-v1` `r12` `VAL-140`..`VAL-142`; `LAB-PERM-v1` rev 11 bagian 13.2 |
+| **Reuse** | Layar `master-data/lab-organisms` sebagai pola lengkap; sakelar penanda sistem `master-data/lab-rejection-reasons`; `usePermission` |
+| **Cakupan** | Route `master-data/lab-result-correction-reasons` dan `master-data/lab-four-eyes-exception-reasons`; daftar berhalaman, penyaring, ringkasan, tambah, ubah, aktif/nonaktif; **kode baca-saja** pada formulir ubah; sakelar *wajib catatan* hanya bagi pemegang `SystemFlag` lewat `PUT /{id}/system-flags`; **nol tombol hapus**; status **hanya** lewat `PATCH /{id}/status`. Dua fungsi service data induk. Lokasi mengikuti `rules/frontend/frontend-architecture.md`; **nama berkas `DEV_DISCRETION`** |
+| **Dependency** | `BE-LAB-71` |
+| **Acceptance criteria** | Pesan `VAL-140`..`VAL-142` tampil terbaca pada isian yang tepat; sakelar sistem tersembunyi bagi kepala instalasi dan tampil bagi admin |
+| **Verifikasi** | Unit test aturan pemetaan galat ke ruas; kedua layar dijalankan terhadap backend `BE-LAB-71` dengan akun kepala instalasi dan akun admin |
+| **Risiko/pemilik** | **Rendah.** Jebakannya menyalin ruas *Status Aktif* dari formulir ubah Organisme — permintaan ubah di sini **tidak** membawanya. Pemilik: implementer frontend |
+| **DoD** | Kedua layar hidup; nol hapus; kode tak dapat diubah; lint dan build hijau; laporan `task/report/frontend/FE-LAB-38.md` |
+
+### `FE-LAB-39` — Validasi, rilis, dan pengembalian pada Halaman Hasil Patologi Klinik
+
+| Butir | Isi |
+|---|---|
+| **Status** | `MENUNGGU PENDAHULU` — `FE-LAB-36` (halaman per order, `MVP-8c`); `BE-LAB-73`..`BE-LAB-76` untuk diverifikasi |
+| **Gelombang** | `MVP-9c` |
+| **Outcome** | Dokter berkewenangan memvalidasi, perilis merilis, dan keduanya dapat mengembalikan hasil — di halaman yang sama tempat hasil dibaca, dengan pengesah dan penanda pengecualian terlihat |
+| **Requirement/decision** | `FR-15.1`..`FR-15.7`, `FR-15.10`, `FR-15.14`; `LAB-FE-004`, `LAB-DEC-003`, `LAB-DEC-120`, `LAB-DEC-138` |
+| **Kontrak** | `r34` 29.2, 29.3, 29.5; `LAB-VAL-v1` `r12` 14.1-14.2; `LAB-PERM-v1` rev 11 bagian 13.4 |
+| **Reuse** | Halaman `FE-LAB-36` beserta hook dan berkas aturan murninya; `usePermission`; pola penanganan `403`/`409` `FE-LAB-35` |
+| **Cakupan** | Per baris: keadaan dari `resultStatus`, *Validasi oleh* dan *Otorisasi oleh* beserta jabatannya, **penanda pengecualian apa adanya dari backend**; tombol Validasi (baris *Final*), Rilis dan *Kembalikan ke analis* (baris *Tervalidasi*) per izin `Validate`/`Release`/`Return`; Reopen tidak ditawarkan pada baris *Tervalidasi*/*Dirilis*; pertanyaan alasan pengecualian **sebelum** mengirim bila `resultEnteredByUserId` atau `validatedByUserId` sama dengan pengguna; alasan pengembalian wajib; label order dari `resultProgress`; penanganan `403` dua lapis, `409`, `422`, `503`; tiga fungsi service |
+| **Dependency** | `FE-LAB-36`; `BE-LAB-73`..`BE-LAB-76` |
+| **Acceptance criteria** | Bagian antarmuka `AC-02`, `AC-205`, `AC-233`; `LAB-FE-004`; peringatan pengisi; `403` lapis orang tampil pada barisnya |
+| **Verifikasi** | Unit test pada `lab-clinical-pathology-result-rules.js`: kapan tiap tombol tampil menurut `resultStatus` dan izin; kapan alasan pengecualian diminta; pelestarian alasan terpilih saat `422`. Halaman dijalankan terhadap backend dengan tiga akun — analis, dokter A, perilis B |
+| **Risiko/pemilik** | **Sedang.** Tiga jebakan: menyusun bunyi penanda sendiri; menyembunyikan tombol berdasarkan tebakan penunjukan alih-alih membiarkan backend menjawab `403` bersebab; dan menampilkan penanda **hanya** sebagai warna. Pemilik: implementer frontend |
+| **DoD** | Tiga tindakan berjalan dari halaman; penanda terbaca sebagai teks; **nol tombol Validasi/Rilis di luar halaman ini**; laporan `FE-LAB-39.md` |
+
+### `FE-LAB-40` — Antrean validasi
+
+| Butir | Isi |
+|---|---|
+| **Status** | `MENUNGGU PENDAHULU` — `FE-LAB-39`; `BE-LAB-77` untuk diverifikasi |
+| **Gelombang** | `MVP-9c` |
+| **Outcome** | Pemvalidasi dan perilis menemukan hasil yang menunggu mereka tanpa membuka order satu per satu |
+| **Requirement/decision** | `FR-15.9`; `LAB-DEC-135` butir 2, `LAB-FE-006`, `LAB-FE-012` |
+| **Kontrak** | `r34` 29.4; `LAB-VAL-v1` `r12` `VAL-139` |
+| **Reuse** | Route dan layar `lab-worklists/cito-overdue` sebagai pola; `lab-worklist.service.js` |
+| **Cakupan** | Route `lab-worklists/validation-queue`; dua tahap *Menunggu Validasi* dan *Menunggu Rilis*; kolom pasien, No. RM, No. order, pemeriksaan, cito, penanda `L`/`H`, menunggu sejak; urutan **dari backend**; aksi baris **membuka Halaman Hasil order itu**; butir menu mengikuti cara `cito-overdue` ditampilkan |
+| **Dependency** | `FE-LAB-39` — baris antrean membuka halaman yang sudah dapat bertindak; `BE-LAB-77` |
+| **Acceptance criteria** | Bagian antarmuka `AC-196`; nol tombol Validasi/Rilis di antrean |
+| **Verifikasi** | Antrean dijalankan terhadap backend: hasil cito di atas; memvalidasi dari halaman lalu kembali → baris pindah ke tahap *Menunggu Rilis* |
+| **Risiko/pemilik** | **Rendah.** Jebakannya menambahkan tombol Validasi di antrean demi menghemat klik. Pemilik: implementer frontend |
+| **DoD** | Antrean hidup; nol tombol tindakan; laporan `FE-LAB-40.md` |
+
+### Yang sengaja tidak menjadi task frontend
+
+| Yang tidak dijadikan task | Alasan |
+|---|---|
+| Tombol Validasi dan Rilis di antrean; tombol massal | `03-frontend-architecture.md` amandemen 2026-09-25 — dua tempat bertindak atas satu hasil |
+| Cetakan *Validasi oleh* dan *Otorisasi oleh* | `S17` |
+| Validasi dan rilis Mikrobiologi dan Patologi Anatomi | `S4d`, `S4e` |
+| Penanda `KRITIS` dan formulir pelaporan | `S5` |
+| Menyaring hasil belum dirilis bagi pembaca di luar Laboratorium | Nol pembaca hari ini; milik `S17`/`S18` |
