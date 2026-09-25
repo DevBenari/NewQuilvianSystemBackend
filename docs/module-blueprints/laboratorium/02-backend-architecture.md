@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `11` — bagian 21, 2026-09-25: `S4d-1` validasi dan rilis Mikrobiologi. Sebelumnya `10` — bagian 20, 2026-09-25: `S4` validasi dan rilis Patologi Klinik. Sebelumnya `9` — bagian 19, 2026-09-24 |
+| Revision | `12` — bagian 22, 2026-09-25: penjaga penyelesaian order (`LAB-DEC-154`). Sebelumnya `11` — bagian 21, 2026-09-25: `S4d-1` validasi dan rilis Mikrobiologi. Sebelumnya `10` — bagian 20, 2026-09-25: `S4` validasi dan rilis Patologi Klinik. Sebelumnya `9` — bagian 19, 2026-09-24 |
 | Status | `draft` |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15`. **Revision 4 menambah amandemen Penerimaan Sampling/Specimen** — lihat bagian 11 |
 | Backend SHA | Revision 1-3: `c87d9c0`. **Revision 4: `466a7127`**, diverifikasi tidak berubah pada `9067fa73` |
@@ -3069,7 +3069,7 @@ mewajibkan seeder.
 | Temuan | Diteruskan ke | Kenapa tidak diselesaikan di sini |
 |---|---|---|
 | `Version` tidak dinaikkan pada simpan hasil, Final, dan konsultasi; klaim `409` pada `LAB-API-v1` `r33` 28.2 untuk *"baris baru saja diubah orang lain"* belum benar pada kode | `/plan-module-delivery` — scope `BE-LAB-68`/`BE-LAB-69` pada roadmap `MVP-8` | Ketiga tindakan itu milik `EPIC-LAB-14` yang kontraknya sudah disetujui. `S4` hanya memperbaiki Reopen, yang memang ia sentuh |
-| **`LAB-CONFLICT-014`** — `PUT /lab-orders/{id}/complete` (`LabOrderService.cs:1051-1059`) memindahkan order `InProcess` → `Completed` **tanpa memeriksa hasil**, dan layar menampilkannya sebagai *"Selesai"* (`LabFilterMetadataFactory.cs:387`). `LAB-DEC-135` dan `AC-199` menyatakan *Selesai* hanya bila seluruh pemeriksaan tidak batal sudah **dirilis**. Sesudah `S4`, order dapat berlabel *Selesai* dua kali dengan arti berbeda | `/grill-me` — pemilik modul | Mengubah endpoint yang sudah berjalan adalah keputusan produk. **Usulan:** endpoint manual ditolak selama masih ada pemeriksaan tidak batal yang belum dirilis. **Selama belum diputuskan**, `S4` menyajikan labelnya pada ruas terpisah `resultProgress` dan tidak menyentuh `OrderStatus` |
+| ✅ **Ditutup 2026-09-25 oleh `LAB-DEC-154`** — order hanya `Completed` bila seluruh pemeriksaan tidak batal sudah dirilis; rancangannya bagian 22. Isi asli: **`LAB-CONFLICT-014`** — `PUT /lab-orders/{id}/complete` (`LabOrderService.cs:1051-1059`) memindahkan order `InProcess` → `Completed` **tanpa memeriksa hasil**, dan layar menampilkannya sebagai *"Selesai"* (`LabFilterMetadataFactory.cs:387`). `LAB-DEC-135` dan `AC-199` menyatakan *Selesai* hanya bila seluruh pemeriksaan tidak batal sudah **dirilis**. Sesudah `S4`, order dapat berlabel *Selesai* dua kali dengan arti berbeda | `/grill-me` — pemilik modul | Mengubah endpoint yang sudah berjalan adalah keputusan produk. **Usulan:** endpoint manual ditolak selama masih ada pemeriksaan tidak batal yang belum dirilis. **Selama belum diputuskan**, `S4` menyajikan labelnya pada ruas terpisah `resultProgress` dan tidak menyentuh `OrderStatus` |
 | Baris `S9` pada gerbang tertinggal dari `LAB-COORD-002` | `/requirement-completeness-gate` | Penilaian slice milik gerbang |
 | Preseden Kamar Operasi tidak fail-closed | Tidak diteruskan — itu keputusan modul Kamar Operasi (`OPS-DEC-017`), dicatat hanya supaya tidak ditiru | — |
 
@@ -3101,7 +3101,7 @@ berubah.
 
 | Butir | Isi |
 |---|---|
-| Status | **`draft`** — approval tetap tindakan pemilik modul |
+| Status | **`draft`** — approval tetap tindakan pemilik modul. **Keempat kontraknya disetujui 2026-09-25**, beserta kelima butir 21.10 dan perubahan bunyi `VAL-126` |
 | Masukan | `00-interview-decisions.md` **revision 76**; `LAB-RCG-001-r9` bagian 0D; `LAB-DA-001` **revision 9 bagian A6**; bagian 20 beserta kontrak `r34`/`r12`/rev 11/`r5`/`INT r4` yang **approved** 2026-09-25 |
 | SHA | Backend **`31b12f07`** (branch `yoga`), frontend **`0bcd15724`** (branch `YogaV2`) — **bergeser** dari `ddeb5ed8`/`72607a087` |
 | Impact scan | **Dijalankan, nol dampak.** Backend 22 commit: nol berkas di `LaboratoryManagement`, `MedicalRecordManagement`, `CredentialingManagement`, dan `Services/Security`; commit `10d68bf7` *"updates BE modul lab"* **hanya dokumen blueprint**; `Program.cs` menambah dua registrasi Farmasi/Billing. **Satu akibat teknis:** migration Gizi dan Farmasi menggeser `ApplicationDbContextModelSnapshot.cs`, sehingga migration `BE-LAB-70` wajib dibangkitkan **di atas snapshot baru**. Frontend 7 commit: nol berkas Laboratorium. Capability map revision 5 **tetap berlaku** |
@@ -3301,6 +3301,16 @@ dan penunjukan Mikrobiologi (21.7).
 
 ### 21.10 Keputusan yang diminta pada persetujuan kontrak
 
+> **✅ Kelima butir disetujui 2026-09-25** oleh Yoga Aji Pratama, bersama keempat kontrak
+> `EPIC-LAB-16`, lewat instruksi *"Setujui keempat kontrak beserta lima butir di atas, termasuk
+> perubahan bunyi VAL-126, lalu jalankan /plan-module-delivery untuk MVP-10a sampai MVP-10c.
+> Gelombang ini baru bisa dikerjakan setelah MVP-9b selesai."* Yang disetujui adalah **kolom
+> "Usulan rancangan"** di bawah: butir 5 **kata per kata**. Dua butir tetap bergantung pihak lain
+> walau sudah disetujui pemilik modul: **butir 1** — nilai kode final lewat `LAB-COORD-016`
+> bersama pemilik Human Resource; **butir 2** — konfirmasi klinisnya tetap dititipkan pada
+> `DEC-LAB-020` kepada `DR-LAB-002`. Bila jawaban klinis membaliknya, yang berubah satu aturan
+> `VAL-144` (`bukan Sementara` → `Definitif`), bukan bentuk data (`ARCH-GAP-LAB-10`).
+
 | No | Hal | Usulan rancangan | Bila tidak disetujui |
 |---:|---|---|---|
 | 1 | **Kode kewenangan Mikrobiologi** | `LAB-VAL-MB` dan `LAB-REL-MB` | Final lewat `LAB-COORD-016`; hanya konstanta yang berubah |
@@ -3326,10 +3336,168 @@ Bagian 20.11 berlaku. **Tambahan:** nama organisme dan hasil antibiogram adalah 
 | Antrean dua disiplin | `LAB-DEC-135` butir 2 | A5.2 | `r35` 30.4; VAL `VAL-145` | `AC-196` |
 | Label order Mikrobiologi | `LAB-DEC-135` | A6.7 | `r35` 30.5 | `AC-199` |
 
+## 22. Rancangan 2026-09-25 (ketiga) — Penjaga penyelesaian order (`LAB-DEC-154`)
+
+Bagian ini menurunkan keputusan pemilik modul atas `LAB-CONFLICT-014` (20.12). **Bukan slice baru**:
+ia memperbaiki perilaku satu endpoint order yang sudah berjalan, supaya status *Selesai* order tidak
+lagi berbeda arti dari label hasil *Selesai*.
+
+### 22.0 Identitas dan gerbang masukan
+
+| Butir | Isi |
+|---|---|
+| Status | **`draft`** — approval tetap tindakan pemilik modul. **Ketiga kontraknya disetujui 2026-09-25**, beserta keempat butir 22.7 |
+| Masukan | `00-interview-decisions.md` **revision 77** — `LAB-DEC-154`, `LAB-DEC-155`, `LAB-DEC-156`; bukti `LAB-EVD-011`; bagian 20 (kolom `BE-LAB-70`, turunan `resultStatus` `BE-LAB-76`) dan bagian 21 |
+| SHA | Backend **`cfafad8d`** (branch `yoga`), frontend `0bcd15724` — sama dengan perencanaan `MVP-10` |
+| Keputusan | `LAB-DEC-154` beserta Q3 *dirilis* dan Q4 *tertahan*; `LAB-DEC-135`/`AC-199` untuk arti *Selesai*; `LAB-DEC-156` untuk label rincian |
+| Arsitektur domain | **Nol konsep baru.** Aturannya invariant order yang baru — **diusulkan** dicatat sebagai `INV-54` pada revisi `LAB-DA-001` berikutnya. Tidak menahan desain: keputusannya eksplisit dan tertulis |
+| Skema | **Nol tabel, nol kolom, nol migration.** Penjaga hanya membaca `ReleasedAt` (`BE-LAB-70`) dan status pemeriksaan yang sudah ada |
+| Permission | **Nol.** Tetap `LabOrder : Process` |
+| Keadaan kode hari ini | `CompleteAsync` memanggil `MoveOrderStatusAsync` generik (`LabOrderService.cs:1051-1059`) — `InProcess` → `Completed` tanpa memeriksa hasil. Order yang bukan `InProcess` dilempar `InvalidOperationException` sehingga dijawab **`400`**, padahal `LAB-STATE-v1` bagian 1 sudah menjanjikan **`409`**. **Nol layar frontend memanggil endpoint ini** (diperiksa pada `0bcd15724`) |
+
+### 22.1 Aturan dan urutan pemeriksaan
+
+`PUT /lab-orders/{id}/complete` memeriksa berurutan:
+
+| Langkah | Pemeriksaan | Bila gagal |
+|---:|---|---|
+| 1 | Order ada dan tidak terhapus | `404` |
+| 2 | `OrderStatus = InProcess` | **`409`** — perbaikan selisih dengan `LAB-STATE-v1` bagian 1 (22.7 butir 4) |
+| 3 | Baca seluruh pemeriksaan order yang tidak terhapus; **kecualikan** `Voided` dan `Cancelled` (`AC-199`) | — |
+| 4 | Bila **tidak ada** pemeriksaan tersisa → **diterima** (22.7 butir 3) | — |
+| 5 | Setiap pemeriksaan tersisa wajib `ReleasedAt` terisi. Kumpulkan **seluruh** yang belum — bukan berhenti pada yang pertama | **`409` `VAL-146`** beserta rincian (22.2) |
+| 6 | Tulis seperti hari ini: `Completed`, `CompletedAt`, `Version` naik, satu baris riwayat `Order.Complete` | Bentrok `Version` → `409` |
+
+**Kenapa cukup memeriksa `ReleasedAt`.** Rilis mensyaratkan validasi (`VAL-133`), dan validasi
+mencatat pemvalidasi, snapshot jabatan, dan waktunya (`BE-LAB-73`). Syarat tangkapan `LAB-EVD-011`
+butir 2 — *nama, peran, tanggal dan waktu validasi* — karena itu **pasti** ada pada setiap
+pemeriksaan yang lolos langkah 5. Memeriksanya ulang di sini menggandakan aturan yang sudah
+dijaga di tempat lain.
+
+**Pemeriksaan tanpa jalur validasi menahan order** (Q4) tanpa kode khusus: Patologi Anatomi,
+Mikrobiologi sebelum `MVP-10`, dan hasil `Sementara` memang **tidak pernah** memperoleh `ReleasedAt`.
+
+### 22.2 Rincian penolakan
+
+Respons mengikuti `ApiResponse` proyek: `message` di tingkat atas, rincian di `errors` — pola yang
+sama dengan `DrugReturnController.cs:153` Farmasi (`Fail(409, pesan, new { ex.Code })`).
+
+```json
+{
+  "success": false,
+  "statusCode": 409,
+  "message": "Order belum dapat diselesaikan karena masih terdapat pemeriksaan yang belum dirilis.",
+  "data": null,
+  "errors": {
+    "code": "LAB_ORDER_COMPLETION_BLOCKED",
+    "details": [
+      {
+        "examinationId": "3f6c…",
+        "procedureName": "Hemoglobin",
+        "resultStatus": "Validated",
+        "status": "Tervalidasi"
+      },
+      {
+        "examinationId": "9a21…",
+        "procedureName": "Kalium",
+        "resultStatus": "Final",
+        "status": "Menunggu Validasi"
+      }
+    ]
+  }
+}
+```
+
+| Ruas rincian | Isi |
+|---|---|
+| `examinationId` | Id pemeriksaan — sesuai tangkapan |
+| `procedureName` | Nama pemeriksaan dari snapshot katalog — **tambahan**, supaya alasan terbaca tanpa mencocokkan id |
+| `resultStatus` | Keadaan turunan: `NotEntered`, `Draft`, `Final`, `Validated` — tidak pernah `Released` |
+| `status` | Label `LAB-DEC-156`: *Menunggu Hasil*, *Draft*, *Menunggu Validasi*, *Tervalidasi* — sesuai tangkapan |
+
+**Patologi Anatomi** tidak berhasil per pemeriksaan (`LAB-DEC-085`); keadaannya diturunkan dari
+laporan PA order itu: belum ada → *Menunggu Hasil*, Draft → *Draft*, Final → *Menunggu Validasi*.
+**Hasil `Sementara`** tetap *Menunggu Validasi* — kualifikasi bukan keadaan (`LAB-DEC-114`).
+
+### 22.3 Class yang berubah
+
+| Class | Status | Berkas | Perubahan |
+|---|---|---|---|
+| `LabOrderService.CompleteAsync` | Diperbarui | `Services/LabOrderService.cs` | Menjalankan langkah 2-5 **sebelum** memindahkan status; order bukan `InProcess` dilempar `LabOrderConflictException` (→ `409`). `MoveOrderStatusAsync` **tidak diubah** — ia juga dipakai tindakan lain yang tetap menjawab seperti hari ini |
+| `LabOrderCompletionBlockedException` | **Baru** | Sama, di samping `LabOrderConflictException` (`:1477`) | Membawa `Code = "LAB_ORDER_COMPLETION_BLOCKED"` dan daftar rincian |
+| `LabOrderCompletionBlockedItem` | **Baru** | `DTOs/LabOrderDtos.cs` | Empat ruas 22.2 |
+| `LabOrderController.ExecuteAsync` | Diperbarui | `Controllers/LabOrderController.cs` | Satu `catch` baru → `Conflict(ApiResponse<object>.Fail(409, ex.Message, new { code, details }))`, diletakkan **sebelum** `catch (InvalidOperationException)` |
+
+Turunan `resultStatus` dipakai ulang dari `BE-LAB-76` — **bukan** rumus kedua.
+
+### 22.4 Arsitektur folder
+
+```text
+Areas/HealthServices/LaboratoryManagement/
+├── Controllers/
+│   └── LabOrderController.cs     # Diperbarui — catch penolakan penyelesaian
+├── DTOs/
+│   └── LabOrderDtos.cs           # Diperbarui — LabOrderCompletionBlockedItem
+└── Services/
+    └── LabOrderService.cs        # Diperbarui — penjaga CompleteAsync, exception baru
+Migrations/                       # Nol migration
+```
+
+### 22.5 Status model, migration, dan urutan rilis
+
+**Nol model, nol migration.** Penjaga **wajib terpasang sebelum langkah 4 `MVP-9d`** — itu syarat
+yang dulu melekat pada `LAB-CONFLICT-014`. Ia dibangun **sesudah `BE-LAB-76`**, sebab butuh `ReleasedAt`
+dan turunan `resultStatus`. Penempatan gelombangnya diputuskan saat perencanaan, sesudah kontrak
+disetujui. Langkah mundur: kode.
+
+**Satu perilaku berubah seketika sesudah deploy, dan itu disengaja:** order Mikrobiologi dan Patologi
+Anatomi **tidak dapat lagi** diselesaikan lewat endpoint ini sampai jalur validasinya berdiri. Hari ini
+nol layar memanggilnya, sehingga nol pengguna terhenti.
+
+### 22.6 Yang sengaja tidak dibuat
+
+| Yang ditolak | Alasan |
+|---|---|
+| Order otomatis `Completed` saat pemeriksaan terakhir dirilis | `LAB-DEC-154` mempertahankan endpoint sebagai tindakan manual |
+| Memeriksa ulang nama, peran, dan waktu validator | Sudah pasti ada sesudah rilis (22.1) |
+| Tombol *Selesai* order di frontend | Tidak diminta; nol layar memanggil endpoint ini hari ini |
+| Mengunci order dari penambahan pemeriksaan selama `CompleteAsync` berjalan | Jalur tambah pemeriksaan (`LabExaminationService.cs:95-105`) tidak menaikkan `Version` order, sehingga pemeriksaan yang ditambahkan **pada detik yang sama** dengan penyelesaian lolos dari penjaga. Jendelanya sangat sempit dan menambah pemeriksaan pada order yang sedang diselesaikan jarang terjadi; **dicatat sebagai risiko yang disadari**, bukan ditutup diam-diam |
+| Mengubah `MoveOrderStatusAsync` bagi tindakan lain | Di luar keputusan ini |
+
+### 22.7 Keputusan yang diminta pada persetujuan kontrak
+
+> **✅ Keempat butir disetujui 2026-09-25** oleh Yoga Aji Pratama, bersama `LAB-API-v1` `r36`,
+> `LAB-VAL-v1` `r14`, dan `LAB-STATE-v1` `r7`, lewat instruksi *"Setujui r36, r14, r7 beserta empat
+> butir 22.7, lalu rencanakan BE-LAB-81"*. Yang disetujui adalah **kolom "Usulan rancangan"** di
+> bawah; butir 1 **kata per kata**.
+
+| No | Hal | Usulan rancangan | Bila tidak disetujui |
+|---:|---|---|---|
+| 1 | **Bunyi pesan `409`** — tangkapan menulis *"…yang belum tervalidasi"* | *"Order belum dapat diselesaikan karena masih terdapat pemeriksaan yang belum dirilis."* — sebab syaratnya kini **dirilis** (Q3); pemeriksaan yang Tervalidasi tetapi belum dirilis juga menahan | Bunyi tangkapan dipakai apa adanya, dan pesannya keliru bagi pemeriksaan yang sudah tervalidasi |
+| 2 | **Bentuk respons** — tangkapan meletakkan `code` dan `details` di tingkat atas | `message` di tingkat atas; `code` dan `details` di dalam `errors`, mengikuti `ApiResponse` dan preseden Farmasi. Rincian bertambah `procedureName` dan `resultStatus` | Amplop khusus bagi satu endpoint — menyimpang dari seluruh API proyek |
+| 3 | **Order tanpa pemeriksaan tidak batal** | **Diterima.** Bila ditolak, order itu terkunci selamanya di `InProcess`: pembatalan order hanya sah pada `Requested`/`Confirmed` (`LAB-DEC-063`) | Ditolak `409`, dan order seperti itu butuh jalur keluar lain |
+| 4 | **Order bukan `InProcess`** | **`409`**, menyelaraskan kode dengan `LAB-STATE-v1` bagian 1 yang sudah approved | Tetap `400` seperti hari ini, dan selisih kode–kontrak dibiarkan |
+
+### 22.8 Keamanan, privasi, dan pencatatan
+
+Rincian memuat id dan **nama** pemeriksaan serta keadaannya — **nol nilai hasil**. Payload log
+penolakan tidak memuat nama pasien maupun nilai hasil. Penolakan `409` tidak dicatat sebagai
+perubahan data; penyelesaian yang berhasil dicatat seperti hari ini.
+
+### 22.9 Traceability bagian 22
+
+| Yang dirancang | Keputusan | Kontrak (usulan) | AC |
+|---|---|---|---|
+| Penjaga penyelesaian order | `LAB-DEC-154` | `LAB-API-v1` `r36` bagian 31; `LAB-VAL-v1` `r14` `VAL-146`; `LAB-STATE-v1` `r7` bagian 9 | `AC-243`, `AC-244` |
+| Pemeriksaan tanpa jalur validasi menahan order | `LAB-DEC-154` butir 5 | Sama | `AC-245` |
+| Label pada rincian | `LAB-DEC-156` | `r36` 31.2 | `AC-247` bagian backend |
+| `409` bagi order bukan `InProcess` | `LAB-STATE-v1` bagian 1 | `r36` 31.2 | Baris matriks uji |
+
 ## Riwayat Revisi
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 12 | 2026-09-25 | **Penjaga penyelesaian order dirancang** (bagian 22), menurunkan `LAB-DEC-154` yang menutup `LAB-CONFLICT-014`. `PUT /lab-orders/{id}/complete` ditolak `409` beserta rincian selama ada pemeriksaan tidak batal yang belum dirilis; pemeriksaan tanpa jalur validasi menahan order. **Nol tabel, nol kolom, nol migration, nol permission.** Empat butir diminta pada persetujuan (22.7), termasuk bunyi pesan yang disesuaikan dari tangkapan dan perbaikan `400` → `409` bagi order bukan `InProcess`. Satu risiko balapan dengan penambahan pemeriksaan dicatat, tidak ditutup (22.6). Baris `LAB-CONFLICT-014` pada 20.12 ditandai tertutup | `draft` |
 | 11 | 2026-09-25 | **`S4d-1` validasi dan rilis hasil Mikrobiologi dirancang** (bagian 21), menurunkan `LAB-DA-001` rev 9 bagian A6. **Memperluas bagian 20, tidak menyalinnya.** **Nol tabel, nol kolom, nol migration** — ke-14 kolom `BE-LAB-70` melayani setiap disiplin per pemeriksaan. Yang berubah: `VAL-126` menerima Mikrobiologi dan hanya menolak Patologi Anatomi; penjaga baru `VAL-144` menolak hasil `Sementara`; dua kode kewenangan Mikrobiologi dengan fungsi `For()` yang **tidak** memberi kode apa pun bagi Patologi Anatomi — fail-closed berlapis; ruas *Petugas Otorisasi* dan *Validasi oleh* pada respons Mikrobiologi — hari ini **sengaja kosong** — terisi; antrean menerima dua disiplin dan **mengeluarkan** hasil `Sementara`. **Impact scan dijalankan** karena kedua SHA bergeser (`31b12f07`, `0bcd15724`): **nol berkas** Laboratorium, Rekam Medis, kredensial HR, atau keamanan berubah; satu akibat teknis — snapshot migration bergeser oleh migration Gizi dan Farmasi, sehingga `BE-LAB-70` wajib dibangkitkan di atas snapshot baru. Lima keputusan diminta pada persetujuan (21.10) | `draft` |
 | 10 | 2026-09-25 | **`S4` validasi dan rilis hasil Patologi Klinik dirancang** (bagian 20), menurunkan `LAB-DA-001` rev 8 bagian A5 atas decisions rev 74 dan capability map rev 5. **Dua tabel baru, 14 kolom baru pada `LabExamination`, nol status baru.** Validasi, rilis, dan *Kembalikan ke analis* sebagai tiga aksi pada resource `LabExaminationResult`, sehingga pemegang `Update` (analis) tidak otomatis memegangnya. Lapis orang dibaca dari kredensial Human Resource **fail-closed** — berbeda sengaja dari preseden Kamar Operasi. Rilis dan pendaftaran rekam medis **atomik** dalam satu penyimpanan. **Satu temuan mengubah rancangan:** token `Version` tidak dinaikkan pada penulisan hasil, sehingga Reopen dan Validasi pada detik yang sama dapat sama-sama berhasil; `S4` memperbaikinya untuk Reopen dan meneruskan sisanya ke `MVP-8`. **Satu pertentangan baru dicatat, tidak diputuskan:** `LAB-CONFLICT-014`, *Selesai* manual versus *Selesai* turunan. Sepuluh keputusan diminta pada persetujuan kontrak (20.10), termasuk bunyi penanda yang tercetak dan penanda tangan dokumen rekam medis | `draft` |
 | 9 | 2026-09-24 | **Perluasan pengisian hasil Patologi Klinik dan perbaikan `S4b` dirancang** (bagian 19), menurunkan `LAB-DEC-135`, `LAB-DEC-141`, `LAB-DEC-146`, `LAB-DEC-147`, `LAB-DEC-149`, dan `LAB-FE-015` atas decisions rev 71 dan capability map rev 5. **Nol tabel, nol kolom, nol migration skema.** Satu enum respons baru `LabReferenceFlag`; satu jalur baca hasil per order; lima tindakan hasil pindah ke resource turunan `LabExaminationResult`; route Final/Reopen/konsultasi menjadi netral disiplin — **perubahan yang memecah kompatibilitas, konsumennya satu berkas frontend, dan butuh persetujuan eksplisit** (19.10). **`S4` validasi dan rilis dihentikan** karena `DEC-LAB-011` masih `BLOCKING`. Yang paling perlu dijaga saat rilis: **urutan pemberian kebijakan** (19.7) — kebijakan hanya dapat diberikan sesudah deploy, dan menyalinnya otomatis dari `LabExamination : Update` justru membuka kembali celah `LAB-CONFLICT-012`. **Catatan pembukuan:** bagian 16-18 (2026-09-21) ditambahkan tanpa baris riwayat dan tanpa menaikkan header; tidak ditambal di sini | `draft` |

@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `11` — amandemen 2026-09-25 (kedua), validasi dan rilis Mikrobiologi (`S4d-1`). Sebelumnya `10` — amandemen 2026-09-25, validasi dan rilis Patologi Klinik (`S4`). Sebelumnya `9` — amandemen 2026-09-24, halaman Hasil Patologi Klinik per order |
+| Revision | `12` — amandemen 2026-09-25 (ketiga), label keadaan hasil (`LAB-DEC-156`). Sebelumnya `11` — amandemen 2026-09-25 (kedua), validasi dan rilis Mikrobiologi (`S4d-1`). Sebelumnya `10` — amandemen 2026-09-25, validasi dan rilis Patologi Klinik (`S4`). Sebelumnya `9` — amandemen 2026-09-24, halaman Hasil Patologi Klinik per order |
 | Status | `draft` |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S14`, `S15`. **Revision 4 menambah menu Penerimaan Sampling/Specimen** (bagian 10). **Revision 5 menyerap `LAB-DEC-048`**: butir menu Pesanan Laboratorium dicabut, Monitoring dinamai ulang menjadi Pemeriksaan, dan disiplin diturunkan dari pemeriksaan yang dipilih |
 | Frontend SHA | Revision 1-3: `688daff90`. **Revision 4: `9cd4cd03f`** — fakta `F5` dicabut capability map revision 3 |
@@ -1166,7 +1166,7 @@ diuji sebagai unit test pada `lab-clinical-pathology-result-rules.js`, mengikuti
 |---|---|
 | Status | **`draft`** |
 | Slice | `S4d-1` — hasil Mikrobiologi yang bukan `Sementara` |
-| Masukan | decisions rev 76; `LAB-DA-001` rev 9 bagian A6; `LAB-API-v1` `r35`; `LAB-VAL-v1` `r13` — **kontraknya masih `draft`** |
+| Masukan | decisions rev 76; `LAB-DA-001` rev 9 bagian A6; `LAB-API-v1` `r35`; `LAB-VAL-v1` `r13` — **seluruh kontraknya disetujui 2026-09-25** |
 | Frontend SHA | **`0bcd15724`** — bergeser dari `72607a087`; tujuh commit, **nol berkas Laboratorium** |
 | Sifat | Halaman Hasil Mikrobiologi **diperbarui**; antrean validasi dan daftar Pemeriksaan Mikrobiologi **diperbarui**. **Nol route baru** |
 | Ketergantungan | Pola tindakan dari amandemen 2026-09-25 (`FE-LAB-39`, `FE-LAB-40`); backend `MVP-9` dan bagian 21 |
@@ -1229,3 +1229,61 @@ Lokasi mengikuti `rules/frontend/frontend-architecture.md`; nama berkas baru `DE
 | Cetakan Mikrobiologi berisi pengesah | Belum ada cetakan Mikrobiologi di frontend; milik `S17` |
 | Tombol mengubah kualifikasi saat memvalidasi | Kualifikasi milik analis; jalurnya Reopen |
 | Validasi per isolat | `INV-53` |
+
+## Amandemen 2026-09-25 (ketiga) — Label keadaan hasil (`LAB-DEC-156`)
+
+| Field | Nilai |
+|---|---|
+| Status | **`draft`** — keputusannya `approved`; amandemen ini hanya menurunkannya ke layar |
+| Masukan | decisions rev 77 — `LAB-DEC-156` (BR-107), `LAB-DEC-155` (BR-106); bukti `LAB-EVD-011` |
+| Frontend SHA | `0bcd15724` |
+| Sifat | **Teks layar saja.** Nol route, nol kontrak — `resultStatus` dari backend tidak berubah; yang berubah adalah label yang ditampilkan untuk setiap nilainya |
+
+### Label yang berlaku
+
+| `resultStatus` | Label | Catatan |
+|---|---|---|
+| `NotEntered` | **Menunggu Hasil** | Baru |
+| `Draft` | **Draft** | Tetap |
+| `Final` | **Menunggu Validasi** | **Berubah** — sebelumnya *Final* (BR-88) |
+| `Validated` | **Tervalidasi** | Baru pada tabel label |
+| `Released` | **Dirilis** | Baru pada tabel label — satu-satunya keadaan yang **resmi** bersama validasinya (`LAB-DEC-155`) |
+
+| Tindakan | Teks tombol |
+|---|---|
+| Draft → Final | **Pemeriksaan Selesai** |
+
+Label **order** tetap *Dalam Pemeriksaan* / *Selesai* dari `resultProgress`; *Dalam Pemeriksaan*
+tidak dipakai untuk pemeriksaan. Label diturunkan **hanya** dari `resultStatus` — layar tidak
+menghitung sendiri dari tanggal-tanggal hasil. Pemetaan label diletakkan di **satu** konstanta
+bersama supaya Patologi Klinik dan Mikrobiologi tidak menulisnya dua kali.
+
+### Layar yang terdampak
+
+| Layar | Keadaan hari ini | Diterapkan oleh |
+|---|---|---|
+| Halaman Hasil Patologi Klinik per order | Belum dibangun (`FE-LAB-36`, `MVP-8`) | `FE-LAB-36` — tombol **Pemeriksaan Selesai** sejak awal; `FE-LAB-39` — lima label |
+| Antrean validasi | Belum dibangun (`FE-LAB-40`) | `FE-LAB-40` — tahap *Menunggu Validasi* memakai kata yang sama |
+| Halaman Hasil Mikrobiologi | Tombol *Simpan Final* dan peringatan *"Penulisan selesai — belum dirilis"* (`lab-microbiology-completion-bar.jsx`) | `FE-LAB-41` — tombol menjadi **Pemeriksaan Selesai**, keadaan dari lima label |
+| Laporan Patologi Anatomi | Nol lencana keadaan (`LAB-FE-029`); tombol *Selesaikan* (`LAB-FE-024`) | **Tidak diubah** sampai `S4e` |
+
+### Hasil yang belum dirilis — `LAB-DEC-155`
+
+Layar tidak menyajikan hasil yang belum dirilis **sebagai hasil resmi**. Hari ini frontend belum
+punya cetakan hasil maupun pengiriman kepada pasien — hanya cetak label dan nota order — sehingga
+**nol layar yang perlu diubah**. Aturan ini mengikat cetakan dan pengiriman `S17` kelak: keduanya hanya
+untuk hasil *Dirilis*.
+
+### Penyelesaian order — `LAB-DEC-154`
+
+Nol layar memanggil `PUT /lab-orders/{id}/complete` hari ini. **Tidak ada task frontend** untuk
+penjaga itu. Bila kelak sebuah tombol *Selesai* order dibangun, ia wajib menampilkan rincian
+`errors.details` dari penolakan `409` per pemeriksaan (`LAB-API-v1` `r36` 31.3), bukan hanya pesan
+umumnya.
+
+### Wewenang keputusan tampilan
+
+| Hal | Wewenang |
+|---|---|
+| Kelima label dan teks tombol **Pemeriksaan Selesai** | `LAB-DEC-156` — `decided` |
+| Warna, bentuk lencana, dan letak label | `DEV_DISCRETION` |

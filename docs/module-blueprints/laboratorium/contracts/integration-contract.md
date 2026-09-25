@@ -3,11 +3,11 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-INT-v1` |
-| Revision | **`5` — `draft`** 2026-09-25, bagian 9 (`INT-07` kode Mikrobiologi, `INT-08` Mikrobiologi) — **belum disetujui**. Terakhir `approved`: **`4` — `approved`** 2026-09-25, bagian 8 (`INT-07`, `INT-08`, `S4`). Terakhir `approved`: `3` |
-| Status | `approved` — dikunci 2026-09-02; **amandemen `r4` disetujui 2026-09-25** (bagian 8) |
+| Revision | **`5` — `approved`** 2026-09-25, bagian 9 (`INT-07` kode Mikrobiologi, `INT-08` Mikrobiologi) — disetujui Yoga Aji Pratama. Sebelumnya: **`4` — `approved`** 2026-09-25, bagian 8 (`INT-07`, `INT-08`, `S4`). Sebelumnya: `3` |
+| Status | `approved` — dikunci 2026-09-02; **amandemen `r4` disetujui 2026-09-25** (bagian 8); **amandemen `r5` disetujui 2026-09-25** (bagian 9) |
 | Batas penguncian | **Terkunci penuh sejak 2026-09-02.** `LAB-OPEN-021` dijawab: penamaan memakai prefix `Lab`, sehingga tidak ada lagi bagian yang dikecualikan |
 | Owner | Yoga Aji Pratama |
-| `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-02; `r4`: Yoga Aji Pratama / 2026-09-25 |
+| `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-02; `r4`: Yoga Aji Pratama / 2026-09-25; `r5`: Yoga Aji Pratama / 2026-09-25 |
 | Input revision | Decisions rev 20; `LAB-DA-001` rev 4 |
 | Input hash | `sha256:6504b18a327b9966526bd1df8f3cb878d7f6d6519dacc1f7df16b1066729ae82` atas `00-interview-decisions.md`, dihitung 2026-09-02 |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15` |
@@ -414,8 +414,8 @@ Id kunjungan tidak valid. Hasil tetap tervalidasi."*
 |---|---|
 | `contract_version` | `LAB-INT-v1` |
 | Revision | `r5` |
-| Status | **`draft`** — menunggu persetujuan pemilik modul |
-| `approved_by` / `approved_at` | **belum** |
+| Status | **`approved`** |
+| `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-25 — instruksi *"Setujui keempat kontrak beserta lima butir di atas, termasuk perubahan bunyi VAL-126, lalu jalankan /plan-module-delivery untuk MVP-10a sampai MVP-10c"*, lihat `LAB-API-v1` `r35` bagian 30. **Kedua kode `LAB-VAL-MB`/`LAB-REL-MB` disetujui sebagai usulan pemilik modul**; nilai finalnya tetap lewat `LAB-COORD-016` bersama pemilik Human Resource |
 | `input_revision` | decisions rev 76; `LAB-DA-001` rev 9 bagian A6.10; `02-backend-architecture.md` rev 11 bagian 21 |
 | Sifat | **Aditif.** `INT-07` memakai dua kode lagi; `INT-08` melayani satu disiplin lagi |
 

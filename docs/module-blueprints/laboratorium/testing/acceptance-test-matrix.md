@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `8` — amandemen 2026-09-25 kedua (`S4d-1`). Sebelumnya `7` — amandemen 2026-09-25 (`S4`). Sebelumnya `6` — amandemen 2026-09-24 |
+| Revision | `9` — amandemen 2026-09-25 ketiga (penyelesaian order, hasil resmi, label keadaan). Sebelumnya `8` — amandemen 2026-09-25 kedua (`S4d-1`). Sebelumnya `7` — amandemen 2026-09-25 (`S4`). Sebelumnya `6` — amandemen 2026-09-24 |
 | Status | `draft` |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15`. **Revision 4 menambah amandemen Penerimaan Sampling/Specimen** — lihat bagian 11 |
 | Backend SHA | Revision 1-3: `c87d9c0`. **Revision 4: `466a7127`**, diverifikasi tidak berubah pada `9067fa73` |
@@ -717,7 +717,7 @@ jangan menulis `LAB-VAL-PK` langsung di test, sebab nilainya baru final lewat `L
 | Field | Nilai |
 |---|---|
 | Status | **`draft`** |
-| Kontrak yang diuji | `LAB-API-v1` `r35`, `LAB-VAL-v1` `r13`, `LAB-STATE-v1` `r6`, `LAB-INT-v1` `r5` — **`draft`**; `LAB-PERM-v1` revision 11 apa adanya |
+| Kontrak yang diuji | `LAB-API-v1` `r35`, `LAB-VAL-v1` `r13`, `LAB-STATE-v1` `r6`, `LAB-INT-v1` `r5` — **seluruhnya `approved` 2026-09-25**; `LAB-PERM-v1` revision 11 apa adanya |
 | Rancangan | `02-backend-architecture.md` bagian 21; `03-frontend-architecture.md` amandemen 2026-09-25 (kedua) |
 
 **Seluruh baris amandemen 2026-09-25 berlaku juga bagi Mikrobiologi** — validasi, rilis,
@@ -754,3 +754,39 @@ berkualifikasi kosong.
 | Rilis hasil `Sementara` dan penggantiannya | `S4d-2` — `DEC-LAB-020` |
 | Cetakan Mikrobiologi | Belum ada di frontend — `S17` |
 | Patologi Anatomi | `S4e` — `DEC-LAB-021` |
+
+## Amandemen 2026-09-25 (ketiga) — Penyelesaian order, hasil resmi, dan label keadaan
+
+| Field | Nilai |
+|---|---|
+| Status | **`draft`** |
+| Kontrak yang diuji | `LAB-API-v1` `r36`, `LAB-VAL-v1` `r14`, `LAB-STATE-v1` `r7` — **seluruhnya `approved` 2026-09-25**; label `LAB-DEC-156` tidak berkontrak |
+| Rancangan | `02-backend-architecture.md` bagian 22; `03-frontend-architecture.md` amandemen 2026-09-25 (ketiga) |
+| Keputusan | `LAB-DEC-154`, `LAB-DEC-155`, `LAB-DEC-156` |
+
+### Matriks
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `AC-243`, `VAL-146` | Order `InProcess` berisi Kalium dirilis, Hemoglobin tervalidasi, Ureum Draft; tekan Selesai | Integrasi | `409`; `errors.code = LAB_ORDER_COMPLETION_BLOCKED`; `errors.details` memuat **dua** baris — Hemoglobin *Tervalidasi* dan Ureum *Draft*; order tetap `InProcess`; `Version` tidak naik |
+| `AC-244` | Order yang sama sesudah seluruhnya dirilis, dengan Glukosa dibatalkan | Integrasi | `200`; `Completed`, `CompletedAt` terisi; satu baris riwayat `Order.Complete`; Glukosa tidak disebut di mana pun |
+| `AC-244` — kueri terbalik | Hitung order `Completed` yang masih memuat pemeriksaan tidak batal belum dirilis | Data | **Nol** baris untuk order yang diselesaikan sesudah deploy |
+| `AC-245` | Order Patologi Anatomi dengan laporan Final; order Mikrobiologi dengan hasil `Sementara` Final | Integrasi | Keduanya `409`; rincian *Menunggu Validasi* |
+| 22.7 butir 3 | Order `InProcess` yang seluruh pemeriksaannya dibatalkan | Integrasi | `200` — order tidak terkunci di `InProcess` |
+| 22.7 butir 4 | Tekan Selesai pada order `Accepted` | Integrasi | `409` — **bukan** `400` seperti hari ini |
+| `AC-246` | Pemeriksaan tervalidasi belum dirilis | Integrasi | Nol baris `MrcClinicalDocumentIntegrity` untuk pemeriksaan itu; `isReleased = false`; `deliveryBlockedReason` terisi |
+| `AC-247` | Buka Halaman Hasil Patologi Klinik dan Mikrobiologi dengan kelima keadaan pada satu order | Unit test aturan + UI | Label *Menunggu Hasil*, *Draft*, *Menunggu Validasi*, *Tervalidasi*, *Dirilis* tepat per `resultStatus`; tombol Final bertuliskan *Pemeriksaan Selesai*; *Dalam Pemeriksaan* hanya muncul sebagai label order |
+
+### Data uji tambahan
+
+Satu order Patologi Klinik berisi empat pemeriksaan pada empat keadaan berbeda ditambah satu yang
+dibatalkan; satu order Patologi Anatomi dengan laporan Final; satu order `InProcess` yang seluruh
+pemeriksaannya dibatalkan.
+
+### Yang tidak diuji
+
+| Yang tidak diuji | Alasan |
+|---|---|
+| Pemeriksaan ditambahkan pada detik yang sama dengan penyelesaian order | Risiko yang disadari — `02-backend-architecture.md` 22.6 |
+| Prosedur hasil terrilis yang keliru sebelum `S6` | `LAB-OPEN-045` — belum ada prosedur untuk diuji |
+| Tombol *Selesai* order di frontend | Tidak ada — nol layar memanggil endpoint itu |

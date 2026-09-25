@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-STATE-v1` |
-| Revision | **`6` — `draft`** 2026-09-25, bagian 8 (`S4d-1` Mikrobiologi) — **belum disetujui**. Terakhir `approved`: **`5` — `approved`** 2026-09-25, bagian 7 (`S4`: Tervalidasi dan Dirilis sebagai keadaan turunan). Terakhir `approved`: `4` — **`approved`** 2026-09-24, bagian 6 |
+| Revision | **`7` — `approved`** 2026-09-25, bagian 9 (penjaga penyelesaian order) — disetujui Yoga Aji Pratama. Sebelumnya: **`6` — `approved`** 2026-09-25, bagian 8 (`S4d-1` Mikrobiologi) — disetujui Yoga Aji Pratama. Sebelumnya: **`5` — `approved`** 2026-09-25, bagian 7 (`S4`: Tervalidasi dan Dirilis sebagai keadaan turunan). Terakhir `approved`: `4` — **`approved`** 2026-09-24, bagian 6 |
 | Status | `approved` — `r2` dikunci 2026-09-02; **amandemen `r3` disetujui pemilik modul 2026-09-15** lewat `LAB-DEC-061` dan `LAB-DEC-063` |
 | Isi amandemen `r3` | **Status `Confirmed` masuk sebagai status pesanan antara `Requested` dan `Accepted`**, beserta konfirmator, waktu konfirmasi, dan dokter pemeriksa. Konfirmasi hanya sah sekali. **Pembatalan dipersempit** menjadi hanya sah pada `Requested` dan `Confirmed`, dan wajib beralasan. Jalur `Requested` → `Accepted` **tidak dicabut** — lihat bagian 1a |
 | Batas penguncian | **Terkunci penuh sejak 2026-09-02.** `LAB-OPEN-021` dijawab: penamaan memakai prefix `Lab`, sehingga tidak ada lagi bagian yang dikecualikan |
@@ -379,8 +379,8 @@ Validasi — tidak dapat sama-sama berhasil; yang kalah menerima `409`.
 | Field | Nilai |
 |---|---|
 | Revision | `r6` |
-| Status | **`draft`** — menunggu persetujuan pemilik modul |
-| `approved_by` / `approved_at` | **belum** |
+| Status | **`approved`** |
+| `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-25 — instruksi *"Setujui keempat kontrak beserta lima butir di atas, termasuk perubahan bunyi VAL-126, lalu jalankan /plan-module-delivery untuk MVP-10a sampai MVP-10c"*, lihat `LAB-API-v1` `r35` bagian 30 |
 | `input_revision` | decisions rev 76; `LAB-DA-001` rev 9 bagian A6; `LAB-API-v1` `r35`; `LAB-VAL-v1` `r13` |
 | Berlaku bagi | Patologi Klinik **dan Mikrobiologi**. Patologi Anatomi tetap berhenti di Final sampai `S4e` |
 
@@ -421,3 +421,42 @@ tidak dapat melangkah lebih jauh.
 >    Respons hasil kini memuat *Validasi oleh: dr. Nabila* dan *Petugas Otorisasi: {perilis}*.
 >    Order tetap *Dalam Pemeriksaan*, sebab kultur darah belum dirilis.
 > 5. Rabu 10.30 — analis mencoba menambah isolat kedua pada kultur urin → **`409`** (`VAL-120`).
+
+## 9. Amandemen `r7` — Penjaga penyelesaian order (`LAB-DEC-154`), 2026-09-25
+
+| Field | Nilai |
+|---|---|
+| Revision | `r7` |
+| Status | **`approved`** |
+| `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-25 — instruksi *"Setujui r36, r14, r7 beserta empat butir 22.7, lalu rencanakan BE-LAB-81"*, lihat `LAB-API-v1` `r36` bagian 31 |
+| `input_revision` | decisions rev 77; `LAB-API-v1` `r36`; `LAB-VAL-v1` `r14` |
+| Mengubah | Baris `InProcess` → `Completed` pada bagian 1. Baris aslinya dibiarkan sebagai jejak revisi 2 |
+
+### 9.1 Transisi yang sah — syarat baru
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| `InProcess` | Menyelesaikan | `Completed` | Petugas berwenang memproses (`LabOrder : Process`) | **Setiap pemeriksaan yang tidak batal dan tidak gugur sudah dirilis** (`VAL-146`). Order tanpa pemeriksaan tidak batal diterima | `409` beserta rincian pemeriksaan yang menahan |
+
+**Nol nilai `LabOrderStatus` baru.** Tidak ada status *Menunggu Validasi* pada tingkat order —
+*Menunggu Validasi* adalah label **pemeriksaan** (`LAB-DEC-156`).
+
+### 9.2 Transisi yang tidak sah — tambahan
+
+| Dari | Tindakan | Kenapa ditolak | Kode |
+|---|---|---|---|
+| `InProcess` dengan satu saja pemeriksaan tidak batal yang belum dirilis | Menyelesaikan | `VAL-146` — `LAB-DEC-154` | `409` |
+| `InProcess` dengan pemeriksaan Patologi Anatomi atau Mikrobiologi yang belum dapat divalidasi | Menyelesaikan | Pemeriksaan tanpa jalur validasi tidak pernah dirilis — `LAB-DEC-154` butir 5 | `409` |
+| Selain `InProcess` | Menyelesaikan | Sudah tertulis pada bagian 1 sebagai `409`; **kode hari ini menjawab `400`** dan diselaraskan oleh `r36` | `409` |
+
+### 9.3 Contoh jalur lengkap
+
+> Order `LAB-RSMMC-000000123` berisi Kalium, Hemoglobin, dan Glukosa. Nama tenaga di bawah samaran.
+>
+> 1. 08.30 — Glukosa dibatalkan. Order tetap `InProcess`.
+> 2. 09.15 — Kalium dirilis. Label hasil order: *Dalam Pemeriksaan*.
+> 3. 09.40 — Hemoglobin divalidasi, belum dirilis. Petugas menekan Selesai → **`409`**, rincian
+>    *Hemoglobin — Tervalidasi*. Order tetap `InProcess`.
+> 4. 09.50 — Hemoglobin dirilis. Label hasil order: *Selesai*; status order masih `InProcess`.
+> 5. 10.00 — petugas menekan Selesai → **`Completed`**. Sejak saat ini order menolak pemeriksaan dan
+>    wadah baru, seperti sebelumnya.

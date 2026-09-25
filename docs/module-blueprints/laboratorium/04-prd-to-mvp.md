@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `9` — bagian 22, `EPIC-LAB-16` validasi dan rilis Mikrobiologi, 2026-09-25 — **`draft`, kontraknya belum disetujui**. Sebelumnya `8` — bagian 21, `EPIC-LAB-15` validasi dan rilis Patologi Klinik, 2026-09-25 — kontraknya disetujui hari yang sama. Sebelumnya `7` — bagian 20, `EPIC-LAB-14`, 2026-09-24 |
+| Revision | `10` — bagian 23, penyelesaian order, hasil resmi, dan label keadaan (`LAB-DEC-154`..`LAB-DEC-156`), 2026-09-25 — kontrak `r36`/`r14`/`r7` disetujui hari yang sama. Sebelumnya `9` — bagian 22, `EPIC-LAB-16` validasi dan rilis Mikrobiologi, 2026-09-25 — kontraknya disetujui hari yang sama. Sebelumnya `8` — bagian 21, `EPIC-LAB-15` validasi dan rilis Patologi Klinik, 2026-09-25 — kontraknya disetujui hari yang sama. Sebelumnya `7` — bagian 20, `EPIC-LAB-14`, 2026-09-24 |
 | Status | `draft` |
 | Scope tambahan revision 4 | **`EPIC-LAB-11` Penerimaan Sampling/Specimen** dan gelombang `MVP-5` — lihat bagian 16 |
 | Scope tambahan revision 5 | **`EPIC-LAB-12` Konfirmasi Pesanan dan Pembatalan Beralasan** dan gelombang `MVP-5c` — lihat bagian 17. Ditambahkan 2026-09-15 dari rekonsiliasi bukti putaran 2 |
@@ -1181,8 +1181,8 @@ dengan sebabnya; hasil tetap tervalidasi, dan **tidak ada** jejak rilis setengah
 | Pertanyaan | Memblokir? | Pemilik |
 |---|---|---|
 | ~~Persetujuan kelima kontrak dan **kesepuluh butir** `02-backend-architecture.md` 20.10~~ | ✅ **Terjawab 2026-09-25** — disetujui Yoga Aji Pratama, termasuk butir 5 kata per kata dan butir 6 pilihan A (perilis). **Tidak lagi memblokir** | — |
-| **`LAB-CONFLICT-014`** — order `Completed` manual lewat `PUT /lab-orders/{id}/complete` versus label *Selesai* turunan | **Tidak** untuk pengembangan — label disajikan pada ruas terpisah. **Wajib** dijawab sebelum `MVP-9d`, supaya layar tidak menampilkan dua *Selesai* berbeda arti | Yoga Aji Pratama, lewat `/grill-me` |
-| **Bolehkah `S4` dipakai sebelum koreksi `S6` berdiri**, dan prosedur apa yang berlaku bagi hasil yang sudah dirilis lalu ternyata keliru? **Belum ber-Decision ID** — ditemukan saat menulis 21.2 | **Tidak** untuk pengembangan. **Diusulkan** menahan `MVP-9d` bersama `DEC-LAB-017`, sebab keduanya pertanyaan klinis yang sejenis | Yoga Aji Pratama + `DR-LAB-001`, lewat `/grill-me` |
+| ~~**`LAB-CONFLICT-014`** — order `Completed` manual lewat `PUT /lab-orders/{id}/complete` versus label *Selesai* turunan~~ | ✅ **Terjawab 2026-09-25 — `LAB-DEC-154`**: order hanya `Completed` bila seluruh pemeriksaan tidak batal sudah dirilis. Yang kini menahan langkah 4 `MVP-9d` adalah **pembangunannya** — `FR-15.17` (bagian 23), kontraknya masih `draft` | — |
+| ~~**Bolehkah `S4` dipakai sebelum koreksi `S6` berdiri**~~, dan prosedur apa yang berlaku bagi hasil yang sudah dirilis lalu ternyata keliru? | ✅ **Bagian pertama terjawab 2026-09-25 — `LAB-DEC-155`**: boleh; hasil resmi = Tervalidasi dan Dirilis. **Bagian kedua** dibuka sebagai **`LAB-OPEN-045`** — **diusulkan** menahan langkah 4 `MVP-9d` | Yoga Aji Pratama + `DR-LAB-001` |
 | ~~`DEC-LAB-011` sisa, `DEC-LAB-018`~~ | ✅ **Terjawab 2026-09-25** — surat tertulis dr. Bima (`LAB-EVD-010`) → `LAB-DEC-152`, `LAB-DEC-153`: validasi di luar jam kerja oleh dokter lain yang ditetapkan pada disiplin yang sama; **perilis tidak wajib dokter**. Yang tersisa dari keduanya adalah **data** — nama pemegang tambahan dicatat di kredensial Human Resource saat `MVP-9d` | — |
 | `DEC-LAB-017`, `LAB-COORD-016` | **Tidak** untuk pengembangan; **ya** untuk `MVP-9d` | Yoga Aji Pratama + `DR-LAB-001`; pemilik `human-resource` |
 | **`LAB-OPEN-044`** — isi *aturan laboratorium* tentang calon perilis dan penetapnya | **Ya** untuk `MVP-9d` saja | dr. Bima Prasetya, Sp.PK |
@@ -1203,6 +1203,10 @@ dengan sebabnya; hasil tetap tervalidasi, dan **tidak ada** jejak rilis setengah
 > isi awal kedua daftar alasan, dan — diusulkan — jawaban tentang pemakaian sebelum koreksi `S6`.
 > `LAB-CONFLICT-014` wajib dijawab sebelum `MVP-9d`. *`DEC-LAB-011` sisa dan `DEC-LAB-018`
 > tertutup 2026-09-25 lewat `LAB-DEC-152` dan `LAB-DEC-153`.*
+>
+> *Diperbarui 2026-09-25 malam:* `LAB-CONFLICT-014` **terjawab** `LAB-DEC-154` — kini yang menahan
+> langkah 4 adalah **pembangunan** penjaganya (`FR-15.17`, bagian 23). Pertanyaan pemakaian sebelum
+> `S6` terjawab sebagian `LAB-DEC-155`; sisanya **`LAB-OPEN-045`**, diusulkan menahan langkah 4.
 
 ---
 
@@ -1210,8 +1214,8 @@ dengan sebabnya; hasil tetap tervalidasi, dan **tidak ada** jejak rilis setengah
 
 Menurunkan `02-backend-architecture.md` bagian 21, `03-frontend-architecture.md` amandemen
 2026-09-25 (kedua), `erd/data-dictionary.md` bagian 18, dan usulan kontrak `LAB-API-v1` `r35`,
-`LAB-VAL-v1` `r13`, `LAB-STATE-v1` `r6`, serta `LAB-INT-v1` `r5` — **keempatnya `draft`**;
-`LAB-PERM-v1` revision 11 berlaku apa adanya. Arsitektur domain `LAB-DA-001` rev 9 bagian A6.
+`LAB-VAL-v1` `r13`, `LAB-STATE-v1` `r6`, serta `LAB-INT-v1` `r5` — **keempatnya disetujui
+2026-09-25** (22.7); `LAB-PERM-v1` revision 11 berlaku apa adanya. Arsitektur domain `LAB-DA-001` rev 9 bagian A6.
 
 **Seluruh yang disebut di bawah sudah tercatat pada dokumen itu. Nol konsep, nol tabel, nol kolom
 baru.** Epic ini **memperluas `EPIC-LAB-15`**; ia tidak dapat dibangun sebelum `EPIC-LAB-15`.
@@ -1297,11 +1301,85 @@ isolat kedua → `409`; isolat tetap satu.
 
 | Pertanyaan | Memblokir? | Pemilik |
 |---|---|---|
-| Persetujuan keempat kontrak dan kelima butir 21.10 | **Ya** — seluruh epic | Yoga Aji Pratama |
+| ~~Persetujuan keempat kontrak dan kelima butir 21.10~~ | ✅ **Tertutup 2026-09-25** — disetujui termasuk perubahan bunyi `VAL-126` | Yoga Aji Pratama |
 | `DEC-LAB-020` beserta titipan `ARCH-GAP-LAB-10` | **Tidak** untuk epic ini — hasil `Sementara` sudah di luar batasnya | `DR-LAB-002` + Yoga Aji Pratama |
 | `DEC-LAB-017` sejenis bagi Mikrobiologi; dua pemegang validasi; `LAB-COORD-016`; `LAB-OPEN-044` | **Tidak** untuk pengembangan; **ya** untuk `MVP-10c` | `DR-LAB-002`; dr. Bima; pemilik `human-resource` |
 
-> ### ⏳ Gerbang perencanaan **belum** terbuka
+> ### ✅ Gerbang perencanaan terbuka — 2026-09-25
 >
-> Keempat kontrak `EPIC-LAB-16` masih **`draft`**. Epic ini **belum boleh** diteruskan ke
-> `/plan-module-delivery` sampai pemilik modul menyetujuinya beserta kelima butir 21.10.
+> `LAB-API-v1` `r35`, `LAB-VAL-v1` `r13`, `LAB-STATE-v1` `r6`, dan `LAB-INT-v1` `r5` **disetujui**
+> Yoga Aji Pratama pada 2026-09-25, beserta kelima butir `02-backend-architecture.md` 21.10 dan
+> **perubahan bunyi `VAL-126`**. **`EPIC-LAB-16` boleh diteruskan ke `/plan-module-delivery`**
+> untuk `MVP-10a`..`MVP-10c` — roadmap disusun hari yang sama (`backend-roadmap.md` bagian 6al).
+>
+> **Prasyarat pengerjaan yang ditegaskan pemilik modul:** gelombang ini *"baru bisa dikerjakan
+> setelah MVP-9b selesai"* — seluruh `BE-LAB-73`..`BE-LAB-77` selesai lebih dulu.
+>
+> **Yang tetap tertahan — rilis, bukan pengembangan:** `MVP-10c` menunggu `DEC-LAB-017` sejenis
+> bagi Mikrobiologi, `LAB-COORD-016`, `LAB-OPEN-044`, dua pemegang validasi Mikrobiologi tercatat,
+> dan `UNK-P14-03` diperluas — ditambah seluruh penahan `MVP-9d`, sebab `MVP-10c` tidak dapat
+> mendahuluinya.
+
+## 23. Amandemen 2026-09-25 (ketiga) — Penyelesaian order, hasil resmi, dan label keadaan
+
+Menurunkan decisions rev 77 — `LAB-DEC-154`, `LAB-DEC-155`, `LAB-DEC-156` dari bukti `LAB-EVD-011` —
+beserta `02-backend-architecture.md` bagian 22 dan `03-frontend-architecture.md` amandemen
+2026-09-25 (ketiga). Kontrak `LAB-API-v1` `r36`, `LAB-VAL-v1` `r14`, dan `LAB-STATE-v1` `r7`
+— **ketiganya disetujui 2026-09-25** (23.5). **Bukan epic baru:** ketiga kebutuhan memperluas `EPIC-LAB-15`.
+
+### 23.1 Functional requirement
+
+| ID | Kebutuhan | Dapat diuji lewat | Disposisi |
+|---|---|---|---|
+| `FR-15.17` | Order hanya dapat `Completed` bila seluruh pemeriksaan tidak batal sudah **dirilis**; bila tidak, `409` beserta rincian **setiap** pemeriksaan yang menahan. Pemeriksaan tanpa jalur validasi menahan order | `AC-243`, `AC-244`, `AC-245`; `VAL-146` | `EXTEND` — kontrak disetujui; `BE-LAB-81`, gelombang `MVP-9e` |
+| `FR-15.18` | Hanya hasil **Tervalidasi dan Dirilis** yang resmi; hasil yang belum dirilis tidak keluar sebagai hasil resmi — nol dokumen rekam medis, nol pengiriman, nol cetak final | `AC-246` | `EXISTING / REUSE` — backend sudah menahannya; **nol kode baru** |
+| `FR-15.19` | Keadaan pemeriksaan tampil sebagai *Menunggu Hasil*, *Draft*, *Menunggu Validasi*, *Tervalidasi*, *Dirilis*; tombol Final bertuliskan *Pemeriksaan Selesai* | `AC-247` | `EXTEND` — frontend saja, **nol kontrak**; masuk `FE-LAB-36`, `FE-LAB-39`, `FE-LAB-40`, `FE-LAB-41` |
+
+### 23.2 Skenario UAT
+
+**Jalur berhasil — order selesai.** Order berisi Kalium, Hemoglobin, dan Glukosa. Glukosa dibatalkan
+pukul 08.30; Kalium dirilis 09.15; Hemoglobin dirilis 09.50. Pukul 10.00 petugas menekan Selesai → order
+`Completed`.
+
+**Jalur gagal — masih ada yang belum dirilis.** Pada order yang sama, pukul 09.45 Hemoglobin baru
+divalidasi. Petugas menekan Selesai → ditolak; rincian menyebut *Hemoglobin — Tervalidasi*; order tetap
+diproses.
+
+**Jalur gagal — disiplin tanpa validasi.** Order Patologi Anatomi dengan laporan Final → ditolak,
+rincian *Histopatologi — Menunggu Validasi*, sampai `S4e` berdiri.
+
+**Label.** Analis menekan **Pemeriksaan Selesai** pada Kalium; layar menulis *Menunggu Validasi* dan
+Kalium muncul di antrean dokter.
+
+### 23.3 Definition of Done
+
+| # | Butir | Cara menjawabnya |
+|---:|---|---|
+| 1 | `r36`, `r14`, `r7` **disetujui**, termasuk keempat butir `02-backend-architecture.md` 22.7 | `approved_by`/`approved_at` pada ketiganya |
+| 2 | `VAL-146` ditegakkan; `AC-243`..`AC-245` terbukti | Uji integrasi terhadap aplikasi berjalan |
+| 3 | Nol order `Completed` yang masih memuat pemeriksaan tidak batal belum dirilis | Kueri terbalik atas data pengembangan |
+| 4 | Kelima label dan tombol *Pemeriksaan Selesai* tampil pada halaman Patologi Klinik dan Mikrobiologi | `AC-247`; laporan task frontend |
+| 5 | **Nol migration**, nol permission baru | Dibuktikan terbalik |
+
+### 23.4 Urutan pengiriman
+
+| Kebutuhan | Dibangun kapan | Prasyarat |
+|---|---|---|
+| `FR-15.17` | `BE-LAB-81`, gelombang **`MVP-9e`** — **sesudah `BE-LAB-76`**, dan **wajib terpasang sebelum langkah 4 `MVP-9d`** | ✅ Kontrak `r36`/`r14`/`r7` disetujui 2026-09-25 |
+| `FR-15.18` | Tidak ada pembangunan | — |
+| `FR-15.19` | Bersama task frontend yang sudah direncanakan | `LAB-DEC-156` — sudah `approved` |
+
+### 23.5 Pertanyaan terbuka sebelum development lock
+
+| Pertanyaan | Memblokir? | Pemilik |
+|---|---|---|
+| ~~Persetujuan `r36`, `r14`, `r7` beserta keempat butir 22.7~~ | ✅ **Tertutup 2026-09-25** — disetujui; butir 1 kata per kata | Yoga Aji Pratama |
+| **`LAB-OPEN-045`** — prosedur bila hasil yang sudah dirilis ternyata keliru sebelum `S6` ada | **Tidak** untuk pengembangan. **Diusulkan** menahan langkah 4 `MVP-9d` dan langkah 3 `MVP-10c` | Yoga Aji Pratama + `DR-LAB-001` |
+| Konfirmasi klinis atas pemakaian rilis sebelum `S6` (`LAB-DEC-155` butir 3) | **Tidak** — diusulkan bersama `LAB-OPEN-045` | `DR-LAB-001` |
+
+> ### ✅ Gerbang perencanaan `FR-15.17` terbuka — 2026-09-25
+>
+> `LAB-API-v1` `r36`, `LAB-VAL-v1` `r14`, dan `LAB-STATE-v1` `r7` **disetujui** Yoga Aji Pratama
+> pada 2026-09-25, beserta keempat butir `02-backend-architecture.md` 22.7. `BE-LAB-81` direncanakan
+> hari yang sama sebagai gelombang **`MVP-9e`** (`backend-roadmap.md` 6am.1). `FR-15.19` sejak awal
+> tidak menunggu gerbang ini.

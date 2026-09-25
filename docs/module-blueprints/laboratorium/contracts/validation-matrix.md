@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-VAL-v1` |
-| Revision | **`13` — `draft`** 2026-09-25, bagian 15 (`S4d-1`: `VAL-126` diubah, `VAL-144`, `VAL-145`) — **belum disetujui**. Terakhir `approved`: **`12` — `approved`** 2026-09-25, bagian 14 (`VAL-124`..`VAL-143`, `S4`). Terakhir `approved`: `11` — **`approved`** 2026-09-24, bagian 13. *Baris ini sempat tertinggal di `8` sejak `r9`; dirapikan 2026-09-24* |
+| Revision | **`14` — `approved`** 2026-09-25, bagian 16 (`VAL-146`, penjaga penyelesaian order) — disetujui Yoga Aji Pratama. Sebelumnya: **`13` — `approved`** 2026-09-25, bagian 15 (`S4d-1`: `VAL-126` diubah, `VAL-144`, `VAL-145`) — disetujui Yoga Aji Pratama, **termasuk perubahan bunyi `VAL-126`**. Sebelumnya: **`12` — `approved`** 2026-09-25, bagian 14 (`VAL-124`..`VAL-143`, `S4`). Terakhir `approved`: `11` — **`approved`** 2026-09-24, bagian 13. *Baris ini sempat tertinggal di `8` sejak `r9`; dirapikan 2026-09-24* |
 | `r8` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-18** |
 | Isi amandemen `r8` | **`approved` — 2026-09-18.** Sebelas aturan `VAL-92`..`VAL-102` untuk laporan Patologi Anatomi **per pesanan**, menurunkan `LAB-DEC-085`..`LAB-DEC-088`, `LAB-DEC-091`, dan `LAB-DA-001` rev 7. **Satu aturan DICABUT: `VAL-88`** — ia menuntut tiga nama kolom yang dihardcode (makroskopik, mikroskopik, kesimpulan), sedangkan kewajiban ruas kini **bergantung kategori** dan ditegakkan `VAL-95` terhadap data induk keberlakuan. `VAL-83`, `VAL-84`, dan `VAL-89` **tetap berlaku bagi Mikrobiologi**. **Nol aturan `VAL-01`..`VAL-87` dan `VAL-89`..`VAL-91` berubah.** Disetujui bersama `LAB-API-v1` `r25` dan `LAB-PERM-v1` rev 7 pada hari yang sama. Lihat bagian 10 |
 | `r7` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-18** |
@@ -697,10 +697,11 @@ Berlaku sama pada `lab-result-correction-reasons` dan `lab-four-eyes-exception-r
 |---|---|
 | `contract_version` | `LAB-VAL-v1` |
 | Revision | `r13` |
-| Status | **`draft`** — menunggu persetujuan pemilik modul |
-| `approved_by` / `approved_at` | **belum** |
+| Status | **`approved`** |
+| `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-25 — instruksi *"Setujui keempat kontrak beserta lima butir di atas, termasuk perubahan bunyi VAL-126, lalu jalankan /plan-module-delivery untuk MVP-10a sampai MVP-10c"*, lihat `LAB-API-v1` `r35` bagian 30 |
 | `input_revision` | decisions rev 76; `LAB-DA-001` rev 9 bagian A6; `LAB-API-v1` `r35`; `02-backend-architecture.md` rev 11 bagian 21 |
 | Sifat | **Satu aturan approved diubah bunyinya** (`VAL-126`), dua aturan baru (`VAL-144`, `VAL-145`) |
+| Kapan bunyi baru berlaku di kode | **Sesudah `MVP-9b`.** `BE-LAB-73` tetap menegakkan bunyi `r12` bagian 14.1 — kontrak task itu `r12`. Bunyi `r13` dipasang `BE-LAB-78` (`MVP-10a`). Baris `VAL-126` pada 14.1 **sengaja tidak disunting**: bagian 14 dirujuk task `MVP-9`, dan bagian itu dijaga tetap sama supaya kerja `MVP-9` tidak perlu berhenti |
 
 ### 15.1 Aturan yang diubah
 
@@ -745,3 +746,44 @@ antibiogram), `VAL-124`, `VAL-125`, `VAL-127`..`VAL-139`, dan `VAL-143`.
 | `VAL-126` bunyi baru | `LAB-DEC-083`, `LAB-DEC-152` | `AC-241` |
 | `VAL-144` | `LAB-DEC-114`; `DEC-LAB-020` | — baris uji tersendiri |
 | `VAL-145` | `LAB-DEC-135` butir 2 | — |
+
+## 16. Amandemen `r14` — Penjaga penyelesaian order (`LAB-DEC-154`), 2026-09-25
+
+| Field | Nilai |
+|---|---|
+| `contract_version` | `LAB-VAL-v1` |
+| Revision | `r14` |
+| Status | **`approved`** |
+| `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-25 — instruksi *"Setujui r36, r14, r7 beserta empat butir 22.7, lalu rencanakan BE-LAB-81"*, lihat `LAB-API-v1` `r36` bagian 31 |
+| `input_revision` | decisions rev 77; `LAB-API-v1` `r36`; `02-backend-architecture.md` rev 12 bagian 22 |
+| Sifat | **Satu aturan baru** (`VAL-146`) pada endpoint yang sudah tersedia. Nol aturan lama berubah |
+
+### 16.1 Aturan yang ditambahkan
+
+| ID | Aturan | Berlaku pada | Pesan bagi pengguna | Kode | Dasar |
+|---|---|---|---|---|---|
+| `VAL-146` | Penyelesaian order **ditolak** bila masih ada satu saja pemeriksaan yang **tidak batal dan tidak gugur** dan **belum dirilis**. Respons menyebut **setiap** pemeriksaan itu beserta keadaannya. Order tanpa pemeriksaan tidak batal **diterima** | `PUT /lab-orders/{id}/complete` | "Order belum dapat diselesaikan karena masih terdapat pemeriksaan yang belum dirilis." | `409` | `LAB-DEC-154`; `AC-199` |
+
+**Diperiksa sesudah** status order (`InProcess`) dan **sebelum** penulisan. Pemeriksaan tanpa jalur
+validasi — Patologi Anatomi, Mikrobiologi sebelum `MVP-10`, hasil `Sementara` — tidak pernah dirilis,
+sehingga **selalu** menahan order lewat aturan yang sama; tidak ada aturan khusus per disiplin.
+
+**Contoh `VAL-146`.**
+
+> Order berisi Kalium (dirilis 09.15), Hemoglobin (divalidasi 09.40, belum dirilis), Glukosa
+> (dibatalkan 08.30), dan Ureum (Draft). Petugas menekan Selesai pukul 10.00 → `409`. Rinciannya
+> **dua** baris — *Hemoglobin — Tervalidasi* dan *Ureum — Draft*. Glukosa tidak disebut, sebab
+> pemeriksaan batal tidak menahan. Pukul 10.30, sesudah keduanya dirilis, Selesai **diterima**.
+
+### 16.2 Aturan yang sengaja TIDAK dibuat
+
+| Yang ditolak | Alasan |
+|---|---|
+| Aturan terpisah *"sudah divalidasi dan tercatat nama, peran, waktu validator"* | Rilis mensyaratkan validasi (`VAL-133`), dan ketiga catatan itu ditulis pada saat validasi itu sendiri — `validatedByUserId`, `validatedByPositionName`, `validatedAt` (`LAB-API-v1` `r34` 29.3) — aturan kedua hanya menggandakan |
+| Aturan khusus Patologi Anatomi atau hasil `Sementara` | `VAL-146` sudah menahan keduanya |
+
+### 16.3 Traceability `r14`
+
+| Aturan | Keputusan | AC |
+|---|---|---|
+| `VAL-146` | `LAB-DEC-154` | `AC-243`, `AC-244`, `AC-245` |
