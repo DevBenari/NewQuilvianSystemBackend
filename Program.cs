@@ -1,4 +1,5 @@
 using System.Globalization;
+using QuilvianSystemBackend.Constants;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -338,6 +339,8 @@ try
     builder.Services.AddScoped<WfpCertificationFileStorageService>();
     builder.Services.AddScoped<ApplicationVersionService>();
     builder.Services.AddScoped<AccessPermissionService>();
+    builder.Services.AddScoped<PermissionRegistryValidator>();
+    builder.Services.AddScoped<OrganizationAuthorizationProjectionService>();
     builder.Services.AddScoped<QueueVoiceService>();
     builder.Services.AddScoped<QueueRealtimeService>();
     builder.Services.AddScoped<LabOrderService>();
@@ -353,6 +356,17 @@ try
     builder.Services.AddScoped<LabPathologyReportService>();
     builder.Services.AddScoped<LabOrganismService>();
     builder.Services.AddScoped<LabAntibioticService>();
+    builder.Services.AddScoped<LabSusceptibilityBreakpointService>();
+    builder.Services.AddScoped<LabSusceptibilityInterpreter>();
+    builder.Services.AddScoped<LabProcedureMicrobiologyProfileService>();
+    builder.Services.AddScoped<LabSpecimenDetailTypeService>();
+    builder.Services.AddScoped<LabMicrobiologyCriticalRuleService>();
+    builder.Services.AddScoped<LabFieldChangeRecorder>();
+    builder.Services.AddScoped<LabSpecimenCorrectionService>();
+    builder.Services.AddScoped<LabReportNumberService>();
+    builder.Services.AddScoped<LabDisciplineSettingService>();
+    builder.Services.AddScoped<LabConfirmingDoctorResolver>();
+    builder.Services.AddScoped<LabMicrobiologyResultService>();
     builder.Services.AddScoped<LabExaminationService>();
     builder.Services.AddScoped<LabWorklistService>();
     builder.Services.AddScoped<LabMonitoringService>();
@@ -482,6 +496,7 @@ try
     builder.Services.AddScoped<PrescriptionReviewService>();
     builder.Services.AddScoped<PrescriptionPreparationService>();
     builder.Services.AddScoped<PrescriptionFinalCheckService>();
+    builder.Services.AddScoped<PrescriptionFinancialClearanceService>();
     builder.Services.AddScoped<PharmacyDepotRoutingService>();
     builder.Services.AddScoped<StockRequestService>();
     builder.Services.AddScoped<DrugStockService>();
@@ -521,6 +536,7 @@ try
     builder.Services.AddScoped<EmergencyDispositionService>();
     builder.Services.AddScoped<EmergencyDepartureService>();
     builder.Services.AddScoped<EmergencyUnitAuthorityService>();
+    builder.Services.AddScoped<EmergencyDoctorAssignmentService>();
     builder.Services.AddScoped<EmergencySettingService>();
 
     // Rawat Inap. Tanpa pendaftaran ini seluruh controller Rawat Inap gagal dibuat oleh
@@ -790,6 +806,12 @@ try
 
     builder.Services.AddScoped<BillingNumberSeriesService>();
 
+    // Registrasi ini tertinggal ketika BilConsumerHandoffService dibuat: sembilan service
+    // Billing menuntutnya lewat konstruktor, sehingga validasi service provider menolak
+    // membangun aplikasi dan backend TIDAK DAPAT START sama sekali — bukan hanya modul
+    // Billing. Satu baris ini mengembalikan keadaannya, tanpa menyentuh aturan bisnis.
+    builder.Services.AddScoped<BilConsumerHandoffService>();
+
     builder.Services.AddScoped<BillingAllocationService>();
 
     builder.Services.AddScoped<BillingCalculationService>();
@@ -807,6 +829,23 @@ try
     builder.Services.AddScoped<BillingRefundService>();
 
     builder.Services.AddScoped<BillingFinalizationService>();
+
+    // Empat layanan di bawah masuk lewat merge 4ba789b2 dari QuilvianIntegrationBackend
+    // bersama BillingManagementServiceCollectionExtensions.AddBillingManagement(), TETAPI
+    // extension itu nol pernah dipanggil dari mana pun — sedangkan Program.cs cabang ini
+    // mendaftarkan Billing satu per satu. Akibatnya BillingAllocationService,
+    // BillingFinalizationService, dan BillingFinancialExceptionService menuntut
+    // BilConsumerHandoffService yang tidak terdaftar, dan APLIKASI GAGAL MENYALA pada
+    // validasi DI — bukan pada saat dibuild.
+    //
+    // Mendaftarkannya satu per satu dicoba lebih dulu dan TERBUKTI KELIRU: kekurangannya
+    // berantai — BilConsumerHandoffService, lalu FinanceAccountingOutboxService, dan
+    // seterusnya. Extension itulah daftar lengkapnya, jadi ia yang dipanggil.
+    //
+    // Sebagian layanan menjadi terdaftar dua kali, dan itu aman: keduanya Scoped atas tipe
+    // implementasi yang sama. Pemilik modul Billing tetap perlu memutuskan satu tempat
+    // pendaftaran dan mencabut yang lain.
+    builder.Services.AddBillingManagement();
 
     builder.Services.AddScoped<BillingArApHandoffService>();
 
@@ -839,7 +878,7 @@ try
 
     builder.Services.AddAuthorization(options =>
     {
-        options.AddPolicy("KioskRead", policy =>
+        options.AddPolicy(AuthorizationPolicies.KioskRead, policy =>
         {
             policy.RequireAuthenticatedUser();
 
@@ -866,7 +905,7 @@ try
         // Policy khusus akun display antrian.
         // Dipakai untuk endpoint runtime display supaya akun QueueDisplayDevice
         // tidak perlu lewat AccessPermission role/menu aplikasi umum.
-        options.AddPolicy("QueueDisplayRuntimeRead", policy =>
+        options.AddPolicy(AuthorizationPolicies.QueueDisplayRuntimeRead, policy =>
         {
             policy.RequireAuthenticatedUser();
 
@@ -897,7 +936,7 @@ try
         });
 
         // Alias jika nanti ada controller lain yang ingin memakai nama policy lebih umum.
-        options.AddPolicy("QueueDisplayRead", policy =>
+        options.AddPolicy(AuthorizationPolicies.QueueDisplayRead, policy =>
         {
             policy.RequireAuthenticatedUser();
 
@@ -1413,6 +1452,9 @@ try
     // kosong, formulir hasil Patologi Anatomi kosong sama sekali (INV-39), dan seeder ini
     // menuliskan peringatan penyalaan untuk keadaan itu.
     await RunStartupSeederAsync("LabPathologyMasterDataSeeder", () => LabPathologyMasterDataSeeder.SeedAsync(app.Services));
+    await RunStartupSeederAsync("LabSpecimenDetailTypeSeeder", () => LabSpecimenDetailTypeSeeder.SeedAsync(app.Services));
+
+    await RunStartupSeederAsync("LabDisciplineSettingSeeder", () => LabDisciplineSettingSeeder.SeedAsync(app.Services));
 
     // Data master Radiologi. Mengisi alat pencitraan dan butir keselamatan, lalu menyusun
     // usulan aturan keselamatan sebagai DRAF — tidak pernah Active. Aturan yang menentukan
@@ -1425,16 +1467,48 @@ try
     // unit, dan satu baris pengaturan unit. Idempoten — baris yang sudah ada tidak diisi ulang.
     await RunStartupSeederAsync("HemodialysisMasterDataSeeder", () => HemodialysisMasterDataSeeder.SeedAsync(app.Services));
 
-    // BE-RWI-107 / RWI-DEC-124 butir 4. Instrumen dan formulir klinis awal sebagai DRAFT — tidak pernah
-    // disahkan oleh seeder. Batas yang bertabrakan pada V1 ditandai untuk ditinjau pemilik klinis.
-    await RunStartupSeederAsync("ClinicalInstrumentDraftSeeder", () => ClinicalInstrumentDraftSeeder.SeedAsync(app.Services));
+    // Gerbang integritas permission (Phase A0).
+    //
+    // Menyandingkan setiap [AccessPermission] dengan baris registry yang benar-benar dibuat
+    // seeder. Selisih di antara keduanya menghasilkan 403 permanen yang tidak dapat diperbaiki
+    // admin, dan tidak terlihat saat diuji dengan SuperAdmin karena SuperAdmin melewati seluruh
+    // pemeriksaan.
+    //
+    // Sengaja dijalankan SESUDAH seluruh seeder registry, termasuk RadiologyMasterDataSeeder,
+    // supaya yang diperiksa adalah keadaan akhir registry — bukan keadaan setengah jadi.
+    //
+    // Di luar Production kegagalan menghentikan startup supaya ketahuan sebelum rilis. Di
+    // Production ia hanya mencatat Critical: rumah sakit tidak boleh gagal boot karena satu
+    // anotasi yang salah.
+    using (var permissionValidationScope = app.Services.CreateScope())
+    {
+        var permissionRegistryValidator = permissionValidationScope.ServiceProvider
+            .GetRequiredService<PermissionRegistryValidator>();
 
-    // Pemanggilan LabDummyDataSeeder dihapus 21 September 2026, menuntaskan pencabutan
-    // 2026-09-17 di atas. Kelasnya sudah tidak ada dan kunci "Seeders:RunLabDummySeed"
-    // tidak ada di appsettings mana pun, sehingga blok ini tidak pernah berjalan — ia
-    // hanya membuat Program.cs gagal dikompilasi (CS0103). Kegagalan itu selama ini
-    // tertutup oleh OutOfMemoryException dari kompilasi migration, sehingga baru
-    // terlihat setelah beban kompilasi migration diturunkan.
+        permissionRegistryValidator.ValidateAndReport(
+            throwOnFailure: !app.Environment.IsProduction());
+    }
+
+
+    // Data induk contoh Laboratorium. Mati secara bawaan dan menolak berjalan di produksi.
+    var runLabDummySeed = builder.Configuration.GetValue<bool>("Seeders:RunLabDummySeed");
+
+
+    // BE-RWI-107 / RWI-DEC-124 butir 4.
+    // Instrumen dan formulir klinis awal sebagai DRAFT — tidak pernah
+    // disahkan oleh seeder.
+    await RunStartupSeederAsync(
+        "ClinicalInstrumentDraftSeeder",
+        () => ClinicalInstrumentDraftSeeder.SeedAsync(app.Services));
+
+    // LabDummyDataSeeder DICABUT 2026-09-17 atas instruksi pemilik modul, dan berkasnya
+    // dihapus pada commit 0bc921b0. Pemanggilnya sempat hidup kembali lewat merge
+    // 4ba789b2 dari QuilvianIntegrationBackend — cabang itu belum menerima pencabutannya —
+    // sehingga HEAD memanggil kelas yang tidak ada pada kedua sisi merge dan GAGAL DIBUILD.
+    // Dicabut ulang 2026-09-22 supaya instruksi pemilik modul kembali berlaku.
+    //
+    // Pengaturan `Seeders:RunLabDummySeed` dibiarkan ada pada appsettings dan nol dibaca.
+    // Mencabutnya adalah perubahan konfigurasi milik pemilik modul, bukan perbaikan build.
 
     var runOperatingRoomDemoSeed =
         builder.Configuration.GetValue<bool>("Seeders:RunOperatingRoomDemoSeed");
@@ -1443,7 +1517,10 @@ try
     {
         await RunStartupSeederAsync(
             "OperatingRoomDemoSeeder",
-            () => SeedOperatingRoomDemoAsync(app.Services, app.Environment, builder.Configuration));
+            () => SeedOperatingRoomDemoAsync(
+                app.Services,
+                app.Environment,
+                builder.Configuration));
     }
 
     var runPrescriptionReviewCriterionSeed =

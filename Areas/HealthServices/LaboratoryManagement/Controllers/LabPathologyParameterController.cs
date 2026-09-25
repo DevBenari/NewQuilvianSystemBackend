@@ -50,7 +50,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         // karena tanpa itu parameter yang dinonaktifkan tidak akan pernah dapat diaktifkan lagi.
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<LabPathologyParameterResponse>>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Lab Pathology Parameter", Description = "Melihat daftar ruas isian laporan Patologi Anatomi", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction("Read", "Read Lab Pathology Parameter", Description = "Melihat daftar, ringkasan, pilihan, dan detail ruas isian laporan Patologi Anatomi", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("LabPathologyParameter", "Read")]
         public async Task<IActionResult> GetList(
             [FromQuery] LabPathologyParameterPagedQuery query,
@@ -67,7 +67,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         // (VAL-99), dan bentuknya ringan karena dipakai sebagai isi kotak pilihan.
         [HttpGet("options")]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<LabPathologyParameterOptionResponse>>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Lab Pathology Parameter", Description = "Melihat daftar pilihan ruas isian Patologi Anatomi", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction("Read", "Read Lab Pathology Parameter", Description = "Melihat daftar, ringkasan, pilihan, dan detail ruas isian laporan Patologi Anatomi", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("LabPathologyParameter", "Read")]
         public async Task<IActionResult> GetOptions(
             [FromQuery] LabPathologyParameterOptionQuery query,
@@ -105,7 +105,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
-        [AccessAction("Update", "Update Lab Pathology Parameter", Description = "Mengubah ruas isian laporan Patologi Anatomi", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessAction("Update", "Update Lab Pathology Parameter", Description = "Mengubah ruas isian laporan Patologi Anatomi beserta status aktifnya", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("LabPathologyParameter", "Update")]
         public Task<IActionResult> Update(
             Guid id,
@@ -114,6 +114,89 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
             ExecuteAsync(
                 () => _labPathologyParameterService.UpdateAsync(id, request, cancellationToken),
                 "Ruas isian Patologi Anatomi berhasil diubah.");
+
+        // =============================================================
+        // Baseline data induk yang dilengkapi 2026-09-23 — `LAB-API-v1` r32.
+        // =============================================================
+
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<LabPathologyParameterFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Lab Pathology Parameter", Description = "Melihat daftar, ringkasan, pilihan, dan detail ruas isian laporan Patologi Anatomi", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabPathologyParameter", "Read")]
+        public IActionResult GetFilterMetadata()
+        {
+            var result = LabFilterMetadataFactory.LabPathologyParameter();
+
+            return Ok(ApiResponse<LabPathologyParameterFilterMetadataResponse>.Ok(
+                result, "Metadata penyaring ruas isian Patologi Anatomi berhasil diambil."));
+        }
+
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<LabPathologyParameterSummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Lab Pathology Parameter", Description = "Melihat daftar, ringkasan, pilihan, dan detail ruas isian laporan Patologi Anatomi", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabPathologyParameter", "Read")]
+        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
+        {
+            var result = await _labPathologyParameterService.GetSummaryAsync(cancellationToken);
+
+            return Ok(ApiResponse<LabPathologyParameterSummaryResponse>.Ok(
+                result, "Ringkasan ruas isian Patologi Anatomi berhasil diambil."));
+        }
+
+        // Jalur detail. Tanpa ini, formulir ubah yang dibuka lewat tautan langsung atau sesudah
+        // halaman disegarkan nol punya cara memuat barisnya — dan gagalnya DIAM.
+        [HttpGet("{id:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<LabPathologyParameterResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Lab Pathology Parameter", Description = "Melihat daftar, ringkasan, pilihan, dan detail ruas isian laporan Patologi Anatomi", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabPathologyParameter", "Read")]
+        public async Task<IActionResult> GetById(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var result = await _labPathologyParameterService.GetByIdAsync(id, cancellationToken);
+
+                return Ok(ApiResponse<LabPathologyParameterResponse>.Ok(
+                    result, "Detail ruas isian Patologi Anatomi berhasil diambil."));
+            }
+            catch (KeyNotFoundException exception)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound, exception.Message));
+            }
+        }
+
+        // Penonaktifan, BUKAN penghapusan. Ruas yang ditarik akan mengosongkan laporan lama,
+        // sehingga barisnya tetap terlihat beserta penandanya (AC-143).
+        [HttpPatch("{id:guid}/status")]
+        [ProducesResponseType(typeof(ApiResponse<LabPathologyParameterResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Update", "Update Lab Pathology Parameter", Description = "Mengubah ruas isian laporan Patologi Anatomi beserta status aktifnya", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("LabPathologyParameter", "Update")]
+        public async Task<IActionResult> SetStatus(
+            Guid id,
+            [FromBody] LabPathologyMasterDataStatusRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var result = await _labPathologyParameterService.SetStatusAsync(
+                    id, request.IsActive, cancellationToken);
+
+                return Ok(ApiResponse<LabPathologyParameterResponse>.Ok(
+                    result,
+                    request.IsActive
+                        ? "Ruas isian diaktifkan."
+                        : "Ruas isian dinonaktifkan."));
+            }
+            catch (KeyNotFoundException exception)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound, exception.Message));
+            }
+        }
 
         /// <summary>
         /// Menjalankan satu perubahan dan menerjemahkan kegagalannya menjadi status HTTP yang

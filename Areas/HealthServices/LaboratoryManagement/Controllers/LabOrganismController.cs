@@ -52,7 +52,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         // Daftar organisme untuk layar pengelolaan kepala instalasi. Memuat yang nonaktif juga.
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<LabOrganismResponse>>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Lab Organism", Description = "Melihat daftar organisme Mikrobiologi", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction("Read", "Read Lab Organism", Description = "Melihat daftar, ringkasan, pilihan, dan detail organisme Mikrobiologi", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("LabOrganism", "Read")]
         public async Task<IActionResult> GetList(
             [FromQuery] LabOrganismPagedQuery query,
@@ -68,7 +68,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         // bentuknya ringan karena dipakai sebagai isi kotak pilihan.
         [HttpGet("options")]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<LabOrganismOptionResponse>>), StatusCodes.Status200OK)]
-        [AccessAction("Read", "Read Lab Organism", Description = "Melihat daftar pilihan organisme", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessAction("Read", "Read Lab Organism", Description = "Melihat daftar, ringkasan, pilihan, dan detail organisme Mikrobiologi", AccessType = AccessTypes.Read, SortOrder = 1)]
         [AccessPermission("LabOrganism", "Read")]
         public async Task<IActionResult> GetOptions(
             [FromQuery] LabOrganismOptionQuery query,
@@ -101,7 +101,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
-        [AccessAction("Update", "Update Lab Organism", Description = "Mengubah organisme Mikrobiologi", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessAction("Update", "Update Lab Organism", Description = "Mengubah organisme Mikrobiologi beserta status aktifnya", AccessType = AccessTypes.Update, SortOrder = 3)]
         [AccessPermission("LabOrganism", "Update")]
         public Task<IActionResult> Update(
             Guid id,
@@ -115,6 +115,85 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
         /// Menjalankan satu perubahan dan menerjemahkan kegagalannya menjadi status HTTP yang
         /// tepat, tanpa membocorkan detail exception ke pemanggil.
         /// </summary>
+        // =============================================================
+        // Baseline data induk yang dilengkapi 2026-09-22 — `LAB-API-v1` r31.
+        // =============================================================
+
+        [HttpGet("filters/metadata")]
+        [ProducesResponseType(typeof(ApiResponse<LabOrganismFilterMetadataResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Lab Organism", Description = "Melihat daftar, ringkasan, pilihan, dan detail organisme Mikrobiologi", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabOrganism", "Read")]
+        public IActionResult GetFilterMetadata()
+        {
+            var result = LabFilterMetadataFactory.LabOrganism();
+
+            return Ok(ApiResponse<LabOrganismFilterMetadataResponse>.Ok(
+                result, "Metadata penyaring organisme Mikrobiologi berhasil diambil."));
+        }
+
+        [HttpGet("summary")]
+        [ProducesResponseType(typeof(ApiResponse<LabOrganismSummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Lab Organism", Description = "Melihat daftar, ringkasan, pilihan, dan detail organisme Mikrobiologi", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabOrganism", "Read")]
+        public async Task<IActionResult> GetSummary(CancellationToken cancellationToken = default)
+        {
+            var result = await _labOrganismService.GetSummaryAsync(cancellationToken);
+
+            return Ok(ApiResponse<LabOrganismSummaryResponse>.Ok(
+                result, "Ringkasan organisme Mikrobiologi berhasil diambil."));
+        }
+
+        // Jalur detail. Tanpa ini, formulir ubah yang dibuka lewat tautan langsung atau sesudah
+        // halaman disegarkan nol punya cara memuat barisnya — dan gagalnya DIAM.
+        [HttpGet("{id:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<LabOrganismResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Lab Organism", Description = "Melihat daftar, ringkasan, pilihan, dan detail organisme Mikrobiologi", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("LabOrganism", "Read")]
+        public async Task<IActionResult> GetById(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var result = await _labOrganismService.GetByIdAsync(id, cancellationToken);
+
+                return Ok(ApiResponse<LabOrganismResponse>.Ok(
+                    result, "Detail organisme Mikrobiologi berhasil diambil."));
+            }
+            catch (KeyNotFoundException exception)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound, exception.Message));
+            }
+        }
+
+        // Penonaktifan, BUKAN penghapusan. Barisnya tetap terlihat beserta penandanya (AC-118).
+        [HttpPatch("{id:guid}/status")]
+        [ProducesResponseType(typeof(ApiResponse<LabOrganismResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Update", "Update Lab Organism", Description = "Mengubah organisme Mikrobiologi beserta status aktifnya", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("LabOrganism", "Update")]
+        public async Task<IActionResult> SetStatus(
+            Guid id,
+            [FromBody] LabMicrobiologyMasterDataStatusRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var result = await _labOrganismService.SetStatusAsync(id, request.IsActive, cancellationToken);
+
+                return Ok(ApiResponse<LabOrganismResponse>.Ok(
+                    result,
+                    request.IsActive ? "Organisme diaktifkan." : "Organisme dinonaktifkan."));
+            }
+            catch (KeyNotFoundException exception)
+            {
+                return NotFound(ApiResponse<object>.Fail(
+                    StatusCodes.Status404NotFound, exception.Message));
+            }
+        }
+
         private async Task<IActionResult> ExecuteAsync(
             Func<Task<LabOrganismResponse>> action,
             string successMessage)

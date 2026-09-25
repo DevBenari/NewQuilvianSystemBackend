@@ -212,12 +212,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums
     }
 
     /// <summary>
-    /// Bentuk hasil sebuah pemeriksaan laboratorium sesuai <c>LAB-DEC-021</c> (BR-17).
+    /// Bentuk hasil sebuah pemeriksaan laboratorium sesuai <c>LAB-DEC-027</c> (BR-23),
+    /// menggantikan <c>LAB-DEC-021</c> yang hanya mengenal dua bentuk.
     ///
-    /// Tepat satu dari dua, ditetapkan sejak batas nilainya dibuat:
+    /// Tepat satu dari empat, ditetapkan sejak batas nilainya dibuat (<c>INV-24</c>):
     /// <see cref="Numeric"/> memakai batas normal dan batas kritis berupa angka beserta
     /// satuannya; <see cref="Choice"/> memakai daftar pilihan yang sah pada
-    /// <c>LabValueOption</c> dan tidak menerima pengetikan bebas (AC-28).
+    /// <c>LabValueOption</c> dan tidak menerima pengetikan bebas (AC-28);
+    /// <see cref="MicrobiologyStructured"/> dan <see cref="PathologyNarrative"/> menyimpan
+    /// hasilnya di luar entity ini dan <b>nol</b> dapat dinilai kritis lewat batas nilai.
+    ///
+    /// <b>Nilai 1 dan 2 TIDAK BOLEH bergeser</b> (<c>AC-101</c>). Baris
+    /// <c>LabValueBound</c> yang sudah ada menyimpannya sebagai angka, dan menggesernya akan
+    /// mengubah arti data yang sudah tersimpan tanpa satu pun galat terlihat.
     /// </summary>
     public enum LabResultForm
     {
@@ -227,7 +234,138 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums
 
         /// <summary>Hasil pilihan terbatas — misalnya Protein urin: Negatif, +1, +2, +3, +4.</summary>
         [Display(Name = "Choice")]
-        Choice = 2
+        Choice = 2,
+
+        /// <summary>
+        /// Mikrobiologi berstruktur — status temuan pada pemeriksaan ini, lalu isolat beserta
+        /// baris kepekaan antibiotiknya pada tabel tersendiri.
+        /// </summary>
+        [Display(Name = "Microbiology Structured")]
+        MicrobiologyStructured = 3,
+
+        /// <summary>
+        /// Narasi Patologi Anatomi — laporannya melekat pada <b>pesanan</b>, bukan pada
+        /// pemeriksaan (<c>LAB-DEC-085</c>), sehingga entity ini hanya menandai bentuknya.
+        /// </summary>
+        [Display(Name = "Pathology Narrative")]
+        PathologyNarrative = 4
+    }
+
+    /// <summary>
+    /// Status temuan sebuah pemeriksaan Mikrobiologi berstruktur (<c>LAB-DEC-113</c>).
+    ///
+    /// <b>Daftar ini sengaja TERPISAH dari <see cref="LabPathologyFindingStatus"/>.</b>
+    /// Keduanya menjawab pertanyaan yang berbeda: <see cref="Positive"/> berarti <i>ada
+    /// pertumbuhan kuman</i> — itu temuan; sedangkan <c>NeedsAttention</c> pada Patologi
+    /// Anatomi adalah <i>penilaian kegawatan</i>. Disatukan, Patologi Anatomi mendapat nilai
+    /// <see cref="Positive"/> yang nol artinya bagi laporan jaringan, dan Mikrobiologi
+    /// mendapat <c>NeedsAttention</c> yang <b>bertabrakan</b> dengan penanda kritis
+    /// <c>LAB-DEC-103</c> — dua tempat menyatakan hal yang sama, dan nol aturan menentukan
+    /// mana yang menang.
+    ///
+    /// <b>Ia status TEMUAN, bukan status lifecycle.</b> Nol status hasil disimpan oleh bentuk
+    /// ini (<c>LAB-DEC-080</c>, <c>INV-29</c>).
+    /// </summary>
+    public enum LabMicrobiologyFinding
+    {
+        /// <summary>Normal — nol temuan yang menuntut perhatian khusus.</summary>
+        [Display(Name = "Normal")]
+        Normal = 1,
+
+        /// <summary>Positif — ada pertumbuhan kuman pada biakan.</summary>
+        [Display(Name = "Positive")]
+        Positive = 2,
+
+        /// <summary>Negatif — nol pertumbuhan. Ini hasil yang <b>sah</b>, bukan hasil kosong.</summary>
+        [Display(Name = "Negative")]
+        Negative = 3
+    }
+
+    /// <summary>
+    /// Hasil uji kepekaan satu antibiotik terhadap satu isolat, sesuai BR-23.
+    ///
+    /// Sejak <c>LAB-DEC-123</c>, nilai ini <b>dihitung</b> dari lebar zona hambat terhadap
+    /// rentang breakpoint — di bawah batas bawah menjadi <see cref="Resistant"/>, di dalam
+    /// rentang menjadi <see cref="Intermediate"/>, di atas batas atas menjadi
+    /// <see cref="Sensitive"/>. Analis tetap boleh menimpanya dengan alasan tercatat, sebab
+    /// <b>resistensi intrinsik</b> menuntut penilaian di luar rumus.
+    /// </summary>
+    public enum LabSusceptibilityResult
+    {
+        /// <summary>Resistant — kuman kebal terhadap antibiotik itu.</summary>
+        [Display(Name = "Resistant")]
+        Resistant = 1,
+
+        /// <summary>Intermediate — kepekaan berada di antara, perlu pertimbangan dosis.</summary>
+        [Display(Name = "Intermediate")]
+        Intermediate = 2,
+
+        /// <summary>Sensitive — kuman peka, antibiotik itu diperkirakan bekerja.</summary>
+        [Display(Name = "Sensitive")]
+        Sensitive = 3
+    }
+
+    /// <summary>
+    /// Kualifikasi hasil yang <b>dicetak</b> pada baris <c>HASIL YANG DIPEROLEH</c>
+    /// (<c>LAB-DEC-114</c>, bukti <c>LAB-EVD-005</c> dan <c>LAB-EVD-006</c>).
+    ///
+    /// <b>Ia nilai tersimpan, bukan kesimpulan.</b> Menurunkannya dari ada tidaknya catatan
+    /// konsultasi ditolak: itu menyimpulkan bahwa <i>dikonsultasikan</i> sama dengan
+    /// <i>definitif</i>, dan bukti nol menyatakan itu. Pada biakan yang dibaca bertahap selama
+    /// berhari-hari, hasil <see cref="Preliminary"/> yang sudah dikonsultasikan sangat mungkin
+    /// ada.
+    /// </summary>
+    public enum LabResultQualifier
+    {
+        /// <summary>Definitif — hasil akhir. Tercetak sebagai <c>DEFINITIF</c>.</summary>
+        [Display(Name = "Definitive")]
+        Definitive = 1,
+
+        /// <summary>Sementara — hasil belum akhir, biakan masih dibaca.</summary>
+        [Display(Name = "Preliminary")]
+        Preliminary = 2
+    }
+
+    /// <summary>
+    /// Jenis biakan sebuah pemeriksaan Mikrobiologi (<c>LAB-DEC-116</c>, <c>LAB-DEC-124</c>).
+    ///
+    /// <b>Ia menentukan KATA pada label cetak, bukan bentuk tabelnya.</b> Bakteri tercetak
+    /// sebagai <c>IDENTITAS</c>; jamur tercetak sebagai <c>HASIL BIAKAN JAMUR</c> beserta
+    /// <c>HASIL RESISTENSI ANTIJAMUR</c>. Bentuk tabelnya ditentukan
+    /// <see cref="LabSusceptibilityMethod"/>, dan <b>keduanya bebas satu sama lain</b> —
+    /// kultur jamur pun dapat diuji dengan difusi cakram.
+    ///
+    /// <b>Nullable pada entity</b>, dan itu disengaja: <c>LAB-OPEN-039</c> masih menyisakan
+    /// bentuk cetak yang belum pernah dilihat, dan menambah nilai enum jauh lebih murah
+    /// daripada membongkar kolom wajib.
+    /// </summary>
+    public enum LabCultureType
+    {
+        /// <summary>Biakan bakteri.</summary>
+        [Display(Name = "Bacterial")]
+        Bacterial = 1,
+
+        /// <summary>Biakan jamur.</summary>
+        [Display(Name = "Fungal")]
+        Fungal = 2
+    }
+
+    /// <summary>
+    /// Metode uji kepekaan (<c>LAB-DEC-124</c>).
+    ///
+    /// <b>Ia menentukan BENTUK tabel dan kolom mana yang berlaku</b>, bukan katanya:
+    /// <see cref="DiscDiffusion"/> memakai kandungan cakram, rentang breakpoint, dan lebar
+    /// zona; <see cref="Dilution"/> memakai nilai MIC beserta satuannya.
+    /// </summary>
+    public enum LabSusceptibilityMethod
+    {
+        /// <summary>Difusi cakram — hasilnya lebar zona hambat dalam milimeter.</summary>
+        [Display(Name = "Disc Diffusion")]
+        DiscDiffusion = 1,
+
+        /// <summary>Dilusi — hasilnya nilai MIC beserta satuannya.</summary>
+        [Display(Name = "Dilution")]
+        Dilution = 2
     }
 
     /// <summary>

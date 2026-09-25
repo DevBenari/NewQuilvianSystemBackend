@@ -5,11 +5,11 @@ blueprint_id: ACC-BP-001
 module_name: Accounting
 module_slug: accounting
 module_prefix: ACC
-revision: 11   # disamakan 15 Sep 2026 dengan bagian "Amendment Phase 2"; angka 9 di sini tertinggal sejak 8 Sep 2026 (ACC-GAP-003)
+revision: 12   # 24 Sep 2026 - amendment pasca-ratifikasi Finance (ACC-DEC-082..091); 11 disamakan 15 Sep 2026
 status: approved
 current_phase: ACC-PH-005
 created_at: 2026-09-01T09:53:36+07:00
-updated_at: 2026-09-15T00:00:00+07:00
+updated_at: 2026-09-24T00:00:00+07:00
 last_verified_at: 2026-09-07T00:00:00+07:00
 approved_by: Rizki (Product/Domain Owner + Implementation Owner Accounting)
 approved_at: 2026-09-01T18:00:00+07:00
@@ -127,24 +127,24 @@ contract_versions:
   api: ACC-API-0.10
   state: ACC-STATE-0.3
   validation: ACC-VALIDATION-0.6
-  integration: ACC-INTEGRATION-0.4   # 0.3 approved 8 Sep 2026; 0.4 penyelarasan teks ke ACC-DEC-060/075, teksnya belum di-approve
+  integration: ACC-INTEGRATION-0.5   # 0.3 approved 8 Sep 2026; teks 0.4 dan 0.5 menuliskan keputusan approved, approval teksnya menunggu Rizki
   permission: ACC-PERMISSION-0.5
   testing: ACC-TEST-0.1
   mvp: ACC-MVP-0.1
-  cross_module: ACC-XMOD-0.2   # draft; diturunkan dari kontrak approved, ratifikasi owner Finance belum
-contracts_proposed: [ACC-API-0.11, ACC-VALIDATION-0.7, ACC-PERMISSION-0.6]   # usulan 11 Sep 2026, belum diratifikasi
+  cross_module: ACC-XMOD-0.3   # approved 24 Sep 2026 (ACC-DEC-082); Finance meratifikasi 0.2 lewat FIN-DEC-001
+contracts_proposed: [ACC-API-0.11, ACC-VALIDATION-0.7, ACC-PERMISSION-0.6, ACC-API-0.12, ACC-VALIDATION-0.8, ACC-PERMISSION-0.7, ACC-STATE-0.4]   # 0.11/0.7/0.6 usulan 11 Sep; 0.12/0.8/0.7/0.4 usulan 24 Sep (ACC-DEC-084..088) - GATE-DESAIN-0924
 shared_engineering_rules:
   proposed: [QBE-MIG-001, QBE-MIG-002]
   canonical_home: docs/engineering/BACKEND_ENGINEERING_CONTRACT.md@origin/QuilvianIntegrationBackend
   status: PROPOSED
 cross_module:
-  provides: ACC-XMOD-0.2
+  provides: ACC-XMOD-0.3
   consumer_module: finance
   consumer_owner: Yasmin
-  consumer_blueprint_path: docs/module-blueprints/finance/   # BELUM ADA per 15 Sep 2026 — folder tidak ditemukan di rizkiG
-  depends_on_finance_contract: null
-  handoff_package: evidence/12-paket-kontrak-kejadian-untuk-finance.md
-  open_cross_module_decisions: [ACC-XM-001, OD-ACC-05, OD-ACC-08, DEC-ACC-P2-002]   # ACC-XM-001: diputuskan sisi Accounting (ACC-DEC-044), dikonfirmasi Billing (ACC-DEC-059), PENDING_RATIFICATION Yasmin
+  consumer_blueprint_path: docs/module-blueprints/finance-management/   # berdiri; FIN-DEC-001..023 approved 20 Sep 2026
+  depends_on_finance_contract: finance-management/contracts/integration-contract.md bagian 5   # mengikuti ACC-XMOD-0.2 apa adanya
+  handoff_package: evidence/13-balasan-accounting-untuk-finance.md   # sebelumnya evidence/12 (15 Sep 2026)
+  open_cross_module_decisions: [OD-ACC-05-mekanisme, KODE-SALDO-SUBLEDGER, KOMPONEN-PER-JENIS, G6-DEPOSIT-REFUND-SELISIH, FIN-DEC-004-UANG-MUKA]   # ACC-XM-001 CLOSED, DEC-ACC-P2-002 CLOSED, OD-ACC-08 sisi Accounting CLOSED - 24 Sep 2026
 artifact_hashes:
   00-interview-decisions.md: aaeb385f6194d707294777ab5c90ce178e216fc3c28097fd8198d51676759038
   01-existing-capability-map.md: df5c5375f04ba9f688a49ac6504f53d05995545507b75a05c19dcf707e5e59ea
@@ -210,10 +210,11 @@ mengembangkan AR/AP secara paralel. Agent Finance **tidak perlu** membaca seluru
 
 | Artefak | Yang Finance perlu tahu darinya |
 |---|---|
-| [evidence/12-paket-kontrak-kejadian-untuk-finance.md](evidence/12-paket-kontrak-kejadian-untuk-finance.md) | **Mulai dari sini.** Ringkasan satu berkas: bentuk pesan, jawaban Accounting, anti-ganda, saldo subledger, dan enam pertanyaan untuk Finance |
+| [evidence/13-balasan-accounting-untuk-finance.md](evidence/13-balasan-accounting-untuk-finance.md) | **Mulai dari sini (sejak 24 September 2026).** Balasan atas jawaban Finance: ratifikasi balik, tanda terima, bentuk saldo subledger, syarat akun layanan, gerbang cutover, lima permintaan |
+| [evidence/12-paket-kontrak-kejadian-untuk-finance.md](evidence/12-paket-kontrak-kejadian-untuk-finance.md) | Paket 15 September 2026 — riwayat; contoh `JASA_MEDIS`-nya tidak berlaku lagi. Ringkasan satu berkas: bentuk pesan, jawaban Accounting, anti-ganda, saldo subledger, dan enam pertanyaan untuk Finance |
 | [blueprint-manifest.md](blueprint-manifest.md) | Revision dan status Accounting yang menjadi dependency; batas ownership |
-| [contracts/cross-module-contract.md](contracts/cross-module-contract.md) | Kontrak Finance/AR/AP → Accounting **`ACC-XMOD-0.2`**: dua belas bidang wajib, anti-ganda, perlakuan setiap keadaan, pemetaan bidang dari `0.1` |
-| [contracts/integration-contract.md](contracts/integration-contract.md) — **bagian 6** | Kontrak integrasi Phase 2 **`ACC-INTEGRATION-0.4`**: arah, pintu masuk, anti-ganda, perilaku gagal, rekonsiliasi |
+| [contracts/cross-module-contract.md](contracts/cross-module-contract.md) | Kontrak Finance/AR/AP → Accounting **`ACC-XMOD-0.3`** (`approved`): dua belas bidang wajib, anti-ganda, perlakuan setiap keadaan, pemetaan bidang dari `0.1` |
+| [contracts/integration-contract.md](contracts/integration-contract.md) — **bagian 6** | Kontrak integrasi Phase 2 **`ACC-INTEGRATION-0.5`**: arah, pintu masuk, anti-ganda, perilaku gagal, rekonsiliasi |
 | [contracts/api-contract.md](contracts/api-contract.md) — **hanya** grup *Accounting Event* dan bagian *Isi `ReceiveAccountingEventRequest`* | Endpoint `POST /accounting-events`, arti kode status, dan tabel bidang yang menjadi sumber kebenaran bentuk pesan |
 | [06-shared-migration-coordination-rule.md](06-shared-migration-coordination-rule.md) | Aturan koordinasi migration bersama — mengikat kedua modul |
 | [05-prerequisite-readiness.md](05-prerequisite-readiness.md) | Dependency lintas modul — **keadaannya per 1 September 2026**; keadaan terbaru ada di paket `evidence/12` bagian 8 |
@@ -783,3 +784,45 @@ Delapan keputusan `ACC-DEC-074` sampai `ACC-DEC-081` dicatat pada
 | `ACC-XM-001` + ratifikasi bentuk pesan | Ditunggu dari Yasmin | Kotak masuk kejadian |
 | `DEC-ACC-P2-002`, `OD-ACC-05`, `OD-ACC-08` | Daftar jenis kejadian, autentikasi penerbit, bentuk saldo subledger — `evidence/12` bagian 8 | Kotak masuk kejadian dan rekonsiliasi subledger |
 | `OD-ACC-01` | Boleh tidaknya kotak masuk dibangun sebelum ratifikasi Finance | Kotak masuk kejadian |
+
+## Amendment 24 September 2026 — pasca-ratifikasi Finance
+
+| Field | Nilai |
+|---|---|
+| `revision` | **11 → 12.** Sepuluh keputusan baru `ACC-DEC-082`..`091`; `00-interview-decisions.md` revision 9 → 10 |
+| Dikerjakan lewat | `grill-me` (amendment pass) → `design-business-module` (amendment, **`draft`**) → `plan-module-delivery` (roadmap backend revisi 4, frontend revisi 5, **`DRAFT`**) |
+| `backend_commit_sha` | `b2b265af` (branch `rizkiG`); working tree bersih sebelum pass dimulai |
+| `frontend_commit_sha` | `c941012ac` (branch `RizkiV2`) — tidak disentuh |
+| Pemicu | Finance berdiri dan meratifikasi `ACC-XMOD-0.2` (`FIN-DEC-001`, 20 September 2026) |
+
+### Artefak yang disesuaikan
+
+| Artefak | Versi | Perubahan | sha256 sesudah |
+|---|---|---|---|
+| `00-interview-decisions.md` | revision 10 | `ACC-DEC-082`..`091`; `ACC-XM-001` `CLOSED`; tabel pertentangan sumber percakapan vs decision log Finance | `076a58f8…7ac29fb4` |
+| `contracts/cross-module-contract.md` | `ACC-XMOD-0.2` → **`0.3` `approved`** | Bagian 0b, 3 (contoh), 3a (katalog 17 kode), 4a–4c, 8, 9, 10, 13 (gerbang cutover) | `ff787dfc…290880e5` |
+| `contracts/integration-contract.md` | bagian 6 → `ACC-INTEGRATION-0.5` | Kunci implementasi dicabut; 6.7 dimutakhirkan; 6.8 pemrosesan; 6.9 gerbang | `0df5145e…53c4ff0d` |
+| `contracts/api-contract.md` | usulan `ACC-API-0.12` | Tanda terima, pemrosesan, contoh `JASA_MEDIS`, `SubledgerBalance`, `EventKind`, status `Tercatat` | `ead4c802…0e909d23` |
+| `contracts/validation-matrix.md` | usulan `ACC-VALIDATION-0.8` | Pengecualian `Amount`, lima aturan pesan saldo, larangan tertulis `JASA_MEDIS` | `4d47c496…df99cd3c` |
+| `contracts/permission-audit-matrix.md` | usulan `ACC-PERMISSION-0.7` | `Receive` dicabut dari Administrator; syarat Departemen + Jabatan | `6b0a9f23…695119e0` |
+| `contracts/state-transition-matrix.md` | usulan `ACC-STATE-0.4` | Status `Tercatat` dan perpindahan bersyarat | `19aeb428…1f69ceb2` |
+| `02-backend-architecture.md` | revision 5, bagian 22 **`draft`** | Batas transaksi, penjadwal, `EventKind`, `AccSubledgerBalance`, `HoldReasonCode`, akun layanan | `db66a59d…eeef9d78` |
+| `erd/data-dictionary.md` | — | Contoh `JASA_MEDIS`, aturan `Amount`, `HoldReasonCode`, `EventKind`, bagian 12d `AccSubledgerBalance` | `e03efeb6…23b49285` |
+| `evidence/12-paket-kontrak-kejadian-untuk-finance.md` | — | Catatan koreksi bertanggal di atas contoh `JASA_MEDIS`; isi yang dikirim tidak diubah | `ef607803…602afb2b` |
+| `evidence/13-balasan-accounting-untuk-finance.md` | **Baru** | Balasan untuk Yasmin | `5cdd5b99…fc675624` |
+| `roadmap/backend-roadmap-phase2.md` | revisi 4 **`DRAFT`** | `BE-ACC-P2-019`..`028` ⛔, Grafik 3, `014` kini menunggu `028` | `765c08ea…a6cd3047` |
+| `roadmap/frontend-roadmap-phase2.md` | revisi 5 **`DRAFT`** | `FE-ACC-P2-011`..`013` ⛔, Grafik 4 | `0c95eb80…b2e9f914` |
+| `roadmap/requirement-traceability-phase2.md` | — | Bagian 3d | `9f2cf822…a772f6ea` |
+| `MODULE-STATUS.md` | — | Titik lanjut 24 September 2026; penahan Phase 2 | `9f881c66…f197f8b9` |
+
+### Yang masih `OPEN` sesudah amendment ini
+
+| ID | Isi | Menahan |
+|---|---|---|
+| `GATE-DESAIN-0924` | Approval Rizki atas bagian 22 arsitektur dan usulan `ACC-API-0.12`, `ACC-VALIDATION-0.8`, `ACC-PERMISSION-0.7`, `ACC-STATE-0.4`, serta teks `ACC-INTEGRATION-0.4`/`0.5` | Seluruh task Wave B |
+| `GATE-FIN-087` | Finance menyetujui bentuk pesan saldo dan kode `SALDO-SUBLEDGER` | Wave D |
+| Gerbang cutover G1–G6 | `ACC-DEC-089`, `090`, `091` | Pengaktifan pengiriman |
+| Coba Ulang untuk `Tertahan` di layar | Pertentangan `03-frontend-architecture.md` 11.2 lawan `ACC-STATE` | `FE-ACC-P2-012` |
+| Saldo untuk periode `Closed` | Perlu peringatan tersendiri atau tidak | Tidak menahan |
+| FR saldo subledger | Belum ada di `04-prd-to-mvp.md` | Coverage gap |
+| `UAT-P2-08` | Skenario perlu ditinjau terhadap `ACC-DEC-084` | Coverage gap |

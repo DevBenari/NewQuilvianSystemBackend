@@ -30,15 +30,15 @@ public class NutritionOrderController : ControllerBase
     public NutritionOrderController(NutritionOrderService service) => _service = service;
 
     [HttpGet]
-    [ProducesResponseType(typeof(ApiResponse<PagedResult<GzOrderSummaryResponse>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<GziOrderSummaryResponse>>), StatusCodes.Status200OK)]
     [AccessAction("Read", "Read Nutrition Order",
         Description = "Melihat daftar pemesanan konsultasi gizi", AccessType = AccessTypes.Read, SortOrder = 1)]
     [AccessPermission("NutritionOrder", "Read")]
-    public async Task<IActionResult> GetPaged([FromQuery] GzOrderPagedQuery query,
+    public async Task<IActionResult> GetPaged([FromQuery] GziOrderPagedQuery query,
         CancellationToken cancellationToken)
     {
         var data = await _service.GetPagedAsync(query, cancellationToken);
-        return Ok(ApiResponse<PagedResult<GzOrderSummaryResponse>>.Ok(data,
+        return Ok(ApiResponse<PagedResult<GziOrderSummaryResponse>>.Ok(data,
             "Data pemesanan konsultasi gizi berhasil diambil."));
     }
 
@@ -46,19 +46,19 @@ public class NutritionOrderController : ControllerBase
     /// Pasien rawat inap yang skrining gizinya berisiko tetapi belum punya order.
     /// </summary>
     [HttpGet("screening-candidates")]
-    [ProducesResponseType(typeof(ApiResponse<List<GzScreeningCandidateResponse>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<List<GziScreeningCandidateResponse>>), StatusCodes.Status200OK)]
     [AccessAction("Read", "Read Nutrition Order",
         Description = "Melihat pasien berisiko gizi yang belum dirujuk", AccessType = AccessTypes.Read, SortOrder = 2)]
     [AccessPermission("NutritionOrder", "Read")]
     public async Task<IActionResult> GetScreeningCandidates(CancellationToken cancellationToken)
     {
         var data = await _service.GetScreeningCandidatesAsync(cancellationToken);
-        return Ok(ApiResponse<List<GzScreeningCandidateResponse>>.Ok(data,
+        return Ok(ApiResponse<List<GziScreeningCandidateResponse>>.Ok(data,
             "Data pasien berisiko gizi berhasil diambil."));
     }
 
     [HttpGet("{id:guid}")]
-    [ProducesResponseType(typeof(ApiResponse<GzOrderDetailResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<GziOrderDetailResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     [AccessAction("Read", "Read Nutrition Order",
         Description = "Melihat detail asuhan gizi", AccessType = AccessTypes.Read, SortOrder = 3)]
@@ -69,11 +69,11 @@ public class NutritionOrderController : ControllerBase
         return data == null
             ? NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound,
                 "Order konsultasi gizi tidak ditemukan."))
-            : Ok(ApiResponse<GzOrderDetailResponse>.Ok(data, "Detail asuhan gizi berhasil diambil."));
+            : Ok(ApiResponse<GziOrderDetailResponse>.Ok(data, "Detail asuhan gizi berhasil diambil."));
     }
 
     [HttpPost]
-    [ProducesResponseType(typeof(ApiResponse<GzOrderDetailResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<GziOrderDetailResponse>), StatusCodes.Status200OK)]
     [AccessAction("Create", "Create Nutrition Order",
         Description = "Membuat order konsultasi gizi", AccessType = AccessTypes.Create, SortOrder = 4)]
     [AccessPermission("NutritionOrder", "Create")]
@@ -83,7 +83,7 @@ public class NutritionOrderController : ControllerBase
         try
         {
             var data = await _service.CreateAsync(request, cancellationToken);
-            return Ok(ApiResponse<GzOrderDetailResponse>.Ok(data,
+            return Ok(ApiResponse<GziOrderDetailResponse>.Ok(data,
                 "Order konsultasi gizi berhasil dibuat."));
         }
         catch (NutritionForbiddenException ex) { return this.NutritionForbidden(ex); }
@@ -92,7 +92,7 @@ public class NutritionOrderController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
-    [ProducesResponseType(typeof(ApiResponse<GzOrderDetailResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<GziOrderDetailResponse>), StatusCodes.Status200OK)]
     [AccessAction("Update", "Update Nutrition Order",
         Description = "Mengubah order konsultasi gizi", AccessType = AccessTypes.Update, SortOrder = 5)]
     [AccessPermission("NutritionOrder", "Update")]
@@ -102,7 +102,7 @@ public class NutritionOrderController : ControllerBase
         try
         {
             var data = await _service.UpdateAsync(id, request, cancellationToken);
-            return Ok(ApiResponse<GzOrderDetailResponse>.Ok(data,
+            return Ok(ApiResponse<GziOrderDetailResponse>.Ok(data,
                 "Order konsultasi gizi berhasil diperbarui."));
         }
         catch (KeyNotFoundException ex)
@@ -115,7 +115,7 @@ public class NutritionOrderController : ControllerBase
     }
 
     [HttpPost("{id:guid}/close")]
-    [ProducesResponseType(typeof(ApiResponse<GzOrderDetailResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<GziOrderDetailResponse>), StatusCodes.Status200OK)]
     [AccessAction("Update", "Update Nutrition Order",
         Description = "Menutup asuhan gizi", AccessType = AccessTypes.Update, SortOrder = 6)]
     [AccessPermission("NutritionOrder", "Update")]
@@ -125,7 +125,7 @@ public class NutritionOrderController : ControllerBase
         try
         {
             var data = await _service.CloseAsync(id, request, cancellationToken);
-            return Ok(ApiResponse<GzOrderDetailResponse>.Ok(data, "Asuhan gizi berhasil ditutup."));
+            return Ok(ApiResponse<GziOrderDetailResponse>.Ok(data, "Asuhan gizi berhasil ditutup."));
         }
         catch (KeyNotFoundException ex)
         {
@@ -137,7 +137,7 @@ public class NutritionOrderController : ControllerBase
     }
 
     [HttpPost("{id:guid}/cancel")]
-    [ProducesResponseType(typeof(ApiResponse<GzOrderDetailResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<GziOrderDetailResponse>), StatusCodes.Status200OK)]
     [AccessAction("Cancel", "Cancel Nutrition Order",
         Description = "Membatalkan order konsultasi gizi", AccessType = AccessTypes.Update, SortOrder = 7)]
     [AccessPermission("NutritionOrder", "Cancel")]
@@ -147,7 +147,7 @@ public class NutritionOrderController : ControllerBase
         try
         {
             var data = await _service.CancelAsync(id, request, cancellationToken);
-            return Ok(ApiResponse<GzOrderDetailResponse>.Ok(data,
+            return Ok(ApiResponse<GziOrderDetailResponse>.Ok(data,
                 "Order konsultasi gizi berhasil dibatalkan."));
         }
         catch (KeyNotFoundException ex)
@@ -160,7 +160,7 @@ public class NutritionOrderController : ControllerBase
     }
 
     [HttpPost("{id:guid}/records")]
-    [ProducesResponseType(typeof(ApiResponse<GzCareRecordResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<GziCareRecordResponse>), StatusCodes.Status200OK)]
     [AccessAction("Update", "Update Nutrition Care Record",
         Description = "Mencatat kunjungan ahli gizi", AccessType = AccessTypes.Update, SortOrder = 8)]
     [AccessPermission("NutritionCareRecord", "Update")]
@@ -170,7 +170,7 @@ public class NutritionOrderController : ControllerBase
         try
         {
             var data = await _service.SaveCareRecordAsync(id, request, cancellationToken);
-            return Ok(ApiResponse<GzCareRecordResponse>.Ok(data,
+            return Ok(ApiResponse<GziCareRecordResponse>.Ok(data,
                 "Catatan kunjungan gizi berhasil disimpan."));
         }
         catch (KeyNotFoundException ex)

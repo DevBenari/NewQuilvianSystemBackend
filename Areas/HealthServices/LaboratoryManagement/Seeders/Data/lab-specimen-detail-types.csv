@@ -1,0 +1,1768 @@
+detail_type_code,snomed_code,name_en,specimen_type_code,sub_type_name,is_active
+SP-122552005,122552005,"Arterial blood specimen",BLOOD,"Darah / produk darah",true
+SP-703430008,703430008,"Arterial cord blood specimen",BLOOD,"Darah / produk darah",true
+SP-258582006,258582006,"Blood clot specimen",BLOOD,"Darah / produk darah",true
+SP-303248007,303248007,"Blood film specimen",BLOOD,"Darah / produk darah",true
+SP-737535000,737535000,"Blood smear specimen",BLOOD,"Darah / produk darah",true
+SP-119297000,119297000,"Blood specimen",BLOOD,"Darah / produk darah",true
+SP-122560006,122560006,"Blood specimen from blood donor",BLOOD,"Darah / produk darah",true
+SP-122558009,122558009,"Blood specimen from blood product",BLOOD,"Darah / produk darah",true
+SP-122559001,122559001,"Blood specimen from control",BLOOD,"Darah / produk darah",true
+SP-122562003,122562003,"Blood specimen from newborn",BLOOD,"Darah / produk darah",true
+SP-122561005,122561005,"Blood specimen from patient",BLOOD,"Darah / produk darah",true
+SP-866033003,866033003,"Blood specimen in aerobic blood culture bottle",BLOOD,"Darah / produk darah",true
+SP-866032008,866032008,"Blood specimen in anaerobic blood culture bottle",BLOOD,"Darah / produk darah",true
+SP-878861003,878861003,"Blood specimen in blood culture bottle",BLOOD,"Darah / produk darah",true
+SP-446131002,446131002,"Blood specimen obtained for blood culture",BLOOD,"Darah / produk darah",true
+SP-122553000,122553000,"Blood specimen obtained from umbilicus",BLOOD,"Darah / produk darah",true
+SP-446272009,446272009,"Blood specimen submitted in heparinized collection tube",BLOOD,"Darah / produk darah",true
+SP-441510007,441510007,"Blood specimen with anticoagulant",BLOOD,"Darah / produk darah",true
+SP-445295009,445295009,"Blood specimen with EDTA",BLOOD,"Darah / produk darah",true
+SP-122554006,122554006,"Capillary blood specimen",BLOOD,"Darah / produk darah",true
+SP-258581004,258581004,"Clotted blood specimen",BLOOD,"Darah / produk darah",true
+SP-122556008,122556008,"Cord blood specimen",BLOOD,"Darah / produk darah",true
+SP-122557004,122557004,"Cord blood specimen from fetus",BLOOD,"Darah / produk darah",true
+SP-119294007,119294007,"Dried blood specimen",BLOOD,"Darah / produk darah",true
+SP-440500007,440500007,"Dried blood spot specimen",BLOOD,"Darah / produk darah",true
+SP-737357006,737357006,"Fetal blood specimen",BLOOD,"Darah / produk darah",true
+SP-258588005,258588005,"Hematoma specimen",BLOOD,"Darah / produk darah",true
+SP-119345009,119345009,"Menstrual blood specimen",BLOOD,"Darah / produk darah",true
+SP-119298005,119298005,"Mixed venous blood specimen",BLOOD,"Darah / produk darah",true
+SP-122551003,122551003,"Peripheral blood specimen",BLOOD,"Darah / produk darah",true
+SP-119304001,119304001,"Specimen from blood bag",BLOOD,"Darah / produk darah",true
+SP-122564002,122564002,"Specimen from blood bag from blood product",BLOOD,"Darah / produk darah",true
+SP-122563008,122563008,"Specimen from blood bag from patient",BLOOD,"Darah / produk darah",true
+SP-119300005,119300005,"Specimen from blood product",BLOOD,"Darah / produk darah",true
+SP-309478005,309478005,"Thrombus specimen",BLOOD,"Darah / produk darah",true
+SP-122555007,122555007,"Venous blood specimen",BLOOD,"Darah / produk darah",true
+SP-703431007,703431007,"Venous cord blood specimen",BLOOD,"Darah / produk darah",true
+SP-258591005,258591005,"White blood cell specimen",BLOOD,"Darah / produk darah",true
+SP-258580003,258580003,"Whole blood specimen",BLOOD,"Darah / produk darah",true
+SP-57921000052103,57921000052103,"Whole blood specimen with edetic acid",BLOOD,"Darah / produk darah",true
+SP-119357000,119357000,"Basophil specimen",BLOOD,"Komponen sel darah",true
+SP-258587000,258587000,"Buffy coat",BLOOD,"Komponen sel darah",true
+SP-119356009,119356009,"Eosinophil specimen",BLOOD,"Komponen sel darah",true
+SP-119351004,119351004,"Erythrocyte specimen",BLOOD,"Komponen sel darah",true
+SP-122581006,122581006,"Erythrocyte specimen from blood donor",BLOOD,"Komponen sel darah",true
+SP-122582004,122582004,"Erythrocyte specimen from blood product",BLOOD,"Komponen sel darah",true
+SP-122583009,122583009,"Erythrocyte specimen from patient",BLOOD,"Komponen sel darah",true
+SP-122585002,122585002,"Leukocyte specimen from control",BLOOD,"Komponen sel darah",true
+SP-122584003,122584003,"Leukocyte specimen from patient",BLOOD,"Komponen sel darah",true
+SP-119353001,119353001,"Lymphocyte specimen",BLOOD,"Komponen sel darah",true
+SP-119358005,119358005,"Platelet specimen",BLOOD,"Komponen sel darah",true
+SP-119355008,119355008,"Polymorphonuclear neutrophil specimen",BLOOD,"Komponen sel darah",true
+SP-256912003,256912003,"Red blood cell fluid specimen",BLOOD,"Komponen sel darah",true
+SP-725946000,725946000,"Reticulocyte specimen",BLOOD,"Komponen sel darah",true
+SP-442166002,442166002,"a.m. serum specimen",SERUM,"Serum",true
+SP-122592007,122592007,"Acellular blood (serum or plasma) specimen",SERUM,"Serum",true
+SP-258590006,258590006,"Acidified serum specimen",SERUM,"Serum",true
+SP-866034009,866034009,"Acute phase serum specimen",SERUM,"Serum",true
+SP-866035005,866035005,"Convalescent phase serum specimen",SERUM,"Serum",true
+SP-442427000,442427000,"p.m. serum specimen",SERUM,"Serum",true
+SP-788707000,788707000,"Plasma specimen or serum specimen or whole blood specimen",SERUM,"Serum",true
+SP-119364003,119364003,"Serum specimen",SERUM,"Serum",true
+SP-122589008,122589008,"Serum specimen from blood donor",SERUM,"Serum",true
+SP-122591000,122591000,"Serum specimen from blood product",SERUM,"Serum",true
+SP-737089009,737089009,"Serum specimen from control",SERUM,"Serum",true
+SP-122590004,122590004,"Serum specimen from patient",SERUM,"Serum",true
+SP-898205005,898205005,"Dried plasma spot specimen",PLASMA,"Plasma",true
+SP-119361006,119361006,"Plasma specimen",PLASMA,"Plasma",true
+SP-708048008,708048008,"Plasma specimen with citrate",PLASMA,"Plasma",true
+SP-708049000,708049000,"Plasma specimen with ethylenediamine tetraacetic acid",PLASMA,"Plasma",true
+SP-119362004,119362004,"Platelet poor plasma specimen",PLASMA,"Plasma",true
+SP-122587005,122587005,"Platelet poor plasma specimen from control",PLASMA,"Plasma",true
+SP-122588000,122588000,"Platelet poor plasma specimen from patient",PLASMA,"Plasma",true
+SP-119363009,119363009,"Platelet rich plasma specimen",PLASMA,"Plasma",true
+SP-737356002,737356002,"Pooled platelet poor plasma specimen",PLASMA,"Plasma",true
+SP-119348006,119348006,"Seminal plasma specimen",PLASMA,"Plasma",true
+SP-119305000,119305000,"Specimen from plasma bag",PLASMA,"Plasma",true
+SP-732211001,732211001,"12 hour urine specimen",URINE,"Urine",true
+SP-442043001,442043001,"2 hour urine specimen",URINE,"Urine",true
+SP-276833005,276833005,"24 hour urine specimen",URINE,"Urine",true
+SP-732220005,732220005,"48 hour urine specimen",URINE,"Urine",true
+SP-732222002,732222002,"72 hour urine specimen",URINE,"Urine",true
+SP-732217002,732217002,"8 hour urine specimen",URINE,"Urine",true
+SP-57931000052101,57931000052101,"Combined cervical mucus and urine specimen",URINE,"Urine",true
+SP-699284001,699284001,"Early morning mid-stream urine specimen obtained by clean catch procedure",URINE,"Urine",true
+SP-258575007,258575007,"Early morning urine specimen",URINE,"Urine",true
+SP-698276005,698276005,"First stream urine specimen",URINE,"Urine",true
+SP-258570002,258570002,"Genitourinary specimen",URINE,"Urine",true
+SP-258574006,258574006,"Mid-stream urine specimen",URINE,"Urine",true
+SP-699283007,699283007,"Mid-stream urine specimen obtained by single catheterization of bladder",URINE,"Urine",true
+SP-445742005,445742005,"Postcoital urine specimen",URINE,"Urine",true
+SP-445743000,445743000,"Postejaculation urine specimen",URINE,"Urine",true
+SP-733482006,733482006,"Second void urine specimen",URINE,"Urine",true
+SP-278020009,278020009,"Spot urine specimen",URINE,"Urine",true
+SP-258434003,258434003,"Spun urinary sediment",URINE,"Urine",true
+SP-447488002,447488002,"Suprapubic urine specimen",URINE,"Urine",true
+SP-409821005,409821005,"Timed urine specimen",URINE,"Urine",true
+SP-439580004,439580004,"Urine collection pad submitted as specimen",URINE,"Urine",true
+SP-430318008,430318008,"Urine cytologic material",URINE,"Urine",true
+SP-122567009,122567009,"Urine sediment specimen",URINE,"Urine",true
+SP-122575003,122575003,"Urine specimen",URINE,"Urine",true
+SP-446130001,446130001,"Urine specimen from bladder",URINE,"Urine",true
+SP-30961000087106,30961000087106,"Urine specimen from ileal conduit",URINE,"Urine",true
+SP-442173007,442173007,"Urine specimen from nephrostomy tube",URINE,"Urine",true
+SP-444937002,444937002,"Urine specimen from ureter",URINE,"Urine",true
+SP-734443003,734443003,"Urine specimen from ureter obtained by cystoscopy",URINE,"Urine",true
+SP-33351000087104,33351000087104,"Urine specimen from ureterostomy",URINE,"Urine",true
+SP-446300003,446300003,"Urine specimen from urethra",URINE,"Urine",true
+SP-447104008,447104008,"Urine specimen from urinary conduit",URINE,"Urine",true
+SP-122880004,122880004,"Urine specimen obtained by clean catch procedure",URINE,"Urine",true
+SP-447589008,447589008,"Urine specimen obtained by single catheterization of bladder",URINE,"Urine",true
+SP-445383006,445383006,"Urine specimen obtained for Stamey test",URINE,"Urine",true
+SP-699285000,699285000,"Urine specimen obtained from bladder via cystoscopy",URINE,"Urine",true
+SP-446907008,446907008,"Urine specimen obtained from kidney",URINE,"Urine",true
+SP-699286004,699286004,"Urine specimen obtained from kidney via aspiration",URINE,"Urine",true
+SP-446277003,446277003,"Urine specimen obtained from nephrostomy tube after percutaneous insertion",URINE,"Urine",true
+SP-16221371000119107,16221371000119107,"Urine specimen obtained from pediatric urine collection bag",URINE,"Urine",true
+SP-446306009,446306009,"Urine specimen obtained from urinary collection bag",URINE,"Urine",true
+SP-446846006,446846006,"Urine specimen obtained via indwelling urinary catheter",URINE,"Urine",true
+SP-16221251000119108,16221251000119108,"Urine specimen obtained via straight catheter",URINE,"Urine",true
+SP-699287008,699287008,"Urine specimen obtained via suprapubic indwelling urinary catheter",URINE,"Urine",true
+SP-16221491000119104,16221491000119104,"Voided urine specimen",URINE,"Urine",true
+SP-732227008,732227008,"24 hour stool specimen",STOOL,"Feses / stool",true
+SP-732226004,732226004,"48 hour stool specimen",STOOL,"Feses / stool",true
+SP-258554004,258554004,"Fecal concretion specimen",STOOL,"Feses / stool",true
+SP-258457009,258457009,"Fecal fluid specimen",STOOL,"Feses / stool",true
+SP-258487003,258487003,"Fecal smear",STOOL,"Feses / stool",true
+SP-258555003,258555003,"Hot stool specimen",STOOL,"Feses / stool",true
+SP-16223531000119100,16223531000119100,"Liquid stool specimen",STOOL,"Feses / stool",true
+SP-119340004,119340004,"Meconium specimen",STOOL,"Feses / stool",true
+SP-16223571000119102,16223571000119102,"Purged stool specimen",STOOL,"Feses / stool",true
+SP-697988001,697988001,"Soft stool specimen",STOOL,"Feses / stool",true
+SP-119339001,119339001,"Stool specimen",STOOL,"Feses / stool",true
+SP-446838005,446838005,"Specimen obtained by bronchial trap",SPUTUM,"Specimen respirasi dari bronkoskopi/trap",true
+SP-16221811000119106,16221811000119106,"Specimen obtained by bronchoscopy",SPUTUM,"Specimen respirasi dari bronkoskopi/trap",true
+SP-258606004,258606004,"Lower respiratory tract specimen",SPUTUM,"Specimen respirasi, material tidak dirinci",true
+SP-258603007,258603007,"Respiratory specimen",SPUTUM,"Specimen respirasi, material tidak dirinci",true
+SP-258604001,258604001,"Upper respiratory specimen",SPUTUM,"Specimen respirasi, material tidak dirinci",true
+SP-119335007,119335007,"Coughed sputum specimen",SPUTUM,"Sputum",true
+SP-430310001,430310001,"Sputum cytologic material",SPUTUM,"Sputum",true
+SP-404643001,404643001,"Sputum smear specimen",SPUTUM,"Sputum",true
+SP-119334006,119334006,"Sputum specimen",SPUTUM,"Sputum",true
+SP-258608003,258608003,"Sputum specimen obtained by aspiration",SPUTUM,"Sputum",true
+SP-258609006,258609006,"Sputum specimen obtained by aspiration from trachea",SPUTUM,"Sputum",true
+SP-258610001,258610001,"Sputum specimen obtained by sputum induction",SPUTUM,"Sputum",true
+SP-258611002,258611002,"Sputum specimen obtained from sputum suction trap",SPUTUM,"Sputum",true
+SP-309190004,309190004,"Excised salivary gland specimen",SALIVA,"Saliva / oral fluid",true
+SP-309549006,309549006,"Minor salivary gland specimen",SALIVA,"Saliva / oral fluid",true
+SP-441620008,441620008,"Oral fluid specimen",SALIVA,"Saliva / oral fluid",true
+SP-258560004,258560004,"Oral saliva specimen",SALIVA,"Saliva / oral fluid",true
+SP-258561000,258561000,"Parotid gland saliva specimen",SALIVA,"Saliva / oral fluid",true
+SP-119342007,119342007,"Saliva specimen",SALIVA,"Saliva / oral fluid",true
+SP-732293002,732293002,"Salivary calculus specimen",SALIVA,"Saliva / oral fluid",true
+SP-110930000,110930000,"Salivary gland cytologic material",SALIVA,"Saliva / oral fluid",true
+SP-399526005,399526005,"Specimen from major salivary gland",SALIVA,"Saliva / oral fluid",true
+SP-399747006,399747006,"Specimen from salivary gland",SALIVA,"Saliva / oral fluid",true
+SP-433119005,433119005,"Specimen from salivary gland obtained by biopsy",SALIVA,"Saliva / oral fluid",true
+SP-434406008,434406008,"Specimen from salivary gland obtained by fine needle aspiration biopsy",SALIVA,"Saliva / oral fluid",true
+SP-399645008,399645008,"Tissue specimen from major salivary gland",SALIVA,"Saliva / oral fluid",true
+SP-119347001,119347001,"Seminal fluid specimen",SEMEN,"Semen / spermatozoa",true
+SP-110937002,110937002,"Seminal vesicle cytologic material",SEMEN,"Semen / spermatozoa",true
+SP-430131006,430131006,"Specimen from seminal vesicle",SEMEN,"Semen / spermatozoa",true
+SP-433854001,433854001,"Specimen from seminal vesicle obtained by biopsy",SEMEN,"Semen / spermatozoa",true
+SP-432057001,432057001,"Specimen from seminal vesicle obtained by fine needle aspiration biopsy",SEMEN,"Semen / spermatozoa",true
+SP-430386002,430386002,"Spermatozoa cytologic material",SEMEN,"Semen / spermatozoa",true
+SP-119349003,119349003,"Spermatozoa specimen",SEMEN,"Semen / spermatozoa",true
+SP-119329007,119329007,"Colostrum specimen",MILK,"ASI / milk / colostrum",true
+SP-258655008,258655008,"Cow's milk specimen",MILK,"ASI / milk / colostrum",true
+SP-446676001,446676001,"Expressed breast milk specimen",MILK,"ASI / milk / colostrum",true
+SP-444832009,444832009,"Expressed breast milk specimen after breast cleansing",MILK,"ASI / milk / colostrum",true
+SP-444865001,444865001,"Expressed breast milk specimen before breast cleansing",MILK,"ASI / milk / colostrum",true
+SP-258653001,258653001,"Formula milk specimen",MILK,"ASI / milk / colostrum",true
+SP-258660007,258660007,"Goat milk specimen",MILK,"ASI / milk / colostrum",true
+SP-119321005,119321005,"Milk specimen",MILK,"ASI / milk / colostrum",true
+SP-119328004,119328004,"Mother's milk specimen",MILK,"ASI / milk / colostrum",true
+SP-258657000,258657000,"Semi-skimmed milk specimen",MILK,"ASI / milk / colostrum",true
+SP-258659002,258659002,"Sheep milk specimen",MILK,"ASI / milk / colostrum",true
+SP-258658005,258658005,"Skim milk specimen",MILK,"ASI / milk / colostrum",true
+SP-258654007,258654007,"Soy milk specimen",MILK,"ASI / milk / colostrum",true
+SP-258656009,258656009,"Whole milk specimen",MILK,"ASI / milk / colostrum",true
+SP-396997002,396997002,"Specimen from bone marrow obtained by aspiration",MARROW,"Aspirat sumsum tulang",true
+SP-396998007,396998007,"Specimen from bone marrow obtained by aspiration and biopsy",MARROW,"Aspirat sumsum tulang",true
+SP-396999004,396999004,"Specimen from bone marrow obtained by biopsy",MARROW,"Biopsi sumsum tulang",true
+SP-258583001,258583001,"Bone marrow clot specimen",MARROW,"Sumsum tulang",true
+SP-110897001,110897001,"Bone marrow cytological material",MARROW,"Sumsum tulang",true
+SP-258584007,258584007,"Bone marrow fragment specimen",MARROW,"Sumsum tulang",true
+SP-167913002,167913002,"Bone marrow source",MARROW,"Sumsum tulang",true
+SP-119359002,119359002,"Bone marrow specimen",MARROW,"Sumsum tulang",true
+SP-258585008,258585008,"Bone marrow trephine specimen",MARROW,"Sumsum tulang",true
+SP-271515009,271515009,"Iliac crest bone marrow specimen",MARROW,"Sumsum tulang",true
+SP-271518006,271518006,"Rib bone marrow specimen",MARROW,"Sumsum tulang",true
+SP-271514008,271514008,"Sternal bone marrow specimen",MARROW,"Sumsum tulang",true
+SP-271516005,271516005,"Vertebral spinous process bone marrow specimen",MARROW,"Sumsum tulang",true
+SP-258497007,258497007,"Abscess swab",SWAB,"Swab",true
+SP-258527002,258527002,"Anal swab",SWAB,"Swab",true
+SP-697989009,697989009,"Anterior nares swab",SWAB,"Swab",true
+SP-258504005,258504005,"BCG site swab",SWAB,"Swab",true
+SP-258524009,258524009,"Cervical swab",SWAB,"Swab",true
+SP-433801000124107,433801000124107,"Combined nasopharyngeal and oropharyngeal swab",SWAB,"Swab",true
+SP-33651000087106,33651000087106,"Combined specimen from swab of anterior nares and anus",SWAB,"Swab",true
+SP-33641000087108,33641000087108,"Combined specimen from swab of anterior nares and anus and axilla",SWAB,"Swab",true
+SP-33671000087100,33671000087100,"Combined specimen from swab of anterior nares and anus and throat",SWAB,"Swab",true
+SP-33661000087109,33661000087109,"Combined specimen from swab of anterior nares and anus and umbilicus",SWAB,"Swab",true
+SP-433881000124103,433881000124103,"Combined specimen from swab of anterior nares and throat",SWAB,"Swab",true
+SP-258498002,258498002,"Conjunctival swab",SWAB,"Swab",true
+SP-258515000,258515000,"Coronal sulcus of penis swab",SWAB,"Swab",true
+SP-258499005,258499005,"Cough swab",SWAB,"Swab",true
+SP-309166000,309166000,"Ear swab specimen",SWAB,"Swab",true
+SP-419695002,419695002,"Environmental swab",SWAB,"Swab",true
+SP-1003522007,1003522007,"Environmental swab from animal burrow",SWAB,"Swab",true
+SP-258519006,258519006,"Female genital swab",SWAB,"Swab",true
+SP-258535004,258535004,"Floor swab",SWAB,"Swab",true
+SP-258516004,258516004,"Frenulum of penis swab",SWAB,"Swab",true
+SP-258508008,258508008,"Genital swab",SWAB,"Swab",true
+SP-258512002,258512002,"Glans penis swab",SWAB,"Swab",true
+SP-258521001,258521001,"High vaginal swab",SWAB,"Swab",true
+SP-258536003,258536003,"Incubator swab",SWAB,"Swab",true
+SP-258522008,258522008,"Low vaginal swab",SWAB,"Swab",true
+SP-258509000,258509000,"Male genital swab",SWAB,"Swab",true
+SP-871810001,871810001,"Mid-turbinate nasal swab",SWAB,"Swab",true
+SP-258500001,258500001,"Nasopharyngeal swab",SWAB,"Swab",true
+SP-418932006,418932006,"Oral swab",SWAB,"Swab",true
+SP-461911000124106,461911000124106,"Oropharyngeal swab",SWAB,"Swab",true
+SP-258511009,258511009,"Penile urethral swab",SWAB,"Swab",true
+SP-258510005,258510005,"Penis swab",SWAB,"Swab",true
+SP-258526006,258526006,"Perianal swab",SWAB,"Swab",true
+SP-258525005,258525005,"Perineal swab",SWAB,"Swab",true
+SP-708317005,708317005,"Pooled specimen from vaginal introitus and rectal swab",SWAB,"Swab",true
+SP-258513007,258513007,"Prepuce swab",SWAB,"Swab",true
+SP-258502009,258502009,"Pus swab",SWAB,"Swab",true
+SP-258528007,258528007,"Rectal swab",SWAB,"Swab",true
+SP-258518003,258518003,"Scrotal swab",SWAB,"Swab",true
+SP-258517008,258517008,"Shaft of penis swab",SWAB,"Swab",true
+SP-258503004,258503004,"Skin swab",SWAB,"Swab",true
+SP-258505006,258505006,"Skin ulcer swab",SWAB,"Swab",true
+SP-258514001,258514001,"Subpreputial swab",SWAB,"Swab",true
+SP-258537007,258537007,"Surface swab",SWAB,"Swab",true
+SP-257261003,257261003,"Swab",SWAB,"Swab",true
+SP-472904006,472904006,"Swab from abdomen",SWAB,"Swab",true
+SP-472893008,472893008,"Swab from abscess of brain",SWAB,"Swab",true
+SP-472890006,472890006,"Swab from appendix",SWAB,"Swab",true
+SP-472876008,472876008,"Swab from Bartholin cyst",SWAB,"Swab",true
+SP-472878009,472878009,"Swab from Bartholin gland",SWAB,"Swab",true
+SP-28971000087101,28971000087101,"Swab from bite wound",SWAB,"Swab",true
+SP-472896000,472896000,"Swab from blister",SWAB,"Swab",true
+SP-733104004,733104004,"Swab from buccal mucosa",SWAB,"Swab",true
+SP-472895001,472895001,"Swab from buttock",SWAB,"Swab",true
+SP-472880003,472880003,"Swab from catheter",SWAB,"Swab",true
+SP-472903000,472903000,"Swab from central venous catheter",SWAB,"Swab",true
+SP-472902005,472902005,"Swab from chest tube insertion site",SWAB,"Swab",true
+SP-472894002,472894002,"Swab from cornea",SWAB,"Swab",true
+SP-472884007,472884007,"Swab from deep wound",SWAB,"Swab",true
+SP-472892003,472892003,"Swab from digit of hand",SWAB,"Swab",true
+SP-28991000087102,28991000087102,"Swab from epiglottis",SWAB,"Swab",true
+SP-472877004,472877004,"Swab from esophagus",SWAB,"Swab",true
+SP-29001000087102,29001000087102,"Swab from external stoma wound",SWAB,"Swab",true
+SP-30941000087105,30941000087105,"Swab from eyelid",SWAB,"Swab",true
+SP-472886009,472886009,"Swab from gastrostomy stoma",SWAB,"Swab",true
+SP-472900002,472900002,"Swab from gingiva",SWAB,"Swab",true
+SP-472898004,472898004,"Swab from hand",SWAB,"Swab",true
+SP-454951000124103,454951000124103,"Swab from head",SWAB,"Swab",true
+SP-472897009,472897009,"Swab from hip region",SWAB,"Swab",true
+SP-472887000,472887000,"Swab from labia",SWAB,"Swab",true
+SP-472888005,472888005,"Swab from larynx",SWAB,"Swab",true
+SP-16210971000119108,16210971000119108,"Swab from lesion",SWAB,"Swab",true
+SP-472862007,472862007,"Swab from lesion of skin",SWAB,"Swab",true
+SP-472891005,472891005,"Swab from lip",SWAB,"Swab",true
+SP-472863002,472863002,"Swab from lower leg",SWAB,"Swab",true
+SP-472864008,472864008,"Swab from lower limb",SWAB,"Swab",true
+SP-472901003,472901003,"Swab from nasal sinus",SWAB,"Swab",true
+SP-1163592005,1163592005,"Swab from paraurethral gland",SWAB,"Swab",true
+SP-472889002,472889002,"Swab from pelvis",SWAB,"Swab",true
+SP-472869003,472869003,"Swab from pericardial sac structure",SWAB,"Swab",true
+SP-472868006,472868006,"Swab from peritoneal cavity structure",SWAB,"Swab",true
+SP-472881004,472881004,"Swab from pharynx",SWAB,"Swab",true
+SP-472879001,472879001,"Swab from placenta",SWAB,"Swab",true
+SP-472885008,472885008,"Swab from pressure injury",SWAB,"Swab",true
+SP-472882006,472882006,"Swab from superficial wound",SWAB,"Swab",true
+SP-472883001,472883001,"Swab from surgical wound",SWAB,"Swab",true
+SP-473399006,473399006,"Swab from Tenckhoff catheter exit site",SWAB,"Swab",true
+SP-472861000,472861000,"Swab from testicle",SWAB,"Swab",true
+SP-472865009,472865009,"Swab from toe",SWAB,"Swab",true
+SP-472866005,472866005,"Swab from tongue",SWAB,"Swab",true
+SP-472867001,472867001,"Swab from tonsil",SWAB,"Swab",true
+SP-473400004,473400004,"Swab from tooth",SWAB,"Swab",true
+SP-33901000087104,33901000087104,"Swab from tracheostomy stoma",SWAB,"Swab",true
+SP-472870002,472870002,"Swab from tracheostomy wound",SWAB,"Swab",true
+SP-472871003,472871003,"Swab from ulcer",SWAB,"Swab",true
+SP-472872005,472872005,"Swab from ultrasonic nebulizer",SWAB,"Swab",true
+SP-472873000,472873000,"Swab from urethral meatus",SWAB,"Swab",true
+SP-472874006,472874006,"Swab from uterus",SWAB,"Swab",true
+SP-472899007,472899007,"Swab from vaginal introitus",SWAB,"Swab",true
+SP-472875007,472875007,"Swab from vesicle",SWAB,"Swab",true
+SP-446577002,446577002,"Swab obtained during autopsy",SWAB,"Swab",true
+SP-445364004,445364004,"Swab of axilla",SWAB,"Swab",true
+SP-431905001,431905001,"Swab of building drain",SWAB,"Swab",true
+SP-258506007,258506007,"Swab of drain insertion site",SWAB,"Swab",true
+SP-444787003,444787003,"Swab of endocervix",SWAB,"Swab",true
+SP-445369009,445369009,"Swab of endometrium",SWAB,"Swab",true
+SP-445160003,445160003,"Swab of eye",SWAB,"Swab",true
+SP-445444005,445444005,"Swab of groin",SWAB,"Swab",true
+SP-258532001,258532001,"Swab of inanimate object",SWAB,"Swab",true
+SP-445297001,445297001,"Swab of internal nose",SWAB,"Swab",true
+SP-258507003,258507003,"Swab of line insertion site",SWAB,"Swab",true
+SP-438343001,438343001,"Swab of pilonidal sinus",SWAB,"Swab",true
+SP-431776009,431776009,"Swab of surgical drain",SWAB,"Swab",true
+SP-445367006,445367006,"Swab of umbilicus",SWAB,"Swab",true
+SP-735950000,735950000,"Swab of vascular catheter insertion site",SWAB,"Swab",true
+SP-258529004,258529004,"Throat swab",SWAB,"Swab",true
+SP-309164002,309164002,"Upper respiratory swab specimen",SWAB,"Swab",true
+SP-258530009,258530009,"Urethral swab",SWAB,"Swab",true
+SP-258520000,258520000,"Vaginal swab",SWAB,"Swab",true
+SP-258523003,258523003,"Vulval swab",SWAB,"Swab",true
+SP-258531008,258531008,"Wound swab",SWAB,"Swab",true
+SP-309061008,309061008,"Breast fine needle aspirate specimen",ASPIRATE,"Aspirat",true
+SP-16216211000119105,16216211000119105,"Endocervical aspirate",ASPIRATE,"Aspirat",true
+SP-168137004,168137004,"Gastric aspirate specimen",ASPIRATE,"Aspirat",true
+SP-168138009,168138009,"Gastric lavage aspirate specimen",ASPIRATE,"Aspirat",true
+SP-16216011000119104,16216011000119104,"Hilum of lung specimen obtained by fine needle aspiration procedure",ASPIRATE,"Aspirat",true
+SP-16211091000119104,16211091000119104,"Hydrocele specimen obtained by fine needle aspiration",ASPIRATE,"Aspirat",true
+SP-302795002,302795002,"Lymph node aspirate",ASPIRATE,"Aspirat",true
+SP-429931000124105,429931000124105,"Nasal aspirate specimen",ASPIRATE,"Aspirat",true
+SP-302794003,302794003,"Nasogastric aspirate",ASPIRATE,"Aspirat",true
+SP-258411007,258411007,"Nasopharyngeal aspirate",ASPIRATE,"Aspirat",true
+SP-16224171000119108,16224171000119108,"Nasotracheal aspirate",ASPIRATE,"Aspirat",true
+SP-258412000,258412000,"Oropharyngeal aspirate",ASPIRATE,"Aspirat",true
+SP-708112008,708112008,"Retrouterine pouch fluid aspirate",ASPIRATE,"Aspirat",true
+SP-309508006,309508006,"Soft tissue lesion fine needle aspirate specimen",ASPIRATE,"Aspirat",true
+SP-441750007,441750007,"Specimen from abdominal cavity structure obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-446972001,446972001,"Specimen from abscess obtained by aspiration",ASPIRATE,"Aspirat",true
+SP-442649003,442649003,"Specimen from adipose tissue obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-441792002,441792002,"Specimen from adrenal gland obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-16211291000119106,16211291000119106,"Specimen from axilla structure obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-441694006,441694006,"Specimen from axillary lymph node obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-432098008,432098008,"Specimen from bile duct obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-432099000,432099000,"Specimen from bladder obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-431404007,431404007,"Specimen from bone obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-16215851000119100,16215851000119100,"Specimen from brain obtained by fine needle aspiration",ASPIRATE,"Aspirat",true
+SP-16216051000119103,16216051000119103,"Specimen from branchial cleft cyst obtained by fine needle aspiration",ASPIRATE,"Aspirat",true
+SP-447357000,447357000,"Specimen from breast obtained by aspiration",ASPIRATE,"Aspirat",true
+SP-432140002,432140002,"Specimen from bronchus obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-16215931000119102,16215931000119102,"Specimen from cyst obtained by fine needle aspiration",ASPIRATE,"Aspirat",true
+SP-734427005,734427005,"Specimen from duodenum obtained by aspiration",ASPIRATE,"Aspirat",true
+SP-734425002,734425002,"Specimen from ear obtained by aspiration",ASPIRATE,"Aspirat",true
+SP-434249007,434249007,"Specimen from ear obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-447358005,447358005,"Specimen from endometrium obtained by aspiration",ASPIRATE,"Aspirat",true
+SP-432980007,432980007,"Specimen from epididymis obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-447359002,447359002,"Specimen from esophagus obtained by aspiration",ASPIRATE,"Aspirat",true
+SP-432981006,432981006,"Specimen from eye obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-431233006,431233006,"Specimen from fallopian tube obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-431884001,431884001,"Specimen from gallbladder obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-16215811000119101,16215811000119101,"Specimen from groin obtained by fine needle aspiration",ASPIRATE,"Aspirat",true
+SP-431886004,431886004,"Specimen from head and neck structure obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-122626005,122626005,"Specimen from heart obtained by fine needle aspiration procedure",ASPIRATE,"Aspirat",true
+SP-1237234002,1237234002,"Specimen from hemorrhagic ovarian cyst obtained by aspiration",ASPIRATE,"Aspirat",true
+SP-16215771000119101,16215771000119101,"Specimen from inguinal lymph node obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-734426001,734426001,"Specimen from jejunum obtained by aspiration",ASPIRATE,"Aspirat",true
+SP-432419006,432419006,"Specimen from joint obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-122671002,122671002,"Specimen from kidney obtained by fine needle aspiration procedure",ASPIRATE,"Aspirat",true
+SP-446675002,446675002,"Specimen from knee joint obtained by aspiration",ASPIRATE,"Aspirat",true
+SP-432864003,432864003,"Specimen from large intestine obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-432865002,432865002,"Specimen from larynx obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-16215651000119101,16215651000119101,"Specimen from left lower lobe of lung obtained by bronchial aspiration procedure",ASPIRATE,"Aspirat",true
+SP-16214451000119102,16214451000119102,"Specimen from left lung obtained by fine needle aspiration procedure",ASPIRATE,"Aspirat",true
+SP-16215531000119108,16215531000119108,"Specimen from left upper lobe of lung obtained by bronchial aspiration procedure",ASPIRATE,"Aspirat",true
+SP-433115004,433115004,"Specimen from lip obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-16216171000119108,16216171000119108,"Specimen from liver obtained by aspiration",ASPIRATE,"Aspirat",true
+SP-433116003,433116003,"Specimen from liver obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-16213731000119100,16213731000119100,"Specimen from liver obtained by needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-16216251000119106,16216251000119106,"Specimen from lung obtained by aspiration",ASPIRATE,"Aspirat",true
+SP-122614000,122614000,"Specimen from lung obtained by fine needle aspiration procedure",ASPIRATE,"Aspirat",true
+SP-34141000087102,34141000087102,"Specimen from lymph node obtained by endobronchial ultrasound guided transbronchial fine needle aspiration",ASPIRATE,"Aspirat",true
+SP-432382007,432382007,"Specimen from lymph node obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-34151000087104,34151000087104,"Specimen from mass obtained by endobronchial ultrasound guided transbronchial fine needle aspiration",ASPIRATE,"Aspirat",true
+SP-432144006,432144006,"Specimen from mediastinum obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-434140003,434140003,"Specimen from mesentery obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-432607005,432607005,"Specimen from mouth obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-433859006,433859006,"Specimen from nasal fossae obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-433861002,433861002,"Specimen from nasal sinus obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-431405008,431405008,"Specimen from ovary obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-431406009,431406009,"Specimen from pancreas obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-432141003,432141003,"Specimen from parathyroid obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-441695007,441695007,"Specimen from parotid gland obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-441906003,441906003,"Specimen from pelvic structure obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-432143000,432143000,"Specimen from penis obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-432982004,432982004,"Specimen from peritoneum obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-447391001,447391001,"Specimen from pharynx obtained by aspiration",ASPIRATE,"Aspirat",true
+SP-432983009,432983009,"Specimen from pituitary gland obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-122618002,122618002,"Specimen from pleura obtained by fine needle aspiration procedure",ASPIRATE,"Aspirat",true
+SP-441884004,441884004,"Specimen from prostate obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-433118002,433118002,"Specimen from retroperitoneum obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-16215611000119102,16215611000119102,"Specimen from right lower lobe of lung obtained by bronchial aspiration procedure",ASPIRATE,"Aspirat",true
+SP-16214491000119107,16214491000119107,"Specimen from right lung obtained by fine needle aspiration procedure",ASPIRATE,"Aspirat",true
+SP-16215571000119106,16215571000119106,"Specimen from right middle lobe of lung obtained by bronchial aspiration procedure",ASPIRATE,"Aspirat",true
+SP-16215691000119106,16215691000119106,"Specimen from right upper lobe of lung obtained by bronchial aspiration procedure",ASPIRATE,"Aspirat",true
+SP-432134009,432134009,"Specimen from skin obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-432135005,432135005,"Specimen from small intestine obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-16221891000119102,16221891000119102,"Specimen from soft tissue mass lesion obtained by fine needle aspiration",ASPIRATE,"Aspirat",true
+SP-441810001,441810001,"Specimen from soft tissue obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-431696005,431696005,"Specimen from spermatic cord obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-432383002,432383002,"Specimen from spleen obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-432384008,432384008,"Specimen from stomach obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-441876003,441876003,"Specimen from sublingual gland obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-441749007,441749007,"Specimen from submandibular gland obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-441710009,441710009,"Specimen from testis obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-396899000,396899000,"Specimen from thymus gland obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-432985002,432985002,"Specimen from tongue obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-445447003,445447003,"Specimen from trachea obtained by aspiration",ASPIRATE,"Aspirat",true
+SP-431235004,431235004,"Specimen from trachea obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-431888003,431888003,"Specimen from unspecified body site obtained by fine needle aspiration",ASPIRATE,"Aspirat",true
+SP-432420000,432420000,"Specimen from ureter obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-433120004,433120004,"Specimen from urethra obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-432060008,432060008,"Specimen from uterus obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-447392008,447392008,"Specimen from vagina obtained by aspiration",ASPIRATE,"Aspirat",true
+SP-432136006,432136006,"Specimen from vulva obtained by fine needle aspiration biopsy",ASPIRATE,"Aspirat",true
+SP-119295008,119295008,"Specimen obtained by aspiration",ASPIRATE,"Aspirat",true
+SP-446305008,446305008,"Specimen obtained by aspiration via tracheostomy",ASPIRATE,"Aspirat",true
+SP-441903006,441903006,"Specimen obtained by bronchial aspiration",ASPIRATE,"Aspirat",true
+SP-122550002,122550002,"Specimen obtained by fine needle aspiration procedure",ASPIRATE,"Aspirat",true
+SP-446299006,446299006,"Specimen obtained by transbronchial aspiration",ASPIRATE,"Aspirat",true
+SP-16216131000119105,16216131000119105,"Specimen obtained from pouch of Douglas by aspiration",ASPIRATE,"Aspirat",true
+SP-258576008,258576008,"Suprapubic aspirate specimen",ASPIRATE,"Aspirat",true
+SP-16223971000119109,16223971000119109,"Synovial fluid specimen obtained by fine needle aspiration procedure",ASPIRATE,"Aspirat",true
+SP-309146009,309146009,"Thyroid fine needle aspirate specimen",ASPIRATE,"Aspirat",true
+SP-258480001,258480001,"Transtracheal aspirate specimen",ASPIRATE,"Aspirat",true
+SP-16223931000119106,16223931000119106,"Vitreous humor specimen obtained by fine needle aspiration procedure",ASPIRATE,"Aspirat",true
+SP-57711000052109,57711000052109,"Specimen obtained by puncture procedure",ASPIRATE,"Pungsi",true
+SP-309176002,309176002,"Bronchial brushings specimen",CYTOLOGY,"Brushing",true
+SP-16213691000119107,16213691000119107,"Common bile duct brushings specimen",CYTOLOGY,"Brushing",true
+SP-16216091000119108,16216091000119108,"Duodenal brushings specimen",CYTOLOGY,"Brushing",true
+SP-718684005,718684005,"Endocervical brush specimen",CYTOLOGY,"Brushing",true
+SP-309210009,309210009,"Esophageal brushings specimen",CYTOLOGY,"Brushing",true
+SP-309213006,309213006,"Gastric brushings specimen",CYTOLOGY,"Brushing",true
+SP-16212371000119106,16212371000119106,"Kidney brushings specimen",CYTOLOGY,"Brushing",true
+SP-309261004,309261004,"Sigmoid colon brushings specimen",CYTOLOGY,"Brushing",true
+SP-16223771000119107,16223771000119107,"Specimen from diaphragm obtained by brushing",CYTOLOGY,"Brushing",true
+SP-16212451000119108,16212451000119108,"Specimen from left lower lobe of lung obtained by bronchial brushings procedure",CYTOLOGY,"Brushing",true
+SP-16212491000119103,16212491000119103,"Specimen from left upper lobe of lung obtained by bronchial brushings procedure",CYTOLOGY,"Brushing",true
+SP-16212531000119103,16212531000119103,"Specimen from right lower lobe of lung obtained by bronchial brushings procedure",CYTOLOGY,"Brushing",true
+SP-16212571000119100,16212571000119100,"Specimen from right middle lobe of lung obtained by bronchial brushings procedure",CYTOLOGY,"Brushing",true
+SP-16212411000119107,16212411000119107,"Specimen from right upper lobe of lung obtained by bronchial brushings procedure",CYTOLOGY,"Brushing",true
+SP-110904004,110904004,"Accessory sinus cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110967008,110967008,"Amnion cytologic material",CYTOLOGY,"Material sitologi",true
+SP-430389009,430389009,"Amniotic fluid cytologic material",CYTOLOGY,"Material sitologi",true
+SP-116155002,116155002,"Ampulla of Vater cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110963007,110963007,"Anal cytologic material",CYTOLOGY,"Material sitologi",true
+SP-431771004,431771004,"Ascitic fluid cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110928002,110928002,"Bile duct cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110901007,110901007,"Bone cytologic material",CYTOLOGY,"Material sitologi",true
+SP-373103009,373103009,"Breast cytologic material obtained by incisional biopsy",CYTOLOGY,"Material sitologi",true
+SP-373101006,373101006,"Breast cytologic material obtained by percutaneous core biopsy",CYTOLOGY,"Material sitologi",true
+SP-110899003,110899003,"Breast nipple cytologic material",CYTOLOGY,"Material sitologi",true
+SP-430309006,430309006,"Breast nipple discharge cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110912007,110912007,"Bronchial cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110969006,110969006,"Cerebrospinal fluid cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110970007,110970007,"Cerebroventricular fluid cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110949001,110949001,"Cervix cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110961009,110961009,"Chorion cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110956007,110956007,"Colonic cytologic material",CYTOLOGY,"Material sitologi",true
+SP-430387006,430387006,"Combined specimen of cytologic material from endocervix, ectocervix, and vaginal fornix",CYTOLOGY,"Material sitologi",true
+SP-110893002,110893002,"Cutaneous cytologic material",CYTOLOGY,"Material sitologi",true
+SP-48469005,48469005,"Cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110922001,110922001,"Cytologic material from left main bronchus",CYTOLOGY,"Material sitologi",true
+SP-733105003,733105003,"Cytologic material from lymph node of neck obtained by fine needle aspiration",CYTOLOGY,"Material sitologi",true
+SP-733475007,733475007,"Cytologic material from mass of neck obtained by fine needle aspiration",CYTOLOGY,"Material sitologi",true
+SP-733476008,733476008,"Cytologic material from neck obtained by fine needle aspiration",CYTOLOGY,"Material sitologi",true
+SP-110924000,110924000,"Cytologic material from right main bronchus",CYTOLOGY,"Material sitologi",true
+SP-432897002,432897002,"Cytologic material obtained from joint fluid",CYTOLOGY,"Material sitologi",true
+SP-430379005,430379005,"Cytologic material obtained from pericardial fluid",CYTOLOGY,"Material sitologi",true
+SP-430408004,430408004,"Cytologic material obtained from pleural fluid",CYTOLOGY,"Material sitologi",true
+SP-430312009,430312009,"Cytologic material obtained from synovial fluid",CYTOLOGY,"Material sitologi",true
+SP-430297000,430297000,"Cytologic material obtained from unspecified body site",CYTOLOGY,"Material sitologi",true
+SP-110925004,110925004,"Cytologic material of mouth",CYTOLOGY,"Material sitologi",true
+SP-110938007,110938007,"Duodenal cytologic material",CYTOLOGY,"Material sitologi",true
+SP-430241003,430241003,"Ear cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110951002,110951002,"Endocervical cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110955006,110955006,"Endometrium cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110941003,110941003,"Epididymis cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110907006,110907006,"Epiglottic cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110962002,110962002,"Esophageal cytologic material",CYTOLOGY,"Material sitologi",true
+SP-370108001,370108001,"Extrahepatic bile duct cytologic material",CYTOLOGY,"Material sitologi",true
+SP-430117006,430117006,"Eye region cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110957003,110957003,"Fallopian tube cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110968003,110968003,"Fetal cytologic material",CYTOLOGY,"Material sitologi",true
+SP-116161004,116161004,"Fine needle aspirate of thyroid, cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110926003,110926003,"Gallbladder cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110936006,110936006,"Gastric cytologic material",CYTOLOGY,"Material sitologi",true
+SP-116156001,116156001,"Gastrointestinal tract cytologic material",CYTOLOGY,"Material sitologi",true
+SP-116157005,116157005,"Heart cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110940002,110940002,"Ileal cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110966004,110966004,"Jejunal cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110948009,110948009,"Kidney cytologic material",CYTOLOGY,"Material sitologi",true
+SP-116158000,116158000,"Large intestine cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110908001,110908001,"Laryngeal cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110923006,110923006,"Left lower lobe bronchus cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110917001,110917001,"Left pleural cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110918006,110918006,"Left upper lobe bronchus cytologic material",CYTOLOGY,"Material sitologi",true
+SP-431058008,431058008,"Lip cytologic material",CYTOLOGY,"Material sitologi",true
+SP-430346005,430346005,"Liquid based cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110927007,110927007,"Liver cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110906002,110906002,"Lower respiratory tract cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110964001,110964001,"Lower urinary tract cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110910004,110910004,"Lung cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110898006,110898006,"Lymph node cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110894008,110894008,"Mammary cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110903005,110903005,"Nasal cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110905003,110905003,"Nasopharyngeal cytologic material",CYTOLOGY,"Material sitologi",true
+SP-116213003,116213003,"Ovary cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110929005,110929005,"Pancreatic cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110932008,110932008,"Parotid gland cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110931001,110931001,"Penis cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110919003,110919003,"Pericardial cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110944006,110944006,"Peritoneal cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110934009,110934009,"Pharyngeal cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110959000,110959000,"Placenta cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110913002,110913002,"Pleural cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110933003,110933003,"Prostate cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110942005,110942005,"Rectal cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110943000,110943000,"Renal pelvis cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110916005,110916005,"Right lower lobe bronchus cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110921008,110921008,"Right middle lobe bronchus cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110915009,110915009,"Right pleural cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110914008,110914008,"Right upper lobe bronchus cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110900008,110900008,"Skeletal muscle cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110954005,110954005,"Small intestine cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110896005,110896005,"Subcutaneous cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110952009,110952009,"Submaxillary gland cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110935005,110935005,"Testis cytologic material",CYTOLOGY,"Material sitologi",true
+SP-116160003,116160003,"Thyroid cytologic material",CYTOLOGY,"Material sitologi",true
+SP-116162006,116162006,"Thyroid cytologic material, processed intraoperatively",CYTOLOGY,"Material sitologi",true
+SP-430855004,430855004,"Touch preparation cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110920009,110920009,"Tracheal cytologic material",CYTOLOGY,"Material sitologi",true
+SP-116159008,116159008,"Upper aerodigestive tract cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110902000,110902000,"Upper respiratory tract cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110946008,110946008,"Upper urinary tract cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110960005,110960005,"Ureter cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110965000,110965000,"Urethra cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110950001,110950001,"Urinary bladder cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110958008,110958008,"Urinary tract cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110947004,110947004,"Vagina cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110953004,110953004,"Vaginal and cervical cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110939004,110939004,"Vas deferens cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110909009,110909009,"Vocal cord cytologic material",CYTOLOGY,"Material sitologi",true
+SP-110945007,110945007,"Vulva cytologic material",CYTOLOGY,"Material sitologi",true
+SP-16216371000119105,16216371000119105,"Anal smear specimen",CYTOLOGY,"Smear",true
+SP-309057002,309057002,"Breast direct smear specimen",CYTOLOGY,"Smear",true
+SP-258564008,258564008,"Buccal smear specimen",CYTOLOGY,"Smear",true
+SP-16216331000119107,16216331000119107,"Cerebrospinal fluid smear specimen",CYTOLOGY,"Smear",true
+SP-276446009,276446009,"Cervical smear specimen",CYTOLOGY,"Smear",true
+SP-16216411000119106,16216411000119106,"Conjunctival smear specimen",CYTOLOGY,"Smear",true
+SP-16215131000119100,16215131000119100,"Endocervical smear specimen",CYTOLOGY,"Smear",true
+SP-309202008,309202008,"Gastrointestinal direct smear",CYTOLOGY,"Smear",true
+SP-16216291000119101,16216291000119101,"Labia smear specimen",CYTOLOGY,"Smear",true
+SP-309204009,309204009,"Liver direct smear specimen",CYTOLOGY,"Smear",true
+SP-309177006,309177006,"Lung direct smear specimen",CYTOLOGY,"Smear",true
+SP-258488008,258488008,"Lymph node smear",CYTOLOGY,"Smear",true
+SP-447339001,447339001,"Nasal smear specimen",CYTOLOGY,"Smear",true
+SP-16224251000119106,16224251000119106,"Papanicolaou smear specimen",CYTOLOGY,"Smear",true
+SP-258489000,258489000,"Slit skin smear",CYTOLOGY,"Smear",true
+SP-258433009,258433009,"Smear specimen",CYTOLOGY,"Smear",true
+SP-309148005,309148005,"Thyroid direct smear specimen",CYTOLOGY,"Smear",true
+SP-708285007,708285007,"Tissue impression smear specimen",CYTOLOGY,"Smear",true
+SP-312494007,312494007,"Vaginal vault smear specimen",CYTOLOGY,"Smear",true
+SP-309142006,309142006,"Adrenal biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309494003,309494003,"Ampulla of Vater biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309265008,309265008,"Anal biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-16213411000119100,16213411000119100,"Ascending colon biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309493009,309493009,"Bile duct biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-258415003,258415003,"Biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309273004,309273004,"Bladder biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309105004,309105004,"Bone biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309058007,309058007,"Breast tru-cut biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309174004,309174004,"Bronchial biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309111001,309111001,"Bursa biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309102001,309102001,"Cartilage biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-16213491000119109,16213491000119109,"Cecum biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309283000,309283000,"Cervical biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309225009,309225009,"Colonic biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-16213531000119109,16213531000119109,"Descending colon biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309216003,309216003,"Duodenal biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-258421004,258421004,"Embryo biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-16215731000119104,16215731000119104,"Endocardium biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309209004,309209004,"Esophageal biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309290005,309290005,"Fallopian tube biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309118007,309118007,"Fascia biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309499008,309499008,"Foreskin biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309212001,309212001,"Gastric antral biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309211008,309211008,"Gastric biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309214000,309214000,"Gastric fundus biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-16212691000119100,16212691000119100,"Gingiva biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309217007,309217007,"Ileal biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-16213571000119107,16213571000119107,"Ileocecal valve biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309219005,309219005,"Jejunal biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309124001,309124001,"Joint biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309269002,309269002,"Kidney biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309182004,309182004,"Larynx biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-16213371000119101,16213371000119101,"Left colic flexure biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309115005,309115005,"Ligament biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309483002,309483002,"Lip biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309073008,309073008,"Lipoma biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309203003,309203003,"Liver biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309079007,309079007,"Lymph node biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309181006,309181006,"Mastoid biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309167009,309167009,"Middle ear biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309188000,309188000,"Mouth biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309507001,309507001,"Muscle biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309178001,309178001,"Nasal biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309180007,309180007,"Nasopharyngeal biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309130001,309130001,"Nerve biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309208007,309208007,"Omentum biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309206006,309206006,"Pancreas biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309151003,309151003,"Parathyroid biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309071005,309071005,"Penis skin biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309207002,309207002,"Peritoneal biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309193002,309193002,"Pharyngeal biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309172000,309172000,"Pleura biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309132009,309132009,"Prostate biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309134005,309134005,"Prostate tru-cut biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309262006,309262006,"Rectal biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-16213331000119104,16213331000119104,"Rectosigmoid colon biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-16213451000119104,16213451000119104,"Right colic flexure biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309260003,309260003,"Sigmoid colon biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309066003,309066003,"Skin biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309506005,309506005,"Skin excision biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309505009,309505009,"Skin incision biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309504008,309504008,"Skin punch biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309074002,309074002,"Soft tissue biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-396525008,396525008,"Specimen from adrenal gland obtained by needle biopsy",BIOPSY,"Biopsi jaringan",true
+SP-122657005,122657005,"Specimen from ampulla of Vater obtained by incisional biopsy",BIOPSY,"Biopsi jaringan",true
+SP-16214091000119101,16214091000119101,"Specimen from anterior wall of urinary bladder obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-432097003,432097003,"Specimen from artery obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-16213011000119107,16213011000119107,"Specimen from bone obtained by core needle biopsy",BIOPSY,"Biopsi jaringan",true
+SP-432139004,432139004,"Specimen from brain obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-122601001,122601001,"Specimen from breast obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-122737001,122737001,"Specimen from breast obtained by core needle biopsy",BIOPSY,"Biopsi jaringan",true
+SP-373102004,373102004,"Specimen from breast obtained by image guided core biopsy",BIOPSY,"Biopsi jaringan",true
+SP-122739003,122739003,"Specimen from breast obtained by incisional biopsy of breast mass",BIOPSY,"Biopsi jaringan",true
+SP-16215091000119102,16215091000119102,"Specimen from bronchus obtained by endobronchial biopsy",BIOPSY,"Biopsi jaringan",true
+SP-399551006,399551006,"Specimen from central nervous system obtained by open biopsy",BIOPSY,"Biopsi jaringan",true
+SP-399728008,399728008,"Specimen from central nervous system obtained by stereotactically guided core needle biopsy",BIOPSY,"Biopsi jaringan",true
+SP-16213931000119103,16213931000119103,"Specimen from dome of urinary bladder obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-432910000,432910000,"Specimen from ear obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-122704003,122704003,"Specimen from endometrium obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-431205006,431205006,"Specimen from epididymis obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-122629003,122629003,"Specimen from esophagus obtained by excisional biopsy of lesion",BIOPSY,"Biopsi jaringan",true
+SP-122628006,122628006,"Specimen from esophagus obtained by incisional biopsy",BIOPSY,"Biopsi jaringan",true
+SP-16212731000119107,16212731000119107,"Specimen from ethmoid sinus obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-431232001,431232001,"Specimen from eye region obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-16212771000119105,16212771000119105,"Specimen from eyelid obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-122627001,122627001,"Specimen from gastrointestinal tract obtained by incisional biopsy",BIOPSY,"Biopsi jaringan",true
+SP-431885000,431885000,"Specimen from head and neck structure obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-122623002,122623002,"Specimen from heart obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-122624008,122624008,"Specimen from heart obtained by excisional biopsy of lesion",BIOPSY,"Biopsi jaringan",true
+SP-122625009,122625009,"Specimen from heart obtained by incisional biopsy",BIOPSY,"Biopsi jaringan",true
+SP-122670001,122670001,"Specimen from kidney obtained by (core) needle biopsy",BIOPSY,"Biopsi jaringan",true
+SP-122672009,122672009,"Specimen from kidney obtained by incisional biopsy",BIOPSY,"Biopsi jaringan",true
+SP-122673004,122673004,"Specimen from kidney obtained by wedge biopsy",BIOPSY,"Biopsi jaringan",true
+SP-16215051000119107,16215051000119107,"Specimen from labia obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-122644002,122644002,"Specimen from large intestine obtained by incisional biopsy",BIOPSY,"Biopsi jaringan",true
+SP-16214571000119105,16214571000119105,"Specimen from left lower lobe of lung obtained by endobronchial biopsy",BIOPSY,"Biopsi jaringan",true
+SP-16214411000119103,16214411000119103,"Specimen from left upper lobe of lung obtained by endobronchial biopsy",BIOPSY,"Biopsi jaringan",true
+SP-122699006,122699006,"Specimen from lesion of uterine cervix obtained by cone biopsy",BIOPSY,"Biopsi jaringan",true
+SP-16214651000119100,16214651000119100,"Specimen from lingula obtained by endobronchial biopsy",BIOPSY,"Biopsi jaringan",true
+SP-16214331000119102,16214331000119102,"Specimen from lingula obtained by transbronchial biopsy",BIOPSY,"Biopsi jaringan",true
+SP-438659007,438659007,"Specimen from liver obtained by wedge biopsy",BIOPSY,"Biopsi jaringan",true
+SP-433117007,433117007,"Specimen from lower limb obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-122610009,122610009,"Specimen from lung obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-122611008,122611008,"Specimen from lung obtained by fiberoptic bronchoscopic biopsy",BIOPSY,"Biopsi jaringan",true
+SP-122613006,122613006,"Specimen from lung obtained by mediastinoscopic biopsy",BIOPSY,"Biopsi jaringan",true
+SP-16214371000119104,16214371000119104,"Specimen from lung obtained by needle biopsy",BIOPSY,"Biopsi jaringan",true
+SP-384747005,384747005,"Specimen from lung obtained by needle biopsy using computed tomography guidance",BIOPSY,"Biopsi jaringan",true
+SP-384746001,384746001,"Specimen from lung obtained by wedge biopsy",BIOPSY,"Biopsi jaringan",true
+SP-16224091000119108,16224091000119108,"Specimen from lymph node obtained by endotracheal aspiration biopsy",BIOPSY,"Biopsi jaringan",true
+SP-16224131000119105,16224131000119105,"Specimen from mediastinal lymph node obtained by endotracheal aspiration biopsy",BIOPSY,"Biopsi jaringan",true
+SP-434014007,434014007,"Specimen from mediastinum obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-432145007,432145007,"Specimen from meninges obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-432146008,432146008,"Specimen from mesentery obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-432608000,432608000,"Specimen from nasal fossae obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-433860001,433860001,"Specimen from nasal sinus obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-122708000,122708000,"Specimen from ovary obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-122709008,122709008,"Specimen from ovary obtained by incisional biopsy",BIOPSY,"Biopsi jaringan",true
+SP-415563002,415563002,"Specimen from pancreas obtained by excisional biopsy",BIOPSY,"Biopsi jaringan",true
+SP-122667000,122667000,"Specimen from pancreas obtained by incisional biopsy",BIOPSY,"Biopsi jaringan",true
+SP-16222971000119102,16222971000119102,"Specimen from parotid gland obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-432142005,432142005,"Specimen from penis obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-16223731000119109,16223731000119109,"Specimen from perianal region obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-434250007,434250007,"Specimen from pericardium obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-122622007,122622007,"Specimen from pleura obtained by lymph node biopsy",BIOPSY,"Biopsi jaringan",true
+SP-122616003,122616003,"Specimen from pleura obtained by open thoracotomy and biopsy",BIOPSY,"Biopsi jaringan",true
+SP-122617007,122617007,"Specimen from pleura obtained by percutaneous needle biopsy",BIOPSY,"Biopsi jaringan",true
+SP-122621000,122621000,"Specimen from pleura obtained by thoracoscopic biopsy",BIOPSY,"Biopsi jaringan",true
+SP-16213891000119106,16213891000119106,"Specimen from posterior wall of urinary bladder obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-384819001,384819001,"Specimen from prostate obtained by needle biopsy",BIOPSY,"Biopsi jaringan",true
+SP-397221008,397221008,"Specimen from renal pelvis obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-434244002,434244002,"Specimen from retroperitoneum obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-16214611000119101,16214611000119101,"Specimen from right lower lobe of lung obtained by endobronchial biopsy",BIOPSY,"Biopsi jaringan",true
+SP-16214531000119107,16214531000119107,"Specimen from right middle lobe of lung obtained by endobronchial biopsy",BIOPSY,"Biopsi jaringan",true
+SP-16214291000119108,16214291000119108,"Specimen from right upper lobe of lung obtained by endobronchial biopsy",BIOPSY,"Biopsi jaringan",true
+SP-432058006,432058006,"Specimen from skeletal muscle obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-433873002,433873002,"Specimen from spermatic cord obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-431697001,431697001,"Specimen from spinal cord obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-433760005,433760005,"Specimen from spleen obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-122632000,122632000,"Specimen from stomach obtained by incisional biopsy",BIOPSY,"Biopsi jaringan",true
+SP-432385009,432385009,"Specimen from sympathetic nerve ganglion obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-122728001,122728001,"Specimen from testis obtained by inguinal exposure with testicular isolation and biopsy",BIOPSY,"Biopsi jaringan",true
+SP-122730004,122730004,"Specimen from testis obtained by transcrotal open biopsy",BIOPSY,"Biopsi jaringan",true
+SP-122729009,122729009,"Specimen from testis obtained by transscrotal needle biopsy",BIOPSY,"Biopsi jaringan",true
+SP-397455009,397455009,"Specimen from thoracic mesothelium obtained by percutaneous needle biopsy",BIOPSY,"Biopsi jaringan",true
+SP-397456005,397456005,"Specimen from thoracic mesothelium obtained by thoracoscopic biopsy",BIOPSY,"Biopsi jaringan",true
+SP-399633004,399633004,"Specimen from thymus gland obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-396900005,396900005,"Specimen from thymus gland obtained by needle biopsy using computed tomography guidance",BIOPSY,"Biopsi jaringan",true
+SP-396902002,396902002,"Specimen from thymus gland obtained by transthoracic needle biopsy",BIOPSY,"Biopsi jaringan",true
+SP-432984003,432984003,"Specimen from thyroid obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-432986001,432986001,"Specimen from tooth obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-438661003,438661003,"Specimen from transplanted kidney obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-438543000,438543000,"Specimen from transplanted liver obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-438454007,438454007,"Specimen from transplanted lung obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-16214011000119105,16214011000119105,"Specimen from trigone of urinary bladder obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-431412004,431412004,"Specimen from trunk obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-431413009,431413009,"Specimen from tunica of testis obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-431887008,431887008,"Specimen from unspecified body site obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-431889006,431889006,"Specimen from upper limb obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-440135000,440135000,"Specimen from ureter obtained by brush biopsy",BIOPSY,"Biopsi jaringan",true
+SP-399713008,399713008,"Specimen from uterine cervix obtained by cone biopsy",BIOPSY,"Biopsi jaringan",true
+SP-122698003,122698003,"Specimen from uterine cervix obtained by incisional biopsy",BIOPSY,"Biopsi jaringan",true
+SP-432059003,432059003,"Specimen from uterus obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-122692002,122692002,"Specimen from vagina obtained by excisional biopsy of lesion",BIOPSY,"Biopsi jaringan",true
+SP-122691009,122691009,"Specimen from vagina obtained by incisional biopsy",BIOPSY,"Biopsi jaringan",true
+SP-432061007,432061007,"Specimen from vein obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-427558003,427558003,"Specimen obtained by core needle biopsy",BIOPSY,"Biopsi jaringan",true
+SP-397078009,397078009,"Specimen obtained by excisional biopsy",BIOPSY,"Biopsi jaringan",true
+SP-397077004,397077004,"Specimen obtained by incisional biopsy",BIOPSY,"Biopsi jaringan",true
+SP-32651000087104,32651000087104,"Specimen obtained by transthoracic needle biopsy",BIOPSY,"Biopsi jaringan",true
+SP-122738006,122738006,"Specimen obtained from breast by stereotactically guided core needle biopsy",BIOPSY,"Biopsi jaringan",true
+SP-16214971000119103,16214971000119103,"Specimen obtained from breast by stereotactically guided needle biopsy",BIOPSY,"Biopsi jaringan",true
+SP-16214691000119105,16214691000119105,"Specimen obtained from breast by ultrasound guided needle biopsy",BIOPSY,"Biopsi jaringan",true
+SP-16223091000119106,16223091000119106,"Specimen of mucosa of nasal sinus obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-440515008,440515008,"Specimen of targeted lesion obtained by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-309122002,309122002,"Synovium biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309113003,309113003,"Tendon biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309137003,309137003,"Testes biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-122602008,122602008,"Tissue specimen from biopsy of upper aerodigestive tract",BIOPSY,"Biopsi jaringan",true
+SP-16223491000119100,16223491000119100,"Tissue specimen obtained by transtracheal biopsy",BIOPSY,"Biopsi jaringan",true
+SP-369613006,369613006,"Tissue specimen obtained for Hodgkin's disease by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-369614000,369614000,"Tissue specimen obtained from extrahepatic bile ducts by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-369616003,369616003,"Tissue specimen obtained from gallbladder by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-369611008,369611008,"Tissue specimen obtained from small intestine by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-369618002,369618002,"Tissue specimen obtained from vulva by biopsy",BIOPSY,"Biopsi jaringan",true
+SP-309189008,309189008,"Tongue biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309191000,309191000,"Tonsil biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309169007,309169007,"Tracheal biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309173005,309173005,"Transbronchial lung biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309271002,309271002,"Ureter biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309277003,309277003,"Urethra biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309280002,309280002,"Vaginal biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309281003,309281003,"Vaginal vault biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309184003,309184003,"Vocal cord biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-309070006,309070006,"Vulval skin biopsy specimen",BIOPSY,"Biopsi jaringan",true
+SP-444824001,444824001,"Wall of abscess",TISSUE,"Dinding abses / jaringan",true
+SP-309285007,309285007,"Cervical loop excision specimen",TISSUE,"Eksisi",true
+SP-309143001,309143001,"Excised adrenal gland specimen",TISSUE,"Eksisi",true
+SP-16212051000119104,16212051000119104,"Excised breast ectopic tissue sample",TISSUE,"Eksisi",true
+SP-309112008,309112008,"Excised bursa specimen",TISSUE,"Eksisi",true
+SP-309103006,309103006,"Excised cartilage specimen",TISSUE,"Eksisi",true
+SP-309119004,309119004,"Excised fascia specimen",TISSUE,"Eksisi",true
+SP-309116006,309116006,"Excised ligament specimen",TISSUE,"Eksisi",true
+SP-1177151008,1177151008,"Excised mesorectum specimen",TISSUE,"Eksisi",true
+SP-309153000,309153000,"Excised parathyroid specimen",TISSUE,"Eksisi",true
+SP-309264007,309264007,"Excised rectum specimen",TISSUE,"Eksisi",true
+SP-309485009,309485009,"Excised sublingual gland specimen",TISSUE,"Eksisi",true
+SP-309486005,309486005,"Excised submandibular gland specimen",TISSUE,"Eksisi",true
+SP-309108002,309108002,"Excised tendon specimen",TISSUE,"Eksisi",true
+SP-16222091000119100,16222091000119100,"Skin specimen obtained by excision, frozen section",TISSUE,"Eksisi",true
+SP-440502004,440502004,"Soft tissue specimen obtained by excision",TISSUE,"Eksisi",true
+SP-399731009,399731009,"Specimen from anus obtained by excision of anal polyp",TISSUE,"Eksisi",true
+SP-385338007,385338007,"Specimen from anus obtained by transanal disk excision",TISSUE,"Eksisi",true
+SP-385340002,385340002,"Specimen from anus obtained by transanal disk excision, fragmented",TISSUE,"Eksisi",true
+SP-385339004,385339004,"Specimen from anus obtained by transanal disk excision, intact",TISSUE,"Eksisi",true
+SP-16215491000119108,16215491000119108,"Specimen from breast duct obtained by excision",TISSUE,"Eksisi",true
+SP-122596005,122596005,"Specimen from breast obtained by complete excision of lesion, less than total mastectomy",TISSUE,"Eksisi",true
+SP-122597001,122597001,"Specimen from breast obtained by complete excision, less than total mastectomy, with axillary contents",TISSUE,"Eksisi",true
+SP-122598006,122598006,"Specimen from breast obtained by complete excision, less than total mastectomy, without axillary contents",TISSUE,"Eksisi",true
+SP-397199005,397199005,"Specimen from breast obtained by excision",TISSUE,"Eksisi",true
+SP-16212971000119107,16212971000119107,"Specimen from cartilage obtained by shave excision",TISSUE,"Eksisi",true
+SP-399732002,399732002,"Specimen from central nervous system obtained by partial excision of tumor",TISSUE,"Eksisi",true
+SP-122720008,122720008,"Specimen from fallopian tube obtained by excision of tubal fragments",TISSUE,"Eksisi",true
+SP-16211371000119102,16211371000119102,"Specimen from joint cartilage obtained by shave excision",TISSUE,"Eksisi",true
+SP-309270001,309270001,"Specimen from kidney obtained by excision",TISSUE,"Eksisi",true
+SP-309490007,309490007,"Specimen from pancreas obtained by excision",TISSUE,"Eksisi",true
+SP-122653009,122653009,"Specimen from rectum obtained by transanal disk excision",TISSUE,"Eksisi",true
+SP-122655002,122655002,"Specimen from rectum obtained by transanal disk excision, fragmented",TISSUE,"Eksisi",true
+SP-122654003,122654003,"Specimen from rectum obtained by transanal disk excision, intact",TISSUE,"Eksisi",true
+SP-396353007,396353007,"Specimen from skin obtained by elliptical excision",TISSUE,"Eksisi",true
+SP-396357008,396357008,"Specimen from skin obtained by elliptical re-excision",TISSUE,"Eksisi",true
+SP-396355000,396355000,"Specimen from skin obtained by excision",TISSUE,"Eksisi",true
+SP-396356004,396356004,"Specimen from skin obtained by re-excision",TISSUE,"Eksisi",true
+SP-396483002,396483002,"Specimen from skin obtained by shave excision",TISSUE,"Eksisi",true
+SP-396354001,396354001,"Specimen from skin obtained by wide excision",TISSUE,"Eksisi",true
+SP-396358003,396358003,"Specimen from skin obtained by wide re-excision",TISSUE,"Eksisi",true
+SP-438352005,438352005,"Specimen from trachea obtained by excision",TISSUE,"Eksisi",true
+SP-440472000,440472000,"Specimen from transplanted lung obtained by excision",TISSUE,"Eksisi",true
+SP-122668005,122668005,"Specimen from urinary tract obtained by transurethral excision",TISSUE,"Eksisi",true
+SP-396273004,396273004,"Specimen from uterine cervix obtained by excision of cervix",TISSUE,"Eksisi",true
+SP-397130007,397130007,"Specimen from vulva obtained by local excision",TISSUE,"Eksisi",true
+SP-397131006,397131006,"Specimen from vulva obtained by wide excision",TISSUE,"Eksisi",true
+SP-405902005,405902005,"Specimen obtained by radical excision",TISSUE,"Eksisi",true
+SP-373826004,373826004,"Surgical excision specimen",TISSUE,"Eksisi",true
+SP-737016007,737016007,"Tissue specimen from aneurysm obtained by surgical excision",TISSUE,"Eksisi",true
+SP-1172660005,1172660005,"Tissue specimen from extrahepatic bile duct obtained by excision",TISSUE,"Eksisi",true
+SP-439034006,439034006,"Tissue specimen from liver obtained by excision",TISSUE,"Eksisi",true
+SP-439895009,439895009,"Tissue specimen from nose obtained by excision",TISSUE,"Eksisi",true
+SP-1173996004,1173996004,"Tissue specimen from polyp obtained by excision",TISSUE,"Eksisi",true
+SP-439479000,439479000,"Tissue specimen obtained by excision",TISSUE,"Eksisi",true
+SP-788524009,788524009,"Tissue specimen obtained by segmental excision",TISSUE,"Eksisi",true
+SP-16222771000119104,16222771000119104,"Uvula tissue specimen obtained by simple excision",TISSUE,"Eksisi",true
+SP-258407001,258407001,"Abscess tissue",TISSUE,"Jaringan",true
+SP-258414004,258414004,"Adipose tissue specimen",TISSUE,"Jaringan",true
+SP-303247002,303247002,"Adrenal tissue specimen",TISSUE,"Jaringan",true
+SP-309126004,309126004,"Articular tissue specimen",TISSUE,"Jaringan",true
+SP-309491006,309491006,"Biliary tract tissue specimen",TISSUE,"Jaringan",true
+SP-16210891000119102,16210891000119102,"Brain neoplasm tissue specimen",TISSUE,"Jaringan",true
+SP-258418001,258418001,"Burn tissue",TISSUE,"Jaringan",true
+SP-309110000,309110000,"Bursa tissue specimen",TISSUE,"Jaringan",true
+SP-15650531000119105,15650531000119105,"Colorectal junction neoplasm tissue specimen",TISSUE,"Jaringan",true
+SP-430970004,430970004,"Core sample of tissue block",TISSUE,"Jaringan",true
+SP-258420003,258420003,"Cyst tissue",TISSUE,"Jaringan",true
+SP-309187005,309187005,"Dental tissue specimen",TISSUE,"Jaringan",true
+SP-309278008,309278008,"Female genital tissue specimen",TISSUE,"Jaringan",true
+SP-441652008,441652008,"Formalin-fixed paraffin-embedded tissue specimen",TISSUE,"Jaringan",true
+SP-441479001,441479001,"Fresh tissue specimen",TISSUE,"Jaringan",true
+SP-16214131000119104,16214131000119104,"Frozen tissue section specimen",TISSUE,"Jaringan",true
+SP-258422006,258422006,"Gonad tissue",TISSUE,"Jaringan",true
+SP-258424007,258424007,"Heart valve tissue",TISSUE,"Jaringan",true
+SP-438336007,438336007,"Hemorrhoid tissue specimen",TISSUE,"Jaringan",true
+SP-371783005,371783005,"Human tissue for identification",TISSUE,"Jaringan",true
+SP-309170008,309170008,"Lower respiratory tissue specimen",TISSUE,"Jaringan",true
+SP-309078004,309078004,"Lymph node tissue specimen",TISSUE,"Jaringan",true
+SP-430861001,430861001,"Macroscopic tissue specimen",TISSUE,"Jaringan",true
+SP-258425008,258425008,"Natural lens tissue",TISSUE,"Jaringan",true
+SP-309129006,309129006,"Nerve tissue specimen",TISSUE,"Jaringan",true
+SP-309495002,309495002,"Omentum tissue specimen",TISSUE,"Jaringan",true
+SP-309186001,309186001,"Oral tissue specimen",TISSUE,"Jaringan",true
+SP-3040001000004107,3040001000004107,"Paraffin embedded tissue block specimen",TISSUE,"Jaringan",true
+SP-309150002,309150002,"Parathyroid tissue specimen",TISSUE,"Jaringan",true
+SP-258484005,258484005,"Postmortem tissue specimen",TISSUE,"Jaringan",true
+SP-309200000,309200000,"Rectal tissue specimen",TISSUE,"Jaringan",true
+SP-309127008,309127008,"Resected articular tissue specimen",TISSUE,"Jaringan",true
+SP-309072003,309072003,"Soft tissue specimen",TISSUE,"Jaringan",true
+SP-446951004,446951004,"Specimen from granulation tissue",TISSUE,"Jaringan",true
+SP-734377007,734377007,"Specimen from mass of subcutaneous tissue",TISSUE,"Jaringan",true
+SP-447407009,447407009,"Specimen from necrotic tissue",TISSUE,"Jaringan",true
+SP-734379005,734379005,"Specimen from periodontal tissue",TISSUE,"Jaringan",true
+SP-608856009,608856009,"Specimen from perirenal tissue",TISSUE,"Jaringan",true
+SP-608858005,608858005,"Specimen from periureteral tissue",TISSUE,"Jaringan",true
+SP-608860007,608860007,"Specimen from perivesical tissue",TISSUE,"Jaringan",true
+SP-787151002,787151002,"Specimen in tissue fixative",TISSUE,"Jaringan",true
+SP-787150001,787150001,"Stained slide of tissue section",TISSUE,"Jaringan",true
+SP-309121009,309121009,"Synovial tissue specimen",TISSUE,"Jaringan",true
+SP-15650601000119102,15650601000119102,"Thyroid neoplasm tissue specimen",TISSUE,"Jaringan",true
+SP-1201985008,1201985008,"Tissue block specimen",TISSUE,"Jaringan",true
+SP-430856003,430856003,"Tissue section",TISSUE,"Jaringan",true
+SP-119376003,119376003,"Tissue specimen",TISSUE,"Jaringan",true
+SP-446837000,446837000,"Tissue specimen from amniotic membrane",TISSUE,"Jaringan",true
+SP-127468009,127468009,"Tissue specimen from ampulla of Vater",TISSUE,"Jaringan",true
+SP-128156008,128156008,"Tissue specimen from anus",TISSUE,"Jaringan",true
+SP-725372003,725372003,"Tissue specimen from aorta",TISSUE,"Jaringan",true
+SP-406101006,406101006,"Tissue specimen from axilla",TISSUE,"Jaringan",true
+SP-128157004,128157004,"Tissue specimen from brain",TISSUE,"Jaringan",true
+SP-127457009,127457009,"Tissue specimen from breast",TISSUE,"Jaringan",true
+SP-128158009,128158009,"Tissue specimen from bronchus",TISSUE,"Jaringan",true
+SP-399542003,399542003,"Tissue specimen from central nervous system",TISSUE,"Jaringan",true
+SP-446842008,446842008,"Tissue specimen from cervical lymph node",TISSUE,"Jaringan",true
+SP-128159001,128159001,"Tissue specimen from colon",TISSUE,"Jaringan",true
+SP-128160006,128160006,"Tissue specimen from conjunctiva",TISSUE,"Jaringan",true
+SP-128161005,128161005,"Tissue specimen from cornea",TISSUE,"Jaringan",true
+SP-363328006,363328006,"Tissue specimen from digestive system",TISSUE,"Jaringan",true
+SP-16212811000119105,16212811000119105,"Tissue specimen from donor cornea",TISSUE,"Jaringan",true
+SP-447403008,447403008,"Tissue specimen from donor corneal rim",TISSUE,"Jaringan",true
+SP-128162003,128162003,"Tissue specimen from ear",TISSUE,"Jaringan",true
+SP-440469007,440469007,"Tissue specimen from ectopic pregnancy",TISSUE,"Jaringan",true
+SP-128163008,128163008,"Tissue specimen from endometrium",TISSUE,"Jaringan",true
+SP-127464006,127464006,"Tissue specimen from esophagus",TISSUE,"Jaringan",true
+SP-399541005,399541005,"Tissue specimen from extrahepatic bile duct",TISSUE,"Jaringan",true
+SP-128164002,128164002,"Tissue specimen from eye",TISSUE,"Jaringan",true
+SP-127483004,127483004,"Tissue specimen from fallopian tube",TISSUE,"Jaringan",true
+SP-122656001,122656001,"Tissue specimen from gallbladder",TISSUE,"Jaringan",true
+SP-127466008,127466008,"Tissue specimen from gastrointestinal tract",TISSUE,"Jaringan",true
+SP-128165001,128165001,"Tissue specimen from genital system",TISSUE,"Jaringan",true
+SP-446304007,446304007,"Tissue specimen from harvested bone",TISSUE,"Jaringan",true
+SP-128166000,128166000,"Tissue specimen from heart",TISSUE,"Jaringan",true
+SP-128167009,128167009,"Tissue specimen from internal nose",TISSUE,"Jaringan",true
+SP-33911000087102,33911000087102,"Tissue specimen from iris",TISSUE,"Jaringan",true
+SP-127474009,127474009,"Tissue specimen from kidney",TISSUE,"Jaringan",true
+SP-122643008,122643008,"Tissue specimen from large intestine",TISSUE,"Jaringan",true
+SP-128168004,128168004,"Tissue specimen from liver",TISSUE,"Jaringan",true
+SP-399492000,399492000,"Tissue specimen from lung",TISSUE,"Jaringan",true
+SP-703475006,703475006,"Tissue specimen from nodule",TISSUE,"Jaringan",true
+SP-127482009,127482009,"Tissue specimen from ovary",TISSUE,"Jaringan",true
+SP-127470000,127470000,"Tissue specimen from pancreas",TISSUE,"Jaringan",true
+SP-128169007,128169007,"Tissue specimen from penis",TISSUE,"Jaringan",true
+SP-699874006,699874006,"Tissue specimen from pericardium",TISSUE,"Jaringan",true
+SP-127460002,127460002,"Tissue specimen from pleura",TISSUE,"Jaringan",true
+SP-128170008,128170008,"Tissue specimen from prostate",TISSUE,"Jaringan",true
+SP-399532000,399532000,"Tissue specimen from renal pelvis",TISSUE,"Jaringan",true
+SP-363329003,363329003,"Tissue specimen from respiratory system",TISSUE,"Jaringan",true
+SP-399451009,399451009,"Tissue specimen from retina",TISSUE,"Jaringan",true
+SP-438803004,438803004,"Tissue specimen from retroperitoneum",TISSUE,"Jaringan",true
+SP-733103005,733103005,"Tissue specimen from scar",TISSUE,"Jaringan",true
+SP-33921000087105,33921000087105,"Tissue specimen from sclera",TISSUE,"Jaringan",true
+SP-119325001,119325001,"Tissue specimen from skin",TISSUE,"Jaringan",true
+SP-122638001,122638001,"Tissue specimen from small intestine",TISSUE,"Jaringan",true
+SP-128171007,128171007,"Tissue specimen from stomach",TISSUE,"Jaringan",true
+SP-127475005,127475005,"Tissue specimen from testis",TISSUE,"Jaringan",true
+SP-399672000,399672000,"Tissue specimen from thoracic mesothelium",TISSUE,"Jaringan",true
+SP-128172000,128172000,"Tissue specimen from throat",TISSUE,"Jaringan",true
+SP-399572009,399572009,"Tissue specimen from thymus gland",TISSUE,"Jaringan",true
+SP-127478007,127478007,"Tissue specimen from thyroid gland",TISSUE,"Jaringan",true
+SP-128173005,128173005,"Tissue specimen from trachea",TISSUE,"Jaringan",true
+SP-438804005,438804005,"Tissue specimen from transplanted kidney",TISSUE,"Jaringan",true
+SP-399624001,399624001,"Tissue specimen from ureter",TISSUE,"Jaringan",true
+SP-128174004,128174004,"Tissue specimen from urethra",TISSUE,"Jaringan",true
+SP-127472008,127472008,"Tissue specimen from urinary tract",TISSUE,"Jaringan",true
+SP-127481002,127481002,"Tissue specimen from uterine cervix",TISSUE,"Jaringan",true
+SP-127480001,127480001,"Tissue specimen from uterus",TISSUE,"Jaringan",true
+SP-399619004,399619004,"Tissue specimen from uvea",TISSUE,"Jaringan",true
+SP-128175003,128175003,"Tissue specimen from vagina",TISSUE,"Jaringan",true
+SP-399486006,399486006,"Tissue specimen from vulva",TISSUE,"Jaringan",true
+SP-438351003,438351003,"Tissue specimen obtained by esophagogastrectomy",TISSUE,"Jaringan",true
+SP-369617007,369617007,"Tissue specimen obtained from gallbladder by cholecystectomy with partial hepatectomy",TISSUE,"Jaringan",true
+SP-122593002,122593002,"Tissue specimen obtained from ulcer",TISSUE,"Jaringan",true
+SP-431196006,431196006,"Tissue spot",TISSUE,"Jaringan",true
+SP-258435002,258435002,"Tumor tissue specimen",TISSUE,"Jaringan",true
+SP-787149001,787149001,"Unstained slide of tissue section",TISSUE,"Jaringan",true
+SP-309168004,309168004,"Upper respiratory tissue specimen",TISSUE,"Jaringan",true
+SP-309272009,309272009,"Urinary bladder tissue specimen",TISSUE,"Jaringan",true
+SP-309266009,309266009,"Anal polyp specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-309222007,309222007,"Appendix specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-309479002,309479002,"Artery specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-371784004,371784004,"Body parts for identification",TISSUE,"Jaringan / struktur anatomi",true
+SP-16210651000119106,16210651000119106,"Branchial cleft cyst specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-16210691000119101,16210691000119101,"Breast cyst specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-309548003,309548003,"Breast duct specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-309109005,309109005,"Bursa specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-258541006,258541006,"Cardiovascular specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-309101008,309101008,"Cartilage specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-16210851000119107,16210851000119107,"Cerebellar neoplasm specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-309286008,309286008,"Cervical polyp specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-309226005,309226005,"Colonic polyp specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-16210571000119101,16210571000119101,"Dental cyst specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-258548000,258548000,"Dermatological specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-16210811000119106,16210811000119106,"Desmoid tumor specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-16213651000119102,16213651000119102,"Duodenal ulcer specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-309165001,309165001,"Ear specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-119378002,119378002,"Endocardial specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-16210931000119105,16210931000119105,"Endocervical polyp specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-309048008,309048008,"Endocrine specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-309288009,309288009,"Endometrial polyp specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-309140003,309140003,"Epididymis specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-16211131000119102,16211131000119102,"Epidural lesion specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-16211251000119101,16211251000119101,"Extradural lesion specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-309117002,309117002,"Fascia specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-309053003,309053003,"Female genital specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-432657002,432657002,"Ganglion cyst specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-309215004,309215004,"Gastric ulcer specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-258567001,258567001,"Gonad specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-258542004,258542004,"Heart valve specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-737017003,737017003,"Joint loose body specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-309125000,309125000,"Joint specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-16210531000119104,16210531000119104,"Labia ulcer specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-258601009,258601009,"Lens specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-309049000,309049000,"Lesion specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-309114009,309114009,"Ligament specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-373192005,373192005,"Lymph node from axillary dissection",TISSUE,"Jaringan / struktur anatomi",true
+SP-396359006,396359006,"Lymph node from regional lymph node dissection",TISSUE,"Jaringan / struktur anatomi",true
+SP-373193000,373193000,"Lymph node from sentinel lymph node dissection",TISSUE,"Jaringan / struktur anatomi",true
+SP-384744003,384744003,"Lymph node from sentinel lymph node dissection and axillary dissection",TISSUE,"Jaringan / struktur anatomi",true
+SP-258589002,258589002,"Lymph node specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-309052008,309052008,"Male genital specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-705054005,705054005,"Muscle specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-309104000,309104000,"Musculoskeletal specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-119377007,119377007,"Myocardial specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-309179009,309179009,"Nasal polyp specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-258544003,258544003,"Native heart valve specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-433799002,433799002,"Nerve ganglion specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-309131002,309131002,"Neuroma specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-309185002,309185002,"Oral cavity specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-309291009,309291009,"Ovarian cyst specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-309149002,309149002,"Parathyroid specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-309154006,309154006,"Pituitary specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-309263001,309263001,"Rectal polyp specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-309175003,309175003,"Resected lung specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-309133004,309133004,"Resected prostate specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-309227001,309227001,"Sigmoid colonic polyp specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-119331003,119331003,"Skeletal muscle specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-309075001,309075001,"Skin cyst specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-309068002,309068002,"Skin lesion specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-309481000,309481000,"Temporal artery specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-309107007,309107007,"Tendon specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-309144007,309144007,"Thyroid lobe specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-16210611000119105,16210611000119105,"Uterine cervix cyst specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-309139000,309139000,"Vas deferens specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-309480004,309480004,"Vein specimen",TISSUE,"Jaringan / struktur anatomi",true
+SP-440493002,440493002,"Graft specimen from patient",TISSUE,"Jaringan/patologis",true
+SP-258437005,258437005,"Vegetation from heart valve",TISSUE,"Jaringan/patologis",true
+SP-258546001,258546001,"Vegetation from native heart valve",TISSUE,"Jaringan/patologis",true
+SP-309274005,309274005,"Bladder curettings specimen",TISSUE,"Kuretase",true
+SP-258419009,258419009,"Curettings",TISSUE,"Kuretase",true
+SP-447155001,447155001,"Tissue specimen from uterus obtained by curettage",TISSUE,"Kuretase",true
+SP-309276007,309276007,"Frozen section bladder specimen",TISSUE,"Potongan/section jaringan",true
+SP-309059004,309059004,"Frozen section breast specimen",TISSUE,"Potongan/section jaringan",true
+SP-309482007,309482007,"Frozen section lymph node specimen",TISSUE,"Potongan/section jaringan",true
+SP-309476009,309476009,"Neck block dissection specimen",TISSUE,"Potongan/section jaringan",true
+SP-309267000,309267000,"Anal resection specimen",TISSUE,"Reseksi",true
+SP-309489003,309489003,"Anterior resection of rectum specimen",TISSUE,"Reseksi",true
+SP-309289001,309289001,"Endometrial resection specimen",TISSUE,"Reseksi",true
+SP-309218002,309218002,"Ileal resection specimen",TISSUE,"Reseksi",true
+SP-309220004,309220004,"Small bowel resection specimen",TISSUE,"Reseksi",true
+SP-399752001,399752001,"Specimen from anus obtained by abdominoperineal resection",TISSUE,"Reseksi",true
+SP-16211571000119108,16211571000119108,"Specimen from breast obtained by resection of anterior margin",TISSUE,"Reseksi",true
+SP-16211531000119105,16211531000119105,"Specimen from breast obtained by resection of inferior margin",TISSUE,"Reseksi",true
+SP-16211491000119105,16211491000119105,"Specimen from breast obtained by resection of lateral margin",TISSUE,"Reseksi",true
+SP-16211611000119104,16211611000119104,"Specimen from breast obtained by resection of medial margin",TISSUE,"Reseksi",true
+SP-16211411000119101,16211411000119101,"Specimen from breast obtained by resection of posterior margin",TISSUE,"Reseksi",true
+SP-16211451000119100,16211451000119100,"Specimen from breast obtained by resection of superior margin",TISSUE,"Reseksi",true
+SP-399614009,399614009,"Specimen from central nervous system obtained by total resection of tumor",TISSUE,"Reseksi",true
+SP-122652004,122652004,"Specimen from colon obtained by rectal/rectosigmoid (low anterior) resection",TISSUE,"Reseksi",true
+SP-122639009,122639009,"Specimen from duodenum obtained by Whipple resection",TISSUE,"Reseksi",true
+SP-122630008,122630008,"Specimen from esophagus obtained by esophageal resection",TISSUE,"Reseksi",true
+SP-397483006,397483006,"Specimen from extrahepatic bile duct obtained by segmental resection of bile ducts",TISSUE,"Reseksi",true
+SP-122641005,122641005,"Specimen from ileum obtained by segmental resection",TISSUE,"Reseksi",true
+SP-122640006,122640006,"Specimen from jejunum obtained by segmental resection",TISSUE,"Reseksi",true
+SP-122646000,122646000,"Specimen from large intestine obtained by abdominoperineal resection",TISSUE,"Reseksi",true
+SP-122734008,122734008,"Specimen from left lobe of thyroid obtained by lobe resection",TISSUE,"Reseksi",true
+SP-16210411000119108,16210411000119108,"Specimen from lip obtained by wedge resection",TISSUE,"Reseksi",true
+SP-16212131000119106,16212131000119106,"Specimen from liver obtained by partial resection",TISSUE,"Reseksi",true
+SP-122608007,122608007,"Specimen from lung obtained by major airway resection",TISSUE,"Reseksi",true
+SP-122604009,122604009,"Specimen from lung obtained by wedge resection",TISSUE,"Reseksi",true
+SP-122710003,122710003,"Specimen from ovary obtained by resection",TISSUE,"Reseksi",true
+SP-122665008,122665008,"Specimen from pancreas obtained by pancreaticoduodenectomy (Whipple resection)",TISSUE,"Reseksi",true
+SP-122662006,122662006,"Specimen from pancreatic body obtained by partial resection",TISSUE,"Reseksi",true
+SP-122663001,122663001,"Specimen from pancreatic tail obtained by partial resection",TISSUE,"Reseksi",true
+SP-397462000,397462000,"Specimen from pericardium obtained by pericardial resection",TISSUE,"Reseksi",true
+SP-122726002,122726002,"Specimen from prostate obtained by retropubic resection",TISSUE,"Reseksi",true
+SP-122727006,122727006,"Specimen from prostate obtained by suprapubic resection",TISSUE,"Reseksi",true
+SP-384820007,384820007,"Specimen from prostate obtained by transurethral resection",TISSUE,"Reseksi",true
+SP-122733002,122733002,"Specimen from right lobe of thyroid obtained by lobe resection",TISSUE,"Reseksi",true
+SP-397055003,397055003,"Specimen from small intestine obtained by segmental resection",TISSUE,"Reseksi",true
+SP-397056002,397056002,"Specimen from small intestine obtained by Whipple resection",TISSUE,"Reseksi",true
+SP-426924005,426924005,"Specimen obtained by intralesional resection",TISSUE,"Reseksi",true
+SP-426815000,426815000,"Specimen obtained by marginal resection",TISSUE,"Reseksi",true
+SP-425804000,425804000,"Specimen obtained by wide resection",TISSUE,"Reseksi",true
+SP-309077009,309077009,"Spleen resection specimen",TISSUE,"Reseksi",true
+SP-309221000,309221000,"Terminal ileum resection specimen",TISSUE,"Reseksi",true
+SP-16213851000119101,16213851000119101,"Tissue specimen from larynx obtained by total resection",TISSUE,"Reseksi",true
+SP-369615004,369615004,"Tissue specimen obtained from extrahepatic bile ducts by choledochal cyst resection",TISSUE,"Reseksi",true
+SP-309141004,309141004,"Adrenal gland specimen",TISSUE,"Spesimen bedah / organ",true
+SP-309205005,309205005,"Cholecystectomy specimen",TISSUE,"Spesimen bedah / organ",true
+SP-309223002,309223002,"Colectomy specimen",TISSUE,"Spesimen bedah / organ",true
+SP-309224008,309224008,"Colon strip specimen",TISSUE,"Spesimen bedah / organ",true
+SP-309275006,309275006,"Cystectomy specimen",TISSUE,"Spesimen bedah / organ",true
+SP-309287004,309287004,"Hysterectomy and bilateral salpingo-oophorectomy specimen",TISSUE,"Spesimen bedah / organ",true
+SP-765469005,765469005,"Hysterectomy and left salpingo-oophorectomy specimen",TISSUE,"Spesimen bedah / organ",true
+SP-765470006,765470006,"Hysterectomy and right salpingo-oophorectomy specimen",TISSUE,"Spesimen bedah / organ",true
+SP-309501000,309501000,"Hysterectomy specimen",TISSUE,"Spesimen bedah / organ",true
+SP-309183009,309183009,"Laryngectomy specimen",TISSUE,"Spesimen bedah / organ",true
+SP-309546004,309546004,"Lumpectomy breast specimen",TISSUE,"Spesimen bedah / organ",true
+SP-309496001,309496001,"Omentectomy specimen",TISSUE,"Spesimen bedah / organ",true
+SP-309138008,309138008,"Orchidectomy specimen",TISSUE,"Spesimen bedah / organ",true
+SP-309484008,309484008,"Parotidectomy specimen",TISSUE,"Spesimen bedah / organ",true
+SP-309488006,309488006,"Partial colectomy specimen",TISSUE,"Spesimen bedah / organ",true
+SP-309498000,309498000,"Partial nephrectomy specimen",TISSUE,"Spesimen bedah / organ",true
+SP-122645001,122645001,"Polyp from large intestine obtained by polypectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122633005,122633005,"Polyp from stomach obtained by polypectomy",TISSUE,"Spesimen bedah / organ",true
+SP-258430007,258430007,"Rectal snip specimen",TISSUE,"Spesimen bedah / organ",true
+SP-309547008,309547008,"Segmentectomy breast specimen",TISSUE,"Spesimen bedah / organ",true
+SP-396526009,396526009,"Specimen from adrenal gland obtained by partial adrenalectomy",TISSUE,"Spesimen bedah / organ",true
+SP-396527000,396527000,"Specimen from adrenal gland obtained by total adrenalectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122658000,122658000,"Specimen from ampulla of Vater obtained by ampullectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122659008,122659008,"Specimen from ampulla of Vater obtained by pancreaticoduodenectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122660003,122660003,"Specimen from ampulla of Vater obtained by pylorus-sparing pancreaticoduodenectomy",TISSUE,"Spesimen bedah / organ",true
+SP-423696009,423696009,"Specimen from appendix and colon obtained by appendectomy and right colectomy",TISSUE,"Spesimen bedah / organ",true
+SP-422991009,422991009,"Specimen from appendix and right colon obtained by appendectomy and right hemicolectomy",TISSUE,"Spesimen bedah / organ",true
+SP-421615004,421615004,"Specimen from appendix obtained by appendectomy",TISSUE,"Spesimen bedah / organ",true
+SP-16211771000119103,16211771000119103,"Specimen from breast obtained by mastectomy with axillary contents",TISSUE,"Spesimen bedah / organ",true
+SP-122600000,122600000,"Specimen from breast obtained by modified radical mastectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122599003,122599003,"Specimen from breast obtained by radical mastectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122595009,122595009,"Specimen from breast obtained by total mastectomy",TISSUE,"Spesimen bedah / organ",true
+SP-16211731000119101,16211731000119101,"Specimen from breast with lymph node obtained by modified radical mastectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122650007,122650007,"Specimen from colon obtained by left hemicolectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122648004,122648004,"Specimen from colon obtained by right hemicolectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122651006,122651006,"Specimen from colon obtained by sigmoidectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122649007,122649007,"Specimen from colon obtained by transverse colectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122642003,122642003,"Specimen from distal ileum obtained by right hemicolectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122637006,122637006,"Specimen from distal stomach obtained by partial gastrectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122705002,122705002,"Specimen from endometrium obtained by hysterectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122706001,122706001,"Specimen from endometrium obtained by radical hysterectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122631007,122631007,"Specimen from esophagus obtained by esophagogastrectomy",TISSUE,"Spesimen bedah / organ",true
+SP-397482001,397482001,"Specimen from extrahepatic bile duct obtained by pancreaticoduodenectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122719002,122719002,"Specimen from fallopian tube obtained by hysterectomy with salpingo-oophorectomy",TISSUE,"Spesimen bedah / organ",true
+SP-397136001,397136001,"Specimen from inguinofemoral lymphadenectomy",TISSUE,"Spesimen bedah / organ",true
+SP-399741007,399741007,"Specimen from kidney obtained by radical nephrectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122647009,122647009,"Specimen from large intestine obtained by total abdominal colectomy",TISSUE,"Spesimen bedah / organ",true
+SP-399388008,399388008,"Specimen from left fallopian tube obtained by hysterectomy with salpingo-oophorectomy",TISSUE,"Spesimen bedah / organ",true
+SP-397334006,397334006,"Specimen from left fallopian tube obtained by salpingectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122723005,122723005,"Specimen from left fallopian tube obtained by salpingo-oophorectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122681003,122681003,"Specimen from left kidney obtained by adrenal sparing radical nephrectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122682005,122682005,"Specimen from left kidney obtained by partial nephrectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122680002,122680002,"Specimen from left kidney obtained by radical nephrectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122690005,122690005,"Specimen from left kidney obtained by radical nephrectomy and adrenalectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122683000,122683000,"Specimen from left kidney, inferior pole obtained by partial nephrectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122684006,122684006,"Specimen from left kidney, middle pole obtained by partial nephrectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122685007,122685007,"Specimen from left kidney, superior pole obtained by partial nephrectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122716009,122716009,"Specimen from left ovary obtained by oophorectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122718005,122718005,"Specimen from left ovary obtained by salpingo-oophorectomy",TISSUE,"Spesimen bedah / organ",true
+SP-396477000,396477000,"Specimen from liver obtained by extended right lobectomy",TISSUE,"Spesimen bedah / organ",true
+SP-396479002,396479002,"Specimen from liver obtained by left lateral segmentectomy",TISSUE,"Spesimen bedah / organ",true
+SP-396478005,396478005,"Specimen from liver obtained by medial segmentectomy",TISSUE,"Spesimen bedah / organ",true
+SP-16212091000119109,16212091000119109,"Specimen from liver obtained by partial lobectomy",TISSUE,"Spesimen bedah / organ",true
+SP-396476009,396476009,"Specimen from liver obtained by right lobectomy",TISSUE,"Spesimen bedah / organ",true
+SP-396480004,396480004,"Specimen from liver obtained by total left lobectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122606006,122606006,"Specimen from lung obtained by lobectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122607002,122607002,"Specimen from lung obtained by pneumonectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122605005,122605005,"Specimen from lung obtained by segmentectomy",TISSUE,"Spesimen bedah / organ",true
+SP-397246008,397246008,"Specimen from ovary obtained by hysterectomy with left salpingo-oophorectomy",TISSUE,"Spesimen bedah / organ",true
+SP-397245007,397245007,"Specimen from ovary obtained by hysterectomy with right salpingo-oophorectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122712006,122712006,"Specimen from ovary obtained by hysterectomy with salpingo-oophorectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122717000,122717000,"Specimen from ovary obtained by subtotal left oophorectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122713001,122713001,"Specimen from ovary obtained by subtotal right oophorectomy",TISSUE,"Spesimen bedah / organ",true
+SP-57481000052108,57481000052108,"Specimen from pancreas obtained by distal pancreatectomy",TISSUE,"Spesimen bedah / organ",true
+SP-396806000,396806000,"Specimen from pancreas obtained by pancreaticoduodenectomy, partial pancreatectomy",TISSUE,"Spesimen bedah / organ",true
+SP-396807009,396807009,"Specimen from pancreas obtained by pancreaticoduodenectomy, total pancreatectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122661004,122661004,"Specimen from pancreas obtained by partial pancreatectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122666009,122666009,"Specimen from pancreas obtained by pylorus sparing pancreaticoduodenectomy",TISSUE,"Spesimen bedah / organ",true
+SP-396804002,396804002,"Specimen from pancreas obtained by pylorus sparing pancreaticoduodenectomy, partial pancreatectomy",TISSUE,"Spesimen bedah / organ",true
+SP-396805001,396805001,"Specimen from pancreas obtained by pylorus sparing pancreaticoduodenectomy, total pancreatectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122664007,122664007,"Specimen from pancreas obtained by total pancreatectomy",TISSUE,"Spesimen bedah / organ",true
+SP-399661005,399661005,"Specimen from pelvic lymphadenectomy",TISSUE,"Spesimen bedah / organ",true
+SP-127461003,127461003,"Specimen from pleura obtained by pleurectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122725003,122725003,"Specimen from prostate obtained by radical prostatectomy",TISSUE,"Spesimen bedah / organ",true
+SP-16222611000119100,16222611000119100,"Specimen from prostate obtained by subtotal prostatectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122636002,122636002,"Specimen from proximal stomach obtained by partial gastrectomy",TISSUE,"Spesimen bedah / organ",true
+SP-399649002,399649002,"Specimen from regional lymph node obtained by lymphadenectomy",TISSUE,"Spesimen bedah / organ",true
+SP-397235005,397235005,"Specimen from renal pelvis obtained by complete nephroureterectomy",TISSUE,"Spesimen bedah / organ",true
+SP-397232008,397232008,"Specimen from renal pelvis obtained by nephroureterectomy",TISSUE,"Spesimen bedah / organ",true
+SP-397234009,397234009,"Specimen from renal pelvis obtained by partial nephroureterectomy",TISSUE,"Spesimen bedah / organ",true
+SP-397326000,397326000,"Specimen from right fallopian tube obtained by hysterectomy with salpingo-oophorectomy",TISSUE,"Spesimen bedah / organ",true
+SP-397333000,397333000,"Specimen from right fallopian tube obtained by salpingectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122722000,122722000,"Specimen from right fallopian tube obtained by salpingo-oophorectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122675006,122675006,"Specimen from right kidney obtained by adrenal sparing radical nephrectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122676007,122676007,"Specimen from right kidney obtained by partial nephrectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122674005,122674005,"Specimen from right kidney obtained by radical nephrectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122689001,122689001,"Specimen from right kidney obtained by radical nephrectomy and adrenalectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122677003,122677003,"Specimen from right kidney, inferior pole obtained by partial nephrectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122678008,122678008,"Specimen from right kidney, middle pole obtained by partial nephrectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122679000,122679000,"Specimen from right kidney, superior pole obtained by partial nephrectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122714007,122714007,"Specimen from right ovary obtained by oophorectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122715008,122715008,"Specimen from right ovary obtained by salpingo-oophorectomy",TISSUE,"Spesimen bedah / organ",true
+SP-397053005,397053005,"Specimen from small intestine obtained by polypectomy",TISSUE,"Spesimen bedah / organ",true
+SP-399629006,399629006,"Specimen from stomach obtained by gastrectomy",TISSUE,"Spesimen bedah / organ",true
+SP-16212251000119107,16212251000119107,"Specimen from stomach obtained by hemigastrectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122635003,122635003,"Specimen from stomach obtained by partial gastrectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122634004,122634004,"Specimen from stomach obtained by total gastrectomy",TISSUE,"Spesimen bedah / organ",true
+SP-396897003,396897003,"Specimen from thymus gland obtained by transcervical thymectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122735009,122735009,"Specimen from thyroid obtained by isthmectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122732007,122732007,"Specimen from thyroid obtained by lobectomy",TISSUE,"Spesimen bedah / organ",true
+SP-399689008,399689008,"Specimen from thyroid obtained by thyroidectomy",TISSUE,"Spesimen bedah / organ",true
+SP-399622002,399622002,"Specimen from thyroid obtained by total thyroidectomy",TISSUE,"Spesimen bedah / organ",true
+SP-399440009,399440009,"Specimen from ureter obtained by nephroureterectomy",TISSUE,"Spesimen bedah / organ",true
+SP-399407000,399407000,"Specimen from ureter obtained by ureterectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122686008,122686008,"Specimen from urinary bladder obtained by partial cystectomy",TISSUE,"Spesimen bedah / organ",true
+SP-396685001,396685001,"Specimen from urinary bladder obtained by radical cystectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122688009,122688009,"Specimen from urinary bladder obtained by radical cystoprostatectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122687004,122687004,"Specimen from urinary bladder obtained by total cystectomy",TISSUE,"Spesimen bedah / organ",true
+SP-16212171000119109,16212171000119109,"Specimen from urinary bladder obtained by transurethral cystectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122700007,122700007,"Specimen from uterine cervix obtained by hysterectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122701006,122701006,"Specimen from uterine cervix obtained by radical hysterectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122696004,122696004,"Specimen from uterus obtained by radical hysterectomy",TISSUE,"Spesimen bedah / organ",true
+SP-397111007,397111007,"Specimen from vagina obtained by partial vaginectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122694001,122694001,"Specimen from vagina obtained by radical vaginectomy",TISSUE,"Spesimen bedah / organ",true
+SP-122693007,122693007,"Specimen from vagina obtained by vaginectomy",TISSUE,"Spesimen bedah / organ",true
+SP-397132004,397132004,"Specimen from vulva obtained by partial vulvectomy",TISSUE,"Spesimen bedah / organ",true
+SP-397134003,397134003,"Specimen from vulva obtained by radical vulvectomy",TISSUE,"Spesimen bedah / organ",true
+SP-397133009,397133009,"Specimen from vulva obtained by total vulvectomy",TISSUE,"Spesimen bedah / organ",true
+SP-408654003,408654003,"Specimen obtained by amputation",TISSUE,"Spesimen bedah / organ",true
+SP-16211331000119100,16211331000119100,"Specimen obtained by cystoprostatectomy",TISSUE,"Spesimen bedah / organ",true
+SP-397436009,397436009,"Specimen obtained by lymphadenectomy",TISSUE,"Spesimen bedah / organ",true
+SP-445405002,445405002,"Specimen obtained by surgical procedure",TISSUE,"Spesimen bedah / organ",true
+SP-399484009,399484009,"Superficial parotidectomy specimen",TISSUE,"Spesimen bedah / organ",true
+SP-309192007,309192007,"Tonsillectomy specimen",TISSUE,"Spesimen bedah / organ",true
+SP-309487001,309487001,"Total colectomy specimen",TISSUE,"Spesimen bedah / organ",true
+SP-309497005,309497005,"Total nephrectomy specimen",TISSUE,"Spesimen bedah / organ",true
+SP-399693002,399693002,"Total parotidectomy specimen",TISSUE,"Spesimen bedah / organ",true
+SP-122594008,122594008,"Tears specimen",BODYFLUID,"Air mata",true
+SP-258444001,258444001,"Aqueous humor specimen",BODYFLUID,"Aqueous humor",true
+SP-410729004,410729004,"Amniocentesis fluid specimen",BODYFLUID,"Cairan amnion",true
+SP-119373006,119373006,"Amniotic fluid specimen",BODYFLUID,"Cairan amnion",true
+SP-258454002,258454002,"Dialysate specimen",BODYFLUID,"Cairan dialisis",true
+SP-119360007,119360007,"Dialysis fluid specimen",BODYFLUID,"Cairan dialisis",true
+SP-447355008,447355008,"Dialysis fluid specimen obtained after continuous ambulatory peritoneal dialysis",BODYFLUID,"Cairan dialisis",true
+SP-445516007,445516007,"Dialysis fluid specimen obtained after dialysis",BODYFLUID,"Cairan dialisis",true
+SP-444946008,444946008,"Dialysis fluid specimen obtained before dialysis",BODYFLUID,"Cairan dialisis",true
+SP-445384000,445384000,"Hemodialysate specimen from hemodialysis machine using reverse osmosis system",BODYFLUID,"Cairan dialisis",true
+SP-445529007,445529007,"Hemodialysate specimen from hemodialysis machine using water distribution system",BODYFLUID,"Cairan dialisis",true
+SP-258571003,258571003,"Machine hemodialysate specimen",BODYFLUID,"Cairan dialisis",true
+SP-444831002,444831002,"Machine hemodialysate specimen obtained after mixing",BODYFLUID,"Cairan dialisis",true
+SP-444623009,444623009,"Machine hemodialysate specimen obtained before mixing",BODYFLUID,"Cairan dialisis",true
+SP-168140004,168140004,"Peritoneal dialysate specimen",BODYFLUID,"Cairan dialisis",true
+SP-122586001,122586001,"Peritoneal dialysis fluid specimen",BODYFLUID,"Cairan dialisis",true
+SP-445069004,445069004,"Peritoneal dialysis fluid specimen obtained after dialysis",BODYFLUID,"Cairan dialisis",true
+SP-444959000,444959000,"Peritoneal dialysis fluid specimen obtained before dialysis",BODYFLUID,"Cairan dialisis",true
+SP-258455001,258455001,"Drainage fluid specimen",BODYFLUID,"Cairan drain",true
+SP-446211008,446211008,"Drainage fluid specimen obtained after surgical placement of drain",BODYFLUID,"Cairan drain",true
+SP-258461003,258461003,"Hydrocele fluid specimen",BODYFLUID,"Cairan hydrocele",true
+SP-309135006,309135006,"Hydrocele specimen",BODYFLUID,"Cairan hydrocele",true
+SP-432436003,432436003,"Specimen from hydrocele of spermatic cord",BODYFLUID,"Cairan hydrocele",true
+SP-432441006,432441006,"Specimen from hydrocele of tunica vaginalis",BODYFLUID,"Cairan hydrocele",true
+SP-16209291000119109,16209291000119109,"Brain cyst fluid specimen",BODYFLUID,"Cairan kista",true
+SP-256889002,256889002,"Breast cyst fluid specimen",BODYFLUID,"Cairan kista",true
+SP-16209251000119104,16209251000119104,"Central nervous system cyst fluid specimen",BODYFLUID,"Cairan kista",true
+SP-258453008,258453008,"Cyst fluid specimen",BODYFLUID,"Cairan kista",true
+SP-16220931000119104,16220931000119104,"Pancreas cyst fluid specimen",BODYFLUID,"Cairan kista",true
+SP-309147000,309147000,"Thyroid cyst fluid specimen",BODYFLUID,"Cairan kista",true
+SP-258459007,258459007,"Gastric fluid specimen",BODYFLUID,"Cairan lambung",true
+SP-16210291000119103,16210291000119103,"Gastric fluid specimen obtained by drainage",BODYFLUID,"Cairan lambung",true
+SP-16210331000119109,16210331000119109,"Gastric fluid specimen obtained via gastrostomy tube",BODYFLUID,"Cairan lambung",true
+SP-168141000,168141000,"Nasal fluid specimen",BODYFLUID,"Cairan nasal/nasofaring",true
+SP-122571007,122571007,"Pericardial fluid specimen",BODYFLUID,"Cairan perikardial",true
+SP-309201001,309201001,"Ascitic fluid specimen",BODYFLUID,"Cairan peritoneal / ascites",true
+SP-168139001,168139001,"Peritoneal fluid specimen",BODYFLUID,"Cairan peritoneal / ascites",true
+SP-418564007,418564007,"Pleural fluid specimen",BODYFLUID,"Cairan pleura",true
+SP-258470000,258470000,"Prostatic fluid specimen",BODYFLUID,"Cairan prostat",true
+SP-446700001,446700001,"Prostatic fluid specimen obtained for Stamey test",BODYFLUID,"Cairan prostat",true
+SP-258450006,258450006,"Cerebrospinal fluid specimen",BODYFLUID,"Cairan serebrospinal (CSF)",true
+SP-445372002,445372002,"Cerebrospinal fluid specimen from ventricle of brain",BODYFLUID,"Cairan serebrospinal (CSF)",true
+SP-473405009,473405009,"Cerebrospinal fluid specimen obtained from Rickham reservoir",BODYFLUID,"Cairan serebrospinal (CSF)",true
+SP-446861007,446861007,"Cerebrospinal fluid specimen obtained via ventriculoperitoneal shunt",BODYFLUID,"Cairan serebrospinal (CSF)",true
+SP-703691002,703691002,"Spun cerebrospinal fluid",BODYFLUID,"Cairan serebrospinal (CSF)",true
+SP-167875003,167875003,"Ankle joint synovial fluid",BODYFLUID,"Cairan sinovial",true
+SP-167869007,167869007,"Elbow joint synovial fluid",BODYFLUID,"Cairan sinovial",true
+SP-167872000,167872000,"Finger joint synovial fluid",BODYFLUID,"Cairan sinovial",true
+SP-167876002,167876002,"Foot joint synovial fluid",BODYFLUID,"Cairan sinovial",true
+SP-167871007,167871007,"Hand joint synovial fluid",BODYFLUID,"Cairan sinovial",true
+SP-167873005,167873005,"Hip joint synovial fluid",BODYFLUID,"Cairan sinovial",true
+SP-431361003,431361003,"Joint fluid specimen",BODYFLUID,"Cairan sinovial",true
+SP-167874004,167874004,"Knee joint synovial fluid",BODYFLUID,"Cairan sinovial",true
+SP-167867009,167867009,"Multiple joint synovial fluid",BODYFLUID,"Cairan sinovial",true
+SP-167868004,167868004,"Shoulder joint synovial fluid",BODYFLUID,"Cairan sinovial",true
+SP-264380007,264380007,"Synovial fluid cells",BODYFLUID,"Cairan sinovial",true
+SP-119332005,119332005,"Synovial fluid specimen",BODYFLUID,"Cairan sinovial",true
+SP-309123007,309123007,"Synovial specimen",BODYFLUID,"Cairan sinovial",true
+SP-167877006,167877006,"Toe joint synovial fluid",BODYFLUID,"Cairan sinovial",true
+SP-167870008,167870008,"Wrist joint synovial fluid",BODYFLUID,"Cairan sinovial",true
+SP-16215211000119100,16215211000119100,"Bartholin's gland fluid specimen",BODYFLUID,"Cairan tubuh lain",true
+SP-309051001,309051001,"Body fluid specimen",BODYFLUID,"Cairan tubuh lain",true
+SP-447375004,447375004,"Body fluid specimen obtained via chest tube",BODYFLUID,"Cairan tubuh lain",true
+SP-446561003,446561003,"Body fluid specimen obtained via cholecytosomy tube",BODYFLUID,"Cairan tubuh lain",true
+SP-16210211000119107,16210211000119107,"Body fluid specimen obtained via cystostomy tube",BODYFLUID,"Cairan tubuh lain",true
+SP-16210251000119108,16210251000119108,"Body fluid specimen obtained via Jackson-Pratt drain",BODYFLUID,"Cairan tubuh lain",true
+SP-446562005,446562005,"Body fluid specimen obtained via sump drain",BODYFLUID,"Cairan tubuh lain",true
+SP-309055005,309055005,"Breast fluid specimen",BODYFLUID,"Cairan tubuh lain",true
+SP-258607008,258607008,"Bronchoalveolar lavage fluid specimen",BODYFLUID,"Cairan tubuh lain",true
+SP-258448003,258448003,"Bursa fluid specimen",BODYFLUID,"Cairan tubuh lain",true
+SP-258547005,258547005,"Cardiopulmonary bypass pump fluid specimen",BODYFLUID,"Cairan tubuh lain",true
+SP-258452003,258452003,"Chylous fluid specimen",BODYFLUID,"Cairan tubuh lain",true
+SP-168136008,168136008,"Colostomy fluid specimen",BODYFLUID,"Cairan tubuh lain",true
+SP-122574004,122574004,"Duodenal fluid specimen",BODYFLUID,"Cairan tubuh lain",true
+SP-258468009,258468009,"Edema fluid specimen",BODYFLUID,"Cairan tubuh lain",true
+SP-258440005,258440005,"Effusion specimen",BODYFLUID,"Cairan tubuh lain",true
+SP-258456000,258456000,"Empyema fluid specimen",BODYFLUID,"Cairan tubuh lain",true
+SP-258441009,258441009,"Exudate specimen",BODYFLUID,"Cairan tubuh lain",true
+SP-122568004,122568004,"Exudate specimen from wound",BODYFLUID,"Cairan tubuh lain",true
+SP-309128003,309128003,"Eye fluid specimen",BODYFLUID,"Cairan tubuh lain",true
+SP-122578001,122578001,"Female genital fluid specimen",BODYFLUID,"Cairan tubuh lain",true
+SP-258458004,258458004,"Fistula fluid specimen",BODYFLUID,"Cairan tubuh lain",true
+SP-258442002,258442002,"Fluid specimen",BODYFLUID,"Cairan tubuh lain",true
+SP-33511000087108,33511000087108,"Fluid specimen from abdominopelvic cavity",BODYFLUID,"Cairan tubuh lain",true
+SP-446128003,446128003,"Fluid specimen from Bartholin gland cyst",BODYFLUID,"Cairan tubuh lain",true
+SP-732972008,732972008,"Fluid specimen from cyst of ovary",BODYFLUID,"Cairan tubuh lain",true
+SP-733056005,733056005,"Fluid specimen from ear",BODYFLUID,"Cairan tubuh lain",true
+SP-840395001,840395001,"Fluid specimen from ear region",BODYFLUID,"Cairan tubuh lain",true
+SP-33891000087100,33891000087100,"Fluid specimen from empyema of subdural space",BODYFLUID,"Cairan tubuh lain",true
+SP-732975005,732975005,"Fluid specimen from epididymis",BODYFLUID,"Cairan tubuh lain",true
+SP-444965000,444965000,"Fluid specimen from epidural space",BODYFLUID,"Cairan tubuh lain",true
+SP-732976006,732976006,"Fluid specimen from external auditory canal",BODYFLUID,"Cairan tubuh lain",true
+SP-446908003,446908003,"Fluid specimen from mucocele of lacrimal sac",BODYFLUID,"Cairan tubuh lain",true
+SP-733101007,733101007,"Fluid specimen from perirenal region",BODYFLUID,"Cairan tubuh lain",true
+SP-438595008,438595008,"Fluid specimen from sebaceous cyst",BODYFLUID,"Cairan tubuh lain",true
+SP-445744006,445744006,"Fluid specimen from seroma",BODYFLUID,"Cairan tubuh lain",true
+SP-438545007,438545007,"Fluid specimen from spermatocele",BODYFLUID,"Cairan tubuh lain",true
+SP-444936006,444936006,"Fluid specimen from subdural space",BODYFLUID,"Cairan tubuh lain",true
+SP-445745007,445745007,"Fluid specimen from subphrenic space",BODYFLUID,"Cairan tubuh lain",true
+SP-122566000,122566000,"Fluid specimen from wound",BODYFLUID,"Cairan tubuh lain",true
+SP-309199003,309199003,"Gastrointestinal fluid specimen",BODYFLUID,"Cairan tubuh lain",true
+SP-16214171000119101,16214171000119101,"Genital fluid specimen",BODYFLUID,"Cairan tubuh lain",true
+SP-258559009,258559009,"Gingivocrevicular fluid specimen",BODYFLUID,"Cairan tubuh lain",true
+SP-258462005,258462005,"Ileostomy fluid specimen",BODYFLUID,"Cairan tubuh lain",true
+SP-258479004,258479004,"Interstitial fluid specimen",BODYFLUID,"Cairan tubuh lain",true
+SP-258649003,258649003,"Intravenous infusion fluid specimen",BODYFLUID,"Cairan tubuh lain",true
+SP-258650003,258650003,"Intravenous lipid infusion fluid specimen",BODYFLUID,"Cairan tubuh lain",true
+SP-258463000,258463000,"Jejunal fluid specimen",BODYFLUID,"Cairan tubuh lain",true
+SP-446906004,446906004,"Jejunal fluid specimen from jejunostomy",BODYFLUID,"Cairan tubuh lain",true
+SP-16210371000119107,16210371000119107,"Jejunal fluid specimen obtained by drainage",BODYFLUID,"Cairan tubuh lain",true
+SP-258465007,258465007,"Lacrimal fluid specimen",BODYFLUID,"Cairan tubuh lain",true
+SP-309171007,309171007,"Lower respiratory fluid specimen",BODYFLUID,"Cairan tubuh lain",true
+SP-258466008,258466008,"Middle ear fluid specimen",BODYFLUID,"Cairan tubuh lain",true
+SP-16224371000119105,16224371000119105,"Nasal lavage fluid specimen",BODYFLUID,"Cairan tubuh lain",true
+SP-119316007,119316007,"Non-biological fluid specimen",BODYFLUID,"Cairan tubuh lain",true
+SP-409876003,409876003,"Oral mucosal transudate specimen",BODYFLUID,"Cairan tubuh lain",true
+SP-309292002,309292002,"Ovarian fluid specimen",BODYFLUID,"Cairan tubuh lain",true
+SP-119343002,119343002,"Pancreatic fluid specimen",BODYFLUID,"Cairan tubuh lain",true
+SP-258471001,258471001,"Prostatic massage fluid specimen",BODYFLUID,"Cairan tubuh lain",true
+SP-258472008,258472008,"Renal pelvis fluid specimen",BODYFLUID,"Cairan tubuh lain",true
+SP-410580001,410580001,"Respiratory fluid specimen",BODYFLUID,"Cairan tubuh lain",true
+SP-258474009,258474009,"Sinus fluid specimen",BODYFLUID,"Cairan tubuh lain",true
+SP-787152009,787152009,"Specimen in non-fixative preservation fluid",BODYFLUID,"Cairan tubuh lain",true
+SP-16220971000119101,16220971000119101,"Specimen of fluid from cyst of kidney",BODYFLUID,"Cairan tubuh lain",true
+SP-258476006,258476006,"Subretinal fluid specimen",BODYFLUID,"Cairan tubuh lain",true
+SP-309145008,309145008,"Thyroid fluid specimen",BODYFLUID,"Cairan tubuh lain",true
+SP-258538002,258538002,"Transudate specimen",BODYFLUID,"Cairan tubuh lain",true
+SP-410581002,410581002,"Upper respiratory fluid specimen",BODYFLUID,"Cairan tubuh lain",true
+SP-122877000,122877000,"Upper respiratory fluid specimen obtained by tracheal aspiration",BODYFLUID,"Cairan tubuh lain",true
+SP-309268005,309268005,"Urological fluid specimen",BODYFLUID,"Cairan tubuh lain",true
+SP-258481002,258481002,"Vaginal washout fluid specimen",BODYFLUID,"Cairan tubuh lain",true
+SP-258482009,258482009,"Vesicle fluid specimen",BODYFLUID,"Cairan tubuh lain",true
+SP-40511003,40511003,"Eluate",BODYFLUID,"Eluat",true
+SP-119341000,119341000,"Bile specimen",BODYFLUID,"Empedu / bile",true
+SP-446129006,446129006,"Bile specimen from common bile duct",BODYFLUID,"Empedu / bile",true
+SP-446817004,446817004,"Bile specimen from gallbladder",BODYFLUID,"Empedu / bile",true
+SP-447158004,447158004,"Bile specimen obtained by percutaneous transhepatic insertion of biliary drain",BODYFLUID,"Empedu / bile",true
+SP-447341000,447341000,"Bile specimen obtained via biliary T-tube",BODYFLUID,"Empedu / bile",true
+SP-429832000,429832000,"Biliary fluid specimen obtained by drainage",BODYFLUID,"Empedu / bile",true
+SP-122569007,122569007,"Sweat specimen",BODYFLUID,"Keringat",true
+SP-16216611000119108,16216611000119108,"Aortic valve specimen obtained by lavage",BODYFLUID,"Lavage / washing",true
+SP-16216451000119107,16216451000119107,"Colonic specimen obtained by lavage",BODYFLUID,"Lavage / washing",true
+SP-16216531000119102,16216531000119102,"Common bile duct specimen obtained by lavage",BODYFLUID,"Lavage / washing",true
+SP-16216571000119104,16216571000119104,"Esophageal specimen obtained by lavage",BODYFLUID,"Lavage / washing",true
+SP-433871000124101,433871000124101,"Nasal washings",BODYFLUID,"Lavage / washing",true
+SP-258467004,258467004,"Nasopharyngeal washings",BODYFLUID,"Lavage / washing",true
+SP-1149105007,1149105007,"Oropharyngeal washings",BODYFLUID,"Lavage / washing",true
+SP-258469001,258469001,"Pharyngeal washings",BODYFLUID,"Lavage / washing",true
+SP-16224291000119101,16224291000119101,"Renal washings",BODYFLUID,"Lavage / washing",true
+SP-258475005,258475005,"Sinus washings",BODYFLUID,"Lavage / washing",true
+SP-446235003,446235003,"Specimen from conjunctiva obtained by lavage",BODYFLUID,"Lavage / washing",true
+SP-440675009,440675009,"Specimen from upper urinary tract obtained by lavage",BODYFLUID,"Lavage / washing",true
+SP-440674008,440674008,"Specimen obtained by lavage",BODYFLUID,"Lavage / washing",true
+SP-440137008,440137008,"Specimen obtained by peritoneal lavage",BODYFLUID,"Lavage / washing",true
+SP-16216491000119102,16216491000119102,"Urinary bladder specimen obtained by lavage",BODYFLUID,"Lavage / washing",true
+SP-16215411000119104,16215411000119104,"Specimen from left lower lobe of lung obtained by bronchial washing procedure",BODYFLUID,"Lavage/washing respirasi",true
+SP-16209771000119101,16209771000119101,"Specimen from left lower lobe of lung obtained by bronchoalveolar lavage procedure",BODYFLUID,"Lavage/washing respirasi",true
+SP-16209691000119106,16209691000119106,"Specimen from left lung obtained by blind bronchioloalveolar lavage procedure",BODYFLUID,"Lavage/washing respirasi",true
+SP-16215331000119103,16215331000119103,"Specimen from left upper lobe of lung obtained by bronchial washing procedure",BODYFLUID,"Lavage/washing respirasi",true
+SP-16209811000119101,16209811000119101,"Specimen from left upper lobe of lung obtained by bronchoalveolar lavage procedure",BODYFLUID,"Lavage/washing respirasi",true
+SP-122609004,122609004,"Specimen from lung obtained by bronchial washing procedure",BODYFLUID,"Lavage/washing respirasi",true
+SP-16215291000119109,16215291000119109,"Specimen from right lower lobe of lung obtained by bronchial washing procedure",BODYFLUID,"Lavage/washing respirasi",true
+SP-16209931000119102,16209931000119102,"Specimen from right lower lobe of lung obtained by bronchoalveolar lavage procedure",BODYFLUID,"Lavage/washing respirasi",true
+SP-16209731000119104,16209731000119104,"Specimen from right lung obtained by blind bronchioloalveolar lavage procedure",BODYFLUID,"Lavage/washing respirasi",true
+SP-16215451000119103,16215451000119103,"Specimen from right middle lobe of lung obtained by bronchial washing procedure",BODYFLUID,"Lavage/washing respirasi",true
+SP-16209891000119105,16209891000119105,"Specimen from right middle lobe of lung obtained by bronchoalveolar lavage procedure",BODYFLUID,"Lavage/washing respirasi",true
+SP-16215251000119104,16215251000119104,"Specimen from right upper lobe of lung obtained by bronchial washing procedure",BODYFLUID,"Lavage/washing respirasi",true
+SP-16209851000119100,16209851000119100,"Specimen from right upper lobe of lung obtained by bronchoalveolar lavage procedure",BODYFLUID,"Lavage/washing respirasi",true
+SP-168145009,168145009,"Lymph specimen",BODYFLUID,"Limfa",true
+SP-258446004,258446004,"Bronchial fluid specimen",BODYFLUID,"Sekret/cairan respirasi",true
+SP-447345009,447345009,"Bronchial fluid specimen obtained from bronchial trap",BODYFLUID,"Sekret/cairan respirasi",true
+SP-415293009,415293009,"Respiratory secretion",BODYFLUID,"Sekret/cairan respirasi",true
+SP-57741000052105,57741000052105,"Tracheal secretion specimen",BODYFLUID,"Sekret/cairan respirasi",true
+SP-258572005,258572005,"Ultrafiltrate specimen",BODYFLUID,"Ultrafiltrat",true
+SP-258438000,258438000,"Vitreous humor specimen",BODYFLUID,"Vitreous humor",true
+SP-258565009,258565009,"Chorionic villi specimen",PLACENTA,"Plasenta / produk konsepsi",true
+SP-309502007,309502007,"Fetus specimen",PLACENTA,"Plasenta / produk konsepsi",true
+SP-725957005,725957005,"Formalin-fixed placenta tissue specimen",PLACENTA,"Plasenta / produk konsepsi",true
+SP-309293007,309293007,"Placenta biopsy specimen",PLACENTA,"Plasenta / produk konsepsi",true
+SP-258426009,258426009,"Placental membrane tissue specimen",PLACENTA,"Plasenta / produk konsepsi",true
+SP-258428005,258428005,"Products of conception tissue specimen",PLACENTA,"Plasenta / produk konsepsi",true
+SP-431234000,431234000,"Specimen from fetus obtained by biopsy",PLACENTA,"Plasenta / produk konsepsi",true
+SP-119403008,119403008,"Specimen from placenta",PLACENTA,"Plasenta / produk konsepsi",true
+SP-399411006,399411006,"Specimen from trophoblast",PLACENTA,"Plasenta / produk konsepsi",true
+SP-122736005,122736005,"Tissue specimen from placenta",PLACENTA,"Plasenta / produk konsepsi",true
+SP-399657004,399657004,"Tissue specimen from trophoblast",PLACENTA,"Plasenta / produk konsepsi",true
+SP-399658009,399658009,"Trophoblastic tissue obtained by hysterectomy",PLACENTA,"Plasenta / produk konsepsi",true
+SP-399502008,399502008,"Trophoblastic tissue obtained by pelvic exenteration",PLACENTA,"Plasenta / produk konsepsi",true
+SP-399447007,399447007,"Trophoblastic tissue obtained by radical hysterectomy",PLACENTA,"Plasenta / produk konsepsi",true
+SP-399396003,399396003,"Trophoblastic tissue obtained from uterus by dilation and curettage",PLACENTA,"Plasenta / produk konsepsi",true
+SP-258436001,258436001,"Umbilical cord tissue specimen",PLACENTA,"Plasenta / produk konsepsi",true
+SP-309503002,309503002,"Breast nipple discharge specimen",PUS,"Luka / abses / drainase",true
+SP-258439008,258439008,"Discharge specimen",PUS,"Luka / abses / drainase",true
+SP-732295009,732295009,"Discharge specimen from penis",PUS,"Luka / abses / drainase",true
+SP-16209331000119103,16209331000119103,"Eye discharge specimen",PUS,"Luka / abses / drainase",true
+SP-119323008,119323008,"Pus specimen",PUS,"Luka / abses / drainase",true
+SP-119371008,119371008,"Specimen from abscess",PUS,"Luka / abses / drainase",true
+SP-16215171000119102,16215171000119102,"Specimen from abscess of Bartholin's gland",PUS,"Luka / abses / drainase",true
+SP-446774006,446774006,"Specimen from abscess of brain",PUS,"Luka / abses / drainase",true
+SP-446674003,446674003,"Specimen from abscess of liver",PUS,"Luka / abses / drainase",true
+SP-29011000087100,29011000087100,"Specimen from abscess of lung",PUS,"Luka / abses / drainase",true
+SP-33331000087108,33331000087108,"Specimen from abscess of vulva",PUS,"Luka / abses / drainase",true
+SP-16211011000119108,16211011000119108,"Specimen from deep surgical wound",PUS,"Luka / abses / drainase",true
+SP-16211051000119109,16211051000119109,"Specimen from deep wound",PUS,"Luka / abses / drainase",true
+SP-33541000087109,33541000087109,"Specimen from epidural abscess",PUS,"Luka / abses / drainase",true
+SP-16211211000119102,16211211000119102,"Specimen from intra-abdominal abscess",PUS,"Luka / abses / drainase",true
+SP-32641000087102,32641000087102,"Specimen from ovarian abscess",PUS,"Luka / abses / drainase",true
+SP-29041000087104,29041000087104,"Specimen from pelvic abscess",PUS,"Luka / abses / drainase",true
+SP-33521000087100,33521000087100,"Specimen from subgaleal abscess",PUS,"Luka / abses / drainase",true
+SP-734381007,734381007,"Specimen from superficial wound",PUS,"Luka / abses / drainase",true
+SP-734380008,734380008,"Specimen from surgical wound",PUS,"Luka / abses / drainase",true
+SP-119365002,119365002,"Specimen from wound",PUS,"Luka / abses / drainase",true
+SP-119366001,119366001,"Specimen from wound abscess",PUS,"Luka / abses / drainase",true
+SP-16221011000119101,16221011000119101,"Vaginal discharge specimen",PUS,"Luka / abses / drainase",true
+SP-122580007,122580007,"Cerumen specimen",SECRETION,"Cerumen",true
+SP-122879002,122879002,"Upper gastrointestinal contents specimen",SECRETION,"Isi gastrointestinal",true
+SP-122573005,122573005,"Gastric contents specimen",SECRETION,"Isi lambung",true
+SP-16223051000119101,16223051000119101,"Nasal sinus contents specimen",SECRETION,"Isi sinus nasal",true
+SP-122579009,122579009,"Genital lochia specimen",SECRETION,"Lochia",true
+SP-309050000,309050000,"Body substance specimen",SECRETION,"Material tubuh, tidak dirinci",true
+SP-447148003,447148003,"Body substance specimen from ear",SECRETION,"Material/sekret telinga",true
+SP-122577006,122577006,"Cervical mucus specimen",SECRETION,"Mukus",true
+SP-122576002,122576002,"Genital mucus specimen",SECRETION,"Mukus",true
+SP-258483004,258483004,"Mucus specimen",SECRETION,"Mukus",true
+SP-122572000,122572000,"Vomitus specimen",SECRETION,"Muntahan / vomitus",true
+SP-258432004,258432004,"Sebum specimen",SECRETION,"Sebum",true
+SP-432825001,432825001,"Body secretion specimen",SECRETION,"Sekret",true
+SP-258558001,258558001,"Oral secretion specimen",SECRETION,"Sekret",true
+SP-57721000052101,57721000052101,"Rectal secretion specimen",SECRETION,"Sekret",true
+SP-258577004,258577004,"Vaginal secretion specimen",SECRETION,"Sekret",true
+SP-258485006,258485006,"Corneal scraping specimen",HAIRNAIL,"Kerokan / scraping",true
+SP-258429002,258429002,"Rectal scrape specimen",HAIRNAIL,"Kerokan / scraping",true
+SP-258431006,258431006,"Scrapings",HAIRNAIL,"Kerokan / scraping",true
+SP-258549008,258549008,"Skin scale specimen",HAIRNAIL,"Kerokan / scraping",true
+SP-447337004,447337004,"Specimen from conjunctiva obtained by scraping",HAIRNAIL,"Kerokan / scraping",true
+SP-733484007,733484007,"Specimen from lesion of penis obtained by scraping",HAIRNAIL,"Kerokan / scraping",true
+SP-733485008,733485008,"Specimen from lesion of perianal region obtained by scraping",HAIRNAIL,"Kerokan / scraping",true
+SP-446952006,446952006,"Specimen from skin obtained by scraping",HAIRNAIL,"Kerokan / scraping",true
+SP-119327009,119327009,"Nail specimen",HAIRNAIL,"Kuku / kerokan kuku",true
+SP-447098004,447098004,"Specimen from nail obtained by scraping",HAIRNAIL,"Kuku / kerokan kuku",true
+SP-258423001,258423001,"Hair bulb specimen",HAIRNAIL,"Rambut",true
+SP-1259931002,1259931002,"Hair of face specimen",HAIRNAIL,"Rambut",true
+SP-119326000,119326000,"Hair specimen",HAIRNAIL,"Rambut",true
+SP-119338009,119338009,"Dentin specimen",BONE,"Gigi / dentin",true
+SP-29021000087108,29021000087108,"Specimen from abscess of tooth",BONE,"Gigi / dentin",true
+SP-430319000,430319000,"Specimen from tooth",BONE,"Gigi / dentin",true
+SP-438805006,438805006,"Whole tooth specimen",BONE,"Gigi / dentin",true
+SP-33631000087102,33631000087102,"Allogeneic bone graft material submitted as specimen",BONE,"Tulang",true
+SP-258539005,258539005,"Bone and joint specimen",BONE,"Tulang",true
+SP-258417006,258417006,"Bone tissue specimen",BONE,"Tulang",true
+SP-16211651000119103,16211651000119103,"Excised bone specimen",BONE,"Tulang",true
+SP-309120005,309120005,"Head of femur specimen",BONE,"Tulang",true
+SP-371782000,371782000,"Human bone for identification",BONE,"Tulang",true
+SP-258490009,258490009,"Biliary stone specimen",CALCULUS,"Batu / kalkulus / kristal",true
+SP-258493006,258493006,"Bladder stone specimen",CALCULUS,"Batu / kalkulus / kristal",true
+SP-119350003,119350003,"Calculus specimen",CALCULUS,"Batu / kalkulus / kristal",true
+SP-258492001,258492001,"Gallstone specimen",CALCULUS,"Batu / kalkulus / kristal",true
+SP-258494000,258494000,"Pancreatic stone specimen",CALCULUS,"Batu / kalkulus / kristal",true
+SP-258495004,258495004,"Renal stone specimen",CALCULUS,"Batu / kalkulus / kristal",true
+SP-440138003,440138003,"Specimen containing crystals from synovial joint",CALCULUS,"Batu / kalkulus / kristal",true
+SP-258496003,258496003,"Ureteric stone specimen",CALCULUS,"Batu / kalkulus / kristal",true
+SP-258563002,258563002,"Amniotic cell specimen",CELL,"Sel / material seluler",true
+SP-119333000,119333000,"Fibroblast specimen",CELL,"Sel / material seluler",true
+SP-441518000,441518000,"Lymphoblastoid cell line specimen",CELL,"Sel / material seluler",true
+SP-119352006,119352006,"Macrophage specimen",CELL,"Sel / material seluler",true
+SP-258568006,258568006,"Polar body specimen",CELL,"Sel / material seluler",true
+SP-258569003,258569003,"Skin fibroblast specimen",CELL,"Sel / material seluler",true
+SP-57731000052104,57731000052104,"Stem cell specimen",CELL,"Sel / material seluler",true
+SP-258566005,258566005,"Deoxyribonucleic acid specimen",MOLECULAR,"DNA/RNA/asam nukleat",true
+SP-258562007,258562007,"Genetic specimen",MOLECULAR,"DNA/RNA/asam nukleat",true
+SP-448789008,448789008,"Nucleic acid specimen",MOLECULAR,"DNA/RNA/asam nukleat",true
+SP-441673008,441673008,"Ribonucleic acid specimen",MOLECULAR,"DNA/RNA/asam nukleat",true
+SP-734338009,734338009,"Arthropod material submitted as specimen",ISOLATE,"Isolat/organisme mikrobiologi/parasitologi",true
+SP-445421007,445421007,"Fungal isolate specimen",ISOLATE,"Isolat/organisme mikrobiologi/parasitologi",true
+SP-258618008,258618008,"Helminth specimen",ISOLATE,"Isolat/organisme mikrobiologi/parasitologi",true
+SP-258614005,258614005,"Insect specimen",ISOLATE,"Isolat/organisme mikrobiologi/parasitologi",true
+SP-258615006,258615006,"Larva specimen",ISOLATE,"Isolat/organisme mikrobiologi/parasitologi",true
+SP-258616007,258616007,"Maggot specimen",ISOLATE,"Isolat/organisme mikrobiologi/parasitologi",true
+SP-119303007,119303007,"Microbial isolate",ISOLATE,"Isolat/organisme mikrobiologi/parasitologi",true
+SP-258617003,258617003,"Parasite specimen",ISOLATE,"Isolat/organisme mikrobiologi/parasitologi",true
+SP-704663000,704663000,"Parasitic worm specimen",ISOLATE,"Isolat/organisme mikrobiologi/parasitologi",true
+SP-16214211000119104,16214211000119104,"Pediculus specimen",ISOLATE,"Isolat/organisme mikrobiologi/parasitologi",true
+SP-710069003,710069003,"Tick specimen",ISOLATE,"Isolat/organisme mikrobiologi/parasitologi",true
+SP-621000009105,621000009105,"Viral isolate specimen",ISOLATE,"Isolat/organisme mikrobiologi/parasitologi",true
+SP-258629007,258629007,"Arterial cannula tip submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-119309006,119309006,"Arterial line submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-472931009,472931009,"Arterial line tip submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-258631003,258631003,"Arteriovenous shunt tip submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-16213171000119103,16213171000119103,"Balloon catheter tip submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-119308003,119308003,"Cannula submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-258627009,258627009,"Cannula tip submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-33481000087100,33481000087100,"Cardiac pacemaker component submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-473417006,473417006,"Cardiac pacemaker lead submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-33491000087103,33491000087103,"Cardiac pacemaker submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-119311002,119311002,"Catheter submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-119312009,119312009,"Catheter tip submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-473413005,473413005,"Central venous catheter from internal jugular vein submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-473409003,473409003,"Central venous catheter submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-472935000,472935000,"Central venous catheter tip from subclavian vein submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-472929000,472929000,"Central venous catheter tip submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-472926007,472926007,"Chest tube tip submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-472927003,472927003,"Contact lens case submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-258599007,258599007,"Contact lens solution specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-440473005,440473005,"Contact lens submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-473401000,473401000,"Cotton wool ball submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-472919007,472919007,"Device submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-472937008,472937008,"Double J stent submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-1003707004,1003707004,"Drain device submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-1003705007,1003705007,"Drain tip submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-444656005,444656005,"Drainage tube submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-258553005,258553005,"Duodenal string",DEVICE,"Perangkat/kateter/benda asing",true
+SP-119314005,119314005,"Electrode submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-16213211000119101,16213211000119101,"Endotracheal catheter tip submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-473412000,473412000,"Endotracheal tube submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-28981000087104,28981000087104,"Epidural catheter tip submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-16213091000119103,16213091000119103,"External shunt submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-473411007,473411007,"External ventricular drain tip submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-447103002,447103002,"Foreign body submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-732964006,732964006,"Gastrostomy tube submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-773611006,773611006,"Hemodialysis catheter submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-472943005,472943005,"Heyer-Pudenz valve submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-439961009,439961009,"Implant submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-119313004,119313004,"Implantable venous catheter submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-16213051000119108,16213051000119108,"Indwelling catheter tip submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-472922009,472922009,"Intracranial catheter submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-473414004,473414004,"Intracranial pressure catheter submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-472940008,472940008,"Intracranial ventricular catheter submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-472941007,472941007,"Intracranial ventricular catheter tip submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-258602002,258602002,"Intraocular lens specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-473415003,473415003,"Intrauterine contraceptive device submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-16213251000119100,16213251000119100,"Introducer catheter tip submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-473416002,473416002,"Nephrostomy tube submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-33531000087103,33531000087103,"Ommaya reservoir submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-473403002,473403002,"Percutaneous nephrostomy tube tip submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-473410008,473410008,"Peripheral vascular catheter submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-472923004,472923004,"Peripheral vascular catheter tip submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-473407001,473407001,"Peripherally inserted central catheter submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-16223251000119109,16223251000119109,"Peripherally inserted central venous catheter tip submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-472944004,472944004,"Peritoneal catheter submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-16219801000119102,16219801000119102,"Pinworm paddle submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-1003713008,1003713008,"Prosthetic heart valve submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-1003712003,1003712003,"Prosthetic joint submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-473433009,473433009,"Protected specimen brush submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-472924005,472924005,"Pulmonary artery flotation catheter tip submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-473404008,473404008,"Rickham reservoir submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-473406005,473406005,"Shunt submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-472933007,472933007,"Shunt tip submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-898201001,898201001,"Specimen from device",DEVICE,"Perangkat/kateter/benda asing",true
+SP-1003708009,1003708009,"Specimen from drain device",DEVICE,"Perangkat/kateter/benda asing",true
+SP-1003706008,1003706008,"Specimen from drain tip",DEVICE,"Perangkat/kateter/benda asing",true
+SP-119307008,119307008,"Specimen from endotracheal tube",DEVICE,"Perangkat/kateter/benda asing",true
+SP-438660002,438660002,"Specimen from prosthetic device",DEVICE,"Perangkat/kateter/benda asing",true
+SP-1003714002,1003714002,"Specimen from prosthetic heart valve",DEVICE,"Perangkat/kateter/benda asing",true
+SP-1003711005,1003711005,"Specimen from prosthetic joint",DEVICE,"Perangkat/kateter/benda asing",true
+SP-1003710006,1003710006,"Specimen from tube",DEVICE,"Perangkat/kateter/benda asing",true
+SP-472934001,472934001,"Stent submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-699868006,699868006,"Suture material submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-440468004,440468004,"Tampon submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-472936004,472936004,"Tenckhoff catheter tip submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-472938003,472938003,"Tracheal tube submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-472939006,472939006,"Tracheostomy tube submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-1003709001,1003709001,"Tube submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-16220041000119107,16220041000119107,"Tunneled catheter tip submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-473408006,473408006,"Umbilical artery catheter submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-472928008,472928008,"Umbilical artery catheter tip submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-472920001,472920001,"Umbilical catheter submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-472921002,472921002,"Umbilical catheter tip submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-472925006,472925006,"Umbilical vein catheter tip submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-122565001,122565001,"Urinary catheter specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-773630006,773630006,"Urinary catheter submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-33931000087107,33931000087107,"Vagus nerve electrical stimulation system lead submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-258628004,258628004,"Vascular cannula tip submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-472932002,472932002,"Vascular catheter submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-258545002,258545002,"Vegetation from prosthetic heart valve",DEVICE,"Perangkat/kateter/benda asing",true
+SP-258630002,258630002,"Venous cannula tip submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-472942000,472942000,"Ventriculoperitoneal shunt submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-33551000087107,33551000087107,"Wound packing material submitted as specimen",DEVICE,"Perangkat/kateter/benda asing",true
+SP-258662004,258662004,"Adhesive slide specimen",CONTAINER,"Wadah/preparat/media koleksi",true
+SP-472930005,472930005,"Bottle submitted as specimen",CONTAINER,"Wadah/preparat/media koleksi",true
+SP-33501000087106,33501000087106,"Donor-organ preservation solution specimen",CONTAINER,"Wadah/preparat/media koleksi",true
+SP-15650671000119107,15650671000119107,"Paraffin embedded slide",CONTAINER,"Wadah/preparat/media koleksi",true
+SP-258664003,258664003,"Scotch tape slide specimen",CONTAINER,"Wadah/preparat/media koleksi",true
+SP-258663009,258663009,"Sellotape slide specimen",CONTAINER,"Wadah/preparat/media koleksi",true
+SP-1179252003,1179252003,"Slide submitted as specimen",CONTAINER,"Wadah/preparat/media koleksi",true
+SP-446364005,446364005,"Specimen from donor corneal storage medium",CONTAINER,"Wadah/preparat/media koleksi",true
+SP-439628000,439628000,"Urinary collection bag submitted as specimen",CONTAINER,"Wadah/preparat/media koleksi",true
+SP-446302006,446302006,"Air specimen",ENVIRONMENT,"Lingkungan/produk/non-pasien",true
+SP-704243004,704243004,"Animal head specimen",ENVIRONMENT,"Lingkungan/produk/non-pasien",true
+SP-258651004,258651004,"Cream specimen",ENVIRONMENT,"Lingkungan/produk/non-pasien",true
+SP-119319000,119319000,"Drug specimen",ENVIRONMENT,"Lingkungan/produk/non-pasien",true
+SP-119346005,119346005,"Egg yolk specimen",ENVIRONMENT,"Lingkungan/produk/non-pasien",true
+SP-119336008,119336008,"Exhaled air specimen",ENVIRONMENT,"Lingkungan/produk/non-pasien",true
+SP-119320006,119320006,"Food specimen",ENVIRONMENT,"Lingkungan/produk/non-pasien",true
+SP-119317003,119317003,"Gaseous material specimen",ENVIRONMENT,"Lingkungan/produk/non-pasien",true
+SP-258652006,258652006,"Ice cream specimen",ENVIRONMENT,"Lingkungan/produk/non-pasien",true
+SP-119337004,119337004,"Inhaled gas specimen",ENVIRONMENT,"Lingkungan/produk/non-pasien",true
+SP-119302002,119302002,"Mushroom specimen",ENVIRONMENT,"Lingkungan/produk/non-pasien",true
+SP-709024005,709024005,"Paint chip specimen",ENVIRONMENT,"Lingkungan/produk/non-pasien",true
+SP-446137003,446137003,"Pharmaceutical product submitted as specimen",ENVIRONMENT,"Lingkungan/produk/non-pasien",true
+SP-119301009,119301009,"Plant specimen",ENVIRONMENT,"Lingkungan/produk/non-pasien",true
+SP-440229008,440229008,"Specimen from environment",ENVIRONMENT,"Lingkungan/produk/non-pasien",true
+SP-708110000,708110000,"Treated water specimen",ENVIRONMENT,"Lingkungan/produk/non-pasien",true
+SP-708111001,708111001,"Untreated water specimen",ENVIRONMENT,"Lingkungan/produk/non-pasien",true
+SP-898203003,898203003,"Vacuum cleaner bag submitted as specimen",ENVIRONMENT,"Lingkungan/produk/non-pasien",true
+SP-119318008,119318008,"Water specimen",ENVIRONMENT,"Lingkungan/produk/non-pasien",true
+SP-16212331000119108,16212331000119108,"Autoclave ampule submitted as specimen",CONTROL,"Kontrol/material referensi/proses",true
+SP-446212001,446212001,"Biological spore test strip submitted as specimen",CONTROL,"Kontrol/material referensi/proses",true
+SP-473432004,473432004,"Settle culture plate submitted as specimen",CONTROL,"Kontrol/material referensi/proses",true
+SP-737087006,737087006,"Specimen from control",CONTROL,"Kontrol/material referensi/proses",true
+SP-443654002,443654002,"Specimen from abdominal cavity",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-127467004,127467004,"Specimen from ampulla of Vater",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-119392008,119392008,"Specimen from anus",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-1173097006,1173097006,"Specimen from anus and/or rectum",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-734336008,734336008,"Specimen from aorta",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-447881000,447881000,"Specimen from biliary system",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-430268003,430268003,"Specimen from bone",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-16210451000119109,16210451000119109,"Specimen from bone obtained by curettage",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-119398007,119398007,"Specimen from brain",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-127456000,127456000,"Specimen from breast",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-119391001,119391001,"Specimen from bronchus",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-119367005,119367005,"Specimen from burn injury",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-734442008,734442008,"Specimen from calf of leg",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-399436000,399436000,"Specimen from central nervous system",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-443498007,443498007,"Specimen from cerebellum",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-702701006,702701006,"Specimen from cervix or vagina",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-119382000,119382000,"Specimen from colon",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-119401005,119401005,"Specimen from conjunctiva",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-119400006,119400006,"Specimen from cornea",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-16212851000119106,16212851000119106,"Specimen from corneal ulcer",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-440136004,440136004,"Specimen from cranium",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-16212931000119109,16212931000119109,"Specimen from cranium bone obtained by craniotomy",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-119368000,119368000,"Specimen from cyst",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-363311008,363311008,"Specimen from digestive system",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-734422004,734422004,"Specimen from duodenal mucosa",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-16210491000119104,16210491000119104,"Specimen from endocervix obtained by curettage",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-608868000,608868000,"Specimen from endocrine gland",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-119396006,119396006,"Specimen from endometrium",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-122703009,122703009,"Specimen from endometrium obtained by curettage",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-122707005,122707005,"Specimen from endometrium obtained by pelvic exenteration",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-734333000,734333000,"Specimen from epidermoid cyst",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-127463000,127463000,"Specimen from esophagus",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-396481000,396481000,"Specimen from explanted liver",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-399460001,399460001,"Specimen from extrahepatic bile duct",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-119399004,119399004,"Specimen from eye",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-399443006,399443006,"Specimen from eye obtained by complete exenteration",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-396928004,396928004,"Specimen from eye obtained by enucleation",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-399735000,399735000,"Specimen from eye obtained by limited exenteration",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-433324003,433324003,"Specimen from eye region",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-127476006,127476006,"Specimen from fallopian tube",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-122721007,122721007,"Specimen from fallopian tube obtained by pelvic exenteration",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-608870009,608870009,"Specimen from female genital tract",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-119370009,119370009,"Specimen from fistula",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-449446003,449446003,"Specimen from gallbladder",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-127465007,127465007,"Specimen from gastrointestinal tract",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-119344008,119344008,"Specimen from genital system",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-29031000087105,29031000087105,"Specimen from graft",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-430220009,430220009,"Specimen from head and neck structure",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-127462005,127462005,"Specimen from heart",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-119388001,119388001,"Specimen from internal nose",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-438960000,438960000,"Specimen from intervertebral disc",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-734307008,734307008,"Specimen from jejunostomy stoma",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-127473003,127473003,"Specimen from kidney",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-119381007,119381007,"Specimen from large intestine",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-430144001,430144001,"Specimen from larynx",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-735198008,735198008,"Specimen from left breast",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-119385003,119385003,"Specimen from left fallopian tube",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-16223651000119107,16223651000119107,"Specimen from ligated fallopian tube",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-430133009,430133009,"Specimen from lip",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-119383005,119383005,"Specimen from liver",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-608840004,608840004,"Specimen from lower gastrointestinal tract",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-430214008,430214008,"Specimen from lower limb",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-127458004,127458004,"Specimen from lung",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-397438005,397438005,"Specimen from lymph node obtained by staging laparotomy",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-443458005,443458005,"Specimen from male breast",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-420548004,420548004,"Specimen from mass",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-734342007,734342007,"Specimen from mass of anterior mediastinum",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-734419001,734419001,"Specimen from mass of axillary lymph node",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-734343002,734343002,"Specimen from mass of breast",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-734420007,734420007,"Specimen from mass of inguinal lymph node",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-734421006,734421006,"Specimen from mass of mediastinal lymph node",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-734337004,734337004,"Specimen from mass of nasopharynx",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-734341000,734341000,"Specimen from mass of posterior mediastinum",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-734375004,734375004,"Specimen from mass of retroperitoneum",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-734417004,734417004,"Specimen from mass of thoracic cavity",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-429836002,429836002,"Specimen from maxillary sinus obtained by irrigation",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-433326001,433326001,"Specimen from mediastinum",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-430157009,430157009,"Specimen from meninges",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-433322004,433322004,"Specimen from mesentery",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-430245007,430245007,"Specimen from nasal fossae",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-430238007,430238007,"Specimen from nasal sinus",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-430248009,430248009,"Specimen from nasopharyngeal structure",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-430236006,430236006,"Specimen from nerve",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-608852006,608852006,"Specimen from nervous system",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-447154002,447154002,"Specimen from nose",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-433309007,433309007,"Specimen from omentum",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-128155007,128155007,"Specimen from ovary",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-122711004,122711004,"Specimen from ovary obtained by removal of tumor in fragments",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-127469001,127469001,"Specimen from pancreas",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-119299002,119299002,"Specimen from patient",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-397135002,397135002,"Specimen from pelvic lymph node",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-119397002,119397002,"Specimen from penis",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-430244006,430244006,"Specimen from pericardium",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-423671006,423671006,"Specimen from peritoneal tumor implant",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-430250001,430250001,"Specimen from peritoneum",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-443241002,443241002,"Specimen from pineal gland",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-127459007,127459007,"Specimen from pleura",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-122619005,122619005,"Specimen from pleura obtained by thoracentesis",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-122620004,122620004,"Specimen from pleura obtained by thoracoscopic procedure",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-119386002,119386002,"Specimen from prostate",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-122724004,122724004,"Specimen from prostate obtained by enucleation",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-447955000,447955000,"Specimen from rectum",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-397233003,397233003,"Specimen from renal pelvis",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-399603006,399603006,"Specimen from retina obtained by complete exenteration of eye",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-399512001,399512001,"Specimen from retina obtained by enucleation of eye",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-399640003,399640003,"Specimen from retina obtained by limited exenteration of eye",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-433323009,433323009,"Specimen from retroperitoneum",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-735197003,735197003,"Specimen from right breast",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-119384004,119384004,"Specimen from right fallopian tube",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-734335007,734335007,"Specimen from scar",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-734334006,734334006,"Specimen from sebaceous cyst",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-441709004,441709004,"Specimen from sentinel lymph node",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-16235301000119101,16235301000119101,"Specimen from sentinel lymph node of breast",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-608969007,608969007,"Specimen from skin",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-309067007,309067007,"Specimen from skin obtained by curettage",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-16222251000119102,16222251000119102,"Specimen from skin obtained by Mohs surgery, permanent section",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-119380008,119380008,"Specimen from small intestine",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-430234009,430234009,"Specimen from spermatic cord",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-430221008,430221008,"Specimen from spinal cord",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-433308004,433308004,"Specimen from spleen",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-119379005,119379005,"Specimen from stomach",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-430132004,430132004,"Specimen from sympathetic nerve ganglion",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-128154006,128154006,"Specimen from testis",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-443418008,443418008,"Specimen from thoracic cavity",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-397457001,397457001,"Specimen from thoracic mesothelium",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-397458006,397458006,"Specimen from thoracic mesothelium obtained by open thoracotomy",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-119389009,119389009,"Specimen from throat",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-396896007,396896007,"Specimen from thymus gland",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-396904001,396904001,"Specimen from thymus gland obtained by limited thoracotomy",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-396898008,396898008,"Specimen from thymus gland obtained by thoracotomy",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-396906004,396906004,"Specimen from thymus gland obtained by video assisted thoracotomy",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-399680007,399680007,"Specimen from thyroid",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-430249001,430249001,"Specimen from tongue",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-430222001,430222001,"Specimen from tonsil",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-119390000,119390000,"Specimen from trachea",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-430232008,430232008,"Specimen from trunk",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-430228002,430228002,"Specimen from tunica of testis",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-119369008,119369008,"Specimen from ulcer",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-430304001,430304001,"Specimen from unspecified body site",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-608842007,608842007,"Specimen from upper gastrointestinal tract",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-430246008,430246008,"Specimen from upper limb",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-399402006,399402006,"Specimen from ureter",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-119393003,119393003,"Specimen from urethra",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-450872001,450872001,"Specimen from urinary bladder",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-122669002,122669002,"Specimen from urinary bladder obtained by anterior exenteration",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-127471001,127471001,"Specimen from urinary tract",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-119395005,119395005,"Specimen from uterine cervix",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-122702004,122702004,"Specimen from uterine cervix obtained by pelvic exenteration",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-127479004,127479004,"Specimen from uterus",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-399751008,399751008,"Specimen from uterus obtained by dilation and curettage",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-122697008,122697008,"Specimen from uterus obtained by pelvic exenteration",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-399499009,399499009,"Specimen from uvea obtained by complete exenteration of eye",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-399559008,399559008,"Specimen from uvea obtained by enucleation of eye",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-399467003,399467003,"Specimen from uvea obtained by limited exenteration of eye",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-119394009,119394009,"Specimen from vagina",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-438542005,438542005,"Specimen from vagus nerve",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-397129002,397129002,"Specimen from vulva",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-119324002,119324002,"Specimen of unknown material",ANATOMIC,"Lokasi anatomi disebut, material tidak dirinci",false
+SP-442524009,442524009,"a.m. specimen",OTHER,"Belum spesifik",false
+SP-1003517007,1003517007,"Freeze dried specimen",OTHER,"Belum spesifik",false
+SP-258613004,258613004,"Living specimen",OTHER,"Belum spesifik",false
+SP-442219007,442219007,"p.m. specimen",OTHER,"Belum spesifik",false
+SP-712559006,712559006,"Seventy minutes specimen",OTHER,"Belum spesifik",false
+SP-371780008,371780008,"Specimen for identification",OTHER,"Belum spesifik",false
+SP-712562009,712562009,"Twenty four hours specimen",OTHER,"Belum spesifik",false
+SP-712560001,712560001,"Two hours specimen",OTHER,"Belum spesifik",false

@@ -959,6 +959,248 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         }
 
 
+        // =================================================================
+        // Kelengkapan dan konsultasi hasil Mikrobiologi — BE-LAB-54, slice S4b
+        // (LAB-API-v1 r26 bagian 21.2; LAB-DEC-097, LAB-DEC-106; VAL-107, VAL-108)
+        //
+        // KETIGA METODE DI BAWAH TIDAK MERILIS APA PUN. FinalizedAt mencatat bahwa penulisnya
+        // menyatakan selesai — sebuah fakta. Rilis Mikrobiologi adalah S4d, dan S4d tertahan
+        // DEC-LAB-011.
+        //
+        // Itu sebabnya setiap respons membawa IsReleased dan DeliveryBlockedReason: supaya
+        // pemanggil nol perlu MENYIMPULKAN bahwa Final sama dengan rilis.
+        // =================================================================
+
+        /// <summary>
+        /// Menyatakan penulisan hasil selesai — <b>bukan</b> merilis (<c>LAB-DEC-097</c>).
+        /// </summary>
+        public async Task<LabExaminationCompletionResponse> FinalizeMicrobiologyResultAsync(
+            Guid id,
+            CancellationToken cancellationToken = default)
+        {
+            var examination = await _dbContext.LabExaminations
+                .Include(x => x.Procedure)
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Pemeriksaan tidak ditemukan.");
+
+            if (examination.ResultEnteredAt is null)
+            {
+                throw new LabExaminationValidationException(
+                    "Hasil pemeriksaan ini belum diisi, jadi belum dapat dinyatakan selesai.");
+            }
+
+            if (examination.FinalizedAt is not null)
+            {
+                throw new LabExaminationConflictException(
+                    "Hasil pemeriksaan ini sudah dinyatakan selesai.");
+            }
+
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+
+            examination.FinalizedAt = now;
+
+            // Guid.Empty adalah pelaku yang tidak pernah ada, dan kolom ini nol ber-foreign key
+            // sehingga database TIDAK akan menolaknya. Pelajaran BE-EXT-05 diterapkan di sini.
+            examination.FinalizedByUserId = actorUserId == Guid.Empty ? null : actorUserId;
+
+            examination.UpdateDateTime = now;
+            examination.UpdateBy = actorUserId;
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            await _loggerService.AuditAsync(
+                LogCategory,
+                "LabExamination.FinalizeMicrobiologyResult",
+                "Penulisan hasil Mikrobiologi dinyatakan selesai. Ini BUKAN rilis.",
+                new { examination.Id, examination.LabOrderId, examination.FinalizedAt });
+
+            return BuildCompletionResponse(examination);
+        }
+
+        /// <summary>
+        /// Membuka kembali penulisan hasil sebelum rilis (<c>LAB-DEC-097</c>).
+        /// </summary>
+        public async Task<LabExaminationCompletionResponse> ReopenMicrobiologyResultAsync(
+            Guid id,
+            LabReopenRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            // LabOrder WAJIB ikut dimuat: baris riwayat transisi di bawah menyimpan EncounterId,
+            // dan tanpa Include ini nilainya jatuh ke Guid.Empty. Berbeda dari kolom pengguna
+            // yang nol ber-foreign key, EncounterId PUNYA foreign key — sehingga Guid.Empty
+            // ditolak database dengan galat 23503, bukan tersimpan diam-diam.
+            var examination = await _dbContext.LabExaminations
+                .Include(x => x.Procedure)
+                .Include(x => x.LabOrder)
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Pemeriksaan tidak ditemukan.");
+
+            // VAL-107. Membuka kembali sesuatu yang belum pernah ditutup adalah permintaan yang
+            // tidak punya arti, dan membiarkannya lolos akan menaikkan ReopenCount pada hasil
+            // yang nol pernah difinalkan.
+            if (examination.FinalizedAt is null)
+            {
+                throw new LabExaminationValidationException(
+                    "Hasil ini belum pernah dinyatakan selesai, jadi tidak ada yang perlu dibuka kembali.");
+            }
+
+            var alasan = string.IsNullOrWhiteSpace(request?.Reason) ? null : request.Reason.Trim();
+
+            if (alasan is null)
+            {
+                throw new LabExaminationValidationException(
+                    "Alasan membuka kembali wajib diisi.");
+            }
+
+            if (alasan.Length > 500)
+            {
+                throw new LabExaminationValidationException(
+                    "Alasan membuka kembali paling panjang 500 karakter.");
+            }
+
+            var now = DateTime.UtcNow;
+            var actorUserId = GetCurrentUserId();
+            var finalSebelumnya = examination.FinalizedAt;
+
+            examination.FinalizedAt = null;
+            examination.FinalizedByUserId = null;
+            examination.ReopenCount += 1;
+
+            examination.UpdateDateTime = now;
+            examination.UpdateBy = actorUserId;
+
+            // Jejak perpindahan dicatat pada riwayat transisi yang sudah ada, BUKAN sebagai
+            // koreksi hasil terrilis: hasil ini belum pernah dirilis, sehingga ia nol menyentuh
+            // S6 maupun DEC-LAB-014.
+            _dbContext.LabTransitionHistories.Add(new LabTransitionHistory
+            {
+                LabOrderId = examination.LabOrderId,
+                LabExaminationId = examination.Id,
+                EncounterId = examination.LabOrder!.EncounterId,
+                Scope = LabTransitionScope.LabExamination,
+                Action = "LabExamination.ReopenMicrobiologyResult",
+                FromStatus = "Finalized",
+                ToStatus = "Draft",
+                ReasonNote = alasan,
+                ActorUserId = actorUserId,
+                OccurredAt = now
+            });
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            await _loggerService.AuditAsync(
+                LogCategory,
+                "LabExamination.ReopenMicrobiologyResult",
+                "Penulisan hasil Mikrobiologi dibuka kembali sebelum rilis.",
+                new
+                {
+                    examination.Id,
+                    examination.LabOrderId,
+                    FinalizedAtSebelumnya = finalSebelumnya,
+                    examination.ReopenCount
+                });
+
+            return BuildCompletionResponse(examination);
+        }
+
+        /// <summary>
+        /// Mencatat fakta konsultasi — penanda <c>Definitif</c> (<c>LAB-DEC-106</c>).
+        ///
+        /// <b>Ia nol membuka pengiriman kepada siapa pun.</b>
+        /// </summary>
+        public async Task<LabExaminationCompletionResponse> RecordConsultationAsync(
+            Guid id,
+            LabConsultationRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            var examination = await _dbContext.LabExaminations
+                .Include(x => x.Procedure)
+                .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Pemeriksaan tidak ditemukan.");
+
+            var kepada = string.IsNullOrWhiteSpace(request?.ConsultedToName)
+                ? null
+                : request.ConsultedToName.Trim();
+
+            if (kepada is null)
+            {
+                throw new LabExaminationValidationException(
+                    "Nama pihak yang dikonsultasikan wajib diisi.");
+            }
+
+            if (kepada.Length > 200)
+            {
+                throw new LabExaminationValidationException(
+                    "Nama pihak yang dikonsultasikan paling panjang 200 karakter.");
+            }
+
+            if (request!.ConsultedAt is null)
+            {
+                throw new LabExaminationValidationException(
+                    "Waktu konsultasi wajib diisi.");
+            }
+
+            var now = DateTime.UtcNow;
+
+            // VAL-108. Waktu konsultasi di masa depan adalah kejadian yang belum terjadi, dan
+            // mencatatnya sebagai fakta membuat jejaknya berbohong.
+            if (request.ConsultedAt.Value > now)
+            {
+                throw new LabExaminationValidationException(
+                    "Waktu konsultasi tidak boleh melewati waktu sekarang.");
+            }
+
+            var actorUserId = GetCurrentUserId();
+
+            examination.ConsultedToName = kepada;
+            examination.ConsultedAt = request.ConsultedAt;
+            examination.ConsultedByUserId = actorUserId == Guid.Empty ? null : actorUserId;
+
+            examination.UpdateDateTime = now;
+            examination.UpdateBy = actorUserId;
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            await _loggerService.AuditAsync(
+                LogCategory,
+                "LabExamination.RecordConsultation",
+                "Fakta konsultasi hasil dicatat. Ini BUKAN izin pengiriman.",
+                new { examination.Id, examination.LabOrderId, examination.ConsultedAt });
+
+            return BuildCompletionResponse(examination);
+        }
+
+        /// <summary>
+        /// Menyusun respons kelengkapan.
+        ///
+        /// <b><see cref="LabExaminationCompletionResponse.IsReleased"/> selalu bernilai salah
+        /// pada rilis ini</b>, sebab rilis Mikrobiologi adalah <c>S4d</c> yang belum dibangun.
+        /// Ruas itu ada supaya pemanggil nol perlu menyimpulkan sendiri.
+        /// </summary>
+        private static LabExaminationCompletionResponse BuildCompletionResponse(LabExamination examination)
+        {
+            const string belumDirilis =
+                "Hasil ini belum dirilis, sehingga belum boleh dikirim kepada pasien.";
+
+            return new LabExaminationCompletionResponse
+            {
+                LabExaminationId = examination.Id,
+                LabOrderId = examination.LabOrderId,
+                ProcedureName = examination.ProcedureNameSnapshot ?? examination.Procedure?.ProcedureName,
+                IsFinalized = examination.FinalizedAt is not null,
+                FinalizedAt = examination.FinalizedAt,
+                FinalizedByUserId = examination.FinalizedByUserId,
+                ReopenCount = examination.ReopenCount,
+                IsConsulted = examination.ConsultedAt is not null,
+                ConsultedToName = examination.ConsultedToName,
+                ConsultedAt = examination.ConsultedAt,
+                ConsultedByUserId = examination.ConsultedByUserId,
+                IsReleased = false,
+                DeliveryBlockedReason = belumDirilis
+            };
+        }
+
         private Guid GetCurrentUserId()
         {
             var user = _httpContextAccessor.HttpContext?.User;

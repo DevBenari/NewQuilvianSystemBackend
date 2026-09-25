@@ -68,6 +68,18 @@ jobs:
           --no-restore
           -p:SkipMigrationMetadata=true
 
+      # Gerbang regresi otorisasi. Menggantikan invarian yang dulu dijaga backend
+      # test project. BACA-SAJA: tidak menyalakan aplikasi, tidak menyentuh
+      # database, tidak memanggil AccessMenuSeeder.
+      #
+      # Sengaja ditempatkan SESUDAH build backend dan SEBELUM keputusan migration
+      # serta promosi ke DEV: kandidat yang gagal di sini tidak boleh dipromosikan.
+      # Dipanggil lewat `bash`, bukan `./`, supaya tidak bergantung pada bit
+      # executable yang sering hilang saat berkas dibuat di Windows.
+      - name: Verify authorization registry
+        shell: bash
+        run: bash ./tools/authorization-verifier/verify-authorization.sh --configuration Release
+
       - name: Detect migration changes
         id: migrations
         shell: bash
@@ -102,14 +114,65 @@ jobs:
             echo ""
             echo "- Candidate: \`${GITHUB_SHA}\`"
             echo "- Backend project build: PASS"
+            echo "- Authorization verifier: PASS"
             echo "- Migration changed: ${{ steps.migrations.outputs.changed }}"
           } >> "$GITHUB_STEP_SUMMARY"
 
+  generate-release-metadata:
+    name: Generate Release Metadata
+    needs:
+      - integration-gate
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup PowerShell
+        shell: pwsh
+        run: |
+          pwsh --version
+
+      - name: Generate release metadata
+        shell: pwsh
+        run: |
+          git fetch origin QuilvianDevDeploy
+
+          ./.github/release/generate-release-metadata.ps1 `
+            -BaseCommit origin/QuilvianDevDeploy
+
+      - name: Generate version json
+        shell: pwsh
+        run: |
+          ./.github/release/generate-version-json.ps1
+
+      - name: Prepare runtime version manifest
+        shell: bash
+        run: |
+          cp .github/release/version.json ./version.json
+
+      - name: Show generated release version
+        shell: pwsh
+        run: |
+          Get-Content .github/release/version.json
+
+      - name: Upload release metadata artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: quilvian-release-metadata
+          path: |
+            .github/release/release-metadata.json
+            .github/release/version.json
+            version.json
 
   migration-hold:
     name: Migration Review Required
     needs:
       - integration-gate
+      - generate-release-metadata
 
     if: >
       needs.integration-gate.result == 'success' &&
@@ -140,6 +203,7 @@ jobs:
     name: Promote Integration to DEV
     needs:
       - integration-gate
+      - generate-release-metadata
 
     if: >
       needs.integration-gate.result == 'success' &&
@@ -159,11 +223,20 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Download release metadata artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: quilvian-release-metadata
+
       - name: Validate candidate and prepare promotion
         id: promotion
         shell: bash
         run: |
           set -euo pipefail
+
+          # Remove generated runtime manifest from workspace
+          # before switching branches.
+          rm -f version.json
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -196,10 +269,10 @@ jobs:
             exit 1
           fi
 
-          # Deployment branch must contain exactly the same source tree
-          # as the validated Integration candidate.
-          if ! git diff --quiet "$CANDIDATE" HEAD -- .; then
-            echo "::error::Promotion blocked because resulting DEV source differs from the validated Integration candidate."
+          # Validate promoted source before runtime manifest update
+          if ! git diff --quiet "$CANDIDATE" HEAD -- \
+            ':!version.json'; then
+            echo "::error::Promotion blocked because resulting DEV source differs from validated Integration candidate."
             exit 1
           fi
 
@@ -211,7 +284,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-
+          echo "Preparing runtime version manifest"
+          ls -la
+          cat version.json
+          git add version.json
+          git commit -m "chore: update runtime version manifest" || echo "No version change"
           git push origin HEAD:QuilvianDevDeploy
 
       - name: Trigger DEV deployment

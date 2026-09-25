@@ -94,6 +94,31 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Labor
 
             // Dipakai penyaring Kategori Periode pilihan Tanggal Pemeriksaan (REC3-NEW-002).
             builder.HasIndex(x => x.ExaminedAt);
+
+            // =============================================================
+            // Hasil Mikrobiologi berstruktur — slice S4b (BE-LAB-53)
+            // =============================================================
+
+            // Keempat enum disimpan sebagai int, mengikuti ExaminationStatus dan Urgency di
+            // atas. Seluruhnya NULLABLE: tabel ini sudah berisi data, dan kolom wajib tanpa
+            // default akan menolak migration pada baris yang sudah ada.
+            builder.Property(x => x.MicrobiologyFinding).HasConversion<int>();
+            builder.Property(x => x.ResultQualifier).HasConversion<int>();
+            builder.Property(x => x.CultureType).HasConversion<int>();
+            builder.Property(x => x.SusceptibilityMethod).HasConversion<int>();
+
+            // ReopenCount BUKAN nullable dan berdefault 0 — kolom hitung yang kosong tidak
+            // dapat dibedakan dari nol kali dibuka kembali.
+            builder.Property(x => x.ReopenCount).IsRequired().HasDefaultValue(0);
+
+            builder.Property(x => x.ConsultedToName).HasMaxLength(200);
+
+            // Nol foreign key bagi FinalizedByUserId maupun ConsultedByUserId, mengikuti
+            // ResultEnteredByUserId dan UrgencyMarkedByUserId pada entity yang sama —
+            // LabExamination memang nol punya foreign key yang menunjuk pengguna.
+
+            // Dipakai membaca "hasil mana yang sudah selesai ditulis" tanpa memindai tabel.
+            builder.HasIndex(x => x.FinalizedAt);
         }
     }
 }

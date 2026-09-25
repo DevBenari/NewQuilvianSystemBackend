@@ -11,7 +11,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.CashManagement
 
 /// <summary>
 /// Layanan API setoran bank milik Finance (aggregate ber-lifecycle, bukan master data).
-/// Perpindahan status menggunakan aksi POST /{id}/<aksi> (transaction-endpoint-standard.md).
+/// Perpindahan status menggunakan aksi POST /{id}/&lt;aksi&gt; (transaction-endpoint-standard.md).
 /// </summary>
 [ApiController]
 [Authorize]

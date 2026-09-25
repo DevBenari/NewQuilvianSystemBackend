@@ -50,6 +50,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
         private readonly ClinicalMilestoneFactProducer _clinicalMilestoneFactProducer;
         private readonly InpatientPrescriptionService _inpatientPrescriptionService;
         private readonly PrescriptionWorkspaceService _prescriptionWorkspaceService;
+        private readonly PrescriptionFinancialClearanceService _financialClearanceService;
         private readonly LoggerService _loggerService;
 
         public PrescriptionController(
@@ -61,6 +62,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
             ClinicalMilestoneFactProducer clinicalMilestoneFactProducer,
             InpatientPrescriptionService inpatientPrescriptionService,
             PrescriptionWorkspaceService prescriptionWorkspaceService,
+            PrescriptionFinancialClearanceService financialClearanceService,
             LoggerService loggerService)
         {
             _dbContext = dbContext;
@@ -71,6 +73,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
             _clinicalMilestoneFactProducer = clinicalMilestoneFactProducer;
             _inpatientPrescriptionService = inpatientPrescriptionService;
             _prescriptionWorkspaceService = prescriptionWorkspaceService;
+            _financialClearanceService = financialClearanceService;
             _loggerService = loggerService;
         }
 
@@ -263,11 +266,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
         [AccessPermission("Prescription", "Read")]
         public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken = default)
         {
+            // Surat clearance dikonsumsi lebih dulu, di dalam proses (PHA-BE-006), supaya resep
+            // yang tagihannya sudah beres terbaca pada keadaan barunya — bukan keadaan sebelum
+            // kasir menyelesaikannya.
+            await _financialClearanceService.ConsumeForPrescriptionAsync(
+                id, GetCurrentUserId(), cancellationToken);
+
             var entity = await BuildBaseQuery().AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Resep tidak ditemukan."));
 
-            return Ok(ApiResponse<PrescriptionDetailResponse>.Ok(ToDetailResponse(entity), "Detail resep berhasil diambil."));
+            var detail = ToDetailResponse(entity);
+
+            // Resep yang keadaan finansialnya belum diketahui tetap dikembalikan 200 beserta
+            // penanda belum diketahui — bukan 404 dan bukan galat, karena resepnya sendiri sah.
+            detail.FinancialClearance =
+                await _financialClearanceService.DescribeAsync(entity.Id, cancellationToken);
+
+            return Ok(ApiResponse<PrescriptionDetailResponse>.Ok(detail, "Detail resep berhasil diambil."));
         }
 
         [HttpPost]

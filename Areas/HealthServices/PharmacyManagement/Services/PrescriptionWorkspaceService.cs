@@ -14,40 +14,67 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
         private readonly ApplicationDbContext _dbContext;
         private readonly InsuranceCoverageService _insuranceCoverageService;
         private readonly PrescriptionAggregateService _aggregateService;
+        private readonly PrescriptionFinancialClearanceService _financialClearanceService;
         private readonly CompoundCalculationService _compoundCalculationService = new();
 
         public PrescriptionWorkspaceService(
             ApplicationDbContext dbContext,
             InsuranceCoverageService insuranceCoverageService,
-            PrescriptionAggregateService aggregateService)
+            PrescriptionAggregateService aggregateService,
+            PrescriptionFinancialClearanceService financialClearanceService)
         {
             _dbContext = dbContext;
             _insuranceCoverageService = insuranceCoverageService;
             _aggregateService = aggregateService;
+            _financialClearanceService = financialClearanceService;
         }
 
         public async Task<PrescriptionWorkspaceResponse?> GetAsync(
             Guid prescriptionId,
+            Guid actorUserId,
             CancellationToken cancellationToken = default)
         {
+            // Surat clearance yang belum tersalin dikonsumsi lebih dulu, di dalam proses, saat
+            // dibutuhkan (PHA-API-CLEARANCE-v1). Resep yang tagihannya sudah beres karena itu
+            // sudah berpindah ke antrean apoteker ketika layar ini terbaca — tanpa petugas
+            // menekan apa pun, dan tanpa tombol sinkronisasi yang mengundang kebiasaan
+            // menekannya sampai hasilnya menyenangkan.
+            await _financialClearanceService.ConsumeForPrescriptionAsync(
+                prescriptionId, actorUserId, cancellationToken);
+
             var entity = await BuildWorkspaceQuery()
                 .AsNoTracking()
                 .FirstOrDefaultAsync(x => x.Id == prescriptionId && !x.IsDelete, cancellationToken);
 
-            return entity == null ? null : MapWorkspace(entity);
+            if (entity == null)
+            {
+                return null;
+            }
+
+            var response = MapWorkspace(entity);
+            response.FinancialClearance =
+                await _financialClearanceService.DescribeAsync(entity.Id, cancellationToken);
+
+            return response;
         }
 
         public async Task<PrescriptionWorkspaceResponse?> GetByConsultationAsync(
             Guid consultationId,
+            Guid actorUserId,
             CancellationToken cancellationToken = default)
         {
-            var entity = await BuildWorkspaceQuery()
-                .AsNoTracking()
+            // Identitas resepnya dicari lebih dulu dengan bacaan ringan, supaya konsumsi surat
+            // berjalan SEBELUM isinya dibaca. Bila urutannya dibalik, keadaan pemenuhan yang
+            // terbaca layar bisa tertinggal satu langkah dari keadaan yang baru saja berubah.
+            var prescriptionId = await _dbContext.Set<PhmPrescription>().AsNoTracking()
                 .Where(x => x.ConsultationId == consultationId && !x.IsDelete && !x.IsCancel)
                 .OrderByDescending(x => x.CreateDateTime)
+                .Select(x => (Guid?)x.Id)
                 .FirstOrDefaultAsync(cancellationToken);
 
-            return entity == null ? null : MapWorkspace(entity);
+            return prescriptionId == null
+                ? null
+                : await GetAsync(prescriptionId.Value, actorUserId, cancellationToken);
         }
 
         public async Task<AutosavePrescriptionWorkspaceResponse> AutosaveAsync(
