@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-API-v1` |
-| Revision | **`34` — `approved`** 2026-09-25, bagian 29 (`S4` validasi dan rilis Patologi Klinik) — disetujui Yoga Aji Pratama beserta kesepuluh butir `02-backend-architecture.md` 20.10. Terakhir `approved`: `33` — **`approved`** 2026-09-24, bagian 28. *Baris ini sempat tertinggal di `r25` sejak `r26`; dirapikan 2026-09-24* |
+| Revision | **`35` — `draft`** 2026-09-25, bagian 30 (`S4d-1` validasi dan rilis Mikrobiologi) — **belum disetujui**. Terakhir `approved`: **`34` — `approved`** 2026-09-25, bagian 29 (`S4` validasi dan rilis Patologi Klinik) — disetujui Yoga Aji Pratama beserta kesepuluh butir `02-backend-architecture.md` 20.10. Terakhir `approved`: `33` — **`approved`** 2026-09-24, bagian 28. *Baris ini sempat tertinggal di `r25` sejak `r26`; dirapikan 2026-09-24* |
 | `r33` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-24** — termasuk pencabutan tiga route Mikrobiologi |
 | `r25` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-18** |
 | Isi amandemen `r25` | **`approved` — 2026-09-18.** Laporan Patologi Anatomi **per pesanan** (`S4c` sesudah dirancang ulang), menurunkan `LAB-DEC-085`..`LAB-DEC-088` dan `LAB-DEC-091`..`LAB-DEC-094` beserta `LAB-DA-001` rev 7. Enam endpoint laporan/konteks klinis dan empat data induk. **Menggantikan bagian 19.3** yang ditandai `superseded` — jalur `/lab-examinations/{id}/result/pathology` salah alamat karena laporan PA melekat pada **pesanan**, bukan pemeriksaan. **Aditif terhadap yang berjalan**: bagian 19.3 nol pernah dibangun, sehingga penggantiannya nol memutus pemakai. Bagian 19.2 Mikrobiologi dan 19.4 data induk Mikrobiologi **tidak tersentuh**. Disetujui bersama `LAB-VAL-v1` `r8` dan `LAB-PERM-v1` rev 7 pada hari yang sama. Lihat bagian 20 |
@@ -3319,3 +3319,105 @@ tangan dan terkunci — `LAB-INT-v1` `r4` `INT-08`. Isi hasil **tidak** disalin 
 | Antrean validasi | `LAB-DEC-135` butir 2 | A5.2 | `AC-196` |
 | `resultProgress` | `LAB-DEC-008`, `LAB-DEC-135` | A5.7 | `AC-198`, `AC-199` |
 | Dua data induk alasan | `LAB-DEC-082`, `LAB-DEC-138`, `LAB-DEC-003` | `LAB-DC-054`, `LAB-DC-058` | `AC-205` |
+
+## 30. Amandemen `r35` — Validasi dan rilis hasil Mikrobiologi (`S4d-1`), 2026-09-25
+
+> ### ⏳ STATUS: `draft` — menunggu persetujuan pemilik modul
+>
+> | Butir | Isi |
+> |---|---|
+> | Status | **`draft`** |
+> | `approved_by` / `approved_at` | **belum** — approval adalah tindakan manusia |
+> | `input_revision` | decisions rev 76; `LAB-RCG-001-r9` bagian 0D; `LAB-DA-001` rev 9 bagian A6; `02-backend-architecture.md` rev 11 bagian 21 |
+> | Keputusan | `LAB-DEC-085`, `LAB-DEC-097`, `LAB-DEC-106`, `LAB-DEC-114`, `LAB-DEC-120`, `LAB-DEC-152`, `LAB-DEC-153` — ditambah seluruh yang mengikat `r34` |
+> | Kesiapan arsitektur domain | `DOMAIN_ARCHITECTURE_READY` untuk desain saja |
+> | Dibangun di atas | `r34` bagian 29 (**approved**, belum dibangun) |
+> | Sifat | **Aditif**, dengan **satu aturan approved yang diubah bunyinya**: `VAL-126` (30.6) |
+> | Migration | **Nol** |
+> | Permission | **Nol string baru.** `LAB-PERM-v1` revision 11 berlaku **apa adanya**: aksi `Validate`, `Release`, dan `Return` tidak berdimensi disiplin, sebab pembagian per disiplin ditegakkan lapis orang lewat kode kewenangan |
+> | Yang wajib disetujui tersendiri | Lima butir `02-backend-architecture.md` 21.10 |
+
+### 30.1 Kenapa amandemen ini ada
+
+`r34` merancang validasi dan rilis **Patologi Klinik saja**, dan `VAL-126` menolak Mikrobiologi
+dengan pesan *"belum tersedia"*. Sesudah `LAB-DEC-152` menetapkan pemegang validasi
+Mikrobiologi, gerbang `r9` menaikkan `S4d-1` — hasil Mikrobiologi yang bukan `Sementara` — ke
+desain. Amandemen ini membuka ketiga tindakan `r34` bagi Mikrobiologi dan menambah satu penjaga.
+
+### 30.2 `[Tags("Health Services / Laboratory Management / Lab Examination")]`
+
+Base URL: `api/v1/health-services/laboratory-management/lab-examinations`
+Contract version: `LAB-API-v1` `r35` — status `draft`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `POST` | `/{id}/result/validate` | Tetap — kini **menerima Mikrobiologi**; hasil `Sementara` ditolak | `LabExaminationResult : Validate` | `LabResultSignOffRequest` | `ApiResponse<LabExaminationCompletionResponse>` | **Rencana (belum tersedia)** — lahir `r34` |
+| `POST` | `/{id}/result/release` | Tetap — kini **menerima Mikrobiologi**; satu dokumen rekam medis per pemeriksaan | `LabExaminationResult : Release` | `LabResultSignOffRequest` | `ApiResponse<LabExaminationCompletionResponse>` | **Rencana (belum tersedia)** — lahir `r34` |
+| `POST` | `/{id}/result/return` | Tetap — kini **menerima Mikrobiologi** | `LabExaminationResult : Return` | `LabResultReturnRequest` | `ApiResponse<LabExaminationCompletionResponse>` | **Rencana (belum tersedia)** — lahir `r34` |
+| `GET` | `/{id}/result/microbiology` | Membaca hasil Mikrobiologi — **ruas pengesah kini terisi** (30.3) | `LabExamination : Read` | - | `ApiResponse<LabMicrobiologyResultResponse>` | Sudah ada — **diperbarui** |
+
+**Kode status tambahan:**
+
+| Kode | Kapan | Yang dibaca petugas |
+|---|---|---|
+| `422` | Hasil Mikrobiologi berkualifikasi `Sementara` (`VAL-144`) | *"Hasil Mikrobiologi sementara belum dapat divalidasi maupun dirilis. Buka kembali dan ubah kualifikasinya bila hasil sudah definitif."* |
+| `422` | Pemeriksaan Patologi Anatomi (`VAL-126` bunyi baru) | *"Validasi dan rilis hasil Patologi Anatomi belum tersedia."* |
+| `403` | Pemegang kode Patologi Klinik memvalidasi Mikrobiologi | Pesan `VAL-128` 14.2 dengan kata **Mikrobiologi** — *"Anda belum ditunjuk sebagai pemegang kewenangan validasi Mikrobiologi."* (`AC-241`) |
+
+Kode status lain `r34` 29.2 berlaku apa adanya.
+
+### 30.3 `LabMicrobiologyResultResponse` — ruas yang berubah dan bertambah
+
+| Ruas | Tipe | Boleh kosong | Sebelumnya | Sekarang |
+|---|---|:---:|---|---|
+| `authorizingOfficerName` | string | Ya | **Selalu `null`** (`LAB-DEC-120`) | Nama **perilis** — baris *Petugas Otorisasi*. Kosong sampai dirilis |
+| `validatedByName` | string | Ya | **Selalu `null`** | Nama **pemvalidasi** — baris *Validasi oleh*. Kosong sampai divalidasi |
+| `isReleased` | bool | Tidak | **Selalu `false`** | `releasedAt` terisi |
+| `resultStatus`, `validatedAt`, `validatedByUserId`, `validatedByPositionName`, `validationExceptionMarker`, `releasedAt`, `releasedByUserId`, `releasedByPositionName`, `releaseExceptionMarker`, `resultEnteredByUserId` | — | — | Tidak ada | **Baru** — bentuk dan arti sama dengan `r34` 29.3 |
+
+**Tetap dilarang:** mengisi `authorizingOfficerName` atau `validatedByName` dari pencetak atau
+penulis hasil (`LAB-DEC-120`). Ruas yang tidak punya pengesah **dibiarkan kosong**.
+
+### 30.4 `[Tags("Health Services / Laboratory Management / Lab Worklist")]`
+
+Base URL: `api/v1/health-services/laboratory-management/lab-worklists`
+Contract version: `LAB-API-v1` `r35` — status `draft`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/validation-queue` | Tetap — kini **dua disiplin** | `LabWorklist : Read` | `LabValidationQueueQuery` | `ApiResponse<PagedResult<LabValidationQueueItemResponse>>` | **Rencana (belum tersedia)** — lahir `r34` |
+
+| Perubahan | `r34` | **`r35`** |
+|---|---|---|
+| Ruas `discipline` | Diabaikan; selalu Patologi Klinik | **Dibaca:** `ClinicalPathology`, `Microbiology`, atau kosong = **keduanya**. `AnatomicalPathology` atau nilai lain → `422` `VAL-145` |
+| Hasil `Sementara` | — | **Tidak masuk** antrean tahap mana pun |
+| Item | — | Bertambah `discipline` (string) dan `resultQualifier` (string, boleh kosong) |
+
+### 30.5 Ruas `resultProgress` — Mikrobiologi
+
+| Endpoint | Perubahan |
+|---|---|
+| `GET /lab-monitoring/microbiology` | Setiap item bertambah `resultProgress` — arti sama dengan `r34` 29.5 |
+| `GET /lab-orders/{id}` | `resultProgress` kini terisi juga bagi order Mikrobiologi |
+
+Pemeriksaan `Sementara` **menahan** label *Selesai* — hasilnya memang belum akhir.
+
+### 30.6 Kompatibilitas
+
+| Perubahan | Sifat | Konsumen terdampak |
+|---|---|---|
+| **`VAL-126` berubah bunyi** — dari menolak *"Mikrobiologi serta Patologi Anatomi"* menjadi menolak **Patologi Anatomi saja** | **Mengubah aturan approved `r12`** | Nol konsumen — validasi belum dibangun |
+| Tiga tindakan menerima Mikrobiologi | Perilaku berubah | Nol konsumen |
+| Ruas pengesah Mikrobiologi terisi; `isReleased` bernilai sebenarnya | Perilaku berubah pada ruas yang sudah ada | Layar hasil Mikrobiologi — ruas itu **dibuat untuk hari ini**; nol konsumen yang mengandalkannya selalu kosong |
+| `discipline` pada antrean dibaca | Perilaku berubah | Nol konsumen — antrean belum dibangun |
+| Ruas baru | Aditif | Nol |
+
+### 30.7 Traceability
+
+| Yang dikontrakkan | Keputusan | Arsitektur domain | AC |
+|---|---|---|---|
+| Tiga tindakan bagi Mikrobiologi | `LAB-DEC-097`, `LAB-DEC-152`, `LAB-DEC-153` | A6 | `AC-241` |
+| Penolakan hasil `Sementara` | `LAB-DEC-114`; `DEC-LAB-020` terbuka | `INV-52` | Baris `VAL-144` matriks uji |
+| Ruas pengesah Mikrobiologi | `LAB-DEC-120` | A6.10 | `AC-183` sebelum rilis; baris 30.3 matriks uji sesudahnya |
+| Antrean dua disiplin | `LAB-DEC-135` butir 2 | A5.2 | `AC-196` |
+| Label order Mikrobiologi | `LAB-DEC-135` | A6.7 | `AC-199` |

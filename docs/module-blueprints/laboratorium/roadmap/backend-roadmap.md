@@ -4965,8 +4965,8 @@ tanpa langkah di bawah, resolver menolak setiap validasi dan rilis.
 |---:|---|---|---|
 | 1 | Kepala instalasi mengisi kedua daftar alasan lewat layarnya — sekurang-kurangnya satu baris aktif masing-masing, dari usulan `02-backend-architecture.md` 20.8 | Konfirmasi isi awal oleh kepala instalasi | Layar data induk |
 | 2 | Pemilik Human Resource menambah dua kode Patologi Klinik ke katalog — **nilainya sama persis** dengan `LabClinicalPrivilegeCodes` | **`LAB-COORD-016`** | Katalog Human Resource |
-| 3 | Penunjukan dicatat pada kredensial Human Resource: dr. Bima Prasetya, Sp.PK untuk validasi; pemegang rilis; pemegang kedua per shift | **`DEC-LAB-018`**, **`DEC-LAB-011` sisa** — `LAB-REQ-014` | Layar kredensial Human Resource |
-| 4 | Admin membaca jabatan dokter berkewenangan laboratorium dan jabatan calon perilis, lalu memberi `Validate`, `Release`, `Return`, `LabWorklist : Read`, dan hak baca kedua daftar alasan — **hanya** kepada jabatan itu | **`UNK-P14-03`**; **`DEC-LAB-017`** | Layar Akses Role; **nol analis** di daftar `Validate` |
+| 3 | Penunjukan dicatat pada kredensial Human Resource: dr. Bima Prasetya, Sp.PK untuk validasi; **sekurang-kurangnya satu pemegang validasi Patologi Klinik lain** (`LAB-DEC-152`); pemegang rilis — dokter **atau** pejabat non-dokter (`LAB-DEC-153`) | ~~`DEC-LAB-018`, `DEC-LAB-011` sisa~~ — ✅ tertutup 2026-09-25. Kini menunggu **penetapan nama** oleh dr. Bima dan **`LAB-OPEN-044`** untuk perilis | Layar kredensial Human Resource; **dua** pemegang validasi PK tercatat |
+| 4 | Admin membaca jabatan dokter berkewenangan laboratorium dan jabatan calon perilis, lalu memberi `Validate`, `Release`, `Return`, `LabWorklist : Read`, dan hak baca kedua daftar alasan — **hanya** kepada jabatan itu | **`UNK-P14-03`**; **`LAB-OPEN-044`** — jabatan calon perilis dari *aturan laboratorium*; **`DEC-LAB-017`** | Layar Akses Role; **nol analis** di daftar `Validate` |
 | 5 | Satu hasil uji divalidasi, dirilis, dan diperiksa baris rekam medisnya | Langkah 1-4 | Laporan rilis |
 
 **Wajib terjawab sebelum langkah 4:** `LAB-CONFLICT-014` — supaya layar tidak menampilkan dua

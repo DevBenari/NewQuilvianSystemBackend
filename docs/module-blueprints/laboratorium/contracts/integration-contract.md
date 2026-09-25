@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-INT-v1` |
-| Revision | **`4` — `approved`** 2026-09-25, bagian 8 (`INT-07`, `INT-08`, `S4`). Terakhir `approved`: `3` |
+| Revision | **`5` — `draft`** 2026-09-25, bagian 9 (`INT-07` kode Mikrobiologi, `INT-08` Mikrobiologi) — **belum disetujui**. Terakhir `approved`: **`4` — `approved`** 2026-09-25, bagian 8 (`INT-07`, `INT-08`, `S4`). Terakhir `approved`: `3` |
 | Status | `approved` — dikunci 2026-09-02; **amandemen `r4` disetujui 2026-09-25** (bagian 8) |
 | Batas penguncian | **Terkunci penuh sejak 2026-09-02.** `LAB-OPEN-021` dijawab: penamaan memakai prefix `Lab`, sehingga tidak ada lagi bagian yang dikecualikan |
 | Owner | Yoga Aji Pratama |
@@ -405,3 +405,49 @@ Id kunjungan tidak valid. Hasil tetap tervalidasi."*
 |---|---|---|---|
 | `INT-07` | `LAB-DEC-148`, `LAB-DEC-142`, `LAB-DEC-143`, `LAB-DEC-150` | `LAB-DC-055`, `LAB-DC-056`, A5.10 | `AC-229`..`AC-233` |
 | `INT-08` | `LAB-DEC-017` | `LAB-DC-057`, `INV-50`, A5.10 | — belum ada AC di decision log; diuji lewat baris `INT-08` pada `testing/acceptance-test-matrix.md` amandemen 2026-09-25 |
+
+---
+
+## 9. Amandemen `r5` — Validasi dan rilis hasil Mikrobiologi (`S4d-1`), 2026-09-25
+
+| Field | Nilai |
+|---|---|
+| `contract_version` | `LAB-INT-v1` |
+| Revision | `r5` |
+| Status | **`draft`** — menunggu persetujuan pemilik modul |
+| `approved_by` / `approved_at` | **belum** |
+| `input_revision` | decisions rev 76; `LAB-DA-001` rev 9 bagian A6.10; `02-backend-architecture.md` rev 11 bagian 21 |
+| Sifat | **Aditif.** `INT-07` memakai dua kode lagi; `INT-08` melayani satu disiplin lagi |
+
+### 9.1 `INT-07` — kode yang dipakai bertambah
+
+| Kode | Disiplin | Tindakan | Keadaan |
+|---|---|---|---|
+| `LAB-VAL-PK` | Patologi Klinik | Validasi | Usulan `r4` — final lewat `LAB-COORD-016` |
+| `LAB-REL-PK` | Patologi Klinik | Rilis | Sama |
+| **`LAB-VAL-MB`** | **Mikrobiologi** | Validasi | **Usulan `r5`** — final lewat `LAB-COORD-016` |
+| **`LAB-REL-MB`** | **Mikrobiologi** | Rilis | Sama |
+
+**Kode dipilih menurut disiplin order pemeriksaan**, bukan menurut jabatan pelaku. Aturan menilai
+baris, fail-closed, dan larangan menulis ke Human Resource **tidak berubah** dari 8.2. Dua kode
+Patologi Anatomi tetap milik `S4e`.
+
+**Contoh.** dr. Contoh memegang `LAB-VAL-PK` aktif. Ia memvalidasi kultur urin → resolver
+mencari `LAB-VAL-MB` atas namanya, menemukan nol baris, dan menolak *"belum ditunjuk sebagai
+pemegang kewenangan validasi Mikrobiologi"* — walaupun ia dokter berkewenangan laboratorium yang
+sah bagi Patologi Klinik (`LAB-DEC-152`, `AC-241`).
+
+### 9.2 `INT-08` — pendaftaran dokumen Mikrobiologi
+
+Bagian 8.3 berlaku apa adanya: **satu** dokumen `LaboratoryResult` per pemeriksaan Mikrobiologi
+yang dirilis, `DocumentId` = id pemeriksaan, atomik dengan rilisnya. Isolat dan antibiogram
+**tidak** didaftarkan terpisah — mereka bagian isi hasil yang tetap tinggal di Laboratorium.
+**Rilis kedua atas pemeriksaan yang sama tidak ada** pada `S4d-1`; bentuk dokumen bagi hasil
+bertahap menunggu `DEC-LAB-020`.
+
+### 9.3 Traceability `r5`
+
+| Batas | Decision ID | Acceptance criteria |
+|---|---|---|
+| `INT-07` kode Mikrobiologi | `LAB-DEC-143`, `LAB-DEC-148`, `LAB-DEC-152` | `AC-231`, `AC-241` |
+| `INT-08` Mikrobiologi | `LAB-DEC-017` | Baris `INT-08` matriks uji, disiplin Mikrobiologi |

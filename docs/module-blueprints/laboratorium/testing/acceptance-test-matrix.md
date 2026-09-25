@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `7` — amandemen 2026-09-25 (`S4`). Sebelumnya `6` — amandemen 2026-09-24 |
+| Revision | `8` — amandemen 2026-09-25 kedua (`S4d-1`). Sebelumnya `7` — amandemen 2026-09-25 (`S4`). Sebelumnya `6` — amandemen 2026-09-24 |
 | Status | `draft` |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15`. **Revision 4 menambah amandemen Penerimaan Sampling/Specimen** — lihat bagian 11 |
 | Backend SHA | Revision 1-3: `c87d9c0`. **Revision 4: `466a7127`**, diverifikasi tidak berubah pada `9067fa73` |
@@ -709,3 +709,48 @@ jangan menulis `LAB-VAL-PK` langsung di test, sebab nilainya baru final lewat `L
 | Koreksi sesudah rilis | `S6` |
 | Peringatan satu pemegang per shift | Ditunda — `02-backend-architecture.md` 20.9 |
 | Simpan hasil, Final, dan konsultasi bersamaan | Milik `MVP-8` (`02-backend-architecture.md` 20.12) |
+
+---
+
+## Amandemen 2026-09-25 (kedua) — Validasi dan rilis Mikrobiologi (`S4d-1`)
+
+| Field | Nilai |
+|---|---|
+| Status | **`draft`** |
+| Kontrak yang diuji | `LAB-API-v1` `r35`, `LAB-VAL-v1` `r13`, `LAB-STATE-v1` `r6`, `LAB-INT-v1` `r5` — **`draft`**; `LAB-PERM-v1` revision 11 apa adanya |
+| Rancangan | `02-backend-architecture.md` bagian 21; `03-frontend-architecture.md` amandemen 2026-09-25 (kedua) |
+
+**Seluruh baris amandemen 2026-09-25 berlaku juga bagi Mikrobiologi** — validasi, rilis,
+pengembalian, empat mata, dua lapis, konkurensi, `INT-08`. Yang di bawah adalah **tambahan**.
+
+### Matriks
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `AC-241` | Pemegang kode validasi **Patologi Klinik** saja memvalidasi kultur urin; lalu dr. Nabila — pemegang kode validasi **Mikrobiologi** — memvalidasinya | Integrasi | Pertama `403` dengan kata *Mikrobiologi* pada pesannya; kedua `200` |
+| `VAL-144` | Validasi hasil berkualifikasi `Sementara` | Integrasi | `422`; **nol** kolom berubah |
+| `VAL-144` — jalur Reopen | Hasil `Sementara` dibuka kembali, kualifikasi diubah `Definitif`, Final ulang, lalu divalidasi | Integrasi | Validasi `200` |
+| `ARCH-GAP-LAB-10` | Validasi hasil dengan kualifikasi **kosong** | Integrasi | `200` — kosong **tidak** dianggap sementara |
+| `INV-53` | Sesudah validasi, simpan hasil dengan isolat pengganti; sesudah rilis, sama | Integrasi | Keduanya `409` `VAL-120`; isolat dan antibiogram **tidak berubah** |
+| `INV-53` — pengembalian | *Kembalikan ke analis* atas hasil tervalidasi, lalu ubah isolat | Integrasi | Pengembalian `200`; simpan isolat `200`; baris `ValidateResult` lama tetap ada |
+| `INT-08` Mikrobiologi | Rilis kultur urin | Integrasi | **Tepat satu** baris `MrcClinicalDocumentIntegrity` `LaboratoryResult` untuk pemeriksaan itu; **nol** baris untuk isolatnya |
+| 30.3 — ruas pengesah | Baca `GET /{id}/result/microbiology` sebelum validasi, sesudah validasi, dan sesudah rilis | Integrasi | Sebelum: kedua ruas kosong (`AC-183`). Sesudah validasi: `validatedByName` terisi, `authorizingOfficerName` kosong. Sesudah rilis: keduanya terisi, `isReleased = true` |
+| `VAL-126` bunyi baru | Validasi pemeriksaan Patologi Anatomi | Integrasi | `422` *"…Patologi Anatomi belum tersedia."* |
+| `VAL-145` | Antrean dengan `discipline = AnatomicalPathology` | Integrasi | `422` |
+| Antrean dua disiplin | Antrean tanpa `discipline`; lalu `discipline = Microbiology` | Integrasi | Pertama memuat kedua disiplin; kedua hanya Mikrobiologi; hasil `Sementara` **tidak ada** di keduanya |
+| `AC-199` Mikrobiologi | Order dengan kultur urin dirilis dan kultur darah `Sementara` | Integrasi | `resultProgress = InProgress` |
+| Layar — `Sementara` | Buka hasil `Sementara` Final di Halaman Hasil Mikrobiologi | Unit test aturan + UI | Tombol Validasi tidak ditawarkan; keterangan terbaca |
+
+### Data uji tambahan
+
+Pengguna: dr. Nabila samaran dengan kode validasi Mikrobiologi; dokter pemegang kode validasi
+Patologi Klinik **saja**. Order Mikrobiologi: satu kultur `Definitif`, satu `Sementara`, satu
+berkualifikasi kosong.
+
+### Yang tidak diuji
+
+| Yang tidak diuji | Alasan |
+|---|---|
+| Rilis hasil `Sementara` dan penggantiannya | `S4d-2` — `DEC-LAB-020` |
+| Cetakan Mikrobiologi | Belum ada di frontend — `S17` |
+| Patologi Anatomi | `S4e` — `DEC-LAB-021` |

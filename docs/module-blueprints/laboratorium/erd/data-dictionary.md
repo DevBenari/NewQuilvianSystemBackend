@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `6` — bagian 17, 2026-09-25: `S4` — dua tabel baru, 14 kolom baru pada `LabExamination`. Sebelumnya `5` — bagian 16, 2026-09-24: nol tabel, nol kolom |
+| Revision | `7` — bagian 18, 2026-09-25: `S4d-1` — nol tabel, nol kolom. Sebelumnya `6` — bagian 17, 2026-09-25: `S4` — dua tabel baru, 14 kolom baru pada `LabExamination`. Sebelumnya `5` — bagian 16, 2026-09-24: nol tabel, nol kolom |
 | Status | `draft` |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15`. **Revision 3 menambah amandemen Penerimaan Sampling/Specimen** — lihat bagian 12 |
 | Backend SHA | Revision 1-2: `c87d9c0`. **Revision 3: `466a7127`**, diverifikasi tidak berubah pada `9067fa73` |
@@ -1438,3 +1438,19 @@ CREATE INDEX "IX_LabExamination_ReleasedAt" ON public."LabExamination" ("Release
 | Kolom label order *Selesai* | `LAB-DEC-135`, `AC-199` — diturunkan setiap kali dibaca |
 | Kolom kode kewenangan pada pengaturan disiplin | Kode kewenangan adalah konstanta (`02-backend-architecture.md` 20.9) |
 | Tabel jadwal jaga pemvalidasi | Peringatan satu pemegang per shift ditunda (`02-backend-architecture.md` 20.9) |
+
+---
+
+## 18. Amandemen 2026-09-25 (kedua) — Validasi dan rilis Mikrobiologi (`S4d-1`): nol tabel, nol kolom
+
+`02-backend-architecture.md` bagian 21 **tidak menambah maupun mengubah** tabel atau kolom. Yang
+berubah adalah **siapa yang memakai** kolom yang sudah ada:
+
+| Tabel | Kolom | Sebelumnya dipakai | Kini dipakai juga | Sensitif |
+|---|---|---|---|:---:|
+| `LabExamination` | Ke-14 kolom validasi dan rilis bagian 17.3 | Patologi Klinik (`S4`) | **Mikrobiologi** (`S4d-1`) | Tidak |
+| `LabExamination` | `ResultQualifier` (`LAB-DEC-114`) | Cetakan Mikrobiologi | **Penjaga `VAL-144`** — nilai `Preliminary` menolak validasi dan rilis; kosong diterima | Tidak |
+| `MrcClinicalDocumentIntegrity` | `DocumentKind = 14` | Pemeriksaan Patologi Klinik yang dirilis | **Pemeriksaan Mikrobiologi** yang dirilis | Tidak |
+
+**Isolat dan antibiogram** (`LabMicrobiologyIsolate`, `LabIsolateSusceptibility`, bagian 14.3-14.4)
+**tidak** memperoleh kolom validasi sendiri — mereka disahkan lewat pemeriksaannya (`INV-53`).

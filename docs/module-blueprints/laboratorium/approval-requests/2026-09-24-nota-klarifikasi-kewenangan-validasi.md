@@ -8,7 +8,7 @@
 | `ditujukan kepada` | **dr. Bima Prasetya, Sp.PK** — Kepala Instalasi Laboratorium |
 | `melanjutkan` | `LAB-REQ-013` (2026-09-18), yang dijawab sebagian pada 2026-09-24 |
 | `menutup` | Sisa `DEC-LAB-011`; `DEC-LAB-018` (pemegang kewenangan rilis, ditambahkan 2026-09-24 sesudah gerbang `LAB-RCG-001-r8`) |
-| `status` | **`siap dikirim`** — pengirimannya oleh pemilik modul; sistem ini tidak punya saluran kirim ke luar |
+| `status` | ✅ **`dijawab`** — surat tertulis dr. Bima diterima 2026-09-25 (`LAB-EVD-010`, [`evidence/2026-09-25-jawaban-tertulis-dr-bima-lab-req-014.md`](../evidence/2026-09-25-jawaban-tertulis-dr-bima-lab-req-014.md)). Pertanyaan 1, 2, dan 3 terjawab lengkap; 2a terjawab dengan tafsiran yang dicatat. Hasilnya `LAB-DEC-152` dan `LAB-DEC-153`; satu butir lanjutan `LAB-OPEN-044`. Catatan semula: `siap dikirim` — pengirimannya oleh pemilik modul |
 | `sifat` | Operasional. **Bukan** artefak desain — tidak masuk daftar hash manifest |
 | `yang diminta` | **Tiga jawaban pendek** |
 

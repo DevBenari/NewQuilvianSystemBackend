@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `8` — bagian 21, `EPIC-LAB-15` validasi dan rilis Patologi Klinik, 2026-09-25 — **`draft`, kontraknya belum disetujui**. Sebelumnya `7` — bagian 20, `EPIC-LAB-14`, 2026-09-24 |
+| Revision | `9` — bagian 22, `EPIC-LAB-16` validasi dan rilis Mikrobiologi, 2026-09-25 — **`draft`, kontraknya belum disetujui**. Sebelumnya `8` — bagian 21, `EPIC-LAB-15` validasi dan rilis Patologi Klinik, 2026-09-25 — kontraknya disetujui hari yang sama. Sebelumnya `7` — bagian 20, `EPIC-LAB-14`, 2026-09-24 |
 | Status | `draft` |
 | Scope tambahan revision 4 | **`EPIC-LAB-11` Penerimaan Sampling/Specimen** dan gelombang `MVP-5` — lihat bagian 16 |
 | Scope tambahan revision 5 | **`EPIC-LAB-12` Konfirmasi Pesanan dan Pembatalan Beralasan** dan gelombang `MVP-5c` — lihat bagian 17. Ditambahkan 2026-09-15 dari rekonsiliasi bukti putaran 2 |
@@ -1183,7 +1183,10 @@ dengan sebabnya; hasil tetap tervalidasi, dan **tidak ada** jejak rilis setengah
 | ~~Persetujuan kelima kontrak dan **kesepuluh butir** `02-backend-architecture.md` 20.10~~ | ✅ **Terjawab 2026-09-25** — disetujui Yoga Aji Pratama, termasuk butir 5 kata per kata dan butir 6 pilihan A (perilis). **Tidak lagi memblokir** | — |
 | **`LAB-CONFLICT-014`** — order `Completed` manual lewat `PUT /lab-orders/{id}/complete` versus label *Selesai* turunan | **Tidak** untuk pengembangan — label disajikan pada ruas terpisah. **Wajib** dijawab sebelum `MVP-9d`, supaya layar tidak menampilkan dua *Selesai* berbeda arti | Yoga Aji Pratama, lewat `/grill-me` |
 | **Bolehkah `S4` dipakai sebelum koreksi `S6` berdiri**, dan prosedur apa yang berlaku bagi hasil yang sudah dirilis lalu ternyata keliru? **Belum ber-Decision ID** — ditemukan saat menulis 21.2 | **Tidak** untuk pengembangan. **Diusulkan** menahan `MVP-9d` bersama `DEC-LAB-017`, sebab keduanya pertanyaan klinis yang sejenis | Yoga Aji Pratama + `DR-LAB-001`, lewat `/grill-me` |
-| `DEC-LAB-011` sisa, `DEC-LAB-017`, `DEC-LAB-018`, `LAB-COORD-016` | **Tidak** untuk pengembangan; **ya** untuk `MVP-9d` | dr. Bima Prasetya, Sp.PK; Yoga Aji Pratama + `DR-LAB-001`; pemilik `human-resource` |
+| ~~`DEC-LAB-011` sisa, `DEC-LAB-018`~~ | ✅ **Terjawab 2026-09-25** — surat tertulis dr. Bima (`LAB-EVD-010`) → `LAB-DEC-152`, `LAB-DEC-153`: validasi di luar jam kerja oleh dokter lain yang ditetapkan pada disiplin yang sama; **perilis tidak wajib dokter**. Yang tersisa dari keduanya adalah **data** — nama pemegang tambahan dicatat di kredensial Human Resource saat `MVP-9d` | — |
+| `DEC-LAB-017`, `LAB-COORD-016` | **Tidak** untuk pengembangan; **ya** untuk `MVP-9d` | Yoga Aji Pratama + `DR-LAB-001`; pemilik `human-resource` |
+| **`LAB-OPEN-044`** — isi *aturan laboratorium* tentang calon perilis dan penetapnya | **Ya** untuk `MVP-9d` saja | dr. Bima Prasetya, Sp.PK |
+| Dua pemegang validasi Patologi Klinik tercatat — `LAB-DEC-022` butir 3 sebagai syarat rilis (`LAB-DEC-152`) | **Ya** untuk `MVP-9d` saja | dr. Bima Prasetya, Sp.PK selaku penetap |
 | `DEC-LAB-019` — batal sesudah rilis | **Tidak** — arah sementara `VAL-143` berlaku | Yoga Aji Pratama |
 | `UNK-P14-03` — jabatan mana yang dokter berkewenangan laboratorium dan mana yang calon perilis | **Ya** untuk `MVP-9d` saja | Admin sistem + kepala instalasi |
 | Isi awal kedua daftar alasan | **Ya** untuk `MVP-9d` saja | Kepala instalasi |
@@ -1195,7 +1198,110 @@ dengan sebabnya; hasil tetap tervalidasi, dan **tidak ada** jejak rilis setengah
 > `02-backend-architecture.md` 20.10. **`EPIC-LAB-15` boleh diteruskan ke
 > `/plan-module-delivery`** untuk `MVP-9a`..`MVP-9d`.
 >
-> **Yang tetap tertahan — rilis, bukan pengembangan:** `MVP-9d` menunggu `DEC-LAB-011` sisa,
-> `DEC-LAB-017`, `DEC-LAB-018`, `LAB-COORD-016`, `UNK-P14-03`, isi awal kedua daftar alasan, dan
-> — diusulkan — jawaban tentang pemakaian sebelum koreksi `S6`. `LAB-CONFLICT-014` wajib dijawab
-> sebelum `MVP-9d`.
+> **Yang tetap tertahan — rilis, bukan pengembangan:** `MVP-9d` menunggu `DEC-LAB-017`,
+> `LAB-COORD-016`, `UNK-P14-03`, `LAB-OPEN-044`, dua pemegang validasi Patologi Klinik tercatat,
+> isi awal kedua daftar alasan, dan — diusulkan — jawaban tentang pemakaian sebelum koreksi `S6`.
+> `LAB-CONFLICT-014` wajib dijawab sebelum `MVP-9d`. *`DEC-LAB-011` sisa dan `DEC-LAB-018`
+> tertutup 2026-09-25 lewat `LAB-DEC-152` dan `LAB-DEC-153`.*
+
+---
+
+## 22. Amandemen 2026-09-25 (kedua) — `EPIC-LAB-16` Validasi dan rilis hasil Mikrobiologi (`S4d-1`)
+
+Menurunkan `02-backend-architecture.md` bagian 21, `03-frontend-architecture.md` amandemen
+2026-09-25 (kedua), `erd/data-dictionary.md` bagian 18, dan usulan kontrak `LAB-API-v1` `r35`,
+`LAB-VAL-v1` `r13`, `LAB-STATE-v1` `r6`, serta `LAB-INT-v1` `r5` — **keempatnya `draft`**;
+`LAB-PERM-v1` revision 11 berlaku apa adanya. Arsitektur domain `LAB-DA-001` rev 9 bagian A6.
+
+**Seluruh yang disebut di bawah sudah tercatat pada dokumen itu. Nol konsep, nol tabel, nol kolom
+baru.** Epic ini **memperluas `EPIC-LAB-15`**; ia tidak dapat dibangun sebelum `EPIC-LAB-15`.
+
+### 22.1 Batas epic
+
+| Batas | Isi |
+|---|---|
+| **Titik mulai** | Hasil Mikrobiologi sudah **Final** di Halaman Hasil Mikrobiologi (`S4b`), dengan kualifikasi `Definitif` **atau kosong** |
+| **Titik akhir** | Hasil **dirilis**, pengesahnya tercatat dan terbaca pada respons hasil, dan **satu** dokumen terdaftar di rekam medis. **Berhenti di situ** — nol rilis hasil `Sementara`, nol cetakan, nol pengiriman ke pasien, nol pelaporan kritis |
+
+**Yang dianggap selesai:** dokter yang ditunjuk validasi Mikrobiologi dapat memvalidasi hasil
+akhir; orang kedua yang ditunjuk dapat merilisnya; pemegang kewenangan Patologi Klinik **tidak**
+dapat memvalidasi Mikrobiologi; hasil `Sementara` **tidak pernah** keluar lewat sistem.
+
+### 22.2 Kemampuan `MUST HAVE`
+
+| ID kemampuan asal | Kemampuan | Disposisi |
+|---|---|---|
+| `CAP-P14-06` | Validasi, rilis, antrean, *Kembalikan ke analis* — bagi Mikrobiologi | **`EXTEND`** — rancangan `EPIC-LAB-15` |
+| `CAP-P14-09` | Penunjukan per disiplin dari kredensial Human Resource | **`EXISTING / REUSE`** — dua kode Mikrobiologi |
+| `CAP-P14-12` | Penanda kritis Mikrobiologi yang sudah menyala | **`EXISTING / REUSE`** — tidak berubah; alasan `DEC-LAB-017` sejenis ikut menahan pemakaian |
+
+**Yang ditunda, beserta penggantinya selama MVP:**
+
+| Ditunda | Sebab | Pengganti selama MVP |
+|---|---|---|
+| Validasi dan rilis hasil `Sementara` | `DEC-LAB-020` — keputusan klinis `DR-LAB-002` | Hasil sementara disampaikan di luar sistem sesuai prosedur yang berlaku hari ini; **nol kemunduran** — hari ini tidak satu pun hasil Mikrobiologi dapat dirilis |
+| Cetakan Mikrobiologi berisi pengesah | Belum ada komponen cetak Mikrobiologi — `S17` | Halaman hasil menampilkan kedua pengesah |
+| Validasi dan rilis Patologi Anatomi | `DEC-LAB-021` | Laporan PA berhenti di Final seperti hari ini |
+
+### 22.3 Functional requirement
+
+| ID | Kebutuhan | Dapat diuji lewat | Disposisi |
+|---|---|---|---|
+| `FR-16.1` | Ketiga tindakan `EPIC-LAB-15` berlaku bagi Mikrobiologi dengan kode kewenangan **Mikrobiologi** | `AC-241`, `VAL-126` bunyi baru | `EXTEND` |
+| `FR-16.2` | Hasil `Sementara` ditolak saat divalidasi maupun dirilis; hasil berkualifikasi kosong diterima | `VAL-144`; `ARCH-GAP-LAB-10` | `EXTEND` — perlakuan kualifikasi kosong **disetujui bersama kontrak** (21.10 butir 2) |
+| `FR-16.3` | Isolat, antibiogram, status temuan, dan kualifikasi tidak berubah sesudah validasi | `INV-53`, `VAL-120` | `EXISTING / REUSE` |
+| `FR-16.4` | Respons hasil Mikrobiologi memuat pengesah; kosong sebelum pengesahan | `AC-183`; `r35` 30.3 | `EXTEND` |
+| `FR-16.5` | Satu dokumen rekam medis per pemeriksaan Mikrobiologi yang dirilis | `INT-08` | `EXTEND` |
+| `FR-16.6` | Antrean memuat Patologi Klinik dan Mikrobiologi, tanpa hasil `Sementara` | `VAL-145` | `EXTEND` |
+| `FR-16.7` | Label order Mikrobiologi *Dalam Pemeriksaan*/*Selesai* | `AC-199` | `EXTEND` |
+| `FR-16.8` | Halaman Hasil Mikrobiologi menampilkan pengesah, penanda, dan tiga tindakan; Validasi tidak ditawarkan pada hasil `Sementara` | `LAB-FE-004` | `EXTEND` |
+| `FR-16.9` | Dua kode Mikrobiologi di katalog, penunjukan dr. Nabila dan satu pemegang lain | `02-backend-architecture.md` 21.7 | `MISSING / NEW` — **langkah rilis** |
+
+### 22.4 Skenario UAT
+
+**Jalur berhasil.** Kultur urin *Escherichia coli* `Definitif` Final pukul 09.00. dr. Nabila
+memvalidasinya pukul 10.00; perilis merilisnya pukul 10.20. Respons hasil memuat *Validasi oleh:
+dr. Nabila* dan *Petugas Otorisasi: {perilis}*; satu dokumen tercatat di rekam medis pasien.
+
+**Jalur gagal — disiplin lain.** dr. Contoh, yang hanya ditunjuk validasi Patologi Klinik, menekan
+Validasi pada kultur urin itu → ditolak dengan pesan yang menyebut **Mikrobiologi**.
+
+**Jalur gagal — hasil sementara.** Kultur darah Final `Sementara`. Tombol Validasi tidak
+ditawarkan; panggilan langsung ke endpoint dijawab `422`. Hasil itu tidak ada di antrean dokter.
+
+**Jalur gagal — hasil sudah disahkan.** Sesudah kultur urin divalidasi, analis mencoba menambah
+isolat kedua → `409`; isolat tetap satu.
+
+### 22.5 Definition of Done
+
+| # | Butir | Cara menjawabnya |
+|---:|---|---|
+| 1 | `LAB-API-v1` `r35`, `LAB-VAL-v1` `r13`, `LAB-STATE-v1` `r6`, `LAB-INT-v1` `r5` **disetujui**, termasuk kelima butir `02-backend-architecture.md` 21.10 | `approved_by`/`approved_at` pada keempatnya |
+| 2 | `VAL-126` bunyi baru, `VAL-144`, `VAL-145` ditegakkan | Baris masing-masing pada matriks uji |
+| 3 | `AC-241` terbukti | Uji integrasi dua pengguna |
+| 4 | **Nol migration** pada epic ini | Dibuktikan terbalik |
+| 5 | **Nol rilis hasil `Sementara`** dan **nol validasi per isolat** | Dibuktikan terbalik |
+| 6 | Dua kode Mikrobiologi di katalog; **dua** pemegang validasi Mikrobiologi tercatat | Katalog dan kredensial Human Resource — **langkah rilis** |
+| 7 | Penahan pemakaian terjawab: `DEC-LAB-017` sejenis bagi Mikrobiologi, `LAB-COORD-016`, `LAB-OPEN-044` | Decision log |
+
+### 22.6 Urutan pengiriman
+
+| Gelombang | Isi | Prasyarat |
+|---|---|---|
+| **`MVP-10a`** | Backend: penjaga disiplin dan `Sementara`, kode Mikrobiologi, ruas pengesah respons Mikrobiologi, antrean dua disiplin, `resultProgress` Mikrobiologi | **`MVP-9b` selesai**; kontrak `EPIC-LAB-16` disetujui |
+| **`MVP-10b`** | Frontend: Halaman Hasil Mikrobiologi, penyaring disiplin antrean, label order Mikrobiologi | `MVP-10a`; `MVP-9c` |
+| **`MVP-10c`** | Langkah rilis: dua kode, penunjukan, kebijakan jabatan Mikrobiologi | **`BLOCKED`** — penahan 22.5 butir 6-7 |
+| **`POST-MVP`** | `S4d-2`, `S4e`, cetakan Mikrobiologi (`S17`) | `DEC-LAB-020`, `DEC-LAB-021`, `S17` |
+
+### 22.7 Pertanyaan terbuka sebelum development lock
+
+| Pertanyaan | Memblokir? | Pemilik |
+|---|---|---|
+| Persetujuan keempat kontrak dan kelima butir 21.10 | **Ya** — seluruh epic | Yoga Aji Pratama |
+| `DEC-LAB-020` beserta titipan `ARCH-GAP-LAB-10` | **Tidak** untuk epic ini — hasil `Sementara` sudah di luar batasnya | `DR-LAB-002` + Yoga Aji Pratama |
+| `DEC-LAB-017` sejenis bagi Mikrobiologi; dua pemegang validasi; `LAB-COORD-016`; `LAB-OPEN-044` | **Tidak** untuk pengembangan; **ya** untuk `MVP-10c` | `DR-LAB-002`; dr. Bima; pemilik `human-resource` |
+
+> ### ⏳ Gerbang perencanaan **belum** terbuka
+>
+> Keempat kontrak `EPIC-LAB-16` masih **`draft`**. Epic ini **belum boleh** diteruskan ke
+> `/plan-module-delivery` sampai pemilik modul menyetujuinya beserta kelima butir 21.10.

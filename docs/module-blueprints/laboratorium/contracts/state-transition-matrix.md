@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-STATE-v1` |
-| Revision | **`5` — `approved`** 2026-09-25, bagian 7 (`S4`: Tervalidasi dan Dirilis sebagai keadaan turunan). Terakhir `approved`: `4` — **`approved`** 2026-09-24, bagian 6 |
+| Revision | **`6` — `draft`** 2026-09-25, bagian 8 (`S4d-1` Mikrobiologi) — **belum disetujui**. Terakhir `approved`: **`5` — `approved`** 2026-09-25, bagian 7 (`S4`: Tervalidasi dan Dirilis sebagai keadaan turunan). Terakhir `approved`: `4` — **`approved`** 2026-09-24, bagian 6 |
 | Status | `approved` — `r2` dikunci 2026-09-02; **amandemen `r3` disetujui pemilik modul 2026-09-15** lewat `LAB-DEC-061` dan `LAB-DEC-063` |
 | Isi amandemen `r3` | **Status `Confirmed` masuk sebagai status pesanan antara `Requested` dan `Accepted`**, beserta konfirmator, waktu konfirmasi, dan dokter pemeriksa. Konfirmasi hanya sah sekali. **Pembatalan dipersempit** menjadi hanya sah pada `Requested` dan `Confirmed`, dan wajib beralasan. Jalur `Requested` → `Accepted` **tidak dicabut** — lihat bagian 1a |
 | Batas penguncian | **Terkunci penuh sejak 2026-09-02.** `LAB-OPEN-021` dijawab: penamaan memakai prefix `Lab`, sehingga tidak ada lagi bagian yang dikecualikan |
@@ -373,3 +373,51 @@ Validasi — tidak dapat sama-sama berhasil; yang kalah menerima `409`.
 > **Jalur gagal:** pada langkah 2, bila penunjukan dr. Contoh sedang ditangguhkan, validasi
 > ditolak `403` *"Penunjukan validasi Patologi Klinik Anda sedang ditangguhkan."* — dan Kalium
 > 7,2 **tetap menunggu**, tidak ada jalur pintas. Jalan keluarnya milik `DEC-LAB-011` sisa.
+
+## 8. Amandemen `r6` — Validasi dan rilis hasil Mikrobiologi (`S4d-1`), 2026-09-25
+
+| Field | Nilai |
+|---|---|
+| Revision | `r6` |
+| Status | **`draft`** — menunggu persetujuan pemilik modul |
+| `approved_by` / `approved_at` | **belum** |
+| `input_revision` | decisions rev 76; `LAB-DA-001` rev 9 bagian A6; `LAB-API-v1` `r35`; `LAB-VAL-v1` `r13` |
+| Berlaku bagi | Patologi Klinik **dan Mikrobiologi**. Patologi Anatomi tetap berhenti di Final sampai `S4e` |
+
+### 8.1 Keadaan turunan
+
+Bagian 7.1 berlaku apa adanya bagi Mikrobiologi. **Kualifikasi `Sementara` bukan keadaan** —
+ia nilai isi hasil (`LAB-DEC-114`). Hasil `Sementara` yang Final tetap berkeadaan **Final**, hanya
+tidak dapat melangkah lebih jauh.
+
+### 8.2 Tindakan yang sah — tambahan syarat bagi Mikrobiologi
+
+| Dari | Tindakan | Ke | Syarat tambahan |
+|---|---|---|---|
+| Final | Validasi | Tervalidasi | Kualifikasi **bukan** `Sementara` (`VAL-144`); pelaku ditunjuk validasi **Mikrobiologi** |
+| Tervalidasi | Rilis | Dirilis | Kualifikasi bukan `Sementara`; pelaku ditunjuk rilis **Mikrobiologi** |
+| Tervalidasi | *Kembalikan ke analis* | Draft | Pelaku ditunjuk validasi atau rilis **Mikrobiologi** |
+
+### 8.3 Tindakan yang tidak sah — tambahan
+
+| Dari | Tindakan | Kenapa ditolak | Kode |
+|---|---|---|---|
+| Final berkualifikasi `Sementara` | Validasi | `VAL-144` — `DEC-LAB-020` belum dijawab | `422` |
+| Tervalidasi berkualifikasi `Sementara` | Rilis | Sama — keadaan ini **tidak dapat terjadi** lewat sistem, tetapi penjaganya tetap ada pada rilis | `422` |
+| Tervalidasi atau Dirilis | Mengubah isolat, antibiogram, status temuan, atau kualifikasi | `VAL-120` — `INV-53` | `409` |
+| Mana pun, pada Patologi Anatomi | Validasi, rilis, *Kembalikan* | `VAL-126` bunyi baru | `422` |
+
+### 8.4 Contoh jalur lengkap
+
+> Order Mikrobiologi berisi kultur urin dan kultur darah. Nama tenaga di bawah samaran.
+>
+> 1. Senin — kultur urin Final berkualifikasi `Sementara`. Kultur urin **tidak** muncul di antrean
+>    validasi.
+> 2. Rabu — analis membuka kembali kultur urin, mengisi *Escherichia coli* dan antibiogramnya,
+>    mengubah kualifikasi menjadi `Definitif`, dan Final ulang. Kultur urin masuk antrean.
+> 3. Rabu 10.00 — dr. Nabila memvalidasi. dr. Contoh, pemegang kode validasi **Patologi Klinik**
+>    saja, yang mencoba memvalidasinya sesaat sebelumnya **ditolak `403`** (`AC-241`).
+> 4. Rabu 10.20 — perilis merilis. Satu dokumen `LaboratoryResult` terdaftar di rekam medis.
+>    Respons hasil kini memuat *Validasi oleh: dr. Nabila* dan *Petugas Otorisasi: {perilis}*.
+>    Order tetap *Dalam Pemeriksaan*, sebab kultur darah belum dirilis.
+> 5. Rabu 10.30 — analis mencoba menambah isolat kedua pada kultur urin → **`409`** (`VAL-120`).

@@ -742,6 +742,20 @@ salah satunya disunting, kedua pihak berhenti dan membaca ulang.
 | `contracts/integration-contract.md` | `e2f9fe471fe76246c68c1d772bc0f54be26e1b38ce128506f4af806797f0a8c1` |
 | `testing/acceptance-test-matrix.md` | `229d1e4b3693732033011ae70ddd93a8a70ace1e4edcd356d3edf3fce636d06a` |
 
+> **Diperbarui 2026-09-25 sore — amendment pass putaran 17.** `00-interview-decisions.md` naik ke
+> revision 75 (`LAB-DEC-152`, `LAB-DEC-153`) dan `04-prd-to-mvp.md` 21.7 menyesuaikan penahannya,
+> sehingga **kedua hash itu berubah**. **Kelima hash kontrak tidak berubah** — kerja paralel tetap
+> sah. Isi putaran itu menyentuh **langkah rilis `MVP-9d` saja**; nol task `BE-LAB-70`..`77` atau
+> `FE-LAB-38`..`40` berubah cakupan, sebab rancangan bagian 20 sengaja netral atas siapa yang
+> ditunjuk dan apakah perilis wajib dokter.
+
+> **Diperbarui 2026-09-25 malam — desain `EPIC-LAB-16`.** Amandemen `r35`, `r13`, `r6`, dan `INT r5`
+> (semuanya `draft`) **ditempel** pada `api-contract.md`, `validation-matrix.md`,
+> `state-transition-matrix.md`, dan `integration-contract.md`, beserta baris *Revision* di
+> kepalanya — sehingga **keempat hash kontrak itu berubah**. **Bagian yang dirujuk `MVP-9` — 29,
+> 14, 7, dan 8 — tidak disunting**, dan `permission-audit-matrix.md` tidak tersentuh sama sekali.
+> Kerja `MVP-9` **tidak perlu berhenti**. Nilai hash baru dicatat saat `MVP-10` direncanakan.
+
 ### Requirement ke task
 
 | Requirement | Decision | Desain | Kontrak | Task backend | Task frontend | AC / bukti | Status |
@@ -782,8 +796,9 @@ salah satunya disunting, kedua pihak berhenti dan membaca ulang.
 
 | Penahan | Pemilik | Menahan |
 |---|---|---|
-| `DEC-LAB-011` sisa — pemvalidasi di luar jam kerja dr. Bima | dr. Bima Prasetya, Sp.PK — `LAB-REQ-014` | Langkah 3 |
-| `DEC-LAB-018` — pemegang rilis | dr. Bima Prasetya, Sp.PK — `LAB-REQ-014` | Langkah 3-4 |
+| ~~`DEC-LAB-011` sisa~~ — ✅ **tertutup 2026-09-25**, `LAB-DEC-152`. Tersisa sebagai **data**: dua pemegang validasi PK tercatat | dr. Bima Prasetya, Sp.PK selaku penetap | Langkah 3 |
+| ~~`DEC-LAB-018`~~ — ✅ **tertutup 2026-09-25**, `LAB-DEC-153`: perilis tidak wajib dokter | — | — |
+| **`LAB-OPEN-044`** — isi *aturan laboratorium* tentang calon perilis dan penetapnya (baru 2026-09-25) | dr. Bima Prasetya, Sp.PK | Langkah 3-4 |
 | `DEC-LAB-017` — pemakaian sebelum `S5` | Yoga Aji Pratama + `DR-LAB-001` | Langkah 4 |
 | `LAB-COORD-016` — dua kode katalog | Pemilik `human-resource` | Langkah 2 |
 | `UNK-P14-03` — jabatan pemvalidasi dan perilis | Admin sistem + kepala instalasi | Langkah 4 |

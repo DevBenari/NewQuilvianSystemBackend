@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `10` — bagian 20, 2026-09-25: `S4` validasi dan rilis Patologi Klinik. Sebelumnya `9` — bagian 19, 2026-09-24 |
+| Revision | `11` — bagian 21, 2026-09-25: `S4d-1` validasi dan rilis Mikrobiologi. Sebelumnya `10` — bagian 20, 2026-09-25: `S4` validasi dan rilis Patologi Klinik. Sebelumnya `9` — bagian 19, 2026-09-24 |
 | Status | `draft` |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15`. **Revision 4 menambah amandemen Penerimaan Sampling/Specimen** — lihat bagian 11 |
 | Backend SHA | Revision 1-3: `c87d9c0`. **Revision 4: `466a7127`**, diverifikasi tidak berubah pada `9067fa73` |
@@ -3090,10 +3090,247 @@ mewajibkan seeder.
 | Dua data induk alasan | `LAB-DEC-082`, `LAB-DEC-138`, `LAB-DEC-003` | `LAB-DC-054`, `LAB-DC-058` | `r34` 29.6; `VAL-140`..`VAL-142` | `AC-205` |
 | Batal ditolak sesudah rilis | `LAB-DEC-138`, `LAB-DEC-063`; arah sementara `DEC-LAB-019` | `ARCH-GAP-LAB-09` | `VAL-143` | — |
 
+## 21. Rancangan 2026-09-25 (kedua) — `S4d-1` validasi dan rilis hasil Mikrobiologi
+
+**Bagian ini memperluas bagian 20, tidak menyalinnya.** Seluruh rancangan bagian 20 — tiga
+tindakan, pembaca kewenangan, empat mata, batas transaksi, konkurensi, pendaftaran rekam medis,
+dua daftar alasan — berlaku bagi Mikrobiologi **apa adanya**. Yang ditulis di bawah hanya yang
+berubah.
+
+### 21.0 Identitas dan gerbang masukan
+
+| Butir | Isi |
+|---|---|
+| Status | **`draft`** — approval tetap tindakan pemilik modul |
+| Masukan | `00-interview-decisions.md` **revision 76**; `LAB-RCG-001-r9` bagian 0D; `LAB-DA-001` **revision 9 bagian A6**; bagian 20 beserta kontrak `r34`/`r12`/rev 11/`r5`/`INT r4` yang **approved** 2026-09-25 |
+| SHA | Backend **`31b12f07`** (branch `yoga`), frontend **`0bcd15724`** (branch `YogaV2`) — **bergeser** dari `ddeb5ed8`/`72607a087` |
+| Impact scan | **Dijalankan, nol dampak.** Backend 22 commit: nol berkas di `LaboratoryManagement`, `MedicalRecordManagement`, `CredentialingManagement`, dan `Services/Security`; commit `10d68bf7` *"updates BE modul lab"* **hanya dokumen blueprint**; `Program.cs` menambah dua registrasi Farmasi/Billing. **Satu akibat teknis:** migration Gizi dan Farmasi menggeser `ApplicationDbContextModelSnapshot.cs`, sehingga migration `BE-LAB-70` wajib dibangkitkan **di atas snapshot baru**. Frontend 7 commit: nol berkas Laboratorium. Capability map revision 5 **tetap berlaku** |
+| Gerbang requirement | `S4d-1` **`READY_FOR_DOMAIN_DESIGN`**, independen dari `S4d-2` (0D.5) |
+| Gerbang arsitektur domain | `S4d-1` **`DOMAIN_ARCHITECTURE_READY`** — A6. Nol konsep baru; `INV-52`, `INV-53`; usulan `ARCH-GAP-LAB-10` |
+| Yang dirancang | Tiga tindakan bagian 20 **menerima Mikrobiologi**; penjaga hasil `Sementara`; dua kode kewenangan Mikrobiologi; antrean dua disiplin; ruas pengesah pada respons hasil Mikrobiologi; label order pada daftar Pemeriksaan Mikrobiologi |
+| Yang **tidak** dirancang | `S4d-2` hasil `Sementara` (`DEC-LAB-020`); `S4e` Patologi Anatomi (`DEC-LAB-021`); nilai kritis `S5`; koreksi `S6`; **cetakan Mikrobiologi** — frontend belum punya komponen cetak Mikrobiologi sama sekali, ruasnya baru ada di respons backend; cetakan milik `S17` |
+| Penahan **pemakaian nyata** | `DEC-LAB-017` sejenis (pemilik `DR-LAB-002`); **dua** pemegang validasi Mikrobiologi tercatat (`LAB-DEC-152`); `LAB-COORD-016`; `LAB-OPEN-044` |
+| Ketergantungan kode | Dibangun **di atas `MVP-9`** (`BE-LAB-70`..`77`, `FE-LAB-38`..`40`) — belum dibangun |
+| Skema | **Nol tabel, nol kolom, nol migration.** Ke-14 kolom `BE-LAB-70` sudah melayani setiap disiplin per pemeriksaan |
+
+### 21.1 Invariant dan urutan pemeriksaan
+
+| Invariant | Ditegakkan di | Bila dilanggar |
+|---|---|---|
+| `INV-52` — hasil `Sementara` tidak disahkan | `LabResultValidationService`, pada validasi **dan** rilis | `422` `VAL-144` |
+| `INV-53` — hasil berstruktur disahkan satu kesatuan | **Sudah terpenuhi tanpa kode baru:** tindakan bekerja per pemeriksaan, dan `VAL-120` sudah menolak simpan hasil Mikrobiologi — termasuk isolat dan antibiogram — selama `FinalizedAt` terisi | `409` `VAL-120` |
+| `INV-45` per disiplin | Kode dipilih menurut **disiplin order** pemeriksaan: Mikrobiologi memakai kode Mikrobiologi | `403` `VAL-128` |
+
+**Urutan pemeriksaan bagian 20.4 bertambah satu langkah**, tetap *keadaan hasil sebelum
+kewenangan*: (1) disiplin didukung — `VAL-126` versi baru; (2) tidak batal atau gugur — `VAL-127`;
+(3) **kualifikasi bukan `Sementara` — `VAL-144`**; (4) keadaan hasil — `VAL-124`, `VAL-125`,
+`VAL-133`, `VAL-134`; (5) lapis orang — `VAL-128`; (6) empat mata; (7) tulis.
+
+**Kualifikasi kosong diterima** — usulan `ARCH-GAP-LAB-10`, 21.10 butir 2.
+
+**Batas transaksi dan konkurensi:** bagian 20.1, tanpa perubahan.
+
+### 21.2 Tabel kepemilikan data — yang berbeda dari 20.2
+
+| Kelompok data | Modul pemilik | Dipakai modul ini | Dibuat ulang di modul ini |
+|---|---|:---:|---|
+| Hasil Mikrobiologi berstruktur — status temuan, kualifikasi, isolat, antibiogram | Laboratorium (`LabExamination`, `LabMicrobiologyIsolate`, `LabIsolateSusceptibility`) | Ya | Tidak — **sudah ada** sejak `S4b`, nol kolom baru |
+| Fakta validasi dan rilis | Laboratorium (`LabExamination`) | Ya | Tidak — **kolom `BE-LAB-70` yang sama** |
+| Kode kewenangan Mikrobiologi | Human Resource (`MstClinicalPrivilegeCatalog`) | Ya, lewat kodenya | Tidak — dua dari keenam kode `LAB-COORD-016` |
+| Daftar alasan pengembalian dan pengecualian | Laboratorium | Ya | Tidak — **daftar yang sama** dengan Patologi Klinik (A6.4) |
+
+Baris lain 20.2 berlaku apa adanya.
+
+### 21.3 Class diagram — yang berubah
+
+```mermaid
+classDiagram
+    class LabResultValidationService {
+        <<Diperbarui>>
+        -EnsureDisciplineSupported()
+        -EnsureNotPreliminary()
+    }
+    class LabClinicalPrivilegeCodes {
+        <<Diperbarui>>
+        +ValidationMicrobiology
+        +ReleaseMicrobiology
+        +For(discipline, kind)
+    }
+    class LabClinicalPrivilegeResolver {
+        <<Sudah ada - BE-LAB-72>>
+    }
+    class LabMicrobiologyResultService {
+        <<Diperbarui>>
+        +GetResultAsync()
+    }
+    class LabWorklistService {
+        <<Diperbarui>>
+        +GetValidationQueueAsync()
+    }
+    class LabMonitoringService {
+        <<Diperbarui>>
+    }
+    class LabExamination {
+        <<Sudah ada>>
+        +LabResultQualifier ResultQualifier
+        +DateTime ValidatedAt
+        +DateTime ReleasedAt
+    }
+    LabResultValidationService --> LabClinicalPrivilegeResolver : memeriksa lapis orang
+    LabClinicalPrivilegeResolver ..> LabClinicalPrivilegeCodes : memilih kode per disiplin
+    LabResultValidationService --> LabExamination : menolak Sementara
+    LabMicrobiologyResultService --> LabExamination : membaca pengesah
+    LabWorklistService --> LabExamination : antrean dua disiplin
+```
+
+### 21.4 Penjelasan setiap class yang berubah
+
+**`LabResultValidationService`**
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Diperbarui` — dibuat `BE-LAB-73` |
+| **Lokasi file** | `Areas/HealthServices/LaboratoryManagement/Services/LabResultValidationService.cs` |
+| Perubahan | (1) Penjaga disiplin **menerima** Patologi Klinik **dan** Mikrobiologi; Patologi Anatomi tetap ditolak dengan pesan `VAL-126` versi baru. (2) Pada Mikrobiologi, `ResultQualifier = Preliminary` → `422` `VAL-144` pada validasi **dan** rilis; `null` diterima. (3) Kode kewenangan dipilih lewat `LabClinicalPrivilegeCodes.For(disiplin order, jenis tindakan)` |
+| Membuka transaksi database | Tidak berubah — satu `SaveChangesAsync` per tindakan |
+| Catatan desain | **Pemvalidasi tidak dapat mengubah kualifikasi.** Hasil `Sementara` yang ternyata sudah definitif harus dibuka kembali analis (Reopen), diubah kualifikasinya, lalu Final ulang — kualifikasi adalah isi hasil, dan isi hasil ditulis analis (`LAB-DEC-146`) |
+
+**`LabClinicalPrivilegeCodes`**
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Diperbarui` — dibuat `BE-LAB-72` |
+| **Lokasi file** | `Areas/HealthServices/LaboratoryManagement/Constants/LabClinicalPrivilegeCodes.cs` |
+| Perubahan | Dua konstanta: validasi dan rilis Mikrobiologi, **usulan** `LAB-VAL-MB` dan `LAB-REL-MB`, final lewat `LAB-COORD-016`. Satu fungsi `For(disiplin, jenis)` yang **tidak mengembalikan kode apa pun** bagi Patologi Anatomi — sehingga seandainya `VAL-126` terlewat, resolver tetap menolak `NotAppointed` (fail-closed berlapis) |
+
+**`LabClinicalPrivilegeResolver`** — `Sudah ada` (`BE-LAB-72`), **nol perubahan**. Ia menerima
+disiplin sejak semula.
+
+**`LabMicrobiologyResultService`**
+
+| Aspek | Penjelasan |
+|---|---|
+| **Status** | `Diperbarui` |
+| **Lokasi file** | `Areas/HealthServices/LaboratoryManagement/Services/LabMicrobiologyResultService.cs` |
+| Perubahan | Respons `GET /{id}/result/microbiology`: `AuthorizingOfficerName` dan `ValidatedByName` — yang hari ini **sengaja** `null` (`:372-381`) — **diisi** dari nama perilis dan pemvalidasi; `IsReleased` dibaca dari `ReleasedAt`. Ruas bertambah sama dengan `r34` 29.3: `resultStatus`, waktu dan jabatan kedua pengesah, kedua penanda pengecualian, dan `resultEnteredByUserId`. Nama pelaku dibaca dalam **satu** kueri bersama nama analis yang sudah dibaca hari ini (`ReadAnalystNameAsync`) |
+| Catatan desain | Komentar `:372-381` yang menyatakan *"SENGAJA dibiarkan kosong… S4d tertahan DEC-LAB-011"* diperbarui. **Tidak** mengisi ruas dari pencetak atau penulis hasil — larangan `LAB-DEC-120` tetap |
+
+**`LabExaminationService`** — `Diperbarui` (`BE-LAB-74`): `BuildCompletionResponse` membaca
+`IsReleased` dari `ReleasedAt` **juga** bagi Mikrobiologi. Catatan 20.4 *"Mikrobiologi tetap
+`false` sampai `S4d`"* berakhir di sini.
+
+**`LabWorklistController`** dan **`LabWorklistService`** — `Diperbarui` (`BE-LAB-77`):
+
+| Aspek | Penjelasan |
+|---|---|
+| Perubahan | `GET /lab-worklists/validation-queue` **menghormati** `discipline`: `ClinicalPathology`, `Microbiology`, atau kosong — **keduanya**. `AnatomicalPathology` atau nilai tak dikenal → `422` `VAL-145`. Hasil Mikrobiologi `Sementara` **tidak masuk** antrean tahap mana pun. Item bertambah `discipline` dan `resultQualifier` |
+| Kenapa `Sementara` dikeluarkan, bukan ditampilkan bertanda | Antrean berarti *"menunggu tindakan Anda"*. Hasil `Sementara` tidak dapat ditindak siapa pun sampai `DEC-LAB-020`; menampilkannya membuat antrean dokter berisi baris yang pasti ditolak. Hasil itu tetap terlihat di Daftar Kerja analis, sebab belum dirilis |
+
+**`LabMonitoringService`** — `Diperbarui` (`BE-LAB-76`): `resultProgress` kini juga pada
+`GET /lab-monitoring/microbiology`. **`LabOrderService`** — detail order Mikrobiologi ikut
+membawa `resultProgress`.
+
+**DTO** — `Areas/HealthServices/LaboratoryManagement/DTOs/`:
+
+| Class | Berkas | Perubahan |
+|---|---|---|
+| `LabMicrobiologyResultResponse` | `LabMicrobiologyResultDtos.cs` — `Diperbarui` | Ruas pengesah terisi; ruas `r34` 29.3 bertambah |
+| `LabValidationQueueItemResponse` | `LabWorklistDtos.cs` — `Diperbarui` | Tambah `discipline` (string), `resultQualifier` (string?) |
+| `LabValidationQueueQuery` | Sama | `discipline` kini **dibaca**, bukan diabaikan |
+
+### 21.5 Arsitektur folder
+
+```text
+Areas/HealthServices/LaboratoryManagement/
+├── Constants/
+│   └── LabClinicalPrivilegeCodes.cs          # Diperbarui — dua kode Mikrobiologi, For()
+├── DTOs/
+│   ├── LabMicrobiologyResultDtos.cs          # Diperbarui — ruas pengesah
+│   └── LabWorklistDtos.cs                    # Diperbarui — discipline, resultQualifier
+└── Services/
+    ├── LabResultValidationService.cs         # Diperbarui — disiplin, penjaga Sementara
+    ├── LabMicrobiologyResultService.cs       # Diperbarui — ruas pengesah terisi
+    ├── LabExaminationService.cs              # Diperbarui — IsReleased Mikrobiologi
+    ├── LabWorklistService.cs                 # Diperbarui — antrean dua disiplin
+    ├── LabMonitoringService.cs               # Diperbarui — resultProgress Mikrobiologi
+    └── LabOrderService.cs                    # Diperbarui — resultProgress Mikrobiologi
+Migrations/                                   # Nol migration
+```
+
+### 21.6 Status model dan dampak migration
+
+| Model | Status | Kolom yang berubah | Dampak migration |
+|---|---|---|---|
+| `LabExamination` | `Sudah ada` — sesudah `BE-LAB-70` | **Nol.** Ke-14 kolom validasi dan rilis kini dipakai juga oleh baris Mikrobiologi; `ResultQualifier` (`S4b`) dibaca penjaga `VAL-144` | Nol |
+| `LabMicrobiologyIsolate`, `LabIsolateSusceptibility` | `Sudah ada` | Nol — disahkan **lewat** pemeriksaannya | Nol |
+
+### 21.7 Rencana migration dan urutan rilis
+
+**Nol migration.** Urutan rilis mengikuti 20.7, dengan tambahan:
+
+| Langkah | Siapa | Syarat |
+|---:|---|---|
+| 4a | Pemilik Human Resource menambah **dua kode Mikrobiologi** — sama persis dengan `LabClinicalPrivilegeCodes` | `LAB-COORD-016` |
+| 5a | Penunjukan validasi Mikrobiologi dicatat: dr. Nabila Rahmawati, Sp.MK, **dan sekurang-kurangnya satu pemegang lain**; pemegang rilis Mikrobiologi | `LAB-DEC-152`; `LAB-OPEN-044` untuk calon perilis |
+| 6a | Admin memberi `Validate` kepada jabatan dokter berkewenangan Mikrobiologi, bila berbeda dari jabatan Patologi Klinik | `UNK-P14-03` diperluas |
+
+**Deploy tetap tidak membuka pemakaian:** tanpa langkah 4a dan 5a, resolver menolak setiap
+validasi Mikrobiologi `NotAppointed`. **Satu perilaku berubah seketika sesudah deploy** dan itu
+disengaja: `VAL-126` berhenti menolak Mikrobiologi dengan pesan *"belum tersedia"*, dan penolakan
+itu berganti menjadi `403` bersebab dari lapis orang.
+
+**Langkah mundur:** kode. Nol skema yang perlu dimundurkan.
+
+### 21.8 Rencana data master awal
+
+**Nol data induk Laboratorium baru.** Kedua daftar alasan bagian 20.8 **dipakai bersama**; tidak
+perlu baris khusus Mikrobiologi. Yang perlu diisi hanya di luar Laboratorium: dua kode katalog
+dan penunjukan Mikrobiologi (21.7).
+
+### 21.9 Yang sengaja tidak dibuat
+
+| Yang ditolak | Alasan |
+|---|---|
+| Validasi atau rilis per isolat | `INV-53`, A6.4 |
+| Daftar alasan per disiplin | A6.4 — satu kejadian, satu nama |
+| Resource hak akses per disiplin — misalnya `LabMicrobiologyResult : Validate` | Pembagian per disiplin sudah ditegakkan **lapis orang** lewat kode kewenangan (`LAB-DEC-143`, `LAB-DEC-152`). Memecah resource menggandakan konfigurasi admin tanpa menambah penjaga apa pun: pemegang `Validate` tanpa kode Mikrobiologi tetap ditolak |
+| Pemvalidasi mengubah kualifikasi `Sementara` menjadi `Definitif` saat memvalidasi | Kualifikasi adalah isi hasil milik analis; jalurnya Reopen (21.4) |
+| Rilis kedua atau versi hasil Mikrobiologi | `S4d-2` / `DEC-LAB-020` dan `S6` |
+| Konsultasi sebagai syarat validasi | `LAB-DEC-106` |
+| Komponen cetak Mikrobiologi | Frontend belum punya cetakan Mikrobiologi; milik `S17` |
+
+### 21.10 Keputusan yang diminta pada persetujuan kontrak
+
+| No | Hal | Usulan rancangan | Bila tidak disetujui |
+|---:|---|---|---|
+| 1 | **Kode kewenangan Mikrobiologi** | `LAB-VAL-MB` dan `LAB-REL-MB` | Final lewat `LAB-COORD-016`; hanya konstanta yang berubah |
+| 2 | **Hasil tanpa kualifikasi** (`ARCH-GAP-LAB-10`) | Diperlakukan **bukan** `Sementara` — dapat divalidasi dan dirilis | Hanya `Definitif` yang dapat disahkan; analis wajib mengisi kualifikasi sebelum Final pada setiap hasil yang akan dirilis |
+| 3 | **Antrean tanpa `discipline`** | Menampilkan **kedua** disiplin | Wajib memilih disiplin |
+| 4 | **Hasil `Sementara` di antrean** | **Dikeluarkan** dari antrean (21.4) | Ditampilkan bertanda *"sementara — belum dapat divalidasi"* |
+| 5 | **Bunyi baru `VAL-126`** — mengubah aturan yang sudah approved | *"Validasi dan rilis hasil Patologi Anatomi belum tersedia."* | Bunyi lain |
+
+### 21.11 Keamanan, privasi, dan pencatatan
+
+Bagian 20.11 berlaku. **Tambahan:** nama organisme dan hasil antibiogram adalah data klinis —
+**tidak** masuk payload log validasi maupun rilis, sama dengan nilai hasil Patologi Klinik.
+
+### 21.12 Traceability bagian 21
+
+| Yang dirancang | Keputusan | Arsitektur domain | Kontrak | AC |
+|---|---|---|---|---|
+| Validasi dan rilis Mikrobiologi | `LAB-DEC-097`, `LAB-DEC-152`, `LAB-DEC-153` | A6 | `r35` 30.2; VAL `r13` `VAL-126` | `AC-241` |
+| Hasil `Sementara` tidak disahkan | `LAB-DEC-114`; `DEC-LAB-020` terbuka | `INV-52` | VAL `r13` `VAL-144`; STATE `r6` | Baris `VAL-144` matriks uji |
+| Hasil berstruktur satu kesatuan | `LAB-DEC-085` | `INV-53` | VAL `VAL-120` | Baris `INV-53` matriks uji |
+| Kode per disiplin | `LAB-DEC-143`, `LAB-DEC-148`, `LAB-DEC-152` | A6.10 | `LAB-INT-v1` `r5` | `AC-231`, `AC-241` |
+| Pengesah pada respons Mikrobiologi | `LAB-DEC-120` | A6.10 | `r35` 30.3 | `AC-183` tetap berlaku — ruas **kosong sebelum** rilis; sesudah rilis **terisi** dari pengesah yang sebenarnya |
+| Antrean dua disiplin | `LAB-DEC-135` butir 2 | A5.2 | `r35` 30.4; VAL `VAL-145` | `AC-196` |
+| Label order Mikrobiologi | `LAB-DEC-135` | A6.7 | `r35` 30.5 | `AC-199` |
+
 ## Riwayat Revisi
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 11 | 2026-09-25 | **`S4d-1` validasi dan rilis hasil Mikrobiologi dirancang** (bagian 21), menurunkan `LAB-DA-001` rev 9 bagian A6. **Memperluas bagian 20, tidak menyalinnya.** **Nol tabel, nol kolom, nol migration** — ke-14 kolom `BE-LAB-70` melayani setiap disiplin per pemeriksaan. Yang berubah: `VAL-126` menerima Mikrobiologi dan hanya menolak Patologi Anatomi; penjaga baru `VAL-144` menolak hasil `Sementara`; dua kode kewenangan Mikrobiologi dengan fungsi `For()` yang **tidak** memberi kode apa pun bagi Patologi Anatomi — fail-closed berlapis; ruas *Petugas Otorisasi* dan *Validasi oleh* pada respons Mikrobiologi — hari ini **sengaja kosong** — terisi; antrean menerima dua disiplin dan **mengeluarkan** hasil `Sementara`. **Impact scan dijalankan** karena kedua SHA bergeser (`31b12f07`, `0bcd15724`): **nol berkas** Laboratorium, Rekam Medis, kredensial HR, atau keamanan berubah; satu akibat teknis — snapshot migration bergeser oleh migration Gizi dan Farmasi, sehingga `BE-LAB-70` wajib dibangkitkan di atas snapshot baru. Lima keputusan diminta pada persetujuan (21.10) | `draft` |
 | 10 | 2026-09-25 | **`S4` validasi dan rilis hasil Patologi Klinik dirancang** (bagian 20), menurunkan `LAB-DA-001` rev 8 bagian A5 atas decisions rev 74 dan capability map rev 5. **Dua tabel baru, 14 kolom baru pada `LabExamination`, nol status baru.** Validasi, rilis, dan *Kembalikan ke analis* sebagai tiga aksi pada resource `LabExaminationResult`, sehingga pemegang `Update` (analis) tidak otomatis memegangnya. Lapis orang dibaca dari kredensial Human Resource **fail-closed** — berbeda sengaja dari preseden Kamar Operasi. Rilis dan pendaftaran rekam medis **atomik** dalam satu penyimpanan. **Satu temuan mengubah rancangan:** token `Version` tidak dinaikkan pada penulisan hasil, sehingga Reopen dan Validasi pada detik yang sama dapat sama-sama berhasil; `S4` memperbaikinya untuk Reopen dan meneruskan sisanya ke `MVP-8`. **Satu pertentangan baru dicatat, tidak diputuskan:** `LAB-CONFLICT-014`, *Selesai* manual versus *Selesai* turunan. Sepuluh keputusan diminta pada persetujuan kontrak (20.10), termasuk bunyi penanda yang tercetak dan penanda tangan dokumen rekam medis | `draft` |
 | 9 | 2026-09-24 | **Perluasan pengisian hasil Patologi Klinik dan perbaikan `S4b` dirancang** (bagian 19), menurunkan `LAB-DEC-135`, `LAB-DEC-141`, `LAB-DEC-146`, `LAB-DEC-147`, `LAB-DEC-149`, dan `LAB-FE-015` atas decisions rev 71 dan capability map rev 5. **Nol tabel, nol kolom, nol migration skema.** Satu enum respons baru `LabReferenceFlag`; satu jalur baca hasil per order; lima tindakan hasil pindah ke resource turunan `LabExaminationResult`; route Final/Reopen/konsultasi menjadi netral disiplin — **perubahan yang memecah kompatibilitas, konsumennya satu berkas frontend, dan butuh persetujuan eksplisit** (19.10). **`S4` validasi dan rilis dihentikan** karena `DEC-LAB-011` masih `BLOCKING`. Yang paling perlu dijaga saat rilis: **urutan pemberian kebijakan** (19.7) — kebijakan hanya dapat diberikan sesudah deploy, dan menyalinnya otomatis dari `LabExamination : Update` justru membuka kembali celah `LAB-CONFLICT-012`. **Catatan pembukuan:** bagian 16-18 (2026-09-21) ditambahkan tanpa baris riwayat dan tanpa menaikkan header; tidak ditambal di sini | `draft` |
 | 8 | 2026-09-18 | **`S4c` dirancang ulang seluruhnya** (bagian 15), menurunkan `LAB-DA-001` rev 7 bagian A4. Bagian 14 untuk Mikrobiologi **tetap berlaku apa adanya**. **Tujuh tabel baru, satu enum baru — dan TIGA KOLOM DICABUT dari rencana bagian 14.** Pencabutan itu butir terpenting revision ini: `PathologyMacroscopic`, `PathologyMicroscopic`, dan `PathologyConclusion` dirancang bagian 14.9 sebagai kolom pada `LabExamination`, dan `LAB-DEC-085` memindahkan hasil PA ke tingkat pesanan — sehingga ketiganya **nol dipakai siapa pun**. **`BE-LAB-45` belum dikerjakan, jadi pencabutannya nol biaya**; bila sudah dibangun, yang tertinggal adalah tiga kolom `varchar(4000)` tanpa penulis dan tanpa pembaca — **persis `BE-EXT-04`** yang sudah pernah dibayar modul ini. **Dua kolom lain yang diminta artifact juga ditolak:** `IssuedAt` dan `EffectiveAt` **nol disimpan**, sebab keduanya diturunkan dari `FinalizedAt` dan `LabSpecimen.CollectedAt` (`INV-38`) — menyimpannya berarti dua sumber kebenaran untuk satu kejadian. **Tujuh index unik, dan ketujuhnya WAJIB PARSIAL** dengan pembatas `IsDelete = false`: penghapusan di sistem ini bersifat penandaan, dan tujuh index berarti **tujuh kesempatan mengulang `LAB-CONFLICT-005`**. **Konteks klinis dibuat sebagai tabel tersendiri, bukan kolom pada `LabOrder`** — tabel itu dipakai tiga disiplin, dan seluruh ruasnya nullable supaya pesanan lama nol terdampak (`ARCH-GAP-LAB-07`). **Bagian 15.12 diberi peringatan tersendiri:** tiga dari empat data induk bersifat tetap dan dapat diseed, **tetapi pemetaan jenis pemeriksaan tidak** — dan tanpa isinya nol pemeriksaan PA punya kategori, `INV-39` melarang sistem menebak, sehingga **halaman hasil PA kosong sama sekali** | `draft` |

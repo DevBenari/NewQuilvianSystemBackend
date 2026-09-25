@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-VAL-v1` |
-| Revision | **`12` — `approved`** 2026-09-25, bagian 14 (`VAL-124`..`VAL-143`, `S4`). Terakhir `approved`: `11` — **`approved`** 2026-09-24, bagian 13. *Baris ini sempat tertinggal di `8` sejak `r9`; dirapikan 2026-09-24* |
+| Revision | **`13` — `draft`** 2026-09-25, bagian 15 (`S4d-1`: `VAL-126` diubah, `VAL-144`, `VAL-145`) — **belum disetujui**. Terakhir `approved`: **`12` — `approved`** 2026-09-25, bagian 14 (`VAL-124`..`VAL-143`, `S4`). Terakhir `approved`: `11` — **`approved`** 2026-09-24, bagian 13. *Baris ini sempat tertinggal di `8` sejak `r9`; dirapikan 2026-09-24* |
 | `r8` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-18** |
 | Isi amandemen `r8` | **`approved` — 2026-09-18.** Sebelas aturan `VAL-92`..`VAL-102` untuk laporan Patologi Anatomi **per pesanan**, menurunkan `LAB-DEC-085`..`LAB-DEC-088`, `LAB-DEC-091`, dan `LAB-DA-001` rev 7. **Satu aturan DICABUT: `VAL-88`** — ia menuntut tiga nama kolom yang dihardcode (makroskopik, mikroskopik, kesimpulan), sedangkan kewajiban ruas kini **bergantung kategori** dan ditegakkan `VAL-95` terhadap data induk keberlakuan. `VAL-83`, `VAL-84`, dan `VAL-89` **tetap berlaku bagi Mikrobiologi**. **Nol aturan `VAL-01`..`VAL-87` dan `VAL-89`..`VAL-91` berubah.** Disetujui bersama `LAB-API-v1` `r25` dan `LAB-PERM-v1` rev 7 pada hari yang sama. Lihat bagian 10 |
 | `r7` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-18** |
@@ -690,3 +690,58 @@ Berlaku sama pada `lab-result-correction-reasons` dan `lab-four-eyes-exception-r
 | `VAL-137` | `LAB-DEC-017` | — (`INT-08`) |
 | `VAL-140`..`VAL-142` | `LAB-DEC-082`, `LAB-DEC-019` | — |
 | `VAL-143` | `LAB-DEC-138`, `LAB-DEC-063`; arah sementara `DEC-LAB-019` | — |
+
+## 15. Amandemen `r13` — Validasi dan rilis hasil Mikrobiologi (`S4d-1`), 2026-09-25
+
+| Field | Nilai |
+|---|---|
+| `contract_version` | `LAB-VAL-v1` |
+| Revision | `r13` |
+| Status | **`draft`** — menunggu persetujuan pemilik modul |
+| `approved_by` / `approved_at` | **belum** |
+| `input_revision` | decisions rev 76; `LAB-DA-001` rev 9 bagian A6; `LAB-API-v1` `r35`; `02-backend-architecture.md` rev 11 bagian 21 |
+| Sifat | **Satu aturan approved diubah bunyinya** (`VAL-126`), dua aturan baru (`VAL-144`, `VAL-145`) |
+
+### 15.1 Aturan yang diubah
+
+| ID | Bunyi `r12` | **Bunyi `r13`** | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|
+| `VAL-126` | Tindakan ditolak bila pemeriksaan **bukan Patologi Klinik** | Tindakan ditolak bila pemeriksaan **Patologi Anatomi** | "Validasi dan rilis hasil Patologi Anatomi belum tersedia." | `422` |
+
+**Kenapa diubah, bukan ditambah aturan kedua.** Dua aturan yang masing-masing menyebut
+disiplin yang ditolak akan selalu harus disunting bersamaan setiap kali satu disiplin dibuka.
+`S4e` kelak mengubahnya sekali lagi, atau mencabutnya.
+
+### 15.2 Aturan yang ditambahkan
+
+| ID | Aturan | Berlaku pada | Pesan bagi pengguna | Kode | Dasar |
+|---|---|---|---|---|---|
+| `VAL-144` | Validasi dan rilis **ditolak** bila hasil Mikrobiologi berkualifikasi `Sementara`. Kualifikasi **kosong diterima** | `validate`, `release` | "Hasil Mikrobiologi sementara belum dapat divalidasi maupun dirilis. Buka kembali dan ubah kualifikasinya bila hasil sudah definitif." | `422` | `INV-52`; `DEC-LAB-020` terbuka. Kosong diterima: usulan `ARCH-GAP-LAB-10` |
+| `VAL-145` | Antrean **ditolak** bila `discipline` berisi Patologi Anatomi atau nilai tak dikenal | `GET /lab-worklists/validation-queue` | "Antrean validasi hanya tersedia untuk Patologi Klinik dan Mikrobiologi." | `422` | Sama dengan `VAL-126` |
+
+**Urutan pemeriksaan** (`r12` 14.1) bertambah satu langkah: `VAL-144` diperiksa **sesudah**
+`VAL-127` dan **sebelum** `VAL-124`. Dokter yang menekan Validasi pada hasil `Sementara` membaca
+sebab yang sebenarnya, bukan penolakan kewenangan.
+
+**Contoh `VAL-144`.**
+
+> Senin kultur urin Final berkualifikasi `Sementara`: *tumbuh batang Gram negatif, identifikasi
+> menyusul*. dr. Contoh menekan Validasi → `422` dengan pesan di atas. Rabu analis membuka
+> kembali, mengisi *Escherichia coli* beserta antibiogramnya, mengubah kualifikasi menjadi
+> `Definitif`, dan Final ulang. Validasi diterima.
+>
+> Pada hasil lain yang kualifikasinya **kosong** — bentuk cetak yang tidak memuat baris
+> kualifikasi — validasi **diterima**.
+
+### 15.3 Aturan yang dipakai ulang bagi Mikrobiologi apa adanya
+
+`VAL-120`, `VAL-121` (hasil tervalidasi dan dirilis tetap terkunci — termasuk isolat dan
+antibiogram), `VAL-124`, `VAL-125`, `VAL-127`..`VAL-139`, dan `VAL-143`.
+
+### 15.4 Traceability `r13`
+
+| Aturan | Keputusan | AC |
+|---|---|---|
+| `VAL-126` bunyi baru | `LAB-DEC-083`, `LAB-DEC-152` | `AC-241` |
+| `VAL-144` | `LAB-DEC-114`; `DEC-LAB-020` | — baris uji tersendiri |
+| `VAL-145` | `LAB-DEC-135` butir 2 | — |

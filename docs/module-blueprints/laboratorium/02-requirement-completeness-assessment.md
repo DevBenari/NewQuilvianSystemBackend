@@ -4,7 +4,7 @@
 |---|---|
 | Blueprint ID | `laboratorium` |
 | Assessment ID | `LAB-RCG-001` |
-| Revision | `8` — bagian 0C, 2026-09-24: `S4` naik `READY_FOR_DOMAIN_DESIGN` untuk desain saja |
+| Revision | `9` — bagian 0D, 2026-09-25: `S4d-1` naik `READY_FOR_DOMAIN_DESIGN`; `S4d-2` dan `S4e` tertahan keputusan klinis baru. Sebelumnya `8` — bagian 0C, 2026-09-24: `S4` naik `READY_FOR_DOMAIN_DESIGN` untuk desain saja |
 | Status | `draft` |
 | **Kesiapan keseluruhan** | **`PARTIALLY_READY`** — **diperbarui revision 7.** Dua slice siap dikirim: `S4b` dan `S4c`. Catatan revision 6 tentang tiga penahan yang dapat ditutup pemilik modul **sudah dipakai habis pada 2026-09-18**, dan hasilnya tercatat 0B. **Sejak putaran itu, nol penahan tersisa yang dapat ditutup pemilik modul sendirian** — seluruhnya wewenang klinis atau manajemen rumah sakit. Lihat 0B.5 |
 | Product/domain owner | Yoga Aji Pratama (`yogaaji452@gmail.com`) |
@@ -61,8 +61,8 @@ baseline requirement lewat `LAB-DEC-025` sampai `LAB-DEC-031` pada 2026-09-01.
 | `S4` | **Validasi dan rilis** hasil Patologi Klinik — cakupannya dipersempit `LAB-DEC-076` | `BUSINESS_DECISION_REQUIRED` — **dinilai ulang revision 7, lihat 0B** | ~~`LAB-SIGN-001`~~ ✅, ~~`LAB-P0-001`~~ ↓, ~~`LAB-P0-005`~~ ↓, ~~`LAB-P0-002`~~ ✅ — **tersisa `DEC-LAB-011`** |
 | `S4b` | Pengisian hasil Mikrobiologi | ✅ **`READY_FOR_DOMAIN_DESIGN`** — **naik revision 7, lihat 0B.1** | **Nol.** `LAB-OPEN-017` dicabut sebagai penahan oleh `LAB-DEC-081` |
 | `S4c` | Pengisian hasil Patologi Anatomi | ✅ **`READY_FOR_DOMAIN_DESIGN`** — naik revision 6, lihat 0A.9 | **Nol.** `DEC-LAB-013` ✅ ditutup `LAB-DEC-083`; `S2b` tetap menempel sebagai dependency, bukan penahan |
-| `S4d` | **Validasi dan rilis** hasil Mikrobiologi | `BUSINESS_DECISION_REQUIRED` — **slice baru, didirikan `LAB-DEC-083`** | `DEC-LAB-011`, `LAB-OPEN-034` |
-| `S4e` | **Validasi dan rilis** hasil Patologi Anatomi | `BUSINESS_DECISION_REQUIRED` — **slice baru, didirikan `LAB-DEC-083`** | `DEC-LAB-011`, `LAB-OPEN-034` |
+| `S4d` | **Validasi dan rilis** hasil Mikrobiologi | `BUSINESS_DECISION_REQUIRED` — **slice baru, didirikan `LAB-DEC-083`**. **Dinilai ulang revision 9, lihat 0D:** `S4d-1` (hasil bukan `Sementara`) `READY_FOR_DOMAIN_DESIGN`; `S4d-2` (hasil `Sementara`) tertahan `DEC-LAB-020` | `DEC-LAB-011`, `LAB-OPEN-034` |
+| `S4e` | **Validasi dan rilis** hasil Patologi Anatomi | `BUSINESS_DECISION_REQUIRED` — **slice baru, didirikan `LAB-DEC-083`**. **Dinilai ulang revision 9, lihat 0D:** tetap `BUSINESS_DECISION_REQUIRED`, penahannya berganti menjadi `DEC-LAB-021` | `DEC-LAB-011`, `LAB-OPEN-034` |
 | `S5` | Nilai kritis dan pelaporannya | `BUSINESS_DECISION_REQUIRED` — **dinilai ulang revision 6, lihat 0A** | ~~`LAB-SIGN-001`~~ ✅, ~~`LAB-COORD-001`~~ **`closed` 2026-09-01** — **tersisa `LAB-P0-004`, `LAB-OPEN-014`, `DEC-LAB-012`** |
 | `S6` | Koreksi hasil setelah rilis | `BUSINESS_DECISION_REQUIRED` — **dinilai ulang revision 7, lihat 0B.2** | ~~`LAB-SIGN-001`~~ ✅, ~~`LAB-COORD-002`~~ **`closed` 2026-09-01**, `LAB-P0-003` 🟡 sebagian — **tersisa `DEC-LAB-014`** |
 | `S7` | Daftar kerja dan pemantauan keterlambatan | **`READY_FOR_DOMAIN_DESIGN`** | — (bergantung `S1a`) |
@@ -687,6 +687,141 @@ wajib menandai task rilisnya `BLOCKED` sampai ketiganya terjawab.
 
 ---
 
+## 0D. Penilaian Ulang Revision 9 — `S4d` dan `S4e` sesudah jawaban tertulis dr. Bima (2026-09-25)
+
+> **Bagian ini menggantikan baris `S4d` dan `S4e` pada tabel 0B.1.** Slice lain tidak dinilai
+> ulang.
+
+### 0D.1 Scope dan bukti
+
+| Butir | Isi |
+|---|---|
+| Slice yang dinilai | **`S4d`** — validasi dan rilis hasil **Mikrobiologi**; **`S4e`** — validasi dan rilis hasil **Patologi Anatomi**. Dinilai **terpisah**, sesuai alasan `LAB-DEC-083`: masing-masing boleh maju tanpa menunggu yang lain |
+| Pemicu | Amendment pass putaran 17 menutup **kedua** penahan lama keduanya: `DEC-LAB-011` (`LAB-DEC-152` — pemegang validasi per disiplin bernama) dan `LAB-OPEN-034` (validasi tidak lintas disiplin) |
+| Bukti | `00-interview-decisions.md` **revision 75**; `LAB-EVD-010` (surat tertulis dr. Bima); `01-existing-capability-map.md` revision 5; rancangan `S4` yang **sudah disetujui** — `02-backend-architecture.md` bagian 20, kontrak `r34`/`r12`/rev 11/`r5`/`INT r4` (2026-09-25) — sebagai pola yang akan diwarisi |
+| Snapshot kode | BE `ddeb5ed8`, FE `72607a087` — diperiksa 2026-09-25, tidak bergeser |
+| Baseline rujukan | **Tidak dipakai.** `indonesia-hospital-domain-reference` tidak dipanggil; seluruh butir bersumber keputusan modul ini |
+
+**Yang diwarisi dari `S4` tanpa dinilai ulang**, karena keputusannya berlaku lintas disiplin atau
+per disiplin dengan bentuk sama: fakta bukan status (`LAB-DEC-080`), empat mata dan
+pengecualiannya (`LAB-DEC-003`, `LAB-DEC-120`), dua lapis kewenangan per disiplin
+(`LAB-DEC-142`, `143`, `148`), hanya dokter memvalidasi (`LAB-DEC-150`), perilis tidak wajib dokter
+(`LAB-DEC-153`), pendaftaran ke rekam medis saat rilis (`LAB-DEC-017`), dan *Kembalikan* sebelum
+rilis (`LAB-DEC-138`).
+
+### 0D.2 `S4d` — validasi dan rilis Mikrobiologi
+
+| # | Dimensi | Status | Bukti atau gap |
+|---:|---|---|---|
+| 01 | Tujuan | `CONFIRMED` | Hasil Mikrobiologi dinyatakan sah oleh dokter berkewenangan sebelum dokter pemesan memakainya; *Final* bukan rilis (`LAB-DEC-097`) |
+| 02 | Aktor | `CONFIRMED` | Pengisi: analis (`LAB-DEC-146`). Pemvalidasi: **dr. Nabila Rahmawati, Sp.MK** dan pemegang tambahan yang ditetapkan (`LAB-DEC-152`). Perilis: pemegang kewenangan otorisasi, tidak wajib dokter (`LAB-DEC-153`) |
+| 03 | Pemicu / prasyarat | `CONFIRMED` | Hasil Final (`LAB-DEC-097`) — sudah berjalan di kode `S4b` |
+| 04 | Alur utama | `CONFIRMED` untuk hasil **Definitif** | Final → validasi → rilis oleh orang berbeda → dokter pemesan membaca; didaftarkan ke rekam medis — pola `S4` |
+| 05 | Alur alternatif / exception | **`MISSING`** untuk hasil **Sementara** | `LAB-DEC-114` mengunci kualifikasi `Definitif`/`Sementara` **yang dicetak**, dan BR-68 menyatakan biakan dibaca bertahap berhari-hari. **Nol keputusan** menyatakan apakah hasil `Sementara` boleh divalidasi dan dirilis, dan bila boleh, bagaimana hasil `Definitif` menggantikannya. Lihat `DEC-LAB-020`. *Kembalikan* sebelum rilis: `CONFIRMED` (`LAB-DEC-138`) |
+| 06 | Data minimum | `CONFIRMED` | Sama dengan `S4`, per pemeriksaan (`LAB-DEC-085`) |
+| 07 | Aturan bisnis | `CONFIRMED` | Empat mata; dua lapis per disiplin; tidak lintas disiplin (`LAB-DEC-152`) |
+| 08 | Status | `CONFIRMED` bentuknya; **`MISSING`** untuk rilis bertahap | Fakta bukan status (`LAB-DEC-080`). **Apakah satu pemeriksaan boleh dirilis lebih dari sekali** bergantung `DEC-LAB-020` |
+| 09 | Peran / authorization | `CONFIRMED` | `LAB-DEC-152`, `LAB-DEC-153`. Nama pemegang tambahan dan perilis adalah **data** (`LAB-OPEN-044` untuk calon perilis) |
+| 10 | Dependency antarmodul | `PROPOSED` | Human Resource — dua kode Mikrobiologi di katalog, bagian dari `LAB-COORD-016` |
+| 11 | Integrasi | `CONFIRMED` untuk satu rilis | Rekam medis `LAB-DEC-017`. **Bila rilis bertahap diizinkan**, jumlah dokumen per pemeriksaan ikut berubah — `DEC-LAB-020` |
+| 12 | Hasil akhir | `CONFIRMED` | Hasil tersedia bagi dokter pemesan; ruas cetak *Validasi oleh* dan *Petugas Otorisasi* yang hari ini **sengaja kosong** (`LAB-DEC-120`) terisi |
+| 13 | Pembatalan / koreksi | `CONFIRMED` sebelum rilis | `LAB-DEC-138`. Sesudah rilis: `S6` |
+| 14 | Audit / histori | `CONFIRMED` | Pola `S4` |
+| 15 | Notifikasi | Tidak material pada rilis biasa | **Kecuali** bila hasil `Definitif` menggantikan `Sementara` yang sudah dibaca dokter — ikut `DEC-LAB-020` |
+| 16 | Billing | Tidak material | Kelayakan tagih terbit saat wadah layak (`LAB-INH-009`) |
+| 17 | Keselamatan klinis | **Material** | **Hasil Sementara adalah yang paling cepat dipakai dokter** — pewarnaan Gram hari pertama dapat memulai antibiotik empiris sebelum biakan selesai. Menahannya atau melepasnya adalah keputusan klinis. Nilai kritis Mikrobiologi (`LAB-DEC-103`) milik `S5`; pertanyaan *pemakaian sebelum `S5`* sama dengan `DEC-LAB-017` |
+| 18 | Traceability | `CONFIRMED` | Baris cetak *Validasi oleh* dan *Petugas Otorisasi* (`LAB-DEC-120`) |
+
+### 0D.3 `S4e` — validasi dan rilis Patologi Anatomi
+
+| # | Dimensi | Status | Bukti atau gap |
+|---:|---|---|---|
+| 01 | Tujuan | `CONFIRMED` | Laporan PA dinyatakan sah sebelum dokter pemesan memakainya; *Final* bukan rilis (`LAB-DEC-088`) |
+| 02 | Aktor | **`CONFLICT`** | Pengisi laporan: **Dokter Lab — patolog** (`LAB-DEC-090`), sebab makroskopik, mikroskopik, dan kesimpulan adalah **diagnosis**. Pemvalidasi yang disebut: **dr. Citra Maharani, Sp.PA** (`LAB-DEC-152`). Empat mata: pengisi **tidak boleh** memvalidasi hasilnya sendiri (`LAB-DEC-003`). **Ketiganya belum dapat dipenuhi bersamaan** bila patolog penulis dan satu-satunya pemvalidasi adalah orang yang sama. `LAB-DEC-090` **sendiri mencatat** pertanyaan ini belum terjawab. Lihat `DEC-LAB-021` |
+| 03 | Pemicu / prasyarat | `CONFIRMED` | Laporan Final (`LAB-DEC-088`) — sudah dirancang `S4c` |
+| 04 | Alur utama | **`MISSING`** | Bergantung `DEC-LAB-021`: siapa memvalidasi laporan yang ditulis patolog |
+| 05 | Alur alternatif / exception | **`MISSING`** | Sama — bila jalur pengecualian menjadi jalan **setiap** laporan, prinsip empat mata berhenti berarti apa pun; bahaya yang sudah ditulis `LAB-REQ-004` bagian 5.1 |
+| 06 | Data minimum | `PROPOSED` — `NON_BLOCKING_STANDARD` | **Satuan validasi mengikuti satuan hasil:** laporan PA **per order** (`LAB-DEC-085`), bukan per pemeriksaan. Tafsiran ini satu-satunya yang koheren — memvalidasi per pemeriksaan berarti memecah satu laporan yang `LAB-DEC-085` justru satukan — tetapi belum dinyatakan eksplisit |
+| 07 | Aturan bisnis | **`CONFLICT`** | `LAB-DEC-003` versus `LAB-DEC-090` — butir 02 |
+| 08 | Status | `CONFIRMED` bentuknya | Fakta bukan status (`LAB-DEC-080`) |
+| 09 | Peran / authorization | **`CONFLICT`** | Butir 02. **`LAB-DEC-079` memberi jalan keluarnya:** aturan empat mata ditandatangani **per disiplin**, dan aturan Patologi Anatomi **boleh berbeda** — wewenang amandemennya milik `DR-LAB-003` sendiri |
+| 10 | Dependency antarmodul | `PROPOSED` | Human Resource — dua kode Patologi Anatomi di katalog (`LAB-COORD-016`) |
+| 11 | Integrasi | `CONFIRMED` | Rekam medis `LAB-DEC-017` — satu dokumen per laporan |
+| 12 | Hasil akhir | `CONFIRMED` | Laporan tersedia bagi dokter pemesan |
+| 13 | Pembatalan / koreksi | `PROPOSED` | *Kembalikan* sebelum rilis (`LAB-DEC-138`) dirumuskan untuk **analis**; pada PA penulisnya patolog, sehingga padanannya *kembalikan ke penulis* — bergantung `DEC-LAB-021` |
+| 14 | Audit / histori | `CONFIRMED` | Pola `S4` |
+| 15 | Notifikasi | Tidak material | Pemberitahuan temuan kritis PA milik `S5` |
+| 16 | Billing | Tidak material | `LAB-INH-009` |
+| 17 | Keselamatan klinis | **Material** | Diagnosis jaringan — misalnya keganasan — **tidak dapat diperiksa ulang dengan mengulang tes** semudah angka kimia darah. Siapa pemeriksa keduanya adalah inti keselamatannya |
+| 18 | Traceability | `PROPOSED` | Baris pengesah pada cetakan PA belum pernah dibuktikan dari cetakan lapangan — milik `S17` |
+
+**Contoh kenapa `DEC-LAB-021` tidak dapat diputuskan diam-diam oleh arsitektur.**
+
+> dr. Citra menulis laporan biopsi payudara: *karsinoma duktal invasif*. Ia menekan Final. Bila
+> ia pula satu-satunya pemegang validasi PA, sistem hanya punya tiga jalan: (a) menolak — laporan
+> tidak pernah dapat divalidasi; (b) menerima lewat jalur pengecualian — **setiap** laporan PA
+> selamanya bertanda *"divalidasi oleh pengisi sendiri"*, dan penanda itu kehilangan arti; atau
+> (c) mewajibkan patolog kedua — yang mungkin tidak dimiliki rumah sakit. Ketiganya sah secara
+> teknis; **memilihnya adalah keputusan klinis** milik penandatangan aturan PA.
+
+### 0D.4 Decision Log — dua butir baru
+
+| Decision ID | Pertanyaan | Slice terdampak | Bukti saat ini | Usulan baseline | Pemilik | Status | Dampak implementasi |
+|---|---|---|---|---|---|---|---|
+| `DEC-LAB-020` | **Bolehkah hasil Mikrobiologi berkualifikasi `Sementara` divalidasi dan dirilis? Bila boleh, bagaimana hasil `Definitif` menggantikannya** — sebagai koreksi `S6` (versi lama bertanda *sudah diperbaiki*, dokter diberi tahu), atau sebagai **rilis bertahap** yang sah tanpa dianggap koreksi? | `S4d` bagian hasil `Sementara` | `LAB-DEC-114`, BR-68: kualifikasi dicetak, biakan dibaca bertahap; nol keputusan tentang rilisnya | — *(tidak diusulkan: ketiga jawaban sama sahnya dan berbeda akibat klinisnya)* | `DR-LAB-002` dr. Nabila Rahmawati, Sp.MK + Yoga Aji Pratama | `OPEN` | Desain `S4d` bagian `Sementara` **tertahan**. Bagian hasil `Definitif` **tidak** — 0D.5 |
+| `DEC-LAB-021` | **Siapa memvalidasi laporan Patologi Anatomi yang ditulis patolog?** (a) patolog **kedua** yang ditunjuk — empat mata sungguhan; (b) penulisnya sendiri lewat **jalur pengecualian** beralasan; atau (c) **aturan PA tersendiri** — penulis sekaligus pemvalidasi, dan empat mata dipenuhi pada **rilis** oleh orang lain | `S4e` seluruhnya | `LAB-DEC-090` (pengisi patolog) versus `LAB-DEC-003` (pengisi ≠ pemvalidasi); `LAB-DEC-079` (aturan per disiplin boleh berbeda); `LAB-DEC-152` (pemegang PA: dr. Citra) | — *(tidak diusulkan: wewenang klinis `DR-LAB-003`)* | **`DR-LAB-003` dr. Citra Maharani, Sp.PA** — penanda tangan `LAB-DEC-003` untuk PA — bersama Yoga Aji Pratama | `OPEN` | **`S4e` tertahan seluruhnya** |
+
+**`DEC-LAB-017` berlaku sejenis bagi `S4d` dan `S4e`.** Pertanyaannya — bolehkah dipakai sebelum
+pelaporan kritis `S5` berdiri — tidak berubah per disiplin; pemiliknya bertambah `DR-LAB-002`
+untuk Mikrobiologi dan `DR-LAB-003` untuk Patologi Anatomi. Ia menahan **pemakaian nyata**, bukan
+desain. Begitu juga pertanyaan *pemakaian sebelum koreksi `S6`* yang belum ber-Decision ID
+(`04-prd-to-mvp.md` 21.7).
+
+### 0D.5 Kesiapan
+
+| Slice | `r7`/`r8` | **`r9`** | Penahan tersisa |
+|---|---|---|---|
+| **`S4d-1`** — validasi dan rilis hasil Mikrobiologi yang **tidak** berkualifikasi `Sementara` | `BUSINESS_DECISION_REQUIRED` | ✅ **`READY_FOR_DOMAIN_DESIGN`** | **Nol** bagi desain |
+| **`S4d-2`** — hasil Mikrobiologi berkualifikasi `Sementara` | *(tidak dibedakan)* | **`BUSINESS_DECISION_REQUIRED`** | `DEC-LAB-020` |
+| **`S4e`** — validasi dan rilis Patologi Anatomi | `BUSINESS_DECISION_REQUIRED` | **`BUSINESS_DECISION_REQUIRED`** | **`DEC-LAB-021`** — penahannya **berganti**, bukan hilang |
+| `S4d`/`S4e` — pemakaian nyata | — | Tertahan | `DEC-LAB-017` sejenis; dua pemegang validasi per disiplin tercatat (`LAB-DEC-152`); `LAB-COORD-016`; `LAB-OPEN-044`; pertanyaan koreksi sebelum `S6` |
+
+**Kenapa `S4d-1` boleh berdiri sendiri.** Apa pun jawaban `DEC-LAB-020`, rilis hasil **Definitif**
+tetap berbentuk sama: (a) bila `Sementara` tidak boleh dirilis, `S4d-1` adalah seluruh `S4d`; (b)
+bila `Definitif` menggantikan `Sementara` lewat koreksi, `S4d-1` tetap jalan bagi hasil yang
+langsung Definitif; (c) bila rilis bertahap diizinkan, `S4d-1` adalah langkah terakhirnya. **Selama
+`DEC-LAB-020` terbuka, hasil `Sementara` tidak dapat dirilis lewat sistem** — dan itu **nol
+kemunduran**, sebab hari ini tidak satu pun hasil Mikrobiologi dapat dirilis.
+
+**Kenapa `S4e` tidak dapat dipecah serupa.** Tidak ada bagian laporan PA yang dapat divalidasi tanpa
+menjawab siapa pemvalidasinya.
+
+**Yang wajib dihormati hilir:** `S4d-1` **mewarisi rancangan `S4`** — arsitektur domain dan desain
+cukup memperluasnya, bukan merancang ulang. Tafsiran `VAL-126` yang hari ini menolak Mikrobiologi
+dengan pesan *"belum tersedia"* berubah menjadi penerimaan bagi `S4d-1`, dan menjadi penolakan
+bersebab bagi hasil `Sementara`.
+
+### 0D.6 Handoff
+
+**Ke `hospital-domain-architect`:**
+
+| Field | Nilai |
+|---|---|
+| Slice yang dikirim | **`S4d-1`** — validasi dan rilis hasil Mikrobiologi yang tidak berkualifikasi `Sementara` |
+| Kesiapan | `READY_FOR_DOMAIN_DESIGN` — **desain saja** |
+| Snapshot bukti | Decisions rev 75; `LAB-EVD-010`; capability map rev 5; BE `ddeb5ed8`; FE `72607a087` |
+| Decision ID yang mengikat | Seluruh yang mengikat `S4` (0C.6), ditambah `LAB-DEC-097`, `LAB-DEC-106`, `LAB-DEC-114`, `LAB-DEC-120`, `LAB-DEC-152`, `LAB-DEC-153` |
+| Pola yang diwarisi | `LAB-DA-001` rev 8 bagian A5 — **perluas, jangan rancang ulang** |
+| Penahan pemakaian yang wajib ikut | `DEC-LAB-017` sejenis; dua pemegang validasi Mikrobiologi tercatat; `LAB-COORD-016`; `LAB-OPEN-044` |
+| Batas yang **wajib dihormati** | Hasil `Sementara` **tidak ikut** (`DEC-LAB-020`); `S4e` **tidak ikut** (`DEC-LAB-021`); nilai kritis Mikrobiologi `S5` tidak ikut |
+| Yang **tidak boleh** muncul | Rilis kedua atas pemeriksaan yang sama; penurunan `Definitif` dari ada tidaknya konsultasi (`LAB-DEC-114`); pemvalidasi lintas disiplin |
+
+**Ke `grill-me`:** `DEC-LAB-020` kepada `DR-LAB-002` bersama pemilik modul; `DEC-LAB-021` kepada
+`DR-LAB-003` bersama pemilik modul. Keduanya wewenang klinis per disiplin (`LAB-DEC-079`), **bukan**
+wewenang pemilik modul sendirian — dan bukan pula dr. Bima selaku penetap pemegang.
+
+---
+
 ## 1. Scope Penilaian
 
 Yang dinilai adalah kemampuan Rilis 1 modul Laboratorium sebagaimana dibatasi `LAB-DEC-001`
@@ -1081,6 +1216,7 @@ menilai kebutuhan bisnis, bukan kontrak teknis; kontrak as-is yang berlaku ada d
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 9 | 2026-09-25 | **`S4d` dan `S4e` dinilai ulang sesudah jawaban tertulis dr. Bima** (bagian 0D). Kedua penahan lamanya — `DEC-LAB-011` dan `LAB-OPEN-034` — tertutup `LAB-DEC-152`, **tetapi penilaian 18 dimensi menemukan dua keputusan klinis yang belum pernah ditanyakan**, masing-masing dibuka sebagai decision ID baru. **`S4d` dipecah:** `S4d-1` — hasil Mikrobiologi yang bukan `Sementara` — naik **`READY_FOR_DOMAIN_DESIGN`** dan mewarisi rancangan `S4`; `S4d-2` — hasil `Sementara` — tertahan **`DEC-LAB-020`**: kualifikasi `Sementara` sudah diputuskan **dicetak** (`LAB-DEC-114`), tetapi nol keputusan menyatakan apakah ia boleh dirilis dan bagaimana hasil `Definitif` menggantikannya. **`S4e` tetap `BUSINESS_DECISION_REQUIRED`, penahannya berganti** menjadi **`DEC-LAB-021`**: pengisi laporan PA adalah patolog (`LAB-DEC-090`) sedangkan pengisi dilarang memvalidasi hasilnya sendiri (`LAB-DEC-003`) — pertanyaan yang **`LAB-DEC-090` sendiri catat belum terjawab** sejak 2026-09-18. Keduanya wewenang klinis per disiplin (`LAB-DEC-079`): `DR-LAB-002` dan `DR-LAB-003`. `DEC-LAB-017` dinyatakan berlaku sejenis bagi kedua disiplin | `draft` |
 | 8 | 2026-09-24 | **`S4` dinilai ulang sesudah `LAB-DEC-150`** (bagian 0C). Kedelapan belas dimensi dinilai; `S4` naik **`READY_FOR_DOMAIN_DESIGN` untuk desain saja**, sebab ketiga penahan yang tersisa menjawab *siapa* dan *kapan*, bukan *bentuk*. **Pemakaian nyata tetap tertahan** oleh `DEC-LAB-011` sisa dan **dua decision ID baru**: `DEC-LAB-017` — bolehkah `S4` dipakai sebelum `S5` pelaporan kritis berdiri — dan `DEC-LAB-018` — siapa pemegang kewenangan **rilis** Patologi Klinik, butir yang `LAB-DEC-150` tidak jawab padahal `LAB-DEC-120` mewajibkan perilis berbeda dari pemvalidasi. Slice lain **tidak** dinilai ulang. Handoff `S4` ke `hospital-domain-architect` | `draft` |
 | 7 | 2026-09-18 | **Penilaian ulang sesudah amendment pass putaran 6 menjawab keempat butir yang `r6` tunjuk sebagai milik pemilik modul.** Ditulis sebagai bagian **0B**. `S4b` naik **`READY_FOR_DOMAIN_DESIGN`** menemani `S4c`, sehingga **dua** slice kini dikirim ke arsitektur domain; `S4` turun menjadi **satu** penahan; dua slice **baru** lahir — `S4d` dan `S4e` validasi/rilis Mikrobiologi dan Patologi Anatomi — langsung dengan dua penahan. **Dan satu penilaian `r6` saya koreksi sendiri:** `0A.13` menyatakan `LAB-P0-003` dapat ditutup pemilik modul sendirian; wawancara membuktikan **tidak**. `LAB-REQ-004` bagian 4.5 memuat empat pertanyaan turunan `LAB-DEC-007` dan **tiga di antaranya klinis**. Gerbang `r6` membacanya dari judul — *"aturan pembatalan dan koreksi"* — lalu menyimpulkan ia sejenis `LAB-DEC-063`. Yang ditutup pemilik modul nyata tetapi sebagian: bentuk alasan dan bentuk versi. Sisanya `DEC-LAB-014`, dan `S6` **tidak** terbuka. **Satu penilaian `r6` yang lain ternyata terlalu keras:** `LAB-OPEN-017` ditandai `BLOCKING` bagi `S4b` atas dasar ia ruas di dalam struktur hasil Mikrobiologi — benar sebagai pernyataan struktur, **keliru sebagai penahan rilis**, sebab blueprint sudah menempatkan penanda `Definitif` pada Rilis 2 sejak semula. `LAB-DEC-081` hanya membaca yang sudah tertulis, dan penahan tunggal `S4b` lenyap tanpa satu pun keputusan klinis baru. **Penahan yang kini paling mahal seluruh modul: `DEC-LAB-011`** — ia menahan `S4`, `S4d`, dan `S4e` sekaligus, yaitu **seluruh kemampuan merilis hasil untuk ketiga disiplin**, dan pertanyaannya tetap yang paling sederhana dari semuanya: siapa yang berhak menunjuk pemegang kewenangan validasi. **`grill-me` selesai untuk putaran ini** — nol butir tersisa yang dapat ditutup pemilik modul sendirian. Kesiapan keseluruhan tetap `PARTIALLY_READY` | `draft` |
 | 6 | 2026-09-17 | **Penilaian ulang sesudah `LAB-SIGN-001` ditutup `LAB-DEC-079` — tanda tangan klinis diberikan apa adanya, per disiplin, oleh `DR-LAB-001`/`002`/`003`.** Ditulis sebagai bagian **0A**. **Hasilnya satu slice naik dan empat menyempit, nol mundur:** `S4c` pengisian hasil Patologi Anatomi menjadi **`READY_FOR_DOMAIN_DESIGN`** — seluruh dimensinya terisi, bentuk hasilnya sudah dikunci BR-23 (makroskopik, mikroskopik, kesimpulan wajib), dan tanda tangannya kini ada. `S4` turun dari 4 penahan menjadi 2, `S4b` dari 3 menjadi **1**, `S5` dari 4 menjadi 3, `S6` dari 3 menjadi **1**. **Dua penahan diturunkan derajatnya dengan alasan berbukti, bukan dilonggarkan:** `LAB-P0-005` integrasi alat menjadi `NON_BLOCKING_STANDARD` untuk Rilis 1 sebab `LAB-DEC-005` sudah memutuskannya dan `S4a` sudah dibangun di atasnya; `LAB-P0-001` menjadi `NON_BLOCKING_STANDARD` bagi ketiga slice hasil sebab bagiannya yang menyangkut validasi dan rilis sudah dijawab `LAB-DEC-022` lalu disahkan `LAB-DEC-079`, dan memblokir `S4c` atas kewenangan mengisi berarti menerapkan ukuran yang tidak diterapkan pada `S4a`. **Temuan paling mahal justru bukan soal requirement, melainkan soal peta:** `S4b` dan `S4c` bernama *pengisian hasil*, dan **nol slice** memuat validasi serta rilis untuk Mikrobiologi dan Patologi Anatomi — `LAB-DEC-076` memecah `S4` hanya untuk Patologi Klinik. Celah itu tak terlihat selama `LAB-SIGN-001` menahan kelimanya sekaligus; tanda tangan per disiplin membuatnya terlihat sekaligus mendesak, sebab `DR-LAB-002` dan `DR-LAB-003` kini memegang wewenang atas disiplin yang tidak punya tempat menjalankannya. Dibuka `DEC-LAB-013`. **Tiga decision ID baru:** `DEC-LAB-011` (siapa menetapkan pemegang kewenangan validasi, dan jaminan dua per shift — `LAB-REQ-004` bagian 5.1 tidak ikut dijawab), `DEC-LAB-012` (pemberi persetujuan klinis atas perubahan batas kritis — bagian 5.2, juga tidak dijawab), dan `DEC-LAB-013`. **Dua koreksi pembukuan:** `LAB-COORD-001` dan `LAB-COORD-002` masih tertulis sebagai penahan `S5`/`S6` pada bagian 5 dan 7, padahal `closed` sejak 2026-09-01 — bagian itu ditandai rekam jejak, bukan disunting. **Dan satu pernyataan revision 2 dinyatakan tidak berlaku lagi:** *"`grill-me` tidak akan membuka apa-apa lagi tanpa kehadiran pihak-pihak itu"* — hari ini tiga penahan dapat ditutup pemilik modul sendiri (`LAB-P0-002`, `LAB-OPEN-017`, `LAB-P0-003`), dan ketiganya penahan tunggal atau terakhir bagi slice-nya. Kesiapan keseluruhan tetap `PARTIALLY_READY`. Nol entity, ERD, kontrak, migration, atau task diturunkan | `draft` |

@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `10` — amandemen 2026-09-25, validasi dan rilis Patologi Klinik (`S4`). Sebelumnya `9` — amandemen 2026-09-24, halaman Hasil Patologi Klinik per order |
+| Revision | `11` — amandemen 2026-09-25 (kedua), validasi dan rilis Mikrobiologi (`S4d-1`). Sebelumnya `10` — amandemen 2026-09-25, validasi dan rilis Patologi Klinik (`S4`). Sebelumnya `9` — amandemen 2026-09-24, halaman Hasil Patologi Klinik per order |
 | Status | `draft` |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S14`, `S15`. **Revision 4 menambah menu Penerimaan Sampling/Specimen** (bagian 10). **Revision 5 menyerap `LAB-DEC-048`**: butir menu Pesanan Laboratorium dicabut, Monitoring dinamai ulang menjadi Pemeriksaan, dan disiplin diturunkan dari pemeriksaan yang dipilih |
 | Frontend SHA | Revision 1-3: `688daff90`. **Revision 4: `9cd4cd03f`** — fakta `F5` dicabut capability map revision 3 |
@@ -1157,3 +1157,75 @@ diuji sebagai unit test pada `lab-clinical-pathology-result-rules.js`, mengikuti
 | Menyembunyikan hasil belum dirilis dari pembaca lain | Nol pembaca di luar Laboratorium hari ini; milik `S17`/`S18` |
 | Baris *Validasi oleh* dan *Otorisasi oleh* pada cetakan | Cetakan Patologi Klinik milik `S17` |
 | Penanda `KRITIS` dan formulir pelaporan | `S5` |
+
+---
+
+## Amandemen 2026-09-25 (kedua) — Validasi dan rilis Mikrobiologi (`S4d-1`)
+
+| Field | Nilai |
+|---|---|
+| Status | **`draft`** |
+| Slice | `S4d-1` — hasil Mikrobiologi yang bukan `Sementara` |
+| Masukan | decisions rev 76; `LAB-DA-001` rev 9 bagian A6; `LAB-API-v1` `r35`; `LAB-VAL-v1` `r13` — **kontraknya masih `draft`** |
+| Frontend SHA | **`0bcd15724`** — bergeser dari `72607a087`; tujuh commit, **nol berkas Laboratorium** |
+| Sifat | Halaman Hasil Mikrobiologi **diperbarui**; antrean validasi dan daftar Pemeriksaan Mikrobiologi **diperbarui**. **Nol route baru** |
+| Ketergantungan | Pola tindakan dari amandemen 2026-09-25 (`FE-LAB-39`, `FE-LAB-40`); backend `MVP-9` dan bagian 21 |
+
+### Keadaan frontend saat dirancang
+
+| Sudah ada | Berkas | Dipakai bagaimana |
+|---|---|---|
+| Halaman Hasil Mikrobiologi per order | `src/components/view/health-services/laboratory-management/lab-monitoring/microbiology/lab-microbiology-workspace-view.jsx` | Tempat tindakan |
+| Batang kelengkapan — Final, Reopen, konsultasi | `lab-microbiology-completion-bar.jsx` | **Tempat alami** tombol Validasi, Rilis, dan *Kembalikan*, di samping Final |
+| Isian kualifikasi | `lab-microbiology-result-form.jsx` | Dibaca untuk memutuskan apakah Validasi ditawarkan |
+| Cetakan Mikrobiologi | **Tidak ada** — nol komponen memuat *Petugas Otorisasi* atau *Validasi oleh* | Cetakan milik `S17`; amandemen ini **tidak** membangunnya |
+
+### Yang bertambah pada Halaman Hasil Mikrobiologi
+
+Sama dengan Halaman Hasil Patologi Klinik (amandemen 2026-09-25): keadaan dari `resultStatus`,
+*Validasi oleh* dan *Petugas Otorisasi* beserta jabatannya, penanda pengecualian **sebagai teks**
+(`LAB-FE-004`), tiga tindakan per izin, pertanyaan alasan pengecualian **sebelum** mengirim, alasan
+pengembalian wajib.
+
+**Yang khusus Mikrobiologi:**
+
+| Keadaan | Perilaku |
+|---|---|
+| Hasil Final berkualifikasi `Sementara` | Tombol Validasi **tidak** ditawarkan; keterangan terbaca *"Hasil sementara belum dapat divalidasi"*. Bila tetap terkirim, pesan `VAL-144` tampil pada pemeriksaan itu |
+| Hasil tervalidasi atau dirilis | Isian isolat, antibiogram, status temuan, dan kualifikasi **baca-saja** — sama dengan sesudah Final hari ini |
+| Pengesah | Dibaca dari `validatedByName` dan `authorizingOfficerName` — **tidak pernah** diisi layar dari pengguna yang sedang membuka halaman |
+
+### Antrean validasi dan daftar Pemeriksaan
+
+| Layar | Perubahan |
+|---|---|
+| `lab-worklists/validation-queue` | Penyaring **disiplin** — Patologi Klinik, Mikrobiologi, atau keduanya. Wujudnya `DEV_DISCRETION`. Kolom disiplin tampil bila keduanya dipilih. Baris Mikrobiologi membuka Halaman Hasil Mikrobiologi |
+| Daftar Pemeriksaan Mikrobiologi | Label *Dalam Pemeriksaan* / *Selesai* dari `resultProgress` |
+
+### Berkas yang terdampak
+
+Lokasi mengikuti `rules/frontend/frontend-architecture.md`; nama berkas baru `DEV_DISCRETION`.
+
+| Berkas | Status |
+|---|---|
+| `lab-monitoring/microbiology/lab-microbiology-completion-bar.jsx` | Diperbarui — tiga tindakan |
+| `lab-monitoring/microbiology/lab-microbiology-result-panel.jsx` | Diperbarui — pengesah dan penanda |
+| `src/lib/hooks/health-services/laboratory-management/use-lab-microbiology-result-editor.jsx` beserta berkas aturan murninya | Diperbarui — kapan tindakan tampil, termasuk penolakan `Sementara` |
+| Komposisi antrean validasi (`FE-LAB-40`) | Diperbarui — penyaring disiplin |
+| Daftar Pemeriksaan Mikrobiologi | Diperbarui — label order |
+
+### Wewenang keputusan tampilan
+
+| Hal | Wewenang |
+|---|---|
+| Penanda pengecualian sebagai teks | `LAB-FE-004` — `decided` |
+| Tindakan di halaman hasil, bukan di antrean | Diturunkan dari `LAB-DEC-149` |
+| Wujud penyaring disiplin, letak tombol pada batang kelengkapan | `DEV_DISCRETION` |
+
+### Yang TIDAK dibangun
+
+| Yang ditolak | Alasan |
+|---|---|
+| Cetakan Mikrobiologi berisi pengesah | Belum ada cetakan Mikrobiologi di frontend; milik `S17` |
+| Tombol mengubah kualifikasi saat memvalidasi | Kualifikasi milik analis; jalurnya Reopen |
+| Validasi per isolat | `INV-53` |
