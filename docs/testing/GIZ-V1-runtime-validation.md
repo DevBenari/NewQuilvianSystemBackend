@@ -6,7 +6,7 @@
 | Cakupan | Keputusan V1 `GIZ-DEC-011`, `GIZ-DEC-012`, `GIZ-DEC-014` |
 | Tanggal | 25 September 2026 |
 | Database uji | `localhost` / `QuilvianNewDevIkbalFr` |
-| Verdict | **LULUS pada lapisan basis data dan lapisan API.** Satu keterbatasan tersisa: penegakan `403` per-permission |
+| Verdict | **LULUS** pada lapisan basis data, API, hak akses, dan layar |
 
 ## Ringkasan
 
@@ -15,9 +15,10 @@ migration, skema, foreign key, constraint, dan histori revisi kebutuhan nutrisi.
 pengujian transaksional dijalankan di dalam satu transaksi lalu di-rollback, sehingga nol baris
 tertinggal.
 
-Alur lewat API kemudian ikut divalidasi memakai akun demo bawaan aplikasi: lima langkah alur,
-sembilan aturan validasi service, dan penolakan `401` bagi permintaan tanpa token. Satu
-keterbatasan tersisa, yaitu penegakan `403` bagi pengguna yang login tanpa hak terkait.
+Alur lewat API ikut divalidasi memakai akun demo bawaan aplikasi: lima langkah alur, sembilan
+aturan validasi service, dan penolakan `401` bagi permintaan tanpa token. Penegakan hak akses
+diuji terpisah dengan akun non-SuperAdmin dan menghasilkan `403`. Layarnya ditelusuri peramban
+sungguhan sampai satu revisi kebutuhan lahir dari layar.
 
 ## Yang diverifikasi
 
@@ -166,19 +167,79 @@ angka bawaan yang akan tampak seperti hasil hitungan.
 | 10 kombinasi metode+jalur dipanggil **tanpa token** | seluruhnya `401` |
 | Pendaftaran permission | `NutritionRequirement` muncul pada registry akses dengan aksi `Read` dan `Update`, `canAssign: true`; `NutritionMaster` juga terdaftar |
 
+## Penegakan hak akses
+
+Yang diuji adalah pertanyaan yang sebenarnya: apakah pengguna yang **sudah login tetapi tidak
+berhak** ditolak dengan `403` — bukan `401`, dan bukan diloloskan.
+
+### Akun uji non-SuperAdmin
+
+Dibuat lewat layar admin aplikasi sendiri: `POST /administrator/master-data/kiosk-devices`
+lalu `POST /{id}/generate-login`. Akun perangkat kios bertipe bukan SuperAdmin dan tidak
+memegang hak `NutritionRequirement` apa pun. Tidak ada kredensial yang disusun di luar
+aplikasi, dan tidak ada akun yang sudah ada yang diubah.
+
+### Temuan pendahuluan: otorisasi mati di mesin pengembangan
+
+`appsettings.Development.json` pada mesin ini menyetel `Security:Authorization:Enabled = false`.
+Dengan setelan itu `AccessPermissionService` melewati seluruh pemeriksaan hak akses, sehingga
+setiap pengguna yang berhasil login diloloskan. Pengujian pertama memang mengembalikan `200`
+untuk akun kios, dan itu bukan cacat modul Gizi melainkan saklar pengembangan.
+
+Pengujian diulang dengan `Security__Authorization__Enabled=true` sebagai variabel proses.
+Berkas konfigurasi tidak diubah, dan setelan aslinya tidak ikut tersentuh.
+
+### Hasil
+
+`POST /orders/{id}/requirements`, yang menuntut `NutritionRequirement : Update`:
+
+| Pemanggil | Hasil |
+|---|---|
+| Tanpa token | **`401`** |
+| Akun kios, sudah login, tanpa hak `NutritionRequirement` | **`403`** — "Anda tidak memiliki akses ke menu atau fitur ini." |
+| Akun SuperAdmin, berhak | **`200`** — "Kebutuhan nutrisi berhasil disimpan." |
+
+Ketiganya dijalankan pada instance yang sama, dalam hitungan detik, dengan badan permintaan
+yang sama. Satu-satunya yang berbeda adalah siapa pemanggilnya.
+
+Endpoint lain bagi akun kios juga `403`: `GET /orders/{id}/requirements`,
+`GET /masters/nutrition-parameters`, `GET /masters/nutrition-diagnoses`.
+
+## Penelusuran layar
+
+Dijalankan dengan peramban sungguhan (Chromium lewat Playwright) terhadap frontend hasil
+`next build` pada `http://localhost:3000`, memakai akun `opr.anestesi`. Skrip mengetik,
+memilih dari dropdown, dan menekan tombol seperti petugas — bukan memeriksa render.
+
+| Langkah | Hasil |
+|---|---|
+| Masuk aplikasi | LULUS |
+| 1. Master Diagnosis Gizi | LULUS — Domain Diagnosis (3), ketiga domain IDNT tampil |
+| 1b. Tambah diagnosis lewat layar | LULUS — kode baru muncul di daftar sesudah disimpan |
+| 2. Master Parameter Nutrisi | LULUS — 5/5 parameter tampil; keterangan "Belum ada rumus terdaftar" muncul |
+| 3. Panel Kebutuhan Nutrisi | LULUS — panel tampil pada detail order |
+| 3b. Nilai yang berlaku terbaca | LULUS — 5/5 parameter beserta satuannya |
+| 4. Input nilai kebutuhan | LULUS — tombol "Revisi Kebutuhan" membuka formulir berisi nilai berlaku sebagai titik awal |
+| 5. Revisi kebutuhan disimpan | LULUS — revisi 7 menjadi 8 lewat layar |
+| 6. Histori revisi | LULUS — 8 revisi tercatat, label "Berlaku" dan "Riwayat" tampil |
+
+Revisi yang lahir dari layar diperiksa ulang lewat API: `revisionNumber: 8`, `isCurrent: true`,
+`changeReason: "Revisi lewat layar saat penelusuran"`, energi `2200`, ditetapkan
+"Perawat Instrumen Demo". Jadi yang tampil di layar memang yang tersimpan.
+
+`GIZ017` juga terbukti bekerja di layar: percobaan menyimpan revisi tanpa mengisi alasan
+ditolak dengan pesan "Alasan perubahan wajib diisi mulai revisi kedua."
+
 ## Keterbatasan yang masih diakui
 
-**Penegakan per-permission (`403`) belum terbukti.** Yang terbukti adalah penolakan `401` bagi
-permintaan tanpa token, dan bahwa permission-nya terdaftar serta dapat diberikan lewat layar
-hak akses. Yang belum diuji adalah pengguna yang **sudah login tetapi tidak memiliki**
-`NutritionRequirement : Update` — ia seharusnya menerima `403`.
+Tidak ada lagi keterbatasan pada cakupan yang diminta. Dua hal berikut dicatat sebagai
+konteks, bukan celah:
 
-Sebabnya: kedua akun demo yang tersedia bertipe SuperAdmin, dan membuat akun berhak terbatas
-menuntut pembuatan akun baru yang berada di luar wewenang pengujian ini. Menutupnya memerlukan
-satu akun uji tanpa hak `NutritionRequirement`, lalu memanggil ulang kesembilan endpoint di atas.
-
-**Layar frontend belum ditelusuri seorang pengguna.** `next build` lolos dan kedua rute master
-terdaftar, tetapi klik demi klik pada layar belum dijalankan.
+* Penegakan `403` diuji dengan mengaktifkan `Security:Authorization:Enabled` lewat variabel
+  proses, karena mesin pengembangan ini mematikannya. Di lingkungan yang otorisasinya menyala
+  — termasuk produksi, tempat saklar itu diabaikan — perilakunya adalah yang tercatat di atas.
+* Penelusuran layar dijalankan peramban terotomasi, bukan tangan manusia. Ia menekan tombol
+  yang sama dan membaca layar yang sama, tetapi tidak menilai rasa pemakaian.
 
 ## Temuan yang diperbaiki saat validasi
 
@@ -191,6 +252,32 @@ diagnosis tanpa keterangan sampai halaman dimuat ulang.
 Diperbaiki dengan membaca ulang catatan kunjungan beserta `Include`-nya sesudah disimpan, lalu
 diverifikasi: kunjungan berikutnya mengembalikan `NI-1.4 Asupan energi tidak adekuat` dan
 `NC-1.1 Kesulitan menelan` lengkap dengan domainnya.
+
+
+### Footer menutupi tombol "Simpan Kebutuhan"
+
+Penelusuran layar tidak dapat menekan tombol simpan. Diperiksa dengan
+`document.elementFromPoint` pada titik tengah tombol, dan yang berada di sana adalah
+`FOOTER.iq-footer app-footer position=fixed z-index=1` — bukan tombolnya.
+
+Halaman modul Gizi tidak menyisakan ruang bagi bilah footer yang berposisi tetap, sehingga
+pada sebagian posisi gulir baris aksi berada tepat di baliknya dan klik petugas mendarat di
+footer. Ini kelas bug yang sama dengan yang pernah ditemukan pada layar permintaan stok.
+
+Diperbaiki dengan menambahkan ruang bawah pada `.page`:
+`padding: 1rem 1rem calc(1rem + var(--app-footer-safe-space, 120px))`. Sesudahnya,
+pemeriksaan titik yang sama mengembalikan tombolnya sendiri.
+
+### Panel kebutuhan mengirim id pegawai, bukan id profil tenaga
+
+Penyimpanan dari layar ditolak dengan "Ahli gizi yang dipilih tidak ditemukan." Sebabnya
+pemilih "Ahli Gizi yang Menetapkan" memuat daftar **pegawai**, sedangkan
+`determinedByWorkforceId` menuntut **profil tenaga kerja**. Panel mengirim nilai opsi apa
+adanya, sehingga backend menolaknya dengan benar.
+
+Formulir kunjungan yang sudah ada tidak mengalami ini karena membaca
+`option.raw.workforceProfileId`. Panel kebutuhan kini melakukan hal yang sama, dengan id
+pegawai disimpan terpisah untuk tampilan. Sesudah perbaikan, revisi dari layar tersimpan.
 
 ## Yang tidak dikerjakan dan alasannya
 
