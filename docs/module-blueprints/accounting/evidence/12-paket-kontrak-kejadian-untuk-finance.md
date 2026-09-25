@@ -69,6 +69,14 @@ fakturnya.
 
 ### Contoh — pendapatan rawat jalan dengan jasa medis dokter
 
+> **Koreksi 24 September 2026 — contoh ini tidak berlaku lagi.** Finance memisahkan jasa medis dari
+> pengakuan piutang (`FIN-DEC-003`), sehingga `PENGAKUAN-PIUTANG` **tidak pernah** membawa komponen
+> `JASA_MEDIS`; jasa medis datang lewat `PENGAKUAN-HUTANG-DOKTER`. Contoh yang berlaku ada di
+> [`cross-module-contract.md`](../contracts/cross-module-contract.md) bagian 3 (`ACC-XMOD-0.3`,
+> `ACC-DEC-086`). Teks di bawah dibiarkan apa adanya karena inilah yang dikirim ke Finance
+> 15 September 2026. Jawaban Finance dan balasan Accounting ada di
+> [`13-balasan-accounting-untuk-finance.md`](13-balasan-accounting-untuk-finance.md).
+
 ```json
 {
   "EventNumber": "EVT-100",

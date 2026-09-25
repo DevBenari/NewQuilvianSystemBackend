@@ -1,14 +1,18 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.Globalization;
+using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Repositories;
+using QuilvianSystemBackend.Responses;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManagement.Services
 {
@@ -20,14 +24,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
     {
         private readonly ApplicationDbContext _dbContext;
         private readonly EmergencyDocumentNumberService _documentNumberService;
+        private readonly ClinicalDocumentIntegrityService _integrityService;
 
         public EmergencyVisitService(
             ApplicationDbContext dbContext,
-            EmergencyDocumentNumberService documentNumberService)
+            EmergencyDocumentNumberService documentNumberService,
+            ClinicalDocumentIntegrityService integrityService)
         {
             _dbContext = dbContext;
             _documentNumberService = documentNumberService;
+            _integrityService = integrityService;
         }
+
+        /// <summary>
+        /// Alasan pembatalan encounter bila petugas tidak menulis catatan saat membatalkan
+        /// kunjungan IGD (API <c>0.11.0</c> §8.3.7).
+        /// </summary>
+        public const string AlasanBakuPembatalanEncounter = "Kunjungan IGD dibatalkan";
+
+        // Batas kolom RegPatientEncounter.CancelReason (HasMaxLength(250)). Catatan permintaan
+        // pembatalan kunjungan boleh sampai 2000 karakter; tanpa pemotongan, catatan panjang
+        // menggagalkan seluruh pembatalan.
+        private const int PanjangMaksimalAlasanPembatalanEncounter = 250;
 
         /// <summary>
         /// Pesan penolakan ketika pengaturan IGD tidak tersedia dan tidak dapat disimpulkan.
@@ -38,6 +56,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             "Pengaturan IGD aktif belum tersedia dan unit IGD tidak dapat disimpulkan sendiri. " +
             "Pastikan ada tepat satu unit pelayanan aktif bertipe gawat darurat pada master " +
             "Unit Pelayanan, atau isi master Pengaturan IGD lebih dulu.";
+
+        public sealed record Hasil<T>(T? Data, int StatusCode, string? Penolakan)
+        {
+            public bool Berhasil => Penolakan == null;
+            public static Hasil<T> Ok(T data) => new(data, StatusCodes.Status200OK, null);
+            public static Hasil<T> Dibuat(T data) => new(data, StatusCodes.Status201Created, null);
+            public static Hasil<T> Gagal(int statusCode, string penolakan) => new(default, statusCode, penolakan);
+        }
+
+        private sealed record MasukanMulaiKunjungan(
+            Guid EncounterId,
+            EmergencyVisitStartMode Mode,
+            DateTime? WaktuTiba,
+            Guid? ArrivalModeId,
+            Guid? CaseTypeId,
+            string? ChiefComplaint,
+            bool IsUnknownPatient,
+            string? TemporaryPatientAlias);
+
+        private static readonly TimeZoneInfo ZonaWaktuPesan = TentukanZonaWaktuPesan();
 
         public Task<EmgSetting?> GetActiveSettingAsync(
             CancellationToken cancellationToken = default)
@@ -328,17 +366,33 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         /// milik orang yang sama, dan menahan pendaftarannya berarti menahan pasien yang
         /// justru paling gawat di depan pintu IGD.
         /// </para>
+        ///
+        /// <para>
+        /// <b>Pra-cek sebelum encounter dibuat</b> — <c>BE-IGD-050</c>, <c>IGD-DEC-138</c>.
+        /// <c>GET emergency-visits/active-episode</c> memanggil method ini juga, sehingga
+        /// aturan "episode berjalan" hanya ada di satu tempat dan pra-cek tidak dapat
+        /// menyimpang dari penolakan <c>409</c> pada <c>POST /</c>. Parameter
+        /// <paramref name="sertakanPasien"/> memuat navigasi <see cref="EmgVisit.Patient"/>
+        /// dalam kueri yang sama (satu <c>JOIN</c>, bukan kueri kedua) supaya nama pasien
+        /// tersedia tanpa <c>N+1</c>. Bawaannya <c>false</c>, jadi pemanggil lama — <c>POST /</c>
+        /// — menjalankan kueri yang persis sama seperti sebelumnya.
+        /// </para>
         /// </remarks>
         public async Task<EmgVisit?> CariEpisodeAktifAsync(
             Guid? patientId,
             Guid? kecualiVisitId = null,
-            CancellationToken cancellationToken = default)
+            CancellationToken cancellationToken = default,
+            bool sertakanPasien = false)
         {
             if (!patientId.HasValue || patientId.Value == Guid.Empty)
                 return null;
 
-            return await _dbContext.Set<EmgVisit>()
-                .AsNoTracking()
+            IQueryable<EmgVisit> kueri = _dbContext.Set<EmgVisit>().AsNoTracking();
+
+            if (sertakanPasien)
+                kueri = kueri.Include(x => x.Patient);
+
+            return await kueri
                 .Where(x => x.PatientId == patientId.Value
                     && !x.IsDelete
                     && x.VisitStatus != EmergencyVisitStatus.Completed
@@ -468,6 +522,375 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             return true;
         }
 
+        /// <summary>
+        /// Menutup encounter milik kunjungan IGD yang baru saja berakhir. Mengembalikan
+        /// <c>true</c> bila encounter ditutup oleh pemanggilan ini.
+        /// </summary>
+        /// <remarks>
+        /// <c>BE-IGD-051</c>, keputusan <c>IGD-DEC-139</c> butir 5 dan <c>IGD-DEC-148</c>
+        /// (TK-1 tidak, TK-2 ya); kontrak API <c>0.11.0</c> §8.3.7, validation <c>0.8.0</c>
+        /// §10.5, integration <c>0.4.0</c> §5.2.
+        ///
+        /// <para>
+        /// Sebelum task ini, IGD tidak pernah menyentuh <c>EncounterStatus</c>. Setiap kunjungan
+        /// yang selesai meninggalkan encounter "masih terbuka" selamanya, dan catatan klinis yang
+        /// lupa ditandatangani tetap dapat diubah.
+        /// </para>
+        ///
+        /// <para>
+        /// Metode ini <b>tidak</b> memanggil <c>SaveChangesAsync</c> dan tidak membuka transaksi.
+        /// Perubahan encounter dan penguncian catatan ikut penyimpanan aksi kunjungan, sehingga
+        /// bila salah satunya gagal, kunjungan dan encounter sama-sama tidak berubah.
+        /// </para>
+        ///
+        /// <para>
+        /// Kolom encounter yang ditulis hanya yang ada pada daftar tertutup integration §5.2.
+        /// <c>CancelDateTime</c>/<c>CancelBy</c> dan pembatalan antrean yang dilakukan jalur
+        /// Registrasi <b>tidak</b> ikut ditulis.
+        /// </para>
+        ///
+        /// <para>
+        /// Encounter tidak ditulis bila: kunjungan tanpa encounter; encounter tidak ditemukan
+        /// atau terhapus; tipenya bukan <c>Emergency</c> maupun <c>Outpatient</c> masa transisi
+        /// (lihat <see cref="PeriksaJenisEncounter"/>); atau encounter sudah berakhir menurut
+        /// <see cref="EmergencyEpisodeRule.IsEncounterEnded"/> — waktu, pelaku, dan alasan lama
+        /// tidak ditimpa. Hapus lunak kunjungan <b>tidak</b> memanggil metode ini (TK-1).
+        /// </para>
+        /// </remarks>
+        /// <param name="visit">Kunjungan yang statusnya baru saja menjadi terminal.</param>
+        /// <param name="terminalStatus"><c>Completed</c> atau <c>Cancelled</c>.</param>
+        /// <param name="catatanPembatalan">
+        /// Catatan permintaan pembatalan kunjungan. Dipakai sebagai <c>CancelReason</c> encounter,
+        /// dipotong ke batas kolomnya; bila kosong dipakai
+        /// <see cref="AlasanBakuPembatalanEncounter"/>. Diabaikan untuk <c>Completed</c>.
+        /// </param>
+        public async Task<bool> ApplyEncounterClosureAsync(
+            EmgVisit visit,
+            EmergencyVisitStatus terminalStatus,
+            Guid actorUserId,
+            DateTime now,
+            string? catatanPembatalan = null,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(visit);
+
+            if (terminalStatus is not (EmergencyVisitStatus.Completed or EmergencyVisitStatus.Cancelled))
+                throw new ArgumentOutOfRangeException(
+                    nameof(terminalStatus),
+                    terminalStatus,
+                    "Encounter hanya ditutup ketika kunjungan IGD selesai atau dibatalkan.");
+
+            if (!visit.EncounterId.HasValue || visit.EncounterId.Value == Guid.Empty)
+                return false;
+
+            var encounter = await _dbContext.Set<RegPatientEncounter>()
+                .FirstOrDefaultAsync(
+                    x => x.Id == visit.EncounterId.Value && !x.IsDelete,
+                    cancellationToken);
+
+            if (encounter == null)
+                return false;
+
+            if (PeriksaJenisEncounter(encounter.EncounterType) != null)
+                return false;
+
+            if (EmergencyEpisodeRule.IsEncounterEnded(encounter))
+                return false;
+
+            if (terminalStatus == EmergencyVisitStatus.Completed)
+            {
+                encounter.EncounterStatus = EncounterStatus.Completed;
+                encounter.CompletedAt ??= now;
+                encounter.UpdateDateTime = now;
+                encounter.UpdateBy = actorUserId;
+
+                // RM-DEC-003 lapis kedua, sama dengan PATCH /patient-encounters/{id}/status ke
+                // Completed. Penguncian tidak menyimpan sendiri; ia ikut SaveChanges pemanggil.
+                await _integrityService.LockOpenDocumentsForEncounterAsync(
+                    encounter.Id,
+                    actorUserId,
+                    now,
+                    encounter.CompletedAt,
+                    cancellationToken: cancellationToken);
+
+                return true;
+            }
+
+            var alasan = string.IsNullOrWhiteSpace(catatanPembatalan)
+                ? AlasanBakuPembatalanEncounter
+                : catatanPembatalan.Trim();
+
+            if (alasan.Length > PanjangMaksimalAlasanPembatalanEncounter)
+                alasan = alasan[..PanjangMaksimalAlasanPembatalanEncounter];
+
+            encounter.EncounterStatus = EncounterStatus.Cancelled;
+            encounter.IsCancel = true;
+            encounter.IsActive = false;
+            encounter.CancelledAt = now;
+            encounter.CancelledByUserId = actorUserId;
+            encounter.CancelReason = alasan;
+            encounter.UpdateDateTime = now;
+            encounter.UpdateBy = actorUserId;
+
+            return true;
+        }
+
+        public async Task<Hasil<EmgVisit>> StartVisitAsync(
+            StartEmergencyVisitRequest request,
+            Guid actorUserId,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(request);
+
+            if (!request.EncounterId.HasValue || request.EncounterId.Value == Guid.Empty)
+                return Hasil<EmgVisit>.Gagal(StatusCodes.Status400BadRequest, "encounterId wajib diisi.");
+
+            var mode = ParseStartMode(request.Mode);
+            if (mode == null)
+                return Hasil<EmgVisit>.Gagal(StatusCodes.Status400BadRequest, "Pilih Mulai Triage atau Tangani Segera.");
+
+            var now = DateTime.UtcNow;
+            DateTime? waktuTiba = null;
+
+            if (mode == EmergencyVisitStartMode.Triage)
+            {
+                if (!request.ArrivalDateTime.HasValue || request.ArrivalDateTime.Value == default)
+                    return Hasil<EmgVisit>.Gagal(StatusCodes.Status400BadRequest, "Waktu tiba wajib diisi untuk memulai triage.");
+
+                waktuTiba = NormalizeUtc(request.ArrivalDateTime.Value);
+
+                if (waktuTiba.Value > now)
+                    return Hasil<EmgVisit>.Gagal(StatusCodes.Status400BadRequest, "Waktu tiba tidak boleh melewati waktu sekarang.");
+            }
+
+            var alias = NormalizeText(request.TemporaryPatientAlias);
+            if (request.IsUnknownPatient && alias == null)
+                return Hasil<EmgVisit>.Gagal(
+                    StatusCodes.Status400BadRequest,
+                    "Nama sementara wajib diisi untuk pasien yang belum diketahui identitasnya.");
+
+            var arrivalModeId = ToNullableReference(request.ArrivalModeId);
+            if (arrivalModeId.HasValue &&
+                !await _dbContext.Set<EmgArrivalMode>()
+                    .AsNoTracking()
+                    .AnyAsync(x => x.Id == arrivalModeId.Value && !x.IsDelete, cancellationToken))
+                return Hasil<EmgVisit>.Gagal(StatusCodes.Status400BadRequest, "ArrivalModeId tidak ditemukan.");
+
+            var caseTypeId = ToNullableReference(request.CaseTypeId);
+            if (caseTypeId.HasValue &&
+                !await _dbContext.Set<EmgCaseType>()
+                    .AsNoTracking()
+                    .AnyAsync(x => x.Id == caseTypeId.Value && !x.IsDelete, cancellationToken))
+                return Hasil<EmgVisit>.Gagal(StatusCodes.Status400BadRequest, "CaseTypeId tidak ditemukan.");
+
+            var masukan = new MasukanMulaiKunjungan(
+                request.EncounterId.Value,
+                mode.Value,
+                waktuTiba,
+                arrivalModeId,
+                caseTypeId,
+                NormalizeText(request.ChiefComplaint),
+                request.IsUnknownPatient,
+                alias);
+
+            try
+            {
+                return await MulaiKunjunganDalamKunciAsync(masukan, actorUserId, cancellationToken);
+            }
+            catch (DbUpdateException exception) when (IsUniqueViolation(exception))
+            {
+                return await MulaiKunjunganDalamKunciAsync(masukan, actorUserId, cancellationToken);
+            }
+        }
+
+        public static string PesanKunjunganLainBerjalan(EmgVisit kunjungan)
+        {
+            ArgumentNullException.ThrowIfNull(kunjungan);
+
+            return $"Pasien ini masih memiliki kunjungan IGD aktif bernomor {kunjungan.EmergencyVisitNumber}, " +
+                   $"tiba pukul {FormatWaktuLokal(kunjungan.ArrivalDateTime)}. " +
+                   "Buka kunjungan tersebut, jangan mendaftar ulang.";
+        }
+
+        private async Task<Hasil<EmgVisit>> MulaiKunjunganDalamKunciAsync(
+            MasukanMulaiKunjungan masukan,
+            Guid actorUserId,
+            CancellationToken cancellationToken)
+        {
+            await using var transaksi = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+
+            var encounter = await CariEncounterAsync(masukan.EncounterId, cancellationToken);
+            if (encounter == null)
+                return Hasil<EmgVisit>.Gagal(StatusCodes.Status404NotFound, "Encounter tidak ditemukan.");
+
+            if (encounter.EncounterType != EncounterType.Emergency)
+                return Hasil<EmgVisit>.Gagal(StatusCodes.Status400BadRequest, "Encounter ini bukan kunjungan gawat darurat.");
+
+            await EmergencyEpisodeRule.LockPatientEpisodeAsync(_dbContext, encounter.PatientId, cancellationToken);
+
+            var now = DateTime.UtcNow;
+
+            encounter = await CariEncounterAsync(masukan.EncounterId, cancellationToken);
+            if (encounter == null)
+                return Hasil<EmgVisit>.Gagal(StatusCodes.Status404NotFound, "Encounter tidak ditemukan.");
+
+            if (EmergencyEpisodeRule.IsEncounterEnded(encounter))
+                return Hasil<EmgVisit>.Gagal(
+                    StatusCodes.Status409Conflict,
+                    $"Encounter ini sudah berakhir ({StatusAkhirEncounter(encounter)}). Daftarkan ulang pasien bila ia kembali.");
+
+            var kunjungan = await _dbContext.Set<EmgVisit>()
+                .FirstOrDefaultAsync(x => x.EncounterId == encounter.Id, cancellationToken);
+
+            if (kunjungan != null)
+            {
+                if (kunjungan.IsDelete)
+                    return Hasil<EmgVisit>.Gagal(
+                        StatusCodes.Status409Conflict,
+                        "Kunjungan IGD untuk encounter ini pernah dihapus, sehingga encounter ini tidak dapat dimulai lagi. Daftarkan ulang pasien.");
+
+                if (masukan.Mode == EmergencyVisitStartMode.ImmediateCare &&
+                    kunjungan.VisitStatus is (EmergencyVisitStatus.Arrived or EmergencyVisitStatus.WaitingForTriage) &&
+                    TryApplyVisitStatus(kunjungan, EmergencyVisitStatus.InTreatment, actorUserId, now, out _))
+                {
+                    kunjungan.TreatmentStartedAt ??= now;
+                    await _dbContext.SaveChangesAsync(cancellationToken);
+                    await transaksi.CommitAsync(cancellationToken);
+                }
+
+                return Hasil<EmgVisit>.Ok(await MuatKunjunganAsync(kunjungan.Id, cancellationToken) ?? kunjungan);
+            }
+
+            var episodeLain = await EmergencyEpisodeRule.FindOpenEpisodeAsync(
+                _dbContext,
+                encounter.PatientId,
+                encounter.Id,
+                cancellationToken);
+
+            if (episodeLain is { Kind: EmergencyEpisodeRule.OpenEpisodeKind.Visit, Visit: { } kunjunganLain })
+                return Hasil<EmgVisit>.Gagal(StatusCodes.Status409Conflict, PesanKunjunganLainBerjalan(kunjunganLain));
+
+            var triage = masukan.Mode == EmergencyVisitStartMode.Triage;
+            var pelaku = actorUserId == Guid.Empty ? (Guid?)null : actorUserId;
+
+            var kunjunganBaru = new EmgVisit
+            {
+                Id = Guid.NewGuid(),
+                EmergencyVisitNumber = await GenerateVisitNumberAsync(now, cancellationToken),
+                EncounterId = encounter.Id,
+                PatientId = encounter.PatientId,
+                ServiceUnitId = encounter.ServiceUnitId,
+                ArrivalModeId = masukan.ArrivalModeId,
+                CaseTypeId = masukan.CaseTypeId,
+                ArrivalDateTime = triage ? masukan.WaktuTiba!.Value : NormalizeUtc(encounter.RegisteredAt),
+                ArrivalTimeSource = triage ? EmergencyArrivalTimeSource.Confirmed : EmergencyArrivalTimeSource.Fallback,
+                ArrivalConfirmedByUserId = triage ? pelaku : null,
+                ArrivalConfirmedAt = triage ? now : null,
+                ChiefComplaint = masukan.ChiefComplaint ?? NormalizeText(encounter.ChiefComplaint),
+                IsUnknownPatient = masukan.IsUnknownPatient,
+                TemporaryPatientAlias = masukan.TemporaryPatientAlias,
+                IsImmediateCareAllowed = true,
+                RegistrationStatus = EmergencyRegistrationStatus.Registered,
+                RegistrationCompletedAt = NormalizeUtc(encounter.RegisteredAt),
+                VisitStatus = triage ? EmergencyVisitStatus.WaitingForTriage : EmergencyVisitStatus.InTreatment,
+                TreatmentStartedAt = triage ? null : now,
+                IsActive = true,
+                CreateDateTime = now,
+                CreateBy = actorUserId,
+                IsDelete = false,
+                IsCancel = false
+            };
+
+            _dbContext.Set<EmgVisit>().Add(kunjunganBaru);
+
+            try
+            {
+                await _dbContext.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException)
+            {
+                _dbContext.Entry(kunjunganBaru).State = EntityState.Detached;
+                throw;
+            }
+
+            await transaksi.CommitAsync(cancellationToken);
+
+            return Hasil<EmgVisit>.Dibuat(await MuatKunjunganAsync(kunjunganBaru.Id, cancellationToken) ?? kunjunganBaru);
+        }
+
+        private Task<RegPatientEncounter?> CariEncounterAsync(Guid encounterId, CancellationToken cancellationToken)
+            => _dbContext.Set<RegPatientEncounter>()
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Id == encounterId && !x.IsDelete, cancellationToken);
+
+        private Task<EmgVisit?> MuatKunjunganAsync(Guid id, CancellationToken cancellationToken)
+            => _dbContext.Set<EmgVisit>()
+                .AsNoTracking()
+                .Include(x => x.Patient)
+                .Include(x => x.ServiceUnit)
+                .Include(x => x.ArrivalMode)
+                .Include(x => x.CaseType)
+                .Include(x => x.ArrivalConfirmedByUser)
+                .FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+
+        private static string StatusAkhirEncounter(RegPatientEncounter encounter)
+        {
+            if (encounter.EncounterStatus is EncounterStatus.Completed or EncounterStatus.Cancelled or EncounterStatus.NoShow)
+                return encounter.EncounterStatus.ToString();
+
+            if (encounter.IsCancel || encounter.CancelledAt != null)
+                return nameof(EncounterStatus.Cancelled);
+
+            if (encounter.NoShowAt != null)
+                return nameof(EncounterStatus.NoShow);
+
+            return nameof(EncounterStatus.Completed);
+        }
+
+        private static EmergencyVisitStartMode? ParseStartMode(string? mode)
+        {
+            var nilai = mode?.Trim();
+
+            if (string.Equals(nilai, nameof(EmergencyVisitStartMode.Triage), StringComparison.OrdinalIgnoreCase))
+                return EmergencyVisitStartMode.Triage;
+
+            if (string.Equals(nilai, nameof(EmergencyVisitStartMode.ImmediateCare), StringComparison.OrdinalIgnoreCase))
+                return EmergencyVisitStartMode.ImmediateCare;
+
+            return null;
+        }
+
+        private static bool IsUniqueViolation(DbUpdateException exception)
+            => exception.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation };
+
+        private static string FormatWaktuLokal(DateTime waktu)
+            => TimeZoneInfo.ConvertTimeFromUtc(NormalizeUtc(waktu), ZonaWaktuPesan)
+                .ToString("HH.mm 'WIB tanggal' dd-MM-yyyy", CultureInfo.InvariantCulture);
+
+        private static TimeZoneInfo TentukanZonaWaktuPesan()
+        {
+            if (TimeZoneInfo.TryFindSystemTimeZoneById("Asia/Jakarta", out var zona))
+                return zona;
+
+            if (TimeZoneInfo.TryFindSystemTimeZoneById("SE Asia Standard Time", out zona))
+                return zona;
+
+            return TimeZoneInfo.CreateCustomTimeZone("WIB", TimeSpan.FromHours(7), "WIB", "WIB");
+        }
+
+        private static DateTime NormalizeUtc(DateTime value) => value.Kind switch
+        {
+            DateTimeKind.Utc => value,
+            DateTimeKind.Local => value.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(value, DateTimeKind.Utc)
+        };
+
+        private static string? NormalizeText(string? value)
+            => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+        private static Guid? ToNullableReference(Guid? value)
+            => value.HasValue && value.Value != Guid.Empty ? value.Value : null;
+
         public async Task<string> GenerateVisitNumberAsync(
             DateTime now,
             CancellationToken cancellationToken = default)
@@ -492,6 +915,276 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             }
 
             throw new InvalidOperationException("Nomor kunjungan IGD unik gagal dibentuk.");
+        }
+
+        private const int JenisBarisEncounter = 1;
+        private const int JenisBarisKunjungan = 2;
+        private const int BatasBarisAntreanTriage = 100;
+        private const string NamaPasienBelumTeridentifikasi = "Pasien belum teridentifikasi";
+        private const string AksiMulaiTriage = "StartTriage";
+        private const string AksiTanganiSegera = "ImmediateCare";
+        private const string AksiPergiSebelumTriage = "NoShow";
+        private const string AksiIsiTriage = "FillTriage";
+
+        /// <summary>
+        /// Daftar <i>Menunggu Triage</i> terpadu — <c>BE-IGD-054</c>, <c>FR-IGD-070</c>,
+        /// API <c>0.11.0</c> §8.3.1, keputusan <c>IGD-DEC-139</c> butir 2 dan <c>IGD-DEC-144</c>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Dua asal baris digabung di basis data, bukan di layar: encounter IGD yang belum
+        /// berakhir dan belum punya kunjungan, serta kunjungan yang episodenya masih terbuka.
+        /// "Belum berakhir" memakai <see cref="EmergencyEpisodeRule.EncounterNotEnded"/> —
+        /// rumus yang sama dengan penjaga episode dan rekonsiliasi, tidak disalin ulang di sini.
+        /// </para>
+        /// <para>
+        /// Kunjungan yang tampil dibatasi klausa B validation §10.1 aturan 2: <c>VisitStatus</c>
+        /// bukan <c>Completed</c> dan bukan <c>Cancelled</c>. Episode yang sudah tuntas bukan
+        /// pekerjaan triage, dan encounter-nya pun sudah ditutup <c>BE-IGD-051</c>.
+        /// </para>
+        /// <para>
+        /// Satu episode satu baris dijaga oleh penyaring "encounter tanpa kunjungan": encounter
+        /// yang kunjungannya sudah lahir hanya muncul sebagai baris kunjungan. Encounter yang
+        /// satu-satunya kunjungannya dihapus lunak (kelas K4 <c>BE-IGD-052</c>) tetap muncul
+        /// sebagai baris tanpa kunjungan, dan <c>POST /start-triage</c> menjawabnya <c>409</c>.
+        /// </para>
+        /// <para>
+        /// Jumlah kueri tetap dua — satu <c>COUNT</c> dan satu halaman — berapa pun jumlah
+        /// barisnya. Urutan halaman ditutup <see cref="BarisAntreanTriage.KunciUrutan"/> supaya
+        /// baris berwaktu sama tidak berpindah halaman di antara dua permintaan.
+        /// </para>
+        /// </remarks>
+        public async Task<Hasil<PagedResult<EmergencyTriageQueueRowResponse>>> GetTriageQueueAsync(
+            EmergencyTriageQueueQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            ArgumentNullException.ThrowIfNull(query);
+
+            if (query.Page < 1)
+            {
+                return Hasil<PagedResult<EmergencyTriageQueueRowResponse>>.Gagal(
+                    StatusCodes.Status400BadRequest,
+                    "Nomor halaman minimal 1.");
+            }
+
+            if (query.PageSize < 1 || query.PageSize > BatasBarisAntreanTriage)
+            {
+                return Hasil<PagedResult<EmergencyTriageQueueRowResponse>>.Gagal(
+                    StatusCodes.Status400BadRequest,
+                    $"Jumlah baris per halaman harus di antara 1 sampai {BatasBarisAntreanTriage}.");
+            }
+
+            EmergencyVisitStatus? statusKunjungan = null;
+            var sertakanBarisEncounter = true;
+            var statusDiminta = NormalizeText(query.QueueStatus);
+
+            if (statusDiminta != null)
+            {
+                if (!Enum.TryParse(statusDiminta, ignoreCase: true, out EmergencyVisitStatus statusTerbaca)
+                    || !Enum.IsDefined(statusTerbaca))
+                {
+                    return Hasil<PagedResult<EmergencyTriageQueueRowResponse>>.Gagal(
+                        StatusCodes.Status400BadRequest,
+                        $"Status antrean \"{statusDiminta}\" tidak dikenal. Pakai salah satu dari: " +
+                        $"{string.Join(", ", Enum.GetNames<EmergencyVisitStatus>())}.");
+                }
+
+                statusKunjungan = statusTerbaca;
+                sertakanBarisEncounter = statusTerbaca == EmergencyVisitStatus.WaitingForTriage;
+            }
+
+            var kataPencarian = NormalizeText(query.Search)?.ToLower() ?? string.Empty;
+            var adaPencarian = kataPencarian.Length > 0;
+
+            IQueryable<EmgVisit> kunjungan = _dbContext.Set<EmgVisit>()
+                .AsNoTracking()
+                .Where(x => !x.IsDelete
+                            && x.VisitStatus != EmergencyVisitStatus.Completed
+                            && x.VisitStatus != EmergencyVisitStatus.Cancelled);
+
+            if (statusKunjungan.HasValue)
+                kunjungan = kunjungan.Where(x => x.VisitStatus == statusKunjungan.Value);
+
+            if (adaPencarian)
+            {
+                kunjungan = kunjungan.Where(x =>
+                    (x.Patient != null && x.Patient.FullName.ToLower().Contains(kataPencarian))
+                    || (x.Patient != null && x.Patient.MedicalRecordNumber.ToLower().Contains(kataPencarian))
+                    || x.EmergencyVisitNumber.ToLower().Contains(kataPencarian)
+                    || (x.Encounter != null && x.Encounter.EncounterNumber.ToLower().Contains(kataPencarian))
+                    || (x.TemporaryPatientAlias != null && x.TemporaryPatientAlias.ToLower().Contains(kataPencarian)));
+            }
+
+            IQueryable<BarisAntreanTriage> barisKunjungan = kunjungan.Select(x => new BarisAntreanTriage
+            {
+                Jenis = JenisBarisKunjungan,
+                EncounterId = x.EncounterId,
+                EmergencyVisitId = x.Id,
+                PatientId = x.PatientId,
+                NamaPasien = x.Patient != null ? x.Patient.FullName : null,
+                NomorRekamMedis = x.Patient != null ? x.Patient.MedicalRecordNumber : null,
+                IsUnknownPatient = x.IsUnknownPatient,
+                TemporaryPatientAlias = x.TemporaryPatientAlias,
+                EncounterNumber = x.Encounter != null ? x.Encounter.EncounterNumber : null,
+                EmergencyVisitNumber = x.EmergencyVisitNumber,
+                VisitStatus = x.VisitStatus,
+                RegisteredAt = x.Encounter != null ? x.Encounter.RegisteredAt : x.ArrivalDateTime,
+                ArrivalDateTime = x.ArrivalDateTime,
+                Urutan = x.ArrivalDateTime,
+                KunciUrutan = x.Id
+            });
+
+            IQueryable<BarisAntreanTriage> gabungan = barisKunjungan;
+
+            if (sertakanBarisEncounter)
+            {
+                IQueryable<RegPatientEncounter> encounter = _dbContext.Set<RegPatientEncounter>()
+                    .AsNoTracking()
+                    .Where(x => !x.IsDelete && x.EncounterType == EncounterType.Emergency)
+                    .Where(EmergencyEpisodeRule.EncounterNotEnded)
+                    .Where(x => !_dbContext.Set<EmgVisit>().Any(v => v.EncounterId == x.Id && !v.IsDelete));
+
+                if (adaPencarian)
+                {
+                    encounter = encounter.Where(x =>
+                        (x.Patient != null && x.Patient.FullName.ToLower().Contains(kataPencarian))
+                        || (x.Patient != null && x.Patient.MedicalRecordNumber.ToLower().Contains(kataPencarian))
+                        || x.EncounterNumber.ToLower().Contains(kataPencarian));
+                }
+
+                IQueryable<BarisAntreanTriage> barisEncounter = encounter.Select(x => new BarisAntreanTriage
+                {
+                    Jenis = JenisBarisEncounter,
+                    EncounterId = x.Id,
+                    EmergencyVisitId = (Guid?)null,
+                    PatientId = x.PatientId,
+                    NamaPasien = x.Patient != null ? x.Patient.FullName : null,
+                    NomorRekamMedis = x.Patient != null ? x.Patient.MedicalRecordNumber : null,
+                    IsUnknownPatient = false,
+                    TemporaryPatientAlias = (string?)null,
+                    EncounterNumber = x.EncounterNumber,
+                    EmergencyVisitNumber = (string?)null,
+                    VisitStatus = (EmergencyVisitStatus?)null,
+                    RegisteredAt = x.RegisteredAt,
+                    ArrivalDateTime = (DateTime?)null,
+                    Urutan = x.RegisteredAt,
+                    KunciUrutan = x.Id
+                });
+
+                gabungan = barisEncounter.Concat(barisKunjungan);
+            }
+
+            var totalData = await gabungan.CountAsync(cancellationToken);
+
+            var baris = await gabungan
+                .OrderByDescending(x => x.Urutan)
+                .ThenByDescending(x => x.KunciUrutan)
+                .Skip((query.Page - 1) * query.PageSize)
+                .Take(query.PageSize)
+                .ToListAsync(cancellationToken);
+
+            var halaman = new PagedResult<EmergencyTriageQueueRowResponse>
+            {
+                PageNumber = query.Page,
+                PageSize = query.PageSize,
+                TotalData = totalData,
+                TotalPage = (int)Math.Ceiling(totalData / (double)query.PageSize),
+                Items = baris.Select(ToTriageQueueRow).ToList()
+            };
+
+            return Hasil<PagedResult<EmergencyTriageQueueRowResponse>>.Ok(halaman);
+        }
+
+        private static EmergencyTriageQueueRowResponse ToTriageQueueRow(BarisAntreanTriage baris)
+        {
+            var dariKunjungan = baris.Jenis == JenisBarisKunjungan;
+
+            return new EmergencyTriageQueueRowResponse
+            {
+                RowKey = dariKunjungan
+                    ? $"visit:{baris.EmergencyVisitId}"
+                    : $"enc:{baris.EncounterId}",
+                EncounterId = baris.EncounterId,
+                EmergencyVisitId = baris.EmergencyVisitId,
+                PatientId = baris.PatientId,
+                PatientName = ResolveNamaPasienAntrean(baris),
+                MedicalRecordNumber = baris.NomorRekamMedis,
+                IsUnknownPatient = baris.IsUnknownPatient,
+                TemporaryPatientAlias = baris.TemporaryPatientAlias,
+                EncounterNumber = baris.EncounterNumber,
+                EmergencyVisitNumber = baris.EmergencyVisitNumber,
+                QueueStatus = dariKunjungan && baris.VisitStatus.HasValue
+                    ? baris.VisitStatus.Value.ToString()
+                    : nameof(EmergencyVisitStatus.WaitingForTriage),
+                VisitStatus = baris.VisitStatus,
+                RegisteredAt = baris.RegisteredAt,
+                ArrivalDateTime = baris.ArrivalDateTime,
+                AvailableActions = AksiBarisAntrean(baris)
+            };
+        }
+
+        /// <summary>
+        /// Aksi yang boleh muncul pada satu baris — kartu <c>BE-IGD-054</c> aturan 4,
+        /// <c>IGD-DEC-142</c> dan <c>IGD-DEC-128</c>.
+        /// </summary>
+        /// <remarks>
+        /// Daftar ini hanya menyatakan aksi yang masuk akal bagi keadaan barisnya. Hak akses
+        /// tetap diperiksa backend pada endpoint masing-masing, dan layar menyembunyikan
+        /// tombol yang hak aksesnya tidak dimiliki pemakai.
+        /// </remarks>
+        private static List<string> AksiBarisAntrean(BarisAntreanTriage baris)
+        {
+            if (baris.Jenis == JenisBarisEncounter)
+                return new List<string> { AksiMulaiTriage, AksiTanganiSegera, AksiPergiSebelumTriage };
+
+            return baris.VisitStatus switch
+            {
+                EmergencyVisitStatus.Arrived or EmergencyVisitStatus.WaitingForTriage
+                    => new List<string> { AksiIsiTriage, AksiTanganiSegera },
+                _ => new List<string>()
+            };
+        }
+
+        /// <summary>
+        /// Urutan nama yang sama dengan daftar kunjungan: nama pasien, lalu alias sementara,
+        /// lalu keterangan bawaan. Tidak pernah kosong.
+        /// </summary>
+        private static string ResolveNamaPasienAntrean(BarisAntreanTriage baris)
+        {
+            if (!string.IsNullOrWhiteSpace(baris.NamaPasien))
+                return baris.NamaPasien;
+
+            if (!string.IsNullOrWhiteSpace(baris.TemporaryPatientAlias))
+                return baris.TemporaryPatientAlias;
+
+            return NamaPasienBelumTeridentifikasi;
+        }
+
+        /// <summary>
+        /// Bentuk baris bersama kedua asal data, supaya keduanya dapat digabung dan dihalamani
+        /// di basis data. Bukan entity dan tidak pernah keluar dari service ini.
+        /// </summary>
+        private sealed class BarisAntreanTriage
+        {
+            public int Jenis { get; set; }
+            public Guid? EncounterId { get; set; }
+            public Guid? EmergencyVisitId { get; set; }
+            public Guid? PatientId { get; set; }
+            public string? NamaPasien { get; set; }
+            public string? NomorRekamMedis { get; set; }
+            public bool IsUnknownPatient { get; set; }
+            public string? TemporaryPatientAlias { get; set; }
+            public string? EncounterNumber { get; set; }
+            public string? EmergencyVisitNumber { get; set; }
+            public EmergencyVisitStatus? VisitStatus { get; set; }
+            public DateTime RegisteredAt { get; set; }
+            public DateTime? ArrivalDateTime { get; set; }
+
+            /// <summary>Waktu yang dipakai mengurutkan: waktu tiba bagi kunjungan, waktu terdaftar bagi encounter.</summary>
+            public DateTime Urutan { get; set; }
+
+            /// <summary>Penutup urutan supaya dua baris berwaktu sama selalu berurutan tetap.</summary>
+            public Guid KunciUrutan { get; set; }
         }
     }
 }

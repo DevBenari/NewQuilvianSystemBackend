@@ -5,8 +5,8 @@
 ```yaml
 blueprint_id: ACC-BP-001
 blueprint_revision: 11
-roadmap_revision: 3                   # backend revisi 3, frontend revisi 4 - 14 Sep 2026
-decision_revision: 9                  # ACC-DEC-081
+roadmap_revision: 4                   # DRAFT 24 Sep 2026 - backend revisi 4, frontend revisi 5 (bagian 3d); sebelumnya backend 3, frontend 4 - 14 Sep 2026
+decision_revision: 10                 # ACC-DEC-091 (24 Sep 2026); sebelumnya 9, ACC-DEC-081
 contracts: [ACC-API-0.10, ACC-STATE-0.3, ACC-VALIDATION-0.6, ACC-PERMISSION-0.5]
 scope_waves: [P2-0a, P2-3, P2-4, P2-5, P2-CTRL, P2-RECON, HARDENING, P2-0b]
 generated_at: 2026-09-08
@@ -87,10 +87,37 @@ Ditambahkan bersama roadmap backend revisi 3 dan roadmap frontend revisi 4, atas
 | `FR-P2-033` | Satu tahun buku satu jurnal penutup, juga saat permintaan bersamaan | `ACC-DEC-053`, `ACC-DEC-079`; `ACC-TD-024` | [`BE-ACC-P2-032`](../task/report/backend/BE-ACC-P2-032.md) ✅ | — | — | **`Done` backend 14 September 2026.** Penolakan berurutan sejak `BE-ACC-P2-010`; permintaan bersamaan kini ditahan advisory lock per badan hukum dan tahun buku di dalam transaction, tanpa skema baru. Build owner 0 error. Uji dua permintaan bersamaan pada PostgreSQL belum dijalankan. Bukti: [laporan](../task/report/backend/BE-ACC-P2-032.md) |
 | `ACC-GAP-010` | Tombol Periode Akuntansi mengikuti hak akses | `ACC-DEC-080` | — | [`FE-ACC-P2-014`](../task/report/frontend/FE-ACC-P2-014.md) ✅ | `UAT-08`, `UAT-09` | **`Done` frontend 14 September 2026.** Bangkitkan, Tutup, dan Buka Kembali mati beserta keterangan bagi pengguna tanpa `AccountingPeriod : Create/Close/Reopen`, lewat `usePermission`. ESLint 0 error, 0 warning; `npm run build` owner `✓ Compiled successfully`, 326/326 halaman statis; commit `a09ba4b13`. `UAT-08`/`UAT-09` belum dijalankan — diserahkan ke tim UAT. **Riwayat:** sebagian pada hari yang sama, menunggu build owner. Bukti: [laporan](../task/report/frontend/FE-ACC-P2-014.md) |
 
-**Yang sengaja tidak dipetakan ke task:** `FR-P2-001` sampai `006` (kotak masuk kejadian), `009`
+**Pembaruan 24 September 2026: kalimat berikut tidak berlaku lagi — lihat bagian 3d.** **Yang sengaja tidak dipetakan ke task:** `FR-P2-001` sampai `006` (kotak masuk kejadian), `009`
 sampai `017` (kejadian tertahan, gagal, coba ulang, abaikan), dan `FR-P2-040` (perbandingan
 subledger). Seluruhnya menunggu keputusan lintas modul `OD-ACC-01`, `04`, `05`, `06`, `07`, dan
 `08`. Nomor task `BE-ACC-P2-019` sampai `030` disiapkan untuk mereka tetapi belum direncanakan.
+
+## 3d. Kotak masuk kejadian (`P2-1`, `P2-2`) dan saldo subledger (Wave D) — amandemen 24 September 2026, **DRAFT**
+
+Ditambahkan bersama roadmap backend revisi 4 dan frontend revisi 5 (keduanya `DRAFT`), atas
+`ACC-DEC-082`..`091`. **Seluruh task ⛔** menunggu `GATE-DESAIN-0924`; Wave D juga menunggu
+`GATE-FIN-087`. Belum satu pun baris ini punya bukti.
+
+| Requirement | Isi ringkas | Keputusan asal | Task backend | Task frontend | UAT | Keadaan |
+|---|---|---|---|---|---|---|
+| `FR-P2-001` | Dua belas bidang wajib | `ACC-DEC-048`, `060` | `BE-ACC-P2-019`, `021` | — | `UAT-P2-03` | ⛔ Direncanakan |
+| `FR-P2-002` | Nomor sama → jurnal sama | `ACC-DEC-035`, `085` | `BE-ACC-P2-019`, `021` | — | `UAT-P2-02` | ⛔ Direncanakan |
+| `FR-P2-003` | Kunci gabungan sama → sama seperti `002` | `ACC-DEC-035`, `075` | `BE-ACC-P2-019`, `021` | — | — | ⛔ Direncanakan. **Tanpa UAT** — coverage gap |
+| `FR-P2-004` | Mata uang selain rupiah ditolak | `ACC-DEC-020` | `BE-ACC-P2-021` | — | `UAT-P2-04` | ⛔ Direncanakan |
+| `FR-P2-005` | Pengenal pasien ditolak | `ACC-DEC-056` | `BE-ACC-P2-021` | — | — | ⛔ Direncanakan. **Tanpa UAT** — coverage gap |
+| `FR-P2-006` | Pesan asli disimpan dan dapat dilihat | `ACC-DEC-048` | `BE-ACC-P2-019`, `021`, `024` | `FE-ACC-P2-011`, `012` | — | ⛔ Direncanakan. **Tanpa UAT** — coverage gap |
+| `FR-P2-009` | Tanpa aturan → Tertahan, nol jurnal | `ACC-DEC-046`, `075` | `BE-ACC-P2-021` | — | `UAT-P2-05` | ⛔ Direncanakan |
+| `FR-P2-010` | Tertahan diproses ulang begitu aturan ada | `ACC-DEC-046` | `BE-ACC-P2-025` | `FE-ACC-P2-012` | `UAT-P2-06` | ⛔ Direncanakan. Tombol Coba Ulang untuk `Tertahan` masih pertentangan desain (kartu `FE-ACC-P2-012`) |
+| `FR-P2-011` | Tertahan tidak dapat diabaikan | `ACC-DEC-078` | `BE-ACC-P2-025` | `FE-ACC-P2-012` | `UAT-P2-07` | ⛔ Direncanakan |
+| `FR-P2-012` | Perlakuan aturan menentukan `Posted` atau `Draft` | `ACC-DEC-045` | `BE-ACC-P2-021` | — | `UAT-P2-01` | ⛔ Direncanakan |
+| `FR-P2-013` | Coba ulang 3 kali, jeda makin panjang | `ACC-DEC-049`, `084` | `BE-ACC-P2-023` | — | `UAT-P2-08` | ⛔ Direncanakan. **`UAT-P2-08` perlu ditinjau:** sejak `ACC-DEC-084`, database mati **sebelum** kejadian tersimpan menghasilkan galat tanpa kejadian (Finance mengirim ulang); hanya gangguan **sesudah** tersimpan yang masuk penjadwal |
+| `FR-P2-014` | Sesudah 3 kali → Gagal | `ACC-DEC-049` | `BE-ACC-P2-023` | — | `UAT-P2-08` | ⛔ Direncanakan |
+| `FR-P2-015` | Jumlah Gagal sebagai penanda menu | `ACC-DEC-057` | `BE-ACC-P2-024` | `FE-ACC-P2-011` | `UAT-P2-08` | ⛔ Direncanakan |
+| `FR-P2-016` | Gagal dicoba ulang manual | `ACC-DEC-049` | `BE-ACC-P2-025` | `FE-ACC-P2-012` | `UAT-P2-09` | ⛔ Direncanakan |
+| `FR-P2-017` | Gagal diabaikan dengan alasan wajib | `ACC-DEC-078` | `BE-ACC-P2-025` | `FE-ACC-P2-012` | `UAT-P2-10` | ⛔ Direncanakan |
+| `FR-P2-040` *(baris utama di 3b)* | Perbandingan subledger dan laporan selisih | `ACC-DEC-071`, `076` | `BE-ACC-P2-014` — dependency kini `028` | — | — | ⛔ Hanya mencatat perubahan dependency; keadaan dicatat di baris 3b |
+| *(tanpa FR)* | Pesan saldo subledger disimpan tanpa jurnal | `ACC-DEC-087` | `BE-ACC-P2-022`, `027`, `028` | `FE-ACC-P2-013` | — | ⛔ **Coverage gap: belum ada FR maupun UAT** — perlu ditambahkan ke `04-prd-to-mvp.md` bagian 25 |
+| *(tanpa FR)* | Penghalang tutup bulan dari kejadian `Gagal`/`Tertahan` | `ACC-DEC-051` | `BE-ACC-P2-026` | — (`FE-ACC-P2-001` ✅ sudah menangani) | `UAT-P2-05` sebagian | ⛔ Direncanakan |
 
 ## 4. Ringkasan cakupan
 

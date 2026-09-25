@@ -2,13 +2,13 @@
 
 | Field | Nilai |
 | --- | --- |
-| Blueprint | `IGD-BP-001` revision `5` |
+| Blueprint | `IGD-BP-001` revision `5`; **bagian 13 ditambahkan 22 September 2026** (encounter-first, revisi `6` `draft`) |
 | Status | `draft` — **belum disetujui siapa pun**. Diturunkan dari `IGD-DEC-067` sampai `IGD-DEC-088` yang seluruhnya masih `draft` |
 | Commit diaudit | backend `f69e9e483052845d11c91d8b7bbdce33c4acc8d8`, frontend `96a9120111f6acc6b7c0f37973ea0c717ba41f17` |
 | Masukan | `00-interview-decisions.md` (88 keputusan), `01-existing-capability-map.md` revision `3` |
 | Keputusan yang mengikat | `IGD-DEC-067` sampai `IGD-DEC-088`; keputusan lama `IGD-DEC-001` sampai `IGD-DEC-066` tetap berlaku kecuali dinyatakan `superseded` |
 | Gerbang kemampuan rumah sakit | **BELUM TERPENUHI** — lihat bagian 0 |
-| Diselaraskan | 15 September 2026 — model `TrxEmergencyDoctorAssignment` beserta configuration-nya menjadi `EmgDoctorAssignment` (`IGD-DEC-116`). Nama service, controller, DTO, dan kolom tidak berubah. Nama entity IGD lain pada dokumen ini masih nama rancangan sebelum prefix `Emg` 27 Agustus 2026 |
+| Diselaraskan | **16 September 2026 (ketiga)** — `EmgDoctorAssignment` diperiksa ulang terhadap `IGD-DEC-130`: class diagram baris 131 dan configuration baris 456 **sudah** benar, yaitu tanpa `IsActive` dan bersandar pada `EffectiveTo IS NULL`. Nol perubahan dibutuhkan pada dokumen ini; yang diselaraskan adalah kamus data §4. Sebelumnya 15 September 2026 — model `TrxEmergencyDoctorAssignment` beserta configuration-nya menjadi `EmgDoctorAssignment` (`IGD-DEC-116`). Nama service, controller, DTO, dan kolom tidak berubah. Nama entity IGD lain pada dokumen ini masih nama rancangan sebelum prefix `Emg` 27 Agustus 2026 |
 
 Modul IGD menyimpan proses yang benar-benar khusus kegawatdaruratan. Data klinis yang dipakai
 lintas pelayanan tetap dimiliki modul pusat agar tidak terjadi duplikasi antara Rawat Jalan,
@@ -840,3 +840,594 @@ bersyarat pada `EmgDoctorAssignment`. Konsisten, bukan mekanisme baru.
 > kosong akan lolos begitu saja — bukan karena aturannya benar, melainkan karena
 > perbandingannya tidak pernah terjadi. Syarat `OrderSource` itulah yang membuat index kedua
 > benar-benar menjaga.
+
+---
+
+## 12. Pemantauan observasi bertanda vital — 16 September 2026
+
+Bagian ini menurunkan `IGD-DEC-122` sampai `IGD-DEC-126` menjadi desain backend. **Tidak ada
+tabel baru, tidak ada kolom baru, dan tidak ada migration.** Yang berubah adalah aturan
+penerimaan dan bentuk pembacaan.
+
+### 12.1 Kepemilikan data yang ditegaskan ulang
+
+| Kelompok data | Modul pemilik | Dipakai IGD? | Dibuat ulang di IGD? |
+| --- | --- | :-: | :-: |
+| Angka tanda vital, GCS, kesadaran, oksigen, nyeri, EWS | `ClinicalManagement` — `TrxPatientVitalSign` | Ya, lewat tautan | **Tidak** |
+| Catatan perkembangan | `ClinicalManagement` — `TrxPatientIntegratedProgressNote` | Ya, lewat tautan | **Tidak** |
+| Periode observasi dan isi pemantauan | `EmergencyInstallationManagement` — `EmgObservation`, `EmgObservationDetail` | Ya | — |
+| Primary survey ABCDE | `EmergencyInstallationManagement` — `EmgTriage` (ringkasan teks) | Dibaca saja | **Tidak** |
+| RJP, ROSC, defibrilasi | `EmergencyInstallationManagement` — `EmgResuscitation` | Tidak pada layar ini | **Tidak** |
+| Obat dan tindakan | Farmasi dan `EmgProcedureDetail` | Tidak pada layar ini | **Tidak** |
+
+### 12.2 Relasi yang dipakai validasi
+
+```mermaid
+classDiagram
+    class EmgVisit {
+        +Guid Id
+        +Guid? EncounterId
+        +Guid? PatientId
+    }
+    class EmgObservation {
+        +Guid Id
+        +Guid EmergencyVisitId
+        +EmergencyObservationStatus ObservationStatus
+    }
+    class EmgObservationDetail {
+        +Guid Id
+        +Guid EmergencyObservationId
+        +Guid? PatientVitalSignId «tautan»
+        +Guid? ProgressNoteId «tautan»
+        +Guid RecordedByUserId «dari token»
+    }
+    class TrxPatientVitalSign {
+        +Guid Id
+        +Guid PatientId
+        +Guid? EncounterId
+        +PatientVitalSignStatus VitalSignStatus
+        +bool IsActive
+    }
+
+    EmgVisit "1" --> "0..*" EmgObservation
+    EmgObservation "1" --> "0..*" EmgObservationDetail
+    EmgObservationDetail "0..*" --> "0..1" TrxPatientVitalSign : PatientVitalSignId
+```
+
+Jalur yang dilalui pemeriksaan lingkup:
+`EmgObservationDetail → EmgObservation → EmgVisit → (PatientId, EncounterId)`, lalu dibandingkan
+dengan `TrxPatientVitalSign.PatientId` dan `TrxPatientVitalSign.EncounterId`.
+
+### 12.3 Kelas yang berubah
+
+| Class | Status | Lokasi file | Perubahan |
+| --- | --- | --- | --- |
+| `EmergencyObservationService` | **Diperbarui** | `Areas/HealthServices/EmergencyInstallationManagement/Services/EmergencyObservationService.cs` | Menerima pemeriksaan lingkup pemantauan: periode belum ditutup, tanda vital dan catatan perkembangan satu pasien dan satu encounter, serta tanda vital masih berlaku. Service ini **sudah terdaftar** di `Program.cs`; tidak ada pendaftaran baru |
+| `EmergencyObservationDetailController` | **Diperbarui** | `.../Controllers/EmergencyObservationDetailController.cs` | Memanggil pemeriksaan di atas sebelum menyimpan; pelaku pencatat selalu dari token; proyeksi tanda vital dan nama pelaku pada response |
+| `EmergencyObservationDetailDtos` | **Diperbarui** | `.../DTOs/EmergencyObservationDetailDtos.cs` | `EmergencyObservationDetailResponse` bertambah `RecordedByName` dan objek `VitalSign`; `CreateEmergencyObservationDetailRequest.RecordedByUserId` ditandai usang dan diabaikan |
+| `EmgObservationDetail` | **Sudah ada** | `.../Models/EmgObservationDetail.cs` | **Tidak berubah** |
+| `EmgObservationDetailConfiguration` | **Sudah ada** | `Repositories/Configurations/HealthServices/EmergencyInstallationManagement/EmgObservationDetailConfiguration.cs` | **Tidak berubah**; FK, index `PatientVitalSignId`, dan `DeleteBehavior.Restrict` sudah sesuai |
+
+Pemeriksaan ditaruh di service, bukan di controller, mengikuti `QBE-SVC-001` untuk kode yang
+disentuh. Pemakaian `ApplicationDbContext` langsung di controller adalah utang lama yang
+**tidak** diperluas dan **tidak** dirapikan pada task ini.
+
+### 12.4 Bentuk pembacaan yang menghindari N+1
+
+Proyeksi tanda vital diambil dalam **satu kueri** bersama daftar pemantauan, memakai
+`Include`/`Select` pada relasi `PatientVitalSign` yang sudah dikonfigurasi. Nama pelaku diambil
+dari relasi `RecordedByUser` yang juga sudah ada.
+
+Yang **dilarang**: memanggil endpoint tanda vital satu kali per baris dari frontend, dan
+mengambil seluruh direktori pengguna hanya untuk menerjemahkan satu GUID.
+
+### 12.5 Dampak migration dan data lama
+
+| Hal | Keadaan |
+| --- | --- |
+| Migration | **Tidak ada** |
+| Kolom baru | **Tidak ada** |
+| Data lama | Baris pemantauan lama yang `PatientVitalSignId`-nya kosong tetap terbaca; `vitalSign` dikirim `null`. **Tidak ada** pengisian mundur |
+| Data master awal | **Tidak ada** yang perlu diisi |
+| Rollback | Cukup mengembalikan source; tidak ada perubahan skema yang perlu dibalik |
+
+### 12.6 Yang sengaja tidak dibuat
+
+| Yang ditolak | Alasan |
+| --- | --- |
+| Tabel tanda vital IGD | `IGD-DEC-122` — angka tetap milik `ClinicalManagement` |
+| Kolom GCS, kesadaran, oksigen pada `EmgObservationDetail` | Sama; sudah ada di `TrxPatientVitalSign` |
+| Kolom ABCDE pada `EmgObservationDetail` | `IGD-DEC-123`; `IGD-GAP-027` masih ditunda |
+| Kolom alat bantu jalan napas | `IGD-DEC-124`; menunggu `IGD-OQ-089` |
+| Kolom obat, gambaran EKG, DC Shock | Milik Farmasi, Tindakan, dan Resusitasi |
+| Endpoint baru untuk memilih tanda vital | `GET patient-vital-signs?patientId=&encounterId=` milik `ClinicalManagement` sudah cukup |
+| Jalur entri susulan setelah periode ditutup | `IGD-OQ-090`, belum dirancang; **dilarang** menumpang `BE-IGD-046` |
+| Penambahan nilai enum `OxygenSupportType` | `IGD-DEC-125` — milik `ClinicalManagement` |
+
+### 12.7 Urutan pemanggilan
+
+```mermaid
+sequenceDiagram
+    actor Perawat
+    participant Layar as Layar Pengkajian IGD
+    participant VS as Clinical Management API
+    participant OBS as Emergency Observation Detail API
+    participant DB as Basis data
+
+    Perawat->>Layar: Catat Pemantauan
+    alt Tanda vital baru
+        Layar->>VS: POST patient-vital-signs (pasien + encounter kunjungan ini)
+        VS-->>Layar: id tanda vital
+    else Pilih tanda vital yang sudah ada
+        Layar->>VS: GET patient-vital-signs?patientId=&encounterId=
+        VS-->>Layar: daftar tanda vital kunjungan ini
+    end
+    Layar->>OBS: POST emergency-observation-details (+ patientVitalSignId)
+    OBS->>DB: periode masih terbuka? pasien & encounter cocok? tanda vital berlaku?
+    alt Periode sudah ditutup
+        OBS-->>Layar: 409 periode sudah ditutup
+    else Tautan di luar lingkup
+        OBS-->>Layar: 400 beserta sebabnya
+    else Lolos
+        OBS->>DB: simpan; pelaku dari token
+        DB-->>OBS: baris pemantauan
+        OBS-->>Layar: 200 + proyeksi vitalSign + recordedByName
+        Layar-->>Perawat: riwayat pemantauan bertambah, lengkap dengan angka tanda vital
+    end
+```
+
+---
+
+## 13. Encounter-first — 22 September 2026
+
+Desain target untuk sub-slice `S1`…`S6` dan `S8` gate
+[evidence/02-requirement-completeness-gate.md](evidence/02-requirement-completeness-gate.md), dari
+`IGD-DEC-139`, `142`…`148`, `150`…`154`. `S7` (kelayakan dokter jaga) **tidak** dirancang — ditahan
+`IGD-OQ-102`/`103`. Kontrak: API `0.11.0` §8, validation `0.8.0` §10, state `0.5.0` §8, integration `0.4.0`
+§5, permission/audit `0.5.0` §7. Status seluruh isi bagian ini: `draft`, **Rencana (belum tersedia)**.
+
+Prefix `Emg` sudah terdaftar di `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md` baris 19
+(`EmergencyInstallationManagement`, `ACTIVE / LEGACY`) — tiga tabel baru **tidak** butuh baris registry
+baru. Keberlakuan QBE: `NEW CODE` untuk tabel/berkas baru; `TOUCHED LEGACY` untuk `EmgVisit`,
+`EmergencyVisitController`, `EmergencyVisitService`, dan `PatientEncounterController`.
+
+### 13.1 Tabel kepemilikan data
+
+| Kelompok data | Pemilik | Dipakai slice ini | Dibuat ulang? |
+| --- | --- | --- | --- |
+| Encounter pasien (`RegPatientEncounter`) | Registration Management | **Ya** — dibuat di pintu Registrasi; kolom status akhir ditulis IGD (daftar tertutup, integration §5.2) | **Tidak**. Nol kolom baru (`IGD-DEC-145`) |
+| Antrean (`TrxQueue`) | Registration Management | **Tidak** — Emergency tidak membuat antrean (`IGD-DEC-144`) | Tidak |
+| Pasien (`MstPatient`) | Patient Management / Master Patient | Ya — rekam pengganti lewat alur pasien baru yang ada (`IGD-DEC-151`) | **Tidak**. Nol tabel pasien IGD |
+| Kunjungan IGD (`EmgVisit`) | IGD | Ya — **Diperbarui** tiga kolom waktu tiba | — |
+| Catatan override pendaftaran ganda | IGD | Ya | **Baru**: `EmgDuplicateEpisodeOverride` |
+| Run dan baris rekonsiliasi | IGD | Ya | **Baru**: `EmgEncounterReconciliationRun`, `EmgEncounterReconciliationItem` |
+| Penguncian catatan klinis | Medical Record Management | Ya — `ClinicalDocumentIntegrityService` dipakai ulang | Tidak |
+| Triage, penugasan dokter | IGD | Dibaca untuk batas koreksi waktu tiba | Tidak |
+| Pengguna (`AspNetUsers`) | Administrator | Pelaku | Tidak |
+
+### 13.2 Class diagram — episode dan pintu encounter
+
+```mermaid
+classDiagram
+    class RegPatientEncounter {
+        <<Sudah ada · Registration>>
+        +Guid Id
+        +Guid PatientId
+        +EncounterType EncounterType
+        +EncounterStatus EncounterStatus
+        +DateTime RegisteredAt
+        +DateTime? CompletedAt
+        +DateTime? NoShowAt
+        +Guid? NoShowByUserId
+        +string? NoShowReason
+        +bool IsCancel
+        +DateTime? CancelledAt
+    }
+    class EmgVisit {
+        <<Diperbarui · IGD>>
+        +Guid Id
+        +Guid? EncounterId
+        +Guid? PatientId
+        +DateTime ArrivalDateTime
+        +EmergencyArrivalTimeSource ArrivalTimeSource
+        +Guid? ArrivalConfirmedByUserId
+        +DateTime? ArrivalConfirmedAt
+        +EmergencyVisitStatus VisitStatus
+    }
+    class EmgDuplicateEpisodeOverride {
+        <<Baru · IGD>>
+        +Guid Id
+        +Guid EncounterId
+        +Guid PatientId
+        +Guid? OverriddenEncounterId
+        +Guid? OverriddenVisitId
+        +string Reason
+        +Guid OverriddenByUserId
+        +DateTime OverriddenAt
+    }
+    class EmergencyEpisodeRule {
+        <<Baru · static · IGD>>
+        +IsEncounterEnded(RegPatientEncounter) bool
+        +FindOpenEpisodeAsync(db, patientId, exceptEncounterId, ct) OpenEpisode?
+        +LockPatientEpisodeAsync(db, patientId, ct)
+    }
+    RegPatientEncounter "1" --> "0..1" EmgVisit : EncounterId (unique)
+    EmgDuplicateEpisodeOverride "0..1" --> "1" RegPatientEncounter : EncounterId (unique)
+    EmgDuplicateEpisodeOverride --> "0..1" RegPatientEncounter : OverriddenEncounterId
+    EmgDuplicateEpisodeOverride --> "0..1" EmgVisit : OverriddenVisitId
+    EmergencyEpisodeRule ..> RegPatientEncounter : membaca
+    EmergencyEpisodeRule ..> EmgVisit : membaca
+```
+
+### 13.3 Class diagram — rekonsiliasi
+
+```mermaid
+classDiagram
+    class EmgEncounterReconciliationRun {
+        <<Baru · IGD>>
+        +Guid Id
+        +string RunNumber
+        +EmergencyReconciliationRunStatus Status
+        +string Reason
+        +int CountK1
+        +int CountK1Outpatient
+        +int CountK2
+        +int CountK3
+        +int CountK4
+        +Guid ExecutedByUserId
+        +DateTime ExecutedAt
+        +Guid? ReversedByUserId
+        +DateTime? ReversedAt
+        +string? ReverseReason
+    }
+    class EmgEncounterReconciliationItem {
+        <<Baru · IGD>>
+        +Guid Id
+        +Guid RunId
+        +Guid EncounterId
+        +Guid EmergencyVisitId
+        +EmergencyReconciliationClass Class
+        +EncounterStatus StatusBefore
+        +DateTime? CompletedAtBefore
+        +EncounterStatus StatusAfter
+        +DateTime? CompletedAtAfter
+        +bool IsReversed
+        +string? ReverseSkipReason
+    }
+    EmgEncounterReconciliationRun "1" --> "1..*" EmgEncounterReconciliationItem
+    EmgEncounterReconciliationItem --> "1" RegPatientEncounter
+    EmgEncounterReconciliationItem --> "1" EmgVisit
+```
+
+### 13.4 Penjelasan class
+
+| Class | Jenis | Status | Lokasi file | Tanggung jawab |
+| --- | --- | --- | --- | --- |
+| `EmgVisit` | Model | **Diperbarui** | `Areas/HealthServices/EmergencyInstallationManagement/Models/EmgVisit.cs` | + `ArrivalTimeSource`, `ArrivalConfirmedByUserId`, `ArrivalConfirmedAt`, navigasi `ArrivalConfirmedByUser` |
+| `EmgDuplicateEpisodeOverride` | Model | **Baru** | `…/EmergencyInstallationManagement/Models/EmgDuplicateEpisodeOverride.cs` | Catatan tambah-saja pendaftaran ganda beralasan (`IGD-DEC-145`) |
+| `EmgEncounterReconciliationRun` | Model | **Baru** | `…/EmergencyInstallationManagement/Models/EmgEncounterReconciliationRun.cs` | Kepala satu run rekonsiliasi |
+| `EmgEncounterReconciliationItem` | Model | **Baru** | `…/EmergencyInstallationManagement/Models/EmgEncounterReconciliationItem.cs` | Satu encounter yang ditulis run, dengan nilai sebelum/sesudah |
+| `EmergencyArrivalTimeSource` | Enum | **Baru** | `…/EmergencyInstallationManagement/Enums/EmergencyArrivalTimeSource.cs` | `Unverified = 0` (bawaan), `Fallback = 1`, `Confirmed = 2` |
+| `EmergencyVisitStartMode` | Enum | **Baru** | `…/Enums/EmergencyVisitStartMode.cs` | `Triage = 1`, `ImmediateCare = 2` — hanya untuk request |
+| `EmergencyReconciliationClass` | Enum | **Baru** | `…/Enums/EmergencyReconciliationClass.cs` | `K1 = 1`, `K1Outpatient = 2`, `K2 = 3`, `K3 = 4`, `K4 = 5` |
+| `EmergencyReconciliationRunStatus` | Enum | **Baru** | `…/Enums/EmergencyReconciliationRunStatus.cs` | `Executed = 1`, `Reversed = 2` |
+| `EmergencyEpisodeRule` | Static class | **Baru** | `…/EmergencyInstallationManagement/Services/EmergencyEpisodeRule.cs` | **Satu-satunya** rumus "encounter berakhir" dan "episode terbuka", plus kunci per pasien. `public static`, menerima `ApplicationDbContext` — dapat dipanggil controller Registrasi **tanpa DI dan tanpa `Program.cs`** (pola `EmergencyVisitService.PeriksaJenisEncounter`) |
+| `EmergencyEncounterReconciliation` | Static class | **Baru** | `…/Services/EmergencyEncounterReconciliation.cs` | Preview, eksekusi, pembalikan run. Static dengan `ApplicationDbContext` sebagai parameter — nol `Program.cs` |
+| `EmergencyVisitService` | Service | **Diperbarui** | `…/Services/EmergencyVisitService.cs` | `CariEpisodeAktifAsync` **mendelegasikan** ke `EmergencyEpisodeRule` (pemanggil lama tidak berubah); + `GetTriageQueueAsync`, `StartVisitAsync`, `MarkNoShowAsync`, `ApplyEncounterClosure` (tidak menyimpan sendiri), `ValidateArrivalTimeAsync` |
+| `EmergencyVisitController` | Controller | **Diperbarui** | `…/Controllers/EmergencyVisitController.cs` | Action baru `TriageQueue`, `StartTriage`, `NoShow`, `UpdateArrivalTime`; perubahan `Create` (transaksi + kunci), `Update` (kunci ruas), `UpdateVisitStatus` dan `Complete` (penutupan encounter), `ActiveEpisode` (ruas `encounter`). Constructor + `ClinicalDocumentIntegrityService` (sudah terdaftar, `Program.cs:392`) |
+| `EmergencyEncounterReconciliationController` | Controller | **Baru** | `…/Controllers/EmergencyEncounterReconciliationController.cs` | Lima action API §8.4; `[AccessController]` resource `EmergencyEncounterReconciliation` |
+| `PatientEncounterController` | Controller | **Diperbarui** — **berkas Registrasi**, `IGD-DEC-135` | `Areas/HealthServices/RegistrationManagement/Controllers/PatientEncounterController.cs` | Cabang Emergency di `CreateEncounterCoreAsync` (kunci → rumus → override → tanpa antrean) sebelum alokasi nomor (`:567`); penolakan Emergency di `UpdateEncounterStatus`; syarat "belum punya kunjungan" + kunci di `CancelEncounter` |
+| `EmergencyVisitDtos.cs` | DTO | **Diperbarui** | `…/EmergencyInstallationManagement/DTOs/EmergencyVisitDtos.cs` | + `EmergencyTriageQueueQuery` (PagedQuery), `EmergencyTriageQueueRowResponse` (Response), `StartEmergencyVisitRequest` (Create), `MarkEmergencyEncounterNoShowRequest` (Status), `EmergencyEncounterNoShowResponse` (Response), `UpdateEmergencyArrivalTimeRequest` (Update), `EmergencyActiveEncounterSummary` (Response); `EmergencyVisitResponse` + tiga ruas waktu tiba; `EmergencyActiveEpisodeResponse` + `Encounter` |
+| `EmergencyEncounterReconciliationDtos.cs` | DTO | **Baru** | `…/DTOs/EmergencyEncounterReconciliationDtos.cs` | `…PreviewResponse`, `ExecuteEmergencyEncounterReconciliationRequest` (Create), `ReverseEmergencyEncounterReconciliationRequest` (Status), `…RunResponse`, `…ItemResponse` |
+| `PatientEncounterDtos.cs` | DTO | **Diperbarui** — berkas Registrasi | `Areas/HealthServices/RegistrationManagement/DTOS/PatientEncounterDtos.cs` | `PatientEncounterCreateRequest` + `DuplicateEpisodeOverrideReason` (`string?`, **wajib** `string?` supaya tidak terkena `[Required]` implisit) |
+| `EmgVisitConfiguration` | Configuration | **Diperbarui** | `Repositories/Configurations/HealthServices/EmergencyInstallationManagement/EmgVisitConfiguration.cs` | `ArrivalTimeSource` `HasConversion<int>()` + `HasDefaultValue(Unverified)`; FK `ArrivalConfirmedByUserId` → `AspNetUsers`, `Restrict` |
+| `EmgDuplicateEpisodeOverrideConfiguration` | Configuration | **Baru** | `Repositories/Configurations/HealthServices/EmergencyInstallationManagement/` | Lihat 13.6 |
+| `EmgEncounterReconciliationRunConfiguration`, `…ItemConfiguration` | Configuration | **Baru** | Sama | Lihat 13.6 |
+| `ApplicationDbContext` | DbContext | **Diperbarui** | `Repositories/ApplicationDbContext.cs` (DbSet `EmgVisits` di baris 809; `ApplyConfigurationsFromAssembly` di baris 903) | + tiga `DbSet`: `EmgDuplicateEpisodeOverrides`, `EmgEncounterReconciliationRuns`, `EmgEncounterReconciliationItems`. Configuration ditemukan otomatis (`ApplyConfigurationsFromAssembly`) |
+
+**Transaksi.** `StartVisitAsync`, `MarkNoShowAsync`, dan cabang Emergency `CancelEncounter` membuka transaksi
+eksplisit karena mengambil kunci per pasien. `Create` (jalur lama) **dibungkus** transaksi eksplisit untuk
+alasan yang sama. `ApplyEncounterClosure` **tidak** membuka transaksi dan **tidak** menyimpan — ikut
+`SaveChanges` aksi kunjungan. Rekonsiliasi: satu transaksi per run.
+
+### 13.5 Arsitektur folder
+
+```text
+NewQuilvianSystemBackend/
+├── Areas/HealthServices/EmergencyInstallationManagement/
+│   ├── Controllers/
+│   │   ├── EmergencyVisitController.cs                       Diperbarui
+│   │   └── EmergencyEncounterReconciliationController.cs     Baru
+│   ├── DTOs/
+│   │   ├── EmergencyVisitDtos.cs                             Diperbarui
+│   │   └── EmergencyEncounterReconciliationDtos.cs           Baru
+│   ├── Enums/
+│   │   ├── EmergencyArrivalTimeSource.cs                     Baru
+│   │   ├── EmergencyVisitStartMode.cs                        Baru
+│   │   ├── EmergencyReconciliationClass.cs                   Baru
+│   │   └── EmergencyReconciliationRunStatus.cs               Baru
+│   ├── Models/
+│   │   ├── EmgVisit.cs                                       Diperbarui
+│   │   ├── EmgDuplicateEpisodeOverride.cs                    Baru
+│   │   ├── EmgEncounterReconciliationRun.cs                  Baru
+│   │   └── EmgEncounterReconciliationItem.cs                 Baru
+│   └── Services/
+│       ├── EmergencyVisitService.cs                          Diperbarui
+│       ├── EmergencyEpisodeRule.cs                           Baru (static)
+│       └── EmergencyEncounterReconciliation.cs               Baru (static)
+├── Areas/HealthServices/RegistrationManagement/              (milik Registrasi — IGD-DEC-135)
+│   ├── Controllers/PatientEncounterController.cs             Diperbarui
+│   └── DTOS/PatientEncounterDtos.cs                          Diperbarui
+├── Repositories/
+│   ├── ApplicationDbContext.cs                               Diperbarui (3 DbSet)
+│   └── Configurations/HealthServices/EmergencyInstallationManagement/
+│       ├── EmgVisitConfiguration.cs                          Diperbarui
+│       ├── EmgDuplicateEpisodeOverrideConfiguration.cs       Baru
+│       ├── EmgEncounterReconciliationRunConfiguration.cs     Baru
+│       └── EmgEncounterReconciliationItemConfiguration.cs    Baru
+├── Migrations/                                               3 migration — dijalankan Rizki (13.8)
+└── Program.cs                                                TIDAK disentuh
+```
+
+**Utang teknis yang dicatat, tidak dirapikan.** Folder DTO Registrasi bernama `DTOS` (huruf besar),
+berbeda dari `DTOs` modul lain — dipakai apa adanya.
+
+### 13.6 Status model dan kolom
+
+**`EmgVisit` — Diperbarui** (`public."EmgVisit"`)
+
+| Kolom | Tipe | Wajib | Bawaan | Validasi | Sensitif |
+| --- | --- | :-: | --- | --- | :-: |
+| `ArrivalTimeSource` | `int` (`EmergencyArrivalTimeSource`) | Ya | `0` (`Unverified`) | Nilai enum | Tidak |
+| `ArrivalConfirmedByUserId` | `uuid?` | Tidak | `null` | FK `AspNetUsers`, `Restrict`; diisi dari token | Tidak |
+| `ArrivalConfirmedAt` | `timestamptz?` | Tidak | `null` | Waktu server | Tidak |
+
+Index: tidak ada yang baru. Perilaku hapus: tidak berubah.
+
+**`EmgDuplicateEpisodeOverride` — Baru** (`public."EmgDuplicateEpisodeOverride"`, mewarisi `IdentityModel`)
+
+| Kolom | Tipe | Wajib | Aturan | Sensitif |
+| --- | --- | :-: | --- | :-: |
+| `Id` | `uuid` | Ya | PK | Tidak |
+| `EncounterId` | `uuid` | Ya | FK `RegPatientEncounter`, `Restrict`; **unique** — satu catatan per encounter baru | Tidak |
+| `PatientId` | `uuid` | Ya | FK `MstPatient`, `Restrict`; index | Tidak |
+| `OverriddenEncounterId` | `uuid?` | Tidak | FK `RegPatientEncounter`, `Restrict` — episode lama bila berupa encounter | Tidak |
+| `OverriddenVisitId` | `uuid?` | Tidak | FK `EmgVisit`, `Restrict` — episode lama bila berupa kunjungan | Tidak |
+| `Reason` | `varchar(500)` | Ya | Di-*trim*, 1–500 | **Ya** — dapat memuat keterangan klinis |
+| `OverriddenByUserId` | `uuid` | Ya | FK `AspNetUsers`, `Restrict`; dari token | Tidak |
+| `OverriddenAt` | `timestamptz` | Ya | Waktu server | Tidak |
+
+Check constraint: `OverriddenEncounterId IS NOT NULL OR OverriddenVisitId IS NOT NULL`. Tambah-saja: tidak
+ada endpoint ubah/hapus.
+
+**`EmgEncounterReconciliationRun` — Baru**
+
+| Kolom | Tipe | Wajib | Aturan | Sensitif |
+| --- | --- | :-: | --- | :-: |
+| `Id` | `uuid` | Ya | PK | Tidak |
+| `RunNumber` | `varchar(50)` | Ya | Unique; dibentuk `DocumentNumberService` | Tidak |
+| `Status` | `int` | Ya | `EmergencyReconciliationRunStatus` | Tidak |
+| `Reason` | `varchar(500)` | Ya | 1–500 | Ya |
+| `CountK1`, `CountK1Outpatient`, `CountK2`, `CountK3`, `CountK4` | `int` | Ya | Hasil hitung saat eksekusi | Tidak |
+| `ExecutedByUserId` | `uuid` | Ya | FK `AspNetUsers`, `Restrict` | Tidak |
+| `ExecutedAt` | `timestamptz` | Ya | Server | Tidak |
+| `ReversedByUserId` | `uuid?` | Tidak | FK `AspNetUsers`, `Restrict` | Tidak |
+| `ReversedAt` | `timestamptz?` | Tidak | Server | Tidak |
+| `ReverseReason` | `varchar(500)?` | Tidak | Wajib saat dibalik | Ya |
+
+**`EmgEncounterReconciliationItem` — Baru**
+
+| Kolom | Tipe | Wajib | Aturan | Sensitif |
+| --- | --- | :-: | --- | :-: |
+| `Id` | `uuid` | Ya | PK | Tidak |
+| `RunId` | `uuid` | Ya | FK run, `Cascade` (baris ikut run; run sendiri tidak pernah dihapus) | Tidak |
+| `EncounterId` | `uuid` | Ya | FK `RegPatientEncounter`, `Restrict`; index | Tidak |
+| `EmergencyVisitId` | `uuid` | Ya | FK `EmgVisit`, `Restrict` | Tidak |
+| `Class` | `int` | Ya | Hanya `K1` atau `K1Outpatient` yang pernah ditulis | Tidak |
+| `StatusBefore`, `StatusAfter` | `int` | Ya | Nilai `EncounterStatus` | Tidak |
+| `CompletedAtBefore`, `CompletedAtAfter` | `timestamptz?` | Tidak | — | Tidak |
+| `IsReversed` | `bool` | Ya | Bawaan `false` | Tidak |
+| `ReverseSkipReason` | `varchar(200)?` | Tidak | Diisi bila baris dilewati saat pembalikan | Tidak |
+
+Unique `(RunId, EncounterId)`.
+
+**`RegPatientEncounter` — Sudah ada**, nol kolom baru; kolom yang ditulis IGD: integration §5.2.
+
+### 13.7 Konkurensi
+
+| Risiko | Penjaga |
+| --- | --- |
+| Dua pendaftaran Emergency serentak | `pg_advisory_xact_lock(hashtext('EMG_EPISODE_' || patientId))` sebelum rumus episode; diambil **sebelum** kunci penomoran (integration §5.3) |
+| Mulai Triage / Tangani Segera serentak | Kunci per pasien + unique `EmgVisit.EncounterId` (tangkap `UniqueViolation`) |
+| NoShow atau batal Registrasi serentak dengan Mulai Triage | Kunci per pasien + periksa ulang di dalam kunci |
+| Rekonsiliasi atas data basi | `expectedCount` + evaluasi ulang tiap baris di dalam transaksi run |
+| Pembalikan atas encounter yang sudah berubah | Baris dilewati bila nilai sekarang ≠ `StatusAfter`/`CompletedAtAfter` |
+
+Kunci penomoran encounter yang sudah ada (`PatientEncounterNumberService`) **tidak** dijadikan sandaran
+invariant bisnis (capability map S3.2.6).
+
+### 13.8 Rencana migration
+
+Dijalankan **Rizki sendiri**; agent berhenti sebelum `dotnet ef migrations add`. Ketiganya aditif dan
+dapat dijalankan tanpa mematikan layanan.
+
+| Urutan | Nama | Isi | Tanpa downtime | Data lama | Cara mundur | Task |
+| ---: | --- | --- | :-: | --- | --- | --- |
+| 1 | `AddEmergencyArrivalTimeSource` | 3 kolom pada `EmgVisit` + FK | Ya — kolom berbawaan konstan | Seluruh baris lama `Unverified` (tidak mengarang konfirmasi) | `Down()` **berpenjaga**: menolak bila ada baris `ArrivalTimeSource <> 0`, supaya konfirmasi perawat tidak hilang diam-diam; pola `BE-IGD-048` | `BE-IGD-055` |
+| 2 | `AddEmergencyDuplicateEpisodeOverride` | Tabel `EmgDuplicateEpisodeOverride` | Ya | Tidak ada | `Down()` berpenjaga: menolak bila tabel berisi (jejak audit) | `BE-IGD-053` |
+| 3 | `AddEmergencyEncounterReconciliation` | Dua tabel rekonsiliasi | Ya | Tidak ada | `Down()` berpenjaga: menolak bila ada run | `BE-IGD-052` |
+
+Snapshot EF wajib diperiksa hanya bertambah blok ketiga tabel ini (pelajaran snapshot kehilangan blok modul
+lain). Blok `migrationBuilder.Sql` untuk penjaga `Down()` ditulis manual dan **diperiksa** sebelum
+`database update`.
+
+### 13.9 Rencana data master awal
+
+**Tidak ada master baru.** Slice ini memakai `EmgSetting.DefaultEmergencyServiceUnitId`, master cara datang,
+dan master jenis kasus yang sudah ada. `IsQueueRequired` unit/klinik IGD boleh dirapikan pemilik master,
+tetapi tidak lagi menentukan perilaku (`IGD-DEC-144`).
+
+### 13.10 Yang sengaja tidak dibuat
+
+| Tidak dibuat | Sebab |
+| --- | --- |
+| Kolom override / waktu tiba / status "menunggu triage" pada `RegPatientEncounter` | `IGD-DEC-145`: jangan tambah ruas IGD di tabel global |
+| Unique index bersyarat "satu encounter Emergency terbuka per pasien" | Menolak pendaftaran ganda yang sah (`IGD-DEC-146`) |
+| Service baru ber-DI untuk aturan episode atau rekonsiliasi | Menuntut baris `Program.cs`; static class cukup dan sudah berpola di modul ini |
+| Tabel riwayat koreksi waktu tiba | `IGD-DEC-152` tidak memintanya; penanda menyimpan nilai terakhir |
+| Fitur rekam pasien sementara / penggabungan rekam | Milik Master Patient (`IGD-DEC-151`, `IGD-OQ-098`) |
+| Endpoint pembatalan NoShow | `IGD-DEC-142`: final |
+| Migration data rekonsiliasi | `IGD-DEC-148` memilih endpoint admin |
+| Kelayakan dokter jaga | `S7` ditahan `IGD-OQ-102`/`103` |
+
+### 13.11 Pertanyaan desain untuk ditinjau pemilik sebelum development lock
+
+Bukan keputusan bisnis baru — pilihan realisasi yang agent ambil dan perlu dilihat pemilik.
+
+**Dijawab 22 September 2026:** ketiganya disahkan apa adanya — `IGD-OQ-104` → `IGD-DEC-159`, `IGD-OQ-105` →
+`IGD-DEC-160`, `IGD-OQ-106` → `IGD-DEC-161`. Rekonsiliasi tanpa layar (`IGD-OQ-107`) → `IGD-DEC-162`.
+
+| ID | Pilihan desain | Alasan | Bila ditolak |
+| --- | --- | --- | --- |
+| `IGD-OQ-104` | Waktu tiba hanya dapat diubah lewat `PATCH /{id}/arrival-time`; `PUT` menolak perubahannya | Satu jalur yang menegakkan `IGD-DEC-152` dan menulis penanda; nol layar memakai `PUT` | `PUT` menjalankan validasi yang sama dan ikut menandai `Confirmed` |
+| `IGD-OQ-105` | Konfirmasi waktu tiba sesudah Tangani Segera diwajibkan **di layar** triage susulan, tetapi backend **tidak** menolak penyimpanan triage bila waktu tiba masih `Fallback` | Backend yang menahan catatan klinis karena urusan waktu tiba berisiko menunda dokumentasi pasien gawat | Backend menolak triage selama `Fallback` |
+| `IGD-OQ-106` | Ruas kedatangan non-waktu (cara datang, jenis kasus, keluhan, penanda pasien tanpa identitas) diisi opsional pada Mulai Triage; keluhan diisi awal dari `RegPatientEncounter.ChiefComplaint` | Loket tidak lagi melahirkan kunjungan, sehingga ruas milik kunjungan tidak punya tempat di loket | Loket tetap mengisi, disimpan sementara di tempat lain (butuh keputusan penyimpanan) |
+
+## 14. Penutupan kunjungan lewat disposisi yang dilaksanakan — 23 September 2026
+
+Desain target untuk `IGD-DEC-163`…`169` (amendment pass 23 September 2026). Slice ini **sempit**: satu aturan baru,
+satu kolom baru, nol tabel baru, nol endpoint baru. Status seluruh isi bagian ini: `draft`, **Rencana (belum tersedia)**.
+
+Masukan: decision log bagian "Amendment pass 23 September 2026"; capability map suplemen revision 3.3
+(`dce1f138`); gerbang requirement `S5` `READY_FOR_DOMAIN_DESIGN`. Keberlakuan QBE: `TOUCHED LEGACY` untuk
+`EmgVisit`, `EmergencyVisitService`, dan empat controller pemicu; `NEW CODE` untuk method penutupan susulan.
+
+### 14.1 Tabel kepemilikan data
+
+| Kelompok data | Pemilik | Dipakai slice ini | Dibuat ulang? |
+| --- | --- | --- | --- |
+| Kunjungan IGD (`EmgVisit`) | IGD | Ya — **Diperbarui**, satu kolom penanda asal penutupan | — |
+| Disposisi IGD (`EmgDisposition`) | IGD | Ya — dibaca sebagai pemicu; **nol kolom baru** | Tidak |
+| Observasi, kepergian, pesanan serah terima | IGD | Ya — dibaca sebagai penahan; **nol kolom baru** | Tidak |
+| Encounter pasien (`RegPatientEncounter`) | Registration Management | Ya — ditutup lewat jalur `BE-IGD-051` yang sudah ada, daftar kolom tertutup integration §5.2 | **Tidak**. Nol kolom baru |
+| Order darah (`BbkBloodOrder`), order laboratorium (`LabOrder`) | Bank Darah, Laboratorium | **Tidak disentuh** — hanya menjadi pembaca hilir (`IGD-DEC-169`) | Tidak |
+
+### 14.2 Class diagram — pemicu penutupan
+
+```mermaid
+classDiagram
+    class EmgVisit {
+        <<Diperbarui · IGD>>
+        +Guid Id
+        +EmergencyVisitStatus VisitStatus
+        +DateTime? VisitCompletedAt
+        +Guid? ClosedByDispositionId
+    }
+    class EmgDisposition {
+        <<Sudah ada · IGD>>
+        +Guid Id
+        +Guid EmergencyVisitId
+        +EmergencyDispositionStatus Status
+        +DateTime? ExecutedAt
+    }
+    class EmergencyVisitService {
+        <<Diperbarui · IGD>>
+        +TryApplyVisitStatus(...) bool
+        +ApplyEncounterClosureAsync(...) bool
+        +TryCloseAfterDispositionAsync(visitId, actor, now, ct) HasilPenutupanSusulan
+    }
+    class EmergencyDispositionService {
+        <<Sudah ada · IGD>>
+        +ValidateVisitClosureAsync(visit, ct) string?
+    }
+    class EmergencyDepartureService {
+        <<Sudah ada · IGD>>
+        +AmbilPesananPenahanPenutupanAsync(visitId, ct) string[]
+    }
+    EmergencyVisitService ..> EmergencyDispositionService : memanggil penjaga
+    EmergencyDispositionService ..> EmergencyDepartureService : pesanan penahan
+    EmergencyVisitService ..> EmgVisit : menutup
+    EmergencyVisitService ..> EmgDisposition : membaca pemicu
+```
+
+**Nol siklus dependency.** `EmergencyDispositionService` hanya bergantung pada `ApplicationDbContext` dan
+`EmergencyDepartureService`; ia **tidak** memanggil `EmergencyVisitService`. Karena itu `EmergencyVisitService`
+boleh memanggilnya. Keduanya sudah terdaftar di `Program.cs` (`:515`, `:520`), sehingga slice ini **nol perubahan
+`Program.cs`**.
+
+### 14.3 Penjelasan class
+
+| Class | Jenis | Status | Lokasi file | Tanggung jawab |
+| --- | --- | --- | --- | --- |
+| `EmgVisit` | Model | **Diperbarui** | `Areas/HealthServices/EmergencyInstallationManagement/Models/EmgVisit.cs` | + `ClosedByDispositionId` beserta navigasi `ClosedByDisposition` |
+| `EmergencyVisitService` | Service | **Diperbarui** | `…/Services/EmergencyVisitService.cs` | + `TryCloseAfterDispositionAsync` dan record hasilnya; constructor + `EmergencyDispositionService`. **Tidak** menyimpan sendiri — penyimpanan tetap milik pemanggil, sama seperti `ApplyEncounterClosureAsync` |
+| `EmergencyDispositionController` | Controller | **Diperbarui** | `…/Controllers/EmergencyDispositionController.cs` | Sesudah disposisi berpindah ke `Executed` (`:300` `UpdateDispositionStatus`), panggil penutupan susulan sebelum `SaveChanges`. Tambah penolakan pembatalan atas kunjungan yang sudah selesai |
+| `EmergencyObservationController` | Controller | **Diperbarui** | `…/Controllers/EmergencyObservationController.cs` | Sesudah observasi tidak lagi aktif (`:261` `UpdateObservationStatus`), panggil penutupan susulan |
+| `EmergencyDepartureController` | Controller | **Diperbarui** | `…/Controllers/EmergencyDepartureController.cs` | Sesudah serah terima diterima/ditolak/dibatalkan (`:162`, `:172`, `:206`) dan sesudah sikap pesanan ditetapkan (`:118`, `:129`, `:135`), panggil penutupan susulan |
+| `EmergencyVisitController` | Controller | **Diperbarui** | `…/Controllers/EmergencyVisitController.cs` | `GET /` bertambah saringan `awaitingClosure`; `EmergencyVisitResponse` bertambah dua ruas penahan |
+| `EmergencyVisitDtos.cs` | DTO | **Diperbarui** | `…/DTOs/EmergencyVisitDtos.cs` | + `IsAwaitingClosure`, `AwaitingClosureReason` pada response |
+| `EmgVisitConfiguration` | Configuration | **Diperbarui** | `Repositories/Configurations/HealthServices/EmergencyInstallationManagement/EmgVisitConfiguration.cs` | FK `ClosedByDispositionId` → `EmgDisposition`, `Restrict` |
+
+### 14.4 Arsitektur folder
+
+```text
+Areas/HealthServices/EmergencyInstallationManagement/
+├── Controllers/
+│   ├── EmergencyDispositionController.cs     Diperbarui  (pemicu 1 + penolakan pembatalan)
+│   ├── EmergencyObservationController.cs     Diperbarui  (pemicu 2)
+│   ├── EmergencyDepartureController.cs       Diperbarui  (pemicu 3 dan 4)
+│   └── EmergencyVisitController.cs           Diperbarui  (saringan + ruas response)
+├── DTOs/EmergencyVisitDtos.cs                Diperbarui
+├── Models/EmgVisit.cs                        Diperbarui  (+1 kolom)
+└── Services/EmergencyVisitService.cs         Diperbarui  (+1 method)
+
+Repositories/Configurations/…/EmgVisitConfiguration.cs   Diperbarui  (+1 FK)
+Migrations/                                              1 migration — dibuat Rizki
+Program.cs                                               TIDAK disentuh
+```
+
+### 14.5 Status model dan kolom
+
+**`EmgVisit` — Diperbarui** (`public."EmgVisit"`)
+
+| Kolom | Tipe | Wajib | Bawaan | Validasi | Sensitif |
+| --- | --- | :-: | --- | --- | :-: |
+| `ClosedByDispositionId` | `uuid?` | Tidak | `null` | FK `EmgDisposition`, `Restrict`. Terisi **hanya** bila penutupan berasal dari disposisi yang dilaksanakan; kosong berarti ditutup petugas lewat aksi selesaikan kunjungan | Tidak |
+
+Index: satu index FK bawaan konvensi EF. Perilaku hapus: tidak berubah. Nol kolom baru pada tabel lain.
+
+Kolom ini yang memenuhi `IGD-DEC-165`: riwayat kunjungan dapat menunjukkan bahwa penutupan berasal dari disposisi,
+dan disposisi mana. Tanpanya, penutupan otomatis tidak dapat dibedakan dari penutupan manual.
+
+### 14.6 Rencana migration
+
+| Urutan | Nama | Isi | Tanpa downtime | Data lama | Cara mundur | Task |
+| ---: | --- | --- | :-: | --- | --- | --- |
+| 1 | `AddEmergencyVisitClosureSource` | 1 kolom `ClosedByDispositionId` pada `EmgVisit` + FK + index | Ya — kolom nullable tanpa bawaan | Seluruh baris lama `null` (artinya: ditutup manual atau belum ditutup) | `Down()` **berpenjaga**: menolak bila ada baris `ClosedByDispositionId IS NOT NULL`, supaya jejak asal penutupan tidak hilang diam-diam | Kartu baru R3.14 |
+
+Dibuat **Rizki sendiri**, di atas migration terakhir yang berlaku. Agent berhenti sebelum `dotnet ef migrations add`.
+
+### 14.7 Rencana data master awal
+
+**Tidak ada master baru.** `IGD-DEC-163` sengaja tidak menambah kolom penanda pada `EmgDispositionType`: aturan
+berlaku untuk semua jenis disposisi, sehingga jenis yang ditambahkan rumah sakit kelak ikut berlaku tanpa
+pengisian master apa pun.
+
+### 14.8 Konkurensi
+
+| Risiko | Penjaga |
+| --- | --- |
+| Dua petugas membereskan dua penahan terakhir bersamaan, keduanya mencoba menutup | `TryApplyVisitStatus` menolak perpindahan dari `Completed`, sehingga percobaan kedua tidak berbuat apa-apa dan tidak menimpa `VisitCompletedAt` |
+| Penutupan susulan berbarengan dengan aksi selesaikan kunjungan manual | Sama — satu-satunya penulis `VisitStatus` tetap penjaga transisi `BE-IGD-018` |
+| Penahan dibereskan lalu segera muncul penahan baru | Penutupan dievaluasi pada saat aksi disimpan; bila penahan baru muncul sesudahnya, kunjungan sudah tertutup dan penahan itu ditolak jalur masing-masing |
+
+### 14.9 Yang sengaja tidak dibuat
+
+| Tidak dibuat | Sebab |
+| --- | --- |
+| Proses latar penutup terjadwal | `IGD-DEC-165` menolak penutupan tanpa pelaku manusia; pelaku selalu petugas yang membereskan penahan terakhir |
+| Kolom penanda "menutup kunjungan" pada `EmgDispositionType` | `IGD-DEC-163` berlaku untuk semua jenis; kolom itu justru membuka celah "jenis yang lupa ditandai" |
+| Endpoint atau layar khusus daftar "menunggu penutupan" | `IGD-DEC-168` memilih saringan pada daftar kunjungan yang sudah ada |
+| Kolom `VisitClosureSource` bertipe enum | Satu kolom FK `ClosedByDispositionId` sudah menjawab dua hal sekaligus: dari mana penutupan berasal, dan disposisi mana |
+| Pembukaan kembali kunjungan yang sudah selesai | `IGD-DEC-166`; invariant `Completed` final sudah berlaku di source hari ini |
+| Perubahan pada modul Bank Darah dan Laboratorium | `IGD-DEC-169` menerima konsekuensi hilir apa adanya |

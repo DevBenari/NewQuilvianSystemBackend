@@ -123,15 +123,16 @@ Berkas ini diperbarui menjadi kontrak sungguhan ketika tiga hal terpenuhi. Keada
 
 | # | Syarat | Keadaan |
 |---:|---|---|
-| 1 | `ACC-XM-001` diputuskan bersama owner Billing dan owner Finance | **Sebagian.** Diputuskan sisi Accounting lewat `ACC-DEC-044`; **ratifikasi owner Billing dan owner Finance belum ada** |
+| 1 | `ACC-XM-001` diputuskan bersama owner Billing dan owner Finance | **Selesai 24 September 2026.** Accounting `ACC-DEC-044`, Billing `ACC-DEC-059`, Finance `FIN-DEC-001`; ditutup `ACC-DEC-082` |
 | 2 | Sembilan pertanyaan `DEFERRED` pada `ACC-DEC-036` dijawab | **Selesai.** Menjadi `ACC-DEC-045` sampai `ACC-DEC-053` |
 | 3 | Kedua gerbang pada bagian 4 dilewati | **Selesai.** `READY_FOR_DOMAIN_DESIGN` dan `DOMAIN_ARCHITECTURE_READY` |
 
-Dua dari tiga terpenuhi. Karena itu **rancangan** Phase 2 boleh disusun dan sudah disusun — lihat
-bagian 6 di bawah.
+~~Dua dari tiga terpenuhi.~~ **Ketiganya terpenuhi sejak 24 September 2026.**
 
-> **Yang masih dilarang tidak berubah:** tidak ada satu pun kode integrasi yang boleh ditulis
-> sampai syarat nomor 1 terpenuhi penuh. Rancangan boleh, kode belum.
+> ~~Yang masih dilarang tidak berubah: tidak ada satu pun kode integrasi yang boleh ditulis sampai
+> syarat nomor 1 terpenuhi penuh.~~ **Larangan dicabut `ACC-DEC-082`.** Kode kotak masuk kejadian
+> boleh ditulis. Yang masih ditahan adalah **pengaktifan pengiriman** dari Finance, oleh gerbang
+> cutover pada bagian 6.9.
 
 ---
 
@@ -139,11 +140,12 @@ bagian 6 di bawah.
 
 | Field | Nilai |
 |---|---|
-| `contract_version` | `ACC-INTEGRATION-0.4` |
-| `last_changed_in` | `ACC-INTEGRATION-0.4` — 15 September 2026. Sebelumnya `0.3`, 8 September 2026 |
-| Status | **`approved`** sampai `0.3` — Rizki, 8 September 2026. **`0.4` belum di-approve atas teksnya**: hanya menyelaraskan bagian 6.3, 6.4, dan 6.7 dengan `ACC-DEC-060` dan `ACC-DEC-075`, yang keduanya sudah diputuskan owner. **Implementasi tetap terkunci** sampai `ACC-XM-001` diratifikasi owner Finance |
+| `contract_version` | `ACC-INTEGRATION-0.5` |
+| `last_changed_in` | `ACC-INTEGRATION-0.5` — 24 September 2026. Sebelumnya `0.4`, 15 September 2026; `0.3`, 8 September 2026 |
+| Status | **`approved`** sampai `0.3` — Rizki, 8 September 2026. Teks `0.4` dan `0.5` hanya menuliskan keputusan owner yang sudah `approved` (`ACC-DEC-060`, `075`, `082`..`090`); **approval atas teksnya sendiri menunggu Rizki**. **Implementasi tidak lagi terkunci**: `ACC-XM-001` ditutup `ACC-DEC-082` |
+| Perubahan `0.4` → `0.5` | (1) Kunci implementasi dicabut (`ACC-DEC-082`). (2) Mode pemrosesan seketika dengan penjadwal cadangan, bagian 6.8 (`ACC-DEC-084`). (3) Gerbang cutover G1–G6, bagian 6.9 (`ACC-DEC-089`, `090`). (4) Tabel 6.7 dimutakhirkan. Nol perubahan arah, pintu masuk, bentuk pesan, dan kunci anti-ganda |
 | Perubahan `0.3` → `0.4` | (1) Kunci anti-ganda kedua memakai `EventTypeCode`, bukan `EventTypeId` (`ACC-DEC-075` butir 4) — kamus data bagian 9 dan `02-backend-architecture.md` sudah memakainya sejak 14 September 2026, hanya berkas ini yang tertinggal. (2) Bagian 6.7 mencatat `CorrelationId`/`CausationId` sudah wajib, bukan lagi usulan. (3) Bagian 6.3 butir 1 "kesepuluhnya" menjadi "kedua belasnya", sesuai judul bagian dan `ACC-DEC-060`. Nol perubahan arah, pintu masuk, maupun perilaku |
-| Traceability | `ACC-DEC-044`, `045`, `046`, `047`, `048`, `049`, `056`, `059`, `060`, `075` |
+| Traceability | `ACC-DEC-044`, `045`, `046`, `047`, `048`, `049`, `056`, `059`, `060`, `075`, `082`, `083`, `084`, `085`, `088`, `089`, `090`; `FIN-DEC-001`, `002`, `008` |
 
 ### 6.1 Arah dan pemilik
 
@@ -199,7 +201,7 @@ menulis `EventTypeId`.
 
 | Keadaan | Perlakuan | Dasar |
 |---|---|---|
-| Gangguan teknis | Coba ulang 3 kali dengan jeda makin panjang, lalu masuk daftar gagal; Accounting Manager diberi tahu lewat penanda jumlah menu | `ACC-DEC-049`, `ACC-DEC-057` |
+| Gangguan teknis | Kejadian yang sudah tersimpan tetap `Diterima` dan dijawab `201` tanpa nomor jurnal; penjadwal mencoba ulang 3 kali dengan jeda makin panjang, lalu masuk daftar gagal; Accounting Manager diberi tahu lewat penanda jumlah menu | `ACC-DEC-049`, `ACC-DEC-057`, `ACC-DEC-084` |
 | Jenis kejadian belum dipetakan | Kejadian **Tertahan**, nol jurnal dibuat, nol akun sementara dipakai | `ACC-DEC-046` |
 | Periode sudah tertutup | Jurnal masuk periode terbuka berikutnya; tanggal dokumen asli disimpan | `ACC-DEC-047` |
 | Mata uang bukan rupiah | Ditolak `409` | `ACC-DEC-020` |
@@ -215,6 +217,22 @@ Kejadian `Gagal` **menahan** penutupan; kejadian `Tertahan` hanya **memperingatk
 | Langkah | Pemilik | Keadaan |
 |---|---|---|
 | Ratifikasi `ACC-DEC-044` | Owner Billing | **Selesai 9 September 2026** — `ACC-DEC-059`. Finance menerbitkan kejadian tersendiri; Accounting **dilarang** membaca `BilArHandoff` langsung |
-| Ratifikasi `ACC-DEC-048` bentuk pesan | Owner Finance (Yasmin) | **Belum.** Termasuk dua bidang `CorrelationId` dan `CausationId` yang **sudah wajib** sejak `ACC-DEC-060` — dulu tercatat sebagai usulan, lihat [`evidence/10`](../evidence/10-billing-arap-handoff-scan.md) bagian 21.2. Bahan untuk Yasmin: [`evidence/12`](../evidence/12-paket-kontrak-kejadian-untuk-finance.md) |
-| Menetapkan daftar jenis kejadian (`DEC-ACC-P2-002`) | Rizki dan Yasmin | **Belum** |
-| Modul Finance berdiri (`ACC-DEP-004`) | Yasmin | **Belum** — diperiksa 8 September 2026, `Areas/Corporate/` hanya memuat `AccountingManagement` dan `HumanResource` |
+| Ratifikasi `ACC-DEC-048` bentuk pesan | Owner Finance (Yasmin) | **Selesai 20 September 2026** — `FIN-DEC-001`, apa adanya. Termasuk dua bidang `CorrelationId` dan `CausationId` yang **sudah wajib** sejak `ACC-DEC-060` — dulu tercatat sebagai usulan, lihat [`evidence/10`](../evidence/10-billing-arap-handoff-scan.md) bagian 21.2. Bahan untuk Yasmin: [`evidence/12`](../evidence/12-paket-kontrak-kejadian-untuk-finance.md) |
+| Menetapkan daftar jenis kejadian (`DEC-ACC-P2-002`) | Rizki dan Yasmin | **Selesai 24 September 2026** — 17 kode, `FIN-DEC-002` + `ACC-DEC-083` |
+| Modul Finance berdiri (`ACC-DEP-004`) | Yasmin | **Selesai** — diperiksa 24 September 2026, `Areas/Corporate/FinanceManagement/AccountingIntegration/` berdiri; `FinAccountingEventOutbox` cocok dua belas bidang |
+
+### 6.8 Kapan jurnal dibuat — `ACC-DEC-084`
+
+Seketika di dalam request penerimaan, dengan penjadwal sebagai cadangan. Kejadian disimpan dan
+di-commit lebih dahulu, baru dijurnal. Hasilnya `201` dengan nomor jurnal (`Terjurnal`), `422`
+(`Tertahan`), atau — bila gangguan teknis terjadi setelah kejadian tersimpan — `201` tanpa nomor
+jurnal, lalu `AccAccountingEventSchedulerHostedService` mencoba ulang. Isi balasannya
+(`AccountingEventReceiptDto`) ada di [`cross-module-contract.md`](cross-module-contract.md) bagian 4b.
+
+### 6.9 Gerbang cutover — `ACC-DEC-089`, `ACC-DEC-090`
+
+Pengiriman dari Finance diaktifkan pada tanggal 1 pukul 00.00 WIB di awal periode akuntansi
+pertama setelah enam gerbang lolos: G1 kotak masuk teruji, G2 `ACC-TD-022` ditutup beserta aturan
+posting, G3 akun layanan aktif, G4 pengirim Finance siap, G5 saldo awal siap, G6 deposit/refund/
+selisih shift terjawab. Rinciannya di [`cross-module-contract.md`](cross-module-contract.md)
+bagian 13. **1 Oktober 2026 dinyatakan tidak layak.**

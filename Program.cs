@@ -484,6 +484,7 @@ try
     builder.Services.AddScoped<PrescriptionReviewService>();
     builder.Services.AddScoped<PrescriptionPreparationService>();
     builder.Services.AddScoped<PrescriptionFinalCheckService>();
+    builder.Services.AddScoped<PrescriptionFinancialClearanceService>();
     builder.Services.AddScoped<PharmacyDepotRoutingService>();
     builder.Services.AddScoped<StockRequestService>();
     builder.Services.AddScoped<DrugStockService>();
@@ -523,6 +524,7 @@ try
     builder.Services.AddScoped<EmergencyDispositionService>();
     builder.Services.AddScoped<EmergencyDepartureService>();
     builder.Services.AddScoped<EmergencyUnitAuthorityService>();
+    builder.Services.AddScoped<EmergencyDoctorAssignmentService>();
     builder.Services.AddScoped<EmergencySettingService>();
 
     // Rawat Inap. Tanpa pendaftaran ini seluruh controller Rawat Inap gagal dibuat oleh
@@ -776,6 +778,12 @@ try
     builder.Services.AddScoped<BillingModuleService>();
 
     builder.Services.AddScoped<BillingNumberSeriesService>();
+
+    // Registrasi ini tertinggal ketika BilConsumerHandoffService dibuat: sembilan service
+    // Billing menuntutnya lewat konstruktor, sehingga validasi service provider menolak
+    // membangun aplikasi dan backend TIDAK DAPAT START sama sekali — bukan hanya modul
+    // Billing. Satu baris ini mengembalikan keadaannya, tanpa menyentuh aturan bisnis.
+    builder.Services.AddScoped<BilConsumerHandoffService>();
 
     builder.Services.AddScoped<BillingAllocationService>();
 

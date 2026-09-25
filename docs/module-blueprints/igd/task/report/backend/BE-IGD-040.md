@@ -15,7 +15,7 @@
 | Task mode | `BACKEND` — frontend hanya dibaca untuk memeriksa pemanggil |
 | Target tulis | `NewQuilvianSystemBackend` (branch `rizkiG`): `EmergencyObservationController.cs`; laporan ini, roadmap, dan traceability |
 | Model | Claude Opus 5 (`claude-opus-5`) |
-| Commit backend saat dikerjakan | `7b0c2ece` (branch `rizkiG`), perubahan belum di-commit |
+| Commit backend saat dikerjakan | Dikerjakan di atas `7b0c2ece` (branch `rizkiG`). Perubahan kemudian di-commit owner pada `9f464cf3` (15 September 2026) dan tidak berubah oleh merge `0aa42668` — lihat bagian 8 |
 | Tanggal | 15 September 2026 |
 | Status | **Implementation complete.** Build **Not Verified** — tidak dijalankan agent sesuai alur kerja owner; perintahnya di bagian 5. **Runtime not verified.** Bukan UAT |
 
@@ -241,5 +241,25 @@ apa pun.
 | Risiko tersisa | Rendah. Build belum dibuktikan; pola sintaks yang dipakai (`is … or …`, property pattern `{ Length: > konstanta }`) didukung C# pada `net9.0` |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` |
-| Status Git | Source: ` M Areas/HealthServices/EmergencyInstallationManagement/Controllers/EmergencyObservationController.cs`. Dokumen `docs/module-blueprints/igd/**` juga berubah — sebagian dari sesi sebelumnya yang belum di-commit |
+| Status Git | Saat pertama ditulis: ` M Areas/HealthServices/EmergencyInstallationManagement/Controllers/EmergencyObservationController.cs` beserta dokumen `docs/module-blueprints/igd/**`. Sesudah pemeriksaan ulang: source sudah di-commit (`9f464cf3`); working tree hanya memuat pembaruan laporan ini dan baris status roadmap |
 | Langkah berikutnya | Rizki menjalankan build di atas, lalu uji API manual contoh 1–6. Sesudah itu `FE-IGD-024` (isian Kesimpulan) boleh dimulai |
+
+---
+
+## 8. Pemeriksaan ulang terhadap HEAD terbaru — 15 September 2026
+
+Task diminta ulang setelah HEAD `rizkiG` bergerak. Tidak ada source yang disunting ulang; yang
+dilakukan hanya memastikan implementasi masih utuh dan tidak terganggu perubahan lain.
+
+| Pemeriksaan | Hasil |
+| --- | --- |
+| HEAD saat diperiksa | `0aa42668` — *Merge pull request #146 from DevBenari/QuilvianIntegrationBackend* |
+| Commit yang memuat BE-IGD-040 | `9f464cf3` (Rizki Gunawan, 15 September 2026 12.01) — memuat `EmergencyObservationController.cs` (+36/−4) dan laporan ini |
+| `git diff 9f464cf3 0aa42668` | Kosong untuk seluruh repository — merge tidak mengubah isi berkas apa pun |
+| Isi source saat ini | `MaxObservationStatusNotesLength = 1000` ada; pemeriksaan 400 *"Catatan paling banyak 1000 karakter."* ada sebelum `TryApplyVisitStatus`; `CompletionSummary = catatan ?? …` dan `EscalationReason = catatan ?? …` ada; `GetProperty("Notes")` **tidak ada lagi** pada controller ini |
+| Dependensi di luar controller | `UpdateEmergencyObservationObservationStatusRequest.Notes` tetap `[MaxLength(2000)]`; `EmgObservationConfiguration` tetap `HasMaxLength(1000)` untuk kedua kolom; `Program.cs` tetap tanpa `InvalidModelStateResponseFactory` kustom — delta pesan untuk catatan > 2000 karakter masih berlaku apa adanya |
+| Refleksi serupa di controller lain | Masih ada, tidak diubah: `EmergencyVisitController.cs` baris 384, 432, 497; `EmergencyResuscitationController.cs` baris 317; `EmergencyTriageController.cs` baris 474 |
+| Build | **Not Verified** — tetap tidak dijalankan agent; tidak ada bukti build dari owner yang dilampirkan |
+| Runtime | **Belum** — uji API manual contoh 1–6 belum dijalankan |
+
+Status task tidak berubah: implementasi selesai, build dan runtime belum diverifikasi.

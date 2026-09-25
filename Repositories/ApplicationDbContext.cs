@@ -779,6 +779,9 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<PhmStockRequestItem> PhmStockRequestItems { get; set; }
         public DbSet<PhmStockRequestHistory> PhmStockRequestHistories { get; set; }
 
+        // Salinan keadaan finansial resep menurut Billing (PHA-DES-001). Bukan sumber kebenaran.
+        public DbSet<PhmPrescriptionFinancialProjection> PhmPrescriptionFinancialProjections { get; set; }
+
         public DbSet<PhmDrugBatch> PhmDrugBatches { get; set; }
         public DbSet<PhmDrugStockBalance> PhmDrugStockBalances { get; set; }
         public DbSet<PhmDrugStockMutation> PhmDrugStockMutations { get; set; }
@@ -940,6 +943,7 @@ namespace QuilvianSystemBackend.Repositories
 
         #region transaction
         public DbSet<EmgVisit> EmgVisits { get; set; }
+        public DbSet<EmgDoctorAssignment> EmgDoctorAssignments { get; set; }
         public DbSet<EmgTriage> EmgTriages { get; set; }
         public DbSet<EmgTriageDetail> EmgTriageDetails { get; set; }
         public DbSet<EmgResuscitation> EmgResuscitations { get; set; }
@@ -950,22 +954,24 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<EmgDeparture> EmgDepartures { get; set; }
         public DbSet<EmgDepartureEvent> EmgDepartureEvents { get; set; }
         public DbSet<EmgHandoverOrderItem> EmgHandoverOrderItems { get; set; }
+        public DbSet<EmgEncounterReconciliationRun> EmgEncounterReconciliationRuns { get; set; }
+        public DbSet<EmgEncounterReconciliationItem> EmgEncounterReconciliationItems { get; set; }
         #endregion
 
         #endregion
 
         #region HEALTH SERVICE - Nutrition Management
 
-        public DbSet<GzNutritionOrder> GzNutritionOrders { get; set; }
-        public DbSet<GzNutritionCareRecord> GzNutritionCareRecords { get; set; }
-        public DbSet<GzNutritionOrderHistory> GzNutritionOrderHistories { get; set; }
-        public DbSet<GzDietType> GzDietTypes { get; set; }
-        public DbSet<GzFoodForm> GzFoodForms { get; set; }
-        public DbSet<GzMealSchedule> GzMealSchedules { get; set; }
-        public DbSet<GzPatientDiet> GzPatientDiets { get; set; }
-        public DbSet<GzProductionBatch> GzProductionBatches { get; set; }
-        public DbSet<GzProductionBatchDetail> GzProductionBatchDetails { get; set; }
-        public DbSet<GzMealDelivery> GzMealDeliveries { get; set; }
+        public DbSet<GziNutritionOrder> GziNutritionOrders { get; set; }
+        public DbSet<GziNutritionCareRecord> GziNutritionCareRecords { get; set; }
+        public DbSet<GziNutritionOrderHistory> GziNutritionOrderHistories { get; set; }
+        public DbSet<GziDietType> GziDietTypes { get; set; }
+        public DbSet<GziFoodForm> GziFoodForms { get; set; }
+        public DbSet<GziMealSchedule> GziMealSchedules { get; set; }
+        public DbSet<GziPatientDiet> GziPatientDiets { get; set; }
+        public DbSet<GziProductionBatch> GziProductionBatches { get; set; }
+        public DbSet<GziProductionBatchDetail> GziProductionBatchDetails { get; set; }
+        public DbSet<GziMealDelivery> GziMealDeliveries { get; set; }
 
         #endregion
 

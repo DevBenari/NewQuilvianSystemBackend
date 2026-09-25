@@ -12,7 +12,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.DTOs;
 /// Seluruh identitas pasien, ruang, bed, dan DPJP dibaca dari modul yang memilikinya —
 /// tidak ada satu pun yang disalin ke tabel Gizi.
 /// </remarks>
-public class GzNutritionPatientResponse
+public class GziNutritionPatientResponse
 {
     public Guid PatientId { get; set; }
     public Guid EncounterId { get; set; }
@@ -36,11 +36,11 @@ public class GzNutritionPatientResponse
     public string? DietInstruction { get; set; }
 
     /// <summary>Kosong bila pasien belum punya diet aktif.</summary>
-    public GzPatientDietStatus? DietStatus { get; set; }
+    public GziPatientDietStatus? DietStatus { get; set; }
     public int? DietVersion { get; set; }
 }
 
-public class GzNutritionPatientQuery
+public class GziNutritionPatientQuery
 {
     public string? Search { get; set; }
     public Guid? ServiceUnitId { get; set; }
@@ -85,7 +85,7 @@ public class StopGzDietRequest
     [Required, MaxLength(100)] public string IdempotencyKey { get; set; } = string.Empty;
 }
 
-public class GzPatientDietResponse
+public class GziPatientDietResponse
 {
     public Guid Id { get; set; }
     public Guid? NutritionOrderId { get; set; }
@@ -101,7 +101,7 @@ public class GzPatientDietResponse
 
     public int? EnergyRequirementKcal { get; set; }
     public string? Instruction { get; set; }
-    public GzPatientDietStatus Status { get; set; }
+    public GziPatientDietStatus Status { get; set; }
     public DateTime StartAt { get; set; }
     public DateTime? EndAt { get; set; }
     public string? ChangeReason { get; set; }
@@ -121,20 +121,20 @@ public class CreateGzProductionBatchRequest
 
 public class ChangeGzBatchStatusRequest
 {
-    [Required] public GzProductionBatchStatus Status { get; set; }
+    [Required] public GziProductionBatchStatus Status { get; set; }
     [MaxLength(1000)] public string? Reason { get; set; }
     [Required] public int ExpectedVersion { get; set; }
     [Required, MaxLength(100)] public string IdempotencyKey { get; set; } = string.Empty;
 }
 
-public class GzProductionBatchSummaryResponse
+public class GziProductionBatchSummaryResponse
 {
     public Guid Id { get; set; }
     public string BatchNumber { get; set; } = string.Empty;
     public DateOnly ServiceDate { get; set; }
     public Guid MealScheduleId { get; set; }
     public string MealScheduleName { get; set; } = string.Empty;
-    public GzProductionBatchStatus Status { get; set; }
+    public GziProductionBatchStatus Status { get; set; }
     public int TotalPortion { get; set; }
     public DateTime? ConfirmedAt { get; set; }
     public DateTime? ReadyAt { get; set; }
@@ -145,23 +145,23 @@ public class GzProductionBatchSummaryResponse
     public int DietChangedCount { get; set; }
 }
 
-public class GzProductionBatchDetailResponse : GzProductionBatchSummaryResponse
+public class GziProductionBatchDetailResponse : GziProductionBatchSummaryResponse
 {
     public string? Note { get; set; }
     public string? CancelReason { get; set; }
-    public List<GzProductionPortionResponse> Portions { get; set; } = [];
-    public List<GzProductionGroupResponse> Groups { get; set; } = [];
+    public List<GziProductionPortionResponse> Portions { get; set; } = [];
+    public List<GziProductionGroupResponse> Groups { get; set; } = [];
 }
 
 /// <summary>Rekap porsi per jenis diet dan bentuk makanan; yang dipakai dapur memasak.</summary>
-public class GzProductionGroupResponse
+public class GziProductionGroupResponse
 {
     public string DietTypeName { get; set; } = string.Empty;
     public string FoodFormName { get; set; } = string.Empty;
     public int Portion { get; set; }
 }
 
-public class GzProductionPortionResponse
+public class GziProductionPortionResponse
 {
     public Guid Id { get; set; }
     public Guid PatientId { get; set; }
@@ -188,7 +188,7 @@ public class GzProductionPortionResponse
     public string? CurrentDietTypeName { get; set; }
 
     public Guid? DeliveryId { get; set; }
-    public GzMealDeliveryStatus? DeliveryStatus { get; set; }
+    public GziMealDeliveryStatus? DeliveryStatus { get; set; }
     public DateTime? DeliveredAt { get; set; }
     public int? LeftoverPercent { get; set; }
     public string? DeliveryNote { get; set; }
@@ -199,7 +199,7 @@ public class GzProductionPortionResponse
 public class RecordGzMealDeliveryRequest
 {
     [Required] public Guid ProductionBatchDetailId { get; set; }
-    [Required] public GzMealDeliveryStatus Status { get; set; } = GzMealDeliveryStatus.Delivered;
+    [Required] public GziMealDeliveryStatus Status { get; set; } = GziMealDeliveryStatus.Delivered;
     [Required] public Guid DeliveredByWorkforceId { get; set; }
     [Range(0, 100)] public int? LeftoverPercent { get; set; }
     [MaxLength(1000)] public string? Note { get; set; }
@@ -208,7 +208,7 @@ public class RecordGzMealDeliveryRequest
 
 // ======================================================================= master
 
-public class GzMasterOptionResponse
+public class GziMasterOptionResponse
 {
     public Guid Id { get; set; }
     public string Code { get; set; } = string.Empty;

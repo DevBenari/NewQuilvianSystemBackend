@@ -24,8 +24,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models;
 /// ditegakkan indeks unik tersaring di basis data.
 /// </para>
 /// </remarks>
-[Table("GzProductionBatch", Schema = "public")]
-public class GzProductionBatch : IdentityModel
+[Table("GziProductionBatch", Schema = "public")]
+public class GziProductionBatch : IdentityModel
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -34,7 +34,7 @@ public class GzProductionBatch : IdentityModel
     public DateOnly ServiceDate { get; set; }
     [Required] public Guid MealScheduleId { get; set; }
 
-    public GzProductionBatchStatus Status { get; set; } = GzProductionBatchStatus.Draft;
+    public GziProductionBatchStatus Status { get; set; } = GziProductionBatchStatus.Draft;
 
     /// <summary>Jumlah porsi seluruh detail; disimpan agar daftar batch tidak perlu menghitung ulang.</summary>
     public int TotalPortion { get; set; }
@@ -48,8 +48,8 @@ public class GzProductionBatch : IdentityModel
 
     public int Version { get; set; }
 
-    public GzMealSchedule? MealSchedule { get; set; }
-    public ICollection<GzProductionBatchDetail> Details { get; set; } = [];
+    public GziMealSchedule? MealSchedule { get; set; }
+    public ICollection<GziProductionBatchDetail> Details { get; set; } = [];
 }
 
 /// <summary>
@@ -60,8 +60,8 @@ public class GzProductionBatch : IdentityModel
 /// Nama ruang, bed, dan diet dapat berubah setelah makanan diproduksi; catatan produksi
 /// harus tetap menunjukkan apa yang berlaku saat itu, bukan apa yang berlaku sekarang.
 /// </remarks>
-[Table("GzProductionBatchDetail", Schema = "public")]
-public class GzProductionBatchDetail : IdentityModel
+[Table("GziProductionBatchDetail", Schema = "public")]
+public class GziProductionBatchDetail : IdentityModel
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -85,9 +85,9 @@ public class GzProductionBatchDetail : IdentityModel
 
     public int Portion { get; set; } = 1;
 
-    public GzProductionBatch? ProductionBatch { get; set; }
+    public GziProductionBatch? ProductionBatch { get; set; }
     public MstPatient? Patient { get; set; }
     public RegPatientEncounter? Encounter { get; set; }
-    public GzPatientDiet? PatientDiet { get; set; }
-    public ICollection<GzMealDelivery> Deliveries { get; set; } = [];
+    public GziPatientDiet? PatientDiet { get; set; }
+    public ICollection<GziMealDelivery> Deliveries { get; set; } = [];
 }

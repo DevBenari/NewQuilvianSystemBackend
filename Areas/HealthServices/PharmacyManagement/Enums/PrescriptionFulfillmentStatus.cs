@@ -35,6 +35,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Enums
         Rejected = 10,
 
         [Display(Name = "Dibatalkan")]
-        Cancelled = 11
+        Cancelled = 11,
+
+        /// <summary>Penyiapan selesai, menunggu telaah obat akhir oleh apoteker.</summary>
+        /// <remarks>
+        /// Telaah obat akhir wajib bagi seluruh resep sebelum obat boleh diserahkan.
+        /// Nilainya ditambahkan di urutan terakhir supaya angka status yang sudah
+        /// tersimpan di basis data tidak bergeser.
+        /// </remarks>
+        [Display(Name = "Menunggu Telaah Obat Akhir")]
+        AwaitingFinalCheck = 12
     }
 }
