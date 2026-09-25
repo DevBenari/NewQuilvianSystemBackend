@@ -497,6 +497,13 @@ try
     builder.Services.AddScoped<PrescriptionCopyService>();
     builder.Services.AddScoped<NutritionOrderService>();
     builder.Services.AddScoped<NutritionDietService>();
+    builder.Services.AddScoped<NutritionRequirementService>();
+
+    // Pencari rumus kebutuhan nutrisi. Didaftarkan singleton karena isinya hanya pemetaan
+    // kunci ke kelas perhitungan, dan pada V1 pemetaan itu KOSONG: rumus belum diserahkan
+    // pemilik proses (`GIZ-OQ-007` ditunda), sehingga nilai kalkulasi dibiarkan kosong dan
+    // ahli gizi mengisi nilai final sendiri.
+    builder.Services.AddSingleton<NutritionRequirementCalculator>();
     builder.Services.AddSingleton<OperatingRoomRuleRelaxation>();
     builder.Services.AddScoped<OperatingRoomCaseService>();
     builder.Services.AddScoped<OperatingRoomCredentialResolver>();

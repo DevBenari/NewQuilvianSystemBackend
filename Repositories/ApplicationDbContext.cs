@@ -972,6 +972,13 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<GziProductionBatch> GziProductionBatches { get; set; }
         public DbSet<GziProductionBatchDetail> GziProductionBatchDetails { get; set; }
         public DbSet<GziMealDelivery> GziMealDeliveries { get; set; }
+        public DbSet<GziNutritionDiagnosisDomain> GziNutritionDiagnosisDomains { get; set; }
+        public DbSet<GziNutritionDiagnosis> GziNutritionDiagnoses { get; set; }
+        public DbSet<GziNutritionCareRecordDiagnosis> GziNutritionCareRecordDiagnoses { get; set; }
+        public DbSet<GziNutritionParameter> GziNutritionParameters { get; set; }
+        public DbSet<GziNutritionFormula> GziNutritionFormulas { get; set; }
+        public DbSet<GziNutritionRequirement> GziNutritionRequirements { get; set; }
+        public DbSet<GziNutritionRequirementItem> GziNutritionRequirementItems { get; set; }
 
         #endregion
 

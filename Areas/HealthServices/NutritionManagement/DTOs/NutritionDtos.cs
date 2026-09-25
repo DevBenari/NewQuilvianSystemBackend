@@ -49,12 +49,18 @@ public class SaveGzCareRecordRequest
     [Range(0.1, 300)] public decimal? Height { get; set; }
     [MaxLength(2000)] public string? AssessmentNote { get; set; }
 
-    public Guid? NutritionDiagnosisId { get; set; }
+    /// <summary>Diagnosis IDNT yang ditegakkan pada kunjungan ini (`GIZ-DEC-011`).</summary>
+    public List<NutritionCareRecordDiagnosisRequest> Diagnoses { get; set; } = new();
+
     [MaxLength(1000)] public string? DiagnosisNote { get; set; }
 
     [MaxLength(2000)] public string? InterventionNote { get; set; }
-    [MaxLength(500)] public string? DietPrescription { get; set; }
-    [Range(1, 10000)] public int? EnergyRequirementKcal { get; set; }
+
+    /// <summary>Diet yang ditetapkan, menunjuk baris `GziPatientDiet` (`GIZ-DEC-012`).</summary>
+    public Guid? PatientDietId { get; set; }
+
+    /// <summary>Revisi kebutuhan nutrisi yang berlaku bagi kunjungan ini (`GIZ-DEC-012`).</summary>
+    public Guid? NutritionRequirementId { get; set; }
 
     [MaxLength(2000)] public string? IntakeRecallNote { get; set; }
     [Range(0, 100)] public int? IntakePercent { get; set; }
@@ -123,13 +129,12 @@ public class GziCareRecordResponse
     public decimal? Bmi { get; set; }
     public string? AssessmentNote { get; set; }
 
-    public Guid? NutritionDiagnosisId { get; set; }
-    public string? NutritionDiagnosisName { get; set; }
+    public List<NutritionCareRecordDiagnosisResponse> Diagnoses { get; set; } = new();
     public string? DiagnosisNote { get; set; }
 
     public string? InterventionNote { get; set; }
-    public string? DietPrescription { get; set; }
-    public int? EnergyRequirementKcal { get; set; }
+    public Guid? PatientDietId { get; set; }
+    public Guid? NutritionRequirementId { get; set; }
 
     public string? IntakeRecallNote { get; set; }
     public int? IntakePercent { get; set; }
@@ -162,4 +167,28 @@ public class GziScreeningCandidateResponse
     public NutritionRiskStatus RiskStatus { get; set; }
     public int? RiskScore { get; set; }
     public DateTime AssessedAt { get; set; }
+}
+
+/// <summary>Satu diagnosis IDNT yang ditegakkan pada kunjungan (`GIZ-DEC-011`).</summary>
+public class NutritionCareRecordDiagnosisRequest
+{
+    [Required] public Guid NutritionDiagnosisId { get; set; }
+
+    /// <summary>Paling banyak satu diagnosis primer per kunjungan (`GIZ018`).</summary>
+    public bool IsPrimary { get; set; }
+
+    [MaxLength(1000)] public string? Note { get; set; }
+    public int SortOrder { get; set; }
+}
+
+public class NutritionCareRecordDiagnosisResponse
+{
+    public Guid Id { get; set; }
+    public Guid NutritionDiagnosisId { get; set; }
+    public string DiagnosisCode { get; set; } = string.Empty;
+    public string DiagnosisName { get; set; } = string.Empty;
+    public string DomainCode { get; set; } = string.Empty;
+    public bool IsPrimary { get; set; }
+    public string? Note { get; set; }
+    public int SortOrder { get; set; }
 }

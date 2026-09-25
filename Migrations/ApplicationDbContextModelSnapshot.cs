@@ -81299,13 +81299,6 @@ namespace QuilvianSystemBackend.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
-                    b.Property<string>("DietPrescription")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<int?>("EnergyRequirementKcal")
-                        .HasColumnType("integer");
-
                     b.Property<string>("EvaluationNote")
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
@@ -81330,10 +81323,13 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<bool>("IsDelete")
                         .HasColumnType("boolean");
 
-                    b.Property<Guid?>("NutritionDiagnosisId")
+                    b.Property<Guid>("NutritionOrderId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid>("NutritionOrderId")
+                    b.Property<Guid?>("NutritionRequirementId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("PatientDietId")
                         .HasColumnType("uuid");
 
                     b.Property<Guid?>("ProgressNoteId")
@@ -81366,7 +81362,9 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("NutritionDiagnosisId");
+                    b.HasIndex("NutritionRequirementId");
+
+                    b.HasIndex("PatientDietId");
 
                     b.HasIndex("ProgressNoteId");
 
@@ -81378,6 +81376,350 @@ namespace QuilvianSystemBackend.Migrations
                         .IsUnique();
 
                     b.ToTable("GziNutritionCareRecord", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziNutritionCareRecordDiagnosis", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CareRecordId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsPrimary")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("NutritionDiagnosisId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CareRecordId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_GziNutritionCareRecordDiagnosis_CareRecordId_Primary")
+                        .HasFilter("\"IsPrimary\" = true AND \"IsDelete\" = false");
+
+                    b.HasIndex("NutritionDiagnosisId");
+
+                    b.HasIndex("CareRecordId", "NutritionDiagnosisId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_GziNutritionCareRecordDiagnosis_CareRecord_Diagnosis")
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.ToTable("GziNutritionCareRecordDiagnosis", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziNutritionDiagnosis", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("DiagnosisCode")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<Guid>("DiagnosisDomainId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("DiagnosisName")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsSelectable")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("ParentDiagnosisId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Standard")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("StandardVersion")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DiagnosisCode")
+                        .IsUnique();
+
+                    b.HasIndex("ParentDiagnosisId");
+
+                    b.HasIndex("DiagnosisDomainId", "SortOrder");
+
+                    b.ToTable("GziNutritionDiagnosis", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziNutritionDiagnosisDomain", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("DomainCode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("DomainName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DomainCode")
+                        .IsUnique();
+
+                    b.ToTable("GziNutritionDiagnosisDomain", "public");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("9a1e0001-0000-4000-8000-000000000001"),
+                            CancelBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            CreateBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            CreateDateTime = new DateTime(2026, 9, 25, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DeleteBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            Description = "Domain asupan gizi menurut IDNT.",
+                            DomainCode = "NI",
+                            DomainName = "Nutrition Intake",
+                            IsActive = true,
+                            IsCancel = false,
+                            IsDelete = false,
+                            SortOrder = 1,
+                            UpdateBy = new Guid("00000000-0000-0000-0000-000000000000")
+                        },
+                        new
+                        {
+                            Id = new Guid("9a1e0001-0000-4000-8000-000000000002"),
+                            CancelBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            CreateBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            CreateDateTime = new DateTime(2026, 9, 25, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DeleteBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            Description = "Domain klinis gizi menurut IDNT.",
+                            DomainCode = "NC",
+                            DomainName = "Nutrition Clinical",
+                            IsActive = true,
+                            IsCancel = false,
+                            IsDelete = false,
+                            SortOrder = 2,
+                            UpdateBy = new Guid("00000000-0000-0000-0000-000000000000")
+                        },
+                        new
+                        {
+                            Id = new Guid("9a1e0001-0000-4000-8000-000000000003"),
+                            CancelBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            CreateBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            CreateDateTime = new DateTime(2026, 9, 25, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DeleteBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            Description = "Domain perilaku dan lingkungan menurut IDNT.",
+                            DomainCode = "NB",
+                            DomainName = "Nutrition Behavioral-Environmental",
+                            IsActive = true,
+                            IsCancel = false,
+                            IsDelete = false,
+                            SortOrder = 3,
+                            UpdateBy = new Guid("00000000-0000-0000-0000-000000000000")
+                        });
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziNutritionFormula", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("FormulaCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("FormulaName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("FormulaVersion")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("ImplementationKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("SourceReference")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FormulaCode", "FormulaVersion")
+                        .IsUnique();
+
+                    b.ToTable("GziNutritionFormula", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziNutritionOrder", b =>
@@ -81564,6 +81906,331 @@ namespace QuilvianSystemBackend.Migrations
                     b.ToTable("GziNutritionOrderHistory", "public");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziNutritionParameter", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<decimal?>("MaxValue")
+                        .HasColumnType("numeric(12,3)");
+
+                    b.Property<decimal?>("MinValue")
+                        .HasColumnType("numeric(12,3)");
+
+                    b.Property<string>("ParameterCode")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("ParameterName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("UnitCode")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("ValueScale")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ParameterCode")
+                        .IsUnique();
+
+                    b.ToTable("GziNutritionParameter", "public");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("9a1e0002-0000-4000-8000-000000000001"),
+                            CancelBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            CreateBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            CreateDateTime = new DateTime(2026, 9, 25, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DeleteBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            IsActive = true,
+                            IsCancel = false,
+                            IsDelete = false,
+                            MaxValue = 10000m,
+                            MinValue = 1m,
+                            ParameterCode = "ENERGY",
+                            ParameterName = "Energi",
+                            SortOrder = 1,
+                            UnitCode = "kkal/hari",
+                            UpdateBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            ValueScale = 0
+                        },
+                        new
+                        {
+                            Id = new Guid("9a1e0002-0000-4000-8000-000000000002"),
+                            CancelBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            CreateBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            CreateDateTime = new DateTime(2026, 9, 25, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DeleteBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            IsActive = true,
+                            IsCancel = false,
+                            IsDelete = false,
+                            ParameterCode = "PROTEIN",
+                            ParameterName = "Protein",
+                            SortOrder = 2,
+                            UnitCode = "gram/hari",
+                            UpdateBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            ValueScale = 1
+                        },
+                        new
+                        {
+                            Id = new Guid("9a1e0002-0000-4000-8000-000000000003"),
+                            CancelBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            CreateBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            CreateDateTime = new DateTime(2026, 9, 25, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DeleteBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            IsActive = true,
+                            IsCancel = false,
+                            IsDelete = false,
+                            ParameterCode = "FAT",
+                            ParameterName = "Lemak",
+                            SortOrder = 3,
+                            UnitCode = "gram/hari",
+                            UpdateBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            ValueScale = 1
+                        },
+                        new
+                        {
+                            Id = new Guid("9a1e0002-0000-4000-8000-000000000004"),
+                            CancelBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            CreateBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            CreateDateTime = new DateTime(2026, 9, 25, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DeleteBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            IsActive = true,
+                            IsCancel = false,
+                            IsDelete = false,
+                            ParameterCode = "CARBOHYDRATE",
+                            ParameterName = "Karbohidrat",
+                            SortOrder = 4,
+                            UnitCode = "gram/hari",
+                            UpdateBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            ValueScale = 1
+                        },
+                        new
+                        {
+                            Id = new Guid("9a1e0002-0000-4000-8000-000000000005"),
+                            CancelBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            CreateBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            CreateDateTime = new DateTime(2026, 9, 25, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DeleteBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            IsActive = true,
+                            IsCancel = false,
+                            IsDelete = false,
+                            ParameterCode = "FLUID",
+                            ParameterName = "Cairan",
+                            SortOrder = 5,
+                            UnitCode = "ml/hari",
+                            UpdateBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            ValueScale = 0
+                        });
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziNutritionRequirement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("CalculationFormulaId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CalculationInput")
+                        .HasColumnType("jsonb");
+
+                    b.Property<DateTime?>("CalculationPerformedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CareRecordId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ChangeReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeterminedByWorkforceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("EffectiveFrom")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsCurrent")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("NutritionOrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("RevisionNumber")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CalculationFormulaId");
+
+                    b.HasIndex("CareRecordId");
+
+                    b.HasIndex("DeterminedByWorkforceId");
+
+                    b.HasIndex("NutritionOrderId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_GziNutritionRequirement_NutritionOrderId_Current")
+                        .HasFilter("\"IsCurrent\" = true AND \"IsDelete\" = false");
+
+                    b.HasIndex("NutritionOrderId", "RevisionNumber")
+                        .IsUnique();
+
+                    b.ToTable("GziNutritionRequirement", "public");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziNutritionRequirementItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("AdjustedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("AdjustedByWorkforceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AdjustmentReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<decimal?>("CalculatedValue")
+                        .HasColumnType("numeric(12,3)");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("FinalValue")
+                        .HasColumnType("numeric(12,3)");
+
+                    b.Property<bool>("IsCancel")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDelete")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid>("NutritionParameterId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("NutritionRequirementId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AdjustedByWorkforceId");
+
+                    b.HasIndex("NutritionParameterId");
+
+                    b.HasIndex("NutritionRequirementId", "NutritionParameterId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_GziNutritionRequirementItem_Requirement_Parameter")
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.ToTable("GziNutritionRequirementItem", "public");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziPatientDiet", b =>
                 {
                     b.Property<Guid>("Id")
@@ -81620,6 +82287,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<Guid?>("NutritionOrderId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("NutritionRequirementId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("PatientId")
                         .HasColumnType("uuid");
 
@@ -81653,6 +82323,8 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("FoodFormId");
 
                     b.HasIndex("NutritionOrderId");
+
+                    b.HasIndex("NutritionRequirementId");
 
                     b.HasIndex("PatientId");
 
@@ -114334,16 +115006,21 @@ namespace QuilvianSystemBackend.Migrations
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziNutritionCareRecord", b =>
                 {
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.MasterData.Models.MstDiagnosis", "NutritionDiagnosis")
-                        .WithMany()
-                        .HasForeignKey("NutritionDiagnosisId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziNutritionOrder", "NutritionOrder")
                         .WithMany("CareRecords")
                         .HasForeignKey("NutritionOrderId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziNutritionRequirement", "NutritionRequirement")
+                        .WithMany()
+                        .HasForeignKey("NutritionRequirementId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziPatientDiet", "PatientDiet")
+                        .WithMany()
+                        .HasForeignKey("PatientDietId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models.TrxPatientIntegratedProgressNote", "ProgressNote")
                         .WithMany()
@@ -114356,14 +115033,54 @@ namespace QuilvianSystemBackend.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.Navigation("NutritionDiagnosis");
-
                     b.Navigation("NutritionOrder");
+
+                    b.Navigation("NutritionRequirement");
+
+                    b.Navigation("PatientDiet");
 
                     b.Navigation("ProgressNote");
 
                     b.Navigation("RecordedByWorkforce");
                 });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziNutritionCareRecordDiagnosis", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziNutritionCareRecord", "CareRecord")
+                        .WithMany("Diagnoses")
+                        .HasForeignKey("CareRecordId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziNutritionDiagnosis", "NutritionDiagnosis")
+                        .WithMany()
+                        .HasForeignKey("NutritionDiagnosisId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CareRecord");
+
+                    b.Navigation("NutritionDiagnosis");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziNutritionDiagnosis", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziNutritionDiagnosisDomain", "DiagnosisDomain")
+                        .WithMany("Diagnoses")
+                        .HasForeignKey("DiagnosisDomainId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziNutritionDiagnosis", "ParentDiagnosis")
+                        .WithMany("ChildDiagnoses")
+                        .HasForeignKey("ParentDiagnosisId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("DiagnosisDomain");
+
+                    b.Navigation("ParentDiagnosis");
+                });
+
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziNutritionOrder", b =>
                 {
@@ -114410,6 +115127,65 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("NutritionOrder");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziNutritionRequirement", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziNutritionFormula", "CalculationFormula")
+                        .WithMany()
+                        .HasForeignKey("CalculationFormulaId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziNutritionCareRecord", "CareRecord")
+                        .WithMany()
+                        .HasForeignKey("CareRecordId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "DeterminedByWorkforce")
+                        .WithMany()
+                        .HasForeignKey("DeterminedByWorkforceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziNutritionOrder", "NutritionOrder")
+                        .WithMany()
+                        .HasForeignKey("NutritionOrderId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CalculationFormula");
+
+                    b.Navigation("CareRecord");
+
+                    b.Navigation("DeterminedByWorkforce");
+
+                    b.Navigation("NutritionOrder");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziNutritionRequirementItem", b =>
+                {
+                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models.MstWorkforceProfile", "AdjustedByWorkforce")
+                        .WithMany()
+                        .HasForeignKey("AdjustedByWorkforceId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziNutritionParameter", "NutritionParameter")
+                        .WithMany()
+                        .HasForeignKey("NutritionParameterId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziNutritionRequirement", "NutritionRequirement")
+                        .WithMany("Items")
+                        .HasForeignKey("NutritionRequirementId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("AdjustedByWorkforce");
+
+                    b.Navigation("NutritionParameter");
+
+                    b.Navigation("NutritionRequirement");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziPatientDiet", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziDietType", "DietType")
@@ -114435,6 +115211,11 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("NutritionOrderId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziNutritionRequirement", "NutritionRequirement")
+                        .WithMany()
+                        .HasForeignKey("NutritionRequirementId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models.MstPatient", "Patient")
                         .WithMany()
                         .HasForeignKey("PatientId")
@@ -114454,6 +115235,8 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("FoodForm");
 
                     b.Navigation("NutritionOrder");
+
+                    b.Navigation("NutritionRequirement");
 
                     b.Navigation("Patient");
 
@@ -118345,11 +119128,31 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("Addendums");
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziNutritionCareRecord", b =>
+                {
+                    b.Navigation("Diagnoses");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziNutritionDiagnosis", b =>
+                {
+                    b.Navigation("ChildDiagnoses");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziNutritionDiagnosisDomain", b =>
+                {
+                    b.Navigation("Diagnoses");
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziNutritionOrder", b =>
                 {
                     b.Navigation("CareRecords");
 
                     b.Navigation("Histories");
+                });
+
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziNutritionRequirement", b =>
+                {
+                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models.GziProductionBatch", b =>
@@ -118552,3 +119355,4 @@ namespace QuilvianSystemBackend.Migrations
         }
     }
 }
+

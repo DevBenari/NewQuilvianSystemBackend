@@ -25,7 +25,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Service
 public sealed class NutritionOrderService
 {
     private const string LogCategory = "NutritionManagement";
-    private const string DiagnosisTypeNutrition = "NUTRITION";
 
     private const string CreateAction = "CreateOrder";
     private const string UpdateAction = "UpdateOrder";
@@ -338,9 +337,10 @@ public sealed class NutritionOrderService
         EnsureIdempotencyKey(request.IdempotencyKey);
         var actorUserId = GetCurrentUserId();
         var fingerprint = Hash(string.Join('|', request.RecordedByWorkforceId, request.Weight,
-            request.Height, request.NutritionDiagnosisId, request.EnergyRequirementKcal,
+            request.Height, request.PatientDietId, request.NutritionRequirementId,
+            string.Join(',', request.Diagnoses.Select(d => $"{d.NutritionDiagnosisId}:{d.IsPrimary}")),
             request.IntakePercent, Normalize(request.AssessmentNote),
-            Normalize(request.InterventionNote), Normalize(request.DietPrescription),
+            Normalize(request.InterventionNote),
             Normalize(request.IntakeRecallNote), Normalize(request.EvaluationNote)));
 
         var prior = await FindIdempotentAsync(RecordAction, request.IdempotencyKey, cancellationToken);
@@ -362,8 +362,7 @@ public sealed class NutritionOrderService
                 "Kunjungan hanya dapat dicatat pada order yang masih berjalan.");
 
         await EnsureWorkforceActiveAsync(request.RecordedByWorkforceId, cancellationToken);
-        if (request.NutritionDiagnosisId.HasValue)
-            await EnsureNutritionDiagnosisAsync(request.NutritionDiagnosisId.Value, cancellationToken);
+        await EnsureDiagnosesAsync(request.Diagnoses, cancellationToken);
 
         var now = DateTime.UtcNow;
         var sequence = entity.CareRecords.Count(x => !x.IsDelete) + 1;
@@ -380,11 +379,10 @@ public sealed class NutritionOrderService
             Height = request.Height,
             Bmi = ComputeBmi(request.Weight, request.Height),
             AssessmentNote = Normalize(request.AssessmentNote),
-            NutritionDiagnosisId = request.NutritionDiagnosisId,
             DiagnosisNote = Normalize(request.DiagnosisNote),
             InterventionNote = Normalize(request.InterventionNote),
-            DietPrescription = Normalize(request.DietPrescription),
-            EnergyRequirementKcal = request.EnergyRequirementKcal,
+            PatientDietId = request.PatientDietId,
+            NutritionRequirementId = request.NutritionRequirementId,
             IntakeRecallNote = Normalize(request.IntakeRecallNote),
             IntakePercent = request.IntakePercent,
             EvaluationNote = Normalize(request.EvaluationNote),
@@ -396,6 +394,24 @@ public sealed class NutritionOrderService
         // Ditambahkan lewat DbSet, bukan lewat navigasi induk yang sudah dilacak, agar
         // entity baru pasti berstatus Added walaupun kuncinya diisi dari sisi aplikasi.
         _dbContext.GziNutritionCareRecords.Add(record);
+
+        // Alasan yang sama dengan di atas: baris anak ditambahkan lewat DbSet-nya sendiri,
+        // bukan lewat navigasi, agar kuncinya yang diisi aplikasi tidak membuat EF menyangka
+        // baris ini sudah ada dan menerbitkan UPDATE alih-alih INSERT.
+        foreach (var diagnosis in request.Diagnoses)
+        {
+            _dbContext.GziNutritionCareRecordDiagnoses.Add(new GziNutritionCareRecordDiagnosis
+            {
+                Id = Guid.NewGuid(),
+                CareRecordId = record.Id,
+                NutritionDiagnosisId = diagnosis.NutritionDiagnosisId,
+                IsPrimary = diagnosis.IsPrimary,
+                Note = Normalize(diagnosis.Note),
+                SortOrder = diagnosis.SortOrder,
+                CreateDateTime = now,
+                CreateBy = actorUserId
+            });
+        }
 
         var from = entity.Status;
         if (entity.Status == GziOrderStatus.Requested)
@@ -429,7 +445,9 @@ public sealed class NutritionOrderService
             .Include(x => x.RequesterDoctor)
             .Include(x => x.AssignedWorkforce)
             .Include(x => x.CareRecords.Where(r => !r.IsDelete))
-                .ThenInclude(r => r.NutritionDiagnosis)
+                .ThenInclude(r => r.Diagnoses.Where(d => !d.IsDelete))
+                    .ThenInclude(d => d.NutritionDiagnosis)
+                        .ThenInclude(d => d!.DiagnosisDomain)
             .Include(x => x.CareRecords.Where(r => !r.IsDelete))
                 .ThenInclude(r => r.RecordedByWorkforce)
             .Include(x => x.Histories.Where(h => !h.IsDelete))
@@ -469,17 +487,33 @@ public sealed class NutritionOrderService
     }
 
     /// <summary>
-    /// Diagnosis gizi harus berasal dari master bertipe <c>NUTRITION</c> (`GIZ-DEC-009`).
+    /// Diagnosis gizi harus berasal dari master <c>GziNutritionDiagnosis</c> yang aktif dan
+    /// dapat dipilih (`GIZ-DEC-011`, aturan `GIZ005`), dengan paling banyak satu diagnosis
+    /// primer per kunjungan (`GIZ018`).
     /// </summary>
-    private async Task EnsureNutritionDiagnosisAsync(Guid diagnosisId,
+    private async Task EnsureDiagnosesAsync(
+        IReadOnlyCollection<NutritionCareRecordDiagnosisRequest> diagnoses,
         CancellationToken cancellationToken)
     {
-        var valid = await _dbContext.Set<MstDiagnosis>().AsNoTracking()
-            .AnyAsync(x => x.Id == diagnosisId && !x.IsDelete &&
-                           x.DiagnosisType == DiagnosisTypeNutrition, cancellationToken);
-        if (!valid)
+        if (diagnoses.Count == 0) return;
+
+        var ids = diagnoses.Select(x => x.NutritionDiagnosisId).Distinct().ToList();
+        if (ids.Count != diagnoses.Count)
             throw new NutritionUnprocessableException("GIZ005",
-                "Diagnosis yang dipilih bukan diagnosis gizi.");
+                "Satu diagnosis gizi hanya boleh ditegakkan sekali pada satu kunjungan.");
+
+        if (diagnoses.Count(x => x.IsPrimary) > 1)
+            throw new NutritionUnprocessableException("GIZ018",
+                "Hanya boleh ada satu diagnosis gizi primer pada satu kunjungan.");
+
+        var selectable = await _dbContext.GziNutritionDiagnoses.AsNoTracking()
+            .Where(x => ids.Contains(x.Id) && !x.IsDelete && x.IsActive && x.IsSelectable)
+            .Select(x => x.Id)
+            .ToListAsync(cancellationToken);
+
+        if (selectable.Count != ids.Count)
+            throw new NutritionUnprocessableException("GIZ005",
+                "Diagnosis yang dipilih bukan diagnosis gizi yang aktif dan dapat dipilih.");
     }
 
     private async Task<(ClinicalManagement.Enums.NutritionRiskStatus? RiskStatus, int? Score)>
@@ -655,12 +689,26 @@ public sealed class NutritionOrderService
         Height = r.Height,
         Bmi = r.Bmi,
         AssessmentNote = r.AssessmentNote,
-        NutritionDiagnosisId = r.NutritionDiagnosisId,
-        NutritionDiagnosisName = r.NutritionDiagnosis?.DiagnosisName,
+        Diagnoses = r.Diagnoses
+            .Where(d => !d.IsDelete)
+            .OrderByDescending(d => d.IsPrimary)
+            .ThenBy(d => d.SortOrder)
+            .Select(d => new NutritionCareRecordDiagnosisResponse
+            {
+                Id = d.Id,
+                NutritionDiagnosisId = d.NutritionDiagnosisId,
+                DiagnosisCode = d.NutritionDiagnosis?.DiagnosisCode ?? string.Empty,
+                DiagnosisName = d.NutritionDiagnosis?.DiagnosisName ?? string.Empty,
+                DomainCode = d.NutritionDiagnosis?.DiagnosisDomain?.DomainCode ?? string.Empty,
+                IsPrimary = d.IsPrimary,
+                Note = d.Note,
+                SortOrder = d.SortOrder
+            })
+            .ToList(),
         DiagnosisNote = r.DiagnosisNote,
         InterventionNote = r.InterventionNote,
-        DietPrescription = r.DietPrescription,
-        EnergyRequirementKcal = r.EnergyRequirementKcal,
+        PatientDietId = r.PatientDietId,
+        NutritionRequirementId = r.NutritionRequirementId,
         IntakeRecallNote = r.IntakeRecallNote,
         IntakePercent = r.IntakePercent,
         EvaluationNote = r.EvaluationNote,
