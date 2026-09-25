@@ -813,11 +813,11 @@ Masukan: `BKC-DEC-123`–`127` (**approved 25 September 2026** oleh Yasmin), dok
 
 | Requirement | Keputusan Asal | Task BE | Task FE | Bukti Verifikasi |
 | --- | --- | --- | --- | --- |
-| Shift `CLOSED_WITH_VARIANCE` memblokir pembukaan shift baru kasir/register | `BKC-DEC-123`, `RULE-012`, `BP-007` | 🟡 [`BE-BKC-077`](../task/report/backend/BE-BKC-077.md) | 🟡 `FE-BKC-043` | Uji unit `OpenAsync` penolakan HTTP 409 & verifikasi modal buka shift menampilkan pesan penolakan jelas |
-| Status `PERLU_TINDAK_LANJUT` terpisah dari `REVIEWED` pada Review Variance | `BKC-DEC-124`, `RULE-011`, `BP-005` | 🟡 `BE-BKC-078` | 🟡 `FE-BKC-044` | Uji unit mutasi status `PERLU_TINDAK_LANJUT` pada `ReviewVarianceAsync` & uji kontrol radio outcome pada frontend |
-| Penyelesaian tindak lanjut shift oleh Supervisor dengan catatan verifikasi wajib | `BKC-DEC-125`, `BP-005` | 🟡 `BE-BKC-078` | 🟡 `FE-BKC-044` | Uji endpoint `POST /shifts/{id}/resolve-follow-up` & uji form modal `ResolveFollowUpModal` |
-| Format pesan error validasi field wajib baku: `"{Nama Field} wajib diisi."` | `BKC-DEC-126`, `RULE-005` | 🟡 `BE-BKC-077`, 🟡 `BE-BKC-078` | 🟡 `FE-BKC-043`, 🟡 `FE-BKC-044` | Uji validasi model anotasi DTO dan form validator klien |
-| Penegakan otorisasi standar `[AccessAction]` / `[AccessPermission]` tanpa matriks terpisah | `BKC-DEC-126` | 🟡 `BE-BKC-078` | 🟡 `FE-BKC-044` | Uji proteksi peran RBAC `CashierShift:Review` pada endpoint dan tombol aksi UI |
+| Shift `CLOSED_WITH_VARIANCE` memblokir pembukaan shift baru kasir/register | `BKC-DEC-123`, `RULE-012`, `BP-007` | 🟡 [`BE-BKC-077`](../task/report/backend/BE-BKC-077.md) | 🟡 [`FE-BKC-043`](../task/report/frontend/FE-BKC-043.md) | Uji unit `OpenAsync` penolakan HTTP 409 & verifikasi modal buka shift menampilkan pesan penolakan jelas |
+| Status `PERLU_TINDAK_LANJUT` terpisah dari `REVIEWED` pada Review Variance | `BKC-DEC-124`, `RULE-011`, `BP-005` | 🟡 [`BE-BKC-078`](../task/report/backend/BE-BKC-078.md) | 🟡 [`FE-BKC-044`](../task/report/frontend/FE-BKC-044.md) | Uji unit mutasi status `PERLU_TINDAK_LANJUT` pada `ReviewVarianceAsync` & uji kontrol radio outcome pada frontend |
+| Penyelesaian tindak lanjut shift oleh Supervisor dengan catatan verifikasi wajib | `BKC-DEC-125`, `BP-005` | 🟡 [`BE-BKC-078`](../task/report/backend/BE-BKC-078.md) | 🟡 [`FE-BKC-044`](../task/report/frontend/FE-BKC-044.md) | Uji endpoint `POST /shifts/{id}/resolve-follow-up` & uji form modal `ResolveFollowUpModal` |
+| Format pesan error validasi field wajib baku: `"{Nama Field} wajib diisi."` | `BKC-DEC-126`, `RULE-005` | 🟡 [`BE-BKC-077`](../task/report/backend/BE-BKC-077.md), 🟡 [`BE-BKC-078`](../task/report/backend/BE-BKC-078.md) | 🟡 [`FE-BKC-043`](../task/report/frontend/FE-BKC-043.md), 🟡 [`FE-BKC-044`](../task/report/frontend/FE-BKC-044.md) | Uji validasi model anotasi DTO dan form validator klien |
+| Penegakan otorisasi standar `[AccessAction]` / `[AccessPermission]` tanpa matriks terpisah | `BKC-DEC-126` | 🟡 [`BE-BKC-078`](../task/report/backend/BE-BKC-078.md) | 🟡 [`FE-BKC-044`](../task/report/frontend/FE-BKC-044.md) | Uji proteksi peran RBAC `CashierShift:Review` pada endpoint dan tombol aksi UI |
 | Rekomendasi akses baca non-shift tetap panduan; aksi finansial tetap wajib shift `OPEN` | `BKC-DEC-127`, `RULE-002`, `RULE-019` | — (sudah ditegakkan) | — (sudah ditegakkan) | Uji regresi intake pembayaran dan mutasi kas tetap menolak transaksi tanpa shift aktif |
 
 **Coverage gap: NOL untuk seluruh 5 keputusan bisnis `BKC-DEC-123`–`127`**. Seluruhnya telah dipetakan secara lengkap ke vertical slice backend dan frontend.
@@ -861,6 +861,7 @@ Tidak ada kemampuan lintas modul baru yang dibuka. Perubahan ini murni memperkua
 | `BE-BKC-077` | [BE-BKC-077.md](../task/report/backend/BE-BKC-077.md) | 🟡 `SEBAGIAN` (Source selesai, menunggu build pengguna) |
 | `BE-BKC-078` | [BE-BKC-078.md](../task/report/backend/BE-BKC-078.md) | 🟡 `SEBAGIAN` (Source selesai, menunggu build pengguna) |
 | `FE-BKC-043` | [FE-BKC-043.md](../task/report/frontend/FE-BKC-043.md) | 🟡 `SEBAGIAN` (Source & unit test selesai) |
+| `FE-BKC-044` | [FE-BKC-044.md](../task/report/frontend/FE-BKC-044.md) | 🟡 `SEBAGIAN` (Source & unit test selesai) |
 | `BKC-OQ-106` (Status Bagian 10 dokumen - rekomendasi vs rule) | **DITUTUP** | `BKC-DEC-127`: Bagian 10 tetap rekomendasi non-mengikat; aksi finansial tetap wajib shift `OPEN` per `RULE-002`/`019`. |
 | Wewenang menulis source code | Terpisah | Wajib konfirmasi approval task per task sebelum builder menulis source code. |
 | Otorisasi migration EF Core | Tidak berlaku | Nol migration pada seluruh cakupan `MVP-34`. |
