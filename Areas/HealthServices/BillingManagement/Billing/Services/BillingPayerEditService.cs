@@ -99,7 +99,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.S
                 .ToDictionaryAsync(x => x.InvoiceItemId, cancellationToken);
 
             var itemCoverageMap = calculation.Breakdown.Items.ToDictionary(x => x.InvoiceItemId);
-            bool anyItemCoveredByInsurance = false;
+            bool allItemsCoveredByInsurance = true;
 
             var itemAssignments = activeItems.Select(item =>
             {
@@ -122,9 +122,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.S
                     isCovered = calcItem.ItemPrimaryAmount > 0;
                 }
 
-                if (isCovered)
+                if (!isCovered)
                 {
-                    anyItemCoveredByInsurance = true;
+                    allItemsCoveredByInsurance = false;
                 }
 
                 var defaultPayerKind = (currentPayer.PaymentType == "INSURANCE")
@@ -141,9 +141,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.S
                 };
             }).ToList();
 
-            // Case Pasien dengan Insurance (misal Allianz): jika semua item tidak dijamin Allianz, default status = Pribadi / Self Pay (CASH)
+            // Case Pasien dengan Insurance (misal Allianz): jika ada satu saja item tidak dijamin Allianz, default status = Pribadi / Self Pay (CASH) — seluruh item aktif harus tercover baru disarankan INSURANCE
             var suggestedBillingStatus = (currentPayer.PaymentType == "INSURANCE")
-                ? (anyItemCoveredByInsurance ? "INSURANCE" : "CASH")
+                ? (allItemsCoveredByInsurance ? "INSURANCE" : "CASH")
                 : currentPayer.PaymentType;
 
             // 4. Drug items and dispositions (Terminologi Obat / Medicine)

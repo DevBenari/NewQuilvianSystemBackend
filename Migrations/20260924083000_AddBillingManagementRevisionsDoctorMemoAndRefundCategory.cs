@@ -32,8 +32,8 @@ namespace QuilvianSystemBackend.Migrations
                 name: "RefundCategory",
                 schema: "public",
                 table: "BilRefundCase",
-                type: "character varying(20)",
-                maxLength: 20,
+                type: "character varying(30)",
+                maxLength: 30,
                 nullable: false,
                 defaultValue: "BILLING");
 

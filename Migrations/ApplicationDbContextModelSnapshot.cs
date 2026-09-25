@@ -58588,6 +58588,10 @@ namespace QuilvianSystemBackend.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
 
+                    b.Property<string>("DoctorDiscountMemoFile")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<Guid>("InvoiceId")
                         .HasColumnType("uuid");
 
@@ -59936,7 +59940,13 @@ namespace QuilvianSystemBackend.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
-                    b.Property<Guid>("RefundableCreditId")
+                    b.Property<string>("RefundCategory")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("BILLING");
+
+                    b.Property<Guid?>("RefundableCreditId")
                         .HasColumnType("uuid");
 
                     b.Property<decimal>("RequestedAmount")
@@ -59949,6 +59959,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<Guid>("RowVersion")
                         .IsConcurrencyToken()
                         .HasColumnType("uuid");
+
+                    b.Property<string>("SelectedBillingItemIdsJson")
+                        .HasColumnType("text");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -62410,6 +62423,16 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.Property<DateTimeOffset?>("CompletedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("ConfirmedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ConfirmedByName")
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<Guid?>("ConfirmedByUserId")
+                        .HasColumnType("uuid");
 
                     b.Property<Guid>("CreateBy")
                         .HasColumnType("uuid");
@@ -109708,8 +109731,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models.BilRefundableCredit", "RefundableCredit")
                         .WithMany()
                         .HasForeignKey("RefundableCreditId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Invoice");
 

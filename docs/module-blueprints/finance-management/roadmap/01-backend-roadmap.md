@@ -5,21 +5,29 @@
 ```yaml
 roadmap_id: FIN-ROADMAP-BE-001
 parent_roadmap: FIN-ROADMAP-001 revisi 3
-roadmap_revision: 1
+roadmap_revision: 2
 roadmap_status: ACTIVE
 blueprint_id: FIN-BP-001
-blueprint_revision: 2
+blueprint_revision: 3
 blueprint_status: approved
-backend_commit_sha: 09101d0581695e20345a9efa8af3fce7c38b1ae4
+backend_commit_sha: d6cdfaf9fda8889d6fe73db1e97cc28c4f022852
+backend_commit_sha_baseline: 09101d0581695e20345a9efa8af3fce7c38b1ae4
 backend_branch: Yasmina
 contracts:
-  FIN-API-1.0: locked 2026-09-20
-  FIN-STATE-1.0: locked 2026-09-20
-  FIN-VAL-1.0: locked 2026-09-20
-  FIN-PERM-1.0: locked 2026-09-20
-  FIN-INTEGRATION-1.0: locked 2026-09-20 (tiga permukaan dikecualikan)
-  FIN-TEST-1.0: locked 2026-09-20
-  FIN-MVP-1.0: locked 2026-09-20
+  FIN-API-1.0: locked 2026-09-20 (tidak bergerak pada revisi 3)
+  FIN-PERM-1.0: locked 2026-09-20 (tidak bergerak pada revisi 3)
+  FIN-STATE-1.1: locked 2026-09-25
+  FIN-VAL-1.1: locked 2026-09-25
+  FIN-INTEGRATION-1.1: locked 2026-09-25
+  FIN-TEST-1.1: locked 2026-09-25
+  FIN-MVP-1.1: locked 2026-09-25
+roadmap_revision_2_note: >
+  Revisi 2 (25 September 2026) MENAMBAHKAN lima task BE-FIN-022..026 untuk AMENDMENT REVISI 3
+  blueprint (FIN-DES-029..036, approved). TIDAK ada task lama yang dinomori ulang, diubah
+  outcome-nya, atau dihapus. Grafik urutan dependency dirapikan menjadi pohon teks sesuai
+  rules/rule-output/grafik-dependency-roadmap.md pada kesempatan pertama berkas ini disentuh.
+  SATU-SATUNYA blocker task baru: FIN-OQ-017 (ratifikasi owner Accounting atas tujuh kode
+  kejadian). Empat dari lima task baru berstatus ⛔ karenanya; BE-FIN-022 bebas dari blocker itu.
 ```
 
 Payung roadmap ada di `00-delivery-roadmap.md`: identitas lengkap, penguncian kontrak,
@@ -39,19 +47,94 @@ Pasangan frontend-nya ada di `02-frontend-roadmap.md`.
 | ⛔ | Terblokir. Prasyaratnya belum terpenuhi, dan task **tidak boleh dimulai** |
 | tanpa tanda | Belum dikerjakan |
 
-Dibaca dari atas ke bawah. Task bergaris bawah `BLOCKED` MUST NOT dimulai.
+Task bergaris bawah `⛔` MUST NOT dimulai.
+
+## Grafik Urutan Dependency
+
+Dua puluh enam task melewati batas satu layar, sehingga grafiknya dipecah: satu grafik ringkasan
+antar-gelombang, lalu satu grafik per rumpun. Arah garis selalu **prasyarat di kiri, yang
+menunggu di kanan**.
+
+### Ringkasan antar-gelombang
 
 ```text
-MVP-0   BE-FIN-001 ✅ → BE-FIN-002 ✅ → BE-FIN-003 ✅ → BE-FIN-004 ✅
-MVP-1   BE-FIN-005 ✅ → BE-FIN-006 ✅ → BE-FIN-007 ✅ → BE-FIN-008 ✅ → BE-FIN-009 ✅
-MVP-5   BE-FIN-010 ✅ → BE-FIN-011 ✅ → BE-FIN-012 ✅      (paralel sejak MVP-1)
-MVP-4   BE-FIN-013 ✅ → BE-FIN-014 ✅ → BE-FIN-015 ✅            (boleh mendahului MVP-2)
-MVP-2   BE-FIN-016 ✅ → BE-FIN-017 ✅                      owner Billing sudah menjawab, tidak lagi BLOCKED
-MVP-3   BE-FIN-018 ✅                                     selesai
-POST    BE-FIN-019 ✅                                     selesai
-POST    BE-FIN-020 🟡                                     controller selesai; ambang approval BLOCKED FIN-OQ-010 (validasi angka saja)
-POST    BE-FIN-021 🟡                                     sebagian — model & migration siap; intake BLOCKED BE-MDF-014
+MVP-0 ✅ ─> MVP-1 ✅ ─┬─> MVP-5 ✅
+                      │
+                      ├─> MVP-4 ✅
+                      │
+                      ├─> MVP-2 ✅ ─> MVP-3 ✅
+                      │
+                      └─> POST-MVP 🟡
+
+{FIN-OQ-017 ⛔} ─> REV-3 ⛔
 ```
+
+`REV-3` adalah kelompok task AMENDMENT REVISI 3 (`BE-FIN-022`..`026`). Ia **tidak diberi nomor
+gelombang** karena `EPIC FIN-14` berstatus `OPEN DECISION` pada `04-prd-to-mvp.md`.
+
+### MVP-0 dan MVP-1 — fondasi sampai buku piutang
+
+```text
+BE-FIN-001 ✅ ─> BE-FIN-002 ✅ ─> BE-FIN-003 ✅ ─> BE-FIN-004 ✅ ─> BE-FIN-005 ✅
+  ─> BE-FIN-006 ✅ ─> BE-FIN-007 ✅ ─> BE-FIN-008 ✅ ─> BE-FIN-009 ✅
+```
+
+Rantai lurus tanpa percabangan; baris kedua adalah sambungan baris pertama.
+
+### MVP-5, MVP-4, MVP-2, MVP-3, dan POST-MVP
+
+```text
+BE-FIN-007 ✅ ─> BE-FIN-010 ✅ ─> BE-FIN-011 ✅ ─> BE-FIN-012 ✅
+
+BE-FIN-009 ✅ ─┬─> BE-FIN-013 ✅ ─> BE-FIN-014 ✅ ─> BE-FIN-015 ✅
+               │
+               ├─> BE-FIN-016 ✅ ─> BE-FIN-017 ✅ ─> BE-FIN-018 ✅
+               │
+               └─> BE-FIN-019 ✅
+
+{FIN-OQ-010 ⛔} ─> BE-FIN-020 🟡 ─> BE-FIN-021 🟡 <─ {BE-MDF-014 ⛔}
+```
+
+`BE-FIN-007` dan `BE-FIN-009` masing-masing muncul sekali pada grafik MVP-0/MVP-1 di atas; di
+sini keduanya digambar sebagai **pangkal cabang** untuk memperlihatkan percabangannya, bukan
+sebagai node kedua. `{BE-MDF-014}` adalah task modul Medical Fee — cermin baca-saja, bukan task
+roadmap ini; panahnya digambar ke kiri karena ia prasyarat yang datang dari luar.
+
+### REV-3 — AMENDMENT REVISI 3 (task baru)
+
+```text
+BE-FIN-022 ────────────────────────────────────────┐
+                                                   │
+{FIN-OQ-017 ⛔} ─> BE-FIN-023 ⛔ ─> BE-FIN-024 ⛔ ─┴─> BE-FIN-025 ⛔ ─> BE-FIN-026 ⛔
+```
+
+| Gelombang | Boleh mulai setelah | Task |
+| ---: | --- | --- |
+| — | Otorisasi migration (`AGENTS.md` Keselamatan Database) | `BE-FIN-022` — **bebas dari `FIN-OQ-017`**, tetapi tidak diberi nomor gelombang karena `EPIC FIN-14` masih `OPEN DECISION` |
+| — | ⛔ menunggu `FIN-OQ-017` | `BE-FIN-023` |
+| — | ⛔ menunggu `FIN-OQ-017` dan `BE-FIN-023` | `BE-FIN-024` |
+| — | ⛔ menunggu `BE-FIN-022` dan `BE-FIN-024` | `BE-FIN-025` |
+| — | ⛔ menunggu `BE-FIN-025` dan otorisasi pembacaan database | `BE-FIN-026` |
+
+**Kenapa tidak ada satu pun nomor gelombang di tabel ini.** `04-prd-to-mvp.md` bagian 20.1
+menyatakan `EPIC FIN-14` `MUST NOT` masuk gelombang pengiriman mana pun sampai `FIN-OQ-017`
+tertutup. Aturan itu berlaku juga untuk `BE-FIN-022` yang sebenarnya bebas dari blocker teknis:
+ia boleh **dikerjakan** kapan saja setelah otorisasi migration turun, tetapi tidak dijadwalkan
+sebagai bagian gelombang.
+
+### Gelombang eksekusi — task lama
+
+| Gelombang | Boleh mulai setelah | Task |
+| ---: | --- | --- |
+| 1 (`MVP-0`) | — | `BE-FIN-001`..`004` ✅ |
+| 2 (`MVP-1`) | `MVP-0` | `BE-FIN-005`..`009` ✅ |
+| 3 (`MVP-5`) | `BE-FIN-007` | `BE-FIN-010`..`012` ✅ — boleh paralel sejak `MVP-1` |
+| 3 (`MVP-4`) | `BE-FIN-009` | `BE-FIN-013`..`015` ✅ — boleh mendahului `MVP-2` |
+| 3 (`MVP-2`) | `BE-FIN-009` | `BE-FIN-016`..`017` ✅ |
+| 4 (`MVP-3`) | `BE-FIN-017` | `BE-FIN-018` ✅ |
+| 3 (`POST-MVP`) | `BE-FIN-009` | `BE-FIN-019` ✅ |
+| — | ⛔ `FIN-OQ-010` untuk ambang angkanya saja | `BE-FIN-020` 🟡 |
+| — | ⛔ `BE-MDF-014` milik Medical Fee | `BE-FIN-021` 🟡 |
 
 ### 2.1 Catatan urutan `MVP-4`
 
@@ -90,6 +173,11 @@ yang MUST dilaporkan balik ke pass desain — bukan diselesaikan dengan improvis
 | `BE-FIN-019` ✅ | Utang supplier | `FIN-DES-015` (bagian supplier) | `FIN-API-1.0` §payable supplier | `MstSupplier` (`FIN-CAP-014`) | `FinSupplierPayable`, `FinSupplierPayableItem`, `FinPayableAdjustment` | `BE-FIN-009` | Input manual utang dan koreksinya | Uji integrasi | — | `POST-MVP` |
 | `BE-FIN-020` ✅ | Pembayaran keluar dan potongan | `FIN-DES-015`, `026`, `027`, `028` — **approved** | `FIN-API-1.0`, `FIN-VAL-1.0` §payable — **terkunci** | — | `FinPayment`, `FinPaymentAllocation`, `FinPaymentDeduction`, `NetTransferAmount` | `FIN-OQ-010` — model dan kontraknya sudah bebas | Uang keluar berbeda dari utang lunas; potongan tidak menyisakan utang | `FR-FIN-050`, `FR-FIN-051` | Finance Supervisor + Yasmin — **hanya aturan validasi angkanya** (angka rupiah persis ambang approval berjenjang) yang tertahan, bukan modelnya maupun controllernya. `FinancePaymentsController` dibangun 23 September 2026; `ResolveApprovalTier` tetap memakai nilai provisional yang sudah didokumentasikan | `POST-MVP` |
 | `BE-FIN-021` 🟡 | **SEBAGIAN** — utang jasa tenaga medis | `FIN-DES-025` — **approved**, `FIN-CAP-021` | `FIN-API-1.0` §payable | — | `FinMedicalServicePayable`, `FinMedicalServicePayableItem` | `BE-FIN-020` **dan** Medical Fee `BE-MDF-014` | Model domain, EF configuration, relasi FK polimorfik, dan migration siap; intake otomatis menunggu handoff Medical Fee | `FR-FIN-075` | **Owner Medical Fee** — `MdfFinanceHandoff` belum ada (intake ditangguhkan) | `POST-MVP` |
+| `BE-FIN-022` | Empat jenis fakta Billing baru menjadi nilai `HandoffType` yang sah | `FIN-DES-029`, `FIN-DEC-040`..`044` | `FIN-STATE-1.1` §1, `FIN-VAL-1.1` | `FinBillingHandoffIntake` beserta unique index `(HandoffType, SourceHandoffKey)` yang sudah ada (`FIN-DES-008`, `009`) | Konstanta `FinBillingHandoffTypes` bertambah `DEPOSIT_MOVEMENT`, `REFUNDABLE_CREDIT`, `REFUND_CASE`, `CASH_VARIANCE_REVIEW`; **satu** migration `AlterFinBillingHandoffIntakeHandoffTypeCheck` mengubah `CK_FinBillingHandoffIntake_HandoffType` dari 4 menjadi 8 nilai | — (tabel intake sudah ada sejak `BE-FIN-005` ✅) | Baris ber-`HandoffType` baru dapat disimpan; baris ber-nilai lama tetap sah; unique index tetap menolak fakta yang sama dua kali | `dotnet build`; verifikasi proses bisnis atas check constraint; `FIN-TEST-1.1` §8a baris `FIN-DES-029` (sinkronisasi ganda ditolak unique index) | Backend Owner — **otorisasi migration WAJIB diminta terpisah** (`AGENTS.md` Keselamatan Database). **Bebas dari `FIN-OQ-017`**: nama `HandoffType` adalah keputusan internal Finance, bukan nama kode kejadian yang perlu ratifikasi Accounting | Nol tabel dan nol kolom baru; `Down()` mengembalikan constraint ke 4 nilai dan **hanya aman** bila belum ada baris memakai nilai baru |
+| `BE-FIN-023` ⛔ | Kotak keluar menerima nilai nol/negatif untuk dua jenis kejadian, dan membawa rincian saldo subledger | `FIN-DES-031`, `032`, `033`; `FIN-DEC-035`, `043` | `FIN-INTEGRATION-1.1` §5.2, §5.6; `FIN-VAL-1.1` `FIN-VAL-079`..`084` | `FinanceAccountingOutboxService` yang sudah ada (`BE-FIN-011` ✅); **nol perubahan skema** (`Amount` sudah `HasPrecision(18,2)` tanpa check constraint nilai) | `ValidateRequest` dipersempit; `AccountingOutboxEventRequest` bertambah `SubledgerBalance` dan **kehilangan** `RequiresFinalization`; `BuildPayloadJson` menyertakan objek saldo bila terisi | ⛔ `FIN-OQ-017` | Selisih kas `-30.000` tersimpan; saldo subledger `0` tersimpan; `PENERIMAAN-UANG-MUKA` bernilai nol ditolak `400`; `SubledgerBalance` pada kejadian non-saldo ditolak `400`; periode `2026-11-30` ditolak `400` | `dotnet build`; `FIN-TEST-1.1` §8a baris `FIN-VAL-079`, `080`, `081`, `082`, `084`, `FIN-DES-032` | Backend Owner. **Menyentuh service yang sudah berjalan** — `RequiresFinalization` dipakai `FinanceReceiptService` hari ini, sehingga `BE-FIN-024` MUST menyusul di rangkaian yang sama agar penerimaan pra-final tidak terbit sebagai `PENERIMAAN-KASIR` | Payload tetap dibangun di dalam service, bukan diterima mentah dari pemanggil (`FR-FIN-073` tetap terkunci di level tipe) |
+| `BE-FIN-024` ⛔ | Penerimaan sebelum tagihan final terbit segera dengan jenis kejadian yang benar, dan pembalikannya mengikuti penerimaan aslinya | `FIN-DEC-030`, `FIN-DES-033`, `034`; `FR-FIN-034` (diperbarui), `FR-FIN-076` | `FIN-INTEGRATION-1.1` §5.5; `FIN-STATE-1.1` §9; `FIN-VAL-1.1` `FIN-VAL-085` | `FinReceipt.SourceInvoiceStatus` yang **sudah ada** — nol kolom baru (`FIN-DES-034`) | `FinanceReceiptService`: pemilihan `EventTypeCode` dari `SourceInvoiceStatus`, dan pemilihan kode pembalikan dari baris penerimaan asli yang ditunjuk `ReversalOfReceiptId` | ⛔ `BE-FIN-023` — yang sendirinya menunggu `FIN-OQ-017`, sehingga blocker itu ikut berlaku secara berantai | Tagihan `OPEN` → `PENERIMAAN-UANG-MUKA` berstatus `PENDING`, **bukan** tertahan; tagihan `FINAL` → `PENERIMAAN-KASIR`; pembalikan penerimaan uang muka **tetap** `PEMBALIKAN-PENERIMAAN-UANG-MUKA` walaupun tagihannya sudah `FINAL` saat pembalikan | `dotnet build`; `FIN-TEST-1.1` §8a baris `FIN-DEC-030` (tiga skenario), `FIN-DES-034` (dua skenario), `FIN-VAL-085` | Backend Owner. **INI SATU-SATUNYA TASK YANG MENGUBAH PERILAKU YANG SUDAH BERJALAN** — `FinanceReceiptService` baris ~126 dan ~194 hari ini memakai `RequiresFinalization`; review diff MUST membuktikan tidak ada jalur lain yang ikut berubah | Nol baris baru berstatus `HELD_FOR_FINALIZATION` dihasilkan kode setelah task ini |
+| `BE-FIN-025` ⛔ | Deposit, kelebihan bayar, dan selisih kas shift masuk ke kotak keluar dengan jenis kejadian masing-masing | `FIN-DEC-031`, `034`, `040`..`043`; `FIN-DES-035`, `036`; `FR-FIN-077`..`079` | `FIN-INTEGRATION-1.1` §2a, §5.4; `FIN-VAL-1.1` `FIN-VAL-086` | `BilDepositMovement`, `BilRefundableCredit`, `BilRefundCase`, `BilCashVarianceReview` — **read-only**, sudah terdaftar di `ApplicationDbContext` (`FIN-CAP-022`..`024`) | `FinanceBillingIntakeService`: empat jalur sinkronisasi baru dengan anti-join ke `FinBillingHandoffIntake` beserta penyempitan waktu; `SELISIH-KAS-SHIFT` memakai `BilCashVarianceReview.Id` dan tanggal shift | ⛔ `BE-FIN-022` **dan** `BE-FIN-024` | `ALLOCATION` → `PEMAKAIAN-UANG-MUKA-DEPOSIT` tanpa `FinReceipt` baru; `RELEASE` → `PENGEMBALIAN-UANG-MUKA`; refund `ALLOCATION_EXCESS` → `PENGEMBALIAN-UANG-MUKA`; refund `SETTLEMENT` → **nol kejadian**; shift belum `REVIEWED` → **nol kejadian**; `Variance` nol → **nol kejadian**; nol perubahan pada tabel `Bil*` mana pun | `dotnet build`; `FIN-TEST-1.1` §8a baris `FIN-DEC-040`, `041` (tiga skenario), `042`, `043` (dua skenario), `FIN-VAL-080`, `086`, aturan bisnis #9 | Backend Owner. Risiko utama: menulis ke tabel `Bil*` tanpa sengaja — dibuktikan tidak terjadi dengan membandingkan `RowVersion`/`UpdateDateTime` sebelum dan sesudah | `TargetEntityId` boleh kosong untuk jalur yang tidak melahirkan entity Finance; keempat jenis berhenti di `CONSUMED`, **tidak** mengirim ACK ke Billing |
+| `BE-FIN-026` ⛔ | Baris warisan `HELD_FOR_FINALIZATION` dibereskan sebelum pengiriman diaktifkan | `FIN-DEC-030`; `02-backend-architecture.md` bagian B.6; `FIN-VAL-1.1` `FIN-VAL-078` | `FIN-STATE-1.1` §9 (transisi migrasi satu kali) | — | Penghitungan baris berstatus `HELD_FOR_FINALIZATION`; bila ada, pembetulan `EventTypeCode` menjadi `PENERIMAAN-UANG-MUKA` untuk penerimaan ber-`SourceInvoiceStatus` `OPEN`, lalu status dipindah ke `PENDING`. Worker MUST melewati **dan melaporkan** baris yang belum dibetulkan | ⛔ `BE-FIN-025` | Jumlah baris warisan dilaporkan apa adanya; bila nol, task ditutup tanpa perubahan data; bila ada, setiap baris punya jejak pembetulannya | `FIN-TEST-1.1` §8a baris `FIN-VAL-078`; bukti berupa angka hasil pembacaan, bukan asumsi | Backend Owner — **otorisasi pembacaan database WAJIB terpisah**. Kemungkinan besar nol baris, karena worker pengiriman belum pernah hidup dan endpoint Accounting belum ada (`FIN-CAP-018`) | Nilai `HELD_FOR_FINALIZATION` **tidak** dihapus dari check constraint; baris warisan dibetulkan datanya, bukan skemanya |
 
 ## 4. Rincian per gelombang
 
@@ -176,14 +264,35 @@ penambahan navigasi dan relasi FK `MedicalServicePayable` pada `FinPaymentAlloca
 otomatis penyerahan jasa medis ditangguhkan menunggu modul Medical Fee (`BE-MDF-014`). QBE `PASS` (8 berkas) —
 lihat [laporan](../task/report/backend/BE-FIN-021.md).
 
+### `REV-3` — AMENDMENT REVISI 3: uang muka, deposit, selisih kas (`EPIC FIN-14`)
+
+| Aspek | Isi |
+|---|---|
+| Status | ⛔ **BELUM DIMULAI, dan empat dari lima task TERBLOKIR.** Ditambahkan 25 September 2026 oleh roadmap revisi 2 |
+| Blocker | `FIN-OQ-017` — ratifikasi owner Accounting (Rizki) atas tujuh kode kejadian baru. Surat sudah dikirim (`evidence/04`) dan dikoreksi (`evidence/05`) |
+| Yang BOLEH jalan | `BE-FIN-022` saja, setelah otorisasi migration turun. Ia hanya menambah nilai `HandoffType` — nama internal Finance, bukan nama kode kejadian |
+| Yang MENGUBAH kode berjalan | `BE-FIN-024` — satu-satunya. `FinanceReceiptService` hari ini memakai `RequiresFinalization` untuk menahan kejadian; setelah task ini ia memilih `EventTypeCode` |
+| Migration | **Satu** untuk seluruh amendment: `AlterFinBillingHandoffIntakeHandoffTypeCheck` pada `BE-FIN-022`. Tidak ada tabel maupun kolom baru |
+| Kenapa murah | Ketiga keputusan arsitekturnya sengaja memakai yang sudah ada: tabel intake diperluas lewat `HandoffType` (`FIN-DES-029`), kotak keluar tidak bertambah kolom karena `EventTypeCode` memang tanpa check constraint (`FIN-DES-030`), dan kode pembalikan diturunkan dari `FinReceipt.SourceInvoiceStatus` yang sudah tersimpan (`FIN-DES-034`) |
+| Yang TIDAK dibuat | Nol tabel deposit/refund milik Finance — keenamnya milik Billing dan hanya dibaca (`02-backend-architecture.md` bagian B.7) |
+
+**Urutan yang MUST dihormati, dan alasannya.** `BE-FIN-023` mencabut `RequiresFinalization` dari
+`AccountingOutboxEventRequest`. Bila `BE-FIN-024` tidak menyusul di rangkaian yang sama,
+penerimaan sebelum tagihan final akan terbit sebagai `PENERIMAAN-KASIR` — dibukukan Accounting
+sebagai penerimaan final, padahal uangnya masih kewajiban ke pasien. Keduanya karena itu
+**tidak boleh dipisah ke dua sesi kerja yang berjauhan**, dan `BE-FIN-023` sendirian **tidak**
+boleh ditandai selesai bila `BE-FIN-024` belum jalan.
+
 ## 5. Task yang sengaja tidak dibuat
 
 | Epic | Alasan |
 |---|---|
 | `EPIC FIN-04` — piutang manfaat karyawan | `OPEN DECISION`; menunggu owner Billing **dan** HR (`FIN-DEC-006`, `FIN-DEC-016`, `FIN-CQ-03`). Kolomnya sudah disiapkan sehingga skema tidak perlu berubah lagi nanti |
-| `EPIC FIN-12` — pengiriman kejadian ke Accounting | `OPEN DECISION`; endpoint penerima belum dibangun (`FIN-CAP-018`) dan autentikasi belum final (`FIN-DEC-007`). Kotak keluar tetap terisi lewat `BE-FIN-010` |
+| `EPIC FIN-12` — pengiriman kejadian ke Accounting | `OPEN DECISION`; endpoint penerima belum dibangun (`FIN-CAP-018`, diverifikasi ulang belum ada pada `d6cdfaf9`) dan mekanisme kredensial belum final (`FIN-OQ-016`; tiga syarat organisasinya sudah ditetapkan `FIN-DEC-036`). Kotak keluar tetap terisi lewat `BE-FIN-010` |
 | `FinDoctorPayable`, `FinDoctorPayableItem` | Dibatalkan pada revisi 2; digantikan `FinMedicalServicePayable`. Tidak pernah dibuat, jadi tidak ada yang perlu dimigrasikan |
-| Migration `AddFinanceSubledgerPeriodBalance` | `FIN-OQ-011` belum dijawab; rumpunnya `POST-MVP` |
+| ~~Migration `AddFinanceSubledgerPeriodBalance`~~ | ~~`FIN-OQ-011` belum dijawab~~ — **`FIN-OQ-011` TERTUTUP** 25 September 2026 (`FIN-DEC-035`). Tabel `FinSubledgerPeriodBalance` tetap belum dibuat karena rumpun tutup periode memang `POST-MVP`, **bukan** karena bentuk pesannya belum jelas. Bentuk pesannya kini final di `contracts/integration-contract.md` bagian 5.6 |
+| Task pengubah `FIN-API-1.0` dan `FIN-PERM-1.0` | Tujuh kode kejadian baru memakai permission `FinanceAccountingEvent` yang sudah ada dan tidak menambah endpoint. Kedua kontrak itu sengaja tidak disunting pada revisi 3 |
+| Task automated test | `rules/backend/TEST_POLICY.md` — backend tidak memelihara project test otomatis. Bukti verifikasi task baru memakai `dotnet build`, review diff/scope, verifikasi kontrak, dan verifikasi proses bisnis atas source |
 
 ## 6. Prasyarat eksekusi
 
@@ -196,10 +305,18 @@ Berlaku untuk **setiap** handoff implementasi backend, tanpa kecuali:
 | 3 | Otorisasi terpisah untuk membuat **dan** menjalankan setiap migration | 🟡 **Sebagian** — otorisasi pembuatan file `AddFinanceMasterData` diberikan pemilik repository 21 September 2026 (lihat [laporan BE-FIN-003](../task/report/backend/BE-FIN-003.md)); otorisasi **eksekusi** (`dotnet ef database update`) masih **Belum** |
 | 4 | Implementasi dijalankan lewat `quilvian-engineering-skills:build-module-backend` setelah task-nya disetujui | Berlaku terus |
 | 5 | Task `BLOCKED` MUST NOT dimulai, walau sebagian pekerjaannya terlihat berdiri sendiri | Berlaku terus |
-| 6 | Penguncian versi kontrak | **Terpenuhi** 20 September 2026 |
+| 6 | Penguncian versi kontrak | **Terpenuhi** — 1.0 pada 20 September 2026, dan **1.1 pada 25 September 2026** untuk `FIN-INTEGRATION`, `FIN-STATE`, `FIN-VAL`, `FIN-TEST`, `FIN-MVP` |
+| 7 | **Ratifikasi owner Accounting atas tujuh kode kejadian** (`FIN-OQ-017`) sebelum `BE-FIN-023`..`026` dimulai | **Belum** — surat terkirim `evidence/04`, dikoreksi `evidence/05`. Ini yang membuat keempat task itu ⛔ |
+| 8 | **Otorisasi pembacaan database** sebelum `BE-FIN-026` menghitung baris warisan `HELD_FOR_FINALIZATION` | **Belum** — diminta terpisah saat task itu dimulai |
 
 Prasyarat 2 dan 3 adalah tindakan manusia yang belum diberikan. Keduanya diminta terpisah,
-per-langkah, bukan sekali di awal.
+per-langkah, bukan sekali di awal. Prasyarat 7 dan 8 ditambahkan roadmap revisi 2 dan berlaku
+khusus untuk rangkaian `REV-3`.
+
+**Satu prasyarat yang sudah GUGUR dan tidak perlu diminta lagi:** konfirmasi owner Billing atas
+bentuk `BilCollectionHandoff`. Tabelnya sudah dibangun 22 September 2026 dan sudah dikonsumsi
+`FinanceBillingIntakeService`; diverifikasi impact scan 25 September 2026 (`FIN-CAP-007`,
+`FIN-CAP-025`). Gelombang `MVP-2` dan `MVP-3` tidak lagi menunggu tim lain.
 
 ## 7. Definition of Done backend
 

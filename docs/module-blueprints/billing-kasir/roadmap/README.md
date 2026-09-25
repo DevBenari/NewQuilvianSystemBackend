@@ -32,8 +32,8 @@ Roadmap ini berada pada **revision `2`** (4 September 2026) dan berstatus `DRAFT
 | `BKC-PH-022` | Antarmuka Kasir & Handoff Rawat Inap (`MVP-29`) | — | `FE-BKC-041`–`042` | `BKC-PH-021` selesai | `IN_PROGRESS` (`FE-BKC-041`, `FE-BKC-042` 🟡 SEBAGIAN) |
 | `BKC-PH-023` | **Revisi UI Billing.** Perbaikan logika backend `suggestedBillingStatus` & field `TransactionDate` (`MVP-30`) | `BE-BUI-001`, `BE-BUI-002` | — | Approval arsitektur `BUI-DES-001`/`002` — terpisah dari approval bisnis `BUI-DEC-*` | ⛔ `BLOCKED` |
 | `BKC-PH-024` | **Revisi UI Billing.** Filter/default Billing, label Obat, card compact, pindah tombol aksi (`MVP-31`) | — | `FE-BUI-001`–`004` | Tidak ada | **`READY_FOR_TASK_APPROVAL`** |
-| `BKC-PH-025` | **Revisi UI Billing.** Perbandingan asuransi & payment method (`MVP-32`) | — | `FE-BUI-005`, `FE-BUI-006` | `FE-BUI-005` tidak ada; `FE-BUI-006` menunggu `BKC-PH-023` | `FE-BUI-005` **`READY_FOR_TASK_APPROVAL`**; `FE-BUI-006` ⛔ `BLOCKED` |
-| `BKC-PH-026` | **Revisi UI Billing.** Modal Ajukan Refund dua sumber (`MVP-33`) | — | `FE-BUI-007` | `BKC-PH-023` (khusus `BE-BUI-002`) | ⛔ `BLOCKED` |
+| `BKC-PH-025` | **Revisi UI Billing.** Perbandingan asuransi & payment method (`MVP-32`) | — | `FE-BUI-005`, `FE-BUI-006` | Selesai penuh | ✅ `SELESAI` (`FE-BUI-005`, `FE-BUI-006` selesai 25 Sep 2026) |
+| `BKC-PH-026` | **Revisi UI Billing.** Modal Ajukan Refund dua sumber (`MVP-33`) | — | `FE-BUI-007` | Selesai penuh | ✅ `SELESAI` (`FE-BUI-007` selesai 25 Sep 2026) |
 
 ## Amendment 7 September 2026 — Koreksi revisi blueprint, verifikasi ulang FE-BKC-018, dan cakupan Struk Pasien
 
@@ -228,8 +228,8 @@ pemindahan tombol aksi ke Riwayat Pembayaran.
 | --- | --- | --- |
 | `MVP-30` | `BE-BUI-001`, `BE-BUI-002` | ⛔ `BLOCKED` — menunggu approval arsitektur `BUI-DES-001`/`002`, terpisah dari approval bisnis `BUI-DEC-001`–`015` yang sudah `approved` |
 | `MVP-31` | `FE-BUI-001`, `FE-BUI-002`, `FE-BUI-003`, `FE-BUI-004` | Siap approval task — nol dependency ke `MVP-30`, dapat paralel |
-| `MVP-32` | `FE-BUI-005`, `FE-BUI-006` | `FE-BUI-005` siap; `FE-BUI-006` ⛔ `BLOCKED` menunggu `BE-BUI-001` |
-| `MVP-33` | `FE-BUI-007` | ⛔ `BLOCKED` menunggu `BE-BUI-002` |
+| `MVP-32` | `FE-BUI-005`, `FE-BUI-006` | ✅ `SELESAI PENUH` (`FE-BUI-005` & `FE-BUI-006` selesai 25 Sep 2026) |
+| `MVP-33` | `FE-BUI-007` | ✅ `SELESAI PENUH` (`FE-BUI-007` selesai 25 Sep 2026) |
 
 **Temuan paling penting pass ini, dari `/trace-existing-capabilities`:** dua dari tiga belas
 keputusan bisnis (`BUI-DEC-005` exclude asuransi aktif, `BUI-DEC-012` refund dua sumber) ternyata

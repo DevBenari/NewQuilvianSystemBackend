@@ -27,6 +27,7 @@ public sealed class BillingRefundableItemResponse
     public decimal Qty { get; set; }
     public decimal Amount { get; set; }
     public decimal RefundableAmount { get; set; }
+    public DateTime TransactionDate { get; set; }
 }
 
 public sealed class RemainingDepositResponse

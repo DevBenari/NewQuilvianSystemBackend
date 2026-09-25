@@ -12,8 +12,8 @@ using QuilvianSystemBackend.Repositories;
 namespace QuilvianSystemBackend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260924080000_AddPettyCashVoucherConfirmationFields")]
-    partial class AddPettyCashVoucherConfirmationFields
+    [Migration("20260924083000_AddBillingManagementRevisionsDoctorMemoAndRefundCategory")]
+    partial class AddBillingManagementRevisionsDoctorMemoAndRefundCategory
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -58591,6 +58591,10 @@ namespace QuilvianSystemBackend.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)");
 
+                    b.Property<string>("DoctorDiscountMemoFile")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<Guid>("InvoiceId")
                         .HasColumnType("uuid");
 
@@ -59939,7 +59943,13 @@ namespace QuilvianSystemBackend.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
-                    b.Property<Guid>("RefundableCreditId")
+                    b.Property<string>("RefundCategory")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasDefaultValue("BILLING");
+
+                    b.Property<Guid?>("RefundableCreditId")
                         .HasColumnType("uuid");
 
                     b.Property<decimal>("RequestedAmount")
@@ -59952,6 +59962,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<Guid>("RowVersion")
                         .IsConcurrencyToken()
                         .HasColumnType("uuid");
+
+                    b.Property<string>("SelectedBillingItemIdsJson")
+                        .HasColumnType("text");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -109721,8 +109734,7 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models.BilRefundableCredit", "RefundableCredit")
                         .WithMany()
                         .HasForeignKey("RefundableCreditId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Invoice");
 

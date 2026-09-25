@@ -77,7 +77,8 @@ public sealed class BillingRefundService
                 ItemName = item.DescriptionSnapshot,
                 Qty = item.Quantity,
                 Amount = itemTotal,
-                RefundableAmount = refundable
+                RefundableAmount = refundable,
+                TransactionDate = item.CreateDateTime
             };
         }).ToList();
 

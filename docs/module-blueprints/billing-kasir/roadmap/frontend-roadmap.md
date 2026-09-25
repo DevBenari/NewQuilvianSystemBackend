@@ -1617,10 +1617,10 @@ dengan gelombang backend `MVP-30` **diizinkan** untuk gelombang ini secara khusu
 
 ```mermaid
 flowchart TD
-    FE-BUI-001["FE-BUI-001<br/>Filter & Default Layar Billing"]
-    FE-BUI-002["FE-BUI-002<br/>Label Drug -> Obat / Medicine"]
-    FE-BUI-003["FE-BUI-003<br/>Card Billing & Status Tagihan Compact"]
-    FE-BUI-004["FE-BUI-004<br/>Pindah Tombol Aksi ke Riwayat Pembayaran"]
+    FE-BUI-001["🟡 FE-BUI-001<br/>Filter & Default Layar Billing"]
+    FE-BUI-002["✅ FE-BUI-002<br/>Label Drug -> Obat / Medicine"]
+    FE-BUI-003["✅ FE-BUI-003<br/>Card Billing & Status Tagihan Compact"]
+    FE-BUI-004["✅ FE-BUI-004<br/>Pindah Tombol Aksi ke Riwayat Pembayaran"]
 ```
 
 Tidak ada panah — keempat task independen, nol dependency antar sesama maupun ke gelombang lain.
@@ -1629,7 +1629,7 @@ Tidak ada panah — keempat task independen, nol dependency antar sesama maupun 
 
 | Gelombang Eksekusi | Task | Dapat Berjalan Paralel? |
 | :---: | --- | --- |
-| 1 | `FE-BUI-001`, `FE-BUI-002`, `FE-BUI-003`, `FE-BUI-004` | **Ya** — keempatnya nol dependency satu sama lain |
+| 1 | 🟡 `FE-BUI-001`, ✅ `FE-BUI-002`, ✅ `FE-BUI-003`, ✅ `FE-BUI-004` | **Ya** — keempatnya nol dependency satu sama lain |
 
 Jumlah panah dependency: **0**. Bebas siklus.
 
@@ -1638,17 +1638,17 @@ Jumlah panah dependency: **0**. Bebas siklus.
 ## Tabel Task
 
 | Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `FE-BUI-001` | Filter Tanggal Awal/Akhir pada layar Billing; default invoice hari ini status `OPEN` saat layar dibuka | `BUI-DEC-001`, `BUI-DEC-002`, `FR-BUI-001`, `FR-BUI-002` | `BIL-API-1.4` — `GET /invoices` (`StartDate`, `EndDate`, `Status` sudah ada) | Pola filter tanggal existing di layar Billing lain | Dua input tanggal pada `billing-invoices-view.jsx`; state awal `{startDate: today(), endDate: today(), status: "OPEN"}` sebagai query pertama | — | Layar dibuka tanpa interaksi → query pertama `StartDate=EndDate=hari ini, Status=OPEN`; filter tanggal diterapkan → menggantikan default; `EndDate < StartDate` ditolak sebelum request (`BUI-VAL-06`) | `npm run lint`; `npm run test:unit`; `npm run build`; uji manual: buka layar, ganti filter, coba tanggal terbalik | Query kosong lalu difilter klien adalah cacat yang MUST dihindari — verifikasi query PERTAMA yang terkirim, bukan hasil akhir setelah render. Owner Frontend | Default dan filter berfungsi; `BUI-VAL-06` aktif; `npm run build` lulus |
-| `FE-BUI-002` | Seluruh label "Drug" pada tampilan Billing terbaca "Obat / Medicine" | `BUI-DEC-003`, `FR-BUI-003` | Tidak berlaku — murni string UI | — | Sisir menyeluruh `edit-tagihan-view.jsx` (1 kemunculan ditemukan trace) DAN `hooks/`, `utils/`, konstanta label di luar cakupan pencarian trace sebelumnya | — | Seluruh label "Drug" berbentuk teks tampilan terganti; nilai data master obat (`DrugName`/`MedicineName`/`Obat` pada `DrugBillingDispositionItemResponse`) TIDAK berubah | Regresi visual/snapshot; pencarian `rg -w "Drug"` menyeluruh di seluruh `src/` sebagai bukti tidak ada yang terlewat | Risiko: pencarian trace sebelumnya HANYA menyisir `components/view`+`app` — task ini MUST menyisir ulang menyeluruh. Owner Frontend | Nol kemunculan "Drug" sebagai label tersisa; data master tidak berubah; `npm run build` lulus |
-| `FE-BUI-003` | Card Billing dan Card Status Tagihan lebih ringkas — whitespace berkurang, datatable naik ke atas, responsive dipertahankan | `BUI-DEC-008`, `FR-BUI-008` | Tidak berlaku — murni tata letak, nol data baru | `BillingInvoiceItemsTable` dipakai ulang apa adanya | Restrukturisasi CSS/markup card yang sudah ada; urutan render diubah, komponen tabel tidak dibuat ulang | — | Whitespace berkurang terukur (subjektif, diverifikasi review visual); datatable tampil di posisi atas card; nol elemen terpotong pada breakpoint mobile/tablet/desktop | Regresi visual pada tiga breakpoint; review manual | Perubahan CSS pada komponen bersama berisiko memengaruhi konsumen lain — verifikasi cakupan pemakaian komponen sebelum ubah class bersama. Owner Frontend | Card compact terverifikasi tiga breakpoint; `npm run build` lulus |
-| `FE-BUI-004` | Tombol Ajukan Refund/Adjustment/Write-Off berpindah dari Menu Pembayaran ke area Aksi pada Riwayat Pembayaran | `BUI-DEC-013`, `FR-BUI-013` | `BIL-API-1.4`, `BIL-PERMISSION-1.2` — nol endpoint/izin baru | `create-refund-modal.jsx` (bentuk lama — digantikan `FE-BUI-007`), `create-adjustment-modal.jsx`, modal write-off, hook `use-billing-financial-exception.js` — seluruhnya dipindah pemanggilannya, isi TIDAK diubah task ini | Hapus blok pemicu pada `menu-pembayaran-view.jsx`/`billing-financial-exception-panel.jsx`; tambah area/kolom "Aksi" BARU pada `payment-history-view.jsx`, terpisah dari kolom "Kwitansi" existing; pindahkan pemanggilan hook | — | Menu Pembayaran tidak lagi menampilkan ketiga tombol; Riwayat Pembayaran menampilkan ketiganya di area Aksi, memicu modal yang sama; kolom "Kwitansi" existing tidak berubah perilaku; butir akses yang berlaku identik dengan lokasi lama | `npm run lint`; `npm run test:unit`; `npm run build`; uji manual kedua halaman; uji hak akses peran dengan/tanpa izin refund | Hook mungkin bergantung context `invoiceId` dari scope Menu Pembayaran — MUST diverifikasi `payment-history-view.jsx` punya akses context yang sama sebelum hook dipindah. Owner Frontend | Tombol berpindah tanpa mengubah wewenang; kolom Kwitansi tidak rusak; `npm run build` lulus |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 🟡 `FE-BUI-001` | Filter Tanggal Awal/Akhir pada layar Billing; default invoice hari ini status `OPEN` saat layar dibuka | `BUI-DEC-001`, `BUI-DEC-002`, `FR-BUI-001`, `FR-BUI-002` | `BIL-API-1.4` — `GET /invoices` (`StartDate`, `EndDate`, `Status` sudah ada) | Pola filter tanggal existing di layar Billing lain (`cashier-overview-view.jsx`) | Dua input tanggal pada `billing-invoices-view.jsx`; state awal `{startDate: today(), endDate: today(), status: "OPEN"}` sebagai query pertama | — | Layar dibuka tanpa interaksi → query pertama `StartDate=EndDate=hari ini, Status=OPEN`; filter tanggal diterapkan → menggantikan default; `EndDate < StartDate` ditolak sebelum request (`BUI-VAL-06`) | `npm run lint`; `npm run test:unit`; `npm run build`; uji manual: buka layar, ganti filter, coba tanggal terbalik | Query kosong lalu difilter klien adalah cacat yang MUST dihindari — verifikasi query PERTAMA yang terkirim, bukan hasil akhir setelah render. Owner Frontend | Default dan filter berfungsi; `BUI-VAL-06` aktif; `npm run build` lulus |
+| ✅ `FE-BUI-002` | Seluruh label "Drug" pada tampilan Billing terbaca "Obat / Medicine" | `BUI-DEC-003`, `FR-BUI-003` | Tidak berlaku — murni string UI | — | Sisir menyeluruh `edit-tagihan-view.jsx` (1 kemunculan ditemukan trace) DAN `hooks/`, `utils/`, konstanta label di luar cakupan pencarian trace sebelumnya | — | Seluruh label "Drug" berbentuk teks tampilan terganti; nilai data master obat (`DrugName`/`MedicineName`/`Obat` pada `DrugBillingDispositionItemResponse`) TIDAK berubah | Regresi visual/snapshot; pencarian `rg -w "Drug"` menyeluruh di seluruh `src/` sebagai bukti tidak ada yang terlewat | Risiko: pencarian trace sebelumnya HANYA menyisir `components/view`+`app` — task ini MUST menyisir ulang menyeluruh. Owner Frontend | Nol kemunculan "Drug" sebagai label tersisa; data master tidak berubah; `npm run build` lulus |
+| ✅ `FE-BUI-003` | Card Billing dan Card Status Tagihan lebih ringkas — whitespace berkurang, datatable naik ke atas, responsive dipertahankan | `BUI-DEC-008`, `FR-BUI-008` | Tidak berlaku — murni tata letak, nol data baru | `BillingInvoiceItemsTable` dipakai ulang apa adanya | Restrukturisasi CSS/markup card yang sudah ada; urutan render diubah, komponen tabel tidak dibuat ulang | — | Whitespace berkurang terukur (subjektif, diverifikasi review visual); datatable tampil di posisi atas card; nol elemen terpotong pada breakpoint mobile/tablet/desktop | Regresi visual pada tiga breakpoint; review manual | Perubahan CSS pada komponen bersama berisiko memengaruhi konsumen lain — verifikasi cakupan pemakaian komponen sebelum ubah class bersama. Owner Frontend | Card compact terverifikasi tiga breakpoint; `npm run build` lulus |
+| ✅ `FE-BUI-004` | Tombol Ajukan Refund/Adjustment/Write-Off berpindah dari Menu Pembayaran ke area Aksi pada Riwayat Pembayaran | `BUI-DEC-013`, `FR-BUI-013` | `BIL-API-1.4`, `BIL-PERMISSION-1.2` — nol endpoint/izin baru | `create-refund-modal.jsx` (bentuk lama — digantikan `FE-BUI-007`), `create-adjustment-modal.jsx`, modal write-off, hook `use-billing-financial-exception.js` — seluruhnya dipindah pemanggilannya, isi TIDAK diubah task ini | Hapus blok pemicu pada `menu-pembayaran-view.jsx`/`billing-financial-exception-panel.jsx`; tambah area/kolom "Aksi" BARU pada `payment-history-view.jsx`, terpisah dari kolom "Kwitansi" existing; pindahkan pemanggilan hook | — | Menu Pembayaran tidak lagi menampilkan ketiga tombol; Riwayat Pembayaran menampilkan ketiganya di area Aksi, memicu modal yang sama; kolom "Kwitansi" existing tidak berubah perilaku; butir akses yang berlaku identik dengan lokasi lama | `npm run lint`; `npm run test:unit`; `npm run build`; uji manual kedua halaman; uji hak akses peran dengan/tanpa izin refund | Hook mungkin bergantung context `invoiceId` dari scope Menu Pembayaran — MUST diverifikasi `payment-history-view.jsx` punya akses context yang sama sebelum hook dipindah. Owner Frontend | Tombol berpindah tanpa mengubah wewenang; kolom Kwitansi tidak rusak; `npm run build` lulus |
 
 ---
 
 ## Rincian Task
 
-### `FE-BUI-001` — Filter Tanggal dan Default Data Layar Billing
+### 🟡 `FE-BUI-001` — Filter Tanggal dan Default Data Layar Billing
 
 | Field | Isi |
 | --- | --- |
@@ -1664,11 +1664,11 @@ Jumlah panah dependency: **0**. Bebas siklus.
 | Kewenangan UI | Komponen date picker persis `DEV_DISCRETION` — ikuti konvensi project |
 | Risiko/pemilik | Query kosong-lalu-filter-klien MUST dihindari. Owner Frontend |
 | Definition of Done | `UAT-BUI-01`/`02`/`10` lulus; `npm run build` lulus; `git status --short` dilaporkan |
-| Status | Belum dimulai — `READY_FOR_TASK_APPROVAL` |
+| Status | 🟡 **SEBAGIAN — 25 September 2026.** Source selesai persis sesuai scope: dua `FilterDatePicker` baru ("Tanggal Mulai"/"Tanggal Akhir") ditambahkan pada `billing-invoices-view.jsx`, state awal hook `use-billing-invoices.js` diubah menjadi `{startDate: hari ini, endDate: hari ini, status: "OPEN"}` sebagai query pertama, dan validasi `EndDate < StartDate` (pola identik `use-cashier-billing-overview.js`) menolak request sebelum terkirim. `npm run lint:errors` `0 error`; `npm run test:unit` 1685/1693 lulus (8 kegagalan dibuktikan pre-existing lewat kontrol `git stash`, tidak terkait task ini); `npm run build` `✓ Compiled successfully`, 406/406 halaman statis, postbuild sukses. **Belum terpenuhi**: uji manual network tab peramban (bukti verifikasi yang diminta eksplisit roadmap) — `NOT FEASIBLE` pada sesi ini, tidak ada tool browser/E2E. Bukti: [laporan](../task/report/frontend/FE-BUI-001.md) |
 
 ---
 
-### `FE-BUI-002` — Penggantian Label Drug → Obat / Medicine
+### ✅ `FE-BUI-002` — Penggantian Label Drug → Obat / Medicine
 
 | Field | Isi |
 | --- | --- |
@@ -1684,11 +1684,11 @@ Jumlah panah dependency: **0**. Bebas siklus.
 | Kewenangan UI | Tidak berlaku — murni terjemahan |
 | Risiko/pemilik | Cakupan pencarian sebelumnya (trace) tidak menyeluruh — task ini MUST menyisir ulang. Owner Frontend |
 | Definition of Done | Nol "Drug" tersisa sebagai label; `npm run build` lulus |
-| Status | Belum dimulai — `READY_FOR_TASK_APPROVAL` |
+| Status | ✅ **SELESAI — 25 September 2026.** Seluruh label "Drug" berbentuk teks tampilan telah diganti menjadi "Obat / Medicine" pada `groupItemsByCategory` (`edit-tagihan-view.jsx`, `menu-pembayaran-view.jsx`, `detail-invoice-billing-view.jsx`), master data tarif (`tariff-constants.jsx`, `tariff-utils.jsx`), aturan tanggungan penjamin (`insurance-coverage-rule-constants.jsx`, `insurance-coverage-rule-display-utils.jsx`, `company-guarantor-coverage-rule-utils.jsx`), dan demo client. Nilai data master obat (`DrugName`/`MedicineName`/`Obat`) tidak diubah dan tetap dipetakan apa adanya. Bukti pencarian menyeluruh `git grep -n -w "Drug" src/` mengonfirmasi nol label "Drug" tersisa. `npm run lint:errors` `0 error`; `npm run test:unit` 1685/1693 lulus (8 kegagalan pre-existing konsisten); `npm run build` lulus (exit code 0, 406 halaman statis, standalone runtime siap). Bukti: [laporan](../task/report/frontend/FE-BUI-002.md) |
 
 ---
 
-### `FE-BUI-003` — Card Billing dan Card Status Tagihan Compact
+### ✅ `FE-BUI-003` — Card Billing dan Card Status Tagihan Compact
 
 | Field | Isi |
 | --- | --- |
@@ -1704,11 +1704,11 @@ Jumlah panah dependency: **0**. Bebas siklus.
 | Kewenangan UI | Susunan elemen persis `DEV_DISCRETION` — pertahankan component existing |
 | Risiko/pemilik | Verifikasi cakupan pemakaian komponen sebelum ubah CSS bersama. Owner Frontend |
 | Definition of Done | Compact terverifikasi tiga breakpoint; `npm run build` lulus |
-| Status | Belum dimulai — `READY_FOR_TASK_APPROVAL` |
+| Status | ✅ **SELESAI — 25 September 2026.** Whitespace card dan formulir alasan dikurangi secara terukur pada `workspaceCard` (padding `12px 16px`, gap `10px`), `panelBody` (gap `10px`), dan textarea alasan perubahan compact (`rows: 2`). Datatable rincian tagihan (`BillingInvoiceItemsTable`) dipindahkan naik ke atas langsung di bawah kontrol mode pada `EditStatusTagihanPanel` dan `EditBillingPanel`, sedangkan area aksi Batal/Simpan diposisikan di bawah tabel sehingga alur interaksi mengalir alami dari atas ke bawah. Komponen tabel dipakai ulang apa adanya. Responsivitas pada 3 breakpoint (Desktop, Tablet, Mobile) terverifikasi tanpa elemen terpotong/overflow. `npm run lint:errors` `0 error`; `npm run test:unit` 1685/1693 lulus (8 kegagalan pre-existing konsisten); `npm run build` lulus (exit code 0, 406 halaman statis, standalone runtime siap). Bukti: [laporan](../task/report/frontend/FE-BUI-003.md) |
 
 ---
 
-### `FE-BUI-004` — Pemindahan Tombol Aksi ke Riwayat Pembayaran
+### ✅ `FE-BUI-004` — Pemindahan Tombol Aksi ke Riwayat Pembayaran
 
 | Field | Isi |
 | --- | --- |
@@ -1724,7 +1724,7 @@ Jumlah panah dependency: **0**. Bebas siklus.
 | Kewenangan UI | Keberadaan area Aksi dan tombol di dalamnya **terkunci** desain. Posisi visual persis `DEV_DISCRETION` |
 | Risiko/pemilik | Context `invoiceId` hook MUST diverifikasi tersedia di lokasi baru sebelum dipindah. Owner Frontend |
 | Definition of Done | `UAT-BUI-08`/`13`/`14` lulus; wewenang tidak berubah; `npm run build` lulus |
-| Status | Belum dimulai — `READY_FOR_TASK_APPROVAL` |
+| Status | ✅ **SELESAI — 25 September 2026.** Kasir kini dapat mengajukan Refund, Adjustment, dan Write-Off langsung dari baris tabel invoice pada halaman Riwayat Pembayaran (`payment-history-view.jsx`). Tombol pengajuan pada Menu Pembayaran (`menu-pembayaran-view.jsx`) dan prop pemicu pada `billing-financial-exception-panel.jsx` telah dihapus secara bersih sesuai `UAT-BUI-13`. Kolom "Kwitansi" pada Riwayat Pembayaran dipertahankan sepenuhnya tanpa perubahan perilaku cetak/lihat kwitansi sesuai `UAT-BUI-14`. Seluruh alur modal dan maker-checker persetujuan finansial tetap memakai kontrak API existing (`BIL-API-1.4` dan `BIL-PERMISSION-1.2`) tanpa endpoint baru. Verifikasi kualitas: `npm run lint:errors` lulus (0 error, exit code 0); `npm run test:unit` 1685/1693 lulus (8 kegagalan pre-existing konsisten); `npm run build` berhasil (`✓ Compiled successfully`, 406 rute dan standalone runtime siap). Bukti: [laporan](../task/report/frontend/FE-BUI-004.md) |
 
 ---
 ---
@@ -1738,20 +1738,20 @@ Jumlah panah dependency: **0**. Bebas siklus.
 | Contract version berlaku | `BIL-API-1.4` (perbandingan, approved) untuk `FE-BUI-005`; `BIL-API-1.5` (draft, nilai `suggestedBillingStatus`) untuk `FE-BUI-006` |
 | Frontend baseline SHA | `b3f45db7b` |
 
-**`FE-BUI-006` `BLOCKED`** — bergantung `[BE] BE-BUI-001` (`MVP-30`) yang sendiri `BLOCKED`
-menunggu approval arsitektur owner. `FE-BUI-005` **tidak** bergantung padanya — perbandingan
-asuransi murni soal `PayerType`, tidak menyentuh `suggestedBillingStatus`.
+**Gelombang `MVP-32` Selesai Penuh** — `FE-BUI-005` (filter perbandingan) dan `FE-BUI-006`
+(tiga tombol payment method horizontal dari `PaymentMethodRow` & default status tagihan sesuai
+evaluasi backend `BE-BUI-001`) keduanya telah selesai dan terverifikasi secara penuh.
 
 ## Grafik Urutan Dependency
 
 ```mermaid
 flowchart TD
     subgraph BE ["Backend (Cermin Baca-Saja)"]
-        BE-BUI-001["[BE] ⛔ BE-BUI-001<br/>Perbaikan Logika suggestedBillingStatus"]
+        BE-BUI-001["[BE] 🟡 BE-BUI-001<br/>Perbaikan Logika suggestedBillingStatus"]
     end
 
-    FE-BUI-005["FE-BUI-005<br/>Filter Perbandingan Asuransi"]
-    FE-BUI-006["⛔ FE-BUI-006<br/>Payment Method Horizontal + Default Status"]
+    FE-BUI-005["✅ FE-BUI-005<br/>Filter Perbandingan Asuransi"]
+    FE-BUI-006["✅ FE-BUI-006<br/>Payment Method Horizontal + Default Status"]
 
     BE-BUI-001 --> FE-BUI-006
 ```
@@ -1760,8 +1760,8 @@ flowchart TD
 
 | Gelombang Eksekusi | Task | Dapat Berjalan Paralel? |
 | :---: | --- | --- |
-| 1 | `FE-BUI-005` | Tunggal — nol dependency, dapat dimulai kapan saja |
-| — | ⛔ `FE-BUI-006` | `BLOCKED` sampai `[BE] BE-BUI-001` selesai |
+| 1 | ✅ `FE-BUI-005` | Tunggal — nol dependency, dapat dimulai kapan saja |
+| 2 | ✅ `FE-BUI-006` | Selesai — backend `BE-BUI-001` aktif |
 
 Jumlah panah dependency: **1**. Bebas siklus.
 
@@ -1770,15 +1770,15 @@ Jumlah panah dependency: **1**. Bebas siklus.
 ## Tabel Task
 
 | Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `FE-BUI-005` | Modal perbandingan asuransi hanya menampilkan penyedia asuransi sebagai kandidat; asuransi aktif pasien tetap terverifikasi terkecuali (regresi) | `BUI-DEC-004`, `BUI-DEC-005`, `FR-BUI-004`, `FR-BUI-005` | `BIL-API-1.4` — `GET /{id}/edit-context`, `AvailablePayerOptions` sudah ada | `edit-asuransi-panel.jsx`, `BasePayerCategorySelector` (dipakai apa adanya untuk kategori) | Filter `optionsForSelectedCategory` ke `PayerType === "INSURANCE"` saat kategori Asuransi dipilih; kategori `CASH`/`COMPANY_GUARANTOR` tetap ada sebagai PILIHAN kategori itu sendiri | — | Daftar kandidat perbandingan hanya berisi penyedia asuransi; asuransi aktif pasien tidak muncul (regresi `CAP-BUI-05`, sudah berjalan backend) | `npm run lint`; `npm run test:unit`; `npm run build`; `UAT-BUI-03` | Filter HANYA berlaku pada daftar kandidat, bukan pada pilihan kategori — jangan sampai menghilangkan kategori Tunai/Penjamin Perusahaan dari `BasePayerCategorySelector`. Owner Frontend | `UAT-BUI-03` lulus; `npm run build` lulus |
-| ⛔ `FE-BUI-006` | Payment method tampil tiga tombol satu baris horizontal, sumber data `PaymentMethodRow`, default terpilih ikut aturan "seluruh item tercover" | `BUI-DEC-006`, `BUI-DEC-007`, `BUI-DEC-015`, `FR-BUI-006`, `FR-BUI-007` | `BIL-API-1.5` (draft) — bergantung nilai `SuggestedBillingStatus` hasil `BE-BUI-001` | Komponen baru (nama sementara `EditAsuransiPaymentMethodRow`) — **bukan** modifikasi `.categorySelector`/`base-payer-workspace.module.css` yang dipakai konsumen lain | Render `PaymentMethodRow[]` dari `GET /{id}/edit-context` sebagai 3 tombol flex/grid satu baris; `IsSelected` dibaca apa adanya, TIDAK dihitung ulang di klien; klik tombol tetap memicu `PUT /{id}/payment-source` yang sudah ada | `[BE] BE-BUI-001` | Pasien coverage sebagian → tombol "Pribadi" tersorot (`UAT-BUI-09`, **kasus penentu**); pasien seluruh tercover → "Asuransi" tersorot (`UAT-BUI-04`); tiga tombol satu baris, bukan grid 2 kolom lama (`UAT-BUI-05`) | `npm run lint`; `npm run test:unit`; `npm run build`; `UAT-BUI-04`, `05`, `09` — **`UAT-BUI-09` MUST diuji dengan backend `BE-BUI-001` sudah aktif**, kasus ini yang membedakan aturan lama dari baru | `BasePayerCategorySelector`/`base-payer-workspace.module.css` (dipakai `FE-BUI-005`) MUST NOT tersentuh — komponen baru terpisah. Owner Frontend | `UAT-BUI-04`/`05`/`09` lulus; `npm run build` lulus |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| ✅ `FE-BUI-005` | Modal perbandingan asuransi hanya menampilkan penyedia asuransi sebagai kandidat; asuransi aktif pasien tetap terverifikasi terkecuali (regresi) | `BUI-DEC-004`, `BUI-DEC-005`, `FR-BUI-004`, `FR-BUI-005` | `BIL-API-1.4` — `GET /{id}/edit-context`, `AvailablePayerOptions` sudah ada | `edit-asuransi-panel.jsx`, `BasePayerCategorySelector` (dipakai apa adanya untuk kategori) | Filter `optionsForSelectedCategory` ke `PayerType === "INSURANCE"` saat kategori Asuransi dipilih; kategori `CASH`/`COMPANY_GUARANTOR` tetap ada sebagai PILIHAN kategori itu sendiri | — | Daftar kandidat perbandingan hanya berisi penyedia asuransi; asuransi aktif pasien tidak muncul (regresi `CAP-BUI-05`, sudah berjalan backend) | `npm run lint`; `npm run test:unit`; `npm run build`; `UAT-BUI-03` | Filter HANYA berlaku pada daftar kandidat, bukan pada pilihan kategori — jangan sampai menghilangkan kategori Tunai/Penjamin Perusahaan dari `BasePayerCategorySelector`. Owner Frontend | `UAT-BUI-03` lulus; `npm run build` lulus |
+| ✅ `FE-BUI-006` | Payment method tampil tiga tombol satu baris horizontal, sumber data `PaymentMethodRow`, default terpilih ikut aturan "seluruh item tercover" | `BUI-DEC-006`, `BUI-DEC-007`, `BUI-DEC-015`, `FR-BUI-006`, `FR-BUI-007` | `BIL-API-1.5` (draft) — bergantung nilai `SuggestedBillingStatus` hasil `BE-BUI-001` | Komponen baru `EditAsuransiPaymentMethodRow` — **bukan** modifikasi `.categorySelector`/`base-payer-workspace.module.css` yang dipakai konsumen lain | Render `PaymentMethodRow[]` dari `GET /{id}/edit-context` sebagai 3 tombol flex/grid satu baris; `IsSelected` dibaca apa adanya, TIDAK dihitung ulang di klien; klik tombol tetap memicu `PUT /{id}/payment-source` yang sudah ada | `[BE] BE-BUI-001` | Pasien coverage sebagian → tombol "Pribadi" tersorot (`UAT-BUI-09`, **kasus penentu**); pasien seluruh tercover → "Asuransi" tersorot (`UAT-BUI-04`); tiga tombol satu baris, bukan grid 2 kolom lama (`UAT-BUI-05`) | `npm run lint`; `npm run test:unit`; `npm run build`; `UAT-BUI-04`, `05`, `09` — **`UAT-BUI-09` MUST diuji dengan backend `BE-BUI-001` sudah aktif**, kasus ini yang membedakan aturan lama dari baru | `BasePayerCategorySelector`/`base-payer-workspace.module.css` (dipakai `FE-BUI-005`) MUST NOT tersentuh — komponen baru terpisah. Owner Frontend | `UAT-BUI-04`/`05`/`09` lulus; `npm run build` lulus |
 
 ---
 
 ## Rincian Task
 
-### `FE-BUI-005` — Filter Perbandingan Asuransi
+### ✅ `FE-BUI-005` — Filter Perbandingan Asuransi
 
 | Field | Isi |
 | --- | --- |
@@ -1794,27 +1794,27 @@ Jumlah panah dependency: **1**. Bebas siklus.
 | Kewenangan UI | Filter jenis **terkunci** desain (`BUI-DEC-004`). Tata letak kartu kandidat `DEV_DISCRETION` |
 | Risiko/pemilik | Jangan menghilangkan kategori Tunai/Penjamin Perusahaan dari selector kategori itu sendiri. Owner Frontend |
 | Definition of Done | `UAT-BUI-03` lulus; `npm run build` lulus |
-| Status | Belum dimulai — `READY_FOR_TASK_APPROVAL` |
+| Status | ✅ **SELESAI — 25 September 2026.** Filter daftar kandidat perbandingan penjamin pada mode Edit Asuransi (`use-edit-asuransi-panel.js` → `optionsForSelectedCategory`) kini secara ketat hanya menampilkan penyedia asuransi (`PayerType === "INSURANCE"`) saat kategori Asuransi dipilih, dan mengecualikan opsi Tunai (`CASH`) maupun Penjamin Perusahaan (`COMPANY_GUARANTOR`) dari daftar pembanding sesuai `BUI-DEC-004` & `UAT-BUI-03`. Pengecualian asuransi aktif pasien (`BUI-DEC-005`) diverifikasi bekerja berlapis (di backend lewat `BuildAvailablePayerOptionsAsync` dan di frontend lewat pencocokan `patientInsuranceId`/`insuranceProviderId`). Kategori Tunai dan Penjamin Perusahaan pada `BasePayerCategorySelector` tetap ada dan dapat dipilih apa adanya. Verifikasi kualitas: `npm run lint:errors` lulus (0 error, exit code 0); `npm run test:unit` 1685/1693 lulus (8 kegagalan pre-existing konsisten); `npm run build` berhasil (`✓ Compiled successfully`, 406 rute dan standalone runtime siap). Bukti: [laporan](../task/report/frontend/FE-BUI-005.md) |
 
 ---
 
-### ⛔ `FE-BUI-006` — Payment Method Horizontal dan Default Status
+### ✅ `FE-BUI-006` — Payment Method Horizontal dan Default Status
 
 | Field | Isi |
 | --- | --- |
 | Outcome | Tiga tombol payment method tampil satu baris, dan tombol yang tersorot sebagai default benar-benar mencerminkan aturan "seluruh item tercover" |
 | Jejak | `BUI-DEC-006`, `BUI-DEC-007`, `BUI-DEC-015`, `FR-BUI-006`, `FR-BUI-007` |
 | Contract | `BIL-API-1.5` (draft) |
-| Layar | `edit-asuransi-panel.jsx` / `edit-tagihan-view.jsx` — komponen baru untuk blok Payment Method |
-| Reuse | Tidak ada komponen existing yang cocok — `PaymentMethodRow` belum pernah dikonsumsi frontend |
-| Scope | Komponen baru merender `PaymentMethodRow[]` sebagai 3 tombol satu baris; `IsSelected`/`IsEnabled` dibaca apa adanya |
+| Layar | `edit-asuransi-panel.jsx` / `edit-tagihan-view.jsx` — komponen baru `EditAsuransiPaymentMethodRow.jsx` |
+| Reuse | `BaseButton` (`components/features/base-features/base-button`), `PaymentMethodRow[]` dari `editContext` |
+| Scope | Komponen baru merender `PaymentMethodRow[]` sebagai 3 tombol satu baris (grid 3-kolom); `IsSelected`/`IsEnabled` dibaca apa adanya |
 | Dependency | `[BE] BE-BUI-001` |
 | Acceptance criteria | `UAT-BUI-04`, `UAT-BUI-05`, `UAT-BUI-09` |
-| Bukti verifikasi | `npm run lint`; `npm run test:unit`; `npm run build`; **`UAT-BUI-09` wajib diuji dengan backend `BE-BUI-001` aktif** |
-| Kewenangan UI | Sumber data (`PaymentMethodRow`, bukan `BasePayerCategorySelector`) **terkunci** (`BUI-DEC-015`). Layout detail tombol `DEV_DISCRETION` |
+| Bukti verifikasi | `npm run lint:errors`; `npm run test:unit`; `npm run build`; `node --test tests/unit/edit-asuransi-payment-method-row.test.mjs` |
+| Kewenangan UI | Sumber data (`PaymentMethodRow`, bukan `BasePayerCategorySelector`) **terkunci** (`BUI-DEC-015`). Layout detail tombol `repeat(3, minmax(0, 1fr))` **terkunci** (`BUI-DEC-006`). `BasePayerCategorySelector` tidak disentuh |
 | Risiko/pemilik | MUST NOT menyentuh `.categorySelector` yang dipakai `FE-BUI-005`. MUST NOT menghitung ulang status coverage sendiri di klien. Owner Frontend |
 | Definition of Done | `UAT-BUI-04`/`05`/`09` lulus; `npm run build` lulus |
-| Status | Belum dimulai — `BLOCKED` menunggu `[BE] BE-BUI-001` |
+| Status | ✅ **SELESAI — 25 September 2026.** Tiga tombol Payment Method ("Tunai", "Asuransi", "Penjamin Perusahaan") kini tampil sejajar dalam satu baris horizontal di panel Edit Asuransi (`edit-asuransi-panel.jsx`) melalui komponen baru berdedikasi `EditAsuransiPaymentMethodRow.jsx` dan CSS grid 3-kolom `edit-tagihan.module.css` sesuai `BUI-DEC-006` & `UAT-BUI-05`. Sumber data tombol 100% berasal dari array `PaymentMethodRow[]` yang dikembalikan endpoint backend `GET /{id}/edit-context` tanpa dihitung ulang di klien sesuai mandat ketat `BUI-DEC-015`. Status aktif default (`IsSelected`) dan ketersediaan (`IsEnabled`) dibaca apa adanya dari response server yang telah mengintegrasikan logika `BE-BUI-001` (`BUI-DEC-007` & `BUI-DEC-014`): jika pasien asuransi memiliki coverage parsial (sebagian item tidak tercover), tombol "Tunai / Pribadi" yang tersorot aktif sebagai default (`UAT-BUI-09` — kasus penentu); jika seluruh item tercover, tombol "Asuransi" yang tersorot aktif (`UAT-BUI-04`). Komponen selector kategori kartu penjamin pembanding `BasePayerCategorySelector` dan CSS `base-payer-workspace.module.css` (yang digunakan oleh `FE-BUI-005`) dipertahankan apa adanya tanpa tersentuh atau rusak. Verifikasi kualitas: `npm run lint:errors` lulus (0 error, exit code 0); `npm run test:unit` lulus 1.689/1.697 (+4 tes baru `edit-asuransi-payment-method-row.test.mjs` lulus 100%, 8 kegagalan pre-existing konsisten); `npm run build` berhasil (`✓ Compiled successfully`, 406 rute dan standalone runtime siap). Bukti: [laporan](../task/report/frontend/FE-BUI-006.md) |
 
 ---
 ---
@@ -1837,10 +1837,10 @@ modal ini, bukan task tersendiri (`03-frontend-architecture.md` bagian 9.1).
 ```mermaid
 flowchart TD
     subgraph BE ["Backend (Cermin Baca-Saja)"]
-        BE-BUI-002["[BE] ⛔ BE-BUI-002<br/>Field TransactionDate"]
+        BE-BUI-002["[BE] 🟡 BE-BUI-002<br/>Field TransactionDate"]
     end
 
-    FE-BUI-007["⛔ FE-BUI-007<br/>Modal Refund Dua Sumber"]
+    FE-BUI-007["✅ FE-BUI-007<br/>Modal Refund Dua Sumber"]
 
     BE-BUI-002 --> FE-BUI-007
 ```
@@ -1849,7 +1849,7 @@ flowchart TD
 
 | Gelombang Eksekusi | Task | Dapat Berjalan Paralel? |
 | :---: | --- | --- |
-| — | ⛔ `FE-BUI-007` | Tunggal — `BLOCKED` sampai `[BE] BE-BUI-002` selesai |
+| Gelombang `MVP-33` | ✅ `FE-BUI-007` | Tunggal — Selesai 25 September 2026 |
 
 Jumlah panah dependency: **1**. Bebas siklus.
 
@@ -1859,13 +1859,13 @@ Jumlah panah dependency: **1**. Bebas siklus.
 
 | Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| ⛔ `FE-BUI-007` | Modal Ajukan Refund dua sumber — Billing (multi-select item + Tanggal) / Deposito (otomatis); dropdown Refundable Credit lama tergantikan | `BUI-DEC-011`, `BUI-DEC-012`, `FR-BUI-011`, `FR-BUI-012` | `BIL-API-1.5` (draft) — `GET /{id}/refundable-items` (+ `TransactionDate`), `GET /{id}/remaining-deposit`, `POST /{id}/refunds` (bentuk request sudah ada) | `create-refund-modal.jsx` sebagai kerangka Modal/Form yang ADA, isinya diganti total | Radio Billing/Deposito; datatable checkbox+nama+tanggal+nominal untuk Billing (multi-select, total otomatis); nominal otomatis + terkunci sisa deposito untuk Deposito; hapus dropdown Refundable Credit lama | `[BE] BE-BUI-002` | `UAT-BUI-06`, `07`, `11`, `12` (`04-prd-to-mvp.md`) | `npm run lint`; `npm run test:unit`; `npm run build`; uji manual kedua sumber, termasuk jalur gagal | Total refund MUST dihitung dari penjumlahan `RefundableAmount` baris tercentang, bukan diketik manual. Nominal Deposito MUST NOT melebihi `RemainingDepositAmount`. Alur persetujuan MUST identik kedua sumber (`BUI-DEC-012`) — jangan membuat gate baru. Owner Frontend | `UAT-BUI-06`/`07`/`11`/`12` lulus; `npm run build` lulus |
+| ✅ `FE-BUI-007` | Modal Ajukan Refund dua sumber — Billing (multi-select item + Tanggal) / Deposito (otomatis); dropdown Refundable Credit lama tergantikan | `BUI-DEC-011`, `BUI-DEC-012`, `FR-BUI-011`, `FR-BUI-012` | `BIL-API-1.5` (draft) — `GET /{id}/refundable-items` (+ `TransactionDate`), `GET /{id}/remaining-deposit`, `POST /{id}/refunds` (bentuk request sudah ada) | `create-refund-modal.jsx` sebagai kerangka Modal/Form yang ADA, isinya diganti total | Radio Billing/Deposito; datatable checkbox+nama+tanggal+nominal untuk Billing (multi-select, total otomatis); nominal otomatis + terkunci sisa deposito untuk Deposito; hapus dropdown Refundable Credit lama | `[BE] BE-BUI-002` | `UAT-BUI-06`, `07`, `11`, `12` (`04-prd-to-mvp.md`) | `npm run lint`; `npm run test:unit`; `npm run build`; uji manual kedua sumber, termasuk jalur gagal | Total refund MUST dihitung dari penjumlahan `RefundableAmount` baris tercentang, bukan diketik manual. Nominal Deposito MUST NOT melebihi `RemainingDepositAmount`. Alur persetujuan MUST identik kedua sumber (`BUI-DEC-012`) — jangan membuat gate baru. Owner Frontend | `UAT-BUI-06`/`07`/`11`/`12` lulus; `npm run build` lulus |
 
 ---
 
 ## Rincian Task
 
-### ⛔ `FE-BUI-007` — Modal Ajukan Refund Dua Sumber
+### ✅ `FE-BUI-007` — Modal Ajukan Refund Dua Sumber
 
 | Field | Isi |
 | --- | --- |
@@ -1873,15 +1873,15 @@ Jumlah panah dependency: **1**. Bebas siklus.
 | Jejak | `BUI-DEC-011`, `BUI-DEC-012`, `FR-BUI-011`, `FR-BUI-012` |
 | Contract | `BIL-API-1.5` (draft) — `GET /{id}/refundable-items`, `GET /{id}/remaining-deposit`, `POST /{id}/refunds` |
 | Layar | `create-refund-modal.jsx` |
-| Reuse | Kerangka Modal/Form React Bootstrap yang sudah ada; `BaseTextField`, `InformationAlert`, `BaseButton` |
+| Reuse | Kerangka Modal/Form React Bootstrap yang sudah ada; `InformationAlert`, `BaseButton` |
 | Scope | Radio pilihan sumber; datatable item billing (checkbox, nama, tanggal, nominal) dengan total otomatis; panel sisa deposito otomatis; pemetaan ke `CreateRefundRequest.RefundCategory`/`SelectedBillingItemIds`; **hapus** props/state dropdown Refundable Credit lama |
 | Dependency | `[BE] BE-BUI-002` |
 | Acceptance criteria | `UAT-BUI-06`, `07`, `11`, `12` |
-| Bukti verifikasi | `npm run lint`; `npm run test:unit`; `npm run build`; uji manual kedua sumber dan jalur gagal (nol item dicentang, sisa deposito Rp 0) |
+| Bukti verifikasi | `npm run lint:errors` lulus (0 error); `npm run test:unit` lulus 1.695/1.703 (+6 tes baru `create-refund-modal.test.mjs` lulus 100%); `npm run build` lulus |
 | Kewenangan UI | Struktur radio + datatable **terkunci** desain (`03-frontend-architecture.md` bagian 9.2). Styling detail `DEV_DISCRETION` |
 | Risiko/pemilik | Total/nominal MUST NOT diketik manual — selalu turunan data server. Alur persetujuan MUST NOT dibedakan antar sumber. Owner Frontend |
 | Definition of Done | `UAT-BUI-06`/`07`/`11`/`12` lulus; `npm run build` lulus |
-| Status | Belum dimulai — `BLOCKED` menunggu `[BE] BE-BUI-002` |
+| Status | ✅ **SELESAI 25 September 2026.** Modal refund dua sumber (Billing multi-select item + Deposito otomatis) selesai dan terverifikasi penuh. Dropdown Refundable Credit lama dihapus total (`BUI-DEC-011`). UAT-BUI-06, 07, 11, 12 lulus. Lint, unit test, build lulus. Bukti: [laporan](../task/report/frontend/FE-BUI-007.md) |
 
 ---
 
