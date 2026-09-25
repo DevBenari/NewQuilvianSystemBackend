@@ -33,6 +33,8 @@ $root = [IO.Path]::GetFullPath($RepositoryRoot)
 $script:testProjectPrefixes = $null
 $script:sourceFiles = $null
 $script:codeTextCache = @{}
+$script:dbSetEntityNames = $null
+$script:configuredEntityNames = $null
 foreach ($authority in $requiredAuthority) {
     if (-not (Test-Path -LiteralPath (Join-Path $root $authority) -PathType Leaf)) { throw "Canonical governance missing: $authority" }
 }
@@ -157,13 +159,15 @@ function Write-StructuredResult([string]$result, [object[]]$blockingRules) {
     if (-not (Test-Path -LiteralPath $parent -PathType Container)) { throw "JSON output directory not found: $parent" }
     $json = [pscustomobject]@{
         schemaVersion = '1.0'
-        checkerVersion = 'G6-E2C'
+        checkerVersion = 'G6-E2D'
         mode = $Mode
         scope = $scope
         baseRef = if ($scope -eq 'GitRange') { $BaseRef } else { $null }
         headRef = if ($scope -eq 'GitRange') { $HeadRef } else { $null }
         filesEvaluated = $files.Count
         generatedFilesExcluded = $script:generatedExcludedFiles.Count
+        migrationMoveExcludedFileCount = $script:migrationMoveExcludedFiles.Count
+        migrationMoveExcludedFiles = @($script:migrationMoveExcludedFiles)
         testScopeExcludedFileCount = $script:testScopeExcludedFiles.Count
         testScopeExcludedFiles = @($script:testScopeExcludedFiles)
         violationCount = @($findings | Where-Object Level -eq 'VIOLATION').Count
@@ -178,11 +182,11 @@ function Write-StructuredResult([string]$result, [object[]]$blockingRules) {
 }
 function Get-AddedLines([string]$relative, [string]$base, [string]$head) {
     $output = if ($head -eq 'WORKTREE') { (Invoke-Git -Arguments @('diff', '--unified=0', $base, '--', $relative)).Output } else { (Invoke-Git -Arguments @('diff', '--unified=0', "$base..$head", '--', $relative)).Output }
-    $lines = @(); $lineNumber = 0
+    $lines = [System.Collections.Generic.List[object]]::new(); $lineNumber = 0
     foreach ($line in $output) {
         if ($line -match '^\+\+\+') { continue }
         if ($line -match '^@@ .*\+(\d+)(?:,(\d+))?') { $lineNumber = [int]$Matches[1]; continue }
-        if ($line.StartsWith('+')) { $lines += [pscustomobject]@{ Number=$lineNumber; Text=$line.Substring(1) }; $lineNumber++; continue }
+        if ($line.StartsWith('+')) { $lines.Add([pscustomobject]@{ Number=$lineNumber; Text=$line.Substring(1) }); $lineNumber++; continue }
         if (-not $line.StartsWith('-') -and $lineNumber -gt 0) { $lineNumber++ }
     }
     return $lines
@@ -289,13 +293,49 @@ function Test-CodeMatchInRepository([string]$pattern) {
     }
     return $false
 }
+function Initialize-EntityCodeIndexes {
+    if ($null -ne $script:dbSetEntityNames -and $null -ne $script:configuredEntityNames) { return }
+    $dbSets = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    $configurations = [System.Collections.Generic.HashSet[string]]::new([StringComparer]::Ordinal)
+    $candidatePattern = [regex]::new('DbSet\s*<|IEntityTypeConfiguration\s*<', [Text.RegularExpressions.RegexOptions]::IgnoreCase)
+    foreach ($candidate in @(Get-SourceFiles | Where-Object { $candidatePattern.IsMatch([IO.File]::ReadAllText($_.FullName)) })) {
+        $candidateCode = Get-CodeText $candidate.FullName
+        foreach ($match in [regex]::Matches($candidateCode, 'DbSet\s*<\s*([A-Za-z_]\w*)\s*>')) {
+            [void]$dbSets.Add($match.Groups[1].Value)
+        }
+        foreach ($match in [regex]::Matches($candidateCode, 'IEntityTypeConfiguration\s*<\s*([A-Za-z_]\w*)\s*>')) {
+            [void]$configurations.Add($match.Groups[1].Value)
+        }
+    }
+    $script:dbSetEntityNames = $dbSets
+    $script:configuredEntityNames = $configurations
+}
+function Test-RegisteredDbSet([string]$name) {
+    Initialize-EntityCodeIndexes
+    return $script:dbSetEntityNames.Contains($name)
+}
+function Get-ClassDeclaration([string]$code, [string]$name) {
+    $escapedName = [regex]::Escape($name)
+    $pattern = "(?ms)(?<attributes>(?:^[ \t]*\[[^\]\r\n]+\][ \t]*\r?\n)*)(?:^[ \t]*(?:(?:public|internal|protected|private|abstract|sealed|static|partial)\s+)*class\s+$escapedName\b(?<bases>[^\{\r\n]*))"
+    return [regex]::Match($code, $pattern)
+}
+function Get-DeclaredClassNames([string]$code) {
+    return @([regex]::Matches($code, '\bclass\s+([A-Za-z_]\w*)') | ForEach-Object { $_.Groups[1].Value } | Select-Object -Unique)
+}
+function Test-ClassInheritsIdentityModel([string]$code, [string]$name) {
+    $declaration = Get-ClassDeclaration $code $name
+    return $declaration.Success -and $declaration.Groups['bases'].Value -match '\bIdentityModel\b'
+}
 function Test-PersistedEntity([string]$code, [string]$name) {
-    if ($code -notmatch "class\s+$([regex]::Escape($name))\b") { return $false }
-    if ($code -match 'IdentityModel|\[Table\(|DbSet<') { return $true }
-    return Test-CodeMatchInRepository "DbSet<\s*$([regex]::Escape($name))\s*>"
+    $declaration = Get-ClassDeclaration $code $name
+    if (-not $declaration.Success) { return $false }
+    if ($declaration.Groups['bases'].Value -match '\bIdentityModel\b') { return $true }
+    if ($declaration.Groups['attributes'].Value -match '\[Table\s*\(') { return $true }
+    return Test-RegisteredDbSet $name
 }
 function Test-Configuration([string]$name) {
-    return Test-CodeMatchInRepository "IEntityTypeConfiguration\s*<\s*$([regex]::Escape($name))\s*>"
+    Initialize-EntityCodeIndexes
+    return $script:configuredEntityNames.Contains($name)
 }
 function ConvertTo-SemanticToken([string]$value) {
     if ([string]::IsNullOrWhiteSpace($value)) { return '' }
@@ -393,6 +433,7 @@ $files = @()
 $addedByFile = @{}
 $script:generatedExcludedFiles = [System.Collections.Generic.List[string]]::new()
 $script:testScopeExcludedFiles = [System.Collections.Generic.List[string]]::new()
+$script:migrationMoveExcludedFiles = [System.Collections.Generic.List[object]]::new()
 switch ($scope) {
     'WorkingTree' {
         $tracked = (Invoke-Git -Arguments @('diff', '--name-only', 'HEAD')).Output
@@ -405,7 +446,17 @@ switch ($scope) {
         }
     }
     'GitRange' {
-        $files = @(Select-EvaluableFiles @((Invoke-Git -Arguments @('diff', '--name-only', "$BaseRef..$HeadRef", '--', '*.cs')).Output))
+        $changed = [System.Collections.Generic.List[string]]::new()
+        $movedFrom = @{}
+        foreach ($entry in (Invoke-Git -Arguments @('diff', '--name-status', '--find-renames', "$BaseRef..$HeadRef", '--', '*.cs')).Output) {
+            $fields = @($entry -split "`t")
+            $changed.Add($fields[-1])
+            if ($fields.Count -eq 3 -and $fields[0] -eq 'R100' -and $fields[1].StartsWith('Migrations/', [StringComparison]::Ordinal) -and $fields[2].StartsWith('Migrations/', [StringComparison]::Ordinal) -and ($fields[1] -split '/')[-1] -ceq ($fields[2] -split '/')[-1]) { $movedFrom[$fields[2]] = $fields[1] }
+        }
+        $files = @(foreach ($file in @(Select-EvaluableFiles @($changed))) {
+            if ($movedFrom.ContainsKey($file)) { $script:migrationMoveExcludedFiles.Add([pscustomobject]@{ from=$movedFrom[$file]; to=$file }); continue }
+            $file
+        })
         foreach ($file in $files) { $addedByFile[$file] = @(Get-AddedLines $file $BaseRef $HeadRef) }
     }
     'ExplicitFiles' {
@@ -423,32 +474,37 @@ $findings = [System.Collections.Generic.List[object]]::new()
 foreach ($file in $files) {
     $full = Join-Path $root $file
     if (-not (Test-Path -LiteralPath $full)) { continue }
-    $code = Get-CodeText $full
     $added = @($addedByFile[$file])
     $isNew = if ($scope -eq 'ExplicitFiles') { -not (Test-GitTracked $file) } elseif ($scope -eq 'GitRange') { -not ((@((Invoke-Git -Arguments @('ls-tree', '-r', '--name-only', $BaseRef, '--', $file)).Output)) -contains $file) } else { -not (Test-GitTracked $file) }
     foreach ($line in $added) {
-        if ($line.Text -match '\b(class|DbSet|IEntityTypeConfiguration)\s*<?\s*(Trx\w+)' -or ($line.Number -eq 1 -and $file -match '(^|[\\/])Trx\w+(Configuration)?\.cs$')) {
+        $lineCode = Remove-NonCodeText $line.Text
+        if ($lineCode -match '\b(class|DbSet|IEntityTypeConfiguration)\s*<?\s*(Trx\w+)') {
             Add-Finding 'QBE-NAM-001' 'VIOLATION' $(if($isNew){'NEW CODE'}else{'TOUCHED LEGACY'}) $file $line.Number $line.Text 'New operational Trx naming is prohibited.' 'Use the approved registry prefix.'
         }
-        if ($file -match 'Controller\.cs$' -and $line.Text -match 'Generate\w*(Code|Number)|\b(Count|CountAsync|Max|MaxAsync|Last|LastOrDefault)\w*\s*\(.*\+\s*1') {
-            $rule = if($line.Text -match 'Generate\w*(Code|Number)'){'QBE-CODE-002'}else{'QBE-CODE-003'}
+        if ($file -match 'Controller\.cs$' -and $lineCode -match 'Generate\w*(Code|Number)|\b(Count|CountAsync|Max|MaxAsync|Last|LastOrDefault)\w*\s*\(.*\+\s*1') {
+            $rule = if($lineCode -match 'Generate\w*(Code|Number)'){'QBE-CODE-002'}else{'QBE-CODE-003'}
             Add-Finding $rule 'VIOLATION' $(if($isNew){'NEW CODE'}else{'TOUCHED LEGACY'}) $file $line.Number $line.Text 'Controller-side business number allocation was introduced.' 'Move allocation to a Module Service and durable provider.'
         }
-        if ($file -match 'Controller\.cs$' -and $line.Text -match 'ApplicationDbContext') {
+        if ($file -match 'Controller\.cs$' -and $lineCode -match 'ApplicationDbContext') {
             Add-Finding 'QBE-SVC-001' 'REVIEW' $(if($isNew){'NEW CODE'}else{'TOUCHED LEGACY'}) $file $line.Number $line.Text 'New direct ApplicationDbContext controller use requires boundary review.' 'Use a Module Service for domain CRUD/orchestration.'
         }
     }
+    if ($isNew -and $file -match '(^|[\\/])Trx\w+(Configuration)?\.cs$' -and -not @($findings | Where-Object { $_.RuleId -eq 'QBE-NAM-001' -and $_.File -eq $file }).Count) {
+        Add-Finding 'QBE-NAM-001' 'VIOLATION' 'NEW CODE' $file 0 $file 'New operational Trx naming is prohibited.' 'Use the approved registry prefix.'
+    }
     $isTestScopeFile = Test-IsTestScopeFile $file
     if ($isTestScopeFile) { [void]$script:testScopeExcludedFiles.Add($file) }
-    if (-not $isTestScopeFile -and $isNew -and $file -notmatch 'Controller\.cs$' -and $code -match 'class\s+(\w+)') {
-        $entity = $Matches[1]
+    if (-not $isTestScopeFile -and $isNew -and $file -notmatch 'Controller\.cs$') {
+        $code = Get-CodeText $full
+        foreach ($entity in @(Get-DeclaredClassNames $code)) {
         if (Test-PersistedEntity $code $entity) {
-            if ($code -notmatch "class\s+$([regex]::Escape($entity))\s*:\s*IdentityModel") { Add-Finding 'QBE-ENT-001' 'VIOLATION' 'NEW CODE' $file 0 $entity 'New persisted entity does not inherit IdentityModel.' 'Inherit IdentityModel.' }
+            if (-not (Test-ClassInheritsIdentityModel $code $entity)) { Add-Finding 'QBE-ENT-001' 'VIOLATION' 'NEW CODE' $file 0 $entity 'New persisted entity does not inherit IdentityModel.' 'Inherit IdentityModel.' }
             if (-not (Test-Configuration $entity)) { Add-Finding 'QBE-CFG-001' 'VIOLATION' 'NEW CODE' $file 0 $entity 'New persisted entity has no dedicated IEntityTypeConfiguration<T>.' 'Add dedicated mapping configuration.' }
             $ownership = Resolve-RegistryOwnership $file $entity
             if (-not $ownership.Resolved) {
                 Add-Finding 'QBE-MOD-002' 'VIOLATION' 'NEW CODE' $file 0 $entity $ownership.Reason 'Obtain registry decision; do not infer a prefix.'
             }
+        }
         }
     }
 }
@@ -470,6 +526,7 @@ Write-Output "Checker mode: $Mode"
 Write-Output "Scope: $scope"
 Write-Output "Files evaluated: $($files.Count)"
 Write-Output "Generated files excluded (bin/obj): $($script:generatedExcludedFiles.Count)"
+Write-Output "Unchanged migration moves excluded (Migrations/, R100): $($script:migrationMoveExcludedFiles.Count)"
 Write-Output "Test-scope files excluded from QBE-ENT-001/QBE-CFG-001/QBE-MOD-002: $($script:testScopeExcludedFiles.Count)"
 foreach ($level in @('VIOLATION','REVIEW','INFO')) { Write-Output "${level}: $(@($findings | Where-Object Level -eq $level).Count)" }
 if ($findings.Count -eq 0) { Write-Output 'Findings: none' } else { foreach ($finding in $findings) { $suppression = if ($finding.Suppressed) { " | SUPPRESSED: $($finding.ExceptionId)" } else { '' }; Write-Output "[$($finding.Level)] $($finding.RuleId) | $($finding.File):$($finding.Line) | $($finding.Evidence) | Action: $($finding.RecommendedAction)$suppression" } }

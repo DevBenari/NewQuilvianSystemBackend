@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Dtos;
@@ -24,17 +25,20 @@ public sealed class BillingCalculationService
     private readonly IBillingCoverageAdapter _coverageAdapter;
     private readonly BillingAllocationService _allocationService;
     private readonly LoggerService _loggerService;
+    private readonly IAdministrationFeeCalculationService _adminFeeCalculationService;
 
     public BillingCalculationService(
         ApplicationDbContext dbContext,
         IBillingCoverageAdapter coverageAdapter,
         BillingAllocationService allocationService,
-        LoggerService loggerService)
+        LoggerService loggerService,
+        IAdministrationFeeCalculationService? adminFeeCalculationService = null)
     {
         _dbContext = dbContext;
         _coverageAdapter = coverageAdapter;
         _allocationService = allocationService;
         _loggerService = loggerService;
+        _adminFeeCalculationService = adminFeeCalculationService ?? new AdministrationFeeCalculationService(dbContext);
     }
 
     public Task<CalculationResponse> RecalculateAsync(
@@ -188,7 +192,7 @@ public sealed class BillingCalculationService
                     BusinessDate = AdministrationFeePolicyService.GetBusinessDate(effectiveAt)
                 }
                 : await CalculateAdministrationFeeAsync(
-                    invoice, encounter, effectiveAt, cancellationToken);
+                    invoice, encounter, effectiveAt, activeItems, cancellationToken);
             var roomCharge = invoice.ServiceType == AdministrationFeeServiceTypes.Ranap
                 ? await CalculateRoomChargeAsync(invoice, calculatedAt, cancellationToken)
                 : new RoomChargeCalculationResponse();
@@ -358,7 +362,8 @@ public sealed class BillingCalculationService
                 // Nomor versi dikembalikan apa adanya (versi berjalan), bukan Current + 1: tidak ada
                 // versi baru yang lahir, dan client tidak boleh mengira ada.
                 version.VersionNo = invoice.CurrentCalculationVersion;
-                return MapResponse(version, invoice.RowVersion);
+                var previewFunds = await GetInvoicePaymentPositionAsync(invoice.Id, version.PatientAmount, cancellationToken);
+                return MapResponse(version, invoice.RowVersion, previewFunds.PaidAmount, previewFunds.RemainingAmount);
             }
 
             _dbContext.BilCalculationVersions.Add(version);
@@ -387,7 +392,8 @@ public sealed class BillingCalculationService
                 Reason = version.Reason
             });
 
-            return MapResponse(version, invoice.RowVersion);
+            var persistedFunds = await GetInvoicePaymentPositionAsync(invoice.Id, version.PatientAmount, cancellationToken);
+            return MapResponse(version, invoice.RowVersion, persistedFunds.PaidAmount, persistedFunds.RemainingAmount);
         }
         catch (DbUpdateException exception)
         {
@@ -406,103 +412,196 @@ public sealed class BillingCalculationService
         }
     }
 
-    internal static CalculationResponse MapResponse(BilCalculationVersion version, Guid invoiceRowVersion) => new()
+    internal static CalculationResponse MapResponse(
+        BilCalculationVersion version,
+        Guid invoiceRowVersion,
+        decimal? paidAmount = null,
+        decimal? remainingAmount = null)
     {
-        Id = version.Id,
-        InvoiceId = version.InvoiceId,
-        VersionNo = version.VersionNo,
-        GrossAmount = version.GrossAmount,
-        AdministrationFeeAmount = version.AdministrationFeeAmount,
-        RoomChargeAmount = version.RoomChargeAmount,
-        ItemDiscount = version.ItemDiscount,
-        TotalDiscount = version.TotalDiscount,
-        TaxAmount = version.TaxAmount,
-        PatientAmount = version.PatientAmount,
-        PrimaryAmount = version.PrimaryAmount,
-        ExcessAmount = version.ExcessAmount,
-        UnresolvedCoverageAmount = version.UnresolvedCoverageAmount,
-        RoundingAmount = version.RoundingAmount,
-        IsLocked = version.IsLocked,
-        CalculatedAt = version.CalculatedAt,
-        Reason = version.Reason,
-        InvoiceRowVersion = invoiceRowVersion,
-        Breakdown = DeserializeBreakdown(version.BreakdownSnapshot)
-    };
+        var totalInvoice = version.GrossAmount + version.AdministrationFeeAmount + version.RoomChargeAmount
+            - version.ItemDiscount + version.TaxAmount + version.RoundingAmount;
+        var paid = paidAmount ?? 0m;
+        var remaining = remainingAmount ?? Math.Max(0m, version.PatientAmount - paid);
+
+        return new CalculationResponse
+        {
+            Id = version.Id,
+            InvoiceId = version.InvoiceId,
+            VersionNo = version.VersionNo,
+            GrossAmount = version.GrossAmount,
+            AdministrationFeeAmount = version.AdministrationFeeAmount,
+            RoomChargeAmount = version.RoomChargeAmount,
+            ItemDiscount = version.ItemDiscount,
+            TotalDiscount = version.TotalDiscount,
+            TaxAmount = version.TaxAmount,
+            PatientAmount = version.PatientAmount,
+            PrimaryAmount = version.PrimaryAmount,
+            ExcessAmount = version.ExcessAmount,
+            UnresolvedCoverageAmount = version.UnresolvedCoverageAmount,
+            RoundingAmount = version.RoundingAmount,
+            TotalInvoiceAmount = totalInvoice,
+            PaidAmount = paid,
+            RemainingAmount = remaining,
+            IsLocked = version.IsLocked,
+            CalculatedAt = version.CalculatedAt,
+            Reason = version.Reason,
+            InvoiceRowVersion = invoiceRowVersion,
+            Breakdown = DeserializeBreakdown(version.BreakdownSnapshot)
+        };
+    }
+
+    private async Task<(decimal PaidAmount, decimal RemainingAmount)> GetInvoicePaymentPositionAsync(
+        Guid invoiceId,
+        decimal patientAmount,
+        CancellationToken cancellationToken)
+    {
+        var paidAmount = await _dbContext.BilPaymentAllocations.AsNoTracking()
+            .Where(x => x.TargetType == BillingAllocationTargetTypes.Invoice
+                && x.TargetId == invoiceId && !x.IsDelete)
+            .SumAsync(
+                x => (decimal?)(x.ReversesAllocationId.HasValue ? -x.Amount : x.Amount),
+                cancellationToken) ?? 0;
+
+        var allocationExcess = await _dbContext.BilRefundableCredits.AsNoTracking()
+            .Where(x => x.InvoiceId == invoiceId
+                && x.SourceType == BillingRefundableCreditSourceTypes.AllocationExcess
+                && !x.IsDelete)
+            .SumAsync(x => (decimal?)x.AvailableAmount, cancellationToken) ?? 0;
+
+        var writeOffTotal = await _dbContext.BilWriteOffCases.AsNoTracking()
+            .Where(x => x.InvoiceId == invoiceId
+                && x.Status == BillingWriteOffCaseStatuses.Posted
+                && x.Category == BillingWriteOffCategories.PatientAr && !x.IsDelete)
+            .SumAsync(x => (decimal?)x.Amount, cancellationToken) ?? 0;
+
+        var residualCaseIds = await _dbContext.BilWriteOffCases.AsNoTracking()
+            .Where(x => x.InvoiceId == invoiceId && x.Category == BillingWriteOffCategories.NonBillableResidual)
+            .Select(x => x.Id)
+            .ToListAsync(cancellationToken);
+
+        var adjustmentNet = await _dbContext.BilAdjustments.AsNoTracking()
+            .Where(x => x.InvoiceId == invoiceId
+                && x.Status == BillingAdjustmentStatuses.Posted && !x.IsDelete
+                && (x.ReversesWriteOffCaseId == null
+                    || !residualCaseIds.Contains(x.ReversesWriteOffCaseId.Value)))
+            .SumAsync(
+                x => (decimal?)(x.Direction == BillingAdjustmentDirections.Credit ? x.Amount : -x.Amount),
+                cancellationToken) ?? 0;
+
+        var remainingAmount = Math.Max(
+            0m,
+            patientAmount - paidAmount + allocationExcess - writeOffTotal - adjustmentNet);
+
+        return (paidAmount, remainingAmount);
+    }
 
     private async Task<AdministrationFeeCalculationResponse> CalculateAdministrationFeeAsync(
         BilInvoice invoice,
         RegPatientEncounter encounter,
         DateTimeOffset effectiveAt,
+        IReadOnlyList<BilInvoiceItem> activeItems,
         CancellationToken cancellationToken)
     {
         var businessDate = AdministrationFeePolicyService.GetBusinessDate(effectiveAt);
-        var policies = await _dbContext.MstAdministrationFeePolicies.AsNoTracking()
-            .Where(x => !x.IsDelete && x.IsActive && x.ServiceType == invoice.ServiceType
-                && x.EffectiveFrom <= effectiveAt && (x.EffectiveTo == null || effectiveAt < x.EffectiveTo))
-            .OrderByDescending(x => x.ReplacementPriority)
-            .ThenBy(x => x.Code)
-            .ToListAsync(cancellationToken);
-        if (policies.Count > 1)
-            throw new BillingCalculationConflictException(
-                "Lebih dari satu policy biaya administrasi aktif pada waktu pelayanan.");
 
-        var policy = policies.SingleOrDefault();
-        if (policy is null)
+        // Ambil penjamin utama encounter untuk evaluasi sistem paket klaim (BPJS dll - BKC-DEC-121)
+        var guarantor = await _dbContext.RegPatientEncounterGuarantors.AsNoTracking()
+            .Where(x => x.EncounterId == encounter.Id && x.IsActive && !x.IsDelete)
+            .OrderByDescending(x => x.IsPrimary)
+            .ThenBy(x => x.Priority)
+            .Select(x => new { x.PaymentSourceNameSnapshot, x.PaymentType })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        // Hitung subtotal dasar tagihan eligible non-farmasi (BKC-DEC-113)
+        var eligibleBaseAmount = activeItems
+            .Where(x => !string.Equals(x.SourceDomain, "PHARMACY", StringComparison.OrdinalIgnoreCase)
+                        && !(x.Category != null && x.Category.IsPharmacy))
+            .Sum(x => x.Quantity * x.UnitPrice);
+
+        // BKC-DEC-122: Untuk rawat inap, tanggal evaluasi adalah tanggal pemulangan (discharge), bukan admisi awal
+        DateTimeOffset? dischargeTime = null;
+        if (invoice.ServiceType == AdministrationFeeServiceTypes.Ranap)
+        {
+            var episode = await _dbContext.Set<InpEpisode>().AsNoTracking()
+                .Where(x => x.EncounterId == encounter.Id && !x.IsDelete)
+                .Select(x => new { DischargeDateTime = x.PhysicallyLeftAt ?? x.DischargeDecidedAt })
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (episode?.DischargeDateTime != null)
+            {
+                dischargeTime = new DateTimeOffset(DateTime.SpecifyKind(episode.DischargeDateTime.Value, DateTimeKind.Utc));
+            }
+            else if (encounter.CompletedAt.HasValue)
+            {
+                dischargeTime = new DateTimeOffset(DateTime.SpecifyKind(encounter.CompletedAt.Value, DateTimeKind.Utc));
+            }
+        }
+
+        // Panggil AdministrationFeeCalculationService untuk evaluasi deklaratif kebijakan & capping
+        var calcResult = await _adminFeeCalculationService.CalculateAdministrationFeeAsync(
+            new AdminFeeCalculationRequest
+            {
+                InvoiceId = invoice.Id,
+                EncounterId = encounter.Id,
+                PatientId = encounter.PatientId,
+                ServiceType = invoice.ServiceType,
+                EligibleBaseAmount = eligibleBaseAmount,
+                EffectiveAt = effectiveAt,
+                DischargeTime = dischargeTime,
+                GuarantorName = guarantor?.PaymentSourceNameSnapshot,
+                PaymentType = guarantor?.PaymentType.ToString()
+            }, cancellationToken);
+
+        if (calcResult.PolicyId == null)
             return new AdministrationFeeCalculationResponse { BusinessDate = businessDate };
 
-        // Pre-filter SQL pada RegPatientEncounter.EncounterDate (kolom relasional, sumber businessDate
-        // yang sama persis dengan yang dipakai invoice ini) sebelum menarik BreakdownSnapshot ke
-        // memori - tanpa ini, query menarik SELURUH riwayat kalkulasi pasien (bisa ribuan baris pada
-        // pasien dengan riwayat kunjungan panjang) hanya untuk mencari kecocokan satu hari lewat
-        // deserialisasi JSON. CalculatedAt SENGAJA tidak dipakai untuk pre-filter ini - itu adalah
-        // jam sungguhan saat kalkulasi dijalankan (bisa direcalculate kapan saja setelah encounter),
-        // bukan proxy yang aman untuk tanggal klinis. Rentang dilebarkan H-1/H+1 di luar businessDate
-        // sebagai margin aman; kecocokan presisi (BusinessDate persis) tetap ditegakkan di memori
-        // sesudahnya - filter ini murni pengurang kandidat, tidak pernah mengubah hasil.
-        var (rangeStart, _) = AdministrationFeePolicyService.GetBusinessDateUtcRange(businessDate.AddDays(-1));
-        var (_, rangeEnd) = AdministrationFeePolicyService.GetBusinessDateUtcRange(businessDate.AddDays(1));
-        var rangeStartUtc = rangeStart.UtcDateTime;
-        var rangeEndUtc = rangeEnd.UtcDateTime;
+        // BKC-DEC-119 / BKC-DES-049 / BIL-VAL-126: Rekonsiliasi alihan rajal ke ranap
+        if (invoice.ServiceType == AdministrationFeeServiceTypes.Ranap)
+        {
+            var reconcile = await _adminFeeCalculationService.ReconcileReferredOutpatientAdminFeeAsync(
+                new ReconcileReferredOutpatientAdminRequest
+                {
+                    InpatientInvoiceId = invoice.Id,
+                    InpatientEncounterId = encounter.Id,
+                    PatientId = encounter.PatientId,
+                    ActorUserId = Guid.Empty
+                }, cancellationToken);
 
-        var priorSnapshots = await (
-            from priorInvoice in _dbContext.BilInvoices.AsNoTracking()
-            join priorEncounter in _dbContext.RegPatientEncounters.AsNoTracking()
-                on priorInvoice.EncounterId equals priorEncounter.Id
-            join calculation in _dbContext.BilCalculationVersions.AsNoTracking()
-                on new { InvoiceId = priorInvoice.Id, VersionNo = priorInvoice.CurrentCalculationVersion }
-                equals new { calculation.InvoiceId, calculation.VersionNo }
-            where priorInvoice.Id != invoice.Id && !priorInvoice.IsDelete && !priorEncounter.IsDelete
-                && priorEncounter.PatientId == encounter.PatientId && !calculation.IsDelete
-                && priorEncounter.EncounterDate >= rangeStartUtc && priorEncounter.EncounterDate < rangeEndUtc
-            select calculation.BreakdownSnapshot)
-            .ToListAsync(cancellationToken);
+            if (reconcile.WasVoided)
+                calcResult.ReferredOutpatientAdminVoided = true;
+            if (reconcile.WasCredited)
+                calcResult.ReferredOutpatientAdminCreditedAmount = reconcile.CreditedAmount;
+        }
 
-        var priorFees = priorSnapshots.Select(DeserializeBreakdown)
-            .Where(x => x.AdministrationFee.BusinessDate == businessDate)
-            .Select(x => x.AdministrationFee)
-            .ToList();
-        var priorApplied = priorFees.Sum(x => x.AppliedAmount);
-        var priorPriority = priorFees.Count == 0 ? int.MinValue : priorFees.Max(x => x.ReplacementPriority);
-        var replacesEarlierFee = priorApplied > 0 && policy.ReplacementPriority > priorPriority;
-        if (replacesEarlierFee && policy.Amount < priorApplied)
-            throw new BillingCalculationValidationException(
-                "Policy pengganti menghasilkan biaya lebih kecil; adjustment terpisah diperlukan agar histori tetap utuh.");
-        var applied = priorApplied == 0
-            ? policy.Amount
-            : replacesEarlierFee ? policy.Amount - priorApplied : 0;
-
-        return new AdministrationFeeCalculationResponse
+        var response = new AdministrationFeeCalculationResponse
         {
             BusinessDate = businessDate,
-            PolicyId = policy.Id,
-            PolicyCode = policy.Code,
-            PolicyAmount = policy.Amount,
-            PriorAppliedAmount = priorApplied,
-            AppliedAmount = applied,
-            ReplacementPriority = policy.ReplacementPriority,
-            Coverable = policy.Coverable,
-            ReplacesEarlierFee = replacesEarlierFee
+            PolicyId = calcResult.PolicyId,
+            PolicyCode = calcResult.PolicyCode,
+            PolicyAmount = calcResult.CalculatedAmount,
+            PriorAppliedAmount = calcResult.PriorAppliedAmount,
+            AppliedAmount = calcResult.AppliedAmount,
+            ReplacementPriority = 100,
+            Coverable = true,
+            ReplacesEarlierFee = calcResult.ReplacesEarlierFee,
+            CalculationType = calcResult.CalculationType,
+            Percentage = calcResult.Percentage,
+            CapAmount = calcResult.CapAmount,
+            EligibleBaseAmount = calcResult.EligibleBaseAmount,
+            RawCalculatedAmount = calcResult.RawCalculatedAmount,
+            IsCapApplied = calcResult.IsCapApplied,
+            IsPackageGuaranteed = calcResult.IsPackageGuaranteed,
+            ReferredOutpatientAdminVoided = calcResult.ReferredOutpatientAdminVoided,
+            ReferredOutpatientAdminCreditedAmount = calcResult.ReferredOutpatientAdminCreditedAmount
         };
+
+        if (calcResult.IsPackageGuaranteed)
+        {
+            // BKC-DEC-121: Untuk pasien BPJS / paket klaim, porsi pasien adalah Rp 0
+            response.NonBillableResidualAmount = calcResult.AppliedAmount;
+        }
+
+        return response;
     }
 
     // BKC-DEC-043: InpBedPlacement adalah source of truth occupancy. Dihitung ulang penuh setiap
@@ -787,10 +886,10 @@ public sealed class BillingCalculationService
         return new ItemTaxResult(items, [], discounts);
     }
 
-    // Pajak dikenakan atas subtotal tagihan, jadi kategori item tidak lagi dipakai untuk
-    // mencocokkan rule. Yang menentukan sebuah rule berlaku hanyalah: aktif, dan periode
-    // efektifnya mencakup waktu perhitungan. Isi TaxableCategory kini murni label bagi pengguna
-    // dan tidak memengaruhi perhitungan sama sekali.
+    // Pajak dikenakan atas subtotal tagihan, jadi kategori item tidak dipakai untuk mencocokkan
+    // rule. Yang menentukan sebuah rule berlaku hanyalah: aktif, dan periode efektifnya mencakup
+    // waktu perhitungan (BKC-DEC-098/099: kolom TaxableCategory pada MstTaxRule sudah dihapus dari
+    // model karena sudah tidak punya konsekuensi kalkulasi apa pun).
     private async Task<MstTaxRule?> LoadInvoiceTaxRuleAsync(
         DateTimeOffset effectiveAt,
         CancellationToken cancellationToken)

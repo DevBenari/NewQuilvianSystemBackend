@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
@@ -39,13 +40,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
+        private readonly AdverseDrugReactionService _adverseDrugReactionService;
 
         public PatientAllergyController(
             ApplicationDbContext dbContext,
-            LoggerService loggerService)
+            LoggerService loggerService,
+            AdverseDrugReactionService adverseDrugReactionService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
+            _adverseDrugReactionService = adverseDrugReactionService;
         }
 
         [HttpGet("filters/metadata")]
@@ -438,6 +442,29 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 "Alergi pasien berhasil dibuat."
             ));
         }
+
+        /// <summary>
+        /// Mencatat dugaan reaksi obat dari satu dosis MAR — <c>BE-RWI-117</c>, api-contract <c>keperawatan</c> 0.5.0
+        /// bagian 7.10. Alergi lahir <c>Suspected</c>, belum diverifikasi, tertaut dosisnya; baris MAR tidak diubah.
+        /// </summary>
+        /// <remarks>
+        /// Seluruh logika di <c>AdverseDrugReactionService</c> (<c>QBE-SVC-001</c>). <c>400</c> deskripsi reaksi kosong;
+        /// <c>403</c> tidak ditempatkan di unit pasien; <c>409</c> dosis belum diberikan atau alergi obat itu sudah tercatat;
+        /// <c>422</c> perawatan ditutup.
+        /// </remarks>
+        [HttpPost("from-medication-administration")]
+        [ProducesResponseType(typeof(ApiResponse<PatientAllergyResponse>), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status422UnprocessableEntity)]
+        [AccessAction("Create", "Create Patient Allergy", Description = "Membuat data alergi pasien", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessPermission("PatientAllergy", "Create")]
+        public async Task<IActionResult> CreateFromMedicationAdministration(
+            [FromBody] CreateSuspectedAdverseDrugReactionRequest request,
+            CancellationToken cancellationToken)
+            => this.ToActionResult(await _adverseDrugReactionService.CreateFromMedicationAdministrationAsync(
+                request, User, this.CurrentUserId(), cancellationToken));
 
         [HttpPut("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<PatientAllergyUpdateResponse>), StatusCodes.Status200OK)]

@@ -1,8 +1,11 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
+using QuilvianSystemBackend.Models;
 
 namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
 {
@@ -13,6 +16,42 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
             entity.ToTable("LabOrder", "public");
 
             entity.HasKey(x => x.Id);
+
+            // LAB-DEC-072: nomor pesanan yang dapat disebut manusia.
+            //
+            // Wajib, dan nilainya tidak berpindah sesudah pesanan tersimpan. Nomor ini dicetak
+            // pada amplop hasil pasien; mengubahnya berarti dokumen fisik yang beredar tidak lagi
+            // menunjuk pesanan yang benar. Seperti Discipline, larangannya ditegakkan di sini —
+            // bukan hanya lewat ketiadaan endpoint yang mengubahnya.
+            entity.Property(x => x.OrderNumber)
+                .HasMaxLength(32)
+                .IsRequired()
+                .Metadata.SetAfterSaveBehavior(PropertySaveBehavior.Throw);
+
+            // Jaring pengaman terakhir alokasi nomor. Kunci advisory mengurangi tabrakan; index
+            // inilah yang membuat dua pesanan bernomor sama menjadi mustahil.
+            entity.HasIndex(x => x.OrderNumber)
+                .IsUnique();
+
+            entity.Property(x => x.LabReportNumber)
+                .HasMaxLength(32);
+
+            // Unik atas (Discipline, LabReportNumber) — dan tahunnya ikut terjaga karena ia
+            // TERKANDUNG di dalam nomornya sendiri: 26-1129 nol dapat bertabrakan dengan
+            // 27-1129. Menambah kolom tahun tersendiri hanya menyimpan hal yang sama dua kali.
+            //
+            // PARSIAL atas dua hal sekaligus, dan keduanya perlu:
+            //   IsDelete = false            — penghapusan di sini berupa penandaan
+            //   LabReportNumber IS NOT NULL — seluruh pesanan lama nol bernomor cetak, dan
+            //                                 index unik penuh akan menolak yang kedua.
+            //
+            // PostgreSQL sebenarnya memperlakukan NULL sebagai saling berbeda, sehingga syarat
+            // kedua tidak wajib secara teknis. Ia ditulis supaya index-nya menyatakan maksudnya
+            // sendiri, dan supaya ia tetap benar bila penyedia lain dipakai.
+            entity.HasIndex(x => new { x.Discipline, x.LabReportNumber })
+                .IsUnique()
+                .HasDatabaseName("IX_LabOrder_Discipline_LabReportNumber")
+                .HasFilter("\"IsDelete\" = false AND \"LabReportNumber\" IS NOT NULL");
 
             entity.Property(x => x.EncounterId)
                 .IsRequired();
@@ -83,6 +122,67 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthService
                 x.InpEpisodeId,
                 x.CreateDateTime
             });
+
+            // =========================================================================
+            // BE-RWI-104 / migration R8 — pemberi instruksi dan verifikasinya, RWI-DEC-153
+            // =========================================================================
+            entity.Property(x => x.InstructingDoctorId)
+                .IsRequired(false);
+
+            entity.Property(x => x.InstructionVerificationStatus)
+                .HasConversion<int>()
+                .HasDefaultValue(LabOrderInstructionVerificationStatus.NotRequired)
+                .IsRequired();
+
+            entity.Property(x => x.InstructionVerifiedAt)
+                .HasColumnType("timestamp with time zone");
+
+            entity.Property(x => x.InstructionVerifiedByUserId)
+                .IsRequired(false);
+
+            entity.HasOne<MstDoctor>()
+                .WithMany()
+                .HasForeignKey(x => x.InstructingDoctorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne<ApplicationUser>()
+                .WithMany()
+                .HasForeignKey(x => x.InstructionVerifiedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Daftar tunggu verifikasi membaca "pesanan Pending milik dokter ini".
+            entity.HasIndex(x => new { x.InstructingDoctorId, x.InstructionVerificationStatus });
+            entity.HasIndex(x => x.InstructionVerifiedByUserId);
+
+            // =========================================================================
+            // DIPULIHKAN 2026-09-22 sesudah merge 4ba789b2 membuangnya.
+            //
+            // Ketiga baris di bawah ada pada cabang yoga (0ae2d2b4) dan TIDAK ada pada
+            // QuilvianIntegrationBackend (0801da9d); merge mengambil sisi kedua, sehingga
+            // model kehilangan foreign key ini sementara database masih memilikinya.
+            // Akibatnya `dotnet ef database update` menolak jalan dengan
+            // PendingModelChangesWarning, dan migration yang dibangkitkan dari drift itu
+            // akan MENGHAPUS foreign key-nya dari database — mencabut integritas referensial
+            // atas dokter pemeriksa tanpa seorang pun memutuskannya.
+            // =========================================================================
+            entity.Property(x => x.ConfirmedByUserId)
+                .IsRequired(false);
+
+            entity.Property(x => x.ConfirmedAt)
+                .IsRequired(false);
+
+            entity.Property(x => x.ExaminerDoctorId)
+                .IsRequired(false);
+
+            // Dokter pemeriksa menunjuk data induk global. Restrict, bukan Cascade: menghapus
+            // seorang dokter tidak boleh ikut menghapus pesanan yang pernah ditanganinya.
+            entity.HasOne<MstDoctor>()
+                .WithMany()
+                .HasForeignKey(x => x.ExaminerDoctorId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Daftar pesanan per dokter pemeriksa menyaring tepat pada kolom ini.
+            entity.HasIndex(x => x.ExaminerDoctorId);
         }
     }
 }

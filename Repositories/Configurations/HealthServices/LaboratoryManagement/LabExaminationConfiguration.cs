@@ -68,6 +68,57 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Labor
             // Data dan disimpan di sini sebagai salinan bukti nilai saat kejadian; menautkannya
             // secara fisik akan membuat penataan ulang tarif di sana menyandera baris pemeriksaan
             // yang sudah terlanjur terbentuk.
+
+            // =============================================================
+            // Pengisian hasil — slice S4a (LAB-DEC-005, LAB-DEC-076)
+            // =============================================================
+
+            // Presisi ditetapkan eksplisit. Bawaan Npgsql untuk decimal tanpa keterangan adalah
+            // numeric tanpa batas, dan hasil laboratorium dibandingkan terhadap batas nilai —
+            // dua angka yang presisinya berbeda akan berselisih pada pembulatan tanpa satu pun
+            // galat yang terlihat.
+            builder.Property(x => x.ResultNumeric).HasPrecision(18, 4);
+
+            // Keduanya Restrict, sebab yang sama dengan ketiga relasi di atas: batas nilai dan
+            // pilihan hasil adalah BUKTI nilai saat kejadian. Menghapusnya dari bawah hasil yang
+            // sudah terisi akan membuat angka itu kehilangan artinya.
+            builder.HasOne(x => x.ResultOption)
+                .WithMany()
+                .HasForeignKey(x => x.ResultOptionId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasOne(x => x.ResultValueBound)
+                .WithMany()
+                .HasForeignKey(x => x.ResultValueBoundId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Dipakai penyaring Kategori Periode pilihan Tanggal Pemeriksaan (REC3-NEW-002).
+            builder.HasIndex(x => x.ExaminedAt);
+
+            // =============================================================
+            // Hasil Mikrobiologi berstruktur — slice S4b (BE-LAB-53)
+            // =============================================================
+
+            // Keempat enum disimpan sebagai int, mengikuti ExaminationStatus dan Urgency di
+            // atas. Seluruhnya NULLABLE: tabel ini sudah berisi data, dan kolom wajib tanpa
+            // default akan menolak migration pada baris yang sudah ada.
+            builder.Property(x => x.MicrobiologyFinding).HasConversion<int>();
+            builder.Property(x => x.ResultQualifier).HasConversion<int>();
+            builder.Property(x => x.CultureType).HasConversion<int>();
+            builder.Property(x => x.SusceptibilityMethod).HasConversion<int>();
+
+            // ReopenCount BUKAN nullable dan berdefault 0 — kolom hitung yang kosong tidak
+            // dapat dibedakan dari nol kali dibuka kembali.
+            builder.Property(x => x.ReopenCount).IsRequired().HasDefaultValue(0);
+
+            builder.Property(x => x.ConsultedToName).HasMaxLength(200);
+
+            // Nol foreign key bagi FinalizedByUserId maupun ConsultedByUserId, mengikuti
+            // ResultEnteredByUserId dan UrgencyMarkedByUserId pada entity yang sama —
+            // LabExamination memang nol punya foreign key yang menunjuk pengguna.
+
+            // Dipakai membaca "hasil mana yang sudah selesai ditulis" tanpa memindai tabel.
+            builder.HasIndex(x => x.FinalizedAt);
         }
     }
 }

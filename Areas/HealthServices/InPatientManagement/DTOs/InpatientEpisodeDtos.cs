@@ -227,6 +227,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
         /// admisi lain yang masih disiapkan.
         /// </summary>
         public List<string> Warnings { get; set; } = new();
+
+        /// <summary>
+        /// Akibat penutupan episode yang benar-benar tersimpan. <b>Hanya terisi pada balasan
+        /// <c>POST .../close</c> dan <c>POST .../close-with-override</c></b>; kosong pada
+        /// setiap pembacaan biasa. Ditambahkan <c>BE-RWI-084</c>.
+        /// </summary>
+        public ClosureSideEffectsResponse? SideEffects { get; set; }
     }
 
     /// <summary>
@@ -245,4 +252,45 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
 
         public DateTime StartDateTime { get; set; }
     }
+
+    /// <summary>
+    /// Kueri penyaring daftar episode ibu yang sedang aktif dirawat (BE-RWI-128).
+    /// </summary>
+    public class ActiveMotherListQuery
+    {
+        public string? Search { get; set; }
+
+        public Guid? ExcludeChildPatientId { get; set; }
+
+        public int PageNumber { get; set; } = 1;
+
+        public int PageSize { get; set; } = 20;
+    }
+
+    /// <summary>
+    /// Butir daftar episode ibu yang sedang aktif dirawat untuk dipilih pada admisi bayi baru lahir (BE-RWI-128).
+    /// </summary>
+    public class ActiveMotherItemResponse
+    {
+        public Guid EpisodeId { get; set; }
+
+        public string EpisodeNumber { get; set; } = string.Empty;
+
+        public Guid PatientId { get; set; }
+
+        public string PatientName { get; set; } = string.Empty;
+
+        public string MedicalRecordNumber { get; set; } = string.Empty;
+
+        public DateTime? AdmittedAt { get; set; }
+
+        public string? RoomName { get; set; }
+
+        public string? BedCode { get; set; }
+
+        public Guid? ServiceUnitId { get; set; }
+
+        public string? ServiceUnitName { get; set; }
+    }
 }
+

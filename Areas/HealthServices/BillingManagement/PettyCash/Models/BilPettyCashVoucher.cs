@@ -1,4 +1,4 @@
-using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.MasterData.Models;
 using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -51,6 +51,15 @@ public sealed class BilPettyCashVoucher : IdentityModel
 
     /// <summary>Saat saldo kolam berkurang (PC-DEC-009).</summary>
     public DateTimeOffset? DisbursedAt { get; set; }
+
+    /// <summary>User ID Kepala Kasir / Supervisor Kasir yang melakukan konfirmasi pencairan (klik tombol "Cairkan").</summary>
+    public Guid? ConfirmedByUserId { get; set; }
+
+    /// <summary>Nama Kepala Kasir / Supervisor Kasir yang melakukan konfirmasi pencairan.</summary>
+    [MaxLength(150)] public string? ConfirmedByName { get; set; }
+
+    /// <summary>Waktu konfirmasi pencairan voucher dilakukan.</summary>
+    public DateTimeOffset? ConfirmedAt { get; set; }
 
     [MaxLength(60)] public string? ProofReferenceNumber { get; set; }
 

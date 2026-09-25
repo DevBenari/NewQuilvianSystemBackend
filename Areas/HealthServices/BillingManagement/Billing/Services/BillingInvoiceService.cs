@@ -25,8 +25,8 @@ public sealed class BillingInvoiceService
     private readonly BillingNumberSeriesService _numberSeries;
     private readonly BillingCalculationService _calculationService;
     private readonly LoggerService _loggerService;
-
     private readonly InsuranceCoverageService _insuranceCoverageService;
+    private readonly BilConsumerHandoffService _consumerHandoffService;
 
     public BillingInvoiceService(
         ApplicationDbContext dbContext,
@@ -34,7 +34,8 @@ public sealed class BillingInvoiceService
         BillingNumberSeriesService numberSeries,
         BillingCalculationService calculationService,
         LoggerService loggerService,
-        InsuranceCoverageService insuranceCoverageService)
+        InsuranceCoverageService insuranceCoverageService,
+        BilConsumerHandoffService consumerHandoffService)
     {
         _dbContext = dbContext;
         _sourceAdapter = sourceAdapter;
@@ -42,6 +43,7 @@ public sealed class BillingInvoiceService
         _calculationService = calculationService;
         _loggerService = loggerService;
         _insuranceCoverageService = insuranceCoverageService;
+        _consumerHandoffService = consumerHandoffService;
     }
 
     // BKC-DEC-060: preview read-only, tanpa efek samping - dipakai layar entri sebelum item
@@ -89,6 +91,13 @@ public sealed class BillingInvoiceService
             var serviceType = request.ServiceType.Trim().ToUpperInvariant();
             query = query.Where(x => x.ServiceType == serviceType);
         }
+
+        var period = !string.IsNullOrWhiteSpace(request.PeriodPreset)
+            ? request.PeriodPreset
+            : request.Period;
+
+        var (utcFrom, utcTo) = ResolveDateRangeUtc(request.StartDate, request.EndDate, request.VisitDateFrom, request.VisitDateTo, period);
+
         // Identitas pasien di-join dari encounter. Left join dipertahankan lewat DefaultIfEmpty
         // supaya invoice dengan encounter yang tidak terbaca tetap muncul di daftar - hilang dari
         // daftar tagihan jauh lebih berbahaya daripada tampil tanpa nama.
@@ -109,6 +118,16 @@ public sealed class BillingInvoiceService
                 x.invoice.InvoiceNumber.ToUpper().Contains(search) ||
                 (x.patient != null && x.patient.FullName.ToUpper().Contains(search)) ||
                 (x.patient != null && x.patient.MedicalRecordNumber.ToUpper().Contains(search)));
+        }
+
+        if (utcFrom.HasValue)
+        {
+            joined = joined.Where(x => (x.encounter != null && x.encounter.EncounterDate != null ? x.encounter.EncounterDate : (x.invoice.InvoiceDate ?? x.invoice.CreateDateTime)) >= utcFrom.Value);
+        }
+
+        if (utcTo.HasValue)
+        {
+            joined = joined.Where(x => (x.encounter != null && x.encounter.EncounterDate != null ? x.encounter.EncounterDate : (x.invoice.InvoiceDate ?? x.invoice.CreateDateTime)) <= utcTo.Value);
         }
 
         var total = await joined.CountAsync(cancellationToken);
@@ -309,10 +328,11 @@ public sealed class BillingInvoiceService
                 (x.patient != null && x.patient.MedicalRecordNumber.ToUpper().Contains(search)));
         }
 
-        if (request.VisitDateFrom.HasValue)
-            joined = joined.Where(x => x.encounter != null && x.encounter.EncounterDate >= request.VisitDateFrom.Value);
-        if (request.VisitDateTo.HasValue)
-            joined = joined.Where(x => x.encounter != null && x.encounter.EncounterDate <= request.VisitDateTo.Value);
+        var (historyFrom, historyTo) = ResolveDateRangeUtc(request.StartDate, request.EndDate, request.VisitDateFrom, request.VisitDateTo, null);
+        if (historyFrom.HasValue)
+            joined = joined.Where(x => (x.encounter != null && x.encounter.EncounterDate != null ? x.encounter.EncounterDate : (x.invoice.InvoiceDate ?? x.invoice.CreateDateTime)) >= historyFrom.Value);
+        if (historyTo.HasValue)
+            joined = joined.Where(x => (x.encounter != null && x.encounter.EncounterDate != null ? x.encounter.EncounterDate : (x.invoice.InvoiceDate ?? x.invoice.CreateDateTime)) <= historyTo.Value);
 
         var total = await joined.CountAsync(cancellationToken);
         var page = await joined
@@ -448,45 +468,42 @@ public sealed class BillingInvoiceService
     public async Task<PagedResult<CashierBillingInvoiceListItemResponse>> GetCashierOverviewAsync(
         CashierBillingInvoiceQuery request, CancellationToken cancellationToken)
     {
-        // 1. Evaluasi PeriodPreset jika ada
-        if (!string.IsNullOrWhiteSpace(request.PeriodPreset))
+        // 1. Evaluasi Status Default: Jika kosong, default ke OPEN (hanya invoice aktif, belum final/closed)
+        var query = _dbContext.BilInvoices.AsNoTracking().Where(x => !x.IsDelete);
+
+        string? statusFilter = request.Status;
+        if (string.IsNullOrWhiteSpace(statusFilter))
         {
-            var preset = request.PeriodPreset.Trim().ToUpperInvariant();
-            var utcNow = DateTime.UtcNow;
-            if (preset == CashierBillingPeriodPresets.All)
-            {
-                request.VisitDateFrom = null;
-                request.VisitDateTo = null;
-            }
-            else if (preset == CashierBillingPeriodPresets.Today)
-            {
-                var todayStart = new DateTime(utcNow.Year, utcNow.Month, utcNow.Day, 0, 0, 0, DateTimeKind.Utc);
-                request.VisitDateFrom = todayStart;
-                request.VisitDateTo = todayStart.AddDays(1).AddTicks(-1);
-            }
-            else if (preset == CashierBillingPeriodPresets.Last7Days)
-            {
-                var end = new DateTime(utcNow.Year, utcNow.Month, utcNow.Day, 23, 59, 59, 999, DateTimeKind.Utc);
-                request.VisitDateFrom = end.Date.AddDays(-7);
-                request.VisitDateTo = end;
-            }
-            else if (preset == CashierBillingPeriodPresets.Last30Days)
-            {
-                var end = new DateTime(utcNow.Year, utcNow.Month, utcNow.Day, 23, 59, 59, 999, DateTimeKind.Utc);
-                request.VisitDateFrom = end.Date.AddDays(-30);
-                request.VisitDateTo = end;
-            }
+            statusFilter = BillingInvoiceStatuses.Open;
+        }
+        else if (statusFilter.Equals("ALL", StringComparison.OrdinalIgnoreCase) || statusFilter.Equals("SEMUA", StringComparison.OrdinalIgnoreCase))
+        {
+            statusFilter = null;
+        }
+        else
+        {
+            statusFilter = statusFilter.Trim().ToUpperInvariant();
         }
 
-        // 2. Validasi Tanggal
+        if (!string.IsNullOrWhiteSpace(statusFilter))
+        {
+            query = query.Where(x => x.Status == statusFilter);
+        }
+
+        // 2. Evaluasi Tanggal & Timezone Aplikasi (WIB UTC+7): Default Hari Ini jika filter tanggal kosong
+        var hasExplicitDates = request.StartDate.HasValue || request.EndDate.HasValue
+            || request.VisitDateFrom.HasValue || request.VisitDateTo.HasValue
+            || !string.IsNullOrWhiteSpace(request.PeriodPreset);
+
+        var (cashierFrom, cashierTo) = ResolveDateRangeUtc(
+            request.StartDate, request.EndDate, request.VisitDateFrom, request.VisitDateTo,
+            hasExplicitDates ? request.PeriodPreset : "today");
+
         if (request.VisitDateFrom.HasValue && request.VisitDateTo.HasValue
             && request.VisitDateFrom.Value > request.VisitDateTo.Value)
         {
             throw new BillingInvoiceValidationException("Tanggal Mulai tidak boleh lebih besar dari Tanggal Akhir.");
         }
-
-        // 3. Base Query
-        var query = _dbContext.BilInvoices.AsNoTracking().Where(x => !x.IsDelete);
 
         if (!string.IsNullOrWhiteSpace(request.ServiceType))
         {
@@ -514,13 +531,13 @@ public sealed class BillingInvoiceService
                 _dbContext.RegPatientEncounterGuarantors.Any(g =>
                     g.EncounterId == x.invoice.EncounterId &&
                     g.IsActive && !g.IsDelete &&
-                    g.PaymentSourceNameSnapshot.ToUpper().Contains(search)));
+                    EF.Functions.Like(g.PaymentSourceNameSnapshot, $"%{search}%")));
         }
 
-        if (request.VisitDateFrom.HasValue)
-            joined = joined.Where(x => x.encounter != null && x.encounter.EncounterDate >= request.VisitDateFrom.Value);
-        if (request.VisitDateTo.HasValue)
-            joined = joined.Where(x => x.encounter != null && x.encounter.EncounterDate <= request.VisitDateTo.Value);
+        if (cashierFrom.HasValue)
+            joined = joined.Where(x => (x.encounter != null && x.encounter.EncounterDate != null ? x.encounter.EncounterDate : (x.invoice.InvoiceDate ?? x.invoice.CreateDateTime)) >= cashierFrom.Value);
+        if (cashierTo.HasValue)
+            joined = joined.Where(x => (x.encounter != null && x.encounter.EncounterDate != null ? x.encounter.EncounterDate : (x.invoice.InvoiceDate ?? x.invoice.CreateDateTime)) <= cashierTo.Value);
 
         var total = await joined.CountAsync(cancellationToken);
         var page = await joined
@@ -540,7 +557,14 @@ public sealed class BillingInvoiceService
                 PatientName = x.patient != null ? x.patient.FullName : string.Empty,
                 MedicalRecordNumber = x.patient != null ? x.patient.MedicalRecordNumber : string.Empty,
                 EncounterType = x.encounter != null ? x.encounter.EncounterType.ToString() : string.Empty,
-                VisitDate = x.encounter != null ? (DateTime?)x.encounter.EncounterDate : null
+                VisitDate = x.encounter != null ? (DateTime?)x.encounter.EncounterDate : null,
+                // Fallback jumlah item aktif (Quantity × UnitPrice) tanpa kalkulasi: dipakai bila
+                // BilCalculationVersion belum ada (invoice baru, belum di-recalculate eksplisit).
+                // Untuk pasien Tunai/Cash ini adalah nilai terbaik yang tersedia dari data invoice;
+                // untuk penjamin asuransi/perusahaan tidak relevan karena coverage-nya belum diketahui.
+                RunningGrossAmount = x.invoice.Items
+                    .Where(i => !i.IsDelete && i.Status != BillingInvoiceItemStatuses.Voided)
+                    .Sum(i => i.Quantity * i.UnitPrice)
             })
             .ToListAsync(cancellationToken);
 
@@ -737,12 +761,31 @@ public sealed class BillingInvoiceService
             DateTimeOffset? lastPaymentAt = tenders.Count > 0 ? tenders.Max(t => (DateTimeOffset?)t.AttemptedAt) : null;
 
             latestCalcByInvoice.TryGetValue(x.Id, out var calc);
-            var patientAmount = calc?.PatientAmount ?? 0m;
+
+            // BUG FIX (BE-BKC-FIX-OUTSTANDING): bila BilCalculationVersion belum ada (invoice baru
+            // yang belum di-recalculate eksplisit), patientAmount ?? 0m menghasilkan outstanding = 0
+            // meski item aktif sudah ada, menyebabkan List menampilkan Sisa Pembayaran = Rp 0 sementara
+            // Detail (calculation-preview, live-calc) menampilkan angka yang benar.
+            //
+            // Fallback: untuk pasien Tunai/Cash (atau encounter tanpa penjamin), gunakan
+            // RunningGrossAmount (sum(Qty × UnitPrice) item aktif non-void) karena:
+            //   • Tidak ada penjamin → tidak ada coverage → patientAmount ≡ grossAmount pre-tax
+            //   • Lebih baik daripada Rp 0 yang menyesatkan kasir
+            // Untuk asuransi/penjamin perusahaan tetap 0 karena coverage-nya belum diketahui;
+            // mereka HARUS recalculate lebih dulu sebelum data akurat tersedia.
+            //
+            // CATATAN: fallback ini HANYA aktif bila calc null. Begitu recalculate dijalankan
+            // (BilCalculationVersion terbentuk), calc.PatientAmount yang authoritative dipakai.
+            var isCashPayer = guarantor == null || guarantor.PaymentType == EncounterPaymentType.Cash;
+            var patientAmount = calc?.PatientAmount
+                ?? (isCashPayer ? x.RunningGrossAmount : 0m);
+
             // Gross sebelum coverage penjamin (subtotal + admin/room + tax - diskon item, sebelum
             // waterfall insurance/company-guarantor) - direkonstruksi dari kolom yang sudah dipersist
             // BillingCalculationService.CalculateAsync, TANPA menghitung ulang pajak/diskon di sini.
+            // Fallback ke RunningGrossAmount (tanpa tax/admin/room) bila calc belum ada.
             var totalInvoiceAmount = calc is null
-                ? 0m
+                ? x.RunningGrossAmount
                 : calc.GrossAmount + calc.AdministrationFeeAmount + calc.RoomChargeAmount
                     - calc.ItemDiscount + calc.TaxAmount + calc.RoundingAmount;
 
@@ -1471,8 +1514,16 @@ public sealed class BillingInvoiceService
                 };
                 _dbContext.BilInvoices.Add(invoice);
             }
+            // BKC-DEC-120, BIL-VAL-127: Penolakan mutlak tagihan susulan saat invoice CLOSED
+            if (invoice.Status == BillingInvoiceStatuses.Closed)
+            {
+                throw new BillingInvoiceValidationException(
+                    "Tagihan susulan ditolak karena invoice telah ditutup. Pembukaan kembali memerlukan persetujuan Supervisor Kasir.");
+            }
             if (invoice.Status != BillingInvoiceStatuses.Open)
+            {
                 throw new BillingInvoiceValidationException("Invoice final tidak dapat diedit; ajukan adjustment.");
+            }
 
             var existingItem = await _dbContext.BilInvoiceItems.FirstOrDefaultAsync(
                 x => x.SourceDomain == source.SourceDomain && x.SourceDetailId == source.SourceDetailId
@@ -1494,26 +1545,113 @@ public sealed class BillingInvoiceService
                 }
                 else
                 {
+                    var oldCharge = existingItem.Quantity * existingItem.UnitPrice;
+                    var newCharge = request.Quantity * request.UnitPrice;
+                    var isPharmacyChargeIncrease = existingItem.SourceDomain == "PHARMACY" && newCharge > oldCharge;
+
+                    // BKC-DEC-118, BKC-DES-042, BIL-VAL-125: Koreksi penempatan kamar idempoten (ROOM_CORRECTION)
+                    // Jika event adalah koreksi kamar, batalkan baris tagihan lama secara idempoten
+                    if (_sourceAdapter.IsRoomCorrection(source.SourceDomain, source.SourceStatus))
+                    {
+                        existingItem.Status = BillingInvoiceItemStatuses.Voided;
+                        existingItem.VoidReason = string.IsNullOrWhiteSpace(request.DescriptionSnapshot)
+                            ? "Koreksi penempatan kamar (ROOM_CORRECTION)"
+                            : request.DescriptionSnapshot.Trim();
+                    }
+
                     ApplySource(existingItem, request, source, payloadHash, idempotencyKey, actorUserId);
                     invoice.RowVersion = Guid.NewGuid();
                     invoice.UpdateDateTime = DateTime.UtcNow;
                     invoice.UpdateBy = actorUserId;
+
+                    // BE-BKC-067 / PHA-DEC-068 / BIL-AT-138: Jika harga atau kuantitas obat pada resep
+                    // yang sudah pernah CLEARED dikoreksi naik, terbitkan surat pencabutan clearance (REVOKED / PRESCRIPTION_CHARGE_INCREASED).
+                    if (isPharmacyChargeIncrease && Guid.TryParse(existingItem.SourceDetailId, out var presId))
+                    {
+                        var latestHandoff = await _dbContext.BilPrescriptionClearanceHandoffs
+                            .Where(x => x.PrescriptionId == presId && !x.IsDelete)
+                            .OrderByDescending(x => x.FinancialVersion)
+                            .FirstOrDefaultAsync(cancellationToken);
+
+                        if (latestHandoff != null && latestHandoff.ClearanceStatus == PrescriptionClearanceStatuses.Cleared)
+                        {
+                            await _consumerHandoffService.PublishForClearanceChangeAsync(
+                                invoice.Id,
+                                PrescriptionClearanceReasonCodes.PrescriptionChargeIncreased,
+                                actorUserId,
+                                DateTimeOffset.UtcNow,
+                                request.CorrelationId,
+                                request.CausationId,
+                                cancellationToken,
+                                presId);
+                        }
+                    }
+
+                    // BE-BKC-075 / BKC-DEC-116 / BKC-DES-046 / BIL-VAL-123: Auto-Reblock jika invoice rawat inap sudah berstatus CLEARED
+                    if (newCharge > oldCharge && string.Equals(invoice.ServiceType, "INPATIENT", StringComparison.OrdinalIgnoreCase))
+                    {
+                        await _consumerHandoffService.TriggerInpatientAutoReblockIfApplicableAsync(
+                            invoice.Id,
+                            InpatientClearanceReasonCodes.LateChargePosted,
+                            actorUserId,
+                            DateTimeOffset.UtcNow,
+                            request.CorrelationId,
+                            request.CausationId,
+                            cancellationToken);
+                    }
                 }
                 item = existingItem;
             }
             else
             {
-                item = new BilInvoiceItem
+                // BKC-DEC-118, BIL-VAL-125: Jika item kamar sudah dibatalkan sebelumnya, pastikan replay idempoten
+                var priorVoidedItem = _sourceAdapter.IsRoomStayDomain(source.SourceDomain)
+                    ? await _dbContext.BilInvoiceItems.FirstOrDefaultAsync(
+                        x => x.SourceDomain == source.SourceDomain && x.SourceDetailId == source.SourceDetailId
+                            && x.Status == BillingInvoiceItemStatuses.Voided && !x.IsDelete,
+                        cancellationToken)
+                    : null;
+
+                if (priorVoidedItem is not null && (_sourceAdapter.IsRoomCorrection(source.SourceDomain, source.SourceStatus)
+                    || request.SourceVersion <= priorVoidedItem.SourceVersion))
                 {
-                    InvoiceId = invoice.Id,
-                    Invoice = invoice,
-                    Status = BillingInvoiceItemStatuses.Active,
-                    CreateDateTime = DateTime.UtcNow,
-                    CreateBy = actorUserId
-                };
-                ApplySource(item, request, source, payloadHash, idempotencyKey, actorUserId, false);
-                _dbContext.BilInvoiceItems.Add(item);
-                invoice.RowVersion = Guid.NewGuid();
+                    isReplay = true;
+                    item = priorVoidedItem;
+                }
+                else
+                {
+                    item = new BilInvoiceItem
+                    {
+                        InvoiceId = invoice.Id,
+                        Invoice = invoice,
+                        Status = _sourceAdapter.IsRoomCorrection(source.SourceDomain, source.SourceStatus)
+                            ? BillingInvoiceItemStatuses.Voided
+                            : BillingInvoiceItemStatuses.Active,
+                        VoidReason = _sourceAdapter.IsRoomCorrection(source.SourceDomain, source.SourceStatus)
+                            ? (string.IsNullOrWhiteSpace(request.DescriptionSnapshot)
+                                ? "Koreksi penempatan kamar (ROOM_CORRECTION)"
+                                : request.DescriptionSnapshot.Trim())
+                            : null,
+                        CreateDateTime = DateTime.UtcNow,
+                        CreateBy = actorUserId
+                    };
+                    ApplySource(item, request, source, payloadHash, idempotencyKey, actorUserId, false);
+                    _dbContext.BilInvoiceItems.Add(item);
+                    invoice.RowVersion = Guid.NewGuid();
+
+                    // BE-BKC-075 / BKC-DEC-116 / BKC-DES-046 / BIL-VAL-123: Auto-Reblock jika invoice rawat inap sudah berstatus CLEARED
+                    if (string.Equals(invoice.ServiceType, "INPATIENT", StringComparison.OrdinalIgnoreCase))
+                    {
+                        await _consumerHandoffService.TriggerInpatientAutoReblockIfApplicableAsync(
+                            invoice.Id,
+                            InpatientClearanceReasonCodes.LateChargePosted,
+                            actorUserId,
+                            DateTimeOffset.UtcNow,
+                            request.CorrelationId,
+                            request.CausationId,
+                            cancellationToken);
+                    }
+                }
             }
 
             _dbContext.BilChargeReceipts.Add(new BilChargeReceipt
@@ -1971,6 +2109,175 @@ public sealed class BillingInvoiceService
                 .Select(x => BillingCalculationService.MapResponse(x, invoice.RowVersion))
                 .ToList()
         };
+    }
+
+    public static readonly TimeSpan AppTimezoneOffset = TimeSpan.FromHours(7); // WIB (UTC+7)
+
+    public static (DateTime? UtcFrom, DateTime? UtcTo) ResolveDateRangeUtc(
+        DateTime? startDate, DateTime? endDate, DateTime? visitDateFrom, DateTime? visitDateTo, string? period)
+    {
+        var fromDate = startDate ?? visitDateFrom;
+        var toDate = endDate ?? visitDateTo;
+
+        if (!string.IsNullOrWhiteSpace(period))
+        {
+            var p = period.Trim().ToLowerInvariant();
+            var nowWib = DateTimeOffset.UtcNow.ToOffset(AppTimezoneOffset);
+            var todayWib = new DateTime(nowWib.Year, nowWib.Month, nowWib.Day, 0, 0, 0, DateTimeKind.Unspecified);
+
+            if (p is "all" or "semua" or "semua_periode" or "semuaperiode")
+            {
+                return (null, null);
+            }
+            if (p is "today" or "hari_ini" or "hariini")
+            {
+                var fromWib = todayWib;
+                var toWib = todayWib.AddDays(1).AddTicks(-1);
+                return (new DateTimeOffset(fromWib, AppTimezoneOffset).UtcDateTime, new DateTimeOffset(toWib, AppTimezoneOffset).UtcDateTime);
+            }
+            if (p is "yesterday" or "kemaren" or "kemarin")
+            {
+                var yWib = todayWib.AddDays(-1);
+                var toWib = todayWib.AddTicks(-1);
+                return (new DateTimeOffset(yWib, AppTimezoneOffset).UtcDateTime, new DateTimeOffset(toWib, AppTimezoneOffset).UtcDateTime);
+            }
+            if (p is "last7days" or "7_days" or "7hari" or "thisweek" or "this_week" or "minggu_ini" or "mingguini")
+            {
+                var fromWib = todayWib.AddDays(-7);
+                var toWib = todayWib.AddDays(1).AddTicks(-1);
+                return (new DateTimeOffset(fromWib, AppTimezoneOffset).UtcDateTime, new DateTimeOffset(toWib, AppTimezoneOffset).UtcDateTime);
+            }
+            if (p is "last30days" or "30_days" or "30hari" or "thismonth" or "this_month" or "bulan_ini" or "bulanini")
+            {
+                var fromWib = todayWib.AddDays(-30);
+                var toWib = todayWib.AddDays(1).AddTicks(-1);
+                return (new DateTimeOffset(fromWib, AppTimezoneOffset).UtcDateTime, new DateTimeOffset(toWib, AppTimezoneOffset).UtcDateTime);
+            }
+        }
+
+        DateTime? resolvedUtcFrom = null;
+        DateTime? resolvedUtcTo = null;
+
+        if (fromDate.HasValue)
+        {
+            var dt = fromDate.Value;
+            var wibDate = dt.Kind == DateTimeKind.Utc
+                ? DateTimeOffset.UtcNow.ToOffset(AppTimezoneOffset).Date
+                : new DateTime(dt.Year, dt.Month, dt.Day, 0, 0, 0, DateTimeKind.Unspecified);
+            resolvedUtcFrom = new DateTimeOffset(wibDate, AppTimezoneOffset).UtcDateTime;
+        }
+
+        if (toDate.HasValue)
+        {
+            var dt = toDate.Value;
+            var wibDate = dt.Kind == DateTimeKind.Utc
+                ? DateTimeOffset.UtcNow.ToOffset(AppTimezoneOffset).Date.AddDays(1).AddTicks(-1)
+                : new DateTime(dt.Year, dt.Month, dt.Day, 23, 59, 59, 999, DateTimeKind.Unspecified);
+            resolvedUtcTo = new DateTimeOffset(wibDate, AppTimezoneOffset).UtcDateTime;
+        }
+
+        return (resolvedUtcFrom, resolvedUtcTo);
+    }
+
+    public async Task<List<PatientJourneyNoteResponse>> GetPatientJourneyNotesAsync(
+        Guid invoiceId, CancellationToken cancellationToken)
+    {
+        var invoice = await _dbContext.BilInvoices.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == invoiceId && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Invoice Billing tidak ditemukan.");
+
+        var encounter = await _dbContext.RegPatientEncounters.AsNoTracking()
+            .Include(x => x.ServiceUnit)
+            .Include(x => x.Clinic)
+            .FirstOrDefaultAsync(x => x.Id == invoice.EncounterId && !x.IsDelete, cancellationToken);
+
+        var timeline = new List<PatientJourneyNoteResponse>();
+
+        if (encounter == null)
+        {
+            timeline.Add(new PatientJourneyNoteResponse
+            {
+                Source = "Billing",
+                Note = "Tagihan dibuat tanpa data kunjungan terhubung.",
+                Timestamp = invoice.CreateDateTime
+            });
+            return timeline;
+        }
+
+        // 1. Kiosk
+        if (encounter.IsFromKiosk || encounter.KioskScanSessionId.HasValue || encounter.RegistrationSource == EncounterRegistrationSource.Kiosk)
+        {
+            timeline.Add(new PatientJourneyNoteResponse
+            {
+                Source = "Kiosk",
+                Note = !string.IsNullOrWhiteSpace(encounter.Notes) && encounter.Notes.Contains("Kiosk", StringComparison.OrdinalIgnoreCase)
+                    ? encounter.Notes
+                    : "Pasien melakukan check-in mandiri di Anjungan Kiosk.",
+                Timestamp = encounter.RegisteredAt.AddMinutes(-5)
+            });
+        }
+
+        // 2. Admisi
+        timeline.Add(new PatientJourneyNoteResponse
+        {
+            Source = "Admisi",
+            Note = !string.IsNullOrWhiteSpace(encounter.Notes) && !encounter.Notes.Contains("Kiosk", StringComparison.OrdinalIgnoreCase)
+                ? encounter.Notes
+                : (!string.IsNullOrWhiteSpace(encounter.ChiefComplaint)
+                    ? $"Pendaftaran kunjungan terkonfirmasi. Keluhan utama: {encounter.ChiefComplaint}"
+                    : "Pasien menyelesaikan proses pendaftaran dan verifikasi berkas di Admisi."),
+            Timestamp = encounter.RegisteredAt
+        });
+
+        // 3. Unit Layanan (IGD / Poliklinik / Service Unit)
+        var serviceUnitName = encounter.ServiceUnit?.ServiceUnitName
+            ?? (encounter.Clinic?.ClinicName
+                ?? (encounter.EncounterType == EncounterType.Emergency ? "IGD" : (encounter.EncounterType == EncounterType.Inpatient ? "Rawat Inap" : "Poliklinik")));
+
+        timeline.Add(new PatientJourneyNoteResponse
+        {
+            Source = serviceUnitName,
+            Note = !string.IsNullOrWhiteSpace(encounter.ChiefComplaint)
+                ? $"Pemeriksaan dan tindakan medis di unit {serviceUnitName}. Keluhan: {encounter.ChiefComplaint}"
+                : $"Pelayanan medis dan konsultasi di unit {serviceUnitName}.",
+            Timestamp = encounter.CheckedInAt ?? encounter.RegisteredAt.AddMinutes(15)
+        });
+
+        // 4. Unit Terakhir / Pelepasan / Pemulangan
+        var clearance = await _dbContext.BilInpatientClearanceHandoffs.AsNoTracking()
+            .Where(x => x.InvoiceId == invoice.Id && !x.IsDelete)
+            .OrderByDescending(x => x.FinancialVersion)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (clearance != null)
+        {
+            timeline.Add(new PatientJourneyNoteResponse
+            {
+                Source = "Unit Terakhir",
+                Note = $"Evaluasi kelayakan pemulangan rawat inap: Status {clearance.ClearanceStatus}, Alasan: {clearance.ReasonCode}.",
+                Timestamp = clearance.EffectiveAt.UtcDateTime
+            });
+        }
+        else if (encounter.CompletedAt.HasValue)
+        {
+            timeline.Add(new PatientJourneyNoteResponse
+            {
+                Source = "Unit Terakhir",
+                Note = $"Pelayanan selesai di unit {serviceUnitName}. Pasien diarahkan ke kasir untuk penyelesaian administrasi.",
+                Timestamp = encounter.CompletedAt.Value
+            });
+        }
+        else
+        {
+            timeline.Add(new PatientJourneyNoteResponse
+            {
+                Source = "Unit Terakhir",
+                Note = "Pelayanan selesai. Tagihan diteruskan ke Kasir untuk validasi dan pembayaran.",
+                Timestamp = invoice.CreateDateTime
+            });
+        }
+
+        return timeline.OrderBy(x => x.Timestamp).ToList();
     }
 }
 

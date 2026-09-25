@@ -380,3 +380,110 @@ Trace **`MPY-DEC-001`–`010`**, `MPY-DES-001`–`017`. Test mapping: `BIL-AT-08
 **Pengembalian sisa bertahap.** Voucher Rp 500.000 sudah dicairkan. Penerima mengembalikan Rp 50.000 — sah, `returnedAmount` menjadi Rp 50.000, sisa di tangan Rp 450.000. Ia mengembalikan Rp 60.000 lagi — sah, `returnedAmount` Rp 110.000. Ia mencoba mengembalikan Rp 400.000 — **ditolak** `BIL-VAL-098`, karena sisa yang masih di tangan hanya Rp 390.000.
 
 **Pembalikan setelah pengembalian sebagian.** Voucher yang sama, `returnedAmount` Rp 110.000. Kasir membalik pencairannya: saldo bertambah Rp 390.000 (bukan Rp 500.000 — Rp 110.000 sudah kembali lebih dulu lewat baris `RETURN`). Total yang kembali ke kolam tetap Rp 500.000, dan ledger memperlihatkan keduanya secara terpisah.
+
+---
+
+## Amendment 18 September 2026 — Penutupan gap `FINAL`→`CLOSED`
+
+`last_changed_in: BIL-VALIDATION-1.1` · status **approved** (`BKC-DEC-105`, 18 September 2026) · input: **`BKC-DEC-100`–`BKC-DEC-102`**; keputusan arsitektur `BKC-DES-028`–`BKC-DES-035`.
+
+Amendment ini menambah **tiga** aturan dan sengaja menambah **nol** pesan galat baru bagi pengguna. Perpindahan status `FINAL`↔`CLOSED` adalah akibat, bukan perintah — tidak ada layar yang memintanya, sehingga tidak ada layar yang perlu diberi tahu bila ia tidak terjadi.
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | --- |
+| `BIL-VAL-107` | Perhitungan sisa tagihan pasien | Invoice tidak memiliki versi kalkulasi berjalan | "Invoice belum memiliki hasil perhitungan terkini." — **pesan yang sudah ada hari ini, MUST NOT berubah** walaupun perhitungannya dipindahkan ke service bersama (`BKC-DES-028`) | `422` |
+| `BIL-VAL-108` | Penyelarasan status penutupan | Status invoice `OPEN` atau `SETTLED_BY_WRITE_OFF` | — (tidak ada pesan; penyelarasan berhenti tanpa menulis apa pun dan tanpa menggagalkan peristiwa pemicunya) | — |
+| `BIL-VAL-109` | Perpindahan `FINAL`↔`CLOSED` | Pihak mana pun mencoba memindahkannya lewat endpoint atau layar | — (tidak ada endpointnya sama sekali; permintaan semacam itu berakhir `404` pada lapis routing) | `404` |
+
+### Kenapa tidak ada pesan galat baru
+
+Bila perhitungan sisa tagihan gagal di tengah sebuah pembayaran, yang gagal adalah **pembayarannya** — seluruh transaksi dibatalkan dan kasir menerima pesan galat milik pembayaran itu, bukan pesan baru tentang status invoice. Menambahkan pesan tersendiri hanya akan memberi tahu kasir tentang mekanisme internal yang tidak dapat ia perbaiki.
+
+Sebaliknya, bila penyelarasan berhenti karena statusnya memang bukan urusannya (`BIL-VAL-108`), itu **bukan** kegagalan: peristiwa pemicunya tetap berhasil dan tetap tersimpan.
+
+### Contoh berangka
+
+**Tagihan lunas menjadi tertutup.** Tagihan Ny. Sari Rp 1.500.000 berstatus `FINAL`. Kasir menerima pembayaran tunai Rp 1.500.000. Pada transaksi yang sama, sisa tagihan terhitung Rp 0, status berpindah ke `CLOSED`, dan `closedAt` diisi waktu pembayaran itu. Kasir tidak melihat pesan tambahan apa pun — ia hanya melihat pembayarannya berhasil.
+
+**Tagihan tertutup yang terbuka kembali.** Tagihan yang sama, tiga hari kemudian, pembayarannya dibalik karena kesalahan mesin EDC. Sisa tagihan terhitung Rp 1.500.000 lagi, status kembali ke `FINAL`, `closedAt` dikosongkan. Tagihan itu muncul lagi pada daftar tagihan yang masih punya sisa — yang memang seharusnya terjadi, karena uangnya memang tidak jadi diterima.
+
+Trace **`BKC-DEC-100`–`102`**, `BKC-DES-028`–`035`. Tests `BIL-AT-121`–`BIL-AT-134`.
+
+---
+
+## Amendment 21 September 2026 — Aturan penerbitan fakta ke modul konsumen
+
+`last_changed_in: BIL-VALIDATION-1.2` · status **draft** · input `BKC-DEC-106`–`109`, `BKC-DES-036`–`041`.
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+| --- | --- | --- | --- | --- |
+| Satu tender satu surat per keadaan | Penerbitan surat penerimaan | Sudah ada surat untuk pasangan tender dan status yang sama | *Tidak tampil ke pengguna* — penerbitan kedua diabaikan tanpa membuat baris baru | `BIL-VAL-110` |
+| Shift kasir wajib untuk tunai | Penerbitan surat penerimaan | Tender memakai cara bayar tunai tetapi tidak membawa identitas shift | Pembayaran tunai tidak dapat diteruskan ke pembukuan karena shift kasirnya tidak diketahui. Tutup dan buka kembali shift, lalu ulangi | `BIL-VAL-111` |
+| Nomor versi clearance wajib naik | Penerbitan surat clearance | Nomor versi yang hendak dipakai sudah pernah terbit untuk resep itu | *Tidak tampil ke pengguna* — transaksi diulang dengan nomor berikutnya | `BIL-VAL-112` |
+| Sebab wajib sesuai arah | Penerbitan surat clearance | Sebab bertanda pencabutan dipakai untuk menyatakan resep menjadi boleh diambil, atau sebaliknya | *Kesalahan internal* — penerbitan dibatalkan beserta transaksinya | `BIL-VAL-113` |
+| Hasil finansial wajib ada saat menyatakan boleh diambil | Penerbitan surat clearance | Keadaan `CLEARED` tanpa hasil finansial | *Kesalahan internal* — penerbitan dibatalkan | `BIL-VAL-114` |
+| Biaya bukan obat tidak mencabut clearance | Penerbitan surat clearance | Tagihan kembali bersisa semata karena biaya tindakan, laboratorium, radiologi, atau kamar | *Tidak ada surat yang terbit* — ini perilaku yang benar, bukan penolakan | `BIL-VAL-115` |
+| Pengakuan hanya sekali | Pengakuan penerimaan surat | Surat sudah berstatus diakui | Surat ini sudah diakui sebelumnya. Tidak ada yang perlu dilakukan lagi | `BIL-VAL-116` |
+| Resep tidak dikenal bukan berarti lunas | Pembacaan keadaan clearance | Resep yang ditanyakan belum pernah punya surat | Keadaan pembayaran resep ini belum diketahui. Obat belum boleh diserahkan | `BIL-VAL-117` |
+
+### Dua aturan yang paling mudah salah dipahami
+
+**`BIL-VAL-115` bukan penolakan.** Ketiadaan surat pada kasus itu adalah hasil yang benar.
+Contoh: pasien lunas pukul 09.00, resepnya boleh dikerjakan. Pukul 09.30 kasir mencatat biaya
+tindakan yang terlewat, tagihan kembali bersisa Rp 350.000. Tidak ada surat pencabutan yang
+terbit, dan apoteker tetap boleh menyerahkan obat yang sudah dibayar. Pasien punya kewajiban
+baru atas tindakan itu — bukan atas obatnya.
+
+**`BIL-VAL-117` fail-closed.** Resep yang tidak dikenal **MUST NOT** diperlakukan sebagai lunas,
+dan **MUST NOT** melempar galat teknis yang membuat layar Farmasi gagal dimuat. Ia menjawab
+dengan keadaan "belum diketahui", yang menurut `PHA-DEC-067` sama sekali bukan izin menyerahkan
+obat.
+
+Trace `BKC-DEC-106`–`109`, `PHA-DEC-067`, `PHA-DEC-068`. Tests `BIL-AT-135`–`BIL-AT-142`.
+
+---
+
+## Amendment 24 September 2026 — Aturan Validasi Integrasi Rawat Inap & Financial Clearance
+
+`last_changed_in: BIL-VALIDATION-1.3` · status **draft** · input `BKC-DEC-112`–`119`, `BKC-AC-080`–`087`, `BKC-DES-042`–`050`.
+
+| Kode | Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna |
+| --- | --- | --- | --- | --- |
+| `BIL-VAL-118` | Tarif jam masuk hari pertama bertingkat | Perhitungan sewa kamar | Masuk `< 18:00` (100%), `18:00 - < 22:00` (50%), `22:00 - < 00:00` (20%), `00:00` hari baru (0%) | *Kalkulasi otomatis* — rincian sewa kamar hari pertama disesuaikan dengan jam masuk pasien |
+| `BIL-VAL-119` | Pro-rata sewa kamar transfer multipel | Perhitungan sewa kamar | Pasien pindah kamar lebih dari 1 kali dalam hari kalender yang sama | *Kalkulasi otomatis* — tarif sewa kamar dibagi proporsional berdasarkan durasi menit riil tiap kamar |
+| `BIL-VAL-120` | Pagu biaya administrasi rawat inap Rp6.000.000 | Perhitungan biaya administrasi | 7% dari tagihan memenuhi syarat melebihi Rp6.000.000 | Biaya administrasi rawat inap dikenakan maksimal sebesar pagu Rp6.000.000 |
+| `BIL-VAL-121` | Verifikasi deposit 100% tindakan besar atas ekses | Validasi order tindakan / operasi besar | Saldo deposit pasien `<` porsi tanggung jawab pasien (*patient responsibility*) | Saldo deposit belum memenuhi 100% porsi tanggung jawab pasien untuk tindakan besar. Pasien/keluarga wajib menyetor kekurangan deposit |
+| `BIL-VAL-122` | Izin pulang finansial hanya untuk tagihan lunas | Evaluasi Financial Clearance | Sisa tagihan pasien (`PatientOutstanding`) `> 0` | Pasien belum dapat diberikan izin pulang finansial karena masih memiliki sisa tagihan yang belum diselesaikan |
+| `BIL-VAL-123` | Pencabutan izin pulang saat tagihan susulan (Auto-Reblock) | Intake tagihan baru pasca-clearance | Tagihan baru masuk pada invoice rawat inap berstatus `CLEARED` | Status izin pulang dicabut otomatis karena ada tagihan pelayanan susulan. Pasien wajib menyelesaikan selisih tagihan di kasir |
+| `BIL-VAL-124` | Integritas rincian alihan IGD | Konsolidasi tagihan rawat inap | Invoice rawat inap memuat rincian tindakan/obat gawat darurat | *Invariant sistem* — rincian biaya IGD tetap berstatus `EMERGENCY` dan tidak boleh ditimpa menjadi rawat inap |
+| `BIL-VAL-125` | Koreksi penempatan kamar idempoten | Penerimaan event `ROOM_CORRECTION` | Data bed/kamar dikoreksi oleh bangsal | Tagihan kamar sebelumnya dibatalkan otomatis dan tagihan baru dihitung ulang berdasarkan kamar yang benar |
+| `BIL-VAL-126` | Pembatalan atau pengalihan biaya admin rajal | Alihan pasien rawat jalan ke rawat inap | Pasien memiliki tagihan admin rajal pada encounter rujukan | Biaya administrasi rawat jalan dibatalkan dan digantikan biaya administrasi rawat inap; pembayaran yang sudah masuk dialihkan sebagai kredit tagihan |
+
+### Contoh Kasus Validasi Nyata di Rumah Sakit
+
+**Contoh 1: Pasien Masuk Malam Hari (`BIL-VAL-118`).** Pasien Tn. Budi masuk kamar Kelas 1 (tarif Rp 1.000.000/hari) pada pukul 22.30 WIB. Sistem secara otomatis mengenakan tarif 20% untuk hari pertama tersebut, yaitu Rp 200.000. Jika Tn. Budi baru masuk pada pukul 00.15 WIB keesokan harinya, hari sebelumnya tidak dikenakan biaya sama sekali (0%).
+
+**Contoh 2: Pindah Kamar Dua Kali dalam Sehari (`BIL-VAL-119`).** Pasien Ny. Siti pada tanggal 10 Oktober menempati Kamar Standar (Rp 600.000/hari) selama 360 menit (6 jam), kemudian dipindahkan ke ICU (Rp 2.400.000/hari) selama 1080 menit (18 jam). Total durasi 1440 menit (24 jam). Biaya kamar tanggal 10 Oktober dihitung pro-rata: `(360/1440 * Rp 600.000) + (1080/1440 * Rp 2.400.000) = Rp 150.000 + Rp 1.800.000 = Rp 1.950.000`.
+
+**Contoh 3: Deposit Tindakan Operasi Jaminan Asuransi (`BIL-VAL-121`).** Pasien anak memerlukan operasi besar dengan estimasi biaya Rp 50.000.000. Asuransi menjamin 80% (Rp 40.000.000), sehingga porsi tanggung jawab pasien adalah 20% (Rp 10.000.000). Kasir hanya mewajibkan setoran deposit sebesar Rp 10.000.000 (bukan Rp 50.000.000). Jika deposit pasien baru Rp 4.000.000, sistem menolak verifikasi izin tindakan besar dengan pesan `BIL-VAL-121` kekurangan Rp 6.000.000.
+
+Trace `BKC-DEC-112`–`119`, `BKC-AC-080`–`087`, `BKC-DES-042`–`050`. Tests `BIL-AT-143`–`BIL-AT-152`.
+
+
+
+# Amendment 24 September 2026 — Revisi UI Billing (Revisi 1.6, `BIL-VALIDATION-1.4`)
+
+Status: `draft`. Basis: `00-interview-decisions.md` `BUI-DEC-001`–`015`.
+
+| ID | Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Lapis |
+|---|---|---|---|---|---|
+| `BUI-VAL-01` | Memo Dokter TTD wajib sebelum submit | Form Apply Discount (`BUI-DES-009`) | `DoctorDiscountMemoFile` kosong/null | "Memo Dokter TTD wajib diunggah sebelum pengajuan diskon dapat dikirim." | Frontend saja — backend TIDAK menegakkan `[Required]` (`CAP-BUI-10`). Dicatat sebagai risiko residual, bukan diperbaiki amendment ini |
+| `BUI-VAL-02` | Sumber refund wajib dipilih | Modal Ajukan Refund (`BUI-DES-011`) | `RefundCategory` belum dipilih (belum ada radio tersorot) | "Pilih sumber refund: Billing atau Deposito." | Frontend |
+| `BUI-VAL-03` | Refund sumber Billing wajib sekurang-kurangnya satu item tercentang | Modal Ajukan Refund | `RefundCategory === "BILLING"` dan `SelectedBillingItemIds` kosong | "Pilih sekurang-kurangnya satu item yang akan direfund." | Frontend |
+| `BUI-VAL-04` | Refund sumber Deposito tidak boleh melebihi sisa deposito | Modal Ajukan Refund | `RequestedAmount > RemainingDepositAmount` | "Nominal refund tidak boleh melebihi sisa deposito pasien." | Frontend (tampilan nominal terkunci ke sisa deposito) **dan** backend — `CreateRefundRequest.RequestedAmount` divalidasi service (existing, tidak berubah amendment ini) |
+| `BUI-VAL-05` | Nominal refund harus positif | Modal Ajukan Refund | `RequestedAmount <= 0` | Sudah ditegakkan `[Range("0.01", ...)]` pada `CreateRefundRequest` — existing, tidak berubah | Backend (existing) |
+| `BUI-VAL-06` | Filter tanggal Billing: tanggal akhir tidak boleh sebelum tanggal awal | Layar Daftar Billing (`BUI-DES-005`) | `EndDate < StartDate` | "Tanggal akhir tidak boleh sebelum tanggal awal." | Frontend |
+| `BUI-VAL-07` | Default status tagihan mengikuti coverage seluruh item | Edit Status Tagihan / Payment Method (`BUI-DES-001`, `003`) | Backend: seluruh item aktif `isCovered == true` → `"INSURANCE"`; selain itu → `"CASH"` | Tidak ada pesan pengguna — ini nilai saran, bukan penolakan | Backend (`BUI-DES-001`) |
+
+Trace `BUI-DEC-001`–`015`, `BUI-DES-001`–`012`. Tests: lihat
+`testing/acceptance-test-matrix.md` amendment revisi 1.6.

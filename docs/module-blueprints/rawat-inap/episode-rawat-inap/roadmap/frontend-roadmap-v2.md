@@ -39,8 +39,9 @@ frontend_repo: QuilvianSystemFrontendDev
 frontend_branch: HamzahV2
 frontend_source_sha: 1ce219b40f8e411f3c4e66975626ab33ae81616a
 backend_source_sha: df3679c0d5b2f08106702153eb242d3a6cb2929b
-task_id_range: FE-RWI-063..FE-RWI-066
-task_id_next_free: FE-RWI-095
+task_id_range: FE-RWI-063..FE-RWI-066, FE-RWI-096
+task_id_next_free: FE-RWI-097   # FE-RWI-095 dipakai dokter-rawat-inap, FE-RWI-096 dipakai di sini, keduanya 23-09-2026
+last_updated: "2026-09-23 — FE-RWI-096 ditambahkan dari ISSUE-EPS-002 ISS-EPS-01; penghitung nomor task dikoreksi karena sebelumnya basi (ISS-EPS-05)"
 stack: "Next.js App Router, JavaScript/JSX, Redux, Axios, design token dan base component Quilvian"
 test_policy: "rules/frontend/test-policy.md — menulis test baru opsional; lint dan build wajib"
 write_authority: "TIDAK diberikan di sini. Wewenang tulis frontend dinyatakan terpisah per task"
@@ -62,7 +63,7 @@ write_authority: "TIDAK diberikan di sini. Wewenang tulis frontend dinyatakan te
 ```text
 BE-RWI-080 [BE] ─> FE-RWI-063
 
-BE-RWI-085 [BE] ─┬─> FE-RWI-064
+BE-RWI-085 [BE] ─┬─> FE-RWI-064 ✅
                  │
 BE-RWI-086 [BE] ─┘
 
@@ -95,8 +96,8 @@ Keempatnya boleh dikerjakan paralel sepanjang prasyarat backend-nya sudah `✅`.
 
 | Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `FE-RWI-063` | Kepala ruangan menambah dan mengakhiri dokter pendukung dari layar | `FR-RI-193`, `194`, `195`; `RWI-DEC-099`, `130` | `0.9.0` API 10.2 | Panel Penugasan Dokter pada `FE-INP-04` | `FE-INP-21` — dialog Dokter Pendukung; tombol disembunyikan bagi selain kepala ruangan dan supervisor | `BE-RWI-080` [BE] | AC-1 s.d. AC-6 | `npm run lint`, `npm run build`, verifikasi manual kontrol interaktif | Tombol tersembunyi bukan pengganti penjagaan server / Muhammad Hamzah | Kartu `FE-RWI-063` |
-| `FE-RWI-064` | DPJP mengisi resume delapan bagian dan memakai usulan bersumber | `FR-RI-196`, `FR-RI-197`; `RWI-DEC-112` | `0.9.0` data 18.2–18.3, API 10.3 | Formulir Resume pada `FE-INP-06` | `FE-INP-22` — tiga isian baru; tombol "Isi dari data klinis"; label sumber per bagian | `BE-RWI-085` [BE], `BE-RWI-086` [BE] | AC-1 s.d. AC-6 | `npm run lint`, `npm run build`, verifikasi manual | Usulan tidak boleh tersimpan tanpa tindakan dokter / Muhammad Hamzah | Kartu `FE-RWI-064` |
+| ✅ `FE-RWI-063` | Kepala ruangan menambah dan mengakhiri dokter pendukung dari layar | `FR-RI-193`, `194`, `195`; `RWI-DEC-099`, `130` | `0.9.0` API 10.2 | Panel Penugasan Dokter pada `FE-INP-04` | `FE-INP-21` — dialog Dokter Pendukung; tombol disembunyikan bagi selain kepala ruangan dan supervisor | `BE-RWI-080` [BE] | AC-1 s.d. AC-6 | `npm run lint`, `npm run build`, verifikasi manual kontrol interaktif | Tombol tersembunyi bukan pengganti penjagaan server / Muhammad Hamzah | Kartu `FE-RWI-063` |
+| ✅ `FE-RWI-064` | DPJP mengisi resume delapan bagian dan memakai usulan bersumber | `FR-RI-196`, `FR-RI-197`; `RWI-DEC-112` | `0.9.0` data 18.2–18.3, API 10.3 | Formulir Resume pada `FE-INP-06` | `FE-INP-22` — tiga isian baru; tombol "Isi dari data klinis"; label sumber per bagian | `BE-RWI-085` [BE], `BE-RWI-086` [BE] | AC-1 s.d. AC-6 | `npm run lint`, `npm run build`, verifikasi manual | Usulan tidak boleh tersimpan tanpa tindakan dokter / Muhammad Hamzah | Kartu `FE-RWI-064` |
 | `FE-RWI-065` | Petugas melihat peringatan sebelum menutup dan ringkasan akibat sesudahnya | `FR-RI-198`, `199`, `200`, `201`; `RWI-DEC-138`, `143` | `0.9.0` validation matrix | Layar penutupan `FE-INP-07` | `FE-INP-23` — daftar apa yang akan terkunci atau batal, lalu hasilnya | `BE-RWI-084` [BE] | AC-1 s.d. AC-5 | `npm run lint`, `npm run build`, verifikasi manual | Peringatan tidak boleh tampil seperti penghalang / Muhammad Hamzah | Kartu `FE-RWI-065` |
 | `FE-RWI-066` | Pesanan tertagih yang tidak dibatalkan punya tempat untuk ditindaklanjuti | `FR-RI-199`; `RWI-DEC-143` (c) | `0.9.0` API 10.4 | Daftar Pantau `FE-INP-09` | `FE-INP-24` — daftar baru pada `FE-INP-09`, urutannya sesuai ketetapan 12 September 2026 | `BE-RWI-083` [BE] | AC-1 s.d. AC-4 | `npm run lint`, `npm run build`, verifikasi manual | Tindak lanjutnya belum diputuskan — 22.7 nomor 1 / Muhammad Hamzah + pemilik Billing | Kartu `FE-RWI-066` |
 
@@ -104,12 +105,12 @@ Keempatnya boleh dikerjakan paralel sepanjang prasyarat backend-nya sudah `✅`.
 
 ## Kartu task
 
-### `FE-RWI-063` — `FE-INP-21` Dokter Pendukung
+### ✅ `FE-RWI-063` — `FE-INP-21` Dokter Pendukung
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
-| **Gelombang** | 1, menunggu `BE-RWI-080` [BE] |
+| **Status** | ✅ **SELESAI 16 September 2026.** Keenam acceptance criteria terbukti pada source code dan verifikasi kontrol interaktif. `npm run lint:errors`: 0 error; `npm run build`: kompilasi Turbopack sukses, 317 static pages ter-generate, standalone runtime siap (`exit code: 0`). Bukti: [laporan](../task/report/frontend/FE-RWI-063.md) |
+| **Gelombang** | 1 — selesai |
 | **Layar** | `FE-INP-21` — dialog pada panel Penugasan Dokter di Detail Episode `FE-INP-04` |
 | **Jalan masuk** | Tombol "Tambah Dokter Pendukung" pada panel Penugasan Dokter; tombol "Akhiri" pada baris konsulen dan dokter jaga |
 | **Hak akses** | `InpatientEpisode : Update` |
@@ -149,12 +150,12 @@ sesungguhnya ada di server lewat `BE-RWI-080`, dan task ini tidak boleh menggant
 
 ---
 
-### `FE-RWI-064` — `FE-INP-22` Resume delapan bagian
+### ✅ `FE-RWI-064` — `FE-INP-22` Resume delapan bagian
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
-| **Gelombang** | 1, menunggu `BE-RWI-085` dan `BE-RWI-086` [BE] |
+| **Status** | ✅ **SELESAI 16 September 2026.** Keenam acceptance criteria terbukti pada source code dan verifikasi kontrol interaktif. `npm run lint:errors`: 0 error; `npm run build`: kompilasi Next.js sukses (`exit code: 0`). Bukti: [laporan](../task/report/frontend/FE-RWI-064.md) |
+| **Gelombang** | 1 — selesai |
 | **Layar** | `FE-INP-22` — perubahan formulir Resume `FE-INP-06` |
 | **Hak akses** | `InpatientDischarge : Read` / `Update` / `Sign` |
 
@@ -259,6 +260,44 @@ task ini.
 
 **Definition of Done.** Lint dan build hijau; verifikasi manual tercatat; laporan tracked ada;
 roadmap dan traceability diperbarui.
+
+---
+
+### ✅ `FE-RWI-096` — Tutup jalan buntu admisi bayi baru lahir sampai kemampuannya tersedia
+
+| Field | Isi |
+| --- | --- |
+| **Status** | ✅ **Selesai 23 September 2026** — [laporan](../task/report/frontend/FE-RWI-096.md); `eslint` kedua berkas **PASS** (exit `0`, 0 peringatan); `npm run build` **PASS** (exit `0`, standalone runtime siap); grep anti-regresi nilai visual literal **nol hasil**; **verifikasi peramban NOT RUN**; merujuk `ISSUE-EPS-002` `ISS-EPS-01` |
+| **Gelombang** | Di luar gelombang — task perbaikan pasca-pengujian |
+| **Wewenang UI** | Pilihan 1 disetujui pemilik 23 September 2026 — kartu dinonaktifkan beserta badge, bukan disembunyikan |
+
+**Bisnis prosesnya.** Petugas admisi yang memilih tipe "Bayi Baru Lahir" tidak dapat melanjutkan dan
+tidak diberi tahu mengapa: panel Episode Ibu memakai daftar pilihan yang dikunci kosong permanen
+tanpa sumber data, sedangkan penjaga lanjut menuntutnya terisi. Pemilik memutuskan pendaftaran bayi
+baru lahir belum masuk rilis ini, sehingga yang dikerjakan adalah menutup jalan buntunya dengan
+jujur — bukan menyambungkan episodenya.
+
+**Acceptance criteria.**
+
+1. Kartu "Bayi Baru Lahir" tidak dapat dipilih.
+2. Petugas mengetahui kategori itu ada dan sedang belum tersedia, lewat badge dan deskripsi berbahasa Indonesia.
+3. Panel Episode Ibu beserta alert teknis "di luar scope FE-RWI-022" hilang dari layar.
+4. Lima kategori lain tidak terpengaruh.
+5. Tidak ada komponen maupun CSS baru.
+6. Aturan bisnis bayi baru lahir tidak hilang dari kode.
+
+**Bukti verifikasi.** `eslint`; `npm run build`; grep anti-regresi UI; pembacaan source
+`BaseCheckboxCard` untuk memastikan `disabled` dan `badge` memang didukung.
+
+**Yang dikecualikan.** Verifikasi peramban `NOT RUN`. Sesuai kebijakan pemilik, bukti source, lint,
+dan build memadai untuk menutup task ini.
+
+**Risiko dan kewajiban koordinasi.** Pendaftaran bayi baru lahir tetap tidak dapat dilakukan lewat
+sistem — keadaan yang disengaja. Prosedur sementara bagi petugas admisi perlu ditetapkan di luar
+sistem.
+
+**Definition of Done.** Lint dan build hijau; laporan tracked ada; roadmap dan traceability
+diperbarui. Seluruh kriteria terpenuhi.
 
 ---
 

@@ -22,6 +22,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Enu
         ClinicalDocument = 10,
         NoteAttachment = 11,
         MedicalCertificate = 12,
-        Consent = 13
+        Consent = 13,
+
+        /// <summary>
+        /// Catatan sesi hemodialisa — <c>HMD-BP-001</c>, <c>BE-HMD-02</c>.
+        ///
+        /// Menambah nilai di sini saja TIDAK cukup (Temuan Kritis 1): jenis ini juga wajib ada
+        /// pada himpunan <c>JenisYangDitegakkan</c> di <c>ClinicalDocumentIntegrityService</c>.
+        /// Tanpa itu sesi tampil disahkan tetapi catatannya tetap dapat disunting.
+        /// </summary>
+        HemodialysisSession = 14
     }
 }

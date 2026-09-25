@@ -3,9 +3,9 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `BIL-CASH-001` |
-| Revision | Approved decision contract `0.2` |
-| Status | Keputusan `BKC-DEC-001`–`044` berstatus `approved` |
-| Interview mode | `Closure pass` untuk melengkapi capability Billing yang sudah ada |
+| Revision | Approved decision contract `0.3` (Pass B — Integrasi Rawat Inap ↔ Billing) |
+| Status | Keputusan `BKC-DEC-001`–`119` berstatus `approved` |
+| Interview mode | `Pass B: Integrasi Rawat Inap ↔ Billing (Yasmina / Billing Management)` disahkan 24 September 2026 |
 | Product/domain owner | Pemberi keputusan pada sesi wawancara; nama formal belum dicatat |
 | Backend SHA | Current branch `Yasmina`: `e6f6ecba1537783ea2eb379ac12cc97790707303`; cross-branch impact scan to `f63572a9...` found no Billing transaction change |
 | Frontend SHA | `e555bf2ad6848a1d6cc097ab8c6c5f5259edb151` |
@@ -1632,3 +1632,923 @@ bukan langkah eksekusinya.
 dipilih sengaja TIDAK menambah field, job terjadwal, maupun logika baru pada
 `BilPettyCashBudget`; seluruh mekanisme yang dibutuhkan (endpoint create/activate periode, gerbang
 `BIL-VAL-106`) sudah ada dari `BE-BKC-054`.
+
+### Amendment lanjutan 16 September 2026 — Penghapusan kolom `TaxableCategory` pada `MstTaxRule`
+
+**Konteks.** User (module owner) bertanya makna kolom `TaxableCategory` pada `MstTaxRule` di luar
+sesi wawancara utama. Audit read-only membuktikan kolom ini sudah tidak lagi punya konsekuensi
+kalkulasi pajak sejak `BKC-DEC-078`/`079` mengubah basis gerbang PPN menjadi
+`item.IsPharmacy` + `BilInvoice.ServiceType` (rawat jalan vs rawat inap) — bukan lagi kategori pada
+tax rule (komentar eksplisit `BillingCalculationService.cs:790-793`: "Isi TaxableCategory kini
+murni label bagi pengguna dan tidak memengaruhi perhitungan sama sekali"). Satu-satunya pemakaian
+aktif yang tersisa: (1) label/filter UI, (2) overlap-check periode — dua tax rule aktif dengan
+`TaxableCategory` sama tidak boleh periodenya tumpang tindih (`TaxRuleService.cs` `ValidateAsync`
+baris 249-252, `ActivateAsync` baris 176-179). Audit lanjutan tidak menemukan satu pun tempat lain
+(laporan, snapshot histori, `TaxCalculationResponse`, dsb.) yang menyimpan atau membaca nilai
+`TaxableCategory` — hanya komentar kode yang menyebut namanya, bukan pemakaian nilai.
+
+**Scope pass ini**: Amendment terhadap blueprint yang sudah `APPROVED` (revisi `0.8`). Di dalam
+scope: keputusan hapus/pertahankan kolom `TaxableCategory` pada `MstTaxRule` (schema, DTO, service,
+frontend form/tampilan) dan pengganti overlap-check periode. Di luar scope — tidak disentuh: gerbang
+PPN rawat jalan/rawat inap (`BKC-DEC-078`/`079`) dan alokasi PPN `PROPORTIONAL` (`BKC-DEC-077`).
+
+Pertanyaan pertama sempat dijawab "hapus permanen lewat migration" lalu DIREVISI Owner sendiri pada
+giliran berikutnya sebelum dikunci — dicatat apa adanya sebagai provenance keputusan, bukan
+disembunyikan.
+
+| Decision ID | Type | Keputusan/pertanyaan | Owner | Status | Approved by/at | Evidence |
+|---|---|---|---|---|---|---|
+| `BKC-DEC-098` | Decision | **Kolom `TaxableCategory` DIHAPUS TOTAL dari entity model (`MstTaxRule.cs`), DTO (`TaxRuleDtos.cs`: `TaxRuleQuery`, `CreateTaxRuleRequest`/`UpdateTaxRuleRequest`, `TaxRuleResponse`, `TaxRuleOptionResponse`, `TaxRuleDefaultFilterResponse`, `TaxRuleFilterMetadataResponse.TaxableCategories`), service (`TaxRuleService.cs`, termasuk filter-by-category dan `GetFilterMetadataAsync`), dan frontend (form create/update, tampilan detail/list, filter) — field tidak lagi muncul di CRUD sama sekali, request/response API juga tidak lagi membawanya. Kolom fisik di database database TETAP DIPERTAHANKAN sebagai orphan (tidak dimapping `MstTaxRuleConfiguration`, tidak dibaca/ditulis EF Core sama sekali) — **BUKAN** drop column via migration. Jawaban pertama Owner ("hapus permanen lewat migration") DIREVISI menjadi ini pada giliran berikutnya di sesi yang sama, dengan alasan: menghindari kebutuhan otorisasi migration terpisah sekarang dan tetap reversibel (kolom fisik masih ada bila suatu saat ingin dipakai ulang). | Product/Domain Owner (persetujuan eksplisit dalam percakapan, dengan revisi) | `approved` | Revisi eksplisit: opsi B ("Pertahankan kolom di database, tapi lepas dari model/DTO/validasi/UI... kolom jadi orphan") dari 2 opsi bertanda rekomendasi, lalu diperjelas lanjutan: "option A" untuk klarifikasi field dihapus total dari form/tampilan (bukan cuma jadi opsional) | 16 September 2026 |
+| `BKC-DEC-099` | Decision | **Overlap-check periode tax rule yang sebelumnya per-`TaxableCategory`** (dua tax rule aktif tidak boleh periodenya tumpang tindih untuk kategori yang sama) **diganti jadi overlap-check GLOBAL** — dua tax rule aktif tidak boleh periodenya tumpang tindih sama sekali, tanpa dibedakan kategori apa pun. Berlaku di `TaxRuleService.ValidateAsync` (baris 249-252) dan `ActivateAsync` (baris 176-179). Alasan: sistem sudah membatasi hanya SATU tax rule aktif secara global sepanjang waktu (`LoadInvoiceTaxRuleAsync` di `BillingCalculationService.cs` melempar exception bila lebih dari satu aktif), jadi overlap-check global ini hanya menyamakan validasi dini saat create/update/activate dengan aturan yang sudah berlaku saat kalkulasi tagihan berjalan — bukan aturan bisnis baru. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "pilihan A" dari 2 opsi bertanda rekomendasi | 16 September 2026 |
+
+**Catatan konsekuensi teknis (bukan keputusan baru, turunan `BKC-DEC-098`)**: karena kolom fisik
+dipertahankan (bukan drop), tidak ada kebutuhan migration EF Core untuk pass ini — otorisasi
+migration terpisah sesuai `AGENTS.md` bagian Aturan Entity Framework dan Akses Data TIDAK
+diperlukan untuk keputusan ini. Index gabungan existing `(TaxableCategory, EffectiveFrom,
+EffectiveTo, IsActive, IsDelete)` pada `MstTaxRuleConfiguration.cs:35` ikut menjadi pertimbangan
+desain (apakah dipertahankan apa adanya karena kolom underlying masih fisik ada, atau diganti index
+tanpa `TaxableCategory` mengikuti overlap-check global `BKC-DEC-099`) — ini keputusan arsitektur
+teknis, dilempar ke `/design-business-module` atau langsung ke `/plan-module-delivery`+
+`/build-module-backend` mengingat cakupannya sudah sangat sempit dan tidak ada open question bisnis
+lain yang tersisa.
+
+**Status**: Tidak ada open question bisnis yang tersisa untuk topik ini. `BKC-DEC-098`–`099`
+MENGUNCI seluruh keputusan bisnis penghapusan kolom `TaxableCategory`.
+
+## Amendment 18 September 2026 — Penutupan gap `FINAL`→`CLOSED` (invoice lunas macet permanen)
+
+**Konteks.** Pengguna (Product/Domain Owner) melaporkan invoice yang sudah dibayar lunas dan
+jumlahnya sudah sesuai tetap menampilkan status `FINAL`, bukan status yang berarti lunas.
+Audit read-only membuktikan ini bukan bug tampilan, melainkan gap yang sudah pernah didokumentasikan
+tapi belum pernah ditutup:
+
+- Kontrak `BIL-STATE-0.4` (`state-transition-matrix.md` baris 12) mensyaratkan transisi
+  `FINAL` → `CLOSED` terjadi setelah **"AR/AP posting sukses"**.
+- `BillingArApHandoffService.cs` (doc-comment kelas, baris 12–15) menyatakan eksplisit: *"belum
+  ada konsumen AR/AP nyata di repository ini, sehingga tidak ada pengiriman aktif yang dibangun."*
+  Peristiwa "AR/AP posting sukses" karena itu **tidak pernah terjadi** di sistem ini.
+- Grep menyeluruh atas `BillingInvoiceStatuses.Closed` di seluruh backend hanya menemukan SATU
+  titik yang MEMBACA nilai ini (`BillingFinancialExceptionService.cs:796`); **tidak ada satu pun**
+  titik yang MENULISNYA. `BilInvoice.ClosedAt` juga tidak pernah di-set di manapun.
+- Ini sudah tercatat sebagai temuan lintas modul sebelumnya:
+  `docs/module-blueprints/laboratorium/approval-requests/2026-09-02-temuan-billing-final-closed.md`
+  (status `terbuka — menunggu keputusan pemilik Billing`). "Pilihan A" dokumen itu (finalisasi
+  selalu `FINAL`) sudah diadopsi di `BillingFinalizationService.cs:125-127`
+  (komentar source: *"Kontrak BIL-STATE-0.4: finalisasi selalu menghasilkan FINAL. CLOSED hanya
+  terjadi setelah AR/AP posting sukses."*), tetapi bagian kedua — jalur nyata yang memindahkan
+  `FINAL` → `CLOSED` — memang belum pernah dibangun, persis risiko yang diperingatkan dokumen
+  temuan itu sendiri di bagian "Pilihan A": *"Bila belum ada, invoice lunas akan berhenti di
+  FINAL selamanya."*
+
+**Scope pass ini**: amendment atas rumpun status invoice inti (bukan Petty Cash, bukan Edit
+Tagihan/Multi-Payer). Di dalam scope: syarat baru transisi `FINAL`→`CLOSED`, kebijakan invoice
+lama yang sudah lunas, perlakuan guard `RecordCorrectionIfLinkedAsync`, dan perlakuan invoice
+departure exception. Di luar scope — tidak disentuh: integrasi AR/AP nyata (`BKC-BLK-INT-001`),
+integrasi payment provider (`BKC-BLK-PROV-001`), mesin kalkulasi tagihan, dan jalur
+`SETTLED_BY_WRITE_OFF` yang sudah punya aturannya sendiri (`BKC-DEC-036`).
+
+| Decision ID | Type | Keputusan/pertanyaan | Owner | Status | Approved by/at | Evidence |
+|---|---|---|---|---|---|---|
+| `BKC-DEC-100` | Decision | **Mengganti syarat transisi `FINAL`→`CLOSED` pada `BIL-STATE-0.4`.** Syarat lama "AR/AP posting sukses" (yang tidak pernah dan tidak bisa terjadi — tidak ada konsumen AR/AP nyata) DIGANTI menjadi **"outstanding invoice mencapai 0 dari akumulasi tender berstatus `SUCCEEDED`"**. Pelaku transisi TETAP Sistem, tidak berubah dari kontrak lama. Invoice `FINAL` yang SEKARANG di database sudah lunas penuh ikut di-backfill ke `CLOSED` lewat satu migration data terpisah — BUKAN dibiarkan macet di `FINAL` menunggu pelunasan baru. Backfill ini murni kebijakan pass ini; PEMBUATAN dan EKSEKUSI migration-nya tetap menuntut otorisasi eksplisit terpisah sesuai `AGENTS.md` bagian Aturan Entity Framework dan Akses Data serta Keselamatan Database. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Backfill: ikut dipindah ke CLOSED" dari 2 opsi bertanda rekomendasi | 18 September 2026 |
+| `BKC-DEC-101` | Decision | **Memperluas guard `RecordCorrectionIfLinkedAsync`** (`BillingArApHandoffService.cs:150`) supaya menerima invoice berstatus `FINAL` **maupun** `CLOSED` — bukan hanya `FINAL` seperti sekarang. Alasan: begitu `BKC-DEC-100` membuat invoice lunas otomatis pindah ke `CLOSED`, adjustment/write-off yang diposting SETELAH invoice lunas (kasus paling umum — kebanyakan koreksi ketahuan setelah pasien sudah bayar, persis contoh Tn. Budi pada dokumen temuan 2 September 2026) akan kembali gagal tercatat sebagai koreksi AR bila guard tetap hanya menerima `FINAL`. Ini menutup lubang koreksi AR yang menjadi alasan utama temuan itu ditulis, bukan sekadar memindahkannya. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Ya, guard menerima FINAL maupun CLOSED" dari 2 opsi bertanda rekomendasi | 18 September 2026 |
+| `BKC-DEC-102` | Decision | **Invoice departure exception TIDAK dikecualikan dari `BKC-DEC-100`.** Invoice yang difinalisasi lewat jalur departure exception (`isDepartureException = true`, `BillingFinalizationService.cs:55`) sengaja tetap `FINAL` saat outstanding-nya 0 pada momen finalisasi, karena masih ada piutang penjamin (`BilArHandoff` `DebtorType = PatientGuarantor`) yang ditagihkan belakangan — itu TIDAK berubah. Tapi begitu piutang itu KELAK benar-benar tertagih dan outstanding invoice ini mencapai 0 di kemudian hari, invoice ini ikut aturan `BKC-DEC-100` yang sama dan boleh otomatis pindah ke `CLOSED` — tidak ada perlakuan berbeda berdasarkan riwayat departure exception-nya. **Konsekuensi desain yang MUST dibawa ke `design-business-module`**: `BilArHandoff` milik invoice itu (`DebtorType = PatientGuarantor`) MUST ikut ditandai selesai/collected pada transaksi yang sama saat invoice pindah ke `CLOSED`, supaya tidak ada piutang yang tercatat closed di invoice tapi masih open di catatan AR handoff. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Ya, ikut aturan yang sama begitu benar-benar lunas" dari 2 opsi bertanda rekomendasi | 18 September 2026 |
+
+**Open question — MUST diselesaikan sebelum implementasi backfill, TIDAK memblokir desain**:
+
+- `BKC-OQ-100` — Dokumen temuan 2 September 2026 sudah mengangkat pertanyaan yang belum terjawab:
+  *"berapa banyak adjustment dan write-off yang sudah diposting atas invoice berstatus `CLOSED`
+  sejak perilaku ini berlaku."* Ini menentukan apakah backfill `BKC-DEC-100` butuh langkah koreksi
+  AR susulan (bukan cuma pemindahan status) untuk invoice yang sudah kadung di-adjust/write-off
+  saat masih `CLOSED` tanpa koreksi AR tercatat. Penjawab: pemilik modul Billing/Finance, lewat
+  query rekonsiliasi read-only terhadap `BilHandoffAdjustment` vs `BilAdjustment`/`BilWriteOffCase`
+  pada invoice yang terkena backfill.
+
+**Status pass ini**: tiga keputusan (`BKC-DEC-100`–`102`) MENGUNCI seluruh keputusan bisnis untuk
+gap `FINAL`→`CLOSED`. Tidak ada open question bisnis yang memblokir desain; `BKC-OQ-100` adalah
+pekerjaan rekonsiliasi data yang MUST diselesaikan sebelum backfill dieksekusi, bukan sebelum
+desain.
+
+**Langkah berikutnya**: `01-existing-capability-map.md` blueprint ini terakhir diaudit pada SHA
+`0ca85ba4`/`1f2f2c93c` (lihat `blueprint-manifest.md`); HEAD backend saat ini `21b47331`, sudah
+bergerak. Sebelum `design-business-module` mengunci arsitektur perubahan ini (titik kode tepat
+untuk recompute outstanding, penanganan idempotency bila tender di-reversal setelah invoice
+sempat `CLOSED`, dan detail migration backfill), jalankan `trace-existing-capabilities` mode
+impact scan untuk memverifikasi tidak ada perubahan lain pada jalur settlement/finalisasi sejak
+SHA tersebut.
+
+### Penutupan `BKC-CQ-01` dan penegasan cakupan penyelarasan (18 September 2026, sesudah pass desain)
+
+**Konteks.** Impact scan (`01-existing-capability-map.md` § 21) dan pass desain
+(`02-backend-architecture.md` amendment 18 September 2026) sama-sama menemukan bahwa dua keputusan
+bisnis di atas tidak dapat diterjemahkan apa adanya menjadi arsitektur tanpa satu keputusan
+tambahan. Keduanya diangkat eksplisit kepada Owner, **bukan** diputuskan sendiri oleh pass desain,
+karena keduanya menyimpang dari bunyi harfiah keputusan yang sudah `approved`.
+
+| Decision ID | Type | Keputusan/pertanyaan | Owner | Status | Approved by/at | Evidence |
+|---|---|---|---|---|---|---|
+| `BKC-DEC-103` | Decision | **Menutup `BKC-CQ-01` PENUH, dengan MEMPERSEMPIT konsekuensi `BKC-DEC-102`.** `BilArHandoff` **tidak disentuh sama sekali**: tidak ada nilai status `COLLECTED` baru, tidak ada kolom `CollectedAt` baru, tidak ada migration skema. Dasarnya dua fakta source yang diverifikasi langsung: (1) `BillingHandoffStatuses` (`BilArHandoff.cs:35-39`) hanya mengenal `CREATED` dan `ACKNOWLEDGED`, dan keduanya menggambarkan **penyerahan fakta ke AR** — bukan tertagihnya piutang; (2) satu-satunya penulisan status itu di seluruh source adalah `Status = Created` saat baris handoff dibuat. Konsekuensi `BKC-DEC-102` ("tidak boleh ada piutang yang closed di invoice tapi masih open di catatan AR") dipenuhi dengan cara berbeda: catatan AR memang tidak pernah mengklaim "masih berjalan" sejak awal. Sumber kebenaran "tagihan ini lunas" adalah `BilInvoice.Status`/`ClosedAt`. Sumbu status penagihan piutang dirancang bersama pemilik konsumen AR/AP ketika konsumen itu benar-benar dibangun (`BKC-BLK-INT-001`), **MUST NOT** ditebak sekarang. Dengan ini `BKC-DES-033` berstatus `approved`. | Product/Domain Owner (persetujuan eksplisit dalam percakapan, sesudah ketiga opsi beserta konsekuensinya disajikan) | `approved` | "Terima BKC-DES-033: BilArHandoff tidak disentuh (Direkomendasikan)" dari 3 opsi bertanda rekomendasi — opsi status `COLLECTED` dan opsi kolom `CollectedAt` TIDAK dipilih | 18 September 2026 |
+| `BKC-DEC-104` | Decision | **MEMPERLUAS cakupan harfiah `BKC-DEC-100`.** Penyelarasan status dipasang pada **enam** peristiwa yang benar-benar menggerakkan sisa tagihan pasien — pembayaran, pembalikan pembayaran, alokasi deposit, penyesuaian arah `Credit`, penyesuaian arah `Debit`, serta write-off beserta kedua jalur pembalikannya — **bukan** hanya pada tender `SUCCEEDED` yang disebut teks `BKC-DEC-100`. Alasan yang diterima Owner: memasang penyelarasan hanya di jalur tender akan meninggalkan lubang yang **jenisnya sama persis** dengan gap yang sedang ditutup — tagihan yang dilunasi seluruhnya dari deposit pasien, atau yang sisa tagihannya dinolkan penyesuaian `Credit`, akan tetap macet di `FINAL` tanpa batas waktu beserta lubang koreksi AR-nya. Perluasan ini melayani **maksud** `BKC-DEC-100`, bukan menggantikannya. Dengan ini `BKC-DES-029` berstatus `approved`. | Product/Domain Owner (persetujuan eksplisit dalam percakapan) | `approved` | "Enam peristiwa — BKC-DES-029 (Direkomendasikan)" dari 2 opsi bertanda rekomendasi — opsi "hanya jalur tender, persis bunyi keputusan" TIDAK dipilih | 18 September 2026 |
+
+**Status pass ini**: `BKC-CQ-01` **DITUTUP PENUH**. Dua keputusan arsitektur yang menyimpang dari
+bunyi harfiah keputusan bisnis (`BKC-DES-029`, `BKC-DES-033`) kini `approved` secara eksplisit,
+bukan lolos diam-diam.
+
+**Yang MASIH terbuka**, dan sengaja tidak ikut ditutup pass ini:
+
+- `BKC-OQ-100` — jumlah penyesuaian/write-off yang terlanjur diposting tanpa koreksi AR. Dijawab
+  keluaran **dry-run baca-saja** (`BKC-DES-034`), bukan perkiraan. Tidak memblokir gelombang
+  `MVP-24`; memblokir penutupan `MVP-25`.
+- Approval menyeluruh atas `BKC-DES-028`, `030`, `031`, `032`, `034`, `035` — keenamnya keputusan
+  teknis turunan langsung dari keputusan bisnis yang sudah `approved`, tidak ada yang menyimpang
+  dari bunyi keputusan mana pun. Statusnya tetap `draft` sampai Owner menyatakan approval
+  menyeluruh, karena approval adalah tindakan manusia dan tidak boleh disimpulkan dari jawaban
+  atas dua pertanyaan yang berbeda.
+- Otorisasi membuat dan menjalankan migration backfill — **terpisah**, sesuai `AGENTS.md` bagian
+  Keselamatan Database. `BKC-DEC-103`/`104` **bukan** otorisasi itu.
+
+### Approval menyeluruh keputusan arsitektur revisi `1.3` (18 September 2026)
+
+| Decision ID | Type | Keputusan/pertanyaan | Owner | Status | Approved by/at | Evidence |
+|---|---|---|---|---|---|---|
+| `BKC-DEC-105` | Decision | **Menyetujui `BKC-DES-028`–`BKC-DES-035` secara utuh** — satu service `BillingInvoiceClosureService` yang memegang perhitungan sisa tagihan sekaligus penyelarasan status (`BKC-DES-028`), penyelarasan di enam peristiwa (`BKC-DES-029`, sudah disetujui terpisah lewat `BKC-DEC-104`), pola `SaveChanges`→selaraskan→`SaveChanges` di dalam satu transaksi (`BKC-DES-030`), transisi balik `CLOSED`→`FINAL` saat sisa tagihan naik lagi (`BKC-DES-031`), pemakaian ulang kunci penasihat `BIL_INVOICE_LEDGER_*` beserta invariant urutan pengambilannya (`BKC-DES-032`), `BilArHandoff` tidak disentuh (`BKC-DES-033`, sudah disetujui terpisah lewat `BKC-DEC-103`), migration backfill yang didahului dry-run baca-saja (`BKC-DES-034`), dan perluasan penjaga koreksi AR menerima `FINAL` maupun `CLOSED` (`BKC-DES-035`). Dengan ini keenam sumbu kontrak revisi `1.3` (`BIL-API-1.2`, `BIL-STATE-1.1`, `BIL-VALIDATION-1.1`, `BIL-INTEGRATION-1.0`, `BIL-PERMISSION-1.0`, `BIL-TEST-1.2`) naik dari `draft` menjadi `approved`; sumbu `calculation` tidak bergerak. Status revisi `1.3` naik dari `draft` menjadi `approved`. | Product/Domain Owner (persetujuan eksplisit dalam percakapan, wewenang ganda Finance/AR `BKC-DEC-085`) | `approved` | "Saya approve BKC-DES-028–035 — susun roadmap siap eksekusi" dari 3 opsi, dipilih sesudah konsekuensinya disajikan | 18 September 2026 |
+
+> **Approval ini BUKAN otorisasi membuat maupun menjalankan migration.** Migration
+> `BackfillClosedInvoicesFromFullySettledFinal` memuat pemutakhiran data yang **tidak dapat
+> dimundurkan secara selektif** (`BKC-DES-034`): sesudah aplikasi berjalan, invoice `CLOSED` hasil
+> backfill tidak dapat dibedakan dari invoice `CLOSED` yang lahir normal. Pembuatan dan eksekusinya
+> menuntut konfirmasi eksplisit tersendiri, sesudah backup, sesuai `AGENTS.md` bagian Aturan Entity
+> Framework dan Akses Data serta Keselamatan Database.
+
+**Status setelah approval ini**: seluruh keputusan bisnis dan arsitektur revisi `1.3` tertutup.
+Satu-satunya yang masih terbuka adalah `BKC-OQ-100`, yang **dijawab keluaran dry-run** — bukan
+keputusan manusia, melainkan angka yang harus diukur lebih dulu. Ia tidak memblokir gelombang
+`MVP-24`; ia memblokir penutupan `MVP-25`.
+
+### Penutupan `BKC-OQ-100` (18 September 2026, keluaran dry-run `BE-BKC-064`)
+
+**Konteks.** Dry-run baca-saja (`BE-BKC-064`) dijalankan pengguna sendiri di database dev/lokal,
+memakai query yang kriterianya identik dengan `BillingInvoiceClosureService.CalculateOutstandingAsync`
+(lihat `task/report/backend/be-bkc-064-dry-run-dampak-backfill.md`). Bukan keputusan yang
+diputuskan manusia — murni angka yang harus diukur lebih dulu sebelum keputusan lanjutannya bisa
+diambil dengan dasar, bukan dugaan.
+
+| Metric | Nilai | Artinya |
+| --- | --- | --- |
+| `candidates_final_zero_outstanding` | **1** | Hanya satu invoice `FINAL` yang sisa tagihannya sudah nol pada database yang diukur — akan berpindah ke `CLOSED` bila `BE-BKC-065` dijalankan |
+| `candidates_missing_ar_correction` | **0** | **Tidak ada** invoice di antara kandidat itu yang kehilangan koreksi AR — tidak dibutuhkan koreksi piutang susulan |
+| `legacy_closed_missing_closed_at` | **0** | Tidak ada invoice `CLOSED` warisan dengan `ClosedAt` kosong pada database ini |
+
+**Jawaban `BKC-OQ-100`**: **tidak dibutuhkan koreksi AR susulan.** Skala keterpaparan gap ini pada
+database yang diukur jauh lebih kecil daripada skenario "seluruh invoice yang dibayar lunas" yang
+diperingatkan temuan 2 September 2026 — kemungkinan karena database ini masih tahap pengembangan
+dengan volume data terbatas, bukan bukti bahwa gap-nya tidak serius di produksi. `BE-BKC-065`
+karena itu murni pemindahan status untuk **satu baris**, tanpa langkah koreksi tambahan.
+
+**Catatan penting yang MUST dibawa ke eksekusi `BE-BKC-065`**: angka ini berasal dari database
+tempat dry-run dijalankan. Bila migration nanti dijalankan ke database **lain** (staging/production
+dengan volume data berbeda), dry-run ini **MUST diulang** pada database tujuan sebelum migration
+dieksekusi di sana — angka `1`/`0`/`0` ini tidak otomatis berlaku untuk database lain.
+
+**Status**: `BKC-OQ-100` **DITUTUP**. `BE-BKC-065` tidak lagi tertahan oleh pertanyaan ini — yang
+tersisa murni otorisasi pembuatan dan eksekusi migration (`AGENTS.md` bagian Keselamatan Database),
+belum diberikan pada pass ini.
+
+### Eksekusi `BE-BKC-065` (18 September 2026) — backfill selesai, jalur berubah dari migration ke SQL langsung
+
+Otorisasi diberikan bertahap sesuai `AskUserQuestion`: (1) `dotnet ef migrations add` diizinkan
+khusus task ini — **dicoba, build internalnya gagal** sebelum satu file pun terbentuk (root cause
+belum didiagnosis, dicatat sebagai temuan terbuka); (2) pengguna kemudian meminta eksplisit
+"tidak usah pake migration dotnet" dan "lewat update query sql saja" — perubahan pendekatan yang
+disetujui di tengah percakapan, bukan penyimpangan sepihak agent.
+
+Skrip SQL baca-tulis (dibungkus `BEGIN`/`COMMIT` supaya dapat ditinjau) disusun dengan kriteria
+identik dry-run `BE-BKC-064`, diserahkan sebagai teks, **dieksekusi pengguna sendiri** di tool
+database miliknya. Hasil: **1 baris** (`BIL-20260903-00000004`) berpindah `FINAL`→`CLOSED`,
+`ClosedAt` terisi `2026-09-10 11:45:53 +0700` (waktu pelunasan sebenarnya, terverifikasi BUKAN
+waktu eksekusi script) — persis sesuai prediksi `BE-BKC-064`. Pengguna mengonfirmasi eksplisit
+"sudah saya commit".
+
+**Konsekuensi yang MUST dicatat**: backfill ini **tidak tercatat di `__EFMigrationsHistory`**
+karena bukan EF Core migration. Jejak satu-satunya adalah laporan task
+(`task/report/backend/be-bkc-065-backfill-data-invoice-lunas.md`), baris `00-interview-decisions.md`
+ini, dan `UpdateBy = Guid.Empty` pada baris `BilInvoice` yang bersangkutan. Bila kelak dibutuhkan
+jejak formal EF Core, itu keputusan terpisah.
+
+**Temuan yang MUST ditindaklanjuti terpisah**: `dotnet build` untuk source `BE-BKC-060`–`063` GAGAL
+saat dicoba (lewat build internal `dotnet ef migrations add`). Root cause belum didiagnosis pada
+pass ini — keempat task itu masih berstatus "source lengkap, build belum diverifikasi" di roadmap,
+dan sekarang punya bukti konkret bahwa build-nya memang bermasalah, bukan sekadar belum dicoba.
+
+**Status**: Gelombang `MVP-24`+`MVP-25` (`BE-BKC-060`–`065`) selesai secara data dan keputusan.
+Satu blocker teknis tersisa: kegagalan build source yang belum didiagnosis.
+
+## Amandemen 21 September 2026 — Penerbitan fakta finansial ke modul konsumen
+
+### Mengapa pass ini ada
+
+Dua modul menunggu Billing menerbitkan fakta, dan **blueprint ini belum mencatat satu pun dari
+keduanya**. Penelusuran menyeluruh atas folder `billing-kasir/` pada 21 September 2026 tidak
+menemukan sebutan `BilCollectionHandoff` maupun kewajiban apa pun terhadap Farmasi.
+
+Akibatnya nyata dan sedang berjalan hari ini:
+
+| Modul | Yang tertahan | Sejak |
+| --- | --- | --- |
+| Finance (AR/AP) | Task `BE-FIN-016`, `BE-FIN-017`, dan turunannya `BE-FIN-018` berstatus `BLOCKED` | Permintaan 20 September 2026, belum dijawab |
+| Farmasi | Seluruh resep rawat jalan macet permanen di `WaitingForPayment`; telaah apoteker tidak dapat dimulai sama sekali | Sejak `RJ-BIL-BE-002` menutup jalur lama, 24 Agustus 2026 |
+
+### Dua konsumen, satu sumber peristiwa
+
+**Finance** meminta jalur pemberitahuan bahwa sebuah tender berhasil. Tanpa itu, Finance tidak
+punya cara resmi mengetahui pasien sudah membayar, sehingga uang yang sudah diterima kasir
+berisiko dicatat ulang sebagai piutang — satu tagihan terhitung dua kali. Finance menolak membaca
+`BilTender` langsung karena itu melanggar batas modul. Rincian lengkapnya pada
+`finance-management/evidence/02-permintaan-kontrak-untuk-owner-billing.md`, berdasar `FIN-DEC-005`
+dan `FIN-DEC-006`. Finance sudah memverifikasi seluruh bidang yang dibutuhkannya **sudah ada** di
+`BilTender` dan `BilSettlement` — permintaan ini tidak menuntut Billing menyimpan data baru.
+
+**Farmasi** membutuhkan pernyataan clearance per resep, dengan aturan yang sudah dikunci pada
+`pharmacy/00-interview-decisions.md` `PHA-DEC-063` sampai `PHA-DEC-070`. Yang penting bagi Billing:
+clearance **tidak** dicabut hanya karena invoice kembali `FINAL` (`PHA-DEC-068`), dan tiga sebab
+berbasis penarikan uang selalu mencabut secara fail-closed (`PHA-DEC-068-A`).
+
+Keduanya bertumpu pada peristiwa yang sama dan data yang sama. `PaymentMethodId` sekaligus
+membedakan tunai dari non-tunai bagi Finance **dan** menentukan hasil `Paid` versus
+`InsuranceApproved` bagi Farmasi lewat flag `IsInsurance`/`IsCompanyGuarantor` (`PHA-DEC-065`).
+
+### Keputusan
+
+| ID | Keputusan | Owner | Status | Evidence |
+| --- | --- | --- | --- | --- |
+| `BKC-DEC-106` | Satu titik deteksi peristiwa, dua jenis surat berkolom tegas | Owner Billing | `approved` | Pilihan eksplisit user "Satu titik deteksi, dua jenis surat" dari 3 opsi, 21 September 2026 |
+| `BKC-DEC-107` | Surat clearance terbit saat keadaan berubah, ditambah jalur pemeriksaan ulang | Owner Billing | `approved` | Pilihan eksplisit user "Terbit saat berubah, plus jalur pemeriksaan ulang" dari 3 opsi |
+| `BKC-DEC-108` | Pengambilan surat dicatat dan terlihat; Billing tidak menggantungkan apa pun padanya | Owner Billing | `approved` | Pilihan eksplisit user "Dicatat dan terlihat, Billing tidak menggantungkan apa pun" dari 2 opsi |
+| `BKC-DEC-109` | Baris handoff disimpan selamanya | Owner Billing | `approved` | Pilihan eksplisit user "Disimpan selamanya" dari 2 opsi |
+
+Seluruhnya disetujui oleh user sesi ini yang menyatakan eksplisit dapat menyetujui atas nama owner
+modul Billing, sejalan dengan `PHA-DEC-066` yang mencatatnya mewakili Product/Domain Owner,
+Billing/Payer owner, dan Clinical Governance.
+
+#### `BKC-DEC-106` — Satu titik deteksi, dua jenis surat
+
+Billing mendeteksi peristiwa finansialnya **sekali di satu tempat**, lalu menerbitkan surat
+terpisah sesuai konsumennya: satu berisi rincian uang untuk Finance, satu berisi pernyataan
+clearance per resep untuk Farmasi.
+
+Jaminan yang diberikan bentuk ini: mustahil terjadi keadaan Finance mengetahui sebuah pembayaran
+sementara Farmasi tidak, atau sebaliknya — keduanya lahir dari deteksi yang sama.
+
+**Bentuk transportnya tabel handoff persisted berkolom tegas**, mengikuti pola `BilArHandoff` yang
+sudah terbukti. Ini konsekuensi langsung dari keputusan di atas dan didukung tiga hal: tiga jalur
+handoff existing seluruhnya berbentuk demikian; Finance sendiri mengusulkannya dan menyerahkan
+pilihan akhirnya ke Billing; dan `FinBillingHandoffIntake` di sisi konsumen sudah dibangun untuk
+membaca baris, bukan menerima event — bahkan `HandoffType`-nya sudah memuat nilai `COLLECTION`.
+
+Opsi tabel serba-guna bermuatan bebas **ditolak**: muatan bebas menghilangkan penjagaan bentuk,
+sehingga kesalahan isi baru ketahuan saat dibaca konsumen.
+
+#### `BKC-DEC-107` — Terbit saat berubah, plus jalur pemeriksaan ulang
+
+Surat clearance untuk Farmasi terbit **hanya ketika keadaan clearance sebuah resep benar-benar
+berubah** — menjadi boleh dikerjakan, atau ditahan kembali. Satu surat berarti satu perubahan
+nyata; tidak ada surat berisi kabar yang sama berulang-ulang.
+
+Karena surat bisa gagal diproses — konsumen error, sempat mati, atau baris terlewat — Billing
+**juga menyediakan cara bagi Farmasi memeriksa ulang keadaan clearance terkini sebuah resep**,
+tanpa menunggu perubahan berikutnya.
+
+Ini bukan tambahan baru melainkan pemenuhan janji yang sudah disetujui: `PHA-DEC-063` menuntut
+proyeksi di sisi Farmasi bersifat *reconcilable*, dan tanpa permukaan baca dari Billing, janji itu
+tidak dapat dipenuhi.
+
+**Konsekuensi yang dibawa ke desain**: Billing perlu menyediakan satu permukaan baca keadaan
+clearance, bukan hanya menerbitkan surat. Bentuk teknisnya wewenang `design-business-module`.
+
+Contoh mengapa ini penting. Pasien lunas pukul 09.00 dan suratnya terbit, tetapi proses di sisi
+Farmasi sedang bermasalah sehingga surat itu tidak terbaca. Tanpa jalur pemeriksaan ulang, resep
+akan tertahan sampai ada perubahan finansial berikutnya — yang mungkin tidak pernah terjadi,
+karena tagihannya memang sudah lunas. Pasien menunggu di loket tanpa ada yang menyadari sebabnya.
+
+#### `BKC-DEC-108` — Pengambilan surat dicatat, tetapi tidak menggantungkan apa pun
+
+Billing mencatat kapan sebuah surat diambil konsumen, dan surat yang belum diambil dapat dilihat
+sebagai daftar yang bisa diperiksa.
+
+Billing sendiri **tidak menahan apa pun dan tidak mengubah perilakunya** karena surat belum
+diambil. Uang sudah diterima, dan pelayanan tidak boleh tertahan karena urusan teknis antar modul.
+
+Konsisten dengan `BKC-DEC-103`, yang sudah memutuskan status pada `BilArHandoff` menggambarkan
+**penyerahan fakta**, bukan hasil di sisi konsumen. Sumber kebenaran "tagihan ini lunas" tetap
+`BilInvoice.Status`, bukan status handoff.
+
+Batas yang disadari: keterlihatan hanya berguna bila ada yang memeriksa daftarnya. Peringatan aktif
+dicatat terbuka sebagai `BKC-OQ-101`.
+
+#### `BKC-DEC-109` — Baris handoff disimpan selamanya
+
+Tidak ada pembersihan maupun pengarsipan. Baris handoff adalah **jejak audit lintas modul**: ia
+membuktikan Billing pernah memberi tahu, dan kapan persisnya.
+
+Sejalan dengan tiga jalur handoff existing yang memang tidak punya mekanisme pembersihan.
+Volumenya sebanding jumlah transaksi, bukan sesuatu yang meledak tanpa batas.
+
+### Pertanyaan terbuka
+
+| ID | Pertanyaan | Dampak | Owner | Status |
+| --- | --- | --- | --- | --- |
+| `BKC-OQ-101` | Berapa lama sebuah surat boleh menggantung sebelum dianggap tidak wajar, dan siapa yang menerima peringatannya? | `NON_BLOCKING` — desain dapat berjalan dengan keterlihatan pasif sesuai `BKC-DEC-108` | Operasional Billing + Finance + Farmasi | `open` |
+
+Pertanyaan ini sejenis dengan butir terbuka di Farmasi soal durasi outage sebelum eskalasi.
+Keduanya keputusan operasional yang lebih baik ditetapkan bersama setelah jalurnya berjalan dan
+volumenya terlihat, bukan ditebak sekarang.
+
+### Acceptance criteria
+
+1. Satu pembayaran yang berhasil menghasilkan surat untuk Finance berisi rincian uang, dan — bila
+   keadaan clearance resep ikut berubah — surat untuk Farmasi, keduanya lahir dari deteksi
+   peristiwa yang sama.
+2. Pembayaran yang berhasil tetapi belum melunasi tagihan menghasilkan surat untuk Finance tanpa
+   surat clearance untuk Farmasi, karena keadaan resep belum berubah.
+3. Tagihan yang lunas lewat penghapusan tagihan menghasilkan surat clearance berhasil finansial
+   `PaymentWaived` walau tidak ada uang yang masuk.
+4. Penambahan biaya tindakan pada tagihan yang sudah lunas **tidak** menerbitkan surat pencabutan
+   clearance untuk resep pada tagihan itu.
+5. Pembalikan pembayaran menerbitkan surat pencabutan clearance untuk seluruh resep pada tagihan
+   itu, dan bagi Finance menerbitkan baris baru — bukan mengubah baris lama.
+6. Surat yang sama diterbitkan dua kali untuk peristiwa yang sama menghasilkan tepat satu baris
+   efektif di sisi konsumen, dikunci oleh kunci idempotensi.
+7. Farmasi dapat menanyakan keadaan clearance terkini sebuah resep dan memperoleh jawaban yang
+   sama dengan surat terakhir yang sah, walau surat itu belum pernah terbaca.
+8. Surat yang belum diambil konsumen dapat ditemukan dan dihitung, tanpa mengubah perilaku Billing
+   mana pun.
+
+### Yang sengaja tidak diubah
+
+| Hal | Alasan |
+| --- | --- |
+| Cara Billing menghitung sisa tagihan dan menutup invoice | Sudah terkunci `BKC-DEC-100` dan `BKC-DEC-105`; pass ini tidak mengusiknya |
+| `BilArHandoff`, `BilApHandoff`, `BilHandoffAdjustment` | Tetap apa adanya; `BKC-DEC-103` sudah memutuskan `BilArHandoff` tidak disentuh |
+| Alokasi uang per baris invoice | Ditolak dua kali sebelumnya — `PHA-DEC-064` dan `PHA-DEC-068-A`. `BilPaymentAllocation` tetap hanya mengenal sasaran `INVOICE` |
+| Aturan internal Finance soal piutang dan jurnal | Milik `finance-management` |
+| Aturan internal Farmasi soal telaah, penyiapan, dan penyerahan | Milik `pharmacy` |
+
+### Yang belum ada dan dibutuhkan
+
+Belum ada task roadmap di `billing-kasir` untuk membangun kedua jalur penerbitan ini. Task-nya
+perlu dibuat lewat `plan-module-delivery`, dan penyelesaiannya membuka `BE-FIN-016`, `BE-FIN-017`,
+`BE-FIN-018` di Finance sekaligus slice financial clearance handoff di Farmasi yang sudah berstatus
+`READY_FOR_DOMAIN_DESIGN`.
+
+### `BKC-DEC-110` — Approval keputusan arsitektur dan penempatan pekerjaan pemulihan
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Menyetujui `BKC-DES-036`–`BKC-DES-041` secara utuh** — dua tabel handoff berkolom tegas (`036`), surat penerimaan sebagai aggregate root tersendiri tanpa ketergantungan pada finalisasi (`037`), satu service penerbit dipanggil dari empat titik yang sama dengan penyelaras status (`038`), nomor versi finansial monoton per resep yang dilindungi kunci penasihat yang sudah ada (`039`), pembacaan keadaan clearance berbentuk pemanggilan dalam proses (`040`), dan hasil penyelarasan yang membawa keterangan sebab (`041`). Dengan ini keenam sumbu kontrak revisi `1.4` — `BIL-API-1.3`, `BIL-STATE-1.2`, `BIL-VALIDATION-1.2`, `BIL-INTEGRATION-1.1`, `BIL-PERMISSION-1.1`, `BIL-TEST-1.3` — naik dari `draft` menjadi `approved`. Sumbu `calculation` tidak bergerak dan berkasnya tidak disunting |
+| Owner | Product/Domain Owner, Billing/Payer owner, Clinical Governance (ketiganya per `PHA-DEC-066`) |
+| Status | `approved` |
+| Approval evidence | Pilihan eksplisit user "Saya setujui desainnya sekarang" atas pertanyaan gerbang `plan-module-delivery`, 21 September 2026 |
+| Batas approval | Approval ini **bukan** wewenang menulis source, membuat migration, maupun menjalankannya. Ketiganya tetap diminta terpisah per task saat eksekusi, sesuai `AGENTS.md` |
+
+### `BKC-DEC-111` — Pemulihan resep yang terlanjur macet masuk gelombang yang sama
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | Pekerjaan memulihkan resep yang sudah terlanjur tertahan — yang tagihannya sudah lunas sebelum jalur penerbitan berdiri — **masuk gelombang yang sama** dengan pembangunan jalurnya, bukan menyusul sebagai pekerjaan terpisah. Pemulihan dikerjakan dengan memanggil permukaan pemeriksaan ulang (`BKC-DEC-107`) untuk resep yang masih menunggu pembayaran, **bukan** dengan skrip pemutakhiran data langsung |
+| Owner | Product/Domain Owner |
+| Status | `approved` |
+| Approval evidence | Pilihan eksplisit user "Gelombang yang sama" dari 2 opsi, 21 September 2026 |
+| Alasan | Menyalakan jalur baru sementara resep lama tetap macet akan membuat dua jenis resep berperilaku berbeda tanpa sebab yang terlihat petugas — dan petugas akan menyimpulkan fiturnya tidak bekerja |
+| Konsekuensi | Satu task tambahan pada gelombang yang sama. Karena pemulihan membaca dari Billing dan tidak menulis data secara langsung, ia **tidak** menuntut otorisasi pemutakhiran data terpisah — berbeda dari backfill `BE-BKC-065` |
+
+---
+
+## Pass B — Integrasi Rawat Inap ↔ Billing (Pass B — Yasmina / Billing Management)
+
+Disahkan 24 September 2026 melalui sesi `/grill-me`. Pass ini menutup seluruh celah integrasi (*gap*) dan keputusan bisnis terbuka (*Open Business Decisions*) yang tercantum pada dokumen `docs/Modul-RS/Rawat-Inap-To-Billing/PRD Integrasi-Rawat-Inap-dengan-Billing.md` Bagian 48 (`DEC-BILL-001`, `DEC-INT-001` s.d. `004`, `DEC-BILL-002`, dan arsitektur `Financial Clearance`).
+
+### Batas Scope Pass B
+1. **Di dalam scope:**
+   - Penerimaan fakta occupancy Rawat Inap (`SourceDomain = "INPATIENT"`, `SourceType = "ROOM_STAY"`) pada adapter Billing (`ContractBillingChargeSourceAdapter`).
+   - Mesin Perhitungan Tarif Kamar (*Room Charge Engine*) dengan formula jam masuk hari pertama, transfer kamar, dan mutasi kamar.
+   - Kebijakan deposit Rawat Inap (minimal 30% estimasi awal dan 100% dari porsi tanggung jawab pasien sebelum tindakan besar).
+   - Biaya Administrasi Rawat Inap 7% (cap Rp6.000.000).
+   - Penerbitan status *Financial Clearance* (`PENDING`, `BLOCKED`, `CLEARED`, `REVOKED`) sebagai *Source of Truth* di Billing dan penyaluran sinyal/webhook ke Rawat Inap.
+   - Konsolidasi non-destruktif tagihan pasien alihan IGD ke Rawat Inap pada final settlement.
+2. **Di luar scope:**
+   - Alur operasional klinis bangsal, tata kelola tempat tidur, dan pengkajian perawat/dokter (domain eksklusif `InPatientManagement`).
+   - Algoritme availability bed bangsal.
+
+---
+
+### `BKC-DEC-112` — Ratifikasi Batas Scope Pass B Integrasi Rawat Inap ↔ Billing
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Mengunci batas wewenang modul Billing/Kasir pada Pass B.** Billing bertindak sebagai *consumer* atas fakta pelayanan dan hunian fisik pasien dari Rawat Inap, serta menjadi *single source of truth* atas seluruh nominal finansial, tarif kamar, deposit, invoice, penjamin, biaya administrasi, dan status kelayakan keuangan (*Financial Clearance*). Billing tidak mengelola data tempat tidur atau rekam medis rawat inap |
+| Owner | Yasmina (Billing Owner) & Business Owner |
+| Status | `approved` |
+| Approval evidence | Pilihan eksplisit user pada grill-me 24 September 2026 |
+| Trace | `PRD Integrasi-Rawat-Inap-dengan-Billing.md` Bagian 3, 4, 8, 12, dan 13 |
+
+---
+
+### `BKC-DEC-113` — Kebijakan Biaya Administrasi Rawat Inap (`DEC-BILL-001`)
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Menyatakan aturan lama biaya administrasi nominal tetap (flat fee) di V2 sebagai `superseded` untuk pelayanan Rawat Inap.** Biaya Administrasi Rawat Inap dihitung dengan formula proporsional: **`AdminFee = MIN(EligibleBillAmount × 7%, Rp 6.000.000)`**. Komponen *eligible bill* mencakup sewa kamar, visite dokter, tindakan, dan penunjang medis non-farmasi tertentu sesuai master tarif. Tagihan rawat jalan/IGD murni tetap dapat menggunakan ketentuan tarifnya masing-masing |
+| Owner | Yasmina (Billing) & Finance Owner |
+| Status | `approved` |
+| Approval evidence | Pilihan eksplisit user "Supersede aturan lama: Tetapkan Biaya Administrasi Rawat Inap sebesar 7% dari tagihan eligible dengan batas maksimal (cap) Rp6.000.000", 24 September 2026 |
+| Alasan | Standar operasional rumah sakit modern menetapkan biaya administrasi rawat inap berbasis persentase untuk mencerminkan kompleksitas koordinasi berkas dan klaim, dengan perlindungan plafon (cap) agar tidak membebani pasien perawatan intensif |
+| Konsekuensi | Calculation engine Billing menambahkan formula `AdminFeeCalculation` dengan parameter persentase (7%) dan cap (Rp 6.000.000). Master data lama untuk biaya administrasi rawat inap berstatus nominal tetap dipensiunkan |
+| Trace | `PRD Integrasi-Rawat-Inap-dengan-Billing.md` Bagian 29 dan Bagian 48 `DEC-BILL-001` |
+
+---
+
+### `BKC-DEC-114` — Batas Waktu Masuk Kamar Hari Pertama (`DEC-INT-001`, `DEC-INT-002`, `DEC-INT-003`)
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Menetapkan aturan jam masuk hari pertama menggunakan operator inklusif batas bawah (`>=`):**<br>1. Masuk kamar pukul **`00:00:00` s.d. `< 18:00:00`**: Dikenakan **100%** tarif kamar hari pertama.<br>2. Masuk kamar pukul **`18:00:00` s.d. `< 22:00:00`**: Dikenakan potongan sehingga menjadi **50%** tarif kamar hari pertama.<br>3. Masuk kamar pukul **`22:00:00` s.d. `< 24:00:00` (sebelum tengah malam)**: Dikenakan potongan sehingga menjadi **20%** tarif kamar hari pertama.<br>4. Masuk kamar tepat pukul **`00:00:00`** dihitung sebagai awal tanggal kalender baru (beban sewa kamar untuk hari kalender sebelumnya adalah **0%**) |
+| Owner | Yasmina (Billing) & Muhammad Hamzah (Rawat Inap) |
+| Status | `approved` |
+| Approval evidence | Pilihan eksplisit user "Inklusif batas bawah (>=)", 24 September 2026 |
+| Alasan | Operator `>=` pada detik ke-00 memberikan kepastian fail-safe dan keuntungan administratif bagi pasien yang tiba di bangsal tepat pada pergantian jam batas kebijakan |
+| Konsekuensi | `RoomChargePolicyService` dan engine perhitungan room charge menerapkan evaluasi interval waktu lokal berbasis time range inklusif batas bawah |
+| Trace | `PRD Integrasi-Rawat-Inap-dengan-Billing.md` Bagian 17, 18, dan Bagian 48 `DEC-INT-001`, `002`, `003` |
+
+---
+
+### `BKC-DEC-115` — Formula Pembagian Tarif Perpindahan Kamar Multipel di Hari yang Sama (`DEC-INT-004`)
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Menetapkan skema pro-rata berbasis durasi jam hunian riil pasien untuk kasus perpindahan kamar lebih dari 1 kali dalam hari kalender yang sama:**<br>1. Jika perpindahan tepat 1 kali (2 kamar: A → B): Berlaku aturan standar split 50% Kamar A + 50% Kamar B.<br>2. Jika perpindahan > 1 kali (contoh 3 kamar: Kamar Reguler A → Kamar Observasi B → ICU C): Setiap segmen kamar dikenakan tarif secara proporsional sesuai perbandingan durasi jam hunian riil di kamar tersebut terhadap total jam rawat pada hari itu: **`ChargeKamar = (DurasiMenitSegmen / TotalMenitRawatHariItu) × TarifHarianKamar`** |
+| Owner | Yasmina (Billing) & Product Owner |
+| Status | `approved` |
+| Approval evidence | Pilihan eksplisit user "Pro-rata durasi jam riil", 24 September 2026 |
+| Alasan | Adil secara objektif bagi pasien/penjamin dan rumah sakit, serta mencegah pembebanan kamar transit bernilai tinggi secara berlebihan saat pasien hanya singgah dalam waktu singkat sebelum dipindahkan ke unit intensif |
+| Konsekuensi | Billing menghitung durasi per segmen hunian dari timestamp `StartAt` dan `EndAt` yang dikirimkan oleh event `ROOM_TRANSFERRED` Rawat Inap |
+| Trace | `PRD Integrasi-Rawat-Inap-dengan-Billing.md` Bagian 19, 20, dan Bagian 48 `DEC-INT-004` |
+
+---
+
+### `BKC-DEC-116` — Dasar Perhitungan Deposit 100% Sebelum Tindakan Besar (`DEC-BILL-002`)
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Menetapkan dasar perhitungan kewajiban deposit 100% sebelum tindakan besar adalah dari Porsi Tanggung Jawab Pasien (Patient Responsibility / Excess).**<br>1. Untuk pasien umum (mandiri / *self-pay*), porsi tanggung jawab pasien adalah 100% dari total estimasi bruto tindakan.<br>2. Untuk pasien dengan asuransi/perusahaan penjamin/BPJS, porsi tanggung jawab pasien adalah selisih estimasi biaya tindakan yang tidak ditanggung atau melebihi plafon penjamin (excess).<br>3. Pasien tidak dapat dijadwalkan/diberangkatkan ke ruang operasi/tindakan besar selama saldo deposit pasien belum menutup 100% dari porsi tanggung jawab pasien tersebut, kecuali ada *Emergency Financial Override* resmi dari Manajemen/Direksi |
+| Owner | Yasmina (Billing) & Finance Owner |
+| Status | `approved` |
+| Approval evidence | Pilihan eksplisit user "100% dari porsi tanggung jawab pasien (Patient Responsibility / Excess)", 24 September 2026 |
+| Alasan | Menghindarkan keluarga pasien asuransi dari keharusan menyetor uang muka tunai sebesar nilai bruto tindakan yang sebenarnya telah dijamin oleh surat jaminan (GL) penjamin |
+| Konsekuensi | Layanan deposit Billing menghitung `DepositShortfall` tindakan besar dengan rumus: `EstimasiTindakan - EstimasiCoveredPenjamin - SaldoDepositTersedia` |
+| Trace | `PRD Integrasi-Rawat-Inap-dengan-Billing.md` Bagian 26, 27, dan Bagian 48 `DEC-BILL-002` |
+
+---
+
+### `BKC-DEC-117` — Arsitektur Financial Clearance dan Integrasi Handoff ke Rawat Inap
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Billing Management adalah *Single Source of Truth* untuk kelayakan keuangan pemulangan pasien (*Financial Clearance*). Kode Billing yang sebelumnya membaca tabel Rawat Inap `InpFinancialClearance` dinyatakan keliru secara arsitektur dan diganti sepenuhnya.**<br>1. **Entitas Internal Billing:** Billing mencatat status kelayakan pada tabel internal (mengikuti pola `BilPrescriptionClearanceHandoff` yang sudah sukses di Farmasi).<br>2. **Status Resmi:** `PENDING` (menunggu penyelesaian tagihan), `BLOCKED` (tertahan karena ada blocker finansial), `CLEARED` (lunas / disetujui pulang), dan `REVOKED` (persetujuan dicabut karena tagihan susulan).<br>3. **Kueri Sinkron:** Billing menyediakan endpoint `GET /api/v1/health-services/billing-management/billing/invoices/encounter/{encounterId}/summary` yang menyajikan status clearance, daftar blocker operasional (tanpa privasi rupiah untuk perawat), saldo deposit, dan sisa tagihan.<br>4. **Sinyal Handoff / Webhook:** Saat kasir menyelesaikan transaksi pelunasan (`CLEARED`) atau mencabut kelayakan (`REVOKED`), Billing menerbitkan sinyal yang dikonsumsi Rawat Inap untuk membuka kunci pemulangan atau mengeksekusi *Auto-Reblock* seketika di bangsal |
+| Owner | Yasmina (Billing) & Muhammad Hamzah (Rawat Inap) |
+| Status | `approved` |
+| Approval evidence | Pilihan eksplisit user "Pola Handoff & Event Terpadu", 24 September 2026 |
+| Alasan | Menegakkan integritas data transaksi keuangan dan memastikan bangsal rawat inap tidak memulangkan pasien yang tagihannya belum beres atau mengalami tagihan susulan |
+| Konsekuensi | Menghilangkan pembacaan `InpFinancialClearance` dari `PatientBillingSummaryService.cs:88` dan membangun service penilai kelayakan di dalam modul Billing |
+| Trace | `PRD Integrasi-Rawat-Inap-dengan-Billing.md` Bagian 8.8, 10.4, 10.5, 34, 37; selaras `RWI-DEC-158` dan `RWI-DEC-160` |
+
+---
+
+### `BKC-DEC-118` — Konsolidasi Tagihan Alihan IGD ke Rawat Inap (`BILL-INT-007`)
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Menetapkan mekanisme konsolidasi tagihan IGD ke Rawat Inap menggunakan skema Multidomain Non-Destruktif pada satu settlement terpadu.**<br>1. Seluruh item tagihan selama di IGD dan di Bangsal Rawat Inap tetap mencatat `SourceDomain` aslinya (`EMERGENCY` vs `INPATIENT`) dan tidak digabungkan secara destruktif.<br>2. Pada saat pasien dinyatakan pulang dari rawat inap, kasir dapat menyelesaikan tagihan IGD dan Rawat Inap dalam satu transaksi *final settlement* terpadu dengan satu kwitansi resmi yang merinci beban per unit pelayanan |
+| Owner | Yasmina (Billing) & Finance Owner |
+| Status | `approved` |
+| Approval evidence | Pilihan eksplisit user "Konsolidasi Settlement Non-Destruktif", 24 September 2026 |
+| Alasan | Memudahkan keluarga pasien menyelesaikan administrasi di satu loket kasir saat kepulangan tanpa merusak audit penelusuran pendapatan unit IGD vs Rawat Inap |
+| Konsekuensi | Billing settlement service mendukung penutupan multi-folio/multi-invoice yang tertaut pada satu `EncounterId` pasien |
+| Trace | `PRD Integrasi-Rawat-Inap-dengan-Billing.md` Bagian 31 dan Bagian 43 `BILL-INT-007` |
+
+---
+
+### Acceptance Criteria Tambahan Pass B
+- `BKC-AC-080`: Panggilan kueri summary billing untuk encounter rawat inap mengembalikan status clearance dan blocker list yang dihitung dari status invoice Billing, bukan dari tabel rawat inap (`BKC-DEC-117`).
+- `BKC-AC-081`: Pasien rawat inap dengan tagihan eligible Rp 10.000.000 dikenakan admin fee Rp 700.000 (7%), dan tagihan Rp 100.000.000 dikenakan admin fee maksimal Rp 6.000.000 (`BKC-DEC-113`).
+- `BKC-AC-082`: Pasien masuk kamar pukul 18:00:00 tepat dikenakan room charge 50% hari pertama; masuk kamar pukul 22:00:00 tepat dikenakan 20%; masuk pukul 00:00:00 dihitung tanggal baru dengan beban hari sebelumnya 0% (`BKC-DEC-114`).
+- `BKC-AC-083`: Pasien pindah 3 kamar di hari yang sama ditagih pro-rata sebanding menit riil di tiap kamar terhadap total menit rawat hari itu (`BKC-DEC-115`).
+- `BKC-AC-084`: Pasien asuransi dengan tindakan besar Rp 20.000.000 yang dijamin Rp 15.000.000 hanya diwajibkan deposit tindakan sebesar Rp 5.000.000 (100% patient excess) (`BKC-DEC-116`).
+- `BKC-AC-085`: Tagihan susulan yang muncul setelah invoice lunas memicu pencabutan kelayakan (`REVOKED`) dan menerbitkan sinyal auto-reblock ke Rawat Inap (`BKC-DEC-117`).
+- `BKC-AC-086`: Tagihan IGD dan Rawat Inap pada satu encounter dapat diselesaikan dalam satu settlement terpadu dengan pelaporan per unit yang tetap terpisah (`BKC-DEC-118`).
+- `BKC-AC-087`: Pasien alihan rawat jalan ke rawat inap (Rajal → Ranap) tidak dikenakan biaya administrasi ganda. Biaya admin rajal otomatis gugur (batal/terkreditkan) dan digantikan oleh biaya admin ranap 7% cap Rp 6.000.000 (`BKC-DEC-119`).
+
+---
+
+### `BKC-DEC-119` — Aturan Penggantian Biaya Administrasi saat Alihan Rawat Jalan ke Rawat Inap (Rajal → Ranap)
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Menetapkan aturan penggantian (*replacement / offset*) biaya administrasi saat pasien rawat jalan dialihkan menjadi rawat inap:**<br>1. **Prinsip Beban Tunggal:** Pasien yang menjalani admisi rawat inap dari rujukan poliklinik rawat jalan pada hari/episode pelayanan yang sama **TIDAK BOLEH** dikenakan biaya administrasi ganda (rajal + ranap). Biaya administrasi rawat jalan dinyatakan **gugur** dan digantikan oleh Biaya Administrasi Rawat Inap (7% cap Rp6.000.000 sesuai `BKC-DEC-113`).<br>2. **Kasus Belum Dibayar (Tagihan Rajal Terbuka):** Item biaya administrasi rawat jalan pada invoice langsung dibatalkan (*voided / waived*) dengan alasan sistem `"SUPERSEDED_BY_INPATIENT_ADMISSION"`, lalu digantikan oleh komponen biaya administrasi rawat inap.<br>3. **Kasus Sudah Terlanjur Dibayar di Kasir Poliklinik:** Nominal biaya administrasi rawat jalan yang telah dibayarkan **wajib diperhitungkan sebagai kredit pembayaran berjalan (*credit offset / progress payment*)** terhadap total tagihan akhir rawat inap saat final settlement, sehingga pasien tidak dirugikan.<br>4. **Audit Trail Wajib:** Pembatalan atau pengkreditan biaya administrasi rajal wajib tercatat dalam audit log transaksi finansial tanpa *hard delete* |
+| Owner | Yasmina (Billing) & Finance Owner |
+| Status | `approved` |
+| Approval evidence | Penegasan langsung pemilik kebutuhan / user pada sesi 24 September 2026: *"jika sebelumnya ada biaya admin rajal, trus pasien pindah ke ranap. berarti biaya admin rajal menjadi gugur dan digantikan oleh biaya admin ranap"* |
+| Alasan | Mencegah tagihan ganda (*double administrative charging*) yang membebani pasien dan berpotensi memicu sengketa (*dispute*) verifikasi klaim BPJS/asuransi penjamin |
+| Konsekuensi | Billing invoice engine menambahkan event listener atau handler saat admisi ranap dikonfirmasi untuk mendeteksi apakah invoice encounter tersebut sebelumnya memuat item administrasi rajal, kemudian mengeksekusi pembatalan atau pengkreditan otomatis |
+| Trace | Konfirmasi user 24 September 2026; memperkuat `BKC-DEC-113` dan menutup catatan gap `CAP-10` pada `01-existing-capability-map.md` baris 88 & 136 |
+
+---
+
+### `BKC-DEC-120` — Batas Waktu dan Penanganan Tagihan Susulan Pasca-Izin Pulang (`BKC-OQ-102`)
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Menetapkan batas waktu penegakan *Auto-Reblock* dan aturan penerimaan tagihan susulan (*late charges*):**<br>1. **Jendela Auto-Reblock Aktif:** Selama invoice rawat inap masih berstatus `OPEN` (termasuk saat pasien telah dinyatakan `CLEARED` di kasir namun proses administratif/serah terima pemulangan di bangsal masih berlangsung di hari yang sama), setiap tagihan susulan yang masuk akan **secara otomatis membatalkan status clearance menjadi `REVOKED`**, mencatat `RevocationReason = "LATE_CHARGE_POSTED"`, menaikkan nomor versi finansial, dan mengirim sinyal pemblokiran seketika ke bangsal rawat inap.<br>2. **Penguncian Permanen saat CLOSED:** Setelah invoice resmi mencapai status `CLOSED` (seluruh pembayaran tuntas dan pasien resmi keluar secara administratif), invoice rawat inap berstatus terkunci tetap (*immutable*). Tagihan baru yang mencoba masuk setelah invoice `CLOSED` akan **ditolak secara otomatis oleh sistem** (`BIL-VAL-024` / `BIL-VAL-127`).<br>3. **Pengecualian / Reopen Terkendali:** Tagihan susulan pasca-`CLOSED` hanya dapat dimasukkan apabila ada otorisasi tertulis dan pembukaan kembali (*reopen override*) oleh Supervisor Kasir / Kepala Kasir dengan pencatatan audit alasan bisnis yang lengkap |
+| Owner | Yasmina (Billing) & Finance Owner |
+| Status | `approved` |
+| Approval evidence | Pilihan eksplisit user pada sesi `/grill-me` 24 September 2026: *"Auto-Reblock berlaku selama invoice masih OPEN / dalam masa pemulangan hari yang sama; jika invoice sudah resmi CLOSED/Finalized, tagihan susulan ditolak otomatis kecuali dibuka kembali lewat otorisasi Supervisor Kasir"* |
+| Alasan | Menjaga keseimbangan antara pencegahan kebocoran pendapatan (*revenue leakage*) saat pasien masih di RS dengan kepastian pembukuan kasir harian agar invoice lunas tidak terbuka kembali tanpa kendali |
+| Konsekuensi | Adapter intake biaya memvalidasi status invoice: jika `OPEN` dan sebelumnya `CLEARED`, picu auto-reblock; jika `CLOSED`, tolak permintaan dengan kode galat `422 Unprocessable Entity` kecuali disertai token otorisasi supervisor |
+| Trace | `04-prd-to-mvp.md` pertanyaan terbuka `BKC-OQ-102` (ditutup) |
+
+---
+
+### `BKC-DEC-121` — Ketentuan Pengecualian dan Variasi Biaya Administrasi Rawat Inap (`BKC-OQ-103`)
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Menetapkan pengelolaan variasi dan pengecualian biaya administrasi rawat inap secara deklaratif melalui Master Data Policy:**<br>1. **Aturan Default Ranap:** Nilai persentase 7% dengan pagu (cap) Rp6.000.000 adalah aturan dasar (*default*) untuk seluruh layanan rawat inap umum.<br>2. **Deklaratif via Master Data:** Kasus khusus seperti One Day Care (ODC), rawat inap singkat, atau kelas perawatan tertentu dikonfigurasi melalui baris aturan terpisah di tabel master `MstAdministrationFeePolicy` dengan filter kriteria (`ServiceType`, `PatientClass`) tanpa mengubah kode program sistem.<br>3. **Perlakuan Pasien BPJS / Paket Klaim:** Untuk pasien dengan penjaminan sistem paket (seperti BPJS Kesehatan / INA-CBGs), biaya administrasi tidak ditagihkan kepada pasien secara mandiri karena telah menjadi satu kesatuan inklusif dalam paket klaim penjaminan |
+| Owner | Yasmina (Billing) & Tarif/Finance Owner |
+| Status | `approved` |
+| Approval evidence | Pilihan eksplisit user pada sesi `/grill-me` 24 September 2026: *"Dikelola deklaratif lewat Master Data Policy: 7% cap Rp6 juta adalah aturan default ranap umum; kasus khusus (misal ODC atau kelas tertentu) diatur lewat baris aturan terpisah di tabel master tanpa ubah kode program; untuk pasien BPJS/paket klaim, admin fee tidak ditagihkan ke pasien (inklusif klaim)"* |
+| Alasan | Memberikan fleksibilitas penuh bagi manajemen rumah sakit untuk menyesuaikan tarif tanpa bergantung pada rilis kode teknis baru, serta mematuhi regulasi jaminan kesehatan nasional |
+| Konsekuensi | Service `AdministrationFeeCalculationService` mengevaluasi baris kebijakan `MstAdministrationFeePolicy` yang paling spesifik berdasarkan prioritas kecocokan dan memeriksa tipe penjaminan pasien sebelum membebankan biaya admin ke porsi pasien |
+| Trace | `04-prd-to-mvp.md` pertanyaan terbuka `BKC-OQ-103` (ditutup) |
+
+---
+
+### `BKC-DEC-122` — Tanggal Efektif Pemberlakuan Kebijakan Biaya Administrasi Baru
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Menetapkan bahwa kebijakan Biaya Administrasi Rawat Inap baru (7% cap Rp6.000.000) diberlakukan untuk semua pasien yang dipulangkan (*discharged*) pada atau setelah tanggal efektif aktivasi (`EffectiveFrom`), terlepas dari tanggal awal masuk admisi pasien.**<br>Pasien yang masuk sebelum tanggal aktivasi namun baru menyelesaikan administrasi pemulangan setelah tanggal aktivasi akan dikenakan perhitungan persentase 7% cap Rp6.000.000 pada saat perhitungan final billing |
+| Owner | Yasmina (Billing) & Finance Owner |
+| Status | `approved` |
+| Approval evidence | Pilihan eksplisit user pada sesi `/grill-me` 24 September 2026: *"Berlaku untuk semua pasien yang dipulangkan (discharge) pada atau setelah tanggal efektif aktivasi, terlepas dari tanggal awal masuknya"* |
+| Alasan | Standar operasional rumah sakit menetapkan bahwa tarif administrasi pemulangan dihitung pada saat penyelesaian tagihan akhir (*discharge calculation*), bukan pada saat admisi masuk |
+| Konsekuensi | Mesin kalkulasi membandingkan waktu evaluasi billing / discharge dengan `EffectiveFrom` pada master policy administrasi ranap |
+| Trace | Sesi wawancara aktivasi tanggal efektif 24 September 2026 |
+
+---
+
+### Acceptance Criteria Tambahan Penutupan Open Questions
+- `BKC-AC-088`: Tagihan susulan yang masuk pada invoice ranap `OPEN` yang sudah `CLEARED` memicu auto-reblock menjadi `REVOKED`. Tagihan susulan yang masuk pada invoice ranap berstatus `CLOSED` otomatis ditolak oleh adapter dengan pesan penolakan yang menyatakan tagihan telah dikunci (`BKC-DEC-120`).
+- `BKC-AC-089`: Evaluasi administrasi ranap mencocokkan baris kebijakan teraktif pada `MstAdministrationFeePolicy`; pasien BPJS mencatat nominal administrasi Rp 0 pada kewajiban pasien (*Patient Responsibility*) (`BKC-DEC-121`).
+- `BKC-AC-090`: Pasien dengan tanggal pemulangan setelah tanggal aktif kebijakan dikenakan skema 7% cap Rp6.000.000 secara otomatis saat final billing (`BKC-DEC-122`).
+
+
+
+
+## Amendment 24 September 2026 — Revisi UI Billing: Filter, Default, Asuransi, Diskon Dokter, Refund (`BUI-DEC-001`–`013`)
+
+Disahkan lewat sesi `/grill-me` 24 September 2026, dipicu permintaan langsung Product/Domain
+Owner (Yasmin) berupa 14 poin revisi tampilan pada modul Billing frontend. Prefix keputusan
+`BUI-DEC` (Billing UI) dipakai terpisah dari `BKC-DEC` supaya penelusuran tetap jelas — pola
+yang sama dengan `PC-DEC` (Petty Cash) dan `MPY-DEC` (Multi-Payer) sebelumnya.
+
+### Batas Scope Pass Ini
+
+1. **Di dalam scope:**
+   - Filter tanggal, default data, penamaan label, tata letak formulir pada layar Billing dan
+     turunannya (Perbandingan Asuransi, Edit Asuransi, Edit Status Tagihan, Diskon Dokter,
+     Ajukan Refund, Riwayat Pembayaran).
+   - Aturan tampil yang bersumber dari data yang **sudah** dikembalikan backend (status
+     coverage per item, sisa deposito, daftar item billing).
+   - Pemindahan tombol aksi (Refund/Adjustment/Write-Off) antar halaman.
+2. **Di luar scope — untuk modul lain:**
+   - Aturan coverage asuransi itu sendiri (siapa/apa yang menentukan suatu item tercover) —
+     milik Insurance/Clinical (`InsuranceCoverageService`), di sini hanya **dibaca** hasilnya.
+   - Integrasi Rawat Inap ↔ Billing (`BKC-DEC-112`–`122`, Pass B) — sedang berjalan terpisah,
+     tidak tersentuh sama sekali oleh pass ini.
+   - Alur persetujuan refund/adjustment/write-off — hanya tombolnya yang dipindah
+     (`BUI-DEC-013`), alurnya sendiri **tidak diubah** (`BUI-DEC-012`).
+   - Perubahan skema database, migration, atau endpoint baru — bila trace lanjutan menemukan
+     backend memang perlu berubah, itu dicatat sebagai dependency lintas modul, bukan
+     dikerjakan sebagai bagian pass frontend ini.
+
+---
+
+### `BUI-DEC-001` — Filter Tanggal pada Layar Billing
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Menambahkan filter Tanggal Awal dan Tanggal Akhir** pada layar Billing, mengikuti pola visual filter yang sudah berjalan di layar itu (tidak membuat komponen filter baru) |
+| Owner | Yasmin (Product/Domain Owner) |
+| Status | `approved` |
+| Approval evidence | Permintaan langsung owner, 24 September 2026, poin 1 |
+| Konsekuensi | Bentuk komponen filter (posisi, lebar, pemicu apply — otomatis atau tombol) `DEV_DISCRETION`, mengikuti pola filter existing |
+
+---
+
+### `BUI-DEC-002` — Default Data Saat Layar Billing Dibuka
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Saat layar Billing pertama dibuka (belum ada filter diterapkan pengguna), data yang tampil adalah invoice dengan tanggal hari ini dan status `OPEN`** — bukan seluruh riwayat invoice |
+| Owner | Yasmin |
+| Status | `approved` |
+| Approval evidence | Permintaan langsung owner, 24 September 2026, poin 2 |
+| Alasan | Kasir paling sering butuh melihat tagihan yang masih berjalan hari itu, bukan riwayat lengkap; mengurangi beban muat data yang tidak relevan saat layar dibuka |
+| Konsekuensi | Filter tanggal (`BUI-DEC-001`) dan filter status wajib punya nilai bawaan yang bisa diprogram, bukan hanya kosong |
+
+---
+
+### `BUI-DEC-003` — Penggantian Label "Drug" Menjadi "Obat / Medicine"
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Seluruh label tampilan bertuliskan "Drug" diganti menjadi "Obat / Medicine"** |
+| Owner | Yasmin |
+| Status | `approved` |
+| Approval evidence | Permintaan langsung owner, 24 September 2026, poin 3 |
+| Assumption | Cakupannya adalah **label/teks statis UI** (judul kolom, judul section, placeholder, tombol) — **bukan** nilai data master obat itu sendiri (nama obat seperti "Paracetamol" pada master data tetap apa adanya). Asumsi ini dipakai karena permintaan menyebut "tampilan", bukan "data". Bila keliru, MUST dikoreksi sebelum implementasi — lihat Open Question `BUI-OQ-01` |
+| Konsekuensi | Perubahan murni pada string/label komponen, nol dampak pada struktur data atau kontrak API |
+
+---
+
+### `BUI-DEC-004` — Perbandingan Asuransi Hanya Menampilkan Insurance Provider
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Pada modal/layar perbandingan asuransi, pilihan yang ditampilkan hanya "Insurance provider". Pilihan "pribadi" dan "perusahaan" disembunyikan** dari layar perbandingan ini |
+| Owner | Yasmin |
+| Status | `approved` |
+| Approval evidence | Permintaan langsung owner, 24 September 2026, poin 4 |
+| Batas | Ini **hanya** menyangkut daftar pilihan pada layar/modal **perbandingan** asuransi. Payment method "Tunai" dan "Penjamin Perusahaan" pada Edit Asuransi (`BUI-DEC-006`) **tidak tersentuh** — keduanya tetap ada sebagai payment method, hanya tidak muncul sebagai kandidat yang **dibandingkan** dengan asuransi |
+| Konsekuensi | Layar perbandingan memfilter sumber datanya ke daftar penyedia asuransi saja sebelum dirender |
+
+---
+
+### `BUI-DEC-005` — Penyaringan Asuransi yang Sedang Dipakai dari Daftar Pembanding
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Asuransi yang sedang menjadi penjamin aktif pasien tidak muncul lagi sebagai pilihan pada daftar pembanding** (contoh: pasien memakai Allianz → Allianz tidak muncul di daftar pembanding, hanya asuransi lain yang tampil) |
+| Owner | Yasmin |
+| Status | `approved` |
+| Approval evidence | Permintaan langsung owner, 24 September 2026, poin 5 |
+| Assumption | Kunci pencocokan yang dipakai adalah **identitas penyedia asuransi (provider) pada polis aktif pasien saat ini** — bukan nomor polis atau plan spesifik. Bila pasien punya lebih dari satu polis aktif dari provider berbeda, seluruh provider yang sedang aktif dikecualikan, bukan hanya salah satu |
+| Konsekuensi | Daftar pembanding difilter terhadap `providerId` (atau field setara) milik polis aktif pasien sebelum ditampilkan |
+
+---
+
+### `BUI-DEC-006` — Tata Letak Payment Method pada Edit Asuransi
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Payment method pada Edit Asuransi diubah dari susunan vertikal (Tunai / Asuransi / Penjamin Perusahaan bertumpuk) menjadi satu baris horizontal tiga tombol** |
+| Owner | Yasmin |
+| Status | `approved` |
+| Approval evidence | Permintaan langsung owner, 24 September 2026, poin 6 |
+| Konsekuensi | Murni perubahan tata letak, nol perubahan pada opsi yang tersedia (tetap tiga: Tunai, Asuransi, Penjamin Perusahaan) atau perilaku saat dipilih. Gaya tombol (ukuran, warna aktif) `DEV_DISCRETION` mengikuti pola tombol existing |
+
+---
+
+### `BUI-DEC-007` — Aturan Default Status Tagihan Mengikuti Coverage Backend
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Default status yang tersorot pada Edit Status Tagihan MUST mengikuti hasil evaluasi coverage per item dari backend, dengan aturan: default "Asuransi" hanya bila SELURUH item layanan pada tagihan berstatus tercover. Bila ada satu saja item yang tidak tercover, default jatuh ke "Pribadi".** Nilai ini **tidak boleh di-hardcode** berdasarkan jenis penjamin yang terdaftar di pendaftaran pasien |
+| Owner | Yasmin |
+| Status | `approved` |
+| Approval evidence | Pilihan eksplisit owner pada `/grill-me` 24 September 2026, opsi "Seluruh item harus tercover baru default Asuransi", dari tiga opsi yang diajukan (direkomendasikan) |
+| Alasan | Cocok dengan contoh yang diberikan owner sendiri: pasien Allianz tapi seluruh layanan tidak tercover → default MUST "Pribadi", bukan "Asuransi". Mencegah piutang salah tercatat ke penjamin padahal semestinya ditagih ke pasien |
+| Contoh | Tagihan punya 3 item: item A dan B tercover Allianz, item C tidak tercover. Default status = **Pribadi** (karena tidak seluruh item tercover), bukan Asuransi. Bila ketiganya tercover, default = **Asuransi** |
+| Konsekuensi | Frontend membaca field status coverage **per item** dari response backend (bukan flag tunggal di level invoice) dan menghitung sendiri apakah seluruhnya tercover sebelum menentukan default. Bila backend belum mengembalikan status coverage per item pada endpoint yang dipakai layar ini, itu **gap yang MUST dicatat saat trace**, bukan diselesaikan dengan menebak di frontend |
+
+---
+
+### `BUI-DEC-008` — Optimasi Tata Letak Card Billing dan Card Status Tagihan
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Card Billing dan Card Status Tagihan dirapikan: kurangi whitespace kosong, layout lebih compact, datatable dipindah naik ke atas.** Responsivitas MUST dipertahankan |
+| Owner | Yasmin |
+| Status | `approved` |
+| Approval evidence | Permintaan langsung owner, 24 September 2026, poin 8 |
+| Konsekuensi | Murni penataan ulang komponen yang sudah ada (`Pertahankan component existing`), bukan redesign. Susunan elemen persis `DEV_DISCRETION` mengikuti prinsip di atas |
+
+---
+
+### `BUI-DEC-009` — Section Catatan Penting Berbentuk Timeline
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Menambahkan section "Catatan Penting" berbentuk timeline**, menampilkan seluruh note/catatan pasien secara berurutan (contoh alur yang diberikan owner: Kiosk → Admisi → IGD → Rawat Inap) |
+| Owner | Yasmin |
+| Status | `approved` |
+| Approval evidence | Permintaan langsung owner, 24 September 2026, poin 9 |
+| Konsekuensi | Bentuk visual timeline (vertikal/horizontal, ikon per tahap) `DEV_DISCRETION`. Sumber data note per pasien MUST diverifikasi saat trace — dicatat sebagai open question bila belum ada endpoint konsolidasi lintas modul (`BUI-OQ-02`) |
+
+---
+
+### `BUI-DEC-010` — Kewajiban Upload Memo Dokter TTD pada Diskon Dokter
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Upload Memo Dokter TTD wajib diisi untuk SETIAP pengajuan diskon dokter, tanpa kecuali.** Submit form diskon dokter MUST ditolak di sisi frontend selama memo belum diunggah |
+| Owner | Yasmin |
+| Status | `approved` |
+| Approval evidence | Pilihan eksplisit owner pada `/grill-me` 24 September 2026, opsi "Wajib untuk setiap pengajuan diskon dokter, tanpa kecuali", dari tiga opsi yang diajukan (direkomendasikan) |
+| Alasan | Paling aman untuk audit — setiap potongan pendapatan dokter selalu berjejak persetujuan tertulis, tanpa perlu aturan ambang nominal atau jenis diskon yang bisa berubah-ubah dan sulit dijaga konsisten |
+| Konsekuensi | Component upload (file + preview + remove) menjadi field wajib pada form, tervalidasi sebelum tombol submit aktif. Validasi ini murni di frontend; validasi ulang di backend **di luar scope** pass ini dan MUST dicatat sebagai rekomendasi terpisah, karena validasi UI saja tidak mencegah pengajuan lewat jalur API langsung |
+
+---
+
+### `BUI-DEC-011` — Refundable Credit Dihapus dari UI, Backend Tidak Disentuh
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Field, card, dan kalkulasi refundable credit dihilangkan dari UI.** Ini murni penyembunyian tampilan — backend MUST TETAP menghitung dan menyimpan nilai refundable credit apa adanya, tidak ada perubahan pada logika atau skema backend |
+| Owner | Yasmin |
+| Status | `approved` |
+| Approval evidence | Pilihan eksplisit owner pada `/grill-me` 24 September 2026, opsi "Murni sembunyikan di UI, backend tetap jalan apa adanya", dari dua opsi yang diajukan (direkomendasikan) |
+| Alasan | Sesuai instruksi eksplisit owner "ubah hanya bagian yang diperlukan, pertahankan component existing". Menjaga scope pass ini tetap murni frontend — tidak berisiko ke modul lain yang mungkin masih membaca field refundable credit dari response yang sama |
+| Konsekuensi | Frontend berhenti merender field/card/kalkulasi ini dan berhenti memanggilnya sebagai bagian tampilan, tetapi **tidak** menghapus field dari payload yang diterima maupun mengubah request ke backend |
+
+---
+
+### `BUI-DEC-012` — Dua Sumber pada Modal Ajukan Refund, Alur Persetujuan Tidak Berubah
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Modal Ajukan Refund dirapikan dan diberi radio pilihan sumber: Billing atau Deposito.** Pilih **Billing** → tampil datatable/selectable item billing (kolom: checkbox, nama item, tanggal, nominal), mendukung multi-select per item utuh (bukan sebagian nominal per item), total refund terhitung otomatis dari item terpilih. Pilih **Deposito** → tampil sisa deposito, nominal terisi otomatis. **Pemilihan sumber ini murni menentukan item/nominal yang diajukan — alur persetujuan refund (siapa approve, berapa tahap) MUST tetap identik dengan yang sudah berjalan sekarang untuk kedua sumber** |
+| Owner | Yasmin |
+| Status | `approved` |
+| Approval evidence | Pilihan eksplisit owner pada `/grill-me` 24 September 2026, opsi "Murni menentukan item/nominal, alur persetujuan tetap identik untuk kedua sumber", dari dua opsi yang diajukan (direkomendasikan) |
+| Alasan | Risiko paling kecil — tidak mengubah kontrak backend approval yang sudah ada. Konsisten dengan sifat permintaan ini sebagai revisi UI, bukan modul baru dengan alur persetujuan baru |
+| Konsekuensi | Frontend hanya mengubah **bentuk pengumpulan data pengajuan** (item terpilih vs nominal deposito), request yang dikirim ke endpoint pengajuan refund yang sudah ada MUST tetap kompatibel dengan bentuk yang diterima backend saat ini — diverifikasi saat trace |
+
+---
+
+### `BUI-DEC-013` — Pemindahan Tombol Aksi ke Halaman Riwayat Pembayaran
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Tombol Ajukan Refund, Ajukan Adjustment, dan Ajukan Write-Off dipindahkan dari halaman detail lama ke bagian Aksi pada halaman Riwayat Pembayaran.** Ketiga tombol **tidak lagi tampil** di halaman detail yang lama |
+| Owner | Yasmin |
+| Status | `approved` |
+| Approval evidence | Permintaan langsung owner, 24 September 2026, poin 13 |
+| Batas | Ini murni pemindahan **lokasi tombol beserta pemicu aksinya** (modal/handler yang sama dipindah tempat pemanggilannya). Kewenangan siapa yang boleh melihat/menekan ketiga tombol ini **tidak berubah** dari yang berlaku sekarang |
+| Konsekuensi | Halaman detail lama kehilangan tiga tombol ini tetapi konten lain di halaman itu tidak tersentuh. Halaman Riwayat Pembayaran MUST punya section/area "Aksi" tempat ketiganya dipasang |
+
+---
+
+## Frontend Decision Authority — Amendment Ini
+
+| Decision ID | Area | Owner | Status | Allowed range | Evidence |
+|---|---|---|---|---|---|
+| `BUI-DEC-001` | Layout filter tanggal | Developer | `approved` | Mengikuti pola filter existing di layar Billing | `BUI-DEC-001` |
+| `BUI-DEC-006` | Gaya tombol payment method | Developer | `approved` | Mengikuti pola tombol existing | `BUI-DEC-006` |
+| `BUI-DEC-008` | Susunan elemen card compact | Developer | `approved` | Component existing dipertahankan, hanya ditata ulang | `BUI-DEC-008` |
+| `BUI-DEC-009` | Bentuk visual timeline | Developer | `approved` | Vertikal/horizontal, bebas dipilih | `BUI-DEC-009` |
+
+---
+
+## Decision Log — Amendment Ini
+
+| Decision ID | Type | Keputusan/pertanyaan | Owner | Status | Approved by/at | Evidence |
+|---|---|---|---|---|---|---|
+| `BUI-DEC-001` | Decision | Filter Tanggal Awal/Akhir pada layar Billing | Yasmin | `approved` | Yasmin, 24 Sept 2026 | Poin 1 |
+| `BUI-DEC-002` | Decision | Default data: invoice hari ini, status OPEN | Yasmin | `approved` | Yasmin, 24 Sept 2026 | Poin 2 |
+| `BUI-DEC-003` | Decision | Label "Drug" → "Obat / Medicine" (UI label saja) | Yasmin | `approved` | Yasmin, 24 Sept 2026 | Poin 3 |
+| `BUI-DEC-004` | Decision | Perbandingan asuransi hanya tampilkan Insurance provider | Yasmin | `approved` | Yasmin, 24 Sept 2026 | Poin 4 |
+| `BUI-DEC-005` | Decision | Asuransi aktif pasien dikecualikan dari daftar pembanding | Yasmin | `approved` | Yasmin, 24 Sept 2026 | Poin 5 |
+| `BUI-DEC-006` | Decision | Payment method Edit Asuransi jadi satu baris horizontal | Yasmin | `approved` | Yasmin, 24 Sept 2026 | Poin 6 |
+| `BUI-DEC-007` | Decision | Default status tagihan: seluruh item tercover baru default Asuransi | Yasmin | `approved` | Yasmin, 24 Sept 2026 | Poin 7 + pilihan `/grill-me` |
+| `BUI-DEC-008` | Decision | Card Billing/Status Tagihan dibuat compact | Yasmin | `approved` | Yasmin, 24 Sept 2026 | Poin 8 |
+| `BUI-DEC-009` | Decision | Section Catatan Penting berbentuk timeline | Yasmin | `approved` | Yasmin, 24 Sept 2026 | Poin 9 |
+| `BUI-DEC-010` | Decision | Memo Dokter TTD wajib untuk setiap diskon dokter | Yasmin | `approved` | Yasmin, 24 Sept 2026 | Poin 10 + pilihan `/grill-me` |
+| `BUI-DEC-011` | Decision | Refundable credit: hapus UI saja, backend tidak disentuh | Yasmin | `approved` | Yasmin, 24 Sept 2026 | Poin 11 + pilihan `/grill-me` |
+| `BUI-DEC-012` | Decision | Modal refund dua sumber, alur persetujuan tidak berubah | Yasmin | `approved` | Yasmin, 24 Sept 2026 | Poin 12 + pilihan `/grill-me` |
+| `BUI-DEC-013` | Decision | Tombol aksi dipindah ke Riwayat Pembayaran, dihapus dari halaman lama | Yasmin | `approved` | Yasmin, 24 Sept 2026 | Poin 13 |
+
+---
+
+## Acceptance Criteria — Amendment Ini
+
+- `BUI-AC-01`: Layar Billing dibuka tanpa filter apa pun diterapkan pengguna → data yang tampil adalah invoice tanggal hari ini berstatus `OPEN` (`BUI-DEC-002`).
+- `BUI-AC-02`: Filter Tanggal Awal/Tanggal Akhir diterapkan → hanya invoice pada rentang itu yang tampil, menggantikan default hari ini (`BUI-DEC-001`).
+- `BUI-AC-03`: Seluruh teks berlabel "Drug" pada layar Billing dan turunannya terbaca "Obat / Medicine"; nilai data master obat (nama obat) tidak berubah (`BUI-DEC-003`).
+- `BUI-AC-04`: Modal perbandingan asuransi menampilkan daftar penyedia asuransi saja — tidak ada pilihan "pribadi" atau "perusahaan" pada daftar itu (`BUI-DEC-004`).
+- `BUI-AC-05`: Pasien dengan polis aktif Allianz membuka daftar pembanding → Allianz tidak muncul di daftar; provider lain tetap muncul (`BUI-DEC-005`).
+- `BUI-AC-06`: Edit Asuransi menampilkan tiga tombol payment method sejajar dalam satu baris, bukan bertumpuk (`BUI-DEC-006`).
+- `BUI-AC-07`: Pasien Allianz dengan seluruh item layanan berstatus tidak tercover membuka Edit Status Tagihan → status default yang tersorot adalah "Pribadi" (`BUI-DEC-007`).
+- `BUI-AC-08`: Pasien dengan seluruh item layanan berstatus tercover membuka Edit Status Tagihan → status default yang tersorot adalah "Asuransi" (`BUI-DEC-007`).
+- `BUI-AC-09`: Card Billing dan Card Status Tagihan tetap responsive pada breakpoint mobile/tablet/desktop setelah dirapikan (`BUI-DEC-008`).
+- `BUI-AC-10`: Section Catatan Penting menampilkan seluruh note pasien tersusun sebagai timeline berurutan waktu (`BUI-DEC-009`).
+- `BUI-AC-11`: Form diskon dokter tanpa memo terunggah → tombol submit tertahan/tertolak dengan pesan yang menyebut memo wajib (`BUI-DEC-010`).
+- `BUI-AC-12`: Form diskon dokter dengan memo terunggah, lalu memo dihapus (remove) sebelum submit → submit kembali tertahan (`BUI-DEC-010`).
+- `BUI-AC-13`: Tidak ada field, card, atau angka refundable credit yang tampil di layar mana pun pada modul ini (`BUI-DEC-011`).
+- `BUI-AC-14`: Modal Ajukan Refund dengan sumber "Billing" dipilih, dua item dicentang → total refund yang tampil adalah penjumlahan nominal kedua item, otomatis dan tanpa input manual (`BUI-DEC-012`).
+- `BUI-AC-15`: Modal Ajukan Refund dengan sumber "Deposito" dipilih → nominal terisi otomatis sebesar sisa deposito, field nominal tidak dapat diketik manual melebihi sisa itu (`BUI-DEC-012`).
+- `BUI-AC-16`: Halaman detail lama tidak lagi menampilkan tombol Ajukan Refund/Adjustment/Write-Off (`BUI-DEC-013`).
+- `BUI-AC-17`: Halaman Riwayat Pembayaran menampilkan ketiga tombol itu pada area Aksi dan memicu modal/alur yang sama seperti sebelum dipindah (`BUI-DEC-013`).
+
+---
+
+## Open Questions — Amendment Ini
+
+| ID | Pertanyaan | Pemilik jawaban | Status |
+|---|---|---|---|
+| `BUI-OQ-01` | Apakah benar cakupan poin 3 (rename "Drug") hanya label UI, atau termasuk nilai data master obat yang ditampilkan? | Yasmin | Diasumsikan **label saja** (`BUI-DEC-003`), MUST dikonfirmasi sebelum implementasi bila asumsi ini keliru |
+| `BUI-OQ-02` | Apakah sudah ada endpoint yang mengonsolidasikan seluruh note pasien lintas tahap (Kiosk/Admisi/IGD/Rawat Inap) untuk mengisi Catatan Penting, atau perlu agregasi baru? | Backend/API Owner | Terbuka — dijawab saat `/trace-existing-capabilities` |
+| `BUI-OQ-03` | Apakah endpoint yang dipakai Edit Status Tagihan saat ini sudah mengembalikan status coverage **per item**, atau baru flag tunggal per invoice? | Backend/API Owner | Terbuka — menentukan apakah `BUI-DEC-007` murni frontend atau perlu perluasan response backend |
+| `BUI-OQ-04` | Apakah daftar "Insurance provider" pada perbandingan (`BUI-DEC-004`) menampilkan seluruh provider di master data, atau hanya yang punya kontrak/tarif aktif dengan rumah sakit? | Yasmin / Insurance Owner | Terbuka — tidak memblokir desain UI, tapi memengaruhi sumber data yang dipanggil |
+| `BUI-OQ-05` | Apakah endpoint pengajuan refund yang sudah ada saat ini menerima bentuk payload "daftar item terpilih" dan "nominal dari deposito", atau perlu penyesuaian bentuk request? | Backend/API Owner | Terbuka — dijawab saat `/trace-existing-capabilities`; bila perlu penyesuaian, itu dependency lintas modul, bukan scope frontend murni |
+
+Tidak satu pun open question di atas memblokir `/trace-existing-capabilities` untuk dimulai —
+seluruhnya dijawab bukti source code, bukan keputusan bisnis yang masih menunggu manusia.
+
+## Amendment lanjutan 24 September 2026 — Penutupan `BUI-CQ-02`, `BUI-CQ-03`, `BUI-CQ-04`
+
+Dipicu temuan `/trace-existing-capabilities` (`01-existing-capability-map.md` bagian 23.4):
+backend yang sudah berjalan memakai aturan default status berbeda dari `BUI-DEC-007`, dan
+field `PaymentMethodRow` yang cocok untuk `BUI-DEC-006` ternyata belum pernah dipakai frontend.
+Ketiga closure question ditutup di sesi yang sama, sebelum `/design-business-module` dimulai.
+
+---
+
+### `BUI-DEC-014` — Penegasan Aturan "Seluruh Item Tercover" dan Otorisasi Perbaikan Backend
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Menutup `BUI-CQ-02` dan `BUI-CQ-03`.** Aturan `BUI-DEC-007` ("default Asuransi hanya jika SELURUH item layanan tercover") DIPERTAHANKAN apa adanya, termasuk untuk kasus coverage SEBAGIAN — bukan hanya kasus nol/seluruh tercover. **Perbaikan logika backend pada `BillingPayerEditService.cs:145` DIOTORISASI sebagai bagian pass revisi UI ini**: kondisi `anyItemCoveredByInsurance` (default Asuransi bila SATU item tercover) MUST diganti logika "SELURUH item aktif tercover" sebelum `suggestedBillingStatus` bernilai `"INSURANCE"`. Otorisasi ini **terbatas pada perubahan kondisi/logika di baris itu** — TIDAK mencakup perubahan skema database, DTO, endpoint, atau migration |
+| Owner | Yasmin |
+| Status | `approved` |
+| Approval evidence | Pilihan eksplisit owner pada closure pass 24 September 2026: "Tetap SELURUH item harus tercover baru default Asuransi" (menutup `BUI-CQ-02`), diikuti "Otorisasi sekarang — perbaikan logika saja, bagian dari pass ini" (menutup `BUI-CQ-03`) |
+| Alasan | Konsisten dengan tujuan awal `BUI-DEC-007`: mencegah piutang salah tercatat ke penjamin pada kasus coverage sebagian — justru kasus yang paling sering terjadi pada asuransi swasta, bukan kasus tepi yang jarang muncul |
+| Konsekuensi | `BE-BUI-*` (task backend, menyusul dari `/plan-module-delivery`) MUST mencakup perbaikan baris ini sebagai prasyarat sebelum `BUI-DEC-006`/`BUI-DEC-007` dianggap selesai di frontend — keduanya bergantung pada nilai `suggestedBillingStatus`/`effectivePaymentType` yang benar. Ini SATU-SATUNYA titik pass ini yang menyentuh backend; seluruh 12 keputusan lain murni frontend |
+| Trace | `01-existing-capability-map.md` bagian 23.2 `CAP-BUI-07`, bagian 23.4 |
+
+---
+
+### `BUI-DEC-015` — Sumber Data Tombol Payment Method: `PaymentMethodRow`
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Menutup `BUI-CQ-04`.** Tiga tombol payment method horizontal (`BUI-DEC-006`) MUST dirender dari field `PaymentMethodRow` pada response `GET /{id}/edit-context` (sudah berisi `Code`, `Label` Indonesia, `IsSelected`, `IsEnabled`) — **bukan** dari `BasePayerCategorySelector`/`panel.categories` yang saat ini dipakai `edit-asuransi-panel.jsx` untuk keperluan lain (pemilihan kandidat pembanding) |
+| Owner | Yasmin |
+| Status | `approved` |
+| Approval evidence | Pilihan eksplisit owner pada closure pass 24 September 2026: "Pakai PaymentMethodRow dari server" |
+| Alasan | Konsisten dengan prinsip yang owner tegaskan sendiri di poin 7 ("Jangan hardcode. Gunakan response backend."). Menghindari dua logika kategori payer yang berjalan sejajar (satu di server via `PaymentMethodRow`, satu lagi tersirat di hook client `useEditAsuransiPanel`) yang berisiko drift |
+| Batas | `BasePayerCategorySelector` **tetap dipakai apa adanya** untuk keperluan aslinya (memilih KANDIDAT saat mengganti penjamin/perbandingan, `BUI-DEC-004`/`005`) — keputusan ini HANYA mengatur sumber data untuk blok "Payment Method" tiga tombol pada `BUI-DEC-006`, dua kebutuhan UI yang berbeda secara fungsi walau sama-sama ada di layar Edit Asuransi |
+| Konsekuensi | `IsSelected` pada `PaymentMethodRow` otomatis benar begitu `BUI-DEC-014` (perbaikan backend) selesai — frontend tidak perlu menghitung ulang status terpilih sendiri |
+| Trace | `01-existing-capability-map.md` bagian 23.2 `CAP-BUI-06b` |
+
+---
+
+### Status Penutupan
+
+| ID | Status sebelumnya | Status sekarang |
+|---|---|---|
+| `BUI-CQ-02` | Terbuka | **Tertutup** — `BUI-DEC-014` |
+| `BUI-CQ-03` | Terbuka | **Tertutup** — `BUI-DEC-014` |
+| `BUI-CQ-04` | Terbuka | **Tertutup** — `BUI-DEC-015` |
+| `BUI-CQ-05` (Catatan Penting, cakupan) | Terbuka | **Tetap terbuka** — tidak memblokir desain (`BUI-DEC-009` boleh didesain dengan scope dipersempit) |
+| `BUI-CQ-06` (mekanisme upload memo) | Terbuka | **Tetap terbuka** — tidak memblokir desain (`BUI-DEC-010` boleh didesain dengan kontrak upload ditandai `TBD`) |
+
+**Tidak ada lagi closure question yang memblokir `/design-business-module`.** Seluruh
+`BUI-DEC-001`–`015` `approved`. Satu titik sentuh backend (`BUI-DEC-014`) dicatat eksplisit
+supaya tidak lolos diam-diam sebagai "revisi frontend murni".

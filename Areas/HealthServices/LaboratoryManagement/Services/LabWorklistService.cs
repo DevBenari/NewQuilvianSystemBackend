@@ -76,6 +76,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     UrgencyMarkedAt = x.UrgencyMarkedAt,
                     IsDuplo = x.IsDuplo,
                     ExaminationStatus = x.ExaminationStatus.ToString(),
+                    // r22. Waktu, bukan status — lihat DTO.
+                    ExaminedAt = x.ExaminedAt,
+                    ResultEnteredAt = x.ResultEnteredAt,
                     SpecimenStatus = x.Specimen != null ? x.Specimen.SpecimenStatus.ToString() : string.Empty,
                     RequestedAt = x.LabOrder != null ? x.LabOrder.RequestedAt : null,
                     ChargeEligibleAt = x.ChargeEligibleAt

@@ -3,21 +3,145 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `laboratorium` |
-| Revision | `3` |
-| Status | `draft` — **sebagian besar peta revision 1-2 `STALE`**, lihat Impact Scan Revision 3 |
-| Jenis audit | Revision 1: audit penuh. Revision 2: *impact scan* terbatas. Revision 3: *impact scan* terbatas atas kemampuan yang terdampak `LAB-DEC-037`..`LAB-DEC-045` |
+| Revision | `4` |
+| Status | `draft` — **peta revision 1-2 `STALE`; sebagian revision 3 juga `STALE`**, lihat Impact Scan Revision 4 |
+| Jenis audit | Revision 1: audit penuh. Revision 2: *impact scan* terbatas. Revision 3: *impact scan* terbatas atas kemampuan yang terdampak `LAB-DEC-037`..`LAB-DEC-045`. **Revision 4: *impact scan* terbatas atas permukaan yang disentuh `LAB-DEC-095`..`LAB-DEC-110`** |
 | Sifat audit | **Read-only.** Tidak ada satu baris source aplikasi yang diubah |
 | Product/domain owner | Yoga Aji Pratama (`yogaaji452@gmail.com`) |
-| Backend SHA | `466a7127` (branch `yoga`) — `HEAD` pada 2026-09-14. Revision 1-2 diaudit pada `c87d9c0`; **298 commit** di antaranya |
+| Backend SHA | Diaudit pada `466a7127` (branch `yoga`). Revision 1-2 diaudit pada `c87d9c0`; **298 commit** di antaranya. **`HEAD` bergeser ke `9067fa73` saat sesi 2026-09-14 berjalan** — `git diff 466a7127..9067fa73` atas `Areas/HealthServices/LaboratoryManagement`, `MstReferralInstitution.cs`, `ReferralInstitutionController.cs`, `EncounterPaymentType.cs`, dan `RegPatientEncounterGuarantor.cs` **kosong**, sehingga seluruh temuan di bawah tetap sahih |
 | Frontend SHA | `9cd4cd03f` — `HEAD` pada 2026-09-14. Revision 1-2 diaudit pada `688daff90`; **155 commit** di antaranya |
 | Masukan | Revision 1-2: `00-interview-decisions.md` revision 7. **Revision 3: revision 23**, keputusan `LAB-DEC-037` sampai `LAB-DEC-045` |
-| Tanggal audit | Revision 1: 2026-09-01. Revision 2: 2026-09-02. Revision 3: 2026-09-14 |
+| Tanggal audit | Revision 1: 2026-09-01. Revision 2: 2026-09-02. Revision 3: 2026-09-14. **Revision 4: 2026-09-21** |
+| Backend SHA revision 4 | `981e002c` (branch `yoga`). **149 commit** sejak `466a7127` |
+| Frontend SHA revision 4 | `ebef7ebe5`. **111 commit** sejak `9cd4cd03f` |
+| Masukan revision 4 | `00-interview-decisions.md` **revision 49**, keputusan `LAB-DEC-095` sampai `LAB-DEC-110` (amendment pass putaran 9, halaman Hasil Mikrobiologi) |
 
 > **Cara membaca dokumen ini.**
 > Dokumen ini menjawab pertanyaan "apa yang sudah ada di sistem", bukan "aturan bisnisnya
 > bagaimana". Setiap baris membawa bukti berupa lokasi berkas dan nama simbol pada commit
 > tertentu, supaya siapa pun bisa memeriksa ulang. Dokumen ini **tidak** merancang arsitektur
 > dan **tidak** memberi izin menulis kode.
+
+---
+
+## Impact Scan Revision 4 — 2026-09-21
+
+**Pemicu.** Amendment pass putaran 9 mengambil enam belas keputusan (`LAB-DEC-095`..`LAB-DEC-110`)
+di atas peta yang dikunci pada BE `466a7127` + FE `9cd4cd03f`. Wawancara itu sendiri sudah
+menandai peta berpotensi basi dan meminta scan ini dijalankan sebelum butir mana pun turun
+menjadi task.
+
+**Besar pergeserannya.** Backend **149 commit**, frontend **111 commit**. Area
+`Areas/HealthServices/LaboratoryManagement` sendiri bertambah **+9.800 baris pada 55 berkas**
+(`git diff --stat 466a7127..981e002c`).
+
+> ### Kesimpulan pendek
+>
+> **Satu fakta dasar peta revision 1-3 sekarang SALAH TOTAL.** `F5` menyatakan *"frontend belum
+> punya modul Laboratorium sama sekali"*. Hari ini frontend punya **17 route** dan **159 berkas**
+> Laboratorium, termasuk route `lab-monitoring/microbiology`.
+>
+> **Satu keputusan putaran 9 berdiri di atas fakta yang salah dan harus dibuka ulang:**
+> `LAB-DEC-108` memilih `MstDoctorSchedule` sebagai sumber "dokter yang sedang bertugas".
+> Tabel itu **jadwal praktik poliklinik**, bukan daftar dokter jaga. Dibuka sebagai
+> `LAB-CONFLICT-010`.
+>
+> **Satu keputusan justru lebih mudah dari dugaan:** `LAB-DEC-100` membutuhkan satuan baru pada
+> `MstMeasurement`, dan tabel itu **punya endpoint tulis lengkap** — tidak mengulang jalan buntu
+> `LAB-COORD-006` maupun `MST-POS-WRITE`.
+>
+> **Empat belas keputusan sisanya terbukti berdiri di atas fakta yang masih benar.**
+
+### Bagian A — Fakta peta lama yang kini basi
+
+| Fakta lama | Keadaan pada `981e002c` / `ebef7ebe5` | Status |
+|---|---|---|
+| `F5` — frontend nol modul Laboratorium | **17 route** di bawah `src/app/health-services/laboratory-management/`, **159 berkas** `src/**/*lab*`. Route `lab-monitoring/microbiology/page.jsx` memakai `components/view/health-services/laboratory-management/lab-monitoring/lab-monitoring-view` | ❌ **STALE — salah total** |
+| Revision 3 butir 2 — `LabSpecimen` hanya punya `SpecimenDescription` teks bebas | `Models/LabSpecimen.cs:65` `SpecimenTypeId`, `:74` `SpecimenTypeOtherNote`, `:85` `VolumeAmount`, `:96` `VolumeUnitId`, `:137` `PhysicallyReceivedAt` — seluruhnya sudah dibangun | ❌ **STALE — sudah dikerjakan** |
+| `LabOrder` nol kolom nomor order (`LAB-DEC-072`) | `Models/LabOrder.cs:38` `OrderNumber`, dialokasikan `Services/LabOrderNumberService.cs` | ❌ **STALE — sudah dikerjakan** |
+| Data induk jenis specimen belum ada (`LAB-DEC-040`) | `Models/LabSpecimenType.cs` berdiri; `Seeders/LabSpecimenTypeSeeder.cs:37-43` mengisi **tepat tujuh nilai** — `BLOOD`, `URINE`, `BODYFLUID`, `SPUTUM`, `PUS`, `TISSUE`, dan `OTHER` bertanda `IsOtherBucket` | ❌ **STALE — sudah dikerjakan persis sesuai keputusan** |
+
+### Bagian B — Verifikasi enam belas keputusan putaran 9
+
+| Keputusan | Yang diandaikan | Keadaan pada `HEAD` | Klasifikasi |
+|---|---|---|---|
+| `LAB-DEC-095` hasil per pemeriksaan | `LabExamination` menjadi tempat hasil Mikrobiologi | `Models/LabExamination.cs:128-186` punya `ResultNumeric`, `ResultOptionId`, `ResultValueBoundId`, `ResultUnitSnapshot`, `ExaminedAt`, `ResultEnteredAt`, `ResultEnteredByUserId`. Tempatnya ada; **bentuk hasil Mikrobiologi belum** | `Extend` |
+| `LAB-DEC-096` Waktu Efektif dari `CollectedAt` | Kolomnya sudah ada | `Models/LabSpecimen.cs:102` `CollectedAt` | `Ready to reuse` |
+| `LAB-DEC-096` Waktu Issued dari `FinalizedAt` | Kolomnya sudah ada pada pembawa hasil Mikrobiologi | `FinalizedAt` **hanya ada pada `Models/LabPathologyReport.cs:79`** — itu per **order** milik Patologi Anatomi. `LabExamination` **nol** `FinalizedAt` | `Missing` |
+| `LAB-DEC-097` Final ≠ rilis | `FinalizedAt`, `FinalizedByUserId`, dan jejak `Reopen` pada pembawa hasil Mikrobiologi | Polanya sudah terbukti di `LabPathologyReport.cs:79,85,96` (`ReopenCount`), tetapi **nol pada `LabExamination`** | `Missing` — pola `Ready to reuse`, kolomnya belum ada |
+| `LAB-DEC-097` rilis tetap `S4d` | `ValidatedAt`/`ReleasedAt` belum dibangun | **Nol kemunculan** `ValidatedAt`, `ReleasedAt`, maupun `ValidatedByUserId` di seluruh `LaboratoryManagement` | `Missing` — sesuai dugaan `LAB-DEC-080` |
+| `LAB-DEC-098` tingkat kedua specimen | `LabSpecimenType` satu tingkat dan `LabSpecimen` menunjuk satu jenis | `Models/LabSpecimenType.cs` nol kolom induk; `Models/LabSpecimen.cs:65` `SpecimenTypeId` **tunggal**, bukan koleksi | `Extend` — induknya siap, anak dan relasi banyak belum ada |
+| `LAB-DEC-099` isi awal disaring | Dataset 1.767 entri tersedia untuk diperiksa | **Nol kemunculan** dataset itu di repository maupun blueprint | `Unknown` — bertaut `LAB-OPEN-040` |
+| `LAB-DEC-100` satuan volume baru | `VolumeUnitId` menunjuk data induk yang dapat ditambah | `Models/LabSpecimen.cs:183` menunjuk `MstMeasurement`; `MasterData/Models/MstMeasurement.cs:40` punya penanda `IsForLaboratory`; `MasterData/Controllers/MeasurementController.cs:301,384,492` menyediakan **POST, PUT, dan DELETE** | `Ready to reuse` — **tidak mengulang `LAB-COORD-006`/`MST-POS-WRITE`** |
+| `LAB-DEC-101` baris kepekaan | Tabel isolat dan antibiogram | **Nol kemunculan** `Isolate`, `Antibiogram`, maupun `Susceptibility` di seluruh `LaboratoryManagement` | `Missing` — inilah pekerjaan inti `S4b` |
+| `LAB-DEC-101` antibiotik terkendali | `LabAntibiotic` berdiri | `Models/LabAntibiotic.cs`, migration `20260918085707_AddLabMicrobiologyMasterData`, layanan `Services/LabMicrobiologyMasterDataService.cs` (529 baris), controller `Controllers/LabAntibioticController.cs` | `Ready to reuse` |
+| `LAB-DEC-102` nol subbakteri | `LabOrganism` cukup menampung spesies sebagai baris | `Models/LabOrganism.cs` punya `OrganismCode`, `OrganismName`, `IsActive` — nol kolom induk, dan memang tidak dibutuhkan | `Ready to reuse` |
+| `LAB-DEC-103` data induk aturan kritis | Tabel aturan kritis Mikrobiologi | **Nol tabel.** `Models/LabValueBound.cs` yang ada bersumbu **angka** — batas bawah/atas — dan tidak dapat menampung kombinasi organisme + antibiotik + interpretasi | `Missing` |
+| `LAB-DEC-104` kewajiban bergantung isi | Lapis validasi tersedia | `Services/LabExaminationService.cs` (320 baris) berdiri sebagai tempatnya; aturan bersyarat Mikrobiologi belum ada | `Extend` |
+| `LAB-DEC-105` Analis diturunkan | `ResultEnteredByUserId` dicatat sistem | `Models/LabExamination.cs:186` | `Ready to reuse` |
+| `LAB-DEC-106` `Definitif` sebagai fakta | Kolom siapa/kepada siapa/kapan | **Nol kolom.** `LabExamination` tidak punya satu pun ruas konsultasi | `Missing` |
+| `LAB-DEC-107` specimen dapat disunting | Endpoint koreksi ruas specimen | `Controllers/LabSpecimenController.cs` hanya punya `POST by-order` dan **delapan aksi siklus hidup** — `collect`, `receive`, `accept`, `reject`, `request-recollection`, `hold`, `resume`, `cancel`. **Nol `PUT`, nol `PATCH`** | `Missing` |
+| `LAB-DEC-107` perubahan berjejak | Jejak nilai lama tersedia | `Models/LabTransitionHistory.cs:40-59` mencatat `Action`, `FromStatus`, `ToStatus`, `ActorUserId`, `OccurredAt` — ia jejak **status**, bukan jejak **nilai ruas**. Nilai lama sebuah kolom tidak punya tempat | `Reuse with adapter` |
+| `LAB-DEC-108` sumber dokter bertugas | `MstDoctorSchedule` memuat dokter yang sedang bertugas | **Lihat `LAB-CONFLICT-010` di bawah** | `Conflict` |
+| `LAB-DEC-109` nol ruas HL7 | `HL7` nol di backend | `grep -ril "hl7"` atas seluruh `*.cs` dan `*.csproj` → **nol berkas**. Diverifikasi ulang pada `981e002c` | `Ready to reuse` — keputusan cocok dengan keadaan |
+| `LAB-DEC-110` template cetak | Pembangkit berkas cetak | Nol pustaka PDF pada `.csproj`; tetap `LAB-COORD-011` | `Missing` |
+
+### Bagian C — Pertentangan yang ditemukan scan ini
+
+#### `LAB-CONFLICT-010` — `MstDoctorSchedule` bukan daftar dokter jaga
+
+**`LAB-DEC-108` memilih tabel yang menjawab pertanyaan berbeda.**
+
+Bukti: `Areas/HealthServices/MasterData/Models/MstDoctorSchedule.cs@981e002c`.
+
+| Ruas | Nilainya | Artinya |
+|---|---|---|
+| `ClinicId` (baris 31) | **Wajib** | Setiap baris terikat pada satu poliklinik |
+| `PracticeDay`, `StartTime`, `EndTime` | Hari dan jam praktik | Jadwal buka praktik, bukan penugasan jaga |
+| `MaxPatientQuota`, `MaxAppointmentQuota`, `MaxWalkInQuota` | Kuota pasien | Ini alat pengaturan antrean poliklinik |
+| `IsAllowKioskRegistration`, `IsTelemedicineAvailable` | Penanda pendaftaran | Seluruhnya urusan rawat jalan |
+| `ScheduleType` | `WeeklyRecurring`, `SpecificDate`, `Temporary` | Nol nilai yang berarti "sedang jaga" |
+
+**Kenapa ini penting dan bukan sekadar kerapian.**
+
+> Hasil kritis paling sering muncul pukul dua pagi. Yang dicari petugas saat itu adalah dokter
+> yang **sedang berjaga di bangsal**, bukan dokter yang **membuka praktik di Poli Penyakit
+> Dalam setiap Selasa pukul 09.00**. `MstDoctorSchedule` hanya dapat menjawab pertanyaan
+> kedua. Memakainya untuk pertanyaan pertama menghasilkan daftar nama yang **tidak ada di
+> rumah sakit** pada jam hasil kritis itu keluar.
+
+**Kandidat pengganti yang ditemukan scan ini — dan kenapa belum tentu cocok:**
+
+| Kandidat | Bukti | Kelebihan | Hambatannya |
+|---|---|---|---|
+| `TrxOnCallAssignment` | `Areas/Corporate/HumanResource/SchedulingManagement/Models/TrxOnCallAssignment.cs` — `StartAt`, `EndAt`, `OnCallRole` (`Primary`), `AssignmentStatus`, `ExpectedResponseMinutes`, `ActivatedAt` | Ini **benar-benar** penugasan jaga bertenggat waktu | Menunjuk `WorkforceProfileId`, **bukan** `DoctorId`. Perlu jembatan dari profil ketenagakerjaan ke identitas dokter, dan tabelnya **milik Human Resource**, bukan Laboratorium |
+| `TrxRosterAssignment` | Berkas sekerabat — `ProfessionId`, `SpecializationId`, `ShiftGroupId` | Dapat disaring per profesi/spesialisasi | Bersumbu **perencanaan** roster, bukan "siapa yang sedang jaga menit ini" |
+
+**Kesimpulan scan.** `LAB-DEC-108` **tidak dicabut** oleh dokumen ini — mencabut keputusan bukan
+wewenang audit. Yang dinyatakan: **fakta pendukungnya tidak berlaku**, dan keputusan itu perlu
+dibuka ulang oleh pemilik modul. Bagian pertamanya — DPJP diambil dari pesanan — **tetap
+sahih** dan tidak terdampak.
+
+### Bagian D — Closure question untuk `/grill-me`
+
+Ketiganya **tidak dijawab** oleh audit ini.
+
+| ID | Pertanyaan | Pemilik | Memblokir |
+|---|---|---|---|
+| `LAB-CLOSE-010` | **Dari mana daftar "dokter yang sedang bertugas" diambil, sesudah `MstDoctorSchedule` terbukti jadwal praktik poliklinik?** Pilihan yang terlihat dari source: menumpang `TrxOnCallAssignment` milik Human Resource beserta jembatan profil-ke-dokter, atau kembali ke DPJP saja, atau mendirikan penugasan jaga milik Laboratorium sendiri | Yoga Aji Pratama, bersama pemilik `human-resource` bila kandidat pertama dipilih | Kolom Dokter Konfirmator. Membuka ulang `LAB-DEC-108` |
+| `LAB-CLOSE-011` | **Jejak perubahan ruas specimen disimpan di mana?** `LabTransitionHistory` mencatat perpindahan **status**, sedangkan `LAB-DEC-107` menuntut nilai lama sebuah **ruas** tetap terbaca. Apakah jejak ruas ditumpangkan ke tabel itu dengan penyesuaian, atau berdiri sendiri | Yoga Aji Pratama | `LAB-DEC-107`. Tidak memblokir penyuntingannya, memblokir bentuk jejaknya |
+| `LAB-CLOSE-012` | **Status temuan Mikrobiologi memakai daftar nilai yang mana?** `LabPathologyFindingStatus` yang sudah berdiri berisi `Normal`/`NeedsAttention`/`Critical`, sedangkan BR-56 menetapkan `Normal`/`Positif`/`Negatif` untuk tingkat isolat Mikrobiologi. Dipakai ulang dengan penyesuaian, atau daftar tersendiri | Yoga Aji Pratama + `DR-LAB-002` | Bentuk isolat pada `S4b` |
+
+### Bagian E — Catatan pembukuan
+
+- `LabResultForm` pada `Enums/LaboratoryEnums.cs:222` hanya mengenal **dua** bentuk, `Numeric`
+  dan `Choice`, sedangkan BR-23 menetapkan **empat**. Patologi Anatomi menyelesaikannya dengan
+  **tabel tersendiri** (`LabPathologyReport`), bukan dengan menambah nilai enum. Mikrobiologi
+  kemungkinan mengikuti pola yang sama; itu keputusan arsitektur, bukan temuan audit.
+- `LabDiscipline` pada baris 15 sudah memuat `Microbiology = 3`, sehingga penyaringan per
+  disiplin **sudah berdiri** dan tidak perlu dibangun ulang.
+- Peta ini **tidak** mengaudit ulang bagian di luar permukaan putaran 9. Bagian revision 1-3
+  yang tidak disebut di sini **tetap berpotensi basi** mengingat besar pergeserannya.
 
 ---
 

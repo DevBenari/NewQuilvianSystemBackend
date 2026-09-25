@@ -43,6 +43,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public string? ClinicName { get; set; }
 
         public DateTime NoteDateTime { get; set; }
+
+        /// <summary>
+        /// Jenis catatan - <c>BE-RWI-094</c>, <c>FR-DOK-085</c>. Entri lama bernilai
+        /// <c>Unspecified</c> apa adanya, tanpa pengisian tebakan.
+        /// </summary>
+        public CpptNoteKind NoteKind { get; set; }
+
+        /// <summary>Label jenis catatan yang siap ditampilkan, ditentukan server.</summary>
+        public string NoteKindName { get; set; } = string.Empty;
+
         public string ProfessionType { get; set; } = string.Empty;
         public string? ProfessionName { get; set; }
 
@@ -119,6 +129,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public Guid Id { get; set; }
         public string ProgressNoteNumber { get; set; } = string.Empty;
         public DateTime NoteDateTime { get; set; }
+
+        /// <summary>Jenis catatan - <c>BE-RWI-094</c>, dipakai penyaring lini masa.</summary>
+        public CpptNoteKind NoteKind { get; set; }
+
+        public string NoteKindName { get; set; } = string.Empty;
+
         public string ProfessionType { get; set; } = string.Empty;
         public string ProfessionName { get; set; } = string.Empty;
         public string ProfessionTone { get; set; } = "neutral";
@@ -250,13 +266,44 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
 
         public DateTime? NoteDateTime { get; set; }
 
+        /// <summary>
+        /// Jenis catatan yang disimpan - <c>BE-RWI-094</c>, <c>FR-DOK-085</c>,
+        /// <c>VAL-DOK-59</c>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Diperiksa terhadap profesi penulis: perawat tidak dapat menyimpan catatan berjenis
+        /// dokter. Pasangan yang tidak sah ditolak <c>400</c> beserta daftar jenis yang sah bagi
+        /// profesinya, bukan sekadar "nilai tidak valid".
+        /// </para>
+        /// <para>
+        /// Kosong berarti server memilih jenis bawaan yang paling sesuai dengan profesi penulis.
+        /// Profesi penulis diturunkan dari tautan akun ke data dokter/pegawai; nilai
+        /// <c>ProfessionType</c> dari request dipertahankan hanya untuk kompatibilitas klien dan
+        /// tidak menjadi sumber kewenangan.
+        /// </para>
+        /// </remarks>
+        public CpptNoteKind? NoteKind { get; set; }
+
+        /// <summary>
+        /// Dipertahankan untuk kompatibilitas klien. Backend menyimpan profesi dari tautan akun
+        /// terautentikasi dan mengabaikan nilai ini sebagai sumber kewenangan.
+        /// </summary>
         [Required]
         [MaxLength(50)]
         public string ProfessionType { get; set; } = "Doctor";
 
+        /// <summary>
+        /// Dipertahankan untuk kompatibilitas klien; label profesi tersimpan berasal dari master
+        /// profesi akun terautentikasi.
+        /// </summary>
         [MaxLength(100)]
         public string? ProfessionName { get; set; }
 
+        /// <summary>
+        /// Dipertahankan untuk kompatibilitas klien dan diabaikan. Penulis selalu pengguna yang
+        /// sedang terautentikasi.
+        /// </summary>
         public Guid? ProviderUserId { get; set; }
 
         [MaxLength(150)]
@@ -297,10 +344,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
     {
         public DateTime? NoteDateTime { get; set; }
 
+        /// <summary>
+        /// Jenis catatan - <c>BE-RWI-094</c>, <c>VAL-DOK-59</c>. Diperiksa terhadap profesi
+        /// penulis dengan aturan yang sama seperti pada pembuatan. Kosong berarti jenis yang
+        /// sudah tersimpan dipertahankan apa adanya — termasuk <c>Unspecified</c> pada entri
+        /// lama, yang sengaja tidak diisi tebakan.
+        /// </summary>
+        public CpptNoteKind? NoteKind { get; set; }
+
+        /// <summary>
+        /// Dipertahankan untuk kompatibilitas klien. Profesi aktual dibaca ulang dari akun
+        /// penulis dan nilai ini tidak dapat memindahkan profesi sebuah catatan.
+        /// </summary>
         [Required]
         [MaxLength(50)]
         public string ProfessionType { get; set; } = "Doctor";
 
+        /// <summary>
+        /// Dipertahankan untuk kompatibilitas klien; label yang disimpan berasal dari master
+        /// profesi akun.
+        /// </summary>
         [MaxLength(100)]
         public string? ProfessionName { get; set; }
 
@@ -371,6 +434,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public Guid? QueueId { get; set; }
         public Guid? ConsultationId { get; set; }
         public DateTime NoteDateTime { get; set; }
+        public CpptNoteKind NoteKind { get; set; }
+        public string NoteKindName { get; set; } = string.Empty;
         public string ProfessionType { get; set; } = string.Empty;
         public string? ProfessionName { get; set; }
         public string? SourceModule { get; set; }

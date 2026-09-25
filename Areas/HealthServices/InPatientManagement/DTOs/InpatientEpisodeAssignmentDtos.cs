@@ -25,6 +25,94 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
         public string HandoverReason { get; set; } = string.Empty;
     }
 
+    /// <summary>
+    /// Bentuk permintaan kepala ruangan atau supervisor melibatkan dokter pendukung: konsulen,
+    /// dokter jaga, atau penugasan singkat penulisan catatan terlambat. <c>BE-RWI-080</c>.
+    /// </summary>
+    /// <remarks>
+    /// <b>Bukan jalur pengalihan DPJP.</b> Penugasan yang dibuat lewat bentuk ini tidak pernah
+    /// berperan DPJP dan tidak pernah menggeser DPJP yang sedang berlaku — <c>INV-INP-12</c>.
+    /// Pengalihan DPJP tetap memakai <see cref="HandoverDoctorRequest"/>, dan pemisahan itu
+    /// disengaja: dua tindakan dengan akibat sangat berbeda tidak boleh dibedakan hanya oleh
+    /// satu nilai enum di dalam badan permintaan yang sama.
+    ///
+    /// <para>
+    /// <b>Dokter tidak dapat menugaskan dirinya sendiri.</b> Yang menekan tombolnya wajib
+    /// kepala ruangan atau supervisor — <c>RWI-DEC-130</c> (4). Tanpa penjaga itu, seorang
+    /// dokter dapat memberi dirinya akses menulis rekam medis pasien yang bukan tanggung
+    /// jawabnya hanya dengan membuat satu baris penugasan.
+    /// </para>
+    /// </remarks>
+    public class AssignSupportingDoctorRequest
+    {
+        /// <summary>Dokter yang dilibatkan. Wajib, dan wajib aktif pada master dokter.</summary>
+        public Guid DoctorId { get; set; }
+
+        /// <summary>
+        /// Peran penugasan: <c>2</c> konsulen, <c>3</c> dokter jaga. Nilai <c>1</c> DPJP
+        /// ditolak — <c>VAL-INP-09</c>.
+        /// </summary>
+        public int AssignmentRole { get; set; }
+
+        /// <summary>
+        /// Tujuan penugasan: <c>0</c> penugasan biasa, <c>1</c> penugasan singkat penulisan
+        /// catatan terlambat. Bawaannya <c>0</c>.
+        /// </summary>
+        /// <remarks>
+        /// Tujuan <c>1</c> menuntut tiga hal sekaligus: peran dokter jaga, waktu selesai yang
+        /// terisi dan lebih besar dari waktu mulai, serta alasan yang terisi — <c>INV-INP-12</c>
+        /// dan check constraint <c>CK_InpDoctorAssignment_LateDocumentation</c>.
+        /// </remarks>
+        public int AssignmentPurpose { get; set; }
+
+        /// <summary>
+        /// Waktu mulai berlakunya penugasan. Dikosongkan berarti sekarang.
+        /// </summary>
+        /// <remarks>
+        /// <b>Diabaikan untuk penugasan singkat penulisan catatan terlambat.</b> Jendela
+        /// penulisan selalu dibuka "sekarang": jendela yang dapat dimundurkan pemanggil
+        /// memungkinkan sebuah catatan ditulis seolah-olah dibuat pada masa yang sudah lewat —
+        /// roadmap <c>BE-RWI-080</c> acceptance criteria 3.
+        /// </remarks>
+        public DateTime? StartDateTime { get; set; }
+
+        /// <summary>
+        /// Waktu berakhirnya penugasan. <b>Wajib</b> untuk penugasan singkat penulisan catatan
+        /// terlambat; opsional untuk konsulen dan dokter jaga biasa.
+        /// </summary>
+        public DateTime? EndDateTime { get; set; }
+
+        /// <summary>
+        /// Alasan pelibatan. Wajib diisi — <c>VAL-INP-01</c>. Riwayat penugasan dibaca resume
+        /// pulang, penagihan, dan audit kewenangan menulis; baris tanpa alasan membuat ketiganya
+        /// tidak dapat dijelaskan.
+        /// </summary>
+        [Required]
+        [MaxLength(500)]
+        public string Reason { get; set; } = string.Empty;
+    }
+
+    /// <summary>
+    /// Bentuk permintaan mengakhiri penugasan konsulen atau dokter jaga. <c>BE-RWI-080</c>.
+    /// </summary>
+    /// <remarks>
+    /// <b>Mengakhiri, bukan menghapus.</b> Barisnya tetap ada beserta seluruh periodenya; yang
+    /// berubah hanya waktu selesainya. Pertanyaan "siapa yang berwenang atas pasien ini pada
+    /// 22 September" tetap dapat dijawab sesudah konsultasinya selesai.
+    /// </remarks>
+    public class EndSupportingAssignmentRequest
+    {
+        /// <summary>
+        /// Waktu berakhir. Dikosongkan berarti sekarang. Tidak boleh mendahului waktu mulai
+        /// penugasan dan tidak boleh melewati waktu sekarang.
+        /// </summary>
+        public DateTime? EndDateTime { get; set; }
+
+        /// <summary>Alasan pengakhiran. Opsional.</summary>
+        [MaxLength(500)]
+        public string? Reason { get; set; }
+    }
+
     /// <summary>Satu baris riwayat penugasan DPJP.</summary>
     public class InpatientDoctorAssignmentResponse
     {
@@ -46,6 +134,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.DTOs
         /// bertanggung jawab.
         /// </remarks>
         public int AssignmentRole { get; set; }
+
+        /// <summary>
+        /// Alasan penugasan ini dibuat: <c>0</c> penugasan biasa, <c>1</c> penugasan singkat
+        /// penulisan catatan terlambat. Ditambahkan <c>BE-RWI-079</c>.
+        /// </summary>
+        /// <remarks>
+        /// Tanpa field ini, layar menampilkan dokter jaga yang benar-benar menjaga shift dan
+        /// dokter jaga yang hanya diberi jendela satu jam untuk menulis catatan sebagai dua
+        /// baris yang tidak dapat dibedakan — <c>RWI-DEC-130</c>.
+        /// </remarks>
+        public int AssignmentPurpose { get; set; }
 
         public int SequenceNumber { get; set; }
 

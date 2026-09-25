@@ -39,42 +39,42 @@ public class NutritionMasterController : ControllerBase
     // ------------------------------------------------------------- jenis diet
 
     [HttpGet("diet-types")]
-    [ProducesResponseType(typeof(ApiResponse<List<GzMasterOptionResponse>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<List<GziMasterOptionResponse>>), StatusCodes.Status200OK)]
     [AccessAction("Read", "Read Nutrition Master",
         Description = "Melihat master jenis diet", AccessType = AccessTypes.Read, SortOrder = 1)]
     [AccessPermission("NutritionMaster", "Read")]
     public async Task<IActionResult> GetDietTypes([FromQuery] bool onlyActive = true,
         CancellationToken cancellationToken = default)
     {
-        var data = await _dbContext.GzDietTypes.AsNoTracking()
+        var data = await _dbContext.GziDietTypes.AsNoTracking()
             .Where(x => !x.IsDelete && (!onlyActive || x.IsActive))
             .OrderBy(x => x.SortOrder).ThenBy(x => x.DietTypeName)
-            .Select(x => new GzMasterOptionResponse
+            .Select(x => new GziMasterOptionResponse
             {
                 Id = x.Id, Code = x.DietTypeCode, Name = x.DietTypeName,
                 Description = x.Description, IsSpecialDiet = x.IsSpecialDiet, IsActive = x.IsActive
             })
             .ToListAsync(cancellationToken);
 
-        return Ok(ApiResponse<List<GzMasterOptionResponse>>.Ok(data,
+        return Ok(ApiResponse<List<GziMasterOptionResponse>>.Ok(data,
             "Master jenis diet berhasil diambil."));
     }
 
     [HttpPost("diet-types")]
-    [ProducesResponseType(typeof(ApiResponse<GzMasterOptionResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<GziMasterOptionResponse>), StatusCodes.Status200OK)]
     [AccessAction("Update", "Update Nutrition Master",
         Description = "Menambah jenis diet", AccessType = AccessTypes.Create, SortOrder = 2)]
     [AccessPermission("NutritionMaster", "Update")]
     public async Task<IActionResult> CreateDietType([FromBody] SaveGzMasterRequest request,
         CancellationToken cancellationToken)
     {
-        var duplicate = await _dbContext.GzDietTypes.AsNoTracking()
+        var duplicate = await _dbContext.GziDietTypes.AsNoTracking()
             .AnyAsync(x => x.DietTypeCode == request.Code.Trim() && !x.IsDelete, cancellationToken);
         if (duplicate)
             return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict,
                 "Kode jenis diet sudah dipakai."));
 
-        var entity = new GzDietType
+        var entity = new GziDietType
         {
             DietTypeCode = request.Code.Trim(),
             DietTypeName = request.Name.Trim(),
@@ -85,10 +85,10 @@ public class NutritionMasterController : ControllerBase
             CreateDateTime = DateTime.UtcNow
         };
 
-        _dbContext.GzDietTypes.Add(entity);
+        _dbContext.GziDietTypes.Add(entity);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        return Ok(ApiResponse<GzMasterOptionResponse>.Ok(new GzMasterOptionResponse
+        return Ok(ApiResponse<GziMasterOptionResponse>.Ok(new GziMasterOptionResponse
         {
             Id = entity.Id, Code = entity.DietTypeCode, Name = entity.DietTypeName,
             Description = entity.Description, IsSpecialDiet = entity.IsSpecialDiet,
@@ -99,42 +99,42 @@ public class NutritionMasterController : ControllerBase
     // --------------------------------------------------------- bentuk makanan
 
     [HttpGet("food-forms")]
-    [ProducesResponseType(typeof(ApiResponse<List<GzMasterOptionResponse>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<List<GziMasterOptionResponse>>), StatusCodes.Status200OK)]
     [AccessAction("Read", "Read Nutrition Master",
         Description = "Melihat master bentuk makanan", AccessType = AccessTypes.Read, SortOrder = 3)]
     [AccessPermission("NutritionMaster", "Read")]
     public async Task<IActionResult> GetFoodForms([FromQuery] bool onlyActive = true,
         CancellationToken cancellationToken = default)
     {
-        var data = await _dbContext.GzFoodForms.AsNoTracking()
+        var data = await _dbContext.GziFoodForms.AsNoTracking()
             .Where(x => !x.IsDelete && (!onlyActive || x.IsActive))
             .OrderBy(x => x.SortOrder).ThenBy(x => x.FoodFormName)
-            .Select(x => new GzMasterOptionResponse
+            .Select(x => new GziMasterOptionResponse
             {
                 Id = x.Id, Code = x.FoodFormCode, Name = x.FoodFormName,
                 Description = x.Description, IsActive = x.IsActive
             })
             .ToListAsync(cancellationToken);
 
-        return Ok(ApiResponse<List<GzMasterOptionResponse>>.Ok(data,
+        return Ok(ApiResponse<List<GziMasterOptionResponse>>.Ok(data,
             "Master bentuk makanan berhasil diambil."));
     }
 
     [HttpPost("food-forms")]
-    [ProducesResponseType(typeof(ApiResponse<GzMasterOptionResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<GziMasterOptionResponse>), StatusCodes.Status200OK)]
     [AccessAction("Update", "Update Nutrition Master",
         Description = "Menambah bentuk makanan", AccessType = AccessTypes.Create, SortOrder = 4)]
     [AccessPermission("NutritionMaster", "Update")]
     public async Task<IActionResult> CreateFoodForm([FromBody] SaveGzMasterRequest request,
         CancellationToken cancellationToken)
     {
-        var duplicate = await _dbContext.GzFoodForms.AsNoTracking()
+        var duplicate = await _dbContext.GziFoodForms.AsNoTracking()
             .AnyAsync(x => x.FoodFormCode == request.Code.Trim() && !x.IsDelete, cancellationToken);
         if (duplicate)
             return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict,
                 "Kode bentuk makanan sudah dipakai."));
 
-        var entity = new GzFoodForm
+        var entity = new GziFoodForm
         {
             FoodFormCode = request.Code.Trim(),
             FoodFormName = request.Name.Trim(),
@@ -144,10 +144,10 @@ public class NutritionMasterController : ControllerBase
             CreateDateTime = DateTime.UtcNow
         };
 
-        _dbContext.GzFoodForms.Add(entity);
+        _dbContext.GziFoodForms.Add(entity);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        return Ok(ApiResponse<GzMasterOptionResponse>.Ok(new GzMasterOptionResponse
+        return Ok(ApiResponse<GziMasterOptionResponse>.Ok(new GziMasterOptionResponse
         {
             Id = entity.Id, Code = entity.FoodFormCode, Name = entity.FoodFormName,
             Description = entity.Description, IsActive = entity.IsActive
@@ -157,42 +157,42 @@ public class NutritionMasterController : ControllerBase
     // ----------------------------------------------------------- jadwal makan
 
     [HttpGet("meal-schedules")]
-    [ProducesResponseType(typeof(ApiResponse<List<GzMasterOptionResponse>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<List<GziMasterOptionResponse>>), StatusCodes.Status200OK)]
     [AccessAction("Read", "Read Nutrition Master",
         Description = "Melihat master jadwal makan", AccessType = AccessTypes.Read, SortOrder = 5)]
     [AccessPermission("NutritionMaster", "Read")]
     public async Task<IActionResult> GetMealSchedules([FromQuery] bool onlyActive = true,
         CancellationToken cancellationToken = default)
     {
-        var data = await _dbContext.GzMealSchedules.AsNoTracking()
+        var data = await _dbContext.GziMealSchedules.AsNoTracking()
             .Where(x => !x.IsDelete && (!onlyActive || x.IsActive))
             .OrderBy(x => x.ServingTime).ThenBy(x => x.SortOrder)
-            .Select(x => new GzMasterOptionResponse
+            .Select(x => new GziMasterOptionResponse
             {
                 Id = x.Id, Code = x.MealScheduleCode, Name = x.MealScheduleName,
                 ServingTime = x.ServingTime, IsActive = x.IsActive
             })
             .ToListAsync(cancellationToken);
 
-        return Ok(ApiResponse<List<GzMasterOptionResponse>>.Ok(data,
+        return Ok(ApiResponse<List<GziMasterOptionResponse>>.Ok(data,
             "Master jadwal makan berhasil diambil."));
     }
 
     [HttpPost("meal-schedules")]
-    [ProducesResponseType(typeof(ApiResponse<GzMasterOptionResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<GziMasterOptionResponse>), StatusCodes.Status200OK)]
     [AccessAction("Update", "Update Nutrition Master",
         Description = "Menambah jadwal makan", AccessType = AccessTypes.Create, SortOrder = 6)]
     [AccessPermission("NutritionMaster", "Update")]
     public async Task<IActionResult> CreateMealSchedule([FromBody] SaveGzMasterRequest request,
         CancellationToken cancellationToken)
     {
-        var duplicate = await _dbContext.GzMealSchedules.AsNoTracking()
+        var duplicate = await _dbContext.GziMealSchedules.AsNoTracking()
             .AnyAsync(x => x.MealScheduleCode == request.Code.Trim() && !x.IsDelete, cancellationToken);
         if (duplicate)
             return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict,
                 "Kode jadwal makan sudah dipakai."));
 
-        var entity = new GzMealSchedule
+        var entity = new GziMealSchedule
         {
             MealScheduleCode = request.Code.Trim(),
             MealScheduleName = request.Name.Trim(),
@@ -203,10 +203,10 @@ public class NutritionMasterController : ControllerBase
             CreateDateTime = DateTime.UtcNow
         };
 
-        _dbContext.GzMealSchedules.Add(entity);
+        _dbContext.GziMealSchedules.Add(entity);
         await _dbContext.SaveChangesAsync(cancellationToken);
 
-        return Ok(ApiResponse<GzMasterOptionResponse>.Ok(new GzMasterOptionResponse
+        return Ok(ApiResponse<GziMasterOptionResponse>.Ok(new GziMasterOptionResponse
         {
             Id = entity.Id, Code = entity.MealScheduleCode, Name = entity.MealScheduleName,
             ServingTime = entity.ServingTime, IsActive = entity.IsActive

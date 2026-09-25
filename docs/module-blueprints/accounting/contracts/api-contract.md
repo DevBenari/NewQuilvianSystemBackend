@@ -410,6 +410,7 @@ memeriksa ulang saat tindakannya benar-benar dijalankan.
 | `last_changed_in` | `ACC-API-0.10` — 11 September 2026, penyelarasan grup Recurring Journal dengan `RecurringJournalController`: hak akses `activate`/`deactivate` menjadi `RecurringJournal : Activate`, empat bidang ringkasan, dan label ketersediaan. Sebelumnya `0.9` — 10 September 2026, penyelarasan grup Accounting Period dengan `AccountingPeriodController` yang sudah berdiri: base URL `periods` (bukan `accounting-periods`), hak akses `AccountingPeriod` (bukan `Period`), endpoint `GET /{id}/closing-history`, dan empat bidang keadaan daftar periksa. Ditambah `ACC-DEC-070`, peringatan keenam. Sebelumnya `0.8` (`ACC-DEC-060`, `CorrelationId` dan `CausationId` sebagai bidang wajib ke-11 dan ke-12), `0.7` (`ACC-DEC-058`, aturan posting daftar baris), dan `0.6` (33 endpoint Phase 2) |
 | Amandemen menunggu ratifikasi | **`ACC-API-0.11` (usulan) — 11 September 2026.** Lima perubahan: (1) grup **Reconciliation** dicatat untuk pertama kali — `GET /reconciliation/gl-balances`; (2) `ChartOfAccountOptionResponse` bertambah `IsControlAccount`, dan `UpdateChartOfAccountRequest.IsControlAccount` dicatat sebagai `bool?`; (3) `422` control account pada grup Journal — Simpan, Ubah, Ajukan, dan penyesuaian `JP` (`ACC-DEC-064`, `ACC-DEC-072`); (4) `422` control account pada grup Recurring Journal — Tambah, Ubah, Aktifkan (`ACC-DEC-073`); (5) penegasan bahwa `POST /journals/{id}/reverse` yang berhasil menjawab **`200`**, bukan `201` — perilaku sejak `BE-ACC-013`, dituliskan eksplisit atas keputusan Rizki 11 September 2026 (Skenario 6 `BE-ACC-P2-012`); kode tidak diubah. **Status `approved` di bawah belum diubah** — menunggu ratifikasi Rizki |
 | Status | **`approved`** — Rizki, 11 September 2026 |
+| Penyesuaian atas keputusan owner | **`ACC-API-0.12` (usulan) — 24 September 2026.** Empat perubahan, seluruhnya menuliskan keputusan owner yang sudah `approved` sehingga — mengikuti preseden `ACC-DEC-074` — **tidak menunggu ratifikasi `0.11`**: (1) isi `AccountingEventReceiptDto` dan bentuknya yang sama pada `201`/`200`/`422` (`ACC-DEC-085`); (2) penjurnalan seketika dengan `201` tanpa nomor jurnal saat gangguan teknis (`ACC-DEC-084`); (3) contoh `JASA_MEDIS` dipindah dari `PENGAKUAN-PIUTANG` ke `PENGAKUAN-HUTANG-DOKTER` (`ACC-DEC-086`); (4) bidang opsional `SubledgerBalance` untuk pesan saldo subledger (`ACC-DEC-087`). Label ketersediaan grup Accounting Event tetap **Rencana (belum tersedia)** |
 | `approved_by` / `approved_at` | Rizki / 11 September 2026 (ratifikasi `ACC-API-0.10`); sebelumnya Rizki / 10 September 2026 (`ACC-API-0.9`) dan Rizki / 8 September 2026 (`ACC-API-0.8`) |
 | `input_revision` | `00-interview-decisions.md@6`, `02-backend-architecture.md@4`, `evidence/09` `ACC-DOMAIN-P2-0.1` |
 | Traceability | `ACC-DEC-044` sampai `ACC-DEC-057`, ditambah `ACC-DEC-065` dan `ACC-DEC-070` |
@@ -469,6 +470,67 @@ beserta nomor jurnal yang sama membuat Finance tahu pesannya **sudah diterima da
 `JU/2026/09/00042`. Kiriman kedua dan ketiga menjawab `200` dengan nomor jurnal yang sama persis.
 Buku besar tetap berisi satu catatan.
 
+### Kapan jurnal dibuat — `ACC-DEC-084` *(usulan `ACC-API-0.12`)*
+
+Seketika di dalam request `POST /`, dengan penjadwal sebagai cadangan:
+
+1. Validasi pesan. Gagal → `400` atau `409`; tidak ada yang tersimpan.
+2. Simpan kejadian berstatus `Diterima`, lalu **commit**.
+3. Cocokkan aturan posting dan buat jurnal.
+
+| Hasil langkah 3 | Status kejadian | Balasan |
+|---|---|---|
+| Jurnal terbentuk | `Terjurnal` | `201` + `JournalNumber` |
+| Kode belum terdaftar, aturan belum ada, komponen tidak dikenal | `Tertahan` | `422` + `HoldReasonCode` |
+| Gangguan teknis | Tetap `Diterima` | `201` **tanpa** `JournalNumber`; `AccAccountingEventSchedulerHostedService` mencoba ulang sampai 3 kali, lalu `Gagal` (`ACC-DEC-049`) |
+
+Kiriman ulang dijawab `200` dengan **keadaan terkini**. Jadi bila penjadwal sudah berhasil, kiriman
+ulang membawa nomor jurnalnya; bila belum, `JournalNumber` tetap kosong dan statusnya tetap
+`Diterima`.
+
+### Isi `AccountingEventReceiptDto` — `ACC-DEC-085` *(usulan `ACC-API-0.12`)*
+
+Dipakai pada `201`, `200`, dan `422`. Balasan `400`, `403`, `409`, dan `422` karena badan hukum tidak ditemukan
+**tidak** membawanya, karena kejadiannya tidak tersimpan.
+
+| Bidang | Tipe | Selalu terisi | Keterangan |
+|---|---|:---:|---|
+| `AccountingEventId` | `Guid` | Ya | `AccAccountingEvent.Id`. Rujukan tanda terima; Finance menyimpannya sebagai `AccountingReceiptNumber` |
+| `EventNumber` | `string` | Ya | Gema dari pesan |
+| `EventStatus` | `string` | Ya | `Diterima`, `Terjurnal`, `Tertahan`, atau `Tercatat` (pesan saldo subledger). Kiriman ulang `200` dapat juga membaca `Gagal` atau `Diabaikan` |
+| `JournalNumber` | `string?` | Tidak | Hanya bila `Terjurnal`. Finance menyimpannya sebagai `AccountingJournalNumber` |
+| `AccountingPeriodCode` | `string?` | Tidak | Periode tempat jurnal jatuh, bentuk `YYYY-MM`. Bisa berbeda dari `AccountingDate` bila periodenya sudah tertutup (`ACC-DEC-047`) |
+| `HoldReasonCode` | `string?` | Tidak | Hanya bila `Tertahan`: `EVENT_TYPE_NOT_REGISTERED`, `POSTING_RULE_MISSING`, `COMPONENT_UNMAPPED`, `COMPONENT_MISSING` |
+| `ReceivedAt` | `timestamptz` | Ya | Waktu kejadian pertama kali diterima |
+
+**Contoh `201` yang terjurnal:**
+
+```json
+{
+  "AccountingEventId": "9c4e1a7b-2d3f-4e5a-8b6c-7d8e9f0a1b2c",
+  "EventNumber": "EVT-100",
+  "EventStatus": "Terjurnal",
+  "JournalNumber": "JU/2026/09/00042",
+  "AccountingPeriodCode": "2026-09",
+  "HoldReasonCode": null,
+  "ReceivedAt": "2026-09-08T10:15:03+07:00"
+}
+```
+
+**Contoh `422` yang tertahan:**
+
+```json
+{
+  "AccountingEventId": "5b0f7a9e-3c21-4d8e-9f10-2a7c6b5d4e31",
+  "EventNumber": "EVT-210",
+  "EventStatus": "Tertahan",
+  "JournalNumber": null,
+  "AccountingPeriodCode": null,
+  "HoldReasonCode": "POSTING_RULE_MISSING",
+  "ReceivedAt": "2026-11-03T09:12:44+07:00"
+}
+```
+
 ## Corporate / Accounting / Master Data / Event Type
 
 `[Tags("Corporate - Accounting - Master Data - Event Type")]`
@@ -485,6 +547,14 @@ Base URL: `api/v1/corporate/accounting/event-types` — **Rencana (belum tersedi
 
 `409` muncul bila kode jenis kejadian sudah dipakai, atau bila jenis hendak dinonaktifkan padahal
 masih ada aturan posting aktif yang memakainya.
+
+> **Usulan `ACC-API-0.12` — 24 September 2026 (`ACC-DEC-087`).** `CreateEventTypeRequest`,
+> `UpdateEventTypeRequest`, `EventTypeListDto`, dan `EventTypeDetailDto` bertambah **`EventKind`**
+> (`Transaksi` / `SaldoSubledger`, bawaan `Transaksi`). `PUT` yang mengubah `EventKind` pada jenis
+> yang sudah punya kejadian ditolak `409` — "Jenis perlakuan tidak dapat diubah karena jenis ini
+> sudah dipakai kejadian." Grup ini **sudah berdiri** (`BE-ACC-P2-017`), sehingga penambahan ini
+> adalah perubahan pada endpoint yang ada: kompatibel ke belakang, karena permintaan tanpa
+> `EventKind` tetap diterima sebagai `Transaksi`.
 
 ## Corporate / Accounting / Master Data / Posting Rule
 
@@ -800,29 +870,56 @@ tetap sah — ia berarti seluruh nilai memakai komponen `TOTAL`.
 |---|---|:---:|---|
 | `Components` | daftar | Tidak | Rincian nilai. Setiap butir berisi `ComponentCode` dan `Amount` |
 
-**Contoh pendapatan rawat jalan dengan jasa medis dokter:**
+**Contoh jasa medis dokter** — diganti `ACC-DEC-086`, 24 September 2026. Sampai `ACC-API-0.10`
+contoh ini menaruh `JASA_MEDIS` di dalam `PENGAKUAN-PIUTANG`, padahal Finance memisahkan jasa
+medis ke kejadian tersendiri (`FIN-DEC-003`). `PENGAKUAN-PIUTANG` kini dikirim tanpa `Components`
+(seluruhnya `TOTAL`), dan jasa medis datang lewat `PENGAKUAN-HUTANG-DOKTER`:
 
 ```json
 {
-  "EventNumber": "EVT-100",
-  "EventTypeCode": "PENGAKUAN-PIUTANG",
+  "EventNumber": "EVT-131",
+  "EventTypeCode": "PENGAKUAN-HUTANG-DOKTER",
   "SourceModule": "Finance",
-  "SourceTransactionId": "AR-2026-09-00871",
+  "SourceTransactionId": "AP-DR-2026-09-00112",
   "SourceVersion": "1",
-  "EventOccurredAt": "2026-09-08T10:15:00+07:00",
-  "AccountingDate": "2026-09-08",
-  "Amount": 10000000.00,
+  "EventOccurredAt": "2026-09-12T14:00:00+07:00",
+  "AccountingDate": "2026-09-12",
+  "Amount": 3000000.00,
   "CurrencyCode": "IDR",
   "LegalEntityId": "...",
-  "Components": [
-    { "ComponentCode": "JASA_MEDIS", "Amount": 3000000.00 }
-  ]
+  "CorrelationId": "...",
+  "CausationId": "..."
 }
 ```
 
-Aturan posting untuk jenis itu memuat empat baris — dua memakai `TOTAL`, dua memakai `JASA_MEDIS`
-— sehingga jurnalnya berisi empat baris: debit Rp 13.000.000 lawan kredit Rp 13.000.000.
+Aturan posting untuk jenis itu memuat dua baris `TOTAL`: debit Beban Jasa Medis Rp 3.000.000,
+kredit Utang Jasa Medis Dokter Rp 3.000.000. Aturan posting `PENGAKUAN-PIUTANG` **tidak boleh**
+memuat baris berkomponen `JASA_MEDIS`; bila memuatnya, setiap kejadian pengakuan piutang
+Tertahan (`422`) karena komponen yang dituntut baris aturan tidak pernah dikirim Finance. Aturan ini ditegakkan saat penyusunan aturan posting, bukan
+oleh kode. Komponen yang dikirim Finance per jenis kejadian belum ditetapkan.
 
 `422` muncul bila kejadian membawa komponen yang **tidak dipakai** satu pun baris aturan. Kejadian
 berstatus **Tertahan**, karena mengabaikan komponen yang tidak dikenal berarti membuang angka
 diam-diam.
+
+### Bidang opsional untuk pesan saldo subledger: `SubledgerBalance` *(usulan `ACC-API-0.12`)*
+
+Ditambahkan `ACC-DEC-087`. Pesan saldo subledger per periode (`ACC-DEC-071`) memakai amplop dua
+belas bidang yang sama, ditambah satu objek rincian.
+
+| Bidang | Tipe | Wajib | Keterangan |
+|---|---|:---:|---|
+| `SubledgerBalance.AccountingPeriodCode` | `string`, maks 7 | Ya, bila objeknya ada | Bentuk `YYYY-MM`. Harus menunjuk periode yang ada untuk `LegalEntityId` |
+| `SubledgerBalance.ControlAccountCode` | `string`, maks 50 | Ya, bila objeknya ada | Harus menunjuk akun yang ditandai control account pada badan hukum yang sama |
+
+Aturan yang mengikat:
+
+1. `SubledgerBalance` **wajib** bila `EventTypeCode` adalah kode saldo (usulan `SALDO-SUBLEDGER`,
+   menunggu persetujuan Finance), dan **dilarang** pada jenis lain. Pelanggaran → `400`.
+2. Khusus pesan saldo, `Amount` boleh **nol atau negatif**; `AccountingDate` berarti tanggal
+   cut-off.
+3. Pesan saldo **tidak pernah** menghasilkan jurnal. Aturan posting tidak dicari untuknya, sehingga
+   ia tidak pernah `Tertahan` karena aturan posting kosong.
+4. `Components` dilarang pada pesan saldo.
+
+Status dan tempat simpan saldo dirinci di `02-backend-architecture.md`.

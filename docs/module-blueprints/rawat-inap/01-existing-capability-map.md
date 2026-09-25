@@ -3,14 +3,14 @@
 | Field | Nilai |
 | --- | --- |
 | Blueprint ID | `RWI-BP-001` |
-| Capability-map revision | **`1.4`** — ditambah bagian 16, impact scan V2 11 September 2026, dan **bagian 17, impact scan penyelarasan `PRD-RWI-V2-001` fase `RLN-PH-03` 15 September 2026**. Sebelumnya `1.3` — revision `1.2` ditambah **impact scan terfokus Dokter Rawat Inap** pada bagian 15. Bagian 1–14 tetap menjadi baseline historis; hanya temuan slice `CAP-015`, `CAP-020` s.d. `CAP-025`, `INT-DOK-01`, dan `INT-DOK-02` yang diperbarui |
-| Status | `source-audited / focused-impact-scan`. **Per 15 September 2026, bagian 17 current untuk ruang kerja dokter dan keperawatan terhadap `BE@df3679c0` dan `FE@147355f5`; bagian 16 basi untuk slice yang disentuh 121 commit sejak `201de753`.** **Bagian 15 current untuk slice Dokter Rawat Inap; bagian lain stale terhadap SHA terbaru.** Dokumen ini belum menyatakan sub-modul siap dibangun, siap dirilis, atau siap produksi |
-| Tanggal audit | Impact scan penyelarasan V2 15 September 2026; impact scan V2 11 September 2026; baseline 21 Agustus 2026; impact scan Dokter Rawat Inap 2 September 2026 (`Asia/Jakarta`) |
-| Masukan bisnis | [`00-interview-decisions.md`](./00-interview-decisions.md), revision `1`, status `draft`, SHA-256 `19a64b418f4004cf5ae1376db1961fcf4e56a3ce9ed8d506c662a0da42ae6692` |
+| Capability-map revision | **`1.5`** — ditambah **bagian 18: Audit Kemampuan Integrasi Rawat Inap ↔ Billing (Pass A — Muhammad Hamzah, 17 September 2026)**. Sebelumnya `1.4` — ditambah bagian 16 dan bagian 17 (penyelarasan `PRD-RWI-V2-001` fase `RLN-PH-03` 15 September 2026). Bagian 1–14 baseline historis; bagian 15, 16, 17 historis untuk ruang kerja dokter dan keperawatan |
+| Status | `source-audited / focused-integration-audit`. **Per 17 September 2026, bagian 18 current untuk integrasi Rawat Inap ↔ Billing terhadap `BE@fe7e60d4` (branch `MHamzah`) dan `FE@2c007588` (branch `HamzahV2`).** Bagian 17 current untuk ruang kerja dokter dan keperawatan terhadap `BE@df3679c0` dan `FE@147355f5`; bagian 1–16 historis. Dokumen ini belum menyatakan sub-modul siap dibangun, siap dirilis, atau siap produksi |
+| Tanggal audit | Audit integrasi Rawat Inap ↔ Billing 17 September 2026; impact scan penyelarasan V2 15 September 2026; impact scan V2 11 September 2026; baseline 21 Agustus 2026; impact scan Dokter Rawat Inap 2 September 2026 (`Asia/Jakarta`) |
+| Masukan bisnis | [`00-interview-decisions.md`](./00-interview-decisions.md), revision `25`, status `draft`, SHA snapshot `fe7e60d4` |
 | Daftar periksa audit | `RWI-TRC-001` sampai `RWI-TRC-009` pada dokumen keputusan |
-| Decision ID yang dirujuk | `RWI-DEC-001`, `RWI-DEC-002`, `RWI-DEC-003`, `RWI-DEC-007` s.d. `RWI-DEC-035` |
-| Backend snapshot | **Bagian 17: `df3679c0d5b2f08106702153eb242d3a6cb2929b`** (branch `MHamzah`); bagian 16: `201de753`; baseline `5afb54bd75281648010e50ef14f43ca1f80d8efd`; impact scan slice dokter `93b3227c431401d8f586dec4e1fb25fbf41766e3` (branch `MHamzah`) |
-| Frontend snapshot | **Bagian 17: `147355f505e875148b8416866ada6cf8b2f1ad99`** (branch `HamzahV2`), ditambah pembanding V1 `13c3a96b`; bagian 16: `7f6b9356`; baseline `dec4fdeff07c3c96ad9f07f41f184c54cf771371`; impact scan slice dokter `863f24b0d1617069310c04e5770b47fd1b518b5b` (branch `HamzahV2`). Working tree memiliki perubahan lain pada admisi yang tidak masuk batas audit |
+| Decision ID yang dirujuk | `RWI-DEC-001` s.d. `RWI-DEC-035`, `RWI-DEC-075` s.d. `RWI-DEC-079`, `RWI-DEC-093` s.d. `RWI-DEC-096`, `RWI-DEC-106` s.d. `RWI-DEC-149`, serta **`RWI-DEC-156` s.d. `RWI-DEC-161`** |
+| Backend snapshot | **Bagian 18: `fe7e60d4b2ef1eecffa72cef4f4fd33f9dbe0344`** (branch `MHamzah`); bagian 17: `df3679c0d5b2f08106702153eb242d3a6cb2929b` (branch `MHamzah`); bagian 16: `201de753`; baseline `5afb54bd75281648010e50ef14f43ca1f80d8efd`; impact scan slice dokter `93b3227c431401d8f586dec4e1fb25fbf41766e3` (branch `MHamzah`) |
+| Frontend snapshot | **Bagian 18: `2c00758832f834cff0288bef4f0d2fcf1161fb52`** (branch `HamzahV2`); bagian 17: `147355f505e875148b8416866ada6cf8b2f1ad99` (branch `HamzahV2`), ditambah pembanding V1 `13c3a96b`; bagian 16: `7f6b9356`; baseline `dec4fdeff07c3c96ad9f07f41f184c54cf771371`; impact scan slice dokter `863f24b0d1617069310c04e5770b47fd1b518b5b` (branch `HamzahV2`) |
 | Contract version | Target sub-modul `dokter-rawat-inap`: API, integration, state, validation, permission, dan acceptance test `0.1.0`, seluruhnya `draft`. Kontrak as-is aktual dicatat pada bagian 15 |
 | Cara audit | Pembacaan statis: model/entity, konfigurasi Entity Framework, migration, `DbSet`, route controller, atribut hak akses, registrasi *dependency injection* (DI), seeder, service/state frontend, menu, dan inventaris test |
 | Batas tulis | Hanya dokumen ini. Tidak ada satu baris source aplikasi yang diubah, tidak ada build, tidak ada migration, tidak ada eksekusi database |
@@ -1858,3 +1858,166 @@ Bagian 17 menjadi `STALE` bila salah satu berikut berubah:
 - `docs/Modul-RS/Rawat-Inap/04-prd-to-mvp-final.md` dengan SHA-256 berbeda;
 - keputusan `RWI-DEC-107`, `RWI-DEC-115`, `RWI-DEC-122`, `RWI-DEC-124`, `RWI-DEC-125`,
   `RWI-DEC-128`, `RWI-DEC-129`, `RWI-DEC-135`, atau `RWI-DEC-136`.
+
+---
+
+## 18. Audit Kemampuan Integrasi Rawat Inap ↔ Billing (Pass A — Muhammad Hamzah, 17 September 2026)
+
+### 18.1 Konteks, Batas Audit, dan Metodologi
+
+Bagian ini disusun untuk menindaklanjuti kesepakatan **Amendment Pass Integrasi Rawat Inap ↔ Billing (Pass A — Muhammad Hamzah)** tertanggal 17 September 2026. Sesi tersebut telah menetapkan enam keputusan arsitektur kritis (`RWI-DEC-156` sampai `RWI-DEC-161`) dan sepuluh kriteria penerimaan (`RWI-AC-232` sampai `RWI-AC-241`) yang bersumber dari berkas masukan [PRD Integrasi-Rawat-Inap-dengan-Billing.md](../../Modul-RS/Rawat-Inap-To-Billing/PRD%20Integrasi-Rawat-Inap-dengan-Billing.md).
+
+Tujuan audit ini adalah membuktikan perilaku nyata (*as-is*) pada kode program dan skema basis data di kedua repositori, mengidentifikasi komponen yang dapat langsung dipakai ulang (*ready to reuse*), komponen yang membutuhkan adaptasi (*adapter*), komponen yang harus diperluas (*extend*), komponen yang memerlukan perbaikan (*repair*), serta komponen yang masih belum terwujud (*missing*).
+
+**Batas pemeriksaan kode (Snapshot SHA):**
+- **Backend:** `NewQuilvianSystemBackend` pada commit `fe7e60d4b2ef1eecffa72cef4f4fd33f9dbe0344` (cabang `MHamzah`).
+- **Frontend:** `QuilvianSystemFrontendDev` pada commit `2c00758832f834cff0288bef4f0d2fcf1161fb52` (cabang `HamzahV2`).
+
+**Area fungsional yang diaudit:**
+1. Modul Rawat Inap (`Areas/HealthServices/InPatientManagement`): model penempatan tempat tidur (`InpBedPlacement`), episode (`InpEpisode`), penanda kelayakan keuangan sementara (`InpFinancialClearance`), pengontrol operasional kamar (`InpatientBedOccupancyController`), dan pengontrol pemulangan (`InpatientDischargeController`).
+2. Modul Billing / Kasir (`Areas/HealthServices/BillingManagement`): layanan penerimaan beban tagihan dari modul lain (`ContractBillingChargeSourceAdapter`, `BillingInvoiceService`), kebijakan tarif kamar (`RoomChargePolicyService`, `MstRoomChargePolicy`), pengelolaan deposit pasien (`BillingDepositService`, `BillingPatientFundsController`), dan pratinjau kesiapan penutupan tagihan (`BillingFinalizationService`, `BillingFinalizationsController`).
+3. Antarmuka Pengguna Rawat Inap (Frontend): langkah pembayaran deposit pada formulir admisi berlangkah (`inpatient-admission-deposit-step.jsx`, `use-inpatient-admission-deposit.jsx`), alur pemulangan pasien (`inpatient-discharge-view.jsx`), pemeriksaan syarat penutupan (`inpatient-closure-view.jsx`), dan layar kelayakan keuangan (`inpatient-financial-clearance-view.jsx`).
+
+---
+
+### 18.2 Matriks Kontrak Bukti Kemampuan Integrasi
+
+Sesuai dengan kontrak audit rekayasa Quilvian, setiap kemampuan dievaluasi secara ketat dan diklasifikasikan ke dalam tepat satu status kanonik:
+
+| ID | Kebutuhan & Keputusan | Pemilik Domain | Bukti Lapangan (`repo/path#symbol@SHA`) | Status | Analisis Gap & Kebutuhan Adapter | Risiko Operasional & Klinis |
+|---|---|---|---|---|---|---|
+| `INT-CAP-01` | **Sinkronisasi Awal Episode & Akun Billing saat Admisi Disahkan** (`RANAP-INT-001`, `RWI-DEC-156`, `RWI-AC-232`) | `InPatientManagement` (M. Hamzah) & `BillingManagement` (Yasmina) | `BE@fe7e60d Areas/HealthServices/InPatientManagement/Services/InpBedOccupancyService.cs:854 #PlacePatientAsync`<br>`BE@fe7e60d Areas/HealthServices/BillingManagement/Billing/Controllers/BillingPatientFundsController.cs:93,134`<br>`FE@2c00758 src/lib/hooks/health-services/inpatient-management/use-inpatient-admission-deposit.jsx:24`<br>`FE@2c00758 src/components/view/health-services/inpatient-management/inpatient-admission-deposit-step.jsx:21` | **Extend** | **Backend:** Status `Admitted` diaktifkan saat penempatan awal, tetapi belum ada pemanggilan event outbox sinkronisasi akun episode ke Billing. Endpoint kebijakan deposit (`GET /deposit-policies`) dan top-up deposit (`POST /top-ups`) di Billing sudah berwujud.<br>**Frontend:** Formulir deposit admisi (`FE-RWI-058`) hanya mencatat nominal angka di browser tanpa menangkap `PaymentMethodId`, dan belum memanggil `GET /deposit-policies` (sebelumnya dianggap belum ada di backend). | Keluarga pasien yang telah berada di loket admisi tidak dapat langsung membayar uang muka/deposit di kasir bila data kunjungan belum dikenal oleh modul Billing. |
+| `INT-CAP-02` | **Standardisasi Pemicu Room Charge & Waktu Akhir Hunian Kamar** (`RANAP-INT-002`, `RWI-DEC-156`, `RWI-DEC-159`, `RWI-AC-233`, `RWI-AC-237`) | `InPatientManagement` & `BillingManagement` | `BE@fe7e60d Areas/HealthServices/InPatientManagement/Services/InpBedOccupancyService.cs:840 #PlacePatientAsync`<br>`BE@fe7e60d Areas/HealthServices/InPatientManagement/Services/InpDischargeService.Closure.cs:587 #RecordPatientDepartureAsync`<br>`BE@fe7e60d Areas/HealthServices/BillingManagement/Billing/Services/BillingChargeSourceAdapter.cs:23 #SourcePolicies`<br>`BE@fe7e60d Areas/HealthServices/BillingManagement/MasterData/Services/RoomChargePolicyService.cs:10` | **Extend** | **Billing:** `ContractBillingChargeSourceAdapter` belum mendaftarkan domain `ROOM_STAY` atau `INPATIENT` ke dalam `SourcePolicies` (masih melempar galat validasi 422 jika dikirim). Billing sudah memiliki `MstRoomChargePolicy` dan formula potongan jam.<br>**Rawat Inap:** Penempatan fisik (`PlacePatientAsync`) dan pencatatan kepergian fisik (`RecordPatientDepartureAsync`, `episode.PhysicallyLeftAt`) sudah ada, tetapi belum mengirimkan event `ROOM_ASSIGNED` dan `BED_RELEASED` (dengan durasi `OccupancyEndAt = PhysicallyLeftAt`) ke Billing. | Tagihan sewa kamar dapat salah hitung jika dihitung sejak pendaftaran loket (pasien belum tiba di ranjang) atau dihentikan terlalu dini saat DPJP memberi izin pulang (padahal pasien masih berbaring menunggu jemputan ambulans/keluarga). |
+| `INT-CAP-03` | **Mutasi Kamar & Koreksi Fakta Hunian saat Tagihan Terbuka** (`RANAP-INT-003`, `RWI-DEC-157`, `RWI-AC-234`, `RWI-AC-235`) | `InPatientManagement` & `BillingManagement` | `BE@fe7e60d Areas/HealthServices/InPatientManagement/Services/InpBedOccupancyService.cs:1080 #TransferAsync`<br>`BE@fe7e60d Areas/HealthServices/InPatientManagement/Services/InpEpisodeService.Corrections.cs:37 #OpenCorrectionSessionAsync`<br>`BE@fe7e60d Areas/HealthServices/InPatientManagement/Models/InpBedPlacement.cs:8` | **Missing** | **Rawat Inap:** Pemindahan ranjang biasa (`TransferAsync`) sudah berfungsi menutup penempatan lama dan membuka yang baru, tetapi belum ada antarmuka maupun layanan untuk **koreksi salah input** (koreksi bed, kelas kamar, atau waktu masuk yang salah ketik). `InpCorrectionSession` yang ada hanya untuk episode berstatus `Closed`.<br>**Billing:** Belum tersedia penerima event `OCCUPANCY_CORRECTED` untuk memicu penghitungan ulang (*repricing/reversal*) tagihan kamar berjalan saat status tagihan `BillingStatus == OPEN`. | Kesalahan input kelas atau kamar oleh petugas admisi di awal perawatan tidak dapat dikoreksi di sistem, memicu sengketa selisih tagihan (*dispute billing*) atau keharusan manipulasi database langsung. |
+| `INT-CAP-04` | **Konsumsi Ringkasan Tagihan (Billing Summary) & Hak Akses Tanpa Rupiah** (`RANAP-INT-004`, `RWI-DEC-160`, `RWI-AC-238`, `RWI-AC-239`) | `InPatientManagement` & `BillingManagement` | `BE@fe7e60d Areas/HealthServices/BillingManagement/Billing/Controllers/BillingPatientFundsController.cs:112 #GetEpisodeDepositSummary`<br>`BE@fe7e60d Areas/HealthServices/BillingManagement/Billing/Controllers/BillingFinalizationsController.cs:35 #Preview`<br>`FE@2c00758 src/components/view/health-services/inpatient-management/inpatient-financial-clearance-view.jsx:64` | **Extend** | **Backend:** Billing memiliki data ringkasan deposit (`EpisodeDepositSummaryResponse`) dan status kesiapan tagihan beserta kendala (`FinalizationPreviewResponse.BlockingReasons`), namun belum ada endpoint gabungan di Rawat Inap.<br>**Frontend & Hak Akses:** Rawat Inap belum memiliki klaim izin `InpatientBilling:View`. Layar perawat belum menampilkan lencana status operasional (Lunas / Tertahan), dan belum ada mekanisme penyembunyian angka rupiah bagi staf keperawatan. | Staf keperawatan bangsal terganggu fokus klinisnya jika dibebani melihat nominal uang tagihan pasien, atau sebaliknya perawat tidak mengetahui bahwa kepulangan pasien sedang tertahan karena masalah administrasi kasir. |
+| `INT-CAP-05` | **Gerbang Kelayakan Keuangan & Penguncian Ulang Otomatis (Auto-Reblock)** (`RANAP-INT-005`, `RWI-DEC-158`, `RWI-AC-236`) | `InPatientManagement` & `BillingManagement` | `BE@fe7e60d Areas/HealthServices/InPatientManagement/Models/InpFinancialClearance.cs:19 #ClearanceStatus`<br>`BE@fe7e60d Areas/HealthServices/InPatientManagement/Enums/InpFinancialClearanceStatus.cs:3`<br>`BE@fe7e60d Areas/HealthServices/InPatientManagement/Services/InpDischargeService.Closure.cs:226,538,878`<br>`FE@2c00758 src/components/view/health-services/inpatient-management/inpatient-closure-view.jsx:340` | **Repair & Extend** | **Backend:** Enum `InpFinancialClearanceStatus` baru memuat `Pending`, `Cleared`, dan `Blocked`, **belum memuat nilai `Revoked`**. Layanan pencatatan kepergian fisik (`RecordPatientDepartureAsync`) sama sekali belum memeriksa kelayakan keuangan (pemeriksaan baru ada pada `CloseEpisodeAsync`).<br>**Frontend:** Antarmuka kelayakan keuangan masih berupa formulir penandaan manual lokal (`IsManualMarking = true`) tanpa membaca status faktual dari Billing, dan belum memiliki reaksi otomatis (*Auto-Reblock*) bila clearance dicabut oleh kasir. | Pasien diperbolehkan keluar kamar dan meninggalkan rumah sakit secara fisik padahal status keuangan yang sebelumnya disetujui telah ditarik kembali oleh kasir akibat adanya tagihan farmasi atau tindakan dokter susulan. |
+| `INT-CAP-06` | **Ketahanan Integrasi Transaksional Outbox & Kunci Idempotensi** (`RANAP-INT-006`, `RWI-DEC-161`, `RWI-AC-240`, `RWI-AC-241`) | `InPatientManagement` & `BillingManagement` | `BE@fe7e60d Areas/HealthServices/BillingManagement/Billing/Models/BilChargeReceipt.cs:11 #IdempotencyKey`<br>`BE@fe7e60d Areas/HealthServices/BillingManagement/Billing/Controllers/BillingInvoicesController.cs:140 #FromSource`<br>`BE@fe7e60d Areas/HealthServices/OperatingRoomManagement/Services/OperatingRoomIntegrationService.cs:12` (Referensi Pola Outbox) | **Missing (Outbox Ranap) & Reuse with Adapter (Billing)** | **Rawat Inap:** Modul `InPatientManagement` belum memiliki entitas outbox (`InpIntegrationOutbox`), tabel database, maupun background worker pengirim event ke Billing.<br>**Billing:** Billing memiliki tabel penerima idempoten `BilChargeReceipt`, namun kolom `IdempotencyKey` dan parameter header HTTP bertipe data `Guid`. Diperlukan adapter konversi deterministik (misalnya hashing UUIDv5) dari format string bisnis `SourceDomain:SourceType:SourceDetailId:Version` yang ditetapkan `RWI-DEC-161`. | Gangguan jaringan atau downtime sementara pada modul Billing dapat menggagalkan proses penempatan tempat tidur atau pemulangan pasien di bangsal jika integrasi dilakukan secara panggilan langsung tanpa antrean outbox. |
+
+---
+
+### 18.3 Analisis Detail Proses Bisnis dan Contoh Kasus Rumah Sakit
+
+Integrasi antara modul Rawat Inap dan Billing menjembatani dua dunia yang berbeda: **dunia fisik-klinis perawatan pasien di bangsal** dan **dunia transaksi keuangan di kasir/akuntansi**. Berikut adalah alur proses bisnis ujung-ke-ujung beserta contoh skenario konkret rumah sakit:
+
+#### Skenario 1: Pendaftaran Admisi Pasien & Pemungutan Deposit di Muka
+1. **Pemicu:** Pasien "Tn. Budi Santoso" diputuskan rawat inap dari Poli Penyakit Dalam. Petugas admisi membuka berkas admisi dan memilih paket kamar Kelas 1 (`InpEpisodeStatus.Draft`).
+2. **Pengesahan Admisi (`Admitted`):** Begitu admisi disahkan dan diverifikasi, sistem Rawat Inap menerbitkan event `ADMISSION_CONFIRMED` ke tabel `InpIntegrationOutbox`.
+3. **Akun Tagihan di Billing:** Worker integrasi mengirim data ke Billing. Billing membentuk akun tagihan (`BilInvoice`) berstatus `Open` yang terikat pada `EncounterId`.
+4. **Pembayaran Uang Muka:** Keluarga Tn. Budi mendatangi kasir pendaftaran. Kasir membuka menu penerimaan deposit, membaca kebijakan minimal deposit Kelas 1 sebesar Rp 3.000.000 (`GET /deposit-policies`), dan mencatat pembayaran top-up via transfer bank sebesar Rp 5.000.000 (`POST /deposits/{encounterId}/top-ups`).
+5. **Keadaan Arloji Kamar:** Meskipun deposit sudah diterima kasir, **arloji tagihan kamar harian BELUM berdetak**, karena Tn. Budi secara fisik masih berada di ruang tunggu admisi dan belum diantar ke ranjang perawatan.
+
+#### Skenario 2: Pasien Tiba di Bangsal dan Timer Sewa Kamar Aktif
+1. **Pemicu:** Tn. Budi diantar perawat ke Bangsal Melati Kamar 201 Bed A. Perawat bangsal menekan tombol **Konfirmasi Pasien Tiba (Check-in Bed)** pada pukul 10.30 WIB.
+2. **Pencatatan Penempatan:** Rawat Inap menyimpan baris `InpBedPlacement` baru dengan status aktif, waktu mulai `StartDateTime = 10:30`, dan mengubah status bed master menjadi `Occupied`.
+3. **Pemicu Room Charge:** Transaksi lokal menyimpan event `ROOM_ASSIGNED` ke `InpIntegrationOutbox`. Dispatcher mengirimkan data hunian ke Billing (`POST /invoices/from-source`).
+4. **Perhitungan Billing:** Billing mencatat bahwa Tn. Budi menempati Bed A Kamar 201 sejak 10.30 WIB. Sesuai `MstRoomChargePolicy`, penghitungan tarif harian kamar mulai diperhitungkan secara berkala sejak detik tersebut.
+
+#### Skenario 3: Koreksi Salah Catat Kamar oleh Supervisor Ruangan
+1. **Masalah di Lapangan:** Pada pukul 14.00 WIB, Kepala Ruangan menyadari bahwa petugas admisi salah memilih kamar pada sistem: Tn. Budi tertulis di Kamar VIP, padahal fisiknya berada di Kamar Kelas 1.
+2. **Pemeriksaan Syarat Koreksi (`RWI-DEC-157`):**
+   - Pelaku adalah Kepala Ruangan (Supervisor) yang memiliki wewenang.
+   - Sistem memeriksa status tagihan Tn. Budi di Billing masih terbuka (`BillingStatus == OPEN`).
+3. **Eksekusi Koreksi:** Kepala Ruangan mengisi formulir koreksi: memilih Kamar Kelas 1, memasukkan alasan wajib: *"Koreksi salah penetapan tipe kamar oleh petugas admisi saat pendaftaran"*.
+4. **Penyimpanan Audit & Reversi Tagihan:**
+   - Data penempatan lama versi 1 dinonaktifkan dengan jejak audit lengkap (*tanpa hard delete*).
+   - Data penempatan baru versi 2 diaktifkan dengan waktu efektif yang disesuaikan.
+   - Rawat Inap menyimpan event `OCCUPANCY_CORRECTED` ke outbox dengan kunci `INPATIENT:ROOM_STAY:PLC-TnBudi:2`.
+   - Modul Billing menerima event tersebut, membatalkan (*reversal*) kalkulasi biaya kamar VIP sebelumnya, dan menerapkan tarif baru untuk Kelas 1.
+
+#### Skenario 4: Alur Pemulangan, Penarikan Clearance, dan Auto-Reblock
+1. **Izin Pulang Dokter (DPJP):** Dokter Spesialis Penyakit Dalam memeriksa Tn. Budi pada pukul 09.00 WIB dan menerbitkan izin pulang klinis (`DischargeRequested` / `DischargePending`). Tempat tidur fisik **belum dilepas** karena pasien masih berkemas.
+2. **Kesiapan Tagihan Kasir:** Kasir memeriksa kelengkapan tagihan melalui menu finalisasi (`GET /invoices/{invoiceId}/preview`). Pada pukul 10.00 WIB, keluarga Tn. Budi melunasi sisa tagihan obat dan kamar. Kasir menerbitkan status **Lunas** (`Financial Clearance: CLEARED`).
+3. **Kasus Penarikan Clearance (Revocation):**
+   - Pada pukul 10.15 WIB, instalasi farmasi menemukan resep obat pulang kronis susulan senilai Rp 750.000 yang belum masuk ke kalkulasi tagihan.
+   - Petugas kasir mencabut persetujuan kepulangan dan mengubah status menjadi **Tertahan / Ditarik** (`Financial Clearance: REVOKED` / `BLOCKED`) dengan alasan: *"Ada transaksi obat kronis susulan belum diselesaikan"*.
+4. **Penguncian Otomatis di Bangsal (*Auto-Reblock* - `RWI-DEC-158`):**
+   - Pada pukul 10.20 WIB, perawat bangsal bersiap memulangkan Tn. Budi dan membuka menu pelepasan fisik pasien.
+   - Sistem Rawat Inap mendeteksi status clearance telah berubah menjadi `REVOKED`. Tombol pelepasan tempat tidur **otomatis terkunci kembali**.
+   - Di layar perawat bangsal muncul peringatan: *"Pasien belum dapat dipulangkan. Kendala Kasir: Ada transaksi obat kronis susulan belum diselesaikan."* **Tidak ada nominal rupiah yang ditampilkan ke perawat**, menjaga kerahasiaan finansial pasien.
+   - Perawat mengarahkan keluarga pasien untuk kembali ke kasir menyelesaikan tagihan susulan tersebut.
+5. **Pelepasan Fisik Pasien & Penghentian Sewa Kamar (`RWI-DEC-159`):**
+   - Pukul 11.00 WIB, kasir memperbarui status menjadi `CLEARED` setelah pelunasan obat susulan.
+   - Gerbang pelepasan di bangsal kembali terbuka. Tn. Budi meninggalkan ruangan bersama keluarga pada pukul 11.15 WIB.
+   - Perawat menekan tombol **Catat Kepergian Fisik (Patient Departed)** pada pukul 11.15 WIB.
+   - Rawat Inap mencatat `episode.PhysicallyLeftAt = 11:15` dan `placement.EndDateTime = 11:15`.
+   - Event `BED_RELEASED` dikirim ke Billing dengan parameter `OccupancyEndAt = 11:15`. Billing mengunci durasi sewa kamar Tn. Budi berakhir tepat pada pukul 11.15 WIB, bukan pukul 09.00 WIB saat dokter visit.
+   - Tempat tidur Bed A Kamar 201 resmi kembali berstatus kosong (*Available*) dan siap dibersihkan untuk pasien berikutnya.
+
+---
+
+### 18.4 Spesifikasi Teknis Endpoint Bergaya Swagger
+
+Berikut adalah pemetaan spesifikasi endpoint integrasi yang relevan antara kedua modul:
+
+#### A. Endpoint Modul Billing yang Dikonsumsi atau Diadaptasi
+```csharp
+[Tags("Health Services / Billing Management / Billing / Patient Funds")]
+```
+| Metode | Rute Endpoint | Deskripsi Bisnis | Hak Akses (*Permission*) | Payload Permintaan / Respons |
+|---|---|---|---|---|
+| `GET` | `/api/v1/health-services/billing-management/billing/patient-funds/deposit-policies` | Membaca kebijakan deposit minimal berdasarkan penjamin dan kelas kamar | `BillingDeposit:Read` | **Query:** `guarantorId`, `patientClassId`<br>**Response 200:** `DepositPolicyResponse` (Status wajib, nominal minimal, toleransi hari) |
+| `POST` | `/api/v1/health-services/billing-management/billing/patient-funds/deposits/{encounterId}/top-ups` | Mencatat setoran deposit pasien rawat inap di kasir loket admisi | `BillingDeposit:Create` | **Header:** `Idempotency-Key: Guid`<br>**Body:** `DepositTopUpRequest` (`PaymentMethodId`, `Amount`, `Reason`, `CorrelationId`)<br>**Response 200:** `SettlementResponse` |
+| `GET` | `/api/v1/health-services/billing-management/billing/patient-funds/deposits/episodes/{episodeId}` | Membaca ringkasan saldo, total pemakaian, dan sisa deposit per episode | `BillingDeposit:Read` | **Response 200:** `EpisodeDepositSummaryResponse` (`TotalReceived`, `TotalAllocated`, `AvailableBalance`) |
+
+```csharp
+[Tags("Health Services / Billing Management / Billing / Invoices")]
+```
+| Metode | Rute Endpoint | Deskripsi Bisnis | Hak Akses (*Permission*) | Payload Permintaan / Respons |
+|---|---|---|---|---|
+| `POST` | `/api/v1/health-services/billing-management/billing/invoices/from-source` | Penerimaan beban tagihan kamar (*room charge*) dan tindakan dari producer | `BillingInvoice:Create` | **Header:** `Idempotency-Key: Guid`<br>**Body:** `UpsertChargeRequest` (`SourceDomain="ROOM_STAY"`, `SourceDetailId`, `SourceVersion`, `Quantity`, `UnitPrice`, `ContractVersion="BIL-INTEGRATION-0.4"`)<br>**Response 200:** `InvoiceDetailResponse` |
+
+```csharp
+[Tags("Health Services / Billing Management / Billing / Finalizations")]
+```
+| Metode | Rute Endpoint | Deskripsi Bisnis | Hak Akses (*Permission*) | Payload Permintaan / Respons |
+|---|---|---|---|---|
+| `GET` | `/api/v1/health-services/billing-management/billing/finalizations/invoices/{invoiceId}/preview` | Membaca checklist kesiapan penutupan tagihan beserta daftar kendala (*blocking reasons*) | `BillingFinalization:Read` | **Response 200:** `FinalizationPreviewResponse` (`AllOrdersComplete`, `Outstanding`, `IsReadyForNormalFinalization`, `BlockingReasons[]`) |
+
+#### B. Endpoint Modul Rawat Inap yang Perlu Diperluas (*Target To-Be*)
+```csharp
+[Tags("Health Services / Inpatient Management / Bed Occupancy")]
+```
+| Metode | Rute Endpoint | Deskripsi Bisnis | Hak Akses (*Permission*) | Status As-Is & Rencana Penyesuaian |
+|---|---|---|---|---|
+| `POST` | `/api/v1/health-services/inpatient-management/bed-occupancies/placements` | Menempatkan pasien ke ranjang kamar rawat inap (`Bed Occupied`) | `InpatientBedOccupancy:Create` | **As-Is:** Menyimpan `InpBedPlacement` lokal.<br>**To-Be:** Tambahkan penulisan event `ROOM_ASSIGNED` ke `InpIntegrationOutbox` dalam satu transaksi lokal. |
+| `POST` | `/api/v1/health-services/inpatient-management/bed-occupancies/placements/transfer` | Memindahkan pasien ke tempat tidur atau kamar lain (mutasi) | `InpatientBedOccupancy:Transfer` | **As-Is:** Menutup penempatan lama dan membuka penempatan baru.<br>**To-Be:** Tambahkan penulisan event `ROOM_TRANSFERRED` ke `InpIntegrationOutbox`. |
+| `POST` | `/api/v1/health-services/inpatient-management/bed-occupancies/placements/{placementId}/correct` | Mengoreksi salah catat kamar/bed/kelas/waktu hunian (`RWI-DEC-157`) | `InpatientBedOccupancy:Correct` *(Baru)* | **As-Is:** Belum ada (`Missing`).<br>**To-Be:** Buat endpoint khusus Supervisor/Admisi, validasi `BillingStatus == OPEN`, catat versi baru, dan tulis event `OCCUPANCY_CORRECTED` ke outbox. |
+
+```csharp
+[Tags("Health Services / Inpatient Management / Inpatient Discharge")]
+```
+| Metode | Rute Endpoint | Deskripsi Bisnis | Hak Akses (*Permission*) | Status As-Is & Rencana Penyesuaian |
+|---|---|---|---|---|
+| `POST` | `/api/v1/health-services/inpatient-management/discharges/{episodeId}/record-departure` | Mencatat waktu kepulangan fisik pasien dari tempat tidur | `InpatientDischarge:RecordDeparture` | **As-Is:** Mencatat `episode.PhysicallyLeftAt` dan melepas bed lokal.<br>**To-Be:** Tambahkan validasi kelayakan keuangan (*Auto-Reblock*), serta tulis event `BED_RELEASED` dengan `OccupancyEndAt = PhysicallyLeftAt` ke outbox. |
+| `GET` | `/api/v1/health-services/inpatient-management/discharges/{episodeId}/billing-summary` | Mengambil ringkasan billing untuk bangsal dengan filter hak akses nominal rupiah (`RWI-DEC-160`) | `InpatientDischarge:Read` / `InpatientBilling:View` *(Baru)* | **As-Is:** Belum ada endpoint terpadu.<br>**To-Be:** Mengonsumsi data Billing; kembalikan status dan blocker untuk perawat, sertakan nominal rupiah hanya jika pemohon memiliki izin `InpatientBilling:View`. |
+
+---
+
+### 18.5 Fakta Baru, Pertanyaan Penutup, dan Penandaan Staleness
+
+#### A. Fakta Baru dari Audit Lapangan (`INT-FACT`)
+- **`INT-FACT-01` (Kesiapan Endpoint Deposit di Billing):** Endpoint kebijakan deposit `GET /deposit-policies` dan ringkasan episode `GET deposits/episodes/{episodeId}` pada `BillingPatientFundsController` di modul Billing **sudah berwujud dan aktif** di backend `fe7e60d4`. Hal ini membuktikan bahwa task frontend `FE-RWI-059` yang selama ini tertahan karena disangka endpoint-nya belum ada di backend, kini **resmi dapat dibuka dan dikerjakan**.
+- **`INT-FACT-02` (Keterbatasan Domain Adapter di Billing):** Berkas `ContractBillingChargeSourceAdapter.cs` pada repositori backend baris 23–53 saat ini **hanya** menerima domain: `PROCEDURE`, `LABORATORY`, `RADIOLOGY`, `PHARMACY`, `CONSUMABLE`, `ADHOC`, dan `ADHOC_CATALOG`. Domain `ROOM_STAY` atau `INPATIENT` belum terdaftar. Jika modul Rawat Inap mengirim tagihan kamar hari ini, sistem Billing akan menolaknya dengan galat validasi 422. Penambahan `ROOM_STAY` menjadi prasyarat mutlak pada sisi Billing.
+- **`INT-FACT-03` (Beda Tipe Kunci Idempotensi):** Tabel `BilChargeReceipt` dan parameter header `[FromHeader(Name = "Idempotency-Key")]` pada endpoint Billing mewajibkan tipe data `Guid`, sedangkan keputusan bisnis `RWI-DEC-161` menetapkan format string semantik: `SourceDomain:SourceType:SourceDetailId:Version`. Diperlukan adapter konversi deterministik (misalnya UUIDv5 berbasis namespace) pada dispatcher outbox Rawat Inap agar integritas kunci idempoten tetap terjaga.
+- **`INT-FACT-04` (Absensi Status `Revoked` & Celah Pelepasan Pasien):** Enum `InpFinancialClearanceStatus` saat ini hanya mengenal nilai `Pending = 0`, `Cleared = 1`, dan `Blocked = 2`. Nilai `Revoked = 3` belum tersedia. Selain itu, fungsi `RecordPatientDepartureAsync` di `InpDischargeService.Closure.cs` hanya mengecek apakah status episode `DischargePending`, tanpa memverifikasi kelayakan keuangan sama sekali. Ini merupakan celah keselamatan administrasi yang harus ditutup pada perancangan integrasi.
+- **`INT-FACT-05` (Formulir Frontend Deposit Belum Lengkap):** Komponen `inpatient-admission-deposit-step.jsx` dan hook `use-inpatient-admission-deposit.jsx` saat ini baru mengelola satu kolom input teks untuk nominal uang (`amount`), tanpa dropdown pemilihan metode pembayaran (`PaymentMethodId`). Padahal endpoint `POST /patient-funds/deposits/{encounterId}/top-ups` mewajibkannya sebagai kolom validasi utama.
+
+#### B. Pertanyaan Penutup (Unknowns)
+| ID | Pertanyaan | Mengapa Tidak Dapat Dijawab dari Kode Sumber Saja | Pemilik Kewenangan |
+|---|---|---|---|
+| `INT-UNK-01` | Apakah modul Billing Management (Yasmina) bersedia membuka endpoint penerimaan `POST /invoices/from-source` untuk menerima `SourceDomain = "ROOM_STAY"` dengan tipe payload occupancy harian, ataukah Billing lebih memilih memanggil service internal Inpatient secara in-process? | Menyangkut kontrak integrasi lintas modul antara tim Rawat Inap dan tim Billing. | Yasmina (Billing) & M. Hamzah (Rawat Inap) |
+| `INT-UNK-02` | Apakah penarikan clearance (`REVOKED`) di Billing akan dipublikasikan sebagai event asinkron (misal webhook/message) ke Rawat Inap, ataukah Rawat Inap melakukan pemeriksaan live-check (*synchronous query*) sesaat sebelum perawat menekan tombol pelepasan fisik pasien? | Menyangkut pola arsitektur runtime dan latensi komunikasi antar-service. | Arsitek Sistem bersama Yasmina & M. Hamzah |
+
+#### C. Penandaan Ketinggalan Dokumen (*Staleness Trigger*)
+Bagian 18 ini menjadi **basi (*STALE*)** dan wajib diaudit ulang apabila salah satu kondisi berikut terpenuhi:
+1. Perubahan pada repositori backend `NewQuilvianSystemBackend`:
+   - `Areas/HealthServices/InPatientManagement/Models/InpBedPlacement.cs` atau `InpEpisode.cs`;
+   - `Areas/HealthServices/InPatientManagement/Controllers/InpatientBedOccupancyController.cs` atau `InpatientDischargeController.cs`;
+   - `Areas/HealthServices/BillingManagement/Billing/Services/BillingChargeSourceAdapter.cs` atau `BillingInvoiceService.cs`;
+   - `Areas/HealthServices/BillingManagement/Billing/Controllers/BillingPatientFundsController.cs` atau `BillingFinalizationsController.cs`.
+2. Perubahan pada repositori frontend `QuilvianSystemFrontendDev`:
+   - `src/components/view/health-services/inpatient-management/inpatient-admission-deposit-step.jsx`;
+   - `src/components/view/health-services/inpatient-management/inpatient-discharge-view.jsx`;
+   - `src/components/view/health-services/inpatient-management/inpatient-financial-clearance-view.jsx`.
+3. Terjadinya perubahan keputusan bisnis atau persetujuan wawancara pada Pass B bersama pemilik modul Billing (`BillingManagement`).
+

@@ -459,6 +459,32 @@ public sealed class BillingInvoicesController : ControllerBase
         ExecuteDiscountCommandAsync(() => _discountService.ApproveDoctorAsync(
             id, discountId, request, CurrentUserId(), cancellationToken), "Diskon jasa dokter berhasil disetujui.");
 
+    [HttpPost("{id:guid}/discounts/{discountId:guid}/cancel")]
+    [AccessAction("Update", "Cancel Billing Discount", AccessType = AccessTypes.Update, SortOrder = 8)]
+    [AccessPermission("BillingDiscount", "Update")]
+    [ProducesResponseType(typeof(ApiResponse<DiscountResponse>), StatusCodes.Status200OK)]
+    public Task<IActionResult> CancelDiscount(
+        Guid id,
+        Guid discountId,
+        [FromBody] CancelDiscountRequest? request,
+        CancellationToken cancellationToken) =>
+        ExecuteDiscountCommandAsync(() => _discountService.CancelAsync(
+            id, discountId, request ?? new CancelDiscountRequest(), CurrentUserId(), cancellationToken),
+            "Penerapan diskon/voucher berhasil dibatalkan.");
+
+    [HttpDelete("{id:guid}/discounts/{discountId:guid}")]
+    [AccessAction("Delete", "Delete Billing Discount", AccessType = AccessTypes.Delete, SortOrder = 9)]
+    [AccessPermission("BillingDiscount", "Delete")]
+    [ProducesResponseType(typeof(ApiResponse<DiscountResponse>), StatusCodes.Status200OK)]
+    public Task<IActionResult> DeleteDiscount(
+        Guid id,
+        Guid discountId,
+        [FromQuery] Guid? expectedRowVersion,
+        CancellationToken cancellationToken) =>
+        ExecuteDiscountCommandAsync(() => _discountService.CancelAsync(
+            id, discountId, new CancelDiscountRequest { ExpectedRowVersion = expectedRowVersion ?? Guid.Empty }, CurrentUserId(), cancellationToken),
+            "Penerapan diskon/voucher berhasil dibatalkan.");
+
     // Antrean approval milik dokter yang login - dipakai layar "Persetujuan Diskon Dokter" yang
     // berdiri sendiri, supaya dokter tidak perlu masuk Menu Pembayaran milik kasir untuk
     // menyetujui. Kepemilikan disaring di service dari DPJP encounter, bukan dari query client.
@@ -730,4 +756,39 @@ public sealed class BillingInvoicesController : ControllerBase
         var value = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("user_id");
         return Guid.TryParse(value, out var userId) ? userId : Guid.Empty;
     }
+
+    // =========================================================================
+    // REVISI REQUIREMENT: CATATAN PENTING, REFUND DUA KATEGORI, DAN AKSI RIWAYAT PEMBAYARAN
+    // =========================================================================
+
+    [HttpGet("{id:guid}/important-notes")]
+    [HttpGet("{id:guid}/patient-journey-notes")]
+    [AccessAction("ReadNotes", "Read Patient Journey Notes", AccessType = AccessTypes.Read, SortOrder = 19)]
+    [AccessPermission("BillingInvoice", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<List<PatientJourneyNoteResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPatientJourneyNotes(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _service.GetPatientJourneyNotesAsync(id, cancellationToken);
+            return Ok(ApiResponse<List<PatientJourneyNoteResponse>>.Ok(result, "Catatan perjalanan pasien berhasil diambil."));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message));
+        }
+    }
+
+    // QBE-AUTH-001 (perbaikan verifier otorisasi, 25 September 2026): GetRefundableItems,
+    // GetRemainingDeposit, dan CreateRefund (route "{id:guid}/refunds") dipindahkan ke
+    // BillingFinancialExceptionsController (lihat method *FromInvoice di sana) - resource
+    // "BillingRefund" HARUS terdaftar tepat pada satu module (invarian verifier #3), dan
+    // BillingFinancialExceptionsController/HEALTH_SERVICE_BILLING_MANAGEMENT_BILLING_FINANCIAL_EXCEPTION
+    // adalah pemilik kanonik resource ini. Rute lama dipertahankan persis via HttpGet/HttpPost
+    // absolut di controller tujuan sehingga frontend TIDAK berubah. CreateAdjustment (route
+    // "{id:guid}/adjustments") dan CreateWriteOff (route "{id:guid}/write-offs") DIHAPUS, bukan
+    // dipindah - dikonfirmasi tidak dipanggil satu pun caller frontend (frontend memakai
+    // "/financial-exceptions/adjustments" dan ".../write-offs" milik
+    // BillingFinancialExceptionsController untuk kedua aksi itu); resource "BillingAdjustment" dan
+    // "BillingWriteOff" sudah bersih di satu module tanpa perlu dipindah apa pun.
 }

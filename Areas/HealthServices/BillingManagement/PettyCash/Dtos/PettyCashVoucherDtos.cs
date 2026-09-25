@@ -31,6 +31,12 @@ public sealed class CancelPettyCashVoucherRequest
 {
     public Guid ExpectedRowVersion { get; set; }
     [MaxLength(500)] public string Reason { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Konfirmasi bahwa kasir telah menerima kembali fisik nominal voucher yang akan dibatalkan.
+    /// Wajib bernilai true untuk membatalkan voucher yang sudah dicairkan.
+    /// </summary>
+    public bool? ConfirmedCashReceived { get; set; }
 }
 
 public sealed class DisbursePettyCashVoucherRequest
@@ -65,6 +71,13 @@ public sealed class PettyCashVoucherReversalRequest
     public Guid ExpectedRowVersion { get; set; }
 }
 
+public sealed class PettyCashVoucherCancelValidationResponse
+{
+    public bool CanCancel { get; set; }
+    public bool RequiresAlert { get; set; }
+    public string? AlertMessage { get; set; }
+}
+
 public sealed class PettyCashVoucherResponse
 {
     public Guid Id { get; set; }
@@ -89,6 +102,16 @@ public sealed class PettyCashVoucherResponse
     public string? DecidedByName { get; set; }
     public Guid? DisbursedBy { get; set; }
     public string? DisbursedByName { get; set; }
+
+    /// <summary>User ID Kepala Kasir / Supervisor Kasir yang melakukan konfirmasi pencairan (klik "Cairkan").</summary>
+    public Guid? ConfirmedByUserId { get; set; }
+
+    /// <summary>Nama Kepala Kasir / Supervisor Kasir yang melakukan konfirmasi pencairan.</summary>
+    public string? ConfirmedByName { get; set; }
+
+    /// <summary>Waktu konfirmasi pencairan voucher dilakukan.</summary>
+    public DateTimeOffset? ConfirmedAt { get; set; }
+
     public string? RejectionReason { get; set; }
     public string? ProofReferenceNumber { get; set; }
 

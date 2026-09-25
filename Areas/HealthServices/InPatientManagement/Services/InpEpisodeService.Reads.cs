@@ -4,6 +4,7 @@ using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
+using QuilvianSystemBackend.Enums;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Services
 {
@@ -442,6 +443,87 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Service
             pageSize = pageSize < 1 ? 25 : Math.Min(pageSize, 100);
 
             return (pageNumber, pageSize);
+        }
+
+        /// <summary>
+        /// Mengambil daftar episode ibu yang sedang aktif dirawat (Admitted) untuk ditautkan
+        /// pada admisi bayi baru lahir (BE-RWI-128).
+        /// </summary>
+        /// <remarks>
+        /// Aturan klinis dan tata kelola maternal:
+        /// 1. Hanya pasien berjenis kelamin perempuan (Gender.Female) yang dapat dipilih.
+        /// 2. Hanya episode aktif berstatus Admitted yang dapat dipilih.
+        /// 3. Mencegah episode bayi menunjuk ke pasien yang sama (ExcludeChildPatientId).
+        /// </remarks>
+        public async Task<List<ActiveMotherItemResponse>> GetActiveMothersAsync(
+            ActiveMotherListQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            query ??= new ActiveMotherListQuery();
+
+            var (pageNumber, pageSize) = NormalizePaging(query.PageNumber, query.PageSize);
+
+            var episodes = _dbContext.Set<InpEpisode>()
+                .AsNoTracking()
+                .Where(x => !x.IsDelete &&
+                            x.EpisodeStatus == InpEpisodeStatus.Admitted &&
+                            x.Patient != null &&
+                            !x.Patient.IsDelete &&
+                            x.Patient.Gender == Gender.Female);
+
+            if (query.ExcludeChildPatientId.HasValue && query.ExcludeChildPatientId.Value != Guid.Empty)
+            {
+                episodes = episodes.Where(x => x.PatientId != query.ExcludeChildPatientId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(query.Search))
+            {
+                var term = query.Search.Trim().ToLower();
+                episodes = episodes.Where(x =>
+                    x.Patient!.FullName.ToLower().Contains(term) ||
+                    x.Patient.MedicalRecordNumber.ToLower().Contains(term) ||
+                    x.EpisodeNumber.ToLower().Contains(term));
+            }
+
+            var items = await episodes
+                .OrderByDescending(x => x.AdmittedAt ?? x.CreateDateTime)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(x => new
+                {
+                    EpisodeId = x.Id,
+                    x.EpisodeNumber,
+                    x.PatientId,
+                    PatientName = x.Patient!.FullName,
+                    MedicalRecordNumber = x.Patient.MedicalRecordNumber,
+                    x.AdmittedAt,
+                    x.ServiceUnitId,
+                    ServiceUnitName = x.ServiceUnit != null ? x.ServiceUnit.ServiceUnitName : null,
+                    CurrentPlacement = x.BedPlacements
+                        .Where(p => !p.IsDelete && p.EndDateTime == null && !p.IsSuperseded)
+                        .OrderByDescending(p => p.SequenceNumber)
+                        .Select(p => new
+                        {
+                            BedCode = p.Bed != null ? p.Bed.BedCode : null,
+                            RoomName = p.Room != null ? p.Room.RoomName : null
+                        })
+                        .FirstOrDefault()
+                })
+                .ToListAsync(cancellationToken);
+
+            return items.Select(x => new ActiveMotherItemResponse
+            {
+                EpisodeId = x.EpisodeId,
+                EpisodeNumber = x.EpisodeNumber,
+                PatientId = x.PatientId,
+                PatientName = x.PatientName,
+                MedicalRecordNumber = x.MedicalRecordNumber,
+                AdmittedAt = x.AdmittedAt,
+                ServiceUnitId = x.ServiceUnitId,
+                ServiceUnitName = x.ServiceUnitName,
+                RoomName = x.CurrentPlacement?.RoomName,
+                BedCode = x.CurrentPlacement?.BedCode
+            }).ToList();
         }
     }
 }

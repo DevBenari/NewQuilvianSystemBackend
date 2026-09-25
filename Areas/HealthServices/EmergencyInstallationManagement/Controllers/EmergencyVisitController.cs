@@ -86,6 +86,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 .Include(x => x.ServiceUnit)
                 .Include(x => x.ArrivalMode)
                 .Include(x => x.CaseType)
+                .Include(x => x.ArrivalConfirmedByUser)
                 .Where(x => !x.IsDelete);
 
             if (!string.IsNullOrWhiteSpace(search))
@@ -166,6 +167,35 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             return Ok(ApiResponse<PagedResult<EmergencyVisitResponse>>.Ok(result, "Data kunjungan IGD berhasil diambil."));
         }
 
+        /// <summary>
+        /// Daftar <i>Menunggu Triage</i> terpadu — <c>BE-IGD-054</c>, <c>FR-IGD-070</c>,
+        /// API <c>0.11.0</c> §8.3.1.
+        /// </summary>
+        /// <remarks>
+        /// Satu daftar berisi dua asal baris: encounter IGD yang belum berakhir dan belum punya
+        /// kunjungan, serta kunjungan yang episodenya masih terbuka. Layar tidak lagi
+        /// menggabungkan dua sumber sendiri, dan <c>GET /emergency-visits</c> tidak berubah
+        /// karena masih dipakai layar lain.
+        /// </remarks>
+        [HttpGet("triage-queue")]
+        [ProducesResponseType(typeof(ApiResponse<PagedResult<EmergencyTriageQueueRowResponse>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [AccessAction("Read", "Read Emergency Visit", Description = "Melihat daftar Menunggu Triage terpadu", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("EmergencyVisit", "Read")]
+        public async Task<IActionResult> TriageQueue(
+            [FromQuery] EmergencyTriageQueueQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            var hasil = await _emergencyVisitService.GetTriageQueueAsync(query, cancellationToken);
+
+            if (!hasil.Berhasil)
+                return StatusCode(hasil.StatusCode, ApiResponse<object>.Fail(hasil.StatusCode, hasil.Penolakan!));
+
+            return Ok(ApiResponse<PagedResult<EmergencyTriageQueueRowResponse>>.Ok(
+                hasil.Data!,
+                "Daftar Menunggu Triage berhasil diambil."));
+        }
+
         [HttpGet("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<EmergencyVisitResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
@@ -173,11 +203,68 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
         [AccessPermission("EmergencyVisit", "Read")]
         public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken = default)
         {
-            var entity = await _dbContext.Set<EmgVisit>().AsNoTracking().FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+            var entity = await _dbContext.Set<EmgVisit>().AsNoTracking().Include(x => x.ArrivalConfirmedByUser).FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
             if (entity == null)
                 return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Data kunjungan IGD tidak ditemukan."));
 
             return Ok(ApiResponse<EmergencyVisitResponse>.Ok(ToResponse(entity), "Detail kunjungan IGD berhasil diambil."));
+        }
+
+        /// <summary>
+        /// Pra-cek episode IGD berjalan — <c>BE-IGD-050</c>, <c>IGD-DEC-138</c> (lapis A).
+        ///
+        /// Dipanggil layar <b>sebelum</b> <c>POST patient-encounters</c>. Penolakan episode ganda
+        /// pada <c>POST /</c> baru terjadi sesudah encounter di modul Registrasi tersimpan, sehingga
+        /// selalu meninggalkan encounter tanpa kunjungan IGD. Baca-saja: tidak menulis apa pun dan
+        /// tidak menahan pendaftaran — keputusan berhenti atau lanjut ada di pemanggil.
+        ///
+        /// Aturan "berjalan" bukan salinan: memanggil <see cref="EmergencyVisitService.CariEpisodeAktifAsync"/>
+        /// yang sama dengan <c>POST /</c>. <c>POST /</c> tetap menolak <c>409</c> sebagai jaring pengaman.
+        /// Celah yang tidak ditutup — pendaftaran serentak dan klien tanpa pra-cek — dicatat pada
+        /// <c>IGD-OQ-093</c>.
+        /// </summary>
+        [HttpGet("active-episode")]
+        [ProducesResponseType(typeof(ApiResponse<EmergencyActiveEpisodeResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [AccessAction("Create", "Create Emergency Visit", Description = "Membuat kunjungan IGD dan memeriksa kunjungan IGD yang masih berjalan sebelum mendaftarkan encounter baru", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessPermission("EmergencyVisit", "Create")]
+        public async Task<IActionResult> GetActiveEpisode([FromQuery] Guid patientId, CancellationToken cancellationToken = default)
+        {
+            if (patientId == Guid.Empty)
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    "patientId wajib diisi. Pilih pasien lebih dulu sebelum memeriksa kunjungan IGD yang masih berjalan."));
+
+            // sertakanPasien: nama pasien ikut terbaca dalam kueri yang sama, tanpa kueri kedua.
+            var episodeAktif = await _emergencyVisitService.CariEpisodeAktifAsync(
+                patientId,
+                cancellationToken: cancellationToken,
+                sertakanPasien: true);
+
+            if (episodeAktif == null)
+            {
+                return Ok(ApiResponse<EmergencyActiveEpisodeResponse>.Ok(
+                    new EmergencyActiveEpisodeResponse { HasActiveEpisode = false, Visit = null },
+                    "Pasien tidak punya kunjungan IGD yang masih berjalan."));
+            }
+
+            return Ok(ApiResponse<EmergencyActiveEpisodeResponse>.Ok(
+                new EmergencyActiveEpisodeResponse
+                {
+                    HasActiveEpisode = true,
+                    Visit = new EmergencyActiveEpisodeVisitSummary
+                    {
+                        Id = episodeAktif.Id,
+                        EncounterId = episodeAktif.EncounterId,
+                        // Kueri menyaring PatientId == patientId, jadi nilainya pasti sama.
+                        PatientId = patientId,
+                        PatientName = ResolvePatientName(episodeAktif),
+                        EmergencyVisitNumber = episodeAktif.EmergencyVisitNumber,
+                        VisitStatus = episodeAktif.VisitStatus,
+                        ArrivalDateTime = episodeAktif.ArrivalDateTime
+                    }
+                },
+                "Pasien masih punya kunjungan IGD yang berjalan."));
         }
 
         [HttpPost]
@@ -287,6 +374,45 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             );
 
             return Ok(ApiResponse<EmergencyVisitResponse>.Ok(ToResponse(entity), "Data kunjungan IGD berhasil dibuat."));
+        }
+
+        [HttpPost("start-triage")]
+        [ProducesResponseType(typeof(ApiResponse<EmergencyVisitResponse>), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ApiResponse<EmergencyVisitResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
+        [AccessAction("Create", "Create Emergency Visit", Description = "Membuat kunjungan IGD, memeriksa kunjungan IGD yang masih berjalan, serta memulai triage atau penanganan segera dari encounter IGD", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessPermission("EmergencyVisit", "Create")]
+        public async Task<IActionResult> StartTriage([FromBody] StartEmergencyVisitRequest request, CancellationToken cancellationToken = default)
+        {
+            var actorUserId = GetCurrentUserId();
+            var hasil = await _emergencyVisitService.StartVisitAsync(request, actorUserId, cancellationToken);
+
+            if (!hasil.Berhasil)
+                return StatusCode(hasil.StatusCode, ApiResponse<object>.Fail(hasil.StatusCode, hasil.Penolakan!));
+
+            var kunjungan = hasil.Data!;
+            var lahir = hasil.StatusCode == StatusCodes.Status201Created;
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "EmergencyVisit.StartTriage",
+                lahir
+                    ? "Melahirkan Emergency Visit melalui aksi StartTriage."
+                    : "Aksi StartTriage pada Emergency Visit yang sudah ada.",
+                new { EntityId = kunjungan.Id, Controller = "EmergencyVisit", Action = "StartTriage", kunjungan.EncounterId, request.Mode, kunjungan.VisitStatus, kunjungan.ArrivalTimeSource, Lahir = lahir }
+            );
+
+            var pesan = lahir
+                ? (kunjungan.VisitStatus == EmergencyVisitStatus.InTreatment
+                    ? "Kunjungan IGD dimulai dengan penanganan segera."
+                    : "Kunjungan IGD dimulai dan menunggu triage.")
+                : $"Kunjungan IGD untuk encounter ini sudah ada dengan status {kunjungan.VisitStatus}.";
+
+            var respons = ApiResponse<EmergencyVisitResponse>.Ok(ToResponse(kunjungan), pesan);
+            respons.StatusCode = hasil.StatusCode;
+            return StatusCode(hasil.StatusCode, respons);
         }
 
         [HttpPut("{id:guid}")]
@@ -422,6 +548,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
 
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
+            var statusSebelumnya = entity.VisitStatus;
             entity.VisitStatus = request.VisitStatus;
             if (request.VisitStatus == EmergencyVisitStatus.InTreatment)
                 entity.TreatmentStartedAt ??= now;
@@ -436,13 +563,31 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             entity.UpdateDateTime = now;
             entity.UpdateBy = actorUserId;
 
+            // BE-IGD-051 - kunjungan yang BARU dibatalkan ikut membatalkan encounter-nya pada
+            // penyimpanan yang sama. Dipicu perpindahannya, bukan status tujuannya: CanTransition
+            // menerima Cancelled ke Cancelled sebagai tindakan idempoten, dan pengiriman ulang
+            // itu tidak boleh menutup encounter lama dengan waktu pembatalan hari ini. Encounter
+            // lama semacam itu milik rekonsiliasi berbasis bukti (BE-IGD-052).
+            var encounterDitutup = false;
+            if (request.VisitStatus == EmergencyVisitStatus.Cancelled &&
+                statusSebelumnya != EmergencyVisitStatus.Cancelled)
+            {
+                encounterDitutup = await _emergencyVisitService.ApplyEncounterClosureAsync(
+                    entity,
+                    EmergencyVisitStatus.Cancelled,
+                    actorUserId,
+                    now,
+                    request.Notes,
+                    cancellationToken);
+            }
+
             await _dbContext.SaveChangesAsync(cancellationToken);
 
             await _loggerService.InfoAsync(
                 LogCategory,
                 "EmergencyVisit.UpdateVisitStatus",
                 "Memperbarui proses Emergency Visit melalui aksi UpdateVisitStatus.",
-                new { EntityId = id, Controller = "EmergencyVisit", Action = "UpdateVisitStatus" }
+                new { EntityId = id, Controller = "EmergencyVisit", Action = "UpdateVisitStatus", entity.EncounterId, EncounterDitutup = encounterDitutup }
             );
 
             return Ok(ApiResponse<EmergencyVisitResponse>.Ok(ToResponse(entity), "Status kunjungan IGD berhasil diubah."));
@@ -502,13 +647,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             entity.UpdateDateTime = now;
             entity.UpdateBy = actorUserId;
 
+            // BE-IGD-051 - encounter ikut Completed dan catatan klinis yang belum ditandatangani
+            // dikunci (RM-DEC-003), pada SaveChanges yang sama dengan penyelesaian kunjungan.
+            // TryApplyVisitStatus di atas selalu merupakan perpindahan nyata: CanTransition
+            // menolak Completed ke Completed.
+            var encounterDitutup = await _emergencyVisitService.ApplyEncounterClosureAsync(
+                entity,
+                EmergencyVisitStatus.Completed,
+                actorUserId,
+                now,
+                cancellationToken: cancellationToken);
+
             await _dbContext.SaveChangesAsync(cancellationToken);
 
             await _loggerService.InfoAsync(
                 LogCategory,
                 "EmergencyVisit.Complete",
                 "Memperbarui proses Emergency Visit melalui aksi Complete.",
-                new { EntityId = id, Controller = "EmergencyVisit", Action = "Complete" }
+                new { EntityId = id, Controller = "EmergencyVisit", Action = "Complete", entity.EncounterId, EncounterDitutup = encounterDitutup }
             );
 
             // IGD-DEC-106 syarat (d) - penutupan tidak boleh pernah diam soal dokumen serah
@@ -707,6 +863,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
                 CaseTypeId = x.CaseTypeId,
                 CaseTypeName = x.CaseType?.Name,
                 ArrivalDateTime = x.ArrivalDateTime,
+                ArrivalTimeSource = x.ArrivalTimeSource,
+                ArrivalConfirmedByName = x.ArrivalConfirmedByUser == null
+                    ? null
+                    : x.ArrivalConfirmedByUser.DisplayName ?? x.ArrivalConfirmedByUser.UserName ?? x.ArrivalConfirmedByUser.Email ?? x.ArrivalConfirmedByUser.UserCode,
+                ArrivalConfirmedAt = x.ArrivalConfirmedAt,
                 ChiefComplaint = x.ChiefComplaint,
                 ArrivalLocation = x.ArrivalLocation,
                 FoundLocation = x.FoundLocation,

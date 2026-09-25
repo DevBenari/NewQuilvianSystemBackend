@@ -75,6 +75,7 @@ Seluruh task berstatus `READY_FOR_TASK_APPROVAL` bila dependency-nya terpenuhi. 
 | Verifikasi | Boundary test period, rounding, tanggal efektif, unauthorized update |
 | Risiko/pemilik | Kontrak penjamin dapat berbeda. Owner Finance/Tax + Inpatient |
 | DoD | Dua API master, tests, migration source, tanpa DB execution |
+| Perbaikan 16 September 2026 (`BE-BKC-FIX-010`) | Kolom `TaxableCategory` pada `MstTaxRule` dihapus dari model/DTO/service/controller (`BKC-DEC-098`) — sudah tidak punya konsekuensi kalkulasi apa pun sejak gerbang PPN dipindah ke `item.IsPharmacy`+`ServiceType` (`BKC-DEC-078`/`079`). Overlap-check periode tax rule aktif jadi global, tanpa kategori (`BKC-DEC-099`). Kolom fisik database dipertahankan sebagai orphan, tanpa migration. Frontend belum disesuaikan. Laporan: [BE-BKC-FIX-010](../task/report/backend/BE-BKC-FIX-010.md) |
 
 ## `BE-BKC-005` — Running invoice dan charge idempotent
 
@@ -2122,7 +2123,7 @@ belum berpindah.
 | Verifikasi | Verifikasi manual daftar periode dengan wewenang database eksplisit; konfirmasi tertulis Finance atas plafon yang terpasang |
 | Risiko/pemilik | Selama ini tidak diselesaikan, seluruh pencairan ditolak `BIL-VAL-106` walau kodenya benar. Owner Finance bersama pemilik modul |
 | DoD | Satu periode Aktif berisi nilai yang disetujui Finance; pencairan percobaan berhasil; tidak ada baris periode bertanda turunan migration yang masih dipakai sebagai anggaran berjalan |
-| Status | ⛔ **Tertahan eksekusi — keputusan kebijakan sudah tertutup resmi 15 September 2026 lewat `PC-DEC-027`** ([00-interview-decisions.md](../00-interview-decisions.md)). Tidak ada aktor/tanggal/plafon yang dipatok di depan; Finance membuat dan mengaktifkan periode anggaran riilnya sendiri kapan pun lewat layar `POST /budget/periods`/`.../activate` yang sudah ada (`BE-BKC-054`), tanpa tenggat wajib — sistem tetap berjalan memakai periode warisan migrasi sampai saat itu. **Yang tersisa murni eksekusi nyata**: belum ada satu pun periode dibuat/diaktifkan di database manapun dengan nilai riil Finance. Pemilik modul mengonfirmasi 15 September 2026 bahwa eksekusi ini **sengaja diserahkan ke Finance lewat aplikasi**, bukan dijalankan agent. Task tetap `⛔` sampai Finance benar-benar menjalankan create+activate, diverifikasi manual dengan wewenang database eksplisit. Bukti: [laporan](../task/report/backend/BE-BKC-059.md) |
+| Status | ⛔ **Tertahan eksekusi — keputusan kebijakan sudah tertutup resmi 15 September 2026 lewat `PC-DEC-027`** ([00-interview-decisions.md](../00-interview-decisions.md)). Tidak ada aktor/tanggal/plafon yang dipatok di depan; Finance membuat dan mengaktifkan periode anggaran riilnya sendiri kapan pun lewat layar `POST /budget/periods`/`.../activate` yang sudah ada (`BE-BKC-054`), tanpa tenggat wajib — sistem tetap berjalan memakai periode warisan migrasi sampai saat itu. **Yang tersisa murni eksekusi nyata**: belum ada satu pun periode dibuat/diaktifkan di database manapun dengan nilai riil Finance. Pemilik modul mengonfirmasi 15 September 2026 bahwa eksekusi ini **sengaja diserahkan ke Finance lewat aplikasi**, bukan dijalankan agent. **Update 25 September 2026**: pemilik modul menambahkan satu prasyarat lagi sebelum eksekusi ini dilanjutkan — task ini menunggu revisi Running Invoice selesai lebih dulu; rincian keterkaitan dan task ID Running Invoice yang dimaksud belum dijelaskan pada sesi ini. Task tetap `⛔` sampai Finance benar-benar menjalankan create+activate **dan** revisi Running Invoice tersebut selesai, diverifikasi manual dengan wewenang database eksplisit. Bukti: [laporan](../task/report/backend/BE-BKC-059.md) |
 
 ## Paralelisme dan urutan ringkas
 
@@ -2140,3 +2141,605 @@ periode dengan plafon riil) belum terjadi, sehingga task ini **tetap** `⛔` sam
 Tidak ada task pada gelombang ini yang mengubah rumus, status, atau perilaku bisnis rumpun
 `billing-kasir` lainnya. Petty Cash tetap tidak menyentuh tagihan pasien, kas fisik shift kasir,
 maupun Accounting (`PC-DES-023`).
+
+---
+
+# Amendment 18 September 2026 — Penutupan gap `FINAL`→`CLOSED`, gelombang `MVP-24`–`MVP-25`
+
+`roadmap_revision: 3` · status `DRAFT_FORWARD_TEST` · blueprint revisi `1.3` **approved** · backend SHA `21b4733154e91962cbd7094a102615b1d9eb2bf2` · masukan: `BKC-DEC-100`–`105` (`approved`), `BKC-DES-028`–`035` (`approved` lewat `BKC-DEC-105`), kontrak `BIL-API-1.2`/`BIL-STATE-1.1`/`BIL-VALIDATION-1.1`/`BIL-INTEGRATION-1.0`/`BIL-PERMISSION-1.0`/`BIL-TEST-1.2` (seluruhnya `approved`).
+
+## 0. Yang membedakan gelombang ini
+
+Seluruh gelombang sebelumnya membangun **kemampuan baru**. Gelombang ini **memperbaiki cacat yang sudah berjalan di produksi**, dan cacatnya berlapis dua:
+
+| Lapis | Yang terjadi | Siapa yang melihatnya |
+| --- | --- | --- |
+| Pertama | Tagihan lunas macet di `FINAL` selamanya | Kasir — setiap hari, tetapi tidak tahu itu cacat |
+| Kedua | Koreksi tagihan sesudah lunas gagal menjadi koreksi piutang, **tanpa galat dan tanpa log** | **Tidak ada siapa pun**, sampai ada yang merekonsiliasi manual |
+
+Konsekuensi langsung bagi cara mengerjakannya: **tidak boleh ada task yang dinyatakan selesai hanya karena kode berjalan tanpa galat.** Lapis kedua justru berbentuk "tidak ada galat". Setiap task di bawah karena itu menuntut bukti bahwa sesuatu yang selama ini **tidak terjadi** kini **benar-benar terjadi** — bukan sekadar bukti bahwa tidak ada yang rusak.
+
+Perbedaan kedua: amendment ini **nol perubahan skema**. Tidak ada tabel, kolom, index, endpoint, butir hak akses, maupun master data baru. Satu-satunya sentuhan database adalah migration yang isinya **hanya `UPDATE` data**, dan ia sengaja dipisah ke gelombang tersendiri.
+
+## Grafik urutan dependency
+
+```text
+BE-BKC-060 ✅ ─┬─> BE-BKC-061 ✅ ─┐
+              │                 │
+              └─> BE-BKC-062 🟡 ─┼─> BE-BKC-064 ─┬─> BE-BKC-065 ⛔
+                                │               │
+            BE-BKC-063 ✅ ───────┘    {otorisasi migration} ─┘
+
+FE-BKC-039 (verifikasi) ──> boleh kapan saja sesudah BE-BKC-061
+```
+
+`{otorisasi migration}` = konfirmasi eksplisit pemilik untuk membuat dan menjalankan migration, sesudah backup. `BKC-DEC-105` menyetujui desainnya, **bukan** menjalankannya.
+
+| Gelombang | Boleh mulai setelah | Task |
+| ---: | --- | --- |
+| 1 | — | `BE-BKC-060` |
+| 2 | `BE-BKC-060` | `BE-BKC-061`, `BE-BKC-062` — boleh paralel, service berbeda |
+| 2 | — | `BE-BKC-063` — boleh paralel sejak awal, berkas berbeda dari semuanya |
+| 3 | `BE-BKC-061`, `BE-BKC-062`, `BE-BKC-063` | `BE-BKC-064` |
+| — | ⛔ menunggu `BE-BKC-064` dan otorisasi migration | `BE-BKC-065` |
+
+## 1. Pemetaan gelombang MVP ke gelombang eksekusi
+
+| Gelombang MVP | Task | Yang dapat diverifikasi bisnis sesudahnya |
+| --- | --- | --- |
+| `MVP-24` (tagihan lunas benar-benar tertutup) | `BE-BKC-060` ✅, `BE-BKC-061` ✅, `BE-BKC-062` 🟡, `BE-BKC-063` ✅, `FE-BKC-039` (belum diverifikasi pada task ini) | Kasir melihat tagihan yang sudah dibayar lunas berstatus `Closed` beserta waktu penutupannya; koreksi yang diposting sesudah tagihan lunas benar-benar memperbaiki catatan piutang. 🟡 **Gelombang belum bisa naik ✅ penuh** — `BE-BKC-062` masih tertahan `BIL-AT-123` (lunas dari deposit, gerbang OPEN-only `AllocateDepositAsync`), dan `FE-BKC-039` belum diverifikasi pada sesi 25 September 2026 ini |
+| `MVP-25` (data tagihan lama diperbaiki) | `BE-BKC-064`, ⛔ `BE-BKC-065` | Tagihan lama yang sudah lunas tidak lagi tampil `Final`; jumlah koreksi piutang yang terlanjur gagal diketahui angkanya |
+
+**Kenapa `BE-BKC-060` mendahului semuanya.** Ia satu-satunya task yang memindahkan rumus sisa tagihan ke satu tempat. Selama rumus itu masih ada di dua salinan, setiap pemasangan penyelarasan berarti menambah salinan ketiga — dan tiga salinan rumus uang yang harus disinkronkan manual adalah utang yang jauh lebih mahal daripada urutan kerja yang sedikit lebih ketat.
+
+**Kenapa `BE-BKC-065` dipisah dari `MVP-24`.** Migration-nya tidak dapat dimundurkan secara selektif: sesudah aplikasi berjalan, tagihan `CLOSED` hasil backfill tidak dapat dibedakan dari yang lahir normal. Menggabungkannya ke gelombang yang sama berarti menyandera perbaikan yang aman pada gerbang otorisasi yang belum tentu turun hari itu.
+
+## ✅ `BE-BKC-060` — Service penutupan tagihan dan konsolidasi perhitungan sisa tagihan
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Rumus sisa tagihan pasien berdiri di **satu** tempat dan dipakai bersama oleh finalisasi, pengecualian finansial, serta penyelarasan status yang akan datang. Service penyelarasan sudah ada dan teruji, tetapi **belum dipanggil siapa pun** — sehingga task ini **nol perubahan perilaku bisnis** |
+| Gelombang | `MVP-24` — eksekusi gelombang 1 |
+| Trace | `FR-BKC-116`; `BKC-DES-028`, `BKC-DES-030`, `BKC-DES-032` |
+| Kontrak | `BIL-STATE-1.1`, `BIL-VALIDATION-1.1` (`BIL-VAL-107`, `BIL-VAL-108`) |
+| Reuse | Rumus `CalculateOutstandingAsync` yang sudah ada — **disalin apa adanya, bukan ditulis ulang**; pola service tanpa interface dengan `AddScoped`; pola "menumpang transaksi pemanggil" dari `BillingArApHandoffService.StageHandoffsForFinalizationAsync`; kunci penasihat `BIL_INVOICE_LEDGER_{invoiceId:N}` yang sudah dipakai tiga tempat lain |
+| Scope | Satu berkas baru `Areas/HealthServices/BillingManagement/Billing/Services/BillingInvoiceClosureService.cs` berisi dua overload perhitungan dan `SyncClosureAsync`; **hapus** salinan privat di `BillingFinalizationService.cs` (baris 247–285) dan `BillingFinancialExceptionService.cs` (baris 669–722), ganti dengan pemanggilan ke service baru; satu baris `AddScoped<BillingInvoiceClosureService>()` pada `BillingManagementServiceCollectionExtensions.cs`. **Nol pemanggilan `SyncClosureAsync` dipasang pada task ini** |
+| Dependency | — |
+| Acceptance | `BIL-AT-134`(b) — sisa tagihan sepuluh invoice lama menghasilkan angka **identik** sebelum dan sesudah konsolidasi |
+| Verifikasi | Review diff dan scope; `dotnet restore` dan `dotnet build`; bandingkan hasil perhitungan pada sekurang-kurangnya sepuluh invoice yang mewakili kasus berbeda (lunas, sebagian, ada write-off `PATIENT_AR`, ada write-off residual, ada penyesuaian dua arah, ada kelebihan alokasi) |
+| Risiko/pemilik | Rumusnya menyentuh angka uang yang dipakai gerbang finalisasi dan plafon write-off. Satu suku yang tergeser saat memindahkan akan mengubah kedua gerbang itu sekaligus, dan gejalanya tidak muncul sebagai galat. **Pesan galat `"Invoice belum memiliki hasil perhitungan terkini."` MUST tetap identik** sampai ke layar — service bersama melempar exception netral dan `BillingFinancialExceptionService` membungkusnya kembali. Owner Backend/API |
+| DoD | Berkas service baru ada dan terdaftar di DI; kedua salinan privat benar-benar hilang dari source; kesepuluh angka pembanding dilaporkan berpasangan sebelum/sesudah; pesan galat diverifikasi identik; `dotnet build` lulus; `git status --short` dilaporkan |
+| Status | ✅ **SELESAI 25 September 2026.** `dotnet build` lulus dan aplikasi dijalankan; skenario utama penutupan tagihan dicoba langsung dan berjalan benar — dikonfirmasi pemilik modul. Berkas service baru ada, kedua salinan privat hilang dari source, pesan galat dibungkus ulang identik. Butir DoD granular (pencatatan berpasangan kesepuluh angka outstanding sebelum/sesudah satu-per-satu) **dikecualikan atas keputusan pemilik modul 25 September 2026** — skenario intinya sudah terbukti benar lewat pengujian manual langsung. Bukti: [laporan](../task/report/backend/be-bkc-060-061-service-penutupan-tagihan-dan-penyelarasan-jalur-pembayaran.md) |
+
+## ✅ `BE-BKC-061` — Penyelarasan pada jalur pembayaran
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Tagihan yang dibayar lunas berpindah ke `CLOSED` beserta waktu penutupannya, dan kembali ke `FINAL` bila pembayarannya dibalik. **Inilah task yang pertama kali terlihat pengguna** |
+| Gelombang | `MVP-24` — eksekusi gelombang 2 |
+| Trace | `FR-BKC-109`, `FR-BKC-110`, `FR-BKC-112`, `FR-BKC-113`; `BKC-DES-029`–`032` |
+| Kontrak | `BIL-STATE-1.1` (baris `FINAL`→`CLOSED` dan `CLOSED`→`FINAL`), `BIL-API-1.2` (perubahan nilai `status`/`closedAt`), `BIL-PERMISSION-1.0` (audit perpindahan status) |
+| Reuse | `BillingInvoiceClosureService` dari `BE-BKC-060`; pola audit sesudah commit dari `AuditTenderResultAsync`; kunci penasihat yang sudah ada |
+| Scope | `BillingSettlementService.ReconcileTenderAsync`: ganti `SaveChangesAsync` tunggal (baris 522) menjadi pola tiga langkah `SaveChanges` → `SyncClosureAsync` → `SaveChanges`, seluruhnya **sebelum** `CommitAsync` (baris 523); ambil `BIL_INVOICE_LEDGER_*` **sesudah** `BIL_TENDER_*` (`BKC-DES-032`); tulis audit perpindahan status sesudah commit. `occurredAt` diisi `result.OccurredAt`, **bukan** `DateTimeOffset.UtcNow` |
+| Dependency | `BE-BKC-060` |
+| Acceptance | `BIL-AT-121`, `BIL-AT-122`, `BIL-AT-124`, `BIL-AT-126`, `BIL-AT-128`, `BIL-AT-132`, `BIL-AT-133` |
+| Verifikasi | Review diff dan scope; `dotnet build`; verifikasi proses bisnis pelunasan sekali bayar, cicilan dua settlement terpisah, tagihan departure exception, pembalikan, pengiriman ulang event yang sama, dan dua tender bersamaan pada satu invoice |
+| Risiko/pemilik | Menyentuh jalur pembayaran yang dipakai kasir setiap hari. **Dua jebakan yang sudah diketahui dan MUST dihindari**: (1) memanggil penyelarasan **sebelum** `SaveChanges` pertama membuat perhitungan tidak melihat alokasi yang baru dibuat dan masih di ChangeTracker — hasilnya status yang salah tanpa galat; (2) melewatkan kunci penasihat membuat dua tender bersamaan sama-sama menulis status, dan `Serializable` menolak salah satunya sebagai galat "Data telah berubah" yang sampai ke kasir padahal pembayarannya sah. Owner Backend/API |
+| DoD | Ketujuh acceptance test lulus; `closedAt` terbukti berisi waktu pembayaran (bukan waktu eksekusi) pada bukti verifikasi; pengiriman ulang event terbukti tidak menaikkan `rowVersion` dua kali; dua pembayaran bersamaan terbukti tidak memunculkan galat ke kasir; `dotnet build` lulus; `git status --short` dilaporkan |
+| Status | ✅ **SELESAI 25 September 2026.** `dotnet build` lulus dan aplikasi dijalankan; skenario utama jalur pembayaran (pelunasan, pembalikan) dicoba langsung dan berjalan benar — dikonfirmasi pemilik modul. Pemasangan `SyncClosureAsync` di `ReconcileTenderAsync` sudah sesuai scope (urutan `SaveChanges`→sync→`SaveChanges`, kunci ledger sesudah kunci tender, `occurredAt` dari `result.OccurredAt`, audit sesudah commit). **Temuan tambahan ditutup pada task ini atas persetujuan pengguna** (lihat laporan): titik ketujuh `BKC-DES-036` di `BillingFinalizationService.FinalizeAsync` — tanpa ini, tagihan yang auto-finalize dari pembayaran lunas sekali bayar (jalur paling umum, lewat `TryAutoFinalizeInvoiceAsync` yang sudah ada) akan tetap macet di `FINAL`. Butir DoD granular (ketujuh acceptance test `BIL-AT-121`–`133` satu-per-satu) **dikecualikan atas keputusan pemilik modul 25 September 2026** — skenario intinya sudah terbukti benar lewat pengujian manual langsung. Bukti: [laporan](../task/report/backend/be-bkc-060-061-service-penutupan-tagihan-dan-penyelarasan-jalur-pembayaran.md) |
+
+## 🟡 `BE-BKC-062` — Penyelarasan pada jalur deposit dan pengecualian finansial
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Tagihan yang lunas **tanpa pembayaran baru** — seluruhnya dari deposit pasien, atau karena penyesuaian `Credit` — juga berpindah ke `CLOSED`; penyesuaian `Debit` sesudah tagihan tertutup mengembalikannya ke `FINAL` |
+| Gelombang | `MVP-24` — eksekusi gelombang 2, boleh paralel dengan `BE-BKC-061` |
+| Trace | `FR-BKC-111`, `FR-BKC-114`; `BKC-DES-029`, `BKC-DES-030` |
+| Kontrak | `BIL-STATE-1.1` (tabel enam peristiwa pemicu) |
+| Reuse | `BillingInvoiceClosureService`; pola tiga langkah yang sama persis dengan `BE-BKC-061` |
+| Scope | `BillingAllocationService.AllocateDepositAsync`: pola tiga langkah sesudah alokasi dibuat. `BillingFinancialExceptionService`: **empat** titik, yaitu pasangan dari keempat pemanggilan `RecordCorrectionIfLinkedAsync` yang sudah ada (baris 215, 431, 545, 641) — penyesuaian diposting, write-off diposting, pembalikan penyesuaian, pembalikan write-off. Penyelarasan dipasang **di dalam** transaksi, **bukan** berdampingan dengan pemanggilan koreksi yang berjalan sesudah commit |
+| Dependency | `BE-BKC-060` |
+| Acceptance | `BIL-AT-123`, `BIL-AT-125`, `BIL-AT-127` |
+| Verifikasi | Review diff dan scope; `dotnet build`; verifikasi proses bisnis pelunasan penuh dari deposit, penyesuaian `Credit` yang menolkan sisa tagihan, dan penyesuaian `Debit` atas tagihan yang sudah tertutup |
+| Risiko/pemilik | Write-off `PATIENT_AR` yang melunasi penuh memindahkan tagihan ke `SETTLED_BY_WRITE_OFF`, dan penyelarasan **MUST** berhenti tanpa menulis apa pun pada keadaan itu (`BIL-VAL-108`). Bila penjaga status dilewatkan, tagihan yang dihapusbukukan akan tertimpa menjadi `CLOSED` — dua keadaan yang berbeda maknanya bagi Finance akan tercampur. Owner Backend/API |
+| DoD | Ketiga acceptance test lulus; terbukti write-off penuh tetap menghasilkan `SETTLED_BY_WRITE_OFF` dan bukan `CLOSED`; `dotnet build` lulus; `git status --short` dilaporkan |
+| Status | 🟡 **SEBAGIAN — build lulus, tapi satu acceptance criteria masih tertahan gerbang desain.** 25 September 2026: `dotnet build` lulus dan aplikasi dijalankan; skenario write-off `PATIENT_AR` atas invoice `FINAL`/`CLOSED` dicoba dan berjalan benar — dikonfirmasi pemilik modul (`BIL-AT-125`, `BIL-AT-127` tercakup). **Belum bergerak**: titik `AllocateDepositAsync` provably tidak pernah aktif pada source saat ini — endpoint itu menolak invoice non-`OPEN` (baris 114, tidak diubah task ini), sehingga penjaga `SyncClosureAsync` selalu melewatkannya. `BIL-AT-123` (lunas dari deposit) **tidak dapat lulus** dengan gerbang OPEN-only itu — skenarionya perlu ditinjau ulang di `/design-business-module` sebelum task ini bisa naik ke ✅. Bukti: [laporan](../task/report/backend/be-bkc-062-penyelarasan-jalur-deposit-dan-pengecualian-finansial.md) |
+
+## ✅ `BE-BKC-063` — Perluasan penjaga koreksi piutang
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Penyesuaian dan write-off yang diposting atas tagihan berstatus `CLOSED` **benar-benar menghasilkan koreksi piutang**. Inilah lapis kedua cacat yang selama ini gagal diam-diam |
+| Gelombang | `MVP-24` — boleh paralel sejak awal, berkas berbeda dari seluruh task lain |
+| Trace | `FR-BKC-115`; `BKC-DES-035` |
+| Kontrak | `BIL-INTEGRATION-1.0` |
+| Reuse | Seluruh badan `RecordCorrectionIfLinkedAsync` dipakai apa adanya; hanya kondisi penjaganya yang berubah |
+| Scope | **Satu baris**: `BillingArApHandoffService.cs:150`, dari `invoice.Status != BillingInvoiceStatuses.Final` menjadi kondisi yang menerima `Final` maupun `Closed`. `OPEN` dan `SETTLED_BY_WRITE_OFF` **tetap ditolak** |
+| Dependency | Tidak ada dependency kode. Pengujiannya bermakna sesudah `BE-BKC-061` karena butuh tagihan berstatus `CLOSED` yang lahir normal |
+| Acceptance | `BIL-AT-129` (koreksi lahir untuk `CLOSED`), `BIL-AT-130` dan `BIL-AT-131` (tetap ditolak untuk `SETTLED_BY_WRITE_OFF` dan `OPEN`) |
+| Verifikasi | Review diff; `dotnet build`; verifikasi proses bisnis skenario Tn. Budi pada temuan 2 September 2026 — tagihan lunas, tiga hari kemudian diposting penyesuaian Rp 300.000, dan **satu baris `BilHandoffAdjustment` benar-benar terbentuk** |
+| Risiko/pemilik | Perubahannya sekecil mungkin, tetapi **bukti lulusnya harus positif**, bukan sekadar "tidak ada galat" — sebab kegagalan yang diperbaiki di sini memang berbentuk `return` diam-diam. Test yang hanya memastikan tidak ada exception akan lulus bahkan bila baris ini tidak diubah sama sekali. Owner Backend/API |
+| DoD | `BIL-AT-129` membuktikan baris koreksi **ada** dengan nominal dan sumber yang benar; `BIL-AT-130`/`BIL-AT-131` membuktikan penolakan masih bekerja; `dotnet build` lulus; `git status --short` dilaporkan |
+| Status | ✅ **SELESAI 25 September 2026.** Source selesai — satu baris, sesuai scope persis. `dotnet build` lulus dan aplikasi dijalankan; skenario koreksi piutang atas tagihan `CLOSED` dicoba langsung dan berjalan benar — dikonfirmasi pemilik modul. Butir DoD granular (ketiga acceptance test `BIL-AT-129`–`131` satu-per-satu) **dikecualikan atas keputusan pemilik modul 25 September 2026** — skenario intinya sudah terbukti benar lewat pengujian manual langsung. Bukti: [laporan](../task/report/backend/be-bkc-063-perluasan-penjaga-koreksi-piutang.md) |
+
+## `BE-BKC-064` — Dry-run baca-saja: mengukur dampak backfill
+
+| Field | Isi |
+| --- | --- |
+| Outcome | `BKC-OQ-100` terjawab **dengan angka**, bukan perkiraan: berapa tagihan lama yang perlu dipindahkan, dan berapa di antaranya sudah menerima penyesuaian atau write-off tanpa koreksi piutang |
+| Gelombang | `MVP-25` — eksekusi gelombang 3 |
+| Trace | `FR-BKC-117`; `BKC-DES-034`; menjawab `BKC-OQ-100` |
+| Kontrak | Rumus sisa tagihan pada `BIL-STATE-1.1`, dipakai **identik** dengan `BE-BKC-065` |
+| Reuse | Rumus yang sama persis dengan `BillingInvoiceClosureService` hasil `BE-BKC-060` |
+| Scope | **Query `SELECT` baca-saja**, bukan source aplikasi dan bukan migration. Tiga angka: (1) jumlah tagihan `FINAL` yang sisa tagihannya sudah nol; (2) berapa di antaranya punya penyesuaian/write-off diposting **tanpa** baris `BilHandoffAdjustment` pasangannya; (3) jumlah tagihan `CLOSED` warisan yang `ClosedAt`-nya masih kosong |
+| Dependency | `BE-BKC-061`, `BE-BKC-062`, `BE-BKC-063` — dijalankan sesudah jalur normal aktif, supaya yang tersisa murni data lama dan angkanya tidak bergerak lagi |
+| **Gerbang eksternal** | **Menuntut wewenang baca database eksplisit** sesuai `AGENTS.md` bagian Keselamatan Database. Task ini **tidak menulis satu baris pun** |
+| Acceptance | Ketiga angka dilaporkan tertulis; kriteria query terbukti identik dengan yang akan dipakai `BE-BKC-065` |
+| Verifikasi | Jalankan query pada database yang diberi wewenang; lampirkan angka beserta tanggal pengambilannya pada laporan task |
+| Risiko/pemilik | Bila kriteria di sini berbeda sedikit pun dari kriteria `BE-BKC-065`, angka yang dilaporkan tidak lagi memprediksi apa yang akan berubah — dan kegunaan utama dry-run hilang. Keduanya **MUST** memakai teks kriteria yang sama. Owner Billing/Finance bersama Backend/API |
+| DoD | Ketiga angka ada di laporan task; `BKC-OQ-100` ditutup pada `00-interview-decisions.md` dengan angka itu; keputusan apakah dibutuhkan koreksi piutang susulan dicatat beserta alasannya |
+| Status | ✅ **SELESAI 18 September 2026.** Query dijalankan pengguna sendiri di database dev/lokalnya. Hasil: `candidates_final_zero_outstanding = 1`, `candidates_missing_ar_correction = 0`, `legacy_closed_missing_closed_at = 0`. `BKC-OQ-100` **DITUTUP** — tidak dibutuhkan koreksi AR susulan. `BE-BKC-065` kini murni pemindahan status **satu baris** pada database yang sama; bila dijalankan ke database lain, dry-run ini MUST diulang di sana. Bukti: [laporan](../task/report/backend/be-bkc-064-dry-run-dampak-backfill.md) |
+
+## `BE-BKC-065` — Migration backfill data tagihan lama
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Tagihan lama yang sudah lunas tidak lagi tampil `Final`, dan `ClosedAt` terisi waktu pelunasan yang sebenarnya — termasuk pada tagihan `CLOSED` warisan yang selama ini kosong |
+| Gelombang | `MVP-25` |
+| Trace | `FR-BKC-117`; `BKC-DES-034` |
+| Kontrak | `BIL-STATE-1.1` |
+| Reuse | Pola migration berisi pemutakhiran data yang sudah dipakai `BE-BKC-053` |
+| Scope | **Direalisasikan sebagai skrip SQL langsung** (`BEGIN`/`UPDATE`/`SELECT` verifikasi/`COMMIT`), **bukan** EF Core migration — `dotnet ef migrations add` dicoba dengan otorisasi eksplisit tapi build internalnya gagal (root cause belum didiagnosis, lihat laporan), lalu pengguna secara eksplisit meminta jalur SQL langsung. Nol perubahan skema, dua langkah dieksekusi: pindahkan `FINAL` yang sisa tagihannya nol menjadi `CLOSED`; isi `ClosedAt` dari `MAX(BilTender.SettledAt)` tender `SUCCEEDED` atau `MAX(BilPaymentAllocation.CreateDateTime)`; isi `ClosedAt` tagihan `CLOSED` warisan yang masih kosong dari sumber waktu yang sama |
+| Dependency | `BE-BKC-064` |
+| **Gerbang eksternal** | **Pembuatan dan eksekusi migration menuntut otorisasi terpisah, sesudah backup.** `BKC-DEC-105` menyetujui desainnya, **bukan** menjalankannya. Langkah pertama **tidak dapat dimundurkan secara selektif**: sesudah aplikasi berjalan, tagihan `CLOSED` hasil backfill tidak dapat dibedakan dari yang lahir normal — dan memang seharusnya tidak dapat dibedakan |
+| Acceptance | `BIL-AT-134`(c) — jumlah baris yang benar-benar berpindah **sama persis** dengan yang dilaporkan `BE-BKC-064`, dan **tidak ada** dua baris hasil backfill yang `ClosedAt`-nya sama dengan waktu migration dijalankan |
+| Verifikasi | Jalankan pada salinan lebih dulu; bandingkan jumlah baris per status sebelum dan sesudah; periksa sebaran `ClosedAt` untuk memastikan ia mengikuti waktu pelunasan, bukan menumpuk pada satu detik |
+| Risiko/pemilik | **Tertinggi pada gelombang ini.** Menyentuh baris yang mencatat uang yang benar-benar diterima. Mengisi `ClosedAt` dengan waktu eksekusi migration akan menyatakan seluruh tagihan lama lunas pada detik yang sama — angka yang salah, dan salahnya tidak akan pernah muncul sebagai galat. Owner Backend/API bersama pemilik modul |
+| DoD | Jumlah baris berpindah sama dengan prediksi `BE-BKC-064`; sebaran `ClosedAt` dilaporkan; backup sebelum eksekusi dikonfirmasi; `dotnet build` lulus; `git status --short` dilaporkan |
+| Status | ✅ **SELESAI 18 September 2026.** Satu baris (`BIL-20260903-00000004`) berpindah ke `CLOSED`, persis sesuai prediksi `BE-BKC-064`; `ClosedAt` terverifikasi berisi waktu pelunasan sebenarnya (2026-09-10), bukan waktu eksekusi (2026-09-18) — bukti rumus derivasi bekerja benar. Dieksekusi pengguna sendiri lewat SQL langsung, dikonfirmasi commit permanen. **Menyimpang dari rencana**: bukan EF Core migration (`dotnet ef migrations add` gagal karena build error yang belum didiagnosis) — **tidak** tercatat di `__EFMigrationsHistory`. `dotnet build` **belum** lulus untuk `BE-BKC-060`–`063`; root cause-nya **MUST** ditemukan sebagai task terpisah. Bukti: [laporan](../task/report/backend/be-bkc-065-backfill-data-invoice-lunas.md) |
+
+## Paralelisme dan urutan ringkas
+
+`BE-BKC-060` **MUST** selesai lebih dulu — ia satu-satunya yang memindahkan rumus uang ke satu tempat, dan seluruh task sesudahnya memanggil hasilnya. Sesudahnya `BE-BKC-061` dan `BE-BKC-062` boleh paralel karena menyentuh service yang berbeda: yang pertama `BillingSettlementService`, yang kedua `BillingAllocationService` dan `BillingFinancialExceptionService`.
+
+`BE-BKC-063` boleh dikerjakan kapan saja sejak awal — berkasnya (`BillingArApHandoffService.cs`) tidak disentuh task lain mana pun. Yang tidak boleh adalah **menguji**nya sebelum `BE-BKC-061` selesai, karena sebelum itu tidak ada tagihan `CLOSED` yang lahir normal untuk diuji.
+
+Dua task tertahan gerbang, dan keduanya **bukan** blocker teknis: `BE-BKC-064` menunggu wewenang baca database, `BE-BKC-065` menunggu hasil `BE-BKC-064` beserta otorisasi migration. Keduanya tidak menahan satu pun task `MVP-24`.
+
+**Satu peringatan yang berlaku untuk seluruh gelombang ini.** Cacat yang diperbaiki berbentuk "tidak terjadi apa-apa" — `return` diam-diam, status yang tidak berpindah, koreksi yang tidak lahir. Test dan verifikasi manual yang hanya membuktikan ketiadaan galat **akan lulus bahkan bila tidak ada satu baris pun yang benar diperbaiki**. Setiap bukti verifikasi karena itu **MUST** berbentuk positif: baris yang **ada**, status yang **berpindah**, kolom yang **terisi**.
+
+---
+
+# Gelombang `MVP-26` — Penerbitan fakta finansial ke dua modul konsumen
+
+| Field | Nilai |
+| --- | --- |
+| Blueprint | `BIL-CASH-001` revisi `1.4` · status `approved` |
+| Masukan | `BKC-DEC-106`–`111`, `BKC-DES-036`–`041` — seluruhnya `approved` 21 September 2026 |
+| Contract version berlaku | `BIL-API-1.3`, `BIL-STATE-1.2`, `BIL-VALIDATION-1.2`, `BIL-INTEGRATION-1.1`, `BIL-PERMISSION-1.1`, `BIL-TEST-1.3` — seluruhnya `approved` |
+| Backend SHA | `6782ae652ca53299f7469c49b2edb64d23e77b60` |
+| Frontend SHA | `1b138b9aac7a50524fd751a47c9a76e0a55f8803` |
+| Yang dibuka gelombang ini | `BE-FIN-016`, `BE-FIN-017`, `BE-FIN-018` di Finance; seluruh slice Financial Clearance di Farmasi |
+
+## Mengapa gelombang ini mendesak
+
+Dua kerugian sedang berjalan hari ini, bukan risiko yang mungkin terjadi:
+
+| Yang terjadi | Sejak |
+| --- | --- |
+| Bagian keuangan tidak punya cara resmi mengetahui pasien sudah membayar; uang yang sudah diterima berisiko ditagihkan ulang sebagai piutang | Sejak modul Finance berdiri |
+| Seluruh resep rawat jalan macet permanen di keadaan menunggu pembayaran; apoteker tidak dapat memulai telaah untuk resep mana pun | 24 Agustus 2026 |
+
+## Grafik Urutan Dependency
+
+```text
+🟡 BE-BKC-066 ─> 🟡 BE-BKC-067 ─┬─> 🟡 BE-BKC-068 ─> 🟡 BE-BKC-070
+                             │
+                             └─> 🟡 BE-BKC-069 ─> [FE] FE-BKC-040
+```
+
+Legenda: `[FE]` adalah cermin baca-saja milik `frontend-roadmap.md`; task itu dihitung dan
+dijadwalkan di roadmap frontend, bukan di sini. Tidak ada node `{DEC-...}` pada gelombang ini —
+seluruh keputusan yang menahannya sudah turun.
+
+| Gelombang eksekusi | Task | Dapat berjalan paralel? |
+| --- | --- | --- |
+| 1 | 🟡 `BE-BKC-066` | Tidak — seluruhnya bergantung padanya |
+| 2 | 🟡 `BE-BKC-067` | Tidak |
+| 3 | 🟡 `BE-BKC-068`, 🟡 `BE-BKC-069` | **Ya**, keduanya hanya bergantung pada `067` |
+| 4 | 🟡 `BE-BKC-070` | Tidak |
+
+Jumlah pasangan prasyarat→task pada grafik: **lima**, sama persis dengan isi kolom `Dependency`
+pada tabel task di bawah.
+
+## Task
+
+### 🟡 `BE-BKC-066` — Surat penerimaan uang terbit saat tender mencapai keadaan akhirnya
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Setiap tender yang berhasil atau dibalik melahirkan tepat satu surat berisi rincian uang yang dibutuhkan buku penerimaan Finance |
+| Jejak | `BKC-DEC-106`, `BKC-DES-036`, `BKC-DES-037`, `BKC-DES-038`, `FIN-DEC-005`, `FIN-DEC-006` |
+| Contract | `BIL-INTEGRATION-1.1` (`BIL-INT-013`), `BIL-STATE-1.2`, `BIL-VALIDATION-1.2` |
+| Kemampuan existing yang dipakai | `BilTender`, `BilSettlement`, `BillingSettlementService`, `BillingInvoiceClosureService`, pola `BilArHandoff` |
+| Cakupan yang diharapkan | Satu tabel baru beserta configuration dan migration; satu service penerbit; pemasangan pada empat titik yang sama dengan penyelaras status |
+| Dependency | — |
+| Acceptance criteria | Pembayaran berhasil melahirkan tepat satu baris surat; pembayaran yang belum melunasi tagihan **tetap** melahirkan surat; pembalikan melahirkan **baris baru**, bukan mengubah baris lama; percobaan ulang atas peristiwa yang sama tidak menambah baris; tender tunai tanpa shift kasir **ditolak beserta transaksinya** |
+| Bukti verifikasi | QBE preflight dan conformance; review diff dan scope; `dotnet restore` dan `dotnet build` berhasil; verifikasi proses bisnis atas skenario `BIL-AT-135`, `136`, `142-F`; pemeriksaan runtime bahwa baris surat benar-benar lahir dengan kolom terisi |
+| Risiko | Penerbitan di luar transaksi akan membuat uang bergerak tanpa suratnya. Ini invariant paling mahal bila dilanggar karena kerusakannya baru terlihat saat rekonsiliasi bulanan |
+| Pemilik | Billing Backend |
+| Definition of Done | Tabel berdiri beserta index uniknya; surat lahir pada keempat titik; kegagalan penerbitan membatalkan transaksi pemanggil; nol kolom ditambahkan pada tabel yang sudah ada |
+| Status | 🟡 **Source selesai 21 September 2026.** Model `BilCollectionHandoff`, configuration EF Core, registrasi DbContext & DI, service penerbit `BilConsumerHandoffService`, dan integrasi di `BillingSettlementService.ReconcileTenderAsync` telah diimplementasikan. Build dan pengujian skenario `BIL-AT-135`, `136`, `142-F` belum diverifikasi (menunggu verifikasi manual pengguna). Pembuatan migration `AddBillingConsumerHandoff` belum dijalankan (menunggu otorisasi terpisah). Bukti: [laporan](../task/report/backend/BE-BKC-066.md) |
+
+> **Wewenang terpisah.** Pembuatan dan eksekusi migration `AddBillingConsumerHandoff` **MUST**
+> diminta tersendiri saat eksekusi. Approval `BKC-DEC-110` menyetujui desainnya, bukan
+> menjalankannya.
+
+### 🟡 `BE-BKC-067` — Surat clearance resep terbit saat keadaan berubah
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Perubahan keadaan clearance sebuah resep melahirkan surat bernomor versi yang naik monoton, dengan sebab yang eksplisit |
+| Jejak | `BKC-DEC-106`, `BKC-DES-036`, `BKC-DES-039`, `BKC-DES-041`, `PHA-DEC-064`, `PHA-DEC-065`, `PHA-DEC-068`, `PHA-DEC-068-A` |
+| Contract | `BIL-INTEGRATION-1.1` (`BIL-INT-014`), `BIL-STATE-1.2`, `BIL-VALIDATION-1.2` |
+| Kemampuan existing yang dipakai | `BilInvoiceItem.SourceDomain` untuk membedakan baris resep; `MstPaymentMethod` untuk menentukan hasil finansial; kunci penasihat tagihan (`BKC-DES-032`) |
+| Cakupan yang diharapkan | Tabel kedua beserta configuration; aturan penentuan sebab; perluasan hasil penyelarasan agar membawa keterangan sebab; alokasi nomor versi |
+| Dependency | `BE-BKC-066` |
+| Acceptance criteria | Tagihan lunas melahirkan surat boleh dikerjakan; penghapusan tagihan melahirkan hasil pembayaran ditiadakan; **penambahan biaya tindakan, laboratorium, radiologi, atau kamar TIDAK melahirkan surat pencabutan**; kenaikan harga obat melahirkan pencabutan; penarikan uang melahirkan pencabutan untuk **seluruh** resep pada tagihan; tender bercampur menghasilkan hasil penjaminan terlepas dari proporsi nominal |
+| Bukti verifikasi | QBE preflight dan conformance; review diff dan scope; build berhasil; verifikasi proses bisnis atas `BIL-AT-137`–`140`; pemeriksaan runtime bahwa nomor versi naik dan tidak pernah bentrok |
+| Risiko | Baris "biaya tindakan tidak mencabut clearance" adalah perilaku yang paling mudah dirancang keliru. Bila salah, obat yang sudah dibayar akan tertahan setiap kali ada biaya susulan pada kunjungan yang sama |
+| Pemilik | Billing Backend |
+| Definition of Done | Keenam kode sebab terbentuk pada keadaan yang benar; nomor versi monoton per resep terbukti pada uji bersamaan; nol perubahan pada perhitungan sisa tagihan maupun aturan transisi status invoice |
+| Status | 🟡 **Source selesai 21 September 2026.** Model `BilPrescriptionClearanceHandoff`, configuration EF Core, registrasi DbContext, perluasan `InvoiceClosureChange` (`BKC-DES-041`), implementasi `BilConsumerHandoffService.PublishForClearanceChangeAsync` (`BIL-INT-014`, `BIL-VAL-112`–`115`), dan integrasi pada 5 service pemicu telah selesai. QBE Conformance `PASS` (10 berkas). Build dan pengujian skenario `BIL-AT-137`–`140` belum diverifikasi (menunggu verifikasi manual pengguna). Pembuatan migration `AddBillingConsumerHandoff` belum dijalankan (menunggu otorisasi terpisah). Bukti: [laporan](../task/report/backend/BE-BKC-067.md) |
+
+### 🟡 `BE-BKC-068` — Permukaan pemeriksaan ulang keadaan clearance
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Farmasi dapat menanyakan keadaan clearance terkini sebuah resep kapan saja, tanpa menunggu perubahan berikutnya |
+| Jejak | `BKC-DEC-107`, `BKC-DES-040`, `PHA-DEC-063` |
+| Contract | `BIL-INTEGRATION-1.1`, `BIL-VALIDATION-1.2` |
+| Kemampuan existing yang dipakai | Pola pemanggilan dalam proses `BIL-INT-010`–`012` |
+| Cakupan yang diharapkan | Satu method baca murni pada service penerbit; **bukan** endpoint HTTP |
+| Dependency | `BE-BKC-067` |
+| Acceptance criteria | Jawaban sama persis dengan surat terakhir yang sah, walau surat itu belum pernah diambil konsumen; resep yang belum pernah punya surat dijawab **belum diketahui**, bukan galat dan bukan boleh diambil; pemanggilan berulang tidak menimbulkan efek samping apa pun |
+| Bukti verifikasi | QBE preflight; review diff dan scope; build berhasil; verifikasi proses bisnis atas `BIL-AT-141` dan `BIL-AT-141-F` |
+| Risiko | Bila permukaan ini dibuat sebagai endpoint HTTP, ia menambah mode gagal tanpa menambah kemampuan — dan membuka jalan modul lain memanggilnya dari luar proses |
+| Pemilik | Billing Backend |
+| Definition of Done | Method tersedia dan dipakai; nol endpoint HTTP baru untuk keperluan ini; keadaan belum diketahui tidak pernah dijawab sebagai boleh |
+| Status | 🟡 **Source selesai 21 September 2026.** Method in-process `BilConsumerHandoffService.ReadPrescriptionClearanceAsync` dan DTO `PrescriptionClearanceStatusResponse` selesai (`BKC-DES-040`, `BIL-INT-014`). Status resep tak dikenal dijawab `UNKNOWN` (`IsKnown: false`, `IsCleared: false`) sesuai `BIL-VAL-117`. QBE Conformance `PASS` (3 berkas). Verifikasi runtime `BIL-AT-141` & `141-F` menunggu build mandiri pengguna. Bukti: [laporan](../task/report/backend/BE-BKC-068.md) |
+
+### 🟡 `BE-BKC-069` — Permukaan operasional surat yang menggantung
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Petugas berwenang dapat melihat surat yang belum diambil konsumen dan mencatat pengakuan penerimaan bila diperlukan pemulihan |
+| Jejak | `BKC-DEC-108`, `BKC-DEC-109` |
+| Contract | `BIL-API-1.3`, `BIL-PERMISSION-1.1` |
+| Kemampuan existing yang dipakai | Pola controller, `ApiResponse<T>`, atribut hak akses, konvensi pencatatan |
+| Cakupan yang diharapkan | Satu controller dengan dua endpoint; satu Resource hak akses baru dengan dua Action; DTO |
+| Dependency | `BE-BKC-067` |
+| Acceptance criteria | Daftar surat menggantung dapat disaring jenis dan rentang waktu; pengakuan kedua atas surat yang sama ditolak tanpa mengubah apa pun; peran tak berwenang ditolak; kolom sensitif tidak muncul pada catatan log |
+| Bukti verifikasi | QBE preflight dan conformance; review diff dan scope; build berhasil; verifikasi kontrak API terhadap `BIL-API-1.3`; verifikasi hak akses dengan akun non-superadmin; verifikasi proses bisnis atas `BIL-AT-142` |
+| Risiko | Endpoint penerbitan **MUST NOT** ikut dibuat. Surat yang dapat diterbitkan manual adalah surat yang dapat dipalsukan |
+| Pemilik | Billing Backend |
+| Definition of Done | Kedua endpoint sesuai kontrak; nol endpoint penerbitan; nol endpoint penghapusan; hak akses terbukti menutup peran yang tidak berwenang |
+| Status | 🟡 **Source selesai 21 September 2026.** Controller `BillingConsumerHandoffsController` (`GET /pending`, `PATCH /{id}/acknowledge`), query service `GetPendingHandoffsAsync`, pengakuan `AcknowledgeHandoffAsync` dengan penolakan 409 Conflict (`BIL-AT-142`), dan audit log tanpa data sensitif (`BIL-PERMISSION-1.1`) selesai. QBE Conformance `PASS` (3 berkas). Verifikasi runtime menunggu build mandiri pengguna. Bukti: [laporan](../task/report/backend/BE-BKC-069.md) |
+
+### 🟡 `BE-BKC-070` — Pemulihan resep yang terlanjur tertahan
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Resep yang tagihannya sudah lunas **sebelum** jalur ini berdiri ikut terlepas, sehingga tidak ada dua jenis resep yang berperilaku berbeda |
+| Jejak | **`BKC-DEC-111`** |
+| Contract | `BIL-INTEGRATION-1.1` |
+| Kemampuan existing yang dipakai | Permukaan pemeriksaan ulang dari `BE-BKC-068` |
+| Cakupan yang diharapkan | Satu pekerjaan sekali jalan yang memanggil pemeriksaan ulang untuk resep yang masih menunggu pembayaran, lalu menerbitkan surat pertamanya bila memang sudah lunas |
+| Dependency | `BE-BKC-068` |
+| Acceptance criteria | Resep yang tagihannya sudah lunas memperoleh surat pertamanya; resep yang tagihannya **belum** lunas tidak memperoleh apa pun; pekerjaan dapat dijalankan dua kali tanpa melahirkan surat ganda; nol baris data diubah secara langsung |
+| Bukti verifikasi | Review diff dan scope; build berhasil; verifikasi proses bisnis pada basis data pengembang dengan hitungan sebelum dan sesudah; bukti bahwa jumlah surat yang lahir sama dengan jumlah resep yang memang sudah lunas |
+| Risiko | Godaan memakai skrip pemutakhiran data langsung. `BKC-DEC-111` menutupnya: pemulihan **membaca** dari Billing, tidak menebak |
+| Pemilik | Billing Backend |
+| Definition of Done | Seluruh resep yang layak terlepas; pekerjaan idempotent terbukti; **tidak** memerlukan otorisasi pemutakhiran data karena tidak menulis data secara langsung |
+| Status | 🟡 **Source selesai 21 September 2026.** Layanan `BilPrescriptionClearanceRecoveryService` dan DTO `PrescriptionClearanceRecoveryResult` selesai diimplementasikan (`BKC-DEC-111`, `BIL-INTEGRATION-1.1`). Pemulihan idempotent, membaca kebenaran status invoice via `ReadPrescriptionClearanceAsync` (`BE-BKC-068`) dan menerbitkan clearance pertama via `PublishForClearanceChangeAsync` (`BE-BKC-067`) tanpa modifikasi raw SQL langsung. QBE Conformance `PASS` (3 berkas). Verifikasi runtime menunggu build mandiri pengguna. Bukti: [laporan](../task/report/backend/BE-BKC-070.md) |
+
+## Catatan kebijakan verifikasi
+
+Mengikuti kebijakan test backend yang berlaku di repository ini, gelombang ini **tidak**
+memunculkan task penulisan automated test, dan acceptance criteria maupun Definition of Done di
+atas **tidak** menuntutnya. Skenario `BIL-AT-135`–`142` pada `testing/acceptance-test-matrix.md`
+dipakai sebagai **daftar skenario yang diverifikasi**, bukan sebagai kewajiban menulis test
+otomatis. Bila pemilik menghendaki automated test, itu permintaan eksplisit tersendiri.
+
+QBE preflight dan kesesuaian engineering diselesaikan **pada waktu eksekusi**, dari `AGENTS.md`
+backend target beserta dokumen engineering canonical — bukan dari roadmap ini.
+
+## Wewenang yang tetap terpisah
+
+| Wewenang | Pemilik | Catatan |
+| --- | --- | --- |
+| Menulis source | Diminta per task saat handoff | `BKC-DEC-110` menyetujui desain, bukan eksekusi |
+| Membuat migration | Diminta terpisah | Berlaku untuk `BE-BKC-066` dan `BE-BKC-067` |
+| Menjalankan migration | Diminta terpisah, sesudah backup | Sama seperti gelombang sebelumnya |
+| Eksekusi database langsung | **Tidak dibutuhkan** gelombang ini | `BE-BKC-070` membaca lewat permukaan resmi, tidak menulis data langsung |
+
+---
+
+# Gelombang `MVP-28` — Integrasi Rawat Inap ↔ Billing Management Core
+
+| Field | Nilai |
+| --- | --- |
+| Blueprint | `BIL-CASH-001` revisi `1.5` · status `draft` |
+| Masukan | `BKC-DEC-112`–`122` (approved 24 September 2026), `BKC-AC-080`–`090`, `BKC-DES-042`–`050` |
+| Contract version berlaku | `BIL-API-1.4`, `BIL-STATE-1.3`, `BIL-VALIDATION-1.3`, `BIL-INTEGRATION-1.2`, `BIL-PERMISSION-1.2`, `BIL-TEST-1.4` |
+| Backend baseline SHA | `dcb9c88e` |
+
+## Grafik Urutan Dependency
+
+```mermaid
+flowchart TD
+    BE-BKC-071["🟡 BE-BKC-071<br/>Skema Database & Policy Master"]
+    BE-BKC-072["🟡 BE-BKC-072<br/>Adapter Room Stay & IGD Non-Destruktif"]
+    BE-BKC-073["BE-BKC-073<br/>Kalkulasi Kamar Bertingkat & Pro-rata"]
+    BE-BKC-074["BE-BKC-074<br/>Admin Fee 7% Cap Rp6jt & Offset Rajal"]
+    BE-BKC-075["BE-BKC-075<br/>Inpatient Clearance & Auto-Reblock Engine"]
+    BE-BKC-076["BE-BKC-076<br/>API Controller Integrasi Ranap"]
+
+    BE-BKC-071 --> BE-BKC-072
+    BE-BKC-071 --> BE-BKC-073
+    BE-BKC-071 --> BE-BKC-074
+    BE-BKC-072 --> BE-BKC-075
+    BE-BKC-073 --> BE-BKC-075
+    BE-BKC-074 --> BE-BKC-075
+    BE-BKC-075 --> BE-BKC-076
+```
+
+### Tabel Gelombang Eksekusi
+
+| Gelombang Eksekusi | Task | Dapat Berjalan Paralel? |
+| :---: | --- | --- |
+| 1 | 🟡 `BE-BKC-071` | Tunggal (Fondasi skema database dan master policy) |
+| 2 | 🟡 `BE-BKC-072`, 🟡 `BE-BKC-073`, 🟡 `BE-BKC-074` | **Ya** — ketiganya bekerja paralel pada adapter, room calculation, dan admin fee |
+| 3 | 🟡 `BE-BKC-075` | Tunggal (Mengonsumsi hasil kalkulasi kamar, admin fee, dan adapter untuk engine clearance) |
+| 4 | `BE-BKC-076` | Tunggal (Eksposur endpoint API integrasi dan controller operasional) |
+
+Jumlah panah dependency: **7**, sama persis dengan isi kolom `Dependency` pada tabel task dan rincian task di bawah ini. Bebas siklus.
+
+---
+
+## Tabel Task
+
+| Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 🟡 `BE-BKC-071` | Berdirinya tabel `BilInpatientClearanceHandoff`, 3 kolom master `MstAdministrationFeePolicy`, & migrasi EF Core | `BKC-DEC-113`, `BKC-DEC-115`, `BKC-DEC-121`, `BKC-DEC-122`, `BKC-DES-044`, `BKC-DES-045` | `BIL-STATE-1.3`, `data/data-dictionary.md` | Pola model `IdentityModel`, konvensi `IEntityTypeConfiguration<T>` | Model, config, migration script EF Core, seed `ADM-RANAP-01` | — | Migration Up/Down bersih; index unik `(EncounterId, FinancialVersion)`; kolom baru nullable/default valid | Review file model & EF config; build lulus; script SQL terverifikasi | Eksekusi DB butuh otorisasi terpisah. Owner Backend | Model/config terdaftar di `ApplicationDbContext`; migration terbuat; QBE preflight PASS |
+| 🟡 `BE-BKC-072` | Sistem mampu menerima event hunian kamar `ROOM_STAY` & konsolidasi item IGD non-destruktif | `BKC-DEC-112`, `BKC-DEC-117`, `BKC-DEC-118`, `BKC-DES-042`, `BKC-DES-048`, `BIL-INT-015`, `BIL-INT-017` | `BIL-INTEGRATION-1.2`, `BIL-VALIDATION-1.3` | `ContractBillingChargeSourceAdapter.cs`, registrasi `SourcePolicies` | Daftarkan domain `INPATIENT`/`ROOM_STAY`; penanganan `ROOM_CORRECTION` idempoten; pertahankan `SourceDomain = "EMERGENCY"` | `BE-BKC-071` | Event `ROOM_STAY` terpetakan ke invoice ranap; `ROOM_CORRECTION` batalkan baris lama idempoten; item IGD pertahankan domain | Uji unit intake charge kamar; verifikasi pembatalan koreksi kamar (`BIL-AT-150`); audit rincian item IGD | Event kamar tertolak jika status tidak sah. Owner Billing Backend | Adapter kenali `ROOM_STAY`; koreksi idempoten teruji; konsolidasi IGD terverifikasi; QBE PASS |
+| 🟡 `BE-BKC-073` | Perhitungan sewa kamar rawat inap otomatis dengan jam masuk bertingkat, late checkout, & pro-rata menit transfer | `BKC-DEC-112`, `BKC-DES-043`, `BKC-DES-050`, `BIL-VAL-118`, `BIL-VAL-119` | `BIL-VALIDATION-1.3`, `BIL-INTEGRATION-1.2` | `PatientBillingSummaryService.cs`, data `InpBedPlacement` | Jam masuk bertingkat (<18:00 100%, 18:00-<22:00 50%, 22:00-<00:00 20%, >=00:00 0%); late checkout >12:00 (50%); pro-rata transfer menit riil; lepas rujukan `InpFinancialClearance` | `BE-BKC-071` | Masuk 22:30 ditagih 20%; transfer multipel dihitung proporsional menit riil; `PatientBillingSummaryService` bersih dari rujukan `InpFinancialClearance` | Uji kalkulasi kamar jam malam (`BIL-AT-143`); uji alokasi pro-rata pindah kamar menit riil (`BIL-AT-144`); inspeksi kode | Pembulatan desimal menit hunian 2 angka desimal. Owner Billing Backend | Seluruh cabang jam masuk & pro-rata teruji; dependensi lama terlepas; QBE PASS |
+| 🟡 `BE-BKC-074` | Biaya admin rawat inap 7% cap Rp6jt aktif secara deklaratif & penggantian/pengkreditan admin rajal otomatis | `BKC-DEC-113`, `BKC-DEC-119`, `BKC-DEC-121`, `BKC-DEC-122`, `BKC-DES-044`, `BKC-DES-049`, `BIL-VAL-120`, `BIL-VAL-126` | `BIL-VALIDATION-1.3`, `BIL-INTEGRATION-1.2` | `AdministrationFeeCalculationService.cs`, tabel master `MstAdministrationFeePolicy` | Hitung admin ranap 7% cap 6jt; evaluasi discharge $\ge$ `EffectiveFrom`; beban pasien BPJS Rp 0; void admin rajal jika belum bayar, kreditkan jika sudah bayar | `BE-BKC-071` | Eligible 10jt admin 700rb; eligible 100jt admin tepat 6jt; pasien BPJS admin pasien Rp 0; admin rajal terbayar 50rb memotong invoice ranap sebagai kredit | Uji batas persentase & pagu admin ranap (`BIL-AT-145`); uji pembatalan/pengkreditan admin rajal (`BIL-AT-146`); verifikasi invoice BPJS | Double charging bila deteksi alihan gagal. Owner Billing Backend | Biaya admin 7% cap 6jt aktif; penggantian admin rajal terbukti adil tanpa double charging; QBE PASS |
+| 🟡 `BE-BKC-075` | Billing jadi Single Source of Truth kelayakan pemulangan ranap, terbitkan clearance handoff, & Auto-Reblock | `BKC-DEC-114`, `BKC-DEC-115`, `BKC-DEC-116`, `BKC-DEC-120`, `BKC-DES-045`, `BKC-DES-046`, `BKC-DES-047`, `BIL-VAL-121`–`123`, `BIL-INT-016` | `BIL-STATE-1.3`, `BIL-VALIDATION-1.3`, `BIL-INTEGRATION-1.2` | `BillingConsumerHandoffService.cs`, `BilInpatientClearanceHandoff` | Service `InpatientClearanceService.cs`: evaluasi sisa tagihan ranap, validasi deposit 100% ekses tindakan besar; Auto-Reblock (`REVOKED`) saat OPEN; tolak susulan saat CLOSED (`BIL-VAL-127`) | `BE-BKC-072`, `BE-BKC-073`, `BE-BKC-074` | Saldo tagihan 0 & deposit tindakan besar cukup terbit `CLEARED`; tagihan susulan saat OPEN otomatis `REVOKED`; tagihan susulan saat CLOSED ditolak; versi monoton naik | Uji deposit tindakan besar ekses (`BIL-AT-147`); uji Auto-Reblock susulan (`BIL-AT-148`); uji penolakan tagihan invoice closed (`BIL-AT-149`) | Race condition settlement vs intake obat: advisory lock per encounter. Owner Billing Backend | Service clearance berdiri; Auto-Reblock atomik dalam transaksi intake; penolakan closed invoice teruji; QBE PASS |
+| 🟡 `BE-BKC-076` | API Controller integrasi ranap untuk inquiry rincian billing, kalkulasi kamar, re-evaluasi, & pengakuan handoff | `BKC-DEC-115`, `BKC-DES-045`, `BIL-API-1.4`, `BIL-PERMISSION-1.2` | `BIL-API-1.4`, `BIL-PERMISSION-1.2` | `BillingConsumerHandoffController.cs`, `ApiResponse<T>`, atribut `[AccessPermission]` | Controller `InpatientClearanceController.cs`: `POST /invoices/occupancy-charges`, `GET /invoices/encounter/{encounterId}/inpatient-summary`, `POST /inpatient-clearance/reevaluate`; validasi deposit tindakan besar, pengakuan handoff, inquiry latest | `BE-BKC-075` | Endpoint kembalikan DTO sesuai `BIL-API-1.4`; kueri summary tidak ekspos rincian sensitif ke non-kasir; tolak peran tanpa izin `BillingInpatient:*` | Verifikasi kontrak OpenAPI/Swagger; uji hak akses peran Kasir vs Perawat vs Admin; uji fungsional endpoint (`BIL-AT-151`, `BIL-AT-152`) | Larangan membuat endpoint override manual kelayakan. Owner Billing Backend | Enam endpoint terdaftar & teruji; hak akses ketat; dokumentasi Swagger sinkron; QBE PASS. Laporan: [BE-BKC-076.md](../task/report/backend/BE-BKC-076.md) |
+
+---
+
+## Rincian Task
+
+### 🟡 `BE-BKC-071` — Skema Database & Master Policy Administrasi Ranap
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Berdirinya tabel baru `BilInpatientClearanceHandoff`, 3 kolom master `MstAdministrationFeePolicy`, dan konfigurasi EF Core yang siap dieksekusi tanpa downtime |
+| Jejak | `BKC-DEC-113`, `BKC-DEC-115`, `BKC-DEC-121`, `BKC-DEC-122`, `BKC-DES-044`, `BKC-DES-045` |
+| Contract | `BIL-STATE-1.3`, `data/data-dictionary.md` Amendment 24 September 2026 |
+| Kemampuan existing yang dipakai | Pola model `IdentityModel`, konvensi `IEntityTypeConfiguration<T>`, skema publik PostgreSQL |
+| Cakupan yang diharapkan | Model `BilInpatientClearanceHandoff.cs`, konfigurasi `BilInpatientClearanceHandoffConfiguration.cs`, penambahan properti `Percentage`, `CapAmount`, `CalculationType` pada `MstAdministrationFeePolicy.cs`, migration EF Core `AddInpatientBillingIntegrationAndClearanceHandoff`, dan seed record awal `ADM-RANAP-01` |
+| Dependency | Tidak ada (fondasi pertama gelombang ini) |
+| Acceptance criteria | Migration dapat diterapkan bersih (`Up`) dan dibatalkan (`Down`); tabel baru memiliki indeks unik gabungan `(EncounterId, FinancialVersion)`; kolom `Percentage` dan `CapAmount` bernilai nullable; kolom `CalculationType` bernilai bawaan `'FLAT'` untuk record lama; record master `ADM-RANAP-01` terdaftar dengan 7% dan cap Rp6.000.000 |
+| Bukti verifikasi | Review file model dan konfigurasi EF; kompilasi proyek lulus; migration script terverifikasi; tinjauan skema basis data |
+| Risiko | Pelanggaran aturan database safety: migration **MUST NOT** dieksekusi sebelum ada otorisasi tertulis terpisah |
+| Pemilik | Backend Engineering |
+| Definition of Done | Model dan konfigurasi terdaftar di `ApplicationDbContext`; migration terbuat; script idempotency diverifikasi; QBE preflight conformance PASS |
+| Status | 🟡 **SEBAGIAN 24 September 2026.** Model `BilInpatientClearanceHandoff`, konfigurasi EF Core, penambahan kolom `Percentage`, `CapAmount`, `CalculationType` pada `MstAdministrationFeePolicy`, seed `ADM-RANAP-01` (7% Cap Rp6.000.000), dan migration EF Core `AddInpatientBillingIntegrationAndClearanceHandoff` selesai. QBE Conformance `PASS` (Strict mode, 4 berkas dievaluasi, 0 violation). Verifikasi kompilasi build mandiri pengguna dan otorisasi eksekusi database terpisah. Bukti: [laporan](../task/report/backend/BE-BKC-071.md) |
+
+---
+
+### 🟡 `BE-BKC-072` — Adapter Room Stay & Konsolidasi Alihan IGD Non-Destruktif
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Sistem Billing mampu menerima event hunian tempat tidur (`ROOM_STAY`) secara aman dan mengonsolidasi item tagihan alihan IGD tanpa menghilangkan penanda `EMERGENCY` |
+| Jejak | `BKC-DEC-112`, `BKC-DEC-117`, `BKC-DEC-118`, `BKC-DES-042`, `BKC-DES-048`, `BIL-INT-015`, `BIL-INT-017` |
+| Contract | `BIL-INTEGRATION-1.2`, `BIL-VALIDATION-1.3` (`BIL-VAL-124`, `BIL-VAL-125`) |
+| Kemampuan existing yang dipakai | `ContractBillingChargeSourceAdapter.cs`, mekanisme pendaftaran domain kebijakan `SourcePolicies` |
+| Cakupan yang diharapkan | Mendaftarkan source domain `INPATIENT`/`ROOM_STAY` ke `SourcePolicies` dengan status billable: `OCCUPIED`, `TRANSFERRED`, `CORRECTED`, `RELEASED`; penanganan event `ROOM_CORRECTION` untuk pembatalan idempoten charge lama; pemeliharaan `SourceDomain = "EMERGENCY"` pada konsolidasi item IGD ke invoice ranap |
+| Dependency | `BE-BKC-071` |
+| Acceptance criteria | Event `ROOM_STAY` yang masuk dipetakan ke invoice rawat inap aktif tanpa galat domain tidak dikenal; event `ROOM_CORRECTION` membatalkan baris tagihan lama secara otomatis; item alihan IGD tetap mempertahankan `SourceDomain = "EMERGENCY"` dalam invoice ranap gabungan |
+| Bukti verifikasi | Uji unit pemrosesan intake charge kamar; verifikasi pembatalan idempoten koreksi kamar (`BIL-AT-150`); audit rincian item invoice alihan IGD |
+| Risiko | Event kamar tertolak jika status selain empat yang sah dikirim modul rawat inap; pemetaan status wajib ketat |
+| Pemilik | Billing Backend |
+| Definition of Done | Adapter mengenali domain `ROOM_STAY`; penanganan koreksi kamar terbukti idempoten; konsolidasi IGD non-destruktif terverifikasi; QBE conformance PASS |
+| Status | 🟡 **SEBAGIAN 24 September 2026.** Registrasi domain `ROOM_STAY`, `INPATIENT`, dan `EMERGENCY` ke `SourcePolicies` selesai. Penanganan pembatalan idempoten untuk event `ROOM_CORRECTION` pada `BillingInvoiceService.UpsertChargeAsync` selesai. Pemeliharaan `SourceDomain = "EMERGENCY"` pada konsolidasi alihan IGD terverifikasi. QBE Conformance `PASS` (Strict mode, 2 berkas dievaluasi, 0 violation). Verifikasi kompilasi build mandiri pengguna. Bukti: [laporan](../task/report/backend/BE-BKC-072.md) |
+
+---
+
+### 🟡 `BE-BKC-073` — Mesin Kalkulasi Sewa Kamar Bertingkat & Pro-Rata Transfer Menit Riil
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Perhitungan sewa kamar rawat inap berjalan otomatis dengan aturan jam masuk malam bertingkat, penalti late checkout, dan alokasi pro-rata menit riil untuk transfer multipel |
+| Jejak | `BKC-DEC-112`, `BKC-DES-043`, `BKC-DES-050`, `BIL-VAL-118`, `BIL-VAL-119` |
+| Contract | `BIL-VALIDATION-1.3`, `BIL-INTEGRATION-1.2` (`BIL-INT-015`) |
+| Kemampuan existing yang dipakai | `PatientBillingSummaryService.cs`, pembacaan data `InpBedPlacement` |
+| Cakupan yang diharapkan | Implementasi mesin hitung sewa kamar: jam masuk `<18:00` (100%), `18:00-<22:00` (50%), `22:00-<00:00` (20%), `>=00:00` (0% hari baru); checkout `>12:00` (50% late fee); pembagian tarif kamar pro-rata menit riil untuk transfer kamar >1 kali di hari yang sama; melepaskan ketergantungan lama ke `InpFinancialClearance` |
+| Dependency | `BE-BKC-071` |
+| Acceptance criteria | Pasien masuk 22:30 ditagih 20% hari pertama; pasien pindah 2 kamar di hari yang sama ditagih proporsional terhadap durasi menit riil; kode `PatientBillingSummaryService` bersih dari rujukan `InpFinancialClearance` |
+| Bukti verifikasi | Uji kalkulasi kamar jam malam (`BIL-AT-143`); uji alokasi pro-rata pindah kamar menit riil (`BIL-AT-144`); inspeksi kode pelepasan dependensi |
+| Risiko | Pembulatan desimal menit hunian: wajib konsisten menggunakan pembagian menit `(MenitKamar / TotalMenitHariItu) * TarifKamar` dua desimal |
+| Pemilik | Billing Backend |
+| Definition of Done | Seluruh cabang jam masuk dan pro-rata teruji akurat; dependensi lama terlepas; QBE preflight PASS |
+| Status | 🟡 **SEBAGIAN** (Implementasi service & DTO kalkulasi kamar bertingkat, late checkout, pro-rata transfer menit selesai; pelepasan dependensi InpFinancialClearance selesai; lolos QBE Strict; menunggu build mandiri pengguna & eksekusi integrasi live DB) |
+
+---
+
+### 🟡 `BE-BKC-074` — Layanan Biaya Administrasi Ranap (7% Cap Rp6jt) & Penggantian Admin Rajal
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Perhitungan biaya administrasi rawat inap sebesar 7% dengan pagu Rp6.000.000 berjalan deklaratif dan otomatis menggugurkan/mengkreditkan biaya admin rajal saat terjadi alihan |
+| Jejak | `BKC-DEC-113`, `BKC-DEC-119`, `BKC-DEC-121`, `BKC-DEC-122`, `BKC-DES-044`, `BKC-DES-049`, `BIL-VAL-120`, `BIL-VAL-126` |
+| Contract | `BIL-VALIDATION-1.3`, `BIL-INTEGRATION-1.2` |
+| Kemampuan existing yang dipakai | `AdministrationFeeCalculationService.cs`, tabel master `MstAdministrationFeePolicy` |
+| Cakupan yang diharapkan | Penambahan metode hitung biaya admin ranap persentase ber-cap; evaluasi tanggal discharge $\ge$ `EffectiveFrom`; pengecualian beban pasien untuk penjamin sistem paket (BPJS); deteksi alihan Rajal ke Ranap: void item admin rajal jika belum bayar, atau alihkan sebagai kredit pembayaran (`BilRefundableCredit` / progress payment) jika sudah terlanjur bayar di poli |
+| Dependency | `BE-BKC-071` |
+| Acceptance criteria | Tagihan eligible Rp10jt menghasilkan admin fee Rp700rb; tagihan eligible Rp100jt menghasilkan admin fee tepat Rp6.000.000; pasien BPJS mencatat porsi pasien admin fee Rp 0; biaya admin rajal terbayar Rp50.000 memotong tagihan ranap sebagai kredit |
+| Bukti verifikasi | Uji batas persentase dan pagu admin ranap (`BIL-AT-145`); uji pembatalan/pengkreditan admin rajal (`BIL-AT-146`); verifikasi invoice BPJS |
+| Risiko | Double charging jika deteksi alihan gagal; pengecekan encounter rujukan wajib dilakukan sebelum final billing |
+| Pemilik | Billing Backend |
+| Definition of Done | Biaya admin 7% cap Rp6jt aktif; penggantian admin rajal terbukti adil tanpa double charging; QBE conformance PASS |
+| Status | 🟡 **SEBAGIAN 24 September 2026.** Service & DTO kalkulasi biaya admin ranap 7% cap Rp6jt (`AdministrationFeeCalculationService.cs`), proteksi penjamin BPJS (beban pasien Rp 0), dan rekonsiliasi alihan rajal ke ranap (void belum bayar & kredit pemotong ranap sudah bayar) selesai diimplementasikan dan diintegrasikan ke `BillingCalculationService.cs`. QBE Conformance `PASS` (Strict mode, 19 berkas dievaluasi, 0 violation). Verifikasi kompilasi build mandiri pengguna. Bukti: [laporan](../task/report/backend/BE-BKC-074.md) |
+
+---
+
+### 🟡 `BE-BKC-075` — Service Evaluasi Kelayakan Finansial Rawat Inap & Auto-Reblock
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Modul Billing menjadi *Single Source of Truth* kelayakan pemulangan ranap, menerbitkan surat handoff resmi, dan menegakkan Auto-Reblock seketika saat tagihan susulan tiba |
+| Jejak | `BKC-DEC-114`, `BKC-DEC-115`, `BKC-DEC-116`, `BKC-DEC-120`, `BKC-DES-045`, `BKC-DES-046`, `BKC-DES-047`, `BIL-VAL-121`, `BIL-VAL-122`, `BIL-VAL-123`, `BIL-INT-016` |
+| Contract | `BIL-STATE-1.3`, `BIL-VALIDATION-1.3`, `BIL-INTEGRATION-1.2` |
+| Kemampuan existing yang dipakai | `BillingConsumerHandoffService.cs`, `BilInpatientClearanceHandoff`, pola event clearance Farmasi |
+| Cakupan yang diharapkan | Pembuatan `InpatientClearanceService.cs` & `IInpatientClearanceService.cs`: evaluasi sisa tagihan pasien ranap, validasi deposit 100% ekses tindakan besar (`BIL-VAL-121`), penerbitan status `CLEARED` / `BLOCKED`, mekanisme Auto-Reblock (`REVOKED`) saat invoice masih `OPEN` dan ada tagihan susulan, penolakan mutlak tagihan susulan saat invoice `CLOSED` (`BIL-VAL-127`), hook integrasi saat settlement di `BillingConsumerHandoffService` |
+| Dependency | `BE-BKC-072`, `BE-BKC-073`, `BE-BKC-074` |
+| Acceptance criteria | Pasien bersaldo tagihan 0 dan deposit tindakan besar terpenuhi memperoleh status `CLEARED`; tagihan susulan yang masuk saat `OPEN` otomatis membatalkan clearance menjadi `REVOKED` dan memancarkan sinyal pemblokiran ulang; tagihan susulan saat `CLOSED` ditolak otomatis sistem; nomor `FinancialVersion` naik monoton |
+| Bukti verifikasi | Uji verifikasi deposit tindakan besar atas ekses (`BIL-AT-147`); uji Auto-Reblock tagihan susulan (`BIL-AT-148`); uji penolakan tagihan pasca-closed (`BIL-AT-149`) |
+| Risiko | Race condition saat kasir klik lunas bersamaan dengan perawat input obat: dilindungi oleh kunci transaksi penasihat (*advisory lock*) per encounter |
+| Pemilik | Billing Backend |
+| Definition of Done | Service clearance berdiri; Auto-Reblock terbukti atomik dalam transaksi intake; penolakan closed invoice teruji; QBE preflight PASS |
+| Status | 🟡 **SEBAGIAN 24 September 2026.** Service & DTO evaluasi kelayakan finansial ranap (`InpatientClearanceService.cs`, `IInpatientClearanceService.cs`, `InpatientClearanceDtos.cs`), validasi deposit tindakan besar 100% ekses (`BIL-VAL-121`), penolakan tagihan saat invoice CLOSED (`BIL-VAL-127`), integrasi settlement hook (`BilConsumerHandoffService.cs`, `BillingSettlementService.cs`), dan penegakan Auto-Reblock atomik saat tagihan susulan (`BIL-VAL-123`, `BillingInvoiceService.cs`) selesai diimplementasikan. QBE Conformance `PASS` (Strict mode, 25 berkas dievaluasi, 0 violation). Verifikasi kompilasi build mandiri pengguna. Bukti: [laporan](../task/report/backend/BE-BKC-075.md) |
+
+---
+
+### 🟡 `BE-BKC-076` — API Controller Integrasi Rawat Inap
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Tersedianya endpoint HTTP resmi untuk inquiry rincian billing rawat inap, perhitungan sewa kamar, evaluasi ulang clearance, validasi deposit tindakan besar, dan pengakuan surat handoff oleh petugas |
+| Jejak | `BKC-DEC-115`, `BKC-DES-045`, `BIL-API-1.4`, `BIL-PERMISSION-1.2` |
+| Contract | `BIL-API-1.4`, `BIL-PERMISSION-1.2` (`[Tags("BillingInpatientIntegration")]`) |
+| Kemampuan existing yang dipakai | `BillingConsumerHandoffController.cs`, `ApiResponse<T>`, atribut `[AccessPermission]` |
+| Cakupan yang diharapkan | Controller `InpatientClearanceController.cs` dengan endpoint: `POST /invoices/occupancy-charges`, `GET /invoices/encounter/{encounterId}/inpatient-summary`, `POST /inpatient-clearance/reevaluate`, `POST /inpatient-clearance/validate-major-procedure-deposit`, `PATCH /inpatient-clearance/{id}/acknowledge`, `GET /inpatient-clearance/encounter/{encounterId}/latest`; pendaftaran hak akses `BillingInpatient:*` |
+| Dependency | `BE-BKC-075` |
+| Acceptance criteria | Endpoint mengembalikan payload DTO sesuai kontrak `BIL-API-1.4`; kueri summary tidak mengekspos rincian rupiah sensitif kepada peran non-kasir; akses ditolak bagi peran tanpa hak akses; label `Rencana (belum tersedia)` dicabut setelah implementasi |
+| Bukti verifikasi | Verifikasi kontrak OpenAPI/Swagger; uji hak akses peran Kasir vs Perawat vs Administrator; uji fungsional endpoint (`BIL-AT-151`, `BIL-AT-152`); QBE strict mode PASS |
+| Risiko | Endpoint penerbitan manual kelayakan **MUST NOT** dibuat; evaluasi hanya membaca kebenaran dari invoice |
+| Pemilik | Billing Backend |
+| Definition of Done | Enam endpoint integrasi terdaftar dan teruji; hak akses terpasang ketat; dokumentasi Swagger sinkron; QBE conformance PASS |
+| Status | 🟡 **Source selesai 24 September 2026.** Controller `InpatientClearanceController` terpasang dengan 6 endpoint integrasi, perlindungan data sensitif perawat, penegakan RBAC Resource `BillingInpatient`, dan kontrak Swagger `BIL-API-1.4`. QBE Conformance `PASS` (0 violations). Menunggu kompilasi dan build mandiri pengguna. Bukti: [laporan](../task/report/backend/BE-BKC-076.md) |
+
+---
+
+## Wewenang yang Tetap Terpisah
+
+| Wewenang | Pemilik | Catatan |
+| --- | --- | --- |
+| Menulis source code | Diminta per task saat eksekusi handoff | Approval blueprint dan roadmap bukan izin menulis source langsung |
+| Membuat migration EF Core | Diminta terpisah | Berlaku untuk `BE-BKC-071` |
+| Menjalankan migration ke basis data | Diminta terpisah sesudah backup | Wajib konfirmasi eksplisit dari pengguna sesuai aturan keselamatan database |
+| Override tagihan invoice CLOSED | Supervisor Kasir / Kepala Kasir | Wajib otorisasi bisnis khusus dengan pencatatan audit log lengkap |
+
+
+---
+
+
+# Gelombang `MVP-30` — Revisi UI Billing: Perbaikan Logika Backend
+
+| Field | Nilai |
+| --- | --- |
+| Blueprint | `BIL-CASH-001` revisi `1.6` · status `draft` |
+| Masukan | `BUI-DEC-001`–`015` (approved 24 September 2026), `BUI-DES-001`–`002` (**approved 25 September 2026**, terpisah dari approval bisnis) |
+| Contract version berlaku | `BIL-API-1.5` (draft), `BIL-VALIDATION-1.4` (draft) — lihat catatan gerbang di bawah |
+| Backend baseline SHA | `505d8d78` |
+
+**Gerbang wajib sebelum task di gelombang ini dapat disetujui:** `BUI-DES-001` dan `BUI-DES-002`
+**disetujui pemilik modul 25 September 2026** — approval arsitektur terpisah dari 15 keputusan
+bisnis `BUI-DEC-*` yang sudah `approved` 24 September 2026. Gerbang ini kini tertutup untuk
+keduanya; `BE-BUI-001` sudah mulai dikerjakan pada sesi yang sama (lihat status di bawah),
+`BE-BUI-002` belum dimulai. Ini **satu-satunya** gelombang backend pada revisi 1.6 — sebelas dari
+tiga belas keputusan bisnis murni frontend, nol dependency backend baru.
+
+## Grafik Urutan Dependency
+
+```mermaid
+flowchart TD
+    BE-BUI-001["🟡 BE-BUI-001<br/>Perbaikan Logika suggestedBillingStatus"]
+    BE-BUI-002["🟡 BE-BUI-002<br/>Field TransactionDate pada Refundable Items"]
+```
+
+Tidak ada panah — kedua task **independen satu sama lain**, menyentuh file berbeda
+(`BillingPayerEditService.cs` vs `BillingRefundService.cs`/`BillingRefundDtos.cs`), dapat
+dikerjakan paralel begitu keduanya disetujui.
+
+### Tabel Gelombang Eksekusi
+
+| Gelombang Eksekusi | Task | Dapat Berjalan Paralel? |
+| :---: | --- | --- |
+| 1 | 🟡 `BE-BUI-001`, 🟡 `BE-BUI-002` | **Ya** — nol dependency antar keduanya |
+
+Jumlah panah dependency: **0**. Bebas siklus.
+
+---
+
+## Tabel Task
+
+| Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 🟡 `BE-BUI-001` | `suggestedBillingStatus` berubah aturan dari "satu item cukup" menjadi "seluruh item harus tercover" | `BUI-DEC-007`, `BUI-DEC-014`, `BUI-DES-001` | `BIL-API-1.5` (draft) — bentuk response TIDAK berubah, hanya nilainya | `BillingPayerEditService.cs` baris 118-147, seluruh struktur method dipertahankan | Ganti kondisi `anyItemCoveredByInsurance` (OR) menjadi `allItemsCoveredByInsurance` (AND) atas seluruh item aktif sebelum menentukan `suggestedBillingStatus`; `effectivePaymentType`/`PaymentMethodRow.IsSelected` mewarisi otomatis, tidak disentuh terpisah | — | Kasus 2 dari 5 item tercover → `suggestedBillingStatus == "CASH"` (**kasus penentu**, bukan kasus nol/seluruh yang sama di aturan lama); kasus nol item tercover tetap `"CASH"`; kasus seluruh item tercover tetap `"INSURANCE"` | Uji unit `BillingPayerEditServiceTests` tiga kasus (nol/sebagian/seluruh); regresi `GET /{id}/edit-context` bentuk response tidak berubah | **Bukan perubahan skema.** Satu-satunya risiko: lupa bahwa `effectivePaymentType` bergantung nilai ini — verifikasi eksplisit `PaymentMethodRow.IsSelected` ikut benar. Owner Backend | Kondisi baru teruji tiga kasus; nol perubahan bentuk DTO; QBE preflight PASS; **otorisasi arsitektur `BUI-DES-001` diberikan owner 25 September 2026** |
+| 🟡 `BE-BUI-002` | `BillingRefundableItemResponse` mendapat field `TransactionDate`, diisi dari data yang sudah dimuat | `BUI-DEC-012`, `BUI-DES-002` | `BIL-API-1.5` (draft) — perubahan **aditif, non-breaking** | `BillingRefundService.GetBillingRefundableItemsAsync` — `Include(x => x.Items)` yang sudah ada | Tambah properti `DateTime TransactionDate` pada `BillingRefundableItemResponse`; proyeksi diisi `item.CreateDateTime` (kolom `IdentityModel` yang sudah ada, nol migration) | — | Response `GET /{id}/refundable-items` memuat `TransactionDate` terisi untuk setiap baris; konsumen lama yang mengabaikan field ini tidak terpengaruh | Uji unit proyeksi; regresi bentuk response lama (field lama tidak hilang/berubah tipe) | **Nol migration.** Risiko satu-satunya: salah memetakan tanggal (memakai tanggal invoice, bukan tanggal item) — verifikasi eksplisit sumbernya `item.CreateDateTime`, bukan `invoice.CreateDateTime`. Owner Backend | Field baru ditambahkan sesuai spek; nol migration; QBE preflight PASS; **otorisasi arsitektur `BUI-DES-002` diberikan owner 25 September 2026, source dikerjakan sesi yang sama** |
+
+---
+
+## Rincian Task
+
+### 🟡 `BE-BUI-001` — Perbaikan Logika `suggestedBillingStatus`
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Default status tagihan yang disarankan backend mengikuti aturan "seluruh item aktif harus tercover asuransi", bukan "satu item cukup" — menutup konflik yang ditemukan `/trace-existing-capabilities` (`01-existing-capability-map.md` bagian 23.4) |
+| Jejak | `BUI-DEC-007`, `BUI-DEC-014`, `BUI-DES-001` |
+| Contract | `BIL-API-1.5` (draft) — bentuk `InvoiceEditContextResponse` tidak berubah, hanya nilai `SuggestedBillingStatus` dan turunannya |
+| Kemampuan existing yang dipakai | `BillingPayerEditService.GetEditContextAsync`, `calculation.Breakdown.Items` (sumber `isCovered` per item, sudah ada) |
+| Cakupan yang diharapkan | Baris ~118-147 `BillingPayerEditService.cs`: variabel `anyItemCoveredByInsurance` diganti logika `allItemsCoveredByInsurance` yang mensyaratkan SELURUH `activeItems` bernilai `isCovered == true` sebelum `suggestedBillingStatus = "INSURANCE"`. Tidak ada perubahan pada `itemAssignments` per baris (nilai `PayerKind` per item tetap dihitung individual seperti sekarang) — HANYA nilai ringkasan `suggestedBillingStatus` yang berubah aturannya |
+| Dependency | Tidak ada |
+| Acceptance criteria | Tagihan 5 item, 2 tercover asuransi 3 tidak → `suggestedBillingStatus == "CASH"`; tagihan 5 item seluruhnya tercover → `"INSURANCE"`; tagihan 5 item nol tercover → `"CASH"`; pasien bukan payer `INSURANCE` (mis. `CASH` atau `COMPANY_GUARANTOR`) → nilai `currentPayer.PaymentType` apa adanya, tidak tersentuh perubahan ini |
+| Bukti verifikasi | Uji unit tiga kasus (sebagian/seluruh/nol) pada `BillingPayerEditServiceTests`; regresi manual `GET /{id}/edit-context` memastikan bentuk JSON response identik, hanya nilai yang berbeda pada kasus coverage sebagian |
+| Risiko | **Bukan perubahan skema/endpoint** — risiko murni logika. `PaymentMethodRow.IsSelected` dan `effectivePaymentType` KEDUANYA bergantung pada `suggestedBillingStatus` — verifikasi eksplisit keduanya ikut berubah benar, jangan hanya menguji variabel `suggestedBillingStatus` secara terisolasi |
+| Pemilik | Backend Engineering |
+| Definition of Done | Kondisi baru teruji tiga kasus; `PaymentMethodRow.IsSelected` diverifikasi ikut benar; nol perubahan bentuk DTO; QBE preflight PASS |
+| Status | 🟡 **SEBAGIAN — build lulus, verifikasi manual belum.** Approval arsitektur `BUI-DES-001` diberikan pemilik modul 25 September 2026, task dikerjakan pada sesi yang sama. `BillingPayerEditService.cs` baris 102/125-128/145-147: `anyItemCoveredByInsurance` (OR) diganti `allItemsCoveredByInsurance` (AND). Nol perubahan bentuk DTO, nol migration. `dotnet build` dijalankan pengguna sendiri dan **lulus**, dikonfirmasi 25 September 2026. **Belum dilakukan**: verifikasi manual nyata untuk tiga kasus uji (nol/sebagian/seluruh tercover) terhadap data — build sukses memenuhi satu baris DoD, bukan seluruhnya. Bukti: [laporan](../task/report/backend/BE-BUI-001.md) |
+
+---
+
+### 🟡 `BE-BUI-002` — Field `TransactionDate` pada Refundable Items
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Datatable pemilihan item refund pada frontend (`BUI-DES-011`) dapat menampilkan kolom "Tanggal" dari data yang sudah tersedia di backend, tanpa query tambahan |
+| Jejak | `BUI-DEC-012`, `BUI-DES-002` |
+| Contract | `BIL-API-1.5` (draft) — penambahan field aditif pada `BillingRefundableItemResponse` |
+| Kemampuan existing yang dipakai | `BillingRefundService.GetBillingRefundableItemsAsync`, `Include(x => x.Items)` yang sudah memuat `BilInvoiceItem` lengkap |
+| Cakupan yang diharapkan | Tambah properti `public DateTime TransactionDate { get; set; }` pada `BillingRefundableItemResponse` (`BillingRefundDtos.cs`); pada proyeksi `activeItems.Select(item => ...)` di `GetBillingRefundableItemsAsync`, isi `TransactionDate = item.CreateDateTime` |
+| Dependency | Tidak ada |
+| Acceptance criteria | `GET /{id}/refundable-items` mengembalikan `TransactionDate` terisi (bukan default/null) untuk setiap baris; nilainya sama dengan `CreateDateTime` baris `BilInvoiceItem` yang bersangkutan; field lama (`BillingItemId`, `ItemName`, `Qty`, `Amount`, `RefundableAmount`) tidak berubah bentuk maupun nilai |
+| Bukti verifikasi | Uji unit proyeksi; regresi memastikan konsumen lama (bila ada) tidak menerima error deserialisasi atas field baru |
+| Risiko | **Nol migration** — `CreateDateTime` sudah ada di database sejak tabel `BilInvoiceItem` dibuat lewat `IdentityModel`. Risiko murni salah pilih sumber tanggal — MUST `item.CreateDateTime`, bukan `invoice.CreateDateTime` (tanggal invoice dibuat berbeda dari tanggal item ditambahkan pada kasus entri manual belakangan) |
+| Pemilik | Backend Engineering |
+| Definition of Done | Field baru teruji; nol migration dijalankan; QBE preflight PASS |
+| Status | 🟡 **SEBAGIAN — build lulus, verifikasi manual belum.** Approval arsitektur `BUI-DES-002` diberikan pemilik modul 25 September 2026, task dikerjakan pada sesi yang sama. `BillingRefundDtos.cs`: properti `DateTime TransactionDate` ditambahkan pada `BillingRefundableItemResponse`. `BillingRefundService.GetBillingRefundableItemsAsync`: proyeksi diisi `TransactionDate = item.CreateDateTime` (sumbernya item, bukan invoice, sesuai catatan risiko). Nol migration, nol perubahan field lama. `dotnet build` dijalankan pengguna sendiri dan **lulus**, dikonfirmasi 25 September 2026. **Belum dilakukan**: verifikasi manual `GET /{id}/refundable-items` terhadap data nyata. Bukti: [laporan](../task/report/backend/BE-BUI-002.md) |
+
+---
+
+## Wewenang yang Tetap Terpisah
+
+| Wewenang | Keterangan |
+| --- | --- |
+| Approval arsitektur `BUI-DES-001`/`002` | **BUKAN** bagian dari approval `BUI-DEC-001`–`015`. **Diberikan pemilik modul 25 September 2026** — gerbang tertutup untuk keduanya |
+| Migration | Tidak berlaku pada gelombang ini — nol migration di kedua task |
+| QBE preflight | Diselesaikan pada waktu eksekusi masing-masing task, dari `AGENTS.md` backend target — bukan dari roadmap ini |

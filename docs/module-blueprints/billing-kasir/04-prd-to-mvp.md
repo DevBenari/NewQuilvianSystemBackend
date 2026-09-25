@@ -2351,3 +2351,455 @@ Diturunkan utuh dari `contracts/state-transition-matrix.md` amendment 15 Septemb
 | `PC-OQ-008` | Siapa yang membuat periode anggaran pertama setelah rilis, dan berapa plafonnya? | **Tidak memblokir pembangunan; memblokir aktivasi fitur** | Finance |
 
 Keduanya **bukan** `OPEN DECISION` pada tingkat epic: tidak ada epic yang menunggu jawabannya untuk dapat dirancang maupun dikerjakan. Keempat gelombang `MVP-20`–`MVP-23` siap diteruskan ke `plan-module-delivery`.
+
+---
+
+# Amendment 18 September 2026 — Penutupan gap `FINAL`→`CLOSED`
+
+`revisi blueprint 1.3` · status **approved** (`BKC-DEC-105`, 18 September 2026) · input: **`BKC-DEC-100`–`BKC-DEC-102`**; keputusan arsitektur `BKC-DES-028`–`BKC-DES-035`; masukan audit `01-existing-capability-map.md` § 21.
+
+## Ringkasan eksekutif
+
+Tagihan pasien yang sudah dibayar lunas dan jumlahnya sudah sesuai tetap tampil berstatus `Final`, bukan tertutup. Itu bukan salah tulis label: syarat perpindahannya menunggu peristiwa penyerahan ke sistem piutang yang **tidak pernah terjadi**, karena sistem piutang itu sendiri belum ada. Akibatnya setiap tagihan yang difinalisasi berhenti di `Final` selamanya, dan — bagian yang paling mahal — koreksi tagihan yang diposting sesudahnya gagal tercatat sebagai koreksi piutang **tanpa galat dan tanpa catatan apa pun**. Amendment ini mengganti syarat itu dengan fakta yang dimiliki Billing sendiri: sisa tagihan pasien mencapai nol.
+
+## Masalah produk
+
+| Yang dialami pengguna | Sebab sebenarnya |
+| --- | --- |
+| Tagihan lunas tetap bertanda `Final`; kasir tidak punya cara membedakan tagihan yang sudah selesai dari yang masih berjalan lewat statusnya | Syarat transisi menggantung pada peristiwa milik sistem luar yang belum dibangun |
+| Kolom waktu penutupan tagihan selalu kosong di layar mana pun | Tidak ada satu baris kode pun yang pernah mengisinya |
+| Koreksi salah tagih yang ditemukan sesudah pasien membayar tidak pernah memperbaiki catatan piutang | Penjaga pencatatan koreksi hanya menerima status `FINAL`, dan pada era sebelumnya tagihan lunas justru langsung `CLOSED` — sehingga koreksinya berhenti diam-diam |
+
+## Batas rilis
+
+| Batas | Isi |
+| --- | --- |
+| **Titik mulai** | Sebuah tagihan sudah difinalisasi (`FINAL`) dan sisa tagihan pasiennya masih di atas nol |
+| **Titik akhir** | Sisa tagihan mencapai nol lewat jalur apa pun, tagihan berpindah ke `CLOSED` beserta waktu penutupannya — dan kembali ke `FINAL` bila sisa tagihannya naik lagi |
+| **Pelaku sasaran** | Kasir dan petugas Finance sebagai penerima manfaat; pelaku perpindahannya **Sistem**, bukan manusia |
+
+## Kemampuan `MUST HAVE`
+
+| Kemampuan | Asal | Disposisi |
+| --- | --- | --- |
+| Perpindahan otomatis `FINAL` → `CLOSED` saat sisa tagihan nol | `BKC-DEC-100` | **MISSING / NEW** |
+| Perpindahan balik `CLOSED` → `FINAL` saat sisa tagihan naik lagi | `BKC-DES-031` | **MISSING / NEW** |
+| Pencatatan koreksi piutang untuk tagihan berstatus `CLOSED` | `BKC-DEC-101` | **EXTEND** — satu penjaga yang sudah ada diperluas |
+| Perhitungan sisa tagihan pasien | § 21 capability map | **EXTEND** — dua salinan yang sudah ada dikonsolidasi, rumusnya tidak berubah |
+| Perbaikan data tagihan lama yang sudah lunas tetapi masih `FINAL` | `BKC-DEC-100` | **MISSING / NEW** — satu migration data |
+| Tampilan status dan filter `Closed` | § 21 capability map | **EXISTING / REUSE** — sudah ada di frontend, nol perubahan |
+
+## Kemampuan yang ditunda
+
+| Yang ditunda | Alasan bersebab | Penggantinya selama MVP berjalan |
+| --- | --- | --- |
+| Penyerahan nyata ke sistem piutang (AR/AP) beserta pengakuannya | Konsumennya belum ada (`BKC-BLK-INT-001`); menunggunya adalah persis penyebab gap ini | Fakta handoff tetap direkam idempotent seperti hari ini dan dapat dibaca kapan saja lewat endpoint status handoff yang sudah ada |
+| Sumbu status "piutang tertagih" pada catatan handoff | `BKC-DES-033` — bentuknya tidak dapat ditebak sebelum konsumennya bicara | `BilInvoice.Status`/`ClosedAt` menjadi sumber kebenaran tunggal "tagihan ini lunas" |
+| Koreksi piutang susulan untuk tagihan yang terlanjur di-adjust saat masih `CLOSED` era lama | Jumlahnya belum diketahui — itulah `BKC-OQ-100` | Dry-run backfill menghitungnya lebih dulu, sehingga keputusannya diambil di atas angka, bukan dugaan |
+
+## Epic dan functional requirement
+
+### `EPIC BKC-22` — Tagihan lunas benar-benar tertutup
+
+| ID | Functional requirement | Disposisi |
+| --- | --- | --- |
+| `FR-BKC-109` | Tagihan `FINAL` yang sisa tagihan pasiennya mencapai nol berpindah ke `CLOSED` pada transaksi yang sama dengan peristiwa yang menolkannya | **MISSING / NEW** |
+| `FR-BKC-110` | Waktu penutupan diisi waktu peristiwa pelunasan, **bukan** waktu baris kode dieksekusi maupun waktu migration dijalankan | **MISSING / NEW** |
+| `FR-BKC-111` | Pemeriksaan sisa tagihan berjalan pada keenam peristiwa yang menggerakkannya — pembayaran, pembalikan pembayaran, alokasi deposit, penyesuaian dua arah, dan write-off beserta pembalikannya | **MISSING / NEW** |
+| `FR-BKC-112` | Sisa tagihan dihitung kumulatif lintas seluruh sesi pembayaran satu tagihan, bukan per sesi | **EXTEND** |
+| `FR-BKC-113` | Tagihan `CLOSED` yang sisa tagihannya naik kembali di atas nol kembali ke `FINAL` dan waktu penutupannya dikosongkan | **MISSING / NEW** |
+| `FR-BKC-114` | Tagihan berstatus `OPEN` maupun `SETTLED_BY_WRITE_OFF` tidak pernah disentuh penyelarasan ini | **MISSING / NEW** |
+| `FR-BKC-115` | Koreksi piutang tercatat untuk penyesuaian dan write-off yang diposting atas tagihan `FINAL` **maupun** `CLOSED` | **EXTEND** |
+| `FR-BKC-116` | Perhitungan sisa tagihan pasien berdiri di satu tempat, dipakai bersama oleh finalisasi, pengecualian finansial, dan penyelarasan status | **EXTEND** |
+| `FR-BKC-117` | Tagihan lama yang sudah lunas tetapi masih `FINAL` diperbaiki datanya, didahului penghitungan baca-saja yang memakai kriteria identik | **MISSING / NEW** |
+
+Tidak ada functional requirement berdisposisi `OPEN DECISION` pada epic ini.
+
+## Model status
+
+Diturunkan utuh dari `contracts/state-transition-matrix.md` amendment 18 September 2026. **Nol status baru.** Kosakata invoice tetap empat nilai (`OPEN`, `FINAL`, `CLOSED`, `SETTLED_BY_WRITE_OFF`); yang berubah adalah syarat masuk `CLOSED` dan lahirnya satu transisi balik.
+
+## Skenario UAT
+
+| ID | Epic | Jalur | Skenario | Hasil yang diharapkan |
+| --- | --- | --- | --- | --- |
+| `UAT-65` | `BKC-22` | **Berhasil** | Kasir menerima pelunasan Rp 2.000.000 atas tagihan yang sudah difinalisasi | Tagihan langsung tampil `Closed` beserta waktu penutupan yang sama dengan waktu pembayaran; kasir tidak diminta melakukan langkah tambahan apa pun |
+| `UAT-66` | `BKC-22` | **Berhasil** | Pasien mencicil dua kali pada hari yang berbeda sampai lunas | Sesudah cicilan pertama tagihan **tetap** `Final`; sesudah cicilan kedua menjadi `Closed`. Kwitansi kedua cicilan tetap tercetak seperti biasa |
+| `UAT-67` | `BKC-22` | **Berhasil** | Tagihan pasien DAMA difinalisasi dengan sisa tagihan, lalu keluarganya melunasi seminggu kemudian | Saat finalisasi tampil `Final`; setelah pelunasan menjadi `Closed` |
+| `UAT-68` | `BKC-22` | **Gagal** | Pembayaran sebuah tagihan yang sudah `Closed` dibalik karena kesalahan mesin EDC | Tagihan **kembali** tampil `Final`, waktu penutupannya kosong lagi, dan tagihan itu muncul lagi pada daftar yang masih punya sisa — bukan tetap tampak selesai |
+| `UAT-69` | `BKC-22` | **Gagal** | Petugas mencoba menyunting item pada tagihan yang sudah `Closed` | Ditolak sama seperti pada tagihan `Final`; layar tidak menawarkan tombol sunting |
+| `UAT-70` | `BKC-22` | **Berhasil** | Tiga hari setelah tagihan lunas, ketahuan salah tagih Rp 300.000 dan petugas memposting penyesuaian | Penyesuaian tercatat **dan** koreksi piutangnya ikut terbentuk — inilah yang selama ini gagal diam-diam |
+
+## Definition of Done
+
+| Butir | Bukti |
+| --- | --- |
+| Tagihan lunas berpindah ke `Closed` pada jalur pembayaran, deposit, dan penyesuaian | `BIL-AT-121`, `BIL-AT-123`, `BIL-AT-125` lulus |
+| Perhitungan kumulatif lintas sesi pembayaran terbukti benar | `BIL-AT-122` lulus |
+| Tagihan departure exception tidak dikecualikan | `BIL-AT-124` lulus |
+| Transisi balik bekerja pada kedua penyebabnya | `BIL-AT-126`, `BIL-AT-127`, `BIL-AT-128` lulus |
+| Koreksi piutang tercatat untuk tagihan `CLOSED`, dan tetap ditolak untuk status yang memang harus ditolak | `BIL-AT-129`, `BIL-AT-130`, `BIL-AT-131` lulus |
+| Aman terhadap pengiriman ulang peristiwa dan terhadap dua pembayaran bersamaan | `BIL-AT-132`, `BIL-AT-133` lulus |
+| Finalisasi tetap menghasilkan `FINAL`, dan angka sisa tagihan tidak bergeser sesudah konsolidasi | `BIL-AT-134` (a) dan (b) lulus |
+| Hasil backfill sama persis dengan yang dilaporkan dry-run | `BIL-AT-134` (c) lulus |
+| `BKC-OQ-100` terjawab dengan angka | Keluaran dry-run, tercatat pada laporan task |
+| Frontend terverifikasi menangani `CLOSED` yang baru lahir | Pembacaan source `isFinal` dan turunannya, tercatat pada laporan task frontend |
+| Migration backfill dijalankan atas otorisasi terpisah, sesudah backup | Konfirmasi eksplisit pemilik, bukan turunan approval desain |
+| `BKC-DES-033` dan `BKC-DES-029` dijawab owner saat approval | Catatan approval pada `blueprint-manifest.md` |
+
+## Urutan pengiriman
+
+| Gelombang | Isi | Alasan urutannya |
+| --- | --- | --- |
+| `MVP-24` | Service penyelarasan penutupan beserta konsolidasi perhitungan sisa tagihan, pemasangan di enam titik peristiwa, dan perluasan penjaga koreksi piutang | Satu paket yang tidak dapat dipecah: konsolidasi tanpa pemasangan tidak memperbaiki apa pun, dan pemasangan tanpa konsolidasi menambah salinan rumus ketiga. Perluasan penjaga ikut di sini karena tanpanya perpindahan ke `CLOSED` justru **mematikan** koreksi piutang yang hari ini masih jalan untuk tagihan `FINAL` |
+| `MVP-25` | Dry-run baca-saja, lalu migration backfill data tagihan lama | Dikerjakan **sesudah** `MVP-24` berjalan, supaya tagihan yang baru lunas sudah tertangani jalur normal dan backfill hanya menyisakan data lama. Menuntut otorisasi terpisah, sehingga tidak boleh menahan `MVP-24` |
+| `POST-MVP` | Penyerahan nyata ke sistem piutang beserta sumbu status penagihannya | Menunggu `BKC-BLK-INT-001` |
+
+Nol gelombang frontend. Verifikasi frontend (`FR` tidak bernomor karena tidak menghasilkan source baru) menjadi butir Definition of Done pada `MVP-24`.
+
+## Pertanyaan terbuka sebelum development lock
+
+| ID | Pertanyaan | Memblokir? | Penjawab |
+| --- | --- | :---: | --- |
+| `BKC-OQ-100` | Berapa banyak penyesuaian dan write-off yang sudah diposting atas tagihan yang tidak pernah menerima koreksi piutang, dan apakah dibutuhkan koreksi susulan selain pemindahan status? | **Tidak memblokir `MVP-24`; memblokir penutupan `MVP-25`** | Pemilik Billing/Finance, lewat keluaran dry-run |
+| `BKC-CQ-01` | Apakah owner menerima `BKC-DES-033` (catatan handoff tidak disentuh) sebagai pemenuhan konsekuensi `BKC-DEC-102`, atau tetap menghendaki penandaan eksplisit pada catatan handoff? | **Tidak memblokir `MVP-24`**; bila jawabannya "tetap menghendaki", satu kolom/nilai status baru beserta migration-nya masuk scope | Product/Domain Owner + pemilik arsitektur backend |
+
+Keduanya **bukan** `OPEN DECISION` pada tingkat epic: `EPIC BKC-22` dapat dirancang dan dikerjakan penuh tanpa menunggu jawabannya. Gelombang `MVP-24` siap diteruskan ke `plan-module-delivery` begitu desain ini disetujui; `MVP-25` menunggu `BKC-OQ-100` terjawab dan otorisasi migration diberikan.
+
+---
+
+# Amendment 21 September 2026 — Penerbitan fakta finansial ke dua modul konsumen
+
+Masukan `BKC-DEC-106`–`109`, `BKC-DES-036`–`041`. Status **draft**.
+
+## Masalah produk
+
+Dua kerugian nyata sedang berjalan hari ini, dan keduanya berakar pada satu sebab: Billing
+mengetahui fakta finansial tetapi tidak punya cara menyampaikannya.
+
+| Yang terjadi | Kerugiannya | Siapa yang menanggung |
+| --- | --- | --- |
+| Bagian keuangan tidak tahu pasien sudah membayar | Uang yang sudah diterima kasir berisiko ditagihkan ulang sebagai piutang — satu tagihan terhitung dua kali | Rumah sakit dan pasien |
+| Apoteker tidak pernah dapat kabar resep sudah dibayar | Seluruh resep rawat jalan macet permanen di keadaan menunggu pembayaran; telaah apoteker tidak dapat dimulai sama sekali | Pasien di loket obat |
+
+Baris kedua bukan risiko yang mungkin terjadi — ia keadaan berjalan sejak jalur lama ditutup
+pada 24 Agustus 2026.
+
+## Batas rilis
+
+| Batas | Isi |
+| --- | --- |
+| Titik mulai | Sebuah peristiwa finansial terjadi di Billing: pembayaran berhasil, dibalik, tagihan lunas, atau biaya dikoreksi |
+| Titik akhir | Dua modul konsumen memiliki fakta itu dalam bentuk yang dapat mereka proses, dan dapat memeriksa ulang bila suratnya tidak sampai |
+| Di luar batas | Apa yang konsumen lakukan dengan fakta itu. Buku penerimaan Finance dan antrean resep Farmasi dirancang pada blueprint masing-masing |
+
+## `EPIC BKC-23` — Penerbitan fakta finansial ke modul konsumen
+
+| FR | Kemampuan | Disposisi |
+| --- | --- | --- |
+| `FR-BKC-230` | Menerbitkan surat penerimaan uang setiap kali sebuah tender mencapai keadaan akhirnya, tanpa menunggu tagihan difinalisasi | `MISSING / NEW` |
+| `FR-BKC-231` | Menerbitkan surat clearance resep setiap kali keadaan clearance sebuah resep berubah | `MISSING / NEW` |
+| `FR-BKC-232` | Menerbitkan keduanya dari satu titik deteksi, di dalam transaksi yang sama dengan peristiwanya | `MISSING / NEW` |
+| `FR-BKC-233` | Tidak mencabut clearance ketika tagihan kembali bersisa semata karena biaya di luar resep | `MISSING / NEW` |
+| `FR-BKC-234` | Mencabut clearance seluruh resep pada tagihan ketika uang ditarik kembali | `MISSING / NEW` |
+| `FR-BKC-235` | Menentukan hasil finansial dari penanda cara bayar, bukan dari nilai yang ditulis tetap | `EXTEND` — master `MstPaymentMethod` sudah punya penandanya |
+| `FR-BKC-236` | Menyediakan pembacaan keadaan clearance terkini sebuah resep, dapat dipanggil kapan saja | `MISSING / NEW` |
+| `FR-BKC-237` | Mencatat pengakuan penerimaan dan menampilkan surat yang belum diambil | `MISSING / NEW` |
+
+### Kemampuan yang ditunda
+
+| Ditunda | Alasan bersebab | Pengganti selama MVP |
+| --- | --- | --- |
+| Peringatan aktif atas surat yang menggantung | Ambang waktu dan penerimanya belum diputuskan (`BKC-OQ-101`). Menebaknya berarti memasang alarm yang tidak ada yang tahu harus menanggapinya | Layar pemeriksaan manual (`BIL-SCR-41`) |
+| Pemulihan resep yang sudah terlanjur macet | Pemutakhiran data yang menuntut otorisasi terpisah, bukan bagian migration penambahan tabel | Permukaan pemeriksaan ulang sudah dapat melepaskannya satu per satu tanpa skrip khusus |
+| Penerbitan ke konsumen utang dokter | `BilApHandoff` tidak disentuh amendment ini; konsumennya belum berdiri | Tidak ada — memang belum dibutuhkan |
+
+## Skenario UAT
+
+### Jalur berhasil
+
+| ID | Skenario | Hasil yang diharapkan |
+| --- | --- | --- |
+| `UAT-BKC-64` | Pasien melunasi tagihan kunjungan yang memuat resep | Bagian keuangan menerima fakta penerimaan uangnya, dan resep menjadi boleh dikerjakan apoteker |
+| `UAT-BKC-65` | Pasien membayar sebagian; tagihan masih bersisa | Bagian keuangan tetap menerima fakta uang yang masuk; resep belum bergerak |
+| `UAT-BKC-66` | Tagihan lunas lewat penghapusan tagihan, tanpa uang masuk | Resep menjadi boleh dikerjakan dengan hasil finansial pembayaran ditiadakan |
+| `UAT-BKC-67` | Pasien membayar dengan asuransi ditambah kekurangan tunai | Hasil finansial tercatat sebagai disetujui asuransi, bukan lunas tunai |
+| `UAT-BKC-68` | Biaya tindakan yang terlewat dicatat setelah pasien melunasi | Obat **tetap** boleh diserahkan; pasien punya kewajiban baru atas tindakan itu saja |
+
+### Jalur gagal
+
+| ID | Skenario | Hasil yang diharapkan |
+| --- | --- | --- |
+| `UAT-BKC-69` | Pembayaran dibalik pada kunjungan dengan tiga resep | Ketiga resep ditahan; bagian keuangan menerima koreksi sebagai catatan baru, bukan perubahan catatan lama |
+| `UAT-BKC-70` | Surat gagal diproses Farmasi karena gangguan | Petugas dapat menanyakan keadaan resep dan memperoleh jawaban yang benar, tanpa menunggu perubahan berikutnya |
+| `UAT-BKC-71` | Resep yang belum pernah punya surat ditanyakan | Dijawab belum diketahui; obat **tidak** boleh diserahkan atas dasar itu |
+| `UAT-BKC-72` | Pembayaran tunai dicatat tanpa shift kasir aktif | Penerbitan ditolak beserta pembayarannya; pesan menyebut shift kasir dengan bahasa yang dipahami petugas |
+| `UAT-BKC-73` | Petugas menekan tombol akui dua kali | Pengakuan kedua ditolak ramah; tidak ada data yang berubah maupun hilang |
+
+## Definition of Done
+
+| Butir | Dapat dijawab | Bukti |
+| --- | --- | --- |
+| Dua tabel berdiri beserta index uniknya | Ya / Belum | Migration diterapkan pada basis data pengembang |
+| Surat dan pergerakan uang tidak pernah terpisah nasib | Ya / Belum | `BIL-AT-135-F` |
+| Satu peristiwa tidak melahirkan surat ganda | Ya / Belum | `BIL-AT-136-F` |
+| Biaya di luar resep tidak mencabut clearance | Ya / Belum | `BIL-AT-137` |
+| Penarikan uang mencabut seluruh resep pada tagihan | Ya / Belum | `BIL-AT-139` |
+| Tender bercampur menghasilkan hasil penjaminan | Ya / Belum | `BIL-AT-140` |
+| Pemeriksaan ulang menjawab benar walau surat belum diambil | Ya / Belum | `BIL-AT-141` |
+| Layar pemeriksaan dapat dipakai peran berwenang, tertutup bagi yang tidak | Ya / Belum | `BIL-AT-142` beserta uji hak akses |
+| Kolom sensitif tidak muncul di catatan log | Ya / Belum | Tinjauan payload log |
+
+## Urutan pengiriman
+
+| Gelombang | Isi | Prasyarat |
+| --- | --- | --- |
+| `MVP-26` | `FR-BKC-230`–`236` — dua tabel, service penerbit, pembacaan keadaan clearance | Approval desain ini; otorisasi migration terpisah |
+| `MVP-27` | `FR-BKC-237` — layar pemeriksaan dan pengakuan penerimaan | `MVP-26` selesai |
+| `POST-MVP` | Peringatan aktif surat menggantung; pemulihan resep yang terlanjur macet | `BKC-OQ-101` terjawab; otorisasi pemutakhiran data |
+
+## Pertanyaan terbuka sebelum development lock
+
+| ID | Pertanyaan | Memblokir? | Penjawab |
+| --- | --- | --- | --- |
+| `BKC-OQ-101` | Berapa lama surat boleh menggantung, dan siapa yang diberi tahu | **Tidak** — `MVP-26` dan `MVP-27` berjalan penuh tanpanya | Operasional Billing + Finance + Farmasi |
+| Pemulihan resep macet | Masuk gelombang yang sama atau menyusul | **Tidak memblokir `MVP-26`**; hanya menentukan letaknya di roadmap | Product/Domain Owner |
+
+Keduanya **bukan** `OPEN DECISION` pada tingkat epic. `EPIC BKC-23` dapat dirancang dan
+dikerjakan penuh tanpa menunggu jawaban keduanya, sehingga `MVP-26` siap diteruskan ke
+`plan-module-delivery` begitu desain ini disetujui.
+
+---
+
+# Amendment 24 September 2026 — Integrasi Rawat Inap ↔ Billing Management (Pass B)
+
+> Status: **draft**. Masukan: `BKC-DEC-112`–`119`, `BKC-AC-080`–`087`, `BKC-DES-042`–`050`.
+> Backend baseline SHA: `dcb9c88e`, Frontend baseline SHA: `fdebb9059`.
+
+## 1. Masalah Produk & Latar Belakang
+
+Modul Rawat Inap (Pass A, `RWI-DEC-156`–`162`) telah menyetujui kontrak operasional bangsal, penempatan tempat tidur (*bed placement*), dan izin pemulangan medis. Namun, pada modul Billing Management (Pass B), ditemukan celah (*gap*) arsitektur penting:
+1. Hubungan penentuan kelayakan pemulangan finansial (*Financial Clearance*) sebelumnya terbalik (*inverted*), di mana Billing membaca status dari Rawat Inap padahal Billing adalah pemilik transaksi kasir dan mutasi pelunasan.
+2. Tidak adanya mesin hitung sewa kamar yang mendukung jam masuk malam hari secara bertingkat dan perhitungan pro-rata menit untuk pasien yang berpindah kamar multipel dalam 24 jam.
+3. Biaya administrasi rawat inap masih berupa nominal tetap (*flat*) dan belum mendukung aturan bisnis 7% dengan pagu Rp6.000.000.
+4. Belum adanya mekanisme otomatis untuk membatalkan izin pulang (*Auto-Reblock*) bila terjadi pencatatan tagihan susulan (*late charges*) pasca-pelunasan.
+5. Perlakuan biaya administrasi rawat jalan yang belum otomatis digugurkan/dikreditkan saat pasien dialihkan ke rawat inap.
+
+## 2. Batas MVP
+
+**Titik Mulai:**
+1. Pasien rawat inap terdaftar dan menempati tempat tidur (event `ROOM_STAY` aktif di Rawat Inap).
+2. Pasien memiliki invoice Billing aktif bertipe `RANAP`.
+
+**Titik Akhir:**
+1. Rincian sewa kamar terhitung otomatis sesuai jam masuk dan pro-rata transfer menit riil.
+2. Biaya administrasi 7% (cap Rp6.000.000) terhitung pada invoice ranap; biaya admin rajal digugurkan/dikreditkan bila ada alihan.
+3. Kasir memproses pelunasan dan menerbitkan surat fakta kelayakan `BilInpatientClearanceHandoff` dengan status `CLEARED`.
+4. Jika ada tagihan susulan, sistem secara otomatis mengubah status menjadi `REVOKED` (*Auto-Reblock*) dan memblokir pemulangan pasien di bangsal ranap.
+5. Kasir dapat memantau antrean surat handoff rawat inap pada tab khusus layar Consumer Handoffs.
+
+## 3. Pemilihan Kemampuan MVP
+
+| Kemampuan | ID Kemampuan Asal | Keputusan MVP |
+| --- | --- | --- |
+| Registrasi domain `ROOM_STAY` ke charge intake adapter | `CAP-BIL-01` | **Wajib (`MUST HAVE`)**; tanpa ini event penempatan kamar ditolak sistem Billing |
+| Perhitungan sewa kamar jam masuk bertingkat & late checkout | `CAP-BIL-02` | **Wajib (`MUST HAVE`)**; memenuhi `BKC-DEC-112` untuk mencegah sengketa jam masuk malam |
+| Perhitungan pro-rata sewa kamar transfer multipel menit riil | `CAP-BIL-03` | **Wajib (`MUST HAVE`)**; memenuhi `BKC-DEC-112` & `BKC-DES-050` |
+| Biaya administrasi ranap 7% dengan pagu Rp6.000.000 | `CAP-BIL-04` | **Wajib (`MUST HAVE`)**; memenuhi `BKC-DEC-113` & `BKC-DES-044` |
+| Verifikasi deposit tindakan besar 100% dari Patient Responsibility | `CAP-BIL-05` | **Wajib (`MUST HAVE`)**; memenuhi `BKC-DEC-114` |
+| Billing single source of truth kelayakan pemulangan ranap | `CAP-BIL-06` | **Wajib (`MUST HAVE`)**; memperbaiki ketergantungan terbalik (`BKC-DEC-115`) |
+| Auto-Reblock pencabutan izin pulang saat tagihan susulan | `CAP-BIL-07` | **Wajib (`MUST HAVE`)**; mencegah kebocoran pendapatan RS (`BKC-DEC-116`) |
+| Konsolidasi non-destruktif rincian tagihan alihan IGD ke Ranap | `CAP-BIL-08` | **Wajib (`MUST HAVE`)**; memenuhi `BKC-DEC-117` |
+| Pembatalan dan pengalihan kredit biaya admin rajal ke ranap | `CAP-BIL-09` | **Wajib (`MUST HAVE`)**; memenuhi `BKC-DEC-119` & `BKC-DES-049` |
+| Tab Rawat Inap pada layar Consumer Handoffs Kasir | `CAP-BIL-10` | **Wajib (`MUST HAVE`)**; antarmuka pemeriksaan surat menggantung bagi kasir |
+
+## 4. Epic dan Functional Requirement
+
+### `EPIC BKC-24` — Integrasi Rawat Inap ↔ Billing Management & Inpatient Financial Clearance
+
+| ID FR | Deskripsi Kebutuhan | Disposisi |
+| --- | --- | --- |
+| `FR-BKC-240` | Mendaftarkan source domain `INPATIENT`/`ROOM_STAY` pada `ContractBillingChargeSourceAdapter` dengan status billable: `OCCUPIED`, `TRANSFERRED`, `CORRECTED`, `RELEASED` | `EXTEND` |
+| `FR-BKC-241` | Menghitung sewa kamar hari pertama berdasarkan jam masuk bertingkat (`<18:00`: 100%, `18:00-<22:00`: 50%, `22:00-<00:00`: 20%, `>=00:00`: hari berikutnya) dan denda keterlambatan keluar (`>12:00`: 50%) | `EXTEND` |
+| `FR-BKC-242` | Menghitung pembagian tarif kamar pro-rata menit untuk kasus >1 transfer kamar dalam hari kalender yang sama | `MISSING / NEW` |
+| `FR-BKC-243` | Menghitung biaya administrasi rawat inap sebesar 7% dari eligible bill dengan batas atas maksimum Rp6.000.000 via konfigurasi `MstAdministrationFeePolicy` | `EXTEND` |
+| `FR-BKC-244` | Memvalidasi kecukupan saldo deposit pasien minimal 100% dari porsi tanggung jawab pasien (ekses) untuk tindakan besar | `MISSING / NEW` |
+| `FR-BKC-245` | Menyediakan tabel `BilInpatientClearanceHandoff` dan service evaluasi kelayakan pemulangan mandiri berbasis sisa tagihan pasien di Billing | `MISSING / NEW` |
+| `FR-BKC-246` | Menjalankan Auto-Reblock (transisi `REVOKED`) secara atomik bila terjadi intake tagihan susulan pada invoice ranap yang sudah `CLEARED` | `MISSING / NEW` |
+| `FR-BKC-247` | Menyatukan item tagihan alihan IGD ke invoice ranap secara non-destruktif dengan tetap mempertahankan `SourceDomain = "EMERGENCY"` | `EXTEND` |
+| `FR-BKC-248` | Membatalkan baris biaya admin rajal (jika belum dibayar) atau mengalihkannya sebagai kredit deposit ranap (jika sudah terbayar) | `MISSING / NEW` |
+| `FR-BKC-249` | Menyediakan endpoint `[Tags("BillingInpatientIntegration")]` untuk inquiry rincian ranap, kalkulasi sewa kamar, dan re-evaluasi clearance | `MISSING / NEW` |
+| `FR-BKC-250` | Memperluas layar `consumer-handoffs-view.jsx` dengan tab "Rawat Inap" untuk memantau status clearance dan memproses pengakuan handoff | `EXTEND` |
+
+## 5. Skenario UAT
+
+### Jalur Berhasil
+
+| ID | Skenario | Hasil yang Diharapkan |
+| --- | --- | --- |
+| `UAT-BKC-74` | Pasien masuk kamar rawat inap pukul 22:30 WIB | Hari pertama dikenakan tarif kamar sebesar 20%; tagihan kamar terakumulasi benar di invoice ranap |
+| `UAT-BKC-75` | Pasien pindah kamar Standar ke ICU pada hari yang sama | Sewa kamar hari itu dihitung pro-rata berdasarkan durasi menit riil tiap kamar |
+| `UAT-BKC-76` | Pasien alihan Rajal ke Ranap telah membayar admin poli Rp50.000 | Biaya admin poli digantikan admin ranap 7% (cap 6 juta), dan pembayaran Rp50.000 memotong tagihan ranap sebagai kredit |
+| `UAT-BKC-77` | Pasien melunasi seluruh sisa tagihan rawat inap di loket kasir | Status kelayakan terbit `CLEARED`, surat handoff tersimpan, dan modul rawat inap menerima status izin pulang |
+| `UAT-BKC-78` | Pasien asuransi dijadwalkan operasi besar dengan ekses Rp10.000.000 | Sistem memvalidasi saldo deposit minimal Rp10.000.000; verifikasi berhasil tanpa menuntut setoran bruto tindakan |
+
+### Jalur Gagal / Pengecualian
+
+| ID | Skenario | Hasil yang Diharapkan |
+| --- | --- | --- |
+| `UAT-BKC-79` | Tagihan obat susulan Rp300.000 masuk setelah pasien dinyatakan `CLEARED` | Sistem otomatis menjalankan Auto-Reblock: status clearance berubah menjadi `REVOKED`, pasien tertahan di bangsal hingga tagihan susulan dilunasi |
+| `UAT-BKC-80` | Pasien meminta izin pulang finansial saat masih ada sisa tagihan Rp1.500.000 | Evaluasi menghasilkan status `BLOCKED`; pesan `BIL-VAL-122` menolak penerbitan izin pulang |
+| `UAT-BKC-81` | Koreksi penempatan kamar (`ROOM_CORRECTION`) diterima dari bangsal | Tagihan kamar lama dibatalkan idempoten dan tagihan baru diterbitkan sesuai kamar yang benar |
+| `UAT-BKC-82` | Pasien operasi besar memiliki saldo deposit kurang dari nilai ekses | Sistem menolak izin tindakan dengan peringatan `BIL-VAL-121` kekurangan saldo deposit |
+
+## 6. Definition of Done
+
+| Butir | Dapat Dijawab | Bukti |
+| --- | --- | --- |
+| Tabel `BilInpatientClearanceHandoff` dan 3 kolom baru master berdiri dengan migration bersih | Ya / Belum | Migration `AddInpatientBillingIntegrationAndClearanceHandoff` diterapkan |
+| Sewa kamar menghitung diskon jam malam dan pro-rata transfer menit secara presisi | Ya / Belum | Uji unit kalkulasi sewa kamar (`BIL-AT-143`) |
+| Biaya admin ranap 7% berhenti bertambah saat mencapai pagu Rp6.000.000 | Ya / Belum | Uji batas administrasi ranap (`BIL-AT-145`) |
+| Ketergantungan lama ke `InpFinancialClearance` pada `PatientBillingSummaryService` telah dilepas | Ya / Belum | Source code inspection bebas dari rujukan entitas rawat inap tersebut |
+| Auto-Reblock otomatis mencabut izin pulang saat ada tagihan susulan | Ya / Belum | Uji integrasi intake susulan (`BIL-AT-148`) |
+| Tab Rawat Inap pada layar kasir berfungsi memuat dan mengakui surat clearance | Ya / Belum | Uji komponen frontend `consumer-handoffs-view.jsx` |
+| Seluruh nominal dan data sensitif terlindungi dari custom log | Ya / Belum | Tinjauan payload audit log |
+
+## 7. Urutan Pengiriman
+
+| Gelombang | Isi | Prasyarat |
+| --- | --- | --- |
+| `MVP-28` | `FR-BKC-240` s.d. `FR-BKC-249` — Skema database, adapter room stay, mesin hitung kamar bertingkat & pro-rata, admin fee 7% cap Rp6 jt, service clearance & auto-reblock, endpoint API integrasi | Approval blueprint ini; otorisasi migration terpisah |
+| `MVP-29` | `FR-BKC-250` — Frontend layar pemeriksaan Consumer Handoffs tab Rawat Inap & panel ringkasan ranap pada Menu Pembayaran | `MVP-28` selesai |
+| `POST-MVP` | Notifikasi otomatis WhatsApp/SMS kelayakan pulang ke keluarga pasien; alur otomatisasi jaminan perusahaan pulang dispensasi | Otorisasi bisnis tambahan |
+
+## 8. Pertanyaan Terbuka Sebelum Development Lock
+
+| ID | Pertanyaan | Status | Penutupan & Hasil |
+| --- | --- | :---: | --- |
+| `BKC-OQ-102` | Batas toleransi keterlambatan input tagihan susulan | **DITUTUP** | `BKC-DEC-120` menetapkan Auto-Reblock berlaku selama invoice masih `OPEN`. Setelah `CLOSED`, tagihan susulan otomatis ditolak kecuali dibuka kembali lewat otorisasi Supervisor Kasir. |
+| `BKC-OQ-103` | Pengecualian biaya admin 7% cap Rp6 juta untuk kasus khusus | **DITUTUP** | `BKC-DEC-121` menetapkan pengelolaan variasi/pengecualian secara deklaratif via tabel master `MstAdministrationFeePolicy`; pasien BPJS inklusif paket klaim. |
+| Aktivasi | Tanggal efektif pemberlakuan aturan admin ranap baru | **DITUTUP** | `BKC-DEC-122` menetapkan berlaku untuk seluruh pasien yang dipulangkan (*discharged*) pada atau setelah `EffectiveFrom`. |
+
+**Seluruh pertanyaan terbuka telah ditutup.** Dokumen ini siap diteruskan ke tahap perencanaan pengiriman modul (`plan-module-delivery`) setelah approval resmi.
+
+
+
+---
+
+# Amendment 24 September 2026 — Revisi UI Billing: Filter, Default, Asuransi, Diskon Dokter, Refund
+
+Masukan `BUI-DEC-001`–`015`, `BUI-DES-001`–`012`. Status **draft**.
+
+## Masalah produk
+
+Modul Billing sudah berjalan, tetapi tiga kelompok masalah nyata teridentifikasi dari
+permintaan owner dan diverifikasi langsung ke kode:
+
+| Yang terjadi | Bukti | Kerugiannya |
+|---|---|---|
+| Kasir membuka layar Billing dan melihat seluruh riwayat invoice, bukan pekerjaan hari ini | `BillingInvoiceQuery` sudah mendukung filter, tapi frontend tidak memakainya sebagai default | Waktu terbuang menyaring manual tiap kali layar dibuka |
+| Status tagihan pasien Allianz dengan coverage sebagian salah tersorot sebagai default | `BillingPayerEditService.cs:145` memakai aturan "satu item cukup", bukan "seluruh item" yang dikehendaki owner | Risiko piutang salah klasifikasi — sudah berjalan di produksi sebelum amendment ini, bukan risiko baru yang diciptakan |
+| Modal Ajukan Refund tidak bisa memilih item atau sumber dana secara eksplisit | Backend (`CreateRefundRequest.RefundCategory`, `SelectedBillingItemIds`) sudah mendukung sejak sebelumnya, frontend belum pernah memakainya | Kasir mengetik nominal manual tanpa jejak item yang direfund |
+
+## Batas rilis
+
+| Batas | Isi |
+|---|---|
+| Titik mulai | `BUI-DES-001` (backend, perbaikan logika `suggestedBillingStatus`) diterapkan sebagai gerbang; sisanya murni frontend, dapat dimulai begitu desain ini disetujui |
+| Titik akhir | `FR-BUI-001`–`008`, `011`–`013` berfungsi penuh dan lulus UAT masing-masing |
+| Di luar batas | `FR-BUI-009` (Catatan Penting) dan mekanisme upload sesungguhnya pada `FR-BUI-010` — keduanya `OPEN DECISION`, lihat bagian Kemampuan yang Ditunda |
+
+## `EPIC BUI-01` — Revisi UI Billing: Filter, Default, Asuransi, Diskon Dokter, Refund
+
+| FR | Kemampuan | Disposisi |
+|---|---|---|
+| `FR-BUI-001` | Filter Tanggal Awal/Akhir pada layar Billing | `EXTEND` |
+| `FR-BUI-002` | Default invoice hari ini status `OPEN` saat layar dibuka | `EXTEND` |
+| `FR-BUI-003` | Label "Drug" diganti "Obat / Medicine" pada seluruh tampilan | `EXTEND` |
+| `FR-BUI-004` | Daftar perbandingan penjamin hanya menampilkan penyedia asuransi | `EXTEND` |
+| `FR-BUI-005` | Asuransi aktif pasien dikecualikan dari daftar pembanding | `EXISTING / REUSE` — sudah berjalan, `CAP-BUI-05` |
+| `FR-BUI-006` | Payment method tiga tombol satu baris horizontal, sumber `PaymentMethodRow` | `EXTEND` |
+| `FR-BUI-007` | Default status tagihan "Asuransi" hanya bila SELURUH item tercover | `EXTEND` — bergantung `BUI-DES-001` (backend) |
+| `FR-BUI-008` | Card Billing dan Card Status Tagihan dirapikan (compact, datatable naik) | `EXTEND` |
+| `FR-BUI-009` | Catatan Penting berbentuk timeline lintas tahap kunjungan | `OPEN DECISION` — `BUI-CQ-05` |
+| `FR-BUI-010` | Upload Memo Dokter TTD wajib sebelum submit diskon dokter | `OPEN DECISION` — lihat catatan di bawah |
+| `FR-BUI-011` | Field/card/kalkulasi refundable credit dihilangkan dari tampilan | `EXTEND` |
+| `FR-BUI-012` | Modal Ajukan Refund dua sumber (Billing multi-select / Deposito otomatis) | `EXTEND` |
+| `FR-BUI-013` | Tombol Refund/Adjustment/Write-Off dipindah ke Riwayat Pembayaran | `EXTEND` |
+
+**Catatan penting soal `FR-BUI-010`:** validasi "memo wajib" (`BUI-VAL-01`) sendiri SUDAH bisa
+dibangun (`EXTEND`, komponen upload siap per `03-frontend-architecture.md` bagian 8). Yang
+membuat FR ini berstatus `OPEN DECISION` secara keseluruhan adalah **endpoint upload
+sesungguhnya belum ada** (`BUI-CQ-06`). Ini bukan sekadar "belum lengkap" — **menyalakan
+validasi wajib tanpa endpoint upload akan MENGUNCI seluruh alur pengajuan diskon dokter yang
+SUDAH BERJALAN**, karena dokter tidak akan pernah bisa mengunggah memo apa pun. `FR-BUI-010`
+MUST NOT masuk gelombang pengiriman sampai `BUI-CQ-06` terjawab dan endpoint upload berdiri.
+
+### Kemampuan yang Ditunda
+
+| Ditunda | Alasan bersebab | Pengganti selama MVP |
+|---|---|---|
+| `FR-BUI-009` — Catatan Penting | Tidak ada satu pun endpoint yang mengonsolidasikan note pasien lintas tahap kunjungan (Kiosk/Admisi/IGD/Rawat Inap); mewujudkannya menuntut kemampuan backend baru lintas bounded context, di luar wewenang desain Billing murni (`BUI-CQ-05`) | **Tidak ada yang hilang** — kemampuan ini belum pernah ada sebelumnya, bukan pengurangan dari yang sudah berjalan |
+| `FR-BUI-010` — Upload Memo Dokter TTD (endpoint) | Mekanisme upload belum diputuskan (`BUI-CQ-06`); menyalakannya tanpa endpoint akan mengunci alur yang sedang berjalan | Alur pengajuan diskon dokter **tetap berjalan seperti sekarang** (tanpa memo wajib) sampai endpoint ada — validasi wajib baru dinyalakan bersamaan dengan endpoint-nya, bukan lebih dulu |
+
+## Skenario UAT
+
+### Jalur berhasil
+
+| ID | Skenario | Hasil yang diharapkan |
+|---|---|---|
+| `UAT-BUI-01` | Layar Billing dibuka tanpa filter | Invoice hari ini, status `OPEN`, tampil sebagai default |
+| `UAT-BUI-02` | Filter tanggal diterapkan | Data tergantikan sesuai rentang, default hari ini tidak lagi berlaku |
+| `UAT-BUI-03` | Modal perbandingan asuransi dibuka | Hanya penyedia asuransi yang tampil sebagai kandidat |
+| `UAT-BUI-04` | Pasien Allianz, seluruh item tercover, buka Edit Status Tagihan | Default "Asuransi" tersorot |
+| `UAT-BUI-05` | Tiga tombol payment method dirender | Tersusun satu baris horizontal, label dan status terpilih dari `PaymentMethodRow` |
+| `UAT-BUI-06` | Modal refund, sumber "Billing", dua item dicentang | Total otomatis terhitung, kolom Tanggal terisi |
+| `UAT-BUI-07` | Modal refund, sumber "Deposito" dipilih | Nominal otomatis terisi sisa deposito |
+| `UAT-BUI-08` | Tombol aksi pada Riwayat Pembayaran diklik | Modal yang sama seperti sebelumnya terbuka, alur persetujuan tidak berubah |
+
+### Jalur gagal
+
+| ID | Skenario | Hasil yang diharapkan |
+|---|---|---|
+| `UAT-BUI-09` | Pasien Allianz, coverage SEBAGIAN (2 dari 5 item), buka Edit Status Tagihan | Default "Pribadi" tersorot — **ini kasus penentu yang membuktikan `BUI-DES-001` benar**, bukan kasus nol/seluruh yang sama di kedua aturan lama-baru |
+| `UAT-BUI-10` | Filter tanggal akhir sebelum tanggal awal | Ditolak sebelum request terkirim, pesan `BUI-VAL-06` |
+| `UAT-BUI-11` | Modal refund sumber "Billing", submit tanpa item dicentang | Ditolak `BUI-VAL-03` |
+| `UAT-BUI-12` | Modal refund sumber "Deposito", sisa deposito Rp 0 | Nominal Rp 0, submit ditolak (`BUI-VAL-05`, nominal harus > 0) |
+| `UAT-BUI-13` | Halaman Menu Pembayaran diperiksa setelah amendment | Tombol Refund/Adjustment/Write-Off **tidak lagi tampil** di sana |
+| `UAT-BUI-14` | Kolom "Kwitansi" existing pada Riwayat Pembayaran diperiksa | Perilaku cetak struk tidak berubah setelah kolom Aksi ditambahkan |
+
+## Definition of Done
+
+| Butir | Dapat dijawab | Bukti |
+|---|---|---|
+| `BUI-DES-001` (backend) diterapkan dan teruji dengan kasus coverage sebagian | Ya / Belum | `UAT-BUI-09` |
+| Filter dan default Billing berfungsi | Ya / Belum | `UAT-BUI-01`, `UAT-BUI-02` |
+| Label Drug/Obat tersisir menyeluruh, termasuk di luar `components/view` dan `app` | Ya / Belum | Regresi visual/snapshot penuh |
+| Payment method horizontal memakai `PaymentMethodRow`, bukan `BasePayerCategorySelector` | Ya / Belum | `UAT-BUI-05` |
+| Refundable credit lama tidak tampil di layar mana pun | Ya / Belum | Regresi visual |
+| Modal refund dua sumber berfungsi penuh, termasuk jalur gagal | Ya / Belum | `UAT-BUI-06`, `07`, `11`, `12` |
+| Tombol aksi berpindah tanpa mengubah wewenang | Ya / Belum | `UAT-BUI-08`, `13`; uji hak akses `permission-audit-matrix.md` |
+| Kolom Kwitansi existing tidak rusak | Ya / Belum | `UAT-BUI-14` |
+| Nol migration dijalankan | Ya / Belum | Diff migration kosong |
+
+## Urutan pengiriman
+
+| Gelombang | Isi | Prasyarat |
+|---|---|---|
+| `MVP-30` | `BUI-DES-001` — perbaikan logika backend `suggestedBillingStatus` | Approval desain ini; **gerbang untuk `MVP-32`** |
+| `MVP-31` | `FR-BUI-001`, `002`, `003`, `008`, `013` — filter/default Billing, label, card compact, pindah tombol aksi | `MVP-30` tidak diperlukan untuk gelombang ini — dapat paralel |
+| `MVP-32` | `FR-BUI-004`, `005`, `006`, `007` — perbandingan asuransi, payment method, default status | `MVP-30` **selesai lebih dulu** — tanpa ini `FR-BUI-006`/`007` menampilkan default yang salah |
+| `MVP-33` | `FR-BUI-011`, `012` — modal refund dua sumber (memakai `BUI-DES-002`, field `TransactionDate`); refundable credit lama tergantikan sebagai bagian PENGGANTIAN modal ini, bukan task tersendiri (`03-frontend-architecture.md` bagian 9.1) | `BUI-DES-002` (backend, aditif nol migration) diterapkan |
+| **Tertahan** | `FR-BUI-009` (Catatan Penting) | `BUI-CQ-05` terjawab |
+| **Tertahan** | `FR-BUI-010` (upload memo dokter) | `BUI-CQ-06` terjawab **dan** endpoint upload berdiri |
+
+## Pertanyaan terbuka sebelum development lock
+
+| ID | Pertanyaan | Memblokir? | Penjawab |
+|---|---|---|---|
+| `BUI-CQ-05` | Cakupan sumber data Catatan Penting — dipersempit atau tetap lintas modul penuh | **Tidak** — `MVP-30`..`33` berjalan penuh tanpanya | Yasmin |
+| `BUI-CQ-06` | Mekanisme upload memo dokter — baru khusus Billing atau reuse mekanisme umum | **Tidak** untuk `MVP-30`..`33`; **Ya** untuk `FR-BUI-010` secara spesifik | Backend Owner |
+
+Keduanya **bukan** `OPEN DECISION` pada tingkat epic secara keseluruhan. `EPIC BUI-01` — kecuali
+dua FR yang eksplisit ditandai `OPEN DECISION` di atas — siap diteruskan ke
+`/plan-module-delivery` begitu desain ini disetujui.

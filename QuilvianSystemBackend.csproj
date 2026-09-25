@@ -94,6 +94,89 @@
 		<Compile Remove="Migrations\ApplicationDbContextModelSnapshot.cs" />
 	</ItemGroup>
 
+	<!-- =========================================================
+	     MIGRATION DESIGNER ARCHIVING
+	     =========================================================
+
+	     Ditambahkan 21 September 2026, setelah build gagal dengan
+	     System.OutOfMemoryException di dalam Roslyn LocalRewriter.
+
+	     Sebabnya bukan kode aplikasi. Migrations\ berisi 13,7 juta baris / 554 MB,
+	     sementara seluruh source aplikasi hanya 26,7 MB. Tiap *.Designer.cs memuat
+	     BuildTargetModel, yaitu snapshot penuh seluruh skema, sekitar 4,5 MB per
+	     berkas, diulang 204 kali. Roslyn melakukan lowering atas method-method
+	     raksasa itu secara paralel, sehingga csc menembus 20 GB lalu mati.
+
+	     -m:1 tidak menolong: yang dibatasinya adalah paralelisme MSBuild, bukan
+	     paralelisme internal compiler.
+
+	     Pendekatan yang dipakai:
+
+	       - Designer yang tidak lagi diperlukan dipindah ke Migrations\History\
+	         dan tidak ikut dikompilasi.
+	       - Atribut [DbContext] dan [Migration] miliknya dipindahkan ke
+	         Migrations\MigrationMetadata.g.cs, yang tetap dikompilasi. Inilah yang
+	         membedakannya dari SkipMigrationMetadata di atas: pendekatan lama itu
+	         membuang atributnya juga, sehingga migration lenyap dari pandangan EF.
+	       - Designer milik migration bermuatan data (InsertData/UpdateData/
+	         DeleteData) dan dua migration terbaru tetap dikompilasi utuh, karena
+	         TargetModel-nya masih dipakai: yang pertama untuk menentukan tipe kolom
+	         saat SQL dihasilkan, yang kedua oleh 'dotnet ef migrations remove'.
+	       - ApplicationDbContextModelSnapshot.cs selalu dikompilasi.
+
+	     Migration baru hasil 'dotnet ef migrations add' lahir di Migrations\ dan
+	     otomatis ikut dikompilasi, jadi tidak ada risiko ia tertinggal diam-diam.
+	     Pemangkasan lanjutan dilakukan dengan menjalankan
+	     tooling\migrations\Update-MigrationHistory.ps1, yang memindahkan berkas dan
+	     meregenerasi metadata dalam satu langkah agar keduanya tak bisa berselisih.
+
+	     Untuk mengompilasi seluruh Designer kembali (butuh RAM sangat besar):
+
+	         dotnet build -p:FullMigrationMetadata=true
+	  -->
+	<PropertyGroup Condition="'$(FullMigrationMetadata)' == ''">
+		<FullMigrationMetadata>false</FullMigrationMetadata>
+	</PropertyGroup>
+
+	<Import Project="Migrations\MigrationMetadata.g.props" Condition="Exists('Migrations\MigrationMetadata.g.props')" />
+
+	<ItemGroup Condition="'$(FullMigrationMetadata)' != 'true'">
+		<Compile Remove="Migrations\History\**\*.cs" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(FullMigrationMetadata)' == 'true'">
+		<!--
+		Designer asli kembali dikompilasi, jadi atribut penggantinya harus dibuang
+		agar tidak menjadi atribut ganda (CS0579).
+		-->
+		<Compile Remove="Migrations\MigrationMetadata.g.cs" />
+	</ItemGroup>
+
+	<!--
+	Penjaga agar kegagalan tidak pernah senyap. Bila ada Designer yang diarsipkan
+	tanpa atribut penggantinya, migration itu hilang dari pandangan EF tanpa satu
+	pun peringatan. Build harus berhenti di sini, bukan menghasilkan assembly cacat.
+	-->
+	<Target Name="ValidateMigrationHistoryCoverage"
+	        BeforeTargets="CoreCompile"
+	        Condition="'$(FullMigrationMetadata)' != 'true' And Exists('$(MSBuildProjectDirectory)\Migrations\History')">
+
+		<ItemGroup>
+			<_ArchivedDesignerFile Include="$(MSBuildProjectDirectory)\Migrations\History\*.Designer.cs" />
+		</ItemGroup>
+
+		<PropertyGroup>
+			<_ArchivedDesignerCount>@(_ArchivedDesignerFile->Count())</_ArchivedDesignerCount>
+		</PropertyGroup>
+
+		<Error Condition="'$(MigrationMetadataDeclaredCount)' == ''"
+		       Text="Migrations\History\ berisi Designer yang diarsipkan, tetapi Migrations\MigrationMetadata.g.props tidak ada. Jalankan: powershell -NoProfile -File tooling\migrations\Update-MigrationHistory.ps1" />
+
+		<Error Condition="'$(_ArchivedDesignerCount)' != '$(MigrationMetadataDeclaredCount)'"
+		       Text="Metadata migration tidak sinkron: $(_ArchivedDesignerCount) Designer diarsipkan di Migrations\History\ tetapi $(MigrationMetadataDeclaredCount) dideklarasikan di Migrations\MigrationMetadata.g.cs. Jalankan: powershell -NoProfile -File tooling\migrations\Update-MigrationHistory.ps1" />
+
+	</Target>
+
 	<ItemGroup>
 
 		<Compile Remove="Areas\HealthServices\DeviceManagement\**" />
@@ -116,6 +199,25 @@
 		<Content Remove="Tests\**" />
 		<EmbeddedResource Remove="Tests\**" />
 		<None Remove="Tests\**" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!--
+		Data induk Spesifik Specimen (LAB-DEC-129, LAB-DEC-130), 1.767 baris dari LAB-EVD-007.
+
+		DITANAM KE DALAM DLL, bukan disalin ke samping aplikasi: berkas tertanam tidak dapat
+		hilang saat deployment, dan tidak ada langkah "jangan lupa salin berkasnya" yang dapat
+		terlewat.
+
+		Kenapa berkas, bukan daftar di dalam kode C#: 1.767 baris data di dalam berkas C#
+		adalah berkas yang nol dapat ditinjau siapa pun, dan setiap pembaruan dataset menjadi
+		diff raksasa. Alternatifnya InsertData pada migration — lebih buruk, sebab barisnya
+		masuk ke berkas yang nol boleh disunting lagi sesudah diterapkan.
+
+		Ini pola seeder berbasis berkas PERTAMA pada repository ini, dinyatakan terbuka pada
+		02-backend-architecture.md bagian 18.2 — bukan diselundupkan.
+		-->
+		<EmbeddedResource Include="Areas\HealthServices\LaboratoryManagement\Seeders\Data\lab-specimen-detail-types.csv" />
 
 
 		<Content Remove="Areas\HealthServices\DeviceManagement\**" />
@@ -152,6 +254,10 @@
 	<ItemGroup>
 		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.18" />
 		<PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.18" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.18">
+		  <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		  <PrivateAssets>all</PrivateAssets>
+		</PackageReference>
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.18">
 
 			<PrivateAssets>all</PrivateAssets>

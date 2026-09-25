@@ -17,9 +17,13 @@ Examples:
 
 ## Evaluation scope exclusions
 
-Two classes of file are removed from evaluation before the detectors run.
+Three classes of file are removed from evaluation before the detectors run.
 
 **Generated build output.** Any path containing a `bin/` or `obj/` segment is dropped from every scope (`WorkingTree`, `GitRange`, `-Path`). Build output is never a source of record and is not evaluated.
+
+**Unchanged migration moves (GitRange).** A file Git reports as an exact rename (`R100`) from one path under `Migrations/` to another path under `Migrations/`, with the file name unchanged, is dropped from `GitRange` evaluation. This is the archive operation of DEC-BUILD-002: `tooling/migrations/Update-MigrationHistory.ps1` moves EF Designer files into `Migrations/History/` without touching their content. The checker diffs each file by its new path only, so a moved file used to count as entirely added and was treated as `NEW CODE`. Archiving 199 Designer files made the checker re-read about 500 MB of generated code, and the CI job ran for hours without finishing. The moved content is byte-identical to a file that already exists at the base, so it has no added line to evaluate.
+
+The exclusion is deliberately narrow. Only `Migrations/` to `Migrations/` moves qualify. A move of any other file — including a legacy business file — is evaluated exactly as before, because whether moving legacy code makes it `NEW CODE` is a contract question and not a performance one. A rename with any content change (`R099` and below) or any change to the file name, including a case-only change, is also evaluated as before, so no new code can enter unreviewed through this path.
 
 **Test projects.** Files under a detected test project are excluded from the persisted-entity detectors QBE-ENT-001, QBE-CFG-001, and QBE-MOD-002. Those three rules are scoped by the [Backend Engineering Contract](../../docs/engineering/BACKEND_ENGINEERING_CONTRACT.md) to persisted domain entities and operational modules; a test class is neither. Without this exclusion a test that merely names `IdentityModel` — for example one asserting QBE-ENT-001 itself — was reported as a new persisted entity that fails all three rules.
 
@@ -27,15 +31,17 @@ Test projects are detected from `*.csproj` content, never from file or folder na
 
 The exclusion is deliberately narrow. Test-scope files are still evaluated by QBE-NAM-001, QBE-CODE-002, QBE-CODE-003, and QBE-SVC-001, and still count toward `Files evaluated`. It is a scope correction, not a relaxation: no rule changes meaning, and the canonical contract is unchanged.
 
-Both exclusions are reported rather than silent. The terminal report prints `Generated files excluded (bin/obj)` and `Test-scope files excluded from QBE-ENT-001/QBE-CFG-001/QBE-MOD-002`, and the JSON names every excluded test-scope file, so a reviewer can always see what was skipped.
+Every exclusion is reported rather than silent. The terminal report prints `Generated files excluded (bin/obj)`, `Unchanged migration moves excluded (Migrations/, R100)`, and `Test-scope files excluded from QBE-ENT-001/QBE-CFG-001/QBE-MOD-002`, and the JSON names every excluded move (`from`/`to`) and every excluded test-scope file, so a reviewer can always see what was skipped.
 
 ## Code-only evidence
 
-The persisted-entity detectors read code, not prose. Before QBE-ENT-001, QBE-CFG-001, and QBE-MOD-002 inspect a file, comments (`//`, `///`, `/* */`) and literal text (regular, interpolated, verbatim `@"..."`, raw `"""..."""`, and character literals) are removed, leaving declarations only. Line structure is preserved, so nothing else shifts.
+The persisted-entity detectors read code, not prose. Before QBE-ENT-001, QBE-CFG-001, and QBE-MOD-002 inspect a file, comments (`//`, `///`, `/* */`) and literal text (regular, interpolated, verbatim `@"..."`, raw `"""..."""`, and character literals) are removed, leaving declarations only. Line structure is preserved, so nothing else shifts. Entity markers are then tied to each declared class: an `IdentityModel` constraint on a configuration helper cannot turn that helper into an entity, and every actual class declaration in a multi-class file is evaluated independently.
 
 Without this, documentation decided rule outcomes. A read-only service whose XML documentation explained why it exists — `<c>MstReferralInstitution</c> ... beserta <c>DbSet</c>-nya` — matched the `DbSet<` entity marker on the `DbSet</c>` tag, so the service class was reported as a new persisted entity failing all three rules. The remedy is not to reword documentation: prose is not code and must never be able to create or hide a violation.
 
 The same applies to cross-file lookups. `DbSet<T>` registration and `IEntityTypeConfiguration<T>` mapping are confirmed against stripped code, so a commented-out registration cannot supply evidence and a mapping named only inside a comment cannot suppress QBE-CFG-001. Those repository-wide lookups also skip `bin/` and `obj/`, matching the generated-output exclusion already applied to the evaluation scope.
+
+The added-line detectors use the same code-only view, so XML documentation cannot create QBE-SVC-001 or QBE-CODE findings. QBE-NAM-001 treats a `Trx*` file name as new naming only when the file itself is new. Adding an import at line 1 of an existing legacy `Trx*` file is not a rename and cannot create a finding; an added `Trx*` class, `DbSet`, or configuration declaration is still detected from the added code line.
 
 Detection strength is unchanged. A genuine new entity that does not inherit `IdentityModel`, has no dedicated configuration, or resolves to no registry owner is still reported. This is an evidence correction, not a relaxation, and the canonical contract is unchanged.
 
@@ -51,7 +57,7 @@ Strict mode enforces only the current delta-aware scope; it does not scan untouc
 
 ## Structured output and exceptions
 
-`-JsonOutputPath` is optional. It preserves terminal output and writes deterministic JSON containing schema/checker version, mode, scope and Git range, counts, suppressed-violation count, blocking RuleIds, result, and visible findings. Finding fields include repository-relative file, line, evidence/reason, recommended action, `suppressed`, and `exceptionId`. Scope exclusions are also recorded: `generatedFilesExcluded` counts dropped `bin/`/`obj/` sources, while `testScopeExcludedFileCount` and `testScopeExcludedFiles` report how many files were held out of the persisted-entity rules and exactly which ones.
+`-JsonOutputPath` is optional. It preserves terminal output and writes deterministic JSON containing schema/checker version, mode, scope and Git range, counts, suppressed-violation count, blocking RuleIds, result, and visible findings. Finding fields include repository-relative file, line, evidence/reason, recommended action, `suppressed`, and `exceptionId`. Scope exclusions are also recorded: `generatedFilesExcluded` counts dropped `bin/`/`obj/` sources, `migrationMoveExcludedFileCount` and `migrationMoveExcludedFiles` report the dropped migration moves, while `testScopeExcludedFileCount` and `testScopeExcludedFiles` report how many files were held out of the persisted-entity rules and exactly which ones.
 
 The repository-owned authority is [QBE_EXCEPTIONS.json](../../docs/engineering/QBE_EXCEPTIONS.json). Each record requires `ExceptionId`, `RuleId`, a specific repository-relative file `Scope`, `Reason`, `Status` (`ACTIVE`, `EXPIRED`, or `REVOKED`), approval (`ApprovedBy` or `ApprovalReference`), and either `ExpiresAt` or `NoExpiryRationale`. Wildcards, whole-repository scope, absolute paths, traversal, empty RuleIds, and unknown QBE RuleIds are rejected. Malformed/invalid registries are tooling errors (`2`).
 
@@ -61,6 +67,6 @@ An ACTIVE matching exception leaves its finding visible as `SUPPRESSED` and prev
 
 The `QBE Conformance / QBE Strict GitRange` workflow runs for pull requests targeting `QuilvianIntegrationBackend`. It checks out full Git history, compares the exact pull-request base and head SHAs, and runs `Strict` GitRange mode. `VIOLATION` findings fail the job; `REVIEW` and `INFO` findings remain advisory. Untouched legacy is not scanned, and touched legacy is evaluated only on added lines.
 
-The workflow writes `qbe-conformance-result` as a JSON artifact and publishes a concise job summary. Artifact and summary steps run even after a conformance failure. The canonical exception registry is read from `docs/engineering/QBE_EXCEPTIONS.json`; CI never creates or mutates exceptions.
+The job has a 20-minute timeout. A normal run takes well under a minute; a timeout fails the job, so it blocks the pull request rather than passing it. The workflow writes `qbe-conformance-result` as a JSON artifact and publishes a concise job summary. Artifact and summary steps run even after a conformance failure. The canonical exception registry is read from `docs/engineering/QBE_EXCEPTIONS.json`; CI never creates or mutates exceptions.
 
 Manual workflow dispatch requires explicit `base_ref` and `head_ref` inputs. This prevents an arbitrary fallback baseline or repository-wide legacy scan.

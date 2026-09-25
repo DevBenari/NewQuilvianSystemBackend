@@ -1,406 +1,274 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.ActionConstraints;
-using Microsoft.AspNetCore.Mvc.Controllers;
-using Microsoft.AspNetCore.Mvc.Infrastructure;
-using Microsoft.EntityFrameworkCore;
-using QuilvianSystemBackend.Attributes;
-using QuilvianSystemBackend.Constants;
+﻿using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Models;
 using QuilvianSystemBackend.Repositories;
-using System.Reflection;
+using QuilvianSystemBackend.Services.Security;
 
 namespace QuilvianSystemBackend.Seeders
 {
+    /// <summary>
+    /// Mendaftarkan kemampuan aplikasi ke registry Akses Role.
+    ///
+    /// Seeder ini <b>hanya</b> mengelola tiga tabel registry: <c>SysApplicationModule</c>,
+    /// <c>SysControllerAccess</c>, dan <c>SysActionAccess</c>. Ia tidak pernah membuat
+    /// <c>SysAccessPolicy</c>. Kemampuan yang baru terdaftar tetap ditolak untuk semua orang
+    /// sampai admin memberikannya lewat layar Akses Role.
+    ///
+    /// Sejak Phase A0 penutupan baris usang dilakukan secara generik. Sebelumnya setiap
+    /// perpindahan modul atau penggantian nama menuntut satu fungsi <c>Normalize...</c> baru yang
+    /// ditulis tangan, dan yang terlewat tetap tampil di layar Akses Role sebagai kemampuan yang
+    /// sebenarnya sudah tidak ada. Audit Phase A0 menemukan 59 baris seperti itu.
+    /// </summary>
     public static class AccessMenuSeeder
     {
-        /// <summary>
-        /// Hak akses <b>penanda</b>: pasangan yang dibaca service, bukan yang menempel pada
-        /// sebuah endpoint.
-        /// </summary>
-        /// <remarks>
-        /// <para>
-        /// Seluruh pasangan hak akses lain lahir dari pemindaian action MVC yang punya
-        /// <c>[AccessController]</c> dan <c>[AccessAction]</c>. Sebagian aturan keselamatan
-        /// tidak berbentuk begitu: ia menjawab "orang ini dihitung sebagai apa", bukan "orang
-        /// ini boleh memanggil endpoint apa", sehingga tidak ada endpoint yang pantas
-        /// menampungnya.
-        /// </para>
-        /// <para>
-        /// <b>Tanpa daftar ini, pasangan semacam itu tidak pernah masuk
-        /// <c>SysActionAccess</c>.</b> Akibatnya bukan galat yang terlihat, melainkan
-        /// <c>403</c> permanen yang <b>tidak dapat diperbaiki dari layar mana pun</b> — karena
-        /// baris untuk dicentangnya memang tidak ada. Itulah yang terjadi pada
-        /// <c>RadReport : ActAsRadiologist</c> sejak <c>BE-RAD-08</c> sampai penambahan ini.
-        /// </para>
-        /// <para>
-        /// Daftar ini <b>sengaja pendek dan ditulis tangan</b>. Setiap baris di sini adalah
-        /// kewenangan yang tidak dapat ditelusuri dari source dengan cara biasa, jadi ia harus
-        /// terbaca di satu tempat yang mudah diperiksa saat review.
-        /// </para>
-        /// </remarks>
-        public static readonly PenandaTanpaEndpoint[] PenandaTanpaEndpointYangDidaftarkan =
-        [
-            // RAD-DEC-015, RAD-PERM-001 bagian 6. Dibaca RadReportService ketika membekukan
-            // peran penulis draf dan ketika memutuskan boleh-tidaknya pengesahan sendiri.
-            //
-            // Sengaja TIDAK digabung dengan RadReport : Validate. "Boleh mencoba mengesahkan"
-            // dan "dihitung sebagai dokter radiolog" adalah dua hal berbeda: seorang residen
-            // dapat diberi Validate supaya dapat mengesahkan draf radiografer, dan tanpa
-            // penanda ini draf yang ia tulis sendiri tetap ditolak. Menggabungkannya menghapus
-            // aturan RAD-DEC-003.
-            new(
-                ModuleCode: "HEALTH_SERVICE_RADIOLOGY_MANAGEMENT",
-                ControllerName: "RadReport",
-                ActionName: "ActAsRadiologist",
-                DisplayName: "Act As Radiologist",
-                Description: "Dihitung sebagai dokter radiolog saat menulis dan mengesahkan hasil bacaan",
-                AccessType: AccessTypes.Update,
-                SortOrder: 7),
-        ];
+        public sealed record ReconciliationResult(
+            int ModulesUpserted,
+            int ControllersUpserted,
+            int ActionsUpserted,
+            int ModulesClosed,
+            int ControllersClosed,
+            int ActionsClosed);
 
-        /// <summary>Satu hak akses penanda yang didaftarkan tanpa endpoint.</summary>
-        public sealed record PenandaTanpaEndpoint(
-            string ModuleCode,
-            string ControllerName,
-            string ActionName,
-            string DisplayName,
-            string Description,
-            string AccessType,
-            int SortOrder);
-
-        public static async Task SeedAsync(IServiceProvider serviceProvider)
+        public static async Task<ReconciliationResult> SeedAsync(IServiceProvider serviceProvider)
         {
             using var scope = serviceProvider.CreateScope();
 
             var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-            var actionDescriptorProvider = scope.ServiceProvider.GetRequiredService<IActionDescriptorCollectionProvider>();
+            var actionDescriptorProvider = scope.ServiceProvider
+                .GetRequiredService<Microsoft.AspNetCore.Mvc.Infrastructure.IActionDescriptorCollectionProvider>();
 
-            var controllerActions = actionDescriptorProvider
-                .ActionDescriptors
-                .Items
-                .OfType<ControllerActionDescriptor>()
-                .ToList();
+            var snapshot = PermissionRegistryDescriptor.Build(actionDescriptorProvider);
 
-            var modules = await dbContext.SysApplicationModules.ToListAsync();
-            var controllers = await dbContext.SysControllerAccesses.ToListAsync();
-            var actions = await dbContext.SysActionAccesses.ToListAsync();
-            var modulesByCode = modules.ToDictionary(x => x.ModuleCode, StringComparer.Ordinal);
-            var controllersByModuleAndName = controllers.ToDictionary(
-                x => BuildControllerKey(x.ModuleId, x.ControllerName),
-                StringComparer.Ordinal);
-            var actionsByControllerAndName = actions.ToDictionary(
-                x => BuildActionKey(x.ControllerAccessId, x.ActionName),
-                StringComparer.Ordinal);
-
-            foreach (var controllerAction in controllerActions)
-            {
-                var controllerAttribute = controllerAction
-                    .ControllerTypeInfo
-                    .GetCustomAttribute<AccessControllerAttribute>();
-
-                if (controllerAttribute == null)
-                {
-                    continue;
-                }
-
-                var actionAttribute = controllerAction
-                    .MethodInfo
-                    .GetCustomAttribute<AccessActionAttribute>();
-
-                if (actionAttribute == null)
-                {
-                    continue;
-                }
-
-                var module = EnsureModule(dbContext, modulesByCode, controllerAttribute);
-
-                var controller = EnsureController(
-                    dbContext,
-                    controllersByModuleAndName,
-                    module.Id,
-                    controllerAction,
-                    controllerAttribute
-                );
-
-                EnsureAction(
-                    dbContext,
-                    actionsByControllerAndName,
-                    controller.Id,
-                    controllerAction,
-                    controllerAttribute,
-                    actionAttribute
-                );
-            }
-
-            // Dijalankan SETELAH pemindaian, karena baris controllernya lahir dari pemindaian
-            // itu. Sebuah penanda tidak dapat didaftarkan pada controller yang belum ada.
-            EnsurePenandaTanpaEndpoint(
-                dbContext,
-                modulesByCode,
-                controllersByModuleAndName,
-                actionsByControllerAndName);
-
-            await dbContext.SaveChangesAsync();
-
-            await NormalizeEmployeeSelfServiceLegacyEntriesAsync(dbContext);
-            await NormalizeEmergencyMasterDataModuleMoveAsync(dbContext);
-            await NormalizeLaboratorySpecimenLegacyActionsAsync(dbContext);
-            await NormalizeSystemOnlyVisibilityAsync(dbContext);
-
-            await dbContext.SaveChangesAsync();
-        }
-
-        private static SysApplicationModule EnsureModule(
-            ApplicationDbContext dbContext,
-            IDictionary<string, SysApplicationModule> modulesByCode,
-            AccessControllerAttribute attribute)
-        {
-            modulesByCode.TryGetValue(attribute.ModuleCode, out var module);
-
-            if (module != null)
-            {
-                module.ModuleName = attribute.ModuleName;
-                module.AreaName = attribute.AreaName;
-                module.Description = attribute.Description;
-                module.SortOrder = attribute.SortOrder;
-                module.IsActive = true;
-                module.IsDelete = false;
-
-                return module;
-            }
-
-            module = new SysApplicationModule
-            {
-                Id = Guid.NewGuid(),
-                ModuleCode = attribute.ModuleCode,
-                ModuleName = attribute.ModuleName,
-                AreaName = attribute.AreaName,
-                Description = attribute.Description,
-                SortOrder = attribute.SortOrder,
-                IsActive = true,
-                CreateDateTime = DateTime.UtcNow,
-                IsDelete = false,
-                IsCancel = false
-            };
-
-            dbContext.SysApplicationModules.Add(module);
-            modulesByCode.Add(module.ModuleCode, module);
-
-            return module;
-        }
-
-        private static SysControllerAccess EnsureController(
-            ApplicationDbContext dbContext,
-            IDictionary<string, SysControllerAccess> controllersByModuleAndName,
-            Guid moduleId,
-            ControllerActionDescriptor controllerAction,
-            AccessControllerAttribute attribute)
-        {
-            var controllerName = string.IsNullOrWhiteSpace(attribute.ControllerName)
-                ? controllerAction.ControllerName
-                : attribute.ControllerName;
-
-            var controllerRoutePath = BuildControllerRoutePath(controllerAction);
-
-            var isSystemOnly = attribute.IsSystemOnly;
-
-            var visibleInRoleAccess =
-                !isSystemOnly &&
-                attribute.VisibleInRoleAccess;
-
-            controllersByModuleAndName.TryGetValue(
-                BuildControllerKey(moduleId, controllerName),
-                out var controller);
-
-            if (controller != null)
-            {
-                controller.DisplayName = attribute.DisplayName;
-                controller.RoutePath = controllerRoutePath;
-                controller.Description = attribute.Description;
-                controller.SortOrder = attribute.SortOrder;
-                controller.VisibleInRoleAccess = visibleInRoleAccess;
-                controller.IsSystemOnly = isSystemOnly;
-                controller.IsActive = true;
-                controller.IsDelete = false;
-
-                return controller;
-            }
-
-            controller = new SysControllerAccess
-            {
-                Id = Guid.NewGuid(),
-                ModuleId = moduleId,
-                ControllerName = controllerName,
-                DisplayName = attribute.DisplayName,
-                RoutePath = controllerRoutePath,
-                Description = attribute.Description,
-                SortOrder = attribute.SortOrder,
-                VisibleInRoleAccess = visibleInRoleAccess,
-                IsSystemOnly = isSystemOnly,
-                IsActive = true,
-                CreateDateTime = DateTime.UtcNow,
-                IsDelete = false,
-                IsCancel = false
-            };
-
-            dbContext.SysControllerAccesses.Add(controller);
-            controllersByModuleAndName.Add(
-                BuildControllerKey(controller.ModuleId, controller.ControllerName),
-                controller);
-
-            return controller;
-        }
-
-        private static void EnsureAction(
-            ApplicationDbContext dbContext,
-            IDictionary<string, SysActionAccess> actionsByControllerAndName,
-            Guid controllerAccessId,
-            ControllerActionDescriptor controllerAction,
-            AccessControllerAttribute controllerAttribute,
-            AccessActionAttribute attribute)
-        {
-            var actionRoutePath = BuildActionRoutePath(controllerAction);
-            var httpMethod = GetHttpMethod(controllerAction);
-
-            var isSystemOnly =
-                controllerAttribute.IsSystemOnly ||
-                attribute.IsSystemOnly;
-
-            var visibleInRoleAccess =
-                !isSystemOnly &&
-                controllerAttribute.VisibleInRoleAccess &&
-                attribute.VisibleInRoleAccess;
-
-            actionsByControllerAndName.TryGetValue(
-                BuildActionKey(controllerAccessId, attribute.ActionName),
-                out var action);
-
-            if (action != null)
-            {
-                action.DisplayName = attribute.DisplayName;
-                action.HttpMethod = httpMethod;
-                action.RoutePath = actionRoutePath;
-                action.Description = attribute.Description;
-                action.SortOrder = attribute.SortOrder;
-                action.AccessType = attribute.AccessType;
-                action.VisibleInRoleAccess = visibleInRoleAccess;
-                action.IsSystemOnly = isSystemOnly;
-                action.IsActive = true;
-                action.IsDelete = false;
-
-                return;
-            }
-
-            action = new SysActionAccess
-            {
-                Id = Guid.NewGuid(),
-                ControllerAccessId = controllerAccessId,
-                ActionName = attribute.ActionName,
-                DisplayName = attribute.DisplayName,
-                HttpMethod = httpMethod,
-                RoutePath = actionRoutePath,
-                Description = attribute.Description,
-                SortOrder = attribute.SortOrder,
-                AccessType = attribute.AccessType,
-                VisibleInRoleAccess = visibleInRoleAccess,
-                IsSystemOnly = isSystemOnly,
-                IsActive = true,
-                CreateDateTime = DateTime.UtcNow,
-                IsDelete = false,
-                IsCancel = false
-            };
-
-            dbContext.SysActionAccesses.Add(action);
-            actionsByControllerAndName.Add(
-                BuildActionKey(action.ControllerAccessId, action.ActionName),
-                action);
+            return await ReconcileAsync(dbContext, snapshot);
         }
 
         /// <summary>
-        /// Mendaftarkan hak akses penanda supaya dapat dicentang pada layar Akses Role.
+        /// Dipisahkan dari <see cref="SeedAsync"/> supaya dapat diuji tanpa host penuh.
         /// </summary>
-        /// <remarks>
-        /// <para>
-        /// <b>Gagal keras bila controllernya tidak ditemukan</b>, dan itu disengaja. Penanda yang
-        /// gagal didaftarkan menghasilkan <c>403</c> permanen yang tidak dapat diperbaiki dari
-        /// layar mana pun — persis bentuk kegagalan yang membuat method ini ada. Melewatinya
-        /// diam-diam berarti mengulangi cacat yang sedang ditutup, kali ini dengan kode yang
-        /// terlihat seperti sudah menanganinya.
-        /// </para>
-        /// <para>
-        /// <c>HttpMethod</c> dan <c>RoutePath</c> dibiarkan kosong. Penanda ini memang tidak
-        /// punya route, dan mengisinya dengan nilai karangan akan membuat layar Akses Role
-        /// menampilkan alamat yang tidak dapat dipanggil siapa pun.
-        /// </para>
-        /// </remarks>
-        private static void EnsurePenandaTanpaEndpoint(
+        public static async Task<ReconciliationResult> ReconcileAsync(
             ApplicationDbContext dbContext,
-            IDictionary<string, SysApplicationModule> modulesByCode,
-            IDictionary<string, SysControllerAccess> controllersByModuleAndName,
-            IDictionary<string, SysActionAccess> actionsByControllerAndName)
+            PermissionRegistryDescriptor.RegistrySnapshot snapshot)
         {
-            foreach (var penanda in PenandaTanpaEndpointYangDidaftarkan)
+            var now = DateTime.UtcNow;
+
+            var modules = await dbContext.SysApplicationModules.ToListAsync();
+            var modulesByCode = modules
+                .GroupBy(x => x.ModuleCode, StringComparer.Ordinal)
+                .ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
+
+            var modulesUpserted = 0;
+            foreach (var descriptor in snapshot.Modules)
             {
-                if (!modulesByCode.TryGetValue(penanda.ModuleCode, out var module))
+                if (!modulesByCode.TryGetValue(descriptor.ModuleCode, out var module))
                 {
-                    throw new InvalidOperationException(
-                        $"Hak akses penanda '{penanda.ControllerName} : {penanda.ActionName}' " +
-                        $"menunjuk module '{penanda.ModuleCode}' yang tidak terdaftar. Penanda " +
-                        "yang gagal didaftarkan menghasilkan 403 permanen yang tidak dapat " +
-                        "diperbaiki dari layar mana pun.");
+                    module = new SysApplicationModule
+                    {
+                        Id = Guid.NewGuid(),
+                        ModuleCode = descriptor.ModuleCode,
+                        CreateDateTime = now,
+                        IsCancel = false
+                    };
+
+                    dbContext.SysApplicationModules.Add(module);
+                    modulesByCode.Add(descriptor.ModuleCode, module);
                 }
 
-                var controllerKey = BuildControllerKey(module.Id, penanda.ControllerName);
+                module.ModuleName = descriptor.ModuleName;
+                module.AreaName = descriptor.AreaName;
+                module.Description = descriptor.Description;
+                module.SortOrder = descriptor.SortOrder;
+                module.IsActive = true;
+                module.IsDelete = false;
+                modulesUpserted++;
+            }
 
-                if (!controllersByModuleAndName.TryGetValue(controllerKey, out var controller))
+            await dbContext.SaveChangesAsync();
+
+            var controllers = await dbContext.SysControllerAccesses.ToListAsync();
+            var controllersByKey = controllers
+                .GroupBy(x => BuildControllerKey(x.ModuleId, x.ControllerName), StringComparer.Ordinal)
+                .ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
+
+            var controllersUpserted = 0;
+            foreach (var descriptor in snapshot.Resources)
+            {
+                var module = modulesByCode[descriptor.ModuleCode];
+                var key = BuildControllerKey(module.Id, descriptor.ResourceName);
+
+                if (!controllersByKey.TryGetValue(key, out var controller))
                 {
-                    throw new InvalidOperationException(
-                        $"Hak akses penanda '{penanda.ControllerName} : {penanda.ActionName}' " +
-                        $"menunjuk controller '{penanda.ControllerName}' yang tidak ditemukan. " +
-                        "Bila controllernya memang dihapus, hapus juga penandanya dari " +
-                        "PenandaTanpaEndpointYangDidaftarkan.");
+                    controller = new SysControllerAccess
+                    {
+                        Id = Guid.NewGuid(),
+                        ModuleId = module.Id,
+                        ControllerName = descriptor.ResourceName,
+                        CreateDateTime = now,
+                        IsCancel = false
+                    };
+
+                    dbContext.SysControllerAccesses.Add(controller);
+                    controllersByKey.Add(key, controller);
                 }
 
-                var actionKey = BuildActionKey(controller.Id, penanda.ActionName);
+                controller.DisplayName = descriptor.DisplayName;
+                controller.Description = descriptor.Description;
+                controller.SortOrder = descriptor.SortOrder;
+                controller.VisibleInRoleAccess = descriptor.VisibleInRoleAccess;
+                controller.IsSystemOnly = descriptor.IsSystemOnly;
+                controller.IsActive = true;
+                controller.IsDelete = false;
+                controllersUpserted++;
+            }
 
-                if (actionsByControllerAndName.TryGetValue(actionKey, out var existing))
+            await dbContext.SaveChangesAsync();
+
+            var actions = await dbContext.SysActionAccesses.ToListAsync();
+            var actionsByKey = actions
+                .GroupBy(x => BuildActionKey(x.ControllerAccessId, x.ActionName), StringComparer.Ordinal)
+                .ToDictionary(g => g.Key, g => g.First(), StringComparer.Ordinal);
+
+            var actionsUpserted = 0;
+            foreach (var descriptor in snapshot.Actions)
+            {
+                var module = modulesByCode[descriptor.ModuleCode];
+                var controller = controllersByKey[BuildControllerKey(module.Id, descriptor.ResourceName)];
+                var key = BuildActionKey(controller.Id, descriptor.ActionName);
+
+                if (!actionsByKey.TryGetValue(key, out var action))
                 {
-                    existing.DisplayName = penanda.DisplayName;
-                    existing.Description = penanda.Description;
-                    existing.AccessType = penanda.AccessType;
-                    existing.SortOrder = penanda.SortOrder;
-                    existing.HttpMethod = null;
-                    existing.RoutePath = null;
-                    existing.VisibleInRoleAccess = true;
-                    existing.IsSystemOnly = false;
-                    existing.IsActive = true;
-                    existing.IsDelete = false;
+                    action = new SysActionAccess
+                    {
+                        Id = Guid.NewGuid(),
+                        ControllerAccessId = controller.Id,
+                        ActionName = descriptor.ActionName,
+                        CreateDateTime = now,
+                        IsCancel = false
+                    };
 
+                    dbContext.SysActionAccesses.Add(action);
+                    actionsByKey.Add(key, action);
+                }
+
+                action.DisplayName = descriptor.DisplayName;
+                action.HttpMethod = descriptor.HttpMethod;
+                action.RoutePath = descriptor.RoutePath;
+                action.Description = descriptor.Description;
+                action.AccessType = descriptor.AccessType;
+                action.SortOrder = descriptor.SortOrder;
+                action.VisibleInRoleAccess = descriptor.VisibleInRoleAccess;
+                action.IsSystemOnly = descriptor.IsSystemOnly;
+                action.IsActive = true;
+                action.IsDelete = false;
+                actionsUpserted++;
+            }
+
+            await dbContext.SaveChangesAsync();
+
+            var closed = await CloseRowsAbsentFromSourceAsync(
+                dbContext, snapshot, modulesByCode, controllersByKey, now);
+
+            await NormalizeSystemOnlyVisibilityAsync(dbContext);
+            await dbContext.SaveChangesAsync();
+
+            return new ReconciliationResult(
+                modulesUpserted,
+                controllersUpserted,
+                actionsUpserted,
+                closed.Modules,
+                closed.Controllers,
+                closed.Actions);
+        }
+
+        /// <summary>
+        /// Menutup baris registry yang tidak lagi punya deskriptor di source.
+        ///
+        /// Penutupan memakai lifecycle repository (<c>IsActive=false</c>, <c>IsDelete=true</c>,
+        /// <c>VisibleInRoleAccess=false</c>) dan bukan hard delete, supaya sejarah tetap ada dan
+        /// referensi <c>SysAccessPolicy</c> lama tidak menggantung. Policy sendiri tidak disentuh:
+        /// memindahkannya ke kemampuan baru sama saja memberi hak tanpa keputusan admin.
+        /// </summary>
+        private static async Task<(int Modules, int Controllers, int Actions)> CloseRowsAbsentFromSourceAsync(
+            ApplicationDbContext dbContext,
+            PermissionRegistryDescriptor.RegistrySnapshot snapshot,
+            IDictionary<string, SysApplicationModule> modulesByCode,
+            IDictionary<string, SysControllerAccess> controllersByKey,
+            DateTime now)
+        {
+            var declaredModuleIds = snapshot.Modules
+                .Select(x => modulesByCode[x.ModuleCode].Id)
+                .ToHashSet();
+
+            var declaredControllerIds = snapshot.Resources
+                .Select(x => controllersByKey[BuildControllerKey(modulesByCode[x.ModuleCode].Id, x.ResourceName)].Id)
+                .ToHashSet();
+
+            var declaredActionKeys = snapshot.Actions
+                .Select(x => BuildActionKey(
+                    controllersByKey[BuildControllerKey(modulesByCode[x.ModuleCode].Id, x.ResourceName)].Id,
+                    x.ActionName))
+                .ToHashSet(StringComparer.Ordinal);
+
+            var actionsClosed = 0;
+            var openActions = await dbContext.SysActionAccesses
+                .Where(x => x.IsActive || !x.IsDelete)
+                .ToListAsync();
+
+            foreach (var action in openActions)
+            {
+                if (declaredActionKeys.Contains(BuildActionKey(action.ControllerAccessId, action.ActionName)))
+                {
                     continue;
                 }
 
-                var action = new SysActionAccess
-                {
-                    Id = Guid.NewGuid(),
-                    ControllerAccessId = controller.Id,
-                    ActionName = penanda.ActionName,
-                    DisplayName = penanda.DisplayName,
-                    HttpMethod = null,
-                    RoutePath = null,
-                    Description = penanda.Description,
-                    SortOrder = penanda.SortOrder,
-                    AccessType = penanda.AccessType,
-                    VisibleInRoleAccess = true,
-                    IsSystemOnly = false,
-                    IsActive = true,
-                    CreateDateTime = DateTime.UtcNow,
-                    IsDelete = false,
-                    IsCancel = false,
-                };
-
-                dbContext.SysActionAccesses.Add(action);
-                actionsByControllerAndName.Add(actionKey, action);
+                action.IsActive = false;
+                action.IsDelete = true;
+                action.VisibleInRoleAccess = false;
+                action.DeleteDateTime ??= now;
+                action.UpdateDateTime = now;
+                actionsClosed++;
             }
+
+            var controllersClosed = 0;
+            var openControllers = await dbContext.SysControllerAccesses
+                .Where(x => x.IsActive || !x.IsDelete)
+                .ToListAsync();
+
+            foreach (var controller in openControllers)
+            {
+                if (declaredControllerIds.Contains(controller.Id))
+                {
+                    continue;
+                }
+
+                controller.IsActive = false;
+                controller.IsDelete = true;
+                controller.VisibleInRoleAccess = false;
+                controller.DeleteDateTime ??= now;
+                controller.UpdateDateTime = now;
+                controllersClosed++;
+            }
+
+            var modulesClosed = 0;
+            var openModules = await dbContext.SysApplicationModules
+                .Where(x => x.IsActive || !x.IsDelete)
+                .ToListAsync();
+
+            foreach (var module in openModules)
+            {
+                if (declaredModuleIds.Contains(module.Id))
+                {
+                    continue;
+                }
+
+                module.IsActive = false;
+                module.IsDelete = true;
+                module.DeleteDateTime ??= now;
+                module.UpdateDateTime = now;
+                modulesClosed++;
+            }
+
+            await dbContext.SaveChangesAsync();
+
+            return (modulesClosed, controllersClosed, actionsClosed);
         }
 
         private static string BuildControllerKey(Guid moduleId, string controllerName) =>
@@ -409,218 +277,10 @@ namespace QuilvianSystemBackend.Seeders
         private static string BuildActionKey(Guid controllerAccessId, string actionName) =>
             $"{controllerAccessId:N}:{actionName}";
 
-
-        private static async Task NormalizeEmployeeSelfServiceLegacyEntriesAsync(
-            ApplicationDbContext dbContext)
-        {
-            var now = DateTime.UtcNow;
-
-            var legacyControllers = await (
-                from controller in dbContext.SysControllerAccesses
-                join module in dbContext.SysApplicationModules
-                    on controller.ModuleId equals module.Id
-                where
-                    (module.ModuleCode == "HUMAN_RESOURCE_LEAVE" &&
-                     (controller.ControllerName == "LeaveRequestSelfService" ||
-                      controller.ControllerName == "LeaveCancellationSelfService" ||
-                      controller.ControllerName == "LeaveReturnToWorkSelfService")) ||
-                    (module.ModuleCode == "HUMAN_RESOURCE_EMPLOYEE_SELF_SERVICE" &&
-                     controller.ControllerName == "EmployeeProfileChange")
-                select controller)
-                .ToListAsync();
-
-            foreach (var controller in legacyControllers)
-            {
-                controller.VisibleInRoleAccess = false;
-                controller.IsActive = false;
-                controller.IsDelete = true;
-                controller.UpdateDateTime = now;
-
-                var actions = await dbContext.SysActionAccesses
-                    .Where(x => x.ControllerAccessId == controller.Id)
-                    .ToListAsync();
-
-                foreach (var action in actions)
-                {
-                    action.VisibleInRoleAccess = false;
-                    action.IsActive = false;
-                    action.IsDelete = true;
-                    action.UpdateDateTime = now;
-                }
-            }
-
-            var attendanceCorrectionController = await (
-                from controller in dbContext.SysControllerAccesses
-                join module in dbContext.SysApplicationModules
-                    on controller.ModuleId equals module.Id
-                where
-                    module.ModuleCode == "HUMAN_RESOURCE_ATTENDANCE" &&
-                    controller.ControllerName == "AttendanceCorrection"
-                select controller)
-                .FirstOrDefaultAsync();
-
-            if (attendanceCorrectionController != null)
-            {
-                var personalActionNames = new[]
-                {
-                    "Create",
-                    "Update",
-                    "Delete",
-                    "Submit",
-                    "Cancel"
-                };
-
-                var staleActions = await dbContext.SysActionAccesses
-                    .Where(x =>
-                        x.ControllerAccessId == attendanceCorrectionController.Id &&
-                        personalActionNames.Contains(x.ActionName))
-                    .ToListAsync();
-
-                foreach (var action in staleActions)
-                {
-                    action.VisibleInRoleAccess = false;
-                    action.IsActive = false;
-                    action.IsDelete = true;
-                    action.UpdateDateTime = now;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Menutup dua aksi lama <c>LabSpecimen</c> yang sudah tidak diperiksa siapa pun.
-        /// </summary>
-        /// <remarks>
-        /// Dahulu seluruh jalur ubah wadah didaftarkan dengan nama aksi <c>Create</c> dan
-        /// <c>Update</c>, sementara pemeriksaannya memakai nama yang lebih spesifik —
-        /// <c>Plan</c>, <c>Collect</c>, <c>Receive</c>, <c>Accept</c>, <c>Hold</c>, dan
-        /// <c>Cancel</c>. Karena nama yang diperiksa tidak pernah terdaftar, seluruh daur hidup
-        /// wadah mustahil diberikan kepada siapa pun: admin tidak dapat mencentang aksi yang
-        /// tidak ada di katalog, dan <c>HasAccessAsync</c> menjawab tidak untuk aksi yang tidak
-        /// ditemukan. Hanya SuperAdmin yang lolos, dan itu pun karena ia memang melewati
-        /// pemeriksaan kebijakan.
-        ///
-        /// Setelah nama pendaftarannya diluruskan, kedua baris lama tetap tertinggal di
-        /// database. Keduanya tidak berbahaya — tidak satu pun endpoint memeriksanya — tetapi
-        /// <b>menyesatkan pada layar Role Access</b>: labelnya kembar persis dengan baris yang
-        /// benar, sehingga admin melihat "Plan Lab Specimen" dan "Cancel Lab Specimen" masing-
-        /// masing dua kali, dan yang satu tidak mengendalikan apa pun. Admin yang mencentang
-        /// baris yang salah akan mengira sudah memberi kewenangan, padahal petugasnya tetap
-        /// ditolak.
-        ///
-        /// Pembersihan ditaruh di seeder, bukan dikerjakan sekali lewat perintah database,
-        /// supaya setiap lingkungan yang pernah menjalankan versi lama ikut rapi dengan
-        /// sendirinya. Polanya menyalin penanganan <c>AttendanceCorrection</c> di atas.
-        ///
-        /// Baris hanya ditandai terhapus, tidak dihapus fisik, mengikuti soft delete yang
-        /// dipakai seluruh tabel audit.
-        /// </remarks>
-        private static async Task NormalizeLaboratorySpecimenLegacyActionsAsync(
-            ApplicationDbContext dbContext)
-        {
-            var now = DateTime.UtcNow;
-
-            var specimenController = await dbContext.SysControllerAccesses
-                .FirstOrDefaultAsync(x => x.ControllerName == "LabSpecimen");
-
-            if (specimenController == null)
-            {
-                return;
-            }
-
-            // Kedua nama ini sengaja disebut satu per satu, bukan disimpulkan dari selisih
-            // terhadap atribut yang ada. Menyimpulkan otomatis berarti setiap aksi yang
-            // kebetulan belum terbaca refleksi ikut dipensiunkan diam-diam.
-            var retiredActionNames = new[] { "Create", "Update" };
-
-            var staleActions = await dbContext.SysActionAccesses
-                .Where(x =>
-                    x.ControllerAccessId == specimenController.Id &&
-                    retiredActionNames.Contains(x.ActionName))
-                .ToListAsync();
-
-            foreach (var action in staleActions)
-            {
-                action.VisibleInRoleAccess = false;
-                action.IsActive = false;
-                action.IsDelete = true;
-                action.UpdateDateTime = now;
-            }
-        }
-
-        /// <summary>
-        /// Menutup pendaftaran lama enam controller master IGD yang berpindah modul.
-        /// </summary>
-        /// <remarks>
-        /// Master IGD sebelumnya terdaftar pada modul <c>HEALTH_SERVICE_MASTER_DATA</c> dan
-        /// kini pindah ke <c>HEALTH_SERVICE_EMERGENCY_INSTALLATION_MANAGEMENT</c>.
-        /// <para>
-        /// <see cref="EnsureControllerAsync"/> mencari controller berdasarkan pasangan
-        /// modul dan nama, sehingga perpindahan modul membuatnya membuat baris baru alih-alih
-        /// memindahkan yang lama. Tanpa penutupan ini, layar Manajemen Role akan menampilkan
-        /// keenam master dua kali: satu di bawah Master Data, satu di bawah IGD, dan petugas
-        /// tidak punya cara membedakan mana yang menegakkan izin.
-        /// </para>
-        /// <para>
-        /// Baris lama <b>ditutup</b>, bukan dihapus, mengikuti cara
-        /// <see cref="NormalizeEmployeeSelfServiceLegacyEntriesAsync"/> menangani perpindahan
-        /// serupa. Nol kebijakan pada <c>SysAccessPolicy</c> menunjuk keenamnya saat
-        /// perpindahan dikerjakan, sehingga tidak ada izin yang hangus.
-        /// </para>
-        /// </remarks>
-        private static async Task NormalizeEmergencyMasterDataModuleMoveAsync(
-            ApplicationDbContext dbContext)
-        {
-            var now = DateTime.UtcNow;
-
-            var movedControllerNames = new[]
-            {
-                "EmergencyTriageLevel",
-                "EmergencyTriageIndicator",
-                "EmergencyArrivalMode",
-                "EmergencyCaseType",
-                "EmergencyDispositionType",
-                "EmergencySetting"
-            };
-
-            var legacyControllers = await (
-                from controller in dbContext.SysControllerAccesses
-                join module in dbContext.SysApplicationModules
-                    on controller.ModuleId equals module.Id
-                where
-                    module.ModuleCode == "HEALTH_SERVICE_MASTER_DATA" &&
-                    movedControllerNames.Contains(controller.ControllerName) &&
-                    !controller.IsDelete
-                select controller)
-                .ToListAsync();
-
-            foreach (var controller in legacyControllers)
-            {
-                controller.VisibleInRoleAccess = false;
-                controller.IsActive = false;
-                controller.IsDelete = true;
-                controller.UpdateDateTime = now;
-
-                var actions = await dbContext.SysActionAccesses
-                    .Where(x => x.ControllerAccessId == controller.Id)
-                    .ToListAsync();
-
-                foreach (var action in actions)
-                {
-                    action.VisibleInRoleAccess = false;
-                    action.IsActive = false;
-                    action.IsDelete = true;
-                    action.UpdateDateTime = now;
-                }
-            }
-        }
-
-        private static async Task NormalizeSystemOnlyVisibilityAsync(
-            ApplicationDbContext dbContext)
+        private static async Task NormalizeSystemOnlyVisibilityAsync(ApplicationDbContext dbContext)
         {
             var systemOnlyControllers = await dbContext.SysControllerAccesses
-                .Where(x =>
-                    x.IsSystemOnly &&
-                    x.VisibleInRoleAccess)
+                .Where(x => x.IsSystemOnly && x.VisibleInRoleAccess)
                 .ToListAsync();
 
             foreach (var controller in systemOnlyControllers)
@@ -629,9 +289,7 @@ namespace QuilvianSystemBackend.Seeders
             }
 
             var systemOnlyActions = await dbContext.SysActionAccesses
-                .Where(x =>
-                    x.IsSystemOnly &&
-                    x.VisibleInRoleAccess)
+                .Where(x => x.IsSystemOnly && x.VisibleInRoleAccess)
                 .ToListAsync();
 
             foreach (var action in systemOnlyActions)
@@ -651,68 +309,6 @@ namespace QuilvianSystemBackend.Seeders
                 action.VisibleInRoleAccess = false;
                 action.IsSystemOnly = true;
             }
-        }
-
-        private static string BuildControllerRoutePath(
-            ControllerActionDescriptor controllerAction)
-        {
-            var routeAttribute = controllerAction.ControllerTypeInfo
-                .GetCustomAttribute<RouteAttribute>();
-
-            var template = routeAttribute?.Template;
-
-            if (string.IsNullOrWhiteSpace(template))
-            {
-                return $"/api/v1/{controllerAction.ControllerName}";
-            }
-
-            template = template
-                .Replace("[controller]", controllerAction.ControllerName)
-                .Replace("[action]", controllerAction.ActionName);
-
-            if (!template.StartsWith("/"))
-            {
-                template = "/" + template;
-            }
-
-            return template;
-        }
-
-        private static string BuildActionRoutePath(
-            ControllerActionDescriptor controllerAction)
-        {
-            var template = controllerAction.AttributeRouteInfo?.Template;
-
-            if (string.IsNullOrWhiteSpace(template))
-            {
-                return $"/api/v1/{controllerAction.ControllerName}/{controllerAction.ActionName}";
-            }
-
-            template = template
-                .Replace("[controller]", controllerAction.ControllerName)
-                .Replace("[action]", controllerAction.ActionName);
-
-            if (!template.StartsWith("/"))
-            {
-                template = "/" + template;
-            }
-
-            return template;
-        }
-
-        private static string GetHttpMethod(
-            ControllerActionDescriptor controllerAction)
-        {
-            var httpMethodActionConstraint = controllerAction
-                .ActionConstraints?
-                .OfType<HttpMethodActionConstraint>()
-                .FirstOrDefault();
-
-            var httpMethod = httpMethodActionConstraint?
-                .HttpMethods
-                .FirstOrDefault();
-
-            return httpMethod ?? "GET";
         }
     }
 }

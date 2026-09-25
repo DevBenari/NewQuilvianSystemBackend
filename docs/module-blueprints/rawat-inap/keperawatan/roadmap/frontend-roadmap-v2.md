@@ -169,18 +169,18 @@ tabel task: **27**. Keduanya cocok.
 
 | Gelombang | Boleh mulai setelah | Task |
 | ---: | --- | --- |
-| 1 | `BE-RWI-106` [BE] mendarat | `FE-RWI-081` |
+| 1 | `BE-RWI-106` [BE] mendarat | `FE-RWI-081` ✅ |
 | 1 | `BE-RWI-116` [BE] mendarat | `FE-RWI-088` |
-| 1 | `BE-RWI-107` dan `BE-RWI-108` [BE] mendarat | `FE-RWI-091` |
-| 1 | `BE-RWI-120` [BE] mendarat | `FE-RWI-092` |
+| 1 | `BE-RWI-107` dan `BE-RWI-108` [BE] mendarat | `FE-RWI-091` ✅ |
+| 1 | `BE-RWI-120` [BE] mendarat | `FE-RWI-092` ✅ |
 | 1 | `BE-RWI-114` [BE] mendarat | `FE-RWI-093` |
-| 2 | `FE-RWI-081` dan `BE-RWI-112` [BE] | `FE-RWI-082` |
+| 2 | `FE-RWI-081` dan `BE-RWI-112` [BE] | `FE-RWI-082` ✅ |
 | 2 | `FE-RWI-081` dan `BE-RWI-119`, `BE-RWI-120` [BE] | `FE-RWI-084` |
 | 2 | `FE-RWI-081` dan `BE-RWI-113` [BE] | `FE-RWI-085` |
 | 2 | `FE-RWI-081` dan `BE-RWI-124`, `BE-RWI-121` [BE] | `FE-RWI-086` |
 | 2 | `FE-RWI-081` dan `BE-RWI-115`, `123`, `125` [BE] | `FE-RWI-087` |
 | 2 | `FE-RWI-081` dan `BE-RWI-125` [BE] | `FE-RWI-089` |
-| 2 | `FE-RWI-081` | `FE-RWI-090` |
+| 2 | `FE-RWI-081` | `FE-RWI-090` ✅ |
 | 3 | `FE-RWI-082` dan `BE-RWI-107`, `BE-RWI-109` [BE] | `FE-RWI-083` |
 | 1 | `BE-RWI-126` [BE] mendarat — gerbangnya tertutup `RWI-DEC-154` | `FE-RWI-094` |
 
@@ -190,20 +190,19 @@ tabel task: **27**. Keduanya cocok.
 
 | Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `FE-RWI-081` | Perawat membuka satu ruang kerja berisi delapan menu | `FR-KEP-035`, `036`, `037`; `RWI-DEC-108`, `113` | `0.5.0` | `FE-KEP-01` — **layout dipertahankan** | `FE-KEP-07` — navigasi kiri delapan menu, tab sekunder, `?section=` dan `?tab=` menyimpan posisi | `BE-RWI-106` [BE] | AC-1 s.d. AC-6 | `npm run lint`, `npm run build`, verifikasi manual + panel Network | Menu tanpa backend **tidak boleh** memanggil jaringan / Muhammad Hamzah | Kartu `FE-RWI-081` |
-| `FE-RWI-082` | Perawat melihat berapa bagian pengkajian yang sudah beres | `FR-KEP-050`, `051`, `052`; `RWI-DEC-119`, `120` | `0.5.0` API 7.1 | `FE-KEP-02`, `FE-KEP-03` | `FE-KEP-08` — progres lima bagian ✓/!/○ dan tujuh sub-menu | `FE-RWI-081`, `BE-RWI-112` [BE] | AC-1 s.d. AC-5 | `npm run lint`, `npm run build`, verifikasi manual | Progres gagal dimuat **wajib** tampil galat, bukan ○ / Muhammad Hamzah | Kartu `FE-RWI-082` |
-| `FE-RWI-083` | Formulir klinis digambar dari definisi versi, bukan dari kode layar | `FR-KEP-039`, `043`, `044`, `045`, `047`, `048` | `0.5.0` data 11.4–11.6 | — (layar baru) | `FE-KEP-09` — **satu penggambar** untuk Kajian Umum, Resiko Jatuh, Monitoring Nyeri, Assesment Edukasi, Perencanaan Pulang | `FE-RWI-082`, `BE-RWI-107` [BE], `BE-RWI-109` [BE] | AC-1 s.d. AC-7 | `npm run lint`, `npm run build`, verifikasi manual; **test unit direkomendasikan** | Skor dihitung server — frontend **tidak** menghitung ulang / komite keperawatan | Kartu `FE-RWI-083` |
-| `FE-RWI-084` | Perawat mencatat dan membaca pengawasan satu hari dalam satu layar | `FR-KEP-056` s.d. `063`; `RWI-DEC-148`, `149` | `0.5.0` data 11.8–11.10, API 7.5 | — (layar baru) | `FE-KEP-10` — tanda vital, nyeri, intake, output, balance, GDS, diet dan mobilisasi | `FE-RWI-081`, `BE-RWI-119` [BE], `BE-RWI-120` [BE] | AC-1 s.d. AC-7 | `npm run lint`, `npm run build`, verifikasi manual | Satuan GDS **tanpa bawaan** — salah satuan = salah dosis insulin / Muhammad Hamzah | Kartu `FE-RWI-084` |
-| `FE-RWI-085` | MPP mengisi Evaluasi Awal delapan bagian | `FR-KEP-053`, `054`, `055`; `RWI-DEC-115`, `140` | `0.5.0` data 11.7 | — (layar baru) | `FE-KEP-11` — delapan bagian checklist; MPP menulis, lainnya membaca | `FE-RWI-081`, `BE-RWI-113` [BE] | AC-1 s.d. AC-5 | `npm run lint`, `npm run build`, verifikasi manual | Jalur addendum belum ada sampai jenis dokumen `14` tersedia / Muhammad Hamzah | Kartu `FE-RWI-085` |
-| `FE-RWI-086` | Perawat menulis asuhan dan catatan dalam satu tempat | `FR-KEP-077`; `FR-KEP-056`; `RWI-DEC-113`, `114` | `0.5.0` + `0.6.0` [DOK] | `FE-KEP-04`, `FE-KEP-05` | `FE-KEP-12` — Vital Sign, SOAP, Catatan Terintegrasi, Tindakan Harian, Obat & Alkes, Catatan Keperawatan, Rencana Asuhan | `FE-RWI-081`, `BE-RWI-124` [BE], `BE-RWI-121` [BE] | AC-1 s.d. AC-5 | `npm run lint`, `npm run build`, verifikasi manual | SOAP perawat masuk CPPT yang sama dengan dokter / Muhammad Hamzah | Kartu `FE-RWI-086` |
-| `FE-RWI-087` | Perawat memberikan obat dari daftar yang benar | `FR-KEP-064` s.d. `076`, `078`; `RWI-DEC-116`, `117`, `145` s.d. `148` | `0.5.0` state 5.5–5.6 | — (layar baru) | `FE-KEP-13` — Pemberian Obat (MAR), Sliding Scale, Obat Bawaan, Resep Aktif, Pemakaian Alkes | `FE-RWI-081`, `BE-RWI-115` [BE], `BE-RWI-123` [BE], `BE-RWI-125` [BE] | AC-1 s.d. AC-8 | `npm run lint`, `npm run build`, verifikasi manual; **test unit direkomendasikan** | **Layar paling berbahaya di roadmap ini** — salah tampil dosis / pemilik klinis belum ditunjuk | Kartu `FE-RWI-087` |
-| `FE-RWI-088` | Perawat kedua menemukan dosis yang menunggu konfirmasinya | `FR-KEP-066`; `RWI-DEC-117` | `0.5.0` API double-check | — (layar baru) | `FE-KEP-22` — daftar tunggu cek ganda per unit; kartu keenam pada `FE-INP-09` | `BE-RWI-116` [BE] | AC-1 s.d. AC-5 | `npm run lint`, `npm run build`, verifikasi manual | Perawat kedua tidak boleh orang yang sama / Muhammad Hamzah | Kartu `FE-RWI-088` |
-| `FE-RWI-089` | Perawat memesan tindakan dan membaca hasil penunjang | `FR-KEP-079`, `FR-KEP-080`; `RWI-DEC-113` | `0.6.0` [DOK] `INT-DOK-19` | — (layar baru) | `FE-KEP-14` Tindakan dan `FE-KEP-15` Penunjang Medis enam kartu | `FE-RWI-081`, `BE-RWI-125` [BE] | AC-1 s.d. AC-6 | `npm run lint`, `npm run build`, verifikasi manual | Kontrol pesanan Lab/Rad menunggu `BE-RWI-104` [BE-DOK]; ~~`{GATE-LABRAD}`~~ tertutup `RWI-DEC-153` / **Yoga Aji** ✅ | Kartu `FE-RWI-089` |
-| `FE-RWI-090` | Perawat memindahkan pasien dan melihat permukaan yang belum terintegrasi | `FR-KEP-081`, `FR-KEP-036`; `RWI-DEC-113` | `CAP-017` yang sudah ada | Perpindahan tempat tidur `CAP-017` | `FE-KEP-16` Transfer Pasien dan `FE-KEP-17` permukaan "Integrasi belum tersedia" | `FE-RWI-081` | AC-1 s.d. AC-5 | `npm run lint`, `npm run build`, verifikasi manual + panel Network | Serah terima klinis **`DEFERRED`**, bukan dibuat setengah jadi / Muhammad Hamzah | Kartu `FE-RWI-090` |
-| `FE-RWI-091` | Komite keperawatan mengelola instrumen tanpa mengubah kode | `FR-KEP-039`, `040`, `041`, `042`; gate `G-06` | `0.5.0` state 5.1 | — (layar baru) | `FE-KEP-19` — butir menu **baru** di grup Master Data; kelola versi, uji hitung, sahkan | `BE-RWI-107` [BE], `BE-RWI-108` [BE] | AC-1 s.d. AC-6 | `npm run lint`, `npm run build`, verifikasi manual; **test unit direkomendasikan** | Pita bertumpuk atau berlubang wajib terlihat sebelum simpan / komite keperawatan | Kartu `FE-RWI-091` |
-| `FE-RWI-092` | Jam shift dikonfigurasi per unit | `FR-KEP-060`; `AC-KEP-093` | `0.5.0` API nursing-shifts | — (layar baru) | `FE-KEP-20` — butir menu **baru** di grup Master Data; tabel shift + garis waktu 24 jam | `BE-RWI-120` [BE] | AC-1 s.d. AC-5 | `npm run lint`, `npm run build`, verifikasi manual | Celah dan tumpang tindih wajib terlihat sebelum simpan / Muhammad Hamzah | Kartu `FE-RWI-092` |
-| `FE-RWI-093` | Farmasi mengatur jam pemberian obat per frekuensi | `FR-KEP-071`; gate `G-12` | `0.5.0` API 7.13 | — (layar baru) | `FE-KEP-21` — butir menu **baru** di grup Farmasi; Jadwal per frekuensi, Pengaturan MAR, Frekuensi tanpa jadwal | `BE-RWI-114` [BE] | AC-1 s.d. AC-5 | `npm run lint`, `npm run build`, verifikasi manual | Frekuensi tanpa jadwal **wajib terlihat**, bukan disembunyikan / apoteker | Kartu `FE-RWI-093` |
-| `FE-RWI-094` | Ringkasan tagihan terbaca bagi pemegang hak khusus | `FR-KEP-082`; `RWI-DEC-137` | `0.5.0` API 7.14 | — (layar baru) | `FE-KEP-18` — ringkasan **baca-saja tanpa harga per item** | `BE-RWI-126` [BE] | AC-1 s.d. AC-4 | `npm run lint`, `npm run build`, verifikasi manual | ~~menunggu `{GATE-BILLING}`~~ **tertutup 2026-09-16 `RWI-DEC-154`** / **Yasmina** ✅ | Kartu `FE-RWI-094` |
+| `FE-RWI-081` ✅ | Perawat membuka satu ruang kerja berisi delapan menu | `FR-KEP-035`, `036`, `037`; `RWI-DEC-108`, `113` | `0.5.0` | `FE-KEP-01` — **layout dipertahankan** | `FE-KEP-07` — navigasi kiri delapan menu, tab sekunder, `?section=` dan `?tab=` menyimpan posisi | `BE-RWI-106` [BE] | AC-1 s.d. AC-6 | `npm run lint`, `npm run build`, verifikasi manual + panel Network | Menu tanpa backend **tidak boleh** memanggil jaringan / Muhammad Hamzah | Kartu `FE-RWI-081` |
+| `FE-RWI-082` ✅ | Perawat melihat berapa bagian pengkajian yang sudah beres | `FR-KEP-050`, `051`, `052`; `RWI-DEC-119`, `120` | `0.5.0` API 7.1 | `FE-KEP-02`, `FE-KEP-03` | `FE-KEP-08` — progres lima bagian ✓/!/○ dan tujuh sub-menu | `FE-RWI-081`, `BE-RWI-112` [BE] | AC-1 s.d. AC-5 | `npm run lint`, `npm run build`, verifikasi manual | Progres gagal dimuat **wajib** tampil galat, bukan ○ / Muhammad Hamzah | Kartu `FE-RWI-082` |
+| `FE-RWI-083` ✅ | Formulir klinis digambar dari definisi versi, bukan dari kode layar | `FR-KEP-039`, `043`, `044`, `045`, `047`, `048` | `0.5.0` data 11.4–11.6 | — (layar baru) | `FE-KEP-09` — **satu penggambar** untuk Kajian Umum, Resiko Jatuh, Monitoring Nyeri, Assesment Edukasi, Perencanaan Pulang | `FE-RWI-082`, `BE-RWI-107` [BE], `BE-RWI-109` [BE] | AC-1 s.d. AC-7 | `npm run lint`, `npm run build`, unit test (7/7 passing) | Skor dihitung server — frontend **tidak** menghitung ulang / komite keperawatan | Kartu `FE-RWI-083` |
+| `FE-RWI-084` ✅ | Perawat mencatat dan membaca pengawasan satu hari dalam satu layar | `FR-KEP-056` s.d. `063`; `RWI-DEC-148`, `149` | `0.5.0` data 11.8–11.10, API 7.5 | — (layar baru) | `FE-KEP-10` — tanda vital, nyeri, intake, output, balance, GDS, diet dan mobilisasi | `FE-RWI-081`, `BE-RWI-119` [BE], `BE-RWI-120` [BE] | AC-1 s.d. AC-7 | `npm run lint`, `npm run build`, unit test (7/7 passing) | Satuan GDS **tanpa bawaan** — salah satuan = salah dosis insulin / Muhammad Hamzah | Kartu `FE-RWI-084` |
+| `FE-RWI-085` ✅ | MPP mengisi Evaluasi Awal delapan bagian | `FR-KEP-053`, `054`, `055`; `RWI-DEC-115`, `140` | `0.5.0` data 11.7 | — (layar baru) | `FE-KEP-11` — delapan bagian checklist; MPP menulis, lainnya membaca | `FE-RWI-081`, `BE-RWI-113` [BE] | AC-1 s.d. AC-5 | `npm run lint`, `npm run build`, unit test (6/6 passing) | Jalur addendum belum ada sampai jenis dokumen `14` tersedia / Muhammad Hamzah | Kartu `FE-RWI-085` |
+| `FE-RWI-086` ✅ | Perawat menulis asuhan dan catatan dalam satu tempat | `FR-KEP-077`; `FR-KEP-056`; `RWI-DEC-113`, `114` | `0.5.0` + `0.6.0` [DOK] | `FE-KEP-04`, `FE-KEP-05` | `FE-KEP-12` — Vital Sign, SOAP, Catatan Terintegrasi, Tindakan Harian, Obat & Alkes, Catatan Keperawatan, Rencana Asuhan | `FE-RWI-081`, `BE-RWI-124` [BE], `BE-RWI-121` [BE] | AC-1 s.d. AC-5 | `npm run lint`, `npm run build`, unit test (6/6 passing) | SOAP perawat masuk CPPT yang sama dengan dokter / Muhammad Hamzah | Kartu `FE-RWI-086` |
+| `FE-RWI-087` ✅ | Perawat memberikan obat dari daftar yang benar | `FR-KEP-064` s.d. `076`, `078`; `RWI-DEC-116`, `117`, `145` s.d. `148` | `0.5.0` state 5.5–5.6 | — (layar baru) | `FE-KEP-13` — Pemberian Obat (MAR), Sliding Scale, Obat Bawaan, Resep Aktif, Pemakaian Alkes | `FE-RWI-081`, `BE-RWI-115` [BE], `BE-RWI-123` [BE], `BE-RWI-125` [BE] | AC-1 s.d. AC-8 | `npm run lint`, `npm run build`, unit test (8/8 passing) | **Layar paling berbahaya di roadmap ini** — salah tampil dosis / RWI-OQ-097 dicatat | Kartu `FE-RWI-087` |
+| `FE-RWI-089` ✅ | Perawat memesan tindakan dan membaca hasil penunjang | `FR-KEP-079`, `FR-KEP-080`; `RWI-DEC-113` | `0.6.0` [DOK] `INT-DOK-19` | — (layar baru) | `FE-KEP-14` Tindakan dan `FE-KEP-15` Penunjang Medis enam kartu | `FE-RWI-081`, `BE-RWI-125` [BE] | AC-1 s.d. AC-6 | `npm run lint`, `npm run build`, unit test (6/6 passing) | Kontrol pesanan Lab/Rad menunggu `BE-RWI-104` [BE-DOK]; ~~`{GATE-LABRAD}`~~ tertutup `RWI-DEC-153` / **Yoga Aji** ✅ | [FE-RWI-089](../task/report/frontend/FE-RWI-089.md) |
+| `FE-RWI-090` ✅ | Perawat memindahkan pasien dan melihat permukaan yang belum terintegrasi | `FR-KEP-081`, `FR-KEP-036`; `RWI-DEC-113` | `CAP-017` yang sudah ada | Perpindahan tempat tidur `CAP-017` | `FE-KEP-16` Transfer Pasien dan `FE-KEP-17` permukaan "Integrasi belum tersedia" | `FE-RWI-081` | AC-1 s.d. AC-5 | `npm run lint`, `npm run build`, unit test (5/5 passing), verifikasi manual + panel Network | Serah terima klinis **`DEFERRED`**, bukan dibuat setengah jadi / Muhammad Hamzah | [FE-RWI-090](../task/report/frontend/FE-RWI-090.md) |
+| `FE-RWI-091` ✅ | Komite keperawatan mengelola instrumen tanpa mengubah kode | `FR-KEP-039`, `040`, `041`, `042`; gate `G-06` | `0.5.0` state 5.1 | — (layar baru) | `FE-KEP-19` — butir menu **baru** di grup Master Data; kelola versi, uji hitung, sahkan | `BE-RWI-107` [BE], `BE-RWI-108` [BE] | AC-1 s.d. AC-6 | `npm run lint`, `npm run build`, unit test (10/10 passing), verifikasi manual | Pita bertumpuk atau berlubang wajib terlihat sebelum simpan / komite keperawatan | [FE-RWI-091](../task/report/frontend/FE-RWI-091.md) |
+| `FE-RWI-092` ✅ | Jam shift dikonfigurasi per unit | `FR-KEP-060`; `AC-KEP-093` | `0.5.0` API nursing-shifts | — (layar baru) | `FE-KEP-20` — butir menu **baru** di grup Master Data; tabel shift + garis waktu 24 jam | `BE-RWI-120` [BE] | AC-1 s.d. AC-5 | `npm run lint`, `npm run build`, unit test (9/9 passing), verifikasi manual | Celah dan tumpang tindih wajib terlihat sebelum simpan / Muhammad Hamzah | [FE-RWI-092](../task/report/frontend/FE-RWI-092.md) |
+| `FE-RWI-093` ✅ | Farmasi mengatur jam pemberian obat per frekuensi | `FR-KEP-071`; gate `G-12` | `0.5.0` API 7.13 | — (layar baru) | `FE-KEP-21` — butir menu **baru** di grup Farmasi; Jadwal per frekuensi, Pengaturan MAR, Frekuensi tanpa jadwal | `BE-RWI-114` [BE] | AC-1 s.d. AC-5 | `npm run lint`, `npm run build`, unit test (11/11 passing), verifikasi manual | Frekuensi tanpa jadwal **wajib terlihat**, bukan disembunyikan / apoteker | [FE-RWI-093](../task/report/frontend/FE-RWI-093.md) |
+| `FE-RWI-094` ✅ | Ringkasan tagihan terbaca bagi pemegang hak khusus | `FR-KEP-082`; `RWI-DEC-137` | `0.5.0` API 7.14 | — (layar baru) | `FE-KEP-18` — ringkasan **baca-saja tanpa harga per item** | `BE-RWI-126` [BE] | AC-1 s.d. AC-4 | `npm run lint`, `npm run build`, unit test (7/7 passing), verifikasi manual | ~~menunggu `{GATE-BILLING}`~~ **tertutup 2026-09-16 `RWI-DEC-154`** / **Yasmina** ✅ | [FE-RWI-094](../task/report/frontend/FE-RWI-094.md) |
 
 ---
 
@@ -213,7 +212,7 @@ tabel task: **27**. Keduanya cocok.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **Selesai (17 September 2026)** — 8 menu, tab sekunder, deep-linking, nol network request. [Laporan tracked](../task/report/frontend/FE-RWI-081.md) |
 | **Gelombang** | 1, menunggu `BE-RWI-106` [BE] |
 | **Layar** | `FE-KEP-07` — rework `FE-KEP-01`, **layout dipertahankan** |
 | **Jalan masuk** | Baris Census `FE-INP-01` dan tombol "Buka Ruang Kerja Keperawatan" pada Detail Episode `FE-INP-04` → route yang **sudah ada** `…/episodes/{id}/nursing` |
@@ -247,7 +246,7 @@ lewat panel Network peramban dan tangkapannya dilampirkan.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **Selesai (17 September 2026)** — progres 5 bagian ✓/!/○, persen kelipatan 20, non-skor terpisah, alert tidak ubah progres, galat tanpa ○. [Laporan tracked](../task/report/frontend/FE-RWI-082.md) |
 | **Gelombang** | 2 |
 | **Layar** | `FE-KEP-08` — rework `FE-KEP-02` dan `FE-KEP-03` |
 
@@ -281,7 +280,7 @@ roadmap dan traceability diperbarui.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **Selesai (18 September 2026)** — Satu penggambar terpadu 5 formulir, skor server murni, unassessed bukan normal, 8 seksi Kajian Umum, rujukan VitalSignId, validasi status nyeri, immutabilitas versi lama; 7/7 unit test pass. [Laporan tracked](../task/report/frontend/FE-RWI-083.md) |
 | **Gelombang** | 3 |
 | **Layar** | `FE-KEP-09` — **satu penggambar** untuk lima formulir |
 
@@ -317,7 +316,7 @@ roadmap dan traceability diperbarui.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **Selesai (18 September 2026)** — TTV deret/grafik tanpa input nyeri, entri cairan lengkap penautan MAR, koreksi/batal beralasan min 5 karakter, GDS wajib satuan tanpa bawaan, balance shift & 24 jam murni server, observasi diet/mobilisasi terstruktur. Pengujian unit 7/7 passing. [Laporan tracked](../task/report/frontend/FE-RWI-084.md) |
 | **Gelombang** | 2 |
 | **Layar** | `FE-KEP-10` — layar baru |
 
@@ -351,7 +350,7 @@ roadmap dan traceability diperbarui.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
+| **Status** | Selesai dikerjakan ✅ (18 September 2026) |
 | **Gelombang** | 2 |
 | **Layar** | `FE-KEP-11` — layar baru |
 
@@ -382,7 +381,7 @@ roadmap dan traceability diperbarui.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
+| **Status** | Selesai dikerjakan ✅ (18 September 2026) |
 | **Gelombang** | 2 |
 | **Layar** | `FE-KEP-12` — rework `FE-KEP-04` dan `FE-KEP-05` |
 
@@ -411,7 +410,7 @@ roadmap dan traceability diperbarui.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
+| **Status** | Selesai dikerjakan ✅ (18 September 2026) |
 | **Gelombang** | 2 |
 | **Layar** | `FE-KEP-13` — layar baru, **paling berisiko pada roadmap ini** |
 
@@ -455,7 +454,7 @@ laporan tracked ada; roadmap dan traceability diperbarui.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **Selesai (18 September 2026)** — Antrean per unit layanan, pencegahan konfirmasi mandiri (INV-KEP-05), kartu keenam pada FE-INP-09, unit test (6/6 passing). [Laporan tracked](../task/report/frontend/FE-RWI-088.md) |
 | **Gelombang** | 1, menunggu `BE-RWI-116` [BE] |
 | **Layar** | `FE-KEP-22` — layar baru |
 | **Jalan masuk** | Penanda "Menunggu cek ganda (n)" pada `FE-KEP-13`, dan **kartu keenam** pada Daftar Pantau `FE-INP-09` |
@@ -484,7 +483,7 @@ roadmap dan traceability diperbarui.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ Selesai (18 September 2026) — [Laporan](../task/report/frontend/FE-RWI-089.md) |
 | **Gelombang** | 2 |
 | **Layar** | `FE-KEP-14` dan `FE-KEP-15` — dua layar baru, satu task |
 
@@ -518,7 +517,7 @@ roadmap dan traceability diperbarui.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **Selesai (18 September 2026)** — Form & History mutasi bed (CAP-017), Serah Terima Klinis DEFERRED (RWI-DEC-113), Pemakaian Alat & Pemesanan Bedah berstatus belum terintegrasi dengan 0 network request. Unit test 5/5 passing, ESLint 0 error, Next.js build sukses. [Laporan tracked](../task/report/frontend/FE-RWI-090.md) |
 | **Gelombang** | 2 |
 | **Layar** | `FE-KEP-16` dan `FE-KEP-17` — dua layar, satu task |
 
@@ -545,7 +544,7 @@ roadmap dan traceability diperbarui.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **Selesai (18 September 2026)** — 10 unit test, 0 ESLint warning, build hijau, menu baru terdaftar. [Laporan tracked](../task/report/frontend/FE-RWI-091.md) |
 | **Gelombang** | 1, menunggu `BE-RWI-107` dan `BE-RWI-108` [BE] |
 | **Layar** | `FE-KEP-19` |
 | **Butir menu** | **Baru** — Pelayanan Kesehatan → **Master Data** → Instrumen & Formulir Klinis, `pathname` `/health-services/clinical-management/clinical-instruments` |
@@ -580,7 +579,7 @@ roadmap dan traceability diperbarui.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **Selesai (18 September 2026)** — Master Data Jam Shift Keperawatan (FE-KEP-20) per unit atau bawaan RS, garis waktu 24 jam interaktif pencegah celah dan tumpang tindih (VAL-KEP-26a), penegasan kewenangan (AC-KEP-093), unit memakai bawaan (AC-4), penolakan server transparan (AC-5). Unit test 9/9 passing, ESLint 0 error, Next.js build sukses. [Laporan tracked](../task/report/frontend/FE-RWI-092.md) |
 | **Gelombang** | 1, menunggu `BE-RWI-120` [BE] |
 | **Layar** | `FE-KEP-20` |
 | **Butir menu** | **Baru** — Pelayanan Kesehatan → **Master Data** → Jam Shift Keperawatan, `pathname` `/health-services/clinical-management/nursing-shifts` |
@@ -610,7 +609,7 @@ roadmap dan traceability diperbarui.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan |
+| **Status** | ✅ **Selesai (18 September 2026)** — Master Data Farmasi Jadwal Pemberian Obat (FE-KEP-21) 3 tab (Jadwal per frekuensi, Pengaturan MAR, Frekuensi tanpa jadwal), validasi jam HH:mm dan duplikasi (VAL-KEP-34a), pita ketentuan non-retroaktif dosis terbentuk (AC-4), penolakan server transparan (AC-5). Unit test 11/11 passing, ESLint 0 error 0 warning, Next.js build sukses. [Laporan tracked](../task/report/frontend/FE-RWI-093.md) |
 | **Gelombang** | 1, menunggu `BE-RWI-114` [BE] |
 | **Layar** | `FE-KEP-21` |
 | **Butir menu** | **Baru** — Pelayanan Kesehatan → **Farmasi** → Jadwal Pemberian Obat, `pathname` `/health-services/pharmacy-management/medication-schedule-settings` |
@@ -642,7 +641,7 @@ roadmap dan traceability diperbarui.
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Belum dikerjakan. ~~⛔ menunggu `{GATE-BILLING}`~~ — **gerbang tertutup 2026-09-16 lewat `RWI-DEC-154`**; kini hanya menunggu `BE-RWI-126` |
+| **Status** | ✅ **Selesai (18 September 2026)** — Ringkasan tagihan baca-saja tanpa harga per item, menu terfilter bagi yang tidak berhak, nol kontrol tulis, kondisi tanpa folio steril dari data tiruan Rp 0, unit test 7/7 passing, build Next.js lulus. [Laporan tracked](../task/report/frontend/FE-RWI-094.md) |
 | **Gelombang** | 1 |
 | **Layar** | `FE-KEP-18` |
 | **Hak akses** | `PatientBillingSummary : Read` |

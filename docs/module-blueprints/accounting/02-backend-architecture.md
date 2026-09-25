@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `ACC-BP-001` |
-| Revision | `4` — dinaikkan 8 September 2026, bagian 14 sampai 21 (Phase 2) ditambahkan |
+| Revision | `5` — 24 September 2026, bagian 22 (amendment sesudah ratifikasi Finance, **`draft`**) ditambahkan. Sebelumnya `4` — dinaikkan 8 September 2026, bagian 14 sampai 21 (Phase 2) ditambahkan |
 | Status | Bagian 1–13 (MVP): mengikuti approval `ACC-BP-001` revisi 5, 1 September 2026. Bagian 14–21 (Phase 2): **`approved`** — Rizki, 8 September 2026 |
 | Cakupan | MVP tulang punggung akuntansi (`ACC-DEC-009`) **dan** Phase 2 (`ACC-PH-006`, bagian 14–21) |
 | Bentuk blueprint | `SINGLE` — melanjutkan bentuk yang sudah melekat sejak approval, tidak dinilai ulang |
@@ -903,13 +903,13 @@ berjenis `JT`, persis seperti saldo awal yang memakai jenis `SA` pada MVP. Yang 
 
 | Service | Status | Fungsi utama | Dipanggil siapa | Membuka transaksi? |
 |---|---|---|---|---|
-| `AccAccountingEventService` | **Baru** | Menerima, memproses, menahan, dan mengabaikan kejadian | Controller dan penjadwal | **Ya** — satu transaksi mencakup kejadian, jurnal, dan percobaan |
+| `AccAccountingEventService` | **Baru** | Menerima, memproses, menahan, dan mengabaikan kejadian | Controller dan penjadwal | **Ya** — ~~satu transaksi mencakup kejadian, jurnal, dan percobaan~~ **diganti bagian 22.4**: kejadian di-commit lebih dahulu (T1), baru dijurnal (T2) (`ACC-DEC-084`) |
 | `AccPostingRuleService` | **Baru** | CRUD aturan posting | Controller | Tidak |
 | `AccEventTypeService` | **Baru** | CRUD jenis kejadian | Controller | Tidak |
 | `AccRecurringJournalService` | **Baru** | CRUD template dan penerbitan jurnal berulang | Controller dan penjadwal | **Ya** — penerbitan satu periode |
 | `AccPeriodClosingService` | **Baru** | Menghitung penghalang, mengajukan, menyetujui, menolak penutupan | Controller | **Ya** — perubahan status periode |
 | `AccYearEndClosingService` | **Baru** | Menghitung saldo dan menyusun jurnal penutup tahun | Controller | **Ya** — penyusunan jurnal penutup |
-| `AccAccountingEventSchedulerHostedService` | **Baru** | Menjalankan percobaan ulang kejadian gagal | Runtime | Tidak langsung; memakai scope per siklus |
+| `AccAccountingEventSchedulerHostedService` | **Baru** | Menjalankan percobaan ulang kejadian ~~gagal~~ yang **masih `Diterima`** karena gangguan teknis — aturan pengambilan di bagian 22.5 | Runtime | Tidak langsung; memakai scope per siklus |
 | `AccRecurringJournalSchedulerHostedService` | **Baru** | Menerbitkan jurnal berulang yang jatuh tempo | Runtime | Tidak langsung; memakai scope per siklus |
 | `AccJournalService` | **Diperbarui** | Bertambah jalur pembuatan jurnal dari kejadian dan dari template | `AccAccountingEventService`, `AccRecurringJournalService` | Ya, sudah sejak MVP |
 | `AccountingLegalEntityGuard` | **Sudah ada** | Penjaga badan hukum utama | Seluruh service Phase 2 | Tidak |
@@ -939,7 +939,7 @@ Seluruh controller mengikuti pola MVP: `[Authorize]`, `[AccessController]`,
 
 | Enum | Status | Nilai | Catatan |
 |---|---|---|---|
-| `AccountingEventStatus` | **Baru** | `Diterima = 1`, `Tertahan = 2`, `Gagal = 3`, `Terjurnal = 4`, `Diabaikan = 5` | `Diabaikan` ditetapkan `ACC-DEC-078` (`DEC-ACC-P2-007` ditutup 14 September 2026). **Belum dibangun** — bagian kotak masuk kejadian |
+| `AccountingEventStatus` | **Baru** | `Diterima = 1`, `Tertahan = 2`, `Gagal = 3`, `Terjurnal = 4`, `Diabaikan = 5`, **`Tercatat = 6`** *(bagian 22.9, `ACC-DEC-087`)* | `Diabaikan` ditetapkan `ACC-DEC-078` (`DEC-ACC-P2-007` ditutup 14 September 2026). **Belum dibangun** — bagian kotak masuk kejadian |
 | `AccountingEventTreatment` | **Baru** | `LangsungSahkan = 1`, `BuatDraft = 2` | Mewujudkan `ACC-DEC-045` |
 | `RecurringFrequency` | **Baru** | `Bulanan = 1` | Hanya satu nilai pada rilis pertama Phase 2; ruang untuk `Triwulanan` dan `Tahunan` disediakan tanpa dibangun |
 | `PeriodClosingAction` | **Baru** | `Diajukan = 1`, `Disetujui = 2`, `Ditolak = 3` | Meniru `JournalApprovalAction` yang sudah ada |
@@ -1118,3 +1118,229 @@ restrukturisasi `BE-OPS-001A`.
 konfigurasi `Debug|Any CPU`, yang merupakan bawaan `dotnet build`. Baris `Debug|Any CPU.Build.0`
 memang tidak ada di `QuilvianSystemBackend.sln`. Jangan membaca "build hijau" sebagai
 "test terbangun"; pakai `Debug|x64` atau `Release`.
+
+
+---
+
+## 22. Amendment 24 September 2026 — kotak masuk sesudah ratifikasi Finance
+
+| Field | Nilai |
+|---|---|
+| Status | **`draft`** — approval adalah tindakan manusia. Bagian 14–21 tetap `approved`; bagian ini **mengubah** tiga hal di dalamnya dan menandainya di tempat |
+| Pass | `design-business-module` amendment, 24 September 2026 |
+| Masukan | `00-interview-decisions.md@10` (`ACC-DEC-082`..`091`); `ACC-XMOD-0.3`; `finance-management/evidence/01` |
+| Source SHA | `rizkiG` `b2b265af`, `RizkiV2` `c941012ac` — diperiksa hari itu; nol kode kotak masuk, `AccEventType` dan `AccControlAccountReconciliationService` sudah berdiri |
+| Bentuk blueprint | `SINGLE` — tidak dinilai ulang |
+| `domain_architecture_readiness` | `DOMAIN_ARCHITECTURE_READY` (`ACC-DOMAIN-P2-0.1`). Amendment ini tidak menambah bounded context maupun konsep domain baru; saldo subledger sudah ada sebagai konsep sejak `ACC-DEC-071` |
+| Traceability | `ACC-DEC-084` (pemrosesan), `085` (tanda terima), `087` (saldo subledger), `088` (akun layanan), `091` (uang muka) |
+
+### 22.1 Yang berubah dari bagian 14–21
+
+| # | Bagian lama | Isi lama | Isi baru | Dasar |
+|---:|---|---|---|---|
+| 1 | 16, baris `AccAccountingEventService` | "satu transaksi mencakup kejadian, jurnal, dan percobaan" | **Dua transaksi**: kejadian di-commit lebih dahulu, baru dijurnal (bagian 22.4) | `ACC-DEC-084` |
+| 2 | 16, baris `AccAccountingEventSchedulerHostedService` | "percobaan ulang kejadian gagal" | Mencoba ulang kejadian yang **masih `Diterima`** karena gangguan teknis; `Gagal` hanya dicoba ulang manual | `ACC-DEC-049`, `084` |
+| 3 | 16, enum `AccountingEventStatus` | Lima nilai | Bertambah **`Tercatat = 6`** untuk pesan saldo subledger | `ACC-DEC-087` |
+
+### 22.2 Tabel kepemilikan data — tambahan
+
+| Kelompok data | Modul pemilik | Dipakai Accounting | Dibuat ulang di Accounting |
+|---|---|:---:|---|
+| Saldo subledger per akun kontrol per periode, **sebagaimana dinyatakan Finance** | **Finance** (angka), **Accounting** (salinan untuk rekonsiliasi) | Ya | **Ya, sebagai salinan pesan** — Accounting menyimpan angka yang *dikirim*, bukan menghitungnya dari data Finance (`ACC-DEC-071`, `003`) |
+| Akun layanan pengirim dan penugasan organisasinya | **Platform** (akun, login) + pemilik hak akses (`SysAccessPolicy`) | Ya | **Tidak** — Accounting hanya menetapkan syarat (`ACC-DEC-088`) |
+| Uang muka pasien | **Finance** (subledger), **Accounting** (akun di buku besar) | Ya, lewat kejadian | **Tidak** — cukup aturan posting dan akun; nol tabel (`ACC-DEC-091`) |
+
+### 22.3 Class diagram — potongan yang berubah
+
+```mermaid
+classDiagram
+    class AccEventType {
+        +Guid Id
+        +string EventTypeCode
+        +string EventTypeName
+        +string SourceModule
+        +EventTypeKind EventKind
+        +bool IsActive
+    }
+    class AccAccountingEvent {
+        +Guid Id
+        +string EventNumber
+        +Guid? EventTypeId
+        +string EventTypeCode
+        +AccountingEventStatus EventStatus
+        +string? HoldReasonCode
+        +Guid? JournalId
+        +string RawPayload
+        +int AttemptCount
+    }
+    class AccSubledgerBalance {
+        +Guid Id
+        +Guid LegalEntityId
+        +Guid AccountingPeriodId
+        +Guid ChartOfAccountId
+        +decimal Balance
+        +DateOnly AsOfDate
+        +int SourceVersionNumber
+        +Guid AccountingEventId
+    }
+    class AccAccountingPeriod
+    class AccChartOfAccount
+    AccAccountingEvent "*" --> "0..1" AccEventType : berjenis
+    AccSubledgerBalance "*" --> "1" AccAccountingEvent : berasal dari
+    AccSubledgerBalance "*" --> "1" AccAccountingPeriod : untuk periode
+    AccSubledgerBalance "*" --> "1" AccChartOfAccount : akun kontrol
+```
+
+### 22.4 Alur penerimaan — batas transaksi
+
+Mewujudkan `ACC-DEC-084`. Semua langkah dikerjakan `AccAccountingEventService.TerimaAsync`.
+
+| Langkah | Isi | Transaksi | Bila gagal |
+|---:|---|---|---|
+| 1 | Validasi pesan: kedua belas bidang, mata uang, larangan data pasien. Bila jenisnya **sudah terdaftar**, validasi yang bergantung jenis ikut dijalankan di sini: `SubledgerBalance` wajib/dilarang, tanda `Amount`, `SourceVersion` bilangan bulat, periode ada, akun adalah control account | Tanpa transaksi | `400`/`409`, nol baris tersimpan. Seluruh penolakan `400` terjadi **sebelum** kejadian disimpan |
+| 2 | Cari kiriman ulang lewat kedua kunci anti-ganda | Tanpa transaksi | Bila ketemu: `200` + tanda terima keadaan terkini, **berhenti** |
+| 3 | Simpan `AccAccountingEvent` (`Diterima`) beserta komponennya | **T1**, di-commit | Tabrakan unique index karena dua kiriman bersamaan → baca ulang, jawab `200` |
+| 4 | Tentukan jenis: tidak terdaftar → `Tertahan` (`EVENT_TYPE_NOT_REGISTERED`); `EventKind = SaldoSubledger` → langkah 5b; selain itu → langkah 5a | — | — |
+| 5a | Cari aturan posting, cocokkan komponen, buat jurnal, ubah status `Diterima` → `Terjurnal` **bersyarat**, tulis percobaan nomor 1 | **T2** | Aturan/komponen bermasalah → `Tertahan` + `HoldReasonCode`, jawab `422`. Gangguan teknis → T2 dibatalkan; percobaan gagal ditulis di **T3**; status tetap `Diterima`; jawab `201` tanpa nomor jurnal |
+| 5b | Tulis atau ganti `AccSubledgerBalance` (rinciannya sudah divalidasi di langkah 1), ubah status → `Tercatat` bersyarat | **T2** | Gangguan teknis → sama seperti 5a. Kejadian saldo yang tertahan karena jenisnya belum terdaftar divalidasi ulang saat diproses ulang; bila rinciannya ternyata tidak sah, ia menjadi `Gagal` (bukan `400`, karena sudah tersimpan) |
+
+**Ubah status bersyarat.** Perpindahan dari `Diterima` dikerjakan sebagai
+`UPDATE ... WHERE Id = @id AND EventStatus = Diterima` di dalam T2. Bila nol baris berubah, T2
+dibatalkan — artinya penjadwal (atau request lain) sudah lebih dulu memprosesnya. Inilah yang
+mencegah satu kejadian menjadi dua jurnal ketika request dan penjadwal berjalan bersamaan. Tidak
+perlu kolom concurrency baru.
+
+**Contoh balapan yang dicegah.** Request `EVT-300` gagal di T2 pukul 10.00.00 dan meninggalkan
+kejadian `Diterima`. Penjadwal mengambilnya pukul 10.02.00. Pada detik yang sama Finance mengirim
+ulang `EVT-300` — kiriman ulang hanya **membaca** (langkah 2) dan tidak pernah memproses, jadi
+satu-satunya pemroses adalah penjadwal.
+
+### 22.5 Penjadwal — aturan pengambilan
+
+| Aturan | Isi |
+|---|---|
+| Yang diambil | Kejadian `Diterima` yang percobaan terakhirnya lebih tua dari **masa tenggang** |
+| Masa tenggang | Konfigurasi `AccAccountingEventSchedulerOptions.GracePeriodSeconds`, bawaan `120`. Mencegah penjadwal menyerobot kejadian yang request-nya masih berjalan |
+| Jeda antar-percobaan | Makin panjang: 1, 5, 15 menit sesudah percobaan sebelumnya — dihitung dari `AccAccountingEventAttempt.AttemptedAt`, tanpa kolom jadwal baru |
+| Hitungan | Percobaan di dalam request dicatat sebagai `AttemptNumber = 1` tetapi **tidak** menambah `AttemptCount`. `AttemptCount` menghitung coba ulang penjadwal saja; sesudah 3 → `Gagal` (`ACC-DEC-049`) |
+| Yang **tidak** diambil | `Tertahan` (menunggu aturan, diproses ulang lewat `ACC-DEC-046`), `Gagal` (hanya coba ulang manual), `Terjurnal`, `Tercatat`, `Diabaikan` |
+| Pelaku jurnal | `SystemActorUserId` dari konfigurasi (`ACC-DEC-074`) |
+
+### 22.6 Pesan saldo subledger — `ACC-DEC-087`
+
+**Bagaimana mesin tahu sebuah pesan adalah saldo.** Lewat kolom baru **`AccEventType.EventKind`**,
+bukan lewat kode yang ditulis mati di program. Kode `SALDO-SUBLEDGER` masih usulan dan menunggu
+persetujuan Finance; bila Finance memilih nama lain, cukup data master yang berubah.
+
+| `EventKind` | Arti | Aturan posting dicari? | Status akhir yang mungkin |
+|---|---|:---:|---|
+| `Transaksi = 1` (bawaan) | Kejadian yang menjadi jurnal | Ya | `Terjurnal`, `Tertahan`, `Gagal`, `Diabaikan` |
+| `SaldoSubledger = 2` | Pernyataan saldo akun kontrol per periode | **Tidak** | `Tercatat`, `Gagal`, `Diabaikan` |
+
+**Aturan penyimpanan saldo.**
+
+| Keadaan | Perlakuan |
+|---|---|
+| Belum ada saldo untuk (badan hukum, periode, akun kontrol) | Baris `AccSubledgerBalance` baru |
+| Sudah ada, versi pesan **lebih tinggi** | Baris yang sama **diganti** angkanya, dan dirujukkan ke kejadian terbaru. Kejadian lama tetap tersimpan sebagai jejak |
+| Sudah ada, versi pesan **lebih rendah atau sama** | Kejadian `Tercatat`, baris saldo **tidak** berubah. Mencegah pesan lama yang datang terlambat menimpa koreksi |
+| `SourceVersion` tidak dapat dibaca sebagai bilangan bulat positif | `400` — hanya untuk pesan saldo, karena urutan versi menentukan baris mana yang berlaku |
+| Periode yang dituju berstatus **`Closed`** | Kejadian `Tercatat`, baris saldo **tidak** berubah. Angka periode tertutup tidak digeser diam-diam; selisihnya tampak saat Finance dan Accounting membandingkan catatan. **Butir terbuka untuk Rizki**: apakah perlu peringatan tersendiri |
+| Jenis belum terdaftar | `Tertahan` (`EVENT_TYPE_NOT_REGISTERED`), rincian saldo hanya ada di `RawPayload`; dibaca ulang saat diproses ulang |
+
+**Dipakai oleh siapa.** Penghalang rekonsiliasi `ACC-DEC-076` (Wave D, `BE-ACC-P2-014`)
+membandingkan `AccSubledgerBalance.Balance` dengan saldo buku besar dari
+`AccControlAccountReconciliationService` yang sudah berdiri. Baris yang tidak ada = saldo belum
+lengkap = penutupan ditahan.
+
+### 22.7 Tanda terima — `ACC-DEC-085`
+
+| Bidang DTO | Diambil dari | Catatan |
+|---|---|---|
+| `AccountingEventId` | `AccAccountingEvent.Id` | — |
+| `EventNumber` | `AccAccountingEvent.EventNumber` | — |
+| `EventStatus` | `AccAccountingEvent.EventStatus`, sebagai teks | `Diterima`, `Terjurnal`, `Tertahan`, **`Tercatat`** (pesan saldo). `Gagal`/`Diabaikan` hanya mungkin terbaca lewat kiriman ulang `200` |
+| `JournalNumber` | `AccJournal.JournalNumber` lewat `JournalId` | Kosong selain `Terjurnal` |
+| `AccountingPeriodCode` | Periode jurnal; untuk pesan saldo, periode rincian | — |
+| `HoldReasonCode` | **Kolom baru** `AccAccountingEvent.HoldReasonCode` | Disimpan, bukan dihitung ulang, supaya kiriman ulang `200` menjawab alasan yang sama |
+| `ReceivedAt` | `AccAccountingEvent.CreateDateTime`, dikirim berzona `+07:00` | Tanpa kolom baru |
+
+`EventStatus` bertambah `Tercatat` sebagai akibat desain dari `ACC-DEC-087` — keputusan
+`ACC-DEC-085` hanya menyebut tiga nilai karena ditulis untuk kejadian transaksi.
+
+### 22.8 Akun layanan — `ACC-DEC-088`
+
+**Nol kode Accounting.** Seluruh syaratnya diwujudkan dengan data dan pemeriksaan yang sudah ada:
+
+| Syarat | Diwujudkan oleh | Keadaan |
+|---|---|---|
+| Bukan akun manusia, bukan SuperAdmin | Tata kelola akun oleh Platform | Di luar kode Accounting |
+| Penugasan Departemen + Jabatan khusus yang hanya berhak `Receive` | Baris `SysAccessPolicy` — dicentang di layar Akses Role | Belum ada; syarat gerbang G3 |
+| Berhak atas badan hukum tujuan | **Sementara** penjaga badan hukum `IsDefault` yang sudah ada (`ACC-DEC-043`): `LegalEntityId` pesan wajib sama dengan badan hukum utama, selain itu `403`. Otorisasi badan hukum per pengguna menunggu `ACC-DEP-008` | Penjaga sudah berdiri |
+| `[AccessPermission("AccountingEvent", "Receive")]` pada `POST /` | `AccountingEventController` | Rencana |
+
+`AccountingEvent : Receive` **dicabut dari peran Administrator** (usulan `ACC-PERMISSION-0.7`).
+
+### 22.9 Status model dan dampak migration
+
+| Model | Status | Perubahan kolom | Index / unique | Migration |
+|---|---|---|---|---|
+| `AccAccountingEvent` | **Baru** (belum dibangun) | Tambah **`HoldReasonCode`** `string(50)?` — hanya terisi saat `Tertahan` | Tetap | Ikut migration 2 `AddAccountingEventInbox` — tabelnya belum ada, jadi cukup rancangannya yang berubah |
+| `AccEventType` | **Diperbarui** (sudah berdiri, `BE-ACC-P2-017`) | Tambah **`EventKind`** `int`, wajib, bawaan `1` (`Transaksi`), `HasConversion<int>` | Tidak ada index baru | **Baru**: `AddEventKindToAccEventType`. Tanpa henti layanan — kolom baru berbawaan, baris lama otomatis `Transaksi`. Mundur: hapus kolom |
+| `AccSubledgerBalance` | **Baru** | Seluruh kolom — kamus data bagian 12d | Unique `(LegalEntityId, AccountingPeriodId, ChartOfAccountId)` | **Baru**: `AddAccSubledgerBalance`, Wave D. Tanpa henti layanan — tabel baru. Mundur: hapus tabel |
+
+| Enum | Status | Nilai | Bawaan |
+|---|---|---|---|
+| `AccountingEventStatus` | **Baru** (diperluas) | `Diterima = 1`, `Tertahan = 2`, `Gagal = 3`, `Terjurnal = 4`, `Diabaikan = 5`, **`Tercatat = 6`** | `Diterima` |
+| `EventTypeKind` | **Baru** | `Transaksi = 1`, `SaldoSubledger = 2` | `Transaksi` |
+
+Migration dibuat Rizki sendiri; rancangan ini hanya menetapkan isinya.
+
+### 22.10 Class baru dan yang diperbarui
+
+| Class | Status | Lokasi file | Fungsi | Membuka transaksi |
+|---|---|---|---|---|
+| `AccSubledgerBalance` | **Baru** | `Areas/Corporate/AccountingManagement/Reconciliation/Models/AccSubledgerBalance.cs` | Saldo subledger terakhir yang dinyatakan Finance per akun kontrol per periode | — |
+| `AccSubledgerBalanceConfiguration` | **Baru** | `Repositories/Configurations/Corporate/AccountingManagement/Reconciliation/AccSubledgerBalanceConfiguration.cs`, mengikuti letak `MasterData/AccEventTypeConfiguration.cs` | Unique index, FK `Restrict` ke keempat induk | — |
+| `EventTypeKind` | **Baru** | `Areas/Corporate/AccountingManagement/MasterData/EventType/Enums/EventTypeKind.cs` | Jenis perlakuan kejadian | — |
+| `AccEventType` | **Diperbarui** | Letak sekarang | + `EventKind` | — |
+| `AccEventTypeService` | **Diperbarui** | Letak sekarang | Menerima dan mengembalikan `EventKind`; **menolak mengubah `EventKind`** bila jenis itu sudah punya kejadian (`409`) | Sudah |
+| `AccAccountingEventService` | **Baru** | Seperti bagian 17 | Alur bagian 22.4 | **Ya — T1, T2, T3 terpisah** |
+| `AccAccountingEventSchedulerHostedService` | **Baru** | Seperti bagian 17 | Aturan bagian 22.5 | Tidak langsung |
+| `AccAccountingEventSchedulerOptions` | **Baru** | `AccountingEvent/Services/`, meniru `AccRecurringJournalSchedulerOptions` | `SystemActorUserId`, `GracePeriodSeconds` | — |
+
+**Kenapa `AccSubledgerBalance` di folder `Reconciliation`, bukan `AccountingEvent`.** Yang
+memakainya adalah rekonsiliasi; kejadian hanya jalan masuknya. Folder `Reconciliation/` sudah
+berdiri dengan controller, DTO, dan service, tetapi belum punya `Models/` — folder itu dibuat
+bersama model pertamanya. Prefix `Acc` sudah terdaftar di registry.
+
+### 22.11 Uang muka pasien — `ACC-DEC-091`
+
+**Nol class, nol tabel, nol endpoint di Accounting.** Keputusan ini diwujudkan dengan:
+
+1. Akun **Uang Muka Pasien** (kewajiban) di bagan akun sah — gerbang G2 (`ACC-TD-022`).
+2. Aturan posting `PENERIMAAN-KASIR`: debit Kas, kredit Uang Muka Pasien.
+3. Aturan posting untuk **kode pemakaian uang muka** yang masih ditunggu dari Finance: debit Uang
+   Muka Pasien, kredit Piutang.
+
+Yang berubah ada di Finance (`FIN-DEC-004`). Bila Finance menolak, keputusan kembali ke `grill-me`.
+
+### 22.12 Dampak frontend
+
+| Layar | Perubahan | Wewenang UI |
+|---|---|---|
+| Form jenis kejadian (`FE-ACC-P2-009`/`010`, sudah berdiri) | Satu isian pilihan **Jenis perlakuan**: Transaksi / Saldo subledger, bawaan Transaksi; terkunci bila jenis sudah punya kejadian | Letak dan bentuk isian `DEV_DISCRETION` mengikuti form yang ada |
+| Daftar kotak masuk kejadian (Wave B/C, belum dibangun) | Status `Tercatat` ikut disaring dan dilabeli | `DEV_DISCRETION` |
+
+### 22.13 Yang sengaja tidak dibuat
+
+| Yang ditimbang | Alasan ditolak |
+|---|---|
+| Kolom nomor tanda terima berpenomoran | `ACC-DEC-085` memilih `Id` sebagai tanda terima |
+| Kolom saldo, periode, dan akun kontrol di `AccAccountingEvent` | Hanya dipakai satu jenis kejadian; kolom kosong di hampir semua baris. `AccSubledgerBalance` menyimpannya, `RawPayload` menyimpan aslinya |
+| Kode `SALDO-SUBLEDGER` ditulis mati di program | Nama kode belum disetujui Finance; `EventKind` membuatnya urusan data master |
+| Endpoint terpisah untuk saldo | Bertentangan `ACC-DEC-071` dan `ACC-DEC-087` — pintu masuk yang sama |
+| Pemberitahuan balik ke Finance saat penjadwal berhasil | Dilarang `ACC-DEC-002`; Finance mendapat nomor jurnal lewat kiriman ulang |
+| Validasi kode yang melarang `JASA_MEDIS` pada aturan `PENGAKUAN-PIUTANG` | Ditolak `ACC-DEC-086` |
+| Kolom concurrency baru di `AccAccountingEvent` | Ubah status bersyarat (bagian 22.4) sudah cukup |
+| Kolom jadwal percobaan berikutnya | Dihitung dari waktu percobaan terakhir di `AccAccountingEventAttempt` |

@@ -43,6 +43,7 @@ governance_dependency: BKC-BLK-FE-001
 | Verifikasi | Component tests per master, lint/build |
 | Risiko/pemilik | UI menyiratkan update retroaktif. Owner Finance/Product |
 | DoD | Empat workspace atau tab setara, tests, accessibility, no hardcoded business values |
+| Perbaikan 16 September 2026 (`BE-BKC-FIX-010`) | Field "Kategori Kena Pajak"/`taxableCategory` dihapus total dari form create/update, kolom list, dan teks deskripsi CRUD Tax Rule — mengikuti penghapusan kolom `TaxableCategory` di backend (`BKC-DEC-098`). Lint/test/build **belum dijalankan** (instruksi baku pengguna). Laporan: [BE-BKC-FIX-010](../task/report/frontend/BE-BKC-FIX-010.md) |
 
 ## `FE-BKC-003` — Workspace charge, recalculation, dan void
 
@@ -1334,7 +1335,7 @@ BE-BKC-057 [BE] ───────────────┴─> FE-BKC-038
 | Kewenangan UI | Penggabungan halaman, route kanonik, sumber data per wilayah, dan urutan wilayah **dikunci**. Bentuk wadah panel, warna, jarak, ikon, dan component library `DEV_DISCRETION` |
 | Risiko/pemilik | Pendaftaran butir menu **MUST** menjadi acceptance criteria task ini, bukan pekerjaan yang menganggur. Modul ini punya preseden lima halaman selesai tetapi tidak terjangkau sampai task menu tersendiri dikerjakan. Owner Frontend |
 | DoD | Halaman kanonik terjangkau dari sidebar; kedua route lama mengalihkan; kelima kartu dari satu panggilan; keadaan memuat, kosong, dan gagal tertangani per wilayah; `npm run build` lulus; `git status --short` dilaporkan |
-| Status | Belum dikerjakan |
+| Status | **Source selesai — belum diverifikasi.** `npm run lint:errors`/`test:unit`/`build` dan verifikasi manual browser belum dijalankan (instruksi eksplisit pengguna sesi ini); hanya `node --check` pada berkas logika non-JSX yang lulus. Detail dan temuan (termasuk `api-contract.md` yang basi untuk `GET /overview`/`/periods`): [task/report/frontend/fe-bkc-035-halaman-kanonik-petty-cash-dan-pengalihan-route-lama.md](../task/report/frontend/fe-bkc-035-halaman-kanonik-petty-cash-dan-pengalihan-route-lama.md) |
 
 ## `FE-BKC-036` — Kosakata status baru dan pembuangan aksi persetujuan
 
@@ -1353,7 +1354,7 @@ BE-BKC-057 [BE] ───────────────┴─> FE-BKC-038
 | Kewenangan UI | Label status dan hak akses tombol **dikunci**. Bentuk penanda status dan tata letak aksi baris `DEV_DISCRETION` |
 | Risiko/pemilik | Layar yang masih membandingkan status dengan `WAITING_APPROVAL` atau `APPROVED` akan diam-diam menyembunyikan tombol Cairkan — gagalnya tidak berupa error, melainkan tombol yang tidak pernah muncul. Owner Frontend |
 | DoD | Tidak ada pemanggilan endpoint persetujuan tersisa; seluruh label memakai kosakata baru; aksi baris digerakkan server; `npm run build` lulus; `git status --short` dilaporkan |
-| Status | Belum dikerjakan |
+| Status | **Source selesai — belum diverifikasi.** `npm run lint:errors`/`test:unit`/`build` dan verifikasi manual browser belum dijalankan (instruksi eksplisit pengguna sesi ini); `node --check` pada berkas logika non-JSX lulus. Ditemukan `GET /vouchers/summary` juga berganti bentuk response (di luar Kontrak eksplisit task ini tapi dalam wewenang tulisnya) — detail: [task/report/frontend/fe-bkc-036-kosakata-status-baru-dan-pembuangan-aksi-persetujuan.md](../task/report/frontend/fe-bkc-036-kosakata-status-baru-dan-pembuangan-aksi-persetujuan.md) |
 
 ## `FE-BKC-037` — Layar Kelola Periode Anggaran
 
@@ -1372,7 +1373,7 @@ BE-BKC-057 [BE] ───────────────┴─> FE-BKC-038
 | Kewenangan UI | Isi dialog tutup periode dan sumber datanya **dikunci**. Bentuk wadah (modal, laci, halaman anak) `DEV_DISCRETION` |
 | Risiko/pemilik | Dialog tutup tanpa kalimat pemindahan membuat Finance tidak punya cara tahu ke mana uangnya pergi. Owner Frontend bersama Finance |
 | DoD | Ketiga aksi daur hidup berjalan dari layar; dialog tutup menampilkan sisa dan periode penerus; pesan penolakan server tampil apa adanya; `npm run build` lulus; `git status --short` dilaporkan |
-| Status | Belum dikerjakan |
+| Status | **Source selesai — belum diverifikasi.** `npm run lint:errors`/`test:unit`/`build` dan verifikasi manual browser belum dijalankan (instruksi eksplisit pengguna sesi ini); `node --check` pada berkas logika non-JSX lulus. Ditemukan ketiga endpoint periode TIDAK menerima header Idempotency-Key (beda dari pola Petty Cash lain) — detail: [task/report/frontend/fe-bkc-037-layar-kelola-periode-anggaran.md](../task/report/frontend/fe-bkc-037-layar-kelola-periode-anggaran.md) |
 
 ## `FE-BKC-038` — Kembalikan sisa uang dan batalkan pencairan
 
@@ -1391,7 +1392,7 @@ BE-BKC-057 [BE] ───────────────┴─> FE-BKC-038
 | Kewenangan UI | Alasan wajib pada kedua aksi dan penampilan sisa di tangan penerima **dikunci**. Bentuk wadah (modal atau laci) `DEV_DISCRETION` |
 | Risiko/pemilik | Keduanya memindahkan uang. Tombol **MUST** dinonaktifkan selama pengiriman **dan** memakai kunci idempotensi — keduanya, bukan salah satu. Owner Frontend |
 | DoD | Kedua aksi berjalan dari baris permintaan; batas nominal pengembalian terbaca pengguna sebelum mengirim; pengiriman ganda tidak menambah saldo dua kali; `npm run build` lulus; `git status --short` dilaporkan |
-| Status | Belum dikerjakan |
+| Status | **Source selesai — belum diverifikasi.** `npm run lint:errors`/`test:unit`/`build` dan verifikasi manual browser belum dijalankan (instruksi eksplisit pengguna sesi ini); `node --check` pada berkas logika non-JSX lulus. Ditemukan `PettyCashVoucherCommandResponse` tidak mengekspos nominal per kejadian Return, dan label movement type `RETURN`/`REVERSAL`/`CARRY_FORWARD_OUT`/`CARRY_FORWARD_IN` terlewat sejak `FE-BKC-037` (sudah dilengkapi) — detail: [task/report/frontend/fe-bkc-038-kembalikan-sisa-uang-dan-batalkan-pencairan.md](../task/report/frontend/fe-bkc-038-kembalikan-sisa-uang-dan-batalkan-pencairan.md) |
 
 ## Paralelisme dan urutan ringkas
 
@@ -1402,3 +1403,503 @@ keduanya. Sepakati urutan commit sebelum mulai.
 
 Dua task gelombang 2 masing-masing menempel pada satu task gelombang 1, sehingga tidak ada
 titik sempit di roadmap ini. Yang menentukan kecepatan seluruhnya adalah backend.
+
+---
+
+# Amendment 18 September 2026 — Penutupan gap `FINAL`→`CLOSED`, gelombang `MVP-24`
+
+`roadmap_revision: 3` · status `DRAFT_FORWARD_TEST` · blueprint revisi `1.3` **approved** · frontend SHA `1f2f2c93c9e4369db6c60246776de4c3bd52b3af` · masukan: `BKC-DEC-100`–`105`, `BKC-DES-028`–`035` (seluruhnya `approved`).
+
+## Satu task, dan sengaja bukan task fitur
+
+Amendment backend revisi `1.3` **tidak menuntut satu pun perubahan source frontend**, dan itu kesimpulan berbukti, bukan perkiraan: status `CLOSED` sudah terdaftar pada opsi filter maupun peta badge di `billing-invoice-constants.js` (`01-existing-capability-map.md` § 21). Badge dan filter akan bekerja apa adanya begitu backend mulai mengirim nilai itu.
+
+Yang tetap dibutuhkan adalah **verifikasi**, karena satu hal berubah diam-diam: nilai yang selama ini praktis tidak pernah muncul kini menjadi keadaan normal. Kode yang menangani `CLOSED` dengan benar di atas kertas belum tentu pernah benar-benar dijalani.
+
+## `FE-BKC-039` — Verifikasi penanganan status `Closed` yang kini benar-benar muncul
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Terbukti — lewat pembacaan source, bukan asumsi — bahwa layar menangani tagihan yang **baru** berpindah ke `Closed` sama benarnya dengan tagihan `Final`, termasuk saat tagihan itu **kembali** ke `Final` |
+| Gelombang | `MVP-24` |
+| Trace | `BKC-DES-029`, `BKC-DES-031`; `03-frontend-architecture.md` amendment 18 September 2026 |
+| Kontrak | `BIL-API-1.2` — **nol perubahan bentuk**, dua perubahan nilai: `status` kini dapat bernilai `CLOSED` pada alur normal, dan `closedAt` kini benar-benar terisi |
+| Reuse | Seluruhnya. `BILLING_INVOICE_STATUS_OPTIONS` dan `BILLING_INVOICE_STATUS_BADGE_CONFIG` sudah memuat `CLOSED` |
+| Scope | **Pembacaan source, bukan penulisan fitur.** Tiga hal yang diperiksa: (1) setiap pemakaian `isFinal` atau pemeriksaan status setara yang **mengunci** aksi penyuntingan memperlakukan `CLOSED` sama seperti `FINAL`; (2) layar yang menampilkan waktu penutupan tidak mengandaikan nilainya selalu kosong; (3) tagihan yang kembali dari `CLOSED` ke `FINAL` muncul lagi pada daftar yang masih punya sisa. **Perbaikan source hanya ditulis bila ditemukan gap** — dan bila ditemukan, gap itu dilaporkan sebagai temuan, bukan disenyapkan |
+| Dependency | `BE-BKC-061` — butuh tagihan `CLOSED` yang lahir normal untuk diverifikasi, bukan yang sudah `CLOSED` sejak dulu |
+| Acceptance | `UAT-69` (aksi sunting tetap terkunci pada tagihan `Closed`), `UAT-68` (tagihan yang kembali ke `Final` muncul lagi sebagai punya sisa) |
+| Verifikasi | Pembacaan source `isFinal` dan seluruh turunannya; `npm run lint` dan `npm run build` **hanya bila ada source yang benar-benar diubah**; verifikasi manual pada layar daftar tagihan, Menu Pembayaran, dan Riwayat Pembayaran |
+| Risiko/pemilik | `MODULE-STATUS.md` mencatat gap `isFinal`/`CLOSED` pernah ada dan **sudah** diperbaiki 30 Agustus 2026. Perbaikan itu lahir ketika `CLOSED` praktis tidak pernah muncul, sehingga cakupannya belum pernah teruji terhadap tagihan yang baru berpindah. **Jangan menganggap catatan "sudah diperbaiki" sebagai bukti** — itu persis jenis asumsi yang melahirkan gap ini. Owner Frontend |
+| DoD | Ketiga butir pemeriksaan dilaporkan satu per satu beserta berkas dan barisnya; bila nol gap ditemukan, laporan menyebut **apa yang diperiksa**, bukan sekadar "tidak ada masalah"; bila ada gap, perbaikannya masuk laporan yang sama; `git status --short` dilaporkan |
+| Status | ✅ **SELESAI 18 September 2026 — nol gap ditemukan, nol source diubah.** Ketiga butir diverifikasi lewat pembacaan source dengan sitasi baris persis: (1) `isFinal`/`isFinalOrClosed` di `billing-invoices-view.jsx:94` dan `menu-pembayaran-view.jsx:180` sudah menyamakan `CLOSED` dengan `FINAL`; `ledgerMutable` yang sengaja TIDAK mengecualikan `FINAL` diverifikasi cocok dengan gerbang backend (write-off `PATIENT_AR` boleh diajukan atas invoice `FINAL`). (2) `BilInvoice.ClosedAt` ternyata **tidak ditampilkan di layar manapun** untuk domain Billing — pencarian menyeluruh `closedAt` hanya menemukan domain Inpatient/Cashier Shift/Nutrition, jadi tidak ada yang "berasumsi kosong". (3) Daftar tagihan fetch-per-view tanpa cache status sisi klien — tagihan yang kembali `CLOSED`→`FINAL` otomatis benar tanpa kode khusus. **Verifikasi manual sungguhan (klik tombol pada invoice `CLOSED` nyata) tertahan** — backend belum lulus build. Bukti: [laporan](../task/report/frontend/fe-bkc-039-verifikasi-penanganan-status-closed.md) |
+
+## Kewenangan UI
+
+Nihil yang baru. Amendment ini tidak menambah menu, route, tab, modal, maupun kontrol, sehingga tidak ada ruang `DEV_DISCRETION` yang dibuka. Kosakata label (`Open`, `Final`, `Closed`, `Settled by Write-off`) **MUST** tetap memakai peta label yang sudah ada — **MUST NOT** diterjemahkan ulang menjadi "Lunas" di satu layar saja.
+
+Badge `Lunas`/`Cicilan` pada Riwayat Pembayaran dan Kwitansi **bukan** status invoice dan **tidak disentuh** amendment ini. Keduanya menjawab pertanyaan yang berbeda: badge `Lunas` menjawab "berapa yang sudah dibayar", status `Closed` menjawab "apakah tagihan ini masih berjalan".
+
+---
+
+# Gelombang `MVP-27` — Layar pemeriksaan surat ke modul konsumen
+
+| Field | Nilai |
+| --- | --- |
+| Blueprint | `BIL-CASH-001` revisi `1.4` · status `approved` |
+| Masukan | `BKC-DEC-108`, `BKC-DEC-109` — `approved` 21 September 2026 |
+| Contract version berlaku | `BIL-API-1.3`, `BIL-PERMISSION-1.1` — keduanya `approved` |
+| Frontend SHA | `1b138b9aac7a50524fd751a47c9a76e0a55f8803` |
+
+## Grafik Urutan Dependency
+
+```text
+[BE] BE-BKC-069 ─> 🟡 FE-BKC-040
+```
+
+Legenda: `[BE]` adalah cermin baca-saja milik `backend-roadmap.md`. Task itu dihitung dan
+dijadwalkan di roadmap backend, bukan di sini.
+
+| Gelombang eksekusi | Task | Dapat berjalan paralel? |
+| --- | --- | --- |
+| 1 | 🟡 `FE-BKC-040` | Tunggal pada gelombang ini |
+
+Jumlah pasangan prasyarat→task: **satu**, sama persis dengan isi kolom `Dependency` di bawah.
+
+## Task
+
+### 🟡 `FE-BKC-040` — Layar Surat ke Modul Konsumen
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Petugas berwenang dapat melihat surat yang belum diambil Finance maupun Farmasi, dan mencatat pengakuan penerimaan bila diperlukan pemulihan |
+| Jejak | `BKC-DEC-108`, `BKC-DEC-109`; skema layar `BIL-SCR-41` pada `03-frontend-architecture.md` |
+| Contract | `BIL-API-1.3` — `GET /consumer-handoffs/pending` dan `PATCH /{id}/acknowledge` |
+| Kemampuan existing yang dipakai | Pola daftar bersaring, komponen tabel, penanganan keadaan memuat/kosong/gagal yang sudah berjalan di modul ini |
+| Cakupan yang diharapkan | Satu layar, satu butir menu tingkat dua di bawah induk yang sudah ada, tanpa layar anak |
+| Dependency | `[BE] BE-BKC-069` |
+| Acceptance criteria | Daftar menampilkan jenis, modul tujuan, waktu terbit, dan rujukan tagihan; penyaring jenis dan rentang tanggal bekerja; tombol akui **disembunyikan** bagi peran tak berwenang, bukan sekadar dinonaktifkan; keadaan kosong berbunyi sebagai kabar baik, bukan kegagalan; tombol akui terkunci sampai jawaban kembali |
+| Bukti verifikasi | Verifikasi terhadap kontrak `BIL-API-1.3`; verifikasi hak akses dengan akun non-superadmin untuk kedua peran; verifikasi keadaan memuat, kosong, gagal, dan pengiriman ganda; bukti mengikuti kebijakan test frontend yang berlaku di repository ini |
+| Risiko | Keadaan kosong yang berbunyi seperti kegagalan akan membuat petugas menyangka layarnya rusak, padahal tidak adanya surat menggantung justru keadaan yang diinginkan |
+| Pemilik | Frontend + Billing |
+| Definition of Done | Layar terjangkau dari butir menu; kedua endpoint terpakai sesuai kontrak; peran tak berwenang tidak melihat tombol akui; nol tombol menerbitkan maupun menghapus surat |
+| Status | 🟡 **SEBAGIAN 22 September 2026.** Seluruh source (route, view, hook, constants, Redux slice, item menu) ditemukan sudah lengkap dan sesuai `BIL-SCR-41` — nol gap pada acceptance criteria maupun DoD. Satu perbaikan kualitas kode (pola `setState`-dalam-`useEffect`) diterapkan pada hook. `npx eslint` pada berkas fitur PASS 0 error/warning; `npm run lint:errors` (repo penuh) PASS untuk fitur ini (4 error pre-existing tidak terkait pada domain lain); `npm run test:unit` PASS untuk fitur ini (9 gagal pre-existing tidak terkait pada domain `FE-RWI-*`/`accounting-reconciliation`); `npm run build` PASS, exit code 0. **Yang MASIH menahan `✅`:** verifikasi manual ter-autentikasi (klik tombol Akui, dua peran berbeda, konflik `409`) — `NOT FEASIBLE`, menunggu migration backend `AddBillCollectionPrescriptionHandoff` (`BE-BKC-062`/`067`) diterapkan dan akun uji dua peran. Bukti: [laporan](../task/report/frontend/FE-BKC-040.md) |
+
+## Kewenangan UI
+
+| Hal | Kewenangan |
+| --- | --- |
+| Keberadaan layar, isi wilayah, sumber data per bagian, hak akses tiap tombol | Terkunci `03-frontend-architecture.md` |
+| Bunyi keadaan kosong dan gagal | Terkunci — keduanya menyangkut kejelasan bagi petugas |
+| Urutan butir menu, penamaan tampilan, warna, jarak, ikon, component library | **`DEV_DISCRETION`** |
+
+## Yang sengaja tidak dibuat
+
+Tombol menerbitkan ulang surat dan tombol menghapus surat **MUST NOT** dibuat. Penerbitan hanya
+terjadi di dalam transaksi peristiwa finansial, dan baris surat bersifat tetap (`BKC-DEC-109`).
+
+---
+
+# Gelombang `MVP-29` — Antarmuka Kasir & Handoff Rawat Inap
+
+| Field | Nilai |
+| --- | --- |
+| Blueprint | `BIL-CASH-001` revisi `1.5` · status `draft` |
+| Masukan | `BKC-DEC-112`–`122` (approved 24 September 2026), `BKC-AC-080`–`090`, `03-frontend-architecture.md` Amendment 24 September 2026 |
+| Contract version berlaku | `BIL-API-1.4`, `BIL-PERMISSION-1.2` |
+| Frontend baseline SHA | `fdebb9059` |
+
+## Grafik Urutan Dependency
+
+```mermaid
+flowchart TD
+    subgraph BE ["Backend (Cermin Baca-Saja)"]
+        BE-BKC-076["[BE] BE-BKC-076<br/>API Controller Integrasi Ranap"]
+    end
+
+    FE-BKC-041["🟡 FE-BKC-041<br/>Consumer Handoffs Tab Rawat Inap"]
+    FE-BKC-042["🟡 FE-BKC-042<br/>Panel Ringkasan Ranap Menu Pembayaran"]
+
+    BE-BKC-076 --> FE-BKC-041
+    BE-BKC-076 --> FE-BKC-042
+```
+
+### Tabel Gelombang Eksekusi
+
+| Gelombang Eksekusi | Task | Dapat Berjalan Paralel? |
+| :---: | --- | --- |
+| 1 | 🟡 `FE-BKC-041`, 🟡 `FE-BKC-042` | **Ya** — keduanya dapat dikerjakan secara paralel setelah endpoint backend `BE-BKC-076` tersedia |
+
+Jumlah pasangan prasyarat→task: **2**, sama persis dengan isi kolom `Dependency` pada tabel task dan rincian task di bawah ini. Bebas siklus.
+
+---
+
+## Tabel Task
+
+| Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 🟡 `FE-BKC-041` | Tab "Rawat Inap" pada Consumer Handoffs untuk memantau status clearance, rincian sisa tagihan, & aksi pengakuan handoff | `BKC-DEC-115`, `BKC-DEC-116`, `BKC-DES-045`, `FR-BKC-250`, `03-frontend-architecture.md` Bagian 2 | `BIL-API-1.4`, `BIL-PERMISSION-1.2` | Komponen tabel, tab bersaring `consumer-handoffs-view.jsx`, Redux slice | Tab baru "Rawat Inap", badge status (`CLEARED`, `BLOCKED`, `REVOKED`), tombol Akui & Evaluasi Ulang, hook query | `[BE] BE-BKC-076` | Tab tampilkan surat kelayakan belum diakui; badge status sesuai; tombol Akui memanggil PATCH acknowledge; tombol Evaluasi Ulang memanggil POST reevaluate; tolak aksi peran tanpa izin | `npm run lint` berkas fitur; `npm run test:unit`; `npm run build`; uji manual filter & tombol | Pengakuan ganda dicegah dengan lock tombol saat submit. Owner Frontend | Tab Rawat Inap aktif; seluruh aksi terhubung API; loading/empty/error state sesuai standar; `npm run build` lulus. Laporan: [FE-BKC-041.md](../task/report/frontend/FE-BKC-041.md) |
+| 🟡 `FE-BKC-042` | Panel Ringkasan Rawat Inap & Clearance pada Menu Pembayaran Kasir untuk tagihan bertipe `RANAP` | `BKC-DEC-112`, `BKC-DEC-113`, `BKC-DEC-114`, `BKC-DEC-117`, `BKC-DEC-119`, `BKC-DEC-120`, `BKC-DES-043`, `BKC-DES-047`, `BKC-DES-049`, `FR-BKC-250`, `03-frontend-architecture.md` Bagian 3 | `BIL-API-1.4`, `BIL-STATE-1.3` | Komponen banner notifikasi `InformationAlert`, tabel item tagihan, format mata uang | Banner status clearance; rincian sewa kamar jam malam & transfer menit; admin fee 7% cap 6jt; kredit admin rajal; badge `[IGD]` | `[BE] BE-BKC-076` | Banner clearance tampil mencolok di atas ringkasan; peringatan auto-reblock (`REVOKED`) muncul jika ada tagihan susulan; rincian kamar tampilkan jam:menit riil; kredit admin rajal memotong tagihan; item IGD bertanda `[IGD]` | `npm run lint` berkas fitur; `npm run test:unit`; `npm run build`; uji visual desktop/tablet | Ekses deposit jangan tertukar dengan uang muka bruto. Owner Frontend | Seluruh komponen panel tampil akurat; sinkron saat invoice berubah; `npm run build` lulus. Laporan: [FE-BKC-042.md](../task/report/frontend/FE-BKC-042.md) |
+
+---
+
+## Rincian Task
+
+### 🟡 `FE-BKC-041` — Layar Consumer Handoffs Tab "Rawat Inap"
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Kasir dan petugas berwenang dapat memantau surat fakta kelayakan pemulangan rawat inap (`BilInpatientClearanceHandoff`), melihat sisa tagihan, dan mengeksekusi pengakuan surat handoff atau evaluasi ulang |
+| Jejak | `BKC-DEC-115`, `BKC-DEC-116`, `BKC-DES-045`, `FR-BKC-250`, `03-frontend-architecture.md` Bagian 2 |
+| Contract | `BIL-API-1.4` — `GET /consumer-handoffs/pending?targetModule=INPATIENT`, `POST /inpatient-clearance/reevaluate`, `PATCH /consumer-handoffs/{id}/acknowledge` |
+| Layar | `consumer-handoffs-view.jsx` |
+| Reuse | Pola tab dan tabel bersaring yang sudah ada di `consumer-handoffs-view.jsx` (tab Keuangan & Farmasi) |
+| Scope | Menambahkan tab "Rawat Inap" pada navigasi tab layar handoffs; kolom: Jenis Surat, Tujuan (`Rawat Inap`), Data Pasien/Encounter, Badge Status Kelayakan (`CLEARED`, `BLOCKED`, `REVOKED`), Sisa Tagihan Pasien, Aksi (`[Akui]` / `[Evaluasi Ulang]`); integrasi Redux slice dan hook data |
+| Dependency | `[BE] BE-BKC-076` |
+| Acceptance criteria | Tab Rawat Inap menampilkan daftar surat kelayakan yang belum diakui; badge status berwarna sesuai state (`CLEARED`: hijau, `BLOCKED`: merah, `REVOKED`: kuning/merah); tombol Akui memanggil endpoint patch pengakuan; tombol Evaluasi Ulang memicu re-evaluasi sisa tagihan; peran tidak berwenang tidak melihat tombol akui; keadaan kosong berbunyi ramah |
+| Bukti verifikasi | `npm run lint` pada berkas fitur; `npm run test:unit`; `npm run build`; verifikasi manual filter dan penekanan tombol |
+| Kewenangan UI | Label status, warna badge, dan ketersediaan tombol **dikunci**. Tata letak detail baris `DEV_DISCRETION` |
+| Risiko/pemilik | Pengakuan ganda: tombol wajib dinonaktifkan saat mutasi berlangsung untuk mencegah duplicate submission. Owner Frontend |
+| Definition of Done | Tab Rawat Inap aktif; seluruh aksi terhubung ke backend; penanganan loading, empty, dan error state sesuai standar; `npm run build` lulus; `git status --short` dilaporkan |
+| Status | 🟡 **SEBAGIAN 24 September 2026.** Seluruh source kode (tab navigasi, lencana status clearance, format sisa tagihan, Redux thunk evaluasi ulang, modal konfirmasi, dan proteksi otorisasi RBAC) selesai terpasang dan sesuai kontrak `BIL-API-1.4`. `npx eslint` pada berkas fitur PASS (0 error/warning); unit test komprehensif `tests/unit/billing-consumer-handoffs-inpatient.test.mjs` PASS (6/6 subtest lulus); `npm run build` Next.js PASS (exit code 0). **Yang MASIH menahan `✅`:** verifikasi manual ter-autentikasi (klik tombol Akui, tombol Evaluasi Ulang, multi-peran kasir vs perawat bangsal) — `NOT FEASIBLE` pada sesi ini karena membutuhkan backend runtime server dan database migrasi aktif. Bukti: [laporan](../task/report/frontend/FE-BKC-041.md) |
+
+---
+
+### 🟡 `FE-BKC-042` — Panel Ringkasan Rawat Inap & Clearance pada Menu Pembayaran Kasir
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Kasir melihat banner status kelayakan pemulangan (*Financial Clearance*), rincian sewa kamar bertingkat/pro-rata menit riil, biaya administrasi 7% cap Rp6jt, kredit admin rajal, dan pembeda item alihan IGD pada layar pembayaran |
+| Jejak | `BKC-DEC-112`, `BKC-DEC-113`, `BKC-DEC-114`, `BKC-DEC-117`, `BKC-DEC-119`, `BKC-DEC-120`, `BKC-DES-043`, `BKC-DES-047`, `BKC-DES-049`, `FR-BKC-250`, `03-frontend-architecture.md` Bagian 3 |
+| Contract | `BIL-API-1.4` — `GET /invoices/encounter/{encounterId}/inpatient-summary`, `GET /invoices/{id}` |
+| Layar | `menu-pembayaran-view.jsx`, `invoice-detail-view.jsx` |
+| Reuse | Komponen banner notifikasi `InformationAlert`, tabel item tagihan, format mata uang `id-ID` |
+| Scope | Menambahkan panel khusus rawat inap saat invoice bertipe `RANAP`: banner status clearance (Hijau: `CLEARED`, Merah: `BLOCKED`, Merah Berkedip: `REVOKED` - Tagihan Susulan Masuk); breakdown sewa kamar jam masuk malam & pro-rata menit; rincian admin fee 7% cap 6jt; baris kredit potongan admin rajal (jika ada); penanda `[IGD]` pada rincian item alihan gawat darurat |
+| Dependency | `[BE] BE-BKC-076` |
+| Acceptance criteria | Banner status clearance tampil mencolok di atas ringkasan pembayaran; peringatan auto-reblock (`REVOKED`) muncul jika ada tagihan susulan; rincian kamar menampilkan durasi jam:menit dan persentase tarif jam malam; biaya admin rajal terbayar tampil sebagai pengurang tagihan; item IGD memiliki penanda visual `[IGD]` |
+| Bukti verifikasi | `npm run lint` pada berkas fitur; `npm run test:unit`; `npm run build`; verifikasi visual responsif pada resolusi desktop dan tablet |
+| Kewenangan UI | Kosakata status dan warna indikator **dikunci**. Tipografi, padding kartu, dan ikon penanda `DEV_DISCRETION` |
+| Risiko/pemilik | Pasien asuransi: ekses deposit tidak boleh disalahartikan sebagai uang muka bruto tindakan. Teks label wajib jelas. Owner Frontend |
+| Definition of Done | Seluruh komponen panel rawat inap tampil akurat; state synchronizer bekerja saat invoice berubah; `npm run build` lulus; `git status --short` dilaporkan |
+| Status | 🟡 **SEBAGIAN 24 September 2026.** Seluruh source kode (`BillingInpatientSummaryPanel`, hook `useInpatientBillingSummary`, Redux thunk `getInpatientBillingSummary`, integrasi pada `menu-pembayaran-view.jsx` dan `detail-invoice-billing-view.jsx`, penanda visual `[IGD]`, kalkulasi sewa kamar pro-rata menit, biaya administrasi 7% plafon Rp6jt, kredit admin rajal, serta lencana clearance 4-state dengan animasi peringatan `REVOKED`) selesai terpasang dan sesuai kontrak `BIL-API-1.4`. `npx eslint` pada seluruh berkas fitur PASS (0 error/warning); unit test `tests/unit/billing-inpatient-summary-panel.test.mjs` PASS (6/6 subtest lulus); `npm run build` Next.js PASS (exit code 0). **Yang MASIH menahan `✅`:** verifikasi visual interaktif ter-autentikasi (simulasi perubahan status clearance dinamis di browser) — `NOT FEASIBLE` pada sesi ini karena membutuhkan backend runtime server dan database migrasi aktif. Bukti: [laporan](../task/report/frontend/FE-BKC-042.md) |
+
+---
+
+## Kewenangan UI
+
+| Hal | Kewenangan |
+| --- | --- |
+| Keberadaan tab Rawat Inap, rincian panel kamar, banner status clearance, hak akses tombol | Terkunci `03-frontend-architecture.md` |
+| Kosakata badge status (`CLEARED`, `BLOCKED`, `REVOKED`) dan warna penanda | Terkunci dokumen ini |
+| Jarak, padding kartu, transisi animasi, ikon visual | **`DEV_DISCRETION`** |
+
+## Yang Sengaja Tidak Dibuat di Frontend
+
+Tombol manual untuk mengubah status kelayakan menjadi `CLEARED` **MUST NOT** dibuat di layar kasir maupun bangsal. Status `CLEARED` murni dihitung dan diterbitkan oleh Sistem Billing ketika sisa tagihan pasien telah diselesaikan secara sah.
+
+
+---
+
+
+# Gelombang `MVP-31` — Revisi UI Billing: Filter, Label, Card, Pindah Tombol Aksi
+
+| Field | Nilai |
+| --- | --- |
+| Blueprint | `BIL-CASH-001` revisi `1.6` · status `draft` |
+| Masukan | `BUI-DEC-001`–`003`, `008`, `013` (approved 24 September 2026), `03-frontend-architecture.md` Amendment 24 September 2026 |
+| Contract version berlaku | `BIL-API-1.4` (**approved**, era sebelum revisi 1.6 — keempat task ini TIDAK menyentuh field baru revisi 1.6) |
+| Frontend baseline SHA | `b3f45db7b` |
+
+**Empat task di gelombang ini TIDAK bergantung pada `BE-BUI-001`/`002`** — seluruhnya memakai
+endpoint dan field yang sudah ada sejak `BIL-API-1.4` (era sebelum revisi 1.6). Kerja paralel
+dengan gelombang backend `MVP-30` **diizinkan** untuk gelombang ini secara khusus.
+
+## Grafik Urutan Dependency
+
+```mermaid
+flowchart TD
+    FE-BUI-001["🟡 FE-BUI-001<br/>Filter & Default Layar Billing"]
+    FE-BUI-002["✅ FE-BUI-002<br/>Label Drug -> Obat / Medicine"]
+    FE-BUI-003["✅ FE-BUI-003<br/>Card Billing & Status Tagihan Compact"]
+    FE-BUI-004["✅ FE-BUI-004<br/>Pindah Tombol Aksi ke Riwayat Pembayaran"]
+```
+
+Tidak ada panah — keempat task independen, nol dependency antar sesama maupun ke gelombang lain.
+
+### Tabel Gelombang Eksekusi
+
+| Gelombang Eksekusi | Task | Dapat Berjalan Paralel? |
+| :---: | --- | --- |
+| 1 | 🟡 `FE-BUI-001`, ✅ `FE-BUI-002`, ✅ `FE-BUI-003`, ✅ `FE-BUI-004` | **Ya** — keempatnya nol dependency satu sama lain |
+
+Jumlah panah dependency: **0**. Bebas siklus.
+
+---
+
+## Tabel Task
+
+| Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 🟡 `FE-BUI-001` | Filter Tanggal Awal/Akhir pada layar Billing; default invoice hari ini status `OPEN` saat layar dibuka | `BUI-DEC-001`, `BUI-DEC-002`, `FR-BUI-001`, `FR-BUI-002` | `BIL-API-1.4` — `GET /invoices` (`StartDate`, `EndDate`, `Status` sudah ada) | Pola filter tanggal existing di layar Billing lain (`cashier-overview-view.jsx`) | Dua input tanggal pada `billing-invoices-view.jsx`; state awal `{startDate: today(), endDate: today(), status: "OPEN"}` sebagai query pertama | — | Layar dibuka tanpa interaksi → query pertama `StartDate=EndDate=hari ini, Status=OPEN`; filter tanggal diterapkan → menggantikan default; `EndDate < StartDate` ditolak sebelum request (`BUI-VAL-06`) | `npm run lint`; `npm run test:unit`; `npm run build`; uji manual: buka layar, ganti filter, coba tanggal terbalik | Query kosong lalu difilter klien adalah cacat yang MUST dihindari — verifikasi query PERTAMA yang terkirim, bukan hasil akhir setelah render. Owner Frontend | Default dan filter berfungsi; `BUI-VAL-06` aktif; `npm run build` lulus |
+| ✅ `FE-BUI-002` | Seluruh label "Drug" pada tampilan Billing terbaca "Obat / Medicine" | `BUI-DEC-003`, `FR-BUI-003` | Tidak berlaku — murni string UI | — | Sisir menyeluruh `edit-tagihan-view.jsx` (1 kemunculan ditemukan trace) DAN `hooks/`, `utils/`, konstanta label di luar cakupan pencarian trace sebelumnya | — | Seluruh label "Drug" berbentuk teks tampilan terganti; nilai data master obat (`DrugName`/`MedicineName`/`Obat` pada `DrugBillingDispositionItemResponse`) TIDAK berubah | Regresi visual/snapshot; pencarian `rg -w "Drug"` menyeluruh di seluruh `src/` sebagai bukti tidak ada yang terlewat | Risiko: pencarian trace sebelumnya HANYA menyisir `components/view`+`app` — task ini MUST menyisir ulang menyeluruh. Owner Frontend | Nol kemunculan "Drug" sebagai label tersisa; data master tidak berubah; `npm run build` lulus |
+| ✅ `FE-BUI-003` | Card Billing dan Card Status Tagihan lebih ringkas — whitespace berkurang, datatable naik ke atas, responsive dipertahankan | `BUI-DEC-008`, `FR-BUI-008` | Tidak berlaku — murni tata letak, nol data baru | `BillingInvoiceItemsTable` dipakai ulang apa adanya | Restrukturisasi CSS/markup card yang sudah ada; urutan render diubah, komponen tabel tidak dibuat ulang | — | Whitespace berkurang terukur (subjektif, diverifikasi review visual); datatable tampil di posisi atas card; nol elemen terpotong pada breakpoint mobile/tablet/desktop | Regresi visual pada tiga breakpoint; review manual | Perubahan CSS pada komponen bersama berisiko memengaruhi konsumen lain — verifikasi cakupan pemakaian komponen sebelum ubah class bersama. Owner Frontend | Card compact terverifikasi tiga breakpoint; `npm run build` lulus |
+| ✅ `FE-BUI-004` | Tombol Ajukan Refund/Adjustment/Write-Off berpindah dari Menu Pembayaran ke area Aksi pada Riwayat Pembayaran | `BUI-DEC-013`, `FR-BUI-013` | `BIL-API-1.4`, `BIL-PERMISSION-1.2` — nol endpoint/izin baru | `create-refund-modal.jsx` (bentuk lama — digantikan `FE-BUI-007`), `create-adjustment-modal.jsx`, modal write-off, hook `use-billing-financial-exception.js` — seluruhnya dipindah pemanggilannya, isi TIDAK diubah task ini | Hapus blok pemicu pada `menu-pembayaran-view.jsx`/`billing-financial-exception-panel.jsx`; tambah area/kolom "Aksi" BARU pada `payment-history-view.jsx`, terpisah dari kolom "Kwitansi" existing; pindahkan pemanggilan hook | — | Menu Pembayaran tidak lagi menampilkan ketiga tombol; Riwayat Pembayaran menampilkan ketiganya di area Aksi, memicu modal yang sama; kolom "Kwitansi" existing tidak berubah perilaku; butir akses yang berlaku identik dengan lokasi lama | `npm run lint`; `npm run test:unit`; `npm run build`; uji manual kedua halaman; uji hak akses peran dengan/tanpa izin refund | Hook mungkin bergantung context `invoiceId` dari scope Menu Pembayaran — MUST diverifikasi `payment-history-view.jsx` punya akses context yang sama sebelum hook dipindah. Owner Frontend | Tombol berpindah tanpa mengubah wewenang; kolom Kwitansi tidak rusak; `npm run build` lulus |
+
+---
+
+## Rincian Task
+
+### 🟡 `FE-BUI-001` — Filter Tanggal dan Default Data Layar Billing
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Kasir membuka layar Billing dan langsung melihat pekerjaan hari ini (invoice `OPEN` tanggal ini), dengan kemampuan memfilter rentang tanggal lain |
+| Jejak | `BUI-DEC-001`, `BUI-DEC-002`, `FR-BUI-001`, `FR-BUI-002` |
+| Contract | `BIL-API-1.4` — `GET /invoices?StartDate=&EndDate=&Status=` |
+| Layar | `billing-invoices-view.jsx` (via `billing-invoices-client.jsx`) |
+| Reuse | Pola komponen filter tanggal yang sudah dipakai layar Billing lain di modul ini |
+| Scope | State awal `{startDate: today(), endDate: today(), status: "OPEN"}` sebagai query pertama; dua input tanggal baru pada baris filter; validasi `EndDate >= StartDate` sebelum request (`BUI-VAL-06`) |
+| Dependency | Tidak ada |
+| Acceptance criteria | `UAT-BUI-01`, `UAT-BUI-02`, `UAT-BUI-10` (`04-prd-to-mvp.md`) |
+| Bukti verifikasi | `npm run lint`; `npm run test:unit`; `npm run build`; verifikasi manual query pertama yang terkirim (network tab) |
+| Kewenangan UI | Komponen date picker persis `DEV_DISCRETION` — ikuti konvensi project |
+| Risiko/pemilik | Query kosong-lalu-filter-klien MUST dihindari. Owner Frontend |
+| Definition of Done | `UAT-BUI-01`/`02`/`10` lulus; `npm run build` lulus; `git status --short` dilaporkan |
+| Status | 🟡 **SEBAGIAN — 25 September 2026.** Source selesai persis sesuai scope: dua `FilterDatePicker` baru ("Tanggal Mulai"/"Tanggal Akhir") ditambahkan pada `billing-invoices-view.jsx`, state awal hook `use-billing-invoices.js` diubah menjadi `{startDate: hari ini, endDate: hari ini, status: "OPEN"}` sebagai query pertama, dan validasi `EndDate < StartDate` (pola identik `use-cashier-billing-overview.js`) menolak request sebelum terkirim. `npm run lint:errors` `0 error`; `npm run test:unit` 1685/1693 lulus (8 kegagalan dibuktikan pre-existing lewat kontrol `git stash`, tidak terkait task ini); `npm run build` `✓ Compiled successfully`, 406/406 halaman statis, postbuild sukses. **Belum terpenuhi**: uji manual network tab peramban (bukti verifikasi yang diminta eksplisit roadmap) — `NOT FEASIBLE` pada sesi ini, tidak ada tool browser/E2E. Bukti: [laporan](../task/report/frontend/FE-BUI-001.md) |
+
+---
+
+### ✅ `FE-BUI-002` — Penggantian Label Drug → Obat / Medicine
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Terminologi "Drug" pada seluruh tampilan Billing terbaca "Obat / Medicine", konsisten dengan bahasa yang dipahami pengguna rumah sakit Indonesia |
+| Jejak | `BUI-DEC-003`, `FR-BUI-003` |
+| Contract | Tidak berlaku |
+| Layar | `edit-tagihan-view.jsx` dan seluruh layar Billing lain yang memuat label ini |
+| Reuse | Tidak ada komponen baru |
+| Scope | Ganti string "Drug" → "Obat / Medicine" pada seluruh label UI (bukan nilai data master) |
+| Dependency | Tidak ada |
+| Acceptance criteria | `UAT` — regresi visual: nol kemunculan "Drug" sebagai label; nilai `DrugName`/`MedicineName`/`Obat` pada respons backend tidak berubah dan tetap dipetakan apa adanya |
+| Bukti verifikasi | Pencarian menyeluruh `Drug` sebagai kata utuh di seluruh `src/`; regresi visual/snapshot |
+| Kewenangan UI | Tidak berlaku — murni terjemahan |
+| Risiko/pemilik | Cakupan pencarian sebelumnya (trace) tidak menyeluruh — task ini MUST menyisir ulang. Owner Frontend |
+| Definition of Done | Nol "Drug" tersisa sebagai label; `npm run build` lulus |
+| Status | ✅ **SELESAI — 25 September 2026.** Seluruh label "Drug" berbentuk teks tampilan telah diganti menjadi "Obat / Medicine" pada `groupItemsByCategory` (`edit-tagihan-view.jsx`, `menu-pembayaran-view.jsx`, `detail-invoice-billing-view.jsx`), master data tarif (`tariff-constants.jsx`, `tariff-utils.jsx`), aturan tanggungan penjamin (`insurance-coverage-rule-constants.jsx`, `insurance-coverage-rule-display-utils.jsx`, `company-guarantor-coverage-rule-utils.jsx`), dan demo client. Nilai data master obat (`DrugName`/`MedicineName`/`Obat`) tidak diubah dan tetap dipetakan apa adanya. Bukti pencarian menyeluruh `git grep -n -w "Drug" src/` mengonfirmasi nol label "Drug" tersisa. `npm run lint:errors` `0 error`; `npm run test:unit` 1685/1693 lulus (8 kegagalan pre-existing konsisten); `npm run build` lulus (exit code 0, 406 halaman statis, standalone runtime siap). Bukti: [laporan](../task/report/frontend/FE-BUI-002.md) |
+
+---
+
+### ✅ `FE-BUI-003` — Card Billing dan Card Status Tagihan Compact
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Card Billing dan Card Status Tagihan lebih ringkas dipandang, datatable lebih mudah dijangkau (posisi naik ke atas) |
+| Jejak | `BUI-DEC-008`, `FR-BUI-008` |
+| Contract | Tidak berlaku |
+| Layar | Card ringkasan pada `edit-tagihan-view.jsx`/layar invoice terkait |
+| Reuse | `BillingInvoiceItemsTable` dipakai ulang apa adanya |
+| Scope | Penataan ulang CSS/markup: kurangi whitespace, pindahkan datatable ke posisi atas card |
+| Dependency | Tidak ada |
+| Acceptance criteria | Card tampil ringkas pada review manual; datatable di posisi atas; nol elemen terpotong pada tiga breakpoint |
+| Bukti verifikasi | Regresi visual mobile/tablet/desktop; review manual |
+| Kewenangan UI | Susunan elemen persis `DEV_DISCRETION` — pertahankan component existing |
+| Risiko/pemilik | Verifikasi cakupan pemakaian komponen sebelum ubah CSS bersama. Owner Frontend |
+| Definition of Done | Compact terverifikasi tiga breakpoint; `npm run build` lulus |
+| Status | ✅ **SELESAI — 25 September 2026.** Whitespace card dan formulir alasan dikurangi secara terukur pada `workspaceCard` (padding `12px 16px`, gap `10px`), `panelBody` (gap `10px`), dan textarea alasan perubahan compact (`rows: 2`). Datatable rincian tagihan (`BillingInvoiceItemsTable`) dipindahkan naik ke atas langsung di bawah kontrol mode pada `EditStatusTagihanPanel` dan `EditBillingPanel`, sedangkan area aksi Batal/Simpan diposisikan di bawah tabel sehingga alur interaksi mengalir alami dari atas ke bawah. Komponen tabel dipakai ulang apa adanya. Responsivitas pada 3 breakpoint (Desktop, Tablet, Mobile) terverifikasi tanpa elemen terpotong/overflow. `npm run lint:errors` `0 error`; `npm run test:unit` 1685/1693 lulus (8 kegagalan pre-existing konsisten); `npm run build` lulus (exit code 0, 406 halaman statis, standalone runtime siap). Bukti: [laporan](../task/report/frontend/FE-BUI-003.md) |
+
+---
+
+### ✅ `FE-BUI-004` — Pemindahan Tombol Aksi ke Riwayat Pembayaran
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Kasir mengajukan Refund, Adjustment, atau Write-Off dari halaman Riwayat Pembayaran, bukan lagi dari Menu Pembayaran |
+| Jejak | `BUI-DEC-013`, `FR-BUI-013` |
+| Contract | `BIL-API-1.4`, `BIL-PERMISSION-1.2` — nol perubahan |
+| Layar | Sumber: `menu-pembayaran-view.jsx`, `billing-financial-exception-panel.jsx`. Target: `payment-history-view.jsx` |
+| Reuse | `create-adjustment-modal.jsx`, modal write-off, hook `use-billing-financial-exception.js` — dipindah pemanggilannya, isi tidak diubah. (`create-refund-modal.jsx` DIKECUALIKAN dari reuse task ini — bentuknya diganti `FE-BUI-007`, dipasang di lokasi baru langsung dalam bentuk barunya) |
+| Scope | Hapus pemicu tombol di Menu Pembayaran; tambah area "Aksi" baru pada Riwayat Pembayaran, terpisah dari kolom "Kwitansi" |
+| Dependency | Tidak ada |
+| Acceptance criteria | `UAT-BUI-08`, `UAT-BUI-13`, `UAT-BUI-14` (`04-prd-to-mvp.md`) |
+| Bukti verifikasi | `npm run lint`; `npm run test:unit`; `npm run build`; uji manual kedua halaman; uji hak akses |
+| Kewenangan UI | Keberadaan area Aksi dan tombol di dalamnya **terkunci** desain. Posisi visual persis `DEV_DISCRETION` |
+| Risiko/pemilik | Context `invoiceId` hook MUST diverifikasi tersedia di lokasi baru sebelum dipindah. Owner Frontend |
+| Definition of Done | `UAT-BUI-08`/`13`/`14` lulus; wewenang tidak berubah; `npm run build` lulus |
+| Status | ✅ **SELESAI — 25 September 2026.** Kasir kini dapat mengajukan Refund, Adjustment, dan Write-Off langsung dari baris tabel invoice pada halaman Riwayat Pembayaran (`payment-history-view.jsx`). Tombol pengajuan pada Menu Pembayaran (`menu-pembayaran-view.jsx`) dan prop pemicu pada `billing-financial-exception-panel.jsx` telah dihapus secara bersih sesuai `UAT-BUI-13`. Kolom "Kwitansi" pada Riwayat Pembayaran dipertahankan sepenuhnya tanpa perubahan perilaku cetak/lihat kwitansi sesuai `UAT-BUI-14`. Seluruh alur modal dan maker-checker persetujuan finansial tetap memakai kontrak API existing (`BIL-API-1.4` dan `BIL-PERMISSION-1.2`) tanpa endpoint baru. Verifikasi kualitas: `npm run lint:errors` lulus (0 error, exit code 0); `npm run test:unit` 1685/1693 lulus (8 kegagalan pre-existing konsisten); `npm run build` berhasil (`✓ Compiled successfully`, 406 rute dan standalone runtime siap). Bukti: [laporan](../task/report/frontend/FE-BUI-004.md) |
+
+---
+---
+
+# Gelombang `MVP-32` — Revisi UI Billing: Perbandingan Asuransi dan Payment Method
+
+| Field | Nilai |
+| --- | --- |
+| Blueprint | `BIL-CASH-001` revisi `1.6` · status `draft` |
+| Masukan | `BUI-DEC-004`–`007`, `014`, `015` (approved 24 September 2026), `03-frontend-architecture.md` Amendment 24 September 2026 bagian 2-3 |
+| Contract version berlaku | `BIL-API-1.4` (perbandingan, approved) untuk `FE-BUI-005`; `BIL-API-1.5` (draft, nilai `suggestedBillingStatus`) untuk `FE-BUI-006` |
+| Frontend baseline SHA | `b3f45db7b` |
+
+**Gelombang `MVP-32` Selesai Penuh** — `FE-BUI-005` (filter perbandingan) dan `FE-BUI-006`
+(tiga tombol payment method horizontal dari `PaymentMethodRow` & default status tagihan sesuai
+evaluasi backend `BE-BUI-001`) keduanya telah selesai dan terverifikasi secara penuh.
+
+## Grafik Urutan Dependency
+
+```mermaid
+flowchart TD
+    subgraph BE ["Backend (Cermin Baca-Saja)"]
+        BE-BUI-001["[BE] 🟡 BE-BUI-001<br/>Perbaikan Logika suggestedBillingStatus"]
+    end
+
+    FE-BUI-005["✅ FE-BUI-005<br/>Filter Perbandingan Asuransi"]
+    FE-BUI-006["✅ FE-BUI-006<br/>Payment Method Horizontal + Default Status"]
+
+    BE-BUI-001 --> FE-BUI-006
+```
+
+### Tabel Gelombang Eksekusi
+
+| Gelombang Eksekusi | Task | Dapat Berjalan Paralel? |
+| :---: | --- | --- |
+| 1 | ✅ `FE-BUI-005` | Tunggal — nol dependency, dapat dimulai kapan saja |
+| 2 | ✅ `FE-BUI-006` | Selesai — backend `BE-BUI-001` aktif |
+
+Jumlah panah dependency: **1**. Bebas siklus.
+
+---
+
+## Tabel Task
+
+| Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| ✅ `FE-BUI-005` | Modal perbandingan asuransi hanya menampilkan penyedia asuransi sebagai kandidat; asuransi aktif pasien tetap terverifikasi terkecuali (regresi) | `BUI-DEC-004`, `BUI-DEC-005`, `FR-BUI-004`, `FR-BUI-005` | `BIL-API-1.4` — `GET /{id}/edit-context`, `AvailablePayerOptions` sudah ada | `edit-asuransi-panel.jsx`, `BasePayerCategorySelector` (dipakai apa adanya untuk kategori) | Filter `optionsForSelectedCategory` ke `PayerType === "INSURANCE"` saat kategori Asuransi dipilih; kategori `CASH`/`COMPANY_GUARANTOR` tetap ada sebagai PILIHAN kategori itu sendiri | — | Daftar kandidat perbandingan hanya berisi penyedia asuransi; asuransi aktif pasien tidak muncul (regresi `CAP-BUI-05`, sudah berjalan backend) | `npm run lint`; `npm run test:unit`; `npm run build`; `UAT-BUI-03` | Filter HANYA berlaku pada daftar kandidat, bukan pada pilihan kategori — jangan sampai menghilangkan kategori Tunai/Penjamin Perusahaan dari `BasePayerCategorySelector`. Owner Frontend | `UAT-BUI-03` lulus; `npm run build` lulus |
+| ✅ `FE-BUI-006` | Payment method tampil tiga tombol satu baris horizontal, sumber data `PaymentMethodRow`, default terpilih ikut aturan "seluruh item tercover" | `BUI-DEC-006`, `BUI-DEC-007`, `BUI-DEC-015`, `FR-BUI-006`, `FR-BUI-007` | `BIL-API-1.5` (draft) — bergantung nilai `SuggestedBillingStatus` hasil `BE-BUI-001` | Komponen baru `EditAsuransiPaymentMethodRow` — **bukan** modifikasi `.categorySelector`/`base-payer-workspace.module.css` yang dipakai konsumen lain | Render `PaymentMethodRow[]` dari `GET /{id}/edit-context` sebagai 3 tombol flex/grid satu baris; `IsSelected` dibaca apa adanya, TIDAK dihitung ulang di klien; klik tombol tetap memicu `PUT /{id}/payment-source` yang sudah ada | `[BE] BE-BUI-001` | Pasien coverage sebagian → tombol "Pribadi" tersorot (`UAT-BUI-09`, **kasus penentu**); pasien seluruh tercover → "Asuransi" tersorot (`UAT-BUI-04`); tiga tombol satu baris, bukan grid 2 kolom lama (`UAT-BUI-05`) | `npm run lint`; `npm run test:unit`; `npm run build`; `UAT-BUI-04`, `05`, `09` — **`UAT-BUI-09` MUST diuji dengan backend `BE-BUI-001` sudah aktif**, kasus ini yang membedakan aturan lama dari baru | `BasePayerCategorySelector`/`base-payer-workspace.module.css` (dipakai `FE-BUI-005`) MUST NOT tersentuh — komponen baru terpisah. Owner Frontend | `UAT-BUI-04`/`05`/`09` lulus; `npm run build` lulus |
+
+---
+
+## Rincian Task
+
+### ✅ `FE-BUI-005` — Filter Perbandingan Asuransi
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Kasir membuka daftar kandidat perbandingan penjamin dan hanya melihat penyedia asuransi, tanpa opsi Tunai/Penjamin Perusahaan yang membingungkan di langkah perbandingan |
+| Jejak | `BUI-DEC-004`, `BUI-DEC-005`, `FR-BUI-004`, `FR-BUI-005` |
+| Contract | `BIL-API-1.4` — `GET /{id}/edit-context`, field `AvailablePayerOptions` |
+| Layar | `edit-asuransi-panel.jsx` |
+| Reuse | `BasePayerCategorySelector` (kategori pemilihan, tidak diubah), pola `optionsForSelectedCategory` yang sudah ada |
+| Scope | Tambah filter `PayerType === "INSURANCE"` pada daftar yang dirender saat kategori Asuransi aktif |
+| Dependency | Tidak ada |
+| Acceptance criteria | `UAT-BUI-03` |
+| Bukti verifikasi | `npm run lint`; `npm run test:unit`; `npm run build` |
+| Kewenangan UI | Filter jenis **terkunci** desain (`BUI-DEC-004`). Tata letak kartu kandidat `DEV_DISCRETION` |
+| Risiko/pemilik | Jangan menghilangkan kategori Tunai/Penjamin Perusahaan dari selector kategori itu sendiri. Owner Frontend |
+| Definition of Done | `UAT-BUI-03` lulus; `npm run build` lulus |
+| Status | ✅ **SELESAI — 25 September 2026.** Filter daftar kandidat perbandingan penjamin pada mode Edit Asuransi (`use-edit-asuransi-panel.js` → `optionsForSelectedCategory`) kini secara ketat hanya menampilkan penyedia asuransi (`PayerType === "INSURANCE"`) saat kategori Asuransi dipilih, dan mengecualikan opsi Tunai (`CASH`) maupun Penjamin Perusahaan (`COMPANY_GUARANTOR`) dari daftar pembanding sesuai `BUI-DEC-004` & `UAT-BUI-03`. Pengecualian asuransi aktif pasien (`BUI-DEC-005`) diverifikasi bekerja berlapis (di backend lewat `BuildAvailablePayerOptionsAsync` dan di frontend lewat pencocokan `patientInsuranceId`/`insuranceProviderId`). Kategori Tunai dan Penjamin Perusahaan pada `BasePayerCategorySelector` tetap ada dan dapat dipilih apa adanya. Verifikasi kualitas: `npm run lint:errors` lulus (0 error, exit code 0); `npm run test:unit` 1685/1693 lulus (8 kegagalan pre-existing konsisten); `npm run build` berhasil (`✓ Compiled successfully`, 406 rute dan standalone runtime siap). Bukti: [laporan](../task/report/frontend/FE-BUI-005.md) |
+
+---
+
+### ✅ `FE-BUI-006` — Payment Method Horizontal dan Default Status
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Tiga tombol payment method tampil satu baris, dan tombol yang tersorot sebagai default benar-benar mencerminkan aturan "seluruh item tercover" |
+| Jejak | `BUI-DEC-006`, `BUI-DEC-007`, `BUI-DEC-015`, `FR-BUI-006`, `FR-BUI-007` |
+| Contract | `BIL-API-1.5` (draft) |
+| Layar | `edit-asuransi-panel.jsx` / `edit-tagihan-view.jsx` — komponen baru `EditAsuransiPaymentMethodRow.jsx` |
+| Reuse | `BaseButton` (`components/features/base-features/base-button`), `PaymentMethodRow[]` dari `editContext` |
+| Scope | Komponen baru merender `PaymentMethodRow[]` sebagai 3 tombol satu baris (grid 3-kolom); `IsSelected`/`IsEnabled` dibaca apa adanya |
+| Dependency | `[BE] BE-BUI-001` |
+| Acceptance criteria | `UAT-BUI-04`, `UAT-BUI-05`, `UAT-BUI-09` |
+| Bukti verifikasi | `npm run lint:errors`; `npm run test:unit`; `npm run build`; `node --test tests/unit/edit-asuransi-payment-method-row.test.mjs` |
+| Kewenangan UI | Sumber data (`PaymentMethodRow`, bukan `BasePayerCategorySelector`) **terkunci** (`BUI-DEC-015`). Layout detail tombol `repeat(3, minmax(0, 1fr))` **terkunci** (`BUI-DEC-006`). `BasePayerCategorySelector` tidak disentuh |
+| Risiko/pemilik | MUST NOT menyentuh `.categorySelector` yang dipakai `FE-BUI-005`. MUST NOT menghitung ulang status coverage sendiri di klien. Owner Frontend |
+| Definition of Done | `UAT-BUI-04`/`05`/`09` lulus; `npm run build` lulus |
+| Status | ✅ **SELESAI — 25 September 2026.** Tiga tombol Payment Method ("Tunai", "Asuransi", "Penjamin Perusahaan") kini tampil sejajar dalam satu baris horizontal di panel Edit Asuransi (`edit-asuransi-panel.jsx`) melalui komponen baru berdedikasi `EditAsuransiPaymentMethodRow.jsx` dan CSS grid 3-kolom `edit-tagihan.module.css` sesuai `BUI-DEC-006` & `UAT-BUI-05`. Sumber data tombol 100% berasal dari array `PaymentMethodRow[]` yang dikembalikan endpoint backend `GET /{id}/edit-context` tanpa dihitung ulang di klien sesuai mandat ketat `BUI-DEC-015`. Status aktif default (`IsSelected`) dan ketersediaan (`IsEnabled`) dibaca apa adanya dari response server yang telah mengintegrasikan logika `BE-BUI-001` (`BUI-DEC-007` & `BUI-DEC-014`): jika pasien asuransi memiliki coverage parsial (sebagian item tidak tercover), tombol "Tunai / Pribadi" yang tersorot aktif sebagai default (`UAT-BUI-09` — kasus penentu); jika seluruh item tercover, tombol "Asuransi" yang tersorot aktif (`UAT-BUI-04`). Komponen selector kategori kartu penjamin pembanding `BasePayerCategorySelector` dan CSS `base-payer-workspace.module.css` (yang digunakan oleh `FE-BUI-005`) dipertahankan apa adanya tanpa tersentuh atau rusak. Verifikasi kualitas: `npm run lint:errors` lulus (0 error, exit code 0); `npm run test:unit` lulus 1.689/1.697 (+4 tes baru `edit-asuransi-payment-method-row.test.mjs` lulus 100%, 8 kegagalan pre-existing konsisten); `npm run build` berhasil (`✓ Compiled successfully`, 406 rute dan standalone runtime siap). Bukti: [laporan](../task/report/frontend/FE-BUI-006.md) |
+
+---
+---
+
+# Gelombang `MVP-33` — Revisi UI Billing: Modal Ajukan Refund Dua Sumber
+
+| Field | Nilai |
+| --- | --- |
+| Blueprint | `BIL-CASH-001` revisi `1.6` · status `draft` |
+| Masukan | `BUI-DEC-011`, `BUI-DEC-012` (approved 24 September 2026), `03-frontend-architecture.md` Amendment 24 September 2026 bagian 9 |
+| Contract version berlaku | `BIL-API-1.5` (draft, field `TransactionDate`) |
+| Frontend baseline SHA | `b3f45db7b` |
+
+**`BLOCKED`** — bergantung `[BE] BE-BUI-002` (`MVP-30`), sendiri `BLOCKED` menunggu approval
+arsitektur owner. Refundable credit lama (`BUI-DEC-011`) digantikan sebagai bagian penggantian
+modal ini, bukan task tersendiri (`03-frontend-architecture.md` bagian 9.1).
+
+## Grafik Urutan Dependency
+
+```mermaid
+flowchart TD
+    subgraph BE ["Backend (Cermin Baca-Saja)"]
+        BE-BUI-002["[BE] 🟡 BE-BUI-002<br/>Field TransactionDate"]
+    end
+
+    FE-BUI-007["✅ FE-BUI-007<br/>Modal Refund Dua Sumber"]
+
+    BE-BUI-002 --> FE-BUI-007
+```
+
+### Tabel Gelombang Eksekusi
+
+| Gelombang Eksekusi | Task | Dapat Berjalan Paralel? |
+| :---: | --- | --- |
+| Gelombang `MVP-33` | ✅ `FE-BUI-007` | Tunggal — Selesai 25 September 2026 |
+
+Jumlah panah dependency: **1**. Bebas siklus.
+
+---
+
+## Tabel Task
+
+| Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| ✅ `FE-BUI-007` | Modal Ajukan Refund dua sumber — Billing (multi-select item + Tanggal) / Deposito (otomatis); dropdown Refundable Credit lama tergantikan | `BUI-DEC-011`, `BUI-DEC-012`, `FR-BUI-011`, `FR-BUI-012` | `BIL-API-1.5` (draft) — `GET /{id}/refundable-items` (+ `TransactionDate`), `GET /{id}/remaining-deposit`, `POST /{id}/refunds` (bentuk request sudah ada) | `create-refund-modal.jsx` sebagai kerangka Modal/Form yang ADA, isinya diganti total | Radio Billing/Deposito; datatable checkbox+nama+tanggal+nominal untuk Billing (multi-select, total otomatis); nominal otomatis + terkunci sisa deposito untuk Deposito; hapus dropdown Refundable Credit lama | `[BE] BE-BUI-002` | `UAT-BUI-06`, `07`, `11`, `12` (`04-prd-to-mvp.md`) | `npm run lint`; `npm run test:unit`; `npm run build`; uji manual kedua sumber, termasuk jalur gagal | Total refund MUST dihitung dari penjumlahan `RefundableAmount` baris tercentang, bukan diketik manual. Nominal Deposito MUST NOT melebihi `RemainingDepositAmount`. Alur persetujuan MUST identik kedua sumber (`BUI-DEC-012`) — jangan membuat gate baru. Owner Frontend | `UAT-BUI-06`/`07`/`11`/`12` lulus; `npm run build` lulus |
+
+---
+
+## Rincian Task
+
+### ✅ `FE-BUI-007` — Modal Ajukan Refund Dua Sumber
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Kasir mengajukan refund dengan memilih item billing spesifik (multi-select, total otomatis) atau dari sisa deposito (nominal otomatis), menggantikan dropdown "Refundable Credit" tunggal yang sudah tidak relevan |
+| Jejak | `BUI-DEC-011`, `BUI-DEC-012`, `FR-BUI-011`, `FR-BUI-012` |
+| Contract | `BIL-API-1.5` (draft) — `GET /{id}/refundable-items`, `GET /{id}/remaining-deposit`, `POST /{id}/refunds` |
+| Layar | `create-refund-modal.jsx` |
+| Reuse | Kerangka Modal/Form React Bootstrap yang sudah ada; `InformationAlert`, `BaseButton` |
+| Scope | Radio pilihan sumber; datatable item billing (checkbox, nama, tanggal, nominal) dengan total otomatis; panel sisa deposito otomatis; pemetaan ke `CreateRefundRequest.RefundCategory`/`SelectedBillingItemIds`; **hapus** props/state dropdown Refundable Credit lama |
+| Dependency | `[BE] BE-BUI-002` |
+| Acceptance criteria | `UAT-BUI-06`, `07`, `11`, `12` |
+| Bukti verifikasi | `npm run lint:errors` lulus (0 error); `npm run test:unit` lulus 1.695/1.703 (+6 tes baru `create-refund-modal.test.mjs` lulus 100%); `npm run build` lulus |
+| Kewenangan UI | Struktur radio + datatable **terkunci** desain (`03-frontend-architecture.md` bagian 9.2). Styling detail `DEV_DISCRETION` |
+| Risiko/pemilik | Total/nominal MUST NOT diketik manual — selalu turunan data server. Alur persetujuan MUST NOT dibedakan antar sumber. Owner Frontend |
+| Definition of Done | `UAT-BUI-06`/`07`/`11`/`12` lulus; `npm run build` lulus |
+| Status | ✅ **SELESAI 25 September 2026.** Modal refund dua sumber (Billing multi-select item + Deposito otomatis) selesai dan terverifikasi penuh. Dropdown Refundable Credit lama dihapus total (`BUI-DEC-011`). UAT-BUI-06, 07, 11, 12 lulus. Lint, unit test, build lulus. Bukti: [laporan](../task/report/frontend/FE-BUI-007.md) |
+
+---
+
+## Kewenangan UI
+
+| Hal | Kewenangan |
+| --- | --- |
+| Filter jenis pada perbandingan asuransi (`BUI-DEC-004`) | Terkunci desain |
+| Sumber data payment method = `PaymentMethodRow` (`BUI-DEC-015`) | Terkunci desain |
+| Struktur radio + datatable modal refund (`BUI-DEC-012`) | Terkunci desain |
+| Keberadaan area Aksi pada Riwayat Pembayaran (`BUI-DEC-013`) | Terkunci desain |
+| Komponen date picker, styling tombol, susunan card compact, layout detail tombol payment method, styling modal refund | **`DEV_DISCRETION`** |
+
+## Yang Sengaja Tidak Dibuat di Frontend
+
+| Yang ditolak | Alasan |
+| --- | --- |
+| Menghitung ulang status coverage/default payment method di klien | `PaymentMethodRow.IsSelected` dan `SuggestedBillingStatus` MUST dibaca apa adanya dari server — dua sumber kebenaran akan drift |
+| Mengetik manual total refund atau nominal deposito | Keduanya turunan data server (`RefundableAmount` per baris, `RemainingDepositAmount`) — input manual membuka celah kesalahan nominal |
+| Endpoint upload memo dokter, layar Catatan Penting | `FR-BUI-009`/`010` `OPEN DECISION` — TIDAK masuk gelombang mana pun pada roadmap ini, lihat `04-prd-to-mvp.md` amendment revisi 1.6 |
+| Mengubah `.categorySelector`/`base-payer-workspace.module.css` untuk kebutuhan payment method | Komponen itu dipakai `FE-BUI-005` untuk keperluan berbeda (kategori kandidat); `FE-BUI-006` MUST memakai komponen terpisah |

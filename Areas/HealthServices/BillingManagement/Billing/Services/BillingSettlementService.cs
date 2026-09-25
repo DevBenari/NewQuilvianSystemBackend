@@ -24,6 +24,8 @@ public sealed class BillingSettlementService
     private readonly CashierShiftService _cashierShiftService;
     private readonly BillingNumberSeriesService _numberSeries;
     private readonly BillingFinalizationService _finalizationService;
+    private readonly BillingInvoiceClosureService _closureService;
+    private readonly BilConsumerHandoffService _consumerHandoffService;
     private readonly LoggerService _loggerService;
 
     public BillingSettlementService(
@@ -33,6 +35,8 @@ public sealed class BillingSettlementService
         CashierShiftService cashierShiftService,
         BillingNumberSeriesService numberSeries,
         BillingFinalizationService finalizationService,
+        BillingInvoiceClosureService closureService,
+        BilConsumerHandoffService consumerHandoffService,
         LoggerService loggerService)
     {
         _dbContext = dbContext;
@@ -41,6 +45,8 @@ public sealed class BillingSettlementService
         _cashierShiftService = cashierShiftService;
         _numberSeries = numberSeries;
         _finalizationService = finalizationService;
+        _closureService = closureService;
+        _consumerHandoffService = consumerHandoffService;
         _loggerService = loggerService;
     }
 
@@ -520,6 +526,102 @@ public sealed class BillingSettlementService
                 throw new BillingSettlementValidationException(exception.Message);
             }
             await _dbContext.SaveChangesAsync(cancellationToken);
+
+            // BKC-DES-029/030: penyelarasan FINAL<->CLOSED dipanggil SESUDAH SaveChanges di atas,
+            // supaya perhitungan sisa tagihan (AsNoTracking) melihat alokasi yang baru saja
+            // ditulis. Hanya berlaku untuk settlement yang menyasar invoice - settlement
+            // DEPOSIT_TOP_UP tidak punya InvoiceId (BilSettlementConfiguration: constraint
+            // InvoiceId XOR DepositAccountId), sehingga tidak ada invoice untuk diselaraskan.
+            var closureChange = InvoiceClosureChange.None(Guid.Empty, string.Empty);
+            if (tender.Settlement.InvoiceId.HasValue)
+            {
+                var tenderClosureReason = targetStatus switch
+                {
+                    BillingTenderStatuses.Succeeded => PrescriptionClearanceReasonCodes.InvoiceSettled,
+                    BillingTenderStatuses.Reversed => PrescriptionClearanceReasonCodes.PaymentReversed,
+                    _ => null
+                };
+
+                try
+                {
+                    closureChange = await _closureService.SyncClosureAsync(
+                        tender.Settlement.InvoiceId.Value, actorUserId, result.OccurredAt, cancellationToken, tenderClosureReason);
+                }
+                catch (BillingInvoiceClosureValidationException exception)
+                {
+                    throw new BillingSettlementValidationException(exception.Message);
+                }
+                if (closureChange.Changed)
+                    await _dbContext.SaveChangesAsync(cancellationToken);
+            }
+
+            // BE-BKC-066 / BKC-DEC-106 / BKC-DES-038 / BIL-INT-013: Menerbitkan surat penerimaan uang
+            // (BilCollectionHandoff) untuk Finance saat tender mencapai SUCCEEDED atau REVERSED.
+            // Berada di dalam batas transaksi yang sama sebelum commit (uang dan surat tidak terpisah nasib).
+            if (targetStatus is BillingTenderStatuses.Succeeded or BillingTenderStatuses.Reversed)
+            {
+                try
+                {
+                    await _consumerHandoffService.PublishForTenderAsync(
+                        tender, actorUserId, result.OccurredAt, cancellationToken);
+                    await _dbContext.SaveChangesAsync(cancellationToken);
+                }
+                catch (BillingConsumerHandoffValidationException exception)
+                {
+                    throw new BillingSettlementValidationException(exception.Message);
+                }
+            }
+
+            // BE-BKC-067 / BKC-DEC-106 / BKC-DES-038 / BIL-INT-014: Menerbitkan surat clearance resep
+            // (BilPrescriptionClearanceHandoff) untuk Farmasi saat status tagihan lunas (CLEARED / INVOICE_SETTLED)
+            // atau saat pembayaran dibalik (REVOKED / PAYMENT_REVERSED).
+            if (tender.Settlement.InvoiceId.HasValue && closureChange.Changed)
+            {
+                string? clearanceReason = null;
+                if (closureChange.StatusAfter == BillingInvoiceStatuses.Closed && targetStatus == BillingTenderStatuses.Succeeded)
+                {
+                    clearanceReason = PrescriptionClearanceReasonCodes.InvoiceSettled;
+                }
+                else if (closureChange.StatusAfter == BillingInvoiceStatuses.Final && targetStatus == BillingTenderStatuses.Reversed)
+                {
+                    clearanceReason = PrescriptionClearanceReasonCodes.PaymentReversed;
+                }
+
+                if (clearanceReason != null)
+                {
+                    try
+                    {
+                        await _consumerHandoffService.PublishForClearanceChangeAsync(
+                            tender.Settlement.InvoiceId.Value,
+                            clearanceReason,
+                            actorUserId,
+                            result.OccurredAt,
+                            tender.CorrelationId,
+                            tender.CausationId,
+                            cancellationToken);
+
+                        // BE-BKC-075 / BKC-DEC-115 / BKC-DES-045 / BIL-INT-016: Menerbitkan surat kelayakan
+                        // pemulangan rawat inap (BilInpatientClearanceHandoff) saat status invoice berubah lunas atau dibalik.
+                        await _consumerHandoffService.PublishForInpatientClearanceAsync(
+                            tender.Settlement.InvoiceId.Value,
+                            clearanceReason == PrescriptionClearanceReasonCodes.InvoiceSettled
+                                ? InpatientClearanceReasonCodes.InvoiceSettled
+                                : InpatientClearanceReasonCodes.PaymentReversed,
+                            actorUserId,
+                            result.OccurredAt,
+                            tender.CorrelationId,
+                            tender.CausationId,
+                            cancellationToken);
+
+                        await _dbContext.SaveChangesAsync(cancellationToken);
+                    }
+                    catch (BillingConsumerHandoffValidationException exception)
+                    {
+                        throw new BillingSettlementValidationException(exception.Message);
+                    }
+                }
+            }
+
             if (transaction is not null) await transaction.CommitAsync(cancellationToken);
             await AuditTenderResultAsync(
                 tender, beforeTenderStatus, beforeSettlementStatus, actorUserId);
@@ -528,6 +630,8 @@ public sealed class BillingSettlementService
             if (cashReceiptApplied)
                 await _cashierShiftService.AuditCashReceiptAsync(
                     tender.Id, cancellationToken);
+            if (closureChange.Changed)
+                await AuditClosureChangeAsync(closureChange, actorUserId);
             return MapTender(tender, false);
         }
         catch (DbUpdateConcurrencyException exception)
@@ -1003,6 +1107,24 @@ public sealed class BillingSettlementService
                 tender.Settlement.SuccessfulAmount,
                 tender.Settlement.AllocatedAmount,
                 tender.CorrelationId,
+                ActorUserId = actorUserId
+            });
+
+    // BKC-DES-029/030: audit perpindahan FINAL<->CLOSED sebagai efek langsung rekonsiliasi
+    // tender. Kategori/bentuk payload sama dengan yang dipakai BillingFinalizationService dan
+    // BillingFinancialExceptionService untuk peristiwa closure lainnya.
+    private Task AuditClosureChangeAsync(InvoiceClosureChange change, Guid actorUserId) =>
+        _loggerService.AuditAsync(
+            LogCategory,
+            "BillingInvoice.ClosureSynced",
+            "Status penutupan invoice diselaraskan berdasarkan sisa tagihan pasien.",
+            new
+            {
+                change.InvoiceId,
+                StatusBefore = change.StatusBefore,
+                StatusAfter = change.StatusAfter,
+                change.Outstanding,
+                Trigger = "TenderReconciled",
                 ActorUserId = actorUserId
             });
 

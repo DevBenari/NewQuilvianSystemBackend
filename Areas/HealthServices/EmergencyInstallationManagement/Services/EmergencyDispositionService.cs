@@ -14,10 +14,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
     public class EmergencyDispositionService
     {
         private readonly ApplicationDbContext _dbContext;
+        private readonly EmergencyDepartureService _departureService;
 
-        public EmergencyDispositionService(ApplicationDbContext dbContext)
+        // BE-IGD-041: aturan pesanan yang menahan penutupan dimiliki EmergencyDepartureService.
+        // Keduanya sudah terdaftar Scoped di DI dan EmergencyDepartureService tidak bergantung
+        // balik ke service ini, sehingga penyuntikan ini tidak membentuk lingkaran maupun
+        // menuntut baris baru di Program.cs.
+        public EmergencyDispositionService(
+            ApplicationDbContext dbContext,
+            EmergencyDepartureService departureService)
         {
             _dbContext = dbContext;
+            _departureService = departureService;
         }
 
         public async Task<string?> ValidateRequestAsync(
@@ -129,17 +137,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             if (adaKepergianBelumTuntas)
                 return "Masih ada proses kepergian pasien yang belum selesai.";
 
-            var pesananBelumTuntas = await _dbContext.Set<EmgHandoverOrderItem>()
-                .AsNoTracking()
-                .AnyAsync(x => !x.IsDelete
-                    && x.IsEffective
-                    && x.AcceptanceStatus == EmergencyOrderAcceptanceStatus.Rejected
-                    && x.EmergencyDeparture != null
-                    && x.EmergencyDeparture.EmergencyVisitId == visit.Id,
-                    cancellationToken);
+            // BE-IGD-041 untuk IGD-DEC-118. Kueri kembar yang dulu berdiri di sini dihapus:
+            // aturan pesanan yang menahan penutupan kini hanya tinggal di satu tempat, dan
+            // pesannya menyebut pesanan mana supaya petugas tidak perlu membuka setiap
+            // kepergian satu per satu. Kode dan kondisi penolakannya tidak berubah.
+            var pesananPenahan = await _departureService.AmbilPesananPenahanPenutupanAsync(
+                visit.Id, cancellationToken);
 
-            if (pesananBelumTuntas)
-                return "Masih ada pesanan yang belum ditentukan sikapnya.";
+            if (pesananPenahan.Count > 0)
+            {
+                return "Masih ada pesanan yang belum ditentukan sikapnya: " +
+                       $"{EmergencyDepartureService.RingkasUraianPesanan(pesananPenahan)}.";
+            }
 
             return null;
         }

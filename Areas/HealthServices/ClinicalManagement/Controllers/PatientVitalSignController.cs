@@ -1,9 +1,10 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Attributes;
@@ -40,12 +41,38 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         private readonly ApplicationDbContext _dbContext;
         private readonly LoggerService _loggerService;
 
+        /// <summary>Konteks episode dan deret tanda vital rawat inap — <c>BE-RWI-110</c>, <c>BE-RWI-121</c>.</summary>
+        private readonly InpatientVitalSignService _inpatientVitalSignService;
+
         public PatientVitalSignController(
             ApplicationDbContext dbContext,
-            LoggerService loggerService)
+            LoggerService loggerService,
+            InpatientVitalSignService inpatientVitalSignService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
+            _inpatientVitalSignService = inpatientVitalSignService;
+        }
+
+        /// <summary>Deret tanda vital satu episode rawat inap untuk tabel dan grafik.</summary>
+        /// <remarks>
+        /// <c>BE-RWI-121</c>, <c>FR-KEP-056</c>, api-contract 0.5.0 bagian 7.4. Tanpa rentang → 24 jam
+        /// terakhir; rentang paling panjang 7 hari; terurut waktu observasi.
+        /// </remarks>
+        [HttpGet("episodes/{episodeId:guid}")]
+        [ProducesResponseType(typeof(ApiResponse<List<PatientVitalSignSeriesItem>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Patient Vital Sign", Description = "Melihat deret tanda vital satu perawatan rawat inap", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("PatientVitalSign", "Read")]
+        public async Task<IActionResult> GetEpisodeSeries(
+            Guid episodeId,
+            [FromQuery] DateTime? from = null,
+            [FromQuery] DateTime? to = null,
+            CancellationToken cancellationToken = default)
+        {
+            var hasil = await _inpatientVitalSignService.GetSeriesAsync(episodeId, from, to, cancellationToken);
+            return this.ToActionResult(hasil);
         }
 
         [HttpGet("filters/metadata")]
@@ -461,6 +488,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 ));
             }
 
+            // BE-RWI-110 kriteria 5 / BE-RWI-121 kriteria 1 — VAL-KEP-22c, INV-KEP-04. Episode rawat
+            // inap diisi server dari kunjungannya; isian nyeri ditolak karena tempatnya Monitoring Nyeri.
+            var inpEpisodeId = await _inpatientVitalSignService.FindInpatientEpisodeIdAsync(context.EncounterId);
+
+            if (inpEpisodeId.HasValue &&
+                InpatientVitalSignService.HasPainFields(request.HasPain, request.PainScale, request.PainLocation, request.PainNote))
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    InpatientVitalSignService.PenolakanNyeriPadaTandaVital,
+                    new { code = "PAIN_NOT_ALLOWED_ON_VITAL_SIGN" }));
+            }
+
             var calculated = CalculateVitalSignValues(request);
 
             var entity = new TrxPatientVitalSign
@@ -506,7 +546,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 HeadCircumference = request.HeadCircumference,
                 BMI = calculated.BMI,
                 WeightMeasurementNote = NormalizeNullableText(request.WeightMeasurementNote),
-                ConsciousnessStatus = request.ConsciousnessStatus,
+                ConsciousnessStatus = request.ConsciousnessStatus ?? ConsciousnessStatus.Unknown,
                 GcsEye = request.GcsEye,
                 GcsVerbal = request.GcsVerbal,
                 GcsMotor = request.GcsMotor,
@@ -535,6 +575,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             };
 
             NormalizeVitalSignData(entity);
+
+            if (inpEpisodeId.HasValue)
+            {
+                entity.InpEpisodeId = inpEpisodeId.Value;
+                entity.VitalSignSource = PatientVitalSignSource.InpatientObservation;
+            }
 
             _dbContext.Set<TrxPatientVitalSign>().Add(entity);
             await _dbContext.SaveChangesAsync();
@@ -592,6 +638,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 ));
             }
 
+            // BE-RWI-110 kriteria 5 — VAL-KEP-22c berlaku juga saat tanda vital rawat inap diubah.
+            if (entity.InpEpisodeId.HasValue &&
+                InpatientVitalSignService.HasPainFields(request.HasPain, request.PainScale, request.PainLocation, request.PainNote))
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    InpatientVitalSignService.PenolakanNyeriPadaTandaVital,
+                    new { code = "PAIN_NOT_ALLOWED_ON_VITAL_SIGN" }));
+            }
+
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
             var calculated = CalculateVitalSignValues(request);
@@ -628,7 +684,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             entity.HeadCircumference = request.HeadCircumference;
             entity.BMI = calculated.BMI;
             entity.WeightMeasurementNote = NormalizeNullableText(request.WeightMeasurementNote);
-            entity.ConsciousnessStatus = request.ConsciousnessStatus;
+            entity.ConsciousnessStatus = request.ConsciousnessStatus ?? entity.ConsciousnessStatus;
             entity.GcsEye = request.GcsEye;
             entity.GcsVerbal = request.GcsVerbal;
             entity.GcsMotor = request.GcsMotor;
@@ -652,6 +708,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             NormalizeVitalSignData(entity);
 
+            if (entity.InpEpisodeId.HasValue)
+                entity.VitalSignSource = PatientVitalSignSource.InpatientObservation;
+
             await _dbContext.SaveChangesAsync();
 
             var response = ToUpdateResponse(entity);
@@ -665,8 +724,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         [HttpPatch("{id:guid}/verify")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Update", "Verify Patient Vital Sign", Description = "Verifikasi tanda vital pasien", AccessType = AccessTypes.Update, SortOrder = 4)]
-        [AccessPermission("PatientVitalSign", "Update")]
+        [AccessAction("Verify", "Verify Patient Vital Sign", Description = "Verifikasi tanda vital pasien", AccessType = AccessTypes.Update, SortOrder = 4)]
+        [AccessPermission("PatientVitalSign", "Verify")]
         public async Task<IActionResult> VerifyVitalSign(Guid id, [FromBody] VerifyPatientVitalSignRequest request)
         {
             var entity = await _dbContext.Set<TrxPatientVitalSign>()
@@ -714,8 +773,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         [HttpPatch("{id:guid}/notify-doctor")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Update", "Notify Doctor Patient Vital Sign", Description = "Menandai dokter sudah diberi notifikasi tanda vital", AccessType = AccessTypes.Update, SortOrder = 5)]
-        [AccessPermission("PatientVitalSign", "Update")]
+        [AccessAction("NotifyDoctor", "Notify Doctor Patient Vital Sign", Description = "Menandai dokter sudah diberi notifikasi tanda vital", AccessType = AccessTypes.Update, SortOrder = 5)]
+        [AccessPermission("PatientVitalSign", "NotifyDoctor")]
         public async Task<IActionResult> NotifyDoctor(Guid id, [FromBody] NotifyDoctorPatientVitalSignRequest request)
         {
             var entity = await _dbContext.Set<TrxPatientVitalSign>()
@@ -750,8 +809,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         [HttpPatch("{id:guid}/cancel")]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
-        [AccessAction("Update", "Cancel Patient Vital Sign", Description = "Membatalkan catatan tanda vital pasien", AccessType = AccessTypes.Update, SortOrder = 6)]
-        [AccessPermission("PatientVitalSign", "Update")]
+        [AccessAction("Cancel", "Cancel Patient Vital Sign", Description = "Membatalkan catatan tanda vital pasien", AccessType = AccessTypes.Update, SortOrder = 6)]
+        [AccessPermission("PatientVitalSign", "Cancel")]
         public async Task<IActionResult> CancelVitalSign(Guid id, [FromBody] CancelPatientVitalSignRequest request)
         {
             var entity = await _dbContext.Set<TrxPatientVitalSign>()
@@ -1152,7 +1211,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 request.OxygenSaturation,
                 request.Temperature,
                 request.PulseRate,
-                request.ConsciousnessStatus,
+                request.ConsciousnessStatus ?? ConsciousnessStatus.Unknown,
                 request.GcsEye,
                 request.GcsVerbal,
                 request.GcsMotor);
@@ -1169,7 +1228,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 request.OxygenSaturation,
                 request.Temperature,
                 request.PulseRate,
-                request.ConsciousnessStatus,
+                request.ConsciousnessStatus ?? ConsciousnessStatus.Unknown,
                 request.GcsEye,
                 request.GcsVerbal,
                 request.GcsMotor);

@@ -3080,3 +3080,1001 @@ Tidak berubah dari revisi `1.0`. `RecipientName`, `Purpose`, `Reason`, dan `Reve
 | Backend SHA diaudit | `0ca85ba4610f2745b761d5e092b495bfc35396b0` (branch `Yasmina`) |
 | Frontend SHA diaudit | `1f2f2c93c9e4369db6c60246776de4c3bd52b3af` (branch `yasmina`) |
 | Status | ~~draft~~ **approved** — `PC-DES-015`–`025` disetujui Product/Domain Owner 15 September 2026 (`PC-DEC-026`, wewenang ganda Finance/AR `BKC-DEC-085`). Approval ini **bukan** otorisasi membuat maupun menjalankan migration, dan **bukan** otorisasi menghapus butir hak akses sebelum `PC-OQ-007` diperiksa |
+
+---
+
+# Amendment 18 September 2026 — Penutupan gap `FINAL`→`CLOSED` (invoice lunas macet permanen)
+
+`revisi blueprint 1.3` · status **draft** · owner Billing/Finance/Cashier · `approved_by`: — · `approved_at`: — · input: **`BKC-DEC-100`–`BKC-DEC-102`** (`approved` 18 September 2026); masukan audit `01-existing-capability-map.md` § 21; keputusan arsitektur **`BKC-DES-028`–`BKC-DES-035`** (baru, `draft`).
+
+Amendment ini **tidak** menambah tabel, **tidak** menambah kolom, **tidak** menambah endpoint, dan **tidak** menambah butir hak akses. Yang ditambahkan adalah satu service kecil beserta pemanggilannya di enam titik yang sudah ada, satu perluasan penjaga, dan satu migration yang murni memperbaiki data.
+
+## Masalah yang diperbaiki, dalam satu paragraf
+
+Kontrak `BIL-STATE-0.4` menempatkan syarat transisi `FINAL`→`CLOSED` pada peristiwa "AR/AP posting sukses". Peristiwa itu tidak pernah terjadi karena belum ada konsumen AR/AP nyata di repository ini — doc-comment `BillingArApHandoffService` menyatakannya sendiri. Akibatnya **setiap** invoice yang difinalisasi berhenti di `FINAL` selamanya, termasuk yang pasiennya sudah membayar lunas, dan kolom `BilInvoice.ClosedAt` tidak pernah terisi satu baris pun. `BKC-DEC-100` mengganti syarat itu menjadi "sisa tagihan pasien mencapai nol". Amendment ini menerjemahkan keputusan itu menjadi arsitektur.
+
+## Keputusan arsitektur
+
+| ID | Keputusan | Alasan | Status |
+| --- | --- | --- | --- |
+| `BKC-DES-028` | Satu service baru `BillingInvoiceClosureService` memegang **dua** tanggung jawab sekaligus: menghitung sisa tagihan pasien, dan menyelaraskan status penutupan invoice. **Bukan** dua service terpisah | Perhitungan sisa tagihan saat ini **terduplikasi persis** di `BillingFinalizationService` dan `BillingFinancialExceptionService` (§ 21 capability map; komentar source `BillingFinalizationService.cs:265` sudah mengakuinya). Menambahkan pemanggil ketiga tanpa konsolidasi berarti tiga salinan yang harus disinkronkan manual setiap kali aturan sisa tagihan berubah. Dua tanggung jawab ini selalu berubah bersama — "berapa sisanya" dan "apa akibatnya pada status" adalah satu pertanyaan bisnis | `draft` |
+| `BKC-DES-029` | Penyelarasan status dipanggil dari **enam** titik peristiwa yang benar-benar menggerakkan sisa tagihan, bukan hanya dari jalur pembayaran tender | `BKC-DEC-100` menyebut "tender `SUCCEEDED`" karena itu jalur yang paling umum, tetapi sisa tagihan juga bergerak karena alokasi deposit, penyesuaian (`BilAdjustment`), dan pembalikannya. Memasang penyelarasan hanya di jalur tender akan meninggalkan lubang yang **jenisnya sama persis** dengan gap yang sedang ditutup: tagihan yang lunas lewat deposit tidak akan pernah berpindah ke `CLOSED`. **Ini memperluas cakupan harfiah `BKC-DEC-100` demi memenuhi maksudnya** — MUST dikonfirmasi owner saat approval | `draft` |
+| `BKC-DES-030` | Urutan wajib di setiap titik pemanggilan: `SaveChangesAsync` → penyelarasan status → `SaveChangesAsync`, **seluruhnya di dalam satu transaction yang sudah dibuka pemanggil**. Service ini **tidak pernah** membuka transaction sendiri dan **tidak pernah** memanggil `SaveChangesAsync` sendiri | Perhitungan sisa tagihan membaca database dengan `AsNoTracking()`. Bila dipanggil sebelum `SaveChangesAsync` yang pertama, ia **tidak akan melihat** baris alokasi/penyesuaian yang baru dibuat dan masih berada di ChangeTracker — hasilnya sisa tagihan yang salah dan status yang salah. Mengikuti pola `BillingArApHandoffService.StageHandoffsForFinalizationAsync` yang doc-comment-nya sudah menetapkan "pemanggil yang memegang batas transaksi dan `SaveChanges`" | `draft` |
+| `BKC-DES-031` | Transisi **balik** `CLOSED` → `FINAL` bila sisa tagihan naik kembali di atas nol (pembalikan tender, penyesuaian arah `Debit`). `ClosedAt` dikosongkan kembali | Simetri yang tidak bisa dihindari: `ReconcileTenderAsync` memang mengizinkan tender `SUCCEEDED` menjadi `REVERSED` (baris 435–436), dan penyesuaian `Debit` memang menaikkan sisa tagihan. Tanpa transisi balik, akan ada invoice berstatus `CLOSED` yang pasiennya masih berutang — cacat yang **lebih berbahaya** daripada gap aslinya, karena tagihan yang tampak selesai tidak akan ditagih siapa pun. Mengikuti preseden yang sudah disetujui: pembalikan write-off penuh mengembalikan `SETTLED_BY_WRITE_OFF` ke `OPEN` (`BKC-DEC-036`). Tujuan baliknya `FINAL`, **bukan** `OPEN`, karena finalisasi tidak dibatalkan oleh pembalikan pembayaran — `BilFinalizationRecord` tetap ada dan versi kalkulasi tetap terkunci | `draft` |
+| `BKC-DES-032` | Memakai ulang kunci penasihat yang sudah ada, `BIL_INVOICE_LEDGER_{invoiceId:N}` — **tidak** membuat kunci baru. Invariant urutan pengambilan yang MUST dijaga: kunci spesifik peristiwa (`BIL_TENDER_*`, `BIL_ADJUSTMENT_*`, `BIL_WRITEOFF_*`) diambil **lebih dulu**, `BIL_INVOICE_LEDGER_*` menyusul | Kunci itu sudah menjadi kunci kanonik "buku besar satu invoice" pada `BillingFinalizationService.FinalizeAsync:60`, `CreateAdjustmentAsync:48`, dan `CreateWriteOffAsync:264`. `ReconcileTenderAsync` memegang kunci per-**tender**, sehingga dua tender berbeda pada invoice yang sama dapat berjalan bersamaan dan sama-sama menyimpulkan "lunas". Isolation `Serializable` memang akan menolak salah satunya, tetapi penolakan itu muncul ke kasir sebagai galat "Data telah berubah" padahal pembayarannya sah; dengan kunci penasihat, yang kedua menunggu sebentar lalu melihat invoice sudah `CLOSED` dan tidak menulis apa pun. Tidak ada jalur existing yang mengambil `BIL_INVOICE_LEDGER_*` lebih dulu lalu kunci peristiwa — urutan di atas karena itu bebas deadlock terhadap source saat ini | `draft` |
+| `BKC-DES-033` | **Menjawab `BKC-CQ-01` dengan opsi (c)**: `BilArHandoff` **tidak disentuh sama sekali**. Tidak ada nilai status `COLLECTED` baru, tidak ada kolom `CollectedAt` baru. Sumber kebenaran "tagihan ini sudah lunas" adalah `BilInvoice.Status`/`ClosedAt` | `BillingHandoffStatuses` (`CREATED`/`ACKNOWLEDGED`) menggambarkan **keadaan penyerahan fakta ke AR**, bukan keadaan tertagihnya piutang. "Sudah tertagih" adalah peristiwa pembayaran yang sudah punya catatannya sendiri (tender, alokasi, dan kini `ClosedAt`). Menambah `COLLECTED` akan menaruh dua sumbu makna yang berbeda pada satu kolom, dan melakukannya untuk konsumen AR/AP yang **belum ada** (`BKC-BLK-INT-001`) berarti menebak bentuk kontrak pihak yang belum pernah bicara. Saat konsumen itu benar-benar dibangun, sumbu status penagihan dirancang bersama pemiliknya. **Ini mempersempit konsekuensi yang tertulis pada `BKC-DEC-102`** — lihat peringatan di bawah tabel | `draft` |
+| `BKC-DES-034` | Satu migration `BackfillClosedInvoicesFromFullySettledFinal` yang **murni memperbaiki data**, nol perubahan skema. Wajib didahului langkah **dry-run baca-saja** yang memakai kriteria identik | Dry-run menjawab `BKC-OQ-100` (berapa banyak invoice terdampak, dan berapa di antaranya sudah terlanjur menerima penyesuaian/write-off tanpa koreksi AR) memakai kriteria yang persis sama dengan yang akan menulis — bukan perkiraan terpisah yang bisa meleset. `ClosedAt` baris warisan diturunkan dari waktu peristiwa pelunasan yang sebenarnya, **bukan** waktu migration dijalankan | `draft` |
+| `BKC-DES-035` | Penjaga `RecordCorrectionIfLinkedAsync` menerima `FINAL` **dan** `CLOSED`, dan **tetap menolak** `OPEN` serta `SETTLED_BY_WRITE_OFF` | Turunan langsung `BKC-DEC-101`. Penolakan `SETTLED_BY_WRITE_OFF` dipertahankan dengan sengaja: invoice yang lunas lewat write-off penuh piutangnya sudah dihapusbukukan, sehingga koreksi AR atasnya adalah pertanyaan yang berbeda dan belum diputuskan. `OPEN` ditolak karena belum pernah ada handoff AR yang dapat dikoreksi | `draft` |
+
+> **Peringatan approval — satu titik di mana desain ini mempersempit keputusan yang sudah disetujui.** `BKC-DEC-102` menuliskan konsekuensi "`BilArHandoff` MUST ikut ditandai selesai/collected pada transaksi yang sama". `BKC-DES-033` memenuhi **maksud** konsekuensi itu (tidak boleh ada piutang yang tampak closed di invoice tetapi masih open di catatan AR) dengan cara yang berbeda: dengan tidak pernah membuat catatan AR mengklaim "masih berjalan" sejak awal. Bila owner tetap menghendaki penandaan eksplisit pada `BilArHandoff`, `BKC-DES-033` gugur dan digantikan opsi (a) atau (b) pada `BKC-CQ-01` — konsekuensinya satu kolom/nilai status baru beserta migration-nya sendiri. **Butir ini MUST dijawab owner saat approval desain, bukan diasumsikan.**
+
+## Tabel kepemilikan data
+
+| Kelompok data | Modul pemilik | Dipakai modul ini | Dibuat ulang di modul ini |
+| --- | --- | :---: | --- |
+| Invoice pasien (`BilInvoice`) | Billing dan Kasir (modul ini) | Ya | Tidak — kolom `Status`/`ClosedAt` yang sudah ada kini benar-benar dipakai |
+| Versi kalkulasi (`BilCalculationVersion`) | Billing dan Kasir | Ya, dibaca | Tidak |
+| Alokasi pembayaran (`BilPaymentAllocation`) | Billing dan Kasir | Ya, dibaca | Tidak |
+| Tender dan settlement (`BilTender`, `BilSettlement`) | Billing dan Kasir | Ya, dibaca | Tidak |
+| Penyesuaian dan write-off (`BilAdjustment`, `BilWriteOffCase`) | Billing dan Kasir | Ya, dibaca | Tidak |
+| Kredit yang dapat dikembalikan (`BilRefundableCredit`) | Billing dan Kasir | Ya, dibaca | Tidak |
+| Handoff AR/AP (`BilArHandoff`, `BilApHandoff`) | Billing dan Kasir | Ya, dibaca penjaga koreksi | **Tidak disentuh** (`BKC-DES-033`) |
+| Buku besar Accounting (`AccJournal`) | Accounting Management | Tidak | Tidak — amendment ini tidak menyentuh Accounting sama sekali |
+
+Nol kelompok data milik modul lain yang dibaca maupun ditulis. Amendment ini sepenuhnya berada di dalam batas `billing-kasir`.
+
+## Class diagram
+
+```mermaid
+classDiagram
+    class BillingInvoiceClosureService {
+        <<Baru>>
+        +CalculateOutstandingAsync(invoice, ct) decimal
+        +CalculateOutstandingAsync(invoice, calculation, ct) decimal
+        +SyncClosureAsync(invoiceId, actorUserId, occurredAt, ct) InvoiceClosureChange
+        -AcquireInvoiceLedgerLockAsync(invoiceId, ct)
+    }
+    class BillingSettlementService {
+        <<Diperbarui>>
+        +ReconcileTenderAsync(...)
+    }
+    class BillingAllocationService {
+        <<Diperbarui>>
+        +AllocateDepositAsync(...)
+    }
+    class BillingFinancialExceptionService {
+        <<Diperbarui>>
+        +ApproveAdjustmentAsync(...)
+        +ApproveWriteOffAsync(...)
+        +ReverseAdjustmentAsync(...)
+        +ReverseWriteOffAsync(...)
+    }
+    class BillingFinalizationService {
+        <<Diperbarui>>
+        +FinalizeAsync(...)
+    }
+    class BillingArApHandoffService {
+        <<Diperbarui>>
+        +RecordCorrectionIfLinkedAsync(...)
+    }
+    class BilInvoice {
+        <<Sudah ada>>
+        Status
+        ClosedAt_nullable
+        RowVersion
+    }
+    BillingSettlementService --> BillingInvoiceClosureService : selaraskan sesudah tender
+    BillingAllocationService --> BillingInvoiceClosureService : selaraskan sesudah alokasi deposit
+    BillingFinancialExceptionService --> BillingInvoiceClosureService : selaraskan sesudah 4 peristiwa
+    BillingFinalizationService --> BillingInvoiceClosureService : pakai perhitungan sisa tagihan
+    BillingInvoiceClosureService --> BilInvoice : ubah Status dan ClosedAt
+    BillingArApHandoffService --> BilInvoice : baca Status pada penjaga koreksi
+```
+
+Tidak ada model baru pada diagram ini — `BilInvoice` digambar hanya untuk menunjukkan kolom mana yang disentuh. `InvoiceClosureChange` adalah record hasil kecil (bukan entity, tidak dipersist) yang memberi tahu pemanggil apakah status berpindah, supaya pemanggil dapat menulis audit sesudah commit.
+
+## Penjelasan class
+
+| Class | Status | Lokasi file | Perubahan |
+| --- | --- | --- | --- |
+| `BillingInvoiceClosureService` | **Baru** | `Areas/HealthServices/BillingManagement/Billing/Services/BillingInvoiceClosureService.cs` | Service baru. Dua overload perhitungan sisa tagihan (dipindahkan dari dua salinan privat yang sudah ada) dan satu `SyncClosureAsync`. **Tidak** membuka transaction, **tidak** memanggil `SaveChangesAsync` (`BKC-DES-030`) |
+| `BillingSettlementService` | **Diperbarui** | `.../Billing/Services/BillingSettlementService.cs` | `ReconcileTenderAsync`: sisipkan `SaveChangesAsync` → `SyncClosureAsync` → `SaveChangesAsync` menggantikan `SaveChangesAsync` tunggal di baris 522, sebelum `CommitAsync` baris 523. Ambil `BIL_INVOICE_LEDGER_*` sesudah `BIL_TENDER_*` |
+| `BillingAllocationService` | **Diperbarui** | `.../Billing/Services/BillingAllocationService.cs` | `AllocateDepositAsync`: pola tiga langkah yang sama sesudah alokasi deposit dibuat |
+| `BillingFinancialExceptionService` | **Diperbarui** | `.../Billing/Services/BillingFinancialExceptionService.cs` | Empat titik (penyesuaian diposting, write-off diposting, pembalikan penyesuaian, pembalikan write-off — pasangan dari keempat pemanggilan `RecordCorrectionIfLinkedAsync` yang sudah ada di baris 215, 431, 545, 641) memakai pola tiga langkah. Salinan privat `CalculateOutstandingAsync` (baris 669–722) **dihapus**, diganti pemanggilan ke service baru |
+| `BillingFinalizationService` | **Diperbarui** | `.../Billing/Services/BillingFinalizationService.cs` | Salinan privat `CalculateOutstandingAsync` (baris 247–285) **dihapus**, diganti pemanggilan ke service baru. Baris 127 (`invoice.Status = Final`) **tidak berubah** — finalisasi tetap selalu menghasilkan `FINAL` |
+| `BillingArApHandoffService` | **Diperbarui** | `.../Billing/Services/BillingArApHandoffService.cs` | Penjaga baris 150 diperluas menerima `FINAL` dan `CLOSED` (`BKC-DES-035`). Nol perubahan lain |
+| `BillingManagementServiceCollectionExtensions` | **Diperbarui** | `.../Billing/BillingManagementServiceCollectionExtensions.cs` | Satu baris `AddScoped<BillingInvoiceClosureService>()` |
+| `BilInvoice` | **Sudah ada** | `.../Billing/Models/BilInvoice.cs` | **Nol perubahan bentuk.** `ClosedAt` sudah ada sejak awal dan baru sekarang benar-benar diisi |
+| `BilArHandoff` | **Sudah ada** | `.../Billing/Models/BilArHandoff.cs` | **Tidak disentuh** (`BKC-DES-033`) |
+
+### Pesan galat yang MUST NOT berubah
+
+Salinan `CalculateOutstandingAsync` milik `BillingFinancialExceptionService` melempar `BillingFinancialExceptionValidationException` berpesan **"Invoice belum memiliki hasil perhitungan terkini."** ketika versi kalkulasi tidak ditemukan. Pesan itu sudah terlihat pengguna. Service bersama melempar exception netral, dan `BillingFinancialExceptionService` **MUST** menangkap lalu membungkusnya kembali sehingga pesan yang sampai ke layar **identik** dengan hari ini.
+
+## Bentuk `SyncClosureAsync`
+
+Alur di dalamnya, berurutan:
+
+| Urutan | Langkah | Bila tidak terpenuhi |
+| --- | --- | --- |
+| 1 | Muat `BilInvoice` dalam keadaan tracked | Lempar `KeyNotFoundException` — memanggil penyelarasan untuk invoice yang tidak ada adalah kesalahan pemrograman, bukan keadaan bisnis |
+| 2 | Bila `Status` bukan `FINAL` dan bukan `CLOSED` → berhenti, kembalikan "tidak ada perubahan" | `OPEN` belum difinalisasi; `SETTLED_BY_WRITE_OFF` punya jalurnya sendiri (`BKC-DEC-036`) dan **MUST NOT** disentuh penyelarasan ini |
+| 3 | Ambil kunci penasihat `BIL_INVOICE_LEDGER_{invoiceId:N}` | — (kunci penasihat transaksi bersifat dapat diambil ulang oleh transaksi yang sama) |
+| 4 | Hitung sisa tagihan pasien memakai perhitungan terkonsolidasi | Versi kalkulasi tidak ada → exception netral (lihat di atas) |
+| 5 | `FINAL` dan sisa tagihan `<= 0` → `Status = CLOSED`, `ClosedAt = occurredAt`, `RowVersion` baru, `UpdateBy`/`UpdateDateTime` diisi | — |
+| 6 | `CLOSED` dan sisa tagihan `> 0` → `Status = FINAL`, `ClosedAt = null`, `RowVersion` baru (`BKC-DES-031`) | — |
+| 7 | Keadaan lain → tidak menulis apa pun | Inilah yang membuat pemanggilan berulang aman |
+
+Langkah 7 adalah sumber sifat idempotent-nya: memanggil `SyncClosureAsync` dua kali untuk keadaan yang sama tidak menghasilkan perubahan kedua, tidak menaikkan `RowVersion` dua kali, dan tidak menerbitkan audit kedua.
+
+`occurredAt` **MUST** berasal dari waktu peristiwa yang diberikan pemanggil (misalnya `result.OccurredAt` pada jalur tender), **bukan** `DateTimeOffset.UtcNow` di dalam service — supaya `ClosedAt` menyatakan kapan tagihan benar-benar lunas, bukan kapan baris kode itu kebetulan dieksekusi.
+
+## Enam titik pemanggilan
+
+| # | Service dan method | Peristiwa | Arah gerak sisa tagihan | Hasil yang mungkin |
+| --- | --- | --- | --- | --- |
+| 1 | `BillingSettlementService.ReconcileTenderAsync` | Tender menjadi `SUCCEEDED` | Turun | `FINAL` → `CLOSED` |
+| 2 | `BillingSettlementService.ReconcileTenderAsync` | Tender `SUCCEEDED` menjadi `REVERSED` | Naik | `CLOSED` → `FINAL` |
+| 3 | `BillingAllocationService.AllocateDepositAsync` | Deposit dialokasikan ke invoice | Turun | `FINAL` → `CLOSED` |
+| 4 | `BillingFinancialExceptionService` — penyesuaian diposting | `BilAdjustment` `Credit` | Turun | `FINAL` → `CLOSED` |
+| 5 | `BillingFinancialExceptionService` — penyesuaian diposting | `BilAdjustment` `Debit` | Naik | `CLOSED` → `FINAL` |
+| 6 | `BillingFinancialExceptionService` — write-off diposting dan kedua jalur pembalikan | Bergantung arah | Dua arah | Umumnya tidak ada perubahan; lihat catatan |
+
+Titik 1 dan 2 adalah satu pemanggilan yang sama pada satu method — arah geraknya ditentukan hasil perhitungan, bukan cabang kode terpisah. Hal yang sama berlaku pada titik 4 dan 5.
+
+> **Catatan titik 6.** Write-off `PATIENT_AR` yang melunasi penuh memindahkan invoice ke `SETTLED_BY_WRITE_OFF` (`BKC-DEC-036`), sehingga langkah 2 pada `SyncClosureAsync` akan berhenti lebih dulu dan tidak menulis apa pun — perilaku yang memang diinginkan. Penyelarasan tetap dipasang di titik ini karena pembalikan write-off dapat mengembalikan invoice ke `OPEN`, dan write-off parsial pada invoice `CLOSED` dapat menggerakkan sisa tagihan tanpa memindahkan status.
+
+## Arsitektur folder
+
+```text
+Areas/HealthServices/BillingManagement/Billing/
+├── Models/
+│   ├── BilInvoice.cs                        # sudah ada — nol perubahan bentuk
+│   └── BilArHandoff.cs                      # sudah ada — tidak disentuh (BKC-DES-033)
+├── Services/
+│   ├── BillingInvoiceClosureService.cs      # BARU — satu-satunya file baru amendment ini
+│   ├── BillingSettlementService.cs          # diperbarui — titik 1 dan 2
+│   ├── BillingAllocationService.cs          # diperbarui — titik 3
+│   ├── BillingFinancialExceptionService.cs  # diperbarui — titik 4-6, hapus salinan perhitungan
+│   ├── BillingFinalizationService.cs        # diperbarui — hapus salinan perhitungan
+│   └── BillingArApHandoffService.cs         # diperbarui — penjaga baris 150
+└── BillingManagementServiceCollectionExtensions.cs   # diperbarui — satu baris AddScoped
+
+Migrations/
+└── <timestamp>_BackfillClosedInvoicesFromFullySettledFinal.cs   # BARU — data saja, nol skema
+```
+
+Satu file source baru. Nol folder baru. Nol berkas configuration EF yang disentuh, karena tidak ada kolom maupun index yang berubah.
+
+## Status model dan dampak migration
+
+| Tabel | Status | Kolom yang berubah | Dampak |
+| --- | --- | --- | --- |
+| `BilInvoice` | **Sudah ada** | **Nol.** `Status` dan `ClosedAt` sudah ada; yang berubah adalah nilai yang benar-benar tersimpan di dalamnya | Butuh pemutakhiran data (backfill), **tanpa** perubahan skema |
+| `BilArHandoff` | **Sudah ada** | Nol (`BKC-DES-033`) | Tidak ada |
+| Seluruh tabel lain modul ini | **Sudah ada** | Nol | Tidak ada |
+
+## Rencana migration
+
+Satu migration, nama usulan `BackfillClosedInvoicesFromFullySettledFinal`. **Nol perubahan skema** — isinya hanya `UPDATE`.
+
+### Langkah nol — dry-run baca-saja, wajib, di luar migration
+
+Dijalankan lebih dulu sebagai query `SELECT` biasa memakai kriteria yang **identik** dengan langkah 1. Keluarannya menjawab `BKC-OQ-100`:
+
+| Yang dihitung | Kenapa dibutuhkan |
+| --- | --- |
+| Jumlah invoice `FINAL` yang sisa tagihannya sudah nol | Ukuran sebenarnya dari backfill |
+| Berapa di antaranya yang sudah menerima penyesuaian atau write-off diposting **tanpa** baris koreksi AR (`BilHandoffAdjustment`) | Inilah jawaban `BKC-OQ-100`; menentukan apakah dibutuhkan koreksi AR susulan, bukan sekadar pemindahan status |
+| Berapa invoice berstatus `CLOSED` warisan yang `ClosedAt`-nya masih NULL | Ukuran langkah 3 |
+
+### Langkah migration
+
+| Urutan | Langkah | Tanpa mematikan layanan? | Langkah mundur |
+| --- | --- | :---: | --- |
+| 1 | `UPDATE BilInvoice SET Status='CLOSED' ...` untuk baris `Status='FINAL'`, `IsDelete=false`, yang sisa tagihannya `<= 0` menurut rumus yang sama persis dengan `CalculateOutstandingAsync` (versi kalkulasi current → dikurangi alokasi bersih → ditambah kelebihan alokasi → dikurangi write-off `PATIENT_AR` diposting → dikurangi penyesuaian bersih) | Ya | Lihat peringatan di bawah |
+| 2 | Isi `ClosedAt` baris yang baru dipindah, dari `MAX` waktu peristiwa pelunasan invoice itu: `BilTender.SettledAt` tender `SUCCEEDED`, atau `BilPaymentAllocation.CreateDateTime` bila tidak ada tender. Bila keduanya tidak ada, biarkan **NULL** | Ya | `SET ClosedAt = NULL` untuk baris yang sama |
+| 3 | Isi `ClosedAt` baris yang **sudah** `CLOSED` sejak sebelum amendment ini dan `ClosedAt`-nya NULL, dari sumber waktu yang sama | Ya | `SET ClosedAt = NULL` untuk baris yang sama |
+
+> **`ClosedAt` MUST NOT diisi dengan waktu migration dijalankan.** Kolom itu akan dibaca laporan sebagai "kapan tagihan ini lunas". Mengisinya dengan waktu eksekusi migration berarti menyatakan seluruh tagihan lama lunas pada detik yang sama — angka yang salah, dan salahnya tidak akan pernah terlihat sebagai galat.
+
+> **Langkah 1 tidak dapat dimundurkan secara selektif.** Sesudah aplikasi berjalan, invoice `CLOSED` hasil backfill tidak dapat dibedakan dari invoice `CLOSED` yang lahir normal lewat `SyncClosureAsync`, karena keduanya identik bentuknya — dan memang seharusnya identik. Pemulihan menuntut snapshot database sebelum migration. Karena itu migration ini **MUST** dijalankan setelah backup, dengan otorisasi eksplisit terpisah sesuai `AGENTS.md` bagian Keselamatan Database.
+
+> **Langkah 3 memperbaiki inkonsistensi warisan yang berbeda sebabnya.** Baris `CLOSED` yang sudah ada berasal dari era sebelum kontrak `BIL-STATE-0.4` diadopsi source, ketika finalisasi invoice lunas langsung menulis `CLOSED`. Baris-baris itu benar statusnya tetapi kosong `ClosedAt`-nya, karena kolom itu memang tidak pernah diisi siapa pun.
+
+## Rencana data master awal
+
+Nihil. Amendment ini tidak memperkenalkan satu pun tabel master dan tidak menuntut satu baris data master baru. Seluruh nilai yang dipakainya (`FINAL`, `CLOSED`) adalah konstanta pada `BillingInvoiceStatuses` yang sudah ada.
+
+## Yang sengaja tidak dibuat
+
+| Yang ditolak | Alasan |
+| --- | --- |
+| Nilai status `COLLECTED` pada `BillingHandoffStatuses` | `BKC-DES-033`. Mencampur sumbu "penyerahan fakta ke AR" dengan sumbu "piutang tertagih" pada satu kolom, untuk konsumen AR/AP yang belum ada |
+| Kolom `BilArHandoff.CollectedAt` | `BKC-DES-033`. Alasan yang sama, ditambah satu migration skema untuk kebutuhan yang belum terbukti |
+| Status invoice baru bernama `PAID`/`LUNAS` | `CLOSED` sudah berarti itu sesudah amendment ini, dan frontend sudah memetakan `CLOSED` ke badge yang ada. Menambah status kelima berarti dua status bermakna sama dan semua penjaga status di modul ini harus diperiksa ulang satu per satu |
+| Pekerjaan latar (background job) yang memindai invoice lunas secara berkala | Sisa tagihan hanya berubah karena peristiwa, dan keenam peristiwanya sudah dipasangi penyelarasan. Pemindaian berkala hanya akan menemukan yang sudah dipindahkan, sambil menambah satu sumber perubahan status yang berjalan di luar transaksi peristiwanya |
+| Endpoint manual "tutup invoice ini" untuk kasir | `BKC-DEC-100` menetapkan pelakunya **Sistem**. Endpoint manual membuka jalan menutup tagihan yang belum lunas, persis hal yang dijaga seluruh modul ini |
+| Dua service terpisah untuk perhitungan dan penyelarasan | `BKC-DES-028`. Keduanya selalu berubah bersama |
+| Mengubah `BillingFinalizationService` agar kembali menutup invoice saat finalisasi | Itu mengulang penyimpangan yang sudah diperbaiki "Pilihan A" pada temuan 2 September 2026, dan akan mematikan kembali jalur koreksi AR |
+
+## Keamanan dan privasi
+
+Nol permission baru, nol endpoint baru, nol perubahan pada pemeriksaan hak akses mana pun. Transisi dijalankan Sistem di dalam transaksi peristiwa yang **sudah** memeriksa hak akses pelakunya di pintu masuknya masing-masing (pembayaran, alokasi deposit, penyesuaian, write-off).
+
+Audit perpindahan status dicatat mengikuti pola yang sudah ada di modul ini: kategori `HealthServices.BillingManagement.Billing`, memuat `InvoiceId`, status sebelum dan sesudah, sisa tagihan yang terhitung, `occurredAt`, dan `ActorUserId`. **MUST NOT** memuat identitas pasien maupun payload provider — konsisten dengan `contracts/permission-audit-matrix.md` yang sudah berlaku.
+
+## Ringkasan amendment
+
+| Aspek | Nilai |
+| --- | --- |
+| Keputusan bisnis dasar | `BKC-DEC-100`–`BKC-DEC-102`, `approved` 18 September 2026 |
+| Masukan audit kemampuan | `01-existing-capability-map.md` § 21 (diaudit pada `21b47331`) |
+| Keputusan arsitektur | `BKC-DES-028`–`BKC-DES-035`, seluruhnya **`approved`** 18 September 2026. Approval turun bertahap dan sengaja tidak disimpulkan: `BKC-DES-033` lewat `BKC-DEC-103` dan `BKC-DES-029` lewat `BKC-DEC-104` — keduanya karena menyimpang dari bunyi harfiah keputusan bisnisnya — lalu enam sisanya lewat `BKC-DEC-105` |
+| Keputusan lama yang digantikan | **Nol.** Tidak ada `BKC-DES-*` sebelumnya yang dicabut maupun dipersempit |
+| Dampak skema | **Nol tabel baru, nol kolom baru, nol index baru.** Satu migration yang isinya hanya pemutakhiran data |
+| Dampak kontrak API | **Nol endpoint baru, nol field baru.** Satu perubahan **nilai**: `status` kini dapat bernilai `CLOSED` pada alur normal, dan `closedAt` kini benar-benar terisi |
+| Dampak frontend | **Nol.** Badge dan opsi filter `CLOSED` sudah ada (§ 21 capability map) |
+| Ketergantungan lintas modul | **Nol** |
+| Backend SHA diaudit | `21b4733154e91962cbd7094a102615b1d9eb2bf2` |
+| Butir yang MUST dijawab owner saat approval | ~~`BKC-DES-033` dan `BKC-DES-029`~~ — **keduanya sudah dijawab dan `approved`** 18 September 2026 (`BKC-DEC-103`, `BKC-DEC-104`). Tidak ada butir menyimpang yang tersisa |
+| Status | ~~draft~~ **approved** — `BKC-DES-028`–`035` disetujui Product/Domain Owner 18 September 2026 (`BKC-DEC-105`, wewenang ganda Finance/AR `BKC-DEC-085`). Approval ini **bukan** otorisasi membuat maupun menjalankan migration backfill; gerbang itu terpisah dan tetap menuntut konfirmasi eksplisit sesudah backup |
+
+---
+
+# Amendment 21 September 2026 — Penerbitan fakta finansial ke dua modul konsumen
+
+> `revisi blueprint`: `1.4`, status **draft**. Masukan: `BKC-DEC-106`–`109` (approved
+> 21 September 2026), `PHA-DEC-063`–`070`, `FIN-DEC-005`–`006`.
+> Backend SHA diaudit: `6782ae652ca53299f7469c49b2edb64d23e77b60`.
+>
+> **Ini amendment pertama yang membangun konsumen nyata.** Seluruh amendment sebelumnya bekerja
+> di dalam Billing sendiri; `BIL-INTEGRATION-1.0` bahkan sengaja *memutus* ketergantungan status
+> invoice dari AR/AP karena konsumennya belum ada. Kini dua konsumen berdiri dan menunggu.
+
+## 1. Perubahan pada bounded context
+
+Tidak ada konteks baru. Yang berubah adalah **invariant** `BIL-CTX-05`.
+
+| Konteks | Aggregate root | Invariant sesudah amendment ini | Owner |
+| --- | --- | --- | --- |
+| `BIL-CTX-05` Billing Finalization & Handoff | `BilFinalizationRecord`, **`BilCollectionHandoff`** (baru), **`BilPrescriptionClearanceHandoff`** (baru) | Finalisasi sekali per versi; AR per debtor dan AP dokter idempotent; koreksi memakai handoff adjustment. **Baru:** surat penerimaan uang dan surat clearance resep adalah aggregate root tersendiri yang **MUST NOT** bergantung pada finalisasi | Billing/Finance Integration |
+
+### Invariant baru yang paling mudah dilanggar
+
+| Invariant | Sebabnya |
+| --- | --- |
+| `BilCollectionHandoff` **MUST NOT** memiliki foreign key ke `BilFinalizationRecord` | Pasien dapat membayar sementara tagihan masih terbuka, dan finalisasi menyusul belakangan. Menjadikannya anak finalisasi berarti uang yang masuk lebih dulu tidak akan pernah sampai ke buku Finance — persis yang diminta dicegah |
+| Surat **MUST** terbit di dalam transaksi yang sama dengan pergerakan uang atau perubahan keadaan yang melahirkannya | Surat yang terbit belakangan di luar transaksi membuka kemungkinan uang bergerak tanpa suratnya. Itu tepat yang tidak boleh terjadi pada angka |
+| Nomor versi finansial **MUST** naik monoton per resep | Konsumen menolak versi yang lebih tua (`PHA-DEC-063`). Nomor yang melompat mundur membuat resep tertahan selamanya |
+| Satu peristiwa **MUST NOT** diasumsikan melahirkan dua surat | Syarat keduanya berbeda. Lihat tabel peristiwa pada `contracts/integration-contract.md` |
+
+## 2. Tabel kepemilikan data
+
+| Kelompok data | Modul pemilik | Dipakai modul ini | Dibuat ulang di modul ini |
+| --- | --- | :---: | --- |
+| Tagihan pasien dan barisnya | `billing-kasir` (`BIL-CTX-01`) | Ya | Tidak — tabel yang sudah ada dibaca |
+| Tender, penyelesaian, alokasi pembayaran | `billing-kasir` (`BIL-CTX-02`) | Ya | Tidak — tabel yang sudah ada dibaca |
+| Cara bayar beserta penanda asuransi/penjamin | Billing Master Data (`MstPaymentMethod`) | Ya | Tidak — dibaca untuk menentukan hasil finansial |
+| Shift kasir | `billing-kasir` (`BIL-CTX-04`) | Ya | Tidak — hanya identitasnya yang disalin ke surat |
+| **Surat penerimaan uang** | `billing-kasir` (`BIL-CTX-05`) | Ya | **Ya — tabel baru** |
+| **Surat clearance resep** | `billing-kasir` (`BIL-CTX-05`) | Ya | **Ya — tabel baru** |
+| Resep, baris resep, penyerahan obat | Pharmacy Management | Ya, **baca saja** | Tidak — **MUST NOT** ditulis dalam keadaan apa pun |
+| Buku piutang dan penerimaan Finance | `finance-management` | Tidak | Tidak — Finance membacanya sendiri dari surat |
+| Proyeksi finansial di sisi Farmasi | `pharmacy` | Tidak | Tidak — milik konsumen, dirancang pada blueprint Farmasi |
+| Jurnal akuntansi | `AccountingManagement` | Tidak | Tidak — Billing **MUST NOT** mengirim apa pun langsung ke Accounting |
+
+Dua baris terakhir adalah batas yang paling mudah dilanggar tanpa sengaja. Billing menerbitkan
+fakta; ia **tidak** ikut memutuskan apa yang konsumen lakukan dengan fakta itu.
+
+## 3. Class diagram — tambahan pada `BIL-CTX-05`
+
+```mermaid
+classDiagram
+  direction LR
+
+  class BilInvoice {
+    +Guid Id
+    +Guid EncounterId
+    +string Status
+    +DateTimeOffset ClosedAt
+  }
+
+  class BilTender {
+    +Guid Id
+    +Guid SettlementId
+    +Guid PaymentMethodId
+    +decimal Amount
+    +string Status
+    +string KwitansiNumber
+    +Guid CashierShiftId
+  }
+
+  class BilCollectionHandoff {
+    +Guid Id
+    +Guid TenderId
+    +Guid SettlementId
+    +Guid InvoiceId
+    +string TenderStatus
+    +string SourceInvoiceStatus
+    +decimal Amount
+    +Guid HandoffKey
+    +string Status
+    +DateTimeOffset AcknowledgedAt
+  }
+
+  class BilPrescriptionClearanceHandoff {
+    +Guid Id
+    +Guid PrescriptionId
+    +Guid InvoiceId
+    +string ClearanceStatus
+    +string FinancialOutcome
+    +string ReasonCode
+    +long FinancialVersion
+    +DateTimeOffset EffectiveAt
+    +string Status
+    +DateTimeOffset AcknowledgedAt
+  }
+
+  class BilConsumerHandoffService {
+    +PublishForTenderAsync()
+    +PublishForClearanceChangeAsync()
+    +ReadPrescriptionClearanceAsync()
+  }
+
+  BilInvoice "1" --> "many" BilCollectionHandoff : menjadi rujukan
+  BilTender "1" --> "many" BilCollectionHandoff : satu per status
+  BilInvoice "1" --> "many" BilPrescriptionClearanceHandoff : menjadi rujukan
+  BilConsumerHandoffService ..> BilCollectionHandoff : menerbitkan
+  BilConsumerHandoffService ..> BilPrescriptionClearanceHandoff : menerbitkan
+```
+
+Perhatikan yang **tidak** ada pada diagram: tidak ada garis dari `BilFinalizationRecord` ke
+kedua tabel baru. Itu disengaja, sesuai invariant pada bagian 1.
+
+## 4. Penjelasan setiap class
+
+### `BilCollectionHandoff`
+
+| Aspek | Isi |
+| --- | --- |
+| **Status** | **Baru** |
+| **Lokasi file** | `Areas/HealthServices/BillingManagement/Billing/Models/BilCollectionHandoff.cs` |
+| Konteks | `BIL-CTX-05` |
+| Peran | Menyatakan kepada Finance bahwa satu tender mencapai keadaan akhirnya, beserta seluruh rincian yang dibutuhkan buku penerimaan |
+| Kunci alami | Pasangan identitas tender dan status tender |
+| Relasi | Menunjuk tagihan, penyelesaian, dan tender lewat identitas. **Tanpa** foreign key ke finalisasi |
+| Perilaku hapus | `DeleteBehavior.Restrict` — jejak audit lintas modul tidak boleh ikut terhapus berantai |
+| Sifat | Tetap setelah dibuat. Pembalikan tender melahirkan **baris baru**, bukan pembaruan baris lama |
+
+### `BilPrescriptionClearanceHandoff`
+
+| Aspek | Isi |
+| --- | --- |
+| **Status** | **Baru** |
+| **Lokasi file** | `Areas/HealthServices/BillingManagement/Billing/Models/BilPrescriptionClearanceHandoff.cs` |
+| Konteks | `BIL-CTX-05` |
+| Peran | Menyatakan kepada Farmasi bahwa keadaan clearance sebuah resep berubah, beserta sebab dan nomor versinya |
+| Kunci alami | Pasangan identitas resep dan nomor versi finansial |
+| Relasi | Menunjuk tagihan lewat identitas; menunjuk resep lewat identitas **tanpa** foreign key ke tabel Farmasi |
+| Perilaku hapus | `DeleteBehavior.Restrict` |
+| Sifat | Tetap setelah dibuat. Perubahan berikutnya melahirkan baris baru bernomor versi lebih tinggi |
+
+Alasan identitas resep sengaja **bukan** foreign key: pola yang sama sudah dipakai
+`FinBillingHandoffIntake` di sisi konsumen, dan alasannya identik — tidak mengunci tabel milik
+modul lain. Foreign key ke tabel Farmasi akan membuat penghapusan atau perubahan skema di
+Farmasi menyeret Billing ikut gagal.
+
+### `BilConsumerHandoffService`
+
+| Aspek | Isi |
+| --- | --- |
+| **Status** | **Baru** |
+| **Lokasi file** | `Areas/HealthServices/BillingManagement/Billing/Services/BilConsumerHandoffService.cs` |
+| Fungsi utama | Satu-satunya tempat yang menerbitkan surat ke konsumen hilir, dan satu-satunya tempat yang menjawab pemeriksaan ulang keadaan clearance |
+| Dipanggil siapa | `BillingSettlementService`, `BillingAllocationService`, `BillingFinalizationService`, `BillingFinancialExceptionService` — empat pemanggil yang sama dengan `BillingInvoiceClosureService` |
+| Membuka transaksi sendiri | **Tidak.** Ia selalu ikut transaksi pemanggil, supaya surat dan pergerakan uangnya tidak pernah terpisah nasib |
+| Kunci penasihat | Memakai ulang kunci penasihat tagihan yang sudah ada (`BKC-DES-032`), tidak membuat kunci baru |
+
+### `BillingInvoiceClosureService`
+
+| Aspek | Isi |
+| --- | --- |
+| **Status** | **Diperbarui** |
+| **Lokasi file** | `Areas/HealthServices/BillingManagement/Billing/Services/BillingInvoiceClosureService.cs` |
+| Yang berubah | Hasil penyelarasan (`InvoiceClosureChange`) kini ikut membawa keterangan **sebab** perubahan, supaya penerbit dapat menentukan kode sebab tanpa menebak dari selisih angka |
+| Yang **tidak** berubah | Perhitungan sisa tagihan dan aturan transisi status. `BKC-DEC-100` dan `BKC-DES-031` tidak diusik sama sekali |
+
+### Configuration EF Core
+
+| Class | Status | Lokasi file |
+| --- | --- | --- |
+| `BilCollectionHandoffConfiguration` | **Baru** | `Repositories/Configurations/HealthServices/BillingManagement/Billing/BilCollectionHandoffConfiguration.cs` |
+| `BilPrescriptionClearanceHandoffConfiguration` | **Baru** | `Repositories/Configurations/HealthServices/BillingManagement/Billing/BilPrescriptionClearanceHandoffConfiguration.cs` |
+
+Configuration **tidak** berada di dalam `Areas/`. Ia terpisah di bawah
+`Repositories/Configurations/`, mengikuti aturan struktur backend.
+
+### Controller
+
+| Class | Status | Lokasi file | Service yang dipakai |
+| --- | --- | --- | --- |
+| `BillingConsumerHandoffController` | **Baru** | `Areas/HealthServices/BillingManagement/Billing/Controllers/BillingConsumerHandoffController.cs` | `BilConsumerHandoffService` |
+
+Controller ini **hanya** melayani kebutuhan operasional manusia — melihat surat yang menggantung
+dan mencatat pengakuan penerimaan. Pembacaan keadaan clearance oleh Farmasi **tidak** lewat
+controller ini, melainkan pemanggilan langsung di dalam proses yang sama.
+
+## 5. Arsitektur folder
+
+```text
+Areas/HealthServices/BillingManagement/Billing/
+├── Models/
+│   ├── BilCollectionHandoff.cs                      # BARU
+│   ├── BilPrescriptionClearanceHandoff.cs           # BARU
+│   ├── BilArHandoff.cs                              # sudah ada — tidak disentuh (BKC-DES-033)
+│   └── BilInvoice.cs                                # sudah ada — tidak disentuh
+├── Services/
+│   ├── BilConsumerHandoffService.cs                 # BARU
+│   └── BillingInvoiceClosureService.cs              # DIPERBARUI — sebab perubahan ikut dibawa
+├── Controllers/
+│   └── BillingConsumerHandoffController.cs          # BARU
+└── Dtos/
+    └── BillingConsumerHandoffDtos.cs                # BARU
+
+Repositories/Configurations/HealthServices/BillingManagement/Billing/
+├── BilCollectionHandoffConfiguration.cs             # BARU
+└── BilPrescriptionClearanceHandoffConfiguration.cs  # BARU
+```
+
+Tidak ada penyimpangan struktur pada amendment ini. Seluruh berkas mengikuti pola standar.
+
+## 6. Status model dan dampak migration
+
+| Tabel | Status | Kolom yang berubah | Dampak migration |
+| --- | --- | --- | --- |
+| `BilCollectionHandoff` | **Baru** | Seluruhnya | Satu tabel baru beserta index |
+| `BilPrescriptionClearanceHandoff` | **Baru** | Seluruhnya | Satu tabel baru beserta index |
+| `BilInvoice` | Sudah ada | **Nol** | Tidak tersentuh |
+| `BilTender` | Sudah ada | **Nol** | Tidak tersentuh |
+| `BilArHandoff` | Sudah ada | **Nol** | Tidak tersentuh — `BKC-DES-033` tetap berlaku |
+
+**Nol kolom ditambahkan pada tabel yang sudah ada.** Ini konsekuensi langsung dari verifikasi
+Finance bahwa seluruh bidang yang dibutuhkannya sudah tersedia di `BilTender` dan
+`BilSettlement` — penerbitan hanya meneruskan, tidak menyimpan yang baru.
+
+## 7. Rencana migration
+
+| Urutan | Nama | Tanpa mematikan layanan | Pengisian data lama | Langkah mundur |
+| --- | --- | --- | --- | --- |
+| 1 | `AddBillingConsumerHandoff` | **Ya** — hanya menambah dua tabel baru, tidak menyentuh tabel yang sedang dipakai | **Tidak ada.** Surat hanya terbit untuk peristiwa sejak tabel berdiri | `Down` menghapus kedua tabel; aman karena belum ada konsumen yang bergantung |
+
+### Yang sengaja tidak di-backfill, dan akibatnya
+
+Tender yang sudah berhasil **sebelum** tabel ini berdiri tidak akan punya surat. Begitu pula
+resep yang tagihannya sudah lunas sebelum itu.
+
+Akibatnya nyata dan **MUST** diketahui pemilik proses: resep yang sudah terlanjur macet di
+keadaan menunggu pembayaran **tidak** akan otomatis terlepas begitu jalur ini dibangun. Keduanya
+memerlukan satu pekerjaan pemulihan tersendiri — memeriksa resep yang tagihannya sudah lunas
+lalu menerbitkan surat pertamanya.
+
+Pekerjaan itu **bukan** bagian migration ini, karena ia pemutakhiran data yang menuntut
+otorisasi terpisah. Ia dicatat sebagai pekerjaan susulan pada roadmap, dan permukaan pemeriksaan
+ulang (`BKC-DEC-107`) sudah menyediakan jalannya tanpa skrip khusus.
+
+## 8. Rencana data master awal
+
+**Tidak ada tabel master baru.** Amendment ini tidak menambah satu pun master, dan tidak
+memerlukan isi awal apa pun agar dapat dipakai.
+
+Satu master yang sudah ada menjadi **penentu perilaku** dan karena itu isinya wajib benar:
+
+| Master | Isi minimum | Sumber nilai | Akibat bila salah |
+| --- | --- | --- | --- |
+| `MstPaymentMethod` | Setiap cara bayar yang mewakili penjaminan **MUST** bertanda asuransi atau penjamin perusahaan | Kebijakan Finance | Pembayaran lewat asuransi akan tercatat sebagai `Paid`, bukan `InsuranceApproved`, dan hasil finansial pada resep menjadi keliru |
+
+Penanda itu **MUST NOT** ditulis tetap di service maupun controller; ia dibaca dari master.
+
+## 9. Yang sengaja tidak dibuat
+
+| Yang ditolak | Alasan |
+| --- | --- |
+| Satu tabel handoff serba-guna bermuatan bebas | Ditolak `BKC-DEC-106`. Muatan bebas menghilangkan penjagaan bentuk; kesalahan isi baru ketahuan saat dibaca konsumen |
+| Kolom nominal terbayar per baris tagihan | Ditolak dua kali — `PHA-DEC-064` dan `PHA-DEC-068-A`. Bila kelak dibutuhkan, itu keputusan pemilik Billing tersendiri |
+| Sasaran alokasi pembayaran selain tagihan utuh | Sama seperti di atas. `BilPaymentAllocation` tetap hanya mengenal `INVOICE` |
+| Tabel proyeksi finansial di sisi Billing | Proyeksi adalah milik konsumen. Billing memegang kebenaran, bukan salinannya |
+| Foreign key ke tabel Farmasi | Akan membuat perubahan skema di Farmasi menyeret Billing ikut gagal. Pola `FinBillingHandoffIntake` sudah memutuskan hal yang sama untuk alasan yang sama |
+| Anak `BilFinalizationRecord` untuk surat penerimaan | Akan membuat uang yang masuk sebelum finalisasi tidak pernah sampai ke Finance |
+| Pekerjaan latar penyapu surat menggantung | `BKC-DEC-108` memilih keterlihatan pasif; ambang waktunya belum diputuskan (`BKC-OQ-101`) |
+| Jenis surat ketiga untuk pemberitahuan finalisasi | Finance menerima `BilArHandoff` yang menyusul sebagai penanda yang sudah cukup |
+
+## 10. Keputusan arsitektur
+
+| ID | Keputusan | Dasar | Alasan |
+| --- | --- | --- | --- |
+| `BKC-DES-036` | Dua tabel handoff berkolom tegas, bukan satu tabel serba-guna | `BKC-DEC-106` | Isi keduanya memang berbeda; kolom tegas menjaga bentuk pada saat penulisan, bukan saat pembacaan |
+| `BKC-DES-037` | `BilCollectionHandoff` aggregate root tersendiri, tanpa foreign key ke finalisasi | `BKC-DEC-106`, `FIN-DEC-005` | Pembayaran dapat mendahului finalisasi |
+| `BKC-DES-038` | Satu service penerbit dipanggil dari empat titik yang sama dengan penyelaras status | `BKC-DEC-106` | Satu titik deteksi; mustahil satu konsumen tahu sementara yang lain tidak |
+| `BKC-DES-039` | Nomor versi finansial naik monoton per resep, dilindungi kunci penasihat yang sudah ada | `PHA-DEC-063` | Konsumen menolak versi lebih tua; kunci penasihat mencegah dua surat berversi sama |
+| `BKC-DES-040` | Pembacaan keadaan clearance berbentuk pemanggilan dalam proses, bukan HTTP | `BKC-DEC-107` | Konsisten `BIL-INT-010`–`012`; satu assembly |
+| `BKC-DES-041` | `InvoiceClosureChange` membawa keterangan sebab | `BKC-DEC-106`, `PHA-DEC-068` | Kode sebab **MUST NOT** ditebak dari selisih angka; membedakan biaya non-farmasi dari koreksi harga obat menuntut sebab yang eksplisit |
+
+## 11. Yang MUST dijawab owner saat approval
+
+| Butir | Pertanyaan |
+| --- | --- |
+| Pekerjaan pemulihan | Resep yang sudah terlanjur macet tidak terlepas sendiri oleh migration ini. Apakah pekerjaan pemulihannya masuk gelombang yang sama, atau menyusul? |
+| `BKC-OQ-101` | Ambang waktu surat menggantung dan penerimanya — dapat ditunda, tetapi **MUST** diakui terbuka |
+
+## 12. Status amendment
+
+| Field | Nilai |
+| --- | --- |
+| Keputusan lama yang digantikan | **Nol.** Tidak ada `BKC-DES-*` sebelumnya yang dicabut maupun dipersempit. `BKC-DES-031` dan `BKC-DES-033` tetap berlaku utuh |
+| Dampak skema | **Dua tabel baru**, nol kolom baru pada tabel yang sudah ada |
+| Dampak kontrak API | Dua endpoint operasional baru; nol endpoint lama yang berubah |
+| Dampak frontend | Satu layar operasional baru untuk memeriksa surat menggantung |
+| Ketergantungan lintas modul | Finance dan Farmasi sebagai konsumen; keduanya sudah menyetujui kontraknya |
+| Status | **draft** — menunggu approval Product/Domain Owner |
+
+---
+
+# Amendment 24 September 2026 — Integrasi Rawat Inap ↔ Billing Management (Pass B)
+
+> `revisi blueprint`: `1.5`, status **draft**. Masukan: `BKC-DEC-112`–`119` (approved 24 September 2026), `BKC-AC-080`–`087`, `PRD Integrasi-Rawat-Inap-dengan-Billing.md`.
+> Backend SHA diaudit: `dcb9c88e`, Frontend SHA diaudit: `fdebb9059`.
+>
+> **Tujuan Amendment:** Menghubungkan modul Rawat Inap (Pass A, `RWI-DEC-156`–`162`) dengan Modul Billing Management (Pass B) secara konsisten dan akuntabel. Amendment ini menetapkan Billing sebagai **single source of truth** untuk *Financial Clearance*, mengotomasi pembebanan kamar rawat inap dengan aturan jam masuk bertingkat dan alokasi transfer pro-rata, memberlakukan biaya administrasi rawat inap berbasis persentase (7% dengan pagu Rp6.000.000), serta menegakkan auto-reblock saat tagihan susulan tiba setelah clearance awal.
+
+## 1. Perubahan pada Bounded Context & Invariant
+
+Amendment ini memperbarui invariant pada dua bounded context:
+
+| Konteks | Aggregate root | Invariant sesudah amendment ini | Owner |
+| --- | --- | --- | --- |
+| `BIL-CTX-01` Billing Account & Charge | `BilInvoice` | Satu invoice per encounter; charge idempotent; versi kalkulasi immutable. **Baru:** Mendukung intake domain `INPATIENT` / `ROOM_STAY` (status: `OCCUPIED`, `TRANSFERRED`, `CORRECTED`, `RELEASED`). Perhitungan sewa kamar mendukung diskon jam masuk hari pertama bertingkat dan pembagian tarif pro-rata durasi menit hunian untuk >1 transfer di hari kalender yang sama. Penyesuaian admin fee rajal yang digantikan oleh admin fee ranap. | Billing |
+| `BIL-CTX-05` Billing Finalization & Handoff | `BilFinalizationRecord`, `BilCollectionHandoff`, `BilPrescriptionClearanceHandoff`, **`BilInpatientClearanceHandoff`** (baru) | Finalisasi sekali per versi; handoff AR/AP idempotent; clearance resep/surat penerimaan independen. **Baru:** Billing adalah *single source of truth* untuk kelayakan pemulangan rawat inap via `BilInpatientClearanceHandoff` (`PENDING`, `BLOCKED`, `CLEARED`, `REVOKED`). Tagihan susulan yang tiba pada invoice berstatus `CLEARED` otomatis memicu transisi menjadi `REVOKED` (*Auto-Reblock*) dan memancarkan sinyal pembatalan ke Rawat Inap. | Billing/Inpatient Integration |
+
+### Invariant Baru yang Wajib Dipertahankan
+
+1. **Billing adalah Pemegang Tunggal Status Kelayakan Finansial (`BKC-DEC-115`):** Rawat Inap tidak boleh menentukan sendiri apakah pasien sudah layak pulang secara finansial. Billing menghitung sisa tagihan pasien (`PatientOutstanding = TotalPatientResponsibility - TotalSettledAndAllocated`). Bila `PatientOutstanding <= 0`, status menjadi `CLEARED`. Bila `PatientOutstanding > 0`, status menjadi `BLOCKED`.
+2. **Auto-Reblock Saat Tagihan Susulan (`BKC-DEC-116`):** Bila intake tagihan baru masuk pada invoice yang status kelayakan rawat inapnya sudah `CLEARED`, sistem Billing **wajib** mengubah status kelayakan menjadi `REVOKED`, mengisi `RevocationReason = "LATE_CHARGE_POSTED"`, menaikkan versi finansial, dan menerbitkan sinyal pemblokiran ulang ke Rawat Inap.
+3. **Porsi Tanggung Jawab Pasien untuk Deposit Tindakan Besar (`BKC-DEC-114`):** Verifikasi deposit 100% tindakan besar hanya diwajibkan atas **Porsi Tanggung Jawab Pasien** (*Patient Responsibility / Excess*), bukan total biaya bruto tindakan. Jika penjamin menanggung 80%, deposit yang wajib disetor pasien adalah 20%.
+4. **Non-Destructive IGD Consolidation (`BKC-DEC-117`):** Tagihan IGD yang dialihkan ke rawat inap digabungkan dalam invoice rawat inap, namun baris tagihan IGD tetap mempertahankan `SourceDomain = "EMERGENCY"` demi transparansi rincian biaya dan pemisahan pertanggungjawaban.
+5. **Gugurnya Biaya Administrasi Rajal (`BKC-DEC-119`):** Saat pasien rawat jalan dialihkan ke rawat inap:
+   - Jika biaya admin rajal belum dibayar, baris tagihan admin rajal dibatalkan (*voided*) dan digantikan oleh admin ranap.
+   - Jika biaya admin rajal sudah terlanjur dibayar di kasir poli, nominal admin rajal dialihkan sebagai kredit pembayaran (*progress payment* / `BilRefundableCredit`) yang memotong total tagihan rawat inap.
+
+## 2. Tabel Kepemilikan Data
+
+| Kelompok data | Modul pemilik | Dipakai modul ini | Dibuat ulang di modul ini |
+| --- | --- | :---: | --- |
+| Admisi & Penempatan Bed Pasien (`InpBedPlacement`) | Rawat Inap (`Inpatient`) | Ya, **baca saja** | Tidak; Billing membaca data placement untuk perhitungan sewa kamar |
+| Riwayat Pindah Kamar (Bed Transfer) | Rawat Inap (`Inpatient`) | Ya, **baca saja** | Tidak; Billing membaca durasi menit per bed untuk pro-rata transfer |
+| Order Tindakan Klinis & Operasi | Domain Klinis / OK | Ya, **baca saja** | Tidak; Billing menerima charge intake via adapter |
+| Surat Jaminan & Plafon Asuransi | Asuransi / Penjamin | Ya, **baca saja** | Tidak; Billing mencatat penjaminan pada kalkulasi versi |
+| **Surat Kelayakan Finansial Rawat Inap (`BilInpatientClearanceHandoff`)** | Billing (`BIL-CTX-05`) | Ya | **Ya — tabel baru** |
+| Tagihan Kamar & Rincian Invoice (`BilInvoice`, `BilInvoiceItem`) | Billing (`BIL-CTX-01`) | Ya | Tidak; tabel yang sudah ada dipakai dengan pendaftaran domain `ROOM_STAY` |
+| Kebijakan Biaya Administrasi (`MstAdministrationFeePolicy`) | Billing Master Data | Ya | Tidak; tabel yang sudah ada diperbarui dengan kolom persentase dan pagu |
+| Rekam Izin Pemulangan Medis | Rawat Inap (`Inpatient`) | Ya, referensi status | Tidak; Rawat Inap yang mengelola izin medis pemulangan |
+
+## 3. Class Diagram
+
+### Diagram 1: Hubungan Rawat Inap ke Billing Charge & Invoice
+
+```mermaid
+classDiagram
+  direction TB
+
+  class InpBedPlacement {
+    <<Rawat Inap>>
+    +Guid Id
+    +Guid AdmissionId
+    +Guid BedId
+    +Guid RoomId
+    +DateTimeOffset OccupiedFrom
+    +DateTimeOffset? OccupiedTo
+    +string Status
+  }
+
+  class ContractBillingChargeSourceAdapter {
+    <<Billing Service>>
+    +RegisterSourcePolicy()
+    +ProcessChargeIntakeAsync()
+    +NormalizeRoomStayCharge()
+  }
+
+  class BilInvoice {
+    <<Billing Aggregate>>
+    +Guid Id
+    +Guid EncounterId
+    +string Status
+    +decimal TotalAmount
+    +decimal PatientAmount
+    +decimal GuarantorAmount
+    +int CurrentCalculationVersion
+  }
+
+  class BilInvoiceItem {
+    <<Billing Entity>>
+    +Guid Id
+    +Guid InvoiceId
+    +string SourceDomain
+    +string SourceDetailId
+    +string ItemCode
+    +string ItemName
+    +decimal Quantity
+    +decimal UnitPrice
+    +decimal LineTotal
+    +string Status
+  }
+
+  InpBedPlacement ..> ContractBillingChargeSourceAdapter : "Emit ROOM_STAY Event"
+  ContractBillingChargeSourceAdapter --> BilInvoice : "Intake ke Invoice"
+  BilInvoice "1" *-- "many" BilInvoiceItem : "Contains Items"
+```
+
+### Diagram 2: Inpatient Financial Clearance & Auto-Reblock Handoff
+
+```mermaid
+classDiagram
+  direction LR
+
+  class BilInvoice {
+    +Guid Id
+    +Guid EncounterId
+    +string Status
+    +decimal TotalAmount
+    +decimal PatientAmount
+    +int CurrentCalculationVersion
+  }
+
+  class BilInpatientClearanceHandoff {
+    <<Aggregate Root Baru>>
+    +Guid Id
+    +Guid EncounterId
+    +Guid InvoiceId
+    +string ClearanceStatus
+    +string FinancialOutcome
+    +decimal OutstandingBalance
+    +decimal TotalPatientResponsibility
+    +decimal TotalPaidOrAllocated
+    +string ReasonCode
+    +string RevocationReason
+    +long FinancialVersion
+    +DateTimeOffset EffectiveAt
+    +Guid CorrelationId
+    +Guid CausationId
+    +string Status
+    +DateTimeOffset? AcknowledgedAt
+  }
+
+  class InpatientClearanceService {
+    <<Service Baru>>
+    +EvaluateClearanceAsync(encounterId) BilInpatientClearanceHandoff
+    +AutoReblockIfLateChargeAsync(invoiceId, reason)
+    +GetLatestClearanceAsync(encounterId) ClearanceDto
+    +AcknowledgeClearanceAsync(handoffId)
+  }
+
+  BilInvoice "1" --> "many" BilInpatientClearanceHandoff : "Memiliki Riwayat Clearance"
+  InpatientClearanceService ..> BilInvoice : "Evaluasi Sisa Tagihan"
+  InpatientClearanceService ..> BilInpatientClearanceHandoff : "Menerbitkan / Membatalkan Surat"
+```
+
+### Diagram 3: Kebijakan Administrasi Rawat Inap (Persentase + Cap)
+
+```mermaid
+classDiagram
+  direction TB
+
+  class MstAdministrationFeePolicy {
+    <<Master Data Diperbarui>>
+    +Guid Id
+    +string Code
+    +string Name
+    +string ServiceType
+    +decimal Amount
+    +decimal? Percentage
+    +decimal? CapAmount
+    +string CalculationType
+    +bool OncePerPatientLocalDay
+    +int ReplacementPriority
+    +bool Coverable
+    +bool Discountable
+    +DateTimeOffset EffectiveFrom
+    +DateTimeOffset? EffectiveTo
+    +bool IsActive
+  }
+
+  class AdministrationFeeCalculationService {
+    <<Billing Service Diperbarui>>
+    +CalculateInpatientAdminFeeAsync(eligibleBillAmount)
+    +HandleOutpatientAdminFeeReplacementAsync(encounterId)
+  }
+
+  AdministrationFeeCalculationService ..> MstAdministrationFeePolicy : "Membaca Tarif 7% Cap 6 Juta"
+```
+
+## 4. Penjelasan Setiap Class
+
+### Model & Configuration
+
+| Class | Status | Lokasi file | Tanggung jawab |
+| --- | --- | --- | --- |
+| `BilInpatientClearanceHandoff` | **Baru** | `Areas/HealthServices/BillingManagement/Billing/Models/BilInpatientClearanceHandoff.cs` | Aggregate root mandiri penyimpan fakta kelayakan pemulangan rawat inap (`PENDING`, `BLOCKED`, `CLEARED`, `REVOKED`) tanpa FK skema ke Rawat Inap |
+| `BilInpatientClearanceHandoffConfiguration` | **Baru** | `Repositories/Configurations/HealthServices/BillingManagement/Billing/BilInpatientClearanceHandoffConfiguration.cs` | Konfigurasi EF Core untuk mapping tabel `BilInpatientClearanceHandoff`, indeks, dan constraint konkurensi |
+| `MstAdministrationFeePolicy` | **Diperbarui** | `Areas/HealthServices/BillingManagement/MasterData/Models/MstAdministrationFeePolicy.cs` | Penambahan properti nullable `Percentage` (decimal 5,2) dan `CapAmount` (decimal 18,2) untuk mendukung biaya admin ranap 7% pagu Rp6.000.000 |
+
+### Service & Application Layer
+
+| Class | Status | Lokasi file | Tanggung jawab |
+| --- | --- | --- | --- |
+| `InpatientClearanceService` & `IInpatientClearanceService` | **Baru** | `Areas/HealthServices/BillingManagement/Billing/Services/InpatientClearanceService.cs` | Menghitung saldo pasien ranap, mengevaluasi kelayakan finansial, menerbitkan surat handoff, dan memproses auto-reblock saat tagihan susulan |
+| `ContractBillingChargeSourceAdapter` | **Diperbarui** | `Areas/HealthServices/BillingManagement/Billing/Services/ContractBillingChargeSourceAdapter.cs` | Mendaftarkan source domain `INPATIENT` / `ROOM_STAY` ke `SourcePolicies` dengan status billable: `OCCUPIED`, `TRANSFERRED`, `CORRECTED`, `RELEASED` |
+| `PatientBillingSummaryService` | **Diperbarui** | `Areas/HealthServices/BillingManagement/Billing/Services/PatientBillingSummaryService.cs` | **Perbaikan Desain (Repair):** Melepaskan ketergantungan lama ke `InpFinancialClearance`. Menambahkan kalkulasi sewa kamar bertingkat (jam masuk & late checkout) dan alokasi transfer kamar pro-rata menit |
+| `AdministrationFeeCalculationService` | **Diperbarui** | `Areas/HealthServices/BillingManagement/Billing/Services/AdministrationFeeCalculationService.cs` | Menghitung biaya admin ranap persentase ber-cap dan menangani void/kredit biaya admin rajal saat pasien naik ke rawat inap |
+| `BillingConsumerHandoffService` | **Diperbarui** | `Areas/HealthServices/BillingManagement/Billing/Services/BillingConsumerHandoffService.cs` | Menambahkan hook pemanggilan re-evaluasi clearance ranap pada event pembayaran tender atau settlement invoice |
+
+### Controller & DTO
+
+| Class | Status | Lokasi file | Service yang dipakai | Hak akses / Atribut |
+| --- | --- | --- | --- | --- |
+| `InpatientClearanceController` | **Baru** | `Areas/HealthServices/BillingManagement/Billing/Controllers/InpatientClearanceController.cs` | `IInpatientClearanceService` | `[Tags("BillingInpatientIntegration")]`, `[AccessPermission("BillingInpatient", "Read")]` & `[AccessPermission("BillingInpatient", "Clearance")]` |
+| `BillingInpatientIntegrationDtos` | **Baru** | `Areas/HealthServices/BillingManagement/Billing/Dtos/BillingInpatientIntegrationDtos.cs` | N/A | DTO kontrak request/response untuk summary ranap, evaluasi clearance, dan kalkulasi sewa kamar |
+
+## 5. Arsitektur Folder
+
+```text
+Areas/HealthServices/BillingManagement/
+├── Billing/
+│   ├── Controllers/
+│   │   ├── InpatientClearanceController.cs               # BARU (BKC-DES-045)
+│   │   ├── BillingConsumerHandoffController.cs           # sudah ada
+│   │   └── InvoicesController.cs                         # sudah ada
+│   ├── Dtos/
+│   │   ├── BillingInpatientIntegrationDtos.cs             # BARU
+│   │   └── BillingConsumerHandoffDtos.cs                 # sudah ada
+│   ├── Models/
+│   │   ├── BilInpatientClearanceHandoff.cs                # BARU (BKC-DES-045)
+│   │   ├── BilPrescriptionClearanceHandoff.cs            # sudah ada
+│   │   ├── BilCollectionHandoff.cs                       # sudah ada
+│   │   ├── BilInvoice.cs                                 # sudah ada
+│   │   └── BilInvoiceItem.cs                             # sudah ada
+│   └── Services/
+│       ├── InpatientClearanceService.cs                  # BARU (BKC-DES-045, BKC-DES-046)
+│       ├── IInpatientClearanceService.cs                 # BARU
+│       ├── PatientBillingSummaryService.cs               # DIPERBARUI (lepas dependency InpFinancialClearance)
+│       ├── AdministrationFeeCalculationService.cs        # DIPERBARUI (7% cap Rp6 jt + void/kredit admin rajal)
+│       ├── ContractBillingChargeSourceAdapter.cs         # DIPERBARUI (registrasi ROOM_STAY)
+│       └── BillingConsumerHandoffService.cs              # DIPERBARUI (hook settlement -> clearance)
+└── MasterData/
+    └── Models/
+        └── MstAdministrationFeePolicy.cs                 # DIPERBARUI (tambah Percentage & CapAmount)
+
+Repositories/Configurations/HealthServices/BillingManagement/
+└── Billing/
+    └── BilInpatientClearanceHandoffConfiguration.cs      # BARU
+```
+
+## 6. Status Model dan Rencana Migration
+
+### Rincian Perubahan Skema Database
+
+| Tabel | Skema | Status | Kolom yang Berubah / Ditambahkan | Indeks & Constraint | Perilaku Hapus |
+| --- | --- | --- | --- | --- | --- |
+| `BilInpatientClearanceHandoff` | `public` | **Baru** | Seluruh kolom: `Id` (Guid PK), `EncounterId` (Guid), `InvoiceId` (Guid FK), `ClearanceStatus` (varchar 20), `FinancialOutcome` (varchar 30), `OutstandingBalance` (decimal 18,2), `TotalPatientResponsibility` (decimal 18,2), `TotalPaidOrAllocated` (decimal 18,2), `ReasonCode` (varchar 40), `RevocationReason` (varchar 100), `FinancialVersion` (bigint), `EffectiveAt` (timestamptz), `CorrelationId` (uuid), `CausationId` (uuid), `Status` (varchar 30), `AcknowledgedAt` (timestamptz), `RowVersion` (uuid) | `IX_BilInpatientClearanceHandoff_Encounter_Version` (Unique: `EncounterId`, `FinancialVersion`); `IX_BilInpatientClearanceHandoff_Status` | `Restrict` pada FK `InvoiceId` |
+| `MstAdministrationFeePolicy` | `public` | **Diperbarui** | Menambah kolom:<br>1. `Percentage` (decimal 5,2, nullable)<br>2. `CapAmount` (decimal 18,2, nullable)<br>3. `CalculationType` (varchar 30, non-null, default `'FLAT'`) | N/A (mempertahankan indeks aktif yang sudah ada) | `Restrict` |
+
+### Rencana Migration EF Core
+
+| No | Nama Migration | Zero-Downtime? | Backfill Data Lama | Cara Mundur (`Down`) |
+| --- | --- | :---: | --- | --- |
+| 1 | `AddInpatientBillingIntegrationAndClearanceHandoff` | **Ya** — hanya menambah tabel baru dan 3 kolom nullable/default pada tabel master | **Ya (Minimal):** Mengisi `CalculationType = 'FLAT'` untuk record `MstAdministrationFeePolicy` yang sudah ada; tidak ada backfill invoice lama karena surat clearance hanya diterbitkan untuk proses pemulangan baru | `Down` menghapus tabel `BilInpatientClearanceHandoff` dan men-drop kolom `Percentage`, `CapAmount`, `CalculationType` dari `MstAdministrationFeePolicy` |
+
+## 7. Rencana Data Master Awal
+
+Tabel master `MstAdministrationFeePolicy` perlu ditambahkan/dikonfigurasi record awal untuk rawat inap:
+
+| Kolom | Nilai Konfigurasi Awal | Keterangan |
+| --- | --- | --- |
+| `Code` | `ADM-RANAP-01` | Kode unik kebijakan admin ranap |
+| `Name` | `Biaya Administrasi Rawat Inap (7% Cap Rp6.000.000)` | Nama resmi kebijakan |
+| `ServiceType` | `INPATIENT` | Tipe layanan rawat inap |
+| `CalculationType` | `PERCENTAGE_WITH_CAP` | Metode hitung persentase dengan plafon |
+| `Amount` | `0` | Nominal flat dinonaktifkan |
+| `Percentage` | `7.00` | 7% dari eligible bill |
+| `CapAmount` | `6000000.00` | Plafon maksimum Rp6.000.000 |
+| `OncePerPatientLocalDay` | `false` | Dihitung per rawat inap (discharge), bukan harian |
+| `ReplacementPriority` | `100` | Prioritas tertinggi (menggantikan admin rajal jika ada alihan) |
+| `IsActive` | `true` | Status aktif |
+
+## 8. Yang Sengaja Tidak Dibuat
+
+| Yang Ditolak | Alasan |
+| --- | --- |
+| Status Financial Clearance ditentukan di modul Rawat Inap | **Ditolak keras (`BKC-DEC-115`).** Billing adalah pemilik transaksi kasir, pembayaran penjamin, dan alokasi deposit. Menentukan kelayakan di Rawat Inap menciptakan duplikasi logika dan risiko *split-brain* keuangan rumah sakit. |
+| Foreign Key fisik dari `BilInpatientClearanceHandoff` ke tabel Rawat Inap (`InpAdmission`/`InpBedPlacement`) | **Ditolak (`BKC-DES-045`).** Mengikuti invariant `BKC-DES-037`; modul Billing dan Rawat Inap harus longgar (*decoupled*) di level database fisik agar perubahan skema internal Rawat Inap tidak memblokir operasional kasir. Hubungan menggunakan `EncounterId` terindeks. |
+| Menghapus baris tagihan IGD saat dialihkan ke Rawat Inap | **Ditolak (`BKC-DEC-117`).** Semua tindakan dan obat yang sudah diberikan di IGD wajib tercatat dan dapat diaudit secara utuh pada rekam finansial pasien dengan `SourceDomain = "EMERGENCY"`. |
+| Menghitung deposit 100% dari total tagihan kotor tindakan besar | **Ditolak (`BKC-DEC-114`).** Pasien dengan asuransi/perusahaan hanya berkewajiban membayar ekses (*patient responsibility*). Menagih deposit 100% dari total tagihan kotor akan merugikan pasien dan melanggar kesepakatan penjaminan. |
+| Pengalihan kamar menggunakan rata-rata tarif sederhana | **Ditolak (`BKC-DEC-112`).** Kasus pasien yang berpindah kamar lebih dari satu kali dalam satu hari wajib dihitung akurat berdasarkan menit hunian riil (*pro-rata*) agar tidak menimbulkan sengketa tagihan. |
+
+## 9. Keputusan Arsitektur
+
+| ID | Keputusan | Dasar | Alasan |
+| --- | --- | --- | --- |
+| `BKC-DES-042` | Registrasi Domain `INPATIENT`/`ROOM_STAY` ke Charge Intake Adapter | `BKC-DEC-112`, `CAP-BIL-01` | Adapter selama ini menolak event selain domain order klinis; perluasan kebijakan mengizinkan event hunian bed masuk ke pipeline charge. |
+| `BKC-DES-043` | Dualitas Pemrosesan Tagihan Kamar (In-Process Calculation + Event Intake) | `BKC-DEC-112`, `BKC-AC-080` | Memberikan respon instan (*live preview*) bagi kasir/petugas ranap saat melihat rincian tagihan berjalan, sekaligus menjamin audit transaksi permanen lewat outbox event. |
+| `BKC-DES-044` | Penambahan Kolom `Percentage` & `CapAmount` pada `MstAdministrationFeePolicy` | `BKC-DEC-113`, `BKC-AC-081` | Mendukung perhitungan 7% cap Rp6 juta secara deklaratif dan ramah konfigurasi tanpa *hardcoding* di logika kode. |
+| `BKC-DES-045` | Entitas `BilInpatientClearanceHandoff` sebagai Single Source of Truth Kelayakan Pemulangan | `BKC-DEC-115`, `BKC-AC-083` | Memperbaiki arsitektur lama yang terbalik (`PatientBillingSummaryService` membaca `InpFinancialClearance`). Menjadikan Billing sebagai otoritas absolut pelunasan. |
+| `BKC-DES-046` | Mekanisme Auto-Reblock & Revokasi Clearance Saat Tagihan Susulan | `BKC-DEC-116`, `BKC-AC-084` | Mencegah kebocoran pendapatan (*revenue leakage*) jika tindakan klinis atau obat susulan di-input petugas setelah pasien dinyatakan cleared di kasir. |
+| `BKC-DES-047` | Penegakan Deposit Tindakan Besar atas Porsi Tanggung Jawab Pasien (Excess) | `BKC-DEC-114`, `BKC-AC-082` | Menyelaraskan verifikasi deposit dengan status jaminan pasien, mencegah penahanan tindakan medis darurat/besar yang telah dijamin asuransi. |
+| `BKC-DES-048` | Konsolidasi Multi-Domain Non-Destruktif untuk Pasien Alihan IGD-ke-Ranap | `BKC-DEC-117`, `BKC-AC-085` | Menyatukan tagihan dalam satu nomor invoice rawat inap tanpa menghilangkan identitas asal item IGD demi transparansi kwitansi dan audit. |
+| `BKC-DES-049` | Mekanisme Pembatalan (Void) atau Pengalihan Kredit Biaya Administrasi Rajal | `BKC-DEC-119`, `BKC-AC-087` | Memenuhi aturan bisnis bahwa biaya admin rajal gugur dan digantikan biaya admin ranap; dana yang terlanjur dibayar diakui sebagai kredit pengurang. |
+| `BKC-DES-050` | Mesin Hitung Pro-Rata Menit untuk Transfer Kamar Multipel | `BKC-DEC-112`, `BKC-AC-080` | Menyelesaikan ambiguitas tarif saat pasien berpindah kelas kamar beberapa kali dalam 24 jam dengan presisi menit durasi hunian. |
+
+## 10. Yang MUST Dijawab Owner Saat Approval
+
+| Butir | Pertanyaan | Status & Jawaban |
+| --- | --- | --- |
+| Aktivasi Kebijakan Admin Ranap | Apakah kebijakan 7% cap Rp6.000.000 langsung aktif untuk seluruh pasien rawat inap baru pada hari rilis, atau ada masa transisi? | **DITUTUP (`BKC-DEC-122`)**: Diberlakukan untuk seluruh pasien yang dipulangkan (*discharged*) pada atau setelah tanggal efektif aktivasi (`EffectiveFrom`), terlepas dari tanggal masuk awal pasien. |
+| Batas Toleransi Tagihan Susulan | Berapa batas waktu maksimum setelah discharge order di mana tagihan susulan masih diizinkan masuk ke invoice ranap sebelum kasir menguncinya secara permanen? | **DITUTUP (`BKC-DEC-120`)**: Auto-Reblock berlaku selama invoice masih `OPEN` (dalam masa pemulangan); setelah invoice `CLOSED`, tagihan susulan otomatis ditolak sistem kecuali ada pembukaan kunci (*reopen override*) oleh Supervisor Kasir. |
+
+## 11. Status Amendment
+
+| Aspek | Nilai |
+| --- | --- |
+| Keputusan bisnis dasar | `BKC-DEC-112`–`BKC-DEC-122`, `approved` 24 September 2026 |
+| Kriteria penerimaan | `BKC-AC-080`–`BKC-AC-090` |
+| Keputusan arsitektur | `BKC-DES-042`–`BKC-DES-050` |
+| Dampak skema | **Satu tabel baru** (`BilInpatientClearanceHandoff`), **tiga kolom baru** pada tabel master (`MstAdministrationFeePolicy`) |
+| Dampak kontrak API | Tiga endpoint integrasi baru (`/invoices/occupancy-charges`, `/invoices/encounter/{encounterId}/inpatient-summary`, `/inpatient-clearance/reevaluate`) |
+| Dampak frontend | Pembaruan tab "Rawat Inap" pada layar Consumer Handoffs Kasir |
+| Ketergantungan lintas modul | Rawat Inap (`InpatientManagement`) sebagai produsen event kamar & konsumen handoff clearance |
+| Status | **draft** — menunggu approval Product/Domain Owner |
+
+
+
+# Amendment 24 September 2026 — Revisi UI Billing: Filter, Default, Asuransi, Diskon Dokter, Refund (Revisi 1.6)
+
+| Field | Nilai |
+|---|---|
+| Basis keputusan | `00-interview-decisions.md` — `BUI-DEC-001`–`015` (seluruhnya `approved`) |
+| Basis bukti | `01-existing-capability-map.md` bagian 23 — `CAP-BUI-01`..`13` |
+| Backend SHA didesain di atas | `505d8d78` |
+| Frontend SHA didesain di atas | `b3f45db7b` |
+| Sifat amendment | **Bukan kapabilitas baru.** Seluruhnya beroperasi di dalam bounded context Billing/Kasir yang sudah ada (rumpun Edit Tagihan/Multi-Payer, rumpun Refund, rumpun Diskon Dokter, rumpun Daftar Invoice). Nol aggregate root baru, nol bounded context baru |
+
+## 1. Perubahan pada Bounded Context dan Invariant
+
+Tidak ada perubahan bounded context. Amendment ini beroperasi di dalam **empat** sub-area yang
+sudah dimiliki Billing/Kasir, tanpa memindahkan satu pun tanggung jawab lintas modul:
+
+| Sub-area | Aggregate root pemilik | Yang disentuh amendment ini |
+|---|---|---|
+| Edit Tagihan & Perbandingan Penjamin | `BilInvoice` (via `BillingPayerEditService`) | Satu invariant perhitungan diperbaiki (`BUI-DES-001`); nol perubahan struktur |
+| Refund | `BilRefundCase` (via `BillingRefundService`) | Nol perubahan backend selain satu field response baru (`BUI-DES-002`) |
+| Diskon Dokter | `BilDiscountApplication` (via `BillingDiscountService`) | Nol perubahan backend — field `DoctorDiscountMemoFile` sudah ada, hanya belum dipakai frontend |
+| Daftar Invoice | `BilInvoice` (via `BillingInvoiceService`) | Nol perubahan backend — `BillingInvoiceQuery` sudah punya `StartDate`/`EndDate`/`Status` |
+
+**Satu invariant yang berubah, dan hanya satu:**
+
+> Sebelum: hasil hitung `suggestedBillingStatus` bernilai `"INSURANCE"` bila **sekurang-kurangnya
+> satu** item aktif tagihan tercover asuransi.
+> Sesudah (`BUI-DES-001`): `suggestedBillingStatus` bernilai `"INSURANCE"` **hanya bila seluruh**
+> item aktif tagihan tercover asuransi; satu item saja tidak tercover membuat nilainya `"CASH"`.
+
+Perubahan ini murni pada **kondisi di dalam satu method** (`BillingPayerEditService.cs:145`),
+bukan pada bentuk data, bukan pada tabel, bukan pada endpoint. Transaction boundary, rollback,
+dan seluruh invariant lain pada `BillingPayerEditService` **tidak tersentuh**.
+
+## 2. Tabel Kepemilikan Data
+
+| Kelompok data | Modul pemilik | Dipakai amendment ini | Dibuat ulang |
+|---|---|:---:|---|
+| Invoice, baris tagihan, status | Billing/Kasir (`BilInvoice`, `BilInvoiceItem`) | Ya | Tidak |
+| Kartu asuransi & penjamin perusahaan pasien | Billing/Kasir (`MstPatientInsurance`, `MstPatientCompanyGuarantor`) | Ya, baca saja | Tidak |
+| Hasil evaluasi coverage per item | Clinical (`InsuranceCoverageService`) via `BillingCalculationService.PreviewCalculationAsync` | Ya, baca saja | Tidak |
+| Kasus refund, kredit refundable | Billing/Kasir (`BilRefundCase`, `BilRefundableCredit`) | Ya | Tidak |
+| Deposito pasien | Billing/Kasir (`BillingDepositService`) | Ya, baca saja | Tidak |
+| Pengajuan diskon dokter | Billing/Kasir (`BilDiscountApplication`) | Ya | Tidak |
+| Catatan/note lintas tahap kunjungan (Kiosk/Admisi/IGD/Rawat Inap) | **Belum ada pemilik** — tersebar per modul, belum terkonsolidasi | Tidak — `OPEN DECISION`, lihat bagian 8 | Tidak |
+
+Baris terakhir sengaja ditulis eksplisit **kosong pemiliknya**: `BUI-DEC-009` (Catatan Penting)
+TIDAK didesain penuh pada amendment ini karena datanya tidak dimiliki satu modul mana pun —
+lihat bagian 8.
+
+## 3. Class Diagram
+
+Amandemen ini **tidak menambah satu pun class baru**. Diagram berikut hanya menandai class
+yang **isinya berubah** (`Diperbarui`), diletakkan dalam konteks yang sudah ada.
+
+```mermaid
+classDiagram
+    class BillingPayerEditService {
+        +GetEditContextAsync() InvoiceEditContextResponse
+        -suggestedBillingStatus : computed "ALL covered" [Diperbarui]
+    }
+    class BillingRefundableItemResponse {
+        +Guid BillingItemId
+        +string ItemName
+        +decimal Qty
+        +decimal Amount
+        +decimal RefundableAmount
+        +DateTime TransactionDate [Baru]
+    }
+    class BillingRefundService {
+        +GetBillingRefundableItemsAsync() List~BillingRefundableItemResponse~
+    }
+    BillingRefundService --> BillingRefundableItemResponse : mengisi
+```
+
+## 4. Penjelasan Setiap Class
+
+| Class | Status | Lokasi file | Perubahan |
+|---|---|---|---|
+| `BillingPayerEditService` | Diperbarui | `Areas/HealthServices/BillingManagement/Billing/Services/BillingPayerEditService.cs` | Baris ~118-147: variabel `anyItemCoveredByInsurance` diganti `allItemsCoveredByInsurance`; logika `isCovered` dikumpulkan dengan AND (bukan OR) ke seluruh item aktif sebelum menentukan `suggestedBillingStatus`. Lihat `BUI-DES-001` |
+| `BillingRefundableItemResponse` | Diperbarui | `Areas/HealthServices/BillingManagement/Billing/Dtos/BillingRefundDtos.cs` | Tambah properti `DateTime TransactionDate`. Lihat `BUI-DES-002` |
+| `BillingRefundService` | Diperbarui | `Areas/HealthServices/BillingManagement/Billing/Services/BillingRefundService.cs` | Method `GetBillingRefundableItemsAsync`: proyeksi ditambah `TransactionDate = item.CreateDateTime`. Nol query baru — `item` sudah dimuat lewat `Include(x => x.Items)` yang sudah ada |
+| `BillingInvoiceQuery` | Sudah ada | `Areas/HealthServices/BillingManagement/Billing/Dtos/BillingInvoiceDtos.cs` | Nol perubahan. `StartDate`, `EndDate`, `Status` sudah cukup untuk `BUI-DES-005` |
+| `ApplyDiscountRequest`, `ApproveDiscountRequest` | Sudah ada | `Areas/HealthServices/BillingManagement/Billing/Dtos/BillingDiscountDtos.cs` | Nol perubahan. `DoctorDiscountMemoFile` sudah ada; validasi wajib murni frontend (`BUI-DES-009`) |
+| `AvailablePayerOptionResponse`, `PaymentMethodRow` | Sudah ada | `Areas/HealthServices/BillingManagement/Billing/Dtos/BillingPayerEditDtos.cs` | Nol perubahan. Dipakai apa adanya oleh `BUI-DES-003`/`004` |
+| `CreateRefundRequest`, `RemainingDepositResponse` | Sudah ada | `Areas/HealthServices/BillingManagement/Billing/Dtos/BillingRefundDtos.cs` | Nol perubahan. Dipakai apa adanya oleh `BUI-DES-011` |
+
+## 5. Arsitektur Folder
+
+```text
+Areas/HealthServices/BillingManagement/Billing/
+├── Services/
+│   ├── BillingPayerEditService.cs        # Diperbarui — baris 118-147 (BUI-DES-001)
+│   └── BillingRefundService.cs           # Diperbarui — GetBillingRefundableItemsAsync (BUI-DES-002)
+└── Dtos/
+    └── BillingRefundDtos.cs              # Diperbarui — +TransactionDate (BUI-DES-002)
+```
+
+Tidak ada file baru. Tidak ada folder baru. Tidak ada file di
+`Repositories/Configurations/**` yang tersentuh — konsisten dengan nol perubahan skema.
+
+## 6. Status Model dan Rencana Migration
+
+| Perubahan | Status | Dampak migration |
+|---|---|---|
+| `suggestedBillingStatus` logic fix | Perubahan kode, bukan skema | **Nol migration** |
+| `BillingRefundableItemResponse.TransactionDate` | Field response baru | **Nol migration** — nilainya diambil dari `BilInvoiceItem.CreateDateTime`, kolom yang **sudah ada** lewat `IdentityModel` sejak tabel ini dibuat |
+
+**Seluruh amendment ini nol migration.** Ini deklarasi eksplisit, bukan kelalaian melaporkan:
+revisi 1.6 tidak menyentuh database sama sekali.
+
+## 7. Rencana Data Master Awal
+
+Tidak berlaku. Amendment ini tidak menambah tabel master apa pun.
+
+## 8. Yang Sengaja Tidak Dibuat
+
+| Yang dipertimbangkan | Alasan tidak dibuat sekarang |
+|---|---|
+| Endpoint upload khusus Billing untuk Memo Dokter TTD | `BUI-CQ-06` belum dijawab (mekanisme mana yang dipakai — baru atau reuse existing). Desain frontend (`BUI-DES-009`) disusun agar SIAP menerima endpoint ini begitu diputuskan, tanpa menciptakannya sepihak sekarang |
+| Layanan konsolidasi note lintas modul (Kiosk/Admisi/IGD/Rawat Inap) untuk Catatan Penting | `BUI-CQ-05` belum dijawab, dan ini **melintasi bounded context** (Registration, IGD, Rawat Inap) — keluar dari wewenang desain Billing murni. Mengarang agregasi ini tanpa `hospital-domain-architect` berisiko salah menetapkan ownership data lintas modul. `BUI-DES-008` (frontend) dirancang sebagai container kosong yang siap diisi, bukan mengarang sumber data |
+| Endpoint filter `AvailablePayerOptions` berdasarkan `PayerType` di sisi server | Data yang ada sudah cukup untuk difilter di klien (3 jenis payer, jumlah baris kecil per pasien). Menambah parameter server untuk kasus sesederhana ini menambah permukaan API tanpa manfaat sepadan |
+| Kolom `Status`/gate baru pada `BilRefundCase` untuk membedakan alur persetujuan Billing vs Deposito | `BUI-DEC-012` eksplisit menyatakan alur persetujuan TIDAK berbeda antar sumber — menambah gate akan bertentangan langsung dengan keputusan itu |
+
+## 9. Keputusan Arsitektur
+
+| ID | Keputusan | Dasar | Konsekuensi |
+|---|---|---|---|
+| `BUI-DES-001` | `suggestedBillingStatus` diubah dari "ANY item tercover" menjadi "ALL item tercover" | `BUI-DEC-007`, `BUI-DEC-014` | Turunan otomatis: `effectivePaymentType` dan `PaymentMethodRow.IsSelected` (dihitung dari `suggestedBillingStatus`) ikut benar tanpa perubahan tambahan |
+| `BUI-DES-002` | `BillingRefundableItemResponse` mendapat field `TransactionDate`, diisi dari `item.CreateDateTime` yang sudah dimuat | `BUI-DEC-012` (kolom "Tanggal" pada datatable refund) | Nol query tambahan — data sudah ada di memori saat method berjalan |
+
+## 10. Yang MUST Dijawab Owner Saat Approval
+
+| # | Pertanyaan | Dampak bila belum dijawab |
+|---:|---|---|
+| 1 | Apakah `BUI-DES-001` (satu-satunya perubahan backend pada amendment ini) disetujui untuk masuk task `plan-module-delivery`? | Tanpa ini, `BUI-DEC-006`/`007` tidak dapat dianggap selesai — frontend akan menampilkan default yang salah |
+| 2 | `BUI-CQ-05` dan `BUI-CQ-06` — lihat `03-frontend-architecture.md` bagian yang relevan, tidak memblokir desain ini tapi memblokir implementasi penuh dua fitur (`BUI-DEC-009`, `BUI-DEC-010`) |
+
+## 11. Status Amendment
+
+`DRAFT`. `BUI-DES-001` dan `BUI-DES-002` menunggu persetujuan owner secara terpisah dari
+persetujuan keputusan bisnis `BUI-DEC-*` — keduanya lapisan yang berbeda, sebagaimana pola yang
+sudah berlaku di seluruh revisi blueprint ini sebelumnya.

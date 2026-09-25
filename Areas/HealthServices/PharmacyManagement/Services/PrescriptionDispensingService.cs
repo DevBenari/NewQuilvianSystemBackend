@@ -80,11 +80,14 @@ public sealed class PrescriptionDispensingService
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly LoggerService _loggerService;
     private readonly DrugStockService _drugStockService;
+    private readonly PrescriptionFinancialClearanceService _financialClearanceService;
 
     public PrescriptionDispensingService(ApplicationDbContext dbContext,
         IHttpContextAccessor httpContextAccessor, LoggerService loggerService,
-        DrugStockService drugStockService)
+        DrugStockService drugStockService,
+        PrescriptionFinancialClearanceService financialClearanceService)
     {
+        _financialClearanceService = financialClearanceService;
         _dbContext = dbContext;
         _httpContextAccessor = httpContextAccessor;
         _loggerService = loggerService;
@@ -152,6 +155,7 @@ public sealed class PrescriptionDispensingService
             ?? throw new KeyNotFoundException("Resep tidak ditemukan.");
 
         EnsureDispensable(prescription);
+        await EnsureFinancialClearanceAsync(prescription.Id, cancellationToken);
         await EnsureDispensingLocationAsync(request.StorageLocationId, cancellationToken);
         await EnsureWorkforceAsync(request.PreparedByWorkforceId, cancellationToken);
 
@@ -280,6 +284,7 @@ public sealed class PrescriptionDispensingService
 
         EnsureVersion(usage.Version, request.ExpectedVersion);
         EnsureDispensable(prescription);
+        await EnsureFinancialClearanceAsync(prescription.Id, cancellationToken);
 
         var actorUserId = GetCurrentUserId();
         var now = DateTime.UtcNow;
@@ -607,6 +612,25 @@ public sealed class PrescriptionDispensingService
                 "Penyiapan tersebut bukan milik resep ini.");
 
         return usage;
+    }
+
+    /// <summary>
+    /// Gerbang finansial keempat dari empat (PHA-BE-005).
+    /// </summary>
+    /// <remarks>
+    /// Salinan finansial yang otoritatif yang menentukan, bukan kolom pembayaran pada resep.
+    /// Keadaan belum diketahui dan tertinggal ikut ditolak — ketiadaan surat bukan izin
+    /// (PHA-DEC-067). Pencabutan yang tiba SESUDAH obat diserahkan tidak sampai ke sini, dan
+    /// memang tidak mengubah apa pun.
+    /// </remarks>
+    private async Task EnsureFinancialClearanceAsync(Guid prescriptionId, CancellationToken cancellationToken)
+    {
+        var gate = await _financialClearanceService.EvaluateGateAsync(
+            prescriptionId, PrescriptionClearanceGate.Dispensing, cancellationToken);
+
+        if (!gate.Allowed)
+            throw new PrescriptionDispensingConflictException(
+                gate.Code ?? ClearanceHoldReasonCodes.NotSettled, gate.Message!);
     }
 
     private static void EnsureDispensable(PhmPrescription prescription)

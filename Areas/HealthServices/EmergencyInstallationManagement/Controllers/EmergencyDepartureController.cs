@@ -59,11 +59,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             var total = await query.CountAsync(cancellationToken);
             var items = await query.OrderByDescending(x => x.RequestedAt)
                 .Skip((pageNumber - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
+            // BE-IGD-049: nama pelaku seluruh kejadian pada halaman ini diambil dengan satu kueri.
+            var responses = await _service.ToResponseAsync(items, cancellationToken);
             return Ok(ApiResponse<PagedResult<EmergencyDepartureResponse>>.Ok(new()
             {
                 PageNumber = pageNumber, PageSize = pageSize, TotalData = total,
                 TotalPage = (int)Math.Ceiling(total / (double)pageSize),
-                Items = items.Select(EmergencyDepartureService.ToResponse).ToList()
+                Items = responses
             }, "Data kepergian pasien IGD berhasil diambil."));
         }
 
@@ -75,7 +77,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             var entity = await _service.FindAsync(id, cancellationToken);
             return entity == null
                 ? NotFound(ApiResponse<object>.Fail(404, "Data kepergian pasien IGD tidak ditemukan."))
-                : Ok(ApiResponse<EmergencyDepartureResponse>.Ok(EmergencyDepartureService.ToResponse(entity), "Detail kepergian pasien IGD berhasil diambil."));
+                : Ok(ApiResponse<EmergencyDepartureResponse>.Ok(await _service.ToResponseAsync(entity, cancellationToken), "Detail kepergian pasien IGD berhasil diambil."));
         }
 
         [HttpPost]
@@ -86,7 +88,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             var result = await _service.CreateAsync(request, UserId(), cancellationToken);
             if (!result.Berhasil) return Failure(result.StatusCode, result.Penolakan!);
             await LogAsync("EmergencyDeparture.Create", result.Data!.Id);
-            return StatusCode(201, ApiResponse<EmergencyDepartureResponse>.Ok(EmergencyDepartureService.ToResponse(result.Data), "Kepergian pasien IGD berhasil dibuat."));
+            return StatusCode(201, ApiResponse<EmergencyDepartureResponse>.Ok(await _service.ToResponseAsync(result.Data, cancellationToken), "Kepergian pasien IGD berhasil dibuat."));
         }
 
         [HttpGet("{id:guid}/order-items")]
@@ -186,7 +188,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             var result = await _service.AmendEventAsync(id, eventId, request, UserId(), cancellationToken);
             if (!result.Berhasil) return Failure(result.StatusCode, result.Penolakan!);
             await LogAsync("EmergencyDeparture.AmendEvent", result.Data!.Id);
-            return Ok(ApiResponse<EmergencyDepartureEventResponse>.Ok(EmergencyDepartureService.ToResponse(result.Data), "Kejadian kepergian berhasil dikoreksi."));
+            return Ok(ApiResponse<EmergencyDepartureEventResponse>.Ok(await _service.ToResponseAsync(result.Data, cancellationToken), "Kejadian kepergian berhasil dikoreksi."));
         }
 
         [HttpPost("{id:guid}/events/{eventId:guid}/reverse")]
@@ -198,7 +200,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             var result = await _service.ReverseEventAsync(id, eventId, request, UserId(), cancellationToken);
             if (!result.Berhasil) return Failure(result.StatusCode, result.Penolakan!);
             await LogAsync("EmergencyDeparture.ReverseEvent", result.Data!.Id);
-            return Ok(ApiResponse<EmergencyDepartureEventResponse>.Ok(EmergencyDepartureService.ToResponse(result.Data), "Kejadian kepergian berhasil dibalik."));
+            return Ok(ApiResponse<EmergencyDepartureEventResponse>.Ok(await _service.ToResponseAsync(result.Data, cancellationToken), "Kejadian kepergian berhasil dibalik."));
         }
 
         [HttpPatch("{id:guid}/cancel")]
@@ -224,7 +226,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.EmergencyInstallationManage
             var result = await operation(cancellationToken);
             if (!result.Berhasil) return Failure(result.StatusCode, result.Penolakan!);
             await LogAsync(action, id);
-            return Ok(ApiResponse<EmergencyDepartureResponse>.Ok(EmergencyDepartureService.ToResponse(result.Data!), "Proses kepergian pasien IGD berhasil diperbarui."));
+            return Ok(ApiResponse<EmergencyDepartureResponse>.Ok(await _service.ToResponseAsync(result.Data!, cancellationToken), "Proses kepergian pasien IGD berhasil diperbarui."));
         }
 
         private IActionResult Failure(int statusCode, string message)

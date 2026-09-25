@@ -221,3 +221,198 @@ Ditulis sekarang supaya rilis berikutnya tidak mengulang penelusuran yang sama:
 1. Pemilik modul Accounting **MUST** memutuskan apakah `AccJournalService` mendapat jalur posting sistem yang melewati `Submit`/`Approve` manusia, atau apakah jurnal dari subledger tetap melewati pengesahan.
 2. Pemetaan akun (Kas Kecil, akun perantara uang muka, akun beban per kategori) **MUST** datang dari konfigurasi Accounting, **MUST NOT** ditulis tetap di controller maupun service Petty Cash.
 3. Titik pemicu jurnal **MUST** ditetapkan per peristiwa: pencairan, pengembalian, pembalikan, penambahan saldo, dan penutupan periode — kelimanya sudah punya baris ledger sendiri, sehingga pemicunya sudah tersedia tanpa perubahan skema.
+
+---
+
+## Amendment 18 September 2026 — Ketergantungan AR/AP diputus dari status invoice
+
+`last_changed_in: BIL-INTEGRATION-1.0` · status **approved** (`BKC-DEC-105`, 18 September 2026) · input: **`BKC-DEC-100`–`BKC-DEC-102`**; keputusan arsitektur `BKC-DES-028`–`BKC-DES-035`.
+
+### Yang berubah pada permukaan AR/AP
+
+| Hal | Hari ini | Sesudah amendment ini |
+| --- | --- | --- |
+| Syarat invoice berpindah ke `CLOSED` | Menunggu "AR/AP posting sukses" — peristiwa yang **tidak pernah terjadi** karena konsumen AR/AP-nya belum ada | Sisa tagihan pasien mencapai nol; tidak menunggu pihak luar mana pun |
+| Penjaga pencatatan koreksi AR (`RecordCorrectionIfLinkedAsync`) | Hanya menerima invoice `FINAL` | Menerima `FINAL` **dan** `CLOSED`; tetap menolak `OPEN` dan `SETTLED_BY_WRITE_OFF` (`BKC-DES-035`) |
+| Bentuk dan isi `BilArHandoff`/`BilApHandoff` | — | **Tidak disentuh sama sekali** (`BKC-DES-033`) |
+| Penyerahan nyata ke sistem AR/AP | Belum ada konsumennya (`BKC-BLK-INT-001`) | **Masih belum ada** — amendment ini tidak membangunnya dan tidak berpura-pura membangunnya |
+
+### Kenapa ketergantungan pada AR/AP diputus, bukan ditunggu
+
+`BKC-BLK-INT-001` (consumer contract AR/AP belum dibuktikan) sudah tercatat sebagai dependency terbuka sejak awal modul ini. Selama syarat transisi `CLOSED` menggantung pada peristiwa milik konsumen yang belum ada, seluruh invoice lunas ikut menggantung — dependency yang seharusnya menahan **satu** kemampuan ternyata menahan **jalur paling umum** di modul ini. `BKC-DEC-100` memutus ketergantungan itu: status invoice kini ditentukan fakta yang dimiliki Billing sendiri (sisa tagihan pasien), sementara penyerahan fakta ke AR/AP tetap menjadi pekerjaan terpisah yang menunggu konsumennya.
+
+`BKC-BLK-INT-001` **tetap terbuka** dan tetap menahan hal-hal yang memang miliknya: penyerahan nyata, pengakuan (`ACKNOWLEDGED`) oleh sistem AR, dan sumbu status penagihan piutang.
+
+### Kontrak yang MUST dijaga ketika konsumen AR/AP kelak dibangun
+
+1. Sumbu status `BilArHandoff` (`CREATED`/`ACKNOWLEDGED`) menyatakan **penyerahan fakta**, bukan tertagihnya piutang. Bila kelak dibutuhkan sumbu "tertagih", ia dirancang bersama pemilik konsumen AR/AP — **MUST NOT** ditebak sekarang (`BKC-DES-033`).
+2. `BilInvoice.Status`/`ClosedAt` adalah sumber kebenaran "tagihan pasien ini sudah lunas". Konsumen AR/AP membacanya, **MUST NOT** membentuk salinan kebenarannya sendiri.
+3. Koreksi AR (`BilHandoffAdjustment`) tetap idempotent per sumber (`SourceAdjustmentId`/`SourceWriteOffCaseId`); amendment ini tidak mengubahnya.
+
+Trace **`BKC-DEC-100`–`102`**, `BKC-DES-028`–`035`. Tests `BIL-AT-129`–`BIL-AT-131`.
+
+---
+
+## Amendment 21 September 2026 — Penerbitan fakta finansial ke dua modul konsumen
+
+`last_changed_in: BIL-INTEGRATION-1.1` · status **draft** · owner Billing + Finance (AR/AP) + Farmasi · `approved_by`: — · `approved_at`: — · input: **`BKC-DEC-106`–`109`** (approved 21 September 2026); keputusan arsitektur `BKC-DES-036`–`041`.
+
+### Apa yang berubah secara mendasar
+
+Sampai amendment sebelumnya, Billing **tidak punya satu pun konsumen nyata**. `BKC-BLK-INT-001`
+mencatatnya sebagai dependency terbuka, dan `BIL-INTEGRATION-1.0` bahkan memutus ketergantungan
+status invoice dari AR/AP justru karena konsumennya belum ada.
+
+Keadaan itu **berubah**. Dua konsumen kini nyata, dan keduanya menunggu:
+
+| Konsumen | Keadaannya | Yang tertahan karenanya |
+| --- | --- | --- |
+| Finance (AR/AP) | Modul berdiri, `FinBillingHandoffIntake` sudah dibangun dan `HandoffType`-nya sudah memuat nilai `COLLECTION` | `BE-FIN-016`, `BE-FIN-017`, `BE-FIN-018` |
+| Farmasi | Keputusan `PHA-DEC-063`–`070` sudah approved; slice-nya sudah `READY_FOR_DOMAIN_DESIGN` | Seluruh resep rawat jalan macet permanen di `WaitingForPayment` |
+
+### Dua kontrak baru
+
+| ID | Producer → Consumer | Trigger/payload minimum | Idempotency | Failure/retry | Security/privacy |
+| --- | --- | --- | --- | --- | --- |
+| `BIL-INT-013` (**baru, draft**, `BKC-DEC-106`) | Billing → Finance (AR/AP) | Satu tender mencapai `SUCCEEDED` **atau** `REVERSED`. Muatan: identitas tender, penyelesaian, dan tagihan; identitas alokasi pembayaran bila ada; cara bayar beserta rekening/kanalnya; nominal apa adanya; nomor kwitansi; shift kasir untuk tunai; rujukan dan identitas kejadian penyedia untuk non-tunai; waktu uang diterima; **status tagihan saat itu**; status tender; kunci handoff; korelasi dan sebab | Kunci handoff diturunkan dari pasangan identitas tender dan status tender. Tender yang sama dengan status yang sama **MUST** menghasilkan tepat satu baris efektif | Baris bersifat tetap. Percobaan ulang tidak menghasilkan baris kedua. Kegagalan penerbitan membatalkan transaksi pemanggil — surat dan pergerakan uangnya tidak pernah terpisah nasib | Identitas debitur dan rujukan penyedia bersifat sensitif. Token, kredensial, dan data kartu **MUST NOT** ikut |
+| `BIL-INT-014` (**baru, draft**, `BKC-DEC-106`) | Billing → Farmasi | Keadaan clearance sebuah resep **berubah**. Muatan: identitas resep; identitas tagihan; keadaan clearance (`Cleared`/`Revoked`); hasil finansial (`Paid`/`InsuranceApproved`/`PaymentWaived`); kode sebab; nomor versi finansial; waktu berlaku; korelasi dan sebab | Dikunci pasangan identitas resep dan nomor versi finansial. Nomor versi naik monoton per resep, dilindungi kunci penasihat tagihan yang sudah ada (`BKC-DES-032`) | Sama dengan `BIL-INT-013`. Ditambah: versi yang lebih lama **MUST NOT** menimpa versi yang lebih baru di sisi konsumen (`PHA-DEC-063`) | Hanya identitas dan keadaan finansial. **MUST NOT** memuat nama obat, dosis, aturan pakai, maupun keterangan klinis apa pun |
+
+### Satu titik deteksi, dua surat
+
+`BKC-DEC-106` mengunci bentuknya: Billing mendeteksi peristiwa finansialnya **sekali di satu
+tempat**, lalu menerbitkan surat sesuai konsumen yang memang terdampak.
+
+Yang dijamin bentuk ini: **mustahil** Finance mengetahui sebuah pembayaran sementara Farmasi
+tidak, atau sebaliknya. Keduanya lahir dari deteksi yang sama, di dalam transaksi yang sama.
+
+Penting: satu peristiwa **tidak selalu** melahirkan dua surat. Keduanya punya syarat sendiri.
+
+| Peristiwa | Surat ke Finance | Surat ke Farmasi |
+| --- | :---: | :---: |
+| Tender berhasil, tagihan belum lunas | **Ya** | Tidak — keadaan resep belum berubah |
+| Tender berhasil, tagihan menjadi lunas | **Ya** | **Ya** — resep menjadi `Cleared` |
+| Tagihan lunas lewat penghapusan tagihan, tanpa uang masuk | Tidak — tidak ada tender | **Ya** — hasil finansial `PaymentWaived` |
+| Biaya tindakan ditambahkan pada tagihan yang sudah lunas | Tidak | **Tidak** — `PHA-DEC-068`, biaya non-farmasi tidak mencabut clearance obat |
+| Harga atau jumlah obat pada resep dikoreksi naik | Tidak | **Ya** — `Revoked` |
+| Pembayaran dibalik | **Ya**, baris baru berstatus dibalik | **Ya** — `Revoked` untuk seluruh resep pada tagihan itu (`PHA-DEC-068-A`) |
+
+Baris keempat adalah yang paling mudah salah dirancang, dan sengaja ditulis eksplisit: tagihan
+kembali memiliki sisa, tetapi obat yang sudah dibayar **tetap** boleh diserahkan.
+
+### Mengapa surat Finance tidak menunggu finalisasi
+
+Permintaan Finance menyebutnya sebagai bagian terpenting, dan alasannya cocok dengan keadaan
+source: Billing hari ini memungkinkan pasien membayar sementara tagihannya masih terbuka, dan
+finalisasi menyusul belakangan. Bila surat baru terbit saat finalisasi, uang yang masuk lebih
+dulu tidak akan pernah sampai ke buku Finance.
+
+Konsekuensinya bagi bentuk data: `BilCollectionHandoff` **MUST NOT** menjadi anak
+`BilFinalizationRecord`. Ini membedakannya dari `BilArHandoff` yang memang lahir dari
+finalisasi, dan mengubah invariant `BIL-CTX-05` — lihat `02-backend-architecture.md`.
+
+Status tagihan pada saat itu tetap ikut dikirim, karena Finance mencatat penerimaannya segera
+tetapi **menahan** penerbitan jurnal sampai tagihannya final. Untuk penanda "tagihan akhirnya
+final", Finance menerima `BilArHandoff` yang menyusul saat finalisasi sebagai penanda yang
+sudah cukup — tidak ada jenis surat ketiga yang dibuat.
+
+### Permukaan pemeriksaan ulang untuk Farmasi
+
+`BKC-DEC-107` menuntut lebih dari sekadar menerbitkan surat. Surat bisa gagal diproses —
+konsumen error, sempat mati, atau baris terlewat — dan bila itu terjadi, resep akan tertahan
+sampai ada perubahan finansial berikutnya, yang mungkin **tidak pernah terjadi** karena
+tagihannya memang sudah lunas.
+
+Karena itu Billing menyediakan **cara membaca keadaan clearance terkini sebuah resep**, dapat
+dipanggil kapan saja tanpa menunggu perubahan.
+
+| Aspek | Ketentuan |
+| --- | --- |
+| Bentuk | Pemanggilan langsung di dalam proses yang sama, bukan HTTP dan bukan pesan |
+| Alasan bentuknya | Konsisten dengan `BIL-INT-010`, `011`, dan `012` yang seluruhnya in-process. Modul ini satu assembly; tidak ada distributed transaction |
+| Sifat | Baca murni, tanpa efek samping, aman dipanggil berulang |
+| Yang dikembalikan | Keadaan clearance, hasil finansial, nomor versi finansial, dan waktu berlaku — bentuk yang sama dengan isi surat |
+| Kegagalan | Resep yang tidak dikenal mengembalikan keadaan "tidak diketahui", **MUST NOT** melempar galat dan **MUST NOT** diperlakukan sebagai clear (`PHA-DEC-067`) |
+
+Ini memenuhi janji `PHA-DEC-063` bahwa proyeksi di sisi Farmasi bersifat *reconcilable*. Tanpa
+permukaan ini, janji itu tidak dapat ditepati oleh pihak mana pun.
+
+### Pengakuan penerimaan dan surat yang menggantung
+
+`BKC-DEC-108`: Billing mencatat kapan sebuah surat diambil konsumen, dan surat yang belum
+diambil dapat ditemukan serta dihitung.
+
+Billing sendiri **tidak menahan apa pun** dan tidak mengubah perilakunya karena sebuah surat
+belum diambil. Uang sudah diterima; pelayanan tidak boleh tertahan karena urusan teknis antar
+modul.
+
+Ini menegaskan ulang ketentuan yang sudah berlaku bagi `BilArHandoff` (`BKC-DES-033`): sumbu
+status handoff menyatakan **penyerahan fakta**, bukan hasil di sisi konsumen. Sumber kebenaran
+"tagihan ini lunas" tetap `BilInvoice.Status`/`ClosedAt`.
+
+Berapa lama sebuah surat boleh menggantung sebelum dianggap tidak wajar, dan siapa yang
+menerima peringatannya, **belum diputuskan** — `BKC-OQ-101`, tidak memblokir.
+
+### Masa simpan
+
+`BKC-DEC-109`: baris handoff disimpan selamanya, tanpa pembersihan maupun pengarsipan. Ia jejak
+audit lintas modul yang membuktikan Billing pernah memberi tahu, dan kapan persisnya. Sejalan
+dengan tiga jalur handoff yang sudah ada, yang memang tidak punya mekanisme pembersihan.
+
+### Dampak pada `BKC-BLK-INT-001`
+
+| Bagian blocker | Keadaan sesudah amendment ini |
+| --- | --- |
+| "Konsumen AR/AP belum dibuktikan" | **Tidak berlaku lagi untuk AR.** Finance berdiri, intake-nya sudah dibangun, dan kontraknya kini disepakati |
+| Pengakuan (`ACKNOWLEDGED`) oleh sistem AR | **Terbuka jalurnya** — mekanismenya dirancang amendment ini; pelaksanaannya menunggu task |
+| Sumbu status penagihan piutang | **Tetap terbuka.** `BKC-DES-033` tetap berlaku: sumbu "tertagih" **MUST NOT** ditebak, dan dirancang bersama pemilik konsumen ketika memang dibutuhkan |
+| Konsumen AP (utang dokter) | **Tetap terbuka.** Amendment ini tidak menyentuh `BilApHandoff` |
+
+### Yang tidak ditambahkan
+
+| Yang wajar diharapkan | Keadaan sebenarnya | Alasan |
+| --- | --- | --- |
+| Antrian pesan, outbox, atau dead-letter | Tidak ada | Satu assembly, satu `ApplicationDbContext`, satu transaksi. Memecah penerbitan menjadi kejadian terpisah justru menciptakan kemungkinan uang bergerak tanpa suratnya |
+| HTTP antar modul | Tidak ada | Konsisten `BIL-INT-010`–`012` |
+| Alokasi uang per baris tagihan | Tidak ada | Ditolak dua kali — `PHA-DEC-064` dan `PHA-DEC-068-A`. `BilPaymentAllocation` tetap hanya mengenal sasaran tagihan utuh |
+| Pekerjaan latar yang menyapu surat menggantung | Tidak ada | `BKC-DEC-108` memilih keterlihatan pasif; ambang dan penerimanya belum diputuskan (`BKC-OQ-101`) |
+| Jenis surat ketiga untuk pemberitahuan finalisasi | Tidak ada | Finance menerima `BilArHandoff` yang menyusul sebagai penanda yang sudah cukup |
+| Billing mengirim apa pun langsung ke Accounting | Tidak ada, dan **MUST NOT** ada | Syarat eksplisit Finance: Finance yang menerbitkan kejadian akuntansinya |
+
+Trace **`BKC-DEC-106`–`109`**, `BKC-DES-036`–`041`, `PHA-DEC-063`–`070`, `FIN-DEC-005`–`006`.
+Tests `BIL-AT-135`–`BIL-AT-142`.
+
+---
+
+## Amendment 24 September 2026 — Integrasi Rawat Inap ↔ Billing Management
+
+`last_changed_in: BIL-INTEGRATION-1.2` · status **draft** · owner Produsen/Konsumen: Rawat Inap (Muhammad Hamzah) & Billing (Yasmina) · input `BKC-DEC-112`–`119`, `BKC-DES-042`–`050`, `RWI-DEC-156`–`161`.
+
+| ID | Producer → Consumer | Trigger / Payload Minimum | Idempotency | Failure / Retry | Security / Privacy |
+| --- | --- | --- | --- | --- | --- |
+| `BIL-INT-015` | Inpatient Bed Occupancy → Billing (`ContractBillingChargeSourceAdapter`) | Event `BED_OCCUPIED`, `OCCUPANCY_CORRECTED`, `BED_RELEASED`; `EncounterId`, `PlacementId`, `RoomId`, `BedId`, `PatientClassId`, `StartAtUtc`, `EndAtUtc`, `Version` | `{SourceDomain}:{SourceType}:{PlacementId}:{Version}` (contoh: `INPATIENT:ROOM_STAY:PLC-08891:1`) | Unique index mencegah duplikasi room charge; retry aman (*no-op return existing*) | Hanya menyangkut waktu hunian dan kelas kamar fisik tanpa narasi klinis/diagnosa medis |
+| `BIL-INT-016` | Billing (`BilConsumerHandoffService`) → Rawat Inap (`InpatientDischargeService`) | Sinyal perubahan kelayakan `ClearanceApproved` (`CLEARED`) atau `ClearanceRevoked` (`REVOKED`); `EncounterId`, `ClearanceStatus`, `Reason`, `ClearedAtUtc`, `CashierUserId` | `EncounterId` + `HandoffVersion` | Retry dengan exponential backoff; UI bangsal terkunci (*Fail-Safe Locked*) jika timeout kueri | Rawat Inap hanya menerima status kelayakan dan daftar blocker operasional; rincian nominal per item disembunyikan dari perawat |
+| `BIL-INT-017` | Billing (`BillingSettlementService`) → Multi-Unit Cashier | Konsolidasi transaksi pelunasan alihan IGD → Rawat Inap; `EncounterId`, `IgdInvoiceId`, `RanapInvoiceId`, `SettlementAmount`, `TenderAllocations[]` | `EncounterId` + `SettlementId` | Transaksi atomik dalam satu `SaveChanges` database; rollback jika gagal separuh jalan | Satu kuitansi settlement gabungan merinci pendapatan per unit secara terpisah |
+
+### 1. Kontrak Penanganan Kegagalan (Failure & Resilience Contract)
+
+| Skenario Kegagalan | Perilaku Modul Rawat Inap | Perilaku Modul Billing |
+|---|---|---|
+| **Koneksi database/worker terputus saat pengiriman event hunian** | Event tersimpan di `InpIntegrationOutbox` dengan status `Failed`. Operasional fisik bangsal (penempatan bed/mutasi) tetap berjalan normal tanpa terhenti. | Saat dispatcher pulih, event diproses berurutan. Duplikasi event ditolak oleh unique index `IdempotencyKey`. |
+| **Kueri sinkron ringkasan tagihan timeout (> 5 detik)** | UI bangsal menampilkan status fallback: *"Status Kasir Sementara Tidak Dapat Diperiksa"*; tombol pemulangan fisik tetap terkunci secara aman (*Fail-Safe Locked*). | Staf kasir dapat dihubungi melalui interkom/telepon internal rumah sakit. |
+| **Pencabutan kelayakan pulang akibat tagihan susulan (`REVOKED`)** | Seketika mengeksekusi **Auto-Reblock**: status clearance di bangsal berubah menjadi `Revoked`, tombol pemulangan terkunci merah, dan nama blocker ditampilkan. | Billing menerbitkan surat pencabutan kelayakan (`REVOKED`) beralasan wajib saat charge baru masuk pada invoice yang sudah sempat disetujui. |
+| **Pemulangan darurat klinis saat Billing sedang maintenance** | Supervisor bangsal dapat menggunakan **Supervisor Override** beralasan wajib untuk memulangkan pasien secara fisik demi keselamatan medis. | Billing menerima event `BED_RELEASED` dengan `isSupervisorOverridden = true` dan memproses penagihan piutang susulan melalui bagian Keuangan/AR. |
+
+Trace `BKC-DEC-112`–`119`, `BKC-DES-042`–`050`, `RWI-DEC-156`–`161`. Tests `BIL-AT-143`–`BIL-AT-152`.
+
+
+
+# Amendment 24 September 2026 — Revisi UI Billing (Revisi 1.6)
+
+Tidak berlaku untuk amendment ini. Seluruh `BUI-DEC-001`–`015` beroperasi di dalam Billing/Kasir
+memakai data yang sudah tersedia lewat endpoint yang sudah ada; tidak ada integrasi sistem luar
+maupun antar bounded context baru yang dibuka amendment ini. Satu kebutuhan yang SEMPAT
+disinggung (`BUI-DEC-009`, Catatan Penting lintas modul) sengaja TIDAK didesain sebagai
+integrasi pada amendment ini — lihat `02-backend-architecture.md` bagian 8 dan
+`03-frontend-architecture.md` bagian 7 (`BUI-CQ-05` belum tertutup, di luar batas scope).
+
+Ditinjau ulang bila `BUI-CQ-05` terjawab dan menuntut agregasi data lintas modul yang sesungguhnya.

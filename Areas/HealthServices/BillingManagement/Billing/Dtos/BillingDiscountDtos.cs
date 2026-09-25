@@ -5,6 +5,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.D
 public sealed class ApplyDiscountRequest
 {
     public Guid DiscountPolicyId { get; set; }
+    [MaxLength(50)] public string? VoucherCode { get; set; }
     public Guid? InvoiceItemId { get; set; }
     [Range(
         typeof(decimal),
@@ -14,13 +15,21 @@ public sealed class ApplyDiscountRequest
         ConvertValueInInvariantCulture = true)]
     public decimal? RequestedAmount { get; set; }
     public Guid ExpectedRowVersion { get; set; }
-    [Required, MaxLength(500)] public string Reason { get; set; } = string.Empty;
+    [MaxLength(500)] public string Reason { get; set; } = string.Empty;
+    [MaxLength(500)] public string? DoctorDiscountMemoFile { get; set; }
 }
 
 public sealed class ApproveDiscountRequest
 {
     public Guid ExpectedRowVersion { get; set; }
     [Required, MaxLength(500)] public string Reason { get; set; } = string.Empty;
+    [MaxLength(500)] public string? DoctorDiscountMemoFile { get; set; }
+}
+
+public sealed class CancelDiscountRequest
+{
+    public Guid ExpectedRowVersion { get; set; }
+    [MaxLength(500)] public string Reason { get; set; } = string.Empty;
 }
 
 public sealed class DiscountResponse
@@ -38,11 +47,20 @@ public sealed class DiscountResponse
     public Guid RequestedBy { get; set; }
     public Guid? ApprovedBy { get; set; }
     public string Reason { get; set; } = string.Empty;
+    public string? DoctorDiscountMemoFile { get; set; }
     public bool IsEffective { get; set; }
     public bool RequiresFinanceApproval { get; set; }
     public Guid InvoiceRowVersion { get; set; }
     public DateTime CreateDateTime { get; set; }
     public DateTime? UpdateDateTime { get; set; }
+
+    /// <summary>BE fix (orchestration Apply Promo): total invoice terbaru setelah diskon ini
+    /// benar-benar efektif - reuse penuh bentuk <see cref="CalculationResponse"/> yang sama
+    /// dengan endpoint Recalculate, bukan field baru yang bersaing (mis. RemainingAmount/
+    /// OutstandingAmount/SisaBayar terpisah). <c>null</c> ketika diskon belum efektif (jasa
+    /// dokter masih PendingDoctor/PendingFinance) atau saat baris ini muncul di listing riwayat
+    /// diskon lama (BillingInvoiceService), bukan hasil aksi Apply/Approve saat ini.</summary>
+    public CalculationResponse? Calculation { get; set; }
 }
 
 public sealed class DiscountCalculationResponse
@@ -87,6 +105,7 @@ public sealed class DoctorDiscountApprovalResponse
     public decimal RequestedAmount { get; set; }
     public decimal Amount { get; set; }
     public string Reason { get; set; } = string.Empty;
+    public string? DoctorDiscountMemoFile { get; set; }
     public Guid RequestedBy { get; set; }
     public string? RequestedByName { get; set; }
     public DateTime CreateDateTime { get; set; }

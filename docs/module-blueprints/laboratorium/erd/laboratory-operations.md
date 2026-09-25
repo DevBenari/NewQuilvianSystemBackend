@@ -304,3 +304,622 @@ Saat petugas membuka layar pemesanan, satu baris katalog dirakit dari tiga sumbe
 | Tabung serum yang sama | `LSP-a1b2…` | Fungsi ginjal | Rp120.000 |
 
 Satu barcode, satu keputusan kelayakan, dua baris tagihan.
+
+---
+
+## Amandemen 2026-09-18 — Hasil Mikrobiologi dan Patologi Anatomi (`S4b`, `S4c`)
+
+Menurunkan `LAB-DA-001` revision 6 bagian A3, dan `02-backend-architecture.md` bagian 14.
+
+### ERD — hasil Mikrobiologi
+
+```mermaid
+erDiagram
+    LabExamination ||--o{ LabMicrobiologyIsolate : "menemukan"
+    LabMicrobiologyIsolate ||--o{ LabIsolateSusceptibility : "diuji terhadap"
+    LabOrganism ||--o{ LabMicrobiologyIsolate : "menamai"
+    LabAntibiotic ||--o{ LabIsolateSusceptibility : "menamai"
+
+    LabExamination {
+        uuid Id PK
+        uuid LabOrderId FK
+        int MicrobiologyFinding "nullable"
+        timestamp ExaminedAt "nullable"
+        timestamp ResultEnteredAt "nullable"
+    }
+    LabMicrobiologyIsolate {
+        uuid Id PK
+        uuid LabExaminationId FK
+        uuid LabOrganismId FK
+        varchar OrganismNameSnapshot
+        varchar Note "nullable"
+    }
+    LabIsolateSusceptibility {
+        uuid Id PK
+        uuid LabMicrobiologyIsolateId FK
+        uuid LabAntibioticId FK
+        varchar AntibioticNameSnapshot
+        decimal Concentration "nullable"
+        int ZoneDiameterMm "nullable"
+        int Result
+    }
+    LabOrganism {
+        uuid Id PK
+        varchar OrganismCode UK
+        varchar OrganismName
+        bool IsActive
+    }
+    LabAntibiotic {
+        uuid Id PK
+        varchar AntibioticCode UK
+        varchar AntibioticName
+        bool IsActive
+    }
+```
+
+### Status dan pemilik setiap entity
+
+| Entity | Status | Pemilik | Catatan |
+|---|---|---|---|
+| `LabExamination` | **`Extend`** | `BC-LAB` | Bertambah empat kolom |
+| `LabMicrobiologyIsolate` | **`New`** | `BC-LAB` | `LAB-DC-036` |
+| `LabIsolateSusceptibility` | **`New`** | `BC-LAB` | `LAB-DC-037` |
+| `LabOrganism` | **`New`** | `BC-LAB` | `LAB-DC-041`, `LAB-DEC-084` |
+| `LabAntibiotic` | **`New`** | `BC-LAB` | `LAB-DC-042`, `LAB-DEC-084` |
+
+## Amandemen 2026-09-21 — `S4b` sesudah amendment pass putaran 9 dan 10
+
+Menurunkan decision log **revision 50** (`LAB-DEC-095`..`LAB-DEC-113`) dan capability map
+**revision 4**. Bersifat **aditif** terhadap amandemen 2026-09-18: nol entity yang sudah
+digambar berubah bentuk, dan nol kolom yang sudah ada bergeser.
+
+### Yang sudah benar sejak 2026-09-18 dan tidak diubah
+
+Empat keputusan putaran 9 ternyata **menegakkan** bentuk yang sudah digambar, bukan mengubahnya.
+Dicatat supaya tidak ada yang mengira gambar lama perlu disentuh:
+
+| Keputusan | Bentuk yang sudah digambar | Hasil |
+|---|---|---|
+| `LAB-DEC-095` hasil per pemeriksaan | `LabMicrobiologyIsolate.LabExaminationId` | ✅ sudah benar |
+| `LAB-DEC-101` MIC dan zona keduanya opsional | `Concentration` dan `ZoneDiameterMm` keduanya `nullable`, `Result` wajib | ✅ sudah benar |
+| `LAB-DEC-102` nol subbakteri | `LabOrganism` nol kolom induk | ✅ sudah benar |
+| `LAB-DEC-113` status temuan daftar sendiri | `LabExamination.MicrobiologyFinding` terpisah dari `LabPathologyFindingStatus` | ✅ sudah benar |
+
+### ERD — kelengkapan hasil, penanda Definitif, dan aturan kritis
+
+```mermaid
+erDiagram
+    LabExamination ||--o{ LabMicrobiologyIsolate : "menemukan"
+    LabMicrobiologyIsolate ||--o{ LabIsolateSusceptibility : "diuji terhadap"
+    LabOrganism ||--o{ LabMicrobiologyIsolate : "menamai"
+    LabAntibiotic ||--o{ LabIsolateSusceptibility : "menamai"
+    LabOrganism ||--o{ LabMicrobiologyCriticalRule : "dinilai oleh"
+    LabAntibiotic ||--o{ LabMicrobiologyCriticalRule : "dinilai oleh"
+
+    LabExamination {
+        uuid Id PK
+        int MicrobiologyFinding "nullable"
+        timestamp FinalizedAt "nullable - BARU"
+        uuid FinalizedByUserId "nullable - BARU"
+        int ReopenCount "BARU"
+        uuid ConsultedByUserId "nullable - BARU"
+        varchar ConsultedToName "nullable - BARU"
+        timestamp ConsultedAt "nullable - BARU"
+    }
+    LabMicrobiologyCriticalRule {
+        uuid Id PK
+        uuid LabOrganismId FK "nullable"
+        uuid LabAntibioticId FK "nullable"
+        int SusceptibilityResult "nullable"
+        varchar RuleNote "nullable"
+        bool IsActive
+    }
+```
+
+**`LabMicrobiologyCriticalRule` — kenapa ketiga ruas penilainya boleh kosong.** Satu baris
+menyatakan *"keadaan seperti ini kritis"*, dan keadaan itu tidak selalu bertumpu pada ketiganya.
+Ruas yang kosong berarti **apa saja**.
+
+| Contoh baris | Organisme | Antibiotik | Interpretasi | Artinya |
+|---|---|---|---|---|
+| 1 | `MRSA` | *(kosong)* | *(kosong)* | Kuman itu selalu kritis, antibiotik apa pun hasilnya |
+| 2 | *(kosong)* | `Meropenem` | `R` | Resisten terhadap Meropenem selalu kritis, kuman apa pun |
+| 3 | `Escherichia coli` | `Ceftriaxone` | `R` | Hanya kombinasi itu yang kritis |
+
+Baris yang **ketiganya kosong** ditolak — ia berarti seluruh hasil kritis, dan itu mematikan
+guna penandanya (`VAL-106`).
+
+### ERD — Spesifik Specimen dan jejak perubahan ruas
+
+```mermaid
+erDiagram
+    LabSpecimenType ||--o{ LabSpecimenDetailType : "menaungi"
+    LabSpecimen ||--o{ LabSpecimenDetail : "dirinci oleh"
+    LabSpecimenDetailType ||--o{ LabSpecimenDetail : "menamai"
+    LabSpecimen ||--o{ LabFieldChangeLog : "dicatat perubahannya"
+
+    LabSpecimenType {
+        uuid Id PK
+        varchar SpecimenTypeCode UK
+        varchar SpecimenTypeName
+        bool IsOtherBucket
+    }
+    LabSpecimenDetailType {
+        uuid Id PK
+        uuid LabSpecimenTypeId FK
+        varchar DetailTypeCode UK
+        varchar DetailTypeNameId "Bahasa Indonesia"
+        varchar DetailTypeNameEn "nullable - sinonim pencarian"
+        bool IsActive
+        int SortOrder
+    }
+    LabSpecimenDetail {
+        uuid Id PK
+        uuid LabSpecimenId FK
+        uuid LabSpecimenDetailTypeId FK
+        varchar DetailNameSnapshot
+    }
+    LabFieldChangeLog {
+        uuid Id PK
+        varchar EntityName
+        uuid EntityId
+        varchar FieldName
+        varchar OldValue "nullable"
+        varchar NewValue "nullable"
+        uuid ChangedByUserId
+        timestamp ChangedAt
+    }
+```
+
+**`LabSpecimenDetail` adalah tabel jembatan, dan ia menyimpan snapshot nama.** Alasannya sama
+dengan `OrganismNameSnapshot`: nama yang diperbaiki kepala instalasi enam bulan kemudian tidak
+boleh mengubah arti specimen yang sudah tercatat.
+
+**`LabFieldChangeLog` sengaja dibuat umum**, tidak khusus specimen. `EntityName` + `EntityId`
+membuatnya dapat dipakai ulang ketika ruas lain kelak perlu dijejaki, tanpa menambah tabel
+kelima. Ia **tidak** menggantikan `LabTransitionHistory`; keduanya bersumbu berbeda
+(`LAB-DEC-112`).
+
+### Status dan pemilik setiap entity — amandemen ini
+
+| Entity | Status | Pemilik | Keputusan |
+|---|---|---|---|
+| `LabExamination` | **`Extend`** | `BC-LAB` | Bertambah **enam** kolom: tiga kelengkapan (`LAB-DEC-097`), tiga konsultasi (`LAB-DEC-106`) |
+| `LabMicrobiologyCriticalRule` | **`New`** | `BC-LAB` | `LAB-DEC-103` |
+| `LabSpecimenDetailType` | **`New`** | `BC-LAB` | `LAB-DEC-098`, `LAB-DEC-099` |
+| `LabSpecimenDetail` | **`New`** | `BC-LAB` | `LAB-DEC-098` |
+| `LabFieldChangeLog` | **`New`** | `BC-LAB` | `LAB-DEC-112` |
+| `LabSpecimenType` | **`Existing`** — tidak disentuh | `BC-LAB` | `LAB-DEC-098` butir 1 |
+| `LabTransitionHistory` | **`Existing`** — tidak disentuh | `BC-LAB` | `LAB-DEC-112` |
+| `MstMeasurement` | **`Existing`** — hanya **baris baru**, nol kolom | `master-data` | `LAB-DEC-100` |
+| `MstDoctor`, `TrxOnCallAssignment` | **`Adapter/View`** — dibaca saja, nol disalin | `master-data` / `human-resource` | `LAB-DEC-111` |
+
+> **Nol salinan pasien maupun dokter dibuat.** `LAB-DEC-111` membaca rantai
+> `TrxOnCallAssignment` → `MstDoctor` lewat join pada `ApplicationDbContext` yang sama. Nol
+> tabel bayangan, nol sinkronisasi.
+
+### Delete behavior dan index
+
+| Tabel | Delete behavior | Index |
+|---|---|---|
+| `LabMicrobiologyCriticalRule` | **Nol cascade.** Organisme/antibiotik dinonaktifkan, bukan dihapus (`INV-31`) | Index atas `(LabOrganismId, LabAntibioticId, SusceptibilityResult)` di antara baris `IsActive` |
+| `LabSpecimenDetailType` | `Restrict` terhadap `LabSpecimenType` | Unik **parsial** atas `DetailTypeCode` di antara baris yang belum `IsDelete` — mengikuti pola `VAL-91` |
+| `LabSpecimenDetail` | `Cascade` dari `LabSpecimen` | Unik parsial atas `(LabSpecimenId, LabSpecimenDetailTypeId)` — satu rincian tidak boleh dicentang dua kali |
+| `LabFieldChangeLog` | **Nol cascade dari mana pun.** Jejak tidak ikut mati bersama barisnya | Index atas `(EntityName, EntityId, ChangedAt)` |
+
+> **Kenapa `LabFieldChangeLog` tidak cascade.** Menghapus specimen lalu ikut menghapus jejak
+> perubahannya membuat jejak itu hilang tepat pada saat ia paling dibutuhkan. Pola yang sama
+> dipakai `LabTransitionHistory`.
+
+### Yang sengaja tidak digambar
+
+| Yang ditolak | Alasan |
+|---|---|
+| Kolom `IsCritical` tersimpan pada isolat atau baris kepekaan | Penilaian dihitung saat dibaca, bukan disimpan. Aturan kritis dapat berubah, dan nilai tersimpan akan membekukan penilaian lama sebagai kalau-kalau fakta. Sejalan `LAB-DEC-080` — kolom mencatat apa yang terjadi, bukan menyimpulkan |
+| Tabel `LabMicrobiologyReport` per order | `LAB-DEC-095` menegaskan hasil melekat pada pemeriksaan. Patologi Anatomi punya tabel per order justru karena `LAB-DEC-085` memutuskan sebaliknya untuk disiplin itu |
+| Kolom `HL7Status` | `LAB-DEC-109` — ruasnya tidak dibangun sampai `LAB-COORD-012` dijawab |
+| Tabel penugasan jaga milik Laboratorium | `LAB-DEC-111` membaca milik Human Resource. Mendirikan sendiri berarti dua daftar dokter jaga yang dapat berbeda |
+
+---
+
+### ~~Patologi Anatomi — nol entity baru~~ — **DICABUT 2026-09-18 sore**
+
+> Bagian ini menilai laporan Patologi Anatomi sebagai `VALUE_OBJECT` berbentuk tiga kolom pada
+> `LabExamination`. **Penilaian itu dicabut** oleh bukti `LAB-EVD-003` dan `LAB-DEC-085`:
+> hasil PA melekat pada **pesanan**, ruasnya sampai lima belas, dan ia punya lifecycle sendiri.
+> Bentuk yang berlaku ada pada **Amandemen 2026-09-18 sore** di bawah.
+
+---
+
+## Amandemen 2026-09-18 sore — Laporan Patologi Anatomi per pesanan
+
+Menurunkan `LAB-DA-001` revision 7 bagian A4, dan `02-backend-architecture.md` bagian 15.
+
+### ERD — laporan dan konteks klinis
+
+```mermaid
+erDiagram
+    LabOrder ||--o| LabPathologyOrderContext : "konteks klinis"
+    LabOrder ||--o| LabPathologyReport : "menghasilkan"
+    LabPathologyReport ||--o{ LabPathologyReportValue : "berisi"
+    LabPathologyParameter ||--o{ LabPathologyReportValue : "menamai"
+
+    LabOrder {
+        uuid Id PK
+        int Discipline
+    }
+    LabPathologyOrderContext {
+        uuid Id PK
+        uuid LabOrderId FK "unik parsial"
+        text InitialDiagnosis "nullable"
+        text RelevantHistory "nullable"
+        date LastMenstrualPeriod "nullable"
+        text ClinicalNote "nullable"
+    }
+    LabPathologyReport {
+        uuid Id PK
+        uuid LabOrderId FK "unik parsial"
+        int FindingStatus "nullable"
+        uuid AnalystUserId "nullable, tanpa FK"
+        timestamp FinalizedAt "nullable"
+        uuid FinalizedByUserId "nullable, tanpa FK"
+        int ReopenCount
+    }
+    LabPathologyReportValue {
+        uuid Id PK
+        uuid LabPathologyReportId FK
+        uuid LabPathologyParameterId FK
+        varchar ParameterNameSnapshot
+        text Value
+    }
+    LabPathologyParameter {
+        uuid Id PK
+        varchar ParameterCode UK
+        varchar ParameterName
+        bool IsActive
+    }
+```
+
+### ERD — data induk dan pemetaan kategori
+
+```mermaid
+erDiagram
+    LabPathologyParameter ||--o{ LabPathologyParameterCategory : "berlaku bagi"
+    LabPathologyCategory ||--o{ LabPathologyParameterCategory : "memakai"
+    LabPathologyCategory ||--o{ LabProcedurePathologyCategory : "menggolongkan"
+    MstProcedure ||--o| LabProcedurePathologyCategory : "digolongkan"
+
+    LabPathologyParameter {
+        uuid Id PK
+        varchar ParameterCode UK
+        varchar ParameterName
+        int SortOrder
+        bool IsActive
+    }
+    LabPathologyCategory {
+        uuid Id PK
+        varchar CategoryCode UK
+        varchar CategoryName
+        bool IsActive
+    }
+    LabPathologyParameterCategory {
+        uuid Id PK
+        uuid LabPathologyParameterId FK
+        uuid LabPathologyCategoryId FK
+        bool IsRequired
+    }
+    LabProcedurePathologyCategory {
+        uuid Id PK
+        uuid ProcedureId FK "unik parsial"
+        uuid LabPathologyCategoryId FK
+    }
+    MstProcedure {
+        uuid Id PK
+        bool IsLaboratory
+        int LabDiscipline "nullable"
+    }
+```
+
+### Status dan pemilik setiap entity
+
+| Entity | Status | Pemilik | Catatan |
+|---|---|---|---|
+| `LabPathologyReport` | **`New`** | `BC-LAB` | `LAB-DC-043` |
+| `LabPathologyReportValue` | **`New`** | `BC-LAB` | `LAB-DC-044` |
+| `LabPathologyOrderContext` | **`New`** | `BC-LAB` | `LAB-DC-049` |
+| `LabPathologyParameter` | **`New`** | `BC-LAB` | `LAB-DC-045` |
+| `LabPathologyCategory` | **`New`** | `BC-LAB` | `LAB-DC-046` |
+| `LabPathologyParameterCategory` | **`New`** | `BC-LAB` | `LAB-DC-047` |
+| `LabProcedurePathologyCategory` | **`New`** | `BC-LAB` | `LAB-DC-048`. **`MstProcedure` nol disentuh** |
+| `LabExamination` | **tidak berubah oleh PA** | `BC-LAB` | Tiga kolom `Pathology*` yang dirancang bagian 14 **dicabut** |
+
+### Delete behavior dan index
+
+| Relasi | `DeleteBehavior` |
+|---|---|
+| `LabPathologyReport` → `LabOrder` | **`Restrict`** |
+| `LabPathologyOrderContext` → `LabOrder` | **`Restrict`** |
+| `LabPathologyReportValue` → `LabPathologyReport` | **`Restrict`** |
+| `LabPathologyReportValue` → `LabPathologyParameter` | **`Restrict`** — menonaktifkan parameter nol menghapus isi laporan (`INV-37`) |
+| `LabPathologyParameterCategory` → keduanya | **`Restrict`** |
+| `LabProcedurePathologyCategory` → keduanya | **`Restrict`** |
+
+| Index | Tabel | Sifat |
+|---|---|---|
+| `LabOrderId` | `LabPathologyReport` | **Unik parsial** — `INV-32`, satu laporan per pesanan |
+| `LabOrderId` | `LabPathologyOrderContext` | **Unik parsial** |
+| (`LabPathologyReportId`, `LabPathologyParameterId`) | `LabPathologyReportValue` | **Unik parsial** — satu parameter sekali per laporan |
+| `ParameterCode` | `LabPathologyParameter` | **Unik parsial** |
+| `CategoryCode` | `LabPathologyCategory` | **Unik parsial** |
+| (`ParameterId`, `CategoryId`) | `LabPathologyParameterCategory` | **Unik parsial** |
+| `ProcedureId` | `LabProcedurePathologyCategory` | **Unik parsial** — satu pemeriksaan satu kategori |
+
+> ### ⚠ Tujuh index unik, dan ketujuhnya WAJIB PARSIAL
+>
+> Pembatas `IsDelete = false` bukan kehalusan teknis. Penghapusan di sistem ini bersifat
+> **penandaan**, sehingga baris tertandai hapus **tetap menempati kuncinya** — dan kepala instalasi
+> yang menghapus satu parameter lalu menambahkannya lagi dengan kode yang sama akan ditolak basis
+> data tanpa sebab yang masuk akal baginya.
+>
+> Modul ini sudah membayar persis kesalahan itu lewat `LAB-CONFLICT-005`. **Tujuh index berarti
+> tujuh kesempatan mengulanginya.**
+
+### Yang sengaja tidak digambar
+
+| Yang dicari pembaca | Kenapa tidak ada |
+|---|---|
+| Kolom `IssuedAt` dan `EffectiveAt` | **Nol disimpan** (`INV-38`). Keduanya diturunkan dari `FinalizedAt` dan `LabSpecimen.CollectedAt` |
+| Kolom status `Draft`/`Final` | `INV-36`. Dibaca dari `FinalizedAt` |
+| Tabel gambar laporan | `DEC-LAB-016` |
+| Kolom kategori pada `MstProcedure` | `LAB-DEC-087` — pemetaannya milik Laboratorium; katalognya nol disentuh |
+
+### Delete behavior, index, dan satu jebakan
+
+| Relasi | `DeleteBehavior` | Alasan |
+|---|---|---|
+| `LabMicrobiologyIsolate` → `LabExamination` | **`Restrict`** | Histori klinis tidak boleh terhapus berantai |
+| `LabMicrobiologyIsolate` → `LabOrganism` | **`Restrict`** | Menonaktifkan data induk tidak boleh menghapus temuan pasien (`INV-31`) |
+| `LabIsolateSusceptibility` → `LabMicrobiologyIsolate` | **`Restrict`** | Sama |
+| `LabIsolateSusceptibility` → `LabAntibiotic` | **`Restrict`** | Sama |
+
+| Index | Tabel | Sifat |
+|---|---|---|
+| `OrganismCode` | `LabOrganism` | **Unik** |
+| `AntibioticCode` | `LabAntibiotic` | **Unik** |
+| `LabExaminationId` | `LabMicrobiologyIsolate` | Biasa |
+| `LabMicrobiologyIsolateId` | `LabIsolateSusceptibility` | Biasa |
+| (`LabMicrobiologyIsolateId`, `LabAntibioticId`) | `LabIsolateSusceptibility` | **Unik PARSIAL** — dibatasi `IsDelete = false` |
+
+> ### ⚠ Index unik parsial itu bukan kehalusan teknis
+>
+> Penghapusan di sistem ini bersifat **penandaan** (`IsDelete`), bukan penghapusan sungguhan.
+> Index unik biasa akan membuat baris yang sudah ditandai hapus **tetap menempati kuncinya**,
+> sehingga analis yang salah memilih antibiotik, menghapusnya, lalu memilih antibiotik yang sama
+> lagi akan ditolak sistem tanpa sebab yang masuk akal baginya.
+>
+> Modul ini **sudah pernah membayar persis kesalahan ini** lewat `LAB-CONFLICT-005` pada index
+> `(SpecimenId, ProcedureId)`. Dicatat di sini agar tidak diulang untuk ketiga kalinya.
+
+---
+
+## Amandemen 2026-09-21 (kedua) — `S4b` sesudah bukti cetak `LAB-EVD-005` dan `LAB-EVD-006`
+
+Menurunkan decision log **revision 52** (`LAB-DEC-114`..`LAB-DEC-128`). Bersifat **aditif**
+terhadap amandemen pertama 2026-09-21; nol entity yang sudah digambar dibongkar.
+
+> **Peringatan yang dibawa amandemen ini.** `LAB-OPEN-039` masih menyisakan **enam varian
+> cetak** yang belum pernah dilihat. `LAB-DEC-116` sudah sekali terkoreksi kurang dari satu jam
+> sesudah dicatat, dan sebabnya persis itu: disimpulkan dari satu contoh. Bagian yang paling
+> mungkin bergeser lagi ditandai **⚠ rapuh** di bawah.
+
+### ERD — antibiogram sesudah bukti cetak
+
+```mermaid
+erDiagram
+    LabExamination ||--o{ LabMicrobiologyIsolate : "menemukan"
+    LabMicrobiologyIsolate ||--o{ LabIsolateSusceptibility : "diuji terhadap"
+    LabOrganism ||--o{ LabSusceptibilityBreakpoint : "membatasi"
+    LabAntibiotic ||--o{ LabSusceptibilityBreakpoint : "membatasi"
+    MstProcedure ||--o| LabProcedureMicrobiologyProfile : "diprofilkan"
+
+    LabExamination {
+        uuid Id PK
+        int MicrobiologyFinding "nullable"
+        int ResultQualifier "nullable - BARU, Definitif/Sementara"
+        int CultureType "nullable - BARU, Bakteri/Jamur"
+        int SusceptibilityMethod "nullable - BARU, Difusi/Dilusi"
+    }
+    LabMicrobiologyIsolate {
+        uuid Id PK
+        uuid LabExaminationId FK
+        uuid LabOrganismId FK
+        varchar OrganismNameSnapshot
+        bool IsSusceptibilityTested "BARU"
+        varchar Note "nullable"
+    }
+    LabIsolateSusceptibility {
+        uuid Id PK
+        uuid LabMicrobiologyIsolateId FK
+        uuid LabAntibioticId FK
+        varchar AntibioticNameSnapshot
+        decimal Concentration "nullable - MIC, dilusi"
+        uuid ConcentrationUnitId FK "nullable - BARU"
+        int DiscContentUgSnapshot "nullable - BARU, difusi"
+        int BreakpointLowerMmSnapshot "nullable - BARU"
+        int BreakpointUpperMmSnapshot "nullable - BARU"
+        int ZoneDiameterMm "nullable - 0 sah, kosong berbeda"
+        int ComputedResult "nullable - BARU"
+        int Result
+        bool IsResultOverridden "BARU"
+        varchar ResultOverrideReason "nullable - BARU"
+    }
+    LabSusceptibilityBreakpoint {
+        uuid Id PK
+        uuid LabOrganismId FK
+        uuid LabAntibioticId FK
+        int LowerMm
+        int UpperMm
+        varchar GuidelineVersion "nullable"
+        bool IsActive
+    }
+    LabProcedureMicrobiologyProfile {
+        uuid Id PK
+        uuid ProcedureId FK
+        bool UsesSusceptibilitySet
+        int DefaultCultureType "nullable"
+        int DefaultSusceptibilityMethod "nullable"
+        bool IsActive
+    }
+```
+
+### Kenapa `ComputedResult` dan `Result` disimpan berdampingan
+
+`LAB-DEC-123` menjadikan interpretasi **terhitung**, tetapi membuka penimpaan beralasan.
+
+| Kolom | Isinya |
+|---|---|
+| `ComputedResult` | Hasil hitungan sistem dari zona terhadap breakpoint |
+| `Result` | Nilai yang **berlaku** dan yang dicetak |
+| `IsResultOverridden` | Benar ketika keduanya berbeda |
+| `ResultOverrideReason` | **Wajib** ketika ditimpa |
+
+> **Kenapa hitungannya ikut disimpan, bukan dihitung ulang saat dibaca.** Ia berbeda dari
+> `IsCritical` yang sengaja **tidak** disimpan. Alasannya: penanda kritis menilai hasil
+> terhadap aturan yang boleh berubah, sedangkan `ComputedResult` adalah **fakta apa yang
+> sistem katakan pada saat analis memutuskan menimpanya**. Tanpa menyimpannya, pertanyaan
+> *"analis menimpa dari apa"* kehilangan jawabannya begitu breakpoint diperbarui.
+
+### Kenapa breakpoint di-snapshot ke baris hasil
+
+`BreakpointLowerMmSnapshot` dan `BreakpointUpperMmSnapshot` menyalin rentang yang **berlaku
+saat hasil diisi**. Ketika versi CLSI berganti dan rentangnya bergeser, hasil tahun lalu tetap
+dapat dibaca dengan rentang yang dipakai ketika ia dibuat — dan cetakan ulang menghasilkan
+lembar yang sama persis. Pola yang sama sudah dipakai `OrganismNameSnapshot`.
+
+### ERD — pengaturan per disiplin
+
+```mermaid
+erDiagram
+    LabDisciplineSetting {
+        uuid Id PK
+        int Discipline UK
+        varchar ConsultantLabel
+        varchar ConsultantName "nullable"
+        varchar StandingNote "nullable"
+        varchar ReportNumberPrefix "nullable"
+        bool IsActive
+    }
+    LabOrder {
+        uuid Id PK
+        varchar OrderNumber "sudah ada - LAB-RSMMC-000000123"
+        varchar LabReportNumber "nullable - BARU, 26-1246"
+    }
+```
+
+`LabDisciplineSetting` memuat tiga hal yang seluruhnya **berbeda per disiplin** dan seluruhnya
+terbukti dari bukti cetak:
+
+| Ruas | Mikrobiologi | Patologi Anatomi | Patologi Klinik |
+|---|---|---|---|
+| `ConsultantLabel` | `Konsultan Mikrobiologi Klinik` | `Spesialis Patologi Anatomi` | `Konsultan` |
+| `ConsultantName` | `Usman Chatib Warsa, PhD, SpMK-K, Prof. dr.` | `Ening Krisnuhoni, SpPA-K, dr.` | `Prof.Dr.Riadi Wirawan SpPK(K)` |
+| `StandingNote` | `LEBAR ZONA ANTIBIOTIK TIDAK MEMPENGARUHI...` | *(kosong)* | *(catatan penafsiran)* |
+
+> **Satu tabel, bukan tiga pengaturan terpisah.** Ketiganya menjawab pertanyaan yang sama —
+> *"apa yang tercetak di footer disiplin ini"* — dan memisahkannya berarti tiga tempat yang
+> harus diingat bersamaan ketika kop rumah sakit berubah.
+
+### Status dan pemilik setiap entity — amandemen ini
+
+| Entity | Status | Keputusan | Rapuh? |
+|---|---|---|---|
+| `LabExamination` | **`Extend`** — 3 kolom lagi | `LAB-DEC-114`, `124` | — |
+| `LabMicrobiologyIsolate` | **`Extend`** — 1 kolom | `LAB-DEC-126` | — |
+| `LabIsolateSusceptibility` | **`Extend`** — 7 kolom | `LAB-DEC-115`, `122`, `123` | — |
+| `LabSusceptibilityBreakpoint` | **`New`** | `LAB-DEC-122` | — |
+| `LabProcedureMicrobiologyProfile` | **`New`** | `LAB-DEC-125` | — |
+| `LabDisciplineSetting` | **`New`** | `LAB-DEC-119`, `127` | ⚠ **rapuh** — footer tiga disiplin baru terlihat masing-masing satu contoh |
+| `LabOrder` | **`Extend`** — 1 kolom | `LAB-DEC-117` | — |
+| `MstProcedure` | **`Existing`** — nol disentuh | `LAB-DEC-125` | — |
+| `MstMeasurement` | **`Existing`** — baris baru `ug/mL`, `mg/L` | `LAB-DEC-115` | — |
+
+> **`MstProcedure` sengaja nol disentuh.** `LabProcedureMicrobiologyProfile` menunjuk kepadanya
+> dari sisi Laboratorium, persis pola `LabProcedurePathologyCategory`. Menambah kolom pada
+> tabel milik `master-data` sudah dua kali menahan modul ini lewat `LAB-COORD-006` dan
+> `MST-POS-WRITE`.
+
+### Delete behavior dan index
+
+| Tabel | Delete behavior | Index |
+|---|---|---|
+| `LabSusceptibilityBreakpoint` | `Restrict` terhadap organisme dan antibiotik | Unik **parsial** atas `(LabOrganismId, LabAntibioticId)` di antara baris `IsActive` |
+| `LabProcedureMicrobiologyProfile` | `Restrict` terhadap `MstProcedure` | Unik **parsial** atas `ProcedureId` |
+| `LabDisciplineSetting` | Nol cascade | Unik **parsial** atas `Discipline` |
+| `LabOrder.LabReportNumber` | — | Unik **parsial** atas `(Discipline, Tahun, Nomor)` |
+
+### ⚠ Bagian yang paling mungkin bergeser lagi
+
+| Bagian | Kenapa rapuh | Varian yang akan memastikannya |
+|---|---|---|
+| Susunan isolat pada cetakan | Contoh yang ada hanya punya **satu** tabel `IDENTITAS` | Cetakan **dua isolat berantibiogram** |
+| Bentuk hasil nol pertumbuhan | Belum pernah terlihat | Cetakan **kultur steril** |
+| Pengulangan kop per lembar | Ketiga contoh satu halaman | Cetakan **halaman kedua** |
+| `LabDisciplineSetting` | Footer tiap disiplin baru terlihat satu contoh | Kategori PA lain |
+
+**Ketiga ruas berikut sengaja dibuat nullable** justru karena keempat varian di atas belum
+terlihat: `ResultQualifier`, `CultureType`, dan `SusceptibilityMethod`. Bila ternyata ada
+bentuk kelima, menambah nilai enum lebih murah daripada membongkar kolom wajib.
+
+---
+
+## Amandemen 2026-09-21 (ketiga) — Data induk specimen dari `LAB-EVD-007`
+
+Menurunkan decision log **revision 53** (`LAB-DEC-129`..`132`).
+
+```mermaid
+erDiagram
+    LabSpecimenType ||--o{ LabSpecimenDetailType : "menaungi"
+    LabSpecimenType {
+        uuid Id PK
+        varchar SpecimenTypeCode UK
+        varchar SpecimenTypeName "isi bertambah 7 -> 31, struktur nol berubah"
+        bool IsOtherBucket
+    }
+    LabSpecimenDetailType {
+        uuid Id PK
+        uuid LabSpecimenTypeId FK
+        varchar DetailTypeCode UK
+        varchar DetailTypeNameId "nullable - BERUBAH, boleh kosong"
+        varchar DetailTypeNameEn "wajib - nama SNOMED CT"
+        varchar SubTypeName "nullable - BARU, atribut pengelompokan"
+        varchar SnomedCode "nullable - BARU, kosong untuk baris Lainnya"
+        int SortOrder
+        bool IsActive "166 baris konfidensi Rendah ter-seed bernilai salah"
+    }
+```
+
+### Yang berubah dan tidak berubah
+
+| Hal | Keadaan |
+|---|---|
+| `LabSpecimenType` struktur | **Nol berubah** — GUID ketujuh baris ter-seed dipertahankan |
+| `LabSpecimenType` isi | 7 → **31**, ditangani **seeder**, bukan migration |
+| `LabSpecimen.SpecimenTypeId` | **Nol perlu dipetakan ulang** |
+| `DetailTypeNameId` | Wajib → **nullable** |
+
+> **`SubTypeName` disimpan sebagai teks, bukan sebagai penunjuk tabel.** Ia **bukan tingkat
+> pilihan** (`LAB-DEC-129`), dan mendirikan tabel untuk sesuatu yang nol pernah dipilih berarti
+> tiga tabel untuk dua tingkat. Sebagai teks ia tetap dapat dikelompokkan pada pelaporan, yang
+> memang satu-satunya kegunaannya.
+
+### Index
+
+| Kolom | Index |
+|---|---|
+| `SnomedCode` | Unik **parsial** di antara baris yang belum `IsDelete` **dan** `SnomedCode` tidak kosong |
+| `SubTypeName` | Index biasa, untuk pengelompokan pelaporan |
+| `DetailTypeNameId`, `DetailTypeNameEn` | Index untuk pencarian dua bahasa (`RULE-007`) |
+
+> **Unik parsial pada `SnomedCode` wajib mengecualikan yang kosong.** Baris yang ditambahkan
+> lewat `Lainnya` seluruhnya berkode SNOMED kosong; index unik penuh akan menolak baris lokal
+> kedua.
