@@ -24,8 +24,6 @@ public sealed class BillingInvoicesController : ControllerBase
     private readonly BillingInsuranceInvoiceDocumentService _insuranceInvoiceDocumentService;
     private readonly BillingCompanyGuarantorInvoiceDocumentService _companyGuarantorInvoiceDocumentService;
     private readonly BillingReminderService _reminderService;
-    private readonly BillingRefundService _refundService;
-    private readonly BillingFinancialExceptionService _financialExceptionService;
 
     public BillingInvoicesController(
         BillingInvoiceService service,
@@ -34,9 +32,7 @@ public sealed class BillingInvoicesController : ControllerBase
         BillingDiscountService discountService,
         BillingInsuranceInvoiceDocumentService insuranceInvoiceDocumentService,
         BillingCompanyGuarantorInvoiceDocumentService companyGuarantorInvoiceDocumentService,
-        BillingReminderService reminderService,
-        BillingRefundService refundService,
-        BillingFinancialExceptionService financialExceptionService)
+        BillingReminderService reminderService)
     {
         _service = service;
         _calculationService = calculationService;
@@ -45,8 +41,6 @@ public sealed class BillingInvoicesController : ControllerBase
         _insuranceInvoiceDocumentService = insuranceInvoiceDocumentService;
         _companyGuarantorInvoiceDocumentService = companyGuarantorInvoiceDocumentService;
         _reminderService = reminderService;
-        _refundService = refundService;
-        _financialExceptionService = financialExceptionService;
     }
 
     [HttpGet]
@@ -785,142 +779,16 @@ public sealed class BillingInvoicesController : ControllerBase
         }
     }
 
-    [HttpGet("{id:guid}/refundable-items")]
-    [AccessAction("ReadRefundableItems", "Read Billing Refundable Items", AccessType = AccessTypes.Read, SortOrder = 20)]
-    [AccessPermission("BillingRefund", "Read")]
-    [ProducesResponseType(typeof(ApiResponse<List<BillingRefundableItemResponse>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetRefundableItems(Guid id, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var result = await _refundService.GetBillingRefundableItemsAsync(id, cancellationToken);
-            return Ok(ApiResponse<List<BillingRefundableItemResponse>>.Ok(result, "Daftar item billing refundable berhasil diambil."));
-        }
-        catch (KeyNotFoundException exception)
-        {
-            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message));
-        }
-    }
-
-    [HttpGet("{id:guid}/remaining-deposit")]
-    [AccessAction("ReadRemainingDeposit", "Read Remaining Deposit", AccessType = AccessTypes.Read, SortOrder = 21)]
-    [AccessPermission("BillingRefund", "Read")]
-    [ProducesResponseType(typeof(ApiResponse<RemainingDepositResponse>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetRemainingDeposit(Guid id, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var result = await _refundService.GetRemainingDepositAsync(id, cancellationToken);
-            return Ok(ApiResponse<RemainingDepositResponse>.Ok(result, "Sisa deposito pasien berhasil diambil."));
-        }
-        catch (KeyNotFoundException exception)
-        {
-            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message));
-        }
-    }
-
-    [HttpPost("{id:guid}/refunds")]
-    [AccessAction("CreateRefund", "Create Refund from Payment History", AccessType = AccessTypes.Create, SortOrder = 22)]
-    [AccessPermission("BillingRefund", "Create")]
-    [ProducesResponseType(typeof(ApiResponse<RefundResponse>), StatusCodes.Status201Created)]
-    public async Task<IActionResult> CreateRefund(
-        Guid id,
-        [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
-        [FromBody] CreateRefundRequest request,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            request.InvoiceId = id;
-            var result = await _refundService.CreateAsync(request, idempotencyKey, CurrentUserId(), cancellationToken);
-            var statusCode = result.IsReplay ? StatusCodes.Status200OK : StatusCodes.Status201Created;
-            return StatusCode(statusCode, ApiResponse<RefundResponse>.Ok(result, "Pengajuan refund berhasil dibuat."));
-        }
-        catch (KeyNotFoundException exception)
-        {
-            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message));
-        }
-        catch (BillingRefundForbiddenException exception)
-        {
-            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(StatusCodes.Status403Forbidden, exception.Message));
-        }
-        catch (BillingRefundConflictException exception)
-        {
-            return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, exception.Message));
-        }
-        catch (BillingRefundValidationException exception)
-        {
-            return UnprocessableEntity(ApiResponse<object>.Fail(StatusCodes.Status422UnprocessableEntity, exception.Message));
-        }
-    }
-
-    [HttpPost("{id:guid}/adjustments")]
-    [AccessAction("CreateAdjustment", "Create Adjustment from Payment History", AccessType = AccessTypes.Create, SortOrder = 23)]
-    [AccessPermission("BillingAdjustment", "Create")]
-    [ProducesResponseType(typeof(ApiResponse<AdjustmentResponse>), StatusCodes.Status201Created)]
-    public async Task<IActionResult> CreateAdjustment(
-        Guid id,
-        [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
-        [FromBody] CreateAdjustmentRequest request,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            request.InvoiceId = id;
-            var result = await _financialExceptionService.CreateAdjustmentAsync(request, idempotencyKey, CurrentUserId(), cancellationToken);
-            var statusCode = result.IsReplay ? StatusCodes.Status200OK : StatusCodes.Status201Created;
-            return StatusCode(statusCode, ApiResponse<AdjustmentResponse>.Ok(result, "Pengajuan adjustment berhasil dibuat."));
-        }
-        catch (KeyNotFoundException exception)
-        {
-            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message));
-        }
-        catch (BillingFinancialExceptionForbiddenException exception)
-        {
-            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(StatusCodes.Status403Forbidden, exception.Message));
-        }
-        catch (BillingFinancialExceptionConflictException exception)
-        {
-            return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, exception.Message));
-        }
-        catch (BillingFinancialExceptionValidationException exception)
-        {
-            return UnprocessableEntity(ApiResponse<object>.Fail(StatusCodes.Status422UnprocessableEntity, exception.Message));
-        }
-    }
-
-    [HttpPost("{id:guid}/write-offs")]
-    [AccessAction("CreateWriteOff", "Create Write-Off from Payment History", AccessType = AccessTypes.Create, SortOrder = 24)]
-    [AccessPermission("BillingWriteOff", "Create")]
-    [ProducesResponseType(typeof(ApiResponse<WriteOffResponse>), StatusCodes.Status201Created)]
-    public async Task<IActionResult> CreateWriteOff(
-        Guid id,
-        [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
-        [FromBody] CreateWriteOffRequest request,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            request.InvoiceId = id;
-            var result = await _financialExceptionService.CreateWriteOffAsync(request, idempotencyKey, CurrentUserId(), cancellationToken);
-            var statusCode = result.IsReplay ? StatusCodes.Status200OK : StatusCodes.Status201Created;
-            return StatusCode(statusCode, ApiResponse<WriteOffResponse>.Ok(result, "Pengajuan write-off berhasil dibuat."));
-        }
-        catch (KeyNotFoundException exception)
-        {
-            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message));
-        }
-        catch (BillingFinancialExceptionForbiddenException exception)
-        {
-            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(StatusCodes.Status403Forbidden, exception.Message));
-        }
-        catch (BillingFinancialExceptionConflictException exception)
-        {
-            return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, exception.Message));
-        }
-        catch (BillingFinancialExceptionValidationException exception)
-        {
-            return UnprocessableEntity(ApiResponse<object>.Fail(StatusCodes.Status422UnprocessableEntity, exception.Message));
-        }
-    }
+    // QBE-AUTH-001 (perbaikan verifier otorisasi, 25 September 2026): GetRefundableItems,
+    // GetRemainingDeposit, dan CreateRefund (route "{id:guid}/refunds") dipindahkan ke
+    // BillingFinancialExceptionsController (lihat method *FromInvoice di sana) - resource
+    // "BillingRefund" HARUS terdaftar tepat pada satu module (invarian verifier #3), dan
+    // BillingFinancialExceptionsController/HEALTH_SERVICE_BILLING_MANAGEMENT_BILLING_FINANCIAL_EXCEPTION
+    // adalah pemilik kanonik resource ini. Rute lama dipertahankan persis via HttpGet/HttpPost
+    // absolut di controller tujuan sehingga frontend TIDAK berubah. CreateAdjustment (route
+    // "{id:guid}/adjustments") dan CreateWriteOff (route "{id:guid}/write-offs") DIHAPUS, bukan
+    // dipindah - dikonfirmasi tidak dipanggil satu pun caller frontend (frontend memakai
+    // "/financial-exceptions/adjustments" dan ".../write-offs" milik
+    // BillingFinancialExceptionsController untuk kedua aksi itu); resource "BillingAdjustment" dan
+    // "BillingWriteOff" sudah bersih di satu module tanpa perlu dipindah apa pun.
 }
