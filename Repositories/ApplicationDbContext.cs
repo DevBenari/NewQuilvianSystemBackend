@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.HemodialysisManagement.Models;
 using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
@@ -780,6 +781,9 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<PhmStockRequestItem> PhmStockRequestItems { get; set; }
         public DbSet<PhmStockRequestHistory> PhmStockRequestHistories { get; set; }
 
+        // Salinan keadaan finansial resep menurut Billing (PHA-DES-001). Bukan sumber kebenaran.
+        public DbSet<PhmPrescriptionFinancialProjection> PhmPrescriptionFinancialProjections { get; set; }
+
         public DbSet<PhmDrugBatch> PhmDrugBatches { get; set; }
         public DbSet<PhmDrugStockBalance> PhmDrugStockBalances { get; set; }
         public DbSet<PhmDrugStockMutation> PhmDrugStockMutations { get; set; }
@@ -960,16 +964,16 @@ namespace QuilvianSystemBackend.Repositories
 
         #region HEALTH SERVICE - Nutrition Management
 
-        public DbSet<GzNutritionOrder> GzNutritionOrders { get; set; }
-        public DbSet<GzNutritionCareRecord> GzNutritionCareRecords { get; set; }
-        public DbSet<GzNutritionOrderHistory> GzNutritionOrderHistories { get; set; }
-        public DbSet<GzDietType> GzDietTypes { get; set; }
-        public DbSet<GzFoodForm> GzFoodForms { get; set; }
-        public DbSet<GzMealSchedule> GzMealSchedules { get; set; }
-        public DbSet<GzPatientDiet> GzPatientDiets { get; set; }
-        public DbSet<GzProductionBatch> GzProductionBatches { get; set; }
-        public DbSet<GzProductionBatchDetail> GzProductionBatchDetails { get; set; }
-        public DbSet<GzMealDelivery> GzMealDeliveries { get; set; }
+        public DbSet<GziNutritionOrder> GziNutritionOrders { get; set; }
+        public DbSet<GziNutritionCareRecord> GziNutritionCareRecords { get; set; }
+        public DbSet<GziNutritionOrderHistory> GziNutritionOrderHistories { get; set; }
+        public DbSet<GziDietType> GziDietTypes { get; set; }
+        public DbSet<GziFoodForm> GziFoodForms { get; set; }
+        public DbSet<GziMealSchedule> GziMealSchedules { get; set; }
+        public DbSet<GziPatientDiet> GziPatientDiets { get; set; }
+        public DbSet<GziProductionBatch> GziProductionBatches { get; set; }
+        public DbSet<GziProductionBatchDetail> GziProductionBatchDetails { get; set; }
+        public DbSet<GziMealDelivery> GziMealDeliveries { get; set; }
 
         #endregion
 
@@ -1026,6 +1030,34 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<BbkEmergencyAuthorization> BbkEmergencyAuthorizations { get; set; }
         public DbSet<BbkIssuanceCorrection> BbkIssuanceCorrections { get; set; }
         #endregion BLOOD BANK MANAGEMENT
+
+        #region HEMODIALYSIS MANAGEMENT
+        // HMD-BP-001, BE-HMD-01. 22 tabel Hmd* milik modul Hemodialisa (registry Hmd / ACTIVE,
+        // HMD-DEC-007). Master milik modul — mesin, station, butir checklist, butir kesiapan, dan
+        // pengaturan unit — sengaja berprefix Hmd, bukan Mst.
+        public DbSet<HmdOrder> HmdOrders { get; set; }
+        public DbSet<HmdEpisode> HmdEpisodes { get; set; }
+        public DbSet<HmdEligibilityAssessment> HmdEligibilityAssessments { get; set; }
+        public DbSet<HmdVascularAccess> HmdVascularAccesses { get; set; }
+        public DbSet<HmdSerologyReview> HmdSerologyReviews { get; set; }
+        public DbSet<HmdIsolationDecision> HmdIsolationDecisions { get; set; }
+        public DbSet<HmdPrescription> HmdPrescriptions { get; set; }
+        public DbSet<HmdSession> HmdSessions { get; set; }
+        public DbSet<HmdSessionChecklist> HmdSessionChecklists { get; set; }
+        public DbSet<HmdSessionAssessment> HmdSessionAssessments { get; set; }
+        public DbSet<HmdSessionObservation> HmdSessionObservations { get; set; }
+        public DbSet<HmdSessionMedication> HmdSessionMedications { get; set; }
+        public DbSet<HmdSessionComplication> HmdSessionComplications { get; set; }
+        public DbSet<HmdSessionStaffAssignment> HmdSessionStaffAssignments { get; set; }
+        public DbSet<HmdMachine> HmdMachines { get; set; }
+        public DbSet<HmdMachineStatusHistory> HmdMachineStatusHistories { get; set; }
+        public DbSet<HmdStation> HmdStations { get; set; }
+        public DbSet<HmdChecklistItem> HmdChecklistItems { get; set; }
+        public DbSet<HmdReadinessItem> HmdReadinessItems { get; set; }
+        public DbSet<HmdUnitReadiness> HmdUnitReadinesses { get; set; }
+        public DbSet<HmdUnitReadinessDetail> HmdUnitReadinessDetails { get; set; }
+        public DbSet<HmdSetting> HmdSettings { get; set; }
+        #endregion HEMODIALYSIS MANAGEMENT
 
         #endregion HEALTH SERVICE
 

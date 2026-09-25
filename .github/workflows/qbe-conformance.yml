@@ -25,6 +25,7 @@ jobs:
     name: QBE Strict GitRange
     if: github.event_name == 'workflow_dispatch' || github.base_ref == 'QuilvianIntegrationBackend'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Checkout source and history

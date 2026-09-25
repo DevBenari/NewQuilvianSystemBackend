@@ -9,7 +9,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
     public class PrescriptionPreparationService
     {
         private readonly ApplicationDbContext _dbContext;
-        public PrescriptionPreparationService(ApplicationDbContext dbContext) => _dbContext = dbContext;
+        private readonly PrescriptionFinancialClearanceService _financialClearanceService;
+
+        public PrescriptionPreparationService(
+            ApplicationDbContext dbContext,
+            PrescriptionFinancialClearanceService financialClearanceService)
+        {
+            _dbContext = dbContext;
+            _financialClearanceService = financialClearanceService;
+        }
 
         public async Task<PrescriptionPreparationResponse> StartAsync(Guid prescriptionId, Guid actorUserId, string? note, CancellationToken ct = default)
         {
@@ -18,6 +26,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
                 ?? throw new InvalidOperationException("Resep tidak ditemukan.");
             if (prescription.FulfillmentStatus != PrescriptionFulfillmentStatus.VerifiedByPharmacy)
                 throw new InvalidOperationException("Penyiapan hanya dapat dimulai setelah telaah farmasi disetujui.");
+
+            // Gerbang finansial kedua dari empat (PHA-BE-005).
+            await _financialClearanceService.EnsureGateAllowedAsync(
+                prescriptionId, PrescriptionClearanceGate.Preparation, ct);
 
             var current = await _dbContext.Set<TrxPrescriptionPreparation>()
                 .Include(x => x.Items.Where(i => !i.IsDelete && i.IsActive))
@@ -63,6 +75,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
             if (preparation.Status != PrescriptionPreparationStatus.InPreparation)
                 throw new InvalidOperationException("Status penyiapan tidak valid.");
 
+            // Penyiapan yang izinnya dicabut di tengah jalan berhenti di sini: ia TIDAK naik ke
+            // menunggu telaah akhir. Keadaan pemenuhannya sengaja dibiarkan pada InPreparation
+            // dan racikan yang sudah dibuat tidak dikembalikan menjadi bahan — obat yang sudah
+            // diracik memang tidak dapat dibatalkan secara fisik (PHA-DEC-069).
+            await _financialClearanceService.EnsureGateAllowedAsync(
+                prescriptionId, PrescriptionClearanceGate.Preparation, ct);
+
             var now = DateTime.UtcNow;
             foreach (var old in preparation.Items.Where(x => !x.IsDelete))
             {
@@ -72,7 +91,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
             {
                 if (!input.PrescriptionItemId.HasValue && !input.PrescriptionCompoundItemId.HasValue)
                     throw new InvalidOperationException("Item penyiapan harus merujuk ke item resep reguler atau bahan racikan.");
-                preparation.Items.Add(new TrxPrescriptionPreparationItem
+                // Item baru didaftarkan lewat DbSet, bukan hanya lewat navigasi induknya.
+                // Induk sudah dilacak dan Id item diisi sendiri, sehingga EF memperlakukan
+                // item ini sebagai baris lama lalu menerbitkan UPDATE yang tidak mengenai
+                // baris mana pun — penyiapan gagal diselesaikan.
+                var item = new TrxPrescriptionPreparationItem
                 {
                     Id = Guid.NewGuid(), PrescriptionPreparationId = preparation.Id,
                     PrescriptionItemId = input.PrescriptionItemId,
@@ -84,14 +107,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Services
                     BatchNumber = Normalize(input.BatchNumber), ExpiryDate = input.ExpiryDate,
                     Note = Normalize(input.Note), SortOrder = input.SortOrder,
                     CreateDateTime = now, CreateBy = actorUserId, IsActive = true
-                });
+                };
+                _dbContext.Set<TrxPrescriptionPreparationItem>().Add(item);
+                preparation.Items.Add(item);
             }
             preparation.Status = PrescriptionPreparationStatus.Prepared;
             preparation.PreparationCompletedAt = now;
             preparation.PreparationNote = Normalize(request.PreparationNote) ?? preparation.PreparationNote;
             preparation.UpdateDateTime = now;
             preparation.UpdateBy = actorUserId;
-            prescription.FulfillmentStatus = PrescriptionFulfillmentStatus.ReadyToDispense;
+            // Penyiapan selesai TIDAK langsung membuka penyerahan. Telaah obat akhir oleh
+            // apoteker wajib bagi seluruh resep, dan hanya telaah itu yang boleh menetapkan
+            // ReadyToDispense. Tanpa batas ini, obat yang belum diperiksa apoteker sudah
+            // dapat diserahkan begitu petugas farmasi menekan selesai.
+            prescription.FulfillmentStatus = PrescriptionFulfillmentStatus.AwaitingFinalCheck;
             prescription.UpdateDateTime = now;
             prescription.UpdateBy = actorUserId;
             await _dbContext.SaveChangesAsync(ct);

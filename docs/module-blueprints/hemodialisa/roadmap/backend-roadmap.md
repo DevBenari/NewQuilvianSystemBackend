@@ -21,6 +21,11 @@
 >    - Lima tindakan lanjutan registry `HealthServices / HemodialysisManagement / Hemodialysis / Hmd / ACTIVE` (`HMD-DEC-007`) diselesaikan pada kedua salinan registry repositori (`backend` dan `frontend`).
 > 3. **QBE Preflight Statement**: Pada setiap serah terima implementasi task backend (`TASK MODE: BACKEND`), pemeriksa kesesuaian arsitektur (*QBE preflight check*) dan kepatuhan engineering diselesaikan pada waktu eksekusi mengacu langsung pada `AGENTS.md` repositori backend target dan dokumen engineering kanonikal di `rules/backend/engineering/`.
 > 4. Eksekusi database (pembuatan migration dan penerapannya) merupakan wewenang terpisah yang membutuhkan otorisasi eksplisit dari pemilik database.
+>
+> **Catatan penutupan gerbang — 22 September 2026.**
+> - Gerbang persetujuan blueprint dan kontrak `HMD-CONTRACT-v1`: **tertutup** 18 September 2026 (lihat kepala dokumen).
+> - Gerbang registry `HMD-DEC-007`: tindakan 1–4 **selesai** 22 September 2026 — baris `HealthServices / HemodialysisManagement / Hemodialysis / Hmd / ACTIVE` ditambahkan pada `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md` dan pada dua salinan canonical suite skill (isi identik). Repository frontend tidak menyimpan salinan registry. Tindakan 5 — commit dan push kedua repository — **masih terbuka**, dijalankan pemilik.
+> - Wewenang migration: diberikan pemilik pada sesi 22 September 2026 untuk DB pribadi `QuilvianNewDevHamzah` saja; migration `20260922044002_AddHemodialysisManagement` diterapkan di sana. DB bersama dan deployment tetap wewenang terpisah.
 
 ---
 
@@ -30,22 +35,32 @@ Sebanyak 19 task backend disusun menurut gelombang pengiriman (*delivery waves*)
 
 | Gelombang | Task ID | Epic Sasaran | Hasil Nyata yang Dapat Diuji | Status Eksekusi |
 |---|---|---|---|:---:|
-| `MVP-0` | `BE-HMD-01` s/d `BE-HMD-03` | Fondasi & Tata Kelola | 22 tabel `Hmd*` terpasang lewat 1 migration, 2 enum diekstensi, penegakan keutuhan rekam medis 2-tempat aktif, 10 service terdaftar, dan data master awal siap | `BLOCKED` (Tindakan Registry `HMD-DEC-007`) |
-| `MVP-1` | `BE-HMD-04` s/d `BE-HMD-06` | `EPIC HMD-05` | Mesin, station, pengaturan unit, dan checklist persiapan dapat dikelola; shift unit HD dapat dinilai dan dinyatakan siap | `BLOCKED` (`MVP-0`) |
-| `MVP-2` | `BE-HMD-07` s/d `BE-HMD-09` | `EPIC HMD-01`, `HMD-02`, `HMD-03` | Permintaan HD masuk dari rawat inap/IGD/jalan dapat diproses; program episode pasien, kelayakan, serologi, isolasi, dan resep HD aktif dapat diterbitkan | `BLOCKED` (`MVP-1`) |
-| `MVP-3` | `BE-HMD-10` s/d `BE-HMD-11` | `EPIC HMD-04` | Sesi terjadwal tanpa tabrakan mesin/pasien/station; penugasan staf diverifikasi gerbang kompetensi; daftar kerja harian siap | `BLOCKED` (`MVP-2`) |
-| `MVP-4` | `BE-HMD-12` s/d `BE-HMD-15` | `EPIC HMD-06`, `HMD-07` | Checklist Pra-HD diperiksa; sesi dimulai idempoten dengan waktu server; pemantauan berkala, komplikasi, dan obat tercatat ke Farmasi | `BLOCKED` (`MVP-3`) |
-| `MVP-5` | `BE-HMD-16` s/d `BE-HMD-18` | `EPIC HMD-08`, `HMD-09` | Sesi ditutup; perawat menyelesaikan dokumentasi; dokter mengesahkan; catatan terkunci permanen; koreksi via addendum; tagihan terbit ke Billing | `BLOCKED` (`MVP-4`) |
-| Lintas | `BE-HMD-19` | Lintas Epic | Pengujian otomatis seluruh endpoint, kepatuhan matriks otorisasi peran, dan audit trail tidak dapat dijebol | `BLOCKED` (`MVP-5`) |
+| `MVP-0` | `BE-HMD-01` s/d `BE-HMD-03` | Fondasi & Tata Kelola | 22 tabel `Hmd*` terpasang lewat 1 migration, 2 enum diekstensi, penegakan keutuhan rekam medis 2-tempat aktif, 10 service terdaftar, dan data master awal siap | ✅ selesai 22 September 2026 — ketiga task terimplementasi (sebelumnya `BLOCKED` oleh tindakan registry `HMD-DEC-007`) |
+| `MVP-1` | `BE-HMD-04` s/d `BE-HMD-06` | `EPIC HMD-05` | Mesin, station, pengaturan unit, dan checklist persiapan dapat dikelola; shift unit HD dapat dinilai dan dinyatakan siap | ✅ selesai 22 September 2026 — ketiga task terimplementasi |
+| `MVP-2` | `BE-HMD-07` s/d `BE-HMD-09` | `EPIC HMD-01`, `HMD-02`, `HMD-03` | Permintaan HD masuk dari rawat inap/IGD/jalan dapat diproses; program episode pasien, kelayakan, serologi, isolasi, dan resep HD aktif dapat diterbitkan | ✅ selesai 22 September 2026 — ketiga task terimplementasi |
+| `MVP-3` | `BE-HMD-10` s/d `BE-HMD-11` | `EPIC HMD-04` | Sesi terjadwal tanpa tabrakan mesin/pasien/station; penugasan staf diverifikasi gerbang kompetensi; daftar kerja harian siap | ✅ selesai 22 September 2026 — kedua task terimplementasi |
+| `MVP-4` | `BE-HMD-12` s/d `BE-HMD-15` | `EPIC HMD-06`, `HMD-07` | Checklist Pra-HD diperiksa; sesi dimulai idempoten dengan waktu server; pemantauan berkala, komplikasi, dan obat tercatat ke Farmasi | ✅ selesai 22 September 2026 — keempat task terimplementasi |
+| `MVP-5` | `BE-HMD-16` s/d `BE-HMD-18` | `EPIC HMD-08`, `HMD-09` | Sesi ditutup; perawat menyelesaikan dokumentasi; dokter mengesahkan; catatan terkunci permanen; koreksi via addendum; tagihan terbit ke Billing | ✅ selesai 22 September 2026 — ketiga task terimplementasi |
+| Lintas | `BE-HMD-19` | Lintas Epic | Pengujian otomatis seluruh endpoint, kepatuhan matriks otorisasi peran, dan audit trail tidak dapat dijebol | 🟡 sebagian 22 September 2026 — kriteria 1 dan 2 terpenuhi; kriteria 3 menunggu keputusan pemilik soal alamat IP di database |
 
 ---
 
 ## 2. Rincian Task Backend
 
+**Arti tanda status pada dokumen ini.**
+
+| Tanda | Artinya |
+| :---: | --- |
+| ✅ | Selesai. Acceptance criteria dan DoD **terbukti**, buktinya ada pada laporan task |
+| 🟡 | Sebagian. Source-nya sudah ada, tetapi acceptance criteria belum terbukti penuh. **Belum selesai** |
+| ⛔ | Terblokir. Prasyaratnya belum terpenuhi, dan task **tidak boleh dimulai** |
+| tanpa tanda | Belum dikerjakan |
+
 ### 2.1 Gelombang `MVP-0` — Fondasi, Model Data, dan Tata Kelola
 
-#### `BE-HMD-01` — Fondasi Entity, Konfigurasi EF Core, DbContext, dan Migration 22 Tabel `Hmd*`
+#### ✅ `BE-HMD-01` — Fondasi Entity, Konfigurasi EF Core, DbContext, dan Migration 22 Tabel `Hmd*`
 
+* **Status**: ✅ **SELESAI 22 September 2026.** Ketiga acceptance criteria dipetakan ke source; bagian jadwal pada kriteria 2 dipenuhi sebagai index biasa ditambah kunci advisory, mengikuti `data-dictionary.md` bagian 3.8 (delta tercatat). Migration `20260922044002_AddHemodialysisManagement` diterapkan ke DB pribadi `QuilvianNewDevHamzah` — 22 tabel, 138 index, 46 FK — dan `Down()`/`Up()` diuji. `dotnet build` `0 Error(s)` — 224 warning, 0 dari berkas Hemodialisa (garis dasar 21 September 2026: 222 warning); QBE Strict `PASS` atas 94 berkas, 0 violation; audit akses reflektif 0 masalah atribut. Bukti: [laporan](../task/report/backend/BE-HMD-01.md)
 * **Outcome**: Skema basis data 22 tabel modul Hemodialisa terbentuk sempurna melalui Entity Framework Core Migration tunggal, konsisten dengan relasi foreign key, index pencegah tabrakan, dan audit columns standar.
 * **Requirement / Decision**: `HMD-DEC-004`, `HMD-DEC-007`, `HMD-DEC-008`, `FR-HMD-001`, `FR-HMD-030`, `NFR-001`, `NFR-002`.
 * **Kontrak**: `02-backend-architecture.md` Bagian 3, 5, 6, dan 8; `data/data-dictionary.md` seluruh entitas.
@@ -69,8 +84,9 @@ Sebanyak 19 task backend disusun menurut gelombang pengiriman (*delivery waves*)
 
 ---
 
-#### `BE-HMD-02` — Integrasi Keutuhan Rekam Medis Dua Langkah dan Ekstensi Enum Lintas Modul
+#### ✅ `BE-HMD-02` — Integrasi Keutuhan Rekam Medis Dua Langkah dan Ekstensi Enum Lintas Modul
 
+* **Status**: ✅ **SELESAI 22 September 2026.** Kedua acceptance criteria dipetakan ke source: `HemodialysisSession` masuk `JenisYangDitegakkan`, dan penolakan `EnsureMutableAsync` dipetakan menjadi `423 HMD-VAL-075`. Berkas Rekam Medis diubah atas izin pemilik 22 September 2026. `dotnet build` `0 Error(s)` — 224 warning, 0 dari berkas Hemodialisa (garis dasar 21 September 2026: 222 warning); QBE Strict `PASS` atas 94 berkas, 0 violation; audit akses reflektif 0 masalah atribut. Unit test integritas **dikecualikan atas keputusan pengguna 22 September 2026**. Bukti: [laporan](../task/report/backend/BE-HMD-02.md)
 * **Outcome**: Catatan sesi hemodialisa terdaftar dan ditegakkan dalam subsistem keutuhan rekam medis (*Medical Record Integrity*) sehingga proteksi penguncian aktif dan tidak dapat disunting diam-diam setelah disahkan.
 * **Requirement / Decision**: `CAP-07`, `CAP-08`, `CAP-18`, `HMD-DEC-010`, `FR-HMD-073`, `FR-HMD-074`, `NFR-008`, **Temuan Kritis 1**.
 * **Kontrak**: `02-backend-architecture.md` Bagian 6 dan 7; `01-existing-capability-map.md` Bagian Temuan Kritis 1.
@@ -93,8 +109,9 @@ Sebanyak 19 task backend disusun menurut gelombang pengiriman (*delivery waves*)
 
 ---
 
-#### `BE-HMD-03` — Pendaftaran Dependency Injection Service, Definisi Hak Akses, dan Pengisian Data Master Awal
+#### ✅ `BE-HMD-03` — Pendaftaran Dependency Injection Service, Definisi Hak Akses, dan Pengisian Data Master Awal
 
+* **Status**: ✅ **SELESAI 22 September 2026.** Ketiga acceptance criteria terpetakan: DB `QuilvianNewDevHamzah` berisi 12 butir checklist (0 boleh dilewati), 5 butir kesiapan, dan pengaturan 60 menit/720 jam; seeder dijalankan ulang menambah 0 baris; seluruh dependency konstruktor 10 service terdaftar *scoped* tanpa siklus. `dotnet build` `0 Error(s)` — 224 warning, 0 dari berkas Hemodialisa (garis dasar 21 September 2026: 222 warning); QBE Strict `PASS` atas 94 berkas, 0 violation; audit akses reflektif 0 masalah atribut. Butir DoD test otomatis **dikecualikan atas keputusan pengguna 22 September 2026**. Startup aplikasi `NOT RUN` — dikecualikan menurut keputusan tetap pemilik 10 September 2026. Bukti: [laporan](../task/report/backend/BE-HMD-03.md)
 * **Outcome**: Sepuluh layanan backend Hemodialisa terdaftar di DI container, konstanta permission terdefinisi, dan seeder data awal master unit, tindakan, butir checklist, dan pengaturan unit tersedia.
 * **Requirement / Decision**: `HMD-DEC-007`, `HMD-DEC-013`, `FR-HMD-041`, `FR-HMD-051`, `NFR-011`.
 * **Kontrak**: `02-backend-architecture.md` Bagian 4, 5, dan 9; `contracts/permission-audit-matrix.md` Bagian 2 dan 3.
@@ -121,8 +138,9 @@ Sebanyak 19 task backend disusun menurut gelombang pengiriman (*delivery waves*)
 
 ### 2.2 Gelombang `MVP-1` — Pengelolaan Sumber Daya dan Kesiapan Unit HD
 
-#### `BE-HMD-04` — Pengelolaan Mesin HD, Riwayat Status Mesin, dan Master Station
+#### ✅ `BE-HMD-04` — Pengelolaan Mesin HD, Riwayat Status Mesin, dan Master Station
 
+* **Status**: ✅ **SELESAI 22 September 2026.** Ketiga acceptance criteria dipetakan ke source: satu baris `HmdMachineStatusHistory` per perubahan status, pilihan penjadwalan hanya mesin `Ready`, station tidak dapat `Maintenance` selama ada sesi berjalan. 19 endpoint (12 kontrak + 7 baca baseline). `dotnet build` `0 Error(s)` — 224 warning, 0 dari berkas Hemodialisa (garis dasar 21 September 2026: 222 warning); QBE Strict `PASS` atas 94 berkas, 0 violation; audit akses reflektif 0 masalah atribut. Butir DoD test otomatis **dikecualikan atas keputusan pengguna 22 September 2026**. Uji runtime HTTP `NOT RUN` — dikecualikan menurut keputusan tetap pemilik 10 September 2026. Bukti: [laporan](../task/report/backend/BE-HMD-04.md)
 * **Outcome**: API master mesin dan station cuci darah beroperasi penuh, mencatat riwayat perubahan kelaikan mesin (*ready*, *blocked*, *maintenance*, *not-eligible*), dan memvalidasi isolasi fisik.
 * **Requirement / Decision**: `FR-HMD-031`, `FR-HMD-033`, `CAP-13`, `CAP-14`, `NFR-005`.
 * **Kontrak**: `contracts/api-contract.md` Grup Master Data Machine & Station; `contracts/state-transition-matrix.md` Bagian 3.
@@ -144,8 +162,9 @@ Sebanyak 19 task backend disusun menurut gelombang pengiriman (*delivery waves*)
 
 ---
 
-#### `BE-HMD-05` — Pengaturan Kebijakan Unit HD dan Penentuan Butir Persiapan Overridable
+#### ✅ `BE-HMD-05` — Pengaturan Kebijakan Unit HD dan Penentuan Butir Persiapan Overridable
 
+* **Status**: ✅ **SELESAI 22 September 2026.** Ketiga acceptance criteria dipetakan ke source: `PATCH …/overridable` dengan catatan tata kelola wajib, pengaturan air dibaca langsung tanpa restart, `403` lewat `[AccessPermission]`. **Perlu keputusan pemilik:** `PUT` butir checklist masih dapat menjadikan butir tidak wajib atau nonaktif (laporan bagian 7). `dotnet build` `0 Error(s)` — 224 warning, 0 dari berkas Hemodialisa (garis dasar 21 September 2026: 222 warning); QBE Strict `PASS` atas 94 berkas, 0 violation; audit akses reflektif 0 masalah atribut. Butir DoD test otomatis **dikecualikan atas keputusan pengguna 22 September 2026**. Uji runtime HTTP `NOT RUN` — dikecualikan menurut keputusan tetap pemilik 10 September 2026. Bukti: [laporan](../task/report/backend/BE-HMD-05.md)
 * **Outcome**: Pengaturan operasional unit HD dan penanda butir persiapan yang boleh dilewati (*overridable*) dapat disesuaikan secara dinamis via API tanpa perlu mengubah atau merilis ulang kode backend.
 * **Requirement / Decision**: `FR-HMD-041`, `FR-HMD-051`, `NFR-011`, `HMD-ASM-001`, `HMD-GATE-002`.
 * **Kontrak**: `contracts/api-contract.md` Grup Master Data Settings & Checklist Items.
@@ -165,8 +184,9 @@ Sebanyak 19 task backend disusun menurut gelombang pengiriman (*delivery waves*)
 
 ---
 
-#### `BE-HMD-06` — Penilaian Kesiapan Unit Shift, Validasi Kelaikan Air, dan Logistik BMHP
+#### ✅ `BE-HMD-06` — Penilaian Kesiapan Unit Shift, Validasi Kelaikan Air, dan Logistik BMHP
 
+* **Status**: ✅ **SELESAI 22 September 2026.** Ketiga acceptance criteria dipetakan ke source: `422 HMD-VAL-102` untuk air kedaluwarsa (teks mengikuti `validation-matrix.md`), `Ready` dengan waktu server dan `DeclaredByUserId`, `NotReady` tidak menyentuh sesi. `dotnet build` `0 Error(s)` — 224 warning, 0 dari berkas Hemodialisa (garis dasar 21 September 2026: 222 warning); QBE Strict `PASS` atas 94 berkas, 0 violation; audit akses reflektif 0 masalah atribut. Butir DoD test otomatis **dikecualikan atas keputusan pengguna 22 September 2026**. Uji runtime HTTP `NOT RUN` — dikecualikan menurut keputusan tetap pemilik 10 September 2026. Bukti: [laporan](../task/report/backend/BE-HMD-06.md)
 * **Outcome**: Koordinator unit dapat membuka lembar kesiapan shift harian, memeriksa butir kelaikan air dan logistik, serta menyatakan unit siap (`Ready`) atau tidak siap (`NotReady`) sebelum pelayanan dimulai.
 * **Requirement / Decision**: `FR-HMD-040`, `FR-HMD-041`, `FR-HMD-042`, `CAP-15`, `CAP-24`, `NFR-004`.
 * **Kontrak**: `contracts/api-contract.md` Grup Hemodialysis Unit Readiness; `contracts/state-transition-matrix.md` Bagian 4.
@@ -188,8 +208,9 @@ Sebanyak 19 task backend disusun menurut gelombang pengiriman (*delivery waves*)
 
 ### 2.3 Gelombang `MVP-2` — Permintaan HD Masuk, Program Episode, dan Resep Hemodialisa
 
-#### `BE-HMD-07` — Alur Permintaan HD Masuk, Konteks Kunjungan, dan Tindakan Terima/Tahan/Tolak
+#### ✅ `BE-HMD-07` — Alur Permintaan HD Masuk, Konteks Kunjungan, dan Tindakan Terima/Tahan/Tolak
 
+* **Status**: ✅ **SELESAI 22 September 2026.** Ketiga acceptance criteria dipetakan ke source: `400 HMD-VAL-001` tanpa kunjungan sah, `403` bagi penolak bukan dokter (hak akses dan relasi `MstDoctor`), `422` untuk aksi pada permintaan final. `dotnet build` `0 Error(s)` — 224 warning, 0 dari berkas Hemodialisa (garis dasar 21 September 2026: 222 warning); QBE Strict `PASS` atas 94 berkas, 0 violation; audit akses reflektif 0 masalah atribut. Butir DoD test otomatis **dikecualikan atas keputusan pengguna 22 September 2026**. Uji runtime HTTP `NOT RUN` — dikecualikan menurut keputusan tetap pemilik 10 September 2026. Bukti: [laporan](../task/report/backend/BE-HMD-07.md)
 * **Outcome**: Permintaan cuci darah dari unit rawat inap, IGD, dan rawat jalan tercatat sebagai data resmi terstruktur; koordinator dapat menerima (*accept*) atau menahan (*hold*), dan dokter dialisis dapat menolak (*reject*).
 * **Requirement / Decision**: `FR-HMD-001`, `FR-HMD-002`, `FR-HMD-003`, `FR-HMD-004`, `CAP-36` (`HMD-CAP-001`), `HMD-DEC-008`.
 * **Kontrak**: `contracts/api-contract.md` Grup Hemodialysis Order; `contracts/state-transition-matrix.md` Bagian 1.
@@ -213,8 +234,9 @@ Sebanyak 19 task backend disusun menurut gelombang pengiriman (*delivery waves*)
 
 ---
 
-#### `BE-HMD-08` — Pengelolaan Program Episode Pasien, Penilaian Kelayakan, Akses Vaskular, dan Isolasi PPI
+#### ✅ `BE-HMD-08` — Pengelolaan Program Episode Pasien, Penilaian Kelayakan, Akses Vaskular, dan Isolasi PPI
 
+* **Status**: ✅ **SELESAI 22 September 2026.** Ketiga acceptance criteria dipetakan ke source: `409 HMD-VAL-011` ditambah unique index bersyarat, `422 HMD-VAL-013` beserta rincian sesi, keputusan isolasi menjadi prasyarat penjadwalan. `dotnet build` `0 Error(s)` — 224 warning, 0 dari berkas Hemodialisa (garis dasar 21 September 2026: 222 warning); QBE Strict `PASS` atas 94 berkas, 0 violation; audit akses reflektif 0 masalah atribut. Butir DoD test otomatis **dikecualikan atas keputusan pengguna 22 September 2026**. Uji runtime HTTP `NOT RUN` — dikecualikan menurut keputusan tetap pemilik 10 September 2026. Bukti: [laporan](../task/report/backend/BE-HMD-08.md)
 * **Outcome**: Program HD pasien (*HmdEpisode*) aktif dapat dikelola dengan batas satu episode aktif per pasien, mencakup pencatatan kelayakan klinis, status akses vaskular, rujukan serologi, dan penetapan isolasi infeksius.
 * **Requirement / Decision**: `FR-HMD-010`, `FR-HMD-011`, `FR-HMD-012`, `FR-HMD-013`, `FR-HMD-014`, `CAP-16`, `CAP-25`, `CAP-26`, `CAP-27`, `HMD-DEC-001`.
 * **Kontrak**: `contracts/api-contract.md` Grup Hemodialysis Episode; `contracts/state-transition-matrix.md` Bagian 2.
@@ -239,8 +261,9 @@ Sebanyak 19 task backend disusun menurut gelombang pengiriman (*delivery waves*)
 
 ---
 
-#### `BE-HMD-09` — Pengelolaan Siklus Resep Hemodialisa (Draf, Aktivasi, Penggantian Terlacak, Pembatalan)
+#### ✅ `BE-HMD-09` — Pengelolaan Siklus Resep Hemodialisa (Draf, Aktivasi, Penggantian Terlacak, Pembatalan)
 
+* **Status**: ✅ **SELESAI 22 September 2026.** Kedua acceptance criteria dipetakan ke source: aktivasi menjadikan resep lama `Superseded` dalam satu transaksi berkunci, `PUT` resep aktif ditolak `423 HMD-VAL-024`. `dotnet build` `0 Error(s)` — 224 warning, 0 dari berkas Hemodialisa (garis dasar 21 September 2026: 222 warning); QBE Strict `PASS` atas 94 berkas, 0 violation; audit akses reflektif 0 masalah atribut. Butir DoD test otomatis **dikecualikan atas keputusan pengguna 22 September 2026**. Uji runtime HTTP `NOT RUN` — dikecualikan menurut keputusan tetap pemilik 10 September 2026. Bukti: [laporan](../task/report/backend/BE-HMD-09.md)
 * **Outcome**: Parameter teknis dialisis tersimpan aman dalam resep HD resmi dokter (`HmdPrescription`); resep aktif tidak dapat diubah di tempat (*immutable*), dan setiap perubahan dosis/target menerbitkan resep baru yang menggantikan resep lama secara transaksional.
 * **Requirement / Decision**: `FR-HMD-020`, `FR-HMD-021`, `FR-HMD-022`, `CAP-28`, `HMD-DEC-009`.
 * **Kontrak**: `contracts/api-contract.md` Grup Hemodialysis Episode / Prescriptions; `contracts/state-transition-matrix.md` Bagian 2.
@@ -264,8 +287,9 @@ Sebanyak 19 task backend disusun menurut gelombang pengiriman (*delivery waves*)
 
 ### 2.4 Gelombang `MVP-3` — Penjadwalan Sesi dan Pencegahan Tabrakan Sumber Daya
 
-#### `BE-HMD-10` — Penjadwalan Sesi HD dengan Validasi Tabrakan Pasien-Mesin-Station dan Isolasi
+#### ✅ `BE-HMD-10` — Penjadwalan Sesi HD dengan Validasi Tabrakan Pasien-Mesin-Station dan Isolasi
 
+* **Status**: ✅ **SELESAI 22 September 2026.** Ketiga acceptance criteria dipetakan ke source: tiga tabrakan `409 HMD-VAL-031/032/033` di bawah `pg_advisory_xact_lock`, isolasi `422 HMD-VAL-035`, sesi `Scheduled` menautkan resep aktif; teks pesan mengikuti `validation-matrix.md`. `dotnet build` `0 Error(s)` — 224 warning, 0 dari berkas Hemodialisa (garis dasar 21 September 2026: 222 warning); QBE Strict `PASS` atas 94 berkas, 0 violation; audit akses reflektif 0 masalah atribut. Butir DoD test otomatis **dikecualikan atas keputusan pengguna 22 September 2026**. Uji konkurensi paralel dan runtime HTTP `NOT RUN` — dikecualikan menurut keputusan tetap pemilik 10 September 2026. Bukti: [laporan](../task/report/backend/BE-HMD-10.md)
 * **Outcome**: Penjadwalan sesi hemodialisa aman dari benturan sumber daya, mencegah tumpang tindih waktu untuk pasien yang sama, mesin yang sama, dan station yang sama, serta memastikan kesesuaian kebutuhan mesin isolasi.
 * **Requirement / Decision**: `FR-HMD-030`, `FR-HMD-031`, `FR-HMD-032`, `CAP-29`, `NFR-002`.
 * **Kontrak**: `contracts/api-contract.md` Grup Hemodialysis Schedule; `contracts/state-transition-matrix.md` Bagian 3; `contracts/validation-matrix.md` Bagian 2.
@@ -289,8 +313,9 @@ Sebanyak 19 task backend disusun menurut gelombang pengiriman (*delivery waves*)
 
 ---
 
-#### `BE-HMD-11` — Penugasan Staf, Pengecekan Gerbang Kompetensi, dan Penyusunan Daftar Kerja Unit
+#### ✅ `BE-HMD-11` — Penugasan Staf, Pengecekan Gerbang Kompetensi, dan Penyusunan Daftar Kerja Unit
 
+* **Status**: ✅ **SELESAI 22 September 2026.** Ketiga acceptance criteria dipetakan ke source: kompetensi tersimpan jujur `NotVerifiable` (`HMD-DEP-002`), worklist hanya membawa penanda isolasi boolean, hasil berhalaman `PagedResult`. `dotnet build` `0 Error(s)` — 224 warning, 0 dari berkas Hemodialisa (garis dasar 21 September 2026: 222 warning); QBE Strict `PASS` atas 94 berkas, 0 violation; audit akses reflektif 0 masalah atribut. Butir DoD test otomatis **dikecualikan atas keputusan pengguna 22 September 2026**. Uji runtime HTTP `NOT RUN` — dikecualikan menurut keputusan tetap pemilik 10 September 2026. Bukti: [laporan](../task/report/backend/BE-HMD-11.md)
 * **Outcome**: Penugasan dokter penanggung jawab dan perawat pada sesi terkelola dengan baik; status kompetensi dicatat secara transparan; dan endpoint daftar kerja (*worklist*) unit menyajikan data operasional harian secara efisien.
 * **Requirement / Decision**: `FR-HMD-034`, `CAP-20`, `CAP-21`, `HMD-DEC-013`, `HMD-DEP-002`, `NFR-006`.
 * **Kontrak**: `contracts/api-contract.md` Grup Hemodialysis Schedule & Sessions (`GET /worklist`, `PUT /{id}/staff-assignments`); `contracts/permission-audit-matrix.md` Bagian 7.
@@ -315,8 +340,9 @@ Sebanyak 19 task backend disusun menurut gelombang pengiriman (*delivery waves*)
 
 ### 2.5 Gelombang `MVP-4` — Pelaksanaan Sesi, Checklist Pra-HD, Pemantauan, dan Farmasi
 
-#### `BE-HMD-12` — Checklist Pra-HD, Validasi Prasyarat Keselamatan, dan Gerbang Pelolosan Dokter
+#### ✅ `BE-HMD-12` — Checklist Pra-HD, Validasi Prasyarat Keselamatan, dan Gerbang Pelolosan Dokter
 
+* **Status**: ✅ **SELESAI 22 September 2026.** Kedua acceptance criteria dipetakan ke source: override butir non-overridable `422 HMD-VAL-044`, pengisian 12 butir mencatat perawat dan waktu server. Gerbang `NotApplicable` pada butir wajib diperbaiki 22 September 2026; build dan QBE diulang dengan hasil sama. Celah terbuka: pembacaan `TrxPatientConsent` menunggu definisi persetujuan sah dari pemilik. `dotnet build` `0 Error(s)` — 224 warning, 0 dari berkas Hemodialisa (garis dasar 21 September 2026: 222 warning); QBE Strict `PASS` atas 94 berkas, 0 violation; audit akses reflektif 0 masalah atribut. Butir DoD test otomatis **dikecualikan atas keputusan pengguna 22 September 2026**. Uji runtime HTTP `NOT RUN` — dikecualikan menurut keputusan tetap pemilik 10 September 2026. Bukti: [laporan](../task/report/backend/BE-HMD-12.md)
 * **Outcome**: Dua belas butir checklist persiapan keselamatan Pra-HD tersimpan per sesi; sistem menegakkan bahwa sesi tidak dapat dinyatakan siap sebelum seluruh butir terpenuhi atau dilewati secara sah sesuai wewenang.
 * **Requirement / Decision**: `FR-HMD-050`, `FR-HMD-051`, `FR-HMD-052`, `CAP-30`, `HMD-ASM-001`, `HMD-GATE-002`.
 * **Kontrak**: `contracts/api-contract.md` Grup Hemodialysis Session Checklist; `contracts/validation-matrix.md` Bagian 3.
@@ -336,8 +362,9 @@ Sebanyak 19 task backend disusun menurut gelombang pengiriman (*delivery waves*)
 
 ---
 
-#### `BE-HMD-13` — Pernyataan Sesi Siap dan Transaksi Memulai Sesi HD Berpenanda Idempotensi
+#### ✅ `BE-HMD-13` — Pernyataan Sesi Siap dan Transaksi Memulai Sesi HD Berpenanda Idempotensi
 
+* **Status**: ✅ **SELESAI 22 September 2026.** Ketiga acceptance criteria dipetakan ke source: pemeriksaan tepat waktu `422 HMD-VAL-051`, idempotensi lewat kunci advisory dan dua unique index (tepat satu `TrxPatientProcedure`), `StartedAt` waktu server. `SessionStartGraceMinutes` belum dipakai — perlu keputusan pemilik. `dotnet build` `0 Error(s)` — 224 warning, 0 dari berkas Hemodialisa (garis dasar 21 September 2026: 222 warning); QBE Strict `PASS` atas 94 berkas, 0 violation; audit akses reflektif 0 masalah atribut. Butir DoD test otomatis **dikecualikan atas keputusan pengguna 22 September 2026**. Uji runtime HTTP `NOT RUN` — dikecualikan menurut keputusan tetap pemilik 10 September 2026. Bukti: [laporan](../task/report/backend/BE-HMD-13.md)
 * **Outcome**: Transaksi peralihan sesi dari persiapan ke pelaksanaan berlangsung aman dan atomik; sistem memeriksa ulang kelaikan mesin dan kunjungan pasien saat tombol mulai ditekan, serta kebal terhadap pengiriman ganda (*idempotent*).
 * **Requirement / Decision**: `FR-HMD-053`, `FR-HMD-054`, `FR-HMD-055`, `CAP-10`, `CAP-31`, `NFR-001`, `NFR-003`, `NFR-004`.
 * **Kontrak**: `contracts/api-contract.md` Grup Hemodialysis Session (`POST /{id}/ready`, `POST /{id}/start`); `contracts/state-transition-matrix.md` Bagian 3.
@@ -360,8 +387,9 @@ Sebanyak 19 task backend disusun menurut gelombang pengiriman (*delivery waves*)
 
 ---
 
-#### `BE-HMD-14` — Pencatatan Pemantauan Berkala, Parameter Mesin, dan Komplikasi Klinis Intra-HD
+#### ✅ `BE-HMD-14` — Pencatatan Pemantauan Berkala, Parameter Mesin, dan Komplikasi Klinis Intra-HD
 
+* **Status**: ✅ **SELESAI 22 September 2026.** Kedua acceptance criteria dipetakan ke source: observasi selalu baris baru bernomor urut unik tanpa endpoint ubah/hapus, komplikasi hanya dicatat perawat secara sadar. `dotnet build` `0 Error(s)` — 224 warning, 0 dari berkas Hemodialisa (garis dasar 21 September 2026: 222 warning); QBE Strict `PASS` atas 94 berkas, 0 violation; audit akses reflektif 0 masalah atribut. Butir DoD test otomatis **dikecualikan atas keputusan pengguna 22 September 2026**. Uji runtime HTTP `NOT RUN` — dikecualikan menurut keputusan tetap pemilik 10 September 2026. Bukti: [laporan](../task/report/backend/BE-HMD-14.md)
 * **Outcome**: Riwayat observasi berkala kondisi klinis pasien, parameter mesin dialisis (QB, QD, TMP, UF terkumpul, tekanan vena/arteri), dan kejadian komplikasi intra-dialisis tersimpan kronologis tanpa pernah saling menimpa.
 * **Requirement / Decision**: `FR-HMD-060`, `FR-HMD-063`, `CAP-32`, `CAP-34`, `NFR-004`.
 * **Kontrak**: `contracts/api-contract.md` Grup Hemodialysis Session Observations & Complications; `contracts/validation-matrix.md` Bagian 4.
@@ -381,8 +409,9 @@ Sebanyak 19 task backend disusun menurut gelombang pengiriman (*delivery waves*)
 
 ---
 
-#### `BE-HMD-15` — Pencatatan Pemberian Obat Intra-HD dan Penerusan Pemakaian ke Bounded Context Farmasi
+#### ✅ `BE-HMD-15` — Pencatatan Pemberian Obat Intra-HD dan Penerusan Pemakaian ke Bounded Context Farmasi
 
+* **Status**: ✅ **SELESAI 22 September 2026.** Kedua acceptance criteria dipetakan ke source: catatan obat disimpan sebelum penerusan ke Farmasi dan tetap `201` dengan `HandoffStatus = Pending` bila Farmasi gagal, `400 HMD-VAL-056` tanpa dosis atau rute. `dotnet build` `0 Error(s)` — 224 warning, 0 dari berkas Hemodialisa (garis dasar 21 September 2026: 222 warning); QBE Strict `PASS` atas 94 berkas, 0 violation; audit akses reflektif 0 masalah atribut. Butir DoD test otomatis **dikecualikan atas keputusan pengguna 22 September 2026**. Uji runtime HTTP `NOT RUN` — dikecualikan menurut keputusan tetap pemilik 10 September 2026. Bukti: [laporan](../task/report/backend/BE-HMD-15.md)
 * **Outcome**: Pemberian obat intradialisis (seperti heparin standar/LMWH, eritropoietin/ESA, zat besi IV, antibiotik) terdokumentasi pada sesi klinis dan fakta pemakaiannya diteruskan secara andal ke Farmasi tanpa membatalkan catatan klinis bila Farmasi bermasalah.
 * **Requirement / Decision**: `FR-HMD-061`, `FR-HMD-062`, `CAP-23`, `CAP-33`, `NFR-007`.
 * **Kontrak**: `contracts/api-contract.md` Grup Hemodialysis Session Medications; `contracts/integration-contract.md` Bagian 3.
@@ -405,8 +434,9 @@ Sebanyak 19 task backend disusun menurut gelombang pengiriman (*delivery waves*)
 
 ### 2.6 Gelombang `MVP-5` — Penutupan Sesi, Pengesahan Medis, Rekam Medis, dan Penagihan
 
-#### `BE-HMD-16` — Penghentian atau Penyelesaian Sesi, Penilaian Pasca-HD, dan Pengajuan Dokumentasi Perawat
+#### ✅ `BE-HMD-16` — Penghentian atau Penyelesaian Sesi, Penilaian Pasca-HD, dan Pengajuan Dokumentasi Perawat
 
+* **Status**: ✅ **SELESAI 22 September 2026.** Kedua acceptance criteria dipetakan ke source: `stop` → `Stopped` dan `IsBillable = false`, `submit-documentation` → `AwaitingFinalization` dengan `DocumentedByUserId`. `dotnet build` `0 Error(s)` — 224 warning, 0 dari berkas Hemodialisa (garis dasar 21 September 2026: 222 warning); QBE Strict `PASS` atas 94 berkas, 0 violation; audit akses reflektif 0 masalah atribut. Butir DoD test otomatis **dikecualikan atas keputusan pengguna 22 September 2026**. Uji runtime HTTP `NOT RUN` — dikecualikan menurut keputusan tetap pemilik 10 September 2026. Bukti: [laporan](../task/report/backend/BE-HMD-16.md)
 * **Outcome**: Sesi hemodialisa dapat diselesaikan normal atau dihentikan di tengah jalan dengan alasan jelas; evaluasi pasca-tindakan terisi; dan perawat mengajukan dokumentasi yang mengunci fase keperawatan dan meneruskan sesi ke antrean pengesahan dokter.
 * **Requirement / Decision**: `FR-HMD-070`, `FR-HMD-071`, `FR-HMD-081`, `CAP-06`, `CAP-35`, `HMD-DEC-012`.
 * **Kontrak**: `contracts/api-contract.md` Grup Hemodialysis Session (`POST /{id}/complete`, `POST /{id}/stop`, `POST /{id}/submit-documentation`); `contracts/state-transition-matrix.md` Bagian 3.
@@ -429,8 +459,9 @@ Sebanyak 19 task backend disusun menurut gelombang pengiriman (*delivery waves*)
 
 ---
 
-#### `BE-HMD-17` — Pengesahan Dokter, Pendaftaran Keutuhan Rekam Medis, dan Penguncian Catatan Sesi
+#### ✅ `BE-HMD-17` — Pengesahan Dokter, Pendaftaran Keutuhan Rekam Medis, dan Penguncian Catatan Sesi
 
+* **Status**: ✅ **SELESAI 22 September 2026.** Ketiga acceptance criteria dipetakan ke source: `403 HMD-VAL-072` bagi dokter bukan DPJP, penguncian dua tempat `423 HMD-VAL-075`, addendum lewat endpoint Rekam Medis dengan perawat sebagai penulis. Transaksi pengesahan atomik; Billing dijalankan sesudah commit. `dotnet build` `0 Error(s)` — 224 warning, 0 dari berkas Hemodialisa (garis dasar 21 September 2026: 222 warning); QBE Strict `PASS` atas 94 berkas, 0 violation; audit akses reflektif 0 masalah atribut. Butir DoD test otomatis **dikecualikan atas keputusan pengguna 22 September 2026**. Uji runtime HTTP `NOT RUN` — dikecualikan menurut keputusan tetap pemilik 10 September 2026. Bukti: [laporan](../task/report/backend/BE-HMD-17.md)
 * **Outcome**: Dokter penanggung jawab sesi mengesahkan (*finalize*) dokumen sesi; catatan didaftarkan ke `MrcClinicalDocumentIntegrity` dan dikunci permanen; penyuntingan langsung ditolak; dan koreksi hanya dapat dilakukan via addendum rekam medis.
 * **Requirement / Decision**: `FR-HMD-071`, `FR-HMD-072`, `FR-HMD-073`, `FR-HMD-074`, `CAP-07`, `CAP-08`, `NFR-001`, `NFR-008`, **Temuan Kritis 1**.
 * **Kontrak**: `contracts/api-contract.md` Grup Hemodialysis Session (`POST /{id}/finalize`); `contracts/state-transition-matrix.md` Bagian 3; `contracts/integration-contract.md` Bagian 2.
@@ -462,8 +493,9 @@ Sebanyak 19 task backend disusun menurut gelombang pengiriman (*delivery waves*)
 
 ---
 
-#### `BE-HMD-18` — Serah Terima Tagihan ke Bounded Context Billing, Penanganan Sesi Dihentikan, dan Percobaan Ulang
+#### ✅ `BE-HMD-18` — Serah Terima Tagihan ke Bounded Context Billing, Penanganan Sesi Dihentikan, dan Percobaan Ulang
 
+* **Status**: ✅ **SELESAI 22 September 2026.** Ketiga acceptance criteria dipetakan ke source: sesi tetap `Finalized` saat Billing gagal dan pengulangan memakai `OccurredAt = SignedAt` tanpa tagihan ganda, sesi dihentikan `NotRequired`, `DoctorId` dan `InstructingDoctorId` terisi. `dotnet build` `0 Error(s)` — 224 warning, 0 dari berkas Hemodialisa (garis dasar 21 September 2026: 222 warning); QBE Strict `PASS` atas 94 berkas, 0 violation; audit akses reflektif 0 masalah atribut. Butir DoD test otomatis **dikecualikan atas keputusan pengguna 22 September 2026**. Uji runtime HTTP `NOT RUN` — dikecualikan menurut keputusan tetap pemilik 10 September 2026. Bukti: [laporan](../task/report/backend/BE-HMD-18.md)
 * **Outcome**: Fakta tindakan sesi HD yang telah disahkan diserahkan ke penagihan (*Billing Management*) di luar transaksi finalisasi; sesi selesai menerbitkan tagihan, sesi dihentikan menerbitkan tindakan non-billable; dan kegagalan serah terima dapat diulang tanpa membuka catatan medis.
 * **Requirement / Decision**: `FR-HMD-080`, `FR-HMD-081`, `FR-HMD-082`, `FR-HMD-083`, `CAP-10`, `CAP-11`, `HMD-DEC-009`, `HMD-DEC-012`, `NFR-003`, `NFR-008`.
 * **Kontrak**: `contracts/api-contract.md` Grup Hemodialysis Session (`POST /{id}/billing-handoff/retry`); `contracts/integration-contract.md` Bagian 1.
@@ -487,8 +519,9 @@ Sebanyak 19 task backend disusun menurut gelombang pengiriman (*delivery waves*)
 
 ### 2.7 Task Lintas Potong (Cross-Cutting)
 
-#### `BE-HMD-19` — Uji Kepatuhan Kontrak API Otomatis, Penegakan Otorisasi Endpoint, dan Audit Trail Server
+#### 🟡 `BE-HMD-19` — Uji Kepatuhan Kontrak API Otomatis, Penegakan Otorisasi Endpoint, dan Audit Trail Server
 
+* **Status**: 🟡 **SEBAGIAN 22 September 2026.** Dua dari tiga acceptance criteria terpenuhi: 100 dari 100 action pada 18 controller beratribut akses dengan 0 masalah, 78 dari 78 endpoint kontrak cocok, dan `401`/`403` terpetakan ke `[Authorize]` serta `[AccessPermission]`. Kriteria 3 **belum terpenuhi penuh**: jejak 10 peristiwa ada di database, tetapi alamat IP hanya tersimpan untuk 1 dari 10 (pengesahan); sisanya di log aplikasi. Kriteria ini bertentangan dengan `permission-audit-matrix.md` bagian 6 — **menunggu keputusan pemilik**. Suite `HemodialysisPermissionAndContractTests` tidak dibuat — **dikecualikan atas keputusan pengguna 22 September 2026**, diganti audit reflektif. Uji runtime HTTP `NOT RUN` — dikecualikan menurut keputusan tetap pemilik 10 September 2026. Bukti: [laporan](../task/report/backend/BE-HMD-19.md)
 * **Outcome**: Seluruh controller dan endpoint modul Hemodialisa terlindungi oleh atribut otorisasi yang presisi sesuai matriks hak akses, respons serialisasi mematuhi envelope `ApiResponse<T>`, dan sepuluh peristiwa penting meninggalkan audit trail yang melekat pada data.
 * **Requirement / Decision**: `NFR-005`, `NFR-006`, `NFR-007`, `contracts/permission-audit-matrix.md` seluruh bagian.
 * **Kontrak**: Seluruh berkas di `contracts/`.
@@ -514,32 +547,37 @@ Sebanyak 19 task backend disusun menurut gelombang pengiriman (*delivery waves*)
 
 ```mermaid
 flowchart TD
-    REG["Blocker: Registrasi Hmd (HMD-DEC-007)"] --> BE01["BE-HMD-01: Fondasi 22 Tabel & Migration"]
+    REG["Blocker: Registrasi Hmd (HMD-DEC-007)"] --> BE01["✅ BE-HMD-01: Fondasi 22 Tabel & Migration"]
     APP["Blocker: Approval Blueprint & Kontrak"] --> BE01
 
-    BE01 --> BE02["BE-HMD-02: Keutuhan Rekam Medis 2-Langkah"]
-    BE01 --> BE03["BE-HMD-03: DI, Permission & Master Seed"]
+    BE01 --> BE02["✅ BE-HMD-02: Keutuhan Rekam Medis 2-Langkah"]
+    BE01 --> BE03["✅ BE-HMD-03: DI, Permission & Master Seed"]
 
-    BE03 --> BE04["BE-HMD-04: Master Mesin, History & Station"]
-    BE03 --> BE05["BE-HMD-05: Setting Unit & Checklist Overridable"]
-    BE04 & BE05 --> BE06["BE-HMD-06: Kesiapan Unit Shift & Uji Air"]
+    BE03 --> BE04["✅ BE-HMD-04: Master Mesin, History & Station"]
+    BE03 --> BE05["✅ BE-HMD-05: Setting Unit & Checklist Overridable"]
+    BE04 & BE05 --> BE06["✅ BE-HMD-06: Kesiapan Unit Shift & Uji Air"]
 
-    BE03 --> BE07["BE-HMD-07: Permintaan HD Masuk & Order"]
-    BE03 --> BE08["BE-HMD-08: Episode, Kelayakan & Isolasi PPI"]
-    BE08 --> BE09["BE-HMD-09: Resep HD & Immutability"]
+    BE03 --> BE07["✅ BE-HMD-07: Permintaan HD Masuk & Order"]
+    BE03 --> BE08["✅ BE-HMD-08: Episode, Kelayakan & Isolasi PPI"]
+    BE08 --> BE09["✅ BE-HMD-09: Resep HD & Immutability"]
 
-    BE04 & BE08 & BE09 --> BE10["BE-HMD-10: Penjadwalan Sesi & Triple Collision"]
-    BE10 --> BE11["BE-HMD-11: Penugasan Staf & Worklist Unit"]
+    BE04 & BE08 & BE09 --> BE10["✅ BE-HMD-10: Penjadwalan Sesi & Triple Collision"]
+    BE10 --> BE11["✅ BE-HMD-11: Penugasan Staf & Worklist Unit"]
 
-    BE05 & BE10 --> BE12["BE-HMD-12: Checklist Pra-HD & Override Gate"]
-    BE12 --> BE13["BE-HMD-13: Mulai Sesi Idempoten & Tindakan Prosedur"]
+    BE05 & BE10 --> BE12["✅ BE-HMD-12: Checklist Pra-HD & Override Gate"]
+    BE12 --> BE13["✅ BE-HMD-13: Mulai Sesi Idempoten & Tindakan Prosedur"]
 
-    BE13 --> BE14["BE-HMD-14: Observasi Berkala & Komplikasi"]
-    BE13 --> BE15["BE-HMD-15: Obat Intra-HD & Sinkronisasi Farmasi"]
+    BE13 --> BE14["✅ BE-HMD-14: Observasi Berkala & Komplikasi"]
+    BE13 --> BE15["✅ BE-HMD-15: Obat Intra-HD & Sinkronisasi Farmasi"]
 
-    BE14 & BE15 --> BE16["BE-HMD-16: Penghentian/Penyelesaian & Dokumentasi Perawat"]
-    BE02 & BE16 --> BE17["BE-HMD-17: Pengesahan DPJP & Penguncian Dokumen"]
-    BE17 --> BE18["BE-HMD-18: Serah Terima Billing & Retry Handoff"]
+    BE14 & BE15 --> BE16["✅ BE-HMD-16: Penghentian/Penyelesaian & Dokumentasi Perawat"]
+    BE02 & BE16 --> BE17["✅ BE-HMD-17: Pengesahan DPJP & Penguncian Dokumen"]
+    BE17 --> BE18["✅ BE-HMD-18: Serah Terima Billing & Retry Handoff"]
 
-    BE18 --> BE19["BE-HMD-19: Uji Kepatuhan Kontrak & Otorisasi"]
+    BE18 --> BE19["🟡 BE-HMD-19: Uji Kepatuhan Kontrak & Otorisasi"]
+
+    classDef selesai fill:#dcfce7,stroke:#15803d,color:#14532d
+    classDef sebagian fill:#fef9c3,stroke:#a16207,color:#713f12
+    class BE01,BE02,BE03,BE04,BE05,BE06,BE07,BE08,BE09,BE10,BE11,BE12,BE13,BE14,BE15,BE16,BE17,BE18 selesai
+    class BE19 sebagian
 ```

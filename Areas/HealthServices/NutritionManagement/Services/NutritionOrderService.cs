@@ -33,8 +33,8 @@ public sealed class NutritionOrderService
     private const string CancelAction = "CancelOrder";
     private const string RecordAction = "SaveCareRecord";
 
-    private static readonly GzOrderStatus[] OpenStatuses =
-        [GzOrderStatus.Requested, GzOrderStatus.InProgress];
+    private static readonly GziOrderStatus[] OpenStatuses =
+        [GziOrderStatus.Requested, GziOrderStatus.InProgress];
 
     private readonly ApplicationDbContext _dbContext;
     private readonly IHttpContextAccessor _httpContextAccessor;
@@ -50,10 +50,10 @@ public sealed class NutritionOrderService
 
     // ================================================================== pembacaan
 
-    public async Task<PagedResult<GzOrderSummaryResponse>> GetPagedAsync(
-        GzOrderPagedQuery request, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<GziOrderSummaryResponse>> GetPagedAsync(
+        GziOrderPagedQuery request, CancellationToken cancellationToken = default)
     {
-        var query = _dbContext.GzNutritionOrders.AsNoTracking().Where(x => !x.IsDelete);
+        var query = _dbContext.GziNutritionOrders.AsNoTracking().Where(x => !x.IsDelete);
 
         if (request.Status.HasValue) query = query.Where(x => x.Status == request.Status);
         if (request.PatientId.HasValue) query = query.Where(x => x.PatientId == request.PatientId);
@@ -80,7 +80,7 @@ public sealed class NutritionOrderService
             .Select(x => MapSummaryExpression(x))
             .ToListAsync(cancellationToken);
 
-        return new PagedResult<GzOrderSummaryResponse>
+        return new PagedResult<GziOrderSummaryResponse>
         {
             PageNumber = pageNumber,
             PageSize = pageSize,
@@ -90,7 +90,7 @@ public sealed class NutritionOrderService
         };
     }
 
-    public async Task<GzOrderDetailResponse?> GetDetailAsync(Guid id,
+    public async Task<GziOrderDetailResponse?> GetDetailAsync(Guid id,
         CancellationToken cancellationToken = default)
     {
         var entity = await LoadOrderAsync(id, tracking: false, cancellationToken);
@@ -104,7 +104,7 @@ public sealed class NutritionOrderService
     /// Inilah yang membuat order lahir dari hasil skrining, bukan dari ingatan petugas
     /// (`GIZ-DEC-003`). Modul Gizi hanya MEMBACA asesmen; pengisiannya milik keperawatan.
     /// </remarks>
-    public async Task<List<GzScreeningCandidateResponse>> GetScreeningCandidatesAsync(
+    public async Task<List<GziScreeningCandidateResponse>> GetScreeningCandidatesAsync(
         CancellationToken cancellationToken = default)
     {
         var atRisk = new[]
@@ -116,12 +116,12 @@ public sealed class NutritionOrderService
 
         return await _dbContext.Set<TrxPatientAssessment>().AsNoTracking()
             .Where(a => !a.IsDelete && atRisk.Contains(a.NutritionRiskStatus))
-            .Where(a => !_dbContext.GzNutritionOrders
+            .Where(a => !_dbContext.GziNutritionOrders
                 .Any(o => o.EncounterId == a.EncounterId && !o.IsDelete &&
                           OpenStatuses.Contains(o.Status)))
             .OrderByDescending(a => a.CreateDateTime)
             .Take(100)
-            .Select(a => new GzScreeningCandidateResponse
+            .Select(a => new GziScreeningCandidateResponse
             {
                 PatientId = a.PatientId,
                 PatientName = a.Patient != null ? a.Patient.FullName : string.Empty,
@@ -137,7 +137,7 @@ public sealed class NutritionOrderService
 
     // ================================================================== perintah
 
-    public async Task<GzOrderDetailResponse> CreateAsync(CreateGzOrderRequest request,
+    public async Task<GziOrderDetailResponse> CreateAsync(CreateGzOrderRequest request,
         CancellationToken cancellationToken = default)
     {
         EnsureIdempotencyKey(request.IdempotencyKey);
@@ -161,7 +161,7 @@ public sealed class NutritionOrderService
 
         // `GIZ002`. Diperiksa di sini agar pesannya jelas, dan ditegakkan sekali lagi oleh
         // indeks unik tersaring di basis data agar dua permintaan bersamaan tidak lolos.
-        var alreadyOpen = await _dbContext.GzNutritionOrders.AsNoTracking()
+        var alreadyOpen = await _dbContext.GziNutritionOrders.AsNoTracking()
             .AnyAsync(x => x.EncounterId == request.EncounterId && !x.IsDelete &&
                            OpenStatuses.Contains(x.Status), cancellationToken);
         if (alreadyOpen)
@@ -172,7 +172,7 @@ public sealed class NutritionOrderService
         var now = DateTime.UtcNow;
         var id = DeterministicId(request.IdempotencyKey);
 
-        var entity = new GzNutritionOrder
+        var entity = new GziNutritionOrder
         {
             Id = id,
             OrderNumber = $"GZ-{id:N}"[..20],
@@ -180,7 +180,7 @@ public sealed class NutritionOrderService
             EncounterId = request.EncounterId,
             RequesterDoctorId = request.RequesterDoctorId,
             AssignedWorkforceId = request.AssignedWorkforceId,
-            Status = GzOrderStatus.Requested,
+            Status = GziOrderStatus.Requested,
             Priority = request.Priority,
             ReasonForReferral = request.ReasonForReferral.Trim(),
             ScreeningRiskStatus = screening.RiskStatus,
@@ -191,8 +191,8 @@ public sealed class NutritionOrderService
             CreateBy = actorUserId
         };
 
-        _dbContext.GzNutritionOrders.Add(entity);
-        _dbContext.GzNutritionOrderHistories.Add(NewHistory(entity.Id, GzOrderStatus.Requested,
+        _dbContext.GziNutritionOrders.Add(entity);
+        _dbContext.GziNutritionOrderHistories.Add(NewHistory(entity.Id, GziOrderStatus.Requested,
             null, CreateAction, null, request.IdempotencyKey, fingerprint, actorUserId, now));
 
         await SaveAsync(cancellationToken);
@@ -203,7 +203,7 @@ public sealed class NutritionOrderService
         return (await GetDetailAsync(entity.Id, cancellationToken))!;
     }
 
-    public async Task<GzOrderDetailResponse> UpdateAsync(Guid id, UpdateGzOrderRequest request,
+    public async Task<GziOrderDetailResponse> UpdateAsync(Guid id, UpdateGzOrderRequest request,
         CancellationToken cancellationToken = default)
     {
         EnsureIdempotencyKey(request.IdempotencyKey);
@@ -240,14 +240,14 @@ public sealed class NutritionOrderService
         entity.UpdateDateTime = now;
         entity.UpdateBy = actorUserId;
 
-        _dbContext.GzNutritionOrderHistories.Add(NewHistory(entity.Id, entity.Status,
+        _dbContext.GziNutritionOrderHistories.Add(NewHistory(entity.Id, entity.Status,
             entity.Status, UpdateAction, null, request.IdempotencyKey, fingerprint, actorUserId, now));
 
         await SaveAsync(cancellationToken);
         return (await GetDetailAsync(id, cancellationToken))!;
     }
 
-    public async Task<GzOrderDetailResponse> CloseAsync(Guid id, CloseGzOrderRequest request,
+    public async Task<GziOrderDetailResponse> CloseAsync(Guid id, CloseGzOrderRequest request,
         CancellationToken cancellationToken = default)
     {
         EnsureIdempotencyKey(request.IdempotencyKey);
@@ -273,14 +273,14 @@ public sealed class NutritionOrderService
 
         var now = DateTime.UtcNow;
         var from = entity.Status;
-        entity.Status = GzOrderStatus.Closed;
+        entity.Status = GziOrderStatus.Closed;
         entity.ClosedAt = now;
         entity.ClosingNote = note;
         entity.Version++;
         entity.UpdateDateTime = now;
         entity.UpdateBy = actorUserId;
 
-        _dbContext.GzNutritionOrderHistories.Add(NewHistory(entity.Id, GzOrderStatus.Closed,
+        _dbContext.GziNutritionOrderHistories.Add(NewHistory(entity.Id, GziOrderStatus.Closed,
             from, CloseAction, note, request.IdempotencyKey, fingerprint, actorUserId, now));
 
         await SaveAsync(cancellationToken);
@@ -290,7 +290,7 @@ public sealed class NutritionOrderService
         return (await GetDetailAsync(id, cancellationToken))!;
     }
 
-    public async Task<GzOrderDetailResponse> CancelAsync(Guid id, CancelGzOrderRequest request,
+    public async Task<GziOrderDetailResponse> CancelAsync(Guid id, CancelGzOrderRequest request,
         CancellationToken cancellationToken = default)
     {
         EnsureIdempotencyKey(request.IdempotencyKey);
@@ -316,12 +316,12 @@ public sealed class NutritionOrderService
 
         var now = DateTime.UtcNow;
         var from = entity.Status;
-        entity.Status = GzOrderStatus.Cancelled;
+        entity.Status = GziOrderStatus.Cancelled;
         entity.Version++;
         entity.UpdateDateTime = now;
         entity.UpdateBy = actorUserId;
 
-        _dbContext.GzNutritionOrderHistories.Add(NewHistory(entity.Id, GzOrderStatus.Cancelled,
+        _dbContext.GziNutritionOrderHistories.Add(NewHistory(entity.Id, GziOrderStatus.Cancelled,
             from, CancelAction, reason, request.IdempotencyKey, fingerprint, actorUserId, now));
 
         await SaveAsync(cancellationToken);
@@ -332,7 +332,7 @@ public sealed class NutritionOrderService
     /// Mencatat satu kunjungan ahli gizi. Kunjungan pertama menaikkan status order menjadi
     /// <c>InProgress</c> secara otomatis, bukan lewat tombol tersendiri.
     /// </summary>
-    public async Task<GzCareRecordResponse> SaveCareRecordAsync(Guid orderId,
+    public async Task<GziCareRecordResponse> SaveCareRecordAsync(Guid orderId,
         SaveGzCareRecordRequest request, CancellationToken cancellationToken = default)
     {
         EnsureIdempotencyKey(request.IdempotencyKey);
@@ -347,7 +347,7 @@ public sealed class NutritionOrderService
         if (prior != null)
         {
             EnsureSameFingerprint(prior.Source, fingerprint);
-            var existing = await _dbContext.GzNutritionCareRecords.AsNoTracking()
+            var existing = await _dbContext.GziNutritionCareRecords.AsNoTracking()
                 .Where(x => x.NutritionOrderId == orderId && !x.IsDelete)
                 .OrderByDescending(x => x.VisitSequence)
                 .FirstAsync(cancellationToken);
@@ -368,14 +368,14 @@ public sealed class NutritionOrderService
         var now = DateTime.UtcNow;
         var sequence = entity.CareRecords.Count(x => !x.IsDelete) + 1;
 
-        var record = new GzNutritionCareRecord
+        var record = new GziNutritionCareRecord
         {
             Id = DeterministicId(request.IdempotencyKey),
             NutritionOrderId = entity.Id,
             VisitSequence = sequence,
             VisitAt = request.VisitAt?.ToUniversalTime() ?? now,
             RecordedByWorkforceId = request.RecordedByWorkforceId,
-            RecordType = sequence == 1 ? GzCareRecordType.Initial : GzCareRecordType.FollowUp,
+            RecordType = sequence == 1 ? GziCareRecordType.Initial : GziCareRecordType.FollowUp,
             Weight = request.Weight,
             Height = request.Height,
             Bmi = ComputeBmi(request.Weight, request.Height),
@@ -395,19 +395,19 @@ public sealed class NutritionOrderService
 
         // Ditambahkan lewat DbSet, bukan lewat navigasi induk yang sudah dilacak, agar
         // entity baru pasti berstatus Added walaupun kuncinya diisi dari sisi aplikasi.
-        _dbContext.GzNutritionCareRecords.Add(record);
+        _dbContext.GziNutritionCareRecords.Add(record);
 
         var from = entity.Status;
-        if (entity.Status == GzOrderStatus.Requested)
+        if (entity.Status == GziOrderStatus.Requested)
         {
-            entity.Status = GzOrderStatus.InProgress;
+            entity.Status = GziOrderStatus.InProgress;
         }
 
         entity.Version++;
         entity.UpdateDateTime = now;
         entity.UpdateBy = actorUserId;
 
-        _dbContext.GzNutritionOrderHistories.Add(NewHistory(entity.Id, entity.Status, from,
+        _dbContext.GziNutritionOrderHistories.Add(NewHistory(entity.Id, entity.Status, from,
             RecordAction, $"Kunjungan ke-{sequence}", request.IdempotencyKey, fingerprint,
             actorUserId, now));
 
@@ -421,10 +421,10 @@ public sealed class NutritionOrderService
 
     // ================================================================== penolong
 
-    private async Task<GzNutritionOrder?> LoadOrderAsync(Guid id, bool tracking,
+    private async Task<GziNutritionOrder?> LoadOrderAsync(Guid id, bool tracking,
         CancellationToken cancellationToken)
     {
-        var query = _dbContext.GzNutritionOrders
+        var query = _dbContext.GziNutritionOrders
             .Include(x => x.Patient)
             .Include(x => x.RequesterDoctor)
             .Include(x => x.AssignedWorkforce)
@@ -496,7 +496,7 @@ public sealed class NutritionOrderService
             : (assessment.NutritionRiskStatus, assessment.NutritionRiskScore);
     }
 
-    private static void EnsureOpen(GzNutritionOrder entity)
+    private static void EnsureOpen(GziNutritionOrder entity)
     {
         if (!OpenStatuses.Contains(entity.Status))
             throw new NutritionConflictException("GIZ004",
@@ -523,14 +523,14 @@ public sealed class NutritionOrderService
                 "Idempotency key dipakai dengan isi permintaan yang berbeda.");
     }
 
-    private Task<GzNutritionOrderHistory?> FindIdempotentAsync(string action, string key,
+    private Task<GziNutritionOrderHistory?> FindIdempotentAsync(string action, string key,
         CancellationToken cancellationToken) =>
-        _dbContext.GzNutritionOrderHistories.AsNoTracking()
+        _dbContext.GziNutritionOrderHistories.AsNoTracking()
             .FirstOrDefaultAsync(x => x.Action == action && x.CorrelationId == key.Trim() &&
                                       !x.IsDelete, cancellationToken);
 
-    private static GzNutritionOrderHistory NewHistory(Guid orderId, GzOrderStatus to,
-        GzOrderStatus? from, string action, string? reason, string idempotencyKey,
+    private static GziNutritionOrderHistory NewHistory(Guid orderId, GziOrderStatus to,
+        GziOrderStatus? from, string action, string? reason, string idempotencyKey,
         string fingerprint, Guid actorUserId, DateTime now) => new()
         {
             NutritionOrderId = orderId,
@@ -585,9 +585,9 @@ public sealed class NutritionOrderService
     private static string Hash(string value) =>
         Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
     private static Guid DeterministicId(string key) =>
-        new(SHA256.HashData(Encoding.UTF8.GetBytes($"GzNutrition:{key.Trim()}"))[..16]);
+        new(SHA256.HashData(Encoding.UTF8.GetBytes($"GziNutrition:{key.Trim()}"))[..16]);
 
-    private static GzOrderSummaryResponse MapSummaryExpression(GzNutritionOrder x) => new()
+    private static GziOrderSummaryResponse MapSummaryExpression(GziNutritionOrder x) => new()
     {
         Id = x.Id,
         OrderNumber = x.OrderNumber,
@@ -607,7 +607,7 @@ public sealed class NutritionOrderService
         Version = x.Version
     };
 
-    private static GzOrderDetailResponse MapDetail(GzNutritionOrder x) => new()
+    private static GziOrderDetailResponse MapDetail(GziNutritionOrder x) => new()
     {
         Id = x.Id,
         OrderNumber = x.OrderNumber,
@@ -635,14 +635,14 @@ public sealed class NutritionOrderService
             .OrderBy(r => r.VisitSequence).Select(MapRecord)],
         Histories = [.. x.Histories.Where(h => !h.IsDelete)
             .OrderByDescending(h => h.OccurredAt)
-            .Select(h => new GzOrderHistoryResponse
+            .Select(h => new GziOrderHistoryResponse
             {
                 Id = h.Id, FromStatus = h.FromStatus, ToStatus = h.ToStatus,
                 Action = h.Action, Reason = h.Reason, OccurredAt = h.OccurredAt
             })]
     };
 
-    private static GzCareRecordResponse MapRecord(GzNutritionCareRecord r) => new()
+    private static GziCareRecordResponse MapRecord(GziNutritionCareRecord r) => new()
     {
         Id = r.Id,
         NutritionOrderId = r.NutritionOrderId,
