@@ -1,6 +1,6 @@
 param(
     [string]$MetadataFile = ".github/release/release-metadata.json",
-    [string]$PolicyFile = ".github/release/version-policy.json",
+    [string]$VersionFile = ".github/release/current-version.json",
     [string]$Output = ".github/release/version.json"
 )
 
@@ -17,11 +17,6 @@ $metadata = Get-Content `
     -Raw |
     ConvertFrom-Json
 
-$policy = Get-Content `
-    $PolicyFile `
-    -Raw |
-    ConvertFrom-Json
-
 
 $modules = @($metadata.modules)
 
@@ -29,7 +24,14 @@ $features = @($metadata.features)
 
 $migrationCount = $metadata.migrationCount
 
-$currentVersion = [string]$policy.currentVersion
+if (!(Test-Path $VersionFile))
+{
+    throw "Missing version state file: $VersionFile"
+}
+
+$currentVersion = [string](
+    (Get-Content $VersionFile -Raw | ConvertFrom-Json).currentVersion
+)
 
 Write-Host "Current Version:"
 Write-Host $currentVersion
