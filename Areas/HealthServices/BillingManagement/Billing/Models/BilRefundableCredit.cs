@@ -21,6 +21,7 @@ public static class BillingRefundableCreditSourceTypes
 {
     public const string AllocationExcess = "ALLOCATION_EXCESS";
     public const string Settlement = "SETTLEMENT";
+    public const string ReferredOutpatientAdmin = "REFERRED_OUTPATIENT_ADMIN";
 }
 
 public static class BillingRefundableCreditStatuses

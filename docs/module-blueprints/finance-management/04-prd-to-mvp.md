@@ -7,8 +7,9 @@
 | Produk | Quilvian V2 — Sistem Informasi Rumah Sakit |
 | Modul | Finance Management (`finance-management`), kode modul `FIN` |
 | Blueprint ID | `FIN-BP-001` revisi `1` |
-| Contract version | `FIN-MVP-1.0` |
-| Status | `approved` untuk **cakupan MVP dan urutan gelombang** — disetujui Yasmin (Product/Domain Owner Finance) 20 September 2026. Approval dicatat apa adanya, tidak ditetapkan skill |
+| Contract version | `FIN-MVP-1.1` |
+| `last_changed_in` | `FIN-MVP-1.1` — AMENDMENT REVISI 3, 25 September 2026 (`EPIC FIN-14` baru, `FR-FIN-076`..`080`, `FR-FIN-074` dicabut, `FR-FIN-034` diperbarui) |
+| Status | `approved` dan `locked` — cakupan MVP dan urutan gelombang disetujui Yasmin 20 September 2026; **revisi 1.1 disetujui dan dikunci Yasmin 25 September 2026** lewat pernyataan "Saya approve semua". Approval dicatat apa adanya, tidak ditetapkan skill |
 | Penguncian kontrak | Enam kontrak turunan dan dokumen ini dikunci ke `1.0` oleh owner 20 September 2026. Tiga permukaan tetap TIDAK terkunci karena bergantung pihak luar: `BilCollectionHandoff`, perluasan `BilArHandoff` untuk manfaat karyawan, dan pengiriman kejadian ke Accounting |
 | Repository target | `NewQuilvianSystemBackend` (branch `Yasmina`), `QuilvianSystemFrontendDev` |
 | Commit SHA baseline | Backend `09101d05`, Frontend `abed49b03` |
@@ -322,9 +323,15 @@ dicatat ulang sebagai piutang.
 > shift, rekonsiliasi kas tidak mungkin dilakukan.
 
 > **`FR-FIN-034` — Penerimaan sebelum tagihan final tetap tercatat**
-> **Contoh:** pasien membayar Rp 1.000.000 saat tagihan masih terbuka. Penerimaan langsung
-> terlihat di Finance; baris kejadian akuntansinya berstatus `HELD_FOR_FINALIZATION`. Setelah
-> tagihan final, status kejadian berubah menjadi siap kirim.
+> **Diperbarui 25 September 2026 (`FIN-DEC-030`).** Contoh lama (kejadiannya ditahan berstatus
+> `HELD_FOR_FINALIZATION` sampai tagihan final) **tidak lagi berlaku**.
+> **Contoh yang berlaku:** pasien membayar Rp 1.000.000 saat tagihan masih terbuka. Penerimaan
+> langsung terlihat di Finance, dan kejadian akuntansinya **langsung siap kirim** dengan jenis
+> `PENERIMAAN-UANG-MUKA` — dibukukan Accounting sebagai Uang Muka Pasien, bukan sebagai
+> pendapatan. Setelah tagihan final dan uang muka itu dipakai melunasi piutangnya, terbit
+> kejadian **baru** jenis `PEMAKAIAN-UANG-MUKA-DEPOSIT`; kejadian penerimaan yang pertama tidak
+> diubah. Alasannya: uangnya sudah ada di kasir sejak diterima, jadi menahan jurnalnya hanya
+> membuat kas buku besar berselisih dari kas fisik saat tutup buku.
 
 > **`FR-FIN-035` — Total tagihan dapat dibuktikan tidak dobel**
 > **Contoh:** tagihan Rp 5.000.000 = penerimaan kasir Rp 1.500.000 + piutang penjamin
@@ -461,19 +468,77 @@ menerima.
 > **Contoh:** piutang memuat tiga pasien. Payload kejadiannya tidak memuat satu pun nomor rekam
 > medis, nama pasien, atau nomor kunjungan — hanya nomor transaksi Finance dan pengenal rantai.
 
-> **`FR-FIN-074` — Kejadian tertahan tidak terkirim**
-> **Contoh:** penerimaan atas tagihan yang belum final menghasilkan kejadian berstatus tertahan.
-> Ketika pengiriman diaktifkan nanti, baris itu **dilewati** sampai tagihannya final.
+> ~~**`FR-FIN-074` — Kejadian tertahan tidak terkirim**~~
+> **DICABUT 25 September 2026** (`FIN-DEC-030` menggantikan `FIN-DEC-004`). Tidak ada lagi
+> kejadian yang ditahan; yang membedakan penerimaan pra-final adalah **jenis kejadiannya**, bukan
+> status pengirimannya. Penggantinya `FR-FIN-076` di bawah.
 
 > **`FR-FIN-075` — Jasa medis tidak terbukukan dua kali**
 > **Contoh:** tagihan memuat jasa medis dokter Rp 3.000.000. Kejadian `PENGAKUAN-PIUTANG`
 > **tidak** memuat komponen `JASA_MEDIS`. Komponen itu hanya muncul lewat kejadian
 > `PENGAKUAN-HUTANG-DOKTER` setelah fee-nya disetujui.
 
+> **`FR-FIN-076` — Jenis kejadian penerimaan ditentukan status tagihan saat uang diterima**
+> *(baru, `FIN-DEC-030`, `FIN-DES-034`)*
+> **Contoh:** pasien membayar Rp 5.000.000 saat tagihan masih terbuka → kejadian
+> `PENERIMAAN-UANG-MUKA`. Pasien lain membayar Rp 5.000.000 saat tagihannya sudah final →
+> kejadian `PENERIMAAN-KASIR`. Keduanya langsung siap kirim. Bila penerimaan pertama kelak
+> dibatalkan, pembalikannya `PEMBALIKAN-PENERIMAAN-UANG-MUKA` — **tetap begitu walaupun
+> tagihannya sudah final saat pembalikan terjadi**, karena kode pembalikan mengikuti penerimaan
+> aslinya.
+
+> **`FR-FIN-077` — Uang titipan pasien tidak pernah terbukukan sebagai pendapatan**
+> *(baru, `FIN-DEC-031`, `040`, `041`)*
+> **Contoh:** pasien menitipkan deposit Rp 10.000.000, dipakai Rp 7.500.000 untuk tagihannya,
+> sisa Rp 2.500.000 dikembalikan tunai. Tiga kejadian terbit dengan jenis berbeda:
+> `PENERIMAAN-UANG-MUKA`, `PEMAKAIAN-UANG-MUKA-DEPOSIT`, dan `PENGEMBALIAN-UANG-MUKA`. Yang kedua
+> mengurangi piutang tanpa menyentuh kas; yang ketiga mengeluarkan kas. Memakai satu jenis untuk
+> keduanya membuat salah satunya pasti salah jurnal.
+
+> **`FR-FIN-078` — Kelebihan bayar menjadi kewajiban ke pasien sejak diakui**
+> *(baru, `FIN-DEC-042`)*
+> **Contoh:** pasien membayar Rp 500.000 untuk tagihan Rp 450.000. Saat Billing mengakui
+> kelebihan Rp 50.000, terbit kejadian `PENGAKUAN-KELEBIHAN-BAYAR` bernilai Rp 50.000 yang
+> memindahkannya menjadi Uang Muka Pasien **tanpa menyentuh kas** — kasnya sudah didebit penuh
+> saat penerimaan. Bila kelak dikembalikan, terbit `PENGEMBALIAN-UANG-MUKA`.
+
+> **`FR-FIN-079` — Selisih kas shift hanya dikirim setelah disahkan**
+> *(baru, `FIN-DEC-043`, `FIN-DES-036`)*
+> **Contoh:** shift kasir ditutup dengan kas fisik Rp 30.000 lebih kecil dari catatan sistem.
+> Selama selisih itu belum disahkan penyelia, **tidak ada** kejadian yang dikirim. Setelah
+> disahkan, terbit `SELISIH-KAS-SHIFT` bernilai `-30.000` dengan tanggal pembukuan **tanggal
+> shift**, bukan tanggal pengesahan. Shift yang ditutup tanpa selisih tidak menghasilkan kejadian
+> apa pun.
+
+> **`FR-FIN-080` — Saldo subledger dikirim dengan bentuk pesan yang sama**
+> *(baru, `FIN-DEC-035`)*
+> **Contoh:** saat Finance menutup November, terbit kejadian `SALDO-SUBLEDGER` bernilai
+> Rp 425.000.000 untuk akun kontrol piutang, periode `2026-11`, tanggal cut-off 30 November.
+> Nilainya **boleh nol atau negatif**. Pesan ini tidak pernah menjadi jurnal — Accounting hanya
+> mencocokkannya dengan buku besar. Bila saldonya dinyatakan ulang, versinya naik menjadi `2`.
+
+### EPIC FIN-14 — Uang muka, deposit, kelebihan bayar, dan selisih kas *(baru)*
+
+**Tujuan.** Menutup gerbang cutover `G6` milik Accounting: memastikan uang titipan pasien,
+kelebihan bayar, dan selisih kas kasir masuk ke buku besar dengan jenis kejadian yang benar,
+tanpa Finance membuat satu pun tabel baru.
+
+**Disposisi backend:** `OPEN DECISION` — tujuh kode kejadian barunya **menunggu ratifikasi
+Accounting** (`FIN-OQ-017`). Seluruh bukti teknisnya sudah siap (`FIN-CAP-022`..`025`,
+`FIN-DES-029`..`036`), dan hanya satu migration yang dibutuhkan, tetapi nama kode belum boleh
+dianggap final sepihak.
+
+**Functional requirement:** `FR-FIN-076` sampai `FR-FIN-080` di atas.
+
+**Epic ini MUST NOT masuk gelombang pengiriman mana pun** sampai `FIN-OQ-017` tertutup. Yang
+menahan hanya nama kodenya — bukan pemodelan data, bukan jalur datanya, dan bukan keputusan
+bisnisnya.
+
 ### EPIC FIN-12 — Pengiriman ke Accounting
 
-**Disposisi backend:** `OPEN DECISION` — endpoint penerima belum dibangun (`FIN-CAP-018`) dan
-mekanisme autentikasi belum final (`FIN-DEC-007`).
+**Disposisi backend:** `OPEN DECISION` — endpoint penerima belum dibangun (`FIN-CAP-018`,
+diverifikasi ulang belum ada pada `d6cdfaf9`) dan mekanisme autentikasi belum final
+(`FIN-OQ-016`; tiga syarat organisasinya sudah ditetapkan `FIN-DEC-036`).
 
 **Epic ini MUST NOT masuk gelombang pengiriman mana pun.**
 
@@ -775,12 +840,15 @@ Setiap butir dijawab "ya" atau "belum", beserta buktinya.
 | `POST-MVP` | `EPIC FIN-08` — utang dokter | **Menunggu modul Medical Fee dibangun** (`FIN-CAP-021`) |
 | `POST-MVP` | `EPIC FIN-13` — penyelarasan frontend kas kecil | Kapan saja; tidak mengunci apa pun |
 
-**Tidak masuk gelombang mana pun:** `EPIC FIN-04` (piutang manfaat karyawan) dan
-`EPIC FIN-12` (pengiriman ke Accounting). Keduanya berstatus `OPEN DECISION`.
+**Tidak masuk gelombang mana pun:** `EPIC FIN-04` (piutang manfaat karyawan),
+`EPIC FIN-12` (pengiriman ke Accounting), dan **`EPIC FIN-14`** (uang muka, deposit, kelebihan
+bayar, selisih kas — ditambahkan 25 September 2026). Ketiganya berstatus `OPEN DECISION`.
 
-`MVP-2` adalah satu-satunya gelombang yang bergantung pada tim lain. Bila `BilCollectionHandoff`
-belum tersedia saat `MVP-1` selesai, gelombang `MVP-4` dapat dikerjakan lebih dahulu tanpa
-mengubah urutan yang lain.
+~~`MVP-2` adalah satu-satunya gelombang yang bergantung pada tim lain.~~ **Diperbarui
+25 September 2026:** `BilCollectionHandoff` **sudah tersedia** dan sudah dikonsumsi Finance
+(`FIN-CAP-007`, `FIN-CAP-025`), sehingga syarat luar `MVP-2` sudah terpenuhi. Yang tersisa
+hanya verifikasi bahwa bentuk kolomnya cocok dengan yang diminta bagian 2.1
+`contracts/integration-contract.md` — bukan lagi menunggu tim lain membangunnya.
 
 ### 20.2 Pertanyaan terbuka sebelum development lock
 
@@ -788,11 +856,14 @@ mengubah urutan yang lain.
 |---|---|---|:---:|
 | ~~Apakah owner menyetujui `FIN-DES-001`..`024`?~~ | Yasmin | — | **TERJAWAB 20 September 2026** — disetujui seluruhnya |
 | ~~Apakah cakupan MVP pada bagian 7 dan 8 disetujui owner?~~ | Yasmin | — | **TERJAWAB 20 September 2026** — cakupan dan urutan gelombang dikunci apa adanya |
-| Apakah owner Billing menyetujui bentuk `BilCollectionHandoff` sesuai `FIN-DEC-005`? | Billing Owner | `MVP-2` tidak dapat dimulai | **Ya, untuk `MVP-2` saja** |
+| ~~Apakah owner Billing menyetujui bentuk `BilCollectionHandoff` sesuai `FIN-DEC-005`?~~ | Billing Owner | — | **TERJAWAB 22 September 2026** — tabelnya dibangun (`BKC-DES-037`) dan sudah dikonsumsi `FinanceBillingIntakeService`; diverifikasi impact scan 25 September 2026 (`FIN-CAP-007`) |
 | Apakah owner Billing dan HR menyetujui perluasan `BilArHandoff` untuk manfaat karyawan? | Billing Owner + HR Owner | `EPIC FIN-04` tetap `OPEN DECISION` | Tidak — epic-nya sudah dikeluarkan dari seluruh gelombang |
 | Berapa ambang nominal jenjang persetujuan pembayaran AP? (`FIN-OQ-010`) | Finance Supervisor + Yasmin | `EPIC FIN-09` tidak dapat mengunci aturan validasi angkanya | Tidak — `EPIC FIN-09` sudah `POST-MVP` |
-| Apakah Accounting menyetujui nama field saldo subledger? (`FIN-OQ-011`) | Rizki (Accounting) | Rumpun saldo subledger tertunda | Tidak — sudah `POST-MVP` |
-| Apakah Accounting meratifikasi katalog 17 jenis kejadian? | Rizki (Accounting) | Kejadian yang jenisnya belum terdaftar akan tertahan di sisi Accounting saat pengiriman aktif | Tidak untuk MVP — kotak keluar tetap terisi |
+| ~~Apakah Accounting menyetujui nama field saldo subledger? (`FIN-OQ-011`)~~ | Rizki (Accounting) | — | **TERJAWAB 24-25 September 2026** — Accounting menetapkan bentuknya, Finance menerima (`FIN-DEC-035`) |
+| ~~Apakah Accounting meratifikasi katalog 17 jenis kejadian?~~ | Rizki (Accounting) | — | **TERJAWAB 24 September 2026** — ketujuh belas kode diratifikasi apa adanya (`ACC-DEC-083`, `FIN-DEC-039`) |
+| **Apakah Accounting meratifikasi TUJUH kode kejadian baru?** (`FIN-OQ-017`) | Rizki (Accounting) | `EPIC FIN-14` tetap `OPEN DECISION`; gerbang cutover `G6` tidak tuntas; perubahan `FIN-DEC-030` tidak dapat dieksekusi di source | **Ya, untuk `EPIC FIN-14` dan implementasi `FIN-DEC-030`** — epic-nya sudah dikeluarkan dari seluruh gelombang, jadi tidak memblokir `MVP-0`..`MVP-5` |
+| Apakah pengesahan selisih kas shift punya batas waktu sebelum tutup buku? | Rizki (Accounting) + owner Billing | Selisih yang disahkan setelah periodenya ditutup tidak dapat dijurnalkan ke periode yang benar | Tidak — perlu kesepakatan operasional, bukan keputusan desain |
+| Bagaimana lawan jurnal refund `SETTLEMENT`/`REFERRED_OUTPATIENT_ADMIN`? (`FIN-OQ-018`) | Yasmin (Finance) | Refund kategori itu tidak diterbitkan sebagai kejadian apa pun | Tidak — sengaja di luar cakupan `EPIC FIN-14` |
 | Kapan endpoint penerima Accounting dibangun? | Rizki (Accounting) | `EPIC FIN-12` tetap `OPEN DECISION` | Tidak — sudah dikeluarkan dari gelombang |
 | Kapan modul Medical Fee dibangun? (`FIN-CAP-021`) | Owner Medical Fee | `EPIC FIN-08` tidak dapat dimulai | Tidak — sudah `POST-MVP` |
 
@@ -809,9 +880,19 @@ tercabut. Yang tersisa hanya satu, dan ia memblokir **satu gelombang saja**:
 Paket permintaan ke owner Billing sudah dikirim lewat
 `evidence/02-permintaan-kontrak-untuk-owner-billing.md`.
 
+**Keadaan diperbarui 25 September 2026 (AMENDMENT REVISI 3):**
+
+- `MVP-2` dan `MVP-3` **tidak lagi tertahan tim lain** — `BilCollectionHandoff` sudah tersedia
+  dan sudah dikonsumsi (`FIN-CAP-007`, `FIN-CAP-025`). Keduanya kini setara `MVP-0`/`MVP-1`
+  dari sisi ketergantungan luar.
+- `EPIC FIN-14` **baru** ditambahkan dan berstatus `OPEN DECISION` — di luar seluruh gelombang,
+  menunggu ratifikasi tujuh kode kejadian oleh Accounting (`FIN-OQ-017`).
+- `FR-FIN-034` diperbarui dan `FR-FIN-074` dicabut mengikuti `FIN-DEC-030`. Implementasi
+  perubahan itu **menyentuh source yang sudah berjalan**, dan tertahan `FIN-OQ-017` yang sama.
+
 **Status penerusan:** dokumen ini **boleh** diteruskan ke `/plan-module-delivery` untuk
-`MVP-0`, `MVP-1`, `MVP-4`, dan `MVP-5`. `MVP-2` dan `MVP-3` ditahan sampai owner Billing
-menjawab.
+`MVP-0` sampai `MVP-5`. `EPIC FIN-04`, `EPIC FIN-12`, dan `EPIC FIN-14` **MUST NOT** masuk
+perencanaan pengiriman sampai keputusan yang menahannya turun.
 
 ---
 
