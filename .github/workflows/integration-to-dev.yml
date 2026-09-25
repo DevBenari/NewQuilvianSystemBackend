@@ -166,6 +166,7 @@ jobs:
           path: |
             .github/release/release-metadata.json
             .github/release/version.json
+            .github/release/current-version.json
             version.json
 
   migration-hold:
@@ -280,6 +281,20 @@ jobs:
 
           echo "promoted_sha=$PROMOTED_SHA" >> "$GITHUB_OUTPUT"
 
+      - name: Update release version state
+        shell: pwsh
+        run: |
+          $version = (
+            Get-Content version.json -Raw |
+            ConvertFrom-Json
+          ).backendVersion
+
+          @{
+            currentVersion = $version
+          } |
+          ConvertTo-Json |
+          Set-Content .github/release/current-version.json
+
       - name: Push promotion to QuilvianDevDeploy
         shell: bash
         run: |
@@ -287,7 +302,7 @@ jobs:
           echo "Preparing runtime version manifest"
           ls -la
           cat version.json
-          git add version.json
+          git add version.json .github/release/current-version.json
           git commit -m "chore: update runtime version manifest" || echo "No version change"
           git push origin HEAD:QuilvianDevDeploy
 
