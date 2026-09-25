@@ -27,6 +27,29 @@
             }
 
             /// <summary>
+            /// Mengubah sebuah <b>tanggal operasional</b> menjadi saat UTC pada pukul
+            /// <c>00:00</c> zona waktu aplikasi.
+            /// </summary>
+            /// <remarks>
+            /// <para>
+            /// Dipakai menyusun batas rentang terhadap kolom yang <b>disimpan dalam UTC</b>,
+            /// misalnya <c>CreateDateTime</c>. Tanpa konversi ini, menstempel tanggal
+            /// operasional dengan <c>DateTimeKind.Utc</c> menggeser batasnya sebesar selisih
+            /// zona waktu — tujuh jam untuk <c>Asia/Jakarta</c> — sehingga kejadian yang
+            /// lahir dini hari waktu setempat jatuh ke hari yang keliru.
+            /// </para>
+            /// <para>
+            /// Contoh: tanggal operasional <c>2026-09-23</c> memulangkan
+            /// <c>2026-09-22T17:00:00Z</c>.
+            /// </para>
+            /// </remarks>
+            public static DateTime OperationalDateToUtc(DateTime operationalDate)
+            {
+                var localMidnight = DateTime.SpecifyKind(
+                    operationalDate.Date,
+                    DateTimeKind.Unspecified);
+
+                return TimeZoneInfo.ConvertTimeToUtc(localMidnight, AppTimeZone);
             /// Mengubah nilai yang datang dari pemanggil menjadi UTC yang dapat ditulis Npgsql.
             ///
             /// <b>Kenapa ini dibutuhkan.</b> Ruas tanggal pada query string yang ditulis

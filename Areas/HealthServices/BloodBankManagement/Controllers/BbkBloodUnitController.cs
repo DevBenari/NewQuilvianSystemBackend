@@ -102,6 +102,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Control
         /// <summary>
         /// Daftar kantong darah. Penyaring <c>unitStatus=PendingReview</c> menjadi daftar kerja #2
         /// (<c>DEC-BD-023</c>). Setiap baris membawa lokasi saat ini beserta penanda keaktifannya.
+        /// Penyaring <c>inactiveLocation=true</c> memulangkan kantong yang masih di stok tetapi
+        /// tertahan di lokasi nonaktif (<c>BE-BD-020</c>).
         /// </summary>
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<BloodUnitPagedResult>), StatusCodes.Status200OK)]
@@ -118,6 +120,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Control
             [FromQuery] int pageNumber = 1,
             [FromQuery] int pageSize = 25,
             [FromQuery] bool? emergencyPendingEvidence = null,
+            [FromQuery] bool? inactiveLocation = null,
             CancellationToken cancellationToken = default)
         {
             var result = await _bloodUnitService.GetPagedAsync(
@@ -131,7 +134,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Control
                 pageNumber,
                 pageSize,
                 cancellationToken,
-                emergencyPendingEvidence);
+                emergencyPendingEvidence,
+                inactiveLocation);
 
             return Ok(ApiResponse<BloodUnitPagedResult>.Ok(
                 result,
