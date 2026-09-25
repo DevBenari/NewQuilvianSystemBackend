@@ -1,7 +1,7 @@
 namespace QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Enums;
 
 /// <summary>Status asuhan gizi pada satu episode rawat inap.</summary>
-public enum GzOrderStatus
+public enum GziOrderStatus
 {
     Requested = 1,
     InProgress = 2,
@@ -10,21 +10,21 @@ public enum GzOrderStatus
 }
 
 /// <summary>Kesegeraan penanganan yang diminta dokter.</summary>
-public enum GzOrderPriority
+public enum GziOrderPriority
 {
     Routine = 1,
     Urgent = 2
 }
 
 /// <summary>Membedakan kunjungan pertama dari kunjungan lanjutan.</summary>
-public enum GzCareRecordType
+public enum GziCareRecordType
 {
     Initial = 1,
     FollowUp = 2
 }
 
 /// <summary>Keadaan satu diet pasien.</summary>
-public enum GzPatientDietStatus
+public enum GziPatientDietStatus
 {
     /// <summary>Sedang berlaku; inilah yang dibaca dapur.</summary>
     Active = 1,
@@ -37,7 +37,7 @@ public enum GzPatientDietStatus
 }
 
 /// <summary>Hasil penyerahan makanan pada satu jadwal makan.</summary>
-public enum GzMealDeliveryStatus
+public enum GziMealDeliveryStatus
 {
     Delivered = 1,
 
@@ -56,7 +56,7 @@ public enum GzMealDeliveryStatus
 /// dikonfirmasi, isinya masih dapat dihitung ulang; sesudahnya tidak, karena dapur sudah
 /// bekerja berdasarkan angka itu.
 /// </remarks>
-public enum GzProductionBatchStatus
+public enum GziProductionBatchStatus
 {
     Draft = 1,
     Confirmed = 2,

@@ -60,6 +60,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.DTOs
 
     public class PrescriptionDetailResponse : PrescriptionResponse
     {
+        /// <summary>
+        /// Keadaan finansial resep menurut Billing (PHA-BE-006). Penambahan yang aditif: tidak
+        /// ada field lain yang dihapus maupun berubah arti. Isinya keterangan, bukan kewenangan.
+        /// </summary>
+        public PrescriptionFinancialClearanceResponse? FinancialClearance { get; set; }
+
         public Guid? PaymentSourceId { get; set; }
         public Guid? PatientInsuranceId { get; set; }
         public Guid? InsuranceProviderId { get; set; }

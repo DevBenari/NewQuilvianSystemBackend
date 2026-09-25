@@ -23,8 +23,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Models;
 /// pekerjaan, dan petugas akan mengakalinya dengan mengisi nilai sembarangan.
 /// </para>
 /// </remarks>
-[Table("GzNutritionCareRecord", Schema = "public")]
-public class GzNutritionCareRecord : IdentityModel
+[Table("GziNutritionCareRecord", Schema = "public")]
+public class GziNutritionCareRecord : IdentityModel
 {
     public Guid Id { get; set; } = Guid.NewGuid();
 
@@ -37,7 +37,7 @@ public class GzNutritionCareRecord : IdentityModel
 
     [Required] public Guid RecordedByWorkforceId { get; set; }
 
-    public GzCareRecordType RecordType { get; set; } = GzCareRecordType.Initial;
+    public GziCareRecordType RecordType { get; set; } = GziCareRecordType.Initial;
 
     // --- Asesmen ---------------------------------------------------------------------
     [Column(TypeName = "numeric(6,2)")] public decimal? Weight { get; set; }
@@ -86,7 +86,7 @@ public class GzNutritionCareRecord : IdentityModel
 
     public int Version { get; set; }
 
-    public GzNutritionOrder? NutritionOrder { get; set; }
+    public GziNutritionOrder? NutritionOrder { get; set; }
     public MstWorkforceProfile? RecordedByWorkforce { get; set; }
     public MstDiagnosis? NutritionDiagnosis { get; set; }
     public TrxPatientIntegratedProgressNote? ProgressNote { get; set; }

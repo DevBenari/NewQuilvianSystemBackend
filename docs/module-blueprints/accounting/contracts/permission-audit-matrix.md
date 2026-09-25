@@ -174,6 +174,7 @@ dibatalkan.
 | `last_changed_in` | `ACC-PERMISSION-0.5` — 11 September 2026: (1) baris baru `RecurringJournal : Activate` beserta pembagian perannya; (2) `Period : Read`/`Close`/`Approve` menjadi `AccountingPeriod : ...` — sisa kesalahan yang sudah diperbaiki di `api-contract.md` (`ACC-API-0.9`) tetapi terlewat di sini. Sebelumnya `0.4` — 8 September 2026 |
 | Amandemen menunggu ratifikasi | **`ACC-PERMISSION-0.6` (usulan) — 11 September 2026.** Baris baru `AccountingReconciliation : Read` untuk grup Reconciliation (`ACC-API-0.11`), beserta usulan pembagian perannya, dan satu pertanyaan terbuka: apakah pembacaan saldo rekonsiliasi dicatat `LoggerService`. **Status `approved` di bawah belum diubah** — menunggu ratifikasi Rizki |
 | Status | **`approved`** |
+| Penyesuaian atas keputusan owner | **`ACC-PERMISSION-0.7` (usulan) — 24 September 2026.** Menuliskan `ACC-DEC-088`: `AccountingEvent : Receive` **dicabut dari kolom Administrator** dan hanya diberikan kepada penugasan Departemen + Jabatan khusus akun layanan Finance. Dasarnya keputusan owner yang sudah `approved`; tidak menunggu ratifikasi `0.6` |
 | `approved_by` / `approved_at` | Rizki / 11 September 2026 (ratifikasi `ACC-PERMISSION-0.5`); sebelumnya Rizki / 8 September 2026 (`ACC-PERMISSION-0.4`) |
 | Traceability | `ACC-DEC-055` peran ketujuh, `ACC-DEC-044` sampai `ACC-DEC-057` |
 
@@ -193,7 +194,7 @@ peran serba bisa kedua di samping Manager.
 | Tindakan | String permission | Viewer | Staff | Approver | Manager | Director | Auditor | Administrator |
 |---|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
 | Melihat kotak masuk kejadian | `AccountingEvent : Read` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| Menerima kejadian dari Finance | `AccountingEvent : Receive` | | | | | | | ✓ |
+| Menerima kejadian dari Finance | `AccountingEvent : Receive` | | | | | | | ~~✓~~ *(dicabut, usulan `0.7`)* |
 | Coba ulang kejadian gagal | `AccountingEvent : Retry` | | | | ✓ | | | ✓ |
 | Menandai kejadian diabaikan | `AccountingEvent : Ignore` | | | | ✓ | | | |
 | Melihat jenis kejadian | `EventType : Read` | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
@@ -218,9 +219,15 @@ peran serba bisa kedua di samping Manager.
 
 **Baris yang perlu diperhatikan:**
 
-1. `AccountingEvent : Receive` **hanya dimiliki Administrator**, karena pemanggilnya adalah modul
-   Finance lewat akun layanan, bukan manusia. Memberikannya kepada peran manusia membuka jalur
-   penyisipan jurnal yang tidak dimaksudkan.
+1. `AccountingEvent : Receive` **tidak dimiliki satu pun dari tujuh peran manusia** — termasuk
+   Administrator sejak usulan `ACC-PERMISSION-0.7` (`ACC-DEC-088`). Hak ini hanya diberikan kepada
+   **penugasan Departemen + Jabatan khusus akun layanan Finance** (misalnya Departemen "Integrasi
+   Sistem", Jabatan "Akun Layanan Finance"), dan penugasan itu tidak diberi hak lain apa pun.
+   Alasannya: memberikan `Receive` kepada manusia membuka jalur penyisipan jurnal yang tidak
+   dimaksudkan, dan Administrator adalah manusia. Syarat lain dari `ACC-DEC-088`: akun itu bukan
+   SuperAdmin, dan berhak atas badan hukum yang dikirimi kejadian. **Tanpa penugasan organisasi,
+   setiap kiriman Finance pasti `403`**, karena `SysAccessPolicy` memberikan hak per Departemen +
+   Jabatan. Mekanisme login akun layanan belum diputuskan (Platform + Yasmin + Rizki).
 2. `AccountingPeriod : Approve` **hanya dimiliki `Accounting Director`** — tidak juga Administrator.
    Menyetujui penutupan buku adalah pernyataan keuangan, bukan tindakan teknis.
 3. `RecurringJournal : Activate` **terpisah dari `Update`.** Template aktif mulai menulis ke buku
