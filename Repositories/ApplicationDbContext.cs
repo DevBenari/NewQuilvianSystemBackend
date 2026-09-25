@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.HemodialysisManagement.Models;
 using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
@@ -618,6 +619,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<BilHandoffAdjustment> BilHandoffAdjustments { get; set; }
         public DbSet<BilCollectionHandoff> BilCollectionHandoffs { get; set; }
         public DbSet<BilPrescriptionClearanceHandoff> BilPrescriptionClearanceHandoffs { get; set; }
+        public DbSet<BilInpatientClearanceHandoff> BilInpatientClearanceHandoffs { get; set; }
         public DbSet<BilCashierShift> BilCashierShifts { get; set; }
         public DbSet<BilCashVarianceReview> BilCashVarianceReviews { get; set; }
         public DbSet<BilCashierShiftHandover> BilCashierShiftHandovers { get; set; }
@@ -1028,6 +1030,34 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<BbkEmergencyAuthorization> BbkEmergencyAuthorizations { get; set; }
         public DbSet<BbkIssuanceCorrection> BbkIssuanceCorrections { get; set; }
         #endregion BLOOD BANK MANAGEMENT
+
+        #region HEMODIALYSIS MANAGEMENT
+        // HMD-BP-001, BE-HMD-01. 22 tabel Hmd* milik modul Hemodialisa (registry Hmd / ACTIVE,
+        // HMD-DEC-007). Master milik modul — mesin, station, butir checklist, butir kesiapan, dan
+        // pengaturan unit — sengaja berprefix Hmd, bukan Mst.
+        public DbSet<HmdOrder> HmdOrders { get; set; }
+        public DbSet<HmdEpisode> HmdEpisodes { get; set; }
+        public DbSet<HmdEligibilityAssessment> HmdEligibilityAssessments { get; set; }
+        public DbSet<HmdVascularAccess> HmdVascularAccesses { get; set; }
+        public DbSet<HmdSerologyReview> HmdSerologyReviews { get; set; }
+        public DbSet<HmdIsolationDecision> HmdIsolationDecisions { get; set; }
+        public DbSet<HmdPrescription> HmdPrescriptions { get; set; }
+        public DbSet<HmdSession> HmdSessions { get; set; }
+        public DbSet<HmdSessionChecklist> HmdSessionChecklists { get; set; }
+        public DbSet<HmdSessionAssessment> HmdSessionAssessments { get; set; }
+        public DbSet<HmdSessionObservation> HmdSessionObservations { get; set; }
+        public DbSet<HmdSessionMedication> HmdSessionMedications { get; set; }
+        public DbSet<HmdSessionComplication> HmdSessionComplications { get; set; }
+        public DbSet<HmdSessionStaffAssignment> HmdSessionStaffAssignments { get; set; }
+        public DbSet<HmdMachine> HmdMachines { get; set; }
+        public DbSet<HmdMachineStatusHistory> HmdMachineStatusHistories { get; set; }
+        public DbSet<HmdStation> HmdStations { get; set; }
+        public DbSet<HmdChecklistItem> HmdChecklistItems { get; set; }
+        public DbSet<HmdReadinessItem> HmdReadinessItems { get; set; }
+        public DbSet<HmdUnitReadiness> HmdUnitReadinesses { get; set; }
+        public DbSet<HmdUnitReadinessDetail> HmdUnitReadinessDetails { get; set; }
+        public DbSet<HmdSetting> HmdSettings { get; set; }
+        #endregion HEMODIALYSIS MANAGEMENT
 
         #endregion HEALTH SERVICE
 

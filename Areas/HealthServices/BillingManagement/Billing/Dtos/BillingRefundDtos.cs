@@ -5,7 +5,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.D
 public sealed class CreateRefundRequest
 {
     public Guid InvoiceId { get; set; }
-    public Guid RefundableCreditId { get; set; }
+    public Guid? RefundableCreditId { get; set; }
+    public string RefundCategory { get; set; } = "BILLING"; // "BILLING" or "DEPOSITO"
+    public List<Guid>? SelectedBillingItemIds { get; set; }
     [Range(
         typeof(decimal),
         "0.01",
@@ -18,6 +20,22 @@ public sealed class CreateRefundRequest
     public Guid CausationId { get; set; }
 }
 
+public sealed class BillingRefundableItemResponse
+{
+    public Guid BillingItemId { get; set; }
+    public string ItemName { get; set; } = string.Empty;
+    public decimal Qty { get; set; }
+    public decimal Amount { get; set; }
+    public decimal RefundableAmount { get; set; }
+    public DateTime TransactionDate { get; set; }
+}
+
+public sealed class RemainingDepositResponse
+{
+    public Guid EncounterId { get; set; }
+    public decimal RemainingDepositAmount { get; set; }
+}
+
 public sealed class RefundApprovalRequest
 {
     public Guid ExpectedRowVersion { get; set; }
@@ -28,7 +46,9 @@ public sealed class RefundResponse
 {
     public Guid Id { get; set; }
     public Guid InvoiceId { get; set; }
-    public Guid RefundableCreditId { get; set; }
+    public Guid? RefundableCreditId { get; set; }
+    public string RefundCategory { get; set; } = "BILLING";
+    public List<Guid> SelectedBillingItemIds { get; set; } = [];
     public decimal RequestedAmount { get; set; }
     public decimal ExecutedAmount { get; set; }
     public string Status { get; set; } = string.Empty;

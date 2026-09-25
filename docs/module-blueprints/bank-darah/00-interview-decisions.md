@@ -3,10 +3,10 @@
 | Field | Value |
 | --- | --- |
 | Blueprint ID | `BD-BP-001` |
-| Revision | `12` |
-| Decision revision | `12` |
-| Status | `draft` — kecuali `DEC-BD-048` dan `DEC-BD-049` yang dinyatakan langsung pemilik (`Sukmagp`, 2026-09-11) |
-| Pass yang sudah dijalankan | Scope pass (2026-09-02), Closure pass (2026-09-02), Architecture gap closure pass (2026-09-02), Architecture gap final closure pass (2026-09-02), Storage Location closure pass (2026-09-02), Storage Location decision closure pass (2026-09-02), Gerbang pemberian closure pass (2026-09-02), Role & authority closure pass (2026-09-02), Role residue closure pass (2026-09-03), OQ residue closure pass (2026-09-03), Permission conflict closure pass (2026-09-03), Procedure tariff decision pass (2026-09-11) |
+| Revision | `13` — 18 September 2026, Blood Order contract gap pass (bagian 8.32). **Riwayat:** `12` |
+| Decision revision | `13`. **Riwayat:** `12` |
+| Status | `draft` — kecuali `DEC-BD-048` dan `DEC-BD-049` yang dinyatakan langsung pemilik (`Sukmagp`, 2026-09-11), `DEC-BD-016` (`Sukmagp`, 2026-09-17), `DEC-BD-055` sampai `DEC-BD-058` (`Sukmagp`, arah 2026-09-18, naskah dan persetujuan proses klinis `DEC-BD-055` 2026-09-19 — bagian 8.32 dan 8.33), `DEC-BD-059` dan `DEC-BD-060` (`Sukmagp`, 2026-09-23 — bagian 8.34), serta `DEC-BD-061` dan `DEC-BD-062` (`Sukmagp`, 2026-09-23 — bagian 8.35) |
+| Pass yang sudah dijalankan | Scope pass (2026-09-02), Closure pass (2026-09-02), Architecture gap closure pass (2026-09-02), Architecture gap final closure pass (2026-09-02), Storage Location closure pass (2026-09-02), Storage Location decision closure pass (2026-09-02), Gerbang pemberian closure pass (2026-09-02), Role & authority closure pass (2026-09-02), Role residue closure pass (2026-09-03), OQ residue closure pass (2026-09-03), Permission conflict closure pass (2026-09-03), Procedure tariff decision pass (2026-09-11), Billing handoff approval (2026-09-17), **Blood Order contract gap pass (2026-09-18)** |
 | Product/domain owner | Pemilik proses Bank Darah / BDRS — nama pejabat berwenang belum disebutkan |
 | Backend SHA | `ab39b63edd912e7a825e186be75537fc319a36ce` cabang `sukmagp` |
 | Backend SHA pada revisi 5 | `9dc7637adbafb321ad8078d5c52ebe5e4398fe86`. Perbedaan sampai `792acb9` **hanya** dokumen blueprint Bank Darah, nol berkas source aplikasi — sudah diperiksa dengan `git diff --name-only` |
@@ -319,7 +319,7 @@ sudah disetujui; lalu kebiasaan project; baru kemudian kebebasan pengembang.
 | `DEC-BD-013` | `Decision` | Bukti pemeriksaan kecocokan **wajib** tercatat sebelum darah diberikan. Quilvian mencatat titik pemeriksaan klinis, tidak menghitung kompatibilitas | `draft` |
 | `DEC-BD-014` | `Decision` | Sinyal berakhirnya kunjungan mengikuti sumber lifecycle masing-masing jenis kunjungan | `draft` |
 | `DEC-BD-015` | `Decision` | Hasil golongan darah dan Rhesus dicatat sebagai hasil pemeriksaan tersendiri milik Bank Darah | `draft` |
-| `DEC-BD-016` | `Open Question` | Persetujuan pemilik Billing untuk konteks sumber Bank Darah pada kontrak Billing | `OPEN` |
+| `DEC-BD-016` | `Decision` | Fakta biaya Bank Darah ke Billing: `BloodBank`/`BloodBankCharge`, satu fakta per tindakan `Recorded` → `Completed`, nominal dari salinan tarif, koreksi tidak membalik biaya. Rincian di bagian 8.31. **Riwayat:** `Open Question` — persetujuan pemilik Billing untuk konteks sumber Bank Darah pada kontrak Billing, `OPEN` sampai 17 September 2026 | `approved` — `Sukmagp` 2026-09-17 |
 | `DEC-BD-017` | `Decision` | Jalur darurat tersedia, hanya untuk peran berwenang, dengan alasan wajib dan penanda permanen | `draft` |
 | `DEC-BD-018` | `Decision` | Sampling untuk pemeriksaan golongan darah dicatat Bank Darah sendiri, bukan sampel Laboratorium | `draft` |
 | `DEC-BD-019` | `Decision` | Kantong `PENDING_REVIEW` diselesaikan lewat tiga pilihan akhir: dialihkan, dikembalikan ke PMI, atau tidak layak | `draft` |
@@ -1441,7 +1441,23 @@ kolom salinan sudah ada di sana sejak `v1`.
 | `AC-BD-099` | Satu tindakan punya tarif berbeda menurut kelas pasien; tindakan dicatat untuk kunjungan pasien | Backend memilih tarif aktif dan masih berlaku yang cocok dengan `ProcedureRefId` dan `PatientClassId` dari kunjungan (`DEC-BD-048`, `DEC-BD-049`) — **bukan** menerima nominal harga dari client |
 | `AC-BD-100` | Tindakan sudah tercatat dengan salinan tarif, lalu `MstProcedure` atau `MstTariff` diubah | `ProcedureCodeSnapshot`, `ProcedureNameSnapshot`, dan `TariffAmountSnapshot` pada tindakan lama **tidak berubah** |
 | `AC-BD-101` | Tindakan berstatus `Recorded`; petugas berwenang menyelesaikannya | Status menjadi `Completed` dan transisi beserta auditnya tersimpan. Percobaan menyelesaikan tindakan pada keadaan yang tidak sah ditolak secara terkendali |
-| `AC-BD-102` | Tindakan dibuat maupun diselesaikan | Tidak ada invoice, item, maupun fakta biaya yang dibuat; tidak ada pemanggilan posting Billing; tidak ada jalur penyaluran biaya. Penyaluran tetap milik `BE-BD-013` |
+| `AC-BD-102` | Tindakan dibuat maupun diselesaikan | Tidak ada invoice, item, maupun fakta biaya yang dibuat; tidak ada pemanggilan posting Billing; tidak ada jalur penyaluran biaya. Penyaluran tetap milik `BE-BD-013`. — **HISTORICAL / SUPERSEDED oleh `DEC-BD-016` + `BE-BD-013`** (keputusan pemilik 18 September 2026): kriteria ini **bukti historis** `BE-BD-012` saat `DEC-BD-016` masih terbuka, dan **bukan** syarat yang berlaku sekarang. Sejak 17 September 2026 tindakan yang selesai **menghasilkan tepat satu** fakta biaya (`AC-BD-026`) |
+
+**Tambahan 18 September 2026 — kontrak `v5` (bagian 8.32).** Skenario lengkap dan bukti yang diharapkan
+ada di `testing/acceptance-test-matrix.md` §11.
+
+| ID | Kondisi | Hasil yang diharapkan |
+| --- | --- | --- |
+| `AC-BD-103` | Order baru (elektronik, manual, atau lanjutan order ganda) dengan golongan darah diminta sah, termasuk "Tidak diketahui" | Tersimpan pada order dan terbaca kembali pada detail apa adanya |
+| `AC-BD-104` | Order baru tanpa golongan darah diminta, atau bernilai "Tidak diinformasikan" / tidak dikenal | Ditolak `VAL-BD-085`; nomor order tidak terbit |
+| `AC-BD-105` | Order lama sebelum `v5` | Golongan darah diminta tetap kosong; tidak diisi dari sumber lain |
+| `AC-BD-106` | Golongan darah diminta berbeda dari hasil pemeriksaan sah | Keputusan klinis tetap memakai hasil pemeriksaan saja (`INV-BD-011`) |
+| `AC-BD-107` | Order ganda sebagian komponen | Tertahan dengan `errors.code = VAL-BD-001` dan hanya komponen yang bentrok |
+| `AC-BD-108` | Order dibuka dokter peminta, lalu pemegang pembatalan lain | Kategori alasan klinis, lalu operasional; order terminal tanpa kategori; kategori lawan tetap ditolak `VAL-BD-083` |
+| `AC-BD-109` | Daftar disaring satu komponen | Hanya order yang memuat komponen itu |
+| `AC-BD-110` | Order dengan pemberian dan koreksi `Approved` | Jumlah diberikan pada daftar sama dengan ringkasan pemenuhan |
+| `AC-BD-111` | Satu halaman daftar ukuran maksimum | Dihitung tanpa satu kueri per baris dan tanpa penghitung tersimpan |
+| `AC-BD-112` | Kebijakan akses pemegang `BloodOrder : Cancel` | Juga memegang `BloodBankReason : Read` |
 
 `AC-BD-071` adalah turunan langsung dari model alokasi yang sudah disepakati, bukan aturan baru:
 pengalihan kantong ke pasien lain menghasilkan ikatan alokasi yang sama bentuknya dengan alokasi
@@ -1456,7 +1472,7 @@ Seluruh nama pasien dan nomor kunjungan pada contoh adalah data samaran.
 
 | ID | Isi | Pemilik | Memblokir |
 | --- | --- | --- | --- |
-| `DEC-BD-016` | Persetujuan pemilik Billing untuk menambah konteks sumber dan jenis efek biaya Bank Darah pada kontrak Billing. Pemicunya sudah jelas: satu tindakan Bank Darah yang selesai | Pemilik BillingManagement | Penyerahan biaya ke Billing |
+| ~~`DEC-BD-016`~~ | Persetujuan pemilik Billing untuk menambah konteks sumber dan jenis efek biaya Bank Darah pada kontrak Billing. Pemicunya sudah jelas: satu tindakan Bank Darah yang selesai | Pemilik BillingManagement | **Ditutup 17 September 2026** — `approved` `Sukmagp` (bagian 8.31). Tidak lagi menahan penyerahan biaya ke Billing |
 | `DEF-BD-003` | Apakah semua komponen darah menuntut bukti kecocokan yang sama | Pemilik proses klinis | `IMPLEMENTATION` aturan per komponen |
 | `OQ-BD-010` | Apakah PMI menerima pengembalian kantong yang sudah keluar. Fakta di luar sistem | Pemilik proses BDRS | Tidak memblokir rancangan |
 | `OQ-BD-011` | Isi label golongan darah, kapan boleh dicetak, identifier uniknya, dan perilaku cetak ulang. `DEC-BD-015` baru menutup sumber datanya, bukan mekanik labelnya | Pemilik proses klinis | `DESIGN` label dan pencetakan |
@@ -1570,9 +1586,227 @@ Turunannya: **nol invariant baru, nol kode validasi baru, nol state transition b
 `DEC-BD-054` mempertajam `DEC-BD-030`, `INV-BD-033`, dan catatan kamus data "angka pemenuhan menyaring
 `CorrectionStatus = Approved`" menjadi aturan hitung yang dapat diuji, tanpa menyentuh `DEC-BD-051`.
 
+### 8.31 Persetujuan pemilik `DEC-BD-016` — penyaluran biaya tindakan ke Billing
+
+Pemilik, **`Sukmagp`**, menyetujui `DEC-BD-016` pada **17 September 2026**. Keputusan ini membuka
+`BE-BD-013`, satu-satunya task backend Bank Darah yang sebelumnya berada di future scope.
+
+| Decision ID | Menutup | Type | Keputusan | Owner | Status | Approved by/at |
+| --- | --- | --- | --- | --- | --- | --- |
+| `DEC-BD-016` | Persetujuan konteks sumber biaya Bank Darah pada kontrak Billing (semula `Open Question`) | `Decision` | Bank Darah menyerahkan fakta biaya ke Billing dengan `SourceContext` **`BloodBank`** dan `EffectType` **`BloodBankCharge`**. Pemicunya **satu** perpindahan `BbkBloodBankProcedure` `Recorded` → `Completed`. Satuannya **tepat satu fakta per tindakan selesai** — tindakan yang memberikan dua kantong atau lebih **tidak** melahirkan satu fakta per kantong. Nominalnya **salinan tarif yang tersimpan** oleh `BE-BD-012`; tarif data induk saat ini **tidak** dihitung ulang saat penyerahan. Akibat finansialnya tetap **milik Billing**. Koreksi pemberian kantong **tidak** membalik, membatalkan, mengembalikan dana, maupun mengubah biaya tindakan secara otomatis | Pemilik BillingManagement bersama pemilik proses BDRS | `approved` | `Sukmagp` 2026-09-17 |
+
+**Contoh.** Pasien A menerima dua kantong PRC dalam satu tindakan "Uji Silang Serasi" bertarif salinan
+Rp250.000. Saat tindakan dinyatakan selesai, Billing menerima **satu** fakta bernilai rujukan Rp250.000,
+bukan dua. Seminggu kemudian tarif data induk naik menjadi Rp300.000 — fakta yang dikirim ulang tetap
+membawa Rp250.000. Lalu petugas mengoreksi pencatatan salah satu kantong; biaya tindakan tidak disentuh
+Bank Darah, dan bila perlu ditinjau, Billing yang memutuskan.
+
+**Yang dipertahankan, bukan diubah.** `DEC-BD-021` (biaya dari tindakan, bukan kantong) dan `DEC-BD-034`
+beserta `INV-BD-024` (koreksi tidak membalik biaya) berlaku apa adanya; `DEC-BD-016` justru menjadi kontrak
+yang dirujuk keduanya. Kasus tepi `ARCH-BD-GAP-09` — koreksi yang menghapus satu-satunya pemberian di bawah
+sebuah tindakan — **tertutup di sisi Bank Darah**: tetap tidak ada pembalikan otomatis. Kebijakan peninjauan
+finansialnya milik Billing dan tidak menahan modul ini.
+
+**Yang gugur karena keputusan ini: batas `AC-BD-102`.** `AC-BD-102` ("tidak ada fakta biaya, tidak ada
+pemanggilan Billing") adalah batas lingkup `BE-BD-012` **selama** `DEC-BD-016` masih terbuka, dan kalimatnya
+sendiri menyebut "penyaluran tetap milik `BE-BD-013`". Buktinya pada 11 September 2026 tetap sah sebagai
+riwayat. Sejak persetujuan ini, penyelesaian tindakan **memang** menyerahkan tepat satu fakta biaya.
+
+**Keputusan pemilik 18 September 2026 atas `AC-BD-102`.** Kriteria **tidak dihapus**. Statusnya **HISTORICAL / SUPERSEDED oleh `DEC-BD-016` + `BE-BD-013`**:
+ia tetap menjadi bukti bahwa pada 11 September 2026, saat `BE-BD-012` ditutup, penyaluran ke Billing memang
+sengaja dimatikan selama `DEC-BD-016` terbuka — dan bukti itu sah untuk saat itu. Kriteria ini **tidak boleh**
+dibaca sebagai syarat saat ini bahwa tindakan `Completed` menghasilkan nol fakta Billing. Syarat yang berlaku
+adalah `AC-BD-026`, `AC-BD-027`, dan `AC-BD-058` milik `BE-BD-013`.
+
+**Turunannya:** nol entity baru, nol kolom baru, nol migration, nol state transition baru pada Bank Darah.
+Satu baris registri pada `BillingSourceContract`, satu fakta lewat `ClinicalMilestoneFactProducer` yang sudah
+ada, dan satu endpoint kirim ulang fakta biaya. Bukti implementasinya ada pada
+[laporan `BE-BD-013`](task/report/backend/BE-BD-013.md).
+
+### 8.32 Blood Order contract gap pass — kontrak `v5` untuk `FE-BD-002` (18 September 2026)
+
+**Pemicunya.** Discovery `FE-BD-002` pada 18 September 2026 (sesi build frontend, source dibaca pada
+backend `2bd9fc2a` dan frontend `fbe29f6d1`) menemukan empat kewajiban layar yang disetujui tetapi tidak
+didukung backend `v4`:
+
+1. golongan darah **diminta** tidak ada di mana pun — request, DTO, entity, maupun kamus data;
+2. penahanan order ganda `422 VAL-BD-001` tanpa identitas mesin, dan `DuplicateComponentIds` yang sudah
+   dihitung service dibuang controller;
+3. kategori alasan pembatalan hanya ditentukan di dalam `POST /cancel`, tidak terbaca layar;
+4. `GET /blood-orders` tanpa penyaring komponen, tanpa komponen, dan tanpa jumlah diberikan, padahal
+   skema `FE-BD-01` menuntut ketiganya.
+
+Pemilik modul, **`Sukmagp`**, memutuskan jalur **C lalu B** pada 18 September 2026: set kontrak direvisi
+lebih dulu ke **`v5`**, lalu task backend **baru** ditetapkan `plan-module-delivery`. **`BE-BD-003` tidak
+dibuka ulang**: kesebelas kriteria penerimaannya tetap terpenuhi, dan tidak satu pun gugur oleh temuan ini
+(`rules/rule-output/status-task-roadmap.md` §5).
+
+| Decision ID | Menutup | Type | Keputusan | Owner | Status | Approved by/at |
+| --- | --- | --- | --- | --- | --- | --- |
+| `DEC-BD-055` | Gap D1 — golongan darah diminta tidak tercatat | `Decision` | Golongan darah diminta adalah fakta **tingkat order**, disimpan pada `BbkBloodOrder.RequestedBloodGroup`, **bukan** per `BbkBloodOrderLine`. Tipe memakai enum `BloodType` yang sudah ada, tanpa enum kedua. Kolom database **nullable** demi order lama; order lama **tidak** di-backfill dari `MstPatient.BloodType`, pemeriksaan tervalidasi, atau sumber klinis lain, dan `NULL` bermakna "golongan darah diminta tidak tercatat pada order lama". Order **baru** wajib membawanya lewat `POST /`, `POST /manual`, dan `POST /confirm-duplicate`. Nilai sah: delapan ABO/Rhesus dan `Unknown`; `NotDisclosed` ditolak. Penolakan memakai kode baru `VAL-BD-085`. Lanjutan order ganda mengirim ulang nilai percobaan yang tertahan tanpa perubahan. Nilai ini **tidak pernah** menjadi golongan darah sah, bukti kecocokan, dasar alokasi, dasar pemberian, maupun pengganti pemeriksaan (`INV-BD-011` tetap mengikat) | Pemilik modul Bank Darah · **pemilik proses klinis** (pembeda golongan darah, `FE-BD-001`) | `approved` — termasuk persetujuan proses klinis (19 September 2026). **Riwayat:** persetujuan proses klinis BLOCKED 18 September 2026 | `Sukmagp` 2026-09-18 (pemilik modul) · `Sukmagp` 2026-09-19 sebagai pemilik proses klinis yang berwenang (bagian 8.33) |
+| `DEC-BD-056` | Gap D2 — penahanan order ganda tidak terbaca mesin | `Decision` | Jawaban `422 VAL-BD-001` dari `POST /` dan `POST /manual` membawa slot `errors` berisi `code = "VAL-BD-001"` dan `duplicateComponentIds` (komponen yang **benar-benar** bentrok), mengikuti konvensi slot `errors` `BbkBloodUnitController`. Kalimat pesan tetap dan hanya untuk dibaca pengguna; layar **tidak** boleh mengenali penahanan dari kalimatnya. Kegagalan order lain tidak diubah bentuknya. Nol perubahan database | Pemilik arsitektur backend · pemilik proses BDRS | `approved` | `Sukmagp` 2026-09-18 |
+| `DEC-BD-057` | Gap D3 — kategori alasan pembatalan tidak terbaca layar | `Decision` | `BloodOrderDetailDto` membawa isian turunan nullable `CancellationReasonCategory` (`OrderCancellationClinical` / `OrderCancellationOperational`), dihitung dengan aturan kepemilikan data yang **sama** dengan `CancelAsync` dan **tidak disimpan**; `null` bila order tidak dapat dibatalkan. `VAL-BD-083` tetap penentu saat `POST /cancel`. Layar tidak menyalin aturan itu. **Ketergantungan hak akses:** setiap kebijakan yang memberi `BloodOrder : Cancel` **wajib** ikut memberi `BloodBankReason : Read`; daftar alasan **tidak** disematkan ke detail order | Pemilik proses BDRS · pemilik keamanan platform | `approved` | `Sukmagp` 2026-09-18 |
+| `DEC-BD-058` | Gap D4 — daftar kerja `FE-BD-01` tidak dapat dibangun | `Decision` | `GET /blood-orders` menerima `bloodComponentId` (order yang punya sekurang-kurangnya satu baris dengan komponen itu). `BloodOrderListDto` membawa `Components[]` (per baris: id, kode, nama komponen, `RequestedQuantity`, `IssuedQuantity`) dan `TotalIssuedQuantity`. Jumlah diberikan **diturunkan** dengan aturan `BD-DOM-17` yang sama dengan `GET /{id}/fulfillment` dan menghormati koreksi `Approved` (`DEC-BD-054`), dihitung berkelompok untuk seluruh halaman — tanpa N+1 dan tanpa penghitung tersimpan. Tidak ada migration kecuali bukti eksekusi membuktikan index memang dibutuhkan. Arsitektur `FE-BD-01` tetap berlaku apa adanya | Pemilik proses BDRS · pemilik arsitektur backend | `approved` | `Sukmagp` 2026-09-18 |
+
+**Persetujuan proses klinis `DEC-BD-055` — DISETUJUI 19 September 2026 (bagian 8.33).** **Riwayat 18 September 2026 — BLOCKED, bukan diklaim.** Register ini mencatat pemilik
+pembedaan golongan darah diminta vs hasil pemeriksaan (`FE-BD-001`, baris bagian 7) sebagai **pemilik
+proses klinis**, dan nama pejabatnya tidak pernah disebutkan (kepala dokumen: "nama pejabat berwenang
+belum disebutkan"). `Sukmagp` menyetujui keputusan ini sebagai pemilik modul dan pemilik kontrak. Dokumen
+ini **tidak** menyatakan `Sukmagp` sebagai pemilik proses klinis, karena tidak ada bukti penetapan seperti
+itu. Yang dibutuhkan: tanda tangan pemilik proses klinis atas `DEC-BD-055`, **atau** pernyataan tertulis
+`Sukmagp` bahwa ia bertindak sebagai pemilik proses klinis untuk keputusan ini. Preseden yang berlaku:
+`DEC-BD-039` sampai `DEC-BD-041`, yang pemiliknya juga pemilik proses klinis, tetap `draft` dengan kolom
+persetujuan kosong walaupun kontraknya disetujui `Sukmagp`.
+
+**Status `FE-BD-001` dan `ASM-BD-004` — diluruskan lewat catatan, bukan ditulis ulang.** Keduanya tetap
+tercatat `draft` pada baris aslinya di bagian 7 dan bagian asumsi, karena baris itu adalah riwayat
+wawancara 2 September 2026. Kekuatan mengikatnya berasal dari `03-frontend-architecture.md` dalam set
+kontrak yang disetujui (`v4`, `Sukmagp` 2026-09-03), yang menulisnya **mengikat**. Mulai `v5`, kewajiban
+itu **dapat dipenuhi** karena golongan darah diminta akhirnya menjadi fakta order (`DEC-BD-055`).
+Persetujuan klinisnya mengikuti status `DEC-BD-055` di atas.
+
+**Kewajiban koreksi dokumentasi `BE-BD-003` — dicatat, tidak dikerjakan pass ini.** Laporan
+[`BE-BD-003`](task/report/backend/BE-BD-003.md) §2.3 menulis bahwa penahanan order ganda "menyebut
+komponen mana yang bentrok", padahal controller membuang `DuplicateComponentIds` (`errors = null`). Laporan
+task dimiliki build skill, sehingga pass blueprint ini **tidak** menyuntingnya. Kewajibannya diteruskan ke
+task backend `v5` pemilik `DEC-BD-056`: menambahkan catatan koreksi bertanggal pada laporan `BE-BD-003`
+tanpa mengubah status ✅ maupun buktinya.
+
+**Contoh ujung-ke-ujung.** Pasien A, kunjungan RI-001. Dokter memesan PRC 2 kantong dengan golongan darah
+diminta A Positif, lalu tersimpan `ORD-00000010`. Sepuluh menit kemudian perawat memesan PRC + trombosit;
+jawabannya `422` dengan `errors.code = "VAL-BD-001"` dan `duplicateComponentIds` berisi PRC saja. Layar
+menahan dan meminta alasan, lalu mengirim ulang isian yang sama termasuk A Positif. Pemeriksaan tervalidasi
+pasien ternyata B Positif; layar menampilkan keduanya dengan label berbeda, dan alokasi tetap dinilai
+terhadap B Positif. Ketika dokter peminta membuka order, `cancellationReasonCategory` bernilai
+`OrderCancellationClinical`, sehingga layar hanya memuat alasan klinis. Daftar kerja yang disaring PRC
+memuat `ORD-00000010` dengan diminta 2 dan diberikan 0.
+
+**Turunannya.** Satu kolom baru (`BbkBloodOrder.RequestedBloodGroup`) dan satu migration `ADD COLUMN`
+nullable; satu kode validasi baru (`VAL-BD-085`); sepuluh kriteria penerimaan baru (`AC-BD-103` sampai
+`AC-BD-112`); nol butir hak akses baru; nol perpindahan status baru (`state-transition-matrix.md` tidak
+berubah); nol entity baru. Set kontrak naik **`v4` → `v5`**. Naskah `v5` berstatus `draft` sampai pemilik
+meninjau naskahnya — **disetujui 19 September 2026** (bagian 8.33).
+
+### 8.33 Persetujuan akhir set kontrak `v5` — 19 September 2026
+
+Pemilik, **`Sukmagp`**, menyetujui pada **19 September 2026**: set kontrak **`v5`**, revisi blueprint `28`,
+roadmap backend revisi `12`, roadmap frontend revisi `9`, `DEC-BD-055` sampai `DEC-BD-058`, task `BE-BD-017`
+dan `BE-BD-018`, serta dependency `FE-BD-002` pada kedua task itu. Gerbang **`G5` tertutup**.
+
+**Persetujuan proses klinis `DEC-BD-055`.** `Sukmagp` menyatakan secara tertulis bahwa ia berwenang
+bertindak sebagai **pemilik proses klinis** untuk `DEC-BD-055` pada proyek ini, dan menyetujuinya.
+Penahan klinis yang dicatat 18 September 2026 karena itu **ditutup**. Tidak ada penyetuju lain yang
+ditunjuk atau diandaikan. Kewenangan ini dinyatakan untuk `DEC-BD-055`; keputusan klinis lain yang
+pemiliknya pemilik proses klinis (`DEC-BD-039` sampai `DEC-BD-041`) **tidak** ikut berubah statusnya.
+
+| Butir | Keadaan sesudah 19 September 2026 |
+| --- | --- |
+| Set kontrak `v5` | **`approved`** `Sukmagp` 2026-09-19 |
+| Set kontrak `v4` | **`superseded`** oleh `v5`; riwayat dipertahankan utuh |
+| `DEC-BD-055`..`058` | **`approved`** |
+| `G5` | **Tertutup** |
+| `BE-BD-017`, `BE-BD-018` | **Siap dijadwalkan, belum dikerjakan** |
+| `FE-BD-002` | **Belum dikerjakan** — hanya menunggu `BE-BD-017` dan `BE-BD-018` selesai |
+
+**Urutan pelaksanaan kanonik yang ditetapkan pemilik:** (1) `BE-BD-017`; (2) penerapan migration-nya ke
+database pengembangan yang diberi wewenang; (3) `BE-BD-018`; (4) `FE-BD-002`. `BE-BD-017` dan `BE-BD-018`
+tetap dua task terpisah dan tidak digabung.
+
+---
+
+### 8.34 Penyaring rentang tanggal daftar kerja order darah — `BD-UI-GAP-004` ditutup Opsi B (23 September 2026)
+
+**Asal.** Review gap `FE-BD-002` sesudah implementasi kontrak `v5` menemukan layar daftar kerja order
+darah merender dua pemilih tanggal dan satu dropdown periode, sementara `GET /blood-orders` **tidak
+pernah** menerima parameter tanggal apa pun. Parameternya dibuang diam-diam oleh model binder: petugas
+memilih "Hari Ini", daftarnya tidak berubah, dan tidak ada satu pun pesan. Gap itu dicatat sebagai
+[`BD-UI-GAP-004`](BD-UI-GAP-004-filter-tanggal-order-darah.md) dengan dua pilihan — buang kontrolnya,
+atau tambahkan penyaringnya di backend.
+
+Pemilik, **`Sukmagp`**, memilih **Opsi B** pada **23 September 2026**: penyaring tanggal
+**dipertahankan**, dan backend yang menyesuaikan diri.
+
+| ID | Menutup | Jenis | Isi | Pemilik | Status | Approved |
+| --- | --- | --- | --- | --- | --- | --- |
+| `DEC-BD-059` | `BD-UI-GAP-004` — penyaring tanggal daftar kerja order darah | `Decision` | `GET /blood-orders` menerima `startDate` dan `endDate`. Penyaringan dikerjakan **server-side**; frontend **tidak pernah** menyaring tanggal secara lokal. Kolom yang disaring adalah **`BbkBloodOrder.CreateDateTime`** — bukan kolom waktu lain. `endDate` bersifat **inklusif sampai akhir hari**. Zona waktu pembanding mengikuti **zona waktu aplikasi**, yaitu `Asia/Jakarta` sebagaimana `AppDateTimeHelper`. Keduanya opsional dan digabung dengan penyaring lain secara "dan". Perubahan bersifat **aditif**; nol klien lama rusak | Pemilik proses BDRS · pemilik arsitektur backend | `approved` | `Sukmagp` 2026-09-23 |
+| `DEC-BD-060` | Turunan `DEC-BD-059` — perbandingan zona waktu terhadap kolom UTC | `Decision` | `BbkBloodOrder.CreateDateTime` **disimpan dalam UTC** (`DateTime.UtcNow`). Karena itu batas rentang wajib **dikonversi dari `Asia/Jakarta` ke UTC sebelum dibandingkan**, bukan distempel `DateTimeKind.Utc` apa adanya. Batas bawah = pukul `00:00` waktu Jakarta pada `startDate`, dikonversi ke UTC. Batas atas = pukul `00:00` waktu Jakarta pada `endDate + 1 hari`, dikonversi ke UTC, dan dibandingkan **eksklusif** — bentuk itulah yang mewujudkan "inklusif sampai akhir hari" tanpa kehilangan detik terakhir | Pemilik arsitektur backend | `approved` | `Sukmagp` 2026-09-23 |
+
+**Kenapa `DEC-BD-060` perlu ditulis terpisah, dan bukan dianggap rincian pelaksanaan.**
+
+Pola penyaring tanggal yang sudah mapan di repository ini **salah untuk kolom UTC**, dan menyalinnya akan
+diam-diam melanggar `DEC-BD-059`. `BankController.ResolveDateRange` — yang juga dipakai
+`CompanyGuarantorController` dan beberapa controller master data lain — mengambil tanggal operasional
+waktu Jakarta lewat `AppDateTimeHelper.OperationalDate()`, lalu **menstempelnya** `DateTimeKind.Utc`
+tanpa konversi. Selisihnya tujuh jam.
+
+**Contoh berangka.** Order darah dibuat pukul `02:00` WIB tanggal 23 September. Nilai tersimpan
+`2026-09-22T19:00:00Z`. Petugas menyaring "Hari Ini" = 23 September. Dengan pola yang disalin apa adanya,
+batas bawahnya menjadi `2026-09-23T00:00:00Z`, dan order itu **tidak muncul** — padahal secara waktu
+Jakarta ia memang dibuat hari ini. Setiap order yang lahir antara tengah malam dan pukul tujuh pagi WIB
+akan jatuh ke hari yang keliru. Pada bank darah, jam-jam itu bukan jam sepi.
+
+Dengan `DEC-BD-060`, batas bawahnya menjadi `2026-09-22T17:00:00Z` dan ordernya muncul sebagaimana
+mestinya.
+
+**Yang tidak diputuskan di sini, dan sengaja dibiarkan terbuka.** Dropdown periode pada layar ("Hari
+Ini", "7 Hari Terakhir", "30 Hari Terakhir", "Bulan Ini") hari ini dihitung **di browser** memakai zona
+waktu perangkat petugas, lalu dikirim sebagai `startDate`/`endDate` biasa. Pada perangkat yang zona
+waktunya bukan `Asia/Jakarta`, rentang yang terkirim akan bergeser. Keadaan itu **tidak** menjadi bagian
+`DEC-BD-059`; ia dicatat sebagai risiko pada task `BE-BD-019` dan menunggu keputusan tersendiri bila
+kelak terbukti mengganggu.
+
+**Yang tidak berubah.** Nol kolom database baru, nol migration, nol butir hak akses baru. `BloodOrder :
+Read` tetap satu-satunya yang menjaga daftar kerja.
+
+**Pelaksanaan.** Diturunkan menjadi task **`BE-BD-019`** — lihat
+[laporan task](task/report/backend/BE-BD-019.md) dan kartu pada
+[`roadmap/backend-roadmap.md`](roadmap/backend-roadmap.md). `FE-BD-002` memperoleh dependency baru pada
+task itu untuk bagian penyaring tanggal saja.
+
+---
+
+### 8.35 Alasan pembatalan permintaan PMI dan sumber pilihan order — `FE-BD-003` (23 September 2026)
+
+**Asal.** Audit kesiapan `FE-BD-003` menemukan dua hal yang tidak dapat diputuskan pelaksana, dan
+keduanya menentukan bentuk dua dari tiga aksi utama layar `FE-BD-03`.
+
+**Pertama, pembatalan permintaan PMI tidak punya kategori alasan.** `BbkProviderRequestService.CancelAsync`
+menerima **kode alasan aktif apa pun** dari `MstBloodBankReason`, tanpa penyaring kategori dan tanpa
+padanan `VAL-BD-083`. `ProviderRequestDetailDto` juga **tidak** membawa `CancellationReasonCategory`.
+Nol kategori bernama permintaan PMI ada pada `BloodBankReasonCategories`. Akibatnya layar tidak punya
+nilai apa pun untuk dikirim sebagai `?category=`.
+
+**Kedua, layar tidak tahu order darah mana yang layak dimintakan ke PMI.** `POST /provider-requests`
+hanya menerima `bloodOrderId`, sedangkan nol endpoint options menyediakan daftar order yang layak.
+
+| ID | Menutup | Jenis | Isi | Pemilik | Status | Approved |
+| --- | --- | --- | --- | --- | --- | --- |
+| `DEC-BD-061` | Gap `G-A` — alasan pembatalan permintaan PMI | `Decision` | **Nol kategori baru dibuat.** Pembatalan permintaan PMI memakai alasan terkendali dari `MstBloodBankReason` yang **aktif**, tanpa penyaring kategori — layar memanggil `GET /blood-bank-reasons/options` **tanpa** `category`. Kategori `OrderCancellationClinical` dan `OrderCancellationOperational` **tidak** dipakai di sini: keduanya milik pembatalan order darah dan maknanya berbeda. Konteks pemakaian ditulis di layar sebagai "Pembatalan Permintaan PMI" supaya petugas tahu alasan mana yang sedang dipilih. Backend tetap penentu: kode yang tidak terkendali ditolak `400` | Pemilik proses BDRS | `approved` | `Sukmagp` 2026-09-23 |
+| `DEC-BD-062` | Gap `G-C` — sumber pilihan order darah | `Decision` | **Nol endpoint baru, nol task backend baru.** Layar memakai `GET /blood-orders` yang sudah ada, disaring `orderStatus` ke status yang memang layak — `Active` (`0`) dan `PartiallyFulfilled` (`1`), sesuai penjaga `IsOrderOpen` pada `BbkProviderRequestService`. Kelayakan akhir tetap dijaga backend; layar hanya mempersempit pilihan | Pemilik proses BDRS · pemilik arsitektur backend | `approved` | `Sukmagp` 2026-09-23 |
+
+**Batas yang melekat pada `DEC-BD-062`.** `GET /blood-orders` menerima **satu** nilai `orderStatus`,
+bukan daftar. Untuk memuat kedua status yang layak, layar memanggilnya **dua kali** lalu menggabungkan
+hasilnya. Konsekuensinya pemilih order menampilkan sejumlah order terbaru per status, bukan seluruh
+order yang pernah ada — memadai untuk memilih, tetapi **bukan** daftar lengkap. Bila kelak terbukti
+mengganggu, penyaring `orderStatus` bernilai jamak adalah perubahan aditif yang kecil di backend, dan
+itu keputusan tersendiri yang belum diambil.
+
+**Yang tidak berubah.** Nol kolom database, nol migration, nol butir hak akses, nol endpoint.
+Set kontrak Provider Request tetap `v4` apa adanya.
+
+**Pelaksanaan.** `FE-BD-003`. Acceptance kartunya diperluas pada pass yang sama — lihat
+[`roadmap/frontend-roadmap.md`](roadmap/frontend-roadmap.md).
+
 ---
 
 ## 11. Langkah Berikutnya
+
+**Blood Order contract gap pass (terbaru, 18 September 2026).** `DEC-BD-055` sampai `DEC-BD-058` membuka
+set kontrak **`v5`** (bagian 8.32). Hilirnya: `design-business-module` menyerap keempatnya ke set kontrak
+(**`approved`** `Sukmagp` 19 September 2026; riwayat `draft`), lalu `plan-module-delivery` menetapkan task
+backend baru dan dependency `FE-BD-002`. **Persetujuan akhir turun 19 September 2026** (bagian 8.33), termasuk
+persetujuan proses klinis `DEC-BD-055`. Task berikutnya: **`BE-BD-017`**. **Riwayat:** satu persetujuan
+tersisa — persetujuan proses klinis `DEC-BD-055` (BLOCKED, 18 September 2026).
 
 **Permission conflict closure pass (terbaru, 3 September 2026).** `DEC-BD-047` menutup `CONF-BD-006`,
 konflik yang ditemukan pelaksanaan `BE-BD-016`. Butir `BloodUnit : Compatibility` hanya diberikan
@@ -1589,7 +1823,7 @@ pertanyaan terbuka yang menempel pada `v4`**, dan set kontrak tetap `v4` `approv
 perubahan — rinciannya di bagian 8.24.
 
 Pertanyaan terbuka yang masih hidup seluruhnya berada di luar rilis pertama atau bersifat masukan
-konfigurasi: `DEC-BD-016` (persetujuan pemilik Billing), `OQ-BD-011` (mekanik label), `DEF-BD-003`,
+konfigurasi: `DEC-BD-016` (persetujuan pemilik Billing — **ditutup 17 September 2026**, bagian 8.31), `OQ-BD-011` (mekanik label), `DEF-BD-003`,
 `OQ-BD-010`, `OQ-BD-012`, `OQ-BD-014` (**ditutup `DEC-BD-051`**, 17 September 2026), `OQ-BD-016`, dan `BD-DEP-009`. Tidak satu pun menahan gelombang
 `MVP-0` sampai `MVP-4`.
 
@@ -1671,7 +1905,7 @@ pemberian.
 
 | ID | Memblokir | Apakah menahan perancangan? |
 | --- | --- | --- |
-| `DEC-BD-016` | Penyerahan fakta biaya ke Billing | Ya, hanya bagian penyerahan biayanya |
+| `DEC-BD-016` | Penyerahan fakta biaya ke Billing | **Ditutup 17 September 2026** — `approved` `Sukmagp` (bagian 8.31). **Riwayat:** ya, hanya bagian penyerahan biayanya |
 | `OQ-BD-011` | Mekanik label golongan darah | Ya, hanya slice label |
 | `DEF-BD-003` | Aturan bukti kecocokan per komponen | Tidak. `IMPLEMENTATION` saja |
 | `DEF-BD-004` | Enam wewenang: jalur darurat, validator, pencatat koreksi, bukti kecocokan, penyelesaian `PendingReview`, pembatalan order | **Ditutup seluruhnya** — `DEC-BD-039` sampai `DEC-BD-044` |

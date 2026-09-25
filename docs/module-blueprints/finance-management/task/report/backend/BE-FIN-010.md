@@ -17,7 +17,7 @@
 | Model | Claude Sonnet 5 |
 | Commit backend saat dikerjakan | Working tree pada branch `Yasmina`; commit dasar `09101d0581695e20345a9efa8af3fce7c38b1ae4` |
 | Tanggal | 21 September 2026 |
-| Status | 🟡 **SEBAGIAN — entity, configuration, dan migration selesai ditulis; migration BELUM dijalankan.** Cakupan task (2 tabel + migration) terpenuhi penuh sesuai roadmap. `FinSubledgerPeriodBalance` **sengaja tidak** dibuat — bukan bagian Cakupan `BE-FIN-010` (lihat bagian 1). Menunggu `dotnet build` verifikasi pengguna dan otorisasi eksekusi migration terpisah |
+| Status | ✅ **SELESAI 23 September 2026.** Cakupan task (2 tabel + migration) terpenuhi penuh sesuai roadmap. `FinSubledgerPeriodBalance` **sengaja tidak** dibuat — bukan bagian Cakupan `BE-FIN-010` (lihat bagian 1). `dotnet build` PASS dan migration sudah dieksekusi — dikonfirmasi pengguna 23 September 2026, lihat Pembaruan bagian 7 |
 
 ---
 
@@ -206,6 +206,7 @@ Uji manual: `NOT APPLICABLE` — migration belum dijalankan, tidak ada database 
 
 | Hal | Isi |
 | --- | --- |
+| **Pembaruan 23 September 2026** | Pengguna mengonfirmasi `dotnet build` PASS dan migration sudah dieksekusi ke database. Status task dinaikkan menjadi ✅ SELESAI |
 | Peringatan | Katalog 17 `EventTypeCode` (`FIN-DEC-002`) belum diratifikasi Accounting — nilai yang dikirim `FinanceAccountingOutboxService` (`BE-FIN-011`) nanti bisa berubah tanpa migration schema baru (sesuai desain bagian 1.1), tetapi perlu dipantau saat ratifikasi selesai |
 | Masalah yang diketahui | Tidak ada yang baru di luar yang sudah dicatat pada `BE-FIN-005`..`009` |
 | Risiko tersisa | **Sedang** — migration belum diverifikasi `dotnet ef`/`dotnet build` sungguhan (menunggu pengguna), sama seperti seluruh migration tangan sebelumnya sebelum diverifikasi |

@@ -10,7 +10,7 @@
 | Repository target | `NewQuilvianSystemBackend` (backend) · `V2QuilvianSystemFrontendDev` (frontend) |
 | Commit SHA baseline | backend `ab39b63` · frontend `afbb8ab` |
 | Arsitektur domain | `03-domain-architecture.md` revisi 6 — `DOMAIN_ARCHITECTURE_READY` · register keputusan revisi 9 |
-| Ringkasan cakupan | MVP mencatat pemenuhan darah pasien dari order sampai kantong diberikan/diselesaikan, **tanpa** charge Billing, label cetak, dan integrasi luar |
+| Ringkasan cakupan | MVP mencatat pemenuhan darah pasien dari order sampai kantong diberikan/diselesaikan, tanpa label cetak dan integrasi luar. **Sejak 17 September 2026** tindakan yang selesai menyerahkan satu fakta biaya ke Billing (`DEC-BD-016` disetujui, `BE-BD-013`). **Riwayat:** **tanpa** charge Billing, label cetak, dan integrasi luar |
 | `approved_by` / `approved_at` | `Sukmagp` / `2026-09-03` |
 
 ## 2. Ringkasan eksekutif
@@ -55,8 +55,9 @@ yang berpindah tangan tanpa jejak, dan tidak ada darah yang diberikan tanpa bukt
 2. Order tercatat `FullyFulfilled`, `Cancelled`, atau `Expired`.
 3. Seluruh riwayat pergerakan tersimpan dan dapat ditelusuri.
 
-Di luar titik akhir MVP: penyaluran biaya ke Billing, pencetakan label, dan pertukaran data otomatis
-dengan PMI/HCLAB.
+Di luar titik akhir MVP: pencetakan label dan pertukaran data otomatis dengan PMI/HCLAB. Penyaluran biaya ke
+Billing semula juga di luar titik akhir ini, lalu dikerjakan `BE-BD-013` sesudah `DEC-BD-016` disetujui
+17 September 2026.
 
 ## 6. Pelaku sasaran
 
@@ -93,7 +94,7 @@ dengan PMI/HCLAB.
 
 | Kemampuan | ID kemampuan asal | Alasan ditunda | Pengganti selama MVP |
 | --- | --- | --- | --- |
-| Penyaluran fakta biaya ke Billing | `BD-CAP-015` | Konteks sumber Bank Darah pada `BillingSourceContract` belum disetujui pemilik Billing (`DEC-BD-016`) | Tindakan tetap **dicatat**; penagihan pengganti biaya (bila ada) berjalan di luar Quilvian (`ASM-BD-007`) |
+| ~~Penyaluran fakta biaya ke Billing~~ | `BD-CAP-015` | **Tidak lagi ditunda sejak 17 September 2026** — `DEC-BD-016` disetujui `Sukmagp`, dikerjakan `BE-BD-013`. **Riwayat:** konteks sumber Bank Darah pada `BillingSourceContract` belum disetujui pemilik Billing | **Riwayat:** tindakan tetap **dicatat**; penagihan pengganti biaya (bila ada) berjalan di luar Quilvian (`ASM-BD-007`) |
 | Cetak label golongan darah | `BD-CAP-017` | Isi/identifier/perilaku cetak ulang belum ditetapkan (`OQ-BD-011`) | Hasil golongan darah tetap tercatat & tervalidasi di layar, tanpa label cetak |
 | Integrasi API PMI | `BD-CAP-023` | Tak dibutuhkan MVP; pengiriman manual (`DEC-BD-002`) | Permintaan dicatat, diteruskan manual di luar sistem |
 | Integrasi HCLAB | `BD-CAP-024` | Tak ada kontrak/protokol/pemetaan (`DEC-BD-022`) | Tidak ada; hanya temuan penelusuran |
@@ -130,7 +131,7 @@ Jalur tidak normal lengkap: `flowcharts/`.
 | `EPIC BD-09` Setup & kewenangan | Katalog komponen, daftar alasan, **master lokasi penyimpanan darah** (`NEW`); flag unit `IsAvailableForBloodOrder` (`EXTEND`) | `MISSING / NEW` + `EXTEND` |
 | **`EPIC BD-11` Penyimpanan kantong** | Penetapan lokasi pertama (`Received`→`Stored`→`Available`), perpindahan lokasi, riwayat penempatan append-only, gerbang alokasi | `MISSING / NEW` |
 | `EPIC BD-10` Daftar kerja | Tiga daftar operasional | `MISSING / NEW` |
-| — Penyaluran biaya ke Billing | Kirim fakta biaya tindakan | **`OPEN DECISION`** (`DEC-BD-016`) — **tidak** masuk gelombang |
+| — Penyaluran biaya ke Billing | Kirim fakta biaya tindakan | **Disetujui `DEC-BD-016`** 17 September 2026 — dikerjakan `BE-BD-013`, di luar gelombang `MVP-0` sampai `MVP-4`. **Riwayat:** `OPEN DECISION` — **tidak** masuk gelombang |
 
 `EPIC BD-11` **bukan** epic tersendiri karena ada layar baru, melainkan karena ia memperkenalkan
 entity, master, dan gerbang yang berdiri sendiri. Perluasan gerbang **pemberian** (`DEC-BD-038`)
@@ -230,7 +231,7 @@ Seluruh FR dipetakan ke `testing/acceptance-test-matrix.md` `AC-BD-001`..`102` d
 | Permintaan PMI | `Requested`→`PartiallyFulfilled`→`Fulfilled` / `Cancelled` / `ClosedEncounter` | Sisa ≥ 0 |
 | Kantong | `Received`→`Stored`→`Available`→`Allocated`→`Issued`; `PendingReview`→`Reallocated`/`ReturnedToProvider`/`NotUsable` | 1 alokasi aktif; 1 penempatan berlaku; tak dapat dialokasikan sebelum `Stored` atau dari lokasi nonaktif; pemberian terminal |
 | Golongan darah | `SampleTaken`→`ResultRecorded`→`Validated` (+ konflik ditahan) | Hasil sah tak ditimpa; konflik lewat pemeriksaan ulang |
-| Tindakan | `Recorded`→`Completed` | 1 tindakan ≤ 1 fakta biaya (penyaluran tertunda) |
+| Tindakan | `Recorded`→`Completed` | 1 tindakan selesai = **tepat 1** fakta biaya, berapa pun kantongnya (`DEC-BD-016`). **Riwayat:** 1 tindakan ≤ 1 fakta biaya (penyaluran tertunda) |
 
 ## 12. Sasaran arsitektur
 
@@ -273,8 +274,10 @@ dua baris seeder terpisah karena butirnya memang tidak boleh digabung (`INV-BD-0
 ## 15. Batas integrasi dan billing
 
 Modul ini **MUST NOT** membuat sendiri: perhitungan tarif/charge, klien PMI, klien HCLAB, mesin
-crossmatch, salinan master pasien/dokter/unit. Fakta biaya **tidak** disalurkan ke Billing pada MVP
-(`DEC-BD-016`). Detail: `contracts/integration-contract.md`.
+crossmatch, salinan master pasien/dokter/unit. Sejak `DEC-BD-016` disetujui (17 September 2026), satu fakta
+biaya per tindakan selesai diserahkan lewat `ClinicalMilestoneFactProducer`; Billing tetap pemilik akibat
+finansialnya, dan koreksi pemberian tidak membalik biaya. **Riwayat:** fakta biaya **tidak** disalurkan ke
+Billing pada MVP. Detail: `contracts/integration-contract.md`.
 
 ## 16. Guardrail regulasi
 
@@ -405,9 +408,9 @@ Setiap epic `MUST HAVE` memiliki minimal satu UAT berhasil dan satu gagal; pemet
 | `MVP-2` | `EPIC BD-07` (golongan darah + konflik), `EPIC BD-10` (daftar kerja) | `MVP-1` selesai |
 | `MVP-3` | `EPIC BD-03`, `EPIC BD-04` (alokasi → bukti → pemberian → darurat, **beserta gerbang lokasi**) | `MVP-2` **dan `MVP-1b`** selesai |
 | `MVP-4` | `EPIC BD-05`, `EPIC BD-06` (penyelesaian kantong, koreksi), `EPIC BD-08` (pencatatan tindakan) | `MVP-3` selesai |
-| `POST-MVP` | Penyaluran biaya Billing, label cetak, integrasi PMI/HCLAB | Di luar rilis pertama |
+| `POST-MVP` | Label cetak, integrasi PMI/HCLAB. **Penyaluran biaya Billing** dikerjakan `BE-BD-013` sesudah `DEC-BD-016` disetujui 17 September 2026 | Di luar rilis pertama |
 
-Epic `OPEN DECISION` (penyaluran biaya Billing) **tidak** dimasukkan ke gelombang mana pun.
+Epic penyaluran biaya Billing **tidak** dimasukkan ke gelombang mana pun. **Diperbarui 17 September 2026:** statusnya bukan lagi `OPEN DECISION` — `DEC-BD-016` disetujui dan `BE-BD-013` mengerjakannya di luar gelombang.
 
 **`EPIC BD-11` ditempatkan sebagai `MVP-1b`, bukan digabung ke `MVP-3`.** Alasannya urutan
 ketergantungan yang keras, bukan besarnya pekerjaan: gerbang alokasi pada `MVP-3` menuntut kantong sudah
@@ -421,7 +424,7 @@ ada, tetapi **isinya ada**, karena master kosong menghentikan seluruh alur (`INV
 | ~~Peran jalur darurat, validator, pencatat koreksi (`DEF-BD-004`)~~ | Pemilik proses BDRS & klinis | **Ditutup** `DEC-BD-039`, `DEC-BD-040`, `DEC-BD-041` | Tidak lagi |
 | ~~**Sisa `DEF-BD-004`:** peran penyata bukti kecocokan selesai, peran penyelesai kantong `PendingReview`, peran pembatal order~~ | Pemilik proses BDRS & klinis | **Ditutup** `DEC-BD-042`, `DEC-BD-043`, `DEC-BD-044`, dan pemetaan peran terakhirnya oleh `DEC-BD-045` | Tidak lagi — baris seeder `BE-BD-016` sudah ada isinya |
 | Nilai jam masa berlaku bukti per komponen (`OQ-BD-012`) | Pemilik proses klinis | Gerbang fail-closed sampai diisi | Tidak (desain jalan; nilai dari konfigurasi) |
-| Persetujuan konteks sumber Bank Darah pada Billing (`DEC-BD-016`) | Pemilik BillingManagement | Penyaluran biaya tak dapat dirancang | Hanya epic Billing (`OPEN DECISION`) |
+| ~~Persetujuan konteks sumber Bank Darah pada Billing (`DEC-BD-016`)~~ | Pemilik BillingManagement | **Ditutup 17 September 2026** — `approved` `Sukmagp`; dikerjakan `BE-BD-013` | Tidak lagi |
 | ~~Keadaan kantong setelah koreksi (`OQ-BD-014`)~~ | Pemilik proses BDRS | **Ditutup** `DEC-BD-051` — kantong tetap `Issued`; penanganan fisik di luar jalur koreksi | Tidak lagi |
 | Daftar lokasi penyimpanan darah MMC yang sebenarnya | Pemilik proses BDRS | Master kosong menghentikan seluruh alur — kantong tak dapat disimpan, dialokasikan, maupun diberikan | Tidak memblokir rancangan; **memblokir go-live** |
 

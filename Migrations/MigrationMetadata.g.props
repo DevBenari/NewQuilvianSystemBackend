@@ -1,0 +1,16 @@
+﻿<Project>
+
+  <!--
+    Dihasilkan oleh tooling\migrations\Update-MigrationHistory.ps1. Jangan disunting manual.
+
+    Dipakai target ValidateMigrationHistoryCoverage di QuilvianSystemBackend.csproj untuk
+    memastikan jumlah Designer di Migrations\History\ sama dengan jumlah migration yang
+    dideklarasikan di Migrations\MigrationMetadata.g.cs. Bila tidak sama, ada migration
+    yang diarsipkan tanpa atribut penggantinya, dan build harus gagal keras di situ
+    daripada menghasilkan assembly yang membuat migration hilang tanpa peringatan.
+  -->
+  <PropertyGroup>
+    <MigrationMetadataDeclaredCount>199</MigrationMetadataDeclaredCount>
+  </PropertyGroup>
+
+</Project>

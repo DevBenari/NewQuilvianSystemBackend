@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore.Storage;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Dtos;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
@@ -555,6 +556,206 @@ public sealed class FinanceReceivableService
         receivable.RowVersion = Guid.NewGuid();
 
         return receivable;
+    }
+
+    // ------------------------------------------------------------------------------------
+    // Endpoint V2: Pembayaran Langsung, Penghapusan Langsung, dan Laporan Agregat Piutang
+    // ------------------------------------------------------------------------------------
+
+    public async Task<ReceivablePaymentResponse> RecordPaymentAsync(
+        Guid receivableId,
+        decimal amount,
+        string paymentMethod,
+        string? referenceNumber,
+        string? notes,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        ValidateAmount(amount);
+
+        IDbContextTransaction? transaction = null;
+        try
+        {
+            transaction = await BeginTransactionAsync(cancellationToken);
+            await AcquireLockAsync($"FIN_RECEIVABLE_{receivableId:N}", cancellationToken);
+
+            var receivable = await _dbContext.FinReceivables
+                .SingleOrDefaultAsync(x => x.Id == receivableId && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Piutang tidak ditemukan.");
+
+            if (receivable.Status is FinReceivableStatuses.WrittenOff or FinReceivableStatuses.Cancelled)
+                throw new ReceivableValidationException($"Piutang berstatus {receivable.Status} tidak dapat menerima pembayaran.");
+
+            if (amount > receivable.OutstandingAmount)
+                throw new ReceivableValidationException($"Nilai pembayaran Rp {amount:N0} melebihi sisa piutang Rp {receivable.OutstandingAmount:N0}.");
+
+            var prevOutstanding = receivable.OutstandingAmount;
+            receivable.OutstandingAmount -= amount;
+            receivable.AllocatedAmount += amount;
+            receivable.Status = receivable.OutstandingAmount <= 0m ? FinReceivableStatuses.Settled : FinReceivableStatuses.Partial;
+            receivable.UpdateDateTime = DateTime.UtcNow;
+            receivable.UpdateBy = actorUserId;
+            receivable.RowVersion = Guid.NewGuid();
+
+            // Stage event AR_PAYMENT ke Accounting Integration Outbox
+            var eventOccurredAt = DateTimeOffset.UtcNow;
+            await _accountingOutboxService.StageEventAsync(new AccountingOutboxEventRequest
+            {
+                EventTypeCode = FinAccountingEventTypeCodes.ArPayment,
+                SourceTransactionId = receivable.ReceivableNumber,
+                EventOccurredAt = eventOccurredAt,
+                AccountingDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                Amount = amount,
+                CorrelationId = receivable.CorrelationId,
+                CausationId = receivable.Id,
+                ActorUserId = actorUserId
+            }, cancellationToken);
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            await CommitAsync(transaction, cancellationToken);
+            await AuditAsync("RecordPayment", receivable.Id, receivable.Id, actorUserId);
+
+            return new ReceivablePaymentResponse
+            {
+                ReceivableId = receivable.Id,
+                ReceivableNumber = receivable.ReceivableNumber,
+                PaymentAmount = amount,
+                PreviousOutstanding = prevOutstanding,
+                CurrentOutstanding = receivable.OutstandingAmount,
+                TotalAllocated = receivable.AllocatedAmount,
+                Status = receivable.Status,
+                PaymentDate = eventOccurredAt.UtcDateTime,
+                ReferenceNumber = referenceNumber
+            };
+        }
+        catch (DbUpdateConcurrencyException exception)
+        {
+            await RollbackAsync(transaction);
+            throw Stale(exception);
+        }
+        catch
+        {
+            await RollbackAsync(transaction);
+            throw;
+        }
+        finally
+        {
+            if (transaction is not null) await transaction.DisposeAsync();
+        }
+    }
+
+    public async Task<FinReceivableWriteOff> DirectWriteOffAsync(
+        Guid receivableId,
+        decimal amount,
+        string reason,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        ValidateAmount(amount);
+        var reasonText = ValidateReason(reason, "Alasan penghapusan");
+
+        IDbContextTransaction? transaction = null;
+        try
+        {
+            transaction = await BeginTransactionAsync(cancellationToken);
+            await AcquireLockAsync($"FIN_RECEIVABLE_{receivableId:N}", cancellationToken);
+
+            var receivable = await _dbContext.FinReceivables
+                .SingleOrDefaultAsync(x => x.Id == receivableId && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Piutang tidak ditemukan.");
+
+            if (receivable.Status is FinReceivableStatuses.Settled or FinReceivableStatuses.WrittenOff or FinReceivableStatuses.Cancelled)
+                throw new ReceivableValidationException($"Piutang berstatus {receivable.Status} tidak dapat dihapus.");
+
+            if (amount > receivable.OutstandingAmount)
+                throw new ReceivableValidationException($"Nominal penghapusan Rp {amount:N0} melebihi sisa piutang Rp {receivable.OutstandingAmount:N0}.");
+
+            var writeOff = new FinReceivableWriteOff
+            {
+                ReceivableId = receivableId,
+                WriteOffNumber = GenerateNumber("WO"),
+                Amount = amount,
+                Reason = reasonText,
+                Status = FinReceivableApprovalStatuses.Approved,
+                ApprovedBy = actorUserId,
+                ApprovedAt = DateTimeOffset.UtcNow,
+                CreateDateTime = DateTime.UtcNow,
+                CreateBy = actorUserId
+            };
+
+            receivable.OutstandingAmount -= amount;
+            receivable.WrittenOffAmount += amount;
+            receivable.Status = receivable.OutstandingAmount <= 0m ? FinReceivableStatuses.WrittenOff : FinReceivableStatuses.Partial;
+            receivable.UpdateDateTime = DateTime.UtcNow;
+            receivable.UpdateBy = actorUserId;
+            receivable.RowVersion = Guid.NewGuid();
+
+            _dbContext.FinReceivableWriteOffs.Add(writeOff);
+
+            // Stage event AR_WRITEOFF ke Accounting Outbox
+            await _accountingOutboxService.StageEventAsync(new AccountingOutboxEventRequest
+            {
+                EventTypeCode = FinAccountingEventTypeCodes.ArWriteOff,
+                SourceTransactionId = receivable.ReceivableNumber,
+                EventOccurredAt = writeOff.ApprovedAt.Value,
+                AccountingDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                Amount = writeOff.Amount,
+                CorrelationId = receivable.CorrelationId,
+                CausationId = writeOff.Id,
+                ActorUserId = actorUserId
+            }, cancellationToken);
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            await CommitAsync(transaction, cancellationToken);
+            await AuditAsync("DirectWriteOff", writeOff.Id, receivableId, actorUserId);
+            return writeOff;
+        }
+        catch (DbUpdateConcurrencyException exception)
+        {
+            await RollbackAsync(transaction);
+            throw Stale(exception);
+        }
+        catch
+        {
+            await RollbackAsync(transaction);
+            throw;
+        }
+        finally
+        {
+            if (transaction is not null) await transaction.DisposeAsync();
+        }
+    }
+
+    public async Task<ReceivableReportResponse> GetReportSummaryAsync(DateOnly? asOfDate, CancellationToken cancellationToken)
+    {
+        var date = asOfDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
+        var receivables = await _dbContext.FinReceivables.AsNoTracking()
+            .Where(x => !x.IsDelete)
+            .ToListAsync(cancellationToken);
+
+        var agingBuckets = await GetAgingSummaryAsync(date, cancellationToken);
+
+        var statusBreakdown = receivables
+            .GroupBy(x => x.Status)
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        var debtorBreakdown = receivables
+            .GroupBy(x => string.IsNullOrWhiteSpace(x.DebtorType) ? "LAINNYA" : x.DebtorType)
+            .ToDictionary(g => g.Key, g => g.Sum(x => x.OutstandingAmount));
+
+        return new ReceivableReportResponse
+        {
+            AsOfDate = date,
+            TotalOriginalAmount = receivables.Sum(x => x.OriginalAmount),
+            TotalOutstandingAmount = receivables.Sum(x => x.OutstandingAmount),
+            TotalAllocatedAmount = receivables.Sum(x => x.AllocatedAmount),
+            TotalAdjustedAmount = receivables.Sum(x => x.AdjustedAmount),
+            TotalWrittenOffAmount = receivables.Sum(x => x.WrittenOffAmount),
+            TotalReceivableCount = receivables.Count,
+            StatusBreakdown = statusBreakdown,
+            DebtorTypeBreakdown = debtorBreakdown,
+            AgingBuckets = agingBuckets
+        };
     }
 
     // ------------------------------------------------------------------------------------

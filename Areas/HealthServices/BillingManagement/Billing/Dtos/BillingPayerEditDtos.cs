@@ -91,8 +91,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.D
         public List<AvailablePayerOptionResponse> AvailablePayerOptions { get; set; } = [];
         public List<ItemPayerAssignmentResponse> ItemPayerAssignments { get; set; } = [];
         public List<DrugBillingDispositionItemResponse> DrugBillingDisposition { get; set; } = [];
+        public List<DrugBillingDispositionItemResponse> MedicineBillingDisposition => DrugBillingDisposition;
         public List<Guid> EligibleDrugInvoiceItemIds { get; set; } = [];
+        public List<Guid> EligibleMedicineInvoiceItemIds => EligibleDrugInvoiceItemIds;
+        public List<PaymentMethodRowItem> PaymentMethodRow { get; set; } = [];
+        public string? SuggestedBillingStatus { get; set; }
         public InvoiceEditCapabilitiesResponse Capabilities { get; set; } = new();
+    }
+
+    public sealed class PaymentMethodRowItem
+    {
+        public string Code { get; set; } = string.Empty; // CASH, INSURANCE, COMPANY_GUARANTOR
+        public string Type { get => Code; set => Code = value; } // Alias for backward compatibility
+        public string Label { get; set; } = string.Empty; // Tunai, Asuransi, Penjamin Perusahaan
+        public bool IsSelected { get; set; } = false;
+        public bool IsEnabled { get; set; } = true;
+        public bool IsActive { get => IsEnabled; set => IsEnabled = value; }
+        public bool IsSupported { get; set; } = true;
     }
 
     public sealed class InvoiceEditHeaderResponse
@@ -159,6 +174,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.D
     {
         public Guid InvoiceItemId { get; set; }
         public string DrugName { get; set; } = string.Empty;
+        public string MedicineName { get; set; } = string.Empty;
+        public string Obat { get; set; } = string.Empty;
         public string Disposition { get; set; } = "INCLUDED";
         public string DecisionSource { get; set; } = "AUTO";
         public decimal Amount { get; set; }
@@ -172,6 +189,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.D
         public string? ItemPayerBlockReason { get; set; }
         public bool CanEditDrugBilling { get; set; }
         public string? DrugBillingBlockReason { get; set; }
+        public bool CanEditMedicineBilling { get; set; }
+        public string? MedicineBillingBlockReason { get; set; }
     }
 
     /// <summary>

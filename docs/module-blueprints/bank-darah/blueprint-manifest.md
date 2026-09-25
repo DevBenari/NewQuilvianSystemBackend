@@ -5,11 +5,22 @@ blueprint_id: BD-BP-001
 module_name: Bank Darah
 module_slug: bank-darah
 module_prefix: BD
-revision: 26
+revision: 28
+revision_28_note: >-
+  18 September 2026 — amendment kontrak v5 untuk FE-BD-002 (perubahan material: model data,
+  request, response, kamus data). Pemilik Sukmagp memutuskan jalur C lalu B dan menyetujui arah
+  DEC-BD-055..058. Naskah set kontrak v5 berstatus draft menunggu review pemilik (gerbang G5);
+  persetujuan proses klinis DEC-BD-055 BLOCKED. Task baru BE-BD-017 dan BE-BD-018 (roadmap backend
+  revisi 12, DRAFT); FE-BD-002 memperoleh dependency keduanya (roadmap frontend revisi 9, DRAFT)
+  dan tetap belum dikerjakan. BE-BD-003 tidak dibuka ulang. Riwayat: revisi 27.
+  19 September 2026: Sukmagp MENYETUJUI set kontrak v5, revisi 28, roadmap backend revisi 12,
+  roadmap frontend revisi 9, DEC-BD-055..058, BE-BD-017, BE-BD-018, dan dependency FE-BD-002.
+  Sukmagp menyatakan berwenang sebagai pemilik proses klinis untuk DEC-BD-055, sehingga
+  persetujuan klinisnya tertutup. G5 tertutup. v4 superseded oleh v5.
 status: IN_PROGRESS
-current_phase: BD-PH-007
+current_phase: BD-PH-008
 created_at: 2026-09-02T00:40:53+07:00
-updated_at: 2026-09-12T00:00:00+07:00
+updated_at: 2026-09-19T00:00:00+07:00
 last_verified_at: 2026-09-04
 last_readiness_result: NOT_READY
 last_readiness_scope_note: >-
@@ -26,9 +37,22 @@ last_readiness_scope_note: >-
   empat, karena AddBbkBloodGroupExam lahir 9 September 2026 dari BE-BD-005/BE-BD-011.
   Batas yang jujur: baru SATU database yang diterapkan. QuilvianNewDevTim01, staging,
   dan production BELUM, dan masing-masing menuntut wewenang tersendiri.
-backend_source_sha: d07dcf3
+backend_source_sha: 2bd9fc2addb373873494cb7342316fec143312d5
 backend_source_sha_note: >-
-  Naik dari 7fca34c pada 11 September 2026 lewat tiga commit: 14f3778 (docs), 8e30aa9
+  18 September 2026 (amendment v5): dibaca pada 2bd9fc2a, sama dengan origin/sukmagp, working tree
+  bersih. Rentang 77f60c88..2bd9fc2a hanya docs/ — nol berkas source — sehingga tidak ada impact scan
+  dan peta kemampuan tidak berubah status karenanya. Riwayat 77f60c88:
+  Naik dari d07dcf3 pada 18 September 2026 ke 77f60c88 (feat(bank-darah): close BE-BD-013
+  billing handoff), sudah di-push ke origin/sukmagp; working tree bersih. Rentangnya 302 commit
+  dan 825 berkas di luar docs/, termasuk merge QuilvianIntegrationBackend. Impact scan terbatas
+  dijalankan atas 33 nama berkas bukti peta kemampuan: 8 tersentuh. TrxPatientEncounter.cs
+  diganti nama menjadi RegPatientEncounter.cs (R084); BillingSourceContract.cs kini memuat
+  BloodBank/BloodBankCharge sehingga BD-CAP-015 dan BD-DEP-006 dipenuhi BE-BD-013; LabOrder.cs,
+  LabOrderController.cs, InpEpisode.cs, IdentityModel.cs, dan AccessPermissionAttribute.cs
+  tampak aditif; LabScopeBoundaryTests.cs sudah tidak ada. Satu temuan baru yang relevan bagi
+  frontend: GET /api/v1/Auth/permissions (EffectivePermissionSet) masuk rentang ini. Peta
+  kemampuan karena itu STALE sampai tinjauan per baris.
+  Sebelumnya: naik dari 7fca34c pada 11 September 2026 lewat tiga commit: 14f3778 (docs), 8e30aa9
   (implementasi BE-BD-003), dan d07dcf3 (docs verifikasi ulang BE-BD-003). Impact scan
   terbatas dijalankan: 21 berkas di luar docs/ berubah, seluruhnya milik Bank Darah
   sendiri — source, migration AddBbkBloodOrder, dan test BE-BD-003 — ditambah tiga titik
@@ -51,9 +75,29 @@ backend_source_sha_note: >-
   yang kini ter-commit. Nol baris peta kemampuan berpindah status dan nol yang memburuk,
   karena perubahannya adalah hasil kerja modul ini sendiri. Sisanya dokumentasi.
 backend_branch: sukmagp
-frontend_source_sha: f79af16847c99961842081f707bc0c4ff6c2d93b
+frontend_source_sha: fbe29f6d1b7408b13f4377b1fe4b77fc4dabf82e
 frontend_source_sha_note: >-
-  Naik dari 101ec5d3a pada 10 September 2026, dua commit: 7e90e0477 milik FE-BD-001 dan
+  Naik dari e24c9e4c53f64e8c8972d8fd317355099c065695 ke fbe29f6d1b7408b13f4377b1fe4b77fc4dabf82e
+  pada 18 September 2026 — commit implementasi FE-BD-006 (feat(bank-darah): enforce
+  permission-aware setup menu), di-push ke origin/sukmagpV2; satu-satunya commit di atas e24c9e4c,
+  isinya persis 7 berkas FE-BD-006. capability_map_frontend_impact_scan_sha sengaja tetap e24c9e4c:
+  pass jangkar ini tidak menjalankan impact scan. Riwayat e24c9e4c:
+  Naik dari 6640a5e7 ke e24c9e4c pada 18 September 2026 — commit implementasi FE-BD-011
+  (feat(bank-darah): close FE-BD-011 storage deactivation flow), di-push ke origin/sukmagpV2.
+  Impact scan terbatas: berkas Bank Darah yang berubah hanya milik FE-BD-001 (2d0ac741) dan
+  FE-BD-011 (e24c9e4c). Dari 10 base component yang dikutip BD-CAP-021, dua berubah lewat merge
+  cabang lain — filter-select.jsx (prop opt-in renderOption) dan base-editor-form.jsx (prop opt-in
+  remountKey). Keduanya aditif dan tidak mengubah perilaku default, sehingga bukti kemampuan
+  frontend tetap sahih. information-alert.jsx, yang tidak dikutip peta, mendapat ikon dan
+  dukungan children; pesannya tetap tampil.
+  Sebelumnya: naik dari f79af16847c99961842081f707bc0c4ff6c2d93b ke 6640a5e7 pada 18 September 2026. Rentang itu memuat
+  puluhan commit merge, tetapi selisih isi berkasnya hanya satu: menu-items.jsx, 18 baris
+  dihapus lewat b98f5bdc9 — pekerjaan FE-BD-006 yang dulu belum di-commit, kini ter-commit.
+  Nol berkas Bank Darah lain dan nol berkas base-features/ berubah, sehingga bukti kemampuan
+  frontend tetap sahih. Temuan yang bukan akibat pergerakan SHA: simpan pada kedua layar
+  FE-BD-001 rusak sejak 7e90e0477, sehingga FE-BD-001 diturunkan ke sebagian pada roadmap
+  frontend revisi 8.
+  Sebelumnya: naik dari 101ec5d3a pada 10 September 2026, dua commit: 7e90e0477 milik FE-BD-001 dan
   f79af1684 milik FE-BD-011. Impact scan terbatas dijalankan: 44 berkas berubah, 42 di
   antaranya milik Bank Darah sendiri; dua sisanya store.jsx dan menu-items.jsx, yaitu titik
   registrasi wajib yang memang disentuh task Bank Darah. Nol dampak asing dan nol baris peta
@@ -61,10 +105,17 @@ frontend_source_sha_note: >-
   di-commit pada saat catatan ini ditulis.
 frontend_branch: sukmagpV2
 skill_suite_version: 1.18.0
-input_revision_hash: design-business-module-role-residue-2026-09-03
-decision_revision: 12
+input_revision_hash: design-business-module-blood-order-v5-2026-09-18
+input_revision_hash_note: >-
+  Riwayat: design-business-module-role-residue-2026-09-03 (set kontrak v4).
+decision_revision: 13
 capability_map_revision: 5
-capability_map_status: CURRENT
+capability_map_status: STALE
+capability_map_stale_note: >-
+  STALE sejak 18 September 2026 karena backend bergerak d07dcf3 -> 77f60c88. Triase berkas
+  selesai (8 dari 33 berkas bukti tersentuh, lihat backend_source_sha_note), tetapi pemindahan
+  status baris — BD-CAP-002/004 ke RegPatientEncounter, BD-CAP-015 Extend yang kini dipenuhi —
+  adalah wewenang trace-existing-capabilities. Tidak ada task frontend yang tertahan olehnya.
 capability_map_full_audit_sha: 9522caacf29371b1fddd1584e9a71ad94fe48d19
 capability_map_impact_scan_sha: 5360286
 capability_map_scan_still_valid_at: 5360286
@@ -84,7 +135,7 @@ capability_map_impact_scan_result: >-
   TrxLabSpecimen.cs -> LabSpecimen.cs + LabExamination.cs (dipecah dua tingkat, pola tetap
   berlaku). Nol berkas source Bank Darah tersentuh; nol berkas bukti frontend berubah karena
   SHA frontend BERGERAK sejak 10 September 2026 -- lihat frontend_source_sha_note.
-capability_map_frontend_impact_scan_sha: f79af16847c99961842081f707bc0c4ff6c2d93b
+capability_map_frontend_impact_scan_sha: e24c9e4c53f64e8c8972d8fd317355099c065695
 capability_map_full_audit_recommended_before: MVP-2
 capability_map_full_audit_reason: >-
   MstBloodStorageLocation dan MstBloodBankReason sudah berdiri tetapi belum punya baris
@@ -148,10 +199,15 @@ contract_versions:
     status: superseded
     superseded_by: v4
   - version: v4
-    status: approved
+    status: superseded
+    superseded_by: v5
+    superseded_at: 2026-09-19
     approved_by: Sukmagp
     approved_at: 2026-09-03
     last_changed_in: v4
+    status_note: >-
+      Disetujui Sukmagp 2026-09-03 dan berlaku sampai v5 disetujui 2026-09-19. Dipertahankan
+      utuh sebagai riwayat. Riwayat status: approved.
     covers:
       - 02-backend-architecture.md
       - 03-frontend-architecture.md
@@ -164,16 +220,50 @@ contract_versions:
       - contracts/permission-audit-matrix.md
       - flowcharts/
       - testing/acceptance-test-matrix.md
+  - version: v5
+    status: approved
+    direction_approved_by: Sukmagp
+    direction_approved_at: 2026-09-18
+    approved_by: Sukmagp
+    approved_at: 2026-09-19
+    approval_gate: G5 — TERTUTUP 2026-09-19 (approval naskah set kontrak v5 oleh Sukmagp)
+    clinical_approval_DEC_BD_055: APPROVED — Sukmagp 2026-09-19, menyatakan berwenang sebagai pemilik proses klinis untuk DEC-BD-055. Riwayat BLOCKED 2026-09-18
+    status_history: draft 2026-09-18 -> approved 2026-09-19
+    decisions:
+      - DEC-BD-055
+      - DEC-BD-056
+      - DEC-BD-057
+      - DEC-BD-058
+    changed_in_v5:
+      - 02-backend-architecture.md
+      - 03-frontend-architecture.md
+      - data/data-dictionary.md
+      - contracts/api-contract.md
+      - contracts/validation-matrix.md
+      - contracts/permission-audit-matrix.md
+      - testing/acceptance-test-matrix.md
+    unchanged_in_v5:
+      - 04-prd-to-mvp.md
+      - contracts/state-transition-matrix.md
+      - contracts/integration-contract.md
+      - flowcharts/
+    compatibility_impact: >-
+      Respons aditif. Satu perubahan menolak klien lama: requestedBloodGroup wajib pada POST /,
+      /manual, dan /confirm-duplicate (400 VAL-BD-085). Belum ada klien frontend order darah.
+    migration_impact: Satu ADD COLUMN nullable BbkBloodOrder.RequestedBloodGroup, tanpa backfill (BE-BD-017).
 owners:
   product_domain: pemilik proses BDRS
   api: pemilik arsitektur backend
   security: pemilik keamanan platform
   frontend: pemilik proses BDRS
 approved_by: Sukmagp
-approved_at: 2026-09-03
+approved_at: 2026-09-19
+approved_at_note: >-
+  Set kontrak v5 disetujui 2026-09-19. Riwayat: 2026-09-03 untuk set kontrak v4.
 resolved_dependency_ids:
   - BD-DEP-004
   - BD-DEP-005
+  - BD-DEP-006
   - BD-DEP-008
   - BD-DEP-016
   - BD-DEP-017
@@ -181,7 +271,6 @@ active_dependency_ids:
   - BD-DEP-001
   - BD-DEP-002
   - BD-DEP-003
-  - BD-DEP-006
   - BD-DEP-007
   - BD-DEP-009
   - BD-DEP-010
@@ -190,10 +279,32 @@ active_dependency_ids:
   - BD-DEP-013
   - BD-DEP-014
   - BD-DEP-015
-active_roadmap_revision: 11
+active_roadmap_revision: 12
 roadmap_status: APPROVED
+roadmap_approved_by: Sukmagp
+roadmap_approved_at: 2026-09-19
+frontend_roadmap_revision: 9
+frontend_roadmap_status: APPROVED
+frontend_roadmap_approved_by: Sukmagp
+frontend_roadmap_approved_at: 2026-09-19
 roadmap_status_note: >-
-  backend-roadmap.md revisi 11 pada 2026-09-12 mencatat koreksi TATA KELOLA SAJA yang disetujui
+  19 September 2026: roadmap backend revisi 12 dan frontend revisi 9 DISETUJUI Sukmagp bersama
+  kontrak v5; G5 tertutup; BE-BD-017 dan BE-BD-018 siap dijadwalkan. Riwayat: keduanya DRAFT
+  2026-09-18; frontend_roadmap_approved_at sebelumnya 2026-09-18 untuk revisi 8.
+  18 September 2026 (amendment v5): roadmap backend revisi 12 dan frontend revisi 9 berstatus
+  DRAFT menunggu review pemilik. Revisi backend 11 (APPROVED 2026-09-12) dan frontend 8 (APPROVED
+  2026-09-18, frontend_roadmap_approved_by/at di atas) tetap berlaku untuk seluruh task lama.
+  Riwayat: roadmap_status APPROVED, active_roadmap_revision 11, frontend_roadmap_revision 8.
+  18 September 2026 (lanjutan): Sukmagp MENYETUJUI frontend-roadmap.md revisi 8. Bersamaan dengan
+  itu BD-UI-GAP-001 ditutup Opsi A (tanpa tombol kirim ulang biaya; resend-cost-fact tetap API
+  teknis untuk pemulihan), dan pemetaan BD-UI-GAP-003 ke acceptance FE-BD-002/005/008/009 disetujui
+  tanpa koreksi. BD-UI-GAP-002 tetap gap implementasi, bukan penahan approval.
+  Sebelumnya pada hari yang sama: frontend-roadmap.md naik ke revisi 8, FORWARD-TEST / DRAFT, belum disetujui.
+  Isinya menyelaraskan roadmap dengan backend final 16/16: dependency BE-BD-013 -> FE-BD-010 dan
+  BE-BD-015 -> FE-BD-011, FE-BD-001 diturunkan ke sebagian, bentuk baku legenda dan grafik, serta
+  gap BD-UI-GAP-001..003. Approval Sukmagp dibutuhkan sebelum task frontend diserahkan ke builder.
+  roadmap_status APPROVED dan active_roadmap_revision 11 di atas tetap milik roadmap backend.
+  Sebelumnya: backend-roadmap.md revisi 11 pada 2026-09-12 mencatat koreksi TATA KELOLA SAJA yang disetujui
   Sukmagp, dijalankan SEBELUM BE-BD-006 dikerjakan. Nol source backend, nol source frontend,
   nol migration, nol test, nol task dieksekusi.
   (1) AC-BD-071 DILEPAS dari BE-BD-006 dan diteruskan ke BE-BD-009. AC-BD-071 menguji pengalihan
@@ -242,7 +353,7 @@ mana yang sedang berlaku, dan atas dasar source code versi berapa keputusan itu 
 | `module_prefix` | Awalan `BD` dipakai untuk penomoran keputusan, fase, dependency, dan task blueprint. **Bukan** awalan penamaan entity backend: awalan itu **`Bbk`**, terpisah, dan sejak 3 September 2026 **sudah terdaftar** di `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md` dengan Lifecycle **`ACTIVE`** (commit `8075784`). |
 | `revision` | Naik hanya bila arsitektur target, kontrak, dependency, atau keputusan yang sudah disetujui berubah secara berarti. Tidak naik hanya karena status berubah. |
 | `status` | Naik `PARTIAL` → `READY` → **`IN_PROGRESS`** pada 3 September 2026. Nilai terakhir berarti ada pekerjaan aktif yang sudah diberi wewenang dan berbukti: empat task `MVP-0` sudah dijalankan dan meninggalkan laporan tracked. |
-| `current_phase` | Berpindah ke `BD-PH-007` Implementasi Backend. `BD-PH-005` penyusunan blueprint target dan `BD-PH-006` perencanaan delivery keduanya `DONE` sejak approval `G1` turun. |
+| `current_phase` | **`BD-PH-008` Implementasi Frontend sejak 18 September 2026**, ketika `BD-PH-007` ditutup `DONE` sesudah 16 dari 16 task backend ✅ dan commit `77f60c88` ter-push. **Riwayat:** berpindah ke `BD-PH-007` Implementasi Backend. `BD-PH-005` penyusunan blueprint target dan `BD-PH-006` perencanaan delivery keduanya `DONE` sejak approval `G1` turun. |
 | `last_verified_at` | Terisi **`2026-09-04`**. Verifikasi kesiapan dijalankan dua kali pada hari itu: pass pertama di `f940ae3` memulangkan `NOT_READY` dengan dua blocker kritis, pass kedua di `5f7acaf` memulangkan `NOT_READY` **karena cakupan, bukan kerusakan** — kedua blocker kritis sudah tertutup. Rinciannya di catatan penutup. |
 | `backend_source_sha` | Versi source backend yang menjadi dasar seluruh keputusan di blueprint ini. Naik `9522caa` → `9dc7637` → `db08c14` → `792acb9` → `ab39b63` → `a9bc9fd` → **`4205d18`**. Setelah `6488511` naik ke **`ec2bcac`** lewat tiga commit implementasi `MVP-0`. **Berbeda dengan seluruh pergerakan sebelumnya**, ketiganya membawa source aplikasi nyata — 28 berkas, seluruhnya milik Bank Darah sendiri. Impact scan terbatas dijalankan 3 September 2026: dari 24 berkas bukti peta kemampuan, hanya dua tersentuh dan keduanya **menguatkan** peta. Rinciannya di catatan penutup. Enam langkah pertama seluruhnya docs-only dan sudah diverifikasi `git diff --name-only`. **Langkah terakhir berbeda:** `4205d18` adalah merge `QuilvianIntegrationBackend` ke `sukmagp` yang membawa **perubahan source aplikasi nyata**. Bukti kemampuan sempat ditandai `STALE`, lalu **impact scan terbatas dijalankan pada 3 September 2026 dan penandanya dicabut** — nol baris berpindah status. Rinciannya di `02-existing-capability-map.md` §Impact scan terbatas. **Pada 4 September 2026 SHA bergerak dua kali lagi:** `ec2bcac` → `f940ae3` (merge yang membawa penataan ulang project test dan **merusak build**) → **`5f7acaf`** (perbaikan penataan test; build pulih). Peta kemampuan sempat ditandai `STALE`, lalu **impact scan terbatas dijalankan pada 4 September 2026 dan penandanya dicabut** — dua baris berpindah status dan **keduanya membaik**. Rinciannya di `02-existing-capability-map.md` §Impact scan terbatas — 4 September 2026. **Pada 7 September 2026 SHA naik dari `ba75a05` ke `5360286`** lewat 38 commit yang membawa **121 berkas source aplikasi** — bukan docs-only seperti pergerakan sebelumnya. Impact scan terbatas dijalankan langsung di `5360286`: **nol baris berpindah status, nol berkas source Bank Darah tersentuh**, dan dua rujukan bukti diperbarui karena Laboratorium mengganti nama entity yang dipinjam sebagai pola. Rinciannya di `02-existing-capability-map.md` §Impact scan terbatas — 7 September 2026. |
 | `input_revision_hash` | Menunjuk asal keputusan: sesi wawancara Grill Me architecture gap final closure pass tanggal 2 September 2026, yang melanjutkan scope pass, closure pass, dan architecture gap closure pass di hari yang sama. |
@@ -736,3 +847,158 @@ wawancara keputusan, gerbang kelengkapan requirement, maupun perubahan scope roa
 | `status`, `current_phase` | `IN_PROGRESS`, `BD-PH-007` | Implementasi backend masih berjalan; `BE-BD-004` dan `BE-BD-012` terbuka |
 | `capability_map_status` | `CURRENT` | Nol berkas bukti tersentuh pada rentang `7fca34c` → `d07dcf3` |
 | Set kontrak | `v4` `approved` | Nol perubahan arsitektur, kontrak, dependency, maupun keputusan |
+
+---
+
+**Sinkronisasi roadmap frontend dan penutupan `BD-PH-007` — 18 September 2026, revisi 27.**
+
+Pass ini dijalankan `manage-module-blueprint` bersama `plan-module-delivery`. `build-module-frontend`
+**tidak** dijalankan. Nol source backend, nol source frontend, nol migration, dan nol database disentuh.
+
+| Field | Dari | Menjadi |
+| --- | --- | --- |
+| `revision` | `26` | **`27`** — satu dependency berpindah status, yaitu `BD-DEP-006`. Polanya sama dengan revisi 24 dan 25 |
+| `current_phase` | `BD-PH-007` | **`BD-PH-008`** — `BD-PH-007` ditutup `DONE` |
+| `backend_source_sha` | `d07dcf3` | **`77f60c88`** — impact scan terbatas: 8 dari 33 berkas bukti tersentuh |
+| `frontend_source_sha` | `f79af168` | **`6640a5e7`** — selisih isi hanya `menu-items.jsx` milik `FE-BD-006` |
+| `capability_map_status` | `CURRENT` | **`STALE`** — menunggu tinjauan per baris oleh `trace-existing-capabilities` |
+| `BD-DEP-006` penyerahan fakta biaya ke Billing | aktif, `EXTEND` | **terpenuhi** — `BillingSourceContract.cs` memuat `BloodBank`/`BloodBankCharge` di `77f60c88` (`BE-BD-013` ✅) |
+| `frontend_roadmap_revision` | 7, `FORWARD-TEST / DRAFT` | **8**, `FORWARD-TEST / DRAFT` — belum disetujui |
+
+**Kenapa `BD-PH-007` boleh ditutup sekarang.** Pada 17 September 2026 baris fase itu menulis dua syarat:
+perubahan `BE-BD-013` belum di-commit, dan penutupan fase milik skill ini. Syarat pertama terpenuhi oleh
+`77f60c88`, yang sudah ada di `origin/sukmagp`. Bukti penerimaannya adalah 16 laporan tracked beserta
+register roadmap backend. Tidak ada gerbang lain yang ditetapkan untuk fase implementasi backend.
+Verifikasi kesiapan modul adalah fase terpisah, `BD-PH-009`, dan tetap `IN_PROGRESS`.
+
+**Yang sengaja tidak bergerak.**
+
+| Field | Tetap | Alasan |
+| --- | --- | --- |
+| `status` | `IN_PROGRESS` | Frontend baru 3 dari 12 task tersentuh, dan tidak satu pun selesai |
+| `last_verified_at`, `last_readiness_result` | `2026-09-04`, `NOT_READY` | Putusan kesiapan milik `verify-module-readiness` |
+| `build_evidence_sha`, `build_evidence_result` | `8e30aa9` | Pass ini tidak menjalankan build. Bukti build per task sesudahnya ada pada laporan masing-masing, terakhir `BE-BD-013`: `0 Error(s)` / 214 peringatan pada working tree sebelum commit |
+| Set kontrak | `v4` `approved` | Nol perubahan kontrak. Tombol kirim ulang biaya **tidak** ditambahkan ke `03-frontend-architecture.md`; ia menjadi keputusan pemilik `BD-UI-GAP-001` |
+| `01-prerequisite-readiness.md` | `BD-DEP-006` masih tertulis `EXTEND` | Dokumen snapshot audit historis, dipertahankan atas keputusan pemilik 18 September 2026. Keadaan current dependency hidup di manifest ini |
+| `backend-roadmap.md` | Metadata SHA `55ac6ab` dan judul "FUTURE SCOPE" di atas `BE-BD-013` | Isi status task-nya sudah benar (16 ✅). Menyentuh berkas itu mewajibkan grafiknya dibakukan ulang, dan itu pass roadmap backend tersendiri. Dicatat sebagai tindakan lanjutan pada `MODULE-STATUS.md` |
+
+---
+
+**Approval roadmap frontend revisi 8 — 18 September 2026, revisi tetap 27.**
+
+Pemilik, `Sukmagp`, menyetujui roadmap frontend revisi 8 beserta tiga keputusan yang menyertainya.
+Pass ini mencatat approval itu saja. `build-module-frontend` tidak dijalankan, dan nol source, build,
+test, migration, maupun database disentuh.
+
+| Butir | Keputusan pemilik | Letaknya sekarang |
+| --- | --- | --- |
+| Roadmap frontend revisi 8 | **`APPROVED`** — `approved_by` `Sukmagp`, `approved_at` `2026-09-18` | Metadata `roadmap/frontend-roadmap.md` |
+| `BD-UI-GAP-001` tombol kirim ulang biaya | **Ditutup, Opsi A.** Tidak ada tombol di layar. `FE-BD-010` wajib membaca `BillingHandoff` dari `POST /complete`, menampilkannya apa adanya, dan tidak pernah menyatakan Billing berhasil bila `Kind` bukan `Emitted`/`Replayed`. `FE-BD-010` tidak boleh menyediakan `resend-cost-fact` sebagai aksi biasa, mengarang status Billing yang tetap dari `GET`, maupun mengirim ulang otomatis. `POST /resend-cost-fact` tetap kemampuan API teknis untuk pemulihan | Baris Acceptance dan Di luar cakupan kartu `FE-BD-010` |
+| `BD-UI-GAP-003` tujuh kewajiban layar mengikat | **Pemetaan disetujui tanpa koreksi**: `FE-BD-001` → `FE-BD-002`; `FE-BD-007`/`008`/`012` → `FE-BD-005`; `FE-BD-016`/`017` → `FE-BD-008`; `FE-BD-019` → task terakhir di antara `FE-BD-005` dan `FE-BD-009` yang menyentuh layar `FE-BD-06`, yaitu `FE-BD-009` menurut urutan yang disetujui | Baris Acceptance keempat kartu itu |
+| `BD-UI-GAP-002` pembaca hak akses frontend | **Tetap gap implementasi, bukan penahan approval.** Sumber backend `GET /api/v1/Auth/permissions` sudah ada. Pembacanya diputuskan dan dibangun pada task disetujui pertama yang membutuhkannya, mengikuti `base-component-decision-gate`. **Koreksi 18 September 2026:** pembaca frontend ternyata sudah ada sejak `622a46f41` (`permission-slice.jsx`, `use-permission.jsx`; masuk `sukmagpV2` lewat merge `d7059b563`) dan tidak ditemukan saat sinkronisasi roadmap. `FE-BD-006` memakainya lewat keputusan ketat baru; gap tertutup pada tingkat implementasi, bukti runtime menunggu ([laporan](task/report/frontend/FE-BD-006.md)). **DITUTUP PENUH 18 September 2026:** uji runtime pemilik `Sukmagp` R1–R8 `PASS`, `FE-BD-006` ✅ | Tabel coverage gap roadmap frontend |
+
+**Yang sengaja tidak bergerak.** `revision` tetap `27`: approval roadmap bukan perubahan arsitektur target,
+kontrak, dependency, atau keputusan desain. Polanya sama dengan approval roadmap backend revisi 11, yang
+juga tidak menaikkan revision. Set kontrak tetap `v4` `approved`, karena Opsi A tidak menambah apa pun
+pada `03-frontend-architecture.md`. Nol task baru, nol task ID berubah, dan nol dependency berubah.
+
+**Keadaan yang ditegaskan per approval ini.**
+
+| Butir | Keadaan |
+| --- | --- |
+| `BD-PH-007` Implementasi backend | `DONE` |
+| `BD-PH-008` Implementasi frontend | `IN_PROGRESS` |
+| Backend | 16 dari 16 selesai |
+| Frontend | 0 selesai · 3 sebagian (`FE-BD-001`, `FE-BD-006`, `FE-BD-011`) · 9 belum dikerjakan · 0 terblokir |
+| Task frontend pertama | Buka ulang `FE-BD-001` — tetap 🟡 sampai simpan pada kedua layar master diperbaiki dan dibuktikan |
+
+---
+
+**Jangkar bukti git frontend — 18 September 2026, revisi tetap 27.**
+
+Pass dokumentasi saja. Nol source, build, test, migration, maupun database disentuh, dan bukti runtime
+pemilik tidak diubah.
+
+| Field | Dari | Menjadi |
+| --- | --- | --- |
+| `frontend_source_sha` | `6640a5e7` | **`e24c9e4c`** — commit implementasi `FE-BD-011`, di-push ke `origin/sukmagpV2` |
+| `capability_map_frontend_impact_scan_sha` | `6640a5e7` | **`e24c9e4c`** — impact scan terbatas; bukti frontend tetap sahih |
+
+Keadaan current yang ditegaskan: `FE-BD-001` ✅ (`2d0ac741`), `FE-BD-011` ✅ (`e24c9e4c`), `FE-BD-006` 🟡.
+Frontend: 2 selesai, 1 sebagian, 9 belum dikerjakan, 0 terblokir. `BD-PH-008` tetap `IN_PROGRESS`, dan
+task frontend berikutnya `FE-BD-002`. `revision` tetap `27` karena pergerakan SHA dan jangkar bukti
+bukan perubahan material atas blueprint target.
+
+---
+
+**Penutupan `FE-BD-006` — 18 September 2026, revisi tetap 27.**
+
+Pass dokumentasi saja. Nol source, build, test, migration, maupun database disentuh pada pass ini.
+`FE-BD-006` ✅ sesudah uji runtime pemilik `Sukmagp` R1–R8 seluruhnya `PASS`
+([laporan](task/report/frontend/FE-BD-006.md) §6.3), dan `BD-UI-GAP-002` ditutup penuh. Source
+frontend `FE-BD-006` belum di-commit di atas `e24c9e4c`, sehingga `frontend_source_sha` tidak bergerak.
+
+Keadaan current yang ditegaskan: `FE-BD-001` ✅ (`2d0ac741`), `FE-BD-011` ✅ (`e24c9e4c`), `FE-BD-006` ✅
+(belum di-commit). Frontend: **3 selesai, 0 sebagian, 9 belum dikerjakan, 0 terblokir**; Slice 1
+selesai. Nol gap UI terbuka. `BD-PH-008` tetap `IN_PROGRESS`, dan task frontend berikutnya `FE-BD-002`.
+`revision` tetap `27` karena penutupan task bukan perubahan material atas blueprint target.
+
+---
+
+**Jangkar bukti git `FE-BD-006` — 18 September 2026, revisi tetap 27.**
+
+Pass dokumentasi saja. Nol source, build, test, migration, maupun database disentuh.
+
+| Field | Dari | Menjadi |
+| --- | --- | --- |
+| `frontend_source_sha` | `e24c9e4c53f64e8c8972d8fd317355099c065695` | **`fbe29f6d1b7408b13f4377b1fe4b77fc4dabf82e`** — commit implementasi `FE-BD-006` (`feat(bank-darah): enforce permission-aware setup menu`) di `sukmagpV2`, di-push ke `origin/sukmagpV2` |
+| `capability_map_frontend_impact_scan_sha` | `e24c9e4c` | **Tetap `e24c9e4c`** — pass ini tidak menjalankan impact scan |
+
+Keadaan current yang ditegaskan: `FE-BD-001` ✅ (`2d0ac741`), `FE-BD-011` ✅ (`e24c9e4c`), `FE-BD-006` ✅
+(`fbe29f6d1`). Frontend: **3 selesai, 0 sebagian, 9 belum dikerjakan, 0 terblokir**; Slice 1 selesai;
+`BD-UI-GAP-002` tertutup; `BD-PH-008` tetap `IN_PROGRESS`; task frontend berikutnya `FE-BD-002`.
+Pernyataan "belum di-commit" pada bagian penutupan di atas adalah riwayat keadaan saat itu.
+
+---
+
+**Amendment kontrak `v5` — 18 September 2026, revisi 27 → 28.**
+
+Pass blueprint, kontrak, dan roadmap saja. Nol source backend/frontend, nol migration, nol database, nol
+operasi Git tulis.
+
+| Field | Dari | Menjadi |
+| --- | --- | --- |
+| `revision` | `27` | **`28`** — perubahan material pada kontrak (model data, request, response, kamus data) |
+| `contract_versions` | `v4` `approved` | `v4` tetap berlaku; **`v5` `draft`** menunggu review naskah (gerbang `G5`) |
+| `decision_revision` | `12` | **`13`** — `DEC-BD-055` sampai `DEC-BD-058` |
+| `active_roadmap_revision` (backend) | `11` `APPROVED` | **`12` `DRAFT`** — `BE-BD-017`, `BE-BD-018` |
+| `frontend_roadmap_revision` | `8` `APPROVED` | **`9` `DRAFT`** — dependency baru `FE-BD-002` |
+| `backend_source_sha` | `77f60c88` | **`2bd9fc2a`** — hanya dokumen yang bergerak |
+
+Keadaan current yang ditegaskan: backend 16 selesai + 2 terblokir (`BE-BD-017`, `BE-BD-018`); frontend
+**3 selesai, 0 sebagian, 9 belum dikerjakan, 0 terblokir**; `FE-BD-002` belum dikerjakan dan kini
+bergantung pada kedua task baru; `BD-PH-008` tetap `IN_PROGRESS`. Penahan yang tersisa: gerbang `G5`
+(`Sukmagp`) dan persetujuan proses klinis `DEC-BD-055` (pemilik proses klinis, belum disebutkan namanya).
+
+---
+
+**Persetujuan akhir kontrak `v5` — 19 September 2026, revisi tetap 28.**
+
+`Sukmagp` menyetujui set kontrak **`v5`**, revisi blueprint `28`, roadmap backend revisi `12`, roadmap frontend revisi
+`9`, `DEC-BD-055` sampai `DEC-BD-058`, `BE-BD-017`, `BE-BD-018`, dan dependency `FE-BD-002` pada keduanya. Ia juga
+menyatakan berwenang bertindak sebagai pemilik proses klinis untuk `DEC-BD-055`, sehingga penahan klinisnya ditutup
+tanpa penyetuju lain. Dokumentasi saja: nol source, nol migration, nol database.
+
+| Butir | Keadaan |
+| --- | --- |
+| `G5` | **Tertutup** |
+| `DEC-BD-055` sampai `DEC-BD-058` | **`approved`** |
+| Set kontrak `v5` | **`approved`** `Sukmagp` 2026-09-19 |
+| Set kontrak `v4` | **`superseded`** oleh `v5`; riwayatnya utuh |
+| Roadmap backend revisi `12` / frontend revisi `9` | **`APPROVED`** |
+| `BE-BD-017`, `BE-BD-018` | **Siap dijadwalkan, belum dikerjakan** |
+| `FE-BD-002` | **Belum dikerjakan** — hanya menunggu `BE-BD-017` dan `BE-BD-018` selesai |
+
+Urutan pelaksanaan kanonik: `BE-BD-017` → penerapan migration-nya ke database pengembangan yang diberi wewenang
+→ `BE-BD-018` → `FE-BD-002`. Task implementasi berikutnya: **`BE-BD-017`**. Tabel amendment 18 September 2026
+di atas dipertahankan sebagai riwayat keadaan `draft`.

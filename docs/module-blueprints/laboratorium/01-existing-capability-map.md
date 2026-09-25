@@ -3,9 +3,9 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `laboratorium` |
-| Revision | `4` |
-| Status | `draft` — **peta revision 1-2 `STALE`; sebagian revision 3 juga `STALE`**, lihat Impact Scan Revision 4 |
-| Jenis audit | Revision 1: audit penuh. Revision 2: *impact scan* terbatas. Revision 3: *impact scan* terbatas atas kemampuan yang terdampak `LAB-DEC-037`..`LAB-DEC-045`. **Revision 4: *impact scan* terbatas atas permukaan yang disentuh `LAB-DEC-095`..`LAB-DEC-110`** |
+| Revision | `6` — impact scan terbatas 2026-09-25 atas dokumen klinis pasien dan kunjungan MCU. Sebelumnya `5` |
+| Status | `draft` — **peta revision 1-2 `STALE`; sebagian revision 3 dan 4 juga `STALE`**, lihat Impact Scan Revision 5 bagian A |
+| Jenis audit | Revision 1: audit penuh. Revision 2: *impact scan* terbatas. Revision 3: *impact scan* terbatas atas kemampuan yang terdampak `LAB-DEC-037`..`LAB-DEC-045`. Revision 4: *impact scan* terbatas atas permukaan yang disentuh `LAB-DEC-095`..`LAB-DEC-110`. **Revision 5: *impact scan* terbatas atas permukaan yang disentuh `LAB-DEC-133`..`LAB-DEC-145` serta `LAB-FE-015`/`LAB-FE-016`** |
 | Sifat audit | **Read-only.** Tidak ada satu baris source aplikasi yang diubah |
 | Product/domain owner | Yoga Aji Pratama (`yogaaji452@gmail.com`) |
 | Backend SHA | Diaudit pada `466a7127` (branch `yoga`). Revision 1-2 diaudit pada `c87d9c0`; **298 commit** di antaranya. **`HEAD` bergeser ke `9067fa73` saat sesi 2026-09-14 berjalan** — `git diff 466a7127..9067fa73` atas `Areas/HealthServices/LaboratoryManagement`, `MstReferralInstitution.cs`, `ReferralInstitutionController.cs`, `EncounterPaymentType.cs`, dan `RegPatientEncounterGuarantor.cs` **kosong**, sehingga seluruh temuan di bawah tetap sahih |
@@ -15,12 +15,339 @@
 | Backend SHA revision 4 | `981e002c` (branch `yoga`). **149 commit** sejak `466a7127` |
 | Frontend SHA revision 4 | `ebef7ebe5`. **111 commit** sejak `9cd4cd03f` |
 | Masukan revision 4 | `00-interview-decisions.md` **revision 49**, keputusan `LAB-DEC-095` sampai `LAB-DEC-110` (amendment pass putaran 9, halaman Hasil Mikrobiologi) |
+| Backend SHA revision 5 | `ddeb5ed8` (branch `yoga`). **136 commit** sejak `981e002c` |
+| Frontend SHA revision 5 | `72607a087` (branch `YogaV2`). **39 commit** sejak `ebef7ebe5` |
+| Masukan revision 5 | `00-interview-decisions.md` **revision 67**, keputusan `LAB-DEC-133` sampai `LAB-DEC-145` serta `LAB-FE-015`/`LAB-FE-016` (amendment pass putaran 14, PRD Hasil Pemeriksaan Patologi Klinik & Mikrobiologi `LAB-EVD-008`). Kontrak yang dibaca: `LAB-PERM-v1` (header `7`), `LAB-API-v1` (header `r25`), `LAB-VAL-v1` (header `r8`) — **ketiga header tertinggal dari isinya**, lihat bagian E |
+| Tanggal audit revision 5 | 2026-09-24 |
+| Backend SHA revision 6 | `cfafad8d` (branch `yoga`) |
+| Frontend SHA revision 6 | `0bcd15724` (branch `YogaV2`) |
+| Masukan revision 6 | `00-interview-decisions.md` **revision 80** (`LAB-DEC-157`..`LAB-DEC-164`); `LAB-RCG-001-r11` |
+| Tanggal audit revision 6 | 2026-09-25 |
 
 > **Cara membaca dokumen ini.**
 > Dokumen ini menjawab pertanyaan "apa yang sudah ada di sistem", bukan "aturan bisnisnya
 > bagaimana". Setiap baris membawa bukti berupa lokasi berkas dan nama simbol pada commit
 > tertentu, supaya siapa pun bisa memeriksa ulang. Dokumen ini **tidak** merancang arsitektur
 > dan **tidak** memberi izin menulis kode.
+
+---
+
+## Impact Scan Revision 6 — 2026-09-25
+
+**Pemicu.** Gerbang `LAB-RCG-001-r10`/`r11` dan amendment pass putaran 19 bersandar pada dua fakta
+kode yang **belum pernah ber-`CAP`**: dokumen klinis pasien milik Clinical Management (`S18`,
+`LAB-DEC-157`/`158`, `LAB-COORD-018`) dan pemesanan Lab dari kunjungan MCU (`S19`, `LAB-DEC-164`).
+Peta revision 5 dikunci pada BE `ddeb5ed8` + FE `72607a087`.
+
+**Batas audit.** Hanya dua klaster itu — *Documentation/Record* dan *Order/Result* pada titik
+kunjungan MCU. Backend **`cfafad8d`** (branch `yoga`), frontend **`0bcd15724`** (branch `YogaV2`).
+**Tidak diaudit:** kemampuan Laboratorium lain; perilaku berjalan pada basis data (lihat Bagian D).
+
+> ### Kesimpulan pendek
+>
+> **Dokumen klinis pasien sudah ada sejak 2026-06-02 dan cocok sebagai wadah data `S18` —
+> tetapi tiga hal bertentangan dengan `LAB-DEC-158`.** (1) Seluruh tindakan keadaan — review,
+> verifikasi, approve, arsip, batal — memakai **satu** kode izin `PatientClinicalDocument : Update`,
+> sehingga *"pengunggah atau kepala instalasi"* tidak dapat dibedakan dari pemegang `Update` lain;
+> pola yang sama dengan `LAB-CONFLICT-012`. (2) Pembuat dokumen dapat mengirim `IsVerified` dan
+> `IsApproved` **bernilai benar pada saat membuat** — memverifikasi unggahannya sendiri. (3) Ada
+> `DELETE`, dan status `EnteredInError` hanya dapat dicapai lewat `PUT` umum **tanpa ruas alasan**;
+> yang beralasan justru *batal* (`Cancelled` + `CancelReason`).
+>
+> **Unggah berkas: nol di seluruh Health Services** — `POST` hanya menerima `FilePath` teks.
+> **Konsumen frontend: nol.**
+>
+> **Jalur pesanan Lab siap menerima kunjungan MCU** — ia hanya memeriksa status kunjungan, bukan
+> jenisnya — dan backend Registrasi menerima `EncounterType = MedicalCheckup`. **Tetapi nol layar
+> frontend yang membuat kunjungan MCU.** Dari aplikasi, kunjungan MCU hari ini tidak dapat lahir.
+
+### Bagian A — Koreksi atas catatan sebelumnya
+
+| Catatan lama | Koreksi | Bukti |
+|---|---|---|
+| Gerbang r10 dan decision log rev 78 menulis dokumen klinis pasien *"berdiri sejak `58c61a5b` (2026-09-10)"* | Berdiri sejak **`9d38d30a` (2026-06-02)**, DevBenari — *"PatientVitalSign, PatientClinicalDocument, PatientConsent"*. `58c61a5b` (yasmina04) hanya mengganti nama tabel ke awalan `Trx`. Kedua dokumen sudah dikoreksi | `git log -- Areas/HealthServices/ClinicalManagement/Controllers/PatientClinicalDocumentController.cs@cfafad8d` |
+
+### Bagian B — Tabel kemampuan
+
+| ID | Kebutuhan | Pemilik | Bukti (`repo/path#symbol@SHA`) | Status | Gap/adapter | Risiko |
+|---|---|---|---|---|---|---|
+| `CAP-P19-01` | Satu data dokumen hasil lab eksternal — jenis `LaboratoryResult`, sumber `ExternalHospital`, penyedia dan dokter eksternal, nomor dokumen eksternal (`LAB-DEC-157`) | Clinical Management | `backend/Areas/HealthServices/ClinicalManagement/Models/TrxPatientClinicalDocument.cs@cfafad8d` (ruas `ExternalProviderName`, `ExternalDoctorName`, `ExternalDocumentNumber`, `IsExternalDocument`, `IsPartOfMedicalRecord`); enum `PatientClinicalDocumentType.LaboratoryResult = 1`, `PatientClinicalDocumentSource.ExternalHospital = 2`; `Controllers/PatientClinicalDocumentController.cs#CreateClinicalDocument:310-446` | `Reuse with adapter` | Adapternya layar Laboratorium yang memanggil `POST` milik Clinical Management — butuh `LAB-COORD-018`. Nol perubahan data yang dibutuhkan untuk menyimpan metadata | Rendah untuk metadata |
+| `CAP-P19-02` | Tautan ke pasien **dan** kunjungan, dengan kunjungan terbukti milik pasien itu (`LAB-DEC-158` butir 1) | Clinical Management | `PatientClinicalDocumentController.cs#ResolveClinicalContextAsync:975` — kunjungan dibaca lalu `encounter.PatientId != patientId` ditolak `:1097-1104` | `Ready to reuse` | — | Rendah |
+| `CAP-P19-03` | **Unggah dan simpan berkas PDF** | Belum ada pemilik | `POST` menerima `FilePath` dan `FileName` **teks** (`:381`, wajib `:955`); nol `IFormFile` di seluruh `Areas/HealthServices@cfafad8d`. Ruas metadata penyimpanan **sudah ada** — `StorageProvider`, `FileHash`, `MimeType`, `FileSizeBytes`, `PreviewPath` | `Missing` | Menunggu `DEC-LAB-016`. Penyimpanan berkas per modul yang ada hanya milik Human Resource (`WfpCertificationFileStorageService`, `WorkflowFileStorageService`) | **Tinggi** — privasi berkas klinis |
+| `CAP-P19-04` | Pengunggah mencocokkan **dua identitas pasien** sebelum menyimpan (`LAB-DEC-158` butir 2) | Laboratorium (layar) | Nol ruas konfirmasi pada `CreatePatientClinicalDocumentRequest` | `Missing` | Konfirmasi di layar Laboratorium; perlu tidaknya ruas pada permintaan diputuskan bersama `LAB-COORD-018` | Sedang — salah pasien |
+| `CAP-P19-05` | Berkas salah pasien ditandai **salah input beralasan**, **tidak dihapus** (`LAB-DEC-158` butir 3) | Clinical Management | `EnteredInError` hanya lewat `PUT` umum `#UpdateClinicalDocument:454`, `entity.DocumentStatus = request.DocumentStatus` `:525`, **tanpa ruas alasan khusus**; `PATCH /{id}/cancel` `:731` **beralasan** tetapi berstatus `Cancelled`; `DELETE /{id}` `:771` menandai `IsDelete` (baris tetap ada, hilang dari tampilan) | `Conflict` | Tiga jalan keluar dengan arti berbeda; `LAB-DEC-158` meminta satu — salah input beralasan dan tidak dihapus | Sedang |
+| `CAP-P19-06` | Hanya **pengunggah atau kepala instalasi** yang menandai salah input (`LAB-DEC-158` butir 3) | Platform (izin) + Clinical Management | `PatientClinicalDocumentController.cs:592,624,656,692,730` — review, verify, approve, archive, cancel **seluruhnya** `[AccessPermission("PatientClinicalDocument", "Update")]` dengan `AccessAction` bernama sama `Update` | `Conflict` | Pemegang `Update` mana pun dapat menandai dokumen siapa pun. Pola yang sama dengan `LAB-CONFLICT-012` | Sedang |
+| `CAP-P19-07` | Verifikasi dokumen **bukan** oleh pengunggahnya sendiri | Clinical Management | `CreatePatientClinicalDocumentRequest` menerima `IsVerified`, `IsApproved`, dan `DocumentStatus`; saat benar, `VerifiedByUserId`/`ApprovedByUserId` = **pengunggah** (`:406-411`) | `Conflict` | Arti `Verified`/`Approved` bagi berkas eksternal adalah butir 3 `LAB-COORD-018` | Sedang |
+| `CAP-P19-08` | Berkas tampil pada linimasa rekam medis | Rekam Medis | `MedicalRecordManagement/Services/MedicalRecordTimelineService.cs:398-405` — `ClinicalDocumentKind.ClinicalDocument` membaca `TrxPatientClinicalDocument`; label *"Dokumen Klinis"* `:1445` | `Ready to reuse` | — | Rendah |
+| `CAP-P19-09` | Layar dokumen klinis pasien | Clinical Management | Pencarian `patient-clinical-documents` dan `PatientClinicalDocument` pada `QuilvianSystemFrontendDev/src@0bcd15724`: **nol** service dan layar. `ClinicalDocumentMeta.jsx` hanya komponen atribusi rawat inap (`FE-RWI-053`), tidak memanggil API ini | `Missing` | Pintu Laboratorium (`LAB-DEC-157`) akan menjadi layar **pertama** yang memakai API ini | Sedang — kontrak belum pernah diuji konsumen |
+| `CAP-P19-10` | Pemesanan Lab dari kunjungan **jenis apa pun** yang masih terbuka (`LAB-DEC-164`) | Laboratorium | `LaboratoryManagement/Services/LabOrderService.cs#CreateByExaminationsAsync:741` — kunjungan dibaca `:766`, yang ditolak hanya status `Completed`/`Cancelled`/`NoShow` (`VAL-67`, `:774-780`); `#CreateAsync:565` — keberadaan kunjungan `:580`. **Nol** pemeriksaan `EncounterType` | `Ready to reuse` | — | Rendah |
+| `CAP-P19-11` | Pembuatan kunjungan berjenis `MedicalCheckup` | Registrasi | Backend: `RegistrationManagement/Controllers/PatientEncounterController.cs` `POST` `:406`, `EncounterType = request.EncounterType` `:591`, hanya `Enum.IsDefined` `:1296`. Frontend: **nol** layar mengirim `encounterType = 4`; nilai itu hanya ada pada konstanta Radiologi, IGD, dan Billing | `Missing` — **di frontend** | Di luar Laboratorium: milik `registration-management` atau layanan MCU kelak | Sedang — `S19` tidak dapat dibuktikan lewat layar |
+| `CAP-P19-12` | Penyaringan daftar Pemeriksaan per jenis kunjungan | Laboratorium | `LabMonitoringService.cs:266-269` — penyaring `EncounterType`; ruas `EncounterType` pada item `:108` | `Ready to reuse` | — | Rendah |
+| `CAP-P19-13` | Tagihan pemeriksaan Lab dari kunjungan MCU | Billing | `BillingManagement/Billing/Services/BillingInvoiceService.cs:2023` memberi label *"MCU"* pada `EncounterType.MedicalCheckup`; fakta tagih Lab (`INT-01`) tidak membedakan jenis kunjungan | `Unknown` | Belum dijalankan sungguhan | Rendah bagi Laboratorium |
+
+### Bagian C — Pertentangan
+
+| ID | Pertentangan | Keputusan yang bertentangan | Pemilik |
+|---|---|---|---|
+| `LAB-CONFLICT-015` | **Jalan keluar berkas salah pasien.** Dokumen klinis pasien punya tiga jalan — `PUT` ke `EnteredInError` tanpa alasan, batal beralasan (`Cancelled`), dan hapus (`IsDelete`) — sedangkan `LAB-DEC-158` meminta satu: *salah input beralasan, tidak dihapus* | `LAB-DEC-158` butir 3 lawan `CAP-P19-05` | Pemilik `clinical-management` lewat `LAB-COORD-018` |
+| `LAB-CONFLICT-016` | **Kewenangan atas keadaan dokumen.** Satu kode izin `Update` membuka review, verify, approve, arsip, dan batal bagi pemegang mana pun; pembuat dapat memverifikasi unggahannya sendiri saat membuat | `LAB-DEC-158` butir 3 (*pengunggah atau kepala instalasi*) lawan `CAP-P19-06`, `CAP-P19-07` | Pemilik `clinical-management` lewat `LAB-COORD-018`; pola `LAB-CONFLICT-012` |
+
+**Contoh `LAB-CONFLICT-016`:**
+
+> Perawat poli yang memegang `PatientClinicalDocument : Update` untuk mengunggah surat rujukan dapat
+> membatalkan PDF HbA1c yang diunggah petugas lab kemarin — tanpa pernah membuka Laboratorium dan
+> tanpa menjadi pengunggahnya maupun kepala instalasi.
+
+### Bagian D — Unknown
+
+| ID | Hal | Yang dibutuhkan untuk menjawab |
+|---|---|---|
+| `UNK-P19-01` | **Pemesanan dari kunjungan MCU berjalan sungguhan** — syarat penutupan `S19` (`LAB-DEC-164`) | Membuat satu kunjungan `MedicalCheckup` lewat API lalu memesan satu pemeriksaan. **Itu penulisan ke basis data pengembangan yang dipakai bersama** — butuh izin pemilik modul. Tanpa layar pembuat kunjungan MCU (`CAP-P19-11`), bukti lewat layar tidak mungkin |
+| `UNK-P19-02` | Jabatan mana yang hari ini memegang `PatientClinicalDocument : Create/Update/Delete` | Membaca `SysAccessPolicies` pada basis data — baca saja |
+| `UNK-P19-03` | Payload log `PatientClinicalDocument.CreateClinicalDocument` memuat seluruh respons (`:435-440`), termasuk ringkasan klinis bila terisi | Pemilik `clinical-management` — bukan wewenang Laboratorium; dicatat karena Laboratorium akan menulis lewat jalur itu |
+
+### Bagian E — Closure question untuk `/grill-me`
+
+| ID | Pertanyaan | Kenapa perlu |
+|---|---|---|
+| `Q-P19-01` | **Apakah bukti kode dan satu panggilan API cukup** untuk menutup `S19` (`LAB-DEC-164`), atau `S19` menunggu layar pendaftaran MCU yang bukan milik Laboratorium? | Bila menunggu layar, penutupan `S19` bergantung modul lain tanpa batas waktu |
+| `Q-P19-02` | Untuk `LAB-COORD-018`: apa yang diminta Laboratorium kepada pemilik `clinical-management` atas `LAB-CONFLICT-015` dan `LAB-CONFLICT-016` — tindakan *salah input* beralasan tersendiri, izin terpisah bagi verifikasi dan penandaan, dan larangan verifikasi-sendiri? | Tanpa itu, `LAB-DEC-158` tidak dapat ditegakkan walau layar Laboratorium dibangun |
+
+### Bagian F — Kontrak as-is yang disentuh
+
+#### `[Tags("Health Services / Clinical Management / Patient Clinical Document")]`
+
+Base URL: `api/v1/health-services/clinical-management/patient-clinical-documents`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+|---|---|---|---|---|---|
+| `GET` | `/filters/metadata` | Metadata penyaring | `PatientClinicalDocument : Read` | - | Metadata |
+| `GET` | `/` | Daftar dokumen | `PatientClinicalDocument : Read` | Query | Daftar berhalaman |
+| `GET` | `/options` | Pilihan dokumen | `PatientClinicalDocument : Read` | Query | Pilihan |
+| `GET` | `/{id}` | Detail | `PatientClinicalDocument : Read` | - | Detail |
+| `POST` | `/` | Membuat dokumen — **metadata dan `FilePath` teks, bukan berkas** | `PatientClinicalDocument : Create` | `CreatePatientClinicalDocumentRequest` | `PatientClinicalDocumentCreateResponse` |
+| `PUT` | `/{id}` | Mengubah dokumen, termasuk statusnya | `PatientClinicalDocument : Update` | `UpdatePatientClinicalDocumentRequest` | Respons ubah |
+| `PATCH` | `/{id}/review`, `/verify`, `/approve`, `/archive`, `/cancel` | Tindakan keadaan | **Kelimanya** `PatientClinicalDocument : Update` | Request per tindakan; `cancel` beralasan | `object` |
+| `DELETE` | `/{id}` | Menandai terhapus | `PatientClinicalDocument : Delete` | - | `object` |
+
+**Kode status yang terlihat:** `400` untuk isian tidak sah, konteks yang tidak cocok (misalnya kunjungan
+milik pasien lain), dan dokumen yang sudah `Cancelled`/`EnteredInError` saat diubah; `404` bila dokumen
+tidak ada.
+
+#### `[Tags("Health Services / Registration Management / Patient Encounter")]` — titik sentuh saja
+
+`POST /` menerima `EncounterType` bernilai apa pun yang terdefinisi, termasuk `MedicalCheckup = 4`.
+
+### Bagian G — Pemicu impact scan berikutnya
+
+`PatientClinicalDocumentController.cs` atau `TrxPatientClinicalDocument.cs` berubah; unggah berkas
+muncul di Health Services; layar pendaftaran mulai mengirim `encounterType = 4`; atau validasi jenis
+kunjungan ditambahkan pada `LabOrderService`.
+
+---
+
+## Impact Scan Revision 5 — 2026-09-24
+
+**Pemicu.** Amendment pass putaran 14 mengambil tiga belas keputusan (`LAB-DEC-133`..`LAB-DEC-145`)
+dan dua keputusan tampilan (`LAB-FE-015`, `LAB-FE-016`) di atas peta revision 4 yang dikunci
+pada BE `981e002c` + FE `ebef7ebe5`. Decision log sendiri menandai peta itu berpotensi basi
+dan menganjurkan scan ini sebelum desain.
+
+**Besar pergeserannya.** Backend **136 commit**; area `Areas/HealthServices/LaboratoryManagement`
+bertambah **+10.916 baris pada 61 berkas** (`git diff --shortstat 981e002c..ddeb5ed8`).
+Frontend **39 commit**, menyentuh 428 berkas di `src/`.
+
+**Batas audit.** Hanya kemampuan yang disentuh putaran 14: pengisian hasil Patologi Klinik,
+Draft/Final/Reopen, validasi dan rilis, pengembalian kepada analis, konsultasi, kewenangan per
+orang per disiplin, pelaporan nilai kritis, WhatsApp, penyerahan hasil kepada pasien, QR
+verifikasi, penanda rendah/tinggi/kritis, isian tanpa modal, empat butir Mikrobiologi yang
+ditegaskan ulang, serta Nomor Transaksi/Mutasi. **Tidak diaudit:** Patologi Anatomi, penerimaan
+specimen (`S2`), Billing, pendaftaran, dan data induk di luar yang disebut.
+
+> ### Kesimpulan pendek
+>
+> **Satu pertentangan baru yang menyentuh keselamatan — `LAB-CONFLICT-012`.** Hak akses
+> dicocokkan per **kode aksi**, dan seluruh tindakan atas pemeriksaan — mengisi hasil, Final,
+> Reopen, konsultasi, batal, cito, duplo — memakai kode yang sama, `LabExamination : Update`.
+> Dokter pemesan **wajib** memegangnya untuk menandai cito (`VAL-03`), sehingga ia secara teknis
+> juga dapat mengisi hasil laboratorium. `LAB-DEC-134` — analis mengisi, Petugas Lab tidak
+> mengubah — **tidak dapat ditegakkan** dengan hak akses yang ada.
+>
+> **Satu perbaikan pada yang sudah dibangun — `Repair`.** Hasil Mikrobiologi yang sudah
+> **Final masih dapat ditimpa** tanpa Reopen, dan konsultasi masih dapat dicatat. Patologi
+> Anatomi punya penjaga `VAL-96`; Mikrobiologi tidak. Celah yang sama akan terbawa ke
+> Patologi Klinik begitu `LAB-DEC-135` dibangun.
+>
+> **Satu kandidat pakai ulang yang besar.** Kewenangan klinis per tenaga kerja **sudah ada**
+> di Human Resource (`WfpClinicalPrivilege`) — lengkap dengan masa berlaku, grant, suspend,
+> dan revoke — dan **sudah dipakai** modul Kamar Operasi. Ini calon wadah penunjukan
+> `LAB-DEC-142`/`LAB-DEC-143`, dan sekaligus menyentuh pertanyaan `DEC-LAB-011`.
+>
+> **Satu pertentangan tampilan — `LAB-CONFLICT-013`.** Isian hasil Patologi Klinik berada di
+> **dialog modal** pada Daftar Kerja, dan **tidak ada** halaman detail hasil Patologi Klinik
+> per order. `LAB-FE-016` melarang modal untuk isian hasil utama.
+>
+> **Yang benar-benar nol:** validasi dan rilis, pengembalian kepada analis, versi koreksi,
+> formulir pelaporan kritis Patologi Klinik, gerbang WhatsApp, pembangkit PDF, cetak dokumen
+> final, pengiriman beserta counter-nya, dan halaman verifikasi QR.
+
+### Bagian A — Fakta revision 4 yang kini basi
+
+Seluruhnya **sudah dikerjakan** sejak `981e002c`, sehingga baris revision 4 bagian B yang
+bersangkutan tidak lagi berlaku.
+
+| Fakta revision 4 | Keadaan pada `ddeb5ed8` |
+|---|---|
+| `LabExamination` nol `FinalizedAt` (`LAB-DEC-096`/`LAB-DEC-097` → `Missing`) | `Models/LabExamination.cs:252` `FinalizedAt`, `:261` `FinalizedByUserId`, beserta `ReopenCount` |
+| Nol ruas konsultasi (`LAB-DEC-106` → `Missing`) | `Models/LabExamination.cs:281-294` `ConsultedByUserId`, `ConsultedToName`, `ConsultedAt` |
+| Nol tabel isolat dan antibiogram (`LAB-DEC-101` → `Missing`) | `Models/LabMicrobiologyIsolate.cs`, `Models/LabIsolateSusceptibility.cs`, `Services/LabMicrobiologyResultService.cs` |
+| Nol tabel aturan kritis Mikrobiologi (`LAB-DEC-103` → `Missing`) | `Models/LabMicrobiologyCriticalRule.cs`, `Controllers/LabMicrobiologyCriticalRuleController.cs` |
+| Nol endpoint koreksi specimen (`LAB-DEC-107` → `Missing`) | `Services/LabSpecimenCorrectionService.cs`, beserta jejak ruas `Models/LabFieldChangeLog.cs` (`LAB-DEC-112`) |
+| Specimen satu tingkat (`LAB-DEC-098` → `Extend`) | `Models/LabSpecimenDetailType.cs` dan 1.767 baris `Seeders/Data/lab-specimen-detail-types.csv` |
+
+### Bagian B — Tabel kemampuan putaran 14
+
+| ID | Kebutuhan | Pemilik | Bukti (`repo/path#symbol@SHA`) | Status | Gap/adapter | Risiko |
+|---|---|---|---|---|---|---|
+| `CAP-P14-01` | Analis mengisi hasil Patologi Klinik; pengisi tercatat otomatis (`LAB-DEC-134`) | Laboratorium | `backend/Areas/HealthServices/LaboratoryManagement/Controllers/LabExaminationController.cs#SetResult:194@ddeb5ed8`; `Services/LabExaminationService.cs#SetResultAsync:655` mengisi `ResultEnteredByUserId` dari pengguna yang login | `Ready to reuse` | Data dan alurnya siap. **Siapa yang boleh memanggilnya** tidak siap — lihat `CAP-P14-02` | — |
+| `CAP-P14-02` | Hanya analis yang mengisi hasil; Petugas Lab dan dokter pemesan tidak (`LAB-DEC-134`) | Platform (hak akses) + Laboratorium | `backend/Services/Security/AccessPermissionService.cs#HasAccessAsync:117-132@ddeb5ed8` mencocokkan `ActionName`; `LabExaminationController.cs:103,125,143,200,300,337,369,414` — delapan endpoint, satu kode `Update`; `contracts/permission-audit-matrix.md` baris 71, 72, 76 dan bagian 10.1 | `Conflict` | Butuh kode aksi terpisah untuk tindakan atas hasil, atau pemeriksaan per orang di service. **`LAB-CONFLICT-012`** | **Tinggi** — dokter pemesan dapat mengirim hasil laboratorium lewat API |
+| `CAP-P14-03` | Draft/Final/Reopen per pemeriksaan untuk Patologi Klinik (`LAB-DEC-135`) | Laboratorium | `Services/LabExaminationService.cs#FinalizeMicrobiologyResultAsync:977` — syaratnya hanya `ResultEnteredAt` terisi, **nol pemeriksaan disiplin**; `#ReopenMicrobiologyResultAsync:1024` — alasan teks bebas ≤ 500, `ReopenCount`, `LabTransitionHistory` | `Reuse with adapter` | Logikanya generik, tetapi rutenya bernama `/result/microbiology/finalize` dan `/reopen`. Frontend Patologi Klinik nol tombol Final | Rute bernama disiplin lain membingungkan pemelihara |
+| `CAP-P14-04` | Hasil yang sudah Final tidak dapat ditimpa tanpa Reopen (`LAB-DEC-097`, `LAB-DEC-135` butir 4, `LAB-DEC-141` butir 4) | Laboratorium | `Services/LabExaminationService.cs#SetResultAsync:655-760`, `Services/LabMicrobiologyResultService.cs#SetResultAsync:53-100`, dan `LabExaminationService.cs#RecordConsultationAsync:1112-1160` — **nol pemeriksaan `FinalizedAt`**. Pembanding: `Services/LabSpecimenCorrectionService.cs:63-67` (`VAL-109`) dan `VAL-96` milik Patologi Anatomi **menjaganya** | `Repair` | Butuh aturan setara `VAL-96` untuk hasil pemeriksaan | **Tinggi** — angka yang dinyatakan selesai dapat berubah diam-diam, tanpa `ReopenCount` naik |
+| `CAP-P14-05` | Label turunan order *Dalam Pemeriksaan*/*Selesai* (`LAB-DEC-135`) | Laboratorium | `Models/LabExamination.cs:197` — komentar menyatakan nol `ValidatedAt`/`ReleasedAt` | `Missing` | Bergantung rilis (`S4`) | — |
+| `CAP-P14-06` | Validasi, rilis, antrean validasi, dan *Kembalikan ke analis* (`LAB-DEC-135`, `LAB-DEC-138`) | Laboratorium | Nol `ValidatedAt`, `ReleasedAt`, `ValidatedByUserId` di seluruh `LaboratoryManagement`. Jejaknya dapat menumpang `Models/LabTransitionHistory.cs` dan `Models/LabFieldChangeLog.cs` | `Missing` | Tertahan `DEC-LAB-011` | — |
+| `CAP-P14-07` | Daftar alasan terkendali untuk koreksi dan pengembalian (`LAB-DEC-082`, `LAB-DEC-138`) | Laboratorium | Nol `CorrectionReason` di `LaboratoryManagement`. Pola data induk alasan terkendali sudah berdiri: `MstLabRejectionReason` (`Models/LabSpecimen.cs:170`, `LAB-DEC-019`) | `Missing` | Pola `Ready to reuse`; tabelnya belum ada | — |
+| `CAP-P14-08` | Konsultasi Patologi Klinik sebagai fakta opsional (`LAB-DEC-141`) | Laboratorium | Kolom `Models/LabExamination.cs:281-294`; `LabExaminationService.cs#RecordConsultationAsync:1112` **nol pemeriksaan disiplin**; rute `PUT /result/microbiology/consultation` | `Reuse with adapter` | Sama dengan `CAP-P14-03`; ditambah penjaga Final dari `CAP-P14-04` | — |
+| `CAP-P14-09` | Penunjukan per orang, per jenis kewenangan, per disiplin (`LAB-DEC-142`, `LAB-DEC-143`) | **Human Resource** (kandidat) | `backend/Areas/Corporate/HumanResource/CredentialingManagement/Models/WfpClinicalPrivilege.cs@ddeb5ed8` — `WorkforceProfileId`, `ClinicalPrivilegeCatalogId`, `PrivilegeCode`, `EffectiveStartDate`/`EffectiveEndDate`, `PrivilegeStatus`, `CredentialingDecisionId`; `Controllers/WfpClinicalPrivilegeController.cs` — `grant:475`, `reject:523`, `suspend:559`, `revoke:597`; katalog `MstClinicalPrivilegeCatalog`; **preseden** `Areas/HealthServices/OperatingRoomManagement/Services/OperatingRoomCredentialResolver.cs:15-42`; jembatan `Models/ApplicationUser.cs:16` `WorkforceProfileId` | `Reuse with adapter` | Kode kewenangan Laboratorium per disiplin dan per jenis belum ada di katalog; resolver Kamar Operasi hanya memeriksa status dan tanggal, **bukan kode**. Tabelnya milik Human Resource | Kepemilikan lintas modul; lihat `LAB-CLOSE-015` |
+| `CAP-P14-10` | Lapis jabatan untuk calon pemvalidasi (`LAB-DEC-142` butir 1) | Platform | `AccessPermissionService.cs#HasAccessAsync:41-172` — kebijakan per (`DepartmentId`, `PositionId`) | `Ready to reuse` | Siap, **dengan batas granularitas** `CAP-P14-02` | — |
+| `CAP-P14-11` | Formulir pelaporan kritis Patologi Klinik: lima isian, waktu kirim WhatsApp terpisah (`LAB-DEC-004`, `LAB-DEC-136`) | Laboratorium | Nol tabel dan endpoint. Penanda kritis Patologi Klinik **sengaja tidak dihitung**: `LabExaminationService.cs#ResolveOutOfNormalRange:942-960`; `DTOs/LabExaminationResultDtos.cs:136-142` | `Missing` | Slice `S5`, tertahan `LAB-P0-004`/`LAB-OPEN-014`. **Alasan di komentar kode sudah basi** — menyebut `LAB-SIGN-001`, yang ditutup 2026-09-17 | Pembaca kode mengira penahannya tanda tangan klinis |
+| `CAP-P14-12` | Penanda kritis Mikrobiologi dan keadaan aturan kosong (`LAB-DEC-103`, koreksi PRD 35) | Laboratorium | `Services/LabMicrobiologyResultService.cs:392-396` `CriticalRuleAvailable`; frontend `lab-microbiology-result-form.jsx:124-127` peringatan *"Aturan nilai kritis belum disetel"*, `:436-437` lencana teks **Kritis** | `Ready to reuse` | — | — |
+| `CAP-P14-13` | Dokter Konfirmator beserta nomor WhatsApp-nya (`LAB-DEC-136`) | Laboratorium | `Services/LabConfirmingDoctorResolver.cs`; `DTOs/LabConfirmingDoctorDtos.cs:16-64` — `WhatsAppNumber` boleh kosong, `FallbackDoctors`, `FallbackNote`; `GET /{id}/confirming-doctor-options` | `Ready to reuse` | — | — |
+| `CAP-P14-14` | Gerbang WhatsApp, pembentuk pesan tanpa data klinis, pembangkit PDF (`LAB-DEC-137`, `LAB-DEC-139`) | **Platform** | `QuilvianSystemBackend.csproj:190` hanya `QRCoder 1.8.0`; nol `IWhatsApp`, `Fonnte`, `Twilio`, `Wablas`, `Qontak`, dan nol pustaka PDF | `Missing` | `LAB-COORD-011` | — |
+| `CAP-P14-15` | Penyerahan dokumen final kepada pasien — cetak, unduh, kirim, counter, dan gerbangnya (`LAB-DEC-139`, `LAB-DEC-066`) | Laboratorium | Backend nol `SentToPatient`/`PatientDelivery`/pencetakan hasil. Frontend hanya `lab-order-print-document.jsx` (Nota Lab) dan `lab-label-print-document.jsx` (Label). **Nomor cetak per disiplin sudah berdiri:** `Services/LabReportNumberService.cs:86-150`, `Models/LabOrder.cs:56` `LabReportNumber`, `Models/LabDisciplineSetting.cs` | `Missing` | Nomor cetak `Ready to reuse`; sisanya belum ada | — |
+| `CAP-P14-16` | Halaman verifikasi QR publik, token acak per versi dokumen (`LAB-DEC-140`) | Laboratorium + **Platform** | `QRCoder` ada. Endpoint tanpa login hanya lima controller — `AuthController`, `VersionController`, `KioskDeviceController`, `QueueDisplayDeviceController`, dan webhook `InpatientDischargeClearanceController.cs:53` — **nol halaman verifikasi dokumen**. `Services/Security/PermissionRegistryValidator.cs:127` menolak endpoint tanpa `[AccessPermission]`, `[AllowAnonymous]`, atau policy yang disetujui. Versi dokumen koreksi nol | `Missing` | `LAB-COORD-015`; bergantung versi koreksi `S6` | — |
+| `CAP-P14-17` | Penanda `L`/`H`/`KRITIS` berhuruf (`LAB-FE-015`) | Laboratorium | Backend `ResolveOutOfNormalRange:942-960` mengembalikan **ya/tidak tanpa arah**; untuk hasil angka `NormalLow`/`NormalHigh` ikut dalam respons (`LabExaminationService.cs:852-853`). Frontend `lab-worklist-view.jsx:327-340` hanya menampilkan teks rentang rujukan — **nol huruf `L`/`H`** | `Extend` | Arah rendah/tinggi dapat diturunkan dari batas yang sudah dikirim, atau backend mengirim arah. `KRITIS` bergantung `CAP-P14-11` | Warna saja tidak terbaca pada cetak hitam-putih |
+| `CAP-P14-18` | Isian hasil utama tidak di modal (`LAB-FE-016`) | Laboratorium | Patologi Klinik: `frontend/src/components/view/health-services/laboratory-management/lab-worklists/lab-worklist-view.jsx:253-370@72607a087` — *"Dialog pengisian hasil — slice S4a"* di dalam `ConfirmModal`. Mikrobiologi: `lab-monitoring/microbiology/lab-microbiology-workspace-view.jsx` — halaman penuh, nol modal. Route Laboratorium **nol** `lab-monitoring/clinical-pathology/[slug]` | `Conflict` | **`LAB-CONFLICT-013`** | Nilai yang sedang diketik hilang bila dialog tertutup |
+| `CAP-P14-19` | Empat penolakan Mikrobiologi yang ditegaskan ulang (`LAB-DEC-144`) | Laboratorium | Hasil per pemeriksaan: rute `/{id}/result/microbiology`. `Lainnya` ke daftar pantau: `Controllers/LabSpecimenTypeController.cs:118-129` `GET other-usage`, dan `LabSpecimenDetailTypeController.cs:16-18` hanya kepala instalasi yang menaikkan nilai. Analis diturunkan: `DTOs/LabMicrobiologyResultDtos.cs:117-130` `AnalystName`. Subbakteri: `Models/LabOrganism.cs` nol kolom induk | `Ready to reuse` | — | — |
+| `CAP-P14-20` | Nomor Transaksi dan Nomor Mutasi pada detail Patologi Klinik (`PRD1-OPEN-01`) | Tidak diketahui | Nol ruas bernama `MutationNumber`/`TransactionNumber` di `Areas/HealthServices`. Kata *mutasi* hanya muncul sebagai **mutasi kamar rawat inap** (`Areas/HealthServices/InPatientManagement/Services/InpBedOccupancyService.cs:992`) | `Unknown` | Butuh jawaban pemilik modul tentang arti keduanya | — |
+
+### Bagian C — Pertentangan yang ditemukan scan ini
+
+#### `LAB-CONFLICT-012` — Satu kode aksi membuka seluruh tindakan atas pemeriksaan
+
+**`LAB-DEC-134` tidak dapat ditegakkan dengan hak akses yang ada.**
+
+Cara kerjanya hari ini: `AccessPermissionService.HasAccessAsync` mencari baris
+`SysActionAccess` menurut **nama controller dan nama aksi** (`:117-132`), lalu mencocokkan
+kebijakan per departemen dan jabatan (`:171-172`). Nama aksi diambil dari
+`[AccessPermission("LabExamination", "Update")]` — dan kedelapan endpoint berikut memakai
+nama yang **sama**:
+
+| Endpoint | Tindakan | Siapa yang memang membutuhkannya |
+|---|---|---|
+| `POST /{id}/cancel` | Membatalkan pemeriksaan | Petugas lab |
+| `PUT /{id}/urgency` | Menandai cito | **Dokter pemesan** (`VAL-03`) |
+| `PUT /{id}/duplo` | Menandai duplo | Petugas lab |
+| `PUT /{id}/result` | **Mengisi hasil Patologi Klinik** | Analis |
+| `PUT /{id}/result/microbiology` | **Mengisi hasil Mikrobiologi** | Analis |
+| `POST /{id}/result/microbiology/finalize` | Final | Analis |
+| `POST /{id}/result/microbiology/reopen` | Reopen | Analis |
+| `PUT /{id}/result/microbiology/consultation` | Konsultasi | Analis |
+
+**Contoh akibatnya:**
+
+> dr. Rina, dokter pemesan di poliklinik, perlu menandai Kalium pasiennya sebagai cito. Supaya
+> bisa, jabatannya diberi `LabExamination : Update`. Sejak detik itu, satu panggilan
+> `PUT /lab-examinations/{id}/result` dari akunnya **diterima** — tidak ada pemeriksaan siapa
+> pemanggilnya di `SetResultAsync`. Layar memang tidak menyediakan tombolnya, tetapi layar
+> bukan penjaga.
+
+**Yang tidak diketahui scan ini:** apakah data kebijakan di basis data **hari ini** memang
+memberi `LabExamination : Update` kepada jabatan dokter pemesan atau Petugas Lab. Itu
+membutuhkan akses basis data (lihat `UNK-P14-01`). Pertentangannya tetap nyata pada tingkat
+**kontrak**: `LAB-PERM-v1` baris 71 menetapkan cito memakai hak yang sama dengan pengisian
+hasil.
+
+**Kesimpulan scan.** Audit tidak memutuskan cara menegakkannya. Diajukan sebagai
+`LAB-CLOSE-013`.
+
+#### `LAB-CONFLICT-013` — Isian hasil Patologi Klinik berada di dialog modal
+
+`LAB-DEC-145` butir 3 / `LAB-FE-016` menetapkan isian hasil utama **di halaman**, bukan di
+modal. Pada `72607a087`, isian hasil Patologi Klinik adalah dialog `ConfirmModal` pada Daftar
+Kerja (`lab-worklist-view.jsx:253-370`), dan **tidak ada** halaman detail hasil Patologi Klinik
+per order — padahal PRD `FR-PK-001` meminta detail dibuka per No. Order. Mikrobiologi sudah
+sesuai: halaman penuh `lab-monitoring/microbiology/[slug]`.
+
+Keputusan tampilan diambil **sesudah** dialog itu dibangun di bawah `DEV_DISCRETION`
+(`LAB-FE-002`), sehingga ini bukan kesalahan pembangunnya. Yang perlu diputuskan: di mana isian
+hasil Patologi Klinik tinggal. Diajukan sebagai `LAB-CLOSE-016`.
+
+### Bagian D — Unknown
+
+| ID | Pertanyaan | Kenapa audit tidak dapat menjawab | Pemilik |
+|---|---|---|---|
+| `UNK-P14-01` | Jabatan mana yang **hari ini** memegang `LabExamination : Update` pada data kebijakan | Butuh membaca `SysAccessPolicies` pada basis data yang dipakai; audit ini tidak menjalankan perintah basis data | Pemilik lingkungan / admin sistem |
+| `UNK-P14-02` | Arti dan sumber Nomor Transaksi dan Nomor Mutasi (`CAP-P14-20`) | Tidak ada ruasnya di source; butuh keterangan lapangan | Yoga Aji Pratama (`PRD1-OPEN-01`) |
+
+### Bagian E — Closure question untuk `/grill-me`
+
+Keempatnya **tidak dijawab** oleh audit ini.
+
+| ID | Pertanyaan | Pemilik | Memblokir |
+|---|---|---|---|
+| `LAB-CLOSE-013` | **Bagaimana `LAB-DEC-134` ditegakkan, sesudah terbukti satu kode aksi membuka seluruh tindakan atas pemeriksaan?** Pilihan yang terlihat dari source: kode aksi terpisah untuk tindakan atas hasil (isi, Final, Reopen, konsultasi); pemeriksaan per orang di service; atau memindahkan cito ke kode aksi tersendiri. Menuntut amandemen `LAB-PERM-v1` | Yoga Aji Pratama, bersama pemilik hak akses platform | Desain perluasan `S4a`, dan `S4b` yang sudah berdiri |
+| `LAB-CLOSE-014` | **Hasil pemeriksaan yang sudah Final ditolak bila disimpan ulang — dikukuhkan sebagai aturan validasi setara `VAL-96`?** Keputusannya sudah tersirat pada `LAB-DEC-097` dan BR-60 butir 3, tetapi kontraknya nol dan kodenya tidak menjaga. Bila dikukuhkan, `S4b` yang sudah dibangun memerlukan perbaikan | Yoga Aji Pratama | Perbaikan `S4b`; desain `LAB-DEC-135` |
+| `LAB-CLOSE-015` | **Penunjukan per orang per disiplin disimpan di mana?** Memakai kewenangan klinis Human Resource (`WfpClinicalPrivilege`) — yang sudah punya masa berlaku, grant/suspend/revoke, keputusan kredensial, dan preseden Kamar Operasi — atau daftar milik Laboratorium sendiri. **Pilihan pertama dapat sekaligus menjawab sebagian `DEC-LAB-011`**: siapa yang menetapkan menjadi proses kredensial rumah sakit | Yoga Aji Pratama, pemilik `human-resource`, dan dr. Bima Prasetya, Sp.PK (`DEC-LAB-011`) | Desain `S4`/`S4d`/`S4e` |
+| `LAB-CLOSE-016` | **Isian hasil Patologi Klinik tinggal di mana, sesudah `LAB-FE-016` melarang modal?** Halaman detail hasil per order sesuai PRD `FR-PK-001`, atau tetap di Daftar Kerja dalam bentuk yang bukan modal | Yoga Aji Pratama | Frontend perluasan `S4a` |
+
+### Bagian F — Kontrak as-is yang disentuh putaran 14
+
+#### `[Tags("Health Services / Laboratory Management / Lab Examination")]`
+
+Base URL: `api/v1/health-services/laboratory-management/lab-examinations`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+|---|---|---|---|---|---|
+| `GET` | `/{id}/result` | Membaca bentuk hasil dan hasil Patologi Klinik yang sudah terisi | `LabExamination : Read` | - | `LabExaminationResultFormResponse` |
+| `PUT` | `/{id}/result` | Mengisi hasil Patologi Klinik | `LabExamination : Update` | `LabExaminationResultRequest` | `LabExaminationResultResponse` |
+| `GET` | `/{id}/result/microbiology` | Membaca hasil Mikrobiologi beserta isolat, antibiogram, dan penanda kritisnya | `LabExamination : Read` | - | `LabMicrobiologyResultResponse` |
+| `PUT` | `/{id}/result/microbiology` | Mengisi hasil Mikrobiologi | `LabExamination : Update` | `LabMicrobiologyResultRequest` | `LabMicrobiologyResultResponse` |
+| `POST` | `/{id}/result/microbiology/finalize` | Menyatakan penulisan hasil selesai — **bukan rilis**; nol pemeriksaan disiplin | `LabExamination : Update` | - | `LabExaminationCompletionResponse` |
+| `POST` | `/{id}/result/microbiology/reopen` | Membuka kembali penulisan, alasan wajib | `LabExamination : Update` | `LabReopenRequest` | `LabExaminationCompletionResponse` |
+| `PUT` | `/{id}/result/microbiology/consultation` | Mencatat siapa mengonsultasikan, kepada siapa, kapan | `LabExamination : Update` | `LabConsultationRequest` | `LabExaminationCompletionResponse` |
+| `GET` | `/{id}/confirming-doctor-options` | Pilihan Dokter Konfirmator: DPJP, dokter jaga, atau daftar cadangan | `LabExamination : Read` | - | Pilihan dokter beserta `WhatsAppNumber` |
+
+Kode status yang mungkin muncul: `200` berhasil; `404` pemeriksaan tidak ditemukan; `409`
+pemeriksaan sudah batal/gugur, atau sudah Final ketika Final ditekan lagi; `422` isian tidak
+lengkap atau tidak sah — misalnya Reopen tanpa alasan, atau waktu konsultasi di masa depan.
+**Yang tidak ada:** `409` ketika hasil yang sudah Final disimpan ulang (`CAP-P14-04`).
+
+### Bagian G — Catatan pembukuan
+
+- **Header ketiga kontrak tertinggal dari isinya.** `LAB-PERM-v1` tertulis revision `7`,
+  tetapi bagian 10 memuat amandemen Mikrobiologi yang dirujuk kode sebagai *"rev 8 bagian
+  10.1"* (`LabExaminationController.cs:290`). `LAB-API-v1` tertulis `r25` padahal `r26` sudah
+  disetujui 2026-09-21. `LAB-VAL-v1` tertulis `r8` padahal isinya sudah sampai `r10` dan `VAL-119`. *(Dikoreksi 2026-09-24 saat desain: semula tertulis `VAL-111`, sebab scan hanya membaca tabel keterlacakan `r9`, bukan bagian 12 `r10`.)*
+  Audit tidak menyuntingnya — itu wewenang pemilik kontrak.
+- **Komentar kode yang menyebut `LAB-SIGN-001` sebagai penahan nilai kritis sudah basi**
+  (`DTOs/LabExaminationResultDtos.cs:36,69,140`; `frontend/.../lab-worklist-view.jsx:256,329`).
+  `LAB-SIGN-001` ditutup 2026-09-17 (`LAB-DEC-079`); penahan validasi dan rilis kini
+  `DEC-LAB-011`, dan penahan nilai kritis `S5`. Kelimanya **komentar**, bukan teks yang tampil
+  kepada petugas — tidak berdampak pada perilaku, tetapi menyesatkan pembaca kode.
+- Peta ini **tidak** mengaudit ulang bagian di luar permukaan putaran 14. Bagian revision 1-4
+  yang tidak disebut di sini **tetap berpotensi basi**.
+
+### Bagian H — Pemicu impact scan berikutnya
+
+Scan ulang wajib sebelum peta ini dipakai bila salah satu terjadi:
+
+1. `S4` validasi dan rilis mulai dibangun — `CAP-P14-05`, `-06`, dan `-17` berubah.
+2. `LAB-PERM-v1` diamandemen untuk `LAB-CLOSE-013`.
+3. Modul Human Resource mengubah `WfpClinicalPrivilege` atau katalognya, atau `LAB-CLOSE-015`
+   memilih kandidat itu.
+4. Gerbang WhatsApp atau pembangkit PDF muncul di platform (`LAB-COORD-011`).
+5. Commit backend menyentuh `LabExaminationService.cs`, `LabMicrobiologyResultService.cs`, atau
+   `AccessPermissionService.cs`.
 
 ---
 
@@ -815,6 +1142,8 @@ Bila dipertahankan, `BR-25` perlu diperiksa ulang — memilih metode pembayaran 
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 6 | 2026-09-25 | *Impact scan* terbatas atas dua fakta kode yang dipakai gerbang r10/r11 dan putaran 19 tanpa `CAP`. **Dokumen klinis pasien** (`CAP-P19-01`..`09`): wadah data `S18` siap dipakai dengan adapter, **tetapi** unggah berkas nol, konsumen frontend nol, dan tiga pertentangan dengan `LAB-DEC-158` — `LAB-CONFLICT-015` (tiga jalan keluar berkas salah) dan `LAB-CONFLICT-016` (satu kode izin `Update`; verifikasi-sendiri saat membuat). **Kunjungan MCU** (`CAP-P19-10`..`13`): jalur pesanan Lab siap; backend Registrasi menerima `MedicalCheckup`; **nol layar yang membuatnya**, sehingga `S19` belum dapat dibuktikan lewat layar (`UNK-P19-01`). **Satu koreksi:** asal kemampuan dokumen klinis pasien adalah `9d38d30a` (2026-06-02), bukan `58c61a5b` | `draft` |
+| 5 | 2026-09-24 | *Impact scan* terbatas atas permukaan yang disentuh amendment pass putaran 14 (`LAB-DEC-133`..`LAB-DEC-145`, `LAB-FE-015`/`LAB-FE-016`), pada BE `ddeb5ed8` (136 commit sejak `981e002c`) dan FE `72607a087` (39 commit sejak `ebef7ebe5`). **20 kemampuan diklasifikasikan:** 5 `Ready to reuse`, 3 `Reuse with adapter`, 1 `Extend`, 1 `Repair`, 7 `Missing`, 2 `Conflict`, 1 `Unknown`. **Dua conflict baru:** `LAB-CONFLICT-012` — satu kode aksi `LabExamination : Update` membuka isi hasil, Final, Reopen, konsultasi, batal, cito, dan duplo sekaligus, sehingga `LAB-DEC-134` tidak dapat ditegakkan; `LAB-CONFLICT-013` — isian hasil Patologi Klinik berada di dialog modal, bertentangan dengan `LAB-FE-016`. **Satu `Repair`:** hasil Mikrobiologi yang sudah Final masih dapat ditimpa tanpa Reopen. **Satu kandidat pakai ulang besar:** `WfpClinicalPrivilege` milik Human Resource beserta preseden Kamar Operasi. Enam fakta revision 4 dinyatakan basi karena sudah dikerjakan. Empat closure question `LAB-CLOSE-013`..`LAB-CLOSE-016` dan dua unknown dibuka. **Catatan pembukuan:** baris riwayat revision 4 (2026-09-21) tidak pernah ditulis pada tabel ini; isinya ada pada bagian *Impact Scan Revision 4* | `draft` |
 | 1 | 2026-09-01 | Audit penuh pertama pada backend `c87d9c0` dan frontend `688daff90`. 24 kemampuan diklasifikasikan, 1 conflict dan 2 unknown dicatat, 5 pertanyaan penutup diajukan | `draft` |
 | 3 | 2026-09-14 | *Impact scan* terbatas atas kemampuan yang terdampak `LAB-DEC-037`..`LAB-DEC-045`, menutup `LAB-OPEN-022` dan `LAB-OPEN-023`. Pergeseran **jauh lebih besar** dari revision 2: BE 298 commit, FE 155 commit. Tujuh dari sembilan keputusan amendment terbukti berdiri di atas fakta yang masih benar. **`LAB-DEC-039` ternyata sudah dikerjakan kode** sebagai `VAL-18` — bukan aturan baru, melainkan pembetulan `AC-20` yang sudah lama tidak sesuai kode. **`LAB-DEC-044` berdiri di atas fakta yang salah** dan dibuka sebagai `CONF-02`: metode pembayaran per kunjungan sudah ada pada `RegPatientEncounterGuarantor` milik Registrasi, Laboratorium justru sudah mengirimkannya lewat `LabPatientRegistrationDtos`, dan `Piutang Mitra` tidak ada pada `EncounterPaymentType`. `LAB-DEC-043` naik dari `Extend` menjadi `Missing` — data induk perujuk **tidak punya endpoint tulis sama sekali**, dan satu-satunya pengisinya adalah `LabDummyDataSeeder`. `F5` dicabut: frontend Laboratorium kini berdiri penuh, 31 berkas. Empat entity berganti nama, `TrxPatientEncounter` menjadi `RegPatientEncounter`. Dua pertanyaan penutup baru `Q-LAB-06` dan `Q-LAB-07` | `draft` |
 | 2 | 2026-09-02 | *Impact scan* terbatas atas `CAP-11` dan bagian utang teknis, sesuai penanda `STALE` pada manifest. **Tidak ada status kemampuan yang berubah**; `STALE` dicabut. Sepuluh kemampuan berisiko tinggi diverifikasi silang. Dua koreksi faktual: jumlah pengujian `CAP-24` 19 → 18, dan tanggal audit revision 1 yang tidak mungkin benar karena `c87d9c0` baru dibuat 2026-09-02 | `draft` |

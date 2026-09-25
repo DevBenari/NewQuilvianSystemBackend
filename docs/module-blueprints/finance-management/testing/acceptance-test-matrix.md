@@ -2,11 +2,12 @@
 
 | Field | Nilai |
 |---|---|
-| Contract version | `FIN-TEST-1.0` |
-| Status | `draft` |
+| Contract version | `FIN-TEST-1.1` |
+| `last_changed_in` | `FIN-TEST-1.1` — amendment 25 September 2026 (bagian 8 dan 8a baru) |
+| Status | `approved` dan `locked` — revisi 1.1 disetujui dan dikunci owner 25 September 2026 |
 | Owner | Yasmin (Product/Domain Owner Finance) |
-| `approved_by` / `approved_at` | — / — |
-| Input revision | `contracts/validation-matrix.md` `FIN-VAL-1.0`, `contracts/state-transition-matrix.md` `FIN-STATE-1.0` |
+| `approved_by` / `approved_at` | Yasmin / 2026-09-25 |
+| Input revision | `contracts/validation-matrix.md` `FIN-VAL-1.1`, `contracts/state-transition-matrix.md` `FIN-STATE-1.1`, `02-backend-architecture.md` AMENDMENT REVISI 3 |
 | Catatan project test | Project test terpisah belum terdeteksi di repository pada `09101d05`. Kolom "Jenis test" menyatakan **jenis yang seharusnya**, bukan yang sudah tersedia |
 
 Matriks ini memuat jalur gagal, bukan hanya jalur berhasil. Uji yang hanya membuktikan jalur
@@ -106,9 +107,9 @@ berhasil tidak membuktikan apa pun tentang uang.
 |---|---|---|---|
 | `FIN-DES-017` | Penyimpanan piutang gagal di tengah transaksi | Integrasi | **Nol** piutang dan **nol** baris kejadian; keduanya batal bersama |
 | `FIN-DES-017` | Piutang berhasil disimpan | Integrasi | Tepat satu baris kejadian `PENGAKUAN-PIUTANG` ikut tersimpan |
-| `FIN-DEC-004` | Tender berhasil saat tagihan masih `OPEN` | Integrasi | Penerimaan terlihat penuh di Finance; baris kejadian `HELD_FOR_FINALIZATION` |
-| `FIN-DEC-004` | Tagihan kemudian menjadi `FINAL` | Integrasi | Status kejadian berubah menjadi `PENDING` |
-| `FIN-VAL-076` | Worker berjalan sementara ada baris tertahan | Integrasi | Baris tertahan **dilewati**, tidak terkirim |
+| ~~`FIN-DEC-004`~~ | ~~Tender berhasil saat tagihan masih `OPEN` → baris `HELD_FOR_FINALIZATION`~~ | — | **DICABUT revisi 1.1** — digantikan `FIN-DEC-030` di bawah |
+| ~~`FIN-DEC-004`~~ | ~~Tagihan kemudian menjadi `FINAL` → status berubah `PENDING`~~ | — | **DICABUT revisi 1.1** |
+| ~~`FIN-VAL-076`~~ | ~~Worker melewati baris tertahan~~ | — | **DICABUT revisi 1.1**; digantikan `FIN-VAL-078` untuk baris warisan saja |
 | `FIN-VAL-072` | Dua kejadian dengan `EventNumber` sama | Integrasi database | Ditolak unique index |
 | `FIN-VAL-073` | Kejadian dengan nomor berbeda tetapi identitas sumber sama | Integrasi database | Ditolak unique index lapis kedua |
 | `FIN-VAL-074` | Koreksi dikirim dengan `SourceVersion` yang sama | Integrasi | `422`; koreksi tidak terkirim sebagai duplikat |
@@ -118,6 +119,39 @@ berhasil tidak membuktikan apa pun tentang uang.
 | `FIN-DEC-003` | Fee dokter kemudian disetujui | Integrasi | Kejadian `PENGAKUAN-HUTANG-DOKTER` terbit terpisah |
 | `FIN-STATE` | Accounting membalas `422` | Integrasi | Status `HELD`, **tidak** membuat kejadian baru |
 | `FIN-STATE` | Kejadian `FAILED` dikirim ulang manual | Integrasi | Nomor kejadian tetap sama; tidak ada baris baru |
+
+### 8a. Uang muka, deposit, kelebihan bayar, dan selisih kas — AMENDMENT REVISI 3
+
+Seluruh baris di bawah **belum dapat dijalankan** sampai tujuh kode baru diratifikasi Accounting
+(`FIN-OQ-017`). Ditulis sekarang supaya kriterianya sudah terkunci sebelum kodenya disentuh.
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `FIN-DEC-030` | Tender berhasil saat tagihan masih `OPEN` | Integrasi | Penerimaan terlihat penuh di Finance; baris kejadian **`PENERIMAAN-UANG-MUKA` berstatus `PENDING`**, bukan tertahan |
+| `FIN-DEC-030` | Tender berhasil saat tagihan sudah `FINAL` | Integrasi | Baris kejadian `PENERIMAAN-KASIR` berstatus `PENDING` |
+| `FIN-DEC-030` | Tagihan kemudian `FINAL` dan uang muka dipakai melunasi piutang | Integrasi | Baris kejadian **baru** `PEMAKAIAN-UANG-MUKA-DEPOSIT`; baris `PENERIMAAN-UANG-MUKA` **tidak** diubah |
+| `FIN-DES-034`, `FIN-VAL-085` | Penerimaan `PENERIMAAN-UANG-MUKA` dibalik **setelah** tagihannya menjadi `FINAL` | Integrasi | Pembalikannya `PEMBALIKAN-PENERIMAAN-UANG-MUKA` — **bukan** `PEMBALIKAN-PENERIMAAN-KASIR`, walaupun tagihan sekarang `FINAL` |
+| `FIN-DES-034` | Penerimaan `PENERIMAAN-KASIR` dibalik | Integrasi | Pembalikannya `PEMBALIKAN-PENERIMAAN-KASIR`, tidak berubah dari perilaku lama |
+| `FIN-DEC-040`, `FIN-DES-029` | `BilDepositMovement` `ALLOCATION` disinkronkan | Integrasi | Satu baris intake `DEPOSIT_MOVEMENT` berstatus `CONSUMED`; satu baris kejadian `PEMAKAIAN-UANG-MUKA-DEPOSIT`; **tidak ada** `FinReceipt` baru |
+| `FIN-DEC-041` | `BilDepositMovement` `RELEASE` disinkronkan | Integrasi | Baris kejadian `PENGEMBALIAN-UANG-MUKA`, **bukan** kode pemakaian |
+| `FIN-DEC-041` | `BilRefundCase` `EXECUTED` bersumber `ALLOCATION_EXCESS` | Integrasi | Baris kejadian `PENGEMBALIAN-UANG-MUKA` |
+| `FIN-DEC-041`, `FIN-OQ-018` | `BilRefundCase` `EXECUTED` bersumber `SETTLEMENT` | Integrasi | **Nol** baris kejadian — sengaja di luar cakupan; tidak boleh diam-diam ikut terkirim |
+| `FIN-DEC-042` | `BilRefundableCredit` `ALLOCATION_EXCESS` diakui | Integrasi | Baris kejadian `PENGAKUAN-KELEBIHAN-BAYAR` bernilai selisihnya saja, bukan nilai penerimaan penuh |
+| `FIN-DEC-043`, `FIN-VAL-086` | Shift kasir ditutup dengan selisih, **belum** disahkan | Integrasi | **Nol** baris kejadian `SELISIH-KAS-SHIFT` |
+| `FIN-DEC-043`, `FIN-DES-036` | Selisih shift disahkan (`BilCashVarianceReview` terbentuk) | Integrasi | Satu baris kejadian `SELISIH-KAS-SHIFT`; `SourceTransactionId` = `BilCashVarianceReview.Id`; `AccountingDate` = **tanggal shift**, bukan tanggal pengesahan |
+| `FIN-VAL-080` | Shift ditutup tanpa selisih (`Variance` = 0) | Integrasi | **Nol** baris kejadian |
+| `FIN-VAL-079`, `FIN-DES-031` | Selisih kas berupa kekurangan Rp 30.000 | Unit | Kejadian tersimpan dengan `Amount` = `-30000.00`; **tidak** ditolak validasi |
+| `FIN-VAL-079` | Kejadian `PENERIMAAN-UANG-MUKA` bernilai nol | Unit | `400`; kejadian tidak tersimpan |
+| `FIN-DEC-035`, `FIN-VAL-081` | Pesan `SALDO-SUBLEDGER` tanpa `SubledgerBalance` | Unit | `400`; kejadian tidak tersimpan |
+| `FIN-DEC-035`, `FIN-VAL-082` | `AccountingPeriodCode` berisi `2026-11-30` | Unit | `400`; bentuk wajib `YYYY-MM` |
+| `FIN-DEC-035`, `FIN-DES-032` | Pesan `SALDO-SUBLEDGER` bersaldo nol | Integrasi | Tersimpan dan terkirim; `Amount` = `0.00` tidak ditolak |
+| `FIN-VAL-083` | Pernyataan ulang saldo periode yang sama dengan versi lebih rendah | Integrasi | `422`; koreksi tidak menimpa versi yang lebih tinggi |
+| `FIN-VAL-084` | `SubledgerBalance` terisi pada kejadian `PENERIMAAN-KASIR` | Unit | `400`; rincian saldo hanya untuk pesan saldo |
+| `FIN-DES-029` | Satu `BilDepositMovement` disinkronkan dua kali | Integrasi database | Baris intake kedua ditolak unique index `(HandoffType, SourceHandoffKey)`; **nol** kejadian kedua |
+| `FIN-DES-030` | Satu `BilCashVarianceReview` disinkronkan dua kali | Integrasi database | Ditolak unique index lapis kedua kotak keluar; tidak ada jurnal ganda |
+| `FIN-DEC-039` | Accounting membalas `201` dengan `JournalNumber` kosong | Integrasi | Status **`ACKNOWLEDGED`**; `AccountingJournalNumber` kosong; **tidak** ditandai `FAILED` dan **tidak** dikirim ulang otomatis |
+| `FIN-VAL-078` | Worker berjalan sementara ada baris warisan `HELD_FOR_FINALIZATION` | Integrasi | Baris dilewati **dan dilaporkan**, tidak diam-diam diabaikan |
+| Aturan bisnis #9 | Sinkronisasi deposit/refund/selisih kas dijalankan | Integrasi database | **Nol** perubahan pada tabel `Bil*` mana pun — dibuktikan dengan membandingkan `RowVersion`/`UpdateDateTime` sebelum dan sesudah |
 
 ## 9. Ketahanan terhadap pengulangan dan perebutan data
 

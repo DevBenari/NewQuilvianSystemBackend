@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-VAL-v1` |
-| Revision | `8` |
+| Revision | **`14` — `approved`** 2026-09-25, bagian 16 (`VAL-146`, penjaga penyelesaian order) — disetujui Yoga Aji Pratama. Sebelumnya: **`13` — `approved`** 2026-09-25, bagian 15 (`S4d-1`: `VAL-126` diubah, `VAL-144`, `VAL-145`) — disetujui Yoga Aji Pratama, **termasuk perubahan bunyi `VAL-126`**. Sebelumnya: **`12` — `approved`** 2026-09-25, bagian 14 (`VAL-124`..`VAL-143`, `S4`). Terakhir `approved`: `11` — **`approved`** 2026-09-24, bagian 13. *Baris ini sempat tertinggal di `8` sejak `r9`; dirapikan 2026-09-24* |
 | `r8` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-18** |
 | Isi amandemen `r8` | **`approved` — 2026-09-18.** Sebelas aturan `VAL-92`..`VAL-102` untuk laporan Patologi Anatomi **per pesanan**, menurunkan `LAB-DEC-085`..`LAB-DEC-088`, `LAB-DEC-091`, dan `LAB-DA-001` rev 7. **Satu aturan DICABUT: `VAL-88`** — ia menuntut tiga nama kolom yang dihardcode (makroskopik, mikroskopik, kesimpulan), sedangkan kewajiban ruas kini **bergantung kategori** dan ditegakkan `VAL-95` terhadap data induk keberlakuan. `VAL-83`, `VAL-84`, dan `VAL-89` **tetap berlaku bagi Mikrobiologi**. **Nol aturan `VAL-01`..`VAL-87` dan `VAL-89`..`VAL-91` berubah.** Disetujui bersama `LAB-API-v1` `r25` dan `LAB-PERM-v1` rev 7 pada hari yang sama. Lihat bagian 10 |
 | `r7` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-18** |
@@ -513,3 +513,277 @@ ketiadaannya tidak terbaca sebagai kelalaian.
 | `VAL-116` | `LAB-DEC-128` |
 | `VAL-117` | `LAB-DEC-126` |
 | `VAL-118` | `LAB-DEC-125` |
+
+---
+
+## 13. Amandemen `r11` — Perluasan hasil Patologi Klinik dan perbaikan `S4b`, 2026-09-24
+
+| Field | Nilai |
+|---|---|
+| `contract_version` | `LAB-VAL-v1` |
+| Revision | `r11` |
+| Status | **`approved`** |
+| `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-24 — instruksi *"kerjakan semua langkah"*, lihat `LAB-API-v1` `r33` bagian 28 |
+| `input_revision` | decisions rev 71; `LAB-API-v1` `r33`; `02-backend-architecture.md` rev 9 bagian 19 |
+| Sifat | **Aditif.** Nol aturan lama berubah atau dicabut |
+
+### 13.1 Aturan yang ditambahkan
+
+| ID | Aturan | Berlaku pada | Pesan bagi pengguna | Kode | Dasar |
+|---|---|---|---|---|---|
+| `VAL-120` | Isi hasil **ditolak** bila `FinalizedAt` terisi. Diperiksa **sebelum** satu pun perubahan ditulis, termasuk penghapusan baris isolat | `PUT /{id}/result`, `PUT /{id}/result/microbiology` | "Hasil ini sudah dinyatakan selesai. Buka kembali lebih dulu bila perlu diubah." | `409` | `LAB-DEC-147` |
+| `VAL-121` | Catatan konsultasi **ditolak** bila `FinalizedAt` terisi | `PUT /{id}/result/consultation` | "Hasil ini sudah dinyatakan selesai. Buka kembali lebih dulu sebelum mencatat konsultasi." | `409` | `LAB-DEC-147`, `LAB-DEC-141` butir 4 |
+| `VAL-122` | Final, Reopen, dan konsultasi **ditolak** pada pemeriksaan Patologi Anatomi | `POST /{id}/result/finalize`, `POST /{id}/result/reopen`, `PUT /{id}/result/consultation` | "Hasil Patologi Anatomi diselesaikan lewat laporan Patologi Anatomi." | `422` | `LAB-DEC-085`, `LAB-DEC-135` |
+| `VAL-123` | Jalur baca per order **ditolak** bila disiplin order bukan Patologi Klinik | `GET /by-order/{labOrderId}/results` | "Order ini bukan Patologi Klinik. Buka halaman hasil sesuai disiplinnya." | `422` | `LAB-DEC-149` |
+
+**Contoh `VAL-120` pada Mikrobiologi.** Hasil kultur urin sudah Final dengan satu isolat
+*Escherichia coli* dan dua belas baris antibiogram. Permintaan simpan yang mengganti isolat itu
+menjadi *Klebsiella pneumoniae* ditolak `409` **sebelum** baris lama dihapus — sehingga yang
+tersimpan tetap satu isolat dan dua belas baris, bukan nol isolat karena penghapusan sempat
+terjadi lalu penambahannya gagal.
+
+**Contoh `VAL-122`.** Order Patologi Anatomi punya baris `LabExamination`, tetapi hasilnya
+tinggal di laporan per pesanan (`LAB-DEC-085`). Tanpa aturan ini, `POST /{id}/result/finalize`
+atas baris itu ditolak dengan pesan *"hasil belum diisi"* — benar secara teknis, menyesatkan
+bagi petugas, sebab hasilnya **sudah** diisi di tempat lain.
+
+### 13.2 Aturan yang dipakai ulang apa adanya
+
+| ID | Isi | Kini berlaku juga bagi |
+|---|---|---|
+| `VAL-107` | Reopen ditolak bila hasil belum pernah Final | Patologi Klinik |
+| `VAL-108` | Waktu konsultasi tidak boleh di masa depan | Patologi Klinik |
+| `VAL-79`..`VAL-82` | Bentuk hasil, pilihan sah, waktu pemeriksaan | Jalur baca per order — pemeriksaan tanpa batas nilai tampil dengan `canEnterResult = false` beserta alasannya |
+
+### 13.3 Aturan yang sengaja TIDAK dibuat
+
+| Yang ditolak | Alasan |
+|---|---|
+| Reopen ditolak bila hasil sudah divalidasi (`LAB-DEC-135` butir 3) | Validasi belum ada; aturan ini lahir bersama `S4`, bukan sekarang. Menuliskannya tanpa kolom yang diperiksanya membuat aturan yang tidak dapat diuji |
+| Konsultasi wajib untuk pemeriksaan tertentu | Ditolak `LAB-DEC-141` |
+| Menolak simpan hasil oleh dokter pemesan dengan pesan khusus | Penolakannya datang dari hak akses (`403`, `LAB-PERM-v1` revision 10), bukan dari aturan validasi |
+
+### 13.4 Traceability `r11`
+
+| Aturan | Keputusan | AC |
+|---|---|---|
+| `VAL-120` | `LAB-DEC-147` | `AC-225`, `AC-227`, `AC-228` |
+| `VAL-121` | `LAB-DEC-147` | `AC-226` |
+| `VAL-122` | `LAB-DEC-135` | `AC-196`, `AC-197` |
+| `VAL-123` | `LAB-DEC-149` | `AC-234` |
+
+## 14. Amandemen `r12` — Validasi dan rilis hasil Patologi Klinik (`S4`), 2026-09-25
+
+| Field | Nilai |
+|---|---|
+| `contract_version` | `LAB-VAL-v1` |
+| Revision | `r12` |
+| Status | **`approved`** |
+| `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-25 — instruksi *"Setujui kelima kontrak beserta 10 butir itu dan lanjut ke /quilvian-engineering-skills:plan-module-delivery"*, lihat `LAB-API-v1` `r34` bagian 29 |
+| `input_revision` | decisions rev 74; `LAB-DA-001` rev 8 bagian A5; `LAB-API-v1` `r34`; `02-backend-architecture.md` rev 10 bagian 20 |
+| Sifat | **Aditif.** Nol aturan lama berubah atau dicabut. `VAL-120` dan `VAL-121` **dipakai ulang** untuk menjaga hasil sesudah validasi dan rilis (14.3) |
+
+### 14.1 Aturan tindakan atas hasil
+
+Diperiksa **berurutan** seperti tabel ini: aturan keadaan hasil lebih dulu, baru kewenangan, lalu
+empat mata. Dokter yang menekan Validasi pada hasil Draft membaca sebab yang sebenarnya — *belum
+Final* — bukan penolakan kewenangan.
+
+| ID | Aturan | Berlaku pada | Pesan bagi pengguna | Kode | Dasar |
+|---|---|---|---|---|---|
+| `VAL-126` | Tindakan **ditolak** bila pemeriksaan bukan Patologi Klinik | `validate`, `release`, `return` | "Validasi dan rilis hasil Mikrobiologi serta Patologi Anatomi belum tersedia." | `422` | `LAB-DEC-076` (`S4` = validasi dan rilis) dan `LAB-DEC-083` (Mikrobiologi dan Patologi Anatomi menjadi `S4d`/`S4e`, belum dirancang) |
+| `VAL-127` | Tindakan **ditolak** bila pemeriksaan `Voided` atau `Cancelled`, atau ordernya `Cancelled` | `validate`, `release`, `return` | "Pemeriksaan ini sudah dibatalkan atau gugur, sehingga tidak dapat divalidasi maupun dirilis." | `422` | `INV-51` |
+| `VAL-124` | Validasi **ditolak** bila hasil belum Final (`FinalizedAt` kosong) | `validate` | "Hasil ini belum dinyatakan selesai oleh analis, jadi belum dapat divalidasi." | `422` | `LAB-DEC-135`, `INV-41` |
+| `VAL-125` | Validasi **ditolak** bila hasil sudah divalidasi | `validate` | "Hasil ini sudah divalidasi." | `409` | Permintaan ganda |
+| `VAL-133` | Rilis **ditolak** bila hasil belum divalidasi; **ditolak** bila sudah dirilis | `release` | "Hasil ini belum divalidasi, jadi belum dapat dirilis." / "Hasil ini sudah dirilis." | `422` / `409` | `INV-44` |
+| `VAL-134` | *Kembalikan* **ditolak** bila hasil belum divalidasi; **ditolak** bila sudah dirilis | `return` | "Hasil ini belum divalidasi; analis dapat membukanya kembali sendiri." / "Hasil yang sudah dirilis hanya dapat diubah lewat koreksi." | `422` / `409` | `LAB-DEC-138`, `INV-47` |
+| `VAL-128` | Validasi atau rilis **ditolak** bila pengguna tidak memegang kode kewenangan yang sesuai — validasi atau rilis **Patologi Klinik** — yang **berlaku hari itu** pada kredensial Human Resource. **Fail-closed** | `validate`, `release` | Sesuai sebab — 14.2 | `403` | `LAB-DEC-142`, `LAB-DEC-143`, `LAB-DEC-148`, `LAB-DEC-150` |
+| `VAL-138` | *Kembalikan* **ditolak** bila pengguna tidak memegang kode validasi **maupun** kode rilis Patologi Klinik yang berlaku | `return` | "Anda bukan pemegang kewenangan validasi atau rilis Patologi Klinik." | `403` | `LAB-DEC-138` butir 1 |
+| `VAL-130` | Validasi **ditolak** bila pengisi hasil (`ResultEnteredByUserId`) tidak tercatat | `validate` | "Pengisi hasil ini tidak tercatat, sehingga prinsip empat mata tidak dapat diperiksa. Minta analis membuka kembali lalu menyimpan ulang hasilnya." | `422` | `LAB-DEC-003` — **usulan** `02-backend-architecture.md` 20.10 butir 9 |
+| `VAL-129` | Validasi oleh **pengisi hasil yang sama** **ditolak** tanpa `exceptionReasonId` | `validate` | "Anda yang mengisi hasil ini. Validasi oleh orang yang sama memerlukan alasan pengecualian." | `422` | `LAB-DEC-003`, `INV-42`, `AC-01` |
+| `VAL-131` | Rilis oleh **pemvalidasi yang sama** **ditolak** tanpa `exceptionReasonId` | `release` | "Anda yang memvalidasi hasil ini. Rilis oleh orang yang sama memerlukan alasan pengecualian." | `422` | `LAB-DEC-120`, `INV-43` |
+| `VAL-132` | `exceptionReasonId` wajib menunjuk alasan **aktif**; **ditolak** bila dikirim padahal pelaku tidak merangkap; `exceptionNote` wajib bila alasannya `requiresNote`, maks. 500 karakter | `validate`, `release` | "Alasan pengecualian tidak ditemukan atau sudah nonaktif." / "Alasan pengecualian hanya diisi bila Anda merangkap peran pada hasil ini." / "Alasan ini mewajibkan catatan." / "Catatan paling panjang 500 karakter." | `422` | `LAB-DEC-003` |
+| `VAL-135` | `correctionReasonId` **wajib** dan menunjuk alasan **aktif**; `note` wajib bila alasannya `requiresNote`, maks. 500 karakter | `return` | "Alasan pengembalian wajib dipilih dari daftar." / "Alasan ini mewajibkan catatan." | `422` | `LAB-DEC-138` butir 2, `AC-205` |
+| `VAL-137` | Rilis **dibatalkan seluruhnya** bila pendaftaran dokumen ke rekam medis gagal — nol fakta rilis tersimpan | `release` | "Hasil tidak dapat dirilis karena pendaftaran ke rekam medis gagal: {sebab}. Hasil tetap tervalidasi." | `422` | `LAB-DEC-017`, `INV-50` — atomik, usulan 20.10 butir 3 |
+| `VAL-136` | Reopen **ditolak** bila hasil sudah divalidasi | `POST /{id}/result/reopen` | "Hasil ini sudah divalidasi. Minta pemvalidasi atau perilis mengembalikannya bila perlu diubah." | `409` | `LAB-DEC-135` butir 3, `INV-48` — **titipan `r11` 13.3** |
+| `VAL-139` | Antrean **ditolak** bila `stage` kosong atau tidak sah | `GET /lab-worklists/validation-queue` | "Tahap antrean wajib dipilih: menunggu validasi atau menunggu rilis." | `422` | — |
+| `VAL-143` | Pembatalan pemeriksaan **ditolak** bila hasilnya sudah dirilis. **Penjaga baru pada endpoint yang sudah ada** | `POST /{id}/cancel` | "Pemeriksaan yang hasilnya sudah dirilis tidak dapat dibatalkan. Hasilnya hanya dapat diperbaiki lewat koreksi." | `422` | `ARCH-GAP-LAB-09`: diturunkan dari `LAB-DEC-138` dan `LAB-DEC-063`. **Arah sementara** sampai `DEC-LAB-019` dijawab, sebab `LAB-DEC-049` membiarkan pembatalan pemeriksaan terbuka tanpa batas atas |
+
+### 14.2 Pesan `VAL-128` per sebab — `AC-233`
+
+Kata *validasi* diganti *rilis* pada tindakan rilis.
+
+| Sebab | Kapan | Pesan |
+|---|---|---|
+| `NoWorkforceProfile` | Akun tidak terhubung data tenaga kerja | "Akun Anda belum terhubung dengan data tenaga kerja, sehingga kewenangan validasi tidak dapat diperiksa. Hubungi bagian SDM." |
+| `NotAppointed` | Nol baris berkode sesuai | "Anda belum ditunjuk sebagai pemegang kewenangan validasi Patologi Klinik." |
+| `PendingApproval` | Baris ada, masih menunggu persetujuan | "Penunjukan validasi Patologi Klinik Anda masih menunggu persetujuan." |
+| `NotYetEffective` | Tanggal mulai sesudah hari ini | "Penunjukan validasi Patologi Klinik Anda baru berlaku mulai {tanggal}." |
+| `Expired` | Tanggal akhir sebelum hari ini, atau berstatus kedaluwarsa | "Masa berlaku penunjukan validasi Patologi Klinik Anda sudah habis pada {tanggal}." |
+| `Suspended` | Berstatus ditangguhkan | "Penunjukan validasi Patologi Klinik Anda sedang ditangguhkan." |
+| `Revoked` | Berstatus dicabut | "Penunjukan validasi Patologi Klinik Anda sudah dicabut." |
+| `ClinicalServiceBlocked` | `IsClinicalServiceBlocked = true` | "Layanan klinis Anda sedang diblokir pada data kredensial." |
+
+**Hari dihitung menurut zona waktu rumah sakit, dan tanggal akhir inklusif** — usulan 20.10
+butir 8.
+
+> **Contoh tanggal akhir inklusif.** Penunjukan dr. Contoh berakhir 30 September. Pukul 23.50 WIB
+> tanggal 30 ia memvalidasi — **diterima**. Pukul 00.05 WIB tanggal 1 Oktober — **ditolak**,
+> *"sudah habis pada 30 September 2026"*. Bila tanggal dibandingkan sebagai jam UTC, penolakan
+> akan jatuh pukul 07.00 WIB tanggal 30 — tujuh belas jam terlalu cepat.
+
+**Contoh `VAL-131` — jalur pengecualian yang nyata pada Patologi Klinik.**
+
+> Pukul 02.10 Kalium 7,2 pasien IGD sudah Final. dr. Contoh, satu-satunya dokter berkewenangan
+> yang bertugas, memvalidasinya pukul 02.12 — diterima, sebab pengisinya analis. Pukul 02.13 ia
+> menekan Rilis dan ditolak: *"Anda yang memvalidasi hasil ini..."*. Ia memilih alasan
+> *Shift tunggal, tidak ada dokter lain bertugas* dan menekan Rilis lagi pukul 02.14 — diterima.
+> Hasil membawa penanda *"Dirilis oleh pemvalidasi sendiri — dr. Contoh — Shift tunggal, tidak ada
+> dokter lain bertugas"* di layar, dan kelak di cetakan (`LAB-FE-004`).
+>
+> Syaratnya dr. Contoh memegang **kedua** kode — validasi **dan** rilis. Bila ia hanya memegang
+> kode validasi, rilis ditolak `VAL-128` dan hasil menunggu perilis. Itulah kenapa jawaban
+> `DEC-LAB-011` sisa dan `DEC-LAB-018` menentukan apakah hasil kritis pukul 02.00 dapat keluar.
+
+### 14.3 Aturan yang dipakai ulang apa adanya
+
+| ID | Isi | Kini berlaku juga pada |
+|---|---|---|
+| `VAL-120` | Simpan hasil ditolak bila `FinalizedAt` terisi | Hasil **tervalidasi** dan **dirilis** — `FinalizedAt` tetap terisi sampai *Kembalikan* mengosongkannya |
+| `VAL-121` | Konsultasi ditolak bila `FinalizedAt` terisi | Sama |
+| `VAL-107` | Reopen ditolak bila hasil belum pernah Final | Tidak berubah |
+
+### 14.4 Aturan data induk alasan
+
+Berlaku sama pada `lab-result-correction-reasons` dan `lab-four-eyes-exception-reasons`.
+
+| ID | Aturan | Pesan bagi pengguna | Kode |
+|---|---|---|---|
+| `VAL-140` | Kode alasan unik di antara baris yang belum dihapus | "Kode alasan ini sudah dipakai." | `409` |
+| `VAL-141` | Kode wajib, maks. 32 karakter, hanya huruf besar, angka, dan tanda hubung; nama wajib, maks. 200; keterangan maks. 256 | "Kode alasan hanya boleh berisi huruf besar, angka, dan tanda hubung." — dan pesan panjang per ruas | `422` |
+| `VAL-142` | Kode **tidak dapat diubah** sesudah dibuat | "Kode alasan tidak dapat diubah. Buat alasan baru bila perlu." | `422` |
+
+**Kenapa kode dikunci.** Laporan mutu menghitung per kode. Mengubah `SAMPEL-TERTUKAR` menjadi
+`TERTUKAR` di tengah tahun membuat jumlah Januari–Juni dan Juli–Desember tidak dapat dijumlahkan.
+
+### 14.5 Aturan yang sengaja TIDAK dibuat
+
+| Yang ditolak | Alasan |
+|---|---|
+| Validasi ditolak bila hasil di luar batas kritis sebelum pelaporannya tercatat | Milik `S5` dan `DEC-LAB-017`. Menegakkannya sekarang tanpa formulir pelaporan membuat hasil kritis **tidak dapat dirilis sama sekali** |
+| Validasi ditolak bila pemvalidasi bukan dokter — diperiksa dari data profesi | Ditegakkan **lapis jabatan** lewat kebijakan hak akses (`LAB-DEC-142`, `LAB-DEC-150`), bukan aturan kedua yang dapat berselisih dengannya |
+| Rilis ditolak bila order belum lengkap | `LAB-DEC-008` — rilis sebagian per pemeriksaan **sah** |
+
+### 14.6 Traceability `r12`
+
+| Aturan | Keputusan | AC |
+|---|---|---|
+| `VAL-124` | `LAB-DEC-135` | `AC-196` |
+| `VAL-125`, `VAL-133` | `LAB-DEC-080` | — (permintaan ganda) |
+| `VAL-126` | `LAB-DEC-076`, `LAB-DEC-083` | — ; `AC-218` baru dapat dibuktikan bersama `S4d` |
+| `VAL-127` | `INV-51` | — |
+| `VAL-128` | `LAB-DEC-142`, `LAB-DEC-143`, `LAB-DEC-148`, `LAB-DEC-150` | `AC-215`..`AC-217`, `AC-229`..`AC-233`, `AC-238` |
+| `VAL-129`, `VAL-131`, `VAL-132` | `LAB-DEC-003`, `LAB-DEC-120` | `AC-01`, `AC-02` |
+| `VAL-130` | `LAB-DEC-003` — usulan | — |
+| `VAL-134`, `VAL-135`, `VAL-138` | `LAB-DEC-138` | `AC-205`..`AC-207` |
+| `VAL-136` | `LAB-DEC-135` butir 3 | `AC-197` |
+| `VAL-137` | `LAB-DEC-017` | — (`INT-08`) |
+| `VAL-140`..`VAL-142` | `LAB-DEC-082`, `LAB-DEC-019` | — |
+| `VAL-143` | `LAB-DEC-138`, `LAB-DEC-063`; arah sementara `DEC-LAB-019` | — |
+
+## 15. Amandemen `r13` — Validasi dan rilis hasil Mikrobiologi (`S4d-1`), 2026-09-25
+
+| Field | Nilai |
+|---|---|
+| `contract_version` | `LAB-VAL-v1` |
+| Revision | `r13` |
+| Status | **`approved`** |
+| `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-25 — instruksi *"Setujui keempat kontrak beserta lima butir di atas, termasuk perubahan bunyi VAL-126, lalu jalankan /plan-module-delivery untuk MVP-10a sampai MVP-10c"*, lihat `LAB-API-v1` `r35` bagian 30 |
+| `input_revision` | decisions rev 76; `LAB-DA-001` rev 9 bagian A6; `LAB-API-v1` `r35`; `02-backend-architecture.md` rev 11 bagian 21 |
+| Sifat | **Satu aturan approved diubah bunyinya** (`VAL-126`), dua aturan baru (`VAL-144`, `VAL-145`) |
+| Kapan bunyi baru berlaku di kode | **Sesudah `MVP-9b`.** `BE-LAB-73` tetap menegakkan bunyi `r12` bagian 14.1 — kontrak task itu `r12`. Bunyi `r13` dipasang `BE-LAB-78` (`MVP-10a`). Baris `VAL-126` pada 14.1 **sengaja tidak disunting**: bagian 14 dirujuk task `MVP-9`, dan bagian itu dijaga tetap sama supaya kerja `MVP-9` tidak perlu berhenti |
+
+### 15.1 Aturan yang diubah
+
+| ID | Bunyi `r12` | **Bunyi `r13`** | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|
+| `VAL-126` | Tindakan ditolak bila pemeriksaan **bukan Patologi Klinik** | Tindakan ditolak bila pemeriksaan **Patologi Anatomi** | "Validasi dan rilis hasil Patologi Anatomi belum tersedia." | `422` |
+
+**Kenapa diubah, bukan ditambah aturan kedua.** Dua aturan yang masing-masing menyebut
+disiplin yang ditolak akan selalu harus disunting bersamaan setiap kali satu disiplin dibuka.
+`S4e` kelak mengubahnya sekali lagi, atau mencabutnya.
+
+### 15.2 Aturan yang ditambahkan
+
+| ID | Aturan | Berlaku pada | Pesan bagi pengguna | Kode | Dasar |
+|---|---|---|---|---|---|
+| `VAL-144` | Validasi dan rilis **ditolak** bila hasil Mikrobiologi berkualifikasi `Sementara`. Kualifikasi **kosong diterima** | `validate`, `release` | "Hasil Mikrobiologi sementara belum dapat divalidasi maupun dirilis. Buka kembali dan ubah kualifikasinya bila hasil sudah definitif." | `422` | `INV-52`; `DEC-LAB-020` terbuka. Kosong diterima: usulan `ARCH-GAP-LAB-10` |
+| `VAL-145` | Antrean **ditolak** bila `discipline` berisi Patologi Anatomi atau nilai tak dikenal | `GET /lab-worklists/validation-queue` | "Antrean validasi hanya tersedia untuk Patologi Klinik dan Mikrobiologi." | `422` | Sama dengan `VAL-126` |
+
+**Urutan pemeriksaan** (`r12` 14.1) bertambah satu langkah: `VAL-144` diperiksa **sesudah**
+`VAL-127` dan **sebelum** `VAL-124`. Dokter yang menekan Validasi pada hasil `Sementara` membaca
+sebab yang sebenarnya, bukan penolakan kewenangan.
+
+**Contoh `VAL-144`.**
+
+> Senin kultur urin Final berkualifikasi `Sementara`: *tumbuh batang Gram negatif, identifikasi
+> menyusul*. dr. Contoh menekan Validasi → `422` dengan pesan di atas. Rabu analis membuka
+> kembali, mengisi *Escherichia coli* beserta antibiogramnya, mengubah kualifikasi menjadi
+> `Definitif`, dan Final ulang. Validasi diterima.
+>
+> Pada hasil lain yang kualifikasinya **kosong** — bentuk cetak yang tidak memuat baris
+> kualifikasi — validasi **diterima**.
+
+### 15.3 Aturan yang dipakai ulang bagi Mikrobiologi apa adanya
+
+`VAL-120`, `VAL-121` (hasil tervalidasi dan dirilis tetap terkunci — termasuk isolat dan
+antibiogram), `VAL-124`, `VAL-125`, `VAL-127`..`VAL-139`, dan `VAL-143`.
+
+### 15.4 Traceability `r13`
+
+| Aturan | Keputusan | AC |
+|---|---|---|
+| `VAL-126` bunyi baru | `LAB-DEC-083`, `LAB-DEC-152` | `AC-241` |
+| `VAL-144` | `LAB-DEC-114`; `DEC-LAB-020` | — baris uji tersendiri |
+| `VAL-145` | `LAB-DEC-135` butir 2 | — |
+
+## 16. Amandemen `r14` — Penjaga penyelesaian order (`LAB-DEC-154`), 2026-09-25
+
+| Field | Nilai |
+|---|---|
+| `contract_version` | `LAB-VAL-v1` |
+| Revision | `r14` |
+| Status | **`approved`** |
+| `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-25 — instruksi *"Setujui r36, r14, r7 beserta empat butir 22.7, lalu rencanakan BE-LAB-81"*, lihat `LAB-API-v1` `r36` bagian 31 |
+| `input_revision` | decisions rev 77; `LAB-API-v1` `r36`; `02-backend-architecture.md` rev 12 bagian 22 |
+| Sifat | **Satu aturan baru** (`VAL-146`) pada endpoint yang sudah tersedia. Nol aturan lama berubah |
+
+### 16.1 Aturan yang ditambahkan
+
+| ID | Aturan | Berlaku pada | Pesan bagi pengguna | Kode | Dasar |
+|---|---|---|---|---|---|
+| `VAL-146` | Penyelesaian order **ditolak** bila masih ada satu saja pemeriksaan yang **tidak batal dan tidak gugur** dan **belum dirilis**. Respons menyebut **setiap** pemeriksaan itu beserta keadaannya. Order tanpa pemeriksaan tidak batal **diterima** | `PUT /lab-orders/{id}/complete` | "Order belum dapat diselesaikan karena masih terdapat pemeriksaan yang belum dirilis." | `409` | `LAB-DEC-154`; `AC-199` |
+
+**Diperiksa sesudah** status order (`InProcess`) dan **sebelum** penulisan. Pemeriksaan tanpa jalur
+validasi — Patologi Anatomi, Mikrobiologi sebelum `MVP-10`, hasil `Sementara` — tidak pernah dirilis,
+sehingga **selalu** menahan order lewat aturan yang sama; tidak ada aturan khusus per disiplin.
+
+**Contoh `VAL-146`.**
+
+> Order berisi Kalium (dirilis 09.15), Hemoglobin (divalidasi 09.40, belum dirilis), Glukosa
+> (dibatalkan 08.30), dan Ureum (Draft). Petugas menekan Selesai pukul 10.00 → `409`. Rinciannya
+> **dua** baris — *Hemoglobin — Tervalidasi* dan *Ureum — Draft*. Glukosa tidak disebut, sebab
+> pemeriksaan batal tidak menahan. Pukul 10.30, sesudah keduanya dirilis, Selesai **diterima**.
+
+### 16.2 Aturan yang sengaja TIDAK dibuat
+
+| Yang ditolak | Alasan |
+|---|---|
+| Aturan terpisah *"sudah divalidasi dan tercatat nama, peran, waktu validator"* | Rilis mensyaratkan validasi (`VAL-133`), dan ketiga catatan itu ditulis pada saat validasi itu sendiri — `validatedByUserId`, `validatedByPositionName`, `validatedAt` (`LAB-API-v1` `r34` 29.3) — aturan kedua hanya menggandakan |
+| Aturan khusus Patologi Anatomi atau hasil `Sementara` | `VAL-146` sudah menahan keduanya |
+
+### 16.3 Traceability `r14`
+
+| Aturan | Keputusan | AC |
+|---|---|---|
+| `VAL-146` | `LAB-DEC-154` | `AC-243`, `AC-244`, `AC-245` |

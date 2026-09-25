@@ -237,7 +237,13 @@ jobs:
 
           # Remove generated runtime manifest from workspace
           # before switching branches.
+          mkdir -p /tmp/release-artifact
+
+          cp version.json /tmp/release-artifact/version.json
+          cp .github/release/current-version.json /tmp/release-artifact/current-version.json
+
           rm -f version.json
+          rm -f .github/release/current-version.json
 
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -259,6 +265,9 @@ jobs:
 
           git switch -C QuilvianDevDeploy origin/QuilvianDevDeploy
 
+          cp /tmp/release-artifact/version.json version.json
+          cp /tmp/release-artifact/current-version.json .github/release/current-version.json
+
           if ! git merge \
             --no-ff \
             "$CANDIDATE" \
@@ -272,7 +281,9 @@ jobs:
 
           # Validate promoted source before runtime manifest update
           if ! git diff --quiet "$CANDIDATE" HEAD -- \
-            ':!version.json'; then
+            ':!version.json' \
+            ':!.github/workflows/*' \
+            ':!.github/release/current-version.json'; then
             echo "::error::Promotion blocked because resulting DEV source differs from validated Integration candidate."
             exit 1
           fi

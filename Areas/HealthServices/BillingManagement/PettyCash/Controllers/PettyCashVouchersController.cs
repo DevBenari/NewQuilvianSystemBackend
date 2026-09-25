@@ -78,6 +78,20 @@ public sealed class PettyCashVouchersController : ControllerBase
         catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
     }
 
+    [HttpGet("{id:guid}/cancel-validation")]
+    [AccessAction("Read", "Read Petty Cash Voucher", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("PettyCashVoucher", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PettyCashVoucherCancelValidationResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetCancelValidation(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return Ok(ApiResponse<PettyCashVoucherCancelValidationResponse>.Ok(
+                await _service.ValidateCancelAsync(id, cancellationToken), "Validasi pembatalan voucher berhasil."));
+        }
+        catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
+    }
+
     [HttpPost("{id:guid}/cancel")]
     [AccessAction("Cancel", "Cancel Petty Cash Voucher", AccessType = AccessTypes.Update, SortOrder = 5)]
     [AccessPermission("PettyCashVoucher", "Cancel")]
@@ -85,22 +99,41 @@ public sealed class PettyCashVouchersController : ControllerBase
         Guid id,
         [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
         [FromBody] CancelPettyCashVoucherRequest request,
-        CancellationToken cancellationToken) =>
-        ExecuteAsync(
+        [FromQuery] bool? confirmed,
+        CancellationToken cancellationToken)
+    {
+        if (confirmed.HasValue && confirmed.Value)
+        {
+            request.ConfirmedCashReceived = true;
+        }
+
+        return ExecuteAsync(
             () => _service.CancelAsync(id, request, idempotencyKey, CurrentUserId(), CurrentRole(), cancellationToken),
             "Voucher sudah dibatalkan; hasil sebelumnya dikembalikan.", "Voucher kas kecil berhasil dibatalkan.");
+    }
 
     [HttpPost("{id:guid}/disburse")]
     [AccessAction("Disburse", "Disburse Petty Cash Voucher", AccessType = AccessTypes.Update, SortOrder = 6)]
     [AccessPermission("PettyCashVoucher", "Disburse")]
-    public Task<IActionResult> Disburse(
+    public async Task<IActionResult> Disburse(
         Guid id,
         [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
         [FromBody] DisbursePettyCashVoucherRequest request,
-        CancellationToken cancellationToken) =>
-        ExecuteAsync(
-            () => _service.DisburseAsync(id, request, idempotencyKey, CurrentUserId(), CurrentRole(), cancellationToken),
+        CancellationToken cancellationToken)
+    {
+        var currentRole = CurrentRole();
+        if (!IsDisburseAuthorized(User, currentRole))
+        {
+            await _service.AuditForbiddenDisburseAsync(id, CurrentUserId(), currentRole, cancellationToken);
+            return StatusCode(StatusCodes.Status403Forbidden,
+                ApiResponse<object>.Fail(StatusCodes.Status403Forbidden,
+                    "Pencairan voucher kas kecil hanya boleh dilakukan oleh Supervisor Kasir atau Kepala Kasir."));
+        }
+
+        return await ExecuteAsync(
+            () => _service.DisburseAsync(id, request, idempotencyKey, CurrentUserId(), currentRole, cancellationToken),
             "Uang voucher sudah diserahkan; hasil sebelumnya dikembalikan.", "Uang voucher kas kecil berhasil diserahkan.");
+    }
 
     [HttpPost("{id:guid}/proofs")]
     [AccessAction("AttachProof", "Attach Petty Cash Voucher Proof", AccessType = AccessTypes.Update, SortOrder = 7)]
@@ -196,4 +229,30 @@ public sealed class PettyCashVouchersController : ControllerBase
 
     private string CurrentRole() =>
         User.FindFirstValue(ClaimTypes.Role) ?? User.FindFirstValue("role") ?? "AuthenticatedUser";
+
+    private static bool IsDisburseAuthorized(ClaimsPrincipal user, string fallbackRole)
+    {
+        var roles = user.Claims
+            .Where(c => c.Type == ClaimTypes.Role || c.Type == "role")
+            .Select(c => c.Value)
+            .ToList();
+        if (!string.IsNullOrWhiteSpace(fallbackRole)) roles.Add(fallbackRole);
+
+        foreach (var r in roles)
+        {
+            if (string.IsNullOrWhiteSpace(r)) continue;
+            var normalized = r.Replace(" ", "").Replace("_", "").Replace("-", "").ToLowerInvariant();
+            if (normalized.Contains("supervisorkasir")
+                || normalized.Contains("kepalakasir")
+                || normalized.Contains("superadmin")
+                || normalized == "supervisor"
+                || normalized == "headcashier"
+                || normalized == "cashiersupervisor")
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 }
