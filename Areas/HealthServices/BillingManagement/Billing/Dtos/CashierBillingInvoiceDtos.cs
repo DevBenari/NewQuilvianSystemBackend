@@ -41,6 +41,9 @@ public sealed class CashierBillingInvoiceQuery
     public string? PeriodPreset { get; set; }
     public DateTime? VisitDateFrom { get; set; }
     public DateTime? VisitDateTo { get; set; }
+    public DateTime? StartDate { get; set; }
+    public DateTime? EndDate { get; set; }
+    public string? Status { get; set; }
     public string? ServiceType { get; set; }
     public string? PaymentStatus { get; set; }
     public string? DepositStatus { get; set; }

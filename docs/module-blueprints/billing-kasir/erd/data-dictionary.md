@@ -179,3 +179,15 @@ Kolom ini dapat **kembali kosong**: bila pembayaran dibalik atau penyesuaian ara
 ### Sensitif
 
 Tidak bertambah. `ClosedAt` adalah stempel waktu tanpa identitas pasien dan **tidak** bertanda sensitif; ia boleh muncul pada payload audit perpindahan status.
+
+---
+
+# Amendment 24 September 2026 — Revisi UI Billing (Revisi 1.6)
+
+**Nol perubahan skema.** Satu field baru ditambahkan pada response `BillingRefundableItemResponse`
+(`TransactionDate`, `DateTime`) — ini bukan kolom database baru, melainkan proyeksi dari
+`BilInvoiceItem.CreateDateTime`, kolom `IdentityModel` yang **sudah ada** sejak tabel `BilInvoiceItem`
+dibuat. Tidak ada baris baru yang perlu ditambahkan pada kamus data ini karena tidak ada tabel yang
+berubah bentuknya. Lihat `02-backend-architecture.md` amendment revisi 1.6 bagian 6 untuk detail.
+
+Trace `BUI-DES-002`.

@@ -36,6 +36,11 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Blood
             builder.Property(x => x.EncounterId).IsRequired();
             builder.Property(x => x.ServiceUnitId).IsRequired();
             builder.Property(x => x.RequestingDoctorId).IsRequired();
+            // v5 (DEC-BD-055): nullable tanpa default dan tanpa index. Mengikuti pemetaan
+            // BbkBloodGroupExam.AboRhesusResult — nullable menyatakan "tidak tercatat pada order
+            // lama", bukan nilai bawaan. Default BloodType.Unknown justru akan mengisi order
+            // lama dengan "Tidak diketahui" yang tidak pernah dinyatakan siapa pun.
+            builder.Property(x => x.RequestedBloodGroup).HasConversion<int?>();
             builder.Property(x => x.OrderSource).HasConversion<int>().IsRequired();
             builder.Property(x => x.OrderStatus).HasConversion<int>().IsRequired();
             // Concurrency token sungguhan: UPDATE hanya berhasil bila versi di database masih

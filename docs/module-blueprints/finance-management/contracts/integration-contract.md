@@ -2,13 +2,29 @@
 
 | Field | Nilai |
 |---|---|
-| Contract version | `FIN-INTEGRATION-1.0` |
-| Status | `draft` |
+| Contract version | `FIN-INTEGRATION-1.1` |
+| `last_changed_in` | `FIN-INTEGRATION-1.1` — amendment 25 September 2026 |
+| Status | `approved` dan `locked` — revisi 1.1 disetujui dan dikunci owner 25 September 2026 |
 | Owner | Yasmin (Product/Domain Owner Finance) |
-| `approved_by` / `approved_at` | — / — |
-| Input revision | `00-interview-decisions.md` revisi 1 (`FIN-DEC-001`..`023`) |
-| Kontrak eksternal yang diikuti | `ACC-XMOD-0.2` milik Accounting — diratifikasi sisi Finance lewat `FIN-DEC-001` |
-| Dampak kompatibilitas | `BilArHandoff` bertambah dua kolom nullable — **aditif**, konsumen lama tidak rusak |
+| `approved_by` / `approved_at` | Yasmin / 2026-09-25 |
+| Input revision | `00-interview-decisions.md` — `FIN-DEC-001`..`044` (`FIN-DEC-030`..`044` ditambahkan 25 September 2026) |
+| Kontrak eksternal yang diikuti | **`ACC-XMOD-0.3`** milik Accounting — naik dari `0.2`, diratifikasi sisi Finance lewat `FIN-DEC-039` |
+| Backend SHA yang diverifikasi | `d6cdfaf9` (impact scan 25 September 2026, `01-existing-capability-map.md` bagian 9.3) |
+| Dampak kompatibilitas | **Satu perubahan perilaku** (penahanan pra-finalisasi dihapus, bagian 5.5) dan **tujuh kode kejadian baru** (bagian 5.4). Sisanya aditif. Tidak ada field yang dihapus maupun diganti nama |
+
+**Yang berubah pada revisi 1.1 — ringkas:**
+
+| Bagian | Perubahan | Dasar |
+|---|---|---|
+| 2 | `BilCollectionHandoff` **sudah dibangun** dan sudah dikonsumsi Finance, bukan lagi permintaan | `FIN-CAP-007`, `FIN-CAP-025` |
+| 2a (baru) | Empat fakta Billing tambahan yang kini dikonsumsi: mutasi deposit, kelebihan bayar, kasus pengembalian, pengesahan selisih kas | `FIN-DEC-040`..`044`, `FIN-CAP-022`..`024` |
+| 5.1 | Syarat akun layanan ditetapkan (bukan `SuperAdmin`, Departemen+Jabatan `Receive`-only, terikat badan hukum) | `FIN-DEC-036` |
+| 5.2 | Objek `SubledgerBalance` ditambahkan sebagai bagian opsional kedua | `FIN-DEC-035` |
+| 5.3 | Nomor jurnal pada balasan `201` menjadi **opsional** | `FIN-DEC-039` |
+| 5.4 | Katalog naik dari **17 menjadi 24** kode | `FIN-DEC-031`, `034`, `035`, `040`..`044` |
+| 5.5 | **Penahanan pra-finalisasi DIHAPUS**, diganti pemilihan kode berdasarkan status tagihan sumber | `FIN-DEC-030` |
+| 5.6 | Bentuk saldo subledger final, memakai amplop yang sama | `FIN-DEC-035` |
+| 5.7 | Cutover diikat enam gerbang milik Accounting; tanggal 1 Oktober 2026 dibatalkan | `FIN-DEC-037` |
 
 Finance punya **dua batas integrasi**: menerima dari Billing dan Medical Fee, lalu menerbitkan
 ke Accounting. Tidak ada arah ketiga.
@@ -48,7 +64,7 @@ Billing**; Finance hanya menetapkan isi minimumnya (`FIN-DES-023`).
 | `ProviderReference` | `string(150)` | Ya untuk non-tunai | Telusur ke penyedia pembayaran |
 | `ProviderEventId` | `string(100)` | Ya bila ada | Idempotensi sisi penyedia |
 | `OccurredAt` | `DateTimeOffset` | Ya | Waktu uang benar-benar diterima |
-| `SourceInvoiceStatus` | `string(30)` | Ya | **Penentu tahan atau kirim** — lihat bagian 5 |
+| `SourceInvoiceStatus` | `string(30)` | Ya | **Penentu KODE KEJADIAN mana yang terbit** — lihat bagian 5.5. Sampai revisi 1.0 field ini dipakai untuk memutuskan tahan atau kirim; sejak `FIN-DEC-030` tidak ada lagi penahanan, dan field yang sama dipakai memilih antara `PENERIMAAN-UANG-MUKA` dan `PENERIMAAN-KASIR` |
 | `TenderStatus` | `string(30)` | Ya | `SUCCEEDED` atau `REVERSED` |
 | `HandoffKey` | `Guid` | Ya | Kunci idempotensi handoff |
 | `CorrelationId` | `Guid` | Ya | Rantai telusur ujung ke ujung |
@@ -72,6 +88,46 @@ Billing**; Finance hanya menetapkan isi minimumnya (`FIN-DES-023`).
 | Mekanisme transport (tabel handoff atau outbox) | **Disepakati** 21 September 2026 — tabel handoff persisted (`BilCollectionHandoff`), sesuai usulan Finance (`FIN-DEC-005`, `BKC-DEC-106`) |
 | Nama tabel dan kolom persisnya | Wewenang Billing — `BilCollectionHandoff` (`BKC-DES-037`), field persis sesuai bagian 2.1 di atas |
 | Eksekusi task Billing | **Selesai** 22 September 2026 — `BilConsumerHandoffService.PublishForTenderAsync` (`BE-BKC-069`) menerbitkan baris sesuai kontrak ini, dipasang di `BillingSettlementService.ReconcileTenderAsync`. Konsumsi sisi Finance dibangun `BE-FIN-016` |
+
+---
+
+## 2a. Billing → Finance: empat fakta uang muka, deposit, dan selisih kas
+
+**Ditambahkan revisi 1.1.** Keempat fakta ini sudah ada di Billing sejak sebelum `09101d05`
+tetapi baru relevan bagi Finance setelah `FIN-DEC-030`..`044`. **Tidak ada kontrak baru yang
+diminta dari Billing** — keempatnya sudah terdaftar di `ApplicationDbContext` dan Finance
+membacanya langsung, pola yang sama seperti `BilCashierShift` (aturan bisnis #9: Finance
+membaca dan merekonsiliasi, tidak pernah menghitung ulang dan tidak pernah menulis).
+
+| Fakta Billing | Yang dibaca Finance | Menjadi kejadian | Kunci idempotensi |
+|---|---|---|---|
+| `BilDepositMovement` tipe `TOP_UP` | Uang muka/deposit masuk | `PENERIMAAN-UANG-MUKA` | `IdempotencyKey` milik Billing |
+| `BilDepositMovement` tipe `ALLOCATION` | Uang muka dipakai melunasi tagihan | `PEMAKAIAN-UANG-MUKA-DEPOSIT` | `IdempotencyKey` milik Billing |
+| `BilDepositMovement` tipe `RELEASE` | Deposit dikembalikan tunai | `PENGEMBALIAN-UANG-MUKA` | `IdempotencyKey` milik Billing |
+| `BilDepositMovement` tipe `REVERSAL` | Pembalikan mutasi deposit | Mengikuti kode mutasi yang dibalik — lihat bagian 5.4 | `IdempotencyKey` milik Billing |
+| `BilRefundableCredit` `SourceType = ALLOCATION_EXCESS` berstatus `AVAILABLE` | Kelebihan bayar diakui | `PENGAKUAN-KELEBIHAN-BAYAR` | `Id` (sumber tidak punya kunci sendiri — lihat catatan di bawah) |
+| `BilRefundCase` berstatus `EXECUTED`, `RefundableCredit.SourceType = ALLOCATION_EXCESS` | Kelebihan bayar dikembalikan tunai | `PENGEMBALIAN-UANG-MUKA` | `IdempotencyKey` milik Billing |
+| `BilCashVarianceReview` (dibuat saat `BilCashierShift.Status` menjadi `REVIEWED`) | Selisih kas shift disahkan | `SELISIH-KAS-SHIFT` | `Id` (sumber tidak punya kunci sendiri) |
+
+**Catatan kunci idempotensi.** `BilDepositMovement` dan `BilRefundCase` sama-sama punya
+`IdempotencyKey` sendiri, jadi dipakai apa adanya. `BilRefundableCredit` dan
+`BilCashVarianceReview` **tidak punya**, sehingga Finance memakai `Id` baris itu sebagai kunci.
+Ini aman karena `Id` bersifat tetap dan unik; yang dijaga adalah jangan sampai satu baris
+melahirkan dua kejadian, dan `Id` cukup untuk itu.
+
+**Yang TIDAK masuk cakupan revisi ini, dan sengaja:**
+
+| Fakta | Alasan |
+|---|---|
+| `BilRefundCase` dengan `RefundableCredit.SourceType = SETTLEMENT` | Lawan jurnalnya belum digali — berpotensi koreksi piutang/pendapatan, bukan penarikan Uang Muka Pasien (`FIN-OQ-018`) |
+| `BilRefundCase` dengan `RefundableCredit.SourceType = REFERRED_OUTPATIENT_ADMIN` | Sama seperti di atas (`FIN-OQ-018`) |
+| `BilRefundLine` | Rincian baris pengembalian; Finance hanya butuh nilai total per kasus, tidak memecah per baris (`FIN-DEC-038`: seluruh kejadian `Components = TOTAL`) |
+| `BilDepositAccount.AvailableBalance` | Saldo berjalan milik Billing. Finance **MUST NOT** memakainya sebagai nilai kejadian — nilai kejadian selalu dari mutasi, bukan dari saldo |
+
+**Jalur masuknya lewat tabel yang sudah ada.** Keempat fakta ini masuk lewat
+`FinBillingHandoffIntake` yang sudah berdiri (`FIN-DES-008`), dengan penambahan nilai
+`HandoffType` — bukan tabel intake baru. Rinciannya di `02-backend-architecture.md` bagian
+AMENDMENT REVISI 3.
 
 ---
 
@@ -137,16 +193,28 @@ sisi Finance**, bukan penulisan ulang kontrak Accounting.
 | Hal | Nilai |
 |---|---|
 | Pintu masuk | `POST api/v1/corporate/accounting/accounting-events`, satu kejadian per permintaan |
-| Autentikasi | Service account internal lewat mekanisme auth existing (`FIN-DEC-007`) — **keputusan final bersama Accounting + Platform**, belum turun |
 | Mata uang | `IDR` saja |
-| Status saat ini | **Endpoint belum dibangun.** Diverifikasi langsung ke source `09101d05` |
+| Status saat ini | **Endpoint belum dibangun.** Diverifikasi ulang langsung ke source `d6cdfaf9`: sepuluh controller `Areas/Corporate/AccountingManagement/**` seluruhnya route `api/v1/corporate/accounting/...` yang sudah ada (period, ledger, journal, COA, event-type, posting-rule, reconciliation, recurring-journal, year-end-closing) — tidak satu pun penerima kejadian. Konsisten dengan gerbang `G1` milik Accounting |
+
+**Syarat akun layanan** (`FIN-DEC-036`, revisi 1.1). Ketiga syarat berikut adalah syarat keras
+Accounting, bukan pilihan desain Finance:
+
+| # | Syarat | Akibat bila dilanggar |
+|---:|---|---|
+| 1 | Satu akun khusus untuk Finance — bukan akun manusia, **bukan `SuperAdmin`** | Pengiriman memakai akun manusia membuat jejak audit Accounting tidak dapat dibedakan dari tindakan orang |
+| 2 | Akun itu **wajib** punya penugasan Departemen + Jabatan khusus yang hanya diberi hak `AccountingEvent : Receive` | **Tanpa penugasan organisasi, setiap kiriman pasti `403`** — hak akses Accounting diberikan per Departemen + Jabatan, bukan per akun |
+| 3 | Akun itu berhak atas badan hukum yang dikirimi kejadian | Kiriman ke badan hukum yang bukan haknya ditolak |
+
+**Mekanisme kredensialnya (JWT Bearer berumur pendek atau mekanisme auth existing) masih
+terbuka** — wewenang Platform bersama Finance dan Accounting, dilacak `FIN-OQ-016`. Token
+berumur pendek adalah preferensi Accounting, bukan syarat.
 
 ### 5.2 Dua belas field wajib
 
 | Field | Sumber di Finance |
 |---|---|
 | `EventNumber` | Dibuat `FinAccountingEventOutbox` |
-| `EventTypeCode` | Salah satu dari 17 kode pada bagian 5.4 |
+| `EventTypeCode` | Salah satu dari **24** kode pada bagian 5.4 |
 | `SourceModule` | Selalu `Finance` |
 | `SourceTransactionId` | Nomor piutang, penerimaan, utang, pembayaran, atau mutasi kas kecil |
 | `SourceVersion` | Dinaikkan saat koreksi, **tidak pernah dipakai ulang** |
@@ -158,23 +226,58 @@ sisi Finance**, bukan penulisan ulang kontrak Accounting.
 | `CorrelationId` | Diwarisi dari rantai Billing → Finance |
 | `CausationId` | Tindakan penyebab |
 
-Satu field opsional: `Components` — daftar `{ ComponentCode, Amount }`. Tanpa itu, seluruh nilai
-dianggap komponen `TOTAL`.
+**Dua bagian opsional** (yang kedua ditambahkan revisi 1.1):
+
+1. `Components` — daftar `{ ComponentCode, Amount }`. Tanpa itu, seluruh nilai dianggap komponen
+   `TOTAL`. **Untuk rilis ini seluruh kejadian Finance memakai `TOTAL`** dan tidak memecah
+   komponen apa pun (`FIN-DEC-038`).
+2. `SubledgerBalance` — **hanya** untuk kejadian `SALDO-SUBLEDGER`. Berisi dua field:
+
+| Field di dalam `SubledgerBalance` | Tipe | Wajib | Keterangan |
+|---|---|:---:|---|
+| `AccountingPeriodCode` | `string`, maks **7** | Ya | Bentuk `YYYY-MM`, contoh `2026-11`. Kode periode Accounting memang 7 karakter — bukan 20 seperti draf Finance yang lama |
+| `ControlAccountCode` | `string`, maks 50 | Ya | Kode akun kontrol milik Accounting |
+
+**Aturan nilai khusus pesan saldo.** Untuk `SALDO-SUBLEDGER`, `Amount` di amplop dipakai sebagai
+nilai saldonya dan **boleh nol atau negatif**; `AccountingDate` di amplop berarti tanggal
+cut-off. Ini sengaja tidak memakai field berdiri sendiri, supaya anti-ganda, koreksi lewat
+`SourceVersion`, dan penelusuran tidak perlu aturan baru (`FIN-DEC-035`).
 
 ### 5.3 Kewajiban Finance atas balasan
 
 | Kode | Arti | Yang dilakukan Finance |
 |---|---|---|
-| `201` | Kejadian baru diterima | Tandai `ACKNOWLEDGED`, simpan nomor jurnal |
+| `201` | Kejadian baru diterima | Tandai `ACKNOWLEDGED`, **simpan nomor jurnal bila ada** — lihat catatan di bawah |
 | `200` | Sudah pernah diterima | Perlakukan sebagai berhasil. **MUST NOT** membuat kejadian baru |
 | `400` | Ada isian tidak sah | Tandai `FAILED`. Perbaiki data sumber, lalu kirim ulang **baris yang sama** |
 | `403` | Akun layanan tidak berhak | Tandai `FAILED`, beri tahu operasional. **MUST NOT** dicoba ulang membabi buta |
 | `409` | Mata uang bukan rupiah | Tandai `FAILED`. Kiriman ulang pasti ditolak lagi |
 | `422` | Aturan posting belum ada | Tandai `HELD`. **MUST NOT** mengirim kejadian baru — Accounting yang melengkapi aturannya |
 
-### 5.4 Katalog 17 jenis kejadian
+**Nomor jurnal pada `201` bersifat opsional** (`FIN-DEC-039`, revisi 1.1). Accounting menjurnal
+seketika di dalam request, tetapi bila ada gangguan teknis **setelah** kejadian Finance tersimpan,
+Accounting tetap menjawab `201` dengan `JournalNumber` kosong lalu mencoba ulang sendiri.
 
-Disetujui sisi Finance lewat `FIN-DEC-002`, **menunggu ratifikasi Accounting**.
+> **Contoh.** Finance mengirim `EVT-300`, dijawab `201` dengan `JournalNumber` kosong. Dua menit
+> kemudian jurnal `JU/2026/11/00017` terbentuk di Accounting. Accounting **tidak** mengabari
+> Finance, karena Accounting tidak pernah menerbitkan kejadian balik. Bila Finance memang butuh
+> nomor itu, Finance mengirim ulang `EVT-300`: jawabannya `200` beserta nomor jurnalnya, tanpa
+> jurnal baru.
+
+Akibatnya: `ACKNOWLEDGED` tetap ditandai walaupun `AccountingJournalNumber` kosong. Kolom kosong
+pada baris berstatus `ACKNOWLEDGED` **bukan** tanda kegagalan dan **MUST NOT** memicu percobaan
+ulang otomatis.
+
+Empat nilai `HoldReasonCode` yang menyertai balasan `422` — `EVENT_TYPE_NOT_REGISTERED`,
+`POSTING_RULE_MISSING`, `COMPONENT_UNMAPPED`, `COMPONENT_MISSING` — seluruhnya berarti tertahan.
+Finance menandai `HELD`, menyimpan kodenya di `HoldReason`, dan **tidak** mengirim kejadian baru.
+
+### 5.4 Katalog 24 jenis kejadian
+
+Tujuh belas kode pertama **sudah diratifikasi Accounting apa adanya** pada 24 September 2026
+(`ACC-DEC-083`, dicatat `FIN-DEC-039`). Tujuh kode terakhir adalah usulan sisi Finance dari
+`FIN-DEC-031`, `034`, `035`, `040`..`044` yang **masih menunggu ratifikasi balik Accounting**
+(`FIN-OQ-017`) — sudah dikirim lewat `evidence/04` dan dikoreksi `evidence/05`.
 
 | Kode | Dipicu oleh |
 |---|---|
@@ -196,32 +299,89 @@ Disetujui sisi Finance lewat `FIN-DEC-002`, **menunggu ratifikasi Accounting**.
 | `PENERIMAAN-KASIR` | Penerimaan dari tender Billing **sebelum/tanpa** piutang |
 | `PEMBALIKAN-PENERIMAAN-KASIR` | Pembalikan penerimaan kasir |
 
+**Tujuh kode tambahan — revisi 1.1.** Kolom lawan jurnal ditulis sebagai *usulan* Finance;
+aturan posting tetap wewenang Accounting.
+
+| Kode | Dipicu oleh | Lawan jurnal yang diusulkan | Dasar |
+|---|---|---|---|
+| `SALDO-SUBLEDGER` | Finance menutup periode | **Bukan jurnal** — hanya dicocokkan dengan buku besar | `FIN-DEC-035` |
+| `PENERIMAAN-UANG-MUKA` | (a) penerimaan saat tagihan sumber masih `OPEN`; (b) `BilDepositMovement` `TOP_UP` | Debit Kas, Kredit Uang Muka Pasien | `FIN-DEC-031` |
+| `PEMAKAIAN-UANG-MUKA-DEPOSIT` | `BilDepositMovement` `ALLOCATION` | Debit Uang Muka Pasien, Kredit Piutang — **tidak ada kas bergerak** | `FIN-DEC-040` |
+| `PENGEMBALIAN-UANG-MUKA` | (a) `BilDepositMovement` `RELEASE`; (b) `BilRefundCase` `EXECUTED` dengan sumber `ALLOCATION_EXCESS` | Debit Uang Muka Pasien, **Kredit Kas** — kas benar-benar keluar | `FIN-DEC-041` |
+| `PENGAKUAN-KELEBIHAN-BAYAR` | `BilRefundableCredit` `ALLOCATION_EXCESS` berstatus `AVAILABLE` | Debit lawan jurnal penerimaan asli (Piutang/Pendapatan), Kredit Uang Muka Pasien — **tidak menyentuh kas** | `FIN-DEC-042` |
+| `SELISIH-KAS-SHIFT` | `BilCashVarianceReview` terbentuk (shift menjadi `REVIEWED`) | Debit/Kredit akun selisih kas (suspense). `Amount` **boleh negatif** untuk kekurangan kas | `FIN-DEC-034`, `043` |
+| `PEMBALIKAN-PENERIMAAN-UANG-MUKA` | Tender yang melahirkan `PENERIMAAN-UANG-MUKA` di-reverse Billing | Debit Uang Muka Pasien, Kredit Kas | `FIN-DEC-044` |
+
+**Tiga pasang kode yang paling mudah tertukar, dan akibatnya bila tertukar:**
+
+| Pasangan | Bedanya | Bila tertukar |
+|---|---|---|
+| `PENERIMAAN-KASIR` vs `PENERIMAAN-UANG-MUKA` | Yang pertama untuk penerimaan yang benar-benar final; yang kedua untuk uang yang masih menjadi kewajiban ke pasien | Uang titipan pasien terbukukan sebagai pendapatan. Buku besar tetap seimbang, salahnya baru ketahuan saat pemeriksaan |
+| `PEMAKAIAN-UANG-MUKA-DEPOSIT` vs `PENGEMBALIAN-UANG-MUKA` | Yang pertama mengurangi piutang; yang kedua mengeluarkan kas | Kas buku besar tidak cocok dengan kas fisik, atau piutang berkurang padahal tagihannya belum dibayar |
+| `PEMBALIKAN-PENERIMAAN-KASIR` vs `PEMBALIKAN-PENERIMAAN-UANG-MUKA` | Mengikuti kode penerimaan **aslinya**, bukan status tagihan saat pembalikan | Pembalikan mendebit akun yang tidak pernah dikredit saat penerimaan |
+
+**Aturan pemilihan kode pembalikan** (`FIN-DEC-044`). Kode pembalikan **MUST** diturunkan dari
+`EventTypeCode` penerimaan asli yang tersimpan di kotak keluar, **MUST NOT** dihitung ulang dari
+status tagihan saat pembalikan terjadi — status itu bisa saja sudah berubah dari `OPEN` menjadi
+`FINAL` di antara keduanya.
+
 **Beda `PENERIMAAN-KASIR` dan `PENERIMAAN-PIUTANG`.** Keduanya sama-sama uang masuk, tetapi
 lawan jurnalnya berbeda. `PENERIMAAN-KASIR` terbit saat pasien membayar di kasir dan belum ada
 piutang Finance sama sekali. `PENERIMAAN-PIUTANG` terbit saat penjamin melunasi piutang yang
 sudah diakui sebelumnya. Menyamakan keduanya akan membuat piutang berkurang dua kali atau tidak
 berkurang sama sekali.
 
-### 5.5 Penahanan sebelum tagihan final
+### 5.5 Pemilihan kode penerimaan berdasarkan status tagihan sumber
 
-Wujud teknis `FIN-DEC-004`.
+**Menggantikan seluruh isi bagian 5.5 revisi 1.0** ("Penahanan sebelum tagihan final", wujud
+teknis `FIN-DEC-004`). `FIN-DEC-004` sudah `superseded` oleh `FIN-DEC-030`: penerimaan sebelum
+tagihan final **tidak lagi ditahan**, melainkan terbit segera dengan kode yang berbeda.
 
-| Keadaan | Penerimaan di Finance | Baris kejadian |
-|---|---|---|
-| Tender berhasil, tagihan masih `OPEN` | Dibuat, terlihat penuh di Finance | `HELD_FOR_FINALIZATION` |
-| Tagihan kemudian `FINAL` | Tidak berubah | Dilepas menjadi `PENDING` |
-| Tender berhasil, tagihan sudah `FINAL` | Dibuat | Langsung `PENDING` |
+| Keadaan | Penerimaan di Finance | Kode kejadian | Status pengiriman |
+|---|---|---|---|
+| Tender berhasil, tagihan masih `OPEN` | Dibuat, terlihat penuh | `PENERIMAAN-UANG-MUKA` | `PENDING` — **langsung siap dikirim** |
+| Tagihan kemudian `FINAL` | Tidak berubah | `PEMAKAIAN-UANG-MUKA-DEPOSIT` terbit **sebagai kejadian baru** saat piutang dilunasi dari uang muka | `PENDING` |
+| Tender berhasil, tagihan sudah `FINAL` | Dibuat | `PENERIMAAN-KASIR` | `PENDING` |
+| Tender `REVERSED`, penerimaan asli `PENERIMAAN-UANG-MUKA` | Baris pembalik dibuat | `PEMBALIKAN-PENERIMAAN-UANG-MUKA` | `PENDING` |
+| Tender `REVERSED`, penerimaan asli `PENERIMAAN-KASIR` | Baris pembalik dibuat | `PEMBALIKAN-PENERIMAAN-KASIR` | `PENDING` |
 
-Pelepasan dipicu **peristiwa finalisasi**, bukan timer. Uangnya tetap tercatat di Finance sejak
-detik pertama; yang ditahan hanya jurnalnya.
+**Kenapa penahanan dihapus.** Uangnya nyata dan sudah ada di kasir sejak diterima, jadi menahan
+jurnalnya tidak menahan risikonya.
+
+> **Contoh berangka.** Pasien rawat inap membayar Rp 20.000.000 pada 25 November, pulang
+> 5 Desember dengan tagihan Rp 32.000.000.
+>
+> | Tanggal | Kejadian | Nilai | Akibat di buku besar Accounting |
+> |---|---|---|---|
+> | 25 November | `PENERIMAAN-UANG-MUKA` | Rp 20.000.000 | Debit Kas, Kredit Uang Muka Pasien |
+> | 5 Desember | `PENGAKUAN-PIUTANG` | Rp 32.000.000 | Debit Piutang, Kredit Pendapatan |
+> | 5 Desember | `PEMAKAIAN-UANG-MUKA-DEPOSIT` | Rp 20.000.000 | Debit Uang Muka Pasien, Kredit Piutang — sisa piutang Rp 12.000.000 |
+>
+> Dengan cara lama (ditahan), pada tutup buku November kas di buku besar kurang Rp 20.000.000
+> dari kas di laci kasir, dan bila saldo subledger kas Finance menghitung uang itu, penutupan
+> November tertahan karena toleransi selisih Accounting nol.
+
+**Status `HELD_FOR_FINALIZATION` tidak dihapus dari basis data, tetapi tidak lagi dihasilkan.**
+Nilainya tetap sah pada check constraint supaya baris warisan (bila ada) tidak menjadi tidak
+valid. Penanganan baris warisan ada di rencana migration `02-backend-architecture.md`.
 
 ### 5.6 Saldo subledger per periode
 
+**Bentuk final** (`FIN-DEC-035`, menggantikan draf lima field berdiri sendiri pada `FIN-DEC-023`
+yang kini `superseded`). Accounting menolak bentuk berdiri sendiri; Finance menerima penggantinya
+apa adanya.
+
 | Hal | Ketentuan |
 |---|---|
-| Isi minimum | Badan hukum, periode akuntansi, akun kontrol, saldo subledger, tanggal cut-off |
-| Nama field yang diajukan Finance | `LegalEntityId`, `AccountingPeriodCode`, `ControlAccountCode`, `SubledgerBalance`, `AsOfDate` |
-| Status | **Draf sisi Finance** (`FIN-DEC-023`), menunggu konfirmasi Accounting (`FIN-OQ-011`) |
+| Bentuk pesan | Amplop dua belas field yang **sama** seperti kejadian lain, ditambah objek `SubledgerBalance` (bagian 5.2) |
+| Nilai saldo | Memakai `Amount` di amplop — **boleh nol atau negatif** khusus pesan saldo |
+| Tanggal cut-off | Memakai `AccountingDate` di amplop |
+| Periode | `SubledgerBalance.AccountingPeriodCode`, `string` maks 7, bentuk `YYYY-MM` |
+| Akun kontrol | `SubledgerBalance.ControlAccountCode`, `string` maks 50 |
+| Kardinalitas | Satu saldo per akun kontrol per periode |
+| Koreksi | Naikkan `SourceVersion`. **Khusus pesan saldo, `SourceVersion` wajib bilangan bulat positif** (`1`, `2`, `3`, …) karena versi tertinggi yang berlaku — pesan berversi lebih rendah yang datang terlambat tidak menimpa koreksi |
+| Bukan jurnal | Pesan saldo **tidak pernah** menjadi jurnal; ia hanya dicocokkan dengan buku besar saat tutup bulan |
+| Periode tertutup | Pesan saldo untuk periode yang sudah ditutup Accounting diterima tetapi tidak mengubah angka periode itu |
 | Kapan dikirim | Saat Finance menutup periode, sebelum Accounting menutup bukunya |
 
 ### 5.7 Titik mulai pengiriman
@@ -233,7 +393,23 @@ Sesuai `FIN-DEC-008`:
 | Transaksi yang dikirim | Hanya yang terjadi **setelah** tanggal go-live integrasi |
 | Transaksi sebelum tanggal itu | **Tidak** dikirim, **tidak** direkonstruksi dari histori Finance |
 | Saldo sebelum cutover | Diinput Accounting sebagai saldo awal manual, satu kali |
-| Tanggal pastinya | Ditentukan saat gelombang `MVP-5` siap, bukan sekarang |
+| Tanggal pastinya | **Diikat enam gerbang milik Accounting** (`FIN-DEC-037`, revisi 1.1). Cutover jatuh pada tanggal 1 pukul 00.00 WIB di awal periode akuntansi pertama setelah keenamnya lolos |
+
+**Enam gerbang cutover** (milik Accounting, `ACC-DEC-089`/`090`; dicatat di sini supaya Finance
+tahu apa yang ditunggu). Keadaan per 24 September 2026 menurut surat Accounting:
+
+| Gerbang | Syarat | Pemilik | Keadaan |
+|---|---|---|---|
+| `G1` | Kotak masuk Accounting dibangun dan diuji | Rizki | Belum ada kodenya — diverifikasi ulang pada `d6cdfaf9` |
+| `G2` | Bagan akun rumah sakit yang sah tersedia, dan aturan posting tiap kode aktif tersusun | Pemilik proses akuntansi + Rizki | Belum — bagan akun saat ini data pengembangan |
+| `G3` | Akun layanan aktif, mekanismenya sudah diputuskan | Platform + Yasmin + Rizki | Terbuka (`FIN-OQ-016`) |
+| `G4` | Pengirim Finance siap | Yasmin | Kotak keluar sudah ada; **worker pengiriman belum dibangun** |
+| `G5` | Saldo awal manual per tanggal cutover siap diinput | Rizki | Bergantung `G2` |
+| `G6` | Kejelasan deposit pasien, kelebihan bayar, selisih kas shift, dan perubahan `FIN-DEC-004` | Yasmin + owner Billing | **Dijawab revisi 1.1 ini**; menunggu ratifikasi tujuh kode (`FIN-OQ-017`) |
+
+**Tanggal 1 Oktober 2026 dibatalkan.** Referensi tanggal itu pada versi percakapan sebelumnya
+dinyatakan **tidak berlaku** (`FIN-DEC-037`). Finance tidak mengejar tanggal itu dan tidak
+meminta percepatan `G1`–`G3` yang bukan kendali Finance.
 
 ---
 
@@ -249,16 +425,24 @@ Sesuai `FIN-DEC-008`:
 | Mengirim mata uang selain rupiah | Kontrak Accounting hanya menerima `IDR` |
 | Membuka kembali periode akuntansi | Milik Accounting |
 | Mengubah kas kecil dari alur kasir, atau sebaliknya | Dua kolam terpisah (aturan bisnis #15) |
+| **Menulis ke `BilDepositAccount`, `BilDepositMovement`, `BilRefundableCredit`, `BilRefundCase`, `BilRefundLine`, atau `BilCashVarianceReview`** | Keenamnya milik Billing. Finance hanya membaca (revisi 1.1, aturan bisnis #9) |
+| **Memakai `BilDepositAccount.AvailableBalance` sebagai nilai kejadian** | Itu saldo berjalan, bukan mutasi. Nilai kejadian selalu diambil dari baris mutasi (revisi 1.1) |
+| **Menerbitkan `PEMAKAIAN-UANG-MUKA-DEPOSIT` untuk pengembalian uang, atau sebaliknya** | Lawan jurnalnya berbeda — satu mengurangi piutang, satu mengeluarkan kas (bagian 5.4, revisi 1.1) |
+| **Menghitung kode pembalikan dari status tagihan saat pembalikan terjadi** | Kode pembalikan diturunkan dari kode penerimaan asli (`FIN-DEC-044`) |
+| **Menerbitkan `SELISIH-KAS-SHIFT` sebelum selisihnya disahkan** | Angka sebelum `REVIEWED` belum final; menerbitkannya memaksa jurnal koreksi yang tidak perlu (`FIN-DEC-043`) |
 
 ---
 
 ## 7. Ketergantungan yang belum tertutup
 
-| Ketergantungan | Pemilik | Dampak bila belum turun |
-|---|---|---|
-| Konfirmasi bentuk `BilCollectionHandoff` | Billing | Penerimaan dari kasir tidak dapat dikonsumsi otomatis |
-| Konfirmasi perluasan `BilArHandoff` | Billing + HR | Rumpun manfaat karyawan tidak dapat dimulai |
-| Endpoint penerima Accounting Event | Accounting | Worker pengiriman tetap dimatikan; outbox tetap terisi |
-| Ratifikasi katalog 17 kejadian | Accounting | Kejadian berjenis belum terdaftar akan tertahan di sisi Accounting |
-| Mekanisme autentikasi service account | Accounting + Platform | Pengiriman tidak dapat diaktifkan |
-| Nama field saldo subledger | Accounting | Rumpun tutup periode tertunda ke `POST-MVP` |
+**Diperbarui revisi 1.1.** Dua ketergantungan tertutup, empat masih terbuka.
+
+| Ketergantungan | Pemilik | Keadaan | Dampak bila belum turun |
+|---|---|---|---|
+| ~~Konfirmasi bentuk `BilCollectionHandoff`~~ | Billing | **TERTUTUP** 22 September 2026 — tabelnya dibangun (`BKC-DES-037`) dan sudah dikonsumsi `FinanceBillingIntakeService` (`FIN-CAP-007`, `FIN-CAP-025`) | — |
+| ~~Nama field saldo subledger~~ | Accounting | **TERTUTUP** 24-25 September 2026 — Accounting menetapkan bentuknya, Finance menerima (`FIN-DEC-035`) | — |
+| Konfirmasi perluasan `BilArHandoff` | Billing + HR | Terbuka (`FIN-DEC-006`/`016`, `FIN-CQ-03`) | Rumpun manfaat karyawan tidak dapat dimulai — sudah `OPEN DECISION`, di luar seluruh gelombang |
+| Endpoint penerima Accounting Event | Accounting | Terbuka — gerbang `G1`, diverifikasi ulang belum ada pada `d6cdfaf9` | Worker pengiriman tetap dimatikan; kotak keluar tetap terisi dan aman |
+| **Ratifikasi tujuh kode kejadian baru** | Accounting | Terbuka (`FIN-OQ-017`) — dikirim lewat `evidence/04`, dikoreksi `evidence/05` | Kejadian berjenis belum terdaftar akan dijawab `422` `EVENT_TYPE_NOT_REGISTERED` dan tertahan. **Ini yang menahan implementasi `FIN-DEC-030`** |
+| Mekanisme autentikasi akun layanan | Platform + Accounting | Terbuka (`FIN-OQ-016`) — tiga syarat organisasinya sudah ditetapkan (bagian 5.1) | Pengiriman tidak dapat diaktifkan; gerbang `G3` |
+| Lawan jurnal refund `SETTLEMENT`/`REFERRED_OUTPATIENT_ADMIN` | Yasmin (Finance) | Terbuka (`FIN-OQ-018`) | Tidak menahan apa pun saat ini — sengaja di luar cakupan bagian 2a |

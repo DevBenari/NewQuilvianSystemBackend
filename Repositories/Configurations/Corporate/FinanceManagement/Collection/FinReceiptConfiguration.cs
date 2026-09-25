@@ -15,8 +15,13 @@ public sealed class FinReceiptConfiguration : IEntityTypeConfiguration<FinReceip
             table.HasCheckConstraint("CK_FinReceipt_Amount", "\"Amount\" > 0");
             table.HasCheckConstraint("CK_FinReceipt_Unallocated", "\"UnallocatedAmount\" >= 0");
             table.HasCheckConstraint("CK_FinReceipt_AllocationBalance", "\"Amount\" = \"AllocatedAmount\" + \"UnallocatedAmount\"");
-            // Tender wajib ada untuk penerimaan yang berasal dari Billing (FIN-DES-010).
-            table.HasCheckConstraint("CK_FinReceipt_TenderRequired", "\"SourceType\" <> 'BILLING_TENDER' OR \"SourceTenderId\" IS NOT NULL");
+            // Tender wajib ada untuk penerimaan yang berasal dari Billing (FIN-DES-010) — KECUALI
+            // baris pembalik (ReversalOfReceiptId terisi), yang sengaja mengosongkan SourceTenderId
+            // supaya identitas idempotensi tender asli (IX_FinReceipt_SourceTenderId) tidak pernah
+            // dipakai ulang, persis seperti didokumentasikan FinReceipt.cs sejak awal. Diperbaiki
+            // 23 September 2026 — versi sebelumnya (tanpa klausa ReversalOfReceiptId) bertentangan
+            // dengan desain itu dan memblokir pembalikan tender sepenuhnya (BE-FIN-016 bagian 1.5).
+            table.HasCheckConstraint("CK_FinReceipt_TenderRequired", "\"SourceType\" <> 'BILLING_TENDER' OR \"SourceTenderId\" IS NOT NULL OR \"ReversalOfReceiptId\" IS NOT NULL");
         });
         entity.HasKey(x => x.Id);
 

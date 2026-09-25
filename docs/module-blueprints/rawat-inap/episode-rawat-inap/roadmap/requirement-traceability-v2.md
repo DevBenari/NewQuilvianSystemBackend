@@ -108,3 +108,20 @@ frontend_roadmap: roadmap/frontend-roadmap-v2.md
 | `3` | 2026-09-16 | **Verifikasi benar-benar dijalankan.** `dotnet build` pada project aplikasi: `0 Error(s)`, `211 Warning(s)`, `00:04:31` — nol `error CS`. `dotnet ef migrations has-pending-model-changes`: `No changes have been made to the model since the last migration`, membuktikan suntingan tangan pada model snapshot cocok dengan model. Migration `E1` dan `E2` dijalankan maju dan mundur pada container Postgres 16 sekali pakai beserta pembacaan katalog; kedua penjaga rollback terbukti menolak dengan pesan dan jumlah baris yang benar; check constraint `INV-INP-12` diuji 6 kasus. Container dibuang, dan **tidak satu pun migration diterapkan ke database dev, staging, atau production.** Yang tetap `NOT RUN`: `UAT-46` s.d. `UAT-51`, rencana eksekusi query `NFR-026`, uji galat buatan `NFR-025`, dan pengukuran waktu `NFR-027` — seluruhnya menuntut aplikasi berjalan beserta data klinis |
 | `4` | 2026-09-16 | `FE-RWI-063` selesai diimplementasikan pada frontend (`QuilvianSystemFrontendDev`). Komposisi dialog dokter pendukung `FE-INP-21`, aksi tambah dan akhiri penugasan, penguncian peran dan waktu selesai pada `LateDocumentation`, penyembunyian tombol bagi selain kepala ruangan/supervisor (`UAT-48`), penanganan galat 422, dan auto-refresh riwayat penugasan terbukti di source. `npm run lint:errors` bersih (0 error), `npm run build` sukses (exit code 0). Laporan tracked: [FE-RWI-063.md](../task/report/frontend/FE-RWI-063.md) |
 | `5` | 2026-09-17 | Seluruh task backend V2 `BE-RWI-083`, `BE-RWI-084`, `BE-RWI-086`, `BE-RWI-087` diselesaikan `✅` sesudah dependensi `BE-RWI-097` (`PatientProcedureOrderService`) dan `BE-RWI-114`/`BE-RWI-118` (`MedicationAdministrationService`) mendarat penuh. Langkah 5 dan Langkah 6 penutupan episode telah terintegrasi di `InpDischargeService.Closure.cs`. Seluruh 9 task backend V2 kini `✅` SELESAI (9/9). |
+| `6` | 2026-09-23 | `ISSUE-EPS-002` dibuka dari pemeriksaan `testing/laporan-testing-semua-tipe-pasien.md`. Lima temuan, seluruhnya terverifikasi ke source. `FE-RWI-096` ✅ menutup jalan buntu admisi bayi baru lahir sesuai keputusan pemilik bahwa kemampuan itu belum masuk rilis ini; `FE-RWI-022` diturunkan ke 🟡 beserta `EPIC RI-33` dan milestone `F9`; laporan pengujian dikoreksi karena menyatakan lulus 100% dan mendokumentasikan dua endpoint yang tidak ada; penghitung nomor task diperbaiki karena basi. `BE-RWI-128` untuk endpoint episode ibu aktif **ditunda** ke rilis berikutnya |
+
+---
+
+## Traceability perbaikan `ISSUE-EPS-002`
+
+Sumber temuan: `testing/laporan-testing-semua-tipe-pasien.md`, diperiksa 23 September 2026. Dokumen
+issue: [`issues/issue-002-admisi-bayi-baru-lahir-buntu.md`](./issues/issue-002-admisi-bayi-baru-lahir-buntu.md).
+
+| Butir | Keparahan | Task | Status | Bukti |
+| --- | --- | --- | --- | --- |
+| `ISS-EPS-01` — admisi bayi baru lahir buntu | High (turun dari Blocker sesudah keputusan pemilik) | `FE-RWI-096` | ✅ jalan buntu ditutup; kemampuan penuh ditunda | [Laporan](../task/report/frontend/FE-RWI-096.md) |
+| `ISS-EPS-02` — dua endpoint fiktif pada laporan | High | — | ✅ laporan dikoreksi | Bagian 5 laporan pengujian |
+| `ISS-EPS-03` — klaim "100% SUKSES" tidak didukung | Medium | — | ✅ diturunkan menjadi 5 dari 6 lulus | Ringkasan dan matriks laporan pengujian |
+| `ISS-EPS-04` — `FE-RWI-022` ✅ padahal kemampuan belum ada | Medium | — | ✅ diturunkan ke 🟡 di seluruh titik | `frontend-roadmap.md`; `EPIC RI-33`; milestone `F9` |
+| `ISS-EPS-05` — penghitung nomor task basi | Low | — | ✅ dikoreksi ke `BE-RWI-128` dan `FE-RWI-097` | Metadata kedua roadmap v2 |
+| Endpoint episode ibu aktif | — | `BE-RWI-128` | **Ditunda** ke rilis berikutnya | Acceptance criteria pada `ISS-EPS-01` |

@@ -38,8 +38,10 @@ frontend_repo: QuilvianSystemFrontendDev
 frontend_branch: HamzahV2
 frontend_source_sha: 1ce219b40f8e411f3c4e66975626ab33ae81616a
 backend_source_sha: df3679c0d5b2f08106702153eb242d3a6cb2929b
-task_id_range: FE-RWI-067..FE-RWI-080
-task_id_next_free: FE-RWI-095
+task_id_range: FE-RWI-067..FE-RWI-080, FE-RWI-095
+task_id_next_free: FE-RWI-096
+partial_tasks: [FE-RWI-095]
+last_updated: "2026-09-23 — FE-RWI-095 ditambahkan sebagai task perbaikan dari ISSUE-DOK-001; ISS-02 dan ISS-04 selesai di tingkat source, ISS-05 tidak dikerjakan karena kedua service ternyata bukan duplikat"
 stack: "Next.js App Router, JavaScript/JSX, Redux, Axios, design token dan base component Quilvian"
 test_policy: "rules/frontend/test-policy.md — menulis test baru opsional; lint dan build wajib"
 write_authority: "TIDAK diberikan di sini. Wewenang tulis frontend dinyatakan terpisah per task"
@@ -209,6 +211,7 @@ pada gelombang 3. **Nol task tertahan gerbang** — sebelumnya sebelas.
 | `FE-RWI-077` ✅ | Dokter menemukan dan mengoreksi catatannya sendiri | `FR-DOK-079`, `FR-DOK-080`; `RWI-DEC-127`, `142` | `0.6.0` API `my-authored` | Mesin addendum | `FE-DOK-14` **Catatan Saya** — konsep dan catatan terkunci milik dokter login; tambah addendum | `BE-RWI-092` [BE] | AC-1 s.d. AC-5 | `node tests/unit` PASS, `npm run lint` PASS, `npm run build` PASS, audit privasi PASS | Disetujui Yoga Aji Pratama `RWI-DEC-151` / Muhammad Hamzah | ✅ [Laporan](../task/report/frontend/FE-RWI-077.md) |
 | `FE-RWI-078` ✅ | Dokter melihat semua yang menunggu tindakannya di satu tempat | `FR-DOK-084`, `FR-DOK-104` | `0.6.0` API daftar tunggu | Daftar tunggu verifikasi | `FE-DOK-15` **Perlu Review** — gabungan entri CPPT menunggu verifikasi dan pesanan perawat menunggu verifikasi instruksi | `BE-RWI-096` [BE], `BE-RWI-098` [BE] | AC-1 s.d. AC-5 | `node tests/unit` PASS, `npm run lint` PASS, `npm run build` PASS, verifikasi tautan PASS | Disetujui Muhammad Hamzah | ✅ [Laporan](../task/report/frontend/FE-RWI-078.md) |
 | `FE-RWI-080` ✅ | Daftar pantau verifikasi ikut memuat episode yang sudah ditutup | `FR-DOK-083`, `FR-DOK-084` | `0.6.0` API daftar tunggu | `FE-DOK-08` pada `FE-INP-09` | Rework `FE-DOK-08` — memuat episode `Closed` milik DPJP terakhir | `BE-RWI-096` [BE] | AC-1 s.d. AC-4 | `node tests/unit` PASS (5/5), `npm run lint` PASS, `npm run build` PASS | Disetujui Muhammad Hamzah | ✅ [Laporan](../task/report/frontend/FE-RWI-080.md) |
+| `FE-RWI-095` 🟡 | Dokter dapat memilih obat, dan jenis resep tersimpan sesuai pilihannya | `ISSUE-DOK-001` `ISS-02`, `ISS-04`, `ISS-05`; `BE-RWI-050`; `RWI-DEC-046` | `0.6.1` terkunci | Hook dan service resep rawat inap yang sudah ada | `encounterId` dikirim ke katalog obat beserta dependency array-nya; nama field jenis resep disesuaikan kontrak; penyatuan service ditunda | `BE-RWI-127` [BE] | AC-1 s.d. AC-6 | `eslint` berkas terdampak PASS (0 peringatan); `npm run build` **EXISTING / ENVIRONMENT ISSUE**; verifikasi manual **NOT FEASIBLE** | `ISS-05` menyentuh layar resep poliklinik — menunggu keputusan pemilik / Muhammad Hamzah | 🟡 [Laporan](../task/report/frontend/FE-RWI-095.md) |
 
 ---
 
@@ -662,6 +665,46 @@ tertinggal pada episode yang sudah ditutup. Daftar pantau inilah tempat ia menem
 
 **Definition of Done.** Lint dan build hijau; verifikasi otomatis tercatat; laporan tracked ada;
 roadmap dan traceability diperbarui. Seluruh kriteria terpenuhi.
+
+---
+
+### `FE-RWI-095` — Perbaikan temuan pengujian: katalog obat, jenis resep, dan duplikasi service
+
+| Field | Isi |
+| --- | --- |
+| **Status** | 🟡 **Sebagian 23 September 2026** — [laporan](../task/report/frontend/FE-RWI-095.md); `ISS-02` dan `ISS-04` selesai di tingkat source; **`eslint` berkas terdampak PASS** (exit `0`, 0 peringatan); **`npm run build` EXISTING / ENVIRONMENT ISSUE** — ditolak Next karena ada proses build lain yang berjalan, tidak membangun apa pun; **verifikasi manual NOT FEASIBLE** — menunggu backend `BE-RWI-127` dijalankan; **`ISS-05` TIDAK DIKERJAKAN** beserta alasannya; merujuk `ISSUE-DOK-001` |
+| **Gelombang** | Di luar gelombang — task perbaikan pasca-pengujian |
+| **Dependency** | `BE-RWI-127` — selesai di tingkat source 23 September 2026 |
+
+**Bisnis prosesnya.** Dokter tidak dapat memilih satu obat pun karena permintaan katalog tidak
+menyertakan identitas kunjungan pasien, dan layar menjawab "obat tidak ditemukan" untuk permintaan
+yang sebenarnya ditolak backend. Selain itu jenis resep dikirim dengan nama field yang tidak dikenal
+kontrak, sehingga resep obat pulang selalu tercatat sebagai resep rutin dan penyaringan obat pulang
+di layar Farmasi tidak dapat dipercaya.
+
+**Acceptance criteria.**
+
+1. Mengetik minimal dua huruf pada modal katalog memunculkan daftar obat formularium — `ISS-02`.
+2. Tidak ada respons `400` pada `GET /prescribing-drugs` — `ISS-02`.
+3. Saat konteks kunjungan belum siap, layar menyebut keadaannya apa adanya, bukan "obat tidak ditemukan" — `ISS-02`.
+4. `encounterId` masuk dependency array sehingga nilainya tidak tertahan render pertama — `ISS-02`.
+5. Jenis resep obat pulang tersimpan sebagai obat pulang — `ISS-04`.
+6. Tersisa satu berkas service workspace, seluruh import menunjuk ke sana — `ISS-05`.
+
+**Bukti verifikasi.** `eslint` berkas terdampak; pembacaan kontrak backend; verifikasi manual kedua
+alur sesudah backend dijalankan.
+
+**Yang belum terpenuhi.** Kriteria 1, 2, dan 5 belum terbukti pada runtime karena backend hasil
+`BE-RWI-127` belum dapat dijalankan. Kriteria 6 **tidak dikerjakan**: kedua berkas service ternyata
+bukan duplikat — yang satu mengembalikan keadaan kosong saat resep belum ada, yang lain melempar
+galat, dan layar resep dokter poliklinik bergantung pada perilaku pertama. Menyatukannya akan
+mengubah keadaan kosong yang wajar menjadi banner galat pada modul di luar sub-modul ini.
+
+**Risiko dan kewajiban koordinasi.** Penyatuan service menunggu keputusan pemilik tentang perilaku
+mana yang menang, karena menyentuh layar resep poliklinik.
+
+**Definition of Done.** Laporan tracked ada; roadmap dan traceability diperbarui; verifikasi manual
+dijalankan sesudah backend berjalan, lalu status dinaikkan ke ✅.
 
 ---
 

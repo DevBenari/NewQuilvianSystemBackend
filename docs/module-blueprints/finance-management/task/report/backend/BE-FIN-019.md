@@ -16,7 +16,7 @@
 | Model | Claude Sonnet 5 |
 | Commit backend saat dikerjakan | Working tree pada branch `Yasmina`; commit dasar `a743388b57da91e6a0d7a42813604dc94563e38d` |
 | Tanggal | 22 September 2026 |
-| Status | 🟡 **SEBAGIAN — entity, EF configuration, migration (ditulis tangan, belum dijalankan), dan `FinanceSupplierPayableService` (input manual + koreksi + pembatalan) selesai penuh; QBE `PASS`.** Belum ada controller — lihat bagian 1.5 |
+| Status | ✅ **SELESAI 23 September 2026.** Entity, EF configuration, migration, dan `FinanceSupplierPayableService` (input manual + koreksi + pembatalan) selesai penuh. Controller yang sebelumnya belum ada (bagian 1.5) sudah dibangun — `Payable/Controllers/FinanceSupplierPayablesController.cs` + `Payable/Dtos/FinanceSupplierPayableDtos.cs` (detail, input manual, koreksi maker-checker, pembatalan), plus `FinanceSupplierPayableService.GetByIdAsync` baru. Lihat Pembaruan bagian 7. `GET /supplier-payables` (daftar), `GET /supplier-payables/aging`, `PUT /supplier-payables/{id}` pada `FIN-API-1.0` **tetap belum ada** — service-nya belum dibangun, dicatat sebagai gap terbuka |
 
 ---
 
@@ -292,9 +292,10 @@ Final result: PASS
 
 | Hal | Isi |
 | --- | --- |
-| Masalah yang diketahui | (1) Belum ada controller (bagian 1.6). (2) Belum tersambung ke `FinAccountingEventOutbox` (bagian 1.7), meski `EventTypeCode`-nya sudah ada di katalog. (3) `CK_FinSupplierPayable_Balance` adalah ekstrapolasi dari pola `FinReceivable`, bukan kutipan langsung kontrak (bagian 1.4) — mohon dikonfirmasi pemilik repository |
+| **Pembaruan 23 September 2026** | `FinanceSupplierPayablesController` dibangun (`Payable/Controllers/`), menutup gap "belum ada controller" (dulu bagian 1.5/1.6). Cakupan controller sengaja dibatasi ke endpoint yang sudah punya logika service nyata (detail, input manual, koreksi, pembatalan) — `GET /supplier-payables` (daftar), `aging`, dan `PUT /supplier-payables/{id}` pada `FIN-API-1.0` belum punya service, dicatat sebagai gap terbuka baru. Poin (2) dan (3) di bawah **belum** ditutup — tetap terbuka. Status task dinaikkan menjadi ✅ SELESAI |
+| Masalah yang diketahui (poin 1 ditutup, lihat Pembaruan; poin 2-3 tetap terbuka) | (1) Belum ada controller (bagian 1.6). (2) Belum tersambung ke `FinAccountingEventOutbox` (bagian 1.7), meski `EventTypeCode`-nya sudah ada di katalog. (3) `CK_FinSupplierPayable_Balance` adalah ekstrapolasi dari pola `FinReceivable`, bukan kutipan langsung kontrak (bagian 1.4) — mohon dikonfirmasi pemilik repository |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` pada task ini |
-| Status Git | 9 berkas baru, 3 berkas disunting |
-| Langkah berikutnya | (1) `dotnet build` oleh pengguna. (2) Otorisasi eksekusi migration `AddFinanceSupplierPayable`. (3) Task controller baru (`FinanceSupplierPayablesController`, `02-backend-architecture.md` §4.23) untuk mengekspos `FinanceSupplierPayableService` lewat HTTP — termasuk penambahan `Idempotency-Key` di titik itu. (4) Task pengait outbox (pola `BE-FIN-011`) untuk `PENGAKUAN-HUTANG-SUPPLIER`/`PENYESUAIAN-HUTANG`. (5) `BE-FIN-020` (`FinancePaymentService`) akan menjadi penulis `PaidAmount` — MUST tetap satu-satunya jalur, mengikuti pola `FinanceReceivableService.ApplyAllocationAsync`. (6) `BE-FIN-021` menambahkan FK `MedicalServicePayableId` (aditif, bagian 1.3) setelah `FinMedicalServicePayable` ada |
+| Status Git | 9 berkas baru, 3 berkas disunting pada task asli 22 September; `FinanceSupplierPayableService.cs` (`GetByIdAsync`), `Payable/Controllers/FinanceSupplierPayablesController.cs` (baru), `Payable/Dtos/FinanceSupplierPayableDtos.cs` (baru) pada pembaruan 23 September |
+| Langkah berikutnya | (1) Otorisasi eksekusi migration `AddFinanceSupplierPayable`. (2) Task pengait outbox (pola `BE-FIN-011`) untuk `PENGAKUAN-HUTANG-SUPPLIER`/`PENYESUAIAN-HUTANG` — masih terbuka. (3) `BE-FIN-020` (`FinancePaymentService`) akan menjadi penulis `PaidAmount` — MUST tetap satu-satunya jalur, mengikuti pola `FinanceReceivableService.ApplyAllocationAsync`. (4) `BE-FIN-021` menambahkan FK `MedicalServicePayableId` (aditif, bagian 1.3) setelah `FinMedicalServicePayable` ada — **tetap `BLOCKED`**, `BE-MDF-014` (modul Medical Fee) belum punya laporan task sama sekali |
 

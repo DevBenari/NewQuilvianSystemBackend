@@ -106,9 +106,15 @@ rekonsiliasi kembali jatuh ke Excel.
 | Pemantauan fakta Billing | Melihat yang gagal diolah dan mengulangnya | `GET /billing-intake`, `POST .../retry` |
 | Pemantauan kejadian Accounting | Melihat status kirim, termasuk yang tertahan; mengirim ulang yang gagal | `GET /accounting-events`, `POST .../retry` |
 
-Layar pemantauan kejadian **MUST** membedakan `HELD_FOR_FINALIZATION` dari `HELD` dan `FAILED`,
-karena tindakan penggunanya berbeda: yang pertama menunggu Billing, yang kedua menunggu
-Accounting, yang ketiga menunggu Finance sendiri.
+Layar pemantauan kejadian **MUST** membedakan `HELD` dari `FAILED`, karena tindakan penggunanya
+berbeda: yang pertama menunggu Accounting melengkapi aturan posting, yang kedua menunggu Finance
+sendiri memperbaiki datanya.
+
+**Diperbarui 25 September 2026 (`FIN-DEC-030`).** Status `HELD_FOR_FINALIZATION` **tidak lagi
+dihasilkan** — penerimaan sebelum tagihan final kini langsung siap kirim dengan jenis kejadian
+yang berbeda, bukan ditahan. Layar pemantauan tetap **MUST** dapat menampilkan status itu untuk
+baris warisan (bila ada), diberi keterangan bahwa ia peninggalan kebijakan lama yang perlu
+dibetulkan, bukan keadaan normal yang menunggu Billing.
 
 ## 4. Aksi per peran
 
