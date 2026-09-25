@@ -802,3 +802,66 @@ lain, berbeda dari `MVP-28`/`29` (Pass B) yang membuka kemampuan untuk `inpatien
 | Wewenang menulis source code | Terpisah | Wajib konfirmasi approval task per task sebelum implementasi dimulai |
 | Otorisasi migration | Tidak berlaku | Nol migration pada seluruh revisi 1.6 |
 | Cakupan pencarian label "Drug" | **DITUTUP 25 September 2026** | Telah disisir ulang menyeluruh (`src/`) pada task `FE-BUI-002`. Nol label UI "Drug" tersisa. Nilai master data & enum API backend tetap utuh. Laporan: [`FE-BUI-002`](../task/report/frontend/FE-BUI-002.md). |
+
+---
+
+# Gelombang `MVP-34` — Shift Kasir: Blocking Selisih Kas dan Status Tindak Lanjut
+
+Masukan: `BKC-DEC-123`–`127` (**approved 25 September 2026** oleh Yasmin), dokumen `Shift Kasir (3).md`. Baseline Backend SHA: `4eed1700`, Baseline Frontend SHA: `52057a75`. Kontrak version: `BIL-API-1.6` (draft), `BIL-STATE-1.5` (draft), `BIL-VALIDATION-1.5` (draft), `BIL-PERMISSION-1.3` (draft), `BIL-TEST-1.6` (draft).
+
+## 1. Requirement ke Task ke Bukti Verifikasi
+
+| Requirement | Keputusan Asal | Task BE | Task FE | Bukti Verifikasi |
+| --- | --- | --- | --- | --- |
+| Shift `CLOSED_WITH_VARIANCE` memblokir pembukaan shift baru kasir/register | `BKC-DEC-123`, `RULE-012`, `BP-007` | 🟡 [`BE-BKC-077`](../task/report/backend/BE-BKC-077.md) | 🟡 `FE-BKC-043` | Uji unit `OpenAsync` penolakan HTTP 409 & verifikasi modal buka shift menampilkan pesan penolakan jelas |
+| Status `PERLU_TINDAK_LANJUT` terpisah dari `REVIEWED` pada Review Variance | `BKC-DEC-124`, `RULE-011`, `BP-005` | 🟡 `BE-BKC-078` | 🟡 `FE-BKC-044` | Uji unit mutasi status `PERLU_TINDAK_LANJUT` pada `ReviewVarianceAsync` & uji kontrol radio outcome pada frontend |
+| Penyelesaian tindak lanjut shift oleh Supervisor dengan catatan verifikasi wajib | `BKC-DEC-125`, `BP-005` | 🟡 `BE-BKC-078` | 🟡 `FE-BKC-044` | Uji endpoint `POST /shifts/{id}/resolve-follow-up` & uji form modal `ResolveFollowUpModal` |
+| Format pesan error validasi field wajib baku: `"{Nama Field} wajib diisi."` | `BKC-DEC-126`, `RULE-005` | 🟡 `BE-BKC-077`, 🟡 `BE-BKC-078` | 🟡 `FE-BKC-043`, 🟡 `FE-BKC-044` | Uji validasi model anotasi DTO dan form validator klien |
+| Penegakan otorisasi standar `[AccessAction]` / `[AccessPermission]` tanpa matriks terpisah | `BKC-DEC-126` | 🟡 `BE-BKC-078` | 🟡 `FE-BKC-044` | Uji proteksi peran RBAC `CashierShift:Review` pada endpoint dan tombol aksi UI |
+| Rekomendasi akses baca non-shift tetap panduan; aksi finansial tetap wajib shift `OPEN` | `BKC-DEC-127`, `RULE-002`, `RULE-019` | — (sudah ditegakkan) | — (sudah ditegakkan) | Uji regresi intake pembayaran dan mutasi kas tetap menolak transaksi tanpa shift aktif |
+
+**Coverage gap: NOL untuk seluruh 5 keputusan bisnis `BKC-DEC-123`–`127`**. Seluruhnya telah dipetakan secara lengkap ke vertical slice backend dan frontend.
+
+## 2. Jalur Gagal & Pengecualian yang Terpetakan
+
+| Skenario Jalur Gagal | Skenario UAT / Kasus Bisnis | Aturan Validasi | Task Penjaga | Bukti Verifikasi |
+| --- | --- | --- | --- | --- |
+| Kasir memiliki shift kemarin yang ditutup berselisih dan belum direview, mencoba membuka shift pagi | Kasir terblokir di loket | `RULE-012`, `BKC-DEC-123` | 🟡 `BE-BKC-077` / 🟡 `FE-BKC-043` | Uji unit backend response 409 Conflict: `"Kasir atau register masih memiliki shift yang menunggu review selisih kas."` |
+| Register Loket 2 memiliki shift kemarin yang belum direview, kasir lain mencoba membuka shift di Loket 2 | Loket fisik terblokir | `RULE-012`, `BKC-DEC-123` | 🟡 `BE-BKC-077` / 🟡 `FE-BKC-043` | Uji unit registrasi shift ditolak untuk register terkait |
+| Supervisor memilih "Perlu Tindak Lanjut" saat review selisih kas | Shift bergeser ke `PERLU_TINDAK_LANJUT` | `RULE-011`, `BKC-DEC-124` | 🟡 `BE-BKC-078` / 🟡 `FE-BKC-044` | Uji unit transisi status dan pemblokiran shift baru tetap aktif |
+| Supervisor mengeksekusi `resolve-follow-up` tanpa mengisi catatan verifikasi | Form submit ditolak sistem | `BKC-DEC-126`, `RULE-005` | 🟡 `BE-BKC-078` / 🟡 `FE-BKC-044` | Ditolak HTTP 422 Unprocessable Entity: `"Catatan verifikasi wajib diisi."` |
+| Aksi `resolve-follow-up` dipanggil pada shift yang berstatus `OPEN` atau `CLOSED` seimbang | Operasi ditolak | Integritas Status Mesin | 🟡 `BE-BKC-078` | Ditolak HTTP 422: `"Hanya shift PERLU_TINDAK_LANJUT yang dapat diselesaikan tindak lanjutnya."` |
+| Concurrency conflict: dua supervisor membuka modal dan mereview shift yang sama | Salah satu submit tertolak ramah | Concurrency Guard | 🟡 `BE-BKC-078` / 🟡 `FE-BKC-044` | `DbUpdateConcurrencyException` / 409 Stale row version ditangkap ramah di klien |
+
+## 3. Keputusan Bisnis → Keputusan Arsitektur → Artefak & Task
+
+| Keputusan Bisnis | Keputusan Arsitektur / Desain | Artefak Turunan | Task Terkait |
+| --- | --- | --- | --- |
+| `BKC-DEC-123` (Blocking shift baru belum direview) | Tambah query penjaga di `CashierShiftService.OpenAsync` di bawah kunci register/kasir | `02-backend-architecture.md`, `BIL-VALIDATION-1.5` | 🟡 `BE-BKC-077`, 🟡 `FE-BKC-043` |
+| `BKC-DEC-124` (Status `PERLU_TINDAK_LANJUT`) | Tambah konstanta status pada `BilCashierShift.cs` dan field `Outcome` pada `ReviewVarianceRequest` | `BilCashierShift.cs`, `BIL-STATE-1.5`, `BIL-API-1.6` | 🟡 `BE-BKC-078`, 🟡 `FE-BKC-044` |
+| `BKC-DEC-125` (Penyelesaian tindak lanjut oleh Supervisor) | Endpoint `POST {id}/resolve-follow-up` dengan DTO `ResolveShiftFollowUpRequest` | `CashierShiftsController.cs`, `BIL-API-1.6`, `BIL-PERMISSION-1.3` | 🟡 `BE-BKC-078`, 🟡 `FE-BKC-044` |
+| `BKC-DEC-126` (Pesan error standar `{Field} wajib diisi.`) | Anotasi `[Required(ErrorMessage = "{Field} wajib diisi.")]` dan validasi klien | `CashierShiftDtos.cs`, `BIL-VALIDATION-1.5` | 🟡 `BE-BKC-077`, 🟡 `BE-BKC-078`, 🟡 `FE-BKC-043`, 🟡 `FE-BKC-044` |
+| `BKC-DEC-127` (Aksi finansial tetap wajib shift `OPEN`) | Mempertahankan filter shift aktif pada seluruh intake pembayaran tunai & settlement | `CashierShiftService.cs`, `BillingInvoiceService.cs` | — (dipertahankan apa adanya) |
+
+## 4. Yang Dibuka Gelombang Ini untuk Modul Lain
+
+Tidak ada kemampuan lintas modul baru yang dibuka. Perubahan ini murni memperkuat kontrol internal pada modul **Kasir & Billing** guna memastikan pertanggungjawaban uang fisik kasir di rumah sakit.
+
+## 5. Status Gap, Pertanyaan, dan Wewenang Terpisah
+
+| Butir | Status | Penjelasan & Pemilik |
+| --- | :---: | --- |
+| `BKC-OQ-104` (Wewenang & field penyelesaian tindak lanjut) | **DITUTUP** | `BKC-DEC-125`: Supervisor/Kepala Kasir dengan field `VerificationNote`, `VerifiedBy`, `VerifiedDate`. |
+| `BKC-OQ-105` (Matriks hak akses tertulis terpisah vs AccessAction) | **DITUTUP** | `BKC-DEC-126`: Cukup konvensi `[AccessAction]` / `[AccessPermission]` baku; pesan error standar `"{Nama Field} wajib diisi."`. |
+
+## 6. Laporan Task Terverifikasi
+
+| Task ID | Laporan | Status |
+| --- | --- | :---: |
+| `BE-BKC-077` | [BE-BKC-077.md](../task/report/backend/BE-BKC-077.md) | 🟡 `SEBAGIAN` (Source selesai, menunggu build pengguna) |
+| `BE-BKC-078` | [BE-BKC-078.md](../task/report/backend/BE-BKC-078.md) | 🟡 `SEBAGIAN` (Source selesai, menunggu build pengguna) |
+| `FE-BKC-043` | [FE-BKC-043.md](../task/report/frontend/FE-BKC-043.md) | 🟡 `SEBAGIAN` (Source & unit test selesai) |
+| `BKC-OQ-106` (Status Bagian 10 dokumen - rekomendasi vs rule) | **DITUTUP** | `BKC-DEC-127`: Bagian 10 tetap rekomendasi non-mengikat; aksi finansial tetap wajib shift `OPEN` per `RULE-002`/`019`. |
+| Wewenang menulis source code | Terpisah | Wajib konfirmasi approval task per task sebelum builder menulis source code. |
+| Otorisasi migration EF Core | Tidak berlaku | Nol migration pada seluruh cakupan `MVP-34`. |
+

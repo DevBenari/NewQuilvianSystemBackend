@@ -129,6 +129,17 @@ melahirkan dua kejadian, dan `Id` cukup untuk itu.
 `HandoffType` — bukan tabel intake baru. Rinciannya di `02-backend-architecture.md` bagian
 AMENDMENT REVISI 3.
 
+**Keempat fakta ini TIDAK terlihat di layar pemantauan "Surat ke Modul Konsumen" milik
+Billing.** Layar itu (`BilConsumerHandoffService.GetPendingHandoffsAsync`) hanya memantau surat
+yang punya kolom status handoff sendiri (`BilCollectionHandoff`, `BilPrescriptionClearanceHandoff`,
+handoff rawat inap) — sumber yang ditandai `CREATED` lalu diakui `ACKNOWLEDGED` oleh konsumennya.
+`BilDepositMovement`, `BilRefundableCredit`, `BilRefundCase`, dan `BilCashVarianceReview` **tidak
+punya kolom status seperti itu**, dan Finance dilarang menulisnya (`FIN-STATE-1.1` bagian 1: nol
+ACK, status akhir langsung `CONSUMED`). Konsekuensinya: bila sinkronisasi keempat fakta ini macet
+di sisi Finance, layar Billing itu **tidak akan menunjukkan apa pun** — pemantauannya wajib
+dilakukan dari sisi Finance sendiri (rute `FE-FIN-006`, membaca baris `FinBillingHandoffIntake`
+berstatus `NEW`/`ERROR`), bukan dari layar konsumen Billing.
+
 ---
 
 ## 3. Billing → Finance: fakta AR, AP, dan koreksi (sudah ada)

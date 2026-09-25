@@ -30,6 +30,7 @@ public static class CashierShiftStatuses
     public const string ClosedWithVariance = "CLOSED_WITH_VARIANCE";
     public const string Reviewed = "REVIEWED";
     public const string Reopened = "REOPENED";
+    public const string PerluTindakLanjut = "PERLU_TINDAK_LANJUT";
 
     public static bool IsActive(string status) =>
         status is Open or Reopened;

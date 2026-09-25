@@ -2743,3 +2743,123 @@ Jumlah panah dependency: **0**. Bebas siklus.
 | Approval arsitektur `BUI-DES-001`/`002` | **BUKAN** bagian dari approval `BUI-DEC-001`–`015`. **Diberikan pemilik modul 25 September 2026** — gerbang tertutup untuk keduanya |
 | Migration | Tidak berlaku pada gelombang ini — nol migration di kedua task |
 | QBE preflight | Diselesaikan pada waktu eksekusi masing-masing task, dari `AGENTS.md` backend target — bukan dari roadmap ini |
+
+---
+
+# Gelombang `MVP-34` — Shift Kasir: Blocking Selisih Kas dan Status Tindak Lanjut
+
+| Field | Nilai |
+| --- | --- |
+| Blueprint | `BIL-CASH-001` revisi `1.7` · status `draft` |
+| Masukan | `BKC-DEC-123`–`127` (**approved 25 September 2026** oleh Yasmin), dokumen `Shift Kasir (3).md` (`RULE-005`, `RULE-011`, `RULE-012`, `BP-005`, `BP-007`) |
+| Contract version berlaku | `BIL-API-1.6` (draft), `BIL-STATE-1.5` (draft), `BIL-VALIDATION-1.5` (draft), `BIL-PERMISSION-1.3` (draft), `BIL-TEST-1.6` (draft) |
+| Backend baseline SHA | `4eed1700` |
+| Frontend baseline SHA | `52057a75` |
+
+## Konteks Bisnis Rumah Sakit & Alur Operasional
+
+Dalam operasional kasir rumah sakit 24 jam, pertanggungjawaban fisik kas antar pergantian shift kerja (*shift handover*) adalah titik kontrol krusial guna menghindari kebocoran dana dan perselisihan antar petugas kasir.
+
+### Contoh Kasus Riil Rumah Sakit:
+1. **Kasus 1 — Blokir Buka Shift Akibat Selisih Belum Direview (`BKC-DEC-123`):**
+   Kasir Siti yang bertugas di Loket 2 Rawat Jalan menyelesaikan shift pagi dengan menghitung fisik kas di laci kasir. Hasil perhitungan menunjukkan fisik kas kurang Rp50.000 dari penerimaan tercatat sistem (`Variance = -50.000`), sehingga shift ditutup dengan status `CLOSED_WITH_VARIANCE`. Ketika Kasir Budi datang untuk bertugas shift siang di Loket 2 yang sama (atau Kasir Siti mencoba membuka shift di loket lain keesokan harinya), sistem secara ketat **menolak pembukaan shift baru** dengan pesan ramah operasional: *"Kasir atau register masih memiliki shift yang menunggu review selisih kas."* Blokir ini memastikan uang di laci kasir tidak tercampur baur sebelum selisih dipertanggungjawabkan.
+2. **Kasus 2 — Hasil Evaluasi Kepala Kasir Menjadi Perlu Tindak Lanjut (`BKC-DEC-124`):**
+   Kepala Kasir Joko memanggil Kasir Siti untuk meninjau selisih Rp50.000 tersebut. Ditemukan indikasi bahwa terdapat satu bukti setor pembayaran rawat jalan manual yang belum diinput atau uang terselip. Karena investigasi fisik membutuhkan konfirmasi dari petugas poli, Kepala Kasir tidak langsung meloloskan shift, melainkan memilih hasil review **"Perlu Tindak Lanjut"** (status shift bergeser menjadi `PERLU_TINDAK_LANJUT`). Dengan status ini, blokir pembukaan shift berikutnya tetap bertahan kuat.
+3. **Kasus 3 — Penyelesaian Tindak Lanjut Mengangkat Blokir (`BKC-DEC-125`):**
+   Setelah bukti transaksi fisik Rp50.000 ditemukan dan diverifikasi klop, Kepala Kasir Joko membuka kembali rincian shift tersebut, menekan aksi **"Selesaikan Tindak Lanjut"**, mencantumkan catatan verifikasi wajib (*"Kuitansi manual Poli Gigi No. 41 telah diverifikasi dan fisik kas telah disesuaikan"*), dan menyimpannya. Sistem mencatat `VerifiedBy` dan `VerifiedDate` secara otomatis, status shift resmi beralih menjadi `REVIEWED`, dan blokir pembukaan shift di Loket 2 otomatis terangkat.
+
+---
+
+## Grafik Urutan Dependency
+
+```mermaid
+flowchart TD
+    BE-BKC-077["🟡 BE-BKC-077<br/>Blocking Pembukaan Shift Belum Direview"]
+    BE-BKC-078["🟡 BE-BKC-078<br/>Status PERLU_TINDAK_LANJUT & Endpoint Selesai"]
+
+    BE-BKC-077 --> BE-BKC-078
+```
+
+Panah berarti **"prasyarat harus selesai lebih dulu"**. Task `BE-BKC-077` menegakkan pemblokiran di pintu masuk `OpenAsync`, sedangkan `BE-BKC-078` menambahkan status peralihan `PERLU_TINDAK_LANJUT` dan endpoint penyelesaian yang melepas pemblokiran tersebut ke status `REVIEWED`.
+
+### Tabel Gelombang Eksekusi
+
+| Gelombang Eksekusi | Boleh Mulai Setelah | Task | Dapat Berjalan Paralel? |
+| :---: | --- | --- | :---: |
+| 1 | Mandiri (Nol prasyarat dalam gelombang) | 🟡 `BE-BKC-077` | Tunggal |
+| 2 | Selesai `BE-BKC-077` | 🟡 `BE-BKC-078` | Tunggal |
+
+Jumlah panah dependency: **1**. Bebas siklus.
+
+---
+
+## Tabel Task
+
+| Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 🟡 `BE-BKC-077` | `CashierShiftService.OpenAsync` menolak pembukaan shift jika kasir atau register masih memiliki shift `CLOSED_WITH_VARIANCE` atau `PERLU_TINDAK_LANJUT` yang belum `REVIEWED` | `BKC-DEC-123`, `BKC-DEC-126`, `RULE-012`, `BP-007` | `BIL-API-1.6` (draft), `BIL-VALIDATION-1.5` (draft) | `CashierShiftService.OpenAsync` (baris 67-71), `BilCashierShifts` EF Core query, `CashierShiftConflictException` | Tambah query validasi pra-buka shift untuk memeriksa status `CLOSED_WITH_VARIANCE` dan `PERLU_TINDAK_LANJUT` pada kasir ATAU register; lempar `CashierShiftConflictException` dengan pesan standar `Kasir atau register masih memiliki shift yang menunggu review selisih kas.` | — | Pembukaan shift ditolak (HTTP 409) jika kasir memiliki shift berselisih belum direview; pembukaan shift ditolak (HTTP 409) jika register memiliki shift berselisih belum direview; pembukaan shift diizinkan (HTTP 201) bila shift sebelumnya sudah `REVIEWED` atau `CLOSED` seimbang | Uji unit `CashierShiftServiceTests`; uji integrasi `OpenAsync` via controller; verifikasi response status HTTP 409 Conflict | **Nol migration.** Lindungi register dan kasir dengan advisory lock yang sudah ada. Owner Backend | Query penjaga terpasang di `OpenAsync`; pesan standar terbukti; tes unit skenario tolak/lolos lulus; QBE preflight PASS |
+| 🟡 `BE-BKC-078` | Menambahkan status `PERLU_TINDAK_LANJUT` pada review variance supervisor dan endpoint aksi susulan penyelesaian tindak lanjut menjadi `REVIEWED` | `BKC-DEC-124`, `BKC-DEC-125`, `BKC-DEC-126`, `BP-005`, `RULE-011` | `BIL-API-1.6` (draft), `BIL-STATE-1.5` (draft), `BIL-VALIDATION-1.5` (draft), `BIL-PERMISSION-1.3` (draft) | `BilCashierShift.cs`, `CashierShiftStatuses`, `ReviewVarianceAsync`, `BilCashVarianceReview`, `CashierShiftsController`, `BilCashierShiftCommand` | Tambah konstanta `CashierShiftStatuses.PerluTindakLanjut`; perluas `ReviewVarianceRequest` dengan field `Outcome`; sesuaikan `ReviewVarianceAsync` agar dapat menetapkan `PERLU_TINDAK_LANJUT`; buat DTO `ResolveShiftFollowUpRequest` dengan validasi `VerificationNote wajib diisi.`; buat method `ResolveFollowUpAsync` dan endpoint `POST {id}/resolve-follow-up`; rekam audit command | `BE-BKC-077` | `ReviewVariance` dengan outcome `NeedsFollowUp` menghasilkan status `PERLU_TINDAK_LANJUT`; shift `PERLU_TINDAK_LANJUT` memblokir shift baru per `BE-BKC-077`; `ResolveFollowUp` hanya dapat dipanggil untuk status `PERLU_TINDAK_LANJUT`; catatan verifikasi wajib terisi (HTTP 422 jika kosong); sukses memindahkan status ke `REVIEWED` | Uji unit transisi status `ReviewVarianceAsync` dan `ResolveFollowUpAsync`; uji idempotensi endpoint; verifikasi kepatuhan Swagger OpenAPI | **Nol migration.** Status disimpan pada kolom string existing `BilCashierShift.Status`. Hak akses menggunakan resource `CashierShift` action `Review`/`ResolveFollowUp`. Owner Backend | Konstanta status terdaftar; endpoint baru terpasang dengan RBAC dan audit command; validasi pesan field wajib teruji; tes unit lulus; QBE preflight PASS |
+
+---
+
+## Rincian Task
+
+### 🟡 `BE-BKC-077` — Blocking Pembukaan Shift Belum Direview
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Kasir atau loket (register) yang masih memiliki tanggungan selisih kas pada shift sebelumnya dicegah secara sistemik membuka shift baru sebelum dilakukan peninjauan oleh supervisor |
+| Jejak | `BKC-DEC-123`, `BKC-DEC-126`, `RULE-012`, `BP-007` |
+| Contract | `BIL-API-1.6` (draft), `BIL-VALIDATION-1.5` (draft) |
+| Kemampuan existing yang dipakai | `CashierShiftService.OpenAsync`, `_dbContext.BilCashierShifts`, `CashierShiftConflictException` |
+| Cakupan yang diharapkan | Pada `CashierShiftService.cs` baris 67-71, setelah pengecekan `ActiveShifts()`, tambahkan query pengecekan shift tertahan: periksa apakah terdapat baris `BilCashierShift` aktif (`!IsDelete`) milik `CashierId == actorUserId` ATAU `RegisterId == request.RegisterId` yang berstatus `CLOSED_WITH_VARIANCE` atau `PERLU_TINDAK_LANJUT`. Jika ditemukan, lempar `CashierShiftConflictException("Kasir atau register masih memiliki shift yang menunggu review selisih kas.")`. Pesan ini ditangkap oleh `Failure` handler di `CashierShiftsController` dan menghasilkan HTTP 409 Conflict |
+| Dependency | Tidak ada |
+| Acceptance criteria | 1. Kasir dengan shift `CLOSED_WITH_VARIANCE` ditolak saat `OpenAsync` dengan pesan `"Kasir atau register masih memiliki shift yang menunggu review selisih kas."` (HTTP 409).<br/>2. Register/loket dengan shift `CLOSED_WITH_VARIANCE` milik kasir lain ditolak saat kasir baru mencoba membuka shift di loket tersebut.<br/>3. Kasir/register dengan shift `PERLU_TINDAK_LANJUT` ditolak membuka shift baru (HTTP 409).<br/>4. Kasir/register yang shift sebelumnya `CLOSED` seimbang (`Variance == 0`), `HANDED_OVER`, atau `REVIEWED` berhasil membuka shift baru (HTTP 201 Created). |
+| Bukti verifikasi | Unit tests pada `CashierShiftServiceTests.cs` mencakup pengujian: (a) kasir terblokir variance, (b) register terblokir variance, (c) kasir terblokir follow-up, (d) pembukaan shift sukses saat riwayat telah `REVIEWED`. Verifikasi output error status HTTP 409 |
+| Risiko | Perluasan query tidak boleh menimbulkan kebuntuan (*deadlock*): kueri membaca tabel di bawah transaksi yang sudah memegang kunci penasihat `BIL_CASHIER_{actorUserId}` dan `BIL_REGISTER_{RegisterId}` |
+| Pemilik | Backend Engineering |
+| Definition of Done | Logika validasi terpasang di `CashierShiftService.OpenAsync`; pesan penolakan persis sesuai `BKC-DEC-123`; unit test skenario tolak dan lolos lulus 100%; nol migration; QBE preflight PASS |
+| Status | 🟡 **SEBAGIAN — source code selesai 25 September 2026.** Query penjaga blocking kasir dan register pada `CashierShiftService.OpenAsync` serta konstanta `CashierShiftStatuses.PerluTindakLanjut` telah terpasang persis sesuai `BKC-DEC-123`. Nol migration. Menunggu kompilasi `dotnet build` mandiri oleh pengguna sesuai instruksi. Bukti: [laporan](../task/report/backend/BE-BKC-077.md) |
+
+---
+
+### 🟡 `BE-BKC-078` — Status `PERLU_TINDAK_LANJUT` & Endpoint Penyelesaian
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Supervisor/Kepala Kasir memiliki instrumen formal untuk menyatakan hasil review selisih kas membutuhkan investigasi lanjutan (`PERLU_TINDAK_LANJUT`), dan dapat mengeksekusi penyelesaian tindak lanjut tersebut secara definitif menjadi `REVIEWED` |
+| Jejak | `BKC-DEC-124`, `BKC-DEC-125`, `BKC-DEC-126`, `BP-005`, `RULE-011` |
+| Contract | `BIL-API-1.6` (draft), `BIL-STATE-1.5` (draft), `BIL-VALIDATION-1.5` (draft), `BIL-PERMISSION-1.3` (draft) |
+| Kemampuan existing yang dipakai | `BilCashierShift.cs`, `BilCashVarianceReview.cs`, `CashierShiftService.ReviewVarianceAsync`, `CashierShiftsController`, `BilCashierShiftCommand` |
+| Cakupan yang diharapkan | 1. `BilCashierShift.cs`: Tambahkan `public const string PerluTindakLanjut = "PERLU_TINDAK_LANJUT";` pada kelas `CashierShiftStatuses`.<br/>2. `CashierShiftDtos.cs`: Tambahkan properti `public string? Outcome { get; set; }` pada `ReviewVarianceRequest`. Buat kelas DTO baru `ResolveShiftFollowUpRequest` dengan field `ExpectedRowVersion` (Guid), `VerificationNote` (string, max 500, required), `CorrelationId` (Guid), `CausationId` (Guid).<br/>3. `CashierShiftService.cs`: Pada `ReviewVarianceAsync`, jika `request.Outcome?.Trim().ToUpperInvariant() == "NEEDS_FOLLOW_UP"`, ubah status shift menjadi `CashierShiftStatuses.PerluTindakLanjut`; bila tidak (default/`VERIFIED`), ubah menjadi `CashierShiftStatuses.Reviewed`. Tambahkan method baru `ResolveFollowUpAsync(Guid shiftId, ResolveShiftFollowUpRequest request, Guid idempotencyKey, Guid actorUserId, string actorRole, CancellationToken cancellationToken)` yang memvalidasi status `PERLU_TINDAK_LANJUT`, mengunci shift, memperbarui status menjadi `REVIEWED`, mencatat audit log, dan mengembalikan `CashVarianceResponse`.<br/>4. `CashierShiftsController.cs`: Tambahkan endpoint `POST {id:guid}/resolve-follow-up` dengan atribut `[AccessAction("ResolveFollowUp", ...)]` dan `[AccessPermission("CashierShift", "Review")]`.<br/>5. Pola pesan validasi field wajib mengikuti format standar `"{Nama Field} wajib diisi."` (`"Catatan verifikasi wajib diisi."`) per `BKC-DEC-126`. |
+| Dependency | `BE-BKC-077` |
+| Acceptance criteria | 1. Pemanggilan `POST {id}/variance-reviews` dengan `Outcome = "NEEDS_FOLLOW_UP"` mengubah status shift menjadi `PERLU_TINDAK_LANJUT`.<br/>2. Pemanggilan `POST {id}/variance-reviews` dengan `Outcome = "VERIFIED"` (atau tanpa outcome) mengubah status shift menjadi `REVIEWED`.<br/>3. Pemanggilan `POST {id}/resolve-follow-up` pada shift yang BUKAN `PERLU_TINDAK_LANJUT` ditolak (HTTP 422).<br/>4. Pemanggilan `POST {id}/resolve-follow-up` dengan `VerificationNote` kosong ditolak dengan pesan `"Catatan verifikasi wajib diisi."` (HTTP 422).<br/>5. Pemanggilan `POST {id}/resolve-follow-up` yang valid memindahkan status shift ke `REVIEWED`, mengisi catatan penyelesaian, dan membuka kembali blokir pembukaan shift di kasir/register tersebut.<br/>6. Operasi `resolve-follow-up` bersifat idempoten via `Idempotency-Key` header. |
+| Bukti verifikasi | Unit tests pada `CashierShiftServiceTests.cs` untuk percabangan `ReviewVarianceAsync` dan alur eksekusi `ResolveFollowUpAsync`; uji kepatuhan validasi anotasi DTO; verifikasi Swagger OpenAPI schema untuk endpoint baru |
+| Risiko | Mencegah loncatan status ilegal: status hanya boleh beralih dari `PERLU_TINDAK_LANJUT` ke `REVIEWED`. Mutasi dilindungi oleh verifikasi `ExpectedRowVersion` dan advisory lock per shift |
+| Pemilik | Backend Engineering |
+| Definition of Done | Nilai status baru terdaftar; DTO dan endpoint baru terpasang; otorisasi RBAC dan audit command tercatat lengkap; unit test transisi status lulus 100%; Swagger sinkron; QBE preflight PASS; nol migration |
+| Status | 🟡 **SEBAGIAN — source code selesai 25 September 2026.** Penambahan field `Outcome` pada `ReviewVarianceRequest`, transisi status `PERLU_TINDAK_LANJUT` pada `ReviewVarianceAsync`, DTO `ResolveShiftFollowUpRequest`, method `ResolveFollowUpAsync`, audit command `RESOLVE_FOLLOW_UP`, dan controller endpoint `POST {id}/resolve-follow-up` telah terpasang. Nol migration. Menunggu kompilasi `dotnet build` mandiri oleh pengguna sesuai instruksi. Bukti: [laporan](../task/report/backend/BE-BKC-078.md) |
+
+---
+
+## Spesifikasi API Bergaya Swagger
+
+Grup Tag: `[Tags("Health Services / Billing Management / Cashier / Shifts")]`
+
+| Method | Path | Deskripsi | Otorisasi & Hak Akses | Request Body / Header | Status & Response Body |
+| :---: | --- | --- | --- | --- | :---: |
+| `POST` | `/api/v1/health-services/billing-management/cashier/shifts/open` | Membuka shift kasir baru dengan validasi blokir selisih kas | `[Authorize]`, `[AccessPermission("CashierShift", "Create")]` | Header: `Idempotency-Key`<br/>Body: `OpenShiftRequest` (`RegisterId`, `OpeningCash`, `CorrelationId`, `CausationId`) | `201 Created`: `ApiResponse<CashierShiftResponse>`<br/>`409 Conflict`: `ApiResponse<object>` (*"Kasir atau register masih memiliki shift yang menunggu review selisih kas."*) |
+| `POST` | `/api/v1/health-services/billing-management/cashier/shifts/{id:guid}/variance-reviews` | Meninjau selisih kas penutupan shift dengan pilihan hasil verifikasi penuh atau perlu tindak lanjut | `[Authorize]`, `[AccessPermission("CashierShift", "Review")]` | Header: `Idempotency-Key`<br/>Body: `ReviewVarianceRequest` (`ExpectedRowVersion`, `Resolution`, `Reason`, `Outcome`, `CorrelationId`, `CausationId`) | `201 Created`: `ApiResponse<CashVarianceResponse>` (`Shift.Status`: `REVIEWED` atau `PERLU_TINDAK_LANJUT`)<br/>`422 Unprocessable`: `ApiResponse<object>` |
+| `POST` | `/api/v1/health-services/billing-management/cashier/shifts/{id:guid}/resolve-follow-up` | Menyelesaikan investigasi tindak lanjut shift selisih kas dan memindahkan status definitif ke `REVIEWED` | `[Authorize]`, `[AccessAction("ResolveFollowUp", ...)]`, `[AccessPermission("CashierShift", "Review")]` | Header: `Idempotency-Key`<br/>Body: `ResolveShiftFollowUpRequest` (`ExpectedRowVersion`, `VerificationNote`, `CorrelationId`, `CausationId`) | `200 OK`: `ApiResponse<CashVarianceResponse>` (`Shift.Status`: `REVIEWED`)<br/>`422 Unprocessable`: `ApiResponse<object>` (*"Catatan verifikasi wajib diisi."*) |
+
+---
+
+## Wewenang yang Tetap Terpisah
+
+| Wewenang | Pemilik | Catatan |
+| --- | --- | --- |
+| Menulis source code backend | Diminta per task saat eksekusi handoff | Approval roadmap bukan otorisasi menulis kode aplikasi secara mandiri |
+| Otorisasi penyelesaian tindak lanjut selisih kas | Supervisor / Kepala Kasir | Sesuai `BKC-DEC-125`; keputusan kebijakan penanggungan nominal tetap di ranah Manajemen RS per `RULE-014` |
+| Eksekusi migration basis data | Tidak berlaku | Seluruh cakupan `MVP-34` adalah **Nol Migration** (status disimpan dalam kolom string yang sudah ada) |
+| QBE preflight dan verifikasi arsitektur | Divalidasi saat eksekusi task | Mengacu pada `AGENTS.md` backend target dan dokumen engineering canonical |
+

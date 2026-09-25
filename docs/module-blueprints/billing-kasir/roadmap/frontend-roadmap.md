@@ -1903,3 +1903,127 @@ Jumlah panah dependency: **1**. Bebas siklus.
 | Mengetik manual total refund atau nominal deposito | Keduanya turunan data server (`RefundableAmount` per baris, `RemainingDepositAmount`) — input manual membuka celah kesalahan nominal |
 | Endpoint upload memo dokter, layar Catatan Penting | `FR-BUI-009`/`010` `OPEN DECISION` — TIDAK masuk gelombang mana pun pada roadmap ini, lihat `04-prd-to-mvp.md` amendment revisi 1.6 |
 | Mengubah `.categorySelector`/`base-payer-workspace.module.css` untuk kebutuhan payment method | Komponen itu dipakai `FE-BUI-005` untuk keperluan berbeda (kategori kandidat); `FE-BUI-006` MUST memakai komponen terpisah |
+
+---
+
+# Gelombang `MVP-34` — Shift Kasir: Penanganan Status Tindak Lanjut dan Resolusi Selisih
+
+| Field | Nilai |
+| --- | --- |
+| Blueprint | `BIL-CASH-001` revisi `1.7` · status `draft` |
+| Masukan | `BKC-DEC-123`–`127` (**approved 25 September 2026** oleh Yasmin), dokumen `Shift Kasir (3).md` (`RULE-005`, `RULE-011`, `RULE-012`, `BP-005`, `BP-007`) |
+| Contract version berlaku | `BIL-API-1.6` (draft), `BIL-STATE-1.5` (draft) |
+| Frontend baseline SHA | `52057a75` |
+| Backend baseline SHA | `4eed1700` |
+
+## Konteks Pengalaman Pengguna (UX) di Rumah Sakit
+
+Perubahan ini menyempurnakan interaksi visual kasir dan supervisor di loket kasir rumah sakit:
+1. **Penyampaian Alasan Blokir yang Edukatif:** Saat kasir mencoba membuka shift di loket yang sebelumnya memiliki penutupan berselisih belum tuntas, sistem menampilkan pesan peringatan yang terang dan jelas (*"Kasir atau register masih memiliki shift yang menunggu review selisih kas."*), bukan sekadar galat umum sistem.
+2. **Fleksibilitas Evaluasi Supervisor:** Kepala Kasir kini dapat menetapkan apakah selisih kas langsung selesai ditutup (*Terverifikasi*) atau memerlukan pencarian dokumen/investigasi fisik lanjutan (*Perlu Tindak Lanjut*).
+3. **Instrumen Penyelesaian Terdedikasi:** Untuk shift yang berstatus `PERLU_TINDAK_LANJUT`, supervisor disediakan tombol aksi dan modal khusus untuk mendokumentasikan hasil verifikasi akhir sehingga pertanggungjawaban kas terekam dengan integritas audit yang kuat.
+
+---
+
+## Grafik Urutan Dependency
+
+```mermaid
+flowchart TD
+    subgraph BE ["Backend (Cermin Baca-Saja)"]
+        BE-BKC-077["[BE] 🟡 BE-BKC-077<br/>Blocking Pembukaan Shift"]
+        BE-BKC-078["[BE] 🟡 BE-BKC-078<br/>Status PERLU_TINDAK_LANJUT & Endpoint Selesai"]
+    end
+
+    FE-BKC-043["🟡 FE-BKC-043<br/>Badge Status, Saringan & Pesan Blokir"]
+    FE-BKC-044["🟡 FE-BKC-044<br/>Review Dua Hasil & Modal Penyelesaian"]
+
+    BE-BKC-077 --> FE-BKC-043
+    BE-BKC-078 --> FE-BKC-044
+    FE-BKC-043 --> FE-BKC-044
+```
+
+Panah berarti **"prasyarat harus selesai lebih dulu"**. Task `FE-BKC-043` membutuhkan backend `BE-BKC-077` untuk memastikan respon error blocking dapat diuji secara riil. Task `FE-BKC-044` membutuhkan backend `BE-BKC-078` (endpoint `resolve-follow-up` dan parameter review) serta `FE-BKC-043` (konstanta badge dan opsi saringan).
+
+### Tabel Gelombang Eksekusi
+
+| Gelombang Eksekusi | Boleh Mulai Setelah | Task | Dapat Berjalan Paralel? |
+| :---: | --- | --- | :---: |
+| 1 | Selesai `[BE] BE-BKC-077` | 🟡 `FE-BKC-043` | Tunggal |
+| 2 | Selesai `[BE] BE-BKC-078` dan `FE-BKC-043` | 🟡 `FE-BKC-044` | Tunggal |
+
+Jumlah panah dependency: **3** (2 panah lintas-backend sebagai cermin baca-saja, 1 panah internal frontend). Bebas siklus.
+
+---
+
+## Tabel Task
+
+| Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 🟡 `FE-BKC-043` | UI Shift Kasir menampilkan badge status `PERLU_TINDAK_LANJUT`, menyediakan opsi saringan riwayat baru, dan menangani pesan penolakan buka shift secara informatif | `BKC-DEC-123`, `BKC-DEC-124`, `BKC-DEC-126`, `RULE-012`, `RULE-013` | `BIL-API-1.6` (draft) | `cashier-shift-constants.js`, `open-shift-modal.jsx`, `cashier-shift-history.jsx`, `use-cashier-shift.js` | Daftarkan status `perlu_tindak_lanjut` ke `CASHIER_SHIFT_STATUS_BADGE_CONFIG` (label: "Perlu Tindak Lanjut", style: warning) dan `CASHIER_SHIFT_STATUS_OPTIONS`; perbarui `useCashierShift.js` untuk memetakan error HTTP 409 saat `openShift` ke state error/alert modal | `[BE] BE-BKC-077` | Badge status "Perlu Tindak Lanjut" muncul di tabel/preview; opsi saringan status memuat "Perlu Tindak Lanjut"; saat kasir terblokir, modal Buka Shift menampilkan pesan persis dari backend: `Kasir atau register masih memiliki shift yang menunggu review selisih kas.` | `npm run lint:errors`; `npm run test:unit`; `npm run build`; uji manual form Buka Shift dengan simulasi error 409 | Hindari hardcode pesan error di klien — baca `error.response?.data?.message` dengan fallback pesan standar. Owner Frontend | Badge & opsi filter aktif; penanganan error 409 terpasang di hook; unit test lulus; build lulus |
+| 🟡 `FE-BKC-044` | Kepala Kasir dapat memilih opsi hasil review ("Terverifikasi" vs "Perlu Tindak Lanjut") pada modal review, dan menyelesaikan shift status `PERLU_TINDAK_LANJUT` melalui modal `ResolveFollowUpModal` | `BKC-DEC-124`, `BKC-DEC-125`, `BKC-DEC-126`, `BP-005`, `RULE-011` | `BIL-API-1.6` (draft) | `review-variance-modal.jsx`, `BaseRadio`/`BaseSelectField`, `BaseTextAreaField`, `BaseButton`, `use-cashier-shift.js`, `cashier-shift-view.jsx` | Perluas `review-variance-modal.jsx` dengan pilihan hasil review (radio "Terverifikasi / Selesai" vs "Perlu Tindak Lanjut"); buat komponen modal baru `resolve-follow-up-modal.jsx` dengan input catatan wajib (`VerificationNote`); tambahkan tombol aksi "Selesaikan Tindak Lanjut" pada baris riwayat shift berstatus `PERLU_TINDAK_LANJUT`; perluas `use-cashier-shift.js` dengan handler submit | `[BE] BE-BKC-078`, `FE-BKC-043` | Modal review mengirim parameter `outcome`; modal `resolve-follow-up-modal.jsx` menampilkan ringkasan shift dan validasi catatan wajib (`Catatan verifikasi wajib diisi.`); submit berhasil memanggil API `resolve-follow-up` dan mengubah status shift menjadi `REVIEWED`; baris riwayat shift ter-refresh otomatis | `npm run lint:errors`; `npm run test:unit`; `npm run build`; pengujian alur review variance dan alur penyelesaian tindak lanjut | Validasi pesan error wajib mengikuti pola `"{Nama Field} wajib diisi."` per `BKC-DEC-126`. Pastikan tombol aksi hanya aktif bagi peran berwenang. Owner Frontend | Komponen modal baru terpasang; modal review dua hasil berfungsi; validasi catatan wajib teruji; build lulus |
+
+---
+
+## Rincian Task
+
+### 🟡 `FE-BKC-043` — Badge Status, Saringan & Pesan Blokir
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Antarmuka kasir mengenali siklus status baru dan memberikan umpan balik yang jelas saat pembukaan shift tertahan oleh selisih kas yang belum direview |
+| Jejak | `BKC-DEC-123`, `BKC-DEC-124`, `BKC-DEC-126`, `RULE-012`, `RULE-013` |
+| Contract | `BIL-API-1.6` (draft) |
+| Layar | `cashier-shift-view.jsx`, `cashier-shift-history.jsx`, `open-shift-modal.jsx` |
+| Reuse | `cashier-shift-constants.js`, `StatusBadge`, `InformationAlert`, `BaseButton` |
+| Scope | 1. Pada `cashier-shift-constants.js`: Tambahkan entri `perlu_tindak_lanjut: { label: "Perlu Tindak Lanjut", className: "region-status-warning" }` ke `CASHIER_SHIFT_STATUS_BADGE_CONFIG` dan `{ value: "PERLU_TINDAK_LANJUT", label: "Perlu Tindak Lanjut" }` ke `CASHIER_SHIFT_STATUS_OPTIONS`.<br/>2. Pada `use-cashier-shift.js`: Tangkap error 409 pada fungsi `confirmOpenShift`, periksa apakah pesan memuat `"menunggu review selisih kas"`, dan teruskan pesan tersebut ke `openShiftFieldErrors.general` atau toast error agar modal menampilkan pesan penolakan eksplisit.<br/>3. Pada `open-shift-modal.jsx`: Render komponen `InformationAlert` varian warning jika terdapat error umum blocking pembukaan shift. |
+| Dependency | `[BE] BE-BKC-077` |
+| Acceptance criteria | 1. Baris riwayat shift dengan status `PERLU_TINDAK_LANJUT` merender teks badge "Perlu Tindak Lanjut" dengan warna warning yang konsisten.<br/>2. Dropdown saringan status di halaman riwayat memuat opsi "Perlu Tindak Lanjut" dan memfilter data dengan benar.<br/>3. Saat kasir/register terblokir, modal Buka Shift tidak menutup secara tiba-tiba melainkan menampilkan pesan penolakan jelas: *"Kasir atau register masih memiliki shift yang menunggu review selisih kas."* |
+| Bukti verifikasi | `npm run lint:errors` lulus 0 error; `npm run test:unit` lulus; `npm run build` berhasil; pengujian interaksi form Buka Shift dengan simulasi error backend |
+| Kewenangan UI | Label status "Perlu Tindak Lanjut" dan format pesan error terikat keputusan bisnis (`BKC-DEC-124`, `BKC-DEC-126`). Penempatan alert peringatan mengikuti `DEV_DISCRETION` |
+| Risiko/pemilik | Jangan mengubah format data filter yang dikirim ke backend. Owner Frontend |
+| Definition of Done | Entri status baru terdaftar; penanganan error 409 terpasang di hook; modal menampilkan alert blocking; build lulus tanpa error |
+| Status | 🟡 **SEBAGIAN — source code dan validasi unit test selesai 25 September 2026.** Badge status "Perlu Tindak Lanjut" pada `cashier-shift-constants.js`, opsi saringan riwayat shift, pemetaan error HTTP 409 di hook `useCashierShift`, dan rendering komponen `InformationAlert` pada modal buka shift telah terpasang. Unit test 4/4 PASS. Bukti: [laporan](../task/report/frontend/FE-BKC-043.md) |
+
+---
+
+### 🟡 `FE-BKC-044` — Review Dua Hasil & Modal Penyelesaian
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Kepala Kasir dapat memilih apakah hasil peninjauan selisih kas langsung selesai atau membutuhkan tindak lanjut, serta dapat menyelesaikan shift `PERLU_TINDAK_LANJUT` melalui modal aksi khusus |
+| Jejak | `BKC-DEC-124`, `BKC-DEC-125`, `BKC-DEC-126`, `BP-005`, `RULE-011` |
+| Contract | `BIL-API-1.6` (draft) |
+| Layar | `review-variance-modal.jsx`, `resolve-follow-up-modal.jsx` (baru), `cashier-shift-view.jsx`, `cashier-shift-history.jsx` |
+| Reuse | `review-variance-modal.jsx`, `BaseRadio`/`BaseSelectField`, `BaseTextAreaField`, `BaseButton`, `InformationAlert`, `use-cashier-shift.js` |
+| Scope | 1. Pada `review-variance-modal.jsx`: Tambahkan kontrol pemilihan hasil review (radio button: "Terverifikasi (Selesai)" nilai `"VERIFIED"`, "Perlu Tindak Lanjut" nilai `"NEEDS_FOLLOW_UP"`). Ikat ke `form.outcome`.<br/>2. Buat berkas baru `resolve-follow-up-modal.jsx`: Modal form khusus untuk menyelesaikan shift `PERLU_TINDAK_LANJUT`. Menampilkan detail ringkas shift (Shift ID, Kasir, Nominal Selisih, Keputusan/Alasan Review Awal), field `verificationNote` ("Catatan Penyelesaian Tindak Lanjut", textarea required, maxLength 500), serta tombol submit "Selesaikan Tindak Lanjut".<br/>3. Pada `use-cashier-shift.js`: Tambahkan state dan action handler: `resolveFollowUpOpen`, `resolveFollowUpTarget`, `resolveFollowUpForm`, `resolveFollowUpFieldErrors`, `openResolveFollowUp`, `closeResolveFollowUp`, `handleResolveFollowUpChange`, `confirmResolveFollowUp` (memanggil `POST /cashier/shifts/{id}/resolve-follow-up` dengan header `Idempotency-Key`).<br/>4. Pada `cashier-shift-view.jsx` / `cashier-shift-history.jsx`: Tambahkan tombol/opsi aksi "Selesaikan Tindak Lanjut" pada baris yang memiliki status `PERLU_TINDAK_LANJUT` untuk membuka modal penyelesaian.<br/>5. Validasi field wajib: Terapkan format pesan error `"{Nama Field} wajib diisi."` (`"Catatan verifikasi wajib diisi."`). |
+| Dependency | `[BE] BE-BKC-078`, `FE-BKC-043` |
+| Acceptance criteria | 1. Modal review variance menampilkan pilihan hasil evaluasi dan mengirimkan payload `outcome` yang dipilih.<br/>2. Baris shift berstatus `PERLU_TINDAK_LANJUT` menampilkan tombol aksi "Selesaikan Tindak Lanjut".<br/>3. Mengklik tombol aksi membuka `resolve-follow-up-modal.jsx` dengan data shift yang sesuai.<br/>4. Jika catatan verifikasi dikosongkan saat submit, form memunculkan pesan error: `"Catatan verifikasi wajib diisi."`.<br/>5. Submit berhasil memanggil endpoint `resolve-follow-up`, menutup modal, me-refresh daftar shift, dan status shift beralih ke `REVIEWED`. |
+| Bukti verifikasi | `npm run lint:errors` lulus 0 error; `npm run test:unit` lulus; `npm run build` berhasil; uji manual alur review variance dengan opsi "Perlu Tindak Lanjut" diikuti eksekusi modal penyelesaian |
+| Kewenangan UI | Dua opsi hasil review dan tombol penyelesaian terikat keputusan bisnis (`BKC-DEC-124`, `BKC-DEC-125`). Layout modal mengikuti pola modal cashier-shift yang sudah ada (`COMPOSE`). Styling detail `DEV_DISCRETION` |
+| Risiko/pemilik | Pastikan idempotensi key dan row version dikirim secara tepat agar terhindar dari konflik data konkurensi. Owner Frontend |
+| Definition of Done | Modal review mendukung 2 hasil evaluasi; modal penyelesaian baru berdiri dan terhubung ke API backend; validasi field wajib terpasang; build lulus; nol regresi pada modal shift existing |
+| Status | 🟡 **SEBAGIAN — source code dan validasi unit test selesai 25 September 2026.** Kontrol radio evaluasi dua hasil pada modal review, modal penyelesaian tindak lanjut dengan catatan verifikasi wajib (`"Catatan verifikasi wajib diisi."`), tombol aksi riwayat shift, Redux thunk, dan hook integrasi telah terpasang. Unit test 6/6 PASS, lint 0 error. Bukti: [laporan](../task/report/frontend/FE-BKC-044.md) |
+
+---
+
+## Kewenangan UI
+
+| Hal | Kewenangan |
+| --- | --- |
+| Label status badge "Perlu Tindak Lanjut" (`BKC-DEC-124`) | Terkunci keputusan bisnis |
+| Pilihan hasil review variance ("Terverifikasi" vs "Perlu Tindak Lanjut") (`BKC-DEC-124`) | Terkunci keputusan bisnis |
+| Format pesan error validasi form `"{Nama Field} wajib diisi."` (`BKC-DEC-126`) | Terkunci keputusan bisnis |
+| Tombol aksi "Selesaikan Tindak Lanjut" pada status `PERLU_TINDAK_LANJUT` (`BKC-DEC-125`) | Terkunci keputusan bisnis |
+| Pola arsitektur modal baru (`resolve-follow-up-modal.jsx`) | **`COMPOSE`** (Merangkai komponen `REUSE` yang sudah ada, konsisten dengan 4 modal shift existing) |
+| Penataan layout detail, ikon tombol, dan variasi animasi modal | **`DEV_DISCRETION`** |
+
+---
+
+## Yang Sengaja Tidak Dibuat di Frontend
+
+| Yang ditolak | Alasan |
+| --- | --- |
+| Mengetik manual nominal selisih saat penyelesaian tindak lanjut | Nilai selisih kas adalah fakta historis dari saat penutupan shift (`CloseAsync`) dan tidak boleh diubah secara manual di layar penyelesaian |
+| Memberikan opsi bypass penolakan buka shift di sisi klien | Aturan penolakan pembukaan shift adalah integritas finansial (*hard business rule*); kasir tidak boleh memiliki tombol untuk mengabaikan blokir selisih kas |
+| Membuat modul hak akses peran baru di frontend | Otorisasi mengikuti konfigurasi RBAC terpadu `[AccessPermission("CashierShift", "Review")]` yang sudah baku di modul Billing |
+

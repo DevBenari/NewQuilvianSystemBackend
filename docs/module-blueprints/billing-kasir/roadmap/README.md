@@ -34,6 +34,7 @@ Roadmap ini berada pada **revision `2`** (4 September 2026) dan berstatus `DRAFT
 | `BKC-PH-024` | **Revisi UI Billing.** Filter/default Billing, label Obat, card compact, pindah tombol aksi (`MVP-31`) | — | `FE-BUI-001`–`004` | Tidak ada | **`READY_FOR_TASK_APPROVAL`** |
 | `BKC-PH-025` | **Revisi UI Billing.** Perbandingan asuransi & payment method (`MVP-32`) | — | `FE-BUI-005`, `FE-BUI-006` | Selesai penuh | ✅ `SELESAI` (`FE-BUI-005`, `FE-BUI-006` selesai 25 Sep 2026) |
 | `BKC-PH-026` | **Revisi UI Billing.** Modal Ajukan Refund dua sumber (`MVP-33`) | — | `FE-BUI-007` | Selesai penuh | ✅ `SELESAI` (`FE-BUI-007` selesai 25 Sep 2026) |
+| `BKC-PH-027` | **Shift Kasir.** Blocking selisih kas belum direview dan status tindak lanjut (`MVP-34`) | `BE-BKC-077`, `BE-BKC-078` | `FE-BKC-043`, `FE-BKC-044` | Blueprint revisi `1.7 draft` (`BKC-DEC-123`–`127` approved 25 Sep 2026) | **`READY_FOR_TASK_APPROVAL`** |
 
 ## Amendment 7 September 2026 — Koreksi revisi blueprint, verifikasi ulang FE-BKC-018, dan cakupan Struk Pasien
 
@@ -260,4 +261,40 @@ roadmap ini ditulis, supaya keduanya tidak dikerjakan terpisah lalu ditemukan be
 Rincian lengkap: [backend § Gelombang MVP-30](./backend-roadmap.md), [frontend § Gelombang
 MVP-31–33](./frontend-roadmap.md), dan [traceability § Gelombang MVP-30 s.d.
 MVP-33](./requirement-traceability.md).
+
+---
+
+## Amendment 25 September 2026 — Shift Kasir: Blocking Selisih Kas dan Status Tindak Lanjut
+
+```yaml
+roadmap_revision: 4
+roadmap_status: DRAFT_FORWARD_TEST
+blueprint_id: BIL-CASH-001
+blueprint_revision: 1.7 (draft)
+approved_decisions: [BKC-DEC-123, BKC-DEC-124, BKC-DEC-125, BKC-DEC-126, BKC-DEC-127]
+approved_by: Yasmin (25 September 2026)
+backend_baseline_sha: 4eed1700
+frontend_baseline_sha: 52057a75
+contracts_applicable: [BIL-API-1.6, BIL-STATE-1.5, BIL-VALIDATION-1.5, BIL-PERMISSION-1.3, BIL-TEST-1.6]
+```
+
+Amendment ini membuka kembali sebagian kecil keputusan operasional kasir (`BKC-DEC-038`) guna menutup dua celah penegakan integritas fisik kas yang ditemukan dari dokumen pihak ketiga `Shift Kasir (3).md` dan diverifikasi langsung ke kode:
+
+1. **`BKC-DEC-123` (Blocking pembukaan shift baru):** Pada `CashierShiftService.OpenAsync`, kasir atau loket (register) yang masih memiliki shift berstatus `CLOSED_WITH_VARIANCE` atau `PERLU_TINDAK_LANJUT` yang belum berstatus `REVIEWED` dilarang membuka shift baru (menghasilkan `CashierShiftConflictException` / HTTP 409 Conflict: *"Kasir atau register masih memiliki shift yang menunggu review selisih kas."*).
+2. **`BKC-DEC-124` & `BKC-DEC-125` (Status `PERLU_TINDAK_LANJUT` & aksi penyelesaian):** Review variance oleh Supervisor/Kepala Kasir kini dapat menghasilkan status `PERLU_TINDAK_LANJUT` (bila selisih kas membutuhkan audit/penelusuran dokumen fisik lebih lanjut), dan disediakan aksi susulan `resolve-follow-up` untuk menyelesaikan shift tersebut menjadi `REVIEWED` dengan mewajibkan pengisian catatan verifikasi.
+3. **`BKC-DEC-126` & `BKC-DEC-127`:** Format pesan error validasi field wajib dibakukan menjadi `"{Nama Field} wajib diisi."`, dan otorisasi hak akses mengikuti konvensi `[AccessAction]` / `[AccessPermission]` baku modul tanpa matriks tertulis terpisah.
+
+### Ringkasan Gelombang `MVP-34`
+
+| Gelombang | Task ID | Cakupan | Status |
+| :---: | --- | --- | :---: |
+| `MVP-34` (BE Gelombang 1) | 🟡 `BE-BKC-077` | Penegakan blocking shift belum direview pada `CashierShiftService.OpenAsync` | 🟡 `SEBAGIAN` (Source selesai, menunggu build pengguna) |
+| `MVP-34` (BE Gelombang 2) | 🟡 `BE-BKC-078` | Status `PERLU_TINDAK_LANJUT`, parameter review, dan endpoint `resolve-follow-up` | 🟡 `SEBAGIAN` (Source selesai, menunggu build pengguna) |
+| `MVP-34` (FE Gelombang 1) | 🟡 `FE-BKC-043` | Badge status `PERLU_TINDAK_LANJUT`, filter riwayat, dan penanganan alert penolakan buka shift | 🟡 `SEBAGIAN` (Source & unit test selesai) |
+| `MVP-34` (FE Gelombang 2) | 🟡 `FE-BKC-044` | Radio hasil review variance ("Terverifikasi" vs "Perlu Tindak Lanjut") & modal penyelesaian tindak lanjut | 🟡 `SEBAGIAN` (Source & unit test selesai) |
+
+**Nol Migration pada seluruh gelombang ini.** Perubahan disimpan pada kolom string dan entitas review yang telah ada sejak baseline.
+
+Rincian lengkap: [backend § Gelombang MVP-34](./backend-roadmap.md), [frontend § Gelombang MVP-34](./frontend-roadmap.md), dan [traceability § Gelombang MVP-34](./requirement-traceability.md).
+
 

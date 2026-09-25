@@ -209,6 +209,32 @@ public sealed class CashierShiftsController : ControllerBase
         }
     }
 
+    [HttpPost("{id:guid}/resolve-follow-up")]
+    [AccessAction("ResolveFollowUp", "Resolve Cashier Shift Follow Up", AccessType = AccessTypes.Update, SortOrder = 11)]
+    [AccessPermission("CashierShift", "Review")]
+    [ProducesResponseType(typeof(ApiResponse<CashVarianceResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ResolveFollowUp(
+        Guid id,
+        [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
+        [FromBody] ResolveShiftFollowUpRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _service.ResolveFollowUpAsync(
+                id, request, idempotencyKey, CurrentUserId(), CurrentRole(), cancellationToken);
+            return Ok(ApiResponse<CashVarianceResponse>.Ok(
+                result,
+                result.IsReplay
+                    ? "Penyelesaian tindak lanjut sudah diproses; hasil sebelumnya dikembalikan."
+                    : "Tindak lanjut shift kasir berhasil diselesaikan."));
+        }
+        catch (Exception exception) when (IsHandled(exception))
+        {
+            return Failure(exception);
+        }
+    }
+
     [HttpPost("{id:guid}/reopen")]
     [AccessAction("Reopen", "Reopen Cashier Shift", AccessType = AccessTypes.Update, SortOrder = 6)]
     [AccessPermission("CashierShift", "Reopen")]

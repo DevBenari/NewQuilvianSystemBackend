@@ -476,7 +476,10 @@ perilaku as-is, bukan kontrak yang otomatis mengikat).
 - Layar worklist Kasir IGD/Rawat Jalan/Rawat Inap (daftar antrian kasir) — entry point ke Menu
   Pembayaran, tapi punya keputusan UI/filter sendiri; belum digali di pass ini.
 - Riwayat Pembayaran (layar riwayat terpisah) — belum digali.
-- Shift Kasir — sudah diputuskan `BKC-DEC-038`, sudah dibangun; tidak dibuka ulang.
+- Shift Kasir — sudah diputuskan `BKC-DEC-038`, sudah dibangun. **Dibuka ulang sebagian** 25
+  September 2026 lewat `/grill-me` amendment (lihat "Amendment 25 September 2026 — Shift
+  Kasir" di akhir dokumen ini) — `BKC-DEC-038` TETAP berlaku sebagai baseline, hanya dua celah
+  penegakan yang ditutup (`BKC-DEC-123`, `BKC-DEC-124`), bukan desain ulang menyeluruh.
 - Master Diskon (CRUD kebijakan diskon) — sudah ada (`MstDiscountPolicy` + layanan terkait);
   pass ini hanya menyangkut cara Menu Pembayaran MEMAKAI kebijakan yang sudah ada, bukan
   aturan pembuatan kebijakannya.
@@ -2552,3 +2555,138 @@ Ketiga closure question ditutup di sesi yang sama, sebelum `/design-business-mod
 **Tidak ada lagi closure question yang memblokir `/design-business-module`.** Seluruh
 `BUI-DEC-001`–`015` `approved`. Satu titik sentuh backend (`BUI-DEC-014`) dicatat eksplisit
 supaya tidak lolos diam-diam sebagai "revisi frontend murni".
+
+---
+
+## Amendment 25 September 2026 — Shift Kasir: Blocking Selisih Kas dan Status Tindak Lanjut (reopening `BKC-DEC-038`)
+
+**Trigger.** Pemilik modul membawa dokumen `Shift Kasir (3).md` (artifact requirement pihak
+ketiga, 14 capability/19 rule/7 flow) dan meminta `/grill-me` untuk memeriksa gap terhadap
+`BKC-DEC-038` (`approved`, sebelumnya ditandai "tidak dibuka ulang" — lihat Bagian "Di luar
+scope" di atas). Sebelum bertanya, dilakukan pembacaan source aktual
+(`Areas/HealthServices/BillingManagement/Cashier/{Models,Services}/*.cs`) untuk memverifikasi
+klaim dokumen terhadap implementasi nyata, bukan menduga.
+
+**`BKC-DEC-038` TIDAK dibatalkan.** Amendment ini menambah dua penegakan yang sebelumnya hanya
+tertulis sebagai niat (`BKC-DEC-038`/dokumen baru) tapi belum benar-benar dijalankan kode.
+Seluruh keputusan `BKC-DEC-038` yang lain (buka shift dengan saldo awal, close mencatat
+system/physical/variance, handover dua kasir, late noncash settlement tidak mengubah physical
+cash shift tertutup) tetap berlaku apa adanya.
+
+### Fact — klaim dokumen `Shift Kasir (3).md` yang sudah terjawab source, tidak perlu keputusan baru
+
+| Klaim/pertanyaan dokumen | Bukti source | Kesimpulan |
+| --- | --- | --- |
+| Bagian 12 butir 2 — "Apakah serah terima menutup shift lama dan membuka shift baru, atau memindahkan penanggung jawab dalam shift yang sama?" | `CashierShiftService.HandoverAsync` (baris 401-460): shift sumber → status `HANDED_OVER` (terminal, `ClosedAt` diisi); shift BARU dibuat untuk kasir penerima, `OpeningCash` = `OpeningCash` lama + `SystemCash` lama (saldo dibawa maju); ditautkan lewat `BilCashierShiftHandover.SourceShiftId`/`ReceivingShiftId` | **Sudah terjawab**: menutup shift lama + membuka shift baru. Tidak perlu keputusan baru |
+| Bagian 12 butir 3 — "Apakah aksi finansial Petty Cash memakai Shift Kasir?" | `PC-DEC-001` (`approved`): "Petty Cash TIDAK terhubung ke kas fisik Shift Kasir manapun" | **Sudah terjawab** oleh keputusan lain yang sudah `approved`. Di luar scope amendment ini |
+| RULE-004/CAP-005 dokumen — "Status shift hanya `OPEN` dan `CLOSED`" | `BilCashierShift.cs`: enum `CashierShiftStatuses` = `OPEN`, `HANDED_OVER`, `CLOSED`, `CLOSED_WITH_VARIANCE`, `REVIEWED`, `REOPENED` (enam nilai, bukan dua) | **Konflik** — dokumen tidak akurat terhadap implementasi. Model status existing (enam nilai) yang berlaku; dokumen dianggap salah pada poin ini, bukan sistem yang perlu disederhanakan |
+| BP-003 dokumen — hasil rekonsiliasi `SESUAI`/`KURANG`/`LEBIH` (tiga nilai) | `CashierShiftService.CloseAsync` (baris 541-544): `Variance` disimpan sebagai `decimal` bertanda (negatif = kurang, positif = lebih); status hanya dua jalur (`Closed` bila `Variance == 0`, `ClosedWithVariance` bila tidak) | **Bukan gap** — arah selisih (kurang/lebih) sudah terbaca dari tanda `Variance`, dan `RULE-010` dokumen sendiri memperlakukan `KURANG`/`LEBIH` SAMA (sama-sama `Menunggu Verifikasi`). Tidak perlu status terpisah untuk arah selisih |
+
+### Gap ditemukan — belum diimplementasikan, DIKONFIRMASI ditutup lewat pass ini
+
+---
+
+#### `BKC-DEC-123` — Shift `CLOSED_WITH_VARIANCE` yang Belum Direview Memblokir Shift Berikutnya
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Gap implementasi ditemukan dan ditutup**: `CashierShiftService.OpenAsync` (baris 67-71) saat ini HANYA menolak pembukaan shift baru bila kasir/register memiliki shift berstatus `OPEN` atau `REOPENED` (`CashierShiftStatuses.IsActive`). Shift berstatus `CLOSED_WITH_VARIANCE` yang BELUM direview supervisor TIDAK dianggap aktif, sehingga TIDAK memblokir — bertentangan dengan `RULE-012`/`BP-007` dokumen `Shift Kasir (3).md` ("Menunggu Verifikasi dan Perlu Tindak Lanjut memblokir shift berikutnya") dan semangat `BKC-DEC-038` (variance direview Kepala Kasir sebelum shift dianggap tuntas). **Diputuskan**: `OpenAsync` MUST ditambah pengecekan — tolak pembukaan shift baru bila kasir ATAU register yang sama memiliki shift berstatus `CLOSED_WITH_VARIANCE` **atau** `PERLU_TINDAK_LANJUT` (lihat `BKC-DEC-124`) yang belum berstatus `REVIEWED`. Pesan penolakan mengikuti pola existing: `"Kasir atau register masih memiliki shift yang menunggu review selisih kas."` |
+| Owner | Yasmin |
+| Status | `approved` |
+| Approval evidence | Pilihan eksplisit owner pada sesi `/grill-me` 25 September 2026: "Implementasikan blocking-nya sekarang (Direkomendasikan)" atas pertanyaan yang menyertakan bukti baris kode `OpenAsync` persis |
+| Alasan | Kontrol pertanggungjawaban kas adalah tujuan inti `BKC-DEC-038` — membiarkan kasir/register membuka shift baru sementara selisih shift sebelumnya belum diperiksa membuat kontrol itu longgar secara struktural, bukan sekadar celah kecil |
+| Konsekuensi | `CashierShiftService.OpenAsync` MUST diubah (query tambahan atas `BilCashierShifts` untuk status `CLOSED_WITH_VARIANCE`/`PERLU_TINDAK_LANJUT`); pesan error baru; TIDAK ada perubahan schema/migration (status sudah berupa `string` bebas, hanya menambah nilai konstanta baru pada `CashierShiftStatuses` untuk `BKC-DEC-124`). Task implementasi menyusul lewat `build-module-backend` setelah blueprint/roadmap Shift Kasir diperbarui (`/design-business-module` atau `/plan-module-delivery`, sesuai kebutuhan) |
+| Trace | `Shift Kasir (3).md` RULE-012, BP-007; `BKC-DEC-038`; source `CashierShiftService.cs` baris 67-71 (bukti gap), 496-551 (`CloseAsync`, asal status `CLOSED_WITH_VARIANCE`) |
+
+---
+
+#### `BKC-DEC-124` — Status `PERLU_TINDAK_LANJUT` Terpisah dari `REVIEWED` pada Review Variance
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Gap implementasi ditemukan dan ditutup**: `CashierShiftService.ReviewVarianceAsync` (baris 553-670) saat ini HANYA punya satu hasil — begitu supervisor mengisi `Resolution`/`Reason`, status langsung berubah ke `REVIEWED` (lepas blokir sepenuhnya). Tidak ada cara bagi supervisor menyatakan "sudah diperiksa, tapi belum tuntas, tetap perlu ditindaklanjuti" — bertentangan dengan `BP-005`/`RULE-011` dokumen (`Perlu Tindak Lanjut` sebagai status terpisah dari `Terverifikasi`, wajib catatan, dan baru menjadi `Terverifikasi` setelah tindak lanjut selesai). Tanpa status ini, keputusan `BKC-DEC-123` (blocking) jadi longgar — supervisor bisa "mereview" sekadar formalitas dan langsung melepas blokir tanpa benar-benar menuntaskan selisih. **Diputuskan**: tambah nilai `CashierShiftStatuses.PerluTindakLanjut` (`"PERLU_TINDAK_LANJUT"`). `ReviewVarianceAsync` MUST menerima parameter hasil review (mis. `outcome`: `Verified` atau `NeedsFollowUp`) yang menentukan status akhir (`REVIEWED` vs `PERLU_TINDAK_LANJUT`) — bukan selalu `REVIEWED`. Diperlukan SATU aksi susulan baru (nama tentatif `CompleteFollowUpAsync`/`ResolveFollowUpAsync`, ditentukan saat desain) yang memindahkan shift dari `PERLU_TINDAK_LANJUT` ke `REVIEWED` setelah tindak lanjut benar-benar selesai, mewajibkan catatan penyelesaian |
+| Owner | Yasmin |
+| Status | `approved` |
+| Approval evidence | Pilihan eksplisit owner pada sesi `/grill-me` 25 September 2026: "Tambah status PERLU_TINDAK_LANJUT terpisah dari REVIEWED (Direkomendasikan)" |
+| Alasan | Sejalan langsung dengan `BKC-DEC-123` — blocking tanpa kemampuan menahan status "belum tuntas" adalah kontrol kosong; supervisor butuh cara membedakan "selesai" dari "masih menggantung" |
+| Konsekuensi | Nama pasti aksi susulan, bentuk request (field wajib catatan penyelesaian), dan wewenang siapa yang boleh menjalankannya (Kepala Kasir sama seperti `ReviewVarianceAsync`, atau berjenjang ke Manajemen sesuai `RULE-014`/`BKC-DEC-038` soal keputusan penyelesaian selisih) **belum ditentukan pada pass ini** — dicatat sebagai `BKC-OQ-104` di bawah, TIDAK memblokir implementasi `BKC-DEC-123` (blocking bisa berjalan lebih dulu dengan hanya `REVIEWED` sebagai status pelepas, `PERLU_TINDAK_LANJUT` menyusul) tapi MUST diselesaikan sebelum task aksi-susulan itu sendiri diimplementasikan |
+| Trace | `Shift Kasir (3).md` BP-005, RULE-011; `BKC-DEC-038`; source `CashierShiftService.cs` baris 553-670 (`ReviewVarianceAsync`, bukti hanya satu hasil) |
+
+---
+
+### Open Question — tidak memblokir `BKC-DEC-123`/`124`, perlu diputuskan sebelum task terkait dimulai
+
+| ID | Pertanyaan | Owner | Status |
+|---|---|---|---|
+| `BKC-OQ-104` | Aksi susulan penyelesaian `PERLU_TINDAK_LANJUT` (`BKC-DEC-124`): siapa yang berwenang menjalankannya (Kepala Kasir sama seperti review awal, atau eskalasi ke Manajemen bila nominal selisih melewati ambang tertentu — `RULE-014` dokumen menyebut keputusan penyelesaian selisih ada di Manajemen, tapi tidak merinci ambang), dan field apa saja yang wajib diisi pada penyelesaiannya? | Yasmin / Kepala Kasir / Finance Operations | Terbuka — memblokir implementasi aksi susulan `BKC-DEC-124`, TIDAK memblokir `BKC-DEC-123` (blocking berbasis `CLOSED_WITH_VARIANCE`/`REVIEWED` saja bisa jalan lebih dulu) |
+| `BKC-OQ-105` | Dokumen `Shift Kasir (3).md` Bagian 12 butir 1 dan 4 (daftar field/format/pesan error lengkap tiap form; matriks hak akses rinci per aksi bukan hanya per menu) — apakah perlu diputuskan formal pada pass `/grill-me` terpisah, atau cukup mengikuti konvensi `role-access-rules.md`/`[AccessAction]` per-endpoint yang sudah baku di seluruh modul (yang secara struktural SUDAH memberi hak akses per-aksi, bukan per-menu, tanpa perlu matriks tertulis terpisah)? | Yasmin | Terbuka — tidak memblokir `BKC-DEC-123`/`124`. Butir field/pesan error (butir 1) murni detail UI, `DEV_DISCRETION` mengikuti pola form existing kecuali owner ingin mengunci teks tertentu |
+| `BKC-OQ-106` | Bagian 10 dokumen (Rekomendasi Aktivitas Tanpa Shift Aktif) eksplisit ditandai REKOMENDASI dari rujukan Permenkes/SATUSEHAT, bukan ketentuan terkunci. Apakah matriks itu (mis. tolak pencatatan Petty Cash tanpa shift `OPEN`) mau dikunci sebagai `RULE` resmi Shift Kasir, atau dibiarkan sebagai rekomendasi non-mengikat? | Yasmin | Terbuka — tidak memblokir `BKC-DEC-123`/`124`; berkaitan dengan modul Petty Cash yang sudah punya keputusan sendiri (`PC-DEC-*`), bukan Shift Kasir murni |
+
+---
+
+### `BKC-DEC-125` — Wewenang dan Field Penyelesaian `PERLU_TINDAK_LANJUT`
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Menutup `BKC-OQ-104`.** Aksi susulan yang memindahkan shift dari `PERLU_TINDAK_LANJUT` ke `REVIEWED` (`BKC-DEC-124`) dijalankan oleh **Supervisor/Kepala Kasir** — wewenang SAMA dengan `ReviewVarianceAsync` awal, TIDAK eskalasi ke Manajemen sebagai syarat penyelesaian aksi ini (keterlibatan Manajemen pada `RULE-014`/`BKC-DEC-038` tetap berlaku sebagai kebijakan umum penentuan *hasil* penyelesaian selisih — misalnya siapa menanggung nominal — bukan syarat *siapa yang boleh menekan tombol selesai* pada sistem). Field wajib pada aksi penyelesaian: `VerificationNote` (catatan penyelesaian, wajib diisi), `VerifiedBy` (diisi otomatis dari actor yang menjalankan aksi), `VerifiedDate` (diisi otomatis waktu aksi dijalankan) |
+| Owner | Yasmin |
+| Status | `approved` |
+| Approval evidence | Jawaban eksplisit owner: "Penyelesaian `PERLU_TINDAK_LANJUT` dilakukan Supervisor/Kepala Kasir dengan field `VerificationNote`, `VerifiedBy`, `VerifiedDate`" |
+| Alasan | Konsisten dengan wewenang review variance awal (`ReviewVarianceAsync`) yang sudah dipegang Supervisor/Kepala Kasir — tidak menambah jenjang approval baru untuk aksi lanjutan atas kasus yang sama |
+| Konsekuensi | Aksi susulan (nama tentatif `CompleteFollowUpAsync`/`ResolveFollowUpAsync`, dikunci saat desain) menerima request dengan field `VerificationNote` wajib; `VerifiedBy`/`VerifiedDate` TIDAK dikirim client, diisi server dari `actorUserId`/waktu transaksi — pola sama dengan `ReviewedAt`/`ReviewerId` pada `BilCashVarianceReview` yang sudah ada. Kemungkinan field ini disimpan pada `BilCashVarianceReview` yang sudah ada (menambah kolom) atau baris review kedua — keputusan model data persis menyusul di `design-business-module` |
+| Trace | Menutup `BKC-OQ-104`; `Shift Kasir (3).md` BP-005 butir 3-5; `BKC-DEC-124`; source `BilCashVarianceReview.cs` (pola `ReviewerId`/`ReviewedAt` existing yang diikuti) |
+
+---
+
+### `BKC-DEC-126` — Tanpa Matriks Hak Akses Terpisah; Pesan Error Standar Field Wajib
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Menutup `BKC-OQ-105`.** Tidak dibuat matriks hak akses per-aksi terpisah untuk Shift Kasir — cukup mengikuti konvensi `role-access-rules.md`/`[AccessAction]`+`[AccessPermission]` per-endpoint yang sudah baku di seluruh modul (setiap endpoint baru pada `BKC-DEC-123`/`124`/`125` WAJIB tetap diberi `[AccessAction]`/`[AccessPermission]` seperti aksi existing, sesuai kontrak yang sudah mengikat, bukan pengecualian). Pesan error standar untuk field wajib yang belum diisi pada form Buka/Tutup/Serah Terima Shift: **`"{Nama Field} wajib diisi."`** — pola yang sudah direkomendasikan dokumen (Bagian 5 "Form Shift") kini dikunci sebagai ketentuan, bukan rekomendasi |
+| Owner | Yasmin |
+| Status | `approved` |
+| Approval evidence | Jawaban eksplisit owner: "Tidak perlu matriks hak akses terpisah; gunakan `AccessAction` per endpoint. Pesan error standar `{Field} wajib diisi.`" |
+| Alasan | Matriks tertulis terpisah akan menduplikasi apa yang sudah ditegakkan otomatis oleh `[AccessAction]`/layar Manajemen Role → Akses Role; menjaga satu sumber kebenaran wewenang (kode + layar admin), bukan dua |
+| Konsekuensi | `BKC-OQ-105` ditutup penuh — tidak ada artefak matriks tambahan yang perlu dibuat. Pesan error `"{Nama Field} wajib diisi."` MUST dipakai konsisten di seluruh validasi field wajib form Shift Kasir (backend maupun frontend), menggantikan status "rekomendasi UX" pada dokumen asli |
+| Trace | Menutup `BKC-OQ-105`; `Shift Kasir (3).md` Bagian 5 "Form Shift", RULE-005; `role-access-rules.md` (konvensi `[AccessAction]`/`[AccessPermission]` yang sudah mengikat) |
+
+---
+
+### `BKC-DEC-127` — Bagian 10 Dokumen Tetap Rekomendasi; Aksi Finansial Tetap Wajib Shift `OPEN`
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Menutup `BKC-OQ-106`.** Matriks Bagian 10 dokumen (Rekomendasi Aktivitas Tanpa Shift Aktif — akses baca/administratif Invoice & Billing Kasir, Riwayat Pembayaran, Petty Cash tanpa shift `OPEN`) **TETAP berstatus rekomendasi non-mengikat**, TIDAK dikunci menjadi `RULE` resmi Shift Kasir pada pass ini. Yang TETAP wajib (bukan keputusan baru, konfirmasi ulang atas `RULE-002`/`RULE-019` yang sudah `approved`): **aksi finansial apa pun** (penerimaan pembayaran, refund, pengeluaran/pemasukan kas, koreksi finansial, settlement, atau perubahan posisi kas lainnya) **tetap wajib shift `OPEN`**, terlepas dari menu tempat aksi itu dipicu |
+| Owner | Yasmin |
+| Status | `approved` |
+| Approval evidence | Jawaban eksplisit owner: "Aktivitas tanpa shift `OPEN` tetap rekomendasi, bukan `RULE` resmi. Aksi finansial tetap wajib shift `OPEN`" |
+| Alasan | Mengunci rekomendasi berbasis inferensi Permenkes/SATUSEHAT (bukan ketentuan eksplisit regulasi) menjadi `RULE` mengikat berisiko menciptakan kewajiban yang tidak benar-benar berasal dari keputusan bisnis pemilik modul. Batas yang sungguh kritis (aksi finansial wajib shift `OPEN`) sudah cukup ditegakkan lewat `RULE-002`/`RULE-019` yang sudah ada — tidak perlu memperluas cakupan `RULE` resmi ke aktivitas non-finansial |
+| Konsekuensi | Implementasi menu Invoice & Billing Kasir/Riwayat Pembayaran/Petty Cash TANPA shift `OPEN` mengikuti Bagian 10 dokumen sebagai PANDUAN desain (bukan gerbang validasi wajib) — pengecualian/penyesuaian pada implementasinya tidak dianggap pelanggaran `RULE`. Validasi shift `OPEN` pada aksi finansial (`RULE-002`/`019`) TIDAK berubah dan tetap ditegakkan seperti sekarang |
+| Trace | Menutup `BKC-OQ-106`; `Shift Kasir (3).md` Bagian 10, RULE-002, RULE-017–019 (sudah `approved` sebelumnya, dikonfirmasi ulang di sini) |
+
+---
+
+### Status Penutupan
+
+| ID | Status sebelumnya | Status sekarang |
+|---|---|---|
+| Dokumen `Shift Kasir (3).md` Bagian 12 butir 2 | Belum ditetapkan | **Tertutup** — terjawab source, lihat tabel Fact di atas |
+| Dokumen `Shift Kasir (3).md` Bagian 12 butir 3 | Belum ditetapkan | **Tertutup** — terjawab `PC-DEC-001` |
+| Gap blocking shift berikutnya (RULE-012/BP-007) | Tidak terdeteksi sebelumnya | **Tertutup** — `BKC-DEC-123` |
+| Gap hasil review variance tunggal (BP-005/RULE-011) | Tidak terdeteksi sebelumnya | **Tertutup** — `BKC-DEC-124` |
+| Dokumen `Shift Kasir (3).md` Bagian 12 butir 1 dan 4 | Belum ditetapkan | **Tertutup** — `BKC-DEC-126` |
+| Bagian 10 dokumen (rekomendasi tanpa shift) | Rekomendasi, belum dikunci | **Tertutup** — `BKC-DEC-127` (tetap rekomendasi, dikonfirmasi sengaja tidak dikunci) |
+| Aksi susulan penyelesaian `PERLU_TINDAK_LANJUT` | Baru muncul dari `BKC-DEC-124` | **Tertutup** — `BKC-DEC-125` |
+
+**Seluruh open question amendment ini (`BKC-OQ-104`–`106`) sudah tertutup** lewat
+`BKC-DEC-125`–`127`. `BKC-DEC-123`–`127` cukup untuk memulai implementasi backend penuh:
+perubahan `CashierShiftService.OpenAsync` (blocking), `ReviewVarianceAsync` (dua hasil), aksi
+susulan baru (penyelesaian follow-up dengan `VerificationNote`/`VerifiedBy`/`VerifiedDate`),
+serta `[AccessAction]`/`[AccessPermission]` standar pada seluruh endpoint yang tersentuh. Tidak
+ada open question tersisa yang memblokir. Belum ada task roadmap resmi untuk perubahan ini —
+langkah berikutnya lihat penutup pass di bawah.
