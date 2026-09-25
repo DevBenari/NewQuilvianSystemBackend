@@ -43,13 +43,6 @@
             /// <c>2026-09-22T17:00:00Z</c>.
             /// </para>
             /// </remarks>
-            public static DateTime OperationalDateToUtc(DateTime operationalDate)
-            {
-                var localMidnight = DateTime.SpecifyKind(
-                    operationalDate.Date,
-                    DateTimeKind.Unspecified);
-
-                return TimeZoneInfo.ConvertTimeToUtc(localMidnight, AppTimeZone);
             /// Mengubah nilai yang datang dari pemanggil menjadi UTC yang dapat ditulis Npgsql.
             ///
             /// <b>Kenapa ini dibutuhkan.</b> Ruas tanggal pada query string yang ditulis
@@ -61,6 +54,14 @@
             /// Nilai tanpa zona dibaca sebagai <b>jam dinding WIB</b> — bukan UTC — karena
             /// itulah yang dimaksud petugas ketika mengetik satu tanggal.
             /// </summary>
+            public static DateTime OperationalDateToUtc(DateTime operationalDate)
+            {
+                var localMidnight = DateTime.SpecifyKind(
+                    operationalDate.Date,
+                    DateTimeKind.Unspecified);
+
+                return TimeZoneInfo.ConvertTimeToUtc(localMidnight, AppTimeZone);
+            }
             public static DateTime ToUtc(DateTime value)
             {
                 return value.Kind switch
