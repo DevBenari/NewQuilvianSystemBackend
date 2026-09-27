@@ -91,9 +91,24 @@ serah terima IGD, dan jalur itu adalah `INP-S09` yang sengaja tidak dirancang pa
 `BE-RWI-011` karena itu **tidak terkunci**; ia hanya bertambah satu acceptance criteria penjaga,
 yaitu `RWI-AC-147`, yang membuktikan jalur datang langsung tidak ikut berubah.
 
-**Satu artefak sengaja tidak disentuh.** `03-frontend-architecture.md` tidak berubah: pesan
-penolakan baru muncul lewat bentuk jawaban 422 yang sudah ada, yaitu daftar aturan yang gagal,
-sehingga layar tidak perlu komponen baru.
+**Satu artefak sengaja tidak disentuh saat itu.** Pada penyerapan 2026-08-24,
+`03-frontend-architecture.md` tidak berubah: pesan penolakan baru muncul lewat bentuk jawaban 422
+yang sudah ada, yaitu daftar aturan yang gagal, sehingga layar tidak perlu komponen baru.
+
+> **Diperbarui 2026-08-27.** `03-frontend-architecture.md` naik ke revision `0.4` lewat
+> `RWI-DEC-075` s.d. `RWI-DEC-079`, dan roadmap frontend naik ke revision `3`. Perubahannya
+> **hanya di sisi frontend**: admisi menjadi alur berlangkah dua jalur, keterjangkauan menjadi
+> wewenang blueprint, dan empat layar baru ditulis. **Nol tabel baru, nol kolom baru, nol endpoint
+> baru, nol kontrak naik versi, nol task backend bertambah** — sehingga `compatibility_impact` di
+> atas tetap berlaku apa adanya.
+
+> **Diperbarui 2026-08-28 — artefak draft, bukan approval baru.** `05-skema-tampilan.md` naik ke
+> revision `0.4` dan kini mencakup seluruh 19 layar, koreksi hierarki navigasi, serta hasil tinjauan
+> runtime enam layar: tujuh menu operasional di `Rawat Inap`, dua master/configuration di
+> `Pelayanan Kesehatan → Master Data`. Roadmap frontend revision `5` berstatus `DRAFT` untuk
+> menyinkronkan referensi layar, tujuh gap `RWI-UI-GAP-001` s.d. `007`, dan enam task repair
+> `FE-RWI-036` s.d. `041`. Manifest tetap revision `4`; approval manifest/roadmap revision `3`
+> **tidak** dianggap menyetujui brief UI baru ini.
 
 ---
 ## 1. Peringatan sebelum membaca
@@ -101,10 +116,12 @@ sehingga layar tidak perlu komponen baru.
 Seluruh dokumen pada folder ini berstatus `draft`. Tidak satu pun boleh dipakai sebagai izin
 menulis source code.
 
-Dua gerbang implementasi masih terbuka: kesiapan data master, dan persetujuan pemilik
-`EmergencyInstallationManagement` yang hanya menahan `INP-S09`. Modul `InPatientManagement`
-berstatus `ACTIVE` pada registry sejak `RWI-DEC-068`, dan penulisan source code sudah dibuka
-lewat `RWI-DEC-067` — satu task per pengerjaan mengikuti roadmap.
+Dua gerbang blueprint lama masih terbuka: kesiapan data master, dan persetujuan pemilik
+`EmergencyInstallationManagement` yang hanya menahan `INP-S09`. Impact scan frontend 28 Agustus
+2026 menambahkan tujuh gerbang UI/kontrak/data `RWI-UI-GAP-001` s.d. `007` pada roadmap revision
+`5` draft; masing-masing hanya menahan task yang ditunjuk di sana. Modul `InPatientManagement`
+berstatus `ACTIVE` pada registry sejak `RWI-DEC-068`, dan penulisan source code sudah dibuka lewat
+`RWI-DEC-067` — satu task per pengerjaan mengikuti roadmap dan gerbang task terkini.
 
 ---
 
@@ -112,18 +129,19 @@ lewat `RWI-DEC-067` — satu task per pengerjaan mengikuti roadmap.
 
 | Artefak | Revision | Status | SHA-256 |
 |---|---|---|---|
-| [`00-interview-decisions.md`](./00-interview-decisions.md) | `6` | `draft` | `775e92c9d974b646c484d88553bc7f5dcbb4cf6539425ed7ddb7c02c59ec2dfd` |
+| [`00-interview-decisions.md`](./00-interview-decisions.md) | `7` | `draft` | `895eed948a2138b7988d9444bf6cc598b9609fe453fb3769b5a7d27c0145db07` |
 | [`01-existing-capability-map.md`](./01-existing-capability-map.md) | `1.2` | `source-audited` | `567d7f7ea57537f419efca28d551e965524d27ea1889a00cc7707d17ec74c3b6` |
 | [`evidence/02-requirement-completeness-gate.md`](./evidence/02-requirement-completeness-gate.md) | `1.0` | `CURRENT` | `cd59325e17ee6ec66b7d9e331ba7cd1c94a20ce4651c9dd77e22070e550fbed9` |
 | [`evidence/03-hospital-domain-architecture.md`](./evidence/03-hospital-domain-architecture.md) | `0.1` | `draft` | `721268f11edd4aff047b6fcf03fce28e4f051cb4d1cf5134c32d11f0f52615d3` |
 | [`02-backend-architecture.md`](./02-backend-architecture.md) | `0.4` | `draft` | `50c6c0986a4b9cda4443d8cb515a038804f1de1f92d36d0c4dc2ab12d5f4baea` |
-| [`03-frontend-architecture.md`](./03-frontend-architecture.md) | `0.3` | `draft` | `3c5c55b20ed7b10d49fe2dd2487c03c6a174fe852ec4a5b9dfc5f8bd0b429c4a` |
+| [`03-frontend-architecture.md`](./03-frontend-architecture.md) | `0.4` | `draft` | `5856882920a21ce0ebe8c5543faab03cf22e017ffa969642f3a85393a9675006` |
 | [`04-prd-to-mvp.md`](./04-prd-to-mvp.md) | `0.4.0` | `draft` | `58b1f281d15d2c5e00ca296762cc1d2968a287363481df68da1ae3e8d0a8f51a` |
+| [`05-skema-tampilan.md`](./05-skema-tampilan.md) | `0.4` | `draft` | `de9aed86aa0251f7569d9ef51b822ea79c018b8e5393a9a1bbae39e267ca47ff` |
 | [`erd/00-context-erd.md`](./erd/00-context-erd.md) | `0.3` | `draft` | `2d7baab5a4c3c76fa11149faa8fc99bc7ca0b2aefbe30f5b8327089f2ed3b4e0` |
 | [`erd/01-inpatient-episode.md`](./erd/01-inpatient-episode.md) | `0.3` | `draft` | `aaf6aa46591d78a8e48ea7fd02ff1900525e329b5f34f85b098fae9a3ebc17c7` |
 | [`erd/02-inpatient-configuration.md`](./erd/02-inpatient-configuration.md) | `0.1` | `draft` | `3645ee9d1788270ee7cef88d2cc6b74beddddec0a1a5d2b538e45c25c66f2065` |
 | [`erd/data-dictionary.md`](./erd/data-dictionary.md) | `0.4` | `draft` | `85551a5a5c966685937aa97cf79cc40c5b247e902d151a4daa6a132540e7f170` |
-| [`contracts/api-contract.md`](./contracts/api-contract.md) | `0.4.0` | `draft` | `a451e778e37a6596977ce6c2c9e24bc1548cd9dd4efa9a63e642ba02539b709b` |
+| [`contracts/api-contract.md`](./contracts/api-contract.md) | `0.4.0` | `draft` | `78d6c380ec1e7ad89c197df23736c484af73a83c4b85e74418d1924272ee3119` |
 | [`contracts/state-transition-matrix.md`](./contracts/state-transition-matrix.md) | `0.4.0` | `draft` | `35e8e769461a05b32da5d9e6d11ef92dc45c254b2c1a7d4eb08d228a5d9c1fc7` |
 | [`contracts/validation-matrix.md`](./contracts/validation-matrix.md) | `0.4.0` | `draft` | `6ff47efa675605e78bcdb8836fb636bd8744a1c07f2522508aa64261fd3f838d` |
 | [`contracts/integration-contract.md`](./contracts/integration-contract.md) | `0.4.0` | `draft` | `e6e86731ae4da27f482e6f659336a74cb0d2d9465f6a04e26fa7bcc6ac331fe1` |
@@ -161,7 +179,7 @@ dengan `0.3.0`. Tidak ada task berjalan yang perlu diulang karenanya.
 ## 4. Rantai masukan
 
 ```text
-00-interview-decisions.md  rev 5  (grill-me: Scope + Closure + Amendment Pass)
+00-interview-decisions.md  rev 7  (grill-me: Scope + Closure + Amendment Pass + pembahasan frontend)
         |
 01-existing-capability-map.md  (trace-existing-capabilities)
         |
@@ -272,7 +290,7 @@ Blueprint ditandai stale dan wajib melewati impact scan bila salah satu berikut 
 | `Areas/HealthServices/ClinicalManagement/` atau `PharmacyManagement/` | `DEC-INP-001`; slice yang dihentikan mungkin dapat dibuka |
 | `Areas/HealthServices/BillingManagement/` | `RWI-RULE-028` aturan 7; sumber kelayakan keuangan mungkin berpindah |
 | `Repositories/ApplicationDbContext.cs` | Rencana migration |
-| `docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md` | Prefix dan lifecycle modul |
+| `agents/rules/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md` | Prefix dan lifecycle modul |
 | Munculnya berkas berawalan `Inp` | Seluruh status `Baru` wajib dinilai ulang |
 
 ---

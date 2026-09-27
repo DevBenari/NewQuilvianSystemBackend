@@ -18,13 +18,13 @@ approved_by:
 approved_at: "2026-08-24"
 input_revisions:
   blueprint-manifest.md: 4
-  00-interview-decisions.md: 6
+  00-interview-decisions.md: 7
   01-existing-capability-map.md: 1.2
   02-backend-architecture.md: 0.4
   04-prd-to-mvp.md: 0.4.0
 artifact_hashes:
-  blueprint-manifest.md: "07f4ed008a53bab5186e0de059ab593b48966ef684d9702216354ba9891ebba0"
-  contracts/api-contract.md: "a451e778e37a6596977ce6c2c9e24bc1548cd9dd4efa9a63e642ba02539b709b"
+  blueprint-manifest.md: "a2f5dcf0d78e545701ac1f3616ee42195bd6516bea1e5ecf302af62c502d9892"
+  contracts/api-contract.md: "78d6c380ec1e7ad89c197df23736c484af73a83c4b85e74418d1924272ee3119"
   contracts/state-transition-matrix.md: "35e8e769461a05b32da5d9e6d11ef92dc45c254b2c1a7d4eb08d228a5d9c1fc7"
   contracts/validation-matrix.md: "6ff47efa675605e78bcdb8836fb636bd8744a1c07f2522508aa64261fd3f838d"
   contracts/permission-audit-matrix.md: "50a48e990ac9aaf1d97fc6f7448fd60f513292fd7da717faaaba2eced4d4e19b"
@@ -41,7 +41,7 @@ contract_versions:
 source_commits:
   backend: "5afb54bd75281648010e50ef14f43ca1f80d8efd"
   frontend: "dec4fdeff07c3c96ad9f07f41f184c54cf771371"
-task_count: 33
+task_count: 34
 ```
 
 ---
@@ -58,6 +58,14 @@ task_count: 33
 > boleh: menerapkan migration ke database selain lokal, dan memulai `BE-RWI-006` sebelum
 > `FE-RWI-001` terbukti rilis. Lihat bagian 5 untuk gerbang yang masih terbuka.
 
+
+> **Diperiksa ulang 2026-08-27 terhadap roadmap frontend revision `3`.** Pembahasan ulang
+> arsitektur frontend menghasilkan `RWI-DEC-075` s.d. `RWI-DEC-079` dan enam belas task frontend
+> baru. **Roadmap backend tidak berubah:** nol task ditambah, nol task diubah, nol kontrak naik
+> versi. Alur admisi berlangkah yang baru dibangun sepenuhnya di atas endpoint yang sudah ada —
+> termasuk `POST /patient-encounters` milik `RegistrationManagement`, yang memang sudah membuat
+> baris kunjungan beserta penjaminnya. Dua butir terbuka baru yang **dimiliki backend** dicatat
+> pada bagian 5: `RWI-OQ-045` dan `RWI-OQ-046`. Keduanya tidak menahan task mana pun.
 **Arti tanda status pada dokumen ini.**
 
 | Tanda | Artinya |
@@ -875,6 +883,8 @@ tersedia)**, frontend hanya boleh mendahului backend pada layar master dan pada 
 | Cara pulang belum dapat dikoreksi lewat sesi koreksi | Dibuka `BE-RWI-030` 25 Agustus 2026. State matrix bagian 6.1 mengizinkannya, tetapi tidak ada endpoint yang menyediakannya | Kesalahan cara pulang pada episode tertutup tidak dapat dibetulkan |
 | **Penanggung jawab pembaca laporan selisih tempat tidur** | Dibuka `BE-RWI-029` 25 Agustus 2026. Laporan selisih adalah satu-satunya pengawas atas satu-satunya arah tulis lintas modul, dan ia hanya berguna bila ada yang membacanya berkala | Risiko penyimpangan `MstBed.BedStatus` tidak tertutup oleh kode mana pun |
 | **Sembilan endpoint yang hak aksesnya tidak dapat diberikan** | Dibuka `BE-RWI-034` 27 Agustus 2026. `[AccessAction]` dan `[AccessPermission]` menyebut nama yang berbeda, sehingga `AccessPermissionFilter` tidak pernah menemukan barisnya dan menjawab 403 untuk siapa pun kecuali SuperAdmin | Tanda tangan resume, kelayakan keuangan, penutupan episode, jalan keluar supervisor, kepergian pasien, perpindahan pasien, kebutuhan isolasi, dan sesi koreksi tidak dapat dipakai petugas sungguhan. `FE-RWI-009` s.d. `FE-RWI-015` ikut tertahan |
+| **`RWI-OQ-046` jalur admisi tanpa `EncounterId`** | Dibuka 2026-08-27 lewat pembahasan ulang arsitektur frontend. `InpEpisodeService.BuildInpatientEncounter` membuat kunjungan sendiri dengan `PaymentType = EncounterPaymentType.Cash` yang ditanam di kode dan **tanpa** baris `TrxPatientEncounterGuarantor`, sehingga admisi lewat jalur itu tercatat tunai termasuk untuk pasien berpenjamin | Tidak menahan pekerjaan. Sejak `RWI-DEC-075` tidak ada layar yang menempuh jalur itu, tetapi jalurnya tetap terbuka bagi pemanggil lain. Perlu diputuskan apakah ditutup |
+| **`RWI-OQ-045` hak akses konfirmasi masuk** | Dibuka 2026-08-27 lewat `RWI-DEC-076`. `POST /bed-occupancies/placements` menuntut `InpatientBedOccupancy : Create`; kepala ruangan dan perawat hanya punya `Read` dan `Transfer`, sehingga konfirmasi kedatangan pasien tidak dapat dilakukan dari ruangan | Tidak menahan pekerjaan. `FE-RWI-030` berjalan dengan petugas admisi dan supervisor. Bila dibuka, menyentuh `contracts/permission-audit-matrix.md` dan seeder hak akses |
 | `RWI-RULE-021` batas waktu klinis | Menunggu pemilik klinis | Tidak menahan MVP; menahan pemakaian untuk pasien sungguhan |
 | `RWI-RULE-025` persetujuan umum | `DEC-INP-003`, menunggu pemilik hukum | Sama |
 | Masa simpan riwayat | `RWI-OQ-035`, sudah dijawab `RWI-DEC-060`, menunggu pemilik hukum | Sama |
