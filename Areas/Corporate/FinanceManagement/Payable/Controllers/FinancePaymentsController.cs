@@ -21,9 +21,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Payable.Contro
 /// itu **tidak** dibangun di sini (dicatat sebagai gap terbuka, bukan dikarang). `GET /payments`
 /// (daftar berpaging) pada `FIN-API-1.0` juga belum ada service-nya.
 ///
-/// FIN-OQ-010 (ambang nominal approval berjenjang persis) **belum diratifikasi** Finance
-/// Supervisor/Yasmin — `FinancePaymentService.ResolveApprovalTier` sudah memakai nilai placeholder
-/// yang didokumentasikan eksplisit sebagai provisional (lihat komentarnya). Controller ini
+/// Ambang nominal approval berjenjang (Rp 50.000.000) sudah diratifikasi `FIN-DEC-052`.
+/// `FinancePaymentService` menghitungnya lewat `FinanceApprovalTierResolver` (BE-FIN-028),
+/// resolver bersama yang juga dipakai Purchase Order dan Purchasing Invoice. Controller ini
 /// mengekspos `ApprovalTier` hasil resolver itu apa adanya; tidak ada logika ambang baru
 /// ditambahkan atau diasumsikan di sini.
 /// </summary>

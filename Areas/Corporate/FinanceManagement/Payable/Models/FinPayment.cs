@@ -15,7 +15,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Payable.Models
 /// - TotalAmount > 0 (CK_FinPayment_Total).
 /// - ApprovedBy IS NULL OR ApprovedBy != RequestedBy (CK_FinPayment_MakerChecker, FIN-VAL-051).
 /// - Status != 'PAID' OR AllocatedAmount = TotalAmount (CK_FinPayment_FullyAllocatedWhenPaid, FIN-VAL-050).
-/// - ApprovalTier diisi service dari total nominal (FIN-DEC-022; ambang nominal masih FIN-OQ-010).
+/// - ApprovalTier diisi service dari total nominal (FIN-DEC-022; ambang Rp 50.000.000 diratifikasi FIN-DEC-052).
 /// </summary>
 [Table("FinPayment", Schema = "public")]
 public sealed class FinPayment : IdentityModel
@@ -54,7 +54,7 @@ public sealed class FinPayment : IdentityModel
 
     [Required, MaxLength(30)] public string Status { get; set; } = FinPaymentStatuses.Draft;
 
-    /// <summary>Diisi service dari total nominal (FIN-DEC-022); ambang nominal masih FIN-OQ-010.</summary>
+    /// <summary>Diisi service dari total nominal lewat FinanceApprovalTierResolver (FIN-DEC-022, FIN-DEC-052).</summary>
     [MaxLength(30)] public string? ApprovalTier { get; set; }
 
     public Guid RequestedBy { get; set; }

@@ -372,3 +372,94 @@ pada `00-interview-decisions.md`), memakai peta ini sebagai dasar sehingga perta
 jawabannya sudah ada di source (mis. field apa yang tersedia di `BilArHandoff`) tidak ditanyakan
 ulang. `FIN-CQ-01` sebaiknya diajukan sebagai pertanyaan pertama pada Closure pass tersebut,
 karena menentukan DI MANA keputusan Cash Management berikutnya harus dicatat.
+
+---
+
+## 12. Audit rumpun BARU — Purchasing/AP, AR Invoice Agregat, Potongan AR (25 September 2026)
+
+**Pemicu:** evidence eksternal `Keuangan.md` (analisis video sistem rujukan, bukan sumber
+otoritatif) memicu `/grill-me` amendment pass yang menghasilkan tiga scope baru — `FIN-SC-008`
+(Purchasing/AP siklus penuh), `FIN-SC-009` (AR Invoice Agregat ke Company/Guarantor), `FIN-SC-010`
+(Potongan sisi penerimaan piutang) — dan keputusan bisnis `FIN-DEC-045` s.d. `FIN-DEC-055`,
+seluruhnya `approved` 25 September 2026.
+
+**Batas audit pass ini:** ketiga scope baru di atas, PLUS verifikasi staleness terhadap SHA
+audit sebelumnya (`d6cdfaf9`, bagian 9.3). **BUKAN** audit ulang rumpun AR/AP/Payable yang
+sudah dibangun (`FinReceivable`, `FinSupplierPayable`, dst. — bagian 9.3 sudah mencatat ini
+sebagai pekerjaan tersisa; pass ini MENUTUP sebagian dari catatan itu sejauh relevan dengan tiga
+scope baru, tidak mengaudit seluruhnya field-per-field).
+
+**Verifikasi staleness.** Backend SHA bergerak `d6cdfaf9` → `96bf9746` (45 commit, branch
+`Yasmina` tetap sama, fast-forward — bukan diverged). `git diff --stat d6cdfaf9..96bf9746 --
+Areas/Corporate/FinanceManagement Areas/Administrator/MasterData/Models/MstSupplier.cs
+Areas/HealthServices/BillingManagement` menunjukkan **nol** perubahan pada
+`Areas/Corporate/FinanceManagement/Payable/`, `MstSupplier.cs`, maupun area Purchasing manapun
+— seluruh 45 commit itu murni pada `BillingPayerEditService.cs`, `BillingRefundService.cs`,
+`BillingRefundDtos.cs`, `CashierShiftService.cs`/`Dtos`/`Controller` (kebetulan persis pekerjaan
+`BE-BUI-001`/`002` pada blueprint `billing-kasir` revisi 1.6 — tidak bersinggungan dengan audit
+ini). **Peta ini TIDAK stale untuk ketiga scope baru.** SHA audit pass ini: `96bf9746`.
+
+### 12.1 Tabel bukti kemampuan
+
+| ID | Kebutuhan | Pemilik | Bukti (`repo/path#symbol@SHA`) | Status | Gap/adapter | Risiko |
+|---|---|---|---|---|---|---|
+| `FIN-CAP-026` | Ledger utang supplier existing (`FIN-SC-008`, dasar `FIN-DEC-045`) | Finance | `Areas/Corporate/FinanceManagement/Payable/Models/FinSupplierPayable.cs#FinSupplierPayable@96bf9746` — `PayableNumber`, `SupplierId`→`MstSupplier`, `SupplierInvoiceNumber`+`SupplierInvoiceDate` (penjaga input ganda), `OriginalAmount`/`OutstandingAmount`/`PaidAmount`/`AdjustedAmount` (invariant seimbang, pola sama `FinReceivable`), `PaymentTermDays` disalin saat dibuat, `Status` (`OUTSTANDING`/`PARTIAL`/`PAID`/`CANCELLED`) | `Extend` | Dipicu manual (`SupplierInvoiceNumber` diketik staf). `FIN-DEC-045` mengalihkan pemicunya ke Purchasing Invoice yang sudah disetujui — struktur field TETAP relevan, hanya SUMBER pembuatannya yang berubah dari input manual menjadi turunan otomatis Purchasing Invoice | Invariant `OriginalAmount = OutstandingAmount + PaidAmount + AdjustedAmount` MUST tetap dijaga saat sumbernya berubah |
+| `FIN-CAP-027` | Master Supplier untuk kebutuhan Purchasing (`FIN-SC-008`, `Keuangan.md` bagian 9.2) | Administrator (titik sentuh Finance, `FIN-DEC-014`) | `Areas/Administrator/MasterData/Models/MstSupplier.cs#MstSupplier@96bf9746` — SUDAH memiliki `PaymentTermDays`, `LeadTimeDays`, `TaxPercent`, `IsTaxable`, `MinimumPurchaseAmount`, `CreditLimitAmount`, `IsPreferredSupplier`, `IsBlacklisted`+`BlacklistReason` | `Ready to reuse` | **Lebih lengkap dari dugaan awal** — TOP/lead time/PPN/diskon yang disebut `Keuangan.md` SUDAH ADA, bukan gap. Field yang benar-benar belum ada: nomor rekening lebih dari satu (multi-bank), kontak PIC pengadaan terpisah dari kontak umum | Klaim awal (sebelum pass ini) bahwa master ini "belum punya TOP/PPN" **keliru** — dikoreksi di sini berbasis baca langsung |
+| `FIN-CAP-028` | Purchase Order, Tanda Terima Barang, Tukar Faktur, Purchasing Invoice (`FIN-SC-008`) | — (belum ada pemilik) | Pencarian `PurchaseOrder\|GoodsReceipt\|TukarFaktur\|PurchasingInvoice\|InvoiceExchange\|Procurement\|Requisition\|VendorInvoice` (case-insensitive) di seluruh `Areas/` — 6 hasil, SELURUHNYA false-positive (enum `DrugStockEnums`, modul Rekrutmen HR `TrxJobRequisition*` — soal lowongan kerja, bukan pengadaan barang) | `Missing` | Empat entity inti rumpun Purchasing/AP (`FIN-DEC-045`, `050`, `051`) — nol baris kode, nol tabel, nol endpoint | Rumpun terbesar pada amendment ini; MUST dirancang penuh dari nol di `/design-business-module` |
+| `FIN-CAP-029` | Retur Pembelian & Deposit Retur (`FIN-SC-008`, `FIN-DEC-047`) | — (belum ada pemilik) | Pencarian `Retur.*Pembelian\|PurchaseReturn\|SupplierReturn\|ReturDeposit` di seluruh `Areas/` — nol hasil | `Missing` | Entity kredit lintas-invoice (`FIN-DEC-047`) belum ada. **Pola terdekat untuk dipakai acuan struktur** (bukan reuse data): `BilRefundableCredit` milik Billing (`FIN-CAP-023`) — `SourceType`/`OriginalAmount`/`AvailableAmount`/`Status Available-Exhausted` — arah aliran uang berlawanan (kredit DARI supplier, bukan KE pasien), sehingga MUST jadi entity baru di Finance, bukan tabel yang dipakai ulang | — |
+| `FIN-CAP-030` | Dokumen "Lembar Tagihan Penjamin Perusahaan" per-invoice (`FIN-SC-009`, titik sentuh `FIN-DEC-048`) | Billing | `Areas/HealthServices/BillingManagement/Billing/Services/BillingCompanyGuarantorInvoiceDocumentService.cs#GetDocumentAsync@96bf9746` (390 baris) + `BillingCompanyGuarantorInvoiceDtos.cs` — endpoint `GET /invoices/{id}/company-guarantor-invoice-document`, murni baca (`AsNoTracking`), SATU invoice per panggilan, `DocumentNumber = invoice.InvoiceNumber` (TANPA nomor seri baru — CAP-41 milik `billing-kasir`), rincian per baris yang ditanggung penjamin, rute reimbursement (`RouteType SELF/INSURANCE_PROVIDER`) | `Reuse with adapter` | **BUKAN duplikat `FIN-DEC-048`.** Ini render PER-INVOICE (satu pasien, satu kunjungan), sedangkan `FIN-DEC-048` butuh AGREGASI lintas banyak invoice/pasien untuk satu penjamin satu periode. Yang bisa dipakai ulang: struktur data `CompanyGuarantorInvoicePayerResponse` (identitas penjamin, rute reimbursement) sebagai RINCIAN di balik AR Invoice Agregat — persis konsisten dengan `FIN-DEC-048` sendiri ("`BilInvoice` individual TETAP ada... sebagai rincian") | **Wajib dibaca sebelum desain `/design-business-module`** — pola nomor dokumen (pakai nomor invoice apa adanya) TIDAK bisa ditiru untuk AR Invoice Agregat karena satu dokumen menaungi BANYAK invoice; MUST punya nomor seri sendiri |
+| `FIN-CAP-031` | Kunci pengelompokan penjamin pada `FinReceivable` (`FIN-SC-009`) | Finance | `Areas/Corporate/FinanceManagement/Receivable/Models/FinReceivable.cs#FinReceivable@96bf9746` — `DebtorType` (`PAYER`/`PATIENT_GUARANTOR`, dari `BillingArDebtorTypes`) + `DebtorReferenceId` (polimorfik, bukan FK — lintas bounded context) | `Ready to reuse` | Mengelompokkan `FinReceivable` yang `DebtorType="PAYER"` + `DebtorReferenceId` sama dalam satu periode SUDAH BISA dilakukan dengan query biasa atas kolom yang sudah ada — **nol perubahan skema `FinReceivable` diperlukan** untuk mengidentifikasi kandidat pengelompokan | Ini kabar baik signifikan: fondasi pengelompokan AR Invoice Agregat sudah tersedia, yang belum ada murni lapisan AGGREGATE ROOT baru (`FIN-CAP-032`) |
+| `FIN-CAP-032` | Aggregate root AR Invoice Agregat (`FIN-SC-009`, `FIN-DEC-048`) | — (belum ada pemilik) | Pencarian `Consolidat\|Agregat\|GroupInvoice\|InvoiceGroup\|BatchInvoice\|CompanyInvoice\|GuarantorInvoice` (case-insensitive) — 10 hasil, seluruhnya false-positive KECUALI `BillingCompanyGuarantorInvoiceDocumentService`/`Dtos` (`FIN-CAP-030`, per-invoice, bukan agregat) | `Missing` | Entity header baru (nomor tagihan resmi tersendiri, periode penagihan, `DebtorReferenceId`, koleksi `FinReceivable` yang dinaunginya, status siklus penagihan) belum ada sama sekali | — |
+| `FIN-CAP-033` | Pola potongan pembayaran sisi Payable, sebagai acuan struktur (`FIN-SC-010`, `FIN-DEC-049`) | Finance | `Areas/Corporate/FinanceManagement/Payable/Models/FinPaymentDeduction.cs#FinPaymentDeduction@96bf9746` — `PaymentId`→`FinPayment`, `DeductionType` (6 nilai tetap + `OTHER`), `Direction` (`DEDUCTION`/`ADDITION`), `Amount` selalu positif, `Reason` wajib bila `OTHER`, tiga check constraint (`Direction`, `Amount>0`, `Type`) | `Ready to reuse` (sebagai pola struktur, BUKAN data yang sama) | Arah aliran uang berlawanan — `FinPaymentDeduction` mengurangi TRANSFER KELUAR tanpa mengurangi utang lunas (`FIN-DES-028`); entity AR baru (`FIN-DEC-049`/`055`) mengurangi `OutstandingAmount` piutang. Struktur field (`DeductionType`, `Direction`, `Amount`, `Reason`) langsung dapat ditiru; hubungan ke aggregate root (`FinReceipt`/`FinReceiptAllocation`, bukan `FinPayment`) dan invariant-nya (MENGURANGI `OutstandingAmount`, bukan sekadar `NetTransferAmount`) HARUS berbeda | `FIN-DES-028` (potongan Payable TIDAK mengurangi utang) dan `FIN-DEC-055` (potongan AR MENGURANGI piutang) sengaja berlawanan arah — desain MUST NOT menyalin invariant `FinPaymentDeduction` mentah-mentah ke entity baru ini |
+| `FIN-CAP-034` | Potongan/withholding tax sisi penerimaan (`FIN-SC-010`) | — (belum ada pemilik) | Pencarian `Withhold\|WithholdingTax\|PPh23\|PPh 23\|TaxWithheld` (case-insensitive) di seluruh `Areas/` — **nol hasil** | `Missing` | Entity baru sepenuhnya — dikonfirmasi genuinely tidak ada precedent data apa pun, hanya precedent struktur (`FIN-CAP-033`) | — |
+| `FIN-CAP-035` | Mekanisme approval berjenjang berdasarkan nominal, SUDAH BERJALAN (`FIN-SC-008`, dasar pola untuk `FIN-DEC-050`) | Finance | `Areas/Corporate/FinanceManagement/Payable/Services/FinancePaymentService.cs#ResolveApprovalTier@96bf9746` (baris 649-659) + `FinPayment.ApprovalTier` (`Models/FinPayment.cs` baris 58) + `ApprovalTiers.Tier1`/`Tier2` (konstanta string) | **`Ready to reuse` (pola) — TEMUAN PALING PENTING pass ini** | **Placeholder ambang yang SUDAH DITULIS di kode adalah `<= Rp 50.000.000 → Tier1, > Rp 50.000.000 → Tier2` — PERSIS SAMA dengan angka yang baru disepakati `FIN-DEC-052`.** Komentar kode menyebutnya eksplisit "Placeholder ambang nominal provisional (`FIN-OQ-010`)" — kini `FIN-OQ-010` sudah `closed`, sehingga placeholder ini BUKAN LAGI provisional, melainkan SUDAH BENAR tanpa perlu diubah nilainya. `ResolveApprovalTier(paymentType, totalAmount)` — pola switch dua tier ini langsung dapat ditiru untuk approval PO/Purchasing Invoice (`FIN-DEC-050`), method baru terpisah dengan nominal sumber yang berbeda (nilai PO/Invoice, bukan total pembayaran) | Komentar `FinancePaymentsController.cs` baris 24-28 dan `FinPayment.cs` baris 18 MUST diperbarui saat implementasi — kata "provisional"/"belum diratifikasi" sudah tidak akurat sejak `FIN-DEC-052` |
+| `FIN-CAP-036` | Konvensi penamaan `[AccessController]`/route untuk resource Payable baru (`FIN-SC-008`) | Finance | `Areas/Corporate/FinanceManagement/Payable/Controllers/FinancePaymentsController.cs@96bf9746` — `[AccessController("CORPORATE_FINANCE_MANAGEMENT_PAYMENT", ...)]`, route `api/v1/corporate/finance-management/payments`, `[Tags("Corporate / Finance Management / Payment")]` | `Ready to reuse` (pola) | — | Konvensi ini MUST diikuti persis untuk resource Purchasing/AP baru (`PurchaseOrder`, `PurchasingInvoice`, `TukarFaktur`, dst.) — bukan pola baru yang diciptakan |
+
+### 12.2 Fact, inferensi, rekomendasi
+
+**Fact (terverifikasi baca langsung):**
+1. Nol baris kode untuk Purchase Order/Goods Receipt/Tukar Faktur/Purchasing Invoice di seluruh backend — dikonfirmasi dua kali (pass `/grill-me` sebelumnya dan pass audit ini, keduanya di SHA berbeda dengan hasil sama).
+2. `MstSupplier` sudah punya `PaymentTermDays`, `LeadTimeDays`, `TaxPercent`, `IsTaxable`, `CreditLimitAmount` — klaim sebelumnya bahwa master ini "belum lengkap" untuk kebutuhan Purchasing **keliru**, dikoreksi `FIN-CAP-027`.
+3. `FinancePaymentService.ResolveApprovalTier` sudah memakai ambang **Rp 50.000.000** sebagai placeholder — angka yang sama persis dengan `FIN-DEC-052`.
+4. `BillingCompanyGuarantorInvoiceDocumentService` ada dan matang (390 baris), tetapi beroperasi PER-INVOICE, bukan agregat lintas invoice.
+5. `FinReceivable.DebtorType`+`DebtorReferenceId` sudah menyediakan kunci pengelompokan yang dibutuhkan AR Invoice Agregat, tanpa perlu perubahan skema `FinReceivable`.
+
+**Inferensi:**
+1. Karena ambang `FinancePaymentService` sudah Rp 50 juta dan `FIN-DEC-052` menyepakati angka yang sama untuk KEDUA checkpoint (PO/Invoice dan pembayaran), kemungkinan besar angka ini bukan kebetulan — pola pikir "Rp 50 juta sebagai batas wajar keputusan finansial menengah" konsisten di kedua konteks. Ini MEMPERKUAT keyakinan bahwa `FIN-DEC-052` adalah keputusan yang tepat, bukan sekadar angka acak.
+2. Karena `BillingCompanyGuarantorInvoiceDocumentService` sengaja TIDAK memberi nomor seri baru pada dokumennya sendiri (memakai nomor invoice apa adanya), dan `FIN-DEC-048` eksplisit menuntut AR Invoice Agregat py nomor RESMI sendiri, kedua entity ini akan hidup berdampingan dengan pola penomoran yang BERBEDA secara sengaja — bukan inkonsistensi yang perlu diseragamkan.
+
+**Rekomendasi:**
+1. **Lanjut ke `/design-business-module`** untuk seluruh `FIN-SC-008`/`009`/`010` — tidak ada `Conflict` yang memblokir, seluruh `Missing` sudah dipetakan jelas batasnya, dan beberapa pola reuse berharga sudah ditemukan (`FIN-CAP-030`, `031`, `033`, `035`, `036`).
+2. **Prioritaskan pemakaian ulang `ResolveApprovalTier`** (`FIN-CAP-035`) sebagai referensi literal saat merancang approval PO/Purchasing Invoice — pola sudah teruji, tinggal ditiru dengan sumber nominal berbeda.
+3. **Desain AR Invoice Agregat MUST eksplisit menyatakan** field mana yang dipakai ulang dari `CompanyGuarantorInvoiceDocumentResponse` (`FIN-CAP-030`) sebagai rincian, supaya implementer tidak membangun ulang logika perhitungan per-item yang sudah ada di Billing.
+4. **`FIN-CAP-029`** (Deposit Retur) MUST dirancang sebagai entity Finance baru, TIDAK mencoba memakai ulang tabel `BilRefundableCredit` milik Billing — arah aliran uangnya berlawanan dan kepemilikan datanya berbeda modul.
+
+### 12.3 Yang TIDAK ditutup pass ini
+
+- Audit field-per-field rumpun AR/AP/Payable Finance yang SUDAH dibangun sebelumnya (`FinReceivable`, `FinReceiptAllocation`, `FinMedicalServicePayable`, dst.) — tetap menjadi utang dari bagian 9.3, TIDAK bertambah maupun berkurang oleh pass ini karena di luar tiga scope baru yang diminta.
+- Perincian kolom persis untuk empat entity baru Purchasing/AP (`FIN-CAP-028`) — itu keluaran desain (`/design-business-module`), bukan keluaran audit.
+- Ratifikasi Accounting atas kode `PPN-MASUKAN-PEMBELIAN` (`FIN-OQ-020`) — surat sudah terkirim (`evidence/06`), menunggu balasan Rizki, di luar wewenang audit kemampuan source code.
+
+## 13. Staleness dan impact-scan trigger — pembaruan 25 September 2026
+
+Selain pemicu pada bagian 10, peta ini (khusus bagian 12) **stale** dan wajib impact-scan ulang bila:
+
+- Backend SHA bergerak dari `96bf9746` (SHA audit bagian 12) DAN perubahan menyentuh
+  `Areas/Corporate/FinanceManagement/Payable/`, `Areas/Administrator/MasterData/Models/MstSupplier.cs`,
+  atau `Areas/HealthServices/BillingManagement/Billing/Services/BillingCompanyGuarantorInvoiceDocumentService.cs`.
+- `FIN-OQ-020` dijawab Rizki dan kode `PPN-MASUKAN-PEMBELIAN` berubah nama/bentuk — bagian 12.1
+  baris `FIN-CAP-034` perlu dicatat ulang begitu entity-nya dirancang.
+- Modul Purchasing/Procurement mulai dibangun di luar Finance Management (skenario yang
+  SUDAH ditolak `FIN-DEC-045`, tetapi bila kelak dipertimbangkan ulang, `FIN-CAP-028` MUST
+  diperiksa ulang).
+
+## 14. Handoff
+
+Lanjutkan `/design-business-module` untuk `FIN-SC-008`/`009`/`010`. Bahan yang sudah tersedia
+untuk pass itu: 15 keputusan bisnis (`FIN-DEC-045`..`055`, seluruhnya `approved`), 11 entri
+kemampuan baru (`FIN-CAP-026`..`036`), dan tiga temuan reuse bernilai tinggi (`FIN-CAP-030`
+dokumen per-invoice, `FIN-CAP-031` kunci pengelompokan, `FIN-CAP-035` mekanisme approval
+berjenjang yang sudah teruji dengan angka yang persis cocok). Satu gerbang eksternal tersisa
+di luar wewenang audit ini: `FIN-OQ-020` (ratifikasi Accounting atas kode PPN Masukan) — TIDAK
+memblokir desain arsitektur, hanya memblokir `/plan-module-delivery` untuk rumpun Purchasing/AP
+secara spesifik, sesuai `FIN-DEC-046`.
