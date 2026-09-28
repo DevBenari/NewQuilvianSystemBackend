@@ -9,6 +9,7 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Services;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingEvent.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.Configuration.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Reconciliation.Services;
@@ -712,6 +713,10 @@ try
     builder.Services.AddScoped<AccJournalService>();
     builder.Services.AddScoped<AccGeneralLedgerService>();
     builder.Services.AddScoped<AccControlAccountReconciliationService>();
+    builder.Services.Configure<AccAccountingEventSchedulerOptions>(
+        builder.Configuration.GetSection("Accounting:AccountingEventScheduler"));
+    builder.Services.AddScoped<AccAccountingEventService>();
+    builder.Services.AddHostedService<AccAccountingEventSchedulerHostedService>();
 
     builder.Services.AddScoped<LeaveEntitlementBalanceQueryService>();
     builder.Services.AddScoped<LeaveAdjustmentPostingService>();

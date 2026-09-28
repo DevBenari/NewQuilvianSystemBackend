@@ -25,6 +25,7 @@ using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Payable.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.PettyCash.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingEvent.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Models;
@@ -545,6 +546,12 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<AccPostingRule> AccPostingRules { get; set; }
         public DbSet<AccPostingRuleLine> AccPostingRuleLines { get; set; }
         #endregion CORPORATE - ACCOUNTING MANAGEMENT - MASTER DATA
+
+        #region CORPORATE - ACCOUNTING MANAGEMENT - ACCOUNTING EVENT
+        public DbSet<AccAccountingEvent> AccAccountingEvents { get; set; }
+        public DbSet<AccAccountingEventAttempt> AccAccountingEventAttempts { get; set; }
+        public DbSet<AccAccountingEventComponent> AccAccountingEventComponents { get; set; }
+        #endregion CORPORATE - ACCOUNTING MANAGEMENT - ACCOUNTING EVENT
 
         #region CORPORATE - ACCOUNTING MANAGEMENT - ACCOUNTING PERIOD
         public DbSet<AccAccountingPeriod> AccAccountingPeriods { get; set; }
