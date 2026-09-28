@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `95ea41cd9` (branch `RizkiV2`), perubahan belum di-commit |
 | Commit backend yang dijadikan rujukan | `f06d487f` (branch `rizkiG`) + source `BE-ACC-P2-028` yang belum di-commit |
 | Tanggal | 28 September 2026 |
-| Status | **🟡 SEBAGIAN** — 28 September 2026. 5 dari 5 acceptance terpetakan ke source **dan terbukti di layar** — uji layar Rizki B1–B7 lulus bersama `BE-ACC-P2-028` (bagian 9). eslint 2 berkas **0 error, 0 warning**. **Satu-satunya yang belum:** hasil `npm run build` belum dilaporkan; begitu dilaporkan berhasil, task ini ✅ |
+| Status | **✅ SELESAI — 28 September 2026.** 5 dari 5 acceptance terpetakan ke source dan terbukti di layar — uji layar Rizki B1–B7 lulus bersama `BE-ACC-P2-028` (bagian 9). eslint 2 berkas **0 error, 0 warning**; `npm run build` Rizki berhasil (`✓ Compiled successfully in 47s`, 411/411 halaman statis, postbuild standalone selesai). UAT belum dijalankan. **Riwayat:** 🟡 pada hari yang sama, menunggu build dan uji layar |
 
 ## 1. Keadaan yang ditemukan di awal
 
@@ -108,7 +108,7 @@ Nol endpoint baru; nol delta kontrak.
 | --- | --- | --- | --- |
 | `npx eslint` pada 2 berkas yang berubah | 0 error, 0 warning (exit 0) | `PASS` | Keluaran perintah, 28 September 2026 |
 | `npm run test:unit` | 1792 test: **1782 lulus, 10 gagal**. Kesepuluhnya berada di `accounting-reconciliation`, `accounting-trial-balance`, `inpatient-physician-entry`, `inpatient-physician-workspace`, `menu-permission-filter`, `petty-cash-finance-separation` — **tidak satu pun** berkas test itu mengimpor berkas yang diubah task ini (diperiksa dengan `grep`), dan belum ada test yang merujuk Kotak Masuk kejadian | `UNRELATED EXISTING ISSUE` | Keluaran perintah; bagian 8 |
-| `npm run build` | Belum dijalankan — build oleh Rizki | `NOT RUN` | — |
+| `npm run build` (Rizki) | `✓ Compiled successfully in 47s`; `Generating static pages (411/411)`; rute `/corporate/accounting/accounting-events` dan `[slug]` terbangun; `prepare-standalone` berhasil | `PASS` | Keluaran build ditempel Rizki, 28 September 2026 |
 | Uji layar (Rizki) | B1–B7 lulus, 28 September 2026 | `PASS` | Bagian 9 |
 | `AUTOMATED TEST` | `SKIPPED (opsional)` — perubahan berupa konfigurasi tab dan satu nilai teks; tidak ada logika murni baru yang layak diuji unit | — | `test-policy.md` |
 
@@ -136,7 +136,7 @@ Jalankan **sesudah** skenario 1–4 dan 11 pada laporan
 | (4) Status lain tidak berubah | Terpenuhi di source | Cabang baru hanya aktif bila `journal` kosong **dan** `statusValue === "6"` |
 | (5) Coba Ulang dan Abaikan tetap mati untuk Tercatat | Terpenuhi — tanpa perubahan | `ACCOUNTING_EVENT_RETRYABLE_STATUSES = ["2","3"]`, `ACCOUNTING_EVENT_IGNORABLE_STATUSES = ["3"]` |
 | DoD: lint hijau | Terpenuhi | Bagian 6.1 |
-| DoD: build owner berhasil | **Belum dilaporkan** | Hasil `npm run build` ditunggu dari Rizki |
+| DoD: build owner berhasil | Terpenuhi | `npm run build` Rizki, 28 September 2026 |
 | DoD: uji layar tercatat | Terpenuhi | Bagian 9 |
 | DoD: laporan task tertulis | Terpenuhi | Berkas ini |
 

@@ -586,7 +586,7 @@ flowchart LR
 
     GKONTRAK{{"⛔ Kontrak API sisi subledger<br/>belum dirancang"}}:::terblokir
 
-    FEACCP2015["🟡 FE-ACC-P2-015<br/>Kotak Masuk mengenali pesan saldo"]:::sebagian
+    FEACCP2015["✅ FE-ACC-P2-015<br/>Kotak Masuk mengenali pesan saldo"]:::selesai
     FEACCP2016["⛔ FE-ACC-P2-016<br/>Rekonsiliasi menampilkan saldo subledger"]:::terblokir
 
     BBEACCP2028 --> FEACCP2015
@@ -601,10 +601,10 @@ flowchart LR
 
 | ID | Judul | Gelombang | Dependency | Status |
 |---|---|---|---|---|
-| `FE-ACC-P2-015` | Kotak Masuk dan Rincian mengenali pesan saldo subledger | Wave D | `BE-ACC-P2-028` | 🟡 `SEBAGIAN` 28 Sep 2026 — uji layar B1–B7 lulus, eslint 0/0; tinggal hasil `npm run build` owner. [Laporan](../task/report/frontend/FE-ACC-P2-015.md) |
+| `FE-ACC-P2-015` | Kotak Masuk dan Rincian mengenali pesan saldo subledger | Wave D | `BE-ACC-P2-028` | ✅ `SELESAI` 28 Sep 2026 — uji layar B1–B7 lulus, eslint 0/0, `npm run build` Rizki berhasil. [Laporan](../task/report/frontend/FE-ACC-P2-015.md) |
 | `FE-ACC-P2-016` | Layar Rekonsiliasi menampilkan saldo subledger dan selisihnya | Wave D | `BE-ACC-P2-014`, kontrak API sisi subledger | ⛔ `BLOCKED` — kontrak endpoint sisi subledger belum dirancang |
 
-## 🟡 `FE-ACC-P2-015` — Kotak Masuk dan Rincian mengenali pesan saldo subledger
+## ✅ `FE-ACC-P2-015` — Kotak Masuk dan Rincian mengenali pesan saldo subledger
 
 | Field | Isi |
 |---|---|
@@ -618,7 +618,7 @@ flowchart LR
 | Verifikasi | `npx eslint` berkas yang berubah; `npm run build` oleh owner; **uji layar bersama `BE-ACC-P2-028`** — sesudah skenario 1–4 dan 11 pada laporan `BE-ACC-P2-028` bagian 5.2, tab Tercatat berisi kejadian itu dan Rinciannya memuat teks acceptance (3) |
 | Risiko/pemilik | Teks persis baris Jurnal dan letak tab adalah `DEV_DISCRETION`; yang dikunci hanya maknanya — "tidak dijurnal", bukan "belum". Owner Frontend |
 | DoD | Lint hijau, build owner berhasil, uji layar tercatat, laporan task tertulis |
-| **Status** | 🟡 **SEBAGIAN — 28 September 2026.** 5 dari 5 acceptance terpetakan ke source **dan terbukti di layar**: uji layar Rizki B1–B7 lulus bersama `BE-ACC-P2-028` — tab "Tercatat 3", saringan hanya kejadian Tercatat, baris Jurnal "Tidak dijurnal — pesan saldo subledger" tanpa Buka Jurnal, status lain tidak berubah; (5) dinyatakan lulus Rizki. 2 berkas (constants, hook Rincian), nol JSX/CSS; `UI GATE`: REUSE 2, NEW 0; `npx eslint` 2 berkas **0/0**; `npm run test:unit` 1782/1792 — 10 gagal di berkas test yang tidak mengimpor berkas task ini (`UNRELATED EXISTING ISSUE`). **Satu-satunya sisa:** hasil `npm run build` owner belum dilaporkan. Bukti: [laporan](../task/report/frontend/FE-ACC-P2-015.md) |
+| **Status** | ✅ **SELESAI — 28 September 2026.** `npm run build` Rizki berhasil (47 detik, 411/411 halaman). 5 dari 5 acceptance terpetakan ke source **dan terbukti di layar**: uji layar Rizki B1–B7 lulus bersama `BE-ACC-P2-028` — tab "Tercatat 3", saringan hanya kejadian Tercatat, baris Jurnal "Tidak dijurnal — pesan saldo subledger" tanpa Buka Jurnal, status lain tidak berubah; (5) dinyatakan lulus Rizki. 2 berkas (constants, hook Rincian), nol JSX/CSS; `UI GATE`: REUSE 2, NEW 0; `npx eslint` 2 berkas **0/0**; `npm run test:unit` 1782/1792 — 10 gagal di berkas test yang tidak mengimpor berkas task ini (`UNRELATED EXISTING ISSUE`). UAT belum dijalankan. **Riwayat:** 🟡 pada hari yang sama. Bukti: [laporan](../task/report/frontend/FE-ACC-P2-015.md) |
 
 ## ⛔ `FE-ACC-P2-016` — Layar Rekonsiliasi menampilkan saldo subledger dan selisihnya
 
