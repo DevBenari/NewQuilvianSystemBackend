@@ -7,7 +7,7 @@ blueprint_id: ACC-BP-001
 blueprint_revision: 11
 blueprint_status: approved            # Phase 2 disetujui Rizki, 8 September 2026
 roadmap_revision: 4                   # DRAFT 24 Sep 2026 - ACC-DEC-082..091: Wave B (019-026) + Wave D (027-028); revisi 3 APPROVED 14 Sep 2026
-roadmap_status: APPROVED              # revisi 4 approved Rizki 24 Sep 2026 lewat GATE-DESAIN-0924; Wave D tetap menunggu GATE-FIN-087
+roadmap_status: APPROVED              # revisi 4 approved Rizki 24 Sep 2026 lewat GATE-DESAIN-0924; GATE-FIN-087 dibuka 28 Sep 2026 (FIN-DEC-035) - Wave D belum dikerjakan
 approved_by: [Rizki]
 approved_at: 2026-09-14               # revisi 3; revisi 2 disetujui 2026-09-09
 source_backend: b3ab542e              # revisi 3; revisi 1-2 disusun di atas 02c3219
@@ -51,7 +51,7 @@ flowchart LR
     SMANDIRI["🟡 Gelombang mandiri<br/>P2-0a, P2-3, P2-4, P2-5, P2-CTRL, P2-RECON<br/>13 dari 14 task"]:::sebagian
     SHARD["✅ Hardening<br/>BE-ACC-P2-031, 032, 033"]:::selesai
     SP20B["✅ P2-0b Wave A<br/>Master aturan posting"]:::selesai
-    GP21{{"Wave B siap dikerjakan — 019 sampai 026<br/>Wave D menunggu GATE-FIN-087"}}:::belum
+    GP21{{"✅ Wave B selesai — 019 sampai 026<br/>Wave D belum dikerjakan — GATE-FIN-087 dibuka 28 Sep 2026"}}:::belum
 
     SMANDIRI --> SHARD
     SP20B --> GP21
@@ -61,6 +61,11 @@ flowchart LR
 `BE-ACC-P2-014` — satu-satunya task gelombang mandiri yang belum dikerjakan — menunggu gelombang
 `P2-1`, itulah panah dari blocker ke gelombang mandiri. Wave A tidak menunggu siapa pun; ia justru
 prasyarat bagi `P2-1` begitu keputusan lintas modul turun.
+
+**Pembaruan 28 September 2026.** Wave B (`P2-1`, `P2-2`) selesai: `BE-ACC-P2-019` sampai `026` ✅.
+`BE-ACC-P2-014` kini hanya menunggu `BE-ACC-P2-028` di Wave D. Kunci Wave D, `GATE-FIN-087`, dibuka
+karena Finance menerima bentuk pesan saldo apa adanya (`FIN-DEC-035`, `approved` Yasmin 25 September
+2026). Urutan kerjanya tinggal `027` → `028` → `014`, dan tidak satu pun dimulai tanpa perintah Rizki.
 
 ### Grafik 1 — gelombang mandiri
 
@@ -85,9 +90,9 @@ flowchart LR
     BEACCP2011["✅ BE-ACC-P2-011<br/>Kolom control account"]:::selesai
     BEACCP2012["✅ BE-ACC-P2-012<br/>Tolak jurnal manual ke control"]:::selesai
     BEACCP2013["✅ BE-ACC-P2-013<br/>Saldo control account GL"]:::selesai
-    BEACCP2014["⛔ BE-ACC-P2-014<br/>Perbandingan subledger dan selisih"]:::terblokir
+    BEACCP2014["BE-ACC-P2-014<br/>Perbandingan subledger dan selisih"]:::belum
     subgraph cermin1["Prasyarat dari Grafik 3 — cermin baca-saja"]
-        MBEACCP2028["⛔ BE-ACC-P2-028<br/>Jalur pesan saldo"]:::luar
+        MBEACCP2028["BE-ACC-P2-028<br/>Jalur pesan saldo"]:::luar
     end
 
     BEACCP2001 --> BEACCP2004
@@ -115,7 +120,7 @@ flowchart LR
 | 3 | `004` | `BE-ACC-P2-005` ✅, `007` ✅, `009` ✅, `012` ✅ |
 | 4 | `005`, `007` | `BE-ACC-P2-006` ✅, `008` ✅ |
 | 5 | `006`, `009` | `BE-ACC-P2-010` ✅ |
-| — | ⛔ menunggu `BE-ACC-P2-028` (Grafik 3) dan `013` ✅ — revisi 4, 24 Sep 2026 | `BE-ACC-P2-014` |
+| — | `BE-ACC-P2-028` (Grafik 3) dan `013` ✅ — revisi 4, 24 Sep 2026. Kunci `GATE-FIN-087` di hulu `028` dibuka 28 Sep 2026 | `BE-ACC-P2-014` |
 
 ### Grafik 2 — batch 14 September 2026: hardening dan Wave A
 
@@ -226,7 +231,7 @@ Pola yang wajib diikuti, diwarisi dari `BE-ACC-007`:
 | `BE-ACC-P2-011` ✅ | **Kolom control account pada daftar akun** | `P2-CTRL` | — | **`DONE`** 9 Sep 2026 |
 | `BE-ACC-P2-012` ✅ | **Penolakan jurnal manual ke control account** | `P2-CTRL` | `004` ✅, `011` ✅ | **✅ `DONE`** 14 Sep 2026 atas `ACC-DEC-081` (verifikasi otomatis dikecualikan dari DoD; jurnal `JT` tetap UAT follow-up). **Riwayat:** 🟡 `SEBAGIAN` 11 Sep 2026 — uji manual PostgreSQL S1–S8 dan A–D: acceptance (1), (3), (4) terbukti di runtime; (2) kecuali jurnal `JT`; build `Release` dan uji SQLite belum diverifikasi. **Keputusan owner 11 Sep 2026:** Implementation `COMPLETE` · Developer Manual Test `COMPLETED` · Automated Verification `DEFERRED` · UAT `HANDOFF TO UAT TEAM` — tetap 🟡 karena DoD formal menuntut test hijau; **bukan penghalang** `FE-ACC-P2-007`/`008` |
 | `BE-ACC-P2-013` ✅ | **Saldo control account dari buku besar** | `P2-RECON` | `011` ✅ | **`DONE`** 14 Sep 2026 atas `ACC-DEC-081` — sebelumnya `SEBAGIAN` 9 Sep 2026 hanya karena test PostgreSQL |
-| `BE-ACC-P2-014` ⛔ | **Perbandingan subledger dan laporan selisih** | `P2-RECON` | `013` ✅, **`028`** (revisi 4) | ⛔ `BLOCKED` — menunggu `028`. Sebelumnya `READY`, dibuka `ACC-DEC-071` 10 Sep 2026, padahal saldo subledger belum punya jalan masuk |
+| `BE-ACC-P2-014` | **Perbandingan subledger dan laporan selisih** | `P2-RECON` | `013` ✅, **`028`** (revisi 4) | Belum dikerjakan — `READY` menurut urutan gelombang: dimulai sesudah `028` selesai (Wave D-3). `GATE-FIN-087` di hulunya dibuka 28 Sep 2026 (`FIN-DEC-035`). **Riwayat:** ⛔ `BLOCKED` 24–28 Sep 2026 menunggu `028` dan `GATE-FIN-087`; sebelumnya `READY`, dibuka `ACC-DEC-071` 10 Sep 2026, padahal saldo subledger belum punya jalan masuk |
 | `BE-ACC-P2-015` ✅ | Entity dan enum master aturan posting | `P2-0b` | — | ✅ **SELESAI** 14 Sep 2026 — build owner 0 error, nol migration. [Laporan](../task/report/backend/BE-ACC-P2-015.md) |
 | `BE-ACC-P2-016` ✅ | Migration master aturan posting (**GATED**, dibuat Rizki) | `P2-0b` | `015` ✅ | ✅ **SELESAI** 14 Sep 2026 — `20260914044507_AddAccountingPostingRuleMaster` dibuat dan diterapkan Rizki, snapshot nol deletion. [Laporan](../task/report/backend/BE-ACC-P2-016.md) |
 | `BE-ACC-P2-017` ✅ | API Jenis Kejadian | `P2-0b` | `015` ✅ | ✅ **SELESAI** 15 Sep 2026 — 6 dari 6 acceptance di source; build owner 0 error; `GET /event-types` dan `GET /posting-rules` berlogin menjawab `200`, bentuk cocok DTO. Riwayat: 🟡 14 Sep 2026, menunggu uji panggil. [Laporan](../task/report/backend/BE-ACC-P2-017.md) |
@@ -454,7 +459,7 @@ Dua gelombang baru:
 | Gelombang | Isi | Catatan |
 |---|---|---|
 | `P2-CTRL` | Control account: penandanya, dan penolakan jurnal manual ke sana | **Menyentuh artefak Phase 1** |
-| `P2-RECON` | Rekonsiliasi control account | Blokirnya dibuka `ACC-DEC-071` 10 Sep 2026; `BE-ACC-P2-014` kini menunggu gelombang `P2-1`, bukan menunggu keputusan |
+| `P2-RECON` | Rekonsiliasi control account | Blokirnya dibuka `ACC-DEC-071` 10 Sep 2026; `BE-ACC-P2-014` kini menunggu gelombang `P2-1`, bukan menunggu keputusan. **Pembaruan 28 Sep 2026:** `P2-1` sudah selesai; `014` tinggal menunggu `BE-ACC-P2-028` (Wave D), dan `GATE-FIN-087` sudah dibuka |
 
 ---
 
@@ -520,12 +525,12 @@ Dua gelombang baru:
 |---|---|
 | Outcome | Saldo control account dibandingkan dengan saldo subledger, dan selisihnya dilaporkan |
 | Trace | `ACC-DEC-066` |
-| Dependency | `BE-ACC-P2-013` ✅ |
-| **Status** | `READY` — blokirnya dibuka 10 September 2026 |
-| **Pemblokirnya** | **`DEC-ACC-P2-011` — DITUTUP** oleh `ACC-DEC-071`, 10 September 2026 |
-| Keputusan yang mengikat | Finance menerbitkan saldo subledger **final per periode akuntansi** sebagai kejadian, memuat `LegalEntity`, `AccountingPeriod`, `ControlAccount`, `SubledgerBalance`, `AsOfDate`. Accounting **tidak** memanggil API Finance dan **tidak** membaca tabelnya |
+| Dependency | `BE-ACC-P2-013` ✅, **`BE-ACC-P2-028`** (revisi 4, 24 September 2026) |
+| **Status** | Belum dikerjakan — `READY` menurut urutan gelombang: dimulai sesudah `028` selesai (Wave D-3), dan hanya atas perintah Rizki. **Riwayat:** ⛔ 24–28 September 2026 menunggu `028` dan `GATE-FIN-087`; `READY` sejak 10 September 2026 sebelum itu. `GATE-FIN-087` dibuka 28 September 2026 atas `FIN-DEC-035` |
+| **Pemblokirnya** | **`DEC-ACC-P2-011` — DITUTUP** oleh `ACC-DEC-071`, 10 September 2026. **`GATE-FIN-087` — DIBUKA** 28 September 2026 |
+| Keputusan yang mengikat | Finance menerbitkan saldo subledger **final per periode akuntansi** sebagai kejadian. Accounting **tidak** memanggil API Finance dan **tidak** membaca tabelnya. ~~Pesan memuat `LegalEntity`, `AccountingPeriod`, `ControlAccount`, `SubledgerBalance`, `AsOfDate`.~~ **Bentuk pesan kini `ACC-DEC-087`**, diterima Finance apa adanya lewat `FIN-DEC-035` (25 September 2026): amplop dua belas bidang yang sama, kode `SALDO-SUBLEDGER`, `Amount` = saldo (boleh nol atau negatif), `AccountingDate` = tanggal cut-off, ditambah rincian `SubledgerBalance.AccountingPeriodCode` (`YYYY-MM`) dan `SubledgerBalance.ControlAccountCode`. **Contoh:** saldo piutang penjamin per 30 November 2026 Rp 425.000.000 tiba sebagai `Amount` `425000000.00`, `AccountingDate` `2026-11-30`, `AccountingPeriodCode` `2026-11`, `ControlAccountCode` `1-1201` |
 | Cakupan yang kini pasti | (1) Menerima dan menyimpan saldo subledger per control account per periode. (2) Membandingkannya dengan saldo buku besar pada periode yang sama. (3) Melaporkan selisihnya. (4) Menyumbang penghalang penutupan periode — lihat `ACC-GAP-013` |
-| Dependency baru | **Gelombang `P2-1`** (kotak masuk kejadian), karena saldo subledger tiba sebagai kejadian. Sisi pembandingnya dapat ditulis lebih dulu memakai `BE-ACC-P2-013` yang sudah berdiri |
+| Dependency baru | ~~**Gelombang `P2-1`** (kotak masuk kejadian), karena saldo subledger tiba sebagai kejadian.~~ **Sejak revisi 4: `BE-ACC-P2-028`**, jalur yang menyimpan pesan saldo; `P2-1` sudah selesai (Wave B tuntas 28 September 2026). Sisi pembandingnya dapat ditulis lebih dulu memakai `BE-ACC-P2-013` yang sudah berdiri |
 | Yang tetap dapat berjalan sendiri | **`BE-ACC-P2-013`** — sisi buku besarnya utuh dan sudah berdiri |
 | Catatan | Menebak bentuk sumber saldo subledger dulu ditolak justru supaya pembandingnya tidak dibongkar ulang. Bentuknya kini ditetapkan `ACC-DEC-071`, jadi alasan menunggu sudah hilang |
 
@@ -681,7 +686,7 @@ QBE preflight dan kesesuaian engineering tetap diselesaikan **pada waktu eksekus
 | Source | `rizkiG` `b2b265af`, `RizkiV2` `c941012ac` |
 | Kunci yang dicabut | `OD-ACC-01` gugur dan `ACC-XM-001` `CLOSED` (`ACC-DEC-082`) — kotak masuk **boleh** direncanakan. Kalimat "nomor `019` sampai `030` belum boleh direncanakan" pada bagian *Ringkasan task* tidak berlaku lagi |
 | ~~Kunci yang masih ada~~ | **`GATE-DESAIN-0924` DIBUKA** — Rizki meng-approve bagian 22 arsitektur dan usulan `ACC-API-0.12`, `ACC-VALIDATION-0.8`, `ACC-PERMISSION-0.7`, `ACC-STATE-0.4`, serta teks `ACC-INTEGRATION-0.4`/`0.5` pada 24 September 2026. Kartu `019`–`026` siap dikerjakan sesuai urutan gelombang |
-| Kunci tambahan Wave D | **`GATE-FIN-087`** — persetujuan Finance atas bentuk pesan saldo (`evidence/13` bagian 5 butir 1). Wave D dapat dibangun tanpa kode `SALDO-SUBLEDGER` (berkat `EventKind`), tetapi membangunnya sebelum Finance setuju bentuknya berisiko kerja ulang |
+| ~~Kunci tambahan Wave D~~ | ~~**`GATE-FIN-087`** — persetujuan Finance atas bentuk pesan saldo (`evidence/13` bagian 5 butir 1). Wave D dapat dibangun tanpa kode `SALDO-SUBLEDGER` (berkat `EventKind`), tetapi membangunnya sebelum Finance setuju bentuknya berisiko kerja ulang~~ **`GATE-FIN-087` DIBUKA 28 September 2026.** Finance menerima bentuk pesan saldo `ACC-DEC-087` dan kode `SALDO-SUBLEDGER` apa adanya (`FIN-DEC-035`, `approved` Yasmin 25 September 2026; `FIN-DEC-023` lima bidang ditarik). Sumber: `finance-management/evidence/04-jawaban-atas-balasan-accounting.md` bagian 2 dan 4, dikoreksi `05-koreksi-jawaban-atas-balasan-accounting.md` yang menyatakan bentuk saldo tidak berubah. Pilahan jawaban dikonfirmasi Rizki 28 September 2026. Kartu `027`, `028`, dan `014` kini hanya menunggu urutan gelombang |
 | Yang **tidak** menahan | Mekanisme autentikasi (G3), bagan akun sah (G2), pengirim Finance (G4). Ketiganya menahan **cutover**, bukan pembangunan. Kotak masuk diuji dengan pesan tiruan lewat Swagger, sesuai gelombang `P2-1` pada `04-prd-to-mvp.md` bagian 28 |
 | Catatan engineering | Setiap task backend menjalankan QBE preflight dan pemeriksaan kesesuaian engineering pada waktu eksekusi, dari `AGENTS.md` backend dan `docs/engineering/` — bukan dari kartu ini |
 | Migration | Dibuat dan diterapkan **Rizki sendiri**. Agent berhenti sebelum `dotnet ef migrations add` |
@@ -702,7 +707,7 @@ flowchart LR
     end
 
     GDES{{"✅ GATE-DESAIN-0924<br/>approved Rizki 24 Sep 2026"}}:::selesai
-    GFIN{{"⛔ GATE-FIN-087<br/>Finance setuju bentuk pesan saldo"}}:::terblokir
+    GFIN{{"✅ GATE-FIN-087<br/>dibuka 28 Sep 2026 — FIN-DEC-035"}}:::selesai
 
     BEACCP2019["✅ BE-ACC-P2-019<br/>Entity kotak masuk + EventKind"]:::selesai
     BEACCP2020["✅ BE-ACC-P2-020<br/>Migration kotak masuk oleh Rizki"]:::selesai
@@ -712,8 +717,8 @@ flowchart LR
     BEACCP2024["✅ BE-ACC-P2-024<br/>Daftar rincian ringkasan"]:::selesai
     BEACCP2025["✅ BE-ACC-P2-025<br/>Coba ulang manual dan abaikan"]:::selesai
     BEACCP2026["✅ BE-ACC-P2-026<br/>Penghalang tutup bulan dari kejadian"]:::selesai
-    BEACCP2027["⛔ BE-ACC-P2-027<br/>Entity saldo subledger + migration"]:::terblokir
-    BEACCP2028["⛔ BE-ACC-P2-028<br/>Jalur pesan saldo"]:::terblokir
+    BEACCP2027["BE-ACC-P2-027<br/>Entity saldo subledger + migration"]:::belum
+    BEACCP2028["BE-ACC-P2-028<br/>Jalur pesan saldo"]:::belum
 
     GDES --> BEACCP2019
     BEACCP2019 --> BEACCP2020
@@ -740,7 +745,7 @@ cermin baca-saja `BE-ACC-P2-028`, karena `014` kini menunggu `028`.
 | 1 | `GATE-DESAIN-0924` | `BE-ACC-P2-019` |
 | 2 | `019` | `BE-ACC-P2-020` (Rizki), `021`, `022`, `024` — boleh paralel |
 | 3 | `021` | `BE-ACC-P2-023`, `025`, `026` — boleh paralel |
-| — | ⛔ `GATE-FIN-087` dan `019` | `BE-ACC-P2-027` |
+| Wave D-1 | `GATE-FIN-087` ✅ (dibuka 28 Sep 2026) dan `019` ✅ | `BE-ACC-P2-027` |
 | Wave D-2 | `021`, `027` | `BE-ACC-P2-028` |
 | Wave D-3 | `028`, `013` ✅ | `BE-ACC-P2-014` (node di Grafik 1) |
 
@@ -765,8 +770,8 @@ berlaku untuk akun layanan produksi, bukan untuk uji pengembang.
 | `BE-ACC-P2-024` | Daftar, rincian, dan ringkasan kejadian | `P2-2` | `019` | ✅ `SELESAI` 24 Sep 2026 — build 0 error, uji layar lulus. [Laporan](../task/report/backend/BE-ACC-P2-024.md) |
 | `BE-ACC-P2-025` | Coba ulang manual dan abaikan | `P2-2` | `021` | ✅ `SELESAI` 28 Sep 2026 — build 0 error; uji Swagger mentah 4/4 acceptance lulus (bukti agen AI 24 Sep dicabut). [Laporan](../task/report/backend/BE-ACC-P2-025.md) |
 | `BE-ACC-P2-026` | Penghalang tutup bulan dari kejadian, dan penolakan penonaktifan aturan yang ditunggu | `P2-2` | `021` | ✅ `SELESAI` — build 0 error 222 warning; uji Swagger mentah 25 Sep 2026 skenario A (September 2026) dan B (Januari 2031) lulus. [Laporan](../task/report/backend/BE-ACC-P2-026.md) |
-| `BE-ACC-P2-027` | Entity dan migration saldo subledger | Wave D | `019`, `GATE-FIN-087` | ⛔ `BLOCKED` |
-| `BE-ACC-P2-028` | Jalur pesan saldo subledger | Wave D | `021`, `027` | ⛔ `BLOCKED` |
+| `BE-ACC-P2-027` | Entity dan migration saldo subledger | Wave D | `019` ✅, `GATE-FIN-087` ✅ | Belum dikerjakan — `READY` sejak 28 Sep 2026 (`GATE-FIN-087` dibuka, `FIN-DEC-035`). Riwayat: ⛔ 24–28 Sep 2026 |
+| `BE-ACC-P2-028` | Jalur pesan saldo subledger | Wave D | `021` ✅, `027` | Belum dikerjakan — `READY` menurut urutan gelombang, sesudah `027`. Riwayat: ⛔ 24–28 Sep 2026 |
 
 Nomor `029` dan `030` tetap cadangan.
 
@@ -895,20 +900,21 @@ Nomor `029` dan `030` tetap cadangan.
 | DoD | Source berubah, build owner 0 error, laporan task tertulis |
 | **Status** | ✅ **SELESAI** — 3 dari 3 acceptance di source (`AccPeriodClosingService`, `AccPostingRuleService`; nol migration, nol endpoint baru), terbukti dari **response Swagger mentah Rizki 25 September 2026**: daftar periksa September 2026 `HELD_EVENTS` 3 sebagai peringatan; penonaktifan aturan `UJI-026-A` yang ditunggu → `409`, sesudah kejadian terjurnal → `200`; `EVT-UJI-112` Gagal menahan daftar periksa Januari 2031 dan `submit-closing` → `409`, kembali 0 sesudah Coba Ulang. Build Rizki berhasil, 222 warning. Bukti 24 September 2026 dari laporan agen AI dicabut. Terbuka untuk Rizki: kejadian Gagal bertanggal di periode yang sudah tertutup. UAT belum dijalankan. Bukti: [laporan](../task/report/backend/BE-ACC-P2-026.md) |
 
-## ⛔ `BE-ACC-P2-027` — Entity dan migration saldo subledger
+## `BE-ACC-P2-027` — Entity dan migration saldo subledger
 
 | Field | Isi |
 |---|---|
 | Outcome | Tempat menyimpan saldo subledger yang dinyatakan Finance tersedia |
-| Trace | `ACC-DEC-071`, `076`, `087` (belum ada FR — coverage gap); kamus data bagian 12d; arsitektur bagian 22.6, 22.9, 22.10 |
+| Trace | `ACC-DEC-071`, `076`, `087` (belum ada FR — coverage gap); kamus data bagian 12d; arsitektur bagian 22.6, 22.9, 22.10; sisi Finance `FIN-DEC-035` |
 | Cakupan | `AccSubledgerBalance` + configuration di folder `Reconciliation`; migration `AddAccSubledgerBalance` **dibuat Rizki** |
-| Dependency | `019`, `GATE-FIN-087` |
+| Dependency | `019` ✅, `GATE-FIN-087` ✅ (dibuka 28 September 2026) |
 | Acceptance | (1) Unique `(LegalEntityId, AccountingPeriodId, ChartOfAccountId)`. (2) Empat FK `Restrict`. (3) `Balance` boleh negatif. (4) Snapshot tanpa deletion |
 | Verifikasi | Build owner; output `dotnet ef` Rizki |
-| Risiko/pemilik | Finance mengubah bentuk pesan → kolom berubah. Karena itu menunggu `GATE-FIN-087`. Owner Backend + Rizki |
+| Risiko/pemilik | Finance mengubah bentuk pesan → kolom berubah. Karena itu menunggu `GATE-FIN-087`. **Risiko ini surut 28 September 2026:** Finance menerima bentuk `ACC-DEC-087` apa adanya (`FIN-DEC-035`) — `AccountingPeriodCode` maks 7 `YYYY-MM`, `ControlAccountCode` maks 50, `Amount` boleh nol atau negatif, `SourceVersion` bilangan bulat positif; nol bidang yang berbeda dari rancangan. Owner Backend + Rizki |
 | DoD | Source berubah, migration diterapkan, laporan task tertulis |
+| **Status** | Belum dikerjakan — `READY` sejak 28 September 2026. Tidak dimulai tanpa perintah Rizki; migration tetap dibuat dan diterapkan Rizki sendiri. **Riwayat:** ⛔ 24–28 September 2026 menunggu `GATE-FIN-087` |
 
-## ⛔ `BE-ACC-P2-028` — Jalur pesan saldo subledger
+## `BE-ACC-P2-028` — Jalur pesan saldo subledger
 
 | Field | Isi |
 |---|---|
@@ -917,11 +923,12 @@ Nomor `029` dan `030` tetap cadangan.
 | Kontrak | `ACC-API-0.12` bidang `SubledgerBalance`; `ACC-VALIDATION-0.8` baris pesan saldo; `ACC-STATE-0.4` status `Tercatat` |
 | Reuse | `AccAccountingEventService.TerimaAsync` dari `021` — **diperbarui** |
 | Cakupan | Validasi rincian saldo, penulisan/penggantian `AccSubledgerBalance`, status `Tercatat`, pemrosesan ulang pesan saldo yang tertahan |
-| Dependency | `021`, `027` |
+| Dependency | `021` ✅, `027` |
 | Acceptance | (1) Pesan saldo sah → `201`, status `Tercatat`, nol jurnal. (2) `Amount` nol dan negatif diterima. (3) Versi lebih tinggi mengganti baris; lebih rendah atau sama tidak. (4) Periode `Closed` → `Tercatat` tanpa mengubah baris. (5) Periode atau akun kontrol tidak dikenal, `SourceVersion` bukan bilangan bulat, atau membawa `Components` → `400`. (6) `SubledgerBalance` kosong pada jenis `SaldoSubledger` → `400` |
 | Verifikasi | Source; build owner; uji panggil pesan tiruan |
-| Risiko/pemilik | Owner Backend |
+| Risiko/pemilik | Owner Backend. **Temuan dari jawaban Finance, 28 September 2026:** seluruh contoh pesan Finance (`finance-management/evidence/04` bagian 4 dan `05` bagian 3) membawa `"Components": "TOTAL"` sebagai **teks**, padahal kontrak mendefinisikan `Components` sebagai daftar `{ComponentCode, Amount}` dan "pesan tanpa `Components` berarti seluruh nilai memakai komponen `TOTAL`". Bila pesan saldo dikirim persis seperti itu, acceptance (5) menolaknya `400`. **Acceptance tidak berubah** — `FIN-DEC-035` merinci bentuk saldo tanpa `Components`; yang perlu adalah pelurusan ke Finance sebelum pengirimnya dibangun (gerbang G4). Pemilik pelurusan: Rizki → Yasmin |
 | DoD | Source berubah, build owner 0 error, laporan task tertulis |
+| **Status** | Belum dikerjakan — `READY` menurut urutan gelombang, sesudah `027` (Wave D-2). Tidak dimulai tanpa perintah Rizki. **Riwayat:** ⛔ 24–28 September 2026 menunggu `027` dan `GATE-FIN-087` |
 
 **`BE-ACC-P2-014`** tetap kartu yang sama; dependency-nya kini `013` ✅ dan **`028`**, bukan lagi
 "gelombang `P2-1`".

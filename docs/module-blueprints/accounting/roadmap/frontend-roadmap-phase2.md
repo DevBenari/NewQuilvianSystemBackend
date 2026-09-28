@@ -112,7 +112,7 @@ flowchart LR
         BEACCP2010["✅ BE-ACC-P2-010<br/>Jurnal penutup tahun"]:::luar
         BEACCP2011["✅ BE-ACC-P2-011<br/>Kolom control account"]:::luar
         BEACCP2013["✅ BE-ACC-P2-013<br/>Saldo control account GL"]:::luar
-        BEACCP2014["⛔ BE-ACC-P2-014<br/>Perbandingan subledger"]:::luar
+        BEACCP2014["BE-ACC-P2-014<br/>Perbandingan subledger"]:::luar
     end
 
     FEACCP2005["✅ FE-ACC-P2-005<br/>Layar pengaturan akuntansi"]:::selesai
@@ -132,7 +132,7 @@ flowchart LR
 | 1 | `BE-ACC-P2-009` ✅ | `FE-ACC-P2-005` ✅ |
 | 1 | `BE-ACC-P2-010` ✅ | `FE-ACC-P2-006` ✅ |
 | 1 | `BE-ACC-P2-011` ✅ | `FE-ACC-P2-007` ✅ |
-| 1 | `BE-ACC-P2-013` ✅; sisi subledger ⛔ menunggu `BE-ACC-P2-014` | `FE-ACC-P2-008` ✅ untuk sisi buku besar |
+| 1 | `BE-ACC-P2-013` ✅; sisi subledger menunggu `BE-ACC-P2-014`, yang belum dikerjakan (backend: `027` → `028` → `014`; `GATE-FIN-087` dibuka 28 Sep 2026) | `FE-ACC-P2-008` ✅ untuk sisi buku besar |
 
 ### Grafik 3 — batch 14 September 2026 (`HARDENING`, `P2-0b`)
 

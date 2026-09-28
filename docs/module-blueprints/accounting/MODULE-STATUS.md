@@ -293,7 +293,101 @@ perpindahan ini fast-forward murni — tidak ada pekerjaan yang hilang.
 
 ## Next recommended task
 
+### TITIK LANJUT — 28 September 2026: Wave B tuntas, `GATE-FIN-087` dibuka
+
+**Singkatnya.** Kotak masuk kejadian (Wave B) selesai dibangun dan diuji developer: seluruh 8 task
+backend dan 3 task frontend ✅. Finance sudah menjawab lima permintaan `evidence/13` bagian 5, dan
+jawabannya membuka `GATE-FIN-087`. Sisa Phase 2 tinggal Wave D — `BE-ACC-P2-027`, `028`, lalu
+`014` — yang kini **tidak lagi terblokir**, tetapi **belum dikerjakan** dan hanya dimulai atas
+perintah Rizki. Commit dokumen terakhir `91cc2aba` (`rizkiG`, 28 September 2026 pagi, sudah di
+`origin/rizkiG`); pada ref lokal commit itu belum termuat di integration.
+
+#### Status task Phase 2 sesudah Wave B
+
+| Task | Status | Bukti |
+|---|---|---|
+| `BE-ACC-P2-019` entity kotak masuk + `EventKind` | ✅ 24 Sep 2026 — commit `70ac4240` | [laporan](task/report/backend/BE-ACC-P2-019.md) |
+| `BE-ACC-P2-020` migration kotak masuk (Rizki) | ✅ 24 Sep 2026 — `20260924042630_AddAccountingEventInbox` diterapkan | [laporan](task/report/backend/BE-ACC-P2-020.md) |
+| `BE-ACC-P2-021` `POST /accounting-events` | ✅ 24 Sep 2026 — uji Swagger Rizki | [laporan](task/report/backend/BE-ACC-P2-021.md) |
+| `BE-ACC-P2-022` `EventKind` di API jenis kejadian | ✅ 24 Sep 2026 — uji layar + Swagger; build terbukti tidak langsung | [laporan](task/report/backend/BE-ACC-P2-022.md) |
+| `BE-ACC-P2-023` penjadwal coba ulang | ✅ 25 Sep 2026 — response Swagger mentah, jarak 2/5/15 menit | [laporan](task/report/backend/BE-ACC-P2-023.md) |
+| `BE-ACC-P2-024` daftar, rincian, ringkasan | ✅ 24 Sep 2026 — build 0 error, uji layar | [laporan](task/report/backend/BE-ACC-P2-024.md) |
+| `BE-ACC-P2-025` coba ulang manual dan abaikan | ✅ 28 Sep 2026 — response Swagger mentah 4/4 | [laporan](task/report/backend/BE-ACC-P2-025.md) |
+| `BE-ACC-P2-026` penghalang tutup bulan dari kejadian | ✅ 25 Sep 2026 — response Swagger mentah skenario A dan B | [laporan](task/report/backend/BE-ACC-P2-026.md) |
+| `FE-ACC-P2-011` layar Kotak Masuk Kejadian | ✅ 24 Sep 2026 — uji layar 8/8, build, commit `70bb05446`; angka di menu ditunda | [laporan](task/report/frontend/FE-ACC-P2-011.md) |
+| `FE-ACC-P2-012` rincian kejadian | ✅ 28 Sep 2026 — dikerjakan ulang, build, uji layar ulang, commit `57c2f5de0` | [laporan](task/report/frontend/FE-ACC-P2-012.md) |
+| `FE-ACC-P2-013` isian Jenis Perlakuan | ✅ 24 Sep 2026 — uji layar 7/7 + Swagger 3/3 | [laporan](task/report/frontend/FE-ACC-P2-013.md) |
+| `BE-ACC-P2-027` entity + migration saldo subledger | Belum dikerjakan — `READY` sejak 28 Sep 2026 (Wave D-1) | [kartu](roadmap/backend-roadmap-phase2.md) |
+| `BE-ACC-P2-028` jalur pesan saldo | Belum dikerjakan — `READY` sesudah `027` (Wave D-2) | [kartu](roadmap/backend-roadmap-phase2.md) |
+| `BE-ACC-P2-014` perbandingan subledger dan selisih | Belum dikerjakan — `READY` sesudah `028` (Wave D-3) | [kartu](roadmap/backend-roadmap-phase2.md) |
+
+Hitungan roadmap: backend **28 ✅ dari 31**, frontend **14 ✅ dari 14**. Status ✅ di sini berarti
+selesai sisi development. **UAT belum dijalankan untuk task mana pun** — diserahkan ke tim UAT
+terpisah dan tidak ditulis lulus.
+
+#### `GATE-FIN-087` — DIBUKA 28 September 2026
+
+Jawaban Finance ada di `finance-management/evidence/04-jawaban-atas-balasan-accounting.md`, dikoreksi
+`05-koreksi-jawaban-atas-balasan-accounting.md` (keduanya 25 September 2026). Pilahannya dikonfirmasi
+Rizki 28 September 2026:
+
+| Butir `evidence/13` bagian 5 | Hasil | Dasar |
+|---|---|---|
+| 1 — kode `SALDO-SUBLEDGER` dan bentuk pesan saldo | **Disetujui tegas** — membuka gerbang | `FIN-DEC-035` `approved`; "**Diterima apa adanya.** `FIN-DEC-023` (draft lima field) kami tarik" |
+| 2 — daftar komponen per jenis | **Disetujui** — "Seluruhnya `TOTAL` untuk rilis ini" | `FIN-DEC-038` |
+| 3 — deposit, kelebihan bayar, selisih kas shift | **Berubah** — dijawab dengan kode baru, dari 4 menjadi 7 kode; masih menunggu ratifikasi Accounting | `FIN-DEC-031`, `034`, `040`..`044` |
+| 4 — tiga catatan yang berbeda | **Disetujui** — ketiganya ditutup; mekanisme token tetap terbuka | `FIN-DEC-036`, `035`, `037` |
+| 5 — ubah `FIN-DEC-004` | **Disetujui**, lewat kode terpisah `PENERIMAAN-UANG-MUKA` (bukan `PENERIMAAN-KASIR` seperti contoh kami); berlaku di kode Finance sesudah ratifikasi Accounting | `FIN-DEC-030` |
+
+Rincian bidang demi bidang dan daftar artefak yang diselaraskan ada di
+[blueprint-manifest.md](blueprint-manifest.md) bagian *Pembaruan 28 September 2026*.
+
+#### Temuan dari jawaban Finance yang harus ditangani
+
+| # | Temuan | Contoh akibatnya | Pemilik |
+|---:|---|---|---|
+| T1 | Seluruh contoh pesan Finance mengirim `"Components": "TOTAL"` sebagai **teks**. Kontrak mendefinisikan `Components` sebagai daftar `{ComponentCode, Amount}`, dan pesan tanpa `Components` sudah berarti `TOTAL` | Pengirim Finance yang meniru contoh itu mendapat `400` pada **setiap** pesan, termasuk pesan saldo | Rizki → Yasmin, sebelum G4 |
+| T2 | `SELISIH-KAS-SHIFT` memakai nilai negatif untuk kekurangan kas | Kejadian transaksi bernilai nol atau negatif ditolak `400`. Satu kode yang arahnya ditentukan tanda nilai juga berarti satu kode punya dua lawan jurnal. **Sisi Accounting diputuskan `ACC-DEC-099`** | Rizki + Yasmin (G6) |
+| T3 | Lawan jurnal `PENGAKUAN-KELEBIHAN-BAYAR` ditulis "biasanya Piutang atau Pendapatan" | Aturan posting hanya punya satu akun debit. Bila penerimaan aslinya sudah `PENERIMAAN-UANG-MUKA`, kelebihannya sudah berada di Uang Muka Pasien — kode ini akan menghitungnya dua kali. **Sisi Accounting diputuskan `ACC-DEC-100`** | Rizki + Yasmin (G6) |
+| T4 | Finance meminta "kontrak `ACC-XMOD` Anda bagian 5.5" dihapus baris `HELD_FOR_FINALIZATION`-nya | Baris itu tidak ada di kontrak Accounting mana pun; yang dimaksud adalah kontrak integrasi Finance sendiri. Cukup dikabarkan | Rizki → Yasmin |
+| T5 | Finance menunggu jawaban: batas waktu pengesahan selisih kas shift, dan refund kategori `SETTLEMENT`/`REFERRED_OUTPATIENT_ADMIN` (`FIN-OQ-018`) | Finance mengira kejadian ke periode tertutup tidak dapat dijurnal, padahal `ACC-DEC-047` menjurnalnya ke periode terbuka berikutnya. **Dijawab `ACC-DEC-101` dan `102`** — tinggal dikirim | Rizki |
+| T6 | Risiko `014` (bukan dari jawaban Finance): `ACC-DEC-076` menahan penutupan bila saldo subledger **belum ada** | Begitu `014` berjalan, setiap penutupan periode yang akun kontrolnya belum menerima saldo dari Finance tertahan — dan Finance tidak mengirim apa pun sebelum G4 | Rizki, ditimbang sebelum `014` dimulai |
+
+#### Keputusan yang dicatat 28 September 2026 — `ACC-DEC-094` sampai `102`
+
+Diambil Rizki lewat `grill-me`; seluruhnya memilih opsi yang direkomendasikan, kecuali `094` yang
+sudah diputuskan 24 September 2026. Rinciannya di [00-interview-decisions.md](00-interview-decisions.md)
+revision 12.
+
+| ID | Inti | Akibat |
+|---|---|---|
+| `ACC-DEC-094` | Angka Gagal di menu sidebar **ditunda**; angka hanya di tab Kotak Masuk. `ACC-DEC-057` belum terpenuhi penuh | Nol kode. Kelak butuh kartu FE + pemilik sidebar bersama (belum ditetapkan) |
+| `ACC-DEC-095` | Kejadian Gagal bertanggal di periode tertutup **menahan periode terbuka paling awal** badan hukum yang sama | Kartu task backend baru |
+| `ACC-DEC-096` | Aturan posting **tidak boleh** dibuat untuk jenis Saldo Subledger — disaring di backend dan layar | Kartu task backend + frontend baru |
+| `ACC-DEC-097` | Isi Pesan Asli tampil sebagai **tabel berlabel**; `03-frontend-architecture.md` 11.2 disesuaikan | Nol kode; amandemen dokumen |
+| `ACC-DEC-098` | `PENERIMAAN-UANG-MUKA`, `PEMAKAIAN-UANG-MUKA-DEPOSIT`, `PENGEMBALIAN-UANG-MUKA`, `PEMBALIKAN-PENERIMAAN-UANG-MUKA` **diratifikasi**, dengan syarat dan satu pertanyaan balik: kejadian apa bila tender uang muka dibatalkan sesudah uang mukanya dipakai | Finance boleh mengubah kode `FIN-DEC-030` |
+| `ACC-DEC-099` | `SELISIH-KAS-SHIFT` bernilai bertanda **tidak** diratifikasi; diminta dipecah menjadi dua kode bernilai positif, lawan akun bukan akun sementara (T2) | Nol kode Accounting |
+| `ACC-DEC-100` | `PENGAKUAN-KELEBIHAN-BAYAR` **diratifikasi bersyarat**: debit Piutang, kredit Uang Muka Pasien; tidak terbit bila asalnya uang muka (T3) | Katalog 23 kode |
+| `ACC-DEC-101` | Selisih shift wajib disahkan **sebelum Accounting mengajukan penutupan**, ditegakkan lewat `ACC-DEC-065` (T5) | Penegakan menunggu kode penanda shift + `OD-ACC-07` |
+| `ACC-DEC-102` | Refund `SETTLEMENT`/`REFERRED_OUTPATIENT_ADMIN` yang mengeluarkan kas **wajib** punya kejadian; **G6 diperluas** (T5) | Cutover menunggu jawaban Finance + Billing |
+
+#### Langkah berikutnya
+
+| Urutan | Langkah | Pemilik |
+|---:|---|---|
+| 1 | ~~Catat keputusan terbuka ke `00-interview-decisions.md` mulai `ACC-DEC-094`~~ **Selesai 28 September 2026** — `ACC-DEC-094`..`102` | Rizki, lewat `grill-me` |
+| 2 | Balas Finance: ratifikasi `ACC-DEC-098` dan `100`, permintaan `ACC-DEC-099`, `101`, `102`, pelurusan T1 dan T4, dan kabar G1 (kotak masuk sudah dibangun dan diuji developer; UAT belum) | Rizki → Yasmin |
+| 3 | `design-business-module` (amandemen kecil): katalog `ACC-XMOD` bagian 3a menjadi 23 kode, `03-frontend-architecture.md` 11.2 (`ACC-DEC-097`), dan FR saldo subledger di `04-prd-to-mvp.md` | Rizki |
+| 4 | `plan-module-delivery`: kartu task baru untuk `ACC-DEC-095` (backend) dan `ACC-DEC-096` (backend + frontend) | Rizki |
+| 5 | `BE-ACC-P2-027` lewat `build-module-backend`; migration `AddAccSubledgerBalance` dibuat dan diterapkan sendiri | Owner Backend + Rizki, **hanya atas perintah Rizki** |
+| 6 | `BE-ACC-P2-028`, lalu `BE-ACC-P2-014` sesudah T6 ditimbang | Owner Backend + Rizki |
+| 7 | Serahkan Wave B ke tim UAT | Rizki → tim UAT |
+| 8 | Commit dokumen sesi ini, lalu PR `rizkiG` → integration | Rizki |
+| 9 | Gerbang cutover: G2 bagan akun sah (`ACC-TD-022`), G3 mekanisme token (`FIN-OQ-016`), G4 pengirim Finance, G6 jawaban Finance atas `ACC-DEC-098`..`102`, `SystemActorUserId` di appsettings | Pemilik proses akuntansi; Platform + Yasmin + Rizki; Yasmin; Yasmin + owner Billing; Rizki |
+
 ### TITIK LANJUT — 24 September 2026, sesudah ratifikasi Finance
+
+**Usang sejak 28 September 2026** — Wave B yang disebut di bawah sudah selesai; lihat titik lanjut di atas.
 
 **Pembaruan: `GATE-DESAIN-0924` dibuka Rizki 24 September 2026** — bagian 22 arsitektur dan keempat amandemen kontrak `approved`, ditambah `ACC-DEC-092`/`093`. Wave B (`BE-ACC-P2-019`..`026`, `FE-ACC-P2-011`..`013`) siap dikerjakan; mulai dari `BE-ACC-P2-019`.
 
