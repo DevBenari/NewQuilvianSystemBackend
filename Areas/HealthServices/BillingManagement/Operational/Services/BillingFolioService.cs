@@ -512,6 +512,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operation
                 ErrorMessage = errorMessage,
                 CorrelationId = request.CorrelationId,
                 CausationId = request.CausationId,
+                IsClinicalCancellation = request.IsClinicalCancellation,
                 CompletedAt = now,
                 CreateDateTime = now,
                 CreateBy = actorUserId,
@@ -694,7 +695,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operation
                 RuleSnapshot = NormalizeJson(request.RuleSnapshot),
                 RoundingSnapshot = NormalizeJson(request.RoundingSnapshot),
                 CorrelationId = request.CorrelationId == Guid.Empty ? null : request.CorrelationId,
-                CausationId = request.CausationId == Guid.Empty ? null : request.CausationId
+                CausationId = request.CausationId == Guid.Empty ? null : request.CausationId,
+                IsClinicalCancellation = request.IsClinicalCancellation
             };
         }
 

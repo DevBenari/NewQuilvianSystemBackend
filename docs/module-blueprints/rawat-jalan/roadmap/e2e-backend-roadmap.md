@@ -28,8 +28,8 @@ owners:
   - "Billing/Revenue Cycle: Sukma Giri (pemilik blueprint)"
   - "Pharmacy (titik sentuh BE-RJE-008): sign-off formal OPEN"
   - "Registration (titik sentuh BE-RJE-006): OPEN"
-implementation_authority: "GRANTED — BE-RJE-001 (RJ-E2E-DEC-017); task lain NOT_GRANTED"
-builder_execution: "EXECUTED — BE-RJE-001 (2026-09-28); task lain NOT_AUTHORIZED"
+implementation_authority: "GRANTED — BE-RJE-001 (RJ-E2E-DEC-017), BE-RJE-002 (RJ-E2E-DEC-018); task lain NOT_GRANTED"
+builder_execution: "EXECUTED — BE-RJE-001, BE-RJE-002 (2026-09-28); task lain NOT_AUTHORIZED"
 verification_pattern: "Pola Bank Darah — tanpa project/folder test backend"
 frontend_roadmap: roadmap/e2e-frontend-roadmap.md
 traceability: roadmap/e2e-requirement-traceability.md
@@ -54,17 +54,17 @@ traceability: roadmap/e2e-requirement-traceability.md
 ## Grafik Urutan Dependency
 
 ```text
-BE-RJE-001 ✅ ─┬─> BE-RJE-002 ─> BE-RJE-003 ─┬─> BE-RJE-005 ─┬─> BE-RJE-008
-               │                             │               │
-               │                             │               └─> BE-RJE-009
-               │                             │
-               │                             ├─> BE-RJE-007
-               │                             │
-               │                             ├─> BE-RJE-014
-               │                             │
-               │                             └─> BE-RJE-010 ─┐
-               │                                             │
-               └─> BE-RJE-011 ───────────────────────────────┴─> BE-RJE-012
+BE-RJE-001 ✅ ─┬─> BE-RJE-002 ✅ ─> BE-RJE-003 ─┬─> BE-RJE-005 ─┬─> BE-RJE-008
+               │                                │               │
+               │                                │               └─> BE-RJE-009
+               │                                │
+               │                                ├─> BE-RJE-007
+               │                                │
+               │                                ├─> BE-RJE-014
+               │                                │
+               │                                └─> BE-RJE-010 ─┐
+               │                                                │
+               └─> BE-RJE-011 ─────────────────────────────────┴─> BE-RJE-012
 
 BE-RJE-004
 
@@ -80,7 +80,7 @@ dua kali. Jumlah pasangan prasyarat → task: **12**, sama dengan isi kolom `Dep
 | Gelombang | Boleh mulai setelah | Task |
 | ---: | --- | --- |
 | 1 | — | `BE-RJE-001` ✅, `BE-RJE-004`, `BE-RJE-006` — boleh paralel |
-| 2 | `BE-RJE-001` | `BE-RJE-002`, `BE-RJE-011` — boleh paralel |
+| 2 | `BE-RJE-001` | `BE-RJE-002` ✅, `BE-RJE-011` — boleh paralel |
 | 3 | `BE-RJE-002` | `BE-RJE-003` |
 | 4 | `BE-RJE-003` | `BE-RJE-005`, `BE-RJE-007`, `BE-RJE-010`, `BE-RJE-014` — boleh paralel |
 | 5 | `BE-RJE-005` / `BE-RJE-010` + `BE-RJE-011` | `BE-RJE-008`, `BE-RJE-009`, `BE-RJE-012` — boleh paralel |
@@ -109,7 +109,7 @@ teknis paling awal yang aman.
 | Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `BE-RJE-001` ✅ | Kolom sinkron, kolom rekonsiliasi, master kebijakan, dan backfill baris lama tersedia | `FR-RJE-001`, `002`, `004`; `RJ-E2E-DEC-009`, `014` | `1.0.0` | `BilChargeLine`, `CliClinicalMilestoneFact`, pola master Billing | Model, enum, configuration, migration tulis tangan, seed | — | Lihat kartu | Pola Bank Darah + `UAT-22` | Snapshot EF meleset (`RJ-BIL-DEC-018`) / Billing | Kartu |
-| `BE-RJE-002` | Kontrak adapter `1.3`, konteks `Consultation`, dan penanda pembatalan sampai ke folio | `FR-RJE-003`; `RJ-E2E-DEC-001`, `005` | `1.0.0` | `ContractBillingChargeSourceAdapter`, `BillingSourceContract` | Adapter, konstanta, DTO folio, producer | `BE-RJE-001` | Kartu | Pola Bank Darah + `UAT-23` | Pemanggil lama kontrak `1.2` / Billing | Kartu |
+| `BE-RJE-002` ✅ | Kontrak adapter `1.3`, konteks `Consultation`, dan penanda pembatalan sampai ke folio | `FR-RJE-003`; `RJ-E2E-DEC-001`, `005` | `1.0.0` | `ContractBillingChargeSourceAdapter`, `BillingSourceContract` | Adapter, konstanta, DTO folio, producer | `BE-RJE-001` | Kartu | Pola Bank Darah + `UAT-23` | Pemanggil lama kontrak `1.2` / Billing | Kartu |
 | `BE-RJE-003` | Tindakan, Lab, Radiologi otomatis masuk invoice berharga katalog | `FR-RJE-010`..`013`; `RJ-E2E-DEC-003`, `006` | `1.0.0` | `UpsertChargeAsync`, `BilChargeReceipt`, `MstTariff` | Jembatan, resolver (3 domain), pemicu dari folio | `BE-RJE-002` | Kartu | Pola Bank Darah + `UAT-01`, `02`, `24` | Leher botol 6 task / Billing | Kartu |
 | `BE-RJE-004` | `from-source` menolak domain klinis Rawat Jalan | `FR-RJE-014`; `RJ-E2E-DEC-006` | `1.0.0` | `BillingInvoicesController.FromSource` | Satu pemeriksaan + `422` | — | Kartu | Pola Bank Darah + `UAT-03` | Konsumen `ADHOC` kasir / Billing | Kartu |
 | `BE-RJE-005` | Perubahan setelah invoice final menjadi adjustment | `FR-RJE-015`; `RJ-BIL-DEC-004` | `1.0.0` | `CreateAdjustmentAsync` | Cabang pasca-final di jembatan | `BE-RJE-003` | Kartu | Pola Bank Darah + `UAT-04` | Invoice `CLOSED` mungkin menolak adjustment / Billing | Kartu |
@@ -154,10 +154,11 @@ teknis paling awal yang aman.
 | **Risiko** | `dotnet ef migrations add` akan membawa ratusan operasi modul lain (`RJ-BIL-DEC-018`) — migration wajib tulis tangan dan snapshot hanya diperbarui untuk entitas ini |
 | **DoD** | Kelima AC terbukti; laporan `task/report/backend/BE-RJE-001.md` |
 
-### `BE-RJE-002` — Kontrak adapter `BIL-INTEGRATION-1.3`
+### ✅ `BE-RJE-002` — Kontrak adapter `BIL-INTEGRATION-1.3`
 
 | Field | Isi |
 | --- | --- |
+| **Status** | ✅ `COMPLETE` 2026-09-28 — 5/5 AC terbukti. Build penuh `0 Error(s)`/`230 Warning(s)` (= baseline), `has-pending-model-changes` bersih, QBE strict `PASS` (5 berkas), `dotnet test` `NOT RUN` (tanpa project test), runtime R0–R13 16/16 `PASS` terhadap `QuilvianNewDevSukma`. AC 4 dibuktikan lewat pembatalan tindakan sungguhan (tidak ada data Lab). [Laporan](../task/report/backend/BE-RJE-002.md) |
 | **Outcome** | Billing mengenali `PHARMACY`/`PRESCRIBED` dan `CONSULTATION`/`COMPLETED`; folio tahu mana baris pembatalan |
 | **Cakupan** | `ContractBillingChargeSourceAdapter`: konstanta `1.3`, kebijakan `PHARMACY` (`PRESCRIBED`, `DISPENSED` / void dari `PRESCRIBED` / `CANCELLED`) dan `CONSULTATION`; aturan keras `:87-88` diganti aturan per versi kontrak. `BillingSourceContract`: `Consultation`/`ConsultationCharge`. `RecognizeBillingMilestoneRequest.IsClinicalCancellation`; producer mengisinya dari `MilestoneKind`; `BillingFolioService` menyimpannya ke kolom baru |
 | **Acceptance criteria** | 1. `PHARMACY`/`PRESCRIBED` dengan kontrak `1.2` tetap ditolak "Jumlah obat yang diserahkan belum final." (`UAT-23`). 2. Dengan `1.3` diterima. 3. `CONSULTATION`/`COMPLETED` dengan `1.3` diterima; dengan status lain ditolak. 4. Fakta pembatalan Lab menghasilkan baris folio `IsClinicalCancellation = true`. 5. Perilaku domain lain tidak berubah |

@@ -332,7 +332,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 TariffSnapshot = normalized.TariffSnapshot,
                 RuleSnapshot = normalized.RuleSnapshot,
                 CorrelationId = fact.CorrelationId,
-                CausationId = fact.CausationId
+                CausationId = fact.CausationId,
+                // RJ-E2E-DEC-016: jenis milestone diteruskan agar Billing tahu revisi ini pembatalan.
+                IsClinicalCancellation = fact.MilestoneKind == ClinicalMilestoneKind.ClinicalCancellation
             };
 
             BillingServiceResult<RecognizeBillingMilestoneResponse>? billingResult = null;

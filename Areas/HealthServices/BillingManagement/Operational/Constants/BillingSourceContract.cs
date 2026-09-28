@@ -55,6 +55,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operation
         public const string BloodBankSourceContext = "BloodBank";
         public const string BloodBankChargeEffectType = "BloodBankCharge";
 
+        /// <summary>
+        /// Sumber jasa konsultasi dokter, terdaftar sejak <c>BE-RJE-002</c> atas keputusan
+        /// <c>RJ-E2E-DEC-001</c>. Satu fakta per konsultasi yang menjadi <c>Completed</c> lewat
+        /// finalisasi canonical; konsultasi yang batal sebelum selesai tidak menerbitkan fakta.
+        /// </summary>
+        public const string ConsultationSourceContext = "Consultation";
+        public const string ConsultationChargeEffectType = "ConsultationCharge";
+
         private static readonly IReadOnlyDictionary<string, string[]> AllowedEffectTypes =
             new Dictionary<string, string[]>(StringComparer.Ordinal)
             {
@@ -63,7 +71,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operation
                 [ProcedureSourceContext] = new[] { ProcedureChargeEffectType },
                 [LaboratorySourceContext] = new[] { LaboratoryChargeEffectType },
                 [RadiologySourceContext] = new[] { RadiologyChargeEffectType },
-                [BloodBankSourceContext] = new[] { BloodBankChargeEffectType }
+                [BloodBankSourceContext] = new[] { BloodBankChargeEffectType },
+                [ConsultationSourceContext] = new[] { ConsultationChargeEffectType }
             };
 
         public static bool IsKnownSourceContext(string? sourceContext)
