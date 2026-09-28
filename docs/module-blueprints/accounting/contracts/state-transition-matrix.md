@@ -132,6 +132,7 @@ Daftar akun tidak punya alur berstatus banyak. Yang ada hanya penanda aktif.
 |---|---|
 | `contract_version` | `ACC-STATE-0.3` — 10 September 2026, `ACC-DEC-067` menetapkan periode `SoftClosed` menerima jurnal `JT`. Sebelumnya `0.2` |
 | `last_changed_in` | `ACC-STATE-0.2` — 8 September 2026 |
+| Penyesuaian atas keputusan owner | **`ACC-STATE-0.5` — approved Rizki, 28 September 2026 (`GATE-DESAIN-0928`).** Prasyarat dua perpindahan periode bertambah: `Open` → `PendingClosingApproval` kini menuntut **empat** penghalang nol, termasuk rekonsiliasi saldo subledger bila sudah berlaku; `SoftClosed` → `Closed` menuntut rekonsiliasi bersih (`ACC-DEC-076`, `107`, `111`). Nol status baru, nol perpindahan baru |
 | Status | **`approved`** |
 | `approved_by` / `approved_at` | Rizki / 8 September 2026 |
 | Traceability | `ACC-DEC-045`, `046`, `047`, `049`, `052`, `055` |
@@ -194,11 +195,11 @@ tengah akan mengubah arti angka yang sudah tersimpan di database.
 
 | Dari | Ke | Pemicu | Wewenang | Prasyarat |
 |---|---|---|---|---|
-| `Open` | `PendingClosingApproval` | Pengajuan penutupan | `Period : Close` (Accounting Manager) | **Nol penghalang** — kini **tiga**: jurnal belum disahkan, kejadian gagal, dan shift kasir belum ditutup (`ACC-DEC-051` diperluas `ACC-DEC-065`) |
+| `Open` | `PendingClosingApproval` | Pengajuan penutupan | `Period : Close` (Accounting Manager) | **Nol penghalang** — kini **tiga**: jurnal belum disahkan, kejadian gagal, dan shift kasir belum ditutup (`ACC-DEC-051` diperluas `ACC-DEC-065`). **Sejak `0.5`:** menjadi **empat** — ditambah rekonsiliasi saldo subledger yang belum bersih, hanya sejak titik mulai rekonsiliasi badan hukum itu (`ACC-DEC-076`, `107`) |
 | `PendingClosingApproval` | `SoftClosed` | Persetujuan penutupan | `Period : Approve` (**Director**) | Penyetuju **bukan** pengaju |
 | `PendingClosingApproval` | `Open` | Penolakan penutupan | `Period : Approve` | Alasan tertulis wajib |
 | `SoftClosed` | `Open` | Pembukaan kembali | `Period : Close` | Alasan tertulis wajib (`ACC-DEC-027`) |
-| `SoftClosed` | `Closed` | Penutupan permanen | `Period : Close` | Sudah `SoftClosed` |
+| `SoftClosed` | `Closed` | Penutupan permanen | `Period : Close` | Sudah `SoftClosed`. **Sejak `0.5`:** rekonsiliasi saldo subledger periode itu bersih, dihitung ulang saat itu; bila belum → `409`, periode tetap `SoftClosed` (`ACC-DEC-111`). Tidak berlaku sebelum titik mulai rekonsiliasi |
 
 ### Perpindahan yang DILARANG
 
@@ -207,6 +208,12 @@ tengah akan mengubah arti angka yang sudah tersimpan di database.
 | `Open` | `SoftClosed` | Melompati persetujuan. Inilah yang diubah `ACC-DEC-052` — pada MVP perpindahan ini sah, pada Phase 2 tidak lagi |
 | `Closed` | mana pun | Tertutup permanen |
 | `PendingClosingApproval` | `Closed` | Penutupan permanen hanya dari `SoftClosed` |
+
+**Kenapa Setujui tidak ikut memeriksa rekonsiliasi** *(`0.5`)*. Periode yang disetujui masuk
+Tutup Sementara, yang masih dapat dikoreksi. Titik terakhir sebelum angka membeku adalah Tutup
+Permanen — di sanalah pemeriksaan kedua ditaruh (`ACC-DEC-111`). Contoh: diajukan 3 Oktober dalam
+keadaan cocok, disetujui, lalu 10 Oktober Finance mengirim saldo Piutang versi 2 yang berselisih
+Rp 1.500.000; Tutup Permanen 12 Oktober ditolak `409`.
 
 **Catatan kompatibilitas.** Periode yang sudah `SoftClosed` sebelum Phase 2 berdiri **tidak punya**
 riwayat persetujuan, dan itu benar — mereka ditutup ketika aturannya memang belum ada. Sistem tidak

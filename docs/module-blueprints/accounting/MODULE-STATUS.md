@@ -293,6 +293,21 @@ perpindahan ini fast-forward murni — tidak ada pekerjaan yang hilang.
 
 ## Next recommended task
 
+### TITIK LANJUT — 28 September 2026 (malam): rekonsiliasi saldo subledger dirancang
+
+**Singkatnya.** T6 diputuskan dan kontrak sisi subledger di-approve, sehingga `BE-ACC-P2-014` dan
+`FE-ACC-P2-016` tidak lagi ⛔ di rancangan. **Roadmap backend revisi 6 dan frontend revisi 7 approved Rizki 28 September 2026**: keduanya
+`READY`, ditambah empat kartu baru.
+
+| Langkah | Hasil | Rujukan |
+|---|---|---|
+| A — `grill-me` | `ACC-DEC-107`..`114`; T6 → penghalang menyala otomatis sejak saldo pertama (`107`) | `00-interview-decisions.md` revision 14 |
+| B — `design-business-module` | **Approved** `GATE-DESAIN-0928`: `02-backend-architecture.md` bagian 23, `ACC-API-0.13`, `ACC-VALIDATION-0.9`, `ACC-STATE-0.5`, `ACC-XMOD-0.4` (katalog 26 kode), `03-frontend-architecture.md` revision 7, PRD `ACC-P2-EPIC-07`; `ACC-DEC-115` saat approval | `blueprint-manifest.md` revision 13 |
+| C — `plan-module-delivery` | **Approved Rizki 28 September 2026**: `014` dan `FE-016` `READY`; kartu baru `BE-ACC-P2-029` (`ACC-DEC-095`), `030` (`ACC-DEC-096`), `FE-ACC-P2-017` (butir menu), `018` (`ACC-DEC-096`); `ACC-API-0.14` dan `ACC-VALIDATION-0.10` untuk `030` ikut approved | Roadmap backend dan frontend, traceability bagian 3e |
+
+Hitungan roadmap sesudah revisi 6/7: backend **30 ✅ dari 33**, frontend **15 ✅ dari 18**.
+Build hanya atas perintah Rizki, berpasangan: `014` + `FE-016` + `FE-017`; `030` + `FE-018`; `029`.
+
 ### TITIK LANJUT — 28 September 2026: Wave B tuntas, `GATE-FIN-087` dibuka
 
 **Singkatnya.** Kotak masuk kejadian (Wave B) selesai dibangun dan diuji developer: seluruh 8 task
@@ -319,9 +334,13 @@ perintah Rizki. Commit dokumen terakhir `91cc2aba` (`rizkiG`, 28 September 2026 
 | `FE-ACC-P2-013` isian Jenis Perlakuan | ✅ 24 Sep 2026 — uji layar 7/7 + Swagger 3/3 | [laporan](task/report/frontend/FE-ACC-P2-013.md) |
 | `BE-ACC-P2-027` entity + migration saldo subledger | ✅ 28 Sep 2026 — migration `20260928041937_AddAccSubledgerBalance` diterapkan Rizki, commit `7509e18c`; snapshot nol blok hilang | [laporan](task/report/backend/BE-ACC-P2-027.md) |
 | `BE-ACC-P2-028` jalur pesan saldo | ✅ 28 Sep 2026 — uji Swagger + layar Rizki; (3)(4) dan dua kasus batas terbukti lewat source | [laporan](task/report/backend/BE-ACC-P2-028.md) |
-| `BE-ACC-P2-014` perbandingan subledger dan selisih | ⛔ 28 Sep 2026 — kontrak endpoint sisi subledger belum dirancang + keputusan T6. Sempat ditulis `READY` pagi harinya — keliru, hanya menimbang `GATE-FIN-087` | [kartu](roadmap/backend-roadmap-phase2.md) |
+| `BE-ACC-P2-014` perbandingan subledger dan selisih | Belum dikerjakan — `READY` (revisi 6 approved 28 Sep 2026). ⛔ 28 Sep 2026 dilepas `GATE-DESAIN-0928` dan `ACC-DEC-107` | [kartu](roadmap/backend-roadmap-phase2.md) |
 | `FE-ACC-P2-015` Kotak Masuk mengenali pesan saldo | ✅ 28 Sep 2026 — uji layar B1–B7 lulus, `npm run build` berhasil | [laporan](task/report/frontend/FE-ACC-P2-015.md) |
-| `FE-ACC-P2-016` Rekonsiliasi menampilkan saldo subledger | ⛔ — kontrak yang sama dengan `014` | [kartu](roadmap/frontend-roadmap-phase2.md) |
+| `FE-ACC-P2-016` Rekonsiliasi menampilkan saldo subledger | Belum dikerjakan — `READY` (revisi 7 approved 28 Sep 2026); berpasangan dengan `014` | [kartu](roadmap/frontend-roadmap-phase2.md) |
+| `BE-ACC-P2-029` Gagal di periode tertutup menahan periode terbuka | Belum dikerjakan — kartu baru revisi 6, `READY` (`ACC-DEC-095`) | [kartu](roadmap/backend-roadmap-phase2.md) |
+| `BE-ACC-P2-030` Aturan posting ditolak untuk jenis saldo | Belum dikerjakan — kartu baru revisi 6, `READY` (`ACC-DEC-096`) | [kartu](roadmap/backend-roadmap-phase2.md) |
+| `FE-ACC-P2-017` Pulihkan butir menu Rekonsiliasi | Belum dikerjakan — kartu baru revisi 7, `READY`; butir hilang lewat merge `8f01cf06c` | [kartu](roadmap/frontend-roadmap-phase2.md) |
+| `FE-ACC-P2-018` Form Aturan Posting menyaring jenis saldo | Belum dikerjakan — kartu baru revisi 7, `READY` (`ACC-DEC-096`) | [kartu](roadmap/frontend-roadmap-phase2.md) |
 
 Hitungan roadmap: backend **30 ✅ dari 31** (sesudah `027` dan `028` ✅, 28 September 2026), frontend **15 ✅ dari 16** (`016` ⛔). Status ✅ di sini berarti
 selesai sisi development. **UAT belum dijalankan untuk task mana pun** — diserahkan ke tim UAT
@@ -353,7 +372,7 @@ Rincian bidang demi bidang dan daftar artefak yang diselaraskan ada di
 | T3 | Lawan jurnal `PENGAKUAN-KELEBIHAN-BAYAR` ditulis "biasanya Piutang atau Pendapatan" | Aturan posting hanya punya satu akun debit. Bila penerimaan aslinya sudah `PENERIMAAN-UANG-MUKA`, kelebihannya sudah berada di Uang Muka Pasien — kode ini akan menghitungnya dua kali. **Sisi Accounting diputuskan `ACC-DEC-100`** | Rizki + Yasmin (G6) |
 | T4 | Finance meminta "kontrak `ACC-XMOD` Anda bagian 5.5" dihapus baris `HELD_FOR_FINALIZATION`-nya | Baris itu tidak ada di kontrak Accounting mana pun; yang dimaksud adalah kontrak integrasi Finance sendiri. Cukup dikabarkan | Rizki → Yasmin |
 | T5 | Finance menunggu jawaban: batas waktu pengesahan selisih kas shift, dan refund kategori `SETTLEMENT`/`REFERRED_OUTPATIENT_ADMIN` (`FIN-OQ-018`) | Finance mengira kejadian ke periode tertutup tidak dapat dijurnal, padahal `ACC-DEC-047` menjurnalnya ke periode terbuka berikutnya. **Dijawab `ACC-DEC-101` dan `102`** — tinggal dikirim | Rizki |
-| T6 | Risiko `014` (bukan dari jawaban Finance): `ACC-DEC-076` menahan penutupan bila saldo subledger **belum ada** | Begitu `014` berjalan, setiap penutupan periode yang akun kontrolnya belum menerima saldo dari Finance tertahan — dan Finance tidak mengirim apa pun sebelum G4 | Rizki, ditimbang sebelum `014` dimulai |
+| T6 | Risiko `014` (bukan dari jawaban Finance): `ACC-DEC-076` menahan penutupan bila saldo subledger **belum ada** | Begitu `014` berjalan, setiap penutupan periode yang akun kontrolnya belum menerima saldo dari Finance tertahan — dan Finance tidak mengirim apa pun sebelum G4 | **Diputuskan `ACC-DEC-107`, 28 September 2026** — penghalang menyala otomatis sejak periode saldo pertama |
 
 #### Keputusan yang dicatat 28 September 2026 — `ACC-DEC-094` sampai `102`
 
@@ -391,8 +410,8 @@ Finance, task yang benar-benar ⛔ karena Accounting adalah `BE-FIN-023`..`026` 
 |---:|---|---|
 | 1 | ~~Catat keputusan terbuka ke `00-interview-decisions.md` mulai `ACC-DEC-094`~~ **Selesai 28 September 2026** — `ACC-DEC-094`..`102` | Rizki, lewat `grill-me` |
 | 2 | ~~Balas Finance~~ **Ditulis 28 September 2026:** [`evidence/14`](evidence/14-balasan-accounting-atas-kode-finance-05-06-07.md) menjawab `05`, `06`, `07` sekaligus. **Tinggal dikirim** ke Yasmin | Rizki → Yasmin |
-| 3 | `design-business-module` (amandemen kecil): katalog `ACC-XMOD` bagian 3a menjadi 26 kode, `03-frontend-architecture.md` 11.2 (`ACC-DEC-097`), dan FR saldo subledger di `04-prd-to-mvp.md` | Rizki |
-| 4 | `plan-module-delivery`: kartu task baru untuk `ACC-DEC-095` (backend) dan `ACC-DEC-096` (backend + frontend) | Rizki |
+| 3 | ~~`design-business-module` (amandemen kecil): katalog `ACC-XMOD` bagian 3a menjadi 26 kode, `03-frontend-architecture.md` 11.2 (`ACC-DEC-097`), dan FR saldo subledger di `04-prd-to-mvp.md`~~ **Selesai 28 September 2026**, bersama kontrak sisi subledger — `GATE-DESAIN-0928` | Rizki |
+| 4 | `plan-module-delivery`: kartu task baru untuk `ACC-DEC-095` (backend) dan `ACC-DEC-096` (backend + frontend) — **selesai 28 September 2026**: `BE-ACC-P2-029`, `030`, `FE-ACC-P2-018` di roadmap revisi 6/7, approved Rizki | Rizki |
 | 5 | ~~`BE-ACC-P2-027` lewat `build-module-backend`; migration `AddAccSubledgerBalance` dibuat dan diterapkan sendiri~~ **✅ 28 September 2026.** Catatan untuk PR berikutnya: snapshot `7509e18c` menghapus empat blok ganda Pharmacy yang juga ada di integration (asal `0ca1a1f3`) — jelaskan di deskripsi PR | Owner Backend + Rizki |
 | 6 | ~~`BE-ACC-P2-028` 🟡 ditulis 28 September 2026 — build dan uji Swagger oleh Rizki.~~ **`028` ✅ dan `FE-ACC-P2-015` ✅, 28 September 2026.** **Frontend dikerjakan berpasangan** (keputusan Rizki 28 September 2026): roadmap frontend revisi 6 dan backend revisi 5 approved Rizki 28 September 2026, lalu `FE-ACC-P2-015` supaya `028` diuji sekali lewat layar. `BE-ACC-P2-014` dan `FE-ACC-P2-016` ⛔ sampai kontrak endpoint sisi subledger dirancang (`design-business-module`) dan T6 diputuskan (`grill-me`) | Rizki; Owner Backend/Frontend |
 | 7 | Serahkan Wave B ke tim UAT | Rizki → tim UAT |
