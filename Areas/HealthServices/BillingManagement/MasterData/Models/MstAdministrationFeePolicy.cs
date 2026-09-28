@@ -18,6 +18,16 @@ public sealed class MstAdministrationFeePolicy : IdentityModel
     [Required, MaxLength(30)]
     public string ServiceType { get; set; } = string.Empty;
     public decimal Amount { get; set; }
+
+    [Column(TypeName = "numeric(5,2)")]
+    public decimal? Percentage { get; set; }
+
+    [Column(TypeName = "numeric(18,2)")]
+    public decimal? CapAmount { get; set; }
+
+    [Required, MaxLength(30)]
+    public string CalculationType { get; set; } = AdministrationFeeCalculationTypes.Flat;
+
     public bool OncePerPatientLocalDay { get; set; } = true;
 
     public int ReplacementPriority { get; set; }
@@ -31,4 +41,10 @@ public sealed class MstAdministrationFeePolicy : IdentityModel
     public DateTimeOffset? EffectiveTo { get; set; }
 
     public bool IsActive { get; set; }
+}
+
+public static class AdministrationFeeCalculationTypes
+{
+    public const string Flat = "FLAT";
+    public const string PercentageWithCap = "PERCENTAGE_WITH_CAP";
 }

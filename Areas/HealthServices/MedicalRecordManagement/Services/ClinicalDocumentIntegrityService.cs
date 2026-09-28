@@ -77,13 +77,20 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
         /// Sembilan jenis lain sudah punya nomor pada <see cref="ClinicalDocumentKind"/>,
         /// tetapi belum ditegakkan. Keadaan itu WAJIB dinyatakan terbuka di layar (`RM-FE-009`),
         /// bukan didiamkan.
+        ///
+        /// `BE-HMD-02` (`HMD-BP-001`, Temuan Kritis 1) menambahkan catatan sesi hemodialisa.
+        /// Tanpa baris ini sesi yang sudah disahkan tampil `Finalized`, tetapi
+        /// <see cref="EnsureMutableAsync"/> meloloskan setiap perubahan dan catatan tidak pernah
+        /// benar-benar terkunci. Perubahan pada berkas milik Rekam Medis ini diizinkan pemilik
+        /// modul Hemodialisa, Muhammad Hamzah, pada sesi 22 September 2026.
         /// </summary>
         private static readonly HashSet<ClinicalDocumentKind> JenisYangDitegakkan =
         [
             ClinicalDocumentKind.ProgressNote,
             ClinicalDocumentKind.Consultation,
             ClinicalDocumentKind.Assessment,
-            ClinicalDocumentKind.Procedure
+            ClinicalDocumentKind.Procedure,
+            ClinicalDocumentKind.HemodialysisSession
         ];
 
         /// <summary>
@@ -229,6 +236,69 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MedicalRecordManagement.Ser
             keutuhan.LockTrigger = ClinicalDocumentLockTrigger.AuthorSigned;
             keutuhan.UpdateDateTime = nowUtc;
             keutuhan.UpdateBy = authorUserId;
+
+            return keutuhan;
+        }
+
+        /// <summary>
+        /// Mendaftarkan dokumen klinis yang <b>penulis dan pengesahnya dua orang berbeda</b>,
+        /// sekaligus menandainya tertanda tangan — <c>BE-HMD-17</c>, <c>HMD-BP-001</c> syarat 2.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <see cref="RegisterSignedAsync"/> menyamakan penulis dengan penanda tangan, dan itu
+        /// benar untuk catatan yang ditulis dan disahkan satu orang. Catatan sesi hemodialisa
+        /// tidak begitu: perawat menyelesaikan dokumentasinya, dokter penanggung jawab sesi yang
+        /// mengesahkannya. Bila keduanya disamakan, salah satu fakta hilang — penanda tangannya
+        /// tercatat keliru, atau perawat yang menulis catatan kehilangan hak mengoreksinya lewat
+        /// addendum, karena <see cref="ClinicalNoteAddendumService"/> hanya membuka koreksi bagi
+        /// penulis asli.
+        /// </para>
+        /// <para>
+        /// Pemicu kunci tetap <see cref="ClinicalDocumentLockTrigger.AuthorSigned"/>: dokumen
+        /// terkunci karena tanda tangan, bukan karena kunjungan ditutup. Siapa yang menandatangani
+        /// terbaca pada <c>SignedByUserId</c>.
+        /// </para>
+        /// <para>
+        /// TIDAK menyimpan, dengan aturan transaksi yang sama dengan
+        /// <see cref="RegisterSignedAsync"/>. Aman dipanggil berulang: dokumen yang sudah terkunci
+        /// dikembalikan apa adanya tanpa tanda tangan kedua.
+        /// </para>
+        /// </remarks>
+        public async Task<MrcClinicalDocumentIntegrity> RegisterCountersignedAsync(
+            ClinicalDocumentKind documentKind,
+            Guid documentId,
+            Guid patientId,
+            Guid encounterId,
+            Guid authorUserId,
+            Guid signerUserId,
+            string? deviceInfo,
+            string? ipAddress,
+            DateTime nowUtc,
+            CancellationToken cancellationToken = default)
+        {
+            if (authorUserId == Guid.Empty)
+                throw new InvalidOperationException("Penulis dokumen klinis tidak dapat ditentukan.");
+
+            if (signerUserId == Guid.Empty)
+                throw new InvalidOperationException("Penanda tangan dokumen klinis tidak dapat ditentukan.");
+
+            var keutuhan = await RegisterAsync(
+                documentKind, documentId, patientId, encounterId, authorUserId,
+                isAuthorKnown: true, cancellationToken);
+
+            if (keutuhan.IntegrityStatus != ClinicalDocumentIntegrityStatus.Draft)
+                return keutuhan;
+
+            keutuhan.IntegrityStatus = ClinicalDocumentIntegrityStatus.Signed;
+            keutuhan.SignedAt = nowUtc;
+            keutuhan.SignedByUserId = signerUserId;
+            keutuhan.SignatureDeviceInfo = Potong(deviceInfo, 250);
+            keutuhan.SignatureIpAddress = Potong(ipAddress, 64);
+            keutuhan.LockedAt = nowUtc;
+            keutuhan.LockTrigger = ClinicalDocumentLockTrigger.AuthorSigned;
+            keutuhan.UpdateDateTime = nowUtc;
+            keutuhan.UpdateBy = signerUserId;
 
             return keutuhan;
         }

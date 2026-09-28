@@ -6,8 +6,27 @@ module_name: Finance Management
 module_slug: finance-management
 module_prefix: Fin
 module_area: Areas/Corporate/FinanceManagement
-revision: 2
-revision_note: >
+revision: 3
+revision_3_note: >
+  Revisi 3 (25 September 2026) adalah AMENDMENT atas rumpun Accounting Integration dan Collection,
+  dipicu balasan owner Accounting (evidence 13, ACC-DEC-082..091) dan koreksi hasil impact scan.
+  Keputusan bisnisnya FIN-DEC-030..044 (approved); keputusan arsitekturnya FIN-DES-029..036
+  (draft, menunggu approval owner).
+  SATU PERUBAHAN PERILAKU pada source yang SUDAH BERJALAN: FIN-DEC-004 (HELD_FOR_FINALIZATION)
+  digantikan FIN-DEC-030 — penerimaan sebelum tagihan final terbit segera sebagai
+  PENERIMAAN-UANG-MUKA, tidak lagi ditahan. Ini satu-satunya amendment blueprint ini yang
+  menyentuh kode berjalan (FinanceReceiptService, FinanceAccountingOutboxService).
+  TUJUH KODE KEJADIAN BARU diusulkan (katalog naik 17 -> 24), seluruhnya MENUNGGU RATIFIKASI
+  ACCOUNTING (FIN-OQ-017) dan karena itu EPIC FIN-14 berstatus OPEN DECISION di luar seluruh
+  gelombang.
+  TEMUAN YANG MENGUNTUNGKAN: deposit pasien, kelebihan bayar, dan selisih kas shift ternyata
+  SUDAH dimiliki Billing sepenuhnya dan Finance sudah punya akses bacanya (FIN-CAP-022..024),
+  sehingga NOL tabel baru dan NOL kontrak baru dari Billing. Hanya SATU migration untuk seluruh
+  amendment: mengubah check constraint CK_FinBillingHandoffIntake_HandoffType dari 4 menjadi 8
+  nilai.
+  YANG TIDAK BERUBAH: seluruh FIN-DES-001..028 tetap berlaku; rumpun AR/AP/Payable/Cash/Master
+  tidak disentuh sama sekali.
+revision_2_note: >
   Revisi 2 (20 September 2026) adalah AMENDMENT atas rumpun Payable, dipicu keputusan modul
   Medical Fee (MF-DEC-002, MF-DEC-005, MF-DEC-008). Menutup FIN-OQ-013 dan FIN-OQ-014.
   Isinya: FinDoctorPayable DIGANTIKAN FinMedicalServicePayable yang melayani dokter maupun
@@ -18,6 +37,16 @@ revision_note: >
   hanya menyentuh EPIC FIN-08 dan FIN-09 yang keduanya POST-MVP dan NOL baris kode.
   Baseline revisi 1 beserta approval FIN-DES-001..024 TETAP berlaku apa adanya.
 status: approved
+status_note_revision_3: >
+  `approved` sejak 25 September 2026. Owner menyatakan "Saya approve semua" atas dua hal yang
+  ditawarkan penutup pass desain revisi 3: (1) KEPUTUSAN ARSITEKTUR FIN-DES-029..036, dan
+  (2) PENGUNCIAN lima kontrak turunan ke 1.1. Dicatat apa adanya, TIDAK ditetapkan skill.
+  Approval ini BUKAN otorisasi untuk: membuat atau menjalankan migration (satu migration check
+  constraint pada FIN-DES-029); mengubah source aplikasi; maupun mengaktifkan pengiriman kejadian
+  ke Accounting. Ketiganya tetap memerlukan wewenang terpisah sesuai AGENTS.md.
+  SATU HAL TIDAK IKUT TERANGKAT approval ini, karena bukan wewenang owner Finance:
+  ratifikasi owner Accounting atas tujuh kode kejadian baru (FIN-OQ-017). EPIC FIN-14 tetap
+  OPEN DECISION dan tetap di luar seluruh gelombang sampai Rizki menjawab.
 status_scope_note: >
   Owner memberi DUA approval terpisah pada 20 September 2026:
     (1) KEPUTUSAN ARSITEKTUR FIN-DES-001..024 — "Saya setuju FIN-DES-001-024";
@@ -37,10 +66,18 @@ shape_evidence: >
   integrasi ke Accounting — memecahnya akan menduplikasi ketiganya. Mengikuti preseden
   billing-kasir (BIL-CASH-001) yang juga SINGLE dengan empat rumpun.
 created_at: 2026-09-20T00:00:00+07:00
-updated_at: 2026-09-20T00:00:00+07:00
+updated_at: 2026-09-23T00:00:00+07:00
 last_owner_action: >
-  20 September 2026 — approval FIN-DES-025..028, penguncian tujuh kontrak turunan ke 1.0, dan
-  penegasan kepemilikan modul oleh Yasmin.
+  25 September 2026 — owner MENYETUJUI FIN-DES-029..036 dan MENGUNCI lima kontrak turunan ke 1.1
+  ("Saya approve semua"), lalu meminta /plan-module-delivery dijalankan. Sebelumnya pada hari yang
+  sama: owner menjawab lima butir koreksi hasil impact scan (FIN-DEC-040..044,
+  /grill-me Amendment pass lanjutan), menyetujui pengiriman surat koreksi ke owner Accounting
+  (evidence/05), dan meminta impact scan formal dijalankan sebelum blocker
+  BILLING-COLLECTION-HANDOFF ditutup. Sebelumnya pada hari yang sama: FIN-DEC-030..039 dijawab.
+  Sebelumnya, 23 September 2026 — UI brief frontend FE-FIN-* dijawab lengkap (FIN-DEC-024..029, /grill-me
+  Amendment pass), menutup roadmap_status ACTIVE_BLOCKED_ON_UI_BRIEF di 02-frontend-roadmap.md.
+  Sebelumnya, 20 September 2026 — approval FIN-DES-025..028, penguncian tujuh kontrak turunan
+  ke 1.0, dan penegasan kepemilikan modul oleh Yasmin.
 owners:
   product_domain: >
     Yasmin — Product/Domain Owner modul Finance Management (AR/AP). Yasmin juga owner modul
@@ -49,7 +86,11 @@ owners:
     pernah menulis ke tabel Medical Fee, sebagaimana FIN-DES-025 menetapkannya.
   api: Backend/API Owner
   security: Security Owner
-  frontend_authority: Product Owner — belum ada UI brief yang disetujui, lihat 03-frontend-architecture.md
+  frontend_authority: >
+    Product Owner (Yasmin) — UI brief closed 23 September 2026 lewat /grill-me, tercatat
+    FIN-DEC-024..029 di 00-interview-decisions.md bagian Frontend Decision Authority. Lihat
+    juga 02-frontend-roadmap.md bagian 5 dan 03-frontend-architecture.md untuk kontrak
+    fungsional yang tidak berubah oleh amendment ini.
   cross_module_billing: Billing Owner (FIN-DEC-005, FIN-DEC-006 menunggu konfirmasi)
   cross_module_accounting: Rizki (owner Accounting)
   cross_module_hr: HR Owner (FIN-DEC-016 menunggu konfirmasi)
@@ -64,10 +105,23 @@ approval_note: >
   memerlukan wewenang terpisah sesuai AGENTS.md.
   Lihat `status_scope_note` untuk tiga hal yang TIDAK ikut terangkat approval ini.
 
-backend_commit_sha: 09101d0581695e20345a9efa8af3fce7c38b1ae4
+backend_commit_sha: d6cdfaf9fda8889d6fe73db1e97cc28c4f022852
+backend_commit_sha_baseline: 09101d0581695e20345a9efa8af3fce7c38b1ae4
 backend_branch: Yasmina
 frontend_commit_sha: abed49b03
 frontend_branch: (branch aktif QuilvianSystemFrontendDev saat audit)
+sha_verification_note_revision_3: >
+  SHA backend DINAIKKAN ke d6cdfaf9 pada 25 September 2026 sesudah impact scan read-only
+  (01-existing-capability-map.md bagian 9.3). Baseline 09101d05 dipertahankan pada field
+  backend_commit_sha_baseline karena bagian 1-10 02-backend-architecture.md, AMENDMENT REVISI 2,
+  dan bagian 1-8 capability map masih mencerminkan SHA itu dan TIDAK diaudit ulang menyeluruh.
+  Yang diverifikasi pada d6cdfaf9: keberadaan BilCollectionHandoff beserta konsumennya,
+  BilDepositAccount/BilDepositMovement, BilRefundableCredit/BilRefundCase,
+  BilCashVarianceReview/BilCashierShift, check constraint FinBillingHandoffIntake dan
+  FinAccountingEventOutbox, serta ketiadaan endpoint penerima Accounting Event.
+  BELUM diaudit field-per-field: rumpun AR/AP/Payable Finance yang dibangun BE-FIN-001..021
+  (59 berkas, 9062 baris) — lihat "Yang TIDAK ditutup" pada capability map bagian 9.3.
+  Frontend SHA TIDAK diverifikasi ulang pada revisi 3; revisi ini tidak menyentuh frontend.
 sha_verification_note: >
   Kedua SHA diverifikasi ulang pada awal pass desain 20 September 2026 dan TIDAK bergerak dari
   baseline capability map. Working tree backend bersih kecuali folder
@@ -75,8 +129,16 @@ sha_verification_note: >
   Karena SHA tidak bergerak, impact scan tambahan TIDAK dijalankan dan memang tidak diperlukan.
 
 input_revisions:
-  decisions: revisi 1 — FIN-DEC-001..023, seluruhnya approved 20 September 2026
-  capability_map: revisi 1 — 20 September 2026, diaudit pada 09101d05 / abed49b03
+  decisions: >
+    FIN-DEC-001..044. FIN-DEC-001..023 approved 20 September 2026; FIN-DEC-024..029 approved
+    23 September 2026; FIN-DEC-030..039 approved 25 September 2026; FIN-DEC-040..044 approved
+    25 September 2026 (Amendment pass lanjutan).
+    SUPERSEDED: FIN-DEC-004 (oleh 030), FIN-DEC-007 sebagian (oleh 036), FIN-DEC-023 (oleh 035),
+    FIN-DEC-032 (oleh 040 dan 041), FIN-DEC-033 (oleh 042).
+  capability_map: >
+    revisi 1 — 20 September 2026 diaudit pada 09101d05 / abed49b03; bagian 9.3 ditambahkan
+    25 September 2026 dari impact scan pada d6cdfaf9 (FIN-CAP-007/008/009 diperbarui dari
+    Missing menjadi Ready to reuse; FIN-CAP-022..025 ditambahkan).
   requirement_gate: NOT_RUN — lihat requirement_completeness_gate_note
   hospital_domain_architecture: NOT_RUN — lihat domain_architecture_readiness
   owner_analysis_documents: >
@@ -100,19 +162,39 @@ input_hashes_note: >
   Nilai di atas adalah hash SESUDAH kedua pembaruan tersebut.
 
 contract_versions:
-  api-contract: FIN-API-1.0 — locked 2026-09-20
-  integration-contract: FIN-INTEGRATION-1.0 — locked 2026-09-20 (lihat contract_lock_note)
-  state-transition-matrix: FIN-STATE-1.0 — locked 2026-09-20
-  validation-matrix: FIN-VAL-1.0 — locked 2026-09-20
-  permission-audit-matrix: FIN-PERM-1.0 — locked 2026-09-20
-  prd-to-mvp: FIN-MVP-1.0 — locked 2026-09-20
-  acceptance-test-matrix: FIN-TEST-1.0 — locked 2026-09-20
+  api-contract: FIN-API-1.0 — locked 2026-09-20 (TIDAK tersentuh revisi 3; last_changed_in tetap 1.0)
+  integration-contract: FIN-INTEGRATION-1.1 — locked 2026-09-25, naik dari 1.0
+  state-transition-matrix: FIN-STATE-1.1 — locked 2026-09-25, naik dari 1.0
+  validation-matrix: FIN-VAL-1.1 — locked 2026-09-25, naik dari 1.0
+  permission-audit-matrix: FIN-PERM-1.0 — locked 2026-09-20 (TIDAK tersentuh revisi 3 — tujuh kode
+    baru memakai permission `FinanceAccountingEvent` yang sudah ada, tidak menambah Resource/Action)
+  prd-to-mvp: FIN-MVP-1.1 — locked 2026-09-25, naik dari 1.0 (EPIC FIN-14 baru, FR-FIN-076..080,
+    FR-FIN-074 dicabut)
+  acceptance-test-matrix: FIN-TEST-1.1 — locked 2026-09-25, naik dari 1.0
+contract_versions_note_revision_3: >
+  Lima kontrak naik ke 1.1 pada 25 September 2026; dua TIDAK bergerak dan sengaja tidak disunting
+  (api-contract, permission-audit-matrix) sesuai aturan bahwa file contract yang isinya tidak
+  berubah MUST NOT disunting hanya untuk menaikkan angka. `last_changed_in` masing-masing tertulis
+  di kepala berkasnya.
+  Kelima yang naik DIKUNCI owner pada 25 September 2026 lewat pernyataan "Saya approve semua",
+  sama seperti penguncian 1.0 pada 20 September 2026. Dicatat apa adanya.
+  Konsekuensi langsung: kerja paralel backend-frontend DIIZINKAN untuk task yang kontraknya
+  terkunci, termasuk rumpun Accounting Integration — KECUALI bagian yang bergantung pada nama
+  tujuh kode kejadian, yang tetap menunggu FIN-OQ-017.
+contract_lock_note_revision_3: >
+  Diperbarui 25 September 2026. Dari tiga permukaan yang tidak terkunci pada 1.0, SATU sudah
+  tertutup: BilCollectionHandoff kini ada dan sudah dikonsumsi (FIN-CAP-007, FIN-CAP-025).
+  Yang tersisa dua — perluasan BilArHandoff untuk manfaat karyawan, dan pengaktifan pengiriman
+  ke Accounting — ditambah SATU permukaan baru: katalog tujuh kode kejadian (FIN-OQ-017), yang
+  bentuk pesannya sudah final tetapi nama kodenya belum diratifikasi Accounting.
+  Kelima kontrak yang naik ke 1.1 BELUM dikunci; penguncian adalah tindakan owner terpisah.
 contract_lock_note: >
   Owner menyetujui penguncian ke 1.0 pada 20 September 2026, atas usulan
   roadmap/00-delivery-roadmap.md bagian 2. Dicatat apa adanya, TIDAK ditetapkan skill.
   TIGA PERMUKAAN TETAP TIDAK TERKUNCI, dan alasannya bukan status FIN-DES melainkan
   ketergantungan pada pihak lain:
-    (1) BilCollectionHandoff — bentuknya milik owner Billing, belum dikonfirmasi (FIN-DEC-005);
+    (1) BilCollectionHandoff — bentuknya milik owner Billing, belum dikonfirmasi (FIN-DEC-005)
+        — CATATAN REVISI 3: butir ini sudah TERTUTUP, lihat contract_lock_note_revision_3;
     (2) perluasan BilArHandoff untuk manfaat karyawan — FIN-DEC-006/FIN-DEC-016 belum turun;
     (3) pengiriman kejadian ke Accounting — EPIC FIN-12 OPEN DECISION (FIN-CAP-018, FIN-DEC-007).
   Perubahan pada ketiganya TIDAK menaikkan versi kontrak; ia menambah permukaan baru yang
@@ -182,6 +264,26 @@ domain_architecture_readiness: >
   mana pun sampai konfirmasi itu ada. Pemisahan ini yang membuat deviasi dapat diterima:
   bagian yang requirement-nya paling tipis justru yang paling tegas dikeluarkan dari MVP.
 
+readiness_revision_3: >
+  DESIGN_PARTIAL. Baseline revisi 1-2 tetap DESIGN_APPROVED dan CONTRACTS_LOCKED pada 1.0;
+  revisi 3 berstatus DESIGN_DRAFT dan CONTRACTS_UNLOCKED pada 1.1.
+  YANG SUDAH TERBUKA sejak readiness lama ditulis:
+    - Blocker BILLING-COLLECTION-HANDOFF TERTUTUP (impact scan 25 September 2026), sehingga
+      MVP-2 dan MVP-3 kini juga dapat direncanakan. Seluruh MVP-0..MVP-5 tidak lagi menunggu
+      pihak luar.
+    - FIN-OQ-011 (nama field saldo subledger) TERTUTUP oleh FIN-DEC-035.
+  YANG MENAHAN revisi 3, dan HANYA menyentuh rumpun Accounting Integration + Collection:
+    (i)  Approval owner atas FIN-DES-029..036 dan atas penguncian lima kontrak ke 1.1 — belum ada.
+    (ii) Ratifikasi owner Accounting atas TUJUH kode kejadian baru (FIN-OQ-017). Ini yang membuat
+         EPIC FIN-14 berstatus OPEN DECISION dan membuat perubahan FIN-DEC-030 belum boleh
+         dieksekusi di source, walaupun keputusan bisnisnya sudah approved dan buktinya lengkap.
+  PRASYARAT IMPLEMENTASI TAMBAHAN revisi 3, di luar yang sudah tercatat di readiness lama:
+    (f) Otorisasi terpisah untuk SATU migration pengubah check constraint
+        CK_FinBillingHandoffIntake_HandoffType (FIN-DES-029). Desain ini TIDAK memberi wewenang itu.
+    (g) Pembacaan jumlah baris berstatus HELD_FOR_FINALIZATION sebelum pengiriman diaktifkan
+        (02-backend-architecture.md bagian B.6) — pembacaan database, wewenangnya tetap terpisah.
+    (h) Audit field-per-field rumpun AR/AP/Payable Finance lewat trace-existing-capabilities
+        sebelum blueprint dipakai sebagai acuan penuh AR/AP.
 readiness: >
   DESIGN_APPROVED dan CONTRACTS_LOCKED. Seluruh FIN-DES-001..028 disetujui owner 20 September
   2026, dan tujuh kontrak turunan dikunci ke 1.0 pada hari yang sama.
@@ -204,15 +306,45 @@ readiness: >
 
 blocking_questions:
   - id: BILLING-COLLECTION-HANDOFF
+    status: CLOSED 2026-09-25
     blocking_for: >
-      Gelombang MVP-2 dan MVP-3. Menunggu konfirmasi owner Billing atas FIN-DEC-005; permintaan
-      sudah dikirim lewat evidence/02-permintaan-kontrak-untuk-owner-billing.md. Gelombang
-      MVP-0, MVP-1, MVP-4, dan MVP-5 TIDAK tertahan dan sudah siap diteruskan ke
-      /plan-module-delivery.
+      TIDAK LAGI MEMBLOKIR. Ditutup lewat impact scan 25 September 2026: BilCollectionHandoff
+      sudah dibangun owner Billing (BKC-DES-037, 22 September 2026) DAN sudah dikonsumsi
+      FinanceBillingIntakeService.SyncNewFactsAsync/ProcessAsync (BE-FIN-016). Bukti:
+      01-existing-capability-map.md FIN-CAP-007 dan FIN-CAP-025, diverifikasi pada d6cdfaf9.
+      Gelombang MVP-2 dan MVP-3 kini setara MVP-0/MVP-1 dari sisi ketergantungan luar.
+      Sisa yang belum diverifikasi: kecocokan field-per-field bentuk kolomnya terhadap
+      contracts/integration-contract.md bagian 2.1 — bukan blocker, cukup pemeriksaan saat task
+      MVP-2 dimulai.
   - id: FIN-OQ-010
     blocking_for: EPIC FIN-09 (Pembayaran AP) — hanya aturan validasi angkanya, bukan modelnya. POST-MVP
   - id: FIN-OQ-011
-    blocking_for: EPIC FIN-11 bagian saldo subledger periode — POST-MVP, tidak menahan MVP
+    status: CLOSED 2026-09-25
+    blocking_for: >
+      TIDAK LAGI MEMBLOKIR. Accounting menetapkan bentuk pesan saldo subledger pada 24 September
+      2026 dan Finance menerimanya apa adanya (FIN-DEC-035). Bentuk finalnya ada di
+      contracts/integration-contract.md bagian 5.6.
+  - id: FIN-OQ-017
+    status: OPEN — dibuka 2026-09-25
+    blocking_for: >
+      EPIC FIN-14 (uang muka, deposit, kelebihan bayar, selisih kas) DAN implementasi FIN-DEC-030
+      pada source yang sudah berjalan. Menunggu ratifikasi owner Accounting atas TUJUH kode
+      kejadian baru; sudah dikirim lewat evidence/04 dan dikoreksi evidence/05.
+      TIDAK memblokir MVP-0..MVP-5: EPIC FIN-14 sudah dikeluarkan dari seluruh gelombang, dan
+      kotak keluar tetap aman terisi tanpa pengiriman aktif.
+      Ini juga gerbang G6 milik Accounting.
+  - id: FIN-OQ-016
+    status: OPEN
+    blocking_for: >
+      Pengaktifan pengiriman (EPIC FIN-12) dan gerbang cutover G3. Mekanisme token/kredensial akun
+      layanan menunggu Platform; TIGA syarat organisasinya sudah ditetapkan FIN-DEC-036 dan
+      tercatat di contracts/integration-contract.md bagian 5.1.
+  - id: FIN-OQ-018
+    status: OPEN — dibuka 2026-09-25
+    blocking_for: >
+      Tidak memblokir apa pun saat ini. Lawan jurnal refund Billing bersumber SETTLEMENT dan
+      REFERRED_OUTPATIENT_ADMIN sengaja DIKELUARKAN dari cakupan PENGEMBALIAN-UANG-MUKA
+      (FIN-DEC-041), dan gerbang G6 tidak menuntutnya.
   - id: FIN-CQ-03
     blocking_for: EPIC FIN-04 (Employee benefit AR) — menunggu konfirmasi Billing + HR
   - id: FIN-CAP-021
@@ -224,25 +356,27 @@ blocking_questions:
 | Berkas | Status | Keterangan |
 |---|---|---|
 | `blueprint-manifest.md` | Ada | Berkas ini |
-| `00-interview-decisions.md` | Ada | Keluaran `/grill-me`, 23 keputusan `approved` |
-| `01-existing-capability-map.md` | Ada | Keluaran `/trace-existing-capabilities`, 19 kemampuan berbukti |
-| `02-backend-architecture.md` | Ada | Arsitektur backend, `FIN-DES-001`..`024` |
+| `00-interview-decisions.md` | Ada | Keluaran `/grill-me`, **44 keputusan** `FIN-DEC-001`..`044`; lima `superseded` (`004`, `007` sebagian, `023`, `032`, `033`) |
+| `01-existing-capability-map.md` | Ada | Keluaran `/trace-existing-capabilities`, **25 kemampuan** berbukti; bagian 9.3 memuat impact scan `d6cdfaf9` (25 September 2026) |
+| `02-backend-architecture.md` | Ada | Arsitektur backend, `FIN-DES-001`..`036`. **AMENDMENT REVISI 3** (`FIN-DES-029`..`036`, `draft`) di akhir dokumen |
 | `03-frontend-architecture.md` | Ada | Kontrak fungsional frontend dan matriks kewenangan UI |
-| `04-prd-to-mvp.md` | Ada | Batas rilis pertama, epic, UAT, Definition of Done |
+| `04-prd-to-mvp.md` | Ada | `FIN-MVP-1.1` `draft` — batas rilis, epic, UAT, DoD. **`EPIC FIN-14` baru** (`OPEN DECISION`), `FR-FIN-076`..`080` baru, `FR-FIN-074` dicabut |
 | `erd/00-context-erd.md` | Ada | Peta antar bounded context |
 | `erd/receivable-collection.md` | Ada | ERD rumpun Piutang dan Penerimaan |
 | `erd/payable.md` | Ada | ERD rumpun Utang dan Pembayaran |
 | `erd/cash-and-master-data.md` | Ada | ERD rumpun Kas dan Master Data Finance |
-| `erd/accounting-integration.md` | Ada | ERD rumpun Integrasi Accounting |
-| `erd/data-dictionary.md` | Ada | Kamus data seluruh kolom dan bentuk DDL |
+| `erd/accounting-integration.md` | Ada | ERD rumpun Integrasi Accounting. Bagian 4 (`HELD_FOR_FINALIZATION`) **dicabut** revisi 3, dipertahankan sebagai jejak sejarah |
+| `erd/data-dictionary.md` | Ada | Kamus data seluruh kolom dan bentuk DDL. `HandoffType` naik dari 4 ke **8 nilai** (revisi 3) |
 | `contracts/api-contract.md` | Ada | `FIN-API-1.0` — locked |
-| `contracts/state-transition-matrix.md` | Ada | `FIN-STATE-1.0` — locked |
-| `contracts/validation-matrix.md` | Ada | `FIN-VAL-1.0` — locked |
-| `contracts/integration-contract.md` | Ada | `FIN-INTEGRATION-1.0` — locked |
+| `contracts/state-transition-matrix.md` | Ada | **`FIN-STATE-1.1`** `draft` — satu transisi dicabut (bagian 9), empat `HandoffType` ditambah (bagian 1) |
+| `contracts/validation-matrix.md` | Ada | **`FIN-VAL-1.1`** `draft` — `FIN-VAL-076` dicabut, `FIN-VAL-078`..`086` ditambah |
+| `contracts/integration-contract.md` | Ada | **`FIN-INTEGRATION-1.1`** `draft` — katalog 17→24 kode, bagian 2a baru, bagian 5.5 diganti total |
 | `contracts/permission-audit-matrix.md` | Ada | `FIN-PERM-1.0` — locked |
-| `testing/acceptance-test-matrix.md` | Ada | `FIN-TEST-1.0` — locked |
+| `testing/acceptance-test-matrix.md` | Ada | **`FIN-TEST-1.1`** `draft` — bagian 8a baru (25 skenario uang muka/deposit/selisih kas), tiga baris dicabut |
 | `evidence/01-jawaban-untuk-owner-accounting.md` | Ada | Jawaban Finance atas enam pertanyaan Rizki (paket 15 September 2026), berdiri sendiri |
 | `evidence/02-permintaan-kontrak-untuk-owner-billing.md` | Ada | Permintaan `BilCollectionHandoff` dan perluasan `BilArHandoff`, berdiri sendiri. Bagian 3 juga ditujukan ke owner HR |
+| `evidence/04-jawaban-atas-balasan-accounting.md` | Ada | Jawaban Finance atas `docs/module-blueprints/accounting/evidence/13-balasan-accounting-untuk-finance.md`, 25 September 2026 — persetujuan `FIN-DEC-030`, empat usulan kode baru (dikoreksi `evidence/05`), berdiri sendiri |
+| `evidence/05-koreksi-jawaban-atas-balasan-accounting.md` | Ada | Koreksi atas `evidence/04` — kode `PEMAKAIAN-UANG-MUKA-DEPOSIT` dipersempit, dua kode baru (`PENGEMBALIAN-UANG-MUKA`, `PENGAKUAN-KELEBIHAN-BAYAR`) dan `PEMBALIKAN-PENERIMAAN-UANG-MUKA` ditambah, total tujuh kode menunggu ratifikasi Accounting (`FIN-OQ-017`), berdiri sendiri |
 | `roadmap/00-delivery-roadmap.md` | Ada | `FIN-ROADMAP-001` revisi 3, status `ACTIVE` — payung: gelombang, traceability, coverage gap, risiko |
 | `roadmap/01-backend-roadmap.md` | Ada | `FIN-ROADMAP-BE-001` — 21 task `BE-FIN-*`, urutan eksekusi, DoD backend |
 | `roadmap/02-frontend-roadmap.md` | Ada | `FIN-ROADMAP-FE-001` — 6 task `FE-FIN-*`, kebutuhan UI brief, `DEV_DISCRETION`, DoD frontend |
@@ -256,7 +390,9 @@ Blueprint ini menjadi **stale** dan MUST diperiksa ulang bila salah satu terjadi
 
 | Pemicu | Yang harus diperiksa ulang |
 |---|---|
-| Backend SHA bergerak dari `09101d05` | Seluruh klaim as-is pada `01-existing-capability-map.md`, khususnya field `BilArHandoff`/`BilTender` dan endpoint Petty Cash |
+| Backend SHA bergerak dari **`d6cdfaf9`** (bukan lagi `09101d05`) | Seluruh klaim as-is pada `01-existing-capability-map.md`, khususnya `FIN-CAP-007`, `022`..`025` yang baru diverifikasi 25 September 2026 |
+| Rumpun AR/AP/Payable Finance dipakai sebagai acuan desain | **Audit field-per-field belum dilakukan** untuk 59 berkas yang dibangun `BE-FIN-001`..`021`. Jalankan `trace-existing-capabilities` lebih dulu — lihat capability map bagian 9.3 "Yang TIDAK ditutup" |
+| Accounting meratifikasi atau mengoreksi nama tujuh kode baru | `contracts/integration-contract.md` bagian 5.4, `contracts/validation-matrix.md` `FIN-VAL-075`, `testing/acceptance-test-matrix.md` bagian 8a, dan `EPIC FIN-14` pada `04-prd-to-mvp.md` |
 | Frontend SHA bergerak dari `abed49b03` | `03-frontend-architecture.md` bagian rute dan menu yang sudah ada |
 | `billing-kasir` menaikkan revisi yang menyentuh `BilArHandoff`, `BilTender`, `BilSettlement`, atau `BilPaymentAllocation` | `contracts/integration-contract.md` bagian intake Billing |
 | `accounting` menaikkan `ACC-XMOD` di atas `0.2` | `contracts/integration-contract.md` bagian Finance → Accounting, dan `FIN-DEC-001` |

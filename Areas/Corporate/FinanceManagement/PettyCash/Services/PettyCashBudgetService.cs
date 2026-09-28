@@ -51,7 +51,13 @@ public sealed class PettyCashBudgetService
             ActiveBudget = activeBudget,
             PendingEvidenceCount = pendingEvidenceCount,
             PendingDisbursementCount = pendingDisbursementCount,
-            TotalDisbursedThisPeriod = activeBudget.TotalDisbursedAmount
+            CurrentBalance = activeBudget.CurrentBalance,
+            PemakaianSaldo = activeBudget.DisbursedBalance,
+            DisbursedBalance = activeBudget.DisbursedBalance,
+            TotalDisbursedThisPeriod = activeBudget.DisbursedBalance,
+            SisaSaldo = activeBudget.RemainingBalance,
+            RemainingBalance = activeBudget.RemainingBalance,
+            RemainingBudgetAmount = activeBudget.RemainingBalance
         };
     }
 
@@ -740,6 +746,53 @@ public sealed class PettyCashBudgetService
         budget.Movements.Add(movement);
         _dbContext.FinPettyCashBudgetMovements.Add(movement);
         budget.CurrentBalance = after;
+        budget.TotalDisbursedAmount = Math.Max(0m, budget.TotalDisbursedAmount - outstandingAmount);
+        budget.LastMovementAt = now;
+        budget.RowVersion = Guid.NewGuid();
+        budget.UpdateDateTime = DateTime.UtcNow;
+        budget.UpdateBy = actorUserId;
+    }
+
+    /// <summary>
+    /// Requirement 8: Pembalikan saldo saat voucher pencairan dibatalkan.
+    /// Saldo kembali bertambah, pemakaian saldo berkurang, movement tercatat, audit trail terjaga.
+    /// </summary>
+    public async Task ApplyCancellationReversalAsync(
+        BilPettyCashVoucher voucher, Guid actorUserId, Guid correlationId, string? reason, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(voucher);
+
+        if (_dbContext.Database.IsRelational()) await AcquireLockAsync(cancellationToken);
+
+        var budget = await LoadActiveBudgetForMovementAsync(cancellationToken);
+
+        var before = budget.CurrentBalance;
+        var after = checked(before + voucher.Amount);
+        if (after > MaxMoneyAmount)
+            throw new PettyCashBudgetValidationException("Saldo kas kecil melebihi batas nominal yang didukung.");
+        var now = DateTimeOffset.UtcNow;
+
+        var movement = new FinPettyCashBudgetMovement
+        {
+            BudgetId = budget.Id,
+            Budget = budget,
+            MovementType = PettyCashBudgetMovementTypes.Reversal,
+            Amount = voucher.Amount,
+            BalanceBefore = before,
+            BalanceAfter = after,
+            VoucherId = voucher.Id,
+            Reason = string.IsNullOrWhiteSpace(reason) ? "Pembatalan voucher kas kecil" : reason.Trim(),
+            ActorUserId = actorUserId,
+            CorrelationId = correlationId,
+            OccurredAt = now,
+            CreateDateTime = DateTime.UtcNow,
+            CreateBy = actorUserId
+        };
+        budget.Movements.Add(movement);
+        _dbContext.FinPettyCashBudgetMovements.Add(movement);
+
+        budget.CurrentBalance = after;
+        budget.TotalDisbursedAmount = Math.Max(0m, budget.TotalDisbursedAmount - voucher.Amount);
         budget.LastMovementAt = now;
         budget.RowVersion = Guid.NewGuid();
         budget.UpdateDateTime = DateTime.UtcNow;
@@ -755,8 +808,13 @@ public sealed class PettyCashBudgetService
         var query = asNoTracking
             ? _dbContext.FinPettyCashBudgets.AsNoTracking()
             : _dbContext.FinPettyCashBudgets.Include(x => x.Movements);
-        return await query.SingleOrDefaultAsync(x => x.Status == PettyCashBudgetStatuses.Active && !x.IsDelete, cancellationToken)
-            ?? throw new KeyNotFoundException("Kolam anggaran kas kecil aktif tidak ditemukan.");
+
+        // Prefer active budget, then default HOSPITAL_MAIN pool, then any non-deleted budget
+        var budget = await query.FirstOrDefaultAsync(x => x.Status == PettyCashBudgetStatuses.Active && !x.IsDelete, cancellationToken)
+            ?? await query.FirstOrDefaultAsync(x => x.PoolCode == "HOSPITAL_MAIN" && !x.IsDelete, cancellationToken)
+            ?? await query.FirstOrDefaultAsync(x => !x.IsDelete, cancellationToken);
+
+        return budget ?? throw new KeyNotFoundException("Kolam kas kecil tidak ditemukan.");
     }
 
     private async Task<FinPettyCashBudget> LoadActiveBudgetForMovementAsync(CancellationToken cancellationToken)
@@ -765,7 +823,7 @@ public sealed class PettyCashBudgetService
         catch (KeyNotFoundException)
         {
             throw new PettyCashBudgetValidationException(
-                "Belum ada periode anggaran yang aktif. Finance perlu membuat dan mengaktifkan periode anggaran lebih dulu.");
+                "Kolam kas kecil belum tersedia. Finance perlu membuat saldo kas kecil terlebih dulu.");
         }
     }
 
@@ -843,25 +901,35 @@ public sealed class PettyCashBudgetService
             ActorUserId = actorUserId
         });
 
-    private static PettyCashBudgetResponse Map(FinPettyCashBudget budget, decimal reserved) => new()
+    private static PettyCashBudgetResponse Map(FinPettyCashBudget budget, decimal reserved)
     {
-        Id = budget.Id,
-        PoolCode = budget.PoolCode,
-        PoolName = budget.PoolName,
-        PeriodStart = budget.PeriodStart,
-        PeriodEnd = budget.PeriodEnd,
-        BudgetAmount = budget.BudgetAmount,
-        RemainingBudgetAmount = budget.BudgetAmount - budget.TotalDisbursedAmount,
-        Status = budget.Status,
-        SupersededByBudgetId = budget.SupersededByBudgetId,
-        CurrentBalance = budget.CurrentBalance,
-        ReservedAmount = reserved,
-        AvailableAmount = budget.CurrentBalance - reserved,
-        TotalTopUpAmount = budget.TotalTopUpAmount,
-        TotalDisbursedAmount = budget.TotalDisbursedAmount,
-        LastMovementAt = budget.LastMovementAt,
-        RowVersion = budget.RowVersion
-    };
+        var pemakaianSaldo = budget.TotalDisbursedAmount;
+        var sisaSaldo = budget.CurrentBalance;
+
+        return new()
+        {
+            Id = budget.Id,
+            PoolCode = budget.PoolCode,
+            PoolName = budget.PoolName,
+            PeriodStart = budget.PeriodStart,
+            PeriodEnd = budget.PeriodEnd,
+            BudgetAmount = budget.BudgetAmount,
+            CurrentBalance = budget.CurrentBalance,
+            PemakaianSaldo = pemakaianSaldo,
+            DisbursedBalance = pemakaianSaldo,
+            TotalDisbursedAmount = pemakaianSaldo,
+            SisaSaldo = sisaSaldo,
+            RemainingBalance = sisaSaldo,
+            RemainingBudgetAmount = sisaSaldo,
+            Status = budget.Status,
+            SupersededByBudgetId = budget.SupersededByBudgetId,
+            ReservedAmount = reserved,
+            AvailableAmount = budget.CurrentBalance - reserved,
+            TotalTopUpAmount = budget.TotalTopUpAmount,
+            LastMovementAt = budget.LastMovementAt,
+            RowVersion = budget.RowVersion
+        };
+    }
 }
 
 public sealed class PettyCashBudgetValidationException(string message) : Exception(message);

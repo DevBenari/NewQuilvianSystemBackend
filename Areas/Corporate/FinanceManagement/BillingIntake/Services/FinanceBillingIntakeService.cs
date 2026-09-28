@@ -253,6 +253,19 @@ public sealed class FinanceBillingIntakeService
             var invoice = await _dbContext.BilInvoices.AsNoTracking()
                 .SingleOrDefaultAsync(x => x.Id == handoff.InvoiceId, cancellationToken);
 
+            // FR-FIN-024: PatientId ditelusuri lewat BilInvoice.EncounterId -> RegPatientEncounter.PatientId.
+            // Diverifikasi 23 September 2026 (laporan BE-FIN-009 bagian 1 butir #5): RegPatientEncounter
+            // menyimpan PatientId langsung (Areas/HealthServices/RegistrationManagement/Models/RegPatientEncounter.cs),
+            // bukan skema yang belum diverifikasi seperti dicatat sebelumnya.
+            Guid? patientId = null;
+            if (invoice is not null)
+            {
+                patientId = await _dbContext.RegPatientEncounters.AsNoTracking()
+                    .Where(x => x.Id == invoice.EncounterId)
+                    .Select(x => (Guid?)x.PatientId)
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
+
             var now = DateTimeOffset.UtcNow;
             var receivable = new FinReceivable
             {
@@ -283,13 +296,13 @@ public sealed class FinanceBillingIntakeService
                 CreateBy = actorUserId
             };
             // Kardinalitas 1..* (02-backend-architecture.md §3.2): satu baris rincian minimal,
-            // sebesar OriginalAmount. PatientId sengaja kosong pada task ini — perlu join lewat
-            // Registration/Encounter yang belum diverifikasi skemanya di sesi ini (dicatat sebagai
-            // penyederhanaan, bukan penghilangan FR-FIN-024 secara permanen).
+            // sebesar OriginalAmount. PatientId diisi dari RegPatientEncounter (lihat pencarian
+            // di atas) — menutup FR-FIN-024, bukan lagi dikosongkan.
             receivable.Items.Add(new FinReceivableItem
             {
                 EncounterId = invoice?.EncounterId,
                 InvoiceId = handoff.InvoiceId,
+                PatientId = patientId,
                 Description = invoice is not null ? $"Piutang dari tagihan {invoice.InvoiceNumber}" : "Piutang dari tagihan Billing",
                 Amount = handoff.Amount,
                 CreateDateTime = DateTime.UtcNow,

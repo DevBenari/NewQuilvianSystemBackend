@@ -13,10 +13,16 @@
 Matriks ini memuat **jalur berhasil dan jalur gagal**. Jalur gagal justru yang paling membuktikan
 aturan bisnis benar-benar ditegakkan.
 
-Keadaan hari ini yang harus disadari: backend hanya punya **satu** berkas test
+Keadaan awal saat matriks ini disusun: backend hanya punya **satu** berkas test
 (`QuilvianSystemBackend.Tests/BillingManagement/BillingModuleFoundationTests.cs`) dan frontend punya
 **empat**. Tidak satu pun menyentuh tempat tidur, kunjungan, atau dokumentasi klinis. Karena itu
 `RWI-DEC-051` mewajibkan test menjadi bagian pekerjaan, bukan pekerjaan terpisah.
+
+> **Catatan Perkembangan Prasarana Uji (Status 23 September 2026)**:
+> Sesuai mandat `RWI-DEC-051`, prasarana uji telah diperluas secara komprehensif:
+> - **Frontend Unit Testing**: Memiliki **172+ berkas unit test suite** di `QuilvianSystemFrontendDev/tests/unit/`, mencakup puluhan test suite khusus siklus rawat inap (`inpatient-admission-*`, `inpatient-bed-board`, `inpatient-placement`, `inpatient-transfer-*`, `inpatient-departure`, `inpatient-discharge*`, `inpatient-closure*`, `inpatient-census`, `inpatient-clinical-instrument-renderer`, dll).
+> - **Live E2E Verification**: Telah terdokumentasi **5 laporan pengujian operasional langsung** di direktori ini (`laporan-testing-admisi-penempatan-episode.md`, `laporan-testing-semua-tipe-pasien.md`, `laporan-testing-fase-3-tim-medis-isolasi.md`, `laporan-testing-fase-4-perpindahan-tempat-tidur.md`, dan `laporan-testing-fase-5-keputusan-pulang-resume-medis.md`).
+
 
 ---
 
@@ -450,10 +456,28 @@ Tidak ada skenario yang dihapus pada revision ini.
 | **Gagal** `RWI-AC-201` | Episode dibuka kembali lewat sesi koreksi | Integrasi | Konsep tetap `LockedUnsigned`; pesanan dan dosis tetap batal |
 | `RWI-AC-214` | Setelah penutupan | Integrasi | Nol pesanan tindakan berstatus terkunci "Tidak Ditandatangani" |
 
-### 18.5 Yang belum dapat diuji pada `0.9.0`
+### 18.5 Status Ketergantungan Pengujian pada `0.9.0` (Pemutakhiran 23 September 2026)
 
-| Skenario | Sebab | Diuji setelah |
-| --- | --- | --- |
-| Langkah 5 penutupan | Kolom pesanan tindakan `dokter-rawat-inap` `DOK-V2-1` | `DOK-V2-1` |
-| Langkah 6 penutupan | Tabel dosis `keperawatan` `KEP-V2-2` | `KEP-V2-2` |
-| Bagian Lab/Rad `NeedsReviewCount` | Persetujuan pemilik Lab/Rad | Persetujuan tercatat |
+| Skenario | Ketergantungan Awal | Status Implementasi Terkini | Kesiapan Pengujian |
+| --- | --- | --- | --- |
+| **Langkah 5 penutupan** (pembatalan pesanan tindakan belum jalan) | `DOK-V2-1` (`BE-RWI-091` s.d. `BE-RWI-098`) | ✅ **SELESAI** (17 Sept 2026). Logika pembatalan pesanan tindakan telah terpasang pada `InpDischargeService.Closure.cs:1072-1077` (`BE-RWI-086`) | Siap diuji pada verifikasi Fase 8 (Penutupan) |
+| **Langkah 6 penutupan** (pembatalan dosis berjadwal belum jalan) | `KEP-V2-2` (`BE-RWI-114` s.d. `BE-RWI-123`) | ✅ **SELESAI** (17 Sept 2026). Logika pembatalan dosis obat berjadwal telah terpasang memanggil `MedicationAdministrationService.CancelFutureDosesForEpisodeAsync` pada `InpDischargeService.Closure.cs:1081-1086` (`BE-RWI-087`) | Siap diuji pada verifikasi Fase 8 (Penutupan) |
+| **Bagian Lab/Rad `NeedsReviewCount`** | Modul Penunjang Lab/Rad | Menunggu verifikasi sinkronisasi lintas modul | Pengujian terpisah |
+
+---
+
+## 19. Registri Keterlacakan Laporan Pengujian Operasional Langsung (*Live E2E Reports*)
+
+Untuk mematuhi aturan keterlacakan (*traceability*) dan membuktikan penegakan aturan bisnis secara nyata di lingkungan operasional, laporan hasil pengujian langsung dikelola dalam direktori ini:
+
+| No | Fase Uji | Berkas Laporan | Cakupan Skenario | Status Hasil |
+| :---: | :--- | :--- | :--- | :---: |
+| 1 | **Fase 1 & Fase 2** | [`laporan-testing-admisi-penempatan-episode.md`](laporan-testing-admisi-penempatan-episode.md) | Pendaftaran pasien lama, penentuan DPJP & kelas, draf episode, reservasi bed (`POST /reservations`), dan penempatan pasien (`POST /placements`). | 🟢 **100% LULUS** |
+| 2 | **Langkah 3 Admisi** | [`laporan-testing-semua-tipe-pasien.md`](laporan-testing-semua-tipe-pasien.md) | Validasi perilaku antarmuka untuk 6 kategori tipe pasien: Umum, Ibu, Bayi Baru Lahir, Anak, Pegawai, Korporat. | ⚠️ **5/6 LULUS**<br>(Bayi Baru Lahir `BLOCKED` `ISSUE-002`) |
+| 3 | **Fase 3** | [`laporan-testing-fase-3-tim-medis-isolasi.md`](laporan-testing-fase-3-tim-medis-isolasi.md) | Alih rawat DPJP utama (`POST /doctor-assignments`), penugasan PPJA (`POST /nurse-assignments`), penegakan guard isolasi (`RWI-RULE-004`), dan sinkronisasi ke sensus bangsal. | 🟢 **100% LULUS** |
+| 4 | **Fase 4** | [`laporan-testing-fase-4-perpindahan-tempat-tidur.md`](laporan-testing-fase-4-perpindahan-tempat-tidur.md) | Perpindahan bed transaksi atomik (`POST /placements/transfer`), penegakan alasan medis wajib, dialog konfirmasi dua arah, dan riwayat penempatan. | 🟢 **100% LULUS** |
+| 5 | **Fase 5** | [`laporan-testing-fase-5-keputusan-pulang-resume-medis.md`](laporan-testing-fase-5-keputusan-pulang-resume-medis.md) | Penegakan guard eksklusif DPJP aktif (`GUARD-INP-02`), keputusan pemulangan klinis (`POST /discharges/{id}/decide`), penyusunan resume medis 8 bagian klinis, dan tanda tangan digital. | 🟢 **100% LULUS** |
+| 6 | **Fase 6 s.d. 8** | [`laporan-testing-fase-6-clearance-penutupan-episode.md`](test-by-agy/laporan-testing-fase-6-clearance-penutupan-episode.md) | Kliring finansial kasir (`POST /financial-clearance`), pencatatan kepergian fisik (`POST /record-departure`), butir administrasi, evaluasi 5 syarat kesiapan, dan penutupan resmi episode (`POST /close`). | 🟢 **100% LULUS** |
+| 7 | **Siklus Lengkap (End-to-End)** | [`laporan-testing-siklus-lengkap-episode-rawat-inap.md`](test-by-agy/laporan-testing-siklus-lengkap-episode-rawat-inap.md) | Verifikasi live siklus utuh dari pendaftaran pasien lama, admisi, draf episode, reservasi bed, penempatan, tim medis PPJA, isolasi, alih rawat tempat tidur, keputusan pulang DPJP, resume medis digital, kliring kasir, kepergian fisik, hingga penutupan resmi dan verifikasi sensus bersih. | 🟢 **100% LULUS** |
+
+

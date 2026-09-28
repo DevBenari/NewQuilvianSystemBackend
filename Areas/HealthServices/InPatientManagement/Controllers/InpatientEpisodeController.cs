@@ -66,8 +66,27 @@ namespace QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Control
         }
 
         // =====================================================================
-        // BE-RWI-009 — Daftar, detail, ringkasan, dan metadata penyaring
+        // BE-RWI-009 & BE-RWI-128 — Daftar, detail, ringkasan, active-mothers, dan metadata penyaring
         // =====================================================================
+
+        /// <summary>
+        /// Mengambil daftar episode ibu yang sedang aktif dirawat untuk ditautkan pada admisi bayi baru lahir.
+        /// Ditambahkan pada BE-RWI-128.
+        /// </summary>
+        [HttpGet("active-mothers")]
+        [ProducesResponseType(typeof(ApiResponse<List<ActiveMotherItemResponse>>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Inpatient Episode", Description = "Melihat daftar episode ibu aktif untuk admisi bayi", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("InpatientEpisode", "Read")]
+        public async Task<IActionResult> GetActiveMothers(
+            [FromQuery] ActiveMotherListQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            var result = await _episodeService.GetActiveMothersAsync(query, cancellationToken);
+
+            return Ok(ApiResponse<List<ActiveMotherItemResponse>>.Ok(
+                result,
+                "Daftar episode ibu aktif berhasil diambil."));
+        }
 
         /// <summary>Mengambil pilihan penyaring beserta nilai bawaannya untuk layar daftar.</summary>
         [HttpGet("filters/metadata")]

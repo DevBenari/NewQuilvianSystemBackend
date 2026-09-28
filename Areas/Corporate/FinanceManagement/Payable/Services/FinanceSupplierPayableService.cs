@@ -1,37 +1,34 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Models;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Services;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Payable.Dtos;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Payable.Models;
 using QuilvianSystemBackend.Repositories;
+using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 using System.Data;
 
 namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Payable.Services;
 
 /// <summary>
-/// Input manual utang supplier dan koreksinya (BE-FIN-019, 02-backend-architecture.md §4.22).
-/// Satu-satunya penulis FinSupplierPayable pada task ini — jalur pembayaran (FinPayment,
-/// FinPaymentAllocation) adalah tanggung jawab FinancePaymentService (BE-FIN-020, belum ada task
-/// pemilik). PayableType = MEDICAL_SERVICE pada FinPayableAdjustment MUST NOT dibuat dari sini —
-/// itu FinanceDoctorPayableService/BE-FIN-021, menunggu FinMedicalServicePayable (BLOCKED,
-/// menunggu modul Medical Fee).
-///
-/// Sengaja BELUM menulis kejadian ke FinAccountingEventOutbox meski EventTypeCode-nya
-/// (PENGAKUAN-HUTANG-SUPPLIER, PENYESUAIAN-HUTANG) sudah ada di katalog — mengikuti pola siklus
-/// hidup yang sama dengan Receivable: FinanceReceivableService (BE-FIN-006/008) dibangun tanpa
-/// panggilan outbox, baru disambungkan belakangan oleh BE-FIN-011. Menyambungkannya di sini akan
-/// melampaui Cakupan BE-FIN-019 (hanya FinSupplierPayable/FinSupplierPayableItem/
-/// FinPayableAdjustment), jadi ditunda ke task pemilik eksplisit berikutnya.
+/// Input manual utang supplier, koreksi, dan pembayaran langsung (Finance Management V2).
 /// </summary>
 public sealed class FinanceSupplierPayableService
 {
     private const string LogCategory = "Corporate.FinanceManagement.Payable";
     private readonly ApplicationDbContext _dbContext;
     private readonly LoggerService _loggerService;
+    private readonly FinanceAccountingOutboxService _accountingOutboxService;
 
-    public FinanceSupplierPayableService(ApplicationDbContext dbContext, LoggerService loggerService)
+    public FinanceSupplierPayableService(
+        ApplicationDbContext dbContext,
+        LoggerService loggerService,
+        FinanceAccountingOutboxService accountingOutboxService)
     {
         _dbContext = dbContext;
         _loggerService = loggerService;
+        _accountingOutboxService = accountingOutboxService;
     }
 
     // ------------------------------------------------------------------------------------
@@ -107,9 +104,242 @@ public sealed class FinanceSupplierPayableService
         foreach (var item in itemEntities) payable.Items.Add(item);
 
         _dbContext.FinSupplierPayables.Add(payable);
+
+        // Stage event AP_CREATED ke Accounting Integration Outbox
+        await _accountingOutboxService.StageEventAsync(new AccountingOutboxEventRequest
+        {
+            EventTypeCode = FinAccountingEventTypeCodes.ApCreated,
+            SourceTransactionId = payable.PayableNumber,
+            EventOccurredAt = DateTimeOffset.UtcNow,
+            AccountingDate = payable.SupplierInvoiceDate,
+            Amount = payable.OriginalAmount,
+            CorrelationId = payable.Id,
+            CausationId = payable.Id,
+            ActorUserId = actorUserId
+        }, cancellationToken);
+
         await _dbContext.SaveChangesAsync(cancellationToken);
         await AuditAsync("Create", payable.Id, payable.Id, actorUserId);
         return payable;
+    }
+
+    // ------------------------------------------------------------------------------------
+    // Pembacaan & Daftar Berpaging (Finance Management V2)
+    // ------------------------------------------------------------------------------------
+
+    public async Task<PagedResult<FinSupplierPayable>> GetPagedAsync(SupplierPayableQuery query, CancellationToken cancellationToken)
+    {
+        var q = _dbContext.FinSupplierPayables.AsNoTracking()
+            .Include(x => x.Items)
+            .Where(x => !x.IsDelete);
+
+        if (query.SupplierId.HasValue && query.SupplierId.Value != Guid.Empty)
+            q = q.Where(x => x.SupplierId == query.SupplierId.Value);
+
+        if (!string.IsNullOrWhiteSpace(query.Status))
+            q = q.Where(x => x.Status == query.Status.Trim().ToUpperInvariant());
+
+        if (query.InvoiceDateFrom.HasValue)
+            q = q.Where(x => x.SupplierInvoiceDate >= query.InvoiceDateFrom.Value);
+
+        if (query.InvoiceDateTo.HasValue)
+            q = q.Where(x => x.SupplierInvoiceDate <= query.InvoiceDateTo.Value);
+
+        if (!string.IsNullOrWhiteSpace(query.Search))
+        {
+            var s = query.Search.Trim().ToLower();
+            q = q.Where(x => x.PayableNumber.ToLower().Contains(s) || x.SupplierInvoiceNumber.ToLower().Contains(s));
+        }
+
+        var totalCount = await q.CountAsync(cancellationToken);
+
+        q = (query.SortBy?.ToLowerInvariant(), query.SortDirection?.ToLowerInvariant()) switch
+        {
+            ("duedate", "asc") => q.OrderBy(x => x.DueDate),
+            ("duedate", "desc") => q.OrderByDescending(x => x.DueDate),
+            ("amount", "asc") => q.OrderBy(x => x.OriginalAmount),
+            ("amount", "desc") => q.OrderByDescending(x => x.OriginalAmount),
+            ("outstanding", "asc") => q.OrderBy(x => x.OutstandingAmount),
+            ("outstanding", "desc") => q.OrderByDescending(x => x.OutstandingAmount),
+            ("invoicedate", "asc") => q.OrderBy(x => x.SupplierInvoiceDate),
+            ("invoicedate", "desc") => q.OrderByDescending(x => x.SupplierInvoiceDate),
+            (_, "asc") => q.OrderBy(x => x.CreateDateTime),
+            _ => q.OrderByDescending(x => x.CreateDateTime)
+        };
+
+        var items = await q.Skip((query.PageNumber - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<FinSupplierPayable>
+        {
+            Items = items,
+            PageNumber = query.PageNumber,
+            PageSize = query.PageSize,
+            TotalData = totalCount,
+            TotalPage = (int)Math.Ceiling(totalCount / (double)query.PageSize)
+        };
+    }
+
+    public async Task<FinSupplierPayable> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
+        await _dbContext.FinSupplierPayables.AsNoTracking()
+            .Include(x => x.Items)
+            .Include(x => x.Adjustments)
+            .SingleOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Utang supplier tidak ditemukan.");
+
+    public async Task<SupplierPayablePaymentResponse> RecordDirectPaymentAsync(
+        Guid supplierPayableId,
+        decimal amount,
+        Guid? bankAccountId,
+        string paymentMethod,
+        string? referenceNumber,
+        string? notes,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        ValidateAmount(amount);
+        var refNumber = string.IsNullOrWhiteSpace(referenceNumber)
+            ? $"PAY-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid():N}"[..25]
+            : referenceNumber.Trim();
+
+        IDbContextTransaction? transaction = null;
+        try
+        {
+            transaction = await BeginTransactionAsync(cancellationToken);
+            await AcquireLockAsync($"FIN_PAYABLE_{supplierPayableId:N}", cancellationToken);
+
+            var payable = await _dbContext.FinSupplierPayables
+                .SingleOrDefaultAsync(x => x.Id == supplierPayableId && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Utang supplier tidak ditemukan.");
+
+            if (payable.Status is FinSupplierPayableStatuses.Paid or FinSupplierPayableStatuses.Cancelled)
+                throw new PayableValidationException($"Utang supplier berstatus {payable.Status} tidak dapat dibayar.");
+
+            if (amount > payable.OutstandingAmount)
+                throw new PayableValidationException($"Nilai pembayaran Rp {amount:N0} melebihi sisa utang Rp {payable.OutstandingAmount:N0}.");
+
+            var prevOutstanding = payable.OutstandingAmount;
+            payable.OutstandingAmount -= amount;
+            payable.PaidAmount += amount;
+            payable.Status = payable.OutstandingAmount <= 0m ? FinSupplierPayableStatuses.Paid : FinSupplierPayableStatuses.Partial;
+            payable.UpdateDateTime = DateTime.UtcNow;
+            payable.UpdateBy = actorUserId;
+            payable.RowVersion = Guid.NewGuid();
+
+            // Stage event AP_PAYMENT ke Accounting Outbox
+            var eventOccurredAt = DateTimeOffset.UtcNow;
+            await _accountingOutboxService.StageEventAsync(new AccountingOutboxEventRequest
+            {
+                EventTypeCode = FinAccountingEventTypeCodes.ApPayment,
+                SourceTransactionId = payable.PayableNumber,
+                EventOccurredAt = eventOccurredAt,
+                AccountingDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                Amount = amount,
+                CorrelationId = payable.Id,
+                CausationId = payable.Id,
+                ActorUserId = actorUserId
+            }, cancellationToken);
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            await CommitAsync(transaction, cancellationToken);
+            await AuditAsync("RecordDirectPayment", payable.Id, payable.Id, actorUserId);
+
+            return new SupplierPayablePaymentResponse
+            {
+                PayableId = payable.Id,
+                PayableNumber = payable.PayableNumber,
+                SupplierInvoiceNumber = payable.SupplierInvoiceNumber,
+                PaymentAmount = amount,
+                PreviousOutstanding = prevOutstanding,
+                CurrentOutstanding = payable.OutstandingAmount,
+                TotalPaid = payable.PaidAmount,
+                Status = payable.Status,
+                PaymentDate = eventOccurredAt.UtcDateTime,
+                ReferenceNumber = refNumber
+            };
+        }
+        catch (DbUpdateConcurrencyException exception)
+        {
+            await RollbackAsync(transaction);
+            throw Stale(exception);
+        }
+        catch
+        {
+            await RollbackAsync(transaction);
+            throw;
+        }
+        finally
+        {
+            if (transaction is not null) await transaction.DisposeAsync();
+        }
+    }
+
+    public async Task<List<SupplierPayableAgingBucketResult>> GetAgingSummaryAsync(DateOnly? asOfDate, CancellationToken cancellationToken)
+    {
+        var date = asOfDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
+        var outstandingPayables = await _dbContext.FinSupplierPayables.AsNoTracking()
+            .Where(x => !x.IsDelete && x.Status != FinSupplierPayableStatuses.Paid && x.Status != FinSupplierPayableStatuses.Cancelled && x.OutstandingAmount > 0)
+            .Select(x => new { x.DueDate, x.OutstandingAmount })
+            .ToListAsync(cancellationToken);
+
+        var buckets = new List<SupplierPayableAgingBucketResult>
+        {
+            new() { BucketLabel = "0-30 Hari", DaysMin = 0, DaysMax = 30 },
+            new() { BucketLabel = "31-60 Hari", DaysMin = 31, DaysMax = 60 },
+            new() { BucketLabel = "61-90 Hari", DaysMin = 61, DaysMax = 90 },
+            new() { BucketLabel = ">90 Hari", DaysMin = 91, DaysMax = null }
+        };
+
+        foreach (var p in outstandingPayables)
+        {
+            var daysPastDue = date.DayNumber - p.DueDate.DayNumber;
+            if (daysPastDue < 0) daysPastDue = 0;
+
+            var target = daysPastDue switch
+            {
+                <= 30 => buckets[0],
+                <= 60 => buckets[1],
+                <= 90 => buckets[2],
+                _ => buckets[3]
+            };
+
+            target.Count++;
+            target.TotalAmount += p.OutstandingAmount;
+        }
+
+        return buckets;
+    }
+
+    public async Task<SupplierPayableReportResponse> GetReportSummaryAsync(DateOnly? asOfDate, CancellationToken cancellationToken)
+    {
+        var date = asOfDate ?? DateOnly.FromDateTime(DateTime.UtcNow);
+        var payables = await _dbContext.FinSupplierPayables.AsNoTracking()
+            .Where(x => !x.IsDelete)
+            .ToListAsync(cancellationToken);
+
+        var agingBuckets = await GetAgingSummaryAsync(date, cancellationToken);
+
+        var statusBreakdown = payables
+            .GroupBy(x => x.Status)
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        var supplierBreakdown = payables
+            .GroupBy(x => x.SupplierId.ToString())
+            .ToDictionary(g => g.Key, g => g.Sum(x => x.OutstandingAmount));
+
+        return new SupplierPayableReportResponse
+        {
+            AsOfDate = date,
+            TotalOriginalAmount = payables.Sum(x => x.OriginalAmount),
+            TotalPaidAmount = payables.Sum(x => x.PaidAmount),
+            TotalAdjustedAmount = payables.Sum(x => x.AdjustedAmount),
+            TotalOutstandingAmount = payables.Sum(x => x.OutstandingAmount),
+            TotalPayableCount = payables.Count,
+            StatusBreakdown = statusBreakdown,
+            SupplierBreakdown = supplierBreakdown,
+            AgingBuckets = agingBuckets
+        };
     }
 
     // ------------------------------------------------------------------------------------

@@ -17,7 +17,7 @@
 | Model | Claude Sonnet 5 |
 | Commit backend saat dikerjakan | Working tree pada branch `Yasmina`; commit dasar `09101d0581695e20345a9efa8af3fce7c38b1ae4` |
 | Tanggal | 21 September 2026 |
-| Status | 🟡 **SEBAGIAN — sesuai cakupan roadmap (entity+configuration), bukan kekurangan.** Lihat bagian 1 untuk narasi lengkap kenapa acceptance criteria pada roadmap tidak sepenuhnya terbukti pada slice ini |
+| Status | ✅ **SELESAI 23 September 2026.** Cakupan sempit task ini (entity+configuration) terpenuhi penuh — lihat bagian 1 untuk narasi kenapa acceptance criteria level-epic pada roadmap (retry, idempotency runtime) bukan tanggung jawab slice ini, dan sudah ditutup task lain (`BE-FIN-009`, lihat laporannya bagian "gap `BE-FIN-005` ditutup di sini"). `dotnet build` PASS dan migration diterapkan — dikonfirmasi pengguna 23 September 2026, lihat Pembaruan bagian 7 |
 
 ---
 
@@ -186,6 +186,7 @@ check constraint, dan index identitas — seluruhnya terpenuhi.
 
 | Hal | Isi |
 | --- | --- |
+| **Pembaruan 23 September 2026** | Pengguna mengonfirmasi `dotnet build` PASS dan migration sudah diterapkan ke database. Gap `FinanceBillingIntakeService` pada baris Peringatan di bawah sudah ditutup task `BE-FIN-009` (lihat laporannya). Status task dinaikkan menjadi ✅ SELESAI untuk cakupan sempit task ini |
 | Peringatan | **Gap roadmap yang perlu diklarifikasi pemilik blueprint sebelum `BE-FIN-009` dimulai**: tidak ada task yang secara eksplisit memiliki `FinanceBillingIntakeService` pada Cakupan-nya (lihat bagian 1 poin 3). Tanpa kejelasan ini, `BE-FIN-009` ("API intake dan piutang") tidak punya service untuk dipanggil controller-nya |
 | Masalah yang diketahui | `contracts/integration-contract.md` tidak memuat bentuk `FinBillingHandoffIntake` sama sekali walau roadmap merujuknya sebagai `FIN-INTEGRATION-1.0 §intake` — bentuk sebenarnya hanya ada di `02-backend-architecture.md`/`erd/data-dictionary.md`. Disarankan pemilik blueprint menambahkan section intake yang hilang itu ke `integration-contract.md` agar rujukan roadmap valid |
 | Risiko tersisa | Rendah untuk task ini sendiri (murni tambahan skema, aditif). Risiko build tetap bertumpuk sejak `BE-FIN-002` — lihat peringatan pada laporan `BE-FIN-004` |

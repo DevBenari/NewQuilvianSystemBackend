@@ -17,7 +17,7 @@
 | Model | Claude Sonnet 5 |
 | Commit backend saat dikerjakan | Working tree pada branch `Yasmina`; commit dasar `09101d0581695e20345a9efa8af3fce7c38b1ae4` |
 | Tanggal | 21 September 2026 |
-| Status | 🟡 **SEBAGIAN — file migration dibuat dan tervalidasi tooling, BELUM dijalankan.** Ketiga tabel (`MstBankAccount`, `MstCurrency`, `MstExchangeRate`) tercakup aditif; `MstBank` sengaja tidak ikut (lihat `BE-FIN-002`). Diverifikasi pengguna 21 September 2026 lewat `dotnet ef migrations list --configuration Release`: migration dikenali valid oleh EF Core tooling, terkoneksi ke database `QuilvianNewDevYasmina`, berstatus `(Pending)` di `__EFMigrationsHistory`. Migration **tidak dieksekusi** ke database mana pun pada task ini — itu otorisasi terpisah yang belum diberikan |
+| Status | ✅ **SELESAI 23 September 2026.** Ketiga tabel (`MstBankAccount`, `MstCurrency`, `MstExchangeRate`) tercakup aditif; `MstBank` sengaja tidak ikut (lihat `BE-FIN-002`). Diverifikasi pengguna 21 September 2026 lewat `dotnet ef migrations list --configuration Release`: migration dikenali valid, terkoneksi ke database `QuilvianNewDevYasmina`, berstatus `(Pending)`. Migration **sudah dieksekusi** (`dotnet ef database update`) — dikonfirmasi pengguna 23 September 2026, lihat Pembaruan bagian 7 |
 
 ---
 
@@ -149,6 +149,7 @@ kelalaian), dan cakupan "4 tabel" (berkurang jadi 3 secara sah karena keputusan 
 
 | Hal | Isi |
 | --- | --- |
+| **Pembaruan 23 September 2026** | Pengguna mengonfirmasi migration `AddFinanceMasterData` sudah dieksekusi (`dotnet ef database update`) ke database, `dotnet build` PASS, dan endpoint terkait sudah diuji langsung dengan hasil sesuai ekspektasi. Status task dinaikkan menjadi ✅ SELESAI |
 | Peringatan | **Pembaruan 21 September 2026**: `dotnet build` (Release) berhasil, dan `dotnet ef migrations list --configuration Release` yang dijalankan pengguna berhasil mengenali migration ini sebagai valid (`Pending`) terhadap database `QuilvianNewDevYasmina` sungguhan — risiko "salah ketik pada snapshot" yang disebut di bawah ini **sudah terbukti tidak terjadi**. Baris ini dipertahankan apa adanya sebagai riwayat kekhawatiran saat laporan ditulis, bukan dihapus |
 | Masalah yang diketahui | Tidak ada — sudah diverifikasi tooling nyata (lihat pembaruan di atas) |
 | Risiko tersisa | **Rendah** (diturunkan dari "Sedang-tinggi" semula). `dotnet build` dan `dotnet ef migrations list` keduanya sudah membuktikan migration dan snapshot valid. Risiko yang tersisa hanya pada eksekusi sungguhan (`dotnet ef database update`), yang tetap menunggu otorisasi terpisah |

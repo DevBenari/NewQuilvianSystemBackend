@@ -111,6 +111,82 @@ public sealed class BillingFinancialExceptionsController : ControllerBase
         }
     }
 
+    // QBE-AUTH-001 (perbaikan verifier otorisasi, 25 September 2026): ketiga action di bawah ini
+    // dipindahkan utuh dari BillingInvoicesController (rute "invoices/{id:guid}/...") - resource
+    // "BillingRefund" HARUS terdaftar tepat pada satu module (invarian verifier #3 pada
+    // tools/authorization-verifier), dan controller ini adalah pemilik kanoniknya. Rute absolut di
+    // bawah (diawali "/") mempertahankan URL persis sama seperti sebelum pemindahan, sehingga
+    // frontend (billing-financial-exception-slice.jsx) TIDAK perlu berubah. Isi method tidak
+    // diubah sama sekali dari sebelum pemindahan, hanya class dan lokasinya.
+    [HttpGet("/api/v1/health-services/billing-management/billing/invoices/{id:guid}/refundable-items")]
+    [AccessAction("ReadRefundableItems", "Read Billing Refundable Items", AccessType = AccessTypes.Read, SortOrder = 13)]
+    [AccessPermission("BillingRefund", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<List<BillingRefundableItemResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetRefundableItems(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _service.GetBillingRefundableItemsAsync(id, cancellationToken);
+            return Ok(ApiResponse<List<BillingRefundableItemResponse>>.Ok(result, "Daftar item billing refundable berhasil diambil."));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message));
+        }
+    }
+
+    [HttpGet("/api/v1/health-services/billing-management/billing/invoices/{id:guid}/remaining-deposit")]
+    [AccessAction("ReadRemainingDeposit", "Read Remaining Deposit", AccessType = AccessTypes.Read, SortOrder = 14)]
+    [AccessPermission("BillingRefund", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<RemainingDepositResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetRemainingDeposit(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _service.GetRemainingDepositAsync(id, cancellationToken);
+            return Ok(ApiResponse<RemainingDepositResponse>.Ok(result, "Sisa deposito pasien berhasil diambil."));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message));
+        }
+    }
+
+    [HttpPost("/api/v1/health-services/billing-management/billing/invoices/{id:guid}/refunds")]
+    [AccessAction("CreateRefundFromInvoice", "Create Refund from Payment History", AccessType = AccessTypes.Create, SortOrder = 15)]
+    [AccessPermission("BillingRefund", "Create")]
+    [ProducesResponseType(typeof(ApiResponse<RefundResponse>), StatusCodes.Status201Created)]
+    public async Task<IActionResult> CreateRefundFromInvoice(
+        Guid id,
+        [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
+        [FromBody] CreateRefundRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            request.InvoiceId = id;
+            var result = await _service.CreateAsync(request, idempotencyKey, CurrentUserId(), cancellationToken);
+            var statusCode = result.IsReplay ? StatusCodes.Status200OK : StatusCodes.Status201Created;
+            return StatusCode(statusCode, ApiResponse<RefundResponse>.Ok(result, "Pengajuan refund berhasil dibuat."));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message));
+        }
+        catch (BillingRefundForbiddenException exception)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse<object>.Fail(StatusCodes.Status403Forbidden, exception.Message));
+        }
+        catch (BillingRefundConflictException exception)
+        {
+            return Conflict(ApiResponse<object>.Fail(StatusCodes.Status409Conflict, exception.Message));
+        }
+        catch (BillingRefundValidationException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(StatusCodes.Status422UnprocessableEntity, exception.Message));
+        }
+    }
+
     [HttpPost("refunds")]
     [AccessAction("CreateRefund", "Create Billing Refund", AccessType = AccessTypes.Create, SortOrder = 1)]
     [AccessPermission("BillingRefund", "Create")]

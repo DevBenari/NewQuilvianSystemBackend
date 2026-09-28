@@ -1072,3 +1072,135 @@ berubah.** Seluruh bidang yang diterbitkan sudah tersedia di tabel yang ada — 
 meneruskan, tidak menyimpan yang baru.
 
 Trace `BKC-DEC-106`–`109`, `BKC-DES-036`–`041`. Tests `BIL-AT-135`–`BIL-AT-142`.
+
+---
+
+# Amendment 24 September 2026 — Integrasi Rawat Inap ↔ Billing Management (Pass B)
+
+Input: `BKC-DEC-112`–`119` (approved 24 September 2026), keputusan arsitektur `BKC-DES-042`–`050` pada [`../02-backend-architecture.md`](../02-backend-architecture.md), acceptance criteria `BKC-AC-080`–`087`.
+
+## Ringkasan Perubahan Skema
+
+| Kelompok | Jumlah |
+| --- | ---: |
+| Tabel baru | 1 (`BilInpatientClearanceHandoff`) |
+| Tabel yang berubah skemanya | 1 (`MstAdministrationFeePolicy`) |
+| Kolom baru pada tabel yang sudah ada | 3 (`Percentage`, `CapAmount`, `CalculationType`) |
+| Kolom yang dihapus | 0 |
+| Migration yang dibutuhkan | 1 (`AddInpatientBillingIntegrationAndClearanceHandoff`) |
+
+---
+
+## 1. Tabel Baru — `BilInpatientClearanceHandoff`
+
+Tabel ini menyimpan fakta resmi kelayakan pemulangan pasien rawat inap yang diterbitkan oleh modul Billing sebagai **single source of truth** (`BKC-DEC-115`, `BKC-DES-045`). Tabel ini bertindak sebagai aggregate root mandiri dan sengaja tidak memiliki Foreign Key fisik ke tabel modul Rawat Inap (`Inpatient`) demi menjaga kelonggaran arsitektur (*loose coupling*).
+
+Sepuluh kolom warisan `IdentityModel` tetap berlaku dan tidak diulang pada tabel di bawah ini.
+
+| Kolom | Tipe Data | Wajib | Kunci / Indeks | Sensitif | Penjelasan & Aturan Bisnis |
+| --- | --- | :---: | --- | :---: | --- |
+| `Id` | `uuid` | Ya | PK | Tidak | Kunci primer unik surat kelayakan |
+| `EncounterId` | `uuid` | Ya | UK (gabungan) | **Ya** | Kunjungan rawat inap yang dievaluasi kelayakannya |
+| `InvoiceId` | `uuid` | Ya | FK, Indeks | Tidak | Tagihan Billing yang menjadi dasar evaluasi kelayakan. FK ke `BilInvoice.Id` (DeleteBehavior.Restrict) |
+| `ClearanceStatus` | `varchar(20)` | Ya | Indeks | Tidak | Status kelayakan: `PENDING` (belum dinilai/diproses), `BLOCKED` (masih ada tunggakan), `CLEARED` (layak pulang/lunas), `REVOKED` (izin pulang dicabut akibat tagihan susulan) |
+| `FinancialOutcome` | `varchar(30)` | Tidak | — | Tidak | Hasil penyelesaian finansial: `FULLY_PAID` (lunas tunai/kartu), `INSURANCE_GUARANTEED` (dijamin penuh asuransi), `SETTLED_WITH_DEPOSIT` (lunas dipotong deposit), `DISCHARGED_WITH_AR` (pulang dengan piutang perusahaan/dispensasi). Bernilai `NULL` saat `REVOKED` |
+| `OutstandingBalance` | `numeric(18,2)` | Ya | — | **Ya** | Sisa tagihan pasien saat surat ini diterbitkan. Wajib `<= 0` untuk status `CLEARED` |
+| `TotalPatientResponsibility` | `numeric(18,2)` | Ya | — | **Ya** | Total nilai tagihan yang menjadi kewajiban pasien (ekses) |
+| `TotalPaidOrAllocated` | `numeric(18,2)` | Ya | — | **Ya** | Total dana yang sudah diterima kasir dan/atau dialokasikan dari deposit |
+| `ReasonCode` | `varchar(40)` | Ya | — | Tidak | Alasan penerbitan surat: `INVOICE_SETTLED`, `GUARANTOR_APPROVED`, `DISCHARGE_ORDER_INITIATED`, `LATE_CHARGE_POSTED`, `PAYMENT_REVERSED`, `CORRECTION_APPLIED` |
+| `RevocationReason` | `varchar(100)` | Tidak | — | Tidak | Keterangan pembatalan status izin pulang (wajib terisi jika `ClearanceStatus = 'REVOKED'`, misal: `"LATE_CHARGE_POSTED"`, `"PAYMENT_CANCELLED"`) |
+| `FinancialVersion` | `bigint` | Ya | UK (gabungan) | Tidak | Nomor versi finansial yang naik monoton per encounter. Konsumen menolak surat dengan versi lebih rendah dari yang sudah diterima |
+| `EffectiveAt` | `timestamptz` | Ya | — | Tidak | Waktu saat perubahan status kelayakan ini berlaku di sistem |
+| `CorrelationId` | `uuid` | Ya | — | Tidak | ID pelacakan rantai proses bisnis lintas modul |
+| `CausationId` | `uuid` | Ya | — | Tidak | ID peristiwa atau transaksi spesifik yang memicu penerbitan surat ini |
+| `Status` | `varchar(30)` | Ya | Indeks | Tidak | Status pengiriman fakta ke konsumen: `CREATED` (baru terbit) atau `ACKNOWLEDGED` (sudah dibaca dan diakui oleh Rawat Inap) |
+| `AcknowledgedAt` | `timestamptz` | Tidak | — | Tidak | Waktu saat modul Rawat Inap mengonfirmasi penerimaan surat |
+| `RowVersion` | `uuid` | Ya | — | Tidak | Token kendali konkurensi optimistik |
+
+---
+
+## 2. Tabel Diperbarui — `MstAdministrationFeePolicy`
+
+Penambahan kolom pada tabel master kebijakan administrasi untuk mengakomodasi penagihan biaya rawat inap berbasis persentase (7%) dengan pagu maksimum Rp6.000.000 (`BKC-DEC-113`, `BKC-DES-044`).
+
+| Kolom | Tipe Data | Wajib | Bawaan | Sensitif | Penjelasan & Aturan Bisnis |
+| --- | --- | :---: | --- | :---: | --- |
+| `Percentage` | `numeric(5,2)` | Tidak | `NULL` | Tidak | Persentase biaya administrasi (contoh `7.00` untuk 7,00%). Wajib diisi jika `CalculationType = 'PERCENTAGE_WITH_CAP'` |
+| `CapAmount` | `numeric(18,2)` | Tidak | `NULL` | Tidak | Batas maksimum (pagu) nominal biaya administrasi (contoh `6000000.00` untuk Rp6.000.000). Biaya admin yang terhitung tidak boleh melampaui angka ini |
+| `CalculationType` | `varchar(30)` | Ya | `'FLAT'` | Tidak | Metode perhitungan: `'FLAT'` (memakai kolom `Amount` lama) atau `'PERCENTAGE_WITH_CAP'` (memakai `Percentage` dan `CapAmount`) |
+
+Kolom-kolom lama (`Id`, `Code`, `Name`, `ServiceType`, `Amount`, `OncePerPatientLocalDay`, `ReplacementPriority`, `Coverable`, `Discountable`, `EffectiveFrom`, `EffectiveTo`, `IsActive`) tetap berlaku utuh tanpa perubahan tipe data maupun perilaku.
+
+---
+
+## 3. Tabel yang Dibaca Tetapi Tidak Berubah
+
+| Tabel | Status | Modul Pemilik | Kolom Kunci yang Dipakai | Peran dalam Integrasi Rawat Inap |
+| --- | --- | --- | --- | --- |
+| `BilInvoice` | Sudah ada | Billing Management | `Id`, `EncounterId`, `ServiceType`, `Status`, `PatientAmount`, `TotalAmount` | Menampung total akumulasi tagihan pasien rawat inap dan status lunas |
+| `BilInvoiceItem` | Sudah ada | Billing Management | `InvoiceId`, `SourceDomain`, `SourceDetailId`, `ItemCode`, `Quantity`, `UnitPrice`, `LineTotal`, `Status` | Menampung baris tagihan kamar (`ROOM_STAY`), tindakan medis, dan alihan IGD (`EMERGENCY`) |
+| `BilSettlement` | Sudah ada | Billing Management | `Id`, `InvoiceId`, `Amount`, `Status` | Memverifikasi apakah seluruh sisa tagihan pasien telah diselesaikan |
+| `BilDepositAccount` | Sudah ada | Billing Management | `EncounterId`, `AvailableBalance`, `Status` | Memverifikasi ketersediaan saldo deposit pasien untuk verifikasi tindakan besar dan pelunasan akhir |
+| `InpBedPlacement` | Sudah ada | Inpatient Management | `Id`, `AdmissionId`, `BedId`, `OccupiedFrom`, `OccupiedTo`, `Status` | Sumber data durasi menit hunian bed untuk kalkulasi biaya kamar dan alokasi transfer kamar pro-rata |
+| `MstRoomChargePolicy`| Sudah ada | Billing Master Data | `Id`, `CutoffTime`, `LateCheckoutThreshold` | Jam cutoff pergantian hari dan batas waktu keterlambatan keluar |
+
+---
+
+## 4. Skema DDL PostgreSQL Target
+
+```sql
+-- 1. Penambahan kolom pada tabel master kebijakan administrasi
+ALTER TABLE public."MstAdministrationFeePolicy"
+    ADD COLUMN IF NOT EXISTS "Percentage" numeric(5,2) NULL,
+    ADD COLUMN IF NOT EXISTS "CapAmount" numeric(18,2) NULL,
+    ADD COLUMN IF NOT EXISTS "CalculationType" varchar(30) NOT NULL DEFAULT 'FLAT';
+
+-- 2. Pembuatan tabel baru fakta kelayakan rawat inap
+CREATE TABLE public."BilInpatientClearanceHandoff" (
+    "Id"                         uuid          NOT NULL,
+    "EncounterId"                uuid          NOT NULL,
+    "InvoiceId"                  uuid          NOT NULL,
+    "ClearanceStatus"            varchar(20)   NOT NULL,
+    "FinancialOutcome"           varchar(30)   NULL,
+    "OutstandingBalance"         numeric(18,2) NOT NULL,
+    "TotalPatientResponsibility" numeric(18,2) NOT NULL,
+    "TotalPaidOrAllocated"       numeric(18,2) NOT NULL,
+    "ReasonCode"                 varchar(40)   NOT NULL,
+    "RevocationReason"           varchar(100)  NULL,
+    "FinancialVersion"           bigint        NOT NULL,
+    "EffectiveAt"                timestamptz   NOT NULL,
+    "CorrelationId"              uuid          NOT NULL,
+    "CausationId"                uuid          NOT NULL,
+    "Status"                     varchar(30)   NOT NULL DEFAULT 'CREATED',
+    "AcknowledgedAt"             timestamptz   NULL,
+    "RowVersion"                 uuid          NOT NULL,
+    -- Sepuluh kolom warisan IdentityModel
+    "CreateDateTime"             timestamptz   NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "CreateBy"                   varchar(100)  NOT NULL,
+    "UpdateDateTime"             timestamptz   NULL,
+    "UpdateBy"                   varchar(100)  NULL,
+    "DeleteDateTime"             timestamptz   NULL,
+    "DeleteBy"                   varchar(100)  NULL,
+    "CancelDateTime"             timestamptz   NULL,
+    "CancelBy"                   varchar(100)  NULL,
+    "IsCancel"                   boolean       NOT NULL DEFAULT false,
+    "IsDelete"                   boolean       NOT NULL DEFAULT false,
+    CONSTRAINT "PK_BilInpatientClearanceHandoff" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_BilInpatientClearanceHandoff_Invoice" FOREIGN KEY ("InvoiceId")
+        REFERENCES public."BilInvoice" ("Id") ON DELETE RESTRICT
+);
+
+-- 3. Indeks untuk performa dan penjagaan integritas
+CREATE UNIQUE INDEX "IX_BilInpatientClearanceHandoff_Encounter_Version"
+    ON public."BilInpatientClearanceHandoff" ("EncounterId", "FinancialVersion");
+
+CREATE INDEX "IX_BilInpatientClearanceHandoff_Status"
+    ON public."BilInpatientClearanceHandoff" ("Status");
+
+CREATE INDEX "IX_BilInpatientClearanceHandoff_Invoice"
+    ON public."BilInpatientClearanceHandoff" ("InvoiceId");
+
+CREATE INDEX "IX_BilInpatientClearanceHandoff_ClearanceStatus"
+    ON public."BilInpatientClearanceHandoff" ("ClearanceStatus");
+```
+

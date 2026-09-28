@@ -16,12 +16,14 @@ public sealed class ApplyDiscountRequest
     public decimal? RequestedAmount { get; set; }
     public Guid ExpectedRowVersion { get; set; }
     [MaxLength(500)] public string Reason { get; set; } = string.Empty;
+    [MaxLength(500)] public string? DoctorDiscountMemoFile { get; set; }
 }
 
 public sealed class ApproveDiscountRequest
 {
     public Guid ExpectedRowVersion { get; set; }
     [Required, MaxLength(500)] public string Reason { get; set; } = string.Empty;
+    [MaxLength(500)] public string? DoctorDiscountMemoFile { get; set; }
 }
 
 public sealed class CancelDiscountRequest
@@ -45,6 +47,7 @@ public sealed class DiscountResponse
     public Guid RequestedBy { get; set; }
     public Guid? ApprovedBy { get; set; }
     public string Reason { get; set; } = string.Empty;
+    public string? DoctorDiscountMemoFile { get; set; }
     public bool IsEffective { get; set; }
     public bool RequiresFinanceApproval { get; set; }
     public Guid InvoiceRowVersion { get; set; }
@@ -102,6 +105,7 @@ public sealed class DoctorDiscountApprovalResponse
     public decimal RequestedAmount { get; set; }
     public decimal Amount { get; set; }
     public string Reason { get; set; } = string.Empty;
+    public string? DoctorDiscountMemoFile { get; set; }
     public Guid RequestedBy { get; set; }
     public string? RequestedByName { get; set; }
     public DateTime CreateDateTime { get; set; }

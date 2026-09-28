@@ -1,4 +1,4 @@
-﻿using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
@@ -26,6 +26,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public bool IsUsingOxygen { get; set; }
         public ConsciousnessStatus ConsciousnessStatus { get; set; }
         public int? GcsTotal { get; set; }
+        public decimal? Weight { get; set; }
+        public decimal? Height { get; set; }
+        public decimal? BMI { get; set; }
         public int? EarlyWarningScore { get; set; }
         public EwsRiskLevel EwsRiskLevel { get; set; }
         public bool IsAbnormal { get; set; }
@@ -287,7 +290,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public decimal? Height { get; set; }
         public decimal? HeadCircumference { get; set; }
         [MaxLength(100)] public string? WeightMeasurementNote { get; set; }
-        public ConsciousnessStatus ConsciousnessStatus { get; set; } = ConsciousnessStatus.Unknown;
+        public ConsciousnessStatus? ConsciousnessStatus { get; set; } = Enums.ConsciousnessStatus.Unknown;
         public int? GcsEye { get; set; }
         public int? GcsVerbal { get; set; }
         public int? GcsMotor { get; set; }
@@ -332,7 +335,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public decimal? Height { get; set; }
         public decimal? HeadCircumference { get; set; }
         [MaxLength(100)] public string? WeightMeasurementNote { get; set; }
-        public ConsciousnessStatus ConsciousnessStatus { get; set; } = ConsciousnessStatus.Unknown;
+        public ConsciousnessStatus? ConsciousnessStatus { get; set; } = Enums.ConsciousnessStatus.Unknown;
         public int? GcsEye { get; set; }
         public int? GcsVerbal { get; set; }
         public int? GcsMotor { get; set; }

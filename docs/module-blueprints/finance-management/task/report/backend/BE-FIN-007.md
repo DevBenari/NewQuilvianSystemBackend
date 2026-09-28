@@ -17,7 +17,7 @@
 | Model | Claude Sonnet 5 |
 | Commit backend saat dikerjakan | Working tree pada branch `Yasmina`; commit dasar `09101d0581695e20345a9efa8af3fce7c38b1ae4` |
 | Tanggal | 21 September 2026 |
-| Status | 🟡 **SEBAGIAN — kedua file migration dibuat dan tervalidasi tooling, BELUM dijalankan.** Migration 1 mencakup penuh (1 tabel, sesuai rencana). Migration 2 mencakup **5 dari 7 tabel** — 2 tabel Collection (`FinReceipt`, `FinReceiptAllocation`) tidak dapat dibuat karena belum ada task manapun yang memiliki entity-nya (temuan baru, bagian 1). Diverifikasi pengguna 21 September 2026 lewat `dotnet ef migrations list --configuration Release`: kedua migration dikenali valid oleh EF Core tooling, terkoneksi ke database `QuilvianNewDevYasmina`, berstatus `(Pending)` |
+| Status | ✅ **SELESAI 23 September 2026 untuk cakupan task ini.** Migration 1 mencakup penuh (1 tabel, sesuai rencana). Migration 2 mencakup **5 dari 7 tabel** — 2 tabel Collection (`FinReceipt`, `FinReceiptAllocation`) sengaja tidak dibuat di sini (temuan bagian 1); keduanya belakangan dibangun sebagai bagian `BE-FIN-016` (masih `BLOCKED` menunggu Owner Billing, dilacak terpisah di sana). Migration task ini sudah dieksekusi ke database — dikonfirmasi pengguna 23 September 2026, lihat Pembaruan bagian 7 |
 
 ---
 
@@ -205,6 +205,7 @@ update` (eksekusi sungguhan) tetap belum dijalankan — itu wewenang terpisah ya
 
 | Hal | Isi |
 | --- | --- |
+| **Pembaruan 23 September 2026** | Pengguna mengonfirmasi migration task ini sudah dieksekusi ke database, `dotnet build` PASS. Gap `FinReceipt`/`FinReceiptAllocation` pada baris Peringatan di bawah sejak itu sudah punya task pemilik (`BE-FIN-016`, masih `BLOCKED` menunggu Owner Billing — dilacak di sana, bukan di sini). Status task ini dinaikkan menjadi ✅ SELESAI |
 | Peringatan | **Gap roadmap baru**: `FinReceipt`/`FinReceiptAllocation` belum punya task pemilik (bagian 1) — perlu keputusan pass desain sebelum migration Collection bisa ditulis. Ini melengkapi (bukan menggantikan) gap `FinanceBillingIntakeService`/`FinanceReceivableService` yang sudah dilaporkan `BE-FIN-005`/`006` |
 | Masalah yang diketahui | Tidak ada yang baru di luar yang sudah dicatat |
 | Risiko tersisa | **Rendah** (diturunkan dari "Sedang-tinggi" semula) — `dotnet build` dan `dotnet ef migrations list` sudah membuktikan kedua migration valid terhadap database sungguhan. Risiko yang tersisa hanya pada eksekusi sungguhan (`dotnet ef database update`) dan pada gap `FinReceipt`/`FinReceiptAllocation` (bagian 1) |

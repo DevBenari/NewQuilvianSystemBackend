@@ -17,7 +17,7 @@
 | Model | Gemini 3.8 Flash |
 | Commit backend saat dikerjakan | Working tree pada branch `Yasmina`; commit dasar `09101d0581695e20345a9efa8af3fce7c38b1ae4` |
 | Tanggal | 21 September 2026 |
-| Status | 🟡 **SEBAGIAN — entity, configuration, DbContext registration, dan migration selesai ditulis; migration BELUM dijalankan.** Seluruh cakupan roadmap (2 tabel + configuration + migration) terpenuhi. Menunggu `dotnet build` verifikasi pengguna dan otorisasi eksekusi migration terpisah |
+| Status | ✅ **SELESAI 23 September 2026.** Seluruh cakupan roadmap (2 tabel + configuration + migration) terpenuhi. `dotnet build` PASS dan migration sudah dieksekusi — dikonfirmasi pengguna 23 September 2026, lihat Pembaruan bagian 7 |
 
 ---
 
@@ -157,6 +157,7 @@ Sesuai `erd/cash-and-master-data.md` §1: `FinDailyCashSnapshot` sengaja tidak m
 
 | Hal | Isi |
 | --- | --- |
+| **Pembaruan 23 September 2026** | Pengguna mengonfirmasi `dotnet build` PASS dan migration `AddFinanceCashManagement` sudah dieksekusi ke database. Status task dinaikkan menjadi ✅ SELESAI |
 | Peringatan | Saat menjalankan `BE-FIN-014` nanti, saldo kas tersedia dihitung saat posting dari penerimaan tunai kasir (`BilCashierShift`) dikurangi setoran yang sudah `POSTED` dan selisih yang disetujui — bukan saat membuka layar |
 | Masalah yang diketahui | Tidak ada |
 | Risiko tersisa | **Rendah** — migration aditif murni |

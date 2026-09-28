@@ -2,10 +2,11 @@
 
 | Field | Nilai |
 |---|---|
-| Blueprint ID | `FIN-BP-001` revisi `1` |
+| Blueprint ID | `FIN-BP-001` revisi `1`; **AMENDMENT REVISI 3 diterapkan pada bagian 4 dan 6** |
 | Status | `draft` |
-| Kontrak eksternal | `ACC-XMOD-0.2` (milik Accounting), diratifikasi sisi Finance lewat `FIN-DEC-001` |
-| Backend SHA | `09101d05` |
+| Kontrak eksternal | **`ACC-XMOD-0.3`** (milik Accounting), naik dari `0.2` — diratifikasi sisi Finance lewat `FIN-DEC-001` dan `FIN-DEC-039` |
+| Backend SHA | `09101d05` untuk bagian 1-3 dan 5; **`d6cdfaf9`** untuk bagian 4 dan 6 (diverifikasi ulang 25 September 2026) |
+| Perubahan revisi 1.1 | Status `HELD_FOR_FINALIZATION` **dicabut** (bagian 4); tujuh kode kejadian baru masuk katalog tanpa perubahan skema (`FIN-DES-030`) |
 
 Kolom audit warisan `IdentityModel` tidak digambar.
 
@@ -16,7 +17,7 @@ erDiagram
     FinAccountingEventOutbox {
         uuid Id PK
         varchar EventNumber UK "lapis anti-dobel pertama"
-        varchar EventTypeCode "salah satu dari 17 kode FIN-DEC-002"
+        varchar EventTypeCode "salah satu dari 24 kode: 17 FIN-DEC-002 + 7 AMENDMENT REVISI 3"
         varchar SourceModule "selalu Finance"
         varchar SourceTransactionId "nomor transaksi Finance"
         varchar SourceVersion "dinaikkan saat koreksi"
@@ -68,7 +69,7 @@ erDiagram
 |---|---|---|---|
 | `FinAccountingEventOutbox` | Baru | Finance | Ditulis di transaksi yang sama dengan fakta bisnisnya (`FIN-DES-017`) |
 | `FinAccountingEventAttempt` | Baru | Finance | Append-only, jejak percobaan kirim |
-| `FinSubledgerPeriodBalance` | Baru | Finance | Nama field masih draf, menunggu `FIN-OQ-011` |
+| `FinSubledgerPeriodBalance` | Baru | Finance | ~~Nama field masih draf, menunggu `FIN-OQ-011`~~ — **`FIN-OQ-011` TERTUTUP 25 September 2026** (`FIN-DEC-035`). Kolom tabel Finance ini (`SubledgerBalance`, `AsOfDate`) **tetap seperti digambar**: ia menyimpan hasil hitungan Finance, bukan bentuk pesannya. Yang berubah hanya **bentuk pesan** ke Accounting — nilainya dikirim lewat `Amount` dan `AccountingDate` di amplop, ditambah objek `SubledgerBalance` berisi `AccountingPeriodCode` dan `ControlAccountCode`. Lihat `contracts/integration-contract.md` bagian 5.6 |
 | `AccEventType`, `AccPostingRule`, `AccChartOfAccount`, `AccAccountingPeriod`, `AccJournal` | Sudah ada | Accounting | Hanya dirujuk lewat kode; Finance **MUST NOT** menyimpan nomor akun |
 
 ## 3. Dua lapis pencegahan jurnal ganda
@@ -91,13 +92,13 @@ tetap berisi satu jurnal.
 `SourceVersion` yang **dinaikkan**, bukan dengan versi yang sama. Kalau versinya tetap, koreksi
 itu terbaca sebagai kiriman ulang dan tidak dijurnal.
 
-## 4. Mengapa ada status `HELD_FOR_FINALIZATION`
+## 4. Status `HELD_FOR_FINALIZATION` — DICABUT pada AMENDMENT REVISI 3
 
-Ini wujud teknis dari `FIN-DEC-004`.
+**Bagian ini sudah tidak berlaku sebagai aturan, dan dipertahankan sebagai jejak sejarah.**
+`FIN-DEC-004` yang menjadi dasarnya `superseded` oleh `FIN-DEC-030` pada 25 September 2026, atas
+permintaan Accounting (`ACC-DEC-091`).
 
-Billing memungkinkan pasien membayar **sebelum** tagihannya difinalisasi. Uangnya nyata dan
-harus segera tercatat di Finance — tetapi jurnal akuntansinya belum boleh terbit karena tagihan
-yang menjadi dasarnya belum final.
+**Yang dulu berlaku (revisi 1.0):**
 
 | Keadaan | `FinReceipt` | Baris outbox |
 |---|---|---|
@@ -105,9 +106,23 @@ yang menjadi dasarnya belum final.
 | Tagihan kemudian menjadi `FINAL` | Tidak berubah | Diubah menjadi `PENDING` — worker boleh mengirimnya |
 | Tender berhasil, tagihan sudah `FINAL` | Dibuat, status `RECEIVED` | Dibuat langsung `PENDING` |
 
-Worker pengiriman **MUST** melewati baris berstatus `HELD_FOR_FINALIZATION`. Pelepasannya
-dipicu peristiwa finalisasi tagihan, bukan oleh timer — kalau dilepas timer, jurnal bisa terbit
-untuk tagihan yang ternyata batal.
+**Yang berlaku sekarang (revisi 1.1).** Penahanan dihapus. Yang membedakan penerimaan pra-final
+dari penerimaan final bukan lagi *status pengiriman*, melainkan *jenis kejadiannya*:
+
+| Keadaan | `FinReceipt` | Baris outbox |
+|---|---|---|
+| Tender berhasil, tagihan masih `OPEN` | Dibuat, status `RECEIVED` | Dibuat `PENDING` dengan `EventTypeCode = PENERIMAAN-UANG-MUKA` |
+| Tagihan kemudian menjadi `FINAL` | Tidak berubah | Baris **baru** `PEMAKAIAN-UANG-MUKA-DEPOSIT` saat uang muka dipakai melunasi piutang |
+| Tender berhasil, tagihan sudah `FINAL` | Dibuat, status `RECEIVED` | Dibuat `PENDING` dengan `EventTypeCode = PENERIMAAN-KASIR` |
+
+**Alasan perubahannya, ringkas:** uangnya sudah ada di kasir sejak diterima, jadi menahan
+jurnalnya tidak menahan risikonya — ia hanya membuat kas buku besar berselisih dari kas fisik
+persis di titik tutup buku. Contoh berangkanya ada di `02-backend-architecture.md` bagian B.3
+dan `contracts/integration-contract.md` bagian 5.5.
+
+**Nilai `HELD_FOR_FINALIZATION` tetap ada di check constraint** supaya baris warisan tidak
+menjadi tidak valid, tetapi **tidak lagi dihasilkan kode baru**. Penanganan baris warisan ada di
+`02-backend-architecture.md` bagian B.6.
 
 ## 5. Kolom yang MUST NOT terisi
 
@@ -126,6 +141,9 @@ dari Finance ke Billing. Yang tidak terjadi adalah data pasien **tersimpan** di 
 
 `FIN-CAP-018` pada capability map mencatat bahwa endpoint penerima di Accounting **belum
 dibangun**, dan itu diverifikasi langsung ke source, bukan dikutip dari dokumen.
+**Diverifikasi ulang pada `d6cdfaf9` (25 September 2026): masih belum ada** — sepuluh controller
+Accounting seluruhnya route `api/v1/corporate/accounting/...` yang sudah ada sebelumnya, tidak
+satu pun penerima kejadian. Konsisten dengan gerbang `G1` yang diakui owner Accounting sendiri.
 
 Konsekuensinya untuk rencana kerja:
 

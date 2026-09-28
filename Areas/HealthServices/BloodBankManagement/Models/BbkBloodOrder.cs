@@ -3,6 +3,7 @@ using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
+using QuilvianSystemBackend.Enums;
 using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -106,6 +107,32 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Models
 
         [ForeignKey(nameof(RequestingDoctorId))]
         public MstDoctor? RequestingDoctor { get; set; }
+
+        /// <summary>
+        /// Golongan darah dan Rhesus <b>yang diminta</b> pada permintaan — keterangan
+        /// permintaan, <b>bukan</b> golongan darah sah pasien (<c>DEC-BD-055</c>).
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Wajib pada setiap order baru sejak <c>v5</c></b> (<c>VAL-BD-085</c>): delapan nilai
+        /// ABO/Rhesus atau <c>Unknown</c>. <c>NotDisclosed</c> ditolak. Nullable di sini
+        /// <b>hanya</b> untuk order lama yang lahir sebelum <c>v5</c>, dan <c>NULL</c> di situ
+        /// bermakna "golongan darah diminta tidak tercatat pada order lama" — bukan izin
+        /// mengosongkannya pada order baru.
+        /// </para>
+        /// <para>
+        /// <b>Dilarang diisi dari mana pun.</b> Tidak dari <c>MstPatient.BloodType</c>, tidak
+        /// dari hasil pemeriksaan, dan tidak lewat backfill migration. Order lama tetap jujur
+        /// tanpa nilai.
+        /// </para>
+        /// <para>
+        /// <b>Tidak pernah menjadi kebenaran klinis</b> (<c>INV-BD-011</c>). Alokasi, bukti
+        /// kecocokan, dan pemberian dinilai terhadap golongan darah hasil pemeriksaan
+        /// tervalidasi saja; nilai ini tidak dibaca gerbang klinis mana pun dan tidak disalin
+        /// ke baris order.
+        /// </para>
+        /// </remarks>
+        public BloodType? RequestedBloodGroup { get; set; }
 
         public BbkOrderSource OrderSource { get; set; } = BbkOrderSource.Electronic;
 

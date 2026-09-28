@@ -32,7 +32,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Models
     ///
     /// <para>
     /// <b>Tidak ada kolom penagihan.</b> Tabel ini tidak menyimpan status kirim, nomor tagihan,
-    /// maupun rujukan Billing — penyalurannya milik <c>BE-BD-013</c> (<c>AC-BD-102</c>).
+    /// maupun rujukan Billing. Sejak <c>BE-BD-013</c> fakta biayanya diserahkan lewat
+    /// <c>ClinicalMilestoneFactProducer</c>, dan status penyerahannya tinggal di ledger
+    /// <c>CliClinicalMilestoneFact</c>.
     /// </para>
     /// </remarks>
     [Table("BbkBloodBankProcedure", Schema = "public")]

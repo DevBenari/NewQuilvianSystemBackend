@@ -2,12 +2,13 @@
 
 | Field | Nilai |
 |---|---|
-| Contract version | `FIN-VAL-1.0` |
-| Status | `draft` |
+| Contract version | `FIN-VAL-1.1` |
+| `last_changed_in` | `FIN-VAL-1.1` — amendment 25 September 2026 (bagian 8) |
+| Status | `approved` dan `locked` — revisi 1.1 disetujui dan dikunci owner 25 September 2026 |
 | Owner | Yasmin (Product/Domain Owner Finance) |
-| `approved_by` / `approved_at` | — / — |
-| Input revision | `00-interview-decisions.md` revisi 1, `02-backend-architecture.md` revisi 1 |
-| Dampak kompatibilitas | Nol — seluruh aturan berlaku pada endpoint baru |
+| `approved_by` / `approved_at` | Yasmin / 2026-09-25 |
+| Input revision | `00-interview-decisions.md` — `FIN-DEC-001`..`044`; `02-backend-architecture.md` AMENDMENT REVISI 3 (`FIN-DES-029`..`036`) |
+| Dampak kompatibilitas | **Satu aturan dicabut** (`FIN-VAL-076`) dan **sembilan aturan ditambahkan** (`FIN-VAL-078`..`086`), seluruhnya pada bagian 8. Tidak ada aturan lama yang berubah artinya |
 
 Pesan ditulis dalam bahasa yang dipahami pengguna, bukan istilah teknis. Kolom "Kode" adalah
 kode HTTP yang dikembalikan.
@@ -116,9 +117,29 @@ hanya memilih dua dari tiga utang, totalnya Rp 21.500.000. Saat mengajukan, sist
 | `FIN-VAL-072` | Nomor kejadian unik | Penulisan kejadian | `EventNumber` sudah dipakai | "Kejadian dengan nomor ini sudah ada." | `409` |
 | `FIN-VAL-073` | Identitas sumber unik | Penulisan kejadian | Kombinasi modul, transaksi, jenis, dan versi sudah ada | "Kejadian untuk transaksi ini sudah pernah dibuat." | `409` |
 | `FIN-VAL-074` | Koreksi menaikkan versi sumber | Penulisan kejadian koreksi | `SourceVersion` sama dengan yang sudah terkirim | "Koreksi harus memakai versi baru, bukan versi yang sama." | `422` |
-| `FIN-VAL-075` | Jenis kejadian harus terdaftar | Penulisan kejadian | `EventTypeCode` di luar 17 kode yang disepakati | "Jenis kejadian ini belum terdaftar dalam kesepakatan dengan Accounting." | `422` |
-| `FIN-VAL-076` | Kejadian tertahan tidak dikirim | Worker pengiriman | `DeliveryStatus` = `HELD_FOR_FINALIZATION` | Tidak ada pesan — baris dilewati (`FIN-DEC-004`) | — |
+| `FIN-VAL-075` | Jenis kejadian harus terdaftar | Penulisan kejadian | `EventTypeCode` di luar **24** kode yang disepakati (diperbarui revisi 1.1) | "Jenis kejadian ini belum terdaftar dalam kesepakatan dengan Accounting." | `422` |
+| ~~`FIN-VAL-076`~~ | ~~Kejadian tertahan tidak dikirim~~ | ~~Worker pengiriman~~ | **DICABUT revisi 1.1** — `FIN-DEC-004` `superseded` oleh `FIN-DEC-030`, tidak ada lagi baris baru berstatus `HELD_FOR_FINALIZATION`. Untuk baris warisan, lihat `FIN-VAL-078` | — | — |
 | `FIN-VAL-077` | Balasan `422` tidak memicu kejadian baru | Penanganan balasan | Accounting membalas `422` | Tidak ada pesan — status menjadi `HELD` | — |
+| `FIN-VAL-078` | Baris warisan tertahan tidak dikirim apa adanya | Worker pengiriman | `DeliveryStatus` = `HELD_FOR_FINALIZATION` (hanya mungkin untuk baris sebelum `FIN-DEC-030`) | Tidak ada pesan bagi pengguna — baris dilewati dan **dilaporkan** sebagai butir yang perlu dibetulkan, bukan didiamkan (`02-backend-architecture.md` bagian B.6) | — |
+| `FIN-VAL-079` | Nilai kejadian harus lebih dari nol, **kecuali** dua jenis | Penulisan kejadian | `Amount` ≤ 0 untuk `EventTypeCode` selain `SELISIH-KAS-SHIFT` dan `SALDO-SUBLEDGER` | "Nominal kejadian harus lebih dari nol." | `400` |
+| `FIN-VAL-080` | Selisih kas boleh negatif, tetapi tidak boleh nol | Penulisan kejadian `SELISIH-KAS-SHIFT` | `Amount` = 0 | "Tidak ada selisih kas yang perlu dikirim ke Accounting." | `400` |
+| `FIN-VAL-081` | Pesan saldo wajib membawa rincian saldonya | Penulisan kejadian `SALDO-SUBLEDGER` | `SubledgerBalance` kosong, atau `AccountingPeriodCode`/`ControlAccountCode` kosong | "Pesan saldo subledger wajib menyebutkan periode dan akun kontrolnya." | `400` |
+| `FIN-VAL-082` | Periode saldo memakai bentuk tahun-bulan | Penulisan kejadian `SALDO-SUBLEDGER` | `AccountingPeriodCode` tidak berbentuk `YYYY-MM`, atau lebih dari 7 karakter | "Kode periode harus berbentuk tahun-bulan, contoh 2026-11." | `400` |
+| `FIN-VAL-083` | Versi pesan saldo wajib bilangan bulat positif yang naik | Penulisan kejadian `SALDO-SUBLEDGER` | `SourceVersion` bukan bilangan bulat positif, atau tidak lebih besar dari versi terakhir untuk periode dan akun kontrol yang sama | "Pernyataan ulang saldo harus memakai versi yang lebih baru." | `422` |
+| `FIN-VAL-084` | Rincian saldo hanya untuk pesan saldo | Penulisan kejadian | `SubledgerBalance` terisi padahal `EventTypeCode` bukan `SALDO-SUBLEDGER` | "Rincian saldo subledger hanya berlaku untuk pesan saldo." | `400` |
+| `FIN-VAL-085` | Kode pembalikan mengikuti penerimaan aslinya | Penulisan kejadian pembalikan penerimaan | Kode pembalikan tidak cocok dengan `EventTypeCode` penerimaan asli — `PEMBALIKAN-PENERIMAAN-KASIR` untuk penerimaan `PENERIMAAN-UANG-MUKA`, atau sebaliknya | "Pembalikan harus memakai jenis kejadian yang sepasang dengan penerimaan aslinya." | `422` |
+| `FIN-VAL-086` | Selisih kas hanya dikirim setelah disahkan | Penulisan kejadian `SELISIH-KAS-SHIFT` | Shift sumbernya belum berstatus `REVIEWED` | "Selisih kas baru dapat dikirim setelah disahkan penyelia." | `422` |
+
+**Contoh `FIN-VAL-079` dan `FIN-VAL-080`.** Shift kasir ditutup dengan kas fisik Rp 30.000
+**lebih kecil** dari catatan sistem. Nilai kejadiannya `-30000.00` — negatif, dan itu sah karena
+jenisnya `SELISIH-KAS-SHIFT`. Bila shift lain ditutup tanpa selisih sama sekali (`0`), tidak ada
+kejadian yang dikirim: buku besar tidak perlu jurnal untuk sesuatu yang nilainya nol.
+
+**Contoh `FIN-VAL-085`.** Pasien membayar Rp 5.000.000 saat tagihan masih `OPEN`, sehingga terbit
+`PENERIMAAN-UANG-MUKA`. Tiga hari kemudian tagihannya difinalisasi, lalu tendernya dibatalkan
+Billing. Pembalikannya **tetap** `PEMBALIKAN-PENERIMAAN-UANG-MUKA`, mengikuti penerimaan aslinya
+— bukan `PEMBALIKAN-PENERIMAAN-KASIR` walaupun tagihannya sekarang sudah `FINAL`. Memakai kode
+kasir akan mendebit akun pendapatan/piutang yang tidak pernah dikredit saat penerimaan.
 
 **Contoh `FIN-VAL-074`.** Piutang `AR-2026-09-00871` sudah dikirim sebagai kejadian versi `1`.
 Kemudian nilainya dikoreksi. Kalau sistem mengirim ulang dengan versi `1`, Accounting

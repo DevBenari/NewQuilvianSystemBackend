@@ -125,6 +125,11 @@ public sealed class BillingDiscountService
                     throw new BillingDiscountValidationException("Total diskon item melebihi nilai bruto item.");
             }
 
+            if (policy.DiscountType == DiscountPolicyValues.Doctor && string.IsNullOrWhiteSpace(request.DoctorDiscountMemoFile))
+            {
+                throw new BillingDiscountValidationException("Pengajuan diskon dokter wajib menyertakan memo diskon dokter.");
+            }
+
             var entity = new BilDiscountApplication
             {
                 InvoiceId = invoice.Id,
@@ -139,6 +144,7 @@ public sealed class BillingDiscountService
                 ApprovalStatus = status,
                 RequestedBy = actorUserId,
                 Reason = request.Reason.Trim(),
+                DoctorDiscountMemoFile = request.DoctorDiscountMemoFile?.Trim(),
                 CreateDateTime = DateTime.UtcNow,
                 CreateBy = actorUserId
             };
@@ -233,6 +239,16 @@ public sealed class BillingDiscountService
                 .FirstOrDefaultAsync(cancellationToken);
             if (!actorDoctorId.HasValue || actorDoctorId.Value != encounterDoctorId.Value)
                 throw new BillingDiscountForbiddenException("Diskon jasa dokter hanya dapat disetujui oleh dokter pemilik share.");
+
+            if (!string.IsNullOrWhiteSpace(request.DoctorDiscountMemoFile))
+            {
+                application.DoctorDiscountMemoFile = request.DoctorDiscountMemoFile.Trim();
+            }
+
+            if (string.IsNullOrWhiteSpace(application.DoctorDiscountMemoFile))
+            {
+                throw new BillingDiscountValidationException("Diskon dokter hanya dapat diverifikasi jika memo diskon dokter tersedia.");
+            }
 
             var beforeStatus = application.ApprovalStatus;
             application.ApprovalStatus = BillingDiscountApprovalStatuses.Approved;
@@ -433,6 +449,7 @@ public sealed class BillingDiscountService
                 x.application.RequestedAmount,
                 x.application.Amount,
                 x.application.Reason,
+                x.application.DoctorDiscountMemoFile,
                 x.application.RequestedBy,
                 x.application.CreateDateTime
             })
@@ -483,6 +500,7 @@ public sealed class BillingDiscountService
                     RequestedAmount = x.RequestedAmount,
                     Amount = x.Amount,
                     Reason = x.Reason,
+                    DoctorDiscountMemoFile = x.DoctorDiscountMemoFile,
                     RequestedBy = x.RequestedBy,
                     RequestedByName = requesterNames.TryGetValue(x.RequestedBy, out var name) ? name : null,
                     CreateDateTime = x.CreateDateTime,
@@ -524,6 +542,7 @@ public sealed class BillingDiscountService
         IsEffective = !entity.IsDelete && entity.ApprovalStatus == BillingDiscountApprovalStatuses.Approved,
         RequiresFinanceApproval = !entity.IsDelete && entity.ApprovalStatus == BillingDiscountApprovalStatuses.PendingFinance,
         InvoiceRowVersion = invoiceRowVersion,
+        DoctorDiscountMemoFile = entity.DoctorDiscountMemoFile,
         CreateDateTime = entity.CreateDateTime,
         UpdateDateTime = entity.UpdateDateTime,
         // Baru: satu-satunya sumber "authoritative totals" setelah promo/diskon berhasil - FE

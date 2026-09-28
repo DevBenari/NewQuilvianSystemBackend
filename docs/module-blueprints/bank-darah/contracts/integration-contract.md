@@ -79,30 +79,61 @@ Inpatient (`ASM-BD-005`), bukan aturan cadangan di Bank Darah.
 
 ---
 
-## 3. Batas Billing — **tertahan `DEC-BD-016`**
+## 3. Batas Billing — **disetujui `DEC-BD-016`** (17 September 2026)
+
+**Delta 17 September 2026.** `DEC-BD-016` disetujui `Sukmagp`, sehingga bagian ini berpindah dari "belum
+dapat dirancang" menjadi kontrak yang berlaku. Implementasinya `BE-BD-013`
+([laporan](../task/report/backend/BE-BD-013.md)). Nol batas integrasi lain berubah.
 
 | Batas | Produsen | Konsumen | Arah | Keadaan |
 | --- | --- | --- | --- | --- |
-| Fakta biaya tindakan Bank Darah | Bank Darah | BillingManagement | Keluar | **Belum dapat dirancang** |
+| Fakta biaya tindakan Bank Darah | Bank Darah | BillingManagement | Keluar | **Berlaku** — lewat `ClinicalMilestoneFactProducer` → `BillingFolioService.RecognizeMilestoneAsync`, sinkron sesudah perubahan klinis tersimpan |
 
-Yang sudah pasti dan dipatuhi:
+### 3.1 Bentuk fakta
 
-- Biaya berasal dari **tindakan** (`DEC-BD-021`), bukan dari kantong. Beberapa kantong dalam satu
-  tindakan tidak menghasilkan beberapa tagihan.
-- Bank Darah **tidak** menghitung tarif; Billing pemilik akibat finansial (`BD-CAP-015`).
-- **Koreksi pemberian tidak membalik biaya secara otomatis** (`DEC-BD-034`, `INV-BD-024`). Keputusan
-  peninjauan biaya milik Billing.
+| Unsur | Nilai | Sumber |
+| --- | --- | --- |
+| `SourceContext` | `BloodBank` — konstanta server `BillingSourceContract.BloodBankSourceContext` | Tidak pernah dari client |
+| `EffectType` | `BloodBankCharge` — konstanta server `BillingSourceContract.BloodBankChargeEffectType` | Tidak pernah dari client |
+| Pemicu | `BbkBloodBankProcedure` berpindah `Recorded` → `Completed` | `POST /blood-bank-procedures/{id}/complete` |
+| Satuan | **Tepat satu fakta per tindakan selesai**, berapa pun kantong yang diberikan | `DEC-BD-021`, `DEC-BD-016` |
+| `SourceAggregateId` | `BbkBloodBankProcedure.BloodOrderId` — order darah | Kolom tersimpan |
+| `SourceItemId` | `BbkBloodBankProcedure.Id` — tindakan | Kolom tersimpan |
+| `EncounterId` | `BbkBloodOrder.EncounterId` dari order tindakan | Kolom tersimpan |
+| `OccurredAt` | `OccurredAt` baris `BbkTransitionHistory` aksi `Complete` — waktu penyelesaian yang tersimpan | Bukan waktu kiriman |
+| `Quantity` / `Unit` | `1` / `Tindakan` — menyebut tindakan, **bukan** kantong | Tetap |
+| `TariffSnapshot` | `source`, `procedureRefId`, `procedureCode`, `procedureName`, `tariffId`, `patientClassId`, `serviceUnitId`, `unitPrice` | Kolom salinan `BE-BD-012`; `MstTariff` **tidak** dibaca ulang |
+| `RuleSnapshot` | `milestone = BloodBankProcedureCompleted`, `procedureNumber`, `chargeBasis = PerProcedure` | Kolom tersimpan |
+| `CorrelationId` | `BloodOrderId` | Kolom tersimpan |
+| `CausationId` | Tidak diisi — mengikuti pola producer Laboratorium dan Radiologi | — |
 
-Yang belum boleh dibekukan:
+Identitas fakta **tidak pernah** memakai `BloodUnitId`, `AllocationId`, id pemberian, maupun `PatientId`.
+Karena itu dua kantong dalam satu tindakan tidak dapat melahirkan dua charge.
 
-- Penambahan konteks sumber Bank Darah pada `BillingSourceContract` belum disetujui pemilik Billing
-  (`DEC-BD-016`). Sampai turun, kejadian "tindakan selesai" boleh dirancang sebagai kejadian domain,
-  tetapi **penyalurannya ke Billing MUST NOT dibekukan menjadi kontrak**.
-- Kasus tepi `ARCH-BD-GAP-09` (koreksi menghapus satu-satunya pemberian di bawah tindakan) tetap Open
-  Question milik Billing, menempel `DEC-BD-016`.
+### 3.2 Aturan yang mengikat
 
-Pola idempotency yang **akan** dipakai bila kontrak turun: snapshot tarif per baris + pengenalan
-kiriman ulang sebagai kiriman ulang (bukan tagihan baru), mengikuti `LabSpecimenService` (`BD-CAP-015`).
+- **Urutan.** Perpindahan status dan riwayat `Complete` disimpan lebih dulu; baru fakta diserahkan. Producer
+  tidak pernah dipanggil selagi transaksi klinis masih terbuka, dan tidak ada transaksi terdistribusi
+  Bank Darah–Billing.
+- **Kegagalan Billing tidak membatalkan klinis.** Hasil `RejectedByBilling`, `OutcomeUnknown`,
+  `ReconciliationRequired`, maupun galat tak terduga **tidak** mengembalikan tindakan ke `Recorded`.
+  Hasilnya dilaporkan pada `BillingHandoff` jawaban aksi.
+- **Status penyerahan tinggal di ledger `CliClinicalMilestoneFact`.** `BbkBloodBankProcedure` **tidak**
+  mendapat kolom penagihan apa pun.
+- **Idempotency.** Fakta disusun ulang seluruhnya dari data tersimpan, sehingga kiriman ulang identik.
+  Producer mengembalikan `Replayed` untuk fakta yang sudah diterima; Billing tidak membuat charge kedua.
+  Jalur kirim ulang: `POST /blood-bank-procedures/{id}/resend-cost-fact` (lihat `api-contract.md`).
+- Bank Darah **tidak** menghitung tagihan; nominal pada fakta adalah rujukan salinan tarif, akibat
+  finansialnya milik Billing (`BD-CAP-015`).
+- **Koreksi pemberian tidak membalik biaya secara otomatis** (`DEC-BD-034`, `INV-BD-024`). Jalur koreksi
+  tidak memanggil producer — tidak ada fakta pembatalan, refund, void, maupun penyesuaian. Kasus tepi
+  `ARCH-BD-GAP-09` tertutup di sisi Bank Darah; kebijakan peninjauan finansialnya milik Billing.
+
+**Riwayat — keadaan sampai 17 September 2026:** batas ini berstatus "tertahan `DEC-BD-016`, belum dapat
+dirancang". Yang sudah pasti saat itu: biaya dari tindakan (`DEC-BD-021`), Bank Darah tidak menghitung tarif,
+dan koreksi tidak membalik biaya. Penambahan konteks sumber pada `BillingSourceContract` belum disetujui,
+sehingga penyaluran MUST NOT dibekukan menjadi kontrak, dan pola idempotency yang direncanakan mengikuti
+`LabSpecimenService` — pola yang kini dipakai.
 
 ---
 

@@ -1,11 +1,11 @@
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
-using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
@@ -85,11 +85,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operation
             var jenisBayar = penjamin?.PaymentType ?? EncounterPaymentType.Cash;
             var tunai = jenisBayar == EncounterPaymentType.Cash;
 
-            var kelayakan = await _dbContext.Set<InpFinancialClearance>()
+            var kelayakan = await _dbContext.BilInpatientClearanceHandoffs
                 .AsNoTracking()
-                .Where(x => x.EpisodeId == episode.Id && x.IsActive && !x.IsDelete)
-                .OrderByDescending(x => x.SequenceNumber)
-                .Select(x => (InpFinancialClearanceStatus?)x.ClearanceStatus)
+                .Where(x => x.EncounterId == episode.EncounterId && !x.IsDelete)
+                .OrderByDescending(x => x.FinancialVersion)
+                .Select(x => x.ClearanceStatus)
                 .FirstOrDefaultAsync(cancellationToken);
 
             var folioId = await _dbContext.Set<BilFolio>()
@@ -170,12 +170,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operation
                     ? penjamin!.PaymentSourceNameSnapshot!
                     : tunai ? "Tunai / Umum" : jenisBayar.ToString(),
                 PaymentType = jenisBayar.ToString(),
-                FinancialClearanceStatus = kelayakan?.ToString(),
+                FinancialClearanceStatus = kelayakan,
                 FinancialClearanceStatusLabel = kelayakan switch
                 {
-                    InpFinancialClearanceStatus.Cleared => "Layak",
-                    InpFinancialClearanceStatus.Blocked => "Tertahan",
-                    InpFinancialClearanceStatus.Pending => "Menunggu penilaian",
+                    InpatientClearanceStatuses.Cleared => "Layak",
+                    InpatientClearanceStatuses.Blocked => "Tertahan",
+                    InpatientClearanceStatuses.Pending => "Menunggu penilaian",
+                    InpatientClearanceStatuses.Revoked => "Dibatalkan",
                     _ => "Belum dinilai"
                 },
                 HasBillingFolio = folioId.HasValue,

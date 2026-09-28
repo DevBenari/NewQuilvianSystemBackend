@@ -36,6 +36,8 @@ public sealed class BilPettyCashVoucherConfiguration : IEntityTypeConfiguration<
         entity.Property(x => x.DecidedAt).HasColumnType("timestamp with time zone");
         entity.Property(x => x.RejectionReason).HasMaxLength(500);
         entity.Property(x => x.DisbursedAt).HasColumnType("timestamp with time zone");
+        entity.Property(x => x.ConfirmedByName).HasMaxLength(150);
+        entity.Property(x => x.ConfirmedAt).HasColumnType("timestamp with time zone");
         entity.Property(x => x.ProofReferenceNumber).HasMaxLength(60);
         entity.Property(x => x.ProofSubmittedAt).HasColumnType("timestamp with time zone");
         entity.Property(x => x.CompletedAt).HasColumnType("timestamp with time zone");

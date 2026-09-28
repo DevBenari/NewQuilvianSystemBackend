@@ -526,3 +526,54 @@ Baris pertama adalah perilaku yang paling mudah dirancang keliru. Tagihan kembal
 bersisa, tetapi obat yang sudah dibayar tetap boleh diserahkan.
 
 Trace `BKC-DEC-106`–`109`, `PHA-DEC-064`, `PHA-DEC-068`, `PHA-DEC-068-A`. Tests `BIL-AT-135`–`BIL-AT-140`.
+
+---
+
+## Amendment 24 September 2026 — Siklus Hidup Kelayakan Pemulangan Rawat Inap (Inpatient Clearance)
+
+`last_changed_in: BIL-STATE-1.3` · status **draft** · input `BKC-DEC-112`–`119`, `BKC-AC-080`–`087`, `BKC-DES-042`–`050`.
+
+### Status Kelayakan Pemulangan Pasien Rawat Inap (`ClearanceStatus`)
+
+| Dari | Tindakan | Ke | Pelaku | Sebab / Syarat yang Sah | Bila Dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| Belum Ada / `PENDING` | Evaluasi awal saat admisi atau berjalan | `BLOCKED` | Sistem Billing | `PatientOutstanding > 0` (pasien masih memiliki kewajiban biaya berjalan) | Ditolak; status kelayakan tidak boleh `CLEARED` bila ada sisa tagihan |
+| `PENDING` / `BLOCKED` | Pelunasan tagihan di kasir atau alokasi deposit | `CLEARED` | Kasir / Sistem | `PatientOutstanding <= 0` DAN verifikasi deposit tindakan besar terpenuhi | Ditolak `422`; surat izin pulang tidak terbit |
+| `CLEARED` | Pemasukan tagihan susulan (*late charge*) | `REVOKED` | Sistem Billing (Auto-Reblock) | Intake tindakan medis, obat, atau kamar susulan terdaftar pada invoice rawat inap (`RevocationReason = "LATE_CHARGE_POSTED"`) | Pelanggaran integritas; `BIL-AT-144` menjaga agar izin pulang dicabut otomatis |
+| `CLEARED` | Pembatalan pembayaran (*reversal*) | `REVOKED` | Kasir / Finance | Tender yang melunasi tagihan dibatalkan (`PAYMENT_REVERSED`) | Status izin pulang dicabut otomatis, sinyal penahanan dikirim ke bangsal |
+| `REVOKED` | Pelunasan tagihan susulan di kasir | `CLEARED` | Kasir / Sistem | Sisa tagihan susulan lunas (`PatientOutstanding <= 0`), nomor `FinancialVersion` naik | Tagihan tetap tertahan di status `REVOKED` |
+
+### Status Surat Pengiriman Fakta (`Status`)
+
+| Dari Status | Tindakan | Ke Status | Siapa yang Boleh | Syarat | Bila Dilanggar |
+| --- | --- | --- | --- | --- | --- |
+| — | Penerbitan oleh Sistem Billing | `CREATED` | Sistem Billing | Peristiwa evaluasi atau re-evaluasi kelayakan selesai dihitung | Transaksi dibatalkan |
+| `CREATED` | Pengakuan penerimaan oleh Rawat Inap | `ACKNOWLEDGED` | Modul Rawat Inap (bangsal) | Surat berstatus `CREATED` dibaca dan dikonfirmasi penerimaannya | Ditolak `409`; pengakuan berulang tidak mengubah state |
+
+### Transisi yang Dilarang Keras (Illegal Transitions)
+
+| Transisi | Mengapa Dilarang | Yang Terjadi Bila Dicoba |
+| --- | --- | --- |
+| `BLOCKED` → `CLEARED` secara manual tanpa pelunasan kasir | Menghilangkan kontrol akuntabilitas kasir dan memicu kebocoran piutang rumah sakit | Tidak ada endpoint/antarmuka manual; ditolak `403/422` |
+| Mengubah baris `BilInpatientClearanceHandoff` yang sudah terbit (*in-place edit*) | Merusak audit trail dan rantai versi keuangan lintas modul | Ditolak; setiap perubahan status wajib menerbitkan baris baru dengan kenaikan `FinancialVersion` |
+| `CLEARED` tetap bertahan padahal ada tagihan susulan yang masuk | Memungkinkan pasien keluar rumah sakit tanpa membayar biaya tindakan susulan | Sistem Billing wajib menjalankan Auto-Reblock secara atomik dalam transaksi intake charge |
+
+Trace `BKC-DEC-115`, `BKC-DEC-116`, `BKC-AC-083`, `BKC-AC-084`, `BKC-DES-045`, `BKC-DES-046`. Tests `BIL-AT-143`–`BIL-AT-148`.
+
+
+
+# Amendment 24 September 2026 — Revisi UI Billing (Revisi 1.6, `BIL-STATE-1.4`)
+
+Status: `draft`. **Nol mesin status baru, nol transisi baru.** Amendment ini tidak menambah
+maupun mengubah state machine `BilInvoice`, `BilRefundCase`, `BilDiscountApplication`, atau
+lainnya. `RefundCategory` (`BILLING`/`DEPOSITO`) pada `BUI-DEC-012` adalah **atribut pemilihan
+sumber**, bukan status — kedua nilai memakai persis siklus status `BilRefundCase` yang sudah
+terdokumentasi (`Pending` → `Approved`/`Rejected` → ...) tanpa cabang baru, sesuai `BUI-DEC-012`
+yang eksplisit menyatakan alur persetujuan tidak berbeda antar sumber.
+
+Satu-satunya perubahan **nilai** (bukan status) pada amendment ini: `suggestedBillingStatus`
+yang dihitung `BillingPayerEditService` berubah aturan komputasinya (`BUI-DES-001`) — ini bukan
+transisi status pada aggregate manapun, melainkan nilai SARAN pada response GET, dan pasien
+masih bisa memilih payment method apa pun terlepas dari nilai saran ini.
+
+Trace `BUI-DEC-007`, `BUI-DEC-012`, `BUI-DEC-014`, `BUI-DES-001`.

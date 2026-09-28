@@ -756,4 +756,39 @@ public sealed class BillingInvoicesController : ControllerBase
         var value = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("user_id");
         return Guid.TryParse(value, out var userId) ? userId : Guid.Empty;
     }
+
+    // =========================================================================
+    // REVISI REQUIREMENT: CATATAN PENTING, REFUND DUA KATEGORI, DAN AKSI RIWAYAT PEMBAYARAN
+    // =========================================================================
+
+    [HttpGet("{id:guid}/important-notes")]
+    [HttpGet("{id:guid}/patient-journey-notes")]
+    [AccessAction("ReadNotes", "Read Patient Journey Notes", AccessType = AccessTypes.Read, SortOrder = 19)]
+    [AccessPermission("BillingInvoice", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<List<PatientJourneyNoteResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPatientJourneyNotes(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _service.GetPatientJourneyNotesAsync(id, cancellationToken);
+            return Ok(ApiResponse<List<PatientJourneyNoteResponse>>.Ok(result, "Catatan perjalanan pasien berhasil diambil."));
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, exception.Message));
+        }
+    }
+
+    // QBE-AUTH-001 (perbaikan verifier otorisasi, 25 September 2026): GetRefundableItems,
+    // GetRemainingDeposit, dan CreateRefund (route "{id:guid}/refunds") dipindahkan ke
+    // BillingFinancialExceptionsController (lihat method *FromInvoice di sana) - resource
+    // "BillingRefund" HARUS terdaftar tepat pada satu module (invarian verifier #3), dan
+    // BillingFinancialExceptionsController/HEALTH_SERVICE_BILLING_MANAGEMENT_BILLING_FINANCIAL_EXCEPTION
+    // adalah pemilik kanonik resource ini. Rute lama dipertahankan persis via HttpGet/HttpPost
+    // absolut di controller tujuan sehingga frontend TIDAK berubah. CreateAdjustment (route
+    // "{id:guid}/adjustments") dan CreateWriteOff (route "{id:guid}/write-offs") DIHAPUS, bukan
+    // dipindah - dikonfirmasi tidak dipanggil satu pun caller frontend (frontend memakai
+    // "/financial-exceptions/adjustments" dan ".../write-offs" milik
+    // BillingFinancialExceptionsController untuk kedua aksi itu); resource "BillingAdjustment" dan
+    // "BillingWriteOff" sudah bersih di satu module tanpa perlu dipindah apa pun.
 }

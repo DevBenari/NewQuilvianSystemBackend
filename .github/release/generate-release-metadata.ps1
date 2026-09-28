@@ -121,7 +121,8 @@ $changedMigrationFiles = git diff `
     Where-Object {
         $_ -like "Migrations/*.cs" `
         -and $_ -notlike "*.Designer.cs" `
-        -and $_ -notlike "*Snapshot.cs"
+        -and $_ -notlike "*Snapshot.cs" `
+        -and $_ -notlike "*Metadata.g.cs"
     }
 
 

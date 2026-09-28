@@ -10,7 +10,9 @@ public sealed class FinBillingHandoffIntakeConfiguration : IEntityTypeConfigurat
     {
         entity.ToTable("FinBillingHandoffIntake", "public", table =>
         {
-            table.HasCheckConstraint("CK_FinBillingHandoffIntake_HandoffType", "\"HandoffType\" IN ('AR','AP','COLLECTION','ADJUSTMENT')");
+            // Empat nilai terakhir ditambahkan BE-FIN-022 (FIN-DES-029) untuk mutasi deposit,
+            // kelebihan bayar, pengembalian, dan pengesahan selisih kas shift.
+            table.HasCheckConstraint("CK_FinBillingHandoffIntake_HandoffType", "\"HandoffType\" IN ('AR','AP','COLLECTION','ADJUSTMENT','DEPOSIT_MOVEMENT','REFUNDABLE_CREDIT','REFUND_CASE','CASH_VARIANCE_REVIEW')");
             table.HasCheckConstraint("CK_FinBillingHandoffIntake_Status", "\"Status\" IN ('NEW','CONSUMED','ACKNOWLEDGED','ERROR')");
         });
         entity.HasKey(x => x.Id);

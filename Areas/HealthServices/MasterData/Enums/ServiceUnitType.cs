@@ -12,6 +12,9 @@
         MedicalCheckup = 7,
         OperatingRoom = 8,
         DeliveryRoom = 9,
+
+        // HMD-BP-001, BE-HMD-02. Unit cuci darah; nilai baru di ujung sehingga nilai lama tidak bergeser.
+        Hemodialysis = 10,
         Other = 99
     }
 }

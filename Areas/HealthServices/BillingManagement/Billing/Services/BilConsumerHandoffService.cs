@@ -22,13 +22,16 @@ public sealed class BilConsumerHandoffService
     private const string LogCategory = "HealthServices.BillingManagement.Billing";
     private readonly ApplicationDbContext _dbContext;
     private readonly LoggerService _loggerService;
+    private readonly IInpatientClearanceService _inpatientClearanceService;
 
     public BilConsumerHandoffService(
         ApplicationDbContext dbContext,
-        LoggerService loggerService)
+        LoggerService loggerService,
+        IInpatientClearanceService? inpatientClearanceService = null)
     {
         _dbContext = dbContext;
         _loggerService = loggerService;
+        _inpatientClearanceService = inpatientClearanceService ?? new InpatientClearanceService(dbContext, loggerService);
     }
 
     /// <summary>
@@ -443,6 +446,9 @@ public sealed class BilConsumerHandoffService
         var includePrescription = string.IsNullOrEmpty(handoffType)
             || handoffType == BillingHandoffTypes.Prescription
             || handoffType == "ALL";
+        var includeInpatient = string.IsNullOrEmpty(handoffType)
+            || handoffType == BillingHandoffTypes.Inpatient
+            || handoffType == "ALL";
 
         var pendingItems = new List<PendingHandoffResponse>();
 
@@ -510,6 +516,39 @@ public sealed class BilConsumerHandoffService
                 .ToListAsync(cancellationToken);
 
             pendingItems.AddRange(prescriptionList);
+        }
+
+        if (includeInpatient)
+        {
+            var inpatientQuery = _dbContext.BilInpatientClearanceHandoffs
+                .AsNoTracking()
+                .Include(x => x.Invoice)
+                .Where(x => x.Status == BillingHandoffStatuses.Created && !x.IsDelete);
+
+            if (query.FromDate.HasValue)
+            {
+                inpatientQuery = inpatientQuery.Where(x => x.EffectiveAt >= query.FromDate.Value);
+            }
+
+            if (query.ToDate.HasValue)
+            {
+                inpatientQuery = inpatientQuery.Where(x => x.EffectiveAt <= query.ToDate.Value);
+            }
+
+            var inpatientList = await inpatientQuery
+                .Select(x => new PendingHandoffResponse(
+                    x.Id,
+                    BillingHandoffTypes.Inpatient,
+                    BillingHandoffTargetModules.Inpatient,
+                    x.EffectiveAt,
+                    x.EncounterId.ToString(),
+                    x.InvoiceId,
+                    x.Invoice != null ? x.Invoice.InvoiceNumber : null,
+                    x.Status,
+                    $"ClearanceStatus: {x.ClearanceStatus}, Outcome: {x.FinancialOutcome ?? "-"}, Sisa: {x.OutstandingBalance:N2}"))
+                .ToListAsync(cancellationToken);
+
+            pendingItems.AddRange(inpatientList);
         }
 
         var totalData = pendingItems.Count;
@@ -644,7 +683,110 @@ public sealed class BilConsumerHandoffService
             }
         }
 
+        // 3. Periksa tabel BilInpatientClearanceHandoff (BKC-DEC-115, BKC-DES-045, BIL-INT-016)
+        if (string.IsNullOrEmpty(requestedType) || requestedType == BillingHandoffTypes.Inpatient)
+        {
+            var inpatientHandoff = await _dbContext.BilInpatientClearanceHandoffs
+                .SingleOrDefaultAsync(x => x.Id == handoffId && !x.IsDelete, cancellationToken);
+
+            if (inpatientHandoff != null)
+            {
+                if (inpatientHandoff.Status == BillingHandoffStatuses.Acknowledged)
+                {
+                    throw new BillingConsumerHandoffConflictException(
+                        $"Surat clearance rawat inap dengan ID '{handoffId}' sudah pernah diakui sebelumnya pada {inpatientHandoff.AcknowledgedAt:yyyy-MM-dd HH:mm:ss} UTC. Pengakuan kedua tidak mengubah apa pun.");
+                }
+
+                inpatientHandoff.Status = BillingHandoffStatuses.Acknowledged;
+                inpatientHandoff.AcknowledgedAt = now;
+                inpatientHandoff.UpdateDateTime = now.UtcDateTime;
+                inpatientHandoff.UpdateBy = actorUserId;
+                inpatientHandoff.RowVersion = Guid.NewGuid();
+
+                await _loggerService.AuditAsync(
+                    LogCategory,
+                    "BillingConsumerHandoff.Acknowledged",
+                    "Surat clearance rawat inap ke Bangsal telah diakui oleh konsumen.",
+                    new
+                    {
+                        HandoffId = handoffId,
+                        HandoffType = BillingHandoffTypes.Inpatient,
+                        TargetModule = BillingHandoffTargetModules.Inpatient,
+                        ActorUserId = actorUserId,
+                        AcknowledgedAt = now
+                    });
+
+                await _dbContext.SaveChangesAsync(cancellationToken);
+
+                return new HandoffResponse(
+                    inpatientHandoff.Id,
+                    BillingHandoffTypes.Inpatient,
+                    BillingHandoffTargetModules.Inpatient,
+                    inpatientHandoff.Status,
+                    inpatientHandoff.AcknowledgedAt,
+                    "Surat clearance rawat inap berhasil diakui.");
+            }
+        }
+
         throw new KeyNotFoundException($"Surat handoff konsumen dengan ID '{handoffId}' tidak ditemukan.");
+    }
+
+    /// <summary>
+    /// BKC-DEC-115, BKC-DES-045, BIL-INT-016:
+    /// Menerbitkan surat kelayakan pemulangan rawat inap (BilInpatientClearanceHandoff) saat status pelunasan tagihan berubah.
+    /// Berjalan di dalam batas transaksi pemanggil dan memakai kunci penasihat.
+    /// </summary>
+    public async Task<BilInpatientClearanceHandoff?> PublishForInpatientClearanceAsync(
+        Guid invoiceId,
+        string reasonCode,
+        Guid actorUserId,
+        DateTimeOffset occurredAt,
+        Guid correlationId,
+        Guid causationId,
+        CancellationToken cancellationToken,
+        string? revocationReason = null)
+    {
+        var invoice = await _dbContext.BilInvoices.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Id == invoiceId && !x.IsDelete, cancellationToken);
+        if (invoice == null) return null;
+
+        if (!string.Equals(invoice.ServiceType, "INPATIENT", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        return await _inpatientClearanceService.EvaluateClearanceAsync(
+            invoice.EncounterId,
+            reasonCode,
+            actorUserId,
+            occurredAt,
+            correlationId,
+            causationId,
+            cancellationToken,
+            revocationReason);
+    }
+
+    /// <summary>
+    /// BKC-DEC-116, BKC-DES-046, BIL-VAL-123:
+    /// Menegakkan Auto-Reblock seketika saat tagihan susulan masuk pada invoice ranap yang sebelumnya berstatus CLEARED.
+    /// </summary>
+    public async Task<BilInpatientClearanceHandoff?> TriggerInpatientAutoReblockIfApplicableAsync(
+        Guid invoiceId,
+        string triggerReason,
+        Guid actorUserId,
+        DateTimeOffset occurredAt,
+        Guid correlationId,
+        Guid causationId,
+        CancellationToken cancellationToken)
+    {
+        return await _inpatientClearanceService.TriggerAutoReblockIfApplicableAsync(
+            invoiceId,
+            triggerReason,
+            actorUserId,
+            occurredAt,
+            correlationId,
+            causationId,
+            cancellationToken);
     }
 }
 

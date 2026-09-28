@@ -28,7 +28,7 @@ berisi data asli, dan SHOULD ditinjau kebutuhan maskingnya pada response DTO.
 | Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
 |---|---|:---:|---|---|---|---|:---:|---|
 | `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
-| `HandoffType` | `string(30)` | Ya | — | Index gabungan | — | — | Tidak | `AR`, `AP`, `COLLECTION`, `ADJUSTMENT` |
+| `HandoffType` | `string(30)` | Ya | — | Index gabungan | — | — | Tidak | `AR`, `AP`, `COLLECTION`, `ADJUSTMENT`, **`DEPOSIT_MOVEMENT`**, **`REFUNDABLE_CREDIT`**, **`REFUND_CASE`**, **`CASH_VARIANCE_REVIEW`** — empat nilai terakhir ditambahkan AMENDMENT REVISI 3 (`FIN-DES-029`), menuntut satu migration untuk mengubah check constraint |
 | `SourceHandoffId` | `Guid` | Ya | — | Index | Id baris handoff milik Billing | — | Tidak | Tidak dijadikan FK agar tidak mengunci tabel modul lain |
 | `SourceHandoffKey` | `Guid` | Ya | — | UK bersama `HandoffType` | — | — | Tidak | Kunci idempotensi milik Billing (`FIN-DES-009`) |
 | `Status` | `string(30)` | Ya | `NEW` | Index | — | — | Tidak | `NEW`, `CONSUMED`, `ACKNOWLEDGED`, `ERROR` |
@@ -395,7 +395,7 @@ Bentuknya sama persis dengan `FinReceivableAdjustment` kecuali tidak punya `Dire
 |---|---|:---:|---|---|---|---|:---:|---|
 | `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
 | `EventNumber` | `string(50)` | Ya | — | UK | — | — | Tidak | Lapis anti-dobel pertama |
-| `EventTypeCode` | `string(50)` | Ya | — | Index, UK gabungan | — | — | Tidak | Salah satu dari 17 kode `FIN-DEC-002` |
+| `EventTypeCode` | `string(50)` | Ya | — | Index, UK gabungan | — | — | Tidak | Salah satu dari **24** kode: 17 dari `FIN-DEC-002` ditambah tujuh dari AMENDMENT REVISI 3 (`FIN-DEC-031`, `034`, `035`, `040`..`044`). **Sengaja tanpa check constraint** (`FIN-DES-030`) supaya penyesuaian nama kode hasil ratifikasi Accounting tidak menuntut migration |
 | `SourceModule` | `string(30)` | Ya | `Finance` | UK gabungan | — | — | Tidak | Selalu `Finance` |
 | `SourceTransactionId` | `string(50)` | Ya | — | Index, UK gabungan | — | — | Tidak | Nomor transaksi Finance |
 | `SourceVersion` | `string(20)` | Ya | `1` | UK gabungan | — | — | Tidak | Dinaikkan saat koreksi, bukan dipakai ulang |
@@ -408,7 +408,7 @@ Bentuknya sama persis dengan `FinReceivableAdjustment` kecuali tidak punya `Dire
 | `CausationId` | `Guid` | Ya | — | — | — | — | Tidak | Tindakan penyebab |
 | `ComponentsJson` | `text?` | Tidak | — | — | — | — | Tidak | Daftar `ComponentCode` dan `Amount` |
 | `PayloadJson` | `text` | Ya | — | — | — | — | Tidak | Salinan persis pesan; MUST NOT memuat data pasien |
-| `DeliveryStatus` | `string(30)` | Ya | `PENDING` | Index | — | — | Tidak | `PENDING`, `HELD_FOR_FINALIZATION`, `SENT`, `ACKNOWLEDGED`, `HELD`, `FAILED` |
+| `DeliveryStatus` | `string(30)` | Ya | `PENDING` | Index | — | — | Tidak | `PENDING`, `HELD_FOR_FINALIZATION`, `SENT`, `ACKNOWLEDGED`, `HELD`, `FAILED`. **`HELD_FOR_FINALIZATION` tetap sah di database tetapi TIDAK lagi dihasilkan kode baru** sejak AMENDMENT REVISI 3 (`FIN-DEC-030`); nilainya dipertahankan agar baris warisan tidak menjadi tidak valid — **nol migration** |
 | `HoldReason` | `string(300)?` | Tidak | — | — | — | — | Tidak | Alasan tertahan |
 | `AttemptCount` | `int` | Ya | `0` | — | — | — | Tidak | Jumlah percobaan kirim |
 | `LastAttemptAt` | `DateTimeOffset?` | Tidak | — | — | — | — | Tidak | Waktu percobaan terakhir |
@@ -1052,8 +1052,11 @@ CREATE TABLE public."FinBillingHandoffIntake" (
     "RowVersion"       uuid          NOT NULL,
 
     CONSTRAINT "PK_FinBillingHandoffIntake" PRIMARY KEY ("Id"),
+    -- AMENDMENT REVISI 3 (FIN-DES-029): empat nilai terakhir ditambahkan 25 September 2026
     CONSTRAINT "CK_FinBillingHandoffIntake_HandoffType"
-        CHECK ("HandoffType" IN ('AR','AP','COLLECTION','ADJUSTMENT')),
+        CHECK ("HandoffType" IN ('AR','AP','COLLECTION','ADJUSTMENT',
+                                 'DEPOSIT_MOVEMENT','REFUNDABLE_CREDIT',
+                                 'REFUND_CASE','CASH_VARIANCE_REVIEW')),
     CONSTRAINT "CK_FinBillingHandoffIntake_Status"
         CHECK ("Status" IN ('NEW','CONSUMED','ACKNOWLEDGED','ERROR'))
 );

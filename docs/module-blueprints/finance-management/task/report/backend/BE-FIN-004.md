@@ -17,7 +17,7 @@
 | Model | Claude Sonnet 5 |
 | Commit backend saat dikerjakan | Working tree pada branch `Yasmina`; commit dasar `09101d0581695e20345a9efa8af3fce7c38b1ae4` |
 | Tanggal | 21 September 2026 |
-| Status | 🟡 **SEBAGIAN.** `BankAccountsController` dan `CurrenciesController` (dengan sub-resource kurs) selesai dan lengkap 9-baseline (minus `DELETE` pada Currency, disengaja). Grup endpoint `Bank` pada `FIN-API-1.0` **tidak** diimplementasikan Finance — lihat delta bagian 1. Belum dapat diuji end-to-end karena migration `BE-FIN-003` belum dijalankan |
+| Status | ✅ **SELESAI 23 September 2026.** `BankAccountsController` dan `CurrenciesController` (dengan sub-resource kurs) selesai dan lengkap 9-baseline (minus `DELETE` pada Currency, disengaja — bagian 1). Grup endpoint `Bank` pada `FIN-API-1.0` **sengaja tidak** diimplementasikan Finance — lihat delta bagian 1 (keputusan, bukan kekurangan). `dotnet build` PASS, migration `BE-FIN-003` diterapkan, endpoint diuji langsung dan sesuai ekspektasi — dikonfirmasi pengguna 23 September 2026, lihat Pembaruan bagian 7 |
 
 ---
 
@@ -40,7 +40,6 @@ tersedia)" padahal sudah diputuskan tidak akan pernah dibuat dalam bentuk itu.
 ---
 
 ## 2. Proses bisnis
-
 ### 2.1 Rekening bank (`BankAccountsController`)
 
 1. **Pelaku.** Staf Finance dengan hak akses `BankAccount`.
@@ -204,6 +203,7 @@ migration dijalankan dan build diverifikasi pengguna terlebih dahulu.
 
 | Hal | Isi |
 | --- | --- |
+| **Pembaruan 23 September 2026** | Pengguna mengonfirmasi: `dotnet build` PASS (menutup risiko build bertumpuk di baris Peringatan bawah), migration `BE-FIN-003` sudah diterapkan ke database, dan `UAT-01`/`UAT-02` sudah diuji langsung lewat endpoint sungguhan dengan hasil sesuai ekspektasi. Guard "sudah dipakai" pada `DeleteAsync` (Masalah yang diketahui #1) dan ratifikasi grup `Bank` (#2) tetap terbuka apa adanya — keduanya bukan blocker penyelesaian task ini. Status task dinaikkan menjadi ✅ SELESAI |
 | Peringatan | **Risiko build bertumpuk.** `BE-FIN-002` dan `BE-FIN-003` belum diverifikasi `dotnet build`; task ini menambah kode di atas keduanya tanpa jaminan compiler. Sangat disarankan pengguna menjalankan `dotnet build` sekarang mencakup ketiga task (`BE-FIN-002`, `003`, `004`) sekaligus sebelum melanjutkan ke task berikutnya |
 | Masalah yang diketahui | (1) `BankAccountService.DeleteAsync` belum punya guard "sudah dipakai" karena belum ada konsumen `BankAccountId` di source manapun saat ini — **wajib ditambahkan** saat `BE-FIN-013`+ (Cash Management) mulai mereferensikannya, mengikuti pola `PettyCashCategoryService.DeleteAsync`. (2) Grup endpoint `Bank` pada `FIN-API-1.0` perlu diratifikasi `SUPERSEDED` oleh pemilik blueprint (bagian 1) |
 | Risiko tersisa | Sedang — bergantung pada `dotnet build` yang belum dijalankan (lihat peringatan). Risiko bisnis rendah: validasi sudah menutup skenario duplikasi dan eksklusivitas yang diminta |

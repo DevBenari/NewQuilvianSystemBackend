@@ -17,7 +17,7 @@
 | Model | Claude Sonnet 5 |
 | Commit backend saat dikerjakan | Working tree pada branch `Yasmina`; commit dasar `a743388b57da91e6a0d7a42813604dc94563e38d` |
 | Tanggal | 22 September 2026 |
-| Status | 🟡 **SEBAGIAN — `FinanceReceiptService` dibangun (refactor dari `BE-FIN-016` + pembuktian FR-FIN-035); QBE `PASS`.** Alokasi manual maker-checker (FR-FIN-040..046) **sengaja tidak dibangun** — itu cakupan `BE-FIN-018` yang terpisah (bagian 1.3) |
+| Status | ✅ **SELESAI 23 September 2026.** `FinanceReceiptService` dibangun (refactor dari `BE-FIN-016` + pembuktian FR-FIN-035). Alokasi manual maker-checker (FR-FIN-040..046) **sengaja tidak dibangun** di sini — itu cakupan `BE-FIN-018` yang terpisah (bagian 1.3), diselesaikan task itu sendiri. `CreateReversalReceiptAsync` di file ini (dipindahkan dari `BE-FIN-016`) diperbaiki 23 September 2026 — lihat Pembaruan bagian 7 dan [laporan BE-FIN-016](BE-FIN-016.md) bagian 1.5 untuk riwayat konflik constraint-nya |
 
 ---
 
@@ -222,10 +222,12 @@ Final result: PASS
 
 | Hal | Isi |
 | --- | --- |
-| Peringatan | `BE-FIN-018` (alokasi manual maker-checker) **MUST** memutuskan bagaimana `FinanceReceiptService`/`FinanceReceiptsController` masa depan berinteraksi dengan `FinanceReceivableService` tanpa melanggar invariant satu-penulis `OutstandingAmount` (bagian 1.3) — belum ada keputusan integrasi lintas service untuk ini |
-| Masalah yang diketahui | Sama seperti `BE-FIN-016`: jalur `REVERSED` tetap `BLOCKED` menunggu keputusan skema (lihat `BE-FIN-016` bagian 1.5) |
+| **Pembaruan 23 September 2026 (2)** | `CreateReversalReceiptAsync` di file ini (`FinanceReceiptService.cs`) diimplementasikan penuh — baris pembalik `FinReceipt` (`SourceTenderId` kosong, `ReversalOfReceiptId` menunjuk baris asli, `Status = REVERSED`), kejadian `PEMBALIKAN-PENERIMAAN-KASIR` distage. Menutup blocker yang dicatat baris "Masalah yang diketahui" di bawah — lihat [laporan BE-FIN-016](BE-FIN-016.md) bagian 1.5 untuk riwayat konflik constraint dan perbaikannya |
+| **Pembaruan 23 September 2026 (1)** | Peringatan di bawah soal integrasi `FinanceReceiptService`↔`FinanceReceivableService` sudah dijawab `BE-FIN-018`: `ApplyAllocationAsync`/`ReverseAllocationAsync` pada `FinanceReceivableService` menjadi satu-satunya jalur yang disentuh `FinanceReceiptService.AllocateAsync`/`ReverseAllocationAsync`, invariant satu-penulis `OutstandingAmount` tidak dilanggar — lihat [laporan BE-FIN-018](BE-FIN-018.md) bagian 0 |
+| Peringatan (riwayat, sudah dijawab — lihat Pembaruan di atas) | `BE-FIN-018` (alokasi manual maker-checker) **MUST** memutuskan bagaimana `FinanceReceiptService`/`FinanceReceiptsController` masa depan berinteraksi dengan `FinanceReceivableService` tanpa melanggar invariant satu-penulis `OutstandingAmount` (bagian 1.3) — belum ada keputusan integrasi lintas service untuk ini |
+| Masalah yang diketahui (riwayat, sudah ditutup) | Sama seperti `BE-FIN-016`: jalur `REVERSED` tetap `BLOCKED` menunggu keputusan skema (lihat `BE-FIN-016` bagian 1.5) |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` pada task ini |
-| Status Git | 1 berkas baru (`FinanceReceiptService.cs`), 2 berkas disunting (`FinanceBillingIntakeService.cs`, `BillingManagementServiceCollectionExtensions.cs`), 1 laporan diberi addendum (`BE-FIN-016.md`) |
-| Langkah berikutnya | (1) `dotnet build` oleh pengguna. (2) Otorisasi eksekusi migration `AddFinanceCollection` dan `AddBillCollectionPrescriptionHandoff` (sama seperti `BE-FIN-016`). (3) Keputusan pemilik repository atas konflik constraint reversal (`BE-FIN-016` bagian 1.5). (4) `BE-FIN-018` dapat mulai — dependency-nya (`BE-FIN-017`) sudah source-complete, tetapi masih menunggu keputusan integrasi lintas service yang dicatat di atas |
+| Status Git | 1 berkas baru (`FinanceReceiptService.cs`), 2 berkas disunting (`FinanceBillingIntakeService.cs`, `BillingManagementServiceCollectionExtensions.cs`) pada task asli 22 September; `FinanceReceiptService.cs` berubah lagi 23 September (implementasi `CreateReversalReceiptAsync` dan `GetByIdAsync`) |
+| Langkah berikutnya | `BE-FIN-018` dan `BE-FIN-019` selesai (controller dibangun 23 September 2026). `BE-FIN-020` masih menunggu controller (service sudah ada). Migration `20260923060000_FixFinReceiptTenderRequiredForReversal` menunggu otorisasi eksekusi, sama seperti migration Finance lain yang belum dijalankan |
 

@@ -91,14 +91,32 @@ public sealed class PettyCashBudgetResponse
     public string PoolCode { get; set; } = string.Empty;
     public string PoolName { get; set; } = string.Empty;
 
-    /// <summary>PC-DES-017, BE-BKC-054.</summary>
-    public DateOnly PeriodStart { get; set; }
+    /// <summary>Saldo saat ini pada kolam kas kecil.</summary>
+    public decimal CurrentBalance { get; set; }
+
+    /// <summary>Pemakaian Saldo (Terminologi Baru, menggantikan Pemakaian Periode / TotalDisbursedAmount).</summary>
+    public decimal PemakaianSaldo { get; set; }
+
+    /// <summary>Pemakaian Saldo (English naming: DisbursedBalance).</summary>
+    public decimal DisbursedBalance { get; set; }
+
+    /// <summary>Pemakaian Saldo (properti lama untuk kompatibilitas).</summary>
+    public decimal TotalDisbursedAmount { get; set; }
+
+    /// <summary>Sisa Saldo (Terminologi Baru, menggantikan Sisa Anggaran / RemainingBudgetAmount).
+    /// Sisa Saldo = Saldo Saat Ini - Pemakaian Saldo (atau CurrentBalance net).</summary>
+    public decimal SisaSaldo { get; set; }
+
+    /// <summary>Sisa Saldo (English naming: RemainingBalance).</summary>
+    public decimal RemainingBalance { get; set; }
+
+    /// <summary>Sisa Saldo (properti lama untuk kompatibilitas).</summary>
+    public decimal RemainingBudgetAmount { get; set; }
+
+    /// <summary>PC-DES-017, BE-BKC-054 (opsional/legacy).</summary>
+    public DateOnly? PeriodStart { get; set; }
     public DateOnly? PeriodEnd { get; set; }
     public decimal BudgetAmount { get; set; }
-
-    /// <summary>BudgetAmount − TotalDisbursedAmount periode ini. Angka "Sisa Anggaran"
-    /// pada kartu ringkasan (PC-DES-017, BE-BKC-054).</summary>
-    public decimal RemainingBudgetAmount { get; set; }
 
     /// <summary>DRAFT, ACTIVE, atau CLOSED (PC-DES-017). Warisan ACTIVE/INACTIVE dari
     /// sebelum revisi 15 September 2026 dipetakan migration menjadi nilai-nilai ini.</summary>
@@ -108,37 +126,49 @@ public sealed class PettyCashBudgetResponse
     /// ditutup (PC-DES-018, BE-BKC-054).</summary>
     public Guid? SupersededByBudgetId { get; set; }
 
-    public decimal CurrentBalance { get; set; }
-
-    /// <summary>Warisan pra-revisi 15 September 2026 (PC-DES-016). Tetap diisi karena
-    /// PettyCashVoucherService masih membaca AvailableAmount pada ApproveAsync; dihapus penuh
-    /// saat BE-BKC-055 menyentuh service tersebut.</summary>
+    /// <summary>Warisan pra-revisi 15 September 2026 (PC-DES-016).</summary>
     public decimal ReservedAmount { get; set; }
 
     /// <summary>Warisan, lihat catatan pada <see cref="ReservedAmount"/>.</summary>
     public decimal AvailableAmount { get; set; }
 
     public decimal TotalTopUpAmount { get; set; }
-    public decimal TotalDisbursedAmount { get; set; }
     public DateTimeOffset? LastMovementAt { get; set; }
     public Guid RowVersion { get; set; }
 }
 
 /// <summary>BE-BKC-058, PC-DES-025. Satu panggilan untuk seluruh kartu ringkasan halaman
-/// gabungan Petty Cash — layar MUST NOT menjumlahkan angka-angka ini sendiri dari daftar
-/// voucher (api-contract.md).</summary>
+/// gabungan Petty Cash — Saldo Saat Ini, Pemakaian Saldo, Sisa Saldo.</summary>
 public sealed class PettyCashOverviewResponse
 {
     public PettyCashBudgetResponse ActiveBudget { get; set; } = new();
+
+    /// <summary>Saldo Saat Ini.</summary>
+    public decimal CurrentBalance { get; set; }
+
+    /// <summary>Pemakaian Saldo (Terminologi Baru: PemakaianSaldo).</summary>
+    public decimal PemakaianSaldo { get; set; }
+
+    /// <summary>Pemakaian Saldo (English naming: DisbursedBalance).</summary>
+    public decimal DisbursedBalance { get; set; }
+
+    /// <summary>Pemakaian Saldo (properti lama untuk kompatibilitas frontend).</summary>
+    public decimal TotalDisbursedThisPeriod { get; set; }
+
+    /// <summary>Sisa Saldo (Terminologi Baru: SisaSaldo).</summary>
+    public decimal SisaSaldo { get; set; }
+
+    /// <summary>Sisa Saldo (English naming: RemainingBalance).</summary>
+    public decimal RemainingBalance { get; set; }
+
+    /// <summary>Sisa Saldo (properti lama untuk kompatibilitas frontend).</summary>
+    public decimal RemainingBudgetAmount { get; set; }
 
     /// <summary>Jumlah voucher berstatus CASH_RECEIVED (menunggu bukti).</summary>
     public int PendingEvidenceCount { get; set; }
 
     /// <summary>Jumlah voucher berstatus REQUESTED (menunggu pencairan).</summary>
     public int PendingDisbursementCount { get; set; }
-
-    /// <summary>Total pemakaian periode aktif — sama dengan ActiveBudget.TotalDisbursedAmount.</summary>
-    public decimal TotalDisbursedThisPeriod { get; set; }
 }
 
 public sealed class PettyCashBudgetMovementResponse

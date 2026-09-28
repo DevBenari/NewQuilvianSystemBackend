@@ -2568,3 +2568,238 @@ pada 24 Agustus 2026.
 Keduanya **bukan** `OPEN DECISION` pada tingkat epic. `EPIC BKC-23` dapat dirancang dan
 dikerjakan penuh tanpa menunggu jawaban keduanya, sehingga `MVP-26` siap diteruskan ke
 `plan-module-delivery` begitu desain ini disetujui.
+
+---
+
+# Amendment 24 September 2026 — Integrasi Rawat Inap ↔ Billing Management (Pass B)
+
+> Status: **draft**. Masukan: `BKC-DEC-112`–`119`, `BKC-AC-080`–`087`, `BKC-DES-042`–`050`.
+> Backend baseline SHA: `dcb9c88e`, Frontend baseline SHA: `fdebb9059`.
+
+## 1. Masalah Produk & Latar Belakang
+
+Modul Rawat Inap (Pass A, `RWI-DEC-156`–`162`) telah menyetujui kontrak operasional bangsal, penempatan tempat tidur (*bed placement*), dan izin pemulangan medis. Namun, pada modul Billing Management (Pass B), ditemukan celah (*gap*) arsitektur penting:
+1. Hubungan penentuan kelayakan pemulangan finansial (*Financial Clearance*) sebelumnya terbalik (*inverted*), di mana Billing membaca status dari Rawat Inap padahal Billing adalah pemilik transaksi kasir dan mutasi pelunasan.
+2. Tidak adanya mesin hitung sewa kamar yang mendukung jam masuk malam hari secara bertingkat dan perhitungan pro-rata menit untuk pasien yang berpindah kamar multipel dalam 24 jam.
+3. Biaya administrasi rawat inap masih berupa nominal tetap (*flat*) dan belum mendukung aturan bisnis 7% dengan pagu Rp6.000.000.
+4. Belum adanya mekanisme otomatis untuk membatalkan izin pulang (*Auto-Reblock*) bila terjadi pencatatan tagihan susulan (*late charges*) pasca-pelunasan.
+5. Perlakuan biaya administrasi rawat jalan yang belum otomatis digugurkan/dikreditkan saat pasien dialihkan ke rawat inap.
+
+## 2. Batas MVP
+
+**Titik Mulai:**
+1. Pasien rawat inap terdaftar dan menempati tempat tidur (event `ROOM_STAY` aktif di Rawat Inap).
+2. Pasien memiliki invoice Billing aktif bertipe `RANAP`.
+
+**Titik Akhir:**
+1. Rincian sewa kamar terhitung otomatis sesuai jam masuk dan pro-rata transfer menit riil.
+2. Biaya administrasi 7% (cap Rp6.000.000) terhitung pada invoice ranap; biaya admin rajal digugurkan/dikreditkan bila ada alihan.
+3. Kasir memproses pelunasan dan menerbitkan surat fakta kelayakan `BilInpatientClearanceHandoff` dengan status `CLEARED`.
+4. Jika ada tagihan susulan, sistem secara otomatis mengubah status menjadi `REVOKED` (*Auto-Reblock*) dan memblokir pemulangan pasien di bangsal ranap.
+5. Kasir dapat memantau antrean surat handoff rawat inap pada tab khusus layar Consumer Handoffs.
+
+## 3. Pemilihan Kemampuan MVP
+
+| Kemampuan | ID Kemampuan Asal | Keputusan MVP |
+| --- | --- | --- |
+| Registrasi domain `ROOM_STAY` ke charge intake adapter | `CAP-BIL-01` | **Wajib (`MUST HAVE`)**; tanpa ini event penempatan kamar ditolak sistem Billing |
+| Perhitungan sewa kamar jam masuk bertingkat & late checkout | `CAP-BIL-02` | **Wajib (`MUST HAVE`)**; memenuhi `BKC-DEC-112` untuk mencegah sengketa jam masuk malam |
+| Perhitungan pro-rata sewa kamar transfer multipel menit riil | `CAP-BIL-03` | **Wajib (`MUST HAVE`)**; memenuhi `BKC-DEC-112` & `BKC-DES-050` |
+| Biaya administrasi ranap 7% dengan pagu Rp6.000.000 | `CAP-BIL-04` | **Wajib (`MUST HAVE`)**; memenuhi `BKC-DEC-113` & `BKC-DES-044` |
+| Verifikasi deposit tindakan besar 100% dari Patient Responsibility | `CAP-BIL-05` | **Wajib (`MUST HAVE`)**; memenuhi `BKC-DEC-114` |
+| Billing single source of truth kelayakan pemulangan ranap | `CAP-BIL-06` | **Wajib (`MUST HAVE`)**; memperbaiki ketergantungan terbalik (`BKC-DEC-115`) |
+| Auto-Reblock pencabutan izin pulang saat tagihan susulan | `CAP-BIL-07` | **Wajib (`MUST HAVE`)**; mencegah kebocoran pendapatan RS (`BKC-DEC-116`) |
+| Konsolidasi non-destruktif rincian tagihan alihan IGD ke Ranap | `CAP-BIL-08` | **Wajib (`MUST HAVE`)**; memenuhi `BKC-DEC-117` |
+| Pembatalan dan pengalihan kredit biaya admin rajal ke ranap | `CAP-BIL-09` | **Wajib (`MUST HAVE`)**; memenuhi `BKC-DEC-119` & `BKC-DES-049` |
+| Tab Rawat Inap pada layar Consumer Handoffs Kasir | `CAP-BIL-10` | **Wajib (`MUST HAVE`)**; antarmuka pemeriksaan surat menggantung bagi kasir |
+
+## 4. Epic dan Functional Requirement
+
+### `EPIC BKC-24` — Integrasi Rawat Inap ↔ Billing Management & Inpatient Financial Clearance
+
+| ID FR | Deskripsi Kebutuhan | Disposisi |
+| --- | --- | --- |
+| `FR-BKC-240` | Mendaftarkan source domain `INPATIENT`/`ROOM_STAY` pada `ContractBillingChargeSourceAdapter` dengan status billable: `OCCUPIED`, `TRANSFERRED`, `CORRECTED`, `RELEASED` | `EXTEND` |
+| `FR-BKC-241` | Menghitung sewa kamar hari pertama berdasarkan jam masuk bertingkat (`<18:00`: 100%, `18:00-<22:00`: 50%, `22:00-<00:00`: 20%, `>=00:00`: hari berikutnya) dan denda keterlambatan keluar (`>12:00`: 50%) | `EXTEND` |
+| `FR-BKC-242` | Menghitung pembagian tarif kamar pro-rata menit untuk kasus >1 transfer kamar dalam hari kalender yang sama | `MISSING / NEW` |
+| `FR-BKC-243` | Menghitung biaya administrasi rawat inap sebesar 7% dari eligible bill dengan batas atas maksimum Rp6.000.000 via konfigurasi `MstAdministrationFeePolicy` | `EXTEND` |
+| `FR-BKC-244` | Memvalidasi kecukupan saldo deposit pasien minimal 100% dari porsi tanggung jawab pasien (ekses) untuk tindakan besar | `MISSING / NEW` |
+| `FR-BKC-245` | Menyediakan tabel `BilInpatientClearanceHandoff` dan service evaluasi kelayakan pemulangan mandiri berbasis sisa tagihan pasien di Billing | `MISSING / NEW` |
+| `FR-BKC-246` | Menjalankan Auto-Reblock (transisi `REVOKED`) secara atomik bila terjadi intake tagihan susulan pada invoice ranap yang sudah `CLEARED` | `MISSING / NEW` |
+| `FR-BKC-247` | Menyatukan item tagihan alihan IGD ke invoice ranap secara non-destruktif dengan tetap mempertahankan `SourceDomain = "EMERGENCY"` | `EXTEND` |
+| `FR-BKC-248` | Membatalkan baris biaya admin rajal (jika belum dibayar) atau mengalihkannya sebagai kredit deposit ranap (jika sudah terbayar) | `MISSING / NEW` |
+| `FR-BKC-249` | Menyediakan endpoint `[Tags("BillingInpatientIntegration")]` untuk inquiry rincian ranap, kalkulasi sewa kamar, dan re-evaluasi clearance | `MISSING / NEW` |
+| `FR-BKC-250` | Memperluas layar `consumer-handoffs-view.jsx` dengan tab "Rawat Inap" untuk memantau status clearance dan memproses pengakuan handoff | `EXTEND` |
+
+## 5. Skenario UAT
+
+### Jalur Berhasil
+
+| ID | Skenario | Hasil yang Diharapkan |
+| --- | --- | --- |
+| `UAT-BKC-74` | Pasien masuk kamar rawat inap pukul 22:30 WIB | Hari pertama dikenakan tarif kamar sebesar 20%; tagihan kamar terakumulasi benar di invoice ranap |
+| `UAT-BKC-75` | Pasien pindah kamar Standar ke ICU pada hari yang sama | Sewa kamar hari itu dihitung pro-rata berdasarkan durasi menit riil tiap kamar |
+| `UAT-BKC-76` | Pasien alihan Rajal ke Ranap telah membayar admin poli Rp50.000 | Biaya admin poli digantikan admin ranap 7% (cap 6 juta), dan pembayaran Rp50.000 memotong tagihan ranap sebagai kredit |
+| `UAT-BKC-77` | Pasien melunasi seluruh sisa tagihan rawat inap di loket kasir | Status kelayakan terbit `CLEARED`, surat handoff tersimpan, dan modul rawat inap menerima status izin pulang |
+| `UAT-BKC-78` | Pasien asuransi dijadwalkan operasi besar dengan ekses Rp10.000.000 | Sistem memvalidasi saldo deposit minimal Rp10.000.000; verifikasi berhasil tanpa menuntut setoran bruto tindakan |
+
+### Jalur Gagal / Pengecualian
+
+| ID | Skenario | Hasil yang Diharapkan |
+| --- | --- | --- |
+| `UAT-BKC-79` | Tagihan obat susulan Rp300.000 masuk setelah pasien dinyatakan `CLEARED` | Sistem otomatis menjalankan Auto-Reblock: status clearance berubah menjadi `REVOKED`, pasien tertahan di bangsal hingga tagihan susulan dilunasi |
+| `UAT-BKC-80` | Pasien meminta izin pulang finansial saat masih ada sisa tagihan Rp1.500.000 | Evaluasi menghasilkan status `BLOCKED`; pesan `BIL-VAL-122` menolak penerbitan izin pulang |
+| `UAT-BKC-81` | Koreksi penempatan kamar (`ROOM_CORRECTION`) diterima dari bangsal | Tagihan kamar lama dibatalkan idempoten dan tagihan baru diterbitkan sesuai kamar yang benar |
+| `UAT-BKC-82` | Pasien operasi besar memiliki saldo deposit kurang dari nilai ekses | Sistem menolak izin tindakan dengan peringatan `BIL-VAL-121` kekurangan saldo deposit |
+
+## 6. Definition of Done
+
+| Butir | Dapat Dijawab | Bukti |
+| --- | --- | --- |
+| Tabel `BilInpatientClearanceHandoff` dan 3 kolom baru master berdiri dengan migration bersih | Ya / Belum | Migration `AddInpatientBillingIntegrationAndClearanceHandoff` diterapkan |
+| Sewa kamar menghitung diskon jam malam dan pro-rata transfer menit secara presisi | Ya / Belum | Uji unit kalkulasi sewa kamar (`BIL-AT-143`) |
+| Biaya admin ranap 7% berhenti bertambah saat mencapai pagu Rp6.000.000 | Ya / Belum | Uji batas administrasi ranap (`BIL-AT-145`) |
+| Ketergantungan lama ke `InpFinancialClearance` pada `PatientBillingSummaryService` telah dilepas | Ya / Belum | Source code inspection bebas dari rujukan entitas rawat inap tersebut |
+| Auto-Reblock otomatis mencabut izin pulang saat ada tagihan susulan | Ya / Belum | Uji integrasi intake susulan (`BIL-AT-148`) |
+| Tab Rawat Inap pada layar kasir berfungsi memuat dan mengakui surat clearance | Ya / Belum | Uji komponen frontend `consumer-handoffs-view.jsx` |
+| Seluruh nominal dan data sensitif terlindungi dari custom log | Ya / Belum | Tinjauan payload audit log |
+
+## 7. Urutan Pengiriman
+
+| Gelombang | Isi | Prasyarat |
+| --- | --- | --- |
+| `MVP-28` | `FR-BKC-240` s.d. `FR-BKC-249` — Skema database, adapter room stay, mesin hitung kamar bertingkat & pro-rata, admin fee 7% cap Rp6 jt, service clearance & auto-reblock, endpoint API integrasi | Approval blueprint ini; otorisasi migration terpisah |
+| `MVP-29` | `FR-BKC-250` — Frontend layar pemeriksaan Consumer Handoffs tab Rawat Inap & panel ringkasan ranap pada Menu Pembayaran | `MVP-28` selesai |
+| `POST-MVP` | Notifikasi otomatis WhatsApp/SMS kelayakan pulang ke keluarga pasien; alur otomatisasi jaminan perusahaan pulang dispensasi | Otorisasi bisnis tambahan |
+
+## 8. Pertanyaan Terbuka Sebelum Development Lock
+
+| ID | Pertanyaan | Status | Penutupan & Hasil |
+| --- | --- | :---: | --- |
+| `BKC-OQ-102` | Batas toleransi keterlambatan input tagihan susulan | **DITUTUP** | `BKC-DEC-120` menetapkan Auto-Reblock berlaku selama invoice masih `OPEN`. Setelah `CLOSED`, tagihan susulan otomatis ditolak kecuali dibuka kembali lewat otorisasi Supervisor Kasir. |
+| `BKC-OQ-103` | Pengecualian biaya admin 7% cap Rp6 juta untuk kasus khusus | **DITUTUP** | `BKC-DEC-121` menetapkan pengelolaan variasi/pengecualian secara deklaratif via tabel master `MstAdministrationFeePolicy`; pasien BPJS inklusif paket klaim. |
+| Aktivasi | Tanggal efektif pemberlakuan aturan admin ranap baru | **DITUTUP** | `BKC-DEC-122` menetapkan berlaku untuk seluruh pasien yang dipulangkan (*discharged*) pada atau setelah `EffectiveFrom`. |
+
+**Seluruh pertanyaan terbuka telah ditutup.** Dokumen ini siap diteruskan ke tahap perencanaan pengiriman modul (`plan-module-delivery`) setelah approval resmi.
+
+
+
+---
+
+# Amendment 24 September 2026 — Revisi UI Billing: Filter, Default, Asuransi, Diskon Dokter, Refund
+
+Masukan `BUI-DEC-001`–`015`, `BUI-DES-001`–`012`. Status **draft**.
+
+## Masalah produk
+
+Modul Billing sudah berjalan, tetapi tiga kelompok masalah nyata teridentifikasi dari
+permintaan owner dan diverifikasi langsung ke kode:
+
+| Yang terjadi | Bukti | Kerugiannya |
+|---|---|---|
+| Kasir membuka layar Billing dan melihat seluruh riwayat invoice, bukan pekerjaan hari ini | `BillingInvoiceQuery` sudah mendukung filter, tapi frontend tidak memakainya sebagai default | Waktu terbuang menyaring manual tiap kali layar dibuka |
+| Status tagihan pasien Allianz dengan coverage sebagian salah tersorot sebagai default | `BillingPayerEditService.cs:145` memakai aturan "satu item cukup", bukan "seluruh item" yang dikehendaki owner | Risiko piutang salah klasifikasi — sudah berjalan di produksi sebelum amendment ini, bukan risiko baru yang diciptakan |
+| Modal Ajukan Refund tidak bisa memilih item atau sumber dana secara eksplisit | Backend (`CreateRefundRequest.RefundCategory`, `SelectedBillingItemIds`) sudah mendukung sejak sebelumnya, frontend belum pernah memakainya | Kasir mengetik nominal manual tanpa jejak item yang direfund |
+
+## Batas rilis
+
+| Batas | Isi |
+|---|---|
+| Titik mulai | `BUI-DES-001` (backend, perbaikan logika `suggestedBillingStatus`) diterapkan sebagai gerbang; sisanya murni frontend, dapat dimulai begitu desain ini disetujui |
+| Titik akhir | `FR-BUI-001`–`008`, `011`–`013` berfungsi penuh dan lulus UAT masing-masing |
+| Di luar batas | `FR-BUI-009` (Catatan Penting) dan mekanisme upload sesungguhnya pada `FR-BUI-010` — keduanya `OPEN DECISION`, lihat bagian Kemampuan yang Ditunda |
+
+## `EPIC BUI-01` — Revisi UI Billing: Filter, Default, Asuransi, Diskon Dokter, Refund
+
+| FR | Kemampuan | Disposisi |
+|---|---|---|
+| `FR-BUI-001` | Filter Tanggal Awal/Akhir pada layar Billing | `EXTEND` |
+| `FR-BUI-002` | Default invoice hari ini status `OPEN` saat layar dibuka | `EXTEND` |
+| `FR-BUI-003` | Label "Drug" diganti "Obat / Medicine" pada seluruh tampilan | `EXTEND` |
+| `FR-BUI-004` | Daftar perbandingan penjamin hanya menampilkan penyedia asuransi | `EXTEND` |
+| `FR-BUI-005` | Asuransi aktif pasien dikecualikan dari daftar pembanding | `EXISTING / REUSE` — sudah berjalan, `CAP-BUI-05` |
+| `FR-BUI-006` | Payment method tiga tombol satu baris horizontal, sumber `PaymentMethodRow` | `EXTEND` |
+| `FR-BUI-007` | Default status tagihan "Asuransi" hanya bila SELURUH item tercover | `EXTEND` — bergantung `BUI-DES-001` (backend) |
+| `FR-BUI-008` | Card Billing dan Card Status Tagihan dirapikan (compact, datatable naik) | `EXTEND` |
+| `FR-BUI-009` | Catatan Penting berbentuk timeline lintas tahap kunjungan | `OPEN DECISION` — `BUI-CQ-05` |
+| `FR-BUI-010` | Upload Memo Dokter TTD wajib sebelum submit diskon dokter | `OPEN DECISION` — lihat catatan di bawah |
+| `FR-BUI-011` | Field/card/kalkulasi refundable credit dihilangkan dari tampilan | `EXTEND` |
+| `FR-BUI-012` | Modal Ajukan Refund dua sumber (Billing multi-select / Deposito otomatis) | `EXTEND` |
+| `FR-BUI-013` | Tombol Refund/Adjustment/Write-Off dipindah ke Riwayat Pembayaran | `EXTEND` |
+
+**Catatan penting soal `FR-BUI-010`:** validasi "memo wajib" (`BUI-VAL-01`) sendiri SUDAH bisa
+dibangun (`EXTEND`, komponen upload siap per `03-frontend-architecture.md` bagian 8). Yang
+membuat FR ini berstatus `OPEN DECISION` secara keseluruhan adalah **endpoint upload
+sesungguhnya belum ada** (`BUI-CQ-06`). Ini bukan sekadar "belum lengkap" — **menyalakan
+validasi wajib tanpa endpoint upload akan MENGUNCI seluruh alur pengajuan diskon dokter yang
+SUDAH BERJALAN**, karena dokter tidak akan pernah bisa mengunggah memo apa pun. `FR-BUI-010`
+MUST NOT masuk gelombang pengiriman sampai `BUI-CQ-06` terjawab dan endpoint upload berdiri.
+
+### Kemampuan yang Ditunda
+
+| Ditunda | Alasan bersebab | Pengganti selama MVP |
+|---|---|---|
+| `FR-BUI-009` — Catatan Penting | Tidak ada satu pun endpoint yang mengonsolidasikan note pasien lintas tahap kunjungan (Kiosk/Admisi/IGD/Rawat Inap); mewujudkannya menuntut kemampuan backend baru lintas bounded context, di luar wewenang desain Billing murni (`BUI-CQ-05`) | **Tidak ada yang hilang** — kemampuan ini belum pernah ada sebelumnya, bukan pengurangan dari yang sudah berjalan |
+| `FR-BUI-010` — Upload Memo Dokter TTD (endpoint) | Mekanisme upload belum diputuskan (`BUI-CQ-06`); menyalakannya tanpa endpoint akan mengunci alur yang sedang berjalan | Alur pengajuan diskon dokter **tetap berjalan seperti sekarang** (tanpa memo wajib) sampai endpoint ada — validasi wajib baru dinyalakan bersamaan dengan endpoint-nya, bukan lebih dulu |
+
+## Skenario UAT
+
+### Jalur berhasil
+
+| ID | Skenario | Hasil yang diharapkan |
+|---|---|---|
+| `UAT-BUI-01` | Layar Billing dibuka tanpa filter | Invoice hari ini, status `OPEN`, tampil sebagai default |
+| `UAT-BUI-02` | Filter tanggal diterapkan | Data tergantikan sesuai rentang, default hari ini tidak lagi berlaku |
+| `UAT-BUI-03` | Modal perbandingan asuransi dibuka | Hanya penyedia asuransi yang tampil sebagai kandidat |
+| `UAT-BUI-04` | Pasien Allianz, seluruh item tercover, buka Edit Status Tagihan | Default "Asuransi" tersorot |
+| `UAT-BUI-05` | Tiga tombol payment method dirender | Tersusun satu baris horizontal, label dan status terpilih dari `PaymentMethodRow` |
+| `UAT-BUI-06` | Modal refund, sumber "Billing", dua item dicentang | Total otomatis terhitung, kolom Tanggal terisi |
+| `UAT-BUI-07` | Modal refund, sumber "Deposito" dipilih | Nominal otomatis terisi sisa deposito |
+| `UAT-BUI-08` | Tombol aksi pada Riwayat Pembayaran diklik | Modal yang sama seperti sebelumnya terbuka, alur persetujuan tidak berubah |
+
+### Jalur gagal
+
+| ID | Skenario | Hasil yang diharapkan |
+|---|---|---|
+| `UAT-BUI-09` | Pasien Allianz, coverage SEBAGIAN (2 dari 5 item), buka Edit Status Tagihan | Default "Pribadi" tersorot — **ini kasus penentu yang membuktikan `BUI-DES-001` benar**, bukan kasus nol/seluruh yang sama di kedua aturan lama-baru |
+| `UAT-BUI-10` | Filter tanggal akhir sebelum tanggal awal | Ditolak sebelum request terkirim, pesan `BUI-VAL-06` |
+| `UAT-BUI-11` | Modal refund sumber "Billing", submit tanpa item dicentang | Ditolak `BUI-VAL-03` |
+| `UAT-BUI-12` | Modal refund sumber "Deposito", sisa deposito Rp 0 | Nominal Rp 0, submit ditolak (`BUI-VAL-05`, nominal harus > 0) |
+| `UAT-BUI-13` | Halaman Menu Pembayaran diperiksa setelah amendment | Tombol Refund/Adjustment/Write-Off **tidak lagi tampil** di sana |
+| `UAT-BUI-14` | Kolom "Kwitansi" existing pada Riwayat Pembayaran diperiksa | Perilaku cetak struk tidak berubah setelah kolom Aksi ditambahkan |
+
+## Definition of Done
+
+| Butir | Dapat dijawab | Bukti |
+|---|---|---|
+| `BUI-DES-001` (backend) diterapkan dan teruji dengan kasus coverage sebagian | Ya / Belum | `UAT-BUI-09` |
+| Filter dan default Billing berfungsi | Ya / Belum | `UAT-BUI-01`, `UAT-BUI-02` |
+| Label Drug/Obat tersisir menyeluruh, termasuk di luar `components/view` dan `app` | Ya / Belum | Regresi visual/snapshot penuh |
+| Payment method horizontal memakai `PaymentMethodRow`, bukan `BasePayerCategorySelector` | Ya / Belum | `UAT-BUI-05` |
+| Refundable credit lama tidak tampil di layar mana pun | Ya / Belum | Regresi visual |
+| Modal refund dua sumber berfungsi penuh, termasuk jalur gagal | Ya / Belum | `UAT-BUI-06`, `07`, `11`, `12` |
+| Tombol aksi berpindah tanpa mengubah wewenang | Ya / Belum | `UAT-BUI-08`, `13`; uji hak akses `permission-audit-matrix.md` |
+| Kolom Kwitansi existing tidak rusak | Ya / Belum | `UAT-BUI-14` |
+| Nol migration dijalankan | Ya / Belum | Diff migration kosong |
+
+## Urutan pengiriman
+
+| Gelombang | Isi | Prasyarat |
+|---|---|---|
+| `MVP-30` | `BUI-DES-001` — perbaikan logika backend `suggestedBillingStatus` | Approval desain ini; **gerbang untuk `MVP-32`** |
+| `MVP-31` | `FR-BUI-001`, `002`, `003`, `008`, `013` — filter/default Billing, label, card compact, pindah tombol aksi | `MVP-30` tidak diperlukan untuk gelombang ini — dapat paralel |
+| `MVP-32` | `FR-BUI-004`, `005`, `006`, `007` — perbandingan asuransi, payment method, default status | `MVP-30` **selesai lebih dulu** — tanpa ini `FR-BUI-006`/`007` menampilkan default yang salah |
+| `MVP-33` | `FR-BUI-011`, `012` — modal refund dua sumber (memakai `BUI-DES-002`, field `TransactionDate`); refundable credit lama tergantikan sebagai bagian PENGGANTIAN modal ini, bukan task tersendiri (`03-frontend-architecture.md` bagian 9.1) | `BUI-DES-002` (backend, aditif nol migration) diterapkan |
+| **Tertahan** | `FR-BUI-009` (Catatan Penting) | `BUI-CQ-05` terjawab |
+| **Tertahan** | `FR-BUI-010` (upload memo dokter) | `BUI-CQ-06` terjawab **dan** endpoint upload berdiri |
+
+## Pertanyaan terbuka sebelum development lock
+
+| ID | Pertanyaan | Memblokir? | Penjawab |
+|---|---|---|---|
+| `BUI-CQ-05` | Cakupan sumber data Catatan Penting — dipersempit atau tetap lintas modul penuh | **Tidak** — `MVP-30`..`33` berjalan penuh tanpanya | Yasmin |
+| `BUI-CQ-06` | Mekanisme upload memo dokter — baru khusus Billing atau reuse mekanisme umum | **Tidak** untuk `MVP-30`..`33`; **Ya** untuk `FR-BUI-010` secara spesifik | Backend Owner |
+
+Keduanya **bukan** `OPEN DECISION` pada tingkat epic secara keseluruhan. `EPIC BUI-01` — kecuali
+dua FR yang eksplisit ditandai `OPEN DECISION` di atas — siap diteruskan ke
+`/plan-module-delivery` begitu desain ini disetujui.

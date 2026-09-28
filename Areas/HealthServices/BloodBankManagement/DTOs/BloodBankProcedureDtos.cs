@@ -105,5 +105,44 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.DTOs
         public Guid CreateBy { get; set; }
         public DateTime? UpdateDateTime { get; set; }
         public Guid? UpdateBy { get; set; }
+
+        /// <summary>
+        /// Ringkasan penyerahan fakta biaya ke Billing (<c>BE-BD-013</c>). Diisi hanya pada jawaban
+        /// aksi yang memang menyerahkan fakta — <c>complete</c> dan <c>resend-cost-fact</c>; selalu
+        /// <c>null</c> pada <c>GET</c>. Status penyerahan yang sah tinggal di ledger
+        /// <c>CliClinicalMilestoneFact</c>, bukan di tindakan.
+        /// </summary>
+        public BloodBankProcedureBillingHandoffDto? BillingHandoff { get; set; }
+    }
+
+    /// <summary>
+    /// Hasil penyerahan fakta biaya tindakan Bank Darah ke Billing.
+    /// </summary>
+    /// <remarks>
+    /// Berisi keterangan proses, bukan status pembayaran. Bank Darah tidak pernah menyatakan biaya
+    /// sudah ditagih, dibayar, maupun dibatalkan secara finansial — keputusan itu milik Billing.
+    /// Bentuknya mengikuti <c>LabBillingHandoffResponse</c>.
+    /// </remarks>
+    public class BloodBankProcedureBillingHandoffDto
+    {
+        /// <summary>
+        /// Jenis hasil dari <c>ClinicalMilestoneFactProducer</c>: <c>Emitted</c>, <c>Replayed</c>,
+        /// <c>OutcomeUnknown</c>, <c>ReconciliationRequired</c>, <c>RejectedByBilling</c>, atau
+        /// <c>Invalid</c>.
+        /// </summary>
+        public string Kind { get; set; } = string.Empty;
+
+        /// <summary>Benar bila keadaan klinis aman walaupun Billing belum mengonfirmasi.</summary>
+        public bool IsClinicallySafe { get; set; }
+
+        public Guid? MilestoneFactId { get; set; }
+
+        public int? MilestoneFactVersion { get; set; }
+
+        public string? DispatchStatus { get; set; }
+
+        public string? Code { get; set; }
+
+        public string? Message { get; set; }
     }
 }

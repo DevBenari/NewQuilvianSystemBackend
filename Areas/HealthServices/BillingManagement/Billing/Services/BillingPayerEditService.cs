@@ -83,8 +83,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.S
 
             var currentPayer = MapCurrentPayer(currentPaymentSource, encounter);
 
-            // 2. Available Payer Options
-            var availablePayerOptions = await BuildAvailablePayerOptionsAsync(encounter, cancellationToken);
+            // 2. Available Payer Options (Allianz tidak boleh muncul sebagai pilihan pembanding jika pasien menggunakan Allianz)
+            var availablePayerOptions = await BuildAvailablePayerOptionsAsync(encounter, currentPaymentSource, cancellationToken);
 
             // 3. Active items and assignments
             var activeItems = invoice.Items
@@ -97,6 +97,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.S
             var existingAssignments = await _dbContext.BilInvoiceItemPayerAssignments.AsNoTracking()
                 .Where(x => itemIds.Contains(x.InvoiceItemId) && x.IsActive && !x.IsDelete)
                 .ToDictionaryAsync(x => x.InvoiceItemId, cancellationToken);
+
+            var itemCoverageMap = calculation.Breakdown.Items.ToDictionary(x => x.InvoiceItemId);
+            bool allItemsCoveredByInsurance = true;
 
             var itemAssignments = activeItems.Select(item =>
             {
@@ -111,17 +114,39 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.S
                         Amount = item.Quantity * item.UnitPrice
                     };
                 }
+
+                // Default status harus berdasarkan apakah item billing (obat, layanan medis, tindakan) tercover asuransi atau tidak
+                bool isCovered = false;
+                if (currentPayer.PaymentType == "INSURANCE" && itemCoverageMap.TryGetValue(item.Id, out var calcItem))
+                {
+                    isCovered = calcItem.ItemPrimaryAmount > 0;
+                }
+
+                if (!isCovered)
+                {
+                    allItemsCoveredByInsurance = false;
+                }
+
+                var defaultPayerKind = (currentPayer.PaymentType == "INSURANCE")
+                    ? (isCovered ? "INSURANCE" : "CASH")
+                    : currentPayer.PaymentType;
+
                 return new ItemPayerAssignmentResponse
                 {
                     InvoiceItemId = item.Id,
                     ItemName = item.DescriptionSnapshot,
-                    PayerKind = currentPayer.PaymentType,
+                    PayerKind = defaultPayerKind,
                     AssignmentSource = "AUTO",
                     Amount = item.Quantity * item.UnitPrice
                 };
             }).ToList();
 
-            // 4. Drug items and dispositions
+            // Case Pasien dengan Insurance (misal Allianz): jika ada satu saja item tidak dijamin Allianz, default status = Pribadi / Self Pay (CASH) — seluruh item aktif harus tercover baru disarankan INSURANCE
+            var suggestedBillingStatus = (currentPayer.PaymentType == "INSURANCE")
+                ? (allItemsCoveredByInsurance ? "INSURANCE" : "CASH")
+                : currentPayer.PaymentType;
+
+            // 4. Drug items and dispositions (Terminologi Obat / Medicine)
             var drugItems = activeItems
                 .Where(x => (x.Category != null && x.Category.IsPharmacy) || x.SourceDomain == "PHARMACY")
                 .ToList();
@@ -140,6 +165,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.S
                     {
                         InvoiceItemId = item.Id,
                         DrugName = item.DescriptionSnapshot,
+                        MedicineName = item.DescriptionSnapshot,
+                        Obat = item.DescriptionSnapshot,
                         Disposition = disposition.Disposition,
                         DecisionSource = disposition.DecisionSource,
                         Amount = item.Quantity * item.UnitPrice
@@ -149,6 +176,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.S
                 {
                     InvoiceItemId = item.Id,
                     DrugName = item.DescriptionSnapshot,
+                    MedicineName = item.DescriptionSnapshot,
+                    Obat = item.DescriptionSnapshot,
                     Disposition = "INCLUDED",
                     DecisionSource = "AUTO",
                     Amount = item.Quantity * item.UnitPrice
@@ -193,6 +222,36 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.S
                                 : null
             };
 
+            // Payment Method satu struktur row: [ Tunai ] [ Asuransi ] [ Penjamin Perusahaan ]
+            var effectivePaymentType = !string.IsNullOrEmpty(suggestedBillingStatus)
+                ? suggestedBillingStatus
+                : (currentPayer.PaymentType ?? "CASH");
+
+            var paymentMethodRow = new List<PaymentMethodRowItem>
+            {
+                new PaymentMethodRowItem
+                {
+                    Code = "CASH",
+                    Label = "Tunai",
+                    IsSelected = string.Equals(effectivePaymentType, "CASH", StringComparison.OrdinalIgnoreCase),
+                    IsEnabled = true
+                },
+                new PaymentMethodRowItem
+                {
+                    Code = "INSURANCE",
+                    Label = "Asuransi",
+                    IsSelected = string.Equals(effectivePaymentType, "INSURANCE", StringComparison.OrdinalIgnoreCase),
+                    IsEnabled = availablePayerOptions.Any(o => o.PayerType == "INSURANCE") || string.Equals(currentPayer.PaymentType, "INSURANCE", StringComparison.OrdinalIgnoreCase)
+                },
+                new PaymentMethodRowItem
+                {
+                    Code = "COMPANY_GUARANTOR",
+                    Label = "Penjamin Perusahaan",
+                    IsSelected = string.Equals(effectivePaymentType, "COMPANY_GUARANTOR", StringComparison.OrdinalIgnoreCase),
+                    IsEnabled = availablePayerOptions.Any(o => o.PayerType == "COMPANY_GUARANTOR") || string.Equals(currentPayer.PaymentType, "COMPANY_GUARANTOR", StringComparison.OrdinalIgnoreCase)
+                }
+            };
+
             return new InvoiceEditContextResponse
             {
                 Invoice = new InvoiceEditHeaderResponse
@@ -217,7 +276,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.S
                 ItemPayerAssignments = itemAssignments,
                 DrugBillingDisposition = drugDispositions,
                 EligibleDrugInvoiceItemIds = eligibleDrugItemIds,
-                Capabilities = capabilities
+                Capabilities = capabilities,
+                PaymentMethodRow = paymentMethodRow,
+                SuggestedBillingStatus = suggestedBillingStatus
             };
         }
 
@@ -1288,6 +1349,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.S
 
         private async Task<List<AvailablePayerOptionResponse>> BuildAvailablePayerOptionsAsync(
             RegPatientEncounter encounter,
+            RegPatientEncounterGuarantor? currentSource,
             CancellationToken cancellationToken)
         {
             var options = new List<AvailablePayerOptionResponse>
@@ -1312,6 +1374,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.S
 
             foreach (var ins in patientInsurances)
             {
+                // Requirement 5: Jika pasien sudah menggunakan asuransi (misal Allianz),
+                // maka Allianz tidak boleh muncul sebagai pilihan pembanding.
+                if (currentSource != null && currentSource.PaymentType == EncounterPaymentType.Insurance &&
+                    currentSource.InsuranceProviderId.HasValue && ins.InsuranceProviderId == currentSource.InsuranceProviderId.Value)
+                {
+                    continue;
+                }
+
                 var isDateValid = (!ins.EffectiveStartDate.HasValue || encounter.EncounterDate.Date >= ins.EffectiveStartDate.Value.Date) &&
                                   (!ins.EffectiveEndDate.HasValue || encounter.EncounterDate.Date <= ins.EffectiveEndDate.Value.Date);
                 var isProviderActive = ins.InsuranceProvider != null && ins.InsuranceProvider.IsActive && !ins.InsuranceProvider.IsDelete &&
@@ -1431,14 +1501,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.S
                 throw new BillingPayerEditBadRequestException("Pilih kartu penjamin perusahaan yang akan dipakai.");
             }
 
-            if (targetType == EncounterPaymentType.Cash)
+            // Requirement 4: Perbandingan hanya diperbolehkan untuk Insurance vs Insurance
+            if (currentSource == null || currentSource.PaymentType != EncounterPaymentType.Insurance)
             {
-                // BIL-VAL-073: Payer kandidat sama persis dengan payer yang sedang berlaku
-                if (currentSource is null || currentSource.PaymentType == EncounterPaymentType.Cash)
-                {
-                    return (false, "Penjamin yang dipilih sama dengan yang sedang dipakai. Tidak ada yang perlu diubah.", targetType, "CASH", "Tunai");
-                }
-                return (true, null, targetType, "CASH", "Tunai");
+                return (false, "Perbandingan penjamin hanya diperbolehkan untuk Asuransi vs Asuransi. Pasien dengan pembayaran pribadi (tunai) atau penjamin perusahaan tidak dapat dibandingkan.", targetType, request.CandidatePaymentType ?? "UNKNOWN", "Tidak Valid");
+            }
+
+            if (targetType != EncounterPaymentType.Insurance)
+            {
+                return (false, "Perbandingan penjamin hanya diperbolehkan untuk Asuransi vs Asuransi. Penjamin pembanding harus berupa Asuransi.", targetType, request.CandidatePaymentType ?? "UNKNOWN", "Tidak Valid");
             }
 
             if (targetType == EncounterPaymentType.Insurance)
@@ -1479,14 +1550,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.S
                     return (false, "Kerja sama dengan perusahaan asuransi ini sudah berakhir pada tanggal pelayanan.", targetType, "INSURANCE", card.InsuranceProvider?.InsuranceProviderName ?? card.PlanName ?? "Asuransi");
                 }
 
-                // BIL-VAL-073: Payer kandidat sama persis dengan payer yang sedang berlaku
-                if (currentSource != null && currentSource.PaymentType == EncounterPaymentType.Insurance &&
-                    currentSource.PatientInsuranceId == card.Id)
+                // Requirement 5 & BIL-VAL-073: Asuransi pembanding tidak boleh sama dengan asuransi yang sedang dipakai (misal Allianz vs Allianz)
+                if (currentSource.PaymentType == EncounterPaymentType.Insurance &&
+                    ((currentSource.InsuranceProviderId.HasValue && card.InsuranceProviderId == currentSource.InsuranceProviderId.Value) ||
+                     (currentSource.PatientInsuranceId.HasValue && currentSource.PatientInsuranceId.Value == card.Id)))
                 {
-                    return (false, "Penjamin yang dipilih sama dengan yang sedang dipakai. Tidak ada yang perlu diubah.", targetType, "INSURANCE", card.InsuranceProvider.InsuranceProviderName);
+                    return (false, $"Asuransi pembanding tidak boleh sama dengan asuransi yang sedang digunakan pasien ({card.InsuranceProvider?.InsuranceProviderName ?? "Asuransi Saat Ini"}).", targetType, "INSURANCE", card.InsuranceProvider?.InsuranceProviderName ?? "Asuransi");
                 }
 
-                return (true, null, targetType, "INSURANCE", card.InsuranceProvider.InsuranceProviderName);
+                return (true, null, targetType, "INSURANCE", card.InsuranceProvider?.InsuranceProviderName ?? "Asuransi");
             }
 
             // CompanyGuarantor

@@ -92,6 +92,21 @@ inputnya adalah petugas Bank Darah yang login — bukan nama yang diketik di for
 | Pembatalan order kedaluwarsa | Ditolak — order kedaluwarsa tidak dibuka kembali | `422` `VAL-BD-004` |
 | Kunjungan berakhir | Sistem memindahkan order ke `Expired`; **tidak ada endpoint** | — |
 
+> **Koreksi bertanggal — 23 September 2026 (`BE-BD-018`, `DEC-BD-056`).** Baris "Order ganda" di atas
+> menulis bahwa balasannya "menyebut komponen mana yang bentrok". **Pada kontrak `v4` itu tidak
+> akurat.** Service memang sudah menghitung `DuplicateComponentIds`, tetapi controller membuangnya,
+> sehingga balasan `422 VAL-BD-001` hanya membawa kalimat untuk dibaca manusia dengan slot `errors`
+> kosong. Layar tidak punya cara mengenali komponen yang bentrok secara terprogram.
+>
+> Kekurangan itu **ditutup `BE-BD-018`** pada kontrak `v5`: balasan kini membawa
+> `errors.code = "VAL-BD-001"` beserta `errors.duplicateComponentIds`. Sejak `v5`, kalimat baris itu
+> benar apa adanya.
+>
+> Koreksi ini **tidak mengubah status `BE-BD-003`** maupun buktinya. Kesebelas acceptance criteria
+> `BE-BD-003` tetap terpenuhi, dan tidak satu pun gugur oleh temuan ini — penahanan order gandanya
+> sendiri memang bekerja, yang kurang hanyalah keterbacaannya oleh mesin
+> (`00-interview-decisions.md` bagian 8.32; `rules/rule-output/status-task-roadmap.md` bagian 5).
+
 ### 2.4 Status order
 
 | Status | Arti | Lahir pada task ini? |

@@ -126,7 +126,7 @@ flowchart TD
 
     FE020["✅ FE-RWI-020<br/>daftar kerja episode"]:::selesai
     FE021["✅ FE-RWI-021<br/>beranda rawat inap"]:::selesai
-    FE022["✅ FE-RWI-022<br/>kerangka alur dua jalur"]:::selesai
+    FE022["🟡 FE-RWI-022<br/>kerangka alur dua jalur"]:::sebagian
     FE023["✅ FE-RWI-023<br/>pendaftaran dan pasien lama"]:::selesai
     FE024["✅ FE-RWI-024<br/>penjamin dan kelas"]:::selesai
     FE025["✅ FE-RWI-025<br/>langkah dokter"]:::selesai
@@ -213,7 +213,7 @@ flowchart TD
 
 | Gelombang | Boleh mulai setelah | Task |
 | ---: | --- | --- |
-| 1 | — | `FE-RWI-022` ✅, `FE-RWI-033` ✅ — boleh paralel |
+| 1 | — | `FE-RWI-022` 🟡, `FE-RWI-033` ✅ — boleh paralel |
 | 2 | `FE-RWI-022`, `FE-RWI-033` | `FE-RWI-020` ✅, `FE-RWI-023` ✅ |
 | 3 | `FE-RWI-020`, `FE-RWI-023` | `FE-RWI-021` ✅, `FE-RWI-024` ✅, `FE-RWI-031` ✅, `FE-RWI-037` ✅, `FE-RWI-040` ✅, `FE-RWI-041` ✅ |
 | 4 | `FE-RWI-024` | `FE-RWI-025` ✅ |
@@ -407,7 +407,7 @@ data yang belum dikontrak harus berhenti pada gerbangnya.
 | --- | --- | --- | --- |
 | **F0–F7** | Pekerjaan revision 2 | `FE-RWI-001` s.d. `FE-RWI-018` | ✅ selesai |
 | **F8 — Keterjangkauan** | Setiap episode dapat ditemukan; beranda berguna | `FE-RWI-020`, `FE-RWI-021` | ✅ **selesai 1 September 2026.** Kedua task tertutup penuh; kriteria 2 `FE-RWI-020` ditutup dengan metadata reservation `BE-RWI-036` |
-| **F9 — Alur admisi** | Petugas dapat mendaftarkan pasien, memilih penjamin, membuka episode, dan memesan tempat tidur dalam satu alur | `FE-RWI-022` s.d. `FE-RWI-027` | ✅ **selesai 1 September 2026.** Keenam task terimplementasi penuh dan ketiga titik tulis tertutup. Butir DoD e2e/`.mjs` **dikecualikan atas keputusan pengguna 1 September 2026** — lihat bagian "Keputusan penutupan verifikasi" |
+| **F9 — Alur admisi** | Petugas dapat mendaftarkan pasien, memilih penjamin, membuka episode, dan memesan tempat tidur dalam satu alur | `FE-RWI-022` s.d. `FE-RWI-027` | 🟡 **sebagian — diturunkan dari ✅ pada 23 September 2026.** Lima dari enam task tetap selesai dan ketiga titik tulis tertutup; `FE-RWI-022` turun ke 🟡 karena pemilihan episode ibu tidak pernah dapat dilakukan (`ISSUE-EPS-002` `ISS-EPS-04`), sehingga pendaftaran bayi baru lahir belum tercakup alur ini. Kategorinya dinonaktifkan lewat `FE-RWI-096` sesuai keputusan pemilik. ~~Keenam task terimplementasi penuh dan ketiga titik tulis tertutup.~~ Butir DoD e2e/`.mjs` **dikecualikan atas keputusan pengguna 1 September 2026** — lihat bagian "Keputusan penutupan verifikasi" |
 | **F10 — Cetak** | Persetujuan rawat inap dan kartu pasien tercetak dari alur | `FE-RWI-028`, `FE-RWI-029` | ✅ selesai 1 September 2026 |
 | **F11 — Aksi yang hilang** | Pasien dikonfirmasi masuk; admisi dapat dibatalkan; admisi tertinggal dapat dilanjutkan | `FE-RWI-030` s.d. `FE-RWI-032` | ✅ **selesai 1 September 2026.** Ketiga task tertutup |
 | **F12 — Repair layar existing** | Enam layar yang tampak jadi tetapi tidak dapat dipakai kembali mempunyai layout, state, dan aksi yang efektif | `FE-RWI-036` s.d. `FE-RWI-041` | ✅ **lengkap 12 September 2026.** `FE-RWI-036` s.d. `FE-RWI-038`, `FE-RWI-040`, dan `FE-RWI-041` ✅ selesai 1 September 2026; `FE-RWI-039` ✅ ditutup 12 September 2026 dengan nol baris source baru. Satu cacat pada `FE-RWI-040` — tombol Coba Lagi yang hilang — ditemukan dan diperbaiki pada tanggal itu |
@@ -445,7 +445,7 @@ FE-RWI-020 (daftar kerja episode)                    ✅ SELESAI
    ├── FE-RWI-021 (beranda)                          ✅ SELESAI
    └── FE-RWI-032 (melanjutkan admisi tertinggal)    ✅ SELESAI  ← juga butuh FE-RWI-026
 
-FE-RWI-022 (kerangka alur dua jalur)                 ✅ SELESAI
+FE-RWI-022 (kerangka alur dua jalur)                 🟡 SEBAGIAN
    └── FE-RWI-023 (langkah Pendaftaran + Pasien Lama)  ✅ SELESAI
           └── FE-RWI-024 (langkah Pembayaran: penjamin + kelas)  ✅ SELESAI
                  └── FE-RWI-025 (langkah Dokter — TITIK TULIS 1)  ✅ SELESAI
@@ -553,7 +553,7 @@ baru pada task yang sudah selesai; delta baru tetap harus dimiliki task terbuka.
 
 ---
 
-### ✅ `FE-RWI-022` — Kerangka alur admisi dua jalur berdiri
+### 🟡 `FE-RWI-022` — Kerangka alur admisi dua jalur berdiri
 
 | Field | Isi |
 | --- | --- |
@@ -569,7 +569,7 @@ baru pada task yang sudah selesai; delta baru tetap harus dimiliki task terbuka.
 | **Risk/blocker** | Menyimpan langkah hanya di state React membuat kriteria 4 gagal dan membuat alur bertahap `RWI-DEC-076` berbahaya. Owner: Frontend |
 | **Gerbang skema** | `RWI-UI-GAP-001`: kontrak menyebut delapan langkah pasien lama, tetapi urutan bernama menghasilkan sembilan. Acceptance jumlah langkah menunggu keputusan Product/UI owner |
 | **DoD** | Kelima kriteria lulus; laporan menyebut berkas mana dari `emergency-registration/` yang dipakai ulang |
-| **Status** | ✅ **SELESAI 1 September 2026.** Kelima acceptance criteria terimplementasi pada `inpatient-admission-view.jsx` beserta stepper yang dipakai ulang dari `emergency-registration/`; lint dan build lulus. Butir DoD verifikasi runtime dan test `.mjs` **dikecualikan atas keputusan pengguna 1 September 2026**; uji manual tetap tercatat `NOT FEASIBLE`. Jumlah langkah jalur pasien lama tetap mengikuti `RWI-UI-GAP-001` yang belum ditutup Product/UI owner — [laporan](../task/report/frontend/FE-RWI-022.md) |
+| **Status** | 🟡 **SEBAGIAN — diturunkan dari ✅ pada 23 September 2026.** Kriteria 1 s.d. 4 tetap terpenuhi pada `inpatient-admission-view.jsx` beserta stepper yang dipakai ulang dari `emergency-registration/`; lint dan build lulus. **Kriteria 5 hanya terpenuhi secara tampilan, bukan kemampuan:** panel pilihan episode ibu memang muncul, tetapi daftar pilihannya dikunci kosong permanen tanpa sumber data dan tidak ada endpoint backend yang mendaftar episode ibu aktif — sehingga episode ibu **tidak pernah dapat dipilih**, dan `requirement-traceability.md` memetakan task ini ke *"memilih episode ibu"*. Ditemukan lewat `ISSUE-EPS-002` `ISS-EPS-04`. Jalan buntunya sudah ditutup `FE-RWI-096` sesuai keputusan pemilik bahwa pendaftaran bayi baru lahir belum masuk rilis ini; kemampuan penuhnya menunggu `BE-RWI-128`. Butir DoD verifikasi runtime dan test `.mjs` **dikecualikan atas keputusan pengguna 1 September 2026**; uji manual tetap tercatat `NOT FEASIBLE`. Jumlah langkah jalur pasien lama tetap mengikuti `RWI-UI-GAP-001` yang belum ditutup Product/UI owner — [laporan](../task/report/frontend/FE-RWI-022.md), [issue](./issues/issue-002-admisi-bayi-baru-lahir-buntu.md) |
 
 ---
 

@@ -599,6 +599,20 @@ public sealed class BillingSettlementService
                             tender.CorrelationId,
                             tender.CausationId,
                             cancellationToken);
+
+                        // BE-BKC-075 / BKC-DEC-115 / BKC-DES-045 / BIL-INT-016: Menerbitkan surat kelayakan
+                        // pemulangan rawat inap (BilInpatientClearanceHandoff) saat status invoice berubah lunas atau dibalik.
+                        await _consumerHandoffService.PublishForInpatientClearanceAsync(
+                            tender.Settlement.InvoiceId.Value,
+                            clearanceReason == PrescriptionClearanceReasonCodes.InvoiceSettled
+                                ? InpatientClearanceReasonCodes.InvoiceSettled
+                                : InpatientClearanceReasonCodes.PaymentReversed,
+                            actorUserId,
+                            result.OccurredAt,
+                            tender.CorrelationId,
+                            tender.CausationId,
+                            cancellationToken);
+
                         await _dbContext.SaveChangesAsync(cancellationToken);
                     }
                     catch (BillingConsumerHandoffValidationException exception)

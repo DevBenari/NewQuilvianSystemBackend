@@ -90,6 +90,14 @@ public static class FinAccountingEventDeliveryStatuses
 /// point yang menunggu ratifikasi Accounting, bukan daftar yang ditegakkan check constraint.</summary>
 public static class FinAccountingEventTypeCodes
 {
+    // Kode alias standar V2
+    public const string ArCreated = "AR_CREATED";
+    public const string ArPayment = "AR_PAYMENT";
+    public const string ArWriteOff = "AR_WRITEOFF";
+    public const string ApCreated = "AP_CREATED";
+    public const string ApPayment = "AP_PAYMENT";
+
+    // Katalog 17 kode yang diusulkan FIN-DEC-002
     public const string PengakuanPiutang = "PENGAKUAN-PIUTANG";
     public const string PenerimaanPiutang = "PENERIMAAN-PIUTANG";
     public const string PenyesuaianPiutang = "PENYESUAIAN-PIUTANG";

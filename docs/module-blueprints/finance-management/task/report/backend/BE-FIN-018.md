@@ -17,7 +17,7 @@
 | Model | Claude Sonnet 5 |
 | Commit backend saat dikerjakan | Working tree pada branch `Yasmina`; commit dasar `a743388b57da91e6a0d7a42813604dc94563e38d` |
 | Tanggal | 22 September 2026 |
-| Status | 🟡 **SEBAGIAN — `AllocateAsync`/`ReverseAllocationAsync` selesai penuh di kedua service; QBE `PASS`.** Belum ada controller (pola sama dengan `BE-FIN-008` sebelum `BE-FIN-009`) — lihat bagian 1.4 |
+| Status | ✅ **SELESAI 23 September 2026.** `AllocateAsync`/`ReverseAllocationAsync` selesai penuh di kedua service. Controller yang sebelumnya belum ada (bagian 1.4) sudah dibangun — `Collection/Controllers/FinanceReceiptsController.cs` + `Collection/Dtos/FinanceReceiptDtos.cs` (`GET /receipts/{id}`, `POST /receipts/{id}/allocations`, `POST /receipts/{id}/allocations/{allocationId}/reverse`), plus `FinanceReceiptService.GetByIdAsync` baru untuk melayani endpoint detail. Lihat Pembaruan bagian 7. `GET /receipts` (daftar), `GET /receipts/register`, `GET /receipts/shift-reconciliation`, `POST /receipts` (manual), `POST /receipts/{id}/reverse` (manual) pada `FIN-API-1.0` **tetap belum ada** — service-nya belum dibangun, dicatat sebagai gap terbuka |
 
 ---
 
@@ -227,10 +227,11 @@ Final result: PASS
 
 | Hal | Isi |
 | --- | --- |
-| Peringatan | DoD roadmap "Maker-checker tiga lapis" **berpotensi tidak akurat** untuk alokasi — `state-transition-matrix.md` §2 (kontrak yang sama-sama terkunci) menyatakan alokasi adalah aksi langsung Petugas AR. Bila pemilik repository memang menginginkan maker-checker untuk alokasi juga, itu perubahan kontrak `FIN-STATE-1.0` yang butuh keputusan eksplisit, bukan sesuatu yang dapat diasumsikan dari DoD ringkas roadmap semata |
-| Masalah yang diketahui | Belum ada controller (bagian 1.4) — `AllocateAsync`/`ReverseAllocationAsync` tidak dapat dipanggil dari luar proses sampai task controller dibuat |
+| **Pembaruan 23 September 2026** | `FinanceReceiptsController` dibangun (`Collection/Controllers/`), menutup gap "belum ada controller" — lihat metadata Target tulis dan Status di atas. `AllocateAsync`/`ReverseAllocationAsync` kini dapat diakses HTTP. Cakupan controller sengaja dibatasi ke endpoint yang sudah punya logika service nyata (detail, alokasi, pembalikan alokasi) — `GET /receipts` (daftar), `register`, `shift-reconciliation`, dan `POST /receipts`/`POST /receipts/{id}/reverse` manual pada `FIN-API-1.0` belum punya service, dicatat sebagai gap terbuka baru, bukan dikarang. Status task dinaikkan menjadi ✅ SELESAI |
+| Peringatan | DoD roadmap "Maker-checker tiga lapis" **berpotensi tidak akurat** untuk alokasi — `state-transition-matrix.md` §2 (kontrak yang sama-sama terkunci) menyatakan alokasi adalah aksi langsung Petugas AR. Bila pemilik repository memang menginginkan maker-checker untuk alokasi juga, itu perubahan kontrak `FIN-STATE-1.0` yang butuh keputusan eksplisit, bukan sesuatu yang dapat diasumsikan dari DoD ringkas roadmap semata. **Belum dijawab** — tetap terbuka |
+| Masalah yang diketahui (riwayat, sudah ditutup) | Belum ada controller (bagian 1.4) — `AllocateAsync`/`ReverseAllocationAsync` tidak dapat dipanggil dari luar proses sampai task controller dibuat |
 | Perubahan sampingan | `NONE` |
 | Interupsi | `NONE` pada task ini |
-| Status Git | 2 berkas disunting (`FinanceReceivableService.cs`, `FinanceReceiptService.cs`), nol berkas baru |
-| Langkah berikutnya | (1) `dotnet build` oleh pengguna. (2) **Klarifikasi pemilik repository** atas temuan "Maker-checker tiga lapis" (Peringatan di atas) — apakah DoD roadmap perlu diperbarui atau `FIN-STATE-1.0` perlu diamandemen. (3) Task controller baru (`FinanceReceiptsController`, belum ada task pemilik eksplisit di roadmap manapun) untuk menjadikan `AllocateAsync`/`ReverseAllocationAsync` dapat diakses HTTP — pola yang sama seperti `BE-FIN-009` menyusul `BE-FIN-008`. (4) Otorisasi eksekusi migration `AddFinanceCollection`/`AddBillCollectionPrescriptionHandoff` supaya `UAT-08`..`UAT-12` dapat dibuktikan sungguhan |
+| Status Git | 2 berkas disunting (`FinanceReceivableService.cs`, `FinanceReceiptService.cs`) pada task asli 22 September; `FinanceReceiptService.cs` (`GetByIdAsync`), `Collection/Controllers/FinanceReceiptsController.cs` (baru), `Collection/Dtos/FinanceReceiptDtos.cs` (baru) pada pembaruan 23 September |
+| Langkah berikutnya | (1) **Klarifikasi pemilik repository** atas temuan "Maker-checker tiga lapis" (Peringatan di atas) — masih terbuka. (2) Otorisasi eksekusi migration `AddFinanceCollection`/`AddBillCollectionPrescriptionHandoff`/`FixFinReceiptTenderRequiredForReversal` supaya `UAT-08`..`UAT-12` dapat dibuktikan sungguhan. (3) Task terpisah untuk `GET /receipts` (daftar), `register`, `shift-reconciliation`, dan `POST /receipts`/`{id}/reverse` manual bila dibutuhkan — belum ada task pemiliknya |
 

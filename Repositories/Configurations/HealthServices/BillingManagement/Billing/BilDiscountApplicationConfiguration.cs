@@ -22,6 +22,7 @@ public sealed class BilDiscountApplicationConfiguration : IEntityTypeConfigurati
         entity.Property(x => x.Amount).HasPrecision(18, 2);
         entity.Property(x => x.ApprovalStatus).HasMaxLength(30).IsRequired();
         entity.Property(x => x.Reason).HasMaxLength(500).IsRequired();
+        entity.Property(x => x.DoctorDiscountMemoFile).HasMaxLength(500);
         entity.Property(x => x.CreateDateTime).HasColumnType("timestamp with time zone").HasDefaultValueSql("CURRENT_TIMESTAMP");
         entity.Property(x => x.UpdateDateTime).HasColumnType("timestamp with time zone");
         entity.Property(x => x.DeleteDateTime).HasColumnType("timestamp with time zone");

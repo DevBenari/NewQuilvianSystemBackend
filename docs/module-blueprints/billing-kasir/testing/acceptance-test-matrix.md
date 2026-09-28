@@ -408,3 +408,43 @@ suratnya tidak pernah boleh terpisah nasib.** Itu invariant paling mahal bila di
 kerusakannya baru terlihat saat rekonsiliasi bulanan.
 
 Trace `BKC-DEC-106`–`109`, `BKC-DES-036`–`041`, `PHA-DEC-065`, `PHA-DEC-068`, `PHA-DEC-068-A`.
+
+
+# Amendment 24 September 2026 — Revisi UI Billing (Revisi 1.6, `BIL-TEST-1.5`)
+
+Status: `draft`. Menurunkan langsung dari `BUI-AC-01`–`17` (`00-interview-decisions.md`
+amendment 24 September 2026) plus `BUI-VAL-01`–`07` (`contracts/validation-matrix.md`).
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `BUI-DES-005` | Layar Billing dibuka tanpa filter | Integrasi | Query pertama yang terkirim: `StartDate=EndDate=hari ini, Status=OPEN` — bukan query kosong lalu difilter klien |
+| `BUI-DES-005` | Filter tanggal diterapkan | Integrasi | Hanya invoice pada rentang itu yang tampil, default hari ini tergantikan |
+| `BUI-DES-005` — jalur gagal | Tanggal akhir sebelum tanggal awal | Unit | `BUI-VAL-06` ditolak sebelum request terkirim, pesan menyebut "tanggal akhir tidak boleh sebelum tanggal awal" |
+| `BUI-DES-006` | Seluruh label "Drug" pada layar Billing dan turunannya | Regresi visual/snapshot | Terbaca "Obat / Medicine"; nilai data master obat TIDAK berubah |
+| `BUI-DES-004` | Modal perbandingan asuransi dibuka | Integrasi | Daftar kandidat hanya berisi `PayerType === "INSURANCE"`; `CASH`/`COMPANY_GUARANTOR` tidak muncul di daftar KANDIDAT (tetap muncul sebagai kategori pemilihan) |
+| `CAP-BUI-05` (regresi) | Pasien polis aktif Allianz membuka daftar kandidat | Integrasi | Allianz tidak muncul; provider lain muncul — **memverifikasi ulang** perilaku yang sudah ada, bukan perilaku baru |
+| `BUI-DES-003` | Pasien Allianz, SELURUH item tidak tercover, buka Edit Status Tagihan | Integrasi (backend `BUI-DES-001` + frontend) | Tombol "Pribadi" tersorot sebagai default |
+| `BUI-DES-003` | Pasien Allianz, SELURUH item tercover, buka Edit Status Tagihan | Integrasi | Tombol "Asuransi" tersorot sebagai default |
+| `BUI-DES-001` — **kasus penentu konflik** | Pasien Allianz, SEBAGIAN item tercover (mis. 2 dari 5) | Unit backend | `suggestedBillingStatus == "CASH"` — **ini test yang membuktikan perbaikan `BUI-DEC-014` benar-benar berjalan**, bukan hanya kasus nol/seluruh yang kebetulan sama di kedua aturan |
+| `BUI-DES-003` | Tiga tombol payment method dirender | Visual/snapshot | Tersusun satu baris horizontal, bukan grid 2 kolom `.categorySelector` lama |
+| `BUI-DES-007` | Card Billing/Status Tagihan pada breakpoint mobile, tablet, desktop | Regresi responsif | Tidak ada elemen terpotong/tumpang tindih pada ketiga breakpoint |
+| `BUI-DES-009` | Form Apply Discount tanpa memo diunggah | Unit/integrasi | Tombol submit nonaktif, pesan `BUI-VAL-01` tampil |
+| `BUI-DES-009` — jalur gagal | Memo diunggah lalu dihapus (tombol Hapus) sebelum submit | Integrasi | Tombol submit kembali nonaktif — memverifikasi state tidak "nyangkut" tervalidasi |
+| `BUI-DES-009` | Memo diunggah, form disubmit | Integrasi | `ApplyDiscountRequest.DoctorDiscountMemoFile` terisi nilai bukan null/kosong |
+| `BUI-DES-010`/`011` | Field/card refundable credit lama | Regresi | Tidak tampil di layar mana pun pada modul ini |
+| `BUI-DES-011` | Modal refund, sumber "Billing", dua item dicentang | Integrasi | Total refund = penjumlahan `RefundableAmount` kedua item, dihitung otomatis tanpa input manual; kolom Tanggal terisi dari `TransactionDate` |
+| `BUI-DES-011` — jalur gagal | Modal refund, sumber "Billing", submit tanpa item dicentang | Unit | `BUI-VAL-03` ditolak sebelum request terkirim |
+| `BUI-DES-011` | Modal refund, sumber "Deposito" dipilih | Integrasi | Nominal terisi otomatis sebesar `RemainingDepositAmount`; field tidak dapat diketik manual melebihi itu |
+| `BUI-DES-011` — jalur gagal | Modal refund, sumber "Deposito", sisa deposito Rp 0 | Integrasi | Nominal tampil Rp 0; submit ditolak `BUI-VAL-05` (nominal harus > 0) |
+| `BUI-DES-012` | Halaman Menu Pembayaran setelah amendment | Regresi | Tombol Ajukan Refund/Adjustment/Write-Off **tidak lagi tampil** |
+| `BUI-DES-012` | Halaman Riwayat Pembayaran setelah amendment | Integrasi | Ketiga tombol tampil pada area/kolom Aksi, memicu modal/alur yang sama seperti sebelum dipindah |
+| `BUI-DES-012` — jalur gagal | Kolom "Kwitansi" existing pada Riwayat Pembayaran | Regresi | Perilaku cetak struk tidak berubah sedikit pun setelah kolom Aksi ditambahkan |
+| Pemisahan wewenang (`contracts/permission-audit-matrix.md`) | Peran tanpa butir akses refund mencoba mengklik tombol di lokasi baru | Integrasi | Ditolak — butir akses yang sama persis dengan lokasi lama, bukan wewenang baru yang lebih longgar |
+
+**Cakupan yang sengaja belum diuji pada amendment ini** (`OPEN DECISION`, tidak memblokir
+gelombang lain): skenario Catatan Penting (`BUI-DEC-009`) dan skenario upload memo end-to-end
+lewat endpoint sungguhan (`BUI-DEC-010` — baru bisa diuji setelah `BUI-CQ-06` terjawab dan
+endpoint upload ada; test validasi wajib di atas sudah cukup untuk membuktikan PERILAKU
+FRONTEND tanpa endpoint sungguhan, memakai upload tiruan/mock).
+
+Trace `BUI-DEC-001`–`015`, `BUI-DES-001`–`012`, `BUI-AC-01`–`17`, `BUI-VAL-01`–`07`.

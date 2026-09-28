@@ -166,6 +166,7 @@ jobs:
           path: |
             .github/release/release-metadata.json
             .github/release/version.json
+            .github/release/current-version.json
             version.json
 
   migration-hold:
@@ -234,6 +235,16 @@ jobs:
         run: |
           set -euo pipefail
 
+          # Remove generated runtime manifest from workspace
+          # before switching branches.
+          mkdir -p /tmp/release-artifact
+
+          cp version.json /tmp/release-artifact/version.json
+          cp .github/release/current-version.json /tmp/release-artifact/current-version.json
+
+          rm -f version.json
+          rm -f .github/release/current-version.json
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
@@ -254,6 +265,9 @@ jobs:
 
           git switch -C QuilvianDevDeploy origin/QuilvianDevDeploy
 
+          cp /tmp/release-artifact/version.json version.json
+          cp /tmp/release-artifact/current-version.json .github/release/current-version.json
+
           if ! git merge \
             --no-ff \
             "$CANDIDATE" \
@@ -267,7 +281,9 @@ jobs:
 
           # Validate promoted source before runtime manifest update
           if ! git diff --quiet "$CANDIDATE" HEAD -- \
-            ':!version.json'; then
+            ':!version.json' \
+            ':!.github/workflows/*' \
+            ':!.github/release/current-version.json'; then
             echo "::error::Promotion blocked because resulting DEV source differs from validated Integration candidate."
             exit 1
           fi
@@ -276,6 +292,20 @@ jobs:
 
           echo "promoted_sha=$PROMOTED_SHA" >> "$GITHUB_OUTPUT"
 
+      - name: Update release version state
+        shell: pwsh
+        run: |
+          $version = (
+            Get-Content version.json -Raw |
+            ConvertFrom-Json
+          ).backendVersion
+
+          @{
+            currentVersion = $version
+          } |
+          ConvertTo-Json |
+          Set-Content .github/release/current-version.json
+
       - name: Push promotion to QuilvianDevDeploy
         shell: bash
         run: |
@@ -283,7 +313,7 @@ jobs:
           echo "Preparing runtime version manifest"
           ls -la
           cat version.json
-          git add version.json
+          git add version.json .github/release/current-version.json
           git commit -m "chore: update runtime version manifest" || echo "No version change"
           git push origin HEAD:QuilvianDevDeploy
 

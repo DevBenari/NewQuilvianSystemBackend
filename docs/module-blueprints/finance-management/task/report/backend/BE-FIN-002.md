@@ -17,7 +17,7 @@
 | Model | Claude Sonnet 5 |
 | Commit backend saat dikerjakan | Working tree pada branch `Yasmina`; commit dasar `09101d0581695e20345a9efa8af3fce7c38b1ae4` |
 | Tanggal | 21 September 2026 |
-| Status | 🟡 **SEBAGIAN.** 3 dari 4 entity yang direncanakan data-dictionary dibuat (`MstBankAccount`, `MstCurrency`, `MstExchangeRate`); `MstBank` **tidak dibuat sebagai entity baru** karena sudah ada dan aktif di `Areas/Administrator/MasterData` — direktifkan pemilik repository untuk dipakai ulang apa adanya (21 September 2026). Seluruh acceptance criteria yang berlaku pada permukaan yang tersisa terpenuhi |
+| Status | ✅ **SELESAI 23 September 2026.** 3 dari 4 entity yang direncanakan data-dictionary dibuat (`MstBankAccount`, `MstCurrency`, `MstExchangeRate`); `MstBank` **tidak dibuat sebagai entity baru** karena sudah ada dan aktif di `Areas/Administrator/MasterData` — direktifkan pemilik repository untuk dipakai ulang apa adanya (keputusan 21 September 2026, bukan kekurangan implementasi). `dotnet build` PASS, migration diterapkan ke database, dan endpoint diuji langsung dengan hasil sesuai ekspektasi — dikonfirmasi pengguna 23 September 2026, lihat Pembaruan bagian 7. Seluruh acceptance criteria yang berlaku pada permukaan yang tersisa terpenuhi |
 
 ---
 
@@ -204,6 +204,7 @@ untuk permukaan yang dikerjakan.
 
 | Hal | Isi |
 | --- | --- |
+| **Pembaruan 23 September 2026** | Pengguna mengonfirmasi: `dotnet build` PASS, seluruh migration Finance (termasuk `AddFinanceMasterData`) sudah diterapkan ke database, dan endpoint diuji langsung (Swagger/curl/Postman) dengan hasil sesuai ekspektasi. Baris-baris di bawah (ditulis 21 September 2026) dipertahankan apa adanya sebagai riwayat, tidak dihapus. Status task dinaikkan menjadi ✅ SELESAI |
 | Peringatan | `data-dictionary.md` §6.1/6.2, `erd/cash-and-master-data.md` §2, dan `FIN-SC-006` pada `00-interview-decisions.md` masih menuliskan `MstBank` sebagai data baru milik Finance — **berbeda dari keputusan yang sebenarnya dijalankan** pada task ini. Dokumen blueprint tersebut PERLU diperbarui pemilik blueprint (Yasmin) agar tidak menyesatkan pembaca berikutnya; task ini tidak mengubahnya karena di luar wewenang tulis `BACKEND MODE` |
 | Masalah yang diketahui | `01-existing-capability-map.md` tidak menangkap `MstBank` existing milik Administrator saat audit kapabilitas awal blueprint disusun — gap pada proses capability-audit, dicatat di sini sebagai temuan, bukan diperbaiki sendiri |
 | Risiko tersisa | Rendah. `MstBankAccount.BankId` kini bergantung pada `MstBank` milik Administrator tetap stabil (`OnDelete Restrict` mencegah bank yang sudah dipakai rekening Finance terhapus). Tidak ada risiko duplikasi data |

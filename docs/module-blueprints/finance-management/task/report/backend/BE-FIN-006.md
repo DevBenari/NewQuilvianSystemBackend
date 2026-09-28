@@ -17,7 +17,7 @@
 | Model | Claude Sonnet 5 |
 | Commit backend saat dikerjakan | Working tree pada branch `Yasmina`; commit dasar `09101d0581695e20345a9efa8af3fce7c38b1ae4` |
 | Tanggal | 21 September 2026 |
-| Status | 🟡 **SEBAGIAN — sesuai cakupan roadmap (entity+configuration), pola identik `BE-FIN-002`/`005`.** Invariant nilai piutang seimbang (AC roadmap) sudah terpasang sebagai check constraint database; perilaku state-machine dan penulisan `OutstandingAmount` menunggu `FinanceReceivableService` yang belum ada task pemiliknya (lihat laporan `BE-FIN-005` bagian 1 poin 3) |
+| Status | ✅ **SELESAI 23 September 2026.** Cakupan task ini (entity+configuration) terpenuhi penuh. Invariant nilai piutang seimbang (AC roadmap) terpasang sebagai check constraint database; perilaku state-machine dan penulisan `OutstandingAmount` yang sebelumnya menunggu pemilik task sudah dibangun `BE-FIN-008` (`FinanceReceivableService`). `dotnet build` PASS dan migration diterapkan — dikonfirmasi pengguna 23 September 2026, lihat Pembaruan bagian 7 |
 
 ---
 
@@ -182,6 +182,7 @@ menunggu `FinanceReceivableService` sesuai catatan `BE-FIN-005`.
 
 | Hal | Isi |
 | --- | --- |
+| **Pembaruan 23 September 2026** | Pengguna mengonfirmasi `dotnet build` PASS dan migration sudah diterapkan ke database. Gap `FinanceReceivableService` pada baris Peringatan di bawah sudah ditutup `BE-FIN-008`. Status task dinaikkan menjadi ✅ SELESAI |
 | Peringatan | Gap roadmap `FinanceBillingIntakeService`/`FinanceReceivableService` tanpa task pemilik eksplisit (dilaporkan pertama kali di `BE-FIN-005`) makin relevan sekarang: `BE-FIN-006` menyelesaikan skema piutang, tetapi tidak ada satu pun task berikutnya yang secara eksplisit menyebut `FinanceReceivableService` pada Cakupan-nya kecuali tersirat di `BE-FIN-008` ("Layanan piutang: umur, koreksi, penghapusan") — ini task yang tepat, jadi gap ini **kemungkinan sudah tertutup untuk sisi Receivable** (berbeda dari sisi Billing Intake yang masih terbuka) |
 | Masalah yang diketahui | Dua ambiguitas kontrak dicatat eksplisit pada bagian 3.3 (index kolom vs DDL bernama; nama index `WriteOff` by analogy) |
 | Risiko tersisa | Rendah untuk task ini sendiri (aditif, sudah dicocokkan manual terhadap DDL). Risiko build tetap bertumpuk — lihat tabel Verifikasi; QBE checker sempat timeout pada sesi ini, kemungkinan proses lain berjalan bersamaan |

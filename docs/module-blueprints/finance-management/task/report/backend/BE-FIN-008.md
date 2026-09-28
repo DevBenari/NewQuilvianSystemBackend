@@ -17,7 +17,7 @@
 | Model | Claude Sonnet 5 |
 | Commit backend saat dikerjakan | Working tree pada branch `Yasmina`; commit dasar `09101d0581695e20345a9efa8af3fce7c38b1ae4` |
 | Tanggal | 21 September 2026 |
-| Status | 🟡 **SEBAGIAN.** Seluruh tiga kapabilitas (aging, koreksi, write-off) diimplementasikan mengikuti kontrak yang ada, dengan beberapa titik yang **secara eksplisit diinferensikan** dari invariant matematis (bukan dinyatakan langsung dokumen) — dicatat rinci bagian 1. Belum dapat diuji end-to-end (migration belum jalan) |
+| Status | ✅ **SELESAI 23 September 2026.** Seluruh tiga kapabilitas (aging, koreksi, write-off) diimplementasikan mengikuti kontrak yang ada. `dotnet build` PASS, migration diterapkan, endpoint diuji langsung — dikonfirmasi pengguna 23 September 2026, lihat Pembaruan bagian 7. **Tiga titik inferensi kontrak pada bagian 1 (arah `DEBIT`, penghapusan sebagian, transisi `CANCELLED`) tetap terbuka untuk ratifikasi pemilik blueprint** — bukan blocker penyelesaian task ini, karena logikanya sudah diimplementasikan sesuai bacaan literal kontrak yang ada |
 
 ---
 
@@ -211,6 +211,7 @@ didokumentasikan eksplisit pada bagian 1, bukan diam-diam diasumsikan.
 
 | Hal | Isi |
 | --- | --- |
+| **Pembaruan 23 September 2026** | Pengguna mengonfirmasi `dotnet build` PASS, migration diterapkan ke database, dan endpoint diuji langsung dengan hasil sesuai ekspektasi. Tiga temuan kontrak pada baris Peringatan di bawah tetap terbuka untuk ratifikasi pemilik blueprint — tidak menahan status task ini karena bukan kekurangan source. Status dinaikkan menjadi ✅ SELESAI |
 | Peringatan | (1) Efek `DEBIT` pada koreksi adalah **inferensi matematis**, belum pernah dicontohkan dokumen manapun — perlu ratifikasi eksplisit pemilik blueprint (bagian 1.2). (2) Penghapusan sebagian langsung membuat piutang berstatus `WRITTEN_OFF` walau sisa belum nol — kejanggalan kontrak yang diimplementasikan apa adanya (bagian 1.3), perlu ditinjau ulang. (3) Transisi `CANCELLED` didokumentasikan `state-transition-matrix.md` tetapi tidak diimplementasikan karena nol endpoint/permission untuknya di kontrak terkunci — perlu keputusan pemilik blueprint apakah kontrak API perlu ditambah atau transisi itu dicabut dari `FIN-STATE-1.0` |
 | Masalah yang diketahui | Skema penomoran `AdjustmentNumber`/`WriteOffNumber` sementara (`Guid`-based), menunggu keputusan skema resmi (bagian 1.4) |
 | Risiko tersisa | Sedang — logika sudah ditelaah manual terhadap kontrak, tetapi belum diverifikasi compiler (`dotnet build`) maupun database sungguhan. Tiga temuan kontrak pada bagian 1 berpotensi mengubah perilaku bila pemilik blueprint memutuskan berbeda dari bacaan literal yang dipakai di sini |
