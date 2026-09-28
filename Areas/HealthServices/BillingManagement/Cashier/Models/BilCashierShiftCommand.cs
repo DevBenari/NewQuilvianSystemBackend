@@ -42,6 +42,7 @@ public static class CashierShiftCommandTypes
     public const string HandoverConfirmed = "HANDOVER_CONFIRMED";
     public const string Close = "CLOSE";
     public const string ReviewVariance = "REVIEW_VARIANCE";
+    public const string ResolveFollowUp = "RESOLVE_FOLLOW_UP";
     public const string Reopen = "REOPEN";
     public const string CashReceipt = "CASH_RECEIPT";
 }

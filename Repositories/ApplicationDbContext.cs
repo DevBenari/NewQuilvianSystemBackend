@@ -23,6 +23,7 @@ using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Payable.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.PettyCash.Models;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingEvent.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Models;
@@ -682,6 +683,24 @@ namespace QuilvianSystemBackend.Repositories
         // Migration AddFinanceMedicalServicePayable dibuat tangan, belum dijalankan.
         public DbSet<FinMedicalServicePayable> FinMedicalServicePayables { get; set; }
         public DbSet<FinMedicalServicePayableItem> FinMedicalServicePayableItems { get; set; }
+        // BE-FIN-029, FIN-DES-037, FIN-DEC-045/051: PO, Tanda Terima Barang, Tukar Faktur, dan
+        // Purchasing Invoice — awal siklus Purchasing/AP. Migration AddPurchasingApRumpun
+        // (BE-FIN-031) belum dibuat/dijalankan.
+        public DbSet<FinPurchaseOrder> FinPurchaseOrders { get; set; }
+        public DbSet<FinPurchaseOrderItem> FinPurchaseOrderItems { get; set; }
+        public DbSet<FinGoodsReceipt> FinGoodsReceipts { get; set; }
+        public DbSet<FinGoodsReceiptItem> FinGoodsReceiptItems { get; set; }
+        public DbSet<FinInvoiceExchange> FinInvoiceExchanges { get; set; }
+        public DbSet<FinPurchasingInvoice> FinPurchasingInvoices { get; set; }
+        public DbSet<FinPurchasingInvoiceItem> FinPurchasingInvoiceItems { get; set; }
+        // BE-FIN-030, FIN-DES-038/040/045/046, FIN-DEC-047/057: Retur Pembelian, Deposit Retur, dan
+        // pemakaiannya sebagai sumber dana FinPayment (bentuk REVISI 5, menggantikan rancangan
+        // REVISI 4 yang menunjuk PurchasingInvoiceId). Migration AddPurchasingApRumpun (BE-FIN-031)
+        // belum dibuat/dijalankan.
+        public DbSet<FinSupplierReturn> FinSupplierReturns { get; set; }
+        public DbSet<FinSupplierReturnItem> FinSupplierReturnItems { get; set; }
+        public DbSet<FinSupplierReturnDeposit> FinSupplierReturnDeposits { get; set; }
+        public DbSet<FinSupplierReturnDepositUsage> FinSupplierReturnDepositUsages { get; set; }
         public DbSet<FinPettyCashBudget> FinPettyCashBudgets { get; set; }
         public DbSet<FinPettyCashBudgetMovement> FinPettyCashBudgetMovements { get; set; }
         public DbSet<BilPettyCashVoucher> BilPettyCashVouchers { get; set; }

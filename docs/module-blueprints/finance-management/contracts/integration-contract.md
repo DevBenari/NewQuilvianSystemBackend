@@ -2,12 +2,12 @@
 
 | Field | Nilai |
 |---|---|
-| Contract version | `FIN-INTEGRATION-1.1` |
-| `last_changed_in` | `FIN-INTEGRATION-1.1` — amendment 25 September 2026 |
-| Status | `approved` dan `locked` — revisi 1.1 disetujui dan dikunci owner 25 September 2026 |
+| Contract version | `FIN-INTEGRATION-1.3` |
+| `last_changed_in` | `FIN-INTEGRATION-1.3` — AMENDMENT REVISI 5, 25 September 2026 (bagian 5.9 baru: kode ke-26 s.d. 29; nilai `AP_PAYMENT` dikurangi porsi deposit; bagian 6 dan 7 bertambah). Sebelumnya `1.2` — AMENDMENT REVISI 4 (bagian 5.8, kode ke-25) |
+| Status | `1.2` `approved` dan `locked` 25 September 2026 bersama `FIN-DES-037`..`044`. **Revisi 1.3 (bagian 5.9 dan baris bertanda REVISI 5) disetujui dan dikunci owner 26 September 2026** bersama `FIN-DES-045`..`050` |
 | Owner | Yasmin (Product/Domain Owner Finance) |
 | `approved_by` / `approved_at` | Yasmin / 2026-09-25 |
-| Input revision | `00-interview-decisions.md` — `FIN-DEC-001`..`044` (`FIN-DEC-030`..`044` ditambahkan 25 September 2026) |
+| Input revision | `00-interview-decisions.md` — `FIN-DEC-001`..`056` (`FIN-DEC-045`..`056` ditambahkan 25 September 2026) |
 | Kontrak eksternal yang diikuti | **`ACC-XMOD-0.3`** milik Accounting — naik dari `0.2`, diratifikasi sisi Finance lewat `FIN-DEC-039` |
 | Backend SHA yang diverifikasi | `d6cdfaf9` (impact scan 25 September 2026, `01-existing-capability-map.md` bagian 9.3) |
 | Dampak kompatibilitas | **Satu perubahan perilaku** (penahanan pra-finalisasi dihapus, bagian 5.5) dan **tujuh kode kejadian baru** (bagian 5.4). Sisanya aditif. Tidak ada field yang dihapus maupun diganti nama |
@@ -128,6 +128,17 @@ melahirkan dua kejadian, dan `Id` cukup untuk itu.
 `FinBillingHandoffIntake` yang sudah berdiri (`FIN-DES-008`), dengan penambahan nilai
 `HandoffType` — bukan tabel intake baru. Rinciannya di `02-backend-architecture.md` bagian
 AMENDMENT REVISI 3.
+
+**Keempat fakta ini TIDAK terlihat di layar pemantauan "Surat ke Modul Konsumen" milik
+Billing.** Layar itu (`BilConsumerHandoffService.GetPendingHandoffsAsync`) hanya memantau surat
+yang punya kolom status handoff sendiri (`BilCollectionHandoff`, `BilPrescriptionClearanceHandoff`,
+handoff rawat inap) — sumber yang ditandai `CREATED` lalu diakui `ACKNOWLEDGED` oleh konsumennya.
+`BilDepositMovement`, `BilRefundableCredit`, `BilRefundCase`, dan `BilCashVarianceReview` **tidak
+punya kolom status seperti itu**, dan Finance dilarang menulisnya (`FIN-STATE-1.1` bagian 1: nol
+ACK, status akhir langsung `CONSUMED`). Konsekuensinya: bila sinkronisasi keempat fakta ini macet
+di sisi Finance, layar Billing itu **tidak akan menunjukkan apa pun** — pemantauannya wajib
+dilakukan dari sisi Finance sendiri (rute `FE-FIN-006`, membaca baris `FinBillingHandoffIntake`
+berstatus `NEW`/`ERROR`), bukan dari layar konsumen Billing.
 
 ---
 
@@ -411,6 +422,58 @@ tahu apa yang ditunggu). Keadaan per 24 September 2026 menurut surat Accounting:
 dinyatakan **tidak berlaku** (`FIN-DEC-037`). Finance tidak mengejar tanggal itu dan tidak
 meminta percepatan `G1`–`G3` yang bukan kendali Finance.
 
+### 5.8 Kode ke-25 — PPN Masukan Pembelian (diusulkan, AMENDMENT REVISI 4)
+
+Dipicu rumpun Purchasing/AP baru (`FIN-SC-008`, `FIN-DEC-045`, `FIN-DEC-046`). **Berbeda dari
+tujuh kode bagian 5.4** yang sudah dikirim sebagai koreksi atas kode yang sudah berjalan, kode
+ini diusulkan **sebelum satu baris kode pun ditulis** untuk Purchasing/AP — dikirim lewat
+`evidence/06-usulan-kode-ppn-masukan-untuk-accounting.md`.
+
+| Kode | Dipicu oleh | Lawan jurnal yang diusulkan | Dasar |
+|---|---|---|---|
+| `PPN-MASUKAN-PEMBELIAN` | Purchasing Invoice disetujui, dicatat sebagai utang supplier | Debit PPN Masukan (kredit pajak), Kredit Utang Supplier — bagian PPN dari nilai invoice | `FIN-DEC-046`, `FIN-DEC-053` |
+
+**`Amount` pada kejadian ini adalah nilai PPN-nya saja**, bukan nilai invoice penuh — nilai pokok
+barang/jasa dicatat lewat kejadian pengakuan utang supplier terpisah, yang kodenya **belum
+diusulkan** pada amendment ini (`02-backend-architecture.md` bagian C.11).
+
+**Status per 25 September 2026: diusulkan, belum diratifikasi (`FIN-OQ-020`).** Ini adalah
+**gerbang keras** (`FIN-DEC-046`) — berbeda dari tujuh kode `FIN-OQ-017` yang boleh menunggu
+ratifikasi sambil kodenya tetap dipakai secara terbatas, worker pengiriman untuk
+`PPN-MASUKAN-PEMBELIAN` **MUST NOT** diaktifkan sebelum Accounting meratifikasi. Baris outbox
+tetap ditulis `PENDING` saat Purchasing Invoice disetujui (`state-transition-matrix.md` B.4),
+hanya pengirimannya yang tertahan (`FIN-VAL-122`).
+
+### 5.9 Kode ke-26 s.d. 29 — potongan AR, retur, dan pemakaian deposit (diusulkan, AMENDMENT REVISI 5)
+
+Diputuskan sisi Finance lewat `FIN-DEC-058`, `061`, `062`. Keempatnya diusulkan ke Accounting
+dalam **satu** surat evidence (`FIN-OQ-026`) — surat itu **belum dikirim**.
+
+| # | Kode | Dipicu oleh | `SourceTransactionId` | `Amount` | Lawan jurnal yang diusulkan | Dasar |
+|---|---|---|---|---|---|---|
+| 26 | `POTONGAN-PIUTANG-NON-TUNAI` | Potongan PPh 23/biaya admin bank dicatat bersama alokasi penerimaan | `DeductionNumber` | Nilai potongan | Debit PPh 23 Dibayar di Muka (atau Beban Administrasi Bank), Kredit Piutang — **tidak menyentuh kas** | `FIN-DEC-055`, `058` |
+| 27 | `PEMBALIKAN-POTONGAN-PIUTANG-NON-TUNAI` | Alokasi yang membawa potongan dibalik, manual maupun otomatis (`FIN-DEC-021`) | `DeductionNumber` baris pembalik | Nilai potongan asli, positif | Kebalikan kode 26 | `FIN-DEC-062` |
+| 28 | `RETUR-PEMBELIAN` | Retur pembelian `CONFIRMED` | `ReturnNumber` | Nilai retur | Debit Piutang Retur Supplier, Kredit Persediaan/Pembelian | `FIN-DEC-047`, `061` |
+| 29 | `PEMAKAIAN-DEPOSIT-RETUR` | Pembayaran supplier `PAID` yang memakai Deposit Retur | `PaymentNumber` | `DepositAppliedAmount` | Debit Utang Supplier, Kredit Piutang Retur Supplier — **tidak menyentuh kas** | `FIN-DEC-057`, `061` |
+
+**Satu perubahan pada kejadian yang sudah berjalan.** Kejadian pembayaran utang (`AP_PAYMENT`)
+yang ditulis `FinancePaymentService.MarkPaidAsync` hari ini bernilai `TotalAmount`. Untuk pembayaran
+yang memakai deposit, nilainya **turun menjadi `TotalAmount − DepositAppliedAmount`**; porsi deposit
+pindah ke kode 29. Bila seluruh pembayaran dilunasi deposit, `AP_PAYMENT` **tidak** ditulis sama
+sekali. Pembayaran tanpa deposit: nilainya identik dengan hari ini.
+
+**Contoh berangka.** Pembayaran Rp 10.000.000 ke PT Contoh Farma, Rp 2.500.000 dari Deposit Retur:
+
+| Kode | Nilai | Akibat di buku besar |
+|---|---|---|
+| `AP_PAYMENT` | Rp 7.500.000 | Debit Utang Supplier, Kredit Kas — sama dengan uang yang benar-benar keluar |
+| `PEMAKAIAN-DEPOSIT-RETUR` | Rp 2.500.000 | Debit Utang Supplier, Kredit Piutang Retur Supplier |
+| Jumlah pengurang utang | Rp 10.000.000 | = `TotalAmount` |
+
+**Gerbangnya sama dengan kode 25** (`FIN-DEC-056`): baris outbox keempat kode **ditulis `PENDING`**
+sejak transaksinya terjadi; hanya worker pengirimannya yang **MUST NOT** diaktifkan sebelum
+Rizki meratifikasi (`FIN-VAL-132`).
+
 ---
 
 ## 6. Yang Finance MUST NOT lakukan
@@ -430,12 +493,17 @@ meminta percepatan `G1`–`G3` yang bukan kendali Finance.
 | **Menerbitkan `PEMAKAIAN-UANG-MUKA-DEPOSIT` untuk pengembalian uang, atau sebaliknya** | Lawan jurnalnya berbeda — satu mengurangi piutang, satu mengeluarkan kas (bagian 5.4, revisi 1.1) |
 | **Menghitung kode pembalikan dari status tagihan saat pembalikan terjadi** | Kode pembalikan diturunkan dari kode penerimaan asli (`FIN-DEC-044`) |
 | **Menerbitkan `SELISIH-KAS-SHIFT` sebelum selisihnya disahkan** | Angka sebelum `REVIEWED` belum final; menerbitkannya memaksa jurnal koreksi yang tidak perlu (`FIN-DEC-043`) |
+| **Mengirim kejadian `PPN-MASUKAN-PEMBELIAN` sebelum ratifikasi Accounting** | Gerbang keras `FIN-DEC-046` — berbeda dari kode lain, rumpun Purchasing/AP sengaja tidak boleh mengirim kode ini walau sebagai usulan sepihak (bagian 5.8, AMENDMENT REVISI 4) |
+| **Menulis akun/COA PPN Masukan sendiri** | Wewenang Accounting, bukan Finance (`evidence/06` bagian 3) |
+| **Menulis potongan AR dengan `AR_PAYMENT`, `PENERIMAAN-PIUTANG`, atau `PENYESUAIAN-PIUTANG`** | Potongan tidak membawa kas dan bukan koreksi maker-checker — MUST memakai kode 26/27 (bagian 5.9, AMENDMENT REVISI 5) |
+| **Memasukkan porsi deposit ke `AP_PAYMENT`** | Membukukan kas keluar untuk uang yang tidak pernah bergerak — porsi deposit MUST memakai kode 29 (bagian 5.9) |
 
 ---
 
 ## 7. Ketergantungan yang belum tertutup
 
-**Diperbarui revisi 1.1.** Dua ketergantungan tertutup, empat masih terbuka.
+**Diperbarui revisi 1.1.** Dua ketergantungan tertutup, empat masih terbuka. **AMENDMENT REVISI 4
+menambah satu ketergantungan baru** (baris terakhir).
 
 | Ketergantungan | Pemilik | Keadaan | Dampak bila belum turun |
 |---|---|---|---|
@@ -446,3 +514,5 @@ meminta percepatan `G1`–`G3` yang bukan kendali Finance.
 | **Ratifikasi tujuh kode kejadian baru** | Accounting | Terbuka (`FIN-OQ-017`) — dikirim lewat `evidence/04`, dikoreksi `evidence/05` | Kejadian berjenis belum terdaftar akan dijawab `422` `EVENT_TYPE_NOT_REGISTERED` dan tertahan. **Ini yang menahan implementasi `FIN-DEC-030`** |
 | Mekanisme autentikasi akun layanan | Platform + Accounting | Terbuka (`FIN-OQ-016`) — tiga syarat organisasinya sudah ditetapkan (bagian 5.1) | Pengiriman tidak dapat diaktifkan; gerbang `G3` |
 | Lawan jurnal refund `SETTLEMENT`/`REFERRED_OUTPATIENT_ADMIN` | Yasmin (Finance) | Terbuka (`FIN-OQ-018`) | Tidak menahan apa pun saat ini — sengaja di luar cakupan bagian 2a |
+| **Ratifikasi kode `PPN-MASUKAN-PEMBELIAN`** | Accounting | Terbuka (`FIN-OQ-020`) — diusulkan `evidence/06`, 25 September 2026 | Sejak `FIN-DEC-056` **hanya** menahan aktivasi worker pengiriman kode ini — tidak menahan pembangunan maupun `/plan-module-delivery` |
+| **Ratifikasi kode 26–29** (bagian 5.9) | Accounting | Terbuka (`FIN-OQ-026`) — **surat belum dikirim** | Hanya menahan aktivasi worker pengiriman keempat kode itu (pola `FIN-DEC-056`) |

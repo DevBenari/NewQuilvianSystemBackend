@@ -263,3 +263,179 @@ Dua baris pada bagian 6 di atas mendapat syarat tambahan:
 
 Baris kedua adalah tempat kekeliruan paling mudah terjadi: menandai pembayaran lunas sebesar
 uang yang keluar akan membuat utang jasa tidak pernah mencapai nol.
+
+
+---
+
+# AMENDMENT REVISI 4
+
+| Field | Nilai |
+|---|---|
+| Contract version | `FIN-STATE-1.2` — status `locked` 25 September 2026 (disetujui Yasmin bersama `FIN-DES-037`..`044`) |
+| Tanggal | 25 September 2026 |
+| Keputusan | `FIN-DEC-045`..`055`, `FIN-DES-037`..`044` |
+| Dampak kompatibilitas | **Nol.** Seluruh entity di bawah baru; tidak ada status entity `FIN-STATE-1.1` yang berubah |
+
+## B.1 Purchase Order — `FinPurchaseOrder`
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| — | Buat PO | `DRAFT` | Petugas AP | Minimal satu baris item | `400` |
+| `DRAFT` | Ubah rincian | `DRAFT` | Petugas AP | — | — |
+| `DRAFT` | Ajukan | `PENDING_APPROVAL` | Petugas AP | `ApprovalTier` dihitung dari `TotalAmount` | — |
+| `PENDING_APPROVAL` | Setujui | `APPROVED` | Supervisor/Manajer Finance sesuai `ApprovalTier` | **Penyetuju MUST NOT sama dengan pengaju**; jenjang sesuai ambang Rp 50.000.000 (`FIN-DEC-052`) | `422` |
+| `PENDING_APPROVAL` | Tolak | `REJECTED` | Penyetuju sesuai tier | Alasan wajib | `400` |
+| `APPROVED` | Barang mulai diterima sebagian | `PARTIALLY_RECEIVED` | Sistem | Ada `FinGoodsReceipt` dengan total < seluruh PO | — |
+| `APPROVED` atau `PARTIALLY_RECEIVED` | Seluruh barang diterima | `FULLY_RECEIVED` | Sistem | Jumlah `ReceivedQuantity` = jumlah `Quantity` seluruh baris | — |
+| `FULLY_RECEIVED` | Tutup PO | `CLOSED` | Petugas AP | Seluruh Tukar Faktur turunannya sudah `LINKED_TO_INVOICE` atau `CANCELLED` | — |
+| `DRAFT` atau `PENDING_APPROVAL` | Batalkan | `CANCELLED` | Petugas AP/Penyetuju | Belum ada GR sama sekali | `422` bila sudah ada GR |
+| `PARTIALLY_RECEIVED` atau `FULLY_RECEIVED` | Batalkan | — | — | **Tidak sah.** Barang sudah diterima fisik | `422` |
+| `CLOSED`, `REJECTED`, `CANCELLED` | Apa pun | — | — | **Status akhir** | `422` |
+
+## B.2 Tanda Terima Barang — `FinGoodsReceipt`
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| — | Catat penerimaan terhadap PO `APPROVED`/`PARTIALLY_RECEIVED` | `RECEIVED` | Petugas gudang/AP | PO belum `CLOSED`/`CANCELLED` | `422` |
+| `RECEIVED` | Batalkan | `CANCELLED` | Petugas AP | Belum menjadi Tukar Faktur | `422` bila sudah dirujuk `FinInvoiceExchange` |
+| `CANCELLED` | Apa pun | — | — | **Status akhir** | `422` |
+
+## B.3 Tukar Faktur — `FinInvoiceExchange`
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| — | Catat Tukar Faktur | `RECEIVED` | Petugas AP | PO/GR boleh kosong (`FIN-DEC-051`); `EstimatedDueDate` dihitung sistem | — |
+| `RECEIVED` | Terhubung ke Purchasing Invoice | `LINKED_TO_INVOICE` | Sistem | `FinPurchasingInvoice` berhasil dibuat | Unique constraint `InvoiceExchangeId` mencegah dua invoice untuk satu Tukar Faktur |
+| `RECEIVED` | Batalkan | `CANCELLED` | Petugas AP | Belum terhubung invoice | `422` bila sudah `LINKED_TO_INVOICE` |
+| `LINKED_TO_INVOICE` | Apa pun | — | — | **Status akhir.** Koreksi lewat Purchasing Invoice, bukan Tukar Faktur | `422` |
+| `CANCELLED` | Apa pun | — | — | **Status akhir** | `422` |
+
+## B.4 Purchasing Invoice — `FinPurchasingInvoice`
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| — | Buat dari Tukar Faktur `RECEIVED` | `DRAFT` | Petugas AP | Tukar Faktur belum terpakai | `409` |
+| `DRAFT` | Ubah rincian (PPN, diskon, DP, potongan) | `DRAFT` | Petugas AP | — | — |
+| `DRAFT` | Ajukan | `PENDING_APPROVAL` | Petugas AP | `ApprovalTier` dihitung dari `TotalAmount`, ambang sama dengan PO (`FIN-DEC-052`) | — |
+| `PENDING_APPROVAL` | Setujui | `APPROVED` | Supervisor/Manajer Finance sesuai `ApprovalTier` | **Penyetuju MUST NOT sama dengan pengaju** | `422` |
+| `PENDING_APPROVAL` | Tolak | `REJECTED` | Penyetuju sesuai tier | Alasan wajib | `400` |
+| `APPROVED` | — (efek samping) | — | Sistem | Membuat `FinSupplierPayable` (`FIN-DEC-045`); Tukar Faktur sumber → `LINKED_TO_INVOICE`; baris outbox `PPN-MASUKAN-PEMBELIAN` ditulis `PENDING` (pengiriman tertahan, `FIN-OQ-020`) | Seluruhnya satu transaksi — bila gagal, status tetap `PENDING_APPROVAL` |
+| `DRAFT` atau `PENDING_APPROVAL` | Batalkan | `CANCELLED` | Petugas AP/Penyetuju | — | — |
+| `APPROVED` | Apa pun | — | — | **Status akhir.** Koreksi lewat Retur Pembelian, bukan mengubah invoice | `422` |
+| `REJECTED`, `CANCELLED` | Apa pun | — | — | **Status akhir** | `422` |
+
+## B.5 Retur Pembelian — `FinSupplierReturn`
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| — | Ajukan retur atas invoice `APPROVED` | `DRAFT` | Petugas AP | Minimal satu baris item, alasan wajib | `400` |
+| `DRAFT` | Konfirmasi | `CONFIRMED` | Petugas AP | — | — |
+| `CONFIRMED` | — (efek samping) | — | Sistem | Menerbitkan `FinSupplierReturnDeposit` sebesar `TotalAmount` (`FIN-DEC-047`) | Satu transaksi dengan perubahan status |
+| `DRAFT` | Batalkan | `CANCELLED` | Petugas AP | — | — |
+| `CONFIRMED` | Apa pun | — | — | **Status akhir** | `422` |
+| `CANCELLED` | Apa pun | — | — | **Status akhir** | `422` |
+
+## B.6 Deposit Retur — `FinSupplierReturnDeposit`
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| — | Diterbitkan otomatis saat retur `CONFIRMED` | `AVAILABLE` | Sistem | `AvailableAmount = OriginalAmount` | — |
+| `AVAILABLE` | Pakai sebagian ke Purchasing Invoice lain | `AVAILABLE` | Petugas AP | `UsedAmount` ≤ `AvailableAmount` sisa | `422` bila melebihi sisa |
+| `AVAILABLE` | Pakai sampai habis | `EXHAUSTED` | Petugas AP | `AvailableAmount` menjadi nol | — |
+| `AVAILABLE` | Batalkan (retur sumbernya keliru) | `CANCELLED` | Penyetuju Finance | Belum pernah dipakai sama sekali | `422` bila sudah ada `FinSupplierReturnDepositUsage` |
+| `EXHAUSTED`, `CANCELLED` | Apa pun | — | — | **Status akhir** | `422` |
+
+Tidak ada transisi "pembalikan pemakaian" — bila pemakaian keliru, jalurnya adalah membatalkan
+Purchasing Invoice tujuan (bila masih memungkinkan) dan mencatat pemakaian baru, mengikuti pola
+"tidak pernah menghapus, selalu menambah baris baru" yang berlaku di seluruh blueprint ini.
+
+## B.7 Batch Tagihan AR — `FinReceivableInvoiceBatch`
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| — | Buat batch dari `FinReceivable` terpilih | `DRAFT` | Petugas AR | Setiap `FinReceivable` terpilih belum tergabung batch aktif lain | `409` |
+| `DRAFT` | Ubah anggota (tambah/kurangi) | `DRAFT` | Petugas AR | — | — |
+| `DRAFT` | Terbitkan | `ISSUED` | Petugas AR | Minimal satu anggota | `422` bila kosong |
+| `ISSUED` | Sebagian anggota lunas | `PARTIALLY_PAID` | Sistem | Sebagian `FinReceivable` anggota `SETTLED`, sebagian belum | — |
+| `ISSUED` atau `PARTIALLY_PAID` | Seluruh anggota lunas | `PAID` | Sistem | Seluruh `FinReceivable` anggota `SETTLED` | — |
+| `DRAFT` | Batalkan | `CANCELLED` | Petugas AR | — | Anggotanya bebas digabung batch lain |
+| `ISSUED` | Apa pun selain pelunasan alami | — | — | **Tidak sah.** Anggota yang sudah `ISSUED` terkunci — kekeliruan dibetulkan lewat koreksi `FinReceivable` yang mendasarinya, bukan mengubah batch | `422` |
+| `PAID`, `CANCELLED` | Apa pun | — | — | **Status akhir** | `422` |
+
+**Status `FinReceivableInvoiceBatch` tidak pernah mengubah status `FinReceivable` anggotanya
+secara langsung.** Pelunasan tetap tercatat lewat alokasi penerimaan pada `FinReceivable`
+masing-masing (bagian 2 di atas) — status batch murni **mengikuti/meringkas** status anggotanya,
+bukan sumber kebenaran baru untuk pelunasan.
+
+## B.8 Potongan penerimaan — `FinReceiptDeduction`
+
+Sama seperti `FinPaymentDeduction` (bagian A.2), `FinReceiptDeduction` tidak punya status
+sendiri — hidup mengikuti penerimaan induknya:
+
+| Status `FinReceipt` | Potongan boleh ditambah | Potongan boleh dihapus | Alasan |
+|---|:---:|:---:|---|
+| `RECEIVED` (belum `ALLOCATED` penuh) | Ya | Ya | Masih dalam proses alokasi |
+| `ALLOCATED` | Tidak | Tidak | Alokasi (termasuk efek potongan ke `OutstandingAmount`) sudah final |
+| `RECONCILED` | Tidak | Tidak | Sudah dicocokkan rekening koran |
+| `REVERSED` | Tidak | Tidak | Penerimaannya sendiri sudah dibalik |
+
+Bila potongan keliru setelah penerimaan `ALLOCATED`, jalurnya adalah membalik penerimaan
+(bagian 4) lalu mencatat ulang — **bukan** menghapus baris `FinReceiptDeduction` yang sudah ikut
+mengurangi `OutstandingAmount` piutang.
+
+---
+
+# AMENDMENT REVISI 5
+
+| Field | Nilai |
+|---|---|
+| Contract version | `FIN-STATE-1.3` — status `locked` 26 September 2026 (disetujui Yasmin bersama `FIN-DES-045`..`050`) |
+| Tanggal | 25 September 2026 |
+| Keputusan | `FIN-DEC-057`, `061`, `062`; `FIN-DES-045`..`049` |
+| Menggantikan | B.6 (Deposit Retur) sebagian — pemakaian kini lewat pembayaran, bukan langsung ke Purchasing Invoice. B.8 sebagian — potongan melekat pada alokasi |
+
+## C.1 Baris pemakaian deposit — `FinSupplierReturnDepositUsage`
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| — | Tambah deposit ke pembayaran | `RESERVED` | Petugas AP | Pembayaran `DRAFT`, `PaymentType = SUPPLIER`, deposit milik supplier yang sama, `UsedAmount` ≤ `AvailableAmount` | `422` |
+| `RESERVED` | Lepas oleh petugas | `RELEASED` | Petugas AP | Pembayaran masih `DRAFT` | `422` bila sudah diajukan |
+| `RESERVED` | Pembayaran `REJECTED` atau `CANCELLED` | `RELEASED` | Sistem | Dalam transaksi yang sama dengan perubahan status pembayaran | Transaksi dibatalkan seluruhnya |
+| `RESERVED` | Pembayaran `PAID` | `APPLIED` | Sistem | Dalam transaksi yang sama dengan `MarkPaid` | Idem |
+| `APPLIED` | Apa pun | — | — | **Status akhir.** Pembayaran `PAID` tidak dapat diubah | `422` |
+| `RELEASED` | Apa pun | — | — | **Status akhir.** Pakai lagi = baris baru | `422` |
+
+**Mengapa dicadangkan sejak `DRAFT`** (`FIN-DES-046`): bila saldo baru dikurangi saat `PAID`, dua
+pembayaran `DRAFT` dapat memakai deposit yang sama dan baru bertabrakan setelah keduanya
+disetujui penyetuju — kesalahan yang terlambat ketahuan.
+
+## C.2 Deposit Retur — `FinSupplierReturnDeposit` (menggantikan tiga baris B.6)
+
+| Dari status | Tindakan | Ke status | Siapa yang boleh | Syarat | Bila dilanggar |
+|---|---|---|---|---|---|
+| `AVAILABLE` | Pencadangan menghabiskan saldo | `EXHAUSTED` | Sistem | `AvailableAmount` menjadi 0 | — |
+| `EXHAUSTED` | Baris `RESERVED` dilepas | `AVAILABLE` | Sistem | `AvailableAmount` kembali > 0 | — |
+| `AVAILABLE` | Batalkan | `CANCELLED` | Penyetuju Finance | **Tidak ada** baris `RESERVED` maupun `APPLIED` | `422` |
+
+Transisi `EXHAUSTED → AVAILABLE` **baru** pada revisi ini: sebelumnya `EXHAUSTED` status akhir,
+tetapi pencadangan yang dilepas harus bisa mengembalikan saldo. Deposit yang habis karena baris
+`APPLIED` tetap `EXHAUSTED` selamanya, karena baris `APPLIED` tidak pernah dilepas.
+
+## C.3 Pembayaran keluar — tambahan pada bagian 6
+
+| Dari status | Tindakan | Ke status | Syarat tambahan | Bila dilanggar |
+|---|---|---|---|---|
+| `DRAFT` | Ajukan | `SUBMITTED` | `NetTransferAmount = 0` **diizinkan** bila `DepositAppliedAmount > 0` — pengecualian `FIN-VAL-091` | — |
+| `APPROVED` | Tandai sudah dibayar | `PAID` | Nomor bukti transfer wajib **hanya** bila `NetTransferAmount > 0` | `400` |
+| `SUBMITTED`/`APPROVED` | — | — | Baris deposit **tidak** dapat ditambah atau dilepas | `422` |
+
+## C.4 Potongan penerimaan — menggantikan B.8
+
+`FinReceiptDeduction` tidak punya status; hidupnya mengikuti **baris alokasinya**:
+
+| Kejadian pada alokasi | Efek pada potongannya |
+|---|---|
+| Alokasi dibuat bersama potongan | Potongan tercatat; piutang berkurang sebesar uang + potongan; `POTONGAN-PIUTANG-NON-TUNAI` terbit per potongan |
+| Alokasi dibalik (manual atau otomatis karena tender dibatalkan, `FIN-DEC-021`) | Setiap potongan mendapat baris pembalik; piutang terbuka kembali; `PEMBALIKAN-POTONGAN-PIUTANG-NON-TUNAI` terbit per baris pembalik |
+| Potongan keliru, alokasi masih benar | **Tidak ada transisi sendiri.** Balik alokasinya lalu catat ulang |
+| Potongan yang sudah dibalik dibalik lagi | **Tidak sah** — ditolak unique index `ReversalOfDeductionId` |

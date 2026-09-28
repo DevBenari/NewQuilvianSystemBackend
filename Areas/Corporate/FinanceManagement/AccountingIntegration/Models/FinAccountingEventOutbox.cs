@@ -115,4 +115,10 @@ public static class FinAccountingEventTypeCodes
     public const string PettyCashAdjustment = "PETTY-CASH-ADJUSTMENT";
     public const string PenerimaanKasir = "PENERIMAAN-KASIR";
     public const string PembalikanPenerimaanKasir = "PEMBALIKAN-PENERIMAAN-KASIR";
+
+    // Kode ke-25, diusulkan AMENDMENT REVISI 4 (BE-FIN-034, FIN-DEC-046, integration-contract.md
+    // §5.8, evidence/06). Gerbang keras: worker pengiriman MUST NOT diaktifkan untuk kode ini
+    // sampai Accounting meratifikasi (FIN-OQ-020) — penulisan baris outbox-nya sendiri TIDAK
+    // tertahan (FIN-VAL-122, gerbangnya di level worker, bukan di level penulisan).
+    public const string PpnMasukanPembelian = "PPN-MASUKAN-PEMBELIAN";
 }
