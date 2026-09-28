@@ -201,3 +201,101 @@ erDiagram
 3. **Pembalikan tidak menghapus apa pun.** Baik `FinReceipt` maupun `FinReceiptAllocation`
    menunjuk dirinya sendiri lewat kolom `ReversalOf...`. Baris lama tetap utuh dan tetap
    terbaca; yang baru yang menetralkan (`FIN-DES-012`).
+
+---
+
+# AMENDMENT REVISI 4 — AR Invoice Agregat dan Potongan AR
+
+| Field | Nilai |
+|---|---|
+| Revisi | `4`, 25 September 2026 — status `draft` |
+| Dipicu | `FIN-SC-009`, `FIN-SC-010` (`Keuangan.md`) |
+| Keputusan | `FIN-DEC-048`, `FIN-DEC-049`, `FIN-DEC-055`, `FIN-DES-041`, `FIN-DES-042` |
+
+## D.1 Bentuk sesudah amendment
+
+```mermaid
+erDiagram
+    FinReceivable {
+        uuid Id PK
+        varchar DebtorType
+        uuid DebtorReferenceId
+        numeric OutstandingAmount
+        numeric AllocatedAmount
+    }
+    FinReceivableInvoiceBatch {
+        uuid Id PK
+        varchar BatchNumber UK
+        varchar DebtorType "tetap PAYER pada rilis ini"
+        uuid DebtorReferenceId
+        date PeriodStart
+        date PeriodEnd
+        numeric TotalAmount
+        varchar Status "DRAFT, ISSUED, PARTIALLY_PAID, PAID, CANCELLED"
+        timestamp IssuedAt "nullable"
+        uuid RowVersion
+    }
+    FinReceivableInvoiceBatchItem {
+        uuid Id PK
+        uuid BatchId FK
+        uuid ReceivableId FK "unik selagi batch belum CANCELLED"
+    }
+    FinReceipt {
+        uuid Id PK
+        numeric Amount
+    }
+    FinReceiptAllocation {
+        uuid Id PK
+        uuid ReceiptId FK
+        uuid ReceivableId FK "piutang yang dikurangi"
+        varchar TargetType "hanya RECEIVABLE yang boleh membawa potongan"
+    }
+    FinReceiptDeduction {
+        uuid Id PK
+        varchar DeductionNumber UK "REVISI 5"
+        uuid ReceiptId FK
+        uuid ReceiptAllocationId FK "REVISI 5"
+        varchar DeductionType "PPH23, BANK_ADMIN_FEE, OTHER"
+        numeric Amount "selalu positif"
+        varchar Reason "wajib bila OTHER"
+        varchar ReferenceNumber
+        boolean IsReversal "REVISI 5"
+        uuid ReversalOfDeductionId FK "REVISI 5, unik"
+    }
+
+    FinReceivableInvoiceBatch ||--o{ FinReceivableInvoiceBatchItem : "1:N — Baru"
+    FinReceivable ||--o{ FinReceivableInvoiceBatchItem : "1:N — Baru"
+    FinReceipt ||--o{ FinReceiptAllocation : "1:N — Sudah ada"
+    FinReceiptAllocation ||--o{ FinReceiptDeduction : "1:N — REVISI 5"
+    FinReceiptDeduction |o--o| FinReceiptDeduction : "0:1 — pembalik"
+```
+
+**Diperbarui AMENDMENT REVISI 5 (25 September 2026).** Potongan melekat pada **baris alokasi**,
+bukan hanya pada penerimaan — alokasi itulah yang menyebut piutang mana yang dikurangi
+(`FIN-DES-048`). Potongan dicatat dalam permintaan yang sama dengan alokasinya, dan ikut dibalik
+bila alokasinya dibalik (`FIN-DES-049`). Rincian kolom: `data-dictionary.md` D.3.
+
+## D.2 Status entity sesudah amendment
+
+| Entity | Status | Catatan |
+|---|---|---|
+| `FinReceivableInvoiceBatch` | Baru | Dokumen resmi yang dikirim ke penjamin (`FIN-DEC-048`); **bukan** pengganti `FinReceivable`/`BilInvoice` — lapisan baru di atasnya |
+| `FinReceivableInvoiceBatchItem` | Baru | Kunci pengelompokan memakai `FinReceivable.DebtorType`+`DebtorReferenceId` yang sudah ada, nol kolom baru pada `FinReceivable` |
+| `FinReceiptDeduction` | Baru | Arah berlawanan dari `FinPaymentDeduction` (sisi Payable) — mengurangi `OutstandingAmount` sebagai "pembayaran non-tunai" (`FIN-DEC-055`), bukan entity yang sama |
+
+## D.3 Yang paling mudah salah dibaca
+
+1. **`FinReceivableInvoiceBatch` tidak menggantikan `FinReceivable`.** Batch adalah lapisan
+   penagihan gabungan; `FinReceivable` tetap satuan internal per invoice, dan
+   `BillingCompanyGuarantorInvoiceDocumentService` (Billing, `FIN-CAP-030`) tetap dipakai sebagai
+   rincian baris — dipanggil, bukan disalin ulang logikanya.
+2. **`FinReceiptDeduction.Amount` menambah `AllocatedAmount`, bukan kategori baru.** Supaya
+   invariant `FinReceivable` yang sudah ada
+   (`OriginalAmount = OutstandingAmount + AllocatedAmount + AdjustedAmount + WrittenOffAmount`)
+   tidak perlu diubah bentuknya.
+3. **Ini kebalikan tepat dari `FinPaymentDeduction`.** Di sisi Payable, potongan **tidak**
+   mengurangi utang yang dibayar (`FIN-DES-028`); di sisi Receivable, potongan **mengurangi**
+   piutang. Arah yang tertukar adalah kesalahan paling mahal pada amendment ini.
+
+Rincian kolom penuh dan DDL ada di `data-dictionary.md` AMENDMENT REVISI 4 bagian C.13-C.16,
+dengan `FinReceiptDeduction` **digantikan** bagian D.3 (REVISI 5).

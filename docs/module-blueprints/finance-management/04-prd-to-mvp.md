@@ -7,9 +7,9 @@
 | Produk | Quilvian V2 — Sistem Informasi Rumah Sakit |
 | Modul | Finance Management (`finance-management`), kode modul `FIN` |
 | Blueprint ID | `FIN-BP-001` revisi `1` |
-| Contract version | `FIN-MVP-1.1` |
-| `last_changed_in` | `FIN-MVP-1.1` — AMENDMENT REVISI 3, 25 September 2026 (`EPIC FIN-14` baru, `FR-FIN-076`..`080`, `FR-FIN-074` dicabut, `FR-FIN-034` diperbarui) |
-| Status | `approved` dan `locked` — cakupan MVP dan urutan gelombang disetujui Yasmin 20 September 2026; **revisi 1.1 disetujui dan dikunci Yasmin 25 September 2026** lewat pernyataan "Saya approve semua". Approval dicatat apa adanya, tidak ditetapkan skill |
+| Contract version | `FIN-MVP-1.4` — `locked` 26 September 2026 (revisi 5 disetujui Yasmin bersama `FIN-DES-045`..`050`) |
+| `last_changed_in` | `FIN-MVP-1.4` — 25 September 2026, AMENDMENT REVISI 5: `FR-FIN-085`, `088`, `095` diperbarui; `FR-FIN-096`..`099` baru (`FIN-DEC-057`..`062`). Sebelumnya `FIN-MVP-1.3` — 25 September 2026: (1.2) AMENDMENT REVISI 4 (`EPIC FIN-15`, `FIN-16`, `FIN-17` baru — Purchasing/AP, AR Invoice Agregat, Potongan AR; `FR-FIN-081`..`095`; `EPIC FIN-07` digantikan `EPIC FIN-15`); (1.3) `FIN-DEC-056` mempersempit gerbang `FIN-OQ-020` — `EPIC FIN-15` kini boleh masuk `/plan-module-delivery` tanpa menunggu ratifikasi Accounting, hanya worker pengiriman kode PPN Masukan yang tertahan |
+| Status | `approved` dan `locked` untuk `MVP-0`..`MVP-5` (cakupan disetujui Yasmin 20 September 2026; revisi 1.1 dikunci 25 September 2026). **Bagian AMENDMENT REVISI 4 (`EPIC FIN-15`-`17`, `FIN-MVP-1.3`) disetujui dan dikunci Yasmin 25 September 2026** bersama `FIN-DES-037`..`044`, sebelum `/plan-module-delivery` dijalankan |
 | Penguncian kontrak | Enam kontrak turunan dan dokumen ini dikunci ke `1.0` oleh owner 20 September 2026. Tiga permukaan tetap TIDAK terkunci karena bergantung pihak luar: `BilCollectionHandoff`, perluasan `BilArHandoff` untuk manfaat karyawan, dan pengiriman kejadian ke Accounting |
 | Repository target | `NewQuilvianSystemBackend` (branch `Yasmina`), `QuilvianSystemFrontendDev` |
 | Commit SHA baseline | Backend `09101d05`, Frontend `abed49b03` |
@@ -154,7 +154,7 @@ pengganti berarti membuat pengguna kehilangan pekerjaan yang selama ini bisa dil
 
 | Kemampuan | ID kemampuan asal | Alasan ditunda | Pengganti selama MVP |
 |---|---|---|---|
-| Utang supplier dan pembayarannya | `FIN-CAP-009` | Tidak ada modul Purchasing sama sekali, sehingga tidak ada rantai PO-terima barang-faktur yang dapat divalidasi. Membangunnya lebih dulu berarti membangun jalur input manual yang belum tentu cocok dengan Purchasing nanti | Proses yang berjalan hari ini tetap dipakai — AP memang belum pernah ada di sistem, jadi tidak ada pekerjaan yang hilang. `MstSupplier` yang sudah ada tetap menjadi rujukan |
+| Utang supplier dan pembayarannya, kini siklus Purchasing/AP penuh (`EPIC FIN-15`) | `FIN-CAP-026`..`036` | **Diperbarui 25 September 2026.** Rantai PO-terima barang-faktur **sudah dirancang** (`02-backend-architecture.md` AMENDMENT REVISI 4), sehingga alasan "tidak ada rantai yang dapat divalidasi" sudah tidak berlaku lagi. Yang masih menahan: tetap `POST-MVP` per keputusan wave sebelumnya, belum ada permintaan owner memajukan urutan gelombang. **Gerbang `FIN-OQ-020` sudah dipersempit** (`FIN-DEC-056`) — tidak lagi menahan epic ini masuk `/plan-module-delivery`, hanya menahan aktivasi worker pengiriman kode `PPN-MASUKAN-PEMBELIAN` | Proses yang berjalan hari ini tetap dipakai. Jalur input manual `FinSupplierPayable` tetap ada sebagai fallback permanen (`FIN-DES-040`), bukan hanya sementara |
 | Utang dokter dan pembayaran rekapnya | `FIN-CAP-021` (`Missing`) | **Ketergantungan eksternal keras.** `FinDoctorPayable` memakai `SourceDoctorServiceFeeId` sebagai kunci, dan `DoctorServiceFee` belum ada satu baris pun — modul Medical Fee belum dibangun | Perhitungan dan pembayaran fee dokter tetap berjalan seperti sekarang. Desainnya sudah lengkap dan siap dikerjakan begitu Medical Fee ada |
 | Pengiriman kejadian ke Accounting | `FIN-CAP-018` (`Missing`) | Endpoint penerima di Accounting belum dibangun, diverifikasi langsung ke source | Kejadian tetap **ditulis** ke kotak keluar sejak MVP, sehingga tidak ada satu pun fakta keuangan yang hilang. Begitu endpoint ada, seluruh antrean tinggal dikirim |
 | Saldo subledger per periode | `FIN-CAP-009` | Nama field pesannya belum dikonfirmasi Accounting (`FIN-OQ-011`), dan fiturnya baru berguna setelah pengiriman kejadian aktif | Rekonsiliasi periode dikerjakan manual seperti sekarang |
@@ -373,6 +373,12 @@ dicatat ulang sebagai piutang.
 
 ### EPIC FIN-07 — Utang supplier
 
+**Digantikan `EPIC FIN-15` (AMENDMENT REVISI 4, 25 September 2026).** Audit `Keuangan.md`
+menemukan bahwa "input faktur supplier" yang dibayangkan epic ini sesungguhnya bagian akhir dari
+siklus Purchasing/AP penuh yang sebelumnya tidak diketahui cakupannya (`FIN-DEC-045`). Jalur
+input manual yang epic ini rancang **tetap ada** sebagai fallback (`FIN-DES-040`), tetapi
+desainnya sekarang tercakup di `EPIC FIN-15`, bukan berdiri sendiri di sini.
+
 **Disposisi backend:** `MISSING / NEW` — **ditunda ke `POST-MVP`**, lihat bagian 8.
 
 ### EPIC FIN-08 — Utang jasa tenaga medis
@@ -545,6 +551,155 @@ diverifikasi ulang belum ada pada `d6cdfaf9`) dan mekanisme autentikasi belum fi
 ### EPIC FIN-13 — Penyelarasan frontend kas kecil
 
 **Disposisi backend:** `EXTEND` — **ditunda ke `POST-MVP`**, lihat bagian 8.
+
+### EPIC FIN-15 — Purchasing dan siklus utang supplier penuh *(baru, AMENDMENT REVISI 4)*
+
+**Tujuan.** Menutup rumpun `FIN-SC-008`: Purchase Order sampai Purchasing Invoice tercatat
+sebagai utang supplier, lengkap dengan approval berjenjang, retur pembelian, dan laporan —
+digantikan dari `EPIC FIN-07` yang semula hanya membayangkan input manual.
+
+**Disposisi backend:** `MISSING / NEW` — **ditunda ke `POST-MVP`**, sama seperti pendahulunya.
+
+**Gerbang dipersempit 25 September 2026 (`FIN-DEC-056`).** Semula `FIN-DEC-046` menuntut seluruh
+epic ini menunggu ratifikasi Accounting atas `PPN-MASUKAN-PEMBELIAN` sebelum masuk
+`/plan-module-delivery`. Owner meninjau ulang setelah desain arsitektur selesai dan
+menyimpulkan: baris kejadian PPN Masukan sudah ditulis `PENDING` sejak Purchasing Invoice
+disetujui (`FIN-DES-043`), dan HANYA worker pengirimannya yang tertahan (`FIN-VAL-122`) — pola
+yang **identik** dengan `EPIC FIN-11` yang sudah berjalan penuh di `MVP-0`..`MVP-5` walau
+endpoint penerima Accounting (`FIN-CAP-018`) sendiri belum ada. Alasan tambahan owner: Finance
+adalah **titik asal (upstream)** bagi Accounting, sehingga kesiapan Finance **MUST NOT**
+digantungkan pada kecepatan ratifikasi hilir.
+
+**Akibatnya:** `EPIC FIN-15` — PO, Tanda Terima Barang, Tukar Faktur, Purchasing Invoice, Retur
+Pembelian, Deposit Retur, approval berjenjang, dan seluruh laporan — **boleh** diteruskan penuh
+ke `/plan-module-delivery` **tanpa** menunggu `FIN-OQ-020`. Yang **tetap** tertahan, sempit dan
+eksplisit: **aktivasi worker pengiriman kejadian `PPN-MASUKAN-PEMBELIAN`** ke Accounting saja.
+
+> **`FR-FIN-081` — Approval PO dan Purchasing Invoice berjenjang berdasarkan nominal**
+> **Contoh:** PO senilai Rp 62.000.000 diajukan Petugas AP. Supervisor Finance mencoba
+> menyetujui → ditolak; hanya Manajer Finance yang berhak karena di atas ambang Rp 50.000.000
+> (`FIN-DEC-052`). PO senilai Rp 40.000.000 dapat disetujui Supervisor Finance.
+
+> **`FR-FIN-082` — Tukar Faktur adalah checkpoint dokumen terpisah sebelum nilai final**
+> **Contoh:** barang diterima 1 November (GR dicatat), dokumen faktur fisik dari supplier baru
+> sampai 5 November (Tukar Faktur dicatat saat itu). Estimasi jatuh tempo dihitung otomatis dari
+> TOP supplier (30 hari) terhitung sejak 5 November — **bukan** dari tanggal PO maupun tanggal
+> barang diterima (`FIN-DEC-051`).
+
+> **`FR-FIN-083` — Satu Tukar Faktur menghasilkan tepat satu Purchasing Invoice**
+> **Contoh:** Purchasing Invoice sudah dibuat dari Tukar Faktur `TF-2026-09-00142`. Petugas
+> mencoba membuat invoice kedua dari Tukar Faktur yang sama → ditolak, walau dua permintaan
+> dikirim hampir bersamaan.
+
+> **`FR-FIN-084` — Purchasing Invoice yang disetujui otomatis menjadi utang supplier**
+> **Contoh:** Purchasing Invoice senilai barang Rp 10.000.000 + PPN 11% Rp 1.100.000 disetujui
+> Manajer Finance. Seketika itu juga: `FinSupplierPayable` Rp 11.100.000 tercipta, Tukar Faktur
+> sumbernya terkunci, dan satu baris kejadian akuntansi PPN Masukan Rp 1.100.000 tersimpan
+> berstatus menunggu (belum terkirim — lihat `FR-FIN-087`).
+
+> **`FR-FIN-085` — Retur pembelian menerbitkan kredit yang dapat dipakai lintas invoice**
+> *(contoh diperbarui revisi 5, `FIN-DEC-057`)*
+> **Contoh:** retur senilai Rp 2.000.000 atas Purchasing Invoice A menerbitkan Deposit Retur
+> Rp 2.000.000. Saat petugas menyusun pembayaran untuk utang Purchasing Invoice B (supplier yang
+> sama), ia memilih deposit itu sebagai sumber dana sebesar Rp 1.200.000. Utang B lunas penuh;
+> uang yang ditransfer berkurang Rp 1.200.000; sisa deposit Rp 800.000 tetap tersedia untuk
+> pembayaran berikutnya.
+
+> **`FR-FIN-086` — Jalur input utang supplier manual tetap tersedia**
+> **Contoh:** supplier lama yang belum diajak masuk alur PO tetap dapat dicatat utangnya secara
+> manual seperti sebelumnya. `SourcePurchasingInvoiceId` baris itu kosong — bukan kegagalan,
+> keadaan sah (`FIN-DES-040`).
+
+> **`FR-FIN-087` — Kejadian PPN Masukan tidak terkirim sebelum ratifikasi**
+> **Contoh:** Purchasing Invoice pertama rumpun ini disetujui. Baris kejadian
+> `PPN-MASUKAN-PEMBELIAN` tersimpan di kotak keluar berstatus menunggu, **tidak** ikut terkirim
+> oleh worker walau worker untuk kode lain sudah aktif — sampai Accounting meratifikasi
+> (`evidence/06`, `FIN-OQ-020`).
+
+> **`FR-FIN-088` — Laporan Purchasing/AP tidak punya tabel sendiri**
+> **Contoh:** Rekap, Laporan Tukar Faktur, Laporan Jatuh Tempo, dan Rekonsiliasi Tagihan
+> seluruhnya dihitung langsung dari `FinPurchaseOrder`, `FinInvoiceExchange`, dan
+> `FinPurchasingInvoice` yang sudah ada — tidak ada satu pun tabel laporan baru (`FIN-DES-044`).
+> **Aging AP tidak dibangun ulang** (`FIN-DEC-059`): layar dan endpoint aging utang supplier yang
+> sudah berjalan tetap satu-satunya, dan otomatis memuat utang yang lahir dari Purchasing Invoice.
+
+> **`FR-FIN-096` — Pembayaran boleh dilunasi sebagian atau seluruhnya dari Deposit Retur**
+> *(baru, revisi 5, `FIN-DEC-057`, `061`)*
+> **Contoh:** pembayaran Rp 10.000.000 memakai deposit Rp 2.500.000. Yang ditransfer
+> Rp 7.500.000; kedua utang lunas penuh. Kejadian akuntansi yang terbit: pembayaran utang
+> Rp 7.500.000 dan pemakaian deposit Rp 2.500.000 — **bukan** pembayaran utang Rp 10.000.000.
+> Bila deposit menutup seluruh pembayaran, tidak ada nomor bukti transfer yang diminta.
+
+> **`FR-FIN-097` — Deposit yang sedang dicadangkan tidak dapat dipakai dua kali**
+> *(baru, revisi 5, `FIN-DES-046`)*
+> **Contoh:** dua petugas menyusun dua pembayaran berbeda dan memilih deposit Rp 2.500.000 yang
+> sama, masing-masing penuh. Yang kedua ditolak karena saldo sudah dicadangkan pembayaran
+> pertama. Bila pembayaran pertama kemudian ditolak penyetuju, saldo deposit kembali dan dapat
+> dipakai pembayaran lain.
+
+> **`FR-FIN-098` — Retur pembelian tercatat di buku besar sejak dikonfirmasi**
+> *(baru, revisi 5, `FIN-DEC-061`)*
+> **Contoh:** retur Rp 2.500.000 dikonfirmasi. Satu kejadian `RETUR-PEMBELIAN` Rp 2.500.000
+> tersimpan di kotak keluar, menunggu ratifikasi Accounting (`FIN-OQ-026`).
+
+### EPIC FIN-16 — AR Invoice Agregat ke penjamin *(baru, AMENDMENT REVISI 4)*
+
+**Tujuan.** Menutup rumpun `FIN-SC-009`: menggabungkan banyak piutang atas nama penjamin yang
+sama menjadi satu dokumen tagihan resmi, tanpa mengubah peran `FinReceivable` sebagai satuan
+piutang internal.
+
+**Disposisi backend:** `MISSING / NEW`. Tidak bergantung modul lain — seluruh datanya diambil
+dari `FinReceivable` yang sudah ada di dalam Finance sendiri.
+
+> **`FR-FIN-089` — Batch hanya boleh berisi piutang penjamin yang sama**
+> **Contoh:** petugas mencoba membuat satu batch berisi piutang PT Asuransi A dan PT Asuransi B
+> sekaligus → ditolak. Batch dipisah menjadi dua.
+
+> **`FR-FIN-090` — Piutang tidak boleh tergabung dua batch aktif sekaligus**
+> **Contoh:** piutang `AR-2026-09-00871` sudah masuk Batch `BATCH-2026-09-001` yang masih
+> `DRAFT`. Petugas mencoba memasukkannya ke batch lain → ditolak. Setelah batch pertama
+> dibatalkan, piutang itu bebas digabung batch baru.
+
+> **`FR-FIN-091` — Dokumen batch merujuk dokumen per-invoice yang sudah ada, bukan menyalinnya**
+> **Contoh:** Batch berisi tiga `FinReceivable`. Dokumen gabungannya menampilkan tiga rincian
+> baris, masing-masing diambil langsung dari layanan dokumen per-invoice Billing yang sudah
+> berjalan (`BillingCompanyGuarantorInvoiceDocumentService`) — Finance tidak menyalin ulang
+> nilainya ke tabel sendiri.
+
+> **`FR-FIN-092` — Status batch mengikuti pelunasan anggotanya, bukan sumber kebenaran baru**
+> **Contoh:** dari tiga piutang anggota batch, dua sudah lunas lewat alokasi penerimaan biasa.
+> Status batch otomatis menjadi "sebagian lunas" — tanpa satu pun endpoint batch yang secara
+> langsung mengubah nilai piutang.
+
+### EPIC FIN-17 — Potongan sisi penerimaan piutang *(baru, AMENDMENT REVISI 4)*
+
+**Tujuan.** Menutup rumpun `FIN-SC-010`: PPh 23 dan biaya admin bank yang mengurangi piutang
+sebagai pembayaran non-tunai, arah berlawanan dari potongan sisi pembayaran (`EPIC FIN-09`).
+
+**Disposisi backend:** `MISSING / NEW`. Tidak bergantung modul lain.
+
+> **`FR-FIN-093` — Potongan mengurangi sisa piutang, kebalikan potongan pembayaran**
+> **Contoh:** piutang penjamin Rp 10.000.000 diselesaikan dengan penerimaan tunai Rp 9.770.000
+> ditambah potongan PPh 23 Rp 230.000. Sisa piutang menjadi **nol** — bukan Rp 230.000. Ini
+> kebalikan tepat `FR-FIN-051`: di sana potongan tidak mengurangi utang yang dibayar; di sini
+> potongan justru melunasi piutang.
+
+> **`FR-FIN-094` — Pos lain-lain wajib menyebut alasan**
+> **Contoh:** petugas mencatat potongan jenis "lain-lain" tanpa mengisi alasannya → ditolak.
+
+> **`FR-FIN-095` — Potongan dicatat bersama alokasinya, dan dibetulkan lewat pembalikan alokasi**
+> *(diperbarui revisi 5, `FIN-DES-048`, `049`, `FIN-DEC-062`)*
+> **Contoh:** transfer penjamin Rp 9.745.000 untuk piutang Rp 10.000.000. Dalam **satu** langkah
+> alokasi petugas mencatat uang Rp 9.745.000, PPh 23 Rp 230.000, dan biaya bank Rp 25.000 —
+> piutang lunas. Tidak ada tombol "tambah potongan" sesudahnya. Bila PPh 23 ternyata keliru,
+> alokasinya dibalik (potongannya ikut terbalik, piutang terbuka kembali) lalu dicatat ulang.
+> Bila tender sumbernya dibatalkan Billing, pembalikan yang sama terjadi **otomatis**.
+
+> **`FR-FIN-099` — Potongan tidak pernah tercatat sebagai uang masuk**
+> *(baru, revisi 5, `FIN-DEC-058`, `062`)*
+> **Contoh:** dari contoh di atas, kotak keluar memuat kejadian penerimaan Rp 9.745.000 dan dua
+> kejadian `POTONGAN-PIUTANG-NON-TUNAI` (Rp 230.000 dan Rp 25.000) — **bukan** kejadian penerimaan
+> Rp 10.000.000. Buku besar tidak mencatat kas Rp 255.000 yang tidak pernah diterima.
 
 ## 11. Model status yang diusulkan
 
@@ -836,13 +991,22 @@ Setiap butir dijawab "ya" atau "belum", beserta buktinya.
 | `MVP-3` | `EPIC FIN-06` — alokasi, koreksi, penghapusan | `MVP-2` selesai |
 | `MVP-4` | `EPIC FIN-10` — setoran bank dan kas harian | `MVP-2` selesai |
 | `MVP-5` | `EPIC FIN-11` — kotak keluar kejadian | Dapat berjalan paralel sejak `MVP-1`, tetapi **selesai** setelah `MVP-4` agar seluruh jenis kejadian tercakup |
-| `POST-MVP` | `EPIC FIN-07`, `FIN-09` — utang supplier dan pembayaran | Setelah MVP; tidak menunggu modul lain |
+| `POST-MVP` | `EPIC FIN-15` (menggantikan `FIN-07`), `FIN-09` — Purchasing/AP dan pembayaran | Setelah MVP; **tidak lagi** menunggu ratifikasi `PPN-MASUKAN-PEMBELIAN` (`FIN-DEC-056` mempersempit `FIN-OQ-020`, 25 September 2026) — hanya aktivasi worker pengirimannya yang tertahan, dapat direncanakan terpisah setelah epic ini berjalan |
 | `POST-MVP` | `EPIC FIN-08` — utang dokter | **Menunggu modul Medical Fee dibangun** (`FIN-CAP-021`) |
 | `POST-MVP` | `EPIC FIN-13` — penyelarasan frontend kas kecil | Kapan saja; tidak mengunci apa pun |
+| `POST-MVP` | `EPIC FIN-16` — AR Invoice Agregat *(baru)* | Setelah MVP; tidak menunggu pihak luar — dapat dipercepat bila owner memintanya lebih awal karena datanya sepenuhnya internal Finance |
+| `POST-MVP` | `EPIC FIN-17` — Potongan sisi penerimaan AR *(baru)* | Setelah MVP; tidak menunggu pihak luar |
 
 **Tidak masuk gelombang mana pun:** `EPIC FIN-04` (piutang manfaat karyawan),
-`EPIC FIN-12` (pengiriman ke Accounting), dan **`EPIC FIN-14`** (uang muka, deposit, kelebihan
-bayar, selisih kas — ditambahkan 25 September 2026). Ketiganya berstatus `OPEN DECISION`.
+`EPIC FIN-12` (pengiriman ke Accounting), dan `EPIC FIN-14` (uang muka, deposit, kelebihan
+bayar, selisih kas). Keempatnya berstatus `OPEN DECISION`.
+
+**`EPIC FIN-15`, `FIN-16`, `FIN-17` ditambahkan AMENDMENT REVISI 4 (25 September 2026)** sebagai
+`POST-MVP`, bukan `OPEN DECISION` — keputusan bisnisnya sudah lengkap dan `approved`
+(`FIN-DEC-045`..`055`). **Tidak satu pun dari ketiganya punya gerbang yang menahan masuk
+`/plan-module-delivery`** — gerbang `FIN-OQ-020` yang semula menahan `EPIC FIN-15` sudah
+dipersempit `FIN-DEC-056` (25 September 2026) menjadi hanya menahan aktivasi worker pengiriman
+`PPN-MASUKAN-PEMBELIAN`, bukan epic-nya.
 
 ~~`MVP-2` adalah satu-satunya gelombang yang bergantung pada tim lain.~~ **Diperbarui
 25 September 2026:** `BilCollectionHandoff` **sudah tersedia** dan sudah dikonsumsi Finance
@@ -858,7 +1022,7 @@ hanya verifikasi bahwa bentuk kolomnya cocok dengan yang diminta bagian 2.1
 | ~~Apakah cakupan MVP pada bagian 7 dan 8 disetujui owner?~~ | Yasmin | — | **TERJAWAB 20 September 2026** — cakupan dan urutan gelombang dikunci apa adanya |
 | ~~Apakah owner Billing menyetujui bentuk `BilCollectionHandoff` sesuai `FIN-DEC-005`?~~ | Billing Owner | — | **TERJAWAB 22 September 2026** — tabelnya dibangun (`BKC-DES-037`) dan sudah dikonsumsi `FinanceBillingIntakeService`; diverifikasi impact scan 25 September 2026 (`FIN-CAP-007`) |
 | Apakah owner Billing dan HR menyetujui perluasan `BilArHandoff` untuk manfaat karyawan? | Billing Owner + HR Owner | `EPIC FIN-04` tetap `OPEN DECISION` | Tidak — epic-nya sudah dikeluarkan dari seluruh gelombang |
-| Berapa ambang nominal jenjang persetujuan pembayaran AP? (`FIN-OQ-010`) | Finance Supervisor + Yasmin | `EPIC FIN-09` tidak dapat mengunci aturan validasi angkanya | Tidak — `EPIC FIN-09` sudah `POST-MVP` |
+| ~~Berapa ambang nominal jenjang persetujuan pembayaran AP?~~ (`FIN-OQ-010`) | Yasmin | — | **TERJAWAB 25 September 2026** — Rp 50.000.000, dipakai seragam untuk approval pembayaran (`EPIC FIN-09`) **dan** approval PO/Purchasing Invoice (`FIN-DEC-052`) |
 | ~~Apakah Accounting menyetujui nama field saldo subledger? (`FIN-OQ-011`)~~ | Rizki (Accounting) | — | **TERJAWAB 24-25 September 2026** — Accounting menetapkan bentuknya, Finance menerima (`FIN-DEC-035`) |
 | ~~Apakah Accounting meratifikasi katalog 17 jenis kejadian?~~ | Rizki (Accounting) | — | **TERJAWAB 24 September 2026** — ketujuh belas kode diratifikasi apa adanya (`ACC-DEC-083`, `FIN-DEC-039`) |
 | **Apakah Accounting meratifikasi TUJUH kode kejadian baru?** (`FIN-OQ-017`) | Rizki (Accounting) | `EPIC FIN-14` tetap `OPEN DECISION`; gerbang cutover `G6` tidak tuntas; perubahan `FIN-DEC-030` tidak dapat dieksekusi di source | **Ya, untuk `EPIC FIN-14` dan implementasi `FIN-DEC-030`** — epic-nya sudah dikeluarkan dari seluruh gelombang, jadi tidak memblokir `MVP-0`..`MVP-5` |
@@ -866,6 +1030,8 @@ hanya verifikasi bahwa bentuk kolomnya cocok dengan yang diminta bagian 2.1
 | Bagaimana lawan jurnal refund `SETTLEMENT`/`REFERRED_OUTPATIENT_ADMIN`? (`FIN-OQ-018`) | Yasmin (Finance) | Refund kategori itu tidak diterbitkan sebagai kejadian apa pun | Tidak — sengaja di luar cakupan `EPIC FIN-14` |
 | Kapan endpoint penerima Accounting dibangun? | Rizki (Accounting) | `EPIC FIN-12` tetap `OPEN DECISION` | Tidak — sudah dikeluarkan dari gelombang |
 | Kapan modul Medical Fee dibangun? (`FIN-CAP-021`) | Owner Medical Fee | `EPIC FIN-08` tidak dapat dimulai | Tidak — sudah `POST-MVP` |
+| Apakah Accounting meratifikasi kode `PPN-MASUKAN-PEMBELIAN`? (`FIN-OQ-020`) | Rizki (Accounting) | Worker pengiriman kode ini tetap dimatikan sampai dijawab | **Tidak** — `FIN-DEC-056` (25 September 2026) mempersempit dampaknya murni ke aktivasi worker. `EPIC FIN-15` sendiri sudah boleh diteruskan `/plan-module-delivery` tanpa menunggu jawaban ini |
+| Apakah Accounting meratifikasi kode ke-26 s.d. 29 — potongan AR, pembaliknya, retur, pemakaian deposit? (`FIN-OQ-026`) | Rizki (Accounting) | Worker pengiriman keempat kode itu tetap dimatikan. **Surat belum dikirim** | **Tidak** — pola `FIN-DEC-056`; `EPIC FIN-15`/`FIN-17` tetap boleh dibangun |
 
 **Keadaan pada 20 September 2026 sesudah approval owner:** kedua blocker tingkat dokumen sudah
 tercabut. Yang tersisa hanya satu, dan ia memblokir **satu gelombang saja**:
@@ -894,7 +1060,21 @@ Paket permintaan ke owner Billing sudah dikirim lewat
 `MVP-0` sampai `MVP-5`. `EPIC FIN-04`, `EPIC FIN-12`, dan `EPIC FIN-14` **MUST NOT** masuk
 perencanaan pengiriman sampai keputusan yang menahannya turun.
 
+**Ditambahkan AMENDMENT REVISI 4 (25 September 2026):**
+
+- `EPIC FIN-15`, `FIN-16`, `FIN-17` (Purchasing/AP, AR Invoice Agregat, Potongan AR) ditambahkan
+  berstatus `POST-MVP`, **bukan** `OPEN DECISION` — keputusan bisnisnya sudah `approved` penuh
+  (`FIN-DEC-045`..`055`) dan rancangan teknisnya sudah lengkap
+  (`02-backend-architecture.md` AMENDMENT REVISI 4).
+- ~~`EPIC FIN-15` MUST NOT diteruskan `/plan-module-delivery` sampai `FIN-OQ-020` turun.~~
+  **Dipersempit `FIN-DEC-056`:** `EPIC FIN-15` **boleh** diteruskan `/plan-module-delivery`; yang
+  tetap menunggu `FIN-OQ-020` hanya aktivasi worker pengiriman kode `PPN-MASUKAN-PEMBELIAN`.
+- `EPIC FIN-16` dan `EPIC FIN-17` **boleh** diteruskan `/plan-module-delivery` tanpa gerbang
+  tambahan — keduanya murni internal Finance.
+- Bagian ini (epic, FR, dan perubahan bagian 8 dan 20) **disetujui dan dikunci Yasmin
+  25 September 2026** sebagai `FIN-MVP-1.3`, bersama `FIN-DES-037`..`044`.
+
 ---
 
-**Status dokumen: `draft`.** Approval adalah tindakan manusia dan belum diberikan. Skill tidak
-pernah menandai dokumen ini `approved`.
+**Status dokumen:** `MVP-0`..`MVP-5` dan AMENDMENT REVISI 4 `approved` dan `locked` oleh Yasmin.
+Approval dicatat apa adanya dari pernyataan owner; skill tidak menetapkannya sendiri.

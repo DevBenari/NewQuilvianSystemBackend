@@ -222,3 +222,143 @@ Dua layar menunggu pihak ketiga, bukan menunggu Finance:
 |---|---|
 | Piutang manfaat karyawan | Konfirmasi Billing + HR (`FIN-CQ-03`) |
 | Status kirim nyata ke Accounting | Endpoint Accounting dibangun (`FIN-CAP-018`) |
+
+## 12. Amendment 25 September 2026 — Purchasing/AP, AR Invoice Agregat, Potongan AR
+
+Menambah kebutuhan layar untuk tiga rumpun baru (`FIN-SC-008`, `FIN-SC-009`, `FIN-SC-010`),
+disetujui lewat `FIN-DEC-045`..`055` dan dirancang backend-nya pada `02-backend-architecture.md`
+bagian AMENDMENT REVISI 4. Sama seperti seluruh dokumen ini, bagian ini menetapkan kontrak
+fungsional, bukan tata letak — belum ada UI brief baru yang disetujui untuk rumpun ini.
+
+### 12.1 Layar Purchasing/AP
+
+| Layar | Kebutuhan minimum | Endpoint yang dikonsumsi |
+|---|---|---|
+| Daftar Purchase Order | Cari dan saring menurut supplier, status, rentang tanggal | `GET /purchase-orders` |
+| Buat Purchase Order | Memilih supplier dari master existing, mengisi baris item (kategori, nama, satuan, kuantitas, harga) | `POST /purchase-orders` |
+| Rincian Purchase Order | Menampilkan status, riwayat approval, daftar Tanda Terima Barang terkait | `GET /purchase-orders/{id}` |
+| Ajukan, setujui, tolak PO | Terpisah sesuai hak akses; menampilkan `ApprovalTier` yang dihitung backend, **bukan** dihitung layar | `POST .../submit`, `/approve`, `/reject` |
+| Tanda Terima Barang | Mencatat kuantitas diterima per baris PO, catatan kondisi barang | `POST /goods-receipts` |
+| Daftar Tukar Faktur | Saring menurut supplier dan status | `GET /invoice-exchanges` |
+| Buat Tukar Faktur | Memilih PO/GR (opsional — boleh kosong per `FIN-DEC-051`), mengisi nomor dan tanggal faktur supplier; **estimasi jatuh tempo dihitung backend** dari TOP supplier | `POST /invoice-exchanges` |
+| Daftar Purchasing Invoice | Saring menurut supplier, status, jatuh tempo | `GET /purchasing-invoices` |
+| Buat Purchasing Invoice | Wajib memilih satu Tukar Faktur yang belum terpakai; mengisi PPN, diskon, DP, potongan lain per baris | `POST /purchasing-invoices` |
+| Ajukan, setujui, tolak Purchasing Invoice | Sama seperti PO — `ApprovalTier` dari backend | `POST .../submit`, `/approve`, `/reject` |
+| Retur Pembelian | Memilih Purchasing Invoice sumber, mengisi baris retur dan alasan | `POST /supplier-returns` |
+| Deposit Retur | Menampilkan saldo tersedia per supplier (baca saja). ~~Memilih Purchasing Invoice tujuan saat dipakai~~ — **diganti bagian 13.1**: deposit dipakai di layar pembayaran | `GET /supplier-returns/deposits` |
+| ~~Aging AP (Purchasing)~~ | **Dicabut** (`FIN-DEC-059`) — layar `/finance/ap-aging` yang sudah ada tetap satu-satunya | — |
+| Rekap Purchasing AP | Ringkasan periodik | `GET /purchasing-reports/summary` |
+| Laporan Tukar Faktur | Daftar Tukar Faktur beserta status keterkaitan ke Purchasing Invoice | `GET /purchasing-reports/invoice-exchanges` |
+| Laporan Jatuh Tempo | Purchasing Invoice mendekati/lewat jatuh tempo | `GET /purchasing-reports/due-dates` |
+| Rekonsiliasi Tagihan | Tukar Faktur yang belum menghasilkan Purchasing Invoice | `GET /purchasing-reports/reconciliation` |
+
+Seluruh angka pada delapan layar laporan **MUST NOT** dihitung ulang di frontend — sama seperti
+aturan bagian 6, kelompok umur dan status jatuh tempo diambil apa adanya dari response backend.
+
+### 12.2 Layar AR Invoice Agregat
+
+| Layar | Kebutuhan minimum | Endpoint yang dikonsumsi |
+|---|---|---|
+| Daftar Batch Tagihan | Saring menurut penjamin dan status | `GET /receivable-invoice-batches` |
+| Buat Batch Tagihan | Memilih penjamin dan periode; sistem menampilkan daftar `FinReceivable` yang memenuhi syarat pengelompokan (backend yang menentukan kelayakan, bukan layar) | `POST /receivable-invoice-batches` |
+| Rincian Batch Tagihan | Menampilkan daftar invoice anggota, masing-masing dapat ditelusur ke dokumen per-invoice (`BillingCompanyGuarantorInvoiceDocumentService`) sebagai rincian baris | `GET /receivable-invoice-batches/{id}` |
+| Terbitkan Batch | Mengubah status jadi `Issued`, mengunci daftar anggotanya | `POST .../issue` |
+| Cetak/unduh dokumen Batch | Menggabungkan header batch dengan rincian per-invoice | `GET .../document` |
+
+### 12.3 Layar Potongan AR
+
+Potongan sisi penerimaan (PPh 23, biaya admin bank) **MUST** menyatu dengan layar Alokasi
+Penerimaan yang sudah ada (bagian 3.2), bukan layar terpisah — potongan hanya bermakna dalam
+konteks satu penerimaan yang sedang dialokasikan.
+
+| Layar | Kebutuhan minimum | Endpoint yang dikonsumsi |
+|---|---|---|
+| Alokasi penerimaan (diperbarui) | Baris tambahan opsional untuk mencatat potongan: jenis (PPh 23/biaya admin bank/lain), nominal, alasan. Sisa piutang setelah potongan **MUST** ditampilkan dari response backend, bukan hasil pengurangan di layar | `POST /receipts/{id}/allocations` (payload diperluas). ~~`POST /receipts/{id}/deductions`~~ dicabut — lihat bagian 13.2 |
+
+### 12.4 Aksi per peran (tambahan)
+
+| Peran | Yang dapat dilakukan | Yang **MUST NOT** terlihat |
+|---|---|---|
+| Finance AP Staff | Input PO, Tanda Terima Barang, Tukar Faktur, Purchasing Invoice, Retur Pembelian | Tombol Setujui PO/Purchasing Invoice |
+| Supervisor Finance | Menyetujui PO/Purchasing Invoice di bawah ambang (`FIN-DEC-052`) | Tombol Setujui untuk PO/Purchasing Invoice yang **dia sendiri** ajukan |
+| Manajer Finance | Menyetujui PO/Purchasing Invoice di atas ambang | Sama seperti Supervisor Finance untuk pengajuan sendiri |
+| Finance AR Staff | Membuat dan menerbitkan Batch Tagihan, mencatat potongan AR saat alokasi penerimaan | — |
+
+Checkpoint approval PO/Purchasing Invoice (`FIN-DES-039`) terpisah dari checkpoint approval
+pembayaran (bagian 4 existing) — frontend **MUST** memperlakukannya sebagai dua permohonan
+berbeda meski ambang nominalnya sama, karena aktor dan record persetujuannya berbeda.
+
+### 12.5 Rute (tambahan)
+
+Mengikuti aturan bagian 8 yang sudah ada — seluruh rute baru masuk di bawah `/finance/...` dan
+butir menunya masuk ke group `corporateFinance` yang sudah ada. Tidak ada group menu baru.
+
+### 12.6 Matriks `DEV_DISCRETION` (tambahan)
+
+| Keputusan | Wewenang | Catatan |
+|---|---|---|
+| Tata letak layar Purchasing/AP dan Batch Tagihan | `DEV_DISCRETION` | Mengikuti pola halaman Finance yang sudah ada |
+| Apakah potongan AR memakai baris tambahan pada form alokasi atau modal terpisah | `DEV_DISCRETION` | Yang **MUST** adalah tetap dalam alur satu penerimaan yang sama |
+| Urutan langkah wizard PO → GR → Tukar Faktur → Purchasing Invoice, satu alur atau layar terpisah | `DEV_DISCRETION` | Urutan datanya sendiri **MUST NOT** diubah (`FIN-DEC-051`) |
+
+### 12.7 Ketergantungan pada backend (tambahan)
+
+Seluruh layar bagian 12.1-12.3 menunggu endpoint berlabel **Rencana (belum tersedia)** di
+`contracts/api-contract.md`. Layar Purchasing Invoice khususnya **MUST NOT** menampilkan status
+kirim kejadian akuntansi PPN Masukan sebagai "berhasil" sebelum Accounting meratifikasi kode
+`PPN-MASUKAN-PEMBELIAN` (`FIN-OQ-020`) — layar pemantauan kejadian (bagian 3.5) yang sudah ada
+sudah cukup untuk menampilkan status `PENDING`/`HELD` baris ini, tidak perlu indikator baru.
+
+## 13. Amendment 25 September 2026 (revisi 5) — deposit di layar pembayaran, potongan di form alokasi, label menu
+
+Menindaklanjuti `FIN-DEC-057`..`062` dan `02-backend-architecture.md` AMENDMENT REVISI 5. Seperti
+bagian 12, ini kontrak fungsional, bukan tata letak.
+
+### 13.1 Deposit Retur dipakai di layar Susun Pembayaran
+
+Deposit **tidak lagi** dipakai dari layar Deposit Retur ke sebuah Purchasing Invoice. Ia dipilih
+sebagai **sumber dana** saat petugas AP menyusun pembayaran supplier (layar bagian 3.3
+"Susun pembayaran rekap").
+
+| Kebutuhan minimum | Endpoint yang dikonsumsi |
+|---|---|
+| Saat pembayaran `DRAFT` dan `PaymentType = SUPPLIER`, tampilkan Deposit Retur `AVAILABLE` milik supplier penerima beserta saldonya | `GET /supplier-returns/deposits?supplierId=…` |
+| Tambah deposit sebagai sumber dana; lepas bila keliru | `POST`/`DELETE /payments/{id}/return-deposits` |
+| Tampilkan **empat angka** dari response, tidak dihitung layar: utang yang dilunasi (`totalAmount`), potongan/tambahan, dari deposit (`depositAppliedAmount`), dan yang ditransfer (`netTransferAmount`) | `GET /payments/{id}` |
+| Pembayaran yang seluruhnya dari deposit (`netTransferAmount = 0`) **tidak** meminta nomor bukti transfer saat ditandai dibayar | `POST /payments/{id}/mark-paid` |
+| Riwayat baris deposit yang dilepas tetap terlihat, dengan status `RELEASED` | `GET /payments/{id}/return-deposits` |
+
+**Yang MUST NOT dilakukan layar:** menghitung sendiri sisa deposit sesudah dipilih — dua petugas
+dapat memilih deposit yang sama, dan hanya backend yang tahu siapa yang lebih dulu. Setelah
+`422` saldo kurang, layar MUST memuat ulang daftar deposit.
+
+### 13.2 Potongan AR di dalam form alokasi
+
+Menegaskan bagian 12.3: potongan dicatat **di baris alokasi yang sama**, dan terkirim dalam satu
+permintaan `POST /receipts/{id}/allocations`. Tidak ada tombol "tambah potongan" terpisah
+sesudah alokasi tersimpan.
+
+| Kebutuhan minimum | Catatan |
+|---|---|
+| Baris potongan hanya muncul pada baris alokasi ke **piutang** | Bukan pada alokasi langsung ke tagihan (`INVOICE_DIRECT`) |
+| Satu baris alokasi boleh membawa lebih dari satu potongan | Contoh: PPh 23 **dan** biaya bank |
+| Sisa piutang sesudah uang + potongan diambil dari response | Bantuan tampilan selisih boleh, keputusan diterima/ditolak milik backend |
+| Riwayat penerimaan menampilkan potongan dan pembaliknya | `GET /receipts/{id}/deductions` |
+
+### 13.3 Label menu (`FIN-DEC-060`)
+
+| Butir | Letak | Layar |
+|---|---|---|
+| Submenu **"Pembelian"** | Group `corporateFinance`, sejajar submenu Master Data | Purchase Order, Tanda Terima Barang, Tukar Faktur, **Faktur Pembelian** (Purchasing Invoice), Retur & Deposit Retur, Laporan Pembelian |
+| **"Tagihan Gabungan Penjamin"** | Butir flat, sejajar "Piutang" | Batch Tagihan AR |
+| "Faktur & Tagihan Supplier" | **Tidak berubah** — tetap di tempatnya | Daftar utang supplier (`/finance/payable/invoice`) |
+
+Urutan butir di dalam submenu "Pembelian" dan rute persisnya tetap `DEV_DISCRETION`, mengikuti
+pola `FIN-DEC-024` (`/finance/<capability>`).
+
+### 13.4 Status kirim kejadian
+
+Sama seperti bagian 12.7: layar **MUST NOT** menampilkan kejadian `POTONGAN-PIUTANG-NON-TUNAI`,
+`PEMBALIKAN-POTONGAN-PIUTANG-NON-TUNAI`, `RETUR-PEMBELIAN`, atau `PEMAKAIAN-DEPOSIT-RETUR` sebagai
+"terkirim" sebelum Accounting meratifikasinya (`FIN-OQ-026`). Layar pemantauan bagian 3.5 sudah
+cukup — tidak perlu indikator baru.
