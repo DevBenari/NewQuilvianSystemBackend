@@ -873,7 +873,7 @@ Rp 425.000.000 tetap dikirim sebagai `Amount` `425000000.00`, `AccountingDate` `
 |---|---|---|
 | `BE-ACC-P2-027` | ⛔ menunggu `GATE-FIN-087` | Belum dikerjakan — `READY` (Wave D-1) |
 | `BE-ACC-P2-028` | ⛔ menunggu `027` dan `GATE-FIN-087` | Belum dikerjakan — `READY` sesudah `027` (Wave D-2) |
-| `BE-ACC-P2-014` | ⛔ menunggu `028` | Belum dikerjakan — `READY` sesudah `028` (Wave D-3) |
+| `BE-ACC-P2-014` | ⛔ menunggu `028` | Belum dikerjakan — `READY` sesudah `028` (Wave D-3). **Koreksi pada hari yang sama:** kembali ⛔ — kontrak endpoint sisi subledger belum dirancang dan keputusan T6 terbuka (roadmap backend revisi 5, approved Rizki 28 Sep 2026) |
 
 Tidak satu pun dimulai tanpa perintah Rizki. Migration `027` tetap dibuat dan diterapkan Rizki sendiri.
 
