@@ -588,6 +588,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstPaymentMethod> MstPaymentMethods { get; set; }
         public DbSet<MstPaymentMethodAccount> MstPaymentMethodAccounts { get; set; }
         public DbSet<MstAdministrationFeePolicy> MstAdministrationFeePolicies { get; set; }
+        public DbSet<MstBillingSyncPolicy> MstBillingSyncPolicies { get; set; }
         public DbSet<MstDiscountPolicy> MstDiscountPolicies { get; set; }
         public DbSet<MstTaxRule> MstTaxRules { get; set; }
         public DbSet<MstRoomChargePolicy> MstRoomChargePolicies { get; set; }

@@ -61,4 +61,30 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operation
         [Display(Name = "Outcome Unknown")]
         OutcomeUnknown = 6
     }
+
+    /// <summary>
+    /// Keadaan penerusan satu efek folio ke invoice canonical (<c>RJ-E2E-DEC-003</c>,
+    /// <c>RJ-E2E-DEC-016</c>). Nilai bawaan <see cref="NotApplicable"/> sengaja bernilai nol
+    /// supaya baris yang terbentuk sebelum jembatan ada tidak pernah terbaca sebagai antrean kirim.
+    /// </summary>
+    public enum BillingInvoiceSyncStatus
+    {
+        [Display(Name = "Not Applicable")]
+        NotApplicable = 0,
+
+        [Display(Name = "Pending")]
+        Pending = 1,
+
+        [Display(Name = "Synced")]
+        Synced = 2,
+
+        [Display(Name = "Failed")]
+        Failed = 3,
+
+        [Display(Name = "Reconciliation Required")]
+        ReconciliationRequired = 4,
+
+        [Display(Name = "Resolved")]
+        Resolved = 5
+    }
 }
