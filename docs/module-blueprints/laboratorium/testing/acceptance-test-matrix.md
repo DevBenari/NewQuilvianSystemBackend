@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `10` — amandemen 2026-09-28, tiga laporan operasional (`S16a`) — kontraknya masih `draft`. Sebelumnya `9` — amandemen 2026-09-25 ketiga (penyelesaian order, hasil resmi, label keadaan). Sebelumnya `8` — amandemen 2026-09-25 kedua (`S4d-1`). Sebelumnya `7` — amandemen 2026-09-25 (`S4`). Sebelumnya `6` — amandemen 2026-09-24 |
+| Revision | `10` — amandemen 2026-09-28, tiga laporan operasional (`S16a`) — kontraknya disetujui hari yang sama. Sebelumnya `9` — amandemen 2026-09-25 ketiga (penyelesaian order, hasil resmi, label keadaan). Sebelumnya `8` — amandemen 2026-09-25 kedua (`S4d-1`). Sebelumnya `7` — amandemen 2026-09-25 (`S4`). Sebelumnya `6` — amandemen 2026-09-24 |
 | Status | `draft` |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15`. **Revision 4 menambah amandemen Penerimaan Sampling/Specimen** — lihat bagian 11 |
 | Backend SHA | Revision 1-3: `c87d9c0`. **Revision 4: `466a7127`**, diverifikasi tidak berubah pada `9067fa73` |
@@ -796,7 +796,7 @@ pemeriksaannya dibatalkan.
 | Field | Nilai |
 |---|---|
 | Status | **`draft`** |
-| Kontrak yang diuji | `LAB-API-v1` `r37`, `LAB-VAL-v1` `r15`, `LAB-PERM-v1` revision 12 — **ketiganya masih `draft`** |
+| Kontrak yang diuji | `LAB-API-v1` `r37`, `LAB-VAL-v1` `r15`, `LAB-PERM-v1` revision 12 — **seluruhnya `approved` 2026-09-28** |
 | Rancangan | `02-backend-architecture.md` bagian 23; `03-frontend-architecture.md` amandemen 2026-09-25 (keempat); `04-prd-to-mvp.md` bagian 24 |
 | Keputusan | `LAB-DEC-159`, `LAB-DEC-160`, `LAB-DEC-155`, `LAB-DEC-071`; `INV-55`..`INV-57` |
 | Prasyarat data | `MVP-9b` selesai — `ReleasedAt` (`BE-LAB-70`), penjaga disiplin (`BE-LAB-73`), `BelumSelesai()` mengeluarkan pemeriksaan dirilis (`BE-LAB-77`) |

@@ -1292,9 +1292,9 @@ umumnya.
 
 | Field | Nilai |
 |---|---|
-| Status | **`draft`** |
+| Status | **`draft`** — kontrak dan letak menunya disetujui 2026-09-28 |
 | Slice | `S16a` — tiga laporan |
-| Masukan | decisions rev 81 (`LAB-DEC-159`, `LAB-DEC-160`); `LAB-DA-001` rev 10 bagian A7; `LAB-API-v1` `r37`; `LAB-VAL-v1` `r15`; `LAB-PERM-v1` revision 12 — **kontraknya masih `draft`** |
+| Masukan | decisions rev 81 (`LAB-DEC-159`, `LAB-DEC-160`); `LAB-DA-001` rev 10 bagian A7; `LAB-API-v1` `r37`; `LAB-VAL-v1` `r15`; `LAB-PERM-v1` revision 12 — **ketiganya `approved` 2026-09-28** (Yoga Aji Pratama) |
 | Frontend SHA | **`2083ff36a`** — 38 commit sejak `0bcd15724`, nol berkas Laboratorium |
 | Sifat | **Satu layar baru**, satu route baru |
 
@@ -1348,15 +1348,15 @@ Lokasi mengikuti `rules/frontend/frontend-architecture.md`; **nama berkas `DEV_D
 | `src/components/view/health-services/laboratory-management/lab-operational-reports/` | Baru — komposisi tiga laporan |
 | `src/lib/hooks/health-services/laboratory-management/` hook laporan beserta **berkas aturan murni** | Baru — pemformatan persen, menit, dan keadaan *belum dapat dihitung* sebagai fungsi yang dapat diuji |
 | `src/lib/services/health-services/laboratory-management/lab-operational-report.service.js` | Baru — tiga baca, tiga unduh (`responseType: blob`) |
-| Pendaftaran menu Laboratorium | Diperbarui — satu butir, tampil hanya bagi pemegang `Read` |
+| Pendaftaran menu Laboratorium | Diperbarui — satu butir *Laporan Operasional*, tampil hanya bagi pemegang `Read`, lewat **`requiredPermission: { resource: "LabOperationalReport", action: "Read" }`** yang disaring `filterMenuItemsByPermission` (FE-BD-006, fail-closed). **Bukan** properti `permission: "…:Read"` yang dipakai butir Hemodialisa sejak `2083ff36a..696a906a6` — pada `696a906a6` properti itu **tidak dibaca** fungsi mana pun, sehingga butirnya tetap tampil bagi semua orang (impact scan 2026-09-28) |
 
 ### Wewenang keputusan tampilan
 
 | Hal | Wewenang |
 |---|---|
-| Teks *belum dapat dihitung*, nol angka 0 bagi disiplin tanpa rilis | `ARCH-GAP-LAB-11` — **usulan, disetujui bersama kontrak** |
-| Nol daftar pasien | A7.12 — **usulan, disetujui bersama kontrak** |
-| **Letak menu** — butir baru *Laporan Operasional* pada menu Laboratorium, atau bagian di halaman *Ringkasan Laboratorium* | **Diminta pada persetujuan** — `02-backend-architecture.md` 23.10 butir 8 |
+| Teks *belum dapat dihitung*, nol angka 0 bagi disiplin tanpa rilis | `ARCH-GAP-LAB-11` — ✅ **disetujui 2026-09-28** bersama kontrak (23.10 butir 6) |
+| Nol daftar pasien | A7.12 — ✅ **disetujui 2026-09-28** bersama kontrak (23.10 butir 6) |
+| **Letak menu** | ✅ **Disetujui 2026-09-28** (23.10 butir 8): **butir baru *Laporan Operasional* pada menu Laboratorium**, tampil hanya bagi pemegang `LabOperationalReport : Read`. **Bukan** bagian di halaman *Ringkasan Laboratorium* |
 | Tab, kartu, atau susunan bertumpuk untuk tiga laporan; grafik atau tabel; format menit (*70 menit* atau *1 jam 10 menit*) | `DEV_DISCRETION` |
 
 ### Yang TIDAK dibangun

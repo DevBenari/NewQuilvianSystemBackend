@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-VAL-v1` |
-| Revision | **`15` — `draft`** 2026-09-25, bagian 17 (`VAL-147`..`VAL-149`, periode laporan) — **belum disetujui**. Terakhir `approved`: **`14` — `approved`** 2026-09-25, bagian 16 (`VAL-146`, penjaga penyelesaian order) — disetujui Yoga Aji Pratama. Sebelumnya: **`13` — `approved`** 2026-09-25, bagian 15 (`S4d-1`: `VAL-126` diubah, `VAL-144`, `VAL-145`) — disetujui Yoga Aji Pratama, **termasuk perubahan bunyi `VAL-126`**. Sebelumnya: **`12` — `approved`** 2026-09-25, bagian 14 (`VAL-124`..`VAL-143`, `S4`). Terakhir `approved`: `11` — **`approved`** 2026-09-24, bagian 13. *Baris ini sempat tertinggal di `8` sejak `r9`; dirapikan 2026-09-24* |
+| Revision | **`15` — `approved`** 2026-09-28, bagian 17 (`VAL-147`..`VAL-149`, periode laporan) — disetujui Yoga Aji Pratama, termasuk batas 366 hari. Sebelumnya: **`14` — `approved`** 2026-09-25, bagian 16 (`VAL-146`, penjaga penyelesaian order) — disetujui Yoga Aji Pratama. Sebelumnya: **`13` — `approved`** 2026-09-25, bagian 15 (`S4d-1`: `VAL-126` diubah, `VAL-144`, `VAL-145`) — disetujui Yoga Aji Pratama, **termasuk perubahan bunyi `VAL-126`**. Sebelumnya: **`12` — `approved`** 2026-09-25, bagian 14 (`VAL-124`..`VAL-143`, `S4`). Terakhir `approved`: `11` — **`approved`** 2026-09-24, bagian 13. *Baris ini sempat tertinggal di `8` sejak `r9`; dirapikan 2026-09-24* |
 | `r8` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-18** |
 | Isi amandemen `r8` | **`approved` — 2026-09-18.** Sebelas aturan `VAL-92`..`VAL-102` untuk laporan Patologi Anatomi **per pesanan**, menurunkan `LAB-DEC-085`..`LAB-DEC-088`, `LAB-DEC-091`, dan `LAB-DA-001` rev 7. **Satu aturan DICABUT: `VAL-88`** — ia menuntut tiga nama kolom yang dihardcode (makroskopik, mikroskopik, kesimpulan), sedangkan kewajiban ruas kini **bergantung kategori** dan ditegakkan `VAL-95` terhadap data induk keberlakuan. `VAL-83`, `VAL-84`, dan `VAL-89` **tetap berlaku bagi Mikrobiologi**. **Nol aturan `VAL-01`..`VAL-87` dan `VAL-89`..`VAL-91` berubah.** Disetujui bersama `LAB-API-v1` `r25` dan `LAB-PERM-v1` rev 7 pada hari yang sama. Lihat bagian 10 |
 | `r7` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-18** |
@@ -794,8 +794,8 @@ sehingga **selalu** menahan order lewat aturan yang sama; tidak ada aturan khusu
 |---|---|
 | `contract_version` | `LAB-VAL-v1` |
 | Revision | `r15` |
-| Status | **`draft`** — menunggu persetujuan pemilik modul |
-| `approved_by` / `approved_at` | **belum** |
+| Status | **`approved`** |
+| `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-28 — instruksi *"saya setujui semuanya yaa sebagai pemilik modul lab atas nama yoga aji pratama"*, lihat `LAB-API-v1` `r37` bagian 32 |
 | `input_revision` | decisions rev 81; `LAB-API-v1` `r37`; `02-backend-architecture.md` rev 13 bagian 23 |
 | Sifat | **Tiga aturan baru** pada endpoint baru. Nol aturan lama berubah |
 

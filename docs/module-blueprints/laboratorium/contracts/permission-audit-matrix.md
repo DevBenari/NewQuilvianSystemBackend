@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-PERM-v1` |
-| Revision | **`12` — `draft`** 2026-09-25, bagian 14 (`S16a`: resource `LabOperationalReport`) — **belum disetujui**. Terakhir `approved`: **`11` — `approved`** 2026-09-25, bagian 13 (`S4`: `Validate`, `Release`, `Return`, dua data induk alasan). Terakhir `approved`: `10` — **`approved`** 2026-09-24, bagian 12. *Baris ini sempat tertinggal di `7` sejak revision 8; dirapikan 2026-09-24* |
+| Revision | **`12` — `approved`** 2026-09-28, bagian 14 (`S16a`: resource `LabOperationalReport`) — disetujui Yoga Aji Pratama, termasuk `Export` terpisah dari `Read`. Sebelumnya: **`11` — `approved`** 2026-09-25, bagian 13 (`S4`: `Validate`, `Release`, `Return`, dua data induk alasan). Terakhir `approved`: `10` — **`approved`** 2026-09-24, bagian 12. *Baris ini sempat tertinggal di `7` sejak revision 8; dirapikan 2026-09-24* |
 | Revision 7 approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-18** |
 | Isi amandemen revision 7 | **`approved` — 2026-09-18.** Dua resource baru — `LabPathologyParameter` dan `LabPathologyCategory`, masing-masing `Read`/`Create`/`Update`, **nol `Delete`**; keberlakuan parameter dan pemetaan jenis pemeriksaan ikut `LabPathologyCategory : Update`, bukan resource sendiri. Mengisi, memfinalkan, dan membuka kembali laporan PA **tidak menambah hak akses** — memakai `LabExamination : Update` yang sudah ada. **Satu pemisahan yang disengaja: konteks klinis pesanan memakai `LabOrder : Update`**, sebab penulisnya **dokter pemesan, bukan patolog** (`LAB-DEC-091`, `INV-40`). Lima kejadian audit baru; **`PathologyReport.Reopen` dan `PathologyReport.AmendValue` wajib beralasan**. Membawa **pembatasan logger dan DTO paling ketat pada modul ini**: nol isi parameter, nol diagnosa, nol riwayat penyakit boleh masuk log atau layar non-klinis. Disetujui bersama `LAB-API-v1` `r25` dan `LAB-VAL-v1` `r8` pada hari yang sama. Lihat bagian 9 |
 | Revision 6 approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-18** |
@@ -841,8 +841,8 @@ pemegang `LabExaminationResult : Update` — penyalinan memberikannya kepada ana
 |---|---|
 | `contract_version` | `LAB-PERM-v1` |
 | Revision | **12** |
-| Status | **`draft`** — menunggu persetujuan pemilik modul |
-| `approved_by` / `approved_at` | **belum** |
+| Status | **`approved`** |
+| `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-28 — instruksi *"saya setujui semuanya yaa sebagai pemilik modul lab atas nama yoga aji pratama"*, lihat `LAB-API-v1` `r37` bagian 32 |
 | `input_revision` | decisions rev 81; `LAB-DA-001` rev 10 bagian A7; `LAB-API-v1` `r37`; `02-backend-architecture.md` rev 13 bagian 23 |
 
 ### 14.1 Kenapa amandemen ini ada

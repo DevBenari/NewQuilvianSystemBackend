@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-API-v1` |
-| Revision | **`37` — `draft`** 2026-09-25, bagian 32 (`S16a` tiga laporan operasional) — **belum disetujui**. Terakhir `approved`: **`36` — `approved`** 2026-09-25, bagian 31 (penjaga penyelesaian order, `LAB-DEC-154`) — disetujui Yoga Aji Pratama beserta keempat butir `02-backend-architecture.md` 22.7. Sebelumnya: **`35` — `approved`** 2026-09-25, bagian 30 (`S4d-1` validasi dan rilis Mikrobiologi) — disetujui Yoga Aji Pratama beserta kelima butir `02-backend-architecture.md` 21.10, **termasuk perubahan bunyi `VAL-126`**. Sebelumnya: **`34` — `approved`** 2026-09-25, bagian 29 (`S4` validasi dan rilis Patologi Klinik) — disetujui Yoga Aji Pratama beserta kesepuluh butir `02-backend-architecture.md` 20.10. Terakhir `approved`: `33` — **`approved`** 2026-09-24, bagian 28. *Baris ini sempat tertinggal di `r25` sejak `r26`; dirapikan 2026-09-24* |
+| Revision | **`37` — `approved`** 2026-09-28, bagian 32 (`S16a` tiga laporan operasional) — disetujui Yoga Aji Pratama beserta kedelapan butir `02-backend-architecture.md` 23.10. Sebelumnya: **`36` — `approved`** 2026-09-25, bagian 31 (penjaga penyelesaian order, `LAB-DEC-154`) — disetujui Yoga Aji Pratama beserta keempat butir `02-backend-architecture.md` 22.7. Sebelumnya: **`35` — `approved`** 2026-09-25, bagian 30 (`S4d-1` validasi dan rilis Mikrobiologi) — disetujui Yoga Aji Pratama beserta kelima butir `02-backend-architecture.md` 21.10, **termasuk perubahan bunyi `VAL-126`**. Sebelumnya: **`34` — `approved`** 2026-09-25, bagian 29 (`S4` validasi dan rilis Patologi Klinik) — disetujui Yoga Aji Pratama beserta kesepuluh butir `02-backend-architecture.md` 20.10. Terakhir `approved`: `33` — **`approved`** 2026-09-24, bagian 28. *Baris ini sempat tertinggal di `r25` sejak `r26`; dirapikan 2026-09-24* |
 | `r36` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-25** — termasuk bunyi pesan `409` yang disesuaikan dan `400` → `409` bagi order bukan `InProcess` |
 | `r35` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-25** — termasuk perubahan bunyi `VAL-126` (`LAB-VAL-v1` `r13`) |
 | `r33` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-24** — termasuk pencabutan tiga route Mikrobiologi |
@@ -3522,12 +3522,13 @@ Mikrobiologi `Sementara` berlabel *Menunggu Validasi*.
 
 ## 32. Amandemen `r37` — Tiga laporan operasional (`S16a`), 2026-09-25
 
-> ### ⏳ STATUS: `draft` — menunggu persetujuan pemilik modul
+> ### ✅ STATUS: `approved` — 2026-09-28
 >
 > | Butir | Isi |
 > |---|---|
-> | Status | **`draft`** |
-> | `approved_by` / `approved_at` | **belum** — approval adalah tindakan manusia |
+> | Status | **`approved`** |
+> | `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-28 |
+> | Dasar persetujuan | Instruksi pemilik modul pada sesi 2026-09-28, apa adanya: *"saya setujui semuanya yaa sebagai pemilik modul lab atas nama yoga aji pratama"* — diberikan sesudah ketiga kontrak dan kedelapan butir 23.10 disajikan satu per satu. **Kedelapan butir `02-backend-architecture.md` 23.10 termasuk yang disetujui**, dalam bunyi kolom *Usulan rancangan*: CSV UTF-8 BOM berpemisah titik koma, `Export` terpisah dari `Read`, 366 hari, rincian per jenis pemeriksaan, batas cito saat laporan dibuka, tiga usulan arsitektur, unduhan dicatat, butir menu tersendiri |
 > | `input_revision` | decisions rev 81; `LAB-RCG-001-r11` bagian 0F; `LAB-DA-001` rev 10 bagian A7; `02-backend-architecture.md` rev 13 bagian 23 |
 > | Keputusan | `LAB-DEC-155`, `LAB-DEC-159`, `LAB-DEC-160`, `LAB-DEC-071` |
 > | Kesiapan arsitektur domain | `DOMAIN_ARCHITECTURE_READY` |
@@ -3546,7 +3547,7 @@ memutuskan tiga laporan pertama beserta definisinya (`LAB-DEC-159`) dan pembacan
 ### 32.2 `[Tags("Health Services / Laboratory Management / Lab Operational Report")]`
 
 Base URL: `api/v1/health-services/laboratory-management/lab-operational-reports`
-Contract version: `LAB-API-v1` `r37` — status `draft`
+Contract version: `LAB-API-v1` `r37` — status `approved` 2026-09-28
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 |---|---|---|---|---|---|---|

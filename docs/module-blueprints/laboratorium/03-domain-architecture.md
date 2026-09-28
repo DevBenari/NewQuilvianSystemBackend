@@ -1403,7 +1403,7 @@ adalah data yang diisi admin saat rilis, bukan keputusan arsitektur.
 | Kejadian | Dicatat? | Status |
 |---|---|---|
 | Membuka laporan | Tidak — konvensi proyek tidak mencatat `GET` | `CONFIRMED` |
-| Mengunduh laporan | **Ya** — pelaku, waktu, periode, disiplin | `PROPOSED` (`LAB-RCG-001-r11` 0F.3 dimensi 14) |
+| Mengunduh laporan | **Ya** — pelaku, waktu, periode, disiplin | `PROPOSED` (`LAB-RCG-001-r11` 0F.3 dimensi 14). **✅ Disetujui 2026-09-28** bersama kontrak `EPIC-LAB-17` — `02-backend-architecture.md` 23.10 butir 7 |
 
 ### A7.10 Model integrasi
 
@@ -1418,15 +1418,16 @@ Billing adalah **arti yang berbeda** (A7.2), bukan selisih.
 ### A7.12 Dampak keselamatan klinis
 
 **Non-klinis.** Angka agregat untuk manajemen; tidak ada keputusan klinis yang diambil darinya. Laporan
-**tidak** memuat identitas pasien (`PROPOSED`, 0F.3 dimensi 18).
+**tidak** memuat identitas pasien (`PROPOSED`, 0F.3 dimensi 18). **✅ Disetujui 2026-09-28** bersama
+kontrak `EPIC-LAB-17` — `02-backend-architecture.md` 23.10 butir 6.
 
 ### A7.13 Gap arsitektur
 
 | ID | Isi | Status | Dampak |
 |---|---|---|---|
-| `ARCH-GAP-LAB-11` | **Disiplin tanpa jalur rilis** — Patologi Anatomi sampai `S4e`, Mikrobiologi sampai `MVP-10` dipakai — ditulis ***"belum dapat dihitung"***, bukan angka 0. Tanpa itu, laporan menyatakan *nol pemeriksaan PA* padahal puluhan laporan PA sudah Final | `PROPOSED`, `NON_BLOCKING_STANDARD` | Tampilan |
+| `ARCH-GAP-LAB-11` | **Disiplin tanpa jalur rilis** — Patologi Anatomi sampai `S4e`, Mikrobiologi sampai `MVP-10` dipakai — ditulis ***"belum dapat dihitung"***, bukan angka 0. Tanpa itu, laporan menyatakan *nol pemeriksaan PA* padahal puluhan laporan PA sudah Final | `PROPOSED`, `NON_BLOCKING_STANDARD`. **✅ Ditutup 2026-09-28:** disetujui Yoga Aji Pratama bersama kontrak `EPIC-LAB-17` (`02-backend-architecture.md` 23.10 butir 6) | Tampilan |
 | `ARCH-GAP-LAB-12` | **Koreksi `S6` kelak.** Hasil terkoreksi tetap **satu** pemeriksaan: jumlah dan TAT memakai **rilis pertama**, bukan rilis koreksi — kalau tidak, koreksi memperpanjang TAT dan menggandakan hitungan. Diputuskan saat `S6` dirancang | `PROPOSED`, `NON_BLOCKING_STANDARD` | Tidak ada sampai `S6` |
-| `ARCH-GAP-LAB-13` | **Bentuk sajian TAT:** rata-rata, jumlah pemeriksaan, dan jumlah yang **terlambat**. *Terlambat* hanya bermakna bagi pemeriksaan cito yang batas waktunya diatur (`VAL-39`); rutin tidak punya batas, sehingga tidak ada *terlambat* rutin | `PROPOSED`, `NON_BLOCKING_STANDARD` | Tampilan |
+| `ARCH-GAP-LAB-13` | **Bentuk sajian TAT:** rata-rata, jumlah pemeriksaan, dan jumlah yang **terlambat**. *Terlambat* hanya bermakna bagi pemeriksaan cito yang batas waktunya diatur (`VAL-39`); rutin tidak punya batas, sehingga tidak ada *terlambat* rutin | `PROPOSED`, `NON_BLOCKING_STANDARD`. **✅ Ditutup 2026-09-28:** disetujui Yoga Aji Pratama bersama kontrak `EPIC-LAB-17` (`02-backend-architecture.md` 23.10 butir 6) | Tampilan |
 
 **Nol gap `BLOCKING`.**
 
@@ -1449,7 +1450,7 @@ Anatomi bergantung `MVP-10` dan `S4e`.
 | Snapshot | BE `84383f64`, FE `2083ff36a`; decisions rev 81; capability map rev 6 |
 | Konsep | `LAB-DC-059`..`LAB-DC-062` — **nol tabel baru** |
 | Invariant | `INV-55`, `INV-56`, `INV-57` |
-| Usulan yang wajib tetap ditandai usulan | `ARCH-GAP-LAB-11`..`13`; audit unduhan (A7.9); tanpa identitas pasien (A7.12) |
+| Usulan yang wajib tetap ditandai usulan | `ARCH-GAP-LAB-11`..`13`; audit unduhan (A7.9); tanpa identitas pasien (A7.12). **Sejak 2026-09-28 tinggal `ARCH-GAP-LAB-12`** — keempat lainnya disetujui bersama kontrak `EPIC-LAB-17` (penunjuk ditambahkan; revision tetap 10) |
 | Yang wajib dipakai ulang | `LabQueryDateRange` dan `AppDateTimeHelper` untuk periode; titik mulai `ChargeEligibleAt` yang **sama** dengan daftar pantau cito |
 | Yang **tidak boleh** muncul | Ringkasan tersimpan; rumus TAT kedua; daftar pasien pada laporan; baca data Billing, Registrasi, atau diagnosis |
 

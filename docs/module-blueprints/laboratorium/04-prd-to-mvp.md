@@ -5,7 +5,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `11` — bagian 24, `EPIC-LAB-17` tiga laporan operasional (`S16a`), 2026-09-28 — kontrak `r37`/`r15`/revision 12 masih **`draft`**. Sebelumnya `10` — bagian 23, penyelesaian order, hasil resmi, dan label keadaan (`LAB-DEC-154`..`LAB-DEC-156`), 2026-09-25 — kontrak `r36`/`r14`/`r7` disetujui hari yang sama. Sebelumnya `9` — bagian 22, `EPIC-LAB-16` validasi dan rilis Mikrobiologi, 2026-09-25 — kontraknya disetujui hari yang sama. Sebelumnya `8` — bagian 21, `EPIC-LAB-15` validasi dan rilis Patologi Klinik, 2026-09-25 — kontraknya disetujui hari yang sama. Sebelumnya `7` — bagian 20, `EPIC-LAB-14`, 2026-09-24 |
+| Revision | `11` — bagian 24, `EPIC-LAB-17` tiga laporan operasional (`S16a`), 2026-09-28 — kontrak `r37`/`r15`/revision 12 disetujui hari yang sama. Sebelumnya `10` — bagian 23, penyelesaian order, hasil resmi, dan label keadaan (`LAB-DEC-154`..`LAB-DEC-156`), 2026-09-25 — kontrak `r36`/`r14`/`r7` disetujui hari yang sama. Sebelumnya `9` — bagian 22, `EPIC-LAB-16` validasi dan rilis Mikrobiologi, 2026-09-25 — kontraknya disetujui hari yang sama. Sebelumnya `8` — bagian 21, `EPIC-LAB-15` validasi dan rilis Patologi Klinik, 2026-09-25 — kontraknya disetujui hari yang sama. Sebelumnya `7` — bagian 20, `EPIC-LAB-14`, 2026-09-24 |
 | Status | `draft` |
 | Scope tambahan revision 4 | **`EPIC-LAB-11` Penerimaan Sampling/Specimen** dan gelombang `MVP-5` — lihat bagian 16 |
 | Scope tambahan revision 5 | **`EPIC-LAB-12` Konfirmasi Pesanan dan Pembatalan Beralasan** dan gelombang `MVP-5c` — lihat bagian 17. Ditambahkan 2026-09-15 dari rekonsiliasi bukti putaran 2 |
@@ -1388,8 +1388,8 @@ Kalium muncul di antrean dokter.
 
 Menurunkan `02-backend-architecture.md` rev 13 bagian 23, `03-frontend-architecture.md` rev 13
 amandemen 2026-09-25 (keempat), `erd/data-dictionary.md` rev 8 bagian 19, dan usulan kontrak
-`LAB-API-v1` `r37`, `LAB-VAL-v1` `r15`, serta `LAB-PERM-v1` revision 12 — **ketiganya masih
-`draft`** (24.7). `LAB-STATE-v1` `r7` dan `LAB-INT-v1` `r5` berlaku apa adanya: laporan tidak punya
+`LAB-API-v1` `r37`, `LAB-VAL-v1` `r15`, serta `LAB-PERM-v1` revision 12 — **ketiganya disetujui
+2026-09-28** (24.7). `LAB-STATE-v1` `r7` dan `LAB-INT-v1` `r5` berlaku apa adanya: laporan tidak punya
 status dan tidak punya integrasi. Arsitektur domain `LAB-DA-001` rev 10 bagian A7; decisions rev 81.
 
 **Seluruh yang disebut di bawah sudah tercatat pada dokumen itu. Nol konsep tersimpan, nol tabel,
@@ -1451,7 +1451,7 @@ fakta yang dibacanya:
 | `FR-17.7` | Laporan dibuka lewat `LabOperationalReport : Read`; unduhan lewat `Export` yang **terpisah**; hak baca daftar Laboratorium tidak membukanya | `AC-253`; `LAB-PERM-v1` revision 12 | `MISSING / NEW` — izin unduh terpisah **disetujui bersama kontrak** (23.10 butir 2) |
 | `FR-17.8` | Unduhan CSV (UTF-8 BOM, pemisah titik koma, desimal koma) dicatat — jenis laporan, periode, disiplin, jumlah baris, pelaku; **nol** data pasien di payload | `LabOperationalReport.Export`; A7.9 | `MISSING / NEW` — format dan pencatatan **disetujui bersama kontrak** (23.10 butir 1 dan 7) |
 | `FR-17.9` | Laporan tidak memuat identitas pasien, nilai hasil, maupun nama petugas | A7.12; 23.11 | `MISSING / NEW` — usulan, **disetujui bersama kontrak** |
-| `FR-17.10` | Layar laporan: penyaring periode dan disiplin, tiga laporan, tombol unduh hanya bagi pemegang `Export`, keadaan memuat/kosong/galat per laporan | `03-frontend-architecture.md` amandemen keempat | `MISSING / NEW` — **letak menu diminta pada persetujuan** (23.10 butir 8) |
+| `FR-17.10` | Layar laporan: penyaring periode dan disiplin, tiga laporan, tombol unduh hanya bagi pemegang `Export`, keadaan memuat/kosong/galat per laporan | `03-frontend-architecture.md` amandemen keempat | `MISSING / NEW` — letak menu **disetujui 2026-09-28**: butir *Laporan Operasional* pada menu Laboratorium (23.10 butir 8) |
 
 ### 24.4 Skenario UAT
 
@@ -1501,8 +1501,8 @@ puluhan laporan PA sudah Final → baris PA menulis *"Rilis hasil Patologi Anato
 
 | Gelombang | Isi | Prasyarat |
 |---|---|---|
-| **`MVP-11a`** | Backend: pemindahan `LabCitoTurnaroundPolicy` dan `LabReleasableDisciplines` **lebih dulu dan tersendiri** (bukti nol perubahan perilaku), lalu index, service, controller, DTO, penulis CSV, izin | **`MVP-9b` selesai** — `ReleasedAt` (`BE-LAB-70`), penjaga disiplin (`BE-LAB-73`), dan `BelumSelesai()` yang mengeluarkan pemeriksaan dirilis dari daftar pantau (`BE-LAB-77`) harus sudah ada; kontrak `EPIC-LAB-17` disetujui |
-| **`MVP-11b`** | Frontend: layar laporan dan butir menu | `MVP-11a`; butir 8 23.10 diputuskan |
+| **`MVP-11a`** | Backend: pemindahan `LabCitoTurnaroundPolicy` dan `LabReleasableDisciplines` **lebih dulu dan tersendiri** (bukti nol perubahan perilaku), lalu index, service, controller, DTO, penulis CSV, izin | **`MVP-9b` selesai** — `ReleasedAt` (`BE-LAB-70`), penjaga disiplin (`BE-LAB-73`), dan `BelumSelesai()` yang mengeluarkan pemeriksaan dirilis dari daftar pantau (`BE-LAB-77`) harus sudah ada; ✅ kontrak `EPIC-LAB-17` disetujui 2026-09-28 |
+| **`MVP-11b`** | Frontend: layar laporan dan butir menu *Laporan Operasional* pada menu Laboratorium | `MVP-11a`; ✅ letak menu diputuskan 2026-09-28 (23.10 butir 8) |
 | **`MVP-11c`** | Langkah rilis: kebijakan izin bagi kepala instalasi dan jabatan manajemen | `MVP-11a` terdeploy; admin menetapkan jabatan *manajemen* |
 | **`POST-MVP`** | `S16b`; aturan hitung sesudah koreksi (`ARCH-GAP-LAB-12`, bersama `S6`); angka PA (bersama `S4e`) | `DEC-LAB-025`, `S6`, `DEC-LAB-021` |
 
@@ -1526,11 +1526,19 @@ tercatat sejak `S2`.
 
 | Pertanyaan | Memblokir? | Pemilik |
 |---|---|---|
-| **Persetujuan `r37`, `r15`, revision 12 beserta kedelapan butir 23.10** — format CSV, izin unduh terpisah, 366 hari, rincian per jenis pemeriksaan, batas cito saat ini, tiga usulan arsitektur, pencatatan unduhan, letak menu | **Ya** — epic ini **tidak boleh** diteruskan ke `/plan-module-delivery` sebelum disetujui | Yoga Aji Pratama |
+| ~~**Persetujuan `r37`, `r15`, revision 12 beserta kedelapan butir 23.10**~~ — format CSV, izin unduh terpisah, 366 hari, rincian per jenis pemeriksaan, batas cito saat ini, tiga usulan arsitektur, pencatatan unduhan, letak menu | ✅ **Tertutup 2026-09-28** — disetujui seluruhnya dalam bunyi usulannya | Yoga Aji Pratama |
 | Jabatan mana yang termasuk *manajemen* | **Tidak** untuk pengembangan; **ya** untuk `MVP-11c` — data yang diisi admin, bukan keputusan arsitektur (A7.8) | Admin + Yoga Aji Pratama |
 | `ARCH-GAP-LAB-12` — koreksi `S6` memakai rilis pertama | **Tidak** — tidak berlaku sampai `S6` dirancang | Yoga Aji Pratama, saat `S6` |
 
-> ### ⏳ Gerbang perencanaan `EPIC-LAB-17` masih tertutup
+> ### ✅ Gerbang perencanaan `EPIC-LAB-17` terbuka — 2026-09-28
 >
-> Ketiga kontrak masih **`draft`**. Approval adalah tindakan pemilik modul; dokumen ini tidak
-> menggantikannya.
+> `LAB-API-v1` `r37`, `LAB-VAL-v1` `r15`, dan `LAB-PERM-v1` revision 12 **disetujui** Yoga Aji
+> Pratama selaku pemilik modul pada 2026-09-28, beserta kedelapan butir `02-backend-architecture.md`
+> 23.10, lewat instruksi *"saya setujui semuanya yaa sebagai pemilik modul lab atas nama yoga aji
+> pratama"*. **`EPIC-LAB-17` boleh diteruskan ke `/plan-module-delivery`** untuk `MVP-11a`..`MVP-11c`
+> — roadmap disusun hari yang sama: `BE-LAB-82`..`BE-LAB-86` (`backend-roadmap.md` bagian 6an),
+> `FE-LAB-44`..`FE-LAB-45` (`frontend-roadmap.md` gelombang `MVP-11`), langkah rilis `MVP-11c` (6an.7).
+>
+> **Prasyarat pengerjaan tetap berlaku:** `MVP-11a` baru boleh dikerjakan sesudah **`MVP-9b` selesai**
+> (`BE-LAB-70`, `BE-LAB-73`, `BE-LAB-77`). **Yang tetap tertahan — rilis, bukan pengembangan:**
+> `MVP-11c` menunggu admin menetapkan jabatan *manajemen*.

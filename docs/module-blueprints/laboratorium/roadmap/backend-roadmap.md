@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | `blueprint_id` | `LAB-BP-001` |
-| Roadmap revision | `67` — `r36`/`r14`/`r7` disetujui; `BE-LAB-81` direncanakan sebagai gelombang `MVP-9e`, 2026-09-25, bagian 6am.0. Sebelumnya `66` — keputusan `LAB-DEC-154`..`156` diturunkan 2026-09-25 malam, bagian 6am; `BE-LAB-81` `BLOCKED`. Sebelumnya `65` — gelombang `MVP-10` ditambahkan 2026-09-25, bagian 6al. Sebelumnya `64` — gelombang `MVP-9` ditambahkan 2026-09-25, bagian 6ak; `BE-LAB-68` diperluas. Sebelumnya `63` — gelombang `MVP-8` ditambahkan 2026-09-24, bagian 6aj. *Baris ini sempat tertinggal di `57` sementara riwayat sudah sampai `62`; dirapikan 2026-09-24* |
+| Roadmap revision | `68` — gelombang `MVP-11` (`EPIC-LAB-17`, tiga laporan operasional) ditambahkan 2026-09-28, bagian 6an: `BE-LAB-82`..`BE-LAB-86` dan langkah rilis `MVP-11c`. Sebelumnya `67` — `r36`/`r14`/`r7` disetujui; `BE-LAB-81` direncanakan sebagai gelombang `MVP-9e`, 2026-09-25, bagian 6am.0. Sebelumnya `66` — keputusan `LAB-DEC-154`..`156` diturunkan 2026-09-25 malam, bagian 6am; `BE-LAB-81` `BLOCKED`. Sebelumnya `65` — gelombang `MVP-10` ditambahkan 2026-09-25, bagian 6al. Sebelumnya `64` — gelombang `MVP-9` ditambahkan 2026-09-25, bagian 6ak; `BE-LAB-68` diperluas. Sebelumnya `63` — gelombang `MVP-8` ditambahkan 2026-09-24, bagian 6aj. *Baris ini sempat tertinggal di `57` sementara riwayat sudah sampai `62`; dirapikan 2026-09-24* |
 | Status | `DRAFT` |
 | Bentuk blueprint | `SINGLE` |
 | Ditulis oleh | `plan-module-delivery` |
@@ -2966,6 +2966,7 @@ kelalaian.
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 68 | 2026-09-28 | **Gelombang `MVP-11` diturunkan dari `EPIC-LAB-17` — lima task backend `BE-LAB-82`..`BE-LAB-86`** (bagian 6an), di atas `LAB-API-v1` `r37`, `LAB-VAL-v1` `r15`, dan `LAB-PERM-v1` revision 12 yang disetujui pemilik modul pada hari yang sama beserta kedelapan butir 23.10. `BE-LAB-82` **tersendiri dan pertama**: memindah batas waktu cito dan himpunan disiplin yang dapat dirilis ke satu tempat, dengan uji karakterisasi sebelum dan sesudah — nol perubahan perilaku. `BE-LAB-83`..`85` satu laporan per task; `BE-LAB-84` membawa **satu-satunya migration** (`AddLabSpecimenDecidedAtIndex`). `BE-LAB-86` unduhan CSV dan pencatatan. **Prasyarat gelombang `MVP-9b` selesai**, termasuk `BE-LAB-77`. Langkah rilis `MVP-11c` (6an.7): langkah 2 `BLOCKED` sampai jabatan *manajemen* ditetapkan. **Impact scan:** BE `84383f64` → `4a94628a`, nol source. Catatan urutan dipasang juga pada `BE-LAB-78`. Hash masukan pada `traceability.md` bagian *Traceability gelombang `MVP-11`* | `DRAFT` |
 | 67 | 2026-09-25 | **`LAB-API-v1` `r36`, `LAB-VAL-v1` `r14`, `LAB-STATE-v1` `r7` disetujui pemilik modul beserta keempat butir `02-backend-architecture.md` 22.7; `BE-LAB-81` direncanakan** sebagai gelombang tersendiri **`MVP-9e`** (bagian 6am.0-6am.1). Status `BLOCKED` → `MENUNGGU PENDAHULU` — `BE-LAB-76`. Batas waktunya: terpasang sebelum langkah 4 `MVP-9d`. Boleh sejajar dengan `BE-LAB-77`; jangan bersamaan dengan `BE-LAB-79` karena keduanya menyunting `LabOrderService.cs`. **Nol migration, nol permission.** Hash masukan pada `traceability.md` bagian *Traceability gelombang `MVP-9e`* | `DRAFT` |
 | 66 | 2026-09-25 | **Keputusan pemilik modul `LAB-EVD-011` diturunkan** (bagian 6am). **`LAB-DEC-154`** menutup `LAB-CONFLICT-014` dan melahirkan **`BE-LAB-81` — penjaga penyelesaian order**, dicatat **`BLOCKED`** sebab kontrak `r36`/`r14`/`r7` masih `draft`; batas waktunya pasti: terpasang sebelum langkah 4 `MVP-9d`. **`LAB-DEC-155`** dan **`LAB-DEC-156`** melahirkan **nol task backend**. Penahan `MVP-9d` (6ak.10) dan `MVP-10c` (6al.5) diperbarui: `LAB-CONFLICT-014` dan pertanyaan pemakaian sebelum `S6` terjawab, `LAB-OPEN-045` diusulkan menahan. Nol task yang sudah ada berubah cakupan | `DRAFT` |
 | 65 | 2026-09-25 | **Gelombang `MVP-10` diturunkan dari `EPIC-LAB-16` — tiga task backend `BE-LAB-78`..`BE-LAB-80`** (bagian 6al), di atas `LAB-API-v1` `r35`, `LAB-VAL-v1` `r13`, `LAB-STATE-v1` `r6`, dan `LAB-INT-v1` `r5` yang disetujui pemilik modul pada hari yang sama beserta kelima butir `02-backend-architecture.md` 21.10 dan **perubahan bunyi `VAL-126`**; `LAB-PERM-v1` rev 11 apa adanya. **Seluruhnya `MENUNGGU PENDAHULU`**: pemilik modul menegaskan gelombang ini baru dikerjakan **sesudah `MVP-9b` selesai**. **Nol migration.** **`BE-LAB-78` adalah penjaga keselamatan gelombang ini**: penjaga disiplin dan pemilihan kode per disiplin wajib berubah dalam satu task, sebab membuka yang pertama tanpa yang kedua membuat pemegang kode Patologi Klinik dapat memvalidasi Mikrobiologi tanpa satu galat. `BE-LAB-73` tetap menegakkan bunyi `VAL-126` `r12`; bunyi `r13` dipasang `BE-LAB-78`. **Langkah rilis `MVP-10c` `BLOCKED`** oleh `LAB-COORD-016`, penetapan pemegang kedua validasi Mikrobiologi, `LAB-OPEN-044`, `UNK-P14-03` diperluas, dan `DEC-LAB-017` sejenis (6al.5). Backend SHA disegarkan ke `cfafad8d` sesudah impact scan: nol berkas source berubah | `DRAFT` |
@@ -5052,7 +5053,7 @@ wajib dibangkitkan **di atas snapshot terbaru** pada saat task itu dikerjakan.
 | **Kontrak** | `r35` 30.2; `LAB-VAL-v1` `r13` `VAL-126` bunyi baru dan `VAL-144`; `LAB-STATE-v1` `r6` 8.2-8.3; `LAB-INT-v1` `r5` 9.1-9.2 |
 | **Reuse** | `LabResultValidationService` hasil `BE-LAB-73`..`75` — urutan pemeriksaan, empat mata, satu `SaveChangesAsync`, `Version`, pendaftaran `RegisterSignedAsync` — **apa adanya**. `LabClinicalPrivilegeResolver` (`BE-LAB-72`) **nol perubahan**: ia menerima disiplin sejak semula. Penjaga Final `VAL-120` (`BE-LAB-68`) sudah menolak simpan isolat dan antibiogram selama `FinalizedAt` terisi, sehingga `INV-53` **tidak butuh kode baru** |
 | **Cakupan** | (1) `Constants/LabClinicalPrivilegeCodes.cs`: dua konstanta **usulan** `LAB-VAL-MB` dan `LAB-REL-MB`, dan fungsi `For(disiplin, jenis)` yang **tidak mengembalikan kode apa pun** bagi Patologi Anatomi. Ketiga tindakan mengambil kode lewat `For(disiplin order pemeriksaan, jenis tindakan)` — **nol literal kode** tersisa di luar berkas konstanta. (2) Penjaga disiplin **menerima** Patologi Klinik dan Mikrobiologi; Patologi Anatomi → `422` dengan bunyi `VAL-126` **kata per kata**: *"Validasi dan rilis hasil Patologi Anatomi belum tersedia."* (3) Penjaga `Sementara`: Mikrobiologi dengan `ResultQualifier = Preliminary` → `422` `VAL-144` pada **validasi dan rilis**, diperiksa **sesudah** `VAL-127` dan **sebelum** `VAL-124`; kualifikasi **kosong diterima**; *Kembalikan* **tidak** diberi penjaga ini. (4) `LabExaminationService.BuildCompletionResponse`: `IsReleased` dari `ReleasedAt` **juga** bagi Mikrobiologi, dan `DeliveryBlockedReason` kosong bila dirilis — catatan *"Mikrobiologi tetap `false` sampai `S4d`"* diperbarui |
-| **Dependency** | `BE-LAB-72`..`BE-LAB-75` |
+| **Dependency** | `BE-LAB-72`..`BE-LAB-75`. **Catatan urutan 2026-09-28:** bila `BE-LAB-82` (`MVP-11a`, 6an.1) selesai lebih dulu, penjaga disiplin sudah membaca `Constants/LabReleasableDisciplines.cs` — Mikrobiologi ditambahkan **di sana**, bukan pada penjaga di service. Satu himpunan, satu tempat |
 | **Acceptance criteria** | `AC-241`, `AC-218`; `VAL-126` bunyi baru; `VAL-144` beserta jalur Reopen; `ARCH-GAP-LAB-10` (kualifikasi kosong → `200`); kedua baris `INV-53`; `INT-08` Mikrobiologi — seluruhnya baris matriks uji amandemen `S4d-1`. **Seluruh baris amandemen `S4` ikut berlaku bagi Mikrobiologi**: empat mata, dua lapis, konkurensi |
 | **Verifikasi** | Panggilan sungguhan terhadap aplikasi berjalan (environment `Development`) dengan tiga akun samaran: dr. Nabila pemegang `LAB-VAL-MB`, dokter pemegang `LAB-VAL-PK` **saja**, dan perilis pemegang `LAB-REL-MB`. Urutan: dokter PK memvalidasi kultur urin → `403` berkata *Mikrobiologi*; dr. Nabila → `200`; hasil `Sementara` → `422` dan **nol kolom berubah**; rilis → **tepat satu** baris `MrcClinicalDocumentIntegrity` `LaboratoryResult` untuk pemeriksaan itu dan **nol** untuk isolatnya; tambah isolat sesudah validasi → `409` `VAL-120`. Tinjauan kode: `grep` literal `LAB-VAL-`/`LAB-REL-` hanya muncul di `LabClinicalPrivilegeCodes.cs` dan berkas uji |
 | **Risiko/pemilik** | **Tinggi — ini penjaga keselamatan epic ini.** Empat jebakan: (a) **membuka penjaga disiplin tanpa memilih kode per disiplin** — pemegang kode Patologi Klinik lalu dapat memvalidasi Mikrobiologi tanpa satu galat pun, melanggar `LAB-DEC-152`; kedua perubahan wajib masuk **satu** task dan `AC-241` diuji **pertama**; (b) memilih kode dari jabatan pelaku, bukan dari disiplin order; (c) memeriksa `VAL-144` **sesudah** `VAL-128`, sehingga dokter membaca penolakan kewenangan alih-alih sebab sebenarnya; (d) memperlakukan kualifikasi kosong sebagai `Sementara` — membalik butir 2 yang disetujui. **Nilai kedua konstanta belum final** sampai `LAB-COORD-016`; hanya konstanta yang berubah. Pemilik: implementer backend; nilai kode: pemilik `human-resource` |
@@ -5190,3 +5191,163 @@ eksekusi**, dari `AGENTS.md` backend dan dokumen engineering canonical.
 | `LAB-CONFLICT-014` | Wajib dijawab sebelum langkah 4 `MVP-9d` / langkah 3 `MVP-10c` | ✅ Dijawab `LAB-DEC-154` — kini **`BE-LAB-81` terpasang** yang wajib |
 | Pemakaian sebelum koreksi `S6` | *(usulan)* menahan langkah 4 `MVP-9d` | ✅ Dijawab `LAB-DEC-155` — **boleh** |
 | `LAB-OPEN-045` — prosedur hasil terrilis yang keliru sebelum `S6` | — | **Baru.** *(usulan)* menahan langkah 4 `MVP-9d` dan langkah 3 `MVP-10c` |
+
+## 6an. Gelombang `MVP-11` — `EPIC-LAB-17` tiga laporan operasional (`S16a`), 2026-09-28
+
+Menurunkan [`02-backend-architecture.md`](../02-backend-architecture.md) **bagian 23** dan
+[`04-prd-to-mvp.md`](../04-prd-to-mvp.md) **bagian 24**. Tiga laporan untuk kepala instalasi dan
+manajemen — **jumlah pemeriksaan**, **angka penolakan wadah**, **waktu penyelesaian (TAT)** — beserta
+unduhannya. Seluruh laporan **membaca** fakta yang sudah ada; **nol tabel, nol kolom, satu index**.
+
+| Field | Nilai |
+|---|---|
+| Kontrak | `LAB-API-v1` **`r37`** bagian 32, `LAB-VAL-v1` **`r15`** bagian 17 (`VAL-147`..`VAL-149`), `LAB-PERM-v1` **revision 12** bagian 14 — ketiganya **`approved` 2026-09-28**, beserta kedelapan butir `02-backend-architecture.md` 23.10. `LAB-STATE-v1` `r7` dan `LAB-INT-v1` `r5` apa adanya — laporan tanpa status dan tanpa integrasi |
+| Approval | Yoga Aji Pratama (`yogaaji452@gmail.com`), pemilik modul, 2026-09-28 — *"saya setujui semuanya yaa sebagai pemilik modul lab atas nama yoga aji pratama"* |
+| Masukan | decisions **rev 81**; capability map **rev 6**; `LAB-RCG-001-r11` bagian 0F; `LAB-DA-001` **rev 10** bagian A7; `02-backend-architecture.md` **rev 13**; `04-prd-to-mvp.md` **rev 11**; matriks uji **rev 10** |
+| Kesiapan arsitektur domain | `DOMAIN_ARCHITECTURE_READY` |
+| Backend SHA | **`4a94628a`** (branch `yoga`) — bergeser dari `84383f64` sesudah desain. **Impact scan dijalankan:** 9 commit; di luar `docs/` hanya `.github/release/*`. **Nol berkas source** — rancangan bagian 23 tetap sahih |
+| Frontend SHA | **`696a906a6`** (branch `YogaV2`) — lihat gelombang `MVP-11` pada `frontend-roadmap.md` |
+| Hash masukan (sha256, LF) | Nilai penuh pada [`traceability.md`](traceability.md) bagian *Traceability gelombang `MVP-11`* |
+| Gelombang | `MVP-11a` backend — `BE-LAB-82`..`BE-LAB-86`; `MVP-11b` milik frontend (`FE-LAB-44`, `FE-LAB-45`); `MVP-11c` langkah rilis (6an.7) |
+| Prasyarat gelombang | **`MVP-9b` selesai** — `BE-LAB-70` (`ReleasedAt` beserta index-nya), `BE-LAB-73` (penjaga disiplin yang akan dipindah), dan `BE-LAB-77` (`BelumSelesai()` mengeluarkan pemeriksaan dirilis dari daftar pantau). Alasan terakhir: tanpa `BE-LAB-77`, cito yang dirilis tepat waktu tetap tampil *terlambat* di daftar pantau selama ordernya terbuka, dan laporan berbeda pendapat dengannya (`04-prd-to-mvp.md` 24.6) |
+| Hubungan dengan gelombang lain | **Boleh sebelum atau sesudah `MVP-10a`.** Keduanya menyentuh himpunan disiplin yang dapat dirilis; yang datang kedua menyesuaikan (catatan pada `BE-LAB-82` dan `BE-LAB-78`). **Tidak** menunda `MVP-9e` maupun `MVP-10` |
+
+**Untuk setiap task backend di bawah:** pemeriksaan awal QBE dan kesesuaian rekayasa diselesaikan
+**pada waktu eksekusi**, dari `AGENTS.md` backend dan dokumen engineering canonical
+(`docs/engineering/BACKEND_ENGINEERING_CONTRACT.md`,
+`docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`). Roadmap ini tidak menggantikannya.
+
+**Satu migration pada seluruh gelombang** — `AddLabSpecimenDecidedAtIndex` di `BE-LAB-84`. Task lain
+yang ternyata membutuhkan migration berarti cakupannya melenceng dari bagian 23 — berhenti dan laporkan.
+**Nol tabel ringkasan, nol job terjadwal** (A7.5).
+
+**Build lokal** memakai `-p:RunAnalyzers=False`; build penuh dengan analyzer melewati batas waktu.
+Aplikasi dijalankan dengan `ASPNETCORE_ENVIRONMENT=Development`.
+
+**Uji otomatis.** `Tests/` dikecualikan `.gitignore` (`LAB-RDY-C04`), dan daftar pantau cito **belum
+punya** uji otomatis. Bukti setiap task karena itu **panggilan sungguhan terhadap aplikasi berjalan**,
+dengan keluarannya dicantumkan pada laporan task.
+
+**Data uji.** Pembuktian butuh pemeriksaan **dirilis** — ada hanya sesudah `MVP-9b` — dan data
+sekitar pergantian hari WIB/UTC (tabel *Data uji tambahan* matriks uji amandemen 2026-09-28). **Basis
+data pengembangan dipakai bersama** — menulis baris uji ke sana butuh wewenang tersendiri dari pemilik
+modul pada saat task dikerjakan, bukan izin yang diberikan roadmap ini.
+
+**Deploy aman sebelum `MVP-11c`.** Tanpa kebijakan bagi `LabOperationalReport`, setiap pengguna menerima
+`403` — laporan tidak terbuka bagi siapa pun sampai admin memberinya (`LAB-PERM-v1` 14.6).
+
+### 6an.1 `BE-LAB-82` — Batas waktu cito dan disiplin yang dapat dirilis di satu tempat
+
+| Butir | Isi |
+|---|---|
+| **Status** | `MENUNGGU PENDAHULU` — **`BE-LAB-73`** (penjaga disiplin yang dipindah lahir di sana) dan **`BE-LAB-77`** (menyunting `LabWorklistService.cs`, berkas yang sama) |
+| **Gelombang** | `MVP-11a` — **task pertama, tersendiri** |
+| **Outcome** | Laporan dan daftar pantau cito memakai **satu** fungsi batas waktu cito; penjaga validasi dan laporan memakai **satu** himpunan disiplin yang dapat dirilis. **Nol perilaku berubah** bagi pengguna mana pun |
+| **Requirement/decision** | `FR-17.4`, `FR-17.5`; `INV-57`; `ARCH-GAP-LAB-11`; 23.10 butir 5 |
+| **Kontrak** | `r37` 32.4 baris ketiga (*"nol perubahan perilaku"*); bagian 23.4 |
+| **Reuse** | `LabWorklistService.BatasWaktuCitoAsync` (`LabWorklistService.cs:240`) — **dipindah, tidak ditulis ulang**, termasuk aturan pemilihannya: baris umum (`All`, tanpa kelompok umur); bila kosong, nilai terkecil di antara baris aktif lain. Himpunan disiplin dari penjaga `VAL-126` di `LabResultValidationService` (`BE-LAB-73`). Folder `Constants/` sudah berdiri sejak `BE-LAB-72` |
+| **Cakupan** | (1) `Services/LabCitoTurnaroundPolicy.cs` baru dengan `GetLimitsAsync(procedureIds, ct)` — isi `BatasWaktuCitoAsync` apa adanya; didaftarkan di `Program.cs`. `LabWorklistService` memanggilnya; fungsi privat lama **dihapus**. (2) `Constants/LabReleasableDisciplines.cs` baru dengan `Contains(LabDiscipline)`; penjaga disiplin `LabResultValidationService` membacanya. **Isinya mengikuti keadaan saat task dikerjakan:** sebelum `BE-LAB-78` — Patologi Klinik; sesudah `BE-LAB-78` — Patologi Klinik dan Mikrobiologi. Pesan `VAL-126` **tidak** berubah. (3) **Uji karakterisasi ditulis dan dijalankan SEBELUM langkah 1 dan 2**, lalu dijalankan ulang tanpa disunting |
+| **Dependency** | `BE-LAB-73`, `BE-LAB-77` |
+| **Acceptance criteria** | Matriks uji amandemen 2026-09-28, *Matriks — pemindahan tanpa perubahan perilaku*: `AC-17` sesudah pemindahan, batas cito bertingkat, `VAL-126` sesudah pemindahan |
+| **Verifikasi** | Pada data dan jam yang sama, sebelum dan sesudah: `GET /lab-worklists/cito-overdue` — **himpunan `examinationId`, batas waktu, dan tenggat setiap baris identik** (kelebihan menit bergantung jam dinding, sehingga dibandingkan hanya bila dipanggil dengan `asOf` yang sama lewat service); baris *"Batas waktu cito … belum diatur"* tetap muncul. Validasi pemeriksaan Patologi Anatomi → `422` dengan bunyi `VAL-126` **kata per kata** sebelum dan sesudah. Tinjauan kode: `grep` `CitoTurnaroundMinutes` di luar `LabCitoTurnaroundPolicy.cs`, `LabValueBound*`, dan DTO → **nol** |
+| **Risiko/pemilik** | **Sedang — seluruh gelombang bersandar pada kebenaran task ini.** Tiga jebakan: (a) *merapikan* aturan pemilihan batas saat memindah — itu perubahan perilaku daftar pantau yang tidak disetujui; (b) meninggalkan salinan fungsi lama *"untuk jaga-jaga"* — dua rumus, persis yang dilarang `INV-57`; (c) **urutan terhadap `BE-LAB-78`**: bila `BE-LAB-78` datang sesudah task ini, Mikrobiologi wajib ditambahkan pada `LabReleasableDisciplines`, **bukan** pada penjaga di service — catatan yang sama dipasang pada `BE-LAB-78` (6al.1). Pemilik: implementer backend |
+| **DoD** | Dua kelas bersama berdiri; nol salinan; uji karakterisasi lulus sebelum dan sesudah tanpa disunting; nol migration; nol endpoint; laporan `task/report/backend/BE-LAB-82.md` memuat keluaran kedua putaran |
+
+### 6an.2 `BE-LAB-83` — Laporan jumlah pemeriksaan, penyaring periode, dan izin laporan
+
+| Butir | Isi |
+|---|---|
+| **Status** | `MENUNGGU PENDAHULU` — `BE-LAB-82`; dan `BE-LAB-70` (`ReleasedAt`) |
+| **Gelombang** | `MVP-11a` |
+| **Outcome** | Kepala instalasi dapat meminta *berapa hasil yang keluar* pada periode apa pun sampai 366 hari, per disiplin dan per jenis pemeriksaan, menurut **tanggal rilis WIB**. Pengguna tanpa izin laporan **ditolak** |
+| **Requirement/decision** | `FR-17.1`, `FR-17.5`, `FR-17.6`, `FR-17.7`, `FR-17.9`; `LAB-DEC-159` butir 2, `LAB-DEC-155`, `LAB-DEC-160`, `LAB-DEC-071`; `INV-55`; 23.10 butir 2-4 dan 6 |
+| **Kontrak** | `r37` 32.2 (`GET /filters/metadata`, `GET /examination-count`), 32.3; `LAB-VAL-v1` `r15` `VAL-147`..`VAL-149`; `LAB-PERM-v1` rev 12 14.2-14.3 |
+| **Reuse** | `LabQueryDateRange.Normalize` (tanggal polos dibaca WIB, akhir rentang dinaikkan ke penghabisan hari); `LabFilterMetadataFactory`; pola `[AccessController]`/`[AccessAction]`/`[AccessPermission]` `LabWorklistController`; `ApiResponse<T>`; `LabReleasableDisciplines` (`BE-LAB-82`); pesan `VAL-148` yang **sudah dipakai** endpoint Laboratorium lain — dipakai ulang, tidak ditulis ulang |
+| **Cakupan** | (1) `Controllers/LabOperationalReportController.cs` — route `api/v1/health-services/laboratory-management/lab-operational-reports`, `[Tags("Health Services / Laboratory Management / Lab Operational Report")]`, `[AccessController]` resource `LabOperationalReport`; `GET /filters/metadata` dan `GET /examination-count` dengan `[AccessPermission("LabOperationalReport", "Read")]` beserta `[AccessAction("Read", …, AccessType = AccessTypes.Read)]`. **Aksi `Export` belum dipasang di task ini** — lahir di `BE-LAB-86`. (2) `DTOs/LabOperationalReportDtos.cs` — `LabOperationalReportQuery`, `LabReportPeriodResponse`, `LabExaminationCountReportResponse`, `LabExaminationCountRow` persis 23.4. (3) `Services/LabOperationalReportService.cs` — `GetExaminationCountAsync`: pemeriksaan `ReleasedAt` dalam periode, `AsNoTracking`, pengelompokan di basis data per `LabOrder.Discipline` lalu `ProcedureId` dengan `ProcedureNameSnapshot`; disiplin di luar `LabReleasableDisciplines` → `isCountable = false` beserta `notCountableReason`, **bukan** 0; order berdisiplin kosong → *Belum tergolong*. (4) `VAL-147` (`400`), `VAL-148` (`400`), `VAL-149` (`422`, 366 hari inklusif). (5) `LabFilterMetadataFactory.LabOperationalReport()`. (6) Registrasi DI di `Program.cs` |
+| **Dependency** | `BE-LAB-82`, `BE-LAB-70` |
+| **Acceptance criteria** | `AC-250` beserta empat barisnya (batas akhir, batas awal, tervalidasi belum dirilis, nama tersimpan); `ARCH-GAP-LAB-11` jumlah; order tanpa disiplin; penyaring disiplin; `VAL-147`..`VAL-149`; disiplin tak dikenal; `AC-253` untuk dua endpoint ini; `PermissionRegistryValidator`; privasi respons — seluruhnya baris matriks uji amandemen 2026-09-28 |
+| **Verifikasi** | Panggilan sungguhan: Kalium dirilis 1 Oktober 06.30 WIB masuk **Oktober**, bukan September; dirilis 1 September 00.10 WIB masuk **September**; periode 366 hari `200`, 367 hari `422`; urutan terbalik → `400` dengan pesan **sama persis** dengan daftar Pemeriksaan; akun dengan `LabExamination : Read` saja → `403`; aplikasi menyala dan `PermissionRegistryValidator` menerima resource baru. Log kueri: pengelompokan terjadi di SQL, bukan di memori |
+| **Risiko/pemilik** | **Sedang.** Empat jebakan: membandingkan `ReleasedAt` dengan tanggal UTC mentah — pemeriksaan pukul 00.00-06.59 WIB jatuh ke hari sebelumnya tanpa satu galat pun; menulis 0 bagi disiplin yang belum dapat dihitung; membuang order berdisiplin kosong diam-diam; menghitung dari `FinalizedAt` atau status alih-alih `ReleasedAt` (`LAB-DEC-155`). Pemilik: implementer backend |
+| **DoD** | Dua endpoint berjalan; tiga aturan periode ditegakkan; resource `LabOperationalReport : Read` terdaftar; nol migration; laporan `BE-LAB-83.md` |
+
+### 6an.3 `BE-LAB-84` — Laporan penolakan wadah dan index waktu keputusan
+
+| Butir | Isi |
+|---|---|
+| **Status** | `MENUNGGU PENDAHULU` — `BE-LAB-83` (controller, service, DTO, penjaga periode) |
+| **Gelombang** | `MVP-11a` |
+| **Outcome** | Kepala instalasi melihat **seberapa sering sampel ditolak dan karena apa**, per disiplin, menurut tanggal keputusan — sejak hari pertama, karena keputusan kelayakan sudah tercatat sejak `S2` |
+| **Requirement/decision** | `FR-17.2`; `LAB-DEC-159` butir 3; `INV-56` |
+| **Kontrak** | `r37` 32.2 (`GET /specimen-rejection`), 32.3; `erd/data-dictionary.md` bagian 19.2 |
+| **Reuse** | Service, controller, dan DTO `BE-LAB-83`; `LabSpecimen.DecidedAt`, `RejectionReasonCode`, `RejectionReasonId`; `MstLabRejectionReason` untuk nama alasan; `LabQueryDateRange` |
+| **Cakupan** | (1) `GetSpecimenRejectionAsync`: wadah dengan `DecidedAt` dalam periode; tidak layak = `RejectionReasonCode` terisi; per disiplin `decidedCount`, `rejectedCount`, `rejectionRatePercent` (satu desimal, **kosong** bila pembagi nol); `reasons[]` per disiplin dan alasan. **Berlaku bagi ketiga disiplin** — tidak memakai `LabReleasableDisciplines`. (2) `LabSpecimenRejectionReportResponse`. (3) `GET /specimen-rejection`, `Read`. (4) `LabSpecimenConfiguration.cs`: `HasIndex(x => x.DecidedAt)` beserta komentar alasannya, sejajar index `PhysicallyReceivedAt`. (5) Migration **`AddLabSpecimenDecidedAtIndex`** — dibangkitkan **di atas snapshot terbaru**, sesudah migration `BE-LAB-70`; `Up` hanya membuat index, `Down` hanya menghapusnya |
+| **Dependency** | `BE-LAB-83`. **Jangan bersamaan dengan `BE-LAB-85`** — berkas service, controller, dan DTO yang sama |
+| **Acceptance criteria** | `AC-251`; `INV-56` wadah pengganti; `INV-56` tanggal keputusan; `AC-251` nol keputusan; `ARCH-GAP-LAB-11` penolakan (PA **terhitung**); baris *Migration* — seluruhnya matriks uji amandemen 2026-09-28 |
+| **Verifikasi** | Panggilan sungguhan: 400 keputusan dan 12 penolakan → `3.0` dan rincian 8 *hemolisis* + 4 *volume kurang*; tabung ditolak lalu pengganti diterima → dua keputusan, satu penolakan; keputusan 1 Oktober 07.00 WIB masuk Oktober. Migration: `Up` → index ada; `Down` → index hilang; **nol baris berubah** pada keduanya. Rencana eksekusi kueri laporan memakai index baru |
+| **Risiko/pemilik** | **Rendah-sedang.** Tiga jebakan: menghitung dari `SpecimenStatus` hari ini alih-alih keputusan — wadah yang sesudahnya berpindah status hilang dari hitungan; menulis `0` saat nol wadah diputuskan; membangkitkan migration di atas snapshot lama sehingga menyeret perubahan modul lain. **Membuat index mengunci tulis `LabSpecimen` sesaat** — tabelnya kecil; dijalankan di luar jam sibuk bila tabel produksi ternyata besar. Pemilik: implementer backend |
+| **DoD** | Endpoint berjalan; migration naik-turun terbukti; laporan `BE-LAB-84.md` |
+
+### 6an.4 `BE-LAB-85` — Laporan waktu penyelesaian
+
+| Butir | Isi |
+|---|---|
+| **Status** | `MENUNGGU PENDAHULU` — `BE-LAB-84` (urutan berkas); `BE-LAB-82` (`LabCitoTurnaroundPolicy`); `BE-LAB-77` untuk membuktikan *"dan sebaliknya"* |
+| **Gelombang** | `MVP-11a` |
+| **Outcome** | Kepala instalasi melihat **seberapa cepat hasil keluar** — rata-rata, jumlah, dan jumlah cito yang terlambat — dan pemeriksaan cito yang terlambat menurut laporan **sama** dengan yang tampil terlambat di daftar pantau |
+| **Requirement/decision** | `FR-17.3`, `FR-17.4`, `FR-17.5`; `LAB-DEC-159` butir 4; `AC-17`; `INV-57`; `ARCH-GAP-LAB-13`; 23.10 butir 5 |
+| **Kontrak** | `r37` 32.2 (`GET /turnaround-time`), 32.3 beserta contoh respons |
+| **Reuse** | `LabCitoTurnaroundPolicy.GetLimitsAsync` (`BE-LAB-82`) — **satu-satunya** sumber batas; `LabReleasableDisciplines`; `LabExamination.ChargeEligibleAt`, `Urgency`, `ReleasedAt` (index `ChargeEligibleAt` dan `Urgency` sudah ada, `LabExaminationConfiguration.cs:46-47`) |
+| **Cakupan** | (1) `GetTurnaroundTimeAsync`: pemeriksaan `ReleasedAt` dalam periode **dan** `ChargeEligibleAt` terisi; selang dalam menit; per disiplin × kesegeraan: `releasedCount`, `averageMinutes` (satu desimal, kosong bila nol), `overdueCount` dan `withoutLimitCount` **hanya pada baris cito**. *Terlambat* = selang **melebihi** batas — perbandingan yang **sama** dengan daftar pantau (`sekarang > tenggat`); tepat di batas **tidak** terlambat. Cito tanpa batas → `withoutLimitCount`, tetap masuk rata-rata. Disiplin di luar `LabReleasableDisciplines` → `isCountable = false`. (2) `LabTurnaroundTimeReportResponse`. (3) `GET /turnaround-time`, `Read`. Bila selisih waktu tidak dapat diterjemahkan Npgsql, pasangan `ChargeEligibleAt`/`ReleasedAt` diproyeksikan lalu dihitung di memori — aman karena `VAL-149` |
+| **Dependency** | `BE-LAB-84`, `BE-LAB-82`, `BE-LAB-77` |
+| **Acceptance criteria** | `AC-252` beserta batas persis, *dan sebaliknya*, rutin, cito tanpa batas; `INV-57` pengambilan ulang; batas cito satu sumber; `ARCH-GAP-LAB-11` TAT — seluruhnya matriks uji amandemen 2026-09-28 |
+| **Verifikasi** | Panggilan sungguhan: Kalium cito layak 08.00, rilis 09.10, batas 60 → **70** menit, terlambat; rilis 09.00 → tidak terlambat; Kalium kedua dirilis 08.55 dengan order masih terbuka → **tidak** tampil di daftar pantau pukul 09.05 **dan** tidak terlambat di laporan; ubah batas 60 → 90 → laporan dan daftar pantau **sama-sama** memakai 90; pengambilan ulang → TAT dari wadah pengganti (40 menit). Tinjauan kode: nol pembacaan `LabValueBounds` di `LabOperationalReportService` |
+| **Risiko/pemilik** | **Sedang.** Tiga jebakan: membaca `LabValueBound` langsung di laporan — rumus kedua (`INV-57`); memakai `>=` untuk *terlambat* sehingga berbeda satu menit dengan daftar pantau; memulai TAT dari `CollectedAt` atau `RequestedAt` — TAT membengkak oleh waktu yang bukan milik laboratorium, bertentangan dengan `LAB-DEC-159`. Pemilik: implementer backend |
+| **DoD** | Endpoint berjalan; `AC-252` terbukti dua arah; nol pembacaan batas di luar kebijakan bersama; laporan `BE-LAB-85.md` |
+
+### 6an.5 `BE-LAB-86` — Unduhan CSV ketiga laporan dan pencatatannya
+
+| Butir | Isi |
+|---|---|
+| **Status** | `MENUNGGU PENDAHULU` — `BE-LAB-83`, `BE-LAB-84`, `BE-LAB-85` |
+| **Gelombang** | `MVP-11a` |
+| **Outcome** | Pemegang izin unduh mendapatkan berkas yang **terbuka benar di Excel berbahasa Indonesia**; setiap unduhan tercatat siapa, kapan, dan apa — tanpa data pasien. Pemegang izin lihat saja **tidak** dapat mengunduh |
+| **Requirement/decision** | `FR-17.7`, `FR-17.8`, `FR-17.9`; `LAB-DEC-160`; A7.9; 23.10 butir 1, 2, 7 |
+| **Kontrak** | `r37` 32.2 (tiga `GET …/export`), 32.3 (bentuk CSV); `LAB-PERM-v1` rev 12 14.2, 14.3, 14.5 |
+| **Reuse** | Ketiga fungsi service `BE-LAB-83`..`85` — **berkas dibentuk dari respons yang sama**, bukan kueri kedua; `LoggerService.AuditAsync` dengan `LogCategory` Laboratorium (pola `LabDisciplineSettingService.cs:117`); `File(...)` pada controller |
+| **Cakupan** | (1) `Services/LabReportCsvWriter.cs` — **tanpa pustaka baru**: UTF-8 dengan BOM, pemisah `;`, desimal koma, baris pertama `Periode;…`, judul kolom Bahasa Indonesia; nilai kosong ditulis kosong; nilai berisi `;` atau tanda kutip di-escape. (2) Tiga endpoint `GET /examination-count/export`, `/specimen-rejection/export`, `/turnaround-time/export` dengan `[AccessPermission("LabOperationalReport", "Export")]` beserta `[AccessAction("Export", …, AccessType = AccessTypes.Read)]`; penjaga periode yang sama; respons `text/csv` dengan nama berkas memuat jenis laporan dan periode. (3) Satu `AuditAsync` per unduhan, aksi `LabOperationalReport.Export`, data `{ jenis laporan, startDate, endDate, discipline, jumlah baris }` — pelaku dan waktu dari pencatat. **Dilarang** di payload: isi berkas, nama pasien, No. RM, nilai hasil. (4) Registrasi DI |
+| **Dependency** | `BE-LAB-83`, `BE-LAB-84`, `BE-LAB-85` |
+| **Acceptance criteria** | `AC-253` `Read` tanpa `Export`; format CSV; log unduhan; log baca (nol baris); privasi — seluruhnya matriks uji amandemen 2026-09-28 |
+| **Verifikasi** | Panggilan sungguhan: tiga byte pertama berkas `EF BB BF`; berkas penolakan dibuka di Excel berbahasa Indonesia → kolom terpisah, angka *3,0*; pemegang `Read` saja → tiga unduhan `403`; tiga unduhan → **tepat tiga** baris log dengan payload tanpa data pasien; membuka ketiga laporan → nol baris log. Aplikasi menyala dan `PermissionRegistryValidator` menerima aksi `Export` |
+| **Risiko/pemilik** | **Sedang — ini satu-satunya jalur data keluar sistem.** Tiga jebakan: membentuk berkas dari kueri terpisah sehingga isi unduhan berbeda dari layar; memasang `Read` pada endpoint unduh — membuka unduhan bagi setiap pembaca, membalik butir 2; mencatat seluruh respons sebagai payload log. **`AccessType` `Export` bernilai `Read`** — `AccessTypes` hanya mengenal empat nilai; itu bukan izin baca, melainkan jenisnya. Pemilik: implementer backend |
+| **DoD** | Tiga unduhan berjalan; aksi `Export` terdaftar; log sesuai 14.5; nol pustaka baru; laporan `BE-LAB-86.md` |
+
+### 6an.6 Yang sengaja tidak menjadi task backend
+
+| Yang tidak dijadikan task | Alasan |
+|---|---|
+| Delapan laporan lain — tagihan, penjamin, kelompok penyakit, dan lainnya | `S16b` — `DEC-LAB-025` |
+| Tabel ringkasan per hari atau per bulan; job penyusun ringkasan | A7.5 — angka tersimpan dapat basi |
+| Unduhan Excel `.xlsx` | Butuh pustaka baru — 23.10 butir 1 memilih CSV |
+| Daftar pasien di balik angka | A7.12 — laporan agregat |
+| Menilai *terlambat* dengan batas historis (`LabValueBoundHistory`) | 23.10 butir 5 — satu rumus dengan daftar pantau |
+| Aturan hitung sesudah koreksi hasil | `S6` belum ada — `ARCH-GAP-LAB-12` |
+| Angka jumlah dan TAT Patologi Anatomi | Rilis PA belum ada — `S4e`; laporan menulis *"belum dapat dihitung"* |
+| Mencatat pembukaan laporan | 23.10 butir 7 — konvensi `GET` |
+
+### 6an.7 Langkah rilis `MVP-11c` — bukan task programmer
+
+Mengikuti `02-backend-architecture.md` 23.7 dan `LAB-PERM-v1` 14.4-14.6. Hak akses diberikan per
+**departemen dan jabatan** lewat `SysAccessPolicies`, bukan lewat role Identity.
+
+| Langkah | Pemilik | Menunggu | Bukti |
+|---:|---|---|---|
+| 0 | Deploy `MVP-11a`; migration `AddLabSpecimenDecidedAtIndex` diterapkan | `BE-LAB-82`..`86` selesai | Riwayat migration basis data |
+| 1 | Admin memberi `LabOperationalReport : Read` dan `: Export` kepada jabatan **kepala instalasi laboratorium** | Langkah 0 | Layar Akses Role |
+| 2 | Admin memberi kedua aksi kepada jabatan **manajemen** | **`BLOCKED` — admin dan pemilik modul menetapkan jabatan mana yang disebut *manajemen*** (`LAB-DA-001` A7.8; `04-prd-to-mvp.md` 24.7). Bukan keputusan arsitektur; tidak menahan langkah 1 | Layar Akses Role |
+| 3 | Pemeriksaan: kepala instalasi membuka ketiga laporan dan mengunduh satu; satu analis mencoba membuka | Langkah 1 | Laporan rilis: analis `403`; **tepat satu** baris log `LabOperationalReport.Export` |
+
+**Larangan:** kebijakan laporan **tidak boleh disalin** dari pemegang `LabExamination : Read` atau
+`LabWorklist : Read` — itu membuka laporan bagi setiap analis (`LAB-PERM-v1` 14.6).
+
+**Angka jumlah dan TAT tetap kosong sampai rilis dipakai sungguhan** (langkah 4 `MVP-9d`). Itu **bukan**
+penahan `MVP-11c`: laporan penolakan sudah bermakna sejak hari pertama.

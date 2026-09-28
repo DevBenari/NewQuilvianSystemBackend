@@ -3504,7 +3504,7 @@ tidak ditulis dua kali, dan **satu index**.
 
 | Butir | Isi |
 |---|---|
-| Status | **`draft`** — approval tetap tindakan pemilik modul |
+| Status | **`draft`** — approval tetap tindakan pemilik modul. **Ketiga kontraknya disetujui 2026-09-28**, beserta kedelapan butir 23.10 |
 | Masukan | `00-interview-decisions.md` **revision 81** (`LAB-DEC-155`, `LAB-DEC-159`, `LAB-DEC-160`); `LAB-RCG-001-r11` bagian 0F; `LAB-DA-001` **revision 10 bagian A7**; capability map revision 6 |
 | SHA | Backend **`84383f64`** (branch `yoga`), frontend **`2083ff36a`** (branch `YogaV2`) — sama dengan arsitektur domain; impact scan A7.1 berlaku |
 | Gerbang | Requirement `READY_FOR_DOMAIN_DESIGN`; arsitektur `DOMAIN_ARCHITECTURE_READY` |
@@ -3730,6 +3730,11 @@ kosong untuk jumlah dan TAT, sebab rilis belum pernah tercatat.
 | Laporan tagihan, penjamin, kelompok penyakit | `S16b` — `DEC-LAB-025` |
 
 ### 23.10 Keputusan yang diminta pada persetujuan kontrak
+
+> **✅ Kedelapan butir disetujui 2026-09-28** oleh Yoga Aji Pratama selaku pemilik modul, bersama
+> `LAB-API-v1` `r37`, `LAB-VAL-v1` `r15`, dan `LAB-PERM-v1` revision 12, lewat instruksi *"saya
+> setujui semuanya yaa sebagai pemilik modul lab atas nama yoga aji pratama"*. Yang disetujui adalah
+> **kolom "Usulan rancangan"** di bawah.
 
 | No | Hal | Usulan rancangan | Bila tidak disetujui |
 |---:|---|---|---|
