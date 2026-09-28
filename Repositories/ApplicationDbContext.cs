@@ -25,6 +25,7 @@ using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Payable.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.PettyCash.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingEvent.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalManagement.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Models;
@@ -546,6 +547,12 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<AccPostingRuleLine> AccPostingRuleLines { get; set; }
         #endregion CORPORATE - ACCOUNTING MANAGEMENT - MASTER DATA
 
+        #region CORPORATE - ACCOUNTING MANAGEMENT - ACCOUNTING EVENT
+        public DbSet<AccAccountingEvent> AccAccountingEvents { get; set; }
+        public DbSet<AccAccountingEventAttempt> AccAccountingEventAttempts { get; set; }
+        public DbSet<AccAccountingEventComponent> AccAccountingEventComponents { get; set; }
+        #endregion CORPORATE - ACCOUNTING MANAGEMENT - ACCOUNTING EVENT
+
         #region CORPORATE - ACCOUNTING MANAGEMENT - ACCOUNTING PERIOD
         public DbSet<AccAccountingPeriod> AccAccountingPeriods { get; set; }
         public DbSet<AccPeriodClosingApproval> AccPeriodClosingApprovals { get; set; }
@@ -993,6 +1000,13 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<GziProductionBatch> GziProductionBatches { get; set; }
         public DbSet<GziProductionBatchDetail> GziProductionBatchDetails { get; set; }
         public DbSet<GziMealDelivery> GziMealDeliveries { get; set; }
+        public DbSet<GziNutritionDiagnosisDomain> GziNutritionDiagnosisDomains { get; set; }
+        public DbSet<GziNutritionDiagnosis> GziNutritionDiagnoses { get; set; }
+        public DbSet<GziNutritionCareRecordDiagnosis> GziNutritionCareRecordDiagnoses { get; set; }
+        public DbSet<GziNutritionParameter> GziNutritionParameters { get; set; }
+        public DbSet<GziNutritionFormula> GziNutritionFormulas { get; set; }
+        public DbSet<GziNutritionRequirement> GziNutritionRequirements { get; set; }
+        public DbSet<GziNutritionRequirementItem> GziNutritionRequirementItems { get; set; }
 
         #endregion
 

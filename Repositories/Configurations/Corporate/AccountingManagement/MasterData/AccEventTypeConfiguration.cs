@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.EventType.Enums;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.EventType.Models;
 
 namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.AccountingManagement.MasterData
@@ -26,6 +27,11 @@ namespace QuilvianSystemBackend.Repositories.Configurations.Corporate.Accounting
 
             entity.Property(x => x.IsActive)
                 .HasDefaultValue(true)
+                .IsRequired();
+
+            entity.Property(x => x.EventKind)
+                .HasConversion<int>()
+                .HasDefaultValue(EventTypeKind.Transaksi)
                 .IsRequired();
 
             entity.Property(x => x.CreateDateTime)

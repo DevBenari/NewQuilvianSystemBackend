@@ -6,7 +6,7 @@
 blueprint_id: ACC-BP-001
 blueprint_revision: 11
 blueprint_status: approved
-roadmap_revision: 5                 # DRAFT 24 Sep 2026 - Wave B: FE-ACC-P2-011, 012, 013 (revisi 4 APPROVED)
+roadmap_revision: 5                 # APPROVED 24 Sep 2026 (GATE-DESAIN-0924) - Wave B: FE-ACC-P2-011, 012, 013
                                     # revisi 4: 14 Sep 2026 - ACC-DEC-074..081: FE-ACC-P2-009, 010, 014
                                     # revisi 3: 10 Sep 2026, penyelarasan FE-ACC-P2-001/002; ACC-DEC-070
 roadmap_status: APPROVED
@@ -49,13 +49,13 @@ flowchart LR
     subgraph backend["Prasyarat backend — backend-roadmap-phase2.md"]
         BMANDIRI["🟡 Backend gelombang mandiri<br/>13 dari 14 task"]:::luar
         BP20B["✅ Backend P2-0b<br/>BE-ACC-P2-015 sampai 018"]:::luar
-        BWAVEB["⛔ Backend Wave B<br/>BE-ACC-P2-022, 024, 025"]:::luar
+        BWAVEB["✅ Backend Wave B<br/>BE-ACC-P2-022, 024, 025"]:::luar
     end
 
     FTUTUP["✅ Tutup bulan dan jurnal berulang<br/>FE-ACC-P2-001 sampai 004"]:::selesai
     FLAIN["✅ Pengaturan, tutup tahun, control, rekonsiliasi<br/>FE-ACC-P2-005 sampai 008"]:::selesai
     FBATCH["✅ Batch 14 Sep 2026<br/>FE-ACC-P2-009, 010, 014"]:::selesai
-    FWAVEB["⛔ Wave B 24 Sep 2026<br/>FE-ACC-P2-011, 012, 013"]:::terblokir
+    FWAVEB["✅ Wave B 24 Sep 2026<br/>FE-ACC-P2-011, 012, 013"]:::selesai
 
     BMANDIRI --> FTUTUP
     BMANDIRI --> FLAIN
@@ -112,7 +112,7 @@ flowchart LR
         BEACCP2010["✅ BE-ACC-P2-010<br/>Jurnal penutup tahun"]:::luar
         BEACCP2011["✅ BE-ACC-P2-011<br/>Kolom control account"]:::luar
         BEACCP2013["✅ BE-ACC-P2-013<br/>Saldo control account GL"]:::luar
-        BEACCP2014["⛔ BE-ACC-P2-014<br/>Perbandingan subledger"]:::luar
+        BEACCP2014["BE-ACC-P2-014<br/>Perbandingan subledger"]:::luar
     end
 
     FEACCP2005["✅ FE-ACC-P2-005<br/>Layar pengaturan akuntansi"]:::selesai
@@ -132,7 +132,7 @@ flowchart LR
 | 1 | `BE-ACC-P2-009` ✅ | `FE-ACC-P2-005` ✅ |
 | 1 | `BE-ACC-P2-010` ✅ | `FE-ACC-P2-006` ✅ |
 | 1 | `BE-ACC-P2-011` ✅ | `FE-ACC-P2-007` ✅ |
-| 1 | `BE-ACC-P2-013` ✅; sisi subledger ⛔ menunggu `BE-ACC-P2-014` | `FE-ACC-P2-008` ✅ untuk sisi buku besar |
+| 1 | `BE-ACC-P2-013` ✅; sisi subledger menunggu `BE-ACC-P2-014`, yang belum dikerjakan (backend: `027` → `028` → `014`; `GATE-FIN-087` dibuka 28 Sep 2026) | `FE-ACC-P2-008` ✅ untuk sisi buku besar |
 
 ### Grafik 3 — batch 14 September 2026 (`HARDENING`, `P2-0b`)
 
@@ -440,10 +440,10 @@ Daftar Periksa Penutupan **bukan** butir menu — ia layar anak dari Periode Aku
 
 | Field | Isi |
 |---|---|
-| `roadmap_revision` | `5` — **`DRAFT`**. Revisi 4 tetap `APPROVED`; amandemen ini hanya menambah `FE-ACC-P2-011`, `012`, `013` |
+| `roadmap_revision` | `5` — **`APPROVED`** Rizki, 24 September 2026; sebelumnya `DRAFT`. Revisi 4 tetap `APPROVED`; amandemen ini hanya menambah `FE-ACC-P2-011`, `012`, `013` |
 | Dasar | `ACC-DEC-057`, `078`, `084`, `085`, `087`; `03-frontend-architecture.md` bagian 9 butir 1, bagian 10 butir 13, bagian 11.1 dan 11.2; `02-backend-architecture.md` bagian 22.12 |
 | Source | `rizkiG` `b2b265af`, `RizkiV2` `c941012ac` |
-| Kunci | Setiap kartu menunggu kartu backend-nya, dan seluruh kartu backend menunggu **`GATE-DESAIN-0924`** — lihat [backend-roadmap-phase2.md](backend-roadmap-phase2.md) bagian *Amandemen 24 September 2026* |
+| Kunci | Setiap kartu menunggu kartu backend-nya. **`GATE-DESAIN-0924` sudah dibuka 24 September 2026** — lihat [backend-roadmap-phase2.md](backend-roadmap-phase2.md) bagian *Amandemen 24 September 2026* |
 | Wewenang UI | Isi layar dan sumber datanya dikunci `03-frontend-architecture.md` bagian 11; susunan, warna, ikon, dan komponen tetap `DEV_DISCRETION` mengikuti konvensi yang sudah ada |
 
 ### Grafik 4 — Wave B
@@ -457,14 +457,14 @@ flowchart LR
     classDef luar fill:#EDE9FE,stroke:#7C3AED,color:#3B0764
 
     subgraph backend["Prasyarat backend — backend-roadmap-phase2.md, cermin baca-saja"]
-        BBEACCP2022["⛔ BE-ACC-P2-022<br/>EventKind di API jenis kejadian"]:::luar
-        BBEACCP2024["⛔ BE-ACC-P2-024<br/>Daftar rincian ringkasan"]:::luar
-        BBEACCP2025["⛔ BE-ACC-P2-025<br/>Coba ulang manual dan abaikan"]:::luar
+        BBEACCP2022["✅ BE-ACC-P2-022<br/>EventKind di API jenis kejadian"]:::luar
+        BBEACCP2024["✅ BE-ACC-P2-024<br/>Daftar rincian ringkasan"]:::luar
+        BBEACCP2025["✅ BE-ACC-P2-025<br/>Coba ulang manual dan abaikan"]:::luar
     end
 
-    FEACCP2011["⛔ FE-ACC-P2-011<br/>Layar Kotak Masuk Kejadian"]:::terblokir
-    FEACCP2012["⛔ FE-ACC-P2-012<br/>Rincian kejadian dan aksinya"]:::terblokir
-    FEACCP2013["⛔ FE-ACC-P2-013<br/>Isian jenis perlakuan"]:::terblokir
+    FEACCP2011["✅ FE-ACC-P2-011<br/>Layar Kotak Masuk Kejadian"]:::selesai
+    FEACCP2012["✅ FE-ACC-P2-012<br/>Rincian kejadian dan aksinya"]:::selesai
+    FEACCP2013["✅ FE-ACC-P2-013<br/>Isian jenis perlakuan"]:::selesai
 
     BBEACCP2024 --> FEACCP2011
     BBEACCP2024 --> FEACCP2012
@@ -475,17 +475,17 @@ flowchart LR
 
 | Gelombang | Boleh mulai setelah | Task |
 | ---: | --- | --- |
-| — | ⛔ kartu backend masing-masing | Ketiganya |
+| — | Kartu backend masing-masing (gate desain dibuka 24 September 2026) | — |
 | 1 | `BE-ACC-P2-024` / `BE-ACC-P2-022` | `FE-ACC-P2-011`, `013` — boleh paralel |
 | 2 | `FE-ACC-P2-011`, `BE-ACC-P2-025` | `FE-ACC-P2-012` |
 
 | ID | Judul | Gelombang | Dependency | Status |
 |---|---|---|---|---|
-| `FE-ACC-P2-011` | Layar Kotak Masuk Kejadian beserta penanda angka menu | `P2-6` | `BE-ACC-P2-024` | ⛔ `BLOCKED` |
-| `FE-ACC-P2-012` | Rincian kejadian: coba ulang dan abaikan | `P2-6` | `BE-ACC-P2-024`, `BE-ACC-P2-025`, `FE-ACC-P2-011` | ⛔ `BLOCKED` |
-| `FE-ACC-P2-013` | Isian Jenis perlakuan pada form jenis kejadian | `P2-6` | `BE-ACC-P2-022` | ⛔ `BLOCKED` |
+| `FE-ACC-P2-011` | Layar Kotak Masuk Kejadian beserta penanda angka menu | `P2-6` | `BE-ACC-P2-024` | ✅ `SELESAI` 24 Sep 2026 — uji layar 8/8, `npm run build` berhasil, commit `70bb05446`; angka menu ditunda atas keputusan Rizki. [Laporan](../task/report/frontend/FE-ACC-P2-011.md) |
+| `FE-ACC-P2-012` | Rincian kejadian: coba ulang dan abaikan | `P2-6` | `BE-ACC-P2-024`, `BE-ACC-P2-025`, `FE-ACC-P2-011` | ✅ `SELESAI` 28 Sep 2026 — dikerjakan ulang atas permintaan Rizki (rincian ringkas, pesan asli terbaca); build berhasil, uji layar ulang 5/5 lulus. [Laporan](../task/report/frontend/FE-ACC-P2-012.md) |
+| `FE-ACC-P2-013` | Isian Jenis perlakuan pada form jenis kejadian | `P2-6` | `BE-ACC-P2-022` | ✅ `SELESAI` 24 Sep 2026 — uji layar 7/7 + Swagger 3/3, `npm run build` berhasil, commit `70bb05446`. [Laporan](../task/report/frontend/FE-ACC-P2-013.md) |
 
-## ⛔ `FE-ACC-P2-011` — Layar Kotak Masuk Kejadian beserta penanda angka menu
+## ✅ `FE-ACC-P2-011` — Layar Kotak Masuk Kejadian beserta penanda angka menu
 
 | Field | Isi |
 |---|---|
@@ -499,8 +499,9 @@ flowchart LR
 | Verifikasi | `npm run lint`; `npm run build` oleh owner; kolom layar lawan DTO backend |
 | Risiko/pemilik | Layar kosong sampai `BE-ACC-P2-020` diterapkan dan ada pesan tiruan. Owner Frontend |
 | DoD | Lint hijau, laporan task tertulis. Build dijalankan owner |
+| **Status** | ✅ **SELESAI — 24 September 2026.** Dibangun; eslint 8 berkas 0/0; uji layar Rizki lulus **8 dari 8** (menu, angka tab, tab Tertahan + alasan, jenis, periode, cari, tab Semua dengan nomor jurnal, galat + Coba Lagi). Angka penanda di **menu ditunda atas keputusan Rizki** 24 September 2026 — bagian "di menu" acceptance (3) dikecualikan, sidebar bersama tidak disentuh, `ACC-DEC-057` tetap terbuka untuk task kelak. `npm run build` Rizki berhasil; di-commit `70bb05446`. Riwayat: 🟡 pada hari yang sama. UAT belum dijalankan. Bukti: [laporan](../task/report/frontend/FE-ACC-P2-011.md) |
 
-## ⛔ `FE-ACC-P2-012` — Rincian kejadian: coba ulang dan abaikan
+## ✅ `FE-ACC-P2-012` — Rincian kejadian: coba ulang dan abaikan
 
 | Field | Isi |
 |---|---|
@@ -510,12 +511,13 @@ flowchart LR
 | Reuse | Pola layar rincian Jurnal; modal konfirmasi beralasan yang sudah ada; `usePermission` — tombol bukan hak pengguna **dimatikan, bukan disembunyikan** (`ACC-DEC-080`) |
 | Cakupan | Layar anak dari Kotak Masuk Kejadian (bukan butir menu) |
 | Dependency | `BE-ACC-P2-024`, `BE-ACC-P2-025`, `FE-ACC-P2-011` |
-| Acceptance | (1) Kepala memuat nomor, status, `HoldReasonCode` dalam bahasa petugas, dan nomor jurnal yang dapat diklik. (2) Riwayat percobaan tampil. (3) Abaikan hanya untuk `Gagal`, alasan wajib. (4) Coba Ulang **aktif untuk `Gagal`; untuk `Tertahan` menunggu keputusan owner** — lihat risiko. (5) Galat server tampil apa adanya, status tidak berubah |
+| Acceptance | (1) Kepala memuat nomor, status, `HoldReasonCode` dalam bahasa petugas, dan nomor jurnal yang dapat diklik. (2) Riwayat percobaan tampil. (3) Abaikan hanya untuk `Gagal`, alasan wajib. (4) Coba Ulang **aktif untuk `Gagal` dan `Tertahan`** (`ACC-DEC-092`). (5) Galat server tampil apa adanya, status tidak berubah |
 | Verifikasi | `npm run lint`; `npm run build` oleh owner |
-| Risiko/pemilik | **Pertentangan yang harus diputuskan Rizki sebelum eksekusi:** `03-frontend-architecture.md` bagian 11.2 mematikan Coba Ulang selain `Gagal`, sedangkan `ACC-STATE` mengizinkan `Tertahan` → `Terjurnal` lewat `AccountingEvent : Retry`. Tanpa tombol itu, kejadian tertahan hanya dapat diproses ulang oleh sistem. Owner Frontend |
+| Risiko/pemilik | Pertentangan desain layar lawan state matrix **selesai** — `ACC-DEC-092`; `03-frontend-architecture.md` bagian 11.2 sudah diselaraskan. Owner Frontend |
 | DoD | Lint hijau, laporan task tertulis. Build dijalankan owner |
+| **Status** | ✅ **SELESAI — 28 September 2026.** Pengerjaan ulang atas permintaan Rizki: Informasi Utama 7 kotak, Isi Pesan Asli tabel berlabel Indonesia (FR-P2-006 tetap terpenuhi). eslint 3 berkas **0/0**; commit `57c2f5de0`; `npm run build` Rizki berhasil 28 September 2026; uji layar ulang lulus skenario 1–5 (7 kotak, Buka Jurnal, tabel pesan asli, riwayat 4 percobaan `EVT-UJI-105`, tombol mati untuk Terjurnal). Tombol untuk status Gagal lewat source atas keputusan Rizki. Bukti agen AI 24 September 2026 dicabut. UAT belum dijalankan. Riwayat: ✅ 24 September, 🟡 sejak pengerjaan ulang. Bukti: [laporan](../task/report/frontend/FE-ACC-P2-012.md) |
 
-## ⛔ `FE-ACC-P2-013` — Isian Jenis perlakuan pada form jenis kejadian
+## ✅ `FE-ACC-P2-013` — Isian Jenis perlakuan pada form jenis kejadian
 
 | Field | Isi |
 |---|---|
@@ -529,6 +531,7 @@ flowchart LR
 | Verifikasi | `npm run lint`; `npm run build` oleh owner |
 | Risiko/pemilik | Owner Frontend |
 | DoD | Lint hijau, laporan task tertulis. Build dijalankan owner |
+| **Status** | ✅ **SELESAI — 24 September 2026.** Isian Jenis Perlakuan (bawaan Transaksi) di form Tambah/Perbarui, kolom di daftar, penguncian dua lapis (`accountingEventCount` dari rincian dan jawaban `409`); 3 dari 3 acceptance di source; eslint 4 berkas **0/0**; nol CSS baru; uji layar Rizki lulus **7 dari 7** + 3 Swagger. `npm run build` Rizki berhasil; di-commit `70bb05446`. Riwayat: 🟡 pada hari yang sama. UAT belum dijalankan. Bukti: [laporan](../task/report/frontend/FE-ACC-P2-013.md) |
 
 ### Peta butir menu — tambahan
 
@@ -544,4 +547,4 @@ Rincian Kejadian **bukan** butir menu — layar anak Kotak Masuk Kejadian.
 |---|---|
 | FR saldo subledger | `ACC-DEC-087` belum punya FR di `04-prd-to-mvp.md`; `FE-ACC-P2-013` dan `BE-ACC-P2-022`/`027`/`028` ditelusuri ke keputusan saja |
 | Route | `03-frontend-architecture.md` menulis `/accounting/accounting-events`; kartu memakai awalan `/corporate/accounting/` seperti layar Phase 2 yang sudah berdiri |
-| Coba Ulang untuk `Tertahan` | Lihat risiko `FE-ACC-P2-012` |
+| ~~Coba Ulang untuk `Tertahan`~~ | **Selesai** — `ACC-DEC-092` |

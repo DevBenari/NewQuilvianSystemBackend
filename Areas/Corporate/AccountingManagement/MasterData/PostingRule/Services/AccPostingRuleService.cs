@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingEvent.Enums;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingEvent.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Enums;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.EventType.Models;
@@ -26,11 +28,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
     /// kejadian keuangan lalu menyusun jurnal menurut aturan ini adalah bagian kotak masuk kejadian,
     /// yang menunggu keputusan lintas modul dengan Finance. Yang disediakan untuk mesin itu kelak
     /// hanyalah <see cref="CariAturanAktifAsync"/>.
-    /// </para>
-    /// <para>
-    /// <b>Yang sengaja belum ditegakkan:</b> penonaktifan aturan yang masih ditunggu kejadian
-    /// Tertahan (<c>ACC-VALIDATION</c> Phase 2 bagian 2 baris terakhir). Tabel kejadiannya belum
-    /// ada, sehingga tidak ada yang dapat diperiksa. Dicatat sebagai kekurangan terencana.
     /// </para>
     /// </remarks>
     public class AccPostingRuleService
@@ -354,8 +351,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
                     StatusCodes.Status409Conflict, "Aturan posting ini sudah tidak aktif.");
             }
 
-            // DITUNDA: "masih ada kejadian tertahan yang menunggu aturan ini" (409) belum dapat
-            // diperiksa — tabel kejadian belum ada. Lihat catatan kelas.
+            var kejadianMenunggu = await _db.Set<AccAccountingEvent>()
+                .AsNoTracking()
+                .CountAsync(x => !x.IsDelete
+                                 && x.EventStatus == AccountingEventStatus.Tertahan
+                                 && x.LegalEntityId == aturan.LegalEntityId
+                                 && x.EventTypeId == aturan.EventTypeId, ct);
+
+            if (kejadianMenunggu > 0)
+            {
+                return Gagal<PostingRuleDetailResponse>(
+                    StatusCodes.Status409Conflict,
+                    $"Masih ada {kejadianMenunggu} kejadian yang menunggu aturan ini. "
+                    + "Perbaiki aturannya lalu Coba Ulang kejadian itu dari Kotak Masuk Kejadian.");
+            }
+
             aturan.IsActive = false;
             aturan.UpdateDateTime = DateTime.UtcNow;
             aturan.UpdateBy = actorUserId;
