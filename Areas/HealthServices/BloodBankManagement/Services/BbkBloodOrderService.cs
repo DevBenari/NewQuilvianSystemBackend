@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Models;
@@ -7,6 +7,8 @@ using QuilvianSystemBackend.Areas.HealthServices.PatientManagement.MasterData.Mo
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Constants;
 using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
+using QuilvianSystemBackend.Enums;
+using QuilvianSystemBackend.Helpers.QuilvianSystemBackend.Helpers;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 
@@ -103,6 +105,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
             "Order manual wajib mengisi pasien, kunjungan, dokter peminta, unit asal, " +
             "dan petugas yang menginput.";
 
+        /// <summary>Pesan <c>VAL-BD-085</c>, persis seperti matriks validasi (<c>v5</c>).</summary>
+        private const string RequestedBloodGroupRequiredMessage =
+            "Golongan darah yang diminta wajib dipilih: golongan darah beserta Rhesus-nya, " +
+            "atau 'Tidak diketahui' bila memang belum diketahui.";
+
         private readonly ApplicationDbContext _dbContext;
         private readonly NumberSeriesAllocator _numberSeriesAllocator;
         private readonly BbkEncounterStatusReader _encounterStatusReader;
@@ -118,6 +125,86 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
         }
 
         // =================================================================
+        // Penyaring rentang tanggal (DEC-BD-059, DEC-BD-060)
+        // =================================================================
+
+        /// <summary>Kalimat kanonik <c>VAL-BD-086</c>.</summary>
+        public const string InvalidDateRangeMessage =
+            "Tanggal awal filter tidak boleh melewati tanggal akhir filter.";
+
+        /// <summary>
+        /// Batas rentang <c>CreateDateTime</c> yang sudah dikonversi ke UTC, atau alasan
+        /// penolakannya.
+        /// </summary>
+        public sealed class BloodOrderDateRange
+        {
+            public bool IsValid { get; private init; }
+            public string? ErrorMessage { get; private init; }
+
+            /// <summary>Batas bawah <b>inklusif</b>, dalam UTC.</summary>
+            public DateTime? StartUtc { get; private init; }
+
+            /// <summary>Batas atas <b>eksklusif</b>, dalam UTC.</summary>
+            public DateTime? EndExclusiveUtc { get; private init; }
+
+            public static BloodOrderDateRange Valid(DateTime? startUtc, DateTime? endExclusiveUtc)
+                => new() { IsValid = true, StartUtc = startUtc, EndExclusiveUtc = endExclusiveUtc };
+
+            public static BloodOrderDateRange Invalid(string errorMessage)
+                => new() { IsValid = false, ErrorMessage = errorMessage };
+        }
+
+        /// <summary>
+        /// Menerjemahkan <c>startDate</c> dan <c>endDate</c> menjadi batas UTC untuk disaringkan
+        /// pada <c>BbkBloodOrder.CreateDateTime</c> (<c>DEC-BD-059</c>, <c>DEC-BD-060</c>).
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// <b>Keduanya tanggal operasional waktu aplikasi, bukan saat UTC.</b> Bagian waktu dan
+        /// penanda zona yang ikut terkirim diabaikan lewat <c>.Date</c>: yang bermakna hanya
+        /// harinya. Bentuk yang dikontrakkan <c>YYYY-MM-DD</c>.
+        /// </para>
+        /// <para>
+        /// Batas bawah adalah pukul <c>00:00</c> waktu aplikasi pada <c>startDate</c>. Batas atas
+        /// adalah pukul <c>00:00</c> waktu aplikasi pada <b>hari sesudah</b> <c>endDate</c>, dan
+        /// dibandingkan <b>eksklusif</b> — bentuk itulah yang mewujudkan "inklusif sampai akhir
+        /// hari" tanpa kehilangan pecahan detik terakhir, yang akan terbuang bila batasnya
+        /// ditulis <c>&lt;= 23:59:59</c>.
+        /// </para>
+        /// <para>
+        /// <b>Kolom yang disaring tersimpan dalam UTC</b>, sehingga kedua batas dikonversi lebih
+        /// dulu lewat <see cref="AppDateTimeHelper.OperationalDateToUtc"/>. Menstempel
+        /// <c>DateTimeKind.Utc</c> apa adanya — pola yang ada pada beberapa controller master
+        /// data — menggeser batasnya tujuh jam dan membuang order yang lahir dini hari.
+        /// </para>
+        /// <para>
+        /// Contoh: <c>startDate = endDate = 2026-09-23</c> menghasilkan
+        /// <c>&gt;= 2026-09-22T17:00:00Z</c> dan <c>&lt; 2026-09-23T17:00:00Z</c>.
+        /// </para>
+        /// </remarks>
+        public static BloodOrderDateRange ResolveCreateDateRange(
+            DateTime? startDate,
+            DateTime? endDate)
+        {
+            var startDay = startDate?.Date;
+            var endDay = endDate?.Date;
+
+            // VAL-BD-086. Rentang terbalik ditolak di sini, bukan diserahkan ke database:
+            // sebuah query yang mustahil memulangkan nol baris, dan nol baris terbaca petugas
+            // sebagai "tidak ada order", bukan sebagai "filternya salah".
+            if (startDay.HasValue && endDay.HasValue && startDay.Value > endDay.Value)
+                return BloodOrderDateRange.Invalid(InvalidDateRangeMessage);
+
+            return BloodOrderDateRange.Valid(
+                startDay.HasValue
+                    ? AppDateTimeHelper.OperationalDateToUtc(startDay.Value)
+                    : null,
+                endDay.HasValue
+                    ? AppDateTimeHelper.OperationalDateToUtc(endDay.Value.AddDays(1))
+                    : null);
+        }
+
+        // =================================================================
         // Pembacaan
         // =================================================================
 
@@ -126,8 +213,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
             Guid? patientId,
             Guid? encounterId,
             Guid? serviceUnitId,
+            Guid? bloodComponentId,
             BbkBloodOrderStatus? orderStatus,
             BbkOrderSource? orderSource,
+            DateTime? createdFromUtc,
+            DateTime? createdToUtcExclusive,
             string? sortBy,
             string? sortDirection,
             int pageNumber,
@@ -147,11 +237,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
             if (serviceUnitId.HasValue)
                 query = query.Where(x => x.ServiceUnitId == serviceUnitId.Value);
 
+            if (bloodComponentId.HasValue)
+            {
+                query = query.Where(x => x.Lines.Any(l =>
+                    !l.IsDelete && l.BloodComponentId == bloodComponentId.Value));
+            }
+
             if (orderStatus.HasValue)
                 query = query.Where(x => x.OrderStatus == orderStatus.Value);
 
             if (orderSource.HasValue)
                 query = query.Where(x => x.OrderSource == orderSource.Value);
+
+            // DEC-BD-059: rentang tanggal disaring pada CreateDateTime, digabung "dan" dengan
+            // seluruh penyaring lain. Kedua batas sudah dalam UTC ketika sampai di sini —
+            // konversinya dikerjakan ResolveCreateDateRange, bukan di dalam query.
+            if (createdFromUtc.HasValue)
+                query = query.Where(x => x.CreateDateTime >= createdFromUtc.Value);
+
+            if (createdToUtcExclusive.HasValue)
+                query = query.Where(x => x.CreateDateTime < createdToUtcExclusive.Value);
 
             // Pencarian menyasar nomor order, nomor rekam medis, dan nama pasien: ketiganya
             // yang benar-benar dipegang petugas ketika mencari satu order.
@@ -200,10 +305,63 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
                 })
                 .ToListAsync(cancellationToken);
 
-            foreach (var item in items)
+            // DEC-BD-058 / AC-BD-111: komponen dan angka diberikan dihitung secara batch
+            // untuk seluruh halaman. Tidak ada satu query detail per order.
+            var orderIds = items.Select(x => x.Id).ToList();
+
+            if (orderIds.Count > 0)
             {
-                item.OrderStatusLabel = LabelOf(item.OrderStatus);
-                item.OrderSourceLabel = LabelOf(item.OrderSource);
+                var lineRows = await _dbContext.Set<BbkBloodOrderLine>()
+                    .AsNoTracking()
+                    .Where(l => orderIds.Contains(l.BloodOrderId) && !l.IsDelete)
+                    .OrderBy(l => l.BloodOrderId)
+                    .ThenBy(l => l.Sequence)
+                    .Select(l => new
+                    {
+                        l.BloodOrderId,
+                        LineId = l.Id,
+                        l.BloodComponentId,
+                        BloodComponentCode = l.BloodComponent != null ? l.BloodComponent.ComponentCode : null,
+                        BloodComponentName = l.BloodComponent != null ? l.BloodComponent.ComponentName : null,
+                        l.RequestedQuantity,
+                        l.Sequence
+                    })
+                    .ToListAsync(cancellationToken);
+
+                var issuedByLine = await CountIssuedByLineIdsAsync(
+                    lineRows.Select(x => x.LineId).ToList(),
+                    cancellationToken);
+
+                var componentsByOrder = lineRows
+                    .GroupBy(x => x.BloodOrderId)
+                    .ToDictionary(
+                        g => g.Key,
+                        g => g.Select(x => new BloodOrderListComponentDto
+                        {
+                            BloodComponentId = x.BloodComponentId,
+                            BloodComponentCode = x.BloodComponentCode,
+                            BloodComponentName = x.BloodComponentName,
+                            RequestedQuantity = x.RequestedQuantity,
+                            IssuedQuantity = issuedByLine.TryGetValue(x.LineId, out var issued) ? issued : 0
+                        }).ToList());
+
+                foreach (var item in items)
+                {
+                    item.Components = componentsByOrder.TryGetValue(item.Id, out var components)
+                        ? components
+                        : new List<BloodOrderListComponentDto>();
+                    item.TotalIssuedQuantity = item.Components.Sum(x => x.IssuedQuantity);
+                    item.OrderStatusLabel = LabelOf(item.OrderStatus);
+                    item.OrderSourceLabel = LabelOf(item.OrderSource);
+                }
+            }
+            else
+            {
+                foreach (var item in items)
+                {
+                    item.OrderStatusLabel = LabelOf(item.OrderStatus);
+                    item.OrderSourceLabel = LabelOf(item.OrderSource);
+                }
             }
 
             return new PagedResult<BloodOrderListDto>
@@ -243,8 +401,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
             };
         }
 
+        public Task<BloodOrderDetailDto?> GetDetailAsync(
+            Guid id,
+            CancellationToken cancellationToken = default)
+            => GetDetailAsync(id, Guid.Empty, cancellationToken);
+
         public async Task<BloodOrderDetailDto?> GetDetailAsync(
             Guid id,
+            Guid actorUserId,
             CancellationToken cancellationToken = default)
         {
             var entity = await DetailQuery()
@@ -257,6 +421,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
 
             detail.Transitions = await ReadTransitionsAsync(id, cancellationToken);
             ApplyTransitionFacts(detail);
+            detail.CancellationReasonCategory = await GetCancellationReasonCategoryAsync(
+                entity,
+                actorUserId,
+                cancellationToken);
             detail.Fulfillment = BuildFulfillment(
                 entity,
                 await CountIssuedByLineAsync(entity, cancellationToken));
@@ -437,10 +605,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
             // Emergency — tidak cocok dengan keduanya dan ikut tertolak di sini. Siapa "dokter
             // peminta" diturunkan dari kepemilikan data, bukan dari nama peran, jabatan, atau
             // UserType.
-            var expectedCategory =
-                await IsRequestingDoctorAsync(order.RequestingDoctorId, actorUserId, cancellationToken)
-                    ? BloodBankReasonCategories.OrderCancellationClinical
-                    : BloodBankReasonCategories.OrderCancellationOperational;
+            var expectedCategory = await GetCancellationReasonCategoryAsync(
+                order,
+                actorUserId,
+                cancellationToken);
 
             if (category != expectedCategory)
                 return Failed(BloodOrderOutcome.NotAllowedByState, CategoryMismatchMessage);
@@ -578,6 +746,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
                     orderSource == BbkOrderSource.Manual
                         ? ManualIncompleteMessage
                         : "Order darah wajib mengisi pasien, kunjungan, dokter peminta, dan unit pelayanan pemesan.");
+            }
+
+            // VAL-BD-085 (v5, DEC-BD-055): golongan darah yang diminta wajib dipilih pada
+            // ketiga endpoint pembuatan. Diperiksa di sini — sebelum deteksi ganda dan sebelum
+            // nomor order diminta — supaya permintaan yang memang tidak sah tidak pernah
+            // menerbitkan nomor (INV-PLT-002) dan tidak pernah menyimpan order.
+            if (!IsAcceptableRequestedBloodGroup(request.RequestedBloodGroup))
+            {
+                return Failed(
+                    BloodOrderOutcome.Invalid,
+                    RequestedBloodGroupRequiredMessage);
             }
 
             if (request.Lines == null || request.Lines.Count == 0)
@@ -737,6 +916,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
                 EncounterId = request.EncounterId,
                 ServiceUnitId = request.ServiceUnitId,
                 RequestingDoctorId = request.RequestingDoctorId,
+
+                // Disimpan apa adanya pada ordernya saja. Tidak disalin ke baris order, dan
+                // tidak pernah dibaca gerbang klinis mana pun (INV-BD-011).
+                RequestedBloodGroup = request.RequestedBloodGroup,
+
                 OrderSource = orderSource,
                 InputByUserId = actorUserId,
                 OrderStatus = BbkBloodOrderStatus.Active,
@@ -925,6 +1109,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
             ServiceUnitName = entity.ServiceUnit?.ServiceUnitName,
             RequestingDoctorId = entity.RequestingDoctorId,
             RequestingDoctorName = entity.RequestingDoctor?.FullName,
+            RequestedBloodGroup = entity.RequestedBloodGroup,
+            RequestedBloodGroupLabel = LabelOf(entity.RequestedBloodGroup),
             OrderSource = entity.OrderSource,
             OrderSourceLabel = LabelOf(entity.OrderSource),
             InputByUserId = entity.InputByUserId,
@@ -1030,20 +1216,31 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
         /// keputusan pemilik sebelum implementasi <c>BE-BD-010</c>, 17 September 2026.
         /// </para>
         /// </remarks>
-        private async Task<IReadOnlyDictionary<Guid, int>> CountIssuedByLineAsync(
+        private Task<IReadOnlyDictionary<Guid, int>> CountIssuedByLineAsync(
             BbkBloodOrder entity,
             CancellationToken cancellationToken)
-        {
-            var lineIds = entity.Lines.Where(x => !x.IsDelete).Select(x => x.Id).ToList();
+            => CountIssuedByLineIdsAsync(
+                entity.Lines.Where(x => !x.IsDelete).Select(x => x.Id).ToList(),
+                cancellationToken);
 
+        /// <summary>
+        /// Versi batch untuk daftar kerja. Satu query untuk seluruh baris pada halaman, sehingga
+        /// jumlah query tidak bertambah mengikuti jumlah order (<c>AC-BD-111</c>).
+        /// </summary>
+        private async Task<IReadOnlyDictionary<Guid, int>> CountIssuedByLineIdsAsync(
+            IReadOnlyCollection<Guid> lineIds,
+            CancellationToken cancellationToken)
+        {
             if (lineIds.Count == 0)
                 return new Dictionary<Guid, int>();
+
+            var ids = lineIds.Distinct().ToList();
 
             var rows = await _dbContext.Set<BbkBloodUnitAllocation>()
                 .AsNoTracking()
                 .Where(a =>
                     a.AllocationStatus == BbkAllocationStatus.Active &&
-                    lineIds.Contains(a.BloodOrderLineId) &&
+                    ids.Contains(a.BloodOrderLineId) &&
                     a.BloodUnit != null &&
                     !a.BloodUnit.IsDelete &&
                     a.BloodUnit.UnitStatus == BbkBloodUnitStatus.Issued &&
@@ -1116,13 +1313,88 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
             _ => source.ToString()
         };
 
+        /// <summary>
+        /// Label golongan darah yang diminta. <c>null</c> tetap <c>null</c> — order lama yang
+        /// tidak mencatatnya tidak diberi kalimat pengganti di sini, supaya layar dapat
+        /// membedakan "tidak tercatat" dari "Tidak diketahui" (<c>AC-BD-105</c>).
+        /// </summary>
+        private static string? LabelOf(BloodType? value) => value switch
+        {
+            null => null,
+            BloodType.APositive => "A Positif",
+            BloodType.ANegative => "A Negatif",
+            BloodType.BPositive => "B Positif",
+            BloodType.BNegative => "B Negatif",
+            BloodType.ABPositive => "AB Positif",
+            BloodType.ABNegative => "AB Negatif",
+            BloodType.OPositive => "O Positif",
+            BloodType.ONegative => "O Negatif",
+            BloodType.Unknown => "Tidak diketahui",
+            BloodType.NotDisclosed => "Tidak diinformasikan",
+            _ => value.ToString()
+        };
+
         // =================================================================
         // Penolong
         // =================================================================
 
+        /// <summary>
+        /// <c>VAL-BD-085</c> — nilai golongan darah diminta yang sah pada order <b>baru</b>.
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// Tiga hal ditolak, dan ketiganya sengaja dibedakan dari nilai yang sah:
+        /// </para>
+        /// <list type="number">
+        /// <item>
+        /// <b>Tidak dikirim</b> (<c>null</c>). Permintaan yang lupa mengisinya tidak boleh
+        /// diam-diam tersimpan sebagai "Tidak diketahui".
+        /// </item>
+        /// <item>
+        /// <b><c>NotDisclosed</c></b>. "Tidak diinformasikan" menyatakan pasien menolak
+        /// memberitahu golongan darahnya — itu keterangan pendaftaran, bukan permintaan darah.
+        /// Pemintanya wajib menyatakan golongan yang diminta, atau menyatakan belum
+        /// mengetahuinya.
+        /// </item>
+        /// <item>
+        /// <b>Angka di luar enum.</b> <c>Enum.IsDefined</c> menjaganya, karena binding JSON
+        /// meneruskan angka apa pun ke enum tanpa memeriksanya.
+        /// </item>
+        /// </list>
+        /// <para>
+        /// <c>Unknown</c> justru <b>sah</b> dan berbeda dari ketiganya: ia pernyataan sadar
+        /// bahwa golongan darahnya belum diketahui saat memesan — keadaan yang memang lazim
+        /// pada permintaan gawat darurat.
+        /// </para>
+        /// </remarks>
+        private static bool IsAcceptableRequestedBloodGroup(BloodType? value)
+            => value.HasValue
+               && value.Value != BloodType.NotDisclosed
+               && Enum.IsDefined(value.Value);
+
         /// <summary>Ketiga status terminal tidak dapat dibatalkan maupun dikedaluwarsakan.</summary>
         private static bool IsCancellable(BbkBloodOrderStatus status)
             => status is BbkBloodOrderStatus.Active or BbkBloodOrderStatus.PartiallyFulfilled;
+
+        /// <summary>
+        /// Menurunkan kategori alasan pembatalan dari aturan yang sama dengan CancelAsync.
+        /// Tidak dipersistensi dan null bila order tidak lagi dapat dibatalkan.
+        /// </summary>
+        private async Task<string?> GetCancellationReasonCategoryAsync(
+            BbkBloodOrder order,
+            Guid actorUserId,
+            CancellationToken cancellationToken)
+        {
+            if (actorUserId == Guid.Empty || !IsCancellable(order.OrderStatus))
+                return null;
+
+            return await IsRequestingDoctorAsync(
+                order.RequestingDoctorId,
+                actorUserId,
+                cancellationToken)
+                    ? BloodBankReasonCategories.OrderCancellationClinical
+                    : BloodBankReasonCategories.OrderCancellationOperational;
+        }
 
         /// <summary>
         /// Apakah pengguna terautentikasi adalah dokter peminta order ini.
@@ -1268,7 +1540,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Service
         private static BloodOrderResult Succeeded(BbkBloodOrder entity, string message)
             => new(BloodOrderOutcome.Success, entity, message, new List<Guid>());
 
-        private static BloodOrderResult Failed(BloodOrderOutcome outcome, string message)
+        private static BloodOrderResult Failed(
+            BloodOrderOutcome outcome,
+            string message)
             => new(outcome, null, message, new List<Guid>());
     }
 

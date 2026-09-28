@@ -9,7 +9,7 @@
 | `koreksi alamat` | **2026-09-23.** Nota ini semula ditujukan kepada **dr. Arya Wicaksana, Sp.Rad**, dan itu **keliru** — beliau bukan Kepala Instalasi Laboratorium. Nama yang benar dinyatakan pemilik modul pada 2026-09-23. **Akibatnya nyata dan menjelaskan kenapa nota ini tak berjawab selama lima hari: ia berada di tangan yang bukan pemiliknya.** Tanggal pengajuan **tidak** diubah, supaya umur penahannya tetap terbaca apa adanya |
 | `menutup` | `DEC-LAB-011` |
 | `rujukan` | `LAB-DEC-022`; `LAB-REQ-004` bagian 5.1, diajukan 2026-09-09 dan belum dijawab; `02-requirement-completeness-assessment.md` bagian 0B.4 |
-| `status` | `menunggu jawaban` |
+| `status` | **`dijawab sebagian` — 2026-09-24.** dr. Bima menyatakan dirinya pemegang kewenangan validasi dan menetapkan validasi hanya oleh dokter (`LAB-EVD-009`, `LAB-DEC-150`). Pertanyaan 1 nota ini — jaminan dua pemegang per shift — **belum terjawab**, dan dilanjutkan lewat `LAB-REQ-014` |
 | `sifat` | Operasional. **Bukan** artefak desain — tidak masuk daftar hash manifest |
 | `yang diminta` | **Dua jawaban.** Satu tentang jaminan tenaga, satu tentang siapa yang berhak menunjuk |
 

@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `4` |
+| Revision | `7` — bagian 18, 2026-09-25: `S4d-1` — nol tabel, nol kolom. Sebelumnya `6` — bagian 17, 2026-09-25: `S4` — dua tabel baru, 14 kolom baru pada `LabExamination`. Sebelumnya `5` — bagian 16, 2026-09-24: nol tabel, nol kolom |
 | Status | `draft` |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15`. **Revision 3 menambah amandemen Penerimaan Sampling/Specimen** — lihat bagian 12 |
 | Backend SHA | Revision 1-2: `c87d9c0`. **Revision 3: `466a7127`**, diverifikasi tidak berubah pada `9067fa73` |
@@ -1193,3 +1193,264 @@ termasuk `LabOrder` dan `LabExamination`.
 | Tabel riwayat `Reopen` | **Bentuknya sengaja belum ditetapkan** — `LAB-DA-001` A4.9 menetapkan bahwa ia wajib dapat ditelusuri per kejadian, dan bentuknya keputusan perancangan blueprint berikutnya |
 | Tabel gambar laporan | `DEC-LAB-016` |
 | Kolom kategori pada `MstProcedure` | `LAB-DEC-087` — pemetaannya milik Laboratorium |
+
+---
+
+## 16. Amandemen 2026-09-24 — Perluasan hasil Patologi Klinik: nol tabel, nol kolom
+
+`02-backend-architecture.md` bagian 19 **tidak menambah maupun mengubah** tabel atau kolom apa
+pun. Yang berubah adalah **siapa yang memakai** kolom yang sudah ada:
+
+| Tabel | Kolom | Sebelumnya dipakai | Kini dipakai juga | Sensitif |
+|---|---|---|---|:---:|
+| `LabExamination` | `FinalizedAt`, `FinalizedByUserId`, `ReopenCount` | Mikrobiologi (`LAB-DEC-097`) | **Patologi Klinik** (`LAB-DEC-135`) | Tidak |
+| `LabExamination` | `ConsultedByUserId`, `ConsultedToName`, `ConsultedAt` | Mikrobiologi (`LAB-DEC-106`) | **Patologi Klinik** (`LAB-DEC-141`) | `ConsultedToName` — **Ya**, nama orang; tidak masuk log |
+
+**`LabReferenceFlag` tidak dicatat di sini** karena ia **tidak disimpan**: nilainya dihitung
+setiap kali dibaca dari `ResultNumeric` atau `ResultOptionId` terhadap batas nilai snapshot
+`ResultValueBoundId`. Bentuknya ada pada `02-backend-architecture.md` 19.4.
+
+**Catatan lokasi.** `AGENTS.md` backend menyatakan folder `erd/` sudah **RETIRED** dan kamus data
+canonical berada di `data/data-dictionary.md`. Berkas ini belum dipindahkan; pemindahannya
+pekerjaan pembukuan tersendiri, bukan bagian amandemen ini.
+
+---
+
+## 17. Amandemen 2026-09-25 — Validasi dan rilis hasil Patologi Klinik (`S4`)
+
+Menurunkan `02-backend-architecture.md` bagian 20, arsitektur domain `LAB-DA-001` revision 8
+bagian A5, dan decision log revision 74. Diaudit pada backend `ddeb5ed8`.
+
+**Dua tabel baru dan 14 kolom baru pada `LabExamination`. Nol kolom lama berubah, nol status
+baru.** Sepuluh kolom warisan `IdentityModel` tidak diulang; lihat kepala dokumen.
+
+**Catatan lokasi.** Sama dengan bagian 16: kamus ini seharusnya berada di `data/data-dictionary.md`
+menurut `AGENTS.md`. Bagian ini ditulis di sini supaya kamus Laboratorium tidak terbelah di dua
+tempat. **Nol berkas ERD baru**; relasi tabel baru digambar di 17.5.
+
+### 17.1 `LabResultCorrectionReason` — `Baru`, milik Laboratorium
+
+Daftar terkendali alasan **mengubah hasil** — dipakai *Kembalikan ke analis* (`LAB-DEC-138`) dan
+kelak koreksi sesudah rilis (`LAB-DEC-082`, `S6`). **Satu daftar untuk keduanya**, supaya
+*"berapa kali sampel tertukar bulan ini"* terhitung dengan satu nama.
+
+| Kolom | Tipe | Null | Bawaan | Unique/Index | Sensitif | Keterangan |
+|---|---|:---:|---|---|:---:|---|
+| `Id` | `uuid` | tidak | — | PK | tidak | — |
+| `ReasonCode` | `varchar(32)` | tidak | — | Unique bila `IsDelete = false` | tidak | Kode alasan, misalnya `SAMPEL-TERTUKAR`. Tidak dapat diubah sesudah dibuat — laporan mutu menghitung per kode |
+| `ReasonName` | `varchar(200)` | tidak | — | — | tidak | Nama yang dilihat petugas, misalnya *Sampel tertukar* |
+| `Description` | `varchar(256)` | ya | `null` | — | tidak | Keterangan kapan alasan ini dipakai |
+| `RequiresNote` | `boolean` | tidak | `false` | — | tidak | Bila `true`, catatan bebas wajib diisi. **Hanya admin sistem** yang menyetelnya (pola `LAB-DEC-019`, diadopsi `LAB-DEC-082`) |
+| `IsActive` | `boolean` | tidak | `true` | Index bersama `SortOrder` | tidak | Dinonaktifkan, **tidak** dihapus. Alasan nonaktif tidak dapat dipilih pada tindakan **baru**, tetapi tetap terbaca pada riwayat lama |
+| `SortOrder` | `integer` | tidak | `0` | Index bersama `IsActive` | tidak | Urutan tampil pada pilihan |
+
+### 17.2 `LabFourEyesExceptionReason` — `Baru`, milik Laboratorium
+
+Daftar terkendali alasan **merangkap peran** pada hasil yang sama (`LAB-DEC-003`, `LAB-DC-058`).
+Bentuk kolomnya sama dengan 17.1; **tabelnya sengaja terpisah** (`02-backend-architecture.md`
+20.4).
+
+| Kolom | Tipe | Null | Bawaan | Unique/Index | Sensitif | Keterangan |
+|---|---|:---:|---|---|:---:|---|
+| `Id` | `uuid` | tidak | — | PK | tidak | — |
+| `ReasonCode` | `varchar(32)` | tidak | — | Unique bila `IsDelete = false` | tidak | Misalnya `SHIFT-TUNGGAL` |
+| `ReasonName` | `varchar(200)` | tidak | — | — | tidak | Misalnya *Shift tunggal, tidak ada dokter lain bertugas*. **Ikut tercetak** pada penanda pengecualian |
+| `Description` | `varchar(256)` | ya | `null` | — | tidak | — |
+| `RequiresNote` | `boolean` | tidak | `false` | — | tidak | Sama dengan 17.1 — **usulan** `ARCH-GAP-LAB-08` butir 4 |
+| `IsActive` | `boolean` | tidak | `true` | Index bersama `SortOrder` | tidak | Sama dengan 17.1 |
+| `SortOrder` | `integer` | tidak | `0` | Index bersama `IsActive` | tidak | — |
+
+### 17.3 `LabExamination` — `Diperbarui`
+
+**Empat belas kolom ditambahkan, seluruhnya nullable.** Nilai kosong berarti *belum terjadi*:
+seluruh baris yang sudah ada memang belum pernah divalidasi maupun dirilis, jadi nol pengisian
+data lama.
+
+| Kolom | Tipe | Null | Bawaan | Unique/Index | Sensitif | Keterangan |
+|---|---|:---:|---|---|:---:|---|
+| `ValidatedAt` | `timestamptz` | ya | `null` | Index bersama `FinalizedAt` | tidak | Kapan hasil divalidasi (`LAB-DEC-080`). **Dikosongkan** oleh *Kembalikan ke analis*; jejaknya tetap pada `LabTransitionHistory` |
+| `ValidatedByUserId` | `uuid` | ya | `null` | — | tidak | Pemvalidasi. **Tanpa FK**, mengikuti `ResultEnteredByUserId`; `null` — bukan `Guid.Empty` — bila tidak diketahui |
+| `ValidatedByPositionId` | `uuid` | ya | `null` | — | tidak | Jabatan pemvalidasi **saat itu** — penempatan yang memberinya aksi `Validate`. Tanpa FK |
+| `ValidatedByPositionNameSnapshot` | `varchar(200)` | ya | `null` | — | tidak | Nama jabatan itu, disalin. Tidak ikut berubah bila jabatannya kelak dinamai ulang atau orangnya pindah jabatan (`LAB-DEC-150` butir 4, `AC-239`) |
+| `ValidatedByPrivilegeId` | `uuid` | ya | `null` | — | tidak | **Dasar kewenangan** — baris `WfpClinicalPrivilege` milik Human Resource yang berlaku saat memvalidasi. Tanpa FK lintas modul. **Usulan** `ARCH-GAP-LAB-08` butir 2 |
+| `ValidationExceptionReasonId` | `uuid` | ya | `null` | FK ke `LabFourEyesExceptionReason` | tidak | Terisi **hanya** bila pemvalidasi juga pengisi hasil (`INV-42`) |
+| `ValidationExceptionReasonNameSnapshot` | `varchar(200)` | ya | `null` | — | tidak | Nama alasan saat itu — bunyi penanda yang tercetak tidak boleh berubah surut |
+| `ReleasedAt` | `timestamptz` | ya | `null` | Index | tidak | Kapan hasil dirilis. **Tidak pernah dikosongkan** oleh `S4`; perubahan sesudahnya lewat koreksi `S6` |
+| `ReleasedByUserId` | `uuid` | ya | `null` | — | tidak | Perilis — baris *Otorisasi oleh* pada cetakan (`LAB-DEC-120`). Tanpa FK |
+| `ReleasedByPositionId` | `uuid` | ya | `null` | — | tidak | Jabatan perilis saat itu. **Usulan** `ARCH-GAP-LAB-08` butir 1 |
+| `ReleasedByPositionNameSnapshot` | `varchar(200)` | ya | `null` | — | tidak | Nama jabatan itu, disalin. **Usulan** butir 1 |
+| `ReleasedByPrivilegeId` | `uuid` | ya | `null` | — | tidak | Dasar kewenangan perilis. **Usulan** butir 2 |
+| `ReleaseExceptionReasonId` | `uuid` | ya | `null` | FK ke `LabFourEyesExceptionReason` | tidak | Terisi **hanya** bila perilis juga pemvalidasi (`INV-43`) — jalur pengecualian yang nyata pada Patologi Klinik |
+| `ReleaseExceptionReasonNameSnapshot` | `varchar(200)` | ya | `null` | — | tidak | Sama dengan kolom padanannya pada validasi |
+
+**Perilaku hapus.** Kedua FK `Restrict`. Menonaktifkan alasan **tidak** menyentuh hasil yang sudah
+memakainya.
+
+**Yang sengaja TIDAK ditambahkan:** kolom status hasil (`LAB-DEC-080`), kolom catatan pengecualian
+(catatannya tinggal pada `LabTransitionHistory.ReasonNote`), `ReturnCount` (diturunkan dari
+riwayat), dan snapshot departemen (`LAB-DEC-150` meminta jabatan).
+
+### 17.4 Tabel yang dipakai tanpa berubah
+
+| Tabel | Pemilik | Kolom kunci yang dipakai | Berkas model |
+|---|---|---|---|
+| `LabTransitionHistory` | Laboratorium | `LabExaminationId`, `Action`, `FromStatus`, `ToStatus`, `ReasonCode`, `ReasonNote`, `ActorUserId`, `OccurredAt`. **Tiga nilai `Action` baru**: `LabExamination.ValidateResult`, `LabExamination.ReleaseResult`, `LabExamination.ReturnResultToAnalyst` | `Areas/HealthServices/LaboratoryManagement/Models/LabTransitionHistory.cs` |
+| `WfpClinicalPrivilege` | **Human Resource** — dibaca saja | `WorkforceProfileId`, `PrivilegeCode`, `PrivilegeStatus`, `EffectiveStartDate`, `EffectiveEndDate`, `IsClinicalServiceBlocked`, `IsActive` | `Areas/Corporate/HumanResource/CredentialingManagement/Models/WfpClinicalPrivilege.cs` |
+| `AspNetUserOrganization` | Platform — dibaca saja | `UserId`, `DepartmentId`, `PositionId`, `IsPrimary`, `IsActive`, `EffectiveStartDate`, `EffectiveEndDate` | `Models/ApplicationUserOrganization.cs` |
+| `MrcClinicalDocumentIntegrity` | **Rekam Medis** — ditulis lewat service pemiliknya | `DocumentKind` (nilai baru `14` = `LaboratoryResult`), `DocumentId` = `LabExamination.Id`, `PatientId`, `EncounterId`, `AuthorUserId`, `SignedAt`, `LockedAt`. Unique `(DocumentKind, DocumentId)` | `Areas/HealthServices/MedicalRecordManagement/Models/MrcClinicalDocumentIntegrity.cs` |
+
+**Kolom sensitif pada tabel yang dipakai:** `LabTransitionHistory.ReasonNote` pada baris validasi,
+rilis, dan pengembalian ditandai **sensitif** — catatan bebas dapat memuat keadaan pasien. Tidak
+masuk custom logger.
+
+### 17.5 Relasi
+
+```mermaid
+erDiagram
+    LabExamination }o--o| LabFourEyesExceptionReason : "ValidationExceptionReasonId"
+    LabExamination }o--o| LabFourEyesExceptionReason : "ReleaseExceptionReasonId"
+    LabExamination ||--o{ LabTransitionHistory : "LabExaminationId"
+    LabTransitionHistory }o..o| LabResultCorrectionReason : "ReasonCode, tanpa FK"
+    LabExamination ||..o| MrcClinicalDocumentIntegrity : "DocumentId, tanpa FK"
+    LabExamination }o..o| WfpClinicalPrivilege : "PrivilegeId, tanpa FK"
+
+    LabExamination {
+        uuid Id PK
+        timestamptz FinalizedAt
+        timestamptz ValidatedAt
+        uuid ValidatedByUserId
+        uuid ValidationExceptionReasonId FK
+        timestamptz ReleasedAt
+        uuid ReleasedByUserId
+        uuid ReleaseExceptionReasonId FK
+        int Version
+    }
+    LabFourEyesExceptionReason {
+        uuid Id PK
+        varchar ReasonCode UK
+        varchar ReasonName
+        boolean RequiresNote
+        boolean IsActive
+    }
+    LabResultCorrectionReason {
+        uuid Id PK
+        varchar ReasonCode UK
+        varchar ReasonName
+        boolean RequiresNote
+        boolean IsActive
+    }
+    LabTransitionHistory {
+        uuid Id PK
+        uuid LabExaminationId FK
+        varchar Action
+        varchar ReasonCode
+    }
+    MrcClinicalDocumentIntegrity {
+        uuid Id PK
+        int DocumentKind UK
+        uuid DocumentId UK
+    }
+    WfpClinicalPrivilege {
+        uuid Id PK
+        varchar PrivilegeCode
+        int PrivilegeStatus
+    }
+```
+
+**Kenapa pengembalian menunjuk alasan lewat kode, bukan FK.** `LabTransitionHistory.ReasonCode`
+sudah dipakai alasan penolakan wadah dengan cara yang sama: riwayat menyimpan **kode yang dipilih
+saat itu** sebagai teks. Menambah FK pada tabel riwayat bersama akan memaksa setiap baris riwayat
+lain — pesanan, wadah — ikut punya kolom yang nol dipakainya.
+
+### 17.6 Bentuk DDL — dokumentasi, bukan skrip
+
+> Isi di bawah menggambarkan **bentuk** yang dihasilkan configuration EF Core. Ia **bukan** skrip
+> yang dijalankan; migration yang dibangkitkan EF Core adalah satu-satunya sumber perubahan skema.
+
+```sql
+CREATE TABLE public."LabResultCorrectionReason" (
+    "Id"            uuid          NOT NULL,
+    "ReasonCode"    varchar(32)   NOT NULL,
+    "ReasonName"    varchar(200)  NOT NULL,
+    "Description"   varchar(256)  NULL,
+    "RequiresNote"  boolean       NOT NULL DEFAULT false,
+    "IsActive"      boolean       NOT NULL DEFAULT true,
+    "SortOrder"     integer       NOT NULL DEFAULT 0,
+    -- sepuluh kolom IdentityModel menyusul di sini
+    CONSTRAINT "PK_LabResultCorrectionReason" PRIMARY KEY ("Id")
+);
+CREATE UNIQUE INDEX "IX_LabResultCorrectionReason_ReasonCode"
+    ON public."LabResultCorrectionReason" ("ReasonCode") WHERE "IsDelete" = false;
+CREATE INDEX "IX_LabResultCorrectionReason_IsActive_SortOrder"
+    ON public."LabResultCorrectionReason" ("IsActive", "SortOrder");
+
+CREATE TABLE public."LabFourEyesExceptionReason" (
+    "Id"            uuid          NOT NULL,
+    "ReasonCode"    varchar(32)   NOT NULL,
+    "ReasonName"    varchar(200)  NOT NULL,
+    "Description"   varchar(256)  NULL,
+    "RequiresNote"  boolean       NOT NULL DEFAULT false,
+    "IsActive"      boolean       NOT NULL DEFAULT true,
+    "SortOrder"     integer       NOT NULL DEFAULT 0,
+    -- sepuluh kolom IdentityModel menyusul di sini
+    CONSTRAINT "PK_LabFourEyesExceptionReason" PRIMARY KEY ("Id")
+);
+CREATE UNIQUE INDEX "IX_LabFourEyesExceptionReason_ReasonCode"
+    ON public."LabFourEyesExceptionReason" ("ReasonCode") WHERE "IsDelete" = false;
+CREATE INDEX "IX_LabFourEyesExceptionReason_IsActive_SortOrder"
+    ON public."LabFourEyesExceptionReason" ("IsActive", "SortOrder");
+
+-- LabExamination: empat belas kolom, seluruhnya nullable tanpa nilai bawaan,
+-- sehingga nol baris ditulis ulang.
+ALTER TABLE public."LabExamination"
+    ADD COLUMN "ValidatedAt"                            timestamptz   NULL,
+    ADD COLUMN "ValidatedByUserId"                      uuid          NULL,
+    ADD COLUMN "ValidatedByPositionId"                  uuid          NULL,
+    ADD COLUMN "ValidatedByPositionNameSnapshot"        varchar(200)  NULL,
+    ADD COLUMN "ValidatedByPrivilegeId"                 uuid          NULL,
+    ADD COLUMN "ValidationExceptionReasonId"            uuid          NULL,
+    ADD COLUMN "ValidationExceptionReasonNameSnapshot"  varchar(200)  NULL,
+    ADD COLUMN "ReleasedAt"                             timestamptz   NULL,
+    ADD COLUMN "ReleasedByUserId"                       uuid          NULL,
+    ADD COLUMN "ReleasedByPositionId"                   uuid          NULL,
+    ADD COLUMN "ReleasedByPositionNameSnapshot"         varchar(200)  NULL,
+    ADD COLUMN "ReleasedByPrivilegeId"                  uuid          NULL,
+    ADD COLUMN "ReleaseExceptionReasonId"               uuid          NULL,
+    ADD COLUMN "ReleaseExceptionReasonNameSnapshot"     varchar(200)  NULL;
+ALTER TABLE public."LabExamination"
+    ADD CONSTRAINT "FK_LabExamination_LabFourEyesExceptionReason_ValidationExceptionReasonId"
+        FOREIGN KEY ("ValidationExceptionReasonId")
+        REFERENCES public."LabFourEyesExceptionReason" ("Id") ON DELETE RESTRICT,
+    ADD CONSTRAINT "FK_LabExamination_LabFourEyesExceptionReason_ReleaseExceptionReasonId"
+        FOREIGN KEY ("ReleaseExceptionReasonId")
+        REFERENCES public."LabFourEyesExceptionReason" ("Id") ON DELETE RESTRICT;
+CREATE INDEX "IX_LabExamination_FinalizedAt_ValidatedAt"
+    ON public."LabExamination" ("FinalizedAt", "ValidatedAt");
+CREATE INDEX "IX_LabExamination_ReleasedAt" ON public."LabExamination" ("ReleasedAt");
+```
+
+### 17.7 Yang tidak ada di kamus ini
+
+| Yang dicari pembaca | Kenapa tidak ada |
+|---|---|
+| Tabel penunjukan pemvalidasi | `LAB-DEC-148` — penunjukan tinggal di kredensial Human Resource |
+| Kolom status hasil `Validated`/`Released` | `LAB-DEC-080`. **Ditolak secara eksplisit** |
+| Kolom label order *Selesai* | `LAB-DEC-135`, `AC-199` — diturunkan setiap kali dibaca |
+| Kolom kode kewenangan pada pengaturan disiplin | Kode kewenangan adalah konstanta (`02-backend-architecture.md` 20.9) |
+| Tabel jadwal jaga pemvalidasi | Peringatan satu pemegang per shift ditunda (`02-backend-architecture.md` 20.9) |
+
+---
+
+## 18. Amandemen 2026-09-25 (kedua) — Validasi dan rilis Mikrobiologi (`S4d-1`): nol tabel, nol kolom
+
+`02-backend-architecture.md` bagian 21 **tidak menambah maupun mengubah** tabel atau kolom. Yang
+berubah adalah **siapa yang memakai** kolom yang sudah ada:
+
+| Tabel | Kolom | Sebelumnya dipakai | Kini dipakai juga | Sensitif |
+|---|---|---|---|:---:|
+| `LabExamination` | Ke-14 kolom validasi dan rilis bagian 17.3 | Patologi Klinik (`S4`) | **Mikrobiologi** (`S4d-1`) | Tidak |
+| `LabExamination` | `ResultQualifier` (`LAB-DEC-114`) | Cetakan Mikrobiologi | **Penjaga `VAL-144`** — nilai `Preliminary` menolak validasi dan rilis; kosong diterima | Tidak |
+| `MrcClinicalDocumentIntegrity` | `DocumentKind = 14` | Pemeriksaan Patologi Klinik yang dirilis | **Pemeriksaan Mikrobiologi** yang dirilis | Tidak |
+
+**Isolat dan antibiogram** (`LabMicrobiologyIsolate`, `LabIsolateSusceptibility`, bagian 14.3-14.4)
+**tidak** memperoleh kolom validasi sendiri — mereka disahkan lewat pemeriksaannya (`INV-53`).

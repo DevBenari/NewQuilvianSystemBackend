@@ -89,9 +89,45 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.DTOs
     /// Bukti kecocokan yang berlaku bila gerbang bukti tidak sedang menahan. Dipakai supaya
     /// pemberian darurat yang hanya melewati gerbang lokasi tetap menunjuk bukti yang sah.
     /// </param>
+    /// <param name="BloodGroupGateClosed">
+    /// Golongan darah pasien tujuan sedang bertentangan (<c>VAL-BD-034</c>, <c>BE-BD-022</c>).
+    /// Bukan cakupan bypass: selama benar, jalur darurat ditolak apa pun cakupannya.
+    /// </param>
     public sealed record BloodUnitEmergencyBypassState(
         bool EvidenceGateClosed,
         bool LocationGateClosed,
         Guid? PatientId,
-        Guid? ValidCompatibilityEvidenceId);
+        Guid? ValidCompatibilityEvidenceId,
+        bool BloodGroupGateClosed);
+
+    /// <summary>
+    /// Proyeksi keadaan kedua gerbang yang dapat dilewati jalur darurat pada detail kantong
+    /// (<c>BE-BD-021</c>).
+    /// </summary>
+    /// <remarks>
+    /// Hasil <c>EvaluateEmergencyBypassAsync</c> apa adanya saat detail dibaca. Kedua gerbang dinilai
+    /// terpisah, sehingga pasangan nilainya adalah cakupan yang diterima <c>emergency-issue</c>
+    /// tanpa <c>VAL-BD-066</c> pada keadaan yang sama. <c>emergency-issue</c> tetap menilai ulang
+    /// saat tindakan dilakukan.
+    /// </remarks>
+    public sealed class BloodUnitEmergencyBypassDto
+    {
+        /// <summary>Gerbang bukti kecocokan sedang menahan pemberian normal.</summary>
+        public bool EvidenceGateClosed { get; set; }
+
+        /// <summary>Kantong belum pernah disimpan atau lokasinya sedang tidak aktif.</summary>
+        public bool LocationGateClosed { get; set; }
+
+        /// <summary>Pasien tujuan dari alokasi aktif.</summary>
+        public Guid? PatientId { get; set; }
+
+        /// <summary>Bukti kecocokan yang berlaku, hanya bila gerbang bukti tidak menahan.</summary>
+        public Guid? ValidCompatibilityEvidenceId { get; set; }
+
+        /// <summary>
+        /// Golongan darah pasien tujuan sedang bertentangan (<c>VAL-BD-034</c>, <c>BE-BD-022</c>).
+        /// Bukan cakupan bypass: selama benar, <c>emergency-issue</c> ditolak apa pun cakupannya.
+        /// </summary>
+        public bool BloodGroupGateClosed { get; set; }
+    }
 }

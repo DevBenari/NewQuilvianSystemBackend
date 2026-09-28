@@ -2,10 +2,10 @@
 
 | Field | Value |
 | --- | --- |
-| Blueprint ID | `BD-BP-001` · Contract version `v4` — **`approved`** |
-| `last_changed_in` | `v4` |
+| Blueprint ID | `BD-BP-001` · Contract version **`v5` — `approved`** (`Sukmagp` 2026-09-19; `v4` kini `superseded`). **Riwayat:** `v5` `draft` 18 September 2026. Arah disetujui `Sukmagp` 2026-09-18 (`DEC-BD-055`..`058`). **Riwayat:** `v4` — `approved` `Sukmagp` 2026-09-03 |
+| `last_changed_in` | **`v5`** — grup Blood Order saja (bagian "Amendment `v5`" di bawah tabel grup itu). Grup lain tidak berubah. **23 September 2026:** bagian `D5` ditambahkan ke amandemen yang sama — penyaring rentang tanggal `startDate`/`endDate` pada `GET /` (`DEC-BD-059`, `DEC-BD-060`, task `BE-BD-019`). Aditif penuh; **nomor set kontrak tidak dinaikkan**, karena tidak ada satu pun klien lama yang rusak. **24 September 2026:** bagian `D6` ditambahkan pada grup Blood Unit — penyaring `inactiveLocation` pada `GET /` (keputusan pemilik `Sukmagp`, task `BE-BD-020`). Aditif penuh; nomor set kontrak tidak dinaikkan. **25 September 2026:** bagian `D7` ditambahkan pada grup Blood Unit — proyeksi `issuanceGate` dan `emergencyBypass` pada `BloodUnitDetailDto` (keputusan pemilik `Sukmagp` `R1`–`R5`, task `BE-BD-021`). Aditif penuh; nomor set kontrak tidak dinaikkan. **25 September 2026:** bagian `D8` ditambahkan pada grup Blood Unit — gerbang `VAL-BD-034` pada `issue` dan `emergency-issue`, isian `bloodGroupGateClosed` pada `emergencyBypass` (keputusan pemilik `Sukmagp`, task `BE-BD-022`). Menegakkan kode yang sudah ada; nomor set kontrak tidak dinaikkan. **Riwayat:** `v4` |
 | Owner | Pemilik arsitektur backend (bentuk kontrak) · pemilik proses BDRS (perilaku) |
-| `approved_by` / `approved_at` | `Sukmagp` / `2026-09-03` |
+| `approved_by` / `approved_at` | `Sukmagp` / `2026-09-19` (`v5`). **Riwayat:** `Sukmagp` / `2026-09-03` (`v4`) |
 | Sumber | `02-backend-architecture.md` (controller) · `contracts/state-transition-matrix.md` · `contracts/validation-matrix.md` |
 
 **Seluruh endpoint di bawah berstatus `Rencana (belum tersedia)`** — belum ada di kode. Route & grup
@@ -43,6 +43,147 @@ wewenang membatalkan dapat diberikan kepada dokter peminta **tanpa** ikut member
 order secara umum. Keduanya memakai **satu** butir yang sama — dokter maupun petugas BDRS — dan yang
 membedakan sebabnya pada rekam adalah **kategori alasan** yang wajib diisi: pembatalan klinis atau
 pembatalan operasional. Tidak ada pembatalan order tanpa audit (`INV-BD-035`).
+
+**Keadaan terkini sebelum `v5`.** Ketujuh endpoint di atas **tersedia** sejak `BE-BD-003` (11 September
+2026), ditambah tiga permukaan teknis `GET /filters/metadata`, `GET /summary`, dan `GET /{id}/status-history`.
+`BloodOrder : Update` tetap **tanpa** endpoint. Label "Rencana" pada tabel adalah riwayat penulisan `v4`.
+
+#### Amendment `v5` — Blood Order (18 September 2026; **`approved`** `Sukmagp` 2026-09-19)
+
+Empat perubahan **aditif** untuk `FE-BD-002`, diputuskan `Sukmagp` 18 September 2026. Nol endpoint baru,
+nol endpoint dihapus, nol butir hak akses baru. Seluruh perubahan berstatus **`Rencana (belum tersedia)`**
+sampai task backend `v5` pemiliknya selesai.
+
+| Method | Path | Yang berubah pada `v5` | Hak akses | Status |
+| --- | --- | --- | --- | --- |
+| `GET` | `/` | Query baru `bloodComponentId`; isian baru `Components` dan `TotalIssuedQuantity` pada `BloodOrderListDto` (`DEC-BD-058`) | `BloodOrder : Read` | Rencana (belum tersedia) |
+| `GET` | `/{id}` | Isian baru `RequestedBloodGroup` + label (`DEC-BD-055`) dan `CancellationReasonCategory` (`DEC-BD-057`) pada `BloodOrderDetailDto` | `BloodOrder : Read` | Rencana (belum tersedia) |
+| `POST` | `/` | Isian wajib baru `RequestedBloodGroup` (`400 VAL-BD-085`); `422 VAL-BD-001` membawa `errors` terstruktur (`DEC-BD-056`) | `BloodOrder : Create` | Rencana (belum tersedia) |
+| `POST` | `/manual` | Sama dengan `POST /` | `BloodOrder : Create` | Rencana (belum tersedia) |
+| `POST` | `/confirm-duplicate` | Isian wajib baru `RequestedBloodGroup` (`400 VAL-BD-085`) | `BloodOrder : Create` | Rencana (belum tersedia) |
+| `POST` | `/{id}/cancel` | Request tidak berubah. Jawaban detail ikut membawa isian baru | `BloodOrder : Cancel` | Rencana (belum tersedia) |
+
+**D1 — `RequestedBloodGroup` (`DEC-BD-055`).**
+
+| Tempat | Isian | Tipe | Wajib | Aturan |
+| --- | --- | --- | --- | --- |
+| `CreateBloodOrderRequest`, `CreateManualBloodOrderRequest`, `ConfirmDuplicateOrderRequest` | `requestedBloodGroup` | `BloodType?` (angka enum `BloodType` yang sudah ada) | **Ya** | Harus **dikirim**. Kosong, `NotDisclosed` (`99`), atau angka di luar enum → `400 VAL-BD-085`, **sebelum** nomor order diminta. `Unknown` (`0`) **sah**. Tipe request sengaja nullable: `Unknown` adalah nilai bawaan enum, sehingga isian yang lupa dikirim tidak boleh diam-diam terbaca sebagai "Tidak diketahui" |
+| `BloodOrderDetailDto` | `requestedBloodGroup`, `requestedBloodGroupLabel` | `BloodType?`, `string?` | — | Nilai tersimpan apa adanya. `null` hanya pada order sebelum `v5` — layar menulisnya sebagai "golongan darah diminta tidak tercatat pada order lama" |
+
+`confirm-duplicate` membawa `requestedBloodGroup` sebagai bagian body pembuatan yang utuh. Backend **tidak**
+menyimpan percobaan yang tertahan, sehingga backend menjaga keberadaan dan keabsahan nilainya, sedangkan
+kesamaan nilai dengan percobaan yang tertahan dijaga layar: panel lanjutan order ganda mengirim ulang
+isian percobaan itu tanpa menyuntingnya.
+
+**Batas klinis.** `RequestedBloodGroup` tidak pernah mengubah, menggantikan, atau dibaca oleh golongan
+darah sah (`GET /blood-group-exams/patient/{patientId}/valid`), bukti kecocokan, alokasi, maupun pemberian
+(`INV-BD-011`). Golongan darah hasil pemeriksaan **tidak** ditambahkan ke `BloodOrderDetailDto`.
+
+**D2 — `errors` pada penahanan order ganda (`DEC-BD-056`).** Hanya untuk `422 VAL-BD-001` dari `POST /`
+dan `POST /manual`. Mengikuti konvensi slot `errors` `BbkBloodUnitController`:
+
+```json
+{
+  "success": false,
+  "statusCode": 422,
+  "message": "Sudah ada order darah aktif untuk pasien dan komponen ini pada kunjungan yang sama. Lanjutkan hanya dengan alasan tertulis.",
+  "data": null,
+  "errors": {
+    "code": "VAL-BD-001",
+    "duplicateComponentIds": ["<BloodComponentId yang benar-benar bentrok>"]
+  }
+}
+```
+
+`duplicateComponentIds` hanya memuat komponen yang bentrok. Contoh: order baru PRC + trombosit, dan hanya
+PRC yang sudah punya order aktif, maka isinya satu ID PRC. `message` hanya untuk ditampilkan; layar mengenali
+penahanan dari `errors.code`. Kegagalan order lain **tidak** diubah bentuknya pada `v5` (`errors` tetap `null`).
+
+**D3 — `CancellationReasonCategory` (`DEC-BD-057`).**
+
+| Isian | Tipe | Nilai |
+| --- | --- | --- |
+| `BloodOrderDetailDto.cancellationReasonCategory` | `string?` | `OrderCancellationClinical` bila pengguna yang login tertaut ke dokter peminta order ini (`ApplicationUser.DoctorId == RequestingDoctorId`); `OrderCancellationOperational` untuk pengguna lain; `null` bila `Cancel` tidak ada di `AvailableActions` |
+
+Nilainya **diturunkan** per request dengan fungsi yang sama dengan `POST /{id}/cancel`, dan **tidak disimpan**.
+Isian ini hanya menyatakan kategori mana yang akan diterima; ia **bukan** pernyataan bahwa pengguna berhak
+membatalkan, yang tetap dijaga `BloodOrder : Cancel`. `POST /{id}/cancel` tetap memeriksa `VAL-BD-083`.
+Layar memakainya untuk memanggil `GET /api/v1/health-services/master-data/blood-bank-reasons/options?category=<nilai>`.
+
+**D4 — daftar kerja (`DEC-BD-058`).**
+
+| Tempat | Isian | Tipe | Aturan |
+| --- | --- | --- | --- |
+| `GET /` query | `bloodComponentId` | `Guid?` | Order yang memiliki **sekurang-kurangnya satu** baris dengan komponen itu. Digabung dengan penyaring lain secara "dan" |
+| `BloodOrderListDto` | `components` | `List<BloodOrderListComponentDto>` | Satu butir per baris order, urut `Sequence` |
+| `BloodOrderListComponentDto` | `bloodComponentId`, `bloodComponentCode`, `bloodComponentName`, `requestedQuantity`, `issuedQuantity` | `Guid`, `string?`, `string?`, `int`, `int` | `issuedQuantity` dihitung dengan aturan `BD-DOM-17` yang sama dengan `GET /{id}/fulfillment`: kantong `Issued` nyata, dikurangi yang koreksinya `Approved` (`DEC-BD-054`) |
+| `BloodOrderListDto` | `totalIssuedQuantity` | `int` | Jumlah `issuedQuantity` seluruh baris. `totalRequestedQuantity` yang sudah ada tetap |
+
+Perhitungan dikerjakan sekaligus untuk seluruh order pada satu halaman — satu kueri berkelompok per jenis
+data, bukan satu kueri per baris — sampai ukuran halaman maksimum yang sudah berlaku. Tidak ada penghitung
+pemenuhan yang disimpan.
+
+**Kompatibilitas.** Seluruh isian respons baru bersifat aditif. Satu-satunya perubahan yang menolak klien lama
+adalah `requestedBloodGroup` yang **wajib** pada tiga endpoint pembuatan. Klien lama yang tidak mengirimnya
+akan ditolak `400 VAL-BD-085`; pada 18 September 2026 belum ada klien frontend order darah.
+
+#### Amendment `v5` D5 — penyaring rentang tanggal daftar kerja (23 September 2026)
+
+Ditambahkan atas `DEC-BD-059` dan `DEC-BD-060`, `approved` `Sukmagp` 23 September 2026, menutup
+`BD-UI-GAP-004` dengan Opsi B. **Aditif penuh**: dua parameter query opsional, nol perubahan bentuk
+respons, nol endpoint baru, nol butir hak akses baru. Dikerjakan task `BE-BD-019`.
+
+| Method | Path | Yang berubah | Hak akses |
+| --- | --- | --- | --- |
+| `GET` | `/` | Query baru `startDate` dan `endDate`; isian bawaan keduanya pada `BloodOrderDefaultFilterResponse` | `BloodOrder : Read` |
+
+| Tempat | Isian | Tipe | Wajib | Aturan |
+| --- | --- | --- | :---: | --- |
+| `GET /` query | `startDate` | `DateTime?` | Tidak | **Tanggal operasional waktu aplikasi** (`Asia/Jakarta`), bukan saat UTC. Bentuk yang dikontrakkan `YYYY-MM-DD`. Bagian waktu **dan** penanda zona yang ikut terkirim **diabaikan** — yang dibaca hanya harinya |
+| `GET /` query | `endDate` | `DateTime?` | Tidak | Sama, dan **inklusif sampai akhir hari** |
+| `BloodOrderDefaultFilterResponse` | `startDate`, `endDate` | `DateTime?` | — | Bawaan `null` — daftar kerja tidak dibatasi waktu sampai petugas memilih rentang |
+
+**Kolom yang disaring.** `BbkBloodOrder.CreateDateTime`, dan hanya itu. Penyaringan dikerjakan
+**server-side**; layar tidak pernah menyaring tanggal secara lokal, karena daftarnya berhalaman di server
+dan menyaring satu halaman akan membuat nomor halaman serta `totalData` tidak lagi berarti.
+
+**Penerjemahan rentang ke UTC (`DEC-BD-060`).** `CreateDateTime` **tersimpan dalam UTC**, sedangkan kedua
+parameter di atas adalah tanggal waktu Jakarta. Karena itu batasnya **dikonversi**, bukan distempel:
+
+| Batas | Nilai |
+| --- | --- |
+| Bawah, **inklusif** | Pukul `00:00` waktu aplikasi pada `startDate`, dikonversi ke UTC |
+| Atas, **eksklusif** | Pukul `00:00` waktu aplikasi pada `endDate + 1 hari`, dikonversi ke UTC |
+
+Batas atas eksklusif pada hari berikutnya itulah yang mewujudkan "inklusif sampai akhir hari" tanpa
+kehilangan pecahan detik terakhir — yang akan terbuang bila batasnya ditulis `<= 23:59:59`.
+
+**Contoh mengikat.** `startDate = endDate = 2026-09-23` menghasilkan rentang efektif:
+
+```
+CreateDateTime >= 2026-09-22T17:00:00Z
+CreateDateTime <  2026-09-23T17:00:00Z
+```
+
+Order yang dibuat pukul `02:00` WIB tanggal 23 September tersimpan `2026-09-22T19:00:00Z`, dan **masuk**
+ke rentang itu. Menstempel `DateTimeKind.Utc` apa adanya akan membuangnya — pola keliru yang ada pada
+beberapa controller master data dan **tidak boleh** ditiru di sini.
+
+**Penggabungan.** Rentang digabung "dan" dengan `search`, `patientId`, `encounterId`, `serviceUnitId`,
+`bloodComponentId`, `orderStatus`, dan `orderSource`. Paging berlaku atas hasil yang sudah tersaring:
+`totalData` dan `totalPage` menghitung hasil akhir.
+
+**Jalur tidak normal.**
+
+| Keadaan | Yang terjadi | Kode |
+| --- | --- | --- |
+| `startDate` melewati `endDate` | Ditolak sebelum menyentuh database | `400` `VAL-BD-086` |
+| `startDate` sama dengan `endDate` | **Sah** — menyaring satu hari penuh | `200` |
+| Hanya salah satu dikirim | **Sah** — rentangnya terbuka di sisi yang tidak dikirim | `200` |
+| Keduanya kosong | Perilaku **sama persis** dengan sebelum `D5` | `200` |
+
+Rentang terbalik **tidak** diserahkan ke database. Query yang mustahil memulangkan nol baris, dan nol
+baris terbaca petugas sebagai "tidak ada order" — bukan sebagai "filternya salah".
 
 ---
 
@@ -98,7 +239,7 @@ Base URL: `api/v1/health-services/blood-bank-management/blood-units`
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| `GET` | `/` | Daftar kantong; filter `status=PendingReview` = daftar kerja #2; filter `emergencyPendingEvidence=true` = daftar kerja #3 | `BloodUnit : Read` | `BloodUnitPagedQuery` | `ApiResponse<PagedResult<BloodUnitListDto>>` | Rencana |
+| `GET` | `/` | Daftar kantong; filter `status=PendingReview` = daftar kerja #2; filter `emergencyPendingEvidence=true` = daftar kerja #3; filter `inactiveLocation=true` = kantong tertahan di lokasi nonaktif (**`D6`**, 24 September 2026) | `BloodUnit : Read` | `BloodUnitPagedQuery` | `ApiResponse<PagedResult<BloodUnitListDto>>` | Rencana · `inactiveLocation` **terimplementasi `BE-BD-020`** |
 | `GET` | `/{id}` | Detail kantong + riwayat alokasi/bukti/koreksi | `BloodUnit : Read` | — | `ApiResponse<BloodUnitDetailDto>` | Rencana |
 | `GET` | `/{id}/placements` | Riwayat penempatan kantong: di kulkas mana, sejak kapan, oleh siapa | `BloodUnit : Read` | — | `ApiResponse<List<BloodUnitPlacementDto>>` | Rencana |
 | `POST` | `/{id}/storage-location` | **Tetapkan lokasi penyimpanan pertama** — membawa kantong `Received`→`Stored`→`Available` (`DEC-BD-036`) | `BloodUnit : Store` | `AssignStorageLocationRequest` | `ApiResponse<BloodUnitDetailDto>` | Rencana · `422 VAL-BD-060/061` |
@@ -115,6 +256,151 @@ Base URL: `api/v1/health-services/blood-bank-management/blood-units`
 | `POST` | `/{id}/reallocate` | Alihkan kantong `PendingReview` ke pasien lain | **`BloodUnit : ResolveReallocate`** | `ReallocateUnitRequest` | `ApiResponse<BloodUnitDetailDto>` | **Terimplementasi `BE-BD-009`** · `400 VAL-BD-016` · `403 VAL-BD-080` · `422 VAL-BD-064` |
 | `POST` | `/{id}/return-to-provider` | Kembalikan kantong ke PMI | **`BloodUnit : ResolveReturn`** | `ResolveWithReasonRequest` | `ApiResponse<BloodUnitDetailDto>` | **Terimplementasi `BE-BD-009`** · `400 VAL-BD-016` · `403 VAL-BD-081` |
 | `POST` | `/{id}/mark-not-usable` | Nyatakan kantong tidak layak | **`BloodUnit : ResolveNotUsable`** | `ResolveWithReasonRequest` | `ApiResponse<BloodUnitDetailDto>` | **Terimplementasi `BE-BD-009`** · `400 VAL-BD-016` · `403 VAL-BD-082` |
+
+#### Amendment `v5` D6 — penyaring kantong tertahan di lokasi nonaktif (24 September 2026)
+
+Ditambahkan atas keputusan pemilik `Sukmagp` 24 September 2026 (butir `D2`–`D4` pada audit
+[`BE-BD-020`](../task/report/backend/BE-BD-020.md) bagian 2), menutup saringan `inactiveLocation` yang sudah
+dijanjikan `03-frontend-architecture.md` untuk `FE-BD-012` tetapi belum pernah ada di kontrak ini.
+**Aditif penuh**: satu parameter query opsional, satu isian bawaan pada metadata penyaring, nol perubahan
+bentuk respons, nol endpoint baru, nol butir hak akses baru. Dikerjakan task `BE-BD-020`.
+
+| Method | Path | Yang berubah | Hak akses |
+| --- | --- | --- | --- |
+| `GET` | `/` | Query baru `inactiveLocation` | `BloodUnit : Read` |
+| `GET` | `/filters/metadata` | Isian bawaan `inactiveLocation` pada `BloodUnitDefaultFilterResponse` | `BloodUnit : Read` |
+
+| Tempat | Isian | Tipe | Wajib | Aturan |
+| --- | --- | --- | :---: | --- |
+| `GET /` query | `inactiveLocation` | `bool?` | Tidak | `true` = hanya kantong tertahan; `false` = kebalikan persisnya; kosong = tidak menyaring |
+| `BloodUnitDefaultFilterResponse` | `inactiveLocation` | `bool?` | — | Bawaan `null` |
+
+**Definisi "tertahan di lokasi nonaktif".** Sebuah kantong tertahan bila **ketiga** syarat ini terpenuhi
+sekaligus:
+
+| Syarat | Isi | Keputusan |
+| --- | --- | --- |
+| Masih di stok | Status `Stored`, `Available`, `Allocated`, `PendingReview`, atau `Reallocated` — himpunan yang sama dengan hitungan peringatan `VAL-BD-068` | `D2` |
+| Punya lokasi berlaku | `CurrentPlacementId` terisi. Kantong **tanpa lokasi** (`Received`) **tidak** dianggap tertahan | — |
+| Lokasinya nonaktif | Lokasi berlakunya `IsActive = false` **atau** terhapus (`IsDelete = true`) — definisi yang sama dengan gerbang alokasi `VAL-BD-064` dan penanda `isCurrentStorageLocationActive` | `D3` |
+
+Kantong berstatus akhir — `Issued`, `ReturnedToProvider`, `NotUsable` — **tidak pernah** muncul pada
+`inactiveLocation=true` walaupun `CurrentPlacementId`-nya masih menunjuk lokasi terakhir yang kini
+nonaktif: kantongnya sudah keluar dari stok, sehingga tidak ada lagi yang perlu dipindahkan.
+
+**`inactiveLocation=false` adalah kebalikan persisnya (`D4`)**, mengikuti pola `emergencyPendingEvidence`:
+seluruh kantong yang **tidak** memenuhi ketiga syarat di atas — kantong di lokasi aktif, kantong tanpa
+lokasi, dan kantong berstatus akhir. Untuk setiap kantong berlaku: muncul di `true` **atau** di `false`,
+tidak pernah keduanya dan tidak pernah tidak sama sekali.
+
+**Penggabungan.** Digabung "dan" dengan `search`, `unitStatus`, `isExcess`, `providerRequestId`,
+`bloodComponentId`, dan `emergencyPendingEvidence`. Paging berlaku atas hasil yang sudah tersaring:
+`totalData` dan `totalPage` menghitung hasil akhir. Penyaringan dikerjakan **server-side**.
+
+**Yang tidak berubah.** `GET /summary` tidak memperoleh hitungan kantong tertahan. Gerbang alokasi dan
+pemberian (`VAL-BD-064`/`065`) tidak disentuh — penyaring ini hanya membaca. Kantong tidak dipindahkan
+dan statusnya tidak diubah (`DEC-BD-037`).
+
+**Catatan nama parameter status.** Baris `GET /` di atas dan `03-frontend-architecture.md` menulis
+`status=`; nama parameter sebenarnya di source adalah **`unitStatus`**. Selisih penulisan ini sudah ada
+sebelum `D6` dan **tidak** diubah amandemen ini — klien memakai `unitStatus`.
+
+#### Amendment `v5` D7 — proyeksi gerbang pemberian pada detail kantong (25 September 2026)
+
+Ditambahkan atas keputusan pemilik `Sukmagp` 25 September 2026 (butir `R1`–`R5` pada audit
+[`BE-BD-021`](../task/report/backend/BE-BD-021.md) bagian 2). Menutup backlog "proyeksi gerbang pemberian"
+yang dicatat laporan `FE-BD-005` bagian 8: layar kantong baru tahu gerbang pemberian tertutup **sesudah**
+tombol Berikan ditekan dan ditolak. **Aditif penuh**: dua isian nullable baru pada `BloodUnitDetailDto`,
+nol endpoint baru, nol butir hak akses baru, nol kode `VAL-BD-*` baru, nol perubahan aturan gerbang.
+Dikerjakan task `BE-BD-021`.
+
+| Method | Path | Yang berubah | Hak akses |
+| --- | --- | --- | --- |
+| `GET` | `/{id}` | Respons membawa `issuanceGate` dan `emergencyBypass` | `BloodUnit : Read` |
+| `POST` | Seluruh aksi kantong yang memulangkan `ApiResponse<BloodUnitDetailDto>` | Respons suksesnya ikut membawa kedua isian, karena detailnya dibangun fungsi yang sama | Tidak berubah |
+
+| Tempat | Isian | Tipe | Aturan |
+| --- | --- | --- | --- |
+| `BloodUnitDetailDto` | `issuanceGate` | `BloodUnitIssuanceGateDto?` | Terisi **hanya** bila `unitStatus = Allocated` (`R1`); `null` pada status lain |
+| `BloodUnitDetailDto` | `emergencyBypass` | `BloodUnitEmergencyBypassDto?` | Sama dengan `issuanceGate` |
+| `BloodUnitIssuanceGateDto` | `isOpen` | `bool` | `true` = `POST /{id}/issue` tidak ditahan gerbang pada keadaan saat detail dibaca |
+| `BloodUnitIssuanceGateDto` | `validationCode` | `string?` | Kode penahan pertama: `VAL-BD-017`, `065`, `018`, `019`, `020b`, `079`, atau `020`. `null` bila terbuka |
+| `BloodUnitIssuanceGateDto` | `message` | `string` | Pesan yang sama persis dengan penolakan `issue` untuk kode itu |
+| `BloodUnitIssuanceGateDto` | `compatibilityEvidenceId` | `Guid?` | Bukti pasien tujuan yang dinilai, bila penilaian sampai ke sana (`079`, `020`, atau terbuka) |
+| `BloodUnitIssuanceGateDto` | `validUntil` | `DateTime?` (UTC) | Terisi **hanya** bila terbuka atau `020` (`R3`). `null` berarti **tidak dihitung**, bukan berlaku tanpa batas |
+| `BloodUnitEmergencyBypassDto` | `evidenceGateClosed` | `bool` | Gerbang bukti menahan, dinilai terlepas dari lokasi |
+| `BloodUnitEmergencyBypassDto` | `locationGateClosed` | `bool` | Kantong tanpa penempatan atau lokasinya tidak aktif |
+| `BloodUnitEmergencyBypassDto` | `patientId` | `Guid?` | Pasien tujuan dari alokasi aktif |
+| `BloodUnitEmergencyBypassDto` | `validCompatibilityEvidenceId` | `Guid?` | Bukti yang berlaku, hanya bila `evidenceGateClosed = false` |
+
+**Sumber nilainya.** Kedua isian adalah hasil evaluator yang sama yang dipakai tindakannya,
+`EvaluateIssuanceGateAsync` untuk `issue` dan `EvaluateEmergencyBypassAsync` untuk `emergency-issue`.
+Keduanya dibaca apa adanya, bukan dihitung ulang dan bukan disalin.
+
+**Urutan penilaian gerbang normal tidak berubah** dan berhenti pada penahan pertama:
+status → lokasi (`065`) → alokasi aktif (`017`) → `018` → `019` → `020b` → `079` → `020`. Contoh: kantong di
+kulkas nonaktif yang buktinya juga kedaluwarsa memulangkan `issuanceGate.validationCode = "VAL-BD-065"`
+tanpa `validUntil`. Keadaan buktinya tetap terbaca di `emergencyBypass.evidenceGateClosed = true`.
+
+**Cara membaca `emergencyBypass` untuk jalur darurat (`R5`).** Klien memetakan kedua boolean ke
+`bypassScope` tanpa isian turunan dari backend:
+
+| `evidenceGateClosed` | `locationGateClosed` | `bypassScope` yang diterima `emergency-issue` |
+| :---: | :---: | --- |
+| `true` | `false` | `CompatibilityEvidence` (`0`) |
+| `false` | `true` | `InactiveStorageLocation` (`1`) |
+| `true` | `true` | `Both` (`2`) |
+| `false` | `false` | Tidak ada. Jalur normal terbuka, dan setiap cakupan ditolak `VAL-BD-066` |
+
+**Petunjuk, bukan izin.** Nilainya potret saat detail dibaca. `issue` dan `emergency-issue` tetap menilai
+ulang gerbang saat ditekan, jadi keadaan yang berubah di antaranya (misalnya bukti lewat `validUntil`
+selagi layar terbuka) tetap ditolak dengan kode dan pesan yang sama seperti sebelum `D7`. Klien tetap wajib
+menangani `422`.
+
+**Yang tidak berubah.** `AvailableActions`, request dan kode galat `issue`/`emergency-issue`, daftar
+kantong `GET /`, dan penanda `isCurrentStorageLocationActive`. Penanda itu memakai definisi aktif
+`IsActive && !IsDelete`, sedangkan gerbang lokasi juga memeriksa `IsCancel`. Selisih ini sudah ada sebelum
+`D7`, **tidak** diubah amandemen ini, dan dicatat sebagai technical debt (`R4`). Bila keduanya berbeda,
+`emergencyBypass.locationGateClosed` yang menjadi acuan gerbang.
+
+#### Amendment `v5` D8 — gerbang konflik golongan darah pada pemberian (25 September 2026)
+
+Ditambahkan atas keputusan pemilik `Sukmagp` 25 September 2026: konflik golongan darah **wajib memblokir
+pemberian**, ditegakkan backend, pada **kedua** jalur; hanya konflik (`IsConflictHeld`) yang memblokir —
+pasien yang belum punya golongan darah tervalidasi **tidak** diblokir. Menegakkan `VAL-BD-034` yang sudah
+ada di `validation-matrix.md` (`state-transition-matrix.md` §"Memakai golongan darah saat pasien
+`IsConflictHeld`"). Nol endpoint baru, nol butir hak akses baru, nol kode `VAL-BD` baru, nol migration.
+Dikerjakan task `BE-BD-022`.
+
+| Method | Path | Yang berubah | Hak akses |
+| --- | --- | --- | --- |
+| `POST` | `/{id}/issue` | Dapat ditolak `422 VAL-BD-034` | Tidak berubah |
+| `POST` | `/{id}/emergency-issue` | Dapat ditolak `422 VAL-BD-034`, **apa pun** `bypassScope`-nya | Tidak berubah |
+| `GET` | `/{id}` (dan respons aksi yang memulangkan detail) | `issuanceGate.validationCode` dapat bernilai `VAL-BD-034`; `emergencyBypass` memperoleh `bloodGroupGateClosed` | `BloodUnit : Read` |
+
+| Tempat | Isian | Tipe | Aturan |
+| --- | --- | --- | --- |
+| `BloodUnitEmergencyBypassDto` | `bloodGroupGateClosed` | `bool` | `true` bila pasien tujuan sedang `IsConflictHeld`. **Bukan** cakupan bypass: selama `true`, `emergency-issue` ditolak |
+
+**Sumber kebenaran.** `BbkBloodGroupExamService.GetValidBloodGroupAsync` — pintu yang sama dengan
+`GET /blood-group-exams/patient/{patientId}/valid`, sehingga penanda layar dan gerbang tidak pernah
+berbeda. `MstPatient.BloodType` tidak dibaca (`INV-BD-014`). Pesan penolakan persis rumusan
+`validation-matrix.md`: "Golongan darah pasien ini sedang bertentangan dan ditahan. Selesaikan perbedaannya
+lebih dulu."
+
+**Urutan gerbang pemberian normal sesudah `D8`:** status (`017`) → lokasi (`065`) → alokasi aktif (`017`) →
+**golongan darah (`034`)** → `018` → `019` → `020b` → `079` → `020`. Contoh: kantong di kulkas aktif untuk
+pasien yang sedang menahan konflik dan buktinya kedaluwarsa memulangkan `VAL-BD-034`, bukan `020`.
+
+**Jalur darurat.** Konflik golongan darah bukan gerbang yang dapat dilewati: cakupan bypass tetap hanya
+bukti kecocokan dan lokasi (`INV-BD-030`). Penolakannya diperiksa sesudah pasien tujuan diketahui dan
+**sebelum** kecocokan cakupan, sehingga penerbit yang menyatakan cakupan hasil pemetaan `D7` tetap ditolak
+`VAL-BD-034`, bukan `VAL-BD-066`. Tabel pemetaan `D7` tidak berubah; klien membaca `bloodGroupGateClosed`
+lebih dulu.
+
+**Yang tidak berubah.** `AvailableActions` (tombol tetap ditawarkan; penolakannya terbaca pada proyeksi),
+alokasi dan pencatatan bukti kecocokan (tidak diblokir konflik pada amandemen ini), serta kode dan pesan
+penolakan lain.
 
 Pemberian (`issue`/`emergency-issue`) tidak dapat dibatalkan — status terminal. Koreksi tidak
 memindahkan kantong keluar dari `Issued` dan tidak dapat dipakai memindahkan pemberian ke pasien lain
@@ -218,10 +504,28 @@ Base URL: `api/v1/health-services/blood-bank-management/blood-bank-procedures`
 | `GET` | `/` | Daftar tindakan Bank Darah | `BloodBankProcedure : Read` | `ProcedurePagedQuery` | `ApiResponse<PagedResult<ProcedureListDto>>` | Rencana |
 | `GET` | `/{id}` | Detail tindakan | `BloodBankProcedure : Read` | — | `ApiResponse<ProcedureDetailDto>` | Rencana |
 | `POST` | `/` | Catat tindakan atas satu order | `BloodBankProcedure : Create` | `CreateProcedureRequest` | `ApiResponse<ProcedureDetailDto>` | Rencana · `400 VAL-BD-026` |
-| `POST` | `/{id}/complete` | Nyatakan tindakan selesai | `BloodBankProcedure : Update` | — | `ApiResponse<ProcedureDetailDto>` | Rencana |
+| `POST` | `/{id}/complete` | Nyatakan tindakan selesai; sesudah tersimpan, serahkan satu fakta biaya ke Billing | `BloodBankProcedure : Update` | — | `ApiResponse<ProcedureDetailDto>` + `BillingHandoff` | Tersedia · `422` tindakan tidak `Recorded` · `409` konkurensi |
+| `POST` | `/{id}/resend-cost-fact` | Kirim ulang fakta biaya tindakan yang sudah selesai, tanpa perpindahan status | `BloodBankProcedure : Update` | — | `ApiResponse<ProcedureDetailDto>` + `BillingHandoff` | Tersedia · `422` belum `Completed` atau fakta ditolak · `409` hasil kiriman sebelumnya belum pasti |
 
-**Tidak ada endpoint penyaluran biaya ke Billing** — tertahan `DEC-BD-016`. Fakta biaya boleh dirancang
-sebagai kejadian domain nanti, tetapi kontraknya belum dibekukan.
+**Delta 17 September 2026 — `DEC-BD-016` disetujui, `BE-BD-013`.** Satu endpoint baru dan satu isian respons
+baru; tidak ada yang dihapus maupun diganti nama.
+
+- **`BillingHandoff`** — isian **aditif dan nullable** pada `ProcedureDetailDto`. Terisi hanya pada jawaban
+  `complete` dan `resend-cost-fact`; selalu `null` pada `GET`. Isinya `Kind` (`Emitted`, `Replayed`,
+  `OutcomeUnknown`, `ReconciliationRequired`, `RejectedByBilling`, `Invalid`), `IsClinicallySafe`,
+  `MilestoneFactId`, `MilestoneFactVersion`, `DispatchStatus`, `Code`, `Message`. Keterangan proses, **bukan**
+  status pembayaran.
+- **`complete`** tetap `200` bila penyelesaian tersimpan, walau Billing menolak atau belum pasti — pesannya
+  menyebut bahwa penyerahan memerlukan tinjauan. Menyelesaikan ulang tindakan `Completed` tetap `422`.
+- **`resend-cost-fact`** memakai hak akses yang sama dengan `complete`, sehingga butir hak akses tidak
+  bertambah. `200` untuk `Emitted`/`Replayed`; `409` untuk `OutcomeUnknown`/`ReconciliationRequired`; `422`
+  untuk `RejectedByBilling`/`Invalid` atau tindakan belum `Completed`. Ringkasan penyerahan ikut pada `errors`.
+- **Tidak ada isian Billing dari client.** Kedua endpoint tanpa body; konteks sumber, jenis efek, kunjungan,
+  identitas fakta, dan nominal diturunkan backend.
+- `AvailableActions` **tidak** berubah: kirim ulang adalah jalur pemulihan, bukan langkah lifecycle.
+
+**Riwayat — sampai 17 September 2026:** tidak ada endpoint penyaluran biaya ke Billing — tertahan
+`DEC-BD-016`. Fakta biaya boleh dirancang sebagai kejadian domain nanti, tetapi kontraknya belum dibekukan.
 
 ---
 

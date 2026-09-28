@@ -6,9 +6,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BloodBankManagement.Enums
     /// Dua keadaan tindakan Bank Darah, sesuai <c>contracts/state-transition-matrix.md</c> bagian 5.
     /// </summary>
     /// <remarks>
-    /// <b>Tidak ada status penagihan.</b> Penyaluran fakta biaya ke Billing tertahan
-    /// <c>DEC-BD-016</c> dan milik <c>BE-BD-013</c>; tindakan yang <see cref="Completed"/> tidak
-    /// memicu apa pun di luar Bank Darah.
+    /// <b>Tidak ada status penagihan.</b> Perpindahan ke <see cref="Completed"/> menyerahkan satu
+    /// fakta biaya ke Billing (<c>DEC-BD-016</c>, <c>BE-BD-013</c>), tetapi status penyerahannya
+    /// tinggal di ledger <c>CliClinicalMilestoneFact</c>, bukan di enum ini. Kegagalan Billing tidak
+    /// mengembalikan tindakan ke <see cref="Recorded"/>.
     /// </remarks>
     public enum BbkProcedureStatus
     {

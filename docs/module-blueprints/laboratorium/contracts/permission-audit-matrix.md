@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-PERM-v1` |
-| Revision | `7` |
+| Revision | **`11` — `approved`** 2026-09-25, bagian 13 (`S4`: `Validate`, `Release`, `Return`, dua data induk alasan). Terakhir `approved`: `10` — **`approved`** 2026-09-24, bagian 12. *Baris ini sempat tertinggal di `7` sejak revision 8; dirapikan 2026-09-24* |
 | Revision 7 approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-18** |
 | Isi amandemen revision 7 | **`approved` — 2026-09-18.** Dua resource baru — `LabPathologyParameter` dan `LabPathologyCategory`, masing-masing `Read`/`Create`/`Update`, **nol `Delete`**; keberlakuan parameter dan pemetaan jenis pemeriksaan ikut `LabPathologyCategory : Update`, bukan resource sendiri. Mengisi, memfinalkan, dan membuka kembali laporan PA **tidak menambah hak akses** — memakai `LabExamination : Update` yang sudah ada. **Satu pemisahan yang disengaja: konteks klinis pesanan memakai `LabOrder : Update`**, sebab penulisnya **dokter pemesan, bukan patolog** (`LAB-DEC-091`, `INV-40`). Lima kejadian audit baru; **`PathologyReport.Reopen` dan `PathologyReport.AmendValue` wajib beralasan**. Membawa **pembatasan logger dan DTO paling ketat pada modul ini**: nol isi parameter, nol diagnosa, nol riwayat penyakit boleh masuk log atau layar non-klinis. Disetujui bersama `LAB-API-v1` `r25` dan `LAB-VAL-v1` `r8` pada hari yang sama. Lihat bagian 9 |
 | Revision 6 approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-18** |
@@ -622,3 +622,215 @@ dan `LAB-OPEN-034`.
 | `LabDisciplineSetting : Read`, `Update` | `LAB-DEC-119`, `LAB-DEC-127` |
 | Audit penimpaan interpretasi | `LAB-DEC-123` |
 | Asal `Petugas Otorisasi` dan `Validasi oleh` | `LAB-DEC-120` |
+
+---
+
+## 12. Amandemen revision 10 — Izin hasil tersendiri, 2026-09-24
+
+| Field | Nilai |
+|---|---|
+| `contract_version` | `LAB-PERM-v1` |
+| Revision | **10** |
+| Status | **`approved`** |
+| `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-24 — instruksi *"kerjakan semua langkah"*, lihat `LAB-API-v1` `r33` bagian 28 |
+| `input_revision` | decisions rev 71; capability map rev 5; `LAB-API-v1` `r33` |
+| Menutup | `LAB-CONFLICT-012` lewat `LAB-DEC-146` |
+
+### 12.1 Kenapa amandemen ini ada
+
+Bagian 10.1 memutuskan Final, Reopen, dan konsultasi memakai ulang `LabExamination : Update`,
+dan baris 71-76 menetapkan cito, duplo, serta batal memakai hak yang sama. Karena hak akses
+dicocokkan **per nama aksi** (`Services/Security/AccessPermissionService.cs:117-132`), satu baris
+kebijakan membuka seluruhnya — dan dokter pemesan wajib memegangnya untuk menandai cito
+(`VAL-03`). Capability map revision 5 membuktikannya (`CAP-P14-02`).
+
+### 12.2 Resource yang ditambahkan
+
+| Resource | Aksi | String yang dipakai | Pemegang | Kegunaan |
+|---|---|---|---|---|
+| `LabExaminationResult` | `Update` | `[AccessPermission("LabExaminationResult", "Update")]` | **Jabatan analis** Patologi Klinik dan Mikrobiologi | Menulis isi hasil, Final, Reopen, dan mencatat konsultasi |
+
+Setiap endpoint yang memakai string itu **wajib** juga membawa
+`[AccessAction("Update", "<nama tindakan>", AccessType = AccessTypes.Update, ...)]`. Tanpanya
+`PermissionRegistryValidator` menghentikan startup Development, sebab kemampuannya tidak dapat
+diberikan admin.
+
+`LabExaminationResult` adalah **resource turunan** di dalam `LabExaminationController`. Registri
+mendaftarkannya dengan **namanya sendiri** sebagai nama tampilan di layar Akses Role
+(`Services/Security/PermissionRegistryDescriptor.cs:496-504`), di bawah modul
+`HEALTH_SERVICE_LABORATORY_MANAGEMENT`.
+
+### 12.3 Pemetaan endpoint
+
+| Endpoint | Resource | Action | String yang dipakai | Dicatat logger |
+|---|---|---|---|:---:|
+| `PUT /lab-examinations/{id}/result` | `LabExaminationResult` | `Update` | `[AccessPermission("LabExaminationResult", "Update")]` | Ya |
+| `PUT /lab-examinations/{id}/result/microbiology` | `LabExaminationResult` | `Update` | `[AccessPermission("LabExaminationResult", "Update")]` | Ya |
+| `POST /lab-examinations/{id}/result/finalize` | `LabExaminationResult` | `Update` | `[AccessPermission("LabExaminationResult", "Update")]` | Ya |
+| `POST /lab-examinations/{id}/result/reopen` | `LabExaminationResult` | `Update` | `[AccessPermission("LabExaminationResult", "Update")]` | Ya |
+| `PUT /lab-examinations/{id}/result/consultation` | `LabExaminationResult` | `Update` | `[AccessPermission("LabExaminationResult", "Update")]` | Ya |
+| `GET /lab-examinations/by-order/{labOrderId}/results` | `LabExamination` | `Read` | `[AccessPermission("LabExamination", "Read")]` | Tidak |
+
+**Tetap `LabExamination : Update`:** `POST /{id}/cancel`, `PUT /{id}/urgency`, `PUT /{id}/duplo`.
+**Tetap `LabExamination : Read`:** seluruh pembacaan. **Tidak disentuh:** seluruh jalur laporan
+Patologi Anatomi, sehingga `LAB-DEC-090` utuh.
+
+### 12.4 Siapa memegang apa sesudah amandemen
+
+| Jabatan | `LabExamination : Update` | `LabExaminationResult : Update` | Yang dapat dilakukan |
+|---|:---:|:---:|---|
+| Analis laboratorium | Sesuai kebutuhan batal dan duplo | **Ya** | Mengisi hasil, Final, Reopen, konsultasi |
+| Dokter pemesan | Ya — untuk cito | **Tidak** | Menandai cito; **ditolak `403`** saat menulis hasil |
+| Petugas Lab administrasi | Sesuai kebutuhan | **Tidak** | Tombol menu Hasil (`LAB-DEC-068`); **ditolak `403`** saat menulis hasil |
+| Dokter Lab / patolog | Ya — untuk laporan PA | Tidak, kecuali ia juga bertugas sebagai analis | Laporan Patologi Anatomi seperti hari ini |
+
+Pemetaan jabatan ke kolom ini **diberikan admin lewat layar Akses Role**, bukan dihardcode.
+Tabel di atas adalah **arah** yang disetujui keputusan, bukan daftar jabatan yang sudah pasti —
+daftar pastinya disusun dari `UNK-P14-01` saat rilis (`02-backend-architecture.md` 19.7).
+
+### 12.5 Syarat rilis
+
+Kebijakan `LabExaminationResult : Update` bagi jabatan analis **wajib terpasang dalam jendela
+rilis yang sama** (`LAB-DEC-146` butir 7). Resource-nya baru ada sesudah aplikasi start, sehingga
+pemberiannya **menyusul deploy di jendela yang sama**. Urutan lengkapnya:
+`02-backend-architecture.md` 19.7.
+
+**Larangan:** kebijakan baru **tidak boleh disalin otomatis** dari pemegang
+`LabExamination : Update` — penyalinan memberikannya juga kepada dokter pemesan dan membuka
+kembali `LAB-CONFLICT-012`.
+
+### 12.6 Audit
+
+| Kejadian | Tercatat di | Perubahan dari hari ini |
+|---|---|---|
+| Final | Logger | Nol — hanya nama aksi yang menjadi netral disiplin |
+| Reopen | `LabTransitionHistory` dengan `Action = LabExamination.ReopenResult`, alasan wajib | Nama aksi berubah untuk baris **baru**; baris lama bernama `LabExamination.ReopenMicrobiologyResult` tidak diubah |
+| Konsultasi | Logger | Nol |
+| Pemberian dan pencabutan kebijakan | Jejak layar Akses Role milik platform | Nol |
+
+Payload log **tidak memuat** nilai hasil, nama organisme, maupun nama pihak yang dikonsultasikan.
+
+### 12.7 Traceability revision 10
+
+| Yang ditambahkan | Keputusan | AC |
+|---|---|---|
+| `LabExaminationResult : Update` | `LAB-DEC-146` | `AC-221`, `AC-222` |
+| Syarat rilis kebijakan | `LAB-DEC-146` butir 7 | `AC-223` |
+| Laporan PA tidak disentuh | `LAB-DEC-146` butir 4 | `AC-224` |
+
+## 13. Amandemen revision 11 — Validasi dan rilis hasil Patologi Klinik (`S4`), 2026-09-25
+
+| Field | Nilai |
+|---|---|
+| `contract_version` | `LAB-PERM-v1` |
+| Revision | **11** |
+| Status | **`approved`** |
+| `approved_by` / `approved_at` | Yoga Aji Pratama (`yogaaji452@gmail.com`) / 2026-09-25 — instruksi *"Setujui kelima kontrak beserta 10 butir itu dan lanjut ke /quilvian-engineering-skills:plan-module-delivery"*, lihat `LAB-API-v1` `r34` bagian 29 |
+| `input_revision` | decisions rev 74; `LAB-DA-001` rev 8 bagian A5; `LAB-API-v1` `r34`; `02-backend-architecture.md` rev 10 bagian 20 |
+| Dibangun di atas | Revision 10 bagian 12 — resource turunan `LabExaminationResult` (**approved**, belum dibangun) |
+
+### 13.1 Kenapa amandemen ini ada
+
+`LAB-DEC-146` sengaja **mengecualikan** validasi dan rilis dari `LabExaminationResult : Update`.
+Kewenangan keduanya **berlapis dua** (`LAB-DEC-142`): **lapis jabatan** — siapa yang boleh
+menjadi calon — ditegakkan sistem hak akses di bawah; **lapis orang** — siapa yang benar-benar
+ditunjuk — ditegakkan di dalam service dari kredensial Human Resource (13.5).
+
+### 13.2 Aksi dan resource yang ditambahkan
+
+| Resource | Aksi | String yang dipakai | Atribut pasangannya | Pemegang — **arah**, bukan daftar pasti |
+|---|---|---|---|---|
+| `LabExaminationResult` | `Validate` | `[AccessPermission("LabExaminationResult", "Validate")]` | `[AccessAction("Validate", "Validate Lab Examination Result", Description = "Memvalidasi hasil Patologi Klinik", AccessType = AccessTypes.Update, SortOrder = 8)]` | Jabatan **dokter berkewenangan laboratorium** saja (`LAB-DEC-150`) |
+| `LabExaminationResult` | `Release` | `[AccessPermission("LabExaminationResult", "Release")]` | `[AccessAction("Release", "Release Lab Examination Result", Description = "Merilis hasil Patologi Klinik yang sudah divalidasi", AccessType = AccessTypes.Update, SortOrder = 9)]` | Jabatan calon perilis — **menunggu `DEC-LAB-018`** |
+| `LabExaminationResult` | `Return` | `[AccessPermission("LabExaminationResult", "Return")]` | `[AccessAction("Return", "Return Lab Examination Result", Description = "Mengembalikan hasil tervalidasi yang belum dirilis kepada analis", AccessType = AccessTypes.Update, SortOrder = 10)]` | Gabungan pemegang `Validate` dan `Release` (`LAB-DEC-138` butir 1) |
+| `LabResultCorrectionReason` | `Read`, `Create`, `Update`, `SystemFlag` | `[AccessPermission("LabResultCorrectionReason", "<aksi>")]` | Pola `LabRejectionReasonController` | `Create`/`Update`: kepala instalasi. `SystemFlag`: admin sistem. `Read`: juga pemegang `Return` — layar pengembalian membaca pilihannya |
+| `LabFourEyesExceptionReason` | `Read`, `Create`, `Update`, `SystemFlag` | `[AccessPermission("LabFourEyesExceptionReason", "<aksi>")]` | Sama | Sama; `Read` juga bagi pemegang `Validate` dan `Release` |
+
+Nama aksi khusus berpasangan `AccessTypes.Update` sudah berpreseden —
+`JournalController.cs:133-134` (`Approve`). **Nama aksi yang berbeda itulah penjaganya:**
+kebijakan dicocokkan per nama aksi (`AccessPermissionService.cs:117-132`), sehingga analis
+pemegang `LabExaminationResult : Update` **tidak** memperoleh `Validate` — pelajaran
+`LAB-CONFLICT-012` yang sama.
+
+### 13.3 Pemetaan endpoint
+
+| Endpoint | Resource | Action | String yang dipakai | Dicatat logger |
+|---|---|---|---|:---:|
+| `POST /lab-examinations/{id}/result/validate` | `LabExaminationResult` | `Validate` | `[AccessPermission("LabExaminationResult", "Validate")]` | Ya |
+| `POST /lab-examinations/{id}/result/release` | `LabExaminationResult` | `Release` | `[AccessPermission("LabExaminationResult", "Release")]` | Ya |
+| `POST /lab-examinations/{id}/result/return` | `LabExaminationResult` | `Return` | `[AccessPermission("LabExaminationResult", "Return")]` | Ya |
+| `GET /lab-worklists/validation-queue` | `LabWorklist` | `Read` | `[AccessPermission("LabWorklist", "Read")]` | Tidak |
+| `GET /lab-result-correction-reasons`, `/options`, `/filters/metadata`, `/summary`, `/{id}` | `LabResultCorrectionReason` | `Read` | `[AccessPermission("LabResultCorrectionReason", "Read")]` | Tidak |
+| `POST /lab-result-correction-reasons` | `LabResultCorrectionReason` | `Create` | `[AccessPermission("LabResultCorrectionReason", "Create")]` | Ya |
+| `PUT /lab-result-correction-reasons/{id}`, `PATCH /{id}/status` | `LabResultCorrectionReason` | `Update` | `[AccessPermission("LabResultCorrectionReason", "Update")]` | Ya |
+| `PUT /lab-result-correction-reasons/{id}/system-flags` | `LabResultCorrectionReason` | `SystemFlag` | `[AccessPermission("LabResultCorrectionReason", "SystemFlag")]` | Ya |
+| Kelima jalur baca `lab-four-eyes-exception-reasons` | `LabFourEyesExceptionReason` | `Read` | `[AccessPermission("LabFourEyesExceptionReason", "Read")]` | Tidak |
+| `POST /lab-four-eyes-exception-reasons` | `LabFourEyesExceptionReason` | `Create` | `[AccessPermission("LabFourEyesExceptionReason", "Create")]` | Ya |
+| `PUT /lab-four-eyes-exception-reasons/{id}`, `PATCH /{id}/status` | `LabFourEyesExceptionReason` | `Update` | `[AccessPermission("LabFourEyesExceptionReason", "Update")]` | Ya |
+| `PUT /lab-four-eyes-exception-reasons/{id}/system-flags` | `LabFourEyesExceptionReason` | `SystemFlag` | `[AccessPermission("LabFourEyesExceptionReason", "SystemFlag")]` | Ya |
+
+**Tidak berubah:** `POST /{id}/result/reopen` tetap `LabExaminationResult : Update` — penjaganya
+bertambah (`VAL-136`), hak aksesnya tidak. Seluruh jalur baca hasil tetap `LabExamination : Read`.
+
+### 13.4 Siapa memegang apa sesudah amandemen
+
+| Jabatan | `: Update` | `: Validate` | `: Release` | `: Return` | Yang dapat dilakukan |
+|---|:---:|:---:|:---:|:---:|---|
+| Analis laboratorium | **Ya** | **Tidak** | **Tidak** | **Tidak** | Mengisi, Final, Reopen — **ditolak `403`** saat memvalidasi (`AC-238`) |
+| Dokter berkewenangan laboratorium | Tidak, kecuali ia juga bertugas sebagai analis | **Ya** | Menunggu `DEC-LAB-018` | **Ya** | Memvalidasi; mengembalikan |
+| Calon perilis — menunggu `DEC-LAB-018` | Tidak | Tidak | **Ya** | **Ya** | Merilis; mengembalikan |
+| Dokter pemesan | Tidak | Tidak | Tidak | Tidak | Tidak berubah |
+| Kepala instalasi | — | — | — | — | Mengelola kedua daftar alasan |
+| Admin sistem | — | — | — | — | Menyetel `requiresNote` |
+
+**Memegang aksi di tabel ini belum berarti boleh bertindak.** Lapis orang tetap diperiksa pada
+setiap tindakan (13.5). Pemetaan jabatan diberikan admin lewat layar Akses Role dari
+`UNK-P14-03`, bukan dihardcode.
+
+### 13.5 Pembatasan di luar sistem kewenangan — tambahan bagian 3
+
+| Aturan | Kenapa tidak cukup lewat kewenangan | Ditegakkan di |
+|---|---|---|
+| Pemvalidasi dan perilis wajib **ditunjuk per orang**, per disiplin, per jenis tindakan, dan penunjukannya **berlaku hari itu** | Kewenangan bekerja per jabatan; penunjukan per orang (`LAB-DEC-022`, `LAB-DEC-148`) | `LabClinicalPrivilegeResolver`, dipanggil `LabResultValidationService` |
+| Pemvalidasi **bukan** pengisi hasil, kecuali pengecualian beralasan | Kewenangan tidak membandingkan pelaku sebelumnya pada baris yang sama | `LabResultValidationService` |
+| Perilis **bukan** pemvalidasi, kecuali pengecualian beralasan | Sama | `LabResultValidationService` |
+| *Kembalikan* oleh pemegang penunjukan validasi **atau** rilis | Satu atribut tidak dapat menyatakan *atau* atas dua penunjukan | `LabResultValidationService` |
+
+Keempatnya pola yang sama dengan bagian 3: **sistem kewenangan bekerja per aksi, bukan per orang
+pada satu baris data.**
+
+**Fail-closed.** Data kewenangan Human Resource yang kosong, tidak berlaku, atau tidak dapat
+dibaca **selalu** menolak. Laboratorium **nol menulis** ke tabel Human Resource (`AC-232`).
+
+### 13.6 Kejadian yang wajib menghasilkan jejak audit
+
+| Kejadian | `Scope` | `Action` pada `LabTransitionHistory` | Alasan wajib | Juga tercatat |
+|---|---|---|:---:|---|
+| Hasil divalidasi | `LabExamination` | `LabExamination.ValidateResult` — `Finalized` → `Validated` | Hanya bila merangkap — `ReasonCode` alasan pengecualian | Kolom validasi pada `LabExamination` |
+| Hasil dirilis | `LabExamination` | `LabExamination.ReleaseResult` — `Validated` → `Released` | Hanya bila merangkap | Kolom rilis; satu baris `MrcClinicalDocumentIntegrity` |
+| Hasil dikembalikan | `LabExamination` | `LabExamination.ReturnResultToAnalyst` — `Validated` → `Draft` | **Ya** — kode alasan koreksi | Baris validasi sebelumnya **tidak diubah** |
+| Perubahan daftar alasan | — | — (logger) | — | Logger dengan `EntityId`, controller, action |
+
+**Payload log tidak memuat** nilai hasil, catatan pengecualian, catatan pengembalian, maupun nama
+pasien. Nama jabatan pada snapshot **tidak** sensitif.
+
+### 13.7 Syarat rilis
+
+Ketiga aksi baru baru ada **sesudah** aplikasi start, sehingga pemberiannya menyusul deploy —
+urutan lengkapnya `02-backend-architecture.md` 20.7. **Selama kebijakan dan penunjukan belum
+diberikan, tidak seorang pun dapat memvalidasi atau merilis** — begitulah penahan pemakaian
+`DEC-LAB-011` sisa, `DEC-LAB-017`, dan `DEC-LAB-018` tetap tertutup walau kodenya sudah berjalan.
+
+**Larangan:** kebijakan `Validate`, `Release`, dan `Return` **tidak boleh disalin otomatis** dari
+pemegang `LabExaminationResult : Update` — penyalinan memberikannya kepada analis dan melanggar
+`LAB-DEC-150` tanpa satu pun galat.
+
+### 13.8 Traceability revision 11
+
+| Yang ditambahkan | Keputusan | AC |
+|---|---|---|
+| `LabExaminationResult : Validate` | `LAB-DEC-142`, `LAB-DEC-150` | `AC-215`, `AC-216`, `AC-238` |
+| `LabExaminationResult : Release` | `LAB-INH-007`, `LAB-DEC-120` | `AC-217` |
+| `LabExaminationResult : Return` | `LAB-DEC-138` | `AC-205` |
+| Lapis orang dari Human Resource | `LAB-DEC-148` | `AC-229`..`AC-233` |
+| Dua resource data induk alasan | `LAB-DEC-082`, `LAB-DEC-019` | — |

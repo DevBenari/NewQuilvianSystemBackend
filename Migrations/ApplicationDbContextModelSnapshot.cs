@@ -64034,6 +64034,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<Guid>("PatientId")
                         .HasColumnType("uuid");
 
+                    b.Property<int?>("RequestedBloodGroup")
+                        .HasColumnType("integer");
+
                     b.Property<Guid>("RequestingDoctorId")
                         .HasColumnType("uuid");
 

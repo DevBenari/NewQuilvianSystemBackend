@@ -281,7 +281,9 @@ jobs:
 
           # Validate promoted source before runtime manifest update
           if ! git diff --quiet "$CANDIDATE" HEAD -- \
-            ':!version.json'; then
+            ':!version.json' \
+            ':!.github/workflows/*' \
+            ':!.github/release/current-version.json'; then
             echo "::error::Promotion blocked because resulting DEV source differs from validated Integration candidate."
             exit 1
           fi
