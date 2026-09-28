@@ -15,9 +15,9 @@
 | Task mode | `BACKEND` |
 | Target tulis | `NewQuilvianSystemBackend` — model, configuration, `DbSet`; laporan ini; baris status roadmap dan traceability. **Tidak** termasuk pembuatan maupun penerapan migration `AddAccSubledgerBalance` (dikerjakan Rizki), build, dan commit |
 | Model | Claude Opus 5.5 |
-| Commit backend saat dikerjakan | `2713774b` (branch `rizkiG`; tree identik dengan `origin/QuilvianIntegrationBackend` `579f9f61`), perubahan belum di-commit |
+| Commit backend saat dikerjakan | `2713774b` (branch `rizkiG`; tree identik dengan `origin/QuilvianIntegrationBackend` `579f9f61`). Source, migration, dan laporan versi 🟡 di-commit Rizki sebagai **`7509e18c`**, sudah di `origin/rizkiG` |
 | Tanggal | 28 September 2026 |
-| Status | **🟡 SEBAGIAN** — 28 September 2026. Acceptance (1)–(3) terpetakan ke source. **Belum:** build owner, dan acceptance (4) serta DoD "migration diterapkan" — keduanya menunggu migration `AddAccSubledgerBalance` yang dibuat dan diterapkan Rizki |
+| Status | **✅ SELESAI — 28 September 2026.** 4 dari 4 acceptance terpenuhi. Migration `20260928041937_AddAccSubledgerBalance` dibuat dan diterapkan Rizki (`database update` → `Done.`); isinya diperiksa agent: `CreateTable` 1, `CreateIndex` 4, FK `Restrict` 4, `Down` hanya `DropTable`. Snapshot nol kehilangan blok (bagian 5.1). Build Rizki berhasil. UAT tidak relevan — nol endpoint. **Riwayat:** 🟡 pada hari yang sama, menunggu build dan migration |
 
 ### Backend Governance Preflight
 
@@ -102,7 +102,7 @@ Nol perubahan pada `Program.cs`, controller, service, DTO, dan `Migrations/`.
 
 | Index | Kolom | Unique |
 |---|---|:---:|
-| `IX_AccSubledgerBalance_LegalEntityId_AccountingPeriodId_ChartOfAccountId` | tiga kolom, berfilter `"IsDelete" = false` | Ya |
+| `IX_AccSubledgerBalance_LegalEntityId_AccountingPeriodId_ChartO~` — dipotong EF karena batas 63 karakter nama PostgreSQL | tiga kolom, berfilter `"IsDelete" = false` | Ya |
 | `IX_AccSubledgerBalance_AccountingEventId` | `AccountingEventId` | Tidak |
 | `IX_AccSubledgerBalance_AccountingPeriodId`, `IX_AccSubledgerBalance_ChartOfAccountId` | dibuat EF otomatis untuk FK yang bukan kolom terdepan index lain | Tidak |
 
@@ -111,7 +111,7 @@ Nol perubahan pada `Program.cs`, controller, service, DTO, dan `Migrations/`.
 | Aspek | Dampak |
 |---|---|
 | Kontrak API | `NOT APPLICABLE` — nol endpoint. Jalur yang menulis tabel ini milik `BE-ACC-P2-028` |
-| Database | **Satu tabel baru** `AccSubledgerBalance`. Migration `AddAccSubledgerBalance` **belum dibuat** — dibuat dan diterapkan Rizki. Tanpa henti layanan (tabel baru); mundur: hapus tabel |
+| Database | **Satu tabel baru** `AccSubledgerBalance`. Migration `20260928041937_AddAccSubledgerBalance` **dibuat dan diterapkan Rizki** 28 September 2026 di `QuilvianNewDevRizki`. Tanpa henti layanan (tabel baru); mundur: hapus tabel |
 | Keamanan/Auth | `NOT APPLICABLE`. `Balance` bertanda sensitif di kamus data; nol logger menyentuhnya pada task ini |
 
 ### 3.4 Keputusan implementasi yang perlu diketahui
@@ -135,9 +135,30 @@ Nol perubahan pada `Program.cs`, controller, service, DTO, dan `Migrations/`.
 | `git ls-files --eol` | `ApplicationDbContext.cs` tetap `w/crlf` seluruhnya (bukan `mixed`); dua berkas baru `w/lf`, sama dengan berkas saudaranya | `PASS` | — |
 | Penelusuran nama ganda `class AccSubledgerBalance` / `AccSubledgerBalances` | Tepat satu entity dan satu `DbSet` | `PASS` | — |
 | Penelusuran `//` pada dua berkas baru | Nol | `PASS` | — |
-| `dotnet build ./QuilvianSystemBackend.csproj -p:RunAnalyzers=false` | Belum dijalankan — build dilakukan Rizki sendiri | `NOT RUN` | — |
-| `dotnet ef migrations add AddAccSubledgerBalance` | Belum dijalankan — wewenang Rizki | `NOT RUN` | — |
+| `dotnet build -p:RunAnalyzers=false` (Rizki) | `Build succeeded`. Tangkapan layar menunjukkan build inkremental sesudah `database update`; jumlah warning tidak tampil. Assembly berisi entity task ini juga terbukti tidak langsung: `migrations add --no-build` membangkitkan migration `AccSubledgerBalance` | `PASS` | Tangkapan layar Rizki, 28 September 2026 |
+| `dotnet ef migrations add AddAccSubledgerBalance --no-build` (Rizki) | Migration `20260928041937_AddAccSubledgerBalance` terbentuk; `migrations list` menampilkannya satu-satunya `(Pending)` | `PASS` | Tangkapan layar Rizki; commit `7509e18c` |
+| `dotnet ef database update --no-build` (Rizki) | `Applying migration '20260928041937_AddAccSubledgerBalance'.` → `Done.` | `PASS` | Tangkapan layar Rizki |
+| Isi migration diperiksa agent terhadap harapan di bawah | `CreateTable` 1, `CreateIndex` 4 (satu unique berfilter `"IsDelete" = false`), empat FK `ReferentialAction.Restrict` ke `AccAccountingEvent`, `AccAccountingPeriod`, `AccChartOfAccount`, `MstLegalEntity`; kolom dan tipe sama dengan bagian 3.2; nol operasi tabel lain; `Down` hanya `DropTable` | `PASS` | `Migrations/20260928041937_AddAccSubledgerBalance.cs` |
+| Snapshot diperiksa agent | Nol blok hilang — lihat bagian 5.1 | `PASS` | `git show 7509e18c -- Migrations/ApplicationDbContextModelSnapshot.cs` |
 | Automated test | Tidak dijalankan — bukan acceptance (`ACC-DEC-081`) | `NOT RUN` | — |
+
+### 5.1 Snapshot: kenapa −1026 baris tetapi nol kehilangan
+
+Diff snapshot `7509e18c` tercatat **+701 / −1026** baris, dan jumlah `b.ToTable(` turun **749 → 746**.
+Sekilas itu tampak seperti kejadian lama "snapshot kehilangan blok modul lain". Pemeriksaan
+menunjukkan sebaliknya:
+
+| Pemeriksaan | Hasil |
+|---|---|
+| Nama tabel unik sebelum → sesudah | **745 → 746**; satu-satunya nama baru `AccSubledgerBalance`, **nol** nama hilang |
+| Blok ganda di snapshot sebelumnya | **Empat** blok Pharmacy tercatat dua kali: `PhmMedicationAdministration`, `PhmMedicationAdministrationRevision`, `PhmMedicationAdministrationSetting`, `PhmMedicationScheduleTime`. Ganda yang sama ada di tip integration `579f9f61`; asalnya commit `0ca1a1f3` (laporan `BE-RWI-123`..`126`), bukan Accounting |
+| Himpunan baris unik sebelum dibanding sesudah | Baris yang hanya ada **sebelum**: satu — `// <auto-generated />`, kini ditulis EF dengan BOM di depannya. Baris yang hanya ada **sesudah**: 13, seluruhnya milik `AccSubledgerBalance` |
+
+Jadi −1026 baris adalah **penghapusan empat blok ganda** ditambah **perpindahan urutan** blok Finance
+(`FinPurchaseOrder`, `FinPettyCashBudget`, dan beberapa lainnya) akibat EF menulis ulang snapshot
+dari model — bukan kehilangan definisi. Migration yang tidak memuat satu pun operasi selain
+`AccSubledgerBalance` menguatkan hal ini: bila ada entity yang benar-benar hilang, EF akan
+membangkitkan `DropTable`.
 
 **Isi migration yang diharapkan** — dipakai Rizki memeriksa hasil `migrations add`:
 
@@ -152,14 +173,14 @@ Nol perubahan pada `Program.cs`, controller, service, DTO, dan `Migrations/`.
 
 | Kriteria | Status | Bukti |
 |---|---|---|
-| (1) Unique `(LegalEntityId, AccountingPeriodId, ChartOfAccountId)` | Terpenuhi di source | `AccSubledgerBalanceConfiguration.cs`: `HasIndex(new { LegalEntityId, AccountingPeriodId, ChartOfAccountId }).IsUnique()` berfilter `"IsDelete" = false`. Berlaku di database sesudah migration |
-| (2) Empat FK `Restrict` | Terpenuhi di source | Empat `HasOne(...).WithMany().HasForeignKey(...).OnDelete(DeleteBehavior.Restrict)` ke `MstLegalEntity`, `AccAccountingPeriod`, `AccChartOfAccount`, `AccAccountingEvent` |
-| (3) `Balance` boleh negatif | Terpenuhi di source | `decimal` `HasPrecision(18, 2)` tanpa check constraint dan tanpa validasi tanda |
-| (4) Snapshot tanpa deletion | **Belum terpenuhi** | Menunggu migration `AddAccSubledgerBalance` oleh Rizki |
-| DoD: source berubah | Terpenuhi | Bagian 3.2 |
-| DoD: migration diterapkan | **Belum terpenuhi** | Menunggu Rizki |
+| (1) Unique `(LegalEntityId, AccountingPeriodId, ChartOfAccountId)` | Terpenuhi | Source: `HasIndex(...).IsUnique()` berfilter `"IsDelete" = false`. Migration: `CreateIndex` `unique: true`, `filter: "\"IsDelete\" = false"`; diterapkan |
+| (2) Empat FK `Restrict` | Terpenuhi | Source: empat `OnDelete(DeleteBehavior.Restrict)`. Migration: empat `onDelete: ReferentialAction.Restrict` |
+| (3) `Balance` boleh negatif | Terpenuhi | `numeric(18,2)` tanpa check constraint, di source maupun migration |
+| (4) Snapshot tanpa deletion | Terpenuhi | Nol nama tabel dan nol baris definisi yang hilang; −1026 baris adalah empat blok ganda Pharmacy dan perpindahan urutan (bagian 5.1) |
+| DoD: source berubah | Terpenuhi | Bagian 3.2; commit `7509e18c` |
+| DoD: migration diterapkan | Terpenuhi | `database update` → `Done.` (Rizki, 28 September 2026) |
 | DoD: laporan task tertulis | Terpenuhi | Berkas ini |
-| Build owner 0 error | **Belum** | Menunggu Rizki |
+| Build owner 0 error | Terpenuhi | `Build succeeded`; jumlah warning tidak tampil pada build inkremental |
 
 ## 7. Catatan penutup
 
@@ -167,13 +188,13 @@ Nol perubahan pada `Program.cs`, controller, service, DTO, dan `Migrations/`.
 |---|---|
 | Peringatan | Komentar XML `///` sempat tertulis pada model lalu dihapus sebelum laporan ini, mengikuti arahan tanpa baris `//` |
 | Masalah yang diketahui | Class diagram `02-backend-architecture.md` 22.3 menulis `AsOfDate` sebagai `DateOnly`; source memakai `DateTime` + `date` (bagian 3.4). Perlu dirapikan saat amandemen dokumen berikutnya |
-| Risiko tersisa | (a) Merge integration → `rizkiG` membawa perubahan model modul lain; bila ada yang belum punya migration, `migrations add` akan ikut membangkitkannya — periksa isi migration terhadap bagian 5 sebelum `database update`. (b) Tabel kosong sampai `BE-ACC-P2-028` berdiri. (c) Begitu `BE-ACC-P2-014` aktif, `ACC-DEC-076` menahan setiap penutupan yang akun kontrolnya belum punya baris di tabel ini (T6, `MODULE-STATUS.md`) |
-| Perubahan sampingan | `NONE` |
+| Risiko tersisa | (a) Snapshot `7509e18c` menghapus empat blok ganda Pharmacy yang juga ada di integration. Saat PR `rizkiG` → integration, bagian snapshot itu tampil sebagai penghapusan di wilayah Pharmacy — **benar**, tetapi perlu dijelaskan di deskripsi PR supaya tidak dikira kerusakan, dan pemilik Pharmacy/lead perlu tahu asal gandanya (`0ca1a1f3`). Bila terjadi konflik snapshot, jangan pilih satu sisi utuh. (b) Tabel kosong sampai `BE-ACC-P2-028` berdiri. (c) Begitu `BE-ACC-P2-014` aktif, `ACC-DEC-076` menahan setiap penutupan yang akun kontrolnya belum punya baris di tabel ini (T6, `MODULE-STATUS.md`) |
+| Perubahan sampingan | `NONE` dari agent. Snapshot hasil `migrations add` membersihkan empat blok ganda modul lain — efek alami EF, dipertahankan karena justru benar (bagian 5.1) |
 | Interupsi | `NONE` |
-| Status Git | `M Repositories/ApplicationDbContext.cs`; `?? Areas/Corporate/AccountingManagement/Reconciliation/Models/`; `?? Repositories/Configurations/Corporate/AccountingManagement/Reconciliation/`; ditambah laporan ini dan baris status roadmap serta traceability |
-| Langkah berikutnya | Rizki: build → `migrations add AddAccSubledgerBalance` → periksa isi terhadap bagian 5 → `database update`. Sesudah itu laporan ini dinaikkan ke ✅, lalu `BE-ACC-P2-028` atas perintah Rizki |
+| Status Git | Source, migration, snapshot, dan laporan versi 🟡 sudah di-commit Rizki `7509e18c` dan di-push. Sesudah itu hanya dokumen yang berubah: laporan ini, baris status roadmap dan traceability |
+| Langkah berikutnya | `BE-ACC-P2-028` — jalur pesan saldo — atas perintah Rizki. Sesudah itu `BE-ACC-P2-014`, dengan risiko T6 ditimbang lebih dulu |
 
-**Perintah untuk Rizki** (dari folder `NewQuilvianSystemBackend`):
+**Perintah yang dijalankan Rizki** (dari folder `NewQuilvianSystemBackend`; disimpan sebagai riwayat):
 
 ```bash
 dotnet build ./QuilvianSystemBackend.csproj -p:RunAnalyzers=false
