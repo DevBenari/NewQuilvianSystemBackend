@@ -39,7 +39,7 @@
 | `FR-RJE-060` endpoint ringkasan | `DEC-008` | `contracts/api` V2 | `BE-RJE-014` | — | `UAT-17`, `UAT-18` | Belum dikerjakan |
 | `FR-RJE-061` tab ringkasan | `DEC-008`, `FE-001/002` | `03` V2.4 | — | `FE-RJE-001` | `UAT-17`, `UAT-18`, `UAT-24` | Belum dikerjakan |
 | `FR-RJE-062` pemberitahuan penyerahan | `FE-004` | `contracts/api` V2.1 | `BE-RJE-013` ⛔ | `FE-RJE-002` ⛔ | `UAT-19` | ⛔ menunggu kontrak `1.0.1` |
-| `FR-RJE-070` kunjungan tanpa dokter | `DEC-007`, `013` | `02` V2.8 | `BE-RJE-006` | — | `UAT-20`, `UAT-21` | Belum dikerjakan |
+| `FR-RJE-070` kunjungan tanpa dokter | `DEC-007`, `013` | `02` V2.8 | `BE-RJE-006` | — | `UAT-20`, `UAT-21` | ✅ `BE-RJE-006` 2026-09-28 — [laporan](../task/report/backend/BE-RJE-006.md) R0–R3 |
 
 `DEC-*` di tabel ini singkatan `RJ-E2E-DEC-*`; `FE-00n` singkatan `RJ-E2E-FE-00n`.
 
