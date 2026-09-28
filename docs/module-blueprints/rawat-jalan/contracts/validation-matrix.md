@@ -1,5 +1,7 @@
 # Validation Matrix — Rawat Jalan Billing
 
+> **Revisi `27` (28 September 2026):** amendment **V2 — Rawat Jalan ke invoice canonical** ada di bagian akhir berkas ini dan **berlaku** untuk jalur fakta klinis → tagihan. Isi di atasnya adalah riwayat desain `RJ-BIL`.
+
 | Field | Nilai |
 |---|---|
 | Contract version | `RJ-BIL-VAL-001@1.0.0` |
@@ -20,3 +22,46 @@
 | Close prerequisite | Folio close | Ada outcome unknown, review, allocation, atau reconciliation belum selesai | Folio belum dapat ditutup karena masih ada pekerjaan wajib | `BIL_FOLIO_NOT_READY_TO_CLOSE` |
 | Clinical financial mutation | Clinical/Pharmacy endpoint | Endpoint mencoba Paid/waiver/void canonical | Status finansial hanya dapat diubah oleh pemilik finansial | `BIL_FINANCIAL_OWNER_REQUIRED` |
 
+
+
+---
+
+# Amendment V2 — Rawat Jalan ke Invoice Canonical
+
+| Field | Nilai |
+|---|---|
+| `last_changed_in` | `RJ-E2E-CONTRACT-001@1.0.0` |
+| Status | `approved` — Sukma Giri, 2026-09-28 |
+| Owner | Billing + API authority |
+| Traceability | `RJ-E2E-DEC-005`, `006`, `008`, `009`, `010`, `012`, `014` |
+
+Kode `RJE-VAL-*` tampil ke pengguna lewat API atau layar. Kode `*_NOT_FOUND`, `NOT_OUTPATIENT`, dan
+sejenisnya adalah kode sebab di antrean rekonsiliasi, dibaca petugas Billing.
+
+| Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|
+| Domain klinis Rawat Jalan tidak boleh dicatat manual | `POST /billing/invoices/from-source` | `SourceDomain` ∈ {`PROCEDURE`, `LABORATORY`, `RADIOLOGY`, `PHARMACY`, `CONSULTATION`} dan kunjungan `Outpatient` | "Pelayanan Rawat Jalan ditagihkan otomatis dari pelayanan klinis dan tidak dapat dicatat lewat jalur ini." | `RJE-VAL-010` (`422`) |
+| Tarif wajib ada | Jembatan | Tidak ada `MstTariff` berlaku pada tanggal pelayanan menurut `V2.7.4` | "Tarif untuk pelayanan ini belum tersedia pada tanggal pelayanan. Lengkapi tarif, lalu kirim ulang." | `TARIFF_NOT_FOUND` |
+| Tagihan tidak pernah Rp0 karena tarif hilang | Jembatan | `UnitPrice` hasil resolver = 0 **dan** tarif tidak ber-`NormalPrice` 0 yang sah | Sama dengan di atas | `TARIFF_NOT_FOUND` |
+| Kunjungan bukan Rawat Jalan | Jembatan | `EncounterType ≠ Outpatient` | (tidak tampil; baris `NotApplicable`) | `NOT_OUTPATIENT` |
+| Konteks di luar scope | Jembatan | `SourceContext` di luar lima konteks | (tidak tampil) | `SOURCE_OUT_OF_SCOPE` |
+| Pengulangan Radiologi karena kesalahan rumah sakit | Jembatan | `RuleSnapshot.repeatCause = InternalHospitalError` | (tidak tampil) | `REPEAT_INTERNAL_ERROR` |
+| Tindakan gratis atau tidak ditagihkan | Jembatan | `IsFreeOfCharge = true` atau `IsBillable = false` | (tidak tampil) | `NOT_BILLABLE` |
+| Adjustment ditolak Billing | Jembatan | `CreateAdjustmentAsync` menolak | "Penyesuaian tagihan untuk pelayanan ini tidak dapat dibuat otomatis. Tangani dari antrean rekonsiliasi." | `ADJUSTMENT_REJECTED` |
+| Batas percobaan tercapai | Pekerja | Percobaan = `MaxAttemptCount` | "Pengiriman otomatis sudah dicoba berulang kali dan belum berhasil." | `RETRY_EXHAUSTED` |
+| Kebijakan kirim ulang tidak aktif | Pekerja | Tidak ada `MstBillingSyncPolicy` aktif untuk jalurnya | "Pengiriman ulang otomatis sedang dimatikan. Item menunggu penanganan manual." | `SYNC_POLICY_INACTIVE` |
+| Baris lama sebelum jembatan | Migration | `RJ-E2E-DEC-014` | "Pelayanan ini tercatat sebelum penagihan otomatis aktif. Periksa apakah sudah ditagih manual." | `LEGACY_PRE_BRIDGE` |
+| Item yang sudah masuk tidak dikirim ulang | `POST /charge-reconciliations/{itemType}/{id}/retry` | Status `Synced` atau `Resolved` | "Item ini sudah tercatat di tagihan dan tidak perlu dikirim ulang." | `RJE-VAL-020` (`422`) |
+| Keputusan manual bersifat final | `retry` / `resolve` | Status `Resolved` | "Item ini sudah diselesaikan secara manual." | `RJE-VAL-021` (`409`) |
+| Catatan penyelesaian wajib | `POST .../resolve` | `Note` kosong, < 10 atau > 500 karakter | "Tuliskan alasan penyelesaian, minimal 10 karakter." | `RJE-VAL-022` (`422`) |
+| Jenis penyelesaian sah | `POST .../resolve` | `Resolution` di luar `BILLED_MANUALLY`, `NOT_BILLABLE`, `DUPLICATE` | "Pilih jenis penyelesaian yang tersedia." | `RJE-VAL-023` (`422`) |
+| Jenis item sah | `retry` / `resolve` | `itemType` bukan `CLINICAL_FACT`/`CHARGE_LINE` | "Jenis item tidak dikenali." | `RJE-VAL-024` (`422`) |
+| Item sedang diproses | `retry` / `resolve` | Pekerja sedang memegang item yang sama | "Item sedang diproses sistem. Muat ulang beberapa saat lagi." | `RJE-VAL-025` (`409`) |
+| Batas kebijakan | `PUT /billing-sync-policies/{id}` | `MaxAttemptCount` di luar 0–20; `BaseDelaySeconds` di luar 10–3600; `MaxDelaySeconds` < `BaseDelaySeconds` atau > 86400 | "Angka kebijakan di luar batas yang diizinkan." | `RJE-VAL-030` (`422`) |
+| Kebijakan diubah bersamaan | `PUT /billing-sync-policies/{id}` | `RowVersion` tidak cocok | "Kebijakan sudah diubah pengguna lain. Muat ulang, lalu ulangi perubahan." | `RJE-VAL-031` (`409`) |
+| Kunjungan tidak ditemukan | `GET /encounter-billing-summaries/{encounterId}` | `encounterId` kosong atau tidak ada | "Kunjungan tidak ditemukan." | `RJE-VAL-040` (`404`) |
+
+**Contoh batas kebijakan:** `MaxAttemptCount = 25` ditolak (`RJE-VAL-030`). `BaseDelaySeconds = 60`
+dengan `MaxDelaySeconds = 30` juga ditolak karena jeda maksimum lebih kecil dari jeda awal.
+`MaxAttemptCount = 0` **sah** dan berarti tidak ada kirim ulang otomatis — semua kegagalan langsung
+masuk antrean.
