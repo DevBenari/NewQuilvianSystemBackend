@@ -110,11 +110,12 @@ public sealed class BillingClinicalChargeBridgeService
 
         var domain = MapDomain(effect.SourceContext);
 
-        // Pembatalan, konsultasi, dan resep ditangani task berikutnya (BE-RJE-009, 007, 008).
+        // Pembatalan dan resep ditangani task berikutnya (BE-RJE-009, 008).
         // Efeknya tetap Pending — tidak dibuang — supaya diproses begitu dukungannya tersedia.
         if (effect.IsClinicalCancellation)
             return SyncPlan.Done(SyncOutcome.StayPending(BillingBridgeCodes.CancellationPendingSupport, "Penerusan pembatalan klinis belum tersedia pada jembatan.", domain));
-        if (domain is not (BillingBridgeSourceDomains.Procedure or BillingBridgeSourceDomains.Laboratory or BillingBridgeSourceDomains.Radiology))
+        if (domain is not (BillingBridgeSourceDomains.Procedure or BillingBridgeSourceDomains.Laboratory
+            or BillingBridgeSourceDomains.Radiology or BillingBridgeSourceDomains.Consultation))
             return SyncPlan.Done(SyncOutcome.StayPending(BillingBridgeCodes.SourcePendingSupport, $"Penerusan {domain} belum tersedia pada jembatan.", domain));
 
         var fact = await db.Set<CliClinicalMilestoneFact>().AsNoTracking()
@@ -128,7 +129,10 @@ public sealed class BillingClinicalChargeBridgeService
         if (fact is null)
             return SyncPlan.Done(SyncOutcome.Reconcile(BillingBridgeCodes.FactNotFound, "Fakta klinis untuk efek folio ini tidak ditemukan.", domain));
 
-        var detailId = domain == BillingBridgeSourceDomains.Procedure ? fact.SourceAggregateId : fact.SourceItemId;
+        // Tindakan dan konsultasi diidentifikasi oleh agregatnya; Lab dan Radiologi oleh butirnya.
+        var detailId = domain is BillingBridgeSourceDomains.Procedure or BillingBridgeSourceDomains.Consultation
+            ? fact.SourceAggregateId
+            : fact.SourceItemId;
         if (detailId is null || detailId == Guid.Empty)
             return SyncPlan.Done(SyncOutcome.Reconcile(BillingBridgeCodes.SourceRejected, "Identitas butir pelayanan tidak tersedia pada fakta klinis.", domain));
 
@@ -459,6 +463,7 @@ public sealed class BillingClinicalChargeBridgeService
     private static string MapBillableStatus(string domain) => domain switch
     {
         BillingBridgeSourceDomains.Laboratory => "ACCEPTED",
+        BillingBridgeSourceDomains.Consultation => "COMPLETED",
         _ => "PERFORMED"
     };
 

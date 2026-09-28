@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.MasterData.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RadiologyManagement.Models;
@@ -32,6 +33,7 @@ public sealed class BillingSourceTariffResolver
             BillingBridgeSourceDomains.Procedure => await ResolveProcedureAsync(request, cancellationToken),
             BillingBridgeSourceDomains.Laboratory => await ResolveLaboratoryAsync(request, cancellationToken),
             BillingBridgeSourceDomains.Radiology => await ResolveRadiologyAsync(request, cancellationToken),
+            BillingBridgeSourceDomains.Consultation => await ResolveConsultationAsync(request, cancellationToken),
             _ => BillingTariffResolution.Pending(
                 BillingBridgeCodes.SourcePendingSupport,
                 $"Penetapan tarif untuk {request.SourceDomain} belum tersedia pada jembatan.")
@@ -105,6 +107,89 @@ public sealed class BillingSourceTariffResolver
             null, procedureId.Value, request.EncounterClinicId, request.PatientClassId,
             request.OccurredAt, cancellationToken);
         return Build(tariff, 1m);
+    }
+
+    /// <summary>
+    /// Jasa konsultasi — urutan <c>RJ-E2E-DEC-012</c> dilengkapi <c>RJ-E2E-DEC-023</c>:
+    /// (1) <see cref="MstDoctorServiceRule"/> aktif dan berlaku untuk dokter, klinik, dan kelas
+    /// pasien yang memiliki <c>TariffId</c> tarif konsultasi; (1b) tindakan konsultasi rule itu
+    /// (<c>ProcedureId</c>) → tarif konsultasi tindakan tersebut untuk kelas pasien; (2) <see cref="MstTariff"/> ber-<c>IsConsultationFee</c>
+    /// untuk klinik + kelas pasien; (3) ber-<c>IsConsultationFee</c> untuk klinik saja.
+    /// <c>MstPatientClass.DefaultConsultationFee</c> sengaja tidak dipakai karena bukan tarif katalog.
+    /// </summary>
+    private async Task<BillingTariffResolution> ResolveConsultationAsync(
+        BillingTariffResolutionRequest request,
+        CancellationToken cancellationToken)
+    {
+        var consultation = await _dbContext.Set<TrxDoctorConsultation>().AsNoTracking()
+            .Where(x => x.Id == request.SourceAggregateId)
+            .Select(x => new { x.DoctorId, x.ClinicId })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (consultation is null)
+            return BillingTariffResolution.Rejected(BillingBridgeCodes.SourceNotFound, "Konsultasi sumber tidak ditemukan.");
+
+        var clinicId = consultation.ClinicId ?? request.EncounterClinicId;
+        var at = request.OccurredAt;
+
+        // (1) Aturan layanan dokter. Rule ber-klinik/kelas kosong berlaku umum untuk dokter itu;
+        // yang paling spesifik menang.
+        var ruleTariffIds = await _dbContext.Set<MstDoctorServiceRule>().AsNoTracking()
+            .Where(x => x.DoctorId == consultation.DoctorId
+                && (x.TariffId != null || x.ProcedureId != null)
+                && x.IsActive && !x.IsDelete && !x.IsCancel
+                && x.RuleStatus == DoctorServiceRuleStatus.Active
+                && (x.EffectiveStartDate == null || x.EffectiveStartDate <= at)
+                && (x.EffectiveEndDate == null || at < x.EffectiveEndDate)
+                && (x.ClinicId == null || x.ClinicId == clinicId)
+                && (x.PatientClassId == null || x.PatientClassId == request.PatientClassId))
+            .Select(x => new { x.TariffId, x.ProcedureId, Score = (x.ClinicId != null ? 2 : 0) + (x.PatientClassId != null ? 1 : 0), x.RuleCode })
+            .ToListAsync(cancellationToken);
+
+        foreach (var rule in ruleTariffIds.OrderByDescending(x => x.Score).ThenBy(x => x.RuleCode, StringComparer.Ordinal))
+        {
+            // Tarif yang dipakai wajib tarif konsultasi — rule yang salah menunjuk tarif lain
+            // (mis. pemeriksaan) tidak boleh menagihkan harga itu sebagai jasa konsultasi.
+            if (rule.TariffId is { } ruleTariffId)
+            {
+                var ruleTariff = await EffectiveTariffs(at)
+                    .FirstOrDefaultAsync(x => x.Id == ruleTariffId && x.IsConsultationFee, cancellationToken);
+                if (ruleTariff is not null)
+                    return Build(ruleTariff, 1m);
+            }
+
+            // (1b) RJ-E2E-DEC-023: tarif konsultasi di master ditautkan ke tindakan konsultasi +
+            // kelas pasien. Rule layanan dokter menunjuk tindakan itu lewat ProcedureId.
+            if (rule.ProcedureId is { } ruleProcedureId)
+            {
+                var procedureTariffs = await EffectiveTariffs(at)
+                    .Where(x => x.IsConsultationFee && x.ProcedureId == ruleProcedureId
+                        && (x.PatientClassId == null || x.PatientClassId == request.PatientClassId))
+                    .ToListAsync(cancellationToken);
+                var procedureTariff = procedureTariffs
+                    .OrderByDescending(x => x.PatientClassId != null ? 1 : 0)
+                    .ThenBy(x => x.TariffCode, StringComparer.Ordinal)
+                    .FirstOrDefault();
+                if (procedureTariff is not null)
+                    return Build(procedureTariff, 1m);
+            }
+        }
+
+        // (2) dan (3) Tarif konsultasi klinik: dengan kelas pasien lebih dulu, lalu klinik saja.
+        if (clinicId is not null)
+        {
+            var clinicTariffs = await EffectiveTariffs(at)
+                .Where(x => x.IsConsultationFee && x.ClinicId == clinicId
+                    && (x.PatientClassId == null || x.PatientClassId == request.PatientClassId))
+                .ToListAsync(cancellationToken);
+            var clinicTariff = clinicTariffs
+                .OrderByDescending(x => x.PatientClassId != null ? 1 : 0)
+                .ThenBy(x => x.TariffCode, StringComparer.Ordinal)
+                .FirstOrDefault();
+            if (clinicTariff is not null)
+                return Build(clinicTariff, 1m);
+        }
+
+        return Build(null, 1m);
     }
 
     /// <summary>

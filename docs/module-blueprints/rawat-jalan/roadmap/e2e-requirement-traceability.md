@@ -23,8 +23,8 @@
 | `FR-RJE-013` tanpa Rp0 | `DEC-006` | `02` V2.7.4 | `BE-RJE-003` | — | `UAT-02` | ✅ `BE-RJE-003` 2026-09-28 — [laporan](../task/report/backend/BE-RJE-003.md) |
 | `FR-RJE-014` pengaman `from-source` | `DEC-006` | `02` V2.7.6 | `BE-RJE-004` | — | `UAT-03` | ✅ `BE-RJE-004` 2026-09-28 — [laporan](../task/report/backend/BE-RJE-004.md) R0–R4 |
 | `FR-RJE-015` pasca-final | `RJ-BIL-DEC-004` | `02` V2.7.5 | `BE-RJE-005` | — | `UAT-04` | ✅ `BE-RJE-005` 2026-09-28 — [laporan](../task/report/backend/BE-RJE-005.md) R0–R5 |
-| `FR-RJE-020` fakta konsultasi | `DEC-001` | `contracts/integration` V2-2 | `BE-RJE-007` | — | `UAT-05` | Belum dikerjakan |
-| `FR-RJE-021` tarif konsultasi | `DEC-012` | `02` V2.7.4 | `BE-RJE-007` | — | `UAT-05`, `UAT-06` | Belum dikerjakan |
+| `FR-RJE-020` fakta konsultasi | `DEC-001` | `contracts/integration` V2-2 | `BE-RJE-007` | — | `UAT-05` | ✅ `BE-RJE-007` 2026-09-28 — [laporan](../task/report/backend/BE-RJE-007.md) R0–R5 |
+| `FR-RJE-021` tarif konsultasi | `DEC-012`, `DEC-023` | `02` V2.7.4 | `BE-RJE-007` | — | `UAT-05`, `UAT-06` | ✅ `BE-RJE-007` 2026-09-28 — [laporan](../task/report/backend/BE-RJE-007.md) R0–R5 |
 | `FR-RJE-030` obat tahap 1 | `DEC-005` | `02` V2.7.2 | `BE-RJE-008` | — | `UAT-07` | Belum dikerjakan |
 | `FR-RJE-031` obat tahap 2 | `DEC-005` | `contracts/integration` V2-2 | `BE-RJE-008` | — | `UAT-08` | Belum dikerjakan |
 | `FR-RJE-032` deadlock hilang | `DEC-005` | `02` V2.7.3 | `BE-RJE-008` | — | `UAT-07`, `UAT-09` | Belum dikerjakan |

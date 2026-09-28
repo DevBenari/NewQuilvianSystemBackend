@@ -28,8 +28,8 @@ owners:
   - "Billing/Revenue Cycle: Sukma Giri (pemilik blueprint)"
   - "Pharmacy (titik sentuh BE-RJE-008): sign-off formal OPEN"
   - "Registration (titik sentuh BE-RJE-006): OPEN"
-implementation_authority: "GRANTED — BE-RJE-001 (RJ-E2E-DEC-017), BE-RJE-002 (RJ-E2E-DEC-018), BE-RJE-003 (RJ-E2E-DEC-019), BE-RJE-004 (RJ-E2E-DEC-020), BE-RJE-006 (RJ-E2E-DEC-021), BE-RJE-005 (RJ-E2E-DEC-022); task lain NOT_GRANTED"
-builder_execution: "EXECUTED — BE-RJE-001, BE-RJE-002, BE-RJE-003, BE-RJE-004, BE-RJE-006, BE-RJE-005 (2026-09-28); task lain NOT_AUTHORIZED"
+implementation_authority: "GRANTED — BE-RJE-001 (RJ-E2E-DEC-017), BE-RJE-002 (RJ-E2E-DEC-018), BE-RJE-003 (RJ-E2E-DEC-019), BE-RJE-004 (RJ-E2E-DEC-020), BE-RJE-006 (RJ-E2E-DEC-021), BE-RJE-005 (RJ-E2E-DEC-022), BE-RJE-007 (RJ-E2E-DEC-024); task lain NOT_GRANTED"
+builder_execution: "EXECUTED — BE-RJE-001, BE-RJE-002, BE-RJE-003, BE-RJE-004, BE-RJE-006, BE-RJE-005, BE-RJE-007 (2026-09-28); task lain NOT_AUTHORIZED"
 verification_pattern: "Pola Bank Darah — tanpa project/folder test backend"
 frontend_roadmap: roadmap/e2e-frontend-roadmap.md
 traceability: roadmap/e2e-requirement-traceability.md
@@ -58,7 +58,7 @@ BE-RJE-001 ✅ ─┬─> BE-RJE-002 ✅ ─> BE-RJE-003 ✅ ─┬─> BE-RJE-0
                │                                   │                  │
                │                                   │                  └─> BE-RJE-009
                │                                   │
-               │                                   ├─> BE-RJE-007
+               │                                   ├─> BE-RJE-007 ✅
                │                                   │
                │                                   ├─> BE-RJE-014
                │                                   │
@@ -82,7 +82,7 @@ dua kali. Jumlah pasangan prasyarat → task: **12**, sama dengan isi kolom `Dep
 | 1 | — | `BE-RJE-001` ✅, `BE-RJE-004` ✅, `BE-RJE-006` ✅ — boleh paralel |
 | 2 | `BE-RJE-001` | `BE-RJE-002` ✅, `BE-RJE-011` — boleh paralel |
 | 3 | `BE-RJE-002` | `BE-RJE-003` ✅ |
-| 4 | `BE-RJE-003` | `BE-RJE-005` ✅, `BE-RJE-007`, `BE-RJE-010`, `BE-RJE-014` — boleh paralel |
+| 4 | `BE-RJE-003` | `BE-RJE-005` ✅, `BE-RJE-007` ✅, `BE-RJE-010`, `BE-RJE-014` — boleh paralel |
 | 5 | `BE-RJE-005` / `BE-RJE-010` + `BE-RJE-011` | `BE-RJE-008`, `BE-RJE-009`, `BE-RJE-012` — boleh paralel |
 | — | ⛔ menunggu approval `RJ-E2E-CONTRACT-001@1.0.1` | `BE-RJE-013` |
 
@@ -114,7 +114,7 @@ teknis paling awal yang aman.
 | `BE-RJE-004` ✅ | `from-source` menolak domain klinis Rawat Jalan | `FR-RJE-014`; `RJ-E2E-DEC-006` | `1.0.0` | `BillingInvoicesController.FromSource` | Satu pemeriksaan + `422` | — | Kartu | Pola Bank Darah + `UAT-03` | Konsumen `ADHOC` kasir / Billing | Kartu |
 | `BE-RJE-005` ✅ | Perubahan setelah invoice final menjadi adjustment | `FR-RJE-015`; `RJ-BIL-DEC-004` | `1.0.0` | `CreateAdjustmentAsync` | Cabang pasca-final di jembatan | `BE-RJE-003` | Kartu | Pola Bank Darah + `UAT-04` | Invoice `CLOSED` mungkin menolak adjustment / Billing | Kartu |
 | `BE-RJE-006` ✅ | Kunjungan tanpa dokter berhenti di `Billing` | `FR-RJE-070`; `RJ-E2E-DEC-007`, `013` | `1.0.0` | `NurseStationQueueController` | Satu cabang status | — | Kartu | Pola Bank Darah + `UAT-20`, `21` | Laporan/layar yang mengandalkan `Completed` / Registration | Kartu |
-| `BE-RJE-007` | Jasa konsultasi tertagih otomatis | `FR-RJE-020`, `021`; `RJ-E2E-DEC-001`, `012` | `1.0.0` | Finalisasi canonical, `MstDoctorServiceRule`, `MstTariff` | Fakta konsultasi + resolver `CONSULTATION` | `BE-RJE-003` | Kartu | Pola Bank Darah + `UAT-05`, `06` | Tarif konsultasi belum diisi per klinik / Billing | Kartu |
+| `BE-RJE-007` ✅ | Jasa konsultasi tertagih otomatis | `FR-RJE-020`, `021`; `RJ-E2E-DEC-001`, `012` | `1.0.0` | Finalisasi canonical, `MstDoctorServiceRule`, `MstTariff` | Fakta konsultasi + resolver `CONSULTATION` | `BE-RJE-003` | Kartu | Pola Bank Darah + `UAT-05`, `06` | Tarif konsultasi belum diisi per klinik / Billing | Kartu |
 | `BE-RJE-008` | Obat dua tahap; deadlock farmasi hilang | `FR-RJE-030`..`032`; `RJ-E2E-DEC-005` | `1.0.0` | Clearance farmasi, `PrescriptionDispensingService` | Resolver `PHARMACY`, fakta tahap 2 | `BE-RJE-005` | Kartu | Pola Bank Darah + `UAT-07`, `08`, `09` | Titik sentuh Pharmacy / Pharmacy + Billing | Kartu |
 | `BE-RJE-009` | Pembatalan tanpa menghapus riwayat, tanpa pembatalan palsu | `FR-RJE-040`..`042`; `RJ-E2E-DEC-010` | `1.0.0` | `VoidItemAsync`, `CreateAdjustmentAsync`, *CASE A* producer | Cabang pembatalan di jembatan | `BE-RJE-005` | Kartu | Pola Bank Darah + `UAT-10`, `11`, `12` | — / Billing | Kartu |
 | `BE-RJE-010` | Sinkron invoice yang gagal dicoba ulang otomatis | `FR-RJE-051`; `RJ-E2E-DEC-009` | `1.0.0` | Pola `InpatientIntegrationOutboxWorker` | Pekerja latar + jadwal dari master | `BE-RJE-003` | Kartu | Pola Bank Darah + `UAT-13`, `14` | Beban database / Billing | Kartu |
@@ -213,10 +213,11 @@ teknis paling awal yang aman.
 | **Verifikasi** | Pola Bank Darah |
 | **DoD** | AC terbukti; dampak preflight tercatat; laporan |
 
-### `BE-RJE-007` — Jasa konsultasi
+### ✅ `BE-RJE-007` — Jasa konsultasi
 
 | Field | Isi |
 | --- | --- |
+| **Status** | ✅ `COMPLETE` 2026-09-28 — 6/6 AC terbukti. Build penuh `0 Error(s)`/`230 Warning(s)` (= baseline), `has-pending-model-changes` bersih, QBE strict `PASS`, `dotnet test` `NOT RUN`, runtime R0–R5 `PASS` terhadap `QuilvianNewDevSukma`. Urutan tarif dilengkapi `RJ-E2E-DEC-023` (rule dokter → tindakan konsultasi). [Laporan](../task/report/backend/BE-RJE-007.md) |
 | **Outcome** | Setiap konsultasi yang selesai lewat finalisasi canonical menghasilkan satu item jasa konsultasi berharga katalog |
 | **Cakupan** | `ConsultationFinalizationService` menerbitkan fakta `Consultation` setelah commit (termasuk dari `finish-consultation`); resolver `CONSULTATION` menurut `RJ-E2E-DEC-012` |
 | **Acceptance criteria** | 1. Rule dr. B bertarif Rp150.000 → item Rp150.000. 2. Tanpa rule, tarif klinik + kelas → dipakai. 3. Tanpa keduanya, tarif klinik → dipakai. 4. Tanpa tarif sama sekali → antrean `TARIFF_NOT_FOUND`, konsultasi tetap selesai (`UAT-06`). 5. Selesai ditekan dua kali → satu item (`UAT-05`). 6. Konsultasi batal sebelum selesai → tanpa fakta |
