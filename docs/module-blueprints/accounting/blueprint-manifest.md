@@ -901,7 +901,10 @@ Tidak satu pun dimulai tanpa perintah Rizki. Migration `027` tetap dibuat dan di
 
 Sesudah pembaruan status di atas, Rizki mengambil sembilan keputusan lewat `grill-me`, dicatat
 sebagai `ACC-DEC-094` sampai `ACC-DEC-102` pada `00-interview-decisions.md` **revision 12**.
-Blueprint `revision` tetap `12`, mengikuti preseden `ACC-DEC-092`/`093`. Kenaikan menyusul saat
+Pada hari yang sama menyusul `ACC-DEC-103` sampai `ACC-DEC-106` (revision **13**) atas usulan kode
+Finance `evidence/06` dan `07`, dan ketiga surat Finance dijawab dalam satu balasan
+[`evidence/14`](evidence/14-balasan-accounting-atas-kode-finance-05-06-07.md). Katalog kini 26 kode
+diratifikasi. Blueprint `revision` tetap `12`, mengikuti preseden `ACC-DEC-092`/`093`. Kenaikan menyusul saat
 `design-business-module` mengubah kontrak — katalog `ACC-XMOD` bagian 3a dan
 `03-frontend-architecture.md` 11.2.
 

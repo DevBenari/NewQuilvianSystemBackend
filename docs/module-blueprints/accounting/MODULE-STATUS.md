@@ -370,14 +370,26 @@ revision 12.
 | `ACC-DEC-100` | `PENGAKUAN-KELEBIHAN-BAYAR` **diratifikasi bersyarat**: debit Piutang, kredit Uang Muka Pasien; tidak terbit bila asalnya uang muka (T3) | Katalog 23 kode |
 | `ACC-DEC-101` | Selisih shift wajib disahkan **sebelum Accounting mengajukan penutupan**, ditegakkan lewat `ACC-DEC-065` (T5) | Penegakan menunggu kode penanda shift + `OD-ACC-07` |
 | `ACC-DEC-102` | Refund `SETTLEMENT`/`REFERRED_OUTPATIENT_ADMIN` yang mengeluarkan kas **wajib** punya kejadian; **G6 diperluas** (T5) | Cutover menunggu jawaban Finance + Billing |
+| `ACC-DEC-103` | `PPN-MASUKAN-PEMBELIAN` (`evidence/06`) **diratifikasi**; kredit Utang Supplier, akun debit — aset PPN Masukan atau beban PPN tak dapat dikreditkan — ditetapkan di G2 bersama pemilik pajak RS | Nol kode Accounting |
+| `ACC-DEC-104` | `POTONGAN-PIUTANG-NON-TUNAI` + pembaliknya (`evidence/07`) **dipecah** menjadi pasangan PPh 23 dan pasangan biaya bank | Menunggu nama final Finance |
+| `ACC-DEC-105` | `RETUR-PEMBELIAN` **diratifikasi bersyarat**: kredit Persediaan, pokok tanpa PPN; porsi PPN lewat kode terpisah | Menunggu usulan kode PPN retur |
+| `ACC-DEC-106` | `PEMAKAIAN-DEPOSIT-RETUR` **diratifikasi**; saran nama tidak mengikat; tanya pencairan tunai kredit retur | Katalog **26 kode** diratifikasi |
+
+**Tambahan hari yang sama:** Yasmin mengirim `evidence/06` (kode PPN Masukan) dan `07` (empat kode
+potongan piutang dan retur pembelian). Keduanya dijawab `ACC-DEC-103`..`106` (decision log revision
+13). Ketiga surat Finance — `05`, `06`, `07` — dijawab dalam satu balasan:
+[`evidence/14`](evidence/14-balasan-accounting-atas-kode-finance-05-06-07.md). Menurut roadmap
+Finance, task yang benar-benar ⛔ karena Accounting adalah `BE-FIN-023`..`026` dan `FE-FIN-007`
+(`FIN-OQ-017`). Kode `evidence/06`/`07` hanya menahan aktivasi worker pengiriman Finance
+(`FIN-DEC-056`, `058`, `061`).
 
 #### Langkah berikutnya
 
 | Urutan | Langkah | Pemilik |
 |---:|---|---|
 | 1 | ~~Catat keputusan terbuka ke `00-interview-decisions.md` mulai `ACC-DEC-094`~~ **Selesai 28 September 2026** — `ACC-DEC-094`..`102` | Rizki, lewat `grill-me` |
-| 2 | Balas Finance: ratifikasi `ACC-DEC-098` dan `100`, permintaan `ACC-DEC-099`, `101`, `102`, pelurusan T1 dan T4, dan kabar G1 (kotak masuk sudah dibangun dan diuji developer; UAT belum) | Rizki → Yasmin |
-| 3 | `design-business-module` (amandemen kecil): katalog `ACC-XMOD` bagian 3a menjadi 23 kode, `03-frontend-architecture.md` 11.2 (`ACC-DEC-097`), dan FR saldo subledger di `04-prd-to-mvp.md` | Rizki |
+| 2 | ~~Balas Finance~~ **Ditulis 28 September 2026:** [`evidence/14`](evidence/14-balasan-accounting-atas-kode-finance-05-06-07.md) menjawab `05`, `06`, `07` sekaligus. **Tinggal dikirim** ke Yasmin | Rizki → Yasmin |
+| 3 | `design-business-module` (amandemen kecil): katalog `ACC-XMOD` bagian 3a menjadi 26 kode, `03-frontend-architecture.md` 11.2 (`ACC-DEC-097`), dan FR saldo subledger di `04-prd-to-mvp.md` | Rizki |
 | 4 | `plan-module-delivery`: kartu task baru untuk `ACC-DEC-095` (backend) dan `ACC-DEC-096` (backend + frontend) | Rizki |
 | 5 | `BE-ACC-P2-027` lewat `build-module-backend`; migration `AddAccSubledgerBalance` dibuat dan diterapkan sendiri | Owner Backend + Rizki, **hanya atas perintah Rizki** |
 | 6 | `BE-ACC-P2-028`, lalu `BE-ACC-P2-014` sesudah T6 ditimbang | Owner Backend + Rizki |
