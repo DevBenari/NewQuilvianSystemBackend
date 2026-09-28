@@ -1324,3 +1324,885 @@ wewenang menjalankan apa pun terhadap database. Wewenang migration dan eksekusi 
 | Check constraint pada `FinAccountingEventOutbox.EventTypeCode` | Katalog kode adalah kesepakatan dua pihak yang masih menunggu ratifikasi Accounting (`FIN-OQ-017`). Mengunci nilainya di database sekarang berarti setiap penyesuaian nama kode menuntut migration |
 | Satu kode gabungan untuk pemakaian dan pengembalian uang muka | Lawan jurnalnya berbeda — lihat B.3. Ini keputusan yang **sudah pernah diambil lalu dikoreksi** (`FIN-DEC-032` `superseded`), dan dicatat di sini supaya tidak diusulkan ulang |
 | Kejadian untuk `BilRefundCase` bersumber `SETTLEMENT`/`REFERRED_OUTPATIENT_ADMIN` | Lawan jurnalnya belum digali (`FIN-OQ-018`); di luar permintaan gerbang `G6` |
+
+
+# AMENDMENT REVISI 4 — Purchasing/AP, AR Invoice Agregat, dan Potongan AR
+
+## C.1 Mengapa amendment ini ada
+
+Amendment ini menutup tiga rumpun kapabilitas baru (`FIN-SC-008`, `FIN-SC-009`, `FIN-SC-010`)
+yang ditemukan lewat audit `Keuangan.md` — dokumen evidence hasil analisis video sistem rujukan
+eksternal, bukan sumber otoritatif, dipakai murni sebagai peta area yang perlu diperiksa.
+Ketiga rumpun disetujui lewat `FIN-DEC-045` s.d. `FIN-DEC-055` (`00-interview-decisions.md`),
+seluruhnya `approved` 25 September 2026, dan ditelusuri lewat `/trace-existing-capabilities`
+menghasilkan `FIN-CAP-026` s.d. `FIN-CAP-036` (`01-existing-capability-map.md` bagian 12).
+
+Berbeda dari REVISI 2 (Payable) dan REVISI 3 (Accounting Integration/Collection) yang masing-
+masing memperluas rumpun yang **sudah ada**, amendment ini yang pertama kali membangun rumpun
+yang **sama sekali belum ada satu barisnya pun** di backend (Purchasing/AP) — dikonfirmasi nol
+lewat pencarian `rg` menyeluruh (`FIN-CAP-028`). Ini juga pertama kalinya Finance Management
+menjadi **pemilik proses hulu** (procurement), bukan sekadar konsumen hilir dari modul lain —
+konsekuensi eksplisit dari `FIN-DEC-045` yang sudah dicatat sebagai penyimpangan pola oleh owner
+sendiri.
+
+Tiga rumpun ini dirancang dalam satu amendment karena diputuskan dalam satu sesi keputusan yang
+sama dan saling beririsan: rumpun Purchasing/AP memperbarui `FinSupplierPayable` (sisi Payable
+yang sudah ada), rumpun AR Invoice Agregat membangun lapisan baru di atas `FinReceivable` (sisi
+Receivable yang sudah ada), dan rumpun Potongan AR memperbarui invariant `FinReceivable` yang
+sama. Merancangnya terpisah berisiko melahirkan keputusan yang saling bertentangan pada entity
+yang sama.
+
+## C.2 Keputusan arsitektur baru
+
+### Tabel kepemilikan data
+
+| Kelompok data | Modul pemilik | Dipakai amendment ini | Dibuat ulang? |
+|---|---|---|---|
+| Data supplier (kode, NPWP, bank, TOP, lead time, PPN, diskon, limit kredit) | Finance Management (`MstSupplier`, `FIN-CAP-027`) | Ya — direferensikan seluruh entity Purchasing/AP baru | Tidak — `MstSupplier` sudah lengkap, tidak ada kolom baru |
+| Utang ke supplier (ledger) | Finance Management (`FinSupplierPayable`) | Ya — jadi target penciptaan dari `FinPurchasingInvoice` | Tidak — diperluas (`Diperbarui`), bukan diganti |
+| Piutang per invoice pasien/penjamin | Finance Management (`FinReceivable`, `FIN-CAP-031`) | Ya — jadi unit dasar yang dikelompokkan `FinReceivableInvoiceBatch`, dan target pengurangan `FinReceiptDeduction` | Tidak — dipakai apa adanya, nol kolom baru |
+| Dokumen tagihan per invoice untuk penjamin perusahaan | Billing (`BillingCompanyGuarantorInvoiceDocumentService`, `FIN-CAP-030`) | Ya — dirujuk sebagai rincian baris dalam `FinReceivableInvoiceBatch` | Tidak — dipakai lewat pemanggilan service yang sudah ada (`Reuse with adapter`), bukan disalin |
+| Potongan sisi Payable (pola struktur) | Finance Management (`FinPaymentDeduction`, `FIN-CAP-033`) | Ya — jadi pola struktural untuk `FinReceiptDeduction` (arah aliran dibalik, bukan tabel yang sama) | Tidak — entity baru terpisah, `FinPaymentDeduction` tidak disentuh |
+| Ambang dan jenjang approval nominal (pola) | Finance Management (`FinancePaymentService.ResolveApprovalTier`, `FIN-CAP-035`) | Ya — logikanya diekstrak jadi helper bersama, dipakai ulang oleh PO dan Purchasing Invoice | Tidak — diekstrak (`Diperbarui`), logika nominal (Rp 50.000.000) tidak berubah |
+| Purchase Order, Tanda Terima Barang, Tukar Faktur, Purchasing Invoice, Retur Pembelian, Deposit Retur | **Baru — Finance Management** | — | Ya — dikonfirmasi nol existing (`FIN-CAP-028`, `FIN-CAP-029`) |
+| AR Invoice Agregat (batch tagihan gabungan) | **Baru — Finance Management** | — | Ya — dikonfirmasi nol existing (`FIN-CAP-032`) |
+| Potongan sisi penerimaan piutang (PPh 23, biaya admin bank) | **Baru — Finance Management** | — | Ya — dikonfirmasi nol existing (`FIN-CAP-034`) |
+| Kejadian akuntansi PPN Masukan Pembelian | Accounting (kode `PPN-MASUKAN-PEMBELIAN`, diusulkan `evidence/06`) | Ya — dipicu dari `FinPurchasingInvoice` disetujui | Tidak — Finance hanya mengirim envelope `ACC-XMOD-0.3` yang sudah ada, tidak membuat tabel Accounting |
+
+### FIN-DES-037 — Rumpun Purchasing/AP: entity inti
+
+Tujuh entity baru dibangun mengikuti alur `PO → Tanda Terima Barang → Tukar Faktur →
+Purchasing Invoice`, sebagaimana ditegaskan `FIN-DEC-051`:
+
+- `FinPurchaseOrder` + `FinPurchaseOrderItem` — permintaan pembelian ke supplier, menunggu
+  approval bila di atas ambang (`FIN-DES-039`).
+- `FinGoodsReceipt` + `FinGoodsReceiptItem` — pencatatan barang fisik diterima terhadap satu PO.
+  **DEV_DISCRETION**: dirancang selalu terhadap satu `PurchaseOrderId` (tidak nullable) — jalur
+  "tanpa PO" yang disebut `Keuangan.md` hanya berlaku pada Tukar Faktur/Purchasing Invoice
+  (`FIN-DEC-051` eksplisit menyebut Tukar Faktur boleh tanpa PO), bukan pada penerimaan barang,
+  karena menerima barang tanpa order yang mendahuluinya bukan pola yang diminta owner. Keputusan
+  ini didelegasikan ke pelaksana desain karena tidak ada keputusan eksplisit soal GR tanpa PO
+  pada decision log manapun; bila keliru, dapat diamandemen terpisah tanpa mengubah entity lain.
+- `FinInvoiceExchange` ("Tukar Faktur") — checkpoint serah terima dokumen dari supplier,
+  mencatat tanggal terima dan estimasi jatuh tempo dari TOP supplier (`MstSupplier.PaymentTermDays`,
+  sudah ada — `FIN-CAP-027`). `PurchaseOrderId` dan `GoodsReceiptId` nullable sesuai `FIN-DEC-051`.
+- `FinPurchasingInvoice` + `FinPurchasingInvoiceItem` — nilai final pembelian (PPN, diskon,
+  potongan, DP/termin). Tepat satu `FinInvoiceExchange` menghasilkan tepat satu
+  `FinPurchasingInvoice` (`FIN-DEC-051`, unique constraint pada `InvoiceExchangeId`).
+
+### FIN-DES-038 — Retur Pembelian dan Deposit Retur
+
+`FinSupplierReturn` + `FinSupplierReturnItem` mencatat pengembalian barang ke supplier.
+`FinSupplierReturnDeposit` adalah entity kredit terpisah yang dapat dipakai lintas invoice/
+pembelian berikutnya (`FIN-DEC-047`), secara struktural meniru pola `BilRefundableCredit`
+(Billing) namun **bukan tabel yang sama** — arah aliran uang berlawanan (Billing: kredit ke
+pasien; Finance: kredit dari supplier ke RS). `FinSupplierReturnDepositUsage` mencatat setiap
+pemakaian deposit terhadap `FinPurchasingInvoice`/`FinSupplierPayable` tertentu, menjaga
+`FinSupplierReturnDeposit.AvailableAmount` tetap konsisten (pola yang sama dengan bagaimana
+`FinPaymentDeduction` diaudit — satu baris pemakaian, bukan pengurangan langsung tanpa jejak).
+
+### FIN-DES-039 — Approval dua jenjang untuk PO dan Purchasing Invoice
+
+`FIN-DEC-050` meminta jenjang approval bertingkat berdasarkan nominal sejak awal desain;
+`FIN-DEC-052` menutup ambangnya di **Rp 50.000.000**, angka yang persis sama dengan placeholder
+yang sudah ditemukan di `FinancePaymentService.ResolveApprovalTier` (`FIN-CAP-035`).
+
+Alih-alih menulis ulang logika ambang tiga kali (Payment, PO, Purchasing Invoice), logika
+`ResolveApprovalTier(decimal nominal)` dan `ApprovalTiers.Tier1`/`Tier2` **diekstrak** dari
+`FinancePaymentService` menjadi helper bersama `FinanceApprovalTierResolver` (baru, di folder
+`Payable/Services` karena dipakai lintas Payable — lihat C.7). `FinancePaymentService` diperbarui
+untuk memanggil helper ini alih-alih menyimpan salinan logikanya sendiri, supaya tidak ada tiga
+salinan ambang yang bisa menyimpang.
+
+> **KOREKSI 25 September 2026 (ditemukan saat `/plan-module-delivery` membaca source).** Versi
+> awal paragraf ini menyatakan "logika nominal tidak berubah, murni ekstraksi". **Itu keliru
+> tepat pada satu nilai.** Kode yang berjalan (`FinancePaymentService.cs` baris 654-658) memakai
+> `<= 50_000_000m → TIER_1`, sedangkan `FIN-DEC-052` yang sudah `approved` menetapkan
+> `< Rp 50.000.000` → Supervisor Finance dan **`>= Rp 50.000.000` → Manajer Finance**.
+>
+> | Nominal | Kode hari ini | `FIN-DEC-052` |
+> |---|---|---|
+> | Rp 49.999.999 | `TIER_1` | `TIER_1` |
+> | **Rp 50.000.000 tepat** | **`TIER_1`** | **`TIER_2`** |
+> | Rp 50.000.001 | `TIER_2` | `TIER_2` |
+>
+> Resolver bersama **MUST** mengikuti `FIN-DEC-052` (`>= 50.000.000 → TIER_2`). Akibatnya ekstraksi
+> ini **mengubah perilaku pembayaran yang sudah berjalan** untuk satu nilai batas itu:
+> pembayaran tepat Rp 50.000.000 yang hari ini cukup disetujui Supervisor akan menuntut Manajer.
+> Pembayaran yang sudah tersimpan tidak dihitung ulang — `ApprovalTier` dibekukan saat diajukan
+> (`FIN-DEC-052`: jejak audit mencatat jenjang yang berlaku saat approval).
+
+Komentar kode yang menyebut ambang ini "provisional"/"belum diratifikasi" (`FinPayment.cs` baris
+18, `FinancePaymentsController.cs` baris 24-28, `FinancePaymentService.cs` baris 646-651)
+diperbarui karena `FIN-DEC-052` sudah meratifikasi nilainya secara eksplisit.
+
+`FinPurchaseOrder` dan `FinPurchasingInvoice` masing-masing mendapat kolom `ApprovalTier`,
+`RequestedByUserId`, `RequestedAt`, `ApprovedByUserId`, `ApprovedAt`, mengikuti pola persis yang
+sudah ada pada `FinPayment`. Checkpoint ini **berbeda** dari checkpoint approval pembayaran
+(`FIN-DEC-022`) — PO/Purchasing Invoice disetujui sebelum utang tercatat; pembayaran disetujui
+sebelum kas keluar. Keduanya kini memakai ambang yang sama (`FIN-DEC-052`) tapi tetap dua
+checkpoint independen dengan actor dan record persetujuan masing-masing.
+
+### FIN-DES-040 — Perluasan FinSupplierPayable
+
+`FinSupplierPayable` (`Diperbarui`) mendapat kolom `SourcePurchasingInvoiceId` (nullable, FK ke
+`FinPurchasingInvoice`). **Jalur input manual yang sudah ada tetap dipertahankan** — amendment
+ini tidak menghapus kapasitas mencatat utang supplier secara manual, karena beberapa supplier
+lama mungkin belum onboarding ke alur PO penuh dan tidak ada keputusan eksplisit untuk
+mendeprekasinya. `SourcePurchasingInvoiceId` bernilai `NULL` untuk baris yang dibuat manual
+(perilaku lama, tidak berubah) dan terisi otomatis untuk baris yang dibuat sistem saat
+`FinPurchasingInvoice` berstatus `Approved` (`FIN-DEC-045`).
+
+### FIN-DES-041 — AR Invoice Agregat
+
+`FinReceivableInvoiceBatch` (baru) adalah aggregate root yang mengelompokkan baris `FinReceivable`
+yang berbagi `DebtorType="PAYER"` dan `DebtorReferenceId` yang sama (kunci pengelompokan yang
+sudah tersedia di `FinReceivable`, nol perubahan skema dibutuhkan — `FIN-CAP-031`) dalam satu
+periode penagihan. Batch ini menjadi **dokumen resmi yang dikirim ke penjamin** (`FIN-DEC-048`),
+menggantikan `BilInvoice` individual sebagai dokumen yang dikirim — namun `BilInvoice` dan
+`FinReceivable` **tetap ada dan tidak diubah perannya** sebagai satuan internal; batch adalah
+lapisan baru di atasnya, bukan pengganti. `FinReceivableInvoiceBatchItem` (baru) adalah tabel
+penghubung `BatchId` ↔ `ReceivableId`; satu `FinReceivable` hanya boleh tergabung dalam satu
+batch aktif pada satu waktu (unique constraint pada `ReceivableId` untuk baris yang batch-nya
+belum `Cancelled`).
+
+Saat batch diterbitkan (`Issued`), setiap baris `FinReceivable` anggotanya dapat merujuk balik
+ke dokumen per-invoice yang sudah ada via `BillingCompanyGuarantorInvoiceDocumentService`
+(`FIN-CAP-030`, `Reuse with adapter`) sebagai rincian baris pada dokumen batch gabungan —
+service tersebut **dipanggil**, bukan disalin ulang logikanya.
+
+### FIN-DES-042 — Potongan sisi penerimaan piutang
+
+`FinReceiptDeduction` (baru) meniru struktur `FinPaymentDeduction` (`DeductionType`, `Amount`,
+`Reason`, `ReferenceNumber`) namun melekat pada `FinReceipt`/alokasinya, bukan `FinPayment`, dan
+`DeductionType` memakai daftar nilai berbeda: `PPH23`, `BANK_ADMIN_FEE`, `OTHER` (bukan daftar
+`FinPaymentDeduction` yang memuat `PPH21`/`KASBON`/dst — konteksnya berbeda, sisi penerimaan
+bukan sisi pembayaran ke pihak ketiga).
+
+Per `FIN-DEC-055`, potongan ini **mengurangi `FinReceivable.OutstandingAmount`** — berfungsi
+sebagai "pembayaran non-tunai", kebalikan tepat dari `FIN-DES-028` (potongan sisi Payable TIDAK
+mengurangi `FinSupplierPayable` yang dibayarkan, karena di sana potongan adalah pengurang nilai
+yang dibayar tunai, bukan pelunasan utang). Baris `FinReceiptDeduction` diperlakukan sama seperti
+baris alokasi pembayaran biasa untuk keperluan invariant `FinReceivable`
+(`OriginalAmount = OutstandingAmount + AllocatedAmount + AdjustedAmount + WrittenOffAmount`,
+`FIN-CAP-031`) — nilainya masuk ke `AllocatedAmount`, bukan kategori baru, supaya invariant yang
+sudah ada tidak perlu diubah bentuknya.
+
+### FIN-DES-043 — PPN Masukan Pembelian
+
+`FinPurchasingInvoice` menyimpan `PPNAmount` (nilai Pajak Masukan). Saat status berubah menjadi
+`Approved`, sistem **menyiapkan** kejadian akuntansi kode `PPN-MASUKAN-PEMBELIAN` (diusulkan
+lewat `evidence/06`, mengikuti kontrak amplop 12 field `ACC-XMOD-0.3` yang sudah diratifikasi
+Accounting) ke `FinAccountingEventOutbox` yang sudah ada — **bukan mekanisme baru**, memakai
+pola outbox transaksional yang sama dengan seluruh kejadian Finance lain.
+
+**Gerbang keras**: sesuai `FIN-DEC-046`, worker pengiriman kejadian ini **tidak boleh diaktifkan**
+sampai Accounting meratifikasi kode `PPN-MASUKAN-PEMBELIAN` (`FIN-OQ-020`, sisi Finance sudah
+ditutup lewat `evidence/06`, ratifikasi masih ditunggu). Baris outbox tetap dibuat dan disimpan
+berstatus `PENDING` sejak awal (tidak diblokir di level penulisan data), tapi worker pengiriman
+untuk `EventTypeCode = PPN-MASUKAN-PEMBELIAN` secara eksplisit di-*feature-gate* menunggu
+ratifikasi — pola yang sama persis dengan bagaimana kode lain di blueprint ini pernah menunggu
+ratifikasi sebelum dikirim (`FIN-DES-029` dst).
+
+Nilai pokok barang/jasa (bukan PPN-nya) dicatat lewat kejadian pengakuan utang supplier — kode
+kejadian ini **belum diusulkan** pada amendment ini; menyusul sebagai keputusan operasional
+terpisah sebelum `/plan-module-delivery` mengunci Purchasing/AP untuk implementasi
+(dicatat sebagai open item baru di bagian C.11).
+
+### FIN-DES-044 — Endpoint laporan (tanpa tabel baru)
+
+Delapan kapabilitas pelaporan dari `Keuangan.md` (Aging AP, Rekap Purchasing AP, Laporan Tukar
+Faktur, Laporan Jatuh Tempo, Rekonsiliasi Tagihan) dirancang sebagai **query service read-only**
+di atas entity `FIN-DES-037`..`042` — tidak melahirkan tabel baru. Aging AP dan Laporan Jatuh
+Tempo dihitung dari `FinSupplierPayable`/`FinPurchasingInvoice` beserta `EstimatedDueDate` pada
+`FinInvoiceExchange`; Rekap Purchasing AP adalah agregasi periodik; Rekonsiliasi Tagihan
+membandingkan `FinInvoiceExchange` terhadap `FinPurchasingInvoice` untuk menemukan Tukar Faktur
+yang belum menghasilkan invoice. Ini konsisten dengan pola laporan Finance yang sudah ada
+(tidak ada laporan Finance manapun yang punya tabel persisten tersendiri).
+
+## C.3 Class diagram — rumpun Purchasing/AP
+
+```mermaid
+classDiagram
+    class MstSupplier {
+        +Guid Id
+        +string Code
+        +string Name
+        +int PaymentTermDays
+        +int LeadTimeDays
+        +decimal TaxPercent
+        +bool IsTaxable
+        +decimal CreditLimitAmount
+    }
+    class FinPurchaseOrder {
+        +Guid Id
+        +string PONumber
+        +Guid SupplierId
+        +string Status
+        +decimal TotalAmount
+        +string ApprovalTier
+        +Guid RequestedByUserId
+        +DateTime RequestedAt
+        +Guid? ApprovedByUserId
+        +DateTime? ApprovedAt
+        +Guid RowVersion
+    }
+    class FinPurchaseOrderItem {
+        +Guid Id
+        +Guid PurchaseOrderId
+        +string ProductCategory
+        +string ProductName
+        +string Unit
+        +decimal Quantity
+        +decimal UnitPrice
+        +decimal LineTotal
+    }
+    class FinGoodsReceipt {
+        +Guid Id
+        +string GRNumber
+        +Guid PurchaseOrderId
+        +DateTime ReceivedDate
+        +string Status
+        +Guid RowVersion
+    }
+    class FinGoodsReceiptItem {
+        +Guid Id
+        +Guid GoodsReceiptId
+        +Guid PurchaseOrderItemId
+        +decimal ReceivedQuantity
+        +string Notes
+    }
+    class FinInvoiceExchange {
+        +Guid Id
+        +string ExchangeNumber
+        +Guid SupplierId
+        +Guid? PurchaseOrderId
+        +Guid? GoodsReceiptId
+        +string SupplierInvoiceNumber
+        +DateTime SupplierInvoiceDate
+        +DateTime ReceivedDate
+        +DateTime EstimatedDueDate
+        +string Status
+        +Guid RowVersion
+    }
+    class FinPurchasingInvoice {
+        +Guid Id
+        +string InvoiceNumber
+        +Guid InvoiceExchangeId
+        +Guid SupplierId
+        +decimal SubtotalAmount
+        +decimal DiscountAmount
+        +decimal PPNAmount
+        +decimal DownPaymentAmount
+        +decimal OtherDeductionAmount
+        +decimal TotalAmount
+        +string Status
+        +string ApprovalTier
+        +Guid RequestedByUserId
+        +DateTime RequestedAt
+        +Guid? ApprovedByUserId
+        +DateTime? ApprovedAt
+        +Guid RowVersion
+    }
+    class FinPurchasingInvoiceItem {
+        +Guid Id
+        +Guid PurchasingInvoiceId
+        +string ProductName
+        +decimal Quantity
+        +decimal UnitPrice
+        +decimal LineTotal
+    }
+    class FinSupplierPayable {
+        +Guid Id
+        +Guid SupplierId
+        +Guid? SourcePurchasingInvoiceId
+        +decimal OutstandingAmount
+    }
+    class FinSupplierReturn {
+        +Guid Id
+        +string ReturnNumber
+        +Guid PurchasingInvoiceId
+        +string Reason
+        +decimal TotalAmount
+        +string Status
+    }
+    class FinSupplierReturnItem {
+        +Guid Id
+        +Guid SupplierReturnId
+        +decimal Quantity
+        +decimal LineTotal
+    }
+    class FinSupplierReturnDeposit {
+        +Guid Id
+        +Guid SupplierId
+        +Guid SourceReturnId
+        +decimal OriginalAmount
+        +decimal AvailableAmount
+        +string Status
+    }
+    class FinSupplierReturnDepositUsage {
+        +Guid Id
+        +Guid SupplierReturnDepositId
+        +Guid PurchasingInvoiceId
+        +decimal UsedAmount
+    }
+    class FinanceApprovalTierResolver {
+        +ResolveApprovalTier(decimal nominal) string
+    }
+
+    FinPurchaseOrder "1" --> "*" FinPurchaseOrderItem
+    FinPurchaseOrder "1" --> "0..*" FinGoodsReceipt
+    FinGoodsReceipt "1" --> "*" FinGoodsReceiptItem
+    FinGoodsReceiptItem --> FinPurchaseOrderItem
+    FinPurchaseOrder "0..1" --> "0..*" FinInvoiceExchange
+    FinGoodsReceipt "0..1" --> "0..*" FinInvoiceExchange
+    FinInvoiceExchange "1" --> "1" FinPurchasingInvoice
+    FinPurchasingInvoice "1" --> "*" FinPurchasingInvoiceItem
+    FinPurchasingInvoice "1" --> "0..1" FinSupplierPayable
+    FinPurchasingInvoice "1" --> "0..*" FinSupplierReturn
+    FinSupplierReturn "1" --> "*" FinSupplierReturnItem
+    FinSupplierReturn "1" --> "0..1" FinSupplierReturnDeposit
+    FinSupplierReturnDeposit "1" --> "*" FinSupplierReturnDepositUsage
+    FinSupplierReturnDepositUsage --> FinPurchasingInvoice
+    FinPurchaseOrder --> MstSupplier
+    FinInvoiceExchange --> MstSupplier
+    FinPurchasingInvoice --> MstSupplier
+    FinPurchaseOrder ..> FinanceApprovalTierResolver
+    FinPurchasingInvoice ..> FinanceApprovalTierResolver
+```
+
+## C.4 Class diagram — rumpun AR Invoice Agregat
+
+```mermaid
+classDiagram
+    class FinReceivable {
+        +Guid Id
+        +string DebtorType
+        +Guid DebtorReferenceId
+        +decimal OriginalAmount
+        +decimal OutstandingAmount
+        +decimal AllocatedAmount
+    }
+    class FinReceivableInvoiceBatch {
+        +Guid Id
+        +string BatchNumber
+        +string DebtorType
+        +Guid DebtorReferenceId
+        +DateTime PeriodStart
+        +DateTime PeriodEnd
+        +decimal TotalAmount
+        +string Status
+        +DateTime? IssuedAt
+        +Guid RowVersion
+    }
+    class FinReceivableInvoiceBatchItem {
+        +Guid Id
+        +Guid BatchId
+        +Guid ReceivableId
+    }
+    class BillingCompanyGuarantorInvoiceDocumentService {
+        +GetDocument(Guid invoiceId) CompanyGuarantorInvoiceDocumentResponse
+    }
+
+    FinReceivableInvoiceBatch "1" --> "*" FinReceivableInvoiceBatchItem
+    FinReceivableInvoiceBatchItem "1" --> "1" FinReceivable
+    FinReceivableInvoiceBatch ..> BillingCompanyGuarantorInvoiceDocumentService : rincian per baris
+```
+
+## C.5 Class diagram — rumpun Potongan AR
+
+```mermaid
+classDiagram
+    class FinReceivable {
+        +Guid Id
+        +decimal OutstandingAmount
+        +decimal AllocatedAmount
+    }
+    class FinReceipt {
+        +Guid Id
+        +decimal Amount
+    }
+    class FinReceiptDeduction {
+        +Guid Id
+        +Guid ReceiptId
+        +string DeductionType
+        +decimal Amount
+        +string Reason
+        +string ReferenceNumber
+    }
+
+    FinReceipt "1" --> "*" FinReceiptDeduction
+    FinReceiptDeduction ..> FinReceivable : mengurangi OutstandingAmount
+```
+
+## C.6 Penjelasan class
+
+> **KOREKSI 25 September 2026 (ditemukan saat `/plan-module-delivery` membaca source).** Versi
+> awal tabel ini dan pohon C.7 memuat tiga kekeliruan terhadap pola yang **sudah berjalan** di
+> repository: (1) service dan controller memakai prefix `Fin…` padahal seluruh service/controller
+> Finance memakai `Finance…` (`FinancePaymentService`, `FinanceReceiptsController`); (2) EF
+> configuration ditaruh di `Areas/…/Configurations/` padahal seluruhnya ada di
+> `Repositories/Configurations/Corporate/FinanceManagement/<Submodul>/` (DoD backend #10);
+> (3) `FinReceipt`, `FinanceReceiptService`, dan `FinanceReceiptsController` berada di submodul
+> **`Collection`**, bukan `Receivable` — sehingga `FinReceiptDeduction` ikut ke `Collection`.
+> Nama **entity** (`Fin…`) dan nama tabel **tidak berubah**; yang dikoreksi hanya nama
+> service/controller dan lokasi berkas. Tabel di bawah adalah versi yang berlaku.
+
+| Class | Status | Lokasi file |
+|---|---|---|
+| `FinPurchaseOrder`, `FinPurchaseOrderItem` | Baru | `Areas/Corporate/FinanceManagement/Purchasing/Models/` |
+| `FinGoodsReceipt`, `FinGoodsReceiptItem` | Baru | `Areas/Corporate/FinanceManagement/Purchasing/Models/` |
+| `FinInvoiceExchange` | Baru | `Areas/Corporate/FinanceManagement/Purchasing/Models/` |
+| `FinPurchasingInvoice`, `FinPurchasingInvoiceItem` | Baru | `Areas/Corporate/FinanceManagement/Purchasing/Models/` |
+| `FinSupplierReturn`, `FinSupplierReturnItem` | Baru | `Areas/Corporate/FinanceManagement/Purchasing/Models/` |
+| `FinSupplierReturnDeposit`, `FinSupplierReturnDepositUsage` | Baru | `Areas/Corporate/FinanceManagement/Purchasing/Models/` |
+| Sebelas configuration entity Purchasing | Baru | `Repositories/Configurations/Corporate/FinanceManagement/Purchasing/Fin…Configuration.cs` |
+| `FinSupplierPayable` | Diperbarui — kolom `SourcePurchasingInvoiceId` (nullable, FK `SetNull`) | `Areas/Corporate/FinanceManagement/Payable/Models/FinSupplierPayable.cs`; configuration `Repositories/Configurations/Corporate/FinanceManagement/Payable/FinSupplierPayableConfiguration.cs` |
+| `FinanceApprovalTierResolver` (+ `ApprovalTiers` dipindah ke sini) | Baru — ekstraksi `FinancePaymentService.ResolveApprovalTier`, batas `>= 50.000.000 → TIER_2` (lihat koreksi `FIN-DES-039`) | `Areas/Corporate/FinanceManagement/Payable/Services/FinanceApprovalTierResolver.cs` |
+| `FinancePaymentService` | Diperbarui — memanggil resolver; komentar "provisional" dicabut | `Areas/Corporate/FinanceManagement/Payable/Services/FinancePaymentService.cs` |
+| `FinancePurchaseOrderService` | Baru — buat/ubah/ajukan/setujui/tolak/batal PO | `Areas/Corporate/FinanceManagement/Purchasing/Services/` |
+| `FinanceGoodsReceiptService` | Baru — catat/batalkan penerimaan barang, perbarui status PO | `Areas/Corporate/FinanceManagement/Purchasing/Services/` |
+| `FinanceInvoiceExchangeService` | Baru — catat/batalkan Tukar Faktur, hitung `EstimatedDueDate` | `Areas/Corporate/FinanceManagement/Purchasing/Services/` |
+| `FinancePurchasingInvoiceService` | Baru — siklus Purchasing Invoice; saat `APPROVED` membuat `FinSupplierPayable` dan menulis outbox `PPN-MASUKAN-PEMBELIAN` dalam satu transaksi | `Areas/Corporate/FinanceManagement/Purchasing/Services/` |
+| `FinanceSupplierReturnService` | Baru — retur, terbitkan dan pakai Deposit Retur | `Areas/Corporate/FinanceManagement/Purchasing/Services/` |
+| `FinancePurchasingReportService` | Baru — lima laporan read-only | `Areas/Corporate/FinanceManagement/Purchasing/Services/` |
+| `FinancePurchaseOrdersController`, `FinanceGoodsReceiptsController`, `FinanceInvoiceExchangesController`, `FinancePurchasingInvoicesController`, `FinanceSupplierReturnsController`, `FinancePurchasingReportsController` | Baru | `Areas/Corporate/FinanceManagement/Purchasing/Controllers/` |
+| `FinReceivableInvoiceBatch`, `FinReceivableInvoiceBatchItem` | Baru | `Areas/Corporate/FinanceManagement/Receivable/Models/`; configuration di `Repositories/Configurations/Corporate/FinanceManagement/Receivable/` |
+| `FinanceReceivableInvoiceBatchService` | Baru — kelompokkan `FinReceivable`, terbitkan batch, rujuk dokumen per-invoice Billing. **MUST NOT** menulis `FinReceivable.OutstandingAmount` (`FinanceReceivableService` tetap satu-satunya penulis, DoD backend #13) | `Areas/Corporate/FinanceManagement/Receivable/Services/` |
+| `FinanceReceivableInvoiceBatchesController` | Baru | `Areas/Corporate/FinanceManagement/Receivable/Controllers/` |
+| `FinReceiptDeduction` | Baru | `Areas/Corporate/FinanceManagement/Collection/Models/`; configuration di `Repositories/Configurations/Corporate/FinanceManagement/Collection/` |
+| `FinanceReceiptService` | Diperbarui — catat potongan; efeknya ke piutang **disalurkan lewat** `FinanceReceivableService.ApplyAllocationAsync` yang sudah ada, bukan ditulis langsung | `Areas/Corporate/FinanceManagement/Collection/Services/FinanceReceiptService.cs` |
+| `FinanceReceiptsController` | Diperbarui — `GET`/`POST /receipts/{id}/deductions` | `Areas/Corporate/FinanceManagement/Collection/Controllers/FinanceReceiptsController.cs` |
+| `BillingManagementServiceCollectionExtensions` | Diperbarui — registrasi DI tujuh service baru + resolver | `Areas/HealthServices/BillingManagement/Billing/BillingManagementServiceCollectionExtensions.cs` |
+| `ApplicationDbContext` | Diperbarui — empat belas `DbSet` baru | `Repositories/ApplicationDbContext.cs` |
+| `BillingCompanyGuarantorInvoiceDocumentService` | Sudah ada — dipanggil, tidak diubah | `Areas/HealthServices/BillingManagement/Billing/Services/BillingCompanyGuarantorInvoiceDocumentService.cs` |
+| `MstSupplier` | Sudah ada — tidak diubah | `Areas/Administrator/MasterData/Models/MstSupplier.cs` |
+
+**Utang teknis yang diikuti, bukan ditiru diam-diam.** Seluruh service Finance hari ini
+didaftarkan DI di `BillingManagementServiceCollectionExtensions.cs` (milik Billing) — preseden
+`BE-FIN-017`/`019`/`020`. Revisi ini **mengikuti** preseden itu agar tidak membuat dua titik
+registrasi, dan **mencatatnya** sebagai utang teknis. Memindahkannya ke berkas registrasi milik
+Finance adalah pekerjaan terpisah yang tidak dicakup revisi ini.
+
+## C.7 Arsitektur folder
+
+```text
+Areas/Corporate/FinanceManagement/
+├── Purchasing/                                   (Baru — submodul ketujuh, WAJIB didaftarkan
+│   │                                              di registry sebelum model pertama)
+│   ├── Models/          11 entity                 (Baru)
+│   ├── Dtos/            per entity: Create/Update/Response/PagedQuery + Approve/Reject/Cancel
+│   ├── Services/        FinancePurchaseOrderService, FinanceGoodsReceiptService,
+│   │                    FinanceInvoiceExchangeService, FinancePurchasingInvoiceService,
+│   │                    FinanceSupplierReturnService, FinancePurchasingReportService   (Baru)
+│   └── Controllers/     enam Finance…Controller   (Baru)
+├── Payable/
+│   ├── Models/FinSupplierPayable.cs                    (Diperbarui)
+│   └── Services/FinanceApprovalTierResolver.cs         (Baru)
+│              FinancePaymentService.cs                 (Diperbarui)
+├── Receivable/
+│   ├── Models/FinReceivableInvoiceBatch.cs, …Item.cs   (Baru)
+│   ├── Dtos/                                           (Baru)
+│   ├── Services/FinanceReceivableInvoiceBatchService.cs        (Baru)
+│   └── Controllers/FinanceReceivableInvoiceBatchesController.cs (Baru)
+└── Collection/
+    ├── Models/FinReceiptDeduction.cs                   (Baru)
+    ├── Services/FinanceReceiptService.cs               (Diperbarui)
+    └── Controllers/FinanceReceiptsController.cs        (Diperbarui)
+
+Repositories/Configurations/Corporate/FinanceManagement/
+├── Purchasing/       11 configuration              (Baru)
+├── Payable/FinSupplierPayableConfiguration.cs      (Diperbarui)
+├── Receivable/       2 configuration               (Baru)
+└── Collection/FinReceiptDeductionConfiguration.cs  (Baru)
+```
+
+**Satu prasyarat struktur baru:** folder `Purchasing/` belum terdaftar di
+`docs/engineering/MODULE_OWNERSHIP_PREFIX_REGISTRY.md`. Enam submodul yang ada didaftarkan
+eksplisit lewat `BE-FIN-001` (`FIN-DES-002`); `Purchasing` MUST mengikuti prosedur yang sama —
+baris `Corporate / Finance | FinanceManagement / Purchasing / Pembelian | … | Fin | ACTIVE` —
+sebelum file model pertama ditulis (`QBE-MOD-003`). Prefix tetap `Fin`, tidak ada prefix baru.
+
+## C.8 Status model dan dampak migration
+
+| Entity | Status | Kolom yang berubah |
+|---|---|---|
+| `FinPurchaseOrder` | Baru | Seluruh kolom baru (lihat C.3) |
+| `FinPurchaseOrderItem` | Baru | Seluruh kolom baru |
+| `FinGoodsReceipt` | Baru | Seluruh kolom baru |
+| `FinGoodsReceiptItem` | Baru | Seluruh kolom baru |
+| `FinInvoiceExchange` | Baru | Seluruh kolom baru |
+| `FinPurchasingInvoice` | Baru | Seluruh kolom baru |
+| `FinPurchasingInvoiceItem` | Baru | Seluruh kolom baru |
+| `FinSupplierReturn` | Baru | Seluruh kolom baru |
+| `FinSupplierReturnItem` | Baru | Seluruh kolom baru |
+| `FinSupplierReturnDeposit` | Baru | Seluruh kolom baru |
+| `FinSupplierReturnDepositUsage` | Baru | Seluruh kolom baru |
+| `FinReceivableInvoiceBatch` | Baru | Seluruh kolom baru |
+| `FinReceivableInvoiceBatchItem` | Baru | Seluruh kolom baru |
+| `FinReceiptDeduction` | Baru | Seluruh kolom baru |
+| `FinSupplierPayable` | Diperbarui | Tambah `SourcePurchasingInvoiceId Guid?` (FK ke `FinPurchasingInvoice`, `ON DELETE SET NULL`, nullable — baris lama tetap `NULL`) |
+| `FinPayment` | Diperbarui (non-skema) | Tidak ada kolom baru — hanya komentar kode yang diperbarui (C.2, `FIN-DES-039`) |
+
+Status model tiap entity transaksional baru mengikuti pola `Draft/PendingApproval/Approved/
+Rejected/Cancelled` yang sudah dipakai `FinPayment` (kecuali `FinGoodsReceipt`/`FinInvoiceExchange`
+yang lebih sederhana: `Received/Cancelled` dan `Received/LinkedToInvoice/Cancelled`), dijabarkan
+penuh di `contracts/state-transition-matrix.md`.
+
+## C.9 Rencana migration
+
+1. Migration tunggal `AddPurchasingApRumpun` mencakup 11 tabel baru rumpun Purchasing/AP —
+   seluruhnya `CREATE TABLE`, tidak mengganggu tabel yang sudah ada, dapat dijalankan tanpa
+   mematikan layanan.
+2. Migration kedua `AddArInvoiceBatchAndReceiptDeduction` mencakup `FinReceivableInvoiceBatch`,
+   `FinReceivableInvoiceBatchItem`, `FinReceiptDeduction` — juga murni `CREATE TABLE`.
+3. Migration ketiga `AddSourcePurchasingInvoiceIdToSupplierPayable` menambah satu kolom nullable
+   ke `FinSupplierPayable` — aman dijalankan tanpa downtime, tidak butuh pengisian data lama
+   (baris lama valid dengan `NULL`).
+4. Ketiganya dipisah (bukan satu migration raksasa) supaya urutan dependency FK jelas dan mudah
+   di-rollback satu-satu bila salah satu gagal — migration 2 dan 3 tidak bergantung pada isi data
+   migration 1, hanya pada skema-nya.
+5. Tidak ada langkah pengisian data lama (backfill) yang dibutuhkan — seluruh tabel baru kosong
+   di awal, dan kolom baru pada `FinSupplierPayable` valid `NULL` untuk baris lama.
+6. Langkah mundur bila gagal: `DROP TABLE` sesuai urutan FK terbalik untuk migration 1 dan 2;
+   `DROP COLUMN SourcePurchasingInvoiceId` untuk migration 3. Seperti seluruh dokumen ini, bagian
+   ini **hanya rencana** — wewenang membuat dan menjalankan migration tetap terpisah dan
+   membutuhkan otorisasi eksplisit sendiri.
+
+## C.10 Rencana data master awal
+
+`MstSupplier` sudah punya data (tidak kosong) — tidak ada kebutuhan seed baru untuk rumpun ini.
+Katalog `ApprovalTiers.Tier1`/`Tier2` sudah berupa konstanta kode (bukan tabel), dipakai ulang
+apa adanya. Tidak ada tabel master baru yang lahir dari amendment ini — seluruh entity baru
+bersifat transaksional (PO, Tukar Faktur, Purchasing Invoice, dst.), bukan master data, sehingga
+bagian ini tidak berlaku secara substansial (mengikuti aturan skill: file/bagian tetap ditulis
+dengan satu baris alasan, bukan dikosongkan).
+
+## C.11 Yang sengaja tidak dibuat pada amendment ini
+
+| Yang ditolak | Alasan |
+|---|---|
+| `MstProduct`/`MstItem` sebagai katalog produk pembelian | Tidak ada permintaan eksplisit untuk katalog produk terstruktur; `Keuangan.md` menyebut "Kategori Produk, Nama Produk, Satuan" sebagai field deskriptif, bukan referensi ke master. `FinPurchaseOrderItem`/`FinPurchasingInvoiceItem` memakai kolom teks bebas. Bila ke depan dibutuhkan katalog terstruktur, ini keputusan terpisah yang butuh scope baru |
+| `FinGoodsReceipt` tanpa `PurchaseOrderId` (nullable) | Tidak ada keputusan eksplisit yang meminta penerimaan barang tanpa PO mendahului; berbeda dari Tukar Faktur yang eksplisit diizinkan tanpa PO (`FIN-DEC-051`). Menjaga `PurchaseOrderId` wajib mencegah kapabilitas yang tidak diminta ikut terbangun diam-diam |
+| Menghapus jalur input manual `FinSupplierPayable` | Tidak ada keputusan yang meminta deprekasi; beberapa supplier mungkin belum onboarding ke alur PO. Menghapusnya adalah keputusan produk terpisah di luar scope amendment ini |
+| Kode kejadian akuntansi baru untuk pengakuan utang supplier (nilai pokok, bukan PPN) | Belum diusulkan ke Accounting — `evidence/06` hanya mengusulkan kode PPN Masukan. Mengusulkan keduanya sekaligus tanpa keputusan terpisah berisiko keliru menggabungkan dua kejadian yang lawan jurnalnya berbeda (lihat `evidence/06` bagian 2) |
+| Tabel Accounting/COA untuk PPN Masukan di sisi Finance | Akun dan waktu pengakuan adalah wewenang Accounting (`evidence/06` bagian 3), bukan sesuatu yang diusulkan/dibangun Finance |
+| Satu tabel gabungan untuk `FinPaymentDeduction` dan `FinReceiptDeduction` | Arah aliran dan invariant-nya berlawanan (`FIN-DEC-049`, `FIN-DEC-055`) — menggabungkannya memaksa satu tabel menampung dua semantik berbeda, meniru kesalahan yang sudah pernah dikoreksi pada `FIN-DEC-032` (kode gabungan uang muka) |
+| `FinReceivableInvoiceBatch` menggantikan `FinReceivable`/`BilInvoice` sebagai unit internal | `FIN-DEC-048` eksplisit menyatakan batch adalah lapisan baru DI ATAS unit yang sudah ada, bukan pengganti — mengubah `FinReceivable` jadi unit sekunder akan memaksa migrasi ulang seluruh rumpun AR yang sudah berjalan (`FIN-DES-010`..`013`) tanpa keputusan yang memintanya |
+| Endpoint kirim otomatis kejadian `PPN-MASUKAN-PEMBELIAN` tanpa feature gate | `FIN-DEC-046` menetapkan ratifikasi Accounting sebagai syarat keras sebelum rumpun ini masuk `/plan-module-delivery` — mengaktifkan pengiriman tanpa gate melanggar keputusan itu langsung |
+
+
+# AMENDMENT REVISI 5 — Sumber Dana Deposit Retur dan Jalur Potongan AR
+
+## D.1 Mengapa amendment ini ada
+
+Amendment ini menggambar skema yang dituntut empat keputusan yang sudah `approved`:
+`FIN-DEC-057` (Deposit Retur dipakai di dalam `FinPayment`), `FIN-DEC-058` (kode kejadian
+potongan AR), `FIN-DEC-061` (kode kejadian retur dan pemakaian deposit), dan `FIN-DEC-062`
+(kode pembalikan potongan AR). Keputusan bisnisnya sudah turun; yang belum ada adalah
+bentuk tabel dan urutan transaksi yang mewujudkannya.
+
+Pembacaan source pada `96bf9746` menemukan **dua kekurangan** pada rancangan REVISI 4 yang
+ikut diperbaiki di sini, karena keduanya membuat `BE-FIN-036` dan `BE-FIN-040` tidak dapat
+dibangun apa adanya:
+
+| # | Kekurangan pada REVISI 4 | Akibat bila dibangun apa adanya |
+|---|---|---|
+| 1 | `FinSupplierReturnDepositUsage.PurchasingInvoiceId` menunjuk invoice, bukan pembayaran | Pemakaian deposit tidak punya tempat di siklus `FinPayment`, padahal `FIN-DEC-057` menaruhnya di sana. Invoice `APPROVED` juga sudah beku (`FIN-STATE-1.2` B.4) |
+| 2 | `FinReceiptDeduction` hanya punya `ReceiptId` | Satu penerimaan dapat dialokasikan ke banyak piutang — tidak ada cara tahu piutang **mana** yang dikurangi PPh 23-nya |
+
+Keduanya menyentuh tabel yang **belum dibangun** (`BE-FIN-030`, `BE-FIN-038` belum
+dikerjakan), sehingga koreksinya tidak menuntut pembetulan data. Satu-satunya tabel **yang
+sudah berjalan** yang berubah adalah `FinPayment` (satu kolom baru, satu check constraint
+diganti) — lihat D.6.
+
+## D.2 Keputusan arsitektur baru
+
+### FIN-DES-045 — Deposit Retur sebagai baris sumber dana di tingkat pembayaran
+
+`FIN-DEC-057` menyebut deposit dipakai sebagai "baris alokasi non-tunai di dalam `FinPayment`".
+Desain ini mewujudkannya sebagai **baris sumber dana di tingkat pembayaran**, bukan penanda
+pada tiap `FinPaymentAllocation`. Alasannya satu dan bersifat teknis, bukan keputusan bisnis
+baru:
+
+> `FIN-VAL-057` melarang satu utang muncul dua kali dalam satu pembayaran. Bila sumber dana
+> ditandai per baris alokasi, satu faktur yang dilunasi "Rp 3.000.000 transfer + Rp 2.000.000
+> deposit" butuh dua baris alokasi ke utang yang sama — langsung ditolak aturan itu.
+
+Pola baris sumber dana di tingkat pembayaran **sudah ada** dan sudah berjalan:
+`FinPaymentDeduction` (`FIN-DES-026`). Deposit mengikuti bentuk yang sama.
+
+| Hal | Ketentuan |
+|---|---|
+| Alokasi ke utang | **Tidak berubah.** `FinPaymentAllocation` tetap melunasi utang sebesar nilai penuhnya; `OutstandingAmount` berkurang lewat `FinancePaymentService.MarkPaidAsync` yang sudah ada — nol penulis baru |
+| Sumber dana deposit | `FinSupplierReturnDepositUsage` kini menunjuk `PaymentId` (bukan lagi `PurchasingInvoiceId`) |
+| Uang yang benar-benar keluar | `NetTransferAmount = TotalAmount − DeductionAmount + AdditionAmount − DepositAppliedAmount` |
+| Kolom baru pada `FinPayment` | `DepositAppliedAmount` — jumlah baris pemakaian deposit yang belum dilepas |
+| Siapa boleh memakai deposit | Hanya `PaymentType = SUPPLIER`, dan hanya deposit milik supplier yang sama dengan `PayeeReferenceId` pembayaran |
+| Kapan boleh ditambah/dilepas | Hanya selama pembayaran `DRAFT` — sama persis dengan aturan potongan (`FIN-STATE-0.2` A.2) |
+
+**Contoh berangka.** Utang ke PT Contoh Farma dua faktur: Rp 6.000.000 dan Rp 4.000.000. Ada
+Deposit Retur Rp 2.500.000 dari retur bulan lalu.
+
+| Komponen | Nilai |
+|---|---|
+| `TotalAmount` (dua alokasi) | Rp 10.000.000 |
+| `DepositAppliedAmount` | Rp 2.500.000 |
+| `NetTransferAmount` | Rp 7.500.000 — yang benar-benar ditransfer |
+| Sisa kedua utang sesudah `PAID` | Rp 0 dan Rp 0 |
+| Sisa deposit | Rp 0 → deposit `EXHAUSTED` |
+
+### FIN-DES-046 — Reservasi deposit dan pelepasannya
+
+Deposit **dicadangkan** saat baris pemakaian ditambahkan ke pembayaran `DRAFT`, bukan saat
+pembayaran `PAID`. Alasan: bila baru dikurangi saat `PAID`, dua pembayaran `DRAFT` dapat
+sama-sama memakai deposit yang sama dan baru bertabrakan di ujung — setelah keduanya disetujui.
+
+| Kejadian pada pembayaran | Status baris pemakaian | `AvailableAmount` deposit |
+|---|---|---|
+| Baris ditambahkan (pembayaran `DRAFT`) | `RESERVED` | Berkurang seketika |
+| Baris dilepas oleh petugas (masih `DRAFT`) | `RELEASED` | Kembali |
+| Pembayaran `REJECTED` atau `CANCELLED` | Seluruh baris `RESERVED` → `RELEASED` | Kembali |
+| Pembayaran `PAID` | Seluruh baris `RESERVED` → `APPLIED` | Tidak bergerak lagi (sudah dikurangi saat reservasi) |
+
+Baris **tidak pernah dihapus** — pelepasan adalah perubahan status, sehingga jejak "deposit ini
+pernah dicadangkan lalu dilepas" tetap terbaca. Penulisan `AvailableAmount` hanya oleh
+`FinanceSupplierReturnService`; `FinancePaymentService` memanggilnya, tidak menulis kolom deposit
+sendiri. Seluruhnya `Serializable` dengan kunci `FIN_RETURN_DEPOSIT_{id}` dan `RowVersion`
+deposit.
+
+### FIN-DES-047 — Kejadian Accounting untuk retur dan pemakaian deposit (`FIN-DEC-061`)
+
+| Kapan | Kode | `SourceTransactionId` | `Amount` |
+|---|---|---|---|
+| Retur `CONFIRMED` | `RETUR-PEMBELIAN` (ke-28) | `ReturnNumber` | `FinSupplierReturn.TotalAmount` |
+| Pembayaran `PAID` dengan `DepositAppliedAmount > 0` | `PEMAKAIAN-DEPOSIT-RETUR` (ke-29) | `PaymentNumber` | `DepositAppliedAmount` |
+| Pembayaran `PAID` (yang sudah ada) | `AP_PAYMENT` | `PaymentNumber` | **`TotalAmount − DepositAppliedAmount`** — sebelumnya `TotalAmount` |
+
+**Satu perubahan pada kode yang sudah berjalan:** `FinancePaymentService.MarkPaidAsync`
+(baris 553-563) menulis `Amount = payment.TotalAmount`. Sesudah amendment ini nilainya
+dikurangi `DepositAppliedAmount`. Untuk seluruh pembayaran yang **tidak** memakai deposit,
+`DepositAppliedAmount = 0` sehingga nilainya **identik** dengan hari ini — nol perubahan
+perilaku bagi pembayaran lama.
+
+**Pembayaran yang seluruhnya dilunasi deposit** (`TotalAmount − DepositAppliedAmount = 0`) **tidak**
+menulis `AP_PAYMENT` sama sekali — `FIN-VAL-079` menolak kejadian bernilai nol, dan memang tidak
+ada uang yang bergerak. Hanya `PEMAKAIAN-DEPOSIT-RETUR` yang terbit.
+
+**Keterbatasan yang sudah ada dan tidak diubah amendment ini:** `AP_PAYMENT` memakai
+`Components = TOTAL` (`FIN-DEC-038`), sehingga potongan (`DeductionAmount`) tetap tidak terpisah
+di kejadian. Amendment ini hanya memisahkan porsi deposit, karena porsi itulah yang tanpa
+pemisahan membukukan kas keluar untuk uang yang tidak pernah bergerak.
+
+### FIN-DES-048 — Potongan AR melekat pada baris alokasi, dicatat bersama alokasinya
+
+Menggantikan bentuk `FinReceiptDeduction` pada `FIN-DES-042`/`data-dictionary.md` C.15.
+
+| Hal | Ketentuan |
+|---|---|
+| Melekat pada | `FinReceiptAllocation` (kolom baru `ReceiptAllocationId`) — alokasi itulah yang menyebut piutang mana (`ReceivableId`) |
+| Syarat alokasi | Hanya alokasi `TargetType = RECEIVABLE` yang bukan baris pembalik. Alokasi `INVOICE_DIRECT` tidak punya piutang untuk dikurangi |
+| Kapan dicatat | **Dalam permintaan yang sama** dengan alokasinya: `AllocateReceiptRequest` diperluas, tiap baris alokasi boleh membawa daftar potongan. Endpoint `POST /receipts/{id}/deductions` terpisah **dicabut** — setelah uang penerimaan habis teralokasi, `FIN-VAL-120` akan menolaknya, sehingga petugas tidak pernah bisa memakainya pada kasus PPh 23 biasa |
+| Efek ke piutang | `FinanceReceiptService` memanggil `FinanceReceivableService.ApplyAllocationAsync(receivableId, deduction.Amount)` yang **sudah ada** — nilai masuk `AllocatedAmount`, sesuai `FIN-DES-042`/`FIN-DEC-055`. Nol penulis `OutstandingAmount` baru |
+| Batas nilai | Uang alokasi + seluruh potongan pada baris itu ≤ sisa piutang (perluasan `FIN-VAL-033`). Potongan **tidak** memakai uang penerimaan, sehingga `UnallocatedAmount` tidak bergerak karenanya |
+| Nomor | Kolom baru `DeductionNumber` (unik) — dipakai sebagai `SourceTransactionId` kejadian. Tanpa nomor sendiri, dua potongan pada satu penerimaan (PPh 23 **dan** biaya bank) akan berbagi kunci kejadian dan yang kedua terbaca sebagai koreksi yang pertama |
+
+**Contoh berangka.** Piutang PT Asuransi Contoh Rp 10.000.000. Transfer masuk Rp 9.745.000.
+
+| Baris dalam satu permintaan alokasi | Nilai | Efek |
+|---|---|---|
+| Alokasi uang | Rp 9.745.000 | `UnallocatedAmount` penerimaan → Rp 0 |
+| Potongan `PPH23` | Rp 230.000 | `AllocatedAmount` piutang +230.000 |
+| Potongan `BANK_ADMIN_FEE` | Rp 25.000 | `AllocatedAmount` piutang +25.000 |
+| Sisa piutang | **Rp 0** — `SETTLED` | |
+
+Kejadian yang terbit: satu kejadian penerimaan untuk Rp 9.745.000 (jalur yang sudah ada), dan
+**dua** `POTONGAN-PIUTANG-NON-TUNAI` — Rp 230.000 dan Rp 25.000, masing-masing dengan
+`DeductionNumber` sendiri.
+
+### FIN-DES-049 — Pembalikan potongan AR (`FIN-DEC-062`)
+
+Saat sebuah alokasi dibalik — manual oleh petugas, atau otomatis karena tender Billing
+dibatalkan (`FIN-DEC-021`) — **seluruh potongan pada alokasi itu ikut dibalik dalam transaksi
+yang sama**:
+
+1. Untuk tiap `FinReceiptDeduction` pada alokasi itu, dibuat baris pembalik (`IsReversal = true`,
+   `ReversalOfDeductionId` menunjuk baris asli, `DeductionNumber` baru).
+2. `FinanceReceivableService.ReverseAllocationAsync(receivableId, deduction.Amount)` yang
+   **sudah ada** dipanggil untuk tiap baris — piutang terbuka kembali.
+3. Satu kejadian `PEMBALIKAN-POTONGAN-PIUTANG-NON-TUNAI` per baris pembalik, `Amount` positif.
+
+Potongan **tidak dapat dibalik sendirian** tanpa membalik alokasinya. Potongan yang keliru
+dibetulkan dengan membalik alokasinya lalu mencatat ulang — sama seperti `FIN-STATE-1.2` B.8.
+
+### FIN-DES-050 — Kejadian potongan AR (`FIN-DEC-058`)
+
+| Kapan | Kode | `SourceTransactionId` | `Amount` |
+|---|---|---|---|
+| Potongan dicatat | `POTONGAN-PIUTANG-NON-TUNAI` (ke-26) | `DeductionNumber` | `FinReceiptDeduction.Amount` |
+| Potongan dibalik | `PEMBALIKAN-POTONGAN-PIUTANG-NON-TUNAI` (ke-27) | `DeductionNumber` baris pembalik | `Amount` baris asli, positif |
+
+Kode **tidak pernah** `AR_PAYMENT`, `PENERIMAAN-PIUTANG`, maupun `PENYESUAIAN-PIUTANG`.
+
+## D.3 Tabel kepemilikan data — perubahan
+
+Tidak ada kelompok data baru dan tidak ada pemilik yang berubah. Yang berubah hanya bentuk dua
+tabel Finance yang belum dibangun, dan satu kolom pada tabel Finance yang sudah berjalan.
+
+| Kelompok data | Pemilik | Perubahan |
+|---|---|---|
+| Pembayaran keluar | Finance (`FinPayment`) | Tambah `DepositAppliedAmount`; ganti `CK_FinPayment_NetTransfer` |
+| Pemakaian Deposit Retur | Finance (`FinSupplierReturnDepositUsage`) | `PurchasingInvoiceId` → `PaymentId`; tambah `Status`, `ReleasedAt`, `RowVersion` |
+| Potongan AR | Finance (`FinReceiptDeduction`) | Tambah `ReceiptAllocationId`, `DeductionNumber`, `IsReversal`, `ReversalOfDeductionId` |
+
+## D.4 Class diagram — sesudah amendment
+
+```mermaid
+classDiagram
+    class FinPayment {
+        +Guid Id
+        +decimal TotalAmount
+        +decimal DeductionAmount
+        +decimal AdditionAmount
+        +decimal DepositAppliedAmount  «Baru»
+        +decimal NetTransferAmount
+        +string Status
+    }
+    class FinPaymentAllocation {
+        +Guid PaymentId
+        +Guid? SupplierPayableId
+        +decimal Amount
+    }
+    class FinPaymentDeduction {
+        +Guid PaymentId
+        +decimal Amount
+    }
+    class FinSupplierReturnDepositUsage {
+        +Guid Id
+        +Guid SupplierReturnDepositId
+        +Guid PaymentId  «Diganti dari PurchasingInvoiceId»
+        +decimal UsedAmount
+        +string Status  «Baru: RESERVED/APPLIED/RELEASED»
+        +DateTimeOffset UsedAt
+        +DateTimeOffset? ReleasedAt  «Baru»
+        +Guid RowVersion  «Baru»
+    }
+    class FinSupplierReturnDeposit {
+        +Guid SupplierId
+        +decimal AvailableAmount
+        +string Status
+    }
+    FinPayment "1" --> "*" FinPaymentAllocation
+    FinPayment "1" --> "*" FinPaymentDeduction
+    FinPayment "1" --> "*" FinSupplierReturnDepositUsage : sumber dana
+    FinSupplierReturnDeposit "1" --> "*" FinSupplierReturnDepositUsage
+```
+
+```mermaid
+classDiagram
+    class FinReceipt {
+        +Guid Id
+        +string ReceiptNumber
+        +decimal UnallocatedAmount
+    }
+    class FinReceiptAllocation {
+        +Guid Id
+        +Guid ReceiptId
+        +Guid? ReceivableId
+        +string TargetType
+        +decimal Amount
+        +bool IsReversal
+    }
+    class FinReceiptDeduction {
+        +Guid Id
+        +string DeductionNumber  «Baru»
+        +Guid ReceiptId
+        +Guid ReceiptAllocationId  «Baru»
+        +string DeductionType
+        +decimal Amount
+        +bool IsReversal  «Baru»
+        +Guid? ReversalOfDeductionId  «Baru»
+    }
+    class FinanceReceivableService {
+        +ApplyAllocationAsync(receivableId, amount)
+        +ReverseAllocationAsync(receivableId, amount)
+    }
+    FinReceipt "1" --> "*" FinReceiptAllocation
+    FinReceiptAllocation "1" --> "*" FinReceiptDeduction
+    FinReceiptDeduction ..> FinanceReceivableService : satu-satunya jalur ke OutstandingAmount
+```
+
+## D.5 Penjelasan class — perubahan
+
+| Class | Status | Perubahan | Lokasi file |
+|---|---|---|---|
+| `FinPayment` | Diperbarui | Tambah `DepositAppliedAmount` | `Areas/Corporate/FinanceManagement/Payable/Models/FinPayment.cs`; configuration `Repositories/Configurations/Corporate/FinanceManagement/Payable/FinPaymentConfiguration.cs` |
+| `FinSupplierReturnDepositUsage` | Baru (bentuk dikoreksi dari REVISI 4) | Lihat D.3 | `Areas/Corporate/FinanceManagement/Purchasing/Models/`; configuration `Repositories/Configurations/Corporate/FinanceManagement/Purchasing/` |
+| `FinSupplierReturnDepositUsageStatuses` | Baru | `RESERVED`, `APPLIED`, `RELEASED` — `static class`, bukan enum `int` | Idem, satu berkas dengan model |
+| `FinReceiptDeduction` | Baru (bentuk dikoreksi dari REVISI 4) | Lihat D.3 | `Areas/Corporate/FinanceManagement/Collection/Models/`; configuration `Repositories/Configurations/Corporate/FinanceManagement/Collection/` |
+| `FinancePaymentService` | Diperbarui | (a) `AddReturnDepositAsync`/`ReleaseReturnDepositAsync` — hanya `DRAFT`, membuka transaksi `Serializable`; (b) hitung `NetTransferAmount` dengan `DepositAppliedAmount`; (c) `SubmitAsync`: `FIN-VAL-091` hanya berlaku bila `DepositAppliedAmount = 0`; (d) `RejectAsync`/`CancelAsync`: lepas seluruh baris `RESERVED`; (e) `MarkPaidAsync`: baris → `APPLIED`, `AP_PAYMENT` bernilai `TotalAmount − DepositAppliedAmount` (dilewati bila nol), tulis `PEMAKAIAN-DEPOSIT-RETUR`; nomor bukti transfer wajib hanya bila `NetTransferAmount > 0` | `Areas/Corporate/FinanceManagement/Payable/Services/FinancePaymentService.cs` |
+| `FinanceSupplierReturnService` | Baru (REVISI 4) + tanggung jawab tambahan | Satu-satunya penulis `AvailableAmount`: `ReserveAsync`, `ReleaseAsync`, `MarkAppliedAsync` — dipanggil `FinancePaymentService`, **ikut** transaksinya (tidak membuka transaksi sendiri); tulis `RETUR-PEMBELIAN` saat retur `CONFIRMED` | `Areas/Corporate/FinanceManagement/Purchasing/Services/FinanceSupplierReturnService.cs` |
+| `FinancePaymentsController` | Diperbarui | `GET`/`POST /payments/{id}/return-deposits`, `DELETE /payments/{id}/return-deposits/{usageId}` | `Areas/Corporate/FinanceManagement/Payable/Controllers/FinancePaymentsController.cs` |
+| `FinanceSupplierReturnsController` | Baru (REVISI 4), cakupan menyempit | Endpoint `POST /deposits/{id}/apply` **dicabut** | `Areas/Corporate/FinanceManagement/Purchasing/Controllers/` |
+| `FinanceReceiptService` | Diperbarui | `AllocateAsync` menerima potongan per baris alokasi; `ReverseAllocationAsync` ikut membalik potongannya; tulis `POTONGAN-…`/`PEMBALIKAN-POTONGAN-…` | `Areas/Corporate/FinanceManagement/Collection/Services/FinanceReceiptService.cs` |
+| `FinanceReceiptsController` | Diperbarui | `GET /receipts/{id}/deductions` saja (baca); `POST` dicabut | `Areas/Corporate/FinanceManagement/Collection/Controllers/FinanceReceiptsController.cs` |
+| `FinanceReceivableService` | **Sudah ada — tidak diubah** | `ApplyAllocationAsync`/`ReverseAllocationAsync` dipakai apa adanya | `Areas/Corporate/FinanceManagement/Receivable/Services/FinanceReceivableService.cs` |
+| `FinAccountingEventTypeCodes` | Diperbarui | Empat konstanta: `PotonganPiutangNonTunai`, `PembalikanPotonganPiutangNonTunai`, `ReturPembelian`, `PemakaianDepositRetur` (bersama `PpnMasukanPembelian` dari REVISI 4) | `Areas/Corporate/FinanceManagement/AccountingIntegration/Models/FinAccountingEventOutbox.cs` |
+
+**DTO yang berubah.**
+
+| DTO | Jenis | Field |
+|---|---|---|
+| `AddPaymentReturnDepositRequest` | Create | `SupplierReturnDepositId` (Guid, wajib), `UsedAmount` (decimal > 0, wajib), `ExpectedRowVersion` (Guid, wajib — milik pembayaran) |
+| `PaymentReturnDepositResponse` | Response | `Id`, `SupplierReturnDepositId`, `ReturnNumber`, `UsedAmount`, `Status`, `UsedAt`, `ReleasedAt` |
+| `PaymentDetailResponse` | Response, diperluas | Tambah `depositAppliedAmount`, `returnDeposits[]` |
+| `AllocateReceiptRequest.Lines[]` | Create, diperluas | Tiap baris tambah `Deductions[]`: `DeductionType` (`PPH23`/`BANK_ADMIN_FEE`/`OTHER`), `Amount`, `Reason` (wajib bila `OTHER`), `ReferenceNumber` |
+| `ReceiptDeductionResponse` | Response | `Id`, `DeductionNumber`, `ReceiptAllocationId`, `ReceivableNumber`, `DeductionType`, `Amount`, `IsReversal`, `ReversalOfDeductionId` |
+
+## D.6 Status model dan dampak migration
+
+| Tabel | Status | Kolom yang berubah |
+|---|---|---|
+| `FinPayment` | **Diperbarui — tabel sudah berjalan** | Tambah `DepositAppliedAmount numeric(18,2) NOT NULL DEFAULT 0`. Ganti `CK_FinPayment_NetTransfer` menjadi `NetTransferAmount = TotalAmount − DeductionAmount + AdditionAmount − DepositAppliedAmount`. Tambah `CK_FinPayment_DepositApplied` (`DepositAppliedAmount >= 0`) |
+| `FinSupplierReturnDepositUsage` | Baru — **menggantikan** bentuk `data-dictionary.md` C.11 | `PurchasingInvoiceId` diganti `PaymentId`; tambah `Status`, `ReleasedAt`, `RowVersion` |
+| `FinReceiptDeduction` | Baru — **menggantikan** bentuk `data-dictionary.md` C.15 | Tambah `DeductionNumber`, `ReceiptAllocationId`, `IsReversal`, `ReversalOfDeductionId` |
+
+## D.7 Rencana migration
+
+| Urutan | Migration | Isi | Tanpa downtime? | Cara mundur |
+|---:|---|---|---|---|
+| 1 | `AddPurchasingApRumpun` (REVISI 4, `BE-FIN-031`) | **Dibuat dengan bentuk D.6** untuk `FinSupplierReturnDepositUsage` — belum pernah ditulis, jadi tidak ada migration koreksi | Ya | Sama seperti REVISI 4 |
+| 2 | `AddArInvoiceBatchAndReceiptDeduction` (REVISI 4, `BE-FIN-038`) | **Dibuat dengan bentuk D.6** untuk `FinReceiptDeduction` | Ya | Sama seperti REVISI 4 |
+| 3 | `AddDepositAppliedAmountToFinPayment` (**baru**) | `ADD COLUMN ... DEFAULT 0`; `DROP CONSTRAINT CK_FinPayment_NetTransfer`; `ADD CONSTRAINT` bentuk baru; `ADD CONSTRAINT CK_FinPayment_DepositApplied` | Ya — seluruh baris lama bernilai `0` sehingga constraint baru langsung terpenuhi; tidak ada backfill | `DROP CONSTRAINT` baru, `ADD CONSTRAINT` bentuk lama, `DROP COLUMN`. **Aman hanya** bila belum ada baris dengan `DepositAppliedAmount > 0` |
+
+Migration 3 bergantung pada tabel `FinPayment` yang sudah ada (`AddFinancePayment`, `BE-FIN-020` ✅)
+dan harus dijalankan **sebelum** kode `BE-FIN-036` membaca kolomnya. Seperti seluruh dokumen ini,
+bagian ini hanya rencana — wewenang membuat dan menjalankan migration tetap terpisah.
+
+## D.8 Rencana data master awal
+
+Tidak berlaku — amendment ini tidak menambah tabel master. Empat konstanta kode kejadian
+adalah konstanta kode, bukan data tabel.
+
+## D.9 Invariant yang ditambahkan
+
+| Invariant | Ditegakkan di |
+|---|---|
+| `NetTransferAmount = TotalAmount − DeductionAmount + AdditionAmount − DepositAppliedAmount` | Check constraint + service |
+| `DepositAppliedAmount` = jumlah `UsedAmount` baris pemakaian berstatus `RESERVED` atau `APPLIED` | Service (`FinancePaymentService`) |
+| Deposit hanya dipakai untuk pembayaran `SUPPLIER` kepada supplier pemilik deposit | Service |
+| `FinSupplierReturnDeposit.AvailableAmount >= 0` | Check constraint (REVISI 4) + kunci `Serializable` |
+| Satu baris potongan hanya dibalik sekali | Unique index parsial `ReversalOfDeductionId` |
+| Uang alokasi + potongan pada satu baris alokasi ≤ sisa piutang | Service + `FinanceReceivableService` (sudah menolak alokasi melebihi sisa) |
+
+## D.10 Yang sengaja tidak dibuat
+
+| Yang ditolak | Alasan |
+|---|---|
+| Kolom `FundingSource` pada `FinPaymentAllocation` | Bertabrakan dengan `FIN-VAL-057` — lihat `FIN-DES-045` |
+| Baris `FinPaymentAllocation` berjenis "deposit" | Sama seperti di atas, dan membuat `AllocatedAmount` tidak lagi berarti "utang yang dilunasi" |
+| Mengurangi `AvailableAmount` baru saat `PAID` | Dua pembayaran `DRAFT` dapat memakai deposit yang sama tanpa ketahuan sampai ujung — lihat `FIN-DES-046` |
+| `BankAccountId` nullable untuk pembayaran yang seluruhnya dari deposit | Mengubah kolom wajib pada tabel yang sudah berjalan demi kasus tepi. Rekening tetap wajib dipilih walau nilai transfernya nol; bila owner ingin menghapus kewajiban ini, itu keputusan terpisah |
+| Endpoint `POST /receipts/{id}/deductions` terpisah | Tidak dapat dipakai pada kasus PPh 23 biasa — lihat `FIN-DES-048` |
+| Membalik potongan tanpa membalik alokasinya | Potongan tanpa alokasi tidak punya arti; koreksi lewat pembalikan alokasi |
+| Memisahkan potongan pembayaran (`DeductionAmount`) dari `AP_PAYMENT` | Di luar cakupan — keterbatasan `FIN-DEC-038` yang berlaku sejak REVISI 2, tidak dibuka ulang di sini |

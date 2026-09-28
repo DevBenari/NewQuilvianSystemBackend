@@ -9,6 +9,7 @@ using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.BillingIntake.Serv
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.MasterData.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Payable.Services;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.PettyCash.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.CashManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Services;
@@ -102,6 +103,16 @@ public static class BillingManagementServiceCollectionExtensions
         services.AddScoped<FinanceSupplierPayableService>();
         // BE-FIN-020, 02-backend-architecture.md §4.22: layanan pembayaran keluar dan potongan.
         services.AddScoped<FinancePaymentService>();
+        // BE-FIN-032, FIN-VAL-102: pengecekan jenjang persetujuan (role Identity) — dipakai
+        // bersama Purchase Order/Purchasing Invoice/Pembayaran, bukan hanya Purchasing.
+        services.AddScoped<FinanceApprovalAuthorizationService>();
+        // BE-FIN-032, 02-backend-architecture.md §C.1: Purchase Order dan Tanda Terima Barang.
+        services.AddScoped<FinancePurchaseOrderService>();
+        services.AddScoped<FinanceGoodsReceiptService>();
+        // BE-FIN-033, FIN-DEC-051: Tukar Faktur (checkpoint dokumen faktur supplier).
+        services.AddScoped<FinanceInvoiceExchangeService>();
+        // BE-FIN-034, FIN-DEC-045/046/053: Purchasing Invoice — pengakuan utang + PPN Masukan.
+        services.AddScoped<FinancePurchasingInvoiceService>();
         // BE-BKC-036 / PC-DES-004: kolam anggaran dan saldo berjalan kas kecil.
         services.AddScoped<PettyCashBudgetService>();
         // BE-BKC-037 / PC-DES-001: siklus hidup voucher kas kecil penuh.

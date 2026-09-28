@@ -4,7 +4,7 @@
 blueprint_id: BIL-CASH-001
 module_name: Billing dan Kasir
 module_slug: billing-kasir
-revision: 1.6
+revision: 1.7
 revision_note_field_vs_prose: >
   KETIDAKSESUAIAN YANG SUDAH DIKETAHUI DAN KINI DITUTUP. Sebelum revisi 1.0, field `revision`
   bernilai 0.8 sementara badan dokumen ini beserta seluruh berkas kontrak sudah menyebut revisi
@@ -38,6 +38,25 @@ status_derivation_revision_1_6: >
   03-frontend-architecture.md, kelima contracts/*.md, erd/data-dictionary.md,
   testing/acceptance-test-matrix.md, dan 04-prd-to-mvp.md (EPIC BUI-01, FR-BUI-001..013)
   masing-masing mendapat amendment revisi 1.6.
+status_derivation_revision_1_7: >
+  Revisi 1.7 (Shift Kasir — Blocking Selisih Kas dan Status Tindak Lanjut) berstatus `draft`.
+  Dipicu dokumen requirement pihak ketiga "Shift Kasir (3).md" yang dibawa pemilik modul dan
+  /grill-me amendment 25 September 2026 yang membuka ulang sebagian BKC-DEC-038 (sebelumnya
+  ditandai "tidak dibuka ulang", lihat 00-interview-decisions.md bagian "Di luar scope").
+  BKC-DEC-038 TIDAK dibatalkan — dua celah PENEGAKAN yang ditemukan lewat pembacaan source
+  langsung (CashierShiftService.cs) ditutup: BKC-DEC-123 (shift CLOSED_WITH_VARIANCE yang belum
+  direview MUST memblokir pembukaan shift baru di kasir/register yang sama — gap nyata pada
+  OpenAsync yang sebelumnya tidak memeriksa status ini) dan BKC-DEC-124 (ReviewVarianceAsync
+  MUST punya dua hasil terpisah, REVIEWED vs PERLU_TINDAK_LANJUT, bukan satu hasil tunggal
+  seperti sebelumnya). Tiga open question turunannya (BKC-OQ-104..106) DITUTUP hari yang sama
+  lewat BKC-DEC-125 (wewenang+field penyelesaian follow-up: Supervisor/Kepala Kasir,
+  VerificationNote/VerifiedBy/VerifiedDate), BKC-DEC-126 (tanpa matriks hak akses terpisah,
+  pakai [AccessAction] per-endpoint yang sudah baku; pesan error standar "{Field} wajib
+  diisi."), dan BKC-DEC-127 (Bagian 10 dokumen tetap rekomendasi non-mengikat, aksi finansial
+  tetap wajib shift OPEN per RULE-002/019 yang sudah approved). BKC-DEC-123..127 seluruhnya
+  `approved` — cukup untuk memulai /design-business-module atau langsung
+  /plan-module-delivery mengingat cakupannya sempit (dua method existing diperluas, satu aksi
+  baru). Belum ada task roadmap resmi untuk revisi ini.
   NOL MIGRATION pada seluruh revisi ini. Satu-satunya titik sentuh backend: BUI-DES-001
   (perbaikan kondisi, bukan skema) dan BUI-DES-002 (satu field response aditif). Dua belas dari
   tiga belas keputusan bisnis murni frontend.

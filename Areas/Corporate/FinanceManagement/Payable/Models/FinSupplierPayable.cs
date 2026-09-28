@@ -1,4 +1,5 @@
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Models;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models;
 using QuilvianSystemBackend.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -45,6 +46,14 @@ public sealed class FinSupplierPayable : IdentityModel
     public int PaymentTermDays { get; set; }
 
     [Required, MaxLength(30)] public string Status { get; set; } = FinSupplierPayableStatuses.Outstanding;
+
+    /// <summary>
+    /// BE-FIN-030, FIN-DES-040: terisi otomatis saat baris ini dibuat dari FinPurchasingInvoice
+    /// Approved (BE-FIN-034). NULL untuk baris lama dan baris yang tetap diinput manual — jalur
+    /// input manual TIDAK dihapus, tetap fallback yang sah (FIN-DEC-045).
+    /// </summary>
+    public Guid? SourcePurchasingInvoiceId { get; set; }
+    public FinPurchasingInvoice? SourcePurchasingInvoice { get; set; }
 
     public Guid RowVersion { get; set; } = Guid.NewGuid();
 

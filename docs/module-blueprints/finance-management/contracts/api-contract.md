@@ -318,3 +318,253 @@ Layar **MUST** menampilkan `netTransferAmount` sebagai angka yang ditransfer, da
 `totalAmount` sebagai jumlah utang yang dilunasi. Menampilkan salah satunya saja akan
 menyesatkan: yang pertama tidak menjelaskan utang mana yang lunas, yang kedua tidak sama dengan
 uang yang keluar.
+
+---
+
+# AMENDMENT REVISI 4
+
+| Field | Nilai |
+|---|---|
+| Contract version | `FIN-API-1.1` — status `locked` 25 September 2026 (disetujui Yasmin bersama `FIN-DES-037`..`044`) |
+| Tanggal | 25 September 2026 |
+| Keputusan | `FIN-DEC-045`..`055`, `FIN-DES-037`..`044` |
+| Dampak kompatibilitas | **Nol konsumen rusak.** Seluruh endpoint di bawah baru; tidak ada endpoint `FIN-API-1.0` yang berubah bentuk atau dihapus |
+
+## B.1 Corporate / Finance Management / Purchasing / Purchase Order
+
+Base URL: `api/v1/corporate/finance-management/purchasing/purchase-orders`
+Contract version: `FIN-API-1.1` — status `locked` 25 September 2026
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/` | Daftar PO dengan penyaringan supplier, status, tanggal | `FinancePurchaseOrder : Read` | `PurchaseOrderQuery` | `ApiResponse<PagedResult<PurchaseOrderResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id:guid}` | Rincian PO beserta baris item dan riwayat approval | `FinancePurchaseOrder : Read` | — | `ApiResponse<PurchaseOrderDetailResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Membuat PO baru berstatus `DRAFT` | `FinancePurchaseOrder : Create` | `Idempotency-Key`, `CreatePurchaseOrderRequest` | `ApiResponse<PurchaseOrderResponse>` | **Rencana (belum tersedia)** |
+| `PUT` | `/{id:guid}` | Memperbaiki PO selama masih `DRAFT` | `FinancePurchaseOrder : Update` | `UpdatePurchaseOrderRequest` | `ApiResponse<PurchaseOrderResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id:guid}/submit` | Mengajukan PO untuk approval; `ApprovalTier` dihitung backend | `FinancePurchaseOrder : Submit` | `Idempotency-Key` | `ApiResponse<PurchaseOrderResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id:guid}/approve` | Menyetujui PO — ditolak `422` bila pengaju = penyetuju | `FinancePurchaseOrder : Approve` | `Idempotency-Key`, `ApproveRequest` | `ApiResponse<PurchaseOrderResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id:guid}/reject` | Menolak PO beserta alasan | `FinancePurchaseOrder : Approve` | `RejectRequest` | `ApiResponse<PurchaseOrderResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id:guid}/cancel` | Membatalkan PO yang belum ada GR | `FinancePurchaseOrder : Update` | `Idempotency-Key`, `CancelRequest` | `ApiResponse<PurchaseOrderResponse>` | **Rencana (belum tersedia)** |
+
+## B.2 Corporate / Finance Management / Purchasing / Goods Receipt
+
+Base URL: `api/v1/corporate/finance-management/purchasing/goods-receipts`
+Contract version: `FIN-API-1.1` — status `locked` 25 September 2026
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/` | Daftar Tanda Terima Barang, disaring per PO/supplier | `FinanceGoodsReceipt : Read` | `GoodsReceiptQuery` | `ApiResponse<PagedResult<GoodsReceiptResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id:guid}` | Rincian satu GR beserta baris item | `FinanceGoodsReceipt : Read` | — | `ApiResponse<GoodsReceiptDetailResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Mencatat penerimaan barang terhadap satu PO | `FinanceGoodsReceipt : Create` | `Idempotency-Key`, `CreateGoodsReceiptRequest` | `ApiResponse<GoodsReceiptResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id:guid}/cancel` | Membatalkan GR yang belum menjadi Tukar Faktur | `FinanceGoodsReceipt : Update` | `Idempotency-Key`, `CancelRequest` | `ApiResponse<GoodsReceiptResponse>` | **Rencana (belum tersedia)** |
+
+## B.3 Corporate / Finance Management / Purchasing / Invoice Exchange
+
+Base URL: `api/v1/corporate/finance-management/purchasing/invoice-exchanges`
+Contract version: `FIN-API-1.1` — status `locked` 25 September 2026
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/` | Daftar Tukar Faktur, disaring supplier/status | `FinanceInvoiceExchange : Read` | `InvoiceExchangeQuery` | `ApiResponse<PagedResult<InvoiceExchangeResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id:guid}` | Rincian satu Tukar Faktur | `FinanceInvoiceExchange : Read` | — | `ApiResponse<InvoiceExchangeDetailResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Mencatat Tukar Faktur; `EstimatedDueDate` dihitung backend dari TOP supplier | `FinanceInvoiceExchange : Create` | `Idempotency-Key`, `CreateInvoiceExchangeRequest` | `ApiResponse<InvoiceExchangeResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id:guid}/cancel` | Membatalkan Tukar Faktur yang belum menjadi Purchasing Invoice | `FinanceInvoiceExchange : Update` | `Idempotency-Key`, `CancelRequest` | `ApiResponse<InvoiceExchangeResponse>` | **Rencana (belum tersedia)** |
+
+## B.4 Corporate / Finance Management / Purchasing / Purchasing Invoice
+
+Base URL: `api/v1/corporate/finance-management/purchasing/purchasing-invoices`
+Contract version: `FIN-API-1.1` — status `locked` 25 September 2026
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/` | Daftar Purchasing Invoice, disaring supplier/status/jatuh tempo | `FinancePurchasingInvoice : Read` | `PurchasingInvoiceQuery` | `ApiResponse<PagedResult<PurchasingInvoiceResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id:guid}` | Rincian invoice beserta PPN, DP, potongan | `FinancePurchasingInvoice : Read` | — | `ApiResponse<PurchasingInvoiceDetailResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Membuat Purchasing Invoice dari satu Tukar Faktur yang belum terpakai | `FinancePurchasingInvoice : Create` | `Idempotency-Key`, `CreatePurchasingInvoiceRequest` | `ApiResponse<PurchasingInvoiceResponse>` | **Rencana (belum tersedia)** |
+| `PUT` | `/{id:guid}` | Memperbaiki invoice selama masih `DRAFT` | `FinancePurchasingInvoice : Update` | `UpdatePurchasingInvoiceRequest` | `ApiResponse<PurchasingInvoiceResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id:guid}/submit` | Mengajukan invoice untuk approval | `FinancePurchasingInvoice : Submit` | `Idempotency-Key` | `ApiResponse<PurchasingInvoiceResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id:guid}/approve` | Menyetujui invoice; membuat `FinSupplierPayable` dan menyiapkan (bukan mengirim) kejadian PPN Masukan | `FinancePurchasingInvoice : Approve` | `Idempotency-Key`, `ApproveRequest` | `ApiResponse<PurchasingInvoiceResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id:guid}/reject` | Menolak invoice beserta alasan | `FinancePurchasingInvoice : Approve` | `RejectRequest` | `ApiResponse<PurchasingInvoiceResponse>` | **Rencana (belum tersedia)** |
+
+## B.5 Corporate / Finance Management / Purchasing / Supplier Return
+
+Base URL: `api/v1/corporate/finance-management/purchasing/supplier-returns`
+Contract version: `FIN-API-1.1` — status `locked` 25 September 2026
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/` | Daftar retur pembelian | `FinanceSupplierReturn : Read` | `SupplierReturnQuery` | `ApiResponse<PagedResult<SupplierReturnResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id:guid}` | Rincian retur beserta status Deposit Retur turunannya | `FinanceSupplierReturn : Read` | — | `ApiResponse<SupplierReturnDetailResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Mencatat retur atas satu Purchasing Invoice; menerbitkan `FinSupplierReturnDeposit` | `FinanceSupplierReturn : Create` | `Idempotency-Key`, `CreateSupplierReturnRequest` | `ApiResponse<SupplierReturnResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/deposits` | Daftar Deposit Retur beserta saldo tersedia, disaring per supplier | `FinanceSupplierReturn : Read` | `SupplierReturnDepositQuery` | `ApiResponse<PagedResult<SupplierReturnDepositResponse>>` | **Rencana (belum tersedia)** |
+| ~~`POST`~~ | ~~`/deposits/{depositId:guid}/apply`~~ | **DICABUT oleh `FIN-API-1.2`** (AMENDMENT REVISI 5, `FIN-DES-045`) — deposit kini dipakai di dalam pembayaran lewat `POST /payments/{id}/return-deposits`, lihat C.1 | — | — | — | — |
+
+## B.6 Corporate / Finance Management / Purchasing / Reports
+
+Base URL: `api/v1/corporate/finance-management/purchasing/reports`
+Contract version: `FIN-API-1.1` — status `locked` 25 September 2026
+
+Seluruh endpoint pada grup ini **read-only**, tidak melahirkan tabel baru (`FIN-DES-044`).
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| ~~`GET`~~ | ~~`/aging`~~ | **DICABUT 25 September 2026** (`FIN-DEC-059`, `/grill-me`) — menduplikasi `GET api/finance/payable/aging` yang sudah berjalan atas `FinSupplierPayable`, yang sejak `FIN-DEC-045` juga memuat utang dari Purchasing Invoice. Layar Purchasing/AP memakai endpoint existing itu | — | — | — | — |
+| `GET` | `/summary` | Rekap Purchasing AP periodik | `FinancePurchasingReport : Read` | `PurchasingSummaryQuery` | `ApiResponse<PurchasingSummaryResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/invoice-exchanges` | Laporan Tukar Faktur beserta status keterkaitan ke Purchasing Invoice | `FinancePurchasingReport : Read` | `InvoiceExchangeReportQuery` | `ApiResponse<PagedResult<InvoiceExchangeReportResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/due-dates` | Laporan Purchasing Invoice mendekati/lewat jatuh tempo | `FinancePurchasingReport : Read` | `DueDateReportQuery` | `ApiResponse<PagedResult<DueDateReportResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/reconciliation` | Rekonsiliasi Tukar Faktur yang belum menghasilkan Purchasing Invoice | `FinancePurchasingReport : Read` | `ReconciliationQuery` | `ApiResponse<PagedResult<ReconciliationResponse>>` | **Rencana (belum tersedia)** |
+
+## B.7 Corporate / Finance Management / Receivable Invoice Batch
+
+Base URL: `api/v1/corporate/finance-management/receivable-invoice-batches`
+Contract version: `FIN-API-1.1` — status `locked` 25 September 2026
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/` | Daftar batch, disaring penjamin/status | `FinanceReceivableInvoiceBatch : Read` | `ReceivableInvoiceBatchQuery` | `ApiResponse<PagedResult<ReceivableInvoiceBatchResponse>>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id:guid}` | Rincian batch beserta daftar `FinReceivable` anggota | `FinanceReceivableInvoiceBatch : Read` | — | `ApiResponse<ReceivableInvoiceBatchDetailResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/eligible-receivables` | Daftar `FinReceivable` yang memenuhi syarat digabung untuk satu penjamin/periode | `FinanceReceivableInvoiceBatch : Read` | `EligibleReceivableQuery` | `ApiResponse<PagedResult<EligibleReceivableResponse>>` | **Rencana (belum tersedia)** |
+| `POST` | `/` | Membuat batch `DRAFT` dari daftar `FinReceivable` terpilih | `FinanceReceivableInvoiceBatch : Create` | `Idempotency-Key`, `CreateReceivableInvoiceBatchRequest` | `ApiResponse<ReceivableInvoiceBatchResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id:guid}/issue` | Menerbitkan batch, mengunci daftar anggotanya | `FinanceReceivableInvoiceBatch : Issue` | `Idempotency-Key` | `ApiResponse<ReceivableInvoiceBatchResponse>` | **Rencana (belum tersedia)** |
+| `GET` | `/{id:guid}/document` | Dokumen tagihan gabungan, memuat rincian per invoice dari Billing | `FinanceReceivableInvoiceBatch : Read` | — | `ApiResponse<ReceivableInvoiceBatchDocumentResponse>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id:guid}/cancel` | Membatalkan batch `DRAFT` yang belum diterbitkan | `FinanceReceivableInvoiceBatch : Update` | `Idempotency-Key`, `CancelRequest` | `ApiResponse<ReceivableInvoiceBatchResponse>` | **Rencana (belum tersedia)** |
+
+## B.8 Endpoint baru pada grup Receipt
+
+Base URL: `api/v1/corporate/finance-management/receipts`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/{id:guid}/deductions` | Daftar potongan sisi penerimaan (PPh 23, biaya admin bank) pada satu penerimaan | `FinanceReceipt : Read` | — | `ApiResponse<List<ReceiptDeductionResponse>>` | **Rencana (belum tersedia)** |
+| ~~`POST`~~ | ~~`/{id:guid}/deductions`~~ | **DICABUT oleh `FIN-API-1.2`** (AMENDMENT REVISI 5, `FIN-DES-048`) — potongan kini dicatat di dalam `POST /receipts/{id}/allocations`, lihat C.2 | — | — | — | — |
+
+~~Endpoint `POST .../deductions` memakai hak akses yang sama dengan alokasi.~~ Pencabutannya
+dijelaskan di C.2: setelah uang penerimaan habis teralokasi, endpoint terpisah itu akan ditolak
+`FIN-VAL-120`, sehingga tidak pernah dapat dipakai pada kasus PPh 23 biasa.
+
+## B.9 Gerbang PPN Masukan Pembelian
+
+Endpoint `POST /purchasing/purchasing-invoices/{id}/approve` **MUST** menulis baris outbox
+`PPN-MASUKAN-PEMBELIAN` berstatus `PENDING`, tetapi worker pengiriman kejadian ini **MUST NOT**
+diaktifkan sampai Accounting meratifikasi kode tersebut (`FIN-OQ-020`, `FIN-DEC-046`,
+`evidence/06`). Ini bukan endpoint terpisah — gerbangnya ada di level worker, bukan di level API,
+sama seperti pola kode lain yang pernah menunggu ratifikasi (`FIN-DES-029`).
+
+
+---
+
+# AMENDMENT REVISI 5
+
+| Field | Nilai |
+|---|---|
+| Contract version | `FIN-API-1.2` — status `locked` 26 September 2026 (disetujui Yasmin bersama `FIN-DES-045`..`050`) |
+| Tanggal | 25 September 2026 |
+| Keputusan | `FIN-DEC-057`, `058`, `059`, `061`, `062`; `FIN-DES-045`..`050` |
+| Dampak kompatibilitas | **Nol konsumen rusak.** Dua endpoint `FIN-API-1.1` yang dicabut (`/supplier-returns/deposits/{id}/apply`, `POST /receipts/{id}/deductions`) dan satu dari revisi yang sama (`/purchasing/reports/aging`, `FIN-DEC-059`) belum pernah punya kode. Dua endpoint yang sudah **berjalan** berubah bentuk secara aditif: `PaymentDetailResponse` bertambah field, `AllocateReceiptRequest` bertambah field opsional |
+
+## C.1 Endpoint baru pada grup Payment — Deposit Retur sebagai sumber dana
+
+Base URL: `api/v1/corporate/finance-management/payments`
+Contract version: `FIN-API-1.2` — status `locked` 26 September 2026 (disetujui Yasmin bersama `FIN-DES-045`..`050`)
+
+| Method | Path | Kegunaan | Hak akses | Request | Response | Status |
+|---|---|---|---|---|---|---|
+| `GET` | `/{id:guid}/return-deposits` | Daftar Deposit Retur yang dipakai pembayaran ini, termasuk yang sudah dilepas | `FinancePayment : Read` | — | `ApiResponse<List<PaymentReturnDepositResponse>>` | **Rencana (belum tersedia)** |
+| `POST` | `/{id:guid}/return-deposits` | Mencadangkan sebagian/seluruh saldo satu Deposit Retur sebagai sumber dana pembayaran | `FinancePayment : Update` | `Idempotency-Key`, `AddPaymentReturnDepositRequest` | `ApiResponse<PaymentDetailResponse>` | **Rencana (belum tersedia)** |
+| `DELETE` | `/{id:guid}/return-deposits/{usageId:guid}` | Melepas satu baris pemakaian; saldo deposit kembali. Baris tidak dihapus, statusnya `RELEASED` | `FinancePayment : Update` | `ExpectedRowVersion` (query) | `ApiResponse<PaymentDetailResponse>` | **Rencana (belum tersedia)** |
+
+Ketiganya hanya tersedia selama pembayaran `DRAFT` — sama seperti endpoint potongan (A.2).
+
+**Kode status yang perlu diketahui konsumen:**
+
+| Kode | Kapan |
+|---|---|
+| `400` | `UsedAmount` ≤ 0 |
+| `404` | Pembayaran atau deposit tidak ditemukan |
+| `409` | `ExpectedRowVersion` basi, atau deposit yang sama sudah aktif di pembayaran ini |
+| `422` | Pembayaran bukan `DRAFT`; pembayaran bukan `SUPPLIER`; deposit milik supplier lain; saldo deposit kurang; `NetTransferAmount` akan menjadi negatif |
+
+**Contoh request `POST /payments/{id}/return-deposits`**
+
+```json
+{
+  "supplierReturnDepositId": "3f1c9a2e-0000-4000-8000-000000000001",
+  "usedAmount": 2500000.00,
+  "expectedRowVersion": "9b2e7c10-0000-4000-8000-000000000002"
+}
+```
+
+**Contoh response (dipotong)**
+
+```json
+{
+  "success": true,
+  "data": {
+    "paymentNumber": "PAY-2026-09-00088",
+    "totalAmount": 10000000.00,
+    "deductionAmount": 0.00,
+    "additionAmount": 0.00,
+    "depositAppliedAmount": 2500000.00,
+    "netTransferAmount": 7500000.00,
+    "returnDeposits": [
+      { "returnNumber": "RTR-2026-08-00012", "usedAmount": 2500000.00, "status": "RESERVED" }
+    ]
+  }
+}
+```
+
+## C.2 Perubahan bentuk pada endpoint yang SUDAH BERJALAN
+
+**`PaymentDetailResponse`** — dua field ditambahkan, tidak ada yang dihapus atau berganti arti:
+
+| Field | Tipe | Keterangan |
+|---|---|---|
+| `depositAppliedAmount` | `decimal` | Bagian utang yang dilunasi dari Deposit Retur |
+| `returnDeposits` | `PaymentReturnDepositResponse[]` | Baris pemakaian beserta statusnya |
+
+`netTransferAmount` **tetap** "uang yang benar-benar ditransfer"; rumusnya bertambah satu
+pengurang. Layar yang sudah menampilkannya tidak perlu berubah.
+
+**`POST /receipts/{id}/allocations`** — setiap baris `AllocateReceiptRequest` boleh membawa
+`deductions[]` (opsional; tanpa field ini perilakunya persis seperti hari ini):
+
+| Field per potongan | Tipe | Wajib | Keterangan |
+|---|---|:---:|---|
+| `deductionType` | `string` | Ya | `PPH23`, `BANK_ADMIN_FEE`, `OTHER` |
+| `amount` | `decimal` | Ya | > 0 |
+| `reason` | `string?` | Bila `OTHER` | Maks 500 |
+| `referenceNumber` | `string?` | Tidak | Nomor bukti potong / bukti bank |
+
+Potongan hanya boleh pada baris ber-`targetType = RECEIVABLE`. Uang baris + jumlah potongannya
+MUST ≤ sisa piutang.
+
+**Contoh request**
+
+```json
+{
+  "expectedRowVersion": "b0a1c2d3-0000-4000-8000-000000000003",
+  "lines": [
+    {
+      "targetType": "RECEIVABLE",
+      "receivableId": "c4d5e6f7-0000-4000-8000-000000000004",
+      "amount": 9745000.00,
+      "deductions": [
+        { "deductionType": "PPH23", "amount": 230000.00, "referenceNumber": "BP-23-0091" },
+        { "deductionType": "BANK_ADMIN_FEE", "amount": 25000.00 }
+      ]
+    }
+  ]
+}
+```
+
+Hasil: piutang Rp 10.000.000 menjadi `SETTLED`; `UnallocatedAmount` penerimaan Rp 0.
+
+## C.3 Endpoint yang dicabut
+
+| Endpoint | Dicabut oleh | Pengganti |
+|---|---|---|
+| `POST /purchasing/supplier-returns/deposits/{depositId}/apply` | `FIN-DES-045` | `POST /payments/{id}/return-deposits` |
+| `POST /receipts/{id}/deductions` | `FIN-DES-048` | Field `deductions[]` pada `POST /receipts/{id}/allocations` |
+| `GET /purchasing/reports/aging` | `FIN-DEC-059` | `GET api/finance/payable/aging` yang sudah berjalan |
+
+`GET /purchasing/supplier-returns/deposits` dan `GET /receipts/{id}/deductions` **tetap** — keduanya
+baca saja.
