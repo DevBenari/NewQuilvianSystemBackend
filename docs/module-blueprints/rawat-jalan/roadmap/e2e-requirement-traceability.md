@@ -17,10 +17,10 @@
 | `FR-RJE-002` kebijakan kirim ulang | `DEC-009` | `02` V2.11 | `BE-RJE-001` | — | V2-4 `SYNC_POLICY_INACTIVE` | ✅ `BE-RJE-001` 2026-09-28 — [laporan](../task/report/backend/BE-RJE-001.md) R0–R10 |
 | `FR-RJE-003` kontrak `1.3` | `DEC-001`, `005` | `02` V2.7.3 | `BE-RJE-002` | — | `UAT-23` | ✅ `BE-RJE-002` 2026-09-28 — [laporan](../task/report/backend/BE-RJE-002.md) R0–R13 |
 | `FR-RJE-004` baris lama | `DEC-014` | `02` V2.10 | `BE-RJE-001` | — | `UAT-22` | ✅ `BE-RJE-001` 2026-09-28 — [laporan](../task/report/backend/BE-RJE-001.md) R0–R10 |
-| `FR-RJE-010` kelayakan | `DEC-003` | `02` V2.7.1 | `BE-RJE-003` | — | V2-2 `REPEAT_INTERNAL_ERROR`, `NOT_OUTPATIENT` | Belum dikerjakan |
-| `FR-RJE-011` identitas stabil | `AC-RJ-002/003` | `02` V2.7.2 | `BE-RJE-003` | — | V2-1 `AC-RJ-002` | Belum dikerjakan |
-| `FR-RJE-012` harga katalog | `DEC-006` | `02` V2.7.4 | `BE-RJE-003` | — | `UAT-01`; V2-1 snapshot Rp99.999 | Belum dikerjakan |
-| `FR-RJE-013` tanpa Rp0 | `DEC-006` | `02` V2.7.4 | `BE-RJE-003` | — | `UAT-02` | Belum dikerjakan |
+| `FR-RJE-010` kelayakan | `DEC-003` | `02` V2.7.1 | `BE-RJE-003` | — | V2-2 `REPEAT_INTERNAL_ERROR`, `NOT_OUTPATIENT` | ✅ `BE-RJE-003` 2026-09-28 — [laporan](../task/report/backend/BE-RJE-003.md) |
+| `FR-RJE-011` identitas stabil | `AC-RJ-002/003` | `02` V2.7.2 | `BE-RJE-003` | — | V2-1 `AC-RJ-002` | ✅ `BE-RJE-003` 2026-09-28 — [laporan](../task/report/backend/BE-RJE-003.md) |
+| `FR-RJE-012` harga katalog | `DEC-006` | `02` V2.7.4 | `BE-RJE-003` | — | `UAT-01`; V2-1 snapshot Rp99.999 | ✅ `BE-RJE-003` 2026-09-28 — [laporan](../task/report/backend/BE-RJE-003.md) |
+| `FR-RJE-013` tanpa Rp0 | `DEC-006` | `02` V2.7.4 | `BE-RJE-003` | — | `UAT-02` | ✅ `BE-RJE-003` 2026-09-28 — [laporan](../task/report/backend/BE-RJE-003.md) |
 | `FR-RJE-014` pengaman `from-source` | `DEC-006` | `02` V2.7.6 | `BE-RJE-004` | — | `UAT-03` | Belum dikerjakan |
 | `FR-RJE-015` pasca-final | `RJ-BIL-DEC-004` | `02` V2.7.5 | `BE-RJE-005` | — | `UAT-04` | Belum dikerjakan |
 | `FR-RJE-020` fakta konsultasi | `DEC-001` | `contracts/integration` V2-2 | `BE-RJE-007` | — | `UAT-05` | Belum dikerjakan |
