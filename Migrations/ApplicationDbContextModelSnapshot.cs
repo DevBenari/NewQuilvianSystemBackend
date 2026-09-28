@@ -5448,6 +5448,12 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<DateTime?>("DeleteDateTime")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<decimal>("DepositAppliedAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasDefaultValue(0m);
+
                     b.Property<bool>("IsCancel")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
@@ -5555,11 +5561,13 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.ToTable("FinPayment", "public", t =>
                         {
+                            t.HasCheckConstraint("CK_FinPayment_DepositApplied", "\"DepositAppliedAmount\" >= 0");
+
                             t.HasCheckConstraint("CK_FinPayment_FullyAllocatedWhenPaid", "\"Status\" <> 'PAID' OR \"AllocatedAmount\" = \"TotalAmount\"");
 
                             t.HasCheckConstraint("CK_FinPayment_MakerChecker", "\"ApprovedBy\" IS NULL OR \"ApprovedBy\" <> \"RequestedBy\"");
 
-                            t.HasCheckConstraint("CK_FinPayment_NetTransfer", "\"NetTransferAmount\" = \"TotalAmount\" - \"DeductionAmount\" + \"AdditionAmount\"");
+                            t.HasCheckConstraint("CK_FinPayment_NetTransfer", "\"NetTransferAmount\" = \"TotalAmount\" - \"DeductionAmount\" + \"AdditionAmount\" - \"DepositAppliedAmount\"");
 
                             t.HasCheckConstraint("CK_FinPayment_NetTransferNonNegative", "\"NetTransferAmount\" >= 0");
 

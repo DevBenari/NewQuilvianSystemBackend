@@ -121,4 +121,10 @@ public static class FinAccountingEventTypeCodes
     // sampai Accounting meratifikasi (FIN-OQ-020) — penulisan baris outbox-nya sendiri TIDAK
     // tertahan (FIN-VAL-122, gerbangnya di level worker, bukan di level penulisan).
     public const string PpnMasukanPembelian = "PPN-MASUKAN-PEMBELIAN";
+
+    // Kode ke-28, diusulkan AMENDMENT REVISI 5 (BE-FIN-035, FIN-DEC-047, 061,
+    // integration-contract.md §5.9). Ditulis saat FinSupplierReturn CONFIRMED — tidak menunggu
+    // ratifikasi Accounting untuk penulisannya sendiri (beda dari kode 25, yang worker
+    // pengirimannya tertahan FIN-OQ-020); EventTypeCode tidak punya check constraint.
+    public const string ReturPembelian = "RETUR-PEMBELIAN";
 }

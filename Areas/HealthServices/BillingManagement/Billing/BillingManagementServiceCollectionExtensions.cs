@@ -113,6 +113,9 @@ public static class BillingManagementServiceCollectionExtensions
         services.AddScoped<FinanceInvoiceExchangeService>();
         // BE-FIN-034, FIN-DEC-045/046/053: Purchasing Invoice — pengakuan utang + PPN Masukan.
         services.AddScoped<FinancePurchasingInvoiceService>();
+        // BE-FIN-035, FIN-DEC-047/061: Retur Pembelian dan Deposit Retur — satu-satunya penulis
+        // AvailableAmount (FIN-DES-046, ditegakkan penuh oleh BE-FIN-036).
+        services.AddScoped<FinanceSupplierReturnService>();
         // BE-BKC-036 / PC-DES-004: kolam anggaran dan saldo berjalan kas kecil.
         services.AddScoped<PettyCashBudgetService>();
         // BE-BKC-037 / PC-DES-001: siklus hidup voucher kas kecil penuh.
