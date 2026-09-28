@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-PERM-v1` |
-| Revision | **`11` — `approved`** 2026-09-25, bagian 13 (`S4`: `Validate`, `Release`, `Return`, dua data induk alasan). Terakhir `approved`: `10` — **`approved`** 2026-09-24, bagian 12. *Baris ini sempat tertinggal di `7` sejak revision 8; dirapikan 2026-09-24* |
+| Revision | **`12` — `draft`** 2026-09-25, bagian 14 (`S16a`: resource `LabOperationalReport`) — **belum disetujui**. Terakhir `approved`: **`11` — `approved`** 2026-09-25, bagian 13 (`S4`: `Validate`, `Release`, `Return`, dua data induk alasan). Terakhir `approved`: `10` — **`approved`** 2026-09-24, bagian 12. *Baris ini sempat tertinggal di `7` sejak revision 8; dirapikan 2026-09-24* |
 | Revision 7 approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-18** |
 | Isi amandemen revision 7 | **`approved` — 2026-09-18.** Dua resource baru — `LabPathologyParameter` dan `LabPathologyCategory`, masing-masing `Read`/`Create`/`Update`, **nol `Delete`**; keberlakuan parameter dan pemetaan jenis pemeriksaan ikut `LabPathologyCategory : Update`, bukan resource sendiri. Mengisi, memfinalkan, dan membuka kembali laporan PA **tidak menambah hak akses** — memakai `LabExamination : Update` yang sudah ada. **Satu pemisahan yang disengaja: konteks klinis pesanan memakai `LabOrder : Update`**, sebab penulisnya **dokter pemesan, bukan patolog** (`LAB-DEC-091`, `INV-40`). Lima kejadian audit baru; **`PathologyReport.Reopen` dan `PathologyReport.AmendValue` wajib beralasan**. Membawa **pembatasan logger dan DTO paling ketat pada modul ini**: nol isi parameter, nol diagnosa, nol riwayat penyakit boleh masuk log atau layar non-klinis. Disetujui bersama `LAB-API-v1` `r25` dan `LAB-VAL-v1` `r8` pada hari yang sama. Lihat bagian 9 |
 | Revision 6 approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-18** |
@@ -834,3 +834,72 @@ pemegang `LabExaminationResult : Update` — penyalinan memberikannya kepada ana
 | `LabExaminationResult : Return` | `LAB-DEC-138` | `AC-205` |
 | Lapis orang dari Human Resource | `LAB-DEC-148` | `AC-229`..`AC-233` |
 | Dua resource data induk alasan | `LAB-DEC-082`, `LAB-DEC-019` | — |
+
+## 14. Amandemen revision 12 — Laporan operasional (`S16a`), 2026-09-25
+
+| Field | Nilai |
+|---|---|
+| `contract_version` | `LAB-PERM-v1` |
+| Revision | **12** |
+| Status | **`draft`** — menunggu persetujuan pemilik modul |
+| `approved_by` / `approved_at` | **belum** |
+| `input_revision` | decisions rev 81; `LAB-DA-001` rev 10 bagian A7; `LAB-API-v1` `r37`; `02-backend-architecture.md` rev 13 bagian 23 |
+
+### 14.1 Kenapa amandemen ini ada
+
+`LAB-DEC-160` memutuskan laporan dibuka lewat **hak akses tersendiri**: hak baca daftar Laboratorium
+tidak boleh membukanya, sebab laporan merangkum seluruh pasien dan seluruh petugas.
+
+### 14.2 Resource dan aksi yang ditambahkan
+
+| Resource | Aksi | `AccessType` | Kegunaan |
+|---|---|---|---|
+| `LabOperationalReport` | `Read` | `Read` | Membuka ketiga laporan dan metadata penyaringnya |
+| `LabOperationalReport` | `Export` | `Read` | Mengunduh laporan sebagai berkas — **terpisah** dari `Read` (23.10 butir 2) |
+
+### 14.3 Pemetaan endpoint
+
+| Endpoint | String yang dipakai | Dicatat logger |
+|---|---|:---:|
+| `GET /filters/metadata` | `[AccessPermission("LabOperationalReport", "Read")]` | Tidak |
+| `GET /examination-count` | `[AccessPermission("LabOperationalReport", "Read")]` | Tidak |
+| `GET /specimen-rejection` | `[AccessPermission("LabOperationalReport", "Read")]` | Tidak |
+| `GET /turnaround-time` | `[AccessPermission("LabOperationalReport", "Read")]` | Tidak |
+| `GET /examination-count/export` | `[AccessPermission("LabOperationalReport", "Export")]` | **Ya** |
+| `GET /specimen-rejection/export` | `[AccessPermission("LabOperationalReport", "Export")]` | **Ya** |
+| `GET /turnaround-time/export` | `[AccessPermission("LabOperationalReport", "Export")]` | **Ya** |
+
+Setiap endpoint memasang `[AccessAction]` berpasangan dengan `[AccessPermission]`, supaya
+`PermissionRegistryValidator` menerimanya saat aplikasi dinyalakan.
+
+### 14.4 Siapa memegang apa sesudah amandemen
+
+| Jabatan | `Read` | `Export` |
+|---|:---:|:---:|
+| Kepala instalasi laboratorium | Ya | Ya |
+| Manajemen — jabatan ditetapkan admin saat rilis | Ya | Ya |
+| Analis, dokter pemesan, perilis, pemvalidasi | **Tidak** | **Tidak** |
+
+### 14.5 Kejadian yang wajib menghasilkan jejak audit
+
+| Kejadian | Payload log | Yang **dilarang** di payload |
+|---|---|---|
+| `LabOperationalReport.Export` | Jenis laporan, periode, disiplin, jumlah baris, pelaku, waktu | Isi berkas, nama pasien, No. RM, nilai hasil |
+
+**Contoh:** kepala instalasi mengunduh laporan penolakan September pukul 08.10 → satu baris log
+*"LabOperationalReport.Export — specimen-rejection — 2026-09-01..2026-09-30 — seluruh disiplin — 3
+baris"*. Membuka laporan yang sama di layar tidak dicatat, sesuai konvensi `GET`.
+
+### 14.6 Syarat rilis
+
+Tanpa kebijakan bagi kedua aksi, pengguna menerima `403` — laporan aman dideploy lebih dulu. **Larangan:**
+kebijakan laporan **tidak boleh disalin** dari pemegang `LabExamination : Read` — itu membuka laporan
+bagi setiap analis.
+
+### 14.7 Traceability revision 12
+
+| Yang dikontrakkan | Keputusan | AC |
+|---|---|---|
+| `LabOperationalReport : Read` | `LAB-DEC-160` | `AC-253` |
+| `LabOperationalReport : Export` | `LAB-DEC-160`; 23.10 butir 2 | `AC-253` |
+| Pencatatan unduhan | A7.9; 23.10 butir 7 | Baris matriks uji |

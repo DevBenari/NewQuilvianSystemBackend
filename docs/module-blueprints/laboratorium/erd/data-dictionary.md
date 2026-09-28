@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `7` — bagian 18, 2026-09-25: `S4d-1` — nol tabel, nol kolom. Sebelumnya `6` — bagian 17, 2026-09-25: `S4` — dua tabel baru, 14 kolom baru pada `LabExamination`. Sebelumnya `5` — bagian 16, 2026-09-24: nol tabel, nol kolom |
+| Revision | `8` — bagian 19, 2026-09-25: `S16a` — nol tabel, nol kolom, satu index `LabSpecimen.DecidedAt`. Sebelumnya `7` — bagian 18, 2026-09-25: `S4d-1` — nol tabel, nol kolom. Sebelumnya `6` — bagian 17, 2026-09-25: `S4` — dua tabel baru, 14 kolom baru pada `LabExamination`. Sebelumnya `5` — bagian 16, 2026-09-24: nol tabel, nol kolom |
 | Status | `draft` |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15`. **Revision 3 menambah amandemen Penerimaan Sampling/Specimen** — lihat bagian 12 |
 | Backend SHA | Revision 1-2: `c87d9c0`. **Revision 3: `466a7127`**, diverifikasi tidak berubah pada `9067fa73` |
@@ -1454,3 +1454,34 @@ berubah adalah **siapa yang memakai** kolom yang sudah ada:
 
 **Isolat dan antibiogram** (`LabMicrobiologyIsolate`, `LabIsolateSusceptibility`, bagian 14.3-14.4)
 **tidak** memperoleh kolom validasi sendiri — mereka disahkan lewat pemeriksaannya (`INV-53`).
+
+## 19. Amandemen 2026-09-25 (keempat) — Laporan operasional `S16a`: nol tabel, nol kolom, satu index
+
+`02-backend-architecture.md` bagian 23. Ketiga laporan **membaca** kolom yang sudah ada; ringkasan per
+periode **tidak disimpan** (`LAB-DA-001` A7.5).
+
+### 19.1 Kolom yang dibaca laporan
+
+| Tabel | Kolom | Dipakai sebagai | Sensitif |
+|---|---|---|:---:|
+| `LabExamination` | `ReleasedAt` (`BE-LAB-70`) | Tanggal hitung jumlah pemeriksaan; akhir TAT | Tidak |
+| `LabExamination` | `ChargeEligibleAt` | Awal TAT — nilainya sama dengan `LabSpecimen.DecidedAt` wadah yang diterima | Tidak |
+| `LabExamination` | `Urgency`, `ExaminationStatus`, `ProcedureId`, `ProcedureNameSnapshot` | Pemisah cito/rutin; pengecualian batal/gugur; rincian per jenis pemeriksaan | Tidak |
+| `LabSpecimen` | `DecidedAt`, `RejectionReasonCode`, `RejectionReasonId` | Tanggal keputusan kelayakan; tidak layak bila kode alasan terisi | Tidak |
+| `LabOrder` | `Discipline` | Pengelompokan; kosong → *Belum tergolong* | Tidak |
+| `LabValueBound` | Batas waktu cito per jenis pemeriksaan | Penilaian *terlambat* — lewat fungsi yang sama dengan daftar pantau | Tidak |
+
+**Nol kolom sensitif dibaca.** Laporan tidak menyentuh identitas pasien, nilai hasil, maupun nama petugas.
+
+### 19.2 Index yang ditambahkan
+
+| Tabel | Index | Unik | Alasan |
+|---|---|:---:|---|
+| `LabSpecimen` | `IX_LabSpecimen_DecidedAt` pada `DecidedAt` | Tidak | Laporan penolakan menyaring rentang `DecidedAt`; hari ini kolom itu tidak ber-index (`LabSpecimenConfiguration.cs:38-45` hanya memuat barcode, pesanan+urutan, status, dan waktu tiba fisik) |
+
+> **DDL berikut dokumentasi bentuk, bukan skrip yang dijalankan.** Migration dibangkitkan EF Core dari
+> `LabSpecimenConfiguration.cs`.
+
+```sql
+CREATE INDEX "IX_LabSpecimen_DecidedAt" ON public."LabSpecimen" ("DecidedAt");
+```

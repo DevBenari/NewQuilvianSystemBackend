@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `12` — amandemen 2026-09-25 (ketiga), label keadaan hasil (`LAB-DEC-156`). Sebelumnya `11` — amandemen 2026-09-25 (kedua), validasi dan rilis Mikrobiologi (`S4d-1`). Sebelumnya `10` — amandemen 2026-09-25, validasi dan rilis Patologi Klinik (`S4`). Sebelumnya `9` — amandemen 2026-09-24, halaman Hasil Patologi Klinik per order |
+| Revision | `13` — amandemen 2026-09-25 (keempat), laporan operasional `S16a`. Sebelumnya `12` — amandemen 2026-09-25 (ketiga), label keadaan hasil (`LAB-DEC-156`). Sebelumnya `11` — amandemen 2026-09-25 (kedua), validasi dan rilis Mikrobiologi (`S4d-1`). Sebelumnya `10` — amandemen 2026-09-25, validasi dan rilis Patologi Klinik (`S4`). Sebelumnya `9` — amandemen 2026-09-24, halaman Hasil Patologi Klinik per order |
 | Status | `draft` |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S14`, `S15`. **Revision 4 menambah menu Penerimaan Sampling/Specimen** (bagian 10). **Revision 5 menyerap `LAB-DEC-048`**: butir menu Pesanan Laboratorium dicabut, Monitoring dinamai ulang menjadi Pemeriksaan, dan disiplin diturunkan dari pemeriksaan yang dipilih |
 | Frontend SHA | Revision 1-3: `688daff90`. **Revision 4: `9cd4cd03f`** — fakta `F5` dicabut capability map revision 3 |
@@ -1287,3 +1287,82 @@ umumnya.
 |---|---|
 | Kelima label dan teks tombol **Pemeriksaan Selesai** | `LAB-DEC-156` — `decided` |
 | Warna, bentuk lencana, dan letak label | `DEV_DISCRETION` |
+
+## Amandemen 2026-09-25 (keempat) — Laporan operasional `S16a`
+
+| Field | Nilai |
+|---|---|
+| Status | **`draft`** |
+| Slice | `S16a` — tiga laporan |
+| Masukan | decisions rev 81 (`LAB-DEC-159`, `LAB-DEC-160`); `LAB-DA-001` rev 10 bagian A7; `LAB-API-v1` `r37`; `LAB-VAL-v1` `r15`; `LAB-PERM-v1` revision 12 — **kontraknya masih `draft`** |
+| Frontend SHA | **`2083ff36a`** — 38 commit sejak `0bcd15724`, nol berkas Laboratorium |
+| Sifat | **Satu layar baru**, satu route baru |
+
+### Keadaan frontend saat dirancang
+
+| Sudah ada | Berkas | Hubungan dengan laporan ini |
+|---|---|---|
+| *Ringkasan Laboratorium* | `app/health-services/laboratory-management/overview/` | Rekap **status pesanan** — angka yang berbeda; **tidak** digantikan |
+| *Laporan Penerimaan* | `lab-reception-reports/` (`FE-LAB-12`) | **Daftar** wadah per waktu tiba — bukan statistik; **tidak** digantikan |
+| Pemilih tanggal dengan aturan rentang modul | `FilterDatePicker` (`LAB-DEC-074`) | Dipakai ulang untuk periode |
+| Pustaka grafik | `recharts`, `chart.js`, `react-apexcharts` pada `package.json` | Tersedia bila grafik dipilih — `DEV_DISCRETION` |
+| Pustaka ekspor berkas | **Tidak ada** | Unduhan datang dari backend sebagai berkas CSV — layar hanya meminta dan menyimpannya |
+
+### Kebutuhan layar
+
+| Kebutuhan | Perilaku |
+|---|---|
+| Penyaring | Periode (tanggal awal dan akhir, wajib) dan disiplin (pilihan). Pesan `VAL-147`..`VAL-149` tampil pada penyaring |
+| Tiga laporan | Jumlah pemeriksaan (per disiplin, dapat dirinci per jenis pemeriksaan), penolakan wadah (angka dan rincian alasan), waktu penyelesaian (per disiplin, cito dan rutin terpisah) |
+| Disiplin yang belum dapat dihitung | Menampilkan **teks** `notCountableReason` — **tidak pernah** angka 0 |
+| Angka kosong | Persentase atau rata-rata yang kosong ditulis *"—"* beserta sebabnya (nol wadah diputuskan, nol hasil dirilis) |
+| Cito tanpa batas waktu | `withoutLimitCount` terbaca sebagai *"… pemeriksaan cito belum punya batas waktu"* |
+| Unduh | Satu tombol per laporan, **tampil hanya** bagi pemegang `LabOperationalReport : Export`; berkas CSV dari backend disimpan apa adanya |
+| Privasi | **Nol** daftar pasien, **nol** tautan dari angka ke daftar pasien |
+
+### Aksi per peran
+
+| Peran | Buka | Unduh |
+|---|:---:|:---:|
+| Kepala instalasi, manajemen (`Read` + `Export`) | Ya | Ya |
+| Pemegang `Read` saja | Ya | Tidak — tombol tidak tampil; `403` bila dipaksa |
+| Selain itu | Tidak — menu tidak tampil; `403` bila dibuka langsung | Tidak |
+
+### Penanganan keadaan
+
+| Keadaan | Perilaku |
+|---|---|
+| Memuat | Per laporan, tanpa mengosongkan laporan lain |
+| Kosong | Kalimat bersebab — misalnya *"Tidak ada hasil yang dirilis pada periode ini."* |
+| Galat `400`/`422` | Pesan backend pada penyaring periode |
+| Galat `403` | Pesan tidak berwenang; nol angka |
+| Unduhan gagal | Pesan pada tombol; permintaan ulang tidak menggandakan unduhan yang berhasil |
+
+### Berkas yang terdampak
+
+Lokasi mengikuti `rules/frontend/frontend-architecture.md`; **nama berkas `DEV_DISCRETION`**.
+
+| Berkas | Status |
+|---|---|
+| `src/app/health-services/laboratory-management/lab-operational-reports/page.jsx` | Baru — route mengikuti konvensi `LAB-FE-001` |
+| `src/components/view/health-services/laboratory-management/lab-operational-reports/` | Baru — komposisi tiga laporan |
+| `src/lib/hooks/health-services/laboratory-management/` hook laporan beserta **berkas aturan murni** | Baru — pemformatan persen, menit, dan keadaan *belum dapat dihitung* sebagai fungsi yang dapat diuji |
+| `src/lib/services/health-services/laboratory-management/lab-operational-report.service.js` | Baru — tiga baca, tiga unduh (`responseType: blob`) |
+| Pendaftaran menu Laboratorium | Diperbarui — satu butir, tampil hanya bagi pemegang `Read` |
+
+### Wewenang keputusan tampilan
+
+| Hal | Wewenang |
+|---|---|
+| Teks *belum dapat dihitung*, nol angka 0 bagi disiplin tanpa rilis | `ARCH-GAP-LAB-11` — **usulan, disetujui bersama kontrak** |
+| Nol daftar pasien | A7.12 — **usulan, disetujui bersama kontrak** |
+| **Letak menu** — butir baru *Laporan Operasional* pada menu Laboratorium, atau bagian di halaman *Ringkasan Laboratorium* | **Diminta pada persetujuan** — `02-backend-architecture.md` 23.10 butir 8 |
+| Tab, kartu, atau susunan bertumpuk untuk tiga laporan; grafik atau tabel; format menit (*70 menit* atau *1 jam 10 menit*) | `DEV_DISCRETION` |
+
+### Yang TIDAK dibangun
+
+| Yang ditolak | Alasan |
+|---|---|
+| Pembentukan berkas di layar | Unduhan wajib tercatat (A7.9) — hanya backend yang tahu unduhan terjadi |
+| Grafik tren antarperiode | Tidak diminta `LAB-DEC-159` |
+| Delapan laporan lain | `S16b` — `DEC-LAB-025` |

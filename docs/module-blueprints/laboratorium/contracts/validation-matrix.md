@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Contract version | `LAB-VAL-v1` |
-| Revision | **`14` — `approved`** 2026-09-25, bagian 16 (`VAL-146`, penjaga penyelesaian order) — disetujui Yoga Aji Pratama. Sebelumnya: **`13` — `approved`** 2026-09-25, bagian 15 (`S4d-1`: `VAL-126` diubah, `VAL-144`, `VAL-145`) — disetujui Yoga Aji Pratama, **termasuk perubahan bunyi `VAL-126`**. Sebelumnya: **`12` — `approved`** 2026-09-25, bagian 14 (`VAL-124`..`VAL-143`, `S4`). Terakhir `approved`: `11` — **`approved`** 2026-09-24, bagian 13. *Baris ini sempat tertinggal di `8` sejak `r9`; dirapikan 2026-09-24* |
+| Revision | **`15` — `draft`** 2026-09-25, bagian 17 (`VAL-147`..`VAL-149`, periode laporan) — **belum disetujui**. Terakhir `approved`: **`14` — `approved`** 2026-09-25, bagian 16 (`VAL-146`, penjaga penyelesaian order) — disetujui Yoga Aji Pratama. Sebelumnya: **`13` — `approved`** 2026-09-25, bagian 15 (`S4d-1`: `VAL-126` diubah, `VAL-144`, `VAL-145`) — disetujui Yoga Aji Pratama, **termasuk perubahan bunyi `VAL-126`**. Sebelumnya: **`12` — `approved`** 2026-09-25, bagian 14 (`VAL-124`..`VAL-143`, `S4`). Terakhir `approved`: `11` — **`approved`** 2026-09-24, bagian 13. *Baris ini sempat tertinggal di `8` sejak `r9`; dirapikan 2026-09-24* |
 | `r8` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-18** |
 | Isi amandemen `r8` | **`approved` — 2026-09-18.** Sebelas aturan `VAL-92`..`VAL-102` untuk laporan Patologi Anatomi **per pesanan**, menurunkan `LAB-DEC-085`..`LAB-DEC-088`, `LAB-DEC-091`, dan `LAB-DA-001` rev 7. **Satu aturan DICABUT: `VAL-88`** — ia menuntut tiga nama kolom yang dihardcode (makroskopik, mikroskopik, kesimpulan), sedangkan kewajiban ruas kini **bergantung kategori** dan ditegakkan `VAL-95` terhadap data induk keberlakuan. `VAL-83`, `VAL-84`, dan `VAL-89` **tetap berlaku bagi Mikrobiologi**. **Nol aturan `VAL-01`..`VAL-87` dan `VAL-89`..`VAL-91` berubah.** Disetujui bersama `LAB-API-v1` `r25` dan `LAB-PERM-v1` rev 7 pada hari yang sama. Lihat bagian 10 |
 | `r7` approved_by / approved_at | Yoga Aji Pratama (`yogaaji452@gmail.com`) / **2026-09-18** |
@@ -787,3 +787,48 @@ sehingga **selalu** menahan order lewat aturan yang sama; tidak ada aturan khusu
 | Aturan | Keputusan | AC |
 |---|---|---|
 | `VAL-146` | `LAB-DEC-154` | `AC-243`, `AC-244`, `AC-245` |
+
+## 17. Amandemen `r15` — Periode laporan operasional (`S16a`), 2026-09-25
+
+| Field | Nilai |
+|---|---|
+| `contract_version` | `LAB-VAL-v1` |
+| Revision | `r15` |
+| Status | **`draft`** — menunggu persetujuan pemilik modul |
+| `approved_by` / `approved_at` | **belum** |
+| `input_revision` | decisions rev 81; `LAB-API-v1` `r37`; `02-backend-architecture.md` rev 13 bagian 23 |
+| Sifat | **Tiga aturan baru** pada endpoint baru. Nol aturan lama berubah |
+
+### 17.1 Aturan yang ditambahkan
+
+Berlaku pada ketujuh endpoint `api/v1/health-services/laboratory-management/lab-operational-reports`.
+
+| ID | Aturan | Pesan bagi pengguna | Kode | Dasar |
+|---|---|---|---|---|
+| `VAL-147` | `startDate` **dan** `endDate` wajib diisi | "Periode laporan wajib diisi." | `400` | Laporan tanpa periode akan membaca seluruh riwayat |
+| `VAL-148` | `startDate` tidak boleh sesudah `endDate`; keduanya **inklusif** | "Tanggal awal tidak boleh melewati tanggal akhir." — **sama persis** dengan endpoint Laboratorium lain | `400` | `LAB-DEC-071` |
+| `VAL-149` | Panjang periode paling banyak **366 hari**, dihitung inklusif | "Periode laporan paling panjang 366 hari. Persempit rentang tanggalnya." | `422` | `02-backend-architecture.md` 23.10 butir 3 — melindungi basis data bersama |
+
+**Disiplin tak dikenal** ditolak model binding dengan `400` sebelum masuk controller — perilaku yang
+sama dengan catatan `VAL-76`; tidak dijadikan aturan tersendiri.
+
+**Contoh:**
+
+> Periode 1 Januari-31 Desember 2026 = 365 hari → diterima. Periode 1 Januari 2026-1 Januari 2027 =
+> 366 hari → diterima. Periode 1 Januari 2026-2 Januari 2027 = 367 hari → `422`. Periode 30 September
+> sampai 1 September → `400`, dengan pesan yang sama seperti di daftar Pemeriksaan.
+
+### 17.2 Aturan yang sengaja TIDAK dibuat
+
+| Yang ditolak | Alasan |
+|---|---|
+| Periode wajib di masa lalu | Laporan hari ini sah — angkanya bertambah sepanjang hari |
+| Periode minimal satu hari penuh | Laporan satu hari justru pemakaian paling sering (`LAB-DEC-071`) |
+
+### 17.3 Traceability `r15`
+
+| Aturan | Keputusan | AC |
+|---|---|---|
+| `VAL-147` | `LAB-DEC-159` | Baris matriks uji |
+| `VAL-148` | `LAB-DEC-071` | Baris matriks uji |
+| `VAL-149` | 23.10 butir 3 | Baris matriks uji |

@@ -1043,6 +1043,12 @@ berubah** sejak `draft`, dan bagian yang dirujuk `MVP-9`/`MVP-10` tetap tidak di
 > `READY_FOR_DOMAIN_DESIGN`, tetapi **belum** punya arsitektur domain, desain, maupun kontrak, sehingga
 > **nol task lahir** dari gerbang ini.
 
+> **Diperbarui 2026-09-25 — arsitektur domain `S16a` (`LAB-DA-001` rev 10, bagian A7).**
+> `03-domain-architecture.md` kini `92243c09f0d29aed927d3c3f45baaf043e6bf4e44b9534cb4d57083f24fb0532`.
+> Kedua SHA bergeser ke BE **`84383f64`** dan FE **`2083ff36a`** — impact scan: nol berkas source
+> Laboratorium. **Seluruh kontrak tidak berubah**; kerja `MVP-9`, `MVP-9e`, dan `MVP-10` tetap sah.
+> `S16a` kini `DOMAIN_ARCHITECTURE_READY`, **belum** punya desain maupun kontrak — nol task lahir.
+
 ## Penilaian ulang `S2b`, `S8`, `S16`, `S18`, `S19` — gerbang `LAB-RCG-001-r10` (2026-09-25)
 
 **Nol task lahir** — kelima slice tetap `BUSINESS_DECISION_REQUIRED`. Rinciannya:

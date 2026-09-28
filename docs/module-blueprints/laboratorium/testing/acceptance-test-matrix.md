@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `LAB-BP-001` |
-| Revision | `9` — amandemen 2026-09-25 ketiga (penyelesaian order, hasil resmi, label keadaan). Sebelumnya `8` — amandemen 2026-09-25 kedua (`S4d-1`). Sebelumnya `7` — amandemen 2026-09-25 (`S4`). Sebelumnya `6` — amandemen 2026-09-24 |
+| Revision | `10` — amandemen 2026-09-28, tiga laporan operasional (`S16a`) — kontraknya masih `draft`. Sebelumnya `9` — amandemen 2026-09-25 ketiga (penyelesaian order, hasil resmi, label keadaan). Sebelumnya `8` — amandemen 2026-09-25 kedua (`S4d-1`). Sebelumnya `7` — amandemen 2026-09-25 (`S4`). Sebelumnya `6` — amandemen 2026-09-24 |
 | Status | `draft` |
 | Scope | Slice `S1a`, `S2`, `S3`, `S7`, `S10`, `S11`, `S13a`, `S13b`, `S14`, `S15`. **Revision 4 menambah amandemen Penerimaan Sampling/Specimen** — lihat bagian 11 |
 | Backend SHA | Revision 1-3: `c87d9c0`. **Revision 4: `466a7127`**, diverifikasi tidak berubah pada `9067fa73` |
@@ -790,3 +790,98 @@ pemeriksaannya dibatalkan.
 | Pemeriksaan ditambahkan pada detik yang sama dengan penyelesaian order | Risiko yang disadari — `02-backend-architecture.md` 22.6 |
 | Prosedur hasil terrilis yang keliru sebelum `S6` | `LAB-OPEN-045` — belum ada prosedur untuk diuji |
 | Tombol *Selesai* order di frontend | Tidak ada — nol layar memanggil endpoint itu |
+
+## Amandemen 2026-09-28 — Tiga laporan operasional (`S16a`)
+
+| Field | Nilai |
+|---|---|
+| Status | **`draft`** |
+| Kontrak yang diuji | `LAB-API-v1` `r37`, `LAB-VAL-v1` `r15`, `LAB-PERM-v1` revision 12 — **ketiganya masih `draft`** |
+| Rancangan | `02-backend-architecture.md` bagian 23; `03-frontend-architecture.md` amandemen 2026-09-25 (keempat); `04-prd-to-mvp.md` bagian 24 |
+| Keputusan | `LAB-DEC-159`, `LAB-DEC-160`, `LAB-DEC-155`, `LAB-DEC-071`; `INV-55`..`INV-57` |
+| Prasyarat data | `MVP-9b` selesai — `ReleasedAt` (`BE-LAB-70`), penjaga disiplin (`BE-LAB-73`), `BelumSelesai()` mengeluarkan pemeriksaan dirilis (`BE-LAB-77`) |
+
+**Seluruh waktu di bawah ditulis WIB** kecuali disebut UTC. Periode uji: **1-30 September 2026**.
+
+### Matriks — arti angka
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `AC-250`, `INV-55` | Kalium A dirilis 12 September 10.00; Kalium B dipesan 30 September, dirilis **1 Oktober 06.30** (30 September 23.30 UTC); Glukosa C dibatalkan 15 September | Integrasi | September: Patologi Klinik `total = 1`, rincian *Kalium* 1. Oktober: Kalium B terhitung. Glukosa C **tidak** di mana pun |
+| `AC-250` — batas awal | Pemeriksaan dirilis **1 September 00.10** (31 Agustus 17.10 UTC) | Integrasi | Masuk **September**, bukan Agustus |
+| `AC-250` — tervalidasi belum dirilis | Hemoglobin tervalidasi 20 September, belum dirilis | Integrasi | **Tidak** dihitung (`LAB-DEC-155`) |
+| `AC-250` — nama tersimpan | Nama jenis pemeriksaan di katalog diubah sesudah pemesanan | Integrasi | `procedureName` memakai nama saat dipesan (`ProcedureNameSnapshot`) |
+| `AC-251`, `INV-56` | 400 wadah Patologi Klinik diputuskan pada September, 12 ditolak (8 *hemolisis*, 4 *volume kurang*) | Integrasi | `decidedCount = 400`, `rejectedCount = 12`, `rejectionRatePercent = 3.0`; `reasons[]` memuat 8 dan 4 |
+| `INV-56` — wadah pengganti | Tabung hemolisis ditolak 10 September, penggantinya diterima 10 September | Integrasi | **Dua** keputusan, **satu** penolakan |
+| `INV-56` — tanggal keputusan | Wadah tiba 30 September, diputuskan tidak layak **1 Oktober 07.00** | Integrasi | Masuk **Oktober** |
+| `AC-251` — nol keputusan | Periode tanpa satu pun keputusan untuk Mikrobiologi | Integrasi | Baris Mikrobiologi `decidedCount = 0`, `rejectionRatePercent` **kosong**, bukan 0 |
+| `AC-252`, `INV-57` | Kalium cito layak 08.00, dirilis 09.10; batas cito 60 menit | Integrasi | Selang **70** menit; `overdueCount` bertambah 1 |
+| `AC-252` — batas persis | Kalium cito layak 08.00, dirilis **09.00** | Integrasi | **Tidak** terlambat — sama dengan daftar pantau, yang menyebut terlambat hanya bila waktu **melewati** tenggat |
+| `AC-252` — *dan sebaliknya* | Kalium cito layak 08.00 (batas 60), belum dirilis: buka daftar pantau pukul 09.05; rilis 09.10; buka laporan. Kalium kedua layak 08.00, dirilis 08.55, ordernya masih terbuka: buka daftar pantau 09.05 | Integrasi | Kalium pertama: tampil di daftar pantau **dan** terlambat di laporan. Kalium kedua: **tidak** tampil di daftar pantau **dan tidak** terlambat di laporan |
+| `AC-252` — rutin | Pemeriksaan rutin dirilis 5 jam sesudah layak | Integrasi | Masuk rata-rata rutin; `overdueCount` dan `withoutLimitCount` **kosong** pada baris rutin |
+| `AC-252` — cito tanpa batas | Pemeriksaan cito tanpa `CitoTurnaroundMinutes` aktif | Integrasi | `withoutLimitCount` bertambah 1; tidak dihitung terlambat; tetap masuk rata-rata |
+| `INV-57` — pengambilan ulang | Wadah ditolak 08.00, pengganti layak 09.00, hasil pemeriksaan baru dirilis 09.40 | Integrasi | TAT **40** menit — dari wadah pengganti; pemeriksaan yang digugurkan **tidak** dihitung |
+| Batas cito satu sumber | Ubah `CitoTurnaroundMinutes` Kalium dari 60 ke 90, lalu buka laporan dan daftar pantau | Integrasi | Keduanya memakai **90** — batas yang berlaku saat dibuka (23.10 butir 5) |
+| `ARCH-GAP-LAB-11` | Laporan jumlah dan TAT dengan laporan PA Final pada periode itu | Integrasi | Baris PA `isCountable = false`, `notCountableReason` terisi, angka **kosong** — bukan 0 |
+| `ARCH-GAP-LAB-11` — penolakan | Laporan penolakan dengan wadah PA yang ditolak | Integrasi | Baris PA **terhitung** — keputusan kelayakan ada pada ketiga disiplin |
+| Order tanpa disiplin | Order lama berdisiplin kosong dengan pemeriksaan dirilis | Integrasi | Dikelompokkan *Belum tergolong*; tidak hilang |
+| Penyaring disiplin | `discipline = ClinicalPathology` | Integrasi | Hanya baris Patologi Klinik |
+
+### Matriks — periode, izin, unduhan
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `VAL-147` | `startDate` kosong; `endDate` kosong | Integrasi | `400` *"Periode laporan wajib diisi."* pada ketujuh endpoint |
+| `VAL-148` | 30 September sampai 1 September | Integrasi | `400` — pesan **sama persis** dengan daftar Pemeriksaan |
+| `VAL-149` | 1 Januari 2026-1 Januari 2027 (366 hari); lalu sampai 2 Januari 2027 (367 hari) | Integrasi | Pertama `200`; kedua `422` |
+| Disiplin tak dikenal | `discipline = Hematology` | Integrasi | `400` dari model binding |
+| `AC-253` | Pengguna pemegang `LabExamination : Read` dan `LabWorklist : Read`, tanpa izin laporan, memanggil ketujuh endpoint | Integrasi | Ketujuhnya `403` |
+| `AC-253` — `Read` tanpa `Export` | Pemegang `LabOperationalReport : Read` saja | Integrasi | Empat baca `200`; tiga unduh `403` |
+| `PermissionRegistryValidator` | Nyalakan aplikasi | Integrasi | Aplikasi mulai; resource `LabOperationalReport` dengan `Read` dan `Export` terdaftar |
+| Format CSV | Unduh laporan penolakan | Integrasi | Tiga byte pertama berkas adalah BOM UTF-8; baris pertama periode; pemisah `;`; angka `3,0`; judul kolom Bahasa Indonesia |
+| Log unduhan | Unduh ketiga laporan | Integrasi | Tiga baris `LabOperationalReport.Export` berisi jenis laporan, periode, disiplin, jumlah baris, pelaku; **nol** nama pasien, No. RM, nilai hasil, isi berkas |
+| Log baca | Buka ketiga laporan | Integrasi | **Nol** baris log |
+| Privasi respons | Periksa seluruh ruas ketiga respons | Integrasi | Nol nama pasien, No. RM, nilai hasil, nama petugas |
+| Migration | `AddLabSpecimenDecidedAtIndex` naik lalu turun | Migration | Index ada sesudah `Up`, hilang sesudah `Down`; **nol** baris berubah |
+
+### Matriks — pemindahan tanpa perubahan perilaku
+
+**Uji karakterisasi ditulis dan lulus SEBELUM pemindahan, lalu dijalankan ulang tanpa disunting
+sesudahnya.** Repository ini belum memuat uji otomatis bagi daftar pantau cito — tanpa uji
+karakterisasi, *"nol perubahan perilaku"* tidak punya bukti.
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `AC-17` sesudah pemindahan | Kedua baris `AC-17` pada bagian 5 matriks ini, ditambah pemeriksaan cito tanpa batas waktu | Integrasi | Hasil **identik** sebelum dan sesudah `LabCitoTurnaroundPolicy` |
+| Batas cito bertingkat | Batas umum dan batas per kelompok umur pada satu jenis pemeriksaan | Unit | `GetLimitsAsync` memilih nilai yang sama dengan fungsi lama — baris umum (`All`, tanpa kelompok umur); bila baris itu kosong, nilai terkecil di antara baris aktif lain |
+| `VAL-126` sesudah pemindahan | Seluruh baris `VAL-126` amandemen `S4` dan `S4d-1` | Integrasi | Hasil **identik** sesudah `LabReleasableDisciplines` |
+
+### Matriks — layar
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `ARCH-GAP-LAB-11` | Respons dengan `isCountable = false` | Unit test aturan + UI | Teks `notCountableReason` tampil; angka 0 **tidak** tampil |
+| Angka kosong | `rejectionRatePercent` atau `averageMinutes` kosong | Unit test aturan | *"—"* beserta sebabnya |
+| Pemformatan | `3.0` → *3,0%*; `48.6` → menit sesuai format pilihan `DEV_DISCRETION` | Unit test aturan | Keluaran fungsi murni tepat |
+| Tombol unduh | Pengguna tanpa `Export` | UI | Tombol tidak tampil |
+| Menu | Pengguna tanpa `Read` | UI | Butir menu tidak tampil; route langsung menampilkan pesan tidak berwenang |
+| Memuat per laporan | Satu laporan lambat, dua lainnya cepat | UI | Dua yang cepat tampil lebih dulu |
+| Galat periode | Periode 367 hari | UI | Pesan `422` dari backend pada penyaring |
+
+### Data uji tambahan
+
+Satu pengguna kepala instalasi samaran dengan `Read` dan `Export`; satu pengguna manajemen dengan
+`Read` saja; satu analis dengan `LabExamination : Read` dan `LabWorklist : Read`. Data September:
+Patologi Klinik dengan pemeriksaan dirilis, tervalidasi belum dirilis, dan dibatalkan; pemeriksaan
+dirilis di sekitar pergantian hari WIB/UTC; 400 keputusan wadah dengan 12 penolakan; Kalium cito
+berbatas 60 menit dengan tiga waktu rilis (08.55, 09.00, 09.10); satu pemeriksaan cito tanpa batas;
+satu laporan PA Final; satu order lama tanpa disiplin.
+
+### Yang tidak diuji
+
+| Yang tidak diuji | Alasan |
+|---|---|
+| Hitungan sesudah koreksi hasil | `S6` belum ada — `ARCH-GAP-LAB-12` |
+| Angka Patologi Anatomi | `S4e` — `DEC-LAB-021` |
+| Waktu jawab pada data satu tahun penuh | Belum ada ambang kinerja yang diputuskan; diukur dan dilaporkan pada task backend, bukan AC |
+| Delapan laporan lain | `S16b` — `DEC-LAB-025` |
