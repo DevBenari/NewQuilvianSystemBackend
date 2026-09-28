@@ -55,7 +55,7 @@ flowchart LR
     FTUTUP["✅ Tutup bulan dan jurnal berulang<br/>FE-ACC-P2-001 sampai 004"]:::selesai
     FLAIN["✅ Pengaturan, tutup tahun, control, rekonsiliasi<br/>FE-ACC-P2-005 sampai 008"]:::selesai
     FBATCH["✅ Batch 14 Sep 2026<br/>FE-ACC-P2-009, 010, 014"]:::selesai
-    FWAVEB["🟡 Wave B 24 Sep 2026<br/>FE-ACC-P2-011, 012, 013"]:::sebagian
+    FWAVEB["✅ Wave B 24 Sep 2026<br/>FE-ACC-P2-011, 012, 013"]:::selesai
 
     BMANDIRI --> FTUTUP
     BMANDIRI --> FLAIN
@@ -463,7 +463,7 @@ flowchart LR
     end
 
     FEACCP2011["✅ FE-ACC-P2-011<br/>Layar Kotak Masuk Kejadian"]:::selesai
-    FEACCP2012["🟡 FE-ACC-P2-012<br/>Rincian kejadian dan aksinya"]:::sebagian
+    FEACCP2012["✅ FE-ACC-P2-012<br/>Rincian kejadian dan aksinya"]:::selesai
     FEACCP2013["✅ FE-ACC-P2-013<br/>Isian jenis perlakuan"]:::selesai
 
     BBEACCP2024 --> FEACCP2011
@@ -482,7 +482,7 @@ flowchart LR
 | ID | Judul | Gelombang | Dependency | Status |
 |---|---|---|---|---|
 | `FE-ACC-P2-011` | Layar Kotak Masuk Kejadian beserta penanda angka menu | `P2-6` | `BE-ACC-P2-024` | ✅ `SELESAI` 24 Sep 2026 — uji layar 8/8, `npm run build` berhasil, commit `70bb05446`; angka menu ditunda atas keputusan Rizki. [Laporan](../task/report/frontend/FE-ACC-P2-011.md) |
-| `FE-ACC-P2-012` | Rincian kejadian: coba ulang dan abaikan | `P2-6` | `BE-ACC-P2-024`, `BE-ACC-P2-025`, `FE-ACC-P2-011` | 🟡 `SEBAGIAN` 24 Sep 2026 — dikerjakan ulang atas permintaan Rizki (rincian ringkas, pesan asli terbaca); tinggal `npm run build` dan uji layar ulang. [Laporan](../task/report/frontend/FE-ACC-P2-012.md) |
+| `FE-ACC-P2-012` | Rincian kejadian: coba ulang dan abaikan | `P2-6` | `BE-ACC-P2-024`, `BE-ACC-P2-025`, `FE-ACC-P2-011` | ✅ `SELESAI` 28 Sep 2026 — dikerjakan ulang atas permintaan Rizki (rincian ringkas, pesan asli terbaca); build berhasil, uji layar ulang 5/5 lulus. [Laporan](../task/report/frontend/FE-ACC-P2-012.md) |
 | `FE-ACC-P2-013` | Isian Jenis perlakuan pada form jenis kejadian | `P2-6` | `BE-ACC-P2-022` | ✅ `SELESAI` 24 Sep 2026 — uji layar 7/7 + Swagger 3/3, `npm run build` berhasil, commit `70bb05446`. [Laporan](../task/report/frontend/FE-ACC-P2-013.md) |
 
 ## ✅ `FE-ACC-P2-011` — Layar Kotak Masuk Kejadian beserta penanda angka menu
@@ -501,7 +501,7 @@ flowchart LR
 | DoD | Lint hijau, laporan task tertulis. Build dijalankan owner |
 | **Status** | ✅ **SELESAI — 24 September 2026.** Dibangun; eslint 8 berkas 0/0; uji layar Rizki lulus **8 dari 8** (menu, angka tab, tab Tertahan + alasan, jenis, periode, cari, tab Semua dengan nomor jurnal, galat + Coba Lagi). Angka penanda di **menu ditunda atas keputusan Rizki** 24 September 2026 — bagian "di menu" acceptance (3) dikecualikan, sidebar bersama tidak disentuh, `ACC-DEC-057` tetap terbuka untuk task kelak. `npm run build` Rizki berhasil; di-commit `70bb05446`. Riwayat: 🟡 pada hari yang sama. UAT belum dijalankan. Bukti: [laporan](../task/report/frontend/FE-ACC-P2-011.md) |
 
-## 🟡 `FE-ACC-P2-012` — Rincian kejadian: coba ulang dan abaikan
+## ✅ `FE-ACC-P2-012` — Rincian kejadian: coba ulang dan abaikan
 
 | Field | Isi |
 |---|---|
@@ -515,7 +515,7 @@ flowchart LR
 | Verifikasi | `npm run lint`; `npm run build` oleh owner |
 | Risiko/pemilik | Pertentangan desain layar lawan state matrix **selesai** — `ACC-DEC-092`; `03-frontend-architecture.md` bagian 11.2 sudah diselaraskan. Owner Frontend |
 | DoD | Lint hijau, laporan task tertulis. Build dijalankan owner |
-| **Status** | 🟡 **SEBAGIAN — pengerjaan ulang 24 September 2026** atas permintaan Rizki: Informasi Utama diringkas dari 13 kotak + kartu Jurnal/Komponen/Informasi Tambahan menjadi 7 kotak, dan Isi Pesan Asli tampil sebagai tabel berlabel Indonesia, bukan kode JSON (FR-P2-006 tetap terpenuhi). eslint 3 berkas **0/0**. **Belum:** `npm run build` Rizki dan uji layar ulang 6 skenario. Versi sebelumnya ✅ (uji 7/7, build berhasil, commit `70bb05446`); jalur Gagal kini juga teruji di layar sesudah `BE-ACC-P2-023`. UAT belum dijalankan. Bukti: [laporan](../task/report/frontend/FE-ACC-P2-012.md) |
+| **Status** | ✅ **SELESAI — 28 September 2026.** Pengerjaan ulang atas permintaan Rizki: Informasi Utama 7 kotak, Isi Pesan Asli tabel berlabel Indonesia (FR-P2-006 tetap terpenuhi). eslint 3 berkas **0/0**; commit `57c2f5de0`; `npm run build` Rizki berhasil 28 September 2026; uji layar ulang lulus skenario 1–5 (7 kotak, Buka Jurnal, tabel pesan asli, riwayat 4 percobaan `EVT-UJI-105`, tombol mati untuk Terjurnal). Tombol untuk status Gagal lewat source atas keputusan Rizki. Bukti agen AI 24 September 2026 dicabut. UAT belum dijalankan. Riwayat: ✅ 24 September, 🟡 sejak pengerjaan ulang. Bukti: [laporan](../task/report/frontend/FE-ACC-P2-012.md) |
 
 ## ✅ `FE-ACC-P2-013` — Isian Jenis perlakuan pada form jenis kejadian
 

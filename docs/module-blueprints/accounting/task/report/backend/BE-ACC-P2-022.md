@@ -212,3 +212,21 @@ nilai itu. Jenis uji yang dibuat di skenario 3 dan 7 tidak dapat dihapus — non
 | Interupsi | `NONE` |
 | Status Git | Lihat laporan `FE-ACC-P2-013` bagian penutup untuk keadaan akhir kedua repository; di backend task ini hanya menambah dua berkas `M` di `MasterData/EventType/` dan berkas laporan ini |
 | Langkah berikutnya | `BE-ACC-P2-023` menunggu perintah Rizki. Commit `021`–`025` + dokumen masih milik Rizki |
+
+---
+
+## 8. Catatan bukti — 28 September 2026
+
+Tabel uji bagian 5 berasal dari laporan uji 24 September 2026 yang disusun agen AI penguji; laporan
+agen yang sama terbukti keliru pada task lain (`BE-ACC-P2-025`). Status ✅ task ini tetap, karena
+verifikasi kartu dan DoD-nya terpenuhi oleh bukti mentah berikut:
+
+| Bukti mentah | Isi |
+| --- | --- |
+| `GET /event-types?Search=PATIENT_PAYMENT`, 25 September 2026 | Baris membawa `eventKind: 1` — verifikasi kartu "`GET /event-types` menampilkan `EventKind`" |
+| `POST /event-types` `UJI-026-A`, 25 September 2026 | Rincian membawa `eventKind: 1` dan `accountingEventCount: 0` |
+| `PATCH /event-types/{id}/deactivate` `UJI-026-A` dan `UJI-BELUM-TERDAFTAR`, 25 dan 28 September 2026 | `accountingEventCount: 1` sesudah kejadiannya terjurnal — hitungan dasar penolakan `409` bekerja |
+| Build Rizki 24 September 2026 | Berhasil, 222 warning |
+
+Tiga panggilan Swagger tambahan (tanpa `eventKind` → `1`; `eventKind: 3` → `400`; ganti perlakuan
+`PATIENT_PAYMENT` → `409`) **dinyatakan lulus oleh Rizki pada 28 September 2026 tanpa tangkapan layar**.
