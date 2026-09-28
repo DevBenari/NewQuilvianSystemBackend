@@ -82,7 +82,9 @@ public sealed class BillingClinicalChargeBridgeService
         if (plan.Outcome is not null)
             return await RecordAsync(effect, plan.Outcome, cancellationToken);
 
-        var outcome = await UpsertAsync(plan.Request!, plan.IdempotencyKey, plan.ActorUserId, cancellationToken);
+        var outcome = plan.Adjustment is not null
+            ? await AdjustAsync(plan, cancellationToken)
+            : await UpsertAsync(plan.Request!, plan.IdempotencyKey, plan.ActorUserId, cancellationToken);
         return await RecordAsync(effect, outcome, cancellationToken);
     }
 
@@ -130,14 +132,10 @@ public sealed class BillingClinicalChargeBridgeService
         if (detailId is null || detailId == Guid.Empty)
             return SyncPlan.Done(SyncOutcome.Reconcile(BillingBridgeCodes.SourceRejected, "Identitas butir pelayanan tidak tersedia pada fakta klinis.", domain));
 
-        // Invoice di luar OPEN ditangani BE-RJE-005 lewat adjustment. Sampai itu tersedia, efek
-        // berhenti di antrean alih-alih memaksa UpsertChargeAsync menolak.
-        var invoiceStatus = await db.Set<BilInvoice>().AsNoTracking()
+        var invoice = await db.Set<BilInvoice>().AsNoTracking()
             .Where(x => x.EncounterId == encounter.Id && !x.IsDelete)
-            .Select(x => x.Status)
+            .Select(x => new { x.Id, x.Status, x.RowVersion })
             .FirstOrDefaultAsync(cancellationToken);
-        if (invoiceStatus is not null && invoiceStatus != BillingInvoiceStatuses.Open)
-            return SyncPlan.Done(SyncOutcome.Reconcile(BillingBridgeCodes.InvoiceNotOpen, $"Tagihan kunjungan sudah berstatus {invoiceStatus}; penyesuaian belum tersedia otomatis.", domain));
 
         var resolver = services.GetRequiredService<BillingSourceTariffResolver>();
         var tariff = await resolver.ResolveAsync(
@@ -176,7 +174,120 @@ public sealed class BillingClinicalChargeBridgeService
             CausationId = fact.CausationId is { } causation && causation != Guid.Empty ? causation : effect.MilestoneFactId
         };
 
-        return SyncPlan.Upsert(request, DeterministicKey(effect.MilestoneFactId, effect.MilestoneFactVersion), fact.ActorUserId);
+        var key = DeterministicKey(effect.MilestoneFactId, effect.MilestoneFactVersion);
+
+        // BE-RJE-005 / V2.7.5: tagihan yang sudah tidak OPEN tidak boleh disunting lagi, sehingga
+        // perubahan setelah final menjadi adjustment yang menunggu persetujuan (RJ-BIL-DEC-004).
+        if (invoice is not null && invoice.Status != BillingInvoiceStatuses.Open)
+            return await BuildAdjustmentPlanAsync(
+                db, effect, request, key, fact.ActorUserId, invoice.Id, invoice.Status, invoice.RowVersion, cancellationToken);
+
+        return SyncPlan.Upsert(request, key, fact.ActorUserId);
+    }
+
+    /// <summary>
+    /// Selisih dihitung terhadap nilai efektif saat ini: total item yang tercatat ditambah
+    /// adjustment yang sudah diajukan revisi lain untuk fakta yang sama. Dengan begitu versi 3
+    /// tidak mengulang selisih yang sudah diajukan versi 2.
+    /// </summary>
+    private static async Task<SyncPlan> BuildAdjustmentPlanAsync(
+        ApplicationDbContext db,
+        BilProcessingEffect effect,
+        UpsertChargeRequest request,
+        Guid key,
+        Guid actorUserId,
+        Guid invoiceId,
+        string invoiceStatus,
+        Guid invoiceRowVersion,
+        CancellationToken cancellationToken)
+    {
+        // Revisi ini sudah pernah menghasilkan adjustment (status sinkronnya saja yang hilang):
+        // pakai yang ada, jangan mengajukan ulang.
+        var existing = await db.Set<BilAdjustment>().AsNoTracking()
+            .Where(x => x.IdempotencyKey == key && !x.IsDelete)
+            .Select(x => new { x.Id, x.InvoiceId })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (existing is not null)
+            return SyncPlan.Done(SyncOutcome.SyncedByAdjustment(
+                existing.InvoiceId, existing.Id, request.SourceDomain, request.SourceDetailId));
+
+        var itemTotal = await db.Set<BilInvoiceItem>().AsNoTracking()
+            .Where(x => x.InvoiceId == invoiceId
+                && x.SourceDomain == request.SourceDomain
+                && x.SourceDetailId == request.SourceDetailId
+                && x.Status == BillingInvoiceItemStatuses.Active
+                && !x.IsDelete)
+            .Select(x => (decimal?)(x.Quantity * x.UnitPrice))
+            .SumAsync(cancellationToken) ?? 0m;
+
+        var priorAdjustments = await (
+                from other in db.Set<BilProcessingEffect>().AsNoTracking()
+                join adjustment in db.Set<BilAdjustment>().AsNoTracking() on other.InvoiceAdjustmentId equals adjustment.Id
+                where other.MilestoneFactId == effect.MilestoneFactId
+                    && other.SourceContext == effect.SourceContext
+                    // Hanya revisi yang lebih dulu. Revisi yang datang belakangan tidak boleh
+                    // mengubah hasil hitung ulang revisi ini, supaya kirim ulang selalu identik.
+                    && other.MilestoneFactVersion < effect.MilestoneFactVersion
+                    && !adjustment.IsDelete
+                select new { adjustment.Direction, adjustment.Amount })
+            .ToListAsync(cancellationToken);
+        var effective = itemTotal + priorAdjustments.Sum(x =>
+            x.Direction == BillingAdjustmentDirections.Debit ? x.Amount : -x.Amount);
+
+        var target = decimal.Round(request.Quantity * request.UnitPrice, 2, MidpointRounding.AwayFromZero);
+        var delta = target - effective;
+        if (delta == 0)
+            return SyncPlan.Done(SyncOutcome.SyncedWithoutChange(
+                invoiceId, request.SourceDomain, request.SourceDetailId));
+
+        var adjustmentRequest = new CreateAdjustmentRequest
+        {
+            InvoiceId = invoiceId,
+            Direction = delta > 0 ? BillingAdjustmentDirections.Debit : BillingAdjustmentDirections.Credit,
+            Amount = Math.Abs(delta),
+            ExpectedInvoiceRowVersion = invoiceRowVersion,
+            Reason = Truncate(
+                $"Penyesuaian otomatis {request.SourceDomain} {request.SourceDetailId} versi {request.SourceVersion}: " +
+                $"tagihan sudah {invoiceStatus}, nilai {effective:0.##} menjadi {target:0.##}.", 500)!,
+            // CorrelationId wajib unik per adjustment; kunci deterministik (fakta, versi) memenuhinya
+            // sekaligus menjaga kirim ulang tetap terbaca sebagai replay yang sama.
+            CorrelationId = key,
+            CausationId = effect.MilestoneFactId
+        };
+
+        return SyncPlan.Adjust(adjustmentRequest, key, actorUserId, request.SourceDomain, request.SourceDetailId);
+    }
+
+    private async Task<SyncOutcome> AdjustAsync(SyncPlan plan, CancellationToken cancellationToken)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var exceptionService = scope.ServiceProvider.GetRequiredService<BillingFinancialExceptionService>();
+        var request = plan.Adjustment!;
+        try
+        {
+            var adjustment = await exceptionService.CreateAdjustmentAsync(request, plan.IdempotencyKey, plan.ActorUserId, cancellationToken);
+            return SyncOutcome.SyncedByAdjustment(adjustment.InvoiceId, adjustment.Id, plan.SourceDomain!, plan.SourceDetailId!);
+        }
+        catch (BillingFinancialExceptionValidationException exception)
+        {
+            // Mis. invoice CLOSED / SETTLED_BY_WRITE_OFF tidak menerima adjustment baru.
+            return SyncOutcome.Reconcile(BillingBridgeCodes.AdjustmentRejected, exception.Message, plan.SourceDomain, plan.SourceDetailId);
+        }
+        catch (BillingFinancialExceptionForbiddenException exception)
+        {
+            return SyncOutcome.Reconcile(BillingBridgeCodes.AdjustmentRejected, exception.Message, plan.SourceDomain, plan.SourceDetailId);
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return SyncOutcome.Reconcile(BillingBridgeCodes.AdjustmentRejected, exception.Message, plan.SourceDomain, plan.SourceDetailId);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            // Termasuk konflik RowVersion (invoice berubah bersamaan): dicoba ulang dengan kunci sama.
+            _logger.LogWarning(exception, "Adjustment otomatis gagal sementara untuk {Domain} {DetailId}.",
+                plan.SourceDomain, plan.SourceDetailId);
+            return SyncOutcome.Transient(exception.GetType().Name, plan.SourceDomain!, plan.SourceDetailId!);
+        }
     }
 
     private async Task<SyncOutcome> UpsertAsync(
@@ -245,7 +356,8 @@ public sealed class BillingClinicalChargeBridgeService
         if (status == BillingInvoiceSyncStatus.Synced)
         {
             effect.InvoiceId = outcome.InvoiceId;
-            effect.InvoiceItemId = outcome.InvoiceItemId;
+            effect.InvoiceItemId = outcome.InvoiceItemId ?? effect.InvoiceItemId;
+            effect.InvoiceAdjustmentId = outcome.InvoiceAdjustmentId ?? effect.InvoiceAdjustmentId;
             effect.InvoiceSyncedAt = now;
             effect.InvoiceSyncNextAttemptAt = null;
         }
@@ -353,10 +465,20 @@ public sealed class BillingClinicalChargeBridgeService
     private static string? Truncate(string? value, int max) =>
         value is null || value.Length <= max ? value : value[..max];
 
-    private sealed record SyncPlan(SyncOutcome? Outcome, UpsertChargeRequest? Request, Guid IdempotencyKey, Guid ActorUserId)
+    private sealed record SyncPlan(
+        SyncOutcome? Outcome,
+        UpsertChargeRequest? Request,
+        CreateAdjustmentRequest? Adjustment,
+        Guid IdempotencyKey,
+        Guid ActorUserId,
+        string? SourceDomain,
+        string? SourceDetailId)
     {
-        public static SyncPlan Done(SyncOutcome outcome) => new(outcome, null, Guid.Empty, Guid.Empty);
-        public static SyncPlan Upsert(UpsertChargeRequest request, Guid key, Guid actor) => new(null, request, key, actor);
+        public static SyncPlan Done(SyncOutcome outcome) => new(outcome, null, null, Guid.Empty, Guid.Empty, null, null);
+        public static SyncPlan Upsert(UpsertChargeRequest request, Guid key, Guid actor) =>
+            new(null, request, null, key, actor, request.SourceDomain, request.SourceDetailId);
+        public static SyncPlan Adjust(CreateAdjustmentRequest adjustment, Guid key, Guid actor, string domain, string detailId) =>
+            new(null, null, adjustment, key, actor, domain, detailId);
     }
 
     private sealed record SyncOutcome(
@@ -366,7 +488,8 @@ public sealed class BillingClinicalChargeBridgeService
         string? SourceDomain,
         string? SourceDetailId,
         Guid? InvoiceId,
-        Guid? InvoiceItemId)
+        Guid? InvoiceItemId,
+        Guid? InvoiceAdjustmentId = null)
     {
         public static SyncOutcome NotApplicable(string code, string message) =>
             new(BillingInvoiceSyncStatus.NotApplicable, code, message, null, null, null, null);
@@ -378,6 +501,12 @@ public sealed class BillingClinicalChargeBridgeService
             new(BillingInvoiceSyncStatus.Failed, BillingBridgeCodes.TransientFailure, $"Gangguan sementara ({errorType}); akan dicoba ulang.", domain, detailId, null, null);
         public static SyncOutcome Synced(Guid invoiceId, Guid? itemId, string domain, string detailId) =>
             new(BillingInvoiceSyncStatus.Synced, null, null, domain, detailId, invoiceId, itemId);
+        public static SyncOutcome SyncedByAdjustment(Guid invoiceId, Guid adjustmentId, string domain, string detailId) =>
+            new(BillingInvoiceSyncStatus.Synced, BillingBridgeCodes.AdjustmentSubmitted,
+                "Tagihan sudah final; penyesuaian diajukan dan menunggu persetujuan Billing.", domain, detailId, invoiceId, null, adjustmentId);
+        public static SyncOutcome SyncedWithoutChange(Guid invoiceId, string domain, string detailId) =>
+            new(BillingInvoiceSyncStatus.Synced, BillingBridgeCodes.NoFinancialChange,
+                "Tagihan sudah final dan nilainya tidak berubah; tidak ada penyesuaian.", domain, detailId, invoiceId, null);
     }
 }
 
@@ -405,6 +534,9 @@ public static class BillingBridgeCodes
     public const string SourceRejected = "SOURCE_REJECTED";
     public const string SourceConflict = "SOURCE_CONFLICT";
     public const string InvoiceNotOpen = "INVOICE_NOT_OPEN";
+    public const string AdjustmentSubmitted = "ADJUSTMENT_SUBMITTED";
+    public const string AdjustmentRejected = "ADJUSTMENT_REJECTED";
+    public const string NoFinancialChange = "NO_FINANCIAL_CHANGE";
     public const string CancellationPendingSupport = "CANCELLATION_PENDING_SUPPORT";
     public const string SourcePendingSupport = "SOURCE_PENDING_SUPPORT";
     public const string TransientFailure = "TRANSIENT_FAILURE";
