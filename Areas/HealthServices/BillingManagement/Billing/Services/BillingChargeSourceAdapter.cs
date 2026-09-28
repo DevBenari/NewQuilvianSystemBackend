@@ -8,6 +8,7 @@ public interface IBillingChargeSourceAdapter
     BillingChargeSourceSnapshot ValidateAndNormalize(UpsertChargeRequest request);
     BillingChargeVoidSnapshot ValidateVoid(BilInvoiceItem item, VoidInvoiceItemRequest request);
     bool IsOrderComplete(BilInvoiceItem item);
+    bool IsNormallyVoidable(string sourceDomain, string sourceStatus);
     bool IsRoomStayDomain(string? sourceDomain);
     bool IsRoomCorrection(string? sourceDomain, string? sourceStatus);
 }
@@ -145,8 +146,24 @@ public sealed class ContractBillingChargeSourceAdapter : IBillingChargeSourceAda
         if (!SourcePolicies.TryGetValue(item.SourceDomain, out var policy))
             throw new BillingInvoiceValidationException("SourceDomain belum didukung oleh kontrak charge Billing.");
         if (policy.CompleteOnEntry) return true;
+        // RJ-E2E-DEC-005 / V2.7.3: obat tahap 1 memang ditagih sebelum diserahkan — pelunasannya
+        // adalah syarat farmasi menyerahkan obat. Menganggapnya order yang belum selesai akan
+        // menahan finalisasi, dan clearance farmasi baru terbit setelah invoice final dan lunas:
+        // deadlock yang justru hendak diputus. PRESCRIBED tetap boleh di-void normal.
+        if (string.Equals(item.SourceDomain, "PHARMACY", StringComparison.Ordinal)
+            && string.Equals(item.SourceStatus, "PRESCRIBED", StringComparison.Ordinal))
+            return true;
         return !policy.NormalVoidFromStatuses.Contains(item.SourceStatus);
     }
+
+    /// <summary>
+    /// Item masih boleh di-void normal (belum dikerjakan, mis. <c>ACCEPTED</c>/<c>PRESCRIBED</c>).
+    /// Aturannya sama dengan <see cref="ValidateVoid"/>; dipakai jembatan Rawat Jalan untuk memilih
+    /// void atau adjustment kredit saat pembatalan klinis (V2.7.5).
+    /// </summary>
+    public bool IsNormallyVoidable(string sourceDomain, string sourceStatus) =>
+        SourcePolicies.TryGetValue(sourceDomain, out var policy)
+        && policy.NormalVoidFromStatuses.Contains(sourceStatus);
 
     public bool IsRoomStayDomain(string? sourceDomain) =>
         !string.IsNullOrWhiteSpace(sourceDomain) &&

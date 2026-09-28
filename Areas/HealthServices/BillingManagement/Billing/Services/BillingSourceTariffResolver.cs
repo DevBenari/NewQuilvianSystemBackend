@@ -34,6 +34,7 @@ public sealed class BillingSourceTariffResolver
             BillingBridgeSourceDomains.Laboratory => await ResolveLaboratoryAsync(request, cancellationToken),
             BillingBridgeSourceDomains.Radiology => await ResolveRadiologyAsync(request, cancellationToken),
             BillingBridgeSourceDomains.Consultation => await ResolveConsultationAsync(request, cancellationToken),
+            BillingBridgeSourceDomains.Pharmacy => await ResolvePharmacyAsync(request, cancellationToken),
             _ => BillingTariffResolution.Pending(
                 BillingBridgeCodes.SourcePendingSupport,
                 $"Penetapan tarif untuk {request.SourceDomain} belum tersedia pada jembatan.")
@@ -193,6 +194,104 @@ public sealed class BillingSourceTariffResolver
     }
 
     /// <summary>
+    /// Resep — satu item invoice per resep (clearance farmasi membaca satu item <c>PHARMACY</c>
+    /// per resep). Harganya Σ(jumlah × <c>NormalPrice</c>) per item obat; tarif item dicari dari
+    /// (1) <c>PhmPrescriptionItem.TariffId</c>, lalu (2) <see cref="MstTariff.DrugId"/> = obat.
+    /// Tahap 1 memakai jumlah yang diresepkan untuk item yang tidak dihentikan; tahap 2 memakai
+    /// jumlah yang benar-benar diserahkan (<see cref="BillingTariffResolutionRequest.DispensedQuantities"/>).
+    /// Satu obat tanpa tarif membuat seluruh resep masuk antrean — tidak pernah ditagih sebagian.
+    /// </summary>
+    private async Task<BillingTariffResolution> ResolvePharmacyAsync(
+        BillingTariffResolutionRequest request,
+        CancellationToken cancellationToken)
+    {
+        var prescription = await _dbContext.PhmPrescriptions.AsNoTracking()
+            .Where(x => x.Id == request.SourceAggregateId)
+            .Select(x => new { x.PrescriptionNumber })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (prescription is null)
+            return BillingTariffResolution.Rejected(BillingBridgeCodes.SourceNotFound, "Resep sumber tidak ditemukan.");
+
+        // Racikan belum punya jalur penyerahan per bahan maupun aturan harga yang disetujui.
+        // Menagih resep tanpa racikannya berarti menagih sebagian, jadi seluruh resep ditahan.
+        var hasCompound = await _dbContext.PhmPrescriptionCompounds.AsNoTracking()
+            .AnyAsync(x => x.PrescriptionId == request.SourceAggregateId && x.IsActive && !x.IsDelete, cancellationToken);
+        if (hasCompound)
+            return BillingTariffResolution.Rejected(
+                BillingBridgeCodes.SourceRejected,
+                "Resep memuat racikan yang belum dapat ditagih otomatis. Tagihkan manual lewat rekonsiliasi.");
+
+        var items = await _dbContext.PhmPrescriptionItems.AsNoTracking()
+            .Where(x => x.PrescriptionId == request.SourceAggregateId && !x.IsDelete)
+            .OrderBy(x => x.SortOrder)
+            .Select(x => new { x.Id, x.DrugId, x.TariffId, x.Quantity, x.IsActive, x.IsStopped, x.DrugNameSnapshot })
+            .ToListAsync(cancellationToken);
+
+        var dispensed = request.DispensedQuantities;
+        var total = 0m;
+        MstTariff? firstTariff = null;
+        foreach (var item in items)
+        {
+            var quantity = dispensed is null
+                ? (item.IsActive && !item.IsStopped ? item.Quantity : 0m)
+                : dispensed.GetValueOrDefault(item.Id);
+            if (quantity <= 0) continue;
+
+            var tariff = await FindDrugTariffAsync(
+                item.TariffId, item.DrugId, request.EncounterClinicId, request.PatientClassId,
+                request.OccurredAt, cancellationToken);
+            if (tariff is null)
+                return BillingTariffResolution.Rejected(
+                    BillingBridgeCodes.TariffNotFound,
+                    Truncate($"Tarif obat {item.DrugNameSnapshot} belum tersedia pada tanggal pelayanan. " +
+                        "Seluruh resep ditahan; lengkapi tarif, lalu kirim ulang.", 1000));
+
+            firstTariff ??= tariff;
+            total += quantity * tariff.NormalPrice;
+        }
+
+        if (firstTariff is null)
+            return BillingTariffResolution.Rejected(BillingBridgeCodes.SourceRejected, "Resep tidak memuat obat yang dapat ditagih.");
+
+        return BillingTariffResolution.Resolved(
+            null,
+            firstTariff.TariffCategoryId,
+            Truncate($"Resep {prescription.PrescriptionNumber}", 250),
+            1m,
+            decimal.Round(total, 2, MidpointRounding.AwayFromZero));
+    }
+
+    private async Task<MstTariff?> FindDrugTariffAsync(
+        Guid? directTariffId,
+        Guid drugId,
+        Guid? clinicId,
+        Guid? patientClassId,
+        DateTime occurredAt,
+        CancellationToken cancellationToken)
+    {
+        var effective = EffectiveTariffs(occurredAt);
+
+        if (directTariffId is { } tariffId && tariffId != Guid.Empty)
+        {
+            var direct = await effective.FirstOrDefaultAsync(x => x.Id == tariffId, cancellationToken);
+            if (direct is not null) return direct;
+        }
+
+        var candidates = await effective
+            .Where(x => x.DrugId == drugId
+                && (x.ClinicId == null || x.ClinicId == clinicId)
+                && (x.PatientClassId == null || x.PatientClassId == patientClassId))
+            .ToListAsync(cancellationToken);
+
+        return candidates
+            .OrderByDescending(x => (x.ClinicId != null ? 2 : 0) + (x.PatientClassId != null ? 1 : 0))
+            .ThenBy(x => x.TariffCode, StringComparer.Ordinal)
+            .FirstOrDefault();
+    }
+
+    private static string Truncate(string value, int max) => value.Length <= max ? value : value[..max];
+
+    /// <summary>
     /// Tarif langsung (bila sumber sudah menyimpannya) menang; bila tidak ada atau tidak berlaku,
     /// dicari berdasarkan tindakan dengan urutan paling spesifik: klinik dan kelas pasien, lalu
     /// salah satunya, lalu umum. Seri diputus dengan kode tarif supaya hasilnya deterministik.
@@ -257,7 +356,8 @@ public sealed record BillingTariffResolutionRequest(
     decimal? FactQuantity,
     Guid? EncounterClinicId,
     Guid? PatientClassId,
-    DateTime OccurredAt);
+    DateTime OccurredAt,
+    IReadOnlyDictionary<Guid, decimal>? DispensedQuantities = null);
 
 public enum BillingTariffResolutionKind
 {
@@ -277,7 +377,7 @@ public sealed record BillingTariffResolution(
     string? Code,
     string? Message)
 {
-    public static BillingTariffResolution Resolved(Guid tariffId, Guid categoryId, string description, decimal quantity, decimal unitPrice) =>
+    public static BillingTariffResolution Resolved(Guid? tariffId, Guid categoryId, string description, decimal quantity, decimal unitPrice) =>
         new(BillingTariffResolutionKind.Resolved, tariffId, categoryId, description, quantity, unitPrice, null, null);
 
     public static BillingTariffResolution NotBillable(string code, string message) =>

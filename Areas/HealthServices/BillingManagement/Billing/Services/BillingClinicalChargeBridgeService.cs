@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Dtos;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
@@ -82,9 +83,11 @@ public sealed class BillingClinicalChargeBridgeService
         if (plan.Outcome is not null)
             return await RecordAsync(effect, plan.Outcome, cancellationToken);
 
-        var outcome = plan.Adjustment is not null
-            ? await AdjustAsync(plan, cancellationToken)
-            : await UpsertAsync(plan.Request!, plan.IdempotencyKey, plan.ActorUserId, cancellationToken);
+        var outcome = plan.Void is not null
+            ? await VoidAsync(plan, cancellationToken)
+            : plan.Adjustment is not null
+                ? await AdjustAsync(plan, cancellationToken)
+                : await UpsertAsync(plan.Request!, plan.IdempotencyKey, plan.ActorUserId, cancellationToken);
         return await RecordAsync(effect, outcome, cancellationToken);
     }
 
@@ -110,12 +113,9 @@ public sealed class BillingClinicalChargeBridgeService
 
         var domain = MapDomain(effect.SourceContext);
 
-        // Pembatalan dan resep ditangani task berikutnya (BE-RJE-009, 008).
-        // Efeknya tetap Pending — tidak dibuang — supaya diproses begitu dukungannya tersedia.
-        if (effect.IsClinicalCancellation)
-            return SyncPlan.Done(SyncOutcome.StayPending(BillingBridgeCodes.CancellationPendingSupport, "Penerusan pembatalan klinis belum tersedia pada jembatan.", domain));
         if (domain is not (BillingBridgeSourceDomains.Procedure or BillingBridgeSourceDomains.Laboratory
-            or BillingBridgeSourceDomains.Radiology or BillingBridgeSourceDomains.Consultation))
+            or BillingBridgeSourceDomains.Radiology or BillingBridgeSourceDomains.Consultation
+            or BillingBridgeSourceDomains.Pharmacy))
             return SyncPlan.Done(SyncOutcome.StayPending(BillingBridgeCodes.SourcePendingSupport, $"Penerusan {domain} belum tersedia pada jembatan.", domain));
 
         var fact = await db.Set<CliClinicalMilestoneFact>().AsNoTracking()
@@ -124,17 +124,54 @@ public sealed class BillingClinicalChargeBridgeService
                 && x.SourceContext == effect.SourceContext
                 && x.EffectType == effect.EffectType
                 && !x.IsDelete)
-            .Select(x => new { x.SourceAggregateId, x.SourceItemId, x.Quantity, x.ActorUserId, x.CorrelationId, x.CausationId })
+            .Select(x => new { x.SourceAggregateId, x.SourceItemId, x.Quantity, x.ActorUserId, x.CorrelationId, x.CausationId, x.RuleSnapshot })
             .FirstOrDefaultAsync(cancellationToken);
         if (fact is null)
             return SyncPlan.Done(SyncOutcome.Reconcile(BillingBridgeCodes.FactNotFound, "Fakta klinis untuk efek folio ini tidak ditemukan.", domain));
 
-        // Tindakan dan konsultasi diidentifikasi oleh agregatnya; Lab dan Radiologi oleh butirnya.
+        // Tindakan, konsultasi, dan resep diidentifikasi oleh agregatnya; Lab dan Radiologi oleh
+        // butirnya. Resep wajib memakai id resep karena clearance farmasi membacanya begitu.
         var detailId = domain is BillingBridgeSourceDomains.Procedure or BillingBridgeSourceDomains.Consultation
+            or BillingBridgeSourceDomains.Pharmacy
             ? fact.SourceAggregateId
             : fact.SourceItemId;
         if (detailId is null || detailId == Guid.Empty)
             return SyncPlan.Done(SyncOutcome.Reconcile(BillingBridgeCodes.SourceRejected, "Identitas butir pelayanan tidak tersedia pada fakta klinis.", domain));
+
+        var key = DeterministicKey(effect.MilestoneFactId, effect.MilestoneFactVersion);
+        var correlationId = fact.CorrelationId == Guid.Empty ? effect.MilestoneFactId : fact.CorrelationId;
+        var causationId = fact.CausationId is { } causation && causation != Guid.Empty ? causation : effect.MilestoneFactId;
+
+        if (effect.IsClinicalCancellation)
+            return await BuildCancellationPlanAsync(
+                db, services, effect, encounter.Id, domain, detailId.Value.ToString("D"),
+                key, fact.ActorUserId, correlationId, causationId, cancellationToken);
+
+        // Tagihan versi lama yang baru sampai setelah pembatalannya tidak boleh menghidupkan item
+        // lagi: item yang sudah di-void tidak lagi dianggap ada oleh upsert, sehingga upsert akan
+        // membuat item baru.
+        var cancelledLater = await db.Set<BilProcessingEffect>().AsNoTracking()
+            .AnyAsync(x => x.MilestoneFactId == effect.MilestoneFactId
+                && x.SourceContext == effect.SourceContext
+                && x.MilestoneFactVersion > effect.MilestoneFactVersion
+                && x.IsClinicalCancellation
+                && !x.IsDelete, cancellationToken);
+        if (cancelledLater)
+            return SyncPlan.Done(SyncOutcome.NoChange(
+                "Pelayanan ini sudah dibatalkan pada versi yang lebih baru; versi ini tidak ditagihkan.",
+                domain, detailId.Value.ToString("D"), null));
+
+        // Resep dua tahap (RJ-E2E-DEC-005): tahap 1 PRESCRIBED saat resep difinalkan, tahap 2
+        // DISPENSED dengan jumlah yang benar-benar diserahkan per item obat.
+        IReadOnlyDictionary<Guid, decimal>? dispensedQuantities = null;
+        var sourceStatus = MapBillableStatus(domain);
+        if (domain == BillingBridgeSourceDomains.Pharmacy)
+        {
+            if (!TryReadPrescriptionStage(fact.RuleSnapshot, out var isDispensed, out dispensedQuantities))
+                return SyncPlan.Done(SyncOutcome.Reconcile(BillingBridgeCodes.SourceRejected,
+                    "Rincian tahap resep pada fakta klinis tidak dapat dibaca.", domain, detailId.Value.ToString("D")));
+            sourceStatus = isDispensed ? PharmacyDispensedStatus : PharmacyPrescribedStatus;
+        }
 
         var invoice = await db.Set<BilInvoice>().AsNoTracking()
             .Where(x => x.EncounterId == encounter.Id && !x.IsDelete)
@@ -145,7 +182,8 @@ public sealed class BillingClinicalChargeBridgeService
         var tariff = await resolver.ResolveAsync(
             new BillingTariffResolutionRequest(
                 domain, fact.SourceAggregateId, fact.SourceItemId, fact.Quantity,
-                encounter.ClinicId, encounter.PatientClassId, DateTime.SpecifyKind(effect.OccurredAt, DateTimeKind.Utc)),
+                encounter.ClinicId, encounter.PatientClassId, DateTime.SpecifyKind(effect.OccurredAt, DateTimeKind.Utc),
+                dispensedQuantities),
             cancellationToken);
 
         switch (tariff.Kind)
@@ -164,7 +202,7 @@ public sealed class BillingClinicalChargeBridgeService
             SourceDomain = domain,
             SourceDetailId = detailId.Value.ToString("D"),
             SourceVersion = effect.MilestoneFactVersion,
-            SourceStatus = MapBillableStatus(domain),
+            SourceStatus = sourceStatus,
             OccurredAt = new DateTimeOffset(DateTime.SpecifyKind(effect.OccurredAt, DateTimeKind.Utc)),
             CategoryId = tariff.CategoryId,
             TariffId = tariff.TariffId,
@@ -174,17 +212,17 @@ public sealed class BillingClinicalChargeBridgeService
             // Pembagian jasa medis milik modul medical-fee; sama dengan catalog-charges hari ini.
             DoctorShare = 0,
             ContractVersion = ContractBillingChargeSourceAdapter.IntegrationContractVersion13,
-            CorrelationId = fact.CorrelationId == Guid.Empty ? effect.MilestoneFactId : fact.CorrelationId,
-            CausationId = fact.CausationId is { } causation && causation != Guid.Empty ? causation : effect.MilestoneFactId
+            CorrelationId = correlationId,
+            CausationId = causationId
         };
-
-        var key = DeterministicKey(effect.MilestoneFactId, effect.MilestoneFactVersion);
 
         // BE-RJE-005 / V2.7.5: tagihan yang sudah tidak OPEN tidak boleh disunting lagi, sehingga
         // perubahan setelah final menjadi adjustment yang menunggu persetujuan (RJ-BIL-DEC-004).
         if (invoice is not null && invoice.Status != BillingInvoiceStatuses.Open)
             return await BuildAdjustmentPlanAsync(
-                db, effect, request, key, fact.ActorUserId, invoice.Id, invoice.Status, invoice.RowVersion, cancellationToken);
+                db, effect, request.SourceDomain, request.SourceDetailId,
+                decimal.Round(request.Quantity * request.UnitPrice, 2, MidpointRounding.AwayFromZero),
+                $"tagihan sudah {invoice.Status}", key, fact.ActorUserId, invoice.Id, invoice.RowVersion, cancellationToken);
 
         return SyncPlan.Upsert(request, key, fact.ActorUserId);
     }
@@ -197,11 +235,13 @@ public sealed class BillingClinicalChargeBridgeService
     private static async Task<SyncPlan> BuildAdjustmentPlanAsync(
         ApplicationDbContext db,
         BilProcessingEffect effect,
-        UpsertChargeRequest request,
+        string sourceDomain,
+        string sourceDetailId,
+        decimal target,
+        string context,
         Guid key,
         Guid actorUserId,
         Guid invoiceId,
-        string invoiceStatus,
         Guid invoiceRowVersion,
         CancellationToken cancellationToken)
     {
@@ -213,12 +253,12 @@ public sealed class BillingClinicalChargeBridgeService
             .FirstOrDefaultAsync(cancellationToken);
         if (existing is not null)
             return SyncPlan.Done(SyncOutcome.SyncedByAdjustment(
-                existing.InvoiceId, existing.Id, request.SourceDomain, request.SourceDetailId));
+                existing.InvoiceId, existing.Id, sourceDomain, sourceDetailId));
 
         var itemTotal = await db.Set<BilInvoiceItem>().AsNoTracking()
             .Where(x => x.InvoiceId == invoiceId
-                && x.SourceDomain == request.SourceDomain
-                && x.SourceDetailId == request.SourceDetailId
+                && x.SourceDomain == sourceDomain
+                && x.SourceDetailId == sourceDetailId
                 && x.Status == BillingInvoiceItemStatuses.Active
                 && !x.IsDelete)
             .Select(x => (decimal?)(x.Quantity * x.UnitPrice))
@@ -238,11 +278,10 @@ public sealed class BillingClinicalChargeBridgeService
         var effective = itemTotal + priorAdjustments.Sum(x =>
             x.Direction == BillingAdjustmentDirections.Debit ? x.Amount : -x.Amount);
 
-        var target = decimal.Round(request.Quantity * request.UnitPrice, 2, MidpointRounding.AwayFromZero);
         var delta = target - effective;
         if (delta == 0)
             return SyncPlan.Done(SyncOutcome.SyncedWithoutChange(
-                invoiceId, request.SourceDomain, request.SourceDetailId));
+                invoiceId, sourceDomain, sourceDetailId));
 
         var adjustmentRequest = new CreateAdjustmentRequest
         {
@@ -251,15 +290,116 @@ public sealed class BillingClinicalChargeBridgeService
             Amount = Math.Abs(delta),
             ExpectedInvoiceRowVersion = invoiceRowVersion,
             Reason = Truncate(
-                $"Penyesuaian otomatis {request.SourceDomain} {request.SourceDetailId} versi {request.SourceVersion}: " +
-                $"tagihan sudah {invoiceStatus}, nilai {effective:0.##} menjadi {target:0.##}.", 500)!,
+                $"Penyesuaian otomatis {sourceDomain} {sourceDetailId} versi {effect.MilestoneFactVersion}: " +
+                $"{context}, nilai {effective:0.##} menjadi {target:0.##}.", 500)!,
             // CorrelationId wajib unik per adjustment; kunci deterministik (fakta, versi) memenuhinya
             // sekaligus menjaga kirim ulang tetap terbaca sebagai replay yang sama.
             CorrelationId = key,
             CausationId = effect.MilestoneFactId
         };
 
-        return SyncPlan.Adjust(adjustmentRequest, key, actorUserId, request.SourceDomain, request.SourceDetailId);
+        return SyncPlan.Adjust(adjustmentRequest, key, actorUserId, sourceDomain, sourceDetailId);
+    }
+
+    /// <summary>
+    /// Pembatalan klinis atas pelayanan yang sudah ditagih (V2.7.5, <c>RJ-E2E-DEC-010</c>):
+    /// item yang belum dikerjakan (mis. <c>ACCEPTED</c>, <c>PRESCRIBED</c>) pada invoice <c>OPEN</c>
+    /// di-void; selain itu nilai efektifnya dikreditkan lewat adjustment. Riwayat tagihan tidak
+    /// pernah dihapus.
+    /// </summary>
+    private static async Task<SyncPlan> BuildCancellationPlanAsync(
+        ApplicationDbContext db,
+        IServiceProvider services,
+        BilProcessingEffect effect,
+        Guid encounterId,
+        string domain,
+        string detailId,
+        Guid key,
+        Guid actorUserId,
+        Guid correlationId,
+        Guid causationId,
+        CancellationToken cancellationToken)
+    {
+        // Tagihan versi sebelumnya belum selesai diteruskan: pembatalan menunggu, supaya tidak
+        // mendahului tagihan yang hendak dibatalkannya.
+        var priorUnsynced = await db.Set<BilProcessingEffect>().AsNoTracking()
+            .AnyAsync(x => x.MilestoneFactId == effect.MilestoneFactId
+                && x.SourceContext == effect.SourceContext
+                && x.MilestoneFactVersion < effect.MilestoneFactVersion
+                && (x.InvoiceSyncStatus == BillingInvoiceSyncStatus.Pending || x.InvoiceSyncStatus == BillingInvoiceSyncStatus.Failed)
+                && !x.IsDelete, cancellationToken);
+        if (priorUnsynced)
+            return SyncPlan.Done(SyncOutcome.WaitForPriorVersion(domain, detailId));
+
+        var invoice = await db.Set<BilInvoice>().AsNoTracking()
+            .Where(x => x.EncounterId == encounterId && !x.IsDelete)
+            .Select(x => new { x.Id, x.Status, x.RowVersion })
+            .FirstOrDefaultAsync(cancellationToken);
+        var item = invoice is null
+            ? null
+            : await db.Set<BilInvoiceItem>().AsNoTracking()
+                .Where(x => x.InvoiceId == invoice.Id
+                    && x.SourceDomain == domain
+                    && x.SourceDetailId == detailId
+                    && x.Status == BillingInvoiceItemStatuses.Active
+                    && !x.IsDelete)
+                .Select(x => new { x.Id, x.SourceStatus })
+                .FirstOrDefaultAsync(cancellationToken);
+        if (invoice is null || item is null)
+            return SyncPlan.Done(SyncOutcome.NoChange(
+                "Tidak ada tagihan aktif untuk pelayanan ini; pembatalan tidak mengubah invoice.",
+                domain, detailId, invoice?.Id));
+
+        var adapter = services.GetRequiredService<IBillingChargeSourceAdapter>();
+        if (invoice.Status == BillingInvoiceStatuses.Open && adapter.IsNormallyVoidable(domain, item.SourceStatus))
+        {
+            var voidRequest = new VoidInvoiceItemRequest
+            {
+                ExpectedRowVersion = invoice.RowVersion,
+                SourceVersion = effect.MilestoneFactVersion,
+                SourceStatus = CancelledStatus,
+                ContractVersion = ContractBillingChargeSourceAdapter.IntegrationContractVersion13,
+                Reason = Truncate($"Pembatalan klinis {domain} {detailId} versi {effect.MilestoneFactVersion}.", 500)!,
+                CorrelationId = correlationId,
+                CausationId = causationId
+            };
+            return SyncPlan.VoidItem(voidRequest, invoice.Id, item.Id, key, actorUserId, domain, detailId);
+        }
+
+        return await BuildAdjustmentPlanAsync(
+            db, effect, domain, detailId, 0m,
+            invoice.Status == BillingInvoiceStatuses.Open
+                ? $"pembatalan klinis atas pelayanan berstatus {item.SourceStatus}"
+                : $"pembatalan klinis, tagihan sudah {invoice.Status}",
+            key, actorUserId, invoice.Id, invoice.RowVersion, cancellationToken);
+    }
+
+    private async Task<SyncOutcome> VoidAsync(SyncPlan plan, CancellationToken cancellationToken)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var invoiceService = scope.ServiceProvider.GetRequiredService<BillingInvoiceService>();
+        try
+        {
+            var invoice = await invoiceService.VoidItemAsync(
+                plan.InvoiceId, plan.ItemId, plan.Void!, plan.IdempotencyKey, plan.ActorUserId, cancellationToken);
+            return SyncOutcome.Voided(invoice.Id, plan.ItemId, plan.SourceDomain!, plan.SourceDetailId!);
+        }
+        catch (BillingInvoiceValidationException exception)
+        {
+            // Mis. perhitungan sudah terkunci karena pembayaran sedang diproses.
+            return SyncOutcome.Reconcile(BillingBridgeCodes.SourceRejected, exception.Message, plan.SourceDomain, plan.SourceDetailId);
+        }
+        catch (KeyNotFoundException exception)
+        {
+            return SyncOutcome.Reconcile(BillingBridgeCodes.SourceNotFound, exception.Message, plan.SourceDomain, plan.SourceDetailId);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            // Termasuk konflik RowVersion (invoice berubah bersamaan): dicoba ulang dengan kunci sama.
+            _logger.LogWarning(exception, "Void otomatis gagal sementara untuk {Domain} {DetailId}.",
+                plan.SourceDomain, plan.SourceDetailId);
+            return SyncOutcome.Transient(exception.GetType().Name, plan.SourceDomain!, plan.SourceDetailId!);
+        }
     }
 
     private async Task<SyncOutcome> AdjustAsync(SyncPlan plan, CancellationToken cancellationToken)
@@ -460,6 +600,56 @@ public sealed class BillingClinicalChargeBridgeService
         _ => sourceContext.ToUpperInvariant()
     };
 
+    private const string CancelledStatus = "CANCELLED";
+    private const string PharmacyPrescribedStatus = "PRESCRIBED";
+    private const string PharmacyDispensedStatus = "DISPENSED";
+
+    /// <summary>
+    /// Membaca tahap resep dari <c>RuleSnapshot</c>: <c>milestone = "Dispensed"</c> berarti tahap 2
+    /// beserta <c>items[].prescriptionItemId/quantity</c> kumulatif; selain itu (termasuk kosong,
+    /// untuk fakta lama) tahap 1.
+    /// </summary>
+    internal static bool TryReadPrescriptionStage(
+        string? ruleSnapshot,
+        out bool isDispensed,
+        out IReadOnlyDictionary<Guid, decimal>? dispensedQuantities)
+    {
+        isDispensed = false;
+        dispensedQuantities = null;
+        if (string.IsNullOrWhiteSpace(ruleSnapshot)) return true;
+        try
+        {
+            using var document = JsonDocument.Parse(ruleSnapshot);
+            var root = document.RootElement;
+            if (root.ValueKind != JsonValueKind.Object
+                || !root.TryGetProperty("milestone", out var milestone)
+                || milestone.GetString() != BillingSourceContract.PrescriptionMilestoneDispensed)
+                return true;
+
+            if (!root.TryGetProperty("items", out var items) || items.ValueKind != JsonValueKind.Array)
+                return false;
+            var quantities = new Dictionary<Guid, decimal>();
+            foreach (var item in items.EnumerateArray())
+            {
+                if (!item.TryGetProperty("prescriptionItemId", out var idElement)
+                    || !Guid.TryParse(idElement.GetString(), out var itemId)
+                    || !item.TryGetProperty("quantity", out var quantityElement)
+                    || !quantityElement.TryGetDecimal(out var quantity)
+                    || quantity < 0)
+                    return false;
+                quantities[itemId] = quantities.GetValueOrDefault(itemId) + quantity;
+            }
+
+            isDispensed = true;
+            dispensedQuantities = quantities;
+            return true;
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
     private static string MapBillableStatus(string domain) => domain switch
     {
         BillingBridgeSourceDomains.Laboratory => "ACCEPTED",
@@ -477,9 +667,14 @@ public sealed class BillingClinicalChargeBridgeService
         Guid IdempotencyKey,
         Guid ActorUserId,
         string? SourceDomain,
-        string? SourceDetailId)
+        string? SourceDetailId,
+        VoidInvoiceItemRequest? Void = null,
+        Guid InvoiceId = default,
+        Guid ItemId = default)
     {
         public static SyncPlan Done(SyncOutcome outcome) => new(outcome, null, null, Guid.Empty, Guid.Empty, null, null);
+        public static SyncPlan VoidItem(VoidInvoiceItemRequest request, Guid invoiceId, Guid itemId, Guid key, Guid actor, string domain, string detailId) =>
+            new(null, null, null, key, actor, domain, detailId, request, invoiceId, itemId);
         public static SyncPlan Upsert(UpsertChargeRequest request, Guid key, Guid actor) =>
             new(null, request, null, key, actor, request.SourceDomain, request.SourceDetailId);
         public static SyncPlan Adjust(CreateAdjustmentRequest adjustment, Guid key, Guid actor, string domain, string detailId) =>
@@ -508,7 +703,15 @@ public sealed class BillingClinicalChargeBridgeService
             new(BillingInvoiceSyncStatus.Synced, null, null, domain, detailId, invoiceId, itemId);
         public static SyncOutcome SyncedByAdjustment(Guid invoiceId, Guid adjustmentId, string domain, string detailId) =>
             new(BillingInvoiceSyncStatus.Synced, BillingBridgeCodes.AdjustmentSubmitted,
-                "Tagihan sudah final; penyesuaian diajukan dan menunggu persetujuan Billing.", domain, detailId, invoiceId, null, adjustmentId);
+                "Penyesuaian diajukan dan menunggu persetujuan Billing.", domain, detailId, invoiceId, null, adjustmentId);
+        public static SyncOutcome Voided(Guid invoiceId, Guid itemId, string domain, string detailId) =>
+            new(BillingInvoiceSyncStatus.Synced, BillingBridgeCodes.ItemVoided,
+                "Pelayanan dibatalkan sebelum dikerjakan; item invoice di-void.", domain, detailId, invoiceId, itemId);
+        public static SyncOutcome NoChange(string message, string domain, string detailId, Guid? invoiceId) =>
+            new(BillingInvoiceSyncStatus.Synced, BillingBridgeCodes.NoFinancialChange, message, domain, detailId, invoiceId, null);
+        public static SyncOutcome WaitForPriorVersion(string domain, string detailId) =>
+            new(BillingInvoiceSyncStatus.Failed, BillingBridgeCodes.TransientFailure,
+                "Menunggu tagihan versi sebelumnya selesai diteruskan; akan dicoba ulang.", domain, detailId, null, null);
         public static SyncOutcome SyncedWithoutChange(Guid invoiceId, string domain, string detailId) =>
             new(BillingInvoiceSyncStatus.Synced, BillingBridgeCodes.NoFinancialChange,
                 "Tagihan sudah final dan nilainya tidak berubah; tidak ada penyesuaian.", domain, detailId, invoiceId, null);
@@ -542,6 +745,7 @@ public static class BillingBridgeCodes
     public const string AdjustmentSubmitted = "ADJUSTMENT_SUBMITTED";
     public const string AdjustmentRejected = "ADJUSTMENT_REJECTED";
     public const string NoFinancialChange = "NO_FINANCIAL_CHANGE";
+    public const string ItemVoided = "ITEM_VOIDED";
     public const string CancellationPendingSupport = "CANCELLATION_PENDING_SUPPORT";
     public const string SourcePendingSupport = "SOURCE_PENDING_SUPPORT";
     public const string TransientFailure = "TRANSIENT_FAILURE";

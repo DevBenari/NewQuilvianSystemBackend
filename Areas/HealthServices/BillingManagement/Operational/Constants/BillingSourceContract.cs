@@ -21,6 +21,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operation
         public const string PrescriptionSourceContext = "Prescription";
         public const string PrescriptionChargeEffectType = "PrescriptionCharge";
 
+        /// <summary>
+        /// Nilai <c>RuleSnapshot.milestone</c> fakta resep dua tahap (<c>RJ-E2E-DEC-005</c>).
+        /// Tahap 1 diterbitkan saat resep difinalkan dokter; tahap 2 adalah revisi fakta yang sama
+        /// setelah obat diserahkan, membawa jumlah kumulatif yang diserahkan per item resep.
+        /// </summary>
+        public const string PrescriptionMilestoneClinicalFinalization = "ClinicalFinalization";
+        public const string PrescriptionMilestoneDispensed = "Dispensed";
+
         public const string ProcedureSourceContext = "Procedure";
         public const string ProcedureChargeEffectType = "ProcedureCharge";
 

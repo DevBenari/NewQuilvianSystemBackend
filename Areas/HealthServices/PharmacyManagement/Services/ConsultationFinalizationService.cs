@@ -253,6 +253,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                         Quantity = prescription.TotalItemCount > 0 ? prescription.TotalItemCount : null,
                         Unit = prescription.TotalItemCount > 0 ? "ITEM" : null,
                         TariffSnapshot = BuildPrescriptionSnapshot(prescription),
+                        // Tahap 1 obat dua tahap (RJ-E2E-DEC-005): Billing menagih jumlah yang diresepkan.
+                        RuleSnapshot = JsonSerializer.Serialize(new
+                        {
+                            milestone = BillingSourceContract.PrescriptionMilestoneClinicalFinalization
+                        }),
                         CorrelationId = consultationId
                     },
                     actorUserId,
