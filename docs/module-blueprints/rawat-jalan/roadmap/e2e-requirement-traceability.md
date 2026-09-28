@@ -21,7 +21,7 @@
 | `FR-RJE-011` identitas stabil | `AC-RJ-002/003` | `02` V2.7.2 | `BE-RJE-003` | — | V2-1 `AC-RJ-002` | ✅ `BE-RJE-003` 2026-09-28 — [laporan](../task/report/backend/BE-RJE-003.md) |
 | `FR-RJE-012` harga katalog | `DEC-006` | `02` V2.7.4 | `BE-RJE-003` | — | `UAT-01`; V2-1 snapshot Rp99.999 | ✅ `BE-RJE-003` 2026-09-28 — [laporan](../task/report/backend/BE-RJE-003.md) |
 | `FR-RJE-013` tanpa Rp0 | `DEC-006` | `02` V2.7.4 | `BE-RJE-003` | — | `UAT-02` | ✅ `BE-RJE-003` 2026-09-28 — [laporan](../task/report/backend/BE-RJE-003.md) |
-| `FR-RJE-014` pengaman `from-source` | `DEC-006` | `02` V2.7.6 | `BE-RJE-004` | — | `UAT-03` | Belum dikerjakan |
+| `FR-RJE-014` pengaman `from-source` | `DEC-006` | `02` V2.7.6 | `BE-RJE-004` | — | `UAT-03` | ✅ `BE-RJE-004` 2026-09-28 — [laporan](../task/report/backend/BE-RJE-004.md) R0–R4 |
 | `FR-RJE-015` pasca-final | `RJ-BIL-DEC-004` | `02` V2.7.5 | `BE-RJE-005` | — | `UAT-04` | Belum dikerjakan |
 | `FR-RJE-020` fakta konsultasi | `DEC-001` | `contracts/integration` V2-2 | `BE-RJE-007` | — | `UAT-05` | Belum dikerjakan |
 | `FR-RJE-021` tarif konsultasi | `DEC-012` | `02` V2.7.4 | `BE-RJE-007` | — | `UAT-05`, `UAT-06` | Belum dikerjakan |

@@ -148,9 +148,15 @@ public sealed class BillingInvoicesController : ControllerBase
     {
         try
         {
-            var result = await _service.UpsertChargeAsync(request, idempotencyKey, CurrentUserId(), cancellationToken);
+            var result = await _service.UpsertManualChargeAsync(request, idempotencyKey, CurrentUserId(), cancellationToken);
             var message = result.IsReplay ? "Charge sudah diproses; hasil sebelumnya dikembalikan." : "Charge berhasil dicatat pada invoice Billing.";
             return Ok(ApiResponse<InvoiceDetailResponse>.Ok(result, message));
+        }
+        catch (BillingManualClinicalSourceException exception)
+        {
+            return UnprocessableEntity(ApiResponse<object>.Fail(
+                StatusCodes.Status422UnprocessableEntity, exception.Message,
+                new { Code = BillingManualClinicalSourceException.Code }));
         }
         catch (KeyNotFoundException exception)
         {

@@ -28,8 +28,8 @@ owners:
   - "Billing/Revenue Cycle: Sukma Giri (pemilik blueprint)"
   - "Pharmacy (titik sentuh BE-RJE-008): sign-off formal OPEN"
   - "Registration (titik sentuh BE-RJE-006): OPEN"
-implementation_authority: "GRANTED — BE-RJE-001 (RJ-E2E-DEC-017), BE-RJE-002 (RJ-E2E-DEC-018), BE-RJE-003 (RJ-E2E-DEC-019); task lain NOT_GRANTED"
-builder_execution: "EXECUTED — BE-RJE-001, BE-RJE-002, BE-RJE-003 (2026-09-28); task lain NOT_AUTHORIZED"
+implementation_authority: "GRANTED — BE-RJE-001 (RJ-E2E-DEC-017), BE-RJE-002 (RJ-E2E-DEC-018), BE-RJE-003 (RJ-E2E-DEC-019), BE-RJE-004 (RJ-E2E-DEC-020); task lain NOT_GRANTED"
+builder_execution: "EXECUTED — BE-RJE-001, BE-RJE-002, BE-RJE-003, BE-RJE-004 (2026-09-28); task lain NOT_AUTHORIZED"
 verification_pattern: "Pola Bank Darah — tanpa project/folder test backend"
 frontend_roadmap: roadmap/e2e-frontend-roadmap.md
 traceability: roadmap/e2e-requirement-traceability.md
@@ -66,7 +66,7 @@ BE-RJE-001 ✅ ─┬─> BE-RJE-002 ✅ ─> BE-RJE-003 ✅ ─┬─> BE-RJE-0
                │                                                   │
                └─> BE-RJE-011 ─────────────────────────────────────┴─> BE-RJE-012
 
-BE-RJE-004
+BE-RJE-004 ✅
 
 BE-RJE-006
 
@@ -79,7 +79,7 @@ dua kali. Jumlah pasangan prasyarat → task: **12**, sama dengan isi kolom `Dep
 
 | Gelombang | Boleh mulai setelah | Task |
 | ---: | --- | --- |
-| 1 | — | `BE-RJE-001` ✅, `BE-RJE-004`, `BE-RJE-006` — boleh paralel |
+| 1 | — | `BE-RJE-001` ✅, `BE-RJE-004` ✅, `BE-RJE-006` — boleh paralel |
 | 2 | `BE-RJE-001` | `BE-RJE-002` ✅, `BE-RJE-011` — boleh paralel |
 | 3 | `BE-RJE-002` | `BE-RJE-003` ✅ |
 | 4 | `BE-RJE-003` | `BE-RJE-005`, `BE-RJE-007`, `BE-RJE-010`, `BE-RJE-014` — boleh paralel |
@@ -111,7 +111,7 @@ teknis paling awal yang aman.
 | `BE-RJE-001` ✅ | Kolom sinkron, kolom rekonsiliasi, master kebijakan, dan backfill baris lama tersedia | `FR-RJE-001`, `002`, `004`; `RJ-E2E-DEC-009`, `014` | `1.0.0` | `BilChargeLine`, `CliClinicalMilestoneFact`, pola master Billing | Model, enum, configuration, migration tulis tangan, seed | — | Lihat kartu | Pola Bank Darah + `UAT-22` | Snapshot EF meleset (`RJ-BIL-DEC-018`) / Billing | Kartu |
 | `BE-RJE-002` ✅ | Kontrak adapter `1.3`, konteks `Consultation`, dan penanda pembatalan sampai ke folio | `FR-RJE-003`; `RJ-E2E-DEC-001`, `005` | `1.0.0` | `ContractBillingChargeSourceAdapter`, `BillingSourceContract` | Adapter, konstanta, DTO folio, producer | `BE-RJE-001` | Kartu | Pola Bank Darah + `UAT-23` | Pemanggil lama kontrak `1.2` / Billing | Kartu |
 | `BE-RJE-003` ✅ | Tindakan, Lab, Radiologi otomatis masuk invoice berharga katalog | `FR-RJE-010`..`013`; `RJ-E2E-DEC-003`, `006` | `1.0.0` | `UpsertChargeAsync`, `BilChargeReceipt`, `MstTariff` | Jembatan, resolver (3 domain), pemicu dari folio | `BE-RJE-002` | Kartu | Pola Bank Darah + `UAT-01`, `02`, `24` | Leher botol 6 task / Billing | Kartu |
-| `BE-RJE-004` | `from-source` menolak domain klinis Rawat Jalan | `FR-RJE-014`; `RJ-E2E-DEC-006` | `1.0.0` | `BillingInvoicesController.FromSource` | Satu pemeriksaan + `422` | — | Kartu | Pola Bank Darah + `UAT-03` | Konsumen `ADHOC` kasir / Billing | Kartu |
+| `BE-RJE-004` ✅ | `from-source` menolak domain klinis Rawat Jalan | `FR-RJE-014`; `RJ-E2E-DEC-006` | `1.0.0` | `BillingInvoicesController.FromSource` | Satu pemeriksaan + `422` | — | Kartu | Pola Bank Darah + `UAT-03` | Konsumen `ADHOC` kasir / Billing | Kartu |
 | `BE-RJE-005` | Perubahan setelah invoice final menjadi adjustment | `FR-RJE-015`; `RJ-BIL-DEC-004` | `1.0.0` | `CreateAdjustmentAsync` | Cabang pasca-final di jembatan | `BE-RJE-003` | Kartu | Pola Bank Darah + `UAT-04` | Invoice `CLOSED` mungkin menolak adjustment / Billing | Kartu |
 | `BE-RJE-006` | Kunjungan tanpa dokter berhenti di `Billing` | `FR-RJE-070`; `RJ-E2E-DEC-007`, `013` | `1.0.0` | `NurseStationQueueController` | Satu cabang status | — | Kartu | Pola Bank Darah + `UAT-20`, `21` | Laporan/layar yang mengandalkan `Completed` / Registration | Kartu |
 | `BE-RJE-007` | Jasa konsultasi tertagih otomatis | `FR-RJE-020`, `021`; `RJ-E2E-DEC-001`, `012` | `1.0.0` | Finalisasi canonical, `MstDoctorServiceRule`, `MstTariff` | Fakta konsultasi + resolver `CONSULTATION` | `BE-RJE-003` | Kartu | Pola Bank Darah + `UAT-05`, `06` | Tarif konsultasi belum diisi per klinik / Billing | Kartu |
@@ -178,10 +178,11 @@ teknis paling awal yang aman.
 | **Risiko** | Enam task menunggu task ini; jangan memperluas cakupan |
 | **DoD** | Delapan AC terbukti; laporan |
 
-### `BE-RJE-004` — Pengaman `from-source`
+### ✅ `BE-RJE-004` — Pengaman `from-source`
 
 | Field | Isi |
 | --- | --- |
+| **Status** | ✅ `COMPLETE` 2026-09-28 — 3/3 AC terbukti. Build penuh `0 Error(s)`/`230 Warning(s)` (= baseline), `has-pending-model-changes` bersih, QBE strict `PASS`, `dotnet test` `NOT RUN`, runtime R0–R4 `PASS` terhadap `QuilvianNewDevSukma`. [Laporan](../task/report/backend/BE-RJE-004.md) |
 | **Outcome** | Pelayanan Rawat Jalan tidak dapat dicatat ulang dengan harga bebas lewat API |
 | **Cakupan** | `from-source` menolak `422 RJE-VAL-010` bila `SourceDomain` salah satu dari lima domain klinis dan kunjungan `Outpatient` |
 | **Acceptance criteria** | 1. `PROCEDURE` Rp1 untuk kunjungan Rawat Jalan → `422 RJE-VAL-010`, nol item baru (`UAT-03`). 2. `ADHOC` tetap diterima. 3. `EMERGENCY` dan `ROOM_STAY` tidak berubah |
