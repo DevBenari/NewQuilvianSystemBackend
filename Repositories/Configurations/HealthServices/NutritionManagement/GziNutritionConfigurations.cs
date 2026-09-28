@@ -50,7 +50,6 @@ public class GziNutritionCareRecordConfiguration : IEntityTypeConfiguration<GziN
         builder.Property(x => x.AssessmentNote).HasMaxLength(2000);
         builder.Property(x => x.DiagnosisNote).HasMaxLength(1000);
         builder.Property(x => x.InterventionNote).HasMaxLength(2000);
-        builder.Property(x => x.DietPrescription).HasMaxLength(500);
         builder.Property(x => x.IntakeRecallNote).HasMaxLength(2000);
         builder.Property(x => x.EvaluationNote).HasMaxLength(2000);
         builder.Property(x => x.Version).IsConcurrencyToken();
@@ -62,8 +61,10 @@ public class GziNutritionCareRecordConfiguration : IEntityTypeConfiguration<GziN
             .HasForeignKey(x => x.NutritionOrderId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(x => x.RecordedByWorkforce).WithMany()
             .HasForeignKey(x => x.RecordedByWorkforceId).OnDelete(DeleteBehavior.Restrict);
-        builder.HasOne(x => x.NutritionDiagnosis).WithMany()
-            .HasForeignKey(x => x.NutritionDiagnosisId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(x => x.PatientDiet).WithMany()
+            .HasForeignKey(x => x.PatientDietId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(x => x.NutritionRequirement).WithMany()
+            .HasForeignKey(x => x.NutritionRequirementId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(x => x.ProgressNote).WithMany()
             .HasForeignKey(x => x.ProgressNoteId).OnDelete(DeleteBehavior.Restrict);
     }
@@ -163,6 +164,8 @@ public class GziPatientDietConfiguration : IEntityTypeConfiguration<GziPatientDi
             .OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(x => x.FoodForm).WithMany().HasForeignKey(x => x.FoodFormId)
             .OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(x => x.NutritionRequirement).WithMany()
+            .HasForeignKey(x => x.NutritionRequirementId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(x => x.PrescribedByWorkforce).WithMany()
             .HasForeignKey(x => x.PrescribedByWorkforceId).OnDelete(DeleteBehavior.Restrict);
     }
