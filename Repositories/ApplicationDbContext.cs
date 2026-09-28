@@ -725,6 +725,13 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstReferralDoctor> MstReferralDoctors { get; set; }
         public DbSet<MstDiagnosisChapter> MstDiagnosisChapters { get; set; }
         public DbSet<MstDiagnosis> MstDiagnoses { get; set; }
+
+        // Master Data 3S Asuhan Keperawatan: Standar Diagnosis (SDKI), Luaran (SLKI), dan Intervensi (SIKI)
+        public DbSet<MstNursingDiagnosisGroup> MstNursingDiagnosisGroups { get; set; }
+        public DbSet<MstNursingDiagnosis> MstNursingDiagnoses { get; set; }
+        public DbSet<MstNursingDiagnosisEtiology> MstNursingDiagnosisEtiologies { get; set; }
+        public DbSet<MstNursingDiagnosisOutcome> MstNursingDiagnosisOutcomes { get; set; }
+        public DbSet<MstNursingDiagnosisIntervention> MstNursingDiagnosisInterventions { get; set; }
         public DbSet<MstMeasurement> MstMeasurements { get; set; }
         public DbSet<MstMeasurementConversion> MstMeasurementConversions { get; set; }
         public DbSet<MstDrugUnitConversion> MstDrugUnitConversions { get; set; }

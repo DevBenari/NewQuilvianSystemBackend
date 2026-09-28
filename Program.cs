@@ -594,6 +594,10 @@ try
     // pengkajian; selama masternya kosong tidak satu pun pengkajian dinyatakan terlambat.
     builder.Services.AddScoped<ClinicalAssessmentPolicyService>();
 
+    // Master data 3S asuhan keperawatan: Standar Diagnosis (SDKI), Luaran (SLKI), dan Intervensi (SIKI).
+    // Menutup keputusan terbuka OQ-RI-011.
+    builder.Services.AddScoped<NursingDiagnosisService>();
+
     // Daftar pilihan data induk perujuk — baca saja. Tanpa ini, layar pendaftaran rujukan luar
     // tidak punya sumber pilihan dan petugas terpaksa mengetik nama, yang justru dilarang
     // LAB-DEC-035.
@@ -1499,6 +1503,11 @@ try
     await RunStartupSeederAsync(
         "ClinicalInstrumentDraftSeeder",
         () => ClinicalInstrumentDraftSeeder.SeedAsync(app.Services));
+
+    // Master data 3S asuhan keperawatan (SDKI, SLKI, SIKI) — 10 diagnosa prioritas rawat inap.
+    await RunStartupSeederAsync(
+        "MstNursingDiagnosisSeeder",
+        () => MstNursingDiagnosisSeeder.SeedAsync(app.Services));
 
     // LabDummyDataSeeder DICABUT 2026-09-17 atas instruksi pemilik modul, dan berkasnya
     // dihapus pada commit 0bc921b0. Pemanggilnya sempat hidup kembali lewat merge
