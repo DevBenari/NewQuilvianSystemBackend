@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Payable.Dtos;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Payable.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Payable.Services;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Responses;
@@ -26,6 +27,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Payable.Contro
 /// resolver bersama yang juga dipakai Purchase Order dan Purchasing Invoice. Controller ini
 /// mengekspos `ApprovalTier` hasil resolver itu apa adanya; tidak ada logika ambang baru
 /// ditambahkan atau diasumsikan di sini.
+///
+/// BE-FIN-036: Endpoint GET/POST/DELETE /payments/{id}/return-deposits ditambahkan (FIN-API-1.2 §C.1,
+/// FIN-PERM-1.2 §C.1). PaymentDetailResponse diperluas dengan depositAppliedAmount dan returnDeposits.
 /// </summary>
 [ApiController]
 [Authorize]
@@ -47,7 +51,8 @@ public sealed class FinancePaymentsController : ControllerBase
     {
         var payment = await _service.GetByIdAsync(id, cancellationToken);
         if (payment is null) return NotFound(ApiResponse<object>.Fail(404, "Pembayaran tidak ditemukan."));
-        return Ok(ApiResponse<PaymentDetailResponse>.Ok(Map(payment), "Detail pembayaran berhasil diambil."));
+        var returnDeposits = await _service.GetReturnDepositsByPaymentIdAsync(id, cancellationToken);
+        return Ok(ApiResponse<PaymentDetailResponse>.Ok(Map(payment, returnDeposits), "Detail pembayaran berhasil diambil."));
     }
 
     [HttpPost]
@@ -149,6 +154,50 @@ public sealed class FinancePaymentsController : ControllerBase
         catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
     }
 
+    [HttpGet("{id:guid}/return-deposits")]
+    [AccessAction("Read", "Read Payment", AccessType = AccessTypes.Read, SortOrder = 8)]
+    [AccessPermission("Payment", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<List<PaymentReturnDepositResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetReturnDeposits(Guid id, CancellationToken cancellationToken)
+    {
+        var items = await _service.GetReturnDepositsByPaymentIdAsync(id, cancellationToken);
+        return Ok(ApiResponse<List<PaymentReturnDepositResponse>>.Ok(items, "Daftar pemakaian Deposit Retur berhasil diambil."));
+    }
+
+    [HttpPost("{id:guid}/return-deposits")]
+    [AccessAction("Update", "Update Payment", AccessType = AccessTypes.Update, SortOrder = 9)]
+    [AccessPermission("Payment", "Update")]
+    [ProducesResponseType(typeof(ApiResponse<PaymentDetailResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> AddReturnDeposit(Guid id, [FromBody] AddPaymentReturnDepositRequest request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var payment = await _service.AddReturnDepositAsync(
+                id, request.ExpectedRowVersion, request.SupplierReturnDepositId, request.UsedAmount, CurrentUserId(), cancellationToken);
+            var detail = await _service.GetByIdAsync(id, cancellationToken);
+            var returnDeposits = await _service.GetReturnDepositsByPaymentIdAsync(id, cancellationToken);
+            return Ok(ApiResponse<PaymentDetailResponse>.Ok(Map(detail ?? payment, returnDeposits), "Deposit Retur berhasil diterapkan pada pembayaran."));
+        }
+        catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
+    }
+
+    [HttpDelete("{id:guid}/return-deposits/{usageId:guid}")]
+    [AccessAction("Update", "Update Payment", AccessType = AccessTypes.Update, SortOrder = 10)]
+    [AccessPermission("Payment", "Update")]
+    [ProducesResponseType(typeof(ApiResponse<PaymentDetailResponse>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> ReleaseReturnDeposit(Guid id, Guid usageId, [FromQuery] Guid expectedRowVersion, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var payment = await _service.ReleaseReturnDepositAsync(
+                id, usageId, expectedRowVersion, CurrentUserId(), cancellationToken);
+            var detail = await _service.GetByIdAsync(id, cancellationToken);
+            var returnDeposits = await _service.GetReturnDepositsByPaymentIdAsync(id, cancellationToken);
+            return Ok(ApiResponse<PaymentDetailResponse>.Ok(Map(detail ?? payment, returnDeposits), "Deposit Retur berhasil dilepas dari pembayaran."));
+        }
+        catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
+    }
+
     private static List<PaymentAllocationRequest> MapAllocationRequests(List<PaymentAllocationRequestDto> dtos) =>
         (dtos ?? []).Select(a => new PaymentAllocationRequest(a.PayableType, a.PayableId, a.Amount)).ToList();
 
@@ -167,6 +216,7 @@ public sealed class FinancePaymentsController : ControllerBase
         AllocatedAmount = payment.AllocatedAmount,
         DeductionAmount = payment.DeductionAmount,
         AdditionAmount = payment.AdditionAmount,
+        DepositAppliedAmount = payment.DepositAppliedAmount,
         NetTransferAmount = payment.NetTransferAmount,
         Status = payment.Status,
         ApprovalTier = payment.ApprovalTier,
@@ -181,7 +231,7 @@ public sealed class FinancePaymentsController : ControllerBase
         RowVersion = payment.RowVersion
     };
 
-    private static PaymentDetailResponse Map(FinPayment payment)
+    private static PaymentDetailResponse Map(FinPayment payment, List<PaymentReturnDepositResponse>? returnDeposits = null)
     {
         var mapped = MapPayment(payment);
         return new PaymentDetailResponse
@@ -196,6 +246,7 @@ public sealed class FinancePaymentsController : ControllerBase
             AllocatedAmount = mapped.AllocatedAmount,
             DeductionAmount = mapped.DeductionAmount,
             AdditionAmount = mapped.AdditionAmount,
+            DepositAppliedAmount = mapped.DepositAppliedAmount,
             NetTransferAmount = mapped.NetTransferAmount,
             Status = mapped.Status,
             ApprovalTier = mapped.ApprovalTier,
@@ -226,21 +277,25 @@ public sealed class FinancePaymentsController : ControllerBase
                 Amount = d.Amount,
                 Reason = d.Reason,
                 ReferenceNumber = d.ReferenceNumber
-            }).ToList()
+            }).ToList(),
+            ReturnDeposits = returnDeposits ?? []
         };
     }
 
     private IActionResult Failure(Exception exception) => exception switch
     {
         KeyNotFoundException => NotFound(ApiResponse<object>.Fail(404, exception.Message)),
-        PaymentConflictException => Conflict(ApiResponse<object>.Fail(409, exception.Message)),
-        PaymentValidationException => UnprocessableEntity(ApiResponse<object>.Fail(422, exception.Message)),
-        PaymentBadRequestException => BadRequest(ApiResponse<object>.Fail(400, exception.Message)),
+        PaymentConflictException or PurchasingConflictException => Conflict(ApiResponse<object>.Fail(409, exception.Message)),
+        PaymentValidationException or PurchasingValidationException => UnprocessableEntity(ApiResponse<object>.Fail(422, exception.Message)),
+        PaymentBadRequestException or PurchasingBadRequestException => BadRequest(ApiResponse<object>.Fail(400, exception.Message)),
         _ => throw exception
     };
 
     private static bool IsHandled(Exception exception) => exception is
-        KeyNotFoundException or PaymentConflictException or PaymentValidationException or PaymentBadRequestException;
+        KeyNotFoundException
+        or PaymentConflictException or PurchasingConflictException
+        or PaymentValidationException or PurchasingValidationException
+        or PaymentBadRequestException or PurchasingBadRequestException;
 
     private Guid CurrentUserId()
     {

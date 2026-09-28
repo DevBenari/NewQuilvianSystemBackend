@@ -577,3 +577,64 @@ transisi status pada aggregate manapun, melainkan nilai SARAN pada response GET,
 masih bisa memilih payment method apa pun terlepas dari nilai saran ini.
 
 Trace `BUI-DEC-007`, `BUI-DEC-012`, `BUI-DEC-014`, `BUI-DES-001`.
+
+---
+
+# Amendment 28 September 2026 — Pembalikan Tender Top-Up Deposit dan Alokasi Tagihan (Revisi 1.8, `BIL-STATE-1.5`)
+
+`last_changed_in: BIL-STATE-1.5` · status **draft** · input `BKC-DEC-128`–`131`, `BKC-DES-051`–`054`, evidence 17 Finance.
+
+## 1. Transisi Status dan Dampak Pembalikan Tender Top-Up Deposit
+
+Ketika tender pembayaran yang mendanai top-up deposit (`Settlement.Purpose == "DEPOSIT_TOP_UP"`) bertransisi dari `SUCCEEDED` menjadi `REVERSED`, terjadi serangkaian transisi status yang dieksekusi secara atomik dalam satu transaksi:
+
+| Entity | Dari Status | Tindakan / Pemicu | Ke Status | Pelaku | Syarat / Dampak Saldo |
+|---|---|---|---|---|---|
+| `BilTender` | `SUCCEEDED` | Penarikan dana / chargeback / pembatalan gateway | `REVERSED` | Gateway Pembayaran / Kasir / Finance | Tender top-up sebelumnya sah berhasil. Memicu eksekusi `HandleDepositTopUpReversalAsync`. |
+| `BilPaymentAllocation` | Aktif (tersimpan) | Pembatalan alokasi invoice berurut LIFO | Dibalik (kompensasi) | Sistem (`BillingSettlementService`) | Ditulis baris baru alokasi pembalik dengan nominal negatif (`Amount = -cancelAmount`) dan `ReversesAllocationId = originalAllocation.Id`. Sisa tagihan invoice naik. |
+| `BilDepositAccount` | Saldo berjalan (`AvailableBalance`) | Pemulihan alokasi tagihan (`RELEASE`) | Saldo pulih bertambah | Sistem (`BillingSettlementService`) | `AvailableBalance += cancelAmount`. Dicatat mutasi bertipe `RELEASE`. Saldo dipulihkan sementara agar mencukupi penarikan top-up. |
+| `BilDepositAccount` | Saldo pulih | Penarikan dana top-up (`REVERSAL`) | Saldo berkurang | Sistem (`BillingSettlementService`) | `AvailableBalance -= originalTopUpAmount`. Dicatat mutasi bertipe `REVERSAL` (`ReversesMovementId = originalTopUp.Id`). Invariant mutlak: `AvailableBalance >= 0`. |
+| `BilInvoice` | `CLOSED` | Sisa tagihan bertambah akibat alokasi dibatalkan | `FINAL` | Sistem (`BillingInvoiceClosureService.SyncClosureAsync`) | Terpicu jika `PatientOutstanding > 0`. `ClosedAt` dikosongkan kembali. Alasan: `PrescriptionClearanceReasonCodes.PaymentReversed`. |
+
+## 2. Diagram Urutan Transisi LIFO Pembalikan Deposit
+
+```text
+[Tender SUCCEEDED -> REVERSED]
+               │
+               ▼
+   [Cek AvailableBalance >= TopUpAmount?]
+        ├── YA ──> (Langsung potong saldo & tulis mutasi REVERSAL)
+        │
+        └── TIDAK (Dana sudah terpakai melunasi tagihan)
+               │
+               ▼
+   [Ambil alokasi invoice aktif: LIFO (terbaru ke terlama)]
+               │
+               ▼ Loop sampai defisit = 0:
+   [1. Tulis alokasi pembalik BilPaymentAllocation (-cancelAmount, ReversesAllocationId)]
+   [2. Tulis mutasi BilDepositMovement: RELEASE (+cancelAmount)]
+   [3. Pulihkan AvailableBalance akun deposit (+cancelAmount)]
+   [4. Panggil SyncClosureAsync(invoiceId) -> Invoice berubah CLOSED -> FINAL]
+               │
+               ▼
+   [AvailableBalance kini >= TopUpAmount]
+               │
+               ▼
+   [5. Potong AvailableBalance (-TopUpAmount)]
+   [6. Tulis mutasi BilDepositMovement: REVERSAL (-TopUpAmount, ReversesMovementId)]
+               │
+               ▼
+   [Commit Transaksi Database Serializable]
+```
+
+## 3. Transisi yang Dilarang Keras (Illegal Transitions)
+
+| Transisi | Mengapa Dilarang | Yang Terjadi Bila Dilanggar |
+|---|---|---|
+| `BilDepositAccount.AvailableBalance` menjadi negatif (`< 0`) | Melanggar invariant keuangan `BKC-DEC-128`. Saldo negatif merusak neraca kas/deposit rumah sakit. | Ditolak oleh validasi guard; transaksi rollback seketika. |
+| Eksekusi mutasi `REVERSAL` mendahului `RELEASE` saat saldo tidak cukup | Menyebabkan saldo sempat minus sebelum pulih, merusak integritas audit snapshot saldo berjalan. | `HandleDepositTopUpReversalAsync` menjamin `RELEASE` alokasi dieksekusi sebelum `REVERSAL` top-up. |
+| Invoice tetap `CLOSED` padahal alokasi pembayaran dibatalkan dan sisa tagihan > 0 | Menciptakan piutang tak tertagih (*ghost settlement*) karena invoice dianggap lunas padahal uangnya sudah ditarik. | `SyncClosureAsync` wajib dipanggil untuk setiap invoice terdampak alokasi yang dibatalkan. |
+| Menghapus baris `BilPaymentAllocation` atau `BilDepositMovement` lama (*hard delete*) | Merusak audit trail pembukuan rumah sakit dan rekonsiliasi bank. | Seluruh pembatalan wajib berupa baris transaksi baru (*compensating records*). |
+
+Trace `BKC-DEC-128`, `BKC-DEC-129`, `BKC-DEC-130`, `BKC-DEC-131`, `BKC-DES-051`, `BKC-DES-052`, `BKC-DES-053`, `BKC-DES-054`.
+

@@ -4,20 +4,26 @@
 
 ```yaml
 roadmap_id: FIN-ROADMAP-FE-001
-parent_roadmap: FIN-ROADMAP-001 revisi 5
-roadmap_revision: 5
-roadmap_status: ACTIVE — UI brief closed 2026-09-23 untuk FE-FIN-001..007; addendum UI brief untuk layar revisi 4 closed 2026-09-25 (/grill-me, FIN-DEC-060)
+parent_roadmap: FIN-ROADMAP-001 revisi 8
+roadmap_revision: 6
+roadmap_status: ACTIVE — UI brief closed 2026-09-23 untuk FE-FIN-001..007; addendum UI brief closed 2026-09-25 (/grill-me, FIN-DEC-060)
 blueprint_id: FIN-BP-001
-blueprint_revision: 5
+blueprint_revision: 7
 frontend_commit_sha: 49b59cfaa
 frontend_commit_sha_previous: abed49b03
 frontend_branch: yasmina
 frontend_authority: Product Owner (Yasmin) — UI brief closed 2026-09-23, FIN-DEC-024..029 di 00-interview-decisions.md
 contracts:
   FIN-API-1.2: locked 2026-09-26 (revisi 5)
-  FIN-PERM-1.2: locked 2026-09-26 (revisi 5)
+  FIN-PERM-1.3: locked 2026-09-28 (revisi 6; FIN-CQ-08 pemetaan payung ke granular)
   FIN-STATE-1.3: locked 2026-09-26 (revisi 5; FE-FIN-007 tetap merujuk bagian 9)
-  FIN-MVP-1.4: locked 2026-09-26
+  FIN-MVP-1.5: locked 2026-09-28 (revisi 6)
+roadmap_revision_6_note: >
+  Revisi 6 (28 September 2026) menambahkan FE-FIN-014 (penyelarasan menu sidebar navigasi Finance
+  ke FIN-DEC-060 dan FIN-DES-060: submenu "Pembelian", butir flat "Tagihan Gabungan Penjamin",
+  dan relabel "Faktur Pembelian"). Menegaskan bahwa filter menu Finance.AP dan Finance.AR tetap
+  berlaku apa adanya per FIN-DEC-079 / FIN-DES-061 tanpa perubahan kode filter di frontend,
+  menutup resmi FIN-CAP-040 dan FIN-OQ-036.
 roadmap_revision_5_note: >
   Revisi 5 (26 September 2026) MEMBUKA FE-FIN-010 dan mengubah cakupannya: deposit tidak lagi
   dipakai dari layar Deposit Retur, melainkan dipilih sebagai sumber dana di layar susun
@@ -152,6 +158,58 @@ BE-FIN-039 [BE] ─> FE-FIN-012
 FE-FIN-004 ─┬─> FE-FIN-013
             │
 BE-FIN-040 [BE] ─┘
+
+BE-FIN-042 [BE] ─┬─> FE-FIN-014
+FE-FIN-008 ──────┤
+FE-FIN-009 ──────┤
+FE-FIN-011 ──────┤
+FE-FIN-012 ──────┘
+```
+
+### Diagram Ketergantungan Frontend (Mermaid)
+
+```mermaid
+graph LR
+  subgraph "Prasyarat Backend"
+    BE_FIN_042["BE-FIN-042 [BE]<br/>Seeder Payung AP/AR"]
+    BE_FIN_032["BE-FIN-032 [BE]"]
+    BE_FIN_033["BE-FIN-033 [BE]"]
+    BE_FIN_034["BE-FIN-034 [BE]"]
+    BE_FIN_035["BE-FIN-035 [BE]"]
+    BE_FIN_036["BE-FIN-036 [BE]"]
+    BE_FIN_037["BE-FIN-037 [BE]"]
+    BE_FIN_039["BE-FIN-039 [BE]"]
+    BE_FIN_040["BE-FIN-040 [BE]"]
+  end
+
+  subgraph "Layar Purchasing & AR"
+    FE_FIN_008["FE-FIN-008<br/>PO, GR, Tukar Faktur"]
+    FE_FIN_009["FE-FIN-009<br/>Faktur Pembelian & Retur"]
+    FE_FIN_010["FE-FIN-010<br/>Susun Bayar + Deposit"]
+    FE_FIN_011["FE-FIN-011<br/>Laporan Pembelian"]
+    FE_FIN_012["FE-FIN-012<br/>Batch Tagihan AR"]
+    FE_FIN_013["FE-FIN-013<br/>Potongan AR"]
+  end
+
+  subgraph "Penyelarasan Menu (FIN-DEC-060 / FIN-DES-060)"
+    FE_FIN_014["FE-FIN-014<br/>Penyelarasan Menu Sidebar<br/>Submenu Pembelian & Relabel"]
+  end
+
+  BE_FIN_032 --> FE_FIN_008
+  BE_FIN_033 --> FE_FIN_008
+  BE_FIN_034 --> FE_FIN_009
+  BE_FIN_035 --> FE_FIN_009
+  FE_FIN_009 --> FE_FIN_010
+  BE_FIN_036 --> FE_FIN_010
+  BE_FIN_037 --> FE_FIN_011
+  BE_FIN_039 --> FE_FIN_012
+  BE_FIN_040 --> FE_FIN_013
+
+  BE_FIN_042 --> FE_FIN_014
+  FE_FIN_008 --> FE_FIN_014
+  FE_FIN_009 --> FE_FIN_014
+  FE_FIN_011 --> FE_FIN_014
+  FE_FIN_012 --> FE_FIN_014
 ```
 
 `FE-FIN-013` menunggu `FE-FIN-004` karena potongan AR tinggal di dalam layar alokasi penerimaan
@@ -166,6 +224,7 @@ sudah **tertutup** 25 September 2026 (`FIN-DEC-060`) — tidak lagi digambar seb
 | R4-3 | `BE-FIN-037` | `FE-FIN-011` |
 | R4-3 | `FE-FIN-004` ✅, `BE-FIN-040` | `FE-FIN-013` — **dibuka** `FIN-DEC-058` |
 | R4-4 | `BE-FIN-036`, `FE-FIN-009` | `FE-FIN-010` — **dibuka** revisi 5; cakupan pindah ke layar susun pembayaran |
+| R4-5 | `BE-FIN-042` [BE], `FE-FIN-008`, `FE-FIN-009`, `FE-FIN-011`, `FE-FIN-012` | `FE-FIN-014` — Penyelarasan menu sidebar (submenu Pembelian, relabel Faktur Pembelian, butir Tagihan Gabungan Penjamin) |
 
 ## 4. Task
 
@@ -185,6 +244,7 @@ sudah **tertutup** 25 September 2026 (`FIN-DEC-060`) — tidak lagi digambar seb
 | `FE-FIN-011` | Empat laporan Purchasing/AP dapat dibaca | `FR-FIN-088` | `FIN-API-1.1` B.6 kecuali `/aging` | Pola halaman laporan yang sudah ada (`/finance/ap-report`) | Rekap, Laporan Tukar Faktur, Laporan Jatuh Tempo, Rekonsiliasi Tagihan | `BE-FIN-037` | Seluruh angka dan kelompok dari response; read-only | `npm run lint:errors`, `npm run build` | Product Owner. **Aging AP tidak dibuat baru** — layar `/finance/ap-aging` yang sudah ada tetap satu-satunya (`FIN-DEC-059`) | Nol perhitungan di klien |
 | `FE-FIN-012` | Petugas AR menerbitkan satu dokumen tagihan untuk banyak piutang satu penjamin | `FR-FIN-089`..`092`; `FIN-DEC-048` | `FIN-API-1.1` B.7, `FIN-PERM-1.1` B.5, `FIN-VAL-1.2` `114`..`117` | Layar piutang yang sudah ada (`/finance/receivable`) sebagai sumber pilihan | Daftar/buat/rincian/terbitkan/batal batch; unduh dokumen batch | `BE-FIN-039` | Daftar piutang yang layak digabung **diambil dari** `GET /eligible-receivables`, bukan disaring layar; batch `ISSUED` tampil terkunci | `npm run lint:errors`, `npm run build`; verifikasi manual: piutang dua penjamin tidak dapat digabung | Product Owner | Nol PPN/Faktur Pajak ditampilkan (`FIN-DEC-054`) |
 | `FE-FIN-013` | Petugas AR mencatat PPh 23/biaya admin bank saat mengalokasikan penerimaan | `FR-FIN-093`..`095` | `FIN-API-1.1` B.8 | Layar alokasi penerimaan (`FE-FIN-004`) | Baris potongan di dalam alur alokasi yang sama | `BE-FIN-040`, `FE-FIN-004` ✅ | Sisa piutang sesudah potongan dari response backend | `npm run lint:errors`, `npm run build` | Product Owner. **`FIN-OQ-024` ditutup sisi Finance** (`FIN-DEC-058`) — layar boleh dibangun; status kirim kejadian `POTONGAN-PIUTANG-NON-TUNAI` **tidak** ditampilkan sebagai berhasil sebelum `FIN-OQ-026` (pola bagian 12.7) | Tetap di dalam alur satu penerimaan (`03-frontend-architecture.md` 12.3) |
+| `FE-FIN-014` | Penyelarasan menu sidebar navigasi Finance mengikuti FIN-DEC-060 dan FIN-DES-060 (submenu Pembelian, relabel Faktur Pembelian, butir flat Tagihan Gabungan Penjamin) | `FIN-DEC-060`, `076`, `079`; `FIN-DES-060`, `061`; `03-frontend-architecture.md` Bagian 15 | `03-frontend-architecture.md` Bagian 15, `FIN-MVP-1.5` | `src/utils/menu-sidebar/corporateFinance.js` | Submenu Pembelian (5 link), relabel Faktur Pembelian, Tagihan Gabungan Penjamin flat sejajar Piutang; filter payung Finance.AP/Finance.AR tetap berlaku | `BE-FIN-042` [BE], `FE-FIN-008`..`012` | 1. Submenu Pembelian tampil di sidebar memuat link Purchasing AP. 2. "Supplier Invoice" direlabel "Faktur Pembelian". 3. "Tagihan Gabungan Penjamin" muncul flat. 4. Filter Finance.AP/AR berfungsi tanpa galat | `npm run lint:errors`, `npm run build`, verifikasi visual | Product Owner (Yasmin) + Frontend Owner | Submenu Pembelian terpasang; label bahasa Indonesia baku; filter payung berfungsi |
 
 **Catatan revisi 2 atas `FE-FIN-006` yang sudah ✅ selesai.** Acceptance criteria-nya menyebut
 `HELD_FOR_FINALIZATION` dibedakan dari `HELD` dan `FAILED`, mengikuti `FR-FIN-074` yang berlaku
@@ -287,3 +347,5 @@ akan diikuti seluruh layar berikutnya.
 | 14 | *(revisi 3)* Butir menu mengikuti label `FIN-DEC-060` (submenu "Pembelian", "Tagihan Gabungan Penjamin", "Faktur Pembelian") |
 | 16 | *(revisi 5)* Deposit Retur dipilih di layar susun pembayaran, bukan di layar Deposit Retur; empat angka pembayaran dari response backend |
 | 15 | *(revisi 4)* `FE-FIN-013` tidak menampilkan status kirim kejadian potongan AR sebagai berhasil sebelum `FIN-OQ-026` turun |
+| 17 | *(revisi 6)* Menu sidebar memuat submenu "Pembelian" berisi 5 layar Purchasing AP; "Supplier Invoice" direlabel menjadi "Faktur Pembelian"; "Tagihan Gabungan Penjamin" sejajar "Piutang"; seluruhnya difilter Finance.AP dan Finance.AR tanpa galat runtime (FE-FIN-014) |
+

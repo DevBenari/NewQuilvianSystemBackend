@@ -1204,3 +1204,25 @@ CREATE INDEX "IX_BilInpatientClearanceHandoff_ClearanceStatus"
     ON public."BilInpatientClearanceHandoff" ("ClearanceStatus");
 ```
 
+---
+
+## Amendment 28 September 2026 — Pembalikan Tender Top-Up Deposit dan Alokasi Tagihan (Revisi 1.8)
+
+> `last_changed_in`: revisi blueprint `1.8`, status **draft**. Masukan: `BKC-DEC-128`–`131`, `BKC-DES-051`–`054`.
+
+### Status Skema Database
+
+**NOL PERUBAHAN SKEMA DATABASE.** Seluruh tabel, kolom, constraint, indeks, dan konstanta yang diperlukan untuk pembalikan tender top-up deposit dan pembatalan alokasi invoice sudah tersedia di kode sumber dan basis data sejak baseline:
+
+| Tabel | Kolom yang Digunakan | Status Skema | Keterangan |
+|---|---|---|---|
+| `BilDepositAccount` | `AvailableBalance`, `Status`, `RowVersion` | **Sudah ada** | Saldo diperbarui bertahap (bertambah saat alokasi di-release, berkurang saat top-up di-reverse). |
+| `BilDepositMovement` | `MovementType`, `Amount`, `SettlementId`, `ReversesMovementId`, `IdempotencyKey` | **Sudah ada** | Menggunakan nilai konstanta existing `BillingDepositMovementTypes.Release` (`"RELEASE"`) dan `BillingDepositMovementTypes.Reversal` (`"REVERSAL"`). `ReversesMovementId` terisi ID top-up awal. |
+| `BilPaymentAllocation` | `TargetType`, `TargetId`, `Amount`, `ReversesAllocationId` | **Sudah ada** | Baris pembalik ditulis dengan nominal negatif dan `ReversesAllocationId` menunjuk ke alokasi asli. |
+| `BilSettlement` | `Purpose`, `DepositAccountId`, `TotalSettledAmount` | **Sudah ada** | Menandai `Purpose == "DEPOSIT_TOP_UP"`. |
+| `BilTender` | `Status`, `Amount`, `CorrelationId`, `CausationId` | **Sudah ada** | Transisi status tender ke `BillingTenderStatuses.Reversed`. |
+| `BilInvoice` | `Status`, `ClosedAt` | **Sudah ada** | Penyelarasan status dari `CLOSED` kembali ke `FINAL` saat sisa tagihan > 0. |
+
+Nol migrasi EF Core baru dan nol skrip DDL SQL baru pada revisi ini.
+
+

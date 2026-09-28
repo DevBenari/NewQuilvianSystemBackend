@@ -416,3 +416,33 @@ integrasi pada amendment ini — lihat `02-backend-architecture.md` bagian 8 dan
 `03-frontend-architecture.md` bagian 7 (`BUI-CQ-05` belum tertutup, di luar batas scope).
 
 Ditinjau ulang bila `BUI-CQ-05` terjawab dan menuntut agregasi data lintas modul yang sesungguhnya.
+
+---
+
+# Amendment 28 September 2026 — Integrasi Pembalikan Mutasi Deposit ke Finance Management (Revisi 1.8, `BIL-INTEGRATION-1.3`)
+
+`last_changed_in: BIL-INTEGRATION-1.3` · status **draft** · owner Produsen/Konsumen: Billing (Yasmina) & Finance/AR (Finance Owner) · input `BKC-DEC-128`–`131`, `BKC-DES-051`–`054`, `FIN-DEC-077`, menutup gap `FIN-OQ-034`.
+
+## 1. Aliran Fakta Finansial Pembalikan Deposit (`BIL-INT-018`)
+
+| ID | Producer → Consumer | Trigger / Payload Minimum | Idempotency | Failure / Retry | Security / Audit |
+|---|---|---|---|---|---|
+| `BIL-INT-018` | Billing (`BilDepositMovement`) → Finance (`FinanceBillingIntakeService`) | Event tender top-up menjadi `REVERSED`. Menghasilkan mutasi `RELEASE` dan `REVERSAL` pada `BilDepositMovement`: `DepositAccountId`, `MovementType`, `Amount`, `SettlementId`, `ReversesMovementId`, `OccurredAt` | `BilDepositMovement.IdempotencyKey` + `MovementType` | Konsumsi via `FinBillingHandoffIntake` bertipe `DEPOSIT_MOVEMENT`. Jika gagal, ditandai `ERROR` dengan retry eksponensial tanpa merusak integritas Billing | Jejak audit utuh; memisahkan pembalikan pemakaian uang muka dari pembalikan kas perbankan |
+
+## 2. Pemetaan Kejadian Akuntansi Finance atas Fakta Billing
+
+Penyelarasan ini menutup secara permanen celah `FIN-OQ-034` yang dilaporkan pada dokumen `evidence/17-permintaan-perbaikan-pembalikan-tender-deposit-untuk-billing.md`:
+
+| Tipe Mutasi Billing (`MovementType`) | Kejadian Akuntansi Finance (`FinAccountingEventTypeCodes`) | Jurnal Pembukuan Finance / Akuntansi | Status Piutang / Kas Pasien |
+|---|---|---|---|
+| `RELEASE` | `PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT` | **Debit:** Piutang Pasien / Tagihan Terbuka<br>**Kredit:** Liabilitas Titipan Uang Muka Pasien | Invoice pasien terbuka kembali (`FINAL`), piutang pasien muncul kembali di buku besar Finance. |
+| `REVERSAL` | `PEMBALIKAN-PENERIMAAN-UANG-MUKA` | **Debit:** Liabilitas Titipan Uang Muka Pasien<br>**Kredit:** Kas Kasir / Rekening Bank Operasional | Penarikan dana perbankan tercatat di neraca, saldo liabilitas deposit pasien berkurang ke posisi nol. |
+
+## 3. Ketahanan & Penanganan Kegagalan (Failure & Resilience)
+
+1. **Konsistensi Transaksi Atomik Billing:** Pembalikan alokasi tagihan dan mutasi deposit dieksekusi secara atomik dalam satu transaksi database `Serializable` di Billing. Finance mengonsumsi fakta yang sudah committed, sehingga tidak ada risiko membaca transaksi setengah jadi.
+2. **Idempotensi Handoff:** Bila webhook gateway mengirim notifikasi reversal berulang kali, `IdempotencyKey` pada `BilDepositMovement` dan `SourceHandoffKey` pada `FinBillingHandoffIntake` menjamin tepat satu pasang mutasi yang efektif tercatat.
+3. **Penyelesaian Blocker Lintas Modul:** Dengan diterbitkannya mutasi `RELEASE` dan `REVERSAL` yang jelas dan berpasangan, Finance Management (`BE-FIN-036`) dapat memproses intake `DEPOSIT_MOVEMENT` tanpa galat selisih saldo atau penolakan invariant.
+
+Trace `BKC-DEC-128`, `BKC-DEC-129`, `BKC-DEC-130`, `BKC-DEC-131`, `BKC-DES-051`, `BKC-DES-054`, `FIN-DEC-077`. Tests `BIL-AT-149`–`BIL-AT-156`.
+

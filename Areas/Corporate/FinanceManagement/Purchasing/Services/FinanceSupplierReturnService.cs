@@ -262,6 +262,198 @@ public sealed class FinanceSupplierReturnService
     }
 
     // ------------------------------------------------------------------------------------
+    // Pemakaian Deposit Retur (BE-FIN-036, FIN-DES-045, FIN-DES-046, FIN-DEC-057)
+    // Satu-satunya penulis AvailableAmount deposit — dipanggil FinancePaymentService,
+    // IKUT transaksi pemanggil (tidak membuka transaksi sendiri).
+    // ------------------------------------------------------------------------------------
+
+    public async Task<FinSupplierReturnDepositUsage> ReserveAsync(
+        Guid supplierReturnDepositId,
+        decimal usedAmount,
+        Guid paymentId,
+        Guid expectedSupplierId,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        if (usedAmount <= 0)
+            throw new PurchasingBadRequestException("Nilai pemakaian deposit harus lebih dari nol.");
+
+        await AcquireLockAsync($"FIN_RETURN_DEPOSIT_{supplierReturnDepositId:N}", cancellationToken);
+
+        var deposit = await _dbContext.FinSupplierReturnDeposits
+            .SingleOrDefaultAsync(x => x.Id == supplierReturnDepositId && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Deposit Retur tidak ditemukan.");
+
+        // FIN-VAL-113: Deposit milik Supplier A ditambahkan ke pembayaran Supplier B ditolak (422)
+        if (expectedSupplierId != Guid.Empty && deposit.SupplierId != expectedSupplierId)
+            throw new PurchasingValidationException("Deposit Retur bukan milik supplier penerima pembayaran ini.");
+
+        // FIN-VAL-127: Deposit yang dibatalkan tidak dapat dipakai (422)
+        if (deposit.Status == FinSupplierReturnDepositStatuses.Cancelled)
+            throw new PurchasingValidationException("Deposit Retur ini sudah dibatalkan.");
+
+        // FIN-DES-046: Saldo tidak boleh negatif
+        if (usedAmount > deposit.AvailableAmount)
+            throw new PurchasingValidationException($"Saldo Deposit Retur tidak mencukupi. Sisa saldo: Rp {deposit.AvailableAmount:N0}.");
+
+        deposit.AvailableAmount -= usedAmount;
+        if (deposit.AvailableAmount == 0m)
+            deposit.Status = FinSupplierReturnDepositStatuses.Exhausted;
+
+        deposit.UpdateDateTime = DateTime.UtcNow;
+        deposit.UpdateBy = actorUserId;
+        deposit.RowVersion = Guid.NewGuid();
+
+        var usage = new FinSupplierReturnDepositUsage
+        {
+            Id = Guid.NewGuid(),
+            SupplierReturnDepositId = deposit.Id,
+            PaymentId = paymentId,
+            UsedAmount = usedAmount,
+            Status = FinSupplierReturnDepositUsageStatuses.Reserved,
+            UsedAt = DateTimeOffset.UtcNow,
+            ReleasedAt = null,
+            RowVersion = Guid.NewGuid(),
+            CreateDateTime = DateTime.UtcNow,
+            CreateBy = actorUserId,
+            UpdateDateTime = DateTime.UtcNow,
+            UpdateBy = actorUserId
+        };
+
+        _dbContext.FinSupplierReturnDepositUsages.Add(usage);
+        return usage;
+    }
+
+    public async Task<FinSupplierReturnDepositUsage> ReleaseUsageAsync(
+        Guid usageId,
+        Guid paymentId,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        var usage = await _dbContext.FinSupplierReturnDepositUsages
+            .Include(x => x.SupplierReturnDeposit)
+            .SingleOrDefaultAsync(x => x.Id == usageId && x.PaymentId == paymentId && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Baris pemakaian deposit tidak ditemukan.");
+
+        if (usage.Status != FinSupplierReturnDepositUsageStatuses.Reserved)
+            throw new PurchasingValidationException($"Hanya baris pemakaian berstatus RESERVED yang dapat dilepas. Status saat ini: {usage.Status}.");
+
+        await AcquireLockAsync($"FIN_RETURN_DEPOSIT_{usage.SupplierReturnDepositId:N}", cancellationToken);
+
+        var deposit = usage.SupplierReturnDeposit
+            ?? await _dbContext.FinSupplierReturnDeposits.SingleOrDefaultAsync(x => x.Id == usage.SupplierReturnDepositId && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Deposit Retur tidak ditemukan.");
+
+        deposit.AvailableAmount += usage.UsedAmount;
+        // FIN-STATE-1.3 §C.2: EXHAUSTED -> Baris RESERVED dilepas -> AVAILABLE
+        if (deposit.Status == FinSupplierReturnDepositStatuses.Exhausted && deposit.AvailableAmount > 0m)
+            deposit.Status = FinSupplierReturnDepositStatuses.Available;
+
+        deposit.UpdateDateTime = DateTime.UtcNow;
+        deposit.UpdateBy = actorUserId;
+        deposit.RowVersion = Guid.NewGuid();
+
+        usage.Status = FinSupplierReturnDepositUsageStatuses.Released;
+        usage.ReleasedAt = DateTimeOffset.UtcNow;
+        usage.UpdateDateTime = DateTime.UtcNow;
+        usage.UpdateBy = actorUserId;
+        usage.RowVersion = Guid.NewGuid();
+
+        return usage;
+    }
+
+    public async Task<int> ReleaseReservedByPaymentAsync(
+        Guid paymentId,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        var usages = await _dbContext.FinSupplierReturnDepositUsages
+            .Include(x => x.SupplierReturnDeposit)
+            .Where(x => x.PaymentId == paymentId && x.Status == FinSupplierReturnDepositUsageStatuses.Reserved && !x.IsDelete)
+            .ToListAsync(cancellationToken);
+
+        foreach (var usage in usages)
+        {
+            await AcquireLockAsync($"FIN_RETURN_DEPOSIT_{usage.SupplierReturnDepositId:N}", cancellationToken);
+
+            var deposit = usage.SupplierReturnDeposit
+                ?? await _dbContext.FinSupplierReturnDeposits.SingleOrDefaultAsync(x => x.Id == usage.SupplierReturnDepositId && !x.IsDelete, cancellationToken);
+
+            if (deposit is not null)
+            {
+                deposit.AvailableAmount += usage.UsedAmount;
+                if (deposit.Status == FinSupplierReturnDepositStatuses.Exhausted && deposit.AvailableAmount > 0m)
+                    deposit.Status = FinSupplierReturnDepositStatuses.Available;
+
+                deposit.UpdateDateTime = DateTime.UtcNow;
+                deposit.UpdateBy = actorUserId;
+                deposit.RowVersion = Guid.NewGuid();
+            }
+
+            usage.Status = FinSupplierReturnDepositUsageStatuses.Released;
+            usage.ReleasedAt = DateTimeOffset.UtcNow;
+            usage.UpdateDateTime = DateTime.UtcNow;
+            usage.UpdateBy = actorUserId;
+            usage.RowVersion = Guid.NewGuid();
+        }
+
+        return usages.Count;
+    }
+
+    public async Task<int> MarkAppliedByPaymentAsync(
+        Guid paymentId,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        var usages = await _dbContext.FinSupplierReturnDepositUsages
+            .Where(x => x.PaymentId == paymentId && x.Status == FinSupplierReturnDepositUsageStatuses.Reserved && !x.IsDelete)
+            .ToListAsync(cancellationToken);
+
+        foreach (var usage in usages)
+        {
+            usage.Status = FinSupplierReturnDepositUsageStatuses.Applied;
+            usage.UpdateDateTime = DateTime.UtcNow;
+            usage.UpdateBy = actorUserId;
+            usage.RowVersion = Guid.NewGuid();
+        }
+
+        return usages.Count;
+    }
+
+    public async Task<FinSupplierReturnDeposit> CancelDepositAsync(
+        Guid depositId,
+        Guid expectedRowVersion,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        var deposit = await _dbContext.FinSupplierReturnDeposits
+            .SingleOrDefaultAsync(x => x.Id == depositId && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Deposit Retur tidak ditemukan.");
+
+        EnsureCurrent(deposit.RowVersion, expectedRowVersion);
+
+        if (deposit.Status != FinSupplierReturnDepositStatuses.Available)
+            throw new PurchasingValidationException($"Hanya Deposit Retur berstatus AVAILABLE yang dapat dibatalkan. Status saat ini: {deposit.Status}.");
+
+        // FIN-STATE-1.3 §C.2: deposit ber-baris RESERVED/APPLIED tidak dapat dibatalkan (422)
+        var hasActiveUsages = await _dbContext.FinSupplierReturnDepositUsages
+            .AnyAsync(x => x.SupplierReturnDepositId == depositId
+                && (x.Status == FinSupplierReturnDepositUsageStatuses.Reserved || x.Status == FinSupplierReturnDepositUsageStatuses.Applied)
+                && !x.IsDelete, cancellationToken);
+        if (hasActiveUsages)
+            throw new PurchasingValidationException("Deposit Retur yang memiliki baris pemakaian RESERVED atau APPLIED tidak dapat dibatalkan.");
+
+        deposit.Status = FinSupplierReturnDepositStatuses.Cancelled;
+        deposit.UpdateDateTime = DateTime.UtcNow;
+        deposit.UpdateBy = actorUserId;
+        deposit.RowVersion = Guid.NewGuid();
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        await AuditAsync("CancelDeposit", deposit.Id, actorUserId);
+        return deposit;
+    }
+
+    // ------------------------------------------------------------------------------------
     // Helper
     // ------------------------------------------------------------------------------------
 

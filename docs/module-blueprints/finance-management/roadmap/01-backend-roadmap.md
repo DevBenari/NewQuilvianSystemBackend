@@ -4,23 +4,33 @@
 
 ```yaml
 roadmap_id: FIN-ROADMAP-BE-001
-parent_roadmap: FIN-ROADMAP-001 revisi 5
-roadmap_revision: 5
+parent_roadmap: FIN-ROADMAP-001 revisi 8
+roadmap_revision: 6
 roadmap_status: ACTIVE
 blueprint_id: FIN-BP-001
-blueprint_revision: 5
+blueprint_revision: 7
 blueprint_status: approved
-backend_commit_sha: 96bf9746fedb63119a317a53758b0f0748ec7ad1
+backend_commit_sha: cba60cb0
 backend_commit_sha_baseline: 09101d0581695e20345a9efa8af3fce7c38b1ae4
 backend_branch: Yasmina
 contracts:
   FIN-API-1.2: locked 2026-09-26 (revisi 5; 1.1 revisi 4 tetap berlaku untuk bagian yang tidak diganti)
-  FIN-PERM-1.2: locked 2026-09-26 (revisi 5)
+  FIN-PERM-1.3: locked 2026-09-28 (revisi 6; FIN-CQ-08 pemetaan payung ke granular)
   FIN-STATE-1.3: locked 2026-09-26 (revisi 5)
-  FIN-VAL-1.3: locked 2026-09-26 (revisi 5)
-  FIN-INTEGRATION-1.3: locked 2026-09-26 (revisi 5 — bagian 5.9)
-  FIN-TEST-1.3: locked 2026-09-26 (revisi 5)
-  FIN-MVP-1.4: locked 2026-09-26 (revisi 5)
+  FIN-VAL-1.4: locked 2026-09-28 (revisi 6)
+  FIN-INTEGRATION-1.4: locked 2026-09-28 (revisi 6)
+  FIN-TEST-1.4: locked 2026-09-28 (revisi 6)
+  FIN-MVP-1.5: locked 2026-09-28 (revisi 6)
+roadmap_revision_6_note: >
+  Revisi 6 (28 September 2026) menambahkan tiga task backend:
+  (1) BE-FIN-042 — Penyelarasan nama resource pada 6 controller legacy ke nama kanonikal Finance*,
+      pendaftaran dan ekspansi seeder peran payung Finance.AP & Finance.AR, dan skrip SQL idempotent
+      migrasi data peran SysRolePermissions (menutup FIN-CQ-08, FIN-CAP-043, FIN-OQ-036). Bebas,
+      siap dijalankan segera.
+  (2) BE-FIN-043 — Penambahan kolom PPNAmount pada FinSupplierReturn, check constraint PPNAmount >= 0,
+      dan kalkulasi deposit retur saat CONFIRMED membawa PPN (FIN-DES-055, AddPPNAmountToFinSupplierReturn).
+  (3) BE-FIN-044 — Penyelarasan nama konstanta EventTypeCode pada 4 titik pemanggil service lama
+      mengikuti katalog resmi ratifikasi Accounting, dan penghapusan alias lama (FIN-DES-058). Bebas.
 roadmap_revision_3_note: >
   Revisi 3 (25 September 2026) MENAMBAHKAN empat belas task BE-FIN-027..040 untuk AMENDMENT
   REVISI 4 blueprint (FIN-DES-037..044, approved dan kontraknya locked hari yang sama) —
@@ -99,6 +109,49 @@ MVP-0 ✅ ─> MVP-1 ✅ ─┬─> MVP-5 ✅
 {FIN-OQ-017 ⛔} ─> REV-3 ⛔
 
 POST-MVP ─> REV-4 (BE-FIN-027 ✅..041)
+
+POST-MVP ─> REV-6/8 (BE-FIN-042, BE-FIN-043, BE-FIN-044)
+```
+
+### Diagram Alur Ketergantungan (Mermaid)
+
+```mermaid
+graph LR
+  subgraph "Prasyarat Controller Legacy (Selesai)"
+    BE_FIN_009["BE-FIN-009 ✅<br/>Intake & Piutang"]
+    BE_FIN_012["BE-FIN-012 ✅<br/>Kejadian Akuntansi"]
+    BE_FIN_018["BE-FIN-018 ✅<br/>Alokasi Penerimaan"]
+    BE_FIN_019["BE-FIN-019 ✅<br/>Utang Supplier"]
+    BE_FIN_020["BE-FIN-020 ✅<br/>Pembayaran Keluar"]
+  end
+
+  subgraph "REV-6/8: Penyelarasan Hak Akses (FIN-CQ-08)"
+    BE_FIN_042["BE-FIN-042<br/>Penyelarasan 6 Controller<br/>+ Seeder Payung AP/AR<br/>+ Skrip SQL Migrasi Peran"]
+  end
+
+  subgraph "REV-6/8: Retur & PPN"
+    BE_FIN_035["BE-FIN-035 🟡<br/>Retur Pembelian"]
+    BE_FIN_043["BE-FIN-043<br/>PPNAmount FinSupplierReturn<br/>+ Deposit Termasuk PPN"]
+  end
+
+  subgraph "REV-6/8: Katalog Kejadian Akuntansi"
+    BE_FIN_008["BE-FIN-008 ✅<br/>Layanan Piutang"]
+    BE_FIN_011["BE-FIN-011 ✅<br/>Outbox Akuntansi"]
+    BE_FIN_044["BE-FIN-044<br/>Penyelarasan 4 Titik EventTypeCode<br/>ke Katalog Resmi"]
+  end
+
+  BE_FIN_009 --> BE_FIN_042
+  BE_FIN_012 --> BE_FIN_042
+  BE_FIN_018 --> BE_FIN_042
+  BE_FIN_019 --> BE_FIN_042
+  BE_FIN_020 --> BE_FIN_042
+
+  BE_FIN_035 --> BE_FIN_043
+
+  BE_FIN_008 --> BE_FIN_044
+  BE_FIN_011 --> BE_FIN_044
+  BE_FIN_019 --> BE_FIN_044
+  BE_FIN_020 --> BE_FIN_044
 ```
 
 `REV-3` adalah kelompok task AMENDMENT REVISI 3 (`BE-FIN-022`..`026`). Ia **tidak diberi nomor
@@ -107,6 +160,28 @@ gelombang** karena `EPIC FIN-14` berstatus `OPEN DECISION` pada `04-prd-to-mvp.m
 `REV-4` adalah kelompok task AMENDMENT REVISI 4 (`EPIC FIN-15`/`16`/`17`), seluruhnya gelombang
 `POST-MVP` pada `04-prd-to-mvp.md` bagian 20.1. Berbeda dari `REV-3`, ketiga epic-nya **bukan**
 `OPEN DECISION`, sehingga task-nya boleh dijadwalkan.
+
+`REV-6/8` adalah kelompok task AMENDMENT REVISI 6 dan 8 (`BE-FIN-042`..`044`), menangani
+penyelarasan hak akses `FIN-CQ-08` / `FIN-PERM-1.3`, PPN Retur Pembelian `FIN-DES-055`, dan
+penyelarasan katalog kejadian Akuntansi `FIN-DES-058`. Seluruhnya berstatus `approved` dan siap
+dieksekusi.
+
+### REV-6/8 — Penyelarasan Hak Akses (FIN-CQ-08), PPN Retur, dan Katalog Akuntansi
+
+```text
+BE-FIN-009 ✅ ─┬─> BE-FIN-042 (Penyelarasan 6 Controller Legacy, Seeder Payung AP/AR, Skrip SQL Peran)
+BE-FIN-012 ✅ ─┤
+BE-FIN-018 ✅ ─┤
+BE-FIN-019 ✅ ─┤
+BE-FIN-020 ✅ ─┘
+
+BE-FIN-035 🟡 ───> BE-FIN-043 (PPNAmount pada FinSupplierReturn & Deposit Retur)
+
+BE-FIN-008 ✅ ─┬─> BE-FIN-044 (Penyelarasan 4 Titik EventTypeCode ke Katalog Resmi)
+BE-FIN-011 ✅ ─┤
+BE-FIN-019 ✅ ─┤
+BE-FIN-020 ✅ ─┘
+```
 
 ### REV-4 — Purchasing/AP (`EPIC FIN-15`)
 
@@ -117,7 +192,7 @@ BE-FIN-028 🟡 ─────────────────────�
                                                       │
                                                       └─> BE-FIN-033 🟡 ─> BE-FIN-034 🟡 ─> BE-FIN-035 🟡 ─> BE-FIN-037
 
-BE-FIN-041 🟡 ─> BE-FIN-036 <─ BE-FIN-035 🟡
+BE-FIN-041 🟡 ─> BE-FIN-036 🟡 <─ BE-FIN-035 🟡
 ```
 
 `BE-FIN-028` menjadi prasyarat `BE-FIN-032` dan `BE-FIN-034` (keduanya memanggil resolver),
@@ -217,8 +292,16 @@ sebagai bagian gelombang.
 | R4-6 | `BE-FIN-028`, `BE-FIN-033` | `BE-FIN-034` |
 | R4-7 | `BE-FIN-034` | `BE-FIN-035` 🟡 — source selesai, `dotnet build` tertunda |
 | R4-8 | `BE-FIN-034`, `BE-FIN-035` | `BE-FIN-037` |
-| R4-8 | `BE-FIN-035` 🟡, `BE-FIN-041` 🟡 (keduanya source & migration file selesai; eksekusi migration masih tertunda) | `BE-FIN-036` — **siap dikerjakan** (keputusan bisnis dibuka revisi 5 `FIN-DES-045`..`047`; kedua prasyarat implementasi kini 🟡). Menunggu eksekusi migration `BE-FIN-041` sebelum kode barunya membaca kolom `DepositAppliedAmount` di database sesungguhnya — lihat baris `BE-FIN-036` di bagian 3 |
+| R4-8 | `BE-FIN-035` 🟡, `BE-FIN-041` 🟡 (keduanya source & migration file selesai; eksekusi migration masih tertunda) | `BE-FIN-036` 🟡 — **source selesai, `dotnet build` BERHASIL** 28 September 2026 (232 warning, belum diverifikasi baseline-nya); alias `PemakaianDepositRetur` yang dilarang `FIN-DES-051` sudah dihapus. Tersisa: eksekusi migration `BE-FIN-041` dan skenario uji runtime `FIN-TEST-1.3` C.1/C.2. Lihat baris `BE-FIN-036` di bagian 3 dan laporan task |
 | R4-9 | `BE-FIN-038` | `BE-FIN-040` — **dibuka** `FIN-DEC-058`; worker pengirimannya sendiri (bukan task ini) tetap menunggu `FIN-OQ-026` |
+
+### Gelombang eksekusi — `REV-6/8` (Penyelarasan Hak Akses FIN-CQ-08, PPN Retur, dan Katalog Akuntansi)
+
+| Urutan | Boleh mulai setelah | Task |
+| ---: | --- | --- |
+| R6-1 | `BE-FIN-009`, `012`, `018`, `019`, `020` (seluruhnya ✅) | `BE-FIN-042` — **Bebas, siap dijalankan segera** (penyelarasan 6 controller legacy ke `Finance*`, seeder ekspansi payung `Finance.AP`/`Finance.AR`, dan skrip SQL idempotent migrasi `SysRolePermissions`) |
+| R6-1 | `BE-FIN-011`, `019`, `020`, `008` (seluruhnya ✅) | `BE-FIN-044` — **Bebas, siap dijalankan segera** (penyelarasan nama kode kejadian 4 titik pemanggil service ke katalog resmi Accounting) |
+| R6-2 | `BE-FIN-035` 🟡 + otorisasi migration | `BE-FIN-043` (kolom `PPNAmount` `FinSupplierReturn`, constraint `PPNAmount >= 0`, dan kalkulasi deposit retur saat `CONFIRMED`) |
 
 **Yang TIDAK menahan satu pun task di atas:** ratifikasi `PPN-MASUKAN-PEMBELIAN` (`FIN-OQ-020`).
 Sejak `FIN-DEC-056` ia hanya menahan aktivasi worker pengiriman — dan worker itu sendiri bagian
@@ -275,12 +358,15 @@ yang MUST dilaporkan balik ke pass desain — bukan diselesaikan dengan improvis
 | 🟡 `BE-FIN-033` | Tukar Faktur tercatat sebagai checkpoint dokumen, dengan estimasi jatuh tempo dari TOP supplier | `FIN-DEC-051`; `FR-FIN-082` | `FIN-API-1.1` B.3; `FIN-STATE-1.2` B.3 | `MstSupplier.PaymentTermDays` | `FinanceInvoiceExchangeService`, `FinanceInvoiceExchangesController`, DTO, registrasi DI | `BE-FIN-031` 🟡 | Tukar Faktur tanpa PO/GR tersimpan; `EstimatedDueDate = ReceivedDate + PaymentTermDays` dihitung backend (nilai dari request diabaikan — `CreateInvoiceExchangeRequest` sengaja tidak punya field ini); Tukar Faktur yang sudah `LINKED_TO_INVOICE` tidak dapat dibatalkan | `dotnet build` **(sengaja belum dijalankan)**; `FIN-TEST-1.2` B.2 | Backend Owner. Selisih `api-contract.md`/`permission-audit-matrix.md` pada action `cancel` (`Update` vs `Cancel`) terjadi lagi — sama seperti `BE-FIN-032`, kini dua kali berturut-turut, direkomendasikan diperbaiki sebelum `BE-FIN-034`/`035` | Nol perhitungan tanggal di luar service — 🟡 **Source selesai 26 September 2026, `dotnet build` tertunda milik pengguna**, [laporan](../task/report/backend/BE-FIN-033.md) |
 | 🟡 `BE-FIN-034` | Purchasing Invoice yang disetujui menjadi utang supplier dan menulis kejadian PPN Masukan, tanpa PPN terkredit dua kali | `FIN-DEC-045`, `046`, `053`, `056`; `FR-FIN-083`, `084`, `086`, `087` | `FIN-API-1.1` B.4, B.9; `FIN-STATE-1.2` B.4; `FIN-VAL-1.2` `105`..`109`, `122`; `FIN-INTEGRATION-1.2` §5.8 | `FinanceSupplierPayableService` (`BE-FIN-019` ✅) sebagai **satu-satunya** pembuat `FinSupplierPayable` — diperluas dua parameter opsional di akhir (`sourcePurchasingInvoiceId`, `accountingEventAmountOverride`), satu-satunya caller lama terverifikasi tidak berubah; `FinanceAccountingOutboxService` (`BE-FIN-011` ✅, menerima kode apa pun yang tidak kosong); `FinanceApprovalAuthorizationService` (`BE-FIN-032` ✅, dipakai ulang apa adanya) | `FinancePurchasingInvoiceService`, `FinancePurchasingInvoicesController`, DTO, registrasi DI; jalur pembuatan utang dari invoice lewat `FinanceSupplierPayableService` dengan `SourcePurchasingInvoiceId` terisi (satu item sintetis `Quantity=1, UnitPrice=TotalAmount` — lihat laporan) | `BE-FIN-028` 🟡, `BE-FIN-033` 🟡 | Invoice kedua dari Tukar Faktur yang sama ditolak unique index (`409`, FIN-VAL-105); total tidak seimbang ditolak `422` (FIN-VAL-107); approve dalam **satu transaksi**: utang tercipta, Tukar Faktur → `LINKED_TO_INVOICE`, outbox `PPN-MASUKAN-PEMBELIAN` sebesar `PPNAmount` berstatus `PENDING` (dilewati bila `PPNAmount = 0`). **Kejadian pengakuan utang yang ditulis `FinanceSupplierPayableService` MUST bernilai `TotalAmount − PPNAmount`** untuk utang bersumber Purchasing Invoice — bila tetap `OriginalAmount` penuh, PPN terkredit dua kali di Utang Supplier | `dotnet build` **(sengaja belum dijalankan)**; `FIN-TEST-1.2` B.3; bukti isi outbox: dua baris untuk satu invoice ber-PPN, jumlah keduanya = `TotalAmount` | Backend Owner. Risiko: menambah parameter nilai kejadian pada `FinanceSupplierPayableService` menyentuh service yang sudah berjalan — jalur input manual MUST tetap menulis `OriginalAmount` penuh seperti sekarang, **terverifikasi lewat pencarian seluruh caller (tepat satu)**. Endpoint `cancel` dan `GET /` daftar sengaja tidak dibangun — lihat laporan | Nol worker pengiriman dibangun (`EPIC FIN-12`); nol penulis `FinSupplierPayable` kedua — 🟡 **Source selesai 26 September 2026, `dotnet build` tertunda milik pengguna**, [laporan](../task/report/backend/BE-FIN-034.md) |
 | `BE-FIN-035` 🟡 | Retur pembelian dicatat, menerbitkan Deposit Retur, dan tercatat di kotak keluar | `FIN-DEC-047`, `061`; `FR-FIN-085` (penerbitan), `FR-FIN-098` | `FIN-API-1.2` (B.5 kecuali `apply` yang dicabut); `FIN-STATE-1.2` B.5, `FIN-STATE-1.3` C.2; `FIN-VAL-1.2` `110`, `111`; `FIN-INTEGRATION-1.3` §5.9 kode 28 | `FinanceAccountingOutboxService` (`BE-FIN-011` ✅) | `FinanceSupplierReturnService` (catat, konfirmasi, batal, daftar deposit) + `FinanceSupplierReturnsController` tanpa endpoint `apply`, DTO, registrasi DI; outbox `RETUR-PEMBELIAN` saat `CONFIRMED` | `BE-FIN-034` 🟡 | Retur atas invoice non-`APPROVED` ditolak; nilai retur > nilai invoice ditolak; konfirmasi retur menerbitkan deposit `AVAILABLE` **dan** satu baris outbox `RETUR-PEMBELIAN` sebesar `TotalAmount` berstatus `PENDING`, satu transaksi; deposit ber-baris `RESERVED`/`APPLIED` tidak dapat dibatalkan | `dotnet build`; `FIN-TEST-1.2` B.4 (tiga baris pertama); `FIN-TEST-1.3` C.2 baris `FIN-DEC-061` | Backend Owner | Retur **tidak** mengubah `FinSupplierPayable` apa pun; efeknya ke utang lewat pembayaran (`BE-FIN-036`). Nol worker pengiriman — 🟡 **Source selesai 28 September 2026, `dotnet build` tertunda milik pengguna** ("jangan lakukan build otomatis"). Delta kontrak: endpoint `POST /{id}/confirm` dan `POST /{id}/cancel` ditambahkan (tidak terdaftar `api-contract.md`/`permission-audit-matrix.md` §B.5, tetapi wajib agar retur dapat mencapai `CONFIRMED`/`CANCELLED` — lihat laporan). [Laporan](../task/report/backend/BE-FIN-035.md) |
-| `BE-FIN-036` | Deposit Retur dapat dipakai sebagai sumber dana pembayaran supplier, dan tercatat terpisah dari kas | `FIN-DEC-047`, `057`, `061`; `FIN-DES-045`..`047`; `FR-FIN-085` (pemakaian), `FR-FIN-096`, `097` | `FIN-API-1.2` C.1, C.2; `FIN-PERM-1.2` C.1; `FIN-STATE-1.3` C.1-C.3; `FIN-VAL-1.3` C.1-C.2, `FIN-VAL-131`; `FIN-INTEGRATION-1.3` §5.9 kode 29 | `FinancePaymentService` (`BE-FIN-020` ✅) — pola baris potongan (`FinPaymentDeduction`) ditiru persis; `FinanceSupplierReturnService` (`BE-FIN-035` 🟡) sebagai satu-satunya penulis `AvailableAmount` | (a) `FinanceSupplierReturnService`: `ReserveAsync`, `ReleaseAsync`, `MarkAppliedAsync` — **ikut** transaksi pemanggil; (b) `FinancePaymentService`: tambah/lepas deposit (hanya `DRAFT`, `Serializable`, kunci `FIN_RETURN_DEPOSIT_{id}`), rumus `NetTransferAmount` dengan `DepositAppliedAmount`, pengecualian `FIN-VAL-091` dan `FIN-VAL-056`, pelepasan saat `REJECTED`/`CANCELLED`, `MarkPaidAsync`: baris → `APPLIED`, `AP_PAYMENT` = `TotalAmount − DepositAppliedAmount` (dilewati bila nol), tulis `PEMAKAIAN-DEPOSIT-RETUR`; (c) `FinancePaymentsController`: `GET`/`POST`/`DELETE /payments/{id}/return-deposits`; `PaymentDetailResponse` diperluas | `BE-FIN-035` 🟡, `BE-FIN-041` 🟡 | Seluruh baris `FIN-TEST-1.3` C.1 dan C.2; **regresi**: pembayaran tanpa deposit menghasilkan `AP_PAYMENT` bernilai `TotalAmount`, identik dengan sebelum task ini | `dotnet build`; `FIN-TEST-1.3` C.1, C.2; review diff membuktikan jalur tanpa deposit tidak berubah | Backend Owner. **MENGUBAH SERVICE YANG SUDAH BERJALAN** (`FinancePaymentService`) di empat titik — setiap perubahan MUST bersyarat `DepositAppliedAmount > 0` atau aditif | Nol penulis `AvailableAmount` di luar `FinanceSupplierReturnService`; nol penulis `OutstandingAmount` baru; nol worker pengiriman — **TIDAK LAGI TERBLOKIR 28 September 2026 (diperbarui).** Kedua prasyarat kini 🟡: `FinanceSupplierReturnService`/`FinanceSupplierReturnsController` ada di source ([laporan `BE-FIN-035`](../task/report/backend/BE-FIN-035.md)), dan kolom `DepositAppliedAmount` + migration-nya ada di source ([laporan `BE-FIN-041`](../task/report/backend/BE-FIN-041.md)). **Catatan tersisa:** migration `BE-FIN-041` belum dieksekusi ke database — kode `BE-FIN-036` yang membaca/menulis kolom ini akan gagal terhadap database yang belum menjalankan migration tersebut; eksekusi MUST didahulukan atau berjalan sebelum `BE-FIN-036` diuji runtime. Nol source ditulis untuk task ini sendiri; nol laporan tracked karena implementasinya sendiri belum dimulai |
+| `BE-FIN-036` 🟡 | Deposit Retur dapat dipakai sebagai sumber dana pembayaran supplier, dan tercatat terpisah dari kas | `FIN-DEC-047`, `057`, `061`, `066`; `FIN-DES-045`..`047`; `FR-FIN-085` (pemakaian), `FR-FIN-096`, `097` | `FIN-API-1.2` C.1, C.2; `FIN-PERM-1.2` C.1; `FIN-STATE-1.3` C.1-C.3; `FIN-VAL-1.3` C.1-C.2, `FIN-VAL-131`; `FIN-INTEGRATION-1.3` §5.9 kode 29 (`PEMAKAIAN-KREDIT-RETUR-PEMBELIAN`) | `FinancePaymentService` (`BE-FIN-020` ✅) — pola baris potongan (`FinPaymentDeduction`) ditiru persis; `FinanceSupplierReturnService` (`BE-FIN-035` 🟡) sebagai satu-satunya penulis `AvailableAmount` | (a) `FinanceSupplierReturnService`: `ReserveAsync`, `ReleaseUsageAsync`, `ReleaseReservedByPaymentAsync`, `MarkAppliedByPaymentAsync`, `CancelDepositAsync` — **ikut** transaksi pemanggil; (b) `FinancePaymentService`: tambah/lepas deposit (hanya `DRAFT`, `Serializable`, kunci `FIN_RETURN_DEPOSIT_{id}` & `FIN_PAYMENT_{id}`), rumus `NetTransferAmount` dengan `DepositAppliedAmount`, pengecualian `FIN-VAL-091` dan `FIN-VAL-056`, pelepasan saat `REJECTED`/`CANCELLED`, `MarkPaidAsync`: baris → `APPLIED`, `AP_PAYMENT` = `TotalAmount − DepositAppliedAmount` (dilewati bila nol), tulis `PEMAKAIAN-KREDIT-RETUR-PEMBELIAN`; (c) `FinancePaymentsController`: `GET`/`POST`/`DELETE /payments/{id}/return-deposits`; `PaymentDetailResponse` diperluas | `BE-FIN-035` 🟡, `BE-FIN-041` 🟡 | Seluruh baris `FIN-TEST-1.3` C.1 dan C.2; **regresi**: pembayaran tanpa deposit menghasilkan `AP_PAYMENT` bernilai `TotalAmount`, identik dengan sebelum task ini | `dotnet build` — **BERHASIL** 28 September 2026 (232 warning); `FIN-TEST-1.3` C.1, C.2 — **belum**, menunggu migration `BE-FIN-041`; review diff membuktikan jalur tanpa deposit tidak berubah — **selesai** | Backend Owner. **MENGUBAH SERVICE YANG SUDAH BERJALAN** (`FinancePaymentService`) di empat titik — setiap perubahan bersyarat `DepositAppliedAmount > 0` atau aditif | Nol penulis `AvailableAmount` di luar `FinanceSupplierReturnService`; nol penulis `OutstandingAmount` baru; nol worker pengiriman — 🟡 **Source lengkap, `dotnet build` berhasil 28 September 2026** (dijalankan pengguna). Alias `PemakaianDepositRetur` yang dilarang `FIN-DES-051` sudah dihapus (temuan `/trace-existing-capabilities` bagian 16.2). Catatan tersisa: migration `BE-FIN-041` belum dieksekusi ke database fisik sebelum pengujian runtime `FIN-TEST-1.3` C.1/C.2 — keduanya wewenang terpisah. [Laporan](../task/report/backend/BE-FIN-036.md) |
 | `BE-FIN-037` | Empat laporan Purchasing/AP dari data yang sudah ada | `FIN-DES-044`; `FR-FIN-088` | `FIN-API-1.1` B.6 **kecuali** `/aging`; `FIN-PERM-1.1` B.5 | Entity `BE-FIN-029`/`030` — **nol tabel laporan baru** | `FinancePurchasingReportService`, `FinancePurchasingReportsController`: `/summary`, `/invoice-exchanges`, `/due-dates`, `/reconciliation` | `BE-FIN-034`, `BE-FIN-035` | Rekonsiliasi menampilkan Tukar Faktur yang belum menjadi invoice; laporan jatuh tempo memakai `EstimatedDueDate`/`DueDate` dari backend; seluruhnya read-only | `dotnet build`; verifikasi proses bisnis atas source | Backend Owner. **`/aging` sengaja dikeluarkan** — `GET api/finance/payable/aging` (`FinanceApController`) sudah menghitung umur `FinSupplierPayable`, yang sejak `FIN-DEC-045` juga memuat utang dari Purchasing Invoice. Endpoint kedua = dua angka umur utang yang bisa berbeda. **Dicabut dari kontrak** (`FIN-DEC-059`, `/grill-me` 25 September 2026) | Nol perintah pengubah pada controller laporan |
 | `BE-FIN-038` | Skema AR Invoice Agregat dan Potongan AR (bentuk revisi 5) tersedia | `FIN-DES-041`, `042`, `048`, `049` | `data-dictionary.md` C.13-C.14 **dan D.3** (`FinReceiptDeduction` bentuk revisi 5 — **bukan** C.15); `FIN-STATE-1.2` B.7 | `FinReceivable.DebtorType`/`DebtorReferenceId` (`FIN-CAP-031`); `FinReceiptAllocation` yang sudah ada sebagai FK tempat potongan melekat | `FinReceivableInvoiceBatch`, `…Item` (submodul `Receivable`), `FinReceiptDeduction` (submodul `Collection`) ber-`DeductionNumber`, `ReceiptAllocationId`, `IsReversal`, `ReversalOfDeductionId` + configuration + `DbSet` + migration `AddArInvoiceBatchAndReceiptDeduction` | — (submodul `Receivable`/`Collection` sudah terdaftar) | Unique index parsial `ReceivableId` aktif; `CK_FinReceivableInvoiceBatch_DebtorType = 'PAYER'`; `CK_FinReceiptDeduction_OtherReason`, `_Reversal`; unique `DeductionNumber`; unique parsial `ReversalOfDeductionId` | `dotnet build`; review configuration terhadap DDL `data-dictionary.md` C.16 (batch) dan D.4(c) (potongan); migration diterapkan | Backend Owner — **otorisasi migration WAJIB terpisah**. **Jangan membangun `FinReceiptDeduction` dari C.15** | Aditif; nol tabel modul lain tersentuh |
 | `BE-FIN-039` | Beberapa piutang satu penjamin dapat diterbitkan sebagai satu dokumen tagihan resmi | `FIN-DEC-048`, `054`; `FR-FIN-089`..`092` | `FIN-API-1.1` B.7; `FIN-PERM-1.1` B.5; `FIN-STATE-1.2` B.7; `FIN-VAL-1.2` `114`..`117` | `BillingCompanyGuarantorInvoiceDocumentService` (`FIN-CAP-030`) — **dipanggil**, tidak disalin | `FinanceReceivableInvoiceBatchService`, `FinanceReceivableInvoiceBatchesController`, DTO, registrasi DI | `BE-FIN-038` | Campur dua penjamin ditolak `400`; piutang di batch aktif lain ditolak `409`; batch kosong tidak dapat terbit; dokumen batch memuat rincian per invoice dari layanan Billing; status `PARTIALLY_PAID`/`PAID` mengikuti status `FinReceivable` anggota | `dotnet build`; `FIN-TEST-1.2` B.5 | Backend Owner. **Batas yang MUST dihormati:** service ini MUST NOT menulis `FinReceivable.OutstandingAmount` (DoD #13). Bila menyegarkan status `PARTIALLY_PAID`/`PAID` ternyata menuntut perubahan `FinanceReceivableService`, itu temuan yang dilaporkan balik ke pass desain — pola yang sama dengan bagian 2.1 | Nol PPN/Faktur Pajak (`FIN-DEC-054`) |
 | `BE-FIN-040` | Potongan PPh 23 dan biaya admin bank dicatat bersama alokasinya, melunasi piutang sebagai pembayaran non-tunai, dan ikut terbalik bersama alokasinya | `FIN-DEC-049`, `055`, `058`, `062`; `FIN-DES-048`..`050`; `FR-FIN-093`..`095`, `099` | `FIN-API-1.2` C.2, C.3; `FIN-STATE-1.3` C.4; `FIN-VAL-1.3` C.1, C.3; `FIN-INTEGRATION-1.3` §5.9 kode 26, 27 | `FinanceReceivableService.ApplyAllocationAsync`/`ReverseAllocationAsync` **apa adanya** — tidak diubah; `FinanceAccountingOutboxService` (`BE-FIN-011` ✅) | `FinanceReceiptService.AllocateAsync`: terima `deductions[]` per baris alokasi `RECEIVABLE`, buat `FinReceiptDeduction` + panggil `ApplyAllocationAsync` + tulis `POTONGAN-PIUTANG-NON-TUNAI` per potongan; `FinanceReceiptService.ReverseAllocationAsync` (dipakai manual **dan** pembalikan otomatis `FIN-DEC-021`): baris pembalik per potongan + `ReverseAllocationAsync` + `PEMBALIKAN-POTONGAN-PIUTANG-NON-TUNAI`; `GET /receipts/{id}/deductions`; **tanpa** `POST /receipts/{id}/deductions` | `BE-FIN-038` | Seluruh baris `FIN-TEST-1.3` C.3; **regresi**: permintaan alokasi tanpa `deductions` berperilaku persis seperti sebelum task ini | `dotnet build`; `FIN-TEST-1.3` C.3; review diff membuktikan `FinanceReceiptService` tidak menulis kolom `FinReceivable` langsung | Backend Owner. **MENGUBAH SERVICE YANG SUDAH BERJALAN** (`FinanceReceiptService.AllocateAsync`/`ReverseAllocationAsync`) — perubahan aditif, bersyarat ada potongan | Nol kode `AR_PAYMENT`/`PENERIMAAN-PIUTANG`/`PENYESUAIAN-PIUTANG` untuk potongan; nol worker pengiriman |
 | `BE-FIN-041` 🟡 | Pembayaran supplier punya tempat untuk mencatat porsi yang dilunasi deposit | `FIN-DES-045`; `02-backend-architecture.md` D.6, D.7 baris 3 | `data-dictionary.md` D.1, D.4(a) | `FinPayment` + `FinPaymentConfiguration` (`BE-FIN-020` ✅) | Kolom `DepositAppliedAmount` (default 0) pada entity + configuration; `CK_FinPayment_NetTransfer` diganti rumus baru; `CK_FinPayment_DepositApplied`; migration `AddDepositAppliedAmountToFinPayment` | — (tabel `FinPayment` sudah ada) | Seluruh baris `FinPayment` lama tetap lolos constraint baru tanpa backfill; `NetTransferAmount` hitungan service untuk pembayaran lama tidak berubah | `dotnet build`; migration diterapkan di lingkungan pengembangan; pembuktian constraint baru tidak menolak satu pun baris lama | Backend Owner. **TABEL YANG SUDAH BERJALAN** — otorisasi migration WAJIB terpisah, dan `Down()` hanya aman selama belum ada baris ber-`DepositAppliedAmount > 0` | Nol perubahan perilaku sebelum `BE-FIN-036`: kolom ada, nilainya selalu 0 — 🟡 **Source & berkas migration selesai 28 September 2026** (otorisasi pembuatan berkas diberikan eksplisit pengguna hari yang sama). `dotnet build` **NOT RUN**; eksekusi migration **belum** — keduanya wewenang terpisah. [Laporan](../task/report/backend/BE-FIN-041.md) |
+| `BE-FIN-042` | Penyelarasan 6 controller legacy Finance ke nama kanonikal `Finance*`, seeder ekspansi payung `Finance.AP`/`Finance.AR`, dan skrip SQL migrasi data peran | `FIN-DEC-078`, `FIN-DEC-079`; `FIN-DES-061`..`063`; `FIN-CQ-08`, `FIN-CAP-043`, `FIN-OQ-036` | `contracts/permission-audit-matrix.md` (`FIN-PERM-1.3`, Bagian D) | Enam controller legacy (`BE-FIN-009` ✅, `012` ✅, `018` ✅, `019` ✅, `020` ✅); `AccessMenuSeeder.cs`; tabel `SysRolePermissions` | Enam controller legacy Finance (ganti string `[AccessPermission]` ke `FinancePayment`, `FinanceReceipt`, `FinanceReceivable`, `FinanceSupplierPayable`, `FinanceBillingIntake`, `FinanceAccountingEvent`); pendaftaran payung `Finance.AP`/`Finance.AR` di `AccessMenuSeeder.cs` + ekspansi ke 13 resource granular; skrip `Migrations/scripts/be-fin-042-role-permissions-migration.sql` | `BE-FIN-009` ✅, `BE-FIN-012` ✅, `BE-FIN-018` ✅, `BE-FIN-019` ✅, `BE-FIN-020` ✅ — **seluruhnya selesai, bebas mulai** | 1. Seluruh 6 controller memakai nama resource berawalan `"Finance"`; nol string pendek tersisa. 2. Seeder RBAC memperluas payung `Finance.AP` ke 9 resource granular dan `Finance.AR` ke 4 resource granular. 3. Skrip SQL idempotent siap dieksekusi DBA | Review diff 6 controller + `AccessMenuSeeder.cs`; verifikasi kebenaran dan idempotensi skrip SQL di `Migrations/scripts/` | Backend Owner + Security Owner. **MENGUBAH STRING OTORISASI BERJALAN** — eksekusi skrip SQL di database wajib berbarengan dengan rilis backend agar peran aktif tidak mengalami 403 Forbidden | Nol string nama pendek tersisa; skrip SQL idempotent ada di `Migrations/scripts/`; seeder RBAC menguji ekspansi payung-ke-granular |
+| `BE-FIN-043` | Kolom `PPNAmount` pada `FinSupplierReturn`, constraint `PPNAmount >= 0`, dan kalkulasi deposit retur saat `CONFIRMED` memperhitungkan PPN | `FIN-DEC-047`, `FIN-DEC-061`, `FIN-DEC-067`, `FIN-DES-055`; `02-backend-architecture.md` E.9..E.10 | `contracts/integration-contract.md` (`FIN-INTEGRATION-1.4`), `contracts/validation-matrix.md` (`FIN-VAL-1.4` `FIN-VAL-143`), `erd/data-dictionary.md` | `FinSupplierReturn` (`BE-FIN-030` 🟡), `FinanceSupplierReturnService` (`BE-FIN-035` 🟡) | `FinSupplierReturn.cs` + configuration (`PPNAmount numeric(18,2) NOT NULL DEFAULT 0`, `CK_FinSupplierReturn_PPNAmount`); migration `AddPPNAmountToFinSupplierReturn`; `CreateSupplierReturnRequest` DTO bertambah `PPNAmount`; `FinanceSupplierReturnService` menghitung `AvailableAmount = TotalAmount + PPNAmount` saat `CONFIRMED` | `BE-FIN-030` 🟡, `BE-FIN-031` 🟡, `BE-FIN-035` 🟡 | 1. Migration aditif dengan default 0, seluruh baris lama memenuhi constraint tanpa backfill. 2. Retur dengan PPN negatif ditolak `400` (`FIN-VAL-143`). 3. Deposit Retur yang terbit bernilai `TotalAmount + PPNAmount` | Review diff configuration dan service; verifikasi berkas migration `AddPPNAmountToFinSupplierReturn` | Backend Owner. **TABEL YANG SUDAH BERJALAN** — otorisasi pembuatan dan eksekusi migration wajib diminta terpisah | Migration file aditif, Designer, model snapshot terbarui; service menghitung saldo deposit termasuk PPN |
+| `BE-FIN-044` | Empat titik pemanggilan service yang sudah berjalan diselaraskan menggunakan nama konstanta `EventTypeCode` katalog resmi Accounting | `FIN-DEC-068`, `FIN-DES-058`, `evidence/15` | `contracts/integration-contract.md` (`FIN-INTEGRATION-1.4` Bagian 5.10) | `FinAccountingEventOutbox.cs` (`BE-FIN-010` ✅), `FinanceSupplierPayableService.cs`, `FinancePaymentService.cs`, `FinanceReceivableService.cs` | `FinanceSupplierPayableService` (baris ~112: `PENGAKUAN-HUTANG-SUPPLIER`), `FinancePaymentService` (baris ~555: `PEMBAYARAN-HUTANG-SUPPLIER`), `FinanceReceivableService` (baris ~604: `PENERIMAAN-PIUTANG`, ~698: `PENGHAPUSAN-PIUTANG`); 5 alias lama di `FinAccountingEventOutbox.cs` dihapus | `BE-FIN-010` ✅, `BE-FIN-011` ✅, `BE-FIN-019` ✅, `BE-FIN-020` ✅, `BE-FIN-008` ✅ — **seluruhnya selesai, bebas mulai** | 1. Seluruh outbox baru terbit dengan nama katalog resmi; nol alias lama tersisa di kode pemanggil. 2. Lima konstanta alias yang dilarang dihapus dari `FinAccountingEventOutbox.cs`. 3. Baris outbox historis berstatus `PENDING` tidak diubah | Review diff 4 berkas service dan model outbox; verifikasi compiler memastikan nol pemanggil alias lama | Backend Owner. **MENGUBAH SERVICE BERJALAN** — perubahan string konstanta pada pemanggilan outbox | 5 konstanta alias dihapus; compiler memastikan nol pemanggil yang masih memakai alias lama |
 
 ## 4. Rincian per gelombang
 
@@ -415,7 +501,21 @@ kode yang sudah berjalan menulis kode kejadian alias (`AP_CREATED`, `AP_PAYMENT`
 `AR_WRITEOFF`) di samping katalog 17 kode yang diratifikasi Accounting (`PENGAKUAN-HUTANG-SUPPLIER`
 dan seterusnya). Katalog ratifikasi tidak memuat keempat alias itu. Dicatat sebagai coverage gap
 pada `00-delivery-roadmap.md` bagian 6; `BE-FIN-034` **mengikuti** kode yang dipakai
-`FinanceSupplierPayableService` hari ini dan tidak menambah alias baru.
+`FinanceSupplierPayableService` hari ini dan tidak menambah alias baru. **Temuan ini ditutup tuntas oleh `BE-FIN-044` pada `REV-6/8` di bawah.**
+
+### `REV-6/8` — Penyelarasan Hak Akses (FIN-CQ-08), PPN Retur, dan Katalog Akuntansi
+
+| Aspek | Isi |
+|---|---|
+| Status | Belum dikerjakan. Ditambahkan 28 September 2026 oleh roadmap revisi 6, sesudah owner menyetujui `FIN-DEC-063`..`079`, AMENDMENT REVISI 6 dan 8 blueprint, serta penguncian kontrak `FIN-PERM-1.3` |
+| Gelombang | `POST-MVP` — **seluruhnya boleh dijadwalkan segera** |
+| Task yang BOLEH jalan | `BE-FIN-042` (penyelarasan 6 controller legacy, seeder payung, skrip SQL peran), `BE-FIN-044` (penyelarasan nama kode kejadian 4 titik pemanggil service) — keduanya bebas prasyarat uncompleted dan boleh jalan paralel; `BE-FIN-043` (kolom PPNAmount FinSupplierReturn) boleh mulai setelah `BE-FIN-035` 🟡 |
+| Task ⛔ | **Tidak ada** |
+| Tabel baru | Nol tabel baru |
+| Kolom baru pada tabel lama | Satu: `FinSupplierReturn.PPNAmount` |
+| Migration | Satu: `AddPPNAmountToFinSupplierReturn` (`BE-FIN-043`) — mengubah tabel yang sudah berjalan |
+| Yang MENGUBAH kode berjalan | `BE-FIN-042` — mengubah string `[AccessPermission]` pada 6 controller legacy; `BE-FIN-044` — mengubah string konstanta `EventTypeCode` pada 4 titik pemanggil service |
+| Selesai bila | Nol string nama pendek tersisa di C#; peran ber-`Finance.AP`/`AR` mewarisi hak granular di seeder; skrip SQL idempotent siap dieksekusi; `PPNAmount >= 0` terpasang; deposit retur membawa PPN saat `CONFIRMED`; 5 alias lama dihapus dari outbox |
 
 ## 5. Task yang sengaja tidak dibuat
 
@@ -446,16 +546,18 @@ Berlaku untuk **setiap** handoff implementasi backend, tanpa kecuali:
 | 6 | Penguncian versi kontrak | **Terpenuhi** — 1.0 pada 20 September 2026, dan **1.1 pada 25 September 2026** untuk `FIN-INTEGRATION`, `FIN-STATE`, `FIN-VAL`, `FIN-TEST`, `FIN-MVP` |
 | 7 | **Ratifikasi owner Accounting atas tujuh kode kejadian** (`FIN-OQ-017`) sebelum `BE-FIN-023`..`026` dimulai | **Belum** — surat terkirim `evidence/04`, dikoreksi `evidence/05`. Ini yang membuat keempat task itu ⛔ |
 | 8 | **Otorisasi pembacaan database** sebelum `BE-FIN-026` menghitung baris warisan `HELD_FOR_FINALIZATION` | **Belum** — diminta terpisah saat task itu dimulai |
-
 | 9 | **`BE-FIN-027` selesai sebelum file model Purchasing pertama** (`QBE-MOD-003`) | ✅ **Sudah** — selesai 26 September 2026. Baris `Corporate / Finance \| FinanceManagement / Purchasing / Pembelian \| Fin \| ACTIVE` terdaftar; `Invoke-QbeConformanceCheck.ps1` `Final result: PASS`. [Laporan](../task/report/backend/BE-FIN-027.md) |
 | 10 | **Otorisasi terpisah** untuk membuat **dan** menjalankan tiga migration `REV-4` (`BE-FIN-031`, `BE-FIN-038`) | 🟡 **Sebagian** — pembuatan berkas `BE-FIN-031` (`AddPurchasingApRumpun`, `AddSourcePurchasingInvoiceIdToSupplierPayable`) disetujui dan selesai 26 September 2026, [laporan](../task/report/backend/BE-FIN-031.md). **Eksekusi** migration ini, dan pembuatan **maupun** eksekusi migration `BE-FIN-038` (`AddArInvoiceBatchAndReceiptDeduction`), masih **belum** — diminta terpisah saat masing-masing dimulai. Approval `FIN-DES-037`..`044` **bukan** otorisasi ini |
 | 11 | Penguncian kontrak revisi 4 | **Terpenuhi** 25 September 2026 — `FIN-API-1.1`, `FIN-PERM-1.1`, `FIN-STATE-1.2`, `FIN-VAL-1.2`, `FIN-INTEGRATION-1.2`, `FIN-TEST-1.2`, `FIN-MVP-1.3` |
 | 12 | Amendment arsitektur menggambar skema `FIN-DEC-057` sebelum `BE-FIN-036` | ✅ **Terpenuhi** 26 September 2026 — `02-backend-architecture.md` AMENDMENT REVISI 5, approved |
 | 13 | *(revisi 5)* Otorisasi migration terpisah untuk `AddDepositAppliedAmountToFinPayment` (`BE-FIN-041`) — **tabel yang sudah berjalan** | 🟡 **Sebagian** — otorisasi **pembuatan berkas** diberikan eksplisit pengguna 28 September 2026 dan berkasnya sudah ada, [laporan](../task/report/backend/BE-FIN-041.md). Otorisasi **eksekusi** migration ke database masih **Belum** — diminta terpisah |
+| 14 | *(revisi 6)* Otorisasi migration terpisah untuk `AddPPNAmountToFinSupplierReturn` (`BE-FIN-043`) — **tabel yang sudah berjalan** | **Belum** — diminta terpisah saat task dimulai |
+| 15 | *(revisi 6)* Koordinasi eksekusi skrip SQL `SysRolePermissions` (`BE-FIN-042`) bersamaan rilis rename | Berlaku saat eksekusi |
 
 Prasyarat 2 dan 3 adalah tindakan manusia yang belum diberikan. Keduanya diminta terpisah,
 per-langkah, bukan sekali di awal. Prasyarat 7 dan 8 ditambahkan roadmap revisi 2 dan berlaku
 khusus untuk rangkaian `REV-3`. Prasyarat 9-12 ditambahkan roadmap revisi 3 untuk `REV-4`.
+Prasyarat 14-15 ditambahkan roadmap revisi 6 untuk `REV-6/8`.
 
 **Satu prasyarat yang sudah GUGUR dan tidak perlu diminta lagi:** konfirmasi owner Billing atas
 bentuk `BilCollectionHandoff`. Tabelnya sudah dibangun 22 September 2026 dan sudah dikonsumsi
@@ -491,6 +593,10 @@ Diturunkan dari `04-prd-to-mvp.md` bagian 19 dan pola yang diwarisi dari Petty C
 | 21 | *(revisi 3)* `FinanceReceivableInvoiceBatchService` tidak pernah menulis `FinReceivable.OutstandingAmount` |
 | 22 | *(revisi 5)* Deposit Retur hanya lewat `FinancePaymentService`/`FinanceSupplierReturnService`; `AP_PAYMENT` tidak memuat porsi deposit; pembayaran tanpa deposit identik dengan sebelumnya |
 | 23 | *(revisi 4)* `BE-FIN-040` menulis kode kejadian terpisah untuk potongan AR, tidak pernah `AR_PAYMENT` atau `PENYESUAIAN-PIUTANG` |
+| 24 | *(revisi 6)* Nol string nama pendek tersisa di atribut `[AccessPermission]` pada 6 controller legacy; skrip SQL idempotent migrasi `SysRolePermissions` tersedia di `Migrations/scripts/` (`BE-FIN-042`) |
+| 25 | *(revisi 6)* Peran ber-`Finance.AP` dan `Finance.AR` otomatis diekspansi ke seluruh resource granular oleh seeder otorisasi peran (`BE-FIN-042`) |
+| 26 | *(revisi 6)* `FinSupplierReturn.PPNAmount >= 0`; deposit retur yang terbit bernilai `TotalAmount + PPNAmount` (`BE-FIN-043`) |
+| 27 | *(revisi 6)* Empat titik pemanggil service memakai konstanta resmi tanpa alias lama (`BE-FIN-044`) |
 
 Kriteria 17 adalah kriteria **selesai**, bukan kelalaian: mengerjakan yang `OPEN DECISION`
 lebih awal berarti membangun sesuatu yang jawabannya bisa membatalkan.

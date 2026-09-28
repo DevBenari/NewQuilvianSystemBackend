@@ -127,4 +127,10 @@ public static class FinAccountingEventTypeCodes
     // ratifikasi Accounting untuk penulisannya sendiri (beda dari kode 25, yang worker
     // pengirimannya tertahan FIN-OQ-020); EventTypeCode tidak punya check constraint.
     public const string ReturPembelian = "RETUR-PEMBELIAN";
+
+    // Kode ke-29, diusulkan AMENDMENT REVISI 5/6 (BE-FIN-036, FIN-DEC-057, 061, 066,
+    // integration-contract.md §5.9-5.10). Ditulis saat FinPayment PAID dengan DepositAppliedAmount > 0.
+    // Nama final hasil ratifikasi Accounting: PEMAKAIAN-KREDIT-RETUR-PEMBELIAN (FIN-DEC-066).
+    public const string PemakaianKreditReturPembelian = "PEMAKAIAN-KREDIT-RETUR-PEMBELIAN";
 }
+

@@ -4,8 +4,8 @@
 |---|---|
 | Blueprint ID | `FIN-BP-001` |
 | Revision | `1` |
-| Status | `approved` untuk 62 keputusan (`FIN-DEC-001`..`062`; `061`/`062` — kode kejadian retur, pemakaian deposit, dan pembalikan potongan AR, dijawab owner saat `/design-business-module` revisi 5) — seluruh blocker Phase 0, aturan inti AR/AP/Cash Management, UI brief frontend `FE-FIN-*` (`FIN-DEC-024`..`029`), dampak balasan Accounting (`FIN-DEC-030`..`039`), koreksi hasil impact scan `/design-business-module` atas rumpun uang muka/deposit/selisih kas (`FIN-DEC-040`..`044`), rumpun BARU Purchasing/AP penuh + agregasi AR + potongan sisi penerimaan dipicu evidence `Keuangan.md` (`FIN-DEC-045`..`051`), closure pass lanjutan yang menutup ambang nominal AP + kode PPN + status pajak AR (`FIN-DEC-052`..`055`), penyempitan gerbang `/plan-module-delivery` untuk `EPIC FIN-15` (`FIN-DEC-056`), dan `/grill-me` closure pass yang menutup empat pertanyaan `/plan-module-delivery` — mekanisme Deposit Retur, kode kejadian potongan AR, endpoint aging duplikat, label menu (`FIN-DEC-057`..`060`, seluruhnya 25 September 2026) tertutup. `FIN-DEC-004`, `FIN-DEC-007`, `FIN-DEC-015`, `FIN-DEC-023`, `FIN-DEC-032`, `FIN-DEC-033`, dan sebagian `FIN-DEC-034` `superseded` — lihat masing-masing untuk penggantinya. `FIN-DEC-046` `dipersempit` oleh `FIN-DEC-056` (tetap `approved`, cakupannya menyempit). `FIN-OQ-010`, `019`, `021`..`023`, `025` kini `closed` (`FIN-OQ-024` closed sisi Finance saja). Item non-blocking tetap `open`: `FIN-OQ-015` (lingkup detail cetak/unduh), `FIN-OQ-016` (mekanisme token akun layanan), `FIN-OQ-017` (ratifikasi balik Accounting atas TUJUH kode uang muka/kas), `FIN-OQ-018` (lawan jurnal refund kategori BILLING non-kelebihan-bayar), `FIN-OQ-020` (murni menahan AKTIVASI WORKER kode `PPN-MASUKAN-PEMBELIAN`), `FIN-OQ-026` **baru** (ratifikasi Accounting atas `POTONGAN-PIUTANG-NON-TUNAI`, hanya menahan worker). `FIN-OQ-011` `closed` oleh `FIN-DEC-035`. Lihat `FIN-CQ-02` untuk satu closure question yang didelegasikan ke `/design-business-module`. **Konsekuensi skema `FIN-DEC-057` belum digambar** — lihat `Langkah berikutnya`. |
-| Pass | `Scope pass` — selesai 20 September 2026 · `Closure pass` — selesai 20 September 2026 · `Amendment pass` (UI brief `FE-FIN-*`) — selesai 23 September 2026 · `Amendment pass` (balasan Accounting, evidence 13) — selesai 25 September 2026 · `Amendment pass lanjutan` (koreksi impact scan `/design-business-module`) — selesai 25 September 2026 · `Amendment pass` (rumpun Purchasing/AP penuh + agregasi AR, evidence `Keuangan.md`) — selesai 25 September 2026 · `Closure pass lanjutan` (ambang nominal, kode PPN, status pajak AR) — selesai 25 September 2026 |
+| Status | `approved` untuk 79 keputusan (`FIN-DEC-001`..`079`) — seluruh blocker Phase 0, aturan inti AR/AP/Cash Management, UI brief frontend `FE-FIN-*` (`FIN-DEC-024`..`029`), dampak balasan Accounting (`FIN-DEC-030`..`039`), koreksi hasil impact scan `/design-business-module` atas rumpun uang muka/deposit/selisih kas (`FIN-DEC-040`..`044`), rumpun BARU Purchasing/AP penuh + agregasi AR + potongan sisi penerimaan dipicu evidence `Keuangan.md` (`FIN-DEC-045`..`051`), closure pass lanjutan yang menutup ambang nominal AP + kode PPN + status pajak AR (`FIN-DEC-052`..`055`), penyempitan gerbang `/plan-module-delivery` untuk `EPIC FIN-15` (`FIN-DEC-056`), `/grill-me` closure pass yang menutup empat pertanyaan `/plan-module-delivery` (`FIN-DEC-057`..`060`, 25 September 2026), `/grill-me` closure pass atas balasan Accounting `evidence/14` (`FIN-DEC-063`..`071`, 28 September 2026), `/grill-me` amendment pass atas temuan `/trace-existing-capabilities` REVISI 6 (`FIN-DEC-072`..`076`, 28 September 2026), penutupan `FIN-OQ-034` via `BKC-DEC-128`..`131` (`FIN-DEC-077`), dan `/grill-me` amendment pass penyelarasan resource hak akses (`FIN-DEC-078`..`079`, 28 September 2026) tertutup. `FIN-OQ-034`, `FIN-CQ-08`, `FIN-OQ-036` kini `closed`. |
+| Pass | `Scope pass` — selesai 20 September 2026 · `Closure pass` — selesai 20 September 2026 · `Amendment pass` (UI brief `FE-FIN-*`) — selesai 23 September 2026 · `Amendment pass` (balasan Accounting, evidence 13) — selesai 25 September 2026 · `Amendment pass lanjutan` (koreksi impact scan `/design-business-module`) — selesai 25 September 2026 · `Amendment pass` (rumpun Purchasing/AP penuh + agregasi AR, evidence `Keuangan.md`) — selesai 25 September 2026 · `Closure pass lanjutan` (ambang nominal, kode PPN, status pajak AR) — selesai 25 September 2026 · `Closure pass` (balasan Accounting `evidence/14`) — selesai 28 September 2026 · `Amendment pass` (temuan `/trace-existing-capabilities` atas REVISI 6) — selesai 28 September 2026 · `Amendment pass` (penyelarasan resource hak akses, `FIN-CQ-08`) — selesai 28 September 2026 |
 | Product/domain owner | Yasmin (owner/penggarap modul Finance AR/AP, sesuai `docs/module-blueprints/accounting/evidence/12-paket-kontrak-kejadian-untuk-finance.md`) |
 | Backend SHA | `09101d05` (branch `Yasmina`, `NewQuilvianSystemBackend`) |
 | Frontend SHA | `abed49b03` (branch, `QuilvianSystemFrontendDev`) |
@@ -546,3 +546,251 @@ skema `FIN-DEC-057` (satu-satunya yang menyentuh entity), lalu roadmap `BE-FIN-0
 dapat dibuka. `BE-FIN-040`/`FE-FIN-013` tetap ⛔ `FIN-OQ-026` sampai Rizki menjawab. Tidak ada
 task lain yang tertahan closure pass ini — dua belas task revisi 4 lain tetap seperti
 direncanakan.
+
+---
+
+## Closure pass — balasan Accounting atas evidence/04, 05, 06, 07 (evidence/14), 28 September 2026
+
+**Pemicu.** Rizki (owner Accounting) membalas ketiga surat Finance sekaligus dalam
+`docs/module-blueprints/accounting/evidence/14-balasan-accounting-atas-kode-finance-05-06-07.md`.
+Dari dua belas kode yang diusulkan Finance: tujuh diratifikasi apa adanya, dua diratifikasi
+bersyarat, dan tiga diminta dipecah karena satu kode membawa lebih dari satu lawan jurnal.
+Surat itu juga membawa empat pelurusan wajib (bagian 5) dan tujuh pertanyaan balik (bagian 7).
+Pass ini menjawab sembilan keputusan yang wewenangnya ada di tangan Yasmin sebelum surat balasan
+berikutnya (`evidence/15`, belum ditulis) dikirim ke Rizki.
+
+**Keputusan baru:** `FIN-DEC-063`..`071`, seluruhnya `approved`, Yasmin, 28 September 2026.
+
+| ID | Pertanyaan | Keputusan | Owner | Evidence/dasar |
+|---|---|---|---|---|
+| `FIN-DEC-063` | Kejadian apa yang dikirim saat tender uang muka dibatalkan SESUDAH sebagian/seluruhnya dipakai melunasi piutang (pertanyaan 7.1 Accounting) | Kirim **dua** kejadian: kode baru `PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT` (debit Piutang, kredit Uang Muka Pasien — cermin pembalik `PEMAKAIAN-UANG-MUKA-DEPOSIT`) sebesar porsi yang terpakai, DITAMBAH `PEMBALIKAN-PENERIMAAN-UANG-MUKA` (kode existing, debit Uang Muka Pasien, kredit Kas) sebesar nilai tender. Hasil bersih: debit Piutang, kredit Kas — persis seperti yang diminta Accounting, dan Uang Muka Pasien kembali nol. Tidak mengubah lawan jurnal kode manapun yang sudah ada | Yasmin | `evidence/14` bagian 7.1; cermin `FIN-DEC-040` |
+| `FIN-DEC-064` | Nama final dua kode pecahan selisih kas shift (`evidence/14` bagian 3.3) | Terima usulan Accounting apa adanya: `SELISIH-KAS-KURANG` (kekurangan, debit beban selisih kas/kredit Kas) dan `SELISIH-KAS-LEBIH` (kelebihan, debit Kas/kredit pendapatan selisih kas), keduanya bernilai positif. Menggantikan `SELISIH-KAS-SHIFT` bertanda yang ditolak Accounting | Yasmin | `evidence/14` bagian 3.3 |
+| `FIN-DEC-065` | Pemecahan kode potongan piutang (`evidence/14` bagian 3.5) — Accounting menolak `POTONGAN-PIUTANG-NON-TUNAI` satu kode (`FIN-DEC-058`) | Terima pemecahan jadi EMPAT kode dengan nama usulan Accounting: `POTONGAN-PPH23-PIUTANG` (debit PPh 23 dibayar di muka/kredit Piutang), `PEMBALIKAN-POTONGAN-PPH23-PIUTANG`, `POTONGAN-BIAYA-BANK-PIUTANG` (debit beban administrasi bank/kredit Piutang), `PEMBALIKAN-POTONGAN-BIAYA-BANK-PIUTANG`. `POTONGAN-PIUTANG-NON-TUNAI` dan pembaliknya (`FIN-DEC-058`) **superseded** oleh keputusan ini — alasannya benar secara akuntansi: PPh 23 adalah aset (kredit pajak), biaya bank adalah beban, satu kode tidak boleh punya dua kemungkinan akun debit | Yasmin | `evidence/14` bagian 3.5; **supersedes** `FIN-DEC-058` |
+| `FIN-DEC-066` | Rename `PEMAKAIAN-DEPOSIT-RETUR` (`evidence/14` bagian 3.6, saran tidak mengikat) | Ikuti saran, ganti nama menjadi `PEMAKAIAN-KREDIT-RETUR-PEMBELIAN` — menghindari kerancuan dengan `PEMAKAIAN-UANG-MUKA-DEPOSIT` (deposit pasien) yang sama-sama memakai kata "DEPOSIT" untuk konsep berbeda | Yasmin | `evidence/14` bagian 3.6 |
+| `FIN-DEC-067` | Konfirmasi tiga syarat mengikat `PENGAKUAN-KELEBIHAN-BAYAR` (`evidence/14` bagian 3.2, pertanyaan 7.2) | Setuju ketiga syarat apa adanya: (1) lawan jurnal tetap debit Piutang/kredit Uang Muka Pasien; (2) kode ini HANYA terbit bila kelebihan lahir dari pembayaran yang mengkredit Piutang (`BilRefundableCredit.SourceType = ALLOCATION_EXCESS`); (3) kode ini **MUST NOT** terbit bila pembayaran asalnya `PENERIMAAN-UANG-MUKA` — kelebihannya sudah tercatat di Uang Muka Pasien, mengirim kode ini akan mencatat kewajiban dua kali | Yasmin | `evidence/14` bagian 3.2, 7.2; cermin `FIN-DEC-042` |
+| `FIN-DEC-068` | Apakah kredit retur supplier bisa memuat PPN, dan kode apa untuk porsi PPN-nya (`evidence/14` bagian 3.6, 7.3 butir pertama) | Ya, retur barang ke supplier BISA membawa porsi PPN (konsisten dengan `PPN-MASUKAN-PEMBELIAN` yang sudah diusulkan Finance untuk pembelian barang yang sama). Diusulkan kode baru `PPN-MASUKAN-RETUR-PEMBELIAN` — cermin `PPN-MASUKAN-PEMBELIAN`: debit Piutang Retur Supplier, kredit akun yang sama dengan debit `PPN-MASUKAN-PEMBELIAN` | Yasmin | `evidence/14` bagian 3.6, 7.3 |
+| `FIN-DEC-069` | Apakah supplier pernah mencairkan kredit retur secara TUNAI (`evidence/14` bagian 7.3 butir kedua) | Tidak pernah — kredit retur di Finance HANYA dipakai mengurangi pembayaran utang supplier berikutnya (`PEMAKAIAN-KREDIT-RETUR-PEMBELIAN`/`FIN-DEC-047`). Tidak perlu kode baru untuk pencairan tunai | Yasmin | `evidence/14` bagian 7.3 |
+| `FIN-DEC-070` | Bentuk kejadian penanda shift kasir tertutup, terbit saat `REVIEWED` (`evidence/14` bagian 4.1, 7.4) | Kode baru, `PENUTUPAN-SHIFT-KASIR`, murni penanda status tanpa lawan jurnal (pola sama dengan `SALDO-SUBLEDGER`) — terbit saat `BilCashierShift.Status` menjadi `REVIEWED`, `SourceTransactionId` memakai `BilCashVarianceReview.Id` (lihat `FIN-CAP-024`, lebih presisi daripada `BilCashierShift.Id`) | Yasmin | `evidence/14` bagian 4.1, 7.4 |
+| `FIN-DEC-071` | Sifat akuntansi refund kategori `SETTLEMENT` dan `REFERRED_OUTPATIENT_ADMIN` (`BilRefundCase.SourceType`, `evidence/14` bagian 4.2, 7.6) | Diasumsikan defensif: kedua kategori BISA mengeluarkan kas tunai ke pasien — sikap fail-closed karena biaya kesalahan (rekonsiliasi toleransi-nol Accounting gagal diam-diam) jauh lebih mahal daripada biaya mengusulkan kode yang ternyata tidak pernah dipicu. Perlu kode kejadian baru (bentuk dan nama menyusul saat `/design-business-module`), masuk gerbang G6. **Catatan risiko:** ini asumsi defensif Finance, BUKAN konfirmasi faktual dari owner Billing — bila owner Billing kelak memastikan kedua kategori itu tidak pernah mengeluarkan kas, keputusan ini MUST ditinjau ulang sebagai amendment, bukan dianggap final selamanya | Yasmin | `evidence/14` bagian 4.2, 7.6; terkait `FIN-OQ-018` |
+
+**Pelurusan bagian 5 (`evidence/14`) — diterima seluruhnya, bukan area yang butuh keputusan
+bisnis:**
+
+1. Kosongkan `Components` pada seluruh contoh pesan (bukan teks `"TOTAL"`) — kesalahan dokumentasi
+   Finance sendiri, MUST diperbaiki di `contracts/integration-contract.md` sebelum worker
+   pengiriman mana pun diaktifkan.
+2. Hanya `SALDO-SUBLEDGER` yang boleh bernilai nol/negatif — `SELISIH-KAS-SHIFT` sudah dipecah
+   (`FIN-DEC-064`) sehingga klaim `evidence/07` bagian 2.1 sudah tidak berlaku.
+3. **Fakta terverifikasi langsung ke source**, bukan keputusan: `contracts/integration-contract.md`
+   baris 296-300 mengonfirmasi dugaan Accounting tentang `EventTypeCode` pengganti nama pendek
+   sudah **persis benar** — `AP_CREATED` → `PENGAKUAN-HUTANG-SUPPLIER`, `AP_PAYMENT` →
+   `PEMBAYARAN-HUTANG-SUPPLIER`, `AR_PAYMENT` → `PENERIMAAN-PIUTANG`, `AR_WRITEOFF` →
+   `PEMUTIHAN-PIUTANG`. Tidak ada keputusan baru yang dibutuhkan di sini.
+4. Contoh angka `evidence/06` (Rp 11.000.000) salah ketik, seharusnya Rp 11.100.000 — perbaikan
+   dokumentasi murni.
+
+**Open question yang tertutup pass ini:**
+
+| ID | Status baru | Alasan |
+|---|---|---|
+| `FIN-OQ-017` | **CLOSED** 28 September 2026 | Ketujuh kode kejadian uang muka/deposit/kas sudah tuntas sisi ratifikasi: lima diratifikasi apa adanya, satu (`PENGAKUAN-KELEBIHAN-BAYAR`) diratifikasi bersyarat dan syaratnya diterima (`FIN-DEC-067`), satu (`SELISIH-KAS-SHIFT`) diganti dua kode baru dan namanya diterima (`FIN-DEC-064`) |
+| `FIN-OQ-020` | **CLOSED** sisi ratifikasi kode, 28 September 2026 | `PPN-MASUKAN-PEMBELIAN` diratifikasi Accounting (`evidence/14` bagian 2); akun debit persis masih menunggu G2 Accounting sendiri — itu bukan lagi open question Finance |
+| `FIN-OQ-026` | **CLOSED**, digantikan `FIN-OQ-028` | `POTONGAN-PIUTANG-NON-TUNAI` ditolak sebagai satu kode; ratifikasi yang ditunggu sekarang adalah atas EMPAT kode pengganti (`FIN-DEC-065`) |
+| `FIN-OQ-018` | Sisi keputusan bisnis **CLOSED** oleh `FIN-DEC-071` (asumsi defensif); sisi ratifikasi kode **OPEN** sebagai `FIN-OQ-031` | Accounting sudah minta jawaban lewat `evidence/14` bagian 7.6; jawabannya assumsi defensif "bisa keluar kas", bukan penutupan definitif |
+
+**Open question baru — seluruhnya menunggu ratifikasi Accounting lewat surat `evidence/15`
+(belum ditulis):**
+
+| ID | Butuh | Menahan apa |
+|---|---|---|
+| `FIN-OQ-027` | Ratifikasi kode baru `PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT` (`FIN-DEC-063`) | Aktivasi worker pengiriman kasus pembatalan uang muka terpakai. Tidak menahan `EPIC FIN-14` secara keseluruhan (pola `FIN-DEC-056`) |
+| `FIN-OQ-028` | Ratifikasi empat kode potongan piutang pengganti (`FIN-DEC-065`) | Aktivasi worker pengiriman potongan piutang non-tunai. Tidak menahan `EPIC FIN-17` masuk `/plan-module-delivery` |
+| `FIN-OQ-029` | Ratifikasi kode `PPN-MASUKAN-RETUR-PEMBELIAN` (`FIN-DEC-068`) | Aktivasi worker pengiriman retur pembelian yang membawa PPN |
+| `FIN-OQ-030` | Ratifikasi kode `PENUTUPAN-SHIFT-KASIR` (`FIN-DEC-070`) | Penegakan `ACC-DEC-065` sisi Accounting (tutup bulan menahan shift yang belum ditutup) |
+| `FIN-OQ-031` | Bentuk dan nama kode refund kas `SETTLEMENT`/`REFERRED_OUTPATIENT_ADMIN` (`FIN-DEC-071`) — BELUM diusulkan, perlu dirancang dulu lewat `/design-business-module` (`SourceTransactionId` mana yang dipakai, lawan jurnal) sebelum diajukan ke Accounting | Gerbang G6 milik Accounting; sebelumnya tercatat `FIN-OQ-018` |
+
+**Blocker desain yang TERSISA, dan yang MENYUSUL.** Sembilan keputusan pass ini murni jawaban
+tertulis dan penamaan kode — **belum ada** perubahan skema atau entity yang digambar. Dua hal
+MUST dikerjakan `/design-business-module` sebelum implementasi:
+
+1. Bentuk kejadian `PENUTUPAN-SHIFT-KASIR` dan kode refund `FIN-OQ-031` — keduanya kode baru yang
+   belum pernah muncul di `02-backend-architecture.md`/`erd/accounting-integration.md`.
+2. Titik tulis kejadian `PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT` di dalam alur pembatalan tender
+   Billing (`FIN-DEC-021`) — perlu dipetakan ke source konkret tempat pembatalan tender uang muka
+   ditangani.
+
+**Acceptance criteria yang sudah dapat diuji dari closure pass ini:**
+
+1. Pembatalan tender uang muka yang sudah terpakai sebagian/seluruhnya MUST menerbitkan KEDUA
+   kejadian (`PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT` dan `PEMBALIKAN-PENERIMAAN-UANG-MUKA`), tidak
+   boleh hanya satu (`FIN-DEC-063`).
+2. `PENGAKUAN-KELEBIHAN-BAYAR` MUST NOT diterbitkan bila kelebihan berasal dari pembayaran
+   `PENERIMAAN-UANG-MUKA` (`FIN-DEC-067` syarat 3) — kondisi ini MUST diuji eksplisit di
+   `testing/acceptance-test-matrix.md` sebelum worker diaktifkan.
+3. Nama kode kejadian yang ditulis ke `FinAccountingEventOutbox` MUST memakai nama hasil pass ini
+   (`SELISIH-KAS-KURANG`/`LEBIH`, `POTONGAN-PPH23-PIUTANG` dkk., `PEMAKAIAN-KREDIT-RETUR-PEMBELIAN`),
+   BUKAN nama versi sebelumnya (`SELISIH-KAS-SHIFT`, `POTONGAN-PIUTANG-NON-TUNAI`,
+   `PEMAKAIAN-DEPOSIT-RETUR`) yang sudah `superseded`.
+4. `Components` MUST tidak ada sama sekali pada seluruh pesan kejadian transaksi (pelurusan #1) —
+   pesan yang membawa field ini MUST ditolak sebelum dikirim, bukan menunggu Accounting menolaknya.
+
+**Yang sengaja di luar scope pass ini:** menulis surat balasan `evidence/15` ke Rizki — menyusul
+sebagai instruksi terpisah. Merancang skema `PENUTUPAN-SHIFT-KASIR` dan kode refund `FIN-OQ-031`
+— itu `/design-business-module`, bukan `/grill-me`. Memverifikasi ke owner Billing apakah
+`SETTLEMENT`/`REFERRED_OUTPATIENT_ADMIN` benar-benar pernah mengeluarkan kas — `FIN-DEC-071`
+sengaja memakai asumsi defensif supaya pass ini tidak tertahan pihak luar; verifikasi itu boleh
+menyusul kapan saja sebagai amendment.
+
+**Langkah berikutnya:** kirim surat balasan `evidence/15` ke Rizki memuat kesembilan keputusan di
+atas dan usulan empat kode baru (`FIN-OQ-027`..`030`), lalu `/design-business-module` amendment
+kecil untuk `FIN-OQ-031` dan titik tulis `PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT`. Tidak ada task
+roadmap existing yang berubah status oleh pass ini — seluruh dampak baru murni menunggu ratifikasi
+Accounting (pola `FIN-DEC-056`), konsisten dengan seluruh rumpun Accounting Integration sejauh ini.
+
+---
+
+## Amendment pass — menutup temuan `/trace-existing-capabilities` atas AMENDMENT REVISI 6, 28 September 2026
+
+**Pemicu.** `/design-business-module` revisi 6 (28 September 2026, pass sebelumnya pada hari yang
+sama) menemukan kedua SHA sudah bergerak jauh dan menuliskan `FIN-DES-051`..`058` beserta empat
+temuan yang membatalkan asumsi `FIN-DEC-070`/`071`. `/trace-existing-capabilities` menyusul pada
+hari yang sama, membaca langsung kontrak as-is endpoint penerima Accounting, dan menemukan bahwa
+salah satu premis desain revisi 6 (`FIN-DES-054`, penanda shift bernilai nol) **akan ditolak**
+kotak masuk Accounting sebagaimana dibangun hari ini (`FIN-CQ-04`), plus dua `Conflict` frontend
+(`FIN-CQ-06`, `FIN-CQ-07`). Pass ini menutup lima keputusan yang menunggu owner: tiga pengakuan
+atas koreksi berbasis bukti, satu jalan keluar untuk `FIN-CQ-04`, satu penyelesaian `FIN-CQ-06`.
+
+**Keputusan baru:** `FIN-DEC-072`..`076`, seluruhnya `approved`, Yasmin, 28 September 2026.
+
+| ID | Pertanyaan | Keputusan | Dasar |
+|---|---|---|---|
+| `FIN-DEC-072` | Pengakuan koreksi pemicu penanda shift tertutup (temuan A, `02-backend-architecture.md` `E.1`) | **Diterima.** `CLOSED` (tanpa selisih) **dan** `REVIEWED` (selisih disahkan) sama-sama menerbitkan `PENUTUPAN-SHIFT-KASIR`. `CLOSED_WITH_VARIANCE` dan `PERLU_TINDAK_LANJUT` tetap tidak menerbitkan apa pun — keduanya memang harus menahan tutup bulan. Ini koreksi atas kesalahan pemicu `FIN-DEC-070`, bukan keputusan baru: shift bersih terbukti berhenti di `CLOSED` dan tidak pernah mencapai `REVIEWED` (`CashierShiftService.CloseAsync` baris 550-552) | `02-backend-architecture.md` `FIN-DES-054`; **mengoreksi** `FIN-DEC-070` |
+| `FIN-DEC-073` | Pengakuan koreksi kunci kejadian selisih kas (temuan B) | **Diterima.** `SourceTransactionId` kejadian `SELISIH-KAS-KURANG`/`LEBIH` dan `PENUTUPAN-SHIFT-KASIR` memakai `BilCashierShift.Id`, **bukan** `BilCashVarianceReview.Id`. Hanya baris review yang membawa shift ke `REVIEWED` yang menerbitkan kejadian; baris `NEEDS_FOLLOW_UP` tidak. Ini menutup risiko satu selisih terjurnal dua kali (satu shift bisa punya dua baris review bernilai sama) | `02-backend-architecture.md` `FIN-DES-053`; **mengoreksi** `FIN-DEC-070`/`FIN-CAP-024` |
+| `FIN-DEC-074` | Pengakuan penyempitan cakupan refund kas (temuan D) | **Diterima.** Refund kredit `SETTLEMENT` **tidak** butuh kode baru — diperlakukan sebagai perluasan cakupan `PENGAKUAN-KELEBIHAN-BAYAR` dan `PENGEMBALIAN-UANG-MUKA` yang sudah ada, karena ekonominya identik `ALLOCATION_EXCESS` (uang yang benar-benar diterima melebihi tagihan). Hanya `REFERRED_OUTPATIENT_ADMIN` yang tetap `OPEN DECISION` menunggu Billing + Accounting | `02-backend-architecture.md` `FIN-DES-056`; **mempersempit** `FIN-DEC-071` |
+| `FIN-DEC-075` | Jalan keluar untuk `FIN-CQ-04` — kotak masuk Accounting menolak `Amount = 0` pada kedua jalur (transaksi dan saldo) | **Lanjutkan desain penanda bernilai nol apa adanya** (`FIN-DES-054` tidak diubah) — pola yang sama dengan `FIN-DEC-056`: Finance membangun duluan, hanya **worker pengirimannya** yang digerbang. **Sekaligus kirim permintaan tertulis terpisah** ke Accounting agar kotak masuknya diperluas menerima `Amount = 0` khusus `PENUTUPAN-SHIFT-KASIR`/`PEMBALIKAN-PENUTUPAN-SHIFT-KASIR`, atau mengaktifkan jalur pesan saldo (`BE-ACC-P2-028`). **Dicatat eksplisit:** permintaan ini levelnya lebih besar daripada ratifikasi nama kode — ia meminta perubahan aturan validasi di source Accounting sendiri, bukan sekadar penamaan | `01-existing-capability-map.md` bagian 15.4 (`FIN-CQ-04`); membuka `FIN-OQ-035` |
+| `FIN-DEC-076` | Penyelesaian `FIN-CQ-06` — label menu yang sudah dibangun ("Account Payable", "Purchase Order", dst.) tidak mengikuti `FIN-DEC-060` | **Minta frontend menyesuaikan ke `FIN-DEC-060`** — submenu "Pembelian" berlabel Indonesia, ditambah butir "Tagihan Gabungan Penjamin" yang belum ada. `FIN-DEC-060` **tidak** diubah. Keputusan yang sudah disetujui owner MUST ditegakkan, bukan dikalahkan diam-diam oleh implementasi yang mendahuluinya | `01-existing-capability-map.md` bagian 15.4 (`FIN-CQ-06`); menegaskan `FIN-DEC-060` |
+
+**Open question yang ditutup pass ini:**
+
+| ID | Status baru |
+|---|---|
+| `FIN-CQ-04` | **CLOSED** sisi keputusan bisnis oleh `FIN-DEC-075` — sisi ratifikasi teknis dilanjutkan sebagai `FIN-OQ-035` |
+| `FIN-CQ-06` | **CLOSED** oleh `FIN-DEC-076` — implementasinya menjadi task frontend terpisah, bukan lagi open question |
+
+**Open question baru:**
+
+| ID | Butuh | Menahan apa |
+|---|---|---|
+| `FIN-OQ-035` | Persetujuan Accounting untuk memperluas kotak masuknya menerima `Amount = 0` untuk kedua kode penanda shift, ATAU mengaktifkan jalur pesan saldo (`BE-ACC-P2-028`) | Aktivasi worker pengiriman `PENUTUPAN-SHIFT-KASIR`/`PEMBALIKAN-PENUTUPAN-SHIFT-KASIR`. **Tidak** menahan penulisan baris outbox-nya (pola `FIN-DEC-056`). Permintaan ini **belum** dikirim — levelnya perubahan aturan validasi Accounting, MUST dikirim sebagai surat evidence tersendiri, terpisah dari `evidence/15` yang berisi ratifikasi nama kode |
+
+**Yang TIDAK ditutup pass ini, dan MUST ditindaklanjuti:**
+
+- `FIN-DEC-076` menghasilkan **task frontend baru** (relabel menu + tambah butir "Tagihan Gabungan
+  Penjamin") yang belum tercatat di roadmap manapun — MUST masuk `/plan-module-delivery` berikutnya
+  sebagai task terpisah, murni relabel/restrukturisasi tanpa menyentuh endpoint.
+- Surat evidence untuk `FIN-OQ-035` belum ditulis — menyusul sebagai instruksi terpisah dari
+  `evidence/15`, karena sifat permintaannya berbeda (perubahan aturan validasi, bukan ratifikasi
+  nama).
+- `FIN-CQ-05` (klaim keliru pada `integration-contract.md` bagian 5.10.5 butir 1 tentang
+  `Components`) **tidak** memerlukan keputusan owner — ini murni koreksi kalimat dokumen berbasis
+  bukti (`null` ternyata diterima kotak masuk), dan akan dibetulkan saat `/design-business-module`
+  berikutnya menyentuh berkas itu.
+
+**Acceptance criteria tambahan yang sudah dapat diuji:**
+
+1. `PENUTUPAN-SHIFT-KASIR` MUST terbit untuk shift `CLOSED` **maupun** `REVIEWED` (`FIN-DEC-072`) —
+   pengujian yang hanya mencakup jalur `REVIEWED` **tidak** memenuhi kontrak ini.
+2. Kejadian selisih kas dan penanda shift MUST memakai `BilCashierShift.Id` sebagai
+   `SourceTransactionId`, **tidak pernah** `BilCashVarianceReview.Id` (`FIN-DEC-073`).
+3. Worker pengiriman `PENUTUPAN-SHIFT-KASIR`/`PEMBALIKAN-PENUTUPAN-SHIFT-KASIR` MUST NOT diaktifkan
+   sebelum `FIN-OQ-035` dijawab Accounting (`FIN-DEC-075`) — baris outbox-nya tetap boleh ditulis
+   `PENDING`.
+4. Menu Finance MUST menampilkan submenu "Pembelian" berlabel Indonesia sebelum rumpun Purchasing
+   dinyatakan selesai frontend-nya (`FIN-DEC-076`).
+
+**Langkah berikutnya:** `/design-business-module` amendment kecil untuk memperbarui
+`02-backend-architecture.md`/`integration-contract.md` mengikuti `FIN-DEC-072`..`074` (sebagian
+sudah tertulis sebagai `FIN-DES-053`/`054`/`056` pada pass sebelumnya di hari yang sama — amendment
+ini tinggal menegaskan status `approved`-nya) dan membetulkan `FIN-CQ-05`, lalu tulis dua surat
+evidence terpisah: `evidence/15` (ratifikasi nama kode, ke Rizki) dan surat baru untuk `FIN-OQ-035`
+(permintaan perluasan validasi, ke Rizki juga tetapi levelnya berbeda). Task frontend relabel menu
+menyusul lewat `/plan-module-delivery`.
+
+---
+
+## Amendment pass — Penutupan `FIN-OQ-034` atas Pembalikan Tender Top-Up Deposit di Billing, 28 September 2026
+
+**Pemicu.** Permintaan perbaikan `evidence/17` dari Finance kepada modul Billing Kasir telah disahkan melalui sesi `/grill-me` (keputusan `BKC-DEC-128`..`131` pada `docs/module-blueprints/billing-kasir/00-interview-decisions.md`). Pass ini mencatat pengakuan sisi Finance atas solusi tersebut dan menutup `FIN-OQ-034`.
+
+**Keputusan baru:** `FIN-DEC-077`, `approved`, Yasmin, 28 September 2026.
+
+| ID | Pertanyaan | Keputusan | Dasar |
+|---|---|---|---|
+| `FIN-DEC-077` | Pengakuan solusi Billing atas pembalikan tender top-up deposit (`FIN-OQ-034` ditutup) | **Diterima penuh.** Billing mengesahkan `BKC-DEC-128`..`131`: membatalkan alokasi tagihan terlebih dahulu secara LIFO (sehingga tagihan kembali berstatus `FINAL` dan saldo deposit tidak minus), memulihkan saldo akun deposit sementara, lalu mencatat mutasi pembalikan top-up `REVERSAL`. Di `BilDepositMovement`, Billing mencatat mutasi `RELEASE` untuk alokasi yang dibatalkan dan mutasi `REVERSAL` untuk top-up yang ditarik. Finance akan mengonsumsi kedua mutasi itu lewat intake `DEPOSIT_MOVEMENT` (`FinBillingHandoffTypes.DepositMovement`) untuk menerbitkan pasangan kejadian akuntansi: `PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT` dan `PEMBALIKAN-PENERIMAAN-UANG-MUKA`. Pendeteksi intake error `FIN-VAL-142` kini terpenuhi faktanya | `evidence/17`; `BKC-DEC-128`..`131`; **menutup** `FIN-OQ-034` |
+
+**Open question yang ditutup:**
+
+| ID | Status baru |
+|---|---|
+| `FIN-OQ-034` | **CLOSED** sisi keputusan bisnis dan kesepakatan antar-modul oleh `BKC-DEC-128`..`131` dan `FIN-DEC-077` |
+
+---
+
+## Amendment pass — Penyelarasan Nama Resource Hak Akses (`FIN-CQ-08`), 28 September 2026
+
+**Pemicu.** `/trace-existing-capabilities` bagian 16.3 menemukan enam controller lama
+(`FinancePaymentsController` dan lima lainnya) memakai nama resource pendek pada
+`[AccessPermission]` (`Payment`, `Receipt`, `Receivable`, `SupplierPayable`, `BillingIntake`,
+`AccountingEvents`), berbeda dari `contracts/permission-audit-matrix.md` (`FinancePayment`, dst.)
+dan dari tujuh controller Purchasing yang baru dibangun — yang sudah memakai nama penuh sejak awal.
+Ditemukan pula `Finance.AP`/`Finance.AR` dipakai frontend menyaring menu tanpa pernah terdaftar di
+kontrak hak akses sama sekali, memperbesar `FIN-OQ-036` (granularitas hak akses butir menu
+Purchasing). Audit menandai ini `FIN-CAP-043` (`Repair`) dan `FIN-CQ-08`, dan meminta keputusan
+owner bersama Security Owner sebelum peran disemai ke lingkungan mana pun.
+
+**Keputusan baru:** `FIN-DEC-078`, `FIN-DEC-079`, seluruhnya `approved`, Yasmin, 28 September 2026.
+
+| ID | Pertanyaan | Keputusan | Dasar |
+|---|---|---|---|
+| `FIN-DEC-078` | Arah penyelarasan nama resource — kode mengikuti kontrak, atau kontrak mengikuti kode? | **Kode mengikuti kontrak.** Keenam controller lama diubah memakai nama penuh (`FinancePayment`, `FinanceReceipt`, `FinanceReceivable`, `FinanceSupplierPayable`, `FinanceBillingIntake`, `FinanceAccountingEvent`), disamakan dengan `FIN-PERM-1.2` dan tujuh controller Purchasing yang sudah memakainya. **Konsekuensi eksplisit yang MUST ditindaklanjuti:** perubahan ini mengubah string permission pada endpoint yang sudah berjalan — setiap peran yang sudah disemai dengan nama pendek di lingkungan mana pun **MUST** ikut disesuaikan; ini bukan sekadar ganti nama di kode, melainkan MUST disertai migrasi data peran saat dieksekusi | `01-existing-capability-map.md` bagian 16.3 (`FIN-CQ-08`, `FIN-CAP-043`) |
+| `FIN-DEC-079` | Penyelesaian `Finance.AP`/`Finance.AR` terhadap resource granular — menu memakai resource granular sendiri, atau `Finance.AP`/`AR` didaftarkan resmi? | **Didaftarkan sebagai resource resmi tingkat kelompok** di `permission-audit-matrix.md`. Peran yang diberi `Finance.AP` atau `Finance.AR` **otomatis dianggap memiliki seluruh resource granular** di bawah kelompoknya lewat seeder peran (mis. `Finance.AP` mencakup `FinancePayment`, `FinanceSupplierPayable`, `FinancePurchaseOrder`, `FinanceGoodsReceipt`, `FinanceInvoiceExchange`, `FinancePurchasingInvoice`, `FinanceSupplierReturn`). Frontend **tidak perlu diubah** — filter menu yang sudah memakai `Finance.AP`/`AR` tetap berlaku. Ini menutup `FIN-OQ-036` sepenuhnya: pengguna ber-`Finance.AP` akan benar-benar memiliki resource granular yang dituntut endpoint, sehingga tidak ada lagi butir menu yang mengarah ke endpoint yang menolaknya. **Konsekuensi yang MUST dijaga:** setiap resource granular baru yang ditambahkan ke kelompok AP/AR di masa depan **MUST** ikut ditambahkan ke pemetaan payung-ke-granular ini pada saat yang sama — pemetaan itu sendiri menjadi satu sumber kebenaran baru yang perlu dirawat | `01-existing-capability-map.md` bagian 16.3 (`FIN-CQ-08`); **menutup** `FIN-OQ-036` |
+
+**Open question yang ditutup pass ini:**
+
+| ID | Status baru |
+|---|---|
+| `FIN-CQ-08` | **CLOSED** oleh `FIN-DEC-078` dan `FIN-DEC-079` |
+| `FIN-OQ-036` | **CLOSED** oleh `FIN-DEC-079` — diselesaikan lewat pemetaan payung-ke-granular, bukan lewat resource granular di frontend |
+
+**Yang TIDAK ditutup pass ini, dan MUST ditindaklanjuti:**
+
+- **Pemetaan payung-ke-granular** (`Finance.AP` → tujuh resource, `Finance.AR` → resource AR yang
+  bersangkutan) **belum digambar**. Ini pekerjaan kecil `/design-business-module` atau langsung
+  penyuntingan `contracts/permission-audit-matrix.md` — bukan keluaran `/grill-me`.
+- **Migrasi data peran** untuk keenam resource yang berganti nama (`FIN-DEC-078`) belum dirancang.
+  Ini menyentuh data peran yang mungkin sudah disemai di lingkungan pengembangan — **MUST**
+  diperlakukan hati-hati, bukan sekadar `UPDATE` yang diimprovisasi saat implementasi.
+- Pemeriksaan `rg` awal **tidak menemukan** berkas seeder statis yang secara eksplisit memuat
+  keenam nama pendek ini sebagai data peran — kemungkinan mekanisme penyemaiannya berbasis registry
+  runtime yang dipindai dari atribut `[AccessController]`/`[AccessPermission]` saat start-up,
+  ditambah tabel peran-ke-izin di database. **Ini belum diverifikasi tuntas** dan MUST diperiksa
+  `/trace-existing-capabilities` sebelum task rename dieksekusi, supaya tahu persis apa yang perlu
+  dimigrasi.
+
+**Acceptance criteria tambahan yang sudah dapat diuji:**
+
+1. Keenam controller lama **MUST** memakai nama resource penuh yang sama persis dengan
+   `permission-audit-matrix.md` sesudah task rename selesai — nol string `"Payment"`, `"Receipt"`,
+   `"Receivable"`, `"SupplierPayable"`, `"BillingIntake"`, `"AccountingEvents"` (bentuk pendek)
+   tersisa di `[AccessPermission(...)]` manapun pada modul Finance.
+2. Peran yang diberi `Finance.AP` **MUST** dapat memanggil seluruh endpoint Purchasing dan
+   Payment tanpa penolakan hak akses — diuji dengan minimal satu peran nyata sesudah pemetaan
+   payung-ke-granular diterapkan.
+3. `permission-audit-matrix.md` **MUST** memuat `Finance.AP` dan `Finance.AR` sebagai baris resmi,
+   beserta daftar resource granular yang dicakupnya masing-masing.
+
+**Langkah berikutnya:** `/design-business-module` amendment kecil untuk menggambar pemetaan
+payung-ke-granular pada `permission-audit-matrix.md`, lalu `build-module-backend` untuk task rename
+keenam resource **beserta** migrasi data perannya — dengan urutan verifikasi mekanisme penyemaian
+peran lebih dulu lewat `/trace-existing-capabilities`, supaya migrasi datanya tepat sasaran.
+

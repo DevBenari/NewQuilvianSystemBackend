@@ -487,3 +487,34 @@ Status: `draft`. Basis: `00-interview-decisions.md` `BUI-DEC-001`–`015`.
 
 Trace `BUI-DEC-001`–`015`, `BUI-DES-001`–`012`. Tests: lihat
 `testing/acceptance-test-matrix.md` amendment revisi 1.6.
+
+---
+
+# Amendment 28 September 2026 — Validasi Pembalikan Tender Top-Up Deposit dan Alokasi Tagihan (Revisi 1.8, `BIL-VALIDATION-1.5`)
+
+`last_changed_in: BIL-VALIDATION-1.5` · status **draft** · input `BKC-DEC-128`–`131`, `BKC-DES-051`–`054`.
+
+| Kode | Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna / Dampak Sistem | Lapis |
+|---|---|---|---|---|---|
+| `BIL-VAL-127` | Invariant saldo deposit non-negatif | Pembalikan tender top-up deposit (`HandleDepositTopUpReversalAsync`) | `AvailableBalance < originalTopUpAmount` | *Sistem otomatis*: Membatalkan alokasi invoice secara berurut LIFO untuk memulihkan saldo via mutasi `RELEASE` sebelum mutasi `REVERSAL` memotong saldo. Saldo dilarang keras menjadi minus (`AvailableBalance >= 0`). | Backend (Domain Invariant) |
+| `BIL-VAL-128` | Pembatalan alokasi berurut LIFO | Pembatalan alokasi invoice pendukung defisit | Pembatalan alokasi tagihan pasien | *Sistem otomatis*: Alokasi invoice yang dibuat paling akhir (`AllocatedAt DESC` / `CreateDateTime DESC`) dibatalkan terlebih dahulu sampai total defisit pembalikan top-up terpenuhi penuh. | Backend (Business Logic) |
+| `BIL-VAL-129` | Status tender awal wajib `SUCCEEDED` | Validasi transisi status tender ke `REVERSED` | `beforeTenderStatus != BillingTenderStatuses.Succeeded` | Transisi ke `REVERSED` hanya sah untuk tender yang sebelumnya telah berstatus `SUCCEEDED`. Tender berstatus `PENDING` atau `FAILED` tidak memicu mutasi deposit. | Backend (State Guard) |
+| `BIL-VAL-130` | Integritas referensi pembalik alokasi dan mutasi | Pencatatan baris pembalik | Baris `BilPaymentAllocation` dan `BilDepositMovement` pembalik | *Invariant audit*: Setiap mutasi `REVERSAL` wajib mengisi `ReversesMovementId = originalTopUp.Id`, dan setiap alokasi pembalik wajib mengisi `ReversesAllocationId = originalAllocation.Id`. Nilai tidak boleh bernilai null. | Backend (Data Integrity) |
+| `BIL-VAL-131` | Penyelarasan status invoice pasca-pembatalan alokasi | Penutupan tagihan (`SyncClosureAsync`) | Invoice `CLOSED` dan `PatientOutstanding > 0` setelah alokasi dibatalkan | *Sistem otomatis*: Invoice yang sebelumnya lunas (`CLOSED`) otomatis kembali ke status `FINAL` karena pasien kembali memiliki kewajiban pembayaran yang belum selesai. | Backend (Application Service) |
+
+### Contoh Skenario Validasi Nyata di Rumah Sakit
+
+**Contoh 1: Pasien Rawat Inap Top-Up Deposit lalu Membayar Tagihan Kamar (`BIL-VAL-127`, `BIL-VAL-128`, `BIL-VAL-131`).**
+- Pasien Tn. Ahmad melakukan top-up deposit Rp 5.000.000 via transfer bank/kartu (Tender `SUCCEEDED`). Saldo deposit menjadi Rp 5.000.000.
+- Pasien kemudian menyelesaikan tagihan tindakan kamar Rp 4.000.000 menggunakan alokasi deposit (Invoice `INV-001` lunas, status `CLOSED`). Sisa saldo deposit Tn. Ahmad tersisa Rp 1.000.000.
+- Beberapa jam kemudian, pihak bank memberitahukan bahwa transaksi transfer Rp 5.000.000 mengalami penarikan kembali / chargeback (Tender berubah `REVERSED`).
+- **Eksekusi Sistem:**
+  1. Sistem memeriksa saldo deposit berjalan: `AvailableBalance` (Rp 1.000.000) kurang dari nilai top-up (Rp 5.000.000). Terjadi defisit Rp 4.000.000.
+  2. Sistem mencari alokasi aktif berurut LIFO, menemukan alokasi Rp 4.000.000 pada `INV-001`.
+  3. Sistem membatalkan alokasi tersebut: menulis alokasi pembalik `-Rp 4.000.000` (`ReversesAllocationId`), mencatat mutasi `RELEASE` Rp 4.000.000, sehingga `AvailableBalance` pulih menjadi Rp 5.000.000.
+  4. Sistem memanggil `SyncClosureAsync` untuk `INV-001`. Karena alokasi dibatalkan, `PatientOutstanding` menjadi Rp 4.000.000, sehingga invoice `INV-001` otomatis berubah dari `CLOSED` kembali ke `FINAL`.
+  5. Sistem memotong saldo deposit Rp 5.000.000 dan mencatat mutasi `REVERSAL` Rp 5.000.000. Saldo deposit akhir Tn. Ahmad adalah Rp 0 (tepat nol, tidak negatif).
+  6. Finance mengonsumsi mutasi `RELEASE` dan `REVERSAL` via `DEPOSIT_MOVEMENT` untuk jurnal koreksi, dan kasir menagih ulang kekurangan Rp 4.000.000 kepada Tn. Ahmad.
+
+Trace `BKC-DEC-128`–`131`, `BKC-DES-051`–`054`. Tests: `BIL-AT-149`–`BIL-AT-156`.
+

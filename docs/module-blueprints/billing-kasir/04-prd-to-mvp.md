@@ -2803,3 +2803,88 @@ MUST NOT masuk gelombang pengiriman sampai `BUI-CQ-06` terjawab dan endpoint upl
 Keduanya **bukan** `OPEN DECISION` pada tingkat epic secara keseluruhan. `EPIC BUI-01` — kecuali
 dua FR yang eksplisit ditandai `OPEN DECISION` di atas — siap diteruskan ke
 `/plan-module-delivery` begitu desain ini disetujui.
+
+---
+
+# Amendment 28 September 2026 — Pembalikan Tender Top-Up Deposit dan Alokasi Tagihan (Revisi 1.8)
+
+Masukan `BKC-DEC-128`–`131`, `BKC-DES-051`–`054`, evidence 17 Finance (`FIN-OQ-034` / `FIN-DEC-077`). Status **draft**.
+
+## 1. Identitas Dokumen
+
+| Field | Nilai |
+|---|---|
+| Modul | Billing dan Kasir (`billing-kasir`) |
+| Revisi blueprint | `1.8`, status **draft** |
+| Masukan keputusan bisnis | `BKC-DEC-128`–`131` (`approved` 28 September 2026), `FIN-DEC-077` (menutup `FIN-OQ-034`) |
+| Masukan arsitektur | `BKC-DES-051`–`054` (**draft** 28 September 2026), `02-backend-architecture.md` |
+| Dokumen sumber / evidence | `docs/module-blueprints/finance-management/evidence/17-permintaan-perbaikan-pembalikan-tender-deposit-untuk-billing.md` |
+| Backend SHA | `dcb9c88e` |
+| Frontend SHA | `fdebb9059` |
+
+## 2. Masalah Produk
+
+Tender pembayaran top-up deposit rawat inap dapat ditarik kembali atau gagal (`BillingTenderStatuses.Reversed`) oleh payment gateway atau bank, namun `BillingSettlementService` sebelumnya tidak mencatat mutasi deposit pembalik apa pun:
+
+| Masalah | Bukti | Dampak Finansial / Operasional |
+|---|---|---|
+| Saldo deposit tidak berkurang saat uang ditarik gateway | `BillingSettlementService.cs:508-511` hanya memeriksa `targetStatus == Succeeded` | Saldo deposit pasien mencatat uang yang tidak pernah sah diterima RS |
+| Tagihan tetap dianggap lunas padahal dana deposit ditarik | `tender.Settlement.InvoiceId` bernilai null pada top-up sehingga melewati `SyncClosureAsync` | Invoice pasien tetap berstatus `CLOSED`, memicu risiko piutang macet dan kerugian pendapatan rumah sakit |
+| Finance gagal memproses jurnal pembalikan kas deposit | `FIN-OQ-034` pada evidence 17 Finance Management | Terhentinya alur intake akuntansi `DEPOSIT_MOVEMENT` di Finance (`BE-FIN-036`) |
+
+## 3. Batas Rilis
+
+| Batas | Isi |
+|---|---|
+| **Titik mulai** | Pemicuan status tender menjadi `REVERSED` pada `BillingSettlementService.UpdateTenderStatusAsync` untuk settlement bertipe `DEPOSIT_TOP_UP`. |
+| **Titik akhir** | Mutasi `RELEASE` dan `REVERSAL` tercatat di `BilDepositMovement`, alokasi pembalik tersimpan di `BilPaymentAllocation`, status invoice terdampak diselaraskan kembali ke `FINAL` via `SyncClosureAsync`, dan fakta `DEPOSIT_MOVEMENT` berhasil dikonsumsi oleh Finance Management. |
+| **Di luar batas** | Interaksi manual kasir untuk memilih alokasi invoice (pembatalan alokasi dieksekusi secara otomatis dan deterministik dengan metode LIFO). |
+
+## 4. `EPIC BKC-24` — Pembalikan Tender Top-Up Deposit dan Alokasi Tagihan
+
+| FR | Kemampuan | Disposisi |
+|---|---|---|
+| `FR-BKC-125` | Pembalikan tender top-up deposit otomatis memeriksa kecukupan saldo deposit tanpa mengizinkan saldo negatif (`AvailableBalance >= 0`) (`BKC-DEC-128`) | `EXTEND` (`BillingSettlementService`) |
+| `FR-BKC-126` | Pembatalan alokasi tagihan pasien berurut LIFO (*Last In First Out*) dari alokasi yang paling baru dibuat hingga defisit pembalikan top-up terpenuhi (`BKC-DEC-129`) | `EXTEND` (`BillingSettlementService`, `BilPaymentAllocation`) |
+| `FR-BKC-127` | Penyelarasan status invoice terdampak dari `CLOSED` kembali ke `FINAL` jika sisa tagihan pasien > 0 akibat alokasi dibatalkan (`BKC-DEC-130`) | `EXTEND` (`BillingInvoiceClosureService.SyncClosureAsync`) |
+| `FR-BKC-128` | Pencatatan mutasi terpisah `RELEASE` (pengembalian alokasi) dan `REVERSAL` (penarikan top-up) pada `BilDepositMovement` untuk konsumsi Finance (`BKC-DEC-131`) | `EXTEND` (`BilDepositMovement`, `FinBillingHandoffIntake`) |
+
+## 5. Skenario UAT
+
+### Jalur Berhasil
+
+| ID | Skenario | Hasil yang Diharapkan |
+|---|---|---|
+| `UAT-BKC-83` | Tender top-up dibalik saat saldo deposit masih utuh di akun pasien | Mutasi `REVERSAL` tercatat; saldo deposit berkurang tepat sebesar nominal top-up; tidak ada alokasi yang dibatalkan; saldo akhir >= 0. |
+| `UAT-BKC-84` | Tender top-up dibalik saat dana telah terpakai melunasi tagihan invoice (`CLOSED`) | Alokasi tagihan dibatalkan secara otomatis; mutasi `RELEASE` tercatat; saldo deposit pulih lalu dipotong mutasi `REVERSAL`; invoice terdampak otomatis berubah kembali dari `CLOSED` ke `FINAL`; piutang pasien muncul kembali di daftar tagihan kasir. |
+| `UAT-BKC-85` | Tender top-up dibalik saat dana terpakai pada 2 invoice berbeda (Uji LIFO) | Alokasi invoice kedua (terbaru) dibatalkan penuh terlebih dahulu; sisa defisit dibatalkan dari invoice pertama; kedua invoice terdampak diselaraskan kembali ke status `FINAL`. |
+| `UAT-BKC-86` | Finance mengonsumsi fakta pembalikan deposit via `DEPOSIT_MOVEMENT` | Finance Intake berhasil membaca baris `RELEASE` dan `REVERSAL` tanpa galat selisih saldo, serta menerbitkan jurnal akuntansi pembalikan yang sesuai. |
+
+### Jalur Gagal
+
+| ID | Skenario | Hasil yang Diharapkan |
+|---|---|---|
+| `UAT-BKC-87` | Tender belum pernah `SUCCEEDED` bertransisi ke `REVERSED` | Sistem menolak mengeksekusi penarikan deposit atau pembatalan alokasi (`BIL-VAL-129`). |
+| `UAT-BKC-88` | Kegagalan transaksi di tengah penulisan alokasi pembalik atau mutasi | Seluruh transaksi di-rollback secara atomik; saldo deposit dan status invoice tidak berubah sebagian. |
+
+## 6. Definition of Done
+
+| Butir | Dapat Dijawab | Bukti |
+|---|---|---|
+| Saldo akun deposit pasien tidak pernah negatif saat pembalikan tender top-up | Ya / Belum | `BIL-AT-149`, `BIL-AT-150` |
+| Alokasi tagihan dibatalkan berurut LIFO dari yang terbaru | Ya / Belum | `BIL-AT-151`, `UAT-BKC-85` |
+| Invoice yang alokasinya dibatalkan otomatis kembali ke status `FINAL` | Ya / Belum | `BIL-AT-152`, `UAT-BKC-84` |
+| Mutasi `RELEASE` dan `REVERSAL` berpasangan tercatat di `BilDepositMovement` | Ya / Belum | `BIL-AT-153`, `UAT-BKC-86` |
+| Seluruh operasi pembalikan terbungkus dalam satu transaksi database atomik | Ya / Belum | `BIL-AT-154`, `UAT-BKC-88` |
+| Blocker `FIN-OQ-034` di modul Finance resmi ditutup | Ya / Belum | Verifikasi task `BE-FIN-036` |
+
+## 7. Urutan Pengiriman
+
+| Gelombang | Isi | Prasyarat |
+|---|---|---|
+| `MVP-35` | `EPIC BKC-24` (`FR-BKC-125` s.d. `FR-BKC-128`) — Implementasi method `HandleDepositTopUpReversalAsync` di `BillingSettlementService`, pembatalan LIFO alokasi `BilPaymentAllocation`, pemanggilan `SyncClosureAsync`, dan verifikasi handoff `DEPOSIT_MOVEMENT` ke Finance | Approval blueprint Revisi 1.8 |
+
+## 8. Pertanyaan Terbuka Sebelum Development Lock
+
+Tidak ada pertanyaan terbuka yang memblokir. Seluruh keputusan bisnis (`BKC-DEC-128`–`131`) telah disetujui penuh oleh Owner pada sesi 28 September 2026.
+

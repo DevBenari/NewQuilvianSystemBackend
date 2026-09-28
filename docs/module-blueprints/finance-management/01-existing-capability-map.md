@@ -16,8 +16,34 @@ last_impact_scan_sha: d6cdfaf9 (25 September 2026) — lihat bagian 9.3. Bagian 
   TIDAK diaudit ulang menyeluruh; hanya klaster yang disebut eksplisit di 9.3 yang diverifikasi
   ulang pada SHA ini. Field backend_source_sha di atas TETAP baseline audit penuh 20 September
   2026, tidak diubah.
-frontend_source_sha: abed49b03
+frontend_source_sha: 49b59cfaa
+frontend_source_sha_previous: abed49b03
 frontend_repo: QuilvianSystemFrontendDev
+frontend_branch: yasmina
+backend_working_tree_28_sep_2026: >
+  TIDAK BERSIH. Lima berkas source berubah dan belum di-commit — implementasi task BE-FIN-036
+  (+590/-59). Field backend_working_tree di bawah (bersih) berlaku untuk audit 20 September 2026 dan
+  sudah tidak mencerminkan keadaan 28 September 2026. Seluruh bukti bagian 16 ditandai
+  @working-tree-2026-09-28 dan MUST ditambatkan ulang ke SHA sesudah pekerjaan itu di-commit.
+last_impact_scan_revision_7: >
+  cba60cb0 (backend, TIDAK bergerak) dan working tree 28 September 2026 — lihat bagian 16. Pass ini
+  mengaudit pekerjaan BE-FIN-036 yang berjalan di working tree, bukan perubahan SHA.
+  HASIL: sebelas titik desain FIN-DES-045..047 SESUAI; dua cacat pada pekerjaan itu (alias konstanta
+  yang dilarang FIN-DES-051, dan nol test); satu temuan SISTEMIK (enam resource hak akses di kode
+  berbeda nama dari kontrak, dan Finance.AP/Finance.AR tidak ada di kontrak sama sekali —
+  FIN-CAP-043 `Repair`); satu koreksi rujukan pada dokumen desain revisi 6 (empat kemunculan
+  FIN-VAL-123 yang seharusnya FIN-VAL-137, sudah dibetulkan).
+  DUA ENTRI BARU: FIN-CAP-042 (pemakaian Deposit Retur, `Extend`), FIN-CAP-043 (penamaan resource
+  hak akses, `Repair`). FIN-CAP-037 tetap `Missing` dan permukaan tanpa uji bertambah +590 baris.
+  dotnet build TIDAK dijalankan (instruksi pengguna) — audit ini tidak dapat menyatakan kode itu
+  dapat dikompilasi.
+last_impact_scan_revision_6: >
+  cba60cb0 (backend) dan 49b59cfaa (frontend), 28 September 2026 — lihat bagian 15. Pass ini adalah
+  IMPACT SCAN TERARAH, bukan audit penuh: yang diverifikasi ulang HANYA entri yang berpotensi stale
+  akibat 79 commit backend dan 59 commit frontend, ditambah kontrak as-is endpoint penerima
+  Accounting yang kini sudah dapat dibaca langsung.
+  TUJUH entri berubah status, DUA klaim lama DIKOREKSI, dan LIMA entri baru ditambahkan
+  (FIN-CAP-037..041).
 input_decisions: docs/module-blueprints/finance-management/00-interview-decisions.md revisi 1
 reused_capability_maps:
   - docs/module-blueprints/billing-kasir/01-existing-capability-map.md (approved, revisi terakhir
@@ -463,3 +489,376 @@ berjenjang yang sudah teruji dengan angka yang persis cocok). Satu gerbang ekste
 di luar wewenang audit ini: `FIN-OQ-020` (ratifikasi Accounting atas kode PPN Masukan) — TIDAK
 memblokir desain arsitektur, hanya memblokir `/plan-module-delivery` untuk rumpun Purchasing/AP
 secara spesifik, sesuai `FIN-DEC-046`.
+
+---
+
+## 15. Impact scan terarah — 28 September 2026 (`cba60cb0` / `49b59cfaa`)
+
+**Pemicu.** `/design-business-module` revisi 6 menemukan kedua SHA sudah bergerak jauh dari
+manifest, dan mencatat peta ini **stale** pada tiga titik. Pass ini memverifikasinya langsung ke
+source.
+
+**Batas audit pass ini.** Hanya entri yang berpotensi stale akibat pergerakan SHA, ditambah satu
+hal baru yang kini dapat diaudit dan sebelumnya tidak bisa: **kontrak as-is endpoint penerima
+Accounting**. **BUKAN** audit ulang seluruh peta, dan **BUKAN** penutupan utang audit
+field-per-field rumpun AR/AP/Payable dari bagian 9.3 dan 12.3 — utang itu tetap terbuka.
+
+**Verifikasi staleness.** Backend `96bf9746` → `cba60cb0`: **79 commit**, `git merge-base
+--is-ancestor` mengonfirmasi **fast-forward**, bukan diverged. Frontend `abed49b03` → `49b59cfaa`:
+**59 commit**. Berbeda dari dua impact scan sebelumnya yang menemukan nol perubahan di dalam
+boundary, pass ini menemukan perubahan **besar dan tepat di dalam boundary**: seluruh rumpun
+Purchasing/AP dibangun, layar Finance AR/AP dibangun, dan endpoint penerima Accounting muncul.
+
+### 15.1 Koreksi status entri yang sudah ada
+
+| ID | Status lama | Status baru | Bukti (`path#symbol@cba60cb0`) | Yang berubah |
+|---|---|---|---|---|
+| `FIN-CAP-018` | `Missing` | **`Ready to reuse`** | `Areas/Corporate/AccountingManagement/AccountingEvent/Controllers/AccountingEventController.cs` + `Services/AccAccountingEventService.cs` + `Services/AccAccountingEventSchedulerHostedService.cs` | Endpoint penerima **sudah ada**, lengkap dengan penjadwal pemrosesan. Kontrak as-is lengkap di 15.3. Sejalan dengan pernyataan Accounting di `evidence/14` bagian 4.4 |
+| `FIN-CAP-028` | `Missing` | **`Extend`** | `Areas/Corporate/FinanceManagement/Purchasing/` — 7 model, 5 controller, 5 service, 5 berkas DTO; `Repositories/ApplicationDbContext.cs` baris 689-695; 11 configuration; migration `20260926100000_AddPurchasingApRumpun` | PO, Tanda Terima Barang, Tukar Faktur, Purchasing Invoice **sudah dibangun**. Yang **belum**: endpoint daftar berpaging (`GET /`) pada **kelima** controller, dan **nol** layar frontend |
+| `FIN-CAP-029` | `Missing` | **`Extend`** | `Purchasing/Models/FinSupplierReturn.cs`, `FinSupplierReturnItem.cs`, `FinSupplierReturnDeposit.cs`, `FinSupplierReturnDepositUsage.cs`; `Services/FinanceSupplierReturnService.cs` | Retur dan Deposit Retur **sudah dibangun** dengan bentuk REVISI 5 (`PaymentId`, bukan `PurchasingInvoiceId`). Yang **belum**: pemisahan PPN (`FIN-DES-055`), dan `GET /` berpaging |
+| `FIN-CAP-032` | `Missing` | **`Missing`** (dikonfirmasi ulang) | Pencarian `FinReceivableInvoiceBatch` di `Areas/` dan `Repositories/` — **nol hasil** | Tidak berubah. AR Invoice Agregat masih nol baris |
+| `FIN-CAP-034` | `Missing` | **`Missing`** (dikonfirmasi ulang) | `find Areas -name "FinReceiptDeduction*.cs"` — **nol hasil**; nol `DbSet`, nol configuration | Tidak berubah. Potongan AR masih nol baris — konsisten dengan `BE-FIN-040` yang masih ⛔ |
+| `FIN-CAP-026` | `Extend` | **`Extend`** (bukti diperbarui) | `Payable/Models/FinSupplierPayable.cs@cba60cb0` + migration `20260926110000_AddSourcePurchasingInvoiceIdToSupplierPayable` | Kolom `SourcePurchasingInvoiceId` **sudah terpasang** beserta migration-nya — pengalihan pemicu dari input manual ke Purchasing Invoice sudah berjalan sebagian |
+| `FIN-CAP-035` | `Ready to reuse` (pola) | **`Ready to reuse`** — **dengan koreksi klaim** | `Payable/Services/FinanceApprovalTierResolver.cs@cba60cb0` | Direfaktor menjadi resolver tunggal yang dipakai bersama pembayaran, PO, dan Purchasing Invoice. **Klaim lama DIKOREKSI** — lihat 15.2 butir 2 |
+
+### 15.2 Dua klaim lama yang DIKOREKSI berbasis bukti baru
+
+**1. Komentar di source sendiri sudah tidak akurat.** `Repositories/ApplicationDbContext.cs`
+baris 686-688 dan 696-699 masih menulis *"Migration `AddPurchasingApRumpun` (`BE-FIN-031`) belum
+dibuat/dijalankan"*, padahal berkas `Migrations/20260926100000_AddPurchasingApRumpun.cs`
+**sudah ada**. Ini cacat dokumentasi **di dalam source**, dicatat sebagai fakta — audit ini
+**tidak memperbaiki source**.
+
+**2. `FIN-CAP-035` keliru pada nilai batasnya, dan kekeliruan itu sudah diperbaiki kode.**
+Peta ini sebelumnya menyatakan placeholder `<= Rp 50.000.000 → Tier1` **"PERSIS SAMA"** dengan
+`FIN-DEC-052` sehingga *"SUDAH BENAR tanpa perlu diubah nilainya"*. Bukti di
+`FinanceApprovalTierResolver.cs` menunjukkan sebaliknya: keputusan yang diratifikasi menaruh
+**tepat Rp 50.000.000 di `TIER_2`**, sedangkan placeholder lama menaruhnya di `TIER_1`.
+Komentar resolver menyebutnya eksplisit — *"salah satu nilai batasnya (tepat Rp 50.000.000) tidak
+cocok dengan keputusan yang sudah diratifikasi"*. Kode sekarang `< 50_000_000m → TIER_1`, sisanya
+`TIER_2`.
+
+Pelajaran yang layak dicatat: dua angka yang "kelihatan sama" berbeda pada **satu nilai batas**,
+dan audit sebelumnya menyatakannya cocok tanpa memeriksa operator pembandingnya.
+
+### 15.3 Kontrak backend as-is — endpoint penerima Accounting Event
+
+Ini bagian paling berharga dari pass ini: kontrak yang selama ini hanya dikutip dari dokumen
+Accounting, kini dibaca langsung dari source. **Finance adalah pemanggilnya**, sehingga setiap
+aturan di bawah menentukan apakah worker pengiriman Finance akan berhasil atau ditolak.
+
+#### Corporate - Accounting - Accounting Event
+
+Base URL: `api/v1/corporate/accounting/accounting-events`
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+|---|---|---|---|---|---|
+| `POST` | `/` | Menerima satu kejadian keuangan dari Finance | `AccountingEvent : Receive` | `ReceiveAccountingEventRequest` | `ApiResponse<AccountingEventReceiptDto>` — `201` baru, `200` sudah pernah diterima, `400`, `409`, `422` |
+| `POST` | `/{id}/retry` | Mencoba ulang kejadian `Gagal`/`Tertahan` | `AccountingEvent : Retry` | — | `ApiResponse<AccountingEventDetailDto>` |
+| `POST` | `/{id}/ignore` | Mengabaikan kejadian gagal | `AccountingEvent : Ignore` | — | `ApiResponse<AccountingEventDetailDto>` |
+| `GET` | `/`, `/{id}`, ringkasan | Pantauan sisi Accounting | `AccountingEvent : Read` | — | — |
+
+**Bentuk tanda terima** (`AccountingEventReceiptDto`): `AccountingEventId`, `EventNumber`,
+`EventStatus`, `JournalNumber?`, `AccountingPeriodCode?`, `HoldReasonCode?`, `ReceivedAt`.
+
+**Aturan penolakan yang MUST dipatuhi Finance** — seluruhnya dibaca dari
+`AccAccountingEventService.cs`:
+
+| # | Kondisi | Kode | Pesan/perilaku |
+|---:|---|---|---|
+| 1 | Salah satu dari 12 field wajib kosong (termasuk `SourceVersion`, `CorrelationId`, `CausationId`) | `400` | "Pesan kejadian tidak lengkap. Bidang berikut wajib diisi: …" |
+| 2 | Ada field tambahan yang namanya mengandung penanda identitas pasien | `400` | "Pesan kejadian tidak boleh memuat identitas pasien." Diperiksa lewat `[JsonExtensionData]` |
+| 3 | `CurrencyCode` bukan rupiah | `409` | "Sistem akuntansi hanya menerima rupiah." |
+| 4 | Komponen tanpa kode, kode > 50 karakter, atau nilai **negatif** | `400` | Nilai komponen `0` **boleh** — yang ditolak hanya negatif |
+| 5 | Kode komponen kembar dalam satu pesan | `400` | "Komponen berikut dikirim lebih dari sekali: …" |
+| 6 | **`Amount <= 0` pada pesan yang BUKAN pesan saldo** | **`400`** | **"Nilai kejadian harus lebih besar dari nol."** |
+| 7 | Pesan membawa `SubledgerBalance` padahal jenisnya terdaftar sebagai jenis biasa | `400` | Rincian saldo hanya untuk pesan saldo |
+| 8 | Jenis kejadian terdaftar sebagai **pesan saldo subledger** | **`409`** | **"Pesan saldo subledger belum dapat diterima. Jalurnya dibangun pada `BE-ACC-P2-028`."** |
+| 9 | `LegalEntityId` tidak ada atau tidak aktif | `422` | "Badan hukum tidak ditemukan." |
+| 10 | Kombinasi `SourceModule`+`SourceTransactionId`+`EventTypeCode`+`SourceVersion` sudah pernah diterima | `200` | "…sudah pernah diterima. Tidak ada jurnal baru yang dibuat." **Idempoten** |
+| 11 | Jenis kejadian belum terdaftar sebagai `AccEventType` | `422` + `Tertahan` | `HoldReasonCode = EVENT_TYPE_NOT_REGISTERED` |
+| 12 | Aturan posting belum ada / komponen tidak terpetakan / komponen kurang | `Tertahan` | `POSTING_RULE_MISSING`, `COMPONENT_UNMAPPED`, `COMPONENT_MISSING` |
+
+**Batas coba ulang terjadwal:** 3 (`BatasCobaUlangTerjadwal`); penjadwal memproses 100 baris per
+gelombang (`AccAccountingEventSchedulerHostedService`).
+
+**`Components` bernilai `null` DITERIMA.** `request.Components ?? new List<…>()` menormalkan null
+menjadi daftar kosong, dan satu-satunya penolakan terkait komponen berlaku untuk **pesan saldo**
+yang membawa komponen. Artinya `PayloadJson` Finance hari ini — yang selalu memuat
+`"Components": null` — **tidak akan ditolak**.
+
+### 15.4 Conflict — empat, dan dua di antaranya memblokir
+
+| ID | Conflict | Bukti | Dampak |
+|---|---|---|---|
+| `FIN-CQ-04` | **Kejadian bernilai `0` akan DITOLAK penerima.** `FIN-DES-054` merancang `PENUTUPAN-SHIFT-KASIR` dan pembaliknya bernilai `0`, dan mencatatnya sebagai pertanyaan ke Accounting (`FIN-OQ-032`). Source menjawabnya: aturan 6 menolak `Amount <= 0` untuk pesan non-saldo, **dan** aturan 8 menolak pesan saldo dengan `409` karena jalurnya belum dibangun. Tidak ada celah yang lolos | `AccAccountingEventService.cs` baris 1075-1099 | **MEMBLOKIR** `FR-FIN-105`. `FIN-OQ-032` tidak perlu lagi ditanyakan sebagai "apakah diterima" — jawabannya **tidak**, pada implementasi hari ini. Yang perlu diputuskan sekarang: bentuk penanda dirancang ulang, atau Accounting memperluas kotak masuknya |
+| `FIN-CQ-05` | **Pelurusan `Components` bukan pemblokir runtime.** `integration-contract.md` bagian 5.10.5 butir 1 menulis akibatnya "Setiap pesan berpotensi ditolak `400`". Source menunjukkan `null` diterima | Idem baris 1043, 1091 | **Tidak memblokir.** Pelurusannya tetap layak dikerjakan agar sejalan dengan permintaan Accounting, tetapi **prioritasnya turun** dari pemblokir menjadi kebersihan kontrak. Klaim di kontrak itu MUST diperbaiki |
+| `FIN-CQ-06` | **Label menu yang dibangun tidak mengikuti `FIN-DEC-060`.** Keputusan itu menetapkan submenu **"Pembelian"** beserta label Indonesia ("Faktur Pembelian", "Tagihan Gabungan Penjamin"). Yang dibangun: grup **"Account Payable"** dengan butir **"Purchase Order"**, **"Receiving"**, **"Supplier Invoice"** — bahasa Inggris, tanpa submenu "Pembelian", tanpa butir Tagihan Gabungan | `src/utils/menu-sidebar/menu-items.jsx@49b59cfaa` baris 735-774 | Tidak memblokir backend. MUST diputuskan owner: keputusan `FIN-DEC-060` yang menyesuaikan diri ke yang sudah dibangun, atau menu yang disesuaikan ke keputusan. **Audit tidak memilih** |
+| `FIN-CQ-07` | **Butir menu PO dan Receiving mengarah ke layar yang tidak punya sumber data.** Keduanya menunjuk `/finance/payable?tab=po` dan `?tab=receiving`, sementara pencarian di seluruh frontend menemukan **nol** pemanggilan endpoint `purchase-orders`/`goods-receipts`/`purchasing-invoices`/`supplier-returns`. Ditambah: kelima controller itu **tidak punya** `GET /` berpaging, sehingga layar daftar memang belum mungkin dibangun | FE: nol hasil pencarian; BE: `grep -c HttpGet` = 1 per controller (hanya `GET /{id}`) | Petugas dapat mencapai butir menu yang tidak dapat menampilkan data. **MUST** ditutup sebelum rumpun Purchasing dinyatakan selesai — dan urutannya backend lebih dulu (`GET /` berpaging), baru frontend |
+
+### 15.5 Entri kemampuan baru
+
+| ID | Kebutuhan | Pemilik | Bukti (`@cba60cb0` / `@49b59cfaa`) | Status | Gap/adapter | Risiko |
+|---|---|---|---|---|---|---|
+| `FIN-CAP-037` | Verifikasi otomatis untuk kemampuan Finance | Platform/Finance | `Tests/QuilvianSystemBackend.Tests`, `.UnitTests.InMemory`, `.UnitTests.Sqlite`, `.IntegrationTests.Postgres` — **12 berkas test**, dan `grep` atas `FinanceManagement\|FinPurchas\|FinSupplierReturn\|AccountingOutbox\|FinAccountingEvent` menemukan **nol** | **`Missing`** (untuk Finance) | Project test **sudah ada** — klaim lama "project test belum terdeteksi" sudah tidak berlaku. Yang tidak ada: **satu pun** test yang menyentuh Finance | **Risiko tertinggi pass ini.** Seluruh rumpun Purchasing/AP (3.415 baris baru) berjalan tanpa test apa pun, termasuk invariant uang seperti `AvailableAmount >= 0` dan pemisahan porsi deposit pada kejadian pembayaran |
+| `FIN-CAP-038` | Layar Finance AR/AP | Finance (frontend) | `src/app/finance/receivable/*` (termasuk `[slug]` rincian, `aging`, `invoice`, `payment`, `report`), `payable/*`, `ap-aging`, `ap-report`, `ar-aging`, `ar-report`, `cash-management`, `payment-ap`, `payment-ar` | `Ready to reuse` | Layar AR/AP nyata sudah ada — naik jauh dari keadaan lama yang hanya Petty Cash. Nol layar Purchasing | Sebagian butir menu belum punya sumber data (`FIN-CQ-07`) |
+| `FIN-CAP-039` | Layar pantauan intake Billing dan kejadian Accounting | Finance (frontend) | `src/app/finance/monitoring/page.jsx` + `monitoring-client.jsx`; `src/lib/constants/finance/monitoring/monitoring-constants.jsx` memanggil `/api/v1/corporate/finance-management/billing-intake` **dan** `/accounting-events` | `Ready to reuse` | **Layar yang diandalkan `FIN-DES-056`/`057` untuk menampilkan baris `ERROR` sudah ada** — desain revisi 6 tidak perlu layar baru, sebagaimana diasumsikan `03-frontend-architecture.md` bagian 14.3 | Perlu diperiksa apakah layar itu menampilkan `ErrorMessage` intake, bukan hanya status — belum diaudit sampai tingkat komponen |
+| `FIN-CAP-040` | Penyaringan butir menu berdasarkan hak akses | Platform (frontend) | `src/utils/menu-sidebar/permission/filter-menu-items-by-permission.jsx` (baru, 111 baris), `role/filter-menu-items-by-role.jsx` (+25); butir Finance memakai `requiredPermission: { resource: "Finance.AR"/"Finance.AP", action: … }` | `Reuse with adapter` | Resource `Finance.AR`/`Finance.AP` **memang ada** di backend, jadi bukan nama karangan. Tetapi butir PO/Receiving dijaga `Finance.AP:View`, sedangkan endpoint-nya menuntut `FinancePurchaseOrder:*`/`FinanceGoodsReceipt:*` — **granularitasnya berbeda** | Pengguna dapat melihat butir menu lalu ditolak di endpoint. Perlu keputusan: menu mengikuti resource granular, atau backend menerima `Finance.AP` sebagai payung |
+| `FIN-CAP-041` | Migration Finance yang sudah ada | Finance | `Migrations/20260922110000_AddFinanceSupplierPayable`, `20260926100000_AddPurchasingApRumpun`, `20260926110000_AddSourcePurchasingInvoiceIdToSupplierPayable`, `20260928120000_AddDepositAppliedAmountToFinPayment` | `Ready to reuse` | **Migration `DepositAppliedAmount` (REVISI 5, urutan 3) sudah dibuat** — lebih maju dari yang dicatat blueprint | Audit ini **tidak** memeriksa apakah migration sudah dijalankan di database mana pun; itu di luar wewenang baca source |
+
+### 15.6 Kontrak as-is — lima endpoint Purchasing yang sudah ada
+
+Konvensi penamaan mengikuti `FIN-CAP-036` dan **tidak** meniru utang teknis `FinancePaymentsController`
+(yang memakai singkatan "Payment"); resource memakai nama penuh kontrak.
+
+| Grup `[Tags(...)]` | Base URL | Endpoint yang ADA | Hak akses |
+|---|---|---|---|
+| `Corporate / Finance Management / Purchasing / Purchase Order` | `api/v1/corporate/finance-management/purchasing/purchase-orders` | `GET /{id}`, `POST /`, `PUT /{id}`, `POST /{id}/submit`, `POST /{id}/approve`, `POST /{id}/reject`, `POST /{id}/cancel` | `FinancePurchaseOrder : Read/Create/Update/Submit/Approve/Cancel` — `reject` sengaja memakai `Approve` |
+| `… / Goods Receipt` | `…/purchasing/goods-receipts` | `GET /{id}`, `POST /`, `POST /{id}/cancel` | `FinanceGoodsReceipt : Read/Create/Cancel` |
+| `… / Invoice Exchange` | `…/purchasing/invoice-exchanges` | `GET /{id}`, `POST /`, `POST /{id}/cancel` | `FinanceInvoiceExchange : Read/Create/Cancel` |
+| `… / Purchasing Invoice` | `…/purchasing/purchasing-invoices` | `GET /{id}`, `POST /`, `PUT /{id}`, `POST /{id}/submit`, `POST /{id}/approve`, `POST /{id}/reject` | `FinancePurchasingInvoice : Read/Create/Update/Submit/Approve` |
+| `… / Supplier Return` | `…/purchasing/supplier-returns` | `GET /{id}`, `GET /deposits`, `POST /`, `POST /{id}/confirm`, `POST /{id}/cancel` | `FinanceSupplierReturn : Read/Create/Confirm/Cancel` |
+
+**Gap yang sama pada kelimanya:** tidak ada `GET /` berpaging. Komentar controller menyebutnya
+eksplisit sebagai gap terbuka yang "dicatat di laporan task, bukan dikarang di sini" — audit ini
+mengonfirmasi gap itu masih terbuka pada `cba60cb0`.
+
+### 15.7 Fact, inferensi, rekomendasi
+
+**Fact (terverifikasi baca langsung):**
+
+1. Endpoint penerima Accounting ada, beserta penjadwal, 12 aturan penolakan, dan perilaku idempoten `200`.
+2. `Amount <= 0` ditolak `400`; jalur pesan saldo ditolak `409` karena belum dibangun.
+3. `Components` bernilai `null` diterima tanpa masalah.
+4. Rumpun Purchasing/AP dibangun penuh di backend: 7 model terdaftar `DbContext`, 11 configuration, 1 migration, 5 controller, 5 service.
+5. Kelima controller Purchasing tidak punya endpoint daftar berpaging.
+6. `FinReceivableInvoiceBatch` dan `FinReceiptDeduction` tetap nol baris.
+7. Project test ada (4 project, 12 berkas), nol test menyentuh Finance.
+8. Frontend punya layar AR/AP dan layar pantauan; nol layar Purchasing; nol pemanggilan endpoint Purchasing.
+9. Menu Finance punya 19 butir berlabel bahasa Inggris, dijaga `Finance.AR`/`Finance.AP`.
+10. Ambang approval kini `< Rp 50.000.000 → TIER_1`, terpusat di satu resolver.
+11. Komentar `ApplicationDbContext` masih menyatakan migration Purchasing belum dibuat, padahal sudah ada.
+
+**Inferensi (bukan fakta):**
+
+1. Karena kelima controller Purchasing dibangun tanpa `GET /` **dan** frontend-nya belum ada, urutan pengerjaannya kemungkinan sengaja: perilaku transaksional lebih dulu, daftar dan layar menyusul. Ini konsisten dengan catatan controller sendiri, bukan kelalaian.
+2. Karena label menu Inggris dipakai seragam di seluruh grup Finance (bukan hanya AP), kemungkinan pola itu keputusan frontend yang lebih luas daripada modul ini — sehingga `FIN-CQ-06` mungkin bukan milik Finance untuk diselesaikan sendiri.
+
+**Rekomendasi:**
+
+1. **`FIN-CQ-04` MUST diangkat ke owner sekarang**, sebelum `FR-FIN-105` masuk perencanaan. Pilihannya bukan lagi menunggu jawaban Rizki tentang "apakah nilai nol diterima" — buktinya sudah ada, dan jawabannya tidak.
+2. **Perbaiki klaim pada `integration-contract.md` bagian 5.10.5 butir 1** (`FIN-CQ-05`) supaya prioritas pekerjaan tidak salah baca.
+3. **Tambahkan test untuk invariant uang rumpun Purchasing/AP** sebelum rumpun itu dinyatakan selesai (`FIN-CAP-037`) — ini rekomendasi paling berdampak dari pass ini.
+4. **Jadwalkan `GET /` berpaging kelima controller** lebih dulu, baru layar Purchasing (`FIN-CQ-07`).
+5. `FIN-CQ-06` dibawa ke owner sebagai pertanyaan label, bukan diperbaiki sepihak.
+
+### 15.8 Yang TIDAK ditutup pass ini
+
+- **Audit field-per-field rumpun AR/AP/Payable** (`FinReceivable`, `FinReceiptAllocation`, `FinMedicalServicePayable`, dst.) — utang dari bagian 9.3 dan 12.3, **tetap terbuka**. Pass ini impact scan terarah, bukan audit penuh.
+- **Audit tingkat komponen layar Finance** — keberadaan layar dikonfirmasi, tetapi isi tabel, keadaan kosong/gagal, dan apakah `ErrorMessage` intake benar-benar ditampilkan **belum** diperiksa.
+- **Apakah migration sudah dijalankan** di database mana pun — di luar wewenang baca source.
+- **Field-per-field 7 model Purchasing** terhadap `erd/data-dictionary.md` C.1-C.16 — hanya keberadaan, pendaftaran, dan kontrak endpoint yang diverifikasi; kecocokan kolom satu per satu belum.
+
+### 15.9 Pemicu impact scan berikutnya
+
+Peta ini (khusus bagian 15) **stale** dan wajib diperiksa ulang bila:
+
+- Backend bergerak dari **`cba60cb0`** dan menyentuh `Areas/Corporate/FinanceManagement/`, `Areas/Corporate/AccountingManagement/AccountingEvent/`, atau `Migrations/`.
+- Frontend bergerak dari **`49b59cfaa`** dan menyentuh `src/app/finance/`, `src/utils/menu-sidebar/`, atau `src/lib/constants/finance/`.
+- **Accounting mengubah aturan penolakan kotak masuknya** — khususnya bila `Amount = 0` mulai diterima atau jalur pesan saldo (`BE-ACC-P2-028`) selesai dibangun. Keduanya langsung mengubah `FIN-CQ-04`.
+- Endpoint `GET /` berpaging Purchasing mulai dibangun, atau layar Purchasing mulai dibangun.
+
+### 15.10 Handoff
+
+Pass ini **tidak** menghasilkan arsitektur target dan **tidak** menyentuh source. Yang dihasilkan:
+tujuh koreksi status, dua koreksi klaim, empat `Conflict` (`FIN-CQ-04`..`07`), lima entri baru
+(`FIN-CAP-037`..`041`), dan kontrak as-is endpoint penerima Accounting.
+
+**Yang paling mendesak dibawa ke owner:** `FIN-CQ-04` — desain penanda shift tertutup revisi 6
+bertumpu pada kejadian bernilai `0`, dan kotak masuk Accounting sebagaimana dibangun akan
+menolaknya. Ini mengubah `FIN-OQ-032` dari pertanyaan terbuka menjadi temuan berbukti, dan
+menuntut `/grill-me` amendment pass atau `/design-business-module` pass kecil untuk merancang ulang
+bentuk penandanya.
+
+---
+
+## 16. Impact scan lanjutan — pekerjaan `BE-FIN-036` di working tree, 28 September 2026
+
+**Pemicu.** Sesudah `/design-business-module` revisi 7 selesai, `git status` menunjukkan **lima
+berkas source berubah (+590/−59)** yang **tidak** berasal dari pass desain mana pun. Pemeriksaan
+menemukan itu implementasi task `BE-FIN-036`, lengkap dengan laporan task di
+`task/report/backend/BE-FIN-036.md` — jadi pekerjaan **terlacak**, bukan liar.
+
+**Batas audit pass ini.** Hanya kelima berkas itu beserta kesesuaiannya terhadap `FIN-DES-045`,
+`046`, `047`, `051`, dan `059`, ditambah satu pemeriksaan silang yang muncul dari sana: penamaan
+resource hak akses seluruh modul. **BUKAN** audit ulang bagian 1-15.
+
+**Peringatan penting tentang sifat bukti pass ini.** Backend SHA **tidak bergerak** — tetap
+`cba60cb0`. Seluruh temuan di bawah berasal dari **working tree yang belum di-commit**, sehingga:
+
+| Hal | Konsekuensinya |
+|---|---|
+| Bukti tidak dapat ditambatkan ke SHA | Entri di bawah ditandai `@working-tree-2026-09-28` alih-alih `@<sha>`. Ia **MUST** diverifikasi ulang begitu pekerjaan itu di-commit |
+| Pekerjaan masih dapat berubah | Status `Extend`/`Repair` di bawah adalah keadaan sesaat, bukan kontrak |
+| `backend_working_tree` | **TIDAK lagi bersih** — berbeda dari catatan di kepala dokumen ini yang menyebut bersih pada audit 20 September 2026 |
+
+**Satu hal yang TIDAK dilakukan:** `dotnet build` tidak dijalankan, sesuai instruksi pengguna yang
+juga tercatat pada laporan task itu sendiri. Seluruh penilaian di bawah adalah **penelaahan statis**
+— audit ini **tidak** dapat menyatakan kode itu dapat dikompilasi.
+
+### 16.1 Kesesuaian implementasi terhadap desain yang sudah disetujui
+
+Diperiksa baris demi baris terhadap `FIN-DES-045`..`047` (`approved` 26 September 2026) dan
+`D.9` (daftar invariant revisi 5).
+
+| Yang dirancang | Yang ditemukan di working tree | Nilai |
+|---|---|---|
+| `NetTransferAmount = TotalAmount − DeductionAmount + AdditionAmount − DepositAppliedAmount` | Diterapkan persis, beserta pesan galat yang menyebut keempat komponennya | **Sesuai** |
+| `FIN-VAL-091` hanya berlaku bila `DepositAppliedAmount = 0` | `if (NetTransferAmount == 0m && DepositAppliedAmount == 0m) throw` | **Sesuai** |
+| Nomor bukti transfer wajib hanya bila `NetTransferAmount > 0` | `if (payment.NetTransferAmount > 0)` | **Sesuai** (`FIN-VAL-056`) |
+| Pelepasan baris `RESERVED` saat `REJECTED` dan `CANCELLED` | `ReleaseReservedByPaymentAsync` dipanggil pada kedua jalur, `DepositAppliedAmount` direset ke 0 dan `NetTransferAmount` dihitung ulang | **Sesuai** (`FIN-DES-046`) |
+| Baris `RESERVED` → `APPLIED` saat `PAID` | `MarkAppliedByPaymentAsync` | **Sesuai** |
+| `AP_PAYMENT` bernilai `TotalAmount − DepositAppliedAmount`, dilewati bila nol | `apPaymentAmount` dihitung demikian, kejadian hanya di-stage bila > 0 | **Sesuai** (`FIN-DES-047`, `FIN-VAL-131`) |
+| Kejadian pemakaian deposit memakai **nama final** `FIN-DEC-066` | `FinAccountingEventTypeCodes.PemakaianKreditReturPembelian` | **Sesuai** — implementasi sudah memakai nama hasil ratifikasi, bukan nama lama |
+| Kunci `Serializable` ganda (`FIN_PAYMENT_{id}` + `FIN_RETURN_DEPOSIT_{id}`) | Keduanya diambil pada `AddReturnDepositAsync` | **Sesuai** (`FIN-DES-046`) |
+| `AvailableAmount >= 0`, satu-satunya penulis `FinanceSupplierReturnService` | `ReserveAsync` menolak `usedAmount > AvailableAmount`, mengurangi saldo, menandai `EXHAUSTED` saat nol; tidak membuka transaksi sendiri | **Sesuai** |
+| Lima aturan validasi `FIN-VAL-123`..`127` | Kelimanya dirujuk eksplisit di komentar dan diterapkan | **Sesuai** |
+| Tiga endpoint `GET`/`POST`/`DELETE /payments/{id}/return-deposits` | Ketiganya ada, `DELETE` memakai `ExpectedRowVersion` lewat query — persis seperti `api-contract.md` `C.1` | **Sesuai** |
+
+**Penilaian:** implementasi ini **taat pada desainnya**. Dari sebelas titik yang diperiksa, sebelas
+sesuai. Ini temuan yang layak dicatat sebagai hal positif, bukan hanya daftar cacat.
+
+### 16.2 Dua cacat yang ditemukan pada pekerjaan itu
+
+| # | Cacat | Bukti | Tingkat |
+|---:|---|---|---|
+| 1 | **Alias konstanta yang dilarang `FIN-DES-051`.** `public const string PemakaianDepositRetur = PemakaianKreditReturPembelian;` menghidupkan nama yang sudah dicabut katalog | `FinAccountingEventOutbox.cs@working-tree-2026-09-28` | **Rendah.** Alias menunjuk **nilai yang sama**, jadi risiko kirim ganda yang dicegah aturan itu tidak terjadi. Tetap MUST dihapus — pembersihan, nol perubahan perilaku |
+| 2 | **Nol test.** Tidak ada berkas di `Tests/` yang berubah bersama +590 baris ini | `git status` — hanya lima berkas `Areas/` | **Tinggi.** Logika uang (invariant saldo, reservasi/pelepasan, pemisahan porsi kas) masuk tanpa satu pun uji otomatis. `FIN-CAP-037` tetap `Missing`, dan permukaan yang tidak teruji **bertambah** |
+
+### 16.3 Temuan sistemik (`FIN-CQ-08`): nama resource hak akses di kode berbeda dari kontrak
+
+Muncul saat memeriksa hak akses ketiga endpoint baru. Ketiganya memakai
+`[AccessPermission("Payment", …)]`, sedangkan `api-contract.md` `C.1` dan
+`permission-audit-matrix.md` sama-sama menyebut `FinancePayment`. Pemeriksaan lanjutan menunjukkan
+**ini bukan kesalahan `BE-FIN-036`** — seluruh sebelas atribut pada controller itu, termasuk yang
+sudah di-commit sejak lama, memakai `Payment`.
+
+Perbandingan lengkap seluruh modul:
+
+| Resource pada kontrak (`FIN-PERM-1.2`) | Resource pada kode | Cocok? |
+|---|---|:---:|
+| `FinancePayment` | `Payment` | **Tidak** |
+| `FinanceReceipt` | `Receipt` | **Tidak** |
+| `FinanceReceivable` | `Receivable` | **Tidak** |
+| `FinanceSupplierPayable` | `SupplierPayable` | **Tidak** |
+| `FinanceBillingIntake` | `BillingIntake` | **Tidak** |
+| `FinanceAccountingEvent` | `AccountingEvents` | **Tidak** — prefix **dan** bentuk jamak |
+| `FinanceBankDeposit`, `FinanceDailyCash` | sama | Ya |
+| `FinanceGoodsReceipt`, `FinanceInvoiceExchange`, `FinancePurchaseOrder`, `FinancePurchasingInvoice`, `FinanceSupplierReturn` | sama | Ya |
+| **tidak ada di kontrak** | `Finance.AP`, `Finance.AR` | **Tidak ada padanannya** |
+| **tidak ada di kontrak** | `BankAccount`, `Currency`, `PettyCashBudget`, `PettyCashCategory` | **Tidak ada padanannya** |
+
+**Polanya terbaca jelas:** controller **baru** (rumpun Purchasing, dibangun pada `cba60cb0`)
+mengikuti konvensi kontrak; controller **lama** (Payment/Receipt/Receivable/SupplierPayable/
+BillingIntake/AccountingEvent) memakai nama pendek. Modul ini sedang di tengah migrasi penamaan,
+dan kontrak mendokumentasikan **sasaran**, bukan keadaan sekarang.
+
+**Kenapa ini material, bukan sekadar kerapian.** String pada `AccessPermission` adalah string yang
+**harus diberikan ke peran** agar endpoint dapat dipanggil. Siapa pun yang menyemai peran dari
+`permission-audit-matrix.md` akan memberikan `FinancePayment`, dan **tidak ada** endpoint pembayaran
+yang dapat dipanggil dengan itu. Sebaliknya, `Finance.AP`/`Finance.AR` — dua resource yang
+**dipakai frontend** untuk menyaring butir menu — tidak ada sama sekali di matriks hak akses yang
+sudah disetujui.
+
+Ini memperbesar `FIN-OQ-036` yang dibuka revisi 7: persoalannya bukan hanya granularitas butir
+menu, melainkan bahwa dua resource yang diandalkan frontend **tidak pernah masuk kontrak hak
+akses**.
+
+### 16.4 Entri kemampuan baru
+
+| ID | Kebutuhan | Pemilik | Bukti | Status | Gap/adapter | Risiko |
+|---|---|---|---|---|---|---|
+| `FIN-CAP-042` | Deposit Retur dipakai sebagai sumber dana pembayaran supplier (`FIN-SC-008`, `FIN-DEC-057`) | Finance | `Payable/Services/FinancePaymentService.cs`, `Payable/Controllers/FinancePaymentsController.cs`, `Payable/Dtos/FinancePaymentDtos.cs`, `Purchasing/Services/FinanceSupplierReturnService.cs`, `AccountingIntegration/Models/FinAccountingEventOutbox.cs` — seluruhnya `@working-tree-2026-09-28`, **belum di-commit** | **`Extend`** | Sebelas titik desain sesuai (16.1). Yang tersisa: hapus alias konstanta, tambahkan test, dan jalankan build — build **sengaja belum** dijalankan sesuai instruksi pengguna | Belum dapat dikompilasi-verifikasi. Bukti belum tertambat SHA, sehingga MUST diperiksa ulang sesudah commit |
+| `FIN-CAP-043` | Penamaan resource hak akses modul Finance | Finance + Security Owner | Perbandingan lengkap pada 16.3 — enam resource menyimpang, tujuh cocok, enam hanya ada di kode | **`Repair`** | Kode dan kontrak menyebut nama berbeda untuk resource yang sama. Penyemaian peran dari kontrak **tidak akan bekerja** untuk enam resource itu | **Tinggi untuk operasional, nol untuk logika bisnis.** Memperbesar `FIN-OQ-036`; MUST diputuskan bersama Security Owner sebelum peran disemai ke lingkungan mana pun |
+
+`FIN-CAP-037` (verifikasi otomatis Finance) **tetap `Missing`**, dan permukaan tanpa uji bertambah
++590 baris.
+
+### 16.5 Satu cacat pada dokumen blueprint yang ditemukan lewat pemeriksaan silang
+
+Saat mencocokkan aturan validasi yang dirujuk kode dengan matriks validasi, ditemukan **rujukan
+nomor yang keliru pada dokumen desain revisi 6** — bukan pada kode:
+
+| Hal | Isi |
+|---|---|
+| Yang keliru | `02-backend-architecture.md` (3 tempat) dan `contracts/integration-contract.md` (1 tempat) menyebut **`FIN-VAL-123`** sebagai aturan yang menolak potongan AR berjenis `OTHER` |
+| Kenyataannya | `FIN-VAL-123` sudah dipakai sejak revisi 5 dengan arti **"Deposit hanya untuk pembayaran supplier"**, dan dipakai begitu oleh kode, laporan task `BE-FIN-036`, serta matriks uji |
+| Nomor yang benar | **`FIN-VAL-137`** — itu nomor yang benar-benar ditulis di matriks validasi revisi 6 untuk penolakan `OTHER` |
+| Akibat bila dibiarkan | Implementer `FIN-DES-052` mencari `FIN-VAL-123`, menemukan aturan tentang deposit supplier, lalu menyimpulkan desainnya tidak konsisten |
+| Tindakan | **Keempat rujukan sudah dibetulkan** pada pass ini menjadi `FIN-VAL-137`. Ini koreksi rujukan, bukan perubahan desain — arti aturannya tidak bergerak sedikit pun |
+
+### 16.6 Fact, inferensi, rekomendasi
+
+**Fact (terverifikasi baca langsung):**
+
+1. Backend SHA tidak bergerak (`cba60cb0`); lima berkas source berubah di working tree (+590/−59).
+2. Pekerjaan itu task terlacak `BE-FIN-036`, berstatus 🟡 SEBAGIAN, dengan laporan task lengkap.
+3. `dotnet build` **tidak** dijalankan, atas instruksi pengguna; verifikasinya penelaahan statis.
+4. Sebelas titik desain `FIN-DES-045`..`047` diterapkan sesuai.
+5. Implementasi memakai nama kejadian hasil ratifikasi (`PEMAKAIAN-KREDIT-RETUR-PEMBELIAN`), bukan nama lama.
+6. Satu alias konstanta bernilai identik ditulis, bertentangan dengan `FIN-DES-051`.
+7. Nol test menyertai pekerjaan itu.
+8. Enam resource hak akses di kode berbeda nama dari kontrak; `Finance.AP`/`Finance.AR` tidak ada di kontrak sama sekali.
+9. Empat rujukan `FIN-VAL-123` pada dokumen desain revisi 6 keliru; sudah dibetulkan menjadi `FIN-VAL-137`.
+
+**Inferensi (bukan fakta):**
+
+1. Karena controller baru mengikuti konvensi kontrak sementara controller lama tidak, penyimpangan penamaan hak akses kemungkinan **peninggalan sebelum kontrak ditulis**, bukan keputusan sadar untuk menolak kontrak. Bila benar, memperbaikinya adalah migrasi terjadwal, bukan perdebatan konvensi.
+2. Karena implementasi `BE-FIN-036` taat pada sebelas titik desain termasuk nama hasil ratifikasi yang baru disepakati hari itu, alur desain → task → implementasi pada modul ini tampak berjalan; alias konstanta lebih mirip kehati-hatian berlebih ("jaga kompatibilitas") daripada kelalaian.
+
+**Rekomendasi:**
+
+1. **`FIN-CAP-043` dibawa ke owner bersama Security Owner sebelum peran disemai ke lingkungan mana pun.** Ini rekomendasi paling mendesak dari pass ini: tanpa keputusan itu, hak akses yang disemai dari kontrak tidak akan bekerja.
+2. **Hapus alias `PemakaianDepositRetur`** saat pekerjaan `BE-FIN-036` diselesaikan — satu baris, nol risiko.
+3. **Jalankan build dan tambahkan test** untuk invariant uang rumpun ini sebelum `BE-FIN-036` dinyatakan selesai; statusnya memang masih 🟡.
+4. **Jalankan impact scan ulang sesudah commit**, karena seluruh bukti pass ini belum tertambat SHA.
+
+### 16.7 Yang TIDAK ditutup pass ini
+
+- Audit field-per-field rumpun AR/AP/Payable — utang dari bagian 9.3, 12.3, dan 15.8; **tetap terbuka**.
+- Verifikasi kompilasi kelima berkas `BE-FIN-036` — build sengaja tidak dijalankan.
+- Audit tingkat komponen layar Finance — sama seperti bagian 15.8.
+- Field-per-field tujuh model Purchasing terhadap kamus data.
+- Apakah migration sudah dijalankan di database mana pun.
+
+### 16.8 Pemicu impact scan berikutnya
+
+Selain pemicu bagian 15.9, peta ini (khusus bagian 16) **stale** bila:
+
+- Kelima berkas `BE-FIN-036` **di-commit** — seluruh entri `@working-tree-2026-09-28` MUST ditambatkan ulang ke SHA.
+- Alias `PemakaianDepositRetur` dihapus, atau test pertama untuk Finance ditambahkan.
+- Keputusan `FIN-CAP-043`/`FIN-OQ-036` turun dan nama resource hak akses diselaraskan.
+- `dotnet build` dijalankan dan hasilnya diketahui.
+
+### 16.9 Handoff
+
+Pass ini read-only terhadap source dan tidak menghasilkan arsitektur target. Yang dihasilkan: dua
+entri kemampuan baru (`FIN-CAP-042` `Extend`, `FIN-CAP-043` `Repair`), penilaian kesesuaian sebelas
+titik desain, dua cacat pada pekerjaan berjalan, satu temuan sistemik hak akses, dan satu koreksi
+rujukan pada dokumen desain.
+
+**Yang paling mendesak:** `FIN-CAP-043` / `FIN-CQ-08`. Enam resource hak akses di kode tidak sama
+dengan kontrak, dan dua resource yang diandalkan frontend tidak ada di kontrak — sehingga penyemaian
+peran dari dokumen yang sudah disetujui **tidak akan menghasilkan akses yang bekerja**. Keputusannya
+milik owner bersama Security Owner, dan audit tidak memilihnya.
+
+**Penelusuran ID pass ini:**
+
+| ID | Jenis | Tercatat di |
+|---|---|---|
+| `FIN-CAP-042` | Kemampuan baru — pemakaian Deposit Retur (`Extend`) | 16.4 |
+| `FIN-CAP-043` | Kemampuan baru — penamaan resource hak akses (`Repair`) | 16.3, 16.4 |
+| `FIN-CQ-08` | Closure question — keputusan penamaan resource, menuntut Security Owner | 16.3, `blueprint-manifest.md` |
+| `FIN-OQ-036` | Diperbesar oleh `FIN-CQ-08` — bukan lagi hanya soal granularitas butir menu | 16.3 |
+| `FIN-OQ-034` | Tidak berubah oleh pass ini; suratnya sudah dikirim ke owner Billing lewat `evidence/17` | bagian 15.4, `evidence/17` |
+| `FIN-CAP-037` | Tetap `Missing`; permukaan tanpa uji bertambah +590 baris | 16.2, 16.4 |

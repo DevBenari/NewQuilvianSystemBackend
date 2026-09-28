@@ -2863,3 +2863,106 @@ Grup Tag: `[Tags("Health Services / Billing Management / Cashier / Shifts")]`
 | Eksekusi migration basis data | Tidak berlaku | Seluruh cakupan `MVP-34` adalah **Nol Migration** (status disimpan dalam kolom string yang sudah ada) |
 | QBE preflight dan verifikasi arsitektur | Divalidasi saat eksekusi task | Mengacu pada `AGENTS.md` backend target dan dokumen engineering canonical |
 
+---
+
+# Gelombang `MVP-35` — Pembalikan Tender Top-Up Deposit dan Alokasi Tagihan (Revisi 1.8)
+
+| Field | Nilai |
+| --- | --- |
+| Blueprint | `BIL-CASH-001` revisi `1.8` · status `draft` |
+| Masukan Keputusan Bisnis | `BKC-DEC-128`–`131` (**approved 28 September 2026** via `/grill-me`), `FIN-DEC-077` (menutup `FIN-OQ-034`) |
+| Masukan Keputusan Arsitektur | `BKC-DES-051`–`054` (**draft 28 September 2026**), dokumen arsitektur `02-backend-architecture.md` |
+| Dokumen Sumber / Evidence | `docs/module-blueprints/finance-management/evidence/17-permintaan-perbaikan-pembalikan-tender-deposit-untuk-billing.md` |
+| Contract Version Berlaku | `BIL-API-1.5` (draft), `BIL-STATE-1.5` (draft), `BIL-VALIDATION-1.5` (draft), `BIL-INTEGRATION-1.3` (draft), `BIL-PERMISSION-1.2`, `BIL-TEST-1.6` (draft) |
+| Backend Baseline SHA | `dcb9c88e` |
+| Frontend Baseline SHA | `fdebb9059` |
+
+## Konteks Bisnis Rumah Sakit & Alur Operasional
+
+Dalam operasional rumah sakit, penerimaan deposit rawat inap melalui kanal non-tunai (kartu kredit/debit, transfer bank, virtual account, atau payment gateway) dapat mengalami kegagalan pasca-transaksi (*post-settlement failure*) seperti penarikan kembali (*chargeback*), transaksi dibatalkan oleh pihak bank/gateway (*settlement reversed*), atau dana bermasalah (*disputed transaction*).
+
+Ketika status tender top-up deposit berubah menjadi `REVERSED`:
+1. **Kasus 1 — Saldo Deposit Masih Utuh di Akun Pasien (`BKC-DEC-128`):**
+   Keluarga pasien melakukan top-up deposit rawat inap sebesar Rp5.000.000 melalui kartu debit. Uang tersebut belum digunakan untuk memotong tagihan kamar atau tindakan medis (`AllocatedAmount = 0`, `AvailableBalance = Rp5.000.000`). Beberapa saat kemudian, EDC bank mengalami kegagalan rekonsiliasi sehingga tender dinyatakan `REVERSED`. Sistem memverifikasi bahwa `AvailableBalance >= Rp5.000.000`, lalu langsung mencatat mutasi `BilDepositMovement` bertipe `REVERSAL` sebesar Rp5.000.000 dan saldo deposit berkurang menjadi Rp0 secara aman tanpa menyentuh tagihan invoice.
+2. **Kasus 2 — Saldo Deposit Telah Digunakan untuk Melunasi Tagihan (`BKC-DEC-129`, `BKC-DEC-130`, `BKC-DEC-131`):**
+   Keluarga pasien melakukan deposit Rp10.000.000. Dari deposit tersebut, sebesar Rp7.000.000 telah dialokasikan untuk melunasi tagihan sementara Rawat Inap sehingga invoice berstatus `CLOSED` (`PatientOutstanding = Rp0`), menyisakan deposit Rp3.000.000. Tiba-tiba bank membatalkan pembayaran top-up Rp10.000.000 tersebut. 
+   - Karena saldo deposit yang tersisa hanya Rp3.000.000 (defisit Rp7.000.000 untuk membalikkan top-up), sistem secara otomatis mengeksekusi pembatalan alokasi tagihan dengan prinsip **LIFO (Last-In-First-Out)**.
+   - Alokasi Rp7.000.000 dibatalkan dengan mencatat record kompensasi di `BilPaymentAllocation` (nominal negatif -Rp7.000.000).
+   - Secara bersamaan, sistem mencatat mutasi ganda di `BilDepositMovement`:
+     - Baris `RELEASE`: +Rp7.000.000 (pengembalian dana alokasi tagihan kembali ke kolam deposit, sehingga total saldo deposit menjadi Rp3jt + Rp7jt = Rp10jt).
+     - Baris `REVERSAL`: -Rp10.000.000 (penarikan kembali dana top-up yang batal, sehingga saldo deposit akhir tepat Rp0 dan tidak pernah negatif).
+   - Akibat pembatalan alokasi tersebut, tagihan pasien kembali memiliki sisa hutang sebesar Rp7.000.000. Sistem secara otomatis memanggil `SyncClosureAsync` yang menyelaraskan kembali status invoice dari `CLOSED` menjadi `FINAL`. Kasir dapat melihat kembali tagihan aktif pasien sebesar Rp7.000.000 yang wajib ditagihkan kembali.
+3. **Kasus 3 — Multi-Invoice LIFO Sequencing:**
+   Jika pasien memiliki alokasi pada Invoice A (dibuat pukul 09:00, dialokasikan Rp4.000.000) dan Invoice B (dibuat pukul 14:00, dialokasikan Rp3.000.000), maka saat pembalikan menuntut pembatalan alokasi Rp5.000.000:
+   - Alokasi Invoice B (terbaru) dibatalkan penuh sebesar Rp3.000.000 terlebih dahulu.
+   - Sisa defisit Rp2.000.000 dibatalkan sebagian dari alokasi Invoice A.
+   - Status kedua invoice diselaraskan kembali ke `FINAL` sesuai sisa tanggungannya masing-masing.
+
+---
+
+## Grafik Urutan Dependency
+
+```mermaid
+flowchart TD
+    subgraph BillingKasir["Modul Billing dan Kasir (BIL-CASH-001)"]
+        BE-BKC-079["🟡 BE-BKC-079<br/>Pembalikan Tender Top-Up Deposit & Alokasi LIFO"]
+    end
+
+    subgraph FinanceExternal["Modul Finance Management (FIN-GL-001) — Baca-Saja"]
+        BE-FIN-036["BE-FIN-036<br/>Intake DEPOSIT_MOVEMENT & Jurnal Reversal"]
+    end
+
+    BE-BKC-079 -.->|"Handoff DEPOSIT_MOVEMENT (BIL-INT-018)"| BE-FIN-036
+```
+
+Panah berarti **"prasyarat harus selesai lebih dulu"**. Task `BE-BKC-079` adalah task mandiri pada modul `billing-kasir` (nol dependensi task backend lain di gelombang ini). Setelah `BE-BKC-079` selesai dan memancarkan mutasi `RELEASE` dan `REVERSAL`, handoff integrasi `DEPOSIT_MOVEMENT` (`BIL-INT-018`) membuka unblock bagi penyelesaian task `BE-FIN-036` di modul Finance Management.
+
+### Tabel Gelombang Eksekusi
+
+| Gelombang Eksekusi | Boleh Mulai Setelah | Task | Dapat Berjalan Paralel? |
+| :---: | --- | --- | :---: |
+| 1 | Mandiri (Nol prasyarat dalam gelombang) | 🟡 `BE-BKC-079` | Tunggal (Menyempurnakan `BillingSettlementService.cs`, `BilPaymentAllocation`, `BilDepositMovement`, dan `SyncClosureAsync`) |
+
+Jumlah panah dependency internal: **0**. Jumlah panah handoff eksternal: **1**. Bebas siklus.
+
+---
+
+## Tabel Task
+
+| Task ID | Outcome | Requirement/decision | Kontrak | Reuse | Cakupan | Dependency | Acceptance criteria | Verifikasi | Risiko/pemilik | DoD |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 🟡 `BE-BKC-079` | `BillingSettlementService` menangani pembalikan tender top-up deposit (`REVERSED`), membatalkan alokasi LIFO bila saldo kurang, mencatat mutasi ganda `RELEASE`/`REVERSAL`, dan menyelaraskan status invoice ke `FINAL` | `BKC-DEC-128`, `BKC-DEC-129`, `BKC-DEC-130`, `BKC-DEC-131`, `FIN-DEC-077`, `BKC-DES-051`, `BKC-DES-052`, `BKC-DES-053`, `BKC-DES-054` | `BIL-STATE-1.5`, `BIL-VALIDATION-1.5` (`BIL-VAL-127`–`131`), `BIL-INTEGRATION-1.3` (`BIL-INT-018`), `BIL-TEST-1.6` (`BIL-AT-149`–`156`) | `BillingSettlementService.UpdateTenderStatusAsync`, `BilPaymentAllocation`, `BilDepositMovement`, `BillingInvoiceClosureService.SyncClosureAsync`, `ApplicationDbContext` | Tambah private method `HandleDepositTopUpReversalAsync` di `BillingSettlementService.cs`; validasi status tender awal `SUCCEEDED`; hitung defisit saldo deposit; batalkan alokasi LIFO (`AllocatedAt DESC`); catat alokasi pembalik (`ReversesAllocationId`, nominal negatif); catat mutasi `RELEASE` dan `REVERSAL`; panggil `SyncClosureAsync` untuk invoice terdampak | — | Saldo deposit tidak pernah negatif; alokasi LIFO membatalkan alokasi terbaru terlebih dahulu; mutasi `RELEASE` dan `REVERSAL` tercatat berpasangan; invoice terdampak beralih dari `CLOSED` ke `FINAL`; transaksi atomik rollback bila gagal | Unit test `BillingSettlementServiceTests.cs`; verifikasi mutasi ganda; verifikasi status invoice; verifikasi atomisitas transaksi | Race condition mutasi deposit konkuren dilindungi advisory lock/transaksi DB. Owner Backend | Method terpasang di `BillingSettlementService`; nol migration; lolos acceptance `BIL-AT-149`..`156`; QBE preflight PASS; laporan task `BE-BKC-079.md` |
+
+---
+
+## Rincian Task
+
+### 🟡 `BE-BKC-079` — Pembalikan Tender Top-Up Deposit dan Pembatalan Alokasi Tagihan LIFO
+
+| Field | Isi |
+| --- | --- |
+| Outcome | Sistem Billing mampu memproses penarikan/pembalikan tender top-up deposit (`REVERSED`) secara otomatis dan deterministik: saldo deposit dipulihkan via pembatalan alokasi tagihan berurut LIFO tanpa membiarkan saldo negatif, mutasi tercatat transparan untuk modul Finance, dan invoice pasien diselaraskan kembali ke status `FINAL` agar piutang dapat ditagihkan kembali |
+| Jejak | `FR-BKC-125`–`128`, `BKC-DEC-128`–`131`, `FIN-DEC-077`, `BKC-DES-051`–`054`, `FIN-OQ-034` |
+| Contract | `BIL-STATE-1.5`, `BIL-VALIDATION-1.5` (`BIL-VAL-127`–`131`), `BIL-INTEGRATION-1.3` (`BIL-INT-018`), `BIL-TEST-1.6` (`BIL-AT-149`–`156`) |
+| Kemampuan existing yang dipakai | `BillingSettlementService.cs` (`UpdateTenderStatusAsync`), `BilPaymentAllocation` (pola alokasi kompensasi), `BilDepositMovement` (`MovementType`: `RELEASE` dan `REVERSAL`), `BillingInvoiceClosureService.SyncClosureAsync`, `ApplicationDbContext` |
+| Cakupan yang diharapkan | 1. Pada `BillingSettlementService.cs`, dalam method `UpdateTenderStatusAsync`, ketika `targetStatus == BillingTenderStatuses.Reversed` dan `settlement.SettlementType == BillingSettlementTypes.DepositTopUp` (atau `tender.TenderType == "DEPOSIT_TOPUP"`), panggil method baru `HandleDepositTopUpReversalAsync(tender, cancellationToken)`.<br/>2. Validasi `BIL-VAL-129`: pastikan tender yang dibalik sebelumnya berstatus `SUCCEEDED`. Jika bukan (misal `PENDING` atau `FAILED`), pembalikan alokasi/deposit ditolak atau dilewati.<br/>3. Periksa akun deposit pasien (`BilDepositAccount`). Hitung `deficit = tender.Amount - depositAccount.AvailableBalance`.<br/>4. Jika `deficit > 0`, ambil daftar alokasi aktif terkait akun deposit tersebut (`BilPaymentAllocation`) yang belum dibalik penuh, urutkan LIFO secara tegas: `ORDER BY AllocatedAt DESC, CreateDateTime DESC`.<br/>5. Iterasi alokasi untuk menutup defisit: buat baris kompensasi alokasi baru dengan `Amount = -nominalBatal`, `ReversesAllocationId = alokasiAsal.Id`, `Note = "Pembalikan otomatis tender top-up deposit {tender.TenderNumber}"`.<br/>6. Catat mutasi `BilDepositMovement`: jika ada alokasi dibatalkan, buat baris `MovementType = "RELEASE"` sebesar total alokasi yang dibatalkan. Kemudian buat baris `MovementType = "REVERSAL"` sebesar `tender.Amount`. Perbarui `AvailableBalance` akun deposit.<br/>7. Kumpulkan `InvoiceId` unik dari seluruh alokasi yang dibatalkan. Panggil `_invoiceClosureService.SyncClosureAsync(invoiceId, cancellationToken)` untuk setiap invoice terdampak agar status invoice kembali ke `FINAL` jika `PatientOutstanding > 0` (`BIL-VAL-130`).<br/>8. Bungkus seluruh mutasi dalam transaksi database atomik yang sama. |
+| Dependency | Tidak ada (Mandiri) |
+| Acceptance criteria | 1. **`BIL-AT-149`**: Tender top-up dibalik saat saldo deposit masih utuh di akun pasien menghasilkan mutasi `REVERSAL` senilai Rp5.000.000, saldo deposit berkurang tepat, alokasi tidak disentuh, saldo akhir Rp0.<br/>2. **`BIL-AT-150`**: Tender top-up dibalik saat saldo kurang otomatis membatalkan alokasi invoice secara proporsional/defisit; saldo deposit tidak pernah negatif (`BIL-VAL-127`).<br/>3. **`BIL-AT-151`**: Pembatalan alokasi tagihan multi-invoice berjalan berurut LIFO (`AllocatedAt DESC`, `CreateDateTime DESC`) (`BIL-VAL-128`).<br/>4. **`BIL-AT-152`**: Invoice berstatus `CLOSED` yang alokasinya dibatalkan otomatis diselaraskan kembali ke status `FINAL` via `SyncClosureAsync` (`BIL-VAL-130`).<br/>5. **`BIL-AT-153`**: Mutasi `RELEASE` dan `REVERSAL` tercatat terpisah dan dapat dikonsumsi oleh `FinBillingHandoffIntake` di modul Finance (`BIL-INT-018`).<br/>6. **`BIL-AT-154`**: Kegagalan di tengah penulisan memicu rollback transaksi penuh; data tidak inkonsisten (`BIL-VAL-131`).<br/>7. **`BIL-AT-155`**: Idempotensi pembalikan tender: pemicuan ulang tender yang sudah `REVERSED` tidak menggandakan pembatalan alokasi atau mutasi.<br/>8. **`BIL-AT-156`**: Tender yang belum pernah `SUCCEEDED` ditolak saat pemicuan `REVERSED` (`BIL-VAL-129`). |
+| Bukti verifikasi | Unit tests komprehensif pada `BillingSettlementServiceTests.cs`; uji transisi status tender ke `REVERSED`; verifikasi baris `BilPaymentAllocation` negatif; verifikasi baris `BilDepositMovement` berpasangan; verifikasi status `BilInvoice` kembali ke `FINAL`; inspeksi log audit |
+| Risiko | Concurrency race condition pada mutasi deposit saat top-up dibalik bersamaan dengan alokasi baru: dilindungi oleh advisory lock per deposit account / encounter dan isolasi transaksi |
+| Pemilik | Backend Engineering |
+| Definition of Done | Logika pembalikan terpasang di `BillingSettlementService.cs`; seluruh 8 acceptance criteria `BIL-AT-149`..`156` lolos pengujian; nol migration basis data; QBE preflight PASS; laporan task `BE-BKC-079.md` tersusun |
+| Status | 🟡 **SEBAGIAN** (28 September 2026, source code selesai, logika LIFO dan mutasi ganda terpasang, menunggu kompilasi build mandiri pengguna. Laporan: [`BE-BKC-079.md`](../task/report/backend/BE-BKC-079.md)) |
+
+---
+
+## Wewenang yang Tetap Terpisah
+
+| Wewenang | Pemilik | Catatan |
+| --- | --- | --- |
+| Menulis source code backend | Diminta per task saat eksekusi handoff | Approval roadmap bukan otorisasi menulis kode aplikasi secara mandiri |
+| Eksekusi migration basis data | Tidak berlaku | Seluruh cakupan `MVP-35` adalah **Nol Migration** (memakai tabel `BilPaymentAllocation`, `BilDepositMovement`, dan `BilDepositAccount` yang sudah ada) |
+| Konsumsi Finance Intake | Modul Finance Management (`BE-FIN-036`) | Verifikasi penerimaan fakta `DEPOSIT_MOVEMENT` dilakukan saat task `BE-FIN-036` diaktifkan di Finance |
+| QBE preflight dan verifikasi arsitektur | Divalidasi saat eksekusi task | Mengacu pada `AGENTS.md` backend target dan dokumen engineering canonical |
+
+

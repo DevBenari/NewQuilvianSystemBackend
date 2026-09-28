@@ -3,7 +3,10 @@ using Microsoft.EntityFrameworkCore.Storage;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingIntegration.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.MasterData.Models;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Payable.Dtos;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Payable.Models;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Services;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Services.Logging;
 using System.Data;
@@ -12,6 +15,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Payable.Servic
 
 /// <summary>
 /// Layanan pembayaran keluar dan potongan AP (BE-FIN-020, FIN-DES-015, FIN-DES-026..028, 02-backend-architecture.md §4.22).
+/// Diperluas oleh BE-FIN-036 (FIN-DES-045..047, FIN-DEC-057): pemakaian Deposit Retur sebagai sumber dana.
 /// </summary>
 public sealed class FinancePaymentService
 {
@@ -19,15 +23,18 @@ public sealed class FinancePaymentService
     private readonly ApplicationDbContext _dbContext;
     private readonly LoggerService _loggerService;
     private readonly FinanceAccountingOutboxService _accountingOutboxService;
+    private readonly FinanceSupplierReturnService _supplierReturnService;
 
     public FinancePaymentService(
         ApplicationDbContext dbContext,
         LoggerService loggerService,
-        FinanceAccountingOutboxService accountingOutboxService)
+        FinanceAccountingOutboxService accountingOutboxService,
+        FinanceSupplierReturnService supplierReturnService)
     {
         _dbContext = dbContext;
         _loggerService = loggerService;
         _accountingOutboxService = accountingOutboxService;
+        _supplierReturnService = supplierReturnService;
     }
 
     // ------------------------------------------------------------------------------------
@@ -317,10 +324,11 @@ public sealed class FinancePaymentService
             }
         }
 
-        var netTransferAmount = totalAmount - deductionAmount + additionAmount;
+        // FR-FIN-050, CK_FinPayment_NetTransfer: NetTransferAmount = TotalAmount - DeductionAmount + AdditionAmount - DepositAppliedAmount
+        var netTransferAmount = totalAmount - deductionAmount + additionAmount - payment.DepositAppliedAmount;
         if (netTransferAmount < 0)
             throw new PaymentValidationException(
-                $"Nilai transfer bersih tidak boleh kurang dari nol. Total utang Rp {totalAmount:N0}, potongan Rp {deductionAmount:N0}, tambahan Rp {additionAmount:N0}.");
+                $"Nilai transfer bersih tidak boleh kurang dari nol. Total utang Rp {totalAmount:N0}, potongan Rp {deductionAmount:N0}, tambahan Rp {additionAmount:N0}, deposit retur Rp {payment.DepositAppliedAmount:N0}.");
 
         payment.BankAccountId = bankAccountId;
         payment.PaymentMethod = normalizedPaymentMethod;
@@ -371,6 +379,11 @@ public sealed class FinancePaymentService
         if (payment.TotalAmount != payment.AllocatedAmount)
             throw new PaymentValidationException(
                 $"Total pembayaran Rp {payment.TotalAmount:N0} tidak sama dengan jumlah utang yang dipilih Rp {payment.AllocatedAmount:N0}.");
+
+        // FIN-VAL-091: Nilai transfer harus lebih dari nol bila tidak memakai deposit retur (FIN-VAL-091 diubah BE-FIN-036)
+        if (payment.NetTransferAmount == 0m && payment.DepositAppliedAmount == 0m)
+            throw new PaymentValidationException(
+                "Seluruh jasa habis oleh potongan, sehingga tidak ada uang yang perlu ditransfer. Selesaikan lewat koreksi utang, bukan pembayaran.");
 
         payment.Status = FinPaymentStatuses.Submitted;
         payment.UpdateDateTime = DateTime.UtcNow;
@@ -444,36 +457,59 @@ public sealed class FinancePaymentService
         Guid actorUserId,
         CancellationToken cancellationToken)
     {
-        var payment = await _dbContext.FinPayments
-            .SingleOrDefaultAsync(x => x.Id == paymentId && !x.IsDelete, cancellationToken)
-            ?? throw new KeyNotFoundException("Pembayaran tidak ditemukan.");
-
-        EnsureCurrent(payment.RowVersion, expectedRowVersion);
-
-        if (payment.Status != FinPaymentStatuses.Submitted)
-            throw new PaymentValidationException($"Hanya pembayaran berstatus SUBMITTED yang dapat ditolak. Status saat ini: {payment.Status}.");
-
-        var reason = ValidateText(rejectionReason, "Alasan penolakan", maxLength: 500);
-
-        payment.Status = FinPaymentStatuses.Rejected;
-        payment.RejectionReason = reason;
-        payment.ApprovedBy = actorUserId;
-        payment.ApprovedAt = DateTimeOffset.UtcNow;
-        payment.UpdateDateTime = DateTime.UtcNow;
-        payment.UpdateBy = actorUserId;
-        payment.RowVersion = Guid.NewGuid();
-
+        IDbContextTransaction? transaction = null;
         try
         {
+            transaction = await BeginTransactionAsync(cancellationToken);
+            await AcquireLockAsync($"FIN_PAYMENT_{paymentId:N}", cancellationToken);
+
+            var payment = await _dbContext.FinPayments
+                .SingleOrDefaultAsync(x => x.Id == paymentId && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Pembayaran tidak ditemukan.");
+
+            EnsureCurrent(payment.RowVersion, expectedRowVersion);
+
+            if (payment.Status != FinPaymentStatuses.Submitted)
+                throw new PaymentValidationException($"Hanya pembayaran berstatus SUBMITTED yang dapat ditolak. Status saat ini: {payment.Status}.");
+
+            var reason = ValidateText(rejectionReason, "Alasan penolakan", maxLength: 500);
+
+            payment.Status = FinPaymentStatuses.Rejected;
+            payment.RejectionReason = reason;
+            payment.ApprovedBy = actorUserId;
+            payment.ApprovedAt = DateTimeOffset.UtcNow;
+
+            // FIN-DES-046: pelepasan deposit saat REJECTED
+            if (payment.DepositAppliedAmount > 0)
+            {
+                await _supplierReturnService.ReleaseReservedByPaymentAsync(payment.Id, actorUserId, cancellationToken);
+                payment.DepositAppliedAmount = 0m;
+                payment.NetTransferAmount = payment.TotalAmount - payment.DeductionAmount + payment.AdditionAmount;
+            }
+
+            payment.UpdateDateTime = DateTime.UtcNow;
+            payment.UpdateBy = actorUserId;
+            payment.RowVersion = Guid.NewGuid();
+
             await _dbContext.SaveChangesAsync(cancellationToken);
+            await CommitAsync(transaction, cancellationToken);
+            await AuditAsync("Reject", payment.Id, actorUserId);
+            return payment;
         }
         catch (DbUpdateConcurrencyException ex)
         {
+            await RollbackAsync(transaction);
             throw Stale(ex);
         }
-
-        await AuditAsync("Reject", payment.Id, actorUserId);
-        return payment;
+        catch
+        {
+            await RollbackAsync(transaction);
+            throw;
+        }
+        finally
+        {
+            if (transaction is not null) await transaction.DisposeAsync();
+        }
     }
 
     // ------------------------------------------------------------------------------------
@@ -484,12 +520,10 @@ public sealed class FinancePaymentService
     public async Task<FinPayment> MarkPaidAsync(
         Guid paymentId,
         Guid expectedRowVersion,
-        string referenceNumber,
+        string? referenceNumber,
         Guid actorUserId,
         CancellationToken cancellationToken)
     {
-        var refNumber = ValidateText(referenceNumber, "Nomor bukti transfer", maxLength: 150);
-
         IDbContextTransaction? transaction = null;
         try
         {
@@ -508,6 +542,17 @@ public sealed class FinancePaymentService
             if (payment.Status != FinPaymentStatuses.Approved)
                 throw new PaymentValidationException(
                     $"Pembayaran berstatus {payment.Status} tidak dapat ditandai lunas. Pembayaran harus berstatus APPROVED terlebih dahulu.");
+
+            // FIN-VAL-056: Nomor bukti transfer wajib hanya bila NetTransferAmount > 0 (diubah BE-FIN-036)
+            string? refNumber;
+            if (payment.NetTransferAmount > 0)
+            {
+                refNumber = ValidateText(referenceNumber, "Nomor bukti transfer", maxLength: 150);
+            }
+            else
+            {
+                refNumber = string.IsNullOrWhiteSpace(referenceNumber) ? null : referenceNumber.Trim();
+            }
 
             // FR-FIN-051: Sisa utang berkurang sebesar alokasinya, bukan sebesar uang yang ditransfer.
             // FinancePaymentService adalah SATU-SATUNYA penulis PaidAmount pada FinSupplierPayable (BE-FIN-019 note 5).
@@ -541,6 +586,12 @@ public sealed class FinancePaymentService
                 }
             }
 
+            // FIN-DES-046: baris pemakaian deposit berstatus RESERVED berubah menjadi APPLIED
+            if (payment.DepositAppliedAmount > 0)
+            {
+                await _supplierReturnService.MarkAppliedByPaymentAsync(payment.Id, actorUserId, cancellationToken);
+            }
+
             payment.Status = FinPaymentStatuses.Paid;
             payment.PaidAt = DateTimeOffset.UtcNow;
             payment.ReferenceNumber = refNumber;
@@ -548,19 +599,40 @@ public sealed class FinancePaymentService
             payment.UpdateBy = actorUserId;
             payment.RowVersion = Guid.NewGuid();
 
-            // Stage event AP_PAYMENT ke Accounting Outbox
             var eventOccurredAt = DateTimeOffset.UtcNow;
-            await _accountingOutboxService.StageEventAsync(new AccountingOutboxEventRequest
+            var apPaymentAmount = payment.TotalAmount - payment.DepositAppliedAmount;
+
+            // FIN-DES-047, FIN-VAL-131: Stage event AP_PAYMENT hanya jika Amount > 0 (dilewati bila nol)
+            if (apPaymentAmount > 0)
             {
-                EventTypeCode = FinAccountingEventTypeCodes.ApPayment,
-                SourceTransactionId = payment.PaymentNumber,
-                EventOccurredAt = eventOccurredAt,
-                AccountingDate = DateOnly.FromDateTime(DateTime.UtcNow),
-                Amount = payment.TotalAmount,
-                CorrelationId = payment.Id,
-                CausationId = payment.Id,
-                ActorUserId = actorUserId
-            }, cancellationToken);
+                await _accountingOutboxService.StageEventAsync(new AccountingOutboxEventRequest
+                {
+                    EventTypeCode = FinAccountingEventTypeCodes.ApPayment,
+                    SourceTransactionId = payment.PaymentNumber,
+                    EventOccurredAt = eventOccurredAt,
+                    AccountingDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                    Amount = apPaymentAmount,
+                    CorrelationId = payment.Id,
+                    CausationId = payment.Id,
+                    ActorUserId = actorUserId
+                }, cancellationToken);
+            }
+
+            // FIN-DES-047, FIN-DEC-061/066: Stage event PEMAKAIAN-KREDIT-RETUR-PEMBELIAN jika DepositAppliedAmount > 0
+            if (payment.DepositAppliedAmount > 0)
+            {
+                await _accountingOutboxService.StageEventAsync(new AccountingOutboxEventRequest
+                {
+                    EventTypeCode = FinAccountingEventTypeCodes.PemakaianKreditReturPembelian,
+                    SourceTransactionId = payment.PaymentNumber,
+                    EventOccurredAt = eventOccurredAt,
+                    AccountingDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                    Amount = payment.DepositAppliedAmount,
+                    CorrelationId = payment.Id,
+                    CausationId = payment.Id,
+                    ActorUserId = actorUserId
+                }, cancellationToken);
+            }
 
             await _dbContext.SaveChangesAsync(cancellationToken);
             await CommitAsync(transaction, cancellationToken);
@@ -593,36 +665,220 @@ public sealed class FinancePaymentService
         Guid actorUserId,
         CancellationToken cancellationToken)
     {
-        var payment = await _dbContext.FinPayments
-            .SingleOrDefaultAsync(x => x.Id == paymentId && !x.IsDelete, cancellationToken)
-            ?? throw new KeyNotFoundException("Pembayaran tidak ditemukan.");
-
-        EnsureCurrent(payment.RowVersion, expectedRowVersion);
-
-        // state-transition-matrix.md §6: PAID adalah status akhir, tidak dapat dibatalkan.
-        if (payment.Status == FinPaymentStatuses.Paid)
-            throw new PaymentValidationException("Pembayaran yang sudah dibayar tidak dapat dibatalkan. Kekeliruan dibetulkan lewat koreksi utang.");
-
-        if (payment.Status == FinPaymentStatuses.Cancelled)
-            throw new PaymentValidationException("Pembayaran sudah dibatalkan sebelumnya.");
-
-        payment.Status = FinPaymentStatuses.Cancelled;
-        payment.UpdateDateTime = DateTime.UtcNow;
-        payment.UpdateBy = actorUserId;
-        payment.RowVersion = Guid.NewGuid();
-
+        IDbContextTransaction? transaction = null;
         try
         {
+            transaction = await BeginTransactionAsync(cancellationToken);
+            await AcquireLockAsync($"FIN_PAYMENT_{paymentId:N}", cancellationToken);
+
+            var payment = await _dbContext.FinPayments
+                .SingleOrDefaultAsync(x => x.Id == paymentId && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Pembayaran tidak ditemukan.");
+
+            EnsureCurrent(payment.RowVersion, expectedRowVersion);
+
+            // state-transition-matrix.md §6: PAID adalah status akhir, tidak dapat dibatalkan.
+            if (payment.Status == FinPaymentStatuses.Paid)
+                throw new PaymentValidationException("Pembayaran yang sudah dibayar tidak dapat dibatalkan. Kekeliruan dibetulkan lewat koreksi utang.");
+
+            if (payment.Status == FinPaymentStatuses.Cancelled)
+                throw new PaymentValidationException("Pembayaran sudah dibatalkan sebelumnya.");
+
+            payment.Status = FinPaymentStatuses.Cancelled;
+
+            // FIN-DES-046: pelepasan deposit saat CANCELLED
+            if (payment.DepositAppliedAmount > 0)
+            {
+                await _supplierReturnService.ReleaseReservedByPaymentAsync(payment.Id, actorUserId, cancellationToken);
+                payment.DepositAppliedAmount = 0m;
+                payment.NetTransferAmount = payment.TotalAmount - payment.DeductionAmount + payment.AdditionAmount;
+            }
+
+            payment.UpdateDateTime = DateTime.UtcNow;
+            payment.UpdateBy = actorUserId;
+            payment.RowVersion = Guid.NewGuid();
+
             await _dbContext.SaveChangesAsync(cancellationToken);
+            await CommitAsync(transaction, cancellationToken);
+            await AuditAsync("Cancel", payment.Id, actorUserId);
+            return payment;
         }
         catch (DbUpdateConcurrencyException ex)
         {
+            await RollbackAsync(transaction);
             throw Stale(ex);
         }
-
-        await AuditAsync("Cancel", payment.Id, actorUserId);
-        return payment;
+        catch
+        {
+            await RollbackAsync(transaction);
+            throw;
+        }
+        finally
+        {
+            if (transaction is not null) await transaction.DisposeAsync();
+        }
     }
+
+    // ------------------------------------------------------------------------------------
+    // 8. Pemakaian Deposit Retur (BE-FIN-036, FIN-DES-045, FIN-DES-046, FIN-DEC-057)
+    // ------------------------------------------------------------------------------------
+
+    public async Task<FinPayment> AddReturnDepositAsync(
+        Guid paymentId,
+        Guid expectedRowVersion,
+        Guid supplierReturnDepositId,
+        decimal usedAmount,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        if (supplierReturnDepositId == Guid.Empty)
+            throw new PaymentBadRequestException("Deposit Retur (SupplierReturnDepositId) wajib diisi.");
+        if (usedAmount <= 0)
+            throw new PaymentBadRequestException("Nilai pemakaian deposit harus lebih dari nol.");
+
+        IDbContextTransaction? transaction = null;
+        try
+        {
+            transaction = await BeginTransactionAsync(cancellationToken);
+            await AcquireLockAsync($"FIN_PAYMENT_{paymentId:N}", cancellationToken);
+            await AcquireLockAsync($"FIN_RETURN_DEPOSIT_{supplierReturnDepositId:N}", cancellationToken);
+
+            var payment = await _dbContext.FinPayments
+                .SingleOrDefaultAsync(x => x.Id == paymentId && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Pembayaran tidak ditemukan.");
+
+            EnsureCurrent(payment.RowVersion, expectedRowVersion);
+
+            // FIN-VAL-124: Deposit hanya ditambah/dilepas selama draf
+            if (payment.Status != FinPaymentStatuses.Draft)
+                throw new PaymentValidationException("Pembayaran ini sudah diajukan, sehingga sumber dananya tidak dapat diubah.");
+
+            // FIN-VAL-123: Deposit hanya untuk pembayaran supplier
+            if (payment.PaymentType != FinPaymentTypes.Supplier)
+                throw new PaymentValidationException("Deposit Retur hanya dapat dipakai pada pembayaran supplier.");
+
+            // FIN-VAL-125: Deposit yang sama tidak boleh aktif dua kali dalam satu pembayaran
+            var existingActiveUsage = await _dbContext.FinSupplierReturnDepositUsages
+                .AnyAsync(x => x.PaymentId == paymentId
+                    && x.SupplierReturnDepositId == supplierReturnDepositId
+                    && x.Status != FinSupplierReturnDepositUsageStatuses.Released
+                    && !x.IsDelete, cancellationToken);
+            if (existingActiveUsage)
+                throw new PaymentConflictException("Deposit Retur ini sudah dipakai di pembayaran ini.");
+
+            // FIN-VAL-126: Nilai transfer tidak boleh negatif karena deposit
+            var maxAllowedDeposit = payment.TotalAmount - payment.DeductionAmount + payment.AdditionAmount - payment.DepositAppliedAmount;
+            if (usedAmount > maxAllowedDeposit)
+            {
+                var sisa = payment.TotalAmount - payment.DeductionAmount + payment.AdditionAmount - payment.DepositAppliedAmount;
+                throw new PaymentValidationException($"Nilai deposit melebihi yang perlu dibayar. Maksimum Rp {sisa:N0}.");
+            }
+
+            // Panggil FinanceSupplierReturnService untuk mencadangkan deposit (ikut transaksi ini)
+            await _supplierReturnService.ReserveAsync(
+                supplierReturnDepositId, usedAmount, payment.Id, payment.PayeeReferenceId, actorUserId, cancellationToken);
+
+            payment.DepositAppliedAmount += usedAmount;
+            payment.NetTransferAmount = payment.TotalAmount - payment.DeductionAmount + payment.AdditionAmount - payment.DepositAppliedAmount;
+            payment.UpdateDateTime = DateTime.UtcNow;
+            payment.UpdateBy = actorUserId;
+            payment.RowVersion = Guid.NewGuid();
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            await CommitAsync(transaction, cancellationToken);
+            await AuditAsync("AddReturnDeposit", payment.Id, actorUserId);
+            return payment;
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            await RollbackAsync(transaction);
+            throw Stale(ex);
+        }
+        catch
+        {
+            await RollbackAsync(transaction);
+            throw;
+        }
+        finally
+        {
+            if (transaction is not null) await transaction.DisposeAsync();
+        }
+    }
+
+    public async Task<FinPayment> ReleaseReturnDepositAsync(
+        Guid paymentId,
+        Guid usageId,
+        Guid expectedRowVersion,
+        Guid actorUserId,
+        CancellationToken cancellationToken)
+    {
+        IDbContextTransaction? transaction = null;
+        try
+        {
+            transaction = await BeginTransactionAsync(cancellationToken);
+            await AcquireLockAsync($"FIN_PAYMENT_{paymentId:N}", cancellationToken);
+
+            var payment = await _dbContext.FinPayments
+                .SingleOrDefaultAsync(x => x.Id == paymentId && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Pembayaran tidak ditemukan.");
+
+            EnsureCurrent(payment.RowVersion, expectedRowVersion);
+
+            // FIN-VAL-124: Deposit hanya ditambah/dilepas selama draf
+            if (payment.Status != FinPaymentStatuses.Draft)
+                throw new PaymentValidationException("Pembayaran ini sudah diajukan, sehingga sumber dananya tidak dapat diubah.");
+
+            var releasedUsage = await _supplierReturnService.ReleaseUsageAsync(usageId, payment.Id, actorUserId, cancellationToken);
+
+            payment.DepositAppliedAmount = Math.Max(0m, payment.DepositAppliedAmount - releasedUsage.UsedAmount);
+            payment.NetTransferAmount = payment.TotalAmount - payment.DeductionAmount + payment.AdditionAmount - payment.DepositAppliedAmount;
+            payment.UpdateDateTime = DateTime.UtcNow;
+            payment.UpdateBy = actorUserId;
+            payment.RowVersion = Guid.NewGuid();
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            await CommitAsync(transaction, cancellationToken);
+            await AuditAsync("ReleaseReturnDeposit", payment.Id, actorUserId);
+            return payment;
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            await RollbackAsync(transaction);
+            throw Stale(ex);
+        }
+        catch
+        {
+            await RollbackAsync(transaction);
+            throw;
+        }
+        finally
+        {
+            if (transaction is not null) await transaction.DisposeAsync();
+        }
+    }
+
+    public async Task<List<PaymentReturnDepositResponse>> GetReturnDepositsByPaymentIdAsync(Guid paymentId, CancellationToken cancellationToken)
+    {
+        var usages = await _dbContext.FinSupplierReturnDepositUsages
+            .Include(x => x.SupplierReturnDeposit)
+                .ThenInclude(d => d!.SourceReturn)
+            .Where(x => x.PaymentId == paymentId && !x.IsDelete)
+            .OrderBy(x => x.CreateDateTime)
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+
+        return usages.Select(u => new PaymentReturnDepositResponse
+        {
+            Id = u.Id,
+            SupplierReturnDepositId = u.SupplierReturnDepositId,
+            ReturnNumber = u.SupplierReturnDeposit?.SourceReturn?.ReturnNumber ?? string.Empty,
+            UsedAmount = u.UsedAmount,
+            Status = u.Status,
+            UsedAt = u.UsedAt,
+            ReleasedAt = u.ReleasedAt
+        }).ToList();
+    }
+
 
     // ------------------------------------------------------------------------------------
     // Query Helpers
