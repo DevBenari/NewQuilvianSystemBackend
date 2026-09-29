@@ -23,20 +23,26 @@ Berkas: `src/lib/services/health-services/master-data/nursing-diagnosis.service.
   - `getNursingDiagnosisList(params)`: Pengambilan daftar dengan paginasi dan filter kategori.
   - `getNursingDiagnosisById(id)`: Pengambilan detail 1 diagnosis beserta relasi anak.
 
-### B. Integrasi SOAP Keperawatan (CPPT)
+### B. Integrasi SOAP Keperawatan (CPPT) — Adopsi Penuh Baseline Visual V1
 Berkas: `src/components/view/health-services/inpatient-management/nursing-workspace/sections/nursing-care/components/nursing-soap-entry-form.jsx`
-1. **Pencarian Dinamis Master SDKI**:
-   - Menambahkan kotak pencarian dinamis (live search) di atas kolom Asesmen (A).
-   - Menampilkan *dropdown autocomplete* saat perawat mengetikkan nama diagnosa atau kode (misal: "nyeri", "napas", "D.0077").
-   - Menampilkan kode diagnosis dalam badge khusus serta kelompok klasifikasi.
-2. **Penyisipan Diagnosa Otomatis ke Asesmen (A)**:
-   - Saat diagnosa dipilih, otomatis disematkan ke dalam catatan Asesmen dengan format standar.
-3. **Rekomendasi Bundel 3S SIKI (⚡ Terapkan ke Plan)**:
-   - Begitu diagnosa dipilih, sistem otomatis menarik bundel intervensi terstruktur dari backend.
-   - Muncul banner hijau interaktif di atas kolom Perencanaan (P) yang menginformasikan ketersediaan intervensi 4 pilar SIKI.
-   - Tombol satu-klik `⚡ Terapkan ke Plan (P)` menyisipkan secara rapi struktur 4 pilar (Observasi, Terapeutik, Edukasi, Kolaborasi) ke kolom P.
-4. **Resiliensi & Dukungan Alur Cepat**:
-   - Mempertahankan deretan *preset cepat* di bawah textarea agar perawat tetap dapat mendokumentasikan kasus darurat tanpa harus mengetik.
+1. **Dropdown Template Cepat S & O**:
+   - `Pilih Template Subjective`: Menambahkan keluhan langsung ke textarea S.
+   - `Pilih Template Objective`: Menambahkan temuan objektif ke textarea O + tombol `Ambil TTV`.
+2. **Asesmen SDKI & Tabel Terpilih**:
+   - Pencarian SDKI dinamis dengan dropdown options.
+   - Tabel `Daftar Diagnosa Terpilih` multi-diagnosa dengan kolom `Kode SDKI`, `Nama Diagnosa`, dan tombol merah `Hapus`.
+   - Textarea `A (Assessment)` otomatis terisi nama dan kode diagnosa terpilih.
+3. **Template Planning dan Intervensi (Akordion 5 Pilar Terbuka Semua)**:
+   - Menampilkan 5 pilar bertab teal: **Edukasi, Observasi, Terapeutik, Kolaborasi, dan Evaluasi**.
+   - **Fitur Khusus**: Akordion dapat **terbuka semua sekaligus secara bersamaan** (*multi-expand by default*), serta dilengkapi tombol cepat `Buka Semua` dan `Tutup Semua`.
+   - Tersedia checkbox `Pilih Semua [Kategori]` untuk centang massal.
+   - Textarea `P (Planning)` otomatis terisi teks berformat rapi per kategori dari butir yang dicentang.
+4. **Pilih Item Intervensi dari Planning (Tindakan Terlaksana)**:
+   - Menampilkan daftar checklist tindakan dari item Planning yang sudah dipilih.
+   - Tindakan yang dicentang otomatis mengisi textarea `Intervensi` dengan format `=== SDKI (D.XXXX) ===`.
+5. **Evaluasi & Simpan**:
+   - Textarea `Evaluasi` dengan default hasil evaluasi intervensi.
+   - Tombol hijau `Simpan SOAP` sesuai standar operasional V1.
 
 ### C. Integrasi Modal Rencana Asuhan (Care Plan)
 Berkas: `src/components/view/health-services/inpatient-management/nursing-workspace/sections/care-plan/modals/care-plan-item-form-modal.jsx`

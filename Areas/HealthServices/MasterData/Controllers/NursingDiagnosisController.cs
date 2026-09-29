@@ -84,7 +84,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             var detail = await _service.GetDetailByIdAsync(id, ct);
             if (detail == null)
             {
-                return NotFound(ApiResponse<object>.Error("Diagnosis keperawatan tidak ditemukan."));
+                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Diagnosis keperawatan tidak ditemukan."));
             }
 
             return Ok(ApiResponse<NursingDiagnosisDetailResponse>.Ok(detail, "Detail diagnosis keperawatan berhasil diambil."));
@@ -98,7 +98,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             var bundle = await _service.GetBundleByIdAsync(id, ct);
             if (bundle == null)
             {
-                return NotFound(ApiResponse<object>.Error("Diagnosis keperawatan tidak ditemukan."));
+                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Diagnosis keperawatan tidak ditemukan."));
             }
 
             return Ok(ApiResponse<NursingDiagnosisBundleResponse>.Ok(bundle, "Bundel 3S SDKI/SLKI/SIKI berhasil diambil."));
@@ -120,7 +120,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(ApiResponse<object>.Error(ex.Message));
+                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, ex.Message));
             }
         }
 
@@ -142,11 +142,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             }
             catch (KeyNotFoundException ex)
             {
-                return NotFound(ApiResponse<object>.Error(ex.Message));
+                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, ex.Message));
             }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(ApiResponse<object>.Error(ex.Message));
+                return BadRequest(ApiResponse<object>.Fail(StatusCodes.Status400BadRequest, ex.Message));
             }
         }
 
@@ -159,7 +159,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             var success = await _service.DeleteDiagnosisAsync(id, actorUserId, ct);
             if (!success)
             {
-                return NotFound(ApiResponse<object>.Error("Diagnosis keperawatan tidak ditemukan."));
+                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, "Diagnosis keperawatan tidak ditemukan."));
             }
 
             await _loggerService.InfoAsync(LogCategory, "Delete", $"Menghapus diagnosis keperawatan {id}", null);
@@ -181,7 +181,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             }
             catch (KeyNotFoundException ex)
             {
-                return NotFound(ApiResponse<object>.Error(ex.Message));
+                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, ex.Message));
             }
         }
 
@@ -200,7 +200,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             }
             catch (KeyNotFoundException ex)
             {
-                return NotFound(ApiResponse<object>.Error(ex.Message));
+                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, ex.Message));
             }
         }
 
@@ -219,7 +219,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
             }
             catch (KeyNotFoundException ex)
             {
-                return NotFound(ApiResponse<object>.Error(ex.Message));
+                return NotFound(ApiResponse<object>.Fail(StatusCodes.Status404NotFound, ex.Message));
             }
         }
     }

@@ -102,7 +102,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Services
                 })
                 .ToListAsync(ct);
 
-            return new PagedResult<NursingDiagnosisListItemResponse>(items, totalRows, page, perPage);
+            return new PagedResult<NursingDiagnosisListItemResponse>
+            {
+                PageNumber = page,
+                PageSize = perPage,
+                TotalData = totalRows,
+                TotalPage = (int)Math.Ceiling(totalRows / (double)perPage),
+                Items = items
+            };
         }
 
         public async Task<List<NursingDiagnosisOptionResponse>> GetOptionsAsync(
