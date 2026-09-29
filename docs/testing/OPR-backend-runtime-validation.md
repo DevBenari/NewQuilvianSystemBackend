@@ -153,11 +153,16 @@ service tidak ikut tercetak pada baris lognya. Pertanggungjawaban pelaku karena 
 terbaca dari `OprStatusHistory.CreateBy`, dan itulah yang diuji. `LoggerService` dipakai seluruh
 modul sehingga perbaikannya bukan keputusan modul Operasi sendiri.
 
-**2. Penolakan izin per peran belum pernah terlihat berjalan.**
+**2. Penolakan izin per peran diserahkan ke analis penguji.**
 Ketiga akun demo dibuat berperan `SuperAdmin` oleh seeder — disengaja, supaya alur klinis dapat
 dicoba tanpa menyiapkan pemetaan izin lebih dulu — sehingga seluruhnya selalu lolos. Satu-satunya
 akun tanpa peran di basis data pengembangan kata sandinya tidak diketahui. Membuktikan `403`
-menuntut peran dan pemetaan izin yang disiapkan pemilik lingkungan.
+menuntut akun per peran beserta pemetaan izin yang disiapkan pemilik lingkungan; membuatnya
+sendiri dari dalam modul berarti mengarang data privilege.
+
+Yang sudah dijaga otomatis: `PermissionMatrixTests` membuktikan setiap endpoint Operasi menuntut
+login, menuntut izin atas sumber daya Operasi, dan tidak pernah cukup dengan izin baca untuk
+tindakan yang mengubah data. Yang diserahkan adalah pembuktian penolakannya saat berjalan.
 
 **3. Keunikan serial implant belum dijaga basis data.**
 Lihat alasannya di bagian `OPR014`. Perlu keputusan pemilik proses sebelum indeks dibuat.

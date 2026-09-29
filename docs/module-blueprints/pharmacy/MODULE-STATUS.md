@@ -43,18 +43,23 @@ Laporan task `PHA-BE-001` tidak pernah ditulis, sehingga bukti acceptance-nya be
 | --- | --- | --- | --- |
 | `SUBSTANTIAL` | `SUBSTANTIAL` | `PARTIAL` | `WEAK` |
 
-`Verification` sengaja dinyatakan `WEAK` dan itu temuan paling penting pada pemutakhiran ini:
-**Farmasi belum memiliki satu pun uji otomatis.** Satu-satunya proyek uji pada repositori adalah
-`Tests/QuilvianSystemBackend.OperatingRoomTests`. Dengan 137 endpoint, itu risiko terbesar yang
-masih sepenuhnya berada di tangan tim ini dan tidak menunggu pihak mana pun.
+`Verification` dinyatakan `WEAK` karena **Farmasi belum memiliki satu pun uji otomatis**.
+Satu-satunya proyek uji pada repositori adalah `Tests/QuilvianSystemBackend.OperatingRoomTests`.
+Dengan 137 endpoint, itu risiko terbesar yang masih tersisa.
+
+Pengujiannya diserahkan ke analis penguji (keputusan 29 September 2026). Karena itu task yang
+sumbernya sudah lengkap dan hanya menunggu pembuktian ditandai **`Selesai — kurang tes`**, bukan
+`Sebagian`: yang tertinggal bukan pekerjaan pembangunan. Penandaan itu **tidak** dipakai untuk
+task yang masih menunggu keputusan bisnis atau dependency modul lain — keduanya bukan soal
+pengujian dan tetap ditandai apa adanya.
 
 ## Gelombang Financial Clearance
 
 | Task | Status | Yang sudah ada | Yang belum |
 | --- | --- | --- | --- |
-| `PHA-BE-004` | 🟡 | `PhmPrescriptionFinancialProjection`, `PrescriptionFinancialClearanceService`, configuration, DI, migration | QBE Conformance, verifikasi runtime, protokol pengakuan surat, keputusan nilai kolom pembayaran saat `REVOKED` |
-| `PHA-BE-005` | 🟡 | Empat gerbang penahanan terpasang | Verifikasi runtime |
-| `PHA-BE-006` | 🟡 | `FinancialClearance` pada response detail resep dan layar kerja | Verifikasi runtime |
+| `PHA-BE-004` | 🟡 | `PhmPrescriptionFinancialProjection`, `PrescriptionFinancialClearanceService`, configuration, DI, migration | QBE Conformance, verifikasi runtime, **protokol pengakuan surat**, **keputusan nilai kolom pembayaran saat `REVOKED`**. Dua yang terakhir keputusan bisnis, bukan pengujian — karena itu tetap 🟡 |
+| `PHA-BE-005` | 🟡 | Empat gerbang penahanan terpasang | Verifikasi runtime, tetapi tertahan `BE-BKC-068` milik `billing-kasir`. Bukan semata soal pengujian |
+| `PHA-BE-006` | **Selesai — kurang tes** | `FinancialClearance` pada response detail resep dan layar kerja | Hanya verifikasi runtime, tanpa dependency dan tanpa keputusan terbuka. Diserahkan ke analis penguji |
 | `PHA-FE-002` | `NOT_STARTED` | — | Tidak ditemukan jejak `financialClearance` maupun `clearanceStatus` pada source frontend |
 
 ### Koreksi terhadap catatan sebelumnya
@@ -93,14 +98,14 @@ urutan yang dipilih: tanpa surat yang terbit, slice ini tidak punya masukan apa 
 
 ## Next recommended task
 
-Dua hal yang tidak menunggu siapa pun:
+1. **Tulis laporan acceptance `PHA-BE-001`** supaya `PHA-PH-008` punya bukti, bukan hanya source.
+2. **Serahkan `PHA-BE-006` ke analis penguji** untuk verifikasi runtime.
+3. **Putuskan protokol pengakuan surat dan nilai kolom pembayaran saat `REVOKED`** — dua keputusan
+   yang menahan `PHA-BE-004`, dan tidak akan terselesaikan oleh pengujian.
 
-1. **Mulai proyek uji Farmasi.** Polanya sudah ada dan terbukti pada
-   `Tests/QuilvianSystemBackend.OperatingRoomTests`: xunit, SQLite dalam memori, dibangun dengan
-   `-p:SkipMigrationMetadata=true`. Mulai dari resolver routing Depo (`PHA-BE-002`, sudah
-   direncanakan) dan gerbang penahanan `PHA-BE-005`, karena keduanya aturan yang paling mudah
-   rusak diam-diam.
-2. **Tulis laporan acceptance `PHA-BE-001`** supaya `PHA-PH-008` punya bukti, bukan hanya source.
+Pengujian otomatis Farmasi diserahkan ke analis penguji. Bila nanti dibuat dari sisi
+pembangunan, polanya sudah terbukti pada `Tests/QuilvianSystemBackend.OperatingRoomTests`: xunit,
+SQLite dalam memori, dibangun dengan `-p:SkipMigrationMetadata=true`.
 
 Setelah Billing menerbitkan `BE-BKC-067`/`068`, lanjutkan verifikasi runtime `PHA-BE-004`/`005`/
 `006` dan kerjakan `PHA-FE-002`.
