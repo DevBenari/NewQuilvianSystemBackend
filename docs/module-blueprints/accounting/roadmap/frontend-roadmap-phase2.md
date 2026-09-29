@@ -60,8 +60,8 @@ flowchart LR
     FLAIN["✅ Pengaturan, tutup tahun, control, rekonsiliasi<br/>FE-ACC-P2-005 sampai 008"]:::selesai
     FBATCH["✅ Batch 14 Sep 2026<br/>FE-ACC-P2-009, 010, 014"]:::selesai
     FWAVEB["✅ Wave B 24 Sep 2026<br/>FE-ACC-P2-011, 012, 013"]:::selesai
-    FWAVED["🟡 Wave D 28 Sep 2026<br/>015 ✅, 016 belum dikerjakan"]:::sebagian
-    FREV7["Revisi 7<br/>FE-ACC-P2-017, 018 belum dikerjakan"]:::belum
+    FWAVED["🟡 Wave D 28 Sep 2026<br/>015 ✅, 016 🟡"]:::sebagian
+    FREV7["🟡 Revisi 7<br/>017 🟡, 018 belum dikerjakan"]:::sebagian
 
     BMANDIRI --> FTUTUP
     BMANDIRI --> FLAIN
@@ -589,13 +589,13 @@ flowchart LR
         BBEACCP2014["BE-ACC-P2-014<br/>Perbandingan subledger, selisih, penghalang"]:::luar
     end
     subgraph fe7["Prasyarat dari Grafik 6 — cermin baca-saja"]
-        MFEACCP2017["FE-ACC-P2-017<br/>Pulihkan butir menu"]:::luar
+        MFEACCP2017["🟡 FE-ACC-P2-017<br/>Pulihkan butir menu"]:::luar
     end
 
     GKONTRAK{{"✅ GATE-DESAIN-0928<br/>kontrak sisi subledger, 28 Sep 2026"}}:::selesai
 
     FEACCP2015["✅ FE-ACC-P2-015<br/>Kotak Masuk mengenali pesan saldo"]:::selesai
-    FEACCP2016["FE-ACC-P2-016<br/>Rekonsiliasi per periode dan penghalang keempat"]:::belum
+    FEACCP2016["🟡 FE-ACC-P2-016<br/>Rekonsiliasi per periode dan penghalang keempat"]:::sebagian
 
     BBEACCP2028 --> FEACCP2015
     BBEACCP2014 --> FEACCP2016
@@ -611,7 +611,7 @@ flowchart LR
 | ID | Judul | Gelombang | Dependency | Status |
 |---|---|---|---|---|
 | `FE-ACC-P2-015` | Kotak Masuk dan Rincian mengenali pesan saldo subledger | Wave D | `BE-ACC-P2-028` | ✅ `SELESAI` 28 Sep 2026 — uji layar B1–B7 lulus, eslint 0/0, `npm run build` Rizki berhasil. [Laporan](../task/report/frontend/FE-ACC-P2-015.md) |
-| `FE-ACC-P2-016` | Layar Rekonsiliasi per periode: saldo subledger, selisih, dan penghalang keempat | Wave D | `BE-ACC-P2-014`, `GATE-DESAIN-0928` ✅, `FE-ACC-P2-017` | Belum dikerjakan — `READY`. ⛔ 28 Sep 2026 dilepas `GATE-DESAIN-0928` |
+| `FE-ACC-P2-016` 🟡 | Layar Rekonsiliasi per periode: saldo subledger, selisih, dan penghalang keempat | Wave D | `BE-ACC-P2-014`, `GATE-DESAIN-0928` ✅, `FE-ACC-P2-017` | 🟡 29 Sep 2026 — source ditulis, eslint 0/0, test terkait 53/53; menunggu build dan uji layar. [laporan](../task/report/frontend/FE-ACC-P2-016.md) |
 
 ## ✅ `FE-ACC-P2-015` — Kotak Masuk dan Rincian mengenali pesan saldo subledger
 
@@ -629,7 +629,7 @@ flowchart LR
 | DoD | Lint hijau, build owner berhasil, uji layar tercatat, laporan task tertulis |
 | **Status** | ✅ **SELESAI — 28 September 2026.** `npm run build` Rizki berhasil (47 detik, 411/411 halaman). 5 dari 5 acceptance terpetakan ke source **dan terbukti di layar**: uji layar Rizki B1–B7 lulus bersama `BE-ACC-P2-028` — tab "Tercatat 3", saringan hanya kejadian Tercatat, baris Jurnal "Tidak dijurnal — pesan saldo subledger" tanpa Buka Jurnal, status lain tidak berubah; (5) dinyatakan lulus Rizki. 2 berkas (constants, hook Rincian), nol JSX/CSS; `UI GATE`: REUSE 2, NEW 0; `npx eslint` 2 berkas **0/0**; `npm run test:unit` 1782/1792 — 10 gagal di berkas test yang tidak mengimpor berkas task ini (`UNRELATED EXISTING ISSUE`). UAT belum dijalankan. **Riwayat:** 🟡 pada hari yang sama. Bukti: [laporan](../task/report/frontend/FE-ACC-P2-015.md) |
 
-## `FE-ACC-P2-016` — Layar Rekonsiliasi per periode: saldo subledger, selisih, dan penghalang keempat
+## 🟡 `FE-ACC-P2-016` — Layar Rekonsiliasi per periode: saldo subledger, selisih, dan penghalang keempat
 
 | Field | Isi |
 |---|---|
@@ -643,7 +643,7 @@ flowchart LR
 | Verifikasi | `npx eslint` berkas yang berubah; `npm run test:unit` — test `accounting-reconciliation` beserta fixture-nya disesuaikan bila bentuk data berubah, **bukan** acceptance (`ACC-DEC-081`); `npm run build` oleh Rizki; uji layar bersama `BE-ACC-P2-014` |
 | Risiko/pemilik | (a) Akun tanpa saldo yang tampil `Rp 0` membuat laporan terbaca "cocok" padahal Finance belum mengirim apa pun — kesalahan paling mahal pada layar ini. (b) Kemampuan melihat saldo buku besar per tanggal sembarang hilang dari layar ini — **diputuskan** `ACC-DEC-114`. (c) Berkas Daftar Periksa milik `FE-ACC-P2-001`; perubahannya hanya satu entri tautan dan cara membawa periode. Cara membawa periode, periode bawaan, dan rupa penanda keadaan adalah `DEV_DISCRETION`. Owner Frontend |
 | DoD | Lint hijau, build owner berhasil, uji layar tercatat, laporan task tertulis |
-| **Status** | **Belum dikerjakan — `READY`** (roadmap revisi 7 approved Rizki 28 September 2026), dibangun berpasangan dengan `BE-ACC-P2-014`. Riwayat: ⛔ 28 September 2026 — kontrak sisi subledger belum dirancang; dilepas `GATE-DESAIN-0928` |
+| **Status** | 🟡 **SEBAGIAN — 29 September 2026.** 12 dari 12 acceptance terpetakan ke source (pemilih periode, `subledger-comparison`, spanduk tiga keadaan, kolom Subledger/Selisih/Keadaan/Penutupan, tautan Lihat berkode periode di Daftar Periksa); eslint 11 berkas 0/0; test terkait 53/53; `test:unit` 1788/1797 — 9 gagal di luar task (`UNRELATED EXISTING ISSUE`). `npm run build` Rizki 29 September 2026 berhasil (Compiled 53 detik, 411/411 halaman, postbuild standalone siap). **Belum:** uji layar L1–L13 bersama `BE-ACC-P2-014`. [laporan](../task/report/frontend/FE-ACC-P2-016.md) **Riwayat:** belum dikerjakan — `READY` (roadmap revisi 7 approved Rizki 28 September 2026); ⛔ 28 September 2026 — kontrak sisi subledger belum dirancang; dilepas `GATE-DESAIN-0928` |
 
 ### Coverage gap — tambahan Wave D
 
@@ -676,7 +676,7 @@ flowchart LR
         BBEACCP2030["BE-ACC-P2-030<br/>Aturan posting ditolak untuk jenis saldo"]:::luar
     end
 
-    FEACCP2017["FE-ACC-P2-017<br/>Pulihkan butir menu Rekonsiliasi"]:::belum
+    FEACCP2017["🟡 FE-ACC-P2-017<br/>Pulihkan butir menu Rekonsiliasi"]:::sebagian
     FEACCP2018["FE-ACC-P2-018<br/>Form Aturan Posting menyaring jenis saldo"]:::belum
 
     BBEACCP2030 --> FEACCP2018
@@ -692,13 +692,13 @@ flowchart LR
 
 | ID | Judul | Gelombang | Dependency | Status |
 |---|---|---|---|---|
-| `FE-ACC-P2-016` | Layar Rekonsiliasi per periode: saldo subledger, selisih, dan penghalang keempat | Wave D | `BE-ACC-P2-014`, `GATE-DESAIN-0928` ✅, `FE-ACC-P2-017` | Belum dikerjakan — `READY` |
-| `FE-ACC-P2-017` | Pulihkan butir menu Rekonsiliasi Control Account | Wave D | — | Belum dikerjakan — `READY` |
+| `FE-ACC-P2-016` 🟡 | Layar Rekonsiliasi per periode: saldo subledger, selisih, dan penghalang keempat | Wave D | `BE-ACC-P2-014`, `GATE-DESAIN-0928` ✅, `FE-ACC-P2-017` | 🟡 29 Sep 2026 — source ditulis, eslint 0/0, test terkait 53/53; menunggu build dan uji layar. [laporan](../task/report/frontend/FE-ACC-P2-016.md) |
+| `FE-ACC-P2-017` 🟡 | Pulihkan butir menu Rekonsiliasi Control Account | Wave D | — | 🟡 28 Sep 2026 — source dipulihkan, eslint 0/0, unit test 22/22; menunggu build dan klik menu. [laporan](../task/report/frontend/FE-ACC-P2-017.md) |
 | `FE-ACC-P2-018` | Form Aturan Posting tidak menawarkan jenis Saldo Subledger | `P2-0b` lanjutan | `BE-ACC-P2-030` | Belum dikerjakan — `READY` |
 
 Dengan kedua kartu baru, roadmap frontend memuat **18 task**: 15 ✅, tiga belum dikerjakan.
 
-## `FE-ACC-P2-017` — Pulihkan butir menu Rekonsiliasi Control Account
+## 🟡 `FE-ACC-P2-017` — Pulihkan butir menu Rekonsiliasi Control Account
 
 | Field | Isi |
 |---|---|
@@ -712,7 +712,7 @@ Dengan kedua kartu baru, roadmap frontend memuat **18 task**: 15 ✅, tiga belum
 | Verifikasi | `npx eslint` berkas; `node --test tests/unit/accounting-reconciliation.test.mjs`; `npm run build` oleh Rizki; klik butir menu di layar |
 | Risiko/pemilik | `menu-items.jsx` berkas bersama — resolusi merge berikutnya dapat menghapusnya lagi. Catat di deskripsi PR, dan periksa ulang butir ini setiap kali merge integration → `RizkiV2`. Owner Frontend |
 | DoD | Lint hijau, test terkait lulus, build owner berhasil, laporan task tertulis |
-| **Status** | Belum dikerjakan — `READY` |
+| **Status** | 🟡 **SEBAGIAN — 28 September 2026.** Entri dipulihkan persis seperti `f6b1498fe` (+7/−0 di `menu-items.jsx`, termasuk impor `RiSafeLine`); `npx eslint` 0/0; unit test `accounting-reconciliation` 22/22 (sebelumnya gagal). `npm run build` Rizki 29 September 2026 berhasil (Compiled 53 detik, 411/411 halaman, postbuild standalone siap). **Belum:** klik butir menu di layar. Temuan: butir Tutup Tahun hilang lewat merge yang sama — menunggu keputusan Rizki. [laporan](../task/report/frontend/FE-ACC-P2-017.md) Riwayat: belum dikerjakan — `READY` (revisi 7 approved 28 September 2026) |
 
 ## `FE-ACC-P2-018` — Form Aturan Posting tidak menawarkan jenis Saldo Subledger
 

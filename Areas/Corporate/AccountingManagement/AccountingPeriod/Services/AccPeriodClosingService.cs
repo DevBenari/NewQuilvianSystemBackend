@@ -7,6 +7,9 @@ using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPerio
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalManagement.Enums;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalManagement.Models;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Reconciliation.DTOs;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Reconciliation.Enums;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Reconciliation.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Services;
 using QuilvianSystemBackend.Repositories;
 using System.Globalization;
@@ -71,6 +74,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingP
         public const string KodeJurnalBelumDisahkan = "UNPOSTED_JOURNALS";
         public const string KodeKejadianGagal = "FAILED_EVENTS";
         public const string KodeShiftKasirBelumTutup = "OPEN_CASH_SHIFTS";
+        public const string KodeRekonsiliasiSubledger = "SUBLEDGER_RECONCILIATION";
 
         public const string KodeJurnalBelumSeimbang = "UNBALANCED_JOURNALS";
         public const string KodeKejadianTertahan = "HELD_EVENTS";
@@ -111,6 +115,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingP
             var jurnalBelumSeimbang = await HitungJurnalBelumSeimbangAsync(accountingPeriodId, ct);
             var kejadianGagal = await HitungKejadianAsync(_db, periode, AccountingEventStatus.Gagal, ct);
             var kejadianTertahan = await HitungKejadianAsync(_db, periode, AccountingEventStatus.Tertahan, ct);
+            var rekonsiliasi = await AccControlAccountReconciliationService
+                .HitungRekonsiliasiSubledgerAsync(_db, periode, ct);
 
             var penghalang = new List<PeriodClosingBlockerResponse>
             {
@@ -140,7 +146,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingP
                     "Shift kasir belum ditutup",
                     "Belum dapat diperiksa: kejadian CASH_SHIFT_CLOSED belum mengalir.",
                     menahan: true,
-                    alasan: "Finance belum mengirim kejadian CASH_SHIFT_CLOSED; pemeriksaan ini menyusul saat pengirimannya aktif.")
+                    alasan: "Finance belum mengirim kejadian CASH_SHIFT_CLOSED; pemeriksaan ini menyusul saat pengirimannya aktif."),
+
+                ButirRekonsiliasiSubledger(rekonsiliasi)
             };
 
             var peringatan = new List<PeriodClosingBlockerResponse>
@@ -281,6 +289,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingP
             if (kejadianGagal > 0)
             {
                 return Gagal(StatusCodes.Status409Conflict, PesanKejadianGagal(kejadianGagal));
+            }
+
+            var rekonsiliasi = await AccControlAccountReconciliationService
+                .HitungRekonsiliasiSubledgerAsync(_db, periode, ct);
+            if (rekonsiliasi.ReconciliationState == SubledgerReconciliationState.BelumBersih)
+            {
+                return Gagal(
+                    StatusCodes.Status409Conflict,
+                    $"Rekonsiliasi saldo subledger periode {NamaPeriode(periode)} belum bersih: {rekonsiliasi.StateMessage}");
             }
 
             var riwayat = await CatatTindakanAsync(
@@ -600,6 +617,22 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingP
                 IsBlocking = menahan && jumlah > 0,
                 State = PeriodChecklistItemState.Evaluated
             };
+
+        private static PeriodClosingBlockerResponse ButirRekonsiliasiSubledger(
+            SubledgerComparisonReportResponse rekonsiliasi)
+            => rekonsiliasi.ReconciliationState == SubledgerReconciliationState.BelumBerlaku
+                ? ButirBelumTersedia(
+                    KodeRekonsiliasiSubledger,
+                    "Rekonsiliasi saldo subledger",
+                    rekonsiliasi.StateMessage,
+                    menahan: true,
+                    alasan: AccControlAccountReconciliationService.AlasanRekonsiliasiBelumBerlaku(rekonsiliasi))
+                : Butir(
+                    KodeRekonsiliasiSubledger,
+                    "Rekonsiliasi saldo subledger",
+                    rekonsiliasi.StateMessage,
+                    rekonsiliasi.BlockingCount,
+                    menahan: true);
 
         private static PeriodClosingBlockerResponse ButirBelumTersedia(
             string kode,

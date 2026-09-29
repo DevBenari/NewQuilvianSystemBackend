@@ -1,4 +1,6 @@
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Enums;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Enums;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Reconciliation.Enums;
 
 namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Reconciliation.DTOs
 {
@@ -86,5 +88,90 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Reconciliat
 
         /// <summary>Jumlah baris jurnal `Posted` yang membentuk saldo di atas.</summary>
         public int PostedLineCount { get; set; }
+    }
+
+    public class SubledgerComparisonQuery
+    {
+        public Guid AccountingPeriodId { get; set; }
+    }
+
+    public class SubledgerComparisonReportResponse
+    {
+        public Guid LegalEntityId { get; set; }
+
+        public Guid AccountingPeriodId { get; set; }
+
+        public string PeriodCode { get; set; } = string.Empty;
+
+        public string PeriodName { get; set; } = string.Empty;
+
+        public AccountingPeriodStatus PeriodStatus { get; set; }
+
+        public DateTime PeriodEndDate { get; set; }
+
+        public DateTime EvaluatedAt { get; set; }
+
+        public SubledgerReconciliationState ReconciliationState { get; set; }
+
+        public string? StartPeriodCode { get; set; }
+
+        public string StateMessage { get; set; } = string.Empty;
+
+        public int AccountCount { get; set; }
+
+        public int RequiredAccountCount { get; set; }
+
+        public int MatchedCount { get; set; }
+
+        public int DifferenceCount { get; set; }
+
+        public int NotReceivedCount { get; set; }
+
+        public int CutOffMismatchCount { get; set; }
+
+        public int BlockingCount { get; set; }
+
+        public List<SubledgerComparisonAccountResponse> Accounts { get; set; } = new();
+    }
+
+    public class SubledgerComparisonAccountResponse
+    {
+        public Guid AccountId { get; set; }
+
+        public string AccountCode { get; set; } = string.Empty;
+
+        public string AccountName { get; set; } = string.Empty;
+
+        public AccountType AccountType { get; set; }
+
+        public NormalBalance NormalBalance { get; set; }
+
+        public bool IsActive { get; set; }
+
+        public bool IsPostable { get; set; }
+
+        public bool IsRequired { get; set; }
+
+        public decimal GlBalance { get; set; }
+
+        public int PostedLineCount { get; set; }
+
+        public decimal? SubledgerBalance { get; set; }
+
+        public DateTime? SubledgerAsOfDate { get; set; }
+
+        public int? SubledgerVersionNumber { get; set; }
+
+        public Guid? SubledgerAccountingEventId { get; set; }
+
+        public string? SubledgerEventNumber { get; set; }
+
+        public DateTime? SubledgerRecordedAt { get; set; }
+
+        public decimal? Difference { get; set; }
+
+        public SubledgerReconciliationItemStatus ItemStatus { get; set; }
+
+        public bool IsBlocking { get; set; }
     }
 }
