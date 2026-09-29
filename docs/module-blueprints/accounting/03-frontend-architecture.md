@@ -424,7 +424,7 @@ sudah ada; **jangan** menambah warna baru ke `globals.css`.
 | Wilayah | Isinya | Sumber data | Hak akses penjaga | Keadaan kosong | Keadaan gagal |
 |---|---|---|---|---|---|
 | Kepala | Nomor, status, tombol aksi | `GET /accounting-events/{id}` | `AccountingEvent : Read` | — | "Kejadian tidak ditemukan." |
-| Tombol Coba Ulang | — | `POST /accounting-events/{id}/retry` | `AccountingEvent : Retry` | Mati bila status bukan Gagal | Pesan galat, status tidak berubah |
+| Tombol Coba Ulang | — | `POST /accounting-events/{id}/retry` | `AccountingEvent : Retry` | Mati bila status bukan Gagal **atau Tertahan** (`ACC-DEC-092`, 24 September 2026) | Pesan galat, status tidak berubah |
 | Tombol Abaikan | Modal berisi kolom alasan **wajib** | `PATCH /accounting-events/{id}/ignore` | `AccountingEvent : Ignore` | Mati bila status bukan Gagal | Pesan galat |
 | Jurnal yang dihasilkan | Tautan ke Rincian Jurnal | Dari respons yang sama | `Journal : Read` | "(belum ada)" — wajar untuk Tertahan dan Gagal | — |
 | Riwayat percobaan | Tabel percobaan | Dari respons yang sama | `AccountingEvent : Read` | "Belum pernah dicoba." | — |

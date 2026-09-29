@@ -231,3 +231,143 @@ bahwa kontraknya cocok dengan yang sebenarnya dibangun modul sebelah.
 Baris terakhir penting: potongan seperti kasbon dan PPh 21 adalah urusan rumah sakit dengan
 penerimanya. Accounting cukup menerima nilai yang relevan bagi jurnal, bukan alasan di balik
 tiap potongan.
+
+
+---
+
+# AMENDMENT REVISI 4
+
+| Field | Nilai |
+|---|---|
+| Contract version | `FIN-TEST-1.2` — status `locked` 25 September 2026 (disetujui Yasmin bersama `FIN-DES-037`..`044`) |
+| Tanggal | 25 September 2026 |
+| Keputusan | `FIN-DEC-045`..`055` |
+
+## B.1 Purchase Order dan approval berjenjang
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `FIN-VAL-100` | PO diajukan tanpa satu pun baris item | Integrasi | `400` |
+| `FIN-VAL-101` | Pengaju PO menyetujui PO-nya sendiri | Integrasi | `422` |
+| `FIN-VAL-101` | PO disimpan langsung ke database dengan `ApprovedByUserId` = `RequestedByUserId` | Integrasi database | Ditolak check constraint |
+| `FIN-VAL-102` | PO Rp 62.000.000 diajukan, Supervisor Finance mencoba menyetujui | Integrasi | `403`; hanya Manajer Finance yang berhak |
+| `FIN-VAL-102` | PO Rp 40.000.000 disetujui Supervisor Finance | Integrasi | `200`; status `APPROVED` |
+| `FIN-DEC-052` | PO, Purchasing Invoice, **dan pembayaran** tepat Rp 50.000.000 diajukan | Unit | Ketiganya `ApprovalTier = TIER_2` — **bukan** `TIER_1`. Nilai batas ini yang berubah dari kode sebelum revisi 4 (`FIN-DES-039` koreksi) |
+| `FIN-DEC-052` | Pembayaran tepat Rp 50.000.000 yang sudah `SUBMITTED` sebelum resolver diganti | Review diff + verifikasi data | `ApprovalTier` tersimpannya **tidak** dihitung ulang; tetap `TIER_1` sesuai saat diajukan |
+| `FIN-VAL-103` | PO yang sudah ada GR dibatalkan | Integrasi | `422` |
+| `FIN-STATE` B.1 | PO `APPROVED`, GR sebagian dicatat | Integrasi | Status PO menjadi `PARTIALLY_RECEIVED`, bukan `FULLY_RECEIVED` |
+
+## B.2 Tanda Terima Barang dan Tukar Faktur
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `FIN-VAL-104` | GR mencatat kuantitas melebihi sisa baris PO | Integrasi | `422`; kuantitas diterima PO tidak berubah |
+| `FIN-STATE` B.3 | Tukar Faktur dicatat tanpa PO maupun GR | Integrasi | Berhasil disimpan, `PurchaseOrderId` dan `GoodsReceiptId` `NULL` (`FIN-DEC-051`) |
+| `FIN-DES-037` | Tukar Faktur dicatat dengan `MstSupplier.PaymentTermDays` = 30, `ReceivedDate` = 1 November | Unit | `EstimatedDueDate` = 1 Desember, dihitung backend bukan diterima dari layar |
+
+## B.3 Purchasing Invoice
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `FIN-VAL-105` | Dua Purchasing Invoice dibuat dari satu Tukar Faktur yang sama, hampir bersamaan | Integrasi, konkuren | Tepat satu invoice tersimpan; yang kedua `409` dijaga unique index, bukan hanya pemeriksaan service |
+| `FIN-VAL-106` | Purchasing Invoice dibuat dari Tukar Faktur berstatus `CANCELLED` | Integrasi | `422` |
+| `FIN-VAL-107` | `TotalAmount` dikirim tidak sama dengan `Subtotal - Discount + PPN - DownPayment - OtherDeduction` | Integrasi | `422` |
+| `FIN-STATE` B.4 | Purchasing Invoice disetujui | Integrasi | `FinSupplierPayable` baru tercipta dengan `SourcePurchasingInvoiceId` terisi; Tukar Faktur sumber menjadi `LINKED_TO_INVOICE`; baris outbox `PPN-MASUKAN-PEMBELIAN` `PENDING` — seluruhnya dalam satu transaksi |
+| `FIN-VAL-122` | Worker pengiriman berjalan sebelum Accounting meratifikasi `PPN-MASUKAN-PEMBELIAN` | Integrasi | Baris outbox tetap `PENDING`, **tidak** dikirim; baris kejadian lain yang sudah teratifikasi tetap terkirim normal |
+| `FIN-DES-040` | Input utang supplier manual (tanpa Purchasing Invoice) tetap dipakai | Integrasi | Berhasil; `SourcePurchasingInvoiceId` `NULL` — jalur lama tidak rusak |
+
+## B.4 Retur Pembelian dan Deposit Retur
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `FIN-VAL-110` | Retur diajukan atas invoice berstatus `DRAFT` | Integrasi | `422` |
+| `FIN-VAL-111` | Nilai retur melebihi nilai invoice sumber | Integrasi | `422` |
+| `FIN-STATE` B.5 | Retur dikonfirmasi | Integrasi | `FinSupplierReturnDeposit` baru tercipta, `AvailableAmount` = `TotalAmount` retur |
+| `FIN-VAL-112` | Deposit Retur saldo Rp 2.000.000 dipakai Rp 3.000.000 | Integrasi | `422` dengan pesan menyebut saldo Rp 2.000.000 |
+| `FIN-VAL-113` | Deposit Retur milik Supplier A dipakai ke invoice Supplier B | Integrasi | `422` |
+| `FIN-DEC-047` | Deposit Retur dipakai sebagian ke satu invoice, sisanya ke invoice lain (lintas Purchasing Invoice) | Integrasi | Dua baris `FinSupplierReturnDepositUsage`; `AvailableAmount` berkurang sesuai jumlah keduanya, tidak pernah negatif |
+
+## B.5 Batch Tagihan AR
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `FIN-VAL-114` | Piutang yang sudah tergabung batch `DRAFT` dimasukkan ke batch lain | Integrasi | `409` |
+| `FIN-VAL-115` | Batch dibuat dari piutang dua penjamin berbeda | Integrasi | `400` |
+| `FIN-VAL-116` | Batch kosong diterbitkan | Integrasi | `422` |
+| `FIN-STATE` B.7 | Batch `DRAFT` dibatalkan | Integrasi | Anggotanya bisa langsung digabung ke batch baru lain — tidak terkunci selamanya |
+| `FIN-DEC-048` | Batch diterbitkan, dokumennya diminta | Integrasi | Response memuat rincian per `FinReceivable` anggota, masing-masing merujuk dokumen `BillingCompanyGuarantorInvoiceDocumentService` — **bukan** data yang disalin ulang ke tabel Finance |
+| `FIN-STATE` B.7 | Sebagian piutang anggota batch dilunasi lewat alokasi penerimaan biasa | Integrasi | Status batch otomatis `PARTIALLY_PAID`; status `FinReceivable` anggota berubah lewat jalur alokasi yang sudah ada, **bukan** endpoint batch |
+
+## B.6 Potongan penerimaan (AR)
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `FIN-VAL-118` | Potongan PPh 23 dengan `Amount` = 0 dicatat | Integrasi | `400` |
+| `FIN-VAL-119` | Potongan jenis `OTHER` tanpa `Reason` | Integrasi database | Ditolak check constraint |
+| `FIN-DEC-055` | Piutang sisa Rp 10.000.000 diselesaikan dengan penerimaan tunai Rp 9.770.000 + potongan PPh 23 Rp 230.000 | Integrasi | `OutstandingAmount` piutang menjadi **nol** — bukan Rp 230.000; `AllocatedAmount` memuat kedua komponen |
+| `FIN-VAL-120` | Potongan ditambahkan setelah penerimaan `ALLOCATED` | Integrasi | `422` |
+| `FIN-VAL-071` | Kejadian akuntansi untuk penerimaan dengan potongan | Unit | Payload tidak memuat `Reason` potongan bila memuat keterangan pihak ketiga (Sensitif) |
+
+## B.7 Ringkasan arah aliran yang paling mudah tertukar
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `FIN-DEC-028` vs `FIN-DEC-055` | Potongan sisi Payable (`FinPaymentDeduction`) dan potongan sisi AR (`FinReceiptDeduction`) dicatat pada nilai yang sama, lalu efeknya ke saldo dibandingkan | Integrasi | Sisi Payable: `OutstandingAmount` utang **tidak berkurang** oleh potongan. Sisi AR: `OutstandingAmount` piutang **berkurang** oleh potongan. Keduanya harus terbukti dalam satu skenario perbandingan, bukan diuji terpisah — inilah kesalahan paling mahal pada amendment ini (`02-backend-architecture.md` C.11) |
+
+---
+
+# AMENDMENT REVISI 5
+
+| Field | Nilai |
+|---|---|
+| Contract version | `FIN-TEST-1.3` — status `locked` 26 September 2026 (disetujui Yasmin bersama `FIN-DES-045`..`050`) |
+| Tanggal | 25 September 2026 |
+| Keputusan | `FIN-DEC-057`, `058`, `061`, `062`; `FIN-DES-045`..`050` |
+| Menggantikan | B.4 tiga baris terakhir (pemakaian deposit lewat `apply`) dan B.6 (potongan lewat endpoint terpisah) |
+
+## C.1 Deposit Retur sebagai sumber dana pembayaran
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `FIN-DES-045` | Pembayaran dua faktur Rp 6.000.000 + Rp 4.000.000, deposit Rp 2.500.000 ditambahkan | Integrasi | `DepositAppliedAmount` = Rp 2.500.000; `NetTransferAmount` = Rp 7.500.000; tetap **dua** baris alokasi, bukan tiga |
+| `FIN-DES-045` | Pembayaran di atas ditandai `PAID` | Integrasi | Kedua utang `OutstandingAmount = 0`; deposit `AvailableAmount = 0`, status `EXHAUSTED`; baris pemakaian `APPLIED` |
+| `FIN-DES-046` | Dua pembayaran `DRAFT` hampir bersamaan memakai deposit Rp 2.500.000 yang sama, masing-masing Rp 2.500.000 | Integrasi, konkuren | Tepat satu berhasil; yang kedua `422` saldo kurang; `AvailableAmount` tidak pernah negatif |
+| `FIN-DES-046` | Pembayaran ber-deposit ditolak penyetuju | Integrasi | Baris pemakaian `RELEASED`, `ReleasedAt` terisi; saldo deposit kembali penuh; deposit kembali `AVAILABLE` |
+| `FIN-DES-046` | Petugas melepas baris deposit saat pembayaran masih `DRAFT` | Integrasi | Baris **tidak terhapus**, status `RELEASED`; `DepositAppliedAmount` kembali 0 |
+| `FIN-VAL-091` diubah | Pembayaran Rp 2.000.000 seluruhnya dari deposit Rp 2.000.000, diajukan | Integrasi | Diterima walau `NetTransferAmount = 0` |
+| `FIN-VAL-091` tidak berubah | Pembayaran tanpa deposit dengan `NetTransferAmount = 0` karena potongan | Integrasi | Tetap ditolak `422` seperti sebelumnya |
+| `FIN-VAL-056` diubah | Pembayaran seluruhnya dari deposit ditandai `PAID` tanpa nomor bukti transfer | Integrasi | Diterima |
+| `FIN-VAL-113` | Deposit milik Supplier A ditambahkan ke pembayaran Supplier B | Integrasi | `422` |
+| `FIN-VAL-123` | Deposit ditambahkan ke pembayaran `MEDICAL_SERVICE` | Integrasi | `422` |
+| `FIN-VAL-124` | Deposit ditambahkan ke pembayaran `SUBMITTED` | Integrasi | `422` |
+| `FIN-VAL-126` | Deposit Rp 12.000.000 pada pembayaran yang butuh Rp 10.000.000 | Integrasi | `422` menyebut maksimum Rp 10.000.000 |
+| `FIN-DES-046` | Deposit yang punya baris `RESERVED` dibatalkan | Integrasi | `422` |
+
+## C.2 Kejadian Accounting retur dan deposit
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `FIN-DEC-061` | Retur Rp 2.500.000 dikonfirmasi | Integrasi | Satu baris outbox `RETUR-PEMBELIAN` Rp 2.500.000 `PENDING`, satu transaksi dengan penerbitan deposit |
+| `FIN-VAL-131` | Pembayaran Rp 10.000.000 dengan deposit Rp 2.500.000 ditandai `PAID` | Integrasi | Dua baris: `AP_PAYMENT` Rp 7.500.000 dan `PEMAKAIAN-DEPOSIT-RETUR` Rp 2.500.000; jumlah = `TotalAmount` |
+| `FIN-VAL-131` | Pembayaran seluruhnya dari deposit ditandai `PAID` | Integrasi | **Nol** baris `AP_PAYMENT`; satu `PEMAKAIAN-DEPOSIT-RETUR` |
+| Regresi | Pembayaran tanpa deposit ditandai `PAID` | Integrasi | `AP_PAYMENT` bernilai `TotalAmount` — **identik** dengan sebelum revisi 5; nol baris `PEMAKAIAN-DEPOSIT-RETUR` |
+
+## C.3 Potongan AR bersama alokasinya
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `FIN-DES-048` | Piutang Rp 10.000.000; satu permintaan alokasi: uang Rp 9.745.000 + PPh 23 Rp 230.000 + biaya bank Rp 25.000 | Integrasi | Piutang `SETTLED`; `UnallocatedAmount` penerimaan 0; **dua** baris `FinReceiptDeduction` dengan `DeductionNumber` berbeda |
+| `FIN-DES-050` | Idem | Integrasi | Dua baris outbox `POTONGAN-PIUTANG-NON-TUNAI` (Rp 230.000 dan Rp 25.000) dengan `SourceTransactionId` berbeda; nol `AR_PAYMENT`/`PENYESUAIAN-PIUTANG` untuk potongan |
+| `FIN-VAL-033` diperluas | Uang Rp 9.800.000 + potongan Rp 230.000 ke piutang Rp 10.000.000 | Integrasi | `422`; tidak ada satu pun baris alokasi maupun potongan tersimpan |
+| `FIN-VAL-128` | Potongan pada baris `INVOICE_DIRECT` | Integrasi | `400` |
+| `FIN-DES-048` | Permintaan alokasi tanpa field `deductions` | Integrasi | Perilaku persis sebelum revisi 5 — regresi nol |
+| `FIN-DES-049` | Alokasi ber-potongan di atas dibalik manual | Integrasi | Dua baris potongan pembalik; piutang kembali Rp 10.000.000; dua `PEMBALIKAN-POTONGAN-PIUTANG-NON-TUNAI` |
+| `FIN-DES-049` | Tender Billing sumber penerimaan dibatalkan | Integrasi | Idem, **otomatis** — potongan ikut terbalik tanpa tindakan petugas |
+| `FIN-DES-049` | Potongan yang sudah dibalik dibalik lagi | Integrasi database | Ditolak unique index `ReversalOfDeductionId` |
+| `FinanceReceivableService` satu penulis | Review diff | Review | `FinanceReceiptService` tidak menulis kolom `FinReceivable` langsung; seluruh efek lewat `ApplyAllocationAsync`/`ReverseAllocationAsync` |
+
+## C.4 Gerbang ratifikasi
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `FIN-VAL-132` | Worker berjalan sebelum `FIN-OQ-026` turun | Integrasi | Baris keempat kode tetap `PENDING`, tidak terkirim; baris kode yang sudah teratifikasi tetap terkirim |
