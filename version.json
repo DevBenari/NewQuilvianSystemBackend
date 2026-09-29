@@ -1,26 +1,13 @@
 {
+  "description": "Release 0.8.1 enhances  capabilities.",
   "releaseMetadata": {
-    "migrations": [
-      "20260924042630_AddAccountingEventInbox.cs",
-      "20260925000000_AddNutritionDiagnosisAndRequirement.cs",
-      "20260926100000_AddPurchasingApRumpun.cs",
-      "20260926110000_AddSourcePurchasingInvoiceIdToSupplierPayable.cs"
-    ],
-    "modules": [
-      "Accounting Management",
-      "Billing Management",
-      "Finance Management",
-      "Nutrition Management"
-    ],
-    "migrationCount": 4,
+    "modules": [],
+    "migrationCount": 0,
     "generatedBy": "Quilvian Release Generator",
-    "generatedAt": "2026-09-29T04:11:49",
-    "features": [
-      "Billing Workflow",
-      "Finance Workflow"
-    ]
+    "features": [],
+    "generatedAt": "2026-09-29T09:11:48",
+    "migrations": []
   },
-  "backendVersion": "0.8.0",
-  "releaseName": "Quilvian 0.8.0 - Enterprise Platform Enhancement",
-  "description": "Release 0.8.0 enhances Accounting Management, Billing Management, Finance Management, Nutrition Management capabilities. Includes improvements across Billing Workflow, Finance Workflow. Includes 4 database migration update(s)."
+  "releaseName": "Quilvian 0.8.1 Maintenance Release",
+  "backendVersion": "0.8.1"
 }
