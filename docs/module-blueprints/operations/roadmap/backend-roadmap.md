@@ -2,6 +2,41 @@
 
 Kontrak terkunci: `opr-api-v1`, `opr-state-v1`, `opr-integration-v1`.
 
+## Status per 28 September 2026
+
+Bukti: `docs/testing/OPR-backend-runtime-validation.md` (runtime/API) dan
+`Tests/QuilvianSystemBackend.OperatingRoomTests` (70 uji, seluruhnya lulus).
+
+| Task ID | Status | Dasar |
+|---|---|---|
+| `BE-OPR-001` | Selesai | Struktur terverifikasi di basis data: 14 tabel `Opr*`, 23 FK seluruhnya `RESTRICT`/`NO ACTION`, 29 unique index, 4 kolom concurrency |
+| `BE-OPR-002` | Selesai | Migration additive sudah dijalankan pada basis data pengembangan; tidak ada migration baru pada tahap ini |
+| `BE-OPR-003` | Selesai | Happy/invalid/duplicate/idempotency/concurrency lulus di runtime dan di uji otomatis; `OPR002`, `OPR013` terbukti |
+| `BE-OPR-004` | Selesai | Penjadwalan, tabrakan `OPR003`, lima permintaan paralel menyisakan satu jadwal, riwayat jadwal lama tersimpan, dan pembuatan kasus di bawah aturan klinis penuh kini terbukti memakai akun `opr.bedah` |
+| `BE-OPR-005` | Selesai | Seluruh gerbang terbukti, termasuk `Scheduled` → `Ready` di bawah aturan penuh dengan tiga peran dipegang tiga akun berbeda |
+| `BE-OPR-006` | Selesai | Illegal start ditolak, catatan final immutable, addendum append-only, pembatalan sesudah mulai ditolak |
+| `BE-OPR-007` | Selesai | `Completed` hanya setelah catatan final, recovery `Released`, dan serah terima diterima; jalur kegagalan keselamatan ditolak dengan kode yang benar |
+| `BE-OPR-008` | Selesai | Validasi quantity/serial, retry tidak menggandakan, koreksi beralasan, dan keunikan serial implant per kasus (`OPR014`) terbukti di service maupun runtime |
+| `BE-OPR-009` | Selesai | Amplop kejadian outbox lengkap dan dibekukan pada `PayloadJson`; satu kejadian satu pesan dijaga indeks unik `EventId` dan `(Destination, IdempotencyKey)`; pengulangan tidak menggandakan; kegagalan pengiriman tidak membatalkan transaksi klinis; pesan dapat dibaca dan diantrekan ulang. Mapping ke consumer eksternal tetap milik integration layer |
+| `BE-OPR-010` | Selesai | Filter, rentang tanggal, paging, batas `pageSize`, validasi rentang utilization, dan laporan material terbukti |
+| `BE-OPR-011` | Sebagian | Proyek uji sudah ada dan hijau untuk permission matrix, regresi state, konkurensi, idempotensi, audit/privasi, serta kontrak outbox. Tersisa dua hal: penolakan `403` per peran belum pernah dijalankan karena seluruh akun demo berperan SuperAdmin, dan baris log audit salah mengisi kolom penggunanya |
+
+Satu hal yang menyertai `BE-OPR-009` dan bukan pekerjaan modul Operasi: Billing masih terdaftar
+pada `BlockedDestinations`. Itu menyatakan kesiapan **penerima**, bukan kesiapan modul ini.
+Pesannya sudah terbentuk lengkap dan menunggu di antrean; yang belum ada adalah pihak yang
+mengambilnya. Selama itu, rekonsiliasi tujuan Billing masih dilakukan orang.
+
+Dua catatan yang masih terbuka dan tidak boleh hilang saat task ini ditutup:
+
+1. **Kolom pengguna pada baris audit terisi id kasus.** `LoggerService` mengambil nilainya dari
+   `UserId` lalu `Id` pada data yang dikirim, sedangkan data audit Operasi memuat `Id` kasus.
+   Pertanggungjawaban pelaku karena itu hanya terbaca dari `OprStatusHistory.CreateBy`.
+   `LoggerService` dipakai seluruh modul, sehingga perbaikannya bukan keputusan modul Operasi
+   sendiri.
+2. **Penolakan izin per peran belum pernah terlihat berjalan.** `opr.bedah`, `opr.anestesi`, dan
+   `opr.perawat` semuanya dibuat berperan SuperAdmin oleh seeder demo, sehingga selalu lolos.
+   Membuktikannya menuntut peran dan pemetaan izin yang disiapkan pemilik lingkungan.
+
 | Task ID | Outcome | Trace | Cakupan dan reuse | Dependency | Acceptance criteria/verifikasi | Risiko/DoD |
 |---|---|---|---|---|---|---|
 | `BE-OPR-001` | Foundation domain dapat dikompilasi | `OPS-REQ-001/002`, `OPS-CON-001..015` | Folder canonical, enum, model, configuration, DbSet, services skeleton; reference existing patient/encounter/procedure/consent/room/workforce | Blueprint approved; QBE preflight | Build berhasil; configuration test memeriksa FK Restrict, unique/index, concurrency; tidak ada master duplikat | DoD: source+targeted test, tanpa migration execution |

@@ -7,6 +7,16 @@ public class OprIntegrationDeliveryResponse
 {
     public Guid Id { get; set; }
     public Guid OprCaseId { get; set; }
+
+    /// <summary>Identitas kejadian bisnisnya; dipakai consumer untuk membuang kiriman ganda.</summary>
+    public Guid EventId { get; set; }
+
+    public string EventType { get; set; } = string.Empty;
+    public string EventVersion { get; set; } = string.Empty;
+
+    /// <summary>Waktu kejadiannya, bukan waktu pengirimannya.</summary>
+    public DateTime OccurredAt { get; set; }
+
     public string Destination { get; set; } = string.Empty;
     public string MessageType { get; set; } = string.Empty;
     public string IdempotencyKey { get; set; } = string.Empty;

@@ -388,3 +388,12 @@ agency-local/
 /Tests/
 
 DataProtectionKeys/key-*.xml
+
+# Proyek uji modul Operasi dikecualikan dari aturan di atas. Uji itu adalah bukti acceptance
+# criteria `BE-OPR-011`; bila ia tidak ikut masuk repositori, aturan yang dijaganya hanya
+# berlaku di mesin yang kebetulan pernah menjalankannya.
+!/Tests/
+/Tests/*
+!/Tests/QuilvianSystemBackend.OperatingRoomTests/
+/Tests/QuilvianSystemBackend.OperatingRoomTests/bin/
+/Tests/QuilvianSystemBackend.OperatingRoomTests/obj/

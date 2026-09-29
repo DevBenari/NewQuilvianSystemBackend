@@ -192,6 +192,50 @@ public static class OperatingRoomDemoSeeder
             },
             x => x.Id, result, "MstDoctor", actor, now, ct);
 
+        // ------------------------------------------------- dokter bedah beserta akunnya
+        // Profil dan dokter di atas dipakai akun sasaran seeder, yang di pemakaian biasa
+        // adalah `superadmin`. Akun itu tidak selalu dapat dipakai menguji: kata sandinya
+        // dipegang pemilik lingkungan, sedangkan `AspNetUsers.DoctorId` dan
+        // `AspNetUsers.WorkforceProfileId` keduanya berindeks UNIK sehingga dokter yang sama
+        // tidak dapat ditautkan ke akun kedua.
+        //
+        // Tanpa dokter bedah yang punya akun sendiri, dua hal tidak pernah dapat dibuktikan:
+        // pembuatan kasus di bawah aturan klinis penuh, yang menuntut klaim `doctor_id` sama
+        // dengan dokter pemohon, dan sign-off kesiapan peran dokter bedah. Karena itu dokter
+        // bedah kedua dibuat khusus untuk dipakai akun demo.
+        var surgeonProfileId = await EnsureAsync(db,
+            x => x.ProfileCode == CodePrefix + "-WFP-SURG",
+            () => new MstWorkforceProfile
+            {
+                Id = Deterministic("WorkforceProfileSurgeon"),
+                ProfileCode = CodePrefix + "-WFP-SURG",
+                DisplayName = "dr. Demo Bedah",
+                UserType = UserType.PermanentDoctor,
+                IsActive = true
+            },
+            x => x.Id, result, "MstWorkforceProfile", actor, now, ct);
+
+        var surgeonDoctorId = await EnsureAsync(db,
+            x => x.DoctorCode == CodePrefix + "-DR-SURG",
+            () => new MstDoctor
+            {
+                Id = Deterministic("DoctorSurgeon"),
+                DoctorCode = CodePrefix + "-DR-SURG",
+                DoctorNumber = CodePrefix + "-003",
+                FullName = "dr. Demo Bedah, Sp.B",
+                WorkforceProfileId = surgeonProfileId,
+                WorkforceTypeId = workforceTypeId,
+                EmployeeCategoryId = employeeCategoryId,
+                EmploymentTypeId = employmentTypeId,
+                EmploymentStatusId = employmentStatusId,
+                ProfessionId = professionId,
+                IsActive = true
+            },
+            x => x.Id, result, "MstDoctor", actor, now, ct);
+
+        result.DemoSurgeonWorkforceId = surgeonProfileId;
+        result.DemoSurgeonDoctorId = surgeonDoctorId;
+
         // ------------------------------------------------------------------ anggota tim
         // Penjadwalan mewajibkan empat peran terisi: dokter bedah, dokter anestesi,
         // perawat instrumen, dan perawat sirkuler. Dokter bedah memakai profil di atas;
@@ -351,6 +395,27 @@ public static class OperatingRoomDemoSeeder
             },
             x => x.Id, result, "MstDrugCategory", actor, now, ct);
 
+        // Satuan stok wajib ada sebelum pemakaian dapat dicatat. Tanpa
+        // `MstDrug.StockUnitMeasurementId`, `DrugUnitConversionResolver` menolak setiap
+        // pencatatan dengan `PHM091` dan seluruh alur material menjadi tidak dapat dicoba.
+        // Satuan yang sama dipakai sebagai satuan pencatatan, sehingga faktor konversinya 1
+        // dan tidak perlu baris konversi tersendiri.
+        var measurementId = await EnsureAsync(db,
+            x => x.MeasurementCode == CodePrefix + "-UOM",
+            () => new MstMeasurement
+            {
+                Id = Deterministic("Measurement"),
+                MeasurementCode = CodePrefix + "-UOM",
+                MeasurementName = "Buah (Demo Operasi)",
+                MeasurementSymbol = "pcs",
+                MeasurementType = "Quantity",
+                IsBaseUnit = true,
+                IsForDrug = true
+            },
+            x => x.Id, result, "MstMeasurement", actor, now, ct);
+
+        result.MeasurementId = measurementId;
+
         foreach (var (suffix, code, name) in new[]
         {
             ("Consumable", CodePrefix + "-ITEM-A", "Kasa Steril (Demo)"),
@@ -365,6 +430,7 @@ public static class OperatingRoomDemoSeeder
                     DrugCode = code,
                     DrugName = name,
                     DrugCategoryId = drugCategoryId,
+                    StockUnitMeasurementId = measurementId,
                     IsActive = true
                 },
                 x => x.Id, result, "MstDrug", actor, now, ct);
@@ -567,14 +633,15 @@ public static class OperatingRoomDemoSeeder
     }
 
     /// <summary>
-    /// Membuat akun login untuk dokter anestesi dan perawat demo, masing-masing tertaut ke
-    /// profil tenaganya sendiri, supaya sign-off tiga peran dapat benar-benar diuji.
+    /// Membuat akun login untuk dokter bedah, dokter anestesi, dan perawat demo, masing-masing
+    /// tertaut ke profil tenaganya sendiri, supaya sign-off tiga peran dapat benar-benar diuji.
     /// </summary>
     /// <remarks>
     /// <para>
     /// Sign-off kesiapan sengaja hanya menerima orang yang memegang peran itu di tim. Satu
     /// akun karena itu tidak akan pernah bisa memberikan ketiganya, dan memang tidak boleh —
-    /// pemeriksaan silang antar profesi itulah inti checklist keselamatan operasi.
+    /// pemeriksaan silang antar profesi itulah inti checklist keselamatan operasi. Karena itu
+    /// akunnya tiga, satu untuk tiap peran yang dituntut kesiapan.
     /// </para>
     /// <para>
     /// Akun ini diberi peran <c>SuperAdmin</c> semata-mata agar lolos pemeriksaan izin tanpa
@@ -611,23 +678,49 @@ public static class OperatingRoomDemoSeeder
             return notes;
         }
 
+        // Akun ketiga memegang peran dokter bedah. Tanpa dia sign-off tiga peran mustahil:
+        // peran dokter bedah hanya diterima dari tenaga yang terdaftar sebagai dokter bedah
+        // pada tim, dan tenaga milik akun sasaran seeder tidak dapat dipinjam karena
+        // `WorkforceProfileId` berindeks unik. `DoctorId` ikut ditautkan supaya akun ini juga
+        // dapat membuat permintaan operasi di bawah aturan klinis penuh.
         var accounts = new[]
         {
-            ("opr.anestesi", "USR-DEMO-OPR-001", "dr. Demo Anestesi, Sp.An", seedResult.TeamWorkforceIds[0]),
-            ("opr.perawat", "USR-DEMO-OPR-002", "Perawat Instrumen Demo", seedResult.TeamWorkforceIds[1])
+            ("opr.bedah", "USR-DEMO-OPR-003", "dr. Demo Bedah, Sp.B",
+                seedResult.DemoSurgeonWorkforceId, (Guid?)seedResult.DemoSurgeonDoctorId),
+            ("opr.anestesi", "USR-DEMO-OPR-001", "dr. Demo Anestesi, Sp.An",
+                seedResult.TeamWorkforceIds[0], null),
+            ("opr.perawat", "USR-DEMO-OPR-002", "Perawat Instrumen Demo",
+                seedResult.TeamWorkforceIds[1], null)
         };
 
-        foreach (var (userName, userCode, displayName, workforceProfileId) in accounts)
+        foreach (var (userName, userCode, displayName, workforceProfileId, doctorId) in accounts)
         {
+            if (workforceProfileId == Guid.Empty)
+            {
+                notes.Add("Akun '" + userName + "' dilewati karena profil tenaganya belum tersedia.");
+                continue;
+            }
+
             var existing = await userManager.FindByNameAsync(userName);
 
             if (existing is not null)
             {
+                var berubah = false;
+
                 if (!existing.WorkforceProfileId.HasValue || existing.WorkforceProfileId.Value == Guid.Empty)
                 {
                     existing.WorkforceProfileId = workforceProfileId;
-                    await userManager.UpdateAsync(existing);
+                    berubah = true;
                 }
+
+                // Sama seperti akun sasaran: tautan dokter yang sudah ada tidak pernah ditimpa.
+                if (doctorId.HasValue && !existing.DoctorId.HasValue)
+                {
+                    existing.DoctorId = doctorId.Value;
+                    berubah = true;
+                }
+
+                if (berubah) await userManager.UpdateAsync(existing);
 
                 // Kata sandi diselaraskan ulang. Ini hanya berlaku bagi dua akun demo milik
                 // seeder ini, bukan akun mana pun yang lain, dan hanya di luar produksi.
@@ -652,6 +745,7 @@ public static class OperatingRoomDemoSeeder
                 DisplayName = displayName,
                 UserType = UserType.SuperAdmin,
                 WorkforceProfileId = workforceProfileId,
+                DoctorId = doctorId,
                 IsActive = true,
                 MustChangePassword = false,
                 CreateDateTime = DateTime.UtcNow
@@ -816,6 +910,15 @@ public sealed class OperatingRoomDemoSeedResult
     public Guid EncounterId { get; set; }
     public Guid RoomId { get; set; }
     public Guid SurgeonWorkforceId { get; set; }
+
+    /// <summary>Tenaga dokter bedah yang dipakai akun demo `opr.bedah`, bukan akun sasaran.</summary>
+    public Guid DemoSurgeonWorkforceId { get; set; }
+
+    /// <summary>Dokter bedah yang ditautkan ke akun demo `opr.bedah` sebagai klaim `doctor_id`.</summary>
+    public Guid DemoSurgeonDoctorId { get; set; }
+
+    /// <summary>Satuan stok item demo, sekaligus satuan pencatatan pemakaiannya.</summary>
+    public Guid MeasurementId { get; set; }
     public Guid DestinationUnitId { get; set; }
     public string? UserLinkNote { get; set; }
     public Guid CaseId { get; set; }
