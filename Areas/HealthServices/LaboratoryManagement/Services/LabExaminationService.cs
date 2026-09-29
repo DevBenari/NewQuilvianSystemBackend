@@ -960,12 +960,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
 
 
         // =================================================================
-        // Kelengkapan dan konsultasi hasil Mikrobiologi — BE-LAB-54, slice S4b
-        // (LAB-API-v1 r26 bagian 21.2; LAB-DEC-097, LAB-DEC-106; VAL-107, VAL-108)
+        // Kelengkapan dan konsultasi hasil Patologi Klinik dan Mikrobiologi
+        // BE-LAB-54 (slice S4b), dijadikan netral disiplin oleh BE-LAB-67
+        // (LAB-API-v1 r33 bagian 28; LAB-DEC-097, LAB-DEC-106, LAB-DEC-135; VAL-107, VAL-108,
+        // VAL-122)
         //
         // KETIGA METODE DI BAWAH TIDAK MERILIS APA PUN. FinalizedAt mencatat bahwa penulisnya
-        // menyatakan selesai — sebuah fakta. Rilis Mikrobiologi adalah S4d, dan S4d tertahan
-        // DEC-LAB-011.
+        // menyatakan selesai — sebuah fakta. Rilis adalah S4/S4d.
         //
         // Itu sebabnya setiap respons membawa IsReleased dan DeliveryBlockedReason: supaya
         // pemanggil nol perlu MENYIMPULKAN bahwa Final sama dengan rilis.
@@ -973,15 +974,19 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
 
         /// <summary>
         /// Menyatakan penulisan hasil selesai — <b>bukan</b> merilis (<c>LAB-DEC-097</c>).
+        /// Berlaku bagi Patologi Klinik dan Mikrobiologi.
         /// </summary>
-        public async Task<LabExaminationCompletionResponse> FinalizeMicrobiologyResultAsync(
+        public async Task<LabExaminationCompletionResponse> FinalizeResultAsync(
             Guid id,
             CancellationToken cancellationToken = default)
         {
             var examination = await _dbContext.LabExaminations
                 .Include(x => x.Procedure)
+                .Include(x => x.LabOrder)
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
                 ?? throw new KeyNotFoundException("Pemeriksaan tidak ditemukan.");
+
+            EnsureNotAnatomicalPathology(examination);
 
             if (examination.ResultEnteredAt is null)
             {
@@ -1011,17 +1016,18 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
 
             await _loggerService.AuditAsync(
                 LogCategory,
-                "LabExamination.FinalizeMicrobiologyResult",
-                "Penulisan hasil Mikrobiologi dinyatakan selesai. Ini BUKAN rilis.",
+                "LabExamination.FinalizeResult",
+                "Penulisan hasil dinyatakan selesai. Ini BUKAN rilis.",
                 new { examination.Id, examination.LabOrderId, examination.FinalizedAt });
 
             return BuildCompletionResponse(examination);
         }
 
         /// <summary>
-        /// Membuka kembali penulisan hasil sebelum rilis (<c>LAB-DEC-097</c>).
+        /// Membuka kembali penulisan hasil sebelum rilis (<c>LAB-DEC-097</c>). Berlaku bagi
+        /// Patologi Klinik dan Mikrobiologi.
         /// </summary>
-        public async Task<LabExaminationCompletionResponse> ReopenMicrobiologyResultAsync(
+        public async Task<LabExaminationCompletionResponse> ReopenResultAsync(
             Guid id,
             LabReopenRequest request,
             CancellationToken cancellationToken = default)
@@ -1035,6 +1041,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 .Include(x => x.LabOrder)
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
                 ?? throw new KeyNotFoundException("Pemeriksaan tidak ditemukan.");
+
+            EnsureNotAnatomicalPathology(examination);
 
             // VAL-107. Membuka kembali sesuatu yang belum pernah ditutup adalah permintaan yang
             // tidak punya arti, dan membiarkannya lolos akan menaikkan ReopenCount pada hasil
@@ -1079,7 +1087,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 LabExaminationId = examination.Id,
                 EncounterId = examination.LabOrder!.EncounterId,
                 Scope = LabTransitionScope.LabExamination,
-                Action = "LabExamination.ReopenMicrobiologyResult",
+                // LAB-PERM-v1 rev 10 bagian 12.6: nama netral untuk baris BARU saja. Baris lama
+                // bernama LabExamination.ReopenMicrobiologyResult sengaja tidak diubah.
+                Action = "LabExamination.ReopenResult",
                 FromStatus = "Finalized",
                 ToStatus = "Draft",
                 ReasonNote = alasan,
@@ -1091,8 +1101,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
 
             await _loggerService.AuditAsync(
                 LogCategory,
-                "LabExamination.ReopenMicrobiologyResult",
-                "Penulisan hasil Mikrobiologi dibuka kembali sebelum rilis.",
+                "LabExamination.ReopenResult",
+                "Penulisan hasil dibuka kembali sebelum rilis.",
                 new
                 {
                     examination.Id,
@@ -1116,8 +1126,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         {
             var examination = await _dbContext.LabExaminations
                 .Include(x => x.Procedure)
+                .Include(x => x.LabOrder)
                 .FirstOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
                 ?? throw new KeyNotFoundException("Pemeriksaan tidak ditemukan.");
+
+            EnsureNotAnatomicalPathology(examination);
 
             var kepada = string.IsNullOrWhiteSpace(request?.ConsultedToName)
                 ? null
@@ -1169,6 +1182,27 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 new { examination.Id, examination.LabOrderId, examination.ConsultedAt });
 
             return BuildCompletionResponse(examination);
+        }
+
+        /// <summary>
+        /// <c>VAL-122</c>. Final, Reopen, dan konsultasi ditolak pada pemeriksaan Patologi
+        /// Anatomi: order PA punya baris <see cref="LabExamination"/>, tetapi hasilnya tinggal
+        /// di laporan per pesanan (<c>LAB-DEC-085</c>). Tanpa penjaga ini Final atas baris itu
+        /// menjawab "hasil belum diisi" — benar secara teknis, menyesatkan bagi petugas.
+        ///
+        /// Disiplin dibaca dari order; order lama yang berdisiplin kosong jatuh ke disiplin
+        /// katalog pemeriksaannya, sumber yang sama yang menurunkan disiplin order
+        /// (<c>LAB-DEC-048</c>). Pemanggil wajib memuat <c>LabOrder</c> dan <c>Procedure</c>.
+        /// </summary>
+        private static void EnsureNotAnatomicalPathology(LabExamination examination)
+        {
+            var discipline = examination.LabOrder?.Discipline ?? examination.Procedure?.LabDiscipline;
+
+            if (discipline == LabDiscipline.AnatomicalPathology)
+            {
+                throw new LabExaminationValidationException(
+                    "Hasil Patologi Anatomi diselesaikan lewat laporan Patologi Anatomi.");
+            }
         }
 
         /// <summary>

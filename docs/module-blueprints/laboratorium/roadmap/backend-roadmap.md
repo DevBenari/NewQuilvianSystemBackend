@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | `blueprint_id` | `LAB-BP-001` |
-| Roadmap revision | `68` — gelombang `MVP-11` (`EPIC-LAB-17`, tiga laporan operasional) ditambahkan 2026-09-28, bagian 6an: `BE-LAB-82`..`BE-LAB-86` dan langkah rilis `MVP-11c`. Sebelumnya `67` — `r36`/`r14`/`r7` disetujui; `BE-LAB-81` direncanakan sebagai gelombang `MVP-9e`, 2026-09-25, bagian 6am.0. Sebelumnya `66` — keputusan `LAB-DEC-154`..`156` diturunkan 2026-09-25 malam, bagian 6am; `BE-LAB-81` `BLOCKED`. Sebelumnya `65` — gelombang `MVP-10` ditambahkan 2026-09-25, bagian 6al. Sebelumnya `64` — gelombang `MVP-9` ditambahkan 2026-09-25, bagian 6ak; `BE-LAB-68` diperluas. Sebelumnya `63` — gelombang `MVP-8` ditambahkan 2026-09-24, bagian 6aj. *Baris ini sempat tertinggal di `57` sementara riwayat sudah sampai `62`; dirapikan 2026-09-24* |
+| Roadmap revision | `69` — `BE-LAB-67` ⚠ `SELESAI DENGAN BATAS VERIFIKASI` dan `BE-LAB-68` `SIAP DIKERJAKAN`, 2026-09-29, bagian 6aj.1-6aj.2. Sebelumnya `68` — gelombang `MVP-11` (`EPIC-LAB-17`, tiga laporan operasional) ditambahkan 2026-09-28, bagian 6an: `BE-LAB-82`..`BE-LAB-86` dan langkah rilis `MVP-11c`. Sebelumnya `67` — `r36`/`r14`/`r7` disetujui; `BE-LAB-81` direncanakan sebagai gelombang `MVP-9e`, 2026-09-25, bagian 6am.0. Sebelumnya `66` — keputusan `LAB-DEC-154`..`156` diturunkan 2026-09-25 malam, bagian 6am; `BE-LAB-81` `BLOCKED`. Sebelumnya `65` — gelombang `MVP-10` ditambahkan 2026-09-25, bagian 6al. Sebelumnya `64` — gelombang `MVP-9` ditambahkan 2026-09-25, bagian 6ak; `BE-LAB-68` diperluas. Sebelumnya `63` — gelombang `MVP-8` ditambahkan 2026-09-24, bagian 6aj. *Baris ini sempat tertinggal di `57` sementara riwayat sudah sampai `62`; dirapikan 2026-09-24* |
 | Status | `DRAFT` |
 | Bentuk blueprint | `SINGLE` |
 | Ditulis oleh | `plan-module-delivery` |
@@ -2966,6 +2966,7 @@ kelalaian.
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 69 | 2026-09-29 | **`BE-LAB-67` dikerjakan — ⚠ `SELESAI DENGAN BATAS VERIFIKASI`** (bagian 6aj.1, [`BE-LAB-67.md`](../task/report/backend/BE-LAB-67.md)). Kelima tindakan hasil kini `LabExaminationResult : Update`; cito, batal, dan duplo tetap `LabExamination : Update`; tiga route `/result/microbiology/*` diganti route netral **tanpa alias**; penjaga `VAL-122` di ketiga method; aksi riwayat Reopen `LabExamination.ReopenResult` untuk baris baru saja. Dua berkas source, nol migration, nol seeder kebijakan. **Terbukti dari DLL hasil build:** build 0 error; `PermissionRegistryValidator` lolos (1541 kunci), dijalankan lewat harness di luar repository; nol route lama di seluruh aplikasi. **Belum terbukti: seluruh kode status HTTP.** Startup Development berhenti di `HemodialysisMasterDataSeeder` (`42P01`, `HmdChecklistItem`) — migration `AddHemodialysisManagement` belum diterapkan di database dev bersama. Penahan itu milik modul Hemodialisa dan tidak disentuh. Uji dua akun `AC-221`/`AC-222` juga menunggu pemberian izin uji yang belum diinstruksikan. **`BE-LAB-68` naik menjadi `SIAP DIKERJAKAN`** | `DRAFT` |
 | 68 | 2026-09-28 | **Gelombang `MVP-11` diturunkan dari `EPIC-LAB-17` — lima task backend `BE-LAB-82`..`BE-LAB-86`** (bagian 6an), di atas `LAB-API-v1` `r37`, `LAB-VAL-v1` `r15`, dan `LAB-PERM-v1` revision 12 yang disetujui pemilik modul pada hari yang sama beserta kedelapan butir 23.10. `BE-LAB-82` **tersendiri dan pertama**: memindah batas waktu cito dan himpunan disiplin yang dapat dirilis ke satu tempat, dengan uji karakterisasi sebelum dan sesudah — nol perubahan perilaku. `BE-LAB-83`..`85` satu laporan per task; `BE-LAB-84` membawa **satu-satunya migration** (`AddLabSpecimenDecidedAtIndex`). `BE-LAB-86` unduhan CSV dan pencatatan. **Prasyarat gelombang `MVP-9b` selesai**, termasuk `BE-LAB-77`. Langkah rilis `MVP-11c` (6an.7): langkah 2 `BLOCKED` sampai jabatan *manajemen* ditetapkan. **Impact scan:** BE `84383f64` → `4a94628a`, nol source. Catatan urutan dipasang juga pada `BE-LAB-78`. Hash masukan pada `traceability.md` bagian *Traceability gelombang `MVP-11`* | `DRAFT` |
 | 67 | 2026-09-25 | **`LAB-API-v1` `r36`, `LAB-VAL-v1` `r14`, `LAB-STATE-v1` `r7` disetujui pemilik modul beserta keempat butir `02-backend-architecture.md` 22.7; `BE-LAB-81` direncanakan** sebagai gelombang tersendiri **`MVP-9e`** (bagian 6am.0-6am.1). Status `BLOCKED` → `MENUNGGU PENDAHULU` — `BE-LAB-76`. Batas waktunya: terpasang sebelum langkah 4 `MVP-9d`. Boleh sejajar dengan `BE-LAB-77`; jangan bersamaan dengan `BE-LAB-79` karena keduanya menyunting `LabOrderService.cs`. **Nol migration, nol permission.** Hash masukan pada `traceability.md` bagian *Traceability gelombang `MVP-9e`* | `DRAFT` |
 | 66 | 2026-09-25 | **Keputusan pemilik modul `LAB-EVD-011` diturunkan** (bagian 6am). **`LAB-DEC-154`** menutup `LAB-CONFLICT-014` dan melahirkan **`BE-LAB-81` — penjaga penyelesaian order**, dicatat **`BLOCKED`** sebab kontrak `r36`/`r14`/`r7` masih `draft`; batas waktunya pasti: terpasang sebelum langkah 4 `MVP-9d`. **`LAB-DEC-155`** dan **`LAB-DEC-156`** melahirkan **nol task backend**. Penahan `MVP-9d` (6ak.10) dan `MVP-10c` (6al.5) diperbarui: `LAB-CONFLICT-014` dan pertanyaan pemakaian sebelum `S6` terjawab, `LAB-OPEN-045` diusulkan menahan. Nol task yang sudah ada berubah cakupan | `DRAFT` |
@@ -4710,7 +4711,7 @@ itu tanda cakupannya melenceng dari bagian 19 — berhenti dan laporkan.
 
 | Butir | Isi |
 |---|---|
-| **Status** | `SIAP DIKERJAKAN` |
+| **Status** | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** 2026-09-29 — kode lengkap, build 0 error, `PermissionRegistryValidator` lolos, dan route lama nol di seluruh aplikasi. **Kode status HTTP belum dibuktikan**: startup Development berhenti di `HemodialysisMasterDataSeeder` karena tabel `HmdChecklistItem` belum ada di database dev bersama — penahan milik modul Hemodialisa. Lihat [`BE-LAB-67.md`](../task/report/backend/BE-LAB-67.md) |
 | **Gelombang** | `MVP-8a` |
 | **Outcome** | Hanya pemegang izin hasil yang dapat menulis hasil; dokter pemesan tetap dapat menandai cito tetapi ditolak saat menulis hasil. Final, Reopen, dan konsultasi berjalan di route netral untuk Patologi Klinik dan Mikrobiologi |
 | **Requirement/decision** | `FR-14.1`, `FR-14.2`, `FR-14.5`, `FR-14.6`; `LAB-DEC-146`, `LAB-DEC-135`, `LAB-DEC-141` |
@@ -4727,7 +4728,7 @@ itu tanda cakupannya melenceng dari bagian 19 — berhenti dan laporkan.
 
 | Butir | Isi |
 |---|---|
-| **Status** | `MENUNGGU PENDAHULU` — `BE-LAB-67` |
+| **Status** | `SIAP DIKERJAKAN` — sejak 2026-09-29; pendahulunya `BE-LAB-67` sudah berdiri pada kode (`FinalizeResultAsync`, `ReopenResultAsync`) |
 | **Gelombang** | `MVP-8a` |
 | **Outcome** | Hasil yang sudah Final — Patologi Klinik maupun Mikrobiologi — tidak dapat berubah tanpa Reopen |
 | **Requirement/decision** | `FR-14.3`, `FR-14.4`; `LAB-DEC-147` |

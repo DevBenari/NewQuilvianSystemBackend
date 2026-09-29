@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | `blueprint_id` | `LAB-BP-001` |
-| Roadmap revision | `88` — traceability `MVP-11` (`EPIC-LAB-17`) ditambahkan 2026-09-28. Sebelumnya `87` — traceability `MVP-9e` dan hasil gerbang `LAB-RCG-001-r10` ditambahkan 2026-09-25. Sebelumnya `86` — keputusan `LAB-DEC-154`..`156` 2026-09-25 malam. Sebelumnya `85` — traceability `MVP-10` ditambahkan 2026-09-25. Sebelumnya `84` — traceability `MVP-9` ditambahkan 2026-09-25. Sebelumnya `83` — traceability `MVP-8` ditambahkan 2026-09-24. *Baris ini sempat tertinggal di `79` sementara riwayat sudah sampai `82`; dirapikan 2026-09-24* |
+| Roadmap revision | `89` — bukti `BE-LAB-67` dipasang pada lima baris gelombang `MVP-8`, 2026-09-29. Sebelumnya `88` — traceability `MVP-11` (`EPIC-LAB-17`) ditambahkan 2026-09-28. Sebelumnya `87` — traceability `MVP-9e` dan hasil gerbang `LAB-RCG-001-r10` ditambahkan 2026-09-25. Sebelumnya `86` — keputusan `LAB-DEC-154`..`156` 2026-09-25 malam. Sebelumnya `85` — traceability `MVP-10` ditambahkan 2026-09-25. Sebelumnya `84` — traceability `MVP-9` ditambahkan 2026-09-25. Sebelumnya `83` — traceability `MVP-8` ditambahkan 2026-09-24. *Baris ini sempat tertinggal di `79` sementara riwayat sudah sampai `82`; dirapikan 2026-09-24* |
 | Status | `DRAFT` |
 | Tanggal | 2026-09-02; **`EPIC-LAB-11` ditambahkan 2026-09-14** |
 | Manifest | `blueprint-manifest.md` revision `68` — disegarkan 2026-09-18 sore sesudah `r25`/`r8`/rev 7 disetujui; nilai lama `67` berlaku beberapa jam, dan `38` tertinggal sejak revision 23 |
@@ -339,6 +339,7 @@ belum pernah dijalankan sekalipun.
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 89 | 2026-09-29 | **Bukti `BE-LAB-67` dipasang** pada bagian *Traceability gelombang `MVP-8`*: `FR-14.1`, `FR-14.2`, `FR-14.5`, `FR-14.6`, dan baris regresi laporan PA. Semuanya **terpenuhi pada kode**, dibuktikan dari descriptor DLL hasil build — `PermissionRegistryValidator` lolos, kelima tindakan `LabExaminationResult,Update`, nol route lama. **Seluruh kode status HTTP belum terbukti**: startup Development berhenti di seeder Hemodialisa (`HmdChecklistItem` belum ada di database dev bersama). Hash masukan gelombang tidak berubah — nol dokumen masukan disunting | `DRAFT` |
 | 88 | 2026-09-28 | **Traceability gelombang `MVP-11` ditambahkan** (bagian akhir dokumen): dua belas baris requirement-ke-task untuk `EPIC-LAB-17` (`FR-17.1`..`FR-17.10`, index, pemberian izin) atas `r37`/`r15`/revision 12 yang disetujui pemilik modul hari yang sama; tujuh task (`BE-LAB-82`..`86`, `FE-LAB-44`, `FE-LAB-45`) dan langkah rilis `MVP-11c` yang langkah 2-nya `BLOCKED` oleh penetapan jabatan *manajemen*; lima coverage gap; satu temuan di luar modul (menu Hemodialisa) diteruskan; empat belas hash masukan terkini **menggantikan** tabel `MVP-9e`. **Nol bagian yang dirujuk gelombang sebelumnya disunting** | `DRAFT` |
 | 87 | 2026-09-25 | **Traceability gelombang `MVP-9e` ditambahkan** (bagian akhir dokumen): lima baris requirement-ke-task untuk `BE-LAB-81` di atas `r36`/`r14`/`r7` yang disetujui pemilik modul beserta keempat butir 22.7; empat belas hash masukan terkini yang **menggantikan** tabel sebelumnya bagi `MVP-9`, `MVP-9e`, dan `MVP-10`. **Hasil gerbang `LAB-RCG-001-r10`** dicatat: kelima slice tetap tertahan, nol task lahir, dua kemampuan yang sudah ada belum ber-`CAP` | `DRAFT` |
 | 86 | 2026-09-25 | **Keputusan `LAB-DEC-154`..`LAB-DEC-156` diturunkan** (bagian *Traceability keputusan 2026-09-25 malam*): `BE-LAB-81` `BLOCKED` oleh kontrak `draft`; empat task frontend bertambah cakupan; penahan `MVP-9d`/`MVP-10c` diperbarui; hash masukan dihitung ulang. *Baris riwayat ini ditulis belakangan, 2026-09-25 — revisinya sempat tidak tercatat* | `DRAFT` |
@@ -680,12 +681,12 @@ satu kontrak disunting, kedua pihak berhenti dan membaca ulang.
 
 | Requirement | Decision | Desain | Kontrak | Task backend | Task frontend | AC | Status |
 |---|---|---|---|---|---|---|---|
-| `FR-14.1` izin hasil tersendiri | `LAB-DEC-146` | BE 19.4, 19.11 | PERM rev 10; `r33` 28.2 | `BE-LAB-67` | `FE-LAB-35` | `AC-221`, `AC-222` | Direncanakan |
-| `FR-14.2` cito, batal, duplo tidak berubah | `LAB-DEC-146` | BE 19.4 | PERM rev 10 12.3 | `BE-LAB-67` | — | `AC-221` | Direncanakan |
+| `FR-14.1` izin hasil tersendiri | `LAB-DEC-146` | BE 19.4, 19.11 | PERM rev 10; `r33` 28.2 | `BE-LAB-67` ⚠ | `FE-LAB-35` | `AC-221`, `AC-222` | **Backend terpenuhi pada kode 2026-09-29** — kelima tindakan `LabExaminationResult,Update` menurut descriptor DLL hasil build; `403`/`200` dua akun **belum terbukti lewat HTTP** ([`BE-LAB-67.md`](../task/report/backend/BE-LAB-67.md) bagian 5) |
+| `FR-14.2` cito, batal, duplo tidak berubah | `LAB-DEC-146` | BE 19.4 | PERM rev 10 12.3 | `BE-LAB-67` ⚠ | — | `AC-221` | **Terpenuhi pada kode 2026-09-29** — `cancel`, `urgency`, `duplo` tetap `LabExamination,Update`; HTTP belum dijalankan |
 | `FR-14.3` simpan hasil Final ditolak | `LAB-DEC-147` | BE 19.1, 19.4 | VAL `r11` `VAL-120` | `BE-LAB-68` | `FE-LAB-35`, `FE-LAB-36` | `AC-225`, `AC-227`, `AC-228` | Direncanakan |
 | `FR-14.4` konsultasi pada hasil Final ditolak | `LAB-DEC-147` | BE 19.4 | VAL `r11` `VAL-121` | `BE-LAB-68` | — | `AC-226` | Direncanakan |
-| `FR-14.5` Final, Reopen, konsultasi netral disiplin | `LAB-DEC-135`, `LAB-DEC-141` | BE 19.4 | `r33` 28.2; VAL `VAL-122`; STATE `r4` 6 | `BE-LAB-67`, `BE-LAB-69` | `FE-LAB-36` | `AC-196`, `AC-197`, `AC-214` | Direncanakan |
-| `FR-14.6` route Mikrobiologi lama dicabut | `LAB-DEC-146` | BE 19.10 butir 1 | `r33` 28.4 | `BE-LAB-67` | `FE-LAB-35` | — (DoD kedua task) | Direncanakan |
+| `FR-14.5` Final, Reopen, konsultasi netral disiplin | `LAB-DEC-135`, `LAB-DEC-141` | BE 19.4 | `r33` 28.2; VAL `VAL-122`; STATE `r4` 6 | `BE-LAB-67` ⚠, `BE-LAB-69` | `FE-LAB-36` | `AC-196`, `AC-197`, `AC-214` | **Bagian `BE-LAB-67` terpenuhi pada kode 2026-09-29** — route netral berdiri, `VAL-122` di ketiga method; `422` belum dibuktikan lewat HTTP. Bagian `BE-LAB-69` direncanakan |
+| `FR-14.6` route Mikrobiologi lama dicabut | `LAB-DEC-146` | BE 19.10 butir 1 | `r33` 28.4 | `BE-LAB-67` ⚠ | `FE-LAB-35` | — (DoD kedua task) | **Backend terpenuhi 2026-09-29** — nol route `result/microbiology/(finalize\|reopen\|consultation)` di seluruh descriptor aplikasi. `FE-LAB-35` direncanakan dan **wajib dirilis bersama** |
 | `FR-14.7` jalur baca per order | `LAB-DEC-149` | BE 19.4 | `r33` 28.2; VAL `VAL-123` | `BE-LAB-69` | `FE-LAB-36` | `AC-234` | Direncanakan |
 | `FR-14.8` penanda `L`/`H` | `LAB-FE-015` | BE 19.4; FE amandemen | `r33` 28.3 | `BE-LAB-69` | `FE-LAB-36` | `AC-219` | Direncanakan |
 | `FR-14.9` teks hasil pilihan di luar rujukan | `LAB-FE-015` | BE 19.10 butir 2 | — | — | — | — | **`OPEN DECISION`** — sengaja nol task |
@@ -693,7 +694,7 @@ satu kontrak disunting, kedua pihak berhenti dan membaca ulang.
 | `FR-14.11` dialog Daftar Kerja dicabut | `LAB-DEC-149` | FE amandemen | — | — | `FE-LAB-37` | `AC-235` | Direncanakan |
 | `FR-14.12` halaman Mikrobiologi menangani `409`/`403` | `LAB-DEC-146`, `LAB-DEC-147` | FE amandemen | `r33` | — | `FE-LAB-35` | `AC-228` | Direncanakan |
 | `FR-14.13` kebijakan izin di jendela rilis | `LAB-DEC-146` butir 7 | BE 19.7 | PERM rev 10 12.5 | — | — | `AC-223` | **Langkah rilis**, bukan task — `backend-roadmap.md` 6aj.5 |
-| Laporan PA tidak terdampak | `LAB-DEC-146` butir 4 | BE 19.4 | PERM rev 10 12.3 | `BE-LAB-67` | — | `AC-224` | Direncanakan — regresi |
+| Laporan PA tidak terdampak | `LAB-DEC-146` butir 4 | BE 19.4 | PERM rev 10 12.3 | `BE-LAB-67` ⚠ | — | `AC-224` | **Terpenuhi pada kode 2026-09-29** — nol berkas laporan PA dalam diff; regresi HTTP belum dijalankan |
 
 ### Coverage gap
 
