@@ -38,10 +38,10 @@ frontend_repo: QuilvianSystemFrontendDev
 frontend_branch: HamzahV2
 frontend_source_sha: 1ce219b40f8e411f3c4e66975626ab33ae81616a
 backend_source_sha: df3679c0d5b2f08106702153eb242d3a6cb2929b
-task_id_range: FE-RWI-067..FE-RWI-080, FE-RWI-095
-task_id_next_free: FE-RWI-096
+task_id_range: FE-RWI-067..FE-RWI-080, FE-RWI-095, FE-RWI-137
+task_id_next_free: FE-RWI-138   # ruang ID RWI dipakai bersama; FE-RWI-096..136 sudah terpakai sub-modul lain
 partial_tasks: [FE-RWI-095]
-last_updated: "2026-09-23 — FE-RWI-095 ditambahkan sebagai task perbaikan dari ISSUE-DOK-001; ISS-02 dan ISS-04 selesai di tingkat source, ISS-05 tidak dikerjakan karena kedua service ternyata bukan duplikat"
+last_updated: "2026-09-29 — FE-RWI-137 ditambahkan dari rencana-kerja/resep/resep.md: Tab Resep paritas V1 (split-view tanpa modal, racikan dua kolom, rekonsiliasi sebagai mode ketiga); selesai di tingkat source, build dan runtime NOT RUN"
 stack: "Next.js App Router, JavaScript/JSX, Redux, Axios, design token dan base component Quilvian"
 test_policy: "rules/frontend/test-policy.md — menulis test baru opsional; lint dan build wajib"
 write_authority: "TIDAK diberikan di sini. Wewenang tulis frontend dinyatakan terpisah per task"
@@ -212,6 +212,7 @@ pada gelombang 3. **Nol task tertahan gerbang** — sebelumnya sebelas.
 | `FE-RWI-078` ✅ | Dokter melihat semua yang menunggu tindakannya di satu tempat | `FR-DOK-084`, `FR-DOK-104` | `0.6.0` API daftar tunggu | Daftar tunggu verifikasi | `FE-DOK-15` **Perlu Review** — gabungan entri CPPT menunggu verifikasi dan pesanan perawat menunggu verifikasi instruksi | `BE-RWI-096` [BE], `BE-RWI-098` [BE] | AC-1 s.d. AC-5 | `node tests/unit` PASS, `npm run lint` PASS, `npm run build` PASS, verifikasi tautan PASS | Disetujui Muhammad Hamzah | ✅ [Laporan](../task/report/frontend/FE-RWI-078.md) |
 | `FE-RWI-080` ✅ | Daftar pantau verifikasi ikut memuat episode yang sudah ditutup | `FR-DOK-083`, `FR-DOK-084` | `0.6.0` API daftar tunggu | `FE-DOK-08` pada `FE-INP-09` | Rework `FE-DOK-08` — memuat episode `Closed` milik DPJP terakhir | `BE-RWI-096` [BE] | AC-1 s.d. AC-4 | `node tests/unit` PASS (5/5), `npm run lint` PASS, `npm run build` PASS | Disetujui Muhammad Hamzah | ✅ [Laporan](../task/report/frontend/FE-RWI-080.md) |
 | `FE-RWI-095` 🟡 | Dokter dapat memilih obat, dan jenis resep tersimpan sesuai pilihannya | `ISSUE-DOK-001` `ISS-02`, `ISS-04`, `ISS-05`; `BE-RWI-050`; `RWI-DEC-046` | `0.6.1` terkunci | Hook dan service resep rawat inap yang sudah ada | `encounterId` dikirim ke katalog obat beserta dependency array-nya; nama field jenis resep disesuaikan kontrak; penyatuan service ditunda | `BE-RWI-127` [BE] | AC-1 s.d. AC-6 | `eslint` berkas terdampak PASS (0 peringatan); `npm run build` **EXISTING / ENVIRONMENT ISSUE**; verifikasi manual **NOT FEASIBLE** | `ISS-05` menyentuh layar resep poliklinik — menunggu keputusan pemilik / Muhammad Hamzah | 🟡 [Laporan](../task/report/frontend/FE-RWI-095.md) |
+| `FE-RWI-137` ✅ | Dokter meresepkan dengan tata letak V1: katalog dan form berdampingan tanpa modal, racikan dua kolom, rekonsiliasi dalam satu layar | [`rencana-kerja/resep/resep.md`](./rencana-kerja/resep/resep.md); `FR-DOK-086`, `088` s.d. `093`; `VAL-DOK-52a`, `VAL-DOK-57` | `0.6.1` terkunci — tanpa kontrak baru | Tab Resep `FE-RWI-071`/`072`, base component resep dokter | Buat Resep: banner + badge penjamin, pill Resep/Obat Racikan/Rekonsiliasi, split-view, kartu Resep yang Dipilih; Template & History disesuaikan capture; perbaikan payload racikan (`items`), idempotensi per draft, `doctorInstruction`, prop panel rekonsiliasi | `BE-RWI-099`, `BE-RWI-101`, `BE-RWI-105`, `BE-RWI-127` [BE] — sudah ada | Rencana kerja bab 6.2 | `eslint` PASS (0 peringatan); test resep 19/19 PASS; `npm run build` **NOT RUN**; runtime **NOT RUN** | Disetujui Muhammad Hamzah ("oke disetujui") | ✅ [Laporan](../task/report/frontend/FE-RWI-137-resep-paritas-v1-split-view.md) |
 
 ---
 
@@ -705,6 +706,35 @@ mana yang menang, karena menyentuh layar resep poliklinik.
 
 **Definition of Done.** Laporan tracked ada; roadmap dan traceability diperbarui; verifikasi manual
 dijalankan sesudah backend berjalan, lalu status dinaikkan ke ✅.
+
+**Koreksi 29 September 2026 (`FE-RWI-137`).** Baris bukti laporan `FE-RWI-095` bagian 5 yang
+menyatakan *"Bentuk items/compounds tetap sesuai kontrak — PASS"* keliru: bahan racikan dikirim
+sebagai `ingredients`, sedangkan backend membaca `Items`, sehingga racikan tersimpan tanpa bahan.
+Cacat itu diperbaiki pada `FE-RWI-137`. Catatan lama sengaja tidak dihapus.
+
+---
+
+### `FE-RWI-137` — Tab Resep: paritas tata letak V1
+
+| Field | Isi |
+| --- | --- |
+| **Status** | ✅ **Selesai di tingkat source 29 September 2026** — [laporan](../task/report/frontend/FE-RWI-137-resep-paritas-v1-split-view.md); `eslint` PASS (0 error, 0 peringatan); test resep 19/19 PASS; suite penuh 2079/2084 (5 kegagalan menu sidebar `EXISTING`); **`npm run build` NOT RUN** — `next dev` pemilik sedang berjalan; **runtime NOT RUN** |
+| **Gelombang** | Di luar gelombang — rencana kerja modernisasi menu V1 |
+| **Dependency** | `BE-RWI-099`, `BE-RWI-101`, `BE-RWI-105`, `BE-RWI-127` — semuanya sudah ada; tidak ada perubahan backend |
+
+**Bisnis prosesnya.** Dokter rawat inap meresepkan dari satu layar seperti di V1: memilih obat dari
+daftar formularium di kolom kiri sambil mengisi signa di kolom kanan, meracik puyer dari katalog bahan
+di sebelahnya, dan memutuskan obat bawaan pasien tanpa berpindah sub-tab. Sumber: rencana kerja
+[`resep.md`](./rencana-kerja/resep/resep.md) bab 5 dan 6, capture V1 `05-resep/01..06`.
+
+**Acceptance criteria.** Rencana kerja bab 6.2 butir 1–4; dipetakan satu per satu di laporan bagian 6.
+
+**Temuan terbuka.** Panel Sliding Scale memakai prop komponen dasar yang salah (`ConfirmModal open=`,
+`ClinicalActionGuard canWrite=`, dst.) sehingga modal order tidak pernah terbuka. Tidak diperbaiki di
+task ini karena di luar cakupan rencana kerja dan menyentuh UI dosis insulin; diusulkan `FE-RWI-138`.
+
+**Definition of Done.** Laporan tracked ada; rencana kerja bab 7 dan roadmap diperbarui. Pemilik
+menjalankan `npm run build` dan uji runtime sendiri.
 
 ---
 

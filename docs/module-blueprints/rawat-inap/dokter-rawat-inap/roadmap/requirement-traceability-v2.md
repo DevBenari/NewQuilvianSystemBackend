@@ -22,7 +22,7 @@ frontend_source_sha: 1ce219b40f8e411f3c4e66975626ab33ae81616a
 backend_roadmap: roadmap/backend-roadmap-v2.md
 frontend_roadmap: roadmap/frontend-roadmap-v2.md
 fr_range: FR-DOK-069..FR-DOK-111
-last_updated: "2026-09-23 — BE-RWI-128 ditambahkan dari ISSUE-DOK-002; ANM-01 dan ANM-02 dari ISSUE-DOK-001 terbukti dan tertutup sebagai ISS-07 dan ISS-08"
+last_updated: "2026-09-29 — bagian 16: FE-RWI-137 dari rencana-kerja/resep/resep.md (paritas V1 Tab Resep, perbaikan payload racikan dan idempotensi); sebelumnya 2026-09-23 BE-RWI-128 dari ISSUE-DOK-002"
 ```
 
 Label `[BE-INP]`, `[FE-INP]`, `[FE-KEP]` menandai task milik sub-modul lain.
@@ -228,3 +228,17 @@ frontend yang benar untuk isu ini adalah `FE-RWI-097`.
 sudah merender `doctorName` dengan fallback tanda hubung, dan lembar kerja dokter sudah memanggil
 lini masa CPPT satu perawatan. Task frontend-nya karena itu murni verifikasi tampilan sesudah
 backend dijalankan.
+
+## 16. Traceability rencana kerja `resep.md` — paritas V1 Tab Resep
+
+Sumber: [`rencana-kerja/resep/resep.md`](./rencana-kerja/resep/resep.md), disetujui pemilik
+29 September 2026. Tidak ada FR baru; task ini mengubah tata letak dan memperbaiki cacat payload
+pada FR yang sudah ✅ di bagian 4.
+
+| FR / temuan | Task | Status | Bukti |
+| --- | --- | --- | --- |
+| `FR-DOK-086`, `FR-DOK-088` s.d. `FR-DOK-091` — tata letak Buat Resep, Template, History sesuai capture V1 | `FE-RWI-137` | ✅ source; build & runtime `NOT RUN` | [Laporan](../task/report/frontend/FE-RWI-137-resep-paritas-v1-split-view.md) |
+| `FR-DOK-092`, `FR-DOK-093` — rekonsiliasi sebagai mode ketiga Buat Resep; modal keputusan kini benar-benar terbuka | `FE-RWI-137` | ✅ source; runtime `NOT RUN` | Laporan bagian 1 butir 4 |
+| Bahan racikan terkirim sebagai `ingredients` (diabaikan backend) | `FE-RWI-137` | ✅ diperbaiki; test perilaku PASS | Laporan bagian 1 butir 1 |
+| Kunci idempotensi per SOAP membuang resep kedua | `FE-RWI-137` | ✅ diperbaiki; test perilaku PASS | Laporan bagian 1 butir 2 |
+| Panel Sliding Scale salah-prop komponen dasar (`FR-DOK-096` s.d. `099`) | usulan `FE-RWI-138` | ⛔ belum dikerjakan | Laporan bagian 7 |

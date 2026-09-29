@@ -722,7 +722,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Seeders
                         new()
                         {
                             Code = "DP_KRITERIA",
-                            Label = "1. Skrining Kriteria Pemulangan Pasien",
+                            Label = "Skrining Kriteria Pemulangan Pasien",
                             Items =
                             {
                                 Bool("DP_KRIT_USIA", "Usia lebih dari 65 tahun"),
@@ -736,18 +736,26 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Seeders
                         new()
                         {
                             Code = "DP_CAREGIVER",
-                            Label = "2. Caregiver & Kesiapan Perawatan di Rumah",
+                            Label = "Caregiver & Kesiapan Perawatan di Rumah",
                             Items =
                             {
                                 Bool("DP_LIVING_ALONE", "Pasien tinggal sendiri setelah keluar RS"),
                                 Text("DP_CAREGIVER_NAME", "Nama penanggung jawab / caregiver utama di rumah"),
-                                Text("DP_CAREGIVER_PHONE", "Nomor telepon / kontak caregiver")
+                                Text("DP_CAREGIVER_PHONE", "Nomor telepon / kontak caregiver"),
+                                Multi("DP_ADL_NEEDS", "Kebutuhan Bantuan Aktivitas Sehari-hari (ADL)",
+                                    ("MAKAN", "Makan / Minum"),
+                                    ("MINUM_OBAT", "Minum Obat"),
+                                    ("MANDI", "Mandi"),
+                                    ("BERPAKAIAN", "Berpakaian"),
+                                    ("BAB_BAK", "Eliminasi BAB / BAK"),
+                                    ("MOBILISASI", "Mobilisasi / Berjalan"),
+                                    ("OTHER", "Lainnya"))
                             }
                         },
                         new()
                         {
                             Code = "DP_HOME_ENV",
-                            Label = "3. Lingkungan Fisik Rumah (Faktor Keselamatan)",
+                            Label = "Lingkungan Fisik Rumah (Faktor Keselamatan)",
                             Items =
                             {
                                 Single("DP_BEDROOM_FLOOR", "Letak kamar tidur pasien di rumah",
@@ -768,7 +776,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Seeders
                         new()
                         {
                             Code = "DP_EQUIPMENT",
-                            Label = "4. Peralatan Medis & Alat Bantu di Rumah",
+                            Label = "Peralatan Medis & Alat Bantu di Rumah",
                             Items =
                             {
                                 Bool("DP_MED_EQUIP_USED", "Memerlukan peralatan medis di rumah (kateter, NGT, O2, stoma)"),
@@ -780,7 +788,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Seeders
                         new()
                         {
                             Code = "DP_HOMECARE",
-                            Label = "5. Kebutuhan Layanan Home Care / Rawat Lanjut",
+                            Label = "Kebutuhan Layanan Home Care / Rawat Lanjut",
                             Items =
                             {
                                 Bool("DP_HOMECARE_NEEDED", "Memerlukan bantuan perawatan khusus di rumah (home care)"),
@@ -790,7 +798,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Seeders
                         new()
                         {
                             Code = "DP_TRANSPORT",
-                            Label = "6. Transportasi Kepulangan Pasien",
+                            Label = "Transportasi Kepulangan Pasien",
                             Items =
                             {
                                 Single("DP_TRANSPORT_TYPE", "Moda transportasi kepulangan yang digunakan",
@@ -804,7 +812,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Seeders
                         new()
                         {
                             Code = "DP_FOLLOWUP",
-                            Label = "7. Rencana Kontrol & Edukasi Lanjutan",
+                            Label = "Rencana Kontrol & Edukasi Lanjutan",
                             Items =
                             {
                                 Text("DP_FOLLOWUP_PLAN", "Rencana kontrol dokter DPJP / poliklinik"),
@@ -814,7 +822,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Seeders
                         new()
                         {
                             Code = "DP_PLAN_STATUS",
-                            Label = "8. Status Rencana & Resume Pemulangan",
+                            Label = "Status Rencana & Resume Pemulangan",
                             Items =
                             {
                                 Text("DP_PLAN_STATUS_NOTE", "Catatan resume perencanaan pulang perawat", "NurseNote")
@@ -831,23 +839,115 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Seeders
             yield return new Baseline(
                 Guid.Parse("c1a1f000-0107-4a01-9b01-000000000008"), Guid.Parse("c1a1f000-0107-4a01-9b02-000000000008"),
                 "CASE_MANAGEMENT_CHECKLIST", "Checklist Evaluasi Awal MPP", ClinicalInstrumentKind.CaseManagementChecklist, null, null,
-                "Formulir evaluasi awal Manajer Pelayanan Pasien (MPP) 8 bagian berstandar KARS PAP 2.1 & TKRS serta V1 evaluasi awal.",
+                "Formulir evaluasi awal Manajer Pelayanan Pasien (MPP) Form A berstandar KARS AKP 3 & AKP 3.1 serta V1 evaluasi awal.",
                 new ClinicalInstrumentDefinition
                 {
                     Sections =
                     {
-                        TextSection("MPP_SCREENING", "1. Identifikasi / Skrining Pasien"),
-                        TextSection("MPP_PROBLEM", "2. Identifikasi Masalah Pasien & Keluarga"),
-                        TextSection("MPP_GOAL", "3. Harapan / Sasaran Asuhan Manajer Pelayanan"),
-                        TextSection("MPP_PLAN", "4. Perencanaan Pelayanan & Kolaborasi Klinis"),
-                        TextSection("MPP_SUPPORT", "5. Dukungan Sosial & Sistem Keluarga"),
-                        TextSection("MPP_FINANCIAL", "6. Aspek Finansial & Jaminan Pembiayaan"),
-                        TextSection("MPP_LEGAL", "7. Aspek Legal & Etika Pelayanan"),
-                        TextSection("MPP_DISCHARGE", "8. Perencanaan Pemulangan (Discharge Planning)")
+                        new()
+                        {
+                            Code = "MPP_SCREENING",
+                            Label = "Identifikasi / Skrining Pasien (Kriteria KARS AKP 3)",
+                            Items =
+                            {
+                                Multi("MPP_SCREENING_ITEMS", "Kriteria Skrining Kasus Kompleks",
+                                    ("AGE_OVER_65", "Usia > 65 Tahun"),
+                                    ("LOW_COGNITIVE", "Pasien dengan fungsi kognitif rendah"),
+                                    ("HIGH_CLINICAL_RISK", "Pasien dengan risiko tinggi"),
+                                    ("HIGH_COMPLAINT_POTENTIAL", "Potensi komplain tinggi"),
+                                    ("CHRONIC_TERMINAL", "Kasus penyakit kronis, katastrofik, terminal"),
+                                    ("LOW_FUNCTIONAL_ADL", "Status fungsional rendah, kebutuhan bantuan ADL"),
+                                    ("MENTAL_SOCIAL_ISSUE", "Riwayat gangguan mental, upaya bunuh diri, krisis keluarga, isu sosial"),
+                                    ("MEDICAL_DEVICE_USAGE", "Riwayat penggunaan peralatan medis (alat invasif)"),
+                                    ("FREQUENT_ER_READMISSION", "Sering masuk IGD, readmisi rumah sakit"),
+                                    ("FINANCIAL_ISSUE", "Masalah pembiayaan / finansial"),
+                                    ("LONG_STAY_RISK", "Hari rawat panjang (estimasi LOS > standar)"),
+                                    ("COMPLEX_DISCHARGE", "Membutuhkan kontinuitas pelayanan / Rencana pemulangan berisiko")),
+                                Text("MPP_SCREENING_NOTE", "Catatan Hasil Skrining Kasus Kompleks")
+                            }
+                        },
+                        new()
+                        {
+                            Code = "MPP_ASSESSMENT",
+                            Label = "Asesmen / Evaluasi Awal Manajemen Pelayanan Pasien (11 Domain)",
+                            Items =
+                            {
+                                Text("EVAL_STRENGTHS", "Kekuatan / Kemampuan Pasien & Keluarga (Fisik, Fungsional, Kognitif)"),
+                                Text("EVAL_HEALTH_HIST", "Riwayat Kesehatan Pasien & Keluarga (Penyakit & Pengobatan Dahulu)"),
+                                Text("EVAL_MENTAL", "Kesehatan Mental, Perilaku & Emosional Pasien"),
+                                Text("EVAL_SUPPORT", "Tersedianya Dukungan Sosial & Sistem Keluarga"),
+                                Text("EVAL_FINANCIAL", "Evaluasi Finansial / Jaminan Pembiayaan Kesehatan"),
+                                Text("EVAL_MEDS_DEVICES", "Riwayat Penggunaan Obat, Alat Medis & Pengobatan Alternatif"),
+                                Text("EVAL_TRAUMA", "Riwayat Trauma, Kekerasan Dalam Rumah Tangga / Penelantaran"),
+                                Text("EVAL_GOALS", "Harapan Hasil Asuhan & Kemampuan Menerima Perubahan"),
+                                Text("EVAL_LEGAL", "Aspek Legal, Budaya, Nilai Kepercayaan & Etik Pelayanan"),
+                                Text("EVAL_DISCHARGE", "Discharge Planning (Kebutuhan Perencanaan Pemulangan Awal)"),
+                                Text("EVAL_OTHER", "Kebutuhan Lain / Kendala Khusus Pasien")
+                            }
+                        },
+                        new()
+                        {
+                            Code = "MPP_PROBLEM",
+                            Label = "Identifikasi Masalah & Kesempatan Pasien / Keluarga",
+                            Items =
+                            {
+                                Multi("MPP_PROBLEM_ITEMS", "Masalah Klinis, Finansial & Psikososial",
+                                    ("PROB_COMPLEXITY", "Kompleksitas klinis / multipatologi medis"),
+                                    ("PROB_COORDINATION", "Kebutuhan koordinasi intensif antar DPJP & PPA"),
+                                    ("PROB_ADHERENCE", "Risiko ketidakpatuhan instruksi terapi / diet"),
+                                    ("PROB_FINANCIAL", "Kendala biaya / batas penjaminan asuransi"),
+                                    ("PROB_FAMILY", "Keterbatasan dukungan keluarga / pengasuh"),
+                                    ("PROB_DISCHARGE", "Kesiapan pemulangan memerlukan persiapan khusus"),
+                                    ("PROB_HOMECARE", "Kebutuhan alat bantu kesehatan pasca pulang"),
+                                    ("PROB_ETHICAL", "Kendala psikososial / masalah etik-legal")),
+                                Text("MPP_PROBLEM_NOTE", "Catatan Identifikasi Masalah Tambahan")
+                            }
+                        },
+                        new()
+                        {
+                            Code = "MPP_GOAL",
+                            Label = "Harapan / Sasaran Asuhan Manajer Pelayanan Pasien",
+                            Items =
+                            {
+                                Multi("MPP_GOAL_ITEMS", "Sasaran Kolaborasi Klinis & Edukasi",
+                                    ("GOAL_CLINICAL", "Kestabilan klinis tercapai sesuai Clinical Pathway"),
+                                    ("GOAL_KNOWLEDGE", "Pemahaman keluarga mengenai tata laksana pengobatan"),
+                                    ("GOAL_INDEPENDENCE", "Kesiapan keluarga merawat pasien secara mandiri di rumah"),
+                                    ("GOAL_EFFICIENCY", "Optimalisasi efisiensi biaya dan lama hari rawat (LOS)"),
+                                    ("GOAL_SAFETY", "Tidak terjadi komplikasi infeksi nosokomial atau cedera"),
+                                    ("GOAL_NO_READMISSION", "Tidak terjadi readmisi dalam waktu 30 hari")),
+                                Text("MPP_GOAL_NOTE", "Catatan Sasaran Asuhan Tambahan")
+                            }
+                        },
+                        new()
+                        {
+                            Code = "MPP_PLAN",
+                            Label = "Perencanaan Pelayanan & Kolaborasi Klinis",
+                            Items =
+                            {
+                                Multi("MPP_PLAN_ITEMS", "Rencana Tindakan Manajer Pelayanan Pasien",
+                                    ("PLAN_COMMUNICATION", "Fasilitasi komunikasi efektif antara DPJP, perawat, ahli gizi, dan keluarga"),
+                                    ("PLAN_DISCHARGE", "Koordinasi awal rencana pemulangan (Early Discharge Planning) bersama tim PPA"),
+                                    ("PLAN_EDUCATION", "Edukasi terstruktur cara perawatan mandiri dan tanda bahaya darurat"),
+                                    ("PLAN_FINANCIAL", "Koordinasi bantuan jaminan sosial / keringanan biaya rumah sakit"),
+                                    ("PLAN_DEVICES", "Fasilitasi penyediaan alat bantu medis pasca rawat (kursi roda/oksigen)"),
+                                    ("PLAN_REFERRAL", "Koordinasi rujukan faskes tingkat pertama atau layanan home care")),
+                                Text("MPP_PLAN_NOTE", "Catatan Perencanaan Tambahan")
+                            }
+                        },
+                        new()
+                        {
+                            Code = "MPP_CLOSING",
+                            Label = "Catatan Tambahan & Verifikasi Manajer Pelayanan Pasien",
+                            Items =
+                            {
+                                Text("MPP_CLOSING_NOTE", "Catatan Tambahan & Tindak Lanjut MPP", "NurseNote")
+                            }
+                        }
                     },
                     ReviewFlags =
                     {
-                        "Formulir evaluasi awal MPP 8 bagian selaras dengan standar KARS (Bab PAP 2.1) dan mengadopsi V1 evaluasi awal."
+                        "Formulir evaluasi awal MPP Form A berstandar KARS (Bab AKP 3 & AKP 3.1) dan mengadopsi 100% parameter operasional V1."
                     }
                 });
         }
