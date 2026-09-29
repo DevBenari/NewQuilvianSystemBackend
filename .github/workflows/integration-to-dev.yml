@@ -144,6 +144,21 @@ jobs:
           ./.github/release/generate-release-metadata.ps1 `
             -BaseCommit origin/QuilvianDevDeploy
 
+      - name: Sync current release version from DEV
+        shell: pwsh
+        run: |
+          $path = ".github/release/current-version.json"
+
+          git show "origin/QuilvianDevDeploy:$path" |
+            Set-Content -Path $path -Encoding utf8
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "Unable to read current release version from QuilvianDevDeploy."
+          }
+
+          Write-Host "Current release baseline from DEV:"
+          Get-Content $path
+
       - name: Generate version json
         shell: pwsh
         run: |
@@ -240,7 +255,6 @@ jobs:
           mkdir -p /tmp/release-artifact
 
           cp version.json /tmp/release-artifact/version.json
-          cp .github/release/current-version.json /tmp/release-artifact/current-version.json
 
           rm -f version.json
           rm -f .github/release/current-version.json
@@ -265,9 +279,6 @@ jobs:
 
           git switch -C QuilvianDevDeploy origin/QuilvianDevDeploy
 
-          cp /tmp/release-artifact/version.json version.json
-          cp /tmp/release-artifact/current-version.json .github/release/current-version.json
-
           if ! git merge \
             --no-ff \
             "$CANDIDATE" \
@@ -287,6 +298,9 @@ jobs:
             echo "::error::Promotion blocked because resulting DEV source differs from validated Integration candidate."
             exit 1
           fi
+
+          # Restore generated runtime manifest only after merge is clean
+          cp /tmp/release-artifact/version.json version.json
 
           PROMOTED_SHA="$(git rev-parse HEAD)"
 
