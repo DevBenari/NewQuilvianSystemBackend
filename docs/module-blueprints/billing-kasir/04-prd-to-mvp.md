@@ -2848,6 +2848,8 @@ Tender pembayaran top-up deposit rawat inap dapat ditarik kembali atau gagal (`B
 | `FR-BKC-126` | Pembatalan alokasi tagihan pasien berurut LIFO (*Last In First Out*) dari alokasi yang paling baru dibuat hingga defisit pembalikan top-up terpenuhi (`BKC-DEC-129`) | `EXTEND` (`BillingSettlementService`, `BilPaymentAllocation`) |
 | `FR-BKC-127` | Penyelarasan status invoice terdampak dari `CLOSED` kembali ke `FINAL` jika sisa tagihan pasien > 0 akibat alokasi dibatalkan (`BKC-DEC-130`) | `EXTEND` (`BillingInvoiceClosureService.SyncClosureAsync`) |
 | `FR-BKC-128` | Pencatatan mutasi terpisah `RELEASE` (pengembalian alokasi) dan `REVERSAL` (penarikan top-up) pada `BilDepositMovement` untuk konsumsi Finance (`BKC-DEC-131`) | `EXTEND` (`BilDepositMovement`, `FinBillingHandoffIntake`) |
+| `FR-BKC-129` | Penanda eksplisit `ReversesMovementId` dan granularitas 1-ke-1 mutasi `RELEASE` untuk setiap alokasi tagihan yang dibatalkan secara LIFO (`BKC-DEC-132`, `BKC-DEC-133`, `BKC-DES-055`) | `EXTEND` (`BillingSettlementService`, `BilDepositMovement`) |
+| `FR-BKC-130` | Penyelarasan logika perhitungan ringkasan deposit (`totalRefunded` mengecualikan pembatalan alokasi) dan efek saldo mutasi rekening di `BillingDepositService` (`BKC-DEC-134`, `BKC-DES-056`) | `EXTEND` (`BillingDepositService`) |
 
 ## 5. Skenario UAT
 
@@ -2859,6 +2861,7 @@ Tender pembayaran top-up deposit rawat inap dapat ditarik kembali atau gagal (`B
 | `UAT-BKC-84` | Tender top-up dibalik saat dana telah terpakai melunasi tagihan invoice (`CLOSED`) | Alokasi tagihan dibatalkan secara otomatis; mutasi `RELEASE` tercatat; saldo deposit pulih lalu dipotong mutasi `REVERSAL`; invoice terdampak otomatis berubah kembali dari `CLOSED` ke `FINAL`; piutang pasien muncul kembali di daftar tagihan kasir. |
 | `UAT-BKC-85` | Tender top-up dibalik saat dana terpakai pada 2 invoice berbeda (Uji LIFO) | Alokasi invoice kedua (terbaru) dibatalkan penuh terlebih dahulu; sisa defisit dibatalkan dari invoice pertama; kedua invoice terdampak diselaraskan kembali ke status `FINAL`. |
 | `UAT-BKC-86` | Finance mengonsumsi fakta pembalikan deposit via `DEPOSIT_MOVEMENT` | Finance Intake berhasil membaca baris `RELEASE` dan `REVERSAL` tanpa galat selisih saldo, serta menerbitkan jurnal akuntansi pembalikan yang sesuai. |
+| `UAT-BKC-89` | Penanda `ReversesMovementId` 1-ke-1 pada `RELEASE` dan pengecualian dari `totalRefunded` | Setiap mutasi `RELEASE` memiliki `ReversesMovementId` terisi ID mutasi `ALLOCATION` asal (1-ke-1 per alokasi yang dibatalkan); `totalRefunded` pada ringkasan deposit kasir tetap 0 (tidak ada refund kas fiktif). |
 
 ### Jalur Gagal
 
@@ -2875,16 +2878,19 @@ Tender pembayaran top-up deposit rawat inap dapat ditarik kembali atau gagal (`B
 | Alokasi tagihan dibatalkan berurut LIFO dari yang terbaru | Ya / Belum | `BIL-AT-151`, `UAT-BKC-85` |
 | Invoice yang alokasinya dibatalkan otomatis kembali ke status `FINAL` | Ya / Belum | `BIL-AT-152`, `UAT-BKC-84` |
 | Mutasi `RELEASE` dan `REVERSAL` berpasangan tercatat di `BilDepositMovement` | Ya / Belum | `BIL-AT-153`, `UAT-BKC-86` |
+| Mutasi `RELEASE` mencatat `ReversesMovementId` alokasi asal secara 1-ke-1 per alokasi yang dibatalkan | Ya / Belum | `BIL-AT-157`, `UAT-BKC-89` |
+| `totalRefunded` pada ringkasan deposit kasir mengecualikan pembatalan alokasi | Ya / Belum | `BIL-AT-158`, `UAT-BKC-89` |
 | Seluruh operasi pembalikan terbungkus dalam satu transaksi database atomik | Ya / Belum | `BIL-AT-154`, `UAT-BKC-88` |
-| Blocker `FIN-OQ-034` di modul Finance resmi ditutup | Ya / Belum | Verifikasi task `BE-FIN-036` |
+| Blocker `FIN-OQ-034` dan `FIN-OQ-037` di modul Finance resmi ditutup | Ya / Belum | Verifikasi task `BE-FIN-036` dan `BE-FIN-047` |
 
 ## 7. Urutan Pengiriman
 
 | Gelombang | Isi | Prasyarat |
 |---|---|---|
-| `MVP-35` | `EPIC BKC-24` (`FR-BKC-125` s.d. `FR-BKC-128`) — Implementasi method `HandleDepositTopUpReversalAsync` di `BillingSettlementService`, pembatalan LIFO alokasi `BilPaymentAllocation`, pemanggilan `SyncClosureAsync`, dan verifikasi handoff `DEPOSIT_MOVEMENT` ke Finance | Approval blueprint Revisi 1.8 |
+| `MVP-35` | `EPIC BKC-24` (`FR-BKC-125` s.d. `FR-BKC-130`) — Implementasi method `HandleDepositTopUpReversalAsync` di `BillingSettlementService` (LIFO, mutasi 1-ke-1 ber-`ReversesMovementId`), koreksi `totalRefunded` & statement di `BillingDepositService`, pemanggilan `SyncClosureAsync`, dan verifikasi handoff `DEPOSIT_MOVEMENT` ke Finance | Approval blueprint Revisi 1.8 |
 
 ## 8. Pertanyaan Terbuka Sebelum Development Lock
 
-Tidak ada pertanyaan terbuka yang memblokir. Seluruh keputusan bisnis (`BKC-DEC-128`–`131`) telah disetujui penuh oleh Owner pada sesi 28 September 2026.
+Tidak ada pertanyaan terbuka yang memblokir. Seluruh keputusan bisnis (`BKC-DEC-128`–`134`) telah disetujui penuh oleh Owner pada sesi 28–29 September 2026.
+
 

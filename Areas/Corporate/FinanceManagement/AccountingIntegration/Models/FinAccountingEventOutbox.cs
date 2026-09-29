@@ -90,13 +90,6 @@ public static class FinAccountingEventDeliveryStatuses
 /// point yang menunggu ratifikasi Accounting, bukan daftar yang ditegakkan check constraint.</summary>
 public static class FinAccountingEventTypeCodes
 {
-    // Kode alias standar V2
-    public const string ArCreated = "AR_CREATED";
-    public const string ArPayment = "AR_PAYMENT";
-    public const string ArWriteOff = "AR_WRITEOFF";
-    public const string ApCreated = "AP_CREATED";
-    public const string ApPayment = "AP_PAYMENT";
-
     // Katalog 17 kode yang diusulkan FIN-DEC-002
     public const string PengakuanPiutang = "PENGAKUAN-PIUTANG";
     public const string PenerimaanPiutang = "PENERIMAAN-PIUTANG";
@@ -116,6 +109,31 @@ public static class FinAccountingEventTypeCodes
     public const string PenerimaanKasir = "PENERIMAAN-KASIR";
     public const string PembalikanPenerimaanKasir = "PEMBALIKAN-PENERIMAAN-KASIR";
 
+    // Kode ke-18 dan ke-20 (FIN-DEC-030, FIN-DEC-031, FIN-DEC-044, FIN-DES-033, FIN-DES-034, integration-contract.md §5.5/§5.10).
+    public const string PenerimaanUangMuka = "PENERIMAAN-UANG-MUKA";
+    public const string PembalikanPenerimaanUangMuka = "PEMBALIKAN-PENERIMAAN-UANG-MUKA";
+
+    // Kode ke-19 (FIN-DEC-031, FIN-DES-035, integration-contract.md §5.10).
+    public const string PemakaianUangMukaDeposit = "PEMAKAIAN-UANG-MUKA-DEPOSIT";
+
+    // Kode ke-21 (FIN-DEC-041, FIN-DEC-042, FIN-DES-035, FIN-DES-064, integration-contract.md §5.10).
+    public const string PengembalianUangMuka = "PENGEMBALIAN-UANG-MUKA";
+
+    // Kode ke-22 (FIN-DEC-042, FIN-DEC-067, FIN-DES-035, FIN-DES-056, integration-contract.md §5.10).
+    public const string PengakuanKelebihanBayar = "PENGAKUAN-KELEBIHAN-BAYAR";
+
+    // Kode ke-37 (BE-FIN-046 menambahkannya ke katalog; FIN-DES-057, DIKOREKSI FIN-DES-064).
+    // SENGAJA BELUM PUNYA PENULIS di BE-FIN-046 — penulisnya BE-FIN-047. Pemicunya bukan
+    // "REVERSAL atas ALLOCATION" seperti dugaan FIN-DES-057 (jalur itu tidak pernah ada di
+    // Billing), melainkan mutasi RELEASE yang berpasangan dengan REVERSAL ber-SettlementId sama
+    // (BKC-DEC-131, disahkan FIN-DEC-080). Jangan menulisnya dari jalur mana pun sebelum
+    // BE-FIN-047 — lawan jurnalnya debit Piutang, kredit Uang Muka Pasien.
+    public const string PembalikanPemakaianUangMukaDeposit = "PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT";
+
+    // Kode ke-23 dan ke-24 (FIN-DEC-034, FIN-DEC-064, FIN-DES-053, integration-contract.md §5.10).
+    public const string SelisihKasKurang = "SELISIH-KAS-KURANG";
+    public const string SelisihKasLebih = "SELISIH-KAS-LEBIH";
+
     // Kode ke-25, diusulkan AMENDMENT REVISI 4 (BE-FIN-034, FIN-DEC-046, integration-contract.md
     // §5.8, evidence/06). Gerbang keras: worker pengiriman MUST NOT diaktifkan untuk kode ini
     // sampai Accounting meratifikasi (FIN-OQ-020) — penulisan baris outbox-nya sendiri TIDAK
@@ -132,5 +150,40 @@ public static class FinAccountingEventTypeCodes
     // integration-contract.md §5.9-5.10). Ditulis saat FinPayment PAID dengan DepositAppliedAmount > 0.
     // Nama final hasil ratifikasi Accounting: PEMAKAIAN-KREDIT-RETUR-PEMBELIAN (FIN-DEC-066).
     public const string PemakaianKreditReturPembelian = "PEMAKAIAN-KREDIT-RETUR-PEMBELIAN";
+
+    // Kode ke-36 (BE-FIN-043, FIN-DEC-068, FIN-DES-055, integration-contract.md §5.10.2).
+    // Terbit HANYA bila FinSupplierReturn.PPNAmount > 0, di transaksi yang sama dengan
+    // RETUR-PEMBELIAN. SourceTransactionId keduanya sama (ReturnNumber) — yang membedakan baris
+    // kejadiannya adalah EventTypeCode, dan unique index dua lapis sudah memuatnya. Gerbang
+    // ratifikasi FIN-OQ-029 hanya menahan worker pengiriman, bukan penulisan barisnya.
+    public const string PpnMasukanReturPembelian = "PPN-MASUKAN-RETUR-PEMBELIAN";
+
+    // Kode ke-32..35 (BE-FIN-040, FIN-DEC-065, FIN-DES-052, integration-contract.md §5.10.2).
+    // Menggantikan POTONGAN-PIUTANG-NON-TUNAI/PEMBALIKAN-... yang dipecah Accounting per
+    // DeductionType — kedua nama lama itu MUST NOT ditulis (AMENDMENT REVISI 6). Worker
+    // pengiriman keempatnya MUST NOT diaktifkan sampai FIN-OQ-028 turun (FIN-VAL-132);
+    // penulisan baris outbox-nya sendiri TIDAK tertahan, pola yang sama dengan kode 25.
+    public const string PotonganPph23Piutang = "POTONGAN-PPH23-PIUTANG";
+    public const string PembalikanPotonganPph23Piutang = "PEMBALIKAN-POTONGAN-PPH23-PIUTANG";
+    public const string PotonganBiayaBankPiutang = "POTONGAN-BIAYA-BANK-PIUTANG";
+    public const string PembalikanPotonganBiayaBankPiutang = "PEMBALIKAN-POTONGAN-BIAYA-BANK-PIUTANG";
+
+    // Saldo subledger per periode (FIN-DEC-035, FIN-DES-032, integration-contract.md §5.6).
+    public const string SaldoSubledger = "SALDO-SUBLEDGER";
+
+    // Kode penanda shift kasir (FIN-DEC-070, FIN-DES-054, integration-contract.md §5.10.4).
+    public const string PenutupanShiftKasir = "PENUTUPAN-SHIFT-KASIR";
+    public const string PembalikanPenutupanShiftKasir = "PEMBALIKAN-PENUTUPAN-SHIFT-KASIR";
+
+    /// <summary>
+    /// Daftar tertutup kode penanda yang diizinkan bernilai nol (FIN-DES-054, FIN-VAL-138).
+    /// Berada di satu tempat untuk mencegah pemeriksaan Amount == 0 yang longgar.
+    /// </summary>
+    public static readonly IReadOnlySet<string> ZeroAmountAllowedEventTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        PenutupanShiftKasir,
+        PembalikanPenutupanShiftKasir,
+        SaldoSubledger
+    };
 }
 

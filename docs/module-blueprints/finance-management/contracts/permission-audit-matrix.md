@@ -2,12 +2,14 @@
 
 | Field | Nilai |
 |---|---|
-| Contract version | `FIN-PERM-1.3` |
-| Status | `approved` (Revisi 1-5 `locked`, Revisi 6 disetujui Yasmin 28 September 2026 lewat `FIN-DEC-078` & `FIN-DEC-079`) |
+| Contract version | `FIN-PERM-1.4` |
+| `last_changed_in` | `FIN-PERM-1.4` — AMENDMENT REVISI 7, 29 September 2026 (koreksi D.2, D.6.1, D.6.2 mengikuti `FIN-DEC-082`/`FIN-DEC-083`) |
+| Status | Revisi 1-5 `locked`; Revisi 6 `approved` (Yasmin, 28 September 2026 lewat `FIN-DEC-078` & `FIN-DEC-079`); **Revisi 7 `draft`** — menurunkan `FIN-DES-066`..`069` yang sendiri masih `draft` |
 | Owner | Security Owner bersama Yasmin (Product/Domain Owner Finance) |
-| `approved_by` / `approved_at` | Yasmin / 28 September 2026 (`FIN-DEC-078`, `FIN-DEC-079`) |
-| Input revision | `00-interview-decisions.md` revisi 28 September 2026, `01-existing-capability-map.md` § 16.3 (`FIN-CQ-08`) |
-| Dampak kompatibilitas | Penyelarasan 6 controller legacy (rename string resource) + penambahan resource payung `Finance.AP` dan `Finance.AR` |
+| `approved_by` / `approved_at` | Revisi 6: Yasmin / 28 September 2026. Revisi 7: **belum** — menunggu Security Owner (lihat `FIN-OQ-038`) |
+| Input revision | `00-interview-decisions.md` revisi 29 September 2026 (`FIN-DEC-082`, `FIN-DEC-083`), `02-backend-architecture.md` AMENDMENT REVISI 11 (`FIN-DES-066`..`069`) |
+| `input_hash` | `00-interview-decisions.md` = `c1cba136cb3c665bd1eeefe944b9d902d6fe5f55e123cf4bd83ae53456a7dee2` |
+| Dampak kompatibilitas | Revisi 6: penyelarasan 6 controller legacy (rename string resource, **sudah diimplementasikan** `BE-FIN-042`) + penambahan resource payung. Revisi 7: **nol dampak pada kode yang sudah berjalan** — mengoreksi nama payung (`Finance.AP.Umbrella`/`Finance.AR.Umbrella`) dan titik tulis ekspansi sebelum satu baris pun ditulis |
 
 String `[AccessPermission(...)]` ditulis apa adanya agar implementer menyalin, bukan
 menerjemahkan. Kolom "Dicatat logger" mengikuti konvensi project: `GET` tidak dicatat.
@@ -436,13 +438,30 @@ Audit menyeluruh `/trace-existing-capabilities` (§ 16.3) menemukan dua persoala
 
 ## D.2 Definisi Resource Payung (Group-Level Umbrella Resources)
 
+> **DIKOREKSI — `FIN-PERM-1.4`, 29 September 2026 (`FIN-DEC-082`, `FIN-DEC-083`).** Nama kedua
+> resource payung dan mekanisme kerjanya di bawah ini sudah dikoreksi. Nama lama `Finance.AP`/
+> `Finance.AR` **tidak dipakai sebagai payung** karena sudah menjadi milik dua controller V2 yang
+> berjalan.
+
 Resource payung adalah entitas hak akses tingkat kelompok yang mewakili ranah kerja fungsional staf rumah sakit:
-1. **`Finance.AP`**: Payung kewenangan operasional Hutang, Pengadaan, dan Pembayaran Kas Keluar Rumah Sakit.
-2. **`Finance.AR`**: Payung kewenangan operasional Piutang, Penagihan Penjamin, dan Penerimaan Kasir Rumah Sakit.
+1. **`Finance.AP.Umbrella`**: Payung kewenangan operasional Hutang, Pengadaan, dan Pembayaran Kas Keluar Rumah Sakit.
+2. **`Finance.AR.Umbrella`**: Payung kewenangan operasional Piutang, Penagihan Penjamin, dan Penerimaan Kasir Rumah Sakit.
+
+Keduanya memiliki tiga aksi: `View` (`AccessType` `Read`), `Operate` (`Create`), dan `Approve`
+(`Update`) — pemetaan aksinya ada di D.4.
 
 Mekanisme kerja resource payung:
-- **Di Frontend:** Sidebar menu dan navigasi modul cukup memeriksa izin pada resource payung (`Finance.AP` atau `Finance.AR`). Frontend **tidak perlu diubah** dan tidak perlu mengecek belasan resource granular satu per satu.
-- **Di Backend / Seeder Peran:** Saat sebuah peran (*Role*) diberikan izin pada resource payung (misalnya `Finance.AP`), generator seeder peran (`AccessMenuSeeder`) secara otomatis mendistribusikan (mengekstrak) kumpulan izin granular yang bersesuaian ke dalam tabel izin peran (`SysRolePermissions`). Dengan demikian, token JWT atau klaim pengguna saat memanggil endpoint API sudah memiliki izin granular yang dibutuhkan secara langsung dan deterministik.
+- **Di Frontend:** Payung **tidak pernah** diperiksa penyaring menu. Butir menu dijaga resource
+  **granular** yang sama persis dengan yang dituntut endpointnya (mis. `FinancePurchaseOrder : Read`
+  untuk butir Purchase Order). Sesudah ekspansi, pemegang payung benar-benar memiliki pasangan
+  granular itu pada `SysAccessPolicy`, sehingga penyaring menu granular menampilkannya tanpa
+  perlakuan khusus. Butir menu V2 yang sudah ada tetap dijaga `Finance.AP`/`Finance.AR` milik
+  controller V2 dan **tidak disentuh**. Lihat `FIN-DES-069`.
+- **Di Backend:** Saat admin memberi izin payung kepada satu pasangan **Departemen x Posisi** lewat
+  layar Akses Role, mekanisme ekspansi menuliskan baris `SysAccessPolicy` granular yang bersesuaian
+  **pada saat itu juga** (*materialized*), di dalam transaksi yang sama. Pemeriksaan hak akses saat
+  request tidak berubah sama sekali — ia tetap membaca `SysAccessPolicy` apa adanya. Lihat D.6.2 dan
+  `FIN-DES-067`.
 
 ---
 
@@ -542,57 +561,89 @@ Sesuai ketetapan `FIN-DEC-078`, keenam controller lama diselaraskan agar menggun
 
 Perubahan nama resource pada atribut kode C# wajib diiringi dengan pembaruan data pada tabel izin peran sistem yang sudah terlanjur tersimpan di basis data lingkungan berjalan (Development, UAT, Staging, maupun Produksi). Jika tidak dimigrasikan, pengguna yang sudah memegang peran akan mendapati pesan kesalahan `403 Forbidden` saat mengakses API karena string resource di database masih merujuk ke nama lama.
 
-Berikut adalah skrip SQL idempotent yang wajib dijalankan bersamaan dengan implementasi rename backend:
+> **DIKOREKSI — `FIN-PERM-1.4`, 29 September 2026 (AMENDMENT REVISI 7).** Skrip di bawah ini
+> **DICABUT**: ia menyasar tabel `SysRolePermissions` berkolom `ResourceName`, dan **tabel maupun
+> kolom itu tidak ada** pada skema backend ini. Dijalankan apa adanya, ia gagal
+> `relation "SysRolePermissions" does not exist`. Koreksi ini ditemukan saat implementasi
+> `BE-FIN-042`; penggantinya sudah ditulis dan berada di
+> `Migrations/scripts/be-fin-042-role-permissions-migration.sql`.
 
-```sql
--- ==============================================================================
--- MIGRASI PENYELARASAN NAMA RESOURCE HAK AKSES FINANCE MANAGEMENT (FIN-DEC-078)
--- Bersifat Idempotent: Aman dijalankan berulang kali tanpa merusak integritas data
--- ==============================================================================
+**Mekanisme yang sebenarnya.** Hak akses disimpan pada `SysAccessPolicy` sebagai **kunci asing**
+`(DepartmentId, PositionId, ControllerAccessId, ActionAccessId)` — berbasis **Departemen + Posisi**,
+bukan "Role", dan menunjuk registry `SysControllerAccess`/`SysActionAccess` lewat Id, bukan lewat
+string nama resource. Karena itu rename nama resource **tidak dapat** dikerjakan dengan `UPDATE`
+kolom nama. Yang terjadi sesungguhnya:
 
-BEGIN TRANSACTION;
+1. `AccessMenuSeeder` (berjalan otomatis saat aplikasi start) **membuat baris registry BARU** untuk
+   nama kanonikal, dan **menutup** baris lama (`IsActive=false`, `IsDelete=true`) — ia tidak pernah
+   mengganti nilai `ControllerName` pada baris yang sudah ada.
+2. Baris `SysAccessPolicy` yang sudah ada **masih menunjuk Id lama**. Tanpa migrasi, setiap
+   Departemen x Posisi yang sudah diberi hak kehilangannya (`403`) begitu registry lama ditutup.
 
--- 1. Penyelarasan Resource Payment -> FinancePayment
-UPDATE "SysRolePermissions"
-SET "ResourceName" = 'FinancePayment'
-WHERE "ResourceName" = 'Payment';
+**Bentuk skrip pengganti** (sudah ditulis, mengikuti pola `be-sec-003b-policy-expansion.sql` milik
+`platform-authorization`): peta rename enam pasang → resolusi identitas lama dan baru dari registry →
+dry-run baca-saja → Tahap 1 melestarikan `SysAccessPolicy` ke Id baru (idempotent, digerbang
+prasyarat) → verifikasi parity ditinjau manusia → Tahap 2 menonaktifkan policy lama → bagian
+rollback. Dua tahap sengaja **dua transaksi terpisah**.
 
--- 2. Penyelarasan Resource Receipt -> FinanceReceipt
-UPDATE "SysRolePermissions"
-SET "ResourceName" = 'FinanceReceipt'
-WHERE "ResourceName" = 'Receipt';
+**Urutan eksekusi yang MUST dipatuhi, tidak boleh dibalik:** deploy source hasil rename → jalankan
+aplikasi sekali dalam jendela pemeliharaan (supaya seeder membuat registry baru) → Tahap 1 →
+verifikasi → Tahap 2.
 
--- 3. Penyelarasan Resource Receivable -> FinanceReceivable
-UPDATE "SysRolePermissions"
-SET "ResourceName" = 'FinanceReceivable'
-WHERE "ResourceName" = 'Receivable';
+### 2. Logika Ekspansi — DIKOREKSI `FIN-PERM-1.4` (`FIN-DEC-082`, `FIN-DEC-083`)
 
--- 4. Penyelarasan Resource SupplierPayable -> FinanceSupplierPayable
-UPDATE "SysRolePermissions"
-SET "ResourceName" = 'FinanceSupplierPayable'
-WHERE "ResourceName" = 'SupplierPayable';
+> **DIKOREKSI — 29 September 2026 (AMENDMENT REVISI 7).** Rancangan semula menempatkan ekspansi di
+> `AccessMenuSeeder`. Itu **tidak dapat dilaksanakan**: seeder tersebut secara eksplisit **tidak
+> pernah** menulis `SysAccessPolicy` — ia hanya mengelola tiga tabel registry
+> (`SysApplicationModule`, `SysControllerAccess`, `SysActionAccess`), dan komentar kelasnya sendiri
+> menyatakan "kemampuan yang baru terdaftar tetap ditolak untuk semua orang sampai admin
+> memberikannya lewat layar Akses Role". Selain itu nama payungnya berubah (lihat butir 0 di bawah).
+> Rancangan yang berlaku sekarang diturunkan `FIN-DES-066`..`069` (`02-backend-architecture.md`
+> AMENDMENT REVISI 11).
 
--- 5. Penyelarasan Resource BillingIntake -> FinanceBillingIntake
-UPDATE "SysRolePermissions"
-SET "ResourceName" = 'FinanceBillingIntake'
-WHERE "ResourceName" = 'BillingIntake';
+**0. Nama resource payung berubah (`FIN-DEC-082`).** Payung **bukan** `Finance.AP`/`Finance.AR`,
+melainkan **`Finance.AP.Umbrella`** dan **`Finance.AR.Umbrella`**. Alasannya: `Finance.AP` dan
+`Finance.AR` ternyata **sudah dipakai** dua controller yang berjalan nyata — `FinanceApController`
+(`api/finance/payable`) dan `FinanceArController` (`api/finance/receivable`), endpoint "V2" AP/AR —
+dengan aksi mereka sendiri (`View`, `Payment`, `Create`). Memakai nama itu untuk payung akan menimpa
+arti hak akses yang sudah dipegang kedua endpoint tersebut. Kedua controller V2 **tidak disentuh**.
 
--- 6. Penyelarasan Resource AccountingEvents -> FinanceAccountingEvent
-UPDATE "SysRolePermissions"
-SET "ResourceName" = 'FinanceAccountingEvent'
-WHERE "ResourceName" = 'AccountingEvents';
+**1. Titik tulis (`FIN-DEC-083`, `FIN-DES-067`).** Ekspansi terjadi **saat admin memberi hak lewat
+layar Akses Role**, bukan saat seeding. Tempatnya `RoleAccessController.ApplyPoliciesAsync` — satu
+satunya jalur penulisan `SysAccessPolicy` di aplikasi ini, dipakai bersama oleh
+`POST /role-access/policies` dan `POST /role-access/policies/copy`.
 
-COMMIT;
-```
+**2. Algoritma.** Bila permintaan simpan memuat pasangan payung, sebelum gerbang validasi registry
+yang sudah ada, tambahkan seluruh pasangan granular yang dicakup tier payung itu (D.3 + D.4).
+Seluruhnya berjalan di dalam transaksi yang sudah dibuka method tersebut, sehingga payung dan
+granularnya tersimpan atau batal bersama. Idempotent: upsert sudah berkunci alami
+`(Departemen, Posisi, Controller, Action)`.
 
-### 2. Logika Ekspansi Seeder Peran Backend (`AccessMenuSeeder`)
+**3. Penolakan yang dapat ditindaklanjuti.** Bila satu identitas granular pada peta tidak
+terselesaikan di registry (sudah pensiun, tersembunyi, atau system-only), permintaan **ditolak** dan
+pesannya **MUST menyebut pasangan mana** yang hilang — bukan ditulis sebagian secara diam-diam.
 
-Pada saat proses seeding hak akses dijalankan di aplikasi backend (misalnya `AccessMenuSeeder.cs` atau seeder inisialisasi RBAC):
-1. **Pendaftaran Definisi Menu & Payung:** Resource payung `Finance.AP` dan `Finance.AR` didaftarkan sebagai resource induk yang menaungi struktur menu frontend.
-2. **Algoritma Ekspansi Hak Akses:**
-   - Bila sebuah peran di definisikan memiliki izin payung `Finance.AP` dengan aksi tertentu (misal `View`), seeder secara otomatis melakukan iterasi ke seluruh 9 resource granular AP dan menyisipkan baris izin granular `Read` untuk peran tersebut.
-   - Bila peran diberi aksi `Operate`, seeder menyisipkan seluruh aksi pembuat transaksi untuk ke-9 resource AP.
-   - Bila peran diberi aksi `Approve`, seeder menyisipkan seluruh aksi persetujuan untuk resource terkait.
-   - Hal yang sama berlaku secara simetris untuk payung `Finance.AR` ke seluruh 4 resource granular AR.
-3. **Jaminan Integritas Masa Depan:** Setiap kali pengembang menambahkan modul atau resource baru di bawah rumpun AP atau AR di masa mendatang, pengembang **wajib** mendaftarkan resource baru tersebut ke dalam tabel kamus ekspansi di `permission-audit-matrix.md` dan seeder peran backend.
+**4. Pencabutan.** Melepas centang payung saja **tidak** mencabut granularnya: baris granular ikut
+tampil tercentang di layar dan terkirim ulang pada penyimpanan berikutnya. Mencabut granular adalah
+langkah eksplisit admin. Ini perilaku yang disengaja (`FIN-DEC-083`), bukan cacat.
+
+**5. `HasAccessAsync` tidak disentuh.** Pemeriksaan hak akses saat request tetap pencarian langsung
+atas `SysAccessPolicy`. Nol perubahan pada algoritma otorisasi yang dipakai seluruh modul aplikasi.
+
+**6. Jaminan integritas masa depan.** Setiap resource granular baru di rumpun AP/AR **wajib**
+ditambahkan ke D.3 dokumen ini **dan** ke peta di kode pada perubahan yang sama.
+
+**7. Gerbang: pembawa resource payung.** Resource payung wajib punya pembawa yang terdaftar di
+registry; platform hari ini **belum dapat** mendaftarkan resource yang tidak punya satu pun endpoint.
+
+- `FIN-OQ-038` (pilihan pembawanya) — **CLOSED 29 September 2026** oleh **`FIN-DEC-084`**: dipilih
+  **perluasan `platform-authorization`** supaya resource tanpa endpoint dapat dideklarasikan lewat
+  opt-in eksplisit, dengan penjaga anti-typo yang ada sekarang **tetap dipertahankan**. Membuat
+  controller pembawa di Finance ditolak; membatalkan payung juga tidak dipilih.
+- `FIN-OQ-039` (persetujuan dan penjadwalan perluasan itu) — **TERBUKA**, ditujukan kepada Security
+  Owner + pemilik `platform-authorization`. `FIN-DEC-084` adalah keputusan **sisi Finance**: ia
+  meminta, bukan menyetujui atas nama modul lain.
+
+Sampai `FIN-OQ-039` turun, mekanisme ekspansi **MUST NOT** diimplementasikan. Ini **tidak** menahan
+penyelarasan nama enam controller (D.5) yang sudah selesai, maupun pekerjaan frontend mana pun.
 

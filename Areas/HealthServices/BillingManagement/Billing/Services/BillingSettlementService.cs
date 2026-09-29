@@ -916,6 +916,15 @@ public sealed class BillingSettlementService
                 .ThenByDescending(a => a.Id)
                 .ToList();
 
+            // BKC-DEC-132 / BKC-DES-055: Ambil mutasi ALLOCATION untuk dipasangkan sebagai ReversesMovementId
+            var allocationMovements = await _dbContext.BilDepositMovements.AsNoTracking()
+                .Where(m => m.DepositAccountId == account.Id
+                    && m.MovementType == BillingDepositMovementTypes.Allocation
+                    && m.SettlementId.HasValue
+                    && depositAllocationSettlementIds.Contains(m.SettlementId.Value)
+                    && !m.IsDelete)
+                .ToListAsync(cancellationToken);
+
             var neededToCancel = deficit;
             foreach (var original in activeAllocations)
             {
@@ -937,6 +946,41 @@ public sealed class BillingSettlementService
                 impactedInvoiceIds.Add(original.TargetId);
                 totalReleasedFromAllocations += cancelAmount;
                 neededToCancel -= cancelAmount;
+
+                // BKC-DEC-132 / BKC-DEC-133 / BKC-DES-055 / FR-BKC-129:
+                // Catat tepat 1 baris mutasi RELEASE untuk setiap alokasi yang dibatalkan (1-to-1),
+                // dengan ReversesMovementId menunjuk ID mutasi ALLOCATION asalnya.
+                var matchingAllocationMovement = allocationMovements
+                    .FirstOrDefault(m => m.SettlementId == original.SettlementId);
+                if (matchingAllocationMovement is null)
+                {
+                    throw new BillingSettlementConflictException(
+                        $"Mutasi deposit ALLOCATION asal untuk settlement alokasi {original.SettlementId} tidak ditemukan.");
+                }
+
+                var releaseMovement = new BilDepositMovement
+                {
+                    DepositAccountId = account.Id,
+                    DepositAccount = account,
+                    MovementType = BillingDepositMovementTypes.Release,
+                    Amount = cancelAmount,
+                    SettlementId = original.SettlementId,
+                    PaymentMethodId = matchingAllocationMovement.PaymentMethodId,
+                    PaymentMethodAccountId = matchingAllocationMovement.PaymentMethodAccountId,
+                    CashierShiftId = tender.CashierShiftId,
+                    IdempotencyKey = CreateDeterministicGuid($"REL_IDEMPOTENCY_{tender.Id:N}_{original.Id:N}"),
+                    PayloadHash = Hash($"RELEASE|{tender.Id:N}|{original.Id:N}|{cancelAmount}"),
+                    CorrelationId = CreateDeterministicGuid($"REL_CORRELATION_{tender.Id:N}_{original.Id:N}"),
+                    CausationId = tender.CorrelationId,
+                    OccurredAt = occurredAt,
+                    Reason = $"Pelepasan alokasi tagihan {original.TargetId} untuk pembalikan tender top-up deposit {tender.Id}.",
+                    ReversesMovementId = matchingAllocationMovement.Id,
+                    CreateDateTime = DateTime.UtcNow,
+                    CreateBy = actorUserId
+                };
+                account.Movements.Add(releaseMovement);
+                _dbContext.BilDepositMovements.Add(releaseMovement);
+                account.AvailableBalance += cancelAmount;
             }
 
             if (neededToCancel > 0)
@@ -944,30 +988,6 @@ public sealed class BillingSettlementService
                 throw new BillingSettlementConflictException(
                     "Saldo deposit dan alokasi aktif tidak mencukupi untuk membalikkan top-up deposit.");
             }
-
-            // BKC-DEC-131 / BKC-DES-054 / BIL-INT-018: Mutasi RELEASE untuk alokasi yang dibatalkan
-            var releaseMovement = new BilDepositMovement
-            {
-                DepositAccountId = account.Id,
-                DepositAccount = account,
-                MovementType = BillingDepositMovementTypes.Release,
-                Amount = totalReleasedFromAllocations,
-                SettlementId = tender.SettlementId,
-                PaymentMethodId = tender.PaymentMethodId,
-                PaymentMethodAccountId = tender.PaymentMethodAccountId,
-                CashierShiftId = tender.CashierShiftId,
-                IdempotencyKey = CreateDeterministicGuid($"REL_IDEMPOTENCY_{tender.Id:N}"),
-                PayloadHash = Hash($"RELEASE|{tender.Id:N}|{tender.SettlementId:N}|{totalReleasedFromAllocations}"),
-                CorrelationId = CreateDeterministicGuid($"REL_CORRELATION_{tender.Id:N}"),
-                CausationId = tender.CorrelationId,
-                OccurredAt = occurredAt,
-                Reason = "Pelepasan alokasi tagihan untuk pembalikan tender top-up deposit.",
-                CreateDateTime = DateTime.UtcNow,
-                CreateBy = actorUserId
-            };
-            account.Movements.Add(releaseMovement);
-            _dbContext.BilDepositMovements.Add(releaseMovement);
-            account.AvailableBalance += totalReleasedFromAllocations;
         }
 
         // BKC-DEC-128 / BKC-DES-051 / BKC-DES-054: Mutasi REVERSAL atas top-up deposit

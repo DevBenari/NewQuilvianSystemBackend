@@ -11,10 +11,8 @@ using System.Security.Claims;
 namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Controllers;
 
 /// <summary>
-/// Route dan resource permission ("Receipt") mengikuti route `/receipts/{id}/allocations...` pada
-/// `contracts/permission-audit-matrix.md` (resource `FinanceReceipt` di dokumen itu — dipakai di
-/// sini sebagai "Receipt" mengikuti pola penamaan singkat yang sudah berjalan nyata pada
-/// `FinanceReceivablesController` ("Receivable", bukan "FinanceReceivable"), bukan penyimpangan).
+/// Resource permission `FinanceReceipt` — nama kanonikal penuh sejak `BE-FIN-042`
+/// (`FIN-DEC-078`, `permission-audit-matrix.md` §D.5). Sebelumnya memakai nama pendek `Receipt`.
 /// Hanya endpoint yang sudah punya logika service nyata yang dibangun di sini (BE-FIN-018,
 /// pembaruan 23 September 2026): rincian satu penerimaan, alokasi, dan pembalikan alokasi.
 /// `GET /receipts` (daftar), `GET /receipts/register`, `GET /receipts/shift-reconciliation`,
@@ -26,7 +24,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Con
 [Authorize]
 [Route("api/v1/corporate/finance-management/receipts")]
 [AccessController("CORPORATE_FINANCE_MANAGEMENT_RECEIPT", "Corporate Finance Management Receipt", "Receipt",
-    AreaName = "Corporate", ControllerName = "Receipt", Description = "Penerimaan Finance dari tender Billing — alokasi ke piutang dan pembaliknya", SortOrder = 31)]
+    AreaName = "Corporate", ControllerName = "FinanceReceipt", Description = "Penerimaan Finance dari tender Billing — alokasi ke piutang dan pembaliknya", SortOrder = 31)]
 [Tags("Corporate / Finance Management / Receipt")]
 public sealed class FinanceReceiptsController : ControllerBase
 {
@@ -35,7 +33,7 @@ public sealed class FinanceReceiptsController : ControllerBase
 
     [HttpGet]
     [AccessAction("Read", "Read Receipt", AccessType = AccessTypes.Read, SortOrder = 1)]
-    [AccessPermission("Receipt", "Read")]
+    [AccessPermission("FinanceReceipt", "Read")]
     [ProducesResponseType(typeof(ApiResponse<PagedResult<FinReceiptResponse>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Get([FromQuery] FinReceiptQuery request, CancellationToken cancellationToken) =>
         Ok(ApiResponse<PagedResult<FinReceiptResponse>>.Ok(
@@ -43,7 +41,7 @@ public sealed class FinanceReceiptsController : ControllerBase
 
     [HttpGet("{id:guid}")]
     [AccessAction("Read", "Read Receipt", AccessType = AccessTypes.Read, SortOrder = 1)]
-    [AccessPermission("Receipt", "Read")]
+    [AccessPermission("FinanceReceipt", "Read")]
     [ProducesResponseType(typeof(ApiResponse<FinReceiptDetailResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
@@ -58,22 +56,42 @@ public sealed class FinanceReceiptsController : ControllerBase
 
     [HttpPost("{id:guid}/allocations")]
     [AccessAction("Allocate", "Allocate Receipt", AccessType = AccessTypes.Create, SortOrder = 2)]
-    [AccessPermission("Receipt", "Allocate")]
+    [AccessPermission("FinanceReceipt", "Allocate")]
     [ProducesResponseType(typeof(ApiResponse<FinReceiptResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Allocate(Guid id, [FromBody] AllocateReceiptRequest request, CancellationToken cancellationToken)
     {
         try
         {
-            var lines = (request.Lines ?? []).Select(l => new AllocationLineRequest(l.ReceivableId, l.Amount)).ToList();
+            var lines = (request.Lines ?? []).Select(l => new AllocationLineRequest(
+                l.ReceivableId,
+                l.Amount,
+                (l.Deductions ?? []).Select(d => new ReceiptDeductionLineRequest(d.DeductionType, d.Amount, d.Reason, d.ReferenceNumber)).ToList()))
+                .ToList();
             var receipt = await _service.AllocateAsync(id, lines, CurrentUserId(), cancellationToken);
             return Ok(ApiResponse<FinReceiptResponse>.Ok(MapReceipt(receipt), "Alokasi penerimaan berhasil disimpan."));
         }
         catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
     }
 
+    [HttpGet("{id:guid}/deductions")]
+    [AccessAction("Read", "Read Receipt", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceReceipt", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<List<ReceiptDeductionResponse>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetDeductions(Guid id, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var deductions = await _service.GetDeductionsAsync(id, cancellationToken);
+            return Ok(ApiResponse<List<ReceiptDeductionResponse>>.Ok(
+                deductions.Select(MapDeduction).ToList(), "Daftar potongan penerimaan berhasil diambil."));
+        }
+        catch (KeyNotFoundException exception) { return NotFound(ApiResponse<object>.Fail(404, exception.Message)); }
+    }
+
     [HttpPost("{id:guid}/allocations/{allocationId:guid}/reverse")]
     [AccessAction("Allocate", "Allocate Receipt", AccessType = AccessTypes.Update, SortOrder = 2)]
-    [AccessPermission("Receipt", "Allocate")]
+    [AccessPermission("FinanceReceipt", "Allocate")]
     [ProducesResponseType(typeof(ApiResponse<FinReceiptAllocationResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> ReverseAllocation(Guid id, Guid allocationId, CancellationToken cancellationToken)
     {
@@ -137,6 +155,21 @@ public sealed class FinanceReceiptsController : ControllerBase
         ReversalOfAllocationId = allocation.ReversalOfAllocationId,
         AllocatedBy = allocation.AllocatedBy,
         AllocatedAt = allocation.AllocatedAt
+    };
+
+    private static ReceiptDeductionResponse MapDeduction(Areas.Corporate.FinanceManagement.Collection.Models.FinReceiptDeduction deduction) => new()
+    {
+        Id = deduction.Id,
+        DeductionNumber = deduction.DeductionNumber,
+        ReceiptId = deduction.ReceiptId,
+        ReceiptAllocationId = deduction.ReceiptAllocationId,
+        DeductionType = deduction.DeductionType,
+        Amount = deduction.Amount,
+        Reason = deduction.Reason,
+        ReferenceNumber = deduction.ReferenceNumber,
+        IsReversal = deduction.IsReversal,
+        ReversalOfDeductionId = deduction.ReversalOfDeductionId,
+        RowVersion = deduction.RowVersion
     };
 
     private IActionResult Failure(Exception exception) => exception switch

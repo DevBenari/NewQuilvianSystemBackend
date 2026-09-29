@@ -1253,7 +1253,7 @@ Pasien rawat inap menitipkan deposit, dipakai sebagian, sisanya dikembalikan.
 |---|---|---|---|---|
 | 5 November | `BilDepositMovement` `TOP_UP` | `PENERIMAAN-UANG-MUKA` | Rp 10.000.000 | Debit Kas, Kredit Uang Muka Pasien |
 | 12 November | `BilDepositMovement` `ALLOCATION` | `PEMAKAIAN-UANG-MUKA-DEPOSIT` | Rp 7.500.000 | Debit Uang Muka Pasien, Kredit Piutang — **kas tidak bergerak** |
-| 13 November | `BilDepositMovement` `RELEASE` | `PENGEMBALIAN-UANG-MUKA` | Rp 2.500.000 | Debit Uang Muka Pasien, **Kredit Kas** |
+| 13 November | `BilDepositMovement` `RELEASE` | ~~`PENGEMBALIAN-UANG-MUKA`~~ → **`PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT`** | Rp 2.500.000 | ~~Debit Uang Muka Pasien, Kredit Kas~~ → **Debit Piutang, kredit Uang Muka Pasien**. **Contoh ini dikoreksi AMENDMENT REVISI 9** (`FIN-DES-064`): mutasi `RELEASE` tidak mengeluarkan kas. Jangan dipakai dalam bentuk lamanya |
 
 Setelah ketiganya, saldo Uang Muka Pasien untuk pasien itu nol: Rp 10.000.000 masuk,
 Rp 7.500.000 dipakai, Rp 2.500.000 dikembalikan. **Bila baris kedua dan ketiga memakai satu kode
@@ -2607,11 +2607,11 @@ pada surat evidence, bukan kode.
 | `PEMBALIKAN-POTONGAN-BIAYA-BANK-PIUTANG` | Potongan `BANK_ADMIN_FEE` dibalik | `DeductionNumber` pembalik | `Amount` asli | Baru |
 | `PEMAKAIAN-KREDIT-RETUR-PEMBELIAN` | Pembayaran `PAID` dengan `DepositAppliedAmount > 0` | `PaymentNumber` | `DepositAppliedAmount` | Baru (nama final) |
 | `PPN-MASUKAN-RETUR-PEMBELIAN` | Retur `CONFIRMED` dengan `PPNAmount > 0` | `ReturnNumber` | `PPNAmount` | Baru |
-| `PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT` | Pembalikan movement `ALLOCATION` | `BilDepositMovement.Id` | `Amount` movement | Baru — **pemicunya belum ada** (`FIN-DES-057`) |
+| `PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT` | Mutasi `RELEASE` yang berpasangan dengan mutasi `REVERSAL` ber-`SettlementId` sama — **dikoreksi AMENDMENT REVISI 9**, sebelumnya "pembalikan movement `ALLOCATION`" yang tidak pernah ada | `BilDepositMovement.Id` | `Amount` mutasi `RELEASE` | Baru — **pemicunya kini ADA** sejak `BKC-DEC-131` (`FIN-DES-064`) |
 | `RETUR-PEMBELIAN` | Retur `CONFIRMED` | `ReturnNumber` | `TotalAmount` (pokok) | **Sudah berjalan**, nilai diperjelas |
 | `PPN-MASUKAN-PEMBELIAN` | Purchasing Invoice disetujui | `InvoiceNumber` | `PPNAmount` | **Sudah berjalan** |
 | `PENGAKUAN-KELEBIHAN-BAYAR` | Kredit `ALLOCATION_EXCESS` **atau `SETTLEMENT`** diakui | `BilRefundableCredit.Id` | `OriginalAmount` | Cakupan diperluas |
-| `PENGEMBALIAN-UANG-MUKA` | Refund `EXECUTED` atas kredit `ALLOCATION_EXCESS` **atau `SETTLEMENT`**, atau movement `RELEASE` | `BilRefundCase.Id`/`BilDepositMovement.Id` | Nilai refund | Cakupan diperluas |
+| `PENGEMBALIAN-UANG-MUKA` | Refund `EXECUTED` atas kredit `ALLOCATION_EXCESS` **atau `SETTLEMENT`**. ~~atau movement `RELEASE`~~ — **butir `RELEASE` DICABUT AMENDMENT REVISI 9** (`FIN-DES-064`), lihat `H.4` | `BilRefundCase.Id` | Nilai refund | Cakupan diperluas revisi 6, **dipersempit revisi 9** |
 | `PENGAKUAN-HUTANG-SUPPLIER` | Utang supplier diinput | `PayableNumber` | Nilai utang | **Sudah berjalan** — ganti nama dari `AP_CREATED` |
 | `PEMBAYARAN-HUTANG-SUPPLIER` | Pembayaran `PAID` | `PaymentNumber` | `TotalAmount − DepositAppliedAmount` | **Sudah berjalan** — ganti nama dari `AP_PAYMENT` |
 | `PENERIMAAN-PIUTANG` | Penerimaan piutang | `ReceiptNumber` | Nilai diterima | **Sudah berjalan** — ganti nama dari `AR_PAYMENT` |
@@ -3010,4 +3010,383 @@ Sesuai piagam tata kelola Quilvian (`AGENTS.md`), pass desain ini **hanya meneta
 | Membuat tabel database baru untuk relasi payung-ke-granular | Terlalu rumit dan menambah beban query (*overhead*). Pemetaan payung bersifat deklaratif dan cukup diselesaikan pada level seeder peran saat inisialisasi data |
 | Mengeksekusi migrasi database atau mengubah source code aplikasi di pass ini | Melanggar batas kewenangan skill desain (`design-business-module`); eksekusi kode dan migrasi data adalah ranah `build-module-backend` setelah task disetujui |
 | Membiarkan nama pendek pada controller lama | Ditolak oleh owner (`FIN-DEC-078`). Membiarkan nama pendek mempertahankan utang teknis dan inkonsistensi sistem otorisasi |
+
+---
+
+# AMENDMENT REVISI 9 — Arti tunggal mutasi `RELEASE` dan pemicu pembalikan pemakaian uang muka
+
+| Field | Nilai |
+|---|---|
+| Revisi blueprint | 9 |
+| Contract version | `FIN-INTEGRATION-1.6` (peta pemicu), `FIN-VAL-1.5` (`FIN-VAL-144`..`146`), `FIN-TEST-1.6` (bagian F) |
+| Keputusan arsitektur | `FIN-DES-064`, `FIN-DES-065` — **`approved`** (disahkan Yasmin via Amendment Pass 29 September 2026: `FIN-DEC-080`, `FIN-DEC-081`) |
+| Keputusan bisnis yang diturunkan | `FIN-DEC-063`, `FIN-DEC-077`, `FIN-DEC-080`, `FIN-DEC-081`; `BKC-DEC-128`..`131` |
+| Yang dikoreksi | `FIN-DES-035` dan `FIN-DES-057`, beserta `FIN-DEC-041` (butir `RELEASE` dicabut) |
+| Open question baru | `FIN-OQ-037` — permintaan penanda eksplisit kepada owner Billing (`evidence/19`) |
+| Source SHA saat pemeriksaan | Backend `7811c048` (bergerak dari `cba60cb0`, dua commit) |
+| Tabel baru | **Nol.** Kolom baru: **nol.** Migration: **nol.** Endpoint baru: **nol** |
+
+## H.1 Mengapa amendment ini ada
+
+`BE-FIN-047` tidak dapat direncanakan karena pemicunya tidak jelas. Pass perencanaan roadmap
+29 September 2026 mencatatnya sebagai blocker dan menyerahkannya ke pass desain ini.
+
+Pemeriksaan langsung ke source pada `7811c048` menemukan sesuatu yang **lebih tajam** daripada
+dugaan pass perencanaan itu. Dugaannya: satu `MovementType = RELEASE` membawa dua arti sehingga
+Finance perlu membedakannya. Kenyataannya: **`RELEASE` hari ini hanya punya satu penulis, dan
+blueprint memetakannya ke kode kejadian yang salah.**
+
+### Peta lengkap penulis `BilDepositMovement` pada `7811c048`
+
+| # | Berkas dan baris | `MovementType` | `ReversesMovementId` | Arti bisnis sebenarnya |
+|---:|---|---|---|---|
+| 1 | `BillingDepositService.cs:329` | `TOP_UP` | — | Pasien menitip uang muka lewat kasir |
+| 2 | `BillingSettlementService.cs:819` | `TOP_UP` | — | Top-up lahir dari tender yang `SUCCEEDED` |
+| 3 | `BillingAllocationService.cs:169` | `ALLOCATION` | — | Uang muka dipakai melunasi tagihan |
+| 4 | `BillingDepositService.cs:468` | `REVERSAL` | terisi, menunjuk `TOP_UP` | Pembalikan top-up manual |
+| 5 | `BillingSettlementService.cs:974` | `REVERSAL` | terisi, menunjuk `TOP_UP` | Pembalikan tender top-up (`BKC-DEC-128`) |
+| 6 | `BillingSettlementService.cs:949` | **`RELEASE`** | **tidak diisi** | **Pembatalan alokasi tagihan secara LIFO** (`BKC-DEC-131`) |
+
+**Tidak ada penulis `RELEASE` untuk pengembalian uang muka tunai kepada pasien.**
+`BillingDepositService` hanya punya dua operasi tulis — `TopUpAsync` dan `ReverseTopUpAsync` — dan
+tidak ada operasi refund deposit sama sekali.
+
+### Akibatnya bagi dua keputusan yang sudah `approved`
+
+| Yang tertulis | Yang sebenarnya terjadi | Akibat bila dibangun apa adanya |
+|---|---|---|
+| `FIN-DES-035`/`FIN-DEC-041`: `RELEASE` menerbitkan `PENGEMBALIAN-UANG-MUKA`, debit Uang Muka Pasien, kredit **Kas** | Pada pembatalan alokasi LIFO **tidak ada kas yang bergerak**. Saldo deposit justru **naik kembali**, dan tagihan yang tadinya lunas kembali terbuka | Buku besar mencatat kas keluar untuk uang yang masih ada di saldo deposit pasien. Kas di buku besar menjadi lebih kecil daripada kas sebenarnya, dan rekonsiliasi toleransi nol Accounting (`ACC-DEC-076`) gagal tanpa sebab yang terlihat |
+| `FIN-DES-057`: pemicu `PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT` adalah mutasi `REVERSAL` atas `ALLOCATION` | Billing **tidak pernah** menulis `REVERSAL` atas `ALLOCATION`. Yang ditulis untuk pembatalan alokasi adalah `RELEASE` | Kode itu tidak pernah menemukan baris untuk dikirim. Pembatalan alokasi uang muka tidak pernah sampai ke buku besar, dan piutang yang terbuka kembali tidak pernah diakui |
+
+Keduanya **bertemu pada satu fakta yang sama**: mutasi `RELEASE` versi `BKC-DEC-131`. Satu kode
+memetakannya ke tempat yang salah, satu kode lagi menunggu pemicu yang tidak akan pernah datang.
+
+**Contoh berangka.** Pasien menitip uang muka Rp 20.000.000 lewat kartu, lalu uang muka itu dipakai
+melunasi tagihan Rp 32.000.000 — sisa piutang Rp 12.000.000. Kartunya kemudian ditarik penerbit,
+sehingga tendernya dibalik.
+
+| Langkah Billing | Mutasi yang ditulis | Yang seharusnya diakui buku besar |
+|---|---|---|
+| Alokasi ke tagihan dibatalkan LIFO | `RELEASE` Rp 20.000.000 | Debit Piutang Rp 20.000.000, kredit Uang Muka Pasien — tagihan kembali terbuka |
+| Top-up ditarik | `REVERSAL` Rp 20.000.000 | Debit Uang Muka Pasien Rp 20.000.000, kredit Kas — uangnya memang tidak pernah jadi diterima |
+| **Hasil bersih** | — | **Debit Piutang, kredit Kas** — persis yang diminta Accounting pada `evidence/14` bagian 7.1 |
+
+Bila mutasi `RELEASE` dikirim sebagai `PENGEMBALIAN-UANG-MUKA` seperti tertulis hari ini, hasil
+bersihnya menjadi **kredit Kas dua kali** Rp 40.000.000 untuk uang Rp 20.000.000 yang tidak pernah
+masuk, dan piutang Rp 20.000.000 tidak pernah terbuka kembali.
+
+## H.2 Bounded context, ownership, dan batas transaksi — tidak ada yang berubah
+
+| Hal | Ketentuan |
+|---|---|
+| Pemilik `BilDepositMovement` | Billing. Finance **hanya membaca** — `FIN-OOS-001`..`004` tetap berlaku penuh |
+| Pemilik nama kode kejadian | Accounting meratifikasi namanya; Finance yang menerbitkan barisnya |
+| Batas transaksi | Tidak berubah. Baris intake dan baris kejadian tetap ditulis dalam satu transaksi dengan pembacaan faktanya, pola `FIN-DES-017` |
+| Aggregate yang disentuh | Nol. Amendment ini tidak menambah entity, kolom, maupun tabel |
+
+## H.3 Keputusan arsitektur baru
+
+### FIN-DES-064 — Mutasi `RELEASE` dipetakan ke pembalikan pemakaian, bukan ke pengembalian kas
+
+Menurunkan `FIN-DEC-063`, `FIN-DEC-077`, dan `FIN-DEC-080` (**`approved`**, 29 September 2026), dan **mengoreksi** `FIN-DES-035`, `FIN-DEC-041`, beserta dua baris
+katalog `E.5`.
+
+| Hal | Ketentuan |
+|---|---|
+| Kode untuk mutasi `RELEASE` | **`PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT`** — debit Piutang, kredit Uang Muka Pasien |
+| Kode yang **dicabut** untuk mutasi `RELEASE` | `PENGEMBALIAN-UANG-MUKA`. Ia **tidak mati** — pemicunya yang benar tetap `BilRefundCase` berstatus `EXECUTED` (`FIN-DES-056`), jalur yang memang mengeluarkan kas |
+| `SourceTransactionId` | `BilDepositMovement.Id` |
+| `Amount` | `Amount` mutasi `RELEASE` — jumlah alokasi yang dibatalkan, selalu positif |
+| `SourceVersion` | Dipatok `"1"` — satu mutasi adalah satu fakta yang tidak pernah berulang |
+| `AccountingDate` | Tanggal `OccurredAt` mutasi |
+| Pasangannya | Mutasi `REVERSAL` yang lahir dalam transaksi Billing yang sama menerbitkan `PEMBALIKAN-PENERIMAAN-UANG-MUKA` (`BE-FIN-046`, tidak berubah) |
+
+**Kenapa arah koreksinya begini, bukan sebaliknya.** Yang menentukan lawan jurnal adalah
+**pergerakan uang**, bukan nama `MovementType`. Pada mutasi `RELEASE` versi `BKC-DEC-131` tidak ada
+kas yang bergerak sama sekali — saldo deposit naik dan tagihan terbuka kembali. Itu persis definisi
+`PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT` yang sudah diratifikasi Accounting. Memaksanya menjadi
+`PENGEMBALIAN-UANG-MUKA` berarti menulis kas keluar yang tidak pernah terjadi.
+
+### FIN-DES-065 — Syarat pembeda, dan perilaku *fail-closed* selama artinya belum tunggal
+
+Menurunkan `FIN-DEC-081` (**`approved`**, 29 September 2026). Surat evidence resmi ke Billing diterbitkan via `evidence/19-permintaan-penanda-eksplisit-mutasi-release-ke-billing.md` (`FIN-OQ-037`).
+
+`FIN-DES-064` benar untuk mutasi `RELEASE` **sebagaimana ditulis Billing hari ini**. Risikonya: nama
+`RELEASE` sendiri masih bermakna ganda di sisi Billing, sehingga penulis berikutnya dapat
+memakainya untuk pengembalian kas tanpa Finance mengetahuinya.
+
+Bukti bahwa maknanya memang masih ganda di Billing: `BillingDepositService.cs:176` menjumlahkan
+seluruh mutasi `RELEASE` sebagai **`totalRefunded`** — "dana yang dikembalikan". Sesudah
+`BKC-DEC-131`, angka itu ikut memuat pembatalan alokasi, padahal uangnya masih ada di saldo
+deposit. **Ini temuan milik Billing**, dilaporkan apa adanya dan **MUST NOT** diperbaiki dari
+Finance.
+
+| Keadaan mutasi `RELEASE` | Yang dilakukan Finance | Alasan |
+|---|---|---|
+| Ada mutasi `REVERSAL` dengan `SettlementId` yang sama | Terbitkan `PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT` | Inilah tanda pasti pembatalan alokasi LIFO: `BKC-DEC-131` selalu menulis keduanya dalam satu transaksi dengan `SettlementId` yang sama |
+| Tidak ada mutasi `REVERSAL` yang bersesuaian | Baris intake `ERROR` menunjuk `FIN-OQ-037`, **nol kejadian** | Artinya mutasi itu lahir dari jalur yang belum dikenal Finance. Menebak lawan jurnalnya berarti memilih antara kas dan piutang tanpa dasar — persis kesalahan yang dicegah amendment ini |
+
+**Kenapa *fail-closed*, bukan menebak.** Kedua kemungkinan lawan jurnalnya berbeda pada akun yang
+paling sensitif: kas. Salah menebak berarti kas di buku besar bergerak untuk uang yang tidak
+bergerak, dan itu baru ketahuan saat rekonsiliasi tutup bulan gagal. Baris `ERROR` membuatnya
+terlihat pada hari pertama, di layar pantauan yang sudah direncanakan `FE-FIN-007`.
+
+**Yang diminta dari owner Billing (`FIN-OQ-037`).** Satu dari dua, pilihan ada pada Billing:
+
+| Opsi | Isi | Akibat bagi Finance |
+|---|---|---|
+| A — penanda eksplisit *(direkomendasikan)* | Mutasi `RELEASE` versi pembatalan alokasi mengisi `ReversesMovementId` menunjuk mutasi `ALLOCATION` yang dibatalkan | Pembedaannya menjadi langsung dan tidak bergantung korelasi `SettlementId`. Kolomnya **sudah ada**, jadi nol perubahan skema di kedua modul |
+| B — `MovementType` tersendiri | Nilai baru, misalnya `ALLOCATION_CANCELLED` | Paling bersih secara makna, tetapi menyentuh check constraint dan setiap pembaca `MovementType` lain di Billing, termasuk perhitungan `totalRefunded` |
+
+Sampai salah satunya turun, aturan pada tabel di atas berlaku apa adanya. Permintaan ini **MUST**
+dikirim sebagai surat evidence tersendiri kepada owner Billing — bukan diselundupkan ke surat
+Accounting, karena pemiliknya berbeda. Pola yang sama dengan `FIN-OQ-034`/`evidence/17`.
+
+## H.4 Peta kode kejadian — tiga baris yang berubah
+
+| Kode | Pemicu **sebelum** amendment ini | Pemicu **sesudah** | Keadaan |
+|---|---|---|---|
+| `PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT` | Mutasi `REVERSAL` atas `ALLOCATION` — **tidak pernah ada** | Mutasi `RELEASE` yang berpasangan dengan `REVERSAL` ber-`SettlementId` sama | Pemicunya **kini ada**; `BE-FIN-047` dapat direncanakan |
+| `PENGEMBALIAN-UANG-MUKA` | `BilRefundCase` `EXECUTED` **atau** mutasi `RELEASE` | `BilRefundCase` `EXECUTED` saja | Cakupan **dipersempit**; kode tetap hidup |
+| `PEMBALIKAN-PENERIMAAN-UANG-MUKA` | Mutasi `REVERSAL` atas `TOP_UP` | **Tidak berubah** | Tetap seperti rancangan `BE-FIN-046` |
+
+## H.5 Status model, migration, dan data master
+
+| Hal | Isi |
+|---|---|
+| Status model | **Nol perubahan.** Tidak ada entity, kolom, index, constraint, maupun `DeleteBehavior` yang bergerak |
+| Rencana migration | **Nol migration.** Amendment ini murni pemetaan pemicu kejadian |
+| Rencana data master awal | **Nol tambahan.** Tidak ada tabel master yang disentuh |
+| Perubahan perilaku pada kode yang sudah berjalan | **Nol.** `FinanceBillingIntakeService` belum pernah memiliki jalur mutasi `RELEASE` — jalur itu baru lahir bersama `BE-FIN-025`, sehingga koreksi ini tiba **sebelum** kodenya ditulis, bukan sesudah |
+
+Butir terakhir adalah alasan amendment ini murah: `BE-FIN-025` belum dikerjakan. Bila koreksi ini
+datang setelahnya, ia akan menjadi perubahan perilaku pada kode berjalan beserta pembetulan baris
+outbox yang sudah terbit.
+
+## H.6 Yang sengaja tidak dibuat pada amendment ini
+
+| Yang ditolak | Alasan penolakan |
+|---|---|
+| Menebak arti mutasi `RELEASE` dari kolom `Reason` | `Reason` adalah teks bebas 500 karakter yang ditulis manusia. Menjadikannya kunci logika akuntansi berarti satu perubahan kalimat di Billing mengubah lawan jurnal di buku besar |
+| Memperbaiki perhitungan `totalRefunded` milik Billing | Melanggar `FIN-OOS-001`..`004`. Dilaporkan sebagai temuan kepada owner Billing, bukan diperbaiki dari Finance |
+| Menulis mutasi pembalik sendiri agar pemicunya "ada" | Finance tidak pernah menulis ke tabel `Bil*`. Itu pula yang sudah ditolak `FIN-DES-057` sejak awal |
+| Kode kejadian baru untuk pembatalan alokasi | Tidak perlu. `PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT` sudah diratifikasi Accounting dengan lawan jurnal yang persis cocok; yang salah hanya pemicunya |
+| Mencabut `PENGEMBALIAN-UANG-MUKA` sepenuhnya | Pemicunya yang benar tetap ada lewat `BilRefundCase` `EXECUTED` (`FIN-DES-056`). Mencabutnya akan menghilangkan satu-satunya kode untuk refund kas yang nyata |
+
+---
+
+# AMENDMENT REVISI 11 — Mekanisme resource payung hak akses (`FIN-DEC-082`, `FIN-DEC-083`)
+
+| Field | Nilai |
+|---|---|
+| Pemicu | `/grill-me` Amendment pass 29 September 2026 (`FIN-DEC-082`, `FIN-DEC-083`), yang sendiri dipicu temuan implementasi `BE-FIN-042` bagian 7 |
+| Keputusan yang diturunkan | `FIN-DEC-082` (payung memakai nama baru; controller V2 tidak disentuh), `FIN-DEC-083` (ekspansi materialized saat grant diberikan admin) |
+| Keputusan arsitektur baru | `FIN-DES-066`..`FIN-DES-069` — seluruhnya **`draft`**, belum disetujui owner |
+| Dampak skema | **NOL** tabel baru, **NOL** kolom baru, **NOL** migration |
+| Dampak lintas modul | **ADA.** Titik tulis mekanismenya berada di area `Administrator` (`RoleAccessController`), milik rumpun `platform-authorization` — bukan milik Finance. Lihat `I.6` |
+| Status gerbang | Satu gerbang terbuka: `FIN-OQ-038` (lihat `I.5`) menahan implementasi mekanisme ekspansi, **tidak** menahan `BE-FIN-042` D.5/D.6.1 yang sudah selesai |
+
+## I.1 Apa yang diperiksa pada source, dan apa yang ternyata berbeda dari dugaan
+
+Impact scan read-only dijalankan pada backend `7811c048` (**tidak bergerak** dari manifest) dan
+frontend `a31da3c21` (**bergerak** dari `49b59cfaa`). Pemindaian dibatasi pada area terdampak:
+jalur penulisan `SysAccessPolicy`, registry hak akses, dan penyaring menu frontend.
+
+| # | Dugaan yang dipakai `FIN-DEC-079`/`FIN-DES-061`..`063` | Kenyataan pada source | Akibat |
+|---:|---|---|---|
+| 1 | `Finance.AP`/`Finance.AR` adalah nama bebas yang belum dipakai siapa pun | Dipakai `FinanceApController` dan `FinanceArController` (V2, berjalan) | Sudah dijawab `FIN-DEC-082` |
+| 2 | Seeder peran dapat mendistribusikan izin granular | `AccessMenuSeeder` **tidak pernah** menulis `SysAccessPolicy`; ia hanya mengelola tiga tabel registry | Sudah dijawab `FIN-DEC-083` — titik tulis pindah ke layar Akses Role |
+| 3 | Filter menu frontend memakai payung untuk menjaga butir menu **Purchasing** | Butir menu yang dijaga `Finance.AP`/`Finance.AR` seluruhnya menunjuk rute **V2** (`/finance/payable*`, `/finance/receivable*`) dengan aksi `View`/`Payment`/`Report` — yaitu aksi milik controller V2 itu sendiri. Butir menu Purchasing ("Pembelian") **belum ada sama sekali**; ia baru akan dibuat `FE-FIN-008`..`014` | Premis `FIN-OQ-036` keliru — lihat `I.4` dan `FIN-DES-069` |
+| 4 | Berkas penyaring menu bernama `src/utils/menu-sidebar/corporateFinance.js` | Berkas itu **tidak ada**. Penyaringan ada di `src/utils/menu-sidebar/menu-items.jsx` (deklarasi `requiredPermission`) dan `src/utils/menu-sidebar/permission/filter-menu-items-by-permission.jsx` (fungsi penyaringnya) | `FIN-CQ-10`, dokumen dikoreksi |
+| 5 | — (tidak pernah diperiksa sebelumnya) | Dua butir menu dijaga aksi yang **tidak pernah terdaftar**: `Finance.AR : Report` dan `Finance.AP : Report`. Kedua controller V2 hanya mendeklarasikan `View`, `Payment` (AP) dan `View`, `Payment`, `Create` (AR); endpoint `/report` keduanya justru dijaga `View` | `FIN-CQ-09` — dua butir menu mati permanen, lihat `I.4` |
+
+**Temuan 5 dijelaskan lebih jauh.** Registry hanya memuat pasangan yang ditemukan dari atribut
+source. Karena `Report` tidak pernah dideklarasikan, ia tidak pernah menjadi baris
+`SysActionAccess`, sehingga tidak dapat dicentang admin, tidak pernah masuk `SysAccessPolicy`, dan
+tidak pernah muncul pada daftar izin efektif. Penyaring menu bersifat *fail-closed* — hanya `true`
+yang menampilkan — sehingga butir "Report AR" dan "Report AP" **tersembunyi bagi semua orang,
+termasuk SuperAdmin**. Endpoint laporannya sendiri sehat dan dapat dipanggil pemegang `View`; yang
+rusak hanya jalan masuk menunya.
+
+## I.2 Tabel kepemilikan data — perubahan
+
+Nol kelompok data baru. Nol pemilik berubah. Nol tabel dibuat ulang.
+
+| Kelompok data | Modul pemilik | Dipakai modul ini | Dibuat ulang di modul ini | Perubahan amendment ini |
+|---|---|:---:|---|---|
+| Registry kemampuan (`SysApplicationModule`, `SysControllerAccess`, `SysActionAccess`) | **Platform** (`platform-authorization`) | Ya — baca, dan bertambah baris lewat pemindaian atribut | **Tidak** | Bertambah satu resource payung per kelompok beserta aksinya, lewat mekanisme pendaftaran yang sudah ada |
+| Kebijakan hak akses (`SysAccessPolicy`) | **Platform** (`platform-authorization`) | Ya — **ditulis** oleh mekanisme ekspansi | **Tidak** | Nol kolom baru; bertambah baris hasil materialisasi |
+| Peta payung ke granular | **Finance** (isi petanya), **Platform** (mekanismenya) | Ya | Tidak — `contracts/permission-audit-matrix.md` D.3 tetap satu-satunya sumber kebenaran isinya | Bentuk teknisnya ditetapkan `FIN-DES-068` |
+
+## I.3 Keputusan arsitektur baru
+
+### FIN-DES-066 — Resource payung wajib punya pembawa yang terdaftar, dan hari ini platform belum bisa menampungnya
+
+Menurunkan `FIN-DEC-082`. Nama final yang dirancang: **`Finance.AP.Umbrella`** dan
+**`Finance.AR.Umbrella`**, dengan tiga aksi `View`, `Operate`, `Approve` (`AccessType` berturut-turut
+`Read`, `Create`, `Update`, supaya dapat dicentang pada layar Akses Role).
+
+**Kendala mekanis yang ditemukan, dan ia menentukan bentuk seluruh desain ini.** Sebuah pasangan
+`(resource, action)` hanya dapat diberikan admin bila ia **terdaftar** di registry. Registry disusun
+`PermissionRegistryDescriptor` dari dua sumber, dan **hanya** dua: (a) pemindaian atribut
+`[AccessController]`/`[AccessAction]` pada controller nyata, dan (b) `[assembly:
+AccessExplicitPermission(...)]` — "hak akses penanda" untuk kewenangan yang tidak menempel pada
+endpoint mana pun. Jalur (b) **tidak dapat dipakai membuat resource baru**: dokumentasi atributnya
+menyatakan `ResourceName` wajib menunjuk resource yang sudah terdaftar dari pemindaian endpoint pada
+modul yang sama, dan penanda yang menunjuk resource tak dikenal **ditolak keras** saat registry
+disusun.
+
+Konsekuensinya lugas: **resource payung yang tidak memiliki satu pun endpoint tidak dapat
+didaftarkan dengan mekanisme platform hari ini.** Ini bukan pilihan gaya yang bisa disiasati desain
+Finance; ini batas kemampuan platform yang nyata.
+
+Dua jalan keluar yang sah, dan keduanya **bukan wewenang Finance untuk memilih sendiri** karena
+salah satunya mengubah mekanisme milik modul lain:
+
+| Jalan keluar | Bentuk | Konsekuensi |
+|---|---|---|
+| **(C) Pembawa milik Finance** | Satu controller Finance baru yang memiliki resource payung, dengan satu endpoint nyata sebagai pembawanya, ditambah dua aksi penanda lewat `[assembly: AccessExplicitPermission]` untuk tier yang tidak punya endpoint | Seluruhnya di dalam wewenang Finance. Harganya: satu endpoint yang keberadaannya sebagian besar untuk membawa resource — dan endpoint itu **MUST** punya kegunaan nyata bagi pemegangnya, bukan sekadar hiasan, kalau tidak ia melanggar prinsip "jangan membuat permukaan teknis tanpa kebutuhan" |
+| **(D) Perluasan platform** | `platform-authorization` memperluas jalur penanda supaya dapat mendeklarasikan resource tanpa endpoint (*virtual resource*), dengan opt-in eksplisit | Bentuk yang paling jujur: kebutuhan "resource yang dapat diberikan tetapi tidak dijaga endpoint" memang belum dapat diungkapkan platform. Dapat dipakai ulang modul lain. Harganya: menyentuh mekanisme milik modul lain, **MUST** disetujui Security Owner dan pemilik `platform-authorization` |
+
+Pilihan di antara keduanya dicatat sebagai `FIN-OQ-038` (`I.5`). Sampai ia dijawab, mekanisme
+ekspansi **MUST NOT** diimplementasikan — bukan karena petanya belum jelas, melainkan karena
+pembawa resource-nya belum ada.
+
+### FIN-DES-067 — Titik tulis materialisasi: `ApplyPoliciesAsync`, sebelum gerbang validasi, di dalam transaksi yang sudah ada
+
+Menurunkan `FIN-DEC-083`. Seluruh penulisan `SysAccessPolicy` di aplikasi ini bermuara pada **satu**
+method: `RoleAccessController.ApplyPoliciesAsync`. Dua endpoint memakainya —
+`POST /role-access/policies` (simpan) dan `POST /role-access/policies/copy` (salin dari role lain) —
+sehingga menyisipkan ekspansi di sana mencakup kedua jalur sekaligus tanpa duplikasi.
+
+Urutan yang dirancang:
+
+```mermaid
+flowchart TD
+    A["Permintaan simpan: daftar pasangan Controller dan Action"] --> B["Deduplikasi permintaan"]
+    B --> C{"Ada pasangan payung di dalam permintaan?"}
+    C -- tidak --> E
+    C -- ya --> D["EKSPANSI: tambahkan pasangan granular yang dicakup tier payung itu"]
+    D --> E["Gerbang validasi registry yang SUDAH ADA: aktif, terlihat, bukan system-only, tipe CRUD"]
+    E --> F["Transaksi dibuka"]
+    F --> G{"overwriteTarget?"}
+    G -- ya --> H["Seluruh policy lama dinonaktifkan"]
+    G -- tidak --> I
+    H --> I["Upsert per pasangan, kunci alami Departemen-Posisi-Controller-Action"]
+    I --> J["SaveChanges dan Commit"]
+```
+
+| Keputusan penempatan | Alasan |
+|---|---|
+| Ekspansi **sebelum** gerbang validasi | Baris hasil ekspansi diperlakukan sama ketatnya dengan baris yang dicentang admin. Bila satu identitas granular pada peta ternyata sudah pensiun/tersembunyi, permintaan **ditolak** — bukan diam-diam menghasilkan payung yang memberi lebih sedikit daripada yang tertulis di kontrak |
+| Pesan penolakannya **menyebut identitas yang hilang** | Gerbang validasi yang sudah ada hanya berkata "Terdapat akses yang tidak valid". Untuk ekspansi, pesan itu tidak dapat ditindaklanjuti siapa pun. Ekspansi **MUST** menolak dengan menyebut pasangan mana yang tidak terselesaikan, mengikuti gaya gerbang `be-sec-003b-policy-expansion.sql` |
+| Ekspansi **di dalam** transaksi yang sudah ada | Payung dan granularnya tersimpan atau batal bersama. Tidak ada keadaan setengah jadi tempat payung tercatat tetapi granularnya tidak |
+| Idempoten tanpa kode tambahan | Upsert di langkah terakhir sudah berkunci alami (Departemen, Posisi, Controller, Action). Menjalankan ekspansi dua kali menghasilkan keadaan yang sama |
+| Nol perubahan pada `HasAccessAsync` | Inilah inti `FIN-DEC-083`. Algoritma otorisasi yang dipakai **seluruh** modul aplikasi tidak disentuh sama sekali |
+
+**Perilaku pencabutan, ditulis apa adanya karena inilah yang paling mudah disalahpahami.** Layar
+Akses Role mengirim **seluruh** himpunan izin yang diinginkan untuk satu Departemen x Posisi, dan
+`SavePolicies` memakai `overwriteTarget: true`. Sesudah materialisasi, baris granular ikut tampil
+**tercentang** pada layar (karena layar membaca policy yang benar-benar ada). Akibatnya:
+
+| Yang dilakukan admin | Yang terjadi | Sesuai `FIN-DEC-083`? |
+|---|---|---|
+| Mencentang payung lalu simpan | Payung + seluruh granular tercakup tersimpan | Ya |
+| **Hanya** melepas centang payung lalu simpan | Granular **tetap ada** — ia masih tercentang di layar, jadi ikut terkirim ulang | Ya — "mencabut payung tidak otomatis mencabut granularnya" |
+| Melepas centang payung **dan** granularnya lalu simpan | Keduanya hilang | Ya — inilah "langkah eksplisit terpisah" yang dimaksud keputusan |
+| Menyalin dari role lain | Baris granular yang sudah termaterialisasi ikut tersalin apa adanya; ekspansi berjalan lagi dan menjadi no-op | Ya |
+
+Perilaku itu **tidak perlu kode tambahan**: ia jatuh langsung dari semantik `overwriteTarget` yang
+sudah ada. Yang **MUST** dijaga implementasi adalah tidak menambahkan cascade pencabutan otomatis,
+karena itu justru melanggar `FIN-DEC-083`.
+
+**Contoh berangka.** Departemen Keuangan x Posisi Staf AP diberi `Finance.AP.Umbrella : View` dan
+`Operate`. Sesudah simpan, baris `SysAccessPolicy` yang tersimpan: 2 baris payung + seluruh pasangan
+granular tier `View` (9 resource x aksi `Read`) + tier `Operate` (aksi maker pada 9 resource itu).
+Staf itu kemudian dapat membuka layar Purchase Order, membuat draf PO, dan mengajukannya — tanpa
+admin pernah mencentang sembilan resource satu per satu.
+
+### FIN-DES-068 — Peta payung ke granular: satu berkas, dan kontrak sinkronisasinya dengan dokumen
+
+Peta ditulis sebagai **satu daftar statis di satu berkas**, bukan tabel database dan bukan atribut
+yang disebar ke 13 controller.
+
+| Pilihan | Diterima? | Alasan |
+|---|:---:|---|
+| Satu berkas statis | **Ya** | Satu tempat untuk dibaca saat audit ("apa saja yang diberikan payung AP?" dijawab satu berkas), dan dapat di-*diff* langsung terhadap D.3 kontrak. Nol perubahan pada 13 controller, sehingga nol risiko merusak izin yang sudah berjalan |
+| Tabel database yang dapat disunting admin | **Tidak** | Siapa pun yang dapat menyunting peta dapat menaikkan hak aksesnya sendiri. Peta eskalasi hak akses yang dapat disunting dari layar adalah permukaan serangan baru, bukan kenyamanan |
+| Atribut pada tiap aksi di 13 controller | **Tidak** | Sekitar 55 baris atribut tersebar di 13 berkas; untuk menjawab satu pertanyaan audit, peninjau harus membuka 13 berkas. Kedekatan kalah penting dibanding auditabilitas untuk peta sekuriti |
+
+Kontrak sinkronisasi yang mengikat, diturunkan dari peringatan `FIN-DEC-079` sendiri:
+
+1. `contracts/permission-audit-matrix.md` D.3 tetap **satu-satunya sumber kebenaran** isi peta.
+   Berkas kode adalah cerminannya, bukan saingannya.
+2. Setiap resource granular baru di rumpun AP/AR **MUST** ditambahkan ke keduanya pada perubahan
+   yang sama. Menambah ke salah satu saja adalah cacat yang **MUST** ditolak saat review.
+3. Peta **MUST NOT** memuat resource di luar daftar D.3 — termasuk `Finance.AP`/`Finance.AR` milik
+   controller V2, yang justru **tidak** dicakup payung mana pun (`FIN-DEC-082`).
+
+### FIN-DES-069 — Butir menu memakai resource granular; payung murni alat pemberian massal
+
+Menutup `FIN-OQ-036` dengan jawaban yang berpijak pada source, bukan pada premis yang keliru
+(`I.1` temuan 3).
+
+| Hal | Ketentuan |
+|---|---|
+| Butir menu "Pembelian" dan "Tagihan Gabungan Penjamin" yang akan dibangun `FE-FIN-008`..`014` | Dijaga resource **granular** yang sama persis dengan yang dituntut endpointnya — mis. butir "Purchase Order" dijaga `FinancePurchaseOrder : Read`, bukan payung |
+| Butir menu V2 yang sudah ada (`/finance/payable*`, `/finance/receivable*`) | **Tidak disentuh.** Tetap dijaga `Finance.AP`/`Finance.AR` milik controller V2 — konsisten dengan endpoint yang dipanggilnya, dan konsisten dengan `FIN-DEC-082` |
+| Peran payung terhadap menu | **Nol.** Payung tidak pernah diperiksa penyaring menu. Ia hanya alat admin untuk memberi 9/4 izin granular sekaligus; sesudah materialisasi, pemegangnya memiliki pasangan granular yang sungguhan, sehingga penyaring menu granular menampilkannya |
+| Kenapa ini aman | Penyaring menu (`filter-menu-items-by-permission.jsx`) memeriksa pasangan resource dan action terhadap daftar izin efektif dari `GET auth/permissions`, yang dibangun `GetEffectivePermissionsAsync` dari `SysAccessPolicy` apa adanya. Baris hasil materialisasi **adalah** baris `SysAccessPolicy` biasa, sehingga ikut terbaca tanpa perlakuan khusus |
+
+Dengan ini, klaim "frontend tidak perlu diubah" pada `FIN-DEC-079` menjadi benar untuk alasan yang
+**berbeda** dari yang tertulis di sana: bukan karena payung dipakai penyaring menu, melainkan karena
+butir menu yang dijaga payung hari ini memang milik V2 dan tidak berubah — sementara butir menu
+Purchasing yang baru memang belum pernah ada, sehingga tidak ada yang "diubah", hanya ditulis benar
+sejak awal oleh `FE-FIN-014`.
+
+## I.4 Dua temuan yang dilaporkan, bukan diperbaiki di sini
+
+| ID | Temuan | Pemilik perbaikan | Kenapa tidak diperbaiki di sini |
+|---|---|---|---|
+| `FIN-CQ-09` | Butir menu "Report AR" dan "Report AP" dijaga `Finance.AR : Report` / `Finance.AP : Report` — aksi yang tidak pernah dideklarasikan controller mana pun, sehingga kedua butir tersembunyi permanen bagi semua orang | Frontend (memakai `View`, sesuai endpoint `/report` yang memang dijaga `View`) **atau** Backend (mendeklarasikan aksi `Report`) — keputusan pemilik | Menyentuh perilaku menu yang sudah berjalan, di luar cakupan amendment ini. Perbaikan satu baris, tetapi arah perbaikannya adalah keputusan, bukan pekerjaan mekanis |
+| `FIN-CQ-10` | Dokumen menyebut berkas penyaring menu `src/utils/menu-sidebar/corporateFinance.js` yang **tidak ada**; yang nyata `menu-items.jsx` + `permission/filter-menu-items-by-permission.jsx` | Dokumentasi | Dikoreksi pada pass ini — lihat `03-frontend-architecture.md` bagian 15.4 |
+
+## I.5 Gerbang yang terbuka
+
+| ID | Pertanyaan | Pihak yang berwenang | Menahan apa |
+|---|---|---|---|
+| ~~`FIN-OQ-038`~~ | ~~Pembawa resource payung: **(C)** controller Finance baru yang memiliki resource payung beserta satu endpoint nyata, atau **(D)** perluasan `platform-authorization` supaya resource tanpa endpoint dapat dideklarasikan?~~ | — | **CLOSED 29 September 2026** oleh `FIN-DEC-084`: dipilih **(D) perluasan platform**. Opsi (C) ditolak karena endpoint yang keberadaannya terutama untuk membawa resource adalah jebakan jangka panjang — peninjau berikutnya wajar menghapusnya sebagai endpoint mati, dan itu diam-diam mematikan seluruh pemberian hak lewat payung |
+| `FIN-OQ-039` | Persetujuan dan penjadwalan perluasan registry supaya resource tanpa endpoint dapat dideklarasikan (opt-in eksplisit, penjaga anti-typo yang ada **tetap** dipertahankan) | Security Owner + pemilik `platform-authorization`. `FIN-DEC-084` adalah keputusan **sisi Finance** — ia meminta, bukan menyetujui atas nama modul lain | **Hanya** implementasi mekanisme ekspansi. **Tidak** menahan `BE-FIN-042` D.5 (rename 6 controller) dan D.6.1 (skrip migrasi `SysAccessPolicy`) yang sudah selesai dan berdiri sendiri, maupun pekerjaan frontend mana pun |
+
+## I.6 Batas kepemilikan yang MUST dijaga implementasi
+
+Amendment ini menyentuh kode milik modul lain, dan itu dicatat terbuka — bukan diselundupkan sebagai
+"pekerjaan Finance":
+
+| Bagian | Pemilik | Catatan |
+|---|---|---|
+| `RoleAccessController.ApplyPoliciesAsync` (titik tulis ekspansi) | **Platform** (`platform-authorization`) | Finance menyumbang kebutuhan dan peta, bukan kewenangan. Perubahan di sini **MUST** ditinjau pemilik platform |
+| Isi peta payung ke granular | **Finance** | Finance memiliki daftar resource AP/AR-nya sendiri |
+| Mekanisme generik (bila kelak dipakai modul lain) | **Platform** | Dirancang generik sejak awal supaya modul lain tidak menyalin logika yang sama |
+
+## I.7 Status model dan rencana migration
+
+| Hal | Nilai |
+|---|---|
+| Tabel baru | **NOL** |
+| Kolom baru | **NOL** |
+| Migration EF Core | **NOL** |
+| Skrip SQL data | **NOL** yang baru. Skrip `be-fin-042-role-permissions-migration.sql` (`BE-FIN-042`) berdiri sendiri dan tidak terdampak amendment ini |
+| Data master awal | **NOL**. Payung bukan data master; ia identitas registry yang lahir dari atribut source |
+
+## I.8 Yang sengaja tidak dibuat pada amendment ini
+
+| Yang ditolak | Alasan penolakan |
+|---|---|
+| Ekspansi dihitung saat request (`HasAccessAsync` diperluas) | Ditolak `FIN-DEC-083`. Mengubah algoritma otorisasi yang dipakai seluruh modul aplikasi demi kenyamanan satu modul |
+| Cascade pencabutan otomatis payung ke granular | Melanggar `FIN-DEC-083`. Pencabutan granular adalah langkah eksplisit admin |
+| Tabel peta payung yang dapat disunting dari layar | Permukaan eskalasi hak akses. Lihat `FIN-DES-068` |
+| Mengganti nama resource `Finance.AP`/`Finance.AR` milik controller V2 | Ditolak `FIN-DEC-082`. Menuntut migrasi data peran tambahan tanpa kebutuhan langsung |
+| Memperbaiki `FIN-CQ-09` di sini | Arah perbaikannya keputusan pemilik, bukan pekerjaan mekanis. Lihat `I.4` |
+| Payung untuk rumpun di luar AP/AR (Cash, Master Data, Accounting Integration) | `FIN-DEC-079` D.3 secara eksplisit menempatkannya sebagai resource mandiri. Menambah payung ketiga tanpa permintaan adalah perluasan cakupan |
 

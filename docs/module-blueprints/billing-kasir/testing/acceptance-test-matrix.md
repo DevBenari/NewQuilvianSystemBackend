@@ -451,9 +451,9 @@ Trace `BUI-DEC-001`–`015`, `BUI-DES-001`–`012`, `BUI-AC-01`–`17`, `BUI-VAL
 
 ---
 
-# Amendment 28 September 2026 — Pengujian Pembalikan Tender Top-Up Deposit dan Alokasi Tagihan (Revisi 1.8, `BIL-TEST-1.6`)
+# Amendment 29 September 2026 — Pengujian Pembalikan Tender Top-Up Deposit dan Alokasi Tagihan (Revisi 1.8, `BIL-TEST-1.7`)
 
-`last_changed_in: BIL-TEST-1.6` · status **draft** · input `BKC-DEC-128`–`131`, `BKC-DES-051`–`054`, `BIL-VAL-127`–`131`, `BIL-INT-018`.
+`last_changed_in: BIL-TEST-1.7` · status **draft** · input `BKC-DEC-128`–`134`, `BKC-DES-051`–`056`, `BIL-VAL-127`–`133`, `BIL-INT-018`.
 
 | ID | Requirement | Skenario | Jenis Test | Bukti yang Diharapkan |
 |---|---|---|---|---|
@@ -465,6 +465,9 @@ Trace `BUI-DEC-001`–`015`, `BUI-DES-001`–`012`, `BUI-AC-01`–`17`, `BUI-VAL
 | `BIL-AT-154` | `BKC-DEC-130`, `BKC-DES-051` | Jalur gagal: kegagalan transaksi di tengah proses pembalikan | Ketahanan / Transaksi | Bila terjadi galat pada tahap pembatalan alokasi atau penulisan mutasi, seluruh transaksi database di-rollback secara atomik; saldo deposit dan status tender tetap pada keadaan sebelum reversal dipicu. |
 | `BIL-AT-155` | `BIL-INT-018` | Idempotensi penanganan webhook tender `REVERSED` berulang | Integrasi / Idempotensi | Panggilan kedua dengan `tenderId` dan status `REVERSED` yang sama bersifat no-op (*idempotent*); tidak ada mutasi `RELEASE` atau `REVERSAL` duplikat yang tercatat. |
 | `BIL-AT-156` | `BIL-VAL-129` | Jalur gagal: tender belum pernah `SUCCEEDED` bertransisi ke `REVERSED` | Guard / Validasi | Transisi ditolak atau diabaikan tanpa menulis mutasi deposit apa pun; membuktikan hanya tender yang benar-benar pernah menambah saldo yang dapat dibalikkan saldonya. |
+| `BIL-AT-157` | `BKC-DEC-132`, `BKC-DEC-133`, `BKC-DES-055`, `BIL-VAL-132` | Penanda eksplisit `ReversesMovementId` dan granularitas 1-ke-1 mutasi `RELEASE` | Unit / Integrasi | Bila pembatalan LIFO membatalkan $N$ alokasi tagihan ($N \ge 1$), terbit tepat $N$ baris mutasi `RELEASE` di `BilDepositMovement`. Setiap baris memiliki `ReversesMovementId` yang cocok dengan ID mutasi `ALLOCATION` asalnya, `SettlementId` alokasi terkait, dan `Amount` cocok persis. Nol mutasi `RELEASE` ber-`ReversesMovementId == null`. |
+| `BIL-AT-158` | `BKC-DEC-134`, `BKC-DES-056`, `BIL-VAL-133` | Penyelarasan ringkasan deposit (`totalRefunded`) dan efek saldo mutasi rekening di `BillingDepositService` | Unit / Service | (1) `GetEpisodeDepositSummaryAsync` menghasilkan `TotalRefunded == 0` bila hanya ada mutasi `RELEASE` pembatalan alokasi (`ReversesMovementId != null`); (2) `GetDepositStatementAsync` menghasilkan `BalanceEffect == +Amount` untuk mutasi `RELEASE` pembatalan alokasi, memulihkan running balance secara tepat sebelum mutasi `REVERSAL` menariknya. |
 
-Trace `BKC-DEC-128`–`131`, `BKC-DES-051`–`054`, `BIL-VAL-127`–`131`, `BIL-INT-018`.
+Trace `BKC-DEC-128`–`134`, `BKC-DES-051`–`056`, `BIL-VAL-127`–`133`, `BIL-INT-018`.
+
 

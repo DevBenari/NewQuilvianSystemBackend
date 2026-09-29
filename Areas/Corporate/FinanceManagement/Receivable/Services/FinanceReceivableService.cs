@@ -597,11 +597,11 @@ public sealed class FinanceReceivableService
             receivable.UpdateBy = actorUserId;
             receivable.RowVersion = Guid.NewGuid();
 
-            // Stage event AR_PAYMENT ke Accounting Integration Outbox
+            // Stage event PENERIMAAN-PIUTANG ke Accounting Integration Outbox
             var eventOccurredAt = DateTimeOffset.UtcNow;
             await _accountingOutboxService.StageEventAsync(new AccountingOutboxEventRequest
             {
-                EventTypeCode = FinAccountingEventTypeCodes.ArPayment,
+                EventTypeCode = FinAccountingEventTypeCodes.PenerimaanPiutang,
                 SourceTransactionId = receivable.ReceivableNumber,
                 EventOccurredAt = eventOccurredAt,
                 AccountingDate = DateOnly.FromDateTime(DateTime.UtcNow),
@@ -692,10 +692,10 @@ public sealed class FinanceReceivableService
 
             _dbContext.FinReceivableWriteOffs.Add(writeOff);
 
-            // Stage event AR_WRITEOFF ke Accounting Outbox
+            // Stage event PEMUTIHAN-PIUTANG ke Accounting Outbox
             await _accountingOutboxService.StageEventAsync(new AccountingOutboxEventRequest
             {
-                EventTypeCode = FinAccountingEventTypeCodes.ArWriteOff,
+                EventTypeCode = FinAccountingEventTypeCodes.PemutihanPiutang,
                 SourceTransactionId = receivable.ReceivableNumber,
                 EventOccurredAt = writeOff.ApprovedAt.Value,
                 AccountingDate = DateOnly.FromDateTime(DateTime.UtcNow),

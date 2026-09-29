@@ -7,6 +7,7 @@ using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.BillingIntake.Mode
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Services;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
@@ -125,7 +126,7 @@ public sealed class FinanceBillingIntakeService
     public async Task<int> SyncNewFactsAsync(Guid actorUserId, CancellationToken cancellationToken)
     {
         var existingKeysByType = (await _dbContext.FinBillingHandoffIntakes.AsNoTracking()
-            .Where(x => !x.IsDelete && (x.HandoffType == FinBillingHandoffTypes.Ar || x.HandoffType == FinBillingHandoffTypes.Collection))
+            .Where(x => !x.IsDelete)
             .Select(x => new { x.HandoffType, x.SourceHandoffKey })
             .ToListAsync(cancellationToken))
             .ToLookup(x => x.HandoffType, x => x.SourceHandoffKey);
@@ -142,7 +143,81 @@ public sealed class FinanceBillingIntakeService
             .ToListAsync(cancellationToken);
         var collectionToCreate = collectionCandidates.Where(x => !existingKeysByType[FinBillingHandoffTypes.Collection].Contains(x.HandoffKey)).ToList();
 
-        if (arToCreate.Count == 0 && collectionToCreate.Count == 0) return 0;
+        // BE-FIN-025: Jalur sinkronisasi mutasi deposit (ALLOCATION dan RELEASE)
+        // BE-FIN-046: REVERSAL ikut disinkron — mutasi pembalik atas TOP_UP adalah fakta bahwa uang
+        // muka yang sempat tercatat ternyata tidak jadi diterima (FIN-DES-057). TOP_UP sendiri
+        // TIDAK disinkron sebagai fakta biasa; ia hanya dibaca pendeteksi FIN-VAL-142 di bawah.
+        var depositCandidatesAll = await _dbContext.BilDepositMovements.AsNoTracking()
+            .Where(x => !x.IsDelete)
+            .ToListAsync(cancellationToken);
+
+        var depositCandidates = depositCandidatesAll
+            .Where(x => x.MovementType == BillingDepositMovementTypes.Allocation
+                     || x.MovementType == BillingDepositMovementTypes.Release
+                     || x.MovementType == BillingDepositMovementTypes.Reversal)
+            .ToList();
+        var depositToCreate = depositCandidates.Where(x => !existingKeysByType[FinBillingHandoffTypes.DepositMovement].Contains(x.IdempotencyKey)).ToList();
+
+        // BE-FIN-025: Jalur sinkronisasi kelebihan bayar (ALLOCATION_EXCESS dan SETTLEMENT)
+        var creditCandidates = await _dbContext.BilRefundableCredits.AsNoTracking()
+            .Where(x => !x.IsDelete && (x.SourceType == BillingRefundableCreditSourceTypes.AllocationExcess || x.SourceType == BillingRefundableCreditSourceTypes.Settlement))
+            .ToListAsync(cancellationToken);
+        var creditToCreate = creditCandidates.Where(x => !existingKeysByType[FinBillingHandoffTypes.RefundableCredit].Contains(x.Id)).ToList();
+
+        // BE-FIN-025: Jalur sinkronisasi pengembalian uang (BilRefundCase EXECUTED)
+        var refundCandidates = await _dbContext.BilRefundCases.AsNoTracking()
+            .Where(x => !x.IsDelete && x.Status == BillingRefundCaseStatuses.Executed)
+            .ToListAsync(cancellationToken);
+        var refundToCreate = refundCandidates.Where(x => !existingKeysByType[FinBillingHandoffTypes.RefundCase].Contains(x.IdempotencyKey)).ToList();
+
+        // BE-FIN-025: Jalur sinkronisasi telaah selisih kas shift (BilCashVarianceReview)
+        var varianceCandidates = await _dbContext.BilCashVarianceReviews.AsNoTracking()
+            .Where(x => !x.IsDelete)
+            .ToListAsync(cancellationToken);
+        var varianceToCreate = varianceCandidates.Where(x => !existingKeysByType[FinBillingHandoffTypes.CashVarianceReview].Contains(x.Id)).ToList();
+
+        // BE-FIN-046, FIN-VAL-142 / FIN-DES-057: JARING PENGAMAN, bukan jalur utama.
+        //
+        // Saat tender yang mendanai top-up deposit dibalik, Billing MUST menulis mutasi pembalik
+        // atas TOP_UP-nya (BKC-DEC-128..131, sudah berjalan sejak BE-BKC-079). Bila suatu saat
+        // jalur itu berubah dan mutasi pembaliknya tidak ada, saldo deposit tetap mencatat uang
+        // yang tidak pernah jadi diterima — dan Finance tidak akan melihat fakta apa pun untuk
+        // diterbitkan. Pemeriksaan ini membuat lubang itu TERLIHAT, bukan mendiamkannya.
+        //
+        // Nol tulisan ke tabel Bil* — BilTender dan BilDepositMovement dibaca saja.
+        var reversedTopUpSettlementIds = await (
+            from tender in _dbContext.BilTenders.AsNoTracking()
+            join settlement in _dbContext.BilSettlements.AsNoTracking() on tender.SettlementId equals settlement.Id
+            where !tender.IsDelete && !settlement.IsDelete
+                  && tender.Status == BillingTenderStatuses.Reversed
+                  && settlement.Purpose == BillingSettlementPurposes.DepositTopUp
+            select settlement.Id).Distinct().ToListAsync(cancellationToken);
+
+        var orphanTopUps = new List<BilDepositMovement>();
+        if (reversedTopUpSettlementIds.Count > 0)
+        {
+            var topUpsOfReversedTenders = depositCandidatesAll
+                .Where(x => x.MovementType == BillingDepositMovementTypes.TopUp
+                         && x.SettlementId.HasValue
+                         && reversedTopUpSettlementIds.Contains(x.SettlementId.Value))
+                .ToList();
+
+            // Mutasi pembalik yang bersesuaian: REVERSAL yang menunjuk TOP_UP itu lewat
+            // ReversesMovementId (penanda eksplisit yang disepakati BKC-DEC-132).
+            var reversedMovementIds = depositCandidatesAll
+                .Where(x => x.MovementType == BillingDepositMovementTypes.Reversal && x.ReversesMovementId.HasValue)
+                .Select(x => x.ReversesMovementId!.Value)
+                .ToHashSet();
+
+            orphanTopUps = topUpsOfReversedTenders
+                .Where(x => !reversedMovementIds.Contains(x.Id)
+                         && !existingKeysByType[FinBillingHandoffTypes.DepositMovement].Contains(x.IdempotencyKey))
+                .ToList();
+        }
+
+        var totalToCreate = arToCreate.Count + collectionToCreate.Count + depositToCreate.Count
+            + creditToCreate.Count + refundToCreate.Count + varianceToCreate.Count + orphanTopUps.Count;
+        if (totalToCreate == 0) return 0;
 
         var now = DateTime.UtcNow;
         foreach (var handoff in arToCreate)
@@ -171,8 +246,82 @@ public sealed class FinanceBillingIntakeService
                 CreateBy = actorUserId
             });
         }
+        foreach (var movement in depositToCreate)
+        {
+            _dbContext.FinBillingHandoffIntakes.Add(new FinBillingHandoffIntake
+            {
+                HandoffType = FinBillingHandoffTypes.DepositMovement,
+                SourceHandoffId = movement.Id,
+                SourceHandoffKey = movement.IdempotencyKey,
+                Status = FinBillingHandoffIntakeStatuses.New,
+                CorrelationId = movement.CorrelationId,
+                CreateDateTime = now,
+                CreateBy = actorUserId
+            });
+        }
+        foreach (var credit in creditToCreate)
+        {
+            _dbContext.FinBillingHandoffIntakes.Add(new FinBillingHandoffIntake
+            {
+                HandoffType = FinBillingHandoffTypes.RefundableCredit,
+                SourceHandoffId = credit.Id,
+                SourceHandoffKey = credit.Id,
+                Status = FinBillingHandoffIntakeStatuses.New,
+                CorrelationId = credit.InvoiceId,
+                CreateDateTime = now,
+                CreateBy = actorUserId
+            });
+        }
+        foreach (var refund in refundToCreate)
+        {
+            _dbContext.FinBillingHandoffIntakes.Add(new FinBillingHandoffIntake
+            {
+                HandoffType = FinBillingHandoffTypes.RefundCase,
+                SourceHandoffId = refund.Id,
+                SourceHandoffKey = refund.IdempotencyKey,
+                Status = FinBillingHandoffIntakeStatuses.New,
+                CorrelationId = refund.CorrelationId,
+                CreateDateTime = now,
+                CreateBy = actorUserId
+            });
+        }
+        foreach (var review in varianceToCreate)
+        {
+            _dbContext.FinBillingHandoffIntakes.Add(new FinBillingHandoffIntake
+            {
+                HandoffType = FinBillingHandoffTypes.CashVarianceReview,
+                SourceHandoffId = review.Id,
+                SourceHandoffKey = review.Id,
+                Status = FinBillingHandoffIntakeStatuses.New,
+                CorrelationId = review.ShiftId,
+                CreateDateTime = now,
+                CreateBy = actorUserId
+            });
+        }
 
-        var totalToCreate = arToCreate.Count + collectionToCreate.Count;
+        // BE-FIN-046, FIN-VAL-142: baris ditulis LANGSUNG berstatus ERROR — bukan NEW. Ia bukan
+        // fakta yang menunggu diolah, melainkan lubang yang menunggu diperbaiki di sisi Billing.
+        // Barisnya menunjuk mutasi TOP_UP yang seharusnya sudah punya pembalik, supaya petugas
+        // dapat menelusurinya dari layar pantauan tanpa membuka database.
+        foreach (var topUp in orphanTopUps)
+        {
+            _dbContext.FinBillingHandoffIntakes.Add(new FinBillingHandoffIntake
+            {
+                HandoffType = FinBillingHandoffTypes.DepositMovement,
+                SourceHandoffId = topUp.Id,
+                SourceHandoffKey = topUp.IdempotencyKey,
+                Status = FinBillingHandoffIntakeStatuses.Error,
+                ErrorMessage =
+                    "Tender top-up deposit sudah dibalik, tetapi mutasi deposit pembaliknya tidak ditemukan " +
+                    "(FIN-VAL-142). Saldo deposit berpotensi mencatat uang yang tidak pernah jadi diterima. " +
+                    "Nol kejadian akuntansi diterbitkan untuk fakta yang belum lengkap ini — perbaikannya ada " +
+                    "di sisi Billing, dicatat FIN-OQ-034.",
+                CorrelationId = topUp.CorrelationId,
+                CreateDateTime = now,
+                CreateBy = actorUserId
+            });
+        }
+
         try
         {
             await _dbContext.SaveChangesAsync(cancellationToken);
@@ -204,16 +353,35 @@ public sealed class FinanceBillingIntakeService
 
         try
         {
-            if (current.HandoffType == FinBillingHandoffTypes.Collection)
-                await ProcessCollectionIntakeAsync(intakeId, actorUserId, cancellationToken);
-            else
-                await ProcessArIntakeAsync(intakeId, actorUserId, cancellationToken);
+            switch (current.HandoffType)
+            {
+                case FinBillingHandoffTypes.Collection:
+                    await ProcessCollectionIntakeAsync(intakeId, actorUserId, cancellationToken);
+                    break;
+                case FinBillingHandoffTypes.Ar:
+                    await ProcessArIntakeAsync(intakeId, actorUserId, cancellationToken);
+                    break;
+                case FinBillingHandoffTypes.DepositMovement:
+                    await ProcessDepositMovementIntakeAsync(intakeId, actorUserId, cancellationToken);
+                    break;
+                case FinBillingHandoffTypes.RefundableCredit:
+                    await ProcessRefundableCreditIntakeAsync(intakeId, actorUserId, cancellationToken);
+                    break;
+                case FinBillingHandoffTypes.RefundCase:
+                    await ProcessRefundCaseIntakeAsync(intakeId, actorUserId, cancellationToken);
+                    break;
+                case FinBillingHandoffTypes.CashVarianceReview:
+                    await ProcessCashVarianceReviewIntakeAsync(intakeId, actorUserId, cancellationToken);
+                    break;
+                default:
+                    throw new InvalidOperationException($"Konsumen untuk HandoffType '{current.HandoffType}' belum didukung.");
+            }
         }
         catch (Exception exception) when (exception is not (KeyNotFoundException or BillingIntakeValidationException))
         {
-            // Transaksi di ProcessArIntakeAsync sudah di-rollback; bersihkan change tracker
-            // supaya percobaan yang gagal (mis. FinReceivable yang sempat di-Add) tidak ikut
-            // tersimpan saat MarkErrorAsync memanggil SaveChangesAsync berikutnya.
+            // Transaksi di method pengolahan sudah di-rollback; bersihkan change tracker
+            // supaya percobaan yang gagal tidak ikut tersimpan saat MarkErrorAsync memanggil
+            // SaveChangesAsync berikutnya.
             _dbContext.ChangeTracker.Clear();
             // FR-FIN-011: kegagalan tersimpan dan terlihat, bukan hilang diam-diam.
             await MarkErrorAsync(intakeId, exception.Message, actorUserId, cancellationToken);
@@ -414,6 +582,550 @@ public sealed class FinanceBillingIntakeService
         }
     }
 
+    // ------------------------------------------------------------------------------------
+    // BE-FIN-025: Pengolahan mutasi deposit (ALLOCATION / RELEASE)
+    // ------------------------------------------------------------------------------------
+
+    private async Task ProcessDepositMovementIntakeAsync(Guid intakeId, Guid actorUserId, CancellationToken cancellationToken)
+    {
+        IDbContextTransaction? transaction = null;
+        try
+        {
+            transaction = await BeginTransactionAsync(cancellationToken);
+            await AcquireLockAsync($"FIN_BILLING_INTAKE_{intakeId:N}", cancellationToken);
+
+            var intake = await _dbContext.FinBillingHandoffIntakes
+                .SingleOrDefaultAsync(x => x.Id == intakeId && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Fakta masuk tidak ditemukan.");
+            if (intake.Status is FinBillingHandoffIntakeStatuses.Consumed or FinBillingHandoffIntakeStatuses.Acknowledged)
+                throw new BillingIntakeValidationException("Fakta ini sudah berhasil diolah dan tidak dapat diulang.");
+            if (intake.HandoffType != FinBillingHandoffTypes.DepositMovement)
+                throw new InvalidOperationException($"Konsumen untuk HandoffType '{intake.HandoffType}' tidak cocok.");
+
+            var movement = await _dbContext.BilDepositMovements.AsNoTracking()
+                .SingleOrDefaultAsync(x => x.Id == intake.SourceHandoffId && !x.IsDelete, cancellationToken)
+                ?? throw new InvalidOperationException("Fakta mutasi deposit sumber tidak ditemukan di Billing.");
+
+            var now = DateTimeOffset.UtcNow;
+
+            if (movement.MovementType == BillingDepositMovementTypes.Release)
+            {
+                // FIN-VAL-144: Mutasi RELEASE dilarang diterbitkan sebagai PENGEMBALIAN-UANG-MUKA (tidak mengeluarkan kas).
+                // FIN-VAL-145: Mutasi RELEASE tanpa pasangan REVERSAL ber-SettlementId sama ditolak secara fail-closed (menunjuk FIN-OQ-037).
+                throw new InvalidOperationException(
+                    "Mutasi RELEASE tidak mengeluarkan kas (FIN-VAL-144). Mutasi pelepasan tanpa pasangan REVERSAL ber-SettlementId sama ditolak sebagai fakta yang belum dapat diterbitkan (FIN-VAL-145, FIN-OQ-037).");
+            }
+
+            // BE-FIN-046 (FIN-DES-057): mutasi pembalik atas TOP_UP adalah fakta bahwa uang muka
+            // yang sempat tercatat ternyata TIDAK JADI diterima — uangnya ditarik kembali.
+            //
+            // TIDAK ADA RISIKO KEJADIAN GANDA dengan jalur penerimaan (BE-FIN-024), dan ini
+            // diverifikasi ke source, bukan diasumsikan: BilConsumerHandoffService.PublishForTenderAsync
+            // mengembalikan null bila settlement tidak punya InvoiceId — dan settlement top-up
+            // deposit memang tidak punya. Tender top-up karena itu TIDAK PERNAH menghasilkan
+            // BilCollectionHandoff, sehingga jalur FinReceipt tidak pernah menyentuh kasus ini.
+            if (movement.MovementType == BillingDepositMovementTypes.Reversal)
+            {
+                var reversedMovement = movement.ReversesMovementId.HasValue
+                    ? await _dbContext.BilDepositMovements.AsNoTracking()
+                        .SingleOrDefaultAsync(x => x.Id == movement.ReversesMovementId!.Value && !x.IsDelete, cancellationToken)
+                    : null;
+
+                if (reversedMovement is null)
+                {
+                    // Fail-closed: tanpa penanda eksplisit, arah jurnalnya tidak dapat ditentukan.
+                    // Finance TIDAK MENEBAK — lihat pola yang sama pada RELEASE di atas.
+                    throw new InvalidOperationException(
+                        "Mutasi REVERSAL tidak menyebut mutasi yang dibalikkannya (ReversesMovementId kosong " +
+                        "atau tidak ditemukan), sehingga arah jurnalnya tidak dapat ditentukan. Nol kejadian " +
+                        "diterbitkan — lihat FIN-OQ-037.");
+                }
+
+                if (reversedMovement.MovementType != BillingDepositMovementTypes.TopUp)
+                {
+                    // REVERSAL atas ALLOCATION adalah wilayah PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT,
+                    // yang penulisnya BE-FIN-047 — BUKAN task ini. Ditolak fail-closed supaya
+                    // faktanya tetap terlihat dan dapat diolah ulang begitu task itu selesai,
+                    // bukan diam-diam ditandai CONSUMED tanpa kejadian.
+                    throw new InvalidOperationException(
+                        $"Mutasi REVERSAL atas '{reversedMovement.MovementType}' belum punya penulis kejadian " +
+                        "di Finance — penulisnya BE-FIN-047 (PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT). Nol " +
+                        "kejadian diterbitkan.");
+                }
+
+                await _accountingOutboxService.StageEventAsync(new AccountingOutboxEventRequest
+                {
+                    EventTypeCode = FinAccountingEventTypeCodes.PembalikanPenerimaanUangMuka,
+                    SourceTransactionId = movement.Id.ToString(),
+                    SourceVersion = "1",
+                    EventOccurredAt = movement.OccurredAt,
+                    AccountingDate = DateOnly.FromDateTime(movement.OccurredAt.UtcDateTime),
+                    Amount = movement.Amount,
+                    CorrelationId = movement.CorrelationId,
+                    CausationId = movement.CausationId,
+                    ActorUserId = actorUserId
+                }, cancellationToken);
+            }
+
+            // TOP_UP tidak pernah menjadi fakta yang diolah jalur ini — ia hanya dibaca pendeteksi
+            // FIN-VAL-142 saat sinkronisasi. Baris intake bertipe TOP_UP hanya lahir sebagai
+            // penanda ERROR, dan menandainya CONSUMED tanpa kejadian akan menyembunyikan lubang
+            // yang justru ingin ditampakkan pendeteksi itu.
+            if (movement.MovementType == BillingDepositMovementTypes.TopUp)
+            {
+                throw new InvalidOperationException(
+                    "Mutasi TOP_UP tidak diolah sebagai fakta masuk. Baris ini lahir dari pendeteksi " +
+                    "FIN-VAL-142 dan tetap ERROR sampai mutasi pembaliknya ada di sisi Billing (FIN-OQ-034).");
+            }
+
+            if (movement.MovementType == BillingDepositMovementTypes.Allocation)
+            {
+                // ALLOCATION -> PEMAKAIAN-UANG-MUKA-DEPOSIT tanpa FinReceipt baru.
+                await _accountingOutboxService.StageEventAsync(new AccountingOutboxEventRequest
+                {
+                    EventTypeCode = FinAccountingEventTypeCodes.PemakaianUangMukaDeposit,
+                    SourceTransactionId = movement.Id.ToString(),
+                    SourceVersion = "1",
+                    EventOccurredAt = movement.OccurredAt,
+                    AccountingDate = DateOnly.FromDateTime(movement.OccurredAt.UtcDateTime),
+                    Amount = movement.Amount,
+                    CorrelationId = movement.CorrelationId,
+                    CausationId = movement.CausationId,
+                    ActorUserId = actorUserId
+                }, cancellationToken);
+            }
+
+            // Keempat jenis berhenti di CONSUMED, tidak mengirim ACK ke Billing (nol tulisan ke tabel Bil*).
+            intake.Status = FinBillingHandoffIntakeStatuses.Consumed;
+            intake.TargetEntityId = null;
+            intake.ConsumedAt = now;
+            intake.ErrorMessage = null;
+            intake.UpdateDateTime = DateTime.UtcNow;
+            intake.UpdateBy = actorUserId;
+            intake.RowVersion = Guid.NewGuid();
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            await CommitAsync(transaction, cancellationToken);
+            await AuditAsync("Intake.Consumed", intake.Id, actorUserId, null);
+        }
+        catch
+        {
+            await RollbackAsync(transaction);
+            throw;
+        }
+        finally
+        {
+            if (transaction is not null) await transaction.DisposeAsync();
+        }
+    }
+
+    // ------------------------------------------------------------------------------------
+    // BE-FIN-025: Pengolahan kelebihan bayar (ALLOCATION_EXCESS / SETTLEMENT)
+    // ------------------------------------------------------------------------------------
+
+    private async Task ProcessRefundableCreditIntakeAsync(Guid intakeId, Guid actorUserId, CancellationToken cancellationToken)
+    {
+        IDbContextTransaction? transaction = null;
+        try
+        {
+            transaction = await BeginTransactionAsync(cancellationToken);
+            await AcquireLockAsync($"FIN_BILLING_INTAKE_{intakeId:N}", cancellationToken);
+
+            var intake = await _dbContext.FinBillingHandoffIntakes
+                .SingleOrDefaultAsync(x => x.Id == intakeId && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Fakta masuk tidak ditemukan.");
+            if (intake.Status is FinBillingHandoffIntakeStatuses.Consumed or FinBillingHandoffIntakeStatuses.Acknowledged)
+                throw new BillingIntakeValidationException("Fakta ini sudah berhasil diolah dan tidak dapat diulang.");
+            if (intake.HandoffType != FinBillingHandoffTypes.RefundableCredit)
+                throw new InvalidOperationException($"Konsumen untuk HandoffType '{intake.HandoffType}' tidak cocok.");
+
+            var credit = await _dbContext.BilRefundableCredits.AsNoTracking()
+                .SingleOrDefaultAsync(x => x.Id == intake.SourceHandoffId && !x.IsDelete, cancellationToken)
+                ?? throw new InvalidOperationException("Fakta kredit kelebihan bayar sumber tidak ditemukan di Billing.");
+
+            if (credit.SourceType == BillingRefundableCreditSourceTypes.ReferredOutpatientAdmin)
+            {
+                throw new InvalidOperationException(
+                    $"Kredit berjenis '{credit.SourceType}' belum dapat diakui kejadiannya karena perlakuan akuntansinya belum ditetapkan (FIN-OQ-031).");
+            }
+
+            var now = DateTimeOffset.UtcNow;
+
+            // Syarat ketiga FIN-DEC-067: kode ini MUST NOT terbit bila pembayaran asalnya PENERIMAAN-UANG-MUKA
+            // (kelebihannya sudah tercatat di Uang Muka Pasien; menerbitkannya akan mencatat kewajiban dua kali).
+            // FinReceipt tidak menyimpan EventTypeCode — pemicu PENERIMAAN-UANG-MUKA di
+            // FinanceReceiptService adalah persis SourceInvoiceStatus == Open (lihat CreateAsync).
+            var isFromAdvancePayment = await _dbContext.FinReceipts.AsNoTracking()
+                .AnyAsync(r => !r.IsDelete
+                    && r.InvoiceId == credit.InvoiceId
+                    && r.SourceInvoiceStatus == BillingInvoiceStatuses.Open,
+                    cancellationToken);
+
+            if (!isFromAdvancePayment && credit.OriginalAmount > 0)
+            {
+                await _accountingOutboxService.StageEventAsync(new AccountingOutboxEventRequest
+                {
+                    EventTypeCode = FinAccountingEventTypeCodes.PengakuanKelebihanBayar,
+                    SourceTransactionId = credit.Id.ToString(),
+                    SourceVersion = "1",
+                    EventOccurredAt = credit.RecognizedAt,
+                    AccountingDate = DateOnly.FromDateTime(credit.RecognizedAt.UtcDateTime),
+                    Amount = credit.OriginalAmount,
+                    CorrelationId = credit.InvoiceId,
+                    CausationId = credit.Id,
+                    ActorUserId = actorUserId
+                }, cancellationToken);
+            }
+
+            intake.Status = FinBillingHandoffIntakeStatuses.Consumed;
+            intake.TargetEntityId = null;
+            intake.ConsumedAt = now;
+            intake.ErrorMessage = null;
+            intake.UpdateDateTime = DateTime.UtcNow;
+            intake.UpdateBy = actorUserId;
+            intake.RowVersion = Guid.NewGuid();
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            await CommitAsync(transaction, cancellationToken);
+            await AuditAsync("Intake.Consumed", intake.Id, actorUserId, null);
+        }
+        catch
+        {
+            await RollbackAsync(transaction);
+            throw;
+        }
+        finally
+        {
+            if (transaction is not null) await transaction.DisposeAsync();
+        }
+    }
+
+    // ------------------------------------------------------------------------------------
+    // BE-FIN-025: Pengolahan pengembalian uang (BilRefundCase EXECUTED)
+    // ------------------------------------------------------------------------------------
+
+    private async Task ProcessRefundCaseIntakeAsync(Guid intakeId, Guid actorUserId, CancellationToken cancellationToken)
+    {
+        IDbContextTransaction? transaction = null;
+        try
+        {
+            transaction = await BeginTransactionAsync(cancellationToken);
+            await AcquireLockAsync($"FIN_BILLING_INTAKE_{intakeId:N}", cancellationToken);
+
+            var intake = await _dbContext.FinBillingHandoffIntakes
+                .SingleOrDefaultAsync(x => x.Id == intakeId && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Fakta masuk tidak ditemukan.");
+            if (intake.Status is FinBillingHandoffIntakeStatuses.Consumed or FinBillingHandoffIntakeStatuses.Acknowledged)
+                throw new BillingIntakeValidationException("Fakta ini sudah berhasil diolah dan tidak dapat diulang.");
+            if (intake.HandoffType != FinBillingHandoffTypes.RefundCase)
+                throw new InvalidOperationException($"Konsumen untuk HandoffType '{intake.HandoffType}' tidak cocok.");
+
+            var refundCase = await _dbContext.BilRefundCases.AsNoTracking()
+                .Include(x => x.RefundableCredit)
+                .SingleOrDefaultAsync(x => x.Id == intake.SourceHandoffId && !x.IsDelete, cancellationToken)
+                ?? throw new InvalidOperationException("Fakta pengembalian (refund case) sumber tidak ditemukan di Billing.");
+
+            var credit = refundCase.RefundableCredit;
+            if (credit is null && refundCase.RefundableCreditId.HasValue)
+            {
+                credit = await _dbContext.BilRefundableCredits.AsNoTracking()
+                    .SingleOrDefaultAsync(x => x.Id == refundCase.RefundableCreditId.Value && !x.IsDelete, cancellationToken);
+            }
+
+            // FIN-VAL-141: Refund atas kredit REFERRED_OUTPATIENT_ADMIN ditulis sebagai baris intake ERROR, nol kejadian.
+            if (credit is not null && credit.SourceType == BillingRefundableCreditSourceTypes.ReferredOutpatientAdmin)
+            {
+                throw new InvalidOperationException(
+                    $"Pengembalian untuk kredit berjenis '{credit.SourceType}' belum dapat diterbitkan kejadiannya karena perlakuan akuntansinya belum ditetapkan (FIN-VAL-141, FIN-OQ-031).");
+            }
+
+            var now = DateTimeOffset.UtcNow;
+            var eventTime = refundCase.CompletedAt ?? refundCase.SubmittedAt;
+
+            if (refundCase.RequestedAmount > 0)
+            {
+                await _accountingOutboxService.StageEventAsync(new AccountingOutboxEventRequest
+                {
+                    EventTypeCode = FinAccountingEventTypeCodes.PengembalianUangMuka,
+                    SourceTransactionId = refundCase.Id.ToString(),
+                    SourceVersion = "1",
+                    EventOccurredAt = eventTime,
+                    AccountingDate = DateOnly.FromDateTime(eventTime.UtcDateTime),
+                    Amount = refundCase.RequestedAmount,
+                    CorrelationId = refundCase.CorrelationId,
+                    CausationId = refundCase.CausationId,
+                    ActorUserId = actorUserId
+                }, cancellationToken);
+            }
+
+            intake.Status = FinBillingHandoffIntakeStatuses.Consumed;
+            intake.TargetEntityId = null;
+            intake.ConsumedAt = now;
+            intake.ErrorMessage = null;
+            intake.UpdateDateTime = DateTime.UtcNow;
+            intake.UpdateBy = actorUserId;
+            intake.RowVersion = Guid.NewGuid();
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            await CommitAsync(transaction, cancellationToken);
+            await AuditAsync("Intake.Consumed", intake.Id, actorUserId, null);
+        }
+        catch
+        {
+            await RollbackAsync(transaction);
+            throw;
+        }
+        finally
+        {
+            if (transaction is not null) await transaction.DisposeAsync();
+        }
+    }
+
+    // ------------------------------------------------------------------------------------
+    // BE-FIN-025: Pengolahan telaah selisih kas shift (BilCashVarianceReview)
+    // ------------------------------------------------------------------------------------
+
+    private async Task ProcessCashVarianceReviewIntakeAsync(Guid intakeId, Guid actorUserId, CancellationToken cancellationToken)
+    {
+        IDbContextTransaction? transaction = null;
+        try
+        {
+            transaction = await BeginTransactionAsync(cancellationToken);
+            await AcquireLockAsync($"FIN_BILLING_INTAKE_{intakeId:N}", cancellationToken);
+
+            var intake = await _dbContext.FinBillingHandoffIntakes
+                .SingleOrDefaultAsync(x => x.Id == intakeId && !x.IsDelete, cancellationToken)
+                ?? throw new KeyNotFoundException("Fakta masuk tidak ditemukan.");
+            if (intake.Status is FinBillingHandoffIntakeStatuses.Consumed or FinBillingHandoffIntakeStatuses.Acknowledged)
+                throw new BillingIntakeValidationException("Fakta ini sudah berhasil diolah dan tidak dapat diulang.");
+            if (intake.HandoffType != FinBillingHandoffTypes.CashVarianceReview)
+                throw new InvalidOperationException($"Konsumen untuk HandoffType '{intake.HandoffType}' tidak cocok.");
+
+            var review = await _dbContext.BilCashVarianceReviews.AsNoTracking()
+                .Include(x => x.Shift)
+                .SingleOrDefaultAsync(x => x.Id == intake.SourceHandoffId && !x.IsDelete, cancellationToken)
+                ?? throw new InvalidOperationException("Fakta telaah selisih kas sumber tidak ditemukan di Billing.");
+
+            var shift = review.Shift ?? await _dbContext.BilCashierShifts.AsNoTracking()
+                .SingleOrDefaultAsync(x => x.Id == review.ShiftId && !x.IsDelete, cancellationToken)
+                ?? throw new InvalidOperationException("Shift kasir sumber tidak ditemukan.");
+
+            var now = DateTimeOffset.UtcNow;
+
+            // FIN-DES-053:
+            // 1. Kapan terbit: saat shift mencapai REVIEWED (baris review yang MENYELESAIKAN selisihnya).
+            //    Baris NEEDS_FOLLOW_UP (shift PERLU_TINDAK_LANJUT) -> nol kejadian.
+            // 2. Variance == 0 -> nol kejadian.
+            // 3. Kode: SELISIH-KAS-KURANG bila Variance < 0; SELISIH-KAS-LEBIH bila Variance > 0.
+            // 4. Amount: Math.Abs(shift.Variance) — selalu positif.
+            // 5. AccountingDate: tanggal shift (OpenedAt).
+            // 6. SourceTransactionId: BilCashierShift.Id (Bukan BilCashVarianceReview.Id).
+            // 7. SourceVersion: dipatok "1".
+            // 8. CorrelationId: shift.Id, CausationId: review.Id.
+            if (shift.Status == CashierShiftStatuses.Reviewed && shift.Variance != 0)
+            {
+                var eventTypeCode = shift.Variance < 0
+                    ? FinAccountingEventTypeCodes.SelisihKasKurang
+                    : FinAccountingEventTypeCodes.SelisihKasLebih;
+
+                await _accountingOutboxService.StageEventAsync(new AccountingOutboxEventRequest
+                {
+                    EventTypeCode = eventTypeCode,
+                    SourceTransactionId = shift.Id.ToString(),
+                    SourceVersion = "1",
+                    EventOccurredAt = review.ReviewedAt,
+                    AccountingDate = DateOnly.FromDateTime(shift.OpenedAt.UtcDateTime),
+                    Amount = Math.Abs(shift.Variance),
+                    CorrelationId = shift.Id,
+                    CausationId = review.Id,
+                    ActorUserId = actorUserId
+                }, cancellationToken);
+            }
+
+            intake.Status = FinBillingHandoffIntakeStatuses.Consumed;
+            intake.TargetEntityId = null;
+            intake.ConsumedAt = now;
+            intake.ErrorMessage = null;
+            intake.UpdateDateTime = DateTime.UtcNow;
+            intake.UpdateBy = actorUserId;
+            intake.RowVersion = Guid.NewGuid();
+
+            await _dbContext.SaveChangesAsync(cancellationToken);
+            await CommitAsync(transaction, cancellationToken);
+            await AuditAsync("Intake.Consumed", intake.Id, actorUserId, null);
+        }
+        catch
+        {
+            await RollbackAsync(transaction);
+            throw;
+        }
+        finally
+        {
+            if (transaction is not null) await transaction.DisposeAsync();
+        }
+    }
+
+    // ------------------------------------------------------------------------------------
+    // BE-FIN-045: Penanda penutupan shift kasir (FIN-DES-054, FIN-DEC-070/072/073/075)
+    //
+    // BENTUK YANG DIPILIH, dan alasannya — dicatat karena desain menetapkan pemicu, nilai, dan
+    // aturan versinya, tetapi TIDAK menetapkan dari mana penanda ini ditulis:
+    //
+    //   Jalur ini SENGAJA TIDAK memakai baris FinBillingHandoffIntake. Dua sebab:
+    //   (a) Kunci dedup intake adalah (HandoffType, SourceHandoffKey) — satu baris per sumber
+    //       selamanya. Padahal satu shift MEMANG boleh ditutup dan dibuka berulang kali, dan
+    //       setiap siklus adalah kejadian tersendiri (FIN-DES-054). Kunci itu justru akan
+    //       menghalangi siklus kedua dan seterusnya.
+    //   (b) Jenis handoff baru menuntut perubahan check constraint HandoffType, yaitu migration
+    //       pada tabel yang sudah berjalan — dan itu BUKAN bagian cakupan task ini.
+    //
+    //   Sebagai gantinya, idempotensi diambil dari kotak keluar itu sendiri: unique index dua
+    //   lapis (SourceModule, SourceTransactionId, EventTypeCode, SourceVersion) sudah cukup,
+    //   asalkan SourceVersion dipatok PER SIKLUS. Nomor siklus diturunkan dari isi kotak keluar,
+    //   bukan dari kolom status baru: jumlah penanda pembalik yang sudah terbit untuk shift itu.
+    //
+    // Shift kasir DIBACA SAJA (FIN-CAP-024, FIN-OOS-001..004) — nol tulisan ke tabel Bil* mana pun.
+    // ------------------------------------------------------------------------------------
+
+    public async Task<CashierShiftClosureMarkerSyncResult> SyncCashierShiftClosureMarkersAsync(
+        Guid actorUserId, CancellationToken cancellationToken)
+    {
+        // FIN-DES-054: HANYA tiga status yang relevan. CLOSED_WITH_VARIANCE dan
+        // PERLU_TINDAK_LANJUT SENGAJA tidak ikut — keduanya justru HARUS tetap menahan tutup
+        // bulan, sesuai maksud ACC-DEC-065.
+        var shifts = await _dbContext.BilCashierShifts.AsNoTracking()
+            .Where(x => !x.IsDelete && (
+                x.Status == CashierShiftStatuses.Closed ||
+                x.Status == CashierShiftStatuses.Reviewed ||
+                x.Status == CashierShiftStatuses.Reopened))
+            .ToListAsync(cancellationToken);
+
+        if (shifts.Count == 0)
+            return new CashierShiftClosureMarkerSyncResult(0, 0);
+
+        var shiftKeys = shifts.Select(x => x.Id.ToString()).ToList();
+
+        var existingMarkers = await _dbContext.Set<FinAccountingEventOutbox>().AsNoTracking()
+            .Where(x => !x.IsDelete
+                && x.SourceModule == FinAccountingEventSourceModules.Finance
+                && shiftKeys.Contains(x.SourceTransactionId)
+                && (x.EventTypeCode == FinAccountingEventTypeCodes.PenutupanShiftKasir
+                 || x.EventTypeCode == FinAccountingEventTypeCodes.PembalikanPenutupanShiftKasir))
+            .Select(x => new { x.SourceTransactionId, x.EventTypeCode })
+            .ToListAsync(cancellationToken);
+
+        var closureCounts = existingMarkers
+            .Where(x => x.EventTypeCode == FinAccountingEventTypeCodes.PenutupanShiftKasir)
+            .GroupBy(x => x.SourceTransactionId)
+            .ToDictionary(g => g.Key, g => g.Count(), StringComparer.Ordinal);
+
+        var reversalCounts = existingMarkers
+            .Where(x => x.EventTypeCode == FinAccountingEventTypeCodes.PembalikanPenutupanShiftKasir)
+            .GroupBy(x => x.SourceTransactionId)
+            .ToDictionary(g => g.Key, g => g.Count(), StringComparer.Ordinal);
+
+        var closureIssued = 0;
+        var reversalIssued = 0;
+
+        IDbContextTransaction? transaction = null;
+        try
+        {
+            transaction = await BeginTransactionAsync(cancellationToken);
+
+            foreach (var shift in shifts)
+            {
+                var key = shift.Id.ToString();
+                closureCounts.TryGetValue(key, out var closureCount);
+                reversalCounts.TryGetValue(key, out var reversalCount);
+
+                if (shift.Status is CashierShiftStatuses.Closed or CashierShiftStatuses.Reviewed)
+                {
+                    // Siklus berjalan = jumlah pembalik yang sudah terbit + 1. Bila penanda untuk
+                    // siklus ini sudah ada, tidak ada yang dikerjakan — inilah idempotensinya.
+                    var cycle = reversalCount + 1;
+                    if (closureCount >= cycle) continue;
+
+                    await _accountingOutboxService.StageEventAsync(new AccountingOutboxEventRequest
+                    {
+                        EventTypeCode = FinAccountingEventTypeCodes.PenutupanShiftKasir,
+                        SourceTransactionId = key,
+                        SourceVersion = cycle.ToString(),
+                        // Waktu kejadian: saat shift ditutup. ClosedAt terisi CloseAsync; jatuh
+                        // balik ke OpenedAt hanya bila data lama tidak memilikinya.
+                        EventOccurredAt = shift.ClosedAt ?? shift.OpenedAt,
+                        // FIN-DES-054: AccountingDate adalah TANGGAL SHIFT, bukan tanggal tutup —
+                        // konvensi yang sama dengan SELISIH-KAS-* (BE-FIN-025).
+                        AccountingDate = DateOnly.FromDateTime(shift.OpenedAt.UtcDateTime),
+                        // Amount = 0: penanda status, bukan transaksi. Diterima ValidateRequest
+                        // HANYA karena kode ini ada pada daftar tertutup ZeroAmountAllowedEventTypes
+                        // (FIN-VAL-138, BE-FIN-023). FIN-DEC-075 MENOLAK jalan pintas nilai
+                        // simbolis non-nol — angka palsu di buku besar lebih berbahaya daripada
+                        // baris PENDING yang menunggu.
+                        Amount = 0m,
+                        CorrelationId = shift.Id,
+                        CausationId = shift.Id,
+                        ActorUserId = actorUserId
+                    }, cancellationToken);
+
+                    closureIssued++;
+                }
+                else
+                {
+                    // REOPENED: terbitkan pembalik hanya bila siklus yang dibuka itu memang sudah
+                    // pernah menerbitkan penanda penutupan. Shift yang dibuka kembali tanpa pernah
+                    // tertutup di mata Accounting tidak punya apa pun untuk dibalik.
+                    if (closureCount <= reversalCount) continue;
+
+                    await _accountingOutboxService.StageEventAsync(new AccountingOutboxEventRequest
+                    {
+                        EventTypeCode = FinAccountingEventTypeCodes.PembalikanPenutupanShiftKasir,
+                        SourceTransactionId = key,
+                        SourceVersion = (reversalCount + 1).ToString(),
+                        // BilCashierShift tidak menyimpan waktu pembukaan kembali, sehingga waktu
+                        // kejadian diambil saat sinkronisasi ini berjalan. Dicatat sebagai
+                        // keterbatasan pada laporan task, bukan ditebak dari kolom lain.
+                        EventOccurredAt = DateTimeOffset.UtcNow,
+                        AccountingDate = DateOnly.FromDateTime(shift.OpenedAt.UtcDateTime),
+                        Amount = 0m,
+                        CorrelationId = shift.Id,
+                        CausationId = shift.Id,
+                        ActorUserId = actorUserId
+                    }, cancellationToken);
+
+                    reversalIssued++;
+                }
+            }
+
+            if (closureIssued + reversalIssued > 0)
+            {
+                await _dbContext.SaveChangesAsync(cancellationToken);
+            }
+
+            await CommitAsync(transaction, cancellationToken);
+        }
+        catch
+        {
+            await RollbackAsync(transaction);
+            throw;
+        }
+        finally
+        {
+            if (transaction is not null) await transaction.DisposeAsync();
+        }
+
+        if (closureIssued + reversalIssued > 0)
+        {
+            // AuditAsync milik kelas ini berbentuk per-intake (parameter keempatnya ReceivableId),
+            // sedangkan jalur ini tidak punya baris intake. Karena itu logger dipanggil langsung
+            // dengan bentuk yang sesuai — bukan memaksakan helper yang artinya berbeda.
+            await _loggerService.AuditAsync(LogCategory, "FinanceBillingIntake.CashierShiftClosureMarker.Sync",
+                $"Penanda penutupan shift kasir diterbitkan. Penutupan={closureIssued} Pembalik={reversalIssued}",
+                new { ClosureIssued = closureIssued, ReversalIssued = reversalIssued, ActorUserId = actorUserId });
+        }
+
+        return new CashierShiftClosureMarkerSyncResult(closureIssued, reversalIssued);
+    }
+
     private async Task MarkErrorAsync(Guid intakeId, string errorMessage, Guid actorUserId, CancellationToken cancellationToken)
     {
         var intake = await _dbContext.FinBillingHandoffIntakes.SingleAsync(x => x.Id == intakeId, cancellationToken);
@@ -483,3 +1195,10 @@ public sealed class FinanceBillingIntakeService
 }
 
 public sealed class BillingIntakeValidationException(string message) : Exception(message);
+
+/// <summary>
+/// Hasil SyncCashierShiftClosureMarkersAsync (BE-FIN-045). Keduanya menghitung baris kotak keluar
+/// yang BENAR-BENAR diterbitkan pada pemanggilan itu — shift yang penandanya sudah ada tidak
+/// dihitung, karena jalur ini idempoten.
+/// </summary>
+public sealed record CashierShiftClosureMarkerSyncResult(int ClosureIssued, int ReversalIssued);

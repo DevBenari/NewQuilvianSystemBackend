@@ -602,12 +602,12 @@ public sealed class FinancePaymentService
             var eventOccurredAt = DateTimeOffset.UtcNow;
             var apPaymentAmount = payment.TotalAmount - payment.DepositAppliedAmount;
 
-            // FIN-DES-047, FIN-VAL-131: Stage event AP_PAYMENT hanya jika Amount > 0 (dilewati bila nol)
+            // FIN-DES-047, FIN-VAL-131: Stage event PEMBAYARAN-HUTANG-SUPPLIER hanya jika Amount > 0 (dilewati bila nol)
             if (apPaymentAmount > 0)
             {
                 await _accountingOutboxService.StageEventAsync(new AccountingOutboxEventRequest
                 {
-                    EventTypeCode = FinAccountingEventTypeCodes.ApPayment,
+                    EventTypeCode = FinAccountingEventTypeCodes.PembayaranHutangSupplier,
                     SourceTransactionId = payment.PaymentNumber,
                     EventOccurredAt = eventOccurredAt,
                     AccountingDate = DateOnly.FromDateTime(DateTime.UtcNow),

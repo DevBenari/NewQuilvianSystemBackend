@@ -471,14 +471,32 @@ Ketiganya **MUST** dijadwalkan sebagai satu rangkaian, bukan tiga task lepas. Bu
 "Tagihan Gabungan Penjamin" punya rangkaiannya sendiri dan **MUST NOT** didaftarkan sebelum layar
 Batch Tagihan AR ada — entity-nya (`FinReceivableInvoiceBatch`) masih nol baris (`FIN-CAP-032`).
 
-### 15.4 Penyaringan hak akses butir menu — DITUTUP oleh FIN-DEC-079 dan FIN-DES-061
+### 15.4 Penyaringan hak akses butir menu — DIKOREKSI 29 September 2026 (`FIN-DEC-082`, `FIN-DES-069`)
 
-Sebelumnya, butir menu Finance pada navigasi frontend dijaga oleh resource tingkat payung `Finance.AR`/`Finance.AP`, sedangkan endpoint backend Purchasing menuntut resource granular (`FinancePurchaseOrder`, `FinanceGoodsReceipt`, `FinancePurchasingInvoice`, `FinanceSupplierReturn`, `FinanceInvoiceExchange`).
+> **KOREKSI BERBASIS BUKTI SOURCE.** Isi bagian ini sebelumnya bersandar pada dua premis yang
+> **terbukti keliru** saat impact scan frontend `a31da3c21` dijalankan pada pass desain 29 September
+> 2026 (`02-backend-architecture.md` AMENDMENT REVISI 11, `I.1`). Teks lama dipertahankan di bawah
+> sebagai riwayat, dengan koreksinya di atas — bukan dihapus.
 
-| Aspek | Ketetapan Penyelesaian |
+**Premis lama (1): "butir menu Finance dijaga payung, sedangkan endpoint Purchasing menuntut
+granular, sehingga ada risiko `403`."** Kenyataannya, seluruh butir menu yang dijaga
+`Finance.AP`/`Finance.AR` menunjuk rute **V2** (`/finance/payable*`, `/finance/receivable*`) dengan
+aksi `View`/`Payment`/`Report` — yaitu aksi milik `FinanceApController`/`FinanceArController` sendiri.
+Menu dan endpointnya **konsisten**; tidak ada risiko `403` di sana. Butir menu Purchasing
+("Pembelian") **belum ada sama sekali** — ia baru akan dibangun `FE-FIN-008`..`014`.
+
+**Premis lama (2): berkas penyaringnya `src/utils/menu-sidebar/corporateFinance.js`.** Berkas itu
+**tidak ada** (`FIN-CQ-10`). Yang nyata: `src/utils/menu-sidebar/menu-items.jsx` (deklarasi
+`requiredPermission` per butir) dan `src/utils/menu-sidebar/permission/filter-menu-items-by-permission.jsx`
+(fungsi penyaringnya, *fail-closed* — hanya `true` yang menampilkan).
+
+| Aspek | Ketetapan yang BERLAKU sesudah koreksi |
 |---|---|
-| Keputusan yang berlaku | `FIN-DEC-079` (approved 28 September 2026 oleh Yasmin) diturunkan ke `FIN-DES-061` |
-| Pilihan yang diambil | Pilihan **(b)**: `Finance.AP` dan `Finance.AR` didaftarkan secara resmi sebagai **Resource Payung Tingkat Kelompok** di `contracts/permission-audit-matrix.md` (`FIN-PERM-1.3` Bagian D). Peran yang memiliki `Finance.AP` atau `Finance.AR` otomatis mewarisi seluruh resource granular di bawah kelompoknya lewat ekspansi seeder peran di backend |
-| Dampak pada Frontend | **NOL perubahan kode frontend.** Seluruh filter menu sidebar pada `src/utils/menu-sidebar/corporateFinance.js` yang sudah memakai `Finance.AP` dan `Finance.AR` **tetap dipertahankan apa adanya** |
-| Jaminan Keamanan & API | Pengguna rumah sakit yang memiliki izin melihat menu di sidebar dijamin tidak akan mengalami penolakan `403 Forbidden` saat memanggil endpoint API backend, karena klaim peran mereka sudah mengantongi hak akses granular hasil ekspansi |
-| Status Temuan | `FIN-CAP-040` dan `FIN-OQ-036` resmi **CLOSED** |
+| Keputusan yang berlaku | `FIN-DEC-082` dan `FIN-DEC-083` (approved 29 September 2026), diturunkan ke `FIN-DES-066`..`069` (`draft`) |
+| Nama resource payung | **`Finance.AP.Umbrella`** dan **`Finance.AR.Umbrella`** — **bukan** `Finance.AP`/`Finance.AR`, yang sudah menjadi milik dua controller V2 yang berjalan |
+| Hak akses butir menu baru (`FE-FIN-008`..`014`) | Dijaga resource **granular** yang sama persis dengan yang dituntut endpointnya — mis. butir "Purchase Order" dijaga `FinancePurchaseOrder : Read`. Payung **tidak pernah** diperiksa penyaring menu (`FIN-DES-069`) |
+| Butir menu V2 yang sudah ada | **Tidak disentuh.** Tetap dijaga `Finance.AP`/`Finance.AR` milik controller V2 |
+| Dampak pada kode frontend hari ini | **NOL perubahan** — tetapi untuk alasan yang berbeda dari klaim lama: bukan karena payung dipakai penyaring menu, melainkan karena butir menu yang dijaga payung memang milik V2 dan tidak berubah, sementara butir menu Purchasing belum pernah ada |
+| Jaminan tidak `403` | Berlaku karena menu memakai resource granular yang **sama persis** dengan yang dituntut endpoint. Pemegang payung memiliki pasangan granular itu sebagai baris `SysAccessPolicy` sungguhan hasil materialisasi (`FIN-DES-067`), sehingga terbaca `GET auth/permissions` tanpa perlakuan khusus |
+| Status temuan | `FIN-OQ-036` **dibuka kembali lalu ditutup ulang** oleh `FIN-DES-069` dengan jawaban yang berpijak pada source. `FIN-CAP-040` tetap `CLOSED`. Dua temuan baru dibuka: `FIN-CQ-09` (butir menu "Report AR"/"Report AP" dijaga aksi yang tidak pernah terdaftar, sehingga tersembunyi permanen bagi semua orang) dan `FIN-CQ-10` (nama berkas penyaring pada dokumen) |
+| Gerbang | `FIN-OQ-038` — pembawa resource payung di registry; menahan implementasi ekspansi, **tidak** menahan pekerjaan frontend mana pun |

@@ -187,9 +187,9 @@ setiap kejadian, dan **siapa pemilik** fakta itu. Nama kode dan nilainya ada di
 | Write-off piutang disetujui | Finance | `PEMUTIHAN-PIUTANG` |
 | Mutasi deposit pasien `TOP_UP` | **Billing** | `PENERIMAAN-UANG-MUKA` |
 | Mutasi deposit pasien `ALLOCATION` | **Billing** | `PEMAKAIAN-UANG-MUKA-DEPOSIT` |
-| Mutasi deposit pasien `RELEASE` | **Billing** | `PENGEMBALIAN-UANG-MUKA` |
+| Mutasi deposit pasien `RELEASE` | **Billing** | `PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT` — **dikoreksi AMENDMENT REVISI 9** (`FIN-DES-064`), sebelumnya `PENGEMBALIAN-UANG-MUKA`. Mutasi ini tidak mengeluarkan kas; ia membatalkan alokasi uang muka ke tagihan. Berlaku hanya bila ada mutasi `REVERSAL` ber-`SettlementId` sama — bila tidak ada, baris intake `ERROR` (`FIN-VAL-145`) |
 | Mutasi deposit pasien `REVERSAL` atas `TOP_UP` | **Billing** | `PEMBALIKAN-PENERIMAAN-UANG-MUKA` |
-| Mutasi deposit pasien `REVERSAL` atas `ALLOCATION` | **Billing** | `PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT` — **fakta ini belum pernah ada**, lihat 7.2 |
+| ~~Mutasi deposit pasien `REVERSAL` atas `ALLOCATION`~~ | **Billing** | ~~`PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT`~~ — **tidak pernah ada di Billing**; digantikan oleh mutasi `RELEASE` berpasangan di atas (`FIN-DES-064`) |
 | Kelebihan bayar diakui (`ALLOCATION_EXCESS` atau `SETTLEMENT`) | **Billing** | `PENGAKUAN-KELEBIHAN-BAYAR` |
 | Pengembalian uang dieksekusi atas kredit `ALLOCATION_EXCESS`/`SETTLEMENT` | **Billing** | `PENGEMBALIAN-UANG-MUKA` |
 | Pengembalian uang dieksekusi atas kredit `REFERRED_OUTPATIENT_ADMIN` | **Billing** | **Nol kejadian** — baris intake `ERROR`, lihat 7.2 |

@@ -4,7 +4,7 @@
 | --- | --- |
 | Blueprint ID | `BIL-CASH-001` |
 | Revision | Approved decision contract `0.3` (Pass B — Integrasi Rawat Inap ↔ Billing) |
-| Status | Keputusan `BKC-DEC-001`–`131` berstatus `approved` (termasuk `BKC-DEC-128`..`131` pembalikan tender top-up deposit, 28 September 2026) |
+| Status | Keputusan `BKC-DEC-001`–`134` berstatus `approved` (termasuk `BKC-DEC-128`..`131` pembalikan tender top-up deposit, 28 September 2026; serta `BKC-DEC-132`..`134` penanda mutasi RELEASE dan penyelarasan deposit, 29 September 2026) |
 | Interview mode | `Pass B: Integrasi Rawat Inap ↔ Billing (Yasmina / Billing Management)` disahkan 24 September 2026 |
 | Product/domain owner | Pemberi keputusan pada sesi wawancara; nama formal belum dicatat |
 | Backend SHA | Current branch `Yasmina`: `e6f6ecba1537783ea2eb379ac12cc97790707303`; cross-branch impact scan to `f63572a9...` found no Billing transaction change |
@@ -2753,4 +2753,54 @@ ada open question tersisa yang memblokir.
 | Alasan | Memisahkan secara transparan jejak audit antara pembatalan pemakaian uang muka ke invoice dan pembatalan penerimaan uang muka dari bank/penyedia. Hal ini memenuhi kebutuhan integrasi Finance (`FinBillingHandoffTypes.DepositMovement`) untuk menerbitkan kejadian akuntansi `PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT` dan `PEMBALIKAN-PENERIMAAN-UANG-MUKA` secara tepat dan berpasangan |
 | Konsekuensi | `BilDepositMovement` bertambah baris mutasi `RELEASE` dan `REVERSAL` yang lengkap dan idempoten; Finance tidak lagi mengalami kegagalan sinkronisasi (*intake error*) pada skenario tender reversal |
 | Trace | Menutup `FIN-OQ-034`; `BilDepositMovement.cs`; `FinBillingHandoffIntake.cs`; `evidence/17` |
+
+---
+
+## Amendment Pass — Penanda Eksplisit Mutasi `RELEASE` dan Penyelarasan Mutasi Deposit (29 September 2026)
+
+**Pemicu:** Surat permohonan dari modul Finance (`docs/module-blueprints/finance-management/evidence/19-permintaan-penanda-eksplisit-mutasi-release-ke-billing.md`, `FIN-OQ-037`) terkait klarifikasi semantik mutasi `RELEASE` pada saat pembalikan tender top-up deposit rawat inap (tindak lanjut `BKC-DEC-128`..`131`), serta temuan bahwa `BillingDepositService.cs:176` menjumlahkan seluruh mutasi `RELEASE` ke dalam `totalRefunded`.
+
+### `BKC-DEC-132` — Adopsi Opsi A: Pengisian `ReversesMovementId` pada Mutasi `RELEASE` Pembatalan Alokasi
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Menutup `FIN-OQ-037` (sisi Billing).** Billing mengadopsi **Opsi A**: ketika alokasi tagihan dibatalkan secara LIFO akibat pembalikan tender top-up (`BKC-DEC-128`..`131`), mutasi `RELEASE` yang dicatat pada `BilDepositMovement` **wajib mengisi kolom `ReversesMovementId`** dengan ID mutasi `ALLOCATION` yang dibatalkan. Tidak ada penambahan nilai baru pada enum `MovementType`. Penanda ini secara definitif membedakan pembatalan alokasi pemakaian deposit dari pengembalian kas fisik murni kepada pasien, sehingga Finance dapat menerbitkan kejadian `PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT` (tanpa kas keluar) secara aman dan akurat. |
+| Owner | Yasmin / Owner Billing Kasir |
+| Status | `approved` |
+| Approval evidence | Sesi `/grill-me` 29 September 2026 atas evidence `19-permintaan-penanda-eksplisit-mutasi-release-ke-billing.md` |
+| Alasan | Kolom `ReversesMovementId` sudah tersedia di tabel `BilDepositMovement` (nol perubahan skema database), polanya simetris dengan mutasi `REVERSAL` yang menunjuk `TOP_UP`, dan memberikan korelasi data yang lengkap tanpa risiko komplikasi migrasi constraint/enum |
+| Konsekuensi | Kolom `ReversesMovementId` pada mutasi `RELEASE` tidak lagi dibiarkan `null`. Finance dapat langsung memvalidasi keberadaan `ReversesMovementId` untuk memastikan mutasi tersebut merupakan pembalikan alokasi |
+| Trace | Menutup `FIN-OQ-037`; `evidence/19-permintaan-penanda-eksplisit-mutasi-release-ke-billing.md`; `BilDepositMovement.cs:25`; `BillingSettlementService.cs:949` |
+
+---
+
+### `BKC-DEC-133` — Granularitas Mutasi 1-ke-1 untuk Setiap Alokasi yang Dibatalkan secara LIFO
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | Bila pembalikan tender top-up membatalkan lebih dari satu alokasi tagihan secara LIFO, sistem **wajib mencatat 1 baris mutasi `RELEASE` untuk setiap baris alokasi yang dibatalkan (1-to-1 per alokasi)** pada `BilDepositMovement`. Setiap baris mutasi `RELEASE` mencatat `Amount` sesuai nominal alokasi yang dibatalkan, `SettlementId` milik alokasi tersebut, dan `ReversesMovementId` yang menunjuk tepat ke ID mutasi `ALLOCATION` asalnya. Dilarang menggabungkan beberapa alokasi yang dibatalkan ke dalam satu mutasi `RELEASE` gelondongan. |
+| Owner | Yasmin / Owner Billing Kasir |
+| Status | `approved` |
+| Approval evidence | Sesi `/grill-me` 29 September 2026 |
+| Alasan | Memastikan rantai telusur audit (audit trail) 1-ke-1 tetap utuh dan presisi. Finance dapat memetakan pembatalan pemakaian deposit per tagihan/invoice dengan nominal yang persis cocok terhadap alokasi awal, tanpa kehilangan referensi id mutasi |
+| Konsekuensi | Jumlah baris mutasi `RELEASE` bertambah sesuai jumlah alokasi yang dibatalkan, tetapi integritas data dan korelasi akuntansi antar-modul terjaga sempurna |
+| Trace | Menutup `FIN-OQ-037`; `BKC-DEC-129`; `BillingSettlementService.cs`; `BilPaymentAllocation.cs` |
+
+---
+
+### `BKC-DEC-134` — Penyelarasan Perhitungan Ringkasan Deposit (`totalRefunded`) dan Efek Saldo Mutasi di Billing
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | Modul Billing menyelaraskan pembacaan mutasi `RELEASE` pada ringkasan deposit dan buku rekening/mutasi: <br>1. **Pengecualian dari `totalRefunded`:** Pada `BillingDepositService.cs` (`GetEpisodeDepositSummaryAsync`), perhitungan `totalRefunded` **hanya menjumlahkan mutasi pengembalian kas nyata** dan **wajib mengecualikan mutasi `RELEASE` yang merupakan pembatalan alokasi (`ReversesMovementId != null`)**, karena dana tersebut kembali ke saldo akun deposit pasien dan tidak pernah diserahkan tunai/transfer ke pasien.<br>2. **Efek Saldo pada Mutasi Rekening:** Pada `GetDepositStatementAsync`, efek saldo (`BalanceEffect`) untuk mutasi `RELEASE` pembatalan alokasi adalah **penambahan saldo (`+Amount`)**, bukan pengurangan, karena dana tagihan dipulihkan kembali ke saldo deposit sebelum mutasi `REVERSAL` menarik dana top-up (`-Amount`), sehingga saldo akhir mutasi kembali nol secara seimbang. |
+| Owner | Yasmin / Owner Billing Kasir |
+| Status | `approved` |
+| Approval evidence | Sesi `/grill-me` 29 September 2026; temuan audit source `BillingDepositService.cs:176` dan `764-767` |
+| Alasan | Menghilangkan anomali laporan di mana kasir seolah mengembalikan dana tunai ke pasien (refund fiktif), serta memperbaiki running balance buku rekening deposit agar tidak terjadi defisit/minus artifisial |
+| Konsekuensi | Kode `BillingDepositService.cs` pada endpoint ringkasan dan statement deposit disesuaikan agar membaca `ReversesMovementId` dan menerapkan tanda saldo yang benar |
+| Trace | `BillingDepositService.cs:176`; `BillingDepositService.cs:764`; `evidence/19`; `FIN-DEC-080` |
+
 

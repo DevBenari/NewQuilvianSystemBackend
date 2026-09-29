@@ -35,7 +35,7 @@ Roadmap ini berada pada **revision `2`** (4 September 2026) dan berstatus `DRAFT
 | `BKC-PH-025` | **Revisi UI Billing.** Perbandingan asuransi & payment method (`MVP-32`) | — | `FE-BUI-005`, `FE-BUI-006` | Selesai penuh | ✅ `SELESAI` (`FE-BUI-005`, `FE-BUI-006` selesai 25 Sep 2026) |
 | `BKC-PH-026` | **Revisi UI Billing.** Modal Ajukan Refund dua sumber (`MVP-33`) | — | `FE-BUI-007` | Selesai penuh | ✅ `SELESAI` (`FE-BUI-007` selesai 25 Sep 2026) |
 | `BKC-PH-027` | **Shift Kasir.** Blocking selisih kas belum direview dan status tindak lanjut (`MVP-34`) | `BE-BKC-077`, `BE-BKC-078` | `FE-BKC-043`, `FE-BKC-044` | Blueprint revisi `1.7 draft` (`BKC-DEC-123`–`127` approved 25 Sep 2026) | **`READY_FOR_TASK_APPROVAL`** |
-| `BKC-PH-028` | **Pembalikan Tender Top-Up Deposit dan Alokasi Tagihan** (`MVP-35`) | `BE-BKC-079` | — (Nol UI) | Blueprint revisi `1.8 draft` (`BKC-DEC-128`–`131` approved 28 Sep 2026) | **`READY_FOR_TASK_APPROVAL`** |
+| `BKC-PH-028` | **Pembalikan Tender Top-Up Deposit dan Alokasi Tagihan** (`MVP-35`) | `BE-BKC-079`, `BE-BKC-080` | — (Nol UI) | Blueprint revisi `1.8` (`BKC-DEC-128`–`134` approved 28–29 Sep 2026) | **`READY_FOR_TASK_APPROVAL`** |
 
 ## Amendment 7 September 2026 — Koreksi revisi blueprint, verifikasi ulang FE-BKC-018, dan cakupan Struk Pasien
 
@@ -300,35 +300,39 @@ Rincian lengkap: [backend § Gelombang MVP-34](./backend-roadmap.md), [frontend 
 
 ---
 
-## Amendment 28 September 2026 — Pembalikan Tender Top-Up Deposit dan Alokasi Tagihan (Revisi 1.8)
+## Amendment 28–29 September 2026 — Pembalikan Tender Top-Up Deposit, Alokasi Tagihan, dan Penanda Eksplisit Mutasi `RELEASE` (Revisi 1.8)
 
 ```yaml
 roadmap_revision: 5
 roadmap_status: DRAFT_FORWARD_TEST
 blueprint_id: BIL-CASH-001
-blueprint_revision: 1.8 (draft)
-approved_decisions: [BKC-DEC-128, BKC-DEC-129, BKC-DEC-130, BKC-DEC-131, FIN-DEC-077]
-approved_by: Product/Domain Owner (28 September 2026)
+blueprint_revision: 1.8
+approved_decisions: [BKC-DEC-128, BKC-DEC-129, BKC-DEC-130, BKC-DEC-131, BKC-DEC-132, BKC-DEC-133, BKC-DEC-134, FIN-DEC-077, FIN-DEC-081]
+approved_by: Product/Domain Owner & Finance Counterpart (28–29 September 2026)
 backend_baseline_sha: dcb9c88e
 frontend_baseline_sha: fdebb9059
-contracts_applicable: [BIL-API-1.5, BIL-STATE-1.5, BIL-VALIDATION-1.5, BIL-INTEGRATION-1.3, BIL-PERMISSION-1.2, BIL-TEST-1.6]
+contracts_applicable: [BIL-API-1.5, BIL-STATE-1.6, BIL-VALIDATION-1.6, BIL-INTEGRATION-1.4, BIL-PERMISSION-1.2, BIL-TEST-1.7]
 ```
 
-Amendment ini menyelesaikan permintaan perbaikan kritis dari modul Finance Management (`docs/module-blueprints/finance-management/evidence/17-permintaan-perbaikan-pembalikan-tender-deposit-untuk-billing.md`, issue `FIN-OQ-034` yang ditutup lewat `FIN-DEC-077`):
+Amendment ini menyelesaikan permintaan perbaikan kritis dari modul Finance Management (`docs/module-blueprints/finance-management/evidence/17-permintaan-perbaikan-pembalikan-tender-deposit-untuk-billing.md` dan `evidence/19-permintaan-penanda-eksplisit-mutasi-release-ke-billing.md`, issue `FIN-OQ-034` dan `FIN-OQ-037` yang ditutup lewat `FIN-DEC-077` dan `FIN-DEC-081`):
 
 1. **`BKC-DEC-128` (Integritas Saldo Non-Negatif):** Tender top-up deposit yang ditarik/dibatalkan oleh bank/gateway (`REVERSED`) wajib mengurangi saldo deposit pasien tanpa pernah membiarkan saldo deposit menjadi negatif (`AvailableBalance >= 0`).
 2. **`BKC-DEC-129` (Pembatalan Alokasi LIFO Otomatis):** Bila saldo deposit yang tersisa kurang dari nominal top-up yang ditarik, sistem secara otomatis membatalkan alokasi tagihan pasien berurut LIFO (*Last In First Out*) dari yang paling baru hingga defisit saldo terpenuhi.
 3. **`BKC-DEC-130` (Penyelarasan Status Invoice `CLOSED` → `FINAL`):** Invoice yang alokasinya dibatalkan dan kini memiliki sisa tagihan pasien > 0 otomatis diselaraskan kembali statusnya dari `CLOSED` menjadi `FINAL` via `SyncClosureAsync` agar tagihan muncul kembali di kasir.
 4. **`BKC-DEC-131` (Mutasi Ganda Transparan):** Sistem mencatat mutasi terpisah `RELEASE` (pengembalian alokasi) dan `REVERSAL` (penarikan top-up) pada `BilDepositMovement` untuk dikonsumsi oleh Finance Management (`BIL-INT-018`).
+5. **`BKC-DEC-132` & `BKC-DEC-133` (Penanda Eksplisit `ReversesMovementId` 1-ke-1):** Setiap mutasi `RELEASE` akibat pembatalan alokasi wajib mencatat penanda eksplisit `ReversesMovementId` yang menunjuk ke ID mutasi `ALLOCATION` asalnya secara 1-ke-1, menghapus ambiguitas semantik bagi akuntansi Finance.
+6. **`BKC-DEC-134` (Penyelarasan Perhitungan Deposit Kasir):** Ringkasan deposit kasir (`totalRefunded`) mengecualikan mutasi `RELEASE` pembatalan alokasi (`ReversesMovementId != null`), dan efek saldo mutasi rekening dihitung positif (`+Amount`) memulihkan saldo running deposit.
 
 ### Ringkasan Gelombang `MVP-35`
 
 | Gelombang | Task ID | Cakupan | Status |
 | :---: | --- | --- | :---: |
 | `MVP-35` (BE Gelombang 1) | 🟡 `BE-BKC-079` | Penanganan pembalikan tender top-up deposit, pembatalan alokasi LIFO, mutasi ganda `RELEASE`/`REVERSAL`, dan `SyncClosureAsync` | 🟡 `SEBAGIAN` (Source selesai, menunggu build pengguna) |
+| `MVP-35` (BE Gelombang 2) | 🟡 `BE-BKC-080` | Penanda eksplisit `ReversesMovementId` 1-ke-1 pada `BillingSettlementService.cs` dan penyelarasan agregasi deposit di `BillingDepositService.cs` | 🟡 `SEBAGIAN` (Source selesai, menunggu build pengguna) |
 
 **Nol Migration & Nol Perubahan Frontend pada seluruh gelombang ini.** Seluruh mekanisme berjalan backend di atas model `BilPaymentAllocation`, `BilDepositMovement`, dan `BilDepositAccount` yang sudah ada.
 
 Rincian lengkap: [backend § Gelombang MVP-35](./backend-roadmap.md) dan [traceability § Gelombang MVP-35](./requirement-traceability.md).
+
 
 

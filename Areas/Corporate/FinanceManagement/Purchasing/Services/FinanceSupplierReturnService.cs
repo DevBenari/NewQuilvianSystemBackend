@@ -50,6 +50,7 @@ public sealed class FinanceSupplierReturnService
     public async Task<FinSupplierReturn> CreateAsync(
         Guid purchasingInvoiceId,
         string reason,
+        decimal ppnAmount,
         IReadOnlyList<SupplierReturnItemRequestDto> items,
         Guid actorUserId,
         CancellationToken cancellationToken)
@@ -77,11 +78,26 @@ public sealed class FinanceSupplierReturnService
         if (totalAmount <= 0)
             throw new PurchasingBadRequestException("Nilai retur harus lebih dari nol.");
 
+        // FIN-VAL-133 (BE-FIN-043): porsi PPN retur tidak boleh negatif.
+        if (ppnAmount < 0)
+            throw new PurchasingBadRequestException("Nilai PPN retur tidak boleh kurang dari nol.");
+
         // FIN-VAL-111: nilai retur tidak boleh melebihi nilai invoice sumber. Dibandingkan
         // terhadap TotalAmount invoice saja (kontrak tidak mensyaratkan akumulasi lintas retur
         // lain atas invoice yang sama) — dicatat sebagai risiko pada laporan task.
         if (Math.Round(totalAmount, 2) > Math.Round(purchasingInvoice.TotalAmount, 2))
             throw new PurchasingValidationException("Nilai retur melebihi nilai Purchasing Invoice sumber.");
+
+        // FIN-VAL-143 (BE-FIN-043, FIN-DES-055): batas diperketat supaya pokok + PPN tidak melebihi
+        // nilai faktur. FinPurchasingInvoice.TotalAmount sudah TERMASUK PPN (lihat
+        // FinancePurchasingInvoiceService yang menghitung nilai kejadian utang sebagai
+        // TotalAmount − PPNAmount), sehingga tanpa aturan ini retur pokok sebesar total faktur
+        // ber-PPN tetap lolos FIN-VAL-111, lalu porsi PPN-nya ditambahkan di atasnya dan kredit
+        // retur melebihi nilai faktur yang diretur. FIN-VAL-111 SENGAJA dipertahankan apa adanya
+        // di atas — aturan ini menambah batas kedua, bukan menggantikan yang pertama, supaya
+        // perilaku penolakan yang sudah berjalan tidak berubah kode statusnya.
+        if (Math.Round(totalAmount + ppnAmount, 2) > Math.Round(purchasingInvoice.TotalAmount, 2))
+            throw new PurchasingBadRequestException("Nilai retur beserta PPN-nya melebihi nilai faktur pembelian ini.");
 
         var supplierReturn = new FinSupplierReturn
         {
@@ -90,6 +106,7 @@ public sealed class FinanceSupplierReturnService
             PurchasingInvoiceId = purchasingInvoiceId,
             Reason = validatedReason,
             TotalAmount = totalAmount,
+            PPNAmount = ppnAmount,
             Status = FinSupplierReturnStatuses.Draft,
             RowVersion = Guid.NewGuid(),
             CreateBy = actorUserId,
@@ -136,13 +153,18 @@ public sealed class FinanceSupplierReturnService
                 .SingleOrDefaultAsync(x => x.Id == supplierReturn.PurchasingInvoiceId && !x.IsDelete, cancellationToken)
                 ?? throw new KeyNotFoundException("Purchasing Invoice sumber tidak ditemukan.");
 
+            // FIN-VAL-135 (BE-FIN-043, FIN-DES-055): kredit retur yang lahir MENCAKUP PPN —
+            // supplier mengakui pokok beserta PPN-nya. Untuk retur lama PPNAmount = 0, sehingga
+            // nilainya identik dengan sebelum BE-FIN-043 (nol perubahan bagi baris lama).
+            var creditAmount = supplierReturn.TotalAmount + supplierReturn.PPNAmount;
+
             var deposit = new FinSupplierReturnDeposit
             {
                 Id = Guid.NewGuid(),
                 SupplierId = purchasingInvoice.SupplierId,
                 SourceReturnId = supplierReturn.Id,
-                OriginalAmount = supplierReturn.TotalAmount,
-                AvailableAmount = supplierReturn.TotalAmount,
+                OriginalAmount = creditAmount,
+                AvailableAmount = creditAmount,
                 Status = FinSupplierReturnDepositStatuses.Available,
                 RowVersion = Guid.NewGuid(),
                 CreateBy = actorUserId,
@@ -152,17 +174,43 @@ public sealed class FinanceSupplierReturnService
             };
             _dbContext.FinSupplierReturnDeposits.Add(deposit);
 
+            var occurredAt = DateTimeOffset.UtcNow;
+            var accountingDate = DateOnly.FromDateTime(occurredAt.UtcDateTime);
+
+            // FIN-VAL-136: RETUR-PEMBELIAN bernilai POKOK SAJA, tanpa PPN. Nilai ini TIDAK berubah
+            // oleh BE-FIN-043 — pemisahan PPN justru yang membuatnya tetap benar (syarat kedua
+            // ratifikasi Accounting, evidence/14 bagian 3.6).
             await _accountingOutboxService.StageEventAsync(new AccountingOutboxEventRequest
             {
                 EventTypeCode = FinAccountingEventTypeCodes.ReturPembelian,
                 SourceTransactionId = supplierReturn.ReturnNumber,
-                EventOccurredAt = DateTimeOffset.UtcNow,
-                AccountingDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                EventOccurredAt = occurredAt,
+                AccountingDate = accountingDate,
                 Amount = supplierReturn.TotalAmount,
                 CorrelationId = supplierReturn.Id,
                 CausationId = deposit.Id,
                 ActorUserId = actorUserId
             }, cancellationToken);
+
+            // FIN-DES-055: porsi PPN dikirim lewat kode terpisah, HANYA bila PPNAmount > 0, di
+            // transaksi yang sama. SourceTransactionId sengaja sama dengan RETUR-PEMBELIAN
+            // (ReturnNumber) — yang membedakan baris kejadiannya adalah EventTypeCode, dan unique
+            // index dua lapis outbox sudah memuatnya. Penjaga > 0 bukan kosmetik:
+            // FinanceAccountingOutboxService menolak Amount <= 0 untuk kode di luar daftar penanda.
+            if (supplierReturn.PPNAmount > 0)
+            {
+                await _accountingOutboxService.StageEventAsync(new AccountingOutboxEventRequest
+                {
+                    EventTypeCode = FinAccountingEventTypeCodes.PpnMasukanReturPembelian,
+                    SourceTransactionId = supplierReturn.ReturnNumber,
+                    EventOccurredAt = occurredAt,
+                    AccountingDate = accountingDate,
+                    Amount = supplierReturn.PPNAmount,
+                    CorrelationId = supplierReturn.Id,
+                    CausationId = deposit.Id,
+                    ActorUserId = actorUserId
+                }, cancellationToken);
+            }
 
             supplierReturn.Status = FinSupplierReturnStatuses.Confirmed;
             supplierReturn.UpdateDateTime = DateTime.UtcNow;

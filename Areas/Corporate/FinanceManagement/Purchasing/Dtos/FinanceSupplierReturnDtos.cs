@@ -16,6 +16,11 @@ public sealed class CreateSupplierReturnRequest
 {
     public Guid PurchasingInvoiceId { get; set; }
     public string Reason { get; set; } = string.Empty;
+
+    /// <summary>Porsi PPN retur (BE-FIN-043, FIN-DES-055). Opsional — tanpa field ini nilainya 0
+    /// dan perilakunya persis seperti sebelum BE-FIN-043. Tidak boleh negatif (FIN-VAL-133).</summary>
+    public decimal PPNAmount { get; set; }
+
     public List<SupplierReturnItemRequestDto> Items { get; set; } = new();
 }
 
@@ -38,7 +43,13 @@ public class SupplierReturnResponse
     public string ReturnNumber { get; set; } = string.Empty;
     public Guid PurchasingInvoiceId { get; set; }
     public string Reason { get; set; } = string.Empty;
+
+    /// <summary>Pokok retur tanpa PPN (FIN-DES-055).</summary>
     public decimal TotalAmount { get; set; }
+
+    /// <summary>Porsi PPN retur (BE-FIN-043). Nol untuk retur tanpa PPN.</summary>
+    public decimal PPNAmount { get; set; }
+
     public string Status { get; set; } = string.Empty;
     public Guid RowVersion { get; set; }
 }

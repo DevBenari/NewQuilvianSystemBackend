@@ -2,12 +2,13 @@
 
 | Field | Nilai |
 |---|---|
-| Contract version | `FIN-INTEGRATION-1.5` |
+| Contract version | `FIN-INTEGRATION-1.6` |
+| `last_changed_in` (1.6) | `FIN-INTEGRATION-1.6` — AMENDMENT REVISI 9, 29 September 2026. **Tiga pemicu dikoreksi berbasis bukti source `7811c048`** (`FIN-DES-064`, `FIN-DES-065`): mutasi `BilDepositMovement` `RELEASE` menerbitkan `PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT`, bukan `PENGEMBALIAN-UANG-MUKA`; pemicu kode 37 yang semula "tidak pernah ada" kini ada lewat `BKC-DEC-131`; dan mutasi `RELEASE` tanpa pasangan `REVERSAL` ditolak *fail-closed*. Status **`approved`** — disahkan oleh Yasmin via `FIN-DEC-080` dan `FIN-DEC-081` (mengoreksi `FIN-DEC-041`) |
 | `last_changed_in` | `FIN-INTEGRATION-1.5` — AMENDMENT REVISI 7, 28 September 2026 (bagian 5.10.4 butir 1 dan 5.10.5 butir 1 **dikoreksi berbasis bukti** kontrak as-is kotak masuk Accounting; bagian 5.11 baru). Sebelumnya `1.4` — AMENDMENT REVISI 6 (bagian 5.10 baru) |
-| Status | `1.2` `approved` dan `locked` 25 September 2026 bersama `FIN-DES-037`..`044`; `1.3` disetujui dan dikunci owner 26 September 2026 bersama `FIN-DES-045`..`050`. **`1.4` bagian 5.10 disetujui owner 28 September 2026 bersama `FIN-DES-051`..`058` ("Saya approve"); `1.5` (koreksi REVISI 7) `draft`** |
+| Status | `1.2` `approved` dan `locked` 25 September 2026; `1.3` disetujui dan dikunci owner 26 September 2026; `1.4` disetujui owner 28 September 2026. **`1.6` (koreksi REVISI 9) `approved` 29 September 2026 bersama `FIN-DEC-080`/`081`** |
 | Owner | Yasmin (Product/Domain Owner Finance) |
-| `approved_by` / `approved_at` | Yasmin / 2026-09-25 (untuk `1.2`); `1.3` 2026-09-26; `1.4` **belum** |
-| Input revision | `00-interview-decisions.md` — `FIN-DEC-001`..`071` (`FIN-DEC-063`..`071` ditambahkan 28 September 2026, closure pass atas `evidence/14`) |
+| `approved_by` / `approved_at` | Yasmin / 2026-09-29 (untuk `1.6`) |
+| Input revision | `00-interview-decisions.md` — `FIN-DEC-001`..`081` (`FIN-DEC-080`..`081` ditambahkan 29 September 2026, Amendment Pass mutasi `RELEASE`) |
 | Kontrak eksternal yang diikuti | **`ACC-XMOD-0.3`** milik Accounting — naik dari `0.2`, diratifikasi sisi Finance lewat `FIN-DEC-039` |
 | Backend SHA yang diverifikasi | **`cba60cb0`** (impact scan 28 September 2026, `02-backend-architecture.md` bagian `E.1`) — naik dari `d6cdfaf9`/`96bf9746` |
 | Dampak kompatibilitas | **Revisi 1.4 memuat tiga perubahan perilaku pada kode yang sudah berjalan** (nama empat `EventTypeCode`, nilai kredit retur termasuk PPN, properti `Components` dihilangkan dari pesan) — rinciannya bagian 5.10 dan `02-backend-architecture.md` `E.9`. **Lima kode dihapus dan diganti** (bukan aditif): `SELISIH-KAS-SHIFT`, `POTONGAN-PIUTANG-NON-TUNAI` beserta pembaliknya, `PEMAKAIAN-DEPOSIT-RETUR`, dan lima alias `AR_*`/`AP_*` |
@@ -103,7 +104,8 @@ membaca dan merekonsiliasi, tidak pernah menghitung ulang dan tidak pernah menul
 |---|---|---|---|
 | `BilDepositMovement` tipe `TOP_UP` | Uang muka/deposit masuk | `PENERIMAAN-UANG-MUKA` | `IdempotencyKey` milik Billing |
 | `BilDepositMovement` tipe `ALLOCATION` | Uang muka dipakai melunasi tagihan | `PEMAKAIAN-UANG-MUKA-DEPOSIT` | `IdempotencyKey` milik Billing |
-| `BilDepositMovement` tipe `RELEASE` | Deposit dikembalikan tunai | `PENGEMBALIAN-UANG-MUKA` | `IdempotencyKey` milik Billing |
+| `BilDepositMovement` tipe `RELEASE` **yang berpasangan dengan mutasi `REVERSAL` ber-`SettlementId` sama** | Alokasi uang muka ke tagihan dibatalkan; **tidak ada kas yang bergerak** | `PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT` — **dikoreksi `FIN-INTEGRATION-1.6`**, sebelumnya `PENGEMBALIAN-UANG-MUKA` | `IdempotencyKey` milik Billing |
+| `BilDepositMovement` tipe `RELEASE` **tanpa** mutasi `REVERSAL` yang bersesuaian | Jalur yang belum dikenal Finance | **Nol kejadian.** Baris intake `ERROR` menunjuk `FIN-OQ-037` (`FIN-VAL-145`) | `IdempotencyKey` milik Billing |
 | `BilDepositMovement` tipe `REVERSAL` | Pembalikan mutasi deposit | Mengikuti kode mutasi yang dibalik — lihat bagian 5.4 | `IdempotencyKey` milik Billing |
 | `BilRefundableCredit` `SourceType = ALLOCATION_EXCESS` berstatus `AVAILABLE` | Kelebihan bayar diakui | `PENGAKUAN-KELEBIHAN-BAYAR` | `Id` (sumber tidak punya kunci sendiri — lihat catatan di bawah) |
 | `BilRefundCase` berstatus `EXECUTED`, `RefundableCredit.SourceType = ALLOCATION_EXCESS` | Kelebihan bayar dikembalikan tunai | `PENGEMBALIAN-UANG-MUKA` | `IdempotencyKey` milik Billing |
@@ -318,7 +320,7 @@ aturan posting tetap wewenang Accounting.
 | `SALDO-SUBLEDGER` | Finance menutup periode | **Bukan jurnal** — hanya dicocokkan dengan buku besar | `FIN-DEC-035` |
 | `PENERIMAAN-UANG-MUKA` | (a) penerimaan saat tagihan sumber masih `OPEN`; (b) `BilDepositMovement` `TOP_UP` | Debit Kas, Kredit Uang Muka Pasien | `FIN-DEC-031` |
 | `PEMAKAIAN-UANG-MUKA-DEPOSIT` | `BilDepositMovement` `ALLOCATION` | Debit Uang Muka Pasien, Kredit Piutang — **tidak ada kas bergerak** | `FIN-DEC-040` |
-| `PENGEMBALIAN-UANG-MUKA` | (a) `BilDepositMovement` `RELEASE`; (b) `BilRefundCase` `EXECUTED` dengan sumber `ALLOCATION_EXCESS` | Debit Uang Muka Pasien, **Kredit Kas** — kas benar-benar keluar | `FIN-DEC-041` |
+| `PENGEMBALIAN-UANG-MUKA` | `BilRefundCase` `EXECUTED` dengan sumber `ALLOCATION_EXCESS` **atau `SETTLEMENT`** (`FIN-DES-056`). Butir `BilDepositMovement` `RELEASE` **dicabut `FIN-INTEGRATION-1.6`** — mutasi itu tidak mengeluarkan kas, lihat `FIN-DES-064` | Debit Uang Muka Pasien, **Kredit Kas** — kas benar-benar keluar | `FIN-DEC-041`, dikoreksi `FIN-DES-064` |
 | `PENGAKUAN-KELEBIHAN-BAYAR` | `BilRefundableCredit` `ALLOCATION_EXCESS` berstatus `AVAILABLE` | Debit lawan jurnal penerimaan asli (Piutang/Pendapatan), Kredit Uang Muka Pasien — **tidak menyentuh kas** | `FIN-DEC-042` |
 | `SELISIH-KAS-SHIFT` | `BilCashVarianceReview` terbentuk (shift menjadi `REVIEWED`) | Debit/Kredit akun selisih kas (suspense). `Amount` **boleh negatif** untuk kekurangan kas | `FIN-DEC-034`, `043` |
 | `PEMBALIKAN-PENERIMAAN-UANG-MUKA` | Tender yang melahirkan `PENERIMAAN-UANG-MUKA` di-reverse Billing | Debit Uang Muka Pasien, Kredit Kas | `FIN-DEC-044` |
@@ -522,7 +524,7 @@ satu fakta terkirim dua kali.
 | 34 | `POTONGAN-BIAYA-BANK-PIUTANG` | Potongan `DeductionType = BANK_ADMIN_FEE` dicatat | `DeductionNumber` | Nilai potongan | Debit beban administrasi bank, kredit Piutang | Idem |
 | 35 | `PEMBALIKAN-POTONGAN-BIAYA-BANK-PIUTANG` | Alokasi pembawa potongan bank dibalik | `DeductionNumber` pembalik | Nilai asli, positif | Kebalikan kode 34 | Idem |
 | 36 | `PPN-MASUKAN-RETUR-PEMBELIAN` | Retur `CONFIRMED` dengan `PPNAmount > 0` | `ReturnNumber` | `PPNAmount` | Debit Piutang Retur Supplier, kredit akun yang sama dengan debit `PPN-MASUKAN-PEMBELIAN` | **Diusulkan** (`FIN-OQ-029`) |
-| 37 | `PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT` | Pembalikan mutasi deposit bertipe `ALLOCATION` | `BilDepositMovement.Id` | Nilai mutasi | Debit Piutang, kredit Uang Muka Pasien | **Diusulkan** (`FIN-OQ-027`); **pemicunya belum ada di Billing** — lihat 5.10.6 |
+| 37 | `PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT` | Mutasi `RELEASE` yang berpasangan dengan mutasi `REVERSAL` ber-`SettlementId` sama — **dikoreksi `FIN-INTEGRATION-1.6`**, sebelumnya "pembalikan mutasi bertipe `ALLOCATION`" yang tidak pernah ada | `BilDepositMovement.Id` | Nilai mutasi `RELEASE` | Debit Piutang, kredit Uang Muka Pasien | **Diusulkan** (`FIN-OQ-027`); **pemicunya kini ADA** sejak `BKC-DEC-131` — lihat `FIN-DES-064` |
 
 #### 5.10.4 Dua kode penanda — satu-satunya kejadian bernilai nol
 
@@ -582,7 +584,8 @@ salinan pesan yang memang pernah disusun begitu. Karena worker belum pernah hidu
 | Hal | Sebabnya | Dicatat sebagai |
 |---|---|---|
 | Kejadian untuk refund kredit `REFERRED_OUTPATIENT_ADMIN` | Kredit itu lahir dari biaya administrasi rawat jalan yang **sudah dibayar** lalu dialihkan ke tagihan rawat inap (`BKC-DEC-119`), dan baris biaya aslinya tidak di-void. Akun debit saat dicairkan tunai bergantung pada apakah pendapatan administrasi itu dibalik — kebijakan Billing + Accounting, bukan Finance | `FIN-OQ-031`. Sementara itu baris intake ditulis **`ERROR`** dan **nol** kejadian diterbitkan; `PENGEMBALIAN-UANG-MUKA` **MUST NOT** dipakai karena lawan jurnalnya salah |
-| Pemicu kode 37 (`PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT`) | **Tidak ada jalur di Billing yang menghasilkannya.** Pembalikan mutasi deposit hanya diizinkan untuk `TOP_UP` dan **ditolak** bila dananya sudah terpakai; pembalikan tender top-up deposit **tidak menulis mutasi deposit apa pun**, sehingga saldo deposit tetap mencatat uang yang tidak pernah jadi diterima | `FIN-OQ-034` — permintaan ke owner **Billing**, MUST dikirim sebagai surat evidence tersendiri. Finance hanya memasang pendeteksi baca-saja yang menulis baris intake `ERROR` |
+| ~~Pemicu kode 37 (`PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT`)~~ | **TERTUTUP `FIN-INTEGRATION-1.6`.** Sebelumnya tercatat "tidak ada jalur di Billing yang menghasilkannya". Billing menutup `FIN-OQ-034` lewat `BKC-DEC-128`..`131`: pembalikan tender top-up kini membatalkan alokasi tagihan secara LIFO dan menulis mutasi `RELEASE`, lalu menulis mutasi `REVERSAL` atas top-up-nya. Pemicu kode 37 karena itu **ada**, hanya bukan bentuk yang semula dibayangkan — lihat `FIN-DES-064` | — |
+| Nama `RELEASE` masih bermakna ganda di sisi Billing | Satu-satunya penulisnya hari ini adalah pembatalan alokasi (`BKC-DEC-131`), tetapi `BillingDepositService` masih menjumlahkan seluruh mutasi `RELEASE` sebagai `totalRefunded` — "dana yang dikembalikan". Penulis berikutnya dapat memakainya untuk pengembalian kas tanpa Finance mengetahuinya | `FIN-OQ-037` — permintaan penanda eksplisit ke owner **Billing**, MUST dikirim sebagai surat evidence tersendiri. Selama belum turun, mutasi `RELEASE` tanpa pasangan `REVERSAL` ditolak *fail-closed* sebagai baris intake `ERROR` (`FIN-VAL-145`) |
 
 #### 5.10.7 Kode potongan AR untuk `DeductionType = OTHER` — belum ada
 

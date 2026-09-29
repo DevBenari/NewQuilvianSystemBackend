@@ -2,12 +2,13 @@
 
 | Field | Nilai |
 |---|---|
-| Contract version | `FIN-VAL-1.4` |
+| Contract version | `FIN-VAL-1.5` |
+| `last_changed_in` (1.5) | `FIN-VAL-1.5` — AMENDMENT REVISI 9, 29 September 2026 (bagian E: `FIN-VAL-144`..`146`). Status **`approved`** — disahkan oleh Yasmin via `FIN-DEC-080` dan `FIN-DEC-081` (mengoreksi `FIN-DEC-041`) |
 | `last_changed_in` | `FIN-VAL-1.4` — AMENDMENT REVISI 6, 28 September 2026 (bagian D: `FIN-VAL-133`..`143`; `FIN-VAL-130`..`132` diperbarui mengikuti katalog final) |
-| Status | Revisi 1.1 `approved` dan `locked` 25 September 2026; 1.2/1.3 mengikuti AMENDMENT REVISI 4/5. **Revisi 1.4 (bagian D) `draft` — belum dikunci owner** |
+| Status | Revisi 1.1 `approved` dan `locked` 25 September 2026; 1.2/1.3 mengikuti AMENDMENT REVISI 4/5. **Revisi 1.5 (bagian E) `approved` 29 September 2026 bersama `FIN-DEC-080`/`081`** |
 | Owner | Yasmin (Product/Domain Owner Finance) |
-| `approved_by` / `approved_at` | Yasmin / 2026-09-25 (untuk 1.1); `1.4` **belum** |
-| Input revision | `00-interview-decisions.md` — `FIN-DEC-001`..`071`; `02-backend-architecture.md` AMENDMENT REVISI 6 (`FIN-DES-051`..`058`) |
+| `approved_by` / `approved_at` | Yasmin / 2026-09-29 (untuk `1.5`) |
+| Input revision | `00-interview-decisions.md` — `FIN-DEC-001`..`081`; `02-backend-architecture.md` bagian H (`FIN-DES-064`, `FIN-DES-065`) |
 | Dampak kompatibilitas | Revisi 1.4: **sebelas aturan ditambahkan** (`FIN-VAL-133`..`143`) dan **tiga aturan diperbarui** (`FIN-VAL-130`, `131`, `132`) karena nama kode yang dirujuknya sudah tidak ada lagi. Sebelumnya: satu aturan dicabut (`FIN-VAL-076`), sembilan ditambahkan (`FIN-VAL-078`..`086`) |
 
 Pesan ditulis dalam bahasa yang dipahami pengguna, bukan istilah teknis. Kolom "Kode" adalah
@@ -362,3 +363,35 @@ permintaan ditolak, sehingga tidak ada piutang yang berkurang tanpa kejadian pen
 `SELISIH-KAS-KURANG` Rp 30.000. Bila kode mencoba menerbitkannya lagi dari baris pengesahan
 pertama, database menolak lewat unique index `(SourceModule, SourceTransactionId, EventTypeCode,
 SourceVersion)` — bukan bergantung pada kebenaran logika pemanggil.
+
+---
+
+# E. AMENDMENT REVISI 9 — arti tunggal mutasi `RELEASE`
+
+Menurunkan `FIN-DES-064` dan `FIN-DES-065` via `FIN-DEC-080` dan `FIN-DEC-081`. Ketiganya berstatus **`approved`** (29 September 2026).
+
+| ID | Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|---|
+| `FIN-VAL-144` | Pembatalan alokasi uang muka tidak pernah dibukukan sebagai kas keluar | Penulisan kejadian | Mutasi `BilDepositMovement` `RELEASE` menerbitkan `PENGEMBALIAN-UANG-MUKA` | Tidak ada pesan — kesalahan kode | — |
+| `FIN-VAL-145` | Mutasi pelepasan yang asalnya belum dikenal tidak diterbitkan, tetapi tercatat | Sinkronisasi intake | Mutasi `RELEASE` **tanpa** mutasi `REVERSAL` ber-`SettlementId` sama | Tidak ada pesan bagi pengguna akhir; baris intake menjadi `ERROR` dengan sebab yang menyebut jenis mutasinya dan menunjuk `FIN-OQ-037` | — |
+| `FIN-VAL-146` | Pembalikan tender top-up yang dananya sudah terpakai menerbitkan **dua** kejadian, bukan satu | Penulisan kejadian | Mutasi `RELEASE` dan `REVERSAL` lahir dari satu `SettlementId`, tetapi hanya satu kejadian yang terbit | Tidak ada pesan — kesalahan kode | — |
+
+**Contoh `FIN-VAL-144`, dan kenapa ia aturan yang paling mahal bila dilanggar.** Pasien menitip
+uang muka Rp 20.000.000 lewat kartu, uang muka itu dipakai melunasi tagihan Rp 32.000.000, lalu
+kartunya ditarik penerbit. Billing membatalkan alokasi tagihan dan menulis mutasi `RELEASE`
+Rp 20.000.000, lalu menarik top-up-nya dengan mutasi `REVERSAL` Rp 20.000.000.
+
+| Yang diterbitkan | Hasil di buku besar |
+|---|---|
+| **Benar** — `PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT` + `PEMBALIKAN-PENERIMAAN-UANG-MUKA` | Debit Piutang Rp 20.000.000, kredit Kas Rp 20.000.000. Tagihan terbuka kembali, kas berkurang sebesar uang yang tidak pernah jadi diterima |
+| **Salah** — `PENGEMBALIAN-UANG-MUKA` + `PEMBALIKAN-PENERIMAAN-UANG-MUKA` | Kas dikredit **dua kali** Rp 40.000.000 untuk uang Rp 20.000.000, dan piutang Rp 20.000.000 tidak pernah terbuka kembali |
+
+Jurnal versi salah itu **tetap seimbang**, sehingga tidak tertangkap pemeriksaan neraca. Ia baru
+terlihat saat rekonsiliasi kas toleransi nol Accounting (`ACC-DEC-076`) gagal — berbulan kemudian,
+tanpa petunjuk sebabnya.
+
+**Contoh `FIN-VAL-145`.** Bila kelak Billing menambah fitur pengembalian uang muka tunai dan
+memakai mutasi `RELEASE` untuknya, mutasi itu datang **tanpa** pasangan `REVERSAL`. Finance tidak
+menebak: baris intake ditandai `ERROR` dan muncul di layar pantauan, sehingga lubangnya terlihat
+pada hari pertama alih-alih menjadi kas keluar palsu di buku besar.
+

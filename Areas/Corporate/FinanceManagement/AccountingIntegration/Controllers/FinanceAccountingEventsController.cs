@@ -17,7 +17,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.AccountingInte
 [Authorize]
 [Route("api/v1/corporate/finance-management/accounting-events")]
 [AccessController("CORPORATE_FINANCE_MANAGEMENT_ACCOUNTING_EVENTS", "Corporate Finance Management Accounting Events", "Accounting Events",
-    AreaName = "Corporate", ControllerName = "AccountingEvents", Description = "Pantauan kotak keluar kejadian ke Accounting, baca saja", SortOrder = 32)]
+    AreaName = "Corporate", ControllerName = "FinanceAccountingEvent", Description = "Pantauan kotak keluar kejadian ke Accounting, baca saja", SortOrder = 32)]
 [Tags("Corporate / Finance Management / Accounting Events")]
 public sealed class FinanceAccountingEventsController : ControllerBase
 {
@@ -26,7 +26,7 @@ public sealed class FinanceAccountingEventsController : ControllerBase
 
     [HttpGet("filters/metadata")]
     [AccessAction("Read", "Read Accounting Events", AccessType = AccessTypes.Read, SortOrder = 1)]
-    [AccessPermission("AccountingEvents", "Read")]
+    [AccessPermission("FinanceAccountingEvent", "Read")]
     [ProducesResponseType(typeof(ApiResponse<AccountingEventFilterMetadataResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetFilterMetadata(CancellationToken cancellationToken) =>
         Ok(ApiResponse<AccountingEventFilterMetadataResponse>.Ok(
@@ -34,7 +34,7 @@ public sealed class FinanceAccountingEventsController : ControllerBase
 
     [HttpGet("summary")]
     [AccessAction("Read", "Read Accounting Events", AccessType = AccessTypes.Read, SortOrder = 1)]
-    [AccessPermission("AccountingEvents", "Read")]
+    [AccessPermission("FinanceAccountingEvent", "Read")]
     [ProducesResponseType(typeof(ApiResponse<AccountingEventSummaryResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetSummary(CancellationToken cancellationToken) =>
         Ok(ApiResponse<AccountingEventSummaryResponse>.Ok(
@@ -42,7 +42,7 @@ public sealed class FinanceAccountingEventsController : ControllerBase
 
     [HttpGet]
     [AccessAction("Read", "Read Accounting Events", AccessType = AccessTypes.Read, SortOrder = 1)]
-    [AccessPermission("AccountingEvents", "Read")]
+    [AccessPermission("FinanceAccountingEvent", "Read")]
     [ProducesResponseType(typeof(ApiResponse<PagedResult<AccountingEventResponse>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Get([FromQuery] AccountingEventQuery request, CancellationToken cancellationToken) =>
         Ok(ApiResponse<PagedResult<AccountingEventResponse>>.Ok(
@@ -50,7 +50,7 @@ public sealed class FinanceAccountingEventsController : ControllerBase
 
     [HttpGet("{id:guid}")]
     [AccessAction("Read", "Read Accounting Events", AccessType = AccessTypes.Read, SortOrder = 1)]
-    [AccessPermission("AccountingEvents", "Read")]
+    [AccessPermission("FinanceAccountingEvent", "Read")]
     [ProducesResponseType(typeof(ApiResponse<AccountingEventDetailResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)

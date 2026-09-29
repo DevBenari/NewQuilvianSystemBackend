@@ -57,7 +57,7 @@ public sealed class FinanceSupplierReturnsController : ControllerBase
         try
         {
             var supplierReturn = await _service.CreateAsync(
-                request.PurchasingInvoiceId, request.Reason, request.Items, CurrentUserId(), cancellationToken);
+                request.PurchasingInvoiceId, request.Reason, request.PPNAmount, request.Items, CurrentUserId(), cancellationToken);
             return StatusCode(201, ApiResponse<SupplierReturnResponse>.Ok(Map(supplierReturn), "Retur Pembelian berhasil dicatat."));
         }
         catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
@@ -114,6 +114,7 @@ public sealed class FinanceSupplierReturnsController : ControllerBase
         PurchasingInvoiceId = supplierReturn.PurchasingInvoiceId,
         Reason = supplierReturn.Reason,
         TotalAmount = supplierReturn.TotalAmount,
+        PPNAmount = supplierReturn.PPNAmount,
         Status = supplierReturn.Status,
         RowVersion = supplierReturn.RowVersion
     };
@@ -128,6 +129,7 @@ public sealed class FinanceSupplierReturnsController : ControllerBase
             PurchasingInvoiceId = mapped.PurchasingInvoiceId,
             Reason = mapped.Reason,
             TotalAmount = mapped.TotalAmount,
+            PPNAmount = mapped.PPNAmount,
             Status = mapped.Status,
             RowVersion = mapped.RowVersion,
             Items = supplierReturn.Items.Select(x => new SupplierReturnItemResponse

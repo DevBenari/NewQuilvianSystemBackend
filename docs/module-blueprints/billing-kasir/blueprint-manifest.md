@@ -9,11 +9,11 @@ status: draft
 status_derivation_revision_1_8: >
   Revisi 1.8 (Pembalikan Tender Top-Up Deposit dan Alokasi Tagihan) berstatus `draft`.
   Dipicu permintaan perbaikan dari modul Finance (evidence 17, FIN-OQ-034 / FIN-DEC-077)
-  mengenai ketiadaan mutasi pembalik deposit saat tender top-up menjadi REVERSED.
-  Keputusan bisnis BKC-DEC-128..131 disetujui 28 September 2026 via /grill-me.
-  Keputusan arsitektur BKC-DES-051..054 disahkan hari yang sama.
-  Empat kontrak target dinaikkan: BIL-STATE-1.5, BIL-VALIDATION-1.5, BIL-INTEGRATION-1.3,
-  dan BIL-TEST-1.6. PRD diperbarui dengan EPIC BKC-24 (FR-BKC-125..128) dan gelombang MVP-35.
+  serta evidence 19 (FIN-OQ-037 / FIN-DEC-081) mengenai penanda eksplisit mutasi RELEASE.
+  Keputusan bisnis BKC-DEC-128..131 disetujui 28 September 2026, dan BKC-DEC-132..134 disetujui 29 September 2026 via /grill-me.
+  Keputusan arsitektur BKC-DES-051..056 disahkan.
+  Empat kontrak target dinaikkan: BIL-STATE-1.6, BIL-VALIDATION-1.6, BIL-INTEGRATION-1.4,
+  dan BIL-TEST-1.7. PRD diperbarui dengan EPIC BKC-24 (FR-BKC-125..130) dan gelombang MVP-35.
   NOL MIGRATION dan NOL skema baru pada seluruh revisi ini.
 status_derivation_revision_1_5: >
   Revisi 1.5 (Integrasi Rawat Inap ↔ Billing Management / Pass B) berstatus `draft`. Keputusan bisnis
@@ -95,12 +95,12 @@ status_derivation: >
   `approved` di dalam satu blueprint SINGLE.
 readiness_revision_1_8: >
   REVISI 1.8 (Pembalikan Tender Top-Up Deposit dan Alokasi Tagihan) berstatus DESIGN_DRAFT.
-  Keputusan bisnis BKC-DEC-128..131 approved 28 September 2026.
-  Keputusan arsitektur BKC-DES-051..054 dan kontrak target (BIL-STATE-1.5, BIL-VALIDATION-1.5,
-  BIL-INTEGRATION-1.3, BIL-TEST-1.6) berstatus draft menunggu approval owner sebelum diteruskan ke /plan-module-delivery.
+  Keputusan bisnis BKC-DEC-128..134 approved 28–29 September 2026.
+  Keputusan arsitektur BKC-DES-051..056 dan kontrak target (BIL-STATE-1.6, BIL-VALIDATION-1.6,
+  BIL-INTEGRATION-1.4, BIL-TEST-1.7) berstatus draft menunggu approval owner sebelum diteruskan ke /plan-module-delivery.
   NOL pertanyaan terbuka yang memblokir.
   NOL migration, nol skema baru, nol endpoint baru.
-  Gelombang MVP-35 (EPIC BKC-24, FR-BKC-125..128) siap direncanakan.
+  Gelombang MVP-35 (EPIC BKC-24, FR-BKC-125..130) siap direncanakan.
 readiness_revision_1_3: >
   REVISI 1.3 (Penutupan gap FINAL->CLOSED) kini DESIGN_APPROVED. Keputusan bisnis BKC-DEC-100-105
   dan keputusan arsitektur BKC-DES-028-035 seluruhnya `approved` 18 September 2026; impact scan

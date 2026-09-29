@@ -11,9 +11,8 @@ using System.Security.Claims;
 namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Payable.Controllers;
 
 /// <summary>
-/// Resource permission ("SupplierPayable") mengikuti pola penamaan singkat yang sudah berjalan
-/// nyata pada `FinanceReceivablesController` ("Receivable", bukan "FinanceReceivable"), bukan
-/// nama resource persis `contracts/permission-audit-matrix.md` (`FinanceSupplierPayable`).
+/// Resource permission `FinanceSupplierPayable` — nama kanonikal penuh sejak `BE-FIN-042`
+/// (`FIN-DEC-078`, `permission-audit-matrix.md` §D.5). Sebelumnya memakai nama pendek `SupplierPayable`.
 /// Hanya endpoint yang sudah punya logika service nyata yang dibangun di sini (BE-FIN-019,
 /// pembaruan 23 September 2026): rincian, input manual, koreksi (maker-checker), dan pembatalan.
 /// `GET /supplier-payables` (daftar berpaging) dan `GET /supplier-payables/aging` ada pada
@@ -24,7 +23,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Payable.Contro
 [Authorize]
 [Route("api/v1/corporate/finance-management/supplier-payables")]
 [AccessController("CORPORATE_FINANCE_MANAGEMENT_SUPPLIER_PAYABLE", "Corporate Finance Management Supplier Payable", "Supplier Payable",
-    AreaName = "Corporate", ControllerName = "SupplierPayable", Description = "Utang supplier Finance — input manual, koreksi, dan pembatalan", SortOrder = 40)]
+    AreaName = "Corporate", ControllerName = "FinanceSupplierPayable", Description = "Utang supplier Finance — input manual, koreksi, dan pembatalan", SortOrder = 40)]
 [Tags("Corporate / Finance Management / Supplier Payable")]
 public sealed class FinanceSupplierPayablesController : ControllerBase
 {
@@ -33,7 +32,7 @@ public sealed class FinanceSupplierPayablesController : ControllerBase
 
     [HttpGet("{id:guid}")]
     [AccessAction("Read", "Read Supplier Payable", AccessType = AccessTypes.Read, SortOrder = 1)]
-    [AccessPermission("SupplierPayable", "Read")]
+    [AccessPermission("FinanceSupplierPayable", "Read")]
     [ProducesResponseType(typeof(ApiResponse<SupplierPayableDetailResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
@@ -48,7 +47,7 @@ public sealed class FinanceSupplierPayablesController : ControllerBase
 
     [HttpPost]
     [AccessAction("Create", "Create Supplier Payable", AccessType = AccessTypes.Create, SortOrder = 2)]
-    [AccessPermission("SupplierPayable", "Create")]
+    [AccessPermission("FinanceSupplierPayable", "Create")]
     public async Task<IActionResult> Create([FromBody] CreateSupplierPayableRequest request, CancellationToken cancellationToken)
     {
         try
@@ -64,7 +63,7 @@ public sealed class FinanceSupplierPayablesController : ControllerBase
 
     [HttpPost("{id:guid}/adjustments")]
     [AccessAction("RequestAdjustment", "Request Supplier Payable Adjustment", AccessType = AccessTypes.Create, SortOrder = 3)]
-    [AccessPermission("SupplierPayable", "RequestAdjustment")]
+    [AccessPermission("FinanceSupplierPayable", "RequestAdjustment")]
     public async Task<IActionResult> RequestAdjustment(Guid id, [FromBody] RequestPayableAdjustmentRequest request, CancellationToken cancellationToken)
     {
         try
@@ -77,7 +76,7 @@ public sealed class FinanceSupplierPayablesController : ControllerBase
 
     [HttpPost("{id:guid}/adjustments/{adjustmentId:guid}/approve")]
     [AccessAction("ApproveAdjustment", "Approve Supplier Payable Adjustment", AccessType = AccessTypes.Update, SortOrder = 4)]
-    [AccessPermission("SupplierPayable", "ApproveAdjustment")]
+    [AccessPermission("FinanceSupplierPayable", "ApproveAdjustment")]
     public async Task<IActionResult> ApproveAdjustment(Guid id, Guid adjustmentId, [FromBody] DecidePayableAdjustmentRequest request, CancellationToken cancellationToken)
     {
         try
@@ -90,7 +89,7 @@ public sealed class FinanceSupplierPayablesController : ControllerBase
 
     [HttpPost("{id:guid}/adjustments/{adjustmentId:guid}/reject")]
     [AccessAction("ApproveAdjustment", "Approve Supplier Payable Adjustment", AccessType = AccessTypes.Update, SortOrder = 4)]
-    [AccessPermission("SupplierPayable", "ApproveAdjustment")]
+    [AccessPermission("FinanceSupplierPayable", "ApproveAdjustment")]
     public async Task<IActionResult> RejectAdjustment(Guid id, Guid adjustmentId, [FromBody] DecidePayableAdjustmentRequest request, CancellationToken cancellationToken)
     {
         try
@@ -103,7 +102,7 @@ public sealed class FinanceSupplierPayablesController : ControllerBase
 
     [HttpPost("{id:guid}/cancel")]
     [AccessAction("Cancel", "Cancel Supplier Payable", AccessType = AccessTypes.Update, SortOrder = 5)]
-    [AccessPermission("SupplierPayable", "Cancel")]
+    [AccessPermission("FinanceSupplierPayable", "Cancel")]
     public async Task<IActionResult> Cancel(Guid id, [FromBody] CancelSupplierPayableRequest request, CancellationToken cancellationToken)
     {
         try

@@ -12,9 +12,8 @@ using System.Security.Claims;
 namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Payable.Controllers;
 
 /// <summary>
-/// Resource permission ("Payment") mengikuti pola penamaan singkat yang sudah berjalan nyata pada
-/// `FinanceReceivablesController` ("Receivable"), bukan nama resource persis
-/// `contracts/permission-audit-matrix.md` (`FinancePayment`).
+/// Resource permission `FinancePayment` — nama kanonikal penuh sejak `BE-FIN-042`
+/// (`FIN-DEC-078`, `permission-audit-matrix.md` §D.5). Sebelumnya memakai nama pendek `Payment`.
 /// Hanya endpoint yang sudah punya logika service nyata yang dibangun di sini (BE-FIN-020,
 /// pembaruan 23 September 2026): rincian, susun/ubah draft, ajukan, setujui/tolak, tandai lunas,
 /// batalkan. Potongan/tambahan disusun sebagai bagian body `Create`/`Update` — service ini tidak
@@ -35,7 +34,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Payable.Contro
 [Authorize]
 [Route("api/v1/corporate/finance-management/payments")]
 [AccessController("CORPORATE_FINANCE_MANAGEMENT_PAYMENT", "Corporate Finance Management Payment", "Payment",
-    AreaName = "Corporate", ControllerName = "Payment", Description = "Pembayaran keluar Finance — draft, pengajuan, persetujuan berjenjang, dan pelunasan", SortOrder = 41)]
+    AreaName = "Corporate", ControllerName = "FinancePayment", Description = "Pembayaran keluar Finance — draft, pengajuan, persetujuan berjenjang, dan pelunasan", SortOrder = 41)]
 [Tags("Corporate / Finance Management / Payment")]
 public sealed class FinancePaymentsController : ControllerBase
 {
@@ -44,7 +43,7 @@ public sealed class FinancePaymentsController : ControllerBase
 
     [HttpGet("{id:guid}")]
     [AccessAction("Read", "Read Payment", AccessType = AccessTypes.Read, SortOrder = 1)]
-    [AccessPermission("Payment", "Read")]
+    [AccessPermission("FinancePayment", "Read")]
     [ProducesResponseType(typeof(ApiResponse<PaymentDetailResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
@@ -57,7 +56,7 @@ public sealed class FinancePaymentsController : ControllerBase
 
     [HttpPost]
     [AccessAction("Create", "Create Payment", AccessType = AccessTypes.Create, SortOrder = 2)]
-    [AccessPermission("Payment", "Create")]
+    [AccessPermission("FinancePayment", "Create")]
     public async Task<IActionResult> Create([FromBody] CreatePaymentRequest request, CancellationToken cancellationToken)
     {
         try
@@ -74,7 +73,7 @@ public sealed class FinancePaymentsController : ControllerBase
 
     [HttpPut("{id:guid}")]
     [AccessAction("Update", "Update Payment", AccessType = AccessTypes.Update, SortOrder = 3)]
-    [AccessPermission("Payment", "Update")]
+    [AccessPermission("FinancePayment", "Update")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdatePaymentRequest request, CancellationToken cancellationToken)
     {
         try
@@ -91,7 +90,7 @@ public sealed class FinancePaymentsController : ControllerBase
 
     [HttpPost("{id:guid}/submit")]
     [AccessAction("Submit", "Submit Payment", AccessType = AccessTypes.Update, SortOrder = 4)]
-    [AccessPermission("Payment", "Submit")]
+    [AccessPermission("FinancePayment", "Submit")]
     public async Task<IActionResult> Submit(Guid id, [FromBody] PaymentRowVersionRequest request, CancellationToken cancellationToken)
     {
         try
@@ -104,7 +103,7 @@ public sealed class FinancePaymentsController : ControllerBase
 
     [HttpPost("{id:guid}/approve")]
     [AccessAction("Approve", "Approve Payment", AccessType = AccessTypes.Update, SortOrder = 5)]
-    [AccessPermission("Payment", "Approve")]
+    [AccessPermission("FinancePayment", "Approve")]
     public async Task<IActionResult> Approve(Guid id, [FromBody] PaymentRowVersionRequest request, CancellationToken cancellationToken)
     {
         try
@@ -117,7 +116,7 @@ public sealed class FinancePaymentsController : ControllerBase
 
     [HttpPost("{id:guid}/reject")]
     [AccessAction("Approve", "Approve Payment", AccessType = AccessTypes.Update, SortOrder = 5)]
-    [AccessPermission("Payment", "Approve")]
+    [AccessPermission("FinancePayment", "Approve")]
     public async Task<IActionResult> Reject(Guid id, [FromBody] RejectPaymentRequest request, CancellationToken cancellationToken)
     {
         try
@@ -130,7 +129,7 @@ public sealed class FinancePaymentsController : ControllerBase
 
     [HttpPost("{id:guid}/mark-paid")]
     [AccessAction("MarkPaid", "Mark Payment Paid", AccessType = AccessTypes.Update, SortOrder = 6)]
-    [AccessPermission("Payment", "MarkPaid")]
+    [AccessPermission("FinancePayment", "MarkPaid")]
     public async Task<IActionResult> MarkPaid(Guid id, [FromBody] MarkPaymentPaidRequest request, CancellationToken cancellationToken)
     {
         try
@@ -143,7 +142,7 @@ public sealed class FinancePaymentsController : ControllerBase
 
     [HttpPost("{id:guid}/cancel")]
     [AccessAction("Cancel", "Cancel Payment", AccessType = AccessTypes.Update, SortOrder = 7)]
-    [AccessPermission("Payment", "Cancel")]
+    [AccessPermission("FinancePayment", "Cancel")]
     public async Task<IActionResult> Cancel(Guid id, [FromBody] PaymentRowVersionRequest request, CancellationToken cancellationToken)
     {
         try
@@ -156,7 +155,7 @@ public sealed class FinancePaymentsController : ControllerBase
 
     [HttpGet("{id:guid}/return-deposits")]
     [AccessAction("Read", "Read Payment", AccessType = AccessTypes.Read, SortOrder = 8)]
-    [AccessPermission("Payment", "Read")]
+    [AccessPermission("FinancePayment", "Read")]
     [ProducesResponseType(typeof(ApiResponse<List<PaymentReturnDepositResponse>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetReturnDeposits(Guid id, CancellationToken cancellationToken)
     {
@@ -166,7 +165,7 @@ public sealed class FinancePaymentsController : ControllerBase
 
     [HttpPost("{id:guid}/return-deposits")]
     [AccessAction("Update", "Update Payment", AccessType = AccessTypes.Update, SortOrder = 9)]
-    [AccessPermission("Payment", "Update")]
+    [AccessPermission("FinancePayment", "Update")]
     [ProducesResponseType(typeof(ApiResponse<PaymentDetailResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> AddReturnDeposit(Guid id, [FromBody] AddPaymentReturnDepositRequest request, CancellationToken cancellationToken)
     {
@@ -183,7 +182,7 @@ public sealed class FinancePaymentsController : ControllerBase
 
     [HttpDelete("{id:guid}/return-deposits/{usageId:guid}")]
     [AccessAction("Update", "Update Payment", AccessType = AccessTypes.Update, SortOrder = 10)]
-    [AccessPermission("Payment", "Update")]
+    [AccessPermission("FinancePayment", "Update")]
     [ProducesResponseType(typeof(ApiResponse<PaymentDetailResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> ReleaseReturnDeposit(Guid id, Guid usageId, [FromQuery] Guid expectedRowVersion, CancellationToken cancellationToken)
     {

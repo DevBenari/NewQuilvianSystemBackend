@@ -2,12 +2,13 @@
 
 | Field | Nilai |
 |---|---|
-| Contract version | `FIN-TEST-1.5` |
+| Contract version | `FIN-TEST-1.6` |
+| `last_changed_in` (1.6) | `FIN-TEST-1.6` — AMENDMENT REVISI 9, 29 September 2026 (bagian F baru: sepuluh baris uji untuk `FIN-DES-064`/`065` dan `FIN-VAL-144`..`146`). Status **`approved`** — disahkan oleh Yasmin via `FIN-DEC-080` dan `FIN-DEC-081` (mengoreksi `FIN-DEC-041`) |
 | `last_changed_in` | `FIN-TEST-1.5` — AMENDMENT REVISI 7, 28 September 2026 (bagian E baru). Sebelumnya `1.4` — AMENDMENT REVISI 6 (bagian D) |
-| Status | Revisi 1.1 `approved` dan `locked` 25 September 2026; 1.2/1.3 mengikuti AMENDMENT REVISI 4/5. **`1.4` (bagian D) disetujui owner 28 September 2026 bersama `FIN-DES-051`..`058`; `1.5` (bagian E) `draft`** |
+| Status | Revisi 1.1 `approved` dan `locked` 25 September 2026; 1.2/1.3 mengikuti AMENDMENT REVISI 4/5; 1.4 disetujui owner 28 September 2026. **`1.6` (bagian F) `approved` 29 September 2026 bersama `FIN-DEC-080`/`081`** |
 | Owner | Yasmin (Product/Domain Owner Finance) |
-| `approved_by` / `approved_at` | Yasmin / 2026-09-25 (untuk 1.1); `1.4` **belum** |
-| Input revision | `contracts/validation-matrix.md` `FIN-VAL-1.4`, `contracts/integration-contract.md` `FIN-INTEGRATION-1.4`, `02-backend-architecture.md` AMENDMENT REVISI 6 (`FIN-DES-051`..`058`) |
+| `approved_by` / `approved_at` | Yasmin / 2026-09-29 (untuk `1.6`) |
+| Input revision | `contracts/validation-matrix.md` `FIN-VAL-1.5`, `contracts/integration-contract.md` `FIN-INTEGRATION-1.6`, `02-backend-architecture.md` bagian H (`FIN-DES-064`, `FIN-DES-065`), `00-interview-decisions.md` `FIN-DEC-080`..`081` |
 | Catatan project test | Project test terpisah belum terdeteksi di repository pada `09101d05`, dan **belum diperiksa ulang** pada `cba60cb0`. Kolom "Jenis test" menyatakan **jenis yang seharusnya**, bukan yang sudah tersedia |
 
 Matriks ini memuat jalur gagal, bukan hanya jalur berhasil. Uji yang hanya membuktikan jalur
@@ -133,7 +134,7 @@ Seluruh baris di bawah **belum dapat dijalankan** sampai tujuh kode baru diratif
 | `FIN-DES-034`, `FIN-VAL-085` | Penerimaan `PENERIMAAN-UANG-MUKA` dibalik **setelah** tagihannya menjadi `FINAL` | Integrasi | Pembalikannya `PEMBALIKAN-PENERIMAAN-UANG-MUKA` — **bukan** `PEMBALIKAN-PENERIMAAN-KASIR`, walaupun tagihan sekarang `FINAL` |
 | `FIN-DES-034` | Penerimaan `PENERIMAAN-KASIR` dibalik | Integrasi | Pembalikannya `PEMBALIKAN-PENERIMAAN-KASIR`, tidak berubah dari perilaku lama |
 | `FIN-DEC-040`, `FIN-DES-029` | `BilDepositMovement` `ALLOCATION` disinkronkan | Integrasi | Satu baris intake `DEPOSIT_MOVEMENT` berstatus `CONSUMED`; satu baris kejadian `PEMAKAIAN-UANG-MUKA-DEPOSIT`; **tidak ada** `FinReceipt` baru |
-| `FIN-DEC-041` | `BilDepositMovement` `RELEASE` disinkronkan | Integrasi | Baris kejadian `PENGEMBALIAN-UANG-MUKA`, **bukan** kode pemakaian |
+| `FIN-DEC-041` | `BilDepositMovement` `RELEASE` disinkronkan | Integrasi | ~~Baris kejadian `PENGEMBALIAN-UANG-MUKA`, bukan kode pemakaian~~ — **baris uji ini DIGANTIKAN §F.1** oleh AMENDMENT REVISI 9 (`FIN-DES-064`): yang benar justru `PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT`, karena mutasi `RELEASE` tidak mengeluarkan kas. Memakai baris ini apa adanya akan **meloloskan** kesalahan yang dicegah `FIN-VAL-144` |
 | `FIN-DEC-041` | `BilRefundCase` `EXECUTED` bersumber `ALLOCATION_EXCESS` | Integrasi | Baris kejadian `PENGEMBALIAN-UANG-MUKA` |
 | `FIN-DEC-041`, `FIN-OQ-018` | `BilRefundCase` `EXECUTED` bersumber `SETTLEMENT` | Integrasi | **Nol** baris kejadian — sengaja di luar cakupan; tidak boleh diam-diam ikut terkirim |
 | `FIN-DEC-042` | `BilRefundableCredit` `ALLOCATION_EXCESS` diakui | Integrasi | Baris kejadian `PENGAKUAN-KELEBIHAN-BAYAR` bernilai selisihnya saja, bukan nilai penerimaan penuh |
@@ -477,3 +478,34 @@ Menurunkan `FIN-DES-059`, `FIN-DES-060`, dan `FR-FIN-108`..`110`.
 | `FR-FIN-108` | **Jalur gagal:** butir menu didaftarkan sebelum layarnya punya sumber data | Manual | Dihitung **gagal** — urutan `03-frontend-architecture.md` bagian 15.3 dilanggar |
 | `FR-FIN-110` | Petugas dengan hak akses AP terbatas membuka menu | Integrasi | Butir yang tampil hanya yang endpoint-nya mengizinkan. **Belum dapat diuji** sampai `FIN-OQ-036` turun |
 | `FIN-CAP-032` | **Jalur gagal:** butir "Tagihan Gabungan Penjamin" didaftarkan | Manual | Dihitung **gagal** — entity `FinReceivableInvoiceBatch` masih nol baris |
+
+---
+
+# F. AMENDMENT REVISI 9 — arti tunggal mutasi `RELEASE`
+
+Menurunkan `FIN-DES-064` dan `FIN-DES-065` via `FIN-DEC-080` dan `FIN-DEC-081`. Seluruh baris di bawah berstatus **`approved`** (29 September 2026).
+
+## F.1 Pembatalan alokasi uang muka
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `FIN-DES-064` | Tender top-up deposit dibalik **sesudah** dananya dipakai melunasi tagihan | Integrasi | **Dua** kejadian dari satu pembalikan: `PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT` sebesar porsi yang terpakai **dan** `PEMBALIKAN-PENERIMAAN-UANG-MUKA` sebesar nilai tender |
+| `FIN-DES-064` | Nilai kedua kejadian itu | Integrasi | Hasil bersihnya debit Piutang dan kredit Kas; saldo Uang Muka Pasien kembali nol — **bukan** minus |
+| `FIN-VAL-144` | **Jalur gagal:** mutasi `RELEASE` dikirim sebagai `PENGEMBALIAN-UANG-MUKA` | Unit | Tertangkap sebagai kesalahan kode. Nol baris outbox berkode `PENGEMBALIAN-UANG-MUKA` untuk mutasi `RELEASE` mana pun |
+| `FIN-VAL-146` | **Jalur gagal:** hanya satu dari dua kejadian yang terbit | Integrasi | Dihitung **gagal**. Kas dikredit tanpa piutang terbuka kembali, atau sebaliknya |
+| `FIN-DES-064` | Tender top-up dibalik **sebelum** dananya dipakai | Integrasi | Hanya `PEMBALIKAN-PENERIMAAN-UANG-MUKA`; **nol** `PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT`, karena tidak ada alokasi yang dibatalkan |
+
+## F.2 Mutasi pelepasan yang asalnya belum dikenal
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `FIN-VAL-145` | **Jalur gagal:** mutasi `RELEASE` tanpa mutasi `REVERSAL` ber-`SettlementId` sama | Integrasi | Baris intake `ERROR` dengan sebab yang menyebut jenis mutasinya dan menunjuk `FIN-OQ-037`; **nol** kejadian; baris terlihat di layar pantauan |
+| `FIN-VAL-145` | Baris `ERROR` itu dicari petugas | API | Dapat ditemukan beserta sebabnya tanpa membaca database — jalur yang sama dengan `FIN-VAL-141`/`142` pada §D.7 |
+| `FIN-DES-065` | **Jalur gagal:** kode menebak lawan jurnal dari kolom `Reason` | Unit | Dihitung **gagal**. `Reason` adalah teks bebas dan **MUST NOT** menjadi kunci logika akuntansi |
+
+## F.3 Kode yang cakupannya dipersempit
+
+| Requirement | Skenario | Jenis test | Bukti yang diharapkan |
+|---|---|---|---|
+| `FIN-DES-064` | Refund kas atas kredit `ALLOCATION_EXCESS` atau `SETTLEMENT` dieksekusi | Integrasi | `PENGEMBALIAN-UANG-MUKA` **tetap** terbit — kode ini tidak mati, hanya pemicunya dipersempit ke `BilRefundCase` |
+| `FIN-DES-064` | Seluruh mutasi `RELEASE` pada satu periode | Integrasi | **Nol** di antaranya menerbitkan `PENGEMBALIAN-UANG-MUKA` |

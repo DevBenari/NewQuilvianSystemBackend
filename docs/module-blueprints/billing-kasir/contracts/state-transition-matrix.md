@@ -580,9 +580,9 @@ Trace `BUI-DEC-007`, `BUI-DEC-012`, `BUI-DEC-014`, `BUI-DES-001`.
 
 ---
 
-# Amendment 28 September 2026 — Pembalikan Tender Top-Up Deposit dan Alokasi Tagihan (Revisi 1.8, `BIL-STATE-1.5`)
+# Amendment 29 September 2026 — Pembalikan Tender Top-Up Deposit dan Alokasi Tagihan (Revisi 1.8, `BIL-STATE-1.6`)
 
-`last_changed_in: BIL-STATE-1.5` · status **draft** · input `BKC-DEC-128`–`131`, `BKC-DES-051`–`054`, evidence 17 Finance.
+`last_changed_in: BIL-STATE-1.6` · status **draft** · input `BKC-DEC-128`–`134`, `BKC-DES-051`–`056`, evidence 17 & 19 Finance.
 
 ## 1. Transisi Status dan Dampak Pembalikan Tender Top-Up Deposit
 
@@ -592,7 +592,7 @@ Ketika tender pembayaran yang mendanai top-up deposit (`Settlement.Purpose == "D
 |---|---|---|---|---|---|
 | `BilTender` | `SUCCEEDED` | Penarikan dana / chargeback / pembatalan gateway | `REVERSED` | Gateway Pembayaran / Kasir / Finance | Tender top-up sebelumnya sah berhasil. Memicu eksekusi `HandleDepositTopUpReversalAsync`. |
 | `BilPaymentAllocation` | Aktif (tersimpan) | Pembatalan alokasi invoice berurut LIFO | Dibalik (kompensasi) | Sistem (`BillingSettlementService`) | Ditulis baris baru alokasi pembalik dengan nominal negatif (`Amount = -cancelAmount`) dan `ReversesAllocationId = originalAllocation.Id`. Sisa tagihan invoice naik. |
-| `BilDepositAccount` | Saldo berjalan (`AvailableBalance`) | Pemulihan alokasi tagihan (`RELEASE`) | Saldo pulih bertambah | Sistem (`BillingSettlementService`) | `AvailableBalance += cancelAmount`. Dicatat mutasi bertipe `RELEASE`. Saldo dipulihkan sementara agar mencukupi penarikan top-up. |
+| `BilDepositAccount` | Saldo berjalan (`AvailableBalance`) | Pemulihan alokasi tagihan (`RELEASE`) | Saldo pulih bertambah | Sistem (`BillingSettlementService`) | `AvailableBalance += cancelAmount`. Dicatat mutasi bertipe `RELEASE` 1-ke-1 per alokasi yang dibatalkan, dengan `ReversesMovementId` menunjuk ID mutasi `ALLOCATION` asal (`BKC-DEC-132`/`133`). Saldo dipulihkan sementara agar mencukupi penarikan top-up. |
 | `BilDepositAccount` | Saldo pulih | Penarikan dana top-up (`REVERSAL`) | Saldo berkurang | Sistem (`BillingSettlementService`) | `AvailableBalance -= originalTopUpAmount`. Dicatat mutasi bertipe `REVERSAL` (`ReversesMovementId = originalTopUp.Id`). Invariant mutlak: `AvailableBalance >= 0`. |
 | `BilInvoice` | `CLOSED` | Sisa tagihan bertambah akibat alokasi dibatalkan | `FINAL` | Sistem (`BillingInvoiceClosureService.SyncClosureAsync`) | Terpicu jika `PatientOutstanding > 0`. `ClosedAt` dikosongkan kembali. Alasan: `PrescriptionClearanceReasonCodes.PaymentReversed`. |
 
@@ -635,6 +635,8 @@ Ketika tender pembayaran yang mendanai top-up deposit (`Settlement.Purpose == "D
 | Eksekusi mutasi `REVERSAL` mendahului `RELEASE` saat saldo tidak cukup | Menyebabkan saldo sempat minus sebelum pulih, merusak integritas audit snapshot saldo berjalan. | `HandleDepositTopUpReversalAsync` menjamin `RELEASE` alokasi dieksekusi sebelum `REVERSAL` top-up. |
 | Invoice tetap `CLOSED` padahal alokasi pembayaran dibatalkan dan sisa tagihan > 0 | Menciptakan piutang tak tertagih (*ghost settlement*) karena invoice dianggap lunas padahal uangnya sudah ditarik. | `SyncClosureAsync` wajib dipanggil untuk setiap invoice terdampak alokasi yang dibatalkan. |
 | Menghapus baris `BilPaymentAllocation` atau `BilDepositMovement` lama (*hard delete*) | Merusak audit trail pembukuan rumah sakit dan rekonsiliasi bank. | Seluruh pembatalan wajib berupa baris transaksi baru (*compensating records*). |
+| Mutasi `RELEASE` pembatalan alokasi dengan `ReversesMovementId == null` | Melanggar invariant semantik penanda `BKC-DEC-132`. Menyebabkan Finance tidak dapat membedakan pembatalan alokasi dari refund kas murni. | Ditandai status intake `ERROR` di Finance, nol jurnal akuntansi diterbitkan (`FIN-VAL-145`). |
+| Mutasi `RELEASE` gelondongan untuk multi-alokasi | Melanggar invariant granularitas 1-ke-1 `BKC-DEC-133`. Menghilangkan ketertelusuran per alokasi/invoice asal. | Merusak korelasi matematis alokasi tagihan dengan pergerakan deposit. |
 
-Trace `BKC-DEC-128`, `BKC-DEC-129`, `BKC-DEC-130`, `BKC-DEC-131`, `BKC-DES-051`, `BKC-DES-052`, `BKC-DES-053`, `BKC-DES-054`.
+Trace `BKC-DEC-128`–`134`, `BKC-DES-051`–`056`.
 

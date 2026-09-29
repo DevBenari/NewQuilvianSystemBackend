@@ -6,7 +6,138 @@ module_name: Finance Management
 module_slug: finance-management
 module_prefix: Fin
 module_area: Areas/Corporate/FinanceManagement
-revision: 7
+revision: 12
+revision_12_note: >
+  Revisi 12 (29 September 2026) adalah /grill-me Amendment pass yang menutup FIN-OQ-038 — gerbang
+  yang dibuka pass desain revisi 11. SATU KEPUTUSAN BARU: FIN-DEC-084, `approved` untuk SISI FINANCE.
+  Jalan keluar yang dipilih: PERLUAS PLATFORM (opsi D) — platform-authorization diperluas supaya
+  sebuah modul dapat mendeklarasikan resource yang dapat diberikan tetapi tidak dijaga endpoint mana
+  pun, lewat deklarasi opt-in eksplisit, DENGAN penjaga anti-typo yang ada sekarang tetap
+  dipertahankan untuk kasus normal.
+  DUA ALTERNATIF DITOLAK, beserta alasannya: (C) controller pembawa milik Finance ditolak karena
+  endpoint yang keberadaannya terutama untuk membawa resource adalah jebakan jangka panjang —
+  peninjau berikutnya wajar menganggapnya endpoint mati lalu menghapusnya, dan itu diam-diam
+  mematikan seluruh pemberian hak lewat payung; (E) membatalkan payung sama sekali TIDAK dipilih,
+  walaupun premis aslinya gugur, karena kemudahan admin tetap dinilai bernilai.
+  FAKTA YANG DISAMPAIKAN SEBELUM KEPUTUSAN DIAMBIL, dan ia mengubah bobot pertanyaannya: alasan asli
+  payung dibuat (mencegah 403 pada butir menu, FIN-OQ-036) TIDAK TERBUKTI — lihat revision_11_note.
+  Manfaat payung yang tersisa murni kemudahan admin. Owner tetap memilih membangunnya.
+  BATAS WEWENANG YANG DICATAT APA ADANYA: FIN-DEC-084 adalah keputusan sisi Finance. Kode yang
+  diubah milik platform-authorization, dan pemiliknya Security Owner bersama pemilik modul itu —
+  BUKAN Yasmin. Karena itu FIN-OQ-039 DIBUKA sebagai permintaan lintas modul, mengikuti pola
+  FIN-DEC-053 (ke Accounting) dan FIN-OQ-034/037 (ke Billing). Ia menahan implementasi mekanisme
+  ekspansi, TIDAK menahan BE-FIN-042 yang sudah selesai maupun pekerjaan frontend mana pun.
+  SATU SURAT EVIDENCE DITULIS pada pass yang sama: evidence/20 kepada Security Owner + owner
+  platform-authorization. Surat itu sengaja menyampaikan DUA hal yang merugikan posisi Finance
+  sendiri, supaya penerimanya dapat menimbang jujur: (a) alasan asli payung (mencegah 403) sudah
+  terbukti gugur sehingga manfaat yang tersisa murni kemudahan admin, dan (b) dua alternatif yang
+  dapat ditempuh Finance TANPA melibatkan modul lain, beserta alasan penolakannya. Surat itu
+  menyatakan jawaban "ditolak atau ditunda" DAPAT DITERIMA SEPENUHNYA — Finance akan mencabut
+  rencana payung dan tetap memakai pemberian hak granular. Satu temuan di luar permintaan ikut
+  dilaporkan di bagian 8 surat itu (FIN-CQ-09, dua butir menu Report yang tersembunyi permanen).
+  NOL source disentuh. NOL kontrak naik versi pada pass ini.
+revision_11_note: >
+  Revisi 11 (29 September 2026) adalah /design-business-module kecil yang menggambar mekanisme
+  FIN-DEC-082 dan FIN-DEC-083. Keputusan arsitekturnya FIN-DES-066..069 — SELURUHNYA `draft`,
+  BELUM disetujui owner. NOL tabel baru, NOL kolom baru, NOL migration, NOL endpoint baru.
+  IMPACT SCAN DIJALANKAN pada area terdampak saja (jalur tulis SysAccessPolicy, registry hak akses,
+  penyaring menu frontend): backend 7811c048 TIDAK bergerak; frontend 49b59cfaa -> a31da3c21
+  BERGERAK, dan hasil pindaiannya MENGUBAH kesimpulan, bukan hanya memperbarui angka.
+  TEMUAN YANG MEMBATALKAN PREMIS FIN-OQ-036. Butir menu yang dijaga Finance.AP/Finance.AR
+  seluruhnya menunjuk rute V2 (/finance/payable*, /finance/receivable*) dengan aksi View/Payment/
+  Report — aksi milik FinanceApController/FinanceArController sendiri. Menu dan endpointnya
+  KONSISTEN; risiko 403 yang menjadi alasan FIN-OQ-036 dibuka TIDAK ADA di sana. Butir menu
+  Purchasing belum pernah ada; ia baru dibangun FE-FIN-008..014. Dijawab FIN-DES-069: butir menu
+  memakai resource GRANULAR, payung murni alat pemberian massal milik admin dan tidak pernah
+  diperiksa penyaring menu.
+  KENDALA MEKANIS YANG MENENTUKAN BENTUK DESAIN (FIN-DES-066). Resource hanya dapat terdaftar dari
+  pemindaian endpoint; jalur penanda (AccessExplicitPermissionAttribute) secara eksplisit MENOLAK
+  KERAS resource yang tidak dikenal. Artinya resource payung TANPA endpoint TIDAK DAPAT didaftarkan
+  dengan mekanisme platform hari ini. Dua jalan keluar dirumuskan — (C) pembawa milik Finance, atau
+  (D) perluasan platform-authorization — dan keduanya BUKAN wewenang Finance memutuskan sendiri.
+  Dicatat FIN-OQ-038, menahan HANYA implementasi mekanisme ekspansi.
+  TITIK TULIS DITETAPKAN (FIN-DES-067): RoleAccessController.ApplyPoliciesAsync — satu-satunya jalur
+  penulisan SysAccessPolicy, dipakai bersama endpoint simpan dan salin. Ekspansi disisipkan SEBELUM
+  gerbang validasi registry yang sudah ada, di dalam transaksi yang sudah dibuka method itu. NOL
+  perubahan pada HasAccessAsync. Perilaku pencabutan yang diminta FIN-DEC-083 terbukti jatuh langsung
+  dari semantik overwriteTarget yang sudah ada, tanpa kode tambahan.
+  BENTUK PETA DITETAPKAN (FIN-DES-068): satu berkas statis; tabel database yang dapat disunting admin
+  DITOLAK sebagai permukaan eskalasi hak akses.
+  DUA TEMUAN DILAPORKAN, TIDAK DIPERBAIKI DI SINI: FIN-CQ-09 (butir menu "Report AR"/"Report AP"
+  dijaga aksi Report yang tidak pernah dideklarasikan controller mana pun, sehingga tersembunyi
+  permanen bagi semua orang termasuk SuperAdmin; endpoint /report-nya sendiri sehat, dijaga View) dan
+  FIN-CQ-10 (dokumen menyebut berkas penyaring corporateFinance.js yang tidak ada).
+  TIGA DOKUMEN DIKOREKSI: contracts/permission-audit-matrix.md D.2/D.6.1/D.6.2 (naik ke FIN-PERM-1.4,
+  `draft`) — termasuk MENCABUT skrip SQL D.6.1 yang menyasar tabel SysRolePermissions yang tidak ada;
+  dan 03-frontend-architecture.md 15.4.
+revision_10_note: >
+  Revisi 10 (29 September 2026) adalah /grill-me Amendment pass yang mengoreksi FIN-DEC-079
+  (AMENDMENT REVISI 6/§D.5-D.6, 28 September 2026). Dipicu temuan saat implementasi BE-FIN-042:
+  nama resource payung "Finance.AP"/"Finance.AR" yang didaftarkan FIN-DEC-079 sebagai resource
+  BARU ternyata SUDAH DIPAKAI dua controller nyata yang berjalan (FinanceApController,
+  FinanceArController — endpoint "V2" AP/AR). Closure pass FIN-CQ-08 (28 September) tidak
+  menyilangkan temuannya dengan FIN-DEC-059 (25 September, decision log YANG SAMA) yang sudah
+  eksplisit menyebut FinanceApController "yang sudah berjalan" — dua controller itu sama sekali
+  tidak tersebut sepanjang closure pass FIN-CQ-08.
+  DUA KEPUTUSAN BARU: FIN-DEC-082 (payung dipindah ke nama Finance.AP.Umbrella/Finance.AR.Umbrella,
+  provisional; FinanceApController/FinanceArController TIDAK disentuh) dan FIN-DEC-083 (mekanisme
+  ekspansi payung->granular MATERIALIZED saat admin memberi grant lewat layar Akses Role — pola
+  be-sec-003b-policy-expansion.sql — BUKAN live/dihitung saat request, supaya algoritma otorisasi
+  inti AccessPermissionService yang dipakai SELURUH modul aplikasi tidak ikut berubah).
+  FIN-DEC-079 DIKOREKSI PARSIAL: nama payung berubah, cakupan payung-ke-granular dan matriks
+  pewarisan aksi TETAP berlaku apa adanya.
+  FIN-OQ-036 DIBUKA KEMBALI SEBAGIAN: klaim closure sebelumnya ("frontend tidak perlu diubah")
+  tidak lagi benar bila payung berganti nama — filter menu corporateFinance.js MUST diverifikasi
+  ulang /trace-existing-capabilities untuk memastikan ia menyaring untuk menu Purchasing/AR
+  (bukan menu V2) sebelum diarahkan ke nama payung baru. 03-frontend-architecture.md §15.4
+  (mengklaim FIN-CAP-040/FIN-OQ-036 tertutup tuntas) turut MUST ditinjau ulang.
+  NOL tabel baru, NOL kolom baru, NOL migration, NOL endpoint baru — pass ini murni koreksi
+  keputusan governance hak akses. BE-FIN-042 §D.5 (rename 6 controller) dan §D.6.1 (skrip
+  migrasi SysAccessPolicy) TIDAK terdampak — keduanya sudah selesai dan berdiri sendiri dari
+  koreksi ini.
+revision_9_note: >
+  Revisi 9 (29 September 2026) mencatat APPROVAL resmi owner (Yasmin) atas FIN-DES-064 dan
+  FIN-DES-065 via FIN-DEC-080 dan FIN-DEC-081 (Amendment Pass 29 September 2026).
+  Koreksi atas keputusan bisnis FIN-DEC-041 resmi disahkan: mutasi BilDepositMovement bertipe
+  RELEASE dicabut dari PENGEMBALIAN-UANG-MUKA dan dipetakan ke PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT,
+  sedangkan pemicu PENGEMBALIAN-UANG-MUKA dipersempit murni ke BilRefundCase EXECUTED.
+  Kontrak FIN-INTEGRATION-1.6, FIN-VAL-1.5, dan FIN-TEST-1.6 resmi disetujui (approved).
+  Blocker pemicu BE-FIN-047 resmi terbuka. Surat evidence FIN-OQ-037 disiapkan sebagai
+  evidence/19 untuk meminta penanda eksplisit ke Owner Billing.
+revision_8_note: >
+  Revisi 8 (29 September 2026) adalah /design-business-module kecil yang menjawab SATU blocker yang
+  dilaporkan pass perencanaan roadmap sehari sebelumnya: BE-FIN-047 tidak dapat direncanakan karena
+  pemicu PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT tidak jelas.
+  NOL tabel baru, NOL kolom baru, NOL migration, NOL endpoint baru. Keputusan arsitekturnya
+  FIN-DES-064 dan FIN-DES-065 — SELURUHNYA `draft`, BELUM disetujui owner.
+  IMPACT SCAN DIJALANKAN karena SHA bergerak cba60cb0 -> 7811c048. Hasilnya MENGUBAH kesimpulan
+  pass perencanaan, bukan hanya memperbarui angka.
+  TEMUAN UTAMA, dan ia lebih tajam daripada dugaan awal. Dugaan pass perencanaan: satu MovementType
+  RELEASE membawa dua arti sehingga Finance perlu membedakannya. Kenyataan pada source: RELEASE
+  hanya punya SATU penulis (BillingSettlementService:949, BKC-DEC-131, pembatalan alokasi LIFO), dan
+  TIDAK ADA penulis RELEASE untuk pengembalian uang muka tunai sama sekali. Jadi masalahnya bukan
+  ambiguitas yang perlu pembeda, melainkan PEMETAAN YANG TERTUKAR:
+    (a) FIN-DES-035/FIN-DEC-041 memetakan RELEASE ke PENGEMBALIAN-UANG-MUKA (kredit Kas), padahal
+        pada pembatalan alokasi TIDAK ADA kas yang bergerak — saldo deposit justru naik kembali.
+        Dibangun apa adanya, buku besar mencatat kas keluar untuk uang yang masih ada di deposit,
+        dan rekonsiliasi toleransi nol Accounting gagal tanpa sebab yang terlihat.
+    (b) FIN-DES-057 menunggu pemicu mutasi REVERSAL atas ALLOCATION yang Billing TIDAK PERNAH tulis,
+        sehingga pembatalan alokasi uang muka tidak pernah sampai ke buku besar.
+  Keduanya bertemu pada fakta yang SAMA. Dikoreksi FIN-DES-064: mutasi RELEASE menerbitkan
+  PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT (debit Piutang, kredit Uang Muka Pasien), dan
+  PENGEMBALIAN-UANG-MUKA dipersempit ke BilRefundCase EXECUTED saja — kode itu TIDAK mati.
+  DUA KOREKSI INI MENYENTUH KEPUTUSAN BISNIS YANG SUDAH `approved` (FIN-DEC-041) dan karena itu
+  MUST DIAKUI OWNER sebelum dipakai — pola yang sama dengan temuan A/B/C/D pada revisi 6.
+  SATU TEMUAN MILIK BILLING, dilaporkan dan TIDAK diperbaiki dari Finance: BillingDepositService:176
+  menjumlahkan seluruh mutasi RELEASE sebagai totalRefunded ("dana yang dikembalikan"). Sesudah
+  BKC-DEC-131, angka itu ikut memuat pembatalan alokasi, padahal uangnya masih ada di saldo deposit.
+  SATU OPEN QUESTION BARU: FIN-OQ-037 — permintaan penanda eksplisit kepada owner Billing supaya
+  arti RELEASE menjadi tunggal (opsi A: isi ReversesMovementId yang kolomnya SUDAH ADA; opsi B:
+  MovementType tersendiri). Selama belum turun, mutasi RELEASE tanpa pasangan REVERSAL ditolak
+  fail-closed sebagai baris intake ERROR (FIN-VAL-145) — bukan ditebak.
+  KENAPA AMENDMENT INI MURAH: BE-FIN-025 belum dikerjakan, sehingga koreksi tiba SEBELUM kodenya
+  ditulis. Nol perubahan perilaku pada kode yang sudah berjalan, dan nol baris outbox yang perlu
+  dibetulkan.
 revision_7_note: >
   Revisi 7 (28 September 2026) adalah /design-business-module kecil yang (a) MENCATAT APPROVAL owner
   atas FIN-DES-051..058, dan (b) menurunkan FIN-DEC-072..076 menjadi FIN-DES-059 dan FIN-DES-060.
@@ -208,7 +339,31 @@ shape_evidence: >
 created_at: 2026-09-20T00:00:00+07:00
 updated_at: 2026-09-23T00:00:00+07:00
 last_owner_action: >
-  28 September 2026 (kedelapan) — /design-business-module (pemetaan payung-ke-granular FIN-CQ-08):
+  29 September 2026 (kesebelas, keempat pada tanggal ini) — /grill-me Amendment pass menutup
+  FIN-OQ-038 lewat FIN-DEC-084: perluas platform-authorization supaya resource tanpa endpoint dapat
+  dideklarasikan (opsi D), bukan membuat controller pembawa di Finance dan bukan membatalkan payung.
+  Keputusan ini SISI FINANCE saja; pelaksanaannya menunggu Security Owner + pemilik
+  platform-authorization, dicatat FIN-OQ-039. Owner diberi tahu lebih dulu bahwa premis asli payung
+  (mencegah 403) sudah terbukti gugur, dan tetap memilih membangunnya demi kemudahan admin.
+  NOL source disentuh; NOL kontrak naik versi.
+  Sebelumnya pada tanggal yang sama (kesepuluh, ketiga) — /design-business-module kecil menggambar
+  mekanisme FIN-DEC-082/083 menjadi FIN-DES-066..069 (`draft`). Impact scan frontend menemukan premis
+  FIN-OQ-036 keliru (menu yang dijaga payung ternyata milik V2, bukan Purchasing) dan menemukan
+  kendala mekanis yang menentukan: resource payung tanpa endpoint tidak dapat didaftarkan registry
+  hari ini. Satu gerbang dibuka: FIN-OQ-038 (pembawa resource payung — Security Owner + pemilik
+  platform-authorization), menahan HANYA implementasi mekanisme ekspansi. Dua temuan dilaporkan
+  (FIN-CQ-09, FIN-CQ-10). Kontrak permission-audit-matrix.md naik ke FIN-PERM-1.4 (`draft`).
+  NOL source disentuh. Desain ini BELUM disetujui owner.
+  Sebelumnya pada tanggal yang sama (kesembilan, kedua) — /grill-me Amendment pass mengoreksi
+  FIN-DEC-079: FIN-DEC-082 (payung dipindah ke nama Finance.AP.Umbrella/Finance.AR.Umbrella,
+  FinanceApController/FinanceArController V2 tidak disentuh) dan FIN-DEC-083 (ekspansi
+  payung->granular materialized saat grant diberikan admin, bukan live saat request — pola
+  be-sec-003b-policy-expansion.sql). Dipicu temuan BE-FIN-042 bahwa Finance.AP/Finance.AR sudah
+  dipakai controller V2 nyata, kontradiksi internal dengan FIN-DEC-059 yang sudah mencatatnya
+  berjalan. FIN-OQ-036 dibuka kembali sebagian — lihat 00-interview-decisions.md bagian Amendment
+  pass terbaru. NOL source disentuh oleh pass ini; BE-FIN-042 §D.5/D.6.1 (rename 6 controller +
+  skrip migrasi SysAccessPolicy) tidak terdampak, sudah selesai sebelum pass ini.
+  Sebelumnya pada tanggal yang sama (kedelapan, pertama) — /design-business-module (pemetaan payung-ke-granular FIN-CQ-08):
   Menurunkan keputusan FIN-DEC-078 dan FIN-DEC-079 secara definitif ke dalam kontrak dan arsitektur backend.
   contracts/permission-audit-matrix.md dinaikkan ke FIN-PERM-1.3 (AMENDMENT REVISI 6: pendaftaran resmi resource
   payung Finance.AP dan Finance.AR, pemetaan rinci ke 9 resource granular AP dan 4 resource granular AR,
@@ -307,13 +462,27 @@ approval_note: >
   memerlukan wewenang terpisah sesuai AGENTS.md.
   Lihat `status_scope_note` untuk tiga hal yang TIDAK ikut terangkat approval ini.
 
-backend_commit_sha: cba60cb0
+backend_commit_sha: 7811c048
+backend_commit_sha_previous: cba60cb0
+backend_commit_sha_note_revision_8: >
+  Bergerak dua commit: 0a09e18a (BE-FIN-041, kolom DepositAppliedAmount) dan 7811c048 (BE-FIN-035
+  dan BE-FIN-036 beserta seluruh artefak blueprint revisi 6/7, ditambah perbaikan Billing BE-BKC-079
+  yang menutup FIN-OQ-034). Impact scan terarah dijalankan pada area mutasi deposit dan menghasilkan
+  FIN-DES-064/065 — lihat 02-backend-architecture.md bagian H.1. Area lain TIDAK dipindai ulang pada
+  pass ini, sehingga klaim as-is di luar rumpun mutasi deposit tetap bersandar pada scan cba60cb0.
 backend_commit_sha_previous: 96bf9746
 backend_commit_sha_baseline: 09101d0581695e20345a9efa8af3fce7c38b1ae4
 backend_branch: Yasmina
-frontend_commit_sha: 49b59cfaa
-frontend_commit_sha_previous: abed49b03
+frontend_commit_sha: a31da3c21
+frontend_commit_sha_previous: 49b59cfaa
 frontend_branch: yasmina
+frontend_commit_sha_note_revision_11: >
+  DINAIKKAN 29 September 2026 sesudah impact scan read-only pada pass desain revisi 11. Pemindaian
+  SENGAJA DIBATASI pada area terdampak amendment itu: penyaring menu sidebar
+  (src/utils/menu-sidebar/menu-items.jsx dan permission/filter-menu-items-by-permission.jsx) serta
+  pemakaian resource Finance.AP/Finance.AR. Area frontend lain TIDAK dipindai ulang, sehingga klaim
+  as-is di luar penyaringan menu tetap bersandar pada scan 49b59cfaa. Hasil pindaian mengoreksi dua
+  premis FIN-OQ-036 dan membuka FIN-CQ-09 serta FIN-CQ-10 — lihat revision_11_note.
 impact_scan_note_revision_6: >
   SHA DINAIKKAN 28 September 2026 sesudah impact scan read-only pada awal /design-business-module
   revisi 6 (02-backend-architecture.md bagian E.1). Backend 96bf9746 -> cba60cb0 adalah 79 commit
@@ -425,7 +594,7 @@ input_revisions:
     Keuangan.md — evidence eksternal (analisis video sistem rujukan), TIDAK otoritatif, dipakai
     murni sebagai peta area untuk deteksi gap pada Amendment pass 25 September 2026.
 input_hashes:
-  00-interview-decisions.md: 0bfbc759c527f092c4e10e6b02a8c116da19052c108f761fdbfd804244682ecc  # amendment pass 28 Sep 2026 (kedua): FIN-DEC-072..076, menutup temuan trace-existing-capabilities
+  00-interview-decisions.md: 75c1dbc8fff8df4fe94cd38fe01f72d4df45d7e1cc7ea247c39630a83e492202  # amendment pass 29 Sep 2026 (kesebelas): FIN-DEC-084, menutup FIN-OQ-038 dan membuka FIN-OQ-039; surat evidence/20 ditulis
   01-existing-capability-map.md: 3489cf24461bb582f57fc00a562be914bdea67900870ea94e03ea40788a5ca29  # impact scan lanjutan 28 Sep 2026 (bagian 16) — audit BE-FIN-036 di working tree
 input_hashes_note_revision_4: >
   Hash decision log BERGERAK TIGA KALI 25 September 2026, bukan drift: (1) FIN-DEC-056 dan
@@ -466,6 +635,49 @@ contract_versions:
     /plan-module-delivery tanpa menunggu ratifikasi Accounting
   acceptance-test-matrix: FIN-TEST-1.2 — draft 2026-09-25, naik dari 1.1 (locked). AMENDMENT
     REVISI 4 — bagian B.1-B.7 baru
+contract_versions_revision_11: >
+  DRAFT untuk revisi 11 (AMENDMENT REVISI 11 pada 02-backend-architecture.md). Yang BERGERAK hanya
+  SATU sumbu:
+    permission-audit-matrix: FIN-PERM-1.4 (`draft`) — AMENDMENT REVISI 7 pada dokumen itu. Tiga
+                          bagian dikoreksi: D.2 (nama payung menjadi Finance.AP.Umbrella dan
+                          Finance.AR.Umbrella, mekanisme kerjanya diperbaiki), D.6.1 (skrip SQL
+                          lama DICABUT karena menyasar tabel SysRolePermissions yang tidak ada;
+                          diganti penjelasan mekanisme SysAccessPolicy yang sebenarnya beserta
+                          rujukan ke skrip pengganti yang sudah ditulis), dan D.6.2 (ekspansi
+                          pindah dari AccessMenuSeeder ke RoleAccessController.ApplyPoliciesAsync).
+                          D.3, D.4, dan D.5 TIDAK disunting — isinya tidak bergerak.
+  ENAM sumbu SENGAJA TIDAK DISUNTING pada revisi 11, karena isinya tidak bergerak:
+    api-contract (FIN-API-1.2)              — nol endpoint baru. Endpoint pembawa payung baru akan
+                                              ada bila FIN-OQ-038 dijawab dengan jalan keluar (C)
+    integration-contract (FIN-INTEGRATION-1.6) — nol kode kejadian tersentuh
+    validation-matrix (FIN-VAL-1.5)         — nol aturan validasi baru; penolakan ekspansi adalah
+                                              gerbang teknis, bukan aturan bisnis bernomor
+    state-transition-matrix (FIN-STATE-1.3) — nol status baru
+    acceptance-test (FIN-TEST-1.6)          — baris ujinya menyusul bersama implementasi, sesudah
+                                              FIN-OQ-038 dijawab
+    prd-to-mvp (FIN-MVP-1.6)                — nol epic, nol FR, nol gelombang yang bergerak
+contract_versions_revision_9: >
+  APPROVED 29 September 2026 bersama FIN-DEC-080/081 (Amendment Pass). Ketiga sumbu yang bergerak
+  resmi disetujui owner:
+    integration-contract: FIN-INTEGRATION-1.6 (approved)
+    validation-matrix:    FIN-VAL-1.5 (approved)
+    acceptance-test:      FIN-TEST-1.6 (approved)
+contract_versions_revision_8: >
+  DRAFT untuk revisi 8 (AMENDMENT REVISI 9 pada 02-backend-architecture.md). Yang BERGERAK hanya
+  TIGA sumbu, seluruhnya karena pemicu satu kode kejadian dikoreksi:
+    integration-contract: FIN-INTEGRATION-1.6 (tiga pemicu dikoreksi: mutasi RELEASE menerbitkan
+                          PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT dan bukan PENGEMBALIAN-UANG-MUKA;
+                          pemicu kode 37 yang semula "tidak pernah ada" kini ada lewat BKC-DEC-131;
+                          mutasi RELEASE tanpa pasangan REVERSAL ditolak fail-closed)
+    validation-matrix:    FIN-VAL-1.5 (bagian E baru — FIN-VAL-144..146)
+    acceptance-test:      FIN-TEST-1.6 (bagian F baru — sepuluh baris uji)
+  EMPAT sumbu SENGAJA TIDAK DISUNTING pada revisi 8, karena isinya tidak bergerak:
+    api-contract (FIN-API-1.2)              — nol endpoint baru; amendment ini murni pemetaan pemicu
+    permission-audit (FIN-PERM-1.3)         — nol resource dan nol action baru
+    state-transition-matrix (FIN-STATE-1.3) — nol status Finance baru; status mutasi deposit milik
+                                              Billing dan tidak berubah
+    prd-to-mvp (FIN-MVP-1.6)                — nol epic, nol FR, dan nol gelombang yang bergerak;
+                                              FR-FIN-096/097 tetap dijawab task yang sama
 contract_versions_revision_7: >
   DRAFT untuk revisi 7. Yang BERGERAK hanya TIGA sumbu:
     integration-contract: FIN-INTEGRATION-1.5 (5.10.4 butir 1 dan 5.10.5 butir 1 dikoreksi
@@ -572,7 +784,16 @@ external_contract_dependencies:
     BilPaymentAllocation/BilCashierShift, DAN pemilik seluruh keputusan operasional Petty Cash
     (PC-DEC-*/PC-DES-*) per FIN-DEC-009.
 
-design_decision_ids: [FIN-DES-001, FIN-DES-002, FIN-DES-003, FIN-DES-004, FIN-DES-005, FIN-DES-006, FIN-DES-007, FIN-DES-008, FIN-DES-009, FIN-DES-010, FIN-DES-011, FIN-DES-012, FIN-DES-013, FIN-DES-014, FIN-DES-015, FIN-DES-016, FIN-DES-017, FIN-DES-018, FIN-DES-019, FIN-DES-020, FIN-DES-021, FIN-DES-022, FIN-DES-023, FIN-DES-024, FIN-DES-025, FIN-DES-026, FIN-DES-027, FIN-DES-028, FIN-DES-029, FIN-DES-030, FIN-DES-031, FIN-DES-032, FIN-DES-033, FIN-DES-034, FIN-DES-035, FIN-DES-036, FIN-DES-037, FIN-DES-038, FIN-DES-039, FIN-DES-040, FIN-DES-041, FIN-DES-042, FIN-DES-043, FIN-DES-044, FIN-DES-045, FIN-DES-046, FIN-DES-047, FIN-DES-048, FIN-DES-049, FIN-DES-050, FIN-DES-051, FIN-DES-052, FIN-DES-053, FIN-DES-054, FIN-DES-055, FIN-DES-056, FIN-DES-057, FIN-DES-058, FIN-DES-059, FIN-DES-060]
+design_decision_ids: [FIN-DES-001, FIN-DES-002, FIN-DES-003, FIN-DES-004, FIN-DES-005, FIN-DES-006, FIN-DES-007, FIN-DES-008, FIN-DES-009, FIN-DES-010, FIN-DES-011, FIN-DES-012, FIN-DES-013, FIN-DES-014, FIN-DES-015, FIN-DES-016, FIN-DES-017, FIN-DES-018, FIN-DES-019, FIN-DES-020, FIN-DES-021, FIN-DES-022, FIN-DES-023, FIN-DES-024, FIN-DES-025, FIN-DES-026, FIN-DES-027, FIN-DES-028, FIN-DES-029, FIN-DES-030, FIN-DES-031, FIN-DES-032, FIN-DES-033, FIN-DES-034, FIN-DES-035, FIN-DES-036, FIN-DES-037, FIN-DES-038, FIN-DES-039, FIN-DES-040, FIN-DES-041, FIN-DES-042, FIN-DES-043, FIN-DES-044, FIN-DES-045, FIN-DES-046, FIN-DES-047, FIN-DES-048, FIN-DES-049, FIN-DES-050, FIN-DES-051, FIN-DES-052, FIN-DES-053, FIN-DES-054, FIN-DES-055, FIN-DES-056, FIN-DES-057, FIN-DES-058, FIN-DES-059, FIN-DES-060, FIN-DES-064, FIN-DES-065]
+design_decision_status_revision_9: >
+  FIN-DES-064 dan FIN-DES-065 `approved` 29 September 2026 oleh Yasmin (Product Owner Finance)
+  lewat FIN-DEC-080 dan FIN-DEC-081 (Amendment Pass). Ringkas:
+    FIN-DES-064  Mutasi RELEASE dipetakan ke PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT (D Piutang,
+                 K Uang Muka Pasien), bukan PENGEMBALIAN-UANG-MUKA; PENGEMBALIAN-UANG-MUKA
+                 dipersempit ke BilRefundCase EXECUTED. Mengoreksi FIN-DEC-041.
+    FIN-DES-065  Aturan intake mutasi RELEASE: berpasangan REVERSAL ber-SettlementId sama
+                 menerbitkan kejadian; RELEASE tanpa pasangan ditolak fail-closed sebagai intake
+                 ERROR (menunjuk FIN-OQ-037 / evidence/19).
 design_decision_status_revision_7: >
   FIN-DES-059 dan FIN-DES-060 `draft`, 28 September 2026, BELUM disetujui owner. Ringkas:
     FIN-DES-059  Gerbang worker kedua kode penanda shift; bentuk pesan (Amount = 0) TIDAK diubah;
@@ -959,7 +1180,16 @@ blocking_questions:
       (dari REVERSAL). Pendeteksi FIN-VAL-142 sekarang akan LOLOS, bukan lagi jalur mati.
       Billing menyatakan BE-FIN-036 UNBLOCKED. Kontrak sisi Billing: BIL-INT-018 (DEPOSIT_MOVEMENT).
   - id: FIN-CQ-08
-    status: CLOSED 2026-09-28 (FIN-DEC-078, FIN-DEC-079, FIN-DES-061..063, FIN-PERM-1.3)
+    status: >
+      CLOSED 2026-09-28 (FIN-DEC-078, FIN-DEC-079, FIN-DES-061..063, FIN-PERM-1.3);
+      SEBAGIAN DIKOREKSI 2026-09-29 (FIN-DEC-082, FIN-DEC-083, FIN-DES-066..069, FIN-PERM-1.4).
+      Yang dikoreksi: nama resource payung (Finance.AP/AR sudah dipakai controller V2 yang berjalan,
+      sehingga payung memakai Finance.AP.Umbrella/Finance.AR.Umbrella) dan titik tulis ekspansi
+      (AccessMenuSeeder tidak pernah menulis SysAccessPolicy, sehingga pindah ke
+      RoleAccessController.ApplyPoliciesAsync saat admin memberi grant). Yang TIDAK berubah:
+      penyelarasan enam controller legacy (butir 2 di bawah), yang sudah diimplementasikan
+      BE-FIN-042 beserta skrip migrasi datanya. Satu gerbang baru: FIN-OQ-038 (pembawa resource
+      payung di registry), menahan HANYA implementasi mekanisme ekspansi.
     blocking_for: >
       TIDAK LAGI MEMBLOKIR. Selesai dirancang pada pass /design-business-module (28 September 2026):
       (1) Pemetaan resmi payung-ke-granular telah ditetapkan pada permission-audit-matrix.md
@@ -1012,7 +1242,7 @@ blocking_questions:
 | `contracts/state-transition-matrix.md` | Ada | **`FIN-STATE-1.2`** `draft` — satu transisi dicabut (bagian 9), empat `HandoffType` ditambah (bagian 1, revisi 1.1); **tujuh entity baru** (bagian B, revisi 4) |
 | `contracts/validation-matrix.md` | Ada | **`FIN-VAL-1.2`** `draft` — `FIN-VAL-076` dicabut, `FIN-VAL-078`..`086` ditambah (revisi 1.1); **`FIN-VAL-100`..`122` ditambah** (revisi 4) |
 | `contracts/integration-contract.md` | Ada | **`FIN-INTEGRATION-1.2`** `draft` — katalog 17→24 kode, bagian 2a baru, bagian 5.5 diganti total (revisi 1.1); **bagian 5.8 baru, kode ke-25** (revisi 4) |
-| `contracts/permission-audit-matrix.md` | Ada | **`FIN-PERM-1.3`** `approved` (Revisi 6, 28 September 2026) — pemetaan payung `Finance.AP`/`AR` ke granular (`FIN-DES-061`), penyelarasan 6 controller legacy (`FIN-DES-062`), skrip SQL idempotent migrasi data peran (`FIN-DES-063`) |
+| `contracts/permission-audit-matrix.md` | Ada | **`FIN-PERM-1.4`** `draft` (Revisi 7, 29 September 2026) — mengoreksi D.2 (nama payung menjadi `Finance.AP.Umbrella`/`Finance.AR.Umbrella`, `FIN-DES-066`), D.6.1 (skrip SQL `SysRolePermissions` DICABUT — tabelnya tidak ada; penggantinya sudah ditulis `BE-FIN-042`), dan D.6.2 (ekspansi pindah ke `RoleAccessController`, `FIN-DES-067`). Sebelumnya `FIN-PERM-1.3` `approved` (Revisi 6, 28 September 2026): pemetaan payung ke granular (`FIN-DES-061`), penyelarasan 6 controller legacy (`FIN-DES-062`, **sudah diimplementasikan**), skrip migrasi data peran (`FIN-DES-063`) |
 | `testing/acceptance-test-matrix.md` | Ada | **`FIN-TEST-1.2`** `draft` — bagian 8a baru (25 skenario uang muka/deposit/selisih kas, revisi 1.1); **bagian B.1-B.7 baru** (revisi 4) |
 | `evidence/01-jawaban-untuk-owner-accounting.md` | Ada | Jawaban Finance atas enam pertanyaan Rizki (paket 15 September 2026), berdiri sendiri |
 | `evidence/02-permintaan-kontrak-untuk-owner-billing.md` | Ada | Permintaan `BilCollectionHandoff` dan perluasan `BilArHandoff`, berdiri sendiri. Bagian 3 juga ditujukan ke owner HR |
