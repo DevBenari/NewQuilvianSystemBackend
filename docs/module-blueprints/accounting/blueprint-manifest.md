@@ -5,7 +5,7 @@ blueprint_id: ACC-BP-001
 module_name: Accounting
 module_slug: accounting
 module_prefix: ACC
-revision: 13   # 28 Sep 2026 - amendment rekonsiliasi saldo subledger (ACC-DEC-107..115), GATE-DESAIN-0928; 12 = 24 Sep 2026 pasca-ratifikasi Finance
+revision: 14   # 29 Sep 2026 - amendment draft jurnal hasil kejadian (ACC-DEC-116..121), GATE-DESAIN-0929; 13 = 28 Sep 2026 rekonsiliasi saldo subledger (ACC-DEC-107..115), GATE-DESAIN-0928; 12 = 24 Sep 2026 pasca-ratifikasi Finance
 status: approved
 current_phase: ACC-PH-005
 created_at: 2026-09-01T09:53:36+07:00
@@ -973,3 +973,23 @@ sesudahnya tidak dihitung ulang di sini.
 | Build berpasangan `014` + `FE-016` + `FE-017`, `030` + `FE-018`, `029` | Rizki, atas perintah | — |
 | Kesanggupan Finance atas `ACC-XMOD-0.4` bagian 8a: cakupan empat kelompok termasuk Rp 0, arah tanda, tanggal akhir periode (`ACC-P2-OQ-REC-1`); jadwal terbit saldo | Yasmin | Cutover G4 |
 | Butir menu Rekonsiliasi hilang dari `menu-items.jsx` | Rizki, lewat `plan-module-delivery` | Keterjangkauan layar |
+
+## Amendment 29 September 2026 — draft jurnal hasil kejadian, **`approved`**
+
+| Field | Nilai |
+|---|---|
+| `revision` | **13 → 14**, berlaku 29 September 2026 saat `GATE-DESAIN-0929` dibuka. `00-interview-decisions.md` revision 14 → **15** (`ACC-DEC-116`..`121`, sudah `approved`) |
+| Dikerjakan lewat | audit kesiapan 29 September 2026 → `grill-me` (amendment pass, **selesai**) → `design-business-module` (amendment, **approved**) → `plan-module-delivery` (belum) |
+| `backend_commit_sha` | `618b206e` (branch `rizkiG`) + working tree belum di-commit (`BE-ACC-P2-029`, `030`, `034`, dokumen) |
+| `frontend_commit_sha` | `bf0a22537` (branch `RizkiV2`) + working tree `FE-ACC-009` |
+| Gerbang | **`GATE-DESAIN-0929` — DIBUKA Rizki, 29 September 2026**, lewat pertanyaan approval eksplisit ("Setujui semua") atas seluruh artefak di bawah, termasuk tombol Ubah/Hapus Rincian Jurnal |
+| Migration | Tidak ada |
+
+| Artefak | Versi | Perubahan |
+|---|---|---|
+| `contracts/state-transition-matrix.md` | `ACC-STATE-0.6` | `Terjurnal` → `Gagal` saat jurnalnya dihapus; larangan `Terjurnal` → mana pun dipersempit; status jurnal hasil kejadian |
+| `contracts/validation-matrix.md` | `ACC-VALIDATION-0.11` | Bagian 4c baru; baris jurnal belum disahkan di bagian 4 diperluas |
+| `contracts/api-contract.md` | `ACC-API-0.15` | `JournalDetailResponse` +2 bidang; `AvailableActions`; `PUT`/`DELETE /journals/{id}`; dampak daftar periksa dan kejadian |
+| `02-backend-architecture.md` | bagian 24 | Batas transaksi, class yang berubah, yang sengaja tidak dibuat |
+| `03-frontend-architecture.md` | amandemen tabel tombol Rincian Jurnal | Tombol Ubah/Hapus (gap `FE-ACC-007`), baris Asal, dialog Hapus jurnal hasil kejadian |
+| `04-prd-to-mvp.md` | `ACC-P2-EPIC-08` | `FR-P2-045`..`048`, `UAT-P2-34`..`38`, DoD |

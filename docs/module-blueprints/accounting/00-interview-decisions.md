@@ -3,9 +3,9 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `ACC-BP-001` |
-| Revision | `14` — dinaikkan 28 September 2026 (ketiga); `ACC-DEC-107` sampai `ACC-DEC-115` menetapkan rekonsiliasi saldo subledger untuk `BE-ACC-P2-014`/`FE-ACC-P2-016`: titik mulai otomatis sejak saldo pertama (T6), akun wajib, arah tanda nilai, cut-off akhir periode, dua titik penegakan, hasil dihitung tanpa disimpan, tanpa jalan darurat, pemilih periode di layar Rekonsiliasi, dan pembacaan layar Rekonsiliasi tidak dicatat (`115`, diambil saat approval `GATE-DESAIN-0928`). Sebelumnya `13` — dinaikkan 28 September 2026 (kedua); `ACC-DEC-103` sampai `ACC-DEC-106` menjawab usulan kode Finance `evidence/06` dan `07`: `PPN-MASUKAN-PEMBELIAN` diratifikasi dengan akun debit ditetapkan di G2, potongan piutang diminta dipecah menjadi dua pasang kode, `RETUR-PEMBELIAN` bersyarat tanpa PPN, `PEMAKAIAN-DEPOSIT-RETUR` diratifikasi. Sebelumnya `12` — dinaikkan 28 September 2026; `ACC-DEC-094` sampai `ACC-DEC-102` mencatat empat keputusan terbuka pasca-Wave B (angka menu, kejadian Gagal di periode tertutup, aturan posting untuk jenis saldo, tampilan pesan asli) dan keputusan sisi Accounting atas jawaban Finance (`FIN-DEC-030`..`044`): ratifikasi empat kode, pemecahan `SELISIH-KAS-SHIFT`, ratifikasi bersyarat `PENGAKUAN-KELEBIHAN-BAYAR`, batas pengesahan selisih shift, dan refund kategori lain dalam G6. Sebelumnya `11` — dinaikkan 24 September 2026 (kedua); `ACC-DEC-092` dan `ACC-DEC-093` menutup dua butir desain yang tersisa saat `GATE-DESAIN-0924` dibuka. Sebelumnya `10` — dinaikkan 24 September 2026; `ACC-DEC-082` sampai `ACC-DEC-091` mencatat keputusan pasca-ratifikasi Finance (`FIN-DEC-001`..`023`, 20 September 2026): `ACC-XM-001` ditutup, katalog 17 kode diratifikasi, mode pemrosesan, isi tanda terima, `JASA_MEDIS`, bentuk saldo subledger, syarat akun layanan, gerbang cutover, dan penerimaan sebelum tagihan final sebagai uang muka pasien. Sebelumnya `9` — dinaikkan 14 September 2026; `ACC-DEC-074` sampai `ACC-DEC-081` mencatat delapan keputusan owner hasil review "rencana sampai 100%" (`OD-ACC-02`, `03`, `09`, `10`, `11`, `13`, `14`, `15`). Sebelumnya `8` — dinaikkan 11 September 2026; `ACC-DEC-072` dan `ACC-DEC-073` menutup dua keputusan terbuka `BE-ACC-P2-012` (koreksi jurnal dan template berulang yang menyentuh control account). Sebelumnya `7`, 10 September 2026; `ACC-DEC-071` menutup `DEC-ACC-P2-011` dengan memilih saldo subledger per periode dari Finance, dan membuka `ACC-GAP-013`. Sebelumnya `6` (`ACC-DEC-070`, enam peringatan, menutup `ACC-GAP-012`), `5` (`ACC-DEC-067`, `068`, `069`), dan `4`, 8 September 2026 oleh Amendment pass Phase 2 |
+| Revision | `15` — dinaikkan 29 September 2026; `ACC-DEC-116` sampai `ACC-DEC-121` menetapkan perlakuan draft jurnal hasil kejadian: hapus mengembalikan kejadian ke Gagal, catatan otomatis, jurnal Ditolak hasil kejadian boleh dihapus, jurnal hasil kejadian tidak dapat disunting, jurnal Ditolak hasil kejadian menahan tutup bulan, dan hak hapus yang sudah ada (OQ-034-1/2). Sebelumnya `14` — dinaikkan 28 September 2026 (ketiga); `ACC-DEC-107` sampai `ACC-DEC-115` menetapkan rekonsiliasi saldo subledger untuk `BE-ACC-P2-014`/`FE-ACC-P2-016`: titik mulai otomatis sejak saldo pertama (T6), akun wajib, arah tanda nilai, cut-off akhir periode, dua titik penegakan, hasil dihitung tanpa disimpan, tanpa jalan darurat, pemilih periode di layar Rekonsiliasi, dan pembacaan layar Rekonsiliasi tidak dicatat (`115`, diambil saat approval `GATE-DESAIN-0928`). Sebelumnya `13` — dinaikkan 28 September 2026 (kedua); `ACC-DEC-103` sampai `ACC-DEC-106` menjawab usulan kode Finance `evidence/06` dan `07`: `PPN-MASUKAN-PEMBELIAN` diratifikasi dengan akun debit ditetapkan di G2, potongan piutang diminta dipecah menjadi dua pasang kode, `RETUR-PEMBELIAN` bersyarat tanpa PPN, `PEMAKAIAN-DEPOSIT-RETUR` diratifikasi. Sebelumnya `12` — dinaikkan 28 September 2026; `ACC-DEC-094` sampai `ACC-DEC-102` mencatat empat keputusan terbuka pasca-Wave B (angka menu, kejadian Gagal di periode tertutup, aturan posting untuk jenis saldo, tampilan pesan asli) dan keputusan sisi Accounting atas jawaban Finance (`FIN-DEC-030`..`044`): ratifikasi empat kode, pemecahan `SELISIH-KAS-SHIFT`, ratifikasi bersyarat `PENGAKUAN-KELEBIHAN-BAYAR`, batas pengesahan selisih shift, dan refund kategori lain dalam G6. Sebelumnya `11` — dinaikkan 24 September 2026 (kedua); `ACC-DEC-092` dan `ACC-DEC-093` menutup dua butir desain yang tersisa saat `GATE-DESAIN-0924` dibuka. Sebelumnya `10` — dinaikkan 24 September 2026; `ACC-DEC-082` sampai `ACC-DEC-091` mencatat keputusan pasca-ratifikasi Finance (`FIN-DEC-001`..`023`, 20 September 2026): `ACC-XM-001` ditutup, katalog 17 kode diratifikasi, mode pemrosesan, isi tanda terima, `JASA_MEDIS`, bentuk saldo subledger, syarat akun layanan, gerbang cutover, dan penerimaan sebelum tagihan final sebagai uang muka pasien. Sebelumnya `9` — dinaikkan 14 September 2026; `ACC-DEC-074` sampai `ACC-DEC-081` mencatat delapan keputusan owner hasil review "rencana sampai 100%" (`OD-ACC-02`, `03`, `09`, `10`, `11`, `13`, `14`, `15`). Sebelumnya `8` — dinaikkan 11 September 2026; `ACC-DEC-072` dan `ACC-DEC-073` menutup dua keputusan terbuka `BE-ACC-P2-012` (koreksi jurnal dan template berulang yang menyentuh control account). Sebelumnya `7`, 10 September 2026; `ACC-DEC-071` menutup `DEC-ACC-P2-011` dengan memilih saldo subledger per periode dari Finance, dan membuka `ACC-GAP-013`. Sebelumnya `6` (`ACC-DEC-070`, enam peringatan, menutup `ACC-GAP-012`), `5` (`ACC-DEC-067`, `068`, `069`), dan `4`, 8 September 2026 oleh Amendment pass Phase 2 |
 | Status | `approved` untuk scope MVP; `approved` untuk keputusan Phase 2. Ratifikasi lintas modul `ACC-XM-001` **tertutup 24 September 2026** (`ACC-DEC-082`); yang tersisa hanya butir lintas modul yang bukan wewenang Accounting, lihat bagian *Keputusan pasca-ratifikasi Finance* |
-| Pass | `Scope pass` — **selesai** 1 September 2026 · `Amendment pass — Phase 2` — **selesai** 8 September 2026 · `Amendment pass — pasca-ratifikasi Finance` — **selesai** 24 September 2026 (`rizkiG` `b2b265af`, `RizkiV2` `c941012ac`) · `Amendment pass — pasca-Wave B dan jawaban Finance` — **selesai** 28 September 2026 (`rizkiG` `91cc2aba`, `RizkiV2` `95ea41cd9`) · `Amendment pass — usulan kode Finance evidence/06 dan 07` — **selesai** 28 September 2026 (`rizkiG` `3d469bc5`) · `Amendment pass — rekonsiliasi saldo subledger (Wave D tahap akhir)` — **selesai** 28 September 2026 (`rizkiG` `b476527d`, `RizkiV2` `a6d269077`) |
+| Pass | `Scope pass` — **selesai** 1 September 2026 · `Amendment pass — Phase 2` — **selesai** 8 September 2026 · `Amendment pass — pasca-ratifikasi Finance` — **selesai** 24 September 2026 (`rizkiG` `b2b265af`, `RizkiV2` `c941012ac`) · `Amendment pass — pasca-Wave B dan jawaban Finance` — **selesai** 28 September 2026 (`rizkiG` `91cc2aba`, `RizkiV2` `95ea41cd9`) · `Amendment pass — usulan kode Finance evidence/06 dan 07` — **selesai** 28 September 2026 (`rizkiG` `3d469bc5`) · `Amendment pass — rekonsiliasi saldo subledger (Wave D tahap akhir)` — **selesai** 28 September 2026 (`rizkiG` `b476527d`, `RizkiV2` `a6d269077`) · `Amendment pass — draft jurnal hasil kejadian` — **selesai** 29 September 2026 |
 | Backend SHA — Amendment pass | `02c3219` (branch `rizkiG`) |
 | Frontend SHA — Amendment pass | `e732424eb` (branch `RizkiV2`) |
 | Product/domain owner | Rizki |
@@ -1129,6 +1129,62 @@ dan penulisan kode integrasi tetap **dilarang** oleh `contracts/integration-cont
 
 ---
 
+## Keputusan draft jurnal hasil kejadian — Amendment pass 29 September 2026
+
+| Field | Nilai |
+|---|---|
+| Pass | `Amendment pass` — dua keputusan terbuka dari roadmap backend revisi 7: OQ-034-1 (menghapus draft hasil kejadian) dan OQ-034-2 (menyunting draft hasil kejadian) |
+| Pemicu | Audit kesiapan 29 September 2026 dan kartu `BE-ACC-P2-034` — [`testing/readiness-report-2026-09-29.md`](testing/readiness-report-2026-09-29.md), roadmap backend revisi 7 bagian "Yang sengaja tidak dijadikan task" |
+| Di dalam scope | Perlakuan draft jurnal hasil kejadian di Accounting — hapus, sunting, tolak — dan nasib kejadiannya |
+| Di luar scope | Cara Finance mengoreksi transaksinya (modul Finance; kode pembalik seperti `PEMBALIKAN-PENERIMAAN-KASIR` sudah ada di `ACC-XMOD`), dan isi aturan posting |
+| Bentuk blueprint | Tetap `SINGLE` — tidak ada kemampuan baru yang membentuk rumpun sendiri |
+| Source | `rizkiG` `618b206e` + working tree `BE-ACC-P2-029`/`030`/`034`; `RizkiV2` `bf0a22537` |
+| Capability map | `01-existing-capability-map.md` disusun pada baseline September awal dan **berpotensi basi**; fakta di bawah dibaca langsung dari source hari ini |
+| Pengambil keputusan | Rizki, Product/Domain Owner Accounting — seluruh pilihan lewat pertanyaan interaktif, 29 September 2026 |
+
+### Fakta source yang menjadi dasar
+
+| Fakta | Bukti |
+|---|---|
+| Hapus jurnal hanya untuk status `Draft`; sunting untuk `Draft` dan `Rejected` (menyunting `Rejected` mengembalikannya ke `Draft`) | `AccJournalService.PeriksaDapatDisunting`, `DeleteAsync`, `UpdateAsync` |
+| `DeleteAsync` tidak memeriksa tautan kejadian — kejadian tetap `Terjurnal` menunjuk jurnal terhapus | `AccJournalService.DeleteAsync`; `AccAccountingEvent.JournalId` |
+| Kejadian `Terjurnal` tidak dapat dicoba ulang maupun diabaikan | `AccAccountingEventService` — coba ulang hanya `Gagal`/`Tertahan`, abaikan hanya `Gagal` |
+| Jurnal `Rejected` tidak menahan tutup bulan | `AccPeriodClosingService.StatusBelumDisahkan` = `Draft`, `PendingApproval`, `Approved` |
+| Penyuntingan draft yang barisnya menyentuh control account sudah ditolak `422`; draft ke akun biasa masih dapat disunting | `AccJournalService.UpdateAsync` baris 363 |
+
+| ID | Type | Isi keputusan | Owner | Status | Approved by | Evidence |
+|---|---|---|---|---|---|---|
+| `ACC-DEC-116` | Decision | **Menghapus draft jurnal hasil kejadian tetap diizinkan, dan kejadiannya otomatis kembali ke `Gagal`.** Menutup OQ-034-1. **(1)** `DELETE /journals/{id}` atas jurnal yang ditunjuk `AccAccountingEvent.JournalId` menghapus jurnal **dan** mengembalikan kejadian `Terjurnal` itu ke `Gagal` dalam satu transaksi; tautan `JournalId` dilepas. **(2)** Kejadian `Gagal` itu kemudian diselesaikan lewat jalan yang sudah ada: **Coba Ulang** — memakai aturan posting yang berlaku saat itu, sehingga aturan yang salah akun dapat dibetulkan lebih dulu — atau **Abaikan** beralasan (`ACC-DEC-092`). **(3)** Karena `Gagal`, kejadian itu menahan tutup bulan (`ACC-DEC-051`, perluasan `ACC-DEC-095`) sampai diselesaikan. **(4)** Jurnal manual tidak terpengaruh. **Contoh:** aturan `PATIENT_PAYMENT` ternyata mengkredit Piutang Pasien Umum padahal seharusnya Pendapatan Rawat Jalan. Petugas membetulkan aturannya, menghapus draft `JU/2031/01/00003`, lalu menekan Coba Ulang pada `EVT-UJI-034A` — draft baru terbit dengan akun yang benar | Rizki | `approved` | Rizki, 29 September 2026 | Pertanyaan interaktif; fakta source di atas |
+| `ACC-DEC-117` | Decision | **Penghapusan dicatat otomatis pada riwayat percobaan kejadian; tidak ada isian alasan saat menghapus.** Satu baris `AccAccountingEventAttempt` gagal dengan pesan "Jurnal draft {nomor} dihapus oleh {nama pengguna}." dan waktu penghapusannya. `DELETE /journals/{id}` tetap tanpa body — nol perubahan bentuk API. Alasan tertulis tetap terjamin di ujung jalurnya: bila tidak dicoba ulang, kejadian hanya dapat ditutup lewat Abaikan yang wajib beralasan | Rizki | `approved` | Rizki, 29 September 2026 | Pertanyaan interaktif |
+| `ACC-DEC-118` | Decision | **Jurnal hasil kejadian berstatus `Rejected` boleh dihapus dengan akibat yang sama seperti `ACC-DEC-116`.** Pengecualian dari aturan umum "hapus hanya untuk `Draft`", **khusus** jurnal hasil kejadian. Tanpa ini, jurnal hasil kejadian yang ditolak karena salah akun menjadi jalan buntu: tidak dapat disunting (`ACC-DEC-119`) dan tidak dapat dihapus. Jurnal manual `Rejected` tetap tidak dapat dihapus | Rizki | `approved` | Rizki, 29 September 2026 | Pertanyaan interaktif |
+| `ACC-DEC-119` | Decision | **Jurnal hasil kejadian tidak dapat disunting sama sekali — akun, nominal, maupun keterangan — baik berstatus `Draft` maupun `Rejected`.** Menutup OQ-034-2. Jurnal hasil kejadian mencerminkan catatan Finance apa adanya. Bila salah: hapus → kejadian `Gagal` → Coba Ulang sesudah aturan posting dibetulkan (`ACC-DEC-116`), atau Finance mengirim kejadian pembalik. Berlaku untuk **semua** akun, bukan hanya control account, sehingga perilakunya seragam dan pengecualian `BE-ACC-P2-034` (pengenalan asal-usul saat diajukan) tidak dapat dibelokkan lewat penyuntingan. Kode status dan bunyi pesan penolakannya ditetapkan pada amandemen `ACC-VALIDATION` | Rizki | `approved` | Rizki, 29 September 2026 | Pertanyaan interaktif; `BE-ACC-P2-034` risiko |
+| `ACC-DEC-120` | Decision | **Jurnal hasil kejadian berstatus `Rejected` ikut dihitung sebagai "jurnal belum disahkan" pada daftar periksa periodenya, sampai diselesaikan.** Diselesaikan berarti **diajukan ulang** (menjadi `PendingApproval`) atau **dihapus** (kejadian kembali `Gagal`, `ACC-DEC-118`). Tujuannya: transaksi yang ditolak penyetuju tidak boleh keluar dari buku diam-diam dan lolos tutup bulan. Jurnal **manual** `Rejected` tetap tidak menahan, seperti sekarang (`ACC-DEC-051`). Memperluas arti butir `UNPOSTED_JOURNALS` dan penolakan `409` pada `submit-closing`; bentuk respons tidak berubah | Rizki | `approved` | Rizki, 29 September 2026 | Pertanyaan interaktif; fakta `StatusBelumDisahkan` |
+| `ACC-DEC-121` | Decision | **Menghapus jurnal hasil kejadian memakai hak hapus jurnal yang sudah ada di layar Akses Role; tidak ada hak baru.** Akibatnya tetap terkendali karena kejadian kembali `Gagal`, terlihat di Kotak Masuk, dan menahan tutup bulan | Rizki | `approved` | Rizki, 29 September 2026 | Pertanyaan interaktif |
+
+### Acceptance criteria yang sudah dapat diuji — pass ini
+
+| # | Skenario | Hasil yang diharapkan | Keputusan |
+|---:|---|---|---|
+| A1 | Hapus draft hasil kejadian `JU/…` | `200`; kejadian sumbernya kini `Gagal`, `JournalId` kosong, riwayat percobaan bertambah satu baris "Jurnal draft JU/… dihapus oleh …" | `116`, `117` |
+| A2 | Coba Ulang kejadian dari A1 sesudah aturan posting dibetulkan | Draft baru terbit dengan akun aturan yang baru; kejadian kembali `Terjurnal` | `116` |
+| A3 | Daftar periksa periode kejadian dari A1 sebelum Coba Ulang | `FAILED_EVENTS` bertambah satu dan menahan | `116` |
+| A4 | Hapus jurnal hasil kejadian berstatus `Rejected` | Diterima; kejadian kembali `Gagal` | `118` |
+| A5 | Hapus jurnal **manual** berstatus `Rejected` | Tetap ditolak seperti sekarang | `118` |
+| A6 | Sunting jurnal hasil kejadian — ubah keterangan saja, atau ubah nominal baris non-control | Ditolak | `119` |
+| A7 | Sunting jurnal manual `Draft` ke akun biasa | Tetap diterima seperti sekarang | `119` |
+| A8 | Penyetuju menolak jurnal hasil kejadian, lalu daftar periksa periodenya dibuka | `UNPOSTED_JOURNALS` menghitung jurnal itu; `submit-closing` ditolak `409` | `120` |
+| A9 | Jurnal manual ditolak, lalu daftar periksa dibuka | Tidak dihitung, seperti sekarang | `120` |
+| A10 | Pengguna tanpa hak hapus jurnal mencoba menghapus draft hasil kejadian | `403`, seperti jurnal lain | `121` |
+
+### Yang dibutuhkan sesudah pass ini
+
+| Hal | Jalur |
+|---|---|
+| `ACC-STATE`: transisi baru kejadian `Terjurnal` → `Gagal` saat jurnalnya dihapus | `design-business-module` (amandemen kecil) |
+| `ACC-VALIDATION`: penolakan sunting jurnal hasil kejadian (kode + pesan); pengecualian hapus `Rejected` untuk jurnal hasil kejadian; perluasan butir `UNPOSTED_JOURNALS` | `design-business-module` (amandemen kecil) |
+| Layar Rincian Jurnal: tombol Ubah tidak ditawarkan untuk jurnal hasil kejadian; tombol Hapus tersedia untuk jurnal hasil kejadian `Rejected`; keterangan akibat penghapusan | `design-business-module` → `03-frontend-architecture.md`; rupa tombolnya `DEV_DISCRETION` |
+| Kartu task backend + frontend berpasangan | `plan-module-delivery` |
+
 ## Acceptance Criteria yang sudah dapat diuji
 
 Tiga hal berikut sudah pasti apa pun jawaban atas pertanyaan terbuka, karena berasal dari
@@ -1228,3 +1284,16 @@ direncanakan lalu tuntas 28 September 2026.
 23. Surat balasan ke Yasmin berisi tiga butir terbuka Finance dari pass ini (bagian *Keputusan
     rekonsiliasi saldo subledger*), digabung dengan `evidence/14` bila surat itu belum terkirim.
     Pemilik: Rizki → Yasmin.
+
+### Sudah selesai — Amendment pass draft jurnal hasil kejadian, 29 September 2026
+
+24. Enam keputusan `ACC-DEC-116` sampai `ACC-DEC-121`, seluruhnya memilih opsi yang direkomendasikan.
+    OQ-034-1 dan OQ-034-2 roadmap backend revisi 7 **tertutup**. Satu celah setara ikut ditutup:
+    jurnal hasil kejadian yang ditolak penyetuju kini menahan tutup bulan (`ACC-DEC-120`).
+
+### Belum — sesudah pass draft jurnal hasil kejadian
+
+25. ~~`design-business-module` (amandemen kecil)~~ **Selesai dan approved Rizki 29 September 2026 (`GATE-DESAIN-0929`):** `ACC-STATE` transisi kejadian `Terjurnal` → `Gagal`;
+    `ACC-VALIDATION` penolakan sunting, pengecualian hapus `Rejected`, perluasan `UNPOSTED_JOURNALS`;
+    `03-frontend-architecture.md` tombol Ubah dan Hapus pada Rincian Jurnal. Draf ditunjukkan ke Rizki.
+26. ~~`plan-module-delivery`~~ **Selesai dan approved Rizki 29 September 2026**: `BE-ACC-P2-035` (roadmap backend revisi 8) dan `FE-ACC-P2-019` (roadmap frontend revisi 8), berpasangan.

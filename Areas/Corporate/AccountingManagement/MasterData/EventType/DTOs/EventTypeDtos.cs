@@ -80,6 +80,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
         public string EventTypeName { get; set; } = string.Empty;
 
         public string SourceModule { get; set; } = string.Empty;
+
+        public EventTypeKind EventKind { get; set; }
     }
 
     /// <summary>

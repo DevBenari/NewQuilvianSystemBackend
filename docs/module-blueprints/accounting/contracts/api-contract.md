@@ -204,6 +204,33 @@ pengguna. Keduanya lahir berstatus menunggu persetujuan, bukan langsung disahkan
 
 ---
 
+> **`ACC-API-0.15` — approved Rizki, 29 September 2026 (`GATE-DESAIN-0929`) (`ACC-DEC-116`..`121`).**
+> Perubahan perilaku grup ini; nol endpoint baru. Status tiap endpoint tetap seperti tercantum di atas.
+>
+> | Method | Path | Perubahan |
+> |---|---|---|
+> | `GET` | `/{id}` | `JournalDetailResponse` **bertambah** `SourceAccountingEventId` (`Guid?`) dan `SourceAccountingEventNumber` (`string?`) — terisi bila jurnal dibentuk kejadian, kosong untuk jurnal manual; aditif. `AvailableActions`: jurnal hasil kejadian **tidak pernah** memuat `update`, dan memuat `delete` pada `Draft` **dan** `Rejected` bila pengguna berhak `Journal : Delete` |
+> | `PUT` | `/{id}` | `409` baru untuk jurnal hasil kejadian (`ACC-VALIDATION-0.11` bagian 4c) |
+> | `DELETE` | `/{id}` | Jurnal hasil kejadian `Draft` atau `Rejected` → `200`, dan kejadian sumbernya kembali `Gagal` dalam transaksi yang sama. `409` bila kejadian berubah bersamaan. Jurnal manual tidak berubah perilakunya |
+>
+> Dampak pada grup lain, bentuk respons tidak berubah: `GET /periods/{id}/closing-checklist` butir
+> `UNPOSTED_JOURNALS` dan `409` pada `POST /periods/{id}/submit-closing` ikut menghitung jurnal hasil
+> kejadian berstatus `Rejected` (`ACC-DEC-120`); `GET /accounting-events/{id}` memperlihatkan kejadian
+> yang jurnalnya dihapus sebagai `Gagal` dengan satu baris percobaan baru (`ACC-DEC-117`).
+>
+> Contoh `GET /api/v1/corporate/accounting/journals/231bfe04-cd04-47f2-a149-f62038d40482` sesudah
+> perubahan, dipangkas:
+>
+> ```json
+> {
+>   "journalNumber": "JU/2031/01/00003",
+>   "journalStatus": 1,
+>   "sourceAccountingEventId": "…",
+>   "sourceAccountingEventNumber": "EVT-UJI-034A",
+>   "availableActions": ["delete", "submit"]
+> }
+> ```
+
 ## Corporate / Accounting / Accounting Period
 
 Base URL: `api/v1/corporate/accounting/periods`

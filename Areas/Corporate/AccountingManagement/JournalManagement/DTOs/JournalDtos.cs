@@ -116,6 +116,10 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalMana
 
         public JournalCorrectionType? CorrectionType { get; set; }
 
+        public Guid? SourceAccountingEventId { get; set; }
+
+        public string? SourceAccountingEventNumber { get; set; }
+
         public DateTime CreateDateTime { get; set; }
 
         public Guid CreateBy { get; set; }

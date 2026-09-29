@@ -184,6 +184,40 @@ bisnis ke tempat yang salah, dan menyalin berarti suatu saat akan berbeda.
 Halaman yang seluruhnya di luar hak akses pengguna ditutup memakai `access-denied-gate.jsx` yang
 sudah ada, bukan dengan pengalihan halaman buatan sendiri.
 
+#### Amandemen 29 September 2026 — **approved** Rizki (`GATE-DESAIN-0929`) (`ACC-DEC-116`..`121`)
+
+**Gap yang ditemukan saat audit.** Baris `Draft` (Ubah, Hapus) dan `Rejected` (Sunting kembali) pada
+tabel di atas **belum pernah dibangun**: `FE-ACC-007` hanya memetakan lima tombol (Ajukan, Setujui,
+Tolak, Sahkan, Balik), dan thunk `deleteJournal` tidak dipakai layar mana pun. Hari ini jurnal
+draft hanya dapat diubah lewat alamat langsung dan tidak dapat dihapus lewat layar. Amandemen ini
+menjadikan keduanya bagian Rincian Jurnal — tetap dari `AvailableActions`, bukan dihitung layar.
+
+| Tombol | Muncul bila `AvailableActions` memuat | Yang terjadi |
+|---|---|---|
+| **Ubah** | `update` | Membuka form ubah jurnal yang sudah ada (`/corporate/accounting/journals/[slug]/update`, `FE-ACC-006`) |
+| **Hapus** | `delete` | Dialog konfirmasi, lalu `DELETE /journals/{id}`. Berhasil → kembali ke Daftar Jurnal dan pesan backend tampil sebagai toast. Gagal → pesan backend apa adanya |
+
+**Jurnal hasil kejadian** (`sourceAccountingEventNumber` terisi):
+
+| Hal | Isi |
+|---|---|
+| Baris rincian **Asal** | "Kejadian EVT-UJI-034A" — tautan ke Rincian Kejadian bila berhak `AccountingEvent : Read`, teks biasa bila tidak. Jurnal manual: "Jurnal manual" |
+| Ubah | Tidak muncul — backend tidak mengirim `update` (`ACC-DEC-119`) |
+| Hapus | Muncul pada `Draft` dan `Rejected`. Pesan dialognya menyebut akibat: "Kejadian EVT-UJI-034A akan kembali berstatus Gagal dan menahan tutup bulan sampai dicoba ulang atau diabaikan." (`ACC-DEC-116`, `118`) |
+
+Skema wilayah atas Rincian Jurnal hasil kejadian `Draft`:
+
+```text
+┌ JU/2031/01/00003 · Draft ───────────────── [Hapus] [Ajukan] ┐
+│ Asal: Kejadian EVT-UJI-034A ↗                                  │
+│ Tanggal 20 Jan 2031 · Jenis JU · Periode 2031-01               │
+└────────────────────────────────────────────────────────────────┘
+```
+
+`DEV_DISCRETION`: letak kedua tombol (bersama tombol aksi yang sudah ada atau di kepala halaman),
+rupa, ikon, dan rupa tautan Asal. Terkunci: tombol hanya dari `AvailableActions`, bunyi akibat pada
+dialog Hapus jurnal hasil kejadian, dan tautan Asal dijaga `AccountingEvent : Read`.
+
 ---
 
 ## 6. Penanganan keadaan tidak normal

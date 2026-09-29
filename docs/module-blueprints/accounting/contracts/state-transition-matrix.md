@@ -188,6 +188,34 @@ dirancang. Contohnya: kejadian penyusutan Rp 4.000.000 tertahan karena akun belu
 Bila petugas boleh mengabaikannya untuk membersihkan layar, beban Rp 4.000.000 hilang dari
 laporan tanpa jejak apa pun bahwa ia pernah ada.
 
+#### Tambahan `ACC-STATE-0.6` — approved Rizki, 29 September 2026 (`GATE-DESAIN-0929`) (`ACC-DEC-116`, `118`, `119`)
+
+Satu perpindahan kejadian baru, dan satu baris larangan di bawah dipersempit. **Nol status baru.**
+"Jurnal hasil kejadian" di bagian ini berarti jurnal yang ditunjuk `AccAccountingEvent.JournalId`
+milik kejadian yang tidak terhapus — pengenal yang sama dengan `BE-ACC-P2-034`.
+
+| Dari | Ke | Pemicu | Wewenang | Prasyarat |
+|---|---|---|---|---|
+| `Terjurnal` | `Gagal` | Jurnal hasil kejadian itu **dihapus** | `Journal : Delete` (`ACC-DEC-121`) | Jurnalnya masih `Draft` atau `Rejected`. Dikerjakan dalam **satu transaksi** dengan penghapusan jurnal; tautan `JournalId` dilepas; satu baris riwayat percobaan gagal "Jurnal draft {nomor jurnal} dihapus oleh {nama pengguna}." (`ACC-DEC-117`). Perpindahan bersyarat — hanya berhasil bila kejadian masih `Terjurnal` dan masih menunjuk jurnal itu |
+
+**Baris larangan `Terjurnal` → mana pun dipersempit:** larangan tetap berlaku, **kecuali** `Terjurnal`
+→ `Gagal` lewat penghapusan di atas. Begitu jurnalnya `PendingApproval`, `Approved`, atau `Posted`,
+jalannya tetap penolakan atau pembalikan jurnal.
+
+**Status jurnal hasil kejadian** — tambahan atas bagian 1.1 dan 1.2 MVP:
+
+| Dari | Tindakan | Ke | Aturan |
+|---|---|---|---|
+| `Draft` hasil kejadian | Ubah | — | **Dilarang** `409` (`ACC-DEC-119`) |
+| `Rejected` hasil kejadian | Sunting kembali | — | **Dilarang** `409` (`ACC-DEC-119`). Jalan keluarnya Ajukan ulang atau Hapus |
+| `Draft` hasil kejadian | Hapus | *(terhapus)*; kejadian → `Gagal` | Diizinkan (`ACC-DEC-116`) |
+| `Rejected` hasil kejadian | Hapus | *(terhapus)*; kejadian → `Gagal` | **Diizinkan** (`ACC-DEC-118`). Jurnal manual `Rejected` tetap tidak dapat dihapus |
+
+**Contoh.** `EVT-UJI-034A` membentuk `JU/2031/01/00003` (Draft). Petugas menghapus jurnal itu karena
+aturan `PATIENT_PAYMENT` salah akun. Sesudahnya `EVT-UJI-034A` berstatus `Gagal`, riwayat
+percobaannya bertambah "Jurnal draft JU/2031/01/00003 dihapus oleh Rizki.", dan daftar periksa
+Januari 2031 menghitung satu kejadian gagal sampai kejadian itu dicoba ulang atau diabaikan.
+
 ## 2. Periode akuntansi (`AccountingPeriodStatus`) — diperluas
 
 Nilai `PendingClosingApproval = 4` **ditambahkan di belakang**, bukan disisipkan. Menyisipkan di

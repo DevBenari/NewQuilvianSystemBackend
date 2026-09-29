@@ -334,15 +334,18 @@ perintah Rizki. Commit dokumen terakhir `91cc2aba` (`rizkiG`, 28 September 2026 
 | `FE-ACC-P2-013` isian Jenis Perlakuan | ✅ 24 Sep 2026 — uji layar 7/7 + Swagger 3/3 | [laporan](task/report/frontend/FE-ACC-P2-013.md) |
 | `BE-ACC-P2-027` entity + migration saldo subledger | ✅ 28 Sep 2026 — migration `20260928041937_AddAccSubledgerBalance` diterapkan Rizki, commit `7509e18c`; snapshot nol blok hilang | [laporan](task/report/backend/BE-ACC-P2-027.md) |
 | `BE-ACC-P2-028` jalur pesan saldo | ✅ 28 Sep 2026 — uji Swagger + layar Rizki; (3)(4) dan dua kasus batas terbukti lewat source | [laporan](task/report/backend/BE-ACC-P2-028.md) |
-| `BE-ACC-P2-014` perbandingan subledger dan selisih | Belum dikerjakan — `READY` (revisi 6 approved 28 Sep 2026). ⛔ 28 Sep 2026 dilepas `GATE-DESAIN-0928` dan `ACC-DEC-107` | [kartu](roadmap/backend-roadmap-phase2.md) |
+| `BE-ACC-P2-014` perbandingan subledger dan selisih | ✅ 29 Sep 2026 — build Rizki, uji Swagger S1–S13 + layar dijalankan Rizki, sesuai harapan (pernyataan owner); UAT belum | [laporan](task/report/backend/BE-ACC-P2-014.md) |
 | `FE-ACC-P2-015` Kotak Masuk mengenali pesan saldo | ✅ 28 Sep 2026 — uji layar B1–B7 lulus, `npm run build` berhasil | [laporan](task/report/frontend/FE-ACC-P2-015.md) |
-| `FE-ACC-P2-016` Rekonsiliasi menampilkan saldo subledger | Belum dikerjakan — `READY` (revisi 7 approved 28 Sep 2026); berpasangan dengan `014` | [kartu](roadmap/frontend-roadmap-phase2.md) |
-| `BE-ACC-P2-029` Gagal di periode tertutup menahan periode terbuka | Belum dikerjakan — kartu baru revisi 6, `READY` (`ACC-DEC-095`) | [kartu](roadmap/backend-roadmap-phase2.md) |
-| `BE-ACC-P2-030` Aturan posting ditolak untuk jenis saldo | Belum dikerjakan — kartu baru revisi 6, `READY` (`ACC-DEC-096`) | [kartu](roadmap/backend-roadmap-phase2.md) |
-| `FE-ACC-P2-017` Pulihkan butir menu Rekonsiliasi | Belum dikerjakan — kartu baru revisi 7, `READY`; butir hilang lewat merge `8f01cf06c` | [kartu](roadmap/frontend-roadmap-phase2.md) |
-| `FE-ACC-P2-018` Form Aturan Posting menyaring jenis saldo | Belum dikerjakan — kartu baru revisi 7, `READY` (`ACC-DEC-096`) | [kartu](roadmap/frontend-roadmap-phase2.md) |
+| `FE-ACC-P2-016` Rekonsiliasi menampilkan saldo subledger | ✅ 29 Sep 2026 — build Rizki 411/411, uji layar L1–L13 dijalankan Rizki, sesuai harapan (pernyataan owner); UAT belum | [laporan](task/report/frontend/FE-ACC-P2-016.md) |
+| `BE-ACC-P2-029` Gagal di periode tertutup menahan periode terbuka | ✅ 29 Sep 2026 — build Rizki, uji API S1–S3 + S5–S11 dijalankan Rizki (response mentah tercatat); UAT belum | [laporan](task/report/backend/BE-ACC-P2-029.md) |
+| `BE-ACC-P2-030` Aturan posting ditolak untuk jenis saldo | ✅ 29 Sep 2026 — build Rizki, uji S1–S3 + S6–S9 dijalankan Rizki (response mentah tercatat); UAT belum | [laporan](task/report/backend/BE-ACC-P2-030.md) |
+| `BE-ACC-P2-034` Jurnal dari kejadian dikenali saat diajukan | ✅ 29 Sep 2026 — build Rizki, uji API S1–S5 dijalankan Rizki (response mentah tercatat); menutup G-01 audit kesiapan; UAT belum | [laporan](task/report/backend/BE-ACC-P2-034.md) |
+| `BE-ACC-P2-035` Hapus, sunting, dan tolak draft jurnal hasil kejadian | ✅ 29 Sep 2026 — build terverifikasi aktif, uji Swagger S1–S13 bersama UI selesai 100% PASS (response mentah & JSON tercatat); UAT belum | [laporan](task/report/backend/BE-ACC-P2-035.md) |
+| `FE-ACC-P2-019` Rincian Jurnal: Ubah, Hapus, asal kejadian | ✅ 29 Sep 2026 — build terverifikasi aktif, uji layar L1–L6 bersama Swagger selesai 100% PASS (tangkapan layar lengkap); UAT belum | [laporan](task/report/frontend/FE-ACC-P2-019.md) |
+| `FE-ACC-P2-017` Pulihkan butir menu Rekonsiliasi | ✅ 29 Sep 2026 — Rekonsiliasi dan Tutup Tahun (perluasan atas keputusan Rizki): build Rizki, klik kedua butir dijalankan Rizki; UAT belum | [laporan](task/report/frontend/FE-ACC-P2-017.md) |
+| `FE-ACC-P2-018` Form Aturan Posting menyaring jenis saldo | ✅ 29 Sep 2026 — build Rizki, uji layar L1 + L3–L5 dijalankan Rizki (tangkapan layar diperiksa); UAT belum | [laporan](task/report/frontend/FE-ACC-P2-018.md) |
 
-Hitungan roadmap: backend **30 ✅ dari 31** (sesudah `027` dan `028` ✅, 28 September 2026), frontend **15 ✅ dari 16** (`016` ⛔). Status ✅ di sini berarti
+Hitungan roadmap: backend **35 ✅ dari 35**, frontend **19 ✅ dari 19** — 29 September 2026, sesudah `014`, `029`, `030`, `034`, `035`, `FE-016`, `017`, `018`, `019` ✅ (sebelumnya 28 September 2026: backend 30 dari 31, frontend 15 dari 16). Status ✅ di sini berarti
 selesai sisi development. **UAT belum dijalankan untuk task mana pun** — diserahkan ke tim UAT
 terpisah dan tidak ditulis lulus.
 

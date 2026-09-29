@@ -292,8 +292,8 @@ baru ditandai control, tetap terbit sampai dinonaktifkan atau diubah.
 
 | Aturan | Tindakan | Kapan dilanggar | Kode | Pesan bagi pengguna |
 |---|---|---|---|---|
-| Tidak boleh ada jurnal belum disahkan | Ajukan | Ada jurnal `Draft`, `PendingApproval`, atau `Approved` di periode itu | `409` | "Masih ada N jurnal yang belum disahkan." |
-| Tidak boleh ada kejadian gagal | Ajukan | Ada kejadian berstatus `Gagal` pada periode itu | `409` | "Masih ada N kejadian keuangan yang gagal diproses." |
+| Tidak boleh ada jurnal belum disahkan | Ajukan | Ada jurnal `Draft`, `PendingApproval`, atau `Approved` di periode itu *(diperluas `0.11`, approved 29 September 2026: ditambah jurnal **hasil kejadian** berstatus `Rejected`, `ACC-DEC-120`; jurnal manual `Rejected` tetap tidak dihitung)* | `409` | "Masih ada N jurnal yang belum disahkan." |
+| Tidak boleh ada kejadian gagal *(diselaraskan `ACC-DEC-095`, `BE-ACC-P2-029`)* | Ajukan | Ada kejadian berstatus `Gagal` pada periode itu. "Pada periode itu" berarti: (a) tanggal akuntansinya di dalam periode itu, **atau** (b) tanggalnya jatuh di periode yang tidak menerima jenis jurnalnya dan periode tujuan pertamanya menurut `ACC-DEC-047` adalah periode itu. Jenis jurnal diambil dari aturan posting aktif jenis kejadiannya; bila tidak ada — termasuk pesan saldo — tujuannya periode `Open` paling awal. Kejadian bertanggal di periode yang belum dibangkitkan tidak dipindahkan ke mana pun | `409` | "Masih ada N kejadian keuangan yang gagal diproses." |
 | **Seluruh shift kasir periode itu harus tertutup** | Ajukan | Belum ada kejadian `CASH_SHIFT_CLOSED` untuk salah satu shift pada periode itu | `409` | "Masih ada shift kasir yang belum ditutup." (`ACC-DEC-065`) |
 | **Rekonsiliasi saldo subledger harus bersih** *(`0.9`)* | Ajukan | Rekonsiliasi sudah berlaku untuk periode itu (`ACC-DEC-107`) **dan** ada control account yang menahan: akun wajib belum menerima saldo, saldonya bertanggal cut-off bukan akhir periode, atau berselisih; atau akun tidak wajib berselisih (`ACC-DEC-108`, `110`) | `409` | "Rekonsiliasi saldo subledger periode {nama periode} belum bersih: {rincian}." — contoh rincian "1 control account belum menerima saldo subledger, 1 berselisih." (`ACC-DEC-076`, `111`) |
 | Periode harus berstatus `Open` | Ajukan | Status bukan `Open` | `409` | "Periode ini tidak dalam keadaan terbuka." |
@@ -324,6 +324,24 @@ periode disetujui, ia menahan Tutup Permanen.
 
 Badan hukum tanpa control account **bukan** pelanggaran: jawabannya `200` berdaftar kosong, sama
 seperti `gl-balances`.
+
+## 4c. Jurnal hasil kejadian *(`0.11`, approved Rizki 29 September 2026, `GATE-DESAIN-0929`)*
+
+Dasar: `ACC-DEC-116`..`121`. "Jurnal hasil kejadian" = jurnal yang ditunjuk `AccAccountingEvent.JournalId`
+milik kejadian yang tidak terhapus. Pemeriksaan status jurnal yang sudah ada (bagian 1) berjalan
+**lebih dulu**; aturan di bawah hanya berlaku untuk jurnal `Draft` dan `Rejected`.
+
+| Aturan | Tindakan | Kapan dilanggar | Kode | Pesan bagi pengguna |
+|---|---|---|---|---|
+| **Jurnal hasil kejadian tidak dapat disunting** | Ubah (`PUT /journals/{id}`) | Jurnal hasil kejadian, `Draft` atau `Rejected` | `409` | "Jurnal {nomor jurnal} dibentuk dari kejadian {nomor kejadian} dan tidak dapat diubah. Hapus jurnal ini untuk menjurnal ulang kejadiannya, atau minta Finance mengirim kejadian pembalik." (`ACC-DEC-119`) |
+| **Jurnal hasil kejadian `Rejected` boleh dihapus** | Hapus (`DELETE /journals/{id}`) | — (pengecualian atas "yang ditolak tidak dapat dihapus") | `200` | "Jurnal draft {nomor jurnal} berhasil dihapus. Kejadian {nomor kejadian} kembali berstatus Gagal." (`ACC-DEC-118`) |
+| Jurnal hasil kejadian `Draft` dihapus | Hapus | — | `200` | Sama dengan baris di atas (`ACC-DEC-116`) |
+| Jurnal **manual** `Rejected` tetap tidak dapat dihapus | Hapus | Jurnal `Rejected` yang bukan hasil kejadian | `409` | "Jurnal yang sudah pernah ditolak tidak dapat dihapus. Perbaiki lalu ajukan kembali." — tidak berubah |
+| Kejadian berubah bersamaan | Hapus | Saat disimpan, kejadian sumbernya sudah tidak `Terjurnal` atau tidak lagi menunjuk jurnal itu | `409` | "Kejadian {nomor kejadian} berubah bersamaan. Muat ulang rincian jurnal lalu coba lagi." Nol perubahan tersimpan |
+
+**Contoh.** `PUT /journals/231bfe04-…` atas `JU/2031/01/00003` yang dibentuk `EVT-UJI-034A`, walau
+hanya mengubah keterangan → `409` dengan pesan baris pertama. `DELETE` atas jurnal yang sama →
+`200`, dan `GET /accounting-events/{id}` untuk `EVT-UJI-034A` kini menjawab status `Gagal`.
 
 ## 5. Tutup tahun
 

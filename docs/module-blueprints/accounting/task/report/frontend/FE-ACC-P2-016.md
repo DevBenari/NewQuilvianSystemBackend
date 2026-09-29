@@ -11,7 +11,7 @@
 | Trace | `FR-P2-040`, `042`, `043`; `ACC-DEC-066`, `071`, `076`, `107`..`114`; `03-frontend-architecture.md` 11.3 dan 11.6 (revision 7, approved `GATE-DESAIN-0928`) |
 | Contract version | `ACC-API-0.13` — `GET /reconciliation/subledger-comparison`, butir `SUBLEDGER_RECONCILIATION` pada `GET /periods/{id}/closing-checklist`; `GET /periods` yang sudah ada |
 | Wewenang UI | Isi dan sumber data dikunci 11.6; `DEV_DISCRETION` dipakai untuk periode bawaan (tidak ada, kecuali dari tautan), pemilih periode (`FilterSelect` seperti Neraca Saldo), rupa penanda, dan cara membawa periode (`?periode=YYYY-MM`) |
-| Dependency | `BE-ACC-P2-014` 🟡 (source ditulis, menunggu build); `FE-ACC-P2-017` 🟡 |
+| Dependency | `BE-ACC-P2-014` ✅; `FE-ACC-P2-017` ✅ |
 | Klasifikasi | `MEDIUM` — skor 7: berkas diperiksa > 20 (2), diubah > 8 (2), logika sedang (1), memakai kontrak baru yang sudah approved (1), satu layar + satu tautan (1) |
 | Task mode | `FRONTEND` (Langkah D, berpasangan atas perintah Rizki 28 September 2026) |
 | Target tulis | Layar Rekonsiliasi (route, view, hook, slice, constants, utils, CSS module milik layar), satu entri tautan Daftar Periksa beserta pembawa periodenya, dua berkas unit test; laporan ini dan baris status di repository backend |
@@ -19,7 +19,7 @@
 | Commit frontend saat dikerjakan | `a6d269077` (branch `RizkiV2`), belum di-commit |
 | Commit backend yang dijadikan rujukan | `485d8b8b` + source `BE-ACC-P2-014` di working tree |
 | Tanggal | 29 September 2026 |
-| Status | **🟡 SEBAGIAN — 29 September 2026.** 12 dari 12 acceptance terpetakan ke source; eslint 11 berkas 0/0; test terkait 53/53; `test:unit` 1788/1797 — 9 gagal di luar task. `npm run build` Rizki 29 September 2026 berhasil (Compiled 53 detik, 411/411 halaman, postbuild standalone siap). **Belum:** uji layar bersama `BE-ACC-P2-014` (bagian 6.2) |
+| Status | **✅ SELESAI — 29 September 2026.** 12 dari 12 acceptance terpetakan ke source; eslint 11 berkas 0/0; test terkait 53/53; `test:unit` 1788/1797 — 9 gagal di luar task. `npm run build` Rizki 29 September 2026 berhasil (Compiled 53 detik, 411/411 halaman, postbuild standalone siap). Uji layar L1–L13 bersama `BE-ACC-P2-014` dijalankan Rizki sendiri 29 September 2026, sesuai harapan (bagian 6.3). UAT belum dijalankan — diserahkan ke tim UAT. Riwayat: 🟡 29 September 2026 |
 
 ## 1. Keadaan yang ditemukan di awal
 
@@ -130,7 +130,7 @@ Total +769/−255 pada 14 berkas (termasuk `menu-items.jsx` milik `FE-ACC-P2-017
 | `npm run test:unit` | 1797 test, 1788 lulus, 9 gagal: `accounting-trial-balance` (2), `inpatient-physician-entry` (5), `menu-permission-filter` M0 bank darah (1), `petty-cash-finance-separation` (1) — seluruhnya di luar layar ini dan sudah gagal pada baseline `FE-ACC-P2-015` (10 gagal; test rekonsiliasi yang dulu gagal kini lulus) | `UNRELATED EXISTING ISSUE` | Keluaran perintah |
 | Grep `style={{`, warna literal, `//` baru | Nol | `PASS` | — |
 | `npm run build` (Rizki) | `npm run build` Rizki 29 September 2026 berhasil (Compiled 53 detik, 411/411 halaman, postbuild standalone siap); route `/corporate/accounting/reconciliation` terbangun statis | `PASS` | Keluaran build yang ditempel Rizki |
-| Uji layar | Menunggu Rizki | `NOT RUN` | Bagian 6.2 |
+| Uji layar | Dijalankan Rizki 29 September 2026, sesuai harapan (bagian 6.3) | `PASS` (pernyataan owner) | Laporan uji Rizki; tangkapan layar tidak dilampirkan |
 | `AUTOMATED TEST` | 5 test baru ditulis (opsional) | `PASS` | — |
 
 ### 6.2 Skenario uji layar untuk Rizki
@@ -155,6 +155,19 @@ Urutannya berselang-seling dengan skenario Swagger S1–S14 di laporan
 | L12 | Ganti badan hukum (bila ada lebih dari satu) | Periode terpilih kosong kembali, tabel dibuang | (1), (10) |
 | L13 | Pengguna tanpa `AccountingReconciliation : Read` | Layar "Anda tidak memiliki hak…"; di Daftar Periksa tombol Lihat butir keempat tidak tampil | (8) |
 
+### 6.3 Hasil uji Rizki — 29 September 2026
+
+Rizki menjalankan sendiri L1–L13 berselang-seling dengan Swagger S1–S13 (laporan
+[`BE-ACC-P2-014`](../backend/BE-ACC-P2-014.md) bagian 5.3) dan menyatakan seluruh hasilnya sesuai
+tabel 6.2. Tangkapan layar **tidak dilampirkan** karena akan memakan banyak token; atas keputusan
+Rizki, pernyataan owner yang menjalankan uji sendiri diterima sebagai bukti.
+
+| Skenario | Hasil | Klasifikasi |
+| --- | --- | --- |
+| L1–L4 — menu, tanpa periode, Agustus belum berlaku, September "Belum diterima" | Sesuai harapan | `PASS` (pernyataan owner) |
+| L5–L7 — cut-off, selisih −Rp 500, buka Rincian Kejadian | Sesuai harapan | `PASS` (pernyataan owner) |
+| L8–L13 — bersih, Daftar Periksa dan Lihat, Agustus, Ajukan `409`, ganti badan hukum, tanpa hak | Sesuai harapan | `PASS` (pernyataan owner) |
+
 ## 7. Acceptance criteria dan Definition of Done
 
 | Kriteria | Status | Bukti |
@@ -176,7 +189,7 @@ Urutannya berselang-seling dengan skenario Swagger S1–S14 di laporan
 | --- | --- |
 | Lint hijau | ✅ |
 | Build owner berhasil | ✅ 29 September 2026 |
-| Uji layar tercatat | **Belum** |
+| Uji layar tercatat | ✅ 29 September 2026 — dijalankan Rizki, sesuai harapan (bagian 6.3; pernyataan owner) |
 | Laporan task tertulis | ✅ |
 
 ## 8. Catatan penutup
@@ -187,4 +200,4 @@ Urutannya berselang-seling dengan skenario Swagger S1–S14 di laporan
 | Selama pengerjaan | Seluruh komentar lama di berkas konstanta rekonsiliasi terhapus di disk di luar pengerjaan agent; isinya selain komentar sama — diterima apa adanya |
 | Risiko | Thunk dan normalizer `gl-balances` tidak lagi dipakai layar ini tetapi dipertahankan; menghapusnya butuh keputusan terpisah. `404` dari `subledger-comparison` ditampilkan sebagai "Layanan … belum tersedia pada server ini" — benar bila backend belum di-build ulang |
 | Temuan di luar cakupan | `CHECKLIST_ITEM_LINK` belum memetakan `FAILED_EVENTS`/`HELD_EVENTS` ke Kotak Masuk (coverage gap roadmap revisi 7) |
-| Task berikutnya | Build backend + frontend, lalu uji sekali: Swagger S1–S14 berselang-seling dengan L1–L13 |
+| Task berikutnya | `FE-ACC-P2-018` berpasangan dengan `BE-ACC-P2-030` |

@@ -876,6 +876,17 @@ sendiri** untuk pekerjaan yang berulang, dan itulah yang membuat kesalahannya me
 | `FR-P2-043` | Rekonsiliasi berlaku otomatis mulai periode saldo subledger pertama untuk badan hukum itu; sebelumnya butirnya tampil "belum dapat diperiksa" dan tidak menahan | `EXTEND` atas penutupan periode |
 | `FR-P2-044` | Tutup permanen ditolak selama rekonsiliasi periode itu belum bersih | `EXTEND` atas penutupan periode |
 
+### `ACC-P2-EPIC-08` — Draft jurnal hasil kejadian *(amandemen 29 September 2026, **approved** `GATE-DESAIN-0929`)*
+
+Dasar: `ACC-DEC-116`..`121`. Kemampuan asal: `ACC-P2-CAP-002` (kejadian menjadi jurnal lewat aturan posting), `ACC-P2-CAP-004` (kejadian gagal dan percobaan ulang), `ACC-P2-CAP-006` (tutup bulan), dan jurnal MVP.
+
+| FR | Isi | Disposisi |
+|---|---|---|
+| `FR-P2-045` | Menghapus jurnal hasil kejadian — `Draft` maupun `Rejected` — mengembalikan kejadiannya ke Gagal dan mencatat penghapusan di riwayat percobaan | `EXTEND` atas hapus jurnal dan status kejadian |
+| `FR-P2-046` | Jurnal hasil kejadian tidak dapat disunting | `EXTEND` atas ubah jurnal |
+| `FR-P2-047` | Jurnal hasil kejadian berstatus Ditolak menahan tutup bulan sampai diajukan ulang atau dihapus | `EXTEND` atas penutupan periode |
+| `FR-P2-048` | Rincian Jurnal menampilkan tombol Ubah dan Hapus dari `AvailableActions` dan asal kejadiannya | `EXTEND` atas `FE-ACC-007` — menutup gap tombol Ubah/Hapus yang belum pernah dibangun |
+
 ## 26. Skenario UAT
 
 Setiap epic `MUST HAVE` punya jalur berhasil **dan** jalur gagal.
@@ -915,6 +926,11 @@ Setiap epic `MUST HAVE` punya jalur berhasil **dan** jalur gagal.
 | `UAT-P2-31` *(amandemen)* | Sesudah saldo pertama, Kas Kecil belum dikirimi saldo dan Utang Supplier berselisih Rp 500 | Gagal | Ajukan mati; `submit-closing` langsung ditolak `409` dengan rincian dua akun |
 | `UAT-P2-32` *(amandemen)* | Finance melengkapi saldo Kas Kecil Rp 0 dan menyatakan ulang Utang Supplier dengan angka yang cocok | Berhasil | Butir rekonsiliasi bersih, periode dapat diajukan |
 | `UAT-P2-33` *(amandemen)* | Sesudah disetujui, Finance mengirim saldo Piutang versi baru yang berselisih, lalu Manager menutup permanen | Gagal | Ditolak `409`; periode tetap Tutup Sementara |
+| `UAT-P2-34` *(amandemen 29 Sep)* | Petugas menghapus draft jurnal hasil kejadian yang salah akun | Berhasil | Kejadian kembali Gagal, riwayat percobaan mencatat penghapusan, daftar periksa menghitung satu kejadian gagal |
+| `UAT-P2-35` *(amandemen 29 Sep)* | Sesudah aturan posting dibetulkan, kejadian dari `UAT-P2-34` dicoba ulang | Berhasil | Draft baru terbit dengan akun yang benar; kejadian Terjurnal |
+| `UAT-P2-36` *(amandemen 29 Sep)* | Petugas mencoba mengubah keterangan jurnal hasil kejadian | Gagal | Ditolak `409`; tombol Ubah memang tidak ditawarkan layar |
+| `UAT-P2-37` *(amandemen 29 Sep)* | Penyetuju menolak jurnal hasil kejadian, lalu Manager mengajukan penutupan periodenya | Gagal | Ditolak `409` jurnal belum disahkan; jurnal manual yang ditolak tidak ikut dihitung |
+| `UAT-P2-38` *(amandemen 29 Sep)* | Petugas menghapus jurnal hasil kejadian berstatus Ditolak | Berhasil | Jurnal terhapus, kejadian kembali Gagal; jurnal manual Ditolak tetap tidak dapat dihapus |
 
 ## 27. Definition of Done
 
@@ -922,8 +938,8 @@ Setiap butir dapat dijawab "ya" atau "belum", beserta buktinya.
 
 | # | Butir | Bukti yang diterima |
 |---:|---|---|
-| 1 | Seluruh 34 functional requirement punya kode yang berjalan — **44** sesudah amandemen 28 September 2026 (`FR-P2-035`..`044`) | Laporan task tracked per task |
-| 2 | Seluruh 23 skenario UAT sudah dijalankan dan hasilnya tercatat — **33** sesudah amandemen 28 September 2026 (`UAT-P2-24`..`33`) | Matriks acceptance dengan **kolom bukti yang sudah ada**, bukan hanya "bukti yang diharapkan" |
+| 1 | Seluruh 34 functional requirement punya kode yang berjalan — **44** sesudah amandemen 28 September 2026 (`FR-P2-035`..`044`); **48** sesudah amandemen 29 September 2026 (`FR-P2-045`..`048`) | Laporan task tracked per task |
+| 2 | Seluruh 23 skenario UAT sudah dijalankan dan hasilnya tercatat — **33** sesudah amandemen 28 September 2026 (`UAT-P2-24`..`33`); **38** sesudah amandemen 29 September 2026 (`UAT-P2-34`..`38`) | Matriks acceptance dengan **kolom bukti yang sudah ada**, bukan hanya "bukti yang diharapkan" |
 | 3 | `UAT-P2-02` dan `UAT-P2-12` terbukti terhadap **PostgreSQL sungguhan** | Test integrasi di `Tests/QuilvianSystemBackend.IntegrationTests.Postgres` |
 | 4 | Seluruh endpoint Phase 2 membawa `[AccessPermission]` | Hitungan endpoint lawan atribut, seperti audit 7 September |
 | 5 | Seluruh service Phase 2 memanggil `AccountingLegalEntityGuard` | Pemeriksaan source |

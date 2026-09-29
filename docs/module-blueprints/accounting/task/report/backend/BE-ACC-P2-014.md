@@ -18,7 +18,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `485d8b8b` (branch `rizkiG`), perubahan source belum di-commit |
 | Tanggal | 28 September 2026 |
-| Status | **🟡 SEBAGIAN — 28 September 2026.** 12 dari 12 acceptance terpetakan ke source. Build Rizki 29 September 2026 terbukti dari `QuilvianSystemBackend.dll` bertanggal 08.48, sesudah source task terakhir diubah; jumlah warning belum dilaporkan. **Belum:** uji Swagger + layar (bagian 5.2). UAT belum dijalankan |
+| Status | **✅ SELESAI — 29 September 2026.** 12 dari 12 acceptance terpetakan ke source. Build Rizki 29 September 2026 terbukti dari `QuilvianSystemBackend.dll` bertanggal 08.48, sesudah source task terakhir diubah; jumlah warning belum dilaporkan. Uji Swagger S1–S13 + layar L1–L13 dijalankan Rizki sendiri 29 September 2026, sesuai harapan (bagian 5.3). UAT belum dijalankan — diserahkan ke tim UAT. Riwayat: 🟡 28–29 September 2026 |
 
 ### Backend Governance Preflight
 
@@ -147,7 +147,7 @@ pada `Program.cs`, `ApplicationDbContext`, entity, configuration, dan `Migration
 | `Program.cs`, `ApplicationDbContext`, `Migrations/` | Tidak tersentuh | `PASS` | `git status --short` |
 | Pemetaan acceptance ke source | 12/12 | `PASS` | Bagian 6 |
 | `dotnet build` (Rizki) | Build Rizki 29 September 2026 terbukti dari `QuilvianSystemBackend.dll` bertanggal 08.48, sesudah source task terakhir diubah; jumlah warning belum dilaporkan | `PASS` (tak langsung) | Tanggal berkas DLL |
-| Uji Swagger dan layar | Menunggu Rizki (bagian 5.2) | `NOT RUN` | — |
+| Uji Swagger dan layar | Dijalankan Rizki 29 September 2026, sesuai harapan (bagian 5.3) | `PASS` (pernyataan owner) | Laporan uji Rizki; response mentah tidak dilampirkan |
 | Automated test | Bukan acceptance (`ACC-DEC-081`) | `NOT RUN` | — |
 
 ### 5.2 Skenario uji untuk Rizki — Swagger, lalu layar
@@ -216,6 +216,22 @@ normal: akun bersaldo normal kredit dikirim **positif** (`ACC-DEC-109`).
 [`FE-ACC-P2-016`](../frontend/FE-ACC-P2-016.md). Urutannya: S1–S5 di Swagger, periksa layar,
 lalu S6–S10, dan periksa layar lagi.
 
+### 5.3 Hasil uji Rizki — 29 September 2026
+
+Rizki menjalankan sendiri skenario S1–S13 di Swagger berselang-seling dengan layar L1–L13
+(laporan `FE-ACC-P2-016` bagian 6.2), dan menyatakan seluruh hasilnya sesuai harapan pada tabel
+bagian 5.2. Response body mentah dan tangkapan layar **tidak dilampirkan** — hasilnya berupa
+gambar dan akan memakan banyak token. Atas keputusan Rizki, pernyataan owner yang menjalankan
+uji sendiri diterima sebagai bukti; angka, id, dan jam per skenario karena itu tidak tercatat di
+laporan ini.
+
+| Skenario | Hasil | Klasifikasi |
+|---|---|---|
+| S1–S5 — perbandingan September, Agustus belum berlaku, dua daftar periksa, Ajukan `409` | Sesuai harapan | `PASS` (pernyataan owner) |
+| S6–S10 — cut-off 15 September, selisih Rp 500, cocok, saldo kredit positif, rekonsiliasi bersih | Sesuai harapan | `PASS` (pernyataan owner) |
+| S11–S13 — `400`, `404`, kesamaan dengan `gl-balances` | Sesuai harapan | `PASS` (pernyataan owner) |
+| S14 *(opsional)* — Tutup Permanen `409` | Tidak disebut dalam laporan uji | `NOT RUN` — kriteria (10) dibuktikan dari source |
+
 **Bersih-bersih, lewat layar.** Nonaktifkan kembali `UJI-SALDO-028`. Baris saldo uji September
 2026 tetap ada dan tetap menyalakan rekonsiliasi di dev sejak September — memang disengaja
 (`ACC-DEC-107`).
@@ -241,7 +257,7 @@ lalu S6–S10, dan periksa layar lagi.
 |---|---|
 | Source berubah | ✅ |
 | Build Rizki 0 error | ✅ tak langsung — DLL terbentuk 29 September 2026 08.48; warning belum dilaporkan |
-| Uji Swagger dan layar tercatat | **Belum** |
+| Uji Swagger dan layar tercatat | ✅ 29 September 2026 — dijalankan Rizki, sesuai harapan (bagian 5.3; pernyataan owner, tanpa response mentah) |
 | Laporan task tertulis | ✅ |
 
 ## 7. Catatan penutup
@@ -252,4 +268,4 @@ lalu S6–S10, dan periksa layar lagi.
 | Migration / database | Tidak ada |
 | Risiko tersisa | (a) Rekonsiliasi di dev menyala sejak September 2026 — tutup bulan September tertahan sampai seluruh control account wajib punya saldo yang cocok; disengaja. (b) `BE-ACC-P2-029` juga mengubah `AccPeriodClosingService` — kerjakan sesudah task ini. (c) Balapan Tutup Permanen dengan pesan saldo pada milidetik yang sama diterima sebagai risiko (bagian 23.5) |
 | Temuan di luar cakupan | Komentar XML lama pada `ReconciliationController`, `AccControlAccountReconciliationService`, dan `ControlAccountBalanceReportResponse` masih menyebut `BE-ACC-P2-014` "terblokir `DEC-ACC-P2-011`" — sudah usang, **tidak** diubah karena komentar lama di luar cakupan |
-| Task berikutnya | `FE-ACC-P2-017` dan `FE-ACC-P2-016` (pasangan ini), lalu uji sekali; sesudahnya `BE-ACC-P2-030` + `FE-ACC-P2-018`, dan `BE-ACC-P2-029` |
+| Task berikutnya | `BE-ACC-P2-030` + `FE-ACC-P2-018`, lalu `BE-ACC-P2-029` |

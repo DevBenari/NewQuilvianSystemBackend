@@ -1554,3 +1554,55 @@ September sampai saldonya dikirim lewat Swagger.
 | Hak atau tombol pengecualian | `ACC-DEC-113` |
 | Menolak `400` pesan saldo bertanggal cut-off bukan akhir periode | `ACC-DEC-110` — `028` dan `ACC-XMOD` tidak diubah |
 | Toleransi selisih, pembulatan ke ribuan | `ACC-DEC-076` — toleransi nol |
+
+## 24. Amendment 29 September 2026 — draft jurnal hasil kejadian — **approved** Rizki (`GATE-DESAIN-0929`)
+
+Dasar: `ACC-DEC-116`..`121` (`00-interview-decisions.md` revision 15). Nol tabel baru, nol kolom
+baru, **nol migration** — `AccAccountingEvent.JournalId` sudah ber-index
+(`AccAccountingEventConfiguration`, `HasIndex(x => x.JournalId)`). Nol endpoint baru, nol hak baru,
+nol perubahan `Program.cs`.
+
+### 24.1 Kepemilikan dan batas transaksi
+
+Jurnal milik `JournalManagement`; kejadian milik `AccountingEvent`. Penghapusan jurnal hasil
+kejadian mengubah keduanya, sehingga dikerjakan **satu transaksi database** yang dibuka
+`AccJournalService.DeleteAsync`:
+
+1. Periksa status jurnal (aturan lama).
+2. Cari kejadian tidak terhapus yang `JournalId`-nya menunjuk jurnal ini. Tidak ada → aturan lama
+   apa adanya (jurnal manual).
+3. Ada → izinkan `Draft` **dan** `Rejected`; tandai jurnal dan barisnya terhapus.
+4. Kejadian: `ExecuteUpdate` bersyarat `EventStatus = Terjurnal AND JournalId = {id}` → `Gagal`,
+   `JournalId = null`. Nol baris berubah → rollback, `409`.
+5. Tambah satu `AccAccountingEventAttempt` gagal (`AttemptNumber` = terakhir + 1) berpesan
+   "Jurnal draft {nomor} dihapus oleh {nama}.", nama dari pembaca nama aktor `BE-ACC-015`.
+6. Commit. Gagal di langkah mana pun → rollback penuh.
+
+Langkah 4–5 ditulis sebagai method `public static` milik `AccAccountingEventService` yang menerima
+`ApplicationDbContext` dan dipanggil `AccJournalService` di dalam transaksinya — pola "static pada
+service yang sudah terdaftar", tanpa registrasi DI baru.
+
+### 24.2 Class yang berubah
+
+| Class | Status | Lokasi | Perubahan |
+|---|---|---|---|
+| `AccJournalService` | Diperbarui | `JournalManagement/Services/` | `DeleteAsync` (langkah 24.1), `UpdateAsync` (`409` jurnal hasil kejadian), `PeriksaDapatDisunting` (pengecualian `Rejected` hasil kejadian), `TindakanTersedia` (tanpa `update`; `delete` pada `Rejected` hasil kejadian), pemetaan rincian (+2 bidang) |
+| `AccAccountingEventService` | Diperbarui | `AccountingEvent/Services/` | + method `public static` pelepas tautan jurnal (langkah 24.1 butir 4–5) |
+| `AccPeriodClosingService` | Diperbarui | `AccountingPeriod/Services/` | `HitungJurnalBelumDisahkanAsync`: `Draft`/`PendingApproval`/`Approved` **atau** (`Rejected` **dan** ditunjuk kejadian tidak terhapus) — dipakai daftar periksa dan `submit-closing` sekaligus |
+| `JournalDetailResponse` | Diperbarui | `JournalManagement/DTOs/` | + `SourceAccountingEventId` (`Guid?`), `SourceAccountingEventNumber` (`string?`, maks 50 seperti `EventNumber`), tidak sensitif |
+| `JournalController` | Sudah ada | `JournalManagement/Controllers/` | Tidak berubah — atribut akses tetap `Journal : Update` / `Journal : Delete` |
+
+### 24.3 Yang sengaja tidak dibuat
+
+| Hal | Alasan |
+|---|---|
+| Status kejadian baru (mis. "Jurnal Dihapus") | `Gagal` sudah membawa arti yang dibutuhkan: tampil di Kotak Masuk, dapat dicoba ulang atau diabaikan, dan menahan tutup bulan |
+| Body alasan pada `DELETE` | `ACC-DEC-117` — catatan otomatis; alasan tertulis terjamin lewat Abaikan |
+| Hak `Journal : DeleteEventDraft` | `ACC-DEC-121` |
+| Membalik kejadian otomatis saat penyetuju menolak | Risiko terjurnal dua kali (`ACC-DEC-120` memilih penahan tutup bulan) |
+| Kolom asal-usul di `AccJournal` | Tautan sudah ada di sisi kejadian; menambah kolom menuntut migration dan dua sumber kebenaran |
+
+### 24.4 Pengujian developer
+
+Skenario `A1`..`A10` pada `00-interview-decisions.md` bagian *Keputusan draft jurnal hasil kejadian*,
+lewat Swagger dan layar; tanpa SQL. Automated test bukan acceptance (`ACC-DEC-081`).

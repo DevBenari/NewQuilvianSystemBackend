@@ -1017,6 +1017,47 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingE
             await _db.SaveChangesAsync(ct);
         }
 
+        public static async Task<bool> KembalikanKeGagalKarenaJurnalDihapusAsync(
+            ApplicationDbContext db,
+            Guid accountingEventId,
+            Guid journalId,
+            string pesan,
+            Guid actorUserId,
+            DateTime sekarang,
+            CancellationToken ct)
+        {
+            var berubah = await db.Set<AccAccountingEvent>()
+                .Where(x => x.Id == accountingEventId
+                            && !x.IsDelete
+                            && x.EventStatus == AccountingEventStatus.Terjurnal
+                            && x.JournalId == journalId)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(x => x.EventStatus, AccountingEventStatus.Gagal)
+                    .SetProperty(x => x.JournalId, (Guid?)null)
+                    .SetProperty(x => x.UpdateDateTime, sekarang)
+                    .SetProperty(x => x.UpdateBy, actorUserId), ct);
+
+            if (berubah == 0) return false;
+
+            var nomorTerakhir = await db.Set<AccAccountingEventAttempt>()
+                .Where(x => x.AccountingEventId == accountingEventId)
+                .MaxAsync(x => (int?)x.AttemptNumber, ct) ?? 0;
+
+            db.Set<AccAccountingEventAttempt>().Add(new AccAccountingEventAttempt
+            {
+                Id = Guid.NewGuid(),
+                AccountingEventId = accountingEventId,
+                AttemptNumber = nomorTerakhir + 1,
+                AttemptedAt = new DateTimeOffset(sekarang, TimeSpan.Zero),
+                IsSuccess = false,
+                FailureMessage = pesan.Length > PanjangPesanGagalMaksimum ? pesan[..PanjangPesanGagalMaksimum] : pesan,
+                CreateDateTime = sekarang,
+                CreateBy = actorUserId
+            });
+
+            return true;
+        }
+
         private void TambahPercobaan(
             Guid accountingEventId,
             int nomorPercobaan,
