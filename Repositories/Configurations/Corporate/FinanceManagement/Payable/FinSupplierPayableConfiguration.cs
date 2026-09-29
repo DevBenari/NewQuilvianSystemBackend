@@ -45,10 +45,17 @@ public sealed class FinSupplierPayableConfiguration : IEntityTypeConfiguration<F
             .HasForeignKey(x => x.SupplierId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        // BE-FIN-030, FIN-DES-040: NULL untuk baris lama/manual — jalur manual tidak dihapus.
+        entity.HasOne(x => x.SourcePurchasingInvoice)
+            .WithMany()
+            .HasForeignKey(x => x.SourcePurchasingInvoiceId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         entity.HasIndex(x => x.PayableNumber).IsUnique().HasFilter("\"IsDelete\" = false").HasDatabaseName("IX_FinSupplierPayable_PayableNumber");
         // Penjaga tunggal terhadap invoice supplier dobel (FIN-DEC-015, state-transition-matrix.md §5).
         entity.HasIndex(x => new { x.SupplierId, x.SupplierInvoiceNumber })
             .IsUnique().HasFilter("\"IsDelete\" = false").HasDatabaseName("IX_FinSupplierPayable_Supplier_InvoiceNumber");
         entity.HasIndex(x => new { x.Status, x.DueDate }).HasDatabaseName("IX_FinSupplierPayable_Status_DueDate");
+        entity.HasIndex(x => x.SourcePurchasingInvoiceId).HasDatabaseName("IX_FinSupplierPayable_SourcePurchasingInvoiceId");
     }
 }

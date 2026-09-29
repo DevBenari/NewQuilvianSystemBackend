@@ -162,8 +162,8 @@ public sealed class FinancePaymentService
             throw new PaymentValidationException(
                 $"Nilai transfer bersih tidak boleh kurang dari nol. Total utang Rp {totalAmount:N0}, potongan Rp {deductionAmount:N0}, tambahan Rp {additionAmount:N0}.");
 
-        // FIN-DEC-022 / FIN-OQ-010: Penentuan jenjang persetujuan
-        var approvalTier = ResolveApprovalTier(normalizedPaymentType, totalAmount);
+        // FIN-DEC-022, FIN-DEC-052: Penentuan jenjang persetujuan
+        var approvalTier = FinanceApprovalTierResolver.Resolve(totalAmount);
 
         var payment = new FinPayment
         {
@@ -330,7 +330,7 @@ public sealed class FinancePaymentService
         payment.DeductionAmount = deductionAmount;
         payment.AdditionAmount = additionAmount;
         payment.NetTransferAmount = netTransferAmount;
-        payment.ApprovalTier = ResolveApprovalTier(payment.PaymentType, totalAmount);
+        payment.ApprovalTier = FinanceApprovalTierResolver.Resolve(totalAmount);
         payment.UpdateDateTime = DateTime.UtcNow;
         payment.UpdateBy = actorUserId;
         payment.RowVersion = Guid.NewGuid();
@@ -640,23 +640,11 @@ public sealed class FinancePaymentService
     // ------------------------------------------------------------------------------------
     // Internal Resolvers & Validators
     // ------------------------------------------------------------------------------------
-
-    /// <summary>
-    /// FIN-DEC-022: Approval pembayaran AP memakai approval berjenjang berdasarkan total nominal.
-    /// Ambang nominal pastinya masih FIN-OQ-010 (menunggu ratifikasi Yasmin / Finance Supervisor).
-    /// Resolver ini menetapkan tier secara deterministik sampai angka pastinya dikunci di blueprint.
-    /// </summary>
-    private static string ResolveApprovalTier(string paymentType, decimal totalAmount)
-    {
-        // Placeholder ambang nominal provisional (FIN-OQ-010):
-        // Tier 1: <= 50.000.000
-        // Tier 2: > 50.000.000
-        return totalAmount switch
-        {
-            <= 50_000_000m => ApprovalTiers.Tier1,
-            _ => ApprovalTiers.Tier2
-        };
-    }
+    //
+    // FIN-DEC-022: Approval pembayaran AP memakai approval berjenjang berdasarkan total nominal.
+    // Ambang nominalnya sudah diratifikasi (FIN-DEC-052) dan resolvernya diekstrak ke
+    // FinanceApprovalTierResolver (BE-FIN-028) supaya dipakai bersama oleh PO dan Purchasing
+    // Invoice — lihat FinanceApprovalTierResolver.cs.
 
     private static string ValidatePaymentType(string? paymentType)
     {
@@ -745,12 +733,6 @@ public sealed class FinancePaymentService
         _loggerService.AuditAsync(LogCategory, $"FinancePayment.{action}",
             $"Perubahan pembayaran keluar dicatat. PaymentId={paymentId}",
             new { PaymentId = paymentId, ActorUserId = actorUserId });
-}
-
-public static class ApprovalTiers
-{
-    public const string Tier1 = "TIER_1";
-    public const string Tier2 = "TIER_2";
 }
 
 public sealed record PaymentAllocationRequest(string PayableType, Guid PayableId, decimal Amount);

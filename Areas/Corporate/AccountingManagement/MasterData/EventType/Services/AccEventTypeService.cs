@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingEvent.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.EventType.DTOs;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.EventType.Enums;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.EventType.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.PostingRule.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Services;
@@ -97,6 +99,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
                     EventTypeName = x.EventTypeName,
                     SourceModule = x.SourceModule,
                     IsActive = x.IsActive,
+                    EventKind = x.EventKind,
                     ActivePostingRuleCount = _db.Set<AccPostingRule>()
                         .Count(r => r.EventTypeId == x.Id && r.IsActive && !r.IsDelete),
                     CreateDateTime = x.CreateDateTime
@@ -192,6 +195,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
             var dasar = PeriksaNamaDanModul<EventTypeDetailResponse>(nama, modul);
             if (dasar is not null) return dasar;
 
+            var perlakuan = request.EventKind ?? EventTypeKind.Transaksi;
+            if (!Enum.IsDefined(perlakuan)) return PerlakuanTidakSah<EventTypeDetailResponse>();
+
             var pembanding = kode.ToLower();
             var kembar = await _db.Set<AccEventType>()
                 .AnyAsync(x => !x.IsDelete && x.EventTypeCode.ToLower() == pembanding, ct);
@@ -210,6 +216,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
                 EventTypeName = nama,
                 SourceModule = modul,
                 IsActive = true,
+                EventKind = perlakuan,
                 CreateDateTime = DateTime.UtcNow,
                 CreateBy = actorUserId
             };
@@ -243,15 +250,34 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
             var dasar = PeriksaNamaDanModul<EventTypeDetailResponse>(nama, modul);
             if (dasar is not null) return dasar;
 
+            var perlakuanLama = jenis.EventKind;
+            var perlakuan = request.EventKind ?? perlakuanLama;
+            if (!Enum.IsDefined(perlakuan)) return PerlakuanTidakSah<EventTypeDetailResponse>();
+
+            var perlakuanBerubah = perlakuan != perlakuanLama;
+
+            if (perlakuanBerubah
+                && await _db.Set<AccAccountingEvent>().AnyAsync(x => x.EventTypeId == jenis.Id, ct))
+            {
+                return AccountingServiceResult<EventTypeDetailResponse>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Jenis perlakuan tidak dapat diubah karena jenis ini sudah dipakai kejadian.");
+            }
+
             jenis.EventTypeName = nama;
             jenis.SourceModule = modul;
+            jenis.EventKind = perlakuan;
             jenis.UpdateDateTime = DateTime.UtcNow;
             jenis.UpdateBy = actorUserId;
 
             await _db.SaveChangesAsync(ct);
 
+            var pesan = perlakuanBerubah
+                ? $"Jenis kejadian berhasil diperbarui. Jenis perlakuan berubah dari {NamaPerlakuan(perlakuanLama)} menjadi {NamaPerlakuan(perlakuan)}."
+                : "Jenis kejadian berhasil diperbarui.";
+
             return AccountingServiceResult<EventTypeDetailResponse>.Ok(
-                await PetakanRincianAsync(jenis, ct), "Jenis kejadian berhasil diperbarui.");
+                await PetakanRincianAsync(jenis, ct), pesan);
         }
 
         /// <summary>
@@ -370,6 +396,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
             => AccountingServiceResult<T>.Fail(
                 StatusCodes.Status404NotFound, "Jenis kejadian tidak ditemukan atau sudah dihapus.");
 
+        private static AccountingServiceResult<T> PerlakuanTidakSah<T>()
+            => AccountingServiceResult<T>.Fail(
+                StatusCodes.Status400BadRequest,
+                "Jenis perlakuan harus Transaksi (1) atau Saldo Subledger (2).");
+
+        private static string NamaPerlakuan(EventTypeKind perlakuan)
+            => perlakuan == EventTypeKind.SaldoSubledger ? "Saldo Subledger" : "Transaksi";
+
         private async Task<EventTypeDetailResponse> PetakanRincianAsync(AccEventType x, CancellationToken ct)
         {
             return new EventTypeDetailResponse
@@ -379,12 +413,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
                 EventTypeName = x.EventTypeName,
                 SourceModule = x.SourceModule,
                 IsActive = x.IsActive,
+                EventKind = x.EventKind,
                 ActivePostingRuleCount = await _db.Set<AccPostingRule>()
                     .CountAsync(r => r.EventTypeId == x.Id && r.IsActive && !r.IsDelete, ct),
                 CreateDateTime = x.CreateDateTime,
                 CreateBy = x.CreateBy,
                 UpdateDateTime = x.UpdateDateTime,
-                UpdateBy = x.UpdateBy
+                UpdateBy = x.UpdateBy,
+                AccountingEventCount = await _db.Set<AccAccountingEvent>()
+                    .CountAsync(e => e.EventTypeId == x.Id, ct)
             };
         }
     }

@@ -189,10 +189,10 @@ revaluasi mata uang asing. Kelimanya menunggu keputusan tersendiri.
 | `contract_version` | `ACC-VALIDATION-0.6` |
 | `last_changed_in` | `ACC-VALIDATION-0.6` — 9 September 2026, dua bidang penelusuran wajib `ACC-DEC-060`. Sebelumnya `0.5` (baris posting `ACC-DEC-058`) dan `0.4` |
 | Amandemen menunggu ratifikasi | **`ACC-VALIDATION-0.7` (usulan) — 11 September 2026.** Bagian 3 dan 3b diselaraskan dengan `ACC-DEC-072` dan `ACC-DEC-073`: penyesuaian `JP` dan template berulang ikut terkena larangan control account, template dicabut dari daftar jalur sah, pesan penolakan menyebut akunnya, dan tabel jalur yang terkena ditambahkan. **Status `approved` di bawah belum diubah** — menunggu ratifikasi Rizki |
-| Penyesuaian atas keputusan owner | **`ACC-VALIDATION-0.8` (usulan) — 24 September 2026.** Menuliskan `ACC-DEC-084`..`087`: pengecualian `Amount` untuk pesan saldo, empat aturan `SubledgerBalance`, balasan kiriman ulang membawa tanda terima keadaan terkini, dan larangan tertulis `JASA_MEDIS` pada aturan `PENGAKUAN-PIUTANG`. Dasarnya keputusan owner yang sudah `approved`, sehingga tidak menunggu ratifikasi `0.7` |
+| Penyesuaian atas keputusan owner | **`ACC-VALIDATION-0.8` — approved Rizki, 24 September 2026 (`GATE-DESAIN-0924`).** Menuliskan `ACC-DEC-084`..`087`: pengecualian `Amount` untuk pesan saldo, empat aturan `SubledgerBalance`, balasan kiriman ulang membawa tanda terima keadaan terkini, dan larangan tertulis `JASA_MEDIS` pada aturan `PENGAKUAN-PIUTANG`. Dasarnya keputusan owner yang sudah `approved`, sehingga tidak menunggu ratifikasi `0.7` |
 | Status | **`approved`** |
 | `approved_by` / `approved_at` | Rizki / 8 September 2026 |
-| Traceability | `ACC-DEC-044` sampai `ACC-DEC-057`; `ACC-DEC-084` sampai `ACC-DEC-087` *(usulan `0.8`)* |
+| Traceability | `ACC-DEC-044` sampai `ACC-DEC-057`; `ACC-DEC-084` sampai `ACC-DEC-087` *(`0.8`)* |
 
 ## 1. Menerima kejadian keuangan
 
@@ -202,11 +202,11 @@ revaluasi mata uang asing. Kelimanya menunggu keputusan tersendiri.
 | `CorrelationId` dan `CausationId` wajib | Terima | Salah satunya kosong atau bernilai `Guid.Empty` | `400` | "Pesan kejadian wajib membawa penelusuran ke transaksi asal." |
 | Mata uang harus rupiah | Terima | `CurrencyCode` bukan `IDR` | `409` | "Sistem akuntansi hanya menerima rupiah." |
 | Nilai tidak boleh nol atau negatif | Terima | `Amount <= 0`, **kecuali** pesan saldo subledger | `400` | "Nilai kejadian harus lebih besar dari nol." — pesan saldo boleh nol atau negatif (`ACC-DEC-087`) |
-| **Rincian saldo wajib pada pesan saldo** *(usulan `0.8`)* | Terima | `EventTypeCode` kode saldo tetapi `SubledgerBalance` kosong, **atau** jenis lain membawa `SubledgerBalance` | `400` | "Rincian saldo subledger hanya dan wajib ada pada pesan saldo subledger." |
-| **Kode periode saldo sah** *(usulan `0.8`)* | Terima | `SubledgerBalance.AccountingPeriodCode` bukan bentuk `YYYY-MM`, atau periodenya tidak ada untuk badan hukum itu | `400` | "Periode akuntansi {kode} tidak dikenal untuk badan hukum ini." |
-| **Akun saldo harus control account** *(usulan `0.8`)* | Terima | `SubledgerBalance.ControlAccountCode` tidak ada, beda badan hukum, atau bukan control account | `400` | "Akun {kode} bukan akun kontrol pada badan hukum ini." |
-| **Versi pesan saldo berupa bilangan bulat** *(usulan `0.8`)* | Terima | Pesan saldo dengan `SourceVersion` yang bukan bilangan bulat positif | `400` | "Versi pesan saldo harus bilangan bulat positif." — urutan versi menentukan saldo mana yang berlaku (`02-backend-architecture.md` bagian 22.6) |
-| **Pesan saldo tanpa komponen** *(usulan `0.8`)* | Terima | Pesan saldo membawa `Components` | `400` | "Pesan saldo subledger tidak boleh membawa rincian komponen." |
+| **Rincian saldo wajib pada pesan saldo** *(`0.8`)* | Terima | `EventTypeCode` kode saldo tetapi `SubledgerBalance` kosong, **atau** jenis lain membawa `SubledgerBalance` | `400` | "Rincian saldo subledger hanya dan wajib ada pada pesan saldo subledger." |
+| **Kode periode saldo sah** *(`0.8`)* | Terima | `SubledgerBalance.AccountingPeriodCode` bukan bentuk `YYYY-MM`, atau periodenya tidak ada untuk badan hukum itu | `400` | "Periode akuntansi {kode} tidak dikenal untuk badan hukum ini." |
+| **Akun saldo harus control account** *(`0.8`)* | Terima | `SubledgerBalance.ControlAccountCode` tidak ada, beda badan hukum, atau bukan control account | `400` | "Akun {kode} bukan akun kontrol pada badan hukum ini." |
+| **Versi pesan saldo berupa bilangan bulat** *(`0.8`)* | Terima | Pesan saldo dengan `SourceVersion` yang bukan bilangan bulat positif | `400` | "Versi pesan saldo harus bilangan bulat positif." — urutan versi menentukan saldo mana yang berlaku (`02-backend-architecture.md` bagian 22.6) |
+| **Pesan saldo tanpa komponen** *(`0.8`)* | Terima | Pesan saldo membawa `Components` | `400` | "Pesan saldo subledger tidak boleh membawa rincian komponen." |
 | Jenis kejadian harus dikenal | Terima | `EventTypeCode` tidak ada di daftar jenis | `422` | "Jenis kejadian belum terdaftar. Kejadian ditahan sampai jenisnya ditambahkan." |
 | Badan hukum harus ada dan aktif | Terima | `LegalEntityId` tidak ditemukan | `422` | "Badan hukum tidak ditemukan." |
 | **Nomor kejadian unik** | Terima | `EventNumber` sudah pernah diterima | `200` | Bukan penolakan. Mengembalikan `AccountingEventReceiptDto` keadaan terkini — nomor jurnal yang sama bila sudah terjurnal (`ACC-DEC-035`, `ACC-DEC-085`) |
@@ -227,7 +227,7 @@ revaluasi mata uang asing. Kelimanya menunggu keputusan tersendiri.
 | **Komponen kejadian harus terpakai** | Proses kejadian | Kejadian membawa komponen yang tidak dipakai baris aturan mana pun | `422` | "Kejadian membawa rincian nilai yang belum dipetakan. Kejadian ditahan." |
 | **Komponen baris aturan harus tersedia** | Proses kejadian | Baris aturan memakai komponen yang tidak dibawa kejadian | `422` | "Rincian nilai yang dibutuhkan aturan posting tidak ada pada kejadian." |
 | Aturan yang masih dipakai tidak boleh dihapus | Nonaktifkan | Masih ada kejadian tertahan yang menunggunya | `409` | "Masih ada kejadian yang menunggu aturan ini." |
-| **`PENGAKUAN-PIUTANG` tanpa `JASA_MEDIS`** *(usulan `0.8`, aturan tertulis)* | Tambah, Ubah | Aturan jenis `PENGAKUAN-PIUTANG` memuat baris berkomponen `JASA_MEDIS` | — | **Tidak ditegakkan kode** (`ACC-DEC-086`). Diperiksa saat penyusunan dan peninjauan aturan posting. Bila terlanggar, setiap kejadian piutang Tertahan lewat aturan "komponen baris aturan harus tersedia" di atas |
+| **`PENGAKUAN-PIUTANG` tanpa `JASA_MEDIS`** *(`0.8`, aturan tertulis)* | Tambah, Ubah | Aturan jenis `PENGAKUAN-PIUTANG` memuat baris berkomponen `JASA_MEDIS` | — | **Tidak ditegakkan kode** (`ACC-DEC-086`). Diperiksa saat penyusunan dan peninjauan aturan posting. Bila terlanggar, setiap kejadian piutang Tertahan lewat aturan "komponen baris aturan harus tersedia" di atas |
 
 ## 3. Jurnal berulang
 
