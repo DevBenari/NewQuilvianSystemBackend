@@ -279,15 +279,55 @@ jobs:
 
           git switch -C QuilvianDevDeploy origin/QuilvianDevDeploy
 
-          if ! git merge \
+          set +e
+
+          git merge \
             --no-ff \
             "$CANDIDATE" \
-            -m "chore: promote Integration to DEV"; then
+            -m "chore: promote Integration to DEV"
 
-            git merge --abort || true
+          MERGE_EXIT=$?
 
-            echo "::error::Promotion blocked because Integration cannot be merged cleanly into QuilvianDevDeploy."
-            exit 1
+          set -e
+
+          if [ "$MERGE_EXIT" -ne 0 ]; then
+            CONFLICTS="$(git diff --name-only --diff-filter=U)"
+
+            echo "Merge conflicts detected:"
+            echo "$CONFLICTS"
+
+            UNEXPECTED_CONFLICTS="$(
+              printf '%s\n' "$CONFLICTS" |
+                grep -vE '^(\.github/release/current-version\.json|version\.json)$' ||
+                true
+            )"
+
+            if [ -n "$UNEXPECTED_CONFLICTS" ]; then
+              echo "::error::Unexpected source conflicts detected:"
+              echo "$UNEXPECTED_CONFLICTS"
+
+              git merge --abort || true
+              exit 1
+            fi
+
+            # Release-state files are controlled by the promotion workflow.
+            # Keep DEV copy during the source merge. The generated release
+            # manifest/state will be applied after the merge succeeds.
+            if printf '%s\n' "$CONFLICTS" |
+              grep -Fxq ".github/release/current-version.json"; then
+
+              git checkout --ours -- .github/release/current-version.json
+              git add .github/release/current-version.json
+            fi
+
+            if printf '%s\n' "$CONFLICTS" |
+              grep -Fxq "version.json"; then
+
+              git checkout --ours -- version.json
+              git add version.json
+            fi
+
+            git commit --no-edit
           fi
 
           # Validate promoted source before runtime manifest update
