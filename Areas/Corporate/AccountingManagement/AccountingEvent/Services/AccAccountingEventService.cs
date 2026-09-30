@@ -5,20 +5,24 @@ using Npgsql;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingEvent.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingEvent.Enums;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingEvent.Models;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Enums;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalManagement.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalManagement.Services;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.EventType.Enums;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.EventType.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.JournalType.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.PostingRule.Enums;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.PostingRule.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.PostingRule.Services;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Reconciliation.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
+using System.Globalization;
 using System.Text.Json;
 
 namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingEvent.Services
@@ -49,6 +53,13 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingE
         private const int PanjangKodeKomponenMaksimum = 50;
         private const int PanjangPesanGagalMaksimum = 1000;
         private const int PanjangKeteranganJurnalMaksimum = 500;
+
+        private const string PesanRincianSaldoWajib =
+            "Rincian saldo subledger hanya dan wajib ada pada pesan saldo subledger.";
+        private const string PesanSaldoTanpaKomponen =
+            "Pesan saldo subledger tidak boleh membawa rincian komponen.";
+        private const string PesanVersiSaldo =
+            "Versi pesan saldo harus bilangan bulat positif.";
 
         private static readonly TimeSpan ZonaWaktuWib = TimeSpan.FromHours(7);
 
@@ -329,6 +340,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingE
                     $"Kejadian {hasil.EventNumber} berhasil dijurnal sebagai {hasil.JournalNumber}.",
                 nameof(AccountingEventStatus.Tertahan) =>
                     $"Kejadian {hasil.EventNumber} masih tertahan: {hasil.HoldReasonCode}.",
+                nameof(AccountingEventStatus.Tercatat) =>
+                    $"Kejadian {hasil.EventNumber} dicatat sebagai saldo subledger periode {hasil.AccountingPeriodCode}.",
                 _ => $"Coba ulang kejadian {hasil.EventNumber} belum berhasil. Lihat riwayat percobaan."
             };
 
@@ -428,6 +441,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingE
             var menurutJenis = PeriksaIsianMenurutJenis(request, jenis);
             if (menurutJenis is not null) return menurutJenis;
 
+            if (jenis?.EventKind == EventTypeKind.SaldoSubledger)
+            {
+                var rincian = await PeriksaRincianSaldoAsync(
+                    request.LegalEntityId!.Value,
+                    request.SubledgerBalance,
+                    versi,
+                    (request.Components?.Count ?? 0) > 0,
+                    ct);
+
+                if (rincian.Pesan is not null) return Gagal(StatusCodes.Status400BadRequest, rincian.Pesan);
+            }
+
             var sekarang = DateTime.UtcNow;
 
             var kejadian = new AccAccountingEvent
@@ -519,6 +544,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingE
                         kejadian, statusAsal, null, AlasanJenisBelumTerdaftar,
                         $"Jenis kejadian {kejadian.EventTypeCode} belum terdaftar.",
                         nomorPercobaan, actorUserId, ct);
+                }
+
+                if (jenis.EventKind == EventTypeKind.SaldoSubledger)
+                {
+                    return await CatatSaldoAsync(
+                        kejadian, statusAsal, jenis.Id, nomorPercobaan, actorUserId, ct);
                 }
 
                 var aturan = await AccPostingRuleService.CariAturanAktifAsync(
@@ -692,6 +723,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingE
                     {
                         hasil.Held++;
                     }
+                    else if (tanda.EventStatus == nameof(AccountingEventStatus.Tercatat))
+                    {
+                        hasil.Recorded++;
+                    }
+                    else if (tanda.EventStatus == nameof(AccountingEventStatus.Gagal))
+                    {
+                        hasil.MarkedFailed++;
+                    }
                     else if (tanda.EventStatus != nameof(AccountingEventStatus.Diterima))
                     {
                         hasil.Skipped++;
@@ -768,6 +807,200 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingE
             return await PetakanTandaTerimaAsync(kejadian.Id, ct);
         }
 
+        private async Task<AccountingEventReceiptDto> CatatSaldoAsync(
+            AccAccountingEvent kejadian,
+            AccountingEventStatus statusAsal,
+            Guid eventTypeId,
+            int nomorPercobaan,
+            Guid actorUserId,
+            CancellationToken ct)
+        {
+            var rincian = await PeriksaRincianSaldoAsync(
+                kejadian.LegalEntityId,
+                BacaRincianSaldo(kejadian.RawPayload),
+                kejadian.SourceVersion,
+                kejadian.Components.Count > 0,
+                ct);
+
+            if (rincian.Pesan is not null)
+            {
+                return await TandaiGagalSaldoAsync(
+                    kejadian, statusAsal, eventTypeId, rincian.Pesan, nomorPercobaan, actorUserId, ct);
+            }
+
+            await using var transaksi = await _db.Database.BeginTransactionAsync(ct);
+
+            var sekarang = DateTime.UtcNow;
+
+            var berubah = await _db.Set<AccAccountingEvent>()
+                .Where(x => x.Id == kejadian.Id && x.EventStatus == statusAsal)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(x => x.EventStatus, AccountingEventStatus.Tercatat)
+                    .SetProperty(x => x.EventTypeId, eventTypeId)
+                    .SetProperty(x => x.HoldReasonCode, (string?)null)
+                    .SetProperty(x => x.UpdateDateTime, sekarang)
+                    .SetProperty(x => x.UpdateBy, actorUserId), ct);
+
+            if (berubah == 0)
+            {
+                await transaksi.RollbackAsync(ct);
+                _db.ChangeTracker.Clear();
+                return await PetakanTandaTerimaAsync(kejadian.Id, ct);
+            }
+
+            if (rincian.StatusPeriode != AccountingPeriodStatus.Closed)
+            {
+                var barisSaldo = _db.Set<AccSubledgerBalance>()
+                    .Where(x => !x.IsDelete
+                                && x.LegalEntityId == kejadian.LegalEntityId
+                                && x.AccountingPeriodId == rincian.PeriodeId
+                                && x.ChartOfAccountId == rincian.AkunId);
+
+                if (await barisSaldo.AnyAsync(ct))
+                {
+                    var tanggalCutOff = kejadian.AccountingDate.Date;
+
+                    await barisSaldo
+                        .Where(x => x.SourceVersionNumber < rincian.Versi)
+                        .ExecuteUpdateAsync(setters => setters
+                            .SetProperty(x => x.Balance, kejadian.Amount)
+                            .SetProperty(x => x.AsOfDate, tanggalCutOff)
+                            .SetProperty(x => x.SourceVersionNumber, rincian.Versi)
+                            .SetProperty(x => x.AccountingEventId, kejadian.Id)
+                            .SetProperty(x => x.UpdateDateTime, sekarang)
+                            .SetProperty(x => x.UpdateBy, actorUserId), ct);
+                }
+                else
+                {
+                    _db.Set<AccSubledgerBalance>().Add(new AccSubledgerBalance
+                    {
+                        Id = Guid.NewGuid(),
+                        LegalEntityId = kejadian.LegalEntityId,
+                        AccountingPeriodId = rincian.PeriodeId,
+                        ChartOfAccountId = rincian.AkunId,
+                        Balance = kejadian.Amount,
+                        AsOfDate = kejadian.AccountingDate.Date,
+                        SourceVersionNumber = rincian.Versi,
+                        AccountingEventId = kejadian.Id,
+                        CreateDateTime = sekarang,
+                        CreateBy = actorUserId
+                    });
+                }
+            }
+
+            TambahPercobaan(kejadian.Id, nomorPercobaan, true, null, actorUserId, sekarang);
+            await _db.SaveChangesAsync(ct);
+            await transaksi.CommitAsync(ct);
+
+            _db.ChangeTracker.Clear();
+            return await PetakanTandaTerimaAsync(kejadian.Id, ct);
+        }
+
+        private async Task<AccountingEventReceiptDto> TandaiGagalSaldoAsync(
+            AccAccountingEvent kejadian,
+            AccountingEventStatus statusAsal,
+            Guid eventTypeId,
+            string pesan,
+            int nomorPercobaan,
+            Guid actorUserId,
+            CancellationToken ct)
+        {
+            await using var transaksi = await _db.Database.BeginTransactionAsync(ct);
+
+            var sekarang = DateTime.UtcNow;
+
+            if (statusAsal != AccountingEventStatus.Gagal)
+            {
+                var berubah = await _db.Set<AccAccountingEvent>()
+                    .Where(x => x.Id == kejadian.Id && x.EventStatus == statusAsal)
+                    .ExecuteUpdateAsync(setters => setters
+                        .SetProperty(x => x.EventStatus, AccountingEventStatus.Gagal)
+                        .SetProperty(x => x.EventTypeId, eventTypeId)
+                        .SetProperty(x => x.HoldReasonCode, (string?)null)
+                        .SetProperty(x => x.UpdateDateTime, sekarang)
+                        .SetProperty(x => x.UpdateBy, actorUserId), ct);
+
+                if (berubah == 0)
+                {
+                    await transaksi.RollbackAsync(ct);
+                    _db.ChangeTracker.Clear();
+                    return await PetakanTandaTerimaAsync(kejadian.Id, ct);
+                }
+            }
+
+            TambahPercobaan(kejadian.Id, nomorPercobaan, false, pesan, actorUserId, sekarang);
+            await _db.SaveChangesAsync(ct);
+            await transaksi.CommitAsync(ct);
+
+            _db.ChangeTracker.Clear();
+            return await PetakanTandaTerimaAsync(kejadian.Id, ct);
+        }
+
+        private async Task<RincianSaldoTerperiksa> PeriksaRincianSaldoAsync(
+            Guid legalEntityId,
+            AccountingEventSubledgerBalanceRequest? rincian,
+            string sourceVersion,
+            bool membawaKomponen,
+            CancellationToken ct)
+        {
+            if (rincian is null) return RincianSaldoTerperiksa.Tolak(PesanRincianSaldoWajib);
+
+            if (membawaKomponen) return RincianSaldoTerperiksa.Tolak(PesanSaldoTanpaKomponen);
+
+            if (!int.TryParse(sourceVersion.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var versi)
+                || versi <= 0)
+            {
+                return RincianSaldoTerperiksa.Tolak(PesanVersiSaldo);
+            }
+
+            var kodePeriode = rincian.AccountingPeriodCode?.Trim() ?? string.Empty;
+
+            var periode = TafsirkanKodePeriode(kodePeriode) is null
+                ? null
+                : await _db.Set<AccAccountingPeriod>()
+                    .AsNoTracking()
+                    .Where(x => !x.IsDelete && x.LegalEntityId == legalEntityId && x.PeriodCode == kodePeriode)
+                    .Select(x => new { x.Id, x.PeriodStatus })
+                    .FirstOrDefaultAsync(ct);
+
+            if (periode is null)
+            {
+                return RincianSaldoTerperiksa.Tolak(
+                    $"Periode akuntansi {kodePeriode} tidak dikenal untuk badan hukum ini.");
+            }
+
+            var kodeAkun = rincian.ControlAccountCode?.Trim() ?? string.Empty;
+
+            var akunId = await _db.Set<AccChartOfAccount>()
+                .AsNoTracking()
+                .Where(x => !x.IsDelete
+                            && x.LegalEntityId == legalEntityId
+                            && x.AccountCode == kodeAkun
+                            && x.IsControlAccount)
+                .Select(x => (Guid?)x.Id)
+                .FirstOrDefaultAsync(ct);
+
+            if (!akunId.HasValue)
+            {
+                return RincianSaldoTerperiksa.Tolak(
+                    $"Akun {kodeAkun} bukan akun kontrol pada badan hukum ini.");
+            }
+
+            return new RincianSaldoTerperiksa(null, periode.Id, periode.PeriodStatus, akunId.Value, versi);
+        }
+
+        private static AccountingEventSubledgerBalanceRequest? BacaRincianSaldo(string rawPayload)
+        {
+            try
+            {
+                return JsonSerializer.Deserialize<ReceiveAccountingEventRequest>(rawPayload)?.SubledgerBalance;
+            }
+            catch (JsonException)
+            {
+                return null;
+            }
+        }
+
         private async Task CatatPercobaanGagalAsync(
             Guid accountingEventId,
             int nomorPercobaan,
@@ -782,6 +1015,47 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingE
 
             TambahPercobaan(accountingEventId, nomorPercobaan, false, pesan, actorUserId, DateTime.UtcNow);
             await _db.SaveChangesAsync(ct);
+        }
+
+        public static async Task<bool> KembalikanKeGagalKarenaJurnalDihapusAsync(
+            ApplicationDbContext db,
+            Guid accountingEventId,
+            Guid journalId,
+            string pesan,
+            Guid actorUserId,
+            DateTime sekarang,
+            CancellationToken ct)
+        {
+            var berubah = await db.Set<AccAccountingEvent>()
+                .Where(x => x.Id == accountingEventId
+                            && !x.IsDelete
+                            && x.EventStatus == AccountingEventStatus.Terjurnal
+                            && x.JournalId == journalId)
+                .ExecuteUpdateAsync(setters => setters
+                    .SetProperty(x => x.EventStatus, AccountingEventStatus.Gagal)
+                    .SetProperty(x => x.JournalId, (Guid?)null)
+                    .SetProperty(x => x.UpdateDateTime, sekarang)
+                    .SetProperty(x => x.UpdateBy, actorUserId), ct);
+
+            if (berubah == 0) return false;
+
+            var nomorTerakhir = await db.Set<AccAccountingEventAttempt>()
+                .Where(x => x.AccountingEventId == accountingEventId)
+                .MaxAsync(x => (int?)x.AttemptNumber, ct) ?? 0;
+
+            db.Set<AccAccountingEventAttempt>().Add(new AccAccountingEventAttempt
+            {
+                Id = Guid.NewGuid(),
+                AccountingEventId = accountingEventId,
+                AttemptNumber = nomorTerakhir + 1,
+                AttemptedAt = new DateTimeOffset(sekarang, TimeSpan.Zero),
+                IsSuccess = false,
+                FailureMessage = pesan.Length > PanjangPesanGagalMaksimum ? pesan[..PanjangPesanGagalMaksimum] : pesan,
+                CreateDateTime = sekarang,
+                CreateBy = actorUserId
+            });
+
+            return true;
         }
 
         private void TambahPercobaan(
@@ -947,6 +1221,24 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingE
                 };
             }
 
+            if (tandaTerima.EventStatus == nameof(AccountingEventStatus.Tercatat))
+            {
+                return AccountingServiceResult<AccountingEventReceiptDto>.Ok(
+                    tandaTerima,
+                    $"Kejadian {tandaTerima.EventNumber} diterima dan dicatat sebagai saldo subledger periode "
+                    + $"{tandaTerima.AccountingPeriodCode}. Tidak ada jurnal yang dibuat.",
+                    StatusCodes.Status201Created);
+            }
+
+            if (tandaTerima.EventStatus == nameof(AccountingEventStatus.Gagal))
+            {
+                return AccountingServiceResult<AccountingEventReceiptDto>.Ok(
+                    tandaTerima,
+                    $"Kejadian {tandaTerima.EventNumber} tersimpan, tetapi rincian saldonya tidak dapat diproses "
+                    + "dan kejadian ditandai Gagal. Lihat riwayat percobaan.",
+                    StatusCodes.Status201Created);
+            }
+
             var pesan = tandaTerima.JournalNumber is null
                 ? $"Kejadian {tandaTerima.EventNumber} diterima. Penjurnalan tertunda dan akan dicoba ulang otomatis."
                 : $"Kejadian {tandaTerima.EventNumber} diterima dan dijurnal sebagai {tandaTerima.JournalNumber}.";
@@ -972,9 +1264,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingE
                     JournalNumber = x.Journal != null ? x.Journal.JournalNumber : null,
                     PeriodCode = x.Journal != null && x.Journal.AccountingPeriod != null
                         ? x.Journal.AccountingPeriod.PeriodCode
-                        : null
+                        : null,
+                    PesanSaldo = x.EventStatus == AccountingEventStatus.Tercatat ? x.RawPayload : null
                 })
                 .FirstAsync(ct);
+
+            var periodeSaldo = data.PesanSaldo is null
+                ? null
+                : BacaRincianSaldo(data.PesanSaldo)?.AccountingPeriodCode?.Trim();
 
             return new AccountingEventReceiptDto
             {
@@ -982,7 +1279,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingE
                 EventNumber = data.EventNumber,
                 EventStatus = data.EventStatus.ToString(),
                 JournalNumber = data.JournalNumber,
-                AccountingPeriodCode = data.PeriodCode,
+                AccountingPeriodCode = data.PeriodCode ?? periodeSaldo,
                 HoldReasonCode = data.EventStatus == AccountingEventStatus.Tertahan ? data.HoldReasonCode : null,
                 ReceivedAt = new DateTimeOffset(DateTime.SpecifyKind(data.CreateDateTime, DateTimeKind.Utc))
                     .ToOffset(ZonaWaktuWib)
@@ -1072,28 +1369,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingE
             ReceiveAccountingEventRequest request,
             AccEventType? jenis)
         {
-            if (jenis?.EventKind == EventTypeKind.SaldoSubledger)
-            {
-                return Gagal(
-                    StatusCodes.Status409Conflict,
-                    "Pesan saldo subledger belum dapat diterima. Jalurnya dibangun pada BE-ACC-P2-028.");
-            }
-
             var membawaSaldo = request.SubledgerBalance is not null;
+            var jenisSaldo = jenis?.EventKind == EventTypeKind.SaldoSubledger;
 
-            if (jenis is not null && membawaSaldo)
-            {
-                return Gagal(
-                    StatusCodes.Status400BadRequest,
-                    "Rincian saldo subledger hanya dan wajib ada pada pesan saldo subledger.");
-            }
+            if (jenis is not null && membawaSaldo != jenisSaldo)
+                return Gagal(StatusCodes.Status400BadRequest, PesanRincianSaldoWajib);
 
             if (membawaSaldo && (request.Components?.Count ?? 0) > 0)
-            {
-                return Gagal(
-                    StatusCodes.Status400BadRequest,
-                    "Pesan saldo subledger tidak boleh membawa rincian komponen.");
-            }
+                return Gagal(StatusCodes.Status400BadRequest, PesanSaldoTanpaKomponen);
 
             if (!membawaSaldo && request.Amount!.Value <= 0m)
                 return Gagal(StatusCodes.Status400BadRequest, "Nilai kejadian harus lebih besar dari nol.");
@@ -1129,6 +1412,17 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingE
             public PemrosesanKejadianException(string pesan) : base(pesan)
             {
             }
+        }
+
+        private sealed record RincianSaldoTerperiksa(
+            string? Pesan,
+            Guid PeriodeId,
+            AccountingPeriodStatus StatusPeriode,
+            Guid AkunId,
+            int Versi)
+        {
+            public static RincianSaldoTerperiksa Tolak(string pesan)
+                => new(pesan, Guid.Empty, AccountingPeriodStatus.Open, Guid.Empty, 0);
         }
     }
 }

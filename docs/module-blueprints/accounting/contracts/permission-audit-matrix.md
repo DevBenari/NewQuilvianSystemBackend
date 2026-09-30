@@ -242,6 +242,9 @@ peran serba bisa kedua di samping Manager.
    Director, Auditor, dan Administrator — dan **menunggu konfirmasi owner**. Per 11 September 2026
    hak ini punya **nol pemberian** di `SysAccessPolicy`, sehingga hanya SuperAdmin yang dapat
    membuka layarnya sebelum hak itu dicentang di layar Akses Role.
+   **28 September 2026 (`GATE-DESAIN-0928`):** endpoint baru `GET /reconciliation/subledger-comparison`
+   (`BE-ACC-P2-014`) memakai hak yang **sama**, `AccountingReconciliation : Read` — nol resource dan
+   nol action baru. Tidak ada hak untuk mengecualikan penghalang rekonsiliasi (`ACC-DEC-113`).
 
 ### Nama resource penutupan periode adalah `AccountingPeriod`
 
@@ -263,7 +266,7 @@ layar Akses Role, karena hak yang dicari tidak pernah ada untuk diberikan.
 | Jurnal penutup tahun disusun | **Ya** | `EntityId`, pelaku |
 | Membaca daftar kejadian | **Tidak** | Pembacaan sehari-hari tidak dicatat (`ACC-DEC-032`) |
 | Membaca pratinjau tutup tahun | **Ya** | Termasuk pembacaan laporan keuangan pada `ACC-DEC-032` |
-| Membaca saldo rekonsiliasi control account *(usulan `0.6`)* | **Belum diputuskan** | Kode saat ini **tidak** mencatatnya. `ACC-DEC-032` mencatat pembacaan laporan keuangan; apakah saldo control account termasuk di dalamnya menunggu keputusan owner |
+| Membaca saldo rekonsiliasi control account *(usulan `0.6`)* — `gl-balances`, dan `subledger-comparison` *(`ACC-API-0.13`)* | **Tidak** — **`ACC-DEC-115`**, 28 September 2026 | Layar penelusuran sejenis Buku Besar; tindakan penutupannya yang dicatat. Menutup butir terbuka usulan `0.6` |
 
 **Nilai uang dan keterangan jurnal tetap tidak boleh masuk catatan `LoggerService`.** Aturan
 `02-backend-architecture.md` bagian 11 berlaku penuh di Phase 2.

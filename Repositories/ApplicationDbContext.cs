@@ -33,6 +33,7 @@ using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.Conf
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.EventType.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.JournalType.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.PostingRule.Models;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Reconciliation.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.RecurringJournal.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
@@ -570,6 +571,10 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<AccRecurringJournalTemplateLine> AccRecurringJournalTemplateLines { get; set; }
         public DbSet<AccRecurringJournalRun> AccRecurringJournalRuns { get; set; }
         #endregion CORPORATE - ACCOUNTING MANAGEMENT - RECURRING JOURNAL
+
+        #region CORPORATE - ACCOUNTING MANAGEMENT - RECONCILIATION
+        public DbSet<AccSubledgerBalance> AccSubledgerBalances { get; set; }
+        #endregion CORPORATE - ACCOUNTING MANAGEMENT - RECONCILIATION
 
         #endregion CORPORATE
 

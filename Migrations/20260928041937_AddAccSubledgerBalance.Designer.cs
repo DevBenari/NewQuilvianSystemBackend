@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using QuilvianSystemBackend.Repositories;
@@ -11,9 +12,11 @@ using QuilvianSystemBackend.Repositories;
 namespace QuilvianSystemBackend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260928041937_AddAccSubledgerBalance")]
+    partial class AddAccSubledgerBalance
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -77220,29 +77223,6 @@ namespace QuilvianSystemBackend.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
-                    b.Property<Guid?>("ReleaseExceptionReasonId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("ReleaseExceptionReasonNameSnapshot")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<DateTime?>("ReleasedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("ReleasedByPositionId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("ReleasedByPositionNameSnapshot")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<Guid?>("ReleasedByPrivilegeId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("ReleasedByUserId")
-                        .HasColumnType("uuid");
-
                     b.Property<int>("ReopenCount")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
@@ -77303,29 +77283,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<Guid?>("UrgencyMarkedByUserId")
                         .HasColumnType("uuid");
 
-                    b.Property<DateTime?>("ValidatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid?>("ValidatedByPositionId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("ValidatedByPositionNameSnapshot")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<Guid?>("ValidatedByPrivilegeId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("ValidatedByUserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid?>("ValidationExceptionReasonId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("ValidationExceptionReasonNameSnapshot")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
                     b.Property<int>("Version")
                         .IsConcurrencyToken()
                         .HasColumnType("integer");
@@ -77344,19 +77301,11 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("ProcedureId");
 
-                    b.HasIndex("ReleaseExceptionReasonId");
-
-                    b.HasIndex("ReleasedAt");
-
                     b.HasIndex("ResultOptionId");
 
                     b.HasIndex("ResultValueBoundId");
 
                     b.HasIndex("Urgency");
-
-                    b.HasIndex("ValidationExceptionReasonId");
-
-                    b.HasIndex("FinalizedAt", "ValidatedAt");
 
                     b.HasIndex("SpecimenId", "ProcedureId")
                         .IsUnique()
@@ -77435,82 +77384,6 @@ namespace QuilvianSystemBackend.Migrations
                         .HasDatabaseName("IX_LabFieldChangeLog_Entity_ChangedAt");
 
                     b.ToTable("LabFieldChangeLog", "public");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabFourEyesExceptionReason", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true);
-
-                    b.Property<bool>("IsCancel")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsDelete")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("ReasonCode")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)");
-
-                    b.Property<string>("ReasonName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<bool>("RequiresNote")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<int>("SortOrder")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0);
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ReasonCode")
-                        .IsUnique()
-                        .HasDatabaseName("IX_LabFourEyesExceptionReason_ReasonCode")
-                        .HasFilter("\"IsDelete\" = false");
-
-                    b.HasIndex("IsActive", "SortOrder");
-
-                    b.ToTable("LabFourEyesExceptionReason", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabIsolateSusceptibility", b =>
@@ -78512,82 +78385,6 @@ namespace QuilvianSystemBackend.Migrations
                         .HasFilter("\"IsDelete\" = false");
 
                     b.ToTable("LabProcedurePathologyCategory", "public");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabResultCorrectionReason", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true);
-
-                    b.Property<bool>("IsCancel")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsDelete")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("ReasonCode")
-                        .IsRequired()
-                        .HasMaxLength(32)
-                        .HasColumnType("character varying(32)");
-
-                    b.Property<string>("ReasonName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<bool>("RequiresNote")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<int>("SortOrder")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(0);
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ReasonCode")
-                        .IsUnique()
-                        .HasDatabaseName("IX_LabResultCorrectionReason_ReasonCode")
-                        .HasFilter("\"IsDelete\" = false");
-
-                    b.HasIndex("IsActive", "SortOrder");
-
-                    b.ToTable("LabResultCorrectionReason", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabSpecimen", b =>
@@ -117988,11 +117785,6 @@ namespace QuilvianSystemBackend.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabFourEyesExceptionReason", "ReleaseExceptionReason")
-                        .WithMany()
-                        .HasForeignKey("ReleaseExceptionReasonId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabValueOption", "ResultOption")
                         .WithMany()
                         .HasForeignKey("ResultOptionId")
@@ -118009,24 +117801,15 @@ namespace QuilvianSystemBackend.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabFourEyesExceptionReason", "ValidationExceptionReason")
-                        .WithMany()
-                        .HasForeignKey("ValidationExceptionReasonId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.Navigation("LabOrder");
 
                     b.Navigation("Procedure");
-
-                    b.Navigation("ReleaseExceptionReason");
 
                     b.Navigation("ResultOption");
 
                     b.Navigation("ResultValueBound");
 
                     b.Navigation("Specimen");
-
-                    b.Navigation("ValidationExceptionReason");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Models.LabIsolateSusceptibility", b =>

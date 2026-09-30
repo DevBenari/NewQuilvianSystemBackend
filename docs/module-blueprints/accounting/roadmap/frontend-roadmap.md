@@ -56,7 +56,7 @@ endpoint-nya sudah berdiri.
 |---|---|---|---|
 | `MVP-1` Kerangka dan master | `FE-ACC-001` sampai `FE-ACC-004` | **`IMPLEMENTED`** — keempatnya selesai 4 Sep 2026 | `BE-ACC-007` sampai `009` selesai |
 | `MVP-1` Jurnal | `FE-ACC-005` sampai `FE-ACC-007` | **`IMPLEMENTED` — 005, 006, dan 007 selesai** | `BE-ACC-010`, `BE-ACC-011`, `BE-ACC-015` selesai |
-| `MVP-2` Laporan | `FE-ACC-008`, `FE-ACC-009` | **`IMPLEMENTED`** — keduanya selesai | `BE-ACC-012` selesai |
+| `MVP-2` Laporan | `FE-ACC-008`, `FE-ACC-009` ✅ | **`IMPLEMENTED`** — `008` selesai; `009` ✅ dikerjakan ulang 29 Sep 2026 (acceptance 3 dipulihkan, build owner 15.04) | `BE-ACC-012` selesai |
 | `MVP-3` Koreksi dan saldo awal | `FE-ACC-010`, `FE-ACC-011` | **`IMPLEMENTED`** — keduanya selesai 7 Sep 2026 | `BE-ACC-013`, `BE-ACC-014` selesai |
 
 Dua keputusan produk pernah menahan sebagian task. **Keduanya sudah ditutup 4 September 2026**, dan nol keputusan produk tersisa:
@@ -206,7 +206,7 @@ Dua keputusan produk pernah menahan sebagian task. **Keduanya sudah ditutup 4 Se
 | DoD | Layar berfungsi, laporan task tersedia |
 | **Status** | **`IMPLEMENTED`** — 7 September 2026, menunggu verifikasi manual owner di peramban. Rute `/corporate/accounting/general-ledger` berdiri, menu **Buku Besar** terdaftar, slice ditulis manual (grup GL nol mutasi — factory akan menurunkan 10 thunk yang endpoint-nya tidak ada). **Acceptance (1) dan (3) terkunci 7 unit test baru**; (2) terbukti di source — pesan `400` backend diteruskan apa adanya, aturannya tidak disalin ke frontend. `lint:errors` PASS, `build` PASS, **452 unit test PASS**, 0 warning. **Belum dapat dilihat bekerja**: nol jurnal disahkan (`BLK-ACC-02`). Laporan: [`../task/report/frontend/fe-acc-008-buku-besar.md`](../task/report/frontend/fe-acc-008-buku-besar.md) |
 
-### `FE-ACC-009` — Neraca saldo
+### ✅ `FE-ACC-009` — Neraca saldo
 
 | Field | Isi |
 |---|---|
@@ -220,7 +220,7 @@ Dua keputusan produk pernah menahan sebagian task. **Keduanya sudah ditutup 4 Se
 | Verifikasi | `npm run lint`; skenario `UAT-14`, `UAT-15` di peramban |
 | Risiko/pemilik | Developer. Butir (3) penting supaya pembaca tidak salah menafsirkan angka |
 | DoD | Layar berfungsi, laporan task tersedia |
-| **Status** | **`IMPLEMENTED`** — 7 September 2026. Rute `/corporate/accounting/trial-balance` berdiri, menu **Neraca Saldo** terdaftar, thunk `getTrialBalance` menumpang slice `FE-ACC-008` — **nol slice baru**. **Ketiga acceptance terkunci 11 unit test baru.** Diverifikasi lewat HTTP: endpoint `/trial-balance` menjawab `401` sementara jalur ngawur menjawab `404`, sehingga jalurnya terbukti benar; rute frontend menjawab `200`. Isi layar menunggu verifikasi owner. `lint:errors` PASS, `build` PASS, **463 unit test PASS**, 0 warning. Laporan: [`../task/report/frontend/fe-acc-009-neraca-saldo.md`](../task/report/frontend/fe-acc-009-neraca-saldo.md) |
+| **Status** | ✅ **SELESAI — dikerjakan ulang 29 September 2026.** Acceptance (3) hilang lewat `95ea41cd9` dan dipulihkan atas keputusan Rizki (satu kalimat di subjudul kartu ringkasan); unit test Accounting 140/140; build Rizki 15.04 memuat kalimatnya; pemeriksaan layar diserahkan ke tim UAT. [laporan bagian 10](../task/report/frontend/fe-acc-009-neraca-saldo.md) **Riwayat:** **`IMPLEMENTED`** — 7 September 2026. Rute `/corporate/accounting/trial-balance` berdiri, menu **Neraca Saldo** terdaftar, thunk `getTrialBalance` menumpang slice `FE-ACC-008` — **nol slice baru**. **Ketiga acceptance terkunci 11 unit test baru.** Diverifikasi lewat HTTP: endpoint `/trial-balance` menjawab `401` sementara jalur ngawur menjawab `404`, sehingga jalurnya terbukti benar; rute frontend menjawab `200`. Isi layar menunggu verifikasi owner. `lint:errors` PASS, `build` PASS, **463 unit test PASS**, 0 warning. Laporan: [`../task/report/frontend/fe-acc-009-neraca-saldo.md`](../task/report/frontend/fe-acc-009-neraca-saldo.md) |
 
 ---
 

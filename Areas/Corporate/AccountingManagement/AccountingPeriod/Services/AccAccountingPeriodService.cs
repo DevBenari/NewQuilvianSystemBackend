@@ -4,6 +4,8 @@ using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.DTOs;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Enums;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Models;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Reconciliation.Enums;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Reconciliation.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Services;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Organization.Models;
 using QuilvianSystemBackend.Repositories;
@@ -224,6 +226,18 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingP
 
             var pelanggaran = PeriksaPerpindahanTutup(periode.PeriodStatus, tujuan, periode);
             if (pelanggaran is not null) return pelanggaran;
+
+            if (tujuan == AccountingPeriodStatus.Closed)
+            {
+                var rekonsiliasi = await AccControlAccountReconciliationService
+                    .HitungRekonsiliasiSubledgerAsync(_db, periode, ct);
+                if (rekonsiliasi.ReconciliationState == SubledgerReconciliationState.BelumBersih)
+                {
+                    return AccountingServiceResult<AccountingPeriodResponse>.Fail(
+                        StatusCodes.Status409Conflict,
+                        $"Periode {NamaPeriode(periode)} belum dapat ditutup permanen: rekonsiliasi saldo subledger belum bersih — {rekonsiliasi.StateMessage}");
+                }
+            }
 
             periode.PeriodStatus = tujuan;
             periode.ClosedBy = actorUserId;
