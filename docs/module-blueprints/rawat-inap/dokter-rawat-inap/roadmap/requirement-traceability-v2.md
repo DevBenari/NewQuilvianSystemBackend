@@ -22,7 +22,7 @@ frontend_source_sha: 1ce219b40f8e411f3c4e66975626ab33ae81616a
 backend_roadmap: roadmap/backend-roadmap-v2.md
 frontend_roadmap: roadmap/frontend-roadmap-v2.md
 fr_range: FR-DOK-069..FR-DOK-111
-last_updated: "2026-09-23 — BE-RWI-128 ditambahkan dari ISSUE-DOK-002; ANM-01 dan ANM-02 dari ISSUE-DOK-001 terbukti dan tertutup sebagai ISS-07 dan ISS-08"
+last_updated: "2026-09-30 — bagian 17: BE-RWI-141, BE-RWI-142, FE-RWI-139..FE-RWI-142 dari rencana-kerja/soap/soap.md Rev 2.1 (keputusan pemilik K1–K5); sebelumnya 2026-09-29 bagian 16 FE-RWI-137 dari rencana-kerja/resep/resep.md; 2026-09-23 BE-RWI-128 dari ISSUE-DOK-002"
 ```
 
 Label `[BE-INP]`, `[FE-INP]`, `[FE-KEP]` menandai task milik sub-modul lain.
@@ -180,6 +180,7 @@ task yang menanggungnya dikerjakan.
 | ---: | --- | --- |
 | `1` | 2026-09-16 | Dibuat `plan-module-delivery` fase `RLN-PH-07` sesudah `RWI-DEC-150`. Empat puluh tiga FR dipetakan ke 18 task backend dan 14 task frontend, ditambah enam task milik sub-modul lain. Ditulis sebagai berkas terpisah atas permintaan pemilik |
 | `3` | 2026-09-23 | `BE-RWI-128` ditambahkan sebagai task perbaikan dari `ISSUE-DOK-002`, hasil verifikasi 23 September 2026. Menutup `ISS-07` (`InpEpisodeId` pada CPPT dari konsultasi) dan `ISS-08` (`DoctorName` kajian medis). `ISS-09` **tidak dikerjakan** — di luar kepemilikan sub-modul ini. `ANM-01` dan `ANM-02` dari `ISSUE-DOK-001` ikut tertutup karena keduanya ternyata cacat yang sama. `contract_version` **tetap** `0.6.1` — tidak ada properti, endpoint, maupun status code yang berubah. Status 🟡 sebagian — kompilasi `PASS` (`0 error`, `224 warning`, tanpa warning baru); `dotnet build` penuh `EXISTING / ENVIRONMENT ISSUE` karena `bin` dikunci proses backend `PID 6608`; verifikasi runtime `NOT RUN` |
+| `4` | 2026-09-30 | Bagian 17 ditambahkan dari rencana kerja `soap.md` Rev 2.1: `BE-RWI-141` (tautan SOAP ke deret tanda vital, migration `20260930110000_AddDoctorConsultationSourceVitalSign` diterapkan ke DB pribadi pemilik saja), `BE-RWI-142` (gerbang ICD-10 K1, pencarian ICD-10, nama obat/tindakan, diagnosa dan peran di lini masa), `FE-RWI-139` s.d. `FE-RWI-142` (ICD dari master, tanda vital perawat, tata letak V1, salin A & P). Tidak ada FR baru; FR SOAP di bagian 2 tetap ✅. `contract_version` tetap `0.6.1` — delta aditif `soap.md` 4.2, usulan `0.6.2` menunggu pemilik. Status ✅ di tingkat source; `dotnet build` PASS; `npm run build` dan runtime `NOT RUN` |
 | `2` | 2026-09-23 | `BE-RWI-127` ditambahkan sebagai task perbaikan dari `ISSUE-DOK-001`, hasil pengujian 22 September 2026. Menutup `ISS-01` (culture invariant), `ISS-03` (isi resep tersimpan sekali transaksi), `ISS-04` (nama kontrak `PrescriptionOrderType` dipertahankan), dan `ISS-06` (`201` seragam). `contract_version` naik `0.6.0` → `0.6.1`. Status 🟡 sebagian — verifikasi runtime `NOT RUN` |
 
 ---
@@ -228,3 +229,38 @@ frontend yang benar untuk isu ini adalah `FE-RWI-097`.
 sudah merender `doctorName` dengan fallback tanda hubung, dan lembar kerja dokter sudah memanggil
 lini masa CPPT satu perawatan. Task frontend-nya karena itu murni verifikasi tampilan sesudah
 backend dijalankan.
+
+## 16. Traceability rencana kerja `resep.md` — paritas V1 Tab Resep
+
+Sumber: [`rencana-kerja/resep/resep.md`](./rencana-kerja/resep/resep.md), disetujui pemilik
+29 September 2026. Tidak ada FR baru; task ini mengubah tata letak dan memperbaiki cacat payload
+pada FR yang sudah ✅ di bagian 4.
+
+| FR / temuan | Task | Status | Bukti |
+| --- | --- | --- | --- |
+| `FR-DOK-086`, `FR-DOK-088` s.d. `FR-DOK-091` — tata letak Buat Resep, Template, History sesuai capture V1 | `FE-RWI-137` | ✅ source; build & runtime `NOT RUN` | [Laporan](../task/report/frontend/FE-RWI-137-resep-paritas-v1-split-view.md) |
+| `FR-DOK-092`, `FR-DOK-093` — rekonsiliasi sebagai mode ketiga Buat Resep; modal keputusan kini benar-benar terbuka | `FE-RWI-137` | ✅ source; runtime `NOT RUN` | Laporan bagian 1 butir 4 |
+| Bahan racikan terkirim sebagai `ingredients` (diabaikan backend) | `FE-RWI-137` | ✅ diperbaiki; test perilaku PASS | Laporan bagian 1 butir 1 |
+| Kunci idempotensi per SOAP membuang resep kedua | `FE-RWI-137` | ✅ diperbaiki; test perilaku PASS | Laporan bagian 1 butir 2 |
+| Panel Sliding Scale salah-prop komponen dasar (`FR-DOK-096` s.d. `099`) | usulan `FE-RWI-138` | ⛔ belum dikerjakan | Laporan bagian 7 |
+
+## 17. Traceability rencana kerja `soap.md` — SOAP Dokter Rawat Inap Rev 2.1
+
+Sumber: [`rencana-kerja/soap/soap.md`](./rencana-kerja/soap/soap.md) Rev 2.1, keputusan pemilik K1–K5
+30 September 2026, perintah pemilik "kerjakan semua sampai tuntas". Tidak ada FR baru. Task ini
+memperbaiki cacat dan melengkapi Tab SOAP pada `FR-DOK-074`, `FR-DOK-075`, dan `FR-DOK-077` yang sudah ✅ di
+bagian 2, serta menata ulang tampilan `FE-RWI-068` tanpa mengubah lifecycle-nya.
+
+| Permintaan / keputusan / temuan | Task | Status | Bukti |
+| --- | --- | --- | --- |
+| Permintaan 1 — ICD-10 dari master data; C1 data hardcode `utils/icdData.jsx`, C2 GUID V1 ditolak backend, C3 error penyimpanan ditelan | `FE-RWI-139` | ✅ source; runtime `NOT RUN` | [Laporan FE-139](../task/report/frontend/FE-RWI-139.md) |
+| C5 hapus/Utama tidak tersimpan, C6 Assessment menimpa ketikan, C7 centang planning tidak mencabut, C8 fallback hardcode | `FE-RWI-139` | ✅ source; test fungsi murni PASS | [Laporan FE-139](../task/report/frontend/FE-RWI-139.md) bagian 7 |
+| K1 — backend menolak penyelesaian SOAP rawat inap tanpa ICD-10 / tanpa satu Utama; C4 | `BE-RWI-142` (+ layar `FE-RWI-139`) | ✅ source; build PASS; runtime `NOT RUN` | [Laporan BE-142](../task/report/backend/BE-RWI-142.md) |
+| K2 — pencarian memakai kode dan nama master saja; C10 ICD-9 tercampur | `BE-RWI-142` | ✅ source; data master diverifikasi baca-saja | [Laporan BE-142](../task/report/backend/BE-RWI-142.md) bagian 5 |
+| C11 — resolver tanpa nama obat | `BE-RWI-142` | ✅ source | [Laporan BE-142](../task/report/backend/BE-RWI-142.md) |
+| K3 — DTD, kasus baru/lama, versi ICD klaim | — | Di luar lingkup SOAP; dikonfirmasi ke Rekam Medis dan casemix, tidak memblokir | `soap.md` bagian 8 |
+| Permintaan 2 — tanda vital dari riwayat perawat, tertaut ke SOAP; C9 | `BE-RWI-141`, `FE-RWI-140` | ✅ source; migration di `QuilvianNewDevHamzah`; runtime `NOT RUN` | [Laporan BE-141](../task/report/backend/BE-RWI-141.md), [Laporan FE-140](../task/report/frontend/FE-RWI-140.md) |
+| K5 — ukuran dokter masuk deret tanda vital perawat | `BE-RWI-141`, `FE-RWI-140` | ✅ source; label "Dokter" di layar perawat belum ada (perlu task keperawatan) | [Laporan BE-141](../task/report/backend/BE-RWI-141.md) bagian 7 |
+| Permintaan 3 — tampilan; C12 kepala bertumpuk, CSS 1.850 baris dengan hex lepas | `FE-RWI-141` | ✅ source; CSS token-only 599 baris (target 400 tidak tercapai) | [Laporan FE-141](../task/report/frontend/FE-RWI-141.md) |
+| Permintaan 4 — form lengkap sesuai V1 (matriks paritas `soap.md` 3.4) | `FE-RWI-139`, `FE-RWI-140`, `FE-RWI-141` | ✅ source; empat penyimpangan tercatat untuk keputusan pemilik | [Laporan FE-141](../task/report/frontend/FE-RWI-141.md) bagian 8 |
+| K4 — salin A & P dari SOAP sebelumnya | `FE-RWI-142` | ✅ source; runtime `NOT RUN` | [Laporan FE-142](../task/report/frontend/FE-RWI-142.md) |

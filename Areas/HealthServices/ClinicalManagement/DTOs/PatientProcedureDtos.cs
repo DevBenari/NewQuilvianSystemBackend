@@ -97,6 +97,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public string? InstructionVerifiedByUserName { get; set; }
         public bool CancelledByEpisodeClosure { get; set; }
 
+        public string? ClinicalNote { get; set; }
+        public string? ClinicalReason
+        {
+            get => ClinicalNote;
+            set => ClinicalNote = value;
+        }
+        public string? InstructionNote { get; set; }
+        public string? DispositionNote { get; set; }
+        public string? FreeOfChargeReason { get; set; }
+
         // Metadata aksi untuk frontend. Nilainya ditentukan backend berdasarkan
         // status tindakan dan status konsultasi, sehingga frontend tidak perlu
         // menebak-nebak rule bisnis.
@@ -115,7 +125,6 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public string? InsuranceTariffCodeSnapshot { get; set; }
         public string? InsuranceTariffNameSnapshot { get; set; }
 
-        public string? FreeOfChargeReason { get; set; }
         public string? CoverageNote { get; set; }
 
         public DateTime? ApprovedAt { get; set; }
@@ -126,10 +135,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public Guid? ExecutedByUserId { get; set; }
         public string? ExecutedByUserName { get; set; }
 
-        public string? ClinicalNote { get; set; }
         public string? ResultNote { get; set; }
-        public string? InstructionNote { get; set; }
-        public string? DispositionNote { get; set; }
         public string? ComplicationNote { get; set; }
         public string? FollowUpInstruction { get; set; }
 
@@ -257,6 +263,14 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public bool IsPrimaryProcedure { get; set; } = false;
 
         public bool IsEmergencyProcedure { get; set; } = false;
+
+        public bool IsFreeOfCharge { get; set; } = false;
+
+        [MaxLength(250)]
+        public string? FreeOfChargeReason { get; set; }
+
+        [MaxLength(500)]
+        public string? DispositionNote { get; set; }
 
         [MaxLength(1000)]
         public string? ClinicalReason { get; set; }
