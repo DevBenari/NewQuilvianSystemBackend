@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
@@ -97,6 +97,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             [FromQuery] bool? isAntibiotic,
             [FromQuery] bool? isHighAlert,
             [FromQuery] bool? isCompoundIngredientAllowed,
+            [FromQuery] bool? isConsumable,
             [FromQuery] string? search,
             [FromQuery] string? sortBy = "drugName",
             [FromQuery] string? sortDirection = "asc",
@@ -137,6 +138,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 isAntibiotic,
                 isHighAlert,
                 isCompoundIngredientAllowed,
+                isConsumable,
                 search
             );
 
@@ -192,6 +194,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                     isAntibiotic,
                     isHighAlert,
                     isCompoundIngredientAllowed,
+                    isConsumable,
                     search,
                     sortBy,
                     sortDirection,
@@ -259,7 +262,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             var drug = await BuildDrugQuery()
                 .FirstOrDefaultAsync(x => x.Id == drugId, cancellationToken);
 
-            if (drug == null)
+            if (drug == null ||
+                drug.DrugCode.ToUpper().StartsWith("ALK") ||
+                !drug.DrugCode.ToUpper().StartsWith("OBT"))
             {
                 return NotFound(ApiResponse<object>.Fail(
                     StatusCodes.Status404NotFound,
@@ -322,6 +327,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             bool? isAntibiotic,
             bool? isHighAlert,
             bool? isCompoundIngredientAllowed,
+            bool? isConsumable,
             string? search)
         {
             if (drugCategoryId.HasValue && drugCategoryId.Value != Guid.Empty)
@@ -343,6 +349,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             {
                 query = query.Where(x =>
                     x.IsCompoundIngredientAllowed == isCompoundIngredientAllowed.Value);
+            }
+
+            if (isConsumable.HasValue && isConsumable.Value)
+            {
+                query = query.Where(x => x.IsConsumable || x.DrugCode.ToUpper().StartsWith("ALK"));
+            }
+            else
+            {
+                // Resep obat dokter: tidak boleh ALK (alat kesehatan), hanya obat (OBT) yang boleh muncul
+                query = query.Where(x => !x.IsConsumable && !x.DrugCode.ToUpper().StartsWith("ALK") && x.DrugCode.ToUpper().StartsWith("OBT"));
             }
 
             if (!string.IsNullOrWhiteSpace(search))
@@ -447,12 +463,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 BaseUnitMeasurementId = drug.BaseUnitMeasurementId,
                 BaseUnitName = drug.BaseUnitMeasurement?.MeasurementName,
                 BaseUnitSymbol = drug.BaseUnitMeasurement?.MeasurementSymbol,
-                DispenseUnitMeasurementId = drug.DispenseUnitMeasurementId,
-                DispenseUnitName = drug.DispenseUnitMeasurement?.MeasurementName,
-                DispenseUnitSymbol = drug.DispenseUnitMeasurement?.MeasurementSymbol,
-                DefaultDoseUnitMeasurementId = drug.DefaultDoseUnitMeasurementId,
-                DefaultDoseUnitName = drug.DefaultDoseUnitMeasurement?.MeasurementName,
-                DefaultDoseUnitSymbol = drug.DefaultDoseUnitMeasurement?.MeasurementSymbol,
+                DispenseUnitMeasurementId = drug.DispenseUnitMeasurementId ?? drug.BaseUnitMeasurementId,
+                DispenseUnitName = drug.DispenseUnitMeasurement?.MeasurementName ?? drug.BaseUnitMeasurement?.MeasurementName,
+                DispenseUnitSymbol = drug.DispenseUnitMeasurement?.MeasurementSymbol ?? drug.BaseUnitMeasurement?.MeasurementSymbol,
+                DefaultDoseUnitMeasurementId = drug.DefaultDoseUnitMeasurementId ?? drug.BaseUnitMeasurementId ?? drug.DispenseUnitMeasurementId,
+                DefaultDoseUnitName = drug.DefaultDoseUnitMeasurement?.MeasurementName ?? drug.BaseUnitMeasurement?.MeasurementName ?? drug.DispenseUnitMeasurement?.MeasurementName,
+                DefaultDoseUnitSymbol = drug.DefaultDoseUnitMeasurement?.MeasurementSymbol ?? drug.BaseUnitMeasurement?.MeasurementSymbol ?? drug.DispenseUnitMeasurement?.MeasurementSymbol,
                 IsFormulary = drug.IsFormulary,
                 IsGeneric = drug.IsGeneric,
                 IsAntibiotic = drug.IsAntibiotic,
@@ -462,6 +478,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 IsCompoundIngredientAllowed = drug.IsCompoundIngredientAllowed,
                 IsAllowFractionalDispense = drug.IsAllowFractionalDispense,
                 IsStockManaged = drug.IsStockManaged,
+                IsConsumable = drug.IsConsumable,
                 IsNeedPrescription = drug.IsNeedPrescription,
                 IsNeedApprovalFromDrug = drug.IsNeedApproval,
                 HasTariff = readiness.HasTariff,
@@ -600,12 +617,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             var messages = new List<string>();
 
             var hasTariff = coverage.IsValid && coverage.TariffId.HasValue;
+            var effectiveDispenseUnit =
+                drug.DispenseUnitMeasurement ?? drug.BaseUnitMeasurement;
+            var effectiveDispenseUnitId =
+                drug.DispenseUnitMeasurementId ?? drug.BaseUnitMeasurementId;
+
+            var effectiveDoseUnit =
+                drug.DefaultDoseUnitMeasurement ?? drug.BaseUnitMeasurement ?? drug.DispenseUnitMeasurement;
+            var effectiveDoseUnitId =
+                drug.DefaultDoseUnitMeasurementId ?? drug.BaseUnitMeasurementId ?? drug.DispenseUnitMeasurementId;
+
             var hasDispenseUnit =
-                drug.DispenseUnitMeasurementId.HasValue &&
-                drug.DispenseUnitMeasurement != null;
+                effectiveDispenseUnitId.HasValue &&
+                effectiveDispenseUnit != null;
             var hasDoseUnit =
-                drug.DefaultDoseUnitMeasurementId.HasValue &&
-                drug.DefaultDoseUnitMeasurement != null;
+                drug.IsConsumable ||
+                (effectiveDoseUnitId.HasValue && effectiveDoseUnit != null);
             var hasClinicalInformation = HasClinicalInformation(drug);
 
             if (!hasTariff)
@@ -751,6 +778,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                     Type = "bool?",
                     IsRequired = false,
                     Description = "Filter obat yang dapat digunakan sebagai bahan racikan."
+                },
+                new()
+                {
+                    Name = "isConsumable",
+                    Type = "bool?",
+                    IsRequired = false,
+                    Description = "Filter barang habis pakai / alkes. Default false untuk peresepan obat."
                 },
                 new()
                 {

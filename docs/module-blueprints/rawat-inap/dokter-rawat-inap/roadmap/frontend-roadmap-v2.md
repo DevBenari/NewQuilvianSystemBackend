@@ -38,10 +38,10 @@ frontend_repo: QuilvianSystemFrontendDev
 frontend_branch: HamzahV2
 frontend_source_sha: 1ce219b40f8e411f3c4e66975626ab33ae81616a
 backend_source_sha: df3679c0d5b2f08106702153eb242d3a6cb2929b
-task_id_range: FE-RWI-067..FE-RWI-080, FE-RWI-095
-task_id_next_free: FE-RWI-096
+task_id_range: FE-RWI-067..FE-RWI-080, FE-RWI-095, FE-RWI-137, FE-RWI-139..FE-RWI-142
+task_id_next_free: FE-RWI-143   # ruang ID RWI dipakai bersama; FE-RWI-096..136 terpakai sub-modul lain; FE-RWI-138 terpakai Tab Tindakan (laporan task/report/frontend/FE-RWI-138-tindakan-paritas-v1-split-view.md, belum terdaftar di tabel roadmap ini)
 partial_tasks: [FE-RWI-095]
-last_updated: "2026-09-23 — FE-RWI-095 ditambahkan sebagai task perbaikan dari ISSUE-DOK-001; ISS-02 dan ISS-04 selesai di tingkat source, ISS-05 tidak dikerjakan karena kedua service ternyata bukan duplikat"
+last_updated: "2026-09-30 — FE-RWI-139..FE-RWI-142 ditambahkan dari rencana-kerja/soap/soap.md Rev 2.1 (keputusan pemilik K1–K5): ICD-10 dan rekomendasi dari master, tanda vital perawat tertaut, tata letak V1 + Riwayat/Catatan Dokter, salin A & P; selesai di tingkat source, build dan runtime NOT RUN. Sebelumnya 2026-09-29 FE-RWI-137 dari rencana-kerja/resep/resep.md"
 stack: "Next.js App Router, JavaScript/JSX, Redux, Axios, design token dan base component Quilvian"
 test_policy: "rules/frontend/test-policy.md — menulis test baru opsional; lint dan build wajib"
 write_authority: "TIDAK diberikan di sini. Wewenang tulis frontend dinyatakan terpisah per task"
@@ -212,6 +212,11 @@ pada gelombang 3. **Nol task tertahan gerbang** — sebelumnya sebelas.
 | `FE-RWI-078` ✅ | Dokter melihat semua yang menunggu tindakannya di satu tempat | `FR-DOK-084`, `FR-DOK-104` | `0.6.0` API daftar tunggu | Daftar tunggu verifikasi | `FE-DOK-15` **Perlu Review** — gabungan entri CPPT menunggu verifikasi dan pesanan perawat menunggu verifikasi instruksi | `BE-RWI-096` [BE], `BE-RWI-098` [BE] | AC-1 s.d. AC-5 | `node tests/unit` PASS, `npm run lint` PASS, `npm run build` PASS, verifikasi tautan PASS | Disetujui Muhammad Hamzah | ✅ [Laporan](../task/report/frontend/FE-RWI-078.md) |
 | `FE-RWI-080` ✅ | Daftar pantau verifikasi ikut memuat episode yang sudah ditutup | `FR-DOK-083`, `FR-DOK-084` | `0.6.0` API daftar tunggu | `FE-DOK-08` pada `FE-INP-09` | Rework `FE-DOK-08` — memuat episode `Closed` milik DPJP terakhir | `BE-RWI-096` [BE] | AC-1 s.d. AC-4 | `node tests/unit` PASS (5/5), `npm run lint` PASS, `npm run build` PASS | Disetujui Muhammad Hamzah | ✅ [Laporan](../task/report/frontend/FE-RWI-080.md) |
 | `FE-RWI-095` 🟡 | Dokter dapat memilih obat, dan jenis resep tersimpan sesuai pilihannya | `ISSUE-DOK-001` `ISS-02`, `ISS-04`, `ISS-05`; `BE-RWI-050`; `RWI-DEC-046` | `0.6.1` terkunci | Hook dan service resep rawat inap yang sudah ada | `encounterId` dikirim ke katalog obat beserta dependency array-nya; nama field jenis resep disesuaikan kontrak; penyatuan service ditunda | `BE-RWI-127` [BE] | AC-1 s.d. AC-6 | `eslint` berkas terdampak PASS (0 peringatan); `npm run build` **EXISTING / ENVIRONMENT ISSUE**; verifikasi manual **NOT FEASIBLE** | `ISS-05` menyentuh layar resep poliklinik — menunggu keputusan pemilik / Muhammad Hamzah | 🟡 [Laporan](../task/report/frontend/FE-RWI-095.md) |
+| `FE-RWI-137` ✅ | Dokter meresepkan dengan tata letak V1: katalog dan form berdampingan tanpa modal, racikan dua kolom, rekonsiliasi dalam satu layar | [`rencana-kerja/resep/resep.md`](./rencana-kerja/resep/resep.md); `FR-DOK-086`, `088` s.d. `093`; `VAL-DOK-52a`, `VAL-DOK-57` | `0.6.1` terkunci — tanpa kontrak baru | Tab Resep `FE-RWI-071`/`072`, base component resep dokter | Buat Resep: banner + badge penjamin, pill Resep/Obat Racikan/Rekonsiliasi, split-view, kartu Resep yang Dipilih; Template & History disesuaikan capture; perbaikan payload racikan (`items`), idempotensi per draft, `doctorInstruction`, prop panel rekonsiliasi | `BE-RWI-099`, `BE-RWI-101`, `BE-RWI-105`, `BE-RWI-127` [BE] — sudah ada | Rencana kerja bab 6.2 | `eslint` PASS (0 peringatan); test resep 19/19 PASS; `npm run build` **NOT RUN**; runtime **NOT RUN** | Disetujui Muhammad Hamzah ("oke disetujui") | ✅ [Laporan](../task/report/frontend/FE-RWI-137-resep-paritas-v1-split-view.md) |
+| `FE-RWI-139` ✅ | Diagnosa SOAP rawat inap selalu terkode dari master ICD-10 dan benar-benar tersimpan; planning dari master rekomendasi | [`rencana-kerja/soap/soap.md`](./rencana-kerja/soap/soap.md) Rev 2.1 bagian 7.2; K1, K2; cacat C1–C3, C5–C8 | `0.6.1` + delta `BE-RWI-142` | `DoctorDiagnosisTable`, `DoctorDiagnosisSearchModal`, `FilterSelect`, `BaseCheckboxCard` | Hapus `utils/icdData.jsx`; cari ICD async ke `master-options`; chip diagnosa episode; simpan/hapus/Utama lewat API; blok Assessment terlindungi; centang rekomendasi → Plan + kolom terstruktur | `BE-RWI-142` [BE] — ✅ source | Rencana kerja 7.2 butir 1–6 | `eslint` PASS (0 error, 0 peringatan); test SOAP 12/12 PASS; suite 2101/2106 (5 `EXISTING`); `npm run build` **NOT RUN**; runtime **NOT RUN** | Disetujui Muhammad Hamzah (K1–K5, "kerjakan semua sampai tuntas") | ✅ [Laporan](../task/report/frontend/FE-RWI-139.md) |
+| `FE-RWI-140` ✅ | Dokter memakai tanda vital perawat tanpa mengetik ulang; ukuran dokter ikut masuk deret pasien | [`rencana-kerja/soap/soap.md`](./rencana-kerja/soap/soap.md) Rev 2.1 bagian 7.3; K5; cacat C9 | `0.6.1` + delta `BE-RWI-141` | `ClinicalSectionPanel`, `ClinicalStatusBadge`, `ClinicalScoreBadge`, `BaseTextField` | Kartu Tanda Vital: data perawat terbaru + sumber/jam, EWS, tren 24 jam, Pengawasan Harian, isian manual + SpO2, blok Objective terlindungi | `BE-RWI-141` [BE] — ✅ source | Rencana kerja 7.3 butir 1–6 | `eslint` PASS; test SOAP 12/12 PASS; `npm run build` **NOT RUN**; runtime **NOT RUN** | Disetujui Muhammad Hamzah | ✅ [Laporan](../task/report/frontend/FE-RWI-140.md) |
+| `FE-RWI-141` ✅ | Tab SOAP berstruktur V1 dengan penyelesaian V2: satu kepala, satu banner, satu bar aksi; Riwayat SOAP dan Catatan Dokter yang berguna | [`rencana-kerja/soap/soap.md`](./rencana-kerja/soap/soap.md) Rev 2.1 bagian 7.4; cacat C12 | `0.6.1` + delta `BE-RWI-142` | Tab SOAP `FE-RWI-068`, base klinis | Tiga sub-tab berikon; Form SOAP urutan V1; Riwayat per hari rawat + chip ICD/TTV; Catatan Dokter per dokter dan peran; CSS token-only | `FE-RWI-139`, `FE-RWI-140`, `BE-RWI-142` [BE] — ✅ source | Rencana kerja 7.4 butir 1–5 | `eslint` PASS; test tab 69/69 PASS; kompilasi dev PASS; `npm run build` **NOT RUN**; target CSS < 400 baris **tidak tercapai** (599) | Disetujui Muhammad Hamzah | ✅ [Laporan](../task/report/frontend/FE-RWI-141.md) |
+| `FE-RWI-142` ✅ | Dokter menyalin Assessment, Plan, dan diagnosa dari SOAP Final terakhir tanpa menyalin S dan O | [`rencana-kerja/soap/soap.md`](./rencana-kerja/soap/soap.md) Rev 2.1 bagian 7.5; K4 | `0.6.1` + delta `BE-RWI-142` | `ConfirmModal`, `BaseButton` | Tombol Salin A & P; konfirmasi timpa; penanda "Disalin dari SOAP"; diagnosa tersalin dengan Utama yang sama | `FE-RWI-139` — ✅ source | Rencana kerja 7.5 butir 1–4 | `eslint` PASS; test SOAP 12/12 PASS; `npm run build` **NOT RUN**; runtime **NOT RUN** | Disetujui Muhammad Hamzah | ✅ [Laporan](../task/report/frontend/FE-RWI-142.md) |
 
 ---
 
@@ -706,6 +711,101 @@ mana yang menang, karena menyentuh layar resep poliklinik.
 **Definition of Done.** Laporan tracked ada; roadmap dan traceability diperbarui; verifikasi manual
 dijalankan sesudah backend berjalan, lalu status dinaikkan ke ✅.
 
+**Koreksi 29 September 2026 (`FE-RWI-137`).** Baris bukti laporan `FE-RWI-095` bagian 5 yang
+menyatakan *"Bentuk items/compounds tetap sesuai kontrak — PASS"* keliru: bahan racikan dikirim
+sebagai `ingredients`, sedangkan backend membaca `Items`, sehingga racikan tersimpan tanpa bahan.
+Cacat itu diperbaiki pada `FE-RWI-137`. Catatan lama sengaja tidak dihapus.
+
+---
+
+### `FE-RWI-137` — Tab Resep: paritas tata letak V1
+
+| Field | Isi |
+| --- | --- |
+| **Status** | ✅ **Selesai di tingkat source 29 September 2026** — [laporan](../task/report/frontend/FE-RWI-137-resep-paritas-v1-split-view.md); `eslint` PASS (0 error, 0 peringatan); test resep 19/19 PASS; suite penuh 2079/2084 (5 kegagalan menu sidebar `EXISTING`); **`npm run build` NOT RUN** — `next dev` pemilik sedang berjalan; **runtime NOT RUN** |
+| **Gelombang** | Di luar gelombang — rencana kerja modernisasi menu V1 |
+| **Dependency** | `BE-RWI-099`, `BE-RWI-101`, `BE-RWI-105`, `BE-RWI-127` — semuanya sudah ada; tidak ada perubahan backend |
+
+**Bisnis prosesnya.** Dokter rawat inap meresepkan dari satu layar seperti di V1: memilih obat dari
+daftar formularium di kolom kiri sambil mengisi signa di kolom kanan, meracik puyer dari katalog bahan
+di sebelahnya, dan memutuskan obat bawaan pasien tanpa berpindah sub-tab. Sumber: rencana kerja
+[`resep.md`](./rencana-kerja/resep/resep.md) bab 5 dan 6, capture V1 `05-resep/01..06`.
+
+**Acceptance criteria.** Rencana kerja bab 6.2 butir 1–4; dipetakan satu per satu di laporan bagian 6.
+
+**Temuan terbuka.** Panel Sliding Scale memakai prop komponen dasar yang salah (`ConfirmModal open=`,
+`ClinicalActionGuard canWrite=`, dst.) sehingga modal order tidak pernah terbuka. Tidak diperbaiki di
+task ini karena di luar cakupan rencana kerja dan menyentuh UI dosis insulin; diusulkan `FE-RWI-138`.
+
+**Definition of Done.** Laporan tracked ada; rencana kerja bab 7 dan roadmap diperbarui. Pemilik
+menjalankan `npm run build` dan uji runtime sendiri.
+
+---
+
+### `FE-RWI-139` — ICD-10 dan rekomendasi dari master; penyimpanan diagnosa yang benar
+
+| Field | Isi |
+| --- | --- |
+| **Status** | ✅ **Selesai di tingkat source 30 September 2026** — [laporan](../task/report/frontend/FE-RWI-139.md); `grep utils/icdData` nihil; `eslint` 15 berkas SOAP PASS (0 error, 0 peringatan); test SOAP 12/12 PASS; suite penuh 2101/2106 (5 kegagalan menu `EXISTING`); kompilasi Turbopack dev PASS; **`npm run build` NOT RUN** — `next dev` pemilik sedang berjalan; **runtime NOT RUN** |
+| **Gelombang** | Rencana kerja SOAP gelombang 1 |
+| **Dependency** | `BE-RWI-142` — ✅ source 30 September 2026 |
+
+**Bisnis prosesnya.** Diagnosa SOAP rawat inap hanya dari master `MstDiagnosis` (cari async, chip diagnosa episode, katalog), tersimpan sebagai `TrxPatientDiagnosis` lewat API dengan kegagalan yang terlihat, Assessment yang tidak menimpa narasi dokter, dan Planning dari master rekomendasi aktif. Sumber: [`soap.md`](./rencana-kerja/soap/soap.md) bagian 3.1 dan 7.2.
+
+**Acceptance criteria.** Rencana kerja 7.2 butir 1–6; dipetakan satu per satu di laporan bagian 7.
+
+**Definition of Done.** Laporan tracked ada; roadmap, traceability, dan status `soap.md` diperbarui. Pemilik menjalankan `npm run build` dan uji runtime.
+
+---
+
+### `FE-RWI-140` — Panel tanda vital dan Pengawasan Harian; isian manual dokter
+
+| Field | Isi |
+| --- | --- |
+| **Status** | ✅ **Selesai di tingkat source 30 September 2026** — [laporan](../task/report/frontend/FE-RWI-140.md); `eslint` PASS; test SOAP 12/12 PASS; kompilasi Turbopack dev PASS; **`npm run build` NOT RUN**; **runtime NOT RUN** |
+| **Gelombang** | Rencana kerja SOAP gelombang 2 |
+| **Dependency** | `BE-RWI-141` — ✅ source 30 September 2026; migration diterapkan ke `QuilvianNewDevHamzah` |
+
+**Bisnis prosesnya.** Kartu Tanda Vital menampilkan data perawat terbaru beserta sumber, jam, EWS, tren 24 jam, dan Pengawasan Harian, lalu mengisi blok TTV di Objective. Tanpa data perawat, dokter mengisi manual dan ukurannya masuk deret tanda vital pasien (K5). Sumber: [`soap.md`](./rencana-kerja/soap/soap.md) bagian 3.2 dan 7.3.
+
+**Acceptance criteria.** Rencana kerja 7.3 butir 1–6; dipetakan di laporan bagian 7.
+
+**Temuan terbuka.** Layar perawat belum memberi label "Dokter" dan belum menyembunyikan Ubah/Batal pada baris ukuran dokter. Backend sudah menolak perubahannya. Perlu task frontend keperawatan.
+
+**Definition of Done.** Laporan tracked ada; roadmap, traceability, dan status `soap.md` diperbarui. Pemilik menjalankan `npm run build` dan uji runtime.
+
+---
+
+### `FE-RWI-141` — Tata letak V1 + tampilan V2, Riwayat SOAP, Catatan Dokter
+
+| Field | Isi |
+| --- | --- |
+| **Status** | ✅ **Selesai di tingkat source 30 September 2026** — [laporan](../task/report/frontend/FE-RWI-141.md); `eslint` PASS; test tab SOAP 69/69 PASS; kompilasi Turbopack dev PASS (chunk tanpa stub galat, CSS terkompilasi); grep konsistensi UI PASS; **`npm run build` NOT RUN**; **runtime NOT RUN**; target CSS di bawah 400 baris **tidak tercapai** (599 baris, token-only) — butir isi, bukan kriteria terima |
+| **Gelombang** | Rencana kerja SOAP gelombang 3 |
+| **Dependency** | `FE-RWI-139`, `FE-RWI-140`, `BE-RWI-142` — ✅ source 30 September 2026 |
+
+**Bisnis prosesnya.** Tab SOAP menyisakan satu kepala (header episode), tiga sub-tab berikon, kartu Form SOAP berurutan V1 dengan satu banner kekurangan dan satu bar aksi sticky. Selesaikan memindahkan layar ke Riwayat SOAP dengan kartu yang disorot. Riwayat dikelompokkan per hari rawat dengan chip ICD/TTV, dan Catatan Dokter per dokter dan peran. Tab ini menata ulang tampilan `FE-RWI-068` tanpa mengubah lifecycle-nya. Sumber: [`soap.md`](./rencana-kerja/soap/soap.md) bagian 3.3, 6, dan 7.4.
+
+**Acceptance criteria.** Rencana kerja 7.4 butir 1–5; dipetakan di laporan bagian 7.
+
+**Definition of Done.** Laporan tracked ada; roadmap, traceability, dan status `soap.md` diperbarui. Pemilik menjalankan `npm run build`, memeriksa tampilan 1366 px dan 768 px, dan memutuskan butir pada "Pilihan UI yang belum disetujui".
+
+---
+
+### `FE-RWI-142` — Salin A & P dari SOAP sebelumnya
+
+| Field | Isi |
+| --- | --- |
+| **Status** | ✅ **Selesai di tingkat source 30 September 2026** — [laporan](../task/report/frontend/FE-RWI-142.md); `eslint` PASS; test SOAP 12/12 PASS; **`npm run build` NOT RUN**; **runtime NOT RUN** |
+| **Gelombang** | Rencana kerja SOAP gelombang 2 |
+| **Dependency** | `FE-RWI-139` — ✅ source 30 September 2026 |
+
+**Bisnis prosesnya.** Pada catatan draf, tombol **Salin A & P dari SOAP {tanggal}** menyalin diagnosa (dengan Utama yang sama), narasi Assessment, dan narasi Plan dari catatan Final terakhir. S dan O tidak disalin. Isian yang sudah diketik tidak ditimpa tanpa konfirmasi, dan teks salinan diberi tanda sampai disunting (K4). Sumber: [`soap.md`](./rencana-kerja/soap/soap.md) bagian 7.5.
+
+**Acceptance criteria.** Rencana kerja 7.5 butir 1–4; dipetakan di laporan bagian 7.
+
+**Definition of Done.** Laporan tracked ada; roadmap, traceability, dan status `soap.md` diperbarui. Pemilik menguji skenario 2 `soap.md`.
+
 ---
 
 ## Pilihan UI yang belum disetujui
@@ -714,6 +814,9 @@ dijalankan sesudah backend berjalan, lalu status dinaikkan ke ✅.
 | --- | --- | --- |
 | Tautan baris "Perlu Review" selama tab CPPT baru belum ada | `DEV_DISCRETION` | `FE-RWI-078` |
 | Bentuk visual penanda rentang bertumpuk pada editor sliding scale | `DEV_DISCRETION` — bentuknya bebas, **kewajibannya tidak**: tumpang tindih wajib terlihat sebelum simpan | `FE-RWI-079` |
+| Tombol **Koreksi** per kartu Riwayat SOAP (wireframe `soap.md` 6.2) | `DEV_DISCRETION` — koreksi kini lewat **Buka** → **Koreksi**, karena kewenangan addendum dimuat per catatan terbuka | `FE-RWI-141` |
+| Modal detail V1 pada Catatan Dokter | `DEV_DISCRETION` — **Detail** membuka catatan di Form SOAP beserta riwayat koreksinya | `FE-RWI-141` |
+| Penanda "otomatis dari …" pada blok TTV di Objective (`soap.md` 3.3 butir 7) | Belum ada; penanda baru untuk teks salinan dan blok diagnosa | `FE-RWI-141` |
 
 Pilihan `DEV_DISCRETION` dicatat pada laporan task dan **tidak** diam-diam dijadikan keputusan
 produk. Bila pemilik kemudian menetapkan bentuknya, penetapan itu masuk lewat `grill-me`.

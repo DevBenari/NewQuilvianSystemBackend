@@ -489,6 +489,11 @@ try
     builder.Services.AddScoped<CaseManagementEvaluationService>();
     builder.Services.AddScoped<InpatientVitalSignService>();
 
+    // BE-RWI-141 / K5 — tautan SOAP dokter rawat inap ke deret tanda vital pasien: rujukan ke
+    // ukuran perawat, atau ukuran dokter sendiri yang ikut masuk deret (nomor lewat
+    // NumberSeriesAllocator, QBE-CODE-006).
+    builder.Services.AddScoped<DoctorConsultationVitalSignService>();
+
     // BE-RWI-114 s.d. BE-RWI-123 — keperawatan rawat inap revision 7 (KEP-V2-2). Pengawasan Harian
     // (cairan, GDS bangsal, observasi, shift, balance), dugaan reaksi obat, MAR milik PharmacyManagement
     // beserta pembentukan dosis terjadwal, dan pelaksanaan sliding scale satu transaksi. Pembentukan
@@ -621,6 +626,11 @@ try
     // yang berlaku saat pengkajian dibuat. Dipakai layar master dan jalur pembuatan
     // pengkajian; selama masternya kosong tidak satu pun pengkajian dinyatakan terlambat.
     builder.Services.AddScoped<ClinicalAssessmentPolicyService>();
+
+    // Master data 3S asuhan keperawatan: Standar Diagnosis (SDKI), Luaran (SLKI), dan Intervensi (SIKI).
+    // Menutup keputusan terbuka OQ-RI-011.
+    builder.Services.AddScoped<NursingDiagnosisService>();
+    builder.Services.AddScoped<DailyNursingActionService>();
 
     // Daftar pilihan data induk perujuk — baca saja. Tanpa ini, layar pendaftaran rujukan luar
     // tidak punya sumber pilihan dan petugas terpaksa mengetik nama, yang justru dilarang
@@ -1562,14 +1572,24 @@ try
             "ClinicalInstrumentDraftSeeder",
             () => ClinicalInstrumentDraftSeeder.SeedAsync(app.Services));
 
-        // LabDummyDataSeeder DICABUT 2026-09-17 atas instruksi pemilik modul, dan berkasnya
-        // dihapus pada commit 0bc921b0. Pemanggilnya sempat hidup kembali lewat merge
-        // 4ba789b2 dari QuilvianIntegrationBackend — cabang itu belum menerima pencabutannya —
-        // sehingga HEAD memanggil kelas yang tidak ada pada kedua sisi merge dan GAGAL DIBUILD.
-        // Dicabut ulang 2026-09-22 supaya instruksi pemilik modul kembali berlaku.
-        //
-        // Pengaturan `Seeders:RunLabDummySeed` dibiarkan ada pada appsettings dan nol dibaca.
-        // Mencabutnya adalah perubahan konfigurasi milik pemilik modul, bukan perbaikan build.
+    // Master data 3S asuhan keperawatan (SDKI, SLKI, SIKI) — 10 diagnosa prioritas rawat inap.
+    await RunStartupSeederAsync(
+        "MstNursingDiagnosisSeeder",
+        () => MstNursingDiagnosisSeeder.SeedAsync(app.Services));
+
+    // Master data tindakan harian keperawatan rawat inap (19 tindakan standar RS)
+    await RunStartupSeederAsync(
+        "MstDailyNursingActionSeeder",
+        () => MstDailyNursingActionSeeder.SeedAsync(app.Services));
+
+    // LabDummyDataSeeder DICABUT 2026-09-17 atas instruksi pemilik modul, dan berkasnya
+    // dihapus pada commit 0bc921b0. Pemanggilnya sempat hidup kembali lewat merge
+    // 4ba789b2 dari QuilvianIntegrationBackend — cabang itu belum menerima pencabutannya —
+    // sehingga HEAD memanggil kelas yang tidak ada pada kedua sisi merge dan GAGAL DIBUILD.
+    // Dicabut ulang 2026-09-22 supaya instruksi pemilik modul kembali berlaku.
+    //
+    // Pengaturan `Seeders:RunLabDummySeed` dibiarkan ada pada appsettings dan nol dibaca.
+    // Mencabutnya adalah perubahan konfigurasi milik pemilik modul, bukan perbaikan build.
 
         var runOperatingRoomDemoSeed =
             builder.Configuration.GetValue<bool>("Seeders:RunOperatingRoomDemoSeed");
