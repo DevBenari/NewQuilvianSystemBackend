@@ -128,6 +128,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
 
         [MaxLength(500)]
         public string? Notes { get; set; }
+
+        /// <summary>
+        /// Khusus <c>finish-consultation</c>: kunci peringatan validasi (<c>issueKey</c>) yang sudah
+        /// dibaca dokter. Peringatan yang belum dikonfirmasi menahan finalisasi.
+        /// </summary>
+        [MaxLength(100)]
+        public List<string>? AcknowledgedWarningKeys { get; set; }
     }
 
     public class DoctorQueueActionResponse
