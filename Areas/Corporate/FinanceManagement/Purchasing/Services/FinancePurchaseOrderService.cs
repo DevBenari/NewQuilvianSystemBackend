@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Payable.Services;
+using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Dtos;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Models;
 using QuilvianSystemBackend.Repositories;
+using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 
 namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Services;
@@ -36,8 +38,54 @@ public sealed class FinancePurchaseOrderService
     public async Task<FinPurchaseOrder?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
         await _dbContext.FinPurchaseOrders
             .Include(x => x.Items)
+            // Delta kontrak BE-FIN-032 (lihat laporan task): riwayat GR anak PO disertakan di
+            // sini supaya GR yang sudah tercatat pada sesi sebelumnya dapat ditampilkan kembali.
+            .Include(x => x.GoodsReceipts.Where(gr => !gr.IsDelete))
             .AsNoTracking()
             .SingleOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken);
+
+    // ------------------------------------------------------------------------------------
+    // Daftar PO — GET /, disaring supplier/status/tanggal (api-contract.md §B.1)
+    // ------------------------------------------------------------------------------------
+
+    public async Task<PagedResult<FinPurchaseOrder>> GetPagedAsync(PurchaseOrderQuery query, CancellationToken cancellationToken)
+    {
+        var q = _dbContext.FinPurchaseOrders.AsNoTracking().Where(x => !x.IsDelete);
+
+        if (query.SupplierId.HasValue && query.SupplierId.Value != Guid.Empty)
+            q = q.Where(x => x.SupplierId == query.SupplierId.Value);
+
+        if (!string.IsNullOrWhiteSpace(query.Status))
+            q = q.Where(x => x.Status == query.Status.Trim().ToUpperInvariant());
+
+        if (query.DateFrom.HasValue)
+        {
+            var from = new DateTimeOffset(query.DateFrom.Value.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
+            q = q.Where(x => x.RequestedAt >= from);
+        }
+
+        if (query.DateTo.HasValue)
+        {
+            var to = new DateTimeOffset(query.DateTo.Value.ToDateTime(TimeOnly.MaxValue), TimeSpan.Zero);
+            q = q.Where(x => x.RequestedAt <= to);
+        }
+
+        var totalCount = await q.CountAsync(cancellationToken);
+
+        var items = await q.OrderByDescending(x => x.RequestedAt)
+            .Skip((query.PageNumber - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<FinPurchaseOrder>
+        {
+            Items = items,
+            PageNumber = query.PageNumber,
+            PageSize = query.PageSize,
+            TotalData = totalCount,
+            TotalPage = (int)Math.Ceiling(totalCount / (double)query.PageSize)
+        };
+    }
 
     // ------------------------------------------------------------------------------------
     // 2. Pembuatan Draft PO (FIN-VAL-100, state-transition-matrix.md §B.1)

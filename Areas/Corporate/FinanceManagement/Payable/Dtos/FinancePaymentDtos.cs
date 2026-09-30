@@ -33,6 +33,7 @@ public class PaymentResponse
     public decimal AllocatedAmount { get; set; }
     public decimal DeductionAmount { get; set; }
     public decimal AdditionAmount { get; set; }
+    public decimal DepositAppliedAmount { get; set; }
     public decimal NetTransferAmount { get; set; }
     public string Status { get; set; } = string.Empty;
     public string? ApprovalTier { get; set; }
@@ -47,10 +48,29 @@ public class PaymentResponse
     public Guid RowVersion { get; set; }
 }
 
+public sealed class PaymentReturnDepositResponse
+{
+    public Guid Id { get; set; }
+    public Guid SupplierReturnDepositId { get; set; }
+    public string ReturnNumber { get; set; } = string.Empty;
+    public decimal UsedAmount { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public DateTimeOffset UsedAt { get; set; }
+    public DateTimeOffset? ReleasedAt { get; set; }
+}
+
 public sealed class PaymentDetailResponse : PaymentResponse
 {
     public List<PaymentAllocationResponse> Allocations { get; set; } = [];
     public List<PaymentDeductionResponse> Deductions { get; set; } = [];
+    public List<PaymentReturnDepositResponse> ReturnDeposits { get; set; } = [];
+}
+
+public sealed class AddPaymentReturnDepositRequest
+{
+    public Guid SupplierReturnDepositId { get; set; }
+    public decimal UsedAmount { get; set; }
+    public Guid ExpectedRowVersion { get; set; }
 }
 
 public sealed class PaymentAllocationRequestDto
@@ -104,5 +124,6 @@ public sealed class RejectPaymentRequest
 public sealed class MarkPaymentPaidRequest
 {
     public Guid ExpectedRowVersion { get; set; }
-    public string ReferenceNumber { get; set; } = string.Empty;
+    public string? ReferenceNumber { get; set; }
 }
+

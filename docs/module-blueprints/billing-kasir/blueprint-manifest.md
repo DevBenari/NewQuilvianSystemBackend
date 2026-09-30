@@ -4,17 +4,17 @@
 blueprint_id: BIL-CASH-001
 module_name: Billing dan Kasir
 module_slug: billing-kasir
-revision: 1.7
-revision_note_field_vs_prose: >
-  KETIDAKSESUAIAN YANG SUDAH DIKETAHUI DAN KINI DITUTUP. Sebelum revisi 1.0, field `revision`
-  bernilai 0.8 sementara badan dokumen ini beserta seluruh berkas kontrak sudah menyebut revisi
-  0.9 (amendment BKC-DES-026/027, approved 5 September 2026). Sebabnya: revisi 0.9 dikerjakan
-  sebagai amendment susulan yang menaikkan contract_versions dan menulis prosa, tetapi field
-  `revision` tidak ikut dinaikkan. Pass 7 September 2026 menaikkan field ini langsung ke 1.0,
-  yang menaungi BAIK amendment 0.9 yang sudah approved MAUPUN rumpun baru Petty Cash. Angka 0.9
-  DILEWATI sebagai nilai field — bukan karena isinya batal, melainkan karena isinya sudah
-  approved dan sudah tercermin pada contract_versions. Tidak ada isi yang hilang.
+revision: 1.8
 status: draft
+status_derivation_revision_1_8: >
+  Revisi 1.8 (Pembalikan Tender Top-Up Deposit dan Alokasi Tagihan) berstatus `draft`.
+  Dipicu permintaan perbaikan dari modul Finance (evidence 17, FIN-OQ-034 / FIN-DEC-077)
+  serta evidence 19 (FIN-OQ-037 / FIN-DEC-081) mengenai penanda eksplisit mutasi RELEASE.
+  Keputusan bisnis BKC-DEC-128..131 disetujui 28 September 2026, dan BKC-DEC-132..134 disetujui 29 September 2026 via /grill-me.
+  Keputusan arsitektur BKC-DES-051..056 disahkan.
+  Empat kontrak target dinaikkan: BIL-STATE-1.6, BIL-VALIDATION-1.6, BIL-INTEGRATION-1.4,
+  dan BIL-TEST-1.7. PRD diperbarui dengan EPIC BKC-24 (FR-BKC-125..130) dan gelombang MVP-35.
+  NOL MIGRATION dan NOL skema baru pada seluruh revisi ini.
 status_derivation_revision_1_5: >
   Revisi 1.5 (Integrasi Rawat Inap ↔ Billing Management / Pass B) berstatus `draft`. Keputusan bisnis
   BKC-DEC-112–122 dan kriteria penerimaan BKC-AC-080–090 telah disetujui Product/Domain Owner pada 24 September 2026.
@@ -93,6 +93,14 @@ status_derivation: >
   — `PC-OQ-001` (penamaan MstPettyCashCategory vs BilPettyCashCategory) ditutup memilih
   `MstPettyCashCategory`, dan `PC-DES-001`–`014` disetujui penuh. Kedua kelompok kini sama-sama
   `approved` di dalam satu blueprint SINGLE.
+readiness_revision_1_8: >
+  REVISI 1.8 (Pembalikan Tender Top-Up Deposit dan Alokasi Tagihan) berstatus DESIGN_DRAFT.
+  Keputusan bisnis BKC-DEC-128..134 approved 28–29 September 2026.
+  Keputusan arsitektur BKC-DES-051..056 dan kontrak target (BIL-STATE-1.6, BIL-VALIDATION-1.6,
+  BIL-INTEGRATION-1.4, BIL-TEST-1.7) berstatus draft menunggu approval owner sebelum diteruskan ke /plan-module-delivery.
+  NOL pertanyaan terbuka yang memblokir.
+  NOL migration, nol skema baru, nol endpoint baru.
+  Gelombang MVP-35 (EPIC BKC-24, FR-BKC-125..130) siap direncanakan.
 readiness_revision_1_3: >
   REVISI 1.3 (Penutupan gap FINAL->CLOSED) kini DESIGN_APPROVED. Keputusan bisnis BKC-DEC-100-105
   dan keputusan arsitektur BKC-DES-028-035 seluruhnya `approved` 18 September 2026; impact scan
@@ -402,7 +410,11 @@ input_hashes_note: >
   baseline sehingga selisihnya tidak dapat dijelaskan pass ini; nilainya diperbarui apa adanya
   dan dilaporkan sebagai temuan pemeliharaan manifest, bukan sebagai perubahan isi yang
   disengaja pass ini.
-design_decision_ids: [BKC-DES-001, BKC-DES-002, BKC-DES-003, BKC-DES-004, BKC-DES-005, BKC-DES-006, BKC-DES-007, BKC-DES-008, BKC-DES-009, BKC-DES-010, BKC-DES-011, BKC-DES-012, BKC-DES-013, BKC-DES-014, BKC-DES-015, BKC-DES-016, BKC-DES-017, BKC-DES-018, BKC-DES-019, BKC-DES-020, BKC-DES-021, BKC-DES-022, BKC-DES-023, BKC-DES-024, BKC-DES-025, BKC-DES-026, BKC-DES-027, BKC-DES-028, BKC-DES-029, BKC-DES-030, BKC-DES-031, BKC-DES-032, BKC-DES-033, BKC-DES-034, BKC-DES-035, BKC-DES-036, BKC-DES-037, BKC-DES-038, BKC-DES-039, BKC-DES-040, BKC-DES-041, BKC-DES-042, BKC-DES-043, BKC-DES-044, BKC-DES-045, BKC-DES-046, BKC-DES-047, BKC-DES-048, BKC-DES-049, BKC-DES-050]
+design_decision_ids: [BKC-DES-001, BKC-DES-002, BKC-DES-003, BKC-DES-004, BKC-DES-005, BKC-DES-006, BKC-DES-007, BKC-DES-008, BKC-DES-009, BKC-DES-010, BKC-DES-011, BKC-DES-012, BKC-DES-013, BKC-DES-014, BKC-DES-015, BKC-DES-016, BKC-DES-017, BKC-DES-018, BKC-DES-019, BKC-DES-020, BKC-DES-021, BKC-DES-022, BKC-DES-023, BKC-DES-024, BKC-DES-025, BKC-DES-026, BKC-DES-027, BKC-DES-028, BKC-DES-029, BKC-DES-030, BKC-DES-031, BKC-DES-032, BKC-DES-033, BKC-DES-034, BKC-DES-035, BKC-DES-036, BKC-DES-037, BKC-DES-038, BKC-DES-039, BKC-DES-040, BKC-DES-041, BKC-DES-042, BKC-DES-043, BKC-DES-044, BKC-DES-045, BKC-DES-046, BKC-DES-047, BKC-DES-048, BKC-DES-049, BKC-DES-050, BKC-DES-051, BKC-DES-052, BKC-DES-053, BKC-DES-054]
+design_decision_status_revision_1_8: >
+  BKC-DES-051..054 (BARU pada revisi 1.8, 28 September 2026). Sekuens BKC-DES-* dilanjutkan
+  karena menyangkut bounded context inti Patient Funds & Settlement (BIL-CTX-03).
+  Status: `draft`, menunggu approval Product/Domain Owner terpisah dari approval bisnis BKC-DEC-128..131.
 design_decision_status_revision_1_3: >
   BKC-DES-028-035 (BARU pada revisi 1.3, 18 September 2026). Sekuens BKC-DES-* dilanjutkan - TIDAK
   memakai prefix rumpun sendiri - karena topik ini adalah rumpun INTI modul (status siklus hidup
@@ -497,12 +509,17 @@ narrowed_design_decisions:
   BKC-DES-013: dipersempit dua kali (BUKAN digugurkan). Revisi 0.8 (BKC-DES-021): makna UnresolvedAmount menyisakan jalur rule NotCovered + IsAllowExcessPaymentByPatient=false saja; residual perhitungan pindah ke NonBillableResidualAmount. Revisi 0.9 (BKC-DES-026/027, approved 5 Sep 2026): dipersempit lagi menjadi NOL jalur — UnresolvedAmount selalu 0 pada versi kalkulasi baru; field/kolomnya tetap dipertahankan sebagai bukti perhitungan versi lama
 contract_versions:
   api: BIL-API-1.5 (draft, revisi 1.6 — nol endpoint baru; satu field response BillingRefundableItemResponse.TransactionDate ditambahkan, aditif non-breaking) atas BIL-API-1.4
-  state: BIL-STATE-1.4 (draft, revisi 1.6 — nol mesin status baru, nol transisi baru; RefundCategory adalah atribut pemilihan sumber, bukan status) atas BIL-STATE-1.3
-  validation: BIL-VALIDATION-1.4 (draft, revisi 1.6 — BUI-VAL-01-07: memo dokter wajib, sumber refund, batas sisa deposito, filter tanggal, default status coverage) atas BIL-VALIDATION-1.3
-  integration: BIL-INTEGRATION-1.2 — TIDAK BERGERAK pada revisi 1.6 (nol integrasi sistem luar atau lintas bounded context baru; Catatan Penting lintas modul sengaja TIDAK didesain, BUI-CQ-05)
-  permission: BIL-PERMISSION-1.2 — TIDAK BERGERAK pada revisi 1.6 (nol Resource baru, nol Action baru; tombol yang berpindah lokasi memakai butir akses yang sama persis dengan lokasi lama)
-  testing: BIL-TEST-1.5 (draft, revisi 1.6 — UAT-BUI-01-14 skenario revisi UI Billing, termasuk kasus penentu coverage sebagian) atas BIL-TEST-1.4
-  calculation: BIL-CALCULATION-0.9 — TIDAK BERGERAK pada revisi 1.6 (tidak tersentuh amendment ini)
+  state: BIL-STATE-1.5 (draft, revisi 1.8 — penanganan kompensasi alokasi LIFO dan transisi tender REVERSED pada deposit) atas BIL-STATE-1.4
+  validation: BIL-VALIDATION-1.5 (draft, revisi 1.8 — BIL-VAL-127..131: saldo non-negatif, LIFO alokasi, status awal succeeded, audit pembalik) atas BIL-VALIDATION-1.4
+  integration: BIL-INTEGRATION-1.3 (draft, revisi 1.8 — BIL-INT-018: aliran mutasi RELEASE/REVERSAL ke Finance via DEPOSIT_MOVEMENT, menutup FIN-OQ-034) atas BIL-INTEGRATION-1.2
+  permission: BIL-PERMISSION-1.2 — TIDAK BERGERAK pada revisi 1.8 (nol Resource baru, nol Action baru)
+  testing: BIL-TEST-1.6 (draft, revisi 1.8 — BIL-AT-149..156: skenario pembalikan top-up deposit saldo utuh, terpakai sebagian, LIFO multi-invoice, dan atomisitas) atas BIL-TEST-1.5
+  calculation: BIL-CALCULATION-0.9 — TIDAK BERGERAK pada revisi 1.8 (tidak tersentuh amendment ini)
+contract_versions_note_revision_1_8: >
+  Revisi 1.8 (28 September 2026, Pembalikan Tender Top-Up Deposit) menaikkan EMPAT dari tujuh sumbu
+  (state, validation, integration, testing). Tiga sumbu TIDAK bergerak (api, permission, calculation)
+  karena nol endpoint baru, nol hak akses baru, dan nol perubahan formula tarif/kalkulasi.
+  Nol migration pada seluruh revisi ini.
 contract_versions_note_revision_1_6: >
   Revisi 1.6 (24 September 2026, Revisi UI Billing) menaikkan TIGA dari tujuh sumbu (api, state,
   validation, testing — empat sebenarnya, lihat di bawah), DUA sumbu TIDAK bergerak (integration,
@@ -730,14 +747,14 @@ supersedes: null
 
 | Kelompok | Lokasi | Status |
 | --- | --- | --- |
-| Keputusan dan capability | [`00-interview-decisions.md`](./00-interview-decisions.md), [`01-existing-capability-map.md`](./01-existing-capability-map.md) | Baseline `0.2 approved` + amendment `BKC-DEC-059`–`062` **approved** (2 Sep) + `BKC-DEC-063`–`069` **approved** (3 Sep) + `BKC-DEC-070`–`079` **approved** (4 Sep) |
-| Backend/frontend design | [`02-backend-architecture.md`](./02-backend-architecture.md), [`03-frontend-architecture.md`](./03-frontend-architecture.md) | Baseline `0.4 approved` + amendment 2 Sep **approved** + amendment 3 Sep **approved** (`BKC-DES-001`–`009`) + amendment 4 Sep **approved** (`BKC-DES-010`–`020`) + amendment lanjutan 4 Sep **approved** (`BKC-DES-021`–`025`, revisi `0.8`) + **amendment lanjutan 4 Sep `approved` 5 Sep 2026** (`BKC-DES-026`–`027`, revisi `0.9`). `03-frontend-architecture.md` **tidak disentuh** revisi `0.8`/`0.9` |
-| PRD → MVP slice | [`04-prd-to-mvp.md`](./04-prd-to-mvp.md) | Slice `BKC-DEC-059`–`062` **approved** + slice `BKC-DEC-065`–`069` **draft** (`EPIC BKC-04`/`BKC-05`) + slice `BKC-DEC-070`–`079` **draft** (`EPIC BKC-06`/`BKC-07`/`BKC-08`) + **Bagian C `draft`** (`EPIC BKC-09`, `BKC-DEC-080`) |
-| Flowchart alur proses | [`flowcharts/`](./flowcharts/00-alur-utama.md) | **Baru pada revision `0.7`** — empat berkas, seluruhnya **draft**. [`pembagian-tanggungan-penjamin.md`](./flowcharts/pembagian-tanggungan-penjamin.md) **direvisi** pada `0.8`. **Bertambah dua berkas pada revision `1.0`** (`draft`): [`voucher-petty-cash.md`](./flowcharts/voucher-petty-cash.md) dan [`anggaran-petty-cash.md`](./flowcharts/anggaran-petty-cash.md); [`00-alur-utama.md`](./flowcharts/00-alur-utama.md) bertambah satu bagian penunjuk ke keduanya |
-| Kamus data | [`data/data-dictionary.md`](./data/data-dictionary.md) | **Baru pada revision `0.7`** — memuat delta 4 Sep dan indeks ke kamus baseline; delta skema `0.8` (dua kolom, satu index, satu migration) **approved** 4 Sep 2026 (koreksi status draft yang tertinggal, diperbaiki 5 Sep); **bertambah amendment `0.9` `approved`** (nol perubahan skema, murni keterangan peran kolom). Kamus baseline tetap di [`erd/data-dictionary.md`](./erd/data-dictionary.md) |
-| ERD/data baseline | [`erd/`](./erd/00-context-erd.md) | Baseline `0.4 approved` + amendment 2 Sep **approved** + catatan 3 Sep **draft** + rujukan silang 4 Sep **draft**. **Tidak disentuh revisi `0.8`/`0.9`**; satu ketidaksesuaian pada [`erd/03-financial-exception-adjustment.md`](./erd/03-financial-exception-adjustment.md) (kolom `AdjustmentType` yang tidak ada di source) dilaporkan pada `data/data-dictionary.md`, perapiannya revisi tersendiri |
-| Kontrak dan acceptance | [`contracts/`](./contracts/api-contract.md), [`testing/`](./testing/acceptance-test-matrix.md) | Baseline `0.4 approved` + amendment 2 Sep **approved** + amendment `0.5` **draft** (3 Sep) + amendment `0.6` **draft** (4 Sep) + amendment `0.7` **approved** (revisi `0.8`) pada `api`, `state`, `validation`, `testing` + **amendment `0.8` `approved` 5 Sep 2026** (revisi `0.9`) pada `api`, `testing`. `state`, `validation`, `integration-contract.md`, dan `permission-audit-matrix.md` **tidak bergerak** pada revisi `0.9` |
-| Delivery roadmap | [`roadmap/`](./roadmap/README.md) | Revision `1` — slice `MVP-4`–`MVP-10` **belum** masuk roadmap; itu keluaran `/plan-module-delivery` |
+| Keputusan dan capability | [`00-interview-decisions.md`](./00-interview-decisions.md), [`01-existing-capability-map.md`](./01-existing-capability-map.md) | Baseline `0.2 approved` + amendment 2-5 Sep **approved** + Petty Cash **approved** + Multi-Payer **approved** + Pass B Ranap **approved** + UI Billing **approved** + Shift Kasir **approved** + **amendment 28 Sep approved (`BKC-DEC-128`–`131`, revisi `1.8`)** |
+| Backend/frontend design | [`02-backend-architecture.md`](./02-backend-architecture.md), [`03-frontend-architecture.md`](./03-frontend-architecture.md) | Baseline `0.4 approved` + seluruh amendment approved + amendment Pass B Ranap `draft` + amendment UI Billing `draft` + **amendment 28 Sep draft (`BKC-DES-051`–`054`, revisi `1.8`)** |
+| PRD → MVP slice | [`04-prd-to-mvp.md`](./04-prd-to-mvp.md) | Baseline & amandemen approved + Bagian F Petty Cash `approved` + Bagian E Multi-Payer `approved` + Pass B Ranap `draft` + UI Billing `draft` + **amendment 28 Sep draft (`EPIC BKC-24`, `FR-BKC-125`–`128`, `MVP-35`, revisi `1.8`)** |
+| Flowchart alur proses | [`flowcharts/`](./flowcharts/00-alur-utama.md) | Sebelas berkas flowchart kanonik, mencakup alur utama, rawat inap, penjamin, petty cash, dan integrasi konsumen |
+| Kamus data | [`data/data-dictionary.md`](./data/data-dictionary.md) | Baseline dan delta seluruh revisi; nol tabel/kolom baru pada revisi `1.8` |
+| ERD/data baseline | [`erd/`](./erd/00-context-erd.md) | Baseline `0.4 approved` + referensi konteks |
+| Kontrak dan acceptance | [`contracts/`](./contracts/api-contract.md), [`testing/`](./testing/acceptance-test-matrix.md) | Baseline & seluruh amendment + **amendment 28 Sep draft (`BIL-STATE-1.5`, `BIL-VALIDATION-1.5`, `BIL-INTEGRATION-1.3`, `BIL-TEST-1.6`, revisi `1.8`)** |
+| Delivery roadmap | [`roadmap/`](./roadmap/README.md) | **Roadmap Revision 5 (`DRAFT_FORWARD_TEST`)** — memuat seluruh fase hingga `BKC-PH-028` (`MVP-35`, `BE-BKC-079`) |
 | Evidence/arsip | [`evidence/`](./evidence/02-requirement-completeness-gate.md) | Preserved |
 | Status | [`MODULE-STATUS.md`](./MODULE-STATUS.md) | Belum diperbarui untuk revision `0.7` — pemeliharaannya milik `/manage-module-blueprint` |
 

@@ -17,7 +17,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.BillingIntake.
 [Authorize]
 [Route("api/v1/corporate/finance-management/billing-intake")]
 [AccessController("CORPORATE_FINANCE_MANAGEMENT_BILLING_INTAKE", "Corporate Finance Management Billing Intake", "Billing Intake",
-    AreaName = "Corporate", ControllerName = "BillingIntake", Description = "Pintu masuk fakta dari Billing menjadi piutang", SortOrder = 31)]
+    AreaName = "Corporate", ControllerName = "FinanceBillingIntake", Description = "Pintu masuk fakta dari Billing menjadi piutang", SortOrder = 31)]
 [Tags("Corporate / Finance Management / Billing Intake")]
 public sealed class FinanceBillingIntakeController : ControllerBase
 {
@@ -26,7 +26,7 @@ public sealed class FinanceBillingIntakeController : ControllerBase
 
     [HttpGet("filters/metadata")]
     [AccessAction("Read", "Read Billing Intake", AccessType = AccessTypes.Read, SortOrder = 1)]
-    [AccessPermission("BillingIntake", "Read")]
+    [AccessPermission("FinanceBillingIntake", "Read")]
     [ProducesResponseType(typeof(ApiResponse<BillingIntakeFilterMetadataResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetFilterMetadata(CancellationToken cancellationToken) =>
         Ok(ApiResponse<BillingIntakeFilterMetadataResponse>.Ok(
@@ -34,7 +34,7 @@ public sealed class FinanceBillingIntakeController : ControllerBase
 
     [HttpGet("summary")]
     [AccessAction("Read", "Read Billing Intake", AccessType = AccessTypes.Read, SortOrder = 1)]
-    [AccessPermission("BillingIntake", "Read")]
+    [AccessPermission("FinanceBillingIntake", "Read")]
     [ProducesResponseType(typeof(ApiResponse<BillingIntakeSummaryResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetSummary(CancellationToken cancellationToken) =>
         Ok(ApiResponse<BillingIntakeSummaryResponse>.Ok(
@@ -42,7 +42,7 @@ public sealed class FinanceBillingIntakeController : ControllerBase
 
     [HttpGet]
     [AccessAction("Read", "Read Billing Intake", AccessType = AccessTypes.Read, SortOrder = 1)]
-    [AccessPermission("BillingIntake", "Read")]
+    [AccessPermission("FinanceBillingIntake", "Read")]
     [ProducesResponseType(typeof(ApiResponse<PagedResult<BillingIntakeResponse>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Get([FromQuery] BillingIntakeQuery request, CancellationToken cancellationToken) =>
         Ok(ApiResponse<PagedResult<BillingIntakeResponse>>.Ok(
@@ -50,7 +50,7 @@ public sealed class FinanceBillingIntakeController : ControllerBase
 
     [HttpGet("{id:guid}")]
     [AccessAction("Read", "Read Billing Intake", AccessType = AccessTypes.Read, SortOrder = 1)]
-    [AccessPermission("BillingIntake", "Read")]
+    [AccessPermission("FinanceBillingIntake", "Read")]
     [ProducesResponseType(typeof(ApiResponse<BillingIntakeResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
@@ -62,7 +62,7 @@ public sealed class FinanceBillingIntakeController : ControllerBase
     /// <summary>Menemukan fakta AR baru dari Billing yang belum tercatat sebagai fakta masuk.</summary>
     [HttpPost("sync")]
     [AccessAction("Sync", "Sync Billing Intake", AccessType = AccessTypes.Create, SortOrder = 2)]
-    [AccessPermission("BillingIntake", "Sync")]
+    [AccessPermission("FinanceBillingIntake", "Sync")]
     public async Task<IActionResult> Sync(CancellationToken cancellationToken)
     {
         var count = await _service.SyncNewFactsAsync(CurrentUserId(), cancellationToken);
@@ -71,10 +71,31 @@ public sealed class FinanceBillingIntakeController : ControllerBase
             count > 0 ? $"{count} fakta baru ditemukan." : "Tidak ada fakta baru."));
     }
 
+    /// <summary>
+    /// BE-FIN-045 (FIN-DES-054): menerbitkan penanda PENUTUPAN-SHIFT-KASIR untuk shift yang sudah
+    /// mencapai keadaan tertutup final (CLOSED atau REVIEWED), dan PEMBALIKAN-PENUTUPAN-SHIFT-KASIR
+    /// untuk shift yang dibuka kembali. Idempoten — dijalankan dua kali tidak menerbitkan baris
+    /// kedua untuk siklus yang sama. Memakai aksi Sync yang sudah ada; nol resource/aksi baru.
+    /// </summary>
+    [HttpPost("cashier-shift-closure-markers/sync")]
+    [AccessAction("Sync", "Sync Billing Intake", AccessType = AccessTypes.Create, SortOrder = 2)]
+    [AccessPermission("FinanceBillingIntake", "Sync")]
+    [ProducesResponseType(typeof(ApiResponse<CashierShiftClosureMarkerSyncResult>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> SyncCashierShiftClosureMarkers(CancellationToken cancellationToken)
+    {
+        var result = await _service.SyncCashierShiftClosureMarkersAsync(CurrentUserId(), cancellationToken);
+        var total = result.ClosureIssued + result.ReversalIssued;
+        return Ok(ApiResponse<CashierShiftClosureMarkerSyncResult>.Ok(
+            result,
+            total > 0
+                ? $"{result.ClosureIssued} penanda penutupan dan {result.ReversalIssued} penanda pembalik diterbitkan."
+                : "Tidak ada penanda baru — seluruh shift tertutup sudah memiliki penandanya."));
+    }
+
     /// <summary>Menjalankan pengolahan satu fakta masuk (UAT-03) — juga dipakai untuk mengulang baris ERROR (FR-FIN-012).</summary>
     [HttpPost("{id:guid}/process")]
     [AccessAction("Process", "Process Billing Intake", AccessType = AccessTypes.Update, SortOrder = 3)]
-    [AccessPermission("BillingIntake", "Process")]
+    [AccessPermission("FinanceBillingIntake", "Process")]
     public async Task<IActionResult> Process(Guid id, CancellationToken cancellationToken)
     {
         try
@@ -82,7 +103,8 @@ public sealed class FinanceBillingIntakeController : ControllerBase
             var result = await _service.ProcessAsync(id, CurrentUserId(), cancellationToken);
             var message = result.Status switch
             {
-                "ACKNOWLEDGED" => "Fakta berhasil diolah menjadi piutang.",
+                "ACKNOWLEDGED" => "Fakta berhasil diolah menjadi piutang atau penerimaan.",
+                "CONSUMED" => "Fakta masuk berhasil diolah.",
                 "ERROR" => "Pengolahan gagal — lihat pesan galat pada baris ini. Dapat diulang setelah penyebabnya diperbaiki.",
                 _ => "Fakta masuk diproses."
             };

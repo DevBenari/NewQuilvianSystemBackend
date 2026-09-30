@@ -84,3 +84,45 @@
   (Perubahan lain pada working tree — `BE-FIN-027`..`032` dan seluruh dokumen blueprint AMENDMENT REVISI 4/5 — sudah ada sebelum task ini dimulai; bukan hasil task ini.)
 
 - NEXT RECOMMENDED STEP: **Pengguna menjalankan `dotnet build`** mencakup `BE-FIN-028`..`033` sekaligus. `BE-FIN-034` (Purchasing Invoice, menyusun `RECEIVED → LINKED_TO_INVOICE`, menulis `FinSupplierPayable`, dan kejadian PPN Masukan) adalah task berikutnya yang bergantung langsung pada `BE-FIN-033` — direkomendasikan mempertimbangkan perbaikan selisih dokumen kontrak (WARNINGS) sebelum memulainya.
+
+---
+
+## AMENDMENT — Penyelesaian `GET /` berpaging (30 September 2026)
+
+Dipicu temuan `FE-FIN-008` (task frontend, dilaporkan lewat `Langkah berikutnya` laporan itu, bukan
+diperbaiki sepihak di sana — lihat AMENDMENT senada pada `BE-FIN-032.md` untuk konteks lengkap PO/GR,
+dikerjakan dalam satu commit kerja yang sama dengan pembaruan ini). Kontrak `FIN-API-1.1` §B.3 SUDAH
+mendaftarkan bentuk `GET /` (`InvoiceExchangeQuery` → `PagedResult<InvoiceExchangeResponse>`, status
+`locked` 25 September 2026) sejak sebelum `BE-FIN-033` ditulis — KNOWN ISSUE #3 di atas murni
+implementasi tertunda, diselesaikan langsung lewat `build-module-backend` tanpa mengulang
+grill-me/design-business-module.
+
+- FILES CHANGED (tambahan, di atas FILES CHANGED asli):
+  - `Areas/Corporate/FinanceManagement/Purchasing/Dtos/FinanceInvoiceExchangeDtos.cs` — tambah `InvoiceExchangeQuery` (filter `SupplierId`/`Status`, persis dua filter yang disebut `api-contract.md`)
+  - `Areas/Corporate/FinanceManagement/Purchasing/Services/FinanceInvoiceExchangeService.cs` — tambah `GetPagedAsync(InvoiceExchangeQuery, ...)` (pola query/paging persis `FinanceSupplierReturnService.GetDepositsPagedAsync`, referensi terdekat pada submodul yang sama)
+  - `Areas/Corporate/FinanceManagement/Purchasing/Controllers/FinanceInvoiceExchangesController.cs` — tambah `[HttpGet] GetList`, `[AccessPermission("FinanceInvoiceExchange", "Read")]` (sama persis dengan `GetById`, konsisten pola `FinanceSupplierReturnsController.GetDeposits`)
+
+- OTORISASI: `GET /` memakai `[AccessPermission]` yang SAMA dengan `GetById` yang sudah ada (`FinanceInvoiceExchange : Read`) — dikonfirmasi sudah terdaftar persis di `permission-audit-matrix.md` baris `GET /purchasing/invoice-exchanges`. Nol resource/action baru diciptakan.
+
+- VALIDATION (pembaruan):
+
+  | Command/check | Hasil | Klasifikasi | Bukti/catatan |
+  |---|---|---|---|
+  | `dotnet build QuilvianSystemBackend.csproj` | **PASS** — `0 Error(s)`, `233 Warning(s)` (seluruhnya XML-doc pre-existing di file lain, nol menyentuh file yang diubah task ini) | BUILD-VERIFIED | Dijalankan langsung task ini — pertama kali seluruh solution, termasuk `BE-FIN-028`..`033`, terverifikasi compiler |
+  | `GET /` filter `SupplierId`/`Status` persis kontrak | `GetPagedAsync` menerapkan keduanya; nol filter tambahan yang tidak diminta kontrak | PASS (review) | Baca ulang `GetPagedAsync` |
+  | `PagedResult<T>` shape | Identik pola `FinanceSupplierReturnService.GetDepositsPagedAsync`/`SupplierReturnsController.GetDeposits` | PASS (review) | Perbandingan langsung kedua implementasi |
+  | Permission `GET /` = permission `GetById` yang sudah ada | Dicocokkan persis `permission-audit-matrix.md` baris `GET /purchasing/invoice-exchanges` | PASS (review) | Perbandingan manual |
+  | Pencarian nama method/DTO baru di seluruh repository | Tepat satu definisi | PASS (review) | `grep -rn` pasca-tulis |
+
+  **Klasifikasi keseluruhan pembaruan ini: BUILD-VERIFIED + REVIEW. MANUAL TEST tetap NOT FEASIBLE** (butuh migration `BE-FIN-031` diterapkan dan data nyata untuk pagination end-to-end).
+
+- KNOWN ISSUES (pembaruan status, bukan daftar baru):
+  1. ~~`dotnet build` belum dijalankan~~ — **RESOLVED** pembaruan ini: `dotnet build` PASS, `0` error.
+  2. `ExchangeNumber` pola GUID-suffix — tidak berubah, di luar cakupan tugas ini.
+  3. ~~`GET /` (daftar berpaging) tidak dibangun~~ — **RESOLVED** pembaruan ini.
+  4. Transisi `RECEIVED → LINKED_TO_INVOICE` — tidak berubah, tetap milik `BE-FIN-034`.
+  5. Selisih dokumentasi `api-contract.md`/`permission-audit-matrix.md` pada action `cancel` — tidak berubah, di luar cakupan tugas ini (perbaikan dokumen, bukan implementasi).
+
+- GIT STATUS (pembaruan ini) — lihat blok identik pada `BE-FIN-032.md` AMENDMENT, satu working tree yang sama untuk kedua task ini (`FinanceInvoiceExchangeDtos.cs`, `FinanceInvoiceExchangeService.cs`, `FinanceInvoiceExchangesController.cs` termasuk di dalamnya).
+
+- NEXT RECOMMENDED STEP (pembaruan): `BE-FIN-033` kini nol KNOWN ISSUES yang tersisa milik cakupannya sendiri selain #2 (kosmetik, GUID-suffix) dan #4/#5 (eksplisit di luar cakupan, milik task lain/perbaikan dokumen) — dapat dipertimbangkan naik status setelah `dotnet build` solution penuh dikonfirmasi pengguna sendiri dan migration `BE-FIN-031` diterapkan untuk verifikasi manual.

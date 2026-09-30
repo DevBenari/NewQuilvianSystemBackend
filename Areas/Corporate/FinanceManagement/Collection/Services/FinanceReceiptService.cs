@@ -120,20 +120,20 @@ public sealed class FinanceReceiptService
         };
         _dbContext.Set<FinReceipt>().Add(receipt);
 
-        // FR-FIN-034: tagihan belum final -> kejadian ditahan (HELD_FOR_FINALIZATION). Pelepasan
-        // saat tagihan kelak final adalah mekanisme terpisah, di luar lingkup BE-FIN-016/017
-        // (accounting-integration.md §4, dicatat sebagai OPEN dependency di laporan task).
-        var requiresFinalization = string.Equals(handoff.SourceInvoiceStatus, BillingInvoiceStatuses.Open, StringComparison.OrdinalIgnoreCase);
+        // FR-FIN-034: tagihan belum final -> PENERIMAAN-UANG-MUKA; tagihan final -> PENERIMAAN-KASIR (FIN-DEC-030, FIN-DES-033, BE-FIN-024).
+        var eventTypeCode = string.Equals(handoff.SourceInvoiceStatus, BillingInvoiceStatuses.Open, StringComparison.OrdinalIgnoreCase)
+            ? FinAccountingEventTypeCodes.PenerimaanUangMuka
+            : FinAccountingEventTypeCodes.PenerimaanKasir;
+
         await _accountingOutboxService.StageEventAsync(new AccountingOutboxEventRequest
         {
-            EventTypeCode = FinAccountingEventTypeCodes.PenerimaanKasir,
+            EventTypeCode = eventTypeCode,
             SourceTransactionId = receipt.ReceiptNumber,
             EventOccurredAt = handoff.OccurredAt,
             AccountingDate = DateOnly.FromDateTime(handoff.OccurredAt.UtcDateTime),
             Amount = receipt.Amount,
             CorrelationId = receipt.CorrelationId,
             CausationId = receipt.CausationId,
-            RequiresFinalization = requiresFinalization,
             ActorUserId = actorUserId
         }, cancellationToken);
 
@@ -189,19 +189,24 @@ public sealed class FinanceReceiptService
         };
         _dbContext.Set<FinReceipt>().Add(reversal);
 
-        // Kejadian pembalikan mengikuti kebijakan pra-finalisasi yang sama dengan penerimaan asli
-        // (FR-FIN-034) — bila tagihan sumber belum final saat pembalikan terjadi, kejadian ditahan.
-        var requiresFinalization = string.Equals(handoff.SourceInvoiceStatus, BillingInvoiceStatuses.Open, StringComparison.OrdinalIgnoreCase);
+        // FR-FIN-034, FIN-DES-034, FIN-DEC-044, FIN-VAL-085 (BE-FIN-024): kode pembalikan penerimaan
+        // diturunkan dari SourceInvoiceStatus milik baris penerimaan ASLI (yang ditunjuk ReversalOfReceiptId),
+        // bukan dari status tagihan saat pembalikan terjadi:
+        // - Bila penerimaan asli berstatus OPEN -> PEMBALIKAN-PENERIMAAN-UANG-MUKA (walau tagihan sekarang sudah FINAL).
+        // - Bila penerimaan asli berstatus FINAL (atau bukan OPEN) -> PEMBALIKAN-PENERIMAAN-KASIR.
+        var reversalEventTypeCode = string.Equals(original.SourceInvoiceStatus, BillingInvoiceStatuses.Open, StringComparison.OrdinalIgnoreCase)
+            ? FinAccountingEventTypeCodes.PembalikanPenerimaanUangMuka
+            : FinAccountingEventTypeCodes.PembalikanPenerimaanKasir;
+
         await _accountingOutboxService.StageEventAsync(new AccountingOutboxEventRequest
         {
-            EventTypeCode = FinAccountingEventTypeCodes.PembalikanPenerimaanKasir,
+            EventTypeCode = reversalEventTypeCode,
             SourceTransactionId = reversal.ReceiptNumber,
             EventOccurredAt = handoff.OccurredAt,
             AccountingDate = DateOnly.FromDateTime(handoff.OccurredAt.UtcDateTime),
             Amount = reversal.Amount,
             CorrelationId = reversal.CorrelationId,
             CausationId = reversal.CausationId,
-            RequiresFinalization = requiresFinalization,
             ActorUserId = actorUserId
         }, cancellationToken);
 
@@ -254,6 +259,15 @@ public sealed class FinanceReceiptService
         return candidate.Length <= 50 ? candidate : candidate[..50];
     }
 
+    // Nomor potongan (FIN-DES-048 "Nomor") — pola yang sama dengan GenerateReceiptNumber, bukan
+    // Count/Max/Last+1. Wajib berbeda per baris potongan supaya tidak berbagi kunci kejadian
+    // (SourceTransactionId) dengan potongan lain pada penerimaan yang sama.
+    private static string GenerateDeductionNumber()
+    {
+        var candidate = $"DED-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid():N}";
+        return candidate.Length <= 50 ? candidate : candidate[..50];
+    }
+
     // ------------------------------------------------------------------------------------
     // Pembacaan (BE-FIN-018) — nol tulisan. Belum mencakup daftar berpaging/register/rekonsiliasi
     // shift dari FIN-PERM-1.0 (permission-audit-matrix.md baris 77-78) — service-nya belum ada,
@@ -266,6 +280,18 @@ public sealed class FinanceReceiptService
             .Include(x => x.Allocations)
             .SingleOrDefaultAsync(x => x.Id == id && !x.IsDelete, cancellationToken)
             ?? throw new KeyNotFoundException("Penerimaan tidak ditemukan.");
+
+    /// <summary>BE-FIN-040, `GET /receipts/{id}/deductions` (FIN-API-1.2 B.8) — baca saja.</summary>
+    public async Task<List<FinReceiptDeduction>> GetDeductionsAsync(Guid receiptId, CancellationToken cancellationToken)
+    {
+        if (!await _dbContext.FinReceipts.AsNoTracking().AnyAsync(x => x.Id == receiptId && !x.IsDelete, cancellationToken))
+            throw new KeyNotFoundException("Penerimaan tidak ditemukan.");
+
+        return await _dbContext.FinReceiptDeductions.AsNoTracking()
+            .Where(x => x.ReceiptId == receiptId && !x.IsDelete)
+            .OrderBy(x => x.CreateDateTime)
+            .ToListAsync(cancellationToken);
+    }
 
     public async Task<PagedResult<FinReceiptResponse>> GetPagedAsync(FinReceiptQuery request, CancellationToken cancellationToken)
     {
@@ -352,6 +378,12 @@ public sealed class FinanceReceiptService
     /// bayar lunas tanpa piutang, FIN-DES-011). FR-FIN-041: jumlah seluruh baris tidak boleh
     /// melebihi sisa penerimaan. FR-FIN-042 ditegakkan per baris di dalam
     /// `FinanceReceivableService.ApplyAllocationAsync`.
+    ///
+    /// BE-FIN-040, FIN-DES-048/052: setiap baris boleh membawa `Deductions[]` (PPh 23 / biaya
+    /// admin bank). Potongan MENGURANGI SISA PIUTANG lewat `ApplyAllocationAsync` yang sama —
+    /// bukan mengurangi `UnallocatedAmount` penerimaan (FIN-VAL-121, uangnya tidak pernah
+    /// bergerak untuk potongan). Kode kejadian dipilih dari `DeductionType`; `OTHER` ditolak
+    /// fail-closed (FIN-VAL-137) sampai Accounting meratifikasi kode ketiga (FIN-OQ-033).
     /// </summary>
     public async Task<FinReceipt> AllocateAsync(
         Guid receiptId, IReadOnlyList<AllocationLineRequest> lines, Guid actorUserId, CancellationToken cancellationToken)
@@ -359,7 +391,30 @@ public sealed class FinanceReceiptService
         if (lines is not { Count: > 0 })
             throw new ReceivableBadRequestException("Daftar alokasi wajib berisi minimal satu baris.");
         foreach (var line in lines)
+        {
             if (line.Amount <= 0) throw new ReceivableBadRequestException("Nominal setiap baris alokasi harus lebih dari nol.");
+
+            if (line.Deductions is not { Count: > 0 }) continue;
+
+            // FIN-VAL-128: potongan hanya sah pada baris ber-ReceivableId terisi (TargetType = RECEIVABLE).
+            if (!line.ReceivableId.HasValue)
+                throw new ReceivableBadRequestException("Potongan hanya dapat dicatat pada pelunasan piutang.");
+
+            foreach (var deduction in line.Deductions)
+            {
+                // FIN-VAL-118.
+                if (deduction.Amount <= 0)
+                    throw new ReceivableBadRequestException("Nominal potongan harus lebih dari nol.");
+
+                // FIN-VAL-137 (FIN-DES-052): OTHER ditolak fail-closed — belum ada akun debit yang sah.
+                if (deduction.DeductionType == FinReceiptDeductionTypes.Other)
+                    throw new ReceivableBadRequestException(
+                        "Jenis potongan ini belum dapat dicatat karena perlakuan akuntansinya belum ditetapkan. Pakai PPh 23 atau biaya administrasi bank, atau hubungi bagian akuntansi.");
+
+                if (deduction.DeductionType != FinReceiptDeductionTypes.Pph23 && deduction.DeductionType != FinReceiptDeductionTypes.BankAdminFee)
+                    throw new ReceivableBadRequestException($"Jenis potongan '{deduction.DeductionType}' tidak dikenal.");
+            }
+        }
 
         IDbContextTransaction? transaction = null;
         try
@@ -378,8 +433,9 @@ public sealed class FinanceReceiptService
             if (receipt.Status == FinReceiptStatuses.Reversed)
                 throw new ReceivableValidationException("Penerimaan yang sudah dibalik tidak dapat dialokasikan — uangnya sudah tidak ada.");
 
+            // FR-FIN-041: hanya uang alokasi yang dibandingkan ke sisa penerimaan — potongan
+            // BUKAN uang penerimaan (FIN-VAL-121), sehingga tidak ikut dijumlahkan di sini.
             var totalRequested = lines.Sum(l => l.Amount);
-            // FR-FIN-041.
             if (totalRequested > receipt.UnallocatedAmount)
                 throw new ReceivableValidationException(
                     $"Alokasi melebihi sisa penerimaan. Sisa saat ini Rp {receipt.UnallocatedAmount:N0}.");
@@ -391,8 +447,9 @@ public sealed class FinanceReceiptService
                 if (line.ReceivableId.HasValue)
                     await _receivableService.ApplyAllocationAsync(line.ReceivableId.Value, line.Amount, actorUserId, cancellationToken);
 
-                _dbContext.Set<FinReceiptAllocation>().Add(new FinReceiptAllocation
+                var allocation = new FinReceiptAllocation
                 {
+                    Id = Guid.NewGuid(),
                     ReceiptId = receiptId,
                     ReceivableId = line.ReceivableId,
                     TargetType = line.ReceivableId.HasValue ? FinReceiptAllocationTargetTypes.Receivable : FinReceiptAllocationTargetTypes.InvoiceDirect,
@@ -402,7 +459,53 @@ public sealed class FinanceReceiptService
                     AllocatedAt = now,
                     CreateDateTime = DateTime.UtcNow,
                     CreateBy = actorUserId
-                });
+                };
+                _dbContext.Set<FinReceiptAllocation>().Add(allocation);
+
+                if (line.Deductions is not { Count: > 0 }) continue;
+
+                foreach (var deductionLine in line.Deductions)
+                {
+                    // FIN-VAL-033 diperluas (FIN-DES-048): uang alokasi + seluruh potongan ≤ sisa piutang.
+                    // Dipanggil beruntun terhadap FinReceivable yang sama (tracked oleh DbContext yang
+                    // sama), sehingga setiap panggilan memeriksa sisa TERKINI, bukan sisa sebelum baris ini.
+                    var receivable = await _receivableService.ApplyAllocationAsync(
+                        line.ReceivableId!.Value, deductionLine.Amount, actorUserId, cancellationToken);
+
+                    var deduction = new FinReceiptDeduction
+                    {
+                        Id = Guid.NewGuid(),
+                        DeductionNumber = GenerateDeductionNumber(),
+                        ReceiptId = receiptId,
+                        ReceiptAllocationId = allocation.Id,
+                        DeductionType = deductionLine.DeductionType,
+                        Amount = deductionLine.Amount,
+                        Reason = deductionLine.Reason,
+                        ReferenceNumber = deductionLine.ReferenceNumber,
+                        IsReversal = false,
+                        CreateDateTime = DateTime.UtcNow,
+                        CreateBy = actorUserId
+                    };
+                    _dbContext.Set<FinReceiptDeduction>().Add(deduction);
+
+                    // FIN-DES-050/052: kode dipilih dari DeductionType — POTONGAN-PIUTANG-NON-TUNAI
+                    // MUST NOT ditulis lagi (superseded, AMENDMENT REVISI 6).
+                    var eventTypeCode = deductionLine.DeductionType == FinReceiptDeductionTypes.Pph23
+                        ? FinAccountingEventTypeCodes.PotonganPph23Piutang
+                        : FinAccountingEventTypeCodes.PotonganBiayaBankPiutang;
+
+                    await _accountingOutboxService.StageEventAsync(new AccountingOutboxEventRequest
+                    {
+                        EventTypeCode = eventTypeCode,
+                        SourceTransactionId = deduction.DeductionNumber,
+                        EventOccurredAt = now,
+                        AccountingDate = DateOnly.FromDateTime(now.UtcDateTime),
+                        Amount = deduction.Amount,
+                        CorrelationId = receivable.CorrelationId,
+                        CausationId = deduction.Id,
+                        ActorUserId = actorUserId
+                    }, cancellationToken);
+                }
             }
 
             receipt.AllocatedAmount += totalRequested;
@@ -469,7 +572,54 @@ public sealed class FinanceReceiptService
             _dbContext.Set<FinReceiptAllocation>().Add(reversal);
 
             if (original.ReceivableId.HasValue)
+            {
                 await _receivableService.ReverseAllocationAsync(original.ReceivableId.Value, original.Amount, actorUserId, cancellationToken);
+
+                // BE-FIN-040, FIN-DES-049: seluruh potongan pada alokasi ini ikut dibalik dalam
+                // transaksi yang sama — potongan tidak dapat dibalik sendirian tanpa alokasinya.
+                var deductions = await _dbContext.FinReceiptDeductions.AsNoTracking()
+                    .Where(x => x.ReceiptAllocationId == original.Id && !x.IsReversal && !x.IsDelete)
+                    .ToListAsync(cancellationToken);
+
+                foreach (var deduction in deductions)
+                {
+                    var receivable = await _receivableService.ReverseAllocationAsync(
+                        original.ReceivableId.Value, deduction.Amount, actorUserId, cancellationToken);
+
+                    var deductionReversal = new FinReceiptDeduction
+                    {
+                        DeductionNumber = GenerateDeductionNumber(),
+                        ReceiptId = deduction.ReceiptId,
+                        ReceiptAllocationId = reversal.Id,
+                        DeductionType = deduction.DeductionType,
+                        Amount = deduction.Amount,
+                        Reason = deduction.Reason,
+                        ReferenceNumber = deduction.ReferenceNumber,
+                        IsReversal = true,
+                        ReversalOfDeductionId = deduction.Id,
+                        CreateDateTime = DateTime.UtcNow,
+                        CreateBy = actorUserId
+                    };
+                    _dbContext.Set<FinReceiptDeduction>().Add(deductionReversal);
+
+                    // FIN-DES-050/052: kebalikan kode 32/34 — nilai baris pembalik SELALU positif.
+                    var reversalEventTypeCode = deduction.DeductionType == FinReceiptDeductionTypes.Pph23
+                        ? FinAccountingEventTypeCodes.PembalikanPotonganPph23Piutang
+                        : FinAccountingEventTypeCodes.PembalikanPotonganBiayaBankPiutang;
+
+                    await _accountingOutboxService.StageEventAsync(new AccountingOutboxEventRequest
+                    {
+                        EventTypeCode = reversalEventTypeCode,
+                        SourceTransactionId = deductionReversal.DeductionNumber,
+                        EventOccurredAt = now,
+                        AccountingDate = DateOnly.FromDateTime(now.UtcDateTime),
+                        Amount = deduction.Amount,
+                        CorrelationId = receivable.CorrelationId,
+                        CausationId = deductionReversal.Id,
+                        ActorUserId = actorUserId
+                    }, cancellationToken);
+                }
+            }
 
             var receipt = await _dbContext.FinReceipts.SingleAsync(x => x.Id == original.ReceiptId, cancellationToken);
             receipt.AllocatedAmount -= original.Amount;
@@ -512,8 +662,13 @@ public sealed class FinanceReceiptService
         transaction is null ? Task.CompletedTask : transaction.RollbackAsync(CancellationToken.None);
 }
 
-/// <summary>Satu baris permintaan alokasi (BE-FIN-018, FR-FIN-040). ReceivableId kosong = INVOICE_DIRECT.</summary>
-public sealed record AllocationLineRequest(Guid? ReceivableId, decimal Amount);
+/// <summary>Satu baris permintaan alokasi (BE-FIN-018, FR-FIN-040). ReceivableId kosong = INVOICE_DIRECT.
+/// Deductions kosong/null = perilaku persis sebelum BE-FIN-040 (regresi nol, FIN-DES-048).</summary>
+public sealed record AllocationLineRequest(Guid? ReceivableId, decimal Amount, IReadOnlyList<ReceiptDeductionLineRequest>? Deductions = null);
+
+/// <summary>Satu baris potongan sisi penerimaan (BE-FIN-040, FIN-DES-048). DeductionType salah satu
+/// dari FinReceiptDeductionTypes; OTHER selalu ditolak (FIN-VAL-137).</summary>
+public sealed record ReceiptDeductionLineRequest(string DeductionType, decimal Amount, string? Reason, string? ReferenceNumber);
 
 /// <summary>Hasil GetInvoiceBreakdownAsync (FR-FIN-035) — dua sisi Finance untuk satu tagihan.</summary>
 public sealed record InvoiceCollectionBreakdown(
