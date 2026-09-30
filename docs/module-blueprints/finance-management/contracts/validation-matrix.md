@@ -2,13 +2,14 @@
 
 | Field | Nilai |
 |---|---|
-| Contract version | `FIN-VAL-1.1` |
-| `last_changed_in` | `FIN-VAL-1.1` — amendment 25 September 2026 (bagian 8) |
-| Status | `approved` dan `locked` — revisi 1.1 disetujui dan dikunci owner 25 September 2026 |
+| Contract version | `FIN-VAL-1.5` |
+| `last_changed_in` (1.5) | `FIN-VAL-1.5` — AMENDMENT REVISI 9, 29 September 2026 (bagian E: `FIN-VAL-144`..`146`). Status **`approved`** — disahkan oleh Yasmin via `FIN-DEC-080` dan `FIN-DEC-081` (mengoreksi `FIN-DEC-041`) |
+| `last_changed_in` | `FIN-VAL-1.4` — AMENDMENT REVISI 6, 28 September 2026 (bagian D: `FIN-VAL-133`..`143`; `FIN-VAL-130`..`132` diperbarui mengikuti katalog final) |
+| Status | Revisi 1.1 `approved` dan `locked` 25 September 2026; 1.2/1.3 mengikuti AMENDMENT REVISI 4/5. **Revisi 1.5 (bagian E) `approved` 29 September 2026 bersama `FIN-DEC-080`/`081`** |
 | Owner | Yasmin (Product/Domain Owner Finance) |
-| `approved_by` / `approved_at` | Yasmin / 2026-09-25 |
-| Input revision | `00-interview-decisions.md` — `FIN-DEC-001`..`044`; `02-backend-architecture.md` AMENDMENT REVISI 3 (`FIN-DES-029`..`036`) |
-| Dampak kompatibilitas | **Satu aturan dicabut** (`FIN-VAL-076`) dan **sembilan aturan ditambahkan** (`FIN-VAL-078`..`086`), seluruhnya pada bagian 8. Tidak ada aturan lama yang berubah artinya |
+| `approved_by` / `approved_at` | Yasmin / 2026-09-29 (untuk `1.5`) |
+| Input revision | `00-interview-decisions.md` — `FIN-DEC-001`..`081`; `02-backend-architecture.md` bagian H (`FIN-DES-064`, `FIN-DES-065`) |
+| Dampak kompatibilitas | Revisi 1.4: **sebelas aturan ditambahkan** (`FIN-VAL-133`..`143`) dan **tiga aturan diperbarui** (`FIN-VAL-130`, `131`, `132`) karena nama kode yang dirujuknya sudah tidak ada lagi. Sebelumnya: satu aturan dicabut (`FIN-VAL-076`), sembilan ditambahkan (`FIN-VAL-078`..`086`) |
 
 Pesan ditulis dalam bahasa yang dipahami pengguna, bukan istilah teknis. Kolom "Kode" adalah
 kode HTTP yang dikembalikan.
@@ -200,3 +201,197 @@ negatif.
 Setelah ditandai dibayar, sisa utang jasa dr. Andi menjadi **nol** — bukan Rp 4.500.000. Kalau
 sisanya Rp 4.500.000, sistem akan menganggap rumah sakit masih berutang padahal kewajibannya
 sudah selesai.
+
+
+---
+
+# AMENDMENT REVISI 4
+
+| Field | Nilai |
+|---|---|
+| Contract version | `FIN-VAL-1.2` — status `locked` 25 September 2026 (disetujui Yasmin bersama `FIN-DES-037`..`044`) |
+| Tanggal | 25 September 2026 |
+| Keputusan | `FIN-DEC-045`..`055` |
+
+## B.1 Purchase Order dan Purchasing Invoice
+
+| ID | Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|---|
+| `FIN-VAL-100` | PO wajib minimal satu baris item | `POST /purchasing/purchase-orders` | Tidak ada baris item | "Purchase Order wajib memiliki minimal satu baris item." | `400` |
+| `FIN-VAL-101` | Pengaju tidak boleh menyetujui PO sendiri | `POST .../purchase-orders/{id}/approve` | `ApprovedByUserId` = `RequestedByUserId` | "Pengaju tidak boleh menyetujui Purchase Order permohonannya sendiri." | `422` |
+| `FIN-VAL-102` | Penyetuju PO harus sesuai jenjang nominal | `POST .../purchase-orders/{id}/approve` | Hak penyetuju di bawah `ApprovalTier` (ambang Rp 50.000.000, `FIN-DEC-052`) | "Nominal Purchase Order ini memerlukan persetujuan Manajer Finance." | `403` |
+| `FIN-VAL-103` | PO yang sudah ada penerimaan barang tidak boleh dibatalkan | `POST .../purchase-orders/{id}/cancel` | Sudah ada `FinGoodsReceipt` | "Purchase Order ini sudah memiliki penerimaan barang dan tidak dapat dibatalkan." | `422` |
+| `FIN-VAL-104` | Kuantitas diterima tidak boleh melebihi sisa PO | `POST /purchasing/goods-receipts` | `ReceivedQuantity` (akumulasi) > `Quantity` baris PO | "Kuantitas diterima melebihi kuantitas yang dipesan pada baris ini." | `422` |
+| `FIN-VAL-105` | Satu Tukar Faktur menghasilkan tepat satu Purchasing Invoice | `POST /purchasing/purchasing-invoices` | `InvoiceExchangeId` sudah dipakai invoice lain | "Tukar Faktur ini sudah memiliki Purchasing Invoice." | `409` |
+| `FIN-VAL-106` | Tukar Faktur harus siap sebelum dijadikan invoice | `POST /purchasing/purchasing-invoices` | Status Tukar Faktur bukan `RECEIVED` | "Tukar Faktur ini sudah dibatalkan atau sudah punya invoice." | `422` |
+| `FIN-VAL-107` | Rincian nilai invoice harus seimbang | `POST`/`PUT .../purchasing-invoices` | `TotalAmount` ≠ `Subtotal - Discount + PPN - DownPayment - OtherDeduction` | "Rincian nilai invoice tidak seimbang dengan totalnya." | `422` |
+| `FIN-VAL-108` | Pengaju tidak boleh menyetujui Purchasing Invoice sendiri | `POST .../purchasing-invoices/{id}/approve` | `ApprovedByUserId` = `RequestedByUserId` | "Pengaju tidak boleh menyetujui Purchasing Invoice permohonannya sendiri." | `422` |
+| `FIN-VAL-109` | Penyetuju Purchasing Invoice harus sesuai jenjang nominal | `POST .../purchasing-invoices/{id}/approve` | Hak penyetuju di bawah `ApprovalTier` | "Nominal Purchasing Invoice ini memerlukan persetujuan Manajer Finance." | `403` |
+
+**Contoh `FIN-VAL-102`/`FIN-VAL-109`.** PO senilai Rp 62.000.000 diajukan Petugas AP. Supervisor
+Finance mencoba menyetujui — sistem menolak `403` karena nominalnya di atas ambang Rp 50.000.000
+(`FIN-DEC-052`); hanya Manajer Finance yang berhak. Ambang ini **sama persis** dengan ambang
+persetujuan pembayaran (`FIN-VAL-052`), tetapi keduanya tetap checkpoint terpisah — menyetujui
+PO tidak ikut menyetujui pembayaran yang lahir darinya nanti.
+
+## B.2 Retur Pembelian dan Deposit Retur
+
+| ID | Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|---|
+| `FIN-VAL-110` | Retur hanya atas invoice yang sudah disetujui | `POST /purchasing/supplier-returns` | Status `FinPurchasingInvoice` bukan `APPROVED` | "Retur hanya dapat diajukan atas Purchasing Invoice yang sudah disetujui." | `422` |
+| `FIN-VAL-111` | Nilai retur tidak boleh melebihi nilai invoice sumber | `POST /purchasing/supplier-returns` | `TotalAmount` retur > `TotalAmount` invoice | "Nilai retur melebihi nilai Purchasing Invoice sumber." | `422` |
+| `FIN-VAL-112` | Pemakaian Deposit Retur tidak boleh melebihi saldo tersedia | `POST .../deposits/{id}/apply` | `UsedAmount` > `AvailableAmount` | "Nilai pemakaian melebihi saldo Deposit Retur yang tersedia. Saldo saat ini Rp {saldo}." | `422` |
+| `FIN-VAL-113` | Deposit Retur hanya dipakai untuk supplier yang sama | `POST .../deposits/{id}/apply` | `SupplierId` invoice tujuan ≠ `SupplierId` deposit | "Deposit Retur ini hanya dapat dipakai untuk supplier yang sama." | `422` |
+
+## B.3 Batch Tagihan AR
+
+| ID | Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|---|
+| `FIN-VAL-114` | Piutang yang sudah tergabung batch aktif tidak boleh digabung lagi | `POST /receivable-invoice-batches` | `ReceivableId` sudah ada di batch yang belum `CANCELLED` | "Piutang {nomor} sudah tergabung dalam batch tagihan lain." | `409` |
+| `FIN-VAL-115` | Batch hanya boleh berisi piutang penjamin yang sama | `POST /receivable-invoice-batches` | Ada anggota dengan `DebtorReferenceId` berbeda | "Seluruh piutang dalam satu batch harus milik penjamin yang sama." | `400` |
+| `FIN-VAL-116` | Batch kosong tidak boleh diterbitkan | `POST .../receivable-invoice-batches/{id}/issue` | Jumlah anggota = 0 | "Batch tidak memiliki anggota piutang untuk diterbitkan." | `422` |
+| `FIN-VAL-117` | Anggota batch yang sudah diterbitkan tidak dapat diubah | Penambahan/pengurangan anggota | Status batch bukan `DRAFT` | "Batch ini sudah diterbitkan dan anggotanya tidak dapat diubah." | `422` |
+
+## B.4 Potongan penerimaan (AR)
+
+| ID | Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|---|
+| `FIN-VAL-118` | Nominal potongan harus lebih dari nol | `POST /receipts/{id}/deductions` | `Amount` ≤ 0 | "Nominal potongan harus lebih dari nol." | `400` |
+| `FIN-VAL-119` | Pos lain-lain wajib menyebut alasan | `POST /receipts/{id}/deductions` | `DeductionType` = `OTHER` dan `Reason` kosong | "Potongan jenis lain-lain wajib menyebutkan alasannya." | `400` |
+| `FIN-VAL-120` | Potongan hanya dapat dicatat sebelum alokasi final | `POST /receipts/{id}/deductions` | Status `FinReceipt` = `ALLOCATED`, `RECONCILED`, atau `REVERSED` | "Penerimaan ini sudah selesai dialokasikan, potongan tidak dapat ditambah." | `422` |
+| `FIN-VAL-121` | Potongan mengurangi sisa piutang, bukan sisa penerimaan | Alokasi penerimaan dengan potongan | — | Tidak ada pesan — `FinReceiptDeduction.Amount` ikut mengurangi `FinReceivable.OutstandingAmount` lewat `AllocatedAmount`, kebalikan `FIN-VAL-095` (`FIN-DEC-055`) | — |
+
+## B.5 Gerbang PPN Masukan Pembelian
+
+| ID | Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|---|
+| `FIN-VAL-122` | Kejadian PPN Masukan tidak dikirim sebelum ratifikasi Accounting | Worker pengiriman | `EventTypeCode = PPN-MASUKAN-PEMBELIAN` dan Accounting belum meratifikasi kode ini (`FIN-OQ-020`) | Tidak ada pesan bagi pengguna — worker melewati baris ini, tetap `PENDING` | — |
+
+`FIN-VAL-122` **bukan** aturan yang menolak permintaan pengguna — Purchasing Invoice tetap bisa
+disetujui dan baris outbox tetap ditulis. Yang dicegah hanyalah pengiriman baris itu ke
+Accounting, persis pola `FIN-DES-029` untuk kode yang pernah menunggu ratifikasi sebelumnya.
+
+---
+
+# AMENDMENT REVISI 5
+
+| Field | Nilai |
+|---|---|
+| Contract version | `FIN-VAL-1.3` — status `locked` 26 September 2026 (disetujui Yasmin bersama `FIN-DES-045`..`050`) |
+| Tanggal | 25 September 2026 |
+| Keputusan | `FIN-DEC-057`, `058`, `061`, `062`; `FIN-DES-045`..`050` |
+
+## C.1 Aturan lama yang berubah
+
+| ID | Perubahan |
+|---|---|
+| `FIN-VAL-091` | Berlaku **hanya** bila `DepositAppliedAmount = 0`. Pembayaran yang seluruhnya dilunasi deposit sah dengan `NetTransferAmount = 0` |
+| `FIN-VAL-056` | Nomor bukti transfer wajib **hanya** bila `NetTransferAmount > 0` |
+| `FIN-VAL-112`, `113` | Dipindah dari `POST .../deposits/{id}/apply` (dicabut) ke `POST /payments/{id}/return-deposits`. Isi aturannya tidak berubah |
+| `FIN-VAL-118`, `119` | Dipindah dari `POST /receipts/{id}/deductions` (dicabut) ke `POST /receipts/{id}/allocations`, per potongan |
+| `FIN-VAL-120` | **Dicabut.** Tidak lagi relevan: potongan dicatat bersama alokasinya, sehingga tidak ada lagi "menambah potongan sesudah alokasi" |
+| `FIN-VAL-033` | Diperluas: **uang alokasi + seluruh potongan** pada satu baris ≤ sisa piutang |
+
+## C.2 Aturan baru — Deposit Retur sebagai sumber dana
+
+| ID | Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|---|
+| `FIN-VAL-123` | Deposit hanya untuk pembayaran supplier | `POST /payments/{id}/return-deposits` | `PaymentType` bukan `SUPPLIER` | "Deposit Retur hanya dapat dipakai pada pembayaran supplier." | `422` |
+| `FIN-VAL-124` | Deposit hanya ditambah/dilepas selama draf | `POST`/`DELETE .../return-deposits` | Status pembayaran bukan `DRAFT` | "Pembayaran ini sudah diajukan, sehingga sumber dananya tidak dapat diubah." | `422` |
+| `FIN-VAL-125` | Deposit yang sama tidak dua kali dalam satu pembayaran | `POST .../return-deposits` | Sudah ada baris aktif untuk deposit itu | "Deposit Retur ini sudah dipakai di pembayaran ini." | `409` |
+| `FIN-VAL-126` | Nilai transfer tidak boleh negatif karena deposit | `POST .../return-deposits` | `DepositAppliedAmount` sesudah ditambah > `TotalAmount − DeductionAmount + AdditionAmount` | "Nilai deposit melebihi yang perlu dibayar. Maksimum Rp {sisa}." | `422` |
+| `FIN-VAL-127` | Deposit yang dibatalkan tidak dapat dipakai | `POST .../return-deposits` | Status deposit `CANCELLED` | "Deposit Retur ini sudah dibatalkan." | `422` |
+
+## C.3 Aturan baru — Potongan AR dan kejadiannya
+
+| ID | Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|---|
+| `FIN-VAL-128` | Potongan hanya pada alokasi ke piutang | `POST /receipts/{id}/allocations` | Baris ber-`targetType = INVOICE_DIRECT` membawa potongan | "Potongan hanya dapat dicatat pada pelunasan piutang." | `400` |
+| `FIN-VAL-129` | Potongan hanya melekat pada alokasi asli, bukan baris pembalik | Service | Alokasi `IsReversal = true` | Tidak ada pesan — ditolak sebagai kesalahan internal | `422` |
+| `FIN-VAL-130` | Kode kejadian potongan AR tidak pernah kode kas | Penulisan kejadian | Potongan menulis `AR_PAYMENT`, `PENERIMAAN-PIUTANG`, atau `PENYESUAIAN-PIUTANG` | Tidak ada pesan — kesalahan kode | — |
+| `FIN-VAL-131` | Kejadian pembayaran utang tidak memuat porsi deposit | Penulisan kejadian | `AP_PAYMENT.Amount` ≠ `TotalAmount − DepositAppliedAmount`, atau `AP_PAYMENT` tertulis dengan nilai nol | Tidak ada pesan — kesalahan kode | — |
+| `FIN-VAL-132` | Empat kode baru tidak dikirim sebelum ratifikasi | Worker pengiriman | `EventTypeCode` salah satu dari `POTONGAN-PIUTANG-NON-TUNAI`, `PEMBALIKAN-POTONGAN-PIUTANG-NON-TUNAI`, `RETUR-PEMBELIAN`, `PEMAKAIAN-DEPOSIT-RETUR` dan `FIN-OQ-026` belum turun | Tidak ada pesan — baris dilewati, tetap `PENDING` (pola `FIN-VAL-122`) | — |
+
+**Contoh `FIN-VAL-126`.** Pembayaran dua faktur Rp 10.000.000 dengan potongan Rp 0. Petugas
+menambahkan deposit Rp 12.000.000. Ditolak: "Nilai deposit melebihi yang perlu dibayar. Maksimum
+Rp 10.000.000." Saldo deposit tidak berubah.
+
+---
+
+# D. AMENDMENT REVISI 6 — Aturan baru dan tiga aturan yang diperbarui
+
+Menurunkan `FIN-DES-051`..`058` (`02-backend-architecture.md` AMENDMENT REVISI 6) dan
+`FIN-DEC-063`..`071`.
+
+## D.1 Tiga aturan yang diperbarui
+
+Ketiganya merujuk nama kode yang **sudah tidak ada lagi** sesudah ratifikasi Accounting
+(`integration-contract.md` bagian 5.10.2). Isinya tidak berubah artinya; hanya nama kodenya.
+
+| ID | Yang diperbarui |
+|---|---|
+| `FIN-VAL-130` | Kode kejadian potongan AR tidak pernah kode kas — nama kode yang benar sekarang `POTONGAN-PPH23-PIUTANG` atau `POTONGAN-BIAYA-BANK-PIUTANG`, bukan `POTONGAN-PIUTANG-NON-TUNAI` |
+| `FIN-VAL-131` | Kejadian pembayaran utang — kodenya `PEMBAYARAN-HUTANG-SUPPLIER`, bukan `AP_PAYMENT` |
+| `FIN-VAL-132` | Daftar kode yang tertahan ratifikasi menjadi: `POTONGAN-PPH23-PIUTANG`, `PEMBALIKAN-POTONGAN-PPH23-PIUTANG`, `POTONGAN-BIAYA-BANK-PIUTANG`, `PEMBALIKAN-POTONGAN-BIAYA-BANK-PIUTANG`, `RETUR-PEMBELIAN`, `PEMAKAIAN-KREDIT-RETUR-PEMBELIAN`, `PPN-MASUKAN-RETUR-PEMBELIAN`, `PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT`, `PENUTUPAN-SHIFT-KASIR`, `PEMBALIKAN-PENUTUPAN-SHIFT-KASIR`, `SELISIH-KAS-KURANG`, `SELISIH-KAS-LEBIH` — masing-masing tertahan open question-nya sendiri (`FIN-OQ-027`..`032`) |
+
+## D.2 Aturan baru
+
+| ID | Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|---|
+| `FIN-VAL-133` | Nilai PPN retur tidak boleh negatif | `POST /purchasing/supplier-returns`, `PUT .../{id}` | `ppnAmount < 0` | "Nilai PPN retur tidak boleh kurang dari nol." | `400` |
+| `FIN-VAL-134` | Nilai pokok retur adalah jumlah barisnya, tanpa PPN | Service konfirmasi retur | `TotalAmount` ≠ jumlah `LineTotal` barisnya | "Nilai retur tidak sama dengan jumlah rincian barangnya." | `422` |
+| `FIN-VAL-135` | Kredit retur yang lahir mencakup PPN | Service konfirmasi retur | `AvailableAmount` awal ≠ `TotalAmount + PPNAmount` | Tidak ada pesan — kesalahan kode | — |
+| `FIN-VAL-136` | Kejadian retur bernilai pokok saja | Penulisan kejadian | `RETUR-PEMBELIAN.Amount` ≠ `TotalAmount` | Tidak ada pesan — kesalahan kode | — |
+| `FIN-VAL-137` | Potongan piutang berjenis lain-lain belum dapat dicatat | `POST /receipts/{id}/allocations` | Baris potongan ber-`deductionType = OTHER` | "Jenis potongan ini belum dapat dicatat karena perlakuan akuntansinya belum ditetapkan. Pakai PPh 23 atau biaya administrasi bank, atau hubungi bagian akuntansi." | `400` |
+| `FIN-VAL-138` | Nilai nol hanya untuk kode penanda | `FinanceAccountingOutboxService.ValidateRequest` | `Amount = 0` untuk kode **di luar** daftar tertutup kode penanda | Tidak ada pesan — kesalahan kode | — |
+| `FIN-VAL-139` | Pesan tanpa komponen tidak memuat properti komponen | Penyusunan `PayloadJson` | `PayloadJson` memuat properti `Components` padahal tidak ada komponen | Tidak ada pesan — kesalahan kode | — |
+| `FIN-VAL-140` | Satu shift satu kejadian selisih kas per siklus tutup | Penulisan kejadian | Kejadian `SELISIH-KAS-*` kedua untuk `BilCashierShift.Id` yang sama dalam siklus yang sama | Tidak ada pesan — ditolak unique index outbox | `409` |
+| `FIN-VAL-141` | Refund kredit yang perlakuan akuntansinya belum ditetapkan tidak diterbitkan, tetapi tercatat | Sinkronisasi intake | `BilRefundCase` `EXECUTED` atas kredit ber-`SourceType = REFERRED_OUTPATIENT_ADMIN` | Tidak ada pesan bagi pengguna akhir; baris intake menjadi `ERROR` dengan sebab yang terbaca di layar pantauan | — |
+| `FIN-VAL-142` | Pembalikan tender top-up deposit tanpa mutasi pembalik ditandai, bukan didiamkan | Sinkronisasi intake | `BilTender` `REVERSED` bertujuan top-up deposit, tanpa mutasi deposit pembalik yang bersesuaian | Tidak ada pesan bagi pengguna akhir; baris intake menjadi `ERROR` menunjuk `FIN-OQ-034` | — |
+| `FIN-VAL-143` | Nilai retur beserta PPN-nya tidak melebihi nilai faktur yang diretur | `POST /purchasing/supplier-returns`, `PUT .../{id}` | `TotalAmount + PPNAmount` > `FinPurchasingInvoice.TotalAmount` | "Nilai retur beserta PPN-nya melebihi nilai faktur pembelian ini." | `400` |
+
+## D.3 Contoh dua aturan yang paling mudah salah
+
+**Contoh `FIN-VAL-137`.** Penjamin membayar piutang Rp 10.000.000 dan memotong Rp 15.000 dengan
+keterangan "biaya materai". Petugas memilih jenis potongan "lain-lain". Ditolak: *"Jenis potongan
+ini belum dapat dicatat karena perlakuan akuntansinya belum ditetapkan. Pakai PPh 23 atau biaya
+administrasi bank, atau hubungi bagian akuntansi."* Alokasi **tidak** tersimpan sebagian — seluruh
+permintaan ditolak, sehingga tidak ada piutang yang berkurang tanpa kejadian pendampingnya.
+
+**Contoh `FIN-VAL-140`.** Shift 20 November 2026 kurang Rp 30.000. Pengesahan pertama memilih
+"perlu tindak lanjut" — **tidak ada kejadian**. Pengesahan kedua menyelesaikannya: terbit satu
+`SELISIH-KAS-KURANG` Rp 30.000. Bila kode mencoba menerbitkannya lagi dari baris pengesahan
+pertama, database menolak lewat unique index `(SourceModule, SourceTransactionId, EventTypeCode,
+SourceVersion)` — bukan bergantung pada kebenaran logika pemanggil.
+
+---
+
+# E. AMENDMENT REVISI 9 — arti tunggal mutasi `RELEASE`
+
+Menurunkan `FIN-DES-064` dan `FIN-DES-065` via `FIN-DEC-080` dan `FIN-DEC-081`. Ketiganya berstatus **`approved`** (29 September 2026).
+
+| ID | Aturan | Berlaku pada | Kondisi | Pesan bagi pengguna | Kode |
+|---|---|---|---|---|---|
+| `FIN-VAL-144` | Pembatalan alokasi uang muka tidak pernah dibukukan sebagai kas keluar | Penulisan kejadian | Mutasi `BilDepositMovement` `RELEASE` menerbitkan `PENGEMBALIAN-UANG-MUKA` | Tidak ada pesan — kesalahan kode | — |
+| `FIN-VAL-145` | Mutasi pelepasan yang asalnya belum dikenal tidak diterbitkan, tetapi tercatat | Sinkronisasi intake | Mutasi `RELEASE` **tanpa** mutasi `REVERSAL` ber-`SettlementId` sama | Tidak ada pesan bagi pengguna akhir; baris intake menjadi `ERROR` dengan sebab yang menyebut jenis mutasinya dan menunjuk `FIN-OQ-037` | — |
+| `FIN-VAL-146` | Pembalikan tender top-up yang dananya sudah terpakai menerbitkan **dua** kejadian, bukan satu | Penulisan kejadian | Mutasi `RELEASE` dan `REVERSAL` lahir dari satu `SettlementId`, tetapi hanya satu kejadian yang terbit | Tidak ada pesan — kesalahan kode | — |
+
+**Contoh `FIN-VAL-144`, dan kenapa ia aturan yang paling mahal bila dilanggar.** Pasien menitip
+uang muka Rp 20.000.000 lewat kartu, uang muka itu dipakai melunasi tagihan Rp 32.000.000, lalu
+kartunya ditarik penerbit. Billing membatalkan alokasi tagihan dan menulis mutasi `RELEASE`
+Rp 20.000.000, lalu menarik top-up-nya dengan mutasi `REVERSAL` Rp 20.000.000.
+
+| Yang diterbitkan | Hasil di buku besar |
+|---|---|
+| **Benar** — `PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT` + `PEMBALIKAN-PENERIMAAN-UANG-MUKA` | Debit Piutang Rp 20.000.000, kredit Kas Rp 20.000.000. Tagihan terbuka kembali, kas berkurang sebesar uang yang tidak pernah jadi diterima |
+| **Salah** — `PENGEMBALIAN-UANG-MUKA` + `PEMBALIKAN-PENERIMAAN-UANG-MUKA` | Kas dikredit **dua kali** Rp 40.000.000 untuk uang Rp 20.000.000, dan piutang Rp 20.000.000 tidak pernah terbuka kembali |
+
+Jurnal versi salah itu **tetap seimbang**, sehingga tidak tertangkap pemeriksaan neraca. Ia baru
+terlihat saat rekonsiliasi kas toleransi nol Accounting (`ACC-DEC-076`) gagal — berbulan kemudian,
+tanpa petunjuk sebabnya.
+
+**Contoh `FIN-VAL-145`.** Bila kelak Billing menambah fitur pengembalian uang muka tunai dan
+memakai mutasi `RELEASE` untuknya, mutasi itu datang **tanpa** pasangan `REVERSAL`. Finance tidak
+menebak: baris intake ditandai `ERROR` dan muncul di layar pantauan, sehingga lubangnya terlihat
+pada hari pertama alih-alih menjadi kas keluar palsu di buku besar.
+

@@ -2,12 +2,14 @@
 
 | Field | Nilai |
 |---|---|
-| Contract version | `FIN-PERM-1.0` |
-| Status | `draft` |
+| Contract version | `FIN-PERM-1.4` |
+| `last_changed_in` | `FIN-PERM-1.4` — AMENDMENT REVISI 7, 29 September 2026 (koreksi D.2, D.6.1, D.6.2 mengikuti `FIN-DEC-082`/`FIN-DEC-083`) |
+| Status | Revisi 1-5 `locked`; Revisi 6 `approved` (Yasmin, 28 September 2026 lewat `FIN-DEC-078` & `FIN-DEC-079`); **Revisi 7 `draft`** — menurunkan `FIN-DES-066`..`069` yang sendiri masih `draft` |
 | Owner | Security Owner bersama Yasmin (Product/Domain Owner Finance) |
-| `approved_by` / `approved_at` | — / — |
-| Input revision | `00-interview-decisions.md` revisi 1, `contracts/api-contract.md` `FIN-API-1.0` |
-| Dampak kompatibilitas | Nol — seluruh Resource baru |
+| `approved_by` / `approved_at` | Revisi 6: Yasmin / 28 September 2026. Revisi 7: **belum** — menunggu Security Owner (lihat `FIN-OQ-038`) |
+| Input revision | `00-interview-decisions.md` revisi 29 September 2026 (`FIN-DEC-082`, `FIN-DEC-083`), `02-backend-architecture.md` AMENDMENT REVISI 11 (`FIN-DES-066`..`069`) |
+| `input_hash` | `00-interview-decisions.md` = `c1cba136cb3c665bd1eeefe944b9d902d6fe5f55e123cf4bd83ae53456a7dee2` |
+| Dampak kompatibilitas | Revisi 6: penyelarasan 6 controller legacy (rename string resource, **sudah diimplementasikan** `BE-FIN-042`) + penambahan resource payung. Revisi 7: **nol dampak pada kode yang sudah berjalan** — mengoreksi nama payung (`Finance.AP.Umbrella`/`Finance.AR.Umbrella`) dan titik tulis ekspansi sebelum satu baris pun ditulis |
 
 String `[AccessPermission(...)]` ditulis apa adanya agar implementer menyalin, bukan
 menerjemahkan. Kolom "Dicatat logger" mengikuti konvensi project: `GET` tidak dicatat.
@@ -254,3 +256,498 @@ orang bisa mengubah nilai transfer tanpa punya hak atas pembayarannya.
 
 Butir terakhir adalah ketentuan baru yang tidak ada pada revisi 1, karena revisi 1 memang belum
 menyimpan data sepribadi ini.
+
+
+---
+
+# AMENDMENT REVISI 4
+
+| Field | Nilai |
+|---|---|
+| Contract version | `FIN-PERM-1.1` — status `locked` 25 September 2026 (disetujui Yasmin bersama `FIN-DES-037`..`044`) |
+| Tanggal | 25 September 2026 |
+| Keputusan | `FIN-DEC-045`..`055` |
+
+## B.1 Resource baru
+
+| Resource | Cakupan |
+|---|---|
+| `FinancePurchaseOrder` | Purchase Order dan baris itemnya |
+| `FinanceGoodsReceipt` | Tanda Terima Barang |
+| `FinanceInvoiceExchange` | Tukar Faktur |
+| `FinancePurchasingInvoice` | Purchasing Invoice |
+| `FinanceSupplierReturn` | Retur Pembelian dan Deposit Retur |
+| `FinancePurchasingReport` | Aging AP, Rekap, Laporan Tukar Faktur, Laporan Jatuh Tempo, Rekonsiliasi |
+| `FinanceReceivableInvoiceBatch` | AR Invoice Agregat |
+
+Tidak ada Resource baru untuk potongan penerimaan AR — mengikuti pola `FIN-DES-026`/A.2,
+endpoint potongannya memakai Resource `FinanceReceipt` yang sudah ada, karena menyusun potongan
+adalah bagian dari menyusun alokasi penerimaan, bukan permohonan terpisah.
+
+## B.2 Purchasing / Purchase Order
+
+| Endpoint | Resource | Action | String yang dipakai | Dicatat logger |
+|---|---|---|---|:---:|
+| `GET /purchasing/purchase-orders` | `FinancePurchaseOrder` | `Read` | `[AccessPermission("FinancePurchaseOrder", "Read")]` | Tidak |
+| `GET /purchasing/purchase-orders/{id}` | `FinancePurchaseOrder` | `Read` | `[AccessPermission("FinancePurchaseOrder", "Read")]` | Tidak |
+| `POST /purchasing/purchase-orders` | `FinancePurchaseOrder` | `Create` | `[AccessPermission("FinancePurchaseOrder", "Create")]` | Ya |
+| `PUT /purchasing/purchase-orders/{id}` | `FinancePurchaseOrder` | `Update` | `[AccessPermission("FinancePurchaseOrder", "Update")]` | Ya |
+| `POST /purchasing/purchase-orders/{id}/submit` | `FinancePurchaseOrder` | `Submit` | `[AccessPermission("FinancePurchaseOrder", "Submit")]` | Ya |
+| `POST /purchasing/purchase-orders/{id}/approve` | `FinancePurchaseOrder` | `Approve` | `[AccessPermission("FinancePurchaseOrder", "Approve")]` | Ya |
+| `POST /purchasing/purchase-orders/{id}/reject` | `FinancePurchaseOrder` | `Approve` | `[AccessPermission("FinancePurchaseOrder", "Approve")]` | Ya |
+| `POST /purchasing/purchase-orders/{id}/cancel` | `FinancePurchaseOrder` | `Cancel` | `[AccessPermission("FinancePurchaseOrder", "Cancel")]` | Ya |
+
+## B.3 Purchasing / Goods Receipt dan Invoice Exchange
+
+| Endpoint | Resource | Action | String yang dipakai | Dicatat logger |
+|---|---|---|---|:---:|
+| `GET /purchasing/goods-receipts` | `FinanceGoodsReceipt` | `Read` | `[AccessPermission("FinanceGoodsReceipt", "Read")]` | Tidak |
+| `GET /purchasing/goods-receipts/{id}` | `FinanceGoodsReceipt` | `Read` | `[AccessPermission("FinanceGoodsReceipt", "Read")]` | Tidak |
+| `POST /purchasing/goods-receipts` | `FinanceGoodsReceipt` | `Create` | `[AccessPermission("FinanceGoodsReceipt", "Create")]` | Ya |
+| `POST /purchasing/goods-receipts/{id}/cancel` | `FinanceGoodsReceipt` | `Cancel` | `[AccessPermission("FinanceGoodsReceipt", "Cancel")]` | Ya |
+| `GET /purchasing/invoice-exchanges` | `FinanceInvoiceExchange` | `Read` | `[AccessPermission("FinanceInvoiceExchange", "Read")]` | Tidak |
+| `GET /purchasing/invoice-exchanges/{id}` | `FinanceInvoiceExchange` | `Read` | `[AccessPermission("FinanceInvoiceExchange", "Read")]` | Tidak |
+| `POST /purchasing/invoice-exchanges` | `FinanceInvoiceExchange` | `Create` | `[AccessPermission("FinanceInvoiceExchange", "Create")]` | Ya |
+| `POST /purchasing/invoice-exchanges/{id}/cancel` | `FinanceInvoiceExchange` | `Cancel` | `[AccessPermission("FinanceInvoiceExchange", "Cancel")]` | Ya |
+
+## B.4 Purchasing / Purchasing Invoice dan Retur
+
+| Endpoint | Resource | Action | String yang dipakai | Dicatat logger |
+|---|---|---|---|:---:|
+| `GET /purchasing/purchasing-invoices` | `FinancePurchasingInvoice` | `Read` | `[AccessPermission("FinancePurchasingInvoice", "Read")]` | Tidak |
+| `GET /purchasing/purchasing-invoices/{id}` | `FinancePurchasingInvoice` | `Read` | `[AccessPermission("FinancePurchasingInvoice", "Read")]` | Tidak |
+| `POST /purchasing/purchasing-invoices` | `FinancePurchasingInvoice` | `Create` | `[AccessPermission("FinancePurchasingInvoice", "Create")]` | Ya |
+| `PUT /purchasing/purchasing-invoices/{id}` | `FinancePurchasingInvoice` | `Update` | `[AccessPermission("FinancePurchasingInvoice", "Update")]` | Ya |
+| `POST /purchasing/purchasing-invoices/{id}/submit` | `FinancePurchasingInvoice` | `Submit` | `[AccessPermission("FinancePurchasingInvoice", "Submit")]` | Ya |
+| `POST /purchasing/purchasing-invoices/{id}/approve` | `FinancePurchasingInvoice` | `Approve` | `[AccessPermission("FinancePurchasingInvoice", "Approve")]` | Ya |
+| `POST /purchasing/purchasing-invoices/{id}/reject` | `FinancePurchasingInvoice` | `Approve` | `[AccessPermission("FinancePurchasingInvoice", "Approve")]` | Ya |
+| `GET /purchasing/supplier-returns` | `FinanceSupplierReturn` | `Read` | `[AccessPermission("FinanceSupplierReturn", "Read")]` | Tidak |
+| `GET /purchasing/supplier-returns/{id}` | `FinanceSupplierReturn` | `Read` | `[AccessPermission("FinanceSupplierReturn", "Read")]` | Tidak |
+| `POST /purchasing/supplier-returns` | `FinanceSupplierReturn` | `Create` | `[AccessPermission("FinanceSupplierReturn", "Create")]` | Ya |
+| `GET /purchasing/supplier-returns/deposits` | `FinanceSupplierReturn` | `Read` | `[AccessPermission("FinanceSupplierReturn", "Read")]` | Tidak |
+| ~~`POST /purchasing/supplier-returns/deposits/{id}/apply`~~ | — | — | **DICABUT `FIN-PERM-1.2`** — Action `ApplyDeposit` tidak dibuat; lihat C.1 | — |
+
+## B.5 Purchasing / Reports dan Receivable Invoice Batch
+
+| Endpoint | Resource | Action | String yang dipakai | Dicatat logger |
+|---|---|---|---|:---:|
+| `GET /purchasing/reports/*` (**empat** endpoint — `/aging` dicabut `FIN-DEC-059`) | `FinancePurchasingReport` | `Read` | `[AccessPermission("FinancePurchasingReport", "Read")]` | Tidak |
+| `GET /receivable-invoice-batches` | `FinanceReceivableInvoiceBatch` | `Read` | `[AccessPermission("FinanceReceivableInvoiceBatch", "Read")]` | Tidak |
+| `GET /receivable-invoice-batches/{id}` | `FinanceReceivableInvoiceBatch` | `Read` | `[AccessPermission("FinanceReceivableInvoiceBatch", "Read")]` | Tidak |
+| `GET /receivable-invoice-batches/eligible-receivables` | `FinanceReceivableInvoiceBatch` | `Read` | `[AccessPermission("FinanceReceivableInvoiceBatch", "Read")]` | Tidak |
+| `POST /receivable-invoice-batches` | `FinanceReceivableInvoiceBatch` | `Create` | `[AccessPermission("FinanceReceivableInvoiceBatch", "Create")]` | Ya |
+| `POST /receivable-invoice-batches/{id}/issue` | `FinanceReceivableInvoiceBatch` | `Issue` | `[AccessPermission("FinanceReceivableInvoiceBatch", "Issue")]` | Ya |
+| `GET /receivable-invoice-batches/{id}/document` | `FinanceReceivableInvoiceBatch` | `Read` | `[AccessPermission("FinanceReceivableInvoiceBatch", "Read")]` | Tidak |
+| `POST /receivable-invoice-batches/{id}/cancel` | `FinanceReceivableInvoiceBatch` | `Update` | `[AccessPermission("FinanceReceivableInvoiceBatch", "Update")]` | Ya |
+
+## B.6 Potongan penerimaan (tambahan grup Receipt)
+
+| Endpoint | Resource | Action | String yang dipakai | Dicatat logger |
+|---|---|---|---|:---:|
+| `GET /receipts/{id}/deductions` | `FinanceReceipt` | `Read` | `[AccessPermission("FinanceReceipt", "Read")]` | Tidak |
+| ~~`POST /receipts/{id}/deductions`~~ | — | — | **DICABUT `FIN-PERM-1.2`** — potongan dicatat lewat `POST /receipts/{id}/allocations` yang sudah memakai `FinanceReceipt : Allocate` | — |
+
+## B.7 Pembaruan usulan pemetaan peran
+
+| Peran | Butir hak akses yang diusulkan |
+|---|---|
+| Finance AP Staff (diperluas) | Tambah `FinancePurchaseOrder : Read/Create/Update/Submit/Cancel`, `FinanceGoodsReceipt : Read/Create/Cancel`, `FinanceInvoiceExchange : Read/Create/Cancel`, `FinancePurchasingInvoice : Read/Create/Update/Submit`, `FinanceSupplierReturn : Read/Create` |
+| Supervisor Finance (baru) | `FinancePurchaseOrder : Approve`, `FinancePurchasingInvoice : Approve` — **hanya** di bawah ambang Rp 50.000.000 (`FIN-DEC-052`); pemisahan berdasarkan nominal ditegakkan service dan database, bukan hanya permission |
+| Manajer Finance (baru) | `FinancePurchaseOrder : Approve`, `FinancePurchasingInvoice : Approve` — seluruh nominal, termasuk di atas ambang |
+| Finance AR Staff (diperluas) | Tambah `FinanceReceivableInvoiceBatch : Read/Create/Issue` |
+| Auditor/Manager | Tambah `FinancePurchaseOrder`, `FinanceGoodsReceipt`, `FinanceInvoiceExchange`, `FinancePurchasingInvoice`, `FinanceSupplierReturn`, `FinancePurchasingReport`, `FinanceReceivableInvoiceBatch : Read` saja |
+
+**Supervisor Finance dan Manajer Finance adalah peran baru**, terpisah dari "Finance
+Supervisor" yang sudah ada pada bagian 10 dasar (penyetuju koreksi/penghapusan/pembayaran).
+Checkpoint approval PO/Purchasing Invoice (`FIN-DES-039`) adalah permohonan yang berbeda dari
+approval pembayaran — walau ambang nominalnya sama, string permission-nya sengaja berbeda
+Resource (`FinancePurchaseOrder`/`FinancePurchasingInvoice` vs `FinancePayment`), sehingga
+pemegang satu tidak otomatis memegang yang lain.
+
+## B.8 Catatan privasi
+
+| Data | Ketentuan |
+|---|---|
+| `MstSupplier` data bank dan NPWP | Sudah diatur `cash-and-master-data.md`/kamus data existing — tidak berubah oleh amendment ini |
+| `FinPurchasingInvoiceItem.UnitPrice`, `FinPurchaseOrderItem.UnitPrice` | Tidak ditandai Sensitif (bukan data pribadi), namun **SHOULD** dibatasi ke peran Purchasing/AP dan Auditor — harga beli adalah informasi komersial, bukan privasi individu, sehingga di luar cakupan aturan Sensitif kamus data |
+| `FinReceiptDeduction.Reason` | **Sensitif** bila memuat keterangan yang bisa mengidentifikasi pihak ketiga (mis. nama bank pemotong PPh 23 atas nama tertentu) — mengikuti pola `FinPaymentDeduction.Reason` (`A.4`) |
+
+---
+
+# AMENDMENT REVISI 5
+
+| Field | Nilai |
+|---|---|
+| Contract version | `FIN-PERM-1.2` — status `locked` 26 September 2026 (disetujui Yasmin bersama `FIN-DES-045`..`050`) |
+| Tanggal | 25 September 2026 |
+| Keputusan | `FIN-DEC-057`, `058`, `059`; `FIN-DES-045`, `048` |
+
+## C.1 Pemakaian Deposit Retur di dalam pembayaran
+
+| Endpoint | Resource | Action | String yang dipakai | Dicatat logger |
+|---|---|---|---|:---:|
+| `GET /payments/{id}/return-deposits` | `FinancePayment` | `Read` | `[AccessPermission("FinancePayment", "Read")]` | Tidak |
+| `POST /payments/{id}/return-deposits` | `FinancePayment` | `Update` | `[AccessPermission("FinancePayment", "Update")]` | Ya |
+| `DELETE /payments/{id}/return-deposits/{usageId}` | `FinancePayment` | `Update` | `[AccessPermission("FinancePayment", "Update")]` | Ya |
+
+Memakai Resource `FinancePayment`, bukan `FinanceSupplierReturn`, dengan alasan yang sama seperti
+potongan pembayaran (A.2): memilih sumber dana adalah bagian dari menyusun pembayaran. Bila
+dipisah, satu orang dapat mengubah nilai transfer tanpa punya hak atas pembayarannya.
+Konsekuensinya Action `FinanceSupplierReturn : ApplyDeposit` (B.1, B.4) **tidak dibuat**.
+
+## C.2 Potongan AR
+
+Tidak ada butir hak akses baru. Potongan dicatat lewat `POST /receipts/{id}/allocations` yang
+sudah memakai `[AccessPermission("FinanceReceipt", "Allocate")]`; pembalikannya ikut
+`POST /receipts/{id}/allocations/{allocationId}/reverse` dengan hak akses yang sama.
+
+## C.3 Pembaruan usulan pemetaan peran
+
+| Peran | Perubahan |
+|---|---|
+| Finance AP Staff | **Tidak** lagi diusulkan `FinanceSupplierReturn : ApplyDeposit` (B.7) — pemakaian deposit mengikuti `FinancePayment : Update` yang sudah dipegangnya |
+| Seluruh peran | Nol perubahan lain |
+
+---
+
+# AMENDMENT REVISI 7 — Koreksi Nama Resource Payung dan Titik Tulis Ekspansi (`FIN-DEC-082`, `FIN-DEC-083`)
+
+| Field | Nilai |
+|---|---|
+| Contract version | `FIN-PERM-1.4` |
+| Status | `draft` — menurunkan `FIN-DES-066`..`069` yang masih `draft`; menunggu Security Owner lewat `FIN-OQ-039` |
+| Tanggal | 29 September 2026 |
+| Keputusan | `FIN-DEC-082` (nama payung bukan `Finance.AP`/`Finance.AR` melainkan `Finance.AP.Umbrella`/`Finance.AR.Umbrella`), `FIN-DEC-083` (ekspansi materialized saat admin memberi grant, bukan saat request) |
+| Masalah yang diselesaikan | Bentrok nama `Finance.AP`/`Finance.AR` antara resource payung baru dan `FinanceApController`/`FinanceArController` V2 yang sudah berjalan (ditemukan saat implementasi `BE-FIN-042`). Premis seeder `FIN-DEC-079` terbukti keliru — seeder tidak pernah menulis `SysAccessPolicy` |
+| Gerbang terbuka | `FIN-OQ-039` — menahan implementasi mekanisme ekspansi; **tidak** menahan D.5 rename controller maupun pekerjaan frontend |
+| Sinkronisasi | `02-backend-architecture.md` AMENDMENT REVISI 11 (`FIN-DES-066`..`069`), `00-interview-decisions.md` Amendment pass 29 September 2026 |
+
+Amendment ini **mengoreksi** bagian D.2 (nama payung) dan D.6.2 (titik tulis ekspansi) dari REVISI 6 di bawah, dan menambahkan sub-seksi D.3a–D.3b (tabel peta aksi granular terstruktur).
+
+---
+
+# AMENDMENT REVISI 6 — Pemetaan Resource Payung (Umbrella) ke Granular dan Penyelarasan Nama Controller Legacy
+
+| Field | Nilai |
+|---|---|
+| Contract version | `FIN-PERM-1.3` |
+| Status | `approved` (Disetujui Yasmin 28 September 2026 lewat `FIN-DEC-078` & `FIN-DEC-079`) |
+| Tanggal | 28 September 2026 |
+| Keputusan | `FIN-DEC-078`, `FIN-DEC-079`; diturunkan ke `FIN-DES-061`, `FIN-DES-062`, `FIN-DES-063` |
+| Masalah yang diselesaikan | `FIN-CQ-08` (Penyelarasan 6 controller legacy), `FIN-CAP-043` (Audit kapabilitas controller), `FIN-OQ-036` (Granularitas filter menu frontend vs endpoint backend) |
+
+Dokumen amendment ini menetapkan secara definitif pemetaan hak akses **Payung ke Granular** (Umbrella-to-Granular) untuk modul Finance Management serta rencana teknis penyelarasan nama Resource pada 6 controller legacy. Seluruh ketentuan di bagian ini mengikat arsitektur backend, seeder otorisasi peran, dan antarmuka frontend.
+
+---
+
+## D.1 Latar Belakang & Masalah Bisnis-Teknis (FIN-CQ-08 / FIN-CAP-043 / FIN-OQ-036)
+
+Dalam operasional rumah sakit sehari-hari, tata kelola keuangan menuntut pemisahan wewenang (*segregation of duties*) yang ketat antara:
+1. **Bagian Hutang & Pengadaan (Account Payable - AP):** Mengurus pesanan obat/alkes farmasi, tanda terima gudang medis, verifikasi faktur tagihan supplier/PBF, pemotongan retur barang, hingga pengajuan dan eksekusi pembayaran kas/bank keluar serta pelunasan jasa medis dokter.
+2. **Bagian Piutang & Penerimaan Kas (Account Receivable - AR):** Mengurus penagihan klaim BPJS Kesehatan, asuransi komersial, jaminan perusahaan mitra, penerimaan kasir pelayanan, rekonsiliasi uang muka pasien, serta permohonan koreksi atau penghapusan piutang tak tertagih.
+
+Audit menyeluruh `/trace-existing-capabilities` (§ 16.3) menemukan dua persoalan teknis otorisasi yang berdampak langsung pada operasional sistem:
+- **Konflik Nama Resource Controller Legacy (`FIN-CQ-08` / `FIN-CAP-043`):** Enam controller awal Finance (`FinancePaymentsController`, `FinanceReceiptsController`, `FinanceReceivablesController`, `FinanceSupplierPayablesController`, `FinanceBillingIntakeController`, dan `FinanceAccountingEventsController`) menggunakan nama resource pendek pada atribut `[AccessPermission]` (misalnya `"Payment"`, `"Receipt"`). Hal ini bertentangan dengan kontrak resmi `permission-audit-matrix.md` dan 7 controller Purchasing baru yang sudah memakai awalan kanonikal (`"FinancePayment"`, `"FinanceReceipt"`, `"FinancePurchaseOrder"`). Melalui `FIN-DEC-078`, pemilik produk menetapkan bahwa **kode mengikuti kontrak**; keenam controller lama diselaraskan ke nama kanonikal lengkap beserta migrasi data peran.
+- **Ketidakcocokan Filter Menu Frontend (`FIN-OQ-036`):** Menu sidebar navigasi frontend (`src/utils/menu-sidebar/corporateFinance.js`) membatasi tampilan menu menggunakan resource payung tingkat tinggi, yaitu `Finance.AP` dan `Finance.AR`. Namun, resource payung ini belum tercantum di kontrak backend, dan endpoint Purchasing menuntut resource granular seperti `FinancePurchaseOrder`. Akibatnya, ada risiko staf rumah sakit yang berhak melihat menu di frontend ditolak oleh API backend (`403 Forbidden`). Melalui `FIN-DEC-079`, pemilik produk menetapkan bahwa `Finance.AP` dan `Finance.AR` **didaftarkan sebagai Resource Resmi Tingkat Kelompok (Umbrella)**, di mana pemegang hak payung otomatis mewarisi seluruh hak akses granular di bawah kelompoknya melalui seeder peran dan runtime expansion.
+
+---
+
+## D.2 Definisi Resource Payung (Group-Level Umbrella Resources)
+
+> **DIKOREKSI — `FIN-PERM-1.4`, 29 September 2026 (`FIN-DEC-082`, `FIN-DEC-083`).** Nama kedua
+> resource payung dan mekanisme kerjanya di bawah ini sudah dikoreksi. Nama lama `Finance.AP`/
+> `Finance.AR` **tidak dipakai sebagai payung** karena sudah menjadi milik dua controller V2 yang
+> berjalan.
+
+Resource payung adalah entitas hak akses tingkat kelompok yang mewakili ranah kerja fungsional staf rumah sakit:
+1. **`Finance.AP.Umbrella`**: Payung kewenangan operasional Hutang, Pengadaan, dan Pembayaran Kas Keluar Rumah Sakit.
+2. **`Finance.AR.Umbrella`**: Payung kewenangan operasional Piutang, Penagihan Penjamin, dan Penerimaan Kasir Rumah Sakit.
+
+Keduanya memiliki tiga aksi: `View` (`AccessType` `Read`), `Operate` (`Create`), dan `Approve`
+(`Update`) — pemetaan aksinya ada di D.4.
+
+Mekanisme kerja resource payung:
+- **Di Frontend:** Payung **tidak pernah** diperiksa penyaring menu. Butir menu dijaga resource
+  **granular** yang sama persis dengan yang dituntut endpointnya (mis. `FinancePurchaseOrder : Read`
+  untuk butir Purchase Order). Sesudah ekspansi, pemegang payung benar-benar memiliki pasangan
+  granular itu pada `SysAccessPolicy`, sehingga penyaring menu granular menampilkannya tanpa
+  perlakuan khusus. Butir menu V2 yang sudah ada tetap dijaga `Finance.AP`/`Finance.AR` milik
+  controller V2 dan **tidak disentuh**. Lihat `FIN-DES-069`.
+- **Di Backend:** Saat admin memberi izin payung kepada satu pasangan **Departemen x Posisi** lewat
+  layar Akses Role, mekanisme ekspansi menuliskan baris `SysAccessPolicy` granular yang bersesuaian
+  **pada saat itu juga** (*materialized*), di dalam transaksi yang sama. Pemeriksaan hak akses saat
+  request tidak berubah sama sekali — ia tetap membaca `SysAccessPolicy` apa adanya. Lihat D.6.2 dan
+  `FIN-DES-067`.
+
+---
+
+## D.3 Tabel Pemetaan Resource Payung ke Resource Granular
+
+Berikut adalah pemetaan resmi satu per satu dari resource payung ke seluruh resource granular di lingkungan sistem Quilvian:
+
+### 1. Kelompok Payung `Finance.AP` (Hutang & Pengadaan Rumah Sakit)
+
+Mencakup 9 (sembilan) resource granular berikut:
+
+| # | Resource Granular | Cakupan Fungsi Bisnis Rumah Sakit | Aksi Granular yang Didukung |
+|---|---|---|---|
+| 1 | `FinancePayment` | Pembayaran kas/bank keluar, pelunasan utang supplier, pencairan honor dokter, dan pencatatan bukti transfer bank | `Read`, `Create`, `Update`, `Submit`, `Approve`, `MarkPaid`, `Cancel` |
+| 2 | `FinanceSupplierPayable` | Pengelolaan utang faktur supplier/distributor farmasi & alat kesehatan | `Read`, `Create`, `Update`, `RequestAdjustment`, `ApproveAdjustment` |
+| 3 | `FinanceMedicalServicePayable` | Pengelolaan kewajiban utang jasa medis dokter spesialis dan tenaga kesehatan | `Read`, `Create`, `RequestAdjustment`, `ApproveAdjustment` |
+| 4 | `FinancePurchaseOrder` | Penerbitan dan persetujuan Surat Pesanan Pembelian (PO) obat, BHP, dan perlengkapan medis | `Read`, `Create`, `Update`, `Submit`, `Approve`, `Cancel` |
+| 5 | `FinanceGoodsReceipt` | Penerimaan fisik barang di gudang farmasi/logistik medis berdasarkan PO | `Read`, `Create`, `Cancel` |
+| 6 | `FinanceInvoiceExchange` | Pencatatan dokumen Tukar Faktur tagihan dari distributor/vendor rekanan RS | `Read`, `Create`, `Cancel` |
+| 7 | `FinancePurchasingInvoice` | Verifikasi tagihan faktur pembelian vendor terhadap penerimaan barang fisik | `Read`, `Create`, `Update`, `Submit`, `Approve` |
+| 8 | `FinanceSupplierReturn` | Pengajuan dan konfirmasi nota retur barang rusak/kedaluwarsa ke pihak pemasok | `Read`, `Create`, `Confirm`, `Cancel` |
+| 9 | `FinancePurchasingReport` | Laporan rekapitulasi pembelian logistik, analisa pengadaan, dan evaluasi vendor | `Read` |
+
+### 2. Kelompok Payung `Finance.AR` (Piutang & Penerimaan Rumah Sakit)
+
+Mencakup 4 (empat) resource granular berikut:
+
+| # | Resource Granular | Cakupan Fungsi Bisnis Rumah Sakit | Aksi Granular yang Didukung |
+|---|---|---|---|
+| 1 | `FinanceReceivable` | Pengelolaan saldo piutang pasien umum, klaim BPJS Kesehatan, dan asuransi/perusahaan rekanan | `Read`, `Update`, `RequestAdjustment`, `ApproveAdjustment`, `RequestWriteOff`, `ApproveWriteOff` |
+| 2 | `FinanceReceipt` | Pencatatan tanda terima kas/bank, alokasi pelunasan ke nomor tagihan/piutang, serta pembatalan/pembalikan alokasi | `Read`, `Create`, `Allocate`, `Reverse` |
+| 3 | `FinanceReceivableInvoiceBatch` | Pembuatan dan penerbitan berkas invoice tagihan gabungan (*batch billing*) ke perusahaan penjamin/BPJS | `Read`, `Create`, `Issue`, `Update` |
+| 4 | `FinanceBillingIntake` | Pemantauan dan penerimaan serah terima (*handoff*) transaksi piutang dan pembayaran dari modul Kasir/Billing | `Read`, `Consume` |
+
+### 3. Resource Mandiri (Standalone — Di Luar Payung AP/AR)
+
+Resource berikut **tidak** dimasukkan ke dalam payung `Finance.AP` maupun `Finance.AR` karena memiliki ranah tata kelola terpisah (manajemen kas umum, integrasi buku besar akuntansi, dan master data bersama):
+
+| Resource | Alasan Berdiri Sendiri | Aksi yang Didukung |
+|---|---|---|
+| `FinanceBankDeposit` | Merupakan fungsi rekonsiliasi penyetoran uang fisik kasir ke bank, ditangani petugas kasir utama / treasury | `Read`, `Create`, `Post`, `Cancel` |
+| `FinanceDailyCash` | Pemantauan posisi saldo brankas kas harian RS lintas unit penerimaan dan pengeluaran | `Read`, `Close`, `Breakdown` |
+| `FinanceBank`, `FinanceBankAccount`, `FinanceCurrency` | Data induk perbankan dan rekening operasional RS, dikelola Administrator Keuangan | `Read`, `Create`, `Update`, `Delete` |
+| `FinanceAccountingEvent` | Jembatan audit kejadian keuangan ke jurnal akuntansi umum, hanya diakses Auditor dan staf Akuntansi | `Read` |
+| `PettyCashBudget`, `PettyCashCategory` | Anggaran kas kecil operasional unit kerja RS, tunduk pada tata kelola kasir/petty cash yang sudah baku | `Read`, `Create`, `Update`, `Allocate` |
+
+---
+
+## D.3a Tabel Ekspansi Lengkap — `Finance.AP.Umbrella` ke Pasangan Granular
+
+> **Sumber kebenaran peta ini.** Berkas kode (setelah platform mendukung resource tanpa endpoint —
+> lihat `FIN-OQ-039`) harus dapat di-*diff* langsung terhadap tabel ini. Setiap baris yang ada di
+> sini MUST ada di kode, dan setiap baris di kode MUST ada di sini.
+
+| Tier Payung | Resource Granular | Aksi | Kode Aksi di `[AccessPermission]` |
+|---|---|---|---|
+| **`View`** | `FinancePayment` | Read | `"FinancePayment", "Read"` |
+| **`View`** | `FinanceSupplierPayable` | Read | `"FinanceSupplierPayable", "Read"` |
+| **`View`** | `FinanceMedicalServicePayable` | Read | `"FinanceMedicalServicePayable", "Read"` |
+| **`View`** | `FinancePurchaseOrder` | Read | `"FinancePurchaseOrder", "Read"` |
+| **`View`** | `FinanceGoodsReceipt` | Read | `"FinanceGoodsReceipt", "Read"` |
+| **`View`** | `FinanceInvoiceExchange` | Read | `"FinanceInvoiceExchange", "Read"` |
+| **`View`** | `FinancePurchasingInvoice` | Read | `"FinancePurchasingInvoice", "Read"` |
+| **`View`** | `FinanceSupplierReturn` | Read | `"FinanceSupplierReturn", "Read"` |
+| **`View`** | `FinancePurchasingReport` | Read | `"FinancePurchasingReport", "Read"` |
+| **`Operate`** | `FinancePayment` | Create | `"FinancePayment", "Create"` |
+| **`Operate`** | `FinancePayment` | Update | `"FinancePayment", "Update"` |
+| **`Operate`** | `FinancePayment` | Submit | `"FinancePayment", "Submit"` |
+| **`Operate`** | `FinanceSupplierPayable` | Create | `"FinanceSupplierPayable", "Create"` |
+| **`Operate`** | `FinanceSupplierPayable` | Update | `"FinanceSupplierPayable", "Update"` |
+| **`Operate`** | `FinanceSupplierPayable` | RequestAdjustment | `"FinanceSupplierPayable", "RequestAdjustment"` |
+| **`Operate`** | `FinanceMedicalServicePayable` | Create | `"FinanceMedicalServicePayable", "Create"` |
+| **`Operate`** | `FinanceMedicalServicePayable` | RequestAdjustment | `"FinanceMedicalServicePayable", "RequestAdjustment"` |
+| **`Operate`** | `FinancePurchaseOrder` | Create | `"FinancePurchaseOrder", "Create"` |
+| **`Operate`** | `FinancePurchaseOrder` | Update | `"FinancePurchaseOrder", "Update"` |
+| **`Operate`** | `FinancePurchaseOrder` | Submit | `"FinancePurchaseOrder", "Submit"` |
+| **`Operate`** | `FinanceGoodsReceipt` | Create | `"FinanceGoodsReceipt", "Create"` |
+| **`Operate`** | `FinanceInvoiceExchange` | Create | `"FinanceInvoiceExchange", "Create"` |
+| **`Operate`** | `FinancePurchasingInvoice` | Create | `"FinancePurchasingInvoice", "Create"` |
+| **`Operate`** | `FinancePurchasingInvoice` | Update | `"FinancePurchasingInvoice", "Update"` |
+| **`Operate`** | `FinancePurchasingInvoice` | Submit | `"FinancePurchasingInvoice", "Submit"` |
+| **`Operate`** | `FinanceSupplierReturn` | Create | `"FinanceSupplierReturn", "Create"` |
+| **`Approve`** | `FinancePayment` | Approve | `"FinancePayment", "Approve"` |
+| **`Approve`** | `FinancePayment` | MarkPaid | `"FinancePayment", "MarkPaid"` |
+| **`Approve`** | `FinancePayment` | Cancel | `"FinancePayment", "Cancel"` |
+| **`Approve`** | `FinanceSupplierPayable` | ApproveAdjustment | `"FinanceSupplierPayable", "ApproveAdjustment"` |
+| **`Approve`** | `FinanceMedicalServicePayable` | ApproveAdjustment | `"FinanceMedicalServicePayable", "ApproveAdjustment"` |
+| **`Approve`** | `FinancePurchaseOrder` | Approve | `"FinancePurchaseOrder", "Approve"` |
+| **`Approve`** | `FinancePurchaseOrder` | Cancel | `"FinancePurchaseOrder", "Cancel"` |
+| **`Approve`** | `FinanceGoodsReceipt` | Cancel | `"FinanceGoodsReceipt", "Cancel"` |
+| **`Approve`** | `FinanceInvoiceExchange` | Cancel | `"FinanceInvoiceExchange", "Cancel"` |
+| **`Approve`** | `FinancePurchasingInvoice` | Approve | `"FinancePurchasingInvoice", "Approve"` |
+| **`Approve`** | `FinanceSupplierReturn` | Confirm | `"FinanceSupplierReturn", "Confirm"` |
+| **`Approve`** | `FinanceSupplierReturn` | Cancel | `"FinanceSupplierReturn", "Cancel"` |
+
+**Total pasangan granular yang ditulis saat admin memberi ketiga tier sekaligus:** 38 baris
+(`View` = 9, `Operate` = 18, `Approve` = 11) ditambah 3 baris payung itu sendiri = **41 baris
+`SysAccessPolicy`**.
+
+---
+
+## D.3b Tabel Ekspansi Lengkap — `Finance.AR.Umbrella` ke Pasangan Granular
+
+| Tier Payung | Resource Granular | Aksi | Kode Aksi di `[AccessPermission]` |
+|---|---|---|---|
+| **`View`** | `FinanceReceivable` | Read | `"FinanceReceivable", "Read"` |
+| **`View`** | `FinanceReceipt` | Read | `"FinanceReceipt", "Read"` |
+| **`View`** | `FinanceReceivableInvoiceBatch` | Read | `"FinanceReceivableInvoiceBatch", "Read"` |
+| **`View`** | `FinanceBillingIntake` | Read | `"FinanceBillingIntake", "Read"` |
+| **`Operate`** | `FinanceReceivable` | Update | `"FinanceReceivable", "Update"` |
+| **`Operate`** | `FinanceReceivable` | RequestAdjustment | `"FinanceReceivable", "RequestAdjustment"` |
+| **`Operate`** | `FinanceReceivable` | RequestWriteOff | `"FinanceReceivable", "RequestWriteOff"` |
+| **`Operate`** | `FinanceReceipt` | Create | `"FinanceReceipt", "Create"` |
+| **`Operate`** | `FinanceReceipt` | Allocate | `"FinanceReceipt", "Allocate"` |
+| **`Operate`** | `FinanceReceivableInvoiceBatch` | Create | `"FinanceReceivableInvoiceBatch", "Create"` |
+| **`Operate`** | `FinanceReceivableInvoiceBatch` | Update | `"FinanceReceivableInvoiceBatch", "Update"` |
+| **`Operate`** | `FinanceReceivableInvoiceBatch` | Issue | `"FinanceReceivableInvoiceBatch", "Issue"` |
+| **`Operate`** | `FinanceBillingIntake` | Consume | `"FinanceBillingIntake", "Consume"` |
+| **`Approve`** | `FinanceReceivable` | ApproveAdjustment | `"FinanceReceivable", "ApproveAdjustment"` |
+| **`Approve`** | `FinanceReceivable` | ApproveWriteOff | `"FinanceReceivable", "ApproveWriteOff"` |
+| **`Approve`** | `FinanceReceipt` | Reverse | `"FinanceReceipt", "Reverse"` |
+
+**Total pasangan granular yang ditulis saat admin memberi ketiga tier sekaligus:** 16 baris
+(`View` = 4, `Operate` = 9, `Approve` = 3) ditambah 3 baris payung itu sendiri = **19 baris
+`SysAccessPolicy`**.
+
+> **Catatan sinkronisasi (FIN-DES-068).** Setiap resource granular baru di rumpun AP/AR MUST
+> ditambahkan ke D.3, D.3a, atau D.3b (sesuai rumpunnya) **dan** ke berkas kode peta pada
+> perubahan yang sama. Menambah ke salah satu saja adalah cacat yang MUST ditolak saat review.
+
+---
+
+## D.4 Matriks Pewarisan Aksi Payung ke Aksi Granular (Action Propagation Rule)
+
+Pewarisan aksi dari tingkat payung ke tingkat granular mengikuti prinsip hirarki peran operasional rumah sakit:
+
+| Aksi pada Payung | Peran & Tanggung Jawab Rumah Sakit | Aksi Granular yang Diwariskan (Hasil Ekspansi) |
+|---|---|---|
+| `View` | **Auditor / Pengamat:** Staf yang bertugas memantau daftar transaksi, membaca umur piutang/utang (aging), dan mencetak laporan tanpa wewenang mengubah angka | Otomatis memberikan `Read` pada **seluruh** resource granular di bawah kelompok payung terkait. |
+| `Operate` | **Staf Pelaksana (Maker):** Staf operasional AP atau AR yang bertugas menginput transaksi harian, membuat draf PO, mencatat penerimaan barang, mengajukan faktur tagihan, serta mengajukan draf pembayaran atau koreksi piutang | Memberikan seluruh aksi **Maker / Operasional**: <br>• Pada `Finance.AP`: `Create`, `Update`, `Submit` (pada Payment, PO, Invoice, Return, Goods Receipt, Tukar Faktur), serta `RequestAdjustment` (pada Utang Supplier/Medis). <br>• Pada `Finance.AR`: `Create`, `Update`, `Allocate` (pada Receipt), `RequestAdjustment`, `RequestWriteOff` (pada Receivable), `Create`, `Issue` (pada Invoice Batch), dan `Consume` (pada Billing Intake). |
+| `Approve` | **Pejabat Otorisasi (Checker):** Supervisor Keuangan, Manajer Keuangan, atau Direktur yang berwenang menyetujui transaksi, mengotorisasi pengeluaran uang RS, dan mengesahkan nota penyesuaian | Memberikan seluruh aksi **Checker / Otorisasi**: <br>• Pada `Finance.AP`: `Approve` (pada PO dan Purchasing Invoice < 50jt untuk Supervisor, seluruh nominal untuk Manajer), `Approve` (pada Pembayaran Kas/Bank), `MarkPaid` (validasi transfer bank), `Confirm` (retur supplier), serta `ApproveAdjustment` (koreksi utang). <br>• Pada `Finance.AR`: `ApproveAdjustment` (koreksi piutang), `ApproveWriteOff` (penghapusan piutang), dan `Reverse` (pembatalan alokasi penerimaan). |
+
+### Contoh Pemetaan Peran Nyata di Rumah Sakit:
+
+> **Nama payung yang dipakai di bawah adalah nama kanonikal pasca `FIN-DEC-082`:**
+> `Finance.AP.Umbrella` dan `Finance.AR.Umbrella`. Nama lama `Finance.AP`/`Finance.AR` tetap
+> dimiliki `FinanceApController`/`FinanceArController` V2 dan tidak disentuh.
+
+1. **Staf AP Farmasi & Logistik (Maker):**
+   - Diberi hak payung: `Finance.AP.Umbrella : View, Operate`.
+   - Hasil ekspansi sistem: 9 baris `Read` + 18 baris aksi Maker (lihat D.3a). Berhak membuat draf PO, menerima barang gudang, menukar faktur, dan mengajukan pembayaran utang; **tidak** dapat menyetujui PO sendiri atau mengesahkan pencairan kas bank.
+2. **Supervisor Akun Hutang / AP (Checker Batas Nominal):**
+   - Diberi hak payung: `Finance.AP.Umbrella : View, Operate, Approve`.
+   - Hasil ekspansi sistem: 38 baris granular + 3 baris payung = 41 baris `SysAccessPolicy`. Ditegakkan aturan nominal service: Berhak menyetujui PO dan faktur pembelian hingga Rp 50.000.000 (`FIN-DEC-052`).
+3. **Manajer Keuangan / Direktur RS (Final Approver):**
+   - Diberi hak payung: `Finance.AP.Umbrella : View, Operate, Approve` dan `Finance.AR.Umbrella : View, Operate, Approve`.
+   - Hasil ekspansi sistem: 41 + 19 = 60 baris `SysAccessPolicy`. Berhak menyetujui seluruh nominal pembayaran keluar, menyetujui penghapusan piutang asuransi (*bad debt write-off*), dan mengotorisasi jurnal pembalik.
+4. **Staf Piutang & Penagihan / AR (Maker):**
+   - Diberi hak payung: `Finance.AR.Umbrella : View, Operate`.
+   - Hasil ekspansi sistem: 4 baris `Read` + 9 baris aksi Maker (lihat D.3b). Berhak membuat batch invoice penjamin, mengalokasikan pembayaran kasir ke tagihan pasien, dan mengajukan draf koreksi klaim.
+5. **Auditor Eksternal / Tim SPI Rumah Sakit:**
+   - Diberi hak payung: `Finance.AP.Umbrella : View` dan `Finance.AR.Umbrella : View` serta hak mandiri `FinanceDailyCash : Read`, `FinanceBankDeposit : Read`.
+   - Hasil ekspansi sistem: 9 + 4 = 13 baris `Read` granular. Dapat membaca seluruh laporan dan jejak audit transaksi keuangan tanpa memiliki tombol aksi tulis/ubah sedikit pun.
+
+---
+
+## D.5 Penyelarasan Nama 6 Controller Legacy (FIN-DEC-078)
+
+Sesuai ketetapan `FIN-DEC-078`, keenam controller lama diselaraskan agar menggunakan nama Resource kanonikal yang diawali dengan `"Finance"`. Implementer backend wajib mengubah string parameter pada atribut `[AccessPermission]` di masing-masing controller sebagai berikut:
+
+| # | Controller & Berkas C# | Resource Lama | Resource Baru (Kanonikal) | Daftar String `[AccessPermission]` yang Diselaraskan |
+|---|---|---|---|---|
+| 1 | `FinancePaymentsController`<br>`Areas/Corporate/FinanceManagement/Payable/Controllers/FinancePaymentsController.cs` | `Payment` | `FinancePayment` | • `[AccessPermission("FinancePayment", "Read")]`<br>• `[AccessPermission("FinancePayment", "Create")]`<br>• `[AccessPermission("FinancePayment", "Update")]`<br>• `[AccessPermission("FinancePayment", "Submit")]`<br>• `[AccessPermission("FinancePayment", "Approve")]`<br>• `[AccessPermission("FinancePayment", "MarkPaid")]`<br>• `[AccessPermission("FinancePayment", "Cancel")]` |
+| 2 | `FinanceReceiptsController`<br>`Areas/Corporate/FinanceManagement/Collection/Controllers/FinanceReceiptsController.cs` | `Receipt` | `FinanceReceipt` | • `[AccessPermission("FinanceReceipt", "Read")]`<br>• `[AccessPermission("FinanceReceipt", "Create")]`<br>• `[AccessPermission("FinanceReceipt", "Allocate")]`<br>• `[AccessPermission("FinanceReceipt", "Reverse")]` |
+| 3 | `FinanceReceivablesController`<br>`Areas/Corporate/FinanceManagement/Receivable/Controllers/FinanceReceivablesController.cs` | `Receivable` | `FinanceReceivable` | • `[AccessPermission("FinanceReceivable", "Read")]`<br>• `[AccessPermission("FinanceReceivable", "Update")]`<br>• `[AccessPermission("FinanceReceivable", "RequestAdjustment")]`<br>• `[AccessPermission("FinanceReceivable", "ApproveAdjustment")]`<br>• `[AccessPermission("FinanceReceivable", "RequestWriteOff")]`<br>• `[AccessPermission("FinanceReceivable", "ApproveWriteOff")]` |
+| 4 | `FinanceSupplierPayablesController`<br>`Areas/Corporate/FinanceManagement/Payable/Controllers/FinanceSupplierPayablesController.cs` | `SupplierPayable` | `FinanceSupplierPayable` | • `[AccessPermission("FinanceSupplierPayable", "Read")]`<br>• `[AccessPermission("FinanceSupplierPayable", "Create")]`<br>• `[AccessPermission("FinanceSupplierPayable", "Update")]`<br>• `[AccessPermission("FinanceSupplierPayable", "RequestAdjustment")]`<br>• `[AccessPermission("FinanceSupplierPayable", "ApproveAdjustment")]` |
+| 5 | `FinanceBillingIntakeController`<br>`Areas/Corporate/FinanceManagement/BillingIntake/Controllers/FinanceBillingIntakeController.cs` | `BillingIntake` | `FinanceBillingIntake` | • `[AccessPermission("FinanceBillingIntake", "Read")]`<br>• `[AccessPermission("FinanceBillingIntake", "Consume")]` |
+| 6 | `FinanceAccountingEventsController`<br>`Areas/Corporate/FinanceManagement/AccountingIntegration/Controllers/FinanceAccountingEventsController.cs` | `AccountingEvents` (jamak) | `FinanceAccountingEvent` (tunggal) | • `[AccessPermission("FinanceAccountingEvent", "Read")]` |
+
+---
+
+## D.6 Strategi Migrasi Data Peran & Mekanisme Seeder
+
+### 1. Skrip Migrasi SQL Idempotent Database (`SysRolePermissions`)
+
+Perubahan nama resource pada atribut kode C# wajib diiringi dengan pembaruan data pada tabel izin peran sistem yang sudah terlanjur tersimpan di basis data lingkungan berjalan (Development, UAT, Staging, maupun Produksi). Jika tidak dimigrasikan, pengguna yang sudah memegang peran akan mendapati pesan kesalahan `403 Forbidden` saat mengakses API karena string resource di database masih merujuk ke nama lama.
+
+> **DIKOREKSI — `FIN-PERM-1.4`, 29 September 2026 (AMENDMENT REVISI 7).** Skrip di bawah ini
+> **DICABUT**: ia menyasar tabel `SysRolePermissions` berkolom `ResourceName`, dan **tabel maupun
+> kolom itu tidak ada** pada skema backend ini. Dijalankan apa adanya, ia gagal
+> `relation "SysRolePermissions" does not exist`. Koreksi ini ditemukan saat implementasi
+> `BE-FIN-042`; penggantinya sudah ditulis dan berada di
+> `Migrations/scripts/be-fin-042-role-permissions-migration.sql`.
+
+**Mekanisme yang sebenarnya.** Hak akses disimpan pada `SysAccessPolicy` sebagai **kunci asing**
+`(DepartmentId, PositionId, ControllerAccessId, ActionAccessId)` — berbasis **Departemen + Posisi**,
+bukan "Role", dan menunjuk registry `SysControllerAccess`/`SysActionAccess` lewat Id, bukan lewat
+string nama resource. Karena itu rename nama resource **tidak dapat** dikerjakan dengan `UPDATE`
+kolom nama. Yang terjadi sesungguhnya:
+
+1. `AccessMenuSeeder` (berjalan otomatis saat aplikasi start) **membuat baris registry BARU** untuk
+   nama kanonikal, dan **menutup** baris lama (`IsActive=false`, `IsDelete=true`) — ia tidak pernah
+   mengganti nilai `ControllerName` pada baris yang sudah ada.
+2. Baris `SysAccessPolicy` yang sudah ada **masih menunjuk Id lama**. Tanpa migrasi, setiap
+   Departemen x Posisi yang sudah diberi hak kehilangannya (`403`) begitu registry lama ditutup.
+
+**Bentuk skrip pengganti** (sudah ditulis, mengikuti pola `be-sec-003b-policy-expansion.sql` milik
+`platform-authorization`): peta rename enam pasang → resolusi identitas lama dan baru dari registry →
+dry-run baca-saja → Tahap 1 melestarikan `SysAccessPolicy` ke Id baru (idempotent, digerbang
+prasyarat) → verifikasi parity ditinjau manusia → Tahap 2 menonaktifkan policy lama → bagian
+rollback. Dua tahap sengaja **dua transaksi terpisah**.
+
+**Urutan eksekusi yang MUST dipatuhi, tidak boleh dibalik:** deploy source hasil rename → jalankan
+aplikasi sekali dalam jendela pemeliharaan (supaya seeder membuat registry baru) → Tahap 1 →
+verifikasi → Tahap 2.
+
+### 2. Logika Ekspansi — DIKOREKSI `FIN-PERM-1.4` (`FIN-DEC-082`, `FIN-DEC-083`)
+
+> **DIKOREKSI — 29 September 2026 (AMENDMENT REVISI 7).** Rancangan semula menempatkan ekspansi di
+> `AccessMenuSeeder`. Itu **tidak dapat dilaksanakan**: seeder tersebut secara eksplisit **tidak
+> pernah** menulis `SysAccessPolicy` — ia hanya mengelola tiga tabel registry
+> (`SysApplicationModule`, `SysControllerAccess`, `SysActionAccess`), dan komentar kelasnya sendiri
+> menyatakan "kemampuan yang baru terdaftar tetap ditolak untuk semua orang sampai admin
+> memberikannya lewat layar Akses Role". Selain itu nama payungnya berubah (lihat butir 0 di bawah).
+> Rancangan yang berlaku sekarang diturunkan `FIN-DES-066`..`069` (`02-backend-architecture.md`
+> AMENDMENT REVISI 11).
+
+**0. Nama resource payung berubah (`FIN-DEC-082`).** Payung **bukan** `Finance.AP`/`Finance.AR`,
+melainkan **`Finance.AP.Umbrella`** dan **`Finance.AR.Umbrella`**. Alasannya: `Finance.AP` dan
+`Finance.AR` ternyata **sudah dipakai** dua controller yang berjalan nyata — `FinanceApController`
+(`api/finance/payable`) dan `FinanceArController` (`api/finance/receivable`), endpoint "V2" AP/AR —
+dengan aksi mereka sendiri (`View`, `Payment`, `Create`). Memakai nama itu untuk payung akan menimpa
+arti hak akses yang sudah dipegang kedua endpoint tersebut. Kedua controller V2 **tidak disentuh**.
+
+**1. Titik tulis (`FIN-DEC-083`, `FIN-DES-067`).** Ekspansi terjadi **saat admin memberi hak lewat
+layar Akses Role**, bukan saat seeding. Tempatnya `RoleAccessController.ApplyPoliciesAsync` — satu
+satunya jalur penulisan `SysAccessPolicy` di aplikasi ini, dipakai bersama oleh
+`POST /role-access/policies` dan `POST /role-access/policies/copy`.
+
+**2. Algoritma.** Bila permintaan simpan memuat pasangan payung, sebelum gerbang validasi registry
+yang sudah ada, tambahkan seluruh pasangan granular yang dicakup tier payung itu (D.3 + D.4).
+Seluruhnya berjalan di dalam transaksi yang sudah dibuka method tersebut, sehingga payung dan
+granularnya tersimpan atau batal bersama. Idempotent: upsert sudah berkunci alami
+`(Departemen, Posisi, Controller, Action)`.
+
+**3. Penolakan yang dapat ditindaklanjuti.** Bila satu identitas granular pada peta tidak
+terselesaikan di registry (sudah pensiun, tersembunyi, atau system-only), permintaan **ditolak** dan
+pesannya **MUST menyebut pasangan mana** yang hilang — bukan ditulis sebagian secara diam-diam.
+
+**4. Pencabutan.** Melepas centang payung saja **tidak** mencabut granularnya: baris granular ikut
+tampil tercentang di layar dan terkirim ulang pada penyimpanan berikutnya. Mencabut granular adalah
+langkah eksplisit admin. Ini perilaku yang disengaja (`FIN-DEC-083`), bukan cacat.
+
+**5. `HasAccessAsync` tidak disentuh.** Pemeriksaan hak akses saat request tetap pencarian langsung
+atas `SysAccessPolicy`. Nol perubahan pada algoritma otorisasi yang dipakai seluruh modul aplikasi.
+
+**6. Jaminan integritas masa depan.** Setiap resource granular baru di rumpun AP/AR **wajib**
+ditambahkan ke D.3 dokumen ini **dan** ke peta di kode pada perubahan yang sama.
+
+**7. Gerbang: pembawa resource payung.** Resource payung wajib punya pembawa yang terdaftar di
+registry; platform hari ini **belum dapat** mendaftarkan resource yang tidak punya satu pun endpoint.
+
+- `FIN-OQ-038` (pilihan pembawanya) — **CLOSED 29 September 2026** oleh **`FIN-DEC-084`**: dipilih
+  **perluasan `platform-authorization`** supaya resource tanpa endpoint dapat dideklarasikan lewat
+  opt-in eksplisit, dengan penjaga anti-typo yang ada sekarang **tetap dipertahankan**. Membuat
+  controller pembawa di Finance ditolak; membatalkan payung juga tidak dipilih.
+- `FIN-OQ-039` (persetujuan dan penjadwalan perluasan itu) — **TERBUKA**, ditujukan kepada Security
+  Owner + pemilik `platform-authorization`. `FIN-DEC-084` adalah keputusan **sisi Finance**: ia
+  meminta, bukan menyetujui atas nama modul lain.
+
+Sampai `FIN-OQ-039` turun, mekanisme ekspansi **MUST NOT** diimplementasikan. Ini **tidak** menahan
+penyelarasan nama enam controller (D.5) yang sudah selesai, maupun pekerjaan frontend mana pun.
+

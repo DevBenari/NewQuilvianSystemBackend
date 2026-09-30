@@ -49,7 +49,22 @@ public class GziPatientDiet : IdentityModel
     [Required] public Guid DietTypeId { get; set; }
     [Required] public Guid FoodFormId { get; set; }
 
-    /// <summary>Kebutuhan energi yang menyertai diet ini, diketik ahli gizi (`GIZ-DEC-012`).</summary>
+    /// <summary>
+    /// Revisi kebutuhan nutrisi yang mendasari diet ini (`GIZ-DEC-012`).
+    /// </summary>
+    public Guid? NutritionRequirementId { get; set; }
+
+    /// <summary>
+    /// Kebutuhan energi yang menyertai diet ini, dalam kkal.
+    /// </summary>
+    /// <remarks>
+    /// <b>Salinan yang disengaja</b>, bukan sumber kebenaran. Sumbernya adalah revisi kebutuhan
+    /// yang ditunjuk <c>NutritionRequirementId</c>. Angkanya disalin ke sini karena dapur memasak
+    /// berdasarkan angka yang berlaku saat pesanan dibuat; membacanya ulang saat produksi berarti
+    /// porsi yang sudah dimasak berubah artinya ketika ahli gizi merevisi kebutuhan di tengah
+    /// hari. Pola yang sama sudah dipakai <c>EnergyRequirementKcalSnapshot</c> pada
+    /// <c>GziProductionBatchDetail</c>.
+    /// </remarks>
     public int? EnergyRequirementKcal { get; set; }
 
     [MaxLength(1000)] public string? Instruction { get; set; }
@@ -71,6 +86,7 @@ public class GziPatientDiet : IdentityModel
     public MstPatient? Patient { get; set; }
     public GziDietType? DietType { get; set; }
     public GziFoodForm? FoodForm { get; set; }
+    public GziNutritionRequirement? NutritionRequirement { get; set; }
     public MstWorkforceProfile? PrescribedByWorkforce { get; set; }
 }
 

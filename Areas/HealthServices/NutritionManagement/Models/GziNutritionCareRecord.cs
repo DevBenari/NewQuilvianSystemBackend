@@ -2,7 +2,6 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.MasterData.Workforce.Models;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
-using QuilvianSystemBackend.Areas.HealthServices.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.NutritionManagement.Enums;
 using QuilvianSystemBackend.Models;
 
@@ -48,25 +47,36 @@ public class GziNutritionCareRecord : IdentityModel
 
     // --- Diagnosis gizi --------------------------------------------------------------
     /// <summary>
-    /// Menunjuk <c>MstDiagnosis</c> bertipe <c>NUTRITION</c> (`GIZ-DEC-009`).
+    /// Diagnosis IDNT yang ditegakkan pada kunjungan ini (`GIZ-DEC-011`). Boleh lebih dari
+    /// satu, karena itu berupa tabel anak dan bukan satu kolom.
     /// </summary>
-    public Guid? NutritionDiagnosisId { get; set; }
+    public ICollection<GziNutritionCareRecordDiagnosis> Diagnoses { get; set; }
+        = new List<GziNutritionCareRecordDiagnosis>();
+
     [MaxLength(1000)] public string? DiagnosisNote { get; set; }
 
     // --- Intervensi ------------------------------------------------------------------
     [MaxLength(2000)] public string? InterventionNote { get; set; }
-    [MaxLength(500)] public string? DietPrescription { get; set; }
 
     /// <summary>
-    /// Kebutuhan energi harian dalam kkal, DIKETIK ahli gizi (`GIZ-DEC-012`).
+    /// Diet yang ditetapkan pada kunjungan ini, menunjuk baris <c>GziPatientDiet</c>.
     /// </summary>
     /// <remarks>
-    /// Sistem sengaja tidak memuat rumus apa pun. Rumus kebutuhan gizi berbeda antar rumah
-    /// sakit dan antar kondisi pasien; menanamkannya berarti satu rumus keliru berdampak
-    /// pada seluruh pasien sekaligus, dan kekeliruan itu sulit terlihat karena hasilnya
-    /// tetap tampak masuk akal.
+    /// Menggantikan kolom teks bebas <c>DietPrescription</c>. `GIZ-DEC-012` menetapkan diet
+    /// dipilih dari master diet rumah sakit; diet yang diketik bebas tidak dapat dipakai dapur
+    /// untuk merekap produksi, dan dua ejaan berbeda bagi diet yang sama menjadi dua diet.
     /// </remarks>
-    public int? EnergyRequirementKcal { get; set; }
+    public Guid? PatientDietId { get; set; }
+
+    /// <summary>
+    /// Revisi kebutuhan nutrisi yang berlaku bagi kunjungan ini (`GIZ-DEC-012`).
+    /// </summary>
+    /// <remarks>
+    /// Menggantikan kolom tunggal <c>EnergyRequirementKcal</c>. Kebutuhan nutrisi kini memuat
+    /// lima parameter beserta nilai kalkulasi, nilai final, dan alasan koreksinya, sehingga
+    /// pemiliknya adalah tabel kebutuhan — bukan satu angka yang menempel di sini.
+    /// </remarks>
+    public Guid? NutritionRequirementId { get; set; }
 
     // --- Recall asupan ---------------------------------------------------------------
     [MaxLength(2000)] public string? IntakeRecallNote { get; set; }
@@ -88,6 +98,7 @@ public class GziNutritionCareRecord : IdentityModel
 
     public GziNutritionOrder? NutritionOrder { get; set; }
     public MstWorkforceProfile? RecordedByWorkforce { get; set; }
-    public MstDiagnosis? NutritionDiagnosis { get; set; }
+    public GziPatientDiet? PatientDiet { get; set; }
+    public GziNutritionRequirement? NutritionRequirement { get; set; }
     public TrxPatientIntegratedProgressNote? ProgressNote { get; set; }
 }

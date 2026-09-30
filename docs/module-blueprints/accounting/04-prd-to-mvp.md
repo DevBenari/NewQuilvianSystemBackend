@@ -725,6 +725,7 @@ Menambah tabel atau kolom Phase 2 ke MVP dengan alasan future proofing — terma
 | Tanggal | 8 September 2026 |
 | Masukan | `02-backend-architecture.md@4`, `03-frontend-architecture.md` bagian 9–14, seluruh kontrak Phase 2, `evidence/08`, `evidence/09` |
 | Traceability | `ACC-DEC-044` sampai `ACC-DEC-057` |
+| Amandemen 28 September 2026 | **Approved Rizki, 28 September 2026 (`GATE-DESAIN-0928`).** Kemampuan `ACC-P2-CAP-008` dan epic `ACC-P2-EPIC-07` (control account, saldo subledger, rekonsiliasi): `FR-P2-035`..`040` yang selama ini hanya tercatat di traceability dipindah ke sini, ditambah `FR-P2-041`..`044` baru; skenario `UAT-P2-24`..`33`; DoD, urutan pengiriman, dan pertanyaan terbuka disesuaikan. Dasar `ACC-DEC-062`, `064`..`066`, `071`, `076`, `087`, `093`, `107`..`114`. Isi yang sudah approved tidak diubah selain angka DoD butir 1–2 |
 | Backend SHA | `02c3219` · Frontend SHA `e732424eb` |
 
 ## 21b. Penegasan lingkup Phase 1 — 9 September 2026
@@ -778,6 +779,7 @@ sendiri** untuk pekerjaan yang berulang, dan itulah yang membuat kesalahannya me
 | `ACC-P2-CAP-005` | Menerbitkan jurnal berulang sebagai draft setiap periode | `ACC-DEC-050` | `MISSING / NEW` |
 | `ACC-P2-CAP-006` | Menutup bulan lewat pengajuan dan persetujuan dua orang berbeda | `ACC-DEC-051`, `ACC-DEC-052`, `ACC-DEC-055` | `EXTEND` atas periode yang sudah ada |
 | `ACC-P2-CAP-007` | Menutup tahun dan memindahkan laba ke laba ditahan | `ACC-DEC-053`, `ACC-DEC-054` | `EXTEND` atas jurnal yang sudah ada |
+| `ACC-P2-CAP-008` *(amandemen 28 Sep 2026)* | Mencocokkan saldo control account di buku besar dengan saldo subledger yang diterbitkan Finance setiap periode, dan menahan penutupan selama belum cocok | `ACC-DEC-062`, `064`, `066`, `071`, `076` | `EXTEND` atas daftar akun dan penutupan periode yang sudah ada |
 
 ## 24. Kemampuan yang ditunda beserta penggantinya
 
@@ -788,6 +790,7 @@ sendiri** untuk pekerjaan yang berulang, dan itulah yang membuat kesalahannya me
 | Jurnal berulang triwulanan dan tahunan | Enum `RecurringFrequency` menyediakan ruangnya, tetapi hanya `Bulanan` dibangun | Template bulanan, atau jurnal manual |
 | Pembagian laba sebelum laba ditahan | Ditolak `ACC-DEC-054`; belum ada aturan pembagian dari pemegang saham | Jurnal manual terpisah sesudah jurnal penutup disahkan |
 | Penyaringan badan hukum per pengguna | Diwarisi dari MVP, `ACC-TD-002` masih `OPEN` | Penjaga `IsDefault` (`ACC-DEC-043`) |
+| Penahan shift kasir belum ditutup (`FR-P2-038`) *(amandemen 30 September 2026, **approved** Rizki — `GATE-DESAIN-0930`)* | Dipindah menjadi syarat gerbang cutover G6 (`ACC-DEC-124`). Penegakannya bergantung pada kejadian penanda shift dari Finance (`evidence/14` pertanyaan 7.4) dan jawaban OQ-124-1 — bagaimana Accounting mengetahui shift yang dibuka. Sebelum cutover tidak ada kas yang masuk buku lewat kejadian, sehingga tidak ada yang dapat diperiksa | Butir "Shift kasir belum ditutup" tetap tampil "belum dapat diperiksa" dan tidak menahan (`UAT-P2-26`). Sebelum cutover, transaksi kas kasir memang tidak dikirim ke Accounting (`ACC-XMOD` bagian 13). Cutover tidak boleh dimulai sebelum penegakan ini dibangun dan diuji |
 
 ## 25. Epic dan functional requirement
 
@@ -855,6 +858,36 @@ sendiri** untuk pekerjaan yang berulang, dan itulah yang membuat kesalahannya me
 | `FR-P2-033` | Jurnal penutup lahir berstatus `Draft` berjenis `JT`, dan disahkan lewat jalur pengesahan jurnal yang sudah ada | `EXTEND` |
 | `FR-P2-034` | Jurnal penutup yang sudah sah dapat dibalik lewat pembalikan jurnal yang sudah ada | `EXTEND` atas `ACC-DEC-029` |
 
+### `ACC-P2-EPIC-07` — Control account, saldo subledger, dan rekonsiliasi *(amandemen 28 September 2026)*
+
+`FR-P2-035`..`040` sudah ada sejak amandemen roadmap 9 September 2026 tetapi baru tercatat di
+`roadmap/requirement-traceability-phase2.md`; di sini dicantumkan ulang dengan nomor yang sama.
+`FR-P2-041`..`044` baru.
+
+| ID | Functional requirement | Disposisi |
+|---|---|---|
+| `FR-P2-035` | Akun dapat ditandai sebagai control account | `EXTEND` atas daftar akun |
+| `FR-P2-036` | Jurnal **manual** ke control account ditolak | `EXTEND` atas jurnal |
+| `FR-P2-037` | Jurnal dari kejadian, template, dan tutup tahun **tidak** terkena larangan itu | `EXTEND` atas jurnal |
+| `FR-P2-038` | Shift kasir belum ditutup menjadi penghalang ketiga tutup bulan | `MISSING / NEW` — **ditunda menjadi syarat gerbang cutover G6** (`ACC-DEC-124`; amandemen 30 September 2026, approved `GATE-DESAIN-0930`). Tidak dihitung pada DoD butir 1 Phase 2; lihat bagian 24 |
+| `FR-P2-039` | Saldo control account dihitung hanya dari baris jurnal `Posted` | `MISSING / NEW` |
+| `FR-P2-040` | Saldo subledger dibandingkan dengan saldo buku besar **per periode**, dan selisih serta keadaan tiap akun — cocok, berselisih, belum diterima, cut-off bukan akhir periode — dilaporkan di layar yang memilih periode, bukan tanggal | `MISSING / NEW` |
+| `FR-P2-041` | Pesan saldo subledger disimpan sebagai saldo per badan hukum, periode, dan control account **tanpa menghasilkan jurnal**; versi lebih tinggi mengganti angkanya, versi sama atau lebih rendah tidak; periode `Closed` tidak diubah | `MISSING / NEW` — dibangun `BE-ACC-P2-027`/`028` |
+| `FR-P2-042` | Sejak titik mulai, pengajuan penutupan ditolak selama ada control account wajib yang belum menerima saldo, saldonya bertanggal cut-off bukan akhir periode, atau berselisih — toleransi nol, tanpa jalan pengecualian | `EXTEND` atas penutupan periode |
+| `FR-P2-043` | Rekonsiliasi berlaku otomatis mulai periode saldo subledger pertama untuk badan hukum itu; sebelumnya butirnya tampil "belum dapat diperiksa" dan tidak menahan | `EXTEND` atas penutupan periode |
+| `FR-P2-044` | Tutup permanen ditolak selama rekonsiliasi periode itu belum bersih | `EXTEND` atas penutupan periode |
+
+### `ACC-P2-EPIC-08` — Draft jurnal hasil kejadian *(amandemen 29 September 2026, **approved** `GATE-DESAIN-0929`)*
+
+Dasar: `ACC-DEC-116`..`121`. Kemampuan asal: `ACC-P2-CAP-002` (kejadian menjadi jurnal lewat aturan posting), `ACC-P2-CAP-004` (kejadian gagal dan percobaan ulang), `ACC-P2-CAP-006` (tutup bulan), dan jurnal MVP.
+
+| FR | Isi | Disposisi |
+|---|---|---|
+| `FR-P2-045` | Menghapus jurnal hasil kejadian — `Draft` maupun `Rejected` — mengembalikan kejadiannya ke Gagal dan mencatat penghapusan di riwayat percobaan | `EXTEND` atas hapus jurnal dan status kejadian |
+| `FR-P2-046` | Jurnal hasil kejadian tidak dapat disunting | `EXTEND` atas ubah jurnal |
+| `FR-P2-047` | Jurnal hasil kejadian berstatus Ditolak menahan tutup bulan sampai diajukan ulang atau dihapus | `EXTEND` atas penutupan periode |
+| `FR-P2-048` | Rincian Jurnal menampilkan tombol Ubah dan Hapus dari `AvailableActions` dan asal kejadiannya | `EXTEND` atas `FE-ACC-007` — menutup gap tombol Ubah/Hapus yang belum pernah dibangun |
+
 ## 26. Skenario UAT
 
 Setiap epic `MUST HAVE` punya jalur berhasil **dan** jalur gagal.
@@ -884,6 +917,21 @@ Setiap epic `MUST HAVE` punya jalur berhasil **dan** jalur gagal.
 | `UAT-P2-21` | Pratinjau tutup tahun ditekan | Berhasil | Angka tampil, **nol jurnal terbentuk** |
 | `UAT-P2-22` | Jurnal penutup disusun lalu disahkan | Berhasil | Akun pendapatan dan beban bersaldo nol; laba ada di laba ditahan |
 | `UAT-P2-23` | Ditemukan jurnal Desember terlewat sesudah jurnal penutup sah | **Gagal terkendali** | Jurnal penutup dibalik, Desember dibuka kembali beralasan, jurnal penutup disusun ulang |
+| `UAT-P2-24` *(amandemen)* | Petugas menyimpan jurnal manual yang barisnya menunjuk Kas Kecil (control account) | Gagal | Ditolak `422`, pesannya menyebut akunnya |
+| `UAT-P2-25` *(amandemen)* | Kejadian dari Finance dan draft template yang menyentuh control account diajukan | Berhasil | Lolos; larangan hanya berlaku untuk jurnal manual |
+| `UAT-P2-26` *(amandemen)* | Daftar periksa dibuka sebelum kejadian penutupan shift mengalir | **Gagal terkendali** | Penghalang shift kasir tampil "belum dapat diperiksa", tanpa angka |
+| `UAT-P2-27` *(amandemen)* | Kas Kasir punya satu jurnal `Posted` Rp 14.500.000 dan satu jurnal `Draft` | Berhasil | Saldo buku besar di layar Rekonsiliasi Rp 14.500.000 — draft tidak dihitung |
+| `UAT-P2-28` *(amandemen)* | Periode September dipilih di layar Rekonsiliasi sesudah Finance mengirim saldo | Berhasil | Buku besar, subledger, selisih, dan keadaan tampil per akun; akun tanpa saldo berbunyi "belum diterima", bukan `Rp 0` |
+| `UAT-P2-29` *(amandemen)* | Finance mengirim saldo Piutang versi 2, lalu versi 1 datang terlambat | **Gagal terkendali** | Angka versi 2 tetap berlaku; kejadian versi 1 `Tercatat` tanpa mengubah saldo |
+| `UAT-P2-30` *(amandemen)* | Daftar periksa dibuka di badan hukum yang belum pernah menerima saldo subledger | Berhasil | Butir rekonsiliasi "belum dapat diperiksa", Ajukan tetap menyala bila penghalang lain nol |
+| `UAT-P2-31` *(amandemen)* | Sesudah saldo pertama, Kas Kecil belum dikirimi saldo dan Utang Supplier berselisih Rp 500 | Gagal | Ajukan mati; `submit-closing` langsung ditolak `409` dengan rincian dua akun |
+| `UAT-P2-32` *(amandemen)* | Finance melengkapi saldo Kas Kecil Rp 0 dan menyatakan ulang Utang Supplier dengan angka yang cocok | Berhasil | Butir rekonsiliasi bersih, periode dapat diajukan |
+| `UAT-P2-33` *(amandemen)* | Sesudah disetujui, Finance mengirim saldo Piutang versi baru yang berselisih, lalu Manager menutup permanen | Gagal | Ditolak `409`; periode tetap Tutup Sementara |
+| `UAT-P2-34` *(amandemen 29 Sep)* | Petugas menghapus draft jurnal hasil kejadian yang salah akun | Berhasil | Kejadian kembali Gagal, riwayat percobaan mencatat penghapusan, daftar periksa menghitung satu kejadian gagal |
+| `UAT-P2-35` *(amandemen 29 Sep)* | Sesudah aturan posting dibetulkan, kejadian dari `UAT-P2-34` dicoba ulang | Berhasil | Draft baru terbit dengan akun yang benar; kejadian Terjurnal |
+| `UAT-P2-36` *(amandemen 29 Sep)* | Petugas mencoba mengubah keterangan jurnal hasil kejadian | Gagal | Ditolak `409`; tombol Ubah memang tidak ditawarkan layar |
+| `UAT-P2-37` *(amandemen 29 Sep)* | Penyetuju menolak jurnal hasil kejadian, lalu Manager mengajukan penutupan periodenya | Gagal | Ditolak `409` jurnal belum disahkan; jurnal manual yang ditolak tidak ikut dihitung |
+| `UAT-P2-38` *(amandemen 29 Sep)* | Petugas menghapus jurnal hasil kejadian berstatus Ditolak | Berhasil | Jurnal terhapus, kejadian kembali Gagal; jurnal manual Ditolak tetap tidak dapat dihapus |
 
 ## 27. Definition of Done
 
@@ -891,8 +939,8 @@ Setiap butir dapat dijawab "ya" atau "belum", beserta buktinya.
 
 | # | Butir | Bukti yang diterima |
 |---:|---|---|
-| 1 | Seluruh 34 functional requirement punya kode yang berjalan | Laporan task tracked per task |
-| 2 | Seluruh 23 skenario UAT sudah dijalankan dan hasilnya tercatat | Matriks acceptance dengan **kolom bukti yang sudah ada**, bukan hanya "bukti yang diharapkan" |
+| 1 | Seluruh 34 functional requirement punya kode yang berjalan — **44** sesudah amandemen 28 September 2026 (`FR-P2-035`..`044`); **48** sesudah amandemen 29 September 2026 (`FR-P2-045`..`048`); **47** sesudah amandemen 30 September 2026 (approved `GATE-DESAIN-0930`), karena `FR-P2-038` dipindah menjadi syarat gerbang cutover G6 (`ACC-DEC-124`) | Laporan task tracked per task |
+| 2 | Seluruh 23 skenario UAT sudah dijalankan dan hasilnya tercatat — **33** sesudah amandemen 28 September 2026 (`UAT-P2-24`..`33`); **38** sesudah amandemen 29 September 2026 (`UAT-P2-34`..`38`) | Matriks acceptance dengan **kolom bukti yang sudah ada**, bukan hanya "bukti yang diharapkan" |
 | 3 | `UAT-P2-02` dan `UAT-P2-12` terbukti terhadap **PostgreSQL sungguhan** | Test integrasi di `Tests/QuilvianSystemBackend.IntegrationTests.Postgres` |
 | 4 | Seluruh endpoint Phase 2 membawa `[AccessPermission]` | Hitungan endpoint lawan atribut, seperti audit 7 September |
 | 5 | Seluruh service Phase 2 memanggil `AccountingLegalEntityGuard` | Pemeriksaan source |
@@ -921,6 +969,7 @@ Gelombang, bukan tanggal.
 | `P2-4` | Tutup bulan: daftar periksa, pengajuan, persetujuan, peran ketujuh | MVP | **Ya** — tidak bergantung pada Finance sama sekali |
 | `P2-5` | Tutup tahun | `P2-4` | **Ya** |
 | `P2-6` | Frontend keempat slice | `P2-1` sampai `P2-5` | **Ya** |
+| `P2-RECON` *(amandemen 28 Sep 2026)* | Control account (`FR-P2-035`..`039`), penyimpanan saldo subledger (`FR-P2-041`, `027`/`028` ✅), lalu pembanding dan penghalang rekonsiliasi (`FR-P2-040`, `042`..`044`) | `P2-1`, `P2-4` | **Ya** — diuji dengan pesan saldo tiruan lewat Swagger; baru menahan tutup bulan sejak saldo pertama diterima |
 | `POST-MVP` | **Penyambungan sungguhan ke Finance** | `ACC-XM-001` diratifikasi, modul Finance berdiri | **Tidak** — menunggu pihak lain |
 
 **Temuan yang paling berguna dari urutan ini:** hanya gelombang terakhir yang benar-benar
@@ -937,6 +986,8 @@ tujuannya menunjukkan kemajuan Phase 2 tanpa menunggu Yasmin, ketiga gelombang i
 | ~~`DEC-ACC-P2-005`~~ | ~~Isi template jurnal berulang: nominal tetap atau rumus~~ | **DITUTUP 14 September 2026 — `ACC-DEC-078`**: nominal tetap, sesuai yang sudah dibangun `BE-ACC-P2-007` | Rizki |
 | ~~`DEC-ACC-P2-006`~~ | ~~Koreksi sesudah jurnal penutup tahun sah~~ | **DITUTUP 10 September 2026 — `ACC-DEC-068`**: pakai pembalikan jurnal yang sudah ada, tanpa mekanisme buka-kembali-tahun-buku | Rizki |
 | ~~`DEC-ACC-P2-007`~~ | ~~Status `Diabaikan` pada kejadian gagal~~ | **DITUTUP 14 September 2026 — `ACC-DEC-078`**: `Diabaikan` dipakai untuk kejadian Gagal dengan alasan tertulis wajib, sesuai `ACC-STATE` Phase 2 | Rizki |
+| `ACC-P2-OQ-REC-1` *(amandemen)* | Kesanggupan Finance mengirim saldo untuk keempat kelompok control account, termasuk Rp 0, dengan `Amount` menurut saldo normal dan bertanggal akhir periode (`ACC-XMOD-0.4` bagian 8a) | Tidak untuk development; **Ya** untuk cutover G4 | Yasmin |
+| ~~`ACC-P2-OQ-REC-2`~~ *(amandemen)* | ~~Pembacaan layar Rekonsiliasi dicatat `LoggerService` atau tidak~~ | **DITUTUP 28 September 2026 — `ACC-DEC-115`**: tidak dicatat | Rizki |
 | `DEC-ACC-P2-008` | Cara mendeteksi aturan posting yang ada tetapi salah | Tidak — usulan: laporan jurnal otomatis per aturan per periode. **Tetap terbuka** per `ACC-DEC-078`, dan tidak memblokir Wave A | Rizki |
 
 **Nol epic berstatus `OPEN DECISION`.** Keenam pertanyaan di atas menyangkut isi data dan

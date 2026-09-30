@@ -9,6 +9,7 @@ using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using QuilvianSystemBackend.Areas.Administrator.MasterData.Services;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingEvent.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.Configuration.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Reconciliation.Services;
@@ -30,6 +31,8 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Ser
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Workers;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Workers;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Services;
@@ -97,6 +100,28 @@ try
     CultureInfo.DefaultThreadCurrentUICulture = CultureInfo.InvariantCulture;
 
     var builder = WebApplication.CreateBuilder(args);
+
+    var runtimeRole = (
+    builder.Configuration["Runtime:Role"] ?? "All"
+    ).Trim();
+
+    var runWebRuntime =
+        runtimeRole.Equals("All", StringComparison.OrdinalIgnoreCase) ||
+        runtimeRole.Equals("Web", StringComparison.OrdinalIgnoreCase);
+
+    var runBackgroundJobs =
+        runtimeRole.Equals("All", StringComparison.OrdinalIgnoreCase) ||
+        runtimeRole.Equals("Worker", StringComparison.OrdinalIgnoreCase);
+
+    var runVersionRegistration =
+        runtimeRole.Equals("All", StringComparison.OrdinalIgnoreCase) ||
+        runtimeRole.Equals("Worker", StringComparison.OrdinalIgnoreCase);
+
+    if (!runWebRuntime && !runBackgroundJobs)
+    {
+        throw new InvalidOperationException(
+            $"Runtime:Role '{runtimeRole}' tidak valid. Gunakan All, Web, atau Worker.");
+    }
 
     var backendVersionManifest = BackendVersionManifest.Load(builder.Environment.ContentRootPath);
 
@@ -399,9 +424,7 @@ try
     builder.Services.AddScoped<IEncounterContinuationProbe, LabEncounterContinuationProbe>();
     builder.Services.AddScoped<KioskEncounterClosureService>();
     builder.Services.Configure<KioskEncounterClosureOptions>(
-        builder.Configuration.GetSection("HealthServices:KioskEncounterClosure"));
-    builder.Services.AddHostedService<KioskEncounterClosureHostedService>();
-
+    builder.Configuration.GetSection("HealthServices:KioskEncounterClosure"));
     builder.Services.AddScoped<EncounterPaymentSourceService>();
     builder.Services.AddScoped<EncounterInsuranceService>();
     builder.Services.AddScoped<InsuranceCoverageService>();
@@ -480,8 +503,7 @@ try
     builder.Services.AddScoped<MedicationAdministrationService>();
     builder.Services.AddScoped<SlidingScaleExecutionService>();
     builder.Services.Configure<MedicationDoseSchedulerOptions>(
-        builder.Configuration.GetSection("HealthServices:MedicationDoseScheduler"));
-    builder.Services.AddHostedService<MedicationDoseSchedulerHostedService>();
+    builder.Configuration.GetSection("HealthServices:MedicationDoseScheduler"));
 
     // BE-RWI-041 / CAP-025. Kejadian visite dokter beserta penyedia nomor bisnisnya. Nomor
     // dialokasikan service, tidak pernah oleh controller - QBE-CODE-002.
@@ -514,6 +536,13 @@ try
     builder.Services.AddScoped<PrescriptionCopyService>();
     builder.Services.AddScoped<NutritionOrderService>();
     builder.Services.AddScoped<NutritionDietService>();
+    builder.Services.AddScoped<NutritionRequirementService>();
+
+    // Pencari rumus kebutuhan nutrisi. Didaftarkan singleton karena isinya hanya pemetaan
+    // kunci ke kelas perhitungan, dan pada V1 pemetaan itu KOSONG: rumus belum diserahkan
+    // pemilik proses (`GIZ-OQ-007` ditunda), sehingga nilai kalkulasi dibiarkan kosong dan
+    // ahli gizi mengisi nilai final sendiri.
+    builder.Services.AddSingleton<NutritionRequirementCalculator>();
     builder.Services.AddSingleton<OperatingRoomRuleRelaxation>();
     builder.Services.AddScoped<OperatingRoomCaseService>();
     builder.Services.AddScoped<OperatingRoomCredentialResolver>();
@@ -576,7 +605,6 @@ try
     builder.Services.AddScoped<InpatientBillingQueryService>();
     builder.Services.AddScoped<IInpatientClearanceGateService, InpatientClearanceGateService>();
     builder.Services.AddScoped<InpatientClearanceGateService>();
-    builder.Services.AddHostedService<InpatientIntegrationOutboxWorker>();
 
     // Master data Rawat Inap. Dipakai dua controller pada layar admin, bukan oleh service
     // Rawat Inap. Keduanya memegang seluruh pembacaan dan perubahan tabel masternya supaya
@@ -657,7 +685,6 @@ try
     // modul Human Resource; frekuensinya dikonfigurasi, bukan ditanam di kode.
     builder.Services.Configure<EmergencyTriageSlaMonitorOptions>(
         builder.Configuration.GetSection("HealthServices:EmergencyTriageSlaMonitor"));
-    builder.Services.AddHostedService<EmergencyTriageSlaMonitorHostedService>();
 
     builder.Services.AddScoped<HumanResourceContextService>();
     builder.Services.AddScoped<EmployeeProfileChangeService>();
@@ -695,7 +722,6 @@ try
         builder.Configuration.GetSection("HumanResource:AttendanceScheduler"));
     builder.Services.AddScoped<AttendancePeriodService>();
     builder.Services.AddScoped<AttendanceSchedulerService>();
-    builder.Services.AddHostedService<AttendanceSchedulerHostedService>();
 
     // CORPORATE - ACCOUNTING MANAGEMENT
     // Satu baris per service modul, sesuai 02-backend-architecture.md bagian 6. Pemanggilan
@@ -711,10 +737,12 @@ try
     builder.Services.AddScoped<AccRecurringJournalService>();
     builder.Services.Configure<AccRecurringJournalSchedulerOptions>(
         builder.Configuration.GetSection("Accounting:RecurringJournalScheduler"));
-    builder.Services.AddHostedService<AccRecurringJournalSchedulerHostedService>();
     builder.Services.AddScoped<AccJournalService>();
     builder.Services.AddScoped<AccGeneralLedgerService>();
     builder.Services.AddScoped<AccControlAccountReconciliationService>();
+    builder.Services.Configure<AccAccountingEventSchedulerOptions>(
+        builder.Configuration.GetSection("Accounting:AccountingEventScheduler"));
+    builder.Services.AddScoped<AccAccountingEventService>();
 
     builder.Services.AddScoped<LeaveEntitlementBalanceQueryService>();
     builder.Services.AddScoped<LeaveAdjustmentPostingService>();
@@ -726,13 +754,11 @@ try
     builder.Services.AddScoped<LeaveAccrualSchedulerService>();
     builder.Services.Configure<LeaveAccrualSchedulerOptions>(
         builder.Configuration.GetSection("HumanResource:LeaveAccrualScheduler"));
-    builder.Services.AddHostedService<LeaveAccrualSchedulerHostedService>();
     builder.Services.AddScoped<LeaveCarryForwardPolicyResolverService>();
     builder.Services.AddScoped<LeaveCarryForwardProcessorService>();
     builder.Services.AddScoped<LeaveCarryForwardSchedulerService>();
     builder.Services.Configure<LeaveCarryForwardSchedulerOptions>(
         builder.Configuration.GetSection("HumanResource:LeaveCarryForwardScheduler"));
-    builder.Services.AddHostedService<LeaveCarryForwardSchedulerHostedService>();
     builder.Services.AddScoped<LeaveRequestCalculationService>();
     builder.Services.AddScoped<LeaveRequestReservationService>();
     builder.Services.AddScoped<LeaveRequestAttachmentService>();
@@ -746,7 +772,6 @@ try
     builder.Services.AddScoped<LeaveCalendarService>();
     builder.Services.Configure<LeaveExecutionSchedulerOptions>(
         builder.Configuration.GetSection("HumanResource:LeaveExecutionScheduler"));
-    builder.Services.AddHostedService<LeaveExecutionSchedulerHostedService>();
     builder.Services.Configure<LeavePayrollIntegrationOptions>(
         builder.Configuration.GetSection("HumanResource:LeavePayrollIntegration"));
     builder.Services.AddScoped<LeavePayrollIntegrationService>();
@@ -778,7 +803,6 @@ try
     builder.Services.Configure<OvertimeSchedulerOptions>(
         builder.Configuration.GetSection("HumanResource:OvertimeScheduler"));
     builder.Services.AddScoped<OvertimeSchedulerService>();
-    builder.Services.AddHostedService<OvertimeSchedulerHostedService>();
 
     builder.Services.AddScoped<OvertimeSelfServiceContextService>();
     builder.Services.AddScoped<OvertimeSelfServiceQueryService>();
@@ -856,6 +880,11 @@ try
     // pendaftaran dan mencabut yang lain.
     builder.Services.AddBillingManagement();
 
+    // BE-RJE-010: pekerja kirim ulang efek folio Rawat Jalan yang belum sampai ke invoice.
+    builder.Services.AddHostedService<BilInvoiceSyncWorker>();
+    // BE-RJE-011: pekerja kirim ulang fakta klinis yang hasil penyerahannya belum pasti.
+    builder.Services.AddHostedService<ClinicalFactDispatchWorker>();
+
     builder.Services.AddScoped<BillingArApHandoffService>();
 
     builder.Services.AddScoped<BillingPayerEditService>();
@@ -884,6 +913,31 @@ try
     // setelah registrasi manual di atas supaya adapter payment provider berbasis konfigurasi
     // (Billing:PaymentProvider:AutoAcceptWithoutProvider) yang berlaku.
     builder.Services.AddBillingManagement();
+
+    // ============================================================
+    // RUNTIME ROLE - BACKGROUND WORKERS
+    // ============================================================
+    //
+    // All    = compatibility mode untuk deployment lama.
+    // Web    = API/web only, tanpa background scheduler.
+    // Worker = background scheduler only.
+    //
+    // Pada Blue-Green Production, BLUE dan GREEN memakai Web,
+    // sedangkan hanya satu container terpisah memakai Worker.
+    if (runBackgroundJobs)
+    {
+        builder.Services.AddHostedService<KioskEncounterClosureHostedService>();
+        builder.Services.AddHostedService<MedicationDoseSchedulerHostedService>();
+        builder.Services.AddHostedService<InpatientIntegrationOutboxWorker>();
+        builder.Services.AddHostedService<EmergencyTriageSlaMonitorHostedService>();
+        builder.Services.AddHostedService<AttendanceSchedulerHostedService>();
+        builder.Services.AddHostedService<AccRecurringJournalSchedulerHostedService>();
+        builder.Services.AddHostedService<AccAccountingEventSchedulerHostedService>();
+        builder.Services.AddHostedService<LeaveAccrualSchedulerHostedService>();
+        builder.Services.AddHostedService<LeaveCarryForwardSchedulerHostedService>();
+        builder.Services.AddHostedService<LeaveExecutionSchedulerHostedService>();
+        builder.Services.AddHostedService<OvertimeSchedulerHostedService>();
+    }
 
     builder.Services.AddAuthorization(options =>
     {
@@ -1262,10 +1316,11 @@ try
     }
 
     Log.Information(
-        "Starting {Application} {BackendVersion} in {Environment} environment.",
+        "Starting {Application} {BackendVersion} in {Environment} environment. RuntimeRole={RuntimeRole}.",
         appName,
         appVersion,
-        app.Environment.EnvironmentName
+        app.Environment.EnvironmentName,
+        runtimeRole
     );
 
     var uploadRootPath = builder.Configuration["FileStorage:UploadRootPath"];
@@ -1439,76 +1494,83 @@ try
         }
     }
 
-    await RunStartupSeederAsync("AppVersionSeeder", () => AppVersionSeeder.SeedAsync(app.Services));
-    await RunStartupSeederAsync("DefaultWorkScheduleSeeder", () => DefaultWorkScheduleSeeder.SeedAsync(app.Services));
-    await RunStartupSeederAsync("SuperAdminSeeder", () => SuperAdminSeeder.SeedAsync(app.Services));
-    await RunStartupSeederAsync("AccessMenuSeeder", () => AccessMenuSeeder.SeedAsync(app.Services));
-    // Data induk OPERASIONAL Laboratorium. Keduanya sengaja tetap berdiri: alasan penolakan
-    // wadah dan jenis specimen adalah data yang dibutuhkan modul sejak hari pertama, bukan data
-    // contoh. Environment baru yang berangkat tanpa keduanya akan menolak setiap penerimaan
-    // wadah tanpa sebab yang dapat dipilih petugas.
-    //
-    // Hanya LabDummyDataSeeder yang dicabut 2026-09-17 atas instruksi pemilik modul — ia memang
-    // data CONTOH, mati secara bawaan dan menolak berjalan di produksi.
-    await RunStartupSeederAsync("LabRejectionReasonSeeder", () => LabRejectionReasonSeeder.SeedAsync(app.Services));
-    await RunStartupSeederAsync("LabSpecimenTypeSeeder", () => LabSpecimenTypeSeeder.SeedAsync(app.Services));
-
-    // Data induk Patologi Anatomi: golongan, ruas isian, dan keberlakuannya. Ketiganya TETAP —
-    // isinya datang dari LAB-EVD-003 bagian 5.6, bukan dari kebiasaan satu rumah sakit.
-    //
-    // Data induk KEEMPAT — pemetaan jenis pemeriksaan ke golongan — sengaja TIDAK diseed; ia
-    // bergantung katalog rumah sakit yang bersangkutan dan diisi kepala instalasi. Selama ia
-    // kosong, formulir hasil Patologi Anatomi kosong sama sekali (INV-39), dan seeder ini
-    // menuliskan peringatan penyalaan untuk keadaan itu.
-    await RunStartupSeederAsync("LabPathologyMasterDataSeeder", () => LabPathologyMasterDataSeeder.SeedAsync(app.Services));
-    await RunStartupSeederAsync("LabSpecimenDetailTypeSeeder", () => LabSpecimenDetailTypeSeeder.SeedAsync(app.Services));
-
-    await RunStartupSeederAsync("LabDisciplineSettingSeeder", () => LabDisciplineSettingSeeder.SeedAsync(app.Services));
-
-    // Data master Radiologi. Mengisi alat pencitraan dan butir keselamatan, lalu menyusun
-    // usulan aturan keselamatan sebagai DRAF — tidak pernah Active. Aturan yang menentukan
-    // kapan pasien boleh disinari hanya berlaku setelah disahkan penanggung jawab klinis
-    // (RJ-BIL-DEC-014, DEC-RAD-005).
-    await RunStartupSeederAsync("RadiologyMasterDataSeeder", () => RadiologyMasterDataSeeder.SeedAsync(app.Services));
-
-    // HMD-BP-001, BE-HMD-03. Data master awal Hemodialisa: unit HD, tindakan hemodialisis, dua belas
-    // butir checklist Pra-HD yang SELURUHNYA tidak boleh dilewati (HMD-ASM-001), lima butir kesiapan
-    // unit, dan satu baris pengaturan unit. Idempoten — baris yang sudah ada tidak diisi ulang.
-    await RunStartupSeederAsync("HemodialysisMasterDataSeeder", () => HemodialysisMasterDataSeeder.SeedAsync(app.Services));
-
-    // Gerbang integritas permission (Phase A0).
-    //
-    // Menyandingkan setiap [AccessPermission] dengan baris registry yang benar-benar dibuat
-    // seeder. Selisih di antara keduanya menghasilkan 403 permanen yang tidak dapat diperbaiki
-    // admin, dan tidak terlihat saat diuji dengan SuperAdmin karena SuperAdmin melewati seluruh
-    // pemeriksaan.
-    //
-    // Sengaja dijalankan SESUDAH seluruh seeder registry, termasuk RadiologyMasterDataSeeder,
-    // supaya yang diperiksa adalah keadaan akhir registry — bukan keadaan setengah jadi.
-    //
-    // Di luar Production kegagalan menghentikan startup supaya ketahuan sebelum rilis. Di
-    // Production ia hanya mencatat Critical: rumah sakit tidak boleh gagal boot karena satu
-    // anotasi yang salah.
-    using (var permissionValidationScope = app.Services.CreateScope())
+    if (runVersionRegistration)
     {
-        var permissionRegistryValidator = permissionValidationScope.ServiceProvider
-            .GetRequiredService<PermissionRegistryValidator>();
-
-        permissionRegistryValidator.ValidateAndReport(
-            throwOnFailure: !app.Environment.IsProduction());
+        await RunStartupSeederAsync("AppVersionSeeder", () => AppVersionSeeder.SeedAsync(app.Services));
     }
 
+    if (runWebRuntime)
+    {
+        await RunStartupSeederAsync("DefaultWorkScheduleSeeder", () => DefaultWorkScheduleSeeder.SeedAsync(app.Services));
+        await RunStartupSeederAsync("SuperAdminSeeder", () => SuperAdminSeeder.SeedAsync(app.Services));
+        await RunStartupSeederAsync("FinanceApprovalRoleSeeder", () => FinanceApprovalRoleSeeder.SeedAsync(app.Services));
+        await RunStartupSeederAsync("AccessMenuSeeder", () => AccessMenuSeeder.SeedAsync(app.Services));
+        // Data induk OPERASIONAL Laboratorium. Keduanya sengaja tetap berdiri: alasan penolakan
+        // wadah dan jenis specimen adalah data yang dibutuhkan modul sejak hari pertama, bukan data
+        // contoh. Environment baru yang berangkat tanpa keduanya akan menolak setiap penerimaan
+        // wadah tanpa sebab yang dapat dipilih petugas.
+        //
+        // Hanya LabDummyDataSeeder yang dicabut 2026-09-17 atas instruksi pemilik modul — ia memang
+        // data CONTOH, mati secara bawaan dan menolak berjalan di produksi.
+        await RunStartupSeederAsync("LabRejectionReasonSeeder", () => LabRejectionReasonSeeder.SeedAsync(app.Services));
+        await RunStartupSeederAsync("LabSpecimenTypeSeeder", () => LabSpecimenTypeSeeder.SeedAsync(app.Services));
 
-    // Data induk contoh Laboratorium. Mati secara bawaan dan menolak berjalan di produksi.
-    var runLabDummySeed = builder.Configuration.GetValue<bool>("Seeders:RunLabDummySeed");
+        // Data induk Patologi Anatomi: golongan, ruas isian, dan keberlakuannya. Ketiganya TETAP —
+        // isinya datang dari LAB-EVD-003 bagian 5.6, bukan dari kebiasaan satu rumah sakit.
+        //
+        // Data induk KEEMPAT — pemetaan jenis pemeriksaan ke golongan — sengaja TIDAK diseed; ia
+        // bergantung katalog rumah sakit yang bersangkutan dan diisi kepala instalasi. Selama ia
+        // kosong, formulir hasil Patologi Anatomi kosong sama sekali (INV-39), dan seeder ini
+        // menuliskan peringatan penyalaan untuk keadaan itu.
+        await RunStartupSeederAsync("LabPathologyMasterDataSeeder", () => LabPathologyMasterDataSeeder.SeedAsync(app.Services));
+        await RunStartupSeederAsync("LabSpecimenDetailTypeSeeder", () => LabSpecimenDetailTypeSeeder.SeedAsync(app.Services));
+
+        await RunStartupSeederAsync("LabDisciplineSettingSeeder", () => LabDisciplineSettingSeeder.SeedAsync(app.Services));
+
+        // Data master Radiologi. Mengisi alat pencitraan dan butir keselamatan, lalu menyusun
+        // usulan aturan keselamatan sebagai DRAF — tidak pernah Active. Aturan yang menentukan
+        // kapan pasien boleh disinari hanya berlaku setelah disahkan penanggung jawab klinis
+        // (RJ-BIL-DEC-014, DEC-RAD-005).
+        await RunStartupSeederAsync("RadiologyMasterDataSeeder", () => RadiologyMasterDataSeeder.SeedAsync(app.Services));
+
+        // HMD-BP-001, BE-HMD-03. Data master awal Hemodialisa: unit HD, tindakan hemodialisis, dua belas
+        // butir checklist Pra-HD yang SELURUHNYA tidak boleh dilewati (HMD-ASM-001), lima butir kesiapan
+        // unit, dan satu baris pengaturan unit. Idempoten — baris yang sudah ada tidak diisi ulang.
+        await RunStartupSeederAsync("HemodialysisMasterDataSeeder", () => HemodialysisMasterDataSeeder.SeedAsync(app.Services));
+
+        // Gerbang integritas permission (Phase A0).
+        //
+        // Menyandingkan setiap [AccessPermission] dengan baris registry yang benar-benar dibuat
+        // seeder. Selisih di antara keduanya menghasilkan 403 permanen yang tidak dapat diperbaiki
+        // admin, dan tidak terlihat saat diuji dengan SuperAdmin karena SuperAdmin melewati seluruh
+        // pemeriksaan.
+        //
+        // Sengaja dijalankan SESUDAH seluruh seeder registry, termasuk RadiologyMasterDataSeeder,
+        // supaya yang diperiksa adalah keadaan akhir registry — bukan keadaan setengah jadi.
+        //
+        // Di luar Production kegagalan menghentikan startup supaya ketahuan sebelum rilis. Di
+        // Production ia hanya mencatat Critical: rumah sakit tidak boleh gagal boot karena satu
+        // anotasi yang salah.
+        using (var permissionValidationScope = app.Services.CreateScope())
+        {
+            var permissionRegistryValidator = permissionValidationScope.ServiceProvider
+                .GetRequiredService<PermissionRegistryValidator>();
+
+            permissionRegistryValidator.ValidateAndReport(
+                throwOnFailure: !app.Environment.IsProduction());
+        }
 
 
-    // BE-RWI-107 / RWI-DEC-124 butir 4.
-    // Instrumen dan formulir klinis awal sebagai DRAFT — tidak pernah
-    // disahkan oleh seeder.
-    await RunStartupSeederAsync(
-        "ClinicalInstrumentDraftSeeder",
-        () => ClinicalInstrumentDraftSeeder.SeedAsync(app.Services));
+        // Data induk contoh Laboratorium. Mati secara bawaan dan menolak berjalan di produksi.
+        var runLabDummySeed = builder.Configuration.GetValue<bool>("Seeders:RunLabDummySeed");
+
+
+        // BE-RWI-107 / RWI-DEC-124 butir 4.
+        // Instrumen dan formulir klinis awal sebagai DRAFT — tidak pernah
+        // disahkan oleh seeder.
+        await RunStartupSeederAsync(
+            "ClinicalInstrumentDraftSeeder",
+            () => ClinicalInstrumentDraftSeeder.SeedAsync(app.Services));
 
     // Master data 3S asuhan keperawatan (SDKI, SLKI, SIKI) — 10 diagnosa prioritas rawat inap.
     await RunStartupSeederAsync(
@@ -1529,48 +1591,49 @@ try
     // Pengaturan `Seeders:RunLabDummySeed` dibiarkan ada pada appsettings dan nol dibaca.
     // Mencabutnya adalah perubahan konfigurasi milik pemilik modul, bukan perbaikan build.
 
-    var runOperatingRoomDemoSeed =
-        builder.Configuration.GetValue<bool>("Seeders:RunOperatingRoomDemoSeed");
+        var runOperatingRoomDemoSeed =
+            builder.Configuration.GetValue<bool>("Seeders:RunOperatingRoomDemoSeed");
 
-    if (runOperatingRoomDemoSeed)
-    {
-        await RunStartupSeederAsync(
-            "OperatingRoomDemoSeeder",
-            () => SeedOperatingRoomDemoAsync(
-                app.Services,
-                app.Environment,
-                builder.Configuration));
+        if (runOperatingRoomDemoSeed)
+        {
+            await RunStartupSeederAsync(
+                "OperatingRoomDemoSeeder",
+                () => SeedOperatingRoomDemoAsync(
+                    app.Services,
+                    app.Environment,
+                    builder.Configuration));
+        }
+
+        var runPrescriptionReviewCriterionSeed =
+        builder.Configuration.GetValue<bool>(
+            "Seeders:RunPrescriptionReviewCriterionSeed");
+
+        if (runPrescriptionReviewCriterionSeed)
+        {
+            await RunStartupSeederAsync(
+                "PrescriptionReviewCriterionSeeder",
+                () => SeedPrescriptionReviewCriteriaAsync(app.Services));
+        }
+
+        // Seed Awal Saja
+        // var icd10FolderPath = Path.Combine(
+        //     app.Environment.ContentRootPath,
+        //     "SeedData",
+        //     "ICD10"
+        // );
+
+        // await Icd10DiagnosisSeeder.SeedAsync(app.Services, icd10FolderPath);
+
+        var runIcdSeed = builder.Configuration.GetValue<bool>("Seeders:RunIcdSeed");
+        var icdSeedPath = builder.Configuration["Seeders:IcdFolderPath"];
+
+        if (runIcdSeed && !string.IsNullOrWhiteSpace(icdSeedPath))
+        {
+            await Icd10DiagnosisSeeder.SeedAsync(app.Services, icdSeedPath);
+        }
     }
 
-    var runPrescriptionReviewCriterionSeed =
-     builder.Configuration.GetValue<bool>(
-         "Seeders:RunPrescriptionReviewCriterionSeed");
-
-    if (runPrescriptionReviewCriterionSeed)
-    {
-        await RunStartupSeederAsync(
-            "PrescriptionReviewCriterionSeeder",
-            () => SeedPrescriptionReviewCriteriaAsync(app.Services));
-    }
-
-    // Seed Awal Saja
-    // var icd10FolderPath = Path.Combine(
-    //     app.Environment.ContentRootPath,
-    //     "SeedData",
-    //     "ICD10"
-    // );
-
-    // await Icd10DiagnosisSeeder.SeedAsync(app.Services, icd10FolderPath);
-
-    var runIcdSeed = builder.Configuration.GetValue<bool>("Seeders:RunIcdSeed");
-    var icdSeedPath = builder.Configuration["Seeders:IcdFolderPath"];
-
-    if (runIcdSeed && !string.IsNullOrWhiteSpace(icdSeedPath))
-    {
-        await Icd10DiagnosisSeeder.SeedAsync(app.Services, icdSeedPath);
-    }
-
-    if (app.Environment.IsDevelopment())
+    if (runWebRuntime && app.Environment.IsDevelopment())
     {
         app.UseSwagger();
 
@@ -1656,8 +1719,11 @@ try
     app.UseAuthentication();
     app.UseAuthorization();
 
-    app.MapControllers();
-    app.MapHub<QueueHub>("/hubs/queues");
+    if (runWebRuntime)
+    {
+        app.MapControllers();
+        app.MapHub<QueueHub>("/hubs/queues");
+    }
 
     app.Run();
 

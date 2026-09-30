@@ -280,3 +280,71 @@ Ini bagian yang paling mudah salah dibaca dari ERD di atas.
 Ketiganya sengaja dipisah. Bila `NetTransferAmount` dipakai mengurangi utang, utang jasa tidak
 akan pernah lunas karena potongan pajak dan kasbon akan selamanya tersisa sebagai "kekurangan
 bayar" — padahal kewajiban rumah sakit kepada penerima memang sudah selesai (`FIN-DES-028`).
+
+---
+
+# AMENDMENT REVISI 4 — Perluasan FinSupplierPayable
+
+| Field | Nilai |
+|---|---|
+| Revisi | `4`, 25 September 2026 — status `draft` |
+| Dipicu | `FIN-SC-008` (`Keuangan.md`) |
+| Keputusan | `FIN-DEC-045`, `FIN-DES-040` |
+
+`FinSupplierPayable` mendapat satu kolom tambahan, `SourcePurchasingInvoiceId` (nullable, FK ke
+`FinPurchasingInvoice`). Baris lama dan baris yang tetap dibuat manual bernilai `NULL` — jalur
+input manual **tidak dihapus** (`FIN-DES-040`). Baris yang dibuat sistem saat Purchasing Invoice
+berstatus `Approved` terisi otomatis.
+
+Seluruh entity Purchasing/AP baru (`FinPurchaseOrder`, `FinInvoiceExchange`,
+`FinPurchasingInvoice`, `FinSupplierReturn`, `FinSupplierReturnDeposit`, dst.) berada di bounded
+context terpisah — lihat `erd/purchasing-ap.md`. Diagram di bagian 1 dokumen ini sengaja tidak
+digambar ulang di sini untuk menghindari dua sumber kebenaran yang bisa menyimpang.
+
+---
+
+# AMENDMENT REVISI 5 — Deposit Retur sebagai sumber dana pembayaran
+
+| Field | Nilai |
+|---|---|
+| Revisi | `5`, 25 September 2026 — status `approved` 26 September 2026 |
+| Keputusan | `FIN-DEC-057`, `061`; `FIN-DES-045`..`047` |
+
+```mermaid
+erDiagram
+    FinPayment {
+        uuid Id PK
+        numeric TotalAmount "jumlah utang yang dilunasi — tidak berubah artinya"
+        numeric DeductionAmount
+        numeric AdditionAmount
+        numeric DepositAppliedAmount "BARU"
+        numeric NetTransferAmount "Total - Potongan + Tambahan - Deposit"
+    }
+    FinPaymentAllocation {
+        uuid Id PK
+        uuid PaymentId FK
+        numeric Amount "melunasi utang penuh, tidak berubah"
+    }
+    FinSupplierReturnDepositUsage {
+        uuid Id PK
+        uuid PaymentId FK
+        uuid SupplierReturnDepositId FK
+        numeric UsedAmount
+        varchar Status "RESERVED, APPLIED, RELEASED"
+    }
+    FinPayment ||--o{ FinPaymentAllocation : "1:N — Sudah ada"
+    FinPayment ||--o{ FinSupplierReturnDepositUsage : "1:N — Baru"
+```
+
+**Empat angka pada satu pembayaran** (melengkapi A.3):
+
+| Angka | Menjawab pertanyaan |
+|---|---|
+| `TotalAmount` | Berapa utang yang lunas? — **tidak berubah artinya** |
+| `DepositAppliedAmount` | Berapa bagian yang dilunasi dari kredit retur, bukan uang? |
+| `NetTransferAmount` | Berapa uang yang benar-benar keluar dari rekening? |
+| `OutstandingAmount` pada utang | Berkurang sebesar **alokasinya** — sama seperti sebelumnya |
+
+Deposit **bukan** baris alokasi: satu faktur yang dilunasi sebagian dari transfer dan sebagian
+dari deposit tetap satu baris alokasi, sehingga `FIN-VAL-057` (satu utang sekali per pembayaran)
+tidak dilanggar (`FIN-DES-045`).

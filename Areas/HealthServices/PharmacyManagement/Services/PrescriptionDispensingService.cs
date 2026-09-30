@@ -1,7 +1,12 @@
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Constants;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
@@ -81,12 +86,18 @@ public sealed class PrescriptionDispensingService
     private readonly LoggerService _loggerService;
     private readonly DrugStockService _drugStockService;
     private readonly PrescriptionFinancialClearanceService _financialClearanceService;
+    private readonly ClinicalMilestoneFactProducer _clinicalMilestoneFactProducer;
+    private readonly ILogger<PrescriptionDispensingService> _logger;
 
     public PrescriptionDispensingService(ApplicationDbContext dbContext,
         IHttpContextAccessor httpContextAccessor, LoggerService loggerService,
         DrugStockService drugStockService,
-        PrescriptionFinancialClearanceService financialClearanceService)
+        PrescriptionFinancialClearanceService financialClearanceService,
+        ClinicalMilestoneFactProducer clinicalMilestoneFactProducer,
+        ILogger<PrescriptionDispensingService> logger)
     {
+        _clinicalMilestoneFactProducer = clinicalMilestoneFactProducer;
+        _logger = logger;
         _financialClearanceService = financialClearanceService;
         _dbContext = dbContext;
         _httpContextAccessor = httpContextAccessor;
@@ -332,7 +343,81 @@ public sealed class PrescriptionDispensingService
                 FulfillmentStatus = prescription.FulfillmentStatus.ToString()
             });
 
+        await EmitDispensedChargeAsync(prescription, usage.Id, actorUserId, now, cancellationToken);
+
         return (await GetSummaryAsync(prescriptionId, cancellationToken))!;
+    }
+
+    /// <summary>
+    /// Tahap 2 obat dua tahap (<c>RJ-E2E-DEC-005</c>): merevisi fakta tagihan resep dengan jumlah
+    /// kumulatif yang benar-benar diserahkan per item, sehingga Billing menyesuaikan tagihan
+    /// tahap 1 (<c>PRESCRIBED</c>) menjadi <c>DISPENSED</c>.
+    /// </summary>
+    /// <remarks>
+    /// Dipanggil setelah penyerahan tersimpan — producer menolak berjalan di dalam transaksi.
+    /// Hanya merevisi fakta tahap 1 yang sudah ada; resep dari jalur lama yang tidak pernah
+    /// menerbitkannya tidak mendapat tagihan baru dari sini. Kegagalan penyerahan ke Billing
+    /// tidak pernah membatalkan penyerahan obat yang sudah terjadi.
+    /// </remarks>
+    private async Task EmitDispensedChargeAsync(PhmPrescription prescription, Guid drugUsageId,
+        Guid actorUserId, DateTime now, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var stageOne = await _dbContext.Set<CliClinicalMilestoneFact>().AsNoTracking()
+                .Where(x => x.SourceContext == BillingSourceContract.PrescriptionSourceContext
+                    && x.SourceAggregateId == prescription.Id
+                    && x.SourceItemId == null
+                    && x.EffectType == BillingSourceContract.PrescriptionChargeEffectType
+                    && !x.IsDelete)
+                .OrderByDescending(x => x.MilestoneFactVersion)
+                .Select(x => new { x.CorrelationId })
+                .FirstOrDefaultAsync(cancellationToken);
+            if (stageOne is null) return;
+
+            var usages = await LoadUsagesAsync(prescription.Id, cancellationToken);
+            var dispensedItems = usages
+                .Where(x => DispensedStatuses.Contains(x.Status))
+                .SelectMany(x => x.Items)
+                .Where(x => x.PrescriptionItemId != null)
+                .GroupBy(x => x.PrescriptionItemId!.Value)
+                .Select(x => new { prescriptionItemId = x.Key.ToString("D"), quantity = x.Sum(i => i.Quantity) })
+                .Where(x => x.quantity > 0)
+                .OrderBy(x => x.prescriptionItemId, StringComparer.Ordinal)
+                .ToList();
+
+            var emission = await _clinicalMilestoneFactProducer.EmitChargeEligibilityAsync(
+                new ClinicalMilestoneFactRequest
+                {
+                    SourceContext = BillingSourceContract.PrescriptionSourceContext,
+                    SourceAggregateId = prescription.Id,
+                    EffectType = BillingSourceContract.PrescriptionChargeEffectType,
+                    EncounterId = prescription.EncounterId,
+                    OccurredAt = now,
+                    Quantity = dispensedItems.Count > 0 ? dispensedItems.Count : null,
+                    Unit = dispensedItems.Count > 0 ? "ITEM" : null,
+                    // SEC-RJ-005: hanya id item dan jumlah, tanpa instruksi obat.
+                    RuleSnapshot = JsonSerializer.Serialize(new
+                    {
+                        milestone = BillingSourceContract.PrescriptionMilestoneDispensed,
+                        items = dispensedItems
+                    }),
+                    CorrelationId = stageOne.CorrelationId == Guid.Empty ? prescription.Id : stageOne.CorrelationId,
+                    CausationId = drugUsageId
+                },
+                actorUserId,
+                cancellationToken);
+
+            if (!emission.IsClinicallySafe)
+                await _loggerService.AuditAsync(LogCategory, "PrescriptionDispensing.BillingHandoffIssue",
+                    "Penyesuaian tagihan resep setelah penyerahan belum tersampaikan ke Billing.",
+                    new { PrescriptionId = prescription.Id, DrugUsageId = drugUsageId, emission.Code });
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            _logger.LogError(exception, "Fakta tagihan resep tahap 2 gagal diterbitkan untuk resep {PrescriptionId}.",
+                prescription.Id);
+        }
     }
 
     // =================================================================== batal

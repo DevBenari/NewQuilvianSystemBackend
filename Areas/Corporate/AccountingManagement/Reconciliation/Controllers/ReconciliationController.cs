@@ -56,6 +56,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.Reconciliat
             CancellationToken ct)
             => ToActionResult(await _service.GetGlBalancesAsync(query, ct));
 
+        [HttpGet("subledger-comparison")]
+        [AccessAction("Read", "Read Control Account Reconciliation", Description = "Melihat perbandingan saldo subledger control account per periode", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("AccountingReconciliation", "Read")]
+        public async Task<IActionResult> GetSubledgerComparison(
+            [FromQuery] SubledgerComparisonQuery query,
+            CancellationToken ct)
+            => ToActionResult(await _service.GetSubledgerComparisonAsync(query, ct));
+
         private IActionResult ToActionResult<T>(AccountingServiceResult<T> result)
         {
             return result.Success

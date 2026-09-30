@@ -14,9 +14,13 @@ public sealed class FinPaymentConfiguration : IEntityTypeConfiguration<FinPaymen
             table.HasCheckConstraint("CK_FinPayment_Status", "\"Status\" IN ('DRAFT','SUBMITTED','APPROVED','PAID','REJECTED','CANCELLED')");
             table.HasCheckConstraint("CK_FinPayment_PaymentMethod", "\"PaymentMethod\" IN ('TRANSFER','CASH','CHEQUE')");
             table.HasCheckConstraint("CK_FinPayment_Total", "\"TotalAmount\" > 0");
+            // BE-FIN-041: rumus diperluas dengan DepositAppliedAmount (FIN-DES-045). Seluruh baris
+            // lama bernilai DepositAppliedAmount = 0, sehingga constraint ini identik dengan bentuk
+            // lama untuk mereka — nol backfill diperlukan.
             table.HasCheckConstraint("CK_FinPayment_NetTransfer",
-                "\"NetTransferAmount\" = \"TotalAmount\" - \"DeductionAmount\" + \"AdditionAmount\"");
+                "\"NetTransferAmount\" = \"TotalAmount\" - \"DeductionAmount\" + \"AdditionAmount\" - \"DepositAppliedAmount\"");
             table.HasCheckConstraint("CK_FinPayment_NetTransferNonNegative", "\"NetTransferAmount\" >= 0");
+            table.HasCheckConstraint("CK_FinPayment_DepositApplied", "\"DepositAppliedAmount\" >= 0");
             // Maker-checker: pengaju tidak boleh menyetujui pembayarannya sendiri (FIN-VAL-051).
             table.HasCheckConstraint("CK_FinPayment_MakerChecker", "\"ApprovedBy\" IS NULL OR \"ApprovedBy\" <> \"RequestedBy\"");
             // Pembayaran yang berstatus PAID wajib teralokasi penuh ke utang (FIN-VAL-050).
@@ -33,6 +37,7 @@ public sealed class FinPaymentConfiguration : IEntityTypeConfiguration<FinPaymen
         entity.Property(x => x.DeductionAmount).HasPrecision(18, 2).HasDefaultValue(0m);
         entity.Property(x => x.AdditionAmount).HasPrecision(18, 2).HasDefaultValue(0m);
         entity.Property(x => x.NetTransferAmount).HasPrecision(18, 2).HasDefaultValue(0m);
+        entity.Property(x => x.DepositAppliedAmount).HasPrecision(18, 2).HasDefaultValue(0m);
         entity.Property(x => x.Status).HasMaxLength(30).IsRequired().HasDefaultValue(FinPaymentStatuses.Draft);
         entity.Property(x => x.ApprovalTier).HasMaxLength(30);
         entity.Property(x => x.RequestedAt).HasColumnType("timestamp with time zone");

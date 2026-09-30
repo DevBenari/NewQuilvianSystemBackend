@@ -14,6 +14,24 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
     {
         public const string RealtimeEventName = "QueueRealtimeEvent";
 
+        /// <summary>
+        /// Event ringan untuk klinik lain dalam cluster yang sama: kunci panggilan dokter berubah.
+        /// Menggantikan polling <c>GET doctor-queues/call-lock</c> di frontend.
+        /// </summary>
+        public const string DoctorCallLockChangedEventType = "DoctorCallLockChanged";
+
+        /// <summary>Event dokter yang dapat membuat, memperpanjang, atau melepas kunci panggilan.</summary>
+        private static readonly HashSet<string> DoctorCallLockEventTypes = new(StringComparer.Ordinal)
+        {
+            "QueueCalledByDoctor",
+            "QueueConsultationStarted",
+            "QueueConsultationFinished",
+            "QueueSkippedByDoctor",
+            "QueueNoShowByDoctor",
+            "QueueRequeuedToDoctor",
+            "QueueCancelled"
+        };
+
         private const string NurseStationClusterGroupPrefix = "nurse-station-cluster";
         private const string DoctorQueueDoctorGroupPrefix = "doctor-queue-doctor";
         private const string DoctorQueueClinicGroupPrefix = "doctor-queue-clinic";
@@ -255,6 +273,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                             .Group(BuildDoctorQueueClinicGroupName(queue.ClinicId.Value))
                             .SendAsync(RealtimeEventName, payload));
                     }
+
+                    if (DoctorCallLockEventTypes.Contains(eventType))
+                    {
+                        sendTasks.AddRange(await BuildClusterCallLockNotificationsAsync(queue, nurseStationClusterIds));
+                    }
                 }
 
                 if (sendTasks.Count > 0)
@@ -271,6 +294,49 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Serv
                     ex
                 );
             }
+        }
+
+        /// <summary>
+        /// Kunci panggilan dokter berlaku per nurse station cluster, sedangkan dokter hanya
+        /// bergabung ke grup klinik tempat ia berjadwal. Dokter di klinik lain dalam cluster yang
+        /// sama karena itu diberi event ringan tanpa data pasien, cukup untuk membaca ulang
+        /// kunci. Klinik antrean itu sendiri sudah menerima event lengkap.
+        /// </summary>
+        private async Task<List<Task>> BuildClusterCallLockNotificationsAsync(
+            TrxQueue queue,
+            List<Guid> nurseStationClusterIds)
+        {
+            if (nurseStationClusterIds.Count == 0)
+            {
+                return new List<Task>();
+            }
+
+            var siblingClinicIds = await _dbContext.Set<MstNurseStationClusterClinic>()
+                .AsNoTracking()
+                .Where(x =>
+                    !x.IsDelete &&
+                    x.IsActive &&
+                    nurseStationClusterIds.Contains(x.NurseStationClusterId) &&
+                    x.ClinicId != queue.ClinicId)
+                .Select(x => x.ClinicId)
+                .Distinct()
+                .ToListAsync();
+
+            var lockPayload = new QueueRealtimeEventResponse
+            {
+                EventType = DoctorCallLockChangedEventType,
+                ClinicId = queue.ClinicId,
+                NurseStationClusterIds = nurseStationClusterIds,
+                QueueDate = queue.QueueDate,
+                DoctorCallExpiresAt = queue.DoctorCallExpiresAt,
+                OccurredAt = DateTime.UtcNow
+            };
+
+            return siblingClinicIds
+                .Select(clinicId => _hubContext.Clients
+                    .Group(BuildDoctorQueueClinicGroupName(clinicId))
+                    .SendAsync(RealtimeEventName, lockPayload))
+                .ToList();
         }
 
         private async Task<List<Guid>> ResolveNurseStationClusterIdsAsync(TrxQueue queue)

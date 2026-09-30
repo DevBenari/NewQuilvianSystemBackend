@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingEvent.Models;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingEvent.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingPeriod.Services;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalManagement.DTOs;
@@ -357,6 +359,15 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalMana
             var status = PeriksaDapatDisunting<JournalDetailResponse>(jurnal, untukPenghapusan: false);
             if (status is not null) return status;
 
+            var sumber = await CariKejadianSumberAsync(jurnal.Id, ct);
+            if (sumber is not null)
+            {
+                return AccountingServiceResult<JournalDetailResponse>.Fail(
+                    StatusCodes.Status409Conflict,
+                    $"Jurnal {jurnal.JournalNumber} dibentuk dari kejadian {sumber.EventNumber} dan tidak dapat diubah. "
+                    + "Hapus jurnal ini untuk menjurnal ulang kejadiannya, atau minta Finance mengirim kejadian pembalik.");
+            }
+
             // BE-ACC-P2-012. Setiap penggantian baris lewat method ini adalah susunan manusia —
             // termasuk atas draft hasil template dan jurnal pembalik yang ditolak (`ACC-DEC-072`
             // butir 3, `ACC-DEC-073` butir 4). Hanya JournalController yang memanggilnya.
@@ -485,11 +496,68 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalMana
             var jurnal = await MuatLengkapAsync(id, lacak: true, ct);
             if (jurnal is null) return TidakDitemukan<bool>();
 
-            var status = PeriksaDapatDisunting<bool>(jurnal, untukPenghapusan: true);
+            var sumber = await CariKejadianSumberAsync(jurnal.Id, ct);
+
+            var status = sumber is not null && jurnal.JournalStatus == JournalStatus.Rejected
+                ? null
+                : PeriksaDapatDisunting<bool>(jurnal, untukPenghapusan: true);
             if (status is not null) return status;
 
             var sekarang = DateTime.UtcNow;
 
+            if (sumber is null)
+            {
+                TandaiJurnalTerhapus(jurnal, actorUserId, sekarang);
+                await _db.SaveChangesAsync(ct);
+
+                return AccountingServiceResult<bool>.Ok(true, "Jurnal draft berhasil dihapus.");
+            }
+
+            var namaAktor = await AmbilNamaAktorAsync(new Guid?[] { actorUserId }, ct);
+            var namaPenghapus = NamaAktor(namaAktor, actorUserId) ?? actorUserId.ToString();
+            var catatan = $"Jurnal draft {jurnal.JournalNumber} dihapus oleh {namaPenghapus}.";
+
+            var transaksiSendiri = _db.Database.CurrentTransaction is null;
+            var transaksi = transaksiSendiri
+                ? await _db.Database.BeginTransactionAsync(ct)
+                : null;
+
+            try
+            {
+                var dikembalikan = await AccAccountingEventService.KembalikanKeGagalKarenaJurnalDihapusAsync(
+                    _db, sumber.Id, jurnal.Id, catatan, actorUserId, sekarang, ct);
+
+                if (!dikembalikan)
+                {
+                    if (transaksi is not null) await transaksi.RollbackAsync(ct);
+
+                    return AccountingServiceResult<bool>.Fail(
+                        StatusCodes.Status409Conflict,
+                        $"Kejadian {sumber.EventNumber} berubah bersamaan. Muat ulang rincian jurnal lalu coba lagi.");
+                }
+
+                TandaiJurnalTerhapus(jurnal, actorUserId, sekarang);
+                await _db.SaveChangesAsync(ct);
+
+                if (transaksi is not null) await transaksi.CommitAsync(ct);
+            }
+            catch
+            {
+                if (transaksi is not null) await transaksi.RollbackAsync(ct);
+                throw;
+            }
+            finally
+            {
+                if (transaksi is not null) await transaksi.DisposeAsync();
+            }
+
+            return AccountingServiceResult<bool>.Ok(
+                true,
+                $"Jurnal draft {jurnal.JournalNumber} berhasil dihapus. Kejadian {sumber.EventNumber} kembali berstatus Gagal.");
+        }
+
+        private static void TandaiJurnalTerhapus(AccJournal jurnal, Guid actorUserId, DateTime sekarang)
+        {
             jurnal.IsDelete = true;
             jurnal.DeleteDateTime = sekarang;
             jurnal.DeleteBy = actorUserId;
@@ -502,11 +570,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalMana
                 baris.DeleteDateTime = sekarang;
                 baris.DeleteBy = actorUserId;
             }
-
-            await _db.SaveChangesAsync(ct);
-
-            return AccountingServiceResult<bool>.Ok(true, "Jurnal draft berhasil dihapus.");
         }
+
+        private Task<KejadianSumber?> CariKejadianSumberAsync(Guid idJurnal, CancellationToken ct)
+            => _db.Set<AccAccountingEvent>()
+                .AsNoTracking()
+                .Where(x => x.JournalId == idJurnal && !x.IsDelete)
+                .Select(x => new KejadianSumber(x.Id, x.EventNumber))
+                .FirstOrDefaultAsync(ct);
+
+        private sealed record KejadianSumber(Guid Id, string EventNumber);
 
         // ------------------------------------------------------------------
         // Daur hidup — BE-ACC-011
@@ -720,6 +793,39 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalMana
             await _db.SaveChangesAsync(ct);
 
             return await MuatDanPetakanAsync(jurnal.Id, "Jurnal berhasil disahkan.", actorUserId, izin, ct);
+        }
+
+        public async Task<AccountingServiceResult<JournalDetailResponse>> SahkanDariKejadianAsync(
+            Guid id,
+            Guid actorUserId,
+            CancellationToken ct = default)
+        {
+            var jurnal = await MuatLengkapAsync(id, lacak: true, ct);
+            if (jurnal is null) return TidakDitemukan<JournalDetailResponse>();
+
+            if (jurnal.JournalStatus != JournalStatus.Draft)
+            {
+                return AccountingServiceResult<JournalDetailResponse>.Fail(
+                    StatusCodes.Status409Conflict,
+                    $"Jurnal {jurnal.JournalNumber} bukan draft dan tidak dapat disahkan otomatis.");
+            }
+
+            var syarat = await PeriksaSembilanSyaratAsync<JournalDetailResponse>(jurnal, ct);
+            if (syarat is not null) return syarat;
+
+            var sekarang = DateTime.UtcNow;
+
+            jurnal.JournalStatus = JournalStatus.Posted;
+            jurnal.PostedBy = actorUserId;
+            jurnal.PostedAt = sekarang;
+            jurnal.UpdateDateTime = sekarang;
+            jurnal.UpdateBy = actorUserId;
+
+            CatatRiwayat(jurnal, JournalApprovalAction.Posted, actorUserId, null, sekarang);
+
+            await _db.SaveChangesAsync(ct);
+
+            return await MuatDanPetakanAsync(jurnal.Id, "Jurnal kejadian berhasil disahkan.", actorUserId, null, ct);
         }
 
         // ------------------------------------------------------------------
@@ -1705,6 +1811,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalMana
 
             if (hasilTemplate) return true;
 
+            var hasilKejadian = await _db.Set<AccAccountingEvent>()
+                .AsNoTracking()
+                .AnyAsync(x => x.JournalId == jurnal.Id && !x.IsDelete, ct);
+
+            if (hasilKejadian) return true;
+
             if (jurnal.ReversalOfJournalId.HasValue
                 && jurnal.CorrectionType == JournalCorrectionType.FullReversal)
             {
@@ -1913,6 +2025,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalMana
                 .AsNoTracking()
                 .AnyAsync(x => x.ReversalOfJournalId == jurnal.Id && !x.IsDelete, ct);
 
+            var sumber = await CariKejadianSumberAsync(jurnal.Id, ct);
+
             var riwayat = await _db.Set<AccJournalApproval>()
                 .AsNoTracking()
                 .Where(x => x.JournalId == jurnal.Id && !x.IsDelete)
@@ -1972,6 +2086,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalMana
                 ReversalOfJournalId = jurnal.ReversalOfJournalId,
                 ReversalOfJournalNumber = jurnal.ReversalOfJournal?.JournalNumber,
                 CorrectionType = jurnal.CorrectionType,
+                SourceAccountingEventId = sumber?.Id,
+                SourceAccountingEventNumber = sumber?.EventNumber,
                 CreateDateTime = jurnal.CreateDateTime,
                 CreateBy = jurnal.CreateBy,
                 Lines = jurnal.Lines
@@ -1992,7 +2108,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalMana
                     .ToList(),
                 Approvals = riwayat,
                 AvailableActions = TindakanTersedia(
-                    jurnal, actorUserId, izin ?? JournalActorPermissions.Kosong, sudahDibalik)
+                    jurnal, actorUserId, izin ?? JournalActorPermissions.Kosong, sudahDibalik, sumber is not null)
             };
         }
 
@@ -2013,7 +2129,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalMana
             AccJournal jurnal,
             Guid actorUserId,
             JournalActorPermissions izin,
-            bool sudahDibalik)
+            bool sudahDibalik,
+            bool hasilKejadian)
         {
             var tindakan = new List<string>();
             var pembuatnyaSendiri = jurnal.CreateBy == actorUserId;
@@ -2021,14 +2138,14 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.JournalMana
             switch (jurnal.JournalStatus)
             {
                 case JournalStatus.Draft:
-                    if (izin.CanUpdate) tindakan.Add("update");
+                    if (izin.CanUpdate && !hasilKejadian) tindakan.Add("update");
                     if (izin.CanDelete) tindakan.Add("delete");
                     if (izin.CanSubmit) tindakan.Add("submit");
                     break;
 
                 case JournalStatus.Rejected:
-                    // Diperbaiki lalu diajukan kembali. Tidak dapat dihapus.
-                    if (izin.CanUpdate) tindakan.Add("update");
+                    if (izin.CanUpdate && !hasilKejadian) tindakan.Add("update");
+                    if (izin.CanDelete && hasilKejadian) tindakan.Add("delete");
                     if (izin.CanSubmit) tindakan.Add("submit");
                     break;
 

@@ -60,6 +60,10 @@ namespace QuilvianSystemBackend.Repositories.Configurations.HealthServices.Clini
             builder.HasIndex(x => x.EncounterId);
             builder.HasIndex(x => x.DispatchStatus);
 
+            // RJ-E2E-DEC-009 — dibaca pekerja kirim ulang: fakta yang belum pasti dan sudah jatuh tempo.
+            builder.Property(x => x.ReconciliationResolutionNote).HasMaxLength(500);
+            builder.HasIndex(x => new { x.DispatchStatus, x.NextDispatchAttemptAt });
+
             builder.HasOne<RegPatientEncounter>()
                 .WithMany()
                 .HasForeignKey(x => x.EncounterId)
