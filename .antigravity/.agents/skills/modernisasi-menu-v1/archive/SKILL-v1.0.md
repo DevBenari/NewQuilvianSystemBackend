@@ -119,3 +119,18 @@ Setelah user mereview dokumen laporan dan memberikan instruksi persetujuan:
 3. **Serah Terima ke Pengguna**:
    - Sajikan rangkuman file yang diubah dan bukti hasil verifikasi.
    - Sediakan instruksi git commit/push yang rapi untuk disalin pengguna (jangan jalankan git push otomatis).
+
+---
+
+## 3. Aturan Wajib Anti-Hardcode & Transparansi Data Klinis/Master
+
+1. **Larangan Keras Hardcoding Tersembunyi**:
+   - Seluruh data operasional, daftar tindakan keperawatan, pilihan master, akun pegawai, dan tanda tangan digital (TTD) wajib berasal dari API/tabel database Master Data yang sah.
+   - Dilarang keras meng-hardcode array data master di dalam komponen antarmuka atau controller tanpa memberitahu pengguna.
+2. **Kewajiban Deklarasi & Informasi Fallback / Seed Data**:
+   - Apabila sistem memerlukan data inisial (seperti 19 butir tindakan standar RS), data tersebut wajib ditempatkan pada **Database Seeder / Master Data Entity** yang dapat dikelola (CRUD) oleh administrator, BUKAN di-hardcode mati di frontend.
+   - Jika ada bagian yang terpaksa memakai nilai fallback sementara, AI **WAJIB secara transparan menginformasikan kepada pengguna** bahwa data tersebut adalah fallback dan menanyakan apakah perlu dibuatkan tabel Master Data mandiri.
+3. **Tanda Tangan Digital (TTD) Otentik**:
+   - Informasi tanda tangan wajib ditelusuri dari master profil pengguna/pegawai (`UserActive` / `Employee` / `Hrd_MstTTD` / `ttdPath`).
+   - Tampilkan berkas tanda tangan dinamis jika tersedia, atau stempel verifikasi digital berbasis akun login & timestamp resmi, dilarang menggunakan berkas/nama statis palsu.
+

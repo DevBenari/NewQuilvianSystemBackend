@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Services;
 using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 using System.Security.Claims;
@@ -45,6 +46,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
         [HttpGet("summary")]
         [ProducesResponseType(typeof(ApiResponse<DailyNursingActionSummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Daily Nursing Action", Description = "Melihat ringkasan master tindakan harian", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("DailyNursingAction", "Read")]
         public async Task<IActionResult> GetSummary(CancellationToken ct)
         {
             var summary = await _service.GetSummaryAsync(ct);
@@ -53,6 +56,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<DailyNursingActionListItemDto>>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Daily Nursing Action", Description = "Melihat daftar master tindakan harian", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("DailyNursingAction", "Read")]
         public async Task<IActionResult> GetPagedList(
             [FromQuery] string? search,
             [FromQuery] string? category,
@@ -67,6 +72,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
         [HttpGet("active")]
         [ProducesResponseType(typeof(ApiResponse<List<DailyNursingActionActiveItemDto>>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Daily Nursing Action", Description = "Melihat daftar master tindakan harian aktif", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("DailyNursingAction", "Read")]
         public async Task<IActionResult> GetActiveList(
             [FromQuery] string? category,
             CancellationToken ct = default)
@@ -78,6 +85,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [HttpGet("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<DailyNursingActionDetailDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Daily Nursing Action", Description = "Melihat detail master tindakan harian", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("DailyNursingAction", "Read")]
         public async Task<IActionResult> GetById([FromRoute] Guid id, CancellationToken ct)
         {
             var result = await _service.GetByIdAsync(id, ct);
@@ -92,6 +101,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse<DailyNursingActionDetailDto>), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [AccessAction("Create", "Create Daily Nursing Action", Description = "Menambahkan master tindakan harian", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessPermission("DailyNursingAction", "Create")]
         public async Task<IActionResult> Create(
             [FromBody] CreateDailyNursingActionRequest request,
             CancellationToken ct)
@@ -123,6 +134,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [ProducesResponseType(typeof(ApiResponse<DailyNursingActionDetailDto>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Update", "Update Daily Nursing Action", Description = "Memperbarui master tindakan harian", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("DailyNursingAction", "Update")]
         public async Task<IActionResult> Update(
             [FromRoute] Guid id,
             [FromBody] UpdateDailyNursingActionRequest request,
@@ -153,6 +166,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [HttpPatch("{id:guid}/toggle-active")]
         [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Update", "Update Daily Nursing Action", Description = "Mengubah status aktif master tindakan harian", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("DailyNursingAction", "Update")]
         public async Task<IActionResult> ToggleActive([FromRoute] Guid id, CancellationToken ct)
         {
             var actorUserId = GetCurrentUserId();
@@ -174,6 +189,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [HttpDelete("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Delete", "Delete Daily Nursing Action", Description = "Menghapus master tindakan harian", AccessType = AccessTypes.Delete, SortOrder = 4)]
+        [AccessPermission("DailyNursingAction", "Delete")]
         public async Task<IActionResult> Delete([FromRoute] Guid id, CancellationToken ct)
         {
             var actorUserId = GetCurrentUserId();

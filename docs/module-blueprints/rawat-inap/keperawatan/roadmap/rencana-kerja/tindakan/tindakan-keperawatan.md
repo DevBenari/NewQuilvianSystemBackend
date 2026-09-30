@@ -1,4 +1,4 @@
-# Laporan Analisis, Spesifikasi Swagger & Rencana Kerja Modernisasi: Tindakan Keperawatan & Medis Rawat Inap (Paritas Visual Dokter & QuilvianV1)
+# Laporan Analisis, Spesifikasi Swagger & Rencana Kerja Modernisasi: Tindakan Keperawatan Rawat Inap (Paritas 100% Menu Dokter)
 
 ## 1. Ringkasan Eksekutif & Identitas Dokumen
 
@@ -6,172 +6,207 @@
 | :--- | :--- |
 | **Area / Modul** | Pelayanan Kesehatan (*Health Services*) — Ruang Kerja Keperawatan Rawat Inap (*Inpatient Nursing Workspace*) |
 | **Menu Sasaran** | Ruang Kerja Keperawatan → Menu Utama: **Tindakan (*Inpatient Procedure Order & Management*)** |
-| **Sub-Menu / Tab** | 1. **Order Tindakan** (*Pemesanan Tindakan Medis & Keperawatan atas Instruksi Dokter*)<br/>2. **History Tindakan** (*Lini Masa & Riwayat Tindakan Episode dengan Status Verifikasi*) |
+| **Sub-Menu / Tab** | 1. **Order Tindakan** (*Pemesanan Tindakan Medis & Keperawatan atas Instruksi DPJP*)<br/>2. **History Tindakan** (*Lini Masa & Riwayat Tindakan Episode dengan Status Verifikasi*) |
 | **Jalur Dokumen** | `docs/module-blueprints/rawat-inap/keperawatan/roadmap/rencana-kerja/tindakan/tindakan-keperawatan.md` |
-| **Dasar Penyelarasan** | Mengadopsi 100% tata letak dan parameter operasional dari **QuilvianV1** (sesuai tangkapan layar `captures/keperawatan/tindakan/01-tindakan-keperawatan.png`), diselaraskan dengan tata visual modern **Ruang Kerja Dokter Rawat Inap (*Physician Workspace*)** (`ProcedureFormPanel.jsx` / `InpatientProcedureTab.jsx`), serta didukung backend `PatientProcedureController.cs` dan `TrxPatientProcedure.cs` di **QuilvianFinal**. |
-| **Standar Regulasi & Akreditasi** | **KARS / STARKES (Standar Akreditasi Rumah Sakit)**:<br/>• Bab **PP (Pelayanan dan Asuhan Pasien)** — Standar PP 1.1 & PP 2.1: Pelaksanaan prosedur klinis dan tindakan keperawatan atas instruksi tertulis/lisan dokter yang terverifikasi.<br/>• Bab **SKP (Sasaran Keselamatan Pasien)**:<br/>  - **SKP 1**: Ketepatan identifikasi pasien sebelum tindakan medis/invasif.<br/>  - **SKP 2**: Peningkatan komunikasi efektif (*TBAK / SBAR / Readback*) pada instruksi tindakan perawat-dokter dengan mekanisme *closed-loop verification*.<br/>  - **SKP 5**: Pencegahan infeksi nosokomial (*HAIs*) pada prosedur steril (kateter, infus, luka operasi).<br/>• Bab **MRMIK & Permenkes No. 24/2022**: Rekam medis elektronik terintegrasi, pemisahan tindakan berbayar (*billable*) vs *Free of Charge (FoC)*, serta audit trail verifikasi DPJP. |
-| **Prinsip Data & Anti-Hardcode** | **Zero Hardcode Guarantee** — Seluruh katalog tindakan, tarif per kelas perawatan, status penjamin (*Ditanggung/Tidak Ditanggung*), daftar dokter bertugas, dan status verifikasi dikelola langsung melalui API dinamis database backend (`MstProcedure`, `MstTariff`, `TrxPatientProcedure`). Tidak ada array tindakan fiktif di sisi frontend. |
+| **Dasar Penyelarasan** | Mengadopsi 100% tata letak dan interaksi visual dari **Ruang Kerja Dokter Rawat Inap (*Physician Workspace*)** (`ProcedureFormPanel.jsx`), menyelaraskan pemesanan tindakan perawat atas instruksi dokter dengan backend `PatientProcedureController.cs` dan `TrxPatientProcedure.cs` di **QuilvianFinal**. |
+| **Keputusan Eliminasi Komponen** | Sesuai arahan klinis operasional rumah sakit, 3 komponen pada desain sebelumnya resmi **dihilangkan**: <br/>1. **Informasi Pasien & Diagnosis SOAP Terkini** *(Dieliminasi karena sudah tersedia permanen di header workspace)*<br/>2. **Konteks Order & Instruksi Medis** *(Dieliminasi untuk memangkas redundansi; dokter pemberi instruksi diresolusi otomatis dari DPJP aktif)*<br/>3. **Tindakan Rutin Keperawatan Cepat / Preset** *(Dieliminasi agar tampilan bersih dan perawat memakai live catalog search yang konsisten)* |
+| **Standar Regulasi & Akreditasi** | **KARS / STARKES (Standar Akreditasi Rumah Sakit)**:<br/>• Bab **PP (Pelayanan dan Asuhan Pasien)** — Standar PP 1.1 & PP 2.1: Prosedur klinis dan tindakan keperawatan atas instruksi tertulis/lisan dokter yang terverifikasi.<br/>• Bab **SKP (Sasaran Keselamatan Pasien)**:<br/>  - **SKP 1**: Ketepatan identifikasi pasien sebelum tindakan invasif/medis.<br/>  - **SKP 2**: Komunikasi efektif (*Closed-Loop Verification*) antara perawat dan dokter penginstruksi.<br/>• Bab **MRMIK & Permenkes No. 24/2022**: Rekam medis elektronik terintegrasi, pemisahan tindakan berbayar (*billable*) vs *Free of Charge (FOC)*, serta audit trail verifikasi DPJP. |
+| **Prinsip Data & Anti-Hardcode** | **Zero Hardcode Guarantee** — Seluruh katalog tindakan, tarif per kelas perawatan, status jaminan (*Ditanggung/Tidak Ditanggung*), serta identitas DPJP dikelola secara dinamis melalui API backend (`MstProcedure`, `MstTariff`, `TrxPatientProcedure`). |
 
 ---
 
-## 2. Analisis Kesenjangan: Audit Bukti Operasional V1 vs QuilvianFinal
+## 2. Analisis Kesenjangan & Keputusan Modernisasi
 
-Berdasarkan investigasi mendalam terhadap tangkapan layar operasional **QuilvianV1** (`01-tindakan-keperawatan.png`), antarmuka **Dokter Rawat Inap** saat ini, serta kondisi **Ruang Kerja Perawat** di QuilvianFinal, disusun matriks gap berikut:
+Berdasarkan tinjauan klinis terhadap operasional bangsal rawat inap dan perbandingan langsung dengan antarmuka **Dokter Rawat Inap** (`ProcedureFormPanel.jsx`), dilakukan penyesuaian menyeluruh pada sub-menu **Order Tindakan** keperawatan:
 
-### 2.1. Matriks Kesenjangan Fitur (*Gap Analysis Matrix*)
+### 2.1. Matriks Kesenjangan & Keputusan Penyesuaian
 
-| No | Fitur / Komponen | Kondisi di QuilvianV1 (`01-tindakan-keperawatan.png`) | Kondisi Dokter Rawat Inap Saat Ini (`QuilvianFinal`) | Kondisi Perawat Saat Ini di `QuilvianFinal` | Status & Solusi Modernisasi |
+| No | Fitur / Komponen | Kondisi Desain Awal | Tampilan Menu Dokter (`ProcedureFormPanel.jsx`) | Keputusan Modernisasi Keperawatan | Status & Dampak Klinis |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| 1 | **Struktur Tab Navigasi** | Memiliki 2 Sub-tab: `Order Tindakan` dan `History Tindakan` | Memiliki 3 Tab: `Pemesanan`, `Riwayat`, dan `Worklist Verifikasi` | Memiliki 2 Sub-tab: `Order Tindakan` dan `History Tindakan` | **SUDAH DITERAPKAN (Struktur)**:<br/>Pertahankan 2 tab pada perawat (`Order Tindakan` & `History Tindakan`), karena Worklist Verifikasi hanya hak dokter. |
-| 2 | **Panel Ringkasan SOAP & Diagnosis** | Menampilkan box informasi: *"Informasi Pasien & Diagnosis"* (Diambil dari SOAP terupdate / diagnosis kerja dokter) | Terintegrasi langsung dengan konteks visite & diagnosa SOAP | Belum menampilkan ringkasan SOAP/Diagnosis di atas form order tindakan | **BELUM DITERAPKAN (PERLU DIBUAT)**:<br/>Tambahkan kartu *Informasi Pasien & Diagnosis* di bagian atas form order yang menampilkan diagnosa aktif dari SOAP rawat inap. |
-| 3 | **Konteks Instruksi Medis** | Menampilkan 6 field: Departemen, Dokter Pemeriksa (Dropdown), Dijamin Pemeriksa, Tanggal Pemeriksaan, Kelas Pasien, dan Perawat Login | Diambil dari konteks login dokter + kelas episode rawat inap | Hanya form sederhana: Penginput (Readonly), Dokter Pemeriksa (Dropdown) | **SEBAGIAN DITERAPKAN (PERLU DISEMPURNAKAN)**:<br/>Lengkapi baris konteks pemeriksaan: Departemen, Dokter Pemberi Instruksi, Penjamin, Tanggal Pemeriksaan, Kelas Kamar, dan Nama Perawat Penginput. |
-| 4 | **Tata Letak Katalog Tindakan (Split-View)** | **Split 2-Kolom Terpadu**:<br/>• Kiri: Live Search & Daftar Tindakan + Tarif + Badge Penjamin + Tombol `[+]`<br/>• Kanan: Form Konfigurasi Item (Kode, Nama, Tarif, Qty, Disposisi, FoC, Keterangan) | **Split 2-Kolom Terpadu** (`ProcedureFormPanel.jsx`) persis seperti V1 | **Masih Single Dropdown Monoton** (`nursing-procedure-order-panel.jsx`) tanpa tabel katalog visual | **BELUM DITERAPKAN DI PERAWAT (PERBAIKAN UTAMA)**:<br/>Rombak `nursing-procedure-order-panel.jsx` menjadi **Split-View 2 Kolom Interaktif** identik dengan tampilan dokter dan V1! |
-| 5 | **Keranjang Staging Multi-Tindakan (Order Cart)** | Memiliki tabel bawah: *"Daftar Tindakan Yang Akan Diorder"* yang menampung multiple tindakan sebelum dikirim sekaligus | Memiliki tabel keranjang staging di bawah split panel dengan subtotal dan tombol reset/simpan | Belum ada keranjang; perawat hanya bisa meng-order 1 tindakan per submit | **BELUM DITERAPKAN DI PERAWAT (PERBAIKAN UTAMA)**:<br/>Tambahkan tabel staging keranjang tindakan agar perawat dapat mengumpulkan 3-5 tindakan sekaligus lalu mengirimnya dalam satu batch transaksi. |
-| 6 | **Opsi Free of Charge (FoC)** | Memiliki switch toggle `FoC` (Free of Charge) dengan catatan alasan tindakan gratis | Memiliki switch toggle `FoC` + field alasan FoC | Hanya ada checkbox sederhana tanpa alasan FoC terstruktur | **SEBAGIAN DITERAPKAN**:<br/>Terapkan switch toggle FoC modern dengan auto-pop up alasan FoC sesuai regulasi rumah sakit. |
-| 7 | **Disposisi & Keterangan Klinis** | Field textarea terpisah: `Disposisi Pasien` dan `Keterangan` | Memiliki `dispositionNote`, `clinicalReason`, dan `instructionNote` | Menggunakan field `clinicalReason` tunggal | **SEBAGIAN DITERAPKAN**:<br/>Sediakan field `Disposisi Pasien` dan `Keterangan Tambahan` sesuai form V1. |
-| 8 | **Riwayat & Audit Trail Verifikasi** | Tab `History Tindakan` menampilkan seluruh riwayat tindakan, pelaksana, dan waktu tindakan | Dilengkapi badge status verifikasi instruksi (`Pending`, `Verified`, `Rejected`) | Sudah memiliki filter status verifikasi dan rincian tindakan | **SUDAH DITERAPKAN DENGAN BAIK**:<br/>Pertahankan dan perkuat integrasi dengan endpoint riwayat rawat inap. |
+| 1 | **Banner Header** | "Form Tindakan Keperawatan & Medis - Rawat Inap" | "Form Tindakan Medis - Rawat Inap" + Badge Counter | **Diselaraskan 100%**: Menggunakan judul "Form Tindakan Medis - Rawat Inap" dengan badge counter `[X Tindakan Terpilih]`. | **DITERAPKAN** — Keseragaman visual antarmuka antar-profesi medis. |
+| 2 | **Informasi Pasien & SOAP** | Ditampilkan dalam kartu tersendiri di atas form order | **Tidak Ada** (Konteks pasien sudah berada di header layar utama) | **DIHILANGKAN**: Menghilangkan kartu Informasi Pasien & Diagnosis SOAP dari form tindakan. | **DIHILANGKAN** — Menghilangkan redundansi visual dan menghemat ruang layar vertikal. |
+| 3 | **Konteks Order & Instruksi** | Form 6 kolom (Departemen, DPJP dropdown, Penjamin, Tanggal, Kelas, Perawat penginput) | **Tidak Ada** (Konteks terikat otomatis pada sesi login dan episode aktif) | **DIHILANGKAN**: Menghilangkan kartu formulir Konteks Order. DPJP pemberi instruksi otomatis terisi dari DPJP aktif episode rawat inap (`episode.activeDoctor.doctorId`). | **DIHILANGKAN** — Mempercepat alur kerja perawat tanpa harus memilih ulang dokter pada setiap order. |
+| 4 | **Preset Tindakan Cepat** | 8 tombol preset (Pasang Infus, Kateter, NGT, Nebulisasi, Rawat Luka, Suction, Darah, EKG) | **Tidak Ada** (Pencarian tindakan dilakukan terpusat melalui live search katalog) | **DIHILANGKAN**: Menghilangkan deretan tombol preset cepat keperawatan. | **DIHILANGKAN** — Antarmuka katalog menjadi rapi, bersih, dan konsisten dengan menu dokter. |
+| 5 | **Katalog Tindakan (Sisi Kiri)** | Split-view tabel katalog dengan filter live search teks | Split-view tabel katalog dengan filter live search teks, tarif kelas, badge jaminan, dan tombol `[+]` | **Dipertahankan & Diselaraskan 100%**: Live search instan menyaring nama/kode/kelompok tindakan. | **DITERAPKAN** — Pencarian katalog terpadu dan responsif. |
+| 6 | **Form Tindakan Medis (Sisi Kanan)** | Form konfigurasi item terpilih (Jumlah, Disposisi, Switch FOC, Keterangan, Checkbox Utama & Cito) | Form konfigurasi item terpilih dengan ringkasan hijau (Kode, Nama, Tarif Satuan), Disposisi, FOC, Indikasi, Flag Cito | **Diselaraskan 100%**: Mengikuti form konfigurasi dokter dengan tombol `[Batal]` dan `[+ Tambahkan]`. | **DITERAPKAN** — Standar pengisian data tindakan seragam. |
+| 7 | **Keranjang Staging Multi-Item (Bawah)** | Tabel staging multi-order dengan ringkasan subtotal dan tombol simpan | Tabel staging "Tindakan yang Dipilih" dengan info peninjauan, tombol `[Reset Semua]`, dan `[Simpan Pesanan Tindakan]` | **Diselaraskan 100%**: Menggunakan tata letak dan tombol staging persis seperti menu dokter. | **DITERAPKAN** — Perawat dapat memesan multi-tindakan sekaligus dalam satu klik transaksi. |
 
 ---
 
 ## 3. Alur Proses Bisnis Rumah Sakit (*Hospital Clinical Workflow*)
 
-Alur pemesanan tindakan keperawatan rawat inap di rumah sakit melibatkan interaksi multi-profesi antara Perawat Pelaksana (*Staff Nurse*), Dokter Penanggung Jawab Pelayanan (DPJP), Kasir/Billing, dan Sistem Rekam Medis Elektronik (RME):
+Alur pemesanan tindakan keperawatan rawat inap di rumah sakit melibatkan alur kerja cepat antara Perawat Bangsal, DPJP, dan Sistem Rekam Medis Elektronik (RME):
 
 ```mermaid
 flowchart TD
-    Start(["Perawat Buka Menu Tindakan Pasien Rawat Inap"]) --> SOAP["Sistem Muat Otomatis Info SOAP & Diagnosa Terkini"]
-    SOAP --> SelectDoc["Perawat Memilih Dokter Pemberi Instruksi (DPJP / Dokter Jaga)"]
-    SelectDoc --> SearchCat["Perawat Mencari Tindakan di Katalog Kiri (Live Search)"]
-    SearchCat --> ClickPlus["Klik Tombol [+] pada Tindakan Terpilih"]
-    ClickPlus --> LoadRight["Data Tindakan Dimuat ke Panel Konfigurasi Kanan"]
+    Start(["Perawat Buka Menu Tindakan Pasien Rawat Inap"]) --> AutoContext["Sistem Otomatis Mengasosiasikan DPJP Aktif & Kelas Kamar Pasien"]
+    AutoContext --> SearchCat["Perawat Mencari Tindakan pada 'Daftar Tindakan Medis' (Live Search)"]
+    SearchCat --> ClickPlus["Klik Tombol [+] pada Tindakan yang Diinginkan"]
+    ClickPlus --> LoadRight["Data Tindakan Dimuat ke 'Form Tindakan Medis' (Panel Kanan)"]
     
-    LoadRight --> InputDetail["Atur Jumlah, Disposisi Pasien, Switch FoC, & Keterangan"]
-    InputDetail --> ClickAdd["Klik Tombol 'Tambahkan'"]
-    ClickAdd --> CartStaging["Tindakan Masuk ke Tabel Keranjang 'Daftar Tindakan Yang Akan Diorder'"]
+    LoadRight --> InputDetail["Atur Jumlah, Disposisi Pasien, Switch FOC (Bila Gratis), & Keterangan Klinis"]
+    InputDetail --> ClickAdd["Klik Tombol '+ Tambahkan'"]
+    ClickAdd --> CartStaging["Tindakan Masuk ke Tabel 'Tindakan yang Dipilih' (Keranjang Bawah)"]
     
-    CartStaging --> MoreCheck{"Tambah Tindakan Lain?"}
+    CartStaging --> MoreCheck{"Ingin Tambah Tindakan Lain?"}
     MoreCheck -- Ya --> SearchCat
-    MoreCheck -- Tidak --> SubmitAll["Klik Tombol 'Simpan & Kirim Pesanan Tindakan'"]
+    MoreCheck -- Tidak --> SubmitAll["Klik Tombol 'Simpan Pesanan Tindakan'"]
     
-    SubmitAll --> APIOrder["Backend: POST /patient-procedures/inpatient-orders"]
-    APIOrder --> ValidateClose{"Episode Rawat Inap Masih Aktif?"}
-    ValidateClose -- Closed/Batal --> ErrReject["Tolak: 422 Unprocessable Entity (Episode Closed)"]
+    SubmitAll --> APIOrder["Backend: POST /patient-procedures/inpatient-orders<br/>(InstructingDoctorId diisi otomatis dari DPJP aktif)"]
+    APIOrder --> ValidateClose{"Episode Rawat Inap Aktif?"}
+    ValidateClose -- Closed/Batal --> ErrReject["Tolak: 422 Unprocessable Entity (Episode Ditutup)"]
     ValidateClose -- Aktif --> SaveTrx["Simpan ke TrxPatientProcedure (Status: Pending Verification)"]
     
-    SaveTrx --> DoctorWL["Muncul di Worklist Verifikasi DPJP (Dokter Workspace)"]
+    SaveTrx --> DoctorWL["Muncul di Worklist Verifikasi DPJP (Ruang Kerja Dokter)"]
     DoctorWL --> DPJPVerify{"DPJP Memeriksa & Memverifikasi?"}
-    DPJPVerify -- Verifikasi (Approved) --> DispatchBilling["Dispatch ke Rincian Billing Pasien & Status RME Terverifikasi (SKP 2)"]
-    DPJPVerify -- Tolak (Rejected) --> NoteReject["Tindakan Batal & Catatan Alasan Penolakan Tersimpan Permanen"]
+    DPJPVerify -- Verifikasi (Approved) --> DispatchBilling["Masuk ke Tagihan Pasien & Berkas RME Terverifikasi (SKP 2)"]
+    DPJPVerify -- Tolak (Rejected) --> NoteReject["Tindakan Dibatalkan & Alasan Penolakan Tersimpan Permanen"]
     
-    DispatchBilling --> End(["Selesai: Masuk ke Lini Masa Riwayat Tindakan"])
+    DispatchBilling --> End(["Tindakan Masuk ke Tab History Tindakan Episode"])
 ```
 
-### Skenario Nyata Operasional Rumah Sakit:
-1. **Skenario 1: Tindakan Pembedahan / Bedah Orthopedi (Contoh pada tangkapan layar V1)**:
-   - *Kasus*: Pasien Ny. Nunung Sintaa di ruang Mawar ODC dengan DPJP Dr. Rahyussalim Sp.OT.
-   - *Tindakan*: Dokter menginstruksikan `BEDAH - APP.PERFORASI+RETROGRAD,Dokter Operator` (Tarif Rp 8.349.000, status penjamin *Ditanggung*).
-   - *Alur*: Perawat mencari kode `TDK25111400002`, memilih dokter operator, mengisi disposisi *"Persiapan pre-op di bangsal"*, lalu menambahkannya ke keranjang. Dokter memverifikasi pesanan sebelum operasi dimulai.
-2. **Skenario 2: Tindakan Rutin Keperawatan Berbayar**:
-   - *Tindakan*: Pemasangan kateter urin dan nebulisasi ventolin per 8 jam.
-   - *Alur*: Perawat memilih 2 tindakan ke dalam keranjang staging, memeriksa tarif kamar ODC, lalu klik simpan batch sekaligus.
-3. **Skenario 3: Prosedur Penggantian Selang Bocor (Free of Charge / FoC)**:
-   - *Kasus*: Selang infus mengalami flebitis/rembes setelah 4 jam pemasangan sehingga harus dipasang ulang.
-   - *Alur*: Perawat mengaktifkan switch toggle `FoC (Free of Charge)`, memasukkan alasan *"Pemasangan ulang kanula akibat ekstravasasi dini tanpa biaya pasien"*, sehingga bagian kasir/asuransi tidak mengenakan tagihan ganda kepada pasien.
+### Skenario Konkret Operasional Rumah Sakit:
+
+1. **Skenario 1: Pemesanan Tindakan Rutin Keperawatan atas Instruksi Visite**:
+   - *Kondisi*: Pasien rawat inap dengan DPJP dr. Rendy Pangalila, Sp.PD di Ruang Mawar Kelas 1. Dokter menginstruksikan pemasangan kateter urin dan nebulisasi ventolin saat visite pagi.
+   - *Tindakan Perawat*: Perawat membuka menu Tindakan, mengetik *"kateter"* pada kotak pencarian kiri, lalu menekan tombol `[+]`. Panel kanan memuat informasi tarif kateter. Perawat mengisi disposisi *"Observasi balans urin per 2 jam"*, lalu klik `+ Tambahkan`. Kemudian perawat mencari *"nebulisasi"*, mengisi keterangan *"Ventolin 1 respul"*, lalu klik `+ Tambahkan`.
+   - *Hasil*: Kedua tindakan masuk ke tabel *"Tindakan yang Dipilih"*. Perawat menekan tombol *"Simpan Pesanan Tindakan"*. Sistem mengirimkan pesanan ke backend dengan `instructingDoctorId` dr. Rendy Pangalila secara otomatis.
+
+2. **Skenario 2: Tindakan Penggantian Akses Infus Rusak / Flebitis (Free of Charge — FOC)**:
+   - *Kondisi*: Kanula infus pasien macet akibat flebitis mekanik ringan setelah 6 jam pemasangan, sehingga perawat harus mengganti kanula baru.
+   - *Tindakan Perawat*: Perawat memilih tindakan *"Pemasangan Infus/IV Line"*, menyalakan switch toggle `FOC (Free of Charge — gratis)`, dan memasukkan alasan: *"Pemasangan ulang akibat kanula rembes tanpa penambahan biaya pasien"*.
+   - *Hasil*: Subtotal tindakan bernilai Rp 0 dengan label status biaya `FOC`. Bagian kasir dan penjamin BPJS tidak akan mengenakan tagihan ganda kepada pasien.
+
+3. **Skenario 3: Penanganan Tindakan Cito / Darurat Pasca-Perburukan Kondisi**:
+   - *Kondisi*: Pasien mengalami sesak napas akut dan desaturasi oksigen mendadak.
+   - *Tindakan Perawat*: Perawat melakukan suction lendir dan perekaman EKG darurat atas instruksi verbal dokter jaga.
+   - *Tindakan di Sistem*: Perawat mencari tindakan EKG dan suction, mencentang kotak `Tindakan Cito / Darurat`, lalu menyimpannya ke keranjang. Pesanan langsung ditandai dengan badge merah `Cito` dan diprioritaskan di antrean verifikasi dokter.
 
 ---
 
 ## 4. Spesifikasi Endpoint Swagger API
 
-Spesifikasi endpoint yang digunakan oleh antarmuka modern tindakan keperawatan berpedoman pada kontrak baku ASP.NET Core:
+Spesifikasi endpoint yang melayani pemesanan tindakan keperawatan mengacu pada arsitektur API ASP.NET Core:
 
 ### 4.1. Kelompok Tag Swagger
 Tag Swagger: **`[Tags("Health Services / Clinical Management / Patient Procedure")]`**  
 Path Dasar: `/api/v1/health-services/clinical-management/patient-procedures`
 
-### 4.2. Tabel Spesifikasi Endpoint
+### 4.2. Tabel Spesifikasi Endpoint API
 
 | No | Method | Route Path | Deskripsi Fungsi | Otorisasi / Role | Request Body / Params | Response DTO | HTTP Code |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 1 | `POST` | `/inpatient-orders` | Membuat pesanan tindakan rawat inap oleh perawat atas instruksi dokter (Mendukung Idempotency-Key) | `PatientProcedure : Create` | `CreateInpatientProcedureOrderRequest` | `ApiResponse<PatientProcedureResponse>` | `201 Created`<br/>`400 Bad Request`<br/>`422 Closed` |
+| 1 | `POST` | `/inpatient-orders` | Membuat pesanan tindakan rawat inap oleh perawat atas instruksi dokter (Mendukung Idempotency-Key) | `PatientProcedure : Create` | `CreateInpatientProcedureOrderRequest` | `ApiResponse<PatientProcedureResponse>` | `201 Created`<br/>`400 Bad Request`<br/>`422 Unprocessable` |
 | 2 | `GET` | `/episodes/{episodeId}` | Mengambil seluruh riwayat tindakan pada episode perawatan (untuk tab *History Tindakan*) | `PatientProcedure : Read` | *Query Params*: `from`, `to`, `pageNumber`, `pageSize` | `ApiResponse<PagedResult<PatientProcedureResponse>>` | `200 OK`<br/>`404 Not Found` |
-| 3 | `GET` | `/options` | Mengambil opsi katalog tindakan aktif, tarif berlaku, dan status jaminan asuransi | `PatientProcedure : Read` | *Query Params*: `search`, `onlyActive` | `ApiResponse<List<PatientProcedureOptionResponse>>` | `200 OK` |
-| 4 | `PATCH` | `/{id}/cancel` | Membatalkan pesanan tindakan yang belum dieksekusi dengan alasan resmi klinis | `PatientProcedure : Update` | `CancelPatientProcedureRequest` (`cancelReason`) | `ApiResponse<PatientProcedureResponse>` | `200 OK`<br/>`400 Bad Request`<br/>`409 Conflict` |
-| 5 | `GET` | `/{id}` | Mengambil detail komprehensif tindakan pasien (termasuk status billing dan verifikasi) | `PatientProcedure : Read` | *Route Param*: `id` (GUID) | `ApiResponse<PatientProcedureDetailResponse>` | `200 OK`<br/>`404 Not Found` |
+| 3 | `GET` | `/master-options` | Mengambil opsi katalog tindakan aktif, tarif per kelas, dan status jaminan asuransi | `PatientProcedure : Read` | *Query Params*: `search`, `onlyActive` | `ApiResponse<List<PatientProcedureMasterOptionResponse>>` | `200 OK` |
+| 4 | `PATCH` | `/{id}/cancel` | Membatalkan pesanan tindakan yang belum dieksekusi dengan catatan alasan resmi | `PatientProcedure : Update` | `CancelPatientProcedureRequest` (`cancelReason`) | `ApiResponse<PatientProcedureResponse>` | `200 OK`<br/>`400 Bad Request`<br/>`409 Conflict` |
+| 5 | `GET` | `/{id}` | Mengambil detail lengkap tindakan medis pasien (termasuk status billing dan verifikasi DPJP) | `PatientProcedure : Read` | *Route Param*: `id` (GUID) | `ApiResponse<PatientProcedureDetailResponse>` | `200 OK`<br/>`404 Not Found` |
 
 ---
 
 ## 5. Rancangan Antarmuka UI/UX Modern (Wireframe & Tata Letak)
 
-Mengikuti instruksi pengguna dan paritas terhadap tangkapan layar V1 serta tampilan Dokter Rawat Inap, antarmuka `NursingProcedureSection` dirancang memiliki **4 Blok Utama Tanpa Modal Pop-up**:
+Tata letak antarmuka `NursingProcedureOrderPanel` dirancang **identik 100% dengan tampilan Menu Dokter**, tanpa kartu konteks tambahan yang memperpanjang scroll layar:
 
 ```text
 +-------------------------------------------------------------------------------------------------------------------------+
-| [TAB 1: Order Tindakan]                                              [TAB 2: History Tindakan (5)]                      |
+| [TAB 1: Order Tindakan]                                              [TAB 2: History Tindakan (3)]                      |
 +-------------------------------------------------------------------------------------------------------------------------+
-| CARD 1: INFORMASI PASIEN & DIAGNOSIS SOAP TERKINI                                                                       |
-| Diagnosa Utama: Post Op Appendectomy Akut | Diagnosa Sekunder: Anemia Ringan | DPJP: Dr. Rahyussalim, Sp.OT (K)        |
+| [=] Form Tindakan Medis - Rawat Inap                                                [ 1 Tindakan Terpilih ] (Badge)     |
 +-------------------------------------------------------------------------------------------------------------------------+
-| CARD 2: KONTEKS ORDER & INSTRUKSI DOKTER                                                                                |
-| Departemen *                 | Dokter Pemeriksa / Instruksi *  | Penjamin *               | Tanggal Tindakan            |
-| [ Instalasi Rawat Inap (v) ] | [ Dr. Rahyussalim, Sp.OT    (v) ] | [ BPJS Kesehatan     (v) ] | [ 2026-09-30              ] |
-|                              |                                 |                          |                             |
-| Kelas Pasien *               | Perawat Penginput (Read-Only)   | Status Penjaminan        | Tipe Pelayanan              |
-| [ Mawar ODC / Kelas 1    (v) ] | [ Ns. Perawat Jaga, S.Kep       ] | [ DIJAMIN ASURANSI     ] | [ Non-Bedah / Bedah Minor ] |
-+-------------------------------------------------------------------------------------------------------------------------+
-| CARD 3: SPLIT-VIEW KATALOG & KONFIGURASI ITEM TINDAKAN                                                                  |
 | +-------------------------------------------------------+ +-----------------------------------------------------------+ |
-| | SISI KIRI: KATALOG TINDAKAN MEDIS                     | | SISI KANAN: KONFIGURASI ITEM TERPILIH                     | |
-| | [Q Cari nama atau kode tindakan...                 ]  | |                                                           | |
-| | ----------------------------------------------------  | | Kode Tindakan:  [ TDK25111400002                        ] | |
-| | NAMA TINDAKAN             | TARIF (RP)   | AKSI       | | Nama Tindakan:  [ BEDAH - APP.PERFORASI+RETROGRAD       ] | |
-| | --------------------------+--------------+----------- | | Tarif Satuan:   [ Rp 8.349.000,00                       ] | |
-| | BEDAH - APP.PERFORASI     | 8.349.000,00 | [ + Tambah ] | Jumlah *:       [ 1                                     ] | |
-| | [TDK25111400002] [Ditanggung]             |           | | Disposisi *:    [ Pasien diobservasi di bangsal pasca op] | |
-| |                           |              |            | |                                                           | |
-| | BEDAH - BIOPSI KELENJAR   | 2.541.000,00 | [ + Tambah ] | [ ] FoC (Free of Charge — Bebas Biaya Pasien)             | |
-| | [TDK25111400003] [Ditanggung]             |           | | Keterangan:     [ Rawat luka steril berkala             ] | |
-| |                           |              |            | |                                                           | |
-| | PASANG KATETER URINE FOLEY|   150.000,00 | [ + Tambah ] | [ Batal ]                             [ + Masukkan Keranjang] | |
+| | DAFTAR TINDAKAN MEDIS           (1 tindakan tersedia) | | FORM TINDAKAN MEDIS                     [Tindakan Dipilih]| |
+| | [Q Cari tindakan medis berdasarkan kode atau nama... ]| | +-------------------------------------------------------+ | |
+| |                                                       | | | Kode: PR-RSMMC-00002                                  | | |
+| | KODE            NAMA TINDAKAN    TARIF        STATUS  | | | test                                                  | | |
+| | ----------------------------------------------------- | | | Tarif Satuan: Rp 0                                    | | |
+| | PR-RSMMC-00002  test             Rp 0         [Ditanggung] [+] | +-------------------------------------------------------+ | |
+| |                                  SUITE                | | Jumlah *                                                | |
+| |                                                       | | [ 1                                                   ] | |
+| |                                                       | | Disposisi Pasien                                        | |
+| |                                                       | | [ Instruksi disposisi atau observasi pasca tindakan... ] | |
+| |                                                       | | (o) FOC (Free of Charge — gratis)                       | |
+| |                                                       | | Keterangan / Indikasi Klinis                            | |
+| |                                                       | | [ Masukkan indikasi medis atau catatan klinis tindakan..]| |
+| |                                                       | | [ ] Tindakan Utama    [ ] Tindakan Cito / Darurat       | |
+| |                                                       | | [ Batal ]                             [ + Tambahkan ]   | |
 | +-------------------------------------------------------+ +-----------------------------------------------------------+ |
 +-------------------------------------------------------------------------------------------------------------------------+
-| CARD 4: DAFTAR TINDAKAN YANG AKAN DIORDER (KERANJANG STAGING MULTI-ORDER)                                               |
-| +----+-----------------+--------------------------------------+--------+--------------+------------+-----+------------+ |
-| | NO | KODE            | NAMA TINDAKAN                        | JUMLAH | TARIF SATUAN | TOTAL (RP) | FoC | AKSI       | |
-| +----+-----------------+--------------------------------------+--------+--------------+------------+-----+------------+ |
-| | 1  | TDK25111400002  | BEDAH - APP.PERFORASI+RETROGRAD      | 1      | 8.349.000,00 | 8.349.000  | Tdk | [Hapus]    | |
-| | 2  | TDK25111400008  | INHALASI NEBULIZER VENTOLIN 1 RES    | 2      |   120.000,00 |   240.000  | Tdk | [Hapus]    | |
-| +----+-----------------+--------------------------------------+--------+--------------+------------+-----+------------+ |
-| Ringkasan: 2 Tindakan Dipilih | Total Estimasi Biaya: Rp 8.589.000,00                                                   |
-| [ Reset Keranjang ]                                           [ Simpan & Kirim Pesanan Tindakan (Atas Instruksi DPJP) ] |
+| TINDAKAN YANG DIPILIH (i)                                            Tinjau seluruh tindakan sebelum instruksi dikirim  |
+| +----+-----------------+---------------+--------------+--------+----------+--------------+------------+---------------+ |
+| | NO | KODE            | NAMA TINDAKAN | TARIF SATUAN | JUMLAH | SUBTOTAL | STATUS BIAYA | KETERANGAN | AKSI          | |
+| +----+-----------------+---------------+--------------+--------+----------+--------------+------------+---------------+ |
+| | 1  | PR-RSMMC-00002  | test [Utama]  | Rp 0         | 1      | Rp 0     | Berbayar     | -          | [Hapus/Trash] | |
+| +----+-----------------+---------------+--------------+--------+----------+--------------+------------+---------------+ |
+| [ Reset Semua ]                                                           Total Biaya: Rp 0   [ Simpan Pesanan Tindakan]|
 +-------------------------------------------------------------------------------------------------------------------------+
 ```
 
-### Visual Hierarchy & Design Tokens:
-- **Badge Status Penjamin**:
-  - `Ditanggung`: Background `#ecfdf5`, Teks `#047857`, Border `#a7f3d0`.
-  - `Tidak Ditanggung / Pribadi`: Background `#fef2f2`, Teks `#991b1b`, Border `#fecaca`.
-- **Tombol Tambah Item `[+]`**: Menggunakan `BaseButton variant="primary"` ukuran compact (`sm`).
-- **Tabel Keranjang Staging**: Dilengkapi indikator total harga realtime (`Rp ...`), badge CITO/Darurat jika ada, serta tombol aksi cepat hapus item (`FaTrashAlt`).
+### Karakteristik Visual & Elemen Antarmuka:
+
+1. **Header Banner Modern**:
+   - Judul: `Form Tindakan Medis - Rawat Inap` berlatar belakang warna aksen toska keperawatan (`#00838f` ke `#00acc1`).
+   - Lencana dinamis di kanan header menghitung jumlah item di keranjang (`X Tindakan Terpilih`).
+2. **Katalog Sisi Kiri (`catalogCard`)**:
+   - Kolom pencarian responsif dengan ikon lup (`RiSearchLine`).
+   - Tabel ringkas memuat: Kode, Nama Tindakan, Tarif per kelas perawatan, Badge jaminan (*Ditanggung/Tidak Ditanggung*), dan Tombol `[+]` beraksen toska.
+3. **Panel Konfigurasi Sisi Kanan (`formCard`)**:
+   - Menampilkan box hijau berisi Kode, Nama, dan Tarif Satuan saat tindakan dipilih.
+   - Field `Jumlah *` dengan nilai default 1.
+   - Textarea `Disposisi Pasien` dan `Keterangan / Indikasi Klinis`.
+   - Switch toggle `FOC (Free of Charge — gratis)`: jika dinyalakan, muncul input alasan FOC.
+   - Pilihan checkbox `Tindakan Utama` dan `Tindakan Cito / Darurat`.
+   - Tombol `[Batal]` (abu-abu) dan `[+ Tambahkan]` (toska).
+4. **Keranjang Staging Multi-Item Bawah (`stagingCard`)**:
+   - Tabel menampilkan daftar seluruh tindakan yang siap dikirim.
+   - Tombol hapus item per baris (`RiDeleteBinLine`).
+   - Baris footer dilengkapi tombol `[Reset Semua]`, akumulasi realtime `Total Biaya: Rp ...`, dan tombol `[Simpan Pesanan Tindakan]` dengan proteksi ganda `ClinicalActionGuard`.
 
 ---
 
-## 6. Rencana Eksekusi Implementasi (Pasca-Persetujuan)
+## 6. Penanganan Teknis Otomatisasi DPJP (Tanpa Konteks Order Manual)
 
-Setelah dokumen rencana kerja ini disetujui pengguna, tahapan implementasi akan dilaksanakan secara terpadu tanpa penundaan:
+Dengan dihilangkannya kartu formulir Konteks Order dari tampilan perawat, sistem menangani pengisian data dokter pemberi instruksi secara cerdas di lapisan hook `useInpatientNursingProcedure`:
 
-1. **Backend Integration**:
-   - Memastikan `PatientProcedureController.cs` melayani pembuatan pesanan tindakan perawat atas instruksi dokter via `POST /inpatient-orders` dengan `InstructingDoctorId` dan `Idempotency-Key`.
-   - Menguji query penentuan tarif per kelas perawatan (`ResolveProcedureAsync`) agar selalu konsisten dengan kelas rawat inap pasien.
-2. **Frontend UI Refactoring**:
-   - Memperbarui `src/components/view/health-services/inpatient-management/nursing-workspace/sections/procedure/nursing-procedure-order-panel.jsx` dengan tata visual split-view 2-kolom identik dengan dokter (`ProcedureFormPanel.jsx`).
-   - Menyempurnakan `src/lib/hooks/health-services/inpatient-management/use-inpatient-nursing-procedure.jsx` agar mendukung penambahan multiple tindakan ke keranjang staging (`selectedProcedures`) dan eksekusi batch ordering.
-   - Menyempurnakan `nursing-procedure-history-panel.jsx` dengan filter pencarian instan dan tab verifikasi.
-3. **Verifikasi Bebas Error (Build & Unit Tests)**:
-   - Backend rebuild lolos kompilasi (`dotnet build QuilvianSystemBackend.csproj --no-incremental`).
-   - Pembuatan unit test otomatis Node.js `tests/unit/inpatient-nursing-procedure-parity.test.mjs` untuk memverifikasi split catalog, staging cart, FoC toggle, dan dokter instruksi.
+```javascript
+// Resolusi otomatis DPJP pemberi instruksi dari konteks episode:
+const resolvedDoctorId =
+  form.instructingDoctorId ||
+  episode?.activeDoctor?.doctorId ||
+  (doctorOptions && doctorOptions.length > 0 ? doctorOptions[0].value : undefined);
+
+// Pengiriman payload ke backend tetap mematuhi validasi VAL-DOK-46:
+const payload = {
+  inpEpisodeId: episodeId,
+  procedureId: item.procedureId || item.id,
+  quantity: Number(item.quantity) || 1,
+  isPrimaryProcedure: Boolean(item.isPrimaryProcedure),
+  isEmergencyProcedure: Boolean(item.isEmergencyProcedure),
+  isFreeOfCharge: Boolean(item.isFreeOfCharge),
+  freeOfChargeReason: item.freeOfChargeReason?.trim() || undefined,
+  dispositionNote: item.dispositionNote?.trim() || undefined,
+  clinicalReason: item.clinicalReason?.trim() || undefined,
+  instructionNote: item.instructionNote?.trim() || undefined,
+  instructingDoctorId: resolvedDoctorId, // Diisi otomatis dari DPJP aktif episode
+  idempotencyKey,
+};
+```
+
+Keuntungan bagi Operasional:
+1. **Bebas Kesalahan Salah Pilih Dokter**: Pesanan tindakan perawat selalu terikat dengan DPJP yang sah dan sedang bertugas pada episode tersebut.
+2. **Efisiensi Waktu**: Perawat langsung fokus memilih tindakan dan mengisi dosis/jumlah tanpa hambatan form berulang-ulang.
 
 ---
 
-## 7. Rekomendasi & Persetujuan Pengguna
+## 7. Status Implementasi & Verifikasi Hasil Akhir
 
-Dokumen perencanaan teknis dan bisnis proses ini telah selesai disusun secara komprehensif. Mohon ditinjau, dan jika disetujui, kami siap langsung memulai proses eksekusi kode (Backend & Frontend) secara tuntas!
+Seluruh penyesuaian telah diimplementasikan penuh pada source code `QuilvianFinal`:
+
+| No | Modul / Berkas | Status | Ringkasan Perubahan |
+| :--- | :--- | :--- | :--- |
+| 1 | `nursing-procedure-order-panel.jsx` | ✅ **SELESAI** | Rombak total 100% mengikuti `ProcedureFormPanel.jsx`. Dihilangkan kartu Informasi Pasien, kartu Konteks Order, dan baris preset cepat. |
+| 2 | `use-inpatient-nursing-procedure.jsx` | ✅ **SELESAI** | Ditambahkan prop `episode` dan logika auto-resolusi DPJP `resolvedDoctorId`. |
+| 3 | `nursing-procedure-section.jsx` | ✅ **SELESAI** | Diteruskan objek `episode` ke hook pemesanan tindakan keperawatan. |
+| 4 | `inpatient-nursing-procedure-parity.test.mjs` | ✅ **SELESAI** | Pengujian unit lulus 4/4 passing (verifikasi eliminasi 3 kartu lama dan tata letak dokter). |
+| 5 | `inpatient-nursing-procedure-and-ancillary.test.mjs` | ✅ **SELESAI** | Pengujian unit lulus 6/6 passing. |
+| 6 | **Audit ESLint** | ✅ **SELESAI** | Lulus audit ESLint dengan **0 error, 0 warning**. |

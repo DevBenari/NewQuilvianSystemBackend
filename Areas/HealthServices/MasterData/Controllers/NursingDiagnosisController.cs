@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.MasterData.Services;
 using QuilvianSystemBackend.Attributes;
+using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Responses;
 using QuilvianSystemBackend.Services.Logging;
 using System.Security.Claims;
@@ -45,6 +46,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
         [HttpGet("summary")]
         [ProducesResponseType(typeof(ApiResponse<NursingDiagnosisSummaryResponse>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Nursing Diagnosis", Description = "Melihat ringkasan diagnosis keperawatan", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("NursingDiagnosis", "Read")]
         public async Task<IActionResult> GetSummary(CancellationToken ct)
         {
             var summary = await _service.GetSummaryAsync(ct);
@@ -53,6 +56,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<PagedResult<NursingDiagnosisListItemResponse>>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Nursing Diagnosis", Description = "Melihat daftar diagnosis keperawatan", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("NursingDiagnosis", "Read")]
         public async Task<IActionResult> GetPagedList(
             [FromQuery] string? search,
             [FromQuery] Guid? groupId,
@@ -67,6 +72,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
 
         [HttpGet("options")]
         [ProducesResponseType(typeof(ApiResponse<List<NursingDiagnosisOptionResponse>>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Nursing Diagnosis", Description = "Melihat pilihan diagnosis keperawatan", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("NursingDiagnosis", "Read")]
         public async Task<IActionResult> GetOptions(
             [FromQuery] string? search,
             [FromQuery] int limit = 50,
@@ -79,6 +86,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [HttpGet("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<NursingDiagnosisDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Nursing Diagnosis", Description = "Melihat detail diagnosis keperawatan", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("NursingDiagnosis", "Read")]
         public async Task<IActionResult> GetDetailById([FromRoute] Guid id, CancellationToken ct)
         {
             var detail = await _service.GetDetailByIdAsync(id, ct);
@@ -93,6 +102,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [HttpGet("{id:guid}/bundle")]
         [ProducesResponseType(typeof(ApiResponse<NursingDiagnosisBundleResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [AccessAction("Read", "Read Nursing Diagnosis", Description = "Melihat bundel 3S diagnosis keperawatan", AccessType = AccessTypes.Read, SortOrder = 1)]
+        [AccessPermission("NursingDiagnosis", "Read")]
         public async Task<IActionResult> GetBundleById([FromRoute] Guid id, CancellationToken ct)
         {
             var bundle = await _service.GetBundleByIdAsync(id, ct);
@@ -107,6 +118,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse<NursingDiagnosisDetailResponse>), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [AccessAction("Create", "Create Nursing Diagnosis", Description = "Menambahkan diagnosis keperawatan", AccessType = AccessTypes.Create, SortOrder = 2)]
+        [AccessPermission("NursingDiagnosis", "Create")]
         public async Task<IActionResult> Create(
             [FromBody] CreateNursingDiagnosisRequest request,
             CancellationToken ct)
@@ -128,6 +141,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [ProducesResponseType(typeof(ApiResponse<NursingDiagnosisDetailResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [AccessAction("Update", "Update Nursing Diagnosis", Description = "Memperbarui diagnosis keperawatan", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("NursingDiagnosis", "Update")]
         public async Task<IActionResult> Update(
             [FromRoute] Guid id,
             [FromBody] UpdateNursingDiagnosisRequest request,
@@ -153,6 +168,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [HttpDelete("{id:guid}")]
         [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [AccessAction("Delete", "Delete Nursing Diagnosis", Description = "Menghapus diagnosis keperawatan", AccessType = AccessTypes.Delete, SortOrder = 4)]
+        [AccessPermission("NursingDiagnosis", "Delete")]
         public async Task<IActionResult> Delete([FromRoute] Guid id, CancellationToken ct)
         {
             var actorUserId = GetCurrentUserId();
@@ -169,6 +186,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [HttpPost("interventions")]
         [ProducesResponseType(typeof(ApiResponse<NursingDiagnosisInterventionResponse>), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [AccessAction("Update", "Update Nursing Diagnosis", Description = "Menambahkan intervensi keperawatan SIKI", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("NursingDiagnosis", "Update")]
         public async Task<IActionResult> AddIntervention(
             [FromBody] CreateNursingDiagnosisInterventionRequest request,
             CancellationToken ct)
@@ -188,6 +207,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [HttpPost("outcomes")]
         [ProducesResponseType(typeof(ApiResponse<NursingDiagnosisOutcomeResponse>), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [AccessAction("Update", "Update Nursing Diagnosis", Description = "Menambahkan luaran keperawatan SLKI", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("NursingDiagnosis", "Update")]
         public async Task<IActionResult> AddOutcome(
             [FromBody] CreateNursingDiagnosisOutcomeRequest request,
             CancellationToken ct)
@@ -207,6 +228,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.MasterData.Controllers
         [HttpPost("etiologies")]
         [ProducesResponseType(typeof(ApiResponse<NursingDiagnosisEtiologyResponse>), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [AccessAction("Update", "Update Nursing Diagnosis", Description = "Menambahkan etiologi diagnosis", AccessType = AccessTypes.Update, SortOrder = 3)]
+        [AccessPermission("NursingDiagnosis", "Update")]
         public async Task<IActionResult> AddEtiology(
             [FromBody] CreateNursingDiagnosisEtiologyRequest request,
             CancellationToken ct)
