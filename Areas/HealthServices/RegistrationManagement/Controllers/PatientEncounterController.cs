@@ -395,8 +395,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         [AccessPermission("PatientEncounter", "Create")]
         public async Task<IActionResult> CreateEncounterForAdmin([FromBody] PatientEncounterCreateRequest request)
         {
-            // Jalur petugas admisi. Hanya route ini yang menerima Penjamin Perusahaan
-            // sesuai RWI-ENC-PAYER-001 bagian 7, sehingga wewenang kiosk tidak ikut meluas.
+            // Jalur petugas admisi. Menerima Penjamin Perusahaan sejak RWI-ENC-PAYER-001 1.0.0.
             return await CreateEncounterCoreAsync(
                 request,
                 allowCompanyGuarantor: true,
@@ -411,10 +410,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         [AccessAction("Create", "Create Patient Encounter", Description = "Membuat transaksi kunjungan pasien dengan satu sumber pembayaran", AccessType = AccessTypes.Create, SortOrder = 2)]
         public async Task<IActionResult> CreateEncounterForKiosk([FromBody] PatientEncounterCreateRequest request)
         {
-            // Kiosk tetap terbatas pada Tunai dan Asuransi.
+            // Kiosk menerima Tunai, Asuransi, dan Penjamin Perusahaan sejak RWI-ENC-PAYER-001
+            // 1.1.0 (KSK-DEC-013, BE-KSK-003), dengan validasi yang sama persis dengan /admin.
+            // Parameter tetap dipertahankan agar kedua jalur dapat dibedakan lagi tanpa
+            // mengubah proses inti, dan logScope tetap membedakan asal permintaan di audit.
             return await CreateEncounterCoreAsync(
                 request,
-                allowCompanyGuarantor: false,
+                allowCompanyGuarantor: true,
                 logScope: "PatientEncounter.CreateEncounterForKiosk");
         }
 
@@ -1313,8 +1315,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 return (false, "Tipe pembayaran tidak valid. Gunakan nilai dari endpoint filters/metadata.");
             }
 
-            // Penjamin Perusahaan hanya dibuka untuk registrasi petugas. Kiosk tetap
-            // pada dua metode lamanya supaya wewenangnya tidak ikut meluas.
+            // Penjaga jalur: kini kedua route (admin dan kiosk) mengirim allowCompanyGuarantor
+            // = true (RWI-ENC-PAYER-001 1.1.0). Dipertahankan untuk pemanggil yang kelak
+            // sengaja menutup Penjamin Perusahaan.
             if (request.PaymentType == EncounterPaymentType.CompanyGuarantor &&
                 !allowCompanyGuarantor)
             {
