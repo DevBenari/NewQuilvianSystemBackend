@@ -200,6 +200,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingE
 
         public int Held { get; set; }
 
+        public int Recorded { get; set; }
+
         public int StillPending { get; set; }
 
         public int MarkedFailed { get; set; }
