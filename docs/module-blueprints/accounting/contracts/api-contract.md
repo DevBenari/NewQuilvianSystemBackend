@@ -528,8 +528,8 @@ Dipakai pada `201`, `200`, dan `422`. Balasan `400`, `403`, `409`, dan `422` kar
 |---|---|:---:|---|
 | `AccountingEventId` | `Guid` | Ya | `AccAccountingEvent.Id`. Rujukan tanda terima; Finance menyimpannya sebagai `AccountingReceiptNumber` |
 | `EventNumber` | `string` | Ya | Gema dari pesan |
-| `EventStatus` | `string` | Ya | `Diterima`, `Terjurnal`, `Tertahan`, atau `Tercatat` (pesan saldo subledger). Kiriman ulang `200` dapat juga membaca `Gagal` atau `Diabaikan` |
-| `JournalNumber` | `string?` | Tidak | Hanya bila `Terjurnal`. Finance menyimpannya sebagai `AccountingJournalNumber` |
+| `EventStatus` | `string` | Ya | `Diterima`, `Terjurnal`, `Tertahan`, atau `Tercatat` (pesan saldo subledger). Kiriman ulang `200` dapat juga membaca `Gagal` atau `Diabaikan`. *(`ACC-API-0.16`, approved Rizki 30 September 2026, `GATE-DESAIN-0930` — penyelarasan dengan source, bukan perilaku baru:)* balasan `201` pesan saldo dapat juga membaca `Gagal` bila rinciannya lolos pemeriksaan awal tetapi tidak dapat dicatat saat diproses — `AccAccountingEventService.BalasKejadianBaru` |
+| `JournalNumber` | `string?` | Tidak | Hanya bila `Terjurnal`. Finance menyimpannya sebagai `AccountingJournalNumber`. *(`ACC-API-0.16`:)* nomor ini dapat berganti bila draft hasil kejadian dihapus lalu dicoba ulang (`ACC-DEC-116`); kiriman ulang membaca nomor yang berlaku saat itu. Rujukan yang tetap adalah `AccountingEventId` |
 | `AccountingPeriodCode` | `string?` | Tidak | Periode tempat jurnal jatuh, bentuk `YYYY-MM`. Bisa berbeda dari `AccountingDate` bila periodenya sudah tertutup (`ACC-DEC-047`) |
 | `HoldReasonCode` | `string?` | Tidak | Hanya bila `Tertahan`: `EVENT_TYPE_NOT_REGISTERED`, `POSTING_RULE_MISSING`, `COMPONENT_UNMAPPED`, `COMPONENT_MISSING` |
 | `ReceivedAt` | `timestamptz` | Ya | Waktu kejadian pertama kali diterima |

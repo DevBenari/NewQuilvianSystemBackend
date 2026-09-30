@@ -210,6 +210,10 @@ Menahan butir DoD 10 dan 11 serta gerbang cutover G2. Pemilik: pemilik proses ak
 
 ### G-06 — Gerbang cutover Finance G2, G3, G4, G6 terbuka · **Tinggi · integrasi**
 
+> **Diluruskan 30 September 2026.** `evidence/14` **sudah dikirim** Rizki kepada Yasmin dan sudah ada
+> di integration (commit `97e2027a`). Kalimat "belum dikirim" di bawah keliru sejak ditulis. Gerbangnya
+> tetap terbuka sampai Finance menjawab bagian 7 surat itu.
+
 Accounting sanggup menerima pesan tiruan, tetapi pengiriman sungguhan dari Finance belum aktif.
 `evidence/14` (balasan atas kode Finance `05`, `06`, `07`) ditulis 28 September dan **belum dikirim**
 ke Yasmin.
@@ -313,5 +317,7 @@ syaratnya (T-4..T-8) berpemilik jelas dan tidak menyentuh kode Accounting lagi.
 > | T-1 | ✅ `BE-ACC-P2-034`, 29 September — G-01 ditutup |
 > | T-2 | ✅ `FE-ACC-009`, 29 September — G-02 ditutup |
 > | Susulan T-1 | ✅ Keputusan terbuka OQ-034-1/2 yang muncul saat T-1 → `ACC-DEC-116`..`121` → `BE-ACC-P2-035` + `FE-ACC-P2-019`, uji gabungan 29 September 16.10 diperiksa 30 September. Roadmap Phase 2 kini backend 35/35, frontend 19/19 |
-> | T-3 | 🟡 Commit sudah — backend `8f530926`, frontend `2c2190858`, keduanya sejajar dengan origin branch masing-masing; PR ke integration belum (7 commit di depan pada tiap repository). Pelurusan dokumen 30 September belum di-commit |
-> | T-4..T-9 | Belum dikerjakan |
+> | T-3 | ✅ Di-merge Rizki ke integration 30 September 2026 (pernyataan owner). `git ls-remote` menunjukkan kedua branch integration sudah bergerak ke commit baru — backend `9fc8a47d`, frontend `68195b2be` — yang isinya belum di-fetch ke lokal. Yang ikut: backend sampai `a3f2514a`, termasuk migration `AddAccSubledgerBalance` dan `ACC-XMOD-0.4`; frontend sampai `2c2190858`. G-07 ditutup |
+> | T-4..T-6 | Belum dikerjakan |
+> | T-7 | 🟡 `evidence/14` sudah dikirim dan sudah di integration. Balasan Yasmin atas bagian 7 belum ada — `finance-management/evidence/` di integration masih berhenti di `07` (ref diambil 30 September 08.35). Belum pernah dikirim ke Finance: aturan pesan saldo `ACC-XMOD-0.4` bagian 8a (`ACC-DEC-107`..`110`, "menunggu kesanggupan Finance" di bagian 9 kontrak itu), dan akibat `ACC-DEC-116` pada `AccountingJournalNumber` yang disimpan Finance |
+> | T-8..T-9 | Belum dikerjakan |
