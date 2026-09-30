@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `ACC-BP-001` |
-| Revision | `6` — 14 September 2026, `ACC-DEC-076` menutup `ACC-GAP-013` (butir penghalang baru `Evaluated`, toleransi nol) dan `ACC-DEC-077` mencabut peringatan `SUSPENSE_ACCOUNT_BALANCE`. Sebelumnya `5` — 10 September 2026, `ACC-DEC-071` menutup `DEC-ACC-P2-011` (sumber saldo subledger) dan membuka `ACC-GAP-013`. Sebelumnya `4`, penyelarasan bagian 9-14 dengan backend Phase 2 yang sudah berdiri |
+| Revision | `7` — 28 September 2026, **approved Rizki (`GATE-DESAIN-0928`)**: 11.2 mengikuti `ACC-DEC-097` (Isi Pesan Asli sebagai tabel berlabel) dan layar pesan saldo `FE-ACC-P2-015`; 11.3 penghalang keempat rekonsiliasi saldo subledger (`ACC-DEC-107`, `111`); 11.6 pemilih periode dan sisi subledger (`ACC-DEC-109`, `110`, `112`..`114`). Sebelumnya `6` — 14 September 2026, `ACC-DEC-076` menutup `ACC-GAP-013` (butir penghalang baru `Evaluated`, toleransi nol) dan `ACC-DEC-077` mencabut peringatan `SUSPENSE_ACCOUNT_BALANCE`. Sebelumnya `5` — 10 September 2026, `ACC-DEC-071` menutup `DEC-ACC-P2-011` (sumber saldo subledger) dan membuka `ACC-GAP-013`. Sebelumnya `4`, penyelarasan bagian 9-14 dengan backend Phase 2 yang sudah berdiri |
 | Status | `draft` — approval adalah tindakan manusia, belum diberikan |
 | Cakupan | **Dua bagian.** Bagian 1-8: MVP tulang punggung akuntansi (`ACC-DEC-009`). Bagian 9-14: Phase 2 (`ACC-PH-006`), mencakup `ACC-DEC-044` sampai `ACC-DEC-066` |
 | Frontend SHA | `fc49cc7714baa9a2c37ed6519fbaba5dffcbda99` (branch `RizkiV2`) — baseline **saat dokumen ini disusun**. Baseline blueprint kini `31a82c8` (`QuilvianIntegrationFrontend`); kutipan di bawah tetap berlaku, lihat `evidence/02-frontend-rebaseline-impact-scan.md` |
@@ -184,6 +184,40 @@ bisnis ke tempat yang salah, dan menyalin berarti suatu saat akan berbeda.
 Halaman yang seluruhnya di luar hak akses pengguna ditutup memakai `access-denied-gate.jsx` yang
 sudah ada, bukan dengan pengalihan halaman buatan sendiri.
 
+#### Amandemen 29 September 2026 — **approved** Rizki (`GATE-DESAIN-0929`) (`ACC-DEC-116`..`121`)
+
+**Gap yang ditemukan saat audit.** Baris `Draft` (Ubah, Hapus) dan `Rejected` (Sunting kembali) pada
+tabel di atas **belum pernah dibangun**: `FE-ACC-007` hanya memetakan lima tombol (Ajukan, Setujui,
+Tolak, Sahkan, Balik), dan thunk `deleteJournal` tidak dipakai layar mana pun. Hari ini jurnal
+draft hanya dapat diubah lewat alamat langsung dan tidak dapat dihapus lewat layar. Amandemen ini
+menjadikan keduanya bagian Rincian Jurnal — tetap dari `AvailableActions`, bukan dihitung layar.
+
+| Tombol | Muncul bila `AvailableActions` memuat | Yang terjadi |
+|---|---|---|
+| **Ubah** | `update` | Membuka form ubah jurnal yang sudah ada (`/corporate/accounting/journals/[slug]/update`, `FE-ACC-006`) |
+| **Hapus** | `delete` | Dialog konfirmasi, lalu `DELETE /journals/{id}`. Berhasil → kembali ke Daftar Jurnal dan pesan backend tampil sebagai toast. Gagal → pesan backend apa adanya |
+
+**Jurnal hasil kejadian** (`sourceAccountingEventNumber` terisi):
+
+| Hal | Isi |
+|---|---|
+| Baris rincian **Asal** | "Kejadian EVT-UJI-034A" — tautan ke Rincian Kejadian bila berhak `AccountingEvent : Read`, teks biasa bila tidak. Jurnal manual: "Jurnal manual" |
+| Ubah | Tidak muncul — backend tidak mengirim `update` (`ACC-DEC-119`) |
+| Hapus | Muncul pada `Draft` dan `Rejected`. Pesan dialognya menyebut akibat: "Kejadian EVT-UJI-034A akan kembali berstatus Gagal dan menahan tutup bulan sampai dicoba ulang atau diabaikan." (`ACC-DEC-116`, `118`) |
+
+Skema wilayah atas Rincian Jurnal hasil kejadian `Draft`:
+
+```text
+┌ JU/2031/01/00003 · Draft ───────────────── [Hapus] [Ajukan] ┐
+│ Asal: Kejadian EVT-UJI-034A ↗                                  │
+│ Tanggal 20 Jan 2031 · Jenis JU · Periode 2031-01               │
+└────────────────────────────────────────────────────────────────┘
+```
+
+`DEV_DISCRETION`: letak kedua tombol (bersama tombol aksi yang sudah ada atau di kepala halaman),
+rupa, ikon, dan rupa tautan Asal. Terkunci: tombol hanya dari `AvailableActions`, bunyi akibat pada
+dialog Hapus jurnal hasil kejadian, dan tautan Asal dijaga `AccountingEvent : Read`.
+
 ---
 
 ## 6. Penanganan keadaan tidak normal
@@ -360,11 +394,11 @@ menuntut tindakan segera — ia menunggu pekerjaan pemetaan yang wajar dijadwalk
 | 17 | Jenis Kejadian | Master jenis kejadian; layar kecil | `ACC-P2-S1` |
 | 18 | Jurnal Berulang | Daftar template beserta status aktif dan jadwal terbitnya | `ACC-P2-S2` |
 | 19 | Form Jurnal Berulang | Kepala template ditambah tabel baris dengan total berjalan | `ACC-P2-S2` |
-| 20 | Daftar Periksa Penutupan | **Tiga** penghalang beserta peringatannya, masing-masing dengan keadaan sudah/belum diperiksa, beserta tombol Ajukan | `ACC-P2-S3` |
+| 20 | Daftar Periksa Penutupan | **Tiga** penghalang — **empat** sejak amandemen 28 September 2026, ditambah rekonsiliasi saldo subledger — beserta peringatannya, masing-masing dengan keadaan sudah/belum diperiksa, beserta tombol Ajukan | `ACC-P2-S3` |
 | 21 | Tutup Tahun | Pratinjau perhitungan dan tombol Susun Jurnal Penutup | `ACC-P2-S4` |
 | 22 | Pengaturan Akuntansi | Menetapkan akun laba ditahan per badan hukum; layar kecil | `ACC-P2-S4` |
 | 23 | Penanda Control Account | **Bukan layar baru.** Satu kotak centang pada Form Akun dan satu kolom penanda pada tabel COA yang sudah ada (`ACC-DEC-064`) | `ACC-P2-S5` |
-| 24 | Rekonsiliasi Control Account | Saldo buku besar berdampingan dengan saldo subledger, beserta selisihnya (`ACC-DEC-066`) | `ACC-P2-S5` |
+| 24 | Rekonsiliasi Control Account | Saldo buku besar berdampingan dengan saldo subledger, beserta selisihnya (`ACC-DEC-066`), **per periode akuntansi** (`ACC-DEC-114`) | `ACC-P2-S5` |
 
 **Form Jurnal Berulang memakai ulang komponen Form Jurnal.** Keduanya sama-sama kepala ditambah
 tabel baris dengan total berjalan dan penjaga keseimbangan. Membuat komponen tandingan adalah
@@ -426,12 +460,31 @@ sudah ada; **jangan** menambah warna baru ke `globals.css`.
 | Kepala | Nomor, status, tombol aksi | `GET /accounting-events/{id}` | `AccountingEvent : Read` | — | "Kejadian tidak ditemukan." |
 | Tombol Coba Ulang | — | `POST /accounting-events/{id}/retry` | `AccountingEvent : Retry` | Mati bila status bukan Gagal **atau Tertahan** (`ACC-DEC-092`, 24 September 2026) | Pesan galat, status tidak berubah |
 | Tombol Abaikan | Modal berisi kolom alasan **wajib** | `PATCH /accounting-events/{id}/ignore` | `AccountingEvent : Ignore` | Mati bila status bukan Gagal | Pesan galat |
-| Jurnal yang dihasilkan | Tautan ke Rincian Jurnal | Dari respons yang sama | `Journal : Read` | "(belum ada)" — wajar untuk Tertahan dan Gagal | — |
+| Jurnal yang dihasilkan | Tautan ke Rincian Jurnal | Dari respons yang sama | `Journal : Read` | "(belum ada)" — wajar untuk Tertahan dan Gagal. Untuk pesan saldo berstatus **Tercatat**: "Tidak dijurnal — pesan saldo subledger" (`ACC-DEC-087`, `FE-ACC-P2-015`) | — |
 | Riwayat percobaan | Tabel percobaan | Dari respons yang sama | `AccountingEvent : Read` | "Belum pernah dicoba." | — |
-| Isi pesan asli | Teks mentah, tersembunyi secara bawaan | Dari respons yang sama | `AccountingEvent : Read` | — | — |
+| Isi pesan asli | **Tabel dua kolom berlabel** "Keterangan — Isi yang dikirim Finance" (`ACC-DEC-097`), tersembunyi secara bawaan dengan tombol Lihat/Sembunyikan | Dari respons yang sama (`RawPayload`) | `AccountingEvent : Read` | — | **Isi yang bukan JSON sah tampil apa adanya sebagai teks** — pesan asli tidak pernah hilang dari layar |
 
 **Tombol Abaikan wajib memunculkan modal konfirmasi yang menyebut bahwa tindakan ini tidak dapat
 dibatalkan**, karena memang tidak dapat. Kolom alasan tidak boleh kosong.
+
+**Isi Pesan Asli sebagai tabel berlabel — `ACC-DEC-097`, 28 September 2026.** Baris sebelumnya
+menulis "teks mentah"; layar yang dibangun `FE-ACC-P2-012` menampilkannya sebagai tabel, dan owner
+memutuskan **dokumen yang mengikuti layar**. Aturannya:
+
+| Bidang pesan | Bunyi di tabel |
+|---|---|
+| Tanggal dan waktu | Diformat, contoh "30 November 2026" |
+| Nilai | Rupiah, contoh "Rp 425.000.000" |
+| Mata uang | "Rupiah (IDR)" |
+| Badan hukum | **Nama** badan hukum, bukan `Guid` |
+| Nomor teknis (`CorrelationId`, `CausationId`, dan sejenisnya) | Nilai apa adanya dengan keterangan "(untuk tim IT)" |
+| Rincian saldo (`SubledgerBalance`) | Periode dan kode akun kontrol, berlabel Indonesia |
+
+Seluruh bidang pesan tetap tampil, sehingga `FR-P2-006` ("pesan asli disimpan utuh dan dapat
+dilihat kembali") tetap terpenuhi. **Contoh:** pesan bertanggal akuntansi 30 November 2026 senilai
+425.000.000 tampil sebagai baris "Tanggal Akuntansi — 30 November 2026" dan "Nilai —
+Rp 425.000.000", bukan `{ "AccountingDate": "2026-11-30", "Amount": 425000000.00, … }`.
+Letak, gaya, dan komponen tabelnya `DEV_DISCRETION` mengikuti komponen rincian yang sudah ada.
 
 ### 11.3 Daftar Periksa Penutupan
 
@@ -501,6 +554,29 @@ Penghalang ketiga ada karena kas datang **per shift**: shift yang melewati perga
 belum ditutup membuat kasnya tidak pernah sampai ke buku besar, sementara periodenya tetap dapat
 ditutup dengan angka kas yang belum lengkap. Penegakannya lewat kejadian, bukan dengan membaca
 tabel Finance — batas `ACC-DEC-061` tetap utuh.
+
+#### Penghalang keempat — rekonsiliasi saldo subledger *(28 September 2026, `GATE-DESAIN-0928`)*
+
+| # | Penghalang | `Code` | Keadaan | Sumber |
+|---:|---|---|---|---|
+| 4 | Rekonsiliasi saldo subledger belum bersih | `SUBLEDGER_RECONCILIATION` | `NotYetAvailable` sebelum titik mulai rekonsiliasi badan hukum itu; `Evaluated` sesudahnya | `ACC-DEC-076`, `107`, `111` |
+
+**Titik mulai** adalah periode saldo subledger pertama yang diterima dari Finance (`ACC-DEC-107`).
+Sebelum itu butir ini "belum dapat diperiksa" dan **tidak menahan**; alasannya sudah siap dibaca:
+"Finance belum pernah mengirim saldo subledger untuk badan hukum ini." atau "Rekonsiliasi saldo
+subledger berlaku mulai periode 2026-11." Sesudah titik mulai, `Count` = jumlah control account
+yang menahan, dan `Message` memuat rinciannya, contoh "1 control account belum menerima saldo
+subledger, 1 berselisih."
+
+| Wilayah | Isinya | Sumber data | Hak akses penjaga |
+|---|---|---|---|
+| Baris penghalang keempat | Dirender seperti penghalang lain — layar **tidak** menanam jumlah butir (aturan ke-5 di bawah) | `GET /periods/{id}/closing-checklist` | `AccountingPeriod : Read` |
+| Tautan Lihat pada baris itu | Membuka layar Rekonsiliasi Control Account (bagian 11.6) **untuk periode yang sama** | — | `AccountingReconciliation : Read`; tanpa hak itu, tautan tidak ditampilkan dan pesannya tetap terbaca |
+| Penolakan saat Ajukan | `409` dengan kalimat yang sama dengan `Message` butir itu | `POST /periods/{id}/submit-closing` | `AccountingPeriod : Close` |
+
+**Tutup Permanen juga dapat ditolak** karena rekonsiliasi belum bersih (`ACC-DEC-111`), dari layar
+Periode Akuntansi MVP yang sudah ada. Layar itu cukup menampilkan pesan `409` apa adanya — nol
+perubahan rupa. Tidak ada tombol pengecualian di layar mana pun (`ACC-DEC-113`).
 
 #### Keadaan `NotYetAvailable` — bedanya wajib terbaca
 
@@ -608,6 +684,11 @@ pembaca dokumen dapat mencocokkan dengan apa yang tampil di layar saat menguji.
 > lengkap **maupun** tidak cocok sama-sama menahan penutupan, dengan **toleransi selisih nol**.
 > Contoh: selisih Rp 500 antara saldo Kas Kasir di buku besar dan di subledger tetap menahan.
 > Implementasinya menunggu Wave D (rekonsiliasi subledger), karena datanya belum ada.
+>
+> **Dirancang dan approved 28 September 2026 (`GATE-DESAIN-0928`)** — lihat *Penghalang keempat* di atas dan
+> `02-backend-architecture.md` bagian 23. Mesin `CanSubmitClosing` memang tidak diubah; yang
+> ditambahkan hanya titik mulai (`ACC-DEC-107`), supaya butir ini tidak menahan setiap tutup bulan
+> sebelum Finance mengirim saldo apa pun.
 
 ### 11.4 Tutup Tahun
 
@@ -666,24 +747,58 @@ Layar membacanya apa adanya dari DTO akun, tanpa menyimpulkan sendiri dari `Acco
 ### 11.6 Rekonsiliasi Control Account
 
 `ACC-DEC-066` menempatkan rekonsiliasi control account di Phase 2. Isinya tiga: perbandingan saldo
-buku besar, perbandingan saldo subledger, dan laporan selisih. Dikerjakan `FE-ACC-P2-008`.
+buku besar, perbandingan saldo subledger, dan laporan selisih. Sisi buku besar dikerjakan
+`FE-ACC-P2-008` ✅; sisi subledger dan selisih dikerjakan **`FE-ACC-P2-016`**.
+
+> **28 September 2026 — `ACC-DEC-114`, approved `GATE-DESAIN-0928`.** Isian "Saldo per tanggal" pada layar
+> yang sudah berdiri **diganti pemilih periode akuntansi**. Saldo subledger dari Finance terikat
+> periode (`ACC-DEC-071`), sehingga perbandingan hanya bermakna per periode. Sketsa di bawah
+> menggantikan sketsa lama.
 
 ```
-+--------------------------------------------------------------+
-| Rekonsiliasi Control Account      Periode: 2026-09           |
-+--------------------------------------------------------------+
-| Akun            | Buku Besar  | Subledger      | Selisih     |
-|-----------------|-------------|----------------|-------------|
-| Kas Kasir       | 12.500.000  | belum tersedia | belum       |
-| Piutang Pasien  |  8.750.000  | belum tersedia | belum       |
-+--------------------------------------------------------------+
++----------------------------------------------------------------------+
+| Rekonsiliasi Control Account          Periode: [ September 2026 v ]  |
++----------------------------------------------------------------------+
+| ! Belum bersih - 1 control account belum menerima saldo subledger,   |
+|   1 saldonya bertanggal cut-off bukan akhir periode, 1 berselisih.   |
+|   Buku besar per 30/09/2026 - dihitung 03/10/2026 09.15              |
++----------------------------------------------------------------------+
+| Akun              | Buku Besar  | Subledger       | Selisih  | Keadaan |
+|-------------------|-------------|-----------------|----------|---------|
+| 1-1101 Kas Kasir  | 25.000.000  | 25.000.000      | 0        | Cocok   |
+| 1-1102 Kas Kecil  |          0  | belum diterima  | -        | Belum   |
+| 1-1201 Piutang    | 80.000.000  | 78.500.000      | -        | Cut-off |
+|                   |             | cut-off 15/09   |          | salah   |
+| 2-1101 Utang Sup. | 30.000.000  | 29.999.500      | 500      | Selisih |
++----------------------------------------------------------------------+
 ```
 
 | Wilayah | Isinya | Sumber data | Hak akses penjaga | Keadaan kosong | Keadaan gagal |
 |---|---|---|---|---|---|
-| Kolom saldo buku besar | Saldo tiap control account pada periode terpilih | `GET /reconciliation/gl-balances` | `AccountingReconciliation : Read` | "Belum ada control account yang ditandai." | "Saldo buku besar gagal dimuat." |
-| Kolom saldo subledger | **"Belum tersedia"** sampai `BE-ACC-P2-014` berdiri | belum ada | `AccountingReconciliation : Read` | — | — |
-| Kolom selisih | **"Belum tersedia"** selama salah satu sisinya belum ada | turunan kedua kolom di atas | `AccountingReconciliation : Read` | — | — |
+| Pemilih periode | Periode akuntansi badan hukum utama | `GET /periods` yang sudah ada — dipakai ulang lewat slice periode, bukan panggilan baru | `AccountingPeriod : Read` | "Belum ada periode akuntansi. Bangkitkan periode lebih dahulu." | "Daftar periode gagal dimuat." |
+| Spanduk keadaan | `ReconciliationState` beserta `StateMessage`, tanggal batas buku besar, dan `EvaluatedAt` | `GET /reconciliation/subledger-comparison` | `AccountingReconciliation : Read` | — | Ikut hilang bersama tabel |
+| Tabel | Satu baris per akun: kode dan nama, Buku Besar (`GlBalance`), Subledger (`SubledgerBalance` beserta cut-off dan versinya), Selisih (`Difference`), Keadaan (`ItemStatus`) | Respons yang sama | `AccountingReconciliation : Read` | "Belum ada control account yang ditandai pada badan hukum ini." | "Rekonsiliasi gagal dimuat." + tombol Coba Lagi |
+| Tautan ke pesan saldo | Nomor kejadian saldo membuka Rincian Kejadian | `SubledgerAccountingEventId` | `AccountingEvent : Read` — tanpa hak itu nomornya tampil sebagai teks biasa | — | — |
+
+**Tiga keadaan laporan wajib terbaca bedanya.**
+
+| `ReconciliationState` | Yang dibaca petugas | Contoh bunyi |
+|---|---|---|
+| `BelumBerlaku` | Rekonsiliasi belum menahan tutup bulan periode ini | "Rekonsiliasi belum berlaku untuk periode ini. Finance belum pernah mengirim saldo subledger." — atau "… berlaku mulai periode November 2026." |
+| `Bersih` | Semua akun wajib cocok | "Seluruh control account cocok dengan saldo subledger." |
+| `BelumBersih` | Penutupan tertahan | `StateMessage` apa adanya, dengan jumlah akun per keadaan |
+
+**Empat keadaan per akun, dan larangan yang tetap berlaku.**
+
+| `ItemStatus` | Kolom Subledger | Kolom Selisih |
+|---|---|---|
+| `Cocok` | Nilai, cut-off, versi | `0` |
+| `Berselisih` | Nilai, cut-off, versi | Nilai selisih; positif berarti buku besar lebih besar |
+| `BelumDiterima` | **"Belum diterima"** — tidak pernah `Rp 0` | **"-"** — tidak pernah `0` |
+| `CutOffBukanAkhirPeriode` | Nilai beserta keterangan tanggal cut-off-nya | **"-"** — belum dapat dibandingkan |
+
+Akun ber-`IsBlocking` benar ditandai berbeda dari yang tidak; akun yang tidak wajib (`IsRequired`
+salah — akun induk, akun nonaktif bersaldo nol) tetap tampil tetapi tidak ditandai menahan.
 
 > **Kolom yang belum ada datanya ditampilkan, bukan disembunyikan.** Menyembunyikan kolom subledger
 > dan selisih membuat laporan rekonsiliasi **terbaca seolah sudah cocok** — pembacanya menyimpulkan
@@ -694,29 +809,27 @@ Ini pola yang sama dengan `NotYetAvailable` pada 11.3: **"belum diperiksa" dan "
 nol" wajib terbaca bedanya.** Dua layar, satu kaidah.
 
 Layar ini **tidak memakai cache**, sama seperti daftar periksa penutupan dan pratinjau tutup tahun.
+Tidak ada tombol "hitung ulang sekarang" selain memuat ulang; angkanya terikat periode yang dipilih,
+bukan waktu membuka layar (`ACC-DEC-071`, `112`). Rekonsiliasi periode yang sudah ditutup permanen
+memberi jawaban yang sama selamanya.
 
-**`DEC-ACC-P2-011` sudah ditutup `ACC-DEC-071`, 10 September 2026.** Saldo subledger **diterbitkan
-Finance sebagai kejadian, per periode akuntansi** — bukan diambil Accounting lewat API, dan bukan
-dibaca dari tabel Finance. Batas `ACC-DEC-061` tetap utuh: arahnya tetap satu, Finance ke
-Accounting.
+**Tidak ada tombol untuk mengecualikan atau mengesahkan selisih** (`ACC-DEC-113`). Selisih
+dibereskan di sumbernya — Finance menyatakan ulang saldo, atau Accounting membalik jurnal yang
+keliru — lalu layar dimuat ulang.
 
-Kejadiannya memuat sekurang-kurangnya `LegalEntity`, `AccountingPeriod`, `ControlAccount`,
-`SubledgerBalance`, dan `AsOfDate`. Accounting membandingkannya dengan saldo buku besar **pada
-periode dan cut-off yang sama**, lalu mencatat selisihnya.
+**Rekonsiliasi juga menjadi bagian penutupan periode** (`ACC-DEC-071` butir 6): hasilnya adalah
+penghalang keempat pada Daftar Periksa Penutupan (bagian 11.3), dan tautan Lihat pada butir itu
+membuka layar ini untuk periode yang sama.
 
-Rekonsiliasi **langsung/live tidak dipakai pada Phase 2**. Konsekuensinya bagi layar ini: tidak
-ada tombol "hitung ulang sekarang", dan angkanya selalu terikat pada satu periode yang dipilih —
-bukan pada waktu membuka layar. Rekonsiliasi periode yang sudah ditutup akan memberi jawaban yang
-sama selamanya, dan itu memang yang dicari auditor.
+**`DEV_DISCRETION`** (`ACC-DEC-114`): periode bawaan saat layar dibuka, bentuk pemilih periode,
+serta letak, warna, dan ikon penanda keadaan — memakai komponen dan token yang sudah ada, tanpa
+menyentuh `globals.css`.
 
-Yang masih ditunggu bukan lagi keputusan, melainkan **gelombang `P2-1`** yang menyediakan kotak
-masuk kejadiannya. Sampai itu berdiri, kolom subledger dan selisih tetap berbunyi "belum
-tersedia" — dan tetap **ditampilkan, bukan disembunyikan**. Sisi buku besar tidak menunggu apa
-pun dan dapat dikerjakan lebih dulu.
-
-**Rekonsiliasi juga menjadi bagian penutupan periode** (`ACC-DEC-071` butir 6), jadi layar ini
-tidak berdiri sendiri: hasilnya menyumbang penghalang pada Daftar Periksa Penutupan. Rinciannya
-di `ACC-GAP-013`, bagian 11.3.
+**Butir menu.** Peta butir menu bagian 9 sudah memuat "Rekonsiliasi Control Account"
+(`AccountingReconciliation : Read`). Temuan 28 September 2026: butirnya **tidak ada** di
+`menu-items.jsx` pada `RizkiV2`, walaupun rutenya tetap terbangun — layar hanya terjangkau lewat
+alamat langsung. Butir itu ditambahkan `f6b1498fe` dan hilang lewat resolusi merge `8f01cf06c`
+("merge dengan branch rizki", 18 September 2026); masih ada pada `f37e949ea` (15 September 2026). Pemulihannya ikut direncanakan bersama `FE-ACC-P2-016`.
 
 ## 12. Aksi per peran Phase 2
 

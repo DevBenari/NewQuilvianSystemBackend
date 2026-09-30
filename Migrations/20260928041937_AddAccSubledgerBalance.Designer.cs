@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using QuilvianSystemBackend.Repositories;
@@ -11,9 +12,11 @@ using QuilvianSystemBackend.Repositories;
 namespace QuilvianSystemBackend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260928041937_AddAccSubledgerBalance")]
+    partial class AddAccSubledgerBalance
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -4933,121 +4936,6 @@ namespace QuilvianSystemBackend.Migrations
                         });
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models.FinReceiptDeduction", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("Amount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<string>("DeductionNumber")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("DeductionType")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("IsCancel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsDelete")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsReversal")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<string>("Reason")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<Guid>("ReceiptAllocationId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("ReceiptId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("ReferenceNumber")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<Guid?>("ReversalOfDeductionId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("RowVersion")
-                        .IsConcurrencyToken()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DeductionNumber")
-                        .IsUnique()
-                        .HasDatabaseName("IX_FinReceiptDeduction_DeductionNumber")
-                        .HasFilter("\"IsDelete\" = false");
-
-                    b.HasIndex("DeductionType")
-                        .HasDatabaseName("IX_FinReceiptDeduction_DeductionType");
-
-                    b.HasIndex("ReceiptAllocationId")
-                        .HasDatabaseName("IX_FinReceiptDeduction_Allocation");
-
-                    b.HasIndex("ReceiptId")
-                        .HasDatabaseName("IX_FinReceiptDeduction_ReceiptId");
-
-                    b.HasIndex("ReversalOfDeductionId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_FinReceiptDeduction_ReversalOnce")
-                        .HasFilter("\"ReversalOfDeductionId\" IS NOT NULL AND \"IsDelete\" = false");
-
-                    b.ToTable("FinReceiptDeduction", "public", t =>
-                        {
-                            t.HasCheckConstraint("CK_FinReceiptDeduction_Amount", "\"Amount\" > 0");
-
-                            t.HasCheckConstraint("CK_FinReceiptDeduction_OtherReason", "\"DeductionType\" <> 'OTHER' OR \"Reason\" IS NOT NULL");
-
-                            t.HasCheckConstraint("CK_FinReceiptDeduction_Reversal", "\"IsReversal\" = (\"ReversalOfDeductionId\" IS NOT NULL)");
-
-                            t.HasCheckConstraint("CK_FinReceiptDeduction_Type", "\"DeductionType\" IN ('PPH23','BANK_ADMIN_FEE','OTHER')");
-                        });
-                });
-
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models.FinReceiptAllocation", b =>
                 {
                     b.Property<Guid>("Id")
@@ -5924,12 +5812,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<DateTime?>("DeleteDateTime")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<decimal>("DepositAppliedAmount")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)")
-                        .HasDefaultValue(0m);
-
                     b.Property<bool>("IsCancel")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
@@ -6037,13 +5919,11 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.ToTable("FinPayment", "public", t =>
                         {
-                            t.HasCheckConstraint("CK_FinPayment_DepositApplied", "\"DepositAppliedAmount\" >= 0");
-
                             t.HasCheckConstraint("CK_FinPayment_FullyAllocatedWhenPaid", "\"Status\" <> 'PAID' OR \"AllocatedAmount\" = \"TotalAmount\"");
 
                             t.HasCheckConstraint("CK_FinPayment_MakerChecker", "\"ApprovedBy\" IS NULL OR \"ApprovedBy\" <> \"RequestedBy\"");
 
-                            t.HasCheckConstraint("CK_FinPayment_NetTransfer", "\"NetTransferAmount\" = \"TotalAmount\" - \"DeductionAmount\" + \"AdditionAmount\" - \"DepositAppliedAmount\"");
+                            t.HasCheckConstraint("CK_FinPayment_NetTransfer", "\"NetTransferAmount\" = \"TotalAmount\" - \"DeductionAmount\" + \"AdditionAmount\"");
 
                             t.HasCheckConstraint("CK_FinPayment_NetTransferNonNegative", "\"NetTransferAmount\" >= 0");
 
@@ -7386,12 +7266,6 @@ namespace QuilvianSystemBackend.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
 
-                    b.Property<decimal>("PPNAmount")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)")
-                        .HasDefaultValue(0m);
-
                     b.Property<Guid>("PurchasingInvoiceId")
                         .HasColumnType("uuid");
 
@@ -7438,8 +7312,6 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.ToTable("FinSupplierReturn", "public", t =>
                         {
-                            t.HasCheckConstraint("CK_FinSupplierReturn_PPNAmount", "\"PPNAmount\" >= 0");
-
                             t.HasCheckConstraint("CK_FinSupplierReturn_Status", "\"Status\" IN ('DRAFT','CONFIRMED','CANCELLED')");
                         });
                 });
@@ -8029,175 +7901,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("ReceivableId");
 
                     b.ToTable("FinReceivableDocument", "public");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models.FinReceivableInvoiceBatch", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("BatchNumber")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<string>("DebtorType")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(30)
-                        .HasColumnType("character varying(30)")
-                        .HasDefaultValue("PAYER");
-
-                    b.Property<Guid>("DebtorReferenceId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("IsCancel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsDelete")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<DateTimeOffset?>("IssuedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateOnly>("PeriodEnd")
-                        .HasColumnType("date");
-
-                    b.Property<DateOnly>("PeriodStart")
-                        .HasColumnType("date");
-
-                    b.Property<Guid>("RowVersion")
-                        .IsConcurrencyToken()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
-                        .HasDefaultValue("DRAFT");
-
-                    b.Property<decimal>("TotalAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("numeric(18,2)");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BatchNumber")
-                        .IsUnique()
-                        .HasDatabaseName("IX_FinReceivableInvoiceBatch_BatchNumber")
-                        .HasFilter("\"IsDelete\" = false");
-
-                    b.HasIndex("DebtorReferenceId")
-                        .HasDatabaseName("IX_FinReceivableInvoiceBatch_DebtorReferenceId");
-
-                    b.HasIndex("DebtorType")
-                        .HasDatabaseName("IX_FinReceivableInvoiceBatch_DebtorType");
-
-                    b.HasIndex("PeriodStart")
-                        .HasDatabaseName("IX_FinReceivableInvoiceBatch_PeriodStart");
-
-                    b.HasIndex("Status")
-                        .HasDatabaseName("IX_FinReceivableInvoiceBatch_Status");
-
-                    b.ToTable("FinReceivableInvoiceBatch", "public", t =>
-                        {
-                            t.HasCheckConstraint("CK_FinReceivableInvoiceBatch_DebtorType", "\"DebtorType\" = 'PAYER'");
-
-                            t.HasCheckConstraint("CK_FinReceivableInvoiceBatch_Status", "\"Status\" IN ('DRAFT','ISSUED','PARTIALLY_PAID','PAID','CANCELLED')");
-                        });
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models.FinReceivableInvoiceBatchItem", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("BatchId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CancelBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("CancelDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("CreateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreateDateTime")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<Guid>("DeleteBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("DeleteDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("IsCancel")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<bool>("IsDelete")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false);
-
-                    b.Property<Guid>("ReceivableId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("UpdateBy")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime?>("UpdateDateTime")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BatchId")
-                        .HasDatabaseName("IX_FinReceivableInvoiceBatchItem_BatchId");
-
-                    b.HasIndex("ReceivableId")
-                        .IsUnique()
-                        .HasDatabaseName("IX_FinReceivableInvoiceBatchItem_ActiveReceivable")
-                        .HasFilter("\"IsDelete\" = false");
-
-                    b.ToTable("FinReceivableInvoiceBatchItem", "public");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models.FinReceivableItem", b =>
@@ -97898,30 +97601,6 @@ namespace QuilvianSystemBackend.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models.FinReceiptDeduction", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models.FinReceipt", "Receipt")
-                        .WithMany()
-                        .HasForeignKey("ReceiptId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models.FinReceiptAllocation", "ReceiptAllocation")
-                        .WithMany()
-                        .HasForeignKey("ReceiptAllocationId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models.FinReceiptDeduction", null)
-                        .WithMany()
-                        .HasForeignKey("ReversalOfDeductionId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("Receipt");
-
-                    b.Navigation("ReceiptAllocation");
-                });
-
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models.FinReceiptAllocation", b =>
                 {
                     b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models.FinReceipt", "Receipt")
@@ -98289,25 +97968,6 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("ReceivableId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.Navigation("Receivable");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models.FinReceivableInvoiceBatchItem", b =>
-                {
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models.FinReceivableInvoiceBatch", "Batch")
-                        .WithMany("Items")
-                        .HasForeignKey("BatchId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models.FinReceivable", "Receivable")
-                        .WithMany()
-                        .HasForeignKey("ReceivableId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Batch");
 
                     b.Navigation("Receivable");
                 });
@@ -122141,11 +121801,6 @@ namespace QuilvianSystemBackend.Migrations
                     b.Navigation("ReceiptAllocations");
 
                     b.Navigation("WriteOffs");
-                });
-
-            modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Models.FinReceivableInvoiceBatch", b =>
-                {
-                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("QuilvianSystemBackend.Areas.Corporate.HumanResource.AttendanceManagement.Models.HrdAttendanceCorrectionRequest", b =>

@@ -161,7 +161,8 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
                     Id = x.Id,
                     EventTypeCode = x.EventTypeCode,
                     EventTypeName = x.EventTypeName,
-                    SourceModule = x.SourceModule
+                    SourceModule = x.SourceModule,
+                    EventKind = x.EventKind
                 })
                 .ToListAsync(ct);
 
@@ -262,6 +263,16 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
                 return AccountingServiceResult<EventTypeDetailResponse>.Fail(
                     StatusCodes.Status409Conflict,
                     "Jenis perlakuan tidak dapat diubah karena jenis ini sudah dipakai kejadian.");
+            }
+
+            if (perlakuanBerubah
+                && perlakuan == EventTypeKind.SaldoSubledger
+                && await _db.Set<AccPostingRule>().AnyAsync(
+                    x => x.EventTypeId == jenis.Id && x.IsActive && !x.IsDelete, ct))
+            {
+                return AccountingServiceResult<EventTypeDetailResponse>.Fail(
+                    StatusCodes.Status409Conflict,
+                    "Jenis kejadian ini masih punya aturan posting aktif. Nonaktifkan aturannya lebih dahulu.");
             }
 
             jenis.EventTypeName = nama;
