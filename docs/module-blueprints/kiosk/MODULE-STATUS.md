@@ -21,7 +21,7 @@
 
 | Backend | Frontend | Integrasi | Verifikasi |
 | --- | --- | --- | --- |
-| `IN_PROGRESS` — `BE-KSK-001` ✅, `BE-KSK-002` ✅ | `NOT_STARTED` | `NOT_STARTED` | `NOT_STARTED` |
+| `DONE` — `BE-KSK-001` ✅, `BE-KSK-002` ✅, `BE-KSK-003` ✅ | `IN_PROGRESS` — `FE-KSK-001` ✅, `FE-KSK-002` ✅, `FE-KSK-003` ✅, `FE-KSK-004` ✅, `FE-KSK-005` ✅, `FE-KSK-006` ✅ | `NOT_STARTED` | `NOT_STARTED` |
 
 ## Keputusan
 
@@ -33,7 +33,7 @@ Tidak ada blocker desain. Dua tindak lanjut lintas blueprint berada di luar wewe
 
 | ID | Ringkasan | Pemilik | Fase terdampak | Bisa jalan terpisah |
 | --- | --- | --- | --- | --- |
-| `KSK-OQ-004` | Amendment blueprint Laboratorium `FE-LAB-13` / `AC-93` (urutan & waktu sesi) | Sukma | Build FE Flow Pasien Lama | Ya |
+| ~~`KSK-OQ-004`~~ | **Ditutup 30 Sep 2026** — amendment `FE-LAB-13` / `AC-93` tercatat di blueprint Laboratorium (Amendment Pass putaran 20, revisi 82); pemilik modul Laboratorium perlu diberi tahu | — | — | — |
 | ~~`KSK-OQ-005`~~ | **Ditutup 30 Sep 2026** — `RWI-ENC-PAYER-001` `1.1.0` tercatat di blueprint rawat-inap | — | — | — |
 
 ## Bukti usang
@@ -50,4 +50,4 @@ Tidak ada blocker desain. Dua tindak lanjut lintas blueprint berada di luar wewe
 
 ## Progres delivery
 
-`2 / 11` task approved selesai (3 BE, 8 FE): `BE-KSK-001` ✅, `BE-KSK-002` ✅ — 30 Sep 2026 ([laporan 001](task/report/backend/BE-KSK-001.md), [laporan 002](task/report/backend/BE-KSK-002.md)). Tertahan: `FE-KSK-007` (`KSK-OQ-004`), `FE-KSK-008` (turunan). `BE-KSK-003` terbuka sejak `KSK-OQ-005` ditutup 30 Sep 2026.
+`9 / 11` task approved selesai (3 BE, 8 FE): `BE-KSK-001` ✅, `BE-KSK-002` ✅, `BE-KSK-003` ✅, `FE-KSK-001` ✅, `FE-KSK-002` ✅, `FE-KSK-003` ✅, `FE-KSK-004` ✅, `FE-KSK-005` ✅, `FE-KSK-006` ✅ — 30 Sep 2026 ([laporan 001](task/report/backend/BE-KSK-001.md), [laporan 002](task/report/backend/BE-KSK-002.md), [laporan 003](task/report/backend/BE-KSK-003.md), [laporan FE-KSK-003](task/report/frontend/FE-KSK-003.md), [laporan FE-KSK-004](task/report/frontend/FE-KSK-004.md), [laporan FE-KSK-005](task/report/frontend/FE-KSK-005.md), [laporan FE-KSK-006](task/report/frontend/FE-KSK-006.md), [laporan FE-KSK-001](task/report/frontend/FE-KSK-001.md), [laporan FE-KSK-002](task/report/frontend/FE-KSK-002.md)). Seluruh task backend selesai. Tertahan: `FE-KSK-007` (`KSK-OQ-004`), `FE-KSK-008` (menunggu `FE-KSK-007`).

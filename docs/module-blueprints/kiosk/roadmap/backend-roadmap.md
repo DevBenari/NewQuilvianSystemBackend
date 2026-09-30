@@ -32,7 +32,7 @@
 ```text
 BE-KSK-001 ✅ ─> BE-KSK-002 ✅
 
-{KSK-OQ-005 ✅} ─> BE-KSK-003
+{KSK-OQ-005 ✅} ─> BE-KSK-003 ✅
 ```
 
 `{KSK-OQ-005}` = pencatatan amendment `RWI-ENC-PAYER-001` v1.1.0 di blueprint rawat-inap (keputusannya `KSK-DEC-013` sudah `approved`).
@@ -51,7 +51,7 @@ Jumlah pasangan prasyarat → task: 2 (`BE-KSK-001→002`, `KSK-OQ-005→003`).
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | ✅ `BE-KSK-001` | Endpoint lookup pasien menjawab 4 hasil dengan data minimal | EPIC KSK-01; `FR-KSK-001..005, 007, 008, 009`; `KSK-DEC-006/007/017/018/019`; `KSK-DSN-001..004, 006, 008` | `KSK-CONTRACT-v1` api §Kiosk Patient Lookup, validation §1 | `MstPatient` (+ identity document, insurance, membership) baca-saja; `ApiResponse<T>`; policy `KioskRead`; pola `FindPatientAsync` | Enum ×2, DTO, service, controller, DI | — | Lihat kartu | Build, EF, QBE, verifier, runtime R0..R9 | Normalisasi HP di query tidak diterjemahkan EF → fallback SQL berparameter / Sukma | Kartu |
 | ✅ `BE-KSK-002` | Lookup dibatasi 10/menit/akun perangkat | EPIC KSK-01; `FR-KSK-006`; `KSK-DEC-011`; `KSK-DSN-005` | api §Kiosk Patient Lookup (kode `429`) | Middleware rate limiting bawaan `net9.0` | `Program.cs`, `appsettings.json`, atribut endpoint | `BE-KSK-001` | Lihat kartu | Build, verifier, runtime R0..R4 | Salah urutan middleware membuat partisi jatuh ke IP / Sukma | Kartu |
-| `BE-KSK-003` | Route kiosk menerima Penjamin Perusahaan | EPIC KSK-04; `FR-KSK-030/031`; `KSK-DEC-013` | api §Patient Encounter | `CreateEncounterCoreAsync`, `LoadValidPatientCompanyGuarantorAsync` | Satu argumen + komentar di `PatientEncounterController` | `KSK-OQ-005` | Lihat kartu | Build, verifier, runtime R0..R4 | Melebarkan wewenang kiosk; dijaga validasi existing / Sukma + Muhammad Hamzah | Kartu |
+| ✅ `BE-KSK-003` | Route kiosk menerima Penjamin Perusahaan | EPIC KSK-04; `FR-KSK-030/031`; `KSK-DEC-013` | api §Patient Encounter | `CreateEncounterCoreAsync`, `LoadValidPatientCompanyGuarantorAsync` | Satu argumen + komentar di `PatientEncounterController` | `KSK-OQ-005` | Lihat kartu | Build, verifier, runtime R0..R4 | Melebarkan wewenang kiosk; dijaga validasi existing / Sukma + Muhammad Hamzah | Kartu |
 
 ## Kartu task
 
@@ -115,12 +115,13 @@ Jumlah pasangan prasyarat → task: 2 (`BE-KSK-001→002`, `KSK-OQ-005→003`).
 
 **DoD:** AC 1–5 terbukti di `task/report/backend/BE-KSK-002.md`.
 
-### `BE-KSK-003` ⛔ — Route kiosk menerima Penjamin Perusahaan
+### ✅ `BE-KSK-003` — Route kiosk menerima Penjamin Perusahaan
 
 | Aspek | Isi |
 | --- | --- |
-| Gelombang | `MVP-3`; ⛔ menunggu `KSK-OQ-005` |
-| Blocker | Amendment `RWI-ENC-PAYER-001` v1.0.0 → v1.1.0 belum tercatat di `rawat-inap/episode-rawat-inap/contracts/encounter-company-guarantor-contract.md` §7. Keputusan bisnisnya (`KSK-DEC-013`, Muhammad Hamzah) sudah `approved`; yang kurang hanya pencatatan formal di blueprint pemilik kontrak. Pemilik: Sukma / Muhammad Hamzah. |
+| Status | ✅ SELESAI — 30 September 2026. Build Release PASS (0 error), EF tanpa perubahan model, QBE Strict 2/2 PASS, authorization verifier PASS (fallback 69 tetap, `CreateEncounterForKiosk` tetap di himpunan), runtime run kedua 12/12 skenario PASS + pembersihan DB PASS; AC 1–5 terpenuhi. Run pertama menemukan defect lama `500` (snapshot tanggal `date` → `timestamptz`) di `/kiosk` dan `/admin`; diperbaiki atas persetujuan pengguna (snapshot Penjamin Perusahaan + Asuransi lewat `ToUtcDate`) — delta cakupan dicatat di laporan. Runtime memakai akun SuperAdmin, bukan akun perangkat Kiosk. `dotnet test` NOT RUN — tidak ada project test. Laporan: [task/report/backend/BE-KSK-003.md](../task/report/backend/BE-KSK-003.md) |
+| Gelombang | `MVP-3`; `KSK-OQ-005` ✅ |
+| Blocker | ✅ Tertutup 30 Sep 2026 (`KSK-OQ-005` ✅). Semula: amendment `RWI-ENC-PAYER-001` v1.0.0 → v1.1.0 belum tercatat di `rawat-inap/episode-rawat-inap/contracts/encounter-company-guarantor-contract.md` §7. Keputusan bisnisnya (`KSK-DEC-013`, Muhammad Hamzah) sudah `approved`; yang kurang hanya pencatatan formal di blueprint pemilik kontrak. Pemilik: Sukma / Muhammad Hamzah. |
 | Yang tetap bisa jalan | `BE-KSK-001`, `BE-KSK-002`, seluruh task FE kecuali `FE-KSK-008` |
 | Outcome | `POST patient-encounters/kiosk` dengan `paymentType = 3` + `patientCompanyGuarantorId` sah → `200` |
 | File | Diperbarui: `Areas/HealthServices/RegistrationManagement/Controllers/PatientEncounterController.cs` — `CreateEncounterForKiosk` memanggil `CreateEncounterCoreAsync(..., allowCompanyGuarantor: true, ...)`; komentar merujuk `KSK-DEC-013` / `RWI-ENC-PAYER-001` v1.1.0 |

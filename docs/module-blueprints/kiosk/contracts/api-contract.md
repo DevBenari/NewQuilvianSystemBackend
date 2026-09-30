@@ -109,8 +109,8 @@ Contract version: `v1` — status `draft`
 
 | Method | Path | Kegunaan | Hak akses | Request | Response | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| `POST` | `/kiosk` (dan alias `/`) | Membuat kunjungan dari Kiosk dengan satu sumber pembayaran: Tunai, Asuransi, **atau Penjamin Perusahaan** | Policy `KioskRead`; `[AccessAction("Create", ...)]` existing (fallback kompatibilitas, sudah tercatat) | `PatientEncounterCreateRequest` (existing) | `ApiResponse<PatientEncounterCreateResponse>` (existing) | **Sudah ada — perilaku diperbarui (belum tersedia)**: `paymentType = 3` masih ditolak sampai `KSK-OQ-005` + task BE |
-| `POST` | `/admin` | Jalur petugas | `PatientEncounter : Create` | sama | sama | Sudah ada — tidak berubah |
+| `POST` | `/kiosk` (dan alias `/`) | Membuat kunjungan dari Kiosk dengan satu sumber pembayaran: Tunai, Asuransi, **atau Penjamin Perusahaan** | Policy `KioskRead`; `[AccessAction("Create", ...)]` existing (fallback kompatibilitas, sudah tercatat) | `PatientEncounterCreateRequest` (existing) | `ApiResponse<PatientEncounterCreateResponse>` (existing) | **Tersedia** sejak `BE-KSK-003` (30 Sep 2026): `paymentType = 3` diterima dengan validasi yang sama dengan `/admin` |
+| `POST` | `/admin` | Jalur petugas | `PatientEncounter : Create` | sama | sama | Sudah ada — kontrak tidak berubah; defect simpan snapshot tanggal (`500`) diperbaiki `BE-KSK-003` (30 Sep 2026) |
 
 Perubahan pada `PatientEncounterCreateRequest` untuk route kiosk: **tidak ada field baru**. Kombinasi yang kini sah:
 

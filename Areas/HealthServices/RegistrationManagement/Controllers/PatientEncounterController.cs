@@ -2074,8 +2074,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                     NormalizeNullableText(patientCompanyGuarantor.BenefitPlanName);
                 entity.ClassNameSnapshot =
                     NormalizeNullableText(patientCompanyGuarantor.ClassName);
-                entity.EffectiveStartDateSnapshot = patientCompanyGuarantor.EffectiveStartDate;
-                entity.EffectiveEndDateSnapshot = patientCompanyGuarantor.EffectiveEndDate;
+                // Kolom sumber bertipe date (Kind=Unspecified), sedangkan snapshot timestamptz
+                // hanya menerima UTC; tanpa konversi ini SaveChanges gagal (500).
+                entity.EffectiveStartDateSnapshot = ToUtcDate(patientCompanyGuarantor.EffectiveStartDate);
+                entity.EffectiveEndDateSnapshot = ToUtcDate(patientCompanyGuarantor.EffectiveEndDate);
                 entity.IsEligible = patientCompanyGuarantor.IsEligible;
                 entity.IsPolicyActive = true;
 
@@ -2098,8 +2100,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
             entity.PlanNameSnapshot = NormalizeNullableText(patientInsurance.PlanName);
             entity.ClassNameSnapshot = NormalizeNullableText(patientInsurance.ClassName);
             entity.BenefitPlanCodeSnapshot = NormalizeNullableText(patientInsurance.BenefitPlanCode);
-            entity.EffectiveStartDateSnapshot = patientInsurance.EffectiveStartDate;
-            entity.EffectiveEndDateSnapshot = patientInsurance.EffectiveEndDate;
+            entity.EffectiveStartDateSnapshot = ToUtcDate(patientInsurance.EffectiveStartDate);
+            entity.EffectiveEndDateSnapshot = ToUtcDate(patientInsurance.EffectiveEndDate);
             entity.IsEligible = patientInsurance.IsEligible;
             entity.IsPolicyActive = true;
 
@@ -2684,6 +2686,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
         private static DateTime ToUtcDate(DateTime value)
         {
             return DateTime.SpecifyKind(value.Date, DateTimeKind.Utc);
+        }
+
+        private static DateTime? ToUtcDate(DateTime? value)
+        {
+            return value.HasValue ? ToUtcDate(value.Value) : null;
         }
 
         private static (int PageNumber, int PageSize) NormalizePaging(int pageNumber, int pageSize)

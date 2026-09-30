@@ -170,7 +170,7 @@ Selain AC-RM-001..005, AC-OLD-001..008, AC-GUA-001/002, dan AC-SCH-001/002 dari 
 | `KSK-OQ-001` | Verifikasi `KSK-ASM-001` (penanggung per kunjungan). | `trace-existing-capabilities` | — | **Ditutup** oleh `KSK-FACT-004` |
 | `KSK-OQ-002` | Verifikasi `KSK-ASM-002` (field Kartu Pasien). | `trace-existing-capabilities` | — | **Ditutup** oleh `KSK-FACT-005` |
 | `KSK-OQ-003` | Verifikasi `KSK-ASM-003` (normalisasi HP di backend). | `trace-existing-capabilities` | — | **Ditutup** oleh `KSK-FACT-006` |
-| `KSK-OQ-004` | Amendment blueprint Laboratorium untuk `FE-LAB-13` / `AC-93` akibat `KSK-DEC-002` dan `KSK-DEC-014`. | Sukma | IMPLEMENTATION (FE urutan step) | Terbuka — di luar wewenang tulis blueprint ini |
+| `KSK-OQ-004` | Amendment blueprint Laboratorium untuk `FE-LAB-13` / `AC-93` akibat `KSK-DEC-002` dan `KSK-DEC-014`. | Sukma | IMPLEMENTATION (FE urutan step) | **Ditutup** 30 Sep 2026 — amendment tercatat di `laboratorium/00-interview-decisions.md` Amendment Pass putaran 20 (revisi 82) dan `laboratorium/03-frontend-architecture.md` §Amandemen 2026-09-30, atas persetujuan Sukma |
 | `KSK-OQ-005` | Catatan amendment `RWI-ENC-PAYER-001` v1.0.0 → v1.1.0 pada blueprint rawat-inap (`encounter-company-guarantor-contract.md` §7), sesuai `KSK-DEC-013`. | Sukma / Muhammad Hamzah | IMPLEMENTATION (BE route kiosk menerima Penjamin Perusahaan) | **Ditutup** 30 Sep 2026 — `RWI-ENC-PAYER-001` `1.1.0` tercatat di `rawat-inap/episode-rawat-inap/contracts/encounter-company-guarantor-contract.md` §7 dan §11 atas permintaan Sukma |
 
 Tidak ada keputusan bisnis PRD yang masih OPEN. Seluruh `DEC-KSK-00x` sudah ditutup oleh `KSK-DEC-006..010`. Seluruh conflict dan unknown pada capability map r1 sudah ditutup oleh `KSK-DEC-013..019` (§11).
