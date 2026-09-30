@@ -2,9 +2,10 @@
 
 | Field | Value |
 |---|---|
-| `contract_version` | `ACC-XMOD-0.4` |
-| `last_changed_in` | `ACC-XMOD-0.4` — 28 September 2026. Sebelumnya `0.3`, 24 September 2026; `0.2`, 15 September 2026 |
+| `contract_version` | `ACC-XMOD-0.5` |
+| `last_changed_in` | `ACC-XMOD-0.5` — 30 September 2026. Sebelumnya `0.4`, 28 September 2026; `0.3`, 24 September 2026; `0.2`, 15 September 2026 |
 | Amandemen `0.4` | **`ACC-XMOD-0.4` — approved sisi Accounting, Rizki, 28 September 2026 (`GATE-DESAIN-0928`).** (1) Katalog bagian 3a menjadi **26 kode** (`ACC-DEC-087`, `098`, `100`, `103`, `105`, `106`); (2) empat aturan pesan saldo untuk rekonsiliasi di bagian 8a — titik mulai, akun wajib, arah tanda `Amount`, tanggal cut-off (`ACC-DEC-107`..`110`); (3) bagian 9 dan 10 dimutakhirkan. **Nol perubahan pada kedua belas bidang, tipe, kunci anti-ganda, kode balasan, dan validasi penerimaan.** Butir (2) menunggu kesanggupan Finance (bagian 9), mengikuti preseden `0.3`: diputuskan sisi Accounting, dikonfirmasi Finance per butir |
+| Amandemen `0.5` | **`ACC-XMOD-0.5` — approved sisi Accounting, Rizki, 30 September 2026 (`GATE-DESAIN-0930`).** (1) Gerbang G6 bagian 13 bertambah syarat penegakan shift kasir belum ditutup (`ACC-DEC-124`); (2) bagian 9 bertambah butir shift kasir (OQ-124-1); (3) bagian 4b diselaraskan dengan `api-contract.md` — `EventStatus` `Gagal`/`Diabaikan` dan nomor jurnal yang dapat berganti (`ACC-DEC-116`). **Nol perubahan pada kedua belas bidang, tipe, kunci anti-ganda, kode balasan, dan validasi penerimaan**; pengirim dari `0.4` tetap cocok |
 | Klasifikasi artefak | **`CROSS_MODULE_REQUIRED`** |
 | Status | **`approved`** — bentuk batas (bagian 2–7) diratifikasi owner Finance lewat `FIN-DEC-001` atas `0.2` apa adanya; tambahan `0.3` diputuskan sisi Accounting (`ACC-DEC-082`..`090`) dan **menunggu konfirmasi Finance hanya untuk butir yang ditandai** di bagian 9 |
 | Consumer | Accounting (owner: Rizki) |
@@ -341,8 +342,8 @@ tidak membawanya, karena kejadiannya tidak tersimpan.
 |---|---|:---:|---|---|
 | `AccountingEventId` | `Guid` | Ya | Rujukan tanda terima di Accounting (`AccAccountingEvent.Id`) | `AccountingReceiptNumber` |
 | `EventNumber` | `string` | Ya | Gema dari pesan | — |
-| `EventStatus` | `string` | Ya | `Diterima`, `Terjurnal`, `Tertahan`, atau `Tercatat` (pesan saldo subledger) | — |
-| `JournalNumber` | `string?` (maks 30) | Tidak | Hanya bila `Terjurnal`, contoh `JU/2026/11/00017` | `AccountingJournalNumber` |
+| `EventStatus` | `string` | Ya | `Diterima`, `Terjurnal`, `Tertahan`, atau `Tercatat` (pesan saldo subledger). *(`0.5` — diselaraskan dengan `api-contract.md`:)* balasan kiriman ulang `200` dapat juga membaca `Gagal` atau `Diabaikan`, dan balasan `201` pesan saldo dapat membaca `Gagal` bila rinciannya lolos pemeriksaan awal tetapi tidak dapat dicatat. Pengirim tidak boleh menganggap nilai itu galat | — |
+| `JournalNumber` | `string?` (maks 30) | Tidak | Hanya bila `Terjurnal`, contoh `JU/2026/11/00017`. *(`0.5`:)* dapat berganti bila draft hasil kejadian dihapus lalu dicoba ulang (`ACC-DEC-116`); kiriman ulang membaca nomor yang berlaku saat itu | `AccountingJournalNumber` — informasi "nomor saat diterima", **bukan** kunci; rujukan tetap adalah `AccountingEventId` |
 | `AccountingPeriodCode` | `string?` (`YYYY-MM`) | Tidak | Periode tempat jurnal jatuh — bisa berbeda dari `AccountingDate` bila periodenya sudah tertutup (`ACC-DEC-047`) | — |
 | `HoldReasonCode` | `string?` | Tidak | Hanya bila `Tertahan`: `EVENT_TYPE_NOT_REGISTERED`, `POSTING_RULE_MISSING`, `COMPONENT_UNMAPPED` (kejadian membawa komponen yang tidak dipakai aturan), atau `COMPONENT_MISSING` (aturan menuntut komponen yang tidak dibawa kejadian) | Dapat dipakai mengisi `HoldReason` |
 | `ReceivedAt` | `timestamptz` | Ya | Waktu kejadian pertama kali diterima | — |
@@ -505,6 +506,7 @@ Per 24 September 2026. Yang sudah ditutup: `ACC-XM-001` dan ratifikasi bentuk pe
 | Kas di luar katalog | Kode atau pernyataan tertulis untuk deposit, refund, selisih shift | Yasmin + owner Billing | Gerbang G6 |
 | Selisih catatan | Versi percakapan (JWT Bearer, cutover 1 Oktober, amplop + 4 rincian) berbeda dengan `FIN-DEC-007`, `008`, `023` | Yasmin | Tidak menahan; wajib didamaikan (bagian 11) |
 | `FIN-DEC-004` | Accounting meminta penerimaan sebelum tagihan final **terbit segera** sebagai uang muka pasien, beserta kode pemakaian uang muka (`ACC-DEC-091`) | Yasmin | Gerbang G6 |
+| Shift kasir *(`0.5`)* | Kode penanda shift tertutup yang terbit saat shift `REVIEWED` (`evidence/14` pertanyaan 7.4), **dan** bagaimana Accounting mengetahui shift yang dibuka supaya dapat menyatakan shift yang belum ditutup (OQ-124-1) | Yasmin + Rizki | Gerbang G6 (`ACC-DEC-124`) |
 
 ## 10. Yang sudah dan belum dibangun sisi Accounting
 
@@ -565,7 +567,14 @@ sebelum cutover diinput Accounting sebagai saldo awal manual, satu kali (`FIN-DE
 | G3 | Akun layanan aktif sesuai bagian 4c dan mekanismenya sudah diputuskan | Platform + Yasmin + Rizki | Mekanisme terbuka |
 | G4 | Pengirim Finance siap | Yasmin | Belum dibangun |
 | G5 | Saldo awal manual per tanggal cutover siap diinput | Rizki | Bergantung G2 |
-| G6 | Kode atau pernyataan tertulis Finance untuk deposit pasien, kelebihan bayar dan refund, serta selisih kas shift — termasuk jaminan top-up deposit **tidak** dikirim sebagai `PENERIMAAN-KASIR`; ditambah perubahan `FIN-DEC-004` dan kode pemakaian uang muka (`ACC-DEC-091`) | Yasmin + owner Billing | Terbuka |
+| G6 | Kode atau pernyataan tertulis Finance untuk deposit pasien, kelebihan bayar dan refund, serta selisih kas shift — termasuk jaminan top-up deposit **tidak** dikirim sebagai `PENERIMAAN-KASIR`; ditambah perubahan `FIN-DEC-004` dan kode pemakaian uang muka (`ACC-DEC-091`). *(`0.5` — `ACC-DEC-124`:)* **ditambah penegakan shift kasir belum ditutup** (`FR-P2-038`, `ACC-DEC-065`) sudah dirancang, dibangun, dan diuji di Accounting — bergantung pada kode penanda shift dan OQ-124-1 (bagian 9) | Yasmin + owner Billing; penegakan shift: Rizki | Terbuka |
+
+**Kenapa penegakan shift masuk G6** *(`0.5`)*. Kas kasir datang per shift. Shift yang
+melewati pergantian bulan dan belum ditutup membuat kasnya belum sampai ke buku besar, sementara
+bulan itu tetap dapat ditutup. Sebelum cutover risiko ini tidak ada, karena belum ada kas yang
+masuk lewat kejadian; sesudah cutover, ia langsung ada. **Contoh:** shift malam 31 Oktober ditutup
+1 November pukul 07.00. Tanpa penahan, Accounting dapat mengajukan tutup Oktober pada 1 November
+pukul 06.00 dengan kas Oktober yang kurang satu shift.
 
 **1 Oktober 2026 tidak layak** karena G1, G2, G3, dan G4 belum terpenuhi tujuh hari sebelumnya.
 

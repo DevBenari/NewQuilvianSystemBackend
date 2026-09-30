@@ -5,7 +5,7 @@ blueprint_id: ACC-BP-001
 module_name: Accounting
 module_slug: accounting
 module_prefix: ACC
-revision: 14   # 29 Sep 2026 - amendment draft jurnal hasil kejadian (ACC-DEC-116..121), GATE-DESAIN-0929; 13 = 28 Sep 2026 rekonsiliasi saldo subledger (ACC-DEC-107..115), GATE-DESAIN-0928; 12 = 24 Sep 2026 pasca-ratifikasi Finance
+revision: 15   # 30 Sep 2026 - amendment ACC-DEC-122..124 (dokumen saja, nol kode), GATE-DESAIN-0930; 14 = 29 Sep 2026 - amendment draft jurnal hasil kejadian (ACC-DEC-116..121), GATE-DESAIN-0929; 13 = 28 Sep 2026 rekonsiliasi saldo subledger (ACC-DEC-107..115), GATE-DESAIN-0928; 12 = 24 Sep 2026 pasca-ratifikasi Finance
 status: approved
 current_phase: ACC-PH-005
 created_at: 2026-09-01T09:53:36+07:00
@@ -993,3 +993,37 @@ sesudahnya tidak dihitung ulang di sini.
 | `02-backend-architecture.md` | bagian 24 | Batas transaksi, class yang berubah, yang sengaja tidak dibuat |
 | `03-frontend-architecture.md` | amandemen tabel tombol Rincian Jurnal | Tombol Ubah/Hapus (gap `FE-ACC-007`), baris Asal, dialog Hapus jurnal hasil kejadian |
 | `04-prd-to-mvp.md` | `ACC-P2-EPIC-08` | `FR-P2-045`..`048`, `UAT-P2-34`..`38`, DoD |
+
+## Amendment 30 September 2026 — pelaku sistem, penjadwal jurnal berulang, shift kasir, **`approved`**
+
+| Field | Nilai |
+|---|---|
+| `revision` | **14 → 15**, berlaku 30 September 2026 saat `GATE-DESAIN-0930` dibuka. `00-interview-decisions.md` revision 15 → **16** (`ACC-DEC-122`..`124`, `approved`) |
+| Dikerjakan lewat | audit kesiapan 29 September 2026 → `grill-me` (amendment pass, **selesai**) → `design-business-module` (amendment dokumen, **approved**). **Tanpa `plan-module-delivery`**: nol kartu baru, atas arahan Rizki — development Accounting dinyatakan selesai sesuai lingkup yang sudah dibentuk |
+| `backend_commit_sha` | `a3f2514a` (branch `rizkiG`) + working tree dokumen |
+| `frontend_commit_sha` | `2c2190858` (branch `RizkiV2`) |
+| Gerbang | **`GATE-DESAIN-0930` — DIBUKA Rizki, 30 September 2026** ("saya setujui") |
+| Kode dan migration | Tidak ada |
+
+| Artefak | Versi | Perubahan |
+|---|---|---|
+| `04-prd-to-mvp.md` | bagian 24, `ACC-P2-EPIC-07`, bagian 27 | `FR-P2-038` ditunda menjadi syarat gerbang cutover G6; DoD butir 1 menjadi 47 FR (`ACC-DEC-124`) |
+| `contracts/cross-module-contract.md` | `ACC-XMOD-0.5` | G6 bertambah penegakan shift kasir; bagian 9 bertambah OQ-124-1; bagian 4b diselaraskan dengan `api-contract.md` |
+| `contracts/api-contract.md` | `ACC-API-0.16` | Tanda terima: `201` berstatus `Gagal` untuk pesan saldo, dan nomor jurnal yang dapat berganti (`ACC-DEC-116`) — penyelarasan dengan perilaku source, nol perubahan kode |
+| `roadmap/requirement-traceability-phase2.md` | baris `FR-P2-038` | Penegakan penuh keluar dari Phase 2 |
+| `MODULE-STATUS.md` | titik lanjut 30 September 2026 | **Development Accounting ✅ SELESAI** |
+
+### Yang sengaja tidak disentuh
+
+`02-backend-architecture.md`, `contracts/validation-matrix.md`, `03-frontend-architecture.md`, dan kedua
+roadmap Phase 2 tidak berubah. Usulan bagian 25 arsitektur — bagian `Accounting` di `appsettings.json`,
+penjaga penjadwal jurnal berulang, validasi nilai jenis akun dan saldo normal — **dibatalkan** atas
+keberatan Rizki. `ACC-DEC-122`/`123` dijalankan sebagai langkah operasional, dan temuan nilai `0` pada
+jenis akun dan saldo normal menjadi catatan impor bagan akun di `MODULE-STATUS.md`.
+
+### Yang masih `OPEN` sesudah amendment ini
+
+| Butir | Pemilik |
+|---|---|
+| OQ-124-1 — bagaimana Accounting mengetahui shift kasir yang dibuka; syarat G6 | Rizki + Yasmin |
+| Pengguna "Sistem Akuntansi" per lingkungan dan tiga nilai konfigurasi di server (`ACC-DEC-122`, `123`) | Admin sistem, Platform |
