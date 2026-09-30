@@ -862,3 +862,94 @@ milik owner bersama Security Owner, dan audit tidak memilihnya.
 | `FIN-OQ-036` | Diperbesar oleh `FIN-CQ-08` — bukan lagi hanya soal granularitas butir menu | 16.3 |
 | `FIN-OQ-034` | Tidak berubah oleh pass ini; suratnya sudah dikirim ke owner Billing lewat `evidence/17` | bagian 15.4, `evidence/17` |
 | `FIN-CAP-037` | Tetap `Missing`; permukaan tanpa uji bertambah +590 baris | 16.2, 16.4 |
+
+---
+
+## 17. Impact scan terarah — kesejajaran menu Transaksi A/R & A/P vs `Keuangan.md` (30 September 2026, `831ddb5d` / `e957fbec`)
+
+**Pemicu.** Pemilik modul membandingkan struktur menu mobile pada `Keuangan.md` (bukti video
+sistem rujukan, bagian 5.1–5.2) dengan frontend Quilvian saat ini dan bertanya: kenapa menu
+setara belum ada, dan apakah backend-nya juga belum ada. Pass ini **bukan** audit ulang bagian
+1–16; ia menyandingkan tiap butir menu `Keuangan.md` FIN-AP-001..014 / FIN-AR-001..014 dengan
+kode as-is hari ini.
+
+**Verifikasi staleness.** Backend `cba60cb0` → `831ddb5d` (mencakup commit `BE-FIN-036`,
+`BE-FIN-037`, dan pekerjaan lain yang tidak diaudit satu-satu). Frontend `49b59cfaa` → `e957fbec`
+(mencakup `FE-FIN-014`). Kedua pergerakan **menyentuh langsung** boundary Purchasing/AR/AP —
+beberapa koreksi status besar ditemukan (17.1).
+
+### 17.1 Koreksi status akibat pekerjaan yang sudah selesai sejak bagian 15/16
+
+| ID | Status lama | Status baru | Bukti (`@831ddb5d` / `@e957fbec`) | Yang berubah |
+|---|---|---|---|---|
+| `FIN-CQ-06` (label menu Inggris vs `FIN-DEC-060`) | Terbuka | **Selesai** | `src/utils/menu-sidebar/menu-items.jsx` baris 700-742 — submenu **"Pembelian"** dengan label Indonesia ("Tukar Faktur", "Faktur Pembelian", "Retur Pembelian", "Laporan Pembelian"), komentar inline mengutip `FE-FIN-014`/`FIN-DEC-060` | Menu sudah direlabel sesuai keputusan. `Account Payable`/`Account Receivable` sendiri tetap berlabel Inggris (bukan bagian `FIN-DEC-060`) |
+| `FIN-CQ-07` (butir menu PO/Receiving tanpa sumber data) | Terbuka | **Selesai untuk PO/Tukar Faktur/Faktur Pembelian/Retur** | `pathname` menu-items.jsx menunjuk `/finance/purchasing/purchase-orders`, `/invoice-exchanges`, `/purchasing-invoices`, `/supplier-returns` — seluruhnya berkorespondensi dengan controller `FIN-CAP-028` yang sudah ada | **Goods Receipt tetap tidak dapat butir/layar daftar sendiri** — komentar kode baris 705-707 menyebut eksplisit "belum ada halaman daftar GR yang berdiri sendiri", GR hanya tercatat dari alur detail PO |
+| `FIN-CAP-028` (gap `GET /` berpaging kelima controller Purchasing) | `Extend` (gap paging) | **`Ready to reuse`** untuk 4 dari 5 | `FinancePurchasingReportsController.cs` (baru, `BE-FIN-037`) menyediakan `/purchasing/reports/summary`, `/invoice-exchanges`, `/due-dates`, `/reconciliation` — keempatnya **daftar berpaging read-only**, menutupi kebutuhan tampilan tanpa perlu `GET /` mentah di kelima controller transaksional | Endpoint `GET /` mentah pada kelima controller transaksional **tetap belum ada** — yang baru adalah jalur laporan terpisah, bukan daftar CRUD |
+| `FIN-CAP-032` (AR Invoice Agregat) | `Missing` | **`Ready to reuse`** | `Receivable/Models/FinReceivableInvoiceBatch.cs`, `FinReceivableInvoiceBatchItem.cs`, `Services/FinanceReceivableInvoiceBatchService.cs`, `Controllers/FinanceReceivableInvoiceBatchesController.cs` — dan menu FE "Tagihan Gabungan Penjamin" (`financeReceivableInvoiceBatch`, `pathname: /finance/receivable-invoice-batches`) | Rumpun yang dulu nol baris kini punya model+service+controller+layar. Field-per-field terhadap `FIN-DEC-048` **belum diperiksa pass ini** — hanya keberadaan dan kabel FE↔BE |
+
+### 17.2 Kesejajaran menu `Keuangan.md` (sistem rujukan) vs Quilvian hari ini
+
+**Grup A/P** (`Keuangan.md` 5.1 vs `menu-items.jsx` grup "Pembelian" + "Account Payable"):
+
+| Butir `Keuangan.md` | Padanan Quilvian hari ini | Status |
+|---|---|---|
+| Pembelian Pesanan (Purchase Order) | "Purchase Order" — `/finance/purchasing/purchase-orders` | **Ada** (BE+FE) |
+| Penerima Pesanan (Goods Receipt) | Tidak ada butir/layar daftar sendiri; tercatat inline dari detail PO | **BE ada, FE sebagian** (`FIN-CQ-07` sisa) |
+| Retur Produk / Retur Pembelian Supplier | "Retur Pembelian" — `/finance/purchasing/supplier-returns` (Retur + Deposit Retur digabung) | **Ada** (BE+FE) |
+| Tukar Faktur | "Tukar Faktur" — `/finance/purchasing/invoice-exchanges` | **Ada** (BE+FE) |
+| Purchasing Invoice | "Faktur Pembelian" — `/finance/purchasing/purchasing-invoices` | **Ada** (BE+FE) |
+| Rekap Purchasing AP | Bagian dari "Laporan Pembelian" → `GET .../reports/summary` | **Ada** (BE+FE, sejak `BE-FIN-037`) |
+| Laporan Tukar Faktur | Bagian dari "Laporan Pembelian" → `GET .../reports/invoice-exchanges` | **Ada** (BE+FE, sejak `BE-FIN-037`) |
+| Laporan Jatuh Tempo | Bagian dari "Laporan Pembelian" → `GET .../reports/due-dates` | **Ada** (BE+FE, sejak `BE-FIN-037`) |
+| Rekonsiliasi Tagihan | Bagian dari "Laporan Pembelian" → `GET .../reports/reconciliation` | **Ada** (BE+FE) — **lebih lengkap dari sistem rujukan sendiri**, yang menurut `Keuangan.md` FIN-AP-014 "menu tersedia, tetapi layar dan tindakannya belum dibuka" |
+| Purchasing Payment | "Supplier Payment" — `/finance/payable/payment` (grup Account Payable, bukan Pembelian — Quilvian memisahkan "proses beli" dari "bayar utang") | **Ada** (BE+FE), beda kelompok menu |
+| Laporan Pembayaran AP | "Report AP" — `/finance/payable/report` | **Ada di kode, TAPI tersembunyi permanen** — lihat `FIN-CQ-09` baru (17.3) |
+| Utang Usaha (A/P Aging) / Laporan Aging AP | "Aging AP" — `/finance/payable/aging` | **Ada** (BE+FE) |
+| Jasa Medis | — | **Di luar scope AR/AP** — kapabilitas ini milik modul terpisah `medical-fee` (blueprint sendiri sudah ada `docs/module-blueprints/medical-fee/`), bukan bagian rumpun Purchasing/AP Finance |
+
+**Grup A/R** (`Keuangan.md` 5.2 vs `menu-items.jsx` grup "Account Receivable" + butir flat):
+
+| Butir `Keuangan.md` | Padanan Quilvian hari ini | Status |
+|---|---|---|
+| Tagihan/Billing | "Billing / Invoice" — `/finance/receivable/invoice` | **Ada** (BE+FE) |
+| Receivable AR/Invoice | "Receivable AR" — `/finance/receivable` | **Ada** (BE+FE) |
+| Canceled Invoice / Receivable AR Canceled | Tidak ada butir menu terpisah — pembatalan adalah aksi di dalam layar Receivable AR (`FIN-CAP` pembatalan sudah ada di backend, bukti bagian 9/12), bukan halaman sendiri | **Fungsi ada, menu terpisah tidak ada** — konsisten dengan pola Quilvian (aksi inline), bukan gap |
+| Report Canceled Invoice / Receiveable AR Canceled / Report Closed Billing / Report AR Created | Tidak ditemukan sebagai laporan terpisah; kemungkinan tercakup "Report AR" generik | **Belum diverifikasi granular** — ditandai closure question 17.4 |
+| Report Receiveable AR / Report Payment AR / Report AR | "Report AR" — `/finance/receivable/report` | **Ada di kode, TAPI tersembunyi permanen** — `FIN-CQ-09` (17.3) |
+| Settlement AR | "Settlement AR" — `/finance/receivable?status=SETTLED` (filter, bukan layar terpisah) | **Ada** (BE+FE) |
+| Laporan Aging AR / Umur Piutang (A/R Aging) | "Aging AR" — `/finance/receivable/aging` | **Ada** (BE+FE) |
+| Piutang Korporat/Penjamin | "Tagihan Gabungan Penjamin" — `/finance/receivable-invoice-batches` (`FIN-CAP-032`, baru berubah status 17.1) | **Ada** (BE+FE) — belum diverifikasi field-per-field |
+| Manajemen Klaim | Pencarian `Klaim\|Claim` di `Areas/Corporate/FinanceManagement` dan `src/app/finance` — **nol hasil genuine** (satu-satunya match adalah komentar "klaim hak akses" di kode permission, bukan fitur bisnis) | **`Missing`** — nol baris kode di BE maupun FE |
+| Pemutihan Piutang | Pencarian `Pemutihan\|WriteOff` di seluruh `Areas/` dan `src/app/finance` — **nol hasil** | **`Missing`** — nol baris kode di BE maupun FE, konsisten dengan `Keuangan.md` sendiri yang mencatat bukti fitur ini "masih terbatas" bahkan di sistem rujukan |
+| Ayat Silang | Pencarian `Ayat.?Silang\|OffsettingEntry\|CrossEntry` di seluruh `NewQuilvianSystemBackend` (`.cs`) — **nol hasil** | **`Missing`** — konsep ini **tidak muncul sama sekali** di `Keuangan.md` (bukan salah satu dari FIN-AR-001..014), sehingga kemungkinan bukan istilah dari sistem rujukan yang sama; MUST diklarifikasi ke owner apa maksud istilah ini dan dari sumber mana asalnya sebelum dianggap gap |
+| Piutang Tagihan | Kemungkinan sinonim "Receivable AR" | **Ada** (asumsi penamaan, belum dikonfirmasi owner) |
+
+### 17.3 Conflict baru — `FIN-CQ-09`
+
+| ID | Conflict | Bukti | Dampak |
+|---|---|---|---|
+| `FIN-CQ-09` | **Butir menu "Report AR" dan "Report AP" tidak akan pernah bisa diakses siapa pun.** Backend menjaga `GET .../receivable/report` dan `GET .../payable/report` dengan permission action `"View"`, tetapi frontend menyaring butir menunya dengan `requiredPermission: { action: "View" }` — ini **sudah konsisten**, jadi bukan itu masalahnya. Komentar kode sendiri (`menu-items.jsx` baris 783-786, 830-833) menulis eksplisit: backend mendaftarkan action `"Report"` yang **tidak pernah dipetakan** ke permission apa pun yang bisa digrant admin, sehingga meskipun menunya tampil, endpoint di baliknya secara struktural tidak bisa diberi akses pada peran manapun | `menu-items.jsx` baris 780-786 (AR), 826-833 (AP), keduanya menandai diri sebagai `FIN-CQ-09` di dalam kode | Dua dari sekian laporan yang diminta `Keuangan.md` (Report AR/Report Receiveable AR/Report Payment AR di sisi AR; Laporan Pembayaran AP di sisi AP) secara teknis "ada" tapi **operasional tidak bisa dipakai user manapun**. Ini ditandai sendiri di kode — bukan temuan baru murni, tetapi belum tercatat sebagai entri `Conflict` formal di peta ini sampai pass ini |
+
+### 17.4 Yang TIDAK ditutup pass ini / closure questions untuk `/grill-me`
+
+- **Istilah "Ayat Silang"** — tidak ditemukan di `Keuangan.md` maupun source manapun. **MUST ditanyakan ke owner**: apa definisi bisnisnya, dan apakah berasal dari sistem rujukan yang sama atau sumber lain? Pass ini tidak mengarang definisi.
+- **Granularitas "Report AR" generik** vs empat butir terpisah `Keuangan.md` (Report Canceled Invoice, Report Receiveable AR, Report Payment AR, Report Closed Billing, Report AR Created) — belum diverifikasi apakah satu layar "Report AR" sudah menyatukan kelimanya lewat filter, atau sebagian benar-benar belum ada. **MUST diperiksa di tingkat komponen**, di luar wewenang audit source read-only tingkat ini.
+- **`Manajemen Klaim` dan `Pemutihan Piutang`** dikonfirmasi `Missing` total (BE dan FE). **MUST diputuskan owner**: apakah keduanya masuk scope Finance AR (sejalan `FIN-DEC-045..055`), atau ditunda sebagai scope terpisah — belum ada keputusan bisnis (`FIN-DEC-XXX`) yang mencakup keduanya secara eksplisit sejauh dokumen ini.
+- **Field-per-field `FinReceivableInvoiceBatch`** terhadap `FIN-DEC-048` — hanya keberadaan yang diverifikasi pass ini, bukan kesesuaian kolom.
+- **`FIN-CQ-09`** perlu dibawa ke owner bersama Security/Permission — sama sifatnya dengan `FIN-CQ-08` (bagian 16.3): kontrak hak akses dan kode sudah menyimpang duluan sebelum pass ini menandainya.
+- Audit field-per-field rumpun AR/AP/Payable yang sudah lama jadi utang (bagian 9.3, 12.3, 15.8, 16.7) **tetap terbuka**, tidak bertambah atau berkurang oleh pass ini.
+
+### 17.5 Handoff
+
+**Jawaban langsung untuk pertanyaan pemicu:** sebagian besar menu `Keuangan.md` **sudah ada** di
+Quilvian, backend maupun frontend, dan sebagian dibangun sangat baru (`BE-FIN-037`, `FE-FIN-014`
+— bergerak sejak audit bagian 15/16). Gap yang **genuinely** `Missing` di kedua sisi hanya tiga:
+**Ayat Silang** (istilah asing, bahkan tidak ada di `Keuangan.md`), **Manajemen Klaim**, dan
+**Pemutihan Piutang** (keduanya memang dicatat `Keuangan.md` sendiri sebagai bukti lemah di
+sistem rujukan). Selebihnya adalah soal **pengelompokan menu berbeda** (mis. Purchasing Payment
+pindah ke grup "Account Payable", bukan "Pembelian"), **aksi inline vs halaman terpisah** (Cancel
+Invoice), atau **cacat aksesibilitas menu yang sudah ada** (`FIN-CQ-09`), bukan ketiadaan kapabilitas.
+
+Belum ada `/design-business-module` yang perlu dijalankan untuk sebagian besar butir — pekerjaan
+tersisa adalah perbaikan (`FIN-CQ-09`, GR belum berlayar sendiri) dan tiga closure question di atas
+untuk `Manajemen Klaim`/`Pemutihan Piutang`/`Ayat Silang`.
