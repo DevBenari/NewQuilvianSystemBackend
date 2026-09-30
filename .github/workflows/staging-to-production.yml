@@ -1,4 +1,4 @@
-﻿name: STAGING to PRODUCTION Promotion
+name: STAGING to PRODUCTION Promotion
 
 on:
   workflow_dispatch:
@@ -32,6 +32,7 @@ env:
   IMAGE_NAME: ghcr.io/devbenari/newquilviansystembackend
   PRODUCTION_HEALTH_URL: https://api-pro.quilvian-mmchospital.com/health
   PRODUCTION_VERSION_URL: https://api-pro.quilvian-mmchospital.com/api/v1/system/version
+  PRODUCTION_BLUEGREEN_SCRIPT_SHA256: bbb1af9d0c0230c06ef251623dcf92db2b8e81ac140a20feee93e6487437e832
 
 jobs:
   validate:
@@ -208,118 +209,54 @@ jobs:
           echo "${{ secrets.SSH_KNOWN_HOSTS }}" \
             > ~/.ssh/known_hosts
 
-      - name: Verify current Production state
+      - name: Verify current public Production baseline
         shell: bash
         run: |
           set -euo pipefail
 
           EXPECTED_CURRENT="${{ needs.validate.outputs.current_production_sha }}"
 
-          ssh \
-            "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}" \
-            "EXPECTED_CURRENT='${EXPECTED_CURRENT}' IMAGE_NAME='${IMAGE_NAME}' bash -s" <<'REMOTE'
-          set -euo pipefail
+          curl -fsS \
+            "${PRODUCTION_HEALTH_URL}" \
+            > /dev/null
 
-          CONTAINER_NAME="quilvianprov2-container"
-          EXPECTED_IMAGE="${IMAGE_NAME}:${EXPECTED_CURRENT}"
-
-          HEALTH_URL="http://127.0.0.1:5002/health"
-          VERSION_URL="http://127.0.0.1:5002/api/v1/system/version"
-
-          CONTAINER_ID="$(
-            docker ps -aq \
-              -f "name=^/${CONTAINER_NAME}$" || true
+          RESPONSE="$(
+            curl -fsS \
+              "${PRODUCTION_VERSION_URL}"
           )"
 
-          if [ -z "$CONTAINER_ID" ]; then
-            echo "ERROR: Production container does not exist."
-            exit 1
-          fi
-
-          RUNNING="$(
-            docker inspect \
-              --format '{{.State.Running}}' \
-              "$CONTAINER_ID"
+          ACTUAL_SHA="$(
+            printf '%s' "$RESPONSE" |
+              jq -er '.data.commitSha'
           )"
 
-          CONFIG_IMAGE="$(
-            docker inspect \
-              --format '{{.Config.Image}}' \
-              "$CONTAINER_ID"
+          ACTUAL_ENV="$(
+            printf '%s' "$RESPONSE" |
+              jq -er '.data.environment'
           )"
 
-          IMAGE_COMMIT="$(
-            docker image inspect \
-              "$CONFIG_IMAGE" \
-              --format '{{range .Config.Env}}{{println .}}{{end}}' \
-              | awk -F= '$1 == "APP_COMMIT_SHA" {
-                  print substr($0, index($0, "=") + 1)
-                  exit
-                }'
+          BUILD_VERSION="$(
+            printf '%s' "$RESPONSE" |
+              jq -er '.data.buildVersion'
           )"
 
           echo "Production pointer : $EXPECTED_CURRENT"
-          echo "Container running  : $RUNNING"
-          echo "Container image    : $CONFIG_IMAGE"
-          echo "Image commit       : ${IMAGE_COMMIT:-unknown}"
+          echo "Runtime SHA        : $ACTUAL_SHA"
+          echo "Runtime environment: $ACTUAL_ENV"
+          echo "Runtime build      : $BUILD_VERSION"
 
-          if [ "$CONFIG_IMAGE" != "$EXPECTED_IMAGE" ]; then
-            echo "ERROR: stopped/running Production container image does not match QuilvianProductionDeploy."
+          if [ "$ACTUAL_SHA" != "$EXPECTED_CURRENT" ]; then
+            echo "::error::Public Production runtime does not match QuilvianProductionDeploy."
             exit 1
           fi
 
-          if [ -n "$IMAGE_COMMIT" ] &&
-             [ "$IMAGE_COMMIT" != "$EXPECTED_CURRENT" ]; then
-
-            echo "ERROR: Production image metadata does not match QuilvianProductionDeploy."
+          if [ "$ACTUAL_ENV" != "Production" ]; then
+            echo "::error::Public runtime environment is not Production."
             exit 1
           fi
 
-          if [ "$RUNNING" = "true" ]; then
-            curl -fsS "$HEALTH_URL" > /dev/null
-
-            RESPONSE="$(curl -fsS "$VERSION_URL")"
-
-            ACTUAL_SHA="$(
-              printf '%s' "$RESPONSE" |
-                python3 -c '
-          import json, sys
-          payload = json.load(sys.stdin)
-          print((payload.get("data") or {}).get("commitSha", ""))
-          '
-            )"
-
-            ACTUAL_ENV="$(
-              printf '%s' "$RESPONSE" |
-                python3 -c '
-          import json, sys
-          payload = json.load(sys.stdin)
-          print((payload.get("data") or {}).get("environment", ""))
-          '
-            )"
-
-            echo "Runtime SHA         : $ACTUAL_SHA"
-            echo "Runtime environment : $ACTUAL_ENV"
-
-            if [ "$ACTUAL_SHA" != "$EXPECTED_CURRENT" ]; then
-              echo "ERROR: current Production runtime does not match QuilvianProductionDeploy."
-              exit 1
-            fi
-
-            if [ "$ACTUAL_ENV" != "Production" ]; then
-              echo "ERROR: current runtime environment is not Production."
-              exit 1
-            fi
-
-            echo "Running Production baseline validation: PASS."
-          else
-            echo "Production maintenance state detected."
-            echo "Stopped container matches QuilvianProductionDeploy."
-            echo "Maintenance preflight: PASS."
-          fi
-          REMOTE
-
-      - name: Run deployment precheck
+          echo "Public Production baseline validation: PASS."
+      - name: Run Blue-Green deployment precheck
         shell: bash
         run: |
           set -euo pipefail
@@ -328,12 +265,57 @@ jobs:
 
           ssh \
             "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}" \
-            "IMAGE_NAME='${IMAGE_NAME}' \
-             IMAGE_TAG='${TARGET_SHA}' \
-             EXPECTED_COMMIT_SHA='${TARGET_SHA}' \
-             PRECHECK_ONLY='true' \
-             bash /opt/QuilvianProductionV2/deploy.sh"
+            "TARGET_SHA='${TARGET_SHA}' IMAGE_NAME='${IMAGE_NAME}' PRODUCTION_BLUEGREEN_SCRIPT_SHA256='${PRODUCTION_BLUEGREEN_SCRIPT_SHA256}' bash -s" <<'REMOTE'
+          set -euo pipefail
 
+          echo "Remote SSH user: $(id -un)"
+
+          if [ "$(id -un)" = "deploydev" ]; then
+            RUN_AS=()
+          else
+            RUN_AS=(sudo -n -u deploydev)
+          fi
+
+          # Fail early if SERVER_USER cannot operate as deploydev.
+          "${RUN_AS[@]}" true
+
+          DEPLOY_SCRIPT="/opt/QuilvianProductionV2/deploy-bluegreen.sh"
+
+          if ! "${RUN_AS[@]}" test -r "$DEPLOY_SCRIPT"; then
+            echo "ERROR: Blue-Green deployment script is missing or unreadable by deploydev."
+            exit 1
+          fi
+
+          ACTUAL_SCRIPT_SHA="$(
+            "${RUN_AS[@]}" sha256sum "$DEPLOY_SCRIPT" |
+              awk '{print $1}'
+          )"
+
+          SCRIPT_METADATA="$(
+            "${RUN_AS[@]}" stat -c '%U:%G:%a' "$DEPLOY_SCRIPT"
+          )"
+
+          echo "Deployment script SHA : $ACTUAL_SCRIPT_SHA"
+          echo "Deployment script meta: $SCRIPT_METADATA"
+
+          if [ "$ACTUAL_SCRIPT_SHA" != "$PRODUCTION_BLUEGREEN_SCRIPT_SHA256" ]; then
+            echo "ERROR: Blue-Green deployment script SHA is not approved."
+            exit 1
+          fi
+
+          if [ "$SCRIPT_METADATA" != "deploydev:deploydev:640" ]; then
+            echo "ERROR: Blue-Green deployment script ownership or mode is invalid."
+            exit 1
+          fi
+
+          "${RUN_AS[@]}" env \
+            IMAGE_NAME="$IMAGE_NAME" \
+            IMAGE_TAG="$TARGET_SHA" \
+            EXPECTED_COMMIT_SHA="$TARGET_SHA" \
+            PRECHECK_ONLY="true" \
+            EXECUTE_DEPLOYMENT="false" \
+            bash /opt/QuilvianProductionV2/deploy-bluegreen.sh
+          REMOTE
       - name: Cleanup SSH credentials
         if: always()
         shell: bash
@@ -365,7 +347,7 @@ jobs:
           echo "${{ secrets.SSH_KNOWN_HOSTS }}" \
             > ~/.ssh/known_hosts
 
-      - name: Deploy immutable STAGING artifact to PRODUCTION
+      - name: Deploy immutable STAGING artifact with Blue-Green
         shell: bash
         run: |
           set -euo pipefail
@@ -374,12 +356,57 @@ jobs:
 
           ssh \
             "${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}" \
-            "IMAGE_NAME='${IMAGE_NAME}' \
-             IMAGE_TAG='${TARGET_SHA}' \
-             EXPECTED_COMMIT_SHA='${TARGET_SHA}' \
-             ALLOW_APP_ROLLBACK='false' \
-             bash /opt/QuilvianProductionV2/deploy.sh"
+            "TARGET_SHA='${TARGET_SHA}' IMAGE_NAME='${IMAGE_NAME}' PRODUCTION_BLUEGREEN_SCRIPT_SHA256='${PRODUCTION_BLUEGREEN_SCRIPT_SHA256}' bash -s" <<'REMOTE'
+          set -euo pipefail
 
+          echo "Remote SSH user: $(id -un)"
+
+          if [ "$(id -un)" = "deploydev" ]; then
+            RUN_AS=()
+          else
+            RUN_AS=(sudo -n -u deploydev)
+          fi
+
+          # Fail early if SERVER_USER cannot operate as deploydev.
+          "${RUN_AS[@]}" true
+
+          DEPLOY_SCRIPT="/opt/QuilvianProductionV2/deploy-bluegreen.sh"
+
+          if ! "${RUN_AS[@]}" test -r "$DEPLOY_SCRIPT"; then
+            echo "ERROR: Blue-Green deployment script is missing or unreadable by deploydev."
+            exit 1
+          fi
+
+          ACTUAL_SCRIPT_SHA="$(
+            "${RUN_AS[@]}" sha256sum "$DEPLOY_SCRIPT" |
+              awk '{print $1}'
+          )"
+
+          SCRIPT_METADATA="$(
+            "${RUN_AS[@]}" stat -c '%U:%G:%a' "$DEPLOY_SCRIPT"
+          )"
+
+          echo "Deployment script SHA : $ACTUAL_SCRIPT_SHA"
+          echo "Deployment script meta: $SCRIPT_METADATA"
+
+          if [ "$ACTUAL_SCRIPT_SHA" != "$PRODUCTION_BLUEGREEN_SCRIPT_SHA256" ]; then
+            echo "ERROR: Blue-Green deployment script SHA is not approved."
+            exit 1
+          fi
+
+          if [ "$SCRIPT_METADATA" != "deploydev:deploydev:640" ]; then
+            echo "ERROR: Blue-Green deployment script ownership or mode is invalid."
+            exit 1
+          fi
+
+          "${RUN_AS[@]}" env \
+            IMAGE_NAME="$IMAGE_NAME" \
+            IMAGE_TAG="$TARGET_SHA" \
+            EXPECTED_COMMIT_SHA="$TARGET_SHA" \
+            PRECHECK_ONLY="false" \
+            EXECUTE_DEPLOYMENT="true" \
+            bash /opt/QuilvianProductionV2/deploy-bluegreen.sh
+          REMOTE
       - name: Verify public PRODUCTION health
         shell: bash
         run: |
@@ -504,8 +531,10 @@ jobs:
           fi
 
           if [ "$CURRENT_STAGING" != "$TARGET_SHA" ]; then
-            echo "::error::STAGING pointer changed during Production promotion."
-            exit 1
+            echo "::notice::STAGING pointer changed after this workflow captured its approved release."
+            echo "::notice::Production will still be marked to the exact SHA successfully validated and deployed by this run: $TARGET_SHA"
+          else
+            echo "STAGING pointer remained on the deployed target SHA."
           fi
 
           if ! git merge-base --is-ancestor \
@@ -527,7 +556,7 @@ jobs:
             echo "## PRODUCTION Promotion PASSED"
             echo ""
             echo "- SHA: `${{ needs.validate.outputs.target_sha }}`"
-            echo "- Exact STAGING release: PASS"
+            echo "- Exact STAGING release at validation time: PASS"
             echo "- UAT approval: PASS"
             echo "- Database readiness: PASS"
             echo "- Production preflight: PASS"
