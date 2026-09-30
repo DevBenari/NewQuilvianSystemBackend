@@ -37,7 +37,7 @@ BE-KSK-001 ✅ [BE] ─> FE-KSK-003 ✅ ─┬─> FE-KSK-004 ✅ ─┬─> FE-
                                      │                  │
                                      │                  └────┐
                                      │                       │
-                                     └─> FE-KSK-006 ✅ ──────┴─┬─> FE-KSK-007 ⛔ ─┬─> FE-KSK-008 ⛔
+                                     └─> FE-KSK-006 ✅ ──────┴─┬─> FE-KSK-007 ✅ ─┬─> FE-KSK-008 ✅
                                                                │                  │
                                            {KSK-OQ-004 ✅} ────┘                  │
                                                                                   │
@@ -67,8 +67,8 @@ Jumlah pasangan prasyarat → task: 9 (`BE-KSK-001→003`, `003→004`, `004→0
 | ✅ `FE-KSK-004` | Layar Cek No. RM berfungsi dari tile Beranda sampai handoff | EPIC KSK-02; `FR-KSK-010..015`; `KSK-DEC-012` | api; validation §2; state §1 | `BasePatientCard`, pola auth kiosk | Page, view, hook, slice handoff, tile | `FE-KSK-003` | Kartu | Lint, build, browser + Network | Error terbaca sebagai pasien baru / Sukma | Kartu |
 | ✅ `FE-KSK-005` | Sesi Kiosk dibersihkan setelah 120 detik tanpa sentuhan | EPIC KSK-05; `FR-KSK-040..043`; `KSK-DEC-010` | state §1–2 | `resetRegistrationDraft`, `clearHandoff` | Hook + pemasangan di 2 halaman | `FE-KSK-004` | Kartu | Lint, build, browser (nilai uji lewat env) | Timeout memotong request / Sukma | Kartu |
 | ✅ `FE-KSK-006` | Step 1 tanpa KTP/HP di URL dan console | EPIC KSK-03; `FR-KSK-023/024`; `KSK-DEC-016` | validation §4 | Lookup service `FE-KSK-003` | Step find (input ketik) + service lama | `FE-KSK-003` | Kartu | Lint, build, browser Network + Console | Regresi pencarian nama/RM / Sukma | Kartu |
-| `FE-KSK-007` ⛔ | Flow Pasien Lama 8 step; sesi kiosk sekali di Step 3 | EPIC KSK-03; `FR-KSK-020..022`; `KSK-DEC-002/012/014`; `KSK-DSN-004/007` | state §2; api `scan-result` | Hook & step existing | Hook, rules, find (pindai), service-target, view | `FE-KSK-004`, `FE-KSK-006`, `KSK-OQ-004` | Kartu | Lint, build, browser + cek DB sesi | Sesi ganda / Laboratorium kehilangan target / Sukma | Kartu |
-| `FE-KSK-008` ⛔ | Penjamin Utama per kunjungan, termasuk Perusahaan | EPIC KSK-04; `FR-KSK-032..034`; `KSK-DEC-008/009/013` | api §Patient Encounter; validation §3 | Step payment existing | Payment step, payload encounter, hook | `FE-KSK-007`, `BE-KSK-003` | Kartu | Lint, build, browser + cek DB kunjungan | Default pasien ikut berubah / Sukma | Kartu |
+| ✅ `FE-KSK-007` | Flow Pasien Lama 8 step; sesi kiosk sekali di Step 3 | EPIC KSK-03; `FR-KSK-020..022`; `KSK-DEC-002/012/014`; `KSK-DSN-004/007` | state §2; api `scan-result` | Hook & step existing | Hook, rules, find (pindai), service-target, view | `FE-KSK-004`, `FE-KSK-006`, `KSK-OQ-004` | Kartu | Lint, build, browser + cek DB sesi | Sesi ganda / Laboratorium kehilangan target / Sukma | Kartu |
+| ✅ `FE-KSK-008` | Penjamin Utama per kunjungan, termasuk Perusahaan | EPIC KSK-04; `FR-KSK-032..034`; `KSK-DEC-008/009/013` | api §Patient Encounter; validation §3 | Step payment existing | Payment step, payload encounter, hook | `FE-KSK-007`, `BE-KSK-003` | Kartu | Lint, build, browser + cek DB kunjungan | Default pasien ikut berubah / Sukma | Kartu |
 
 ## Kartu task
 
@@ -148,10 +148,11 @@ Jumlah pasangan prasyarat → task: 9 (`BE-KSK-001→003`, `003→004`, `004→0
 
 **Verifikasi:** lint, build, browser Network + Console. **DoD:** AC 1–4 di `FE-KSK-006.md`.
 
-### `FE-KSK-007` ⛔ — Urutan 8 step dan sesi kiosk di Step 3
+### ✅ `FE-KSK-007` — Urutan 8 step dan sesi kiosk di Step 3
 
 | Aspek | Isi |
 | --- | --- |
+| Status | ✅ SELESAI — 30 Sep – 1 Okt 2026. ESLint 6 berkas 0 error 0 warning, `npm run build` PASS, uji browser Playwright 26/26 PASS (bar 8 step / 4 step lab; Step 1 tanpa `scan-result`; tepat 1 `scan-result` di Step 3 — Poliklinik tanpa `targetService`, Laboratorium `targetService 2`; kunjungan membawa `kioskScanSessionId` sesi itu; gagal → `KSK-VAL-012`; handoff & deep link mendarat di Step 1 terisi; kartu asuransi/member via lookup `3/4`), query DB: 3 sesi sesuai skenario; AC 1–10 terpenuhi; `KSK-OQ-004` ditutup (Amendment Pass putaran 20 blueprint Laboratorium). Data uji dibersihkan. Laporan: [task/report/frontend/FE-KSK-007.md](../task/report/frontend/FE-KSK-007.md) |
 | Gelombang | `MVP-2`; `KSK-OQ-004` ✅ (30 Sep 2026) |
 | Blocker | ✅ Tertutup 30 Sep 2026 (`KSK-OQ-004` ✅, Amendment Pass putaran 20 blueprint Laboratorium). Semula: amendment `FE-LAB-13` / `AC-93` belum dicatat di blueprint Laboratorium. Keputusannya sudah `approved` (`KSK-DEC-002/014`); yang kurang pencatatan. Pemilik: Sukma |
 | Yang tetap bisa jalan | `FE-KSK-001..006` |
@@ -161,11 +162,12 @@ Jumlah pasangan prasyarat → task: 9 (`BE-KSK-001→003`, `003→004`, `004→0
 
 **Verifikasi:** lint, build, browser; query baca-saja ke `QuilvianNewDevSukma` (dengan izin) untuk menghitung sesi per pasien sesudah AC 5–6. **DoD:** AC 1–10 di `FE-KSK-007.md`; `KSK-OQ-004` tertutup.
 
-### `FE-KSK-008` ⛔ — Penjamin Utama per kunjungan
+### ✅ `FE-KSK-008` — Penjamin Utama per kunjungan
 
 | Aspek | Isi |
 | --- | --- |
-| Gelombang | `MVP-3`; ⛔ menunggu `FE-KSK-007`; `BE-KSK-003` ✅ (30 Sep 2026) |
+| Status | ✅ SELESAI — 30 Sep – 1 Okt 2026. ESLint 0 error (6 warning lama identik `HEAD`), `npm run build` PASS, uji browser Playwright run 1 14/15 (Kondisi B gagal → diperbaiki: tab otomatis diturunkan dari data) + run 2 AC 2 5/5 PASS; kunjungan nyata: Perusahaan `paymentType 3` + `c1` (`200`), Asuransi `paymentType 2` (`200`), `c2` kedaluwarsa → `400` dengan awalan `KSK-VAL-015`; 0 `PATCH …/primary`, `IsPrimary` tidak berubah; bug peta enum Perusahaan→Asuransi diperbaiki; AC 1–7 terpenuhi. Data uji dibersihkan. Laporan: [task/report/frontend/FE-KSK-008.md](../task/report/frontend/FE-KSK-008.md) |
+| Gelombang | `MVP-3`; `FE-KSK-007` ✅; `BE-KSK-003` ✅ (30 Sep 2026) |
 | File | Diperbarui: `kiosk-old-patient-step-payment.jsx`, `kiosk-old-patient-registration.service.js` (`buildSelectedGuarantor`, `createOldPatientEncounter`), `use-kiosk-old-patient-registration.jsx` (`handlePaymentContinue`), `kiosk-old-patient-step-confirm.jsx` (baris penjamin) |
 
 **Acceptance criteria:** (1) Kondisi C → layar Pilih Penjamin Utama tanpa preselect; Lanjutkan ditolak sebelum memilih; (2) Kondisi A/B → alur existing; (3) memilih Perusahaan → payload `paymentType = 3` + `patientCompanyGuarantorId`, kunjungan tersimpan, tanpa error "Asuransi pasien belum dipilih"; (4) memilih Asuransi → `paymentType = 2`; (5) tidak ada tombol "Jadikan Utama" dan tidak ada request `PATCH …/primary`; penanda utama di data pasien tidak berubah (cek DB baca-saja); (6) penolakan `400` dari backend tampil dengan awalan "Penjamin perusahaan tidak dapat dipakai:"; (7) setelah tiket tercetak tidak ada jalan kembali ke Pembayaran.

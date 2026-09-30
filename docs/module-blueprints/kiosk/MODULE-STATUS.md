@@ -21,7 +21,7 @@
 
 | Backend | Frontend | Integrasi | Verifikasi |
 | --- | --- | --- | --- |
-| `DONE` — `BE-KSK-001` ✅, `BE-KSK-002` ✅, `BE-KSK-003` ✅ | `IN_PROGRESS` — `FE-KSK-001` ✅, `FE-KSK-002` ✅, `FE-KSK-003` ✅, `FE-KSK-004` ✅, `FE-KSK-005` ✅, `FE-KSK-006` ✅ | `NOT_STARTED` | `NOT_STARTED` |
+| `DONE` — `BE-KSK-001` ✅, `BE-KSK-002` ✅, `BE-KSK-003` ✅ | `DONE` — `FE-KSK-001` ✅ … `FE-KSK-008` ✅ | `NOT_STARTED` | `NOT_STARTED` |
 
 ## Keputusan
 
@@ -50,4 +50,4 @@ Tidak ada blocker desain. Dua tindak lanjut lintas blueprint berada di luar wewe
 
 ## Progres delivery
 
-`9 / 11` task approved selesai (3 BE, 8 FE): `BE-KSK-001` ✅, `BE-KSK-002` ✅, `BE-KSK-003` ✅, `FE-KSK-001` ✅, `FE-KSK-002` ✅, `FE-KSK-003` ✅, `FE-KSK-004` ✅, `FE-KSK-005` ✅, `FE-KSK-006` ✅ — 30 Sep 2026 ([laporan 001](task/report/backend/BE-KSK-001.md), [laporan 002](task/report/backend/BE-KSK-002.md), [laporan 003](task/report/backend/BE-KSK-003.md), [laporan FE-KSK-003](task/report/frontend/FE-KSK-003.md), [laporan FE-KSK-004](task/report/frontend/FE-KSK-004.md), [laporan FE-KSK-005](task/report/frontend/FE-KSK-005.md), [laporan FE-KSK-006](task/report/frontend/FE-KSK-006.md), [laporan FE-KSK-001](task/report/frontend/FE-KSK-001.md), [laporan FE-KSK-002](task/report/frontend/FE-KSK-002.md)). Seluruh task backend selesai. Tertahan: `FE-KSK-007` (`KSK-OQ-004`), `FE-KSK-008` (menunggu `FE-KSK-007`).
+`11 / 11` task approved selesai (3 BE, 8 FE): `BE-KSK-001` ✅, `BE-KSK-002` ✅, `BE-KSK-003` ✅, `FE-KSK-001` ✅, `FE-KSK-002` ✅, `FE-KSK-003` ✅, `FE-KSK-004` ✅, `FE-KSK-005` ✅, `FE-KSK-006` ✅, `FE-KSK-007` ✅, `FE-KSK-008` ✅ — 30 Sep – 1 Okt 2026 ([laporan 001](task/report/backend/BE-KSK-001.md), [laporan 002](task/report/backend/BE-KSK-002.md), [laporan 003](task/report/backend/BE-KSK-003.md), [laporan FE-KSK-003](task/report/frontend/FE-KSK-003.md), [laporan FE-KSK-004](task/report/frontend/FE-KSK-004.md), [laporan FE-KSK-005](task/report/frontend/FE-KSK-005.md), [laporan FE-KSK-006](task/report/frontend/FE-KSK-006.md), [laporan FE-KSK-001](task/report/frontend/FE-KSK-001.md), [laporan FE-KSK-002](task/report/frontend/FE-KSK-002.md), [laporan FE-KSK-007](task/report/frontend/FE-KSK-007.md), [laporan FE-KSK-008](task/report/frontend/FE-KSK-008.md)). Seluruh task backend dan frontend selesai; tidak ada yang tertahan. Tersisa: UAT di perangkat Kiosk fisik oleh pemilik, dan pemberitahuan amendment `KSK-OQ-004` kepada pemilik modul Laboratorium.
