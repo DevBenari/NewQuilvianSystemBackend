@@ -22,10 +22,17 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
     public class LabWorklistService
     {
         private readonly ApplicationDbContext _dbContext;
+        private readonly LabExaminationService _labExaminationService;
+        private readonly LabCitoTurnaroundPolicy _labCitoTurnaroundPolicy;
 
-        public LabWorklistService(ApplicationDbContext dbContext)
+        public LabWorklistService(
+            ApplicationDbContext dbContext,
+            LabExaminationService labExaminationService,
+            LabCitoTurnaroundPolicy labCitoTurnaroundPolicy)
         {
             _dbContext = dbContext;
+            _labExaminationService = labExaminationService;
+            _labCitoTurnaroundPolicy = labCitoTurnaroundPolicy;
         }
 
         /// <summary>
@@ -132,7 +139,8 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             if (kandidat.Count == 0)
                 return Halaman(pageNumber, pageSize, 0, new List<LabCitoOverdueResponse>());
 
-            var batasWaktu = await BatasWaktuCitoAsync(
+            // INV-57 — batas yang sama dengan laporan waktu penyelesaian (BE-LAB-82).
+            var batasWaktu = await _labCitoTurnaroundPolicy.GetLimitsAsync(
                 kandidat.Select(x => x.ProcedureId).Distinct().ToList(),
                 cancellationToken);
 
@@ -179,6 +187,146 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
             return Halaman(pageNumber, pageSize, terurut.Count, items);
         }
 
+        /// <summary>
+        /// Antrean hasil Patologi Klinik yang <b>menunggu validasi</b> atau <b>menunggu rilis</b>
+        /// (<c>LAB-API-v1</c> <c>r34</c> 29.4, <c>LAB-DEC-135</c> butir 2). Cito lebih dulu, lalu
+        /// yang paling lama menunggu (<c>LAB-FE-006</c>).
+        ///
+        /// <para>
+        /// <b>Tahap diturunkan dengan rumus yang sama dengan <c>resultStatus</c></b> —
+        /// <see cref="LabExaminationService.HasResultStatus"/>: menunggu validasi = <c>Final</c>,
+        /// menunggu rilis = <c>Validated</c>. Antrean yang menurunkan keadaannya sendiri dapat
+        /// menampilkan hasil yang di halaman hasil terbaca lain.
+        /// </para>
+        ///
+        /// <para>
+        /// <b>Isinya hanya yang dapat ditindak.</b> Disiplin dibaca sama dengan tindakan validasi —
+        /// order, lalu jatuh ke katalog pemeriksaan (<c>VAL-126</c>) — dan pemeriksaan batal, gugur,
+        /// atau ber-order batal keluar (<c>VAL-127</c>). Order yang sudah ditandai selesai secara
+        /// manual <b>tidak</b> dikeluarkan: hasil Final di dalamnya tetap menunggu disahkan.
+        /// </para>
+        /// </summary>
+        /// <exception cref="LabExaminationValidationException"><c>VAL-139</c> — tahap kosong atau tidak sah.</exception>
+        public async Task<PagedResult<LabValidationQueueItemResponse>> GetValidationQueueAsync(
+            LabValidationQueueQuery query,
+            CancellationToken cancellationToken = default)
+        {
+            // VAL-139. Hanya nama tahap; angka enum tidak diterima.
+            var stageText = query.Stage?.Trim();
+            if (string.IsNullOrEmpty(stageText) ||
+                int.TryParse(stageText, out _) ||
+                !Enum.TryParse<LabValidationQueueStage>(stageText, ignoreCase: true, out var stage) ||
+                !Enum.IsDefined(stage))
+            {
+                throw new LabExaminationValidationException(
+                    "Tahap antrean wajib dipilih: menunggu validasi atau menunggu rilis.");
+            }
+
+            var pageNumber = Math.Max(1, query.PageNumber);
+            var pageSize = Math.Clamp(query.PageSize, 1, 100);
+            var menungguValidasi = stage == LabValidationQueueStage.AwaitingValidation;
+
+            var source = _dbContext.LabExaminations
+                .AsNoTracking()
+                .Where(x =>
+                    !x.IsDelete &&
+                    x.ExaminationStatus != LabExaminationStatus.Voided &&
+                    x.ExaminationStatus != LabExaminationStatus.Cancelled &&
+                    x.LabOrder != null &&
+                    !x.LabOrder.IsDelete &&
+                    x.LabOrder.OrderStatus != LabOrderStatus.Cancelled &&
+                    (x.LabOrder.Discipline == LabDiscipline.ClinicalPathology ||
+                     (x.LabOrder.Discipline == null && x.Procedure != null &&
+                      x.Procedure.LabDiscipline == LabDiscipline.ClinicalPathology)))
+                .Where(LabExaminationService.HasResultStatus(
+                    menungguValidasi ? LabResultStatus.Final : LabResultStatus.Validated));
+
+            if (query.OnlyCito == true)
+                source = source.Where(x => x.Urgency == LabExaminationUrgency.Cito);
+
+            // Penyaring disiplin daftar kerja sengaja TIDAK dipakai — r34 menyatakannya diabaikan.
+            source = TerapkanPencarian(source, query.Search);
+
+            var totalData = await source.CountAsync(cancellationToken);
+
+            var terurut = menungguValidasi
+                ? source.OrderByDescending(x => x.Urgency).ThenBy(x => x.FinalizedAt)
+                : source.OrderByDescending(x => x.Urgency).ThenBy(x => x.ValidatedAt);
+
+            var rows = await terurut
+                .ThenBy(x => x.Id)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .Select(x => new
+                {
+                    x.Id,
+                    x.LabOrderId,
+                    OrderNumber = x.LabOrder!.OrderNumber,
+                    EncounterId = x.LabOrder!.EncounterId,
+                    PatientId = x.LabOrder!.Encounter != null ? (Guid?)x.LabOrder.Encounter.PatientId : null,
+                    ProcedureName = x.ProcedureNameSnapshot ?? (x.Procedure != null ? x.Procedure.ProcedureName : null),
+                    x.Urgency,
+                    x.ResultEnteredAt,
+                    x.FinalizedAt,
+                    x.ValidatedAt,
+                    x.ValidatedByUserId,
+                    x.ReleasedAt
+                })
+                .ToListAsync(cancellationToken);
+
+            if (rows.Count == 0)
+            {
+                return Halaman(pageNumber, pageSize, totalData, new List<LabValidationQueueItemResponse>());
+            }
+
+            // Pasien, nama pemvalidasi, dan penanda — masing-masing SATU kueri untuk seluruh halaman.
+            var patientIds = rows.Where(x => x.PatientId.HasValue).Select(x => x.PatientId!.Value).Distinct().ToList();
+            var pasien = await _dbContext.MstPatients
+                .AsNoTracking()
+                .Where(p => patientIds.Contains(p.Id))
+                .Select(p => new { p.Id, p.FullName, p.MedicalRecordNumber })
+                .ToDictionaryAsync(p => p.Id, cancellationToken);
+
+            var validatorIds = rows.Where(x => x.ValidatedByUserId.HasValue).Select(x => x.ValidatedByUserId!.Value).Distinct().ToList();
+            var namaPemvalidasi = validatorIds.Count == 0
+                ? new Dictionary<Guid, string?>()
+                : await _dbContext.Users
+                    .AsNoTracking()
+                    .Where(u => validatorIds.Contains(u.Id))
+                    .Select(u => new { u.Id, Name = u.DisplayName ?? u.UserName ?? u.Email ?? u.UserCode })
+                    .ToDictionaryAsync(x => x.Id, x => (string?)x.Name, cancellationToken);
+
+            var penanda = await _labExaminationService.ResolveReferenceFlagsByIdAsync(
+                rows.Select(x => x.Id).ToList(), cancellationToken);
+
+            var items = rows.Select(x =>
+            {
+                var p = x.PatientId is Guid pid && pasien.TryGetValue(pid, out var ketemu) ? ketemu : null;
+
+                return new LabValidationQueueItemResponse
+                {
+                    ExaminationId = x.Id,
+                    LabOrderId = x.LabOrderId,
+                    OrderNumber = x.OrderNumber,
+                    EncounterId = x.EncounterId,
+                    PatientName = p?.FullName,
+                    MedicalRecordNumber = p?.MedicalRecordNumber,
+                    ProcedureName = x.ProcedureName,
+                    Urgency = x.Urgency.ToString(),
+                    ResultStatus = LabExaminationService
+                        .DeriveResultStatus(x.ReleasedAt, x.ValidatedAt, x.FinalizedAt, x.ResultEnteredAt)
+                        .ToString(),
+                    ReferenceFlag = penanda.TryGetValue(x.Id, out var flag) ? flag.ToString() : null,
+                    FinalizedAt = x.FinalizedAt,
+                    ValidatedAt = x.ValidatedAt,
+                    ValidatedByName = x.ValidatedByUserId is Guid vid && namaPemvalidasi.TryGetValue(vid, out var nama) ? nama : null,
+                    WaitingSince = menungguValidasi ? x.FinalizedAt : x.ValidatedAt
+                };
+            }).ToList();
+
+            return Halaman(pageNumber, pageSize, totalData, items);
+        }
+
         // =================================================================
         // Pembantu
         // =================================================================
@@ -186,16 +334,22 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
         /// <summary>
         /// Pemeriksaan yang pekerjaannya belum selesai.
         ///
-        /// Yang dikeluarkan: pemeriksaan yang sudah gugur atau dibatalkan, dan pemeriksaan yang
-        /// pesanannya sudah selesai atau dibatalkan. Wadah yang ditolak tidak perlu disebut
-        /// tersendiri — menolak wadah menggugurkan seluruh pemeriksaan yang ditopangnya
-        /// (<c>AC-36</c>), sehingga keduanya sudah tersaring lewat status pemeriksaannya.
+        /// Yang dikeluarkan: pemeriksaan yang sudah gugur atau dibatalkan, pemeriksaan yang
+        /// pesanannya sudah selesai atau dibatalkan, dan — sejak <c>BE-LAB-77</c> — pemeriksaan
+        /// yang hasilnya sudah <b>dirilis</b>. Wadah yang ditolak tidak perlu disebut tersendiri —
+        /// menolak wadah menggugurkan seluruh pemeriksaan yang ditopangnya (<c>AC-36</c>),
+        /// sehingga keduanya sudah tersaring lewat status pemeriksaannya.
+        ///
+        /// <b>Kenapa yang dirilis keluar</b> (<c>AC-17</c>, <c>r34</c> 29.8): pemeriksaan yang
+        /// sudah dirilis sudah selesai dikerjakan. Tanpa penyaring ini, Kalium cito yang dirilis
+        /// tepat waktu tetap tercatat terlambat sampai seseorang menandai ordernya selesai.
         /// </summary>
         private IQueryable<LabExamination> BelumSelesai() =>
             _dbContext.LabExaminations
                 .AsNoTracking()
                 .Where(x =>
                     !x.IsDelete &&
+                    x.ReleasedAt == null &&
                     x.ExaminationStatus != LabExaminationStatus.Voided &&
                     x.ExaminationStatus != LabExaminationStatus.Cancelled &&
                     x.LabOrder != null &&
@@ -213,70 +367,28 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 source = source.Where(x => x.LabOrder != null && x.LabOrder.Discipline == discipline);
             }
 
-            if (!string.IsNullOrWhiteSpace(query.Search))
-            {
-                var search = query.Search.Trim();
-
-                source = source.Where(x =>
-                    (x.ProcedureCodeSnapshot != null && x.ProcedureCodeSnapshot.Contains(search)) ||
-                    (x.ProcedureNameSnapshot != null && x.ProcedureNameSnapshot.Contains(search)) ||
-                    (x.Specimen != null && x.Specimen.SpecimenBarcode.Contains(search)));
-            }
-
-            return source;
+            return TerapkanPencarian(source, query.Search);
         }
 
         /// <summary>
-        /// Batas waktu cito yang berlaku bagi setiap jenis pemeriksaan.
-        ///
-        /// <b>Satu turunan yang perlu diketahui.</b> <c>LabValueBound</c> dipecah menurut jenis
-        /// kelamin dan kelompok umur untuk keperluan batas nilai, sementara batas waktu cito
-        /// adalah janji layanan yang tidak bergantung pada keduanya. Blueprint tidak menyebut
-        /// baris mana yang berlaku, sehingga yang dipakai adalah baris umum — <c>All</c> tanpa
-        /// kelompok umur — dan bila baris itu tidak mengisinya, nilai terkecil di antara baris
-        /// aktif lainnya. Memilih yang terkecil berarti memilih janji yang paling ketat, bukan
-        /// yang paling longgar.
+        /// Pencarian bebas pada kode dan nama pemeriksaan serta barcode wadah — satu aturan bagi
+        /// daftar kerja, daftar pantau cito, dan antrean validasi.
         /// </summary>
-        private async Task<Dictionary<Guid, int?>> BatasWaktuCitoAsync(
-            IReadOnlyList<Guid> procedureIds,
-            CancellationToken cancellationToken)
+        private static IQueryable<LabExamination> TerapkanPencarian(
+            IQueryable<LabExamination> source,
+            string? search)
         {
-            var bounds = await _dbContext.LabValueBounds
-                .AsNoTracking()
-                .Where(x =>
-                    procedureIds.Contains(x.ProcedureId) &&
-                    !x.IsDelete &&
-                    x.IsActive &&
-                    x.CitoTurnaroundMinutes != null)
-                .Select(x => new
-                {
-                    x.ProcedureId,
-                    x.GenderScope,
-                    x.AgeCategoryId,
-                    x.CitoTurnaroundMinutes
-                })
-                .ToListAsync(cancellationToken);
-
-            var hasil = new Dictionary<Guid, int?>();
-
-            foreach (var procedureId in procedureIds)
+            if (string.IsNullOrWhiteSpace(search))
             {
-                var milikProcedure = bounds.Where(x => x.ProcedureId == procedureId).ToList();
-
-                if (milikProcedure.Count == 0)
-                {
-                    hasil[procedureId] = null;
-                    continue;
-                }
-
-                var umum = milikProcedure.FirstOrDefault(x =>
-                    x.GenderScope == LabGenderScope.All && x.AgeCategoryId == null);
-
-                hasil[procedureId] = umum?.CitoTurnaroundMinutes
-                    ?? milikProcedure.Min(x => x.CitoTurnaroundMinutes);
+                return source;
             }
 
-            return hasil;
+            var kata = search.Trim();
+
+            return source.Where(x =>
+                (x.ProcedureCodeSnapshot != null && x.ProcedureCodeSnapshot.Contains(kata)) ||
+                (x.ProcedureNameSnapshot != null && x.ProcedureNameSnapshot.Contains(kata)) ||
+                (x.Specimen != null && x.Specimen.SpecimenBarcode.Contains(kata)));
         }
 
         private static LabCitoOverdueResponse Baris(

@@ -24,6 +24,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
     public static class LabQueryDateRange
     {
         /// <summary>
+        /// Bunyi penolakan tanggal awal sesudah tanggal akhir — <b>sama persis</b> di setiap endpoint
+        /// Laboratorium (<c>LAB-DEC-071</c>; <c>VAL-148</c> laporan operasional). Enam controller
+        /// yang lebih tua masih menuliskannya sebagai literal dengan bunyi yang sama.
+        /// </summary>
+        public const string InvertedRangeMessage = "Tanggal awal tidak boleh melewati tanggal akhir.";
+
+        /// <summary>
         /// Mengembalikan rentang yang siap dibandingkan.
         ///
         /// <b>Akhir rentang dinaikkan ke penghabisan hari.</b> <c>LAB-DEC-071</c> menetapkan

@@ -357,6 +357,8 @@ try
     builder.Services.AddScoped<LabPathologyReportService>();
     builder.Services.AddScoped<LabOrganismService>();
     builder.Services.AddScoped<LabAntibioticService>();
+    builder.Services.AddScoped<LabResultCorrectionReasonService>();
+    builder.Services.AddScoped<LabFourEyesExceptionReasonService>();
     builder.Services.AddScoped<LabSusceptibilityBreakpointService>();
     builder.Services.AddScoped<LabSusceptibilityInterpreter>();
     builder.Services.AddScoped<LabProcedureMicrobiologyProfileService>();
@@ -367,9 +369,13 @@ try
     builder.Services.AddScoped<LabReportNumberService>();
     builder.Services.AddScoped<LabDisciplineSettingService>();
     builder.Services.AddScoped<LabConfirmingDoctorResolver>();
+    builder.Services.AddScoped<LabClinicalPrivilegeResolver>();
+    builder.Services.AddScoped<LabResultValidationService>();
     builder.Services.AddScoped<LabMicrobiologyResultService>();
     builder.Services.AddScoped<LabExaminationService>();
+    builder.Services.AddScoped<LabCitoTurnaroundPolicy>();
     builder.Services.AddScoped<LabWorklistService>();
+    builder.Services.AddScoped<LabOperationalReportService>();
     builder.Services.AddScoped<LabMonitoringService>();
     builder.Services.AddScoped<LabCatalogService>();
     builder.Services.AddScoped<LabPatientRegistrationService>();

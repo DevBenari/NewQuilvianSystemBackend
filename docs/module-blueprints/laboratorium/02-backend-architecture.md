@@ -2711,7 +2711,7 @@ classDiagram
     }
     class ClinicalDocumentKind {
         <<Diperbarui - milik Rekam Medis>>
-        LaboratoryResult = 14
+        LaboratoryResult = 15
     }
     class LabResultCorrectionReason {
         <<Baru>>
@@ -2872,9 +2872,14 @@ Laboratorium.
 
 **`ClinicalDocumentKind`** — `Diperbarui`, **milik Rekam Medis**,
 `Areas/HealthServices/MedicalRecordManagement/Enums/ClinicalDocumentKind.cs`. Satu nilai baru
-`LaboratoryResult = 14`, sesuai kesepakatan `LAB-COORD-002` (*"satu nilai pada daftar jenis
+`LaboratoryResult = 15`, sesuai kesepakatan `LAB-COORD-002` (*"satu nilai pada daftar jenis
 dokumen klinis, untuk hasil laboratorium"*). Himpunan `JenisYangDitegakkan` pada
 `ClinicalDocumentIntegrityService.cs:81-87` **tidak** diubah (20.9).
+
+> **Koreksi 2026-09-29 — `15`, bukan `14`.** Rancangan ini semula menetapkan `14`. Angka itu
+> diambil `HemodialysisSession` (commit `89028993`, 2026-09-22), yang masuk ke branch `yoga`
+> sesudah rancangan diaudit pada `ddeb5ed8`. Pemilik modul memilih `15` saat `BE-LAB-70`
+> dikerjakan. Kesepakatan `LAB-COORD-002` menyangkut **adanya satu nilai**, bukan angkanya.
 
 **DTO** — `Areas/HealthServices/LaboratoryManagement/DTOs/`:
 

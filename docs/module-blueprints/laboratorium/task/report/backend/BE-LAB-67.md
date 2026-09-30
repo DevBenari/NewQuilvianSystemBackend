@@ -17,7 +17,7 @@
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `a95f07a6` (branch `yoga`) |
 | Tanggal | 2026-09-29 |
-| Status | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** — kode lengkap dan build 0 error; `PermissionRegistryValidator` **lolos** dan route lama **nol** di seluruh aplikasi, keduanya dibuktikan dari DLL hasil build. **Kode status HTTP belum dibuktikan terhadap aplikasi yang berjalan**: startup Development berhenti di seeder **Hemodialisa** karena tabelnya belum ada di database dev bersama (bagian 5) |
+| Status | ⚠ **`SELESAI DENGAN BATAS VERIFIKASI`** — **batasnya menyempit 2026-09-29 sore (bagian 8)**. Kini terbukti terhadap aplikasi sungguhan: validator lolos **lewat startup** (1572 kunci); Swagger nol memuat route lama, dan route lama menjawab `404`; **`VAL-122` `422`** pada ketiga tindakan atas pemeriksaan Patologi Anatomi. **Yang tersisa hanya uji dua akun `AC-221`/`AC-222`** — nol jabatan di dev memegang `LabExaminationResult : Update`, dan pemberiannya (langkah rilis 6aj.5) belum diinstruksikan. *Semula: seluruh kode status HTTP tertahan seeder Hemodialisa* |
 
 ### Backend Governance Preflight
 
@@ -247,3 +247,31 @@ Laboratorium. Kodenya lengkap dan sesuai kontrak.
 | Interupsi | **Ada.** Sesi sebelumnya berhenti sesudah implementasi, tepat sebelum build. Dilanjutkan 2026-09-29 dari keadaan terverifikasi: `git diff` dicocokkan butir demi butir dengan 6aj.1, `r33` 28.2-28.4, `LAB-PERM-v1` 12.2-12.6, dan `VAL-122` sebelum build. Nol suntingan ganda |
 | Status Git | ` M Areas/HealthServices/LaboratoryManagement/Controllers/LabExaminationController.cs`; ` M Areas/HealthServices/LaboratoryManagement/Services/LabExaminationService.cs`; ditambah laporan ini, `roadmap/backend-roadmap.md`, dan `roadmap/traceability.md`. **Nol operasi Git dijalankan** |
 | Langkah berikutnya | **1.** Pemilik modul Hemodialisa atau database: terapkan migration `AddHemodialysisManagement` di database dev. Sesudah itu jalankan ulang startup: validator lolos lewat startup sungguhan, Swagger nol memuat route lama, dan `VAL-122` → `422` dengan superadmin. **2.** Untuk `AC-221`/`AC-222`: sediakan dua akun uji, lalu instruksikan pemberian `LabExaminationResult : Update` kepada satu jabatan uji di database dev. **3.** `BE-LAB-68` kini tidak punya penahan kode dan dapat dikerjakan. **4.** `FE-LAB-35` harus berpindah ke route baru sebelum rilis `MVP-8a` |
+
+---
+
+## 8. Verifikasi runtime susulan — 2026-09-29 sore
+
+Penahan Hemodialisa ditutup atas instruksi eksplisit pemilik modul. Migration
+`AddHemodialysisManagement` diterapkan ke `QuilvianNewDevYoga` (rinciannya di bagian 8
+[`BE-LAB-70.md`](BE-LAB-70.md)). Aplikasi dijalankan pada `http://localhost:5107`, dan uji di bawah
+**nol menulis** — setiap penolakan terjadi sebelum penulisan. `Version` dan status Final kedua
+pemeriksaan uji dibaca sebelum dan sesudah; hasilnya identik.
+
+| Skenario | Hasil | Klasifikasi |
+| --- | --- | --- |
+| Startup Development sungguhan | Seluruh seeder lolos; *"Permission registry valid. 1572 identitas kanonik"* — validator kini berjalan **lewat startup**, bukan harness | `PASS` |
+| Swagger `health-services` | Route `result/microbiology/(finalize\|reopen\|consultation)` **nol**; penggantinya `POST /{id}/result/finalize`, `POST /{id}/result/reopen`, `PUT /{id}/result/consultation` ada | `PASS` |
+| Route lama dipanggil langsung | `404` | `PASS` |
+| **`VAL-122`** — `finalize`, `reopen`, `consultation` atas pemeriksaan **Patologi Anatomi** (Histopatologi Biopsi Besar) | Ketiganya `422` *"Hasil Patologi Anatomi diselesaikan lewat laporan Patologi Anatomi."* | `PASS` |
+| `AC-221` / `AC-222` — dua akun | Tidak dijalankan | `NOT RUN` |
+| `AC-224` — regresi laporan PA lewat HTTP | Tidak dijalankan | `NOT RUN` |
+
+**Kenapa `AC-221`/`AC-222` masih `NOT RUN`.** Di database dev, **nol jabatan** memegang
+`LabExaminationResult : Update`. Jabatan Kepala Instalasi pun tidak memegang `LabExamination`
+maupun `LabExaminationResult`, sehingga `403`-nya tidak membuktikan apa pun tentang pemisahan
+izin. Memberi `LabExaminationResult : Update` kepada jabatan analis adalah langkah rilis 6aj.5
+yang belum diinstruksikan.
+
+**Status tetap ⚠ `SELESAI DENGAN BATAS VERIFIKASI`**, dengan batas yang menyempit: seluruh kode
+status yang dapat dibuktikan tanpa izin baru kini terbukti. Yang tersisa hanya uji dua akun.

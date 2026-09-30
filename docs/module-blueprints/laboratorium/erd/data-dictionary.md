@@ -1297,7 +1297,7 @@ riwayat), dan snapshot departemen (`LAB-DEC-150` meminta jabatan).
 | `LabTransitionHistory` | Laboratorium | `LabExaminationId`, `Action`, `FromStatus`, `ToStatus`, `ReasonCode`, `ReasonNote`, `ActorUserId`, `OccurredAt`. **Tiga nilai `Action` baru**: `LabExamination.ValidateResult`, `LabExamination.ReleaseResult`, `LabExamination.ReturnResultToAnalyst` | `Areas/HealthServices/LaboratoryManagement/Models/LabTransitionHistory.cs` |
 | `WfpClinicalPrivilege` | **Human Resource** — dibaca saja | `WorkforceProfileId`, `PrivilegeCode`, `PrivilegeStatus`, `EffectiveStartDate`, `EffectiveEndDate`, `IsClinicalServiceBlocked`, `IsActive` | `Areas/Corporate/HumanResource/CredentialingManagement/Models/WfpClinicalPrivilege.cs` |
 | `AspNetUserOrganization` | Platform — dibaca saja | `UserId`, `DepartmentId`, `PositionId`, `IsPrimary`, `IsActive`, `EffectiveStartDate`, `EffectiveEndDate` | `Models/ApplicationUserOrganization.cs` |
-| `MrcClinicalDocumentIntegrity` | **Rekam Medis** — ditulis lewat service pemiliknya | `DocumentKind` (nilai baru `14` = `LaboratoryResult`), `DocumentId` = `LabExamination.Id`, `PatientId`, `EncounterId`, `AuthorUserId`, `SignedAt`, `LockedAt`. Unique `(DocumentKind, DocumentId)` | `Areas/HealthServices/MedicalRecordManagement/Models/MrcClinicalDocumentIntegrity.cs` |
+| `MrcClinicalDocumentIntegrity` | **Rekam Medis** — ditulis lewat service pemiliknya | `DocumentKind` (nilai baru `15` = `LaboratoryResult` — semula `14`, yang sudah diambil `HemodialysisSession`; dikoreksi 2026-09-29), `DocumentId` = `LabExamination.Id`, `PatientId`, `EncounterId`, `AuthorUserId`, `SignedAt`, `LockedAt`. Unique `(DocumentKind, DocumentId)` | `Areas/HealthServices/MedicalRecordManagement/Models/MrcClinicalDocumentIntegrity.cs` |
 
 **Kolom sensitif pada tabel yang dipakai:** `LabTransitionHistory.ReasonNote` pada baris validasi,
 rilis, dan pengembalian ditandai **sensitif** — catatan bebas dapat memuat keadaan pasien. Tidak
@@ -1450,7 +1450,7 @@ berubah adalah **siapa yang memakai** kolom yang sudah ada:
 |---|---|---|---|:---:|
 | `LabExamination` | Ke-14 kolom validasi dan rilis bagian 17.3 | Patologi Klinik (`S4`) | **Mikrobiologi** (`S4d-1`) | Tidak |
 | `LabExamination` | `ResultQualifier` (`LAB-DEC-114`) | Cetakan Mikrobiologi | **Penjaga `VAL-144`** — nilai `Preliminary` menolak validasi dan rilis; kosong diterima | Tidak |
-| `MrcClinicalDocumentIntegrity` | `DocumentKind = 14` | Pemeriksaan Patologi Klinik yang dirilis | **Pemeriksaan Mikrobiologi** yang dirilis | Tidak |
+| `MrcClinicalDocumentIntegrity` | `DocumentKind = 15` | Pemeriksaan Patologi Klinik yang dirilis | **Pemeriksaan Mikrobiologi** yang dirilis | Tidak |
 
 **Isolat dan antibiogram** (`LabMicrobiologyIsolate`, `LabIsolateSusceptibility`, bagian 14.3-14.4)
 **tidak** memperoleh kolom validasi sendiri — mereka disahkan lewat pemeriksaannya (`INV-53`).

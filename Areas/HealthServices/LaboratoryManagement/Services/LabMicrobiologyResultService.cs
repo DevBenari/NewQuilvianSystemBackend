@@ -69,6 +69,11 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                     "Pemeriksaan ini sudah tidak berjalan, hasilnya tidak dapat diisi.");
             }
 
+            // VAL-120. WAJIB di sini, sebelum ReplaceIsolatesAsync menandai isolat lama untuk
+            // dihapus (AC-225 jalur setengah jalan): hasil Final dengan satu isolat dan dua
+            // belas baris antibiogram harus tetap persis begitu sesudah permintaannya ditolak.
+            LabExaminationService.EnsureResultNotFinalized(examination);
+
             // VAL-103. Kultur steril adalah hasil yang sah dan nol isolat — tetapi status
             // temuannya tetap wajib, sebab itulah yang menyatakan hasilnya.
             if (request.MicrobiologyFinding is null)
@@ -120,9 +125,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
 
                 examination.UpdateDateTime = now;
                 examination.UpdateBy = actorUserId;
+                examination.Version += 1;
 
                 await _dbContext.SaveChangesAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                throw new LabExaminationConflictException(LabExaminationService.ResultConcurrencyMessage);
             }
             catch
             {

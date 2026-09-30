@@ -143,6 +143,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Servic
                 })
                 .ToListAsync(cancellationToken);
 
+            // r34 29.5 — label order turunan, hanya Patologi Klinik (rilis dua disiplin lain belum
+            // dibangun). Satu kueri berkelompok untuk seluruh halaman, bukan sub-query per baris.
+            if (discipline == LabDiscipline.ClinicalPathology)
+            {
+                var progres = await LabOrderResultProgressRules.ReadAsync(
+                    _dbContext,
+                    items.Select(x => x.LabOrderId).ToList(),
+                    cancellationToken);
+
+                foreach (var item in items)
+                {
+                    item.ResultProgress = progres.TryGetValue(item.LabOrderId, out var label)
+                        ? label.ToString()
+                        : null;
+                }
+            }
+
             return new PagedResult<LabMonitoringItemResponse>
             {
                 PageNumber = pageNumber,

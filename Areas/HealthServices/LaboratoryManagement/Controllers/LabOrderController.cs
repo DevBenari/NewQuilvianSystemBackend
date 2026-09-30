@@ -391,9 +391,12 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
 
         // Menandai pekerjaan laboratorium selesai. Tidak menerbitkan fakta tagihan; kelayakan
         // tagih sudah terbentuk pada saat sampel dinyatakan layak.
+        //
+        // Sejak r36 (LAB-DEC-154): hanya bila setiap pemeriksaan tidak batal sudah dirilis —
+        // selain itu 409 VAL-146 beserta rincian pemeriksaan yang menahan. Pesanan yang bukan
+        // InProcess kini 409, bukan 400.
         [HttpPut("{id:guid}/complete")]
         [ProducesResponseType(typeof(ApiResponse<LabOrderDetailResponse>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status409Conflict)]
         [AccessAction("Process", "Process Lab Order", Description = "Menandai order selesai dikerjakan", AccessType = AccessTypes.Update, SortOrder = 4)]
@@ -556,6 +559,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.LaboratoryManagement.Contro
                 return Conflict(ApiResponse<object>.Fail(
                     StatusCodes.Status409Conflict,
                     ex.Message));
+            }
+            catch (LabOrderCompletionBlockedException ex)
+            {
+                // VAL-146 (LAB-DEC-154). Pesan di tingkat atas; kode dan SETIAP pemeriksaan yang
+                // menahan di errors — pola Farmasi DrugReturnController (r36 31.3).
+                return Conflict(ApiResponse<object>.Fail(
+                    StatusCodes.Status409Conflict,
+                    ex.Message,
+                    new { code = ex.Code, details = ex.Details }));
             }
             catch (LabOrderValidationException ex)
             {

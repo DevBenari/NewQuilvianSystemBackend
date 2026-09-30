@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | `blueprint_id` | `LAB-BP-001` |
-| Roadmap revision | `43` — gelombang `MVP-11` (`EPIC-LAB-17`, tiga laporan operasional) ditambahkan 2026-09-28: `FE-LAB-44`, `FE-LAB-45`. Sebelumnya `42` — `LAB-DEC-156` diturunkan 2026-09-25 malam; `FE-LAB-36`, `39`, `40`, `41` berubah cakupan. Sebelumnya `41` — gelombang `MVP-10` ditambahkan 2026-09-25. Sebelumnya `40` — gelombang `MVP-9` ditambahkan 2026-09-25. Sebelumnya `39` — gelombang `MVP-8` ditambahkan 2026-09-24. *Baris ini sempat tertinggal di `35` sementara riwayat sudah sampai `38`; dirapikan 2026-09-24* |
+| Roadmap revision | `44` — `FE-LAB-38` `SIAP DIKERJAKAN`; kedua daftar alasan sudah terisi, 2026-09-29. Sebelumnya `43` — gelombang `MVP-11` (`EPIC-LAB-17`, tiga laporan operasional) ditambahkan 2026-09-28: `FE-LAB-44`, `FE-LAB-45`. Sebelumnya `42` — `LAB-DEC-156` diturunkan 2026-09-25 malam; `FE-LAB-36`, `39`, `40`, `41` berubah cakupan. Sebelumnya `41` — gelombang `MVP-10` ditambahkan 2026-09-25. Sebelumnya `40` — gelombang `MVP-9` ditambahkan 2026-09-25. Sebelumnya `39` — gelombang `MVP-8` ditambahkan 2026-09-24. *Baris ini sempat tertinggal di `35` sementara riwayat sudah sampai `38`; dirapikan 2026-09-24* |
 | Status | `DRAFT` |
 | Bentuk blueprint | `SINGLE` |
 | Ditulis oleh | `plan-module-delivery` |
@@ -1430,6 +1430,7 @@ mengosongkan disiplin mencabut golongannya.
 
 | Revision | Tanggal | Perubahan | Status |
 |---:|---|---|---|
+| 44 | 2026-09-29 | **`FE-LAB-38` naik menjadi `SIAP DIKERJAKAN`** — `BE-LAB-71` terbukti lewat HTTP sesudah migration `BE-LAB-70` diterapkan ke database dev; izin kedua data induk alasan sudah diberikan; kedua daftar sudah terisi nilai usulan 20.8 atas nama kepala instalasi. Dicatat pula: belum ada akun pemegang jabatan System Administrator di dev, sehingga verifikasi sakelar *wajib catatan* dengan akun admin sungguhan belum mungkin. **`FE-LAB-35`/`FE-LAB-36` kini dapat diverifikasi** terhadap backend yang berjalan — `BE-LAB-67`..`69` terbukti lewat HTTP pada hari yang sama | `DRAFT` |
 | 43 | 2026-09-28 | **Gelombang `MVP-11` diturunkan dari `EPIC-LAB-17` — dua task frontend `FE-LAB-44`, `FE-LAB-45`** (bagian akhir dokumen), di atas `r37`, `r15`, dan revision 12 yang disetujui pemilik modul pada hari yang sama. **Satu layar, satu route, satu butir menu.** `FE-LAB-44` **SIAP DIKERJAKAN** sejajar dengan backend `MVP-11a`; verifikasinya menunggu `BE-LAB-83`..`85`. `FE-LAB-45` unduhan, menunggu `FE-LAB-44` dan `BE-LAB-86`. **Temuan impact scan yang masuk task:** butir menu wajib memakai `requiredPermission` — properti `permission:` yang dipakai butir Hemodialisa sejak `2083ff36a..696a906a6` tidak dibaca fungsi mana pun. Jebakan tanggal: `toISOString()` menggeser periode sehari pada WIB | `DRAFT` |
 | 42 | 2026-09-25 | **`LAB-DEC-156` diturunkan — empat task berubah cakupan, nol task baru** (bagian akhir dokumen). Label keadaan *Menunggu Hasil*/*Draft*/*Menunggu Validasi*/*Tervalidasi*/*Dirilis* lewat satu konstanta bersama yang dibuat `FE-LAB-39`; tombol Final bertuliskan *Pemeriksaan Selesai* sejak `FE-LAB-36`; halaman Mikrobiologi beralih pada `FE-LAB-41`. Patologi Anatomi tidak disentuh. `LAB-DEC-154` dan `LAB-DEC-155` melahirkan nol task frontend | `DRAFT` |
 | 41 | 2026-09-25 | **Gelombang `MVP-10` diturunkan dari `EPIC-LAB-16` — tiga task frontend `FE-LAB-41`..`FE-LAB-43`** (bagian akhir dokumen), di atas kontrak `r35`, `r13`, dan `r6` yang disetujui pemilik modul pada hari yang sama. `FE-LAB-41` tiga tindakan pada Halaman Hasil Mikrobiologi — Validasi **tidak** ditawarkan pada hasil `Sementara` dan **ditawarkan** pada kualifikasi kosong; `FE-LAB-42` penyaring disiplin antrean; `FE-LAB-43` label order pada daftar Pemeriksaan Mikrobiologi. **Nol route baru, nol cetakan.** Seluruhnya `MENUNGGU PENDAHULU`: gelombang dimulai **sesudah `MVP-9b` selesai**, sesuai penegasan pemilik modul | `DRAFT` |
@@ -1746,7 +1747,7 @@ memutuskannya.
 
 | Butir | Isi |
 |---|---|
-| **Status** | `MENUNGGU PENDAHULU` — `BE-LAB-71` untuk diverifikasi; boleh mulai di atas kontrak `r34` 29.6 |
+| **Status** | `SIAP DIKERJAKAN` — sejak 2026-09-29 sore: `BE-LAB-71` ✅ terbukti lewat HTTP, dan kedua resource sudah diberikan kepada Kepala Instalasi (`Read`/`Create`/`Update`) serta System Administrator (`Read`/`SystemFlag`). **Kedua daftar sudah berisi** `SAMPEL-TERTUKAR`, `SALAH-KETIK`, dan `SHIFT-TUNGGAL` — diisi lewat endpoint yang sama atas nama kepala instalasi, karena layar ini belum ada saat langkah rilis 20.7 butir 3 dijalankan. Layar ini karena itu **mengelola data yang sudah ada**, bukan mengisi dari kosong. **Verifikasi dengan akun admin terhambat:** belum ada akun pemegang jabatan System Administrator di dev. *Semula `MENUNGGU PENDAHULU` — `BE-LAB-71` untuk diverifikasi* |
 | **Gelombang** | `MVP-9c` |
 | **Outcome** | Kepala instalasi mengisi dan mengelola daftar alasan pengembalian dan daftar alasan pengecualian dari aplikasi — bukan lewat SQL |
 | **Requirement/decision** | `FR-15.12`; `LAB-DEC-082`, `LAB-DEC-138`, `LAB-DEC-003`, `LAB-DEC-019` |

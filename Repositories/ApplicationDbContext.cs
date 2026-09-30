@@ -932,6 +932,10 @@ namespace QuilvianSystemBackend.Repositories
 
         public DbSet<LabDisciplineSetting> LabDisciplineSettings { get; set; }
 
+        public DbSet<LabResultCorrectionReason> LabResultCorrectionReasons { get; set; }
+
+        public DbSet<LabFourEyesExceptionReason> LabFourEyesExceptionReasons { get; set; }
+
         #endregion
 
         #region HEALTH SERVICE - Radiology Management
