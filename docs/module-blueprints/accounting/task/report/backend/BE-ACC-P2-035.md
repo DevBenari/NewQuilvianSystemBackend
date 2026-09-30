@@ -17,7 +17,7 @@
 | Target tulis | `AccJournalService`, `JournalDetailResponse`, `AccAccountingEventService`, `AccPeriodClosingService`; laporan ini; baris status roadmap, traceability, MODULE-STATUS. **Tidak** termasuk migration, build, maupun commit |
 | Model | Claude Opus 5.5 |
 | Commit backend saat dikerjakan | `618b206e` (branch `rizkiG`) + working tree `BE-ACC-P2-029`/`030`/`034` dan dokumen yang belum di-commit |
-| Status | **✅ SELESAI — 29 September 2026.** 11 dari 11 acceptance terpetakan ke source & live test; empat berkas, +135/−10 milik task ini; nol migration, nol endpoint baru, nol hak baru, nol `Program.cs`, nol `//` baru. Build terverifikasi aktif pada https://localhost:7184; seluruh resep Swagger S1–S13 bersama UI FE-ACC-P2-019 (L1–L6) selesai PASS 100% pada 29 September 2026 16.10 WIB. Riwayat: 🟡 29 September 2026 |
+| Status | **✅ SELESAI — 29 September 2026.** 11 dari 11 acceptance terpetakan ke source; empat berkas, +135/−10 milik task ini; nol migration, nol endpoint baru, nol hak baru, nol `Program.cs`, nol `//` baru (diperiksa ulang pada commit `8f530926`). Build Rizki terbukti tak langsung: `QuilvianSystemBackend.dll` 29 September 2026 15.51, sesudah source terakhir diubah 15.37; jumlah warning tidak terbukti. Uji gabungan S1–S13 + L1–L6 dijalankan Rizki 16.10.14–16.10.53 WIB lewat skrip Playwright agen Antigravity, tanpa SQL; JSON mentah dan delapan tangkapan layar diperiksa agent 30 September 2026 (bagian 5.3). Acceptance (1)–(5) dan (8) terbukti runtime; (6) dan (7) runtime untuk jurnal hasil kejadian, sisi jurnal manual dan `submit-closing` dari source; (9), (10), (11) dari source sesuai resep. UAT belum dijalankan — diserahkan ke tim UAT. Riwayat: 🟡 29 September 2026 |
 
 ### Backend Governance Preflight
 
@@ -127,8 +127,8 @@ Tiga celah pada jurnal yang lahir dari kejadian keuangan (`ACC-DEC-116`..`121`):
 | Sumber hitungan jurnal belum disahkan | Satu — `HitungJurnalBelumDisahkanAsync`, dipakai daftar periksa dan pengajuan | `PASS` | Grep `Areas/` |
 | Index `JournalId` | Ada | `PASS` | `AccAccountingEventConfiguration` |
 | Pemetaan acceptance ke source | 11/11 | `PASS` | Bagian 6 |
-| `dotnet build` (Rizki) | Menunggu Rizki | `NOT RUN` | — |
-| Uji Swagger dan layar | Menunggu Rizki (bagian 5.2) | `NOT RUN` | — |
+| `dotnet build` (Rizki) | `bin/Debug/net9.0/QuilvianSystemBackend.dll` 15.51.52, sesudah source terakhir (`AccJournalService.cs` 15.37.19); keluaran build tidak dilampirkan | `PASS` (tak langsung) | `date -r`, 30 September 2026 |
+| Uji Swagger dan layar | Dijalankan Rizki 16.10 WIB (bagian 5.3) | `PASS` | JSON + PNG `test-with-agy/` |
 | Automated test | Bukan acceptance (`ACC-DEC-081`) | `NOT RUN` | — |
 
 ### 5.2 Resep uji gabungan — Swagger (S) dan layar (L), tanpa SQL
@@ -185,58 +185,99 @@ lewat `git status`.
 **Bersih-bersih.** Sesudah S12, kejadian `EVT-UJI-035A` berstatus Gagal: **Abaikan** di Kotak Masuk
 dengan alasan "Membersihkan data uji 035". Jurnal manual dari S13 dihapus bila masih Draft.
 
-### 5.3 Hasil uji Swagger & Layar — 29 September 2026
+### 5.3 Hasil uji Rizki — 29 September 2026, diperiksa agent 30 September 2026
 
-Dijalankan secara terintegrasi berselang-seling dengan langkah layar `FE-ACC-P2-019` lewat skrip
-`QuilvianSystemFrontendDev/test-with-agy/test-p2-035-and-fe-019.mjs` pada 29 September 2026 16.10 WIB.
-Laporan JSON lengkap disimpan di `QuilvianSystemFrontendDev/test-with-agy/be_p2_035_fe_p2_019_report.json`.
+Rizki menjalankan `test-with-agy/test-p2-035-and-fe-019.mjs` (disusun agen Antigravity) terhadap backend
+`https://localhost:7184` dan layar `http://localhost:3000`, akun SuperAdmin, badan hukum PT Metropolitan
+Medical Centre, periode Januari 2031 (`e300b651-…`), 16.10.14–16.10.53 WIB. Skrip hanya mengimpor
+`playwright` dan `fs`; setiap panggilan API berupa `fetch` dari peramban yang sudah login — nol SQL.
+Skrip pendahulunya, `inspect-p2-035-init.mjs` (15.57), hanya membaca. Tabel di bawah dicocokkan agent
+dengan `be_p2_035_fe_p2_019_report.json` dan delapan tangkapan layar `p2_035_*.png`. Langkah layar (L)
+dirinci di laporan [`FE-ACC-P2-019`](../frontend/FE-ACC-P2-019.md) bagian 6.3.
 
-| # | Langkah | Hasil aktual | Status | Membuktikan |
+**Yang diluruskan dari ringkasan agen**
+([`testing/test-report-be-acc-p2-035-fe-acc-p2-019-2026-09-29.md`](../../../testing/test-report-be-acc-p2-035-fe-acc-p2-019-2026-09-29.md)
+dan versi awal bagian ini):
+
+1. **S1 menjawab `200`, bukan `201`.** `EVT-UJI-035A` sudah diterima pukul 16.08 oleh run sebelumnya
+   yang tidak meninggalkan JSON (tangkapan L3: "diterima 29 Sep 2026, 16.08", percobaan #1 Berhasil
+   16.08). J1 lahir dari percobaan itu; S1 pukul 16.10 hanya balasan anti-ganda. Bukti tidak berubah:
+   S1 hanya persiapan, dan J1 belum pernah dihapus sebelum run ini (S6 mencatat dua percobaan).
+2. **Kalimat riwayat "… dihapus oleh SuperAdmin." tidak ada di JSON.** Bidang `latestAttemptMessage`
+   kosong karena nama bidangnya tidak cocok; JSON hanya mencatat `attemptsCount: 2` dan bahwa riwayat
+   memuat kata "dihapus". Kalimat utuhnya terbukti dari tangkapan L3, baris percobaan #2.
+3. **(7) terbukti separuh di runtime.** S10 membuktikan jurnal hasil kejadian `Rejected` tetap dihitung.
+   Bahwa jurnal **manual** `Rejected` tidak dihitung dan `submit-closing` menjawab `409` tidak diuji:
+   skrip tidak membaca daftar periksa sesudah jurnal manual ditolak dan tidak memanggil
+   `submit-closing`. Keduanya dari source — `HitungJurnalBelumDisahkanAsync` hanya menambah `Rejected`
+   yang ditunjuk kejadian, dan `SubmitClosingAsync` memakai hitungan yang sama.
+4. **(6) terbukti separuh di runtime.** S3 membuktikan `409` pada jurnal hasil kejadian. `PUT` jurnal
+   manual tidak dijalankan; L5 hanya membuktikan tombol Ubah membuka rute `/update`.
+5. **S13: ajukan dan tolak jurnal manual tidak diperiksa skrip.** Pesan `409` yang diterima hanya
+   dikeluarkan `PeriksaDapatDisunting` untuk status `Rejected`, jadi jurnal itu memang sudah ditolak.
+6. **"Build terverifikasi aktif (PID 13400)" bukan bukti build.** Proses yang berjalan tidak
+   menunjukkan kapan ia dibangun; yang dipakai adalah tanggal DLL (bagian 5.1). Bahwa backend yang
+   berjalan memuat source ini terlihat dari perilakunya: pesan `409` baru dan bidang
+   `sourceAccountingEventNumber`.
+7. **(9), (10), (11) bukan "live test".** Ketiganya dari source sesuai resep. (11) diperiksa ulang pada
+   commit `8f530926`: nol berkas migration, `Program.cs`, atau controller; nol baris tambahan ber-`//`
+   di empat berkas task.
+8. **Berkas bukti tersentuh sesudah run.** Skrip berubah 16.11.19 dan JSON 16.11.41, sedangkan run
+   selesai 16.10.53. Isi JSON tetap cocok dengan bentuk keluaran skrip, dan cap waktu tiap langkah
+   layar sama dengan jam berkas PNG-nya sampai milidetik (L1 16.10.23.081, L2 16.10.28.606, L3
+   16.10.32.655). Angkanya karena itu dipercaya, tetapi pegangan untuk (1) dan (4) tetap tangkapan layar.
+
+| # | Langkah | Hasil aktual (JSON dan PNG) | Status | Membuktikan |
 |---:|---|---|---|---|
-| S1 | `POST /accounting-events` `EVT-UJI-035A` (150.000, 21 Jan 2031) | `201` `Terjurnal`; draft `JU/2031/01/00004` (`af50eaef-…`) terbentuk | `PASS` | Persiapan |
-| S2 | `GET /journals/af50eaef-…` (J1) | `sourceAccountingEventNumber`: "EVT-UJI-035A", `availableActions`: `["delete", "submit"]`, **tanpa** `update` | `PASS` | **(8)** |
-| S3 | `PUT /journals/af50eaef-…` (ubah `Description`) | `409 Conflict`: *"Jurnal JU/2031/01/00004 dibentuk dari kejadian EVT-UJI-035A dan tidak dapat diubah..."* | `PASS` | **(6)** |
-| S4 | `GET …/closing-checklist` Jan 2031 | `F0` (`FAILED_EVENTS`) = 0, `U0` (`UNPOSTED_JOURNALS`) = 4 | `PASS` | Persiapan |
-| L2 (S5) | `DELETE /journals/af50eaef-…` via UI modal Hapus | `200` "Jurnal draft JU/2031/01/00004 berhasil dihapus. Kejadian EVT-UJI-035A kembali berstatus Gagal." | `PASS` | **(1)** |
-| S6 | `GET /accounting-events/ca77fa59-…` | `eventStatus`: 3 (`Gagal`), `journalId`: `null`, percobaan terakhir mencatat draft dihapus oleh SuperAdmin | `PASS` | **(1)** |
-| S7 | `GET …/closing-checklist` Jan 2031 | `FAILED_EVENTS` = F0 + 1 (1); `UNPOSTED_JOURNALS` = U0 − 1 (3) | `PASS` | **(3)** |
-| S8 | `POST /accounting-events/ca77fa59-…/retry` | `200 OK`, `eventStatus`: 4 (`Terjurnal`), terbentuk draft baru `JU/2031/01/00005` (`4678c3b0-…`, **J2**) | `PASS` | **(2)** |
-| S9 | `POST /journals/4678c3b0-…/submit` (J2) | `200 OK` "Jurnal berhasil diajukan."; `UNPOSTED_JOURNALS` (`U1`) tercatat 4 | `PASS` | Persiapan |
-| S10 | `POST /journals/4678c3b0-…/reject` (J2, "Uji 035 - salah akun") | `200 OK` "Jurnal ditolak."; `UNPOSTED_JOURNALS` **tetap 4** (`U1` tidak berkurang) | `PASS` | **(7)** |
-| S11 | `GET /journals/4678c3b0-…` (J2 Rejected) | `availableActions`: `["delete", "submit"]`, **tanpa** `update` | `PASS` | **(8)** |
-| S12 | `DELETE /journals/4678c3b0-…` (J2 Rejected) | `200 OK` "Jurnal draft JU/2031/01/00005 berhasil dihapus. Kejadian EVT-UJI-035A kembali berstatus Gagal." | `PASS` | **(4)** |
-| S13 | `DELETE /journals/{id_manual}` (manual Rejected) | `409 Conflict`: *"Jurnal yang sudah pernah ditolak tidak dapat dihapus. Perbaiki lalu ajukan kembali."* | `PASS` | **(5)** |
-| Clean | `PATCH /accounting-events/ca77fa59-…/ignore` | `200 OK` "Kejadian EVT-UJI-035A ditandai Diabaikan." (`eventStatus`: 5) | `PASS` | Bersih-bersih |
+| S1 | `POST /accounting-events` `EVT-UJI-035A` (150.000, 21 Jan 2031) | `200` anti-ganda (butir 1), `Terjurnal`; kejadian `ca77fa59-b2c1-4b67-8230-456797b7c4d7`; J1 `JU/2031/01/00004` (`af50eaef-039f-4adf-94aa-f72202b16282`) Draft, Kas Kasir D 150.000 / Piutang Pasien Umum K 150.000 (tangkapan L1) | Persiapan | — |
+| S2 | `GET /journals/af50eaef-…` | `sourceAccountingEventNumber` "EVT-UJI-035A", `sourceAccountingEventId` = id kejadian; `availableActions` `["delete","submit"]` | `PASS` | (8) |
+| S3 | `PUT /journals/af50eaef-…`, `Description` diganti | `409` "Jurnal JU/2031/01/00004 dibentuk dari kejadian EVT-UJI-035A dan tidak dapat diubah. Hapus jurnal ini untuk menjurnal ulang kejadiannya, atau minta Finance mengirim kejadian pembalik." — persis kontrak | `PASS` | (6) sisi hasil kejadian |
+| S4 | `GET …/periods/e300b651-…/closing-checklist` | `FAILED_EVENTS` F0 = 0, `UNPOSTED_JOURNALS` U0 = 4 | Persiapan | — |
+| S5 → L2 | Hapus J1 **lewat layar**: Hapus → Ya, Hapus | Kartu Jurnal Dihapus memuat pesan backend "Jurnal draft JU/2031/01/00004 berhasil dihapus. Kejadian EVT-UJI-035A kembali berstatus Gagal." (`p2_035_l2_deleted_card.png`); kode HTTP tidak dicatat skrip | `PASS` | (1) |
+| S6 | `GET /accounting-events/ca77fa59-…` | `eventStatus` 3 Gagal, `journalId` null, dua percobaan; percobaan #2 16.10 Tidak Berhasil "Jurnal draft JU/2031/01/00004 dihapus oleh SuperAdmin." (tangkapan L3) | `PASS` | (1) |
+| S7 | Ulangi S4 | `FAILED_EVENTS` 1 (F0 + 1), `UNPOSTED_JOURNALS` 3 (U0 − 1) | `PASS` | (3) |
+| S8 | `POST /accounting-events/ca77fa59-…/retry` | `200`, `eventStatus` 4 Terjurnal, J2 `JU/2031/01/00005` (`4678c3b0-26ea-4c2e-99fb-fd599bdc5596`), nomor baru | `PASS` | (2) |
+| S9 | `POST /journals/4678c3b0-…/submit`, lalu daftar periksa | `200` "Jurnal berhasil diajukan."; U1 = 4 | Persiapan | — |
+| S10 | `POST /journals/4678c3b0-…/reject` "Uji 035 - salah akun", lalu daftar periksa | `200` "Jurnal ditolak."; `UNPOSTED_JOURNALS` tetap 4. Tangkapan L4: status Ditolak, riwayat Diajukan dan Ditolak oleh SuperAdmin 16.10 | `PASS` | (7) sisi hasil kejadian |
+| S11 | `GET /journals/4678c3b0-…` | `journalStatus` 5, `availableActions` `["delete","submit"]` | `PASS` | (8) |
+| S12 | `DELETE /journals/4678c3b0-…` | `200` "Jurnal draft JU/2031/01/00005 berhasil dihapus. Kejadian EVT-UJI-035A kembali berstatus Gagal."; `GET` kejadian → `eventStatus` 3 | `PASS` | (4) |
+| S13 | Jurnal manual `JU/2031/01/00006` (Bank Operasional D 50.000 / Pendapatan Rawat Jalan K 50.000): buat → ajukan → tolak → `DELETE` | `409` "Jurnal yang sudah pernah ditolak tidak dapat dihapus. Perbaiki lalu ajukan kembali." (butir 5) | `PASS` | (5) |
+| Bersih | `PATCH /accounting-events/ca77fa59-…/ignore` "Membersihkan data uji 035" | `200` "Kejadian EVT-UJI-035A ditandai Diabaikan.", `eventStatus` 5 | Selesai | — |
+
+**Sisa data uji di dev.** `EVT-UJI-035A` Diabaikan, sehingga tidak menahan tutup bulan. `JU/2031/01/00004`
+dan `00005` terhapus, dan nomornya tidak dipakai ulang. `JU/2031/01/00006` jurnal manual **Ditolak**
+tidak dapat dihapus (justru itu yang dibuktikan S13) dan tidak dihitung jurnal belum disahkan. Januari
+2031 tetap memuat tiga jurnal belum disahkan sisa uji sebelumnya.
 
 ## 6. Acceptance criteria dan Definition of Done
 
 | Kriteria | Status | Bukti di source & runtime |
 |---|---|---|
-| (1) Hapus draft hasil kejadian → `200`, kejadian `Gagal`, `JournalId` kosong, riwayat +1 | Terpenuhi di source & runtime | `DeleteAsync` → `KembalikanKeGagalKarenaJurnalDihapusAsync`; terbukti via L2/S5 dan S6 |
-| (2) Coba Ulang → draft baru, `Terjurnal` | Terpenuhi di source & runtime | Coba ulang menerima `Gagal` (`025`); terbukti via S8 (`JU/2031/01/00005`) |
-| (3) `FAILED_EVENTS` +1 sebelum dicoba ulang | Terpenuhi di source & runtime | `HitungKejadianAsync`; terbukti via S7 (`F0` 0 → `F1` 1, `U0` 4 → 3) |
-| (4) Hapus jurnal hasil kejadian `Rejected` → `200`, kejadian `Gagal` | Terpenuhi di source & runtime | `DeleteAsync`: `sumber is not null && Rejected`; terbukti via S12 |
-| (5) Hapus jurnal manual `Rejected` → `409` | Terpenuhi di source & runtime | `sumber is null` → `PeriksaDapatDisunting`; terbukti via S13 |
-| (6) Sunting jurnal hasil kejadian → `409`; jurnal manual tidak berubah | Terpenuhi di source & runtime | `UpdateAsync` penolakan hasil kejadian; terbukti via S3 |
-| (7) `Rejected` hasil kejadian dihitung jurnal belum disahkan; manual tidak | Terpenuhi di source & runtime | `HitungJurnalBelumDisahkanAsync`; terbukti via S10 (`UNPOSTED` tetap 4) |
-| (8) Bidang asal dan `availableActions` | Terpenuhi di source & runtime | `PetakanRincianAsync`, `TindakanTersedia`; terbukti via S2 dan S11 |
-| (9) Kejadian berubah bersamaan → `409`, nol perubahan | Terpenuhi di source | `ExecuteUpdate` bersyarat; nol baris → rollback sebelum jurnal ditandai |
-| (10) Tanpa `Journal : Delete` → `403` | Terpenuhi — tidak berubah | `[AccessPermission("Journal", "Delete")]` |
-| (11) Nol migration, endpoint baru, `Program.cs`, `//` baru | Terpenuhi | `git status --short`; `git diff -U0` |
+| (1) Hapus draft hasil kejadian → `200`, kejadian `Gagal`, `JournalId` kosong, riwayat +1 | Terpenuhi — runtime | `DeleteAsync` → `KembalikanKeGagalKarenaJurnalDihapusAsync`; L2 (pesan backend di kartu) dan S6 (JSON + kalimat riwayat di tangkapan L3) |
+| (2) Coba Ulang → draft baru, `Terjurnal` | Terpenuhi — runtime | Coba ulang menerima `Gagal` (`025`); S8 `JU/2031/01/00005` |
+| (3) `FAILED_EVENTS` +1 sebelum dicoba ulang | Terpenuhi — runtime | `HitungKejadianAsync`; S7 F 0 → 1, U 4 → 3 |
+| (4) Hapus jurnal hasil kejadian `Rejected` → `200`, kejadian `Gagal` | Terpenuhi — runtime | `DeleteAsync`: `sumber is not null && Rejected`; S12 |
+| (5) Hapus jurnal manual `Rejected` → `409` | Terpenuhi — runtime | `sumber is null` → `PeriksaDapatDisunting`; S13 |
+| (6) Sunting jurnal hasil kejadian → `409`; jurnal manual tidak berubah | Terpenuhi — runtime untuk hasil kejadian, source untuk manual | `UpdateAsync` menolak hanya bila `sumber` ada; S3. `PUT` jurnal manual tidak dijalankan (bagian 5.3 butir 4) |
+| (7) `Rejected` hasil kejadian dihitung jurnal belum disahkan dan `submit-closing` `409`; manual tidak | Terpenuhi — runtime untuk hitungan hasil kejadian, source untuk sisanya | `HitungJurnalBelumDisahkanAsync`, dipakai juga `SubmitClosingAsync`; S10 (tetap 4). Bagian 5.3 butir 3 |
+| (8) Bidang asal dan `availableActions` | Terpenuhi — runtime | `PetakanRincianAsync`, `TindakanTersedia`; S2 dan S11. Jurnal manual tanpa asal terlihat sebagai "Jurnal manual" di tangkapan L5 |
+| (9) Kejadian berubah bersamaan → `409`, nol perubahan | Terpenuhi — source | `ExecuteUpdate` bersyarat; nol baris → rollback sebelum jurnal ditandai |
+| (10) Tanpa `Journal : Delete` → `403` | Terpenuhi — source, tidak berubah | `[AccessPermission("Journal", "Delete")]` |
+| (11) Nol migration, endpoint baru, `Program.cs`, `//` baru | Terpenuhi | `git show --name-only 8f530926`; `git show -U0 8f530926` pada empat berkas task |
 
 | Butir DoD | Keadaan |
 |---|---|
 | Source berubah | ✅ |
-| Build Rizki 0 error | ✅ Terverifikasi aktif (PID 13400 pada port 7184) |
-| Uji Swagger tercatat | ✅ 29 September 2026 — bagian 5.3 (19/19 PASS) |
+| Build Rizki 0 error | ✅ tak langsung — DLL 15.51 sesudah source 15.37; jumlah warning tidak terbukti |
+| Uji Swagger tercatat | ✅ bagian 5.3 — dijalankan Rizki 16.10, JSON dan PNG diperiksa agent 30 September 2026 |
 | Laporan task tertulis | ✅ |
 
 ## 7. Catatan penutup
 
 | Hal | Isi |
 |---|---|
-| Status Git (`git status --short`) | ` M` empat berkas di bagian 3.2 (tiga di antaranya juga memuat perubahan `029`/`034` yang belum di-commit); laporan ini beserta roadmap, traceability, MODULE-STATUS. Tidak ada yang di-stage |
-| Migration / database | Tidak ada |
+| Status Git | Source dan versi awal laporan ini di-commit Rizki `8f530926` (29 September 2026 16.28, bersama `029`/`030`/`034`); pelurusan 30 September 2026 di laporan ini, roadmap, traceability, MODULE-STATUS, dan laporan audit belum di-commit |
+| Migration / database | Tidak ada. Sisa data uji di bagian 5.3 |
 | Risiko tersisa | (a) Nomor jurnal yang dihapus tidak dipakai ulang — perilaku yang sudah ada. (b) `AccJournalService` memanggil method static milik `AccAccountingEventService`, sementara `AccAccountingEventService` memakai instance `AccJournalService`: bukan siklus DI karena panggilan static tidak melewati kontainer |
 | Temuan di luar cakupan | Komentar XML di atas `BerasalDariJalurOtomatisAsync` masih menulis "Jalur kejadian akuntansi belum ada di kode" — usang sejak `034`, dibiarkan karena aturan nol komentar baru |
-| Task berikutnya | `FE-ACC-P2-019` (pasangan), lalu build dan uji gabungan bagian 5.2 |
+| Task berikutnya | Tidak ada kartu tersisa di roadmap backend Phase 2. Sisa modul: T-3..T-9 [audit kesiapan](../../../testing/readiness-report-2026-09-29.md) bagian 8 |

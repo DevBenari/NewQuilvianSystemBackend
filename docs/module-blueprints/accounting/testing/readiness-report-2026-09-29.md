@@ -280,6 +280,11 @@ Kedua butir menuntut proyek test yang sudah dihapus atas keputusan owner dan ara
 - Laporan uji ringkas buatan agen di folder `testing/` (`live-browser-testing-report-2026-09-29.md`,
   `test-report-be-acc-p2-029-2026-09-29.md`) **tidak** dipakai sebagai bukti; yang dipakai JSON mentah
   dan tangkapan layar di `QuilvianSystemFrontendDev/test-with-agy/`.
+- *(ditambahkan 30 September 2026)* Hapus draft dan jurnal Ditolak hasil kejadian mengembalikan kejadian
+  ke Gagal; jurnal hasil kejadian tidak dapat disunting; jurnal hasil kejadian Ditolak tetap dihitung
+  belum disahkan (`BE-ACC-P2-035`, `FE-ACC-P2-019`, JSON + delapan tangkapan 29 September 16.10).
+  Ringkasan agen `test-report-be-acc-p2-035-fe-acc-p2-019-2026-09-29.md` juga tidak dipakai; klaimnya
+  diluruskan di laporan `BE-ACC-P2-035` bagian 5.3.
 
 ---
 
@@ -299,3 +304,14 @@ Kedua butir menuntut proyek test yang sudah dihapus atas keputusan owner dan ara
 
 Sesudah T-1 dan T-2 terbukti, modul layak dinilai ulang sebagai `READY_WITH_CONDITIONS`: sisa
 syaratnya (T-4..T-8) berpemilik jelas dan tidak menyentuh kode Accounting lagi.
+
+> **Pembaruan 30 September 2026 — bukan penilaian ulang.** Verdict di atas tetap `NOT_READY` sampai
+> audit dijalankan lagi lewat `verify-module-readiness`.
+>
+> | # | Keadaan |
+> |---|---|
+> | T-1 | ✅ `BE-ACC-P2-034`, 29 September — G-01 ditutup |
+> | T-2 | ✅ `FE-ACC-009`, 29 September — G-02 ditutup |
+> | Susulan T-1 | ✅ Keputusan terbuka OQ-034-1/2 yang muncul saat T-1 → `ACC-DEC-116`..`121` → `BE-ACC-P2-035` + `FE-ACC-P2-019`, uji gabungan 29 September 16.10 diperiksa 30 September. Roadmap Phase 2 kini backend 35/35, frontend 19/19 |
+> | T-3 | 🟡 Commit sudah — backend `8f530926`, frontend `2c2190858`, keduanya sejajar dengan origin branch masing-masing; PR ke integration belum (7 commit di depan pada tiap repository). Pelurusan dokumen 30 September belum di-commit |
+> | T-4..T-9 | Belum dikerjakan |

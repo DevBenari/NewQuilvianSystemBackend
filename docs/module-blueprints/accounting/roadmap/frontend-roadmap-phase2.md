@@ -55,7 +55,7 @@ flowchart LR
         BWAVEB["✅ Backend Wave B<br/>BE-ACC-P2-022, 024, 025"]:::luar
         BWAVED["✅ Backend Wave D<br/>027, 028, 014"]:::luar
         BREV6["✅ Backend revisi 6<br/>BE-ACC-P2-030"]:::luar
-        BREV8["🟡 Backend revisi 8<br/>BE-ACC-P2-035"]:::luar
+        BREV8["✅ Backend revisi 8<br/>BE-ACC-P2-035"]:::luar
     end
 
     FTUTUP["✅ Tutup bulan dan jurnal berulang<br/>FE-ACC-P2-001 sampai 004"]:::selesai
@@ -782,7 +782,7 @@ flowchart LR
 
 | ID | Judul | Gelombang | Dependency | Status |
 |---|---|---|---|---|
-| `FE-ACC-P2-019` ✅ | Rincian Jurnal: tombol Ubah dan Hapus, serta asal kejadian | `P2-2` lanjutan | `BE-ACC-P2-035` ✅, `FE-ACC-006` ✅, `FE-ACC-007` ✅, `FE-ACC-P2-012` ✅ | ✅ 29 Sep 2026 — build terverifikasi aktif, uji layar L1–L6 bersama Swagger selesai 100% PASS. [laporan](../task/report/frontend/FE-ACC-P2-019.md) |
+| `FE-ACC-P2-019` ✅ | Rincian Jurnal: tombol Ubah dan Hapus, serta asal kejadian | `P2-2` lanjutan | `BE-ACC-P2-035` ✅, `FE-ACC-006` ✅, `FE-ACC-007` ✅, `FE-ACC-P2-012` ✅ | ✅ 29 Sep 2026 — build Rizki (`.next/BUILD_ID` 15.49); uji layar L1–L6 bersama Swagger dijalankan Rizki 16.10, tangkapan diperiksa 30 Sep 2026 (L6 simulasi izin); UAT belum. [laporan](../task/report/frontend/FE-ACC-P2-019.md) |
 
 Dengan kartu ini roadmap frontend memuat **19 task**: 19 ✅, seluruh task selesai sisi development.
 
@@ -800,4 +800,4 @@ Dengan kartu ini roadmap frontend memuat **19 task**: 19 ✅, seluruh task seles
 | Verifikasi | `npx eslint` berkas yang berubah; unit test `accounting-journal-*` yang ada, beserta test baru opsional; `npm run build` oleh Rizki; uji layar bersama `BE-ACC-P2-035` |
 | Risiko/pemilik | Tombol Hapus kini tersedia juga untuk jurnal **manual** Draft — perilaku yang memang dijanjikan arsitektur sejak MVP; salah klik dicegah dialog konfirmasi. Owner Frontend |
 | DoD | Lint hijau, build owner berhasil, uji layar tercatat, laporan task tertulis |
-| **Status** | **✅ SELESAI — 29 September 2026.** 7 dari 7 acceptance terpetakan ke source & live UI; eslint 4 berkas 0/0; unit test Accounting 142/142; build Next.js terverifikasi aktif pada http://localhost:3000; uji layar L1–L6 bersama Swagger BE-ACC-P2-035 (S1–S13) telah selesai 100% PASS pada 29 September 2026 16.10 WIB. UAT belum dijalankan. [laporan](../task/report/frontend/FE-ACC-P2-019.md) Riwayat: 🟡 29 Sep 2026 |
+| **Status** | **✅ SELESAI — 29 September 2026.** 7 dari 7 acceptance terpetakan ke source; eslint 4 berkas 0/0; unit test Accounting 142/142. `npm run build` terbukti tak langsung: `.next/BUILD_ID` 15.49 sesudah source 15.44. Uji layar L1–L6 dijalankan Rizki 16.10 WIB bersama S1–S13 `BE-ACC-P2-035`, delapan tangkapan diperiksa agent 30 September 2026; layar dilayani `next dev`, L6 disimulasikan dengan mencegat respons izin. (1), (3), (4), (5) terbukti di layar; (2) kecuali jalur gagal; (6), (7) dari source. UAT belum dijalankan. [laporan](../task/report/frontend/FE-ACC-P2-019.md) Riwayat: 🟡 29 Sep 2026 |

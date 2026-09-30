@@ -293,6 +293,29 @@ perpindahan ini fast-forward murni — tidak ada pekerjaan yang hilang.
 
 ## Next recommended task
 
+### TITIK LANJUT — 30 September 2026: T-1, T-2, dan OQ-034 tuntas; sisa T-3..T-9
+
+**Singkatnya.** [Audit kesiapan 29 September](testing/readiness-report-2026-09-29.md) memberi verdict
+`NOT_READY`: development tuntas, modul belum. Dua penghalang kode temuannya sudah beres, begitu pula
+dua keputusan terbuka yang muncul saat menutupnya. Roadmap Phase 2: backend **35 ✅ dari 35**,
+frontend **19 ✅ dari 19**. Verdict audit belum dinilai ulang.
+
+| Butir | Hasil | Rujukan |
+|---|---|---|
+| T-1 / G-01 — draft kejadian ke control account ditolak `422` saat diajukan | `BE-ACC-P2-034` ✅ 29 Sep 2026 | [laporan](task/report/backend/BE-ACC-P2-034.md) |
+| T-2 / G-02 — pemberitahuan Neraca Saldo | `FE-ACC-009` ✅ 29 Sep 2026, keputusan Rizki "kembalikan ringkas" | [laporan bagian 10](task/report/frontend/fe-acc-009-neraca-saldo.md) |
+| OQ-034-1/2 — hapus dan sunting draft hasil kejadian | `ACC-DEC-116`..`121`, `GATE-DESAIN-0929`, roadmap revisi 8 → `BE-ACC-P2-035` ✅ + `FE-ACC-P2-019` ✅. Uji gabungan Rizki 29 Sep 16.10; JSON dan tangkapan diperiksa 30 Sep, dan klaim agen yang melebihi bukti diluruskan di laporan bagian 5.3 | [BE](task/report/backend/BE-ACC-P2-035.md), [FE](task/report/frontend/FE-ACC-P2-019.md) |
+| Commit | Rizki: backend `8f530926`, frontend `2c2190858` (29 Sep sore), keduanya sejajar dengan `origin/rizkiG` dan `origin/RizkiV2`. Pelurusan dokumen 30 Sep belum di-commit | — |
+
+**Sisa menuju "100% finish"** — audit bagian 8, tidak satu pun menyentuh kode Accounting: T-3 PR
+`rizkiG` dan `RizkiV2` → integration (masing-masing 7 commit di depan); T-4 bagian `Accounting` di
+appsettings; T-5 tujuh peran dan pemberian hak; T-6 bagan akun sah dan aturan posting 26 kode; T-7 kirim
+`evidence/14` ke Yasmin; T-8 matriks acceptance Phase 2 dan serah terima ke tim UAT; T-9 amandemen
+dokumen. Penilaian ulang verdict (kandidat `READY_WITH_CONDITIONS`) lewat `verify-module-readiness`.
+
+Sisa data uji `035` di dev: `EVT-UJI-035A` Diabaikan; `JU/2031/01/00006` jurnal manual Ditolak — tidak
+dapat dihapus dan tidak dihitung jurnal belum disahkan.
+
 ### TITIK LANJUT — 28 September 2026 (malam): rekonsiliasi saldo subledger dirancang
 
 **Singkatnya.** T6 diputuskan dan kontrak sisi subledger di-approve, sehingga `BE-ACC-P2-014` dan
@@ -340,8 +363,8 @@ perintah Rizki. Commit dokumen terakhir `91cc2aba` (`rizkiG`, 28 September 2026 
 | `BE-ACC-P2-029` Gagal di periode tertutup menahan periode terbuka | ✅ 29 Sep 2026 — build Rizki, uji API S1–S3 + S5–S11 dijalankan Rizki (response mentah tercatat); UAT belum | [laporan](task/report/backend/BE-ACC-P2-029.md) |
 | `BE-ACC-P2-030` Aturan posting ditolak untuk jenis saldo | ✅ 29 Sep 2026 — build Rizki, uji S1–S3 + S6–S9 dijalankan Rizki (response mentah tercatat); UAT belum | [laporan](task/report/backend/BE-ACC-P2-030.md) |
 | `BE-ACC-P2-034` Jurnal dari kejadian dikenali saat diajukan | ✅ 29 Sep 2026 — build Rizki, uji API S1–S5 dijalankan Rizki (response mentah tercatat); menutup G-01 audit kesiapan; UAT belum | [laporan](task/report/backend/BE-ACC-P2-034.md) |
-| `BE-ACC-P2-035` Hapus, sunting, dan tolak draft jurnal hasil kejadian | ✅ 29 Sep 2026 — build terverifikasi aktif, uji Swagger S1–S13 bersama UI selesai 100% PASS (response mentah & JSON tercatat); UAT belum | [laporan](task/report/backend/BE-ACC-P2-035.md) |
-| `FE-ACC-P2-019` Rincian Jurnal: Ubah, Hapus, asal kejadian | ✅ 29 Sep 2026 — build terverifikasi aktif, uji layar L1–L6 bersama Swagger selesai 100% PASS (tangkapan layar lengkap); UAT belum | [laporan](task/report/frontend/FE-ACC-P2-019.md) |
+| `BE-ACC-P2-035` Hapus, sunting, dan tolak draft jurnal hasil kejadian | ✅ 29 Sep 2026 — build Rizki (DLL 15.51), uji S1–S13 + layar dijalankan Rizki 16.10 (JSON dan tangkapan diperiksa 30 Sep; (6)/(7) sisi jurnal manual dari source); UAT belum | [laporan](task/report/backend/BE-ACC-P2-035.md) |
+| `FE-ACC-P2-019` Rincian Jurnal: Ubah, Hapus, asal kejadian | ✅ 29 Sep 2026 — build Rizki (`.next/BUILD_ID` 15.49), uji layar L1–L6 dijalankan Rizki 16.10 (tangkapan diperiksa 30 Sep; L6 simulasi izin); UAT belum | [laporan](task/report/frontend/FE-ACC-P2-019.md) |
 | `FE-ACC-P2-017` Pulihkan butir menu Rekonsiliasi | ✅ 29 Sep 2026 — Rekonsiliasi dan Tutup Tahun (perluasan atas keputusan Rizki): build Rizki, klik kedua butir dijalankan Rizki; UAT belum | [laporan](task/report/frontend/FE-ACC-P2-017.md) |
 | `FE-ACC-P2-018` Form Aturan Posting menyaring jenis saldo | ✅ 29 Sep 2026 — build Rizki, uji layar L1 + L3–L5 dijalankan Rizki (tangkapan layar diperiksa); UAT belum | [laporan](task/report/frontend/FE-ACC-P2-018.md) |
 

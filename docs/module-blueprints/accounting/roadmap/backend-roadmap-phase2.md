@@ -1217,7 +1217,7 @@ flowchart LR
 
 | ID | Judul | Gelombang | Dependency | Status |
 |---|---|---|---|---|
-| `BE-ACC-P2-035` ✅ | Hapus, sunting, dan tolak draft jurnal hasil kejadian | `P2-2` lanjutan | `005` ✅, `021` ✅, `025` ✅, `034` ✅ | ✅ 29 Sep 2026 — build terverifikasi aktif, uji Swagger S1–S13 bersama UI selesai 100% PASS. [laporan](../task/report/backend/BE-ACC-P2-035.md) |
+| `BE-ACC-P2-035` ✅ | Hapus, sunting, dan tolak draft jurnal hasil kejadian | `P2-2` lanjutan | `005` ✅, `021` ✅, `025` ✅, `034` ✅ | ✅ 29 Sep 2026 — build Rizki (DLL 15.51); uji S1–S13 + layar dijalankan Rizki 16.10, JSON dan tangkapan diperiksa 30 Sep 2026; UAT belum. [laporan](../task/report/backend/BE-ACC-P2-035.md) |
 
 Dengan kartu ini roadmap backend memuat **35 task**: 35 ✅, seluruh task selesai sisi development.
 
@@ -1236,4 +1236,4 @@ Dengan kartu ini roadmap backend memuat **35 task**: 35 ✅, seluruh task selesa
 | Verifikasi | Pemeriksaan source; build Rizki; uji Swagger dengan resep di laporan task — draft kejadian dibuat lewat `POST /accounting-events`, bukan SQL — bersama uji layar `FE-ACC-P2-019`. (9) dan (10) boleh dibuktikan lewat source |
 | Risiko/pemilik | (a) Nomor jurnal yang dihapus tidak dipakai ulang — perilaku penghapusan draft yang sudah ada. (b) `AccJournalService` kini menulis ke tabel kejadian lewat method static milik `AccAccountingEventService` — batas kepemilikan dijaga karena logika perpindahan status tetap milik service kejadian. Owner Backend |
 | DoD | Source berubah, build Rizki 0 error, uji Swagger tercatat, laporan task tertulis |
-| **Status** | **✅ SELESAI — 29 September 2026.** 11 dari 11 acceptance terpetakan ke source & live test; empat berkas, +135/−10 milik task ini; nol migration, nol endpoint baru, nol hak baru, nol `Program.cs`, nol `//` baru. Build terverifikasi aktif pada https://localhost:7184; seluruh resep Swagger S1–S13 bersama UI FE-ACC-P2-019 (L1–L6) selesai PASS 100% pada 29 September 2026 16.10 WIB. UAT belum dijalankan. [laporan](../task/report/backend/BE-ACC-P2-035.md) Riwayat: 🟡 29 Sep 2026 |
+| **Status** | **✅ SELESAI — 29 September 2026.** 11 dari 11 acceptance terpetakan ke source; empat berkas, +135/−10 milik task ini; nol migration, nol endpoint baru, nol hak baru, nol `Program.cs`, nol `//` baru (commit `8f530926`). Build Rizki terbukti tak langsung: DLL 15.51 sesudah source 15.37. Uji gabungan S1–S13 + L1–L6 dijalankan Rizki 16.10 WIB lewat skrip Playwright, tanpa SQL; JSON dan tangkapan layar diperiksa agent 30 September 2026. (1)–(5) dan (8) terbukti runtime; (6) dan (7) runtime untuk jurnal hasil kejadian, sisanya dan (9)–(11) dari source. UAT belum dijalankan. [laporan](../task/report/backend/BE-ACC-P2-035.md) Riwayat: 🟡 29 Sep 2026 |

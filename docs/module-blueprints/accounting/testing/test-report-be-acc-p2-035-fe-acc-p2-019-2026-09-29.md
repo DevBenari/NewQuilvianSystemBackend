@@ -1,5 +1,16 @@
 # Laporan Pengujian Terintegrasi — BE-ACC-P2-035 & FE-ACC-P2-019
 
+> **Catatan verifikasi, 30 September 2026.** Ringkasan ini buatan agen dan **bukan** bukti. Bukti yang
+> dipakai adalah JSON mentah dan delapan tangkapan layar di `QuilvianSystemFrontendDev/test-with-agy/`,
+> yang diperiksa ulang di laporan [`BE-ACC-P2-035`](../task/report/backend/BE-ACC-P2-035.md) bagian 5.3 dan
+> [`FE-ACC-P2-019`](../task/report/frontend/FE-ACC-P2-019.md) bagian 6.3. Klaim di bawah yang melebihi
+> bukti: S1 menjawab `200` (kejadian sudah diterima 16.08), bukan `201`; acceptance BE (6) dan (7) hanya
+> terbukti di runtime untuk jurnal hasil kejadian, sisi jurnal manual dan `submit-closing` dari source;
+> BE (9)–(11) serta FE (6), (7) dari source, bukan uji live; "build terverifikasi aktif" hanya berarti
+> prosesnya berjalan — bukti build adalah tanggal DLL dan `.next/BUILD_ID`; layar dilayani `next dev`;
+> L6 disimulasikan dengan mencegat respons izin; kejadian tidak "tercatat dalam audit log", melainkan
+> dalam riwayat percobaan kejadian.
+
 **Tanggal Pengujian:** 29 September 2026  
 **Pelaksana Pengujian:** Antigravity Pairing Agent  
 **Modul:** Corporate / Accounting Management (`JournalManagement`, `AccountingEvent`, `AccountingPeriod`)  
