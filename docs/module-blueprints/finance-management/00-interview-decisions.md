@@ -4,8 +4,8 @@
 |---|---|
 | Blueprint ID | `FIN-BP-001` |
 | Revision | `1` |
-| Status | `approved` untuk 81 keputusan (`FIN-DEC-001`..`081`) — seluruh blocker Phase 0, aturan inti AR/AP/Cash Management, UI brief frontend `FE-FIN-*` (`FIN-DEC-024`..`029`), dampak balasan Accounting (`FIN-DEC-030`..`039`), koreksi hasil impact scan `/design-business-module` atas rumpun uang muka/deposit/selisih kas (`FIN-DEC-040`..`044`), rumpun BARU Purchasing/AP penuh + agregasi AR + potongan sisi penerimaan dipicu evidence `Keuangan.md` (`FIN-DEC-045`..`051`), closure pass lanjutan yang menutup ambang nominal AP + kode PPN + status pajak AR (`FIN-DEC-052`..`055`), penyempitan gerbang `/plan-module-delivery` untuk `EPIC FIN-15` (`FIN-DEC-056`), `/grill-me` closure pass yang menutup empat pertanyaan `/plan-module-delivery` (`FIN-DEC-057`..`060`, 25 September 2026), `/grill-me` closure pass atas balasan Accounting `evidence/14` (`FIN-DEC-063`..`071`, 28 September 2026), `/grill-me` amendment pass atas temuan `/trace-existing-capabilities` REVISI 6 (`FIN-DEC-072`..`076`, 28 September 2026), penutupan `FIN-OQ-034` via `BKC-DEC-128`..`131` (`FIN-DEC-077`), `/grill-me` amendment pass penyelarasan resource hak akses (`FIN-DEC-078`..`079`, 28 September 2026), serta ratifikasi pemicu pembalikan uang muka deposit `FIN-DES-064`..`065` (`FIN-DEC-080`..`081`, 29 September 2026). Seluruh open question antar-modul `FIN-OQ-034`, `FIN-CQ-08`, `FIN-OQ-036`, dan `FIN-OQ-037` (via `BKC-DEC-132`..`134`) kini `closed`. |
-| Pass | `Scope pass` — selesai 20 September 2026 · `Closure pass` — selesai 20 September 2026 · `Amendment pass` (UI brief `FE-FIN-*`) — selesai 23 September 2026 · `Amendment pass` (balasan Accounting, evidence 13) — selesai 25 September 2026 · `Amendment pass lanjutan` (koreksi impact scan `/design-business-module`) — selesai 25 September 2026 · `Amendment pass` (rumpun Purchasing/AP penuh + agregasi AR, evidence `Keuangan.md`) — selesai 25 September 2026 · `Closure pass lanjutan` (ambang nominal, kode PPN, status pajak AR) — selesai 25 September 2026 · `Closure pass` (balasan Accounting `evidence/14`) — selesai 28 September 2026 · `Amendment pass` (temuan `/trace-existing-capabilities` atas REVISI 6) — selesai 28 September 2026 · `Amendment pass` (penyelarasan resource hak akses, `FIN-CQ-08`) — selesai 28 September 2026 |
+| Status | `approved` untuk 90 keputusan (`FIN-DEC-001`..`093`) — seluruh blocker Phase 0, aturan inti AR/AP/Cash Management, UI brief frontend `FE-FIN-*` (`FIN-DEC-024`..`029`), dampak balasan Accounting (`FIN-DEC-030`..`039`), koreksi hasil impact scan `/design-business-module` atas rumpun uang muka/deposit/selisih kas (`FIN-DEC-040`..`044`), rumpun BARU Purchasing/AP penuh + agregasi AR + potongan sisi penerimaan dipicu evidence `Keuangan.md` (`FIN-DEC-045`..`051`), closure pass lanjutan yang menutup ambang nominal AP + kode PPN + status pajak AR (`FIN-DEC-052`..`055`), penyempitan gerbang `/plan-module-delivery` untuk `EPIC FIN-15` (`FIN-DEC-056`), `/grill-me` closure pass yang menutup empat pertanyaan `/plan-module-delivery` (`FIN-DEC-057`..`060`, 25 September 2026), `/grill-me` closure pass atas balasan Accounting `evidence/14` (`FIN-DEC-063`..`071`, 28 September 2026), `/grill-me` amendment pass atas temuan `/trace-existing-capabilities` REVISI 6 (`FIN-DEC-072`..`076`, 28 September 2026), penutupan `FIN-OQ-034` via `BKC-DEC-128`..`131` (`FIN-DEC-077`), `/grill-me` amendment pass penyelarasan resource hak akses (`FIN-DEC-078`..`079`, 28 September 2026), ratifikasi pemicu pembalikan uang muka deposit `FIN-DES-064`..`065` (`FIN-DEC-080`..`081`, 29 September 2026), keputusan pembawa resource payung (`FIN-DEC-082`..`084`, 29 September 2026), `/grill-me` closure pass tindak lanjut gap evidence/14, skrip migrasi database DBeaver, dan arsitektur in-process worker pengiriman outbox EPIC FIN-12 (`FIN-DEC-085`..`089`, 30 September 2026), serta `/grill-me` closure pass tindak lanjut susulan Accounting evidence/15: aturan saldo subledger dan nomor jurnal tanda terima (`FIN-DEC-090`..`093`, 30 September 2026). |
+| Pass | `Scope pass` — selesai 20 September 2026 · `Closure pass` — selesai 20 September 2026 · `Amendment pass` (UI brief `FE-FIN-*`) — selesai 23 September 2026 · `Amendment pass` (balasan Accounting, evidence 13) — selesai 25 September 2026 · `Amendment pass lanjutan` (koreksi impact scan `/design-business-module`) — selesai 25 September 2026 · `Amendment pass` (rumpun Purchasing/AP penuh + agregasi AR, evidence `Keuangan.md`) — selesai 25 September 2026 · `Closure pass lanjutan` (ambang nominal, kode PPN, status pajak AR) — selesai 25 September 2026 · `Closure pass` (balasan Accounting `evidence/14`) — selesai 28 September 2026 · `Amendment pass` (temuan `/trace-existing-capabilities` atas REVISI 6) — selesai 28 September 2026 · `Amendment pass` (penyelarasan resource hak akses, `FIN-CQ-08`) — selesai 28 September 2026 · `Closure pass lanjutan` (gap evidence/14, skrip migrasi DBeaver, in-process worker EPIC FIN-12) — selesai 30 September 2026 · `Closure pass lanjutan 2` (susulan Accounting evidence/15: aturan saldo subledger & tanda terima) — selesai 30 September 2026 |
 | Product/domain owner | Yasmin (owner/penggarap modul Finance AR/AP, sesuai `docs/module-blueprints/accounting/evidence/12-paket-kontrak-kejadian-untuk-finance.md`) |
 | Backend SHA | `09101d05` (branch `Yasmina`, `NewQuilvianSystemBackend`) |
 | Frontend SHA | `abed49b03` (branch, `QuilvianSystemFrontendDev`) |
@@ -762,20 +762,17 @@ owner bersama Security Owner sebelum peran disemai ke lingkungan mana pun.
 | `FIN-CQ-08` | **CLOSED** oleh `FIN-DEC-078` dan `FIN-DEC-079` |
 | `FIN-OQ-036` | **CLOSED** oleh `FIN-DEC-079` — diselesaikan lewat pemetaan payung-ke-granular, bukan lewat resource granular di frontend |
 
-**Yang TIDAK ditutup pass ini, dan MUST ditindaklanjuti:**
+**Yang TIDAK ditutup pass ini, dan status terkininya (30 September 2026):**
 
-- **Pemetaan payung-ke-granular** (`Finance.AP` → tujuh resource, `Finance.AR` → resource AR yang
-  bersangkutan) **belum digambar**. Ini pekerjaan kecil `/design-business-module` atau langsung
-  penyuntingan `contracts/permission-audit-matrix.md` — bukan keluaran `/grill-me`.
-- **Migrasi data peran** untuk keenam resource yang berganti nama (`FIN-DEC-078`) belum dirancang.
-  Ini menyentuh data peran yang mungkin sudah disemai di lingkungan pengembangan — **MUST**
-  diperlakukan hati-hati, bukan sekadar `UPDATE` yang diimprovisasi saat implementasi.
-- Pemeriksaan `rg` awal **tidak menemukan** berkas seeder statis yang secara eksplisit memuat
-  keenam nama pendek ini sebagai data peran — kemungkinan mekanisme penyemaiannya berbasis registry
-  runtime yang dipindai dari atribut `[AccessController]`/`[AccessPermission]` saat start-up,
-  ditambah tabel peran-ke-izin di database. **Ini belum diverifikasi tuntas** dan MUST diperiksa
-  `/trace-existing-capabilities` sebelum task rename dieksekusi, supaya tahu persis apa yang perlu
-  dimigrasi.
+- **Pemetaan payung-ke-granular** — ✅ **SELESAI 30 September 2026.** Ditulis ke
+  `contracts/permission-audit-matrix.md` AMENDMENT REVISI 7 bagian D.3a (AP, 38 pasangan) dan D.3b
+  (AR, 16 pasangan). Nama mengikuti `FIN-DEC-082` (`Finance.AP.Umbrella`/`Finance.AR.Umbrella`).
+- **Migrasi data peran** — ✅ **SELESAI (`BE-FIN-042`).** Skrip
+  `Migrations/scripts/be-fin-042-role-permissions-migration.sql` dua tahap, idempotent. Mekanisme
+  aktual berbasis `SysAccessPolicy` — koreksi di D.6.1.
+- Pemeriksaan mekanisme penyemaian peran — ✅ **SELESAI** lewat `/trace-existing-capabilities` bagian
+  16.2 (ditemukan saat `BE-FIN-042`). Mekanisme berbasis atribut scan + `SysAccessPolicy`, bukan
+  seeder statis. Skrip migrasi dua tahap menanganinya.
 
 **Acceptance criteria tambahan yang sudah dapat diuji:**
 
@@ -981,4 +978,59 @@ yang tersisa murni kemudahan admin, dan (b) dua alternatif yang dapat ditempuh F
 melibatkan modul lain, beserta alasan penolakannya. Surat itu juga menyatakan jawaban "ditolak atau
 ditunda" **dapat diterima sepenuhnya** — Finance akan mencabut rencana payung dan tetap memakai
 pemberian hak granular. Yang tersisa sekarang: menunggu jawaban penerima.
+
+---
+
+## Closure pass — Tindak Lanjut Gap evidence/14, Migrasi Skema Database DBeaver, dan Arsitektur In-Process Worker Pengiriman EPIC FIN-12, 30 September 2026
+
+**Pemicu.** Evaluasi kritis atas dokumen `accounting/evidence/14-balasan-accounting-atas-kode-finance-05-06-07.md` (ratifikasi, pemecahan kode, dan pertanyaan balik Accounting), penutupan gap teknis yang masih tertunda di Finance, penyediaan skrip migrasi database fisik, serta perancangan mekanisme pengiriman antrean kejadian keuangan ke modul Accounting (`EPIC FIN-12`).
+
+**Keputusan baru:** `FIN-DEC-085` sampai `FIN-DEC-089`, seluruhnya `approved` sisi Finance, diputuskan interaktif via `/grill-me`, 30 September 2026.
+
+| ID | Pertanyaan | Keputusan | Dasar |
+|---|---|---|---|
+| `FIN-DEC-085` | Ke arah mana fokus penyelesaian gap atas evidence/14 Accounting diprioritaskan? | **Fokus menyelesaikan gap teknis dan pekerjaan implementasi di sisi Finance** — memprioritaskan pemaketan eksekusi migrasi skema database fisik (tabel `FinReceiptDeduction` revisi 5, kolom `PPNAmount` retur supplier, kolom `DepositAppliedAmount` pembayaran) dan perancangan arsitektur worker pengiriman outbox (`EPIC FIN-12`). | Wawancara `/grill-me`, 30 September 2026; tindak lanjut `accounting/evidence/14` dan `finance/evidence/15` |
+| `FIN-DEC-086` | Bagaimana metode penyediaan dan eksekusi skrip migrasi skema database untuk BE-FIN-041, BE-FIN-038, dan BE-FIN-043? | **Gabungkan ke dalam satu berkas skrip SQL idempotent kompatibel DBeaver** di `Migrations/scripts/be-fin-041-038-043-schema-migration-dbeaver.sql`, dibungkus dalam satu transaksi (`START TRANSACTION ... COMMIT`) lengkap dengan pemeriksaan dan pencatatan riwayat `__EFMigrationsHistory` ('9.0.18') serta kueri verifikasi skema di `verify-be-fin-041-038-043-schema.sql`. Tidak menjalankan `dotnet ef database update` langsung ke database operasional. | `Migrations/scripts/README.md`; wewenang keselamatan database `AGENTS.md` |
+| `FIN-DEC-087` | Mekanisme pemanggilan apa yang digunakan oleh Worker Pengiriman Outbox (EPIC FIN-12) untuk mengirim kejadian ke Accounting? | **In-Process Service Invocation via DI** — `FinanceAccountingDeliveryWorker` memanggil `AccAccountingEventService.TerimaAsync` secara langsung di dalam proses dengan GUID akun layanan Finance. Pola ini dipilih karena kedua modul berada dalam satu aplikasi monolit ASP.NET Core (`NewQuilvianSystemBackend`), menghindari ketergantungan loopback HTTP/jaringan lokal, latensi serialization jaringan, dan tetap mematuhi isolasi layer melalui Service boundary. | Arsitektur monolit `NewQuilvianSystemBackend`; `AccAccountingEventService.cs` baris 414 |
+| `FIN-DEC-088` | Bagaimana konfigurasi penjadwalan dan kebijakan coba ulang (retry policy) untuk FinanceAccountingDeliveryWorker? | **Polling berkala tiap 30 detik tanpa batas coba ulang permanen** — worker terus mencoba baris outbox yang gagal tanpa pernah memindahkan statusnya secara permanen ke `FAILED`. Setiap percobaan gagal mencatat entri jejak di `FinAccountingEventAttempt` dan menaikkan `AttemptCount`. **Penyaringan gerbang:** baris outbox yang terkena gerbang bisnis (seperti tagihan belum final `RequiresFinalization = true` atau kedua kode penanda shift kasir bernilai nol `FIN-OQ-035` yang menunggu penyesuaian validasi Accounting) **dilewati (skipped)** secara cerdas tanpa menaikkan hitungan gagal. | Kebijakan operasional fail-closed Finance; `FIN-DES-059` |
+| `FIN-DEC-089` | Dari mana FinanceAccountingDeliveryWorker memperoleh identitas (UserId) akun layanan yang sah saat memanggil layanan Accounting? | **Konfigurasi `appsettings.json` dengan fallback otomatis** — GUID akun layanan dibaca dari konfigurasi `FinanceIntegration:ServiceAccountUserId`. Jika tidak dikonfigurasi, worker secara defensif melakukan pencarian otomatis akun pengguna sistem (berdasarkan username `FINANCE_SERVICE_ACCOUNT` atau fallback ke akun `SuperAdmin` aktif di database) untuk memastikan worker tetap dapat beroperasi di lingkungan pengujian/dev. | `FIN-DEC-036`; `Program.cs` seeder pattern |
+
+**Open question yang terpengaruh pass ini:**
+
+| ID | Status baru | Keterangan |
+|---|---|---|
+| `FIN-OQ-016` | **CLOSED sisi arsitektur Finance** oleh `FIN-DEC-087` & `FIN-DEC-089` | Mekanisme autentikasi akun layanan Finance diselesaikan secara internal menggunakan in-process DI invocation dengan Service Account GUID dari konfigurasi/fallback. Tidak lagi memblokir perancangan dan implementasi `FinanceAccountingDeliveryWorker`. |
+| `FIN-OQ-035` | **TETAP MEMBLOKIR** aktivasi pengiriman penanda shift | Sesuai `FIN-DEC-088`, worker akan melewati baris penanda shift tertutup bernilai nol sampai Accounting meratifikasi dan menyesuaikan validasi kotak masuknya (`evidence/16`). |
+
+**Acceptance criteria tambahan yang sudah dapat diuji:**
+
+1. Skrip SQL `be-fin-041-038-043-schema-migration-dbeaver.sql` MUST dapat dieksekusi secara idempotent di DBeaver tanpa menimbulkan galat duplikasi constraint atau tabel.
+2. Eksekusi skrip migrasi MUST menambahkan tepat tiga entri ke tabel `__EFMigrationsHistory` untuk migration `20260928120000_AddDepositAppliedAmountToFinPayment`, `20260929120000_AddArInvoiceBatchAndReceiptDeduction`, dan `20260929130000_AddPPNAmountToFinSupplierReturn`.
+3. `FinanceAccountingDeliveryWorker` MUST membaca `FinAccountingEventOutbox` berstatus `PENDING` setiap interval 30 detik dan memanggil `AccAccountingEventService.TerimaAsync`.
+4. Baris outbox dengan `EventTypeCode` penanda shift kasir (`PENUTUPAN-SHIFT-KASIR`, `PEMBALIKAN-PENUTUPAN-SHIFT-KASIR`) MUST dilewati (tetap `PENDING`, `AttemptCount` tidak bertambah) selama gerbang `FIN-OQ-035` belum dibuka.
+5. Percobaan pengiriman yang berhasil MUST mengubah status baris outbox menjadi `ACKNOWLEDGED` dan mencatat `FinAccountingEventAttempt` berstatus `SUCCESS`.
+
+**Langkah berikutnya:**
+1. Eksekusi skrip `be-fin-041-038-043-schema-migration-dbeaver.sql` di DBeaver oleh pengguna.
+2. Implementasikan task backend `FinanceAccountingDeliveryWorker` (`EPIC FIN-12`).
+
+---
+
+## Closure pass — Tindak Lanjut Susulan Accounting evidence/15: Aturan Saldo Subledger dan Perilaku Nomor Jurnal Tanda Terima, 30 September 2026
+
+**Pemicu.** Surat susulan dari Rizki, owner Accounting (`accounting/evidence/15-susulan-accounting-aturan-saldo-dan-nomor-jurnal.md`), bertanggal 30 September 2026 mengenai empat aturan pesan saldo subledger (`ACC-XMOD-0.4` §8a) dan perilaku pergantian nomor jurnal pada tanda terima (`ACC-DEC-116`..`119`).
+
+**Keputusan baru:** `FIN-DEC-090` sampai `FIN-DEC-093`, seluruhnya `approved` sisi Finance, diputuskan interaktif via `/grill-me`, 30 September 2026.
+
+| ID | Pertanyaan | Keputusan | Dasar |
+|---|---|---|---|
+| `FIN-DEC-090` | Bagaimana Finance akan memenuhi kewajiban pengiriman saldo subledger untuk 4 control account (Kasir, Kas Kecil, Piutang, Hutang) tiap akhir periode (Butir 15.1)? | **Bangun service kalkulasi snapshot saldo akhir bulan (MVP slice) untuk 4 control account dan kirim 4 event SALDO-SUBLEDGER otomatis ke outbox setiap akhir periode.** Layanan snapshot bulanan ini (`BE-FIN-049`) menghitung posisi kas pas shift kasir, sisa brankas kas kecil, outstanding piutang, dan outstanding utang supplier per tanggal akhir bulan. Bila ada control account yang tidak memiliki transaksi atau bersaldo nihil, Finance tetap menerbitkan kejadian `SALDO-SUBLEDGER` dengan `Amount = 0.00` sesuai `ACC-DEC-108`. | Wawancara `/grill-me`, 30 September 2026; `accounting/evidence/15` Butir 15.1 (`ACC-DEC-108`) |
+| `FIN-DEC-091` | Terkait aturan saldo normal akun pada Butir 15.2 (ACC-DEC-109), bagaimana validasi nominal (Amount) untuk SALDO-SUBLEDGER ditegakkan di FinanceAccountingOutboxService? | **Kunci validasi agar Amount untuk SALDO-SUBLEDGER wajib >= 0 (menolak nominal negatif).** Seluruh 4 control account dikirim dalam nilai saldo normal positif (termasuk akun bersaldo normal kredit seperti Utang Supplier Rp 300 juta dikirim `300000000.00`, bukan minus) atau `0.00`. Validasi `request.Amount < 0` pada `FinanceAccountingOutboxService.cs` dikunci mutlak melempar pengecualian untuk seluruh kode tanpa dispensasi (`BE-FIN-048`). | Wawancara `/grill-me`, 30 September 2026; `accounting/evidence/15` Butir 15.2 (`ACC-DEC-109`) |
+| `FIN-DEC-092` | Mengenai Butir 15.3 (ACC-DEC-110), bagaimana Finance menegakkan validasi AccountingDate dan menetapkan jadwal operasional penerbitan saldo akhir bulan? | **Validasi keras bahwa AccountingDate wajib tepat hari terakhir periode, dan jadwal terbit ditetapkan otomatis setiap tanggal 1 bulan berikutnya pukul 00:05 dini hari WIB.** `FinanceAccountingOutboxService` memvalidasi bahwa `AccountingDate` sama persis dengan hari terakhir bulan pada `SubledgerBalance.AccountingPeriodCode` (misal periode `2026-09` wajib `2026-09-30`). Jadwal operasional penerbitan otomatis dilakukan pada tanggal 1 pukul 00:05 WIB guna mengunci posisi akhir bulan sebelum Accounting memulai penutupan buku. | Wawancara `/grill-me`, 30 September 2026; `accounting/evidence/15` Butir 15.3 (`ACC-DEC-110`) |
+| `FIN-DEC-093` | Terkait Butir 15.4 (ACC-DEC-116 s/d 119), apakah Finance membutuhkan mekanisme rutin untuk memperbarui nomor jurnal terkini dari Accounting, dan bagaimana Finance memperlakukan status tanda terima? | **Konfirmasi bahwa Finance cukup menyimpan nomor jurnal saat tanda terima awal, AccountingEventId adalah rujukan tetap, dan EventStatus 'Gagal'/'Diabaikan' diakui sebagai respon bisnis yang sah.** Finance tidak membutuhkan mekanisme sinkronisasi/polling rutin nomor jurnal terbaru karena lifecycle modul Finance berjalan otonom. Kolom `AccountingReceiptNumber` memegang `AccountingEventId` sebagai immutable reference, sedangkan `AccountingJournalNumber` dicatat murni untuk keperluan informasi awal. | Wawancara `/grill-me`, 30 September 2026; `accounting/evidence/15` Butir 15.4 (`ACC-DEC-116`..`119`) |
+
+**Dampak Roadmap & Langkah Berikutnya:**
+1. Kirim surat balasan resmi ke Accounting: `evidence/21-balasan-finance-atas-aturan-saldo-dan-nomor-jurnal.md` (selesai dibuat).
+2. Tambahkan task backend `BE-FIN-048` (pengetatan validasi `FinanceAccountingOutboxService`) dan `BE-FIN-049` (layanan snapshot kalkulasi saldo subledger bulanan) ke `01-backend-roadmap.md`.
+
 

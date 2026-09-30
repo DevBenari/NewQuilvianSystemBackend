@@ -410,6 +410,22 @@ sudah memakai `[AccessPermission("FinanceReceipt", "Allocate")]`; pembalikannya 
 
 ---
 
+# AMENDMENT REVISI 7 — Koreksi Nama Resource Payung dan Titik Tulis Ekspansi (`FIN-DEC-082`, `FIN-DEC-083`)
+
+| Field | Nilai |
+|---|---|
+| Contract version | `FIN-PERM-1.4` |
+| Status | `draft` — menurunkan `FIN-DES-066`..`069` yang masih `draft`; menunggu Security Owner lewat `FIN-OQ-039` |
+| Tanggal | 29 September 2026 |
+| Keputusan | `FIN-DEC-082` (nama payung bukan `Finance.AP`/`Finance.AR` melainkan `Finance.AP.Umbrella`/`Finance.AR.Umbrella`), `FIN-DEC-083` (ekspansi materialized saat admin memberi grant, bukan saat request) |
+| Masalah yang diselesaikan | Bentrok nama `Finance.AP`/`Finance.AR` antara resource payung baru dan `FinanceApController`/`FinanceArController` V2 yang sudah berjalan (ditemukan saat implementasi `BE-FIN-042`). Premis seeder `FIN-DEC-079` terbukti keliru — seeder tidak pernah menulis `SysAccessPolicy` |
+| Gerbang terbuka | `FIN-OQ-039` — menahan implementasi mekanisme ekspansi; **tidak** menahan D.5 rename controller maupun pekerjaan frontend |
+| Sinkronisasi | `02-backend-architecture.md` AMENDMENT REVISI 11 (`FIN-DES-066`..`069`), `00-interview-decisions.md` Amendment pass 29 September 2026 |
+
+Amendment ini **mengoreksi** bagian D.2 (nama payung) dan D.6.2 (titik tulis ekspansi) dari REVISI 6 di bawah, dan menambahkan sub-seksi D.3a–D.3b (tabel peta aksi granular terstruktur).
+
+---
+
 # AMENDMENT REVISI 6 — Pemetaan Resource Payung (Umbrella) ke Granular dan Penyelarasan Nama Controller Legacy
 
 | Field | Nilai |
@@ -510,6 +526,90 @@ Resource berikut **tidak** dimasukkan ke dalam payung `Finance.AP` maupun `Finan
 
 ---
 
+## D.3a Tabel Ekspansi Lengkap — `Finance.AP.Umbrella` ke Pasangan Granular
+
+> **Sumber kebenaran peta ini.** Berkas kode (setelah platform mendukung resource tanpa endpoint —
+> lihat `FIN-OQ-039`) harus dapat di-*diff* langsung terhadap tabel ini. Setiap baris yang ada di
+> sini MUST ada di kode, dan setiap baris di kode MUST ada di sini.
+
+| Tier Payung | Resource Granular | Aksi | Kode Aksi di `[AccessPermission]` |
+|---|---|---|---|
+| **`View`** | `FinancePayment` | Read | `"FinancePayment", "Read"` |
+| **`View`** | `FinanceSupplierPayable` | Read | `"FinanceSupplierPayable", "Read"` |
+| **`View`** | `FinanceMedicalServicePayable` | Read | `"FinanceMedicalServicePayable", "Read"` |
+| **`View`** | `FinancePurchaseOrder` | Read | `"FinancePurchaseOrder", "Read"` |
+| **`View`** | `FinanceGoodsReceipt` | Read | `"FinanceGoodsReceipt", "Read"` |
+| **`View`** | `FinanceInvoiceExchange` | Read | `"FinanceInvoiceExchange", "Read"` |
+| **`View`** | `FinancePurchasingInvoice` | Read | `"FinancePurchasingInvoice", "Read"` |
+| **`View`** | `FinanceSupplierReturn` | Read | `"FinanceSupplierReturn", "Read"` |
+| **`View`** | `FinancePurchasingReport` | Read | `"FinancePurchasingReport", "Read"` |
+| **`Operate`** | `FinancePayment` | Create | `"FinancePayment", "Create"` |
+| **`Operate`** | `FinancePayment` | Update | `"FinancePayment", "Update"` |
+| **`Operate`** | `FinancePayment` | Submit | `"FinancePayment", "Submit"` |
+| **`Operate`** | `FinanceSupplierPayable` | Create | `"FinanceSupplierPayable", "Create"` |
+| **`Operate`** | `FinanceSupplierPayable` | Update | `"FinanceSupplierPayable", "Update"` |
+| **`Operate`** | `FinanceSupplierPayable` | RequestAdjustment | `"FinanceSupplierPayable", "RequestAdjustment"` |
+| **`Operate`** | `FinanceMedicalServicePayable` | Create | `"FinanceMedicalServicePayable", "Create"` |
+| **`Operate`** | `FinanceMedicalServicePayable` | RequestAdjustment | `"FinanceMedicalServicePayable", "RequestAdjustment"` |
+| **`Operate`** | `FinancePurchaseOrder` | Create | `"FinancePurchaseOrder", "Create"` |
+| **`Operate`** | `FinancePurchaseOrder` | Update | `"FinancePurchaseOrder", "Update"` |
+| **`Operate`** | `FinancePurchaseOrder` | Submit | `"FinancePurchaseOrder", "Submit"` |
+| **`Operate`** | `FinanceGoodsReceipt` | Create | `"FinanceGoodsReceipt", "Create"` |
+| **`Operate`** | `FinanceInvoiceExchange` | Create | `"FinanceInvoiceExchange", "Create"` |
+| **`Operate`** | `FinancePurchasingInvoice` | Create | `"FinancePurchasingInvoice", "Create"` |
+| **`Operate`** | `FinancePurchasingInvoice` | Update | `"FinancePurchasingInvoice", "Update"` |
+| **`Operate`** | `FinancePurchasingInvoice` | Submit | `"FinancePurchasingInvoice", "Submit"` |
+| **`Operate`** | `FinanceSupplierReturn` | Create | `"FinanceSupplierReturn", "Create"` |
+| **`Approve`** | `FinancePayment` | Approve | `"FinancePayment", "Approve"` |
+| **`Approve`** | `FinancePayment` | MarkPaid | `"FinancePayment", "MarkPaid"` |
+| **`Approve`** | `FinancePayment` | Cancel | `"FinancePayment", "Cancel"` |
+| **`Approve`** | `FinanceSupplierPayable` | ApproveAdjustment | `"FinanceSupplierPayable", "ApproveAdjustment"` |
+| **`Approve`** | `FinanceMedicalServicePayable` | ApproveAdjustment | `"FinanceMedicalServicePayable", "ApproveAdjustment"` |
+| **`Approve`** | `FinancePurchaseOrder` | Approve | `"FinancePurchaseOrder", "Approve"` |
+| **`Approve`** | `FinancePurchaseOrder` | Cancel | `"FinancePurchaseOrder", "Cancel"` |
+| **`Approve`** | `FinanceGoodsReceipt` | Cancel | `"FinanceGoodsReceipt", "Cancel"` |
+| **`Approve`** | `FinanceInvoiceExchange` | Cancel | `"FinanceInvoiceExchange", "Cancel"` |
+| **`Approve`** | `FinancePurchasingInvoice` | Approve | `"FinancePurchasingInvoice", "Approve"` |
+| **`Approve`** | `FinanceSupplierReturn` | Confirm | `"FinanceSupplierReturn", "Confirm"` |
+| **`Approve`** | `FinanceSupplierReturn` | Cancel | `"FinanceSupplierReturn", "Cancel"` |
+
+**Total pasangan granular yang ditulis saat admin memberi ketiga tier sekaligus:** 38 baris
+(`View` = 9, `Operate` = 18, `Approve` = 11) ditambah 3 baris payung itu sendiri = **41 baris
+`SysAccessPolicy`**.
+
+---
+
+## D.3b Tabel Ekspansi Lengkap — `Finance.AR.Umbrella` ke Pasangan Granular
+
+| Tier Payung | Resource Granular | Aksi | Kode Aksi di `[AccessPermission]` |
+|---|---|---|---|
+| **`View`** | `FinanceReceivable` | Read | `"FinanceReceivable", "Read"` |
+| **`View`** | `FinanceReceipt` | Read | `"FinanceReceipt", "Read"` |
+| **`View`** | `FinanceReceivableInvoiceBatch` | Read | `"FinanceReceivableInvoiceBatch", "Read"` |
+| **`View`** | `FinanceBillingIntake` | Read | `"FinanceBillingIntake", "Read"` |
+| **`Operate`** | `FinanceReceivable` | Update | `"FinanceReceivable", "Update"` |
+| **`Operate`** | `FinanceReceivable` | RequestAdjustment | `"FinanceReceivable", "RequestAdjustment"` |
+| **`Operate`** | `FinanceReceivable` | RequestWriteOff | `"FinanceReceivable", "RequestWriteOff"` |
+| **`Operate`** | `FinanceReceipt` | Create | `"FinanceReceipt", "Create"` |
+| **`Operate`** | `FinanceReceipt` | Allocate | `"FinanceReceipt", "Allocate"` |
+| **`Operate`** | `FinanceReceivableInvoiceBatch` | Create | `"FinanceReceivableInvoiceBatch", "Create"` |
+| **`Operate`** | `FinanceReceivableInvoiceBatch` | Update | `"FinanceReceivableInvoiceBatch", "Update"` |
+| **`Operate`** | `FinanceReceivableInvoiceBatch` | Issue | `"FinanceReceivableInvoiceBatch", "Issue"` |
+| **`Operate`** | `FinanceBillingIntake` | Consume | `"FinanceBillingIntake", "Consume"` |
+| **`Approve`** | `FinanceReceivable` | ApproveAdjustment | `"FinanceReceivable", "ApproveAdjustment"` |
+| **`Approve`** | `FinanceReceivable` | ApproveWriteOff | `"FinanceReceivable", "ApproveWriteOff"` |
+| **`Approve`** | `FinanceReceipt` | Reverse | `"FinanceReceipt", "Reverse"` |
+
+**Total pasangan granular yang ditulis saat admin memberi ketiga tier sekaligus:** 16 baris
+(`View` = 4, `Operate` = 9, `Approve` = 3) ditambah 3 baris payung itu sendiri = **19 baris
+`SysAccessPolicy`**.
+
+> **Catatan sinkronisasi (FIN-DES-068).** Setiap resource granular baru di rumpun AP/AR MUST
+> ditambahkan ke D.3, D.3a, atau D.3b (sesuai rumpunnya) **dan** ke berkas kode peta pada
+> perubahan yang sama. Menambah ke salah satu saja adalah cacat yang MUST ditolak saat review.
+
+---
+
 ## D.4 Matriks Pewarisan Aksi Payung ke Aksi Granular (Action Propagation Rule)
 
 Pewarisan aksi dari tingkat payung ke tingkat granular mengikuti prinsip hirarki peran operasional rumah sakit:
@@ -522,21 +622,25 @@ Pewarisan aksi dari tingkat payung ke tingkat granular mengikuti prinsip hirarki
 
 ### Contoh Pemetaan Peran Nyata di Rumah Sakit:
 
+> **Nama payung yang dipakai di bawah adalah nama kanonikal pasca `FIN-DEC-082`:**
+> `Finance.AP.Umbrella` dan `Finance.AR.Umbrella`. Nama lama `Finance.AP`/`Finance.AR` tetap
+> dimiliki `FinanceApController`/`FinanceArController` V2 dan tidak disentuh.
+
 1. **Staf AP Farmasi & Logistik (Maker):**
-   - Diberi hak payung: `Finance.AP : View, Operate`.
-   - Hasil ekspansi sistem: Berhak membuat draf PO, menerima barang gudang, menukar faktur, dan mengajukan pembayaran utang; **tidak** dapat menyetujui PO sendiri atau mengesahkan pencairan kas bank.
+   - Diberi hak payung: `Finance.AP.Umbrella : View, Operate`.
+   - Hasil ekspansi sistem: 9 baris `Read` + 18 baris aksi Maker (lihat D.3a). Berhak membuat draf PO, menerima barang gudang, menukar faktur, dan mengajukan pembayaran utang; **tidak** dapat menyetujui PO sendiri atau mengesahkan pencairan kas bank.
 2. **Supervisor Akun Hutang / AP (Checker Batas Nominal):**
-   - Diberi hak payung: `Finance.AP : View, Operate, Approve`.
-   - Ditegakkan aturan nominal service: Berhak menyetujui PO dan faktur pembelian hingga Rp 50.000.000 (`FIN-DEC-052`).
+   - Diberi hak payung: `Finance.AP.Umbrella : View, Operate, Approve`.
+   - Hasil ekspansi sistem: 38 baris granular + 3 baris payung = 41 baris `SysAccessPolicy`. Ditegakkan aturan nominal service: Berhak menyetujui PO dan faktur pembelian hingga Rp 50.000.000 (`FIN-DEC-052`).
 3. **Manajer Keuangan / Direktur RS (Final Approver):**
-   - Diberi hak payung: `Finance.AP : View, Operate, Approve` dan `Finance.AR : View, Operate, Approve`.
-   - Berhak menyetujui seluruh nominal pembayaran keluar, menyetujui penghapusan piutang asuransi (*bad debt write-off*), dan mengotorisasi jurnal pembalik.
+   - Diberi hak payung: `Finance.AP.Umbrella : View, Operate, Approve` dan `Finance.AR.Umbrella : View, Operate, Approve`.
+   - Hasil ekspansi sistem: 41 + 19 = 60 baris `SysAccessPolicy`. Berhak menyetujui seluruh nominal pembayaran keluar, menyetujui penghapusan piutang asuransi (*bad debt write-off*), dan mengotorisasi jurnal pembalik.
 4. **Staf Piutang & Penagihan / AR (Maker):**
-   - Diberi hak payung: `Finance.AR : View, Operate`.
-   - Hasil ekspansi sistem: Berhak membuat batch invoice penjamin, mengalokasikan pembayaran kasir ke tagihan pasien, dan mengajukan draf koreksi klaim.
+   - Diberi hak payung: `Finance.AR.Umbrella : View, Operate`.
+   - Hasil ekspansi sistem: 4 baris `Read` + 9 baris aksi Maker (lihat D.3b). Berhak membuat batch invoice penjamin, mengalokasikan pembayaran kasir ke tagihan pasien, dan mengajukan draf koreksi klaim.
 5. **Auditor Eksternal / Tim SPI Rumah Sakit:**
-   - Diberi hak payung: `Finance.AP : View` dan `Finance.AR : View` serta hak mandiri `FinanceDailyCash : Read`, `FinanceBankDeposit : Read`.
-   - Hasil ekspansi sistem: Dapat membaca seluruh laporan dan jejak audit transaksi keuangan tanpa memiliki tombol aksi tulis/ubah sedikit pun.
+   - Diberi hak payung: `Finance.AP.Umbrella : View` dan `Finance.AR.Umbrella : View` serta hak mandiri `FinanceDailyCash : Read`, `FinanceBankDeposit : Read`.
+   - Hasil ekspansi sistem: 9 + 4 = 13 baris `Read` granular. Dapat membaca seluruh laporan dan jejak audit transaksi keuangan tanpa memiliki tombol aksi tulis/ubah sedikit pun.
 
 ---
 

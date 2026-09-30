@@ -146,7 +146,12 @@ public sealed class FinanceAccountingOutboxService
 
         var isSaldoSubledger = string.Equals(request.EventTypeCode, FinAccountingEventTypeCodes.SaldoSubledger, StringComparison.OrdinalIgnoreCase);
 
-        // Aturan Nilai (FIN-VAL-079, FIN-VAL-138, FIN-DES-054, FIN-DES-058)
+        // Aturan Nilai (FIN-VAL-079, FIN-VAL-138, FIN-DES-054, FIN-DES-058, FIN-DEC-091, ACC-DEC-109)
+        if (request.Amount < 0)
+        {
+            throw new AccountingOutboxException("Nominal kejadian harus lebih dari nol.");
+        }
+
         if (request.Amount == 0)
         {
             if (!FinAccountingEventTypeCodes.ZeroAmountAllowedEventTypes.Contains(request.EventTypeCode))
@@ -154,15 +159,8 @@ public sealed class FinanceAccountingOutboxService
                 throw new AccountingOutboxException("Nominal kejadian harus lebih dari nol.");
             }
         }
-        else if (request.Amount < 0)
-        {
-            if (!isSaldoSubledger)
-            {
-                throw new AccountingOutboxException("Nominal kejadian harus lebih dari nol.");
-            }
-        }
 
-        // Aturan SubledgerBalance (FIN-VAL-081, FIN-VAL-082, FIN-VAL-083, FIN-VAL-084)
+        // Aturan SubledgerBalance (FIN-VAL-081, FIN-VAL-082, FIN-VAL-083, FIN-VAL-084, FIN-DEC-092, ACC-DEC-110)
         if (!isSaldoSubledger)
         {
             if (request.SubledgerBalance != null)
@@ -183,6 +181,18 @@ public sealed class FinanceAccountingOutboxService
                 !AccountingPeriodRegex.IsMatch(request.SubledgerBalance.AccountingPeriodCode))
             {
                 throw new AccountingOutboxException("Kode periode harus berbentuk tahun-bulan, contoh 2026-11.");
+            }
+
+            var periodParts = request.SubledgerBalance.AccountingPeriodCode.Split('-');
+            var periodYear = int.Parse(periodParts[0]);
+            var periodMonth = int.Parse(periodParts[1]);
+            var expectedLastDate = new DateOnly(periodYear, periodMonth, DateTime.DaysInMonth(periodYear, periodMonth));
+
+            if (request.AccountingDate != expectedLastDate)
+            {
+                throw new AccountingOutboxException(
+                    $"AccountingDate untuk pesan saldo periode {request.SubledgerBalance.AccountingPeriodCode} " +
+                    $"wajib tanggal akhir periode ({expectedLastDate:yyyy-MM-dd}).");
             }
 
             if (request.SubledgerBalance.ControlAccountCode.Length > 50)

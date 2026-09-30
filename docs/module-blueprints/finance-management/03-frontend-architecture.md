@@ -500,3 +500,31 @@ Menu dan endpointnya **konsisten**; tidak ada risiko `403` di sana. Butir menu P
 | Jaminan tidak `403` | Berlaku karena menu memakai resource granular yang **sama persis** dengan yang dituntut endpoint. Pemegang payung memiliki pasangan granular itu sebagai baris `SysAccessPolicy` sungguhan hasil materialisasi (`FIN-DES-067`), sehingga terbaca `GET auth/permissions` tanpa perlakuan khusus |
 | Status temuan | `FIN-OQ-036` **dibuka kembali lalu ditutup ulang** oleh `FIN-DES-069` dengan jawaban yang berpijak pada source. `FIN-CAP-040` tetap `CLOSED`. Dua temuan baru dibuka: `FIN-CQ-09` (butir menu "Report AR"/"Report AP" dijaga aksi yang tidak pernah terdaftar, sehingga tersembunyi permanen bagi semua orang) dan `FIN-CQ-10` (nama berkas penyaring pada dokumen) |
 | Gerbang | `FIN-OQ-038` — pembawa resource payung di registry; menahan implementasi ekspansi, **tidak** menahan pekerjaan frontend mana pun |
+
+---
+
+## 16. Layar / Tab Snapshot Saldo Subledger Bulanan (`FE-FIN-015`)
+
+Menjawab kebutuhan rekonsiliasi tutup buku bulanan Accounting (`accounting/evidence/15` Butir 15.1 s/d 15.4, `ACC-DEC-108`, `FIN-DEC-090`, `contracts/integration-contract.md` §5.6), backend telah menyelesaikan `BE-FIN-048` (pengetatan validasi outbox) dan `BE-FIN-049` (layanan kalkulasi agregasi 4 akun kontrol dan pementasan kejadian `SALDO-SUBLEDGER`).
+
+### 16.1 Kebutuhan Fungsional Minimum
+
+| Elemen UI | Kebutuhan Minimum | Endpoint yang Dikonsumsi |
+|---|---|---|
+| Pemilih Periode | Memilih periode akuntansi (format `YYYY-MM`), default bulan aktif/sebelumnya. | — |
+| Status Kelengkapan | Menampilkan status kelengkapan 4 akun kontrol (`IsComplete = true/false`), total agregat nominal saldo, dan tanggal akhir periode akuntansi (`AccountingDate`). | `GET api/v1/corporate/finance-management/accounting-events/subledger-balances/{accountingPeriodCode}` |
+| Tabel 4 Akun Kontrol | Menampilkan daftar 4 akun kontrol: Kas Kasir (`1-1002`), Kas Kecil (`1-1003`), Piutang Pasien & Penjamin (`1-2001`), Utang Supplier (`2-1001`), beserta nominal saldo (selalu non-negatif `>= 0.00`), nomor kejadian outbox (`EventNumber`), versi (`SourceVersion`), dan status pengiriman (`DeliveryStatus`). | `GET api/v1/corporate/finance-management/accounting-events/subledger-balances/{accountingPeriodCode}` |
+| Tombol Pemicu Kalkulasi | Tombol *"Kalkulasi & Terbitkan Saldo Subledger"* untuk mengeksekusi kalkulasi ulang/pernyataan saldo. Membuka modal konfirmasi dengan catatan operasional opsional sebelum `POST`. | `POST api/v1/corporate/finance-management/accounting-events/subledger-balances/generate` |
+
+### 16.2 Aturan Otorisasi & Penjagaan Antarmuka
+1. **Hak Akses:**
+   - Hak baca query snapshot dijaga oleh `FinanceAccountingEvent : Read`.
+   - Hak tombol pemicu generate snapshot dijaga oleh `FinanceAccountingEvent : Create`.
+   - Tombol pemicu **wajib disembunyikan atau dinonaktifkan** bagi pengguna tanpa izin `Create`.
+2. **Penanganan Respon & Error:**
+   - Respons `200 OK` menampilkan notifikasi sukses dan memuat ulang tabel data.
+   - Respons `400 Bad Request` menampilkan pesan galat dari backend apa adanya (misal bila format periode tidak valid).
+   - Nilai uang **MUST NOT** dihitung atau dibulatkan ulang di klien; seluruh angka murni dibaca dari backend.
+3. **Penempatan Navigasi:**
+   - Dapat ditempatkan sebagai tab terdedikasi *"Saldo Subledger Bulanan"* pada halaman Pemantauan Finance (`/finance/monitoring?tab=subledger`) atau sebagai rute terdedikasi (`/finance/subledger-balances`) — **`DEV_DISCRETION`**.
+

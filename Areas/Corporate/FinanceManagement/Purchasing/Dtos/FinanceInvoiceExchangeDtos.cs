@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Dtos;
 
 public class InvoiceExchangeResponse
@@ -37,4 +39,14 @@ public sealed class CreateInvoiceExchangeRequest
 public sealed class InvoiceExchangeRowVersionRequest
 {
     public Guid ExpectedRowVersion { get; set; }
+}
+
+/// <summary>GET / — daftar Tukar Faktur berpaging (FIN-API-1.1 §B.3, kolom Request
+/// `InvoiceExchangeQuery`). Filter persis sesuai kontrak: supplier, status.</summary>
+public sealed class InvoiceExchangeQuery
+{
+    public Guid? SupplierId { get; set; }
+    public string? Status { get; set; }
+    [Range(1, int.MaxValue)] public int PageNumber { get; set; } = 1;
+    [Range(1, 100)] public int PageSize { get; set; } = 25;
 }

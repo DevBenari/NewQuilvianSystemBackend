@@ -12,7 +12,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Con
 
 /// <summary>
 /// Tanda Terima Barang (BE-FIN-032, FIN-API-1.1 §B.2, FIN-PERM-1.1 §B.3). `GET /` (daftar
-/// berpaging) belum ada service-nya — gap terbuka yang sama seperti `FinancePaymentsController`.
+/// berpaging) ditambahkan menyusul (penyelesaian `BE-FIN-032`, lihat laporan task).
 /// </summary>
 [ApiController]
 [Authorize]
@@ -24,6 +24,24 @@ public sealed class FinanceGoodsReceiptsController : ControllerBase
 {
     private readonly FinanceGoodsReceiptService _service;
     public FinanceGoodsReceiptsController(FinanceGoodsReceiptService service) => _service = service;
+
+    [HttpGet]
+    [AccessAction("Read", "Read Goods Receipt", AccessType = AccessTypes.Read, SortOrder = 1)]
+    [AccessPermission("FinanceGoodsReceipt", "Read")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResult<GoodsReceiptResponse>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetList([FromQuery] GoodsReceiptQuery query, CancellationToken cancellationToken)
+    {
+        var result = await _service.GetPagedAsync(query, cancellationToken);
+        var mapped = new PagedResult<GoodsReceiptResponse>
+        {
+            Items = result.Items.Select(Map).ToList(),
+            PageNumber = result.PageNumber,
+            PageSize = result.PageSize,
+            TotalData = result.TotalData,
+            TotalPage = result.TotalPage
+        };
+        return Ok(ApiResponse<PagedResult<GoodsReceiptResponse>>.Ok(mapped, "Daftar Tanda Terima Barang berhasil diambil."));
+    }
 
     [HttpGet("{id:guid}")]
     [AccessAction("Read", "Read Goods Receipt", AccessType = AccessTypes.Read, SortOrder = 1)]

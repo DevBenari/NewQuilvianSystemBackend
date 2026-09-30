@@ -90,6 +90,8 @@ public static class BillingManagementServiceCollectionExtensions
         services.AddScoped<FinanceAccountingOutboxService>();
         // BE-FIN-012: pantauan kotak keluar kejadian, baca saja — tidak ada penulisan data.
         services.AddScoped<FinanceAccountingEventService>();
+        // BE-FIN-049: kalkulasi snapshot saldo subledger bulanan untuk 4 control account dan penerbitan ke outbox.
+        services.AddScoped<FinanceSubledgerSnapshotService>();
         // BE-FIN-008: satu-satunya penulis OutstandingAmount piutang — aging, koreksi, write-off.
         services.AddScoped<FinanceReceivableService>();
         // BE-FIN-039, FIN-DEC-048/054: Batch Tagihan AR — hanya membaca FinReceivable, memanggil

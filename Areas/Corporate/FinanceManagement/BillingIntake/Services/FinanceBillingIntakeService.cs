@@ -610,10 +610,63 @@ public sealed class FinanceBillingIntakeService
 
             if (movement.MovementType == BillingDepositMovementTypes.Release)
             {
-                // FIN-VAL-144: Mutasi RELEASE dilarang diterbitkan sebagai PENGEMBALIAN-UANG-MUKA (tidak mengeluarkan kas).
-                // FIN-VAL-145: Mutasi RELEASE tanpa pasangan REVERSAL ber-SettlementId sama ditolak secara fail-closed (menunjuk FIN-OQ-037).
-                throw new InvalidOperationException(
-                    "Mutasi RELEASE tidak mengeluarkan kas (FIN-VAL-144). Mutasi pelepasan tanpa pasangan REVERSAL ber-SettlementId sama ditolak sebagai fakta yang belum dapat diterbitkan (FIN-VAL-145, FIN-OQ-037).");
+                // BE-FIN-047 (FIN-DES-064/065, FIN-DEC-080/081): pembatalan alokasi uang muka —
+                // nol kas bergerak, tagihan terbuka kembali dan saldo deposit pulih. FIN-VAL-144
+                // ("RELEASE dilarang menjadi PENGEMBALIAN-UANG-MUKA") terpenuhi secara STRUKTURAL:
+                // cabang ini tidak pernah menulis kode itu untuk RELEASE, apa pun hasil pemasangannya.
+                //
+                // TEMUAN KRITIS — kunci pemasangan yang tertulis kontrak TIDAK DAPAT DIPAKAI.
+                // FIN-VAL-145/146 (FIN-VAL-1.5, approved) dan FIN-DES-065 menulis "RELEASE
+                // berpasangan dengan REVERSAL ber-SettlementId sama". Diverifikasi langsung ke
+                // BillingSettlementService.cs (HandleDepositTopUpReversalAsync): RELEASE.SettlementId
+                // = original.SettlementId (settlement ALOKASI LAMA yang dibatalkan — transaksi
+                // berbeda), sedangkan REVERSAL.SettlementId = tender.SettlementId (settlement
+                // top-up HARI INI yang dibalik). Keduanya TIDAK PERNAH sama secara struktural —
+                // diikuti literal, setiap RELEASE akan gagal berpasangan dan fitur ini nol pernah
+                // menerbitkan kejadian, membatalkan maksud FIN-DEC-081 sepenuhnya.
+                //
+                // Kunci yang BENAR-BENAR sama pada kedua baris (diverifikasi baris yang sama):
+                // RELEASE.CausationId = tender.CorrelationId, REVERSAL.CausationId =
+                // tender.CorrelationId — keduanya ditulis dalam satu pemanggilan method yang sama
+                // untuk satu tender yang dibalik. Ini pemasangan yang dipakai di sini. Keputusan
+                // bisnis FIN-DEC-081 (pasangkan RELEASE dengan REVERSAL dari operasi pembalikan
+                // yang sama, fail-closed bila tidak ada) TIDAK berubah — yang berubah murni kunci
+                // teknis pemasangannya. Dilaporkan sebagai temuan pada laporan task; kontrak
+                // FIN-VAL-145/146 MUST ditinjau ulang teksnya oleh pemilik desain.
+                var hasPairedReversal = await _dbContext.BilDepositMovements.AsNoTracking()
+                    .AnyAsync(x => !x.IsDelete
+                        && x.MovementType == BillingDepositMovementTypes.Reversal
+                        && x.CausationId == movement.CausationId, cancellationToken);
+
+                if (!hasPairedReversal)
+                {
+                    // FIN-VAL-145: fail-closed. Arah jurnalnya tidak dapat ditentukan tanpa
+                    // pasangan REVERSAL yang bersesuaian — Finance TIDAK MENEBAK.
+                    throw new InvalidOperationException(
+                        "Mutasi RELEASE tidak berpasangan dengan mutasi REVERSAL manapun dari operasi " +
+                        "pembalikan tender yang sama. Lawan jurnalnya tidak dapat ditentukan — nol " +
+                        "kejadian diterbitkan. Lihat FIN-OQ-037.");
+                }
+
+                // FIN-DES-064: SourceTransactionId = BilDepositMovement.Id (mutasi ini sendiri,
+                // BUKAN tender/settlement); SourceVersion dipatok "1" — satu mutasi adalah satu
+                // fakta yang tidak pernah berulang; Amount = Amount mutasi RELEASE (FIN-VAL-146:
+                // tepat satu kejadian per baris RELEASE, bukan satu per operasi pembalikan —
+                // BKC-DEC-133 menulis 1 baris RELEASE per alokasi yang dibatalkan, jadi satu
+                // operasi dapat menghasilkan lebih dari satu kejadian ini, masing-masing dari
+                // baris RELEASE-nya sendiri).
+                await _accountingOutboxService.StageEventAsync(new AccountingOutboxEventRequest
+                {
+                    EventTypeCode = FinAccountingEventTypeCodes.PembalikanPemakaianUangMukaDeposit,
+                    SourceTransactionId = movement.Id.ToString(),
+                    SourceVersion = "1",
+                    EventOccurredAt = movement.OccurredAt,
+                    AccountingDate = DateOnly.FromDateTime(movement.OccurredAt.UtcDateTime),
+                    Amount = movement.Amount,
+                    CorrelationId = movement.CorrelationId,
+                    CausationId = movement.CausationId,
+                    ActorUserId = actorUserId
+                }, cancellationToken);
             }
 
             // BE-FIN-046 (FIN-DES-057): mutasi pembalik atas TOP_UP adalah fakta bahwa uang muka

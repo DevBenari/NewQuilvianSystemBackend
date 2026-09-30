@@ -1,70 +1,49 @@
 -- =====================================================================================
 -- BE-FIN-042 — Penyelarasan nama Resource 6 controller legacy Finance ke nama kanonikal
 -- (FIN-DEC-078, permission-audit-matrix.md §D.5) — pelestarian SysAccessPolicy lintas rename
+-- VARIAN DBEAVER. Pasangan resmi be-fin-042-role-permissions-migration.sql.
 --
 -- STATUS BERKAS INI: RANCANGAN. BELUM DIJALANKAN. BELUM DIVALIDASI TERHADAP DATABASE.
 --   Bagian 1 dan 3 HANYA MEMBACA (dry run). Aman dijalankan kapan saja.
 --   Bagian 2 dan 4 MENULIS dan sengaja dibungkus blok komentar yang TIDAK akan jalan
 --   sampai seseorang mengubahnya secara sadar. Bagian 5 adalah rollback.
 --
--- CATATAN PENGGUNA DBEAVER:
---   Berkas ini adalah varian CLI psql (\set, \echo). Menjalankan berkas ini langsung di
---   DBeaver akan memicu: "SQL Error [42601]: ERROR: syntax error at or near on".
---   Untuk DBeaver / GUI, gunakan berkas pasangan resminya:
---   `Migrations/scripts/be-fin-042-role-permissions-migration-dbeaver.sql`.
+-- KENAPA BERKAS INI ADA
+--   Varian psql memakai meta-command psql (\set ON_ERROR_STOP on, \echo, :'AKTOR').
+--   Sintaks tersebut TIDAK dikenal oleh engine PostgreSQL standar maupun antarmuka DBeaver,
+--   sehingga eksekusi di DBeaver akan gagal dengan error:
+--     SQL Error [42601]: ERROR: syntax error at or near "on"
+--   Berkas ini adalah pasangannya: 100% PostgreSQL murni yang kompatibel penuh dengan DBeaver.
 --
--- KOREKSI ATAS KONTRAK PERSETUJUAN
---   `permission-audit-matrix.md` §D.6.1 menuliskan skrip yang menyasar tabel
---   "SysRolePermissions" berkolom "ResourceName". TABEL DAN KOLOM ITU TIDAK ADA pada
---   skema backend ini. Hak akses nyata disimpan pada `SysAccessPolicy` sebagai FK
---   (DepartmentId, PositionId, ControllerAccessId, ActionAccessId) menunjuk registry
---   `SysControllerAccess`/`SysActionAccess` (lihat Models/SysAccessPolicy.cs,
---   Services/Security/AccessPermissionService.cs). Berkas ini menulis migrasi yang BENAR
---   untuk skema nyata itu — bukan menyalin §D.6.1 apa adanya, karena isi itu akan gagal
---   `relation "SysRolePermissions" does not exist` bila dieksekusi. Pola yang dipakai di
---   sini mengikuti presenden yang sudah berjalan di modul lain
---   (`Migrations/scripts/be-sec-003b-policy-expansion.sql`, BE-SEC-003B/012/013/014).
+--   SEMANTIK BISNIS KEDUANYA IDENTIK:
+--     varian psql                     varian DBeaver
+--     ----------------------------------------------------------------------------
+--     \set ON_ERROR_STOP on            Dikelola via setting DBeaver ("Stop on error")
+--     \echo '...'                      Komentar SQL / query info
+--     \set AKTOR '...' & :'AKTOR'      SELECT set_config('be_fin_042.aktor', '...', true)
+--                                      & current_setting('be_fin_042.aktor', true)::uuid
+--                                      + gerbang verifikasi operator di AspNetUsers
 --
--- KENAPA MIGRASI DATA INI PERLU, DAN KENAPA TIDAK BOLEH DILEWATI
---   Rename `ControllerName` pada atribut `[AccessController]` (kode C#, sudah dikerjakan
---   BE-FIN-042 di enam controller) membuat `AccessMenuSeeder` MEMBUAT BARIS REGISTRY BARU
---   (`SysControllerAccess`/`SysActionAccess` dengan Id baru) untuk nama kanonikal, dan
---   MENUTUP baris lama (`IsActive=false, IsDelete=true`) — bukan mengubah baris lama di
---   tempat. Baris `SysAccessPolicy` yang sudah ada MASIH menunjuk Id LAMA lewat FK. Tanpa
---   migrasi ini, setiap Departemen x Posisi yang sudah diberi hak akan kehilangannya
---   (403 Forbidden) begitu registry lama ditutup seeder — persis kerusakan yang coba
---   dicegah §D.6 kontrak, hanya mekanismenya (FK registry, bukan string ResourceName)
---   yang berbeda dari yang diasumsikan kontrak.
---
--- ENAM PASANG RENAME (FIN-DEC-078, §D.5) — RENAME MURNI, ACTION NAME TIDAK BERUBAH:
---   Payment -> FinancePayment | Receipt -> FinanceReceipt | Receivable -> FinanceReceivable
---   SupplierPayable -> FinanceSupplierPayable | BillingIntake -> FinanceBillingIntake
---   AccountingEvents -> FinanceAccountingEvent
+-- CARA MENJALANKAN DI DBEAVER
+--   1. Buka berkas ini di editor SQL DBeaver.
+--   2. Jalankan skrip penuh dengan tombol "Execute SQL Script" (Alt+X) — bukan Execute statement (Ctrl+Enter).
+--   3. Pastikan opsi "Stop on error" aktif pada pengaturan eksekusi DBeaver.
+--   4. SELURUH Bagian 0 sampai Bagian 1 WAJIB dijalankan dalam SATU sesi/koneksi yang sama,
+--      karena view sementara (TEMP VIEW) hanya hidup di dalam koneksi tersebut.
 --
 -- PRASYARAT MUTLAK, URUTAN TIDAK BOLEH DIBALIK
 --   1. Deploy source hasil rename 6 controller (BE-FIN-042) ke lingkungan target.
 --   2. Jalankan aplikasi HEAD SEKALI dalam jendela pemeliharaan, tanpa traffic pengguna,
 --      supaya `AccessMenuSeeder` membuat 6 baris registry BARU dan menutup 6 baris LAMA.
---   3. Jalankan Bagian 1 (dry run) skrip ini. Bagian 1.0 wajib 'ok' untuk keenam resource
+--   3. Jalankan Bagian 1 (dry run) skrip ini. Bagian 1.0 wajib 'hilang = 0' untuk keenam resource
 --      baru sebelum Tahap 1 dijalankan.
 --   4. Tahap 1 -> COMMIT -> verifikasi parity (Bagian 3) ditinjau manusia -> Tahap 2 -> COMMIT.
 --
---   Antara langkah 2 dan selesainya Tahap 1, staf pemegang hak lama akan mendapati 403 pada
---   endpoint Finance terkait. KARENA ITU langkah 2 sampai Tahap 1 wajib berada di dalam satu
---   jendela pemeliharaan yang sama, tertutup dari traffic pengguna — sama seperti BE-SEC-003B.
---
--- PRINSIP (sama seperti BE-SEC-003B)
---   1. Tidak ada GUID Departemen/Posisi yang ditulis di sini. Seluruh kepemilikan
---      diturunkan dari baris SysAccessPolicy yang SUDAH ADA menunjuk identitas lama.
---   2. BEFORE accessible endpoint set = AFTER accessible endpoint set — rename murni,
---      nol penambahan/pengurangan cakupan akses, nol fan-out (berbeda dari BE-SEC-003B).
---   3. Idempoten — setiap INSERT dijaga NOT EXISTS pada kunci alami.
---   4. Tidak ada baris dihapus. Penonaktifan memakai IsActive/IsDelete.
---   5. Dua tahap, DUA TRANSAKSI TERPISAH — supaya kegagalan pembuktian parity pada Tahap 1
---      tidak ikut menonaktifkan hak lama pada Tahap 2.
+-- ENAM PASANG RENAME (FIN-DEC-078, §D.5) — RENAME MURNI, ACTION NAME TIDAK BERUBAH:
+--   Payment -> FinancePayment | Receipt -> FinanceReceipt | Receivable -> FinanceReceivable
+--   SupplierPayable -> FinanceSupplierPayable | BillingIntake -> FinanceBillingIntake
+--   AccountingEvents -> FinanceAccountingEvent
 -- =====================================================================================
-
-\set ON_ERROR_STOP on
 
 -- =====================================================================================
 -- BAGIAN 0 — Peta rename (resource lama -> resource baru) dan view bantu.
@@ -72,7 +51,11 @@
 -- ([AccessController] ControllerName pada 6 controller). Bukan data, bukan GUID.
 -- =====================================================================================
 
+DROP VIEW IF EXISTS be_fin_042_target;
+DROP VIEW IF EXISTS be_fin_042_pemegang;
+DROP VIEW IF EXISTS be_fin_042_identitas;
 DROP VIEW IF EXISTS be_fin_042_peta;
+
 CREATE TEMP VIEW be_fin_042_peta (resource_lama, resource_baru) AS
 VALUES
     ('Payment',          'FinancePayment'),
@@ -82,7 +65,6 @@ VALUES
     ('BillingIntake',    'FinanceBillingIntake'),
     ('AccountingEvents', 'FinanceAccountingEvent');
 
-DROP VIEW IF EXISTS be_fin_042_identitas;
 CREATE TEMP VIEW be_fin_042_identitas AS
 SELECT
     c."ControllerName" AS resource,
@@ -98,7 +80,6 @@ JOIN public."SysControllerAccess" c ON c."Id" = a."ControllerAccessId";
 -- Identitas lama sudah tertutup (IsDelete) di registry sesudah seeder berjalan, tetapi
 -- baris SysAccessPolicy yang menunjuknya masih hidup, dan itulah kepemilikan yang harus
 -- dilestarikan (pola identik BE-SEC-003B).
-DROP VIEW IF EXISTS be_fin_042_pemegang;
 CREATE TEMP VIEW be_fin_042_pemegang AS
 SELECT
     i.resource, i.action, i.controller_access_id, i.action_access_id,
@@ -110,7 +91,6 @@ WHERE p."IsAllowed" AND p."IsActive" AND NOT p."IsDelete";
 
 -- Baris yang SEHARUSNYA ada sesudah migrasi: pemegang identitas lama disambung ke
 -- identitas baru dengan action name PERSIS sama (rename murni, bukan fan-out).
-DROP VIEW IF EXISTS be_fin_042_target;
 CREATE TEMP VIEW be_fin_042_target AS
 SELECT DISTINCT
     m.resource_lama, m.resource_baru, lama.action,
@@ -124,11 +104,9 @@ JOIN be_fin_042_identitas baru ON baru.resource = m.resource_baru AND baru.actio
 -- BAGIAN 1 — DRY RUN. Hanya membaca.
 -- =====================================================================================
 
-\echo ''
-\echo '==== 1.0 Prasyarat: 6 resource baru wajib terdaftar & aktif untuk tiap action lama ===='
-\echo '     Baris "hilang > 0" berarti AccessMenuSeeder belum dijalankan pada HEAD ini,'
-\echo '     atau nama controller di source tidak persis sama dengan peta Bagian 0.'
-
+-- 1.0 Prasyarat: 6 resource baru wajib terdaftar & aktif untuk tiap action lama.
+--     Baris "hilang > 0" berarti AccessMenuSeeder belum dijalankan pada HEAD ini,
+--     atau nama controller di source tidak persis sama dengan peta Bagian 0.
 SELECT
     m.resource_lama, m.resource_baru,
     count(*) FILTER (WHERE baru.action_access_id IS NULL) AS hilang,
@@ -141,18 +119,14 @@ LEFT JOIN be_fin_042_identitas baru
 GROUP BY m.resource_lama, m.resource_baru
 ORDER BY m.resource_lama;
 
-\echo ''
-\echo '==== 1.1 Pemegang identitas lama, per resource (inilah seluruh sumber kepemilikan) ===='
-
+-- 1.1 Pemegang identitas lama, per resource (inilah seluruh sumber kepemilikan).
 SELECT h.resource, h.action, d."DepartmentName", pos."PositionName", h.department_id, h.position_id
 FROM be_fin_042_pemegang h
 LEFT JOIN public."MstDepartment" d   ON d."Id"   = h.department_id
 LEFT JOIN public."MstPosition"   pos ON pos."Id" = h.position_id
 ORDER BY h.resource, h.action, d."DepartmentName", pos."PositionName";
 
-\echo ''
-\echo '==== 1.2 Baris yang AKAN DIBUAT Tahap 1 (belum ada) ===='
-
+-- 1.2 Baris yang AKAN DIBUAT Tahap 1 (belum ada).
 SELECT
     t.resource_lama, t.resource_baru, t.action,
     d."DepartmentName", pos."PositionName"
@@ -167,9 +141,7 @@ WHERE NOT EXISTS (
       AND p."ActionAccessId"     = t.action_access_id)
 ORDER BY t.resource_baru, t.action, d."DepartmentName";
 
-\echo ''
-\echo '==== 1.3 Ringkasan jumlah per resource baru ===='
-
+-- 1.3 Ringkasan jumlah per resource baru.
 SELECT t.resource_baru, count(*) AS baris_akan_dibuat
 FROM be_fin_042_target t
 WHERE NOT EXISTS (
@@ -188,11 +160,44 @@ ORDER BY t.resource_baru;
 
 /*  ---------- TAHAP 1 — LEPAS KOMENTAR HANYA SETELAH DRY RUN DITINJAU ----------
 
-\set AKTOR '00000000-0000-0000-0000-000000000000'   -- WAJIB diisi Guid aktor sebenarnya
-
 BEGIN;
 
--- 2.0 GERBANG PRASYARAT — menghentikan transaksi bila salah satu resource baru belum
+-- 2.0a Parameter transaksi. Nilai bertahan sampai transaksi berakhir (is_local = true).
+--      >>> GANTI UUID DI BAWAH DENGAN GUID OPERATOR / ADMIN PENGESAH MIGRASI <<<
+SELECT set_config('be_fin_042.aktor', '00000000-0000-0000-0000-000000000000', true);
+
+-- 2.0b GERBANG OPERATOR — wajib nyata dan terdaftar di AspNetUsers.
+DO $$
+DECLARE
+    aktor_teks text := current_setting('be_fin_042.aktor', true);
+    aktor      uuid;
+    jml        integer;
+BEGIN
+    IF aktor_teks IS NULL OR aktor_teks = '' THEN
+        RAISE EXCEPTION 'Parameter be_fin_042.aktor belum disetel. Jalankan 2.0a lebih dulu.';
+    END IF;
+
+    aktor := aktor_teks::uuid;
+
+    IF aktor = '00000000-0000-0000-0000-000000000000'::uuid THEN
+        RAISE EXCEPTION
+            'UUID operator belum diisi. Ganti nilai be_fin_042.aktor pada 2.0a dengan Guid '
+            'pengguna yang bertanggung jawab atas migrasi ini. Jejak audit tanpa pelaku '
+            'tidak dapat dipertanggungjawabkan.';
+    END IF;
+
+    SELECT count(*) INTO jml FROM public."AspNetUsers" WHERE "Id" = aktor;
+
+    IF jml <> 1 THEN
+        RAISE EXCEPTION
+            'Operator % tidak ditemukan pada AspNetUsers. Gunakan Guid pengguna yang benar-benar ada.',
+            aktor;
+    END IF;
+
+    RAISE NOTICE 'Operator terverifikasi: %', aktor;
+END $$;
+
+-- 2.0c GERBANG PRASYARAT — menghentikan transaksi bila salah satu resource baru belum
 -- terdaftar aktif untuk seluruh action yang dibutuhkan pemegang lama.
 DO $$
 DECLARE belum_siap integer; rincian text;
@@ -228,7 +233,7 @@ INSERT INTO public."SysAccessPolicy" (
 SELECT
     gen_random_uuid(), t.department_id, t.position_id,
     t.controller_access_id, t.action_access_id,
-    true, true, false, false, now(), :'AKTOR'::uuid,
+    true, true, false, false, now(), current_setting('be_fin_042.aktor', true)::uuid,
     '00000000-0000-0000-0000-000000000000'::uuid,
     '00000000-0000-0000-0000-000000000000'::uuid,
     '00000000-0000-0000-0000-000000000000'::uuid
@@ -276,9 +281,7 @@ ROLLBACK;
 -- BAGIAN 3 — Verifikasi parity sesudah Tahap 1
 -- =====================================================================================
 
-\echo ''
-\echo '==== 3.1 Sisa target belum terbentuk (wajib 0 sesudah Tahap 1) ===='
-
+-- 3.1 Sisa target belum terbentuk (wajib 0 sesudah Tahap 1).
 SELECT count(*) AS sisa_baris_belum_dibuat
 FROM be_fin_042_target t
 WHERE NOT EXISTS (
@@ -288,9 +291,7 @@ WHERE NOT EXISTS (
       AND p."ControllerAccessId" = t.controller_access_id
       AND p."ActionAccessId"     = t.action_access_id);
 
-\echo ''
-\echo '==== 3.2 Parity — jumlah pasangan Departemen x Posisi wajib SAMA sebelum/sesudah ===='
-
+-- 3.2 Parity — jumlah pasangan Departemen x Posisi wajib SAMA sebelum/sesudah.
 SELECT d."DepartmentName", pos."PositionName", count(*) AS jumlah_izin_efektif
 FROM public."SysAccessPolicy" p
 LEFT JOIN public."MstDepartment" d   ON d."Id"   = p."DepartmentId"
@@ -306,9 +307,37 @@ ORDER BY d."DepartmentName", pos."PositionName";
 
 /*  ---------- TAHAP 2 — HANYA SETELAH PARITY TERBUKTI ----------
 
-\set AKTOR '00000000-0000-0000-0000-000000000000'   -- WAJIB diisi Guid aktor sebenarnya
-
 BEGIN;
+
+-- 4.0a Parameter transaksi.
+--      >>> GANTI UUID DI BAWAH DENGAN GUID OPERATOR / ADMIN PENGESAH MIGRASI <<<
+SELECT set_config('be_fin_042.aktor', '00000000-0000-0000-0000-000000000000', true);
+
+-- 4.0b GERBANG OPERATOR.
+DO $$
+DECLARE
+    aktor_teks text := current_setting('be_fin_042.aktor', true);
+    aktor      uuid;
+    jml        integer;
+BEGIN
+    IF aktor_teks IS NULL OR aktor_teks = '' THEN
+        RAISE EXCEPTION 'Parameter be_fin_042.aktor belum disetel. Jalankan 4.0a lebih dulu.';
+    END IF;
+
+    aktor := aktor_teks::uuid;
+
+    IF aktor = '00000000-0000-0000-0000-000000000000'::uuid THEN
+        RAISE EXCEPTION 'UUID operator belum diisi pada 4.0a.';
+    END IF;
+
+    SELECT count(*) INTO jml FROM public."AspNetUsers" WHERE "Id" = aktor;
+
+    IF jml <> 1 THEN
+        RAISE EXCEPTION 'Operator % tidak ditemukan pada AspNetUsers.', aktor;
+    END IF;
+
+    RAISE NOTICE 'Operator terverifikasi: %', aktor;
+END $$;
 
 -- 4.1 Bekukan sasaran SEBELUM menulis — seluruh policy hidup yang masih menunjuk salah
 -- satu dari enam identitas LAMA (bukan hanya yang sudah dilestarikan Tahap 1, supaya
@@ -322,7 +351,7 @@ WHERE i.resource IN (SELECT resource_lama FROM be_fin_042_peta)
 
 -- 4.2 Penonaktifan, dibatasi pada himpunan beku 4.1.
 UPDATE public."SysAccessPolicy" p
-SET "IsActive" = false, "UpdateDateTime" = now(), "UpdateBy" = :'AKTOR'::uuid
+SET "IsActive" = false, "UpdateDateTime" = now(), "UpdateBy" = current_setting('be_fin_042.aktor', true)::uuid
 FROM be_fin_042_tahap2_sasaran s
 WHERE p."Id" = s.policy_id;
 
@@ -353,13 +382,41 @@ ROLLBACK;
 
 /*  ---------- ROLLBACK ----------
 
-\set AKTOR '00000000-0000-0000-0000-000000000000'   -- WAJIB diisi Guid aktor sebenarnya
-
 BEGIN;
+
+-- 5.0a Parameter transaksi.
+--      >>> GANTI UUID DI BAWAH DENGAN GUID OPERATOR / ADMIN PENGESAH MIGRASI <<<
+SELECT set_config('be_fin_042.aktor', '00000000-0000-0000-0000-000000000000', true);
+
+-- 5.0b GERBANG OPERATOR.
+DO $$
+DECLARE
+    aktor_teks text := current_setting('be_fin_042.aktor', true);
+    aktor      uuid;
+    jml        integer;
+BEGIN
+    IF aktor_teks IS NULL OR aktor_teks = '' THEN
+        RAISE EXCEPTION 'Parameter be_fin_042.aktor belum disetel pada 5.0a.';
+    END IF;
+
+    aktor := aktor_teks::uuid;
+
+    IF aktor = '00000000-0000-0000-0000-000000000000'::uuid THEN
+        RAISE EXCEPTION 'UUID operator belum diisi pada 5.0a.';
+    END IF;
+
+    SELECT count(*) INTO jml FROM public."AspNetUsers" WHERE "Id" = aktor;
+
+    IF jml <> 1 THEN
+        RAISE EXCEPTION 'Operator % tidak ditemukan pada AspNetUsers.', aktor;
+    END IF;
+
+    RAISE NOTICE 'Operator terverifikasi: %', aktor;
+END $$;
 
 -- 5.1 Aktifkan kembali policy identitas lama yang dinonaktifkan Tahap 2.
 UPDATE public."SysAccessPolicy" p
-SET "IsActive" = true, "UpdateDateTime" = now(), "UpdateBy" = :'AKTOR'::uuid
+SET "IsActive" = true, "UpdateDateTime" = now(), "UpdateBy" = current_setting('be_fin_042.aktor', true)::uuid
 FROM be_fin_042_identitas i
 WHERE p."ActionAccessId" = i.action_access_id
   AND i.resource IN (SELECT resource_lama FROM be_fin_042_peta)
@@ -367,7 +424,7 @@ WHERE p."ActionAccessId" = i.action_access_id
 
 -- 5.2 Nonaktifkan seluruh baris yang dibuat Tahap 1 (dikenali dari identitas barunya).
 UPDATE public."SysAccessPolicy" p
-SET "IsActive" = false, "UpdateDateTime" = now(), "UpdateBy" = :'AKTOR'::uuid
+SET "IsActive" = false, "UpdateDateTime" = now(), "UpdateBy" = current_setting('be_fin_042.aktor', true)::uuid
 FROM be_fin_042_identitas i
 WHERE p."ActionAccessId" = i.action_access_id
   AND i.resource IN (SELECT resource_baru FROM be_fin_042_peta)
@@ -377,6 +434,3 @@ WHERE p."ActionAccessId" = i.action_access_id
 ROLLBACK;
 
     ---------- BATAS ROLLBACK ---------- */
-
-\echo ''
-\echo '==== SELESAI ===='
