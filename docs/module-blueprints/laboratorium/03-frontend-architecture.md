@@ -1287,3 +1287,17 @@ umumnya.
 |---|---|
 | Kelima label dan teks tombol **Pemeriksaan Selesai** | `LAB-DEC-156` — `decided` |
 | Warna, bentuk lencana, dan letak label | `DEV_DISCRETION` |
+
+## Amandemen 2026-09-30 — Urutan langkah kiosk Pasien Lama (`KSK-OQ-004`)
+
+Mencatat `KSK-DEC-002` dan `KSK-DEC-014` blueprint `kiosk` (Sukma Giri Pratama, `approved` 30 Sep 2026); rincian dan
+daftar hal yang tidak berubah ada pada `00-interview-decisions.md` Amendment Pass putaran 20.
+
+| Layar | Sebelum (`FE-LAB-13`) | Sesudah (`FE-KSK-007`) |
+|---|---|---|
+| Kiosk Pasien Lama — pilihan Poliklinik / Laboratorium + pertanyaan surat dokter | Langkah pertama, sebelum Identifikasi | Langkah ketiga, sesudah Identifikasi dan Review Data |
+| Kiosk Pasien Lama — pembentukan sesi `scan-result` | Saat kartu dipindai di Identifikasi | Tepat sekali saat Tujuan Layanan dipilih; Identifikasi tidak membentuk sesi |
+| Pendaftaran pasien laboratorium (`FE-LAB-14`) | Membaca sesi bertujuan Laboratorium yang belum terpakai | Tidak berubah |
+
+Layar milik Laboratorium tidak berubah; yang berpindah hanya langkah di alur kiosk milik `registration-management`.
+
