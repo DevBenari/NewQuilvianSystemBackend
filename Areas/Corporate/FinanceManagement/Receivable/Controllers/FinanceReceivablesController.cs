@@ -17,7 +17,7 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Con
 [Authorize]
 [Route("api/v1/corporate/finance-management/receivables")]
 [AccessController("CORPORATE_FINANCE_MANAGEMENT_RECEIVABLE", "Corporate Finance Management Receivable", "Receivable",
-    AreaName = "Corporate", ControllerName = "Receivable", Description = "Buku piutang Finance — umur, koreksi, penghapusan", SortOrder = 30)]
+    AreaName = "Corporate", ControllerName = "FinanceReceivable", Description = "Buku piutang Finance — umur, koreksi, penghapusan", SortOrder = 30)]
 [Tags("Corporate / Finance Management / Receivable")]
 public sealed class FinanceReceivablesController : ControllerBase
 {
@@ -26,7 +26,7 @@ public sealed class FinanceReceivablesController : ControllerBase
 
     [HttpGet("filters/metadata")]
     [AccessAction("Read", "Read Receivable", AccessType = AccessTypes.Read, SortOrder = 1)]
-    [AccessPermission("Receivable", "Read")]
+    [AccessPermission("FinanceReceivable", "Read")]
     [ProducesResponseType(typeof(ApiResponse<ReceivableFilterMetadataResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetFilterMetadata(CancellationToken cancellationToken) =>
         Ok(ApiResponse<ReceivableFilterMetadataResponse>.Ok(
@@ -34,7 +34,7 @@ public sealed class FinanceReceivablesController : ControllerBase
 
     [HttpGet("summary")]
     [AccessAction("Read", "Read Receivable", AccessType = AccessTypes.Read, SortOrder = 1)]
-    [AccessPermission("Receivable", "Read")]
+    [AccessPermission("FinanceReceivable", "Read")]
     [ProducesResponseType(typeof(ApiResponse<ReceivableSummaryResponse>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetSummary(CancellationToken cancellationToken) =>
         Ok(ApiResponse<ReceivableSummaryResponse>.Ok(
@@ -42,7 +42,7 @@ public sealed class FinanceReceivablesController : ControllerBase
 
     [HttpGet("aging")]
     [AccessAction("Read", "Read Receivable", AccessType = AccessTypes.Read, SortOrder = 1)]
-    [AccessPermission("Receivable", "Read")]
+    [AccessPermission("FinanceReceivable", "Read")]
     [ProducesResponseType(typeof(ApiResponse<List<ReceivableAgingBucketResult>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAging([FromQuery] ReceivableAgingQuery request, CancellationToken cancellationToken) =>
         Ok(ApiResponse<List<ReceivableAgingBucketResult>>.Ok(
@@ -50,7 +50,7 @@ public sealed class FinanceReceivablesController : ControllerBase
 
     [HttpGet]
     [AccessAction("Read", "Read Receivable", AccessType = AccessTypes.Read, SortOrder = 1)]
-    [AccessPermission("Receivable", "Read")]
+    [AccessPermission("FinanceReceivable", "Read")]
     [ProducesResponseType(typeof(ApiResponse<PagedResult<ReceivableResponse>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> Get([FromQuery] ReceivableQuery request, CancellationToken cancellationToken) =>
         Ok(ApiResponse<PagedResult<ReceivableResponse>>.Ok(
@@ -58,7 +58,7 @@ public sealed class FinanceReceivablesController : ControllerBase
 
     [HttpGet("{id:guid}")]
     [AccessAction("Read", "Read Receivable", AccessType = AccessTypes.Read, SortOrder = 1)]
-    [AccessPermission("Receivable", "Read")]
+    [AccessPermission("FinanceReceivable", "Read")]
     [ProducesResponseType(typeof(ApiResponse<ReceivableDetailResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
@@ -69,7 +69,7 @@ public sealed class FinanceReceivablesController : ControllerBase
 
     [HttpPost("{id:guid}/adjustments")]
     [AccessAction("RequestAdjustment", "Request Receivable Adjustment", AccessType = AccessTypes.Create, SortOrder = 2)]
-    [AccessPermission("Receivable", "RequestAdjustment")]
+    [AccessPermission("FinanceReceivable", "RequestAdjustment")]
     public async Task<IActionResult> RequestAdjustment(Guid id, [FromBody] RequestReceivableAdjustmentRequest request, CancellationToken cancellationToken)
     {
         try
@@ -82,7 +82,7 @@ public sealed class FinanceReceivablesController : ControllerBase
 
     [HttpPost("{id:guid}/adjustments/{adjustmentId:guid}/approve")]
     [AccessAction("ApproveAdjustment", "Approve Receivable Adjustment", AccessType = AccessTypes.Update, SortOrder = 3)]
-    [AccessPermission("Receivable", "ApproveAdjustment")]
+    [AccessPermission("FinanceReceivable", "ApproveAdjustment")]
     public async Task<IActionResult> ApproveAdjustment(Guid id, Guid adjustmentId, [FromBody] DecideReceivableRequest request, CancellationToken cancellationToken)
     {
         try
@@ -95,7 +95,7 @@ public sealed class FinanceReceivablesController : ControllerBase
 
     [HttpPost("{id:guid}/adjustments/{adjustmentId:guid}/reject")]
     [AccessAction("ApproveAdjustment", "Approve Receivable Adjustment", AccessType = AccessTypes.Update, SortOrder = 3)]
-    [AccessPermission("Receivable", "ApproveAdjustment")]
+    [AccessPermission("FinanceReceivable", "ApproveAdjustment")]
     public async Task<IActionResult> RejectAdjustment(Guid id, Guid adjustmentId, [FromBody] DecideReceivableRequest request, CancellationToken cancellationToken)
     {
         try
@@ -108,7 +108,7 @@ public sealed class FinanceReceivablesController : ControllerBase
 
     [HttpPost("{id:guid}/write-offs")]
     [AccessAction("RequestWriteOff", "Request Receivable Write-Off", AccessType = AccessTypes.Create, SortOrder = 4)]
-    [AccessPermission("Receivable", "RequestWriteOff")]
+    [AccessPermission("FinanceReceivable", "RequestWriteOff")]
     public async Task<IActionResult> RequestWriteOff(Guid id, [FromBody] RequestReceivableWriteOffRequest request, CancellationToken cancellationToken)
     {
         try
@@ -121,7 +121,7 @@ public sealed class FinanceReceivablesController : ControllerBase
 
     [HttpPost("{id:guid}/write-offs/{writeOffId:guid}/approve")]
     [AccessAction("ApproveWriteOff", "Approve Receivable Write-Off", AccessType = AccessTypes.Update, SortOrder = 5)]
-    [AccessPermission("Receivable", "ApproveWriteOff")]
+    [AccessPermission("FinanceReceivable", "ApproveWriteOff")]
     public async Task<IActionResult> ApproveWriteOff(Guid id, Guid writeOffId, [FromBody] DecideReceivableRequest request, CancellationToken cancellationToken)
     {
         try
@@ -134,7 +134,7 @@ public sealed class FinanceReceivablesController : ControllerBase
 
     [HttpPost("{id:guid}/write-offs/{writeOffId:guid}/reject")]
     [AccessAction("ApproveWriteOff", "Approve Receivable Write-Off", AccessType = AccessTypes.Update, SortOrder = 5)]
-    [AccessPermission("Receivable", "ApproveWriteOff")]
+    [AccessPermission("FinanceReceivable", "ApproveWriteOff")]
     public async Task<IActionResult> RejectWriteOff(Guid id, Guid writeOffId, [FromBody] DecideReceivableRequest request, CancellationToken cancellationToken)
     {
         try

@@ -510,6 +510,15 @@ public sealed class BillingSettlementService
                 && tender.Settlement.Purpose == BillingSettlementPurposes.DepositTopUp)
                 await ApplyDepositMovementAsync(tender, actorUserId, cancellationToken);
 
+            var reversedInvoiceClosureChanges = new List<InvoiceClosureChange>();
+            if (targetStatus == BillingTenderStatuses.Reversed
+                && beforeTenderStatus == BillingTenderStatuses.Succeeded
+                && tender.Settlement.Purpose == BillingSettlementPurposes.DepositTopUp)
+            {
+                reversedInvoiceClosureChanges = await HandleDepositTopUpReversalAsync(
+                    tender, actorUserId, result.OccurredAt, cancellationToken);
+            }
+
             RecalculateSettlement(tender.Settlement, actorUserId, result.OccurredAt);
             SettlementAllocationResult allocationResult;
             try
@@ -622,6 +631,41 @@ public sealed class BillingSettlementService
                 }
             }
 
+            // BE-BKC-079 / BKC-DEC-130 / BKC-DES-053: Menerbitkan surat clearance untuk invoice
+            // yang dibuka kembali (CLOSED -> FINAL) akibat pembalikan alokasi deposit LIFO.
+            foreach (var invChange in reversedInvoiceClosureChanges.Where(c => c.Changed))
+            {
+                if (invChange.StatusAfter == BillingInvoiceStatuses.Final)
+                {
+                    try
+                    {
+                        await _consumerHandoffService.PublishForClearanceChangeAsync(
+                            invChange.InvoiceId,
+                            PrescriptionClearanceReasonCodes.PaymentReversed,
+                            actorUserId,
+                            result.OccurredAt,
+                            tender.CorrelationId,
+                            tender.CausationId,
+                            cancellationToken);
+
+                        await _consumerHandoffService.PublishForInpatientClearanceAsync(
+                            invChange.InvoiceId,
+                            InpatientClearanceReasonCodes.PaymentReversed,
+                            actorUserId,
+                            result.OccurredAt,
+                            tender.CorrelationId,
+                            tender.CausationId,
+                            cancellationToken);
+
+                        await _dbContext.SaveChangesAsync(cancellationToken);
+                    }
+                    catch (BillingConsumerHandoffValidationException exception)
+                    {
+                        throw new BillingSettlementValidationException(exception.Message);
+                    }
+                }
+            }
+
             if (transaction is not null) await transaction.CommitAsync(cancellationToken);
             await AuditTenderResultAsync(
                 tender, beforeTenderStatus, beforeSettlementStatus, actorUserId);
@@ -632,6 +676,8 @@ public sealed class BillingSettlementService
                     tender.Id, cancellationToken);
             if (closureChange.Changed)
                 await AuditClosureChangeAsync(closureChange, actorUserId);
+            foreach (var invChange in reversedInvoiceClosureChanges.Where(c => c.Changed))
+                await AuditClosureChangeAsync(invChange, actorUserId);
             return MapTender(tender, false);
         }
         catch (DbUpdateConcurrencyException exception)
@@ -796,6 +842,218 @@ public sealed class BillingSettlementService
         account.RowVersion = Guid.NewGuid();
         account.UpdateDateTime = DateTime.UtcNow;
         account.UpdateBy = actorUserId;
+    }
+
+    private async Task<List<InvoiceClosureChange>> HandleDepositTopUpReversalAsync(
+        BilTender tender,
+        Guid actorUserId,
+        DateTimeOffset occurredAt,
+        CancellationToken cancellationToken)
+    {
+        var accountId = tender.Settlement.DepositAccountId
+            ?? throw new BillingSettlementConflictException(
+                "Settlement top-up tidak memiliki account deposit.");
+        if (_dbContext.Database.IsRelational())
+            await AcquireLockAsync($"BIL_DEPOSIT_{accountId:N}", cancellationToken);
+
+        var account = await _dbContext.BilDepositAccounts
+            .Include(x => x.Movements)
+            .SingleOrDefaultAsync(x => x.Id == accountId && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Account deposit tidak ditemukan.");
+        if (account.Status != BillingDepositAccountStatuses.Active)
+            throw new BillingSettlementValidationException("Account deposit sudah ditutup.");
+
+        // BKC-DEC-128 / BIL-VAL-129 / BIL-AT-155: Idempotency guard jika reversal sudah pernah dicatat
+        var existingReversal = account.Movements
+            .FirstOrDefault(x => x.SettlementId == tender.SettlementId
+                && x.MovementType == BillingDepositMovementTypes.Reversal
+                && !x.IsDelete);
+        if (existingReversal is not null)
+            return [];
+
+        var originalTopUpMovement = account.Movements
+            .FirstOrDefault(x => x.SettlementId == tender.SettlementId
+                && x.MovementType == BillingDepositMovementTypes.TopUp
+                && !x.IsDelete)
+            ?? await _dbContext.BilDepositMovements
+                .FirstOrDefaultAsync(x => x.DepositAccountId == account.Id
+                    && x.SettlementId == tender.SettlementId
+                    && x.MovementType == BillingDepositMovementTypes.TopUp
+                    && !x.IsDelete,
+                    cancellationToken);
+        if (originalTopUpMovement is null)
+            throw new BillingSettlementConflictException("Mutasi deposit top-up asal tidak ditemukan.");
+
+        var deficit = tender.Amount - account.AvailableBalance;
+        var totalReleasedFromAllocations = 0m;
+        var impactedInvoiceIds = new HashSet<Guid>();
+
+        // BKC-DEC-129 / BKC-DES-052 / BIL-VAL-128: Pembatalan alokasi tagihan LIFO jika saldo deposit defisit
+        if (deficit > 0)
+        {
+            var depositAllocationSettlementIds = await _dbContext.BilDepositMovements.AsNoTracking()
+                .Where(m => m.DepositAccountId == account.Id
+                    && m.MovementType == BillingDepositMovementTypes.Allocation
+                    && m.SettlementId.HasValue
+                    && !m.IsDelete)
+                .Select(m => m.SettlementId!.Value)
+                .Distinct()
+                .ToListAsync(cancellationToken);
+
+            var allocations = await _dbContext.BilPaymentAllocations
+                .Where(a => depositAllocationSettlementIds.Contains(a.SettlementId) && !a.IsDelete)
+                .ToListAsync(cancellationToken);
+
+            var reversedAllocationIds = allocations
+                .Where(a => a.ReversesAllocationId.HasValue)
+                .Select(a => a.ReversesAllocationId!.Value)
+                .ToHashSet();
+
+            var activeAllocations = allocations
+                .Where(a => !a.ReversesAllocationId.HasValue && !reversedAllocationIds.Contains(a.Id))
+                .OrderByDescending(a => a.AllocatedAt)
+                .ThenByDescending(a => a.CreateDateTime)
+                .ThenByDescending(a => a.Id)
+                .ToList();
+
+            // BKC-DEC-132 / BKC-DES-055: Ambil mutasi ALLOCATION untuk dipasangkan sebagai ReversesMovementId
+            var allocationMovements = await _dbContext.BilDepositMovements.AsNoTracking()
+                .Where(m => m.DepositAccountId == account.Id
+                    && m.MovementType == BillingDepositMovementTypes.Allocation
+                    && m.SettlementId.HasValue
+                    && depositAllocationSettlementIds.Contains(m.SettlementId.Value)
+                    && !m.IsDelete)
+                .ToListAsync(cancellationToken);
+
+            var neededToCancel = deficit;
+            foreach (var original in activeAllocations)
+            {
+                if (neededToCancel <= 0) break;
+                var cancelAmount = Math.Min(original.Amount, neededToCancel);
+                var reversalAllocation = new BilPaymentAllocation
+                {
+                    SettlementId = original.SettlementId,
+                    TargetType = original.TargetType,
+                    TargetId = original.TargetId,
+                    Amount = cancelAmount,
+                    CalculationVersion = original.CalculationVersion,
+                    AllocatedAt = occurredAt,
+                    ReversesAllocationId = original.Id,
+                    CreateDateTime = DateTime.UtcNow,
+                    CreateBy = actorUserId
+                };
+                _dbContext.BilPaymentAllocations.Add(reversalAllocation);
+                impactedInvoiceIds.Add(original.TargetId);
+                totalReleasedFromAllocations += cancelAmount;
+                neededToCancel -= cancelAmount;
+
+                // BKC-DEC-132 / BKC-DEC-133 / BKC-DES-055 / FR-BKC-129:
+                // Catat tepat 1 baris mutasi RELEASE untuk setiap alokasi yang dibatalkan (1-to-1),
+                // dengan ReversesMovementId menunjuk ID mutasi ALLOCATION asalnya.
+                var matchingAllocationMovement = allocationMovements
+                    .FirstOrDefault(m => m.SettlementId == original.SettlementId);
+                if (matchingAllocationMovement is null)
+                {
+                    throw new BillingSettlementConflictException(
+                        $"Mutasi deposit ALLOCATION asal untuk settlement alokasi {original.SettlementId} tidak ditemukan.");
+                }
+
+                var releaseMovement = new BilDepositMovement
+                {
+                    DepositAccountId = account.Id,
+                    DepositAccount = account,
+                    MovementType = BillingDepositMovementTypes.Release,
+                    Amount = cancelAmount,
+                    SettlementId = original.SettlementId,
+                    PaymentMethodId = matchingAllocationMovement.PaymentMethodId,
+                    PaymentMethodAccountId = matchingAllocationMovement.PaymentMethodAccountId,
+                    CashierShiftId = tender.CashierShiftId,
+                    IdempotencyKey = CreateDeterministicGuid($"REL_IDEMPOTENCY_{tender.Id:N}_{original.Id:N}"),
+                    PayloadHash = Hash($"RELEASE|{tender.Id:N}|{original.Id:N}|{cancelAmount}"),
+                    CorrelationId = CreateDeterministicGuid($"REL_CORRELATION_{tender.Id:N}_{original.Id:N}"),
+                    CausationId = tender.CorrelationId,
+                    OccurredAt = occurredAt,
+                    Reason = $"Pelepasan alokasi tagihan {original.TargetId} untuk pembalikan tender top-up deposit {tender.Id}.",
+                    ReversesMovementId = matchingAllocationMovement.Id,
+                    CreateDateTime = DateTime.UtcNow,
+                    CreateBy = actorUserId
+                };
+                account.Movements.Add(releaseMovement);
+                _dbContext.BilDepositMovements.Add(releaseMovement);
+                account.AvailableBalance += cancelAmount;
+            }
+
+            if (neededToCancel > 0)
+            {
+                throw new BillingSettlementConflictException(
+                    "Saldo deposit dan alokasi aktif tidak mencukupi untuk membalikkan top-up deposit.");
+            }
+        }
+
+        // BKC-DEC-128 / BKC-DES-051 / BKC-DES-054: Mutasi REVERSAL atas top-up deposit
+        var reversalMovement = new BilDepositMovement
+        {
+            DepositAccountId = account.Id,
+            DepositAccount = account,
+            MovementType = BillingDepositMovementTypes.Reversal,
+            Amount = tender.Amount,
+            SettlementId = tender.SettlementId,
+            PaymentMethodId = tender.PaymentMethodId,
+            PaymentMethodAccountId = tender.PaymentMethodAccountId,
+            CashierShiftId = tender.CashierShiftId,
+            IdempotencyKey = CreateDeterministicGuid($"REV_IDEMPOTENCY_{tender.Id:N}"),
+            PayloadHash = Hash($"REVERSAL|{tender.Id:N}|{tender.SettlementId:N}|{tender.Amount}"),
+            CorrelationId = CreateDeterministicGuid($"REV_CORRELATION_{tender.Id:N}"),
+            CausationId = tender.CorrelationId,
+            OccurredAt = occurredAt,
+            Reason = "Pembalikan tender top-up deposit.",
+            ReversesMovementId = originalTopUpMovement.Id,
+            CreateDateTime = DateTime.UtcNow,
+            CreateBy = actorUserId
+        };
+        account.Movements.Add(reversalMovement);
+        _dbContext.BilDepositMovements.Add(reversalMovement);
+        account.AvailableBalance -= tender.Amount;
+
+        if (account.AvailableBalance < 0)
+        {
+            throw new BillingSettlementConflictException(
+                "Pembalikan tender deposit menghasilkan saldo negatif.");
+        }
+        account.RowVersion = Guid.NewGuid();
+        account.UpdateDateTime = DateTime.UtcNow;
+        account.UpdateBy = actorUserId;
+
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        // BKC-DEC-130 / BKC-DES-053 / BIL-VAL-130: Penyelarasan status invoice yang alokasinya ditarik (CLOSED -> FINAL)
+        var closureChanges = new List<InvoiceClosureChange>();
+        foreach (var invoiceId in impactedInvoiceIds)
+        {
+            var change = await _closureService.SyncClosureAsync(
+                invoiceId,
+                actorUserId,
+                occurredAt,
+                cancellationToken,
+                PrescriptionClearanceReasonCodes.PaymentReversed);
+            if (change.Changed)
+            {
+                closureChanges.Add(change);
+            }
+        }
+        if (closureChanges.Count > 0)
+        {
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+        return closureChanges;
+    }
+
+    private static Guid CreateDeterministicGuid(string input)
+    {
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(input));
+        var guidBytes = new byte[16];
+        Array.Copy(hash, guidBytes, 16);
+        return new Guid(guidBytes);
     }
 
     private async Task ValidateTargetAndAmountAsync(

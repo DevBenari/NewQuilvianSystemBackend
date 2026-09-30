@@ -128,6 +128,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
 
         [MaxLength(500)]
         public string? Notes { get; set; }
+
+        /// <summary>
+        /// Khusus <c>finish-consultation</c>: kunci peringatan validasi (<c>issueKey</c>) yang sudah
+        /// dibaca dokter. Peringatan yang belum dikonfirmasi menahan finalisasi.
+        /// </summary>
+        [MaxLength(100)]
+        public List<string>? AcknowledgedWarningKeys { get; set; }
     }
 
     public class DoctorQueueActionResponse
@@ -155,6 +162,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public DoctorConsultationStatus? ConsultationStatus { get; set; }
         public DateTime? ConsultationStartedAt { get; set; }
         public DateTime? ConsultationCompletedAt { get; set; }
+
+        /// <summary>
+        /// Masalah penyerahan tagihan saat konsultasi diselesaikan dari antrean (<c>BE-RJE-013</c>,
+        /// <c>RJ-E2E-CONTRACT-001@1.0.1</c>). Disalin apa adanya dari hasil finalisasi canonical;
+        /// kosong bila tidak ada masalah atau untuk aksi antrean lain. Konsultasi tetap selesai.
+        /// </summary>
+        public List<string> BillingHandoffIssues { get; set; } = new();
 
         public bool IsDoctorCallClusterLocked { get; set; }
         public Guid? DoctorCallScopeId { get; set; }

@@ -324,19 +324,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
                 if (queue.Encounter != null)
                 {
+                    // RJ-E2E-DEC-007/013: Rawat Jalan tidak menutup kunjungan. Kunjungan tanpa
+                    // dokter diserahkan ke Billing (setara ConsultationCompleted pada jalur dokter);
+                    // penutupan menjadi Completed beserta CompletedAt bukan wewenang layar ini
+                    // (RJ-E2E-DEC-004). Antrean perawat sendiri tetap Completed.
                     queue.Encounter.EncounterStatus = queue.IsDoctorRequired
                         ? EncounterStatus.WaitingForDoctor
-                        : EncounterStatus.Completed;
+                        : EncounterStatus.Billing;
                     queue.Encounter.UpdateDateTime = now;
                     queue.Encounter.UpdateBy = actorUserId;
 
                     if (!queue.IsDoctorRequired)
                     {
-                        queue.Encounter.CompletedAt = now;
-
                         // RM-DEC-003 lapis kedua. Pada pasien yang tidak memerlukan dokter,
-                        // screening perawat adalah titik penyelesaian kunjungan, sehingga
-                        // penguncian catatan terjadi di sini.
+                        // screening perawat adalah titik penyelesaian klinis, sehingga
+                        // penguncian catatan tetap terjadi di sini walau kunjungan belum
+                        // ditutup administratif (RJ-E2E-DEC-013). Waktu kunci = waktu screening
+                        // selesai, sama dengan perilaku sebelumnya.
                         //
                         // Penguncian ikut SaveChanges dan transaksi di bawah, sehingga bila
                         // gagal, penyelesaian screening ikut dibatalkan.
@@ -370,7 +374,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
 
             var message = queue.IsDoctorRequired
                 ? "Screening perawat selesai dan pasien dikirim ke dokter."
-                : "Screening perawat selesai dan kunjungan diselesaikan.";
+                : "Screening perawat selesai dan kunjungan diserahkan ke Billing.";
 
             await _queueRealtimeService.NotifyQueueScreeningFinishedAsync(queue, actorUserId, message);
 

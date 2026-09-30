@@ -31,6 +31,8 @@ using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkflowManagement.Ser
 using QuilvianSystemBackend.Areas.Corporate.HumanResource.WorkforceCore.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Workers;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Workers;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Services;
@@ -867,6 +869,11 @@ try
     // implementasi yang sama. Pemilik modul Billing tetap perlu memutuskan satu tempat
     // pendaftaran dan mencabut yang lain.
     builder.Services.AddBillingManagement();
+
+    // BE-RJE-010: pekerja kirim ulang efek folio Rawat Jalan yang belum sampai ke invoice.
+    builder.Services.AddHostedService<BilInvoiceSyncWorker>();
+    // BE-RJE-011: pekerja kirim ulang fakta klinis yang hasil penyerahannya belum pasti.
+    builder.Services.AddHostedService<ClinicalFactDispatchWorker>();
 
     builder.Services.AddScoped<BillingArApHandoffService>();
 
