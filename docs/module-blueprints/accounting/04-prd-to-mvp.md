@@ -790,6 +790,7 @@ sendiri** untuk pekerjaan yang berulang, dan itulah yang membuat kesalahannya me
 | Jurnal berulang triwulanan dan tahunan | Enum `RecurringFrequency` menyediakan ruangnya, tetapi hanya `Bulanan` dibangun | Template bulanan, atau jurnal manual |
 | Pembagian laba sebelum laba ditahan | Ditolak `ACC-DEC-054`; belum ada aturan pembagian dari pemegang saham | Jurnal manual terpisah sesudah jurnal penutup disahkan |
 | Penyaringan badan hukum per pengguna | Diwarisi dari MVP, `ACC-TD-002` masih `OPEN` | Penjaga `IsDefault` (`ACC-DEC-043`) |
+| Penahan shift kasir belum ditutup (`FR-P2-038`) *(amandemen 30 September 2026, **approved** Rizki — `GATE-DESAIN-0930`)* | Dipindah menjadi syarat gerbang cutover G6 (`ACC-DEC-124`). Penegakannya bergantung pada kejadian penanda shift dari Finance (`evidence/14` pertanyaan 7.4) dan jawaban OQ-124-1 — bagaimana Accounting mengetahui shift yang dibuka. Sebelum cutover tidak ada kas yang masuk buku lewat kejadian, sehingga tidak ada yang dapat diperiksa | Butir "Shift kasir belum ditutup" tetap tampil "belum dapat diperiksa" dan tidak menahan (`UAT-P2-26`). Sebelum cutover, transaksi kas kasir memang tidak dikirim ke Accounting (`ACC-XMOD` bagian 13). Cutover tidak boleh dimulai sebelum penegakan ini dibangun dan diuji |
 
 ## 25. Epic dan functional requirement
 
@@ -868,7 +869,7 @@ sendiri** untuk pekerjaan yang berulang, dan itulah yang membuat kesalahannya me
 | `FR-P2-035` | Akun dapat ditandai sebagai control account | `EXTEND` atas daftar akun |
 | `FR-P2-036` | Jurnal **manual** ke control account ditolak | `EXTEND` atas jurnal |
 | `FR-P2-037` | Jurnal dari kejadian, template, dan tutup tahun **tidak** terkena larangan itu | `EXTEND` atas jurnal |
-| `FR-P2-038` | Shift kasir belum ditutup menjadi penghalang ketiga tutup bulan | `MISSING / NEW` |
+| `FR-P2-038` | Shift kasir belum ditutup menjadi penghalang ketiga tutup bulan | `MISSING / NEW` — **ditunda menjadi syarat gerbang cutover G6** (`ACC-DEC-124`; amandemen 30 September 2026, approved `GATE-DESAIN-0930`). Tidak dihitung pada DoD butir 1 Phase 2; lihat bagian 24 |
 | `FR-P2-039` | Saldo control account dihitung hanya dari baris jurnal `Posted` | `MISSING / NEW` |
 | `FR-P2-040` | Saldo subledger dibandingkan dengan saldo buku besar **per periode**, dan selisih serta keadaan tiap akun — cocok, berselisih, belum diterima, cut-off bukan akhir periode — dilaporkan di layar yang memilih periode, bukan tanggal | `MISSING / NEW` |
 | `FR-P2-041` | Pesan saldo subledger disimpan sebagai saldo per badan hukum, periode, dan control account **tanpa menghasilkan jurnal**; versi lebih tinggi mengganti angkanya, versi sama atau lebih rendah tidak; periode `Closed` tidak diubah | `MISSING / NEW` — dibangun `BE-ACC-P2-027`/`028` |
@@ -938,7 +939,7 @@ Setiap butir dapat dijawab "ya" atau "belum", beserta buktinya.
 
 | # | Butir | Bukti yang diterima |
 |---:|---|---|
-| 1 | Seluruh 34 functional requirement punya kode yang berjalan — **44** sesudah amandemen 28 September 2026 (`FR-P2-035`..`044`); **48** sesudah amandemen 29 September 2026 (`FR-P2-045`..`048`) | Laporan task tracked per task |
+| 1 | Seluruh 34 functional requirement punya kode yang berjalan — **44** sesudah amandemen 28 September 2026 (`FR-P2-035`..`044`); **48** sesudah amandemen 29 September 2026 (`FR-P2-045`..`048`); **47** sesudah amandemen 30 September 2026 (approved `GATE-DESAIN-0930`), karena `FR-P2-038` dipindah menjadi syarat gerbang cutover G6 (`ACC-DEC-124`) | Laporan task tracked per task |
 | 2 | Seluruh 23 skenario UAT sudah dijalankan dan hasilnya tercatat — **33** sesudah amandemen 28 September 2026 (`UAT-P2-24`..`33`); **38** sesudah amandemen 29 September 2026 (`UAT-P2-34`..`38`) | Matriks acceptance dengan **kolom bukti yang sudah ada**, bukan hanya "bukti yang diharapkan" |
 | 3 | `UAT-P2-02` dan `UAT-P2-12` terbukti terhadap **PostgreSQL sungguhan** | Test integrasi di `Tests/QuilvianSystemBackend.IntegrationTests.Postgres` |
 | 4 | Seluruh endpoint Phase 2 membawa `[AccessPermission]` | Hitungan endpoint lawan atribut, seperti audit 7 September |

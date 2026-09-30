@@ -293,6 +293,33 @@ perpindahan ini fast-forward murni — tidak ada pekerjaan yang hilang.
 
 ## Next recommended task
 
+### DEVELOPMENT ACCOUNTING — ✅ SELESAI, 30 September 2026
+
+**Seluruh task pada roadmap yang sudah disetujui selesai:** MVP backend 15, MVP frontend 11, Phase 2
+backend **35 ✅ dari 35**, Phase 2 frontend **19 ✅ dari 19** — 80 kartu, masing-masing berlaporan.
+Atas arahan Rizki 30 September 2026, **tidak ada kartu development baru yang dibuka**: modul dinyatakan
+selesai sesuai lingkup yang sudah dibentuk.
+
+| Status | Keadaan |
+|---|---|
+| Development | ✅ **SELESAI** |
+| UAT | Belum dijalankan — milik tim UAT terpisah, tidak ditulis lulus |
+| Siap produksi / cutover Finance | Belum — bergantung pada pihak di luar tim development, lihat tabel berikut. Verdict audit 29 September (`NOT_READY`) menilai kesiapan produksi, bukan kelengkapan development |
+
+**Sisa menuju produksi — bukan pekerjaan development, tidak membuka task baru:**
+
+| Jenis | Pekerjaan | Pemilik |
+|---|---|---|
+| Operasional | Pengguna "Sistem Akuntansi" di tiap lingkungan (`ACC-DEC-122`); tujuh peran dan pemberian hak di Akses Role | Admin sistem |
+| Konfigurasi | Tiga nilai di server bersama dan produksi: pelaku sistem kedua penjadwal dan penjadwal jurnal berulang nyala (`ACC-DEC-123`). Kuncinya sudah ada di kode | Platform |
+| Data | Bagan akun sah dari ekspor `gl_coa` lengkap, aturan posting per kode kejadian, akun laba ditahan | Pemilik proses akuntansi |
+| Integrasi | Jawaban Finance atas `evidence/14` dan `15`; gerbang G3, G4, G6 — termasuk penegakan shift kasir yang kini syarat G6 (`ACC-DEC-124`) | Yasmin, Rizki, Platform |
+| Uji penerimaan | Skenario UAT Phase 2 | Tim UAT |
+
+**Catatan untuk impor bagan akun.** API tambah akun tidak menolak jenis akun atau saldo normal
+bernilai `0`. Berkas impor wajib mengirim jenis akun `1`..`5` dan saldo normal `1` (Debit) atau `2`
+(Kredit); berkas `gl_coa_all_request_body_swagger.json` yang ada tidak dipakai.
+
 ### TITIK LANJUT — 30 September 2026: T-1, T-2, dan OQ-034 tuntas; sisa T-3..T-9
 
 **Singkatnya.** [Audit kesiapan 29 September](testing/readiness-report-2026-09-29.md) memberi verdict
@@ -305,12 +332,14 @@ frontend **19 ✅ dari 19**. Verdict audit belum dinilai ulang.
 | T-1 / G-01 — draft kejadian ke control account ditolak `422` saat diajukan | `BE-ACC-P2-034` ✅ 29 Sep 2026 | [laporan](task/report/backend/BE-ACC-P2-034.md) |
 | T-2 / G-02 — pemberitahuan Neraca Saldo | `FE-ACC-009` ✅ 29 Sep 2026, keputusan Rizki "kembalikan ringkas" | [laporan bagian 10](task/report/frontend/fe-acc-009-neraca-saldo.md) |
 | OQ-034-1/2 — hapus dan sunting draft hasil kejadian | `ACC-DEC-116`..`121`, `GATE-DESAIN-0929`, roadmap revisi 8 → `BE-ACC-P2-035` ✅ + `FE-ACC-P2-019` ✅. Uji gabungan Rizki 29 Sep 16.10; JSON dan tangkapan diperiksa 30 Sep, dan klaim agen yang melebihi bukti diluruskan di laporan bagian 5.3 | [BE](task/report/backend/BE-ACC-P2-035.md), [FE](task/report/frontend/FE-ACC-P2-019.md) |
-| Commit | Rizki: backend `8f530926`, frontend `2c2190858` (29 Sep sore), keduanya sejajar dengan `origin/rizkiG` dan `origin/RizkiV2`. Pelurusan dokumen 30 Sep belum di-commit | — |
+| Commit dan integration (T-3) | Rizki: backend `8f530926` + pelurusan dokumen `91e8feee`, frontend `2c2190858`; keduanya **di-merge ke integration 30 Sep** (pernyataan owner; kepala integration di GitHub: backend `9fc8a47d`, frontend `68195b2be`). `ACC-XMOD-0.4` kini dapat dibaca Finance di integration | — |
 
-**Sisa menuju "100% finish"** — audit bagian 8, tidak satu pun menyentuh kode Accounting: T-3 PR
-`rizkiG` dan `RizkiV2` → integration (masing-masing 7 commit di depan); T-4 bagian `Accounting` di
-appsettings; T-5 tujuh peran dan pemberian hak; T-6 bagan akun sah dan aturan posting 26 kode; T-7 kirim
-`evidence/14` ke Yasmin; T-8 matriks acceptance Phase 2 dan serah terima ke tim UAT; T-9 amandemen
+**Sisa menuju "100% finish"** — audit bagian 8, tidak satu pun menyentuh kode Accounting (T-3 ✅ 30
+Sep): T-4 bagian `Accounting` di
+appsettings; T-5 tujuh peran dan pemberian hak; T-6 bagan akun sah dan aturan posting 26 kode; T-7 menunggu
+jawaban Yasmin atas `evidence/14` bagian 7 — surat itu **sudah dikirim** dan sudah di integration — dan
+menyusulkan aturan pesan saldo `ACC-XMOD-0.4` bagian 8a serta akibat `ACC-DEC-116` pada nomor jurnal di
+tanda terima, yang belum pernah dikirim ke Finance; T-8 matriks acceptance Phase 2 dan serah terima ke tim UAT; T-9 amandemen
 dokumen. Penilaian ulang verdict (kandidat `READY_WITH_CONDITIONS`) lewat `verify-module-readiness`.
 
 Sisa data uji `035` di dev: `EVT-UJI-035A` Diabaikan; `JU/2031/01/00006` jurnal manual Ditolak — tidak
