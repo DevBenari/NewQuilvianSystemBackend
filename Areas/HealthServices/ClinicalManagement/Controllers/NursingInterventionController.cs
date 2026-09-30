@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services;
@@ -139,6 +139,72 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                     hasil.IsReplay
                         ? "Tindakan keperawatan sudah tercatat sebelumnya."
                         : "Tindakan keperawatan berhasil dicatat."));
+        }
+
+        /// <summary>Mencatat sekumpulan tindakan keperawatan harian sekaligus (Lembar Keperawatan Harian).</summary>
+        [HttpPost("batch")]
+        [ProducesResponseType(typeof(ApiResponse<BatchNursingInterventionResponse>), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(ApiResponse<BatchNursingInterventionResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status403Forbidden)]
+        [ProducesResponseType(typeof(ApiResponse<object>), StatusCodes.Status404NotFound)]
+        [AccessAction("Create", "Create Nursing Intervention Batch", Description = "Mencatat sekumpulan tindakan keperawatan harian sekaligus", AccessType = AccessTypes.Create, SortOrder = 3)]
+        [AccessPermission("NursingIntervention", "Create")]
+        public async Task<IActionResult> CreateBatchNursingIntervention(
+            [FromBody] CreateBatchNursingInterventionRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            var actorUserId = GetCurrentUserId();
+
+            var hasil = await _interventionService.RecordBatchAsync(
+                request,
+                User,
+                actorUserId,
+                cancellationToken);
+
+            if (!hasil.IsSuccess || hasil.Response == null)
+            {
+                return StatusCode(hasil.StatusCode, ApiResponse<object>.Fail(
+                    hasil.StatusCode,
+                    hasil.ErrorMessage ?? "Tindakan keperawatan massal tidak dapat dicatat."
+                ));
+            }
+
+            await _loggerService.InfoAsync(
+                LogCategory,
+                "NursingIntervention.CreateBatchNursingIntervention",
+                "Mencatat sekumpulan tindakan keperawatan harian sekaligus (Lembar Keperawatan Harian).",
+                new
+                {
+                    request.EncounterId,
+                    request.InpEpisodeId,
+                    request.Shift,
+                    hasil.Response.TotalCreated,
+                    hasil.Response.TotalRequested,
+                    Controller = "NursingIntervention",
+                    Action = "CreateBatch"
+                });
+
+            return StatusCode(hasil.StatusCode,
+                ApiResponse<BatchNursingInterventionResponse>.Ok(
+                    hasil.Response,
+                    $"Berhasil menyimpan {hasil.Response.TotalCreated} tindakan keperawatan."));
+        }
+
+        /// <summary>Mengambil katalog 19 template tindakan keperawatan harian standar rawat inap (paritas V1).</summary>
+        [HttpGet("templates/daily-checklist")]
+        [ProducesResponseType(typeof(ApiResponse<List<NursingDailyActionTemplateDto>>), StatusCodes.Status200OK)]
+        [AccessAction("Read", "Read Daily Action Templates", Description = "Melihat template tindakan harian standar", AccessType = AccessTypes.Read, SortOrder = 5)]
+        [AccessPermission("NursingIntervention", "Read")]
+        public async Task<IActionResult> GetDailyChecklistTemplates(
+            [FromQuery] string? shift = null,
+            [FromQuery] string? category = null,
+            CancellationToken cancellationToken = default)
+        {
+            var templates = await _interventionService.GetDailyChecklistTemplatesAsync(shift, category, cancellationToken);
+            return Ok(ApiResponse<List<NursingDailyActionTemplateDto>>.Ok(
+                templates,
+                "Katalog template tindakan harian berhasil diambil."));
         }
 
         /// <summary>Daftar tindakan satu perawatan, terurut waktu tindakan.</summary>

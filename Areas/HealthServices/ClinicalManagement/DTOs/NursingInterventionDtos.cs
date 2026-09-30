@@ -203,4 +203,102 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         /// <summary>Kalimat siap tampil yang menjelaskan keadaan pengiriman bagi pengguna.</summary>
         public string Message { get; set; } = string.Empty;
     }
+
+    // =========================================================================
+    // BE-RWI-140 - Pencatatan Tindakan Harian Massal (Batch Daily Interventions)
+    // =========================================================================
+
+    /// <summary>
+    /// Satu butir tindakan keperawatan harian dalam permintaan batch.
+    /// </summary>
+    public class BatchNursingInterventionItemRequest
+    {
+        /// <summary>Kode template standar (misal: ACT_O2, ACT_SUCTION).</summary>
+        public string? TemplateCode { get; set; }
+
+        /// <summary>Nama tindakan keperawatan yang dilakukan.</summary>
+        [Required]
+        [MaxLength(300)]
+        public string InterventionName { get; set; } = string.Empty;
+
+        /// <summary>Waktu pelaksanaan riil tindakan.</summary>
+        public DateTime? PerformedAt { get; set; }
+
+        /// <summary>ID Pegawai perawat yang melaksanakan (opsional, fallback ke perawat login).</summary>
+        public Guid? PerformedByEmployeeId { get; set; }
+
+        /// <summary>Nama perawat pelaksana (untuk audit trail / preview tampilan).</summary>
+        public string? PerformedByEmployeeName { get; set; }
+
+        /// <summary>Keterangan, hasil tindakan, atau catatan respons pasien.</summary>
+        public string? ActionNotes { get; set; }
+
+        /// <summary>Butir rencana asuhan terkait (opsional).</summary>
+        public Guid? CarePlanItemId { get; set; }
+
+        /// <summary>Apakah tindakan dapat ditagihkan.</summary>
+        public bool IsBillable { get; set; }
+
+        /// <summary>Kunci idempotensi per butir (opsional).</summary>
+        [MaxLength(100)]
+        public string? IdempotencyKey { get; set; }
+    }
+
+    /// <summary>
+    /// Permintaan mencatat sekumpulan tindakan keperawatan harian sekaligus (Lembar Keperawatan Harian).
+    /// </summary>
+    public class CreateBatchNursingInterventionRequest
+    {
+        /// <summary>Kunjungan pasien rawat inap.</summary>
+        [Required]
+        public Guid EncounterId { get; set; }
+
+        /// <summary>Episode rawat inap yang menaungi tindakan.</summary>
+        public Guid? InpEpisodeId { get; set; }
+
+        /// <summary>Nama shift pelayanan (Pagi / Siang / Malam).</summary>
+        public string? Shift { get; set; }
+
+        /// <summary>Tanggal pelaksanaan tindakan (format YYYY-MM-DD).</summary>
+        public string? ActionDate { get; set; }
+
+        /// <summary>Kunci idempotensi batch untuk mencegah double-submit jaringan.</summary>
+        [MaxLength(100)]
+        public string? IdempotencyKey { get; set; }
+
+        /// <summary>Daftar tindakan yang telah dilaksanakan.</summary>
+        [Required]
+        [MinLength(1, ErrorMessage = "Daftar tindakan wajib berisi minimal 1 butir tindakan.")]
+        public List<BatchNursingInterventionItemRequest> Items { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Respons hasil penyimpanan massal tindakan keperawatan harian.
+    /// </summary>
+    public class BatchNursingInterventionResponse
+    {
+        public int TotalRequested { get; set; }
+
+        public int TotalCreated { get; set; }
+
+        public bool IsReplay { get; set; }
+
+        public List<NursingInterventionResponse> SavedInterventions { get; set; } = new();
+    }
+
+    /// <summary>
+    /// DTO definisi katalog 19 template tindakan keperawatan harian standar rawat inap.
+    /// </summary>
+    public class NursingDailyActionTemplateDto
+    {
+        public string Code { get; set; } = string.Empty;
+
+        public string Name { get; set; } = string.Empty;
+
+        public string Category { get; set; } = string.Empty;
+
+        public string? DefaultNotes { get; set; }
+
+        public int SortOrder { get; set; }
+    }
 }

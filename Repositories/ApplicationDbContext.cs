@@ -732,6 +732,7 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<MstNursingDiagnosisEtiology> MstNursingDiagnosisEtiologies { get; set; }
         public DbSet<MstNursingDiagnosisOutcome> MstNursingDiagnosisOutcomes { get; set; }
         public DbSet<MstNursingDiagnosisIntervention> MstNursingDiagnosisInterventions { get; set; }
+        public DbSet<MstDailyNursingAction> MstDailyNursingActions { get; set; }
         public DbSet<MstMeasurement> MstMeasurements { get; set; }
         public DbSet<MstMeasurementConversion> MstMeasurementConversions { get; set; }
         public DbSet<MstDrugUnitConversion> MstDrugUnitConversions { get; set; }

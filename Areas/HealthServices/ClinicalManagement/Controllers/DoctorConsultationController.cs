@@ -14,6 +14,7 @@ using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Models;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Enums;
 using QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Models;
+using QuilvianSystemBackend.Areas.Platform.NumberSeriesManagement.Services;
 using QuilvianSystemBackend.Attributes;
 using QuilvianSystemBackend.Constants;
 using QuilvianSystemBackend.Repositories;
@@ -94,13 +95,32 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
         /// </remarks>
         private readonly ClinicalDocumentIntegrityService _integrityService;
 
+        /// <summary>
+        /// Tautan snapshot tanda vital ke deret tanda vital pasien — <c>BE-RWI-141</c>, K5.
+        /// </summary>
+        private readonly DoctorConsultationVitalSignService _vitalSignLinkService;
+
+        /// <summary>
+        /// Kalimat penolakan penyelesaian langsung catatan rawat inap — <c>BE-RWI-142</c>, K1.
+        /// </summary>
+        /// <remarks>
+        /// Catatan yang lahir sudah selesai tidak pernah sempat diberi diagnosa, sehingga jalur ini
+        /// satu-satunya celah melewati syarat ICD-10 pada penyelesaian SOAP rawat inap.
+        /// </remarks>
+        private const string PenolakanSelesaiLangsungRawatInap =
+            "Catatan dokter rawat inap diselesaikan lewat Selesaikan SOAP setelah diagnosa ICD-10 dipilih.";
+
+        private const string PenolakanNomorTandaVitalGagal =
+            "Nomor tanda vital dokter tidak dapat diterbitkan. Simpan ulang beberapa saat lagi.";
+
         public DoctorConsultationController(
             ApplicationDbContext dbContext,
             LoggerService loggerService,
             ConsultationValidationService consultationValidationService,
             ConsultationFinalizationService consultationFinalizationService,
             InpatientClinicalContextService inpatientClinicalContextService,
-            ClinicalDocumentIntegrityService integrityService)
+            ClinicalDocumentIntegrityService integrityService,
+            DoctorConsultationVitalSignService vitalSignLinkService)
         {
             _dbContext = dbContext;
             _loggerService = loggerService;
@@ -108,6 +128,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             _consultationFinalizationService = consultationFinalizationService;
             _inpatientClinicalContextService = inpatientClinicalContextService;
             _integrityService = integrityService;
+            _vitalSignLinkService = vitalSignLinkService;
         }
 
         [HttpGet("filters/metadata")]
@@ -376,6 +397,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 .ThenBy(x => x.CreateDateTime)
                 .ToListAsync(cancellationToken);
 
+            var items = rows.Select(ToTimelineItem).ToList();
+
+            await EnrichTimelineItemsAsync(episode.Id, rows, items, cancellationToken);
+
             var result = new SoapTimelineResponse
             {
                 InpEpisodeId = episode.Id,
@@ -384,7 +409,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 From = batasBawah,
                 To = batasAtas,
                 TotalCount = rows.Count,
-                Items = rows.Select(ToTimelineItem).ToList()
+                Items = items
             };
 
             return Ok(ApiResponse<SoapTimelineResponse>.Ok(
@@ -441,7 +466,34 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             var inpEpisodeId = await _inpatientClinicalContextService
                 .FindOpenEpisodeIdAsync(encounter.Id);
 
-            var vitalSign = BuildVitalSignSnapshot(request, assessment);
+            // BE-RWI-142 / K1 (30-09-2026). Catatan rawat inap wajib melewati penyelesaian yang
+            // memeriksa diagnosa ICD-10; lahir-langsung-selesai melompati pemeriksaan itu.
+            if (inpEpisodeId.HasValue && request.CompleteImmediately)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    PenolakanSelesaiLangsungRawatInap));
+            }
+
+            // BE-RWI-141 / K5. Sumber tanda vital diperiksa sebelum satu baris pun disentuh.
+            var sumberTandaVital = await _vitalSignLinkService.ResolveAsync(
+                queue?.PatientId ?? encounter.PatientId,
+                encounter.Id,
+                inpEpisodeId,
+                request.SourceVitalSignId,
+                request.IsDoctorMeasuredVitalSign);
+
+            if (!sumberTandaVital.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    sumberTandaVital.ErrorMessage ?? "Sumber tanda vital tidak valid."));
+            }
+
+            // Ukuran dokter selalu diambil dari permintaan, tidak pernah disalin dari kajian.
+            var vitalSign = BuildVitalSignSnapshot(
+                request,
+                request.IsDoctorMeasuredVitalSign ? null : assessment);
 
             await using var transaction = await _dbContext.Database.BeginTransactionAsync();
 
@@ -473,7 +525,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                     ? DoctorConsultationStatus.Completed
                     : DoctorConsultationStatus.InProgress,
 
-                IsVitalSignCopiedFromAssessment = request.IsVitalSignCopiedFromAssessment,
+                IsVitalSignCopiedFromAssessment = !request.IsDoctorMeasuredVitalSign && request.IsVitalSignCopiedFromAssessment,
                 BloodPressureSystolic = vitalSign.BloodPressureSystolic,
                 BloodPressureDiastolic = vitalSign.BloodPressureDiastolic,
                 PulseRate = vitalSign.PulseRate,
@@ -537,6 +589,10 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             };
 
             NormalizeConsultationData(entity);
+
+            // BE-RWI-141 / K5. Rujukan ke baris yang sudah tercatat menimpa snapshot utuh.
+            if (sumberTandaVital.Source != null)
+                DoctorConsultationVitalSignService.CopySnapshot(entity, sumberTandaVital.Source);
 
             _dbContext.Set<TrxDoctorConsultation>().Add(entity);
 
@@ -628,6 +684,27 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             }
 
             await _dbContext.SaveChangesAsync();
+
+            // BE-RWI-141 / K5. Ukuran dokter pada catatan rawat inap ikut masuk deret tanda vital.
+            // Dua kali simpan di dalam satu transaksi: baris tanda vital menunjuk catatan dan
+            // catatan menunjuk baris itu, dan EF tidak dapat menyisipkan keduanya sekaligus.
+            if (request.IsDoctorMeasuredVitalSign)
+            {
+                try
+                {
+                    await _vitalSignLinkService.RecordDoctorMeasuredAsync(entity, actorUserId, now);
+                }
+                catch (NumberSeriesAllocationException)
+                {
+                    // Keluar sebelum Commit: catatannya ikut batal, tidak ada catatan setengah jadi.
+                    return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<object>.Fail(
+                        StatusCodes.Status500InternalServerError,
+                        PenolakanNomorTandaVitalGagal));
+                }
+
+                await _dbContext.SaveChangesAsync();
+            }
+
             await transaction.CommitAsync();
 
             var response = BuildCreateUpdateResponse(entity);
@@ -832,10 +909,54 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 ));
             }
 
+            // BE-RWI-141 / K5. Sumber tanda vital diperiksa sebelum snapshot disentuh.
+            var sumberTandaVital = await _vitalSignLinkService.ResolveAsync(
+                entity.PatientId,
+                entity.EncounterId,
+                entity.InpEpisodeId,
+                request.SourceVitalSignId,
+                request.IsDoctorMeasuredVitalSign);
+
+            if (!sumberTandaVital.IsValid)
+            {
+                return BadRequest(ApiResponse<object>.Fail(
+                    StatusCodes.Status400BadRequest,
+                    sumberTandaVital.ErrorMessage ?? "Sumber tanda vital tidak valid."));
+            }
+
             var now = DateTime.UtcNow;
             var actorUserId = GetCurrentUserId();
 
             ApplySoapPatch(entity, request);
+
+            if (sumberTandaVital.Source != null)
+            {
+                DoctorConsultationVitalSignService.CopySnapshot(entity, sumberTandaVital.Source);
+
+                // Dokter beralih ke data yang sudah tercatat: ukurannya sendiri pada catatan ini
+                // ditarik dari deret supaya grafik perawat tidak menyimpan ukuran yang dibatalkan.
+                await _vitalSignLinkService.CancelOwnRowsAsync(
+                    entity.Id,
+                    keepVitalSignId: sumberTandaVital.Source.Id,
+                    actorUserId,
+                    now,
+                    "Catatan dokter beralih ke tanda vital yang sudah tercatat.");
+            }
+            else if (request.IsDoctorMeasuredVitalSign)
+            {
+                ReplaceVitalSignSnapshot(entity, request);
+
+                try
+                {
+                    await _vitalSignLinkService.RecordDoctorMeasuredAsync(entity, actorUserId, now);
+                }
+                catch (NumberSeriesAllocationException)
+                {
+                    return StatusCode(StatusCodes.Status500InternalServerError, ApiResponse<object>.Fail(
+                        StatusCodes.Status500InternalServerError,
+                        PenolakanNomorTandaVitalGagal));
+                }
+            }
 
             entity.UpdateDateTime = now;
             entity.UpdateBy = actorUserId;
@@ -1028,6 +1149,15 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
             entity.CancelBy = actorUserId;
             entity.UpdateDateTime = now;
             entity.UpdateBy = actorUserId;
+
+            // BE-RWI-141 / K5. Ukuran dokter milik catatan yang dibatalkan ikut ditarik dari deret
+            // tanda vital pada SaveChanges yang sama - barisnya tetap ada, bertanda batal.
+            await _vitalSignLinkService.CancelOwnRowsAsync(
+                entity.Id,
+                keepVitalSignId: null,
+                actorUserId,
+                now,
+                $"Catatan dokter dibatalkan: {entity.CancelReason}");
 
             // BE-RWI-091 / RWI-AC-217. Registrasi keutuhannya menjadi Cancelled, dan BARISNYA
             // TIDAK DIHAPUS. Konsep yang dibatalkan tetap pernah ada, dan tanpa baris itu
@@ -1699,8 +1829,161 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 Subjective = x.Subjective,
                 Objective = x.Objective,
                 Assessment = x.Assessment,
-                Plan = x.Plan
+                Plan = x.Plan,
+                BloodPressureSystolic = x.BloodPressureSystolic,
+                BloodPressureDiastolic = x.BloodPressureDiastolic,
+                PulseRate = x.PulseRate,
+                RespiratoryRate = x.RespiratoryRate,
+                Temperature = x.Temperature,
+                OxygenSaturation = x.OxygenSaturation,
+                Weight = x.Weight,
+                Height = x.Height,
+                BMI = x.BMI,
+                IsVitalSignCopiedFromAssessment = x.IsVitalSignCopiedFromAssessment,
+                SourceVitalSignId = x.SourceVitalSignId,
+                ProcedurePlan = x.ProcedurePlan,
+                PrescriptionPlan = x.PrescriptionPlan,
+                SupportingExamPlan = x.SupportingExamPlan,
+                ReferralPlan = x.ReferralPlan,
+                EducationPlan = x.EducationPlan,
+                FollowUpDate = x.FollowUpDate,
+                FollowUpNote = x.FollowUpNote,
+                DoctorNote = x.DoctorNote,
+                DiagnosisCount = x.DiagnosisCount,
+                HasPrimaryDiagnosis = x.HasPrimaryDiagnosis
             };
+        }
+
+        /// <summary>
+        /// Melengkapi butir lini masa dengan diagnosa, peran penulis, dan asal-usul tanda vital —
+        /// <c>BE-RWI-141</c>, <c>BE-RWI-142</c>.
+        /// </summary>
+        /// <remarks>
+        /// Tiga kueri untuk seluruh lini masa, bukan satu per kartu. Peran diambil dari penugasan
+        /// yang melingkupi waktu catatan; dokter jaga yang kemudian menjadi konsulen tetap terbaca
+        /// "Dokter Jaga" pada catatan malamnya. Bila tidak ada penugasan yang melingkupi waktu itu,
+        /// penugasan terakhir dokter tersebut yang dipakai.
+        /// </remarks>
+        private async Task EnrichTimelineItemsAsync(
+            Guid episodeId,
+            IReadOnlyList<TrxDoctorConsultation> rows,
+            IReadOnlyList<SoapTimelineItemResponse> items,
+            CancellationToken cancellationToken)
+        {
+            if (rows.Count == 0)
+                return;
+
+            var consultationIds = rows.Select(x => x.Id).ToList();
+
+            var diagnoses = await _dbContext.Set<TrxPatientDiagnosis>()
+                .AsNoTracking()
+                .Where(x =>
+                    x.ConsultationId.HasValue &&
+                    consultationIds.Contains(x.ConsultationId.Value) &&
+                    !x.IsDelete &&
+                    x.DiagnosisStatus != PatientDiagnosisStatus.Cancelled)
+                .OrderByDescending(x => x.IsPrimary)
+                .ThenBy(x => x.SortOrder)
+                .ThenBy(x => x.DiagnosisDateTime)
+                .Select(x => new
+                {
+                    ConsultationId = x.ConsultationId!.Value,
+                    Item = new SoapTimelineDiagnosisResponse
+                    {
+                        Id = x.Id,
+                        DiagnosisId = x.DiagnosisId,
+                        DiagnosisCode = x.DiagnosisCode,
+                        DiagnosisName = x.DiagnosisName,
+                        IsPrimary = x.IsPrimary,
+                        DiagnosisType = x.DiagnosisType
+                    }
+                })
+                .ToListAsync(cancellationToken);
+
+            var diagnosesByNote = diagnoses
+                .GroupBy(x => x.ConsultationId)
+                .ToDictionary(g => g.Key, g => g.Select(x => x.Item).ToList());
+
+            var assignments = await _dbContext.Set<InpDoctorAssignment>()
+                .AsNoTracking()
+                .Where(x => x.EpisodeId == episodeId && !x.IsDelete)
+                .Select(x => new { x.DoctorId, x.AssignmentRole, x.StartDateTime, x.EndDateTime })
+                .ToListAsync(cancellationToken);
+
+            var sourceIds = rows
+                .Where(x => x.SourceVitalSignId.HasValue)
+                .Select(x => x.SourceVitalSignId!.Value)
+                .Distinct()
+                .ToList();
+
+            var provenance = await _vitalSignLinkService.GetProvenanceAsync(sourceIds, cancellationToken);
+
+            for (var i = 0; i < rows.Count; i++)
+            {
+                var row = rows[i];
+                var item = items[i];
+
+                if (diagnosesByNote.TryGetValue(row.Id, out var daftarDiagnosa))
+                    item.Diagnoses = daftarDiagnosa;
+
+                var waktuCatatan = row.ClinicalDateTime ?? row.ConsultationDateTime;
+                var penugasanDokter = assignments.Where(a => a.DoctorId == row.DoctorId).ToList();
+                var penugasan = penugasanDokter
+                    .Where(a =>
+                        a.StartDateTime <= waktuCatatan &&
+                        (!a.EndDateTime.HasValue || a.EndDateTime.Value >= waktuCatatan))
+                    .OrderByDescending(a => a.StartDateTime)
+                    .FirstOrDefault()
+                    ?? penugasanDokter.OrderByDescending(a => a.StartDateTime).FirstOrDefault();
+
+                if (penugasan != null)
+                {
+                    item.DoctorAssignmentRole = (int)penugasan.AssignmentRole;
+                    item.DoctorAssignmentRoleLabel = DescribeAssignmentRole(penugasan.AssignmentRole);
+                }
+
+                if (row.SourceVitalSignId.HasValue &&
+                    provenance.TryGetValue(row.SourceVitalSignId.Value, out var asal))
+                {
+                    item.VitalSignObservedAt = asal.ObservationDateTime;
+                    item.VitalSignObservedByName = asal.ObservedByName;
+                    item.IsDoctorMeasuredVitalSign =
+                        asal.VitalSignSource == PatientVitalSignSource.DoctorConsultation &&
+                        asal.ConsultationId == row.Id;
+                }
+            }
+        }
+
+        private static string DescribeAssignmentRole(
+            QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums.InpDoctorAssignmentRole role) => role switch
+        {
+            QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums.InpDoctorAssignmentRole.Dpjp => "DPJP",
+            QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums.InpDoctorAssignmentRole.Consultant => "Konsulen",
+            QuilvianSystemBackend.Areas.HealthServices.InPatientManagement.Enums.InpDoctorAssignmentRole.OnCallDoctor => "Dokter Jaga",
+            _ => role.ToString()
+        };
+
+        /// <summary>
+        /// Mengganti utuh kedelapan nilai snapshot dengan ukuran dokter — <c>BE-RWI-141</c>, K5.
+        /// </summary>
+        /// <remarks>
+        /// Berbeda dari <see cref="ApplySoapPatch"/> yang memperlakukan nilai kosong sebagai "tidak
+        /// diubah": ukuran dokter adalah satu pengukuran utuh, sehingga nilai yang dikosongkan dokter
+        /// ikut kosong dan tidak mewarisi angka perawat yang dirujuk sebelumnya.
+        /// </remarks>
+        private static void ReplaceVitalSignSnapshot(
+            TrxDoctorConsultation entity,
+            UpdateDoctorConsultationSoapRequest request)
+        {
+            entity.BloodPressureSystolic = request.BloodPressureSystolic;
+            entity.BloodPressureDiastolic = request.BloodPressureDiastolic;
+            entity.PulseRate = request.PulseRate;
+            entity.RespiratoryRate = request.RespiratoryRate;
+            entity.Temperature = request.Temperature;
+            entity.OxygenSaturation = request.OxygenSaturation;
+            entity.Weight = request.Weight;
+            entity.Height = request.Height;
+            entity.BMI = CalculateBmi(request.Weight, request.Height);
         }
 
         private static DoctorConsultationResponse ToResponse(TrxDoctorConsultation x)
@@ -1861,6 +2144,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 StartedAt = entity.StartedAt,
                 CompletedAt = entity.CompletedAt,
                 IsVitalSignCopiedFromAssessment = entity.IsVitalSignCopiedFromAssessment,
+                SourceVitalSignId = entity.SourceVitalSignId,
                 DiagnosisCount = entity.DiagnosisCount,
                 HasPrimaryDiagnosis = entity.HasPrimaryDiagnosis,
                 ProcedureCount = entity.ProcedureCount,
@@ -1886,6 +2170,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 StartedAt = entity.StartedAt,
                 CompletedAt = entity.CompletedAt,
                 IsVitalSignCopiedFromAssessment = entity.IsVitalSignCopiedFromAssessment,
+                SourceVitalSignId = entity.SourceVitalSignId,
                 DiagnosisCount = entity.DiagnosisCount,
                 HasPrimaryDiagnosis = entity.HasPrimaryDiagnosis,
                 ProcedureCount = entity.ProcedureCount,
@@ -1941,6 +2226,33 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
 
             if (request.DoctorNote != null)
                 entity.DoctorNote = NormalizeNullableText(request.DoctorNote);
+
+            if (request.BloodPressureSystolic.HasValue)
+                entity.BloodPressureSystolic = request.BloodPressureSystolic.Value;
+
+            if (request.BloodPressureDiastolic.HasValue)
+                entity.BloodPressureDiastolic = request.BloodPressureDiastolic.Value;
+
+            if (request.PulseRate.HasValue)
+                entity.PulseRate = request.PulseRate.Value;
+
+            if (request.RespiratoryRate.HasValue)
+                entity.RespiratoryRate = request.RespiratoryRate.Value;
+
+            if (request.Temperature.HasValue)
+                entity.Temperature = request.Temperature.Value;
+
+            if (request.OxygenSaturation.HasValue)
+                entity.OxygenSaturation = request.OxygenSaturation.Value;
+
+            if (request.Weight.HasValue)
+                entity.Weight = request.Weight.Value;
+
+            if (request.Height.HasValue)
+                entity.Height = request.Height.Value;
+
+            if (request.Weight.HasValue || request.Height.HasValue)
+                entity.BMI = CalculateBmi(entity.Weight, entity.Height);
         }
 
         private static DoctorConsultationSoapUpdateResponse BuildSoapUpdateResponse(
@@ -1959,6 +2271,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Controll
                 StartedAt = entity.StartedAt,
                 CompletedAt = entity.CompletedAt,
                 IsVitalSignCopiedFromAssessment = entity.IsVitalSignCopiedFromAssessment,
+                SourceVitalSignId = entity.SourceVitalSignId,
                 DiagnosisCount = entity.DiagnosisCount,
                 HasPrimaryDiagnosis = entity.HasPrimaryDiagnosis,
                 ProcedureCount = entity.ProcedureCount,

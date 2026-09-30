@@ -1,4 +1,4 @@
-﻿using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
+using QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Enums;
 using System.ComponentModel.DataAnnotations;
 
 namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
@@ -266,6 +266,23 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public string? DoctorNote { get; set; }
 
         public bool CompleteImmediately { get; set; } = false;
+
+        /// <summary>
+        /// Baris <c>TrxPatientVitalSign</c> yang dipakai sebagai snapshot tanda vital — biasanya ukuran
+        /// perawat terakhir. <c>BE-RWI-141</c>, K5.
+        /// </summary>
+        /// <remarks>
+        /// Bila terisi, nilai tanda vital pada permintaan diabaikan dan disalin dari baris ini. Baris
+        /// wajib milik episode yang sama (rawat inap) atau kunjungan yang sama (lainnya), dan tidak
+        /// batal. Tidak boleh terisi bersamaan dengan <see cref="IsDoctorMeasuredVitalSign"/>.
+        /// </remarks>
+        public Guid? SourceVitalSignId { get; set; }
+
+        /// <summary>
+        /// Nilai tanda vital pada permintaan adalah ukuran dokter sendiri — <c>BE-RWI-141</c>, K5.
+        /// Pada catatan rawat inap nilainya ikut dicatat pada deret tanda vital pasien.
+        /// </summary>
+        public bool IsDoctorMeasuredVitalSign { get; set; } = false;
     }
 
     public class UpdateDoctorConsultationRequest
@@ -418,6 +435,35 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
 
         [MaxLength(1000)]
         public string? DoctorNote { get; set; }
+
+        public int? BloodPressureSystolic { get; set; }
+
+        public int? BloodPressureDiastolic { get; set; }
+
+        public int? PulseRate { get; set; }
+
+        public int? RespiratoryRate { get; set; }
+
+        public decimal? Temperature { get; set; }
+
+        public decimal? OxygenSaturation { get; set; }
+
+        public decimal? Weight { get; set; }
+
+        public decimal? Height { get; set; }
+
+        /// <summary>
+        /// Rujukan baris tanda vital yang dipakai sebagai snapshot — <c>BE-RWI-141</c>, K5. Bila terisi,
+        /// kedelapan nilai tanda vital disalin utuh dari baris ini (termasuk yang kosong).
+        /// </summary>
+        public Guid? SourceVitalSignId { get; set; }
+
+        /// <summary>
+        /// Kedelapan nilai tanda vital pada permintaan adalah ukuran dokter dan menggantikan snapshot
+        /// utuh — nilai kosong ikut mengosongkan. Tanpa bendera ini, nilai kosong berarti "tidak
+        /// diubah" seperti sebelumnya. <c>BE-RWI-141</c>, K5.
+        /// </summary>
+        public bool IsDoctorMeasuredVitalSign { get; set; } = false;
     }
 
     public class DoctorConsultationCreateResponse
@@ -439,6 +485,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public DateTime? CompletedAt { get; set; }
 
         public bool IsVitalSignCopiedFromAssessment { get; set; }
+
+        /// <summary>Baris tanda vital sumber snapshot — <c>BE-RWI-141</c>.</summary>
+        public Guid? SourceVitalSignId { get; set; }
 
         public int DiagnosisCount { get; set; }
         public bool HasPrimaryDiagnosis { get; set; }
@@ -531,6 +580,95 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.DTOs
         public string? Assessment { get; set; }
 
         public string? Plan { get; set; }
+
+        public int? BloodPressureSystolic { get; set; }
+
+        public int? BloodPressureDiastolic { get; set; }
+
+        public int? PulseRate { get; set; }
+
+        public int? RespiratoryRate { get; set; }
+
+        public decimal? Temperature { get; set; }
+
+        public decimal? OxygenSaturation { get; set; }
+
+        public decimal? Weight { get; set; }
+
+        public decimal? Height { get; set; }
+
+        public decimal? BMI { get; set; }
+
+        public bool IsVitalSignCopiedFromAssessment { get; set; }
+
+        // BE-RWI-141 / K5 - asal-usul snapshot tanda vital.
+
+        /// <summary>Baris tanda vital sumber snapshot; kosong pada catatan lama.</summary>
+        public Guid? SourceVitalSignId { get; set; }
+
+        /// <summary>Waktu observasi baris sumber.</summary>
+        public DateTime? VitalSignObservedAt { get; set; }
+
+        /// <summary>Nama pengukur baris sumber — perawat, atau dokter penulis bila ukurannya sendiri.</summary>
+        public string? VitalSignObservedByName { get; set; }
+
+        /// <summary>Benar bila baris sumber adalah ukuran dokter milik catatan ini.</summary>
+        public bool IsDoctorMeasuredVitalSign { get; set; }
+
+        // BE-RWI-142 - rincian plan terstruktur. Tanpa kolom ini, draf yang dibuka ulang dari lini
+        // masa kehilangan rinciannya dan simpan berikutnya menimpanya kosong.
+
+        public string? ProcedurePlan { get; set; }
+
+        public string? PrescriptionPlan { get; set; }
+
+        public string? SupportingExamPlan { get; set; }
+
+        public string? ReferralPlan { get; set; }
+
+        public string? EducationPlan { get; set; }
+
+        public DateTime? FollowUpDate { get; set; }
+
+        public string? FollowUpNote { get; set; }
+
+        public string? DoctorNote { get; set; }
+
+        // BE-RWI-142 - diagnosa dan peran dokter, supaya Riwayat SOAP dan Catatan Dokter tidak
+        // meminta satu request per kartu.
+
+        public int DiagnosisCount { get; set; }
+
+        public bool HasPrimaryDiagnosis { get; set; }
+
+        /// <summary>Diagnosa aktif catatan ini, Utama lebih dulu.</summary>
+        public List<SoapTimelineDiagnosisResponse> Diagnoses { get; set; } = new();
+
+        /// <summary>
+        /// Peran penulis pada episode saat catatan ditulis (DPJP, Konsulen, Dokter jaga); kosong bila
+        /// penugasannya tidak ditemukan.
+        /// </summary>
+        public int? DoctorAssignmentRole { get; set; }
+
+        public string? DoctorAssignmentRoleLabel { get; set; }
+    }
+
+    /// <summary>Satu diagnosa aktif pada catatan dokter di lini masa — <c>BE-RWI-142</c>.</summary>
+    public class SoapTimelineDiagnosisResponse
+    {
+        /// <summary>Baris <c>TrxPatientDiagnosis</c>.</summary>
+        public Guid Id { get; set; }
+
+        /// <summary>Master <c>MstDiagnosis</c>; kosong bila diagnosa diketik tanpa master.</summary>
+        public Guid? DiagnosisId { get; set; }
+
+        public string DiagnosisCode { get; set; } = string.Empty;
+
+        public string DiagnosisName { get; set; } = string.Empty;
+
+        public bool IsPrimary { get; set; }
+
+        public PatientDiagnosisType DiagnosisType { get; set; }
     }
 
     /// <summary>

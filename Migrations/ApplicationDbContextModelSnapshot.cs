@@ -66255,6 +66255,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<Guid>("ServiceUnitId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("SourceVitalSignId")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime?>("StartedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -66318,6 +66321,8 @@ namespace QuilvianSystemBackend.Migrations
                         .HasFilter("\"IsDelete\" = false");
 
                     b.HasIndex("ServiceUnitId");
+
+                    b.HasIndex("SourceVitalSignId");
 
                     b.HasIndex("StartedByUserId");
 
@@ -113531,6 +113536,12 @@ namespace QuilvianSystemBackend.Migrations
                         .HasForeignKey("ServiceUnitId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Models.TrxPatientVitalSign", null)
+                        .WithMany()
+                        .HasForeignKey("SourceVitalSignId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("FK_TrxDoctorConsultation_SourceVitalSignId");
 
                     b.HasOne("QuilvianSystemBackend.Models.ApplicationUser", "StartedByUser")
                         .WithMany()
