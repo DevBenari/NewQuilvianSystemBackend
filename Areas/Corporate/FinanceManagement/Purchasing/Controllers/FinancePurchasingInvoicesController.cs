@@ -33,7 +33,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Con
 public sealed class FinancePurchasingInvoicesController : ControllerBase
 {
     private readonly FinancePurchasingInvoiceService _service;
-    public FinancePurchasingInvoicesController(FinancePurchasingInvoiceService service) => _service = service;
+    private readonly PurchasingIdempotencyService _idempotency;
+    public FinancePurchasingInvoicesController(FinancePurchasingInvoiceService service, PurchasingIdempotencyService idempotency)
+    {
+        _service = service;
+        _idempotency = idempotency;
+    }
 
     [HttpGet("{id:guid}")]
     [AccessAction("Read", "Read Purchasing Invoice", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -50,15 +55,23 @@ public sealed class FinancePurchasingInvoicesController : ControllerBase
     [HttpPost]
     [AccessAction("Create", "Create Purchasing Invoice", AccessType = AccessTypes.Create, SortOrder = 2)]
     [AccessPermission("FinancePurchasingInvoice", "Create")]
-    public async Task<IActionResult> Create([FromBody] CreatePurchasingInvoiceRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Create(
+        [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
+        [FromBody] CreatePurchasingInvoiceRequest request, CancellationToken cancellationToken)
     {
+        var replay = await _idempotency.TryReplayAsync(idempotencyKey, cancellationToken);
+        if (replay is not null) return Replay(replay);
+
         try
         {
             var items = MapItemRequests(request.Items);
             var purchasingInvoice = await _service.CreateAsync(
                 request.InvoiceExchangeId, request.DiscountAmount, request.PPNAmount, request.DownPaymentAmount,
                 request.OtherDeductionAmount, request.TotalAmount, items, CurrentUserId(), cancellationToken);
-            return StatusCode(201, ApiResponse<PurchasingInvoiceResponse>.Ok(Map(purchasingInvoice), "Purchasing Invoice berhasil disusun."));
+            var response = ApiResponse<PurchasingInvoiceResponse>.Ok(Map(purchasingInvoice), "Purchasing Invoice berhasil disusun.");
+            await _idempotency.SaveAsync(idempotencyKey, FinPurchasingIdempotencyEntityTypes.PurchasingInvoice,
+                FinPurchasingIdempotencyActions.Create, purchasingInvoice.Id, 201, response, cancellationToken);
+            return StatusCode(201, response);
         }
         catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
     }
@@ -82,12 +95,20 @@ public sealed class FinancePurchasingInvoicesController : ControllerBase
     [HttpPost("{id:guid}/submit")]
     [AccessAction("Submit", "Submit Purchasing Invoice", AccessType = AccessTypes.Update, SortOrder = 4)]
     [AccessPermission("FinancePurchasingInvoice", "Submit")]
-    public async Task<IActionResult> Submit(Guid id, [FromBody] PurchasingInvoiceRowVersionRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Submit(
+        [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
+        Guid id, [FromBody] PurchasingInvoiceRowVersionRequest request, CancellationToken cancellationToken)
     {
+        var replay = await _idempotency.TryReplayAsync(idempotencyKey, cancellationToken);
+        if (replay is not null) return Replay(replay);
+
         try
         {
             var purchasingInvoice = await _service.SubmitAsync(id, request.ExpectedRowVersion, CurrentUserId(), cancellationToken);
-            return Ok(ApiResponse<PurchasingInvoiceResponse>.Ok(Map(purchasingInvoice), "Purchasing Invoice berhasil diajukan."));
+            var response = ApiResponse<PurchasingInvoiceResponse>.Ok(Map(purchasingInvoice), "Purchasing Invoice berhasil diajukan.");
+            await _idempotency.SaveAsync(idempotencyKey, FinPurchasingIdempotencyEntityTypes.PurchasingInvoice,
+                FinPurchasingIdempotencyActions.Submit, purchasingInvoice.Id, 200, response, cancellationToken);
+            return Ok(response);
         }
         catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
     }
@@ -95,12 +116,20 @@ public sealed class FinancePurchasingInvoicesController : ControllerBase
     [HttpPost("{id:guid}/approve")]
     [AccessAction("Approve", "Approve Purchasing Invoice", AccessType = AccessTypes.Update, SortOrder = 5)]
     [AccessPermission("FinancePurchasingInvoice", "Approve")]
-    public async Task<IActionResult> Approve(Guid id, [FromBody] PurchasingInvoiceRowVersionRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Approve(
+        [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
+        Guid id, [FromBody] PurchasingInvoiceRowVersionRequest request, CancellationToken cancellationToken)
     {
+        var replay = await _idempotency.TryReplayAsync(idempotencyKey, cancellationToken);
+        if (replay is not null) return Replay(replay);
+
         try
         {
             var purchasingInvoice = await _service.ApproveAsync(id, request.ExpectedRowVersion, CurrentUserId(), cancellationToken);
-            return Ok(ApiResponse<PurchasingInvoiceResponse>.Ok(Map(purchasingInvoice), "Purchasing Invoice berhasil disetujui."));
+            var response = ApiResponse<PurchasingInvoiceResponse>.Ok(Map(purchasingInvoice), "Purchasing Invoice berhasil disetujui.");
+            await _idempotency.SaveAsync(idempotencyKey, FinPurchasingIdempotencyEntityTypes.PurchasingInvoice,
+                FinPurchasingIdempotencyActions.Approve, purchasingInvoice.Id, 200, response, cancellationToken);
+            return Ok(response);
         }
         catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
     }
@@ -193,6 +222,9 @@ public sealed class FinancePurchasingInvoicesController : ControllerBase
         KeyNotFoundException or PurchasingForbiddenException or PurchasingConflictException
         or PurchasingValidationException or PurchasingBadRequestException
         or PayableConflictException or PayableValidationException or PayableBadRequestException;
+
+    private IActionResult Replay(PurchasingIdempotencyService.CachedResult cached) =>
+        new ContentResult { StatusCode = cached.StatusCode, Content = cached.ResponseBody, ContentType = "application/json" };
 
     private Guid CurrentUserId()
     {

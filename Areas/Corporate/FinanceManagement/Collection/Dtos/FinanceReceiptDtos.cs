@@ -89,3 +89,48 @@ public sealed class FinReceiptQuery
     public string SortDirection { get; set; } = "desc";
 }
 
+/// <summary>BE-FIN-050, `GET /receipts/register` (FIN-API-1.0). Buku penerimaan kasir per tanggal.</summary>
+public sealed class ReceiptRegisterQuery
+{
+    public DateTimeOffset? StartDate { get; set; }
+    public DateTimeOffset? EndDate { get; set; }
+    public Guid? CashierShiftId { get; set; }
+    public int PageNumber { get; set; } = 1;
+    public int PageSize { get; set; } = 25;
+}
+
+/// <summary>Satu baris buku penerimaan kasir — menelusur ke tender dan kwitansi asalnya
+/// (KwitansiNumber/SourceTenderId tidak ada pada FinReceiptResponse umum).</summary>
+public sealed class ReceiptRegisterResponse
+{
+    public Guid Id { get; set; }
+    public string ReceiptNumber { get; set; } = string.Empty;
+    public string? KwitansiNumber { get; set; }
+    public Guid? SourceTenderId { get; set; }
+    public Guid? CashierShiftId { get; set; }
+    public Guid? PaymentMethodId { get; set; }
+    public decimal Amount { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public DateTimeOffset OccurredAt { get; set; }
+}
+
+/// <summary>BE-FIN-050, `GET /receipts/shift-reconciliation` (FIN-API-1.0). Satu shift per
+/// pemanggilan — kontrak menyatakan response tunggal, bukan daftar berpaging.</summary>
+public sealed class ShiftReconciliationQuery
+{
+    [System.ComponentModel.DataAnnotations.Required] public Guid CashierShiftId { get; set; }
+}
+
+/// <summary>Perbandingan total penerimaan tunai Finance dengan SystemCash Billing untuk satu
+/// shift kasir. Baca saja — tidak pernah menulis FinReceipt maupun BilCashierShift.</summary>
+public sealed class ShiftReconciliationResponse
+{
+    public Guid CashierShiftId { get; set; }
+    public string ShiftNumber { get; set; } = string.Empty;
+    public string CashierShiftStatus { get; set; } = string.Empty;
+    public decimal SystemCashAmount { get; set; }
+    public decimal FinanceNetCashReceiptAmount { get; set; }
+    public decimal Variance { get; set; }
+    public int CashReceiptCount { get; set; }
+}
+

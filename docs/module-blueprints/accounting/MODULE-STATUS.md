@@ -455,8 +455,8 @@ revision 12.
 potongan piutang dan retur pembelian). Keduanya dijawab `ACC-DEC-103`..`106` (decision log revision
 13). Ketiga surat Finance — `05`, `06`, `07` — dijawab dalam satu balasan:
 [`evidence/14`](evidence/14-balasan-accounting-atas-kode-finance-05-06-07.md). Menurut roadmap
-Finance, task yang benar-benar ⛔ karena Accounting adalah `BE-FIN-023`..`026` dan `FE-FIN-007`
-(`FIN-OQ-017`). Kode `evidence/06`/`07` hanya menahan aktivasi worker pengiriman Finance
+Finance (saat surat dikirim), task yang benar-benar ⛔ karena Accounting adalah `BE-FIN-023`..`026` dan `FE-FIN-007`
+(`FIN-OQ-017`) — seluruh blocker tersebut kini telah resmi dicabut di Finance menyusul pengiriman ratifikasi `evidence/14` dan penutupan `FIN-OQ-017`. Kode `evidence/06`/`07` hanya menahan aktivasi worker pengiriman Finance
 (`FIN-DEC-056`, `058`, `061`).
 
 #### Langkah berikutnya

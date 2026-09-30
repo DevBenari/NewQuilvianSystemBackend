@@ -29,7 +29,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Purchasing.Con
 public sealed class FinancePurchaseOrdersController : ControllerBase
 {
     private readonly FinancePurchaseOrderService _service;
-    public FinancePurchaseOrdersController(FinancePurchaseOrderService service) => _service = service;
+    private readonly PurchasingIdempotencyService _idempotency;
+    public FinancePurchaseOrdersController(FinancePurchaseOrderService service, PurchasingIdempotencyService idempotency)
+    {
+        _service = service;
+        _idempotency = idempotency;
+    }
 
     [HttpGet]
     [AccessAction("Read", "Read Purchase Order", AccessType = AccessTypes.Read, SortOrder = 1)]
@@ -64,13 +69,21 @@ public sealed class FinancePurchaseOrdersController : ControllerBase
     [HttpPost]
     [AccessAction("Create", "Create Purchase Order", AccessType = AccessTypes.Create, SortOrder = 2)]
     [AccessPermission("FinancePurchaseOrder", "Create")]
-    public async Task<IActionResult> Create([FromBody] CreatePurchaseOrderRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Create(
+        [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
+        [FromBody] CreatePurchaseOrderRequest request, CancellationToken cancellationToken)
     {
+        var replay = await _idempotency.TryReplayAsync(idempotencyKey, cancellationToken);
+        if (replay is not null) return Replay(replay);
+
         try
         {
             var items = MapItemRequests(request.Items);
             var purchaseOrder = await _service.CreateAsync(request.SupplierId, items, CurrentUserId(), cancellationToken);
-            return StatusCode(201, ApiResponse<PurchaseOrderResponse>.Ok(Map(purchaseOrder), "Purchase Order berhasil disusun."));
+            var response = ApiResponse<PurchaseOrderResponse>.Ok(Map(purchaseOrder), "Purchase Order berhasil disusun.");
+            await _idempotency.SaveAsync(idempotencyKey, FinPurchasingIdempotencyEntityTypes.PurchaseOrder,
+                FinPurchasingIdempotencyActions.Create, purchaseOrder.Id, 201, response, cancellationToken);
+            return StatusCode(201, response);
         }
         catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
     }
@@ -92,12 +105,20 @@ public sealed class FinancePurchaseOrdersController : ControllerBase
     [HttpPost("{id:guid}/submit")]
     [AccessAction("Submit", "Submit Purchase Order", AccessType = AccessTypes.Update, SortOrder = 4)]
     [AccessPermission("FinancePurchaseOrder", "Submit")]
-    public async Task<IActionResult> Submit(Guid id, [FromBody] PurchaseOrderRowVersionRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Submit(
+        [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
+        Guid id, [FromBody] PurchaseOrderRowVersionRequest request, CancellationToken cancellationToken)
     {
+        var replay = await _idempotency.TryReplayAsync(idempotencyKey, cancellationToken);
+        if (replay is not null) return Replay(replay);
+
         try
         {
             var purchaseOrder = await _service.SubmitAsync(id, request.ExpectedRowVersion, CurrentUserId(), cancellationToken);
-            return Ok(ApiResponse<PurchaseOrderResponse>.Ok(Map(purchaseOrder), "Purchase Order berhasil diajukan."));
+            var response = ApiResponse<PurchaseOrderResponse>.Ok(Map(purchaseOrder), "Purchase Order berhasil diajukan.");
+            await _idempotency.SaveAsync(idempotencyKey, FinPurchasingIdempotencyEntityTypes.PurchaseOrder,
+                FinPurchasingIdempotencyActions.Submit, purchaseOrder.Id, 200, response, cancellationToken);
+            return Ok(response);
         }
         catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
     }
@@ -105,12 +126,20 @@ public sealed class FinancePurchaseOrdersController : ControllerBase
     [HttpPost("{id:guid}/approve")]
     [AccessAction("Approve", "Approve Purchase Order", AccessType = AccessTypes.Update, SortOrder = 5)]
     [AccessPermission("FinancePurchaseOrder", "Approve")]
-    public async Task<IActionResult> Approve(Guid id, [FromBody] PurchaseOrderRowVersionRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Approve(
+        [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
+        Guid id, [FromBody] PurchaseOrderRowVersionRequest request, CancellationToken cancellationToken)
     {
+        var replay = await _idempotency.TryReplayAsync(idempotencyKey, cancellationToken);
+        if (replay is not null) return Replay(replay);
+
         try
         {
             var purchaseOrder = await _service.ApproveAsync(id, request.ExpectedRowVersion, CurrentUserId(), cancellationToken);
-            return Ok(ApiResponse<PurchaseOrderResponse>.Ok(Map(purchaseOrder), "Purchase Order berhasil disetujui."));
+            var response = ApiResponse<PurchaseOrderResponse>.Ok(Map(purchaseOrder), "Purchase Order berhasil disetujui.");
+            await _idempotency.SaveAsync(idempotencyKey, FinPurchasingIdempotencyEntityTypes.PurchaseOrder,
+                FinPurchasingIdempotencyActions.Approve, purchaseOrder.Id, 200, response, cancellationToken);
+            return Ok(response);
         }
         catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
     }
@@ -131,12 +160,20 @@ public sealed class FinancePurchaseOrdersController : ControllerBase
     [HttpPost("{id:guid}/cancel")]
     [AccessAction("Cancel", "Cancel Purchase Order", AccessType = AccessTypes.Update, SortOrder = 6)]
     [AccessPermission("FinancePurchaseOrder", "Cancel")]
-    public async Task<IActionResult> Cancel(Guid id, [FromBody] PurchaseOrderRowVersionRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Cancel(
+        [FromHeader(Name = "Idempotency-Key")] Guid idempotencyKey,
+        Guid id, [FromBody] PurchaseOrderRowVersionRequest request, CancellationToken cancellationToken)
     {
+        var replay = await _idempotency.TryReplayAsync(idempotencyKey, cancellationToken);
+        if (replay is not null) return Replay(replay);
+
         try
         {
             var purchaseOrder = await _service.CancelAsync(id, request.ExpectedRowVersion, CurrentUserId(), cancellationToken);
-            return Ok(ApiResponse<PurchaseOrderResponse>.Ok(Map(purchaseOrder), "Purchase Order berhasil dibatalkan."));
+            var response = ApiResponse<PurchaseOrderResponse>.Ok(Map(purchaseOrder), "Purchase Order berhasil dibatalkan.");
+            await _idempotency.SaveAsync(idempotencyKey, FinPurchasingIdempotencyEntityTypes.PurchaseOrder,
+                FinPurchasingIdempotencyActions.Cancel, purchaseOrder.Id, 200, response, cancellationToken);
+            return Ok(response);
         }
         catch (Exception exception) when (IsHandled(exception)) { return Failure(exception); }
     }
@@ -210,6 +247,11 @@ public sealed class FinancePurchaseOrdersController : ControllerBase
     private static bool IsHandled(Exception exception) => exception is
         KeyNotFoundException or PurchasingForbiddenException or PurchasingConflictException
         or PurchasingValidationException or PurchasingBadRequestException;
+
+    // BE-FIN-051: kirim ulang body persis yang tersimpan — bukan objek C# yang dibangun ulang,
+    // supaya replay identik byte-per-byte dengan respons pertama.
+    private IActionResult Replay(PurchasingIdempotencyService.CachedResult cached) =>
+        new ContentResult { StatusCode = cached.StatusCode, Content = cached.ResponseBody, ContentType = "application/json" };
 
     private Guid CurrentUserId()
     {

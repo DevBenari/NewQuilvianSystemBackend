@@ -715,6 +715,9 @@ namespace QuilvianSystemBackend.Repositories
         public DbSet<FinSupplierReturnItem> FinSupplierReturnItems { get; set; }
         public DbSet<FinSupplierReturnDeposit> FinSupplierReturnDeposits { get; set; }
         public DbSet<FinSupplierReturnDepositUsage> FinSupplierReturnDepositUsages { get; set; }
+        // BE-FIN-051, FIN-DES-006: ledger idempotensi bersama untuk kelima aggregate root
+        // Purchasing di atas — menutup gap header Idempotency-Key yang dicatat FE-FIN-008.
+        public DbSet<FinPurchasingIdempotencyRecord> FinPurchasingIdempotencyRecords { get; set; }
         public DbSet<FinPettyCashBudget> FinPettyCashBudgets { get; set; }
         public DbSet<FinPettyCashBudgetMovement> FinPettyCashBudgetMovements { get; set; }
         public DbSet<BilPettyCashVoucher> BilPettyCashVouchers { get; set; }

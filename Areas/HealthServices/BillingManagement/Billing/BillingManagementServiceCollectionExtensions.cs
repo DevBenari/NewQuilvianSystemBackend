@@ -121,6 +121,9 @@ public static class BillingManagementServiceCollectionExtensions
         // BE-FIN-035, FIN-DEC-047/061: Retur Pembelian dan Deposit Retur — satu-satunya penulis
         // AvailableAmount (FIN-DES-046, ditegakkan penuh oleh BE-FIN-036).
         services.AddScoped<FinanceSupplierReturnService>();
+        // BE-FIN-051, FIN-DES-006: ledger idempotensi bersama kelima controller Purchasing di
+        // atas — menutup gap header Idempotency-Key yang dicatat FE-FIN-008.
+        services.AddScoped<PurchasingIdempotencyService>();
         // BE-FIN-037, FIN-API-1.1 §B.6, FIN-DEC-059: Empat laporan Purchasing/AP read-only
         // (/summary, /invoice-exchanges, /due-dates, /reconciliation). Nol tabel baru.
         // /aging SENGAJA tidak ada — FIN-DEC-059 mencabut endpoint itu; layar AP memakai

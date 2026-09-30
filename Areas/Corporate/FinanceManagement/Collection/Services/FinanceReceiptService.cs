@@ -7,6 +7,7 @@ using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Dtos;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Collection.Models;
 using QuilvianSystemBackend.Areas.Corporate.FinanceManagement.Receivable.Services;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Cashier.Models;
 using QuilvianSystemBackend.Repositories;
 using QuilvianSystemBackend.Responses;
 using System.Data;
@@ -363,6 +364,96 @@ public sealed class FinanceReceiptService
             TotalPage = (int)Math.Ceiling(total / (double)pageSize),
             PageNumber = pageNumber,
             PageSize = pageSize
+        };
+    }
+
+    // ------------------------------------------------------------------------------------
+    // Buku register dan rekonsiliasi shift (BE-FIN-050, FIN-API-1.0) — baca saja, menutup gap
+    // yang eksplisit dikecualikan BE-FIN-018 ("di luar cakupan literal roadmap task ini").
+    // ------------------------------------------------------------------------------------
+
+    /// <summary>`GET /receipts/register` — buku penerimaan kasir per tanggal, menelusur ke
+    /// tender dan kwitansi asalnya (FIN-API-1.0).</summary>
+    public async Task<PagedResult<ReceiptRegisterResponse>> GetRegisterAsync(ReceiptRegisterQuery request, CancellationToken cancellationToken)
+    {
+        var query = _dbContext.FinReceipts.AsNoTracking().Where(x => !x.IsDelete);
+
+        if (request.StartDate.HasValue)
+            query = query.Where(x => x.OccurredAt >= request.StartDate.Value);
+        if (request.EndDate.HasValue)
+            query = query.Where(x => x.OccurredAt <= request.EndDate.Value);
+        if (request.CashierShiftId.HasValue)
+            query = query.Where(x => x.CashierShiftId == request.CashierShiftId.Value);
+
+        query = query.OrderByDescending(x => x.OccurredAt);
+
+        var pageNumber = Math.Max(1, request.PageNumber);
+        var pageSize = Math.Clamp(request.PageSize, 1, 100);
+
+        var total = await query.CountAsync(cancellationToken);
+        var items = await query
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .Select(x => new ReceiptRegisterResponse
+            {
+                Id = x.Id,
+                ReceiptNumber = x.ReceiptNumber,
+                KwitansiNumber = x.KwitansiNumber,
+                SourceTenderId = x.SourceTenderId,
+                CashierShiftId = x.CashierShiftId,
+                PaymentMethodId = x.PaymentMethodId,
+                Amount = x.Amount,
+                Status = x.Status,
+                OccurredAt = x.OccurredAt
+            })
+            .ToListAsync(cancellationToken);
+
+        return new PagedResult<ReceiptRegisterResponse>
+        {
+            Items = items,
+            TotalData = total,
+            TotalPage = (int)Math.Ceiling(total / (double)pageSize),
+            PageNumber = pageNumber,
+            PageSize = pageSize
+        };
+    }
+
+    /// <summary>`GET /receipts/shift-reconciliation` — membandingkan total penerimaan tunai
+    /// Finance dengan `BilCashierShift.SystemCash` milik Billing untuk satu shift (FIN-API-1.0).
+    /// Baca saja: nol tulisan ke `FinReceipt` maupun `BilCashierShift`, sama seperti
+    /// `GetInvoiceBreakdownAsync` (BE-FIN-017) — kedua sisi tetap dimiliki service masing-masing.</summary>
+    public async Task<ShiftReconciliationResponse> GetShiftReconciliationAsync(Guid cashierShiftId, CancellationToken cancellationToken)
+    {
+        var shift = await _dbContext.BilCashierShifts.AsNoTracking()
+            .SingleOrDefaultAsync(x => x.Id == cashierShiftId && !x.IsDelete, cancellationToken)
+            ?? throw new KeyNotFoundException("Shift kasir tidak ditemukan.");
+
+        var receipts = await _dbContext.FinReceipts.AsNoTracking()
+            .Where(x => !x.IsDelete && x.CashierShiftId == cashierShiftId)
+            .Select(x => new { x.Amount, x.Status, x.PaymentMethodId })
+            .ToListAsync(cancellationToken);
+
+        var cashPaymentMethodIds = await _dbContext.MstPaymentMethods.AsNoTracking()
+            .Where(x => !x.IsDelete && x.IsCash)
+            .Select(x => x.Id)
+            .ToListAsync(cancellationToken);
+
+        var cashReceipts = receipts.Where(x => x.PaymentMethodId.HasValue && cashPaymentMethodIds.Contains(x.PaymentMethodId.Value)).ToList();
+
+        // Baris pembalik (Status = REVERSED) menetralkan baris aslinya — dijumlah bersih, pola
+        // sama dengan GetInvoiceBreakdownAsync.
+        var netCashAmount = cashReceipts.Where(x => x.Status != FinReceiptStatuses.Reversed).Sum(x => x.Amount)
+            - cashReceipts.Where(x => x.Status == FinReceiptStatuses.Reversed).Sum(x => x.Amount);
+
+        return new ShiftReconciliationResponse
+        {
+            CashierShiftId = shift.Id,
+            ShiftNumber = shift.ShiftNumber,
+            CashierShiftStatus = shift.Status,
+            SystemCashAmount = shift.SystemCash,
+            FinanceNetCashReceiptAmount = netCashAmount,
+            Variance = shift.SystemCash - netCashAmount,
+            CashReceiptCount = cashReceipts.Count
         };
     }
 
