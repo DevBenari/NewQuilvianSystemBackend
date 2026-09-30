@@ -369,7 +369,9 @@ namespace QuilvianSystemBackend.Areas.HealthServices.PharmacyManagement.Controll
                 BenefitPlanNameSnapshot = insuranceContext.BenefitPlanName,
                 PrescriptionStatus = PrescriptionStatus.Draft,
                 PaymentStatus = PrescriptionPaymentStatus.NotBilled,
-                FulfillmentStatus = PrescriptionFulfillmentStatus.WaitingForPayment,
+                // Resep draft menunggu finalisasi klinis; WaitingForPayment baru diberikan
+                // PrescriptionWorkflowService saat konsultasi diselesaikan (BE-RJE-008).
+                FulfillmentStatus = PrescriptionFulfillmentStatus.WaitingForClinicalFinalization,
                 PrescriptionDateTime = request.PrescriptionDateTime ?? now,
                 ClinicalNote = NormalizeNullableText(request.ClinicalNote),
                 DoctorInstruction = NormalizeNullableText(request.DoctorInstruction),

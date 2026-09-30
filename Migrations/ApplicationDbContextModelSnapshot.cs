@@ -62887,6 +62887,136 @@ namespace QuilvianSystemBackend.Migrations
                         });
                 });
 
+            modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models.MstBillingSyncPolicy", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("BaseDelaySeconds")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("CancelBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreateDateTime")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("DeleteBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DeleteDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsCancel")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsDelete")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
+
+                    b.Property<int>("MaxAttemptCount")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("MaxDelaySeconds")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PolicyCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("PolicyName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<Guid>("RowVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("UpdateBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdateDateTime")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PolicyCode")
+                        .IsUnique()
+                        .HasFilter("\"IsDelete\" = false");
+
+                    b.ToTable("MstBillingSyncPolicy", "public", t =>
+                        {
+                            t.HasCheckConstraint("CK_MstBillingSyncPolicy_BaseDelaySeconds", "\"BaseDelaySeconds\" BETWEEN 10 AND 3600");
+
+                            t.HasCheckConstraint("CK_MstBillingSyncPolicy_MaxAttemptCount", "\"MaxAttemptCount\" BETWEEN 0 AND 20");
+
+                            t.HasCheckConstraint("CK_MstBillingSyncPolicy_MaxDelaySeconds", "\"MaxDelaySeconds\" >= \"BaseDelaySeconds\" AND \"MaxDelaySeconds\" <= 86400");
+                        });
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("5d0c2b61-7f3a-4e8e-9b1c-2a6f0e3d9a01"),
+                            BaseDelaySeconds = 60,
+                            CancelBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            CreateBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            CreateDateTime = new DateTime(2026, 9, 28, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DeleteBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            Description = "Penyerahan fakta klinis yang hasilnya belum pasti dikirim ulang dengan identitas dan kunci yang sama.",
+                            IsActive = true,
+                            IsCancel = false,
+                            IsDelete = false,
+                            MaxAttemptCount = 5,
+                            MaxDelaySeconds = 3600,
+                            PolicyCode = "FACT_DISPATCH",
+                            PolicyName = "Kirim ulang fakta klinis ke folio",
+                            RowVersion = new Guid("9b3e7c42-1d58-4f06-a2b7-6c1e8d4f0a11"),
+                            UpdateBy = new Guid("00000000-0000-0000-0000-000000000000")
+                        },
+                        new
+                        {
+                            Id = new Guid("5d0c2b61-7f3a-4e8e-9b1c-2a6f0e3d9a02"),
+                            BaseDelaySeconds = 60,
+                            CancelBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            CreateBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            CreateDateTime = new DateTime(2026, 9, 28, 0, 0, 0, 0, DateTimeKind.Utc),
+                            DeleteBy = new Guid("00000000-0000-0000-0000-000000000000"),
+                            Description = "Efek folio yang gagal diteruskan ke invoice canonical dikirim ulang dengan kunci idempotency yang sama.",
+                            IsActive = true,
+                            IsCancel = false,
+                            IsDelete = false,
+                            MaxAttemptCount = 5,
+                            MaxDelaySeconds = 3600,
+                            PolicyCode = "INVOICE_SYNC",
+                            PolicyName = "Kirim ulang efek folio ke invoice",
+                            RowVersion = new Guid("9b3e7c42-1d58-4f06-a2b7-6c1e8d4f0a12"),
+                            UpdateBy = new Guid("00000000-0000-0000-0000-000000000000")
+                        });
+                });
+
             modelBuilder.Entity("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models.MstDepositPolicy", b =>
                 {
                     b.Property<Guid>("Id")
@@ -63990,8 +64120,60 @@ namespace QuilvianSystemBackend.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
 
+                    b.Property<Guid?>("InvoiceAdjustmentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("InvoiceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("InvoiceItemId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("InvoiceSourceDetailId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("InvoiceSourceDomain")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int>("InvoiceSyncAttemptCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("InvoiceSyncErrorCode")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("InvoiceSyncErrorMessage")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime?>("InvoiceSyncNextAttemptAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("InvoiceSyncStatus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<int>("InvoiceSyncVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(0);
+
+                    b.Property<DateTime?>("InvoiceSyncedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<bool>("IsCancel")
                         .HasColumnType("boolean");
+
+                    b.Property<bool>("IsClinicalCancellation")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<bool>("IsDelete")
                         .HasColumnType("boolean");
@@ -64012,6 +64194,16 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.Property<int>("Outcome")
                         .HasColumnType("integer");
+
+                    b.Property<string>("ReconciliationResolutionNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("ReconciliationResolvedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ReconciliationResolvedByUserId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("RequestFingerprint")
                         .IsRequired()
@@ -64034,6 +64226,14 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasIndex("ChargeLineId");
 
                     b.HasIndex("FolioId");
+
+                    b.HasIndex("InvoiceAdjustmentId");
+
+                    b.HasIndex("InvoiceId");
+
+                    b.HasIndex("InvoiceItemId");
+
+                    b.HasIndex("InvoiceSyncStatus", "InvoiceSyncNextAttemptAt");
 
                     b.HasIndex("Consumer", "OperationType", "IdempotencyKey")
                         .IsUnique();
@@ -66202,6 +66402,9 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<int>("MilestoneKind")
                         .HasColumnType("integer");
 
+                    b.Property<DateTime?>("NextDispatchAttemptAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTime>("OccurredAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -66213,6 +66416,19 @@ namespace QuilvianSystemBackend.Migrations
                     b.Property<decimal?>("Quantity")
                         .HasPrecision(18, 6)
                         .HasColumnType("numeric(18,6)");
+
+                    b.Property<DateTime?>("ReconciliationRequiredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ReconciliationResolutionNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("ReconciliationResolvedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ReconciliationResolvedByUserId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("RuleSnapshot")
                         .HasColumnType("text");
@@ -66253,6 +66469,8 @@ namespace QuilvianSystemBackend.Migrations
 
                     b.HasIndex("IdempotencyKey")
                         .IsUnique();
+
+                    b.HasIndex("DispatchStatus", "NextDispatchAttemptAt");
 
                     b.HasIndex("SourceContext", "MilestoneFactId", "MilestoneFactVersion", "EffectType")
                         .IsUnique();
@@ -114754,6 +114972,21 @@ namespace QuilvianSystemBackend.Migrations
                     b.HasOne("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Models.BilFolio", null)
                         .WithMany()
                         .HasForeignKey("FolioId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models.BilAdjustment", null)
+                        .WithMany()
+                        .HasForeignKey("InvoiceAdjustmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models.BilInvoice", null)
+                        .WithMany()
+                        .HasForeignKey("InvoiceId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Models.BilInvoiceItem", null)
+                        .WithMany()
+                        .HasForeignKey("InvoiceItemId")
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 

@@ -49,6 +49,16 @@ namespace QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operation
         public Guid? CorrelationId { get; set; }
 
         public Guid? CausationId { get; set; }
+
+        /// <summary>
+        /// Fakta berasal dari pembatalan klinis (<c>RJ-E2E-DEC-016</c>). Tanpa penanda ini folio
+        /// tidak dapat membedakan revisi pembatalan dari revisi biasa, karena keduanya membawa
+        /// effect type yang sama.
+        ///
+        /// Sengaja <b>tidak</b> ikut sidik jari request: fakta lama yang dikirim ulang tanpa field
+        /// ini harus tetap terbaca sebagai replay, bukan konflik isi.
+        /// </summary>
+        public bool IsClinicalCancellation { get; set; }
     }
 
     public class BillingContractErrorResponse
