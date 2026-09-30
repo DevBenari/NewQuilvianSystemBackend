@@ -189,10 +189,12 @@ revaluasi mata uang asing. Kelimanya menunggu keputusan tersendiri.
 | `contract_version` | `ACC-VALIDATION-0.6` |
 | `last_changed_in` | `ACC-VALIDATION-0.6` — 9 September 2026, dua bidang penelusuran wajib `ACC-DEC-060`. Sebelumnya `0.5` (baris posting `ACC-DEC-058`) dan `0.4` |
 | Amandemen menunggu ratifikasi | **`ACC-VALIDATION-0.7` (usulan) — 11 September 2026.** Bagian 3 dan 3b diselaraskan dengan `ACC-DEC-072` dan `ACC-DEC-073`: penyesuaian `JP` dan template berulang ikut terkena larangan control account, template dicabut dari daftar jalur sah, pesan penolakan menyebut akunnya, dan tabel jalur yang terkena ditambahkan. **Status `approved` di bawah belum diubah** — menunggu ratifikasi Rizki |
-| Penyesuaian atas keputusan owner | **`ACC-VALIDATION-0.8` (usulan) — 24 September 2026.** Menuliskan `ACC-DEC-084`..`087`: pengecualian `Amount` untuk pesan saldo, empat aturan `SubledgerBalance`, balasan kiriman ulang membawa tanda terima keadaan terkini, dan larangan tertulis `JASA_MEDIS` pada aturan `PENGAKUAN-PIUTANG`. Dasarnya keputusan owner yang sudah `approved`, sehingga tidak menunggu ratifikasi `0.7` |
+| Penyesuaian atas keputusan owner | **`ACC-VALIDATION-0.8` — approved Rizki, 24 September 2026 (`GATE-DESAIN-0924`).** Menuliskan `ACC-DEC-084`..`087`: pengecualian `Amount` untuk pesan saldo, empat aturan `SubledgerBalance`, balasan kiriman ulang membawa tanda terima keadaan terkini, dan larangan tertulis `JASA_MEDIS` pada aturan `PENGAKUAN-PIUTANG`. Dasarnya keputusan owner yang sudah `approved`, sehingga tidak menunggu ratifikasi `0.7` |
+| Penyesuaian atas keputusan owner (3) | **`ACC-VALIDATION-0.10` — approved Rizki, 28 September 2026**, bersama roadmap backend revisi 6. Dua aturan `ACC-DEC-096` di bagian 2 (`BE-ACC-P2-030`) |
+| Penyesuaian atas keputusan owner (2) | **`ACC-VALIDATION-0.9` — approved Rizki, 28 September 2026 (`GATE-DESAIN-0928`).** Bagian 4 bertambah dua aturan penolakan rekonsiliasi saldo subledger — saat Ajukan dan saat Tutup Permanen (`ACC-DEC-076`, `111`) — dan bagian 4b baru untuk endpoint `GET /reconciliation/subledger-comparison`. **Nol aturan baru pada penerimaan pesan saldo** (`ACC-DEC-110`) |
 | Status | **`approved`** |
 | `approved_by` / `approved_at` | Rizki / 8 September 2026 |
-| Traceability | `ACC-DEC-044` sampai `ACC-DEC-057`; `ACC-DEC-084` sampai `ACC-DEC-087` *(usulan `0.8`)* |
+| Traceability | `ACC-DEC-044` sampai `ACC-DEC-057`; `ACC-DEC-084` sampai `ACC-DEC-087` *(`0.8`)*; `ACC-DEC-107` sampai `ACC-DEC-113` *(`0.9`)* |
 
 ## 1. Menerima kejadian keuangan
 
@@ -202,11 +204,11 @@ revaluasi mata uang asing. Kelimanya menunggu keputusan tersendiri.
 | `CorrelationId` dan `CausationId` wajib | Terima | Salah satunya kosong atau bernilai `Guid.Empty` | `400` | "Pesan kejadian wajib membawa penelusuran ke transaksi asal." |
 | Mata uang harus rupiah | Terima | `CurrencyCode` bukan `IDR` | `409` | "Sistem akuntansi hanya menerima rupiah." |
 | Nilai tidak boleh nol atau negatif | Terima | `Amount <= 0`, **kecuali** pesan saldo subledger | `400` | "Nilai kejadian harus lebih besar dari nol." — pesan saldo boleh nol atau negatif (`ACC-DEC-087`) |
-| **Rincian saldo wajib pada pesan saldo** *(usulan `0.8`)* | Terima | `EventTypeCode` kode saldo tetapi `SubledgerBalance` kosong, **atau** jenis lain membawa `SubledgerBalance` | `400` | "Rincian saldo subledger hanya dan wajib ada pada pesan saldo subledger." |
-| **Kode periode saldo sah** *(usulan `0.8`)* | Terima | `SubledgerBalance.AccountingPeriodCode` bukan bentuk `YYYY-MM`, atau periodenya tidak ada untuk badan hukum itu | `400` | "Periode akuntansi {kode} tidak dikenal untuk badan hukum ini." |
-| **Akun saldo harus control account** *(usulan `0.8`)* | Terima | `SubledgerBalance.ControlAccountCode` tidak ada, beda badan hukum, atau bukan control account | `400` | "Akun {kode} bukan akun kontrol pada badan hukum ini." |
-| **Versi pesan saldo berupa bilangan bulat** *(usulan `0.8`)* | Terima | Pesan saldo dengan `SourceVersion` yang bukan bilangan bulat positif | `400` | "Versi pesan saldo harus bilangan bulat positif." — urutan versi menentukan saldo mana yang berlaku (`02-backend-architecture.md` bagian 22.6) |
-| **Pesan saldo tanpa komponen** *(usulan `0.8`)* | Terima | Pesan saldo membawa `Components` | `400` | "Pesan saldo subledger tidak boleh membawa rincian komponen." |
+| **Rincian saldo wajib pada pesan saldo** *(`0.8`)* | Terima | `EventTypeCode` kode saldo tetapi `SubledgerBalance` kosong, **atau** jenis lain membawa `SubledgerBalance` | `400` | "Rincian saldo subledger hanya dan wajib ada pada pesan saldo subledger." |
+| **Kode periode saldo sah** *(`0.8`)* | Terima | `SubledgerBalance.AccountingPeriodCode` bukan bentuk `YYYY-MM`, atau periodenya tidak ada untuk badan hukum itu | `400` | "Periode akuntansi {kode} tidak dikenal untuk badan hukum ini." |
+| **Akun saldo harus control account** *(`0.8`)* | Terima | `SubledgerBalance.ControlAccountCode` tidak ada, beda badan hukum, atau bukan control account | `400` | "Akun {kode} bukan akun kontrol pada badan hukum ini." |
+| **Versi pesan saldo berupa bilangan bulat** *(`0.8`)* | Terima | Pesan saldo dengan `SourceVersion` yang bukan bilangan bulat positif | `400` | "Versi pesan saldo harus bilangan bulat positif." — urutan versi menentukan saldo mana yang berlaku (`02-backend-architecture.md` bagian 22.6) |
+| **Pesan saldo tanpa komponen** *(`0.8`)* | Terima | Pesan saldo membawa `Components` | `400` | "Pesan saldo subledger tidak boleh membawa rincian komponen." |
 | Jenis kejadian harus dikenal | Terima | `EventTypeCode` tidak ada di daftar jenis | `422` | "Jenis kejadian belum terdaftar. Kejadian ditahan sampai jenisnya ditambahkan." |
 | Badan hukum harus ada dan aktif | Terima | `LegalEntityId` tidak ditemukan | `422` | "Badan hukum tidak ditemukan." |
 | **Nomor kejadian unik** | Terima | `EventNumber` sudah pernah diterima | `200` | Bukan penolakan. Mengembalikan `AccountingEventReceiptDto` keadaan terkini — nomor jurnal yang sama bila sudah terjurnal (`ACC-DEC-035`, `ACC-DEC-085`) |
@@ -227,7 +229,9 @@ revaluasi mata uang asing. Kelimanya menunggu keputusan tersendiri.
 | **Komponen kejadian harus terpakai** | Proses kejadian | Kejadian membawa komponen yang tidak dipakai baris aturan mana pun | `422` | "Kejadian membawa rincian nilai yang belum dipetakan. Kejadian ditahan." |
 | **Komponen baris aturan harus tersedia** | Proses kejadian | Baris aturan memakai komponen yang tidak dibawa kejadian | `422` | "Rincian nilai yang dibutuhkan aturan posting tidak ada pada kejadian." |
 | Aturan yang masih dipakai tidak boleh dihapus | Nonaktifkan | Masih ada kejadian tertahan yang menunggunya | `409` | "Masih ada kejadian yang menunggu aturan ini." |
-| **`PENGAKUAN-PIUTANG` tanpa `JASA_MEDIS`** *(usulan `0.8`, aturan tertulis)* | Tambah, Ubah | Aturan jenis `PENGAKUAN-PIUTANG` memuat baris berkomponen `JASA_MEDIS` | — | **Tidak ditegakkan kode** (`ACC-DEC-086`). Diperiksa saat penyusunan dan peninjauan aturan posting. Bila terlanggar, setiap kejadian piutang Tertahan lewat aturan "komponen baris aturan harus tersedia" di atas |
+| **Tidak ada aturan posting untuk jenis Saldo Subledger** *(`0.10`, `ACC-DEC-096`)* | Tambah, Ubah | Jenis kejadian yang ditunjuk ber-`EventKind = SaldoSubledger`, termasuk aturan lama yang sudah berjenis itu | `422` | "Jenis kejadian {kode} berperlakuan Saldo Subledger. Pesan saldo tidak pernah menjadi jurnal, sehingga tidak memerlukan aturan posting." — menonaktifkan aturan lama tetap diterima |
+| **Jenis ber-aturan aktif tidak diubah menjadi Saldo Subledger** *(`0.10`, `ACC-DEC-096`)* | Ubah jenis kejadian | Perlakuan diubah menjadi `SaldoSubledger` saat jenis itu masih punya aturan posting aktif | `409` | "Jenis kejadian ini masih punya aturan posting aktif. Nonaktifkan aturannya lebih dahulu." |
+| **`PENGAKUAN-PIUTANG` tanpa `JASA_MEDIS`** *(`0.8`, aturan tertulis)* | Tambah, Ubah | Aturan jenis `PENGAKUAN-PIUTANG` memuat baris berkomponen `JASA_MEDIS` | — | **Tidak ditegakkan kode** (`ACC-DEC-086`). Diperiksa saat penyusunan dan peninjauan aturan posting. Bila terlanggar, setiap kejadian piutang Tertahan lewat aturan "komponen baris aturan harus tersedia" di atas |
 
 ## 3. Jurnal berulang
 
@@ -288,10 +292,12 @@ baru ditandai control, tetap terbit sampai dinonaktifkan atau diubah.
 
 | Aturan | Tindakan | Kapan dilanggar | Kode | Pesan bagi pengguna |
 |---|---|---|---|---|
-| Tidak boleh ada jurnal belum disahkan | Ajukan | Ada jurnal `Draft`, `PendingApproval`, atau `Approved` di periode itu | `409` | "Masih ada N jurnal yang belum disahkan." |
-| Tidak boleh ada kejadian gagal | Ajukan | Ada kejadian berstatus `Gagal` pada periode itu | `409` | "Masih ada N kejadian keuangan yang gagal diproses." |
+| Tidak boleh ada jurnal belum disahkan | Ajukan | Ada jurnal `Draft`, `PendingApproval`, atau `Approved` di periode itu *(diperluas `0.11`, approved 29 September 2026: ditambah jurnal **hasil kejadian** berstatus `Rejected`, `ACC-DEC-120`; jurnal manual `Rejected` tetap tidak dihitung)* | `409` | "Masih ada N jurnal yang belum disahkan." |
+| Tidak boleh ada kejadian gagal *(diselaraskan `ACC-DEC-095`, `BE-ACC-P2-029`)* | Ajukan | Ada kejadian berstatus `Gagal` pada periode itu. "Pada periode itu" berarti: (a) tanggal akuntansinya di dalam periode itu, **atau** (b) tanggalnya jatuh di periode yang tidak menerima jenis jurnalnya dan periode tujuan pertamanya menurut `ACC-DEC-047` adalah periode itu. Jenis jurnal diambil dari aturan posting aktif jenis kejadiannya; bila tidak ada — termasuk pesan saldo — tujuannya periode `Open` paling awal. Kejadian bertanggal di periode yang belum dibangkitkan tidak dipindahkan ke mana pun | `409` | "Masih ada N kejadian keuangan yang gagal diproses." |
 | **Seluruh shift kasir periode itu harus tertutup** | Ajukan | Belum ada kejadian `CASH_SHIFT_CLOSED` untuk salah satu shift pada periode itu | `409` | "Masih ada shift kasir yang belum ditutup." (`ACC-DEC-065`) |
+| **Rekonsiliasi saldo subledger harus bersih** *(`0.9`)* | Ajukan | Rekonsiliasi sudah berlaku untuk periode itu (`ACC-DEC-107`) **dan** ada control account yang menahan: akun wajib belum menerima saldo, saldonya bertanggal cut-off bukan akhir periode, atau berselisih; atau akun tidak wajib berselisih (`ACC-DEC-108`, `110`) | `409` | "Rekonsiliasi saldo subledger periode {nama periode} belum bersih: {rincian}." — contoh rincian "1 control account belum menerima saldo subledger, 1 berselisih." (`ACC-DEC-076`, `111`) |
 | Periode harus berstatus `Open` | Ajukan | Status bukan `Open` | `409` | "Periode ini tidak dalam keadaan terbuka." |
+| **Tutup permanen menuntut rekonsiliasi bersih** *(`0.9`)* | Tutup permanen (`SoftClosed` → `Closed`) | Keadaan yang sama dengan baris rekonsiliasi di atas, dihitung ulang saat itu | `409` | "Periode {nama periode} belum dapat ditutup permanen: rekonsiliasi saldo subledger belum bersih — {rincian}." (`ACC-DEC-111`) |
 | **Penyetuju bukan pengaju** | Setujui | `ActionBy == ClosingSubmittedBy` | `403` | "Penutupan tidak dapat disetujui oleh orang yang mengajukannya." |
 | Penolakan wajib beralasan | Tolak | `ActionNote` kosong | `400` | "Alasan penolakan wajib diisi." |
 | Pembukaan kembali wajib beralasan | Buka kembali | Alasan kosong | `400` | "Alasan pembukaan kembali wajib diisi." (`ACC-DEC-027`) |
@@ -299,6 +305,43 @@ baru ditandai control, tetap terbit sampai dinonaktifkan atau diubah.
 **Kejadian tertahan bukan penghalang, hanya peringatan.** Ini penerapan `ACC-DEC-051` yang mudah
 salah baca: yang menghalangi adalah kejadian **`Gagal`**, bukan **`Tertahan`**. Keduanya tetap
 ditampilkan pada daftar periksa, tetapi hanya yang pertama menahan tombol Ajukan.
+
+**Tanpa jalan pengecualian** (`ACC-DEC-113`). Tidak ada hak, isian, atau tombol yang meloloskan
+periode dari dua aturan rekonsiliasi di atas. Selisih dibereskan di sumbernya: Finance menyatakan
+ulang saldo dengan versi lebih tinggi, atau Accounting membalik jurnal yang keliru.
+
+**Contoh.** Saldo Kas Kasir di buku besar per 30 September Rp 25.000.000; saldo yang diterima dari
+Finance Rp 24.999.500. Selisih Rp 500 menahan Ajukan, dan kalau selisih itu baru muncul sesudah
+periode disetujui, ia menahan Tutup Permanen.
+
+## 4b. Rekonsiliasi saldo subledger — endpoint baca *(`0.9`)*
+
+| Aturan | Tindakan | Kapan dilanggar | Kode | Pesan bagi pengguna |
+|---|---|---|---|---|
+| Periode wajib disebutkan | Lihat perbandingan | `accountingPeriodId` kosong | `400` | "Periode akuntansi wajib disebutkan." |
+| Periode harus ada | Lihat perbandingan | Periode tidak ditemukan atau sudah dihapus | `404` | "Periode akuntansi tidak ditemukan." |
+| Badan hukum utama | Lihat perbandingan | Penjaga `ACC-DEC-043` | `409` | Sama dengan endpoint Accounting lain |
+
+Badan hukum tanpa control account **bukan** pelanggaran: jawabannya `200` berdaftar kosong, sama
+seperti `gl-balances`.
+
+## 4c. Jurnal hasil kejadian *(`0.11`, approved Rizki 29 September 2026, `GATE-DESAIN-0929`)*
+
+Dasar: `ACC-DEC-116`..`121`. "Jurnal hasil kejadian" = jurnal yang ditunjuk `AccAccountingEvent.JournalId`
+milik kejadian yang tidak terhapus. Pemeriksaan status jurnal yang sudah ada (bagian 1) berjalan
+**lebih dulu**; aturan di bawah hanya berlaku untuk jurnal `Draft` dan `Rejected`.
+
+| Aturan | Tindakan | Kapan dilanggar | Kode | Pesan bagi pengguna |
+|---|---|---|---|---|
+| **Jurnal hasil kejadian tidak dapat disunting** | Ubah (`PUT /journals/{id}`) | Jurnal hasil kejadian, `Draft` atau `Rejected` | `409` | "Jurnal {nomor jurnal} dibentuk dari kejadian {nomor kejadian} dan tidak dapat diubah. Hapus jurnal ini untuk menjurnal ulang kejadiannya, atau minta Finance mengirim kejadian pembalik." (`ACC-DEC-119`) |
+| **Jurnal hasil kejadian `Rejected` boleh dihapus** | Hapus (`DELETE /journals/{id}`) | — (pengecualian atas "yang ditolak tidak dapat dihapus") | `200` | "Jurnal draft {nomor jurnal} berhasil dihapus. Kejadian {nomor kejadian} kembali berstatus Gagal." (`ACC-DEC-118`) |
+| Jurnal hasil kejadian `Draft` dihapus | Hapus | — | `200` | Sama dengan baris di atas (`ACC-DEC-116`) |
+| Jurnal **manual** `Rejected` tetap tidak dapat dihapus | Hapus | Jurnal `Rejected` yang bukan hasil kejadian | `409` | "Jurnal yang sudah pernah ditolak tidak dapat dihapus. Perbaiki lalu ajukan kembali." — tidak berubah |
+| Kejadian berubah bersamaan | Hapus | Saat disimpan, kejadian sumbernya sudah tidak `Terjurnal` atau tidak lagi menunjuk jurnal itu | `409` | "Kejadian {nomor kejadian} berubah bersamaan. Muat ulang rincian jurnal lalu coba lagi." Nol perubahan tersimpan |
+
+**Contoh.** `PUT /journals/231bfe04-…` atas `JU/2031/01/00003` yang dibentuk `EVT-UJI-034A`, walau
+hanya mengubah keterangan → `409` dengan pesan baris pertama. `DELETE` atas jurnal yang sama →
+`200`, dan `GET /accounting-events/{id}` untuk `EVT-UJI-034A` kini menjawab status `Gagal`.
 
 ## 5. Tutup tahun
 

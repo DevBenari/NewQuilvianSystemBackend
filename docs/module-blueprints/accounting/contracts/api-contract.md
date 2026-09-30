@@ -204,6 +204,33 @@ pengguna. Keduanya lahir berstatus menunggu persetujuan, bukan langsung disahkan
 
 ---
 
+> **`ACC-API-0.15` — approved Rizki, 29 September 2026 (`GATE-DESAIN-0929`) (`ACC-DEC-116`..`121`).**
+> Perubahan perilaku grup ini; nol endpoint baru. Status tiap endpoint tetap seperti tercantum di atas.
+>
+> | Method | Path | Perubahan |
+> |---|---|---|
+> | `GET` | `/{id}` | `JournalDetailResponse` **bertambah** `SourceAccountingEventId` (`Guid?`) dan `SourceAccountingEventNumber` (`string?`) — terisi bila jurnal dibentuk kejadian, kosong untuk jurnal manual; aditif. `AvailableActions`: jurnal hasil kejadian **tidak pernah** memuat `update`, dan memuat `delete` pada `Draft` **dan** `Rejected` bila pengguna berhak `Journal : Delete` |
+> | `PUT` | `/{id}` | `409` baru untuk jurnal hasil kejadian (`ACC-VALIDATION-0.11` bagian 4c) |
+> | `DELETE` | `/{id}` | Jurnal hasil kejadian `Draft` atau `Rejected` → `200`, dan kejadian sumbernya kembali `Gagal` dalam transaksi yang sama. `409` bila kejadian berubah bersamaan. Jurnal manual tidak berubah perilakunya |
+>
+> Dampak pada grup lain, bentuk respons tidak berubah: `GET /periods/{id}/closing-checklist` butir
+> `UNPOSTED_JOURNALS` dan `409` pada `POST /periods/{id}/submit-closing` ikut menghitung jurnal hasil
+> kejadian berstatus `Rejected` (`ACC-DEC-120`); `GET /accounting-events/{id}` memperlihatkan kejadian
+> yang jurnalnya dihapus sebagai `Gagal` dengan satu baris percobaan baru (`ACC-DEC-117`).
+>
+> Contoh `GET /api/v1/corporate/accounting/journals/231bfe04-cd04-47f2-a149-f62038d40482` sesudah
+> perubahan, dipangkas:
+>
+> ```json
+> {
+>   "journalNumber": "JU/2031/01/00003",
+>   "journalStatus": 1,
+>   "sourceAccountingEventId": "…",
+>   "sourceAccountingEventNumber": "EVT-UJI-034A",
+>   "availableActions": ["delete", "submit"]
+> }
+> ```
+
 ## Corporate / Accounting / Accounting Period
 
 Base URL: `api/v1/corporate/accounting/periods`
@@ -223,6 +250,9 @@ Arti kode status bagi pengguna:
 - `403` — hanya Manajer Akuntansi yang dapat menutup dan membuka kembali periode
   (`ACC-DEC-026`).
 - `409` — periode tahun buku itu sudah pernah dibangkitkan, atau perpindahan status tidak sah.
+- `409` *(Phase 2, `ACC-API-0.13`)* — tutup permanen `SoftClosed` → `Closed` saat
+  rekonsiliasi saldo subledger periode itu belum bersih (`ACC-DEC-111`). Lihat grup *Accounting
+  Period — lima endpoint baru*.
 
 `ClosePeriodDto` memuat pilihan jenis penutupan, yaitu tutup sementara atau tutup permanen.
 `ReopenPeriodDto` memuat alasan tertulis yang wajib diisi, dan alasan itu ikut tercatat di jejak
@@ -410,7 +440,8 @@ memeriksa ulang saat tindakannya benar-benar dijalankan.
 | `last_changed_in` | `ACC-API-0.10` — 11 September 2026, penyelarasan grup Recurring Journal dengan `RecurringJournalController`: hak akses `activate`/`deactivate` menjadi `RecurringJournal : Activate`, empat bidang ringkasan, dan label ketersediaan. Sebelumnya `0.9` — 10 September 2026, penyelarasan grup Accounting Period dengan `AccountingPeriodController` yang sudah berdiri: base URL `periods` (bukan `accounting-periods`), hak akses `AccountingPeriod` (bukan `Period`), endpoint `GET /{id}/closing-history`, dan empat bidang keadaan daftar periksa. Ditambah `ACC-DEC-070`, peringatan keenam. Sebelumnya `0.8` (`ACC-DEC-060`, `CorrelationId` dan `CausationId` sebagai bidang wajib ke-11 dan ke-12), `0.7` (`ACC-DEC-058`, aturan posting daftar baris), dan `0.6` (33 endpoint Phase 2) |
 | Amandemen menunggu ratifikasi | **`ACC-API-0.11` (usulan) — 11 September 2026.** Lima perubahan: (1) grup **Reconciliation** dicatat untuk pertama kali — `GET /reconciliation/gl-balances`; (2) `ChartOfAccountOptionResponse` bertambah `IsControlAccount`, dan `UpdateChartOfAccountRequest.IsControlAccount` dicatat sebagai `bool?`; (3) `422` control account pada grup Journal — Simpan, Ubah, Ajukan, dan penyesuaian `JP` (`ACC-DEC-064`, `ACC-DEC-072`); (4) `422` control account pada grup Recurring Journal — Tambah, Ubah, Aktifkan (`ACC-DEC-073`); (5) penegasan bahwa `POST /journals/{id}/reverse` yang berhasil menjawab **`200`**, bukan `201` — perilaku sejak `BE-ACC-013`, dituliskan eksplisit atas keputusan Rizki 11 September 2026 (Skenario 6 `BE-ACC-P2-012`); kode tidak diubah. **Status `approved` di bawah belum diubah** — menunggu ratifikasi Rizki |
 | Status | **`approved`** — Rizki, 11 September 2026 |
-| Penyesuaian atas keputusan owner | **`ACC-API-0.12` (usulan) — 24 September 2026.** Empat perubahan, seluruhnya menuliskan keputusan owner yang sudah `approved` sehingga — mengikuti preseden `ACC-DEC-074` — **tidak menunggu ratifikasi `0.11`**: (1) isi `AccountingEventReceiptDto` dan bentuknya yang sama pada `201`/`200`/`422` (`ACC-DEC-085`); (2) penjurnalan seketika dengan `201` tanpa nomor jurnal saat gangguan teknis (`ACC-DEC-084`); (3) contoh `JASA_MEDIS` dipindah dari `PENGAKUAN-PIUTANG` ke `PENGAKUAN-HUTANG-DOKTER` (`ACC-DEC-086`); (4) bidang opsional `SubledgerBalance` untuk pesan saldo subledger (`ACC-DEC-087`). Label ketersediaan grup Accounting Event tetap **Rencana (belum tersedia)** |
+| Penyesuaian atas keputusan owner | **`ACC-API-0.12` — approved Rizki, 24 September 2026 (`GATE-DESAIN-0924`).** Empat perubahan, seluruhnya menuliskan keputusan owner yang sudah `approved` sehingga — mengikuti preseden `ACC-DEC-074` — **tidak menunggu ratifikasi `0.11`**: (1) isi `AccountingEventReceiptDto` dan bentuknya yang sama pada `201`/`200`/`422` (`ACC-DEC-085`); (2) penjurnalan seketika dengan `201` tanpa nomor jurnal saat gangguan teknis (`ACC-DEC-084`); (3) contoh `JASA_MEDIS` dipindah dari `PENGAKUAN-PIUTANG` ke `PENGAKUAN-HUTANG-DOKTER` (`ACC-DEC-086`); (4) bidang opsional `SubledgerBalance` untuk pesan saldo subledger (`ACC-DEC-087`). Label ketersediaan grup Accounting Event tetap **Rencana (belum tersedia)** |
+| Penyesuaian atas keputusan owner (2) | **`ACC-API-0.13` — approved Rizki, 28 September 2026 (`GATE-DESAIN-0928`).** Menuliskan `ACC-DEC-107`..`114` untuk `BE-ACC-P2-014`: (1) endpoint baru `GET /reconciliation/subledger-comparison`; (2) penghalang keempat `SUBLEDGER_RECONCILIATION` pada daftar periksa penutupan; (3) `409` rekonsiliasi pada `submit-closing`; (4) `409` rekonsiliasi pada `POST /periods/{id}/close` ber-`Permanent = true` — **mengubah perilaku endpoint MVP yang sudah berdiri**; (5) aturan arah tanda `Amount` dan tanggal cut-off pada pesan saldo (`ACC-DEC-109`, `110`) — tanpa perubahan validasi penerimaan. Pembacaan endpoint Reconciliation tidak dicatat `LoggerService` (`ACC-DEC-115`). Label ketersediaan tetap **Rencana (belum tersedia)** sampai `BE-ACC-P2-014` dibangun |
 | `approved_by` / `approved_at` | Rizki / 11 September 2026 (ratifikasi `ACC-API-0.10`); sebelumnya Rizki / 10 September 2026 (`ACC-API-0.9`) dan Rizki / 8 September 2026 (`ACC-API-0.8`) |
 | `input_revision` | `00-interview-decisions.md@6`, `02-backend-architecture.md@4`, `evidence/09` `ACC-DOMAIN-P2-0.1` |
 | Traceability | `ACC-DEC-044` sampai `ACC-DEC-057`, ditambah `ACC-DEC-065` dan `ACC-DEC-070` |
@@ -470,7 +501,7 @@ beserta nomor jurnal yang sama membuat Finance tahu pesannya **sudah diterima da
 `JU/2026/09/00042`. Kiriman kedua dan ketiga menjawab `200` dengan nomor jurnal yang sama persis.
 Buku besar tetap berisi satu catatan.
 
-### Kapan jurnal dibuat — `ACC-DEC-084` *(usulan `ACC-API-0.12`)*
+### Kapan jurnal dibuat — `ACC-DEC-084` *(`ACC-API-0.12`)*
 
 Seketika di dalam request `POST /`, dengan penjadwal sebagai cadangan:
 
@@ -488,7 +519,7 @@ Kiriman ulang dijawab `200` dengan **keadaan terkini**. Jadi bila penjadwal suda
 ulang membawa nomor jurnalnya; bila belum, `JournalNumber` tetap kosong dan statusnya tetap
 `Diterima`.
 
-### Isi `AccountingEventReceiptDto` — `ACC-DEC-085` *(usulan `ACC-API-0.12`)*
+### Isi `AccountingEventReceiptDto` — `ACC-DEC-085` *(`ACC-API-0.12`)*
 
 Dipakai pada `201`, `200`, dan `422`. Balasan `400`, `403`, `409`, dan `422` karena badan hukum tidak ditemukan
 **tidak** membawanya, karena kejadiannya tidak tersimpan.
@@ -497,8 +528,8 @@ Dipakai pada `201`, `200`, dan `422`. Balasan `400`, `403`, `409`, dan `422` kar
 |---|---|:---:|---|
 | `AccountingEventId` | `Guid` | Ya | `AccAccountingEvent.Id`. Rujukan tanda terima; Finance menyimpannya sebagai `AccountingReceiptNumber` |
 | `EventNumber` | `string` | Ya | Gema dari pesan |
-| `EventStatus` | `string` | Ya | `Diterima`, `Terjurnal`, `Tertahan`, atau `Tercatat` (pesan saldo subledger). Kiriman ulang `200` dapat juga membaca `Gagal` atau `Diabaikan` |
-| `JournalNumber` | `string?` | Tidak | Hanya bila `Terjurnal`. Finance menyimpannya sebagai `AccountingJournalNumber` |
+| `EventStatus` | `string` | Ya | `Diterima`, `Terjurnal`, `Tertahan`, atau `Tercatat` (pesan saldo subledger). Kiriman ulang `200` dapat juga membaca `Gagal` atau `Diabaikan`. *(`ACC-API-0.16`, approved Rizki 30 September 2026, `GATE-DESAIN-0930` — penyelarasan dengan source, bukan perilaku baru:)* balasan `201` pesan saldo dapat juga membaca `Gagal` bila rinciannya lolos pemeriksaan awal tetapi tidak dapat dicatat saat diproses — `AccAccountingEventService.BalasKejadianBaru` |
+| `JournalNumber` | `string?` | Tidak | Hanya bila `Terjurnal`. Finance menyimpannya sebagai `AccountingJournalNumber`. *(`ACC-API-0.16`:)* nomor ini dapat berganti bila draft hasil kejadian dihapus lalu dicoba ulang (`ACC-DEC-116`); kiriman ulang membaca nomor yang berlaku saat itu. Rujukan yang tetap adalah `AccountingEventId` |
 | `AccountingPeriodCode` | `string?` | Tidak | Periode tempat jurnal jatuh, bentuk `YYYY-MM`. Bisa berbeda dari `AccountingDate` bila periodenya sudah tertutup (`ACC-DEC-047`) |
 | `HoldReasonCode` | `string?` | Tidak | Hanya bila `Tertahan`: `EVENT_TYPE_NOT_REGISTERED`, `POSTING_RULE_MISSING`, `COMPONENT_UNMAPPED`, `COMPONENT_MISSING` |
 | `ReceivedAt` | `timestamptz` | Ya | Waktu kejadian pertama kali diterima |
@@ -556,6 +587,12 @@ masih ada aturan posting aktif yang memakainya.
 > adalah perubahan pada endpoint yang ada: kompatibel ke belakang, karena permintaan tanpa
 > `EventKind` tetap diterima sebagai `Transaksi`.
 
+> **`ACC-API-0.14` — approved Rizki, 28 September 2026 bersama roadmap backend revisi 6 (`ACC-DEC-096`).** (1) `EventTypeOptionDto` (di kode: `EventTypeOptionResponse`) bertambah **`EventKind`**
+> (angka), supaya form aturan posting dapat menyaring jenis Saldo Subledger; aditif, butir dan
+> urutannya tidak berubah. (2) `PUT /{id}` yang mengubah `EventKind` menjadi `SaldoSubledger`
+> saat jenis itu masih punya aturan posting aktif ditolak **`409`** — "Jenis kejadian ini masih
+> punya aturan posting aktif. Nonaktifkan aturannya lebih dahulu." Dibangun `BE-ACC-P2-030`.
+
 ## Corporate / Accounting / Master Data / Posting Rule
 
 `[Tags("Corporate - Accounting - Master Data - Posting Rule")]`
@@ -579,6 +616,13 @@ bila ada baris berakun dari badan hukum yang berbeda, atau bila aturannya tidak 
 > `ACC-DEC-058` yang mengganti sepasang akun menjadi daftar baris, dan kini dibetulkan. Penyesuaian
 > ini **tidak** menunggu ratifikasi usulan `ACC-API-0.11`, karena dasarnya keputusan owner yang
 > sudah `approved`, dan grup ini masih `Rencana (belum tersedia)`.
+
+> **`ACC-API-0.14` — approved Rizki, 28 September 2026 bersama roadmap backend revisi 6 (`ACC-DEC-096`).** `POST /` dan `PUT /{id}` yang menunjuk jenis kejadian ber-`EventKind = SaldoSubledger`
+> ditolak **`422`** — "Jenis kejadian {kode} berperlakuan Saldo Subledger. Pesan saldo tidak
+> pernah menjadi jurnal, sehingga tidak memerlukan aturan posting." Berlaku juga untuk aturan lama
+> yang sudah berjenis saldo: satu-satunya tindakan yang diterima adalah `PATCH /{id}/deactivate`.
+> Kodenya `422`, sama dengan akun induk: data yang ditunjuk ada, tetapi tidak cocok untuk aturan
+> posting. Dibangun `BE-ACC-P2-030`.
 
 ## Corporate / Accounting / Recurring Journal
 
@@ -662,6 +706,15 @@ Base URL: `api/v1/corporate/accounting/periods` — grup **sudah ada**; kelima b
 
 `409` pada `submit-closing` muncul bila masih ada penghalang `ACC-DEC-051` beserta perluasannya
 `ACC-DEC-065`: jurnal belum disahkan, kejadian keuangan gagal, atau shift kasir belum ditutup.
+
+**`ACC-API-0.13` — penghalang keempat dan penutupan permanen.** `409` pada
+`submit-closing` juga muncul bila **rekonsiliasi saldo subledger belum bersih** (`ACC-DEC-076`,
+`111`), dengan pesan "Rekonsiliasi saldo subledger periode September 2026 belum bersih: 1 control
+account belum menerima saldo subledger, 1 berselisih." Endpoint MVP `POST /{id}/close` dengan
+`Permanent = true` (`SoftClosed` → `Closed`) **kini juga dapat menjawab `409`** karena alasan yang
+sama: "Periode September 2026 belum dapat ditutup permanen: rekonsiliasi saldo subledger belum
+bersih — …". `approve-closing` dan `close` ber-`Permanent = false` **tidak** memeriksanya. Periode
+sebelum titik mulai rekonsiliasi (`ACC-DEC-107`) tidak pernah ditolak karena alasan ini.
 `403` pada `approve-closing` muncul bila penyetujunya adalah orang yang mengajukan — penerapan
 ulang prinsip empat mata `ACC-DEC-016`.
 
@@ -708,7 +761,11 @@ itu `IsComplete`.
 
 Bentuk respons **tidak berubah** saat sebuah butir beralih dari `NotYetAvailable` ke `Evaluated`:
 `Blockers` selalu berisi **tiga** penghalang (`ACC-DEC-051` + `ACC-DEC-065`) dan `Warnings` selalu
-berisi **enam** peringatan (`ACC-DEC-051` + `ACC-DEC-070`), apa pun keadaannya. Layar tidak perlu
+berisi **enam** peringatan (`ACC-DEC-051` + `ACC-DEC-070`), apa pun keadaannya. **Sejak
+`ACC-API-0.13`:** `Blockers` menjadi **empat** — butir keempat `SUBLEDGER_RECONCILIATION`
+ditambahkan di belakang. Ia `NotYetAvailable` sebelum titik mulai rekonsiliasi (`ACC-DEC-107`) dan
+`Evaluated` sesudahnya, dengan `Count` = jumlah control account yang menahan. Rincian bidangnya di
+`02-backend-architecture.md` bagian 23.4. Layar tidak perlu
 diubah saat gelombang berikutnya menyalakan sebuah butir, dan **tidak boleh** menanam kedua angka
 itu di kodenya.
 
@@ -757,6 +814,7 @@ Base URL: `api/v1/corporate/accounting/reconciliation` — `gl-balances` **sudah
 | Method | Path | Kegunaan | Hak akses | Request | Response |
 |---|---|---|---|---|---|
 | `GET` | `/gl-balances` | Saldo buku besar seluruh control account satu badan hukum, dihitung **hanya dari baris jurnal `Posted`**, sampai tanggal batas bila diminta. **Tidak menyimpan apa pun** | `AccountingReconciliation : Read` | `ControlAccountBalanceQuery` — `legalEntityId` wajib, `asOfDate` opsional, keduanya pada query | `ApiResponse<ControlAccountBalanceReportResponse>` |
+| `GET` | `/subledger-comparison` | **Rencana (belum tersedia), `ACC-API-0.13`.** Perbandingan saldo buku besar dengan saldo subledger per **periode**, beserta selisih dan keadaan per akun — lihat bagian *Sisi subledger* di bawah | `AccountingReconciliation : Read` | `SubledgerComparisonQuery` — `accountingPeriodId` pada query | `ApiResponse<SubledgerComparisonReportResponse>` |
 
 `400` muncul bila `legalEntityId` tidak disebutkan — saldo dua badan hukum tidak boleh tercampur.
 `409` muncul dari penjaga badan hukum utama (`ACC-DEC-043`), sama seperti seluruh endpoint
@@ -797,17 +855,164 @@ Hak aksesnya bernama **`AccountingReconciliation`**, bukan `Reconciliation`: arg
 `BalanceInNormalBalance` dan `PostedLineCount` adalah dua bidang di luar kartu `BE-ACC-P2-013`,
 dicatat laporannya sebagai delta kontrak.
 
-### Sisi subledger belum dirancang endpointnya
+### Sisi subledger — `GET /subledger-comparison` *(`ACC-API-0.13`)*
 
-`ACC-DEC-066` meminta tiga hal: saldo buku besar, saldo subledger, dan laporan selisih. Grup ini
-baru memuat yang pertama. Dua sisanya adalah `BE-ACC-P2-014`, yang menurut `ACC-DEC-071` membaca
-saldo subledger **dari kejadian yang diterbitkan Finance per periode** — dan kotak masuknya menunggu
-gelombang `P2-1`. Path, request, dan bentuk responsnya **sengaja belum ditulis di sini**; menulisnya
-sekarang berarti mengunci bentuk yang belum pernah dirancang. Ditambahkan saat `BE-ACC-P2-014`
-direncanakan.
+> **Rencana (belum tersedia)** — dibangun `BE-ACC-P2-014`. Approved Rizki 28 September 2026 (`GATE-DESAIN-0928`) atas
+> `ACC-DEC-107`..`115`; menggantikan paragraf lama "Sisi subledger belum dirancang endpointnya".
+> Rincian perhitungannya di `02-backend-architecture.md` bagian 23.
 
-Sampai saat itu layar rekonsiliasi (`FE-ACC-P2-008`) menampilkan kolom subledger dan selisih
-sebagai **"belum tersedia"**, bukan menyembunyikannya.
+`ACC-DEC-066` meminta tiga hal: saldo buku besar, saldo subledger, dan laporan selisih.
+`gl-balances` di atas memenuhi yang pertama. Endpoint ini memenuhi dua sisanya, **per periode
+akuntansi** — bukan per tanggal — karena saldo subledger yang diterbitkan Finance terikat periode
+(`ACC-DEC-071`, `114`).
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+|---|---|---|---|---|---|
+| `GET` | `/subledger-comparison` | Perbandingan saldo buku besar dengan saldo subledger seluruh control account pada **satu periode**, beserta selisih dan keadaan per akun. **Tidak menyimpan apa pun** — dihitung saat diminta (`ACC-DEC-112`) | `AccountingReconciliation : Read` | `SubledgerComparisonQuery` — `accountingPeriodId` pada query | `ApiResponse<SubledgerComparisonReportResponse>` |
+
+| Kode | Kapan | Pesan |
+|---|---|---|
+| `200` | Berhasil — **termasuk** keadaan `BelumBerlaku` dan badan hukum tanpa control account (`Accounts` kosong) | "Rekonsiliasi saldo subledger periode September 2026 berhasil dihitung." / "Belum ada akun yang ditandai sebagai control account pada badan hukum ini." |
+| `400` | `accountingPeriodId` kosong | "Periode akuntansi wajib disebutkan." |
+| `404` | Periode tidak ditemukan atau sudah dihapus | "Periode akuntansi tidak ditemukan." |
+| `409` | Penjaga badan hukum utama (`ACC-DEC-043`) | Sama dengan endpoint Accounting lain |
+
+**Kenapa hanya `accountingPeriodId`, tanpa `legalEntityId`.** Periode sudah milik satu badan hukum;
+meminta keduanya membuka kemungkinan keduanya tidak cocok. Badan hukumnya dikembalikan di respons.
+
+#### Aturan perhitungan yang mengikat
+
+| Aturan | Isi | Dasar |
+|---|---|---|
+| Titik mulai | Rekonsiliasi berlaku mulai periode paling awal yang punya saldo subledger tercatat untuk badan hukum itu. Periode sebelumnya → `BelumBerlaku`, tidak ada akun yang menahan | `ACC-DEC-107` |
+| Saldo buku besar | Baris jurnal `Posted` sampai **tanggal akhir periode**, inklusif; dinyatakan menurut saldo normal akun (`BalanceInNormalBalance`) | `ACC-DEC-109`, `110` |
+| Akun wajib | Control account yang menerima jurnal dan aktif, ditambah control account nonaktif yang saldo buku besarnya bukan nol. Saldo buku besar nol **tidak** membebaskan | `ACC-DEC-108` |
+| Cut-off | Saldo subledger yang tanggal cut-off-nya bukan tanggal akhir periode diperlakukan belum lengkap | `ACC-DEC-110` |
+| Toleransi | Nol. Selisih Rp 1 tetap `Berselisih` | `ACC-DEC-076` |
+| Selisih | Buku besar − subledger. Positif berarti buku besar lebih besar. Kosong bila salah satu sisi tidak dapat dibandingkan | — |
+
+#### Bidang `SubledgerComparisonQuery`
+
+| Bidang | Tipe | Wajib | Keterangan |
+|---|---|:---:|---|
+| `AccountingPeriodId` | `Guid` | Ya | Periode yang direkonsiliasi. Pilihan periodenya diambil dari `GET /periods` yang sudah ada |
+
+#### Bidang `SubledgerComparisonReportResponse`
+
+| Bidang | Tipe | Arti |
+|---|---|---|
+| `LegalEntityId` | `Guid` | Badan hukum pemilik periode |
+| `AccountingPeriodId` | `Guid` | Periode yang dihitung |
+| `PeriodCode` | `string` | Contoh `2026-09` |
+| `PeriodName` | `string` | Contoh `September 2026` |
+| `PeriodStatus` | `AccountingPeriodStatus`, angka | `1` Terbuka, `2` Tutup Sementara, `3` Tutup Permanen, `4` Menunggu Persetujuan |
+| `PeriodEndDate` | `DateTime`, bagian tanggal saja | Batas saldo buku besar dan tanggal cut-off yang sah |
+| `EvaluatedAt` | `DateTime` (UTC) | Waktu perhitungan. Angkanya tidak pernah disimpan |
+| `ReconciliationState` | `SubledgerReconciliationState`, angka | `1` `BelumBerlaku`, `2` `Bersih`, `3` `BelumBersih` |
+| `StartPeriodCode` | `string?` | Periode titik mulai rekonsiliasi badan hukum ini. Kosong bila Finance belum pernah mengirim saldo |
+| `StateMessage` | `string` | Kalimat yang sama persis dengan `Message` butir `SUBLEDGER_RECONCILIATION` pada daftar periksa |
+| `AccountCount` | `int` | Jumlah baris `Accounts` |
+| `RequiredAccountCount` | `int` | Jumlah akun wajib |
+| `MatchedCount`, `DifferenceCount`, `NotReceivedCount`, `CutOffMismatchCount` | `int` | Jumlah akun per keadaan |
+| `BlockingCount` | `int` | Jumlah akun yang menahan. Selalu `0` bila `BelumBerlaku` |
+| `Accounts` | daftar `SubledgerComparisonAccountResponse` | Berurut kode akun |
+
+#### Bidang `SubledgerComparisonAccountResponse`
+
+| Bidang | Tipe | Arti |
+|---|---|---|
+| `AccountId`, `AccountCode`, `AccountName` | — | Identitas akun |
+| `AccountType`, `NormalBalance` | enum, angka | Sama dengan `gl-balances` |
+| `IsActive`, `IsPostable` | `bool` | Keadaan akun saat dihitung |
+| `IsRequired` | `bool` | Akun wajib menurut `ACC-DEC-108` |
+| `GlBalance` | `decimal` | Saldo buku besar per akhir periode, menurut saldo normal |
+| `PostedLineCount` | `int` | Jumlah baris `Posted` pembentuknya |
+| `SubledgerBalance` | `decimal?` | Saldo dari Finance. **Kosong berarti belum diterima — bukan nol** |
+| `SubledgerAsOfDate` | `DateTime?` | Tanggal cut-off pesan saldo |
+| `SubledgerVersionNumber` | `int?` | Versi pesan yang berlaku |
+| `SubledgerAccountingEventId`, `SubledgerEventNumber` | `Guid?`, `string?` | Kejadian yang terakhir mengisi saldo — untuk membuka Rincian Kejadian |
+| `SubledgerRecordedAt` | `DateTime?` (UTC) | Kapan saldo itu terakhir dicatat |
+| `Difference` | `decimal?` | Buku besar − subledger; kosong untuk `BelumDiterima` dan `CutOffBukanAkhirPeriode` |
+| `ItemStatus` | `SubledgerReconciliationItemStatus`, angka | `1` `Cocok`, `2` `Berselisih`, `3` `BelumDiterima`, `4` `CutOffBukanAkhirPeriode` |
+| `IsBlocking` | `bool` | Akun ini menahan penutupan |
+
+#### Contoh respons
+
+Badan hukum yang saldo pertamanya untuk `2026-09`; permintaan
+`GET api/v1/corporate/accounting/reconciliation/subledger-comparison?accountingPeriodId=…`.
+
+```json
+{
+  "success": true,
+  "statusCode": 200,
+  "message": "Rekonsiliasi saldo subledger periode September 2026 berhasil dihitung.",
+  "data": {
+    "legalEntityId": "11111111-2222-4333-8444-555555555555",
+    "accountingPeriodId": "aaaaaaaa-0000-4000-8000-000000000009",
+    "periodCode": "2026-09",
+    "periodName": "September 2026",
+    "periodStatus": 1,
+    "periodEndDate": "2026-09-30T00:00:00",
+    "evaluatedAt": "2026-10-03T02:15:00Z",
+    "reconciliationState": 3,
+    "startPeriodCode": "2026-09",
+    "stateMessage": "1 control account belum menerima saldo subledger, 1 saldonya bertanggal cut-off bukan akhir periode, 1 berselisih.",
+    "accountCount": 4,
+    "requiredAccountCount": 4,
+    "matchedCount": 1,
+    "differenceCount": 1,
+    "notReceivedCount": 1,
+    "cutOffMismatchCount": 1,
+    "blockingCount": 3,
+    "accounts": [
+      {
+        "accountCode": "1-1101", "accountName": "Kas Kasir", "accountType": 1, "normalBalance": 1,
+        "isActive": true, "isPostable": true, "isRequired": true,
+        "glBalance": 25000000.00, "postedLineCount": 42,
+        "subledgerBalance": 25000000.00, "subledgerAsOfDate": "2026-09-30T00:00:00",
+        "subledgerVersionNumber": 3, "subledgerEventNumber": "EVT-SL-2026-09-KAS",
+        "difference": 0.00, "itemStatus": 1, "isBlocking": false
+      },
+      {
+        "accountCode": "1-1102", "accountName": "Kas Kecil", "accountType": 1, "normalBalance": 1,
+        "isActive": true, "isPostable": true, "isRequired": true,
+        "glBalance": 0.00, "postedLineCount": 0,
+        "subledgerBalance": null, "subledgerAsOfDate": null,
+        "subledgerVersionNumber": null, "subledgerEventNumber": null,
+        "difference": null, "itemStatus": 3, "isBlocking": true
+      },
+      {
+        "accountCode": "1-1201", "accountName": "Piutang Penjamin", "accountType": 1, "normalBalance": 1,
+        "isActive": true, "isPostable": true, "isRequired": true,
+        "glBalance": 80000000.00, "postedLineCount": 17,
+        "subledgerBalance": 78500000.00, "subledgerAsOfDate": "2026-09-15T00:00:00",
+        "subledgerVersionNumber": 1, "subledgerEventNumber": "EVT-SL-2026-09-PIUT",
+        "difference": null, "itemStatus": 4, "isBlocking": true
+      },
+      {
+        "accountCode": "2-1101", "accountName": "Utang Supplier", "accountType": 2, "normalBalance": 2,
+        "isActive": true, "isPostable": true, "isRequired": true,
+        "glBalance": 30000000.00, "postedLineCount": 9,
+        "subledgerBalance": 29999500.00, "subledgerAsOfDate": "2026-09-30T00:00:00",
+        "subledgerVersionNumber": 1, "subledgerEventNumber": "EVT-SL-2026-09-UTANG",
+        "difference": 500.00, "itemStatus": 2, "isBlocking": true
+      }
+    ]
+  }
+}
+```
+
+Bidang `accountId`, `subledgerAccountingEventId`, dan `subledgerRecordedAt` dihilangkan dari
+contoh supaya ringkas; di respons sungguhan ketiganya selalu hadir. Utang Supplier bersaldo normal
+kredit tampil **positif** Rp 30.000.000, dan Finance mengirimnya positif pula (`ACC-DEC-109`).
+
+**Keadaan `BelumBerlaku`** — contoh periode `2026-08` badan hukum yang sama: `reconciliationState`
+`1`, `startPeriodCode` `"2026-09"`, `blockingCount` `0`, `stateMessage` "Belum dapat diperiksa:
+rekonsiliasi saldo subledger belum berlaku untuk periode ini.", dan setiap akun tetap tercantum
+beserta saldo buku besarnya.
+
+Layar rekonsiliasi (`FE-ACC-P2-016`) mengganti isian tanggal dengan pemilih periode dan membaca
+endpoint ini untuk kolom Subledger dan Selisih (`03-frontend-architecture.md` bagian 11.6).
 
 ## Daftar DTO Phase 2
 
@@ -822,7 +1027,7 @@ Penamaan mengikuti koreksi `ACC-GAP-004`: masukan bernama `Request`, keluaran be
 | Period Closing | `PeriodClosingChecklistDto` (+ `IsComplete`, `NotYetAvailableCount`), `PeriodClosingBlockerDto` (+ `State`, `UnavailableReason`), `PeriodClosingApprovalDto`, `SubmitPeriodClosingRequest`, `ApprovePeriodClosingRequest`, `RejectPeriodClosingRequest` |
 | Year End Closing | `YearEndClosingPreviewDto`, `YearEndClosingPreviewLineDto`, `GenerateYearEndClosingRequest` |
 | Configuration | `AccountingConfigurationDto`, `UpdateAccountingConfigurationRequest` |
-| Reconciliation *(usulan `ACC-API-0.11`)* | `ControlAccountBalanceQuery`, `ControlAccountBalanceReportResponse`, `ControlAccountBalanceResponse` — **disalin dari source**, berakhiran `Query`/`Response` seperti kodenya |
+| Reconciliation *(usulan `ACC-API-0.11`)* | `ControlAccountBalanceQuery`, `ControlAccountBalanceReportResponse`, `ControlAccountBalanceResponse` — **disalin dari source**, berakhiran `Query`/`Response` seperti kodenya; **`ACC-API-0.13`:** `SubledgerComparisonQuery`, `SubledgerComparisonReportResponse`, `SubledgerComparisonAccountResponse`, enum `SubledgerReconciliationState` dan `SubledgerReconciliationItemStatus` |
 
 ### Isi `ReceiveAccountingEventRequest` — dua belas bidang wajib
 
@@ -902,7 +1107,7 @@ oleh kode. Komponen yang dikirim Finance per jenis kejadian belum ditetapkan.
 berstatus **Tertahan**, karena mengabaikan komponen yang tidak dikenal berarti membuang angka
 diam-diam.
 
-### Bidang opsional untuk pesan saldo subledger: `SubledgerBalance` *(usulan `ACC-API-0.12`)*
+### Bidang opsional untuk pesan saldo subledger: `SubledgerBalance` *(`ACC-API-0.12`)*
 
 Ditambahkan `ACC-DEC-087`. Pesan saldo subledger per periode (`ACC-DEC-071`) memakai amplop dua
 belas bidang yang sama, ditambah satu objek rincian.
@@ -921,5 +1126,14 @@ Aturan yang mengikat:
 3. Pesan saldo **tidak pernah** menghasilkan jurnal. Aturan posting tidak dicari untuknya, sehingga
    ia tidak pernah `Tertahan` karena aturan posting kosong.
 4. `Components` dilarang pada pesan saldo.
+5. **`ACC-API-0.13` — arah tanda (`ACC-DEC-109`).** `Amount` dinyatakan menurut saldo normal
+   akunnya: **positif saat akun berperilaku wajar**, termasuk akun bersaldo normal kredit. Utang
+   Supplier Rp 300.000.000 dikirim `300000000.00`, bukan `-300000000.00`. Negatif hanya untuk akun
+   yang terbalik, misalnya piutang bersaldo kredit karena kelebihan bayar.
+6. **`ACC-API-0.13` — tanggal cut-off (`ACC-DEC-110`).** `AccountingDate` yang sah untuk
+   rekonsiliasi adalah **tanggal akhir periode**. Pesan bertanggal lain **tetap diterima** — tidak ada
+   penolakan baru — tetapi pada rekonsiliasi akun itu dianggap belum lengkap sampai Finance
+   menyatakan ulang saldo dengan versi lebih tinggi bertanggal akhir periode.
 
-Status dan tempat simpan saldo dirinci di `02-backend-architecture.md`.
+Status dan tempat simpan saldo dirinci di `02-backend-architecture.md` bagian 22.6; pemakaiannya
+untuk rekonsiliasi di bagian 23.

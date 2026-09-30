@@ -41,10 +41,24 @@ public sealed class FinanceSupplierPayableService
     /// item (Quantity × UnitPrice), supaya invariant "jumlah item = OriginalAmount induk"
     /// (02-backend-architecture.md §4.10) selalu benar dengan sendirinya, bukan divalidasi lalu
     /// ditolak.
+    ///
+    /// <paramref name="sourcePurchasingInvoiceId"/> dan <paramref name="accountingEventAmountOverride"/>
+    /// ditambahkan BE-FIN-034 sebagai parameter opsional di AKHIR daftar (bukan disisipkan di
+    /// tengah) supaya satu-satunya pemanggil existing (`FinanceSupplierPayablesController`, jalur
+    /// input manual) tidak perlu diubah sama sekali dan perilakunya identik seperti sebelumnya
+    /// (keduanya default <c>null</c>). Dipakai `FinancePurchasingInvoiceService.ApproveAsync`:
+    /// <paramref name="sourcePurchasingInvoiceId"/> mengisi kolom FK (`BE-FIN-030`);
+    /// <paramref name="accountingEventAmountOverride"/> mengoreksi nilai kejadian `AP_CREATED`
+    /// menjadi <c>TotalAmount − PPNAmount</c> — PPN-nya sendiri dilaporkan terpisah lewat kejadian
+    /// `PPN-MASUKAN-PEMBELIAN` (`FIN-DEC-046`) — supaya PPN TIDAK terkredit dua kali di Utang
+    /// Supplier. `OriginalAmount`/`OutstandingAmount` ledger TETAP nilai penuh (`TotalAmount`,
+    /// via item sintetis tunggal yang dikirim pemanggil) karena itulah yang benar-benar akan
+    /// dibayar ke supplier — hanya ANGKA KEJADIAN AKUNTANSI yang dikoreksi, bukan ledgernya.
     /// </summary>
     public async Task<FinSupplierPayable> CreateAsync(
         Guid supplierId, string supplierInvoiceNumber, DateOnly supplierInvoiceDate, string? description,
-        IReadOnlyList<SupplierPayableItemRequest> items, Guid actorUserId, CancellationToken cancellationToken)
+        IReadOnlyList<SupplierPayableItemRequest> items, Guid actorUserId, CancellationToken cancellationToken,
+        Guid? sourcePurchasingInvoiceId = null, decimal? accountingEventAmountOverride = null)
     {
         var invoiceNumber = ValidateReason(supplierInvoiceNumber, "Nomor faktur supplier", maxLength: 100);
         if (items is not { Count: > 0 })
@@ -98,6 +112,7 @@ public sealed class FinanceSupplierPayableService
             PaymentTermDays = supplier.PaymentTermDays,
             DueDate = supplierInvoiceDate.AddDays(supplier.PaymentTermDays),
             Status = FinSupplierPayableStatuses.Outstanding,
+            SourcePurchasingInvoiceId = sourcePurchasingInvoiceId,
             CreateDateTime = DateTime.UtcNow,
             CreateBy = actorUserId
         };
@@ -105,14 +120,15 @@ public sealed class FinanceSupplierPayableService
 
         _dbContext.FinSupplierPayables.Add(payable);
 
-        // Stage event AP_CREATED ke Accounting Integration Outbox
+        // Stage event PENGAKUAN-HUTANG-SUPPLIER ke Accounting Integration Outbox. accountingEventAmountOverride
+        // (BE-FIN-034) hanya memengaruhi ANGKA KEJADIAN ini, bukan payable.OriginalAmount di atas.
         await _accountingOutboxService.StageEventAsync(new AccountingOutboxEventRequest
         {
-            EventTypeCode = FinAccountingEventTypeCodes.ApCreated,
+            EventTypeCode = FinAccountingEventTypeCodes.PengakuanHutangSupplier,
             SourceTransactionId = payable.PayableNumber,
             EventOccurredAt = DateTimeOffset.UtcNow,
             AccountingDate = payable.SupplierInvoiceDate,
-            Amount = payable.OriginalAmount,
+            Amount = accountingEventAmountOverride ?? payable.OriginalAmount,
             CorrelationId = payable.Id,
             CausationId = payable.Id,
             ActorUserId = actorUserId
@@ -227,11 +243,11 @@ public sealed class FinanceSupplierPayableService
             payable.UpdateBy = actorUserId;
             payable.RowVersion = Guid.NewGuid();
 
-            // Stage event AP_PAYMENT ke Accounting Outbox
+            // Stage event PEMBAYARAN-HUTANG-SUPPLIER ke Accounting Outbox
             var eventOccurredAt = DateTimeOffset.UtcNow;
             await _accountingOutboxService.StageEventAsync(new AccountingOutboxEventRequest
             {
-                EventTypeCode = FinAccountingEventTypeCodes.ApPayment,
+                EventTypeCode = FinAccountingEventTypeCodes.PembayaranHutangSupplier,
                 SourceTransactionId = payable.PayableNumber,
                 EventOccurredAt = eventOccurredAt,
                 AccountingDate = DateOnly.FromDateTime(DateTime.UtcNow),

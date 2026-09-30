@@ -11,7 +11,7 @@
 | Repository target tulis | `QuilvianSystemFrontendDev` |
 | Branch | `RizkiV2` @ `1b7a0eff5` |
 | Baseline backend dibaca | `rizkiG` @ `f989453` (read-only) |
-| Status | **`IMPLEMENTED`** — acceptance (1) dan (3) **terbukti di peramban** 7 Sep 2026. **Dua cacat ditemukan owner dan diperbaiki**: paginasi hantu (7b) dan keterangan tertutup footer (7c). Acceptance (2) menunggu uji ganti badan hukum |
+| Status | **✅ SELESAI — dikerjakan ulang 29 September 2026.** Acceptance (3) sempat hilang lewat perombakan tampilan `95ea41cd9` (25 September 2026) dan **dipulihkan** atas keputusan Rizki "kembalikan ringkas" (bagian 10). Unit test Accounting 140/140, eslint 0/0. `npm run build` Rizki terbukti tak langsung: `.next/BUILD_ID` 29 September 2026 15.04 dan standalone 15.04, sesudah berkas terakhir diubah 14.54; kalimat "…hanya memuat jurnal yang sudah disahkan…" ada di bundel client (`.next/static/chunks`) dan server (`.next/server/chunks/ssr`). Pemeriksaan layar diserahkan ke tim UAT (aturan kerja owner 11 September 2026). Riwayat: 🟡 29 September 2026 pagi; Riwayat: `IMPLEMENTED` 7 September 2026 — acceptance (1) dan (3) terbukti di peramban; cacat 7b dan 7c diperbaiki |
 | Tanggal | 7 September 2026 |
 
 ## Ringkasan untuk pembaca umum
@@ -317,3 +317,48 @@ Diteruskan sebagai catatan, bukan diperbaiki dari sini.
 ?? src/style/corporate/accounting/trial-balance-view.module.css
 ?? tests/unit/accounting-trial-balance.test.mjs
 ```
+
+## 10. Pengerjaan ulang 29 September 2026 — pemulihan acceptance (3)
+
+| Field | Nilai |
+| --- | --- |
+| Pemicu | Audit kesiapan 29 September 2026, gap **G-02** — [`testing/readiness-report-2026-09-29.md`](../../../testing/readiness-report-2026-09-29.md) |
+| Keputusan | Rizki, 29 September 2026: **kembalikan ringkas** — satu kalimat di subjudul kartu ringkasan; desain 25 September tetap; `scopeNotice` tetap tidak ditampilkan karena bukan acceptance |
+| Branch / commit | `RizkiV2` `bf0a22537`, belum di-commit |
+| Model | Claude Opus 5.5 |
+
+### 10.1 Yang terjadi
+
+Commit `95ea41cd9` ("memperbaiki tampilan neraca saldo", 25 September 2026) merombak layar: ringkasan
+kini memakai markup sendiri dengan empat angka (Total Saldo Pembuka, Total Debit, Total Kredit,
+Selisih) dan `StatusBadge` di kepala kartu, lalu `postedOnlyNotice` dan `scopeNotice` dijadikan
+komentar. Akibatnya kalimat "hanya jurnal yang sudah disahkan" tinggal muncul saat tabel kosong —
+acceptance (3) tidak lagi terpenuhi. Dua unit test menangkapnya, tetapi selama ini dicatat sebagai
+"9 gagal di luar task" pada laporan task lain.
+
+### 10.2 Yang diubah
+
+| Berkas | Perubahan |
+| --- | --- |
+| `src/components/view/corporate/accounting/general-ledger/trial-balance-view.jsx` | Subjudul kartu ringkasan: teks tetap "Posisi seluruh akun pada periode berjalan" diganti `{config.postedOnlyNotice}`. +1/−1 |
+| `src/lib/constants/corporate/accounting/general-ledger/trial-balance-constants.jsx` | `postedOnlyNotice` aktif kembali. **Catatan:** perubahan di berkas ini dilakukan pihak lain pukul 14.53 WIB bersamaan dengan pengerjaan ini — `postedOnlyNotice` **dan** `scopeNotice` dipulihkan dengan teks lama. Agent tidak menimpanya; `scopeNotice` ada di konstanta tetapi tidak dipakai layar |
+| `tests/unit/accounting-trial-balance.test.mjs` | Uji (2): label `"Keseimbangan"` → `"Selisih"`, pernyataan `<SummaryGrid` dicabut karena desain 25 September memakai markup sendiri; penanda seimbang tetap diuji lewat `<StatusBadge`. Uji (6): kini memeriksa `postedOnlyNotice` berada di dalam `summaryCard` dan tidak menggantung sesudah tabel; pemeriksaan `scopeNotice` dicabut. Nol `//` baru |
+
+`UI GATE`: nol elemen baru — subjudul kartu yang sudah ada (`REUSE`).
+
+### 10.3 Validasi
+
+| Perintah | Hasil | Klasifikasi |
+| --- | --- | --- |
+| `npx eslint` view dan konstanta | Keluar `0`, nol pesan | `PASS` |
+| `node --import ./tests/helpers/register.mjs --test tests/unit/accounting-trial-balance.test.mjs` | `tests 11`, `pass 11`, `fail 0` (sebelumnya 9/11) | `PASS` |
+| Seluruh 12 berkas test Accounting | `tests 140`, `pass 140`, `fail 0` (sebelumnya 138/140) | `PASS` |
+| `npm run build` (Rizki) | `npm run build` Rizki terbukti tak langsung: `.next/BUILD_ID` 29 September 2026 15.04 dan standalone 15.04, sesudah berkas terakhir diubah 14.54; kalimat "…hanya memuat jurnal yang sudah disahkan…" ada di bundel client (`.next/static/chunks`) dan server (`.next/server/chunks/ssr`) | `PASS` (tak langsung) |
+| Pemeriksaan layar | Belum dijalankan — diserahkan ke tim UAT: buka Neraca Saldo, pilih periode, subjudul kartu ringkasan memuat kalimat "…hanya memuat jurnal yang sudah disahkan…" | `NOT RUN` — UAT follow-up |
+
+### 10.4 Temuan di luar cakupan
+
+| Temuan | Keterangan |
+| --- | --- |
+| Tombol **Muat Ulang** memakai `<button>` polos, bukan `BaseButton` | Bagian dari perombakan 25 September; tidak diubah |
+| Nilai **Selisih** menampilkan label keadaan saat tidak seimbang, bukan nominal selisih | Perombakan 25 September; perlu dicek Rizki apakah disengaja |

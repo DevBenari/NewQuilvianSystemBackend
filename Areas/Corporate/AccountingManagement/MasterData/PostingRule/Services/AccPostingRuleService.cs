@@ -1,8 +1,11 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingEvent.Enums;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.AccountingEvent.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Enums;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.ChartOfAccount.Models;
+using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.EventType.Enums;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.EventType.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.JournalType.Models;
 using QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.PostingRule.DTOs;
@@ -26,11 +29,6 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
     /// kejadian keuangan lalu menyusun jurnal menurut aturan ini adalah bagian kotak masuk kejadian,
     /// yang menunggu keputusan lintas modul dengan Finance. Yang disediakan untuk mesin itu kelak
     /// hanyalah <see cref="CariAturanAktifAsync"/>.
-    /// </para>
-    /// <para>
-    /// <b>Yang sengaja belum ditegakkan:</b> penonaktifan aturan yang masih ditunggu kejadian
-    /// Tertahan (<c>ACC-VALIDATION</c> Phase 2 bagian 2 baris terakhir). Tabel kejadiannya belum
-    /// ada, sehingga tidak ada yang dapat diperiksa. Dicatat sebagai kekurangan terencana.
     /// </para>
     /// </remarks>
     public class AccPostingRuleService
@@ -198,6 +196,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
                     StatusCodes.Status400BadRequest, "Jenis kejadian wajib dipilih dan harus aktif.");
             }
 
+            if (jenisKejadian.EventKind == EventTypeKind.SaldoSubledger)
+                return JenisSaldoSubledger<PostingRuleDetailResponse>(jenisKejadian.EventTypeCode);
+
             var siap = await SiapkanAsync(
                 request.LegalEntityId, request.JournalTypeId, request.Treatment, request.Lines, ct);
 
@@ -273,6 +274,9 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
 
             var aturan = await MuatLengkapAsync(_db, id, lacak: true, ct);
             if (aturan is null) return TidakDitemukan<PostingRuleDetailResponse>();
+
+            if (aturan.EventType?.EventKind == EventTypeKind.SaldoSubledger)
+                return JenisSaldoSubledger<PostingRuleDetailResponse>(aturan.EventType.EventTypeCode);
 
             var siap = await SiapkanAsync(
                 aturan.LegalEntityId, request.JournalTypeId, request.Treatment, request.Lines, ct);
@@ -354,8 +358,21 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
                     StatusCodes.Status409Conflict, "Aturan posting ini sudah tidak aktif.");
             }
 
-            // DITUNDA: "masih ada kejadian tertahan yang menunggu aturan ini" (409) belum dapat
-            // diperiksa — tabel kejadian belum ada. Lihat catatan kelas.
+            var kejadianMenunggu = await _db.Set<AccAccountingEvent>()
+                .AsNoTracking()
+                .CountAsync(x => !x.IsDelete
+                                 && x.EventStatus == AccountingEventStatus.Tertahan
+                                 && x.LegalEntityId == aturan.LegalEntityId
+                                 && x.EventTypeId == aturan.EventTypeId, ct);
+
+            if (kejadianMenunggu > 0)
+            {
+                return Gagal<PostingRuleDetailResponse>(
+                    StatusCodes.Status409Conflict,
+                    $"Masih ada {kejadianMenunggu} kejadian yang menunggu aturan ini. "
+                    + "Perbaiki aturannya lalu Coba Ulang kejadian itu dari Kotak Masuk Kejadian.");
+            }
+
             aturan.IsActive = false;
             aturan.UpdateDateTime = DateTime.UtcNow;
             aturan.UpdateBy = actorUserId;
@@ -620,6 +637,12 @@ namespace QuilvianSystemBackend.Areas.Corporate.AccountingManagement.MasterData.
                 StatusCodes.Status409Conflict,
                 $"Jenis kejadian {kodeJenis} sudah punya aturan posting aktif pada badan hukum ini. "
                 + "Nonaktifkan aturan lama lebih dahulu, atau ubah aturan yang sudah ada.");
+
+        private static AccountingServiceResult<T> JenisSaldoSubledger<T>(string kodeJenis)
+            => Gagal<T>(
+                StatusCodes.Status422UnprocessableEntity,
+                $"Jenis kejadian {kodeJenis} berperlakuan Saldo Subledger. "
+                + "Pesan saldo tidak pernah menjadi jurnal, sehingga tidak memerlukan aturan posting.");
 
         private static AccountingServiceResult<T> Gagal<T>(int statusCode, string pesan)
             => AccountingServiceResult<T>.Fail(statusCode, pesan);

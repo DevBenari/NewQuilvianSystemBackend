@@ -3,7 +3,7 @@
 | Field | Value |
 |---|---|
 | Blueprint ID | `ACC-BP-001` |
-| Revision | `5` — 24 September 2026, bagian 22 (amendment sesudah ratifikasi Finance, **`draft`**) ditambahkan. Sebelumnya `4` — dinaikkan 8 September 2026, bagian 14 sampai 21 (Phase 2) ditambahkan |
+| Revision | `6` — 28 September 2026, bagian 23 (rekonsiliasi saldo subledger, `ACC-DEC-107`..`114`) ditambahkan, **approved Rizki, 28 September 2026 (`GATE-DESAIN-0928`)**; diagram 22.3 dan butir terbuka 22.6 dirapikan. Sebelumnya `5` — 24 September 2026, bagian 22 (amendment sesudah ratifikasi Finance) ditambahkan, approved Rizki, 24 September 2026 (`GATE-DESAIN-0924`). Sebelumnya `4` — dinaikkan 8 September 2026, bagian 14 sampai 21 (Phase 2) ditambahkan |
 | Status | Bagian 1–13 (MVP): mengikuti approval `ACC-BP-001` revisi 5, 1 September 2026. Bagian 14–21 (Phase 2): **`approved`** — Rizki, 8 September 2026 |
 | Cakupan | MVP tulang punggung akuntansi (`ACC-DEC-009`) **dan** Phase 2 (`ACC-PH-006`, bagian 14–21) |
 | Bentuk blueprint | `SINGLE` — melanjutkan bentuk yang sudah melekat sejak approval, tidak dinilai ulang |
@@ -1126,7 +1126,7 @@ memang tidak ada di `QuilvianSystemBackend.sln`. Jangan membaca "build hijau" se
 
 | Field | Nilai |
 |---|---|
-| Status | **`draft`** — approval adalah tindakan manusia. Bagian 14–21 tetap `approved`; bagian ini **mengubah** tiga hal di dalamnya dan menandainya di tempat |
+| Status | **`approved`** — Rizki, 24 September 2026 (`GATE-DESAIN-0924`). Bagian ini **mengubah** tiga hal di bagian 14–21 dan menandainya di tempat |
 | Pass | `design-business-module` amendment, 24 September 2026 |
 | Masukan | `00-interview-decisions.md@10` (`ACC-DEC-082`..`091`); `ACC-XMOD-0.3`; `finance-management/evidence/01` |
 | Source SHA | `rizkiG` `b2b265af`, `RizkiV2` `c941012ac` — diperiksa hari itu; nol kode kotak masuk, `AccEventType` dan `AccControlAccountReconciliationService` sudah berdiri |
@@ -1179,7 +1179,7 @@ classDiagram
         +Guid AccountingPeriodId
         +Guid ChartOfAccountId
         +decimal Balance
-        +DateOnly AsOfDate
+        +DateTime AsOfDate
         +int SourceVersionNumber
         +Guid AccountingEventId
     }
@@ -1190,6 +1190,11 @@ classDiagram
     AccSubledgerBalance "*" --> "1" AccAccountingPeriod : untuk periode
     AccSubledgerBalance "*" --> "1" AccChartOfAccount : akun kontrol
 ```
+
+**Koreksi 28 September 2026.** `AsOfDate` semula ditulis `DateOnly`. Model yang dibangun
+`BE-ACC-P2-027` memakai **`DateTime`** yang disimpan sebagai kolom **`date`** — konvensi tanggal bisnis
+modul Accounting, sama dengan `AccJournal.AccountingDate` dan `AccAccountingPeriod.StartDate`. Yang
+benar adalah kode; kamus data bagian 12d sejak awal menulis `date`.
 
 ### 22.4 Alur penerimaan — batas transaksi
 
@@ -1245,13 +1250,14 @@ persetujuan Finance; bila Finance memilih nama lain, cukup data master yang beru
 | Sudah ada, versi pesan **lebih tinggi** | Baris yang sama **diganti** angkanya, dan dirujukkan ke kejadian terbaru. Kejadian lama tetap tersimpan sebagai jejak |
 | Sudah ada, versi pesan **lebih rendah atau sama** | Kejadian `Tercatat`, baris saldo **tidak** berubah. Mencegah pesan lama yang datang terlambat menimpa koreksi |
 | `SourceVersion` tidak dapat dibaca sebagai bilangan bulat positif | `400` — hanya untuk pesan saldo, karena urutan versi menentukan baris mana yang berlaku |
-| Periode yang dituju berstatus **`Closed`** | Kejadian `Tercatat`, baris saldo **tidak** berubah. Angka periode tertutup tidak digeser diam-diam; selisihnya tampak saat Finance dan Accounting membandingkan catatan. **Butir terbuka untuk Rizki**: apakah perlu peringatan tersendiri |
+| Periode yang dituju berstatus **`Closed`** | Kejadian `Tercatat`, baris saldo **tidak** berubah. Angka periode tertutup tidak digeser diam-diam; selisihnya tampak saat Finance dan Accounting membandingkan catatan. Tanpa peringatan tersendiri — **diputuskan `ACC-DEC-093`** |
 | Jenis belum terdaftar | `Tertahan` (`EVENT_TYPE_NOT_REGISTERED`), rincian saldo hanya ada di `RawPayload`; dibaca ulang saat diproses ulang |
 
 **Dipakai oleh siapa.** Penghalang rekonsiliasi `ACC-DEC-076` (Wave D, `BE-ACC-P2-014`)
 membandingkan `AccSubledgerBalance.Balance` dengan saldo buku besar dari
 `AccControlAccountReconciliationService` yang sudah berdiri. Baris yang tidak ada = saldo belum
-lengkap = penutupan ditahan.
+lengkap = penutupan ditahan. **Rinciannya kini bagian 23** — termasuk kapan penghalang mulai
+berlaku (`ACC-DEC-107`), sehingga "baris yang tidak ada" hanya menahan sejak titik mulai itu.
 
 ### 22.7 Tanda terima — `ACC-DEC-085`
 
@@ -1279,7 +1285,7 @@ lengkap = penutupan ditahan.
 | Berhak atas badan hukum tujuan | **Sementara** penjaga badan hukum `IsDefault` yang sudah ada (`ACC-DEC-043`): `LegalEntityId` pesan wajib sama dengan badan hukum utama, selain itu `403`. Otorisasi badan hukum per pengguna menunggu `ACC-DEP-008` | Penjaga sudah berdiri |
 | `[AccessPermission("AccountingEvent", "Receive")]` pada `POST /` | `AccountingEventController` | Rencana |
 
-`AccountingEvent : Receive` **dicabut dari peran Administrator** (usulan `ACC-PERMISSION-0.7`).
+`AccountingEvent : Receive` **dicabut dari peran Administrator** (`ACC-PERMISSION-0.7`).
 
 ### 22.9 Status model dan dampak migration
 
@@ -1344,3 +1350,259 @@ Yang berubah ada di Finance (`FIN-DEC-004`). Bila Finance menolak, keputusan kem
 | Validasi kode yang melarang `JASA_MEDIS` pada aturan `PENGAKUAN-PIUTANG` | Ditolak `ACC-DEC-086` |
 | Kolom concurrency baru di `AccAccountingEvent` | Ubah status bersyarat (bagian 22.4) sudah cukup |
 | Kolom jadwal percobaan berikutnya | Dihitung dari waktu percobaan terakhir di `AccAccountingEventAttempt` |
+
+## 23. Amendment 28 September 2026 — rekonsiliasi saldo subledger (`BE-ACC-P2-014`)
+
+| Field | Nilai |
+|---|---|
+| Status | **`approved`** — Rizki, 28 September 2026 (`GATE-DESAIN-0928`) |
+| Pass | `design-business-module` amendment, 28 September 2026 |
+| Masukan | `00-interview-decisions.md@14` (`ACC-DEC-107`..`114`, ditambah `071`, `076`, `087`, `093`); `ACC-XMOD-0.3`; bagian 22 |
+| Source SHA | `rizkiG` `b476527d`, `RizkiV2` `a6d269077` — diperiksa hari itu: `AccSubledgerBalance` dan jalur pesan saldo sudah berdiri (`027`, `028` ✅); `AccPeriodClosingService`, `AccAccountingPeriodService`, dan `AccControlAccountReconciliationService` sudah terdaftar di `Program.cs` |
+| Bentuk blueprint | `SINGLE` — tidak dinilai ulang |
+| `domain_architecture_readiness` | `DOMAIN_ARCHITECTURE_READY` (`ACC-DOMAIN-P2-0.1`). Nol bounded context dan nol konsep domain baru |
+| Traceability | `ACC-DEC-066`, `071`, `076`, `107`, `108`, `109`, `110`, `111`, `112`, `113`, `114`; `FR-P2-040`..`044` |
+
+### 23.1 Ringkasan — yang bertambah dan yang tidak
+
+| Bertambah | Tidak bertambah |
+|---|---|
+| **Satu endpoint baca:** `GET api/v1/corporate/accounting/reconciliation/subledger-comparison` | Tabel, kolom, index, migration — **nol** (`ACC-DEC-112`) |
+| **Satu butir penghalang** pada daftar periksa penutupan: `SUBLEDGER_RECONCILIATION` | Hak akses — tetap `AccountingReconciliation : Read` dan `AccountingPeriod : Close` |
+| **Dua penolakan `409`:** `submit-closing` dan `close` ber-`Permanent = true` | Baris di `Program.cs` — ketiga service sudah terdaftar (baris 706, 707, 715) |
+| Dua enum baru, tiga DTO baru | Pengaturan, tombol, atau hak untuk mengecualikan penghalang (`ACC-DEC-113`) |
+| — | Catatan `LoggerService` untuk pembacaan layar Rekonsiliasi (`ACC-DEC-115`) |
+
+### 23.2 Tabel kepemilikan data — tambahan
+
+| Kelompok data | Modul pemilik | Dipakai Accounting | Dibuat ulang di Accounting |
+|---|---|:---:|---|
+| Hasil rekonsiliasi per akun per periode (saldo buku besar, saldo subledger, selisih, keadaan) | **Accounting** | Ya | **Tidak disimpan** — dihitung setiap kali diminta dari `AccJournalLine` dan `AccSubledgerBalance` (`ACC-DEC-112`) |
+
+### 23.3 Aturan perhitungan — satu fungsi, tiga pemakai
+
+Perhitungannya ditulis **sekali** sebagai method `public static` pada
+`AccControlAccountReconciliationService`, lalu dipanggil layar rekonsiliasi, daftar periksa, dan
+kedua titik penegakan. Kalau ketiganya menghitung sendiri-sendiri, cepat atau lambat hasilnya
+berbeda — dan petugas melihat daftar periksa bersih tetapi pengajuannya ditolak `409`. Pola ini
+sudah dipakai `AccPeriodClosingService.HitungKejadianAsync`.
+
+| Langkah | Aturan | Dasar |
+|---:|---|---|
+| 1 | **Titik mulai.** Cari periode paling awal (menurut `StartDate`) yang punya baris `AccSubledgerBalance` belum terhapus untuk badan hukum periode ini. Bila tidak ada, atau periode yang dihitung lebih awal dari titik mulai, keadaan laporan = **`BelumBerlaku`** | `ACC-DEC-107` |
+| 2 | **Akun yang ditampilkan.** Seluruh akun ber-`IsControlAccount = true` milik badan hukum itu yang belum dihapus, **ditambah** akun lain yang punya baris saldo untuk periode ini (misalnya penanda control-nya dicabut sesudah saldo tiba). Diurutkan menurut kode akun | `ACC-DEC-108` |
+| 3 | **Saldo buku besar.** Jumlah baris jurnal `Posted` dengan `AccountingDate` sampai `EndDate` periode, **inklusif** — rumus yang sama dengan `gl-balances`. Yang dibandingkan adalah **`BalanceInNormalBalance`** | `ACC-DEC-109`, `110` |
+| 4 | **Akun wajib.** `IsControlAccount = true` **dan** `IsPostable = true` **dan** (`IsActive = true` **atau** saldo buku besar langkah 3 bukan nol) | `ACC-DEC-108` |
+| 5 | **Saldo subledger.** Baris `AccSubledgerBalance` untuk (badan hukum, periode, akun). Tanggal cut-off-nya sah hanya bila `AsOfDate` **sama dengan** `EndDate` periode | `ACC-DEC-110` |
+| 6 | **Keadaan per akun.** Tanpa baris → `BelumDiterima`. Ada baris, cut-off bukan akhir periode → `CutOffBukanAkhirPeriode`. Ada baris, cut-off sah, `Balance` **sama persis** dengan saldo buku besar → `Cocok`. Selain itu → `Berselisih` | `ACC-DEC-076`, `110` |
+| 7 | **Menahan per akun.** Akun wajib yang keadaannya **bukan** `Cocok`; **atau** akun tidak wajib yang keadaannya `Berselisih`. Akun tidak wajib yang tak punya saldo tidak menahan | `ACC-DEC-108` |
+| 8 | **Keadaan laporan.** `BelumBerlaku` (langkah 1) → tidak ada akun yang menahan. Sudah berlaku dan nol akun menahan → **`Bersih`**. Sudah berlaku dan sekurang-kurangnya satu akun menahan → **`BelumBersih`** | `ACC-DEC-107`, `113` |
+
+**Selisih** = saldo buku besar − saldo subledger, hanya dihitung untuk `Cocok` dan `Berselisih`.
+Positif berarti buku besar **lebih besar** daripada subledger. Toleransinya nol: dibandingkan pada
+dua angka desimal, tanpa pembulatan dan tanpa batas "cukup dekat" (`ACC-DEC-076`).
+
+**Contoh — periode `2026-09`, badan hukum yang menerima saldo pertamanya untuk `2026-09`:**
+
+| Akun | Wajib? | Buku besar per 30 Sep | Saldo subledger | Keadaan | Menahan? |
+|---|:---:|---:|---|---|:---:|
+| 1-1100 Kas (induk) | Tidak | 0 | — | `BelumDiterima` | Tidak |
+| 1-1101 Kas Kasir | Ya | 25.000.000 | 25.000.000, cut-off 30 Sep, versi 3 | `Cocok`, selisih 0 | Tidak |
+| 1-1201 Piutang Penjamin | Ya | 80.000.000 | 78.500.000, cut-off 15 Sep, versi 1 | `CutOffBukanAkhirPeriode` | **Ya** |
+| 2-1101 Utang Supplier | Ya | 30.000.000 | 29.999.500, cut-off 30 Sep | `Berselisih`, selisih 500 | **Ya** |
+| 1-1102 Kas Kecil | Ya | 0 | — | `BelumDiterima` | **Ya** — nol di buku besar tidak membebaskan |
+
+Keadaan laporan: **`BelumBersih`**, tiga akun menahan. Periode `2026-08` badan hukum yang sama
+dihitung `BelumBerlaku`, karena saldo pertamanya untuk `2026-09`.
+
+### 23.4 Butir penghalang pada daftar periksa penutupan
+
+`GET /periods/{id}/closing-checklist` membawa **empat** penghalang. Butir keempat ditambahkan di
+**belakang** tiga yang sudah ada; bentuk respons tidak berubah.
+
+| Bidang | `BelumBerlaku` | `Bersih` | `BelumBersih` |
+|---|---|---|---|
+| `Code` | `SUBLEDGER_RECONCILIATION` | sama | sama |
+| `Title` | "Rekonsiliasi saldo subledger" | sama | sama |
+| `State` | `NotYetAvailable` | `Evaluated` | `Evaluated` |
+| `Count` | `0` | `0` | Jumlah akun yang menahan |
+| `IsBlocking` | `false` | `false` | `true` |
+| `Message` | "Belum dapat diperiksa: rekonsiliasi saldo subledger belum berlaku untuk periode ini." | "Seluruh control account cocok dengan saldo subledger." | Rincian per keadaan, contoh: "1 control account belum menerima saldo subledger, 1 saldonya bertanggal cut-off bukan akhir periode, 1 berselisih." |
+| `UnavailableReason` | "Finance belum pernah mengirim saldo subledger untuk badan hukum ini." — **atau**, bila titik mulai sudah ada: "Rekonsiliasi saldo subledger berlaku mulai periode 2026-11." | — | — |
+
+Akibat pada akar respons: `CanSubmitClosing` otomatis salah selama keadaan `BelumBersih`, karena
+butirnya `Evaluated` dengan `Count` lebih dari nol — mesin yang ada tidak diubah. Selama
+`BelumBerlaku`, butir ini ikut dihitung `NotYetAvailableCount` dan `IsComplete` bernilai salah.
+
+### 23.5 Dua titik penegakan — `ACC-DEC-111`
+
+| Titik | Method | Kapan diperiksa | Bila `BelumBersih` |
+|---|---|---|---|
+| Ajukan | `AccPeriodClosingService.SubmitClosingAsync` | Sesudah pemeriksaan `UNPOSTED_JOURNALS` dan `FAILED_EVENTS`, sebelum riwayat ditulis | `409` "Rekonsiliasi saldo subledger periode September 2026 belum bersih: {rincian}." Nol perubahan data |
+| Tutup permanen | `AccAccountingPeriodService.CloseAsync` | Hanya bila `Permanent = true` dan perpindahan `SoftClosed` → `Closed` sah menurut `PeriksaPerpindahanTutup` | `409` "Periode September 2026 belum dapat ditutup permanen: rekonsiliasi saldo subledger belum bersih — {rincian}." Periode tetap `SoftClosed` |
+| Setujui, Tolak, Buka kembali | — | **Tidak** diperiksa | — |
+
+`{rincian}` memakai kalimat yang sama dengan `Message` butir daftar periksa, supaya layar dan
+penolakan tidak pernah berbunyi berbeda. Keadaan `BelumBerlaku` **tidak** menahan di titik mana pun.
+
+**Risiko yang diterima.** Pemeriksaan dan perubahan status tidak dikunci bersama. Pesan saldo yang
+tiba pada milidetik yang sama dengan Tutup Permanen dapat lolos membaca status `SoftClosed` lalu
+mengganti baris sesudah periode menjadi `Closed`. Kemungkinannya kecil: Finance mengirim saldo saat
+menutup periodenya sendiri, sedangkan Tutup Permanen adalah tindakan manual beberapa hari
+sesudahnya. Selisih seperti itu tetap terlihat di layar Rekonsiliasi dan dibereskan lewat pembukaan
+kembali beralasan (`ACC-DEC-027`).
+
+### 23.6 Endpoint baru
+
+`[Tags("Corporate / Accounting / Reconciliation")]` — tag yang sama dengan `gl-balances`.
+Base URL: `api/v1/corporate/accounting/reconciliation` — **Rencana (belum tersedia)**.
+
+| Method | Path | Kegunaan | Hak akses | Request | Response |
+|---|---|---|---|---|---|
+| `GET` | `/subledger-comparison` | Perbandingan saldo buku besar dengan saldo subledger seluruh control account pada **satu periode**, beserta selisih dan keadaan per akun. **Tidak menyimpan apa pun** | `[AccessPermission("AccountingReconciliation", "Read")]` | `SubledgerComparisonQuery` — `accountingPeriodId` wajib, pada query | `ApiResponse<SubledgerComparisonReportResponse>` |
+
+Kode status: `200` berhasil — termasuk keadaan `BelumBerlaku` dan badan hukum tanpa control
+account (daftar kosong); `400` `accountingPeriodId` kosong; `404` periode tidak ditemukan; `409`
+penjaga badan hukum utama (`ACC-DEC-043`); `401`/`403` seperti seluruh endpoint Accounting. Bentuk
+bidang lengkap ada di `contracts/api-contract.md` grup Reconciliation.
+
+### 23.7 Class diagram — potongan yang berubah
+
+```mermaid
+classDiagram
+    class ReconciliationController {
+        +GetGlBalances(query)
+        +GetSubledgerComparison(query)
+    }
+    class AccControlAccountReconciliationService {
+        +GetGlBalancesAsync(query)
+        +GetSubledgerComparisonAsync(query)
+        +HitungRekonsiliasiSubledgerAsync(db, periode)$
+    }
+    class AccPeriodClosingService {
+        +GetChecklistAsync(periodId)
+        +SubmitClosingAsync(periodId, request, actor)
+    }
+    class AccAccountingPeriodService {
+        +CloseAsync(id, request, actor)
+    }
+    class SubledgerComparisonReportResponse {
+        +SubledgerReconciliationState ReconciliationState
+        +List~SubledgerComparisonAccountResponse~ Accounts
+    }
+    class AccSubledgerBalance
+    ReconciliationController --> AccControlAccountReconciliationService
+    AccPeriodClosingService ..> AccControlAccountReconciliationService : static
+    AccAccountingPeriodService ..> AccControlAccountReconciliationService : static
+    AccControlAccountReconciliationService --> AccSubledgerBalance : membaca
+    AccControlAccountReconciliationService --> SubledgerComparisonReportResponse : menghasilkan
+```
+
+### 23.8 Class baru dan yang diperbarui
+
+| Class | Status | Lokasi file | Fungsi | Dipanggil oleh | Membuka transaksi |
+|---|---|---|---|---|---|
+| `ReconciliationController` | **Diperbarui** | `Areas/Corporate/AccountingManagement/Reconciliation/Controllers/ReconciliationController.cs` | + action `GetSubledgerComparison`, `[HttpGet("subledger-comparison")]`, `[AccessAction("Read", "Read Control Account Reconciliation", ...)]`, `[AccessPermission("AccountingReconciliation", "Read")]` | Frontend | Tidak |
+| `AccControlAccountReconciliationService` | **Diperbarui** | `.../Reconciliation/Services/AccControlAccountReconciliationService.cs` | + `GetSubledgerComparisonAsync` (penjaga badan hukum, cari periode, panggil fungsi statis); + `public static HitungRekonsiliasiSubledgerAsync(ApplicationDbContext, AccAccountingPeriod, CancellationToken)` — aturan bagian 23.3. Perhitungan saldo buku besar dipisah menjadi pembantu statis yang dipakai bersama `GetGlBalancesAsync`, **tanpa** mengubah angka `gl-balances` | Controller; `AccPeriodClosingService`; `AccAccountingPeriodService` | Tidak — hanya membaca |
+| `SubledgerReconciliationState` | **Baru** | `.../Reconciliation/Enums/SubledgerReconciliationState.cs` | `BelumBerlaku = 1`, `Bersih = 2`, `BelumBersih = 3`. Tanpa bawaan — selalu diisi | — | — |
+| `SubledgerReconciliationItemStatus` | **Baru** | `.../Reconciliation/Enums/SubledgerReconciliationItemStatus.cs` | `Cocok = 1`, `Berselisih = 2`, `BelumDiterima = 3`, `CutOffBukanAkhirPeriode = 4`. Tanpa bawaan | — | — |
+| `SubledgerComparisonQuery`, `SubledgerComparisonReportResponse`, `SubledgerComparisonAccountResponse` | **Baru** | `.../Reconciliation/DTOs/ControlAccountReconciliationDtos.cs` — berkas yang sama dengan DTO `gl-balances` | Bentuk di `api-contract.md` | — | — |
+| `AccPeriodClosingService` | **Diperbarui** | `.../AccountingPeriod/Services/AccPeriodClosingService.cs` | + konstanta `KodeRekonsiliasiSubledger = "SUBLEDGER_RECONCILIATION"`; butir keempat di `GetChecklistAsync` (bagian 23.4); pemeriksaan ulang di `SubmitClosingAsync` (bagian 23.5) | Controller periode | Tidak berubah |
+| `AccAccountingPeriodService` | **Diperbarui** | `.../AccountingPeriod/Services/AccAccountingPeriodService.cs` | Pemeriksaan di `CloseAsync` untuk tutup permanen (bagian 23.5) | Controller periode | Tidak berubah |
+
+### 23.9 Arsitektur folder
+
+```
+Areas/Corporate/AccountingManagement/Reconciliation/
+├── Controllers/ReconciliationController.cs              Diperbarui
+├── DTOs/ControlAccountReconciliationDtos.cs             Diperbarui (+3 DTO)
+├── Enums/                                               Baru — folder dibuat bersama enum pertamanya
+│   ├── SubledgerReconciliationState.cs                  Baru
+│   └── SubledgerReconciliationItemStatus.cs             Baru
+├── Models/AccSubledgerBalance.cs                        Sudah ada (BE-ACC-P2-027)
+└── Services/AccControlAccountReconciliationService.cs   Diperbarui
+Areas/Corporate/AccountingManagement/AccountingPeriod/Services/
+├── AccPeriodClosingService.cs                           Diperbarui
+└── AccAccountingPeriodService.cs                        Diperbarui
+```
+
+Folder `Enums/` per sub-area mengikuti `AccountingEvent/Enums/` dan `MasterData/EventType/Enums/`.
+
+### 23.10 Status model, migration, dan data master
+
+| Hal | Isi |
+|---|---|
+| Model | **Nol berubah.** `AccSubledgerBalance`, `AccChartOfAccount`, `AccAccountingPeriod`, `AccJournal`, `AccJournalLine` dibaca apa adanya |
+| Migration | **Tidak ada.** `BE-ACC-P2-014` tidak menyentuh `ApplicationDbContext` maupun snapshot |
+| Data master awal | Tidak ada yang baru. **Prasyarat pakai:** control account ditandai di daftar akun, dan jenis kejadian ber-`EventKind = SaldoSubledger` terdaftar (sudah ada sejak `022`/`028`) |
+| Mundur bila gagal | Kembalikan source; tidak ada data yang perlu dipulihkan |
+
+**Akibat di `QuilvianNewDevRizki`.** Baris saldo `2026-09` untuk 1-1002 (versi 4, Rp 0) dan 1-1003
+(Rp 1.000.000) sudah ada, sehingga begitu `014` berjalan rekonsiliasi di dev **menyala sejak
+September 2026**. Setiap control account wajib lain di badan hukum itu akan menahan penutupan
+September sampai saldonya dikirim lewat Swagger.
+
+### 23.11 Yang sengaja tidak dibuat
+
+| Yang ditimbang | Alasan ditolak |
+|---|---|
+| Tabel potret hasil rekonsiliasi | `ACC-DEC-112` — potret saat ditutup sudah terjaga oleh baris saldo yang membeku di periode `Closed` |
+| Kolom atau isian "periode mulai rekonsiliasi" | `ACC-DEC-107` — titik mulai diturunkan dari data, supaya tidak ada tuas untuk menghindari penghalang |
+| Service baru khusus rekonsiliasi subledger | Menuntut baris baru di `Program.cs`; method statis pada service yang sudah terdaftar cukup |
+| Memperluas `gl-balances` dengan parameter periode | Mengubah arti endpoint yang sudah dipakai layar lain; satu endpoint satu pertanyaan |
+| Pemeriksaan rekonsiliasi pada Setujui | `ACC-DEC-111` |
+| Hak atau tombol pengecualian | `ACC-DEC-113` |
+| Menolak `400` pesan saldo bertanggal cut-off bukan akhir periode | `ACC-DEC-110` — `028` dan `ACC-XMOD` tidak diubah |
+| Toleransi selisih, pembulatan ke ribuan | `ACC-DEC-076` — toleransi nol |
+
+## 24. Amendment 29 September 2026 — draft jurnal hasil kejadian — **approved** Rizki (`GATE-DESAIN-0929`)
+
+Dasar: `ACC-DEC-116`..`121` (`00-interview-decisions.md` revision 15). Nol tabel baru, nol kolom
+baru, **nol migration** — `AccAccountingEvent.JournalId` sudah ber-index
+(`AccAccountingEventConfiguration`, `HasIndex(x => x.JournalId)`). Nol endpoint baru, nol hak baru,
+nol perubahan `Program.cs`.
+
+### 24.1 Kepemilikan dan batas transaksi
+
+Jurnal milik `JournalManagement`; kejadian milik `AccountingEvent`. Penghapusan jurnal hasil
+kejadian mengubah keduanya, sehingga dikerjakan **satu transaksi database** yang dibuka
+`AccJournalService.DeleteAsync`:
+
+1. Periksa status jurnal (aturan lama).
+2. Cari kejadian tidak terhapus yang `JournalId`-nya menunjuk jurnal ini. Tidak ada → aturan lama
+   apa adanya (jurnal manual).
+3. Ada → izinkan `Draft` **dan** `Rejected`; tandai jurnal dan barisnya terhapus.
+4. Kejadian: `ExecuteUpdate` bersyarat `EventStatus = Terjurnal AND JournalId = {id}` → `Gagal`,
+   `JournalId = null`. Nol baris berubah → rollback, `409`.
+5. Tambah satu `AccAccountingEventAttempt` gagal (`AttemptNumber` = terakhir + 1) berpesan
+   "Jurnal draft {nomor} dihapus oleh {nama}.", nama dari pembaca nama aktor `BE-ACC-015`.
+6. Commit. Gagal di langkah mana pun → rollback penuh.
+
+Langkah 4–5 ditulis sebagai method `public static` milik `AccAccountingEventService` yang menerima
+`ApplicationDbContext` dan dipanggil `AccJournalService` di dalam transaksinya — pola "static pada
+service yang sudah terdaftar", tanpa registrasi DI baru.
+
+### 24.2 Class yang berubah
+
+| Class | Status | Lokasi | Perubahan |
+|---|---|---|---|
+| `AccJournalService` | Diperbarui | `JournalManagement/Services/` | `DeleteAsync` (langkah 24.1), `UpdateAsync` (`409` jurnal hasil kejadian), `PeriksaDapatDisunting` (pengecualian `Rejected` hasil kejadian), `TindakanTersedia` (tanpa `update`; `delete` pada `Rejected` hasil kejadian), pemetaan rincian (+2 bidang) |
+| `AccAccountingEventService` | Diperbarui | `AccountingEvent/Services/` | + method `public static` pelepas tautan jurnal (langkah 24.1 butir 4–5) |
+| `AccPeriodClosingService` | Diperbarui | `AccountingPeriod/Services/` | `HitungJurnalBelumDisahkanAsync`: `Draft`/`PendingApproval`/`Approved` **atau** (`Rejected` **dan** ditunjuk kejadian tidak terhapus) — dipakai daftar periksa dan `submit-closing` sekaligus |
+| `JournalDetailResponse` | Diperbarui | `JournalManagement/DTOs/` | + `SourceAccountingEventId` (`Guid?`), `SourceAccountingEventNumber` (`string?`, maks 50 seperti `EventNumber`), tidak sensitif |
+| `JournalController` | Sudah ada | `JournalManagement/Controllers/` | Tidak berubah — atribut akses tetap `Journal : Update` / `Journal : Delete` |
+
+### 24.3 Yang sengaja tidak dibuat
+
+| Hal | Alasan |
+|---|---|
+| Status kejadian baru (mis. "Jurnal Dihapus") | `Gagal` sudah membawa arti yang dibutuhkan: tampil di Kotak Masuk, dapat dicoba ulang atau diabaikan, dan menahan tutup bulan |
+| Body alasan pada `DELETE` | `ACC-DEC-117` — catatan otomatis; alasan tertulis terjamin lewat Abaikan |
+| Hak `Journal : DeleteEventDraft` | `ACC-DEC-121` |
+| Membalik kejadian otomatis saat penyetuju menolak | Risiko terjurnal dua kali (`ACC-DEC-120` memilih penahan tutup bulan) |
+| Kolom asal-usul di `AccJournal` | Tautan sudah ada di sisi kejadian; menambah kolom menuntut migration dan dua sumber kebenaran |
+
+### 24.4 Pengujian developer
+
+Skenario `A1`..`A10` pada `00-interview-decisions.md` bagian *Keputusan draft jurnal hasil kejadian*,
+lewat Swagger dan layar; tanpa SQL. Automated test bukan acceptance (`ACC-DEC-081`).

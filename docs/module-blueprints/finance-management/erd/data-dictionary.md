@@ -1216,3 +1216,643 @@ ALTER TABLE public."FinPayment"
 `ALTER TABLE` di atas ditulis demikian hanya untuk memperjelas apa yang berubah. Karena
 migration `AddFinancePayable` **belum pernah dijalankan**, ketiga kolom itu sebenarnya masuk
 sebagai bagian dari `CREATE TABLE "FinPayment"` yang asli — bukan sebagai migration tambahan.
+
+# AMENDMENT REVISI 4 — Purchasing/AP, AR Invoice Agregat, Potongan AR
+
+| Field | Nilai |
+|---|---|
+| Revisi | `4`, 25 September 2026 — status `draft` |
+| Keputusan | `FIN-DEC-045`..`055`, `FIN-DES-037`..`044` |
+| Rincian arsitektur | `02-backend-architecture.md` bagian AMENDMENT REVISI 4 |
+
+## C.1 `FinPurchaseOrder` — status `Baru`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `PONumber` | `string(50)` | Ya | — | UK | — | — | Tidak | Contoh `PO-2026-09-00142` |
+| `SupplierId` | `Guid` | Ya | — | Index | FK ke `MstSupplier` | `Restrict` | Tidak | Supplier tujuan |
+| `Status` | `string(30)` | Ya | `DRAFT` | Index | — | — | Tidak | `DRAFT`, `PENDING_APPROVAL`, `APPROVED`, `REJECTED`, `CANCELLED`, `PARTIALLY_RECEIVED`, `FULLY_RECEIVED`, `CLOSED` |
+| `TotalAmount` | `decimal(18,2)` | Ya | — | — | — | — | Tidak | Jumlah seluruh baris |
+| `ApprovalTier` | `string(10)` | Ya | — | — | — | — | Tidak | `TIER_1`, `TIER_2` — dihitung `FinanceApprovalTierResolver` (`FIN-DES-039`): `< 50.000.000 → TIER_1`, `>= 50.000.000 → TIER_2` |
+| `RequestedByUserId` | `Guid` | Ya | — | Index | Pengaju | — | Tidak | — |
+| `RequestedAt` | `DateTimeOffset` | Ya | — | — | — | — | Tidak | — |
+| `ApprovedByUserId` | `Guid?` | Tidak | — | — | Penyetuju | — | Tidak | Kosong sampai disetujui |
+| `ApprovedAt` | `DateTimeOffset?` | Tidak | — | — | — | — | Tidak | — |
+| `RowVersion` | `Guid` | Ya | `Guid.NewGuid()` | — | — | — | Tidak | Optimistic concurrency |
+
+## C.2 `FinPurchaseOrderItem` — status `Baru`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `PurchaseOrderId` | `Guid` | Ya | — | Index | FK ke `FinPurchaseOrder` | `Restrict` | Tidak | Induk PO |
+| `ProductCategory` | `string(100)` | Ya | — | — | — | — | Tidak | Teks bebas — tidak ada master produk (C.11) |
+| `ProductName` | `string(300)` | Ya | — | — | — | — | Tidak | — |
+| `Unit` | `string(30)` | Ya | — | — | — | — | Tidak | Contoh `PCS`, `BOX` |
+| `Quantity` | `decimal(18,2)` | Ya | — | — | — | — | Tidak | — |
+| `UnitPrice` | `decimal(18,2)` | Ya | — | — | — | — | Tidak | — |
+| `LineTotal` | `decimal(18,2)` | Ya | — | — | — | — | Tidak | `Quantity * UnitPrice` |
+
+## C.3 `FinGoodsReceipt` — status `Baru`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `GRNumber` | `string(50)` | Ya | — | UK | — | — | Tidak | Contoh `GR-2026-09-00142` |
+| `PurchaseOrderId` | `Guid` | Ya | — | Index | FK ke `FinPurchaseOrder` | `Restrict` | Tidak | Wajib terisi — tidak ada GR tanpa PO (C.11) |
+| `ReceivedDate` | `DateOnly` | Ya | — | Index | — | — | Tidak | — |
+| `Status` | `string(20)` | Ya | `RECEIVED` | — | — | — | Tidak | `RECEIVED`, `CANCELLED` |
+| `RowVersion` | `Guid` | Ya | `Guid.NewGuid()` | — | — | — | Tidak | Optimistic concurrency |
+
+## C.4 `FinGoodsReceiptItem` — status `Baru`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `GoodsReceiptId` | `Guid` | Ya | — | Index | FK ke `FinGoodsReceipt` | `Restrict` | Tidak | Induk GR |
+| `PurchaseOrderItemId` | `Guid` | Ya | — | Index | FK ke `FinPurchaseOrderItem` | `Restrict` | Tidak | Baris PO yang diterima |
+| `ReceivedQuantity` | `decimal(18,2)` | Ya | — | — | — | — | Tidak | Boleh kurang dari `Quantity` PO (penerimaan sebagian) |
+| `Notes` | `string(500)?` | Tidak | — | — | — | — | Tidak | Kondisi barang |
+
+## C.5 `FinInvoiceExchange` — status `Baru`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `ExchangeNumber` | `string(50)` | Ya | — | UK | — | — | Tidak | Contoh `TF-2026-09-00142` |
+| `SupplierId` | `Guid` | Ya | — | Index | FK ke `MstSupplier` | `Restrict` | Tidak | — |
+| `PurchaseOrderId` | `Guid?` | Tidak | — | Index | FK ke `FinPurchaseOrder` | `SetNull` | Tidak | Boleh kosong (`FIN-DEC-051`) |
+| `GoodsReceiptId` | `Guid?` | Tidak | — | Index | FK ke `FinGoodsReceipt` | `SetNull` | Tidak | Boleh kosong |
+| `SupplierInvoiceNumber` | `string(100)` | Ya | — | — | — | — | Tidak | Nomor faktur fisik dari supplier |
+| `SupplierInvoiceDate` | `DateOnly` | Ya | — | — | — | — | Tidak | — |
+| `ReceivedDate` | `DateOnly` | Ya | — | — | — | — | Tidak | Tanggal dokumen diterima RS |
+| `EstimatedDueDate` | `DateOnly` | Ya | — | Index | — | — | Tidak | `ReceivedDate + MstSupplier.PaymentTermDays`, dihitung sistem |
+| `Status` | `string(20)` | Ya | `RECEIVED` | Index | — | — | Tidak | `RECEIVED`, `LINKED_TO_INVOICE`, `CANCELLED` |
+| `RowVersion` | `Guid` | Ya | `Guid.NewGuid()` | — | — | — | Tidak | Optimistic concurrency |
+
+## C.6 `FinPurchasingInvoice` — status `Baru`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `InvoiceNumber` | `string(50)` | Ya | — | UK | — | — | Tidak | Nomor internal |
+| `InvoiceExchangeId` | `Guid` | Ya | — | UK | FK ke `FinInvoiceExchange` | `Restrict` | Tidak | Tepat satu Tukar Faktur = tepat satu Purchasing Invoice (`FIN-DEC-051`) |
+| `SupplierId` | `Guid` | Ya | — | Index | FK ke `MstSupplier` | `Restrict` | Tidak | — |
+| `SubtotalAmount` | `decimal(18,2)` | Ya | — | — | — | — | Tidak | Nilai barang/jasa sebelum pajak dan potongan |
+| `DiscountAmount` | `decimal(18,2)` | Ya | `0` | — | — | — | Tidak | — |
+| `PPNAmount` | `decimal(18,2)` | Ya | `0` | — | — | — | Tidak | Pajak Masukan (`FIN-DES-043`) |
+| `DownPaymentAmount` | `decimal(18,2)` | Ya | `0` | — | — | — | Tidak | DP yang mengurangi nilai jatuh tempo |
+| `OtherDeductionAmount` | `decimal(18,2)` | Ya | `0` | — | — | — | Tidak | Potongan lain di luar PPN/DP |
+| `TotalAmount` | `decimal(18,2)` | Ya | — | — | — | — | Tidak | `Subtotal - Discount + PPN - DownPayment - OtherDeduction` |
+| `Status` | `string(30)` | Ya | `DRAFT` | Index | — | — | Tidak | `DRAFT`, `PENDING_APPROVAL`, `APPROVED`, `REJECTED`, `CANCELLED` |
+| `ApprovalTier` | `string(10)` | Ya | — | — | — | — | Tidak | `TIER_1`, `TIER_2` (`FIN-DES-039`) |
+| `RequestedByUserId` | `Guid` | Ya | — | Index | Pengaju | — | Tidak | — |
+| `RequestedAt` | `DateTimeOffset` | Ya | — | — | — | — | Tidak | — |
+| `ApprovedByUserId` | `Guid?` | Tidak | — | — | Penyetuju | — | Tidak | — |
+| `ApprovedAt` | `DateTimeOffset?` | Tidak | — | — | — | — | Tidak | — |
+| `RowVersion` | `Guid` | Ya | `Guid.NewGuid()` | — | — | — | Tidak | Optimistic concurrency |
+
+## C.7 `FinPurchasingInvoiceItem` — status `Baru`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `PurchasingInvoiceId` | `Guid` | Ya | — | Index | FK ke `FinPurchasingInvoice` | `Restrict` | Tidak | Induk invoice |
+| `ProductName` | `string(300)` | Ya | — | — | — | — | Tidak | — |
+| `Quantity` | `decimal(18,2)` | Ya | — | — | — | — | Tidak | — |
+| `UnitPrice` | `decimal(18,2)` | Ya | — | — | — | — | Tidak | — |
+| `LineTotal` | `decimal(18,2)` | Ya | — | — | — | — | Tidak | — |
+
+## C.8 `FinSupplierReturn` — status `Diperbarui` (AMENDMENT REVISI 6)
+
+Status naik dari `Baru` menjadi `Diperbarui`: tabelnya **sudah dibangun dan sudah berjalan** pada
+`cba60cb0`, dan AMENDMENT REVISI 6 menambahkan satu kolom (`FIN-DES-055`).
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `ReturnNumber` | `string(50)` | Ya | — | UK | — | — | Tidak | — |
+| `PurchasingInvoiceId` | `Guid` | Ya | — | Index | FK ke `FinPurchasingInvoice` | `Restrict` | Tidak | Invoice sumber |
+| `Reason` | `string(500)` | Ya | — | — | — | — | Tidak | — |
+| `TotalAmount` | `decimal(18,2)` | Ya | — | — | — | — | Tidak | **Pokok tanpa PPN** — jumlah `LineTotal` seluruh barisnya. Arti ini diperjelas REVISI 6; nilainya tidak berubah |
+| `PPNAmount` | `decimal(18,2)` | Ya | `0` | — | — | — | Tidak | **Baru (REVISI 6).** Porsi PPN barang yang diretur. `>= 0` lewat `CK_FinSupplierReturn_PPNAmount`. Mengikuti nama `FinPurchasingInvoice.PPNAmount`. Kredit retur yang lahir = `TotalAmount + PPNAmount` |
+| `Status` | `string(20)` | Ya | `DRAFT` | Index | — | — | Tidak | `DRAFT`, `CONFIRMED`, `CANCELLED` |
+| `RowVersion` | `Guid` | Ya | `Guid.NewGuid()` | — | — | — | Tidak | Optimistic concurrency |
+
+**Kenapa kolom ini ada.** Accounting meratifikasi `RETUR-PEMBELIAN` dengan syarat nilainya pokok
+tanpa PPN dan porsi PPN dikirim lewat kode terpisah (`integration-contract.md` bagian 5.10).
+Tanpa kolom ini, kredit retur tercatat hanya sebesar pokok padahal supplier mengakui pokok + PPN,
+sehingga selisihnya tidak pernah dapat dipakai mengurangi utang dan terbaca sebagai utang yang
+masih harus dibayar.
+
+## C.9 `FinSupplierReturnItem` — status `Baru`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `SupplierReturnId` | `Guid` | Ya | — | Index | FK ke `FinSupplierReturn` | `Restrict` | Tidak | Induk retur |
+| `Description` | `string(300)` | Ya | — | — | — | — | Tidak | — |
+| `Quantity` | `decimal(18,2)` | Ya | — | — | — | — | Tidak | — |
+| `LineTotal` | `decimal(18,2)` | Ya | — | — | — | — | Tidak | — |
+
+## C.10 `FinSupplierReturnDeposit` — status `Baru`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `SupplierId` | `Guid` | Ya | — | Index | FK ke `MstSupplier` | `Restrict` | Tidak | Dapat dipakai lintas invoice supplier yang sama (`FIN-DEC-047`) |
+| `SourceReturnId` | `Guid` | Ya | — | UK | FK ke `FinSupplierReturn` | `Restrict` | Tidak | Satu retur = satu deposit |
+| `OriginalAmount` | `decimal(18,2)` | Ya | — | — | — | — | Tidak | — |
+| `AvailableAmount` | `decimal(18,2)` | Ya | — | Index | — | — | Tidak | MUST NOT negatif; berkurang lewat `FinSupplierReturnDepositUsage` |
+| `Status` | `string(20)` | Ya | `AVAILABLE` | Index | — | — | Tidak | `AVAILABLE`, `EXHAUSTED`, `CANCELLED` |
+| `RowVersion` | `Guid` | Ya | `Guid.NewGuid()` | — | — | — | Tidak | Optimistic concurrency |
+
+## C.11 `FinSupplierReturnDepositUsage` — status `Baru` — **DIGANTIKAN bagian D.2 (REVISI 5)**
+
+> **Jangan dibangun dari bentuk ini.** `PurchasingInvoiceId` diganti `PaymentId`, ditambah
+> `Status`, `ReleasedAt`, `RowVersion` (`FIN-DES-045`, `046`). Tabel di bawah dipertahankan
+> sebagai jejak.
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `SupplierReturnDepositId` | `Guid` | Ya | — | Index | FK ke `FinSupplierReturnDeposit` | `Restrict` | Tidak | Deposit yang dipakai |
+| `PurchasingInvoiceId` | `Guid` | Ya | — | Index | FK ke `FinPurchasingInvoice` | `Restrict` | Tidak | Invoice tujuan pemakaian |
+| `UsedAmount` | `decimal(18,2)` | Ya | — | — | — | — | Tidak | MUST NOT melebihi `AvailableAmount` saat ditulis |
+| `UsedAt` | `DateTimeOffset` | Ya | — | — | — | — | Tidak | — |
+
+## C.12 `FinSupplierPayable` — status `Diperbarui`
+
+Seluruh kolom yang sudah ada tetap berlaku. Yang **ditambahkan**:
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `SourcePurchasingInvoiceId` | `Guid?` | Tidak | — | Index | FK ke `FinPurchasingInvoice` | `SetNull` | Tidak | `NULL` untuk baris lama/input manual (`FIN-DES-040`); terisi otomatis saat dibuat dari Purchasing Invoice `Approved` |
+
+## C.13 `FinReceivableInvoiceBatch` — status `Baru`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `BatchNumber` | `string(50)` | Ya | — | UK | — | — | Tidak | Nomor seri resmi, terpisah dari `BilInvoice.InvoiceNumber` (`FIN-DES-041`) |
+| `DebtorType` | `string(30)` | Ya | `PAYER` | Index | — | — | Tidak | Tetap `PAYER` pada rilis ini (`FIN-DEC-048`) |
+| `DebtorReferenceId` | `Guid` | Ya | — | Index | Penjamin/perusahaan | — | Tidak | Kunci pengelompokan, sama dengan `FinReceivable.DebtorReferenceId` |
+| `PeriodStart` | `DateOnly` | Ya | — | Index | — | — | Tidak | — |
+| `PeriodEnd` | `DateOnly` | Ya | — | — | — | — | Tidak | — |
+| `TotalAmount` | `decimal(18,2)` | Ya | — | — | — | — | Tidak | Jumlah `OriginalAmount` seluruh `FinReceivable` anggota |
+| `Status` | `string(20)` | Ya | `DRAFT` | Index | — | — | Tidak | `DRAFT`, `ISSUED`, `PARTIALLY_PAID`, `PAID`, `CANCELLED` |
+| `IssuedAt` | `DateTimeOffset?` | Tidak | — | — | — | — | Tidak | Terisi saat `ISSUED` |
+| `RowVersion` | `Guid` | Ya | `Guid.NewGuid()` | — | — | — | Tidak | Optimistic concurrency |
+
+## C.14 `FinReceivableInvoiceBatchItem` — status `Baru`
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `BatchId` | `Guid` | Ya | — | Index | FK ke `FinReceivableInvoiceBatch` | `Restrict` | Tidak | Induk batch |
+| `ReceivableId` | `Guid` | Ya | — | UK parsial | FK ke `FinReceivable` | `Restrict` | Tidak | Satu `FinReceivable` hanya boleh berada di satu batch yang belum `CANCELLED` (unique index parsial, lihat DDL) |
+
+## C.15 `FinReceiptDeduction` — status `Baru` — **DIGANTIKAN bagian D.3 (REVISI 5)**
+
+> **Jangan dibangun dari bentuk ini.** Ditambah `DeductionNumber`, `ReceiptAllocationId`,
+> `IsReversal`, `ReversalOfDeductionId` (`FIN-DES-048`, `049`). Tabel di bawah dipertahankan
+> sebagai jejak.
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `ReceiptId` | `Guid` | Ya | — | Index | FK ke `FinReceipt` | `Restrict` | Tidak | Induk penerimaan |
+| `DeductionType` | `string(30)` | Ya | — | Index | — | — | Tidak | `PPH23`, `BANK_ADMIN_FEE`, `OTHER` |
+| `Amount` | `decimal(18,2)` | Ya | — | — | — | — | Tidak | Selalu positif; mengurangi `FinReceivable.OutstandingAmount` lewat `AllocatedAmount` (`FIN-DEC-055`) |
+| `Reason` | `string(500)?` | Tidak | — | — | — | — | Tidak | **Wajib** bila `DeductionType = OTHER` |
+| `ReferenceNumber` | `string(100)?` | Tidak | — | — | — | — | Tidak | Nomor bukti potong/bukti setor bank |
+
+## C.16 Bentuk DDL amendment
+
+> Peringatan yang sama dengan bagian 9 berlaku: DDL ini dokumentasi bentuk, bukan skrip yang
+> dijalankan. Kolom audit `IdentityModel` tidak ditulis ulang.
+
+```sql
+CREATE TABLE public."FinPurchaseOrder" (
+    "Id"                uuid          NOT NULL,
+    "PONumber"          varchar(50)   NOT NULL,
+    "SupplierId"        uuid          NOT NULL,
+    "Status"            varchar(30)   NOT NULL DEFAULT 'DRAFT',
+    "TotalAmount"       numeric(18,2) NOT NULL,
+    "ApprovalTier"      varchar(10)   NOT NULL,
+    "RequestedByUserId" uuid          NOT NULL,
+    "RequestedAt"       timestamptz   NOT NULL,
+    "ApprovedByUserId"  uuid,
+    "ApprovedAt"        timestamptz,
+    "RowVersion"        uuid          NOT NULL,
+
+    CONSTRAINT "PK_FinPurchaseOrder" PRIMARY KEY ("Id"),
+    CONSTRAINT "UQ_FinPurchaseOrder_PONumber" UNIQUE ("PONumber"),
+    CONSTRAINT "FK_FinPurchaseOrder_MstSupplier_SupplierId"
+        FOREIGN KEY ("SupplierId") REFERENCES public."MstSupplier" ("Id") ON DELETE RESTRICT,
+    CONSTRAINT "CK_FinPurchaseOrder_Status"
+        CHECK ("Status" IN ('DRAFT','PENDING_APPROVAL','APPROVED','REJECTED','CANCELLED',
+                            'PARTIALLY_RECEIVED','FULLY_RECEIVED','CLOSED')),
+    CONSTRAINT "CK_FinPurchaseOrder_ApprovalTier" CHECK ("ApprovalTier" IN ('TIER_1','TIER_2'))
+);
+
+CREATE TABLE public."FinPurchaseOrderItem" (
+    "Id"              uuid          NOT NULL,
+    "PurchaseOrderId" uuid          NOT NULL,
+    "ProductCategory" varchar(100)  NOT NULL,
+    "ProductName"     varchar(300)  NOT NULL,
+    "Unit"            varchar(30)   NOT NULL,
+    "Quantity"        numeric(18,2) NOT NULL,
+    "UnitPrice"       numeric(18,2) NOT NULL,
+    "LineTotal"       numeric(18,2) NOT NULL,
+
+    CONSTRAINT "PK_FinPurchaseOrderItem" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_FinPurchaseOrderItem_FinPurchaseOrder_PurchaseOrderId"
+        FOREIGN KEY ("PurchaseOrderId") REFERENCES public."FinPurchaseOrder" ("Id")
+        ON DELETE RESTRICT
+);
+
+CREATE TABLE public."FinGoodsReceipt" (
+    "Id"              uuid        NOT NULL,
+    "GRNumber"        varchar(50) NOT NULL,
+    "PurchaseOrderId" uuid        NOT NULL,
+    "ReceivedDate"    date        NOT NULL,
+    "Status"          varchar(20) NOT NULL DEFAULT 'RECEIVED',
+    "RowVersion"      uuid        NOT NULL,
+
+    CONSTRAINT "PK_FinGoodsReceipt" PRIMARY KEY ("Id"),
+    CONSTRAINT "UQ_FinGoodsReceipt_GRNumber" UNIQUE ("GRNumber"),
+    CONSTRAINT "FK_FinGoodsReceipt_FinPurchaseOrder_PurchaseOrderId"
+        FOREIGN KEY ("PurchaseOrderId") REFERENCES public."FinPurchaseOrder" ("Id")
+        ON DELETE RESTRICT,
+    CONSTRAINT "CK_FinGoodsReceipt_Status" CHECK ("Status" IN ('RECEIVED','CANCELLED'))
+);
+
+CREATE TABLE public."FinGoodsReceiptItem" (
+    "Id"                  uuid          NOT NULL,
+    "GoodsReceiptId"      uuid          NOT NULL,
+    "PurchaseOrderItemId" uuid          NOT NULL,
+    "ReceivedQuantity"    numeric(18,2) NOT NULL,
+    "Notes"               varchar(500),
+
+    CONSTRAINT "PK_FinGoodsReceiptItem" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_FinGoodsReceiptItem_FinGoodsReceipt_GoodsReceiptId"
+        FOREIGN KEY ("GoodsReceiptId") REFERENCES public."FinGoodsReceipt" ("Id")
+        ON DELETE RESTRICT,
+    CONSTRAINT "FK_FinGoodsReceiptItem_FinPurchaseOrderItem_PurchaseOrderItemId"
+        FOREIGN KEY ("PurchaseOrderItemId") REFERENCES public."FinPurchaseOrderItem" ("Id")
+        ON DELETE RESTRICT
+);
+
+CREATE TABLE public."FinInvoiceExchange" (
+    "Id"                    uuid        NOT NULL,
+    "ExchangeNumber"        varchar(50) NOT NULL,
+    "SupplierId"            uuid        NOT NULL,
+    "PurchaseOrderId"       uuid,
+    "GoodsReceiptId"        uuid,
+    "SupplierInvoiceNumber" varchar(100) NOT NULL,
+    "SupplierInvoiceDate"   date        NOT NULL,
+    "ReceivedDate"          date        NOT NULL,
+    "EstimatedDueDate"      date        NOT NULL,
+    "Status"                varchar(20) NOT NULL DEFAULT 'RECEIVED',
+    "RowVersion"            uuid        NOT NULL,
+
+    CONSTRAINT "PK_FinInvoiceExchange" PRIMARY KEY ("Id"),
+    CONSTRAINT "UQ_FinInvoiceExchange_ExchangeNumber" UNIQUE ("ExchangeNumber"),
+    CONSTRAINT "FK_FinInvoiceExchange_MstSupplier_SupplierId"
+        FOREIGN KEY ("SupplierId") REFERENCES public."MstSupplier" ("Id") ON DELETE RESTRICT,
+    CONSTRAINT "FK_FinInvoiceExchange_FinPurchaseOrder_PurchaseOrderId"
+        FOREIGN KEY ("PurchaseOrderId") REFERENCES public."FinPurchaseOrder" ("Id")
+        ON DELETE SET NULL,
+    CONSTRAINT "FK_FinInvoiceExchange_FinGoodsReceipt_GoodsReceiptId"
+        FOREIGN KEY ("GoodsReceiptId") REFERENCES public."FinGoodsReceipt" ("Id")
+        ON DELETE SET NULL,
+    CONSTRAINT "CK_FinInvoiceExchange_Status"
+        CHECK ("Status" IN ('RECEIVED','LINKED_TO_INVOICE','CANCELLED'))
+);
+
+CREATE TABLE public."FinPurchasingInvoice" (
+    "Id"                  uuid          NOT NULL,
+    "InvoiceNumber"       varchar(50)   NOT NULL,
+    "InvoiceExchangeId"   uuid          NOT NULL,
+    "SupplierId"          uuid          NOT NULL,
+    "SubtotalAmount"      numeric(18,2) NOT NULL,
+    "DiscountAmount"      numeric(18,2) NOT NULL DEFAULT 0,
+    "PPNAmount"           numeric(18,2) NOT NULL DEFAULT 0,
+    "DownPaymentAmount"   numeric(18,2) NOT NULL DEFAULT 0,
+    "OtherDeductionAmount" numeric(18,2) NOT NULL DEFAULT 0,
+    "TotalAmount"         numeric(18,2) NOT NULL,
+    "Status"              varchar(30)   NOT NULL DEFAULT 'DRAFT',
+    "ApprovalTier"        varchar(10)   NOT NULL,
+    "RequestedByUserId"   uuid          NOT NULL,
+    "RequestedAt"         timestamptz   NOT NULL,
+    "ApprovedByUserId"    uuid,
+    "ApprovedAt"          timestamptz,
+    "RowVersion"          uuid          NOT NULL,
+
+    CONSTRAINT "PK_FinPurchasingInvoice" PRIMARY KEY ("Id"),
+    CONSTRAINT "UQ_FinPurchasingInvoice_InvoiceNumber" UNIQUE ("InvoiceNumber"),
+    CONSTRAINT "UQ_FinPurchasingInvoice_InvoiceExchangeId" UNIQUE ("InvoiceExchangeId"),
+    CONSTRAINT "FK_FinPurchasingInvoice_FinInvoiceExchange_InvoiceExchangeId"
+        FOREIGN KEY ("InvoiceExchangeId") REFERENCES public."FinInvoiceExchange" ("Id")
+        ON DELETE RESTRICT,
+    CONSTRAINT "FK_FinPurchasingInvoice_MstSupplier_SupplierId"
+        FOREIGN KEY ("SupplierId") REFERENCES public."MstSupplier" ("Id") ON DELETE RESTRICT,
+    CONSTRAINT "CK_FinPurchasingInvoice_Status"
+        CHECK ("Status" IN ('DRAFT','PENDING_APPROVAL','APPROVED','REJECTED','CANCELLED')),
+    CONSTRAINT "CK_FinPurchasingInvoice_ApprovalTier" CHECK ("ApprovalTier" IN ('TIER_1','TIER_2'))
+);
+
+CREATE TABLE public."FinPurchasingInvoiceItem" (
+    "Id"                  uuid          NOT NULL,
+    "PurchasingInvoiceId" uuid          NOT NULL,
+    "ProductName"         varchar(300)  NOT NULL,
+    "Quantity"            numeric(18,2) NOT NULL,
+    "UnitPrice"           numeric(18,2) NOT NULL,
+    "LineTotal"           numeric(18,2) NOT NULL,
+
+    CONSTRAINT "PK_FinPurchasingInvoiceItem" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_FinPurchasingInvoiceItem_FinPurchasingInvoice_PurchasingInvoiceId"
+        FOREIGN KEY ("PurchasingInvoiceId") REFERENCES public."FinPurchasingInvoice" ("Id")
+        ON DELETE RESTRICT
+);
+
+CREATE TABLE public."FinSupplierReturn" (
+    "Id"                  uuid          NOT NULL,
+    "ReturnNumber"        varchar(50)   NOT NULL,
+    "PurchasingInvoiceId" uuid          NOT NULL,
+    "Reason"              varchar(500)  NOT NULL,
+    "TotalAmount"         numeric(18,2) NOT NULL,
+    "PPNAmount"           numeric(18,2) NOT NULL DEFAULT 0,   -- Baru, AMENDMENT REVISI 6
+    "Status"              varchar(20)   NOT NULL DEFAULT 'DRAFT',
+    "RowVersion"          uuid          NOT NULL,
+
+    CONSTRAINT "PK_FinSupplierReturn" PRIMARY KEY ("Id"),
+    CONSTRAINT "UQ_FinSupplierReturn_ReturnNumber" UNIQUE ("ReturnNumber"),
+    CONSTRAINT "CK_FinSupplierReturn_PPNAmount" CHECK ("PPNAmount" >= 0),
+    CONSTRAINT "FK_FinSupplierReturn_FinPurchasingInvoice_PurchasingInvoiceId"
+        FOREIGN KEY ("PurchasingInvoiceId") REFERENCES public."FinPurchasingInvoice" ("Id")
+        ON DELETE RESTRICT,
+    CONSTRAINT "CK_FinSupplierReturn_Status" CHECK ("Status" IN ('DRAFT','CONFIRMED','CANCELLED'))
+);
+
+CREATE TABLE public."FinSupplierReturnItem" (
+    "Id"               uuid          NOT NULL,
+    "SupplierReturnId" uuid          NOT NULL,
+    "Description"      varchar(300)  NOT NULL,
+    "Quantity"         numeric(18,2) NOT NULL,
+    "LineTotal"        numeric(18,2) NOT NULL,
+
+    CONSTRAINT "PK_FinSupplierReturnItem" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_FinSupplierReturnItem_FinSupplierReturn_SupplierReturnId"
+        FOREIGN KEY ("SupplierReturnId") REFERENCES public."FinSupplierReturn" ("Id")
+        ON DELETE RESTRICT
+);
+
+CREATE TABLE public."FinSupplierReturnDeposit" (
+    "Id"              uuid          NOT NULL,
+    "SupplierId"      uuid          NOT NULL,
+    "SourceReturnId"  uuid          NOT NULL,
+    "OriginalAmount"  numeric(18,2) NOT NULL,
+    "AvailableAmount" numeric(18,2) NOT NULL,
+    "Status"          varchar(20)   NOT NULL DEFAULT 'AVAILABLE',
+    "RowVersion"      uuid          NOT NULL,
+
+    CONSTRAINT "PK_FinSupplierReturnDeposit" PRIMARY KEY ("Id"),
+    CONSTRAINT "UQ_FinSupplierReturnDeposit_SourceReturnId" UNIQUE ("SourceReturnId"),
+    CONSTRAINT "FK_FinSupplierReturnDeposit_MstSupplier_SupplierId"
+        FOREIGN KEY ("SupplierId") REFERENCES public."MstSupplier" ("Id") ON DELETE RESTRICT,
+    CONSTRAINT "FK_FinSupplierReturnDeposit_FinSupplierReturn_SourceReturnId"
+        FOREIGN KEY ("SourceReturnId") REFERENCES public."FinSupplierReturn" ("Id")
+        ON DELETE RESTRICT,
+    CONSTRAINT "CK_FinSupplierReturnDeposit_Available" CHECK ("AvailableAmount" >= 0),
+    CONSTRAINT "CK_FinSupplierReturnDeposit_Status"
+        CHECK ("Status" IN ('AVAILABLE','EXHAUSTED','CANCELLED'))
+);
+
+CREATE TABLE public."FinSupplierReturnDepositUsage" (
+    "Id"                       uuid          NOT NULL,
+    "SupplierReturnDepositId"  uuid          NOT NULL,
+    "PurchasingInvoiceId"      uuid          NOT NULL,
+    "UsedAmount"                numeric(18,2) NOT NULL,
+    "UsedAt"                    timestamptz   NOT NULL,
+
+    CONSTRAINT "PK_FinSupplierReturnDepositUsage" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_FinSupplierReturnDepositUsage_FinSupplierReturnDeposit_DepositId"
+        FOREIGN KEY ("SupplierReturnDepositId") REFERENCES public."FinSupplierReturnDeposit" ("Id")
+        ON DELETE RESTRICT,
+    CONSTRAINT "FK_FinSupplierReturnDepositUsage_FinPurchasingInvoice_InvoiceId"
+        FOREIGN KEY ("PurchasingInvoiceId") REFERENCES public."FinPurchasingInvoice" ("Id")
+        ON DELETE RESTRICT,
+    CONSTRAINT "CK_FinSupplierReturnDepositUsage_Amount" CHECK ("UsedAmount" > 0)
+);
+
+-- kolom tambahan pada FinSupplierPayable
+ALTER TABLE public."FinSupplierPayable"
+    ADD COLUMN "SourcePurchasingInvoiceId" uuid;
+
+ALTER TABLE public."FinSupplierPayable"
+    ADD CONSTRAINT "FK_FinSupplierPayable_FinPurchasingInvoice_SourcePurchasingInvoiceId"
+        FOREIGN KEY ("SourcePurchasingInvoiceId") REFERENCES public."FinPurchasingInvoice" ("Id")
+        ON DELETE SET NULL;
+
+CREATE TABLE public."FinReceivableInvoiceBatch" (
+    "Id"              uuid          NOT NULL,
+    "BatchNumber"     varchar(50)   NOT NULL,
+    "DebtorType"      varchar(30)   NOT NULL DEFAULT 'PAYER',
+    "DebtorReferenceId" uuid        NOT NULL,
+    "PeriodStart"     date          NOT NULL,
+    "PeriodEnd"       date          NOT NULL,
+    "TotalAmount"     numeric(18,2) NOT NULL,
+    "Status"          varchar(20)   NOT NULL DEFAULT 'DRAFT',
+    "IssuedAt"        timestamptz,
+    "RowVersion"      uuid          NOT NULL,
+
+    CONSTRAINT "PK_FinReceivableInvoiceBatch" PRIMARY KEY ("Id"),
+    CONSTRAINT "UQ_FinReceivableInvoiceBatch_BatchNumber" UNIQUE ("BatchNumber"),
+    CONSTRAINT "CK_FinReceivableInvoiceBatch_DebtorType" CHECK ("DebtorType" = 'PAYER'),
+    CONSTRAINT "CK_FinReceivableInvoiceBatch_Status"
+        CHECK ("Status" IN ('DRAFT','ISSUED','PARTIALLY_PAID','PAID','CANCELLED'))
+);
+
+CREATE TABLE public."FinReceivableInvoiceBatchItem" (
+    "Id"            uuid NOT NULL,
+    "BatchId"       uuid NOT NULL,
+    "ReceivableId"  uuid NOT NULL,
+
+    CONSTRAINT "PK_FinReceivableInvoiceBatchItem" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_FinReceivableInvoiceBatchItem_FinReceivableInvoiceBatch_BatchId"
+        FOREIGN KEY ("BatchId") REFERENCES public."FinReceivableInvoiceBatch" ("Id")
+        ON DELETE RESTRICT,
+    CONSTRAINT "FK_FinReceivableInvoiceBatchItem_FinReceivable_ReceivableId"
+        FOREIGN KEY ("ReceivableId") REFERENCES public."FinReceivable" ("Id") ON DELETE RESTRICT
+);
+
+-- satu piutang hanya boleh tergabung dalam satu batch yang masih aktif
+CREATE UNIQUE INDEX "IX_FinReceivableInvoiceBatchItem_ActiveReceivable"
+    ON public."FinReceivableInvoiceBatchItem" ("ReceivableId")
+    WHERE "IsDelete" = false;
+
+CREATE TABLE public."FinReceiptDeduction" (
+    "Id"              uuid          NOT NULL,
+    "ReceiptId"       uuid          NOT NULL,
+    "DeductionType"   varchar(30)   NOT NULL,
+    "Amount"          numeric(18,2) NOT NULL,
+    "Reason"          varchar(500),
+    "ReferenceNumber" varchar(100),
+
+    CONSTRAINT "PK_FinReceiptDeduction" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_FinReceiptDeduction_FinReceipt_ReceiptId"
+        FOREIGN KEY ("ReceiptId") REFERENCES public."FinReceipt" ("Id") ON DELETE RESTRICT,
+    CONSTRAINT "CK_FinReceiptDeduction_Type"
+        CHECK ("DeductionType" IN ('PPH23','BANK_ADMIN_FEE','OTHER')),
+    CONSTRAINT "CK_FinReceiptDeduction_Amount" CHECK ("Amount" > 0),
+    CONSTRAINT "CK_FinReceiptDeduction_OtherReason"
+        CHECK ("DeductionType" <> 'OTHER' OR "Reason" IS NOT NULL)
+);
+
+CREATE INDEX "IX_FinReceiptDeduction_Receipt"
+    ON public."FinReceiptDeduction" ("ReceiptId", "DeductionType");
+```
+
+Seperti seluruh migration pada dokumen ini, DDL di atas **belum dijalankan** — wewenang membuat
+dan menjalankan migration tetap terpisah dan membutuhkan otorisasi eksplisit tersendiri
+(`02-backend-architecture.md` bagian C.9).
+
+
+# AMENDMENT REVISI 5 — Sumber Dana Deposit Retur dan Jalur Potongan AR
+
+| Field | Nilai |
+|---|---|
+| Revisi | `5`, 25 September 2026 — status `approved` 26 September 2026 |
+| Keputusan | `FIN-DEC-057`, `058`, `061`, `062`; `FIN-DES-045`..`050` |
+| Menggantikan | Bagian C.11 (`FinSupplierReturnDepositUsage`) dan C.15 (`FinReceiptDeduction`) pada AMENDMENT REVISI 4 — keduanya **belum pernah dibangun**, sehingga penggantian ini tidak menuntut pembetulan data |
+
+## D.1 `FinPayment` — status `Diperbarui`
+
+Seluruh kolom bagian 4.5 dan A.4 tetap berlaku. Yang **ditambahkan**:
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `DepositAppliedAmount` | `decimal(18,2)` | Ya | `0` | — | — | — | Tidak | Jumlah `UsedAmount` baris pemakaian deposit berstatus `RESERVED`/`APPLIED`; MUST NOT negatif |
+
+`NetTransferAmount` kini dihitung `TotalAmount − DeductionAmount + AdditionAmount − DepositAppliedAmount`.
+
+## D.2 `FinSupplierReturnDepositUsage` — status `Baru` (menggantikan C.11)
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `SupplierReturnDepositId` | `Guid` | Ya | — | Index | FK ke `FinSupplierReturnDeposit` | `Restrict` | Tidak | Deposit yang dipakai |
+| `PaymentId` | `Guid` | Ya | — | Index | FK ke `FinPayment` | `Restrict` | Tidak | **Menggantikan** `PurchasingInvoiceId` — pembayaran yang memakai deposit sebagai sumber dana (`FIN-DES-045`) |
+| `UsedAmount` | `decimal(18,2)` | Ya | — | — | — | — | Tidak | Selalu positif |
+| `Status` | `string(20)` | Ya | `RESERVED` | Index | — | — | Tidak | `RESERVED`, `APPLIED`, `RELEASED` (`FIN-DES-046`) |
+| `UsedAt` | `DateTimeOffset` | Ya | — | — | — | — | Tidak | Waktu dicadangkan |
+| `ReleasedAt` | `DateTimeOffset?` | Tidak | — | — | — | — | Tidak | Terisi hanya saat `RELEASED` |
+| `RowVersion` | `Guid` | Ya | `Guid.NewGuid()` | — | — | — | Tidak | Optimistic concurrency |
+
+Satu deposit tidak boleh dua kali dalam satu pembayaran selama barisnya belum dilepas — unique
+index parsial `(PaymentId, SupplierReturnDepositId) WHERE Status <> 'RELEASED' AND IsDelete = false`.
+
+## D.3 `FinReceiptDeduction` — status `Baru` (menggantikan C.15)
+
+| Kolom | Tipe | Wajib | Bawaan | Index | Relasi | Perilaku hapus | Sensitif | Keterangan |
+|---|---|:---:|---|---|---|---|:---:|---|
+| `Id` | `Guid` | Ya | `Guid.NewGuid()` | PK | — | — | Tidak | Kunci utama |
+| `DeductionNumber` | `string(50)` | Ya | — | UK | — | — | Tidak | Contoh `DED-2026-09-00031`; dipakai sebagai `SourceTransactionId` kejadian (`FIN-DES-050`) |
+| `ReceiptId` | `Guid` | Ya | — | Index | FK ke `FinReceipt` | `Restrict` | Tidak | Induk penerimaan — disimpan untuk penyaringan cepat |
+| `ReceiptAllocationId` | `Guid` | Ya | — | Index | FK ke `FinReceiptAllocation` | `Restrict` | Tidak | **Baru.** Alokasi `TargetType = RECEIVABLE` tempat potongan melekat; menentukan piutang yang dikurangi (`FIN-DES-048`) |
+| `DeductionType` | `string(30)` | Ya | — | Index | — | — | Tidak | `PPH23`, `BANK_ADMIN_FEE`, `OTHER` |
+| `Amount` | `decimal(18,2)` | Ya | — | — | — | — | Tidak | Selalu positif, termasuk pada baris pembalik |
+| `Reason` | `string(500)?` | Tidak | — | — | — | — | **Ya** bila memuat keterangan pihak ketiga | **Wajib** bila `DeductionType = OTHER` |
+| `ReferenceNumber` | `string(100)?` | Tidak | — | — | — | — | Tidak | Nomor bukti potong / bukti bank |
+| `IsReversal` | `bool` | Ya | `false` | — | — | — | Tidak | **Baru.** Baris pembalik (`FIN-DES-049`) |
+| `ReversalOfDeductionId` | `Guid?` | Tidak | — | UK parsial | FK ke `FinReceiptDeduction` (self) | `Restrict` | Tidak | **Baru.** Terisi hanya bila `IsReversal = true`; satu baris hanya dibalik sekali |
+
+## D.4 Bentuk DDL amendment
+
+> Peringatan yang sama dengan bagian 9 berlaku: dokumentasi bentuk, bukan skrip yang
+> dijalankan. Kolom audit `IdentityModel` tidak ditulis ulang.
+
+```sql
+-- (a) Tabel sudah berjalan — migration baru AddDepositAppliedAmountToFinPayment
+ALTER TABLE public."FinPayment"
+    ADD COLUMN "DepositAppliedAmount" numeric(18,2) NOT NULL DEFAULT 0;
+
+ALTER TABLE public."FinPayment" DROP CONSTRAINT "CK_FinPayment_NetTransfer";
+ALTER TABLE public."FinPayment"
+    ADD CONSTRAINT "CK_FinPayment_NetTransfer"
+        CHECK ("NetTransferAmount" = "TotalAmount" - "DeductionAmount"
+                                     + "AdditionAmount" - "DepositAppliedAmount"),
+    ADD CONSTRAINT "CK_FinPayment_DepositApplied" CHECK ("DepositAppliedAmount" >= 0);
+
+-- (b) Menggantikan bentuk C.16 untuk tabel ini — ditulis di dalam AddPurchasingApRumpun
+CREATE TABLE public."FinSupplierReturnDepositUsage" (
+    "Id"                      uuid          NOT NULL,
+    "SupplierReturnDepositId" uuid          NOT NULL,
+    "PaymentId"               uuid          NOT NULL,
+    "UsedAmount"              numeric(18,2) NOT NULL,
+    "Status"                  varchar(20)   NOT NULL DEFAULT 'RESERVED',
+    "UsedAt"                  timestamptz   NOT NULL,
+    "ReleasedAt"              timestamptz,
+    "RowVersion"              uuid          NOT NULL,
+
+    CONSTRAINT "PK_FinSupplierReturnDepositUsage" PRIMARY KEY ("Id"),
+    CONSTRAINT "FK_FinSupplierReturnDepositUsage_FinSupplierReturnDeposit_DepositId"
+        FOREIGN KEY ("SupplierReturnDepositId") REFERENCES public."FinSupplierReturnDeposit" ("Id")
+        ON DELETE RESTRICT,
+    CONSTRAINT "FK_FinSupplierReturnDepositUsage_FinPayment_PaymentId"
+        FOREIGN KEY ("PaymentId") REFERENCES public."FinPayment" ("Id") ON DELETE RESTRICT,
+    CONSTRAINT "CK_FinSupplierReturnDepositUsage_Amount" CHECK ("UsedAmount" > 0),
+    CONSTRAINT "CK_FinSupplierReturnDepositUsage_Status"
+        CHECK ("Status" IN ('RESERVED','APPLIED','RELEASED')),
+    CONSTRAINT "CK_FinSupplierReturnDepositUsage_ReleasedAt"
+        CHECK (("Status" = 'RELEASED') = ("ReleasedAt" IS NOT NULL))
+);
+
+CREATE UNIQUE INDEX "IX_FinSupplierReturnDepositUsage_ActivePerPayment"
+    ON public."FinSupplierReturnDepositUsage" ("PaymentId", "SupplierReturnDepositId")
+    WHERE "Status" <> 'RELEASED' AND "IsDelete" = false;
+
+-- (c) Menggantikan bentuk C.16 untuk tabel ini — ditulis di dalam AddArInvoiceBatchAndReceiptDeduction
+CREATE TABLE public."FinReceiptDeduction" (
+    "Id"                    uuid          NOT NULL,
+    "DeductionNumber"       varchar(50)   NOT NULL,
+    "ReceiptId"             uuid          NOT NULL,
+    "ReceiptAllocationId"   uuid          NOT NULL,
+    "DeductionType"         varchar(30)   NOT NULL,
+    "Amount"                numeric(18,2) NOT NULL,
+    "Reason"                varchar(500),
+    "ReferenceNumber"       varchar(100),
+    "IsReversal"            boolean       NOT NULL DEFAULT false,
+    "ReversalOfDeductionId" uuid,
+
+    CONSTRAINT "PK_FinReceiptDeduction" PRIMARY KEY ("Id"),
+    CONSTRAINT "UQ_FinReceiptDeduction_DeductionNumber" UNIQUE ("DeductionNumber"),
+    CONSTRAINT "FK_FinReceiptDeduction_FinReceipt_ReceiptId"
+        FOREIGN KEY ("ReceiptId") REFERENCES public."FinReceipt" ("Id") ON DELETE RESTRICT,
+    CONSTRAINT "FK_FinReceiptDeduction_FinReceiptAllocation_ReceiptAllocationId"
+        FOREIGN KEY ("ReceiptAllocationId") REFERENCES public."FinReceiptAllocation" ("Id")
+        ON DELETE RESTRICT,
+    CONSTRAINT "FK_FinReceiptDeduction_FinReceiptDeduction_ReversalOfDeductionId"
+        FOREIGN KEY ("ReversalOfDeductionId") REFERENCES public."FinReceiptDeduction" ("Id")
+        ON DELETE RESTRICT,
+    CONSTRAINT "CK_FinReceiptDeduction_Type"
+        CHECK ("DeductionType" IN ('PPH23','BANK_ADMIN_FEE','OTHER')),
+    CONSTRAINT "CK_FinReceiptDeduction_Amount" CHECK ("Amount" > 0),
+    CONSTRAINT "CK_FinReceiptDeduction_OtherReason"
+        CHECK ("DeductionType" <> 'OTHER' OR "Reason" IS NOT NULL),
+    CONSTRAINT "CK_FinReceiptDeduction_Reversal"
+        CHECK ("IsReversal" = ("ReversalOfDeductionId" IS NOT NULL))
+);
+
+CREATE INDEX "IX_FinReceiptDeduction_Allocation"
+    ON public."FinReceiptDeduction" ("ReceiptAllocationId");
+CREATE UNIQUE INDEX "IX_FinReceiptDeduction_ReversalOnce"
+    ON public."FinReceiptDeduction" ("ReversalOfDeductionId")
+    WHERE "ReversalOfDeductionId" IS NOT NULL AND "IsDelete" = false;
+```
+
+Syarat "alokasi harus `TargetType = RECEIVABLE` dan bukan pembalik" **tidak** dapat dijaga check
+constraint karena menyangkut tabel lain; ia ditegakkan `FinanceReceiptService` (`FIN-VAL-129`).

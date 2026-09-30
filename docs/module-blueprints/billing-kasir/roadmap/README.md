@@ -34,6 +34,8 @@ Roadmap ini berada pada **revision `2`** (4 September 2026) dan berstatus `DRAFT
 | `BKC-PH-024` | **Revisi UI Billing.** Filter/default Billing, label Obat, card compact, pindah tombol aksi (`MVP-31`) | — | `FE-BUI-001`–`004` | Tidak ada | **`READY_FOR_TASK_APPROVAL`** |
 | `BKC-PH-025` | **Revisi UI Billing.** Perbandingan asuransi & payment method (`MVP-32`) | — | `FE-BUI-005`, `FE-BUI-006` | Selesai penuh | ✅ `SELESAI` (`FE-BUI-005`, `FE-BUI-006` selesai 25 Sep 2026) |
 | `BKC-PH-026` | **Revisi UI Billing.** Modal Ajukan Refund dua sumber (`MVP-33`) | — | `FE-BUI-007` | Selesai penuh | ✅ `SELESAI` (`FE-BUI-007` selesai 25 Sep 2026) |
+| `BKC-PH-027` | **Shift Kasir.** Blocking selisih kas belum direview dan status tindak lanjut (`MVP-34`) | `BE-BKC-077`, `BE-BKC-078` | `FE-BKC-043`, `FE-BKC-044` | Blueprint revisi `1.7 draft` (`BKC-DEC-123`–`127` approved 25 Sep 2026) | **`READY_FOR_TASK_APPROVAL`** |
+| `BKC-PH-028` | **Pembalikan Tender Top-Up Deposit dan Alokasi Tagihan** (`MVP-35`) | `BE-BKC-079`, `BE-BKC-080` | — (Nol UI) | Blueprint revisi `1.8` (`BKC-DEC-128`–`134` approved 28–29 Sep 2026) | **`READY_FOR_TASK_APPROVAL`** |
 
 ## Amendment 7 September 2026 — Koreksi revisi blueprint, verifikasi ulang FE-BKC-018, dan cakupan Struk Pasien
 
@@ -260,4 +262,77 @@ roadmap ini ditulis, supaya keduanya tidak dikerjakan terpisah lalu ditemukan be
 Rincian lengkap: [backend § Gelombang MVP-30](./backend-roadmap.md), [frontend § Gelombang
 MVP-31–33](./frontend-roadmap.md), dan [traceability § Gelombang MVP-30 s.d.
 MVP-33](./requirement-traceability.md).
+
+---
+
+## Amendment 25 September 2026 — Shift Kasir: Blocking Selisih Kas dan Status Tindak Lanjut
+
+```yaml
+roadmap_revision: 4
+roadmap_status: DRAFT_FORWARD_TEST
+blueprint_id: BIL-CASH-001
+blueprint_revision: 1.7 (draft)
+approved_decisions: [BKC-DEC-123, BKC-DEC-124, BKC-DEC-125, BKC-DEC-126, BKC-DEC-127]
+approved_by: Yasmin (25 September 2026)
+backend_baseline_sha: 4eed1700
+frontend_baseline_sha: 52057a75
+contracts_applicable: [BIL-API-1.6, BIL-STATE-1.5, BIL-VALIDATION-1.5, BIL-PERMISSION-1.3, BIL-TEST-1.6]
+```
+
+Amendment ini membuka kembali sebagian kecil keputusan operasional kasir (`BKC-DEC-038`) guna menutup dua celah penegakan integritas fisik kas yang ditemukan dari dokumen pihak ketiga `Shift Kasir (3).md` dan diverifikasi langsung ke kode:
+
+1. **`BKC-DEC-123` (Blocking pembukaan shift baru):** Pada `CashierShiftService.OpenAsync`, kasir atau loket (register) yang masih memiliki shift berstatus `CLOSED_WITH_VARIANCE` atau `PERLU_TINDAK_LANJUT` yang belum berstatus `REVIEWED` dilarang membuka shift baru (menghasilkan `CashierShiftConflictException` / HTTP 409 Conflict: *"Kasir atau register masih memiliki shift yang menunggu review selisih kas."*).
+2. **`BKC-DEC-124` & `BKC-DEC-125` (Status `PERLU_TINDAK_LANJUT` & aksi penyelesaian):** Review variance oleh Supervisor/Kepala Kasir kini dapat menghasilkan status `PERLU_TINDAK_LANJUT` (bila selisih kas membutuhkan audit/penelusuran dokumen fisik lebih lanjut), dan disediakan aksi susulan `resolve-follow-up` untuk menyelesaikan shift tersebut menjadi `REVIEWED` dengan mewajibkan pengisian catatan verifikasi.
+3. **`BKC-DEC-126` & `BKC-DEC-127`:** Format pesan error validasi field wajib dibakukan menjadi `"{Nama Field} wajib diisi."`, dan otorisasi hak akses mengikuti konvensi `[AccessAction]` / `[AccessPermission]` baku modul tanpa matriks tertulis terpisah.
+
+### Ringkasan Gelombang `MVP-34`
+
+| Gelombang | Task ID | Cakupan | Status |
+| :---: | --- | --- | :---: |
+| `MVP-34` (BE Gelombang 1) | 🟡 `BE-BKC-077` | Penegakan blocking shift belum direview pada `CashierShiftService.OpenAsync` | 🟡 `SEBAGIAN` (Source selesai, menunggu build pengguna) |
+| `MVP-34` (BE Gelombang 2) | 🟡 `BE-BKC-078` | Status `PERLU_TINDAK_LANJUT`, parameter review, dan endpoint `resolve-follow-up` | 🟡 `SEBAGIAN` (Source selesai, menunggu build pengguna) |
+| `MVP-34` (FE Gelombang 1) | 🟡 `FE-BKC-043` | Badge status `PERLU_TINDAK_LANJUT`, filter riwayat, dan penanganan alert penolakan buka shift | 🟡 `SEBAGIAN` (Source & unit test selesai) |
+| `MVP-34` (FE Gelombang 2) | 🟡 `FE-BKC-044` | Radio hasil review variance ("Terverifikasi" vs "Perlu Tindak Lanjut") & modal penyelesaian tindak lanjut | 🟡 `SEBAGIAN` (Source & unit test selesai) |
+
+**Nol Migration pada seluruh gelombang ini.** Perubahan disimpan pada kolom string dan entitas review yang telah ada sejak baseline.
+
+Rincian lengkap: [backend § Gelombang MVP-34](./backend-roadmap.md), [frontend § Gelombang MVP-34](./frontend-roadmap.md), dan [traceability § Gelombang MVP-34](./requirement-traceability.md).
+
+---
+
+## Amendment 28–29 September 2026 — Pembalikan Tender Top-Up Deposit, Alokasi Tagihan, dan Penanda Eksplisit Mutasi `RELEASE` (Revisi 1.8)
+
+```yaml
+roadmap_revision: 5
+roadmap_status: DRAFT_FORWARD_TEST
+blueprint_id: BIL-CASH-001
+blueprint_revision: 1.8
+approved_decisions: [BKC-DEC-128, BKC-DEC-129, BKC-DEC-130, BKC-DEC-131, BKC-DEC-132, BKC-DEC-133, BKC-DEC-134, FIN-DEC-077, FIN-DEC-081]
+approved_by: Product/Domain Owner & Finance Counterpart (28–29 September 2026)
+backend_baseline_sha: dcb9c88e
+frontend_baseline_sha: fdebb9059
+contracts_applicable: [BIL-API-1.5, BIL-STATE-1.6, BIL-VALIDATION-1.6, BIL-INTEGRATION-1.4, BIL-PERMISSION-1.2, BIL-TEST-1.7]
+```
+
+Amendment ini menyelesaikan permintaan perbaikan kritis dari modul Finance Management (`docs/module-blueprints/finance-management/evidence/17-permintaan-perbaikan-pembalikan-tender-deposit-untuk-billing.md` dan `evidence/19-permintaan-penanda-eksplisit-mutasi-release-ke-billing.md`, issue `FIN-OQ-034` dan `FIN-OQ-037` yang ditutup lewat `FIN-DEC-077` dan `FIN-DEC-081`):
+
+1. **`BKC-DEC-128` (Integritas Saldo Non-Negatif):** Tender top-up deposit yang ditarik/dibatalkan oleh bank/gateway (`REVERSED`) wajib mengurangi saldo deposit pasien tanpa pernah membiarkan saldo deposit menjadi negatif (`AvailableBalance >= 0`).
+2. **`BKC-DEC-129` (Pembatalan Alokasi LIFO Otomatis):** Bila saldo deposit yang tersisa kurang dari nominal top-up yang ditarik, sistem secara otomatis membatalkan alokasi tagihan pasien berurut LIFO (*Last In First Out*) dari yang paling baru hingga defisit saldo terpenuhi.
+3. **`BKC-DEC-130` (Penyelarasan Status Invoice `CLOSED` → `FINAL`):** Invoice yang alokasinya dibatalkan dan kini memiliki sisa tagihan pasien > 0 otomatis diselaraskan kembali statusnya dari `CLOSED` menjadi `FINAL` via `SyncClosureAsync` agar tagihan muncul kembali di kasir.
+4. **`BKC-DEC-131` (Mutasi Ganda Transparan):** Sistem mencatat mutasi terpisah `RELEASE` (pengembalian alokasi) dan `REVERSAL` (penarikan top-up) pada `BilDepositMovement` untuk dikonsumsi oleh Finance Management (`BIL-INT-018`).
+5. **`BKC-DEC-132` & `BKC-DEC-133` (Penanda Eksplisit `ReversesMovementId` 1-ke-1):** Setiap mutasi `RELEASE` akibat pembatalan alokasi wajib mencatat penanda eksplisit `ReversesMovementId` yang menunjuk ke ID mutasi `ALLOCATION` asalnya secara 1-ke-1, menghapus ambiguitas semantik bagi akuntansi Finance.
+6. **`BKC-DEC-134` (Penyelarasan Perhitungan Deposit Kasir):** Ringkasan deposit kasir (`totalRefunded`) mengecualikan mutasi `RELEASE` pembatalan alokasi (`ReversesMovementId != null`), dan efek saldo mutasi rekening dihitung positif (`+Amount`) memulihkan saldo running deposit.
+
+### Ringkasan Gelombang `MVP-35`
+
+| Gelombang | Task ID | Cakupan | Status |
+| :---: | --- | --- | :---: |
+| `MVP-35` (BE Gelombang 1) | 🟡 `BE-BKC-079` | Penanganan pembalikan tender top-up deposit, pembatalan alokasi LIFO, mutasi ganda `RELEASE`/`REVERSAL`, dan `SyncClosureAsync` | 🟡 `SEBAGIAN` (Source selesai, menunggu build pengguna) |
+| `MVP-35` (BE Gelombang 2) | 🟡 `BE-BKC-080` | Penanda eksplisit `ReversesMovementId` 1-ke-1 pada `BillingSettlementService.cs` dan penyelarasan agregasi deposit di `BillingDepositService.cs` | 🟡 `SEBAGIAN` (Source selesai, menunggu build pengguna) |
+
+**Nol Migration & Nol Perubahan Frontend pada seluruh gelombang ini.** Seluruh mekanisme berjalan backend di atas model `BilPaymentAllocation`, `BilDepositMovement`, dan `BilDepositAccount` yang sudah ada.
+
+Rincian lengkap: [backend § Gelombang MVP-35](./backend-roadmap.md) dan [traceability § Gelombang MVP-35](./requirement-traceability.md).
+
+
 

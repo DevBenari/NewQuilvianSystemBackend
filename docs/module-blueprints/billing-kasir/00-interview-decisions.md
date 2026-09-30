@@ -4,7 +4,7 @@
 | --- | --- |
 | Blueprint ID | `BIL-CASH-001` |
 | Revision | Approved decision contract `0.3` (Pass B — Integrasi Rawat Inap ↔ Billing) |
-| Status | Keputusan `BKC-DEC-001`–`119` berstatus `approved` |
+| Status | Keputusan `BKC-DEC-001`–`134` berstatus `approved` (termasuk `BKC-DEC-128`..`131` pembalikan tender top-up deposit, 28 September 2026; serta `BKC-DEC-132`..`134` penanda mutasi RELEASE dan penyelarasan deposit, 29 September 2026) |
 | Interview mode | `Pass B: Integrasi Rawat Inap ↔ Billing (Yasmina / Billing Management)` disahkan 24 September 2026 |
 | Product/domain owner | Pemberi keputusan pada sesi wawancara; nama formal belum dicatat |
 | Backend SHA | Current branch `Yasmina`: `e6f6ecba1537783ea2eb379ac12cc97790707303`; cross-branch impact scan to `f63572a9...` found no Billing transaction change |
@@ -476,7 +476,10 @@ perilaku as-is, bukan kontrak yang otomatis mengikat).
 - Layar worklist Kasir IGD/Rawat Jalan/Rawat Inap (daftar antrian kasir) — entry point ke Menu
   Pembayaran, tapi punya keputusan UI/filter sendiri; belum digali di pass ini.
 - Riwayat Pembayaran (layar riwayat terpisah) — belum digali.
-- Shift Kasir — sudah diputuskan `BKC-DEC-038`, sudah dibangun; tidak dibuka ulang.
+- Shift Kasir — sudah diputuskan `BKC-DEC-038`, sudah dibangun. **Dibuka ulang sebagian** 25
+  September 2026 lewat `/grill-me` amendment (lihat "Amendment 25 September 2026 — Shift
+  Kasir" di akhir dokumen ini) — `BKC-DEC-038` TETAP berlaku sebagai baseline, hanya dua celah
+  penegakan yang ditutup (`BKC-DEC-123`, `BKC-DEC-124`), bukan desain ulang menyeluruh.
 - Master Diskon (CRUD kebijakan diskon) — sudah ada (`MstDiscountPolicy` + layanan terkait);
   pass ini hanya menyangkut cara Menu Pembayaran MEMAKAI kebijakan yang sudah ada, bukan
   aturan pembuatan kebijakannya.
@@ -2552,3 +2555,252 @@ Ketiga closure question ditutup di sesi yang sama, sebelum `/design-business-mod
 **Tidak ada lagi closure question yang memblokir `/design-business-module`.** Seluruh
 `BUI-DEC-001`–`015` `approved`. Satu titik sentuh backend (`BUI-DEC-014`) dicatat eksplisit
 supaya tidak lolos diam-diam sebagai "revisi frontend murni".
+
+---
+
+## Amendment 25 September 2026 — Shift Kasir: Blocking Selisih Kas dan Status Tindak Lanjut (reopening `BKC-DEC-038`)
+
+**Trigger.** Pemilik modul membawa dokumen `Shift Kasir (3).md` (artifact requirement pihak
+ketiga, 14 capability/19 rule/7 flow) dan meminta `/grill-me` untuk memeriksa gap terhadap
+`BKC-DEC-038` (`approved`, sebelumnya ditandai "tidak dibuka ulang" — lihat Bagian "Di luar
+scope" di atas). Sebelum bertanya, dilakukan pembacaan source aktual
+(`Areas/HealthServices/BillingManagement/Cashier/{Models,Services}/*.cs`) untuk memverifikasi
+klaim dokumen terhadap implementasi nyata, bukan menduga.
+
+**`BKC-DEC-038` TIDAK dibatalkan.** Amendment ini menambah dua penegakan yang sebelumnya hanya
+tertulis sebagai niat (`BKC-DEC-038`/dokumen baru) tapi belum benar-benar dijalankan kode.
+Seluruh keputusan `BKC-DEC-038` yang lain (buka shift dengan saldo awal, close mencatat
+system/physical/variance, handover dua kasir, late noncash settlement tidak mengubah physical
+cash shift tertutup) tetap berlaku apa adanya.
+
+### Fact — klaim dokumen `Shift Kasir (3).md` yang sudah terjawab source, tidak perlu keputusan baru
+
+| Klaim/pertanyaan dokumen | Bukti source | Kesimpulan |
+| --- | --- | --- |
+| Bagian 12 butir 2 — "Apakah serah terima menutup shift lama dan membuka shift baru, atau memindahkan penanggung jawab dalam shift yang sama?" | `CashierShiftService.HandoverAsync` (baris 401-460): shift sumber → status `HANDED_OVER` (terminal, `ClosedAt` diisi); shift BARU dibuat untuk kasir penerima, `OpeningCash` = `OpeningCash` lama + `SystemCash` lama (saldo dibawa maju); ditautkan lewat `BilCashierShiftHandover.SourceShiftId`/`ReceivingShiftId` | **Sudah terjawab**: menutup shift lama + membuka shift baru. Tidak perlu keputusan baru |
+| Bagian 12 butir 3 — "Apakah aksi finansial Petty Cash memakai Shift Kasir?" | `PC-DEC-001` (`approved`): "Petty Cash TIDAK terhubung ke kas fisik Shift Kasir manapun" | **Sudah terjawab** oleh keputusan lain yang sudah `approved`. Di luar scope amendment ini |
+| RULE-004/CAP-005 dokumen — "Status shift hanya `OPEN` dan `CLOSED`" | `BilCashierShift.cs`: enum `CashierShiftStatuses` = `OPEN`, `HANDED_OVER`, `CLOSED`, `CLOSED_WITH_VARIANCE`, `REVIEWED`, `REOPENED` (enam nilai, bukan dua) | **Konflik** — dokumen tidak akurat terhadap implementasi. Model status existing (enam nilai) yang berlaku; dokumen dianggap salah pada poin ini, bukan sistem yang perlu disederhanakan |
+| BP-003 dokumen — hasil rekonsiliasi `SESUAI`/`KURANG`/`LEBIH` (tiga nilai) | `CashierShiftService.CloseAsync` (baris 541-544): `Variance` disimpan sebagai `decimal` bertanda (negatif = kurang, positif = lebih); status hanya dua jalur (`Closed` bila `Variance == 0`, `ClosedWithVariance` bila tidak) | **Bukan gap** — arah selisih (kurang/lebih) sudah terbaca dari tanda `Variance`, dan `RULE-010` dokumen sendiri memperlakukan `KURANG`/`LEBIH` SAMA (sama-sama `Menunggu Verifikasi`). Tidak perlu status terpisah untuk arah selisih |
+
+### Gap ditemukan — belum diimplementasikan, DIKONFIRMASI ditutup lewat pass ini
+
+---
+
+#### `BKC-DEC-123` — Shift `CLOSED_WITH_VARIANCE` yang Belum Direview Memblokir Shift Berikutnya
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Gap implementasi ditemukan dan ditutup**: `CashierShiftService.OpenAsync` (baris 67-71) saat ini HANYA menolak pembukaan shift baru bila kasir/register memiliki shift berstatus `OPEN` atau `REOPENED` (`CashierShiftStatuses.IsActive`). Shift berstatus `CLOSED_WITH_VARIANCE` yang BELUM direview supervisor TIDAK dianggap aktif, sehingga TIDAK memblokir — bertentangan dengan `RULE-012`/`BP-007` dokumen `Shift Kasir (3).md` ("Menunggu Verifikasi dan Perlu Tindak Lanjut memblokir shift berikutnya") dan semangat `BKC-DEC-038` (variance direview Kepala Kasir sebelum shift dianggap tuntas). **Diputuskan**: `OpenAsync` MUST ditambah pengecekan — tolak pembukaan shift baru bila kasir ATAU register yang sama memiliki shift berstatus `CLOSED_WITH_VARIANCE` **atau** `PERLU_TINDAK_LANJUT` (lihat `BKC-DEC-124`) yang belum berstatus `REVIEWED`. Pesan penolakan mengikuti pola existing: `"Kasir atau register masih memiliki shift yang menunggu review selisih kas."` |
+| Owner | Yasmin |
+| Status | `approved` |
+| Approval evidence | Pilihan eksplisit owner pada sesi `/grill-me` 25 September 2026: "Implementasikan blocking-nya sekarang (Direkomendasikan)" atas pertanyaan yang menyertakan bukti baris kode `OpenAsync` persis |
+| Alasan | Kontrol pertanggungjawaban kas adalah tujuan inti `BKC-DEC-038` — membiarkan kasir/register membuka shift baru sementara selisih shift sebelumnya belum diperiksa membuat kontrol itu longgar secara struktural, bukan sekadar celah kecil |
+| Konsekuensi | `CashierShiftService.OpenAsync` MUST diubah (query tambahan atas `BilCashierShifts` untuk status `CLOSED_WITH_VARIANCE`/`PERLU_TINDAK_LANJUT`); pesan error baru; TIDAK ada perubahan schema/migration (status sudah berupa `string` bebas, hanya menambah nilai konstanta baru pada `CashierShiftStatuses` untuk `BKC-DEC-124`). Task implementasi menyusul lewat `build-module-backend` setelah blueprint/roadmap Shift Kasir diperbarui (`/design-business-module` atau `/plan-module-delivery`, sesuai kebutuhan) |
+| Trace | `Shift Kasir (3).md` RULE-012, BP-007; `BKC-DEC-038`; source `CashierShiftService.cs` baris 67-71 (bukti gap), 496-551 (`CloseAsync`, asal status `CLOSED_WITH_VARIANCE`) |
+
+---
+
+#### `BKC-DEC-124` — Status `PERLU_TINDAK_LANJUT` Terpisah dari `REVIEWED` pada Review Variance
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Gap implementasi ditemukan dan ditutup**: `CashierShiftService.ReviewVarianceAsync` (baris 553-670) saat ini HANYA punya satu hasil — begitu supervisor mengisi `Resolution`/`Reason`, status langsung berubah ke `REVIEWED` (lepas blokir sepenuhnya). Tidak ada cara bagi supervisor menyatakan "sudah diperiksa, tapi belum tuntas, tetap perlu ditindaklanjuti" — bertentangan dengan `BP-005`/`RULE-011` dokumen (`Perlu Tindak Lanjut` sebagai status terpisah dari `Terverifikasi`, wajib catatan, dan baru menjadi `Terverifikasi` setelah tindak lanjut selesai). Tanpa status ini, keputusan `BKC-DEC-123` (blocking) jadi longgar — supervisor bisa "mereview" sekadar formalitas dan langsung melepas blokir tanpa benar-benar menuntaskan selisih. **Diputuskan**: tambah nilai `CashierShiftStatuses.PerluTindakLanjut` (`"PERLU_TINDAK_LANJUT"`). `ReviewVarianceAsync` MUST menerima parameter hasil review (mis. `outcome`: `Verified` atau `NeedsFollowUp`) yang menentukan status akhir (`REVIEWED` vs `PERLU_TINDAK_LANJUT`) — bukan selalu `REVIEWED`. Diperlukan SATU aksi susulan baru (nama tentatif `CompleteFollowUpAsync`/`ResolveFollowUpAsync`, ditentukan saat desain) yang memindahkan shift dari `PERLU_TINDAK_LANJUT` ke `REVIEWED` setelah tindak lanjut benar-benar selesai, mewajibkan catatan penyelesaian |
+| Owner | Yasmin |
+| Status | `approved` |
+| Approval evidence | Pilihan eksplisit owner pada sesi `/grill-me` 25 September 2026: "Tambah status PERLU_TINDAK_LANJUT terpisah dari REVIEWED (Direkomendasikan)" |
+| Alasan | Sejalan langsung dengan `BKC-DEC-123` — blocking tanpa kemampuan menahan status "belum tuntas" adalah kontrol kosong; supervisor butuh cara membedakan "selesai" dari "masih menggantung" |
+| Konsekuensi | Nama pasti aksi susulan, bentuk request (field wajib catatan penyelesaian), dan wewenang siapa yang boleh menjalankannya (Kepala Kasir sama seperti `ReviewVarianceAsync`, atau berjenjang ke Manajemen sesuai `RULE-014`/`BKC-DEC-038` soal keputusan penyelesaian selisih) **belum ditentukan pada pass ini** — dicatat sebagai `BKC-OQ-104` di bawah, TIDAK memblokir implementasi `BKC-DEC-123` (blocking bisa berjalan lebih dulu dengan hanya `REVIEWED` sebagai status pelepas, `PERLU_TINDAK_LANJUT` menyusul) tapi MUST diselesaikan sebelum task aksi-susulan itu sendiri diimplementasikan |
+| Trace | `Shift Kasir (3).md` BP-005, RULE-011; `BKC-DEC-038`; source `CashierShiftService.cs` baris 553-670 (`ReviewVarianceAsync`, bukti hanya satu hasil) |
+
+---
+
+### Open Question — tidak memblokir `BKC-DEC-123`/`124`, perlu diputuskan sebelum task terkait dimulai
+
+| ID | Pertanyaan | Owner | Status |
+|---|---|---|---|
+| `BKC-OQ-104` | Aksi susulan penyelesaian `PERLU_TINDAK_LANJUT` (`BKC-DEC-124`): siapa yang berwenang menjalankannya (Kepala Kasir sama seperti review awal, atau eskalasi ke Manajemen bila nominal selisih melewati ambang tertentu — `RULE-014` dokumen menyebut keputusan penyelesaian selisih ada di Manajemen, tapi tidak merinci ambang), dan field apa saja yang wajib diisi pada penyelesaiannya? | Yasmin / Kepala Kasir / Finance Operations | Terbuka — memblokir implementasi aksi susulan `BKC-DEC-124`, TIDAK memblokir `BKC-DEC-123` (blocking berbasis `CLOSED_WITH_VARIANCE`/`REVIEWED` saja bisa jalan lebih dulu) |
+| `BKC-OQ-105` | Dokumen `Shift Kasir (3).md` Bagian 12 butir 1 dan 4 (daftar field/format/pesan error lengkap tiap form; matriks hak akses rinci per aksi bukan hanya per menu) — apakah perlu diputuskan formal pada pass `/grill-me` terpisah, atau cukup mengikuti konvensi `role-access-rules.md`/`[AccessAction]` per-endpoint yang sudah baku di seluruh modul (yang secara struktural SUDAH memberi hak akses per-aksi, bukan per-menu, tanpa perlu matriks tertulis terpisah)? | Yasmin | Terbuka — tidak memblokir `BKC-DEC-123`/`124`. Butir field/pesan error (butir 1) murni detail UI, `DEV_DISCRETION` mengikuti pola form existing kecuali owner ingin mengunci teks tertentu |
+| `BKC-OQ-106` | Bagian 10 dokumen (Rekomendasi Aktivitas Tanpa Shift Aktif) eksplisit ditandai REKOMENDASI dari rujukan Permenkes/SATUSEHAT, bukan ketentuan terkunci. Apakah matriks itu (mis. tolak pencatatan Petty Cash tanpa shift `OPEN`) mau dikunci sebagai `RULE` resmi Shift Kasir, atau dibiarkan sebagai rekomendasi non-mengikat? | Yasmin | Terbuka — tidak memblokir `BKC-DEC-123`/`124`; berkaitan dengan modul Petty Cash yang sudah punya keputusan sendiri (`PC-DEC-*`), bukan Shift Kasir murni |
+
+---
+
+### `BKC-DEC-125` — Wewenang dan Field Penyelesaian `PERLU_TINDAK_LANJUT`
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Menutup `BKC-OQ-104`.** Aksi susulan yang memindahkan shift dari `PERLU_TINDAK_LANJUT` ke `REVIEWED` (`BKC-DEC-124`) dijalankan oleh **Supervisor/Kepala Kasir** — wewenang SAMA dengan `ReviewVarianceAsync` awal, TIDAK eskalasi ke Manajemen sebagai syarat penyelesaian aksi ini (keterlibatan Manajemen pada `RULE-014`/`BKC-DEC-038` tetap berlaku sebagai kebijakan umum penentuan *hasil* penyelesaian selisih — misalnya siapa menanggung nominal — bukan syarat *siapa yang boleh menekan tombol selesai* pada sistem). Field wajib pada aksi penyelesaian: `VerificationNote` (catatan penyelesaian, wajib diisi), `VerifiedBy` (diisi otomatis dari actor yang menjalankan aksi), `VerifiedDate` (diisi otomatis waktu aksi dijalankan) |
+| Owner | Yasmin |
+| Status | `approved` |
+| Approval evidence | Jawaban eksplisit owner: "Penyelesaian `PERLU_TINDAK_LANJUT` dilakukan Supervisor/Kepala Kasir dengan field `VerificationNote`, `VerifiedBy`, `VerifiedDate`" |
+| Alasan | Konsisten dengan wewenang review variance awal (`ReviewVarianceAsync`) yang sudah dipegang Supervisor/Kepala Kasir — tidak menambah jenjang approval baru untuk aksi lanjutan atas kasus yang sama |
+| Konsekuensi | Aksi susulan (nama tentatif `CompleteFollowUpAsync`/`ResolveFollowUpAsync`, dikunci saat desain) menerima request dengan field `VerificationNote` wajib; `VerifiedBy`/`VerifiedDate` TIDAK dikirim client, diisi server dari `actorUserId`/waktu transaksi — pola sama dengan `ReviewedAt`/`ReviewerId` pada `BilCashVarianceReview` yang sudah ada. Kemungkinan field ini disimpan pada `BilCashVarianceReview` yang sudah ada (menambah kolom) atau baris review kedua — keputusan model data persis menyusul di `design-business-module` |
+| Trace | Menutup `BKC-OQ-104`; `Shift Kasir (3).md` BP-005 butir 3-5; `BKC-DEC-124`; source `BilCashVarianceReview.cs` (pola `ReviewerId`/`ReviewedAt` existing yang diikuti) |
+
+---
+
+### `BKC-DEC-126` — Tanpa Matriks Hak Akses Terpisah; Pesan Error Standar Field Wajib
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Menutup `BKC-OQ-105`.** Tidak dibuat matriks hak akses per-aksi terpisah untuk Shift Kasir — cukup mengikuti konvensi `role-access-rules.md`/`[AccessAction]`+`[AccessPermission]` per-endpoint yang sudah baku di seluruh modul (setiap endpoint baru pada `BKC-DEC-123`/`124`/`125` WAJIB tetap diberi `[AccessAction]`/`[AccessPermission]` seperti aksi existing, sesuai kontrak yang sudah mengikat, bukan pengecualian). Pesan error standar untuk field wajib yang belum diisi pada form Buka/Tutup/Serah Terima Shift: **`"{Nama Field} wajib diisi."`** — pola yang sudah direkomendasikan dokumen (Bagian 5 "Form Shift") kini dikunci sebagai ketentuan, bukan rekomendasi |
+| Owner | Yasmin |
+| Status | `approved` |
+| Approval evidence | Jawaban eksplisit owner: "Tidak perlu matriks hak akses terpisah; gunakan `AccessAction` per endpoint. Pesan error standar `{Field} wajib diisi.`" |
+| Alasan | Matriks tertulis terpisah akan menduplikasi apa yang sudah ditegakkan otomatis oleh `[AccessAction]`/layar Manajemen Role → Akses Role; menjaga satu sumber kebenaran wewenang (kode + layar admin), bukan dua |
+| Konsekuensi | `BKC-OQ-105` ditutup penuh — tidak ada artefak matriks tambahan yang perlu dibuat. Pesan error `"{Nama Field} wajib diisi."` MUST dipakai konsisten di seluruh validasi field wajib form Shift Kasir (backend maupun frontend), menggantikan status "rekomendasi UX" pada dokumen asli |
+| Trace | Menutup `BKC-OQ-105`; `Shift Kasir (3).md` Bagian 5 "Form Shift", RULE-005; `role-access-rules.md` (konvensi `[AccessAction]`/`[AccessPermission]` yang sudah mengikat) |
+
+---
+
+### `BKC-DEC-127` — Bagian 10 Dokumen Tetap Rekomendasi; Aksi Finansial Tetap Wajib Shift `OPEN`
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Menutup `BKC-OQ-106`.** Matriks Bagian 10 dokumen (Rekomendasi Aktivitas Tanpa Shift Aktif — akses baca/administratif Invoice & Billing Kasir, Riwayat Pembayaran, Petty Cash tanpa shift `OPEN`) **TETAP berstatus rekomendasi non-mengikat**, TIDAK dikunci menjadi `RULE` resmi Shift Kasir pada pass ini. Yang TETAP wajib (bukan keputusan baru, konfirmasi ulang atas `RULE-002`/`RULE-019` yang sudah `approved`): **aksi finansial apa pun** (penerimaan pembayaran, refund, pengeluaran/pemasukan kas, koreksi finansial, settlement, atau perubahan posisi kas lainnya) **tetap wajib shift `OPEN`**, terlepas dari menu tempat aksi itu dipicu |
+| Owner | Yasmin |
+| Status | `approved` |
+| Approval evidence | Jawaban eksplisit owner: "Aktivitas tanpa shift `OPEN` tetap rekomendasi, bukan `RULE` resmi. Aksi finansial tetap wajib shift `OPEN`" |
+| Alasan | Mengunci rekomendasi berbasis inferensi Permenkes/SATUSEHAT (bukan ketentuan eksplisit regulasi) menjadi `RULE` mengikat berisiko menciptakan kewajiban yang tidak benar-benar berasal dari keputusan bisnis pemilik modul. Batas yang sungguh kritis (aksi finansial wajib shift `OPEN`) sudah cukup ditegakkan lewat `RULE-002`/`RULE-019` yang sudah ada — tidak perlu memperluas cakupan `RULE` resmi ke aktivitas non-finansial |
+| Konsekuensi | Implementasi menu Invoice & Billing Kasir/Riwayat Pembayaran/Petty Cash TANPA shift `OPEN` mengikuti Bagian 10 dokumen sebagai PANDUAN desain (bukan gerbang validasi wajib) — pengecualian/penyesuaian pada implementasinya tidak dianggap pelanggaran `RULE`. Validasi shift `OPEN` pada aksi finansial (`RULE-002`/`019`) TIDAK berubah dan tetap ditegakkan seperti sekarang |
+| Trace | Menutup `BKC-OQ-106`; `Shift Kasir (3).md` Bagian 10, RULE-002, RULE-017–019 (sudah `approved` sebelumnya, dikonfirmasi ulang di sini) |
+
+---
+
+### Status Penutupan
+
+| ID | Status sebelumnya | Status sekarang |
+|---|---|---|
+| Dokumen `Shift Kasir (3).md` Bagian 12 butir 2 | Belum ditetapkan | **Tertutup** — terjawab source, lihat tabel Fact di atas |
+| Dokumen `Shift Kasir (3).md` Bagian 12 butir 3 | Belum ditetapkan | **Tertutup** — terjawab `PC-DEC-001` |
+| Gap blocking shift berikutnya (RULE-012/BP-007) | Tidak terdeteksi sebelumnya | **Tertutup** — `BKC-DEC-123` |
+| Gap hasil review variance tunggal (BP-005/RULE-011) | Tidak terdeteksi sebelumnya | **Tertutup** — `BKC-DEC-124` |
+| Dokumen `Shift Kasir (3).md` Bagian 12 butir 1 dan 4 | Belum ditetapkan | **Tertutup** — `BKC-DEC-126` |
+| Bagian 10 dokumen (rekomendasi tanpa shift) | Rekomendasi, belum dikunci | **Tertutup** — `BKC-DEC-127` (tetap rekomendasi, dikonfirmasi sengaja tidak dikunci) |
+| Aksi susulan penyelesaian `PERLU_TINDAK_LANJUT` | Baru muncul dari `BKC-DEC-124` | **Tertutup** — `BKC-DEC-125` |
+
+**Seluruh open question amendment ini (`BKC-OQ-104`–`106`) sudah tertutup** lewat
+`BKC-DEC-125`–`127`. `BKC-DEC-123`–`127` cukup untuk memulai implementasi backend penuh:
+perubahan `CashierShiftService.OpenAsync` (blocking), `ReviewVarianceAsync` (dua hasil), aksi
+susulan baru (penyelesaian follow-up dengan `VerificationNote`/`VerifiedBy`/`VerifiedDate`),
+serta `[AccessAction]`/`[AccessPermission]` standar pada seluruh endpoint yang tersentuh. Tidak
+ada open question tersisa yang memblokir.
+
+---
+
+## Amendment Pass — Pembalikan Tender Top-Up Deposit dan Alokasi Tagihan (28 September 2026)
+
+**Pemicu:** Permintaan perbaikan dari modul Finance (`docs/module-blueprints/finance-management/evidence/17-permintaan-perbaikan-pembalikan-tender-deposit-untuk-billing.md`, `FIN-OQ-034`) mengenai ketiadaan pencatatan mutasi deposit pembalik saat tender top-up berstatus `REVERSED`, terutama jika dana deposit telah terpakai melunasi tagihan pasien.
+
+### `BKC-DEC-128` — Pembatalan Alokasi Tagihan Mendahului Pembalikan Top-Up Deposit Saat Tender `REVERSED`
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Menutup `FIN-OQ-034` (sisi Billing).** Ketika tender pembayaran yang mendanai top-up deposit rawat inap pasien ditarik kembali atau dibatalkan (`BillingTenderStatuses.Reversed`) dan dananya sebagian atau seluruhnya telah terpakai melunasi tagihan (`ALLOCATION`), sistem **wajib membatalkan alokasi pembayaran tagihan pasien terlebih dahulu**, memulihkan saldo deposit sementara, kemudian mencatat mutasi pembalikan top-up (`REVERSAL`). Saldo akun deposit pasien **dilarang menjadi negatif**. Tagihan pasien kembali terbuka sebagai piutang yang belum terbayar (`FINAL` dengan outstanding > 0) untuk ditagih ulang kepada pasien atau penjamin. |
+| Owner | Yasmin / Owner Billing Kasir |
+| Status | `approved` |
+| Approval evidence | Sesi `/grill-me` 28 September 2026 atas evidence `17-permintaan-perbaikan-pembalikan-tender-deposit-untuk-billing.md` |
+| Alasan | Menjaga integritas saldo akun deposit pasien agar tidak pernah defisit/minus, mencerminkan realitas finansial rumah sakit bahwa uang pembayaran tidak pernah diterima sehingga tagihan pasien belum lunas, dan menyediakan fakta yang akurat bagi pembukuan Finance dan Accounting |
+| Konsekuensi | Invoice yang sebelumnya lunas (`CLOSED`) akan otomatis kembali terbuka (`FINAL`), status clearance kepulangan pasien yang terdampak disinkronkan, dan pasien/penjamin ditagih ulang atas sisa tagihan tersebut |
+| Trace | Menutup `FIN-OQ-034`; `evidence/17-permintaan-perbaikan-pembalikan-tender-deposit-untuk-billing.md`; `BillingSettlementService.cs`; `BillingDepositService.cs` |
+
+---
+
+### `BKC-DEC-129` — Urutan Pembatalan Alokasi Tagihan Menggunakan Metode LIFO (Last In First Out)
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | Bila dana top-up deposit yang ditarik (`REVERSED`) hanya sebagian terpakai atau tersebar ke beberapa alokasi/invoice, urutan penarikannya adalah: (1) Menarik sisa saldo deposit yang belum terpakai (`AvailableBalance`) terlebih dahulu; (2) Bila sisa saldo belum cukup menutup nominal pembalikan top-up, batalkan alokasi pembayaran tagihan secara urut **LIFO (Last In First Out)** dari alokasi yang paling baru/terakhir hingga total pembalikan terpenuhi penuh. |
+| Owner | Yasmin / Owner Billing Kasir |
+| Status | `approved` |
+| Approval evidence | Sesi `/grill-me` 28 September 2026 |
+| Alasan | Alokasi yang paling terakhir dibuat adalah alokasi yang paling mutakhir dan paling kecil kemungkinannya telah melewati periode pelaporan penutupan atau rekonsiliasi klaim penjamin yang telah selesai |
+| Konsekuensi | Alokasi yang lebih lama tetap utuh selama sisa saldo dan alokasi yang lebih baru mencukupi untuk menutup nilai pembalikan |
+| Trace | Menutup `FIN-OQ-034`; `evidence/17`; `BilPaymentAllocation`; `BilDepositMovement` |
+
+---
+
+### `BKC-DEC-130` — Eksekusi Transaksional Otomatis dan Penyelarasan Status Invoice
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | Pembatalan alokasi dan pembalikan top-up dieksekusi secara otomatis dan atomik di dalam satu transaksi `Serializable` saat status tender bertransisi menjadi `REVERSED` (baik via callback/webhook penyedia pembayaran maupun aksi pembatalan internal). Sistem secara otomatis memanggil `BillingInvoiceClosureService.SyncClosureAsync` untuk menyelaraskan status invoice terdampak dari `CLOSED` kembali ke `FINAL`, serta mencatat jejak audit log finansial. |
+| Owner | Yasmin / Owner Billing Kasir |
+| Status | `approved` |
+| Approval evidence | Sesi `/grill-me` 28 September 2026 |
+| Alasan | Menjamin ketiadaan selisih waktu (lag) antara penarikan uang di gateway pembayaran dan pencatatan di sistem billing, menghindari piutang tidak tertagih akibat keterlambatan verifikasi manual kasir |
+| Konsekuensi | Kasir menerima pemberitahuan/notifikasi bahwa invoice pasien kembali terbuka akibat tender kartu/gateway ditarik kembali |
+| Trace | Menutup `FIN-OQ-034`; `BillingInvoiceClosureService.cs`; `BillingSettlementService.cs` |
+
+---
+
+### `BKC-DEC-131` — Pencatatan Mutasi Terpisah: `RELEASE` untuk Alokasi dan `REVERSAL` untuk Top-Up
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | Pada tabel `BilDepositMovement`, sistem mencatat dua jenis mutasi terpisah: (1) Mutasi bertipe `BillingDepositMovementTypes.Release` (`RELEASE`) untuk setiap baris alokasi invoice yang dibatalkan, yang mengembalikan dana alokasi ke saldo akun deposit; dan (2) Mutasi bertipe `BillingDepositMovementTypes.Reversal` (`REVERSAL`) yang mereferensikan mutasi top-up awal (`ReversesMovementId = originalTopUpMovement.Id`) untuk menarik keluar dana deposit. |
+| Owner | Yasmin / Owner Billing Kasir |
+| Status | `approved` |
+| Approval evidence | Sesi `/grill-me` 28 September 2026 |
+| Alasan | Memisahkan secara transparan jejak audit antara pembatalan pemakaian uang muka ke invoice dan pembatalan penerimaan uang muka dari bank/penyedia. Hal ini memenuhi kebutuhan integrasi Finance (`FinBillingHandoffTypes.DepositMovement`) untuk menerbitkan kejadian akuntansi `PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT` dan `PEMBALIKAN-PENERIMAAN-UANG-MUKA` secara tepat dan berpasangan |
+| Konsekuensi | `BilDepositMovement` bertambah baris mutasi `RELEASE` dan `REVERSAL` yang lengkap dan idempoten; Finance tidak lagi mengalami kegagalan sinkronisasi (*intake error*) pada skenario tender reversal |
+| Trace | Menutup `FIN-OQ-034`; `BilDepositMovement.cs`; `FinBillingHandoffIntake.cs`; `evidence/17` |
+
+---
+
+## Amendment Pass — Penanda Eksplisit Mutasi `RELEASE` dan Penyelarasan Mutasi Deposit (29 September 2026)
+
+**Pemicu:** Surat permohonan dari modul Finance (`docs/module-blueprints/finance-management/evidence/19-permintaan-penanda-eksplisit-mutasi-release-ke-billing.md`, `FIN-OQ-037`) terkait klarifikasi semantik mutasi `RELEASE` pada saat pembalikan tender top-up deposit rawat inap (tindak lanjut `BKC-DEC-128`..`131`), serta temuan bahwa `BillingDepositService.cs:176` menjumlahkan seluruh mutasi `RELEASE` ke dalam `totalRefunded`.
+
+### `BKC-DEC-132` — Adopsi Opsi A: Pengisian `ReversesMovementId` pada Mutasi `RELEASE` Pembatalan Alokasi
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | **Menutup `FIN-OQ-037` (sisi Billing).** Billing mengadopsi **Opsi A**: ketika alokasi tagihan dibatalkan secara LIFO akibat pembalikan tender top-up (`BKC-DEC-128`..`131`), mutasi `RELEASE` yang dicatat pada `BilDepositMovement` **wajib mengisi kolom `ReversesMovementId`** dengan ID mutasi `ALLOCATION` yang dibatalkan. Tidak ada penambahan nilai baru pada enum `MovementType`. Penanda ini secara definitif membedakan pembatalan alokasi pemakaian deposit dari pengembalian kas fisik murni kepada pasien, sehingga Finance dapat menerbitkan kejadian `PEMBALIKAN-PEMAKAIAN-UANG-MUKA-DEPOSIT` (tanpa kas keluar) secara aman dan akurat. |
+| Owner | Yasmin / Owner Billing Kasir |
+| Status | `approved` |
+| Approval evidence | Sesi `/grill-me` 29 September 2026 atas evidence `19-permintaan-penanda-eksplisit-mutasi-release-ke-billing.md` |
+| Alasan | Kolom `ReversesMovementId` sudah tersedia di tabel `BilDepositMovement` (nol perubahan skema database), polanya simetris dengan mutasi `REVERSAL` yang menunjuk `TOP_UP`, dan memberikan korelasi data yang lengkap tanpa risiko komplikasi migrasi constraint/enum |
+| Konsekuensi | Kolom `ReversesMovementId` pada mutasi `RELEASE` tidak lagi dibiarkan `null`. Finance dapat langsung memvalidasi keberadaan `ReversesMovementId` untuk memastikan mutasi tersebut merupakan pembalikan alokasi |
+| Trace | Menutup `FIN-OQ-037`; `evidence/19-permintaan-penanda-eksplisit-mutasi-release-ke-billing.md`; `BilDepositMovement.cs:25`; `BillingSettlementService.cs:949` |
+
+---
+
+### `BKC-DEC-133` — Granularitas Mutasi 1-ke-1 untuk Setiap Alokasi yang Dibatalkan secara LIFO
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | Bila pembalikan tender top-up membatalkan lebih dari satu alokasi tagihan secara LIFO, sistem **wajib mencatat 1 baris mutasi `RELEASE` untuk setiap baris alokasi yang dibatalkan (1-to-1 per alokasi)** pada `BilDepositMovement`. Setiap baris mutasi `RELEASE` mencatat `Amount` sesuai nominal alokasi yang dibatalkan, `SettlementId` milik alokasi tersebut, dan `ReversesMovementId` yang menunjuk tepat ke ID mutasi `ALLOCATION` asalnya. Dilarang menggabungkan beberapa alokasi yang dibatalkan ke dalam satu mutasi `RELEASE` gelondongan. |
+| Owner | Yasmin / Owner Billing Kasir |
+| Status | `approved` |
+| Approval evidence | Sesi `/grill-me` 29 September 2026 |
+| Alasan | Memastikan rantai telusur audit (audit trail) 1-ke-1 tetap utuh dan presisi. Finance dapat memetakan pembatalan pemakaian deposit per tagihan/invoice dengan nominal yang persis cocok terhadap alokasi awal, tanpa kehilangan referensi id mutasi |
+| Konsekuensi | Jumlah baris mutasi `RELEASE` bertambah sesuai jumlah alokasi yang dibatalkan, tetapi integritas data dan korelasi akuntansi antar-modul terjaga sempurna |
+| Trace | Menutup `FIN-OQ-037`; `BKC-DEC-129`; `BillingSettlementService.cs`; `BilPaymentAllocation.cs` |
+
+---
+
+### `BKC-DEC-134` — Penyelarasan Perhitungan Ringkasan Deposit (`totalRefunded`) dan Efek Saldo Mutasi di Billing
+
+| Field | Isi |
+|---|---|
+| Type | Decision |
+| Item | Modul Billing menyelaraskan pembacaan mutasi `RELEASE` pada ringkasan deposit dan buku rekening/mutasi: <br>1. **Pengecualian dari `totalRefunded`:** Pada `BillingDepositService.cs` (`GetEpisodeDepositSummaryAsync`), perhitungan `totalRefunded` **hanya menjumlahkan mutasi pengembalian kas nyata** dan **wajib mengecualikan mutasi `RELEASE` yang merupakan pembatalan alokasi (`ReversesMovementId != null`)**, karena dana tersebut kembali ke saldo akun deposit pasien dan tidak pernah diserahkan tunai/transfer ke pasien.<br>2. **Efek Saldo pada Mutasi Rekening:** Pada `GetDepositStatementAsync`, efek saldo (`BalanceEffect`) untuk mutasi `RELEASE` pembatalan alokasi adalah **penambahan saldo (`+Amount`)**, bukan pengurangan, karena dana tagihan dipulihkan kembali ke saldo deposit sebelum mutasi `REVERSAL` menarik dana top-up (`-Amount`), sehingga saldo akhir mutasi kembali nol secara seimbang. |
+| Owner | Yasmin / Owner Billing Kasir |
+| Status | `approved` |
+| Approval evidence | Sesi `/grill-me` 29 September 2026; temuan audit source `BillingDepositService.cs:176` dan `764-767` |
+| Alasan | Menghilangkan anomali laporan di mana kasir seolah mengembalikan dana tunai ke pasien (refund fiktif), serta memperbaiki running balance buku rekening deposit agar tidak terjadi defisit/minus artifisial |
+| Konsekuensi | Kode `BillingDepositService.cs` pada endpoint ringkasan dan statement deposit disesuaikan agar membaca `ReversesMovementId` dan menerapkan tanda saldo yang benar |
+| Trace | `BillingDepositService.cs:176`; `BillingDepositService.cs:764`; `evidence/19`; `FIN-DEC-080` |
+
+
