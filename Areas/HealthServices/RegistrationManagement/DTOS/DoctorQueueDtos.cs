@@ -156,6 +156,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.DTOs
         public DateTime? ConsultationStartedAt { get; set; }
         public DateTime? ConsultationCompletedAt { get; set; }
 
+        /// <summary>
+        /// Masalah penyerahan tagihan saat konsultasi diselesaikan dari antrean (<c>BE-RJE-013</c>,
+        /// <c>RJ-E2E-CONTRACT-001@1.0.1</c>). Disalin apa adanya dari hasil finalisasi canonical;
+        /// kosong bila tidak ada masalah atau untuk aksi antrean lain. Konsultasi tetap selesai.
+        /// </summary>
+        public List<string> BillingHandoffIssues { get; set; } = new();
+
         public bool IsDoctorCallClusterLocked { get; set; }
         public Guid? DoctorCallScopeId { get; set; }
         public Guid? DoctorCallClusterId { get; set; }

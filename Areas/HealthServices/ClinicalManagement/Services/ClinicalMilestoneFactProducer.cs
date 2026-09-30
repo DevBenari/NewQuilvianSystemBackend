@@ -4,6 +4,8 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Billing.Services;
+using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.MasterData.Models;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Constants;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.DTOs;
 using QuilvianSystemBackend.Areas.HealthServices.BillingManagement.Operational.Services;
@@ -52,6 +54,72 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
             _dbContext = dbContext;
             _billingFolioService = billingFolioService;
             _loggerService = loggerService;
+        }
+
+        /// <summary>
+        /// Mengirim ulang fakta yang hasil penyerahannya belum pasti (<c>Pending</c> atau
+        /// <c>OutcomeUnknown</c>) memakai identitas dan <c>IdempotencyKey</c> yang sama
+        /// (<c>BE-RJE-011</c>, <c>AC-RJ-014</c>). Tidak pernah menerbitkan revisi baru.
+        /// </summary>
+        /// <remarks>
+        /// Isi material disusun dari baris tersimpan. Hal itu aman karena
+        /// <see cref="Normalize"/> sudah menyeragamkan waktu, skala desimal, dan JSON ke bentuk
+        /// yang disimpan kolom, sehingga sidik jari Billing untuk pengiriman ulang identik dengan
+        /// pengiriman pertama. Fakta yang sudah pasti (<c>Dispatched</c>, <c>Rejected</c>,
+        /// <c>SuppressedNoPriorCharge</c>) atau sudah menunggu rekonsiliasi dikembalikan apa adanya.
+        /// </remarks>
+        public async Task<ClinicalFactEmissionResult> RedispatchAsync(
+            Guid clinicalMilestoneFactId,
+            CancellationToken cancellationToken = default)
+        {
+            if (_dbContext.Database.CurrentTransaction != null)
+            {
+                throw new InvalidOperationException(
+                    "Fakta klinis hanya boleh dikirim ulang di luar transaksi klinis.");
+            }
+
+            var fact = await _dbContext.Set<CliClinicalMilestoneFact>()
+                .FirstOrDefaultAsync(x => x.Id == clinicalMilestoneFactId && !x.IsDelete, cancellationToken);
+            if (fact == null)
+            {
+                return ClinicalFactEmissionResult.Failure(
+                    ClinicalFactEmissionKind.ReconciliationRequired,
+                    "CLIN_FACT_NOT_FOUND",
+                    "Catatan fakta klinis tidak ditemukan.");
+            }
+
+            if (fact.DispatchStatus is not (ClinicalFactDispatchStatus.Pending or ClinicalFactDispatchStatus.OutcomeUnknown)
+                || fact.ReconciliationRequiredAt != null)
+            {
+                return ClinicalFactEmissionResult.Emitted(
+                    ClinicalFactEmissionKind.Replayed,
+                    fact.Id,
+                    fact.MilestoneFactId,
+                    fact.MilestoneFactVersion,
+                    fact.DispatchStatus,
+                    fact.BillingFolioId,
+                    fact.BillingChargeLineId,
+                    fact.BillingOutcomeCode,
+                    fact.BillingOutcomeMessage);
+            }
+
+            var stored = new ClinicalMilestoneFactRequest
+            {
+                SourceContext = fact.SourceContext,
+                SourceAggregateId = fact.SourceAggregateId,
+                SourceItemId = fact.SourceItemId,
+                EffectType = fact.EffectType,
+                EncounterId = fact.EncounterId,
+                OccurredAt = DateTime.SpecifyKind(fact.OccurredAt, DateTimeKind.Utc),
+                Quantity = fact.Quantity,
+                Unit = fact.Unit,
+                TariffSnapshot = fact.TariffSnapshot,
+                RuleSnapshot = fact.RuleSnapshot,
+                CorrelationId = fact.CorrelationId,
+                CausationId = fact.CausationId
+            };
+
+            return await DispatchAsync(fact, stored, fact.ActorUserId, ClinicalFactEmissionKind.Emitted, cancellationToken);
         }
 
         /// <summary>
@@ -370,15 +438,54 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                         fact.CorrelationId,
                         ExceptionType = exception.GetType().Name
                     });
+
+                // BE-RJE-011: Billing memakai DbContext yang sama. Setelah perintahnya habis waktu,
+                // koneksi itu dapat tertinggal rusak sehingga hasil OutcomeUnknown gagal dicatat.
+                // Mulai dari koneksi dan change tracker bersih; fakta dibaca ulang dari database.
+                _dbContext.ChangeTracker.Clear();
+                try
+                {
+                    await _dbContext.Database.CloseConnectionAsync();
+                }
+                catch (Exception closeException) when (closeException is not OperationCanceledException)
+                {
+                    // Koneksi yang sudah rusak boleh gagal ditutup; EF membuka koneksi baru.
+                }
             }
 
-            return await ApplyDispatchOutcomeAsync(
-                fact.Id,
-                billingResult,
-                dispatchFailed,
-                actorUserId,
-                successKind,
-                cancellationToken);
+            try
+            {
+                return await ApplyDispatchOutcomeAsync(
+                    fact.Id,
+                    billingResult,
+                    dispatchFailed,
+                    actorUserId,
+                    successKind,
+                    cancellationToken);
+            }
+            catch (Exception exception) when (exception is not OperationCanceledException)
+            {
+                // Hasil penyerahan tidak dapat dicatat. Keputusan klinis sudah tersimpan dan tidak
+                // boleh tampil gagal; fakta tetap Pending dan dikirim ulang ClinicalFactDispatchWorker
+                // dengan identitas yang sama.
+                await _loggerService.ErrorAsync(
+                    LogCategory,
+                    "ClinicalFact.DispatchOutcomeUnrecorded",
+                    "Hasil penyerahan fakta klinis tidak dapat dicatat; fakta menunggu kirim ulang.",
+                    exception,
+                    new { ClinicalMilestoneFactId = fact.Id, fact.MilestoneFactId, fact.MilestoneFactVersion });
+
+                return ClinicalFactEmissionResult.Emitted(
+                    ClinicalFactEmissionKind.OutcomeUnknown,
+                    fact.Id,
+                    fact.MilestoneFactId,
+                    fact.MilestoneFactVersion,
+                    ClinicalFactDispatchStatus.Pending,
+                    billingFolioId: null,
+                    billingChargeLineId: null,
+                    "CLIN_FACT_OUTCOME_UNRECORDED",
+                    "Hasil penyerahan ke Billing belum dapat dicatat; akan dikirim ulang otomatis.");
+            }
         }
 
         private async Task<ClinicalFactEmissionResult> ApplyDispatchOutcomeAsync(
@@ -443,6 +550,7 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 resultKind = ClinicalFactEmissionKind.RejectedByBilling;
             }
 
+            await ScheduleRedispatchAsync(fact, now, cancellationToken);
             await _dbContext.SaveChangesAsync(cancellationToken);
 
             await _loggerService.AuditAsync(
@@ -494,6 +602,49 @@ namespace QuilvianSystemBackend.Areas.HealthServices.ClinicalManagement.Services
                 fact.BillingChargeLineId,
                 fact.BillingOutcomeCode,
                 fact.BillingOutcomeMessage);
+        }
+
+        /// <summary>
+        /// Jadwal kirim ulang setelah hasil <c>OutcomeUnknown</c> (<c>RJ-E2E-DEC-009</c>), dengan
+        /// kebijakan <c>FACT_DISPATCH</c>: <c>min(Base × 2^(n−1), Max)</c>. Batas percobaan tercapai
+        /// atau kebijakan tidak aktif → berhenti otomatis dan <c>ReconciliationRequiredAt</c> diisi
+        /// (fail-closed). Hasil lain yang sudah pasti menghapus jadwal.
+        /// </summary>
+        private async Task ScheduleRedispatchAsync(
+            CliClinicalMilestoneFact fact,
+            DateTime now,
+            CancellationToken cancellationToken)
+        {
+            if (fact.DispatchStatus != ClinicalFactDispatchStatus.OutcomeUnknown)
+            {
+                fact.NextDispatchAttemptAt = null;
+                return;
+            }
+
+            var policy = await _dbContext.Set<MstBillingSyncPolicy>().AsNoTracking()
+                .FirstOrDefaultAsync(x => x.PolicyCode == BillingSyncPolicyCodes.FactDispatch && x.IsActive && !x.IsDelete,
+                    cancellationToken);
+
+            if (policy == null)
+            {
+                fact.NextDispatchAttemptAt = null;
+                fact.ReconciliationRequiredAt = now;
+                fact.BillingOutcomeCode = BillingBridgeCodes.SyncPolicyInactive;
+                fact.BillingOutcomeMessage = "Pengiriman ulang otomatis fakta klinis sedang dimatikan. Fakta menunggu penanganan manual.";
+                return;
+            }
+
+            if (fact.DispatchAttemptCount >= policy.MaxAttemptCount)
+            {
+                fact.NextDispatchAttemptAt = null;
+                fact.ReconciliationRequiredAt = now;
+                fact.BillingOutcomeCode = BillingBridgeCodes.RetryExhausted;
+                fact.BillingOutcomeMessage = "Penyerahan fakta klinis sudah dicoba berulang kali dan hasilnya belum pasti.";
+                return;
+            }
+
+            fact.NextDispatchAttemptAt = now.AddSeconds(
+                BillingClinicalChargeBridgeService.BackoffSeconds(policy, fact.DispatchAttemptCount));
         }
 
         private async Task<CliClinicalMilestoneFact?> FindLatestFactAsync(

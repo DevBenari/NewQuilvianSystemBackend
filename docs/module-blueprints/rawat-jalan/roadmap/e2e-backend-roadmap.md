@@ -28,8 +28,8 @@ owners:
   - "Billing/Revenue Cycle: Sukma Giri (pemilik blueprint)"
   - "Pharmacy (titik sentuh BE-RJE-008): sign-off formal OPEN"
   - "Registration (titik sentuh BE-RJE-006): OPEN"
-implementation_authority: "GRANTED — BE-RJE-001 (RJ-E2E-DEC-017), BE-RJE-002 (RJ-E2E-DEC-018), BE-RJE-003 (RJ-E2E-DEC-019), BE-RJE-004 (RJ-E2E-DEC-020), BE-RJE-006 (RJ-E2E-DEC-021), BE-RJE-005 (RJ-E2E-DEC-022), BE-RJE-007 (RJ-E2E-DEC-024), BE-RJE-008 (RJ-E2E-DEC-025), BE-RJE-009 (RJ-E2E-DEC-025), BE-RJE-010 (RJ-E2E-DEC-025), BE-RJE-014 (RJ-E2E-DEC-025); task lain NOT_GRANTED"
-builder_execution: "EXECUTED — BE-RJE-001, BE-RJE-002, BE-RJE-003, BE-RJE-004, BE-RJE-006, BE-RJE-005, BE-RJE-007, BE-RJE-008, BE-RJE-009, BE-RJE-010, BE-RJE-014 (2026-09-28); task lain NOT_AUTHORIZED"
+implementation_authority: "GRANTED — BE-RJE-001 (RJ-E2E-DEC-017), BE-RJE-002 (RJ-E2E-DEC-018), BE-RJE-003 (RJ-E2E-DEC-019), BE-RJE-004 (RJ-E2E-DEC-020), BE-RJE-006 (RJ-E2E-DEC-021), BE-RJE-005 (RJ-E2E-DEC-022), BE-RJE-007 (RJ-E2E-DEC-024), BE-RJE-008 (RJ-E2E-DEC-025), BE-RJE-009 (RJ-E2E-DEC-025), BE-RJE-010 (RJ-E2E-DEC-025), BE-RJE-014 (RJ-E2E-DEC-025), BE-RJE-011 (RJ-E2E-DEC-026), BE-RJE-013 (RJ-E2E-DEC-026), BE-RJE-012 (RJ-E2E-DEC-026); task lain NOT_GRANTED"
+builder_execution: "EXECUTED — BE-RJE-001, BE-RJE-002, BE-RJE-003, BE-RJE-004, BE-RJE-006, BE-RJE-005, BE-RJE-007, BE-RJE-008, BE-RJE-009, BE-RJE-010, BE-RJE-014, BE-RJE-011, BE-RJE-013 (2026-09-28/30); task lain NOT_AUTHORIZED"
 verification_pattern: "Pola Bank Darah — tanpa project/folder test backend"
 frontend_roadmap: roadmap/e2e-frontend-roadmap.md
 traceability: roadmap/e2e-requirement-traceability.md
@@ -64,13 +64,13 @@ BE-RJE-001 ✅ ─┬─> BE-RJE-002 ✅ ─> BE-RJE-003 ✅ ─┬─> BE-RJE-0
                │                                   │
                │                                   └─> BE-RJE-010 ✅ ─┐
                │                                                      │
-               └─> BE-RJE-011 ────────────────────────────────────────┴─> BE-RJE-012
+               └─> BE-RJE-011 ✅ ─────────────────────────────────────┴─> BE-RJE-012 ✅
 
 BE-RJE-004 ✅
 
 BE-RJE-006 ✅
 
-{RJ-E2E-CONTRACT-001@1.0.1 ✅} ─> BE-RJE-013
+{RJ-E2E-CONTRACT-001@1.0.1 ✅} ─> BE-RJE-013 ✅
 ```
 
 Dependency ditulis sebagai **prasyarat langsung** saja. Contoh: `BE-RJE-003` juga membutuhkan
@@ -80,11 +80,11 @@ dua kali. Jumlah pasangan prasyarat → task: **12**, sama dengan isi kolom `Dep
 | Gelombang | Boleh mulai setelah | Task |
 | ---: | --- | --- |
 | 1 | — | `BE-RJE-001` ✅, `BE-RJE-004` ✅, `BE-RJE-006` ✅ — boleh paralel |
-| 2 | `BE-RJE-001` | `BE-RJE-002` ✅, `BE-RJE-011` — boleh paralel |
+| 2 | `BE-RJE-001` | `BE-RJE-002` ✅, `BE-RJE-011` ✅ — boleh paralel |
 | 3 | `BE-RJE-002` | `BE-RJE-003` ✅ |
 | 4 | `BE-RJE-003` | `BE-RJE-005` ✅, `BE-RJE-007` ✅, `BE-RJE-010` ✅, `BE-RJE-014` ✅ — boleh paralel |
-| 5 | `BE-RJE-005` / `BE-RJE-010` ✅ + `BE-RJE-011` | `BE-RJE-008` ✅, `BE-RJE-009` ✅, `BE-RJE-012` — boleh paralel |
-| — | ⛔ menunggu approval `RJ-E2E-CONTRACT-001@1.0.1` | `BE-RJE-013` |
+| 5 | `BE-RJE-005` / `BE-RJE-010` ✅ + `BE-RJE-011` ✅ | `BE-RJE-008` ✅, `BE-RJE-009` ✅, `BE-RJE-012` ✅ — boleh paralel |
+| — | `RJ-E2E-CONTRACT-001@1.0.1` ✅ | `BE-RJE-013` ✅ |
 
 **Cara membaca:** hari ini tiga task boleh dimulai bersamaan — fondasi data (`001`), pengaman
 `from-source` (`004`), dan status kunjungan tanpa dokter (`006`). `BE-RJE-003` adalah leher botol:
@@ -97,8 +97,8 @@ enam task menunggunya. `BE-RJE-013` baru boleh dimulai setelah kontrak `1.0.1` d
 | `MVP-0` | `EPIC RJE-01` | `BE-RJE-001` ✅, `BE-RJE-002` ✅ |
 | `MVP-1` | `EPIC RJE-02`, `EPIC RJE-08` | `BE-RJE-003` ✅, `BE-RJE-004` ✅, `BE-RJE-005` ✅, `BE-RJE-006` ✅ |
 | `MVP-2` | `EPIC RJE-03`, `EPIC RJE-04` | `BE-RJE-007` ✅, `BE-RJE-008` ✅ |
-| `MVP-3` | `EPIC RJE-05`, `EPIC RJE-06` | `BE-RJE-009` ✅, `BE-RJE-010` ✅, `BE-RJE-011`, `BE-RJE-012` |
-| `MVP-4` | `EPIC RJE-07` | `BE-RJE-013`, `BE-RJE-014` ✅ |
+| `MVP-3` | `EPIC RJE-05`, `EPIC RJE-06` | `BE-RJE-009` ✅, `BE-RJE-010` ✅, `BE-RJE-011` ✅, `BE-RJE-012` ✅ |
+| `MVP-4` | `EPIC RJE-07` | `BE-RJE-013` ✅, `BE-RJE-014` ✅ |
 
 Gelombang eksekusi di atas boleh lebih cepat dari gelombang MVP (contoh: `BE-RJE-011` bisa jalan di
 gelombang 2), karena urutan MVP adalah urutan rilis, sedangkan gelombang eksekusi adalah urutan
@@ -118,9 +118,9 @@ teknis paling awal yang aman.
 | `BE-RJE-008` ✅ | Obat dua tahap; deadlock farmasi hilang | `FR-RJE-030`..`032`; `RJ-E2E-DEC-005` | `1.0.0` | Clearance farmasi, `PrescriptionDispensingService` | Resolver `PHARMACY`, fakta tahap 2 | `BE-RJE-005` | Kartu | Pola Bank Darah + `UAT-07`, `08`, `09` | Titik sentuh Pharmacy / Pharmacy + Billing | Kartu |
 | `BE-RJE-009` ✅ | Pembatalan tanpa menghapus riwayat, tanpa pembatalan palsu | `FR-RJE-040`..`042`; `RJ-E2E-DEC-010` | `1.0.0` | `VoidItemAsync`, `CreateAdjustmentAsync`, *CASE A* producer | Cabang pembatalan di jembatan | `BE-RJE-005` | Kartu | Pola Bank Darah + `UAT-10`, `11`, `12` | — / Billing | Kartu |
 | `BE-RJE-010` ✅ | Sinkron invoice yang gagal dicoba ulang otomatis | `FR-RJE-051`; `RJ-E2E-DEC-009` | `1.0.0` | Pola `InpatientIntegrationOutboxWorker` | Pekerja latar + jadwal dari master | `BE-RJE-003` | Kartu | Pola Bank Darah + `UAT-13`, `14` | Beban database / Billing | Kartu |
-| `BE-RJE-011` | Fakta `Pending`/`OutcomeUnknown` dikirim ulang otomatis | `FR-RJE-050`; `RJ-E2E-DEC-009`; `AC-RJ-014` | `1.0.0` | `ClinicalMilestoneFactProducer` | `RedispatchAsync` + pekerja latar | `BE-RJE-001` | Kartu | Pola Bank Darah | Irisan `RJ-DOC-BE-005` / Clinical Integration | Kartu |
-| `BE-RJE-012` | Petugas Billing dapat menangani antrean dan mengatur kebijakan | `FR-RJE-052`, `054` | `1.0.0` | `[AccessController]`, `PagedResult` | 2 controller, 2 service, DTO | `BE-RJE-010` ✅, `BE-RJE-011` | Kartu | Pola Bank Darah + `UAT-15`, `16` | Balapan petugas vs pekerja / Billing | Kartu |
-| `BE-RJE-013` | `finish-consultation` membawa `BillingHandoffIssues` | `FR-RJE-062`; `RJ-E2E-FE-004` | `1.0.1` (draft) | `ConsultationFinalizationResponse` | Satu field aditif | `{RJ-E2E-CONTRACT-001@1.0.1}` | Kartu | Pola Bank Darah + `UAT-19` | — / Registration + Clinical | Kartu |
+| `BE-RJE-011` ✅ | Fakta `Pending`/`OutcomeUnknown` dikirim ulang otomatis | `FR-RJE-050`; `RJ-E2E-DEC-009`; `AC-RJ-014` | `1.0.0` | `ClinicalMilestoneFactProducer` | `RedispatchAsync` + pekerja latar | `BE-RJE-001` | Kartu | Pola Bank Darah | Irisan `RJ-DOC-BE-005` / Clinical Integration | Kartu |
+| `BE-RJE-012` ✅ | Petugas Billing dapat menangani antrean dan mengatur kebijakan | `FR-RJE-052`, `054` | `1.0.0` | `[AccessController]`, `PagedResult` | 2 controller, 2 service, DTO | `BE-RJE-010` ✅, `BE-RJE-011` ✅ | Kartu | Pola Bank Darah + `UAT-15`, `16` | Balapan petugas vs pekerja / Billing | Kartu |
+| `BE-RJE-013` ✅ | `finish-consultation` membawa `BillingHandoffIssues` | `FR-RJE-062`; `RJ-E2E-FE-004` | `1.0.1` (draft) | `ConsultationFinalizationResponse` | Satu field aditif | `{RJ-E2E-CONTRACT-001@1.0.1}` | Kartu | Pola Bank Darah + `UAT-19` | — / Registration + Clinical | Kartu |
 | `BE-RJE-014` ✅ | Dokter dapat membaca ringkasan tagihan satu kunjungan | `FR-RJE-060`; `RJ-E2E-DEC-008` | `1.0.0` | `PreviewCalculationAsync`, adapter coverage | Controller, service, DTO | `BE-RJE-003` | Kartu | Pola Bank Darah + `UAT-17`, `18`, `24` | Data sensitif / Security | Kartu |
 
 ## Aturan yang berlaku untuk setiap task
@@ -258,10 +258,11 @@ teknis paling awal yang aman.
 | **Verifikasi** | Pola Bank Darah; waktu jadwal dicatat |
 | **DoD** | AC terbukti; laporan |
 
-### `BE-RJE-011` — Pekerja kirim ulang fakta klinis
+### ✅ `BE-RJE-011` — Pekerja kirim ulang fakta klinis
 
 | Field | Isi |
 | --- | --- |
+| **Status** | ✅ `COMPLETE` 2026-09-29 — 3/3 AC terbukti; catatan rujukan `RJ-DOC-BE-005` ada. Build penuh `0 Error(s)`/`230 Warning(s)` (= baseline), `has-pending-model-changes` bersih, QBE strict `PASS`, `dotnet test` `NOT RUN`, runtime R0–R3 `PASS` terhadap `QuilvianNewDevSukma`. Termasuk perbaikan ketahanan producer (kegagalan mencatat hasil tidak lagi `500` bagi dokter). [laporan](../task/report/backend/BE-RJE-011.md) |
 | **Outcome** | Fakta yang hasil penyerahannya tidak pasti dikirim ulang dengan identitas yang sama sampai pasti, atau masuk antrean |
 | **Cakupan** | `ClinicalMilestoneFactProducer.RedispatchAsync`; pengisian `NextDispatchAttemptAt` dan `ReconciliationRequiredAt`; `ClinicalFactDispatchWorker` (`ClinicalManagement/Workers/`) memakai kebijakan `FACT_DISPATCH` |
 | **Irisan dengan scope Dokter** | Task ini **mewujudkan** AC `5` dan `6` `RJ-DOC-BE-005` (fakta yang belum terkirim dapat ditemukan dan dikirim ulang dengan identitas sama). AC `1`–`4` `RJ-DOC-BE-005` (deteksi *producer gap* antara commit klinis dan penulisan fakta) **tetap** milik roadmap Dokter dan wajib memakai ulang `RedispatchAsync`, bukan membangun jalur kedua |
@@ -269,21 +270,22 @@ teknis paling awal yang aman.
 | **Verifikasi** | Pola Bank Darah |
 | **DoD** | AC terbukti; laporan; catatan rujukan ke `RJ-DOC-BE-005` |
 
-### `BE-RJE-012` — API antrean rekonsiliasi dan kebijakan
+### ✅ `BE-RJE-012` — API antrean rekonsiliasi dan kebijakan
 
 | Field | Isi |
 | --- | --- |
+| **Status** | ✅ `COMPLETE` 2026-09-30 — 7/7 AC terbukti. Build penuh `0 Error(s)`/`230 Warning(s)` (= baseline), `has-pending-model-changes` bersih, QBE strict `PASS`, `dotnet test` `NOT RUN`, runtime R0–R8 `PASS` terhadap `QuilvianNewDevSukma`; `403` diuji dengan akun tanpa butir. Delta kontrak: id `CHARGE_LINE` = id `BilProcessingEffect` (`DEC-016`). [laporan](../task/report/backend/BE-RJE-012.md) |
 | **Outcome** | Petugas Billing dapat melihat, mengirim ulang, dan menyelesaikan item antrean; admin dapat mengubah kebijakan tanpa rilis |
 | **Cakupan** | `BillingChargeReconciliationController`/`Service` (3 endpoint), `BillingSyncPolicyController`/`Service` (2 endpoint), DTO; butir hak akses `BillingChargeReconciliation : Read/Update`, `BillingSyncPolicy : Read/Update`; audit |
 | **Acceptance criteria** | 1. Daftar memuat fakta dan baris folio yang gagal/perlu rekonsiliasi, dengan saringan dan halaman. 2. Kirim ulang item `TARIFF_NOT_FOUND` setelah tarif diisi → `Synced` (`UAT-15`). 3. Selesaikan tanpa alasan → `422 RJE-VAL-022` (`UAT-16`). 4. Item `Synced` dikirim ulang → `422 RJE-VAL-020`. 5. Balapan dengan pekerja → `409 RJE-VAL-025`. 6. Kebijakan `MaxAttemptCount = 25` → `422 RJE-VAL-030`; `RowVersion` basi → `409 RJE-VAL-031`. 7. Tanpa butir → `403` |
 | **Verifikasi** | Pola Bank Darah; `403` diuji dengan akun tanpa butir bila tersedia, bila tidak dicatat `NOT RUN` beserta alasannya |
 | **DoD** | AC terbukti; laporan |
 
-### `BE-RJE-013` — `BillingHandoffIssues` pada `finish-consultation`
+### ✅ `BE-RJE-013` — `BillingHandoffIssues` pada `finish-consultation`
 
 | Field | Isi |
 | --- | --- |
-| **Status** | Prasyarat kontrak `1.0.1` **terpenuhi** — `approved` `RJ-E2E-DEC-017` (2026-09-28). Belum dikerjakan; tabel gelombang masih menulis ⛔ dan diperbarui saat revisi roadmap berikutnya |
+| **Status** | ✅ `COMPLETE` 2026-09-30 — 3/3 AC terbukti. Build penuh `0 Error(s)`/`230 Warning(s)` (= baseline), `has-pending-model-changes` bersih, QBE strict `PASS`, `dotnet test` `NOT RUN`, runtime R0–R3 `PASS` terhadap `QuilvianNewDevSukma`. Prasyarat kontrak `1.0.1` `approved` `RJ-E2E-DEC-017`. [laporan](../task/report/backend/BE-RJE-013.md) |
 | **Outcome** | Dokter yang menekan Selesai dari antrean melihat masalah penyerahan tagihan |
 | **Cakupan** | `DoctorQueueActionResponse` + `BillingHandoffIssues: string[]` yang disalin dari hasil finalisasi |
 | **Acceptance criteria** | 1. Billing gagal saat Selesai → respons `200` memuat daftar masalah; konsultasi selesai. 2. Tanpa masalah → daftar kosong. 3. Konsumen lama tidak rusak |

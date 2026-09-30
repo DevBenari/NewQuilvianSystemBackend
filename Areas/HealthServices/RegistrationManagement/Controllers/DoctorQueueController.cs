@@ -514,8 +514,13 @@ namespace QuilvianSystemBackend.Areas.HealthServices.RegistrationManagement.Cont
                 actorUserId,
                 "Konsultasi dokter selesai.");
 
+            var response = BuildActionResponse(queue, "Konsultasi dokter selesai.");
+            // BE-RJE-013: dokter yang menyelesaikan dari antrean juga harus melihat masalah
+            // penyerahan tagihan, sama seperti jalur PATCH /doctor-consultations/{id}/complete.
+            response.BillingHandoffIssues = result.Data?.BillingHandoffIssues ?? new List<string>();
+
             return Ok(ApiResponse<DoctorQueueActionResponse>.Ok(
-                BuildActionResponse(queue, "Konsultasi dokter selesai."),
+                response,
                 "Konsultasi dokter selesai."));
         }
 
